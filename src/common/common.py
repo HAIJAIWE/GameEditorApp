@@ -72,10 +72,10 @@ def atomic_write_json(file_path: Union[str, Path], data: Any, encoding: str = "u
 def generate_unique_id(prefix: str = "ID") -> str:
     """
     生成唯一ID
-    
+
     Args:
         prefix: ID前缀
-        
+
     Returns:
         唯一ID字符串
     """
@@ -86,11 +86,11 @@ def generate_unique_id(prefix: str = "ID") -> str:
 def format_datetime(dt: Optional[datetime] = None, fmt: str = "%Y-%m-%d %H:%M:%S") -> str:
     """
     格式化日期时间
-    
+
     Args:
         dt: 日期时间对象，默认当前时间
         fmt: 格式字符串
-        
+
     Returns:
         格式化后的日期时间字符串
     """
@@ -102,11 +102,11 @@ def format_datetime(dt: Optional[datetime] = None, fmt: str = "%Y-%m-%d %H:%M:%S
 def parse_datetime(date_str: str, fmt: str = "%Y-%m-%d %H:%M:%S") -> Optional[datetime]:
     """
     解析日期时间字符串
-    
+
     Args:
         date_str: 日期时间字符串
         fmt: 格式字符串
-        
+
     Returns:
         日期时间对象，解析失败返回None
     """
@@ -119,7 +119,7 @@ def parse_datetime(date_str: str, fmt: str = "%Y-%m-%d %H:%M:%S") -> Optional[da
 def get_timestamp() -> float:
     """
     获取当前时间戳
-    
+
     Returns:
         时间戳（秒）
     """
@@ -129,10 +129,10 @@ def get_timestamp() -> float:
 def md5_hash(text: str) -> str:
     """
     计算字符串的MD5哈希
-    
+
     Args:
         text: 要哈希的字符串
-        
+
     Returns:
         MD5哈希值
     """
@@ -142,12 +142,12 @@ def md5_hash(text: str) -> str:
 def clamp(value: int, min_val: int, max_val: int) -> int:
     """
     将数值限制在指定范围内
-    
+
     Args:
         value: 要限制的数值
         min_val: 最小值
         max_val: 最大值
-        
+
     Returns:
         限制后的数值
     """
@@ -157,11 +157,11 @@ def clamp(value: int, min_val: int, max_val: int) -> int:
 def safe_int(value: Any, default: int = 0) -> int:
     """
     安全转换为整数
-    
+
     Args:
         value: 要转换的值
         default: 转换失败时的默认值
-        
+
     Returns:
         转换后的整数
     """
@@ -174,11 +174,11 @@ def safe_int(value: Any, default: int = 0) -> int:
 def safe_float(value: Any, default: float = 0.0) -> float:
     """
     安全转换为浮点数
-    
+
     Args:
         value: 要转换的值
         default: 转换失败时的默认值
-        
+
     Returns:
         转换后的浮点数
     """
@@ -191,11 +191,11 @@ def safe_float(value: Any, default: float = 0.0) -> float:
 def safe_str(value: Any, default: str = "") -> str:
     """
     安全转换为字符串
-    
+
     Args:
         value: 要转换的值
         default: 转换失败时的默认值
-        
+
     Returns:
         转换后的字符串
     """
@@ -207,10 +207,10 @@ def safe_str(value: Any, default: str = "") -> str:
 def is_number(value: Any) -> bool:
     """
     检查值是否为数字
-    
+
     Args:
         value: 要检查的值
-        
+
     Returns:
         是否为数字
     """
@@ -224,11 +224,11 @@ def is_number(value: Any) -> bool:
 def list_to_dict(lst: list[dict[str, Any]], key_field: str = "id") -> dict[str, dict[str, Any]]:
     """
     将列表转换为字典
-    
+
     Args:
         lst: 字典列表
         key_field: 作为键的字段名
-        
+
     Returns:
         字典
     """
@@ -238,10 +238,10 @@ def list_to_dict(lst: list[dict[str, Any]], key_field: str = "id") -> dict[str, 
 def dict_to_list(dct: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
     """
     将字典转换为列表
-    
+
     Args:
         dct: 字典
-        
+
     Returns:
         列表
     """
@@ -251,10 +251,10 @@ def dict_to_list(dct: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
 def merge_dicts(*dicts: dict[str, Any]) -> dict[str, Any]:
     """
     合并多个字典，后面的覆盖前面的
-    
+
     Args:
         *dicts: 要合并的字典
-        
+
     Returns:
         合并后的字典
     """
@@ -268,12 +268,12 @@ def merge_dicts(*dicts: dict[str, Any]) -> dict[str, Any]:
 def flatten_dict(d: dict[str, Any], parent_key: str = '', sep: str = '_') -> dict[str, Any]:
     """
     扁平化嵌套字典
-    
+
     Args:
         d: 要扁平化的字典
         parent_key: 父键
         sep: 分隔符
-        
+
     Returns:
         扁平化后的字典
     """

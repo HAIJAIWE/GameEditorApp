@@ -251,7 +251,7 @@ class RelationTablePanel(QWidget):
             self.table.setRowCount(0)
             return
 
-        type_label = DATA_TYPE_LABELS.get(data_type, data_type)
+        DATA_TYPE_LABELS.get(data_type, data_type)
         color = TYPE_COLORS.get(data_type, "#64748B")
         self.subject_group.setStyleSheet(
             f"QGroupBox{{font-family:'Microsoft YaHei',sans-serif;font-size:13px;font-weight:bold;"

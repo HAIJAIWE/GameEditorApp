@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 import json
 from typing import TYPE_CHECKING, Any
 
@@ -43,7 +43,7 @@ if TYPE_CHECKING:
 
 # === Diff 类型枚举 ===
 
-class DiffType(str, Enum):
+class DiffType(StrEnum):
     """字段变更类型枚举。
 
     继承自 str，因此 ``DiffType.ADDED == "added"`` 仍然成立，

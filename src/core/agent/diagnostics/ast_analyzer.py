@@ -91,7 +91,7 @@ class ASTProjectAnalyzer:
 
     def find_cross_module_issues(self) -> list[ASTIssue]:
         issues = []
-        for fpath, mod in self._modules.items():
+        for _fpath, mod in self._modules.items():
             linked_issues = self._check_missing_imports(mod)
             issues.extend(linked_issues)
         return issues

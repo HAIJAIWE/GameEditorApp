@@ -162,7 +162,7 @@ class MetricsCollector:
         )
 
     def generate_report(self) -> str:
-        snapshot = self.get_snapshot()
+        self.get_snapshot()
         lines = ["=" * 50, "Metrics Report", "=" * 50, ""]
 
         total_ops = sum(m.count for m in self._metrics.values())

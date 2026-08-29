@@ -260,7 +260,6 @@ def _panel_btn_hover(cfg: dict) -> str:
     return cfg["accent_bg"].replace("0.06", "0.18").replace("0.08", "0.20").replace("0.10", "0.22")
 
 def _generate_theme(cfg):
-    shadow = ""
     focus = ""
     if cfg.get("focus_bg"):
         focus = f"background-color: {cfg['focus_bg']};"
@@ -881,17 +880,16 @@ def get_chat_css(theme_name: str = None) -> str:
     cfg = _THEME_CONFIGS.get(name, _THEME_CONFIGS["默认"])
     dark = _is_dark_theme(cfg)
 
-    bg = cfg["bg"]
+    cfg["bg"]
     fg = cfg["fg"]
     hint = cfg["hint"]
     accent = cfg["accent"]
     border = cfg["border"]
     input_bg = cfg["input_bg"]
-    accent_light = cfg.get("accent_light", input_bg)
+    cfg.get("accent_light", input_bg)
 
     if dark:
         code_bg = input_bg
-        code_color = "#d2a8ff" if name != "暖调" else "#FCD34D"
         table_header_bg = input_bg
         table_border = border
         blockquote_border = accent
@@ -901,7 +899,6 @@ def get_chat_css(theme_name: str = None) -> str:
         body_color = fg
     else:
         code_bg = "#f1f5f9"
-        code_color = "#6d28d9"
         table_header_bg = "#f1f5f9"
         table_border = "#cbd5e1"
         blockquote_border = accent

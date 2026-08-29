@@ -67,7 +67,7 @@ def handle_exception(
     reraise: bool = False
 ) -> Callable:
     """异常处理装饰器
-    
+
     Args:
         exception_type: 要捕获的异常类型
         return_value: 发生异常时返回的值
@@ -95,14 +95,14 @@ def safe_operation(
     **kwargs
 ) -> Any:
     """安全执行函数
-    
+
     Args:
         func: 要执行的函数
         *args: 函数参数
         default: 失败时的默认返回值
         log_error: 是否记录错误日志
         **kwargs: 函数关键字参数
-        
+
     Returns:
         函数执行结果或默认值
     """
@@ -116,10 +116,10 @@ def safe_operation(
 
 def format_exception(e: Exception) -> str:
     """格式化异常信息
-    
+
     Args:
         e: 异常对象
-        
+
     Returns:
         格式化后的异常信息
     """
@@ -128,10 +128,10 @@ def format_exception(e: Exception) -> str:
 
 def get_error_details(e: Exception) -> dict:
     """获取异常详情
-    
+
     Args:
         e: 异常对象
-        
+
     Returns:
         包含详情的字典
     """

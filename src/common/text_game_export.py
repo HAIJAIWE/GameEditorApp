@@ -13,11 +13,11 @@ class TextGameExporter:
     def to_twine_story(story_data: list[dict], dialog_data: list[dict]) -> str:
         """
         导出为Twine故事格式（流行的互动小说工具）
-        
+
         Args:
             story_data: 剧情数据列表
             dialog_data: 对话数据列表
-            
+
         Returns:
             Twine格式的字符串
         """
@@ -57,7 +57,7 @@ class TextGameExporter:
             options = dialog.get('options', '')
             if options:
                 lines.append("")
-                for i, option in enumerate(options.strip().split('\n')):
+                for _i, option in enumerate(options.strip().split('\n')):
                     option = option.strip()
                     if option:
                         next_dialog = dialog.get('next_dialog', '')
@@ -74,11 +74,11 @@ class TextGameExporter:
     def to_markdown(story_data: list[dict], dialog_data: list[dict]) -> str:
         """
         导出为Markdown格式
-        
+
         Args:
             story_data: 剧情数据列表
             dialog_data: List[Dict]
-            
+
         Returns:
             Markdown格式的字符串
         """
@@ -117,11 +117,11 @@ class TextGameExporter:
     def to_json(story_data: list[dict], dialog_data: list[dict]) -> str:
         """
         导出为JSON格式（带结构）
-        
+
         Args:
             story_data: 剧情数据列表
             dialog_data: 对话数据列表
-            
+
         Returns:
             JSON字符串
         """
@@ -139,7 +139,7 @@ class TextGameExporter:
     def export_to_file(story_data: list[dict], dialog_data: list[dict], output_path: Path, format: str = 'markdown'):
         """
         导出到文件
-        
+
         Args:
             story_data: 剧情数据列表
             dialog_data: 对话数据列表

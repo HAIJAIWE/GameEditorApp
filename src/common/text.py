@@ -7,11 +7,11 @@ from typing import Any
 def clean_text(text: str, strip: bool = True) -> str:
     """
     清理文本
-    
+
     Args:
         text: 要清理的文本
         strip: 是否去除首尾空白
-        
+
     Returns:
         清理后的文本
     """
@@ -30,11 +30,11 @@ def clean_text(text: str, strip: bool = True) -> str:
 def extract_tags(text: str, separator: str = ',') -> list[str]:
     """
     从文本中提取标签
-    
+
     Args:
         text: 包含标签的文本
         separator: 分隔符
-        
+
     Returns:
         标签列表
     """
@@ -48,11 +48,11 @@ def extract_tags(text: str, separator: str = ',') -> list[str]:
 def join_tags(tags: list[str], separator: str = ',') -> str:
     """
     将标签列表连接为字符串
-    
+
     Args:
         tags: 标签列表
         separator: 分隔符
-        
+
     Returns:
         连接后的字符串
     """
@@ -62,10 +62,10 @@ def join_tags(tags: list[str], separator: str = ',') -> str:
 def escape_html(text: str) -> str:
     """
     转义HTML特殊字符
-    
+
     Args:
         text: 要转义的文本
-        
+
     Returns:
         转义后的文本
     """
@@ -77,10 +77,10 @@ def escape_html(text: str) -> str:
 def unescape_html(text: str) -> str:
     """
     取消转义HTML特殊字符
-    
+
     Args:
         text: 要取消转义的文本
-        
+
     Returns:
         取消转义后的文本
     """
@@ -92,12 +92,12 @@ def unescape_html(text: str) -> str:
 def truncate_text(text: str, max_length: int, ellipsis: str = "...") -> str:
     """
     截断文本
-    
+
     Args:
         text: 要截断的文本
         max_length: 最大长度
         ellipsis: 省略号
-        
+
     Returns:
         截断后的文本
     """
@@ -113,10 +113,10 @@ def truncate_text(text: str, max_length: int, ellipsis: str = "...") -> str:
 def contains_chinese(text: str) -> bool:
     """
     检查文本是否包含中文字符
-    
+
     Args:
         text: 要检查的文本
-        
+
     Returns:
         是否包含中文
     """
@@ -128,11 +128,11 @@ def contains_chinese(text: str) -> bool:
 def slugify(text: str, separator: str = '_') -> str:
     """
     将文本转换为URL友好的格式
-    
+
     Args:
         text: 要转换的文本
         separator: 分隔符
-        
+
     Returns:
         slug化的文本
     """
@@ -154,12 +154,12 @@ def slugify(text: str, separator: str = '_') -> str:
 def extract_keywords(text: str, min_length: int = 2, max_length: int = 20) -> list[str]:
     """
     从文本中提取关键词（简单实现）
-    
+
     Args:
         text: 要提取的文本
         min_length: 最小词长
         max_length: 最大词长
-        
+
     Returns:
         关键词列表
     """
@@ -182,11 +182,11 @@ def extract_keywords(text: str, min_length: int = 2, max_length: int = 20) -> li
 def format_template(template: str, context: dict[str, Any]) -> str:
     """
     使用上下文格式化模板
-    
+
     Args:
         template: 模板字符串，使用 {key} 格式
         context: 上下文字典
-        
+
     Returns:
         格式化后的字符串
     """
@@ -205,11 +205,11 @@ def format_template(template: str, context: dict[str, Any]) -> str:
 def count_words(text: str, count_chinese: bool = True) -> int:
     """
     计算文本的字数
-    
+
     Args:
         text: 要计算的文本
         count_chinese: 是否计数字符（中文）
-        
+
     Returns:
         字数
     """
@@ -227,13 +227,13 @@ def count_words(text: str, count_chinese: bool = True) -> int:
 def find_replace(text: str, find_str: str, replace_str: str, case_sensitive: bool = True) -> str:
     """
     查找替换文本
-    
+
     Args:
         text: 要处理的文本
         find_str: 要查找的字符串
         replace_str: 替换为的字符串
         case_sensitive: 是否区分大小写
-        
+
     Returns:
         处理后的文本
     """
@@ -251,12 +251,12 @@ def find_replace(text: str, find_str: str, replace_str: str, case_sensitive: boo
 def highlight_text(text: str, keywords: list[str], tag: str = 'mark') -> str:
     """
     高亮文本中的关键词
-    
+
     Args:
         text: 要处理的文本
         keywords: 要高亮的关键词列表
         tag: 包裹的HTML标签
-        
+
     Returns:
         高亮后的文本
     """

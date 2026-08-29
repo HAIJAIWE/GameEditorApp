@@ -473,7 +473,7 @@ class ToolDispatcher:
 
         dep_map: dict = {}
         name_set: set = {tn for tn, _ in tool_requests}
-        for tn, tp in tool_requests:
+        for tn, _tp in tool_requests:
             skill = self._skills.get(self.fuzzy_match(tn) or tn)
             if skill and skill.depends_on:
                 relevant = [d for d in skill.depends_on if d in name_set]

@@ -86,7 +86,7 @@ class DataImporter:
             ws = wb.active
             headers = [cell.value or "" for cell in next(ws.iter_rows(min_row=1, max_row=1))]
             rows = []
-            for i, row in enumerate(ws.iter_rows(min_row=2, max_row=max_rows + 1)):
+            for _i, row in enumerate(ws.iter_rows(min_row=2, max_row=max_rows + 1)):
                 rows.append([str(cell.value or "") for cell in row])
             wb.close()
             return headers, rows
@@ -238,7 +238,7 @@ class DataImporter:
 
     @staticmethod
     def analyze_headers(filepath: str) -> list[dict[str, Any]]:
-        ext = Path(filepath).suffix.lower()
+        Path(filepath).suffix.lower()
         headers, sample_rows = DataImporter.preview(filepath, 3)
         result = []
         for i, h in enumerate(headers):

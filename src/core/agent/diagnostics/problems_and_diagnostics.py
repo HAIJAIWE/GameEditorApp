@@ -400,7 +400,7 @@ class ProblemRegistry:
         report = DiagnosticReport()
 
         total_items = 0
-        for pk, items in dm.data.items():
+        for _pk, items in dm.data.items():
             if not isinstance(items, list):
                 continue
             report.total_types += 1
@@ -421,7 +421,7 @@ class ProblemRegistry:
 
         # ── 5. 运行自定义检测器 ──
         if not fast:
-            for category, detectors in self._detectors.items():
+            for _category, detectors in self._detectors.items():
                 for det_fn in detectors:
                     try:
                         det_fn(dm, report)
@@ -559,7 +559,7 @@ class ProblemRegistry:
                       "source_id", "target_id", "ref_id", "parent_id"}
 
         orphan_count = 0
-        for pk, items in dm.data.items():
+        for _pk, items in dm.data.items():
             if not isinstance(items, list):
                 continue
             for it in items:

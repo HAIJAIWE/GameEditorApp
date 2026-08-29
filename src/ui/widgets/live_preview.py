@@ -22,7 +22,7 @@ from ui.themes import theme_color
 class LivePreviewWidget(QWidget):
     """
     实时属性预览窗口
-    
+
     功能：
     1. 显示所有基础属性的当前值（滑块控制）
     2. 自动计算所有派生/战斗属性

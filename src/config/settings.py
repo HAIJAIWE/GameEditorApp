@@ -43,13 +43,13 @@ class FieldConfig:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> FieldConfig:
         """从字典创建
-        
+
         Args:
             data: 包含字段配置的字典
-            
+
         Returns:
             FieldConfig 实例
-            
+
         Raises:
             ValueError: 当必填字段缺失或值无效时
         """

@@ -523,7 +523,7 @@ class TeamDialog(QDialog):
         tcl.setSpacing(2)
         all_tools = self._collect_all_tools()
         tool_checks: dict[str, QCheckBox] = {}
-        for cat, tools in all_tools.items():
+        for _cat, tools in all_tools.items():
             for name, desc in tools:
                 cb = QCheckBox(name)
                 if desc:

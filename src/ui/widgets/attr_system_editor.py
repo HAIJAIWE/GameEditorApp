@@ -26,7 +26,7 @@ from ui.widgets.relation_matrix import RelationMatrixEditor
 class AttrSystemEditor(QDialog):
     """
     属性系统编辑器主窗口
-    
+
     整合三个核心面板：
     1. 属性库管理（左侧）
     2. 关系矩阵（中间上）

@@ -4,7 +4,7 @@ from pathlib import Path
 
 def load_soul(agent_id: str, workspace_root: Path = None) -> dict:
     """从工作区加载 SOUL.md，返回结构化身份信息
-    
+
     Returns: {identity, duties, boundaries, style, format}
     """
     if workspace_root is None:

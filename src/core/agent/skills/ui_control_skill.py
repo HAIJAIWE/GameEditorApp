@@ -157,7 +157,7 @@ class UiControlSkill(BaseSkill):
             }
 
         layout_key = target
-        for key, info in layout_modes.items():
+        for _key, info in layout_modes.items():
             if target in info["aliases"] or target == info["key"]:
                 layout_key = info["key"]
                 break
@@ -181,7 +181,7 @@ class UiControlSkill(BaseSkill):
         panel_map = self._build_panel_map(mw)
         slot_name = panel_map.get(target)
         if not slot_name:
-            labels = set(v for k, v in panel_map.items() if k != v.replace("_deferred_toggle_", ""))
+            set(v for k, v in panel_map.items() if k != v.replace("_deferred_toggle_", ""))
             panel_names = sorted(set(v.replace("_deferred_toggle_", "") for v in panel_map.values()))
             return {
                 "success": False,

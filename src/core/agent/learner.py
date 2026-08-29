@@ -262,7 +262,7 @@ class Learner:
 
         # 查找最近一次相同 action 的参数，作为默认填充
         recent_same = None
-        for ts, act, psum in reversed(self._operation_history):
+        for _ts, act, psum in reversed(self._operation_history):
             if act == intent.action:
                 recent_same = psum
                 break

@@ -100,7 +100,7 @@ class ReferencePanel(QDialog):
             parent_item.setExpanded(True)
 
             for ref in ref_items:
-                child = QTreeWidgetItem(parent_item, [
+                QTreeWidgetItem(parent_item, [
                     "", ref.get("name", "未知"), ref.get("_ref_field", "")
                 ])
 
@@ -130,7 +130,7 @@ class ReferencePanel(QDialog):
 
             for ref in ref_list:
                 type_label = DATA_TYPE_LABELS.get(ref.get("_type", ""), ref.get("_type", ""))
-                child = QTreeWidgetItem(parent_item, [
+                QTreeWidgetItem(parent_item, [
                     "", type_label, ref.get("name", "未知")
                 ])
 
@@ -155,7 +155,7 @@ class ReferencePanel(QDialog):
         tree.setColumnWidth(1, 80)
 
         for sim in similar:
-            item = QTreeWidgetItem(tree, [
+            QTreeWidgetItem(tree, [
                 sim.get("name", "未知"),
                 sim.get("similarity", ""),
                 sim.get("common_fields", "")

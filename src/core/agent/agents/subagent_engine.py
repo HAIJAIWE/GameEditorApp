@@ -184,7 +184,7 @@ class SubAgentEngine:
 
         # 辩论轮次：汇总意见后让每个 agent 反驳/补充
         debate_rounds = []
-        for r in range(rounds):
+        for _r in range(rounds):
             round_data = {}
             for agent_type in agents:
                 others = [a for a in agents if a != agent_type]

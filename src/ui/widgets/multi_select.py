@@ -241,7 +241,7 @@ class RefSelectDialog(QDialog):
         kw = self.search_edit.text().strip().lower()
         self.list_widget.clear()
         filtered = [(iid, n) for iid, n in self._all_items if kw in n.lower()]
-        for item_id, name in filtered:
+        for _item_id, name in filtered:
             self.list_widget.addItem(name)
 
     def _on_accept(self):

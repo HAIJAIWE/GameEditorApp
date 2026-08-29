@@ -215,7 +215,7 @@ def _data_import(dm, mw, params):
             values = [v.strip() for v in line.split(",")]
             if len(values) < len(keys):
                 values.extend([""] * (len(keys) - len(values)))
-            items.append(dict(zip(keys, values)))
+            items.append(dict(zip(keys, values, strict=False)))
     else:
         return f"未知格式: {fmt}，支持: json/csv"
 

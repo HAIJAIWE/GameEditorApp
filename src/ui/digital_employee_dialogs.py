@@ -403,7 +403,7 @@ class TaskSelectorDialog(QDialog):
         dlg = cls(brain, parent)
         if dlg.exec() == QDialog.DialogCode.Accepted:
             action = dlg.selected_action
-            for group_name, label, a, desc, example in dlg._all_items:
+            for _group_name, _label, a, _desc, example in dlg._all_items:
                 if a == action:
                     return action, example
         return None, None

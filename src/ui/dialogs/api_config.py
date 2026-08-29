@@ -104,7 +104,7 @@ class APIConfigDialog(QDialog):
 
     def __init__(self, parent=None):
         """初始化对话框
-        
+
         Args:
             parent: 父窗口
         """
@@ -119,7 +119,7 @@ class APIConfigDialog(QDialog):
 
     def _load_custom_models(self):
         """加载自定义模型
-        
+
         Returns:
             自定义模型列表
         """

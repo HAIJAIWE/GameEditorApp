@@ -2,7 +2,7 @@
 
 记录每一次修复的完整时间线:
   检测 → 快照 → 分析 → 编辑 → 验证 → 提交(或回滚)
-  
+
 出问题时可以:
   - 回放看哪一步出错了
   - 对比每次修复的耗时
@@ -11,14 +11,14 @@
 """
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 import json
 import os as _os
 import time
 from typing import Optional
 
 
-class ReplayStep(str, Enum):
+class ReplayStep(StrEnum):
     DETECT = "detect"
     SNAPSHOT = "snapshot"
     ANALYZE = "analyze"

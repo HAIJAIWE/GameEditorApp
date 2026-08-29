@@ -25,7 +25,7 @@ from ui.themes import theme_color
 class AttrLibraryManager(QWidget):
     """
     属性库管理面板
-    
+
     功能：
     1. 显示所有属性列表
     2. 添加/删除/重命名属性

@@ -29,7 +29,7 @@ class FieldConfigDialog(QDialog):
 
     def __init__(self, data_type: str, parent=None):
         """初始化对话框
-        
+
         Args:
             data_type: 数据类型
             parent: 父组件

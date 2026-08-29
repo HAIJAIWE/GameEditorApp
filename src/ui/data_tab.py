@@ -35,7 +35,7 @@ class DataEditorTab(QWidget):
 
     def __init__(self, data_type, data_manager, parent=None):
         """初始化标签页
-        
+
         Args:
             data_type: 数据类型
             data_manager: 数据管理器
@@ -106,7 +106,7 @@ class DataEditorTab(QWidget):
 
     def _create_left_panel(self):
         """创建左侧面板
-        
+
         Returns:
             面板组件
         """
@@ -142,7 +142,7 @@ class DataEditorTab(QWidget):
 
     def _create_right_panel(self):
         """创建右侧面板
-        
+
         Returns:
             面板组件
         """
@@ -371,13 +371,11 @@ class DataEditorTab(QWidget):
 
             # 查找数量约束字段（如 race_count, skill_count 等）
             config = sys_cfg.get("config", {})
-            count_field = None
             count_limit = None
             for fname in ["count", f"{self.data_type}_count", "max_count", "total_count"]:
                 if fname in config and isinstance(config[fname], (int, str)):
                     try:
                         count_limit = int(config[fname])
-                        count_field = fname
                         break
                     except (ValueError, TypeError):
                         continue
@@ -1001,7 +999,7 @@ class DataEditorTab(QWidget):
 
     def _save_undo_state(self, action_type, item_id, item_data):
         """保存撤销状态
-        
+
         Args:
             action_type: 操作类型 ('add', 'update', 'delete')
             item_id: 项目ID

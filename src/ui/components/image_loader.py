@@ -20,7 +20,7 @@ class ImageLoadWorker(QThread):
 
     def __init__(self, file_path, target_size=None):
         """初始化工作线程
-        
+
         Args:
             file_path: 文件路径
             target_size: 目标大小
@@ -165,7 +165,7 @@ class LazyImageLoader(QObject):
 
     def _on_loaded(self, file_path, pixmap, callback):
         """加载完成
-        
+
         Args:
             file_path: 文件路径
             pixmap: 图片
@@ -253,7 +253,7 @@ class LazyImageLabel(QLabel):
 
     def __init__(self, parent=None, placeholder_text="无图片"):
         """初始化标签
-        
+
         Args:
             parent: 父组件
             placeholder_text: 占位文本
@@ -271,7 +271,7 @@ class LazyImageLabel(QLabel):
 
     def set_target_size(self, size):
         """设置目标大小
-        
+
         Args:
             size: 目标大小
         """
@@ -280,7 +280,7 @@ class LazyImageLabel(QLabel):
 
     def load_image(self, file_path):
         """加载图片
-        
+
         Args:
             file_path: 文件路径
         """
@@ -303,7 +303,7 @@ class LazyImageLabel(QLabel):
 
     def _on_image_loaded(self, file_path, pixmap):
         """图片加载完成
-        
+
         Args:
             file_path: 文件路径
             pixmap: 图片

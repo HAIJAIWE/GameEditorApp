@@ -15,7 +15,7 @@ class BackupManagerDialog(QDialog):
 
     def __init__(self, main_window, parent=None):
         """初始化备份对话框
-        
+
         Args:
             main_window: 主窗口实例
             parent: 父窗口

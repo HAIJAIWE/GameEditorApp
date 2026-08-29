@@ -290,7 +290,7 @@ class GameTemplates:
     def create_custom_template(base_attrs: list[str], derived_configs: dict, combat_configs: dict) -> AttributeSystem:
         """
         创建自定义模板
-        
+
         Args:
             base_attrs: 基础属性名称列表
             derived_configs: 派生属性配置 {name: {"coefficients": {...}, "base_value": x, "max_value": x}}

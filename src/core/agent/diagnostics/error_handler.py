@@ -635,7 +635,7 @@ def cross_module_scan(error: ErrorResult, fixed_file: str = "") -> dict[str, Any
                        and d not in ("__pycache__", "node_modules", "venv", ".git")]
             for f in files:
                 if f.endswith((".tsx", ".jsx", ".ts", ".js")):
-                    fpath = _os.path.join(root, f)
+                    _os.path.join(root, f)
                     results["scanned"] += 1
             if results["scanned"] > 50:
                 break
@@ -678,7 +678,7 @@ def _try_auto_fix(tool_name: str, error: ErrorResult, params: dict) -> Optional[
     if not best or "人工" in best:
         return None
 
-    rid = f"auto_{int(time.time() * 1000)}"
+    f"auto_{int(time.time() * 1000)}"
     timeline = _repair_replay.start(error.error_type.value, error.message)
 
     timeline.add(ReplayStep.DETECT, f"自动检测: {error.code} (置信度 {confidence:.0%})")

@@ -662,8 +662,6 @@ class DigitalPanel(QWidget):
             self._task_panel.set_summary("")
             return
 
-        status_icons = {"pending": "-", "in_progress": "...", "completed": "✓"}
-        priority_mark = {"high": "[高]", "medium": "[中]", "low": "[低]"}
         status_order = {"in_progress": 0, "pending": 1, "completed": 2}
 
         pending = in_prog = done = 0
@@ -1084,10 +1082,10 @@ class DigitalPanel(QWidget):
     def _refresh_model_btn(self):
         try:
             config = get_config()
-            provider = getattr(config, 'provider', 'OpenAI')
+            getattr(config, 'provider', 'OpenAI')
             model = getattr(config, 'model', 'gpt-3.5-turbo')
         except Exception:
-            provider, model = "OpenAI", "gpt-3.5-turbo"
+            _provider, model = "OpenAI", "gpt-3.5-turbo"
         short_model = model[:20] + ("..." if len(model) > 20 else "")
         self._model_btn.setText(f"{short_model} ▾")
         try:
@@ -1137,10 +1135,10 @@ class DigitalPanel(QWidget):
         ]
         try:
             config = get_config()
-            current_provider = getattr(config, 'provider', 'OpenAI')
+            getattr(config, 'provider', 'OpenAI')
             current_model = getattr(config, 'model', 'gpt-3.5-turbo')
         except Exception:
-            current_provider, current_model = "OpenAI", "gpt-3.5-turbo"
+            _current_provider, current_model = "OpenAI", "gpt-3.5-turbo"
 
         for provider_label, model_list in models:
             section = menu.addAction(provider_label)
@@ -1659,13 +1657,12 @@ class DigitalPanel(QWidget):
         try:
             from ui.themes import get_theme_colors, is_dark_theme
             c = get_theme_colors()
-            dark = is_dark_theme()
+            is_dark_theme()
             skel_bg = c['input_bg']
             skel_fg = c['border']
             skel_mid = c['bg']
             think_color = c.get('accent', '#7ee787')
         except Exception:
-            dark = True
             skel_bg, skel_fg, skel_mid, think_color = '#161b22', '#30363d', '#21262d', '#7ee787'
         html = f'''
         <div id="{self._thinking_id}" style="margin:8px 0;display:flex;justify-content:flex-start;">

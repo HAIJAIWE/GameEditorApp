@@ -8,7 +8,7 @@
 """
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 
 from PyQt6.QtCore import QSize, Qt, pyqtSignal
@@ -43,7 +43,7 @@ if TYPE_CHECKING:
     from core.ceshu.ceshu_model import CeshuModel
 
 
-class ApplyMode(str, Enum):
+class ApplyMode(StrEnum):
     """模板应用模式枚举。
 
     继承 str 使其可直接与字符串字面量比较，也方便作为 QComboBox 的 userData。

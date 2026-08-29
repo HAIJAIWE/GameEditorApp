@@ -222,7 +222,7 @@ class TypeSchema:
                     # 关键判断：字段是否有结构性大改
                     overlap = old_names & new_names
                     old_only = old_names - new_names
-                    new_only = new_names - old_names
+                    new_names - old_names
 
                     # 如果重叠字段少于50%或大量新旧字段不匹配 → 整体替换
                     if len(overlap) < len(new_names) * 0.5 or len(old_only) > 3:

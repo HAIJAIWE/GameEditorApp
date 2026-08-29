@@ -7,7 +7,7 @@ def _resolve_plural(data_type: str) -> str:
     if plural != data_type + "s":
         return plural
     # 如果注册表没有精确匹配，再查反向映射（兼容传入已是复数的情况）
-    for sing, plur in _type_registry.plurals.items():
+    for _sing, plur in _type_registry.plurals.items():
         if plur == data_type:
             return plur
     # 修复: 之前 rstrip("s") 会把 "boss"→"bos"+"s"="boss" 看似 OK 但 "class"→"clas"+"s"="class" OK

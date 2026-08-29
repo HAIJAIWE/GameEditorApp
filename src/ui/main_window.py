@@ -638,7 +638,7 @@ class MainWindow(QMainWindow):
 
     def _check_unsaved_changes(self):
         """检查是否有未保存的更改
-        
+
         Returns:
             bool: 是否继续操作（True=继续，False=取消）
         """
@@ -785,7 +785,7 @@ class MainWindow(QMainWindow):
 
     def change_theme(self, theme_name):
         """切换主题
-        
+
         Args:
             theme_name: 主题名称
         """
@@ -898,7 +898,7 @@ class MainWindow(QMainWindow):
 
     def hot_reload_template(self):
         """模板热加载（无需重启程序）
-        
+
         重新创建所有数据标签页以应用新的字段配置，并自动升级schema
         """
         self.logger.info("开始热加载模板...")
@@ -920,7 +920,7 @@ class MainWindow(QMainWindow):
             # 3. 重新创建所有数据标签页
             self.tabs = {}
 
-            for data_type, tab_name in self._get_tab_configs():
+            for data_type, _tab_name in self._get_tab_configs():
                 self.tabs[data_type] = None
 
             # 4. 重新应用布局

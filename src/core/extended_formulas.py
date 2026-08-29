@@ -87,7 +87,7 @@ class _FormulaVisitor(ast.NodeVisitor):
 
     def visit_Compare(self, node: ast.Compare):
         left = self.visit(node.left)
-        for op_node, comparator in zip(node.ops, node.comparators):
+        for op_node, comparator in zip(node.ops, node.comparators, strict=False):
             op = _SAFE_CMPOPS.get(type(op_node))
             if op is None:
                 raise TypeError(f"不支持的比较运算符: {type(op_node).__name__}")
@@ -206,7 +206,7 @@ class ExtendedFormula:
     def evaluate(self, context: dict[str, float], level: int = 1) -> float:
         """
         根据上下文计算值
-        
+
         Args:
             context: 属性值字典 {attr_name: value}
             level: 等级（用于指数/对数公式）

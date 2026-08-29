@@ -488,7 +488,6 @@ def _fix_config(params: dict) -> str:
         return "\n".join(lines) + f"\n\n  [WARN] 无法读取: {e}"
 
     lines.append(f"\n   {file_path}")
-    fixed = False
 
     if ext == ".json":
         try:
@@ -542,7 +541,7 @@ def _generate_tests(params: dict) -> str:
     import os as _os
     file_path = params.get("file_path", "")
     error_type = params.get("error_type", "")
-    error_message = params.get("error_message", "")
+    params.get("error_message", "")
     lines = ["=" * 60, "  [TEST] 自动测试生成", "=" * 60]
 
     if not file_path:
@@ -629,13 +628,13 @@ def _one_click_fix(params: dict) -> str:
     traceback_msg = params.get("traceback", "")
     if traceback_msg:
         lines.append("\n  [3/5] 代码修复...")
-        code_result = _fix_code({"traceback": traceback_msg})
+        _fix_code({"traceback": traceback_msg})
         lines.append("    [OK] 代码分析完成")
         results.append(("code_analysis", True))
 
     # Step 4: 配置修复
     lines.append("\n  [4/5] 配置检查...")
-    config_result = _fix_config({"file_path": ""})
+    _fix_config({"file_path": ""})
     lines.append("    [OK] 配置扫描完成")
     results.append(("config_check", True))
 
@@ -643,7 +642,7 @@ def _one_click_fix(params: dict) -> str:
     file_path = params.get("file_path", "")
     if file_path:
         lines.append("\n  [5/5] 生成回归测试...")
-        test_result = _generate_tests({"file_path": file_path})
+        _generate_tests({"file_path": file_path})
         lines.append("    [OK] 测试框架已生成")
         results.append(("test_gen", True))
 
@@ -1123,7 +1122,7 @@ def _health_score(params: dict) -> str:
     from core.agent.diagnostics.error_handler import _repair_logger
     from core.agent.predictive import _health_scorer, _learning_db
     stats = _repair_logger.get_stats()
-    repair_stats = _learning_db.get_top_strategies(5)
+    _learning_db.get_top_strategies(5)
     data = {
         "error_rate_1h": max(0, stats["total"] - stats["healed"]),
         "avg_fix_duration_ms": 200,

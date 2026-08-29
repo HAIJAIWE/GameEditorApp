@@ -82,7 +82,7 @@ class _StdioConnection:
         self._reader_thread.start()
 
         # MCP 初始化握手
-        init_resp = self._send_recv({
+        self._send_recv({
             "jsonrpc": "2.0", "id": 1, "method": "initialize",
             "params": {"protocolVersion": "2024-11-05", "capabilities": {},
                        "clientInfo": {"name": "game-editor", "version": "1.0"}},

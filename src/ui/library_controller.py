@@ -40,7 +40,6 @@ class LibraryController:
             except Exception as e:
                 logger.warning(f"操作失败: {e}")
 
-        lm = self._mw.config.library_manager
         self._mw.library_bar_widget.refresh_library_list()
         self._mw.status_bar.showMessage(f"已切换到库「{name}」", 3000)
         self.logger.info(f"切换到库: {name}")

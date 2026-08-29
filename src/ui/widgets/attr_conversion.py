@@ -47,8 +47,8 @@ class AttrConversionWidget(QWidget):
         self.table.setMinimumHeight(120)
         group_layout.addWidget(self.table)
 
-        for row, base_stat in enumerate(self.BASE_STATS):
-            for col, derived_stat in enumerate(self.DERIVED_STATS):
+        for row, _base_stat in enumerate(self.BASE_STATS):
+            for col, _derived_stat in enumerate(self.DERIVED_STATS):
                 spin = QDoubleSpinBox()
                 spin.setRange(-999, 9999)
                 spin.setDecimals(1)

@@ -82,7 +82,7 @@ class LayoutBuilder:
         from ui.main_window import _safe_call
         QTimer.singleShot(0, lambda l=layout: _safe_call(self._build_three_column_safe, l))
 
-        for data_type, tab in self._mw.tabs.items():
+        for _data_type, tab in self._mw.tabs.items():
             if tab is not None:
                 try:
                     tab.refresh_list()

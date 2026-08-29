@@ -33,7 +33,7 @@ class OptimizedDataManager:
 
     def __init__(self, progress_callback: Optional[Callable] = None):
         """初始化数据管理器
-        
+
         Args:
             progress_callback: 进度回调函数，签名为 (message: str, percent: int) -> None
         """
@@ -189,7 +189,7 @@ class OptimizedDataManager:
 
     def _report_progress(self, message: str, percent: int):
         """报告进度
-        
+
         Args:
             message: 进度消息
             percent: 进度百分比 (0-100)
@@ -199,11 +199,11 @@ class OptimizedDataManager:
 
     def _get_cache_key(self, data_type: str, item_id: str) -> str:
         """生成缓存键
-        
+
         Args:
             data_type: 数据类型
             item_id: 项目ID
-            
+
         Returns:
             缓存键字符串
         """
@@ -250,7 +250,7 @@ class OptimizedDataManager:
 
     def _invalidate_cache(self, data_type: Optional[str] = None):
         """使缓存失效
-        
+
         Args:
             data_type: 指定数据类型，如果为None则清除所有缓存
         """
@@ -346,10 +346,10 @@ class OptimizedDataManager:
 
     def open_file(self, file_path: Path) -> bool:
         """打开数据文件（同步）
-        
+
         Args:
             file_path: 文件路径
-            
+
         Returns:
             是否成功打开
         """
@@ -404,11 +404,11 @@ class OptimizedDataManager:
 
     def open_file_async(self, file_path: Path, callback: Optional[Callable[[bool], None]] = None) -> Future:
         """打开数据文件（异步）
-        
+
         Args:
             file_path: 文件路径
             callback: 完成回调函数
-            
+
         Returns:
             Future对象
         """
@@ -419,10 +419,10 @@ class OptimizedDataManager:
 
     def save_file(self, file_path: Optional[Path] = None) -> bool:
         """保存数据文件（同步，不发送进度回调）
-        
+
         Args:
             file_path: 文件路径，如果为None则使用当前文件
-            
+
         Returns:
             是否成功保存
         """
@@ -457,11 +457,11 @@ class OptimizedDataManager:
     def save_file_async(self, file_path: Optional[Path] = None,
                         callback: Optional[Callable[[bool], None]] = None) -> Future:
         """保存数据文件（异步）
-        
+
         Args:
             file_path: 文件路径
             callback: 完成回调函数
-            
+
         Returns:
             Future对象
         """
@@ -510,11 +510,11 @@ class OptimizedDataManager:
 
     def add_item(self, data_type: str, item: dict[str, Any]) -> str:
         """添加项目
-        
+
         Args:
             data_type: 数据类型
             item: 项目数据
-            
+
         Returns:
             新项目的ID
         """
@@ -687,7 +687,7 @@ class OptimizedDataManager:
 
     def clear_all(self) -> bool:
         """清空所有数据
-        
+
         Returns:
             是否成功清空
         """
@@ -746,7 +746,7 @@ class OptimizedDataManager:
 
     def _clean_metadata_fields(self):
         cleaned = 0
-        for key, items in self.data.items():
+        for _key, items in self.data.items():
             if not isinstance(items, list):
                 continue
             for item in items:

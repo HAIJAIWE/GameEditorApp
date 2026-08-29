@@ -205,8 +205,8 @@ class DataListWidget(QWidget):
         self.slot_filter.setMinimumWidth(80)
         self.slot_filter.setMaximumWidth(120)
         self.slot_filter.setStyleSheet(f"""
-            QComboBox {{ 
-                font-size: 11px; 
+            QComboBox {{
+                font-size: 11px;
                 padding: 2px 4px;
                 background-color: {theme_color('input_bg')};
                 border: 1px solid {theme_color('border')};
@@ -931,7 +931,7 @@ class EquipmentPreviewWidget(QWidget):
 
     def load_from_library(self, equips_data: list[dict] = None, buffs_data: list[dict] = None):
         """从库数据加载装备和Buff
-        
+
         Args:
             equips_data: 库中的 equips 数组（data.json 格式）
             buffs_data: 库中的 buffs 数组（data.json 格式）

@@ -82,7 +82,7 @@ class TaskScheduler:
 
     def stop(self):
         self._running = False
-        for task_id, timer in list(self._timers.items()):
+        for _task_id, timer in list(self._timers.items()):
             try:
                 timer.cancel()
             except Exception as e:

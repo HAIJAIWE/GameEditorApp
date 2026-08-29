@@ -160,7 +160,7 @@ class AgentBrain:
         try:
             ws2 = get_workspace()
             identity = ws2.load_identity()
-            persona = ws2.load_persona()
+            ws2.load_persona()
             self._logger.info(f"[HotReload] 身份/人格已更新 ({identity.get('name','?')})")
         except Exception as e:
             self._logger.warning(f"[HotReload] 身份重载失败: {e}")
@@ -626,7 +626,7 @@ class AgentBrain:
             if not recent:
                 return ""
             patterns = self._categorize_failure_patterns(recent)
-            search_key = json.dumps({k: str(v)[:30] for k, v in params.items()}, ensure_ascii=False)
+            json.dumps({k: str(v)[:30] for k, v in params.items()}, ensure_ascii=False)
             for pattern, failures in patterns.items():
                 for f in failures:
                     if f.get("tool") == tool_name and len(failures) >= 2:
@@ -686,7 +686,7 @@ class AgentBrain:
     def get_session_stats(self) -> dict:
         """Agent OS §12: 会话统计 — 返回当前会话指标"""
         uptime = self.get_uptime()
-        total = self._session_conv_count + self._failure_count
+        self._session_conv_count + self._failure_count
         return {
             "conversations": self._session_conv_count,
             "failures": self._failure_count,

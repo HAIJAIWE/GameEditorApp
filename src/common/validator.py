@@ -11,10 +11,10 @@ class DataValidator:
     def validate_skill(skill: dict[str, Any]) -> tuple[bool, list[str]]:
         """
         验证技能数据
-        
+
         Args:
             skill: 技能数据字典
-            
+
         Returns:
             (是否有效, 错误列表)
         """
@@ -61,10 +61,10 @@ class DataValidator:
     def validate_role(role: dict[str, Any]) -> tuple[bool, list[str]]:
         """
         验证角色数据
-        
+
         Args:
             role: 角色数据字典
-            
+
         Returns:
             (是否有效, 错误列表)
         """
@@ -91,10 +91,10 @@ class DataValidator:
     def validate_monster(monster: dict[str, Any]) -> tuple[bool, list[str]]:
         """
         验证怪物数据
-        
+
         Args:
             monster: 怪物数据字典
-            
+
         Returns:
             (是否有效, 错误列表)
         """
@@ -119,10 +119,10 @@ class DataValidator:
     def validate_item(item: dict[str, Any]) -> tuple[bool, list[str]]:
         """
         验证道具数据
-        
+
         Args:
             item: 道具数据字典
-            
+
         Returns:
             (是否有效, 错误列表)
         """
@@ -139,10 +139,10 @@ class DataValidator:
     def validate_story(story: dict[str, Any]) -> tuple[bool, list[str]]:
         """
         验证剧情数据
-        
+
         Args:
             story: 剧情数据字典
-            
+
         Returns:
             (是否有效, 错误列表)
         """
@@ -167,11 +167,11 @@ class DataValidator:
     def validate_data(data: dict[str, Any], data_type: str) -> tuple[bool, list[str]]:
         """
         根据数据类型验证数据
-        
+
         Args:
             data: 数据字典
             data_type: 数据类型
-            
+
         Returns:
             (是否有效, 错误列表)
         """
@@ -196,10 +196,10 @@ class DataValidator:
     def validate_all_data(data_dict: dict[str, list[dict[str, Any]]]) -> dict[str, list[dict[str, Any]]]:
         """
         验证所有数据
-        
+
         Args:
             data_dict: 数据字典，键为数据类型复数形式
-            
+
         Returns:
             验证结果字典
         """
@@ -235,10 +235,10 @@ class DataValidator:
 def validate_json_file(file_path: Path) -> tuple[bool, str]:
     """
     验证JSON文件是否有效
-    
+
     Args:
         file_path: 文件路径
-        
+
     Returns:
         (是否有效, 错误信息)
     """

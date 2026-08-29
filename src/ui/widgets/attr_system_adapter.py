@@ -9,7 +9,7 @@ from core.attr_system import AttributeSystem, AttrType, Formula
 class AttrSystemAdapter:
     """
     属性系统适配器 - 将新系统适配到旧系统接口
-    
+
     功能：
     1. 从旧系统数据加载到新系统
     2. 从新系统数据导出到旧系统格式
@@ -20,7 +20,7 @@ class AttrSystemAdapter:
     def from_legacy_data(legacy_data: dict) -> AttributeSystem:
         """
         从旧系统数据加载到新系统
-        
+
         旧系统数据格式：
         {
             'attr_list': [
@@ -82,7 +82,7 @@ class AttrSystemAdapter:
     def to_legacy_data(system: AttributeSystem) -> dict:
         """
         从新系统数据导出到旧系统格式
-        
+
         返回旧系统数据格式：
         {
             'attr_list': [
@@ -94,7 +94,7 @@ class AttrSystemAdapter:
         """
         attr_list = []
 
-        for name, attr in system.attributes.items():
+        for _name, attr in system.attributes.items():
             if attr.attr_type == AttrType.BASE:
                 # 基础属性：公式是常数
                 val = attr.formula.base_value

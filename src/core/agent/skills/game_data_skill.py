@@ -893,7 +893,8 @@ class GameDataSkill(BaseSkill):
     @staticmethod
     def _smart_defaults(data_type: str) -> dict:
         import random
-        r = lambda lo, hi: random.randint(lo, hi)
+        def r(lo, hi):
+            return random.randint(lo, hi)
         defaults_map = {
             "role": {"hp": r(300, 800), "mp": r(100, 400), "atk": r(40, 120),
                      "def": r(20, 60), "level": r(1, 10), "category": "近战输出"},

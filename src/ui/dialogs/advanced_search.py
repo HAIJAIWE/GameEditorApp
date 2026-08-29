@@ -22,7 +22,7 @@ class AdvancedSearchDialog(QDialog):
 
     def __init__(self, main_window, parent=None):
         """初始化搜索对话框
-        
+
         Args:
             main_window: 主窗口实例
             parent: 父窗口
@@ -130,7 +130,7 @@ class AdvancedSearchDialog(QDialog):
 
     def open_result(self, list_item):
         """打开搜索结果
-        
+
         Args:
             list_item: 列表项
         """

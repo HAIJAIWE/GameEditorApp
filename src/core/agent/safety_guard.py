@@ -87,7 +87,7 @@ class SafetyGuard:
         if total <= self._MAX_TOKENS:
             return
 
-        system_msgs = messages[:self._KEEP_SYSTEM_FIRST]
+        messages[:self._KEEP_SYSTEM_FIRST]
         extra_system = messages[self._KEEP_SYSTEM_FIRST:]
         non_system = [m for m in extra_system if m["role"] != "system"]
 

@@ -11,7 +11,7 @@ import time
 
 def evaluate_response(user_input: str, agent_response: str, config) -> tuple[int, str, dict]:
     """用另一个 LLM 调用对 agent 输出多维度打分（1-10分）
-    
+
     Returns: (score, feedback, dimensions)
     """
     from common.ai_client import generate_text

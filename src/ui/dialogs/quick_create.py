@@ -527,11 +527,10 @@ class QuickCreateDialog(QDialog):
             return
 
         plural = self.data_manager.config.get_type_schema()
-        plural_key = data_type + "s"
+        data_type + "s"
         if plural:
             for t in plural.types:
                 if t.id == data_type:
-                    plural_key = t.plural_key
                     break
 
         new_item = {}

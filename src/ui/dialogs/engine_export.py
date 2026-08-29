@@ -14,7 +14,7 @@ class GameEngineExportDialog(QDialog):
 
     def __init__(self, main_window, engine_type: str, parent=None):
         """初始化导出对话框
-        
+
         Args:
             main_window: 主窗口实例
             engine_type: 引擎类型

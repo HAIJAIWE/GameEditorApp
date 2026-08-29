@@ -52,7 +52,7 @@ class AutoUpdater:
         try:
             parts1 = [int(x) for x in v1.split(".")]
             parts2 = [int(x) for x in v2.split(".")]
-            for a, b in zip(parts1, parts2):
+            for a, b in zip(parts1, parts2, strict=False):
                 if a != b:
                     return a - b
             return len(parts1) - len(parts2)

@@ -105,7 +105,7 @@ class VectorEmbedder:
 
     @staticmethod
     def cosine_similarity(a: list[float], b: list[float]) -> float:
-        dot = sum(x * y for x, y in zip(a, b))
+        dot = sum(x * y for x, y in zip(a, b, strict=False))
         na = math.sqrt(sum(x * x for x in a))
         nb = math.sqrt(sum(x * x for x in b))
         if na == 0 or nb == 0:
@@ -649,7 +649,6 @@ class Memory:
             content = mp.read_text(encoding="utf-8")
             lines = content.strip().split("\n")
             filtered = []
-            skip = False
             for line in lines:
                 if line.startswith("# 最后更新:"):
                     continue

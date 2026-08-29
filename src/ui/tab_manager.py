@@ -82,7 +82,7 @@ class TabManager:
         self._mw.home_widget = HomeWidget(self._mw.data_manager, parent=self._mw)
         self._mw.home_widget.action_triggered.connect(self._mw._on_home_action)
 
-        for data_type, tab_name in self.get_tab_configs():
+        for data_type, _tab_name in self.get_tab_configs():
             self._mw.tabs[data_type] = None
 
     def rebuild_all_tabs(self):

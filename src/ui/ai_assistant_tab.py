@@ -304,7 +304,7 @@ class AIAssistantTab(QWidget):
 
 
     def _do_show_question(self, qid, questions):
-        from PyQt6.QtWidgets import QDialog, QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLayout
+        from PyQt6.QtWidgets import QDialog, QLabel, QVBoxLayout
 
         from core.agent.skills.ask_user_skill import AskUserSkill
 
@@ -406,7 +406,7 @@ class AIAssistantTab(QWidget):
     def get_glow_widgets(self):
         """
         获取需要流光效果的文字组件列表
-        
+
         Returns:
             list: [(widget, 'role_name'), ...]
         """
@@ -881,7 +881,7 @@ class AIAssistantTab(QWidget):
                 field_strs = []
                 for f in fields:
                     fn = f.get("name", "?")
-                    fl = f.get("label", "")
+                    f.get("label", "")
                     ft = f.get("type", "string")
                     field_strs.append(f"{fn}:{ft}")
                 lines.append(f"  {tname}({tid}): {', '.join(field_strs[:12])}")
@@ -1171,7 +1171,6 @@ class AIAssistantTab(QWidget):
             }}
         """)
         try:
-            old_handler = self.send_btn.clicked
             self.send_btn.clicked.disconnect()
         except Exception as e:
             logger.warning(f"操作失败: {e}")
@@ -1390,7 +1389,7 @@ class AIAssistantTab(QWidget):
         b = get_chat_bubble_css()
         fg = theme_color('fg')
         hint = theme_color('hint')
-        accent = theme_color('accent')
+        theme_color('accent')
         if success:
             status_color = "#2d7d2d" if not is_dark_theme() else "#7ee787"
             border_color = "#238636"
@@ -1452,7 +1451,7 @@ class AIAssistantTab(QWidget):
 
     def add_thinking_indicator(self):
         b = get_chat_bubble_css()
-        fg = theme_color('fg')
+        theme_color('fg')
         input_bg = theme_color('input_bg')
         border = theme_color('border')
         shimmer_dark = input_bg if is_dark_theme() else "#e2e8f0"

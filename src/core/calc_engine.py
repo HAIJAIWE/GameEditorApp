@@ -8,7 +8,7 @@ from common.graph import topological_sort as graph_topological_sort
 class AttributeCalcEngine:
     """
     属性计算引擎
-    
+
     功能：
     1. 管理属性依赖关系（有向图）
     2. 拓扑排序计算顺序
@@ -63,10 +63,10 @@ class AttributeCalcEngine:
     def topological_sort(self) -> list[str]:
         """
         拓扑排序，确保计算顺序正确
-        
+
         例如：HP依赖力量，力量是基础属性
         那么计算顺序应该是：力量 → HP
-        
+
         Raises:
             CircularDependencyError: 如果检测到循环依赖
         """
@@ -105,7 +105,7 @@ class AttributeCalcEngine:
     def calculate_all(self) -> dict[str, float]:
         """
         计算所有属性值
-        
+
         Returns:
             {attr_name: value, ...}
         """

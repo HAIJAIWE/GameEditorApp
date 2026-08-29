@@ -28,10 +28,10 @@ class ComprehensiveDataValidator:
 
     def validate_data(self, data: dict[str, list[dict]]) -> tuple[bool, list[str]]:
         """验证所有数据
-        
+
         Args:
             data: 要验证的数据字典
-            
+
         Returns:
             (是否通过验证, 错误消息列表)
         """

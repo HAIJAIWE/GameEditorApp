@@ -181,7 +181,7 @@ def extract_all_refs(ceshu_model) -> list[DataRef]:
         chapter = getattr(ceshu_model, key, None)
         if not chapter or not isinstance(chapter, dict):
             continue
-        for field_name, field_value in chapter.items():
+        for _field_name, field_value in chapter.items():
             if isinstance(field_value, str):
                 refs = parse_data_refs(field_value)
                 for ref in refs:

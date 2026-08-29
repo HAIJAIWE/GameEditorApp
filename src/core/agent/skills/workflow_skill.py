@@ -133,7 +133,7 @@ class WorkflowSkill(BaseSkill):
             self._workflows[wf.id] = result["workflow"]
 
         status_lines = [f"工作流: {wf.id} ({wf.name})", f"状态: {result['workflow'].status.value}"]
-        for nid, node in result["workflow"].nodes.items():
+        for _nid, node in result["workflow"].nodes.items():
             status_lines.append(f"  [{node.status.value}] {node.id}: {node.name}")
 
         return {

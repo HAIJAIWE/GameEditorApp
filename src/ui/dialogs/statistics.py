@@ -26,7 +26,7 @@ class StatisticsDialog(QDialog):
 
     def __init__(self, main_window, parent=None):
         """初始化统计对话框
-        
+
         Args:
             main_window: 主窗口实例
             parent: 父窗口
@@ -85,7 +85,7 @@ class BalanceAnalysisDialog(QDialog):
 
     def __init__(self, main_window, parent=None):
         """初始化分析对话框
-        
+
         Args:
             main_window: 主窗口实例
             parent: 父窗口
@@ -337,7 +337,7 @@ class BalanceAnalysisDialog(QDialog):
 
     def _update_chart_overview(self, counts: list[tuple], total: int):
         """更新数据概览图表显示
-        
+
         Args:
             counts: 类型名和数量的list
             total: 总数据量

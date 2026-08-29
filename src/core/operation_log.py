@@ -3,9 +3,9 @@
 用法：
   1. 在 brain.process() 中设置会话 ID：
      set_conversation_id("conv_xxx")
-  
+
   2. data_manager 自动记录每次增删改的 before/after 快照
-  
+
   3. 按会话回滚：
      count, errors = OperationLog.rollback_conversation("conv_xxx", data_manager)
 """

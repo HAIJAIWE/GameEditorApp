@@ -19,7 +19,7 @@ class LRUCache:
 
     def __init__(self, maxsize: int = 128):
         """初始化缓存
-        
+
         Args:
             maxsize: 最大缓存容量
         """
@@ -31,11 +31,11 @@ class LRUCache:
 
     def get(self, key: Hashable, default: Any = None) -> Any:
         """获取缓存值
-        
+
         Args:
             key: 缓存键
             default: 默认值
-            
+
         Returns:
             缓存值或默认值
         """
@@ -52,7 +52,7 @@ class LRUCache:
 
     def put(self, key: Hashable, value: Any) -> None:
         """设置缓存值
-        
+
         Args:
             key: 缓存键
             value: 缓存值
@@ -98,7 +98,7 @@ class TimedCache:
 
     def __init__(self, ttl: int = 300):
         """初始化缓存
-        
+
         Args:
             ttl: 过期时间（秒）
         """
@@ -108,11 +108,11 @@ class TimedCache:
 
     def get(self, key: Hashable, default: Any = None) -> Any:
         """获取缓存值
-        
+
         Args:
             key: 缓存键
             default: 默认值
-            
+
         Returns:
             缓存值或默认值
         """
@@ -129,7 +129,7 @@ class TimedCache:
 
     def put(self, key: Hashable, value: Any) -> None:
         """设置缓存值
-        
+
         Args:
             key: 缓存键
             value: 缓存值
@@ -144,7 +144,7 @@ class TimedCache:
 
     def cleanup(self) -> int:
         """清理过期缓存
-        
+
         Returns:
             清理的缓存项数量
         """
@@ -161,10 +161,10 @@ class TimedCache:
 
 def lru_cache(maxsize: int = 128) -> Callable:
     """LRU缓存装饰器
-    
+
     Args:
         maxsize: 最大缓存容量
-        
+
     Returns:
         装饰器函数
     """
@@ -199,10 +199,10 @@ def lru_cache(maxsize: int = 128) -> Callable:
 
 def timed_cache(ttl: int = 300) -> Callable:
     """带过期时间的缓存装饰器
-    
+
     Args:
         ttl: 过期时间（秒）
-        
+
     Returns:
         装饰器函数
     """
@@ -241,13 +241,13 @@ DATA_CACHE = LRUCache(128)
 
 def cache_result(key: str, func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
     """通用缓存函数
-    
+
     Args:
         key: 缓存键
         func: 要执行的函数
         *args: 函数参数
         **kwargs: 函数关键字参数
-        
+
     Returns:
         函数结果
     """

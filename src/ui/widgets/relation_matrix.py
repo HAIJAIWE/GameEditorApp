@@ -21,7 +21,7 @@ from ui.themes import theme_color
 class RelationMatrixEditor(QWidget):
     """
     关系矩阵编辑器
-    
+
     功能：
     1. 矩阵式显示所有属性关系
     2. 行=派生属性，列=基础属性
@@ -244,8 +244,8 @@ class RelationMatrixEditor(QWidget):
 
     def _on_clear_coeffs(self):
         """清空所有系数"""
-        for derived_attr, spins in self.coeff_spins.items():
-            for base_attr, spin in spins.items():
+        for _derived_attr, spins in self.coeff_spins.items():
+            for _base_attr, spin in spins.items():
                 spin.setValue(0)
 
         self._on_coeff_changed()

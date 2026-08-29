@@ -72,14 +72,14 @@ def _request_with_retry(
 ):
     """
     带重试的HTTP请求
-    
+
     Args:
         url: 请求URL
         headers: 请求头
         data: 请求数据
         max_retries: 最大重试次数
         initial_delay: 初始延迟（秒）
-    
+
     Returns:
         响应对象
     """
@@ -118,10 +118,10 @@ def _request_with_retry(
 
 def test_api_connection(config: Any) -> tuple[bool, str]:
     """测试API连接
-    
+
     Args:
         config: AppConfig实例
-        
+
     Returns:
         (success: bool, message: str)
     """
@@ -179,13 +179,13 @@ def generate_text(
     messages_list: Optional[list] = None,
 ) -> tuple[bool, str]:
     """生成文本
-    
+
     Args:
         config: AppConfig实例
         prompt: 用户提示词（如果使用messages_list则可以为None）
         system_prompt: 系统提示词(可选)
         messages_list: 完整的消息列表(可选，如果提供则使用这个而不是从prompt构建)
-        
+
     Returns:
         (success: bool, result: str) - 成功标记和结果文本(或错误信息)
     """
