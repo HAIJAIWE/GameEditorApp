@@ -12,6 +12,7 @@ from PyQt6.QtWidgets import (
 from ._common import (
     _add_row,
     _combo,
+    _safe_text,
     _text_field,
     ceshu_form_input_qss,
 )
@@ -30,17 +31,17 @@ class ChapterMarketAnalysisForm(QWidget):
         form.setSpacing(8)
 
         self._target_market = _text_field("目标市场（国内/海外/全球 + 平台）", 60)
-        self._target_market.setPlainText(self._data.get("target_market", ""))
+        self._target_market.setPlainText(_safe_text(self._data.get("target_market", "")))
         self._target_market.textChanged.connect(lambda: self._emit())
         _add_row(form, "目标市场 *", self._target_market, "market_analysis.target_market")
 
         self._market_size = _text_field("市场容量与增长趋势", 60)
-        self._market_size.setPlainText(self._data.get("market_size", ""))
+        self._market_size.setPlainText(_safe_text(self._data.get("market_size", "")))
         self._market_size.textChanged.connect(lambda: self._emit())
         _add_row(form, "市场容量", self._market_size)
 
         self._user_demographics = _text_field("用户画像（年龄/性别/地域/消费力）", 80)
-        self._user_demographics.setPlainText(self._data.get("user_demographics", ""))
+        self._user_demographics.setPlainText(_safe_text(self._data.get("user_demographics", "")))
         self._user_demographics.textChanged.connect(lambda: self._emit())
         _add_row(form, "用户画像", self._user_demographics)
 
@@ -60,12 +61,12 @@ class ChapterMarketAnalysisForm(QWidget):
         _add_row(form, "竞品分析 *", self._competitors, "market_analysis.competitors")
 
         self._positioning = _text_field("市场定位（蓝海/红海/差异化）", 60)
-        self._positioning.setPlainText(self._data.get("market_positioning", ""))
+        self._positioning.setPlainText(_safe_text(self._data.get("market_positioning", "")))
         self._positioning.textChanged.connect(lambda: self._emit())
         _add_row(form, "市场定位", self._positioning)
 
         self._entry_barriers = _text_field("进入壁垒分析", 60)
-        self._entry_barriers.setPlainText(self._data.get("entry_barriers", ""))
+        self._entry_barriers.setPlainText(_safe_text(self._data.get("entry_barriers", "")))
         self._entry_barriers.textChanged.connect(lambda: self._emit())
         _add_row(form, "进入壁垒", self._entry_barriers)
 
@@ -150,7 +151,7 @@ class ChapterCharactersForm(QWidget):
         form.setSpacing(8)
 
         self._protagonist = _text_field("主角设定（背景/性格/外观/能力）", 100)
-        self._protagonist.setPlainText(self._data.get("protagonist", ""))
+        self._protagonist.setPlainText(_safe_text(self._data.get("protagonist", "")))
         self._protagonist.textChanged.connect(lambda: self._emit())
         _add_row(form, "主角设定 *", self._protagonist, "characters.protagonist")
 
@@ -199,7 +200,7 @@ class ChapterCharactersForm(QWidget):
         _add_row(form, "Boss 设计", self._boss_design)
 
         self._companion = _text_field("同伴系统说明", 60)
-        self._companion.setPlainText(self._data.get("companion_system", ""))
+        self._companion.setPlainText(_safe_text(self._data.get("companion_system", "")))
         self._companion.textChanged.connect(lambda: self._emit())
         _add_row(form, "同伴系统", self._companion)
 
@@ -322,22 +323,22 @@ class ChapterCombatForm(QWidget):
         _add_row(form, "战斗模式 *", self._combat_mode, "combat.combat_mode")
 
         self._damage_formula = _text_field("伤害公式设计", 80)
-        self._damage_formula.setPlainText(self._data.get("damage_formula", ""))
+        self._damage_formula.setPlainText(_safe_text(self._data.get("damage_formula", "")))
         self._damage_formula.textChanged.connect(lambda: self._emit())
         _add_row(form, "伤害公式 *", self._damage_formula, "combat.damage_formula")
 
         self._skill_system = _text_field("技能系统设计", 80)
-        self._skill_system.setPlainText(self._data.get("skill_system", ""))
+        self._skill_system.setPlainText(_safe_text(self._data.get("skill_system", "")))
         self._skill_system.textChanged.connect(lambda: self._emit())
         _add_row(form, "技能系统", self._skill_system)
 
         self._buff_debuff = _text_field("Buff/Debuff 机制", 60)
-        self._buff_debuff.setPlainText(self._data.get("buff_debuff", ""))
+        self._buff_debuff.setPlainText(_safe_text(self._data.get("buff_debuff", "")))
         self._buff_debuff.textChanged.connect(lambda: self._emit())
         _add_row(form, "Buff/Debuff", self._buff_debuff)
 
         self._element_system = _text_field("元素系统", 60)
-        self._element_system.setPlainText(self._data.get("element_system", ""))
+        self._element_system.setPlainText(_safe_text(self._data.get("element_system", "")))
         self._element_system.textChanged.connect(lambda: self._emit())
         _add_row(form, "元素系统", self._element_system)
 
@@ -348,27 +349,27 @@ class ChapterCombatForm(QWidget):
         _add_row(form, "战斗节奏", self._combat_pace)
 
         self._team_formation = _text_field("队伍编排规则", 60)
-        self._team_formation.setPlainText(self._data.get("team_formation", ""))
+        self._team_formation.setPlainText(_safe_text(self._data.get("team_formation", "")))
         self._team_formation.textChanged.connect(lambda: self._emit())
         _add_row(form, "队伍编排", self._team_formation)
 
         self._pvp = _text_field("PVP 设计", 60)
-        self._pvp.setPlainText(self._data.get("pvp_design", ""))
+        self._pvp.setPlainText(_safe_text(self._data.get("pvp_design", "")))
         self._pvp.textChanged.connect(lambda: self._emit())
         _add_row(form, "PVP 设计", self._pvp)
 
         self._pve = _text_field("PVE 设计", 60)
-        self._pve.setPlainText(self._data.get("pve_design", ""))
+        self._pve.setPlainText(_safe_text(self._data.get("pve_design", "")))
         self._pve.textChanged.connect(lambda: self._emit())
         _add_row(form, "PVE 设计", self._pve)
 
         self._boss_mechanics = _text_field("Boss 战机制设计", 80)
-        self._boss_mechanics.setPlainText(self._data.get("boss_mechanics", ""))
+        self._boss_mechanics.setPlainText(_safe_text(self._data.get("boss_mechanics", "")))
         self._boss_mechanics.textChanged.connect(lambda: self._emit())
         _add_row(form, "Boss 战机制", self._boss_mechanics)
 
         self._balance = _text_field("战斗平衡策略", 60)
-        self._balance.setPlainText(self._data.get("balance_strategy", ""))
+        self._balance.setPlainText(_safe_text(self._data.get("balance_strategy", "")))
         self._balance.textChanged.connect(lambda: self._emit())
         _add_row(form, "平衡策略", self._balance)
 
@@ -438,7 +439,7 @@ class ChapterEconomyForm(QWidget):
         _add_row(form, "货币类型 *", self._currency_types, "economy.currency_types")
 
         self._source_sink = _text_field("产出与回收机制总览", 80)
-        self._source_sink.setPlainText(self._data.get("source_sink", ""))
+        self._source_sink.setPlainText(_safe_text(self._data.get("source_sink", "")))
         self._source_sink.textChanged.connect(lambda: self._emit())
         _add_row(form, "产出与回收 *", self._source_sink, "economy.source_sink")
 
@@ -451,22 +452,22 @@ class ChapterEconomyForm(QWidget):
         _add_row(form, "掉落表", self._drop_tables)
 
         self._production_chain = _text_field("生产链/合成链说明", 60)
-        self._production_chain.setPlainText(self._data.get("production_chain", ""))
+        self._production_chain.setPlainText(_safe_text(self._data.get("production_chain", "")))
         self._production_chain.textChanged.connect(lambda: self._emit())
         _add_row(form, "生产链", self._production_chain)
 
         self._market_design = _text_field("交易市场设计", 60)
-        self._market_design.setPlainText(self._data.get("market_design", ""))
+        self._market_design.setPlainText(_safe_text(self._data.get("market_design", "")))
         self._market_design.textChanged.connect(lambda: self._emit())
         _add_row(form, "交易市场", self._market_design)
 
         self._inflation = _text_field("通胀控制策略", 60)
-        self._inflation.setPlainText(self._data.get("inflation_control", ""))
+        self._inflation.setPlainText(_safe_text(self._data.get("inflation_control", "")))
         self._inflation.textChanged.connect(lambda: self._emit())
         _add_row(form, "通胀控制", self._inflation)
 
         self._economic_goals = _text_field("经济目标（玩家体验/盈利平衡）", 60)
-        self._economic_goals.setPlainText(self._data.get("economic_goals", ""))
+        self._economic_goals.setPlainText(_safe_text(self._data.get("economic_goals", "")))
         self._economic_goals.textChanged.connect(lambda: self._emit())
         _add_row(form, "经济目标", self._economic_goals)
 
@@ -571,7 +572,7 @@ class ChapterMonetizationForm(QWidget):
         _add_row(form, "内购设计", self._iap)
 
         self._ad_strategy = _text_field("广告策略", 60)
-        self._ad_strategy.setPlainText(self._data.get("ad_strategy", ""))
+        self._ad_strategy.setPlainText(_safe_text(self._data.get("ad_strategy", "")))
         self._ad_strategy.textChanged.connect(lambda: self._emit())
         _add_row(form, "广告策略", self._ad_strategy)
 
@@ -581,27 +582,27 @@ class ChapterMonetizationForm(QWidget):
         _add_row(form, "订阅制", self._subscription)
 
         self._season_pass = _text_field("赛季通行证设计", 60)
-        self._season_pass.setPlainText(self._data.get("season_pass", ""))
+        self._season_pass.setPlainText(_safe_text(self._data.get("season_pass", "")))
         self._season_pass.textChanged.connect(lambda: self._emit())
         _add_row(form, "赛季通行证", self._season_pass)
 
         self._vip = _text_field("VIP 系统设计", 60)
-        self._vip.setPlainText(self._data.get("vip_system", ""))
+        self._vip.setPlainText(_safe_text(self._data.get("vip_system", "")))
         self._vip.textChanged.connect(lambda: self._emit())
         _add_row(form, "VIP 系统", self._vip)
 
         self._whale = _text_field("大 R 策略", 60)
-        self._whale.setPlainText(self._data.get("whale_strategy", ""))
+        self._whale.setPlainText(_safe_text(self._data.get("whale_strategy", "")))
         self._whale.textChanged.connect(lambda: self._emit())
         _add_row(form, "大 R 策略", self._whale)
 
         self._f2p_exp = _text_field("免费玩家体验保障", 60)
-        self._f2p_exp.setPlainText(self._data.get("f2p_experience", ""))
+        self._f2p_exp.setPlainText(_safe_text(self._data.get("f2p_experience", "")))
         self._f2p_exp.textChanged.connect(lambda: self._emit())
         _add_row(form, "免费玩家体验", self._f2p_exp)
 
         self._arpu = _text_field("ARPU 目标", 60)
-        self._arpu.setPlainText(self._data.get("arpu_target", ""))
+        self._arpu.setPlainText(_safe_text(self._data.get("arpu_target", "")))
         self._arpu.textChanged.connect(lambda: self._emit())
         _add_row(form, "ARPU 目标", self._arpu)
 
@@ -684,12 +685,12 @@ class ChapterMvpForm(QWidget):
         form.setSpacing(8)
 
         self._mvp_scope = _text_field("MVP 范围定义", 100)
-        self._mvp_scope.setPlainText(self._data.get("mvp_scope", ""))
+        self._mvp_scope.setPlainText(_safe_text(self._data.get("mvp_scope", "")))
         self._mvp_scope.textChanged.connect(lambda: self._emit())
         _add_row(form, "MVP 范围 *", self._mvp_scope, "mvp.mvp_scope")
 
         self._mvp_timeline = _text_field("MVP 时间线（开始/结束/关键节点）", 80)
-        self._mvp_timeline.setPlainText(self._data.get("mvp_timeline", ""))
+        self._mvp_timeline.setPlainText(_safe_text(self._data.get("mvp_timeline", "")))
         self._mvp_timeline.textChanged.connect(lambda: self._emit())
         _add_row(form, "MVP 时间线 *", self._mvp_timeline, "mvp.mvp_timeline")
 
@@ -724,7 +725,7 @@ class ChapterMvpForm(QWidget):
         _add_row(form, "里程碑", self._milestones)
 
         self._success_criteria = _text_field("成功标准", 60)
-        self._success_criteria.setPlainText(self._data.get("success_criteria", ""))
+        self._success_criteria.setPlainText(_safe_text(self._data.get("success_criteria", "")))
         self._success_criteria.textChanged.connect(lambda: self._emit())
         _add_row(form, "成功标准", self._success_criteria)
 
@@ -736,12 +737,12 @@ class ChapterMvpForm(QWidget):
         _add_row(form, "团队规模", self._team_size)
 
         self._budget = _text_field("预算估算", 60)
-        self._budget.setPlainText(self._data.get("budget_estimate", ""))
+        self._budget.setPlainText(_safe_text(self._data.get("budget_estimate", "")))
         self._budget.textChanged.connect(lambda: self._emit())
         _add_row(form, "预算估算", self._budget)
 
         self._playtest = _text_field("试玩测试计划", 60)
-        self._playtest.setPlainText(self._data.get("playtest_plan", ""))
+        self._playtest.setPlainText(_safe_text(self._data.get("playtest_plan", "")))
         self._playtest.textChanged.connect(lambda: self._emit())
         _add_row(form, "试玩测试", self._playtest)
 
@@ -846,7 +847,7 @@ class ChapterRiskHandlingForm(QWidget):
         _add_row(form, "风险矩阵 *", self._risk_matrix, "risk_handling.risk_matrix")
 
         self._contingency = _text_field("应急预案", 80)
-        self._contingency.setPlainText(self._data.get("contingency_plan", ""))
+        self._contingency.setPlainText(_safe_text(self._data.get("contingency_plan", "")))
         self._contingency.textChanged.connect(lambda: self._emit())
         _add_row(form, "应急预案 *", self._contingency, "risk_handling.contingency_plan")
 
@@ -891,12 +892,12 @@ class ChapterRiskHandlingForm(QWidget):
         _add_row(form, "进度风险", self._schedule)
 
         self._monitoring = _text_field("风险监控机制", 60)
-        self._monitoring.setPlainText(self._data.get("risk_monitoring", ""))
+        self._monitoring.setPlainText(_safe_text(self._data.get("risk_monitoring", "")))
         self._monitoring.textChanged.connect(lambda: self._emit())
         _add_row(form, "风险监控", self._monitoring)
 
         self._crisis = _text_field("危机管理预案", 80)
-        self._crisis.setPlainText(self._data.get("crisis_management", ""))
+        self._crisis.setPlainText(_safe_text(self._data.get("crisis_management", "")))
         self._crisis.textChanged.connect(lambda: self._emit())
         _add_row(form, "危机管理", self._crisis)
 
@@ -983,7 +984,7 @@ class ChapterAudioForm(QWidget):
         form.setSpacing(8)
 
         self._music_style = _text_field("音乐风格定位", 60)
-        self._music_style.setPlainText(self._data.get("music_style", ""))
+        self._music_style.setPlainText(_safe_text(self._data.get("music_style", "")))
         self._music_style.textChanged.connect(lambda: self._emit())
         _add_row(form, "音乐风格 *", self._music_style, "audio.music_style")
 
@@ -1022,7 +1023,7 @@ class ChapterAudioForm(QWidget):
         _add_row(form, "音效清单", self._sfx_list)
 
         self._voice = _text_field("配音设计", 60)
-        self._voice.setPlainText(self._data.get("voice_acting", ""))
+        self._voice.setPlainText(_safe_text(self._data.get("voice_acting", "")))
         self._voice.textChanged.connect(lambda: self._emit())
         _add_row(form, "配音设计", self._voice)
 
@@ -1033,17 +1034,17 @@ class ChapterAudioForm(QWidget):
         _add_row(form, "音频引擎", self._audio_engine)
 
         self._dynamic = _text_field("动态音频/自适应音乐", 60)
-        self._dynamic.setPlainText(self._data.get("dynamic_audio", ""))
+        self._dynamic.setPlainText(_safe_text(self._data.get("dynamic_audio", "")))
         self._dynamic.textChanged.connect(lambda: self._emit())
         _add_row(form, "动态音频", self._dynamic)
 
         self._audio_loc = _text_field("音频本地化", 60)
-        self._audio_loc.setPlainText(self._data.get("audio_localization", ""))
+        self._audio_loc.setPlainText(_safe_text(self._data.get("audio_localization", "")))
         self._audio_loc.textChanged.connect(lambda: self._emit())
         _add_row(form, "音频本地化", self._audio_loc)
 
         self._audio_budget = _text_field("音频预算", 60)
-        self._audio_budget.setPlainText(self._data.get("audio_budget", ""))
+        self._audio_budget.setPlainText(_safe_text(self._data.get("audio_budget", "")))
         self._audio_budget.textChanged.connect(lambda: self._emit())
         _add_row(form, "音频预算", self._audio_budget)
 
@@ -1146,12 +1147,12 @@ class ChapterAccessibilityForm(QWidget):
         _add_row(form, "支持语言 *", self._languages, "accessibility.language_list")
 
         self._loc_strategy = _text_field("本地化策略", 60)
-        self._loc_strategy.setPlainText(self._data.get("localization_strategy", ""))
+        self._loc_strategy.setPlainText(_safe_text(self._data.get("localization_strategy", "")))
         self._loc_strategy.textChanged.connect(lambda: self._emit())
         _add_row(form, "本地化策略", self._loc_strategy)
 
         self._cultural = _text_field("文化适配（节日/敏感内容/数值单位）", 80)
-        self._cultural.setPlainText(self._data.get("cultural_adaptation", ""))
+        self._cultural.setPlainText(_safe_text(self._data.get("cultural_adaptation", "")))
         self._cultural.textChanged.connect(lambda: self._emit())
         _add_row(form, "文化适配", self._cultural)
 
@@ -1163,22 +1164,22 @@ class ChapterAccessibilityForm(QWidget):
         _add_row(form, "无障碍特性 *", self._features, "accessibility.accessibility_features")
 
         self._subtitle = _text_field("字幕设计", 60)
-        self._subtitle.setPlainText(self._data.get("subtitle_design", ""))
+        self._subtitle.setPlainText(_safe_text(self._data.get("subtitle_design", "")))
         self._subtitle.textChanged.connect(lambda: self._emit())
         _add_row(form, "字幕设计", self._subtitle)
 
         self._color_blind = _text_field("色盲支持", 60)
-        self._color_blind.setPlainText(self._data.get("color_blind_support", ""))
+        self._color_blind.setPlainText(_safe_text(self._data.get("color_blind_support", "")))
         self._color_blind.textChanged.connect(lambda: self._emit())
         _add_row(form, "色盲支持", self._color_blind)
 
         self._motor = _text_field("运动无障碍", 60)
-        self._motor.setPlainText(self._data.get("motor_accessibility", ""))
+        self._motor.setPlainText(_safe_text(self._data.get("motor_accessibility", "")))
         self._motor.textChanged.connect(lambda: self._emit())
         _add_row(form, "运动无障碍", self._motor)
 
         self._cognitive = _text_field("认知无障碍", 60)
-        self._cognitive.setPlainText(self._data.get("cognitive_accessibility", ""))
+        self._cognitive.setPlainText(_safe_text(self._data.get("cognitive_accessibility", "")))
         self._cognitive.textChanged.connect(lambda: self._emit())
         _add_row(form, "认知无障碍", self._cognitive)
 
@@ -1191,7 +1192,7 @@ class ChapterAccessibilityForm(QWidget):
         _add_row(form, "分级认证", self._rating)
 
         self._compliance = _text_field("合规备注", 80)
-        self._compliance.setPlainText(self._data.get("compliance_notes", ""))
+        self._compliance.setPlainText(_safe_text(self._data.get("compliance_notes", "")))
         self._compliance.textChanged.connect(lambda: self._emit())
         _add_row(form, "合规备注", self._compliance)
 

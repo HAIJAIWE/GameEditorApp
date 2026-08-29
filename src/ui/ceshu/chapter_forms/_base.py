@@ -15,6 +15,7 @@ from ._common import (
     _add_row,
     _combo,
     _line_field,
+    _safe_text,
     _text_field,
     ceshu_form_input_qss,
 )
@@ -35,7 +36,7 @@ class ChapterMetaForm(QWidget):
         form.setSpacing(8)
 
         self._game_name = _line_field("输入游戏名称")
-        self._game_name.setText(self._data.get("game_name", ""))
+        self._game_name.setText(_safe_text(self._data.get("game_name", "")))
         self._game_name.textChanged.connect(lambda: self._emit())
         _add_row(form, "游戏名称 *", self._game_name, "meta.game_name")
 
@@ -67,7 +68,7 @@ class ChapterMetaForm(QWidget):
 
         self._positioning = QLineEdit()
         self._positioning.setPlaceholderText("一句话描述你的游戏")
-        self._positioning.setText(self._data.get("positioning", ""))
+        self._positioning.setText(_safe_text(self._data.get("positioning", "")))
         self._positioning.setStyleSheet(ceshu_form_input_qss())
         self._positioning.textChanged.connect(lambda: self._emit())
         _add_row(form, "一句话定位", self._positioning, "meta.positioning")
@@ -145,7 +146,7 @@ class ChapterVisionForm(QWidget):
         form.setSpacing(8)
 
         self._design_vision = _text_field("阐述设计理念和愿景", 120)
-        self._design_vision.setPlainText(self._data.get("design_vision", ""))
+        self._design_vision.setPlainText(_safe_text(self._data.get("design_vision", "")))
         self._design_vision.textChanged.connect(lambda: self._emit())
         _add_row(form, "设计愿景", self._design_vision, "vision.design_vision")
 
@@ -161,12 +162,12 @@ class ChapterVisionForm(QWidget):
         _add_row(form, "次要用户", self._secondary_user, "vision.user_personas.secondary")
 
         self._differentiation = _text_field("与竞品的差异化优势", 80)
-        self._differentiation.setPlainText(self._data.get("differentiation", ""))
+        self._differentiation.setPlainText(_safe_text(self._data.get("differentiation", "")))
         self._differentiation.textChanged.connect(lambda: self._emit())
         _add_row(form, "差异化优势", self._differentiation, "vision.differentiation")
 
         self._business_model = _text_field("商业模式", 80)
-        self._business_model.setPlainText(self._data.get("business_model", ""))
+        self._business_model.setPlainText(_safe_text(self._data.get("business_model", "")))
         self._business_model.textChanged.connect(lambda: self._emit())
         _add_row(form, "商业模式", self._business_model, "vision.business_model")
 
@@ -213,17 +214,17 @@ class ChapterWorldviewForm(QWidget):
         form.setSpacing(8)
 
         self._architecture = _text_field("世界观架构描述", 100)
-        self._architecture.setPlainText(self._data.get("architecture", ""))
+        self._architecture.setPlainText(_safe_text(self._data.get("architecture", "")))
         self._architecture.textChanged.connect(lambda: self._emit())
         _add_row(form, "世界观架构", self._architecture, "worldview.architecture")
 
         self._geography = _text_field("地理与区域设定", 60)
-        self._geography.setPlainText(self._data.get("geography", ""))
+        self._geography.setPlainText(_safe_text(self._data.get("geography", "")))
         self._geography.textChanged.connect(lambda: self._emit())
         _add_row(form, "地理设定", self._geography)
 
         self._main_plot = _text_field("主线剧情大纲", 100)
-        self._main_plot.setPlainText(self._data.get("main_plot", ""))
+        self._main_plot.setPlainText(_safe_text(self._data.get("main_plot", "")))
         self._main_plot.textChanged.connect(lambda: self._emit())
         _add_row(form, "主线剧情", self._main_plot, "worldview.main_plot")
 
@@ -265,7 +266,7 @@ class ChapterGameplayForm(QWidget):
         form.setSpacing(8)
 
         self._core_loop = _text_field("核心循环描述，如: 探索→战斗→获取→养成→更强探索", 60)
-        self._core_loop.setPlainText(self._data.get("core_loop", ""))
+        self._core_loop.setPlainText(_safe_text(self._data.get("core_loop", "")))
         self._core_loop.textChanged.connect(lambda: self._emit())
         _add_row(form, "核心循环", self._core_loop, "gameplay.core_loop")
 
@@ -275,7 +276,7 @@ class ChapterGameplayForm(QWidget):
         _add_row(form, "游戏模式", self._game_modes)
 
         self._first_30 = _text_field("玩家首次游玩30分钟内的体验流程", 80)
-        self._first_30.setPlainText(self._data.get("first_30_min", ""))
+        self._first_30.setPlainText(_safe_text(self._data.get("first_30_min", "")))
         self._first_30.textChanged.connect(lambda: self._emit())
         _add_row(form, "新手体验(前30分钟)", self._first_30)
 
@@ -318,17 +319,17 @@ class ChapterNumericForm(QWidget):
         form.setSpacing(8)
 
         self._formulas = _text_field("核心数值公式，如伤害公式，每行一个", 100)
-        self._formulas.setPlainText(self._data.get("core_formulas", ""))
+        self._formulas.setPlainText(_safe_text(self._data.get("core_formulas", "")))
         self._formulas.textChanged.connect(lambda: self._emit())
         _add_row(form, "核心公式", self._formulas, "numeric.core_formulas")
 
         self._balance = _text_field("平衡设计原则", 80)
-        self._balance.setPlainText(self._data.get("balance_principles", ""))
+        self._balance.setPlainText(_safe_text(self._data.get("balance_principles", "")))
         self._balance.textChanged.connect(lambda: self._emit())
         _add_row(form, "平衡原则", self._balance)
 
         self._economy = _text_field("经济循环模型说明", 80)
-        self._economy.setPlainText(self._data.get("economic_model", ""))
+        self._economy.setPlainText(_safe_text(self._data.get("economic_model", "")))
         self._economy.textChanged.connect(lambda: self._emit())
         _add_row(form, "经济模型", self._economy, "numeric.economic_model")
 
@@ -368,22 +369,22 @@ class ChapterArtForm(QWidget):
         form.setSpacing(8)
 
         self._art_style = _text_field("美术风格定位描述", 80)
-        self._art_style.setPlainText(self._data.get("art_style", ""))
+        self._art_style.setPlainText(_safe_text(self._data.get("art_style", "")))
         self._art_style.textChanged.connect(lambda: self._emit())
         _add_row(form, "美术风格", self._art_style)
 
         self._color_system = _text_field("色彩体系描述", 80)
-        self._color_system.setPlainText(self._data.get("color_system", ""))
+        self._color_system.setPlainText(_safe_text(self._data.get("color_system", "")))
         self._color_system.textChanged.connect(lambda: self._emit())
         _add_row(form, "色彩体系", self._color_system, "art.color_system")
 
         self._typography = _text_field("字体与排版规范", 80)
-        self._typography.setPlainText(self._data.get("typography", ""))
+        self._typography.setPlainText(_safe_text(self._data.get("typography", "")))
         self._typography.textChanged.connect(lambda: self._emit())
         _add_row(form, "字体排版", self._typography)
 
         self._vfx = _text_field("特效风格描述", 80)
-        self._vfx.setPlainText(self._data.get("vfx", ""))
+        self._vfx.setPlainText(_safe_text(self._data.get("vfx", "")))
         self._vfx.textChanged.connect(lambda: self._emit())
         _add_row(form, "特效风格", self._vfx, "art.vfx")
 
@@ -434,7 +435,7 @@ class ChapterTechForm(QWidget):
         _add_row(form, "引擎/框架", self._engine)
 
         self._architecture = _text_field("核心技术架构说明", 80)
-        self._architecture.setPlainText(self._data.get("core_architecture", ""))
+        self._architecture.setPlainText(_safe_text(self._data.get("core_architecture", "")))
         self._architecture.textChanged.connect(lambda: self._emit())
         _add_row(form, "核心架构", self._architecture, "tech.core_architecture")
 
@@ -447,7 +448,7 @@ class ChapterTechForm(QWidget):
         _add_row(form, "开发里程碑", self._milestones)
 
         self._team = _text_field("团队编制与分工", 80)
-        self._team.setPlainText(self._data.get("team_structure", ""))
+        self._team.setPlainText(_safe_text(self._data.get("team_structure", "")))
         self._team.textChanged.connect(lambda: self._emit())
         _add_row(form, "团队分工", self._team)
 
@@ -509,7 +510,7 @@ class ChapterResourcesForm(QWidget):
         _add_row(form, "风险评估", self._risk, "resources.risk_matrix")
 
         self._ip = _text_field("知识产权说明", 80)
-        self._ip.setPlainText(self._data.get("ip", ""))
+        self._ip.setPlainText(_safe_text(self._data.get("ip", "")))
         self._ip.textChanged.connect(lambda: self._emit())
         _add_row(form, "知识产权", self._ip, "resources.ip")
 

@@ -212,3 +212,20 @@ def _combo(items: list, current: str = "") -> QComboBox:
         w.setCurrentText(current)
     w.setStyleSheet(ceshu_form_input_qss())
     return w
+
+
+def _safe_text(value) -> str:
+    """把任意值安全转成可显示文本。
+
+    AI 生成/导入的章节数据可能把本应为 str 的字段写成 dict/list（脏数据），
+    直接喂给 setPlainText/setText 会 TypeError 崩掉整个章节渲染。
+    统一在此转换: None->空串, str 原样, dict/list->JSON 美化, 其他->str()。
+    """
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value
+    if isinstance(value, (dict, list)):
+        import json
+        return json.dumps(value, ensure_ascii=False, indent=2)
+    return str(value)
