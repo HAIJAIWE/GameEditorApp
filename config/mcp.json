@@ -1,0 +1,31 @@
+{
+  "mcpServers": {
+    "sequential-thinking": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["D:\\node_global\\node_modules\\@modelcontextprotocol\\server-sequential-thinking\\dist\\index.js"],
+      "description": "Anthropic官方结构化思维链MCP"
+    },
+    "memory": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["D:\\node_global\\node_modules\\@modelcontextprotocol\\server-memory\\dist\\index.js"],
+      "description": "Anthropic官方知识图谱持久记忆MCP"
+    },
+    "playwright": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["D:\\node_global\\node_modules\\@playwright\\mcp\\cli.js"],
+      "description": "微软Playwright浏览器自动化MCP"
+    },
+    "filesystem": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "D:\\node_global\\node_modules\\@modelcontextprotocol\\server-filesystem\\dist\\index.js",
+        "D:\\GameEditorApp"
+      ],
+      "description": "Anthropic官方文件系统MCP — 文件读写编辑、目录操作，权限限定于 D:\\GameEditorApp"
+    }
+  }
+}

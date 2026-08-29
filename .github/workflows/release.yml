@@ -1,0 +1,101 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '版本号 (如 v4.0.0)'
+        required: true
+        default: 'v4.0.0'
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-lock.txt
+          pip install pyinstaller
+
+      - name: Build
+        run: python build.py
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MB-KSHBJQ-windows
+          path: dist/MB-KSHBJQ/
+
+      - name: Create ZIP
+        run: |
+          cd dist
+          Compress-Archive -Path MB-KSHBJQ -DestinationPath MB-KSHBJQ-windows.zip
+
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/MB-KSHBJQ-windows.zip
+          draft: true
+          prerelease: ${{ contains(github.ref, '-rc') || contains(github.ref, '-beta') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          pip install pyinstaller -r requirements-lock.txt
+      - name: Build
+        run: python build.py
+      - name: Create DMG
+        run: |
+          cd dist
+          zip -r MB-KSHBJQ-macos.zip MB-KSHBJQ.app/
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MB-KSHBJQ-macos
+          path: dist/MB-KSHBJQ.app/
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1-mesa-glx libglib2.0-0
+          pip install pyinstaller -r requirements-lock.txt
+      - name: Build
+        run: python build.py
+      - name: Create tar.gz
+        run: |
+          cd dist
+          tar -czf MB-KSHBJQ-linux.tar.gz MB-KSHBJQ/
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MB-KSHBJQ-linux
+          path: dist/MB-KSHBJQ/

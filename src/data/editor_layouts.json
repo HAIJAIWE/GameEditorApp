@@ -1,0 +1,520 @@
+{
+  "types": {
+    "job": [
+      {
+        "title": "基础信息",
+        "icon": "📌",
+        "collapsed": false,
+        "fields": [
+          "id",
+          "name",
+          "job_tier",
+          "base_job_from",
+          "type",
+          "desc"
+        ]
+      },
+      {
+        "title": "武器 & 加成",
+        "icon": "⚔️",
+        "collapsed": false,
+        "fields": [
+          "weapons",
+          "hp_bonus",
+          "mp_bonus",
+          "atk_bonus",
+          "def_bonus"
+        ],
+        "layout": "grid"
+      },
+      {
+        "title": "机制 & 资源",
+        "icon": "⚙️",
+        "collapsed": false,
+        "fields": [
+          "mechanism",
+          "resource_type"
+        ]
+      },
+      {
+        "title": "技能体系",
+        "icon": "🎯",
+        "collapsed": true,
+        "fields": [
+          "core_skills",
+          "passives",
+          "skill_types"
+        ]
+      },
+      {
+        "title": "难度 & 风格",
+        "icon": "📊",
+        "collapsed": true,
+        "fields": [
+          "difficulty",
+          "playstyle",
+          "growth_type",
+          "inherent_buffs"
+        ]
+      },
+      {
+        "title": "进阶 & 标签",
+        "icon": "🏆",
+        "collapsed": true,
+        "fields": [
+          "unlock_condition",
+          "evolve_jobs",
+          "tags"
+        ]
+      }
+    ],
+    "role": [
+      {
+        "title": "基础信息",
+        "icon": "📌",
+        "collapsed": false,
+        "fields": [
+          "id",
+          "name",
+          "job",
+          "race",
+          "faction",
+          "category"
+        ]
+      },
+      {
+        "title": "属性面板 (RPG三层体系)",
+        "icon": "⚔️",
+        "collapsed": false,
+        "type": "attribute_panel"
+      },
+      {
+        "title": "技能 & 天赋",
+        "icon": "🎯",
+        "collapsed": false,
+        "fields": [
+          "skills",
+          "talents"
+        ]
+      },
+      {
+        "title": "特殊机制",
+        "icon": "⚙️",
+        "collapsed": true,
+        "fields": [
+          "mechanism"
+        ]
+      },
+      {
+        "title": "描述 & 图片",
+        "icon": "📝",
+        "collapsed": true,
+        "fields": [
+          "tags",
+          "template",
+          "desc",
+          "image",
+          "image_desc",
+          "image_tags"
+        ]
+      }
+    ],
+    "monster": [
+      {
+        "title": "基础信息",
+        "icon": "📌",
+        "collapsed": false,
+        "fields": [
+          "id",
+          "name",
+          "level",
+          "type",
+          "category",
+          "difficulty",
+          "behavior"
+        ]
+      },
+      {
+        "title": "属性面板 (RPG三层体系)",
+        "icon": "⚔️",
+        "collapsed": false,
+        "type": "attribute_panel"
+      },
+      {
+        "title": "技能 & 天赋",
+        "icon": "🎯",
+        "collapsed": false,
+        "fields": [
+          "skills",
+          "talents"
+        ]
+      },
+      {
+        "title": "特殊机制",
+        "icon": "⚙️",
+        "collapsed": true,
+        "fields": [
+          "mechanism"
+        ]
+      },
+      {
+        "title": "掉落配置",
+        "icon": "💎",
+        "collapsed": false,
+        "fields": [
+          "generic_drops",
+          "equip_drops",
+          "item_drops",
+          "title_drops"
+        ]
+      },
+      {
+        "title": "描述 & 图片",
+        "icon": "📝",
+        "collapsed": true,
+        "fields": [
+          "tags",
+          "template",
+          "desc",
+          "image",
+          "image_desc",
+          "image_tags"
+        ]
+      }
+    ],
+    "skill": [
+      {
+        "title": "基础信息",
+        "icon": "📌",
+        "collapsed": false,
+        "fields": [
+          "id",
+          "name",
+          "type",
+          "category",
+          "target"
+        ]
+      },
+      {
+        "title": "数值配置",
+        "icon": "⚔️",
+        "collapsed": false,
+        "fields": [
+          "value",
+          "multiplier",
+          "cd",
+          "damage_type",
+          "consume",
+          "effect"
+        ],
+        "layout": "grid"
+      },
+      {
+        "title": "描述 & 图片",
+        "icon": "📝",
+        "collapsed": true,
+        "fields": [
+          "tags",
+          "template",
+          "desc",
+          "image",
+          "image_desc",
+          "image_tags"
+        ]
+      }
+    ],
+    "talent": [
+      {
+        "title": "基础信息",
+        "icon": "📌",
+        "collapsed": false,
+        "fields": [
+          "id",
+          "name",
+          "type",
+          "category"
+        ]
+      },
+      {
+        "title": "数值配置",
+        "icon": "⚔️",
+        "collapsed": false,
+        "fields": [
+          "value",
+          "multiplier",
+          "cd",
+          "damage_type",
+          "consume",
+          "effect"
+        ],
+        "layout": "grid"
+      },
+      {
+        "title": "描述 & 图片",
+        "icon": "📝",
+        "collapsed": true,
+        "fields": [
+          "tags",
+          "template",
+          "desc",
+          "image",
+          "image_desc",
+          "image_tags"
+        ]
+      }
+    ],
+    "equip": [
+      {
+        "title": "基础信息",
+        "icon": "📌",
+        "collapsed": false,
+        "fields": [
+          "id",
+          "name",
+          "part",
+          "rare",
+          "job",
+          "category"
+        ]
+      },
+      {
+        "title": "数值配置",
+        "icon": "⚔️",
+        "collapsed": false,
+        "fields": [
+          "value",
+          "effect"
+        ],
+        "layout": "grid"
+      },
+      {
+        "title": "描述 & 图片",
+        "icon": "📝",
+        "collapsed": true,
+        "fields": [
+          "tags",
+          "template",
+          "desc",
+          "image",
+          "image_desc",
+          "image_tags"
+        ]
+      }
+    ],
+    "item": [
+      {
+        "title": "基础信息",
+        "icon": "📌",
+        "collapsed": false,
+        "fields": [
+          "id",
+          "name",
+          "type",
+          "rare",
+          "category"
+        ]
+      },
+      {
+        "title": "数值配置",
+        "icon": "⚔️",
+        "collapsed": false,
+        "fields": [
+          "value",
+          "effect"
+        ],
+        "layout": "grid"
+      },
+      {
+        "title": "描述 & 图片",
+        "icon": "📝",
+        "collapsed": true,
+        "fields": [
+          "tags",
+          "template",
+          "desc",
+          "image",
+          "image_desc",
+          "image_tags"
+        ]
+      }
+    ]
+  },
+  "stat_hints": {
+    "role": {
+      "坦克": {
+        "hp": [
+          1500,
+          3000
+        ],
+        "atk": [
+          80,
+          150
+        ],
+        "def": [
+          100,
+          200
+        ],
+        "mp": [
+          100,
+          500
+        ]
+      },
+      "输出": {
+        "hp": [
+          400,
+          800
+        ],
+        "atk": [
+          180,
+          300
+        ],
+        "def": [
+          20,
+          60
+        ],
+        "mp": [
+          200,
+          600
+        ]
+      },
+      "辅助": {
+        "hp": [
+          500,
+          900
+        ],
+        "atk": [
+          60,
+          120
+        ],
+        "def": [
+          30,
+          70
+        ],
+        "mp": [
+          500,
+          1000
+        ]
+      },
+      "治疗": {
+        "hp": [
+          500,
+          800
+        ],
+        "atk": [
+          50,
+          100
+        ],
+        "def": [
+          30,
+          60
+        ],
+        "mp": [
+          600,
+          1200
+        ]
+      },
+      "控制": {
+        "hp": [
+          500,
+          900
+        ],
+        "atk": [
+          100,
+          180
+        ],
+        "def": [
+          30,
+          70
+        ],
+        "mp": [
+          400,
+          800
+        ]
+      }
+    },
+    "monster": {
+      "普通": {
+        "hp": [
+          100,
+          500
+        ],
+        "atk": [
+          20,
+          80
+        ],
+        "def": [
+          10,
+          50
+        ],
+        "exp": [
+          30,
+          150
+        ]
+      },
+      "精英": {
+        "hp": [
+          2000,
+          8000
+        ],
+        "atk": [
+          200,
+          500
+        ],
+        "def": [
+          80,
+          200
+        ],
+        "exp": [
+          500,
+          2000
+        ]
+      },
+      "Boss": {
+        "hp": [
+          5000,
+          50000
+        ],
+        "atk": [
+          400,
+          1500
+        ],
+        "def": [
+          150,
+          500
+        ],
+        "exp": [
+          1000,
+          10000
+        ]
+      },
+      "稀有": {
+        "hp": [
+          800,
+          3000
+        ],
+        "atk": [
+          150,
+          400
+        ],
+        "def": [
+          60,
+          150
+        ],
+        "exp": [
+          200,
+          800
+        ]
+      }
+    }
+  },
+  "stat_labels": {
+    "hp": "❤️ HP",
+    "mp": "💧 MP",
+    "atk": "⚔️ ATK",
+    "def": "🛡️ DEF",
+    "exp": "⭐ EXP",
+    "value": "📊 数值",
+    "multiplier": "✖️ 倍率",
+    "cd": "⏱️ CD"
+  }
+}
