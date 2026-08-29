@@ -446,13 +446,17 @@ class LibraryManager:
             logger.warning(f"操作失败: {e}")
 
     def restore_active_library(self) -> bool:
-        """启动时恢复上次活跃的库"""
+        """启动时恢复上次活跃的库；若目标库已不存在，回退到初始库"""
         state_file = self.libraries_dir / ".active_library"
         if not state_file.exists():
             return False
         try:
             name = state_file.read_text(encoding="utf-8").strip()
             if name and self.switch_library(name, persist=False):
+                return True
+            # 目标库已被删除（如手动清理测试残留），回退到初始库避免"无活跃库"
+            if name and self.switch_library(INITIAL_LIBRARY_NAME, persist=False):
+                logger.warning(f"上次活跃库 {name!r} 不存在，已回退到 {INITIAL_LIBRARY_NAME}")
                 return True
         except Exception as e:
             logger.warning(f"操作失败: {e}")
