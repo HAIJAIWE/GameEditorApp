@@ -1,5 +1,35 @@
 # 更新日志
 
+## [Unreleased] - 2026-08-29
+
+### 代码库重构（可读性与可维护性）
+
+仅内部结构调整，外部行为不变。每处改动均通过等价验证（AST 快照比对 / 多场景冒烟对比）与全量回归（单测 667 + 集成 97）。
+
+**数据外置**（逻辑与数据分离）
+- `core/library_manager.py`：1840 → 737 行，初始样本数据外置到 `src/data/sample_data.py`
+- `ui/ceshu/chapter_templates.py`：965 → 170 行，18 章模板数据外置到 `src/data/chapter_templates_data.py`
+
+**巨型方法拆分**
+- `core/defaults/rpg_schema.py`：748 行单函数 → 12 个类型构建函数
+- `core/ceshu/ceshu_checklist.py`：235 行单方法 → 6 个分类构建函数
+- `features/_ai_dialog.py`：`generate_content` 376 → 85 行（拆 6 个纯构造方法）
+- `core/agent/skills/ceshu_skill.py`：`_ai_generate` 253 → 178 行（三批生成循环去重）
+- `ui/dialogs/type_editor_dialog.py`：`setup_ui` 161 → 20 行（拆 4 个面板构建方法）
+- `ui/ai_assistant_tab.py`：`_do_show_question` 139 → 62 行
+- `core/agent/brain.py`：`_build_system_prompt` 117 → 28 行
+
+**其他**
+- Python 版本要求统一为 3.14（pyproject / Dockerfile / 文档）
+- 全量 ruff 清理：908 处 + `--unsafe-fixes` 284 处（lint 509 → 225）
+- `.gitignore` 补充根目录临时文件与备份目录排除规则
+
+### 修复
+
+- **策划书章节表单防崩溃**：AI 生成的章节字段可能返回 dict/list（如 `characters.protagonist={}`），直接渲染会 TypeError 崩溃；新增 `_safe_text()` 并加固 67 处 UI 赋值（`chapter_forms/_base.py` 20 + `_industrial.py` 47），脏数据不再崩溃而是以 JSON 形式显示
+- **活跃库回退**：`.active_library` 指向已删除的库时应用启动后无活跃库，现在自动回退到初始库并告警
+- **导入索引修复**：`features/export.py` 四种导入统一走 `_finalize_import()`，修复 CSV / Excel 导入漏重建索引导致数据入库但查不到的问题
+
 ## [v5.0.0] - 2026-07-05
 
 ### 策划书系统工业级升级
