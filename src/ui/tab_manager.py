@@ -61,17 +61,26 @@ class TabManager:
         """
         self._ceshu_type_filter = enabled_types
         self.logger.info(f"[上下文] 策划书上下文已设置: {enabled_types}")
+        EventBus().emit("ceshu_context_changed")
 
     def clear_ceshu_context(self) -> None:
         """清除策划书上下文：恢复显示所有数据类型"""
         self._ceshu_type_filter = None
         self.logger.info("[上下文] 策划书上下文已清除")
+        EventBus().emit("ceshu_context_changed")
 
     def is_type_allowed(self, data_type: str) -> bool:
-        """检查指定数据类型在当前上下文中是否允许显示"""
-        if self._ceshu_type_filter is None:
-            return True
-        return data_type in self._ceshu_type_filter
+        """检查指定数据类型在当前上下文中是否允许显示
+
+        优先级：策划书上下文过滤 > 用户「显示类型」配置（visible_types，None=全部）
+        """
+        if self._ceshu_type_filter is not None:
+            return data_type in self._ceshu_type_filter
+        visible_types = getattr(self._mw.config, 'visible_types', None)
+        if visible_types is not None:
+            # None=显示全部；[]=全部隐藏；["a","b"]=只显示勾选
+            return data_type in visible_types
+        return True
 
     # ---- 生命周期 ----
 
@@ -83,6 +92,9 @@ class TabManager:
         self._mw.home_widget.action_triggered.connect(self._mw._on_home_action)
 
         for data_type, _tab_name in self.get_tab_configs():
+            if not self.is_type_allowed(data_type):
+                self.logger.debug(f"[创建] 跳过未显示类型: {data_type}")
+                continue
             self._mw.tabs[data_type] = None
 
     def rebuild_all_tabs(self):
@@ -127,6 +139,9 @@ class TabManager:
             configs = self.get_tab_configs()
             self.logger.debug(f"[重建] 标签页配置：{[(dt, name) for dt, name in configs]}")
             for data_type, tab_name in configs:
+                if not self.is_type_allowed(data_type):
+                    self.logger.debug(f"[重建] 跳过未显示类型: {data_type} ({tab_name})")
+                    continue
                 try:
                     tab = DataEditorTab(data_type, self._mw.data_manager)
                     self._mw.tabs[data_type] = tab

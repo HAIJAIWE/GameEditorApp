@@ -247,6 +247,10 @@ class AppConfig:
         self.auto_save: bool = True
         self.auto_save_interval: int = 5
 
+        # 首页/标签页显示的数据类型（None=全部显示；list=只显示这些类型 ID）
+        self.visible_types: Optional[list[str]] = None
+        self._load_ui_prefs()
+
         self._initialized = True
 
     @property
@@ -627,6 +631,35 @@ class AppConfig:
                               ensure_ascii=False, indent=2)
         except Exception as e:
             get_logger().error(f"保存字段配置失败: {e}", exc_info=True)
+
+    # ---- UI 偏好（首页/标签页显示类型等） ----
+
+    @property
+    def ui_prefs_file(self) -> Path:
+        """UI 偏好文件路径（独立于 API 配置）"""
+        return self.config_dir / "ui_prefs.json"
+
+    def _load_ui_prefs(self):
+        """加载 UI 偏好（visible_types 等）"""
+        try:
+            path = self.ui_prefs_file
+            if path.exists():
+                with open(path, encoding='utf-8') as f:
+                    data = json.load(f)
+                vt = data.get('visible_types')
+                if isinstance(vt, list) and vt:
+                    self.visible_types = [str(x) for x in vt]
+        except Exception as e:
+            get_logger().warning(f"加载 UI 偏好失败: {e}", exc_info=True)
+
+    def save_ui_prefs(self):
+        """保存 UI 偏好（visible_types 等）"""
+        try:
+            from common.common import atomic_write_json
+            data = {'visible_types': self.visible_types}
+            atomic_write_json(self.ui_prefs_file, data, ensure_ascii=False, indent=2)
+        except Exception as e:
+            get_logger().error(f"保存 UI 偏好失败: {e}", exc_info=True)
 
     def save_api_config(self):
         """保存API配置"""

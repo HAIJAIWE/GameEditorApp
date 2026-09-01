@@ -2,6 +2,13 @@
 
 ## [Unreleased] - 2026-09-01
 
+### 新增
+
+- **「选择显示多少类型」功能**：首页数据概览区标题行新增「⚙ 管理显示类型」按钮，弹出勾选列表，可选择首页统计卡片 / 标签页只显示哪些数据类型（`config.visible_types` 持久化到 `data/settings/ui_prefs.json`，None=全部）
+  - 界面问题根因：schema 里 91 个类型 → 首页渲染 91 张统计卡片（用户看到的"91 个标签"），数据本身并未损坏
+  - 顺带修复了**从未生效的策划书上下文过滤**：`TabManager.is_type_allowed()` 此前无任何调用方（死代码），策划书「游戏系统勾选 → 只显示勾选类型」从未真正起作用。现在标签页创建与首页统计卡片均按 `is_type_allowed()` 过滤，优先级：策划书上下文 > 用户显示配置 > 全部显示；策划书关闭后自动恢复
+- 新增 `ui/dialogs/type_visibility_dialog.py`（显示类型选择对话框）
+
 ### 修复
 
 - **工作区删除后残留空库目录**：`WorkspaceManager.delete_workspace()` 只移除「库目录/.workspace/」，把空的库目录壳永久留在 `data/libraries/` 下（反复出现的 `test_project` 空目录即由此产生）。删除后若库目录已空则一并回收；仍含业务数据（如 `ceshu/`）的库不受影响
@@ -10,6 +17,7 @@
 
 ### 测试
 
+- 新增 `tests/unit/test_type_visibility.py`：10 个用例，覆盖 `is_type_allowed` 三级优先级（策划书上下文 > visible_types 配置 > 全部）、`TypeVisibilityDialog.result_types` 三种情况、首页统计卡片按配置过滤
 - `tests/unit/test_workspace.py`：0 → 16 个用例，覆盖工作区创建/切换/列表/统计/删除、空壳回收、含数据保留，以及 Memory 提炼与偏好推断
 - `tests/integration/test_frontend_critical.py`：修 lint 15 处（无占位符 f-string、歧义变量名 `l`）
 

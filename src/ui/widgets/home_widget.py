@@ -333,6 +333,8 @@ class HomeWidget(QWidget):
         self._stats_timer.setSingleShot(True)
         self._stats_timer.timeout.connect(self._on_stats_timer)
         EventBus().on("data_changed", self._mark_stats_dirty)
+        # 策划书上下文/显示类型变化 → 刷新数据概览卡片
+        EventBus().on("ceshu_context_changed", self._mark_stats_dirty)
         self._guide = None
         self._setup_ui()
 
@@ -386,10 +388,22 @@ class HomeWidget(QWidget):
         sep.setObjectName("homeSep")
         layout.addWidget(sep)
 
+        stats_header = QHBoxLayout()
         stats_label = QLabel("\ud83d\udcca \u6570\u636e\u6982\u89c8")
         stats_label.setStyleSheet("font-size: 16px; font-weight: 700; margin-top: 4px; font-family: 'Microsoft YaHei', sans-serif;")
         stats_label.setObjectName("statsTitle")
-        layout.addWidget(stats_label)
+        stats_header.addWidget(stats_label)
+        stats_header.addStretch()
+        self._manage_btn = QPushButton("⚙ 管理显示类型")
+        self._manage_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._manage_btn.setStyleSheet(
+            f"font-size: 12px; color: {theme_color('accent')}; border: none; "
+            f"background: transparent; padding: 2px 6px;"
+        )
+        self._manage_btn.setToolTip("选择首页数据概览区显示哪些数据类型（数据本身不受影响）")
+        self._manage_btn.clicked.connect(self._on_manage_visible_types)
+        stats_header.addWidget(self._manage_btn)
+        layout.addLayout(stats_header)
 
         self.stats_container = QWidget()
         self.stats_layout = QHBoxLayout(self.stats_container)
@@ -462,6 +476,8 @@ class HomeWidget(QWidget):
 
             if schema and hasattr(schema, "types"):
                 for t in schema.types:
+                    if not self._is_type_allowed(t.id):
+                        continue
                     label = DATA_TYPE_LABELS.get(t.id, t.name)
                     items = all_data.get(t.plural_key, [])
                     count = len(items) if isinstance(items, list) else 0
@@ -480,8 +496,55 @@ class HomeWidget(QWidget):
         while self.stats_layout.count():
             child = self.stats_layout.takeAt(0)
             if child.widget():
-                child.widget().deleteLater()
+                w = child.widget()
+                w.setParent(None)  # 立即从 widget 树移除，避免 findChildren 命中旧卡片
+                w.deleteLater()
         self._safe_refresh_stats()
+
+    def _is_type_allowed(self, data_type: str) -> bool:
+        """按当前上下文判断是否显示该类型（策划书过滤 > 用户显示配置）"""
+        try:
+            parent = self.parent()
+            if parent is not None and hasattr(parent, 'tab_mgr'):
+                return parent.tab_mgr.is_type_allowed(data_type)
+        except Exception:
+            pass
+        # 兜底：直接读配置
+        try:
+            config = getattr(self.data_manager, 'config', None)
+            visible = getattr(config, 'visible_types', None)
+            if visible is not None:
+                return data_type in visible
+        except Exception:
+            pass
+        return True
+
+    def _on_manage_visible_types(self):
+        """打开「显示类型」选择对话框，保存并刷新概览区"""
+        try:
+            config = getattr(self.data_manager, 'config', None)
+            if config is None:
+                return
+            schema = config.get_type_schema()
+            if schema is None or not getattr(schema, 'types', None):
+                from PyQt6.QtWidgets import QMessageBox
+                QMessageBox.information(self, "管理显示类型", "当前库没有可用的数据类型")
+                return
+            from ui.dialogs.type_visibility_dialog import TypeVisibilityDialog
+            dlg = TypeVisibilityDialog(schema, config.visible_types, parent=self)
+            if dlg.exec() != TypeVisibilityDialog.DialogCode.Accepted:
+                return
+            config.visible_types = dlg.result_types()
+            config.save_ui_prefs()
+            self._refresh_stats()
+            # 通知主窗口重建标签页（如果有可见标签页载体）
+            parent = self.parent()
+            if parent is not None and hasattr(parent, 'tab_mgr'):
+                parent.tab_mgr.invalidate_tab_configs()
+                if hasattr(parent, '_rebuild_all_tabs'):
+                    parent._rebuild_all_tabs()
+        except Exception as e:
+            logger.warning(f"管理显示类型失败: {e}", exc_info=True)
 
     def _create_stat_card(self, label, count, color):
         card = QFrame()
