@@ -5,8 +5,8 @@
   - TypeVisibilityDialog.result_types 三种情况（全勾=None / 部分勾=list / 全不勾=[]）
   - HomeWidget 数据概览卡片按 visible_types 过滤（91 类型 → 只显示勾选的）
 """
-import sys
 from pathlib import Path
+import sys
 
 import pytest
 
@@ -137,7 +137,7 @@ class _FakeDM:
 
 
 def _build_home_widget(types, visible_types):
-    from PyQt6.QtWidgets import QFrame
+
     from ui.widgets.home_widget import HomeWidget
     dm = _FakeDM(types)
     dm.config.visible_types = visible_types
