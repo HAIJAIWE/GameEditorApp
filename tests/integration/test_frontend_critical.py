@@ -129,7 +129,7 @@ class TestAddNewEditorType(unittest.TestCase):
         disk_ids = [t["id"] for t in disk.get("data_types", [])]
         self.assertIn("pet", disk_ids, f"磁盘缺少 pet: {disk_ids}")
         print(f"  [添加] 磁盘类型: {disk_ids}")
-        print(f"  TEST_RESULT: ADD_TYPE_TO_SCHEMA=PASS")
+        print("  TEST_RESULT: ADD_TYPE_TO_SCHEMA=PASS")
 
     def test_04_rebuild_all_tabs_with_pet(self):
         """添加 pet 后触发 _rebuild_all_tabs"""
@@ -163,19 +163,19 @@ class TestAddNewEditorType(unittest.TestCase):
 
         self.assertIn("pet", new_tabs, f"tabs 中缺少 pet, 实际: {new_tabs}")
         self.assertGreaterEqual(new_count, old_count, "重建后标签页数不应减少")
-        print(f"  TEST_RESULT: REBUILD_WITH_PET=PASS")
+        print("  TEST_RESULT: REBUILD_WITH_PET=PASS")
 
     def test_05_tab_configs_has_pet(self):
         """_get_tab_configs 包含宠物"""
         configs = self.window._get_tab_configs()
         self.assertIn(('pet', '宠物'), configs, f"configs 不包含 pet: {[(dt, name) for dt, name in configs]}")
-        print(f"  TEST_RESULT: TAB_CONFIGS_HAS_PET=PASS")
+        print("  TEST_RESULT: TAB_CONFIGS_HAS_PET=PASS")
 
     def test_06_data_manager_has_pets(self):
         """data_manager.data 包含 pets 键"""
         self.assertIn("pets", self.window.data_manager.data,
                       f"data_manager 缺少 pets: {list(self.window.data_manager.data.keys())}")
-        print(f"  TEST_RESULT: DATA_HAS_PETS=PASS")
+        print("  TEST_RESULT: DATA_HAS_PETS=PASS")
 
     def test_07_remove_pet_and_rebuild(self):
         """移除 pet 类型并重建"""
@@ -210,7 +210,7 @@ class TestAddNewEditorType(unittest.TestCase):
         self.assertNotIn("pet", new_tabs, f"移除后 tabs 中不应有 pet: {new_tabs}")
         self.assertGreaterEqual(len(self.window.tabs), old_count - 2,
                                 "移除 pet 后标签页数不应大幅减少")
-        print(f"  TEST_RESULT: REMOVE_PET_REBUILD=PASS")
+        print("  TEST_RESULT: REMOVE_PET_REBUILD=PASS")
 
 
 # ============================================================
@@ -224,6 +224,12 @@ class TestLibrarySwitch(unittest.TestCase):
         cls.app = _get_app()
         from ui.main_window import MainWindow
         cls.window = MainWindow()
+        # 跨测试方法共享的状态必须挂在类上：unittest 为每个测试方法新建实例，
+        # 用 self 存的话 test_03/test_04 取不到 test_02 写入的值，
+        # 会导致切回原库和清理测试库两个用例被静默跳过、测试库永久残留。
+        cls._test_lib = None
+        cls._original_active = None
+        cls._saved_state = ""
         # 清理异常中断遗留的测试库，避免状态污染
         try:
             from config.settings import get_config
@@ -260,28 +266,29 @@ class TestLibrarySwitch(unittest.TestCase):
     def test_02_create_and_switch_library(self):
         """创建新库并切换"""
         from datetime import datetime
+        cls = type(self)
         lm = self.window.config.library_manager
-        self._original_active = lm.active_library_name
+        cls._original_active = lm.active_library_name
 
         state_file = lm.libraries_dir / ".active_library"
-        self._saved_state = state_file.read_text(encoding="utf-8").strip() if state_file.exists() else ""
+        cls._saved_state = state_file.read_text(encoding="utf-8").strip() if state_file.exists() else ""
 
-        self._test_lib = f"界面测试_{datetime.now().strftime('%H%M%S')}"
-        new_lib = lm.create_library(self._test_lib, "界面稳定性测试")
+        cls._test_lib = f"界面测试_{datetime.now().strftime('%H%M%S')}"
+        new_lib = lm.create_library(cls._test_lib, "界面稳定性测试")
 
         if new_lib is None:
-            self._test_lib = f"界面测试_{datetime.now().strftime('%H%M%S')}_2"
-            new_lib = lm.create_library(self._test_lib, "界面稳定性测试")
+            cls._test_lib = f"界面测试_{datetime.now().strftime('%H%M%S')}_2"
+            new_lib = lm.create_library(cls._test_lib, "界面稳定性测试")
 
         self.assertIsNotNone(new_lib, "创建库失败")
-        print(f"  [创建] 新库: {self._test_lib}")
+        print(f"  [创建] 新库: {cls._test_lib}")
 
         old_tab_count = len(self.window.tabs)
         old_tabs = list(self.window.tabs.keys())
         print(f"  [切换前] tabs: {old_tabs}")
         print(f"  [切换前] 标签页数: {old_tab_count}")
 
-        lm.switch_library(self._test_lib, persist=True)
+        lm.switch_library(cls._test_lib, persist=True)
 
         self.window.data_manager.reload_from_library()
         self.window.data_manager.update_id_counters()
@@ -300,15 +307,16 @@ class TestLibrarySwitch(unittest.TestCase):
         self.assertTrue(self.window.isVisible(), "窗口应该可见!")
         self.window.show()
         QApplication.processEvents()
-        print(f"  TEST_RESULT: LIBRARY_SWITCH=PASS")
+        print("  TEST_RESULT: LIBRARY_SWITCH=PASS")
 
     def test_03_switch_back_to_original(self):
         """切回初始库"""
-        if not hasattr(self, '_original_active') or not hasattr(self, '_test_lib'):
+        cls = type(self)
+        if not cls._original_active or not cls._test_lib:
             self.skipTest("前置测试未完成")
 
         lm = self.window.config.library_manager
-        lm.switch_library(self._original_active, persist=True)
+        lm.switch_library(cls._original_active, persist=True)
 
         self.window.data_manager.reload_from_library()
         self.window.data_manager.update_id_counters()
@@ -325,28 +333,32 @@ class TestLibrarySwitch(unittest.TestCase):
 
         self.assertGreater(after_count, 0, "切回初始库后标签页数不应为 0!")
         self.assertIn("role", after_tabs, "切回后应包含 role tab")
-        print(f"  TEST_RESULT: SWITCH_BACK=PASS")
+        print("  TEST_RESULT: SWITCH_BACK=PASS")
 
     def test_04_cleanup_test_library(self):
         """清理测试库"""
-        if not hasattr(self, '_test_lib'):
-            return
+        cls = type(self)
+        if not cls._test_lib:
+            self.skipTest("前置测试未完成")
 
         lm = self.window.config.library_manager
-        if lm.active_library_name == self._test_lib:
-            lm.switch_library(self._original_active, persist=True)
+        if lm.active_library_name == cls._test_lib:
+            lm.switch_library(cls._original_active or "初始库", persist=True)
 
-        lm.delete_library(self._test_lib)
+        self.assertTrue(lm.delete_library(cls._test_lib), f"删除测试库失败: {cls._test_lib}")
 
-        if hasattr(self, '_saved_state'):
-            state_file = lm.libraries_dir / ".active_library"
-            if self._saved_state:
-                state_file.write_text(self._saved_state, encoding="utf-8")
-            elif state_file.exists():
-                state_file.unlink()
+        state_file = lm.libraries_dir / ".active_library"
+        if cls._saved_state:
+            state_file.write_text(cls._saved_state, encoding="utf-8")
+        elif state_file.exists():
+            state_file.unlink()
 
-        self.assertNotIn(self._test_lib, {l.name for l in lm.get_all_libraries()})
-        print(f"  TEST_RESULT: CLEANUP=PASS")
+        self.assertNotIn(cls._test_lib, {lib.name for lib in lm.get_all_libraries()})
+        self.assertFalse(
+            (lm.libraries_dir / cls._test_lib).exists(),
+            f"测试库目录仍残留在磁盘上: {cls._test_lib}",
+        )
+        print("  TEST_RESULT: CLEANUP=PASS")
 
 
 # ============================================================
@@ -426,7 +438,7 @@ class TestRebuildTabsIntegrity(unittest.TestCase):
         tabs2 = list(self.window.tabs.keys())
 
         self.assertEqual(tabs1, tabs2, f"两次重建结果不一致: {tabs1} vs {tabs2}")
-        print(f"  [幂等] 两次重建 tabs 一致")
+        print("  [幂等] 两次重建 tabs 一致")
 
     def test_05_rapid_consecutive_rebuilds(self):
         """快速连续重建（防重入测试）"""
@@ -437,7 +449,7 @@ class TestRebuildTabsIntegrity(unittest.TestCase):
             QTest.qWait(100)
 
         self.assertGreater(len(self.window.tabs), 0, "快速重建后 tabs 不应为空")
-        print(f"  [快速重建] 3次连续重建后 tabs 正常")
+        print("  [快速重建] 3次连续重建后 tabs 正常")
 
     def test_06_rebuilding_flag_resets(self):
         """_rebuilding 标志正确重置"""
@@ -555,7 +567,7 @@ class TestEdgeCases(unittest.TestCase):
         self.window._tab_configs = None
         configs2 = self.window._get_tab_configs()
         self.assertEqual(configs1, configs2, "缓存清除后 configs 应一致")
-        print(f"  Configs 缓存: OK")
+        print("  Configs 缓存: OK")
 
     def test_02_tab_widget_structure(self):
         """数据标签页结构: 数量 >= 3，中心堆栈存在"""
@@ -570,7 +582,7 @@ class TestEdgeCases(unittest.TestCase):
         """三栏右侧数字员工面板存在"""
         self.assertIsNotNone(self.window.digital_panel, "digital_panel 不应为 None")
         self.assertTrue(self.window.digital_panel.isWidgetType(), "digital_panel 应为有效 widget")
-        print(f"  digital_panel: OK")
+        print("  digital_panel: OK")
 
     def test_04_data_tab_instances_after_rebuild(self):
         """帮建后所有数据 tab 是 DataEditorTab 实例"""
@@ -584,7 +596,7 @@ class TestEdgeCases(unittest.TestCase):
             self.assertIsNotNone(tab, f"tab {dt} 不应为 None（重建后）")
             self.assertIsInstance(tab, DataEditorTab,
                                   f"tab {dt} 应为 DataEditorTab, 实际: {type(tab)}")
-        print(f"  所有数据 tab 均为 DataEditorTab 实例")
+        print("  所有数据 tab 均为 DataEditorTab 实例")
 
     def test_05_window_visible_after_operations(self):
         """操作后窗口仍然可见"""
@@ -604,7 +616,7 @@ class TestEdgeCases(unittest.TestCase):
                     self.assertTrue(is_widget, f"tab {dt} 不是有效 widget")
                 except RuntimeError:
                     self.fail(f"tab {dt} 已被销毁但仍存在 tabs 字典中")
-        print(f"  无过期 tab 引用")
+        print("  无过期 tab 引用")
 
 
 # ============================================================

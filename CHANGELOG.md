@@ -1,5 +1,18 @@
 # 更新日志
 
+## [Unreleased] - 2026-09-01
+
+### 修复
+
+- **工作区删除后残留空库目录**：`WorkspaceManager.delete_workspace()` 只移除「库目录/.workspace/」，把空的库目录壳永久留在 `data/libraries/` 下（反复出现的 `test_project` 空目录即由此产生）。删除后若库目录已空则一并回收；仍含业务数据（如 `ceshu/`）的库不受影响
+- **集成测试从不清理测试库**：`TestLibrarySwitch` 把 `_test_lib` / `_original_active` 等状态存在 `self` 上，而 unittest 为每个测试方法新建实例，导致 `test_03`（切回原库）永远被 skip、`test_04`（清理测试库）永远提前 return 空跑，`界面测试_*` 库永久残留。改为类属性共享状态，并新增磁盘残留断言
+- **`test_workspace.py` 从未被执行**：该文件是脚本（模块级代码、无 `test_` 函数），pytest 收集结果为 0 tests，其中的断言一直未纳入 CI。已改写为 16 个正式用例，并通过 monkeypatch 把操作隔离到 tmp_path，不再污染 `data/libraries/`
+
+### 测试
+
+- `tests/unit/test_workspace.py`：0 → 16 个用例，覆盖工作区创建/切换/列表/统计/删除、空壳回收、含数据保留，以及 Memory 提炼与偏好推断
+- `tests/integration/test_frontend_critical.py`：修 lint 15 处（无占位符 f-string、歧义变量名 `l`）
+
 ## [Unreleased] - 2026-08-29
 
 ### 代码库重构（可读性与可维护性）

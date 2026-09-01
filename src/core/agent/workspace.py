@@ -148,7 +148,25 @@ class WorkspaceManager:
             return False
         shutil.rmtree(ws)
         self._logger.info(f"删除工作区: {name}")
+        self._remove_empty_library(name)
         return True
+
+    def _remove_empty_library(self, name: str) -> None:
+        """删除工作区后回收空的库目录壳
+
+        create_workspace 会同时创建「库目录/」和「库目录/.workspace/」，
+        但删除时只移除 .workspace，导致库目录作为空壳永久残留在
+        data/libraries/ 下（例如反复出现的 test_project 空目录）。
+
+        仅在目录确认完全为空时才删除，仍含业务数据（如 ceshu/）的库不受影响。
+        """
+        lib = self._root / name
+        try:
+            if lib.is_dir() and not any(lib.iterdir()):
+                lib.rmdir()
+                self._logger.info(f"清理空库目录: {name}")
+        except OSError as e:
+            self._logger.warning(f"清理空库目录 {name} 失败: {e}")
 
     def switch_workspace(self, name: str) -> bool:
         lib = self._root / name
