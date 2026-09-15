@@ -1,5 +1,16 @@
 # 更新日志
 
+## [Unreleased] - 2026-09-15（大文件拆分）
+
+### 重构
+
+- **`src/ui/digital_employee.py` 2416 → 497 行**：`DigitalPanel` 的 77 个方法按职责拆到六个 mixin
+  - `digital_panel_ui.py`（界面构建）/ `digital_panel_workspace.py`（工作区与草稿）/ `digital_panel_tasks.py`（任务面板与提问）/ `digital_panel_input.py`（输入与斜杠命令）/ `digital_panel_chat.py`（消息渲染与流式）/ `digital_panel_theme.py`（主题）
+  - `digital_panel_state.py`：`DigitalPanelState(QWidget)` 集中声明跨 mixin 共享属性与 82 个方法签名（实现由各 mixin 提供，MRO 下真实实现优先），使 mypy 在 mixin 上下文仍能解析 `self.*`
+  - 公开类 `DigitalPanel` / `DigitalEmployee` / `DigitalEmployeePopup` 仍从 `ui.digital_employee` 导出，所有导入方无需改动；独立启动改为在 `src/` 下执行 `python -m ui.digital_employee`（或设 `PYTHONPATH=src`）
+- **等价性验证**：AST 逐函数比对重构前后全部 100 个函数，函数体逐字一致；唯一差异为 `_open_popup` 内新增的延迟导入（该名字原是同模块全局 `DigitalEmployeePopup`，拆分后须从 `ui.digital_employee` 延迟导入以避免循环导入）
+- **回归**：805 passed / 0 skipped（覆盖率 32.20%，门槛 30%）、e2e 44 passed、ruff 全绿、mypy 274 文件 0 错误；MainWindow / DigitalPanel / DigitalEmployee / DigitalEmployeePopup 冒烟构造与方法调用通过
+
 ## [Unreleased] - 2026-09-15
 
 ### 修复

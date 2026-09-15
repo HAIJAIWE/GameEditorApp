@@ -286,7 +286,7 @@ get_tool_description()                # 工具描述
 | `DataEditorTab` | `ui/data_tab.py` | 数据编辑标签页 |
 | `AIAssistantTab` | `ui/ai_assistant_tab.py` | AI 助手标签页（技能工具调用） |
 | `AIBridge` | `ui/ai_bridge.py` | AgentBrain 初始化 + 面板控制 |
-| `DigitalPanel` / `DigitalEmployee` | `ui/digital_employee.py` | 数字员工面板/窗口 |
+| `DigitalPanel` / `DigitalEmployee` / `DigitalEmployeePopup` | `ui/digital_employee.py`（方法按职责拆到 `ui/digital_panel_*.py` 各 mixin） | 数字员工面板/窗口/浮窗 |
 | `CeshuController` | `ui/ceshu_controller.py` | 策划书打开、AI 上下文注入、系统同步、项目列表 |
 | `LibraryController` | `ui/library_controller.py` | 库切换与刷新 |
 

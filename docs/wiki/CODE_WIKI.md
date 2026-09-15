@@ -438,8 +438,10 @@ CI（`.github/workflows/ci.yml`）包含 lint（ruff）、typecheck（mypy）、
 | `data_tab.py` | `DataEditorTab` 数据编辑标签页（列表 + 表单） |
 | `ai_assistant_tab.py` | `AIAssistantTab` AI 助手标签页（多技能工具调用 + 对话） |
 | `ai_bridge.py` | `AIBridge` AgentBrain 初始化与数字员工面板控制 |
-| `digital_employee.py` | `DigitalPanel` / `DigitalEmployee` 数字员工面板/独立窗口 |
-| `digital_employee_dialogs.py` / `digital_employee_workers.py` | 数字员工对话框与后台线程 |
+| `digital_employee.py` | `DigitalPanel` / `DigitalEmployee` / `DigitalEmployeePopup` 数字员工面板、独立窗口与浮窗 |
+| `digital_panel_state.py` | `DigitalPanelState` 各 mixin 的共享状态与方法签名声明 |
+| `digital_panel_ui.py` / `_workspace.py` / `_tasks.py` / `_input.py` / `_chat.py` / `_theme.py` | `DigitalPanel` 按职责拆分的六个 mixin（界面 / 工作区 / 任务 / 输入 / 对话 / 主题） |
+| `digital_employee_workers.py` | 数字员工后台线程 |
 | `ceshu_controller.py` | `CeshuController` 策划书控制器：打开/上下文注入/系统同步/项目列表 |
 | `library_controller.py` | `LibraryController` 库切换与刷新 |
 | `field_config.py` | 字段配置对话框 |
@@ -844,7 +846,7 @@ get_tool_description()                # 工具描述
 | `DataEditorTab` | `ui/data_tab.py` | 数据编辑标签页 |
 | `AIAssistantTab` | `ui/ai_assistant_tab.py` | AI 助手标签页（技能工具调用） |
 | `AIBridge` | `ui/ai_bridge.py` | AgentBrain 初始化 + 面板控制 |
-| `DigitalPanel` / `DigitalEmployee` | `ui/digital_employee.py` | 数字员工面板/窗口 |
+| `DigitalPanel` / `DigitalEmployee` / `DigitalEmployeePopup` | `ui/digital_employee.py`（方法按职责拆到 `ui/digital_panel_*.py` 各 mixin） | 数字员工面板/窗口/浮窗 |
 | `CeshuController` | `ui/ceshu_controller.py` | 策划书打开、AI 上下文注入、系统同步、项目列表 |
 | `LibraryController` | `ui/library_controller.py` | 库切换与刷新 |
 
