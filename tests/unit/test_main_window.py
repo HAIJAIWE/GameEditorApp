@@ -1,5 +1,4 @@
 """测试 主窗口"""
-from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -10,10 +9,19 @@ except ImportError:
     _HAS_DEP = False
 
 
-import sys
-_PY314_PLUS = sys.version_info >= (3, 14)
+@pytest.fixture(autouse=True)
+def isolated_config_dir(tmp_path, monkeypatch):
+    """把用户配置目录隔离到临时目录
+
+    MainWindow 构造时会 restore_ui_state() 读取 window_state.json：
+    若不隔离，断言会随开发者本机保存的主题/窗口状态漂移，
+    且测试结束时可能把测试状态写回真实配置文件。
+    """
+    from config.settings import get_config
+    monkeypatch.setattr(get_config(), "config_dir", tmp_path)
+
+
 @pytest.mark.skipif(not _HAS_DEP, reason="ui.main_window 模块不可用")
-@pytest.mark.skipif(_PY314_PLUS, reason="Python 3.14+ 与 PyQt6 QWidget 创建存在 segfault")
 class TestMainWindow:
     """MainWindow 模块测试 (mock_qt 模式)"""
 

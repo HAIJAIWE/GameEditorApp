@@ -1,6 +1,6 @@
 """属性计算引擎单元测试"""
-import sys
 import os
+import sys
 
 _PROJ_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _SRC = os.path.join(_PROJ_ROOT, 'src')
@@ -8,8 +8,9 @@ if _SRC not in sys.path:
     sys.path.insert(0, _SRC)
 
 import pytest
-from core.calc_engine import AttributeCalcEngine
+
 from common.graph import CircularDependencyError
+from core.calc_engine import AttributeCalcEngine
 
 
 class TestSetAndGetBaseValue:

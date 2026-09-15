@@ -17,12 +17,11 @@
 - 可选依赖（python-docx / python-pptx / PyQt6）通过 try/except ImportError 跳过
 - 遵循现有 test_ceshu_v5.py 风格（函数式，不用 class）
 """
-import sys
 import os
-import json
-import tempfile
-import shutil
 from pathlib import Path
+import shutil
+import sys
+import tempfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "src"))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
@@ -95,6 +94,7 @@ def test_full_lifecycle_create_edit_validate_export():
         # 5a. docx 导出
         try:
             from docx import Document  # type: ignore
+
             from core.ceshu.ceshu_docx_exporter import export_ceshu_to_docx
             docx_path = os.path.join(tmp, "lifecycle.docx")
             result = export_ceshu_to_docx(model, docx_path, include_validation_report=True)
@@ -110,6 +110,7 @@ def test_full_lifecycle_create_edit_validate_export():
         # 5b. pptx 导出
         try:
             from pptx import Presentation  # type: ignore
+
             from core.ceshu.ceshu_pptx_exporter import export_ceshu_to_pptx
             pptx_path = os.path.join(tmp, "lifecycle.pptx")
             result = export_ceshu_to_pptx(model, pptx_path, include_validation_report=True)
@@ -271,7 +272,7 @@ def test_systems_dependency_chain():
 
 def test_hybrid_preset_application():
     """混合玩法预设应用：仙侠 RPG + 科幻 FPS 预设应用到空策划书，验证 style/module_type/recommended_systems"""
-    from core.ceshu import CeshuModel, get_preset_by_key, find_preset
+    from core.ceshu import CeshuModel, find_preset, get_preset_by_key
 
     # --- 仙侠 RPG 预设 ---
     preset_xianxia = get_preset_by_key("xianxia_rpg")
@@ -353,7 +354,7 @@ class _MockDataManager:
 
 def test_data_sync_roundtrip():
     """数据同步往返：systems→data 确保键存在 → data 添加 3 角色 → data→ceshu 回填 actual_count=3"""
-    from core.ceshu import CeshuModel, CeshuDataSync
+    from core.ceshu import CeshuDataSync, CeshuModel
 
     # 1. 创建策划书，启用 character 系统
     model = CeshuModel()
@@ -412,7 +413,7 @@ def test_data_sync_roundtrip():
 
 def test_version_management():
     """版本管理：创建主版本 → 派生子版本 → 修改子版本 → 保存 → 列出所有版本 → 验证版本关系"""
-    from core.ceshu import CeshuManager, CeshuModel
+    from core.ceshu import CeshuManager
 
     tmp = tempfile.mkdtemp()
     try:
@@ -815,7 +816,10 @@ def test_version_diff_accuracy():
 def test_export_common_module():
     """导出公共模块：format_field_value 各种数据类型 + classify_systems + bullet 参数"""
     from core.ceshu.ceshu_export_common import (
-        format_field_value, classify_systems, is_empty_value, EMPTY_PLACEHOLDER,
+        EMPTY_PLACEHOLDER,
+        classify_systems,
+        format_field_value,
+        is_empty_value,
     )
 
     # --- 1. format_field_value: None ---

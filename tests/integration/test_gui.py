@@ -1,16 +1,18 @@
 """PyQt6 GUI 层自动化测试"""
-import unittest
-import sys
 import os
+import sys
+import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pytest
+
 pytest.importorskip("PyQt6")  # PyQt6 缺失时跳过整个模块
 
 from unittest.mock import patch
-from PyQt6.QtWidgets import QApplication
+
 from PyQt6.QtTest import QTest
+from PyQt6.QtWidgets import QApplication
 
 _QAPP = None
 _MOCK_QMESSAGEBOX = patch('PyQt6.QtWidgets.QMessageBox.information', return_value=None)
@@ -37,8 +39,6 @@ def _get_app():
     return _QAPP
 
 
-import sys
-_PY314_PLUS = sys.version_info >= (3, 14)
 class TestMainWindowInit(unittest.TestCase):
     """主窗口初始化与基础结构测试"""
 
@@ -135,7 +135,6 @@ class TestTabs(unittest.TestCase):
         self.assertIsInstance(first_tab, (CeshuHomeView, type(None)))
 
     def test_ai_assistant_is_second(self):
-        from ui.ai_assistant_tab import AIAssistantTab
         self.assertTrue(hasattr(self.window, 'ai_bridge'))
 
     def test_switch_to_skill_tab(self):
@@ -439,7 +438,7 @@ class TestDataManagerInteraction(unittest.TestCase):
     def test_data_has_types(self):
         data = self.window.data_manager.data
         from config.constants import DATA_TYPE_PLURALS
-        for dt, plural in DATA_TYPE_PLURALS.items():
+        for _dt, plural in DATA_TYPE_PLURALS.items():
             self.assertIn(plural, data, f"Missing plural key: {plural}")
 
     def test_refresh_all_tabs(self):
@@ -516,25 +515,28 @@ class TestComponentFactories(unittest.TestCase):
         self.assertGreater(effect.blurRadius(), 5)
 
     def test_effect_factory_pulse_animation(self):
-        from ui.effects import EffectFactory
         from PyQt6.QtWidgets import QWidget
+
+        from ui.effects import EffectFactory
         w = QWidget()
         anim = EffectFactory.create_pulse_animation(w)
         self.assertEqual(anim.loopCount(), -1)
         w.deleteLater()
 
     def test_effect_factory_slide_animation(self):
-        from ui.effects import EffectFactory
         from PyQt6.QtCore import QPoint
         from PyQt6.QtWidgets import QWidget
+
+        from ui.effects import EffectFactory
         w = QWidget()
         anim = EffectFactory.create_slide_animation(w, QPoint(0, 0), QPoint(100, 0))
         self.assertEqual(anim.duration(), 400)
         w.deleteLater()
 
     def test_effect_factory_fade_animation(self):
-        from ui.effects import EffectFactory
         from PyQt6.QtWidgets import QWidget
+
+        from ui.effects import EffectFactory
         w = QWidget()
         anim = EffectFactory.create_fade_animation(w)
         self.assertEqual(anim.startValue(), 0.0)

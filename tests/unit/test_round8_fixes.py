@@ -10,14 +10,11 @@
 from __future__ import annotations
 
 import json
-import os
-import sys
-import tempfile
-import threading
 from pathlib import Path
+import sys
+import threading
 
 import pytest
-
 
 # ─────────────────────────────────────────────────────────
 # P12: atomic_write_text / atomic_write_json
@@ -147,16 +144,18 @@ def test_app_config_font_size_default_is_13():
 
 def test_library_manager_has_last_scan_mtime_field():
     """LibraryManager 应有 _last_scan_mtime 字段"""
-    from core.library_manager import LibraryManager
     import inspect
+
+    from core.library_manager import LibraryManager
     src = inspect.getsource(LibraryManager.__init__)
     assert "_last_scan_mtime" in src
 
 
 def test_library_manager_scan_has_force_param():
     """scan_libraries 应支持 force 参数"""
-    from core.library_manager import LibraryManager
     import inspect
+
+    from core.library_manager import LibraryManager
     sig = inspect.signature(LibraryManager.scan_libraries)
     assert "force" in sig.parameters
     assert sig.parameters["force"].default is False
@@ -229,7 +228,6 @@ def test_data_manager_get_item_returns_copy():
 
     # 构造一个最小化的 data_manager 实例，绕过完整初始化
     dm = OptimizedDataManager.__new__(OptimizedDataManager)
-    import threading
     from collections import OrderedDict
     from unittest.mock import MagicMock
     dm.lock = threading.Lock()
@@ -253,10 +251,10 @@ def test_data_manager_get_item_returns_copy():
 
 
 def test_data_manager_get_item_nonexistent_returns_none():
-    from core.data_manager import OptimizedDataManager
-    import threading
     from collections import OrderedDict
     from unittest.mock import MagicMock
+
+    from core.data_manager import OptimizedDataManager
 
     dm = OptimizedDataManager.__new__(OptimizedDataManager)
     dm.lock = threading.Lock()

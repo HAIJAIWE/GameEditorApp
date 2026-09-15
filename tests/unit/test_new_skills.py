@@ -1,12 +1,13 @@
 import sys
+
 sys.path.insert(0, 'src')
 
 import pytest
 
+from core.agent.agents.agent_manager import AgentDefinition
 from core.agent.brain import AgentBrain
 from core.agent.skills.export_doc_skill import ExportDocSkill
 from core.agent.skills.game_balance_skill import GameBalanceSkill
-from core.agent.agents.agent_manager import AgentDefinition
 
 # 检测 PyQt6 是否可用（部分 skill 依赖 Qt，缺失时 skill 发现会失败）
 try:

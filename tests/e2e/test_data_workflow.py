@@ -12,8 +12,6 @@
   - generate_id(data_type) -> str
 """
 import json
-import pytest
-from pathlib import Path
 
 
 class TestDataWorkflow:

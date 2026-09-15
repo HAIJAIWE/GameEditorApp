@@ -3,9 +3,9 @@
 覆盖单例模式、on/emit/off 基本流程、弱引用自动清理、clear() 方法、
 线程安全（并发 emit/on）以及异常隔离（单个回调异常不影响其他回调）。
 """
-import sys
-import os
 import gc
+import os
+import sys
 import threading
 
 _PROJ_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -16,7 +16,6 @@ if _SRC not in sys.path:
 import pytest
 
 from common.event_bus import EventBus
-
 
 # ── 测试辅助 ──
 
@@ -118,8 +117,10 @@ class TestEventBusOnEmitOff:
         """off 仅移除目标回调，保留其他回调"""
         bus = EventBus()
         calls = []
-        cb_a = lambda **kw: calls.append("a")
-        cb_b = lambda **kw: calls.append("b")
+        def cb_a(**kw):
+            return calls.append("a")
+        def cb_b(**kw):
+            return calls.append("b")
         bus.on("e", cb_a, weak=False)
         bus.on("e", cb_b, weak=False)
         bus.off("e", cb_a)

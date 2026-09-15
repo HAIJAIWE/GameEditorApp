@@ -5,10 +5,10 @@ trigger_hook 机制以及 list_plugins/to_dict 统计信息。
 
 若 plugin_system 模块因缺少 PyQt6 等依赖无法导入，整个模块自动跳过。
 """
-import sys
-import os
 import json
+import os
 from pathlib import Path
+import sys
 
 _PROJ_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _SRC = os.path.join(_PROJ_ROOT, "src")
@@ -19,7 +19,7 @@ import pytest
 
 # ── 安全导入：依赖缺失时跳过整个模块 ──
 try:
-    from core.agent.plugin_system import PluginSystem, Plugin
+    from core.agent.plugin_system import Plugin, PluginSystem
     _DEP_AVAILABLE = True
 except Exception as _import_err:  # pragma: no cover - 依赖缺失分支
     _DEP_AVAILABLE = False

@@ -10,12 +10,12 @@
 - docx 导出
 - style/module_type 参数化生成辅助
 """
-import sys
-import os
 import json
-import tempfile
-import shutil
+import os
 from pathlib import Path
+import shutil
+import sys
+import tempfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "src"))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
@@ -310,7 +310,7 @@ def test_docx_export_includes_all_chapters():
         print("  ⏭️  python-docx 未安装，跳过 docx 导出测试")
         return
 
-    from core.ceshu import CeshuModel, CHAPTER_LABELS
+    from core.ceshu import CHAPTER_LABELS, CeshuModel
     from core.ceshu.ceshu_docx_exporter import export_ceshu_to_docx
 
     m = CeshuModel()
@@ -322,7 +322,7 @@ def test_docx_export_includes_all_chapters():
         doc = Document(out_path)
         full_text = "\n".join([p.text for p in doc.paragraphs])
         # 验证所有 18 章标签都出现在文档中
-        for key, label in CHAPTER_LABELS.items():
+        for _key, label in CHAPTER_LABELS.items():
             assert label in full_text, f"章节 '{label}' 未出现在 docx 中"
     finally:
         shutil.rmtree(tmp)
@@ -343,7 +343,7 @@ class _MockDataManager:
 
 def test_data_sync_systems_to_data():
     """systems → data 同步：确保数据结构存在"""
-    from core.ceshu import CeshuModel, CeshuDataSync
+    from core.ceshu import CeshuDataSync, CeshuModel
 
     m = CeshuModel()
     m.set_system("character", True)  # data_type=character → roles
@@ -368,7 +368,7 @@ def test_data_sync_systems_to_data():
 
 def test_data_sync_progress_to_ceshu():
     """data → ceshu 同步：回填实际条目数"""
-    from core.ceshu import CeshuModel, CeshuDataSync
+    from core.ceshu import CeshuDataSync, CeshuModel
 
     m = CeshuModel()
     # 设置 data_type 字段，使其与 DATA_TYPE_PLURALS 匹配
@@ -398,7 +398,7 @@ def test_data_sync_progress_to_ceshu():
 
 def test_data_sync_anti_loop():
     """防循环标志正常工作"""
-    from core.ceshu import CeshuModel, CeshuDataSync
+    from core.ceshu import CeshuDataSync, CeshuModel
 
     m = CeshuModel()
     mock_dm = _MockDataManager()
@@ -485,7 +485,7 @@ def test_agent_router_18_chapters():
 def test_validation_dialog_categorize():
     """v5.0 优化2: 错误分类函数 _categorize 应正确识别各类错误"""
     try:
-        from ui.ceshu.validation_dialog import _categorize, _CATEGORY_META
+        from ui.ceshu.validation_dialog import _CATEGORY_META, _categorize
     except ModuleNotFoundError as e:
         if "PyQt6" in str(e):
             print(f"  ⏭️  PyQt6 未安装: {e}")
@@ -553,7 +553,7 @@ def test_chapter_panel_has_refresh_progress():
 
 def test_chapter_progress_calculation():
     """v5.0 优化3: CeshuModel.chapter_progress() 应返回 18 章 + total"""
-    from core.ceshu import CeshuModel, CHAPTER_KEYS
+    from core.ceshu import CHAPTER_KEYS, CeshuModel
     m = CeshuModel()
     progress = m.chapter_progress()
     # 18 章 + total
@@ -632,9 +632,9 @@ def test_validation_dialog_export_md():
     """v5.0 优化A: ValidationReportDialog 应能生成 Markdown 报告"""
     try:
         from PyQt6.QtWidgets import QApplication
-        app = QApplication.instance() or QApplication([])
-        from ui.ceshu.validation_dialog import ValidationReportDialog
+        QApplication.instance() or QApplication([])
         from core.ceshu import CeshuModel
+        from ui.ceshu.validation_dialog import ValidationReportDialog
         m = CeshuModel()
         m.meta["game_name"] = "测试项目"
         dlg = ValidationReportDialog(m)
@@ -655,9 +655,9 @@ def test_preset_market_dialog():
     """v5.0 优化D: PresetMarketDialog 应加载全部 18 个预设卡片"""
     try:
         from PyQt6.QtWidgets import QApplication
-        app = QApplication.instance() or QApplication([])
-        from ui.ceshu.preset_market_dialog import PresetMarketDialog
+        QApplication.instance() or QApplication([])
         from core.ceshu import CeshuModel
+        from ui.ceshu.preset_market_dialog import PresetMarketDialog
         m = CeshuModel()
         dlg = PresetMarketDialog(m)
         assert len(dlg._cards) == 18, f"应加载 18 张卡片，实际 {len(dlg._cards)}"
@@ -699,9 +699,9 @@ def test_system_dependency_graph_dialog():
     """v5.0 优化B: SystemDependencyGraphDialog 应可正常创建"""
     try:
         from PyQt6.QtWidgets import QApplication
-        app = QApplication.instance() or QApplication([])
-        from ui.ceshu.system_dependency_graph import SystemDependencyGraphDialog
+        QApplication.instance() or QApplication([])
         from core.ceshu import CeshuModel
+        from ui.ceshu.system_dependency_graph import SystemDependencyGraphDialog
         m = CeshuModel()
         dlg = SystemDependencyGraphDialog(m)
         assert len(dlg._node_items) >= 12, f"应至少 12 个节点, 实际 {len(dlg._node_items)}"
@@ -745,14 +745,24 @@ def test_editor_view_has_preset_button():
 def test_apply_ai_content_to_form():
     """F1: apply_ai_content_to_form 应能正确回填不同类型 widget"""
     try:
-        from PyQt6.QtWidgets import QApplication, QLineEdit, QTextEdit, QComboBox, QSpinBox, QCheckBox, QWidget, QVBoxLayout
+        from PyQt6.QtWidgets import (
+            QApplication,
+            QCheckBox,
+            QComboBox,
+            QLineEdit,
+            QSpinBox,
+            QTextEdit,
+            QVBoxLayout,
+            QWidget,
+        )
+
         from ui.ceshu.chapter_forms import apply_ai_content_to_form
     except ModuleNotFoundError as e:
         if "PyQt6" in str(e):
             print(f"  ⏭️  PyQt6 未安装: {e}")
             return
         raise
-    app = QApplication.instance() or QApplication([])
+    QApplication.instance() or QApplication([])
 
     parent = QWidget()
     layout = QVBoxLayout(parent)
@@ -833,7 +843,11 @@ def test_editor_view_has_word_stats():
 def test_word_stats_dialog_importable():
     """F6: WordStatsDialog 应可正常导入 + 含字数基准"""
     try:
-        from ui.ceshu.word_stats_dialog import WordStatsDialog, CHAPTER_WORD_BENCHMARK, _count_words_in_chapter
+        from ui.ceshu.word_stats_dialog import (  # noqa: F401  # WordStatsDialog 亦为导入可用性探针
+            CHAPTER_WORD_BENCHMARK,
+            WordStatsDialog,
+            _count_words_in_chapter,
+        )
     except ModuleNotFoundError as e:
         if "PyQt6" in str(e):
             print(f"  ⏭️  PyQt6 未安装: {e}")
@@ -852,13 +866,14 @@ def test_word_stats_dialog_importable():
 
 def test_pdf_export():
     """F5: PDF 导出应成功生成 PDF 文件"""
-    import tempfile, os
+    import os
+    import tempfile
     try:
         from PyQt6.QtWidgets import QApplication
     except ImportError:
         print("  ⏭️  PyQt6 未安装，跳过 PDF 测试")
         return
-    app = QApplication.instance() or QApplication([])
+    QApplication.instance() or QApplication([])
 
     from core.ceshu.ceshu_model import CeshuModel
     from core.ceshu.ceshu_pdf_exporter import export_ceshu_to_pdf
@@ -914,7 +929,10 @@ def test_chapter_templates_structure():
     """N5: CHAPTER_TEMPLATES 应包含 18 章，每章至少 1 个模板"""
     try:
         from ui.ceshu.chapter_templates import (
-            CHAPTER_TEMPLATES, CHAPTER_KEYS, list_templates, template_summary,
+            CHAPTER_KEYS,
+            CHAPTER_TEMPLATES,
+            list_templates,
+            template_summary,
         )
     except ModuleNotFoundError as e:
         if "PyQt6" in str(e):
@@ -1019,7 +1037,7 @@ def test_editor_view_has_template_button():
 def test_ceshu_scorer_score_empty_model():
     """N4: 空策划书评分应为 D 级"""
     from core.ceshu.ceshu_model import CeshuModel
-    from core.ceshu.ceshu_scorer import score_ceshu, grade_label
+    from core.ceshu.ceshu_scorer import grade_label, score_ceshu
     m = CeshuModel()
     report = score_ceshu(m)
     assert report.total_score < 60, f"空策划书总分应 < 60, 实际 {report.total_score}"
@@ -1080,7 +1098,7 @@ def test_ceshu_scorer_score_filled_model():
 def test_ceshu_scorer_industry_benchmark():
     """N4: 同行业基准对比"""
     from core.ceshu.ceshu_model import CeshuModel
-    from core.ceshu.ceshu_scorer import score_ceshu, INDUSTRY_BENCHMARKS
+    from core.ceshu.ceshu_scorer import INDUSTRY_BENCHMARKS, score_ceshu
     # RPG 基准应存在
     assert "RPG" in INDUSTRY_BENCHMARKS
     rpg_bench = INDUSTRY_BENCHMARKS["RPG"]
@@ -1394,15 +1412,16 @@ def test_editor_view_has_notes_button():
 def test_editor_view_has_shortcuts():
     """UX: CeshuEditorView 应支持快捷键"""
     try:
-        from PyQt6.QtWidgets import QApplication
         from PyQt6.QtGui import QShortcut
+        from PyQt6.QtWidgets import QApplication
+
         from ui.ceshu.editor_view import CeshuEditorView
     except ModuleNotFoundError as e:
         if "PyQt6" in str(e):
             print(f"  ⏭️  PyQt6 未安装: {e}")
             return
         raise
-    app = QApplication.instance() or QApplication([])
+    QApplication.instance() or QApplication([])
     view = CeshuEditorView()
     # 应有 _setup_shortcuts 方法
     assert hasattr(CeshuEditorView, "_setup_shortcuts"), \
@@ -1424,22 +1443,26 @@ def test_editor_view_has_shortcuts():
 
 
 def test_editor_view_has_tooltips():
-    """UX: CeshuEditorView 工具栏按钮应有工具提示"""
+    """UX: CeshuEditorView 工具栏按钮应有工具提示
+
+    d2 复杂度收敛后，预设/模板编辑/评分/分析/版本/笔记等高级功能收进「更多」菜单，
+    仅保留常用按钮在工具栏；菜单项与工具栏按钮均需非空提示/文案。
+    """
     try:
         from PyQt6.QtWidgets import QApplication
+
         from ui.ceshu.editor_view import CeshuEditorView
     except ModuleNotFoundError as e:
         if "PyQt6" in str(e):
             print(f"  ⏭️  PyQt6 未安装: {e}")
             return
         raise
-    app = QApplication.instance() or QApplication([])
+    QApplication.instance() or QApplication([])
     view = CeshuEditorView()
-    # 主要按钮应有非空 tooltip
+    # 常用按钮应有非空 tooltip（模板/AI审阅/AI补空/派生等已收进「更多」菜单）
     buttons_to_check = [
-        "_btn_save", "_btn_validate", "_btn_template", "_btn_preset",
-        "_btn_ai_full", "_btn_ai_chapter", "_btn_ai_review", "_btn_score",
-        "_btn_wordstat", "_btn_diff", "_btn_timeline", "_btn_export", "_btn_notes",
+        "_btn_save", "_btn_validate",
+        "_btn_ai_full", "_btn_ai_chapter", "_btn_ai_data", "_btn_export",
     ]
     for attr in buttons_to_check:
         btn = getattr(view, attr, None)
@@ -1447,13 +1470,23 @@ def test_editor_view_has_tooltips():
         tip = btn.toolTip()
         assert tip, f"按钮 {attr} 缺少工具提示"
 
+    # 「更多」菜单应包含所有高级功能项（d2 收敛）
+    QApplication.instance() or QApplication([])
+    more_menu = getattr(view, "_more_menu", None)
+    assert more_menu is not None, "「更多」菜单不存在"
+    menu_texts = [a.text() for a in more_menu.actions() if a.text()]
+    assert menu_texts, "「更多」菜单不应为空"
+    for keyword in ("派生新版本", "章节模板库", "AI 审阅", "AI 补全", "预设", "模板编辑",
+                    "评分", "字数", "对比", "时间线", "清单", "日志", "字段", "笔记", "档位"):
+        assert any(keyword in t for t in menu_texts), f"「更多」菜单缺少 {keyword} 项"
+
 
 # ========== N9/N12: Markdown & HTML 导出 ==========
 
 def test_markdown_export():
     """N9: Markdown 导出应生成有效 .md 文件，包含游戏名和全部 18 章"""
-    from core.ceshu.ceshu_model import CeshuModel, CHAPTER_LABELS
     from core.ceshu.ceshu_markdown_exporter import export_ceshu_to_markdown
+    from core.ceshu.ceshu_model import CHAPTER_LABELS, CeshuModel
 
     m = CeshuModel()
     m.meta["game_name"] = "Markdown测试"
@@ -1468,7 +1501,7 @@ def test_markdown_export():
         content = Path(result).read_text(encoding="utf-8")
         assert "Markdown测试" in content, "MD 内容应包含游戏名"
         # 包含所有 18 章标题
-        for key, label in CHAPTER_LABELS.items():
+        for _key, label in CHAPTER_LABELS.items():
             assert label in content, f"章节 '{label}' 未出现在 MD 中"
         # 包含目录
         assert "## 目录" in content
@@ -1482,8 +1515,8 @@ def test_markdown_export():
 
 def test_html_export():
     """N12: HTML 导出应生成有效 .html 文件，包含游戏名、CSS 和全部 18 章"""
-    from core.ceshu.ceshu_model import CeshuModel, CHAPTER_LABELS
     from core.ceshu.ceshu_html_exporter import export_ceshu_to_html
+    from core.ceshu.ceshu_model import CHAPTER_LABELS, CeshuModel
 
     m = CeshuModel()
     m.meta["game_name"] = "HTML测试"
@@ -1504,7 +1537,7 @@ def test_html_export():
         # 包含目录导航
         assert 'class="toc"' in content, "HTML 应包含目录导航"
         # 包含所有 18 章标题
-        for key, label in CHAPTER_LABELS.items():
+        for _key, label in CHAPTER_LABELS.items():
             assert label in content, f"章节 '{label}' 未出现在 HTML 中"
         # 包含校验报告
         assert "校验报告" in content
@@ -1644,7 +1677,7 @@ def test_checklist_items_count():
 
 def test_checklist_categories():
     """N11: 6 大类都应存在"""
-    from core.ceshu.ceshu_checklist import get_checklist_items, ALL_CATEGORIES
+    from core.ceshu.ceshu_checklist import ALL_CATEGORIES, get_checklist_items
     items = get_checklist_items()
     cats = {it.category for it in items}
     for cat in ALL_CATEGORIES:
@@ -1788,7 +1821,8 @@ def test_editor_view_has_checklist_button():
 def test_custom_template_manager_crud():
     """N13: CustomTemplateManager CRUD 完整流程（核心模块不依赖 PyQt6）"""
     from core.ceshu.custom_template_manager import (
-        CustomTemplateManager, GLOBAL_CATEGORY,
+        GLOBAL_CATEGORY,
+        CustomTemplateManager,
     )
 
     tmp = tempfile.mkdtemp()
@@ -1815,7 +1849,7 @@ def test_custom_template_manager_crud():
         # save_template 空 name 应抛异常
         try:
             mgr.save_template("", "", [], "meta", {})
-            assert False, "空 name 应抛 ValueError"
+            raise AssertionError("空 name 应抛 ValueError")
         except ValueError:
             pass
 
@@ -1953,7 +1987,7 @@ def test_custom_template_manager_import_export():
         export_path = os.path.join(tmp, "export", "templates.json")
         out = mgr.export_templates(export_path)
         assert os.path.exists(out)
-        with open(out, "r", encoding="utf-8") as f:
+        with open(out, encoding="utf-8") as f:
             data = json.load(f)
         assert "templates" in data
         assert len(data["templates"]) == 2
@@ -2021,10 +2055,11 @@ def test_editor_view_has_template_edit_button():
 def test_changelog_generate():
     """N15: generate_changelog_between 应正确生成变更条目"""
     try:
-        from core.ceshu.ceshu_model import CeshuModel
         from core.ceshu.ceshu_changelog import (
-            generate_changelog_between, ChangelogEntry,
+            ChangelogEntry,
+            generate_changelog_between,
         )
+        from core.ceshu.ceshu_model import CeshuModel
     except ModuleNotFoundError as e:
         if "PyQt6" in str(e):
             print(f"  ⏭️  PyQt6 未安装: {e}")
@@ -2086,10 +2121,12 @@ def test_changelog_generate():
 def test_changelog_formats():
     """N15: Changelog 三种格式输出（md/text/html）"""
     try:
-        from core.ceshu.ceshu_model import CeshuModel
         from core.ceshu.ceshu_changelog import (
-            Changelog, ChangelogEntry, generate_changelog_between,
+            Changelog,
+            ChangelogEntry,  # noqa: F401  # 亦为导入可用性探针
+            generate_changelog_between,
         )
+        from core.ceshu.ceshu_model import CeshuModel
     except ModuleNotFoundError as e:
         if "PyQt6" in str(e):
             print(f"  ⏭️  PyQt6 未安装: {e}")
@@ -2194,7 +2231,8 @@ def test_field_dependencies_count():
 def test_field_dependencies_for_chapter():
     """N14: 按章节查询字段依赖"""
     from core.ceshu.field_dependencies import (
-        get_dependencies_for_chapter, get_dependencies_for_field,
+        get_dependencies_for_chapter,
+        get_dependencies_for_field,
     )
     # combat 章节应有依赖
     combat_deps = get_dependencies_for_chapter("combat")
@@ -2251,8 +2289,8 @@ def test_check_field_dependencies():
 
 def test_build_dependency_graph():
     """N14: 依赖图邻接表构建"""
-    from core.ceshu.field_dependencies import build_dependency_graph
     from core.ceshu.ceshu_model import CHAPTER_KEYS
+    from core.ceshu.field_dependencies import build_dependency_graph
 
     graph = build_dependency_graph()
     assert isinstance(graph, dict), "图应为 dict"
@@ -2274,14 +2312,14 @@ def test_field_dependency_graph_dialog_importable():
     """N14: FieldDependencyGraphDialog 应可正常导入并实例化"""
     try:
         from PyQt6.QtWidgets import QApplication
-        app = QApplication.instance() or QApplication([])
+        QApplication.instance() or QApplication([])
     except ModuleNotFoundError as e:
         if "PyQt6" in str(e):
             print(f"  ⏭️  PyQt6 未安装: {e}")
             return
         raise
-    from ui.ceshu.field_dependency_graph import FieldDependencyGraphDialog
     from core.ceshu.ceshu_model import CeshuModel
+    from ui.ceshu.field_dependency_graph import FieldDependencyGraphDialog
     m = CeshuModel()
     dlg = FieldDependencyGraphDialog(m)
     assert dlg is not None
@@ -2316,8 +2354,8 @@ def test_excel_export():
         print("  ⏭️  openpyxl 未安装，跳过 Excel 导出测试")
         return
 
-    from core.ceshu.ceshu_model import CeshuModel
     from core.ceshu.ceshu_excel_exporter import export_ceshu_to_excel
+    from core.ceshu.ceshu_model import CeshuModel
 
     m = CeshuModel()
     m.meta["game_name"] = "Excel测试"

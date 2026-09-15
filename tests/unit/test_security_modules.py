@@ -3,21 +3,21 @@
 覆盖 encryption（加密/解密）、guard（危险操作拦截）、rate_limiter（限流）、
 sandbox（代码沙箱）四个子模块。
 """
-import sys
-import os
-import time
 import base64
+import os
+import sys
+import time
 
 _PROJ_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _SRC = os.path.join(_PROJ_ROOT, "src")
 if _SRC not in sys.path:
     sys.path.insert(0, _SRC)
 
+
 import pytest
-from pathlib import Path
 
 try:
-    from security.encryption import obscure, clarify, get_fernet
+    from security.encryption import clarify, get_fernet, obscure
     _HAS_ENCRYPTION = True
 except ImportError:
     _HAS_ENCRYPTION = False
@@ -29,7 +29,7 @@ except ImportError:
     _HAS_GUARD = False
 
 try:
-    from security.rate_limiter import TokenBucket, RateLimiter
+    from security.rate_limiter import RateLimiter, TokenBucket
     _HAS_RATE_LIMITER = True
 except ImportError:
     _HAS_RATE_LIMITER = False
@@ -41,7 +41,7 @@ except ImportError:
     _HAS_SANDBOX = False
 
 try:
-    from security.acl import RiskLevel, set_max_allowed_risk, _blocked_tools, _blocked_actions
+    from security.acl import RiskLevel, _blocked_actions, _blocked_tools, set_max_allowed_risk
     _HAS_ACL = True
 except ImportError:
     _HAS_ACL = False

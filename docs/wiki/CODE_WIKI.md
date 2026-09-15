@@ -1170,7 +1170,7 @@ scripts\launch.bat
 pytest tests/unit tests/integration -v --tb=short --timeout=60
 
 # 单个测试文件
-pytest tests/unit/test_agent_core.py -v
+pytest tests/unit/test_brain.py -v
 
 # 端到端测试
 pytest tests/e2e -v --tb=short --timeout=120

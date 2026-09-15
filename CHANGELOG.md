@@ -1,5 +1,25 @@
 # 更新日志
 
+## [Unreleased] - 2026-09-15
+
+### 修复
+
+- **智能体选择器 / 助手标签页 API 漂移（构造即崩）**：`ui/widgets/agent_selector.py` 与 `ui/ai_assistant_tab.py` 仍在使用已被 Agent OS 重构移除的 AgentManager 旧接口（`active_agent_id` / `.agents` / `switch_agent()` / `.active_agent` / `display_name` / `get_tools_description()`），构造 `AgentSelectorWidget`/`AIAssistantTab` 直接抛 AttributeError。改接当前接口：`get_active_agent()` / `list_agents()` / `set_active_agent()` / `match_agent()`（后者按 ID/名称/关键词匹配），工具清单改由 `ToolDispatcher` 提供（与 Brain 相同装配方式）。两文件当前无 App 入口引用，按「保留并改接」处理
+- **类型检查门禁不可用**：`src/security/`、`src/data/` 缺 `__init__.py`，`mypy src/` 报 `Source file found twice under different module names: "sandbox" / "security.sandbox"` 并中止全量检查（README/CI 声称的 0 错误无法复现）。补齐两个包声明 + 统一 `semantic_memory` 的 chromadb 相关类型为 Any（移除 8 处因环境而多余/缺失的 `type: ignore`）后，`MYPYPATH=src mypy src/ --ignore-missing-imports --warn-unused-ignores` 通过：267 个源文件 0 错误
+- **UI 测试被误判为「Python 3.14 + PyQt6 segfault」而整类跳过**：真实原因是这些测试构造 QWidget 前没有 QApplication（Qt 直接 abort，退出码 0xC0000409），且 `mock_qt` 把 PyQt6 模块换成 MagicMock 后与真实 Qt 混用（真实 `QStyle.standardIcon` 收到 MagicMock 枚举报 TypeError）。修复测试装置而非继续跳过：
+  - 新增会话级 `qapp` fixture（offscreen，全会话复用）
+  - `mock_qt` 在真实 PyQt6 可用时不再 mock，仅在 PyQt6 缺失时才注入 MagicMock
+  - `test_main_window.py` 把 `config_dir` 隔离到 tmp_path（`restore_ui_state()` 会读本机 `window_state.json`，否则断言随开发者本机主题漂移、且可能写回真实配置）
+  - 结果：22 个用例恢复运行并通过，并顺带修复 `test_digital_employee.py` 构造参数（`DigitalPanel(None)` / `DigitalEmployee(brain=MagicMock())`）
+
+### 测试
+
+- 删除引用已删除模块的死测试（长期静默 skip = 假覆盖）：`tests/unit/test_subsystems.py`（SessionManager / ReflectionEngine / PlanCoordinator / ReactEngine 四个模块已不存在）、`tests/unit/test_agent_core.py`、`tests/unit/test_self_healing.py`、`tests/integration/test_ai_dialog_integration.py`、`tests/integration/test_self_healing_eval.py`（依赖已移除的 `core.agent.tool_executor` 等模块）
+- 删除 `test_uncovered_skills.py` 中 ComputerUseSkill 一组（`computer_use_skill` 模块不存在）
+- tests/ 全量 ruff 清理 462 → 0（304 处自动修复 + 51 处 unsafe 修复 + 手工拆分单行多语句），并把测试目录纳入 CI lint（`ruff check src/ tests/`）；`E402`（sys.path 注入后再导入）作为预期结构写入 per-file-ignores
+- README 与 docs/wiki 中 `pytest tests/unit/test_agent_core.py` 示例改为现有文件 `test_brain.py`
+- 测试实况：**805 passed / 0 skipped**（此前 780 passed / 108 skipped），覆盖率 31.98%（门槛 30%）；e2e 44 passed
+
 ## [Unreleased] - 2026-09-01
 
 ### 新增

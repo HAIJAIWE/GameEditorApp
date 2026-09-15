@@ -1,15 +1,15 @@
 """隐私保护模块单元测试"""
-import sys
 import os
+import sys
 
 _PROJ_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _SRC = os.path.join(_PROJ_ROOT, 'src')
 if _SRC not in sys.path:
     sys.path.insert(0, _SRC)
 
-import pytest
 from unittest.mock import MagicMock
-from security.privacy import summarize_sensitive, content_filter, delete_user_data
+
+from security.privacy import content_filter, delete_user_data, summarize_sensitive
 
 
 class TestSummarizeSensitive:

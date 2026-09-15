@@ -2,8 +2,8 @@
 
 覆盖 BuffEffect 的创建、叠加、过期、效果计算，以及 BuffSystem 的模板管理与应用。
 """
-import sys
 import os
+import sys
 
 _PROJ_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _SRC = os.path.join(_PROJ_ROOT, "src")
@@ -12,8 +12,7 @@ if _SRC not in sys.path:
 
 import pytest
 
-from core.buff_system import BuffSystem, BuffEffect, BuffType
-
+from core.buff_system import BuffEffect, BuffSystem, BuffType
 
 # ── 辅助工厂 ──
 

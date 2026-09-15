@@ -1,6 +1,6 @@
 """ACL 权限控制单元测试"""
-import sys
 import os
+import sys
 
 _PROJ_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _SRC = os.path.join(_PROJ_ROOT, 'src')
@@ -8,10 +8,17 @@ if _SRC not in sys.path:
     sys.path.insert(0, _SRC)
 
 import pytest
+
 from security.acl import (
-    RiskLevel, check_permission, block_tool, block_action,
-    unblock_tool, unblock_action, set_max_allowed_risk, require_confirm,
-    _blocked_tools, _blocked_actions,
+    RiskLevel,
+    _blocked_actions,
+    _blocked_tools,
+    block_action,
+    block_tool,
+    check_permission,
+    require_confirm,
+    set_max_allowed_risk,
+    unblock_tool,
 )
 
 

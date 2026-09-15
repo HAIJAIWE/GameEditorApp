@@ -3,30 +3,28 @@
 覆盖 LRUCache / TimedCache / lru_cache 装饰器 / timed_cache 装饰器 /
 cache_result / invalidate_cache 的核心功能与线程安全。
 """
-import sys
 import os
-import time
+import sys
 import threading
+import time
 
 _PROJ_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _SRC = os.path.join(_PROJ_ROOT, "src")
 if _SRC not in sys.path:
     sys.path.insert(0, _SRC)
 
-import pytest
 
 from common.cache import (
-    LRUCache,
-    TimedCache,
-    lru_cache,
-    timed_cache,
-    cache_result,
-    invalidate_cache,
+    _NOT_FOUND,
     DATA_CACHE,
     SEARCH_CACHE,
-    _NOT_FOUND,
+    LRUCache,
+    TimedCache,
+    cache_result,
+    invalidate_cache,
+    lru_cache,
+    timed_cache,
 )
-
 
 # ── LRUCache 测试 ──
 

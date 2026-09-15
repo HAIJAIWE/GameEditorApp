@@ -1,6 +1,6 @@
 """SafetyGuard 单元测试"""
-import sys
 import os
+import sys
 
 _PROJ_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _SRC = os.path.join(_PROJ_ROOT, 'src')
@@ -8,6 +8,7 @@ if _SRC not in sys.path:
     sys.path.insert(0, _SRC)
 
 import pytest
+
 from core.agent.safety_guard import SafetyGuard
 
 
@@ -78,7 +79,7 @@ class TestTrimMessages:
             {"role": "user", "content": "你好"},
             {"role": "assistant", "content": "你好！"},
         ]
-        original_total = sum(len(m["content"]) for m in msgs)
+        sum(len(m["content"]) for m in msgs)
         guard.trim_messages(msgs)
         # 短消息不应被修改
         assert msgs[0]["content"] == "你是一个助手"

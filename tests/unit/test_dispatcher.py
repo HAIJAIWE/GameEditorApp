@@ -5,9 +5,8 @@ dispatch()/execute() 方法及其错误处理、参数修正与结果归一化�
 
 若 dispatcher 模块因缺少 PyQt6 等依赖无法导入，整个模块自动跳过。
 """
-import sys
 import os
-import json
+import sys
 
 _PROJ_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _SRC = os.path.join(_PROJ_ROOT, "src")
@@ -19,8 +18,8 @@ import pytest
 # ── 安全导入：依赖缺失时跳过整个模块 ──
 try:
     from core.agent.dispatcher import ToolDispatcher
-    from core.agent.skill_protocol import BaseSkill
     from core.agent.models import SkillResult
+    from core.agent.skill_protocol import BaseSkill
     _DEP_AVAILABLE = True
 except Exception as _import_err:  # pragma: no cover - 依赖缺失分支
     _DEP_AVAILABLE = False

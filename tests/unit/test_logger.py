@@ -3,9 +3,9 @@
 覆盖 AppLogger 单例、LogCaptureHandler 环形缓冲区、get_recent_logs、
 enable/disable_agent_trace 以及日志目录创建的多级回退逻辑。
 """
-import sys
-import os
 import logging
+import os
+import sys
 
 _PROJ_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _SRC = os.path.join(_PROJ_ROOT, "src")
@@ -14,8 +14,7 @@ if _SRC not in sys.path:
 
 import pytest
 
-from common.logger import AppLogger, get_logger, LogCaptureHandler
-
+from common.logger import AppLogger, LogCaptureHandler, get_logger
 
 # ── 辅助 fixture ──
 

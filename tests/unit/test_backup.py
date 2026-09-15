@@ -1,10 +1,10 @@
 """备份管理模块单元测试"""
-import unittest
-import sys
-import os
-import tempfile
 import json
+import os
 from pathlib import Path
+import sys
+import tempfile
+import unittest
 
 _PROJ_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _SRC = os.path.join(_PROJ_ROOT, 'src')
@@ -12,6 +12,7 @@ if _SRC not in sys.path:
     sys.path.insert(0, _SRC)
 
 import pytest
+
 pytest.importorskip("PyQt6")  # PyQt6 缺失时跳过整个模块
 
 from features.backup import export_for_game
@@ -34,7 +35,7 @@ class TestExportForGame(unittest.TestCase):
         self.assertTrue(result)
         self.assertTrue(self.temp_file.exists())
 
-        with open(self.temp_file, 'r', encoding='utf-8') as f:
+        with open(self.temp_file, encoding='utf-8') as f:
             exported = json.load(f)
         self.assertEqual(exported, {})
 
@@ -47,7 +48,7 @@ class TestExportForGame(unittest.TestCase):
         result = export_for_game(mock_dm, self.temp_file)
         self.assertTrue(result)
 
-        with open(self.temp_file, 'r', encoding='utf-8') as f:
+        with open(self.temp_file, encoding='utf-8') as f:
             exported = json.load(f)
         self.assertEqual(len(exported["skills"]), 1)
         self.assertEqual(exported["skills"][0]["name"], "火球术")
@@ -60,7 +61,7 @@ class TestExportForGame(unittest.TestCase):
         result = export_for_game(mock_dm, self.temp_file)
         self.assertTrue(result)
 
-        with open(self.temp_file, 'r', encoding='utf-8') as f:
+        with open(self.temp_file, encoding='utf-8') as f:
             exported = json.load(f)
         self.assertEqual(exported["skills"][0]["name"], "火焰之舞")
 
@@ -79,7 +80,7 @@ class TestExportForGame(unittest.TestCase):
         result = export_for_game(mock_dm, self.temp_file)
         self.assertTrue(result)
 
-        with open(self.temp_file, 'r', encoding='utf-8') as f:
+        with open(self.temp_file, encoding='utf-8') as f:
             exported = json.load(f)
         self.assertEqual(len(exported["skills"]), 100)
         self.assertEqual(len(exported["items"]), 50)

@@ -5,9 +5,9 @@ src/ 路径自动注入 sys.path，确保测试可直接 import 项目模块。
 """
 
 import os
+import shutil
 import sys
 import tempfile
-import shutil
 
 # 确保 src/ 在 sys.path 中
 _src_dir = os.path.join(os.path.dirname(__file__), "..", "src")
@@ -17,9 +17,9 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 if _src_dir not in sys.path:
     sys.path.insert(0, os.path.abspath(_src_dir))
 
-import pytest
-from unittest.mock import MagicMock, PropertyMock
+from unittest.mock import MagicMock
 
+import pytest
 
 # ── 基础 Mock Fixtures ──
 
@@ -103,15 +103,36 @@ def temp_session_dir(temp_dir):
 
 # ── PyQt6 Mock（避免 GUI 依赖） ──
 
+@pytest.fixture(scope="session")
+def qapp():
+    """真实 QApplication（offscreen 平台，整个测试会话复用）
+
+    PyQt6 要求构造 QWidget 之前必须存在 QApplication 实例，否则进程直接
+    abort（退出码 0xC0000409），因此所有 UI 测试统一依赖此 fixture。
+    """
+    pytest.importorskip("PyQt6.QtWidgets")
+    from PyQt6.QtWidgets import QApplication
+
+    yield QApplication.instance() or QApplication([])
+
+
 @pytest.fixture
-def mock_qt(monkeypatch):
-    """Mock PyQt6 模块 — 测试无需 GUI 环境即可 import UI 模块"""
-    qt_modules = [
-        "PyQt6", "PyQt6.QtCore", "PyQt6.QtGui", "PyQt6.QtWidgets",
-        "PyQt6.QtNetwork", "PyQt6.QtSvg",
-    ]
-    for mod in qt_modules:
-        monkeypatch.setitem(sys.modules, mod, MagicMock())
+def mock_qt(qapp, monkeypatch):
+    """UI 测试环境
+
+    真实 PyQt6 可用时直接使用真实 offscreen Qt（不 mock）——mock 与真实 Qt 混用
+    会导致真实 QStyle/QWidget 收到 MagicMock 参数而报 TypeError；
+    仅在 PyQt6 缺失时注入 MagicMock，保证 UI 模块仍可被导入。
+    """
+    try:
+        import PyQt6.QtWidgets  # noqa: F401
+    except ImportError:
+        qt_modules = [
+            "PyQt6", "PyQt6.QtCore", "PyQt6.QtGui", "PyQt6.QtWidgets",
+            "PyQt6.QtNetwork", "PyQt6.QtSvg",
+        ]
+        for mod in qt_modules:
+            monkeypatch.setitem(sys.modules, mod, MagicMock())
 
 
 # ── 辅助工具 ──

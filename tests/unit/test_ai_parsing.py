@@ -1,7 +1,7 @@
 """AI解析功能单元测试"""
-import unittest
-import sys
 import os
+import sys
+import unittest
 
 _PROJ_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _SRC = os.path.join(_PROJ_ROOT, 'src')
@@ -9,6 +9,7 @@ if _SRC not in sys.path:
     sys.path.insert(0, _SRC)
 
 import pytest
+
 pytest.importorskip("PyQt6")  # PyQt6 缺失时跳过整个模块
 
 from features.ai import parse_ai_result

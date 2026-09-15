@@ -3,8 +3,8 @@
 覆盖 LazyImport / ModuleProxy / BulkLazyLoader 的核心功能，
 包括加载、重试、统计和 preload 行为。
 """
-import sys
 import os
+import sys
 
 _PROJ_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _SRC = os.path.join(_PROJ_ROOT, "src")
@@ -14,13 +14,12 @@ if _SRC not in sys.path:
 import pytest
 
 from common.lazy_loader import (
+    BulkLazyLoader,
     LazyImport,
     ModuleProxy,
-    BulkLazyLoader,
     get_lazy_loader,
     lazy,
 )
-
 
 # ── LazyImport 测试 ──
 

@@ -1,7 +1,7 @@
 """主题系统冒烟测试"""
-import unittest
-import sys
 from pathlib import Path
+import sys
+import unittest
 
 _PROJ_ROOT = Path(__file__).resolve().parent.parent.parent
 _SRC = str(_PROJ_ROOT / "src")
@@ -103,7 +103,7 @@ class TestThemeSwitching(unittest.TestCase):
 
     def test_switch_all_themes_no_error(self):
         """10 套主题依次切换不报错"""
-        from ui.themes import set_current_theme, get_theme_colors, _THEME_CONFIGS
+        from ui.themes import _THEME_CONFIGS, get_theme_colors, set_current_theme
 
         for name in _THEME_CONFIGS:
             set_current_theme(name)
@@ -114,7 +114,7 @@ class TestThemeSwitching(unittest.TestCase):
 
     def test_theme_color_helper(self):
         """theme_color() 辅助函数能正确取值"""
-        from ui.themes import set_current_theme, theme_color, _THEME_CONFIGS
+        from ui.themes import _THEME_CONFIGS, set_current_theme, theme_color
 
         for name in _THEME_CONFIGS:
             set_current_theme(name)

@@ -8,10 +8,11 @@
   - DiagnosisSkill: 系统诊断与修复 (9 actions)
   - MCPRegistry: MCP 工具注册中心 (单例 + 内置工具)
 """
-import sys
-import pytest
 from pathlib import Path
-from unittest.mock import MagicMock, patch, PropertyMock
+import sys
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 # 将 src 目录加入模块搜索路径
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "src"))
@@ -25,15 +26,8 @@ _game_data_available = False
 try:
     # GameDataSkill 模块加载时会执行 _build_type_labels()，
     # 需要 config.constants._type_registry 可用。
-    from core.agent.skills.game_data_skill import GameDataSkill, _TYPE_LABELS
+    from core.agent.skills.game_data_skill import _TYPE_LABELS, GameDataSkill
     _game_data_available = True
-except Exception:
-    pass
-
-_computer_use_available = False
-try:
-    from core.agent.skills.computer_use_skill import ComputerUseSkill
-    _computer_use_available = True
 except Exception:
     pass
 
@@ -153,75 +147,6 @@ class TestGameDataSkill:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-#  TestComputerUseSkill
-# ═══════════════════════════════════════════════════════════════════════════
-
-@pytest.mark.skipif(not _computer_use_available, reason="ComputerUseSkill 无法导入")
-class TestComputerUseSkill:
-    """ComputerUseSkill 实例化与 Schema 测试
-
-    ComputerUseSkill.__init__ 会创建 ScreenCaptureManager、MouseKeyboardController、
-    VisionLLMAdapter 等硬件组件, 需要 mock 掉整个 computer_use 模块。
-    """
-
-    def _make_skill(self):
-        """在 mock 环境下创建 ComputerUseSkill 实例"""
-        mock_module = MagicMock()
-        mock_module.ScreenCaptureManager = MagicMock
-        mock_module.WidgetTreeOperator = MagicMock
-        mock_module.MouseKeyboardController = MagicMock
-        mock_module.VisionLLMAdapter = MagicMock
-
-        with patch.dict("sys.modules", {"core.agent.computer_use": mock_module}):
-            # 重新导入以使用 mock
-            import importlib
-            import core.agent.skills.computer_use_skill as mod
-            importlib.reload(mod)
-            skill = mod.ComputerUseSkill()
-        return skill
-
-    def test_instantiation(self):
-        """mock 掉依赖后应能成功实例化"""
-        skill = self._make_skill()
-        assert skill is not None
-
-    def test_name(self):
-        """name 应为 'system.computer_use'"""
-        skill = self._make_skill()
-        assert skill.name == "system.computer_use"
-
-    def test_tags(self):
-        """tags 应包含 'computer_use' 和 '桌面'"""
-        skill = self._make_skill()
-        assert "computer_use" in skill.tags
-        assert "桌面" in skill.tags
-        assert "自动化" in skill.tags
-        assert "视觉" in skill.tags
-
-    def test_params_schema_action_count(self):
-        """action enum 应有 12 个值"""
-        schema = ComputerUseSkill.PARAMS_SCHEMA
-        assert schema is not None
-        action_enum = schema["properties"]["action"]["enum"]
-        assert len(action_enum) == 12, f"期望 12 个 action, 实际 {len(action_enum)}"
-        expected = {
-            "describe_screen", "click", "click_widget", "click_text",
-            "type", "press_key", "scroll", "ai_operate", "widget_tree",
-            "screenshot", "double_click", "right_click",
-        }
-        assert set(action_enum) == expected
-
-    def test_execute_no_action(self):
-        """execute({}) 缺少 action 时应返回错误"""
-        skill = self._make_skill()
-        result = skill.execute({}, {})
-        if hasattr(result, "is_error"):
-            assert result.is_error()
-        elif isinstance(result, dict):
-            assert not result.get("success", True)
-
-
-# ═══════════════════════════════════════════════════════════════════════════
 #  TestUiControlSkill
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -308,7 +233,7 @@ class TestBatchDataSkill:
         # Mock GameDataSkill 的 _batch_create 方法
         with patch("core.agent.skills.game_data_skill.GameDataSkill._batch_create") as mock_batch:
             mock_batch.return_value = {"success": True, "message": "mocked"}
-            result = skill.execute({"data_type": "roles", "count": 3}, context)
+            skill.execute({"data_type": "roles", "count": 3}, context)
             # _batch_create 应被调用
             mock_batch.assert_called_once()
 

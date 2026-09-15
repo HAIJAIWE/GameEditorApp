@@ -2,8 +2,8 @@
 
 覆盖 EquipmentBonus 效果计算、EquipmentSystem 槽位管理、装备穿脱与属性计算。
 """
-import sys
 import os
+import sys
 
 _PROJ_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _SRC = os.path.join(_PROJ_ROOT, "src")
@@ -12,8 +12,7 @@ if _SRC not in sys.path:
 
 import pytest
 
-from core.equipment_system import EquipmentSystem, EquipmentBonus, EquipmentSlot
-
+from core.equipment_system import EquipmentBonus, EquipmentSlot, EquipmentSystem
 
 # ── 辅助工厂 ──
 

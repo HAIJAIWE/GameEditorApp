@@ -1,28 +1,21 @@
 """测试 智能体助手标签页"""
-import sys
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 try:
-    from ui.ai_assistant_tab import ChatInput, AIRequestThread, AIAssistantTab
+    from ui.ai_assistant_tab import AIAssistantTab, AIRequestThread, ChatInput
     _HAS_DEP = True
 except ImportError:
     _HAS_DEP = False
 
-# Python 3.14+ 与 PyQt6 的 QWidget 创建存在兼容性问题（segfault），
-# 在此环境下跳过所有测试
-_PY314_PLUS = sys.version_info >= (3, 14)
-
 
 @pytest.mark.skipif(not _HAS_DEP, reason="ui.ai_assistant_tab 模块不可用")
-@pytest.mark.skipif(_PY314_PLUS, reason="Python 3.14+ 与 PyQt6 QWidget 创建存在 segfault，待 PyQt6 适配")
 class TestAIAssistantTab:
     """AI Assistant Tab 模块测试 (mock_qt 模式)"""
 
     def test_chatinput_submit_empty(self, mock_qt):
         """测试 ChatInput 提交空文本"""
-        from PyQt6.QtCore import Qt
         input_widget = ChatInput()
         # 空文本不应 emit
         # 只是测试不会崩溃

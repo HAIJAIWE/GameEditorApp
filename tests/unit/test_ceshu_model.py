@@ -1,12 +1,16 @@
 """策划书模块基础测试"""
-import sys, os, json, tempfile, shutil
+import json
+import os
 from pathlib import Path
+import shutil
+import sys
+import tempfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "src"))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))  # for scripts
 
 def test_model_serialization():
-    from core.ceshu import CeshuModel, CHAPTER_KEYS
+    from core.ceshu import CHAPTER_KEYS, CeshuModel
     m = CeshuModel()
     m.meta['game_name'] = 'UnitTest'
     m.meta['game_type'] = 'RPG'
@@ -47,35 +51,35 @@ def test_manager_crud():
     from core.ceshu import CeshuManager
     tmp = tempfile.mkdtemp()
     mgr = CeshuManager(tmp)
-    
+
     # create
     m = mgr.create_ceshu('test')
     assert m.ceshu_id
     ceshus = mgr.list_ceshu('test')
     assert len(ceshus) == 1
-    
+
     # get
     m2 = mgr.get_ceshu(ceshus[0]['ceshu_id'], 'test')
     assert m2.ceshu_id == m.ceshu_id
-    
+
     # update
     m2.meta['game_name'] = 'Updated'
     mgr.save_ceshu(m2, 'test')
     m3 = mgr.get_ceshu(ceshus[0]['ceshu_id'], 'test')
     assert m3.meta['game_name'] == 'Updated'
-    
+
     # export/import
     ep = os.path.join(tmp, 'test.ceshu')
     mgr.export_ceshu(ceshus[0]['ceshu_id'], 'test', ep)
     assert os.path.exists(ep)
     mgr.import_ceshu(ep, 'test')
     assert len(mgr.list_ceshu('test')) == 2
-    
+
     # delete
     ok = mgr.delete_ceshu(ceshus[0]['ceshu_id'], 'test')
     assert ok
     assert len(mgr.list_ceshu('test')) == 1
-    
+
     shutil.rmtree(tmp)
 
 def test_template():
@@ -124,10 +128,10 @@ def test_migration():
     r = migrate_planning_to_ceshu(pf, cd)
     assert r['success']
     assert r['created'] == 1
-    with open(cd / 'ceshu_test.json', 'r', encoding='utf-8') as f:
+    with open(cd / 'ceshu_test.json', encoding='utf-8') as f:
         nd = json.load(f)
     assert nd['meta']['game_type'] == 'RPG'
-    assert nd['systems']['battle']['enabled'] == True
+    assert nd['systems']['battle']['enabled']
     shutil.rmtree(tmp)
 
 if __name__ == '__main__':

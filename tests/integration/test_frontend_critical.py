@@ -10,22 +10,21 @@
   8. 边界条件: 空 schema, 重复重建, 快速切换
 布局模式: 三栏 (three_column)
 """
-import sys
 import os
-import unittest
-import time
 from pathlib import Path
+import sys
+import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
 import pytest
+
 pytest.importorskip("PyQt6")  # PyQt6 缺失时跳过整个模块
 
-from PyQt6.QtWidgets import QApplication, QMessageBox
-from PyQt6.QtCore import QTimer, Qt
 from PyQt6.QtTest import QTest
+from PyQt6.QtWidgets import QApplication, QMessageBox
 
 _QAPP = None
 
@@ -51,8 +50,6 @@ def _get_app():
 # ============================================================
 # 测试 1: 添加新编辑器类型 → UI 重建
 # ============================================================
-import sys
-_PY314_PLUS = sys.version_info >= (3, 14)
 class TestAddNewEditorType(unittest.TestCase):
     """测试添加新类型后界面重建"""
 
@@ -93,8 +90,9 @@ class TestAddNewEditorType(unittest.TestCase):
 
     def test_03_add_pet_type_to_schema(self):
         """模拟添加宠物类型到 schema（模拟 TypeEditorDialog.add_type）"""
-        from core.type_schema import TypeDef, TypeField, TypeSchema
         import json
+
+        from core.type_schema import TypeDef, TypeField, TypeSchema
 
         lm = self.window.config.library_manager
         schema_path = lm.get_schema_path()
@@ -124,7 +122,7 @@ class TestAddNewEditorType(unittest.TestCase):
         if hasattr(schema, 'save_body'):
             schema.save_body(schema_path)
 
-        with open(schema_path, "r", encoding="utf-8") as f:
+        with open(schema_path, encoding="utf-8") as f:
             disk = json.load(f)
         disk_ids = [t["id"] for t in disk.get("data_types", [])]
         self.assertIn("pet", disk_ids, f"磁盘缺少 pet: {disk_ids}")

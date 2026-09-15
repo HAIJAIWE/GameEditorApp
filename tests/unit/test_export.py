@@ -1,11 +1,10 @@
 """测试 数据导出功能模块"""
-import json
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 try:
-    from features.export import export_json, import_json, batch_import, batch_export, batch_edit
+    from features.export import batch_edit, batch_export, batch_import, export_json, import_json
     _HAS_DEP = True
 except ImportError:
     _HAS_DEP = False

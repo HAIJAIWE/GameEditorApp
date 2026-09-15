@@ -2,21 +2,17 @@
 
 覆盖 TypeField / TypeDef / TypeSchema 的创建、序列化、查询、合并与升级检测。
 """
-import sys
 import os
+import sys
 
 _PROJ_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _SRC = os.path.join(_PROJ_ROOT, "src")
 if _SRC not in sys.path:
     sys.path.insert(0, _SRC)
 
-import json
-from pathlib import Path
 
-import pytest
 
-from core.type_schema import TypeField, TypeDef, TypeSchema
-
+from core.type_schema import TypeDef, TypeField, TypeSchema
 
 # ── 辅助工厂 ──
 
@@ -181,7 +177,7 @@ class TestTypeDef:
         assert restored.plural_key == original.plural_key
         assert restored.color == original.color
         assert len(restored.form_fields) == len(original.form_fields)
-        for orig_f, rest_f in zip(original.form_fields, restored.form_fields):
+        for orig_f, rest_f in zip(original.form_fields, restored.form_fields, strict=False):
             assert rest_f.name == orig_f.name
             assert rest_f.type == orig_f.type
 

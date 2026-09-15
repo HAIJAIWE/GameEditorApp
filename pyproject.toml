@@ -64,6 +64,11 @@ ignore = [
 known-first-party = ["src", "common", "core", "ui", "security", "features", "deployment", "config"]
 force-sort-within-sections = true
 
+[tool.ruff.lint.per-file-ignores]
+# 测试文件需先注入 sys.path 再导入项目模块（与 src 运行时 sys.path 一致），
+# 因此模块级导入不在文件顶部属于预期结构
+"tests/**" = ["E402"]
+
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
@@ -74,18 +79,20 @@ ignore_missing_imports = true
 warn_unused_ignores = false
 warn_redundant_casts = true
 warn_unused_configs = true
-# 不强制全量类型注解（UI 层暂未覆盖）
+# 存量代码广泛使用隐式 Optional（如 `theme_name: str = None`），
+# PEP 484 已过时但仍兼容，统一豁免，避免全量类型噪音
+no_implicit_optional = false
+# 不强制全量类型注解
 check_untyped_defs = false
-# 排除 UI 和测试目录的严格检查
+# 仅排除测试、脚本与构建产物；src 全部纳入类型检查（含 UI）
 exclude = [
-    "src/ui/",
     "tests/",
     "scripts/",
     "build/",
 ]
 
 [[tool.mypy.overrides]]
-# 核心模块启用严格检查
-module = ["src.core.*", "src.common.*", "src.security.*"]
+# 核心模块启用严格检查（MYPYPATH=src 下模块名为 core.* / common.* / security.*）
+module = ["core.*", "common.*", "security.*"]
 check_untyped_defs = true
 disallow_untyped_defs = false

@@ -1,13 +1,11 @@
 """测试 库管理器"""
 import json
-import os
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import pytest
 
 try:
-    from core.library_manager import LibraryManager, LibraryInfo, INITIAL_LIBRARY_NAME
+    from core.library_manager import INITIAL_LIBRARY_NAME, LibraryInfo, LibraryManager
     _HAS_DEP = True
 except ImportError:
     _HAS_DEP = False
@@ -203,6 +201,6 @@ class TestLibraryManager:
         # 验证文件存在
         info_file = Path(lib.path) / "library.json"
         assert info_file.exists()
-        with open(info_file, 'r', encoding='utf-8') as f:
+        with open(info_file, encoding='utf-8') as f:
             data = json.load(f)
         assert data["description"] == "更新描述"

@@ -14,8 +14,8 @@
   - CeshuModel.chapter_progress() -> dict (含 "total")
 """
 import json
-import pytest
 
+import pytest
 
 LIBRARY = "default"
 
@@ -174,7 +174,7 @@ class TestCeshuWorkflow:
 
         # 当前版本通过 export_ceshu 导出 .ceshu 文件
         export_path = temp_workspace / "export.ceshu"
-        result_path = ceshu_manager.export_ceshu(model.ceshu_id, LIBRARY, str(export_path))
+        ceshu_manager.export_ceshu(model.ceshu_id, LIBRARY, str(export_path))
         assert export_path.exists()
         data = json.loads(export_path.read_text(encoding="utf-8"))
         assert data["meta"]["game_name"] == "MD导出测试"
@@ -188,7 +188,7 @@ class TestCeshuWorkflow:
 
         # 当前版本通过 export_ceshu 导出完整 JSON，可作为 LLM 上下文使用
         export_path = temp_workspace / "llm_context.ceshu"
-        result_path = ceshu_manager.export_ceshu(model.ceshu_id, LIBRARY, str(export_path))
+        ceshu_manager.export_ceshu(model.ceshu_id, LIBRARY, str(export_path))
         assert export_path.exists()
         data = json.loads(export_path.read_text(encoding="utf-8"))
         assert data["meta"]["game_name"] == "LLM上下文测试"
