@@ -4,6 +4,7 @@ from collections import defaultdict
 from collections.abc import Callable
 import logging
 import threading
+from typing import Any
 from weakref import WeakMethod, ref
 
 _logger = logging.getLogger("GameEditorApp.EventBus")
@@ -11,7 +12,7 @@ _logger = logging.getLogger("GameEditorApp.EventBus")
 
 class EventBus:
     _instance = None
-    _listeners: dict = None
+    _listeners: dict = {}  # 在 __new__ 中替换为 defaultdict(list) 实例属性
     _lock = threading.Lock()
     _emit_lock = threading.Lock()  # 保护 emit/on/off 的并发访问
 
@@ -28,6 +29,8 @@ class EventBus:
             return len(self._listeners.get(event, [])) > 0
 
     def on(self, event: str, callback: Callable, weak: bool = True) -> None:
+        # cb 可能为弱引用包装 (WeakMethod / weakref.ref) 或原始回调，统一用 Any 承载
+        cb: Any
         if weak:
             try:
                 cb = WeakMethod(callback) if hasattr(callback, '__self__') else ref(callback)

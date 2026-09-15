@@ -10,7 +10,7 @@ import queue
 import subprocess
 import threading
 import time
-from typing import Optional
+from typing import Any, Optional
 
 from common.common import is_test_env
 from common.logger import get_logger
@@ -52,7 +52,7 @@ class _StdioConnection:
 
     def _reader_loop(self):
         """后台线程：持续读取 stdout 并放入队列"""
-        while self._reader_active and self.proc and self.proc.poll() is None:
+        while self._reader_active and self.proc and self.proc.stdout and self.proc.poll() is None:
             try:
                 line = self.proc.stdout.readline()
                 if not line:
@@ -95,6 +95,8 @@ class _StdioConnection:
 
     def _send_raw(self, msg: dict):
         """发送 JSON-RPC 消息到子进程 stdin"""
+        if not self.proc or not self.proc.stdin:
+            raise RuntimeError("MCP 进程 stdin 未就绪")
         line = json.dumps(msg) + "\n"
         self.proc.stdin.write(line)
         self.proc.stdin.flush()
@@ -156,7 +158,7 @@ class _StdioConnection:
 class MCPRegistry:
     """MCP 服务注册中心 — 支持 HTTP/STDIO 两种协议，内置自检工具"""
 
-    BUILTIN_TOOLS = {
+    BUILTIN_TOOLS: dict[str, dict[str, Any]] = {
         "mcp.echo": {
             "description": "回显输入参数，用于 MCP 连通性测试",
             "params_schema": {"text": {"type": "string", "description": "要回显的文本"}},
@@ -169,6 +171,7 @@ class MCPRegistry:
 
     _instance: Optional[MCPRegistry] = None
     _lock = threading.Lock()
+    _initialized: bool = False
 
     def __new__(cls):
         if cls._instance is None:
@@ -351,7 +354,7 @@ class MCPRegistry:
                 "id": 1,
             }
             self._logger.info(f"MCP: 调用 {tool.name} → {url}")
-            resp = requests.post(url, json=payload, timeout=30)
+            resp = requests.post(url, json=payload, timeout=30)  # type: ignore[arg-type]  # requests 的 JsonType 与异构 dict 不匹配
             resp.raise_for_status()
             data = resp.json()
             if "error" in data:

@@ -3,10 +3,10 @@ from common.logger import get_logger
 
 logger = get_logger()
 
-from enum import Enum
-from typing import Optional
+from enum import Enum  # noqa: E402  # 延迟导入:等待 logger 初始化
+from typing import Any, Optional  # noqa: E402  # 延迟导入:等待 logger 初始化
 
-from common.graph import CircularDependencyError, topological_sort  # noqa: F401  # re-export 供外部导入
+from common.graph import CircularDependencyError, topological_sort  # noqa: E402,F401  # 延迟导入 + re-export 供外部导入
 
 
 class AttrType(Enum):
@@ -86,8 +86,8 @@ class Formula:
 
         expr = expr[1:].strip()
 
-        coefficients = {}
-        base_value = 0
+        coefficients: dict[str, float] = {}
+        base_value: float = 0
 
         # 解析公式中的项
         parts = expr.split("+")
@@ -188,7 +188,7 @@ class AttributeSystem:
 
     def _build_default_system(self):
         """构建默认属性系统"""
-        base_attrs = {
+        base_attrs: dict[str, dict[str, Any]] = {
             "力量": {"category": "基础属性", "display_name": "力量", "min_value": 0, "max_value": None, "default_value": 10},
             "智力": {"category": "基础属性", "display_name": "智力", "min_value": 0, "max_value": None, "default_value": 10},
             "敏捷": {"category": "基础属性", "display_name": "敏捷", "min_value": 0, "max_value": None, "default_value": 10},
@@ -203,7 +203,7 @@ class AttributeSystem:
             )
             self.attributes[name] = attr
 
-        derived_attrs = {
+        derived_attrs: dict[str, dict[str, Any]] = {
             "HP": {
                 "category": "派生属性",
                 "formula": Formula(coefficients={"力量": 10, "体质": 20, "敏捷": 5}, base_value=0)
@@ -243,7 +243,7 @@ class AttributeSystem:
             attr.formula = config["formula"]
             self.attributes[name] = attr
 
-        combat_attrs = {
+        combat_attrs: dict[str, dict[str, Any]] = {
             "暴击率": {
                 "category": "战斗属性",
                 "formula": Formula(coefficients={"敏捷": 0.4}, base_value=5, max_value=100)

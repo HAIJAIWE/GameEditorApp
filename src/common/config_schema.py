@@ -1,7 +1,7 @@
 import json
 import logging
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 logger = logging.getLogger(__name__)
 
@@ -138,8 +138,9 @@ class SchemaValidator:
         }
 
         if expected_type in type_map:
-            expected = type_map[expected_type]
-            valid = isinstance(value, expected) if not isinstance(expected, tuple) else isinstance(value, expected)
+            # type_map 的值混合了具体类型与元组，运行时 isinstance 天然支持，cast 仅为类型声明服务
+            expected = cast(Any, type_map[expected_type])
+            valid = isinstance(value, expected)
             if not valid:
                 self._errors.append(f"{path}: 期望 {expected_type}, 实际 {type(value).__name__}")
                 return

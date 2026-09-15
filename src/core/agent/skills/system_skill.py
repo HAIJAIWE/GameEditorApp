@@ -4,16 +4,16 @@ import os
 
 from common.logger import get_logger
 from core.agent.skill_protocol import BaseSkill
+from core.agent.skills.common import normalize_params
 
 logger = get_logger()
-from core.agent.skills.common import normalize_params
 
 
 class SystemSkill(BaseSkill):
     name = "system.file_ops"
     description = "文件与系统操作: 读写、编辑、删除、搜索、列目录、新建文件夹、系统信息"
     version = "1.1.0"
-    parameters = []
+    parameters: list = []
 
     PARAMS_SCHEMA = {
         "type": "object",
@@ -154,11 +154,11 @@ class SystemSkill(BaseSkill):
             }}
         except UnicodeDecodeError:
             with open(resolved, "rb") as f:
-                content = f.read()
+                binary_content = f.read()
             return {"success": True, "message": "", "data": {
-                "content": f"[二进制文件，{len(content)} 字节]",
+                "content": f"[二进制文件，{len(binary_content)} 字节]",
                 "path": resolved,
-                "size": len(content),
+                "size": len(binary_content),
                 "encoding": "binary",
             }}
         except Exception as e:
@@ -202,7 +202,7 @@ class SystemSkill(BaseSkill):
             elif os.path.isfile(resolved):
                 with open(resolved, encoding="utf-8", errors="replace") as f:
                     lines = f.readlines()
-                matches = [{"line": i, "content": l.strip()[:120]} for i, l in enumerate(lines, 1) if pattern.lower() in l.lower()]
+                matches = [{"line": i, "content": line.strip()[:120]} for i, line in enumerate(lines, 1) if pattern.lower() in line.lower()]
                 return {"success": True, "message": "", "data": {"matches": matches, "count": len(matches), "pattern": pattern}}
             else:
                 return {"success": False, "error": f"路径不存在: {path}", "message": ""}
@@ -236,11 +236,12 @@ class SystemSkill(BaseSkill):
 
     @staticmethod
     def _human_size(size: int) -> str:
+        value: float = size
         for unit in ('B', 'KB', 'MB', 'GB'):
-            if size < 1024:
-                return f"{size:.1f}{unit}"
-            size /= 1024
-        return f"{size:.1f}TB"
+            if value < 1024:
+                return f"{value:.1f}{unit}"
+            value /= 1024
+        return f"{value:.1f}TB"
 
     @staticmethod
     def _format_time(timestamp: float) -> str:

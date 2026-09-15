@@ -400,8 +400,9 @@ class ChecklistDialog(QDialog):
         # 简单做法: 移除旧页面，重新构建
         while self._stack.count() > 0:
             w = self._stack.widget(0)
-            self._stack.removeWidget(w)
-            w.deleteLater()
+            if w is not None:
+                self._stack.removeWidget(w)
+                w.deleteLater()
         self._item_widgets.clear()
         for cat in ALL_CATEGORIES:
             page = self._build_category_page(cat)

@@ -241,9 +241,11 @@ class PresetMarketDialog(QDialog):
         # 清空旧卡片
         while self._grid_layout.count():
             item = self._grid_layout.takeAt(0)
-            if item.widget():
-                item.widget().setParent(None)
-                item.widget().deleteLater()
+            if item:
+                w = item.widget()
+                if w is not None:
+                    w.setParent(None)
+                    w.deleteLater()
         self._cards.clear()
 
         # 按关键字筛选

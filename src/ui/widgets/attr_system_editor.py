@@ -312,9 +312,10 @@ class AttrSystemEditor(QDialog):
 
         derived_formulas = {}
         for name in self.attr_system.derived_attributes + self.attr_system.combat_attributes:
-            attr = self.attr_system.attributes.get(name)
-            if not attr:
+            lookup_attr = self.attr_system.attributes.get(name)
+            if not lookup_attr:
                 continue
+            attr = lookup_attr
 
             formula_info = {}
 

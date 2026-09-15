@@ -182,20 +182,20 @@ def _svg_path_to_qpainter(p: QPainterPath, d: str) -> None:
         elif c == 'S':
             # Smooth cubic (反射控制点)
             v = _nx(4)
-            ex = (v[2], v[3]) if not rel else (x+v[2], y+v[3])
-            p.lineTo(ex[0], ex[1])  # 简化为直线
-            x, y = ex[0], ex[1]
+            curve_end = (v[2], v[3]) if not rel else (x+v[2], y+v[3])
+            p.lineTo(curve_end[0], curve_end[1])  # 简化为直线
+            x, y = curve_end[0], curve_end[1]
         elif c == 'Q':
             v = _nx(4)
-            ex = (v[2], v[3]) if not rel else (x+v[2], y+v[3])
-            p.lineTo(ex[0], ex[1])
-            x, y = ex[0], ex[1]
+            curve_end = (v[2], v[3]) if not rel else (x+v[2], y+v[3])
+            p.lineTo(curve_end[0], curve_end[1])
+            x, y = curve_end[0], curve_end[1]
         elif c == 'A':
             # 圆弧 → 简化为直线（足够用于 icon 渲染）
             v = _nx(7)
-            ex = (v[5], v[6]) if not rel else (x+v[5], y+v[6])
-            p.lineTo(ex[0], ex[1])
-            x, y = ex[0], ex[1]
+            curve_end = (v[5], v[6]) if not rel else (x+v[5], y+v[6])
+            p.lineTo(curve_end[0], curve_end[1])
+            x, y = curve_end[0], curve_end[1]
         elif c == 'Z':
             p.closeSubpath()
             x, y = start_x, start_y

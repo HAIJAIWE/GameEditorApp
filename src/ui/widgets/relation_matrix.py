@@ -35,7 +35,7 @@ class RelationMatrixEditor(QWidget):
     def __init__(self, attr_system: AttributeSystem, parent=None):
         super().__init__(parent)
         self.attr_system = attr_system
-        self.coeff_spins = {}  # {derived_attr: {base_attr: spin}}
+        self.coeff_spins: dict[str, dict[str, QDoubleSpinBox]] = {}  # {derived_attr: {base_attr: spin}}
         self._setup_ui()
         self._refresh_matrix()
 

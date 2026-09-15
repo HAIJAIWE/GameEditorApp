@@ -31,14 +31,18 @@ class _ClickableFrame(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-    def mousePressEvent(self, event: QMouseEvent):
+    def mousePressEvent(self, event: QMouseEvent | None):
+        if event is None:
+            return
         if event.button() == Qt.MouseButton.LeftButton:
             self.clicked.emit()
             event.accept()
         else:
             super().mousePressEvent(event)
 
-    def enterEvent(self, event: QEnterEvent):
+    def enterEvent(self, event: QEnterEvent | None):
+        if event is None:
+            return
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         super().enterEvent(event)
 

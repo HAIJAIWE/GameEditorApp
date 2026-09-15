@@ -203,7 +203,7 @@ class DataValidator:
         Returns:
             验证结果字典
         """
-        results = {}
+        results: dict[str, list[dict[str, Any]]] = {}
 
         type_map = {
             'skills': 'skill',

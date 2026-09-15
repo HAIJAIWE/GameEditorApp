@@ -56,29 +56,41 @@ class _AIFillChapterWorker(QThread):
     信号:
         succeeded(str): JSON 格式的章节内容
         failed(str): 错误信息
+
+    only_empty=True 时仅补全空字段（d3）。nothing_to_fill 结果走 succeeded("")
     """
+
     succeeded = pyqtSignal(str)
     failed = pyqtSignal(str)
+    nothing_to_fill = pyqtSignal()  # 本章无空字段
 
-    def __init__(self, chapter_key: str, ceshu_id: str, library: str, parent=None):
+    def __init__(self, chapter_key: str, ceshu_id: str, library: str,
+                 only_empty: bool = False, parent=None):
         super().__init__(parent)
         self._chapter = chapter_key
         self._ceshu_id = ceshu_id
         self._library = library
+        self._only_empty = only_empty
 
     def run(self) -> None:
         try:
             from core.agent.skills.ceshu_skill import CeshuSkill
             skill = CeshuSkill()
-            params = {
+            params: dict = {
                 "action": "ai_fill_chapter",
                 "ceshu_id": self._ceshu_id,
                 "library": self._library,
                 "chapter": self._chapter,
             }
+            if self._only_empty:
+                params["only_empty"] = True
             result = skill.execute(params, context={})
             if result.get("success"):
-                content = (result.get("data") or {}).get("generated_content", "")
+                data = result.get("data") or {}
+                if data.get("nothing_to_fill"):
+                    self.nothing_to_fill.emit()
+                    return
+                content = data.get("generated_content", "")
                 if content:
                     self.succeeded.emit(content)
                 else:

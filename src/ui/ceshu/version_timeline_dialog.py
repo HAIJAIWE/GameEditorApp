@@ -132,8 +132,8 @@ class _VersionNodeItem(QGraphicsRectItem):
 
 
 def _make_arrow(from_x: float, from_y: float,
-                to_x: float, to_y: float) -> QGraphicsPolygonItem:
-    """构造一条从 (from_x, from_y) 到 (to_x, to_y) 的箭头多边形。"""
+                to_x: float, to_y: float) -> QGraphicsLineItem:
+    """构造一条从 (from_x, from_y) 到 (to_x, to_y) 的箭头主线（箭头头部作为其子项）。"""
     # 主线
     line = QGraphicsLineItem(from_x, from_y, to_x, to_y)
     line.setPen(QPen(QColor(_COLOR_ARROW), 2))
@@ -337,6 +337,7 @@ class VersionTimelineDialog(QDialog):
                 "（无版本数据）",
                 QFont("Microsoft YaHei", 11),
             )
+            assert hint is not None
             hint.setDefaultTextColor(QColor(theme_color("hint") or "#888"))
             return
 
@@ -388,11 +389,11 @@ class VersionTimelineDialog(QDialog):
             cur_pen = node.pen()
             node.setPen(QPen(cur_pen.color(), 2))
         # 高亮当前
-        node = self._node_items.get(ceshu_id)
-        if node is None:
+        target = self._node_items.get(ceshu_id)
+        if target is None:
             return
-        node.setPen(QPen(QColor(_COLOR_SELECTED), 3))
-        node.setSelected(True)
+        target.setPen(QPen(QColor(_COLOR_SELECTED), 3))
+        target.setSelected(True)
         self._selected_ceshu_id = ceshu_id
 
         # 查找版本数据

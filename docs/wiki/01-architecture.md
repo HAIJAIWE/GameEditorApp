@@ -4,17 +4,17 @@
 
 ## 1. 技术选型
 
-| 类别 | 技术 | 说明 |
-|------|------|------|
-| GUI 框架 | PyQt6 | Fusion 风格，微软雅黑字体 |
-| 编程语言 | Python >= 3.14 | 全栈 Python |
-| 数据存储 | SQLite / JSON | 游戏数据以 JSON 文件形式存于各库目录，元数据用 JSON |
-| AI 接入 | openai + ollama | 兼容 OpenAI 协议，支持 OpenAI/Qwen/豆包/DeepSeek/Ollama/自定义 |
-| 代码沙箱 | subprocess + 黑名单 | 隔离执行 LLM 生成的代码 |
-| 向量检索 | chromadb（可选） | Agent 记忆系统可选依赖 |
-| 测试 | pytest | unit/integration/e2e 三层 |
-| 质量 | ruff（lint）+ mypy（类型） | CI 强制 |
-| 打包 | PyInstaller + PyArmor | 发布版代码加密 |
+| 类别     | 技术                    | 说明                                                 |
+| ------ | --------------------- | -------------------------------------------------- |
+| GUI 框架 | PyQt6                 | Fusion 风格，微软雅黑字体                                   |
+| 编程语言   | Python >= 3.14        | 全栈 Python                                          |
+| 数据存储   | SQLite / JSON         | 游戏数据以 JSON 文件形式存于各库目录，元数据用 JSON                    |
+| AI 接入  | openai + ollama       | 兼容 OpenAI 协议，支持 OpenAI/Qwen/豆包/DeepSeek/Ollama/自定义 |
+| 代码沙箱   | subprocess + 黑名单      | 隔离执行 LLM 生成的代码                                     |
+| 向量检索   | chromadb（可选）          | Agent 记忆系统可选依赖                                     |
+| 测试     | pytest                | unit/integration/e2e 三层                            |
+| 质量     | ruff（lint）+ mypy（类型）  | CI 强制                                              |
+| 打包     | PyInstaller + PyArmor | 发布版代码加密                                            |
 
 ## 2. 分层架构
 
@@ -49,19 +49,22 @@
 │                rate_limiter                                  │
 │  src/config    constants(类型注册表) / settings(AppConfig)   │
 ├────────────────────────────────────────────────────────────┤
-│                    部署层                                     │
-│  src/deployment  database / version_manager / config_center /│
-│                  observability / message_queue / local_adapter│
-│  scripts/       launch.bat / build.bat (PyArmor+PyInstaller) │
-│  Dockerfile / .github/workflows                              │
+│                    部署 / 构建                                    │
+│  scripts/       launch.bat / build.bat (PyArmor+PyInstaller)     │
+│  .github/workflows                                              │
 └────────────────────────────────────────────────────────────┘
 ```
+
+> 注：早期独立的 `src/deployment/` 模块（database/version_manager/config_center/observability/message_queue/local_adapter）已删除——引用核验属零引用孤儿模块；打包/发布能力保留在 `scripts/` 与 CI。Dockerfile 亦已移除（PyQt 桌面 GUI 容器化无实际用途）。
 
 ### 2.1 各层职责与依赖规则
 
 - **UI 层**：只负责交互与展示，通过控制器（如 `CeshuController`、`LibraryController`、`AIBridge`）调用核心层，不直接操作文件。
-- **核心层**：业务逻辑与数据模型，不依赖 PyQt（agent 层通过 `frontend_snapshot` 解耦对 UI 的依赖）。
+
+- **核心层**：业务逻辑与数据模型，不依赖 PyQt（agent 层通过 `frontend_snapshot` 解耦对 UI 的依赖）。**单点合规例外**：`ceshu_pdf_exporter` 复用 Qt 的 QTextDocument/QPrinter 生成 PDF（避免引入 reportlab/weasyprint 等重型 PDF 依赖），该模块保持低耦合、无 UI 组件，仅引用 QtPrintSupport 绘图设施。
+
 - **支撑层**：被核心层与 UI 层共享的通用能力（日志、事件、AI 客户端、安全）。
+
 - **部署层**：打包、发布、运行环境相关内容，不参与业务运行路径。
 
 ## 3. 启动流程
@@ -130,19 +133,22 @@
 
 `common/event_bus.py` 提供全局单例 `EventBus`，是 UI 与核心层、模块与模块之间的主要解耦手段。核心事件包括：
 
-| 事件 | 触发方 | 消费方 |
-|------|--------|--------|
-| `data_changed` | DataManager / 各编辑器 | 相关标签页、CeshuDataSync |
-| `ceshu_changed` | CeshuEditorView | CeshuDataSync、版本面板 |
-| `library_switched` | LibraryController | MainWindow、全部标签页重建 |
-| `theme_changed` | MainWindow.change_theme | 所有视图应用新主题 |
-| `rebuild_needed` | 类型模式变更 | MainWindow 重建标签页 |
+| 事件                 | 触发方                       | 消费方                 |
+| ------------------ | ------------------------- | ------------------- |
+| `data_changed`     | DataManager / 各编辑器        | 相关标签页、CeshuDataSync |
+| `ceshu_changed`    | CeshuEditorView           | CeshuDataSync、版本面板  |
+| `library_switched` | LibraryController         | MainWindow、全部标签页重建  |
+| `theme_changed`    | MainWindow\.change\_theme | 所有视图应用新主题           |
+| `rebuild_needed`   | 类型模式变更                    | MainWindow 重建标签页    |
 
 ## 6. 主题系统
 
 - `ui/themes/themes.py` 定义 10 套主题（深色/亮色自适应）。
+
 - `ui/theme_effects.py`（`ThemeEffectsManager`）负责流光/脉冲等低端特效。
+
 - `ui/effects.py` 提供灯效、动画等特效工厂。
+
 - 切换流程：`MainWindow.change_theme(name)` → `EventBus.emit("theme_changed")` → 各视图订阅回调刷新样式。
 
 ## 7. 测试架构
@@ -155,13 +161,14 @@ tests/
 └── conftest.py     # 全局 fixtures
 ```
 
-CI（`.github/workflows/ci.yml`）包含 lint（ruff）、typecheck（mypy）、test（pytest + 覆盖率 > 25%）、安全审计（pip-audit + bandit）、e2e 五个 Job。
+CI（`.github/workflows/ci.yml`）包含 lint（ruff，全量 0 错误）、typecheck（mypy，覆盖全部 src 含 UI，0 错误）、test（pytest + 覆盖率覆盖全部 src/，门槛 30%，渐进目标 40%/60%）、安全审计（pip-audit + bandit）、e2e 五个 Job。
 
 ## 8. 设计约定（开发时注意）
 
 1. **数据以 JSON 文件为唯一事实源**，内存缓存仅为加速，任何修改后必须落盘。
-2. **类型/字段定义统一由 `TypeSchema`（type_schema.py）管理**，`config/constants.py` 的类型注册表 `_TypeSchemaRegistry` 线程安全，禁止全局可变列表。
-3. **模块间通信优先走 `EventBus`**，避免 UI 与核心层硬耦合。
-4. **AI 能力统一走 `common/ai_client.py` + `common/llm_provider.py`**，业务代码不要直接 import openai。
+2. **类型/字段定义统一由** **`TypeSchema`（type\_schema.py）管理**，`config/constants.py` 的类型注册表 `_TypeSchemaRegistry` 线程安全，禁止全局可变列表。
+3. **模块间通信优先走** **`EventBus`**，避免 UI 与核心层硬耦合。
+4. **AI 能力统一走** **`common/ai_client.py`** **+** **`common/llm_provider.py`**，业务代码不要直接 import openai。
 5. **敏感配置（API Key）用 Fernet 加密存储**（`config/settings.py`）。
-6. **新增 Agent 能力 = 新增一个继承 `BaseSkill` 的技能类**，放入 `src/core/agent/skills/`，`ToolDispatcher.discover_skills()` 自动发现。
+6. **新增 Agent 能力 = 新增一个继承** **`BaseSkill`** **的技能类**，放入 `src/core/agent/skills/`，`ToolDispatcher.discover_skills()` 自动发现。
+

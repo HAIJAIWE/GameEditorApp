@@ -1,6 +1,8 @@
 """策划书表单组件。"""
 from __future__ import annotations
 
+import json
+
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import (
     QCheckBox,
@@ -19,6 +21,32 @@ from ._common import (
     _text_field,
     ceshu_form_input_qss,
 )
+
+
+def _join_items(items, sep: str = "\n") -> str:
+    """把列表字段安全转为文本：dict 元素提取 name 或序列化为 JSON，避免 join 崩溃。
+
+    AI 生成或历史数据里可能混入 dict（如 game_modes=[{name,desc}]），
+    直接 "\n".join 会抛 TypeError，这里做兜底转换。
+    """
+    if not items:
+        return ""
+    parts = []
+    for it in items:
+        if isinstance(it, str):
+            parts.append(it)
+        elif isinstance(it, dict):
+            name = it.get("name") or it.get("label") or it.get("title")
+            if isinstance(name, str) and name:
+                parts.append(name)
+            else:
+                try:
+                    parts.append(json.dumps(it, ensure_ascii=False))
+                except Exception:
+                    parts.append(str(it))
+        else:
+            parts.append(str(it))
+    return sep.join(parts)
 
 
 class ChapterMetaForm(QWidget):
@@ -75,7 +103,7 @@ class ChapterMetaForm(QWidget):
 
         self._tags = QLineEdit()
         self._tags.setPlaceholderText("用逗号分隔，如: 剧情向,开放世界,多人联机")
-        self._tags.setText(", ".join(self._data.get("tags", [])))
+        self._tags.setText(_join_items(self._data.get("tags", []), sep=", "))
         self._tags.setStyleSheet(ceshu_form_input_qss())
         self._tags.textChanged.connect(lambda: self._emit())
         _add_row(form, "特色标签", self._tags)
@@ -127,7 +155,7 @@ class ChapterMetaForm(QWidget):
         self._platform_mobile.setChecked("移动端" in platforms)
         self._platform_console.setChecked("主机" in platforms)
         self._positioning.setText(data.get("positioning", ""))
-        self._tags.setText(", ".join(data.get("tags", [])))
+        self._tags.setText(_join_items(data.get("tags", []), sep=", "))
         self._status.setCurrentText(data.get("status", "draft"))
         self._confidentiality.setCurrentText(data.get("confidentiality", "internal"))
 
@@ -271,7 +299,7 @@ class ChapterGameplayForm(QWidget):
         _add_row(form, "核心循环", self._core_loop, "gameplay.core_loop")
 
         self._game_modes = _text_field("游戏模式，每行一个", 60)
-        self._game_modes.setPlainText("\n".join(self._data.get("game_modes", [])))
+        self._game_modes.setPlainText(_join_items(self._data.get("game_modes", [])))
         self._game_modes.textChanged.connect(lambda: self._emit())
         _add_row(form, "游戏模式", self._game_modes)
 
@@ -301,7 +329,7 @@ class ChapterGameplayForm(QWidget):
     def set_data(self, data: dict) -> None:
         self._data = data
         self._core_loop.setPlainText(data.get("core_loop", ""))
-        self._game_modes.setPlainText("\n".join(data.get("game_modes", [])))
+        self._game_modes.setPlainText(_join_items(data.get("game_modes", [])))
         self._first_30.setPlainText(data.get("first_30_min", ""))
 
 

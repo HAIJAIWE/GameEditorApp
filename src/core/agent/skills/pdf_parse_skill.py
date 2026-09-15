@@ -2,12 +2,13 @@ from __future__ import annotations
 
 from pathlib import Path
 import re
+from typing import Any, Optional
 
 from common.logger import get_logger
 from core.agent.skill_protocol import BaseSkill
+from core.agent.skills.common import normalize_params
 
 logger = get_logger()
-from core.agent.skills.common import normalize_params
 
 
 class PdfParseSkill(BaseSkill):
@@ -67,8 +68,8 @@ class PdfParseSkill(BaseSkill):
                 return c
         return cwd / p
 
-    def _parse_page_range(self, pages: str) -> list:
-        numbers = set()
+    def _parse_page_range(self, pages: str) -> Optional[list]:
+        numbers: set[int] = set()
         for part in pages.split(","):
             part = part.strip()
             if "-" in part:
@@ -182,7 +183,7 @@ class PdfParseSkill(BaseSkill):
         return {"success": False, "error": "无法提取目录，请安装 PyMuPDF", "message": ""}
 
     def _extract_metadata(self, path: Path) -> dict:
-        meta = {"文件名": path.name, "大小": f"{path.stat().st_size / 1024:.1f} KB"}
+        meta: dict[str, Any] = {"文件名": path.name, "大小": f"{path.stat().st_size / 1024:.1f} KB"}
         try:
             import fitz
             doc = fitz.open(str(path))
@@ -229,29 +230,31 @@ class PdfParseSkill(BaseSkill):
         want_images = not detail or detail == "images"
         want_blocks = not detail or detail == "blocks"
 
-        try:
-            import fitz
-            return self._layout_with_pymupdf(path, page_range, want_tables, want_headings, want_images, want_blocks)
-        except ImportError:
+        import importlib.util
+
+        if importlib.util.find_spec("fitz"):
+            try:
+                return self._layout_with_pymupdf(path, page_range, want_tables, want_headings, want_images, want_blocks)
+            except Exception as e:
+                self._logger.warning(f"PyMuPDF 版面分析失败: {e}")
+        else:
             self._logger.info("PyMuPDF (fitz) 未安装，尝试降级")
-        except Exception as e:
-            self._logger.warning(f"PyMuPDF 版面分析失败: {e}")
 
-        try:
-            import pdfplumber
-            return self._layout_with_pdfplumber(path, page_range, want_tables, want_headings, want_images, want_blocks)
-        except ImportError:
+        if importlib.util.find_spec("pdfplumber"):
+            try:
+                return self._layout_with_pdfplumber(path, page_range, want_tables, want_headings, want_images, want_blocks)
+            except Exception as e:
+                self._logger.warning(f"pdfplumber 版面分析失败: {e}")
+        else:
             self._logger.info("pdfplumber 未安装，尝试降级")
-        except Exception as e:
-            self._logger.warning(f"pdfplumber 版面分析失败: {e}")
 
-        try:
-            from pypdf import PdfReader
-            return self._layout_with_pypdf(path, page_range)
-        except ImportError:
+        if importlib.util.find_spec("pypdf"):
+            try:
+                return self._layout_with_pypdf(path, page_range)
+            except Exception as e:
+                self._logger.warning(f"pypdf 版面分析失败: {e}")
+        else:
             self._logger.info("pypdf 未安装")
-        except Exception as e:
-            self._logger.warning(f"pypdf 版面分析失败: {e}")
 
         return {"success": False,
                 "error": "未安装PDF解析库，请 pip install PyMuPDF 或 pypdf 或 pdfplumber",
@@ -354,7 +357,7 @@ class PdfParseSkill(BaseSkill):
 
         doc.close()
 
-        data = {"pages": total_pages}
+        data: dict[str, Any] = {"pages": total_pages}
         if want_tables:
             data["tables"] = tables
         if want_headings:
@@ -426,7 +429,7 @@ class PdfParseSkill(BaseSkill):
                     except Exception as e:
                         self._logger.debug(f"第{page_num}页文本提取失败: {e}")
 
-        data = {"pages": total_pages}
+        data: dict[str, Any] = {"pages": total_pages}
         if want_tables:
             data["tables"] = tables
         if want_headings:

@@ -231,8 +231,10 @@ class ValidationReportDialog(QDialog):
 
         tree = QTreeWidget()
         tree.setHeaderLabels(["问题详情", "分类"])
-        tree.header().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        tree.header().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        tree_header = tree.header()
+        if tree_header is not None:
+            tree_header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+            tree_header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
         tree.setAlternatingRowColors(True)
         v.addWidget(tree)
 
@@ -422,11 +424,12 @@ class ValidationReportDialog(QDialog):
         try:
             filled = self._model.auto_fill_required()
             # 通知编辑器刷新
-            if hasattr(self.parent(), '_on_preset_applied'):
-                # 复用预设应用的刷新逻辑
-                self.parent()._on_preset_applied("__auto_fix__")
-            elif hasattr(self.parent(), '_chapter_panel'):
-                self.parent()._chapter_panel.refresh_progress()
+            parent = self.parent()
+            if parent is not None and hasattr(parent, '_on_preset_applied'):
+                # 复用预设应用的刷新逻辑（hasattr 收窄后属性可安全访问）
+                parent._on_preset_applied("__auto_fix__")
+            elif parent is not None and hasattr(parent, '_chapter_panel'):
+                parent._chapter_panel.refresh_progress()
             QMessageBox.information(
                 self, "修复完成",
                 f"已自动填充 {filled} 个必填字段。\n\n"

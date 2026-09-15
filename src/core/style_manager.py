@@ -159,7 +159,7 @@ class StyleManager:
         replacements: list[tuple] = []
 
         # 1. 从 game_styles.json 的术语构建替换对
-        for concept, style_terms in cross_map.items():
+        for _1, style_terms in cross_map.items():
             target_term = style_terms.get(target_sid)
             if not target_term:
                 continue
@@ -265,7 +265,7 @@ class StyleManager:
         if not scores:
             return ""
 
-        best = max(scores, key=scores.get)
+        best = max(scores, key=lambda k: scores[k])
         return best if scores[best] >= 2 else ""
 
     def get_terminology(self, style_id: str = None) -> dict[str, str]:

@@ -3,8 +3,8 @@ from common.logger import get_logger
 
 logger = get_logger()
 
-from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtWidgets import (
+from PyQt6.QtCore import Qt, QTimer  # noqa: E402  # 延迟导入：避免模块级循环导入
+from PyQt6.QtWidgets import (  # noqa: E402  # 延迟导入：避免模块级循环导入
     QDialog,
     QDialogButtonBox,
     QHBoxLayout,
@@ -212,7 +212,7 @@ class RefSelectDialog(QDialog):
                 self._id_name_map[item_id] = name
                 self._all_items.append((item_id, name))
 
-        for item_id, name in self._all_items:
+        for _, name in self._all_items:
             self.list_widget.addItem(name)
         layout.addWidget(self.list_widget)
 

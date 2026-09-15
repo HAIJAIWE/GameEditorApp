@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from common.logger import get_logger
 from core.agent.skill_protocol import BaseSkill
+from core.agent.skills.common import normalize_params
 
 logger = get_logger()
-from core.agent.skills.common import normalize_params
 
 
 class CodeSkill(BaseSkill):

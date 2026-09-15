@@ -219,7 +219,7 @@ class ChapterEditPanel(QScrollArea):
         self.setMinimumWidth(320)
 
     def render_chapters(self, model) -> None:
-        """根据 CeshuModel 渲染所有章节"""
+        """根据 CeshuModel 渲染章节（按档位：lite 只渲染基础 9 章）"""
         self._model = model
 
         container = QWidget()
@@ -227,7 +227,8 @@ class ChapterEditPanel(QScrollArea):
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(6)
 
-        for key in CHAPTER_KEYS:
+        visible_keys = model.visible_chapter_keys() if model else list(CHAPTER_KEYS)
+        for key in visible_keys:
             title = CHAPTER_LABELS.get(key, key)
             section = _CollapsibleSection(key, title)
             section.clicked.connect(lambda k=key: self._on_section_clicked(k))
@@ -240,8 +241,11 @@ class ChapterEditPanel(QScrollArea):
                 section.content_layout().addWidget(self._systems_editor)
             elif key == "vision":
                 # 第二章：含竞品象限图
-                form = ChapterVisionForm(model.vision if model else {})
-                form.data_changed.connect(lambda k, d: self.data_changed.emit(k, d))
+                # 各章节表单宽度不限，统一以 QWidget 静态类型存放
+                form: QWidget = ChapterVisionForm(model.vision if model else {})
+                form_data_changed = getattr(form, 'data_changed', None)
+                if form_data_changed is not None:
+                    form_data_changed.connect(lambda k, d: self.data_changed.emit(k, d))
                 section.content_layout().addWidget(form)
                 self._competitive_chart = CompetitiveChart(
                     model.vision.get("competitive_analysis", []) if model else [])
@@ -252,7 +256,9 @@ class ChapterEditPanel(QScrollArea):
                 if form_cls:
                     chapter_data = model.get_chapter(key) if model else {}
                     form = form_cls(chapter_data)
-                    form.data_changed.connect(lambda k, d: self.data_changed.emit(k, d))
+                    form_data_changed = getattr(form, 'data_changed', None)
+                if form_data_changed is not None:
+                    form_data_changed.connect(lambda k, d: self.data_changed.emit(k, d))
                     # F1: 连接表单的 ai_fill_requested 信号，附上章节键转发到顶层
                     if hasattr(form, 'ai_fill_requested'):
                         form.ai_fill_requested.connect(

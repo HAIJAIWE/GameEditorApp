@@ -75,7 +75,7 @@ CHAPTER_WORD_BENCHMARK = {
 }
 
 # === 同行业基准（按游戏类型） ===
-INDUSTRY_BENCHMARKS = {
+INDUSTRY_BENCHMARKS: dict[str, dict[str, Any]] = {
     "RPG": {
         "label": "RPG / ARPG",
         "structure_avg": 25,    # 行业平均结构分（满分 30）

@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from typing import Any
+
 from common.logger import get_logger
 from core.agent.skill_protocol import BaseSkill
+from core.agent.skills.common import _resolve_plural, _resolve_singular, normalize_params
 
 logger = get_logger()
-from core.agent.skills.common import _resolve_plural, _resolve_singular, normalize_params
 
 
 def _build_type_labels() -> dict:
@@ -468,7 +470,8 @@ class GameDataSkill(BaseSkill):
                 tab = getattr(mw, '_ensure_tab_loaded', None)
                 if tab:
                     t = tab(data_type)
-                    if hasattr(t, 'refresh_list'): t.refresh_list()
+                    if hasattr(t, 'refresh_list'):
+                        t.refresh_list()
             except Exception as e:
                 get_logger().warning(f"批量创建后刷新列表失败: {e}")
 
@@ -772,7 +775,7 @@ class GameDataSkill(BaseSkill):
                 field, op, val_raw = m.group(1), m.group(2), m.group(3).strip()
                 val_raw = val_raw.strip("\"'")
                 try:
-                    value = int(val_raw)
+                    value: Any = int(val_raw)
                 except ValueError:
                     try:
                         value = float(val_raw)

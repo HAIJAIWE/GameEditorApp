@@ -9,7 +9,7 @@ class WebSearchSkill(BaseSkill):
     name = "system.web_search"
     description = "联网搜索网页内容、查找信息，返回摘要和来源链接"
     version = "1.0.0"
-    parameters = []
+    parameters: list = []
 
     PARAMS_SCHEMA = {
         "type": "object",
@@ -43,13 +43,14 @@ class WebSearchSkill(BaseSkill):
         if not query:
             return {"success": False, "error": "缺少搜索关键词", "message": ""}
 
-        try:
-            import requests
-            return self._search_duckduckgo(query, logger)
-        except ImportError:
+        import importlib.util
+        if importlib.util.find_spec("requests"):
+            try:
+                return self._search_duckduckgo(query, logger)
+            except Exception as e:
+                logger.warning(f"DuckDuckGo search failed: {e}")
+        else:
             logger.info("requests 未安装，使用 urllib 降级搜索")
-        except Exception as e:
-            logger.warning(f"DuckDuckGo search failed: {e}")
 
         try:
             return self._search_urllib(query, logger)
@@ -157,7 +158,7 @@ class WebSearchSkill(BaseSkill):
 
         # 路径1：requests
         try:
-            import requests  # type: ignore
+            import requests
             resp = requests.get(url, timeout=15, headers={"User-Agent": UA})
             resp.raise_for_status()
             text = resp.text

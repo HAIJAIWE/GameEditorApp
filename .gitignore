@@ -90,3 +90,11 @@ htmlcov/
 /_quarantine/
 /_backup_src_*/
 /.git_broken_*/
+
+# 运行时产物（AI 向量库/学习库/导出与日志目录）
+chroma/
+vector_index/
+perf/
+*.db
+src/logs/
+src/exports/

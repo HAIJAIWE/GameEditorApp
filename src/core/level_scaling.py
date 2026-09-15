@@ -14,7 +14,7 @@ class ScalingConfig:
 
     # 分段缩放: 不同等级区间使用不同缩放
     # [{"min_level": 1, "max_level": 10, "per_level": 5}, ...]
-    tiered_scaling: list[dict] = None
+    tiered_scaling: Optional[list[dict]] = None
 
     # 上限
     max_value: Optional[float] = None

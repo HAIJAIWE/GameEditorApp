@@ -343,7 +343,7 @@ def query_fix_market(error_message: str) -> Optional[dict[str, Any]]:
 
 
 def get_market_stats() -> dict:
-    by_category = {}
+    by_category: dict[str, int] = {}
     for entry in FIX_MARKET.values():
         cat = entry["category"]
         by_category[cat] = by_category.get(cat, 0) + 1

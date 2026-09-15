@@ -33,7 +33,7 @@ class FrontendSnapshot:
     """
 
     # 文件地图缓存（类级共享，因为与 main_window 无关，仅扫描项目结构）
-    _file_map_cache: list = None
+    _file_map_cache: Optional[list] = None
     _file_map_cache_time: float = 0.0
 
     def __init__(
@@ -436,9 +436,9 @@ class FrontendSnapshot:
             from common.logger import AppLogger
             recent = AppLogger.get_recent_logs(5)
             if recent:
-                has_error = any("ERROR" in l or "CRITICAL" in l for l in recent)
+                has_error = any("ERROR" in line or "CRITICAL" in line for line in recent)
                 marker = "[ERR]" if has_error else ""
-                log_lines = [f"    {l}" for l in recent[-5:]]
+                log_lines = [f"    {line}" for line in recent[-5:]]
                 lines.append(f"  {marker} 终端最近日志:")
                 lines.extend(log_lines)
         except Exception as e:
@@ -457,10 +457,10 @@ class FrontendSnapshot:
                 capture_output=True, text=True, timeout=3
             )
             if result.returncode == 0 and result.stdout.strip():
-                changed_lines = [l.strip() for l in result.stdout.strip().split("\n") if l.strip()]
-                modified = [l[3:] for l in changed_lines if l.startswith(" M") or l.startswith("M ")]
-                added = [l[3:] for l in changed_lines if l.startswith("??")]
-                deleted = [l[3:] for l in changed_lines if l.startswith(" D") or l.startswith("D ")]
+                changed_lines = [line.strip() for line in result.stdout.strip().split("\n") if line.strip()]
+                modified = [line[3:] for line in changed_lines if line.startswith(" M") or line.startswith("M ")]
+                added = [line[3:] for line in changed_lines if line.startswith("??")]
+                deleted = [line[3:] for line in changed_lines if line.startswith(" D") or line.startswith("D ")]
                 parts = []
                 if modified:
                     parts.append(f"修改{len(modified)}")

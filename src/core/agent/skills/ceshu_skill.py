@@ -107,7 +107,7 @@ class CeshuSkill(BaseSkill):
                 "enum": [
                     "list", "get", "create", "update", "delete",
                     "export", "import", "ai_fill_field", "ai_fill_chapter", "ai_review_full",
-                    "ai_review", "ai_generate", "ai_generate_full",
+                    "ai_review", "ai_generate", "ai_generate_full", "ai_generate_data",
                 ],
                 "description": "操作类型"
             },
@@ -135,6 +135,19 @@ class CeshuSkill(BaseSkill):
             "module_type": {
                 "type": "string",
                 "description": "模块类型 (ai_generate 时使用)：rpg/slg/moba/fps/strategy/casual 等，影响游戏系统组合推荐"
+            },
+            "data_types": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "数据类型键名列表（ai_generate_data 时使用）：role/skill/monster/item 等，可用单数或复数"
+            },
+            "count": {
+                "type": "integer",
+                "description": "每个数据类型生成的条目数（ai_generate_data 时使用，默认 5，上限 20）"
+            },
+            "instruction": {
+                "type": "string",
+                "description": "补充要求（ai_generate_data 时使用）"
             },
         },
         "required": ["action"]
@@ -170,6 +183,8 @@ class CeshuSkill(BaseSkill):
                 return self._ai_generate(params, context, logger)
             elif action == "ai_generate_full":
                 return self._ai_generate_full(params, context, logger)
+            elif action == "ai_generate_data":
+                return self._ai_generate_data(params, context, logger)
             else:
                 return {"success": False, "error": f"未知动作: {action}", "message": ""}
         except Exception as e:
@@ -196,7 +211,7 @@ class CeshuSkill(BaseSkill):
         """获取 CeshuManager 实例"""
         from core.ceshu import CeshuManager
         mw = context.get("main_window")
-        lib_root = ""
+        lib_root: Any = ""
         if mw and hasattr(mw, "data_manager"):
             dm = mw.data_manager
             if dm and hasattr(dm, "_root"):
@@ -331,6 +346,160 @@ class CeshuSkill(BaseSkill):
             logger.warning(f"[CeshuAI] LLM 调用异常: {e}")
             return (False, f"AI 调用异常：{e}")
 
+    def _ai_generate_data(self, params: dict, context: dict, logger) -> dict:
+        """AI 生成候选游戏数据 — 依据策划书数值/系统章生成初始数据（人工审批后导入）
+
+        数据共同开发工作流的后端：把策划书 numeric/systems 章作为设定上下文，
+        为指定数据类型生成候选条目 JSON，由 UI 预览勾选后人工写入 DataManager。
+
+        入参:
+            data_types: 数据类型键名列表（单数或复数均可）
+            count: 每类条数（默认 5，1-20）
+            instruction: 补充要求
+
+        返回:
+            {"success": True, "data": {"candidates": {复数键: [items]}, "generated_counts": {...}}}
+        """
+        from config.constants import _type_registry
+
+        reg = _type_registry
+        raw_types: list = params.get("data_types") or []
+        selected: list[tuple[str, str, str]] = []  # (singular, name, plural)
+        plurals_set = set(reg.plurals.values())
+        for raw in raw_types:
+            key = str(raw).strip().lower()
+            if not key:
+                continue
+            if key in plurals_set:
+                singular = next((s for s, p in reg.plurals.items() if p == key), key)
+            else:
+                singular = key
+            plural = reg.get_plural(singular)
+            name = reg.get_name(singular)
+            if (singular, name, plural) in selected:
+                continue
+            selected.append((singular, name, plural))
+
+        if not selected:
+            return {
+                "success": False,
+                "error": "未选择任何数据类型",
+                "message": "请至少选择一种数据类型（如角色、技能、怪物）。",
+            }
+
+        try:
+            count = int(params.get("count", 5))
+        except (TypeError, ValueError):
+            count = 5
+        count = max(1, min(count, 20))
+        instruction = str(params.get("instruction", "")).strip()
+
+        # 策划书上下文
+        model = context.get("_inline_model")
+        background_bits: list[str] = []
+        if model is not None:
+            meta = getattr(model, "meta", {}) or {}
+            for label, key in (("游戏名", "game_name"), ("类型", "game_type"), ("定位", "positioning")):
+                val = meta.get(key) if isinstance(meta, dict) else ""
+                if val:
+                    background_bits.append(f"{label}：{val}")
+            numeric = getattr(model, "numeric", {}) or {}
+            if isinstance(numeric, dict):
+                for label, key in (("核心公式", "core_formulas"), ("平衡原则", "balance_principles"), ("经济模型", "economic_model")):
+                    val = numeric.get(key)
+                    if val:
+                        background_bits.append(f"{label}：{str(val)[:500]}")
+            systems = getattr(model, "systems", {}) or {}
+            enabled_names = [
+                str(cfg.get("name", "")).strip()
+                for cfg in systems.values()
+                if isinstance(cfg, dict) and cfg.get("enabled")
+            ]
+            enabled_names = [n for n in enabled_names if n]
+            if enabled_names:
+                background_bits.append("启用的游戏系统：" + "、".join(enabled_names[:12]))
+        background = "\n".join(background_bits) if background_bits else "（策划书尚未填写背景信息，请按通用 RPG 设定生成）"
+
+        # 数据类型字段提示（基于默认 RPG schema）
+        type_desc_lines: list[str] = []
+        try:
+            from core.defaults.rpg_schema import create_default_rpg_schema
+            schema = create_default_rpg_schema()
+            for _singular, name, plural in selected:
+                td = schema.get_type(_singular)
+                if td is not None:
+                    fields = [
+                        f.name for f in td.get_user_fields()
+                        if f.name not in {"id", "image", "image_desc", "image_tags"}
+                    ]
+                    type_desc_lines.append(f"- {name}（键: {plural}）：建议字段 {', '.join(fields[:14])}")
+                else:
+                    type_desc_lines.append(f"- {name}（键: {plural}）：字段参考默认数据表")
+        except Exception:
+            type_desc_lines = [f"- {name}（键: {plural}）" for _singular, name, plural in selected]
+        type_desc = "\n".join(type_desc_lines)
+
+        system_prompt = (
+            "你是资深游戏数值与内容策划，负责从策划书设定出发生成初始游戏数据。"
+            "你只输出一个合法 JSON 对象，不输出任何解释、注释或代码块标记。"
+        )
+        user_prompt = (
+            f"请根据下面的策划书设定，为指定的游戏数据类型生成初始候选数据（人工审批后才导入，允许少量瑕疵）。\n\n"
+            f"[策划书设定]\n{background}\n\n"
+            f"[数据类型与建议字段]\n{type_desc}\n\n"
+            f"[要求]\n"
+            f"1. 每个类型生成 {count} 条数据。\n"
+            f"2. 输出 JSON 对象：键为上面的复数键名，值为数组；不生成 id 字段。\n"
+            f"3. 每条必须包含 name；数值字段量级与策划书数值设定保持一致。\n"
+            f"4. 内容风格统一、可读，避免重复。\n"
+            + (f"5. 补充要求：{instruction}\n" if instruction else "")
+            + '输出格式示例：{"roles": [{"name": "示例", "desc": "..."}], "skills": [...]}'
+        )
+
+        success, content = self._call_llm(user_prompt, system_prompt, logger)
+        if not success:
+            return {"success": False, "message": content, "data": None}
+
+        parsed = self._parse_llm_json(content, logger)
+        if not isinstance(parsed, dict):
+            return {
+                "success": False,
+                "message": "AI 返回内容无法解析为 JSON，请重试或减少生成数量。",
+                "data": None,
+            }
+
+        # 归一化：键名对齐复数键、条目去 id、仅保留 dict 条目
+        candidates: dict[str, list[dict]] = {}
+        generated_counts: dict[str, int] = {}
+        for _singular, _name, plural in selected:
+            bucket = parsed.get(plural)
+            if bucket is None and plural in plurals_set:
+                # AI 可能用了单数键
+                bucket = parsed.get(_singular)
+            items = [it for it in bucket if isinstance(it, dict)] if isinstance(bucket, list) else []
+            cleaned = []
+            for it in items:
+                it.pop("id", None)
+                cleaned.append(it)
+            if cleaned:
+                candidates[plural] = cleaned
+                generated_counts[plural] = len(cleaned)
+
+        total = sum(generated_counts.values())
+        if total == 0:
+            return {
+                "success": False,
+                "message": "AI 未返回任何有效数据条目，请补充数值章设定或调整要求后重试。",
+                "data": None,
+            }
+        return {
+            "success": True,
+            "message": f"已生成 {total} 条候选数据（" + "、".join(f"{k}:{v}" for k, v in generated_counts.items()) + "），请人工勾选导入。",
+            "data": {"candidates": candidates, "generated_counts": generated_counts},
+        }
+
+
+
     def _ai_fill_field(self, params: dict, context: dict, logger) -> dict:
         """AI 填充单个字段 — 实际调用 LLM 生成内容"""
         field_path = params.get("field_path", "")
@@ -384,6 +553,7 @@ class CeshuSkill(BaseSkill):
         display = AgentRouter.get_display_name(agent_id)
 
         ceshu_id = params.get("ceshu_id", "")
+        only_empty = bool(params.get("only_empty", False))
         model = None
         existing_content = ""
         field_list_str = ""
@@ -395,7 +565,18 @@ class CeshuSkill(BaseSkill):
                 chapter_data = model.get_chapter(chapter)
                 # F7: 列出所有字段名（包括空字段），让 AI 不漏字段
                 if isinstance(chapter_data, dict):
-                    field_list_str = ", ".join(chapter_data.keys())
+                    if only_empty:
+                        # d3: 仅补全空字段 — 只把空字段列入待生成清单
+                        empty_fields = [k for k, v in chapter_data.items() if not v]
+                        if not empty_fields:
+                            return {
+                                "success": True,
+                                "message": "本章没有空字段，无需补全",
+                                "data": {"generated_content": "", "nothing_to_fill": True},
+                            }
+                        field_list_str = ", ".join(empty_fields)
+                    else:
+                        field_list_str = ", ".join(chapter_data.keys())
                     existing_content = "\n".join(
                         f"- {k}: {v}" for k, v in chapter_data.items()
                         if v and isinstance(v, (str, int, float))
@@ -424,12 +605,20 @@ class CeshuSkill(BaseSkill):
                     context_lines.append(f"风格术语表:\n{glossary}")
         context_str = "\n".join(context_lines) if context_lines else "(无上下文)"
 
-        system_prompt = (
-            f"你是{display}，正在协助编写游戏策划书的{chapter}章节。"
-            f"请生成该章节的完整内容，包括所有字段。"
-            f"输出格式为 JSON，键为字段名，值为生成内容（字符串或简单结构）。"
-            f"只输出 JSON，不要加任何解释或 markdown 标记。"
-        )
+        if only_empty:
+            system_prompt = (
+                f"你是{display}，正在协助编写游戏策划书的{chapter}章节。"
+                f"请仅补全下面列出的空字段。"
+                f"输出格式为 JSON，键为字段名，值为生成内容。"
+                f"只输出 JSON，不要加任何解释或 markdown 标记。"
+            )
+        else:
+            system_prompt = (
+                f"你是{display}，正在协助编写游戏策划书的{chapter}章节。"
+                f"请生成该章节的完整内容，包括所有字段。"
+                f"输出格式为 JSON，键为字段名，值为生成内容（字符串或简单结构）。"
+                f"只输出 JSON，不要加任何解释或 markdown 标记。"
+            )
         user_prompt = (
             f"请为策划书「{chapter}」整章生成内容。\n"
             f"章节提示: {AgentRouter.get_agent_prompt(chapter)}\n\n"
@@ -438,15 +627,26 @@ class CeshuSkill(BaseSkill):
         )
         if existing_content:
             user_prompt += f"已有非空内容（请保留并补充其他字段）:\n{existing_content}\n\n"
-        user_prompt += (
-            "要求：\n"
-            "1. 必须为字段列表中的每个字段都生成内容（即使是空字符串也要包含键）\n"
-            "2. 字段值要具体、专业、符合游戏类型和风格\n"
-            "3. 字符串字段生成 50-300 字的专业内容\n"
-            "4. 列表字段生成 2-5 个元素的列表\n"
-            "5. 数字字段生成合理的整数值\n"
-            "6. 只输出 JSON，不要加任何解释"
-        )
+        if only_empty:
+            user_prompt += (
+                "要求：\n"
+                "1. 只输出上面字段列表中列出的空字段，已填字段一律不要输出\n"
+                "2. 字段值要具体、专业、符合游戏类型和风格\n"
+                "3. 字符串字段生成 50-300 字的专业内容\n"
+                "4. 列表字段生成 2-5 个元素的列表\n"
+                "5. 数字字段生成合理的整数值\n"
+                "6. 只输出 JSON，不要加任何解释"
+            )
+        else:
+            user_prompt += (
+                "要求：\n"
+                "1. 必须为字段列表中的每个字段都生成内容（即使是空字符串也要包含键）\n"
+                "2. 字段值要具体、专业、符合游戏类型和风格\n"
+                "3. 字符串字段生成 50-300 字的专业内容\n"
+                "4. 列表字段生成 2-5 个元素的列表\n"
+                "5. 数字字段生成合理的整数值\n"
+                "6. 只输出 JSON，不要加任何解释"
+            )
 
         success, content = self._call_llm(user_prompt, system_prompt, logger)
         if success:

@@ -247,7 +247,7 @@ def _fix_data(dm, mw, params) -> str:
 
     elif action == "clean_orphan_refs":
         all_ids = set()
-        for pk, items in dm.data.items():
+        for _pk, items in dm.data.items():
             if not isinstance(items, list):
                 continue
             for it in items:
@@ -255,7 +255,7 @@ def _fix_data(dm, mw, params) -> str:
                 if iid:
                     all_ids.add(iid)
         cleaned = 0
-        for pk, items in dm.data.items():
+        for _pk, items in dm.data.items():
             if not isinstance(items, list):
                 continue
             for it in items:
@@ -465,9 +465,9 @@ def _fix_config(params: dict) -> str:
         candidates = []
         for root, dirs, files in _os.walk("."):
             dirs[:] = [d for d in dirs if not d.startswith(".") and d not in ("__pycache__", "node_modules", "venv", ".git")]
-            for f in files:
-                if f.endswith((".json", ".yaml", ".yml", ".toml", ".ini", ".cfg", ".conf")):
-                    candidates.append(_os.path.join(root, f))
+            for fname in files:
+                if fname.endswith((".json", ".yaml", ".yml", ".toml", ".ini", ".cfg", ".conf")):
+                    candidates.append(_os.path.join(root, fname))
             if len(candidates) > 20:
                 break
         if not candidates:
@@ -594,7 +594,8 @@ def _one_click_fix(params: dict) -> str:
     from core.agent.diagnostics.error_handler import _strategy_engine
 
     try:
-        from core.data_manager import DataManager
+        # 该类名为 OptimizedDataManager，此处依赖导入失败回退 dm=None
+        from core.data_manager import DataManager  # type: ignore[attr-defined]
         dm = DataManager()
     except Exception:
         dm = None

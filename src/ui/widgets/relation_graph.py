@@ -3,9 +3,9 @@ from common.logger import get_logger
 
 logger = get_logger()
 
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal
-from PyQt6.QtGui import QBrush, QColor, QFont
-from PyQt6.QtWidgets import (
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal  # noqa: E402  # 延迟导入：避免模块级循环导入
+from PyQt6.QtGui import QBrush, QColor, QFont  # noqa: E402  # 延迟导入：避免模块级循环导入
+from PyQt6.QtWidgets import (  # noqa: E402  # 延迟导入：避免模块级循环导入
     QAbstractItemView,
     QComboBox,
     QGroupBox,
@@ -20,7 +20,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from ui.themes import theme_color
+from ui.themes import theme_color  # noqa: E402  # 延迟导入：避免模块级循环导入
 
 DATA_TYPE_LABELS = {
     "role": "角色", "job": "职业", "monster": "怪物",

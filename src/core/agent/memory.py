@@ -392,7 +392,7 @@ class Memory:
         if not log_file.exists():
             return []
         from collections import deque
-        entries = deque(maxlen=n)
+        entries: deque[Any] = deque(maxlen=n)
         try:
             with open(log_file, encoding="utf-8") as f:
                 for line in f:
@@ -599,7 +599,7 @@ class Memory:
             from collections import Counter
             recent = self.load_recent_conversations(20)
             if recent:
-                actions = Counter()
+                actions: Counter[str] = Counter()
                 for e in recent:
                     for kw, act in [("创建", "create"), ("修改", "update"), ("删除", "delete"),
                                     ("查询", "query"), ("分析", "analyze"), ("导出", "export"),
@@ -627,9 +627,9 @@ class Memory:
         lines.append("## 最近学习经验")
         learnings = self.get_recent_learnings(10)
         if learnings:
-            for l in learnings:
-                cat = l.get("category", "?")
-                content = l.get("content", "")[:150]
+            for learning in learnings:
+                cat = learning.get("category", "?")
+                content = learning.get("content", "")[:150]
                 lines.append(f"- [{cat}] {content}")
         else:
             lines.append("- 暂无经验记录")
@@ -648,7 +648,7 @@ class Memory:
         try:
             content = mp.read_text(encoding="utf-8")
             lines = content.strip().split("\n")
-            filtered = []
+            filtered: list[str] = []
             for line in lines:
                 if line.startswith("# 最后更新:"):
                     continue
@@ -741,9 +741,9 @@ class Memory:
                 if eid not in index[token]:
                     index[token].append(eid)
         learnings = self.get_recent_learnings(30)
-        for l in learnings:
-            lid = f"learn_{hash(str(l)) & 0xFFFF:04x}"
-            text = str(l.get("content", ""))
+        for learning in learnings:
+            lid = f"learn_{hash(str(learning)) & 0xFFFF:04x}"
+            text = str(learning.get("content", ""))
             for token in self._tokenize(text):
                 if token not in index:
                     index[token] = []
@@ -766,7 +766,7 @@ class Memory:
         conversations = self.load_recent_conversations(50)
         conv_map = {e.get("timestamp", hash(str(e)) & 0xFFFFFFFF): e for e in conversations}
         learnings = self.get_recent_learnings(30)
-        learn_map = {f"learn_{hash(str(l)) & 0xFFFF:04x}": l for l in learnings}
+        learn_map = {f"learn_{hash(str(learning)) & 0xFFFF:04x}": learning for learning in learnings}
         for eid, score in ranked:
             if eid in conv_map:
                 e = conv_map[eid]
@@ -777,17 +777,17 @@ class Memory:
                     "assistant": str(e.get("assistant", ""))[:100],
                 })
             elif eid in learn_map:
-                l = learn_map[eid]
+                learning = learn_map[eid]
                 results.append({
                     "type": "learning",
                     "score": score,
-                    "content": str(l.get("content", ""))[:150],
+                    "content": str(learning.get("content", ""))[:150],
                 })
         return results
 
     def get_semantic_groups(self) -> dict:
         """Agent OS: 语义分组 — 按主题聚类记忆条目"""
-        groups = {"创建操作": [], "查询操作": [], "修改操作": [], "删除操作": [], "分析类": [], "其他": []}
+        groups: dict[str, list[str]] = {"创建操作": [], "查询操作": [], "修改操作": [], "删除操作": [], "分析类": [], "其他": []}
         conversations = self.load_recent_conversations(30)
         for e in conversations:
             text = str(e.get("user", "")) + str(e.get("assistant", ""))
@@ -864,7 +864,7 @@ class Memory:
                     "项目、角色名、数据类型、重要决策、错误信息。\n\n"
                     f"{old_text[:2000]}\n\n摘要:"
                 )
-                success, raw = generate_text(config, prompt, "", "")
+                success, raw = generate_text(config, prompt, "", None)
                 if success and raw:
                     summary = raw.strip()[:200]
             except ImportError as e:
@@ -929,14 +929,14 @@ class Memory:
                 continue
             text = f"{key} {str(entry.value)}"
             vec = embedder.embed(text)
-            ts = str(entry.last_accessed) if hasattr(entry, 'last_accessed') and entry.last_accessed else MemoryEntry.now_timestamp()
+            ts = str(entry.last_accessed) if hasattr(entry, 'last_accessed') and entry.last_accessed else str(MemoryEntry.now_timestamp())
             self._save_index_entry(key, vec, text, ts)
             count += 1
 
         for key, entry in self._long_term.items():
             text = f"{key} {str(entry.value)}"
             vec = embedder.embed(text)
-            ts = str(entry.last_accessed) if hasattr(entry, 'last_accessed') and entry.last_accessed else MemoryEntry.now_timestamp()
+            ts = str(entry.last_accessed) if hasattr(entry, 'last_accessed') and entry.last_accessed else str(MemoryEntry.now_timestamp())
             self._save_index_entry(key, vec, text, ts)
             count += 1
 
@@ -1152,7 +1152,7 @@ class Memory:
             return
 
         with open(log_file, encoding="utf-8") as f:
-            lines = [l for l in f if l.strip()]
+            lines = [line for line in f if line.strip()]
 
         if len(lines) <= self.MAX_CONVERSATIONS:
             return
@@ -1240,4 +1240,4 @@ class MemoryIndex:
         return f"MemoryIndex(dir={self._index_dir}, entries={self.count()})"
 
 
-from core.agent.semantic_memory import SemanticMemory
+from core.agent.semantic_memory import SemanticMemory  # noqa: E402  # 延迟导入：避免与 semantic_memory 循环导入

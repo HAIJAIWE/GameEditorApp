@@ -3,11 +3,40 @@
 应用程序入口
 """
 import faulthandler
+import os
+from pathlib import Path
 import sys
+import tomllib
 import traceback
 
 from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import QApplication, QMessageBox
+
+from common import get_logger
+from common.sentry_client import capture_exception, init_sentry
+from ui import MainWindow
+
+
+def _get_application_version() -> str:
+    """从 pyproject.toml 读取应用版本，避免版本号硬编码漂移。
+
+    优先读取项目根目录 pyproject.toml 的 project.version；
+    在打包环境中（无源码树）回退到已安装元数据。
+    """
+    pyproject = Path(__file__).resolve().parent.parent / "pyproject.toml"
+    try:
+        data = tomllib.loads(pyproject.read_text(encoding="utf-8"))
+        version = data.get("project", {}).get("version")
+        if version:
+            return str(version)
+    except (OSError, tomllib.TOMLDecodeError):
+        pass
+    try:
+        from importlib import metadata
+
+        return metadata.version("MB-KSHBJQ")
+    except Exception:
+        return "0.0.0"
 
 # 设置 Windows 控制台 UTF-8 编码（集中管理，避免副作用）
 if sys.platform == 'win32':
@@ -18,8 +47,6 @@ if sys.platform == 'win32':
         sys.stderr = _io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
 # 捕获 segfault 到文件（Qt C++ 层崩溃也留记录）
-import os
-
 _crash_log = os.path.join(os.path.dirname(__file__), "logs", "crash.log")
 os.makedirs(os.path.dirname(_crash_log), exist_ok=True)
 _crash_fd = os.open(_crash_log, os.O_WRONLY | os.O_CREAT | os.O_APPEND)
@@ -34,10 +61,6 @@ def _excepthook(exc_type, exc_value, exc_tb):
     traceback.print_exception(exc_type, exc_value, exc_tb)
 sys.excepthook = _excepthook
 
-from common import get_logger
-from common.sentry_client import capture_exception, init_sentry
-from ui import MainWindow
-
 
 def main():
     """应用程序主函数"""
@@ -48,8 +71,8 @@ def main():
 
     app = QApplication(sys.argv)
     app.setStyle(QStyleFactory.create("Fusion"))
-    app.setApplicationName("墨白启动器")
-    app.setApplicationVersion("4.0.0")
+    app.setApplicationName("墨白可视化编辑")
+    app.setApplicationVersion(_get_application_version())
 
     font = QFont("Microsoft YaHei", 10)
     app.setFont(font)

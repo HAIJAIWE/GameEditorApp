@@ -5,21 +5,33 @@
 ## 功能特性
 
 - **可视化数据编辑**: 12 种内置数据类型（技能、角色、怪物、道具、装备等），Excel 风格属性公式计算
-- **策划书系统**: 18 章工业级 GDD 框架（9 基础章 + 9 工业级章），AI 自动生成与审阅，评分引擎、完备性检查、版本管理，6 种格式导出（docx/pdf/pptx/md/html/xlsx）。详见 [策划书 v5.0 发布说明](docs/ceshu-release-notes-v5.md)
+
+- **策划书系统**: 18 章工业级 GDD 框架（9 基础章 + 9 工业级章），轻量/工业双档位，AI 自动生成与审阅、AI 数据生成（候选→人工导入）、评分引擎、完备性检查、版本管理，6 种格式导出（docx/pdf/pptx/md/html/xlsx）。详见 [策划书 v5.0 发布说明](docs/ceshu-release-notes-v5.md)
+
 - **AI Agent 协作**: 25 个技能的智能体系统，ReAct 推理引擎，多代理辩论，自愈机制
+
 - **AI 帮我填**: 字段级 AI 辅助，一键生成章节内容
+
 - **填写路线图**: 6 Phase 可视化路线图，清晰展示创作进度与下一步
-- **章节依赖关系**: depends_on 标注，智能推荐下一章节
+
+- **章节依赖关系**: depends\_on 标注，智能推荐下一章节
+
 - **新手引导横幅**: 动态引导，降低上手门槛
-- **工业级章节**: market_analysis（市场分析）、characters（角色）、combat（战斗）、economy（经济）、monetization（商业化）、mvp（最小可行产品）、risk_handling（风险）、audio（音频）、accessibility（无障碍）等 9 个专业章节
+
+- **工业级章节**: market\_analysis（市场分析）、characters（角色）、combat（战斗）、economy（经济）、monetization（商业化）、mvp（最小可行产品）、risk\_handling（风险）、audio（音频）、accessibility（无障碍）等 9 个专业章节
+
 - **多引擎导出**: 支持 JSON/CSV/Excel + Unity/Unreal/Godot/Cocos2d 共 7 种格式导出
+
 - **主题系统**: 10 套主题配置，深色/亮色自适应，实时切换
+
 - **安全沙箱**: LLM 代码隔离执行，路径遍历防护，命令白名单
 
 ## 环境要求
 
 - Python >= 3.14
+
 - Windows / macOS / Linux
+
 - 推荐 Python 3.14+
 
 ## 快速开始
@@ -57,9 +69,30 @@ scripts\launch.bat
 ### 配置 AI
 
 首次运行后，在「工具 → AI 设置」中配置：
+
 - API Key（支持 OpenAI 兼容接口）
+
 - 模型选择
+
 - 启用/禁用 AI 功能
+
+### 可选依赖与降级
+
+| 可选依赖       | 提供能力                      | 未安装时的降级行为                                          |
+| ---------- | ------------------------- | -------------------------------------------------- |
+| `chromadb` | Agent 语义记忆（向量检索，相关会话精确召回） | 退化为内置文件型 Memory（`core/agent/memory.py`），基础记忆功能不受影响 |
+
+安装可选依赖：
+
+```bash
+# 安装全部可选依赖
+pip install -e ".[dev,chromadb]"
+
+# 仅安装语义记忆支持
+pip install -e ".[chromadb]"
+```
+
+> 说明：`ollama` 为必备依赖（本地模型接入），缺失时仍可使用 OpenAI 兼容的在线接口。
 
 ## 项目结构
 
@@ -85,7 +118,7 @@ GameEditorApp/
 │   │   └── ceshu/             # 策划书编辑器界面
 │   ├── security/              # 安全模块（沙箱、ACL、加密、隐私）
 │   ├── features/              # 功能模块（AI 对话、导出、备份、统计）
-│   └── deployment/             # 部署运维（打包、发布、Sentry）
+├── scripts/                   # 构建与启动脚本（build.bat / launch.bat）
 ├── tests/                     # 测试
 │   ├── unit/                  # 单元测试
 │   ├── integration/           # 集成测试
@@ -104,7 +137,7 @@ GameEditorApp/
 pytest tests/unit tests/integration -v --tb=short --timeout=60
 
 # 运行单个测试文件
-pytest tests/unit/test_agent_core.py -v
+pytest tests/unit/test_brain.py -v
 
 # 运行并查看覆盖率
 pytest tests/ --cov=src --cov-report=term-missing
@@ -116,8 +149,9 @@ pytest tests/ --cov=src --cov-report=term-missing
 # Lint
 ruff check src/ tests/
 
-# 类型检查
-mypy src/ --ignore-missing-imports
+# 类型检查（MYPYPATH 使模块按 common/core/ui 解析，与运行时 sys.path 一致；
+# Windows PowerShell 下为 $env:MYPYPATH="src"; mypy src/ ...）
+MYPYPATH=src mypy src/ --ignore-missing-imports
 
 # 自动格式化
 ruff format src/ tests/
@@ -126,32 +160,45 @@ ruff format src/ tests/
 ### CI
 
 GitHub Actions CI 流水线（`.github/workflows/ci.yml`）在 push/PR 时自动运行：
+
 - **lint**: ruff 代码检查
-- **typecheck**: mypy 类型检查
-- **test**: pytest 测试
+
+- **typecheck**: mypy 类型检查（覆盖全部 src/ 含 UI，0 错误）
+
+- **test**: pytest 测试（覆盖率覆盖全部 src/（含 UI），门槛 30%，渐进目标 40% / 60%）
+
+- **security**: bandit（SAST）+ pip-audit（依赖漏洞审计）
+
+- **e2e**: 端到端工作流测试
 
 ## 文档
 
 - [策划书 v5.0 发布说明](docs/ceshu-release-notes-v5.md) — 策划书模块最新版本功能说明
+
 - [策划书用户指南](docs/ceshu-user-guide.md) — 策划书模块使用手册
+
 - [策划书开发者指南](docs/ceshu-developer-guide.md) — 策划书模块二次开发
+
 - [架构文档](docs/architecture.md) — 项目结构总览
+
 - [API 参考](docs/api-reference.md) — 二次开发接口
+
 - [游戏策划写作指南](docs/game-design-writing-guide.md) — AI 生成策划书规范
+
 - 归档文档（已过时仅供参考）：[docs/archive/](docs/archive/)
 
 ## 技术栈
 
-| 类别 | 技术 |
-|------|------|
-| GUI 框架 | PyQt6 |
-| AI 接入 | OpenAI / Ollama |
-| 数据存储 | SQLite / JSON |
-| 代码沙箱 | subprocess + 黑名单防护 |
-| 测试框架 | pytest |
-| 类型检查 | mypy |
-| Lint | ruff |
-| 向量检索 | chromadb（可选） |
+| 类别     | 技术                 |
+| ------ | ------------------ |
+| GUI 框架 | PyQt6              |
+| AI 接入  | OpenAI / Ollama    |
+| 数据存储   | SQLite / JSON      |
+| 代码沙箱   | subprocess + 黑名单防护 |
+| 测试框架   | pytest             |
+| 类型检查   | mypy               |
+| Lint   | ruff               |
+| 向量检索   | chromadb（可选）       |
 
 ## 许可证
 

@@ -494,15 +494,15 @@ class DynamicFormWidget(QWidget):
 
     def _find_child_widget(self, container: QWidget) -> Optional[QWidget]:
         """容器中逐级查找子控件：QComboBox → QTextEdit → QLineEdit"""
-        widget = container.findChild(QComboBox)
-        if widget:
-            return widget
-        widget = container.findChild(QTextEdit)
-        if widget:
-            return widget
-        widget = container.findChild(QLineEdit)
-        if widget:
-            return widget
+        combo_widget = container.findChild(QComboBox)
+        if combo_widget:
+            return combo_widget
+        text_widget = container.findChild(QTextEdit)
+        if text_widget:
+            return text_widget
+        line_widget = container.findChild(QLineEdit)
+        if line_widget:
+            return line_widget
         return None
 
     def _on_template_changed(self, combo):

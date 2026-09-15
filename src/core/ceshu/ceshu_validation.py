@@ -8,7 +8,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from .ceshu_model import (
-    CHAPTER_KEYS,
     CHAPTER_LABELS,
     CHAPTER_REQUIRED_FIELDS,
     _is_empty_required_value,
@@ -32,8 +31,8 @@ def validate_ceshu(model: CeshuModel) -> list:
     """
     errors = []
 
-    # 基础必填字段检查
-    for key in CHAPTER_KEYS:
+    # 基础必填字段检查（按档位可见章节：lite 只校验基础 9 章）
+    for key in model.visible_chapter_keys():
         if key == "systems":
             continue  # 游戏系统无必填字段
         data = getattr(model, key, {})

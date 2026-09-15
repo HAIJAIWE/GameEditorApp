@@ -3,19 +3,20 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Optional
 
 from common.logger import get_logger
 from core.agent.skill_protocol import BaseSkill
+from core.agent.skills.common import normalize_params
 
 logger = get_logger()
-from core.agent.skills.common import normalize_params
 
 
 class SchemaEditSkill(BaseSkill):
     name = "system.schema_edit"
     description = "编辑数据类型：新建类型定义/添加删除修改字段，热加载生效"
     version = "1.1.0"
-    parameters = []
+    parameters: list = []
 
     PARAMS_SCHEMA = {
         "type": "object",
@@ -163,8 +164,10 @@ class SchemaEditSkill(BaseSkill):
                 return {"success": False, "error": f"类型 {type_id} 已存在，请用 add_field", "message": ""}
 
         if isinstance(fields_json, str):
-            try: fields_json = json.loads(fields_json)
-            except Exception: fields_json = []
+            try:
+                fields_json = json.loads(fields_json)
+            except Exception:
+                fields_json = []
 
         default_fields = [
             {"name": "name", "label": "名称", "type": "entry", "editable": True},
@@ -208,7 +211,7 @@ class SchemaEditSkill(BaseSkill):
             except Exception as e:
                 logger.warning(f"操作失败: {e}")
 
-    def _find_schema_path(self) -> Path:
+    def _find_schema_path(self) -> Optional[Path]:
         project_root = Path(__file__).resolve().parent.parent.parent.parent
         libraries_dir = project_root / "data" / "libraries"
         for lib_dir in libraries_dir.iterdir():
@@ -225,7 +228,7 @@ class SchemaEditSkill(BaseSkill):
         with open(path, "w", encoding="utf-8") as f:
             json.dump(schema, f, ensure_ascii=False, indent=2)
 
-    def _find_type(self, schema: dict, data_type: str) -> dict:
+    def _find_type(self, schema: dict, data_type: str) -> Optional[dict]:
         types = schema.get("data_types", schema.get("types", []))
         for t in types:
             if t.get("id") == data_type:
@@ -262,9 +265,12 @@ class SchemaEditSkill(BaseSkill):
         fields = type_def.get("form_fields", [])
         for f in fields:
             if f.get("name") == name:
-                if label: f["label"] = label
-                if ftype: f["type"] = ftype
-                if options: f["values"] = options
+                if label:
+                    f["label"] = label
+                if ftype:
+                    f["type"] = ftype
+                if options:
+                    f["values"] = options
                 return {"success": True, "message": f"已更新字段 {name}"}
         return {"success": False, "message": f"字段 {name} 不存在"}
 

@@ -31,18 +31,18 @@ class SpeechService:
         return cls._instance
 
     def _check_dependencies(self):
-        try:
-            import speech_recognition
+        import importlib.util
+
+        if importlib.util.find_spec("speech_recognition"):
             self._has_sr = True
             self._logger.info("[Speech] SpeechRecognition 已就绪")
-        except ImportError:
+        else:
             self._logger.info("[Speech] SpeechRecognition 未安装, pip install SpeechRecognition")
 
-        try:
-            import pyaudio
+        if importlib.util.find_spec("pyaudio"):
             self._has_pyaudio = True
             self._logger.info("[Speech] PyAudio 已就绪")
-        except ImportError:
+        else:
             self._logger.info("[Speech] PyAudio 未安装, pip install pyaudio")
 
     @property

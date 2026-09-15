@@ -610,7 +610,7 @@ def cross_module_scan(error: ErrorResult, fixed_file: str = "") -> dict[str, Any
 
     from core.agent.ast_analyzer import ASTProjectAnalyzer
 
-    results = {"scanned": 0, "found_similar": [], "total_issues": 0}
+    results: dict[str, Any] = {"scanned": 0, "found_similar": [], "total_issues": 0}
     project_root = "src"
     if not _os.path.isdir(project_root):
         project_root = "."
@@ -732,11 +732,14 @@ class RepairRecord:
 class RepairLogger:
     """修复日志 — 记录所有检测、诊断、修复过程和结果"""
     _instance = None
+    _records: list[RepairRecord] = []
+    _lock: threading.Lock = threading.Lock()
+    _save_path: Optional[str] = None
 
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
-            cls._instance._records: list[RepairRecord] = []
+            cls._instance._records = []
             cls._instance._lock = threading.Lock()
             cls._instance._save_path = None
         return cls._instance
@@ -785,7 +788,7 @@ class RepairLogger:
             if total == 0:
                 return {"total": 0, "success_rate": 1.0}
             healed = sum(1 for r in self._records if r.success)
-            by_type = defaultdict(int)
+            by_type: dict[str, int] = defaultdict(int)
             for r in self._records:
                 by_type[r.error_type] += 1
             return {

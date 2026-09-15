@@ -1,11 +1,12 @@
 """扩展公式类型 - 支持线性、指数、分段、百分比等"""
 import ast
+from collections.abc import Callable
 from enum import Enum
 import math
 import operator as _op
-from typing import Optional
+from typing import Any, Optional, cast
 
-_SAFE_BINOPS = {
+_SAFE_BINOPS: dict[type, Callable[..., Any]] = {
     ast.Add: _op.add,
     ast.Sub: _op.sub,
     ast.Mult: _op.mul,
@@ -20,13 +21,13 @@ _SAFE_BINOPS = {
     ast.BitXor: _op.xor,
 }
 
-_SAFE_UNARYOPS = {
+_SAFE_UNARYOPS: dict[type, Callable[..., Any]] = {
     ast.USub: _op.neg,
     ast.UAdd: _op.pos,
     ast.Not: _op.not_,
 }
 
-_SAFE_CMPOPS = {
+_SAFE_CMPOPS: dict[type, Callable[..., Any]] = {
     ast.Eq: _op.eq,
     ast.NotEq: _op.ne,
     ast.Lt: _op.lt,
@@ -119,7 +120,7 @@ class _FormulaVisitor(ast.NodeVisitor):
         if not callable(func):
             raise TypeError(f"{getattr(node.func, 'id', '?')} 不是可调用对象")
         args = [self.visit(a) for a in node.args]
-        kwargs = {kw.arg: self.visit(kw.value) for kw in node.keywords}
+        kwargs = {cast(str, kw.arg): self.visit(kw.value) for kw in node.keywords}
         return func(*args, **kwargs)
 
     def generic_visit(self, node):
@@ -254,7 +255,7 @@ class ExtendedFormula:
             return self.config.base_value
 
         # 计算属性加权和
-        weighted_sum = 0
+        weighted_sum: float = 0.0
         for attr_name, coeff in self.config.coefficients.items():
             weighted_sum += coeff * context.get(attr_name, 0)
 
@@ -315,7 +316,7 @@ class ExtendedFormula:
             return self.config.base_value
 
         # 计算属性加权和
-        weighted_sum = 0
+        weighted_sum: float = 0.0
         for attr_name, coeff in self.config.coefficients.items():
             weighted_sum += coeff * context.get(attr_name, 0)
 

@@ -175,7 +175,7 @@ class FormulaBuilderDialog(QDialog):
         self.available_attrs = available_attrs
         self.current_formula = current_formula
         self.current_attr = current_attr  # 当前正在编辑的派生属性名
-        self.coeff_spins = {}
+        self.coeff_spins: dict[str, QDoubleSpinBox] = {}
         self.formula_display = None
         self.formula_preview = None
         self.desc_label = None
@@ -380,7 +380,7 @@ class FormulaBuilderDialog(QDialog):
         """刷新系数表格"""
         self.coeff_table.clear()
         self.coeff_table.setRowCount(0)
-        self.coeff_spins = {}
+        self.coeff_spins: dict[str, QDoubleSpinBox] = {}
 
         default_coeffs = self.BASE_ATTR_EFFECTS.get(self.current_attr, {})
 

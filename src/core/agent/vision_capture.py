@@ -37,27 +37,24 @@ class VisionCapture:
         return cls._instance
 
     def _check_dependencies(self):
-        try:
-            import mss
+        import importlib.util
+
+        if importlib.util.find_spec("mss"):
             self._has_mss = True
             self._logger.info("[Vision] MSS 屏幕捕获已就绪")
-        except ImportError:
+        else:
             self._logger.info("[Vision] MSS 未安装，pip install mss 获得更快的屏幕捕获")
 
-        try:
-            import pytesseract
+        if importlib.util.find_spec("pytesseract"):
             self._has_tesseract = True
             self._logger.info("[Vision] Tesseract OCR 已就绪")
-        except ImportError:
+        else:
             self._logger.info("[Vision] Tesseract 未安装，pip install pytesseract 获得 OCR 能力")
 
     @property
     def has_screen_capture(self) -> bool:
-        try:
-            import mss
-            return True
-        except ImportError:
-            return False
+        import importlib.util
+        return importlib.util.find_spec("mss") is not None
 
     @property
     def has_ocr(self) -> bool:

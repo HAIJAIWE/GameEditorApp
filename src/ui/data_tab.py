@@ -354,10 +354,10 @@ class DataEditorTab(QWidget):
             parent = self.parentWidget()
             while parent and not hasattr(parent, 'ceshu_editor'):
                 parent = parent.parentWidget()
-            if not parent or not parent.ceshu_editor or not parent.ceshu_editor.model:
+            if not parent or not parent.ceshu_editor or not parent.ceshu_editor.model:  # type: ignore[attr-defined]  # ceshu_editor 由 MainWindow 在运行时注入
                 return True  # 无策划书上下文，不约束
 
-            model = parent.ceshu_editor.model
+            model = parent.ceshu_editor.model  # type: ignore[attr-defined]  # ceshu_editor 由 MainWindow 在运行时注入
             # 找到当前 data_type 对应的游戏系统
             sys_cfg = None
             sys_key = None

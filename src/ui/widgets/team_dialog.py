@@ -6,11 +6,11 @@ from ui.themes import theme_color
 
 logger = get_logger()
 
-from typing import Optional
-import uuid
+from typing import Optional  # noqa: E402  # 延迟导入：避免模块级循环导入
+import uuid  # noqa: E402  # 延迟导入：避免模块级循环导入
 
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import (
+from PyQt6.QtCore import Qt  # noqa: E402  # 延迟导入：避免模块级循环导入
+from PyQt6.QtWidgets import (  # noqa: E402  # 延迟导入：避免模块级循环导入
     QCheckBox,
     QDialog,
     QGroupBox,
@@ -27,7 +27,11 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from core.agent.agents.agent_manager import AgentDefinition, AgentManager, Team
+from core.agent.agents.agent_manager import (  # noqa: E402  # 延迟导入：避免模块级循环导入
+    AgentDefinition,
+    AgentManager,
+    Team,
+)
 
 
 class TeamDialog(QDialog):
@@ -194,7 +198,7 @@ class TeamDialog(QDialog):
             cb = QCheckBox(f"{agent.icon} {agent.name}")
             cb.setToolTip(agent.description)
             cb.setChecked(agent.id in selected_ids)
-            cb.agent_id = agent.id
+            cb.agent_id = agent.id  # type: ignore[attr-defined]  # agent_id 运行时注入到 QCheckBox 上
             row.addWidget(cb)
 
             # 编辑提示词
@@ -224,7 +228,7 @@ class TeamDialog(QDialog):
             else:
                 count_label = QLabel(f"默认 ({len(agent.tools)} 个)")
                 count_label.setStyleSheet(f"color: {theme_color('hint')}; font-size: 10px;")
-            count_label.agent_id = agent.id
+            count_label.agent_id = agent.id  # type: ignore[attr-defined]  # agent_id 运行时注入到 QLabel 上
             row.addWidget(count_label)
 
             row.addStretch()
@@ -446,7 +450,7 @@ class TeamDialog(QDialog):
             for j in range(item.layout().count()):
                 w = item.layout().itemAt(j).widget()
                 if w and isinstance(w, QCheckBox) and w.isChecked():
-                    ids.append(w.agent_id)
+                    ids.append(w.agent_id)  # type: ignore[attr-defined]  # agent_id 运行时注入到 QCheckBox 上
         return ids
 
     # ════════════════════════════════════════════════════════════

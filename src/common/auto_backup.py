@@ -1,7 +1,3 @@
-from common.logger import get_logger
-
-logger = get_logger()
-
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
@@ -26,6 +22,7 @@ class BackupEntry:
 class AutoBackup:
     _instance: Optional[AutoBackup] = None
     _lock = threading.Lock()
+    _initialized: bool = False
 
     def __new__(cls):
         if cls._instance is None:

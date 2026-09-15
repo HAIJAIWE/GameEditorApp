@@ -17,7 +17,7 @@ def analyze_balance(data: dict[str, list[dict[str, Any]]]) -> dict[str, Any]:
         平衡性分析结果
     """
     logger = get_logger()
-    analysis = {
+    analysis: dict[str, Any] = {
         "skills": {},
         "characters": {},
         "monsters": {},

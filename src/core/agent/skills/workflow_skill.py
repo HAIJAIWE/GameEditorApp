@@ -74,6 +74,7 @@ class WorkflowSkill(BaseSkill):
             cls._shared_dispatcher = dispatcher
 
     def execute(self, params: dict, context: dict = None) -> dict:
+        context = context or {}
         action = params.get("action", "run")
         # logger 已在模块顶部定义
 

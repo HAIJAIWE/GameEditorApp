@@ -188,7 +188,10 @@ def export_ceshu_to_docx(model: CeshuModel, output_path: str,
     title_run.bold = True
     title_run.font.size = Pt(28)
     title_run.font.name = "SimHei"
-    title_run.element.rPr.rFonts.set(qn("w:eastAsia"), "SimHei")
+    # python-docx 中 rPr / rFonts 可能为 None，需加空值防护
+    _rpr = title_run.element.rPr
+    if _rpr is not None and _rpr.rFonts is not None:
+        _rpr.rFonts.set(qn("w:eastAsia"), "SimHei")
 
     subtitle = doc.add_paragraph()
     subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER

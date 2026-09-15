@@ -67,7 +67,7 @@ class CeshuDataSync:
         Returns:
             dict: {"added_types": [...], "ensured_keys": [...], "errors": [...]}
         """
-        result = {"added_types": [], "ensured_keys": [], "errors": []}
+        result: dict = {"added_types": [], "ensured_keys": [], "errors": []}
         if self._syncing:
             return result
         self._syncing = True
@@ -122,7 +122,7 @@ class CeshuDataSync:
         Returns:
             dict: {sys_key: actual_count}
         """
-        result = {}
+        result: dict = {}
         if self._syncing:
             return result
         self._syncing = True

@@ -1,4 +1,5 @@
 """AI客户端 - 负责与LLM API交互"""
+from collections.abc import Callable
 import time
 from typing import Any, Optional
 
@@ -248,7 +249,7 @@ def generate_text_stream(
     prompt: str = "",
     system_prompt: Optional[str] = None,
     messages_list: Optional[list] = None,
-    on_chunk: Optional[callable] = None,
+    on_chunk: Optional[Callable[[str], Any]] = None,
 ) -> tuple[bool, str]:
     if not _acquire_rate_limit("stream", timeout=30.0):
         return False, "流式请求过于频繁，请稍后再试"
@@ -296,6 +297,7 @@ def generate_text_stream(
 
             full_text = []
             for line in response.iter_lines(decode_unicode=True):
+                line = str(line)  # iter_lines 返回 bytes 但 decode_unicode=True 实际是 str，统一为 str
                 if not line or not line.startswith("data: "):
                     continue
                 data_str = line[6:]
@@ -427,7 +429,7 @@ def generate_text_stream_with_tools(
     prompt: str = "",
     system_prompt: Optional[str] = None,
     messages_list: Optional[list] = None,
-    on_chunk: Optional[callable] = None,
+    on_chunk: Optional[Callable[[str], Any]] = None,
     tools: Optional[list] = None,
 ) -> tuple[bool, dict]:
     if not _acquire_rate_limit("stream", timeout=30.0):
@@ -477,6 +479,7 @@ def generate_text_stream_with_tools(
         finish_reason = "stop"
 
         for line in response.iter_lines(decode_unicode=True):
+            line = str(line)  # iter_lines 返回 bytes 但 decode_unicode=True 实际是 str，统一为 str
             if not line or not line.startswith("data: "):
                 continue
             data_str = line[6:]

@@ -134,7 +134,7 @@ class GameBalanceSkill(BaseSkill):
 
     @staticmethod
     def _find_numeric_fields(items: list) -> list:
-        field_counts = {}
+        field_counts: dict[str, int] = {}
         for item in items:
             if not isinstance(item, dict):
                 continue

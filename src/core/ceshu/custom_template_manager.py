@@ -402,7 +402,7 @@ class CustomTemplateManager:
             chapter_key = raw.get("chapter_key", "")
             category = chapter_key or GLOBAL_CATEGORY
             now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            template = {
+            template: dict[str, Any] = {
                 "id": tid,
                 "name": (raw.get("name") or "").strip() or "未命名模板",
                 "description": raw.get("description") or "",

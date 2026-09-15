@@ -46,7 +46,7 @@ class PerformanceHealer:
         self._issues: list[PerfIssue] = []
 
     def analyze_file(self, file_path: str) -> list[PerfIssue]:
-        issues = []
+        issues: list[PerfIssue] = []
         try:
             with open(file_path, encoding="utf-8") as f:
                 source = f.read()
@@ -133,7 +133,7 @@ class ResourceLeakDetector:
         self._open_resources: dict[str, int] = {}
 
     def scan_file(self, file_path: str) -> list[PerfIssue]:
-        issues = []
+        issues: list[PerfIssue] = []
         try:
             with open(file_path, encoding="utf-8") as f:
                 source = f.read()
@@ -173,7 +173,7 @@ class ResourceLeakDetector:
             for child in ast.iter_child_nodes(parent):
                 # 优先使用 ast.parent 属性（Python 3.8+ 支持），无则手动设置
                 if not getattr(child, 'parent', None):
-                    child.parent = parent
+                    child.parent = parent  # type: ignore[attr-defined]  # ast 标准库未声明 parent 属性
 
     def _has_context_manager(self, node) -> bool:
         # 修复: 之前 node.parent 永远 None（ast 不自动设置），现在通过 _annotate_parents 建立

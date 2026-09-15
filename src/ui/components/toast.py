@@ -73,8 +73,9 @@ class Toast(QWidget):
         self.adjustSize()
 
         # 居中显示在父窗口顶部
-        if self.parent():
-            parent_rect = self.parent().geometry()
+        parent = self.parent()
+        if isinstance(parent, QWidget):
+            parent_rect = parent.geometry()
             x = parent_rect.center().x() - self.width() // 2
             y = parent_rect.top() + 60
             self.move(x, y)

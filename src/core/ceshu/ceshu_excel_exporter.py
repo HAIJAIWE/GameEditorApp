@@ -35,9 +35,9 @@ class OpenpyxlNotInstalledError(ImportError):
 def _require_openpyxl():
     """延迟导入 openpyxl，未安装时抛出明确错误"""
     try:
-        from openpyxl import Workbook  # type: ignore
-        from openpyxl.styles import Alignment, Border, Font, PatternFill, Side  # type: ignore
-        from openpyxl.utils import get_column_letter  # type: ignore
+        from openpyxl import Workbook
+        from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+        from openpyxl.utils import get_column_letter
     except ImportError as e:
         raise OpenpyxlNotInstalledError(
             "Excel 导出需要 openpyxl 库。请运行：pip install openpyxl"
@@ -75,7 +75,7 @@ def _auto_column_width(ws, headers: list[str], rows: list[list], min_width: int 
                     val_str = str(val).split("\n")[0]
                     max_len = max(max_len, len(val_str))
         width = min(max(max_len + 2, min_width), max_width)
-        from openpyxl.utils import get_column_letter  # type: ignore
+        from openpyxl.utils import get_column_letter
         ws.column_dimensions[get_column_letter(col_idx)].width = width
 
 
@@ -309,7 +309,7 @@ def _write_validation_sheet(wb, model: CeshuModel, header_style: dict) -> None:
     _write_header_row(ws, headers, 1, header_style)
     ws.freeze_panes = "A2"
 
-    errors = []
+    errors: list = []
     try:
         errors = model.validate() if hasattr(model, "validate") else []
     except Exception as e:

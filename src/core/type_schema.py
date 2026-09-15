@@ -16,8 +16,8 @@ class TypeField:
     type: str
     editable: bool = True
     values: Optional[list[str]] = None
-    from_: Optional[int] = None
-    to: Optional[int] = None
+    from_: Optional[float] = None
+    to: Optional[float] = None
     ref_type: Optional[str] = None
 
     def to_dict(self) -> dict[str, Any]:

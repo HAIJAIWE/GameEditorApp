@@ -30,6 +30,7 @@ from PyQt6.QtGui import (
     QPainter,
     QPixmap,
     QShortcut,
+    QTextDocument,
 )
 from PyQt6.QtWidgets import (
     QApplication,
@@ -61,8 +62,8 @@ from ui.widgets.collapsible_task_panel import CollapsibleTaskPanel
 from ui.widgets.task_row import TaskRowWidget
 
 try:
-    from config.settings import get_config
-    _APP_CONFIG = get_config()
+    from config.settings import AppConfig, get_config
+    _APP_CONFIG: Optional[AppConfig] = get_config()
 except (ImportError, RuntimeError):
     _APP_CONFIG = None
 
@@ -99,10 +100,10 @@ class DigitalPanel(QWidget):
         if data_manager:
             self._extra["data_manager"] = data_manager
         self._cmd_popup_visible = False
-        self._current_task_id = None
+        self._current_task_id: str | None = None
         self._current_conv_id: str = ""  # 当前 AI 回复的会话 ID（用于回滚）
-        self._task_histories = {}
-        self._general_history = []
+        self._task_histories: dict[str, list[dict]] = {}
+        self._general_history: list[dict] = []
         self._workspace_mgr = get_workspace()
         self._stream_buffer: list[str] = []
         self._step_id_counter = 0
@@ -190,7 +191,11 @@ class DigitalPanel(QWidget):
         self._refresh_workspace_list()
         self._workspace_combo.currentIndexChanged.connect(self._on_workspace_changed)
         # 右击列表项时弹出删除菜单（eventFilter 拦截，避免被 combo 当成左键选中）
-        self._workspace_combo.view().viewport().installEventFilter(self)
+        _view = self._workspace_combo.view()
+        if _view is not None:
+            _viewport = _view.viewport()
+            if isinstance(_viewport, QWidget):
+                _viewport.installEventFilter(self)
         layout.addWidget(self._workspace_combo)
 
         # 分隔
@@ -242,9 +247,16 @@ class DigitalPanel(QWidget):
         self.minimize_btn = QPushButton("─")
         self.minimize_btn.setObjectName("titleBtn")
         self.minimize_btn.setFixedSize(28, 28)
-        self.minimize_btn.clicked.connect(lambda: self.parent().hide() if self.parent() else self.hide())
+        self.minimize_btn.clicked.connect(self._minimize_window)
         layout.addWidget(self.minimize_btn)
         root.addWidget(self._title_bar)
+
+    def _minimize_window(self):
+        parent = self.parent()
+        if isinstance(parent, QWidget):
+            parent.hide()
+        else:
+            self.hide()
 
     def _build_task_panel(self, root: QVBoxLayout):
         """创建可折叠任务面板（带平滑过渡动画）"""
@@ -807,7 +819,9 @@ class DigitalPanel(QWidget):
         self._chat_display.setReadOnly(True)
         self._chat_display.setOpenLinks(False)
         self._chat_display.setObjectName("chatDisplay")
-        self._chat_display.viewport().installEventFilter(self)
+        _viewport = self._chat_display.viewport()
+        if isinstance(_viewport, QWidget):
+            _viewport.installEventFilter(self)
         self._chat_display.setPlaceholderText("对话框已就绪 — 随时帮你处理游戏数据")
         self._chat_display.setStyleSheet("""
             QTextBrowser#chatDisplay {
@@ -835,9 +849,13 @@ class DigitalPanel(QWidget):
             pygments_css = ChatRenderer.get_pygments_css()
             if pygments_css:
                 css += "\n" + pygments_css
-            self._chat_display.document().setDefaultStyleSheet(css)
+            _doc = self._chat_display.document()
+            if isinstance(_doc, QTextDocument):
+                _doc.setDefaultStyleSheet(css)
         except Exception:
-            self._chat_display.document().setDefaultStyleSheet("")
+            _doc = self._chat_display.document()
+            if isinstance(_doc, QTextDocument):
+                _doc.setDefaultStyleSheet("")
         root.addWidget(self._chat_display, stretch=1)
 
         self._task_badge = QLabel()
@@ -1257,7 +1275,7 @@ class DigitalPanel(QWidget):
 
     def _gather_editor_context(self) -> dict:
         """收集当前编辑器上下文，让 AI 感知界面状态"""
-        ctx = {"visible": True}
+        ctx: dict[str, object] = {"visible": True}
         mw = self._extra.get("main_window") if self._extra else None
         if not mw:
             return ctx
@@ -1463,7 +1481,7 @@ class DigitalPanel(QWidget):
             </div>
         </div>'''
         self._chat_display.append(full_html)
-        self._record_bubble(full_html)
+        self._record_bubble({"type": "plan", "text": plan_text, "timestamp": timestamp})
         self._scroll_to_bottom()
 
     def _format_results(self, results: dict) -> str:
@@ -1586,7 +1604,7 @@ class DigitalPanel(QWidget):
                 self._add_system_message("此对话没有可回退的数据操作")
         except Exception as e:
             self._add_error_message(f"回滚失败: {e}")
-            self._logger.exception("回滚异常")
+            self._logger.error("回滚异常", exc_info=True)
 
     def _event_filter_chat_and_workspace(self, obj, event):
         # 聊天区视图点击：检测锚点（可折叠步骤 + 回滚链接）

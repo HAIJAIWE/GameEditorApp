@@ -9,10 +9,6 @@
 """
 from __future__ import annotations
 
-from common.logger import get_logger
-
-logger = get_logger()
-
 from dataclasses import dataclass, field
 import difflib
 from enum import Enum
@@ -20,6 +16,10 @@ import json
 import os as _os
 import time
 from typing import Any, Optional
+
+from common.logger import get_logger
+
+logger = get_logger()
 
 
 class SandboxMode(Enum):

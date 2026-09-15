@@ -105,7 +105,7 @@ class VisualizationSkill(BaseSkill):
         elif fmt == "mermaid":
             lines = ["```mermaid", "timeline"]
             lines.append("  title 工具调用时间线")
-            for i, entry in enumerate(tool_trace):
+            for _i, entry in enumerate(tool_trace):
                 ts = entry.get("time", "") if isinstance(entry, dict) else ""
                 tool = entry.get("tool", "") if isinstance(entry, dict) else str(entry)
                 lines.append(f"  {ts} : {tool}")

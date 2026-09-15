@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from common.logger import get_logger
 from core.agent.skill_protocol import BaseSkill
+from core.agent.skills.common import _resolve_plural, normalize_params
 
 logger = get_logger()
-from core.agent.skills.common import _resolve_plural, normalize_params
 
 
 class UiControlSkill(BaseSkill):
@@ -13,8 +13,8 @@ class UiControlSkill(BaseSkill):
     DESCRIPTION = "操控游戏编辑器的前端界面，包括切换标签页、切换数据库、调整布局、开关面板等。"
     version = "1.0.0"
     tags = ["system", "ui", "界面", "前端"]
-    depends_on = []
-    parameters = []
+    depends_on: list = []
+    parameters: list = []
     REQUIRES_MAIN_THREAD = True  # 修复 P2-29: 直接操控 QWidget，必须在主线程执行
 
     PARAMS_SCHEMA = {
@@ -308,7 +308,7 @@ class UiControlSkill(BaseSkill):
 
     @staticmethod
     def _build_panel_map(mw) -> dict:
-        panel_map = {}
+        panel_map: dict[str, str] = {}
         if not mw:
             return panel_map
         for attr in dir(mw):

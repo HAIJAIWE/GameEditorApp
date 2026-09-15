@@ -255,7 +255,7 @@ class AttrLibraryManager(QWidget):
         self.attr_list.clear()
 
         # 按类型分组
-        categories = {
+        categories: dict[str, list] = {
             "基础属性": [],
             "派生属性": [],
             "战斗属性": [],

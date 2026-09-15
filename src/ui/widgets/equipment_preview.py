@@ -283,7 +283,7 @@ class DataListWidget(QWidget):
         self.items = [it for it in self.items if it.item_id != item_id]
         self._refresh_list()
 
-    def get_item(self, item_id: str) -> DataItem:
+    def get_item(self, item_id: str) -> DataItem | None:
         for item in self.items:
             if item.item_id == item_id:
                 return item
@@ -400,7 +400,7 @@ class DataListWidget(QWidget):
             return
 
         bonuses = {}
-        pct_bonuses = {}
+        pct_bonuses: dict[str, float] = {}
         for attr_name in self.attr_system.base_attributes:
             attr = self.attr_system.attributes.get(attr_name)
             val, ok = QInputDialog.getDouble(self, f"{attr.display_name}加成",
@@ -423,7 +423,7 @@ class DropArea(QFrame):
     def __init__(self, slot_name: str, parent=None):
         super().__init__(parent)
         self.slot_name = slot_name
-        self.current_item: DataItem = None
+        self.current_item: DataItem | None = None
         self.setAcceptDrops(True)
         self.setFixedHeight(44)
         self.setStyleSheet(self._normal_style())
@@ -957,7 +957,7 @@ class EquipmentPreviewWidget(QWidget):
     def _equip_dict_to_data_item(self, data: dict) -> DataItem:
         """将库中的装备数据转换为 DataItem"""
         bonuses = {}
-        pct_bonuses = {}
+        pct_bonuses: dict[str, float] = {}
 
         # 基础属性加成（从 base_attrs）
         base_attrs = data.get("base_attrs", {})
@@ -990,7 +990,7 @@ class EquipmentPreviewWidget(QWidget):
     def _buff_dict_to_data_item(self, data: dict) -> DataItem:
         """将库中的Buff数据转换为 DataItem"""
         bonuses = {}
-        pct_bonuses = {}
+        pct_bonuses: dict[str, float] = {}
 
         # Buff 数值作为固定加成
         value = data.get("value", 0)

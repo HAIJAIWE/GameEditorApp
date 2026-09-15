@@ -272,7 +272,7 @@ def export_ceshu_to_pdf(model: CeshuModel, output_path: str,
             chapter_data = model.get_chapter(key)
         except Exception:
             chapter_data = None
-        html_parts.append(_build_chapter_html(key, chapter_data))
+        html_parts.append(_build_chapter_html(key, chapter_data or {}))
 
     # 校验报告附录
     if include_validation_report:

@@ -67,7 +67,7 @@ class ShortcutsDialog(QDialog):
                 continue
             label = CATEGORY_LABELS.get(cat, cat)
             rows.append((None, label, ""))  # category header
-            for sid, sc in sorted(sc_list, key=lambda x: x[1].action_id):
+            for _, sc in sorted(sc_list, key=lambda x: x[1].action_id):
                 rows.append((sc.key_sequence, sc.description or sc.action_id, ""))
 
         table.setRowCount(len(rows))

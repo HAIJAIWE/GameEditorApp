@@ -53,7 +53,7 @@ class SecurityHealer:
     ]
 
     def scan_file(self, file_path: str) -> list[SecurityIssue]:
-        issues = []
+        issues: list[SecurityIssue] = []
         try:
             with open(file_path, encoding="utf-8") as f:
                 source = f.read()
@@ -137,7 +137,7 @@ class CodeSmellDetector:
     """代码异味检测"""
 
     def scan_file(self, file_path: str) -> list[CodeSmell]:
-        smells = []
+        smells: list[CodeSmell] = []
         try:
             with open(file_path, encoding="utf-8") as f:
                 source = f.read()

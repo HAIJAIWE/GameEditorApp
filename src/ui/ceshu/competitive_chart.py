@@ -60,9 +60,11 @@ class CompetitiveChart(QWidget):
 
         # 标签
         x_label = scene.addText("创新度 →", font_small)
+        assert x_label is not None
         x_label.setDefaultTextColor(QColor(hint))
         x_label.setPos(w - 80, h - 40)
         y_label = scene.addText("完成度 →", font_small)
+        assert y_label is not None
         y_label.setDefaultTextColor(QColor(hint))
         y_label.setPos(10, 10)
 
@@ -89,6 +91,7 @@ class CompetitiveChart(QWidget):
             scene.addEllipse(px - 5, py - 5, 10, 10,
                                        QPen(color.darker(130), 2), QBrush(color.lighter(150)))
             text = scene.addText(name, font_small)
+            assert text is not None
             text.setDefaultTextColor(color)
             text.setPos(px + 8, py - 10)
 

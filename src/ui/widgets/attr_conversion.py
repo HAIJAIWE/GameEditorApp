@@ -3,10 +3,18 @@ from common.logger import get_logger
 
 logger = get_logger()
 
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QDoubleSpinBox, QGroupBox, QHeaderView, QLabel, QTableWidget, QVBoxLayout, QWidget
+from PyQt6.QtCore import Qt  # noqa: E402  # 延迟导入：避免模块级循环导入
+from PyQt6.QtWidgets import (  # noqa: E402  # 延迟导入：避免模块级循环导入
+    QDoubleSpinBox,
+    QGroupBox,
+    QHeaderView,
+    QLabel,
+    QTableWidget,
+    QVBoxLayout,
+    QWidget,
+)
 
-from ui.themes import theme_color
+from ui.themes import theme_color  # noqa: E402  # 延迟导入：避免模块级循环导入
 
 
 class AttrConversionWidget(QWidget):

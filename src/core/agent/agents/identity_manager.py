@@ -1,5 +1,6 @@
 """Agent OS §3 — IdentityManager: SOUL.md 加载器"""
 from pathlib import Path
+from typing import Any
 
 
 def load_soul(agent_id: str, workspace_root: Path = None) -> dict:
@@ -21,7 +22,7 @@ def load_soul(agent_id: str, workspace_root: Path = None) -> dict:
 
 def _parse_soul_md(content: str, agent_id: str) -> dict:
     """解析 SOUL.md 格式"""
-    result = {
+    result: dict[str, Any] = {
         "identity": agent_id,
         "duties": "根据用户需求完成任务",
         "boundaries": [],

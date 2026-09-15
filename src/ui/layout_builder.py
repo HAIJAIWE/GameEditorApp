@@ -7,10 +7,10 @@ from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtWidgets import QLabel, QSplitter, QStackedWidget, QVBoxLayout, QWidget
 
 _diag_logger = logging.getLogger("CESHU_DIAG")
-from common.logger import get_logger
-from ui.ceshu import CeshuHomeView
-from ui.digital_employee import DigitalPanel
-from ui.themes import theme_color
+from common.logger import get_logger  # noqa: E402  # 延迟导入：避免模块级循环导入
+from ui.ceshu import CeshuHomeView  # noqa: E402  # 延迟导入：避免模块级循环导入
+from ui.digital_employee import DigitalPanel  # noqa: E402  # 延迟导入：避免模块级循环导入
+from ui.themes import theme_color  # noqa: E402  # 延迟导入：避免模块级循环导入
 
 logger = get_logger()
 
@@ -80,7 +80,7 @@ class LayoutBuilder:
 
         # 三栏布局：延迟到下一个事件循环，确保所有组件已初始化
         from ui.main_window import _safe_call
-        QTimer.singleShot(0, lambda l=layout: _safe_call(self._build_three_column_safe, l))
+        QTimer.singleShot(0, lambda layout_ref=layout: _safe_call(self._build_three_column_safe, layout_ref))
 
         for _data_type, tab in self._mw.tabs.items():
             if tab is not None:

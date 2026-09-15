@@ -844,7 +844,7 @@ class AppConfig:
             del self.agents[name]
             self._save_agents()
 
-    def get_agent(self, name: str) -> dict[str, Any]:
+    def get_agent(self, name: str) -> Optional[dict[str, Any]]:
         """获取智能体配置"""
         return self.agents.get(name, self.agents.get("策划专家"))
 

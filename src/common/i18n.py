@@ -15,6 +15,7 @@ DEFAULT_LOCALE = "zh_CN"
 
 class I18nManager:
     _instance: Optional[I18nManager] = None
+    _initialized: bool = False
 
     def __new__(cls) -> I18nManager:
         if cls._instance is None:

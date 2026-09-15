@@ -20,11 +20,9 @@ GameEditorApp 是基于 PyQt6 的游戏数据编辑器，采用分层架构：
 ├─────────────────────────────────────────┤
 │          安全 层 (src/security)          │
 │   sandbox / acl / encryption / guard    │
-├─────────────────────────────────────────┤
-│         部署 层 (src/deployment)         │
-│   version_manager / config_center       │
 └─────────────────────────────────────────┘
 ```
+> 注：早期独立的 `src/deployment/` 层已移除（孤儿模块清理），打包/发布统一由根目录 `scripts/build.bat` + PyInstaller/PyArmor 完成（见 [wiki/05-running](./wiki/05-running.md)）。
 
 ## 核心模块
 
@@ -41,7 +39,9 @@ v5.0 工业级 GDD 系统，18 章结构 + 13 游戏系统配置 + 16 项新功�
 - **CeshuChangelog** (N15): 版本变更日志
 - **CustomTemplateManager** (N13): 自定义模板 CRUD
 - **6 个 Exporter**: docx/pdf/pptx/markdown/html/excel，公用 `ceshu_export_common`
-- **CeshuTemplate**: 参数化模板引擎；**CeshuSkill**: 章节→智能体路由 + 9 个 AI 动作
+- **CeshuTemplate**: 参数化模板引擎；**CeshuSkill**: 章节→智能体路由 + 14 个动作（含 AI 整章/字段/审阅/一键生成/AI 数据生成）
+- **档位（lite/full）**: `gdd_scope` 轻量（基础 9 章）/ 工业级（18 章），持久化在 `meta.gdd_scope`，按档位渲染章节与计算进度
+- **AI 数据生成（N20）**: 依据策划书数值/系统章生成候选游戏数据 → 预览勾选 → 人工导入数据表（数据共同开发）
 
 ### 2. Agent 系统 (src/core/agent/)
 

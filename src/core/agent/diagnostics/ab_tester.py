@@ -16,11 +16,11 @@ from common.logger import get_logger
 
 logger = get_logger()
 
-from collections.abc import Callable
-from dataclasses import dataclass, field
-import os as _os
-import time
-from typing import Optional
+from collections.abc import Callable  # noqa: E402  # logger 前置初始化后再导入的既有模式
+from dataclasses import dataclass, field  # noqa: E402  # logger 前置初始化后再导入的既有模式
+import os as _os  # noqa: E402  # logger 前置初始化后再导入的既有模式
+import time  # noqa: E402  # logger 前置初始化后再导入的既有模式
+from typing import Optional  # noqa: E402  # logger 前置初始化后再导入的既有模式
 
 
 @dataclass
@@ -52,7 +52,7 @@ class ABTester:
         self._candidates.append(candidate)
         return cid
 
-    def test_all(self, file_path: str, test_commands: list[str] = None) -> FixCandidate:
+    def test_all(self, file_path: str, test_commands: list[str] = None) -> Optional[FixCandidate]:
         for candidate in self._candidates:
             for cmd in (test_commands or ["python -c \"import ast; ast.parse(open('test','r').read())\"".replace('test', file_path)]):
                 try:

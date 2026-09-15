@@ -1,6 +1,6 @@
 from typing import Optional
 
-from PyQt6.QtCore import QEasingCurve, QPoint, QPropertyAnimation, QRect, QTimer
+from PyQt6.QtCore import QEasingCurve, QObject, QPoint, QPropertyAnimation, QRect, QTimer
 from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (
     QComboBox,
@@ -61,8 +61,10 @@ class EffectFactory:
 
     @staticmethod
     def create_fade_animation(
-        widget: QWidget, start_opacity: float = 0.0, end_opacity: float = 1.0, duration: int = 300
+        widget: QObject, start_opacity: float = 0.0, end_opacity: float = 1.0, duration: int = 300
     ) -> QPropertyAnimation:
+        # QPropertyAnimation 的动画目标可以是任意 QObject（如 QWidget 或
+        # QGraphicsOpacityEffect），故目标类型放宽为 QObject 而非 QWidget。
         animation = QPropertyAnimation(widget, b"opacity")
         animation.setDuration(duration)
         animation.setStartValue(start_opacity)

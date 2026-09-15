@@ -9,7 +9,7 @@ import os
 from pathlib import Path
 import re
 from threading import Lock
-from typing import Any, Optional
+from typing import Any, Optional, cast
 import uuid
 
 from common.logger import get_logger
@@ -636,11 +636,12 @@ class OptimizedDataManager:
 
         if snapshot_empty:
             with self.lock:
-                self._search_cache[cache_key] = (current_version, snapshot_all)
+                # snapshot_empty 为 True 时 snapshot_all 必然是刚拷贝的列表，cast 仅为类型声明
+                self._search_cache[cache_key] = (current_version, cast(list, snapshot_all))
                 if len(self._search_cache) > SEARCH_CACHE_SIZE:
                     oldest = next(iter(self._search_cache))
                     del self._search_cache[oldest]
-            return snapshot_all
+            return cast(list, snapshot_all)
 
         # 优化搜索：仅搜索关键字段，避免将整个字典转为字符串
         query_lower = query.lower()
@@ -653,17 +654,17 @@ class OptimizedDataManager:
             matched = False
 
             # 首先搜索关键字段（快速路径）
-            for field in key_fields:
-                if field in item:
-                    field_value = str(item[field]).lower()
+            for fld in key_fields:
+                if fld in item:
+                    field_value = str(item[fld]).lower()
                     if query_lower in field_value:
                         matched = True
                         break
 
             # 如果关键字段未匹配，再搜索其他字段（慢速路径）
             if not matched:
-                for field, value in item.items():
-                    if field in key_fields:
+                for fld, value in item.items():
+                    if fld in key_fields:
                         continue  # 已搜索过
                     if isinstance(value, (str, int, float)):
                         if query_lower in str(value).lower():

@@ -6,10 +6,10 @@ from common.event_bus import EventBus
 from common.logger import get_logger
 
 logger = get_logger()
-from ui.ceshu import CeshuHomeView
-from ui.data_tab import DataEditorTab
-from ui.dialogs.startup_mode_dialog import StartupModeDialog
-from ui.widgets.home_widget import HomeWidget
+from ui.ceshu import CeshuHomeView  # noqa: E402  # 延迟导入：避免模块级循环导入
+from ui.data_tab import DataEditorTab  # noqa: E402  # 延迟导入：避免模块级循环导入
+from ui.dialogs.startup_mode_dialog import StartupModeDialog  # noqa: E402  # 延迟导入：避免模块级循环导入
+from ui.widgets.home_widget import HomeWidget  # noqa: E402  # 延迟导入：避免模块级循环导入
 
 
 class TabManager:

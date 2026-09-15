@@ -1,12 +1,12 @@
-from common.logger import get_logger
-
-logger = get_logger()
-
 import gzip
 import io
 import os
 import re
 import urllib.request
+
+from common.logger import get_logger
+
+logger = get_logger()
 
 
 class Cedict:

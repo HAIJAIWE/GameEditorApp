@@ -37,8 +37,8 @@ class LivePreviewWidget(QWidget):
     def __init__(self, attr_system: AttributeSystem, parent=None):
         super().__init__(parent)
         self.attr_system = attr_system
-        self.sliders = {}
-        self.result_labels = {}
+        self.sliders: dict[str, QSlider] = {}
+        self.result_labels: dict[str, QLabel] = {}
         self.process_text = None
 
         # 装备和Buff系统
@@ -288,7 +288,7 @@ class LivePreviewWidget(QWidget):
         value_label.setStyleSheet(f"QLabel {{ color: {theme_color('accent')}; font-family: Consolas; font-weight: bold; font-size: 14px; min-width: 40px; }}")
         value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         row_layout.addWidget(value_label)
-        slider._value_label = value_label
+        slider._value_label = value_label  # type: ignore[attr-defined]  # _value_label 运行时注入到 QSlider 上
 
         return row
 

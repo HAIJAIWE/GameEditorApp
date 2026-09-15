@@ -29,7 +29,7 @@ from ui.dialogs.auto_input_dialog import show_text_input_dialog
 from ui.themes import theme_color
 
 logger = get_logger()
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFont  # noqa: E402  # 延迟导入：保持导入顺序
 
 # 预设模型配置
 MODEL_PRESETS = {

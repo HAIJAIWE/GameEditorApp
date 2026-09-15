@@ -3,8 +3,8 @@ from common.logger import get_logger
 
 logger = get_logger()
 
-from PyQt6.QtGui import QColor, QFont, QSyntaxHighlighter, QTextCharFormat
-from PyQt6.QtWidgets import (
+from PyQt6.QtGui import QColor, QFont, QSyntaxHighlighter, QTextCharFormat  # noqa: E402  # 延迟导入：避免模块级循环导入
+from PyQt6.QtWidgets import (  # noqa: E402  # 延迟导入：避免模块级循环导入
     QComboBox,
     QDialog,
     QFrame,
@@ -16,8 +16,8 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
 )
 
-from common.data_diff import DataDiff
-from ui.themes import theme_color
+from common.data_diff import DataDiff  # noqa: E402  # 延迟导入：避免模块级循环导入
+from ui.themes import theme_color  # noqa: E402  # 延迟导入：避免模块级循环导入
 
 
 class DiffHighlighter(QSyntaxHighlighter):
@@ -36,7 +36,9 @@ class DiffHighlighter(QSyntaxHighlighter):
         self._formats["modified"].setForeground(QColor("#d29922"))
         self._formats["path"].setForeground(QColor("#58a6ff"))
 
-    def highlightBlock(self, text: str):
+    def highlightBlock(self, text: str | None):
+        if text is None:
+            return
         if text.startswith("+"):
             self.setFormat(0, len(text), self._formats["added"])
         elif text.startswith("-"):

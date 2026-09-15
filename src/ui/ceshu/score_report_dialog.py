@@ -266,8 +266,10 @@ class ScoreReportDialog(QDialog):
         self._table.setHorizontalHeaderLabels([
             "章节", "评分", "完成度", "字数", "必填字段", "备注",
         ])
-        self._table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        self._table.horizontalHeader().setSectionResizeMode(5, QHeaderView.ResizeMode.Stretch)
+        hheader = self._table.horizontalHeader()
+        assert hheader is not None
+        hheader.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        hheader.setSectionResizeMode(5, QHeaderView.ResizeMode.Stretch)
         self._table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self._table.setAccessibleName("章节评分明细表格")
         self._table.setAccessibleDescription("按章节列出评分、完成度、字数、必填字段状态与备注")

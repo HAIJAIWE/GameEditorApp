@@ -5,11 +5,12 @@ AI 面板已移至顶层右栏，不再内嵌。
 from __future__ import annotations
 
 from PyQt6.QtCore import QSize, Qt, QTimer, pyqtSignal
-from PyQt6.QtGui import QFont, QKeySequence, QShortcut
+from PyQt6.QtGui import QAction, QFont, QKeySequence, QShortcut
 from PyQt6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
+    QMenu,
     QMessageBox,
     QPushButton,
     QSplitter,
@@ -19,6 +20,8 @@ from PyQt6.QtWidgets import (
 
 from common.event_bus import EventBus
 from common.lucide_icon import get_icon
+from core.ceshu import CeshuManager
+from core.ceshu.ceshu_model import CeshuModel
 from ui.themes import theme_color
 
 from .ceshu_theme import (
@@ -55,11 +58,13 @@ class CeshuEditorView(QWidget, AIMixin, ExportMixin, ReviewMixin, SystemMixin, T
     def __init__(self, library_root: str = "", parent=None):
         super().__init__(parent)
         self._library_root = library_root
-        self._model = None
-        self._manager = None
+        self._model: CeshuModel | None = None
+        self._manager: CeshuManager | None = None
         self._ceshu_id = ""
         self._library = "默认库"
         self._dirty = False
+        # N20: DataManager 引用（AI 数据生成对话框导入时使用）
+        self._data_manager = None
         # F1/F7: AI worker 引用（防止 GC 回收）
         self._ai_field_worker: _AIFillFieldWorker | None = None
         self._ai_chapter_worker: _AIFillChapterWorker | None = None
@@ -107,16 +112,6 @@ class CeshuEditorView(QWidget, AIMixin, ExportMixin, ReviewMixin, SystemMixin, T
         self._btn_activate.setVisible(False)
         toolbar.addWidget(self._btn_activate)
 
-        # P8: 派生新版本按钮
-        self._btn_derive = QPushButton("派生新版本")
-        self._btn_derive.clicked.connect(self._on_derive_clicked)
-        self._btn_derive.setStyleSheet(
-            "QPushButton { background: transparent; color: #4f8cf7; padding: 4px 12px; "
-            "border: 1px solid #4f8cf7; border-radius: 4px; font-size: 12px; }"
-            "QPushButton:hover { background: rgba(79, 140, 247, 0.1); }"
-        )
-        toolbar.addWidget(self._btn_derive)
-
         toolbar.addStretch()
 
         # === UX: 按功能分组 + 分隔符 + 工具提示 ===
@@ -128,34 +123,18 @@ class CeshuEditorView(QWidget, AIMixin, ExportMixin, ReviewMixin, SystemMixin, T
 
         toolbar.addWidget(self._make_separator())
 
-        # 编辑组：校验 | 模板 | 预设
+        # 编辑组：校验
         self._btn_validate = QPushButton("校验")
         self._btn_validate.clicked.connect(self._on_validate)
         self._btn_validate.setToolTip("校验策划书完整性与一致性 (Ctrl+Shift+V)")
         toolbar.addWidget(self._btn_validate)
 
-        self._btn_template = QPushButton("模板")
-        self._btn_template.clicked.connect(self._on_template_picker)
-        self._btn_template.setToolTip("打开章节模板库，一键应用预置模板 (Ctrl+Shift+T)")
-        toolbar.addWidget(self._btn_template)
-
-        self._btn_preset = QPushButton("预设")
-        self._btn_preset.clicked.connect(self._on_preset_market)
-        self._btn_preset.setToolTip("打开混合玩法预设市场")
-        toolbar.addWidget(self._btn_preset)
-
-        # N13: GDD 模板编辑器按钮
-        self._btn_template_edit = QPushButton("模板编辑")
-        self._btn_template_edit.clicked.connect(self._on_template_editor)
-        self._btn_template_edit.setToolTip("打开 GDD 模板编辑器，管理自定义可复用模板 (Ctrl+Shift+E)")
-        toolbar.addWidget(self._btn_template_edit)
-
         toolbar.addWidget(self._make_separator())
 
-        # AI 组：AI 生成 | AI 整章 | AI 审阅
+        # AI 组：AI 生成 | AI 整章 | AI 数据（收敛后常显）
         self._btn_ai_full = QPushButton("AI 生成")
         self._btn_ai_full.clicked.connect(self._on_ai_full_generate)
-        self._btn_ai_full.setToolTip("从简要描述一键生成完整 18 章 GDD (Ctrl+Shift+G)")
+        self._btn_ai_full.setToolTip("从简要描述一键生成完整 GDD (Ctrl+Shift+G)")
         toolbar.addWidget(self._btn_ai_full)
 
         self._btn_ai_chapter = QPushButton("AI 整章")
@@ -163,53 +142,49 @@ class CeshuEditorView(QWidget, AIMixin, ExportMixin, ReviewMixin, SystemMixin, T
         self._btn_ai_chapter.setToolTip("使用 AI 一键生成整章内容")
         toolbar.addWidget(self._btn_ai_chapter)
 
-        # N6: AI 智能审阅按钮
-        self._btn_ai_review = QPushButton("AI 审阅")
-        self._btn_ai_review.clicked.connect(self._on_ai_review)
-        self._btn_ai_review.setToolTip("AI 5 维度结构化审阅 + Top 3 改进建议 (Ctrl+Shift+R)")
-        toolbar.addWidget(self._btn_ai_review)
+        # N20: AI 数据生成按钮（数据共同开发：AI 生成候选 → 人工勾选导入）
+        self._btn_ai_data = QPushButton("AI 数据")
+        self._btn_ai_data.clicked.connect(self._on_ai_data_generate)
+        self._btn_ai_data.setToolTip("根据策划书数值/系统章，AI 生成候选游戏数据，人工勾选后导入")
+        toolbar.addWidget(self._btn_ai_data)
 
         toolbar.addWidget(self._make_separator())
 
-        # 分析组：评分 | 字数 | 对比 | 时间线
-        self._btn_score = QPushButton("评分")
-        self._btn_score.clicked.connect(self._on_score_report)
-        self._btn_score.setToolTip("工业级 GDD 评分报告（结构/质量/市场） (Ctrl+Shift+S)")
-        toolbar.addWidget(self._btn_score)
+        # 更多菜单：高级功能收进二级菜单，保持工具栏简洁
+        self._btn_more = QPushButton("更多 ▸")
+        self._more_menu = QMenu(self)
+        self._btn_more.setMenu(self._more_menu)
+        self._btn_more.setToolTip("版本/模板/AI审阅/分析/档位等高级功能")
+        toolbar.addWidget(self._btn_more)
 
-        self._btn_wordstat = QPushButton("字数")
-        self._btn_wordstat.clicked.connect(self._on_word_stats)
-        self._btn_wordstat.setToolTip("字数统计 + 写作建议")
-        toolbar.addWidget(self._btn_wordstat)
+        def _add_more(text: str, handler, tip: str = "") -> QAction:
+            act = QAction(text, self)
+            act.triggered.connect(handler)
+            if tip:
+                act.setToolTip(tip)
+            self._more_menu.addAction(act)
+            return act
 
-        self._btn_diff = QPushButton("对比")
-        self._btn_diff.clicked.connect(self._on_version_diff)
-        self._btn_diff.setToolTip("对比同版本链下两个版本的差异 (Ctrl+Shift+D)")
-        toolbar.addWidget(self._btn_diff)
-
-        # N7: 版本时间线按钮
-        self._btn_timeline = QPushButton("时间线")
-        self._btn_timeline.clicked.connect(self._on_version_timeline)
-        self._btn_timeline.setToolTip("可视化版本时间线，支持切换版本")
-        toolbar.addWidget(self._btn_timeline)
-
-        # N11: GDD 完备性检查清单按钮
-        self._btn_checklist = QPushButton("清单")
-        self._btn_checklist.clicked.connect(self._on_checklist)
-        self._btn_checklist.setToolTip("GDD 完备性检查清单，预制作就绪检查 (Ctrl+Shift+L)")
-        toolbar.addWidget(self._btn_checklist)
-
-        # N15: 变更日志按钮
-        self._btn_changelog = QPushButton("日志")
-        self._btn_changelog.clicked.connect(self._on_changelog)
-        self._btn_changelog.setToolTip("从版本对比生成变更日志 (Ctrl+Shift+H)")
-        toolbar.addWidget(self._btn_changelog)
-
-        # N14: 字段依赖关系图按钮
-        self._btn_field_graph = QPushButton("字段图")
-        self._btn_field_graph.clicked.connect(self._on_field_dependency_graph)
-        self._btn_field_graph.setToolTip("查看跨章节字段依赖关系图 (Ctrl+Shift+F)")
-        toolbar.addWidget(self._btn_field_graph)
+        # 收敛收纳：派生新版本 / 章节模板 / AI 审阅 / AI 补空
+        _add_more("派生新版本", self._on_derive_clicked, "基于当前版本派生新版本")
+        _add_more("章节模板库", self._on_template_picker, "打开章节模板库，一键应用预置模板 (Ctrl+Shift+T)")
+        _add_more("AI 审阅", self._on_ai_review, "AI 5 维度结构化审阅 + Top 3 改进建议 (Ctrl+Shift+R)")
+        _add_more("AI 补全空白字段", self._on_ai_fill_empty_fields, "AI 补全当前章节的空白字段，已填内容保持不变")
+        self._more_menu.addSeparator()
+        _add_more("混合玩法预设市场", self._on_preset_market, "打开混合玩法预设市场")
+        _add_more("GDD 模板编辑器", self._on_template_editor, "管理自定义可复用模板 (Ctrl+Shift+E)")
+        self._more_menu.addSeparator()
+        _add_more("评分报告", self._on_score_report, "工业级 GDD 评分报告（结构/质量/市场） (Ctrl+Shift+S)")
+        _add_more("字数统计", self._on_word_stats, "字数统计 + 写作建议")
+        _add_more("版本对比", self._on_version_diff, "对比同版本链下两个版本的差异 (Ctrl+Shift+D)")
+        _add_more("版本时间线", self._on_version_timeline, "可视化版本时间线，支持切换版本")
+        _add_more("完备性检查清单", self._on_checklist, "GDD 完备性检查清单，预制作就绪检查 (Ctrl+Shift+L)")
+        _add_more("变更日志", self._on_changelog, "从版本对比生成变更日志 (Ctrl+Shift+H)")
+        _add_more("字段依赖关系图", self._on_field_dependency_graph, "查看跨章节字段依赖关系图 (Ctrl+Shift+F)")
+        self._more_menu.addSeparator()
+        _add_more("章节笔记", self._on_chapter_notes, "打开章节笔记管理器，记录设计要点 (Ctrl+Shift+N)")
+        self._more_menu.addSeparator()
+        self._scope_action = _add_more("档位切换（需先打开策划书）", self._on_toggle_gdd_scope, "在轻量（9章）与工业级（18章）之间切换")
 
         toolbar.addWidget(self._make_separator())
 
@@ -218,15 +193,6 @@ class CeshuEditorView(QWidget, AIMixin, ExportMixin, ReviewMixin, SystemMixin, T
         self._btn_export.clicked.connect(self._on_export)
         self._btn_export.setToolTip("导出策划书为 .ceshu/.md/.html/.docx/.pdf/.pptx")
         toolbar.addWidget(self._btn_export)
-
-        toolbar.addWidget(self._make_separator())
-
-        # 笔记组：笔记
-        # N8: 章节笔记按钮
-        self._btn_notes = QPushButton("笔记")
-        self._btn_notes.clicked.connect(self._on_chapter_notes)
-        self._btn_notes.setToolTip("打开章节笔记管理器，记录设计要点 (Ctrl+Shift+N)")
-        toolbar.addWidget(self._btn_notes)
 
         layout.addLayout(toolbar)
 
@@ -257,32 +223,17 @@ class CeshuEditorView(QWidget, AIMixin, ExportMixin, ReviewMixin, SystemMixin, T
         self._title_label.setStyleSheet(ceshu_editor_title_qss())
         self._btn_save.setStyleSheet(ceshu_editor_btn_save_qss())
         self._btn_export.setStyleSheet(ceshu_editor_btn_export_qss())
-        # v5.0: 校验按钮采用与导出一致的描边风格（强调辅助操作）
+        # 校验按钮采用与导出一致的描边风格（强调辅助操作）
         self._btn_validate.setStyleSheet(ceshu_editor_btn_export_qss())
-        # v5.0 优化D: 预设按钮同描边风格
-        self._btn_preset.setStyleSheet(ceshu_editor_btn_export_qss())
-        # F6/F7: 新按钮同描边风格
-        self._btn_wordstat.setStyleSheet(ceshu_editor_btn_export_qss())
-        self._btn_ai_chapter.setStyleSheet(ceshu_editor_btn_export_qss())
-        # N10: AI 一键生成按钮同描边风格
+        # AI 按钮同描边风格（模板/AI审阅/AI补空已收进「更多」，无需样式）
         self._btn_ai_full.setStyleSheet(ceshu_editor_btn_export_qss())
-        # N5: 模板按钮同描边风格
-        self._btn_template.setStyleSheet(ceshu_editor_btn_export_qss())
-        # N4: 评分按钮同描边风格
-        self._btn_score.setStyleSheet(ceshu_editor_btn_export_qss())
-        # N1: 对比按钮同描边风格
-        self._btn_diff.setStyleSheet(ceshu_editor_btn_export_qss())
-        # N6/N7/N8: 新按钮同描边风格
-        self._btn_ai_review.setStyleSheet(ceshu_editor_btn_export_qss())
-        self._btn_timeline.setStyleSheet(ceshu_editor_btn_export_qss())
-        self._btn_notes.setStyleSheet(ceshu_editor_btn_export_qss())
-        # N11: 清单按钮同描边风格
-        self._btn_checklist.setStyleSheet(ceshu_editor_btn_export_qss())
-        # N13/N15: 新按钮同描边风格
-        self._btn_template_edit.setStyleSheet(ceshu_editor_btn_export_qss())
-        self._btn_changelog.setStyleSheet(ceshu_editor_btn_export_qss())
-        # N14: 字段图按钮同描边风格
-        self._btn_field_graph.setStyleSheet(ceshu_editor_btn_export_qss())
+        self._btn_ai_chapter.setStyleSheet(ceshu_editor_btn_export_qss())
+        _btn_ai_data = getattr(self, "_btn_ai_data", None)
+        if _btn_ai_data is not None:
+            _btn_ai_data.setStyleSheet(ceshu_editor_btn_export_qss())
+        _btn_more = getattr(self, "_btn_more", None)
+        if _btn_more is not None:
+            _btn_more.setStyleSheet(ceshu_editor_btn_export_qss())
 
     def _make_separator(self) -> QFrame:
         """UX: 创建工具栏竖直分隔符。"""
@@ -359,6 +310,7 @@ class CeshuEditorView(QWidget, AIMixin, ExportMixin, ReviewMixin, SystemMixin, T
         self._model = model
         self._title_label.setText(model.meta.get("game_name", "未命名策划书"))
         self._chapter_panel.render_chapters(model)
+        self._update_scope_menu_text()
         self._preview_panel.set_ceshu_model(model)
 
         # 注入类型模式到游戏系统编辑器（动态读取全部数据类型）
@@ -391,8 +343,40 @@ class CeshuEditorView(QWidget, AIMixin, ExportMixin, ReviewMixin, SystemMixin, T
         self._chapter_panel._on_section_clicked(chapter_key)
 
     def set_data_manager(self, data_manager) -> None:
-        """P6: 注入 DataManager，供 ChapterPanel/SystemsEditor 显示进度"""
+        """P6: 注入 DataManager，供 ChapterPanel/SystemsEditor 显示进度；N20: 供 AI 数据生成导入"""
+        self._data_manager = data_manager
         self._chapter_panel.set_data_manager(data_manager)
+
+    # ── d2 档位切换 ──
+
+    def _on_toggle_gdd_scope(self) -> None:
+        """在轻量（9章）与工业级（18章）之间切换当前策划书档位。"""
+        if self._model is None:
+            QMessageBox.information(self, "档位切换", "请先打开一本策划书。")
+            return
+        from core.ceshu.ceshu_model import GDD_SCOPE_FULL, GDD_SCOPE_LITE
+
+        new_scope = GDD_SCOPE_LITE if self._model.gdd_scope == GDD_SCOPE_FULL else GDD_SCOPE_FULL
+        self._model.gdd_scope = new_scope
+        self._chapter_panel.render_chapters(self._model)
+        self._chapter_panel.refresh_progress()
+        self._update_scope_menu_text()
+        self._dirty = True
+        self.save_ceshu()
+
+    def _update_scope_menu_text(self) -> None:
+        """刷新「更多」菜单中档位切换动作的文案。"""
+        if not hasattr(self, "_scope_action"):
+            return
+        if self._model is None:
+            self._scope_action.setText("档位切换（需先打开策划书）")
+            return
+        from core.ceshu.ceshu_model import GDD_SCOPE_FULL
+
+        if self._model.gdd_scope == GDD_SCOPE_FULL:
+            self._scope_action.setText("档位：工业级（18章）→ 点击切换为轻量（9章）")
+        else:
+            self._scope_action.setText("档位：轻量（9章）→ 点击切换为工业级（18章）")
 
     # ── 内部回调 ──
 

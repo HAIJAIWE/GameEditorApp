@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 import shutil
 import threading
-from typing import Optional
+from typing import Any, Optional
 
 from common.logger import get_logger
 
@@ -19,6 +19,7 @@ class WorkspaceManager:
 
     _instance: Optional[WorkspaceManager] = None
     _lock = threading.Lock()
+    _initialized: bool = False
 
     def __new__(cls):
         if cls._instance is None:
@@ -100,7 +101,7 @@ class WorkspaceManager:
                 encoding="utf-8"
             )
 
-    def list_workspaces(self) -> list[dict[str, str]]:
+    def list_workspaces(self) -> list[dict[str, Any]]:
         result = []
         for d in sorted(self._root.iterdir()):
             if d.is_dir() and (d / ".workspace").is_dir():

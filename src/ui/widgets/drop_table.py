@@ -3,8 +3,8 @@ from common.logger import get_logger
 
 logger = get_logger()
 
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import (
+from PyQt6.QtCore import Qt  # noqa: E402  # 延迟导入：避免模块级循环导入
+from PyQt6.QtWidgets import (  # noqa: E402  # 延迟导入：避免模块级循环导入
     QDialog,
     QDialogButtonBox,
     QHBoxLayout,

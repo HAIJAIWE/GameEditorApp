@@ -134,7 +134,7 @@ class CascadeFixer:
 
     def cascade_fix_function_rename(self, file_path: str, old_name: str,
                                      new_name: str) -> dict[str, Any]:
-        result = {"fixed": [], "skipped": [], "errors": []}
+        result: dict[str, Any] = {"fixed": [], "skipped": [], "errors": []}
         dependents = self._graph.find_dependents(old_name, exclude_file=file_path)
 
         for dep in dependents:

@@ -1,7 +1,3 @@
-from common.logger import get_logger
-
-logger = get_logger()
-
 from collections.abc import Callable
 import csv
 from dataclasses import dataclass, field
@@ -143,12 +139,12 @@ class DataImporter:
             "list": lambda v: [x.strip() for x in str(v).split(",") if x.strip()],
             "json": lambda v: json.loads(v) if isinstance(v, str) else v,
         }
-        for field, type_name in type_mapping.items():
-            if field in data and type_name in converters:
+        for field_name, type_name in type_mapping.items():
+            if field_name in data and type_name in converters:
                 try:
-                    data[field] = converters[type_name](data[field])
+                    data[field_name] = converters[type_name](data[field_name])
                 except (ValueError, TypeError):
-                    logger.warning("类型转换失败: %s -> %s", field, type_name)
+                    logger.warning("类型转换失败: %s -> %s", field_name, type_name)
         return data
 
     def _import_csv(

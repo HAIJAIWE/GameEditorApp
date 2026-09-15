@@ -277,7 +277,7 @@ def flatten_dict(d: dict[str, Any], parent_key: str = '', sep: str = '_') -> dic
     Returns:
         扁平化后的字典
     """
-    items = []
+    items: list[tuple[str, Any]] = []
     for k, v in d.items():
         new_key = f"{parent_key}{sep}{k}" if parent_key else k
         if isinstance(v, dict):

@@ -155,25 +155,6 @@ class BalanceAnalysisDialog(QDialog):
         # 立即执行一次分析
         self._perform_analysis()
 
-    def _perform_analysis(self):
-        """执行分析"""
-        analysis_type = self.analysis_type_combo.currentText()
-        data = self.main_window.data_manager.data
-        result: list[str] = []
-
-        try:
-            if analysis_type == "技能平衡性":
-                self._analyze_skills(data, result)
-            elif analysis_type == "角色平衡性":
-                self._analyze_roles(data, result)
-            elif analysis_type == "怪物难度":
-                self._analyze_monsters(data, result)
-        except Exception as e:
-            self.logger.error(f"分析失败: {e}", exc_info=True)
-            result.append(f"分析过程中发生错误: {e}")
-
-        self.result_text.setText("".join(result))
-
     def _analyze_skills(self, data: dict[str, Any], result: list[str]):
         """分析技能平衡性"""
         skills = data.get('skills', [])

@@ -73,9 +73,9 @@ class ComprehensiveDataValidator:
 
         # 检查必填字段（根据数据类型动态调整）
         required_fields = self._get_required_fields(item, field_config, data_type)
-        for field in required_fields:
-            if field not in item:
-                errors.append(f"{data_type}[{idx}]: 缺少必填字段 '{field}'")
+        for req_field in required_fields:
+            if req_field not in item:
+                errors.append(f"{data_type}[{idx}]: 缺少必填字段 '{req_field}'")
 
         # 验证字段值类型
         for field in field_config:

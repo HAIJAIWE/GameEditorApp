@@ -9,7 +9,7 @@ from datetime import datetime
 import json
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 import uuid
 
 from common.logger import get_logger
@@ -460,7 +460,7 @@ class CeshuManager:
             # P10: 导出完整版本链
             root_id = model.parent_id or model.ceshu_id
             versions = self.list_versions(library, root_id)
-            chain_data = {
+            chain_data: dict[str, Any] = {
                 "_export_meta": {
                     "export_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                     "source_library": library,

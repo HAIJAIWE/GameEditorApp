@@ -7,9 +7,9 @@ import webbrowser
 
 from common.logger import get_logger
 from core.agent.skill_protocol import BaseSkill
+from core.agent.skills.common import normalize_params
 
 logger = get_logger()
-from core.agent.skills.common import normalize_params
 
 
 class UIPreviewSkill(BaseSkill):
@@ -107,9 +107,9 @@ class UIPreviewSkill(BaseSkill):
             try:
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 sock.settimeout(0.5)
-                result = sock.connect_ex(("127.0.0.1", port))
+                connect_code = sock.connect_ex(("127.0.0.1", port))
                 sock.close()
-                if result == 0:
+                if connect_code == 0:
                     exist_url = f"http://localhost:{port}"
                     if not any(s["url"] == exist_url for s in servers):
                         servers.append({"url": exist_url, "port": port, "pid": "?"})
@@ -132,7 +132,7 @@ class UIPreviewSkill(BaseSkill):
             if size:
                 info_parts.append(f"尺寸: {size.width()}x{size.height()}")
 
-            children = getattr(main_win, "children", lambda: [])()
+            children: list = getattr(main_win, "children", lambda: [])()
             if children:
                 widgets = []
                 for child in children:

@@ -106,13 +106,17 @@ class WordStatsDialog(QDialog):
         self._table = QTableWidget()
         self._table.setColumnCount(5)
         self._table.setHorizontalHeaderLabels(["章节", "字数", "工业级标准", "完成度", "建议"])
-        self._table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self._table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
-        self._table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
-        self._table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
-        self._table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
+        hheader = self._table.horizontalHeader()
+        vheader = self._table.verticalHeader()
+        assert hheader is not None
+        assert vheader is not None
+        hheader.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        hheader.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        hheader.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        hheader.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        hheader.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
         self._table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        self._table.verticalHeader().setVisible(False)
+        vheader.setVisible(False)
         layout.addWidget(self._table, 1)
 
         # 总进度条

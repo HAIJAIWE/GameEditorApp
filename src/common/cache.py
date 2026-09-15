@@ -192,7 +192,7 @@ def lru_cache(maxsize: int = 128) -> Callable:
             cache.put(cache_key, result)
             return result
 
-        wrapper.cache = cache
+        object.__setattr__(wrapper, "cache", cache)  # wraps 包装后类型无此属性，动态绑定（B010 豁免：需避开 attr 属性声明冲突）
         return wrapper
     return decorator
 
@@ -229,7 +229,7 @@ def timed_cache(ttl: int = 300) -> Callable:
             cache.put(cache_key, result)
             return result
 
-        wrapper.cache = cache
+        object.__setattr__(wrapper, "cache", cache)  # wraps 包装后类型无此属性，动态绑定（B010 豁免：需避开 attr 属性声明冲突）
         return wrapper
     return decorator
 

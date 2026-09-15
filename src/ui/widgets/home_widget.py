@@ -3,15 +3,24 @@ from common.logger import get_logger
 
 logger = get_logger()
 
-import json
-from pathlib import Path
+import json  # noqa: E402  # 延迟导入：保持 logger 初始化后的导入顺序
+from pathlib import Path  # noqa: E402  # 延迟导入：保持 logger 初始化后的导入顺序
 
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal
-from PyQt6.QtGui import QFont
-from PyQt6.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QPushButton, QSizePolicy, QVBoxLayout, QWidget
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal  # noqa: E402  # 延迟导入：保持导入顺序
+from PyQt6.QtGui import QFont  # noqa: E402  # 延迟导入：保持导入顺序
+from PyQt6.QtWidgets import (  # noqa: E402  # 延迟导入：避免模块级循环导入
+    QFrame,
+    QGridLayout,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
+)
 
-from common.event_bus import EventBus
-from ui.themes import theme_color
+from common.event_bus import EventBus  # noqa: E402  # 延迟导入：避免模块级循环导入
+from ui.themes import theme_color  # noqa: E402  # 延迟导入：避免模块级循环导入
 
 DATA_TYPE_LABELS = {
     "role": "角色", "job": "职业", "monster": "怪物",

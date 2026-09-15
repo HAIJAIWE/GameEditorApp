@@ -3,7 +3,7 @@
 > 📌 **这是什么**：面向开发者的技术文档，描述策划书模块的架构、核心数据结构、关键 API 与扩展方法。
 > **什么时候用**：二次开发、添加新章节/导出格式/AI 功能/校验规则，或阅读源码时查阅。
 
-> 版本: v5.0 | 核心模块: `src/core/ceshu/` (18 文件) | UI 模块: `src/ui/ceshu/` (28 文件)
+> 版本: v5.1 | 核心模块: `src/core/ceshu/` (21 文件) | UI 模块: `src/ui/ceshu/` (35 文件)
 
 ---
 
@@ -64,13 +64,16 @@
         └── 都依赖 ceshu_export_common（公用工具）
 ```
 
-### 核心模块清单（18 个文件）
+### 核心模块清单（21 个文件）
 
 | 文件 | 职责 | 主要类/函数 |
 |------|------|-------------|
 | [__init__.py](../src/core/ceshu/__init__.py) | 模块导出 | （包初始化） |
-| [ceshu_model.py](../src/core/ceshu/ceshu_model.py) | 18 章数据模型 | `CeshuModel` / `CHAPTER_KEYS` / `CHAPTER_LABELS` / `CHAPTER_REQUIRED_FIELDS` |
-| [ceshu_constants.py](../src/core/ceshu/ceshu_constants.py) | 常量定义 | `SYSTEM_LABELS` / `SYSTEM_CONFIG_SCHEMA` / `SYSTEM_DEPENDENCIES` / `MODULE_SYSTEM_RECOMMENDATIONS` / `HYBRID_GAMEPLAY_PRESETS` |
+| [ceshu_model.py](../src/core/ceshu/ceshu_model.py) | 18 章数据模型 | `CeshuModel` / `CHAPTER_KEYS` / `CHAPTER_LABELS` / `CHAPTER_REQUIRED_FIELDS` / `gdd_scope` / `visible_chapter_keys` |
+| [ceshu_constants.py](../src/core/ceshu/ceshu_constants.py) | 常量定义 | `GDD_SCOPE_LITE` / `GDD_SCOPE_FULL` / `BASE_CHAPTER_KEYS` / `INDUSTRIAL_CHAPTER_KEYS`（档位章节分组） / `SYSTEM_LABELS` / `SYSTEM_CONFIG_SCHEMA` / `SYSTEM_DEPENDENCIES` / `MODULE_SYSTEM_RECOMMENDATIONS` / `HYBRID_GAMEPLAY_PRESETS` |
+| [ceshu_validation.py](../src/core/ceshu/ceshu_validation.py) | 校验规则（v5.1 独立抽离） | `validate_ceshu` |
+| [ceshu_fill.py](../src/core/ceshu/ceshu_fill.py) | 空必填字段自动填充 | `auto_fill_required_fields` |
+| [ceshu_migration.py](../src/core/ceshu/ceshu_migration.py) | v4→v5 迁移逻辑 | `migrate_v4_to_v5` |
 | [ceshu_manager.py](../src/core/ceshu/ceshu_manager.py) | CRUD 管理 | `CeshuManager` |
 | [ceshu_template.py](../src/core/ceshu/ceshu_template.py) | 模板加载 | `CeshuTemplate` |
 | [ceshu_data_sync.py](../src/core/ceshu/ceshu_data_sync.py) | 双向同步 | `CeshuDataSync` |
@@ -87,18 +90,20 @@
 | [ceshu_html_exporter.py](../src/core/ceshu/ceshu_html_exporter.py) | HTML 导出（N12） | `export_ceshu_to_html` |
 | [ceshu_excel_exporter.py](../src/core/ceshu/ceshu_excel_exporter.py) | Excel 导出（N16） | `export_ceshu_to_excel` |
 
-### UI 模块清单（28 个文件）
+### UI 模块清单（35 个文件）
 
 按功能分组：
 
-- **首页与编辑视图**：`home_view.py` / `home_card.py` / `editor_view.py` / `chapter_panel.py` / `preview_panel.py` / `ceshu_theme.py`
-- **章节表单**：`chapter_forms.py`（17 个章节表单类）
+- **首页与编辑视图**：`home_view.py` / `home_card.py` / `editor_view.py` / `editor_view_mixins.py` / `editor_view_workers.py` / `chapter_panel.py` / `preview_panel.py` / `ceshu_theme.py`
+- **章节表单**：`chapter_forms/`（`_base.py` / `_common.py` / `_industrial.py`，聚合各章节表单类）
 - **游戏系统**：`systems_editor.py` / `system_confirm_dialog.py` / `system_dependency_graph.py`
-- **AI 面板**：`ai_panel.py` / `ai_field_button.py` / `ai_full_generate_dialog.py` / `ai_review_dialog.py`
+- **AI 面板**：`ai_panel.py` / `ai_field_button.py` / `ai_full_generate_dialog.py` / `ai_data_generate_dialog.py`（N20） / `ai_review_dialog.py`
 - **版本管理**：`version_diff_dialog.py` / `version_timeline_dialog.py` / `changelog_dialog.py`
 - **校验与评分**：`validation_dialog.py` / `score_report_dialog.py` / `word_stats_dialog.py` / `checklist_dialog.py`
 - **模板**：`template_picker_dialog.py` / `template_editor_dialog.py` / `chapter_templates.py` / `preset_market_dialog.py`
 - **其他**：`field_dependency_graph.py` / `chapter_notes.py` / `competitive_chart.py`
+
+> **渲染健壮性**：章节表单的列表字段（`tags` / `game_modes` / `platform` 等）统一走 `chapter_forms/_base.py` 的 `_join_items()` 转换文本——dict 元素取 `name`/`label`/`title`，其余兜底 JSON/字符串序列化，防止 AI 数据或历史数据混入 dict 元素导致 `"\n".join` 崩溃。
 
 ---
 
@@ -107,6 +112,15 @@
 ### 3.1 CeshuModel 18 章字段定义
 
 完整定义见 [ceshu_model.py](../src/core/ceshu/ceshu_model.py)。下面列出关键章节的字段结构。
+
+#### 档位（gdd_scope）
+
+`gdd_scope` 以 **property** 形式实现（`CeshuModel.gdd_scope`），持久化于 `meta["gdd_scope"]`，兼容旧策划书文件（缺失时默认 `full`）：
+
+- 取值：`GDD_SCOPE_LITE`（`"lite"`，轻量 GDD，仅基础 9 章）/ `GDD_SCOPE_FULL`（`"full"`，工业级，全部 18 章）
+- 章节分组常量：`BASE_CHAPTER_KEYS`（`CHAPTER_KEYS[:9]` 基础章）与 `INDUSTRIAL_CHAPTER_KEYS`（`CHAPTER_KEYS[9:]` 工业补充章）
+- `visible_chapter_keys()` 按档位返回可见章节：lite 只含 `BASE_CHAPTER_KEYS`，full 返回全部 `CHAPTER_KEYS`
+- `set_chapter("meta", ...)` 整体替换 meta 时会保留既有 `gdd_scope` 标记
 
 #### meta（第一章·项目元信息）
 
@@ -281,7 +295,14 @@ model.remove_system("custom_sys")
 # 自动计算 enabled_editors
 editors = model.compute_enabled_editors()  # [{"key":"battle","name":"战斗","data_type":"battle"}, ...]
 
-# 进度计算（覆盖全部 18 章）
+# 档位（property，持久化于 meta.gdd_scope）
+model.gdd_scope = "lite"      # lite=轻量 9 章 / full=工业级 18 章
+print(model.gdd_scope)        # "lite"
+
+# 按档位返回可见章节：lite → 基础 9 章；full → 全部 18 章
+visible_keys = model.visible_chapter_keys()
+
+# 进度计算（按档位可见章节计算）
 progress = model.chapter_progress()
 # {"meta": 1.0, "vision": 0.5, ..., "total": 0.42}
 
@@ -606,6 +627,15 @@ def _ai_translate(self, params, context, logger):
 self._shortcut_translate = QShortcut(QKeySequence("Ctrl+Shift+T"), self)
 self._shortcut_translate.activated.connect(self._on_ai_translate)
 ```
+
+#### AI 数据生成（ai_generate_data）实现要点
+
+“AI 数据生成”（N20，策划书数值/系统章 → 候选数据 → 预览勾选 → 人工导入）在 [ceshu_skill.py](../src/core/agent/skills/ceshu_skill.py) 的 `execute` 分支注册（action 枚举含 `ai_generate_data`，跳转 `_ai_generate_data`）：
+
+- **上下文**：prompt 携带 `meta`（游戏名/类型/定位）、`numeric`（核心公式/平衡原则/经济模型）、`systems`（启用的游戏系统名）作为生成设定背景。
+- **入参**：`data_types`（数据类型键名列表，单复数均可）、`count`（每类条数，默认 5，上限 20）、`instruction`（补充要求）。
+- **输出**：`{"success": True, "data": {"candidates": {复数键: [items]}, "generated_counts": {...}}}`——`candidates` 以复数数据类键为 key，`generated_counts` 记录每类实际生成条数。
+- 返回的候选数据仅回传给 UI（[ai_data_generate_dialog.py](../src/ui/ceshu/ai_data_generate_dialog.py)）预览勾选，经人工确认后写入 DataManager，不做自动导入。
 
 ### 5.4 如何添加新校验规则
 

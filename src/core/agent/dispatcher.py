@@ -6,7 +6,7 @@ import importlib
 import os
 from pathlib import Path
 import pkgutil
-from typing import Optional
+from typing import Any, Optional, cast
 
 from common.logger import get_logger
 from core.agent.skill_protocol import BaseSkill
@@ -90,7 +90,7 @@ class ToolDispatcher:
 
         for cls in BaseSkill.__subclasses__():
             try:
-                skill = cls()
+                skill = cast(Any, cls)()  # cls 可能是抽象子类，实例化失败由 except 捕获
                 if skill.name:
                     self.register_skill(skill)
                     count += 1
@@ -383,7 +383,8 @@ class ToolDispatcher:
         main_thread_group: list = []
         parallel_group: list = []
         for tn, tp in ordered:
-            skill = self._skills.get(self.fuzzy_match(tn))
+            matched = self.fuzzy_match(tn)
+            skill = self._skills.get(matched) if matched else None
             if skill is not None and getattr(skill, "REQUIRES_MAIN_THREAD", False):
                 main_thread_group.append((tn, tp))
             else:

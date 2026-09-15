@@ -6,7 +6,7 @@ import json
 import os
 from pathlib import Path
 import sys
-from typing import Optional
+from typing import Any, Optional
 
 from common.logger import get_logger
 
@@ -23,7 +23,7 @@ class Plugin:
         self.skills = skills or []
         self.agents = agents or []
         self.commands = commands or []
-        self._module = None
+        self._module: Optional[Any] = None  # 加载成功后被赋值为模块对象
         self.loaded = False
 
     def to_dict(self) -> dict:

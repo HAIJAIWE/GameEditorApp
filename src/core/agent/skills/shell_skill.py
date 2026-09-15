@@ -41,7 +41,7 @@ def _validate_command(command: str) -> tuple:
     if not parts:
         return False, "命令解析为空"
     executable = parts[0].lower()
-    base = os.path.basename(executable).lower().rstrip(".exe").rstrip(".com")
+    base = os.path.splitext(os.path.basename(executable).lower())[0]
     if base not in _SAFE_COMMANDS:
         return False, f"命令 '{base}' 不在安全白名单中。允许的命令: {', '.join(sorted(_SAFE_COMMANDS))[:200]}"
     return True, parts
@@ -51,7 +51,7 @@ class ShellSkill(BaseSkill):
     name = "system.shell"
     description = "命令行执行: exec/bg/status/stop/list/sandbox/python"
     version = "2.2.0"
-    parameters = []
+    parameters: list = []
 
     PARAMS_SCHEMA = {
         "type": "object",
@@ -87,7 +87,7 @@ class ShellSkill(BaseSkill):
 
     tags = ["shell", "terminal", "command", "background", "process", "sandbox", "python"]
 
-    _bg_processes = {}
+    _bg_processes: dict[int, dict] = {}
     _bg_lock = threading.Lock()
     _bg_counter = 0
 
@@ -185,7 +185,7 @@ class ShellSkill(BaseSkill):
             with self._bg_lock:
                 ShellSkill._bg_counter += 1
                 pid = ShellSkill._bg_counter
-                proc.pid_label = pid
+                object.__setattr__(proc, "pid_label", pid)  # Popen 无静态 pid_label 属性，动态附加
                 ShellSkill._bg_processes[pid] = {
                     "process": proc, "command": command,
                     "cwd": cwd, "started": True

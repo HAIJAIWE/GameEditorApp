@@ -112,11 +112,12 @@ def format_file_size(size_bytes: int) -> str:
     Returns:
         格式化的大小字符串
     """
+    size: float = size_bytes
     for unit in ['B', 'KB', 'MB', 'GB']:
-        if size_bytes < 1024:
-            return f"{size_bytes:.2f} {unit}"
-        size_bytes /= 1024
-    return f"{size_bytes:.2f} TB"
+        if size < 1024:
+            return f"{size:.2f} {unit}"
+        size /= 1024
+    return f"{size:.2f} TB"
 
 
 def list_files(dir_path: Path, pattern: str = "*", recursive: bool = False) -> list[Path]:

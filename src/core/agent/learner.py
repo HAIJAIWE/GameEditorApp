@@ -16,7 +16,7 @@ class Learner:
 
     def __init__(self, memory: Memory):
         self._memory = memory
-        self._tool_log = []  # Agent OS: 工具调用日志
+        self._tool_log: list = []  # Agent OS: 工具调用日志
         self._logger = get_logger()
         self._action_counts: dict = defaultdict(int)
         self._usage_times: dict = defaultdict(list)
@@ -211,7 +211,7 @@ class Learner:
                 self._action_counts.items(), key=lambda x: x[1], reverse=True
             )[:5]
         ]
-        result = {"frequent_actions": frequent}
+        result: dict[str, Any] = {"frequent_actions": frequent}
 
         # 推荐下一个可能操作
         if self._last_action and self._last_action in self._action_transitions:

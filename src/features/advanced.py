@@ -30,7 +30,8 @@ def show_advanced_search(main_window: QMainWindow) -> None:
 def show_content_relations(main_window: QMainWindow) -> None:
     """显示内容关联"""
     from ui.dialogs.reference_panel import ReferencePanel
-    panel = ReferencePanel(main_window.data_manager, main_window)
+    dm = getattr(main_window, 'data_manager', None)
+    panel = ReferencePanel(dm, "", "", main_window)
     panel.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
     panel.show()
 
@@ -38,7 +39,8 @@ def show_content_relations(main_window: QMainWindow) -> None:
 def show_relation_visualization(main_window: QMainWindow) -> None:
     """显示关系可视化 — 基于内容关联的图形化展示"""
     from ui.dialogs.reference_panel import ReferencePanel
-    panel = ReferencePanel(main_window.data_manager, main_window)
+    dm = getattr(main_window, 'data_manager', None)
+    panel = ReferencePanel(dm, "", "", main_window)
     panel.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
     panel.show()
 
@@ -54,7 +56,7 @@ def show_attribute_charts(main_window: QMainWindow) -> None:
     from common.logger import get_logger
 
     logger = get_logger()
-    data = main_window.data_manager.data
+    data = getattr(getattr(main_window, 'data_manager', None), 'data', {})
 
     dialog = QDialog(main_window)
     dialog.setWindowTitle("📊 属性分布图表")

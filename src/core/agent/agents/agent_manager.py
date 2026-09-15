@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 import os
 
 from common.logger import get_logger
+from core.agent.prompts import STEWARD_BASE_PROMPT, TEAM_AGENTS
 
 logger = get_logger()
 
@@ -92,8 +93,6 @@ class TaskTicket:
 # ---------------------------------------------------------------------------
 # 预置智能体模板
 # ---------------------------------------------------------------------------
-
-from core.agent.prompts import STEWARD_BASE_PROMPT, TEAM_AGENTS
 
 _TOOL_OWNER_MAP: dict[str, str] = {}
 

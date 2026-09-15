@@ -4,7 +4,7 @@ from collections.abc import Callable
 import json
 from pathlib import Path
 import time
-from typing import Optional
+from typing import Any, Optional, cast
 import uuid
 
 from common.logger import get_logger
@@ -28,9 +28,9 @@ class AgentBrain:
     _SUMMARY_KEEP_LAST = 3
     _KEEP_SYSTEM_FIRST = 3
 
-    def __init__(self, data_dir: str = "", config: Optional[object] = None,
+    def __init__(self, data_dir: str = "", config: Optional[Any] = None,
                  main_window: Optional[object] = None,
-                 agent_manager: Optional[object] = None,
+                 agent_manager: Optional[Any] = None,
                  frontend_snapshot: Optional[FrontendSnapshot] = None):
         self._logger = get_logger()
         self._max_tokens = self._DEFAULT_MAX_TOKENS
@@ -132,7 +132,7 @@ class AgentBrain:
         # 1. 重载 AI 配置
         try:
             from core.agent.workspace import get_workspace
-            ws = get_workspace()
+            ws = cast(Any, get_workspace())
             api_cfg = ws.load_settings("api_config")
             if api_cfg and self._config:
                 if api_cfg.get("model"):
@@ -149,7 +149,7 @@ class AgentBrain:
         if self._agent_manager:
             try:
                 ws = get_workspace() if 'ws' not in dir() else ws
-                ws_reload = get_workspace()
+                ws_reload = cast(Any, get_workspace())
                 agents_cfg = ws_reload.load_settings("agents")
                 if agents_cfg:
                     self._logger.info("[HotReload] Agent定义从配置加载（暂简化）")
@@ -158,7 +158,7 @@ class AgentBrain:
 
         # 3. 重载身份/人格
         try:
-            ws2 = get_workspace()
+            ws2 = cast(Any, get_workspace())
             identity = ws2.load_identity()
             ws2.load_persona()
             self._logger.info(f"[HotReload] 身份/人格已更新 ({identity.get('name','?')})")
@@ -334,7 +334,7 @@ class AgentBrain:
     @staticmethod
     def _categorize_failure_patterns(failures: list) -> dict:
         """Agent OS §8: 失败模式归类"""
-        patterns = {}
+        patterns: dict[str, Any] = {}
         for f in failures:
             err = str(f.get("error", "")).lower()
             tool = f.get("tool", "unknown")
@@ -525,7 +525,7 @@ class AgentBrain:
         Returns:
             {step_num: result_text}
         """
-        results = {}
+        results: dict[str, Any] = {}
         steps_remaining = list(steps)
         replan_count = 0
         plan_goal = context.get("_plan", {}).get("goal", "")
@@ -814,7 +814,7 @@ class AgentBrain:
                             callback, plan_id: str, plan_text: Optional[str]) -> dict:
         """LLM 迭代循环 — 推理→决策→执行→反思（最多 _max_iterations 轮）"""
         tool_schemas = self.dispatcher.get_tools_json_schema()
-        all_results = {}
+        all_results: dict[str, Any] = {}
         think_log = []
         use_stream = callback is not None
         self._perf.start_session(plan_id)
@@ -1042,7 +1042,7 @@ class AgentBrain:
         if callback:
             callback("step_start", {"order": iteration, "tool": f"并行{len(tool_requests)}工具"})
 
-        for tid, tn, tp in tool_requests:
+        for _tid, tn, tp in tool_requests:
             if self._check_dangerous(tn, tp, context, messages, all_results, iteration):
                 return
 
@@ -1323,8 +1323,8 @@ class AgentBrain:
         learnings = self.memory.get_recent_learnings(3)
         if learnings:
             learn_lines = ["## 历史经验（请参考以避免重复错误）"]
-            for l in learnings:
-                learn_lines.append(f"- [{l.get('category','?')}] {l.get('content','')[:120]}")
+            for learning in learnings:
+                learn_lines.append(f"- [{learning.get('category','?')}] {learning.get('content','')[:120]}")
             learn_ctx = "\n".join(learn_lines) + "\n\n"
         else:
             learn_ctx = ""
@@ -1453,7 +1453,7 @@ class AgentBrain:
         result = self.dispatcher.execute(intent.action, params, context)
         self.learner.observe(intent, result, None)
         self.intent_parser.learn_from_execution(
-            intent.action, result.get("success", False), user_input
+            intent.action, bool(result.get("success", False)), user_input
         )
 
         if callback:

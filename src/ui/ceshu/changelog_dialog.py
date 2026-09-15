@@ -241,6 +241,7 @@ class ChangelogDialog(QDialog):
             QMessageBox.information(self, "生成", "请选择两个不同的版本")
             return
         try:
+            assert self._manager is not None
             old_model = self._manager.get_ceshu(from_id, self._library)
             new_model = self._manager.get_ceshu(to_id, self._library)
         except Exception as e:
@@ -267,6 +268,7 @@ class ChangelogDialog(QDialog):
             QMessageBox.information(self, "生成全部", "版本数不足，至少需要 2 个版本")
             return
         try:
+            assert self._manager is not None  # _manager 缺失时由下方 except 捕获并提示
             self._changelog = generate_changelog(
                 self._versions, self._manager, self._library,
             )

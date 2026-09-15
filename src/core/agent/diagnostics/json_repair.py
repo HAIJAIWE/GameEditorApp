@@ -2,9 +2,9 @@ from common.logger import get_logger
 
 logger = get_logger()
 
-import json as _json
-import re
-from typing import Optional
+import json as _json  # noqa: E402  # logger 前置初始化后再导入的既有模式
+import re  # noqa: E402  # logger 前置初始化后再导入的既有模式
+from typing import Optional  # noqa: E402  # logger 前置初始化后再导入的既有模式
 
 
 def parse_agent_output(raw: str) -> Optional[dict]:

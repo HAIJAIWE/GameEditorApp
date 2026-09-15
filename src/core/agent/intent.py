@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Optional
+from typing import Optional, cast
 
 from common.logger import get_logger
 from core.agent.models import Intent
@@ -141,8 +141,9 @@ class IntentParser:
                     if cnt >= 3 and w not in boosts
                 ]
                 if confirmed_words:
-                    template = (action, keywords, boosts + confirmed_words)
-                    idx = _INTENT_TEMPLATES.index((action, keywords, boosts, new_weight if 'new_weight' in dir() else base_weight))
+                    # 将新确认词并入 boosts，同时保留原权重，构成标准四元组
+                    template = (action, keywords, boosts + confirmed_words, new_weight if 'new_weight' in dir() else base_weight)
+                    idx = _INTENT_TEMPLATES.index(template)
                     _INTENT_TEMPLATES[idx] = template
                     for w in confirmed_words:
                         del stats["novel_words"][w]
@@ -198,7 +199,7 @@ class IntentParser:
                     kw_score += 1
                     matched_kw.append(kw)
 
-            boost_score = 0
+            boost_score: float = 0.0
             for bk in boosts:
                 if bk.lower() in text:
                     boost_score += 0.3
@@ -245,7 +246,7 @@ class IntentParser:
 
         best_params = {"quick_match": True}
         params = self._extract_params(user_input, best_action, best_params)
-        alternatives = sorted(alternatives, key=lambda x: x["score"], reverse=True)[:3]
+        alternatives = sorted(alternatives, key=lambda x: cast(float, x["score"]), reverse=True)[:3]
 
         return Intent(
             action=best_action,

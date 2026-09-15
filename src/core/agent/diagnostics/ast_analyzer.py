@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import ast
+import builtins
 import os as _os
 from typing import Optional
 
@@ -40,7 +41,7 @@ class ASTModuleInfo:
         # name → 最后一次使用它的行号（用于跨模块缺失导入检测）
         self._name_usage: dict[str, int] = {}
         self.issues: list[ASTIssue] = []
-        self.ast_tree = None
+        self.ast_tree: Optional[ast.AST] = None
 
 
 class ASTProjectAnalyzer:
@@ -103,7 +104,7 @@ class ASTProjectAnalyzer:
         known_names |= set(mod.from_imports.keys())
 
         for name, lineno in getattr(mod, '_name_usage', {}).items():
-            if name not in known_names and name not in __builtins__:
+            if name not in known_names and name not in dir(builtins):
                 found = self._search_definition(name)
                 if found:
                     issues.append(ASTIssue(
@@ -153,7 +154,7 @@ class ASTProjectAnalyzer:
 
             if mod.imports or mod.from_imports:
                 lines.append("\n   导入:")
-                for name, source in mod.imports.items():
+                for source in mod.imports.values():
                     lines.append(f"    import {source}")
                 for name, source in mod.from_imports.items():
                     lines.append(f"    from {source} import {name}")

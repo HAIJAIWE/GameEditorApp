@@ -657,9 +657,10 @@ class VersionDiffDialog(QDialog):
 
         # 默认展开有变更的章节
         for i in range(self._tree.topLevelItemCount()):
-            ch_item = self._tree.topLevelItem(i)
+            top = self._tree.topLevelItem(i)
             ch_diff = self._diff.chapter_diffs[i]
-            ch_item.setExpanded(ch_diff.has_changes)
+            if top is not None:
+                top.setExpanded(ch_diff.has_changes)
 
     def _iter_changed_renders(self, ch: ChapterDiff, max_len: int) -> list[FieldRender]:
         """生成章节内所有变更字段的渲染数据。
@@ -812,6 +813,7 @@ class VersionDiffDialog(QDialog):
             Markdown 格式的多行字符串。
         """
         d = self._diff
+        assert d is not None
         lines = [
             "# 版本对比报告",
             "",

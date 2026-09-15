@@ -157,7 +157,7 @@ class EditorPreviewPanel(QWidget):
                 # 创建真实的数据编辑器 Tab
                 try:
                     from ui.data_tab import DataEditorTab
-                    tab = DataEditorTab(data_type, self._data_manager, parent=self)
+                    tab: QWidget = DataEditorTab(data_type, self._data_manager, parent=self)
                     self._editor_tabs[editor_key] = tab
                     self._tabs.addTab(tab, name)
                     continue

@@ -2,12 +2,12 @@ from common.logger import get_logger
 
 logger = get_logger()
 
-import json
-from pathlib import Path
+import json  # noqa: E402  # 延迟导入：保持 logger 初始化后的导入顺序
+from pathlib import Path  # noqa: E402  # 延迟导入：保持 logger 初始化后的导入顺序
 
-from PyQt6.QtCore import QTime
+from PyQt6.QtCore import QTime  # noqa: E402  # 延迟导入：避免模块级循环导入
 
-from config.constants import WINDOW_TITLE
+from config.constants import WINDOW_TITLE  # noqa: E402  # 延迟导入：避免模块级循环导入
 
 
 class WindowStateManager:

@@ -224,27 +224,21 @@
 
 ---
 
-## 8. 部署层 `src/deployment/`
+## 8. 部署 / 构建（原 `src/deployment/` 已移除）
 
-| 文件 | 职责 |
+> `src/deployment/`（database/version_manager/config_center/observability/message_queue/local_adapter）在引用核验中属于**零引用的孤儿模块**，已整体删除；打包、发布能力保留在 `scripts/` 与 CI：
+
+| 路径 | 职责 |
 |------|------|
-| `database.py` | 数据库管理（抽象底层存储） |
-| `version_manager.py` | 版本管理/升级 |
-| `config_center/config_manager.py` | 配置中心（集中管理应用配置） |
-| `observability/metrics.py` | 可观测性指标（与监控集成） |
-| `local_adapter.py` | 本地文件/数据适配 |
-| `message_queue.py` | 消息队列（异步任务分发） |
+| `scripts/launch.bat` | Windows 启动脚本（优先使用 `.venv`） |
+| `scripts/build.bat` | Windows 打包脚本（PyArmor 加密 + PyInstaller） |
+| `.github/workflows/` | CI（`ci.yml`：ruff/mypy/pytest 覆盖率 30% 门槛/安全性审计/e2e）+ 发布（`release.yml`） |
 
 ---
 
-## 9. 测试层 `src/testing/`
+## 9. 产品内测试工具（原 `src/testing/` 已移除）
 
-| 文件 | 职责 |
-|------|------|
-| `auto_evaluator.py` | Agent 自动评测 |
-| `benchmark_tests.py` | 基准性能测试 |
-| `feedback_dashboard.py` | 反馈仪表盘 |
-| `scenario_tester.py` | 场景化测试器 |
+> `src/testing/`（benchmark_tests/auto_evaluator/feedback_dashboard/scenario_tester）同样为孤儿模块（仅被硬编码同名测试文件引用、无产品入口），已删除；Agent/自愈相关的行为评测由 `tests/integration/` 覆盖。
 
 ---
 

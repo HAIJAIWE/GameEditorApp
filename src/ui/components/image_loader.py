@@ -57,7 +57,7 @@ class LazyImageLoader(QObject):
 
     MAX_CACHE_SIZE = 50
     MAX_CACHE_BYTES = 100 * 1024 * 1024  # 100MB 字节上限
-    _instances = []
+    _instances: list[LazyImageLoader] = []
     _loaded_signal = pyqtSignal(str, object, object)
 
     def __init__(self):

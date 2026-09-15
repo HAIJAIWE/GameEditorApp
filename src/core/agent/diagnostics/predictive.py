@@ -16,10 +16,10 @@ from common.logger import get_logger
 
 logger = get_logger()
 
-from collections import Counter
-import threading
-import time
-from typing import Any, Optional
+from collections import Counter  # noqa: E402  # logger 前置初始化后再导入的既有模式
+import threading  # noqa: E402  # logger 前置初始化后再导入的既有模式
+import time  # noqa: E402  # logger 前置初始化后再导入的既有模式
+from typing import Any, Optional  # noqa: E402  # logger 前置初始化后再导入的既有模式
 
 
 class WarningPattern:
@@ -107,8 +107,8 @@ class PredictiveHealer:
         if not error_logs:
             return {"trend": "stable", "prediction": "无历史数据"}
 
-        by_hour = Counter()
-        by_type = Counter()
+        by_hour: Counter[int] = Counter()
+        by_type: Counter[str] = Counter()
         recent = []
 
         for entry in error_logs[-50:]:
@@ -166,7 +166,7 @@ class LearningDB:
 
     def __init__(self, db_path: str = "repair_learning.db"):
         self._db_path = db_path
-        self._conn = None
+        self._conn: Optional[Any] = None
         # 修复 P2-30: sqlite3 默认 check_same_thread=True，跨线程访问必崩
         # 改为 False + 全方法加锁，保证 worker 线程能安全调用
         self._lock = threading.Lock()

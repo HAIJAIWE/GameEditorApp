@@ -77,6 +77,12 @@ CHAPTER_REQUIRED_FIELDS = {
     "accessibility":    ["language_list", "accessibility_features"],
 }
 
+# --- 档位（d2 复杂度收敛）：轻量 GDD 只含基础 9 章，工业级含全部 18 章 ---
+BASE_CHAPTER_KEYS = list(CHAPTER_KEYS[:9])
+INDUSTRIAL_CHAPTER_KEYS = list(CHAPTER_KEYS[9:])
+GDD_SCOPE_FULL = "full"
+GDD_SCOPE_LITE = "lite"
+
 
 # --- 基础 9 章默认值（保留旧字段语义） ---
 
@@ -362,6 +368,8 @@ class CeshuModel:
     style: str = ""                    # 风格 (xianxia/sci-fi/realistic/wuxia/post_apoc/...)
     module_type: str = ""              # 模块类型 (rpg/slg/moba/fps/...)
 
+    # 档位（d2: lite=轻量 9 章 / full=工业级 18 章）以 property 形式持久化在 meta.gdd_scope
+
     # 基础 9 章
     meta: dict = field(default_factory=_default_meta)
     vision: dict = field(default_factory=_default_vision)
@@ -536,6 +544,11 @@ class CeshuModel:
     def set_chapter(self, key: str, value: dict) -> None:
         """设置指定章节的数据"""
         if key in CHAPTER_KEYS:
+            if key == "meta" and isinstance(value, dict):
+                # 表单整体替换 meta 时保留档位标记（d2: gdd_scope 持久化在 meta 中）
+                scope = self.meta.get("gdd_scope") if isinstance(self.meta, dict) else None
+                if scope and "gdd_scope" not in value:
+                    value.setdefault("gdd_scope", scope)
             setattr(self, key, value)
 
     def get_system(self, name: str) -> Optional[dict]:
@@ -560,10 +573,29 @@ class CeshuModel:
 
     # --- 进度与校验 ---
 
+    def visible_chapter_keys(self) -> list[str]:
+        """按档位返回可见章节：lite 只含基础 9 章，full 含全部 18 章。"""
+        if self.gdd_scope == GDD_SCOPE_LITE:
+            return list(BASE_CHAPTER_KEYS)
+        return list(CHAPTER_KEYS)
+
+    @property
+    def gdd_scope(self) -> str:
+        """档位（full/lite），持久化在 meta.gdd_scope 以兼容旧版本策划书文件。"""
+        meta = getattr(self, "meta", None)
+        return meta.get("gdd_scope", GDD_SCOPE_FULL) if isinstance(meta, dict) else GDD_SCOPE_FULL
+
+    @gdd_scope.setter
+    def gdd_scope(self, value: str) -> None:
+        meta = getattr(self, "meta", None)
+        if isinstance(meta, dict):
+            meta["gdd_scope"] = value
+
     def chapter_progress(self) -> dict:
-        """计算每章完成度（0.0~1.0）和总进度（覆盖全部 18 章）"""
+        """计算每章完成度（0.0~1.0）和总进度（按档位可见章节计算）"""
+        visible = self.visible_chapter_keys()
         progress = {}
-        for key in CHAPTER_KEYS:
+        for key in visible:
             data = getattr(self, key, {})
             if key == "systems":
                 # 游戏系统按 enabled 数量计算
@@ -581,7 +613,7 @@ class CeshuModel:
                     filled = sum(1 for f in required if data.get(f))
                     pct = filled / len(required)
             progress[key] = round(pct, 2)
-        progress["total"] = round(sum(progress[k] for k in CHAPTER_KEYS) / len(CHAPTER_KEYS), 2)
+        progress["total"] = round(sum(progress[k] for k in visible) / len(visible), 2)
         return progress
 
     def validate(self) -> list:

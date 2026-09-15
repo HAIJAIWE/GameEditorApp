@@ -187,8 +187,10 @@ class CeshuHomeView(QWidget):
         # 刷新最近打开按钮
         for i in range(self._recent_layout.count()):
             item = self._recent_layout.itemAt(i)
-            if item and item.widget() and isinstance(item.widget(), QPushButton):
-                item.widget().setStyleSheet(ceshu_home_recent_btn_qss())
+            if item:
+                w = item.widget()
+                if w is not None and isinstance(w, QPushButton):
+                    w.setStyleSheet(ceshu_home_recent_btn_qss())
 
     def _on_theme_changed(self, **_) -> None:
         """主题切换回调"""
@@ -219,8 +221,10 @@ class CeshuHomeView(QWidget):
         # 清空网格
         while self._card_grid.count():
             item = self._card_grid.takeAt(0)
-            if item.widget():
-                item.widget().setParent(None)
+            if item:
+                w = item.widget()
+                if w is not None:
+                    w.setParent(None)
 
         cols = 4
         for i, info in enumerate(ceshus):
@@ -246,8 +250,10 @@ class CeshuHomeView(QWidget):
         """渲染最近打开列表"""
         while self._recent_layout.count():
             item = self._recent_layout.takeAt(0)
-            if item.widget():
-                item.widget().setParent(None)
+            if item:
+                w = item.widget()
+                if w is not None:
+                    w.setParent(None)
 
         for info in recents[:5]:
             btn = QPushButton(f"{info.get('name', '?')[:12]}")
@@ -317,29 +323,73 @@ class CeshuHomeView(QWidget):
             self.load_ceshu_list()
             self.ceshu_opened.emit(model.ceshu_id, self._library)
 
-    def _show_template_dialog(self) -> None:
+    def _show_template_dialog(self, scope: str = "full") -> None:
         """显示模板选择对话框"""
         names = self._template.list_template_names()
         if not names:
             QMessageBox.information(self, get_i18n().t("common.info"), "暂无可用模板。请先创建模板文件。")
-            self._create_blank()
+            self._create_blank(scope)
             return
         selected, ok = QInputDialog.getItem(
             self, get_i18n().t("ceshu.select_template"), "请选择游戏类型模板：", names, 0, False)
         if ok and selected:
-            self._create_from_template(selected)
+            self._create_from_template(selected, scope)
 
-    def _create_blank(self) -> None:
+    def _create_blank(self, scope: str = "full") -> None:
+        from core.ceshu.ceshu_model import GDD_SCOPE_FULL, GDD_SCOPE_LITE
+
         mgr = self._get_manager()
         model = mgr.create_ceshu(self._library)
+        model.gdd_scope = scope if scope in (GDD_SCOPE_LITE, GDD_SCOPE_FULL) else GDD_SCOPE_FULL
+        mgr.save_ceshu(model, self._library)
         self.load_ceshu_list()
         self.ceshu_opened.emit(model.ceshu_id, self._library)
 
-    def _create_from_template(self, template_name: str) -> None:
+    def _create_from_template(self, template_name: str, scope: str = "full") -> None:
+        from core.ceshu.ceshu_model import GDD_SCOPE_FULL, GDD_SCOPE_LITE
+
         mgr = self._get_manager()
         model = mgr.create_ceshu(self._library, template_name)
+        model.gdd_scope = scope if scope in (GDD_SCOPE_LITE, GDD_SCOPE_FULL) else GDD_SCOPE_FULL
+        mgr.save_ceshu(model, self._library)
         self.load_ceshu_list()
         self.ceshu_opened.emit(model.ceshu_id, self._library)
+
+    # ── d2: AI 生成新建入口 ──
+
+    def _start_ai_full_generate(self, scope: str = "full") -> None:
+        """打开 AI 一键生成对话框：生成完成后按所选档位创建新策划书。"""
+        from .ai_full_generate_dialog import AIFullGenerateDialog
+
+        self._pending_ai_scope = scope
+        dlg = AIFullGenerateDialog(parent=self)
+        dlg.generation_completed.connect(self._apply_ai_generated_new)
+        dlg.exec()
+
+    def _apply_ai_generated_new(self, chapters_data: dict) -> None:
+        """AI 生成完成 → 创建新策划书并应用生成内容。"""
+        from core.ceshu.ceshu_model import BASE_CHAPTER_KEYS, CHAPTER_KEYS, GDD_SCOPE_LITE
+
+        from .ai_full_generate_dialog import _apply_chapter_to_model
+
+        scope = getattr(self, "_pending_ai_scope", "full")
+        keys = BASE_CHAPTER_KEYS if scope == GDD_SCOPE_LITE else CHAPTER_KEYS
+        mgr = self._get_manager()
+        model = mgr.create_ceshu(self._library)
+        model.gdd_scope = scope
+        applied = 0
+        for ch in keys:
+            data = chapters_data.get(ch)
+            if isinstance(data, dict):
+                _apply_chapter_to_model(model, ch, data)
+                applied += 1
+        mgr.save_ceshu(model, self._library)
+        self.load_ceshu_list()
+        self.ceshu_opened.emit(model.ceshu_id, self._library)
+        QMessageBox.information(
+            self, "已创建策划书",
+            f"已根据 AI 生成内容创建策划书（应用了 {applied} 章内容，档位："
+            f"{'轻量 9 章' if scope == GDD_SCOPE_LITE else '工业级 18 章'}）。")
 
     def _on_card_clicked(self, ceshu_id: str) -> None:
         """卡片点击 → 高亮选中 + 发射打开信号"""
@@ -367,10 +417,10 @@ class CeshuHomeView(QWidget):
         parent = self.parentWidget()
         while parent and not hasattr(parent, 'digital_panel'):
             parent = parent.parentWidget()
-        if not parent or not parent.digital_panel:
+        if not parent or not parent.digital_panel:  # type: ignore[attr-defined]  # digital_panel 由 MainWindow 在运行时注入
             QMessageBox.warning(self, "提示", "AI 面板未就绪，请稍后再试。")
             return
-        dp = parent.digital_panel
+        dp = parent.digital_panel  # type: ignore[attr-defined]  # digital_panel 由 MainWindow 在运行时注入
         # 加引导前缀，让 AI 进入多轮提问模式
         guided_text = (
             f"[策划书生成] {text}\n\n"

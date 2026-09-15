@@ -130,7 +130,6 @@ class SchedulerSkill(BaseSkill):
                     val = psutil.disk_usage("/").percent
                 elif target == "gpu":
                     try:
-                        import json
                         import subprocess
                         r = subprocess.run(
                             ["nvidia-smi", "--query-gpu=temperature.gpu", "--format=csv,noheader,nounits"],

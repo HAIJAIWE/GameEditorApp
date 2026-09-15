@@ -5,10 +5,10 @@ import json
 
 from common.logger import get_logger
 from core.agent.skill_protocol import BaseSkill
-
-logger = get_logger()
 from core.agent.skills.common import normalize_params
 from core.editor_layout import EditorLayout
+
+logger = get_logger()
 
 
 class EditorLayoutSkill(BaseSkill):

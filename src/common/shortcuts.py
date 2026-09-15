@@ -54,6 +54,7 @@ DEFAULT_SHORTCUTS: dict[str, Shortcut] = {
 
 class ShortcutManager:
     _instance: Optional[ShortcutManager] = None
+    _initialized: bool = False
 
     def __new__(cls):
         if cls._instance is None:

@@ -19,7 +19,7 @@ from common.logger import get_logger
 from config.settings import get_config
 
 logger = get_logger()
-from features._ai_dialog import (  # noqa: F401  # re-export，供 tests/test_ai_parsing 等外部模块导入
+from features._ai_dialog import (  # noqa: F401, E402  # re-export，供 tests/test_ai_parsing 等外部模块导入；延迟导入避免循环导入
     AIGenerateDialog,
     AIGenerateThread,
     find_matching_brace,
@@ -528,7 +528,7 @@ def _build_field_prompt(data_type: str) -> tuple:
                 if not fields:
                     break
                 desc_lines = []
-                json_obj = {"name": "string — 名称"}
+                json_obj: dict[str, Any] = {"name": "string — 名称"}
                 for f in fields:
                     fname = f["name"]
                     flabel = f.get("label", fname).rstrip(":")

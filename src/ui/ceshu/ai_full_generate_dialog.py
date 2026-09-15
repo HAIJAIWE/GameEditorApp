@@ -26,6 +26,7 @@ from PyQt6.QtWidgets import (
     QMessageBox,
     QProgressBar,
     QPushButton,
+    QRadioButton,
     QTextEdit,
     QVBoxLayout,
     QWidget,
@@ -85,17 +86,21 @@ class _AIFullGenerateWorker(QThread):
     all_completed = pyqtSignal(dict)
     failed = pyqtSignal(str)
 
-    def __init__(self, user_input: dict, parent: QWidget | None = None) -> None:
+    def __init__(self, user_input: dict, parent: QWidget | None = None,
+                 scope: str = "full", retry_chapters: list[str] | None = None) -> None:
         """初始化 worker。
 
         Args:
             user_input: 用户输入字典，包含 game_name/game_type/style/
-                description/references/platforms/business_model/
-                include_market_analysis/include_risk_assessment。
+                description/references/platforms/business_model/scope。
             parent: 父 QObject。
+            scope: 生成范围 (lite=基础9章 / full=全部18章)。
+            retry_chapters: 仅重试这些章节（失败重试用）。
         """
         super().__init__(parent)
         self._user_input = dict(user_input)
+        self._scope = scope
+        self._retry_chapters = list(retry_chapters) if retry_chapters else None
         self._cancelled = False
 
     def cancel(self) -> None:
@@ -127,6 +132,15 @@ class _AIFullGenerateWorker(QThread):
             chapter_order = list(plan_data.get("chapter_order", []))
             chapter_prompts = dict(plan_data.get("chapter_prompts", {}))
             meta_seed = dict(plan_data.get("meta_seed", {}))
+
+            # d3: 按档位过滤章节（lite 只生成基础 9 章）
+            if self._scope == "lite":
+                from core.ceshu.ceshu_model import BASE_CHAPTER_KEYS
+                chapter_order = [c for c in chapter_order if c in BASE_CHAPTER_KEYS]
+            # d3: 失败重试 — 仅生成指定章节
+            if self._retry_chapters:
+                retry_set = set(self._retry_chapters)
+                chapter_order = [c for c in chapter_order if c in retry_set]
 
             if not chapter_order:
                 self.failed.emit("生成计划中没有章节")
@@ -312,6 +326,12 @@ class AIFullGenerateDialog(QDialog):
         self._model = model
         self._worker: _AIFullGenerateWorker | None = None
         self._chapter_items: dict[str, QListWidgetItem] = {}
+        # d3: 累积生成结果 + 失败重试状态
+        self._accumulated: dict[str, dict] = {}
+        self._expected_keys: list[str] = []
+        self._failed_keys: list[str] = []
+        self._last_input: dict = {}
+        self._last_scope = "full"
         self._setup_ui()
         self._apply_theme()
         self._prefill_from_model()
@@ -424,7 +444,7 @@ class AIFullGenerateDialog(QDialog):
 
     def _build_options_group(self) -> QGroupBox:
         """构建选项区。"""
-        group = QGroupBox("生成选项")
+        group = QGroupBox("生成范围")
         layout = QHBoxLayout(group)
         layout.setSpacing(16)
 
@@ -432,13 +452,11 @@ class AIFullGenerateDialog(QDialog):
         self._chk_apply.setChecked(True)
         layout.addWidget(self._chk_apply)
 
-        self._chk_market = QCheckBox("包含市场分析")
-        self._chk_market.setChecked(True)
-        layout.addWidget(self._chk_market)
-
-        self._chk_risk = QCheckBox("包含风险评估")
-        self._chk_risk.setChecked(True)
-        layout.addWidget(self._chk_risk)
+        self._radio_lite = QRadioButton("轻量（基础 9 章，推荐）")
+        self._radio_full = QRadioButton("工业级（全部 18 章）")
+        self._radio_lite.setChecked(True)
+        layout.addWidget(self._radio_lite)
+        layout.addWidget(self._radio_full)
 
         layout.addStretch()
         return group
@@ -492,6 +510,12 @@ class AIFullGenerateDialog(QDialog):
         self._btn_cancel.setEnabled(False)
         self._btn_cancel.clicked.connect(self._on_cancel)
         row.addWidget(self._btn_cancel)
+
+        # d3: 失败章节重试按钮
+        self._btn_retry = QPushButton("重试失败章节")
+        self._btn_retry.setEnabled(False)
+        self._btn_retry.clicked.connect(self._on_retry_failed)
+        row.addWidget(self._btn_retry)
 
         row.addStretch()
 
@@ -573,6 +597,7 @@ class AIFullGenerateDialog(QDialog):
     def _collect_user_input(self) -> dict:
         """从 UI 控件收集用户输入。"""
         platforms = [p for p, cb in self._platform_checks.items() if cb.isChecked()]
+        scope = "lite" if self._radio_lite.isChecked() else "full"
         return {
             "game_name": self._edit_name.text().strip(),
             "game_type": self._combo_type.currentText().strip(),
@@ -581,8 +606,10 @@ class AIFullGenerateDialog(QDialog):
             "references": self._edit_refs.text().strip(),
             "platforms": ",".join(platforms),
             "business_model": self._combo_biz.currentText().strip(),
-            "include_market_analysis": self._chk_market.isChecked(),
-            "include_risk_assessment": self._chk_risk.isChecked(),
+            "scope": scope,
+            # 兼容旧计划参数：lite 关闭市场/风险章
+            "include_market_analysis": scope == "full",
+            "include_risk_assessment": scope == "full",
         }
 
     def _prefill_from_model(self) -> None:
@@ -672,16 +699,52 @@ class AIFullGenerateDialog(QDialog):
         self.chapter_progress.emit(chapter_key, STATUS_FAILED)
 
     def _on_all_completed(self, chapters_data: dict) -> None:
-        """全部章节生成完成。"""
+        """全部章节生成结束（含重试）→ 合并结果并收尾。"""
+        if chapters_data:
+            self._accumulated.update(chapters_data)
+        self._finalize_generation()
+
+    def _finalize_generation(self) -> None:
+        """生成收尾：结算失败章节、提示并发射最终结果。"""
         self._reset_buttons_after_done()
-        total = self._progress_bar.maximum()
-        done = len(chapters_data)
-        self._progress_bar.setValue(done)
-        QMessageBox.information(
-            self, "生成完成",
-            f"AI 已完成 {done} / {total} 章内容生成。\n"
-            f"{'✅ 将自动应用到当前策划书。' if self._chk_apply.isChecked() else '请点击「应用」查看生成结果。'}")
-        self.generation_completed.emit(chapters_data)
+        done = len(self._accumulated)
+        total = len(self._expected_keys) or done
+        self._failed_keys = [k for k in self._expected_keys if k not in self._accumulated]
+        self._progress_bar.setValue(min(done, self._progress_bar.maximum()))
+        apply_note = "✅ 将自动应用到当前策划书。" if self._chk_apply.isChecked() else "请点击「应用」查看生成结果。"
+        if self._failed_keys:
+            msg = (f"AI 已完成 {done} / {total} 章，{len(self._failed_keys)} 章失败。\n"
+                   f"可点击「重试失败章节」补齐，或直接应用已生成内容。\n{apply_note}")
+        else:
+            msg = f"AI 已完成全部 {total} 章内容生成。\n{apply_note}"
+        QMessageBox.information(self, "生成完成", msg)
+        self._btn_retry.setEnabled(bool(self._failed_keys))
+        self.generation_completed.emit(dict(self._accumulated))
+
+    def _on_retry_failed(self) -> None:
+        """d3: 仅重新生成失败章节。"""
+        if self._worker and self._worker.isRunning():
+            QMessageBox.information(self, "重试", "生成任务仍在进行中，请稍候")
+            return
+        failed = list(self._failed_keys)
+        if not failed:
+            return
+        for k in failed:
+            self._update_chapter_status(k, STATUS_PENDING)
+        self._btn_retry.setEnabled(False)
+        self._btn_start.setEnabled(False)
+        self._btn_cancel.setEnabled(True)
+        self._btn_close.setEnabled(False)
+        self._worker = _AIFullGenerateWorker(
+            self._last_input, parent=self, scope=self._last_scope,
+            retry_chapters=failed,
+        )
+        self._worker.chapter_started.connect(self._on_chapter_started)
+        self._worker.chapter_succeeded.connect(self._on_chapter_succeeded)
+        self._worker.chapter_failed.connect(self._on_chapter_failed)
+        self._worker.all_completed.connect(self._on_all_completed)
+        self._worker.failed.connect(self._on_failed)
+        self._worker.start()
 
     def _on_failed(self, error_msg: str) -> None:
         """整体失败。"""
@@ -735,6 +798,4 @@ class AIFullGenerateDialog(QDialog):
 
     def get_chapters_data(self) -> dict:
         """获取已生成的章节数据（仅在生成完成后调用）。"""
-        if self._worker:
-            return getattr(self._worker, "_chapters_data", {}) or {}
-        return {}
+        return dict(self._accumulated)

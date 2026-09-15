@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from enum import Enum
 import json
-from typing import Any
+from typing import Any, cast
 
 
 class DiffType(Enum):
@@ -20,7 +20,7 @@ class DiffEntry:
     children: list[DiffEntry] = field(default_factory=list)
 
     def to_dict(self) -> dict:
-        result = {
+        result: dict[str, Any] = {
             "path": self.path,
             "type": self.diff_type.value,
         }
@@ -173,8 +173,8 @@ class DataDiff:
     def compare_items_by_id(
         old_items: list[dict], new_items: list[dict], id_field: str = "id"
     ) -> list[DiffEntry]:
-        old_map = {item.get(id_field): item for item in old_items if item.get(id_field)}
-        new_map = {item.get(id_field): item for item in new_items if item.get(id_field)}
+        old_map = {cast(Any, item.get(id_field)): item for item in old_items if item.get(id_field)}
+        new_map = {cast(Any, item.get(id_field)): item for item in new_items if item.get(id_field)}
         entries: list[DiffEntry] = []
 
         for item_id in sorted(set(old_map.keys()) & set(new_map.keys())):

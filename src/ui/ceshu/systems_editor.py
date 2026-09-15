@@ -84,7 +84,7 @@ class CustomSystemDialog(QDialog):
         self._result = (name, dtype or None)
         self.accept()
 
-    def result(self) -> tuple[str, str | None]:
+    def get_result(self) -> tuple[str, str | None]:
         return self._result or ("", None)
 
 
@@ -219,7 +219,7 @@ class SystemsEditor(QWidget):
 
         dlg = CustomSystemDialog(self._available_types, self)
         if dlg.exec() == QDialog.DialogCode.Accepted:
-            name, dtype = dlg.result()
+            name, dtype = dlg.get_result()
             if name:
                 key = self._next_custom_key()
                 self._systems[key] = {
@@ -274,8 +274,10 @@ class SystemsEditor(QWidget):
         """重建所有游戏系统行"""
         while self._rows_layout.count():
             item = self._rows_layout.takeAt(0)
-            if item.widget():
-                item.widget().setParent(None)
+            if item:
+                w = item.widget()
+                if w is not None:
+                    w.setParent(None)
         self._rows.clear()
         # P6: 清空进度标签引用，稍后在 _build_row 中重建
         self._progress_labels.clear()

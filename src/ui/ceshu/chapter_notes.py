@@ -445,7 +445,7 @@ if _PYQT_AVAILABLE:
             # 选中新建项
             for i in range(self._list.count()):
                 item = self._list.item(i)
-                if item.data(Qt.ItemDataRole.UserRole) == note["id"]:
+                if item is not None and item.data(Qt.ItemDataRole.UserRole) == note["id"]:
                     self._list.setCurrentRow(i)
                     break
             self._edit_content.setFocus()

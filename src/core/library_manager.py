@@ -5,7 +5,7 @@ import json
 import os
 from pathlib import Path
 import shutil
-from typing import Optional
+from typing import Any, Optional
 
 from common.logger import get_logger
 from config.constants import DEFAULT_FILENAME, SCHEMA_FILENAME
@@ -59,7 +59,7 @@ class LibraryManager:
         self._active_library: Optional[LibraryInfo] = None
         self._libraries: dict[str, LibraryInfo] = {}
         self._type_schemas: dict[str, TypeSchema] = {}
-        self._cached_default_schema = None
+        self._cached_default_schema: Optional[TypeSchema] = None
         self._last_scan_mtime = 0
 
     @property
@@ -400,7 +400,7 @@ class LibraryManager:
 
         schema = create_default_rpg_schema()
 
-        initial_data = {"metadata": {"library": name, "created_at": datetime.now().isoformat()}}
+        initial_data: dict[str, Any] = {"metadata": {"library": name, "created_at": datetime.now().isoformat()}}
         for t in schema.types:
             initial_data[t.plural_key] = []
 
@@ -692,7 +692,7 @@ class LibraryManager:
 
         except Exception as e:
             result["error"] = f"复制游戏数据失败: {e}"
-            get_logger().error(result["error"])
+            get_logger().error(str(result["error"]))
             return result
 
         if include_planning:

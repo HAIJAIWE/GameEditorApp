@@ -35,27 +35,27 @@ def _safe_call(fn, *args, **kwargs):
     except Exception as e:
         get_logger().error(f"延迟调用执行失败: {e}", exc_info=True)
         return None
-from common.auto_updater import AutoUpdater
-from common.event_bus import EventBus
-from common.i18n import get_i18n
-from common.logger import get_logger
-from common.lucide_icon import get_icon
-from core.attr_system import AttributeSystem
-from features.backup import export_for_game
-from ui.ai_bridge import AIBridge
-from ui.ceshu_controller import CeshuController
-from ui.components.toast import Toast
-from ui.dialogs.startup_mode_dialog import StartupModeDialog
-from ui.digital_employee import DigitalPanel
-from ui.layout_builder import LayoutBuilder
-from ui.library_controller import LibraryController
-from ui.menus import setup_menubar
-from ui.tab_manager import TabManager
-from ui.theme_effects import ThemeEffectsManager
-from ui.themes import THEMES, set_current_theme, theme_color
-from ui.widgets.attr_system_editor import AttrSystemEditor
-from ui.widgets.library_bar import LibraryBarWidget
-from ui.window_state import WindowStateManager
+from common.auto_updater import AutoUpdater  # noqa: E402  # 延迟导入：置于 _safe_call 之后，避免模块级循环导入
+from common.event_bus import EventBus  # noqa: E402  # 延迟导入：避免模块级循环导入
+from common.i18n import get_i18n  # noqa: E402  # 延迟导入：避免模块级循环导入
+from common.logger import get_logger  # noqa: E402  # 延迟导入：避免模块级循环导入
+from common.lucide_icon import get_icon  # noqa: E402  # 延迟导入：避免模块级循环导入
+from core.attr_system import AttributeSystem  # noqa: E402  # 延迟导入：避免模块级循环导入
+from features.backup import export_for_game  # noqa: E402  # 延迟导入：避免模块级循环导入
+from ui.ai_bridge import AIBridge  # noqa: E402  # 延迟导入：避免模块级循环导入
+from ui.ceshu_controller import CeshuController  # noqa: E402  # 延迟导入：避免模块级循环导入
+from ui.components.toast import Toast  # noqa: E402  # 延迟导入：避免模块级循环导入
+from ui.dialogs.startup_mode_dialog import StartupModeDialog  # noqa: E402  # 延迟导入：避免模块级循环导入
+from ui.digital_employee import DigitalPanel  # noqa: E402  # 延迟导入：避免模块级循环导入
+from ui.layout_builder import LayoutBuilder  # noqa: E402  # 延迟导入：避免模块级循环导入
+from ui.library_controller import LibraryController  # noqa: E402  # 延迟导入：避免模块级循环导入
+from ui.menus import setup_menubar  # noqa: E402  # 延迟导入：避免模块级循环导入
+from ui.tab_manager import TabManager  # noqa: E402  # 延迟导入：避免模块级循环导入
+from ui.theme_effects import ThemeEffectsManager  # noqa: E402  # 延迟导入：避免模块级循环导入
+from ui.themes import THEMES, set_current_theme, theme_color  # noqa: E402  # 延迟导入：避免模块级循环导入
+from ui.widgets.attr_system_editor import AttrSystemEditor  # noqa: E402  # 延迟导入：避免模块级循环导入
+from ui.widgets.library_bar import LibraryBarWidget  # noqa: E402  # 延迟导入：避免模块级循环导入
+from ui.window_state import WindowStateManager  # noqa: E402  # 延迟导入：避免模块级循环导入
 
 
 class MainWindow(QMainWindow):

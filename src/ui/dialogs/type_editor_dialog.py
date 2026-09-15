@@ -109,10 +109,10 @@ class FieldEditorWidget(QWidget):
         range_layout = QHBoxLayout()
         self.from_spin = QSpinBox()
         self.from_spin.setRange(-99999, 99999)
-        self.from_spin.setValue(field.from_ if field.from_ is not None else 0)
+        self.from_spin.setValue(int(field.from_) if field.from_ is not None else 0)
         self.to_spin = QSpinBox()
         self.to_spin.setRange(-99999, 999999)
-        self.to_spin.setValue(field.to if field.to is not None else 100)
+        self.to_spin.setValue(int(field.to) if field.to is not None else 100)
         self.from_spin.valueChanged.connect(self.field_changed.emit)
         self.to_spin.valueChanged.connect(self.field_changed.emit)
         range_layout.addWidget(QLabel("最小值:"))
@@ -367,7 +367,7 @@ class LayoutEditorWidget(QWidget):
         super().__init__(parent)
         self.data_type = data_type
         self.all_fields = fields or []
-        self._groups = []
+        self._groups: list[dict] = []
         self._suppress_change = False
         self.setup_ui()
 
@@ -787,7 +787,7 @@ class TypeEditorDialog(QDialog):
         self.field_editor_container = QWidget()
         self.field_editor_layout = QVBoxLayout(self.field_editor_container)
         self.field_editor_layout.setContentsMargins(0, 0, 0, 0)
-        self.current_field_editor = None
+        self.current_field_editor: FieldEditorWidget | None = None
         fields_vlayout.addWidget(self.field_editor_container)
 
         right_layout.addWidget(fields_group)

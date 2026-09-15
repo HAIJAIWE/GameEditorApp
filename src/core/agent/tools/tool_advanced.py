@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import json
 import re
+from typing import Any
 
 from common.event_bus import EventBus
 from common.logger import get_logger
-
-logger = get_logger()
 from core.agent.diagnostics.error_handler import _snapshot_mgr
 from core.agent.tools.tool_shared import DATA_TYPE_PLURALS, _mark_changed
+
+logger = get_logger()
 
 _logger = get_logger()
 
@@ -29,7 +30,7 @@ def _library(config, mw, dm, params):
     if action == "list":
         libs = lm.get_all_libraries()
         an = lm.active_library_name if hasattr(lm, 'active_library_name') else ""
-        lines = [f"  {l.name}{' ' if l.name == an else ''} — {l.description or ''} ({l.data_count}条)" for l in libs]
+        lines = [f"  {lib.name}{' ' if lib.name == an else ''} — {lib.description or ''} ({lib.data_count}条)" for lib in libs]
         return f"共 {len(libs)} 个库:\n" + "\n".join(lines) if lines else "暂无库"
 
     elif action == "current":
@@ -306,8 +307,12 @@ def _template(config, mw, dm, params):
 
     if action == "list":
         try:
-            from features.advanced import AdvancedFeatures
-            templates = getattr(AdvancedFeatures, 'get_templates', lambda: {})()
+            import importlib
+            _adv_mod = importlib.import_module('features.advanced')
+            _get_templates = getattr(_adv_mod, 'get_templates', None)
+            if _get_templates is None:
+                raise ImportError("features.advanced 未提供 get_templates")
+            templates: dict = _get_templates()
             if not templates:
                 return "暂无模板"
             lines = [f"  {k}: {v.get('description','')}" for k, v in templates.items()]
@@ -570,6 +575,8 @@ def _sync_schema_from_plan(dm, config, params, mw=None):
     except Exception as e:
         logger.warning(f"操作失败: {e}")
 
+    assert lib_dir is not None  # 后续依赖 lib_dir，确保库目录已解析
+
     results = []
 
     if schema_path and schema_path.exists():
@@ -701,7 +708,7 @@ def _reload_types_from_schema(schema, config):
 
 
 def _extract_fields_from_text(text: str) -> dict:
-    result = {"new_types": [], "fields": []}
+    result: dict[str, Any] = {"new_types": [], "fields": []}
     new_types = result["new_types"]
     fields = result["fields"]
 
@@ -753,7 +760,12 @@ def _extract_fields_from_text(text: str) -> dict:
 
     # Deduplicate new types
     seen = set()
-    new_types[:] = [nt for nt in new_types if not (nt["id"] in seen or seen.add(nt["id"]))]
+    deduped = []
+    for nt in new_types:
+        if nt["id"] not in seen:
+            seen.add(nt["id"])
+            deduped.append(nt)
+    new_types[:] = deduped
 
     # ── 检测各类型下的字段定义 ──
     # 格式: ## 卡牌(card) 或 ### card

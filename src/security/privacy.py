@@ -51,8 +51,8 @@ def _detect_high_entropy(text: str) -> list:
 
 
 def summarize_sensitive(content: str) -> str:
-    for pattern, replacement in _SENSITIVE_PATTERNS.items():
-        content = re.sub(pattern, replacement, content, flags=re.IGNORECASE)
+    for regex, replacement in _SENSITIVE_PATTERNS.items():
+        content = re.sub(regex, replacement, content, flags=re.IGNORECASE)
 
     for token in _detect_high_entropy(content):
         if token in content and len(token) >= 20:

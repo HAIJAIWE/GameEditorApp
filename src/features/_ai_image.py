@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional, cast
 
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from PyQt6.QtWidgets import (
@@ -174,7 +174,7 @@ def generate_ai_image(main_window: QMainWindow, description: str = "") -> Option
     progress.show()
 
     # 持有引用避免被 GC
-    state = {"thread": None, "path": None}
+    state: dict[str, Any] = {"thread": None, "path": None}
 
     def on_progress(msg: str):
         progress.setLabelText(msg)
@@ -349,7 +349,7 @@ def generate_image(form_widget: QWidget, data_type: str) -> Optional[str]:
     except Exception:
         item_name = ""
 
-    return show_ai_image_dialog(form_widget.window(), data_type, item_name)
+    return show_ai_image_dialog(cast(QMainWindow, form_widget.window()), data_type, item_name)
 
 
 def auto_generate_image_info(name: str, data_type: str) -> dict[str, str]:

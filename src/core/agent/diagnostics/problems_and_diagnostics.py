@@ -17,23 +17,24 @@ from common.logger import get_logger
 
 logger = get_logger()
 
-import os as _os
-import sys
+import io  # noqa: E402  # 用于自检时对 stdout 的 isinstance 类型收窄
+import os as _os  # noqa: E402  # logger 前置初始化后再导入的既有模式
+import sys  # noqa: E402  # logger 前置初始化后再导入的既有模式
 
 _PKG_DIR = _os.path.abspath(_os.path.join(_os.path.dirname(__file__), '..', '..'))
 if _PKG_DIR not in sys.path:
     sys.path.insert(0, _PKG_DIR)
 
-from collections import defaultdict
-from collections.abc import Callable
-from dataclasses import dataclass, field
-from enum import Enum
-import time
-from typing import Any, Optional
+from collections import defaultdict  # noqa: E402  # logger 前置初始化后再导入的既有模式
+from collections.abc import Callable  # noqa: E402  # logger 前置初始化后再导入的既有模式
+from dataclasses import dataclass, field  # noqa: E402  # logger 前置初始化后再导入的既有模式
+from enum import Enum  # noqa: E402  # logger 前置初始化后再导入的既有模式
+import time  # noqa: E402  # logger 前置初始化后再导入的既有模式
+from typing import Any, Optional  # noqa: E402  # logger 前置初始化后再导入的既有模式
 
 try:
     from common.logger import get_logger
-    _logger = get_logger()
+    _logger: Any = get_logger()
 except Exception:
     import logging
     _logger = logging.getLogger(__name__)
@@ -361,6 +362,7 @@ class ProblemRegistry:
     """问题诊断注册表 — 管理所有检测器和修复策略"""
 
     _instance: Optional[ProblemRegistry] = None
+    _initialized: bool = False
 
     def __new__(cls):
         if cls._instance is None:
@@ -443,7 +445,7 @@ class ProblemRegistry:
             },
             "by_category": {},
         }
-        by_cat = defaultdict(int)
+        by_cat: dict[str, int] = defaultdict(int)
         for p in report.problems:
             by_cat[p.category.value] += 1
         report.metrics["by_category"] = dict(by_cat)
@@ -470,6 +472,8 @@ class ProblemRegistry:
         auto_fixable = [p for p in report.problems if p.tool_call is not None]
 
         for problem in auto_fixable:
+            if problem.tool_call is None:
+                continue
             try:
                 if tool_executor:
                     result = tool_executor(
@@ -512,7 +516,7 @@ class ProblemRegistry:
 
             no_id = []
             no_name = []
-            ids_seen = {}
+            ids_seen: dict = {}
             name_seen = defaultdict(list)
 
             for i, it in enumerate(items):
@@ -739,7 +743,8 @@ AI:  [前端修复完成]
 # ═══════════════════════════════════════════════════════════════════
 
 if __name__ == "__main__":
-    sys.stdout.reconfigure(encoding='utf-8')
+    if isinstance(sys.stdout, io.TextIOWrapper):
+        sys.stdout.reconfigure(encoding='utf-8')
     print("=== problems_and_diagnostics 自检 ===")
     reg = get_registry()
     print(f"  已注册模式: {len(reg.patterns)} 个")

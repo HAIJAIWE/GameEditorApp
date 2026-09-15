@@ -611,6 +611,7 @@ def batch_edit(main_window) -> None:
             return
 
         edited_count = 0
+        skipped_count = 0
         try:
             for list_item in selected_items:
                 item = list_item.data(Qt.ItemDataRole.UserRole)
@@ -637,19 +638,59 @@ def batch_edit(main_window) -> None:
                     edited_count += 1
 
                 elif op_type == "批量修改数值":
-                    # TODO: 批量修改数值功能待完善
-                    QMessageBox.information(dialog, "提示", "批量修改数值功能即将完善!")
-                    return
+                    field_combo = op_widgets.get('field')
+                    value_mode = op_widgets.get('value_mode')
+                    value_input = op_widgets.get('value')
+                    if not field_combo or not value_mode or not value_input:
+                        return
+                    field_name = field_combo.currentText()
+                    mode = value_mode.currentText()
+                    delta = value_input.value()
+
+                    current = item.get(field_name)
+                    if not isinstance(current, (int, float)):
+                        # 字段缺失或非数值类型，跳过该项并在最后汇总提示
+                        skipped_count += 1
+                        continue
+                    if mode == "设置为固定值":
+                        new_value = delta
+                    elif mode == "增加":
+                        new_value = current + delta
+                    elif mode == "减少":
+                        new_value = current - delta
+                    elif mode == "百分比调整":
+                        new_value = current * (1 + delta / 100.0)
+                    else:
+                        continue
+                    # 保持原字段数值类型：int 字段四舍五入取整，float 保留小数
+                    if isinstance(current, int):
+                        new_value = int(round(new_value))
+                    else:
+                        new_value = float(new_value)
+                    item[field_name] = new_value
+                    main_window.data_manager.update_item(data_type, item['id'], item)
+                    edited_count += 1
 
                 elif op_type == "批量修改名称":
-                    # TODO: 批量修改名称功能待完善
-                    QMessageBox.information(dialog, "提示", "批量修改名称功能即将完善!")
-                    return
+                    prefix_input = op_widgets.get('prefix')
+                    suffix_input = op_widgets.get('suffix')
+                    prefix = prefix_input.text().strip() if prefix_input else ''
+                    suffix = suffix_input.text().strip() if suffix_input else ''
+                    old_name = item.get('name')
+                    if not old_name:
+                        skipped_count += 1
+                        continue
+                    item['name'] = f"{prefix}{old_name}{suffix}"
+                    main_window.data_manager.update_item(data_type, item['id'], item)
+                    edited_count += 1
 
             if edited_count > 0:
                 main_window._refresh_all_tabs()
                 main_window.mark_data_changed()
-                QMessageBox.information(dialog, "成功", f"成功编辑了 {edited_count} 个数据项!")
+                message = f"成功编辑了 {edited_count} 个数据项!"
+                if skipped_count:
+                    message += f" 跳过 {skipped_count} 个无法处理的数据项。"
+                QMessageBox.information(dialog, "成功", message)
                 dialog.accept()
                 logger.info(f"批量编辑成功: {op_type} 操作 {edited_count} 项")
 

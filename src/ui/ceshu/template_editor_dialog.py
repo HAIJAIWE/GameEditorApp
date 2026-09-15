@@ -430,7 +430,9 @@ class TemplateEditorDialog(QDialog):
         # 内置模板可编辑字段（仅作"另存为自定义"用）
         for w in (self._edit_name, self._edit_desc, self._edit_tags,
                   self._edit_source, self._combo_chapter, self._edit_data):
-            w.setReadOnly(False)
+            # QComboBox 无 setReadOnly 方法，仅对输入框类控件生效
+            if isinstance(w, (QLineEdit, QTextEdit)):
+                w.setReadOnly(False)
 
     # ── 按钮回调 ──
 

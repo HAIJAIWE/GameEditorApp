@@ -1,7 +1,3 @@
-from common.logger import get_logger
-
-logger = get_logger()
-
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
@@ -37,6 +33,7 @@ class TaskResult:
 class AsyncRunner:
     _instance: Optional[AsyncRunner] = None
     _lock = threading.Lock()
+    _initialized: bool = False
 
     def __new__(cls) -> AsyncRunner:
         if cls._instance is None:
@@ -237,7 +234,13 @@ class AsyncRunner:
                     result_value = [None]
                     exception_info = [None]
 
-                    def _target():
+                    def _target(
+                        result_value=result_value,
+                        exception_info=exception_info,
+                        fn=fn,
+                        args=args,
+                        kwargs=kwargs,
+                    ):
                         try:
                             result_value[0] = fn(*args, **kwargs)
                         except Exception as e:

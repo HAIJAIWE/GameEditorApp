@@ -49,6 +49,7 @@ class GaugeEntry:
 class MetricsCollector:
     _instance: Optional[MetricsCollector] = None
     _lock = threading.Lock()
+    _initialized: bool = False
 
     def __new__(cls):
         if cls._instance is None:
