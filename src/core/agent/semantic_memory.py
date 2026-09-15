@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 from common.logger import get_logger
 
 logger = get_logger()
-from core.agent.memory import VectorEmbedder, get_embedder
+from core.agent.memory import VectorEmbedder, get_embedder  # noqa: E402  # logger 前置初始化后再导入的既有模式
 
 
 class SemanticMemory:
@@ -23,8 +23,10 @@ class SemanticMemory:
         self._data_dir.mkdir(parents=True, exist_ok=True)
         self._embedder = embedder or get_embedder()
         self._logger = get_logger()
-        self._client = None
-        self._collection = None
+        # chromadb 为可选依赖：其泛型签名过严（且未安装时不存在），
+        # 统一标注为 Any，保证有无 chromadb 两种环境下类型检查一致
+        self._client: Any = None
+        self._collection: Any = None
         self._ready = False
         try:
             import chromadb
@@ -54,19 +56,22 @@ class SemanticMemory:
         """
         if not self._ready:
             return
+        collection = self._collection
+        if collection is None:
+            return
         vec = self._embedder.embed(text)
         meta = metadata or {}
         meta["_source"] = source
         meta["_text_preview"] = text[:200]
         try:
-            self._collection.add(
+            collection.add(
                 ids=[doc_id],
                 embeddings=[vec],
                 metadatas=[meta],
                 documents=[text[:1000]],
             )
         except ValueError:
-            self._collection.upsert(
+            collection.upsert(
                 ids=[doc_id],
                 embeddings=[vec],
                 metadatas=[meta],
@@ -93,17 +98,20 @@ class SemanticMemory:
         """
         if not self._ready:
             return []
+        collection = self._collection
+        if collection is None:
+            return []
         try:
             vec = self._embedder.embed(query)
             where = {"_source": source_filter} if source_filter else None
-            results = self._collection.query(
+            results = collection.query(
                 query_embeddings=[vec],
                 n_results=min(top_k, self.count()),
                 where=where,
             )
             return self._safe_extract_results(results)
         except (ValueError, KeyError, TypeError, AttributeError):
-            self._logger.exception("语义搜索异常")
+            self._logger.error("语义搜索异常", exc_info=True)
             return []
 
     def _safe_extract_results(self, results: dict) -> list[dict[str, str]]:
@@ -145,7 +153,7 @@ class SemanticMemory:
         if not self._ready:
             return False
         results = self.search(text, top_k=1)
-        if results and results[0]["similarity"] >= threshold:
+        if results and float(results[0]["similarity"]) >= threshold:
             return True
         return False
 
@@ -196,8 +204,11 @@ class SemanticMemory:
         """
         if not self._ready:
             return
+        collection = self._collection
+        if collection is None:
+            return
         try:
-            self._collection.delete(ids=[doc_id])
+            collection.delete(ids=[doc_id])
         except KeyError as e:
             logger.debug(f"操作失败: {e}")
         except Exception as e:
@@ -210,6 +221,8 @@ class SemanticMemory:
             文档数量，若 ChromaDB 不可用则返回 0
         """
         if not self._ready:
+            return 0
+        if self._collection is None:
             return 0
         try:
             return self._collection.count()

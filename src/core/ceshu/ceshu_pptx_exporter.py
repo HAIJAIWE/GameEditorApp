@@ -37,15 +37,15 @@ except ImportError:  # pragma: no cover - 测试环境无 pptx 时走此分支
         CENTER = "CENTER"
         RIGHT = "RIGHT"
 
-    PP_ALIGN = _DummyAlign()  # type: ignore[assignment]
+    PP_ALIGN = _DummyAlign()  # 与已导入的 PP_ALIGN 类型不同，回退为占位实例
 
-    class MSO_SHAPE:  # type: ignore[no-redef]
+    class MSO_SHAPE:  # type: ignore[no-redef]  # 与模块内已导入的 MSO_SHAPE 重名，回退实现
         RECTANGLE = "RECTANGLE"
 
-    def Inches(value: Any) -> Any:  # type: ignore[no-redef]
+    def Inches(value: Any) -> Any:  # 与已导入的 Inches 重名，回退函数
         return value
 
-    def Pt(value: Any) -> Any:  # type: ignore[no-redef]
+    def Pt(value: Any) -> Any:  # 与已导入的 Pt 重名，回退函数
         return value
 else:
     _PPTX_AVAILABLE = True
