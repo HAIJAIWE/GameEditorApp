@@ -45,9 +45,9 @@ class AgentSelectorWidget(QWidget):
                 item.widget().deleteLater()
         self._buttons.clear()
 
-        active_id = self._manager.active_agent_id
+        active_id = self._manager.get_active_agent()
 
-        for agent in self._manager.agents:
+        for agent in self._manager.list_agents():
             btn = QPushButton(f"{agent.icon} {agent.name}")
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
             btn.setToolTip(agent.description or agent.name)
@@ -77,9 +77,9 @@ class AgentSelectorWidget(QWidget):
             self._chips_layout.addWidget(btn)
 
     def _on_agent_selected(self, agent_id: str):
-        if agent_id == self._manager.active_agent_id:
+        if agent_id == self._manager.get_active_agent():
             return
-        self._manager.switch_agent(agent_id)
+        self._manager.set_active_agent(agent_id)
         self._build_chips()
         agent = self._manager.get_agent(agent_id)
         if agent:
@@ -88,8 +88,9 @@ class AgentSelectorWidget(QWidget):
     def _sync_with_manager(self):
         self._build_chips()
 
-    def get_active_agent(self) -> AgentDefinition:
-        return self._manager.active_agent
+    def get_active_agent(self) -> AgentDefinition | None:
+        agent_id = self._manager.get_active_agent()
+        return self._manager.get_agent(agent_id) if agent_id else None
 
     def refresh(self):
         self._sync_with_manager()

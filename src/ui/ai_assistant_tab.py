@@ -13,6 +13,7 @@ from typing import Optional
 
 from PyQt6.QtCore import QObject, Qt, QThread, QTimer, pyqtSignal
 from PyQt6.QtWidgets import (
+    QAbstractButton,
     QCheckBox,
     QComboBox,
     QFrame,
@@ -171,6 +172,7 @@ class AIAssistantTab(QWidget):
         self.conversation_history = []
         self.current_thread = None
         self._agent_manager = AgentManager()
+        self._tool_dispatcher = None
         self.glow_widgets = []
         self._register_meta_skills()
         self.setup_ui()
@@ -227,7 +229,7 @@ class AIAssistantTab(QWidget):
         q_label.setStyleSheet(f"color: {theme_color('fg')}; font-size: 15px; margin-bottom: 4px;")
         f_layout.addWidget(q_label)
 
-        widgets = []
+        widgets: list[QAbstractButton] = []
         if multi:
             for opt in options:
                 label = opt.get("label", "")
@@ -282,6 +284,7 @@ class AIAssistantTab(QWidget):
 
     def _build_answer_buttons(self, layout, qid, dialog):
         """构建跳过/确认按钮栏（跳过逻辑原样保留），返回确认按钮供主函数绑定提交。"""
+        from core.agent.skills.ask_user_skill import AskUserSkill
         btn_layout = QHBoxLayout()
         cancel_btn = QPushButton("跳过")
         cancel_btn.setStyleSheet(f"color: {theme_color('hint')};")
@@ -702,8 +705,8 @@ class AIAssistantTab(QWidget):
 
     def get_system_prompt(self):
         """获取系统提示词（使用当前激活的智能体）"""
-        agent = self._agent_manager.active_agent
-        base_prompt = agent.system_prompt or "你是一位专业的游戏策划专家，帮助用户设计和完善游戏。"
+        agent = self._get_active_agent_def()
+        base_prompt = (agent.system_prompt if agent else "") or "你是一位专业的游戏策划专家，帮助用户设计和完善游戏。"
 
         # ── 工具调用格式 ──
         tool_format = """
@@ -756,11 +759,30 @@ class AIAssistantTab(QWidget):
         ctx = self._get_library_context()
         base_prompt += f"\n【当前工作环境】\n{ctx}"
 
-        tools_desc = self._agent_manager.get_tools_description()
+        tools_desc = self._get_tools_description()
         if tools_desc:
             base_prompt += "\n" + tools_desc
 
         return base_prompt
+
+    def _get_active_agent_def(self):
+        """当前激活的智能体定义（未设置时返回 None）"""
+        agent_id = self._agent_manager.get_active_agent()
+        return self._agent_manager.get_agent(agent_id) if agent_id else None
+
+    def _get_tools_description(self) -> str:
+        """工具清单文本（惰性创建 Dispatcher 并注册技能，与 Brain 的装配方式一致）"""
+        if self._tool_dispatcher is None:
+            try:
+                from core.agent.dispatcher import ToolDispatcher
+                dispatcher = ToolDispatcher()
+                dispatcher.discover_skills("core.agent.skills")
+                dispatcher.register_mcp_tools()
+                self._tool_dispatcher = dispatcher
+            except Exception as e:
+                logger.warning(f"工具清单加载失败: {e}")
+                return ""
+        return self._tool_dispatcher.get_tools_description()
 
     def get_game_data_summary(self):
         """获取游戏数据概况"""
@@ -916,20 +938,20 @@ class AIAssistantTab(QWidget):
     def on_agent_changed(self, agent_name):
         """智能体切换（同步左栏下拉到 AgentManager）"""
         actual_agent_name = agent_name.replace(" (默认)", "")
-        # 尝试在 AgentManager 中查找匹配的智能体
-        for agent in self._agent_manager.agents:
-            if agent.name == actual_agent_name or agent.id == actual_agent_name:
-                self._agent_manager.switch_agent(agent.id)
-                self.agent_selector.refresh()
-                break
+        # 按 ID / 名称 / 关键词匹配 AgentManager 中的智能体
+        matched = self._agent_manager.match_agent(actual_agent_name)
+        if matched:
+            self._agent_manager.set_active_agent(matched.id)
+            self.agent_selector.refresh()
         self.clear_conversation()
-        agent = self._agent_manager.active_agent
-        self.add_system_message(f"已切换为「{agent.display_name}」智能体：{agent.description}")
-        self.logger.info(f"切换到智能体: {agent.name}")
+        agent = self._get_active_agent_def()
+        if agent:
+            self.add_system_message(f"已切换为「{agent.name}」智能体：{agent.description}")
+            self.logger.info(f"切换到智能体: {agent.name}")
 
     def _on_agent_switched(self, agent_id, agent_def):
         self.clear_conversation()
-        self.add_system_message(f"已切换为「{agent_def.display_name}」智能体")
+        self.add_system_message(f"已切换为「{agent_def.name}」智能体")
         self.add_system_message(f"{agent_def.description}")
         self.logger.info(f"智能体切换: {agent_id} ({agent_def.name})")
 
@@ -1281,8 +1303,8 @@ class AIAssistantTab(QWidget):
     ]
 
     def _should_have_tool_call(self, user_text: str) -> bool:
-        agent = self._agent_manager.active_agent
-        if not agent.tools:
+        agent = self._get_active_agent_def()
+        if not agent or not agent.tools:
             return False
         lower = user_text.lower()
         for kw in self._ACTION_KEYWORDS:
@@ -1361,8 +1383,7 @@ class AIAssistantTab(QWidget):
 
     def add_assistant_message(self, text: str):
         timestamp = datetime.now().strftime("%H:%M:%S")
-        agent_name = getattr(self._agent_manager, 'active_agent', None)
-        agent_name = agent_name.display_name if agent_name else "小墨"
+        agent_name = getattr(self._get_active_agent_def(), 'name', None) or "小墨"
         md_html = self._md_to_html(text)
         b = get_chat_bubble_css()
         fg = theme_color('fg')
