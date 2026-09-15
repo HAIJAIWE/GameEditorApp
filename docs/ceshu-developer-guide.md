@@ -587,11 +587,14 @@ def export_ceshu_json(self, ceshu_id: str, library: str, output: str) -> str:
 ### 5.3 如何添加新 AI 功能
 
 AI 功能通过 [CeshuSkill](../src/core/agent/skills/ceshu_skill.py) 的 `action` 参数路由。
+CeshuSkill 的方法按职责拆分在四个 mixin 中（`ceshu_skill_data` / `_generate` / `_prompt` / `_review`，
+共享状态与签名见 `ceshu_skill_state.py`），`ceshu_skill.py` 只保留类属性、`PARAMS_SCHEMA` 与 `execute` 入口，
+新增功能时按归属写到对应 mixin。
 
 #### 步骤 1：在 CeshuSkill 注册新 action
 
 ```python
-# src/core/agent/skills/ceshu_skill.py
+# src/core/agent/skills/ceshu_skill.py（类属性 PARAMS_SCHEMA 的 action 枚举）
 ACTIONS = (
     "list", "get", "create", "update", "delete",
     "export", "import",
@@ -630,7 +633,7 @@ self._shortcut_translate.activated.connect(self._on_ai_translate)
 
 #### AI 数据生成（ai_generate_data）实现要点
 
-“AI 数据生成”（N20，策划书数值/系统章 → 候选数据 → 预览勾选 → 人工导入）在 [ceshu_skill.py](../src/core/agent/skills/ceshu_skill.py) 的 `execute` 分支注册（action 枚举含 `ai_generate_data`，跳转 `_ai_generate_data`）：
+“AI 数据生成”（N20，策划书数值/系统章 → 候选数据 → 预览勾选 → 人工导入）在 [ceshu_skill.py](../src/core/agent/skills/ceshu_skill.py) 的 `execute` 分支注册（action 枚举含 `ai_generate_data`），实现位于 [ceshu_skill_generate.py](../src/core/agent/skills/ceshu_skill_generate.py) 的 `_ai_generate_data`：
 
 - **上下文**：prompt 携带 `meta`（游戏名/类型/定位）、`numeric`（核心公式/平衡原则/经济模型）、`systems`（启用的游戏系统名）作为生成设定背景。
 - **入参**：`data_types`（数据类型键名列表，单复数均可）、`count`（每类条数，默认 5，上限 20）、`instruction`（补充要求）。

@@ -10,6 +10,12 @@
   - 公开类 `DigitalPanel` / `DigitalEmployee` / `DigitalEmployeePopup` 仍从 `ui.digital_employee` 导出，所有导入方无需改动；独立启动改为在 `src/` 下执行 `python -m ui.digital_employee`（或设 `PYTHONPATH=src`）
 - **等价性验证**：AST 逐函数比对重构前后全部 100 个函数，函数体逐字一致；唯一差异为 `_open_popup` 内新增的延迟导入（该名字原是同模块全局 `DigitalEmployeePopup`，拆分后须从 `ui.digital_employee` 延迟导入以避免循环导入）
 - **回归**：805 passed / 0 skipped（覆盖率 32.20%，门槛 30%）、e2e 44 passed、ruff 全绿、mypy 274 文件 0 错误；MainWindow / DigitalPanel / DigitalEmployee / DigitalEmployeePopup 冒烟构造与方法调用通过
+- **`src/core/agent/skills/ceshu_skill.py` 1595 → 142 行**：`CeshuSkill` 的 28 个方法拆到四个 mixin
+  - `ceshu_skill_data.py`（CRUD 与导入导出）/ `ceshu_skill_generate.py`（AI 生成与描述分析）/ `ceshu_skill_prompt.py`（提示词构建与 LLM 输出解析）/ `ceshu_skill_review.py`（审阅、系统推荐与结果组装）
+  - `ceshu_agent_router.py`（AgentRouter，含 18 章路由）与 `ceshu_style_helpers.py`（风格/模块关键词表与推断函数）独立成模块；二者在 `ceshu_skill.py` 用 `__all__` 再导出，UI（`ui/ceshu/ai_panel.py`）与测试的既有导入路径不受影响
+  - `ceshu_skill_state.py` 声明 28 个跨 mixin 方法签名；`ceshu_skill.py` 只保留类属性、`PARAMS_SCHEMA` 与 `execute` 入口
+  - 等价性验证：AST 比对 34 个函数，函数体逐字一致（0 差异）
+  - 回归：805 passed / 0 skipped（覆盖率 32.26%）、技能发现 25 个且 `system.ceshu` 无重复注册、ruff 全绿、mypy 281 文件 0 错误
 
 ## [Unreleased] - 2026-09-15
 
