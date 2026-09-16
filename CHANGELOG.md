@@ -6,6 +6,16 @@
 
 - **删除 `src/ui/ai_assistant_tab.py`（1422 行）与 `tests/unit/test_ai_assistant_tab.py`**：该模块无 App 入口引用（`MainWindow` 的 AI 交互由 `DigitalPanel` + `AIBridge` 承担），且其构造依赖已被 Agent OS 重构移除的旧 `AgentManager` 接口，属不可运行的历史遗留。同步清理 `docs/wiki`（02-modules / 03-key-classes / CODE_WIKI 的模块与关键类条目）与架构图中的「结果回写 UI（AIAssistantTab / DigitalPanel）」表述
 - 移除后回归：**794 passed / 0 skipped**（覆盖率 32.35%，门槛 30%）、e2e 44 passed、ruff 全绿、mypy 300 文件 0 错误；MainWindow 冒烟构造与标签页加载正常，`ui.ai_assistant_tab` 已不可导入（符合预期）
+- **删除 `src/ui/widgets/agent_selector.py`（AgentSelectorWidget）**：其唯一消费者是上条删除的 `ai_assistant_tab.py`，删除后全仓库无代码/测试引用；核验还发现它切换的 `AgentManager._active_agent_id` 无任何消费方（`set_active_agent` / `get_active_agent` 的调用点仅在本组件内，Brain 用的是 `list_agents()` 与团队模式判定），属「无界面引用 + 状态无消费」的双重遗留。同步清理 `docs/wiki` 组件清单与关键类表中的 AgentSelector 条目
+
+### 修复
+
+- **`ceshu_pptx_exporter` 的可选依赖回退分支使 mypy 门禁失败（此前被增量缓存掩盖）**：模块级 `try: from pptx... except ImportError:` 回退里重定义了 `RGBColor` / `MSO_SHAPE` / `PP_ALIGN` / `Inches` / `Pt`，mypy 会同时分析两个分支，报 `assignment` / `no-redef` / `misc` 共 4 个错误——且结果随环境是否安装 python-pptx 而变（这正是此前为 `semantic_memory` 消除的那类环境相关 `type: ignore`）。改为 `if TYPE_CHECKING: <真实导入> / else: <try/except 回退>`：mypy 只分析真实依赖分支，运行时行为完全不变。验证：清空 mypy 缓存（`--cache-dir` 指向空目录）后 `mypy src/` **299 个源文件 0 错误**；回退分支用 meta_path 拦截器模拟「未安装 pptx」实测：`_PPTX_AVAILABLE=False`、占位常量可用、`export_ceshu_to_pptx` 仍抛出中文 ImportError 提示
+- **注意（检查方法）**：mypy 增量缓存会沿用旧的「干净」结论，此前几轮「0 错误」结论均在缓存命中下得到；后续验证统一改用空 `--cache-dir` 复核，结论已更新为干净缓存下的 0 错误
+
+### 测试
+
+- 本轮实况：**794 passed / 0 skipped**（覆盖率 32.80%，门槛 30%）、e2e 44 passed（合计 838 passed）、ruff 全绿、mypy 299 文件 0 错误（干净缓存）
 
 ## [Unreleased] - 2026-09-15（大文件拆分）
 

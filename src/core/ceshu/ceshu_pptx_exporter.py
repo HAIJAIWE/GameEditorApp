@@ -11,44 +11,54 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from .ceshu_export_common import classify_systems
 from .ceshu_export_common import format_field_value as _format_field_value
 from .ceshu_model import CHAPTER_KEYS, CHAPTER_LABELS, CHAPTER_REQUIRED_FIELDS, CeshuModel
 
 # === pptx 可选依赖（测试环境可能未安装，提供占位以允许模块加载） ===
-try:
+# TYPE_CHECKING 分支仅供类型检查使用：占位定义与真实导入同名，若被 mypy 同时分析
+# 会报 assignment/no-redef 冲突（且结果随环境是否安装 python-pptx 而变）。
+if TYPE_CHECKING:
     from pptx.dml.color import RGBColor
     from pptx.enum.shapes import MSO_SHAPE
     from pptx.enum.text import PP_ALIGN
     from pptx.util import Inches, Pt
-except ImportError:  # pragma: no cover - 测试环境无 pptx 时走此分支
-    _PPTX_AVAILABLE = False
 
-    class RGBColor:  # type: ignore[no-redef]
-        """占位 RGBColor，仅用于模块加载阶段的常量定义。"""
-
-        def __init__(self, r: int, g: int, b: int) -> None:
-            self.r, self.g, self.b = r, g, b
-
-    class _DummyAlign:
-        LEFT = "LEFT"
-        CENTER = "CENTER"
-        RIGHT = "RIGHT"
-
-    PP_ALIGN = _DummyAlign()  # 与已导入的 PP_ALIGN 类型不同，回退为占位实例
-
-    class MSO_SHAPE:  # type: ignore[no-redef]  # 与模块内已导入的 MSO_SHAPE 重名，回退实现
-        RECTANGLE = "RECTANGLE"
-
-    def Inches(value: Any) -> Any:  # 与已导入的 Inches 重名，回退函数
-        return value
-
-    def Pt(value: Any) -> Any:  # 与已导入的 Pt 重名，回退函数
-        return value
+    _PPTX_AVAILABLE: bool
 else:
-    _PPTX_AVAILABLE = True
+    try:
+        from pptx.dml.color import RGBColor
+        from pptx.enum.shapes import MSO_SHAPE
+        from pptx.enum.text import PP_ALIGN
+        from pptx.util import Inches, Pt
+    except ImportError:  # pragma: no cover - 测试环境无 pptx 时走此分支
+        _PPTX_AVAILABLE = False
+
+        class RGBColor:
+            """占位 RGBColor，仅用于模块加载阶段的常量定义。"""
+
+            def __init__(self, r: int, g: int, b: int) -> None:
+                self.r, self.g, self.b = r, g, b
+
+        class _DummyAlign:
+            LEFT = "LEFT"
+            CENTER = "CENTER"
+            RIGHT = "RIGHT"
+
+        PP_ALIGN = _DummyAlign()  # 占位实例，替代 PP_ALIGN 枚举
+
+        class MSO_SHAPE:
+            RECTANGLE = "RECTANGLE"
+
+        def Inches(value: Any) -> Any:
+            return value
+
+        def Pt(value: Any) -> Any:
+            return value
+    else:
+        _PPTX_AVAILABLE = True
 
 
 class PptxTheme:
