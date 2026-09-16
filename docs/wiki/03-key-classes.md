@@ -312,7 +312,7 @@ get_tool_description()                # 工具描述
 | `CollapsibleSection` / `CollapsibleTaskPanel` | 折叠面板 |
 | `VirtualList` | 虚拟滚动列表 |
 | `Toast` | 轻提示 |
-| `ModelSelector` / `AgentSelector` / `AgentMonitor` | 模型/智能体选择与监控 |
+| `ModelSelector` / `AgentMonitor` | 模型选择与智能体监控 |
 
 ---
 

@@ -193,7 +193,7 @@
 
 | 目录 | 职责 |
 |------|------|
-| `widgets/` | 可复用组件：`AttributePanel`（属性面板）、`RelationGraph`（关系图）、`LivePreview`（实时预览）、`FormulaBuilder`、`AttrTable`、`DynamicForm`、`CollapsibleSection`、`VirtualList`、`ModelSelector`、`AgentSelector`、`AgentMonitor`、`LibraryBar`、`Toast`、`HomeWidget` 等 |
+| `widgets/` | 可复用组件：`AttributePanel`（属性面板）、`RelationGraph`（关系图）、`LivePreview`（实时预览）、`FormulaBuilder`、`AttrTable`、`DynamicForm`、`CollapsibleSection`、`VirtualList`、`ModelSelector`、`AgentMonitor`、`LibraryBar`、`Toast`、`HomeWidget` 等 |
 | `dialogs/` | 对话框：`SettingsDialog`（设置）、`ApiConfig`、`TypeEditorDialog`、`BatchEdit`、`AdvancedSearch`、`DataDiffDialog`、`BackupManager`、`EngineExport`、`QuickCreate`、`ReferencePanel`、`Statistics`、`TemplateManager`、`AutoInputDialog`、`StartupModeDialog` |
 | `themes/themes.py` | 10 套主题配置 |
 

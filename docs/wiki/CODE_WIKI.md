@@ -477,7 +477,7 @@ CI（`.github/workflows/ci.yml`）包含 lint（ruff）、typecheck（mypy）、
 
 | 目录 | 职责 |
 |------|------|
-| `widgets/` | 可复用组件：`AttributePanel`（属性面板）、`RelationGraph`（关系图）、`LivePreview`（实时预览）、`FormulaBuilder`、`AttrTable`、`DynamicForm`、`CollapsibleSection`、`VirtualList`、`ModelSelector`、`AgentSelector`、`AgentMonitor`、`LibraryBar`、`Toast`、`HomeWidget` 等 |
+| `widgets/` | 可复用组件：`AttributePanel`（属性面板）、`RelationGraph`（关系图）、`LivePreview`（实时预览）、`FormulaBuilder`、`AttrTable`、`DynamicForm`、`CollapsibleSection`、`VirtualList`、`ModelSelector`、`AgentMonitor`、`LibraryBar`、`Toast`、`HomeWidget` 等 |
 | `dialogs/` | 对话框：`SettingsDialog`（设置）、`ApiConfig`、`TypeEditorDialog`、`BatchEdit`、`AdvancedSearch`、`DataDiffDialog`、`BackupManager`、`EngineExport`、`QuickCreate`、`ReferencePanel`、`Statistics`、`TemplateManager`、`AutoInputDialog`、`StartupModeDialog` |
 | `themes/themes.py` | 10 套主题配置 |
 
@@ -872,7 +872,7 @@ get_tool_description()                # 工具描述
 | `CollapsibleSection` / `CollapsibleTaskPanel` | 折叠面板 |
 | `VirtualList` | 虚拟滚动列表 |
 | `Toast` | 轻提示 |
-| `ModelSelector` / `AgentSelector` / `AgentMonitor` | 模型/智能体选择与监控 |
+| `ModelSelector` / `AgentMonitor` | 模型选择与智能体监控 |
 
 ---
 
