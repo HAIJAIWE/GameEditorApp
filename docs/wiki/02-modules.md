@@ -153,7 +153,6 @@
 | `window_state.py` | `WindowStateManager` 窗口几何/主题/布局状态持久化 |
 | `effects.py` / `theme_effects.py` / `text_glow_effect.py` | UI 特效（灯效/流光/文字辉光） |
 | `data_tab.py` | `DataEditorTab` 数据编辑标签页（列表 + 表单） |
-| `ai_assistant_tab.py` | `AIAssistantTab` AI 助手标签页（多技能工具调用 + 对话） |
 | `ai_bridge.py` | `AIBridge` AgentBrain 初始化与数字员工面板控制 |
 | `digital_employee.py` | `DigitalPanel` / `DigitalEmployee` / `DigitalEmployeePopup` 数字员工面板、独立窗口与浮窗 |
 | `digital_panel_state.py` | `DigitalPanelState` 各 mixin 的共享状态与方法签名声明 |

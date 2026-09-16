@@ -1,5 +1,12 @@
 # 更新日志
 
+## [Unreleased] - 2026-09-16
+
+### 移除
+
+- **删除 `src/ui/ai_assistant_tab.py`（1422 行）与 `tests/unit/test_ai_assistant_tab.py`**：该模块无 App 入口引用（`MainWindow` 的 AI 交互由 `DigitalPanel` + `AIBridge` 承担），且其构造依赖已被 Agent OS 重构移除的旧 `AgentManager` 接口，属不可运行的历史遗留。同步清理 `docs/wiki`（02-modules / 03-key-classes / CODE_WIKI 的模块与关键类条目）与架构图中的「结果回写 UI（AIAssistantTab / DigitalPanel）」表述
+- 移除后回归：**794 passed / 0 skipped**（覆盖率 32.35%，门槛 30%）、e2e 44 passed、ruff 全绿、mypy 300 文件 0 错误；MainWindow 冒烟构造与标签页加载正常，`ui.ai_assistant_tab` 已不可导入（符合预期）
+
 ## [Unreleased] - 2026-09-15（大文件拆分）
 
 ### 重构

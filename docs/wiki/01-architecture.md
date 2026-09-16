@@ -126,7 +126,7 @@
   → Planner 生成计划 → ToolDispatcher.execute() / execute_parallel()
       → BaseSkill.execute()（25 技能之一）
   → 失败反思 _reflect_on_failures()（自愈诊断链路）
-  → 结果回写 UI（AIAssistantTab / DigitalPanel）
+  → 结果回写 UI（DigitalPanel）
 ```
 
 ## 5. 事件总线（解耦机制）
