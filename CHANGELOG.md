@@ -16,6 +16,13 @@
   - `ceshu_skill_state.py` 声明 28 个跨 mixin 方法签名；`ceshu_skill.py` 只保留类属性、`PARAMS_SCHEMA` 与 `execute` 入口
   - 等价性验证：AST 比对 34 个函数，函数体逐字一致（0 差异）
   - 回归：805 passed / 0 skipped（覆盖率 32.26%）、技能发现 25 个且 `system.ceshu` 无重复注册、ruff 全绿、mypy 281 文件 0 错误
+- **`src/ui/dialogs/type_editor_dialog.py` 1562 → 532 行**
+  - `TypeEditorDialog` 的 4 个 AI 辅助方法（字段建议 / 已有数据分析 / 模板导入 / 网络参考）拆到 `type_editor_ai.py`（`TypeEditorAIMixin`）
+  - 两个内部控件类独立成模块：`type_editor_field_widget.py`（FieldEditorWidget）、`type_editor_layout_widget.py`（LayoutEditorWidget）
+  - 内置模板数据（`TYPE_TEMPLATES`，8 套）外置到 `src/data/type_editor_templates.py`，主类仍以同名类属性暴露
+  - `type_editor_dialog_state.py` 声明共享属性与 25 个方法签名；`TypeEditorDialog` 仍从原路径导出，3 处调用方无需改动
+  - 等价性验证：AST 比对 60 个函数，函数体逐字一致（0 差异）；`TYPE_TEMPLATES` 数据 AST 一致
+  - 回归：805 passed / 0 skipped（覆盖率 32.19%）、e2e 44 passed、ruff 全绿、mypy 286 文件 0 错误
 
 ## [Unreleased] - 2026-09-15
 
