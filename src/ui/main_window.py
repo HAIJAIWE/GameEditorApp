@@ -141,6 +141,9 @@ class MainWindow(QMainWindow):
         self.library_bar_widget.tabs_rebuild_needed.connect(
             lambda: QTimer.singleShot(0, lambda: _safe_call(self.tab_mgr.rebuild_all_tabs))
         )
+        # 该容器自身没有布局归属：只有 library_combo / lib_count_label 被放入顶部工具条，
+        # 容器与残留的「当前库:」标签会作为游离控件停靠在窗口左上角并拦截菜单栏点击
+        self.library_bar_widget.hide()
         self._setup_corner_widget()
         self.tab_mgr.create_tabs()
         self._state.restore_ui_state()
@@ -992,11 +995,43 @@ class MainWindow(QMainWindow):
     # ---- 帮助菜单 ----
 
     def _show_onboarding(self):
-        """帮助 → 快速入门：重置引导区并展开"""
-        if hasattr(self.home_widget, 'get_guide'):
-            guide = self.home_widget.get_guide()
-            if guide:
-                guide.reset()
+        """帮助 → 快速入门：重置引导区并在独立窗口中显示
+
+        HomeWidget（快速入门 + 数据概览 + 快捷创建）属于已移除的旧三栏布局，
+        主窗口内没有它的布局位置；直接显示会作为游离控件漂浮覆盖在主界面上，
+        因此统一装载进一个窗口展示，关闭后重新隐藏。
+        """
+        home = getattr(self, 'home_widget', None)
+        if home is None:
+            return
+        guide = home.get_guide() if hasattr(home, 'get_guide') else None
+        if guide:
+            guide.reset()
+        dialog = getattr(self, '_onboarding_dialog', None)
+        if dialog is None:
+            from PyQt6.QtWidgets import QScrollArea
+            dialog = QDialog(self)
+            dialog.setObjectName("onboardingDialog")
+            dialog.setWindowTitle("快速入门")
+            screen = self.screen()
+            if screen is not None:
+                avail = screen.availableGeometry()
+                dialog.resize(min(1060, int(avail.width() * 0.8)), min(760, int(avail.height() * 0.85)))
+            else:
+                dialog.resize(1060, 760)
+            dialog_layout = QVBoxLayout(dialog)
+            dialog_layout.setContentsMargins(0, 0, 0, 0)
+            # 用滚动容器承载：内容较窄时自适应铺满，较宽时出现滚动条而不是把窗口撑爆
+            scroll = QScrollArea(dialog)
+            scroll.setWidgetResizable(True)
+            scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+            scroll.setWidget(home)
+            dialog_layout.addWidget(scroll)
+            self._onboarding_dialog = dialog
+        home.show()
+        dialog.show()
+        dialog.raise_()
+        dialog.activateWindow()
 
     def _show_shortcut_reference(self):
         """帮助 → 快捷键参考"""

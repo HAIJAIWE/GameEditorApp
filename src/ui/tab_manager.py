@@ -90,6 +90,10 @@ class TabManager:
         self._mw.ceshu_editor = None
         self._mw.home_widget = HomeWidget(self._mw.data_manager, parent=self._mw)
         self._mw.home_widget.action_triggered.connect(self._mw._on_home_action)
+        # HomeWidget 属于已移除的旧三栏布局，主窗口里没有它的布局位置；
+        # 若保持可见会成为漂浮覆盖在主界面上的游离控件（遮挡内容、拦截点击）。
+        # 默认隐藏，由「帮助 → 快速入门」装载进窗口显示（见 MainWindow._show_onboarding）
+        self._mw.home_widget.hide()
 
         for data_type, _tab_name in self.get_tab_configs():
             if not self.is_type_allowed(data_type):

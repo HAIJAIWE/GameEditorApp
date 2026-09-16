@@ -50,6 +50,8 @@ class OnboardingGuide(QFrame):
 
     action_triggered = pyqtSignal(str, str)
 
+    STEPS_PER_ROW = 3  # 卡片换行阈值：单行横排会让整页宽度需求膨胀到上千像素
+
     STEPS = [
         {"id": "onboarding_library", "icon": "📁", "title": "创建游戏库",
          "desc": "管理你的游戏项目，每个库独立配置数据结构和类型"},
@@ -67,12 +69,15 @@ class OnboardingGuide(QFrame):
         super().__init__(parent)
         self.data_manager = data_manager
         self._collapsed = False
+        self._dismissed = False
         self._completed = set()
         self._config_dir = None
         if hasattr(data_manager, 'config') and data_manager.config:
             self._config_dir = data_manager.config.config_dir
         self._load_state()
         self._setup_ui()
+        if self._dismissed:
+            self.hide()
 
     # ---- 状态持久化 ----
 
@@ -88,9 +93,11 @@ class OnboardingGuide(QFrame):
                 with open(path, encoding='utf-8') as f:
                     data = json.load(f)
                 self._collapsed = data.get("onboarding_collapsed", False)
+                self._dismissed = bool(data.get("onboarding_dismissed", False))
                 self._completed = set(data.get("onboarding_completed", []))
         except Exception:
             self._collapsed = False
+            self._dismissed = False
             self._completed = set()
 
     def _save_state(self):
@@ -101,6 +108,7 @@ class OnboardingGuide(QFrame):
                 with open(path, encoding='utf-8') as f:
                     data = json.load(f)
             data["onboarding_collapsed"] = self._collapsed
+            data["onboarding_dismissed"] = self._dismissed
             data["onboarding_completed"] = list(self._completed)
             data["onboarding_done"] = len(self._completed) >= len(self.STEPS)
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -175,13 +183,13 @@ class OnboardingGuide(QFrame):
         self._card_container.setStyleSheet("QWidget#guideCards { background: transparent; border: none; }")
         self._card_container.setVisible(not self._collapsed)
 
-        cards_layout = QHBoxLayout(self._card_container)
+        cards_layout = QGridLayout(self._card_container)
         cards_layout.setContentsMargins(12, 0, 12, 12)
         cards_layout.setSpacing(8)
 
         for i, step in enumerate(self.STEPS):
             card = self._create_step_card(i, step)
-            cards_layout.addWidget(card)
+            cards_layout.addWidget(card, i // self.STEPS_PER_ROW, i % self.STEPS_PER_ROW)
 
         outer.addWidget(self._card_container)
 
@@ -263,22 +271,29 @@ class OnboardingGuide(QFrame):
 
     # ---- 动作 ----
 
-    def _toggle_collapsed(self):
-        self._collapsed = not self._collapsed
+    def _apply_collapsed(self):
+        """按 _collapsed 刷新卡片区可见性与折叠图标，并持久化"""
         self._card_container.setVisible(not self._collapsed)
         icon = self.findChild(QLabel, "guideCollapseIcon")
         if icon:
             icon.setText("▼" if not self._collapsed else "▶")
         self._save_state()
 
-    def _do_dismiss(self):
-        """关闭引导区（标记折叠并保存）"""
+    def _toggle_collapsed(self):
+        self._collapsed = not self._collapsed
+        self._apply_collapsed()
+
+    def _collapse_cards(self):
+        """仅折叠卡片区，保留标题栏（供「全部完成」自动收起使用）"""
         self._collapsed = True
-        self._card_container.setVisible(False)
-        icon = self.findChild(QLabel, "guideCollapseIcon")
-        if icon:
-            icon.setText("▶")
-        self._save_state()
+        self._apply_collapsed()
+
+    def _do_dismiss(self):
+        """关闭引导区：隐藏整个面板并持久化（可通过「帮助 → 快速入门」重新显示）"""
+        self._dismissed = True
+        self._collapsed = True
+        self._apply_collapsed()
+        self.hide()
 
     def _do_step(self, index: int, step: dict):
         self._completed.add(index)
@@ -291,9 +306,9 @@ class OnboardingGuide(QFrame):
         self._refresh_cards()
         # 发射信号
         self.action_triggered.emit(step["id"], "")
-        # 全部完成自动折叠
+        # 全部完成自动收起（保留标题栏，不隐藏整个引导区）
         if len(self._completed) >= len(self.STEPS):
-            QTimer.singleShot(500, self._do_dismiss)
+            QTimer.singleShot(500, self._collapse_cards)
 
     def _refresh_cards(self):
         old_container = self._card_container
@@ -306,32 +321,32 @@ class OnboardingGuide(QFrame):
         self._card_container.setStyleSheet("QWidget#guideCards { background: transparent; border: none; }")
         self._card_container.setVisible(not self._collapsed)
 
-        cards_layout = QHBoxLayout(self._card_container)
+        cards_layout = QGridLayout(self._card_container)
         cards_layout.setContentsMargins(12, 0, 12, 12)
         cards_layout.setSpacing(8)
 
         for i, step in enumerate(self.STEPS):
             card = self._create_step_card(i, step)
-            cards_layout.addWidget(card)
+            cards_layout.addWidget(card, i // self.STEPS_PER_ROW, i % self.STEPS_PER_ROW)
 
         self.layout().insertWidget(idx, self._card_container)
 
     def reset(self):
-        """重置引导状态（供「帮助 → 快速入门」菜单使用）"""
+        """重置引导状态并重新显示（供「帮助 → 快速入门」菜单使用）"""
+        self._dismissed = False
         self._collapsed = False
         self._completed = set()
-        self._save_state()
         self._refresh_cards()
-        icon = self.findChild(QLabel, "guideCollapseIcon")
-        if icon:
-            icon.setText("▼")
-        self._card_container.setVisible(True)
+        self._apply_collapsed()
+        self.show()
 
 
 class HomeWidget(QWidget):
     """\u5f15\u5bfc\u5f0f\u4e3b\u9875"""
 
     action_triggered = pyqtSignal(str, str)
+
+    STATS_PER_ROW = 4  # 概览卡换行阈值
 
     def __init__(self, data_manager, parent=None):
         super().__init__(parent)
@@ -415,7 +430,7 @@ class HomeWidget(QWidget):
         layout.addLayout(stats_header)
 
         self.stats_container = QWidget()
-        self.stats_layout = QHBoxLayout(self.stats_container)
+        self.stats_layout = QGridLayout(self.stats_container)
         self.stats_layout.setContentsMargins(0, 0, 0, 0)
         self.stats_layout.setSpacing(12)
         layout.addWidget(self.stats_container)
@@ -484,6 +499,7 @@ class HomeWidget(QWidget):
                 logger.warning(f"操作失败: {e}")
 
             if schema and hasattr(schema, "types"):
+                index = 0
                 for t in schema.types:
                     if not self._is_type_allowed(t.id):
                         continue
@@ -491,15 +507,21 @@ class HomeWidget(QWidget):
                     items = all_data.get(t.plural_key, [])
                     count = len(items) if isinstance(items, list) else 0
                     stat_card = self._create_stat_card(label, count, t.color)
-                    self.stats_layout.addWidget(stat_card)
+                    self._add_stat_card(stat_card, index)
+                    index += 1
             else:
-                for data_type, label in DATA_TYPE_LABELS.items():
+                for index, (data_type, label) in enumerate(DATA_TYPE_LABELS.items()):
                     items = all_data.get(data_type + "s", [])
                     count = len(items) if isinstance(items, list) else 0
                     stat_card = self._create_stat_card(label, count, theme_color('hint'))
-                    self.stats_layout.addWidget(stat_card)
+                    self._add_stat_card(stat_card, index)
         except Exception as e:
             logger.warning(f"操作失败: {e}")
+
+    def _add_stat_card(self, card, index: int):
+        """按换行阈值摆放概览卡（横排会把整页宽度需求推到上千像素）"""
+        cols = self.STATS_PER_ROW
+        self.stats_layout.addWidget(card, index // cols, index % cols)
 
     def _refresh_stats(self):
         while self.stats_layout.count():

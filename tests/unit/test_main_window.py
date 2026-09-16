@@ -90,3 +90,34 @@ class TestMainWindow:
         mw = MainWindow()
         assert mw.auto_save_enabled in (True, False)
         assert mw.auto_save_interval is not None
+
+    def test_no_floating_overlay_widgets(self, mock_qt):
+        """游离控件（不属于任何布局）不得漂浮在窗口上拦截点击
+
+        回归：旧三栏布局移除后，HomeWidget 与 LibraryBarWidget 容器失去布局归属，
+        作为可见的游离子控件停在窗口左上角，遮挡菜单栏与主界面（手工 QA 才发现）。
+        """
+        from PyQt6.QtWidgets import QApplication, QMenuBar, QStatusBar
+
+        mw = MainWindow()
+        mw.show()
+        QApplication.processEvents()
+
+        top_layout = mw.layout()
+        assert top_layout is not None
+        managed = {
+            id(top_layout.itemAt(i).widget())
+            for i in range(top_layout.count())
+            if top_layout.itemAt(i).widget() is not None
+        }
+        floating = [
+            ch.__class__.__name__
+            for ch in mw.children()
+            if ch.isWidgetType()
+            and ch.isVisible()
+            and id(ch) not in managed
+            and not isinstance(ch, (QMenuBar, QStatusBar))
+        ]
+
+        mw.close()
+        assert floating == [], f"存在游离覆盖层: {floating}"
