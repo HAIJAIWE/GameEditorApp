@@ -393,7 +393,8 @@ CI（`.github/workflows/ci.yml`）包含 lint（ruff）、typecheck（mypy）、
 | `dispatcher.py` | `ToolDispatcher` 技能注册与分发中心：技能发现、模糊匹配、并行执行、拓扑排序、参数修复、MCP 工具注册 |
 | `intent.py` | `IntentParser`（关键词/LLM 意图解析）+ `Planner`（结构化计划生成） |
 | `mcp.py` | `MCPRegistry`：外部 MCP 服务注册、HTTP/STDIO 工具发现、代理调用 |
-| `memory.py` | `Memory` 长期/短期记忆：向量索引、语义搜索、会话上下文 |
+| `memory.py` | `Memory` 长期/短期记忆：向量索引、语义搜索、会话上下文（方法按职责拆到 `memory_store` / `_history` / `_context` / `_search` / `_vector` 五个 mixin，共享状态见 `memory_state.py`） |
+| `memory_embedder.py` / `memory_index.py` | `VectorEmbedder`（ngram + TF-IDF）/ `MemoryIndex`（关键词索引文件读写） |
 | `workspace.py` | `WorkspaceManager` 多工作区：独立身份/记忆/策划方案存储 |
 | `learner.py` | `Learner` 历史经验学习：意图增强、模式挖掘、个性化提示、技能模板生成 |
 | `prompts.py` | 所有用户面智能体提示词与团队系统提示词 |
@@ -764,7 +765,7 @@ Agent 核心大脑，控制全局流程。
 |----|------|----------|
 | `IntentParser` | `intent.py` | `parse()`（快匹配或 `_deep_parse` LLM 深度解析）、历史反馈学习 |
 | `Planner` | `intent.py` | `plan()` 生成结构化步骤 |
-| `Memory` | `memory.py` | `save_long_term()` / `save_short_term()` / `semantic_search()` / `get_memory_context()` |
+| `Memory` | `memory.py`（方法按职责拆到 `memory_store` / `_history` / `_context` / `_search` / `_vector` 各 mixin） | `save_long_term()` / `save_short_term()` / `semantic_search()` / `get_memory_context()` |
 | `WorkspaceManager` | `workspace.py` | `create_workspace()` / `switch_workspace()` / `list_workspaces()` |
 | `Learner` | `learner.py` | `observe()` / `refine()` / `get_personalized_prompt()` / `generate_skill_template()` |
 | `SafetyGuard` | `safety_guard.py` | `check_dangerous()` / `trim_messages()` / `replan_step()` |

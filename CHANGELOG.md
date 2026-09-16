@@ -23,6 +23,12 @@
   - `type_editor_dialog_state.py` 声明共享属性与 25 个方法签名；`TypeEditorDialog` 仍从原路径导出，3 处调用方无需改动
   - 等价性验证：AST 比对 60 个函数，函数体逐字一致（0 差异）；`TYPE_TEMPLATES` 数据 AST 一致
   - 回归：805 passed / 0 skipped（覆盖率 32.19%）、e2e 44 passed、ruff 全绿、mypy 286 文件 0 错误
+- **`src/core/agent/memory.py` 1243 → 83 行**
+  - `Memory` 的 54 个方法拆到五个 mixin：`memory_store.py`（短期/长期/偏好/学习与反馈持久化）、`memory_history.py`（对话历史、整合与偏好学习）、`memory_context.py`（项目记忆与上下文注入）、`memory_search.py`（语义索引包装、关键词检索与摘要）、`memory_vector.py`（向量索引维护、语义检索与会话归档）
+  - `VectorEmbedder` + `get_embedder` → `memory_embedder.py`；`MemoryIndex` → `memory_index.py`；三者连同 `Memory` 在本模块用 `__all__` 再导出，`brain.py` / `learner.py` / `semantic_memory.py` 与测试的既有导入路径不变
+  - `memory_state.py` 声明共享状态、类常量（`MAX_SHORT_TERM` / `MAX_CONVERSATIONS` / `_CN_STOP_WORDS`）与 54 个方法签名；原文件末尾的 `SemanticMemory` 延迟导入（避免循环导入）按原样保留
+  - 等价性验证：AST 比对 72 个函数，函数体逐字一致（0 差异）；模块级符号完整性检查通过（四轮拆分统一复核）
+  - 回归：805 passed / 0 skipped（覆盖率 32.34%）、e2e 44 passed、ruff 全绿、mypy 294 文件 0 错误；Memory 的读写/偏好/关键词检索/语义索引冒烟通过
 
 ## [Unreleased] - 2026-09-15
 

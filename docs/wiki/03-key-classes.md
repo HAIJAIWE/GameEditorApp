@@ -204,7 +204,7 @@ Agent 核心大脑，控制全局流程。
 |----|------|----------|
 | `IntentParser` | `intent.py` | `parse()`（快匹配或 `_deep_parse` LLM 深度解析）、历史反馈学习 |
 | `Planner` | `intent.py` | `plan()` 生成结构化步骤 |
-| `Memory` | `memory.py` | `save_long_term()` / `save_short_term()` / `semantic_search()` / `get_memory_context()` |
+| `Memory` | `memory.py`（方法按职责拆到 `memory_store` / `_history` / `_context` / `_search` / `_vector` 各 mixin） | `save_long_term()` / `save_short_term()` / `semantic_search()` / `get_memory_context()` |
 | `WorkspaceManager` | `workspace.py` | `create_workspace()` / `switch_workspace()` / `list_workspaces()` |
 | `Learner` | `learner.py` | `observe()` / `refine()` / `get_personalized_prompt()` / `generate_skill_template()` |
 | `SafetyGuard` | `safety_guard.py` | `check_dangerous()` / `trim_messages()` / `replan_step()` |
