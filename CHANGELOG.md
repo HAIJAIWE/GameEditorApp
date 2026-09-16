@@ -29,6 +29,11 @@
   - `memory_state.py` 声明共享状态、类常量（`MAX_SHORT_TERM` / `MAX_CONVERSATIONS` / `_CN_STOP_WORDS`）与 54 个方法签名；原文件末尾的 `SemanticMemory` 延迟导入（避免循环导入）按原样保留
   - 等价性验证：AST 比对 72 个函数，函数体逐字一致（0 差异）；模块级符号完整性检查通过（四轮拆分统一复核）
   - 回归：805 passed / 0 skipped（覆盖率 32.34%）、e2e 44 passed、ruff 全绿、mypy 294 文件 0 错误；Memory 的读写/偏好/关键词检索/语义索引冒烟通过
+- **`src/core/agent/brain.py` 1603 → 133 行**
+  - `AgentBrain` 的 64 个方法拆到六个 mixin：`brain_session.py`（会话生命周期、配置重载与统计）、`brain_plan.py`（意图处理、计划执行与撤销）、`brain_llm.py`（LLM 迭代循环、工具调用与上下文压缩）、`brain_prompt.py`（系统提示词与上下文块构建、意图解析）、`brain_reflect.py`（失败反思与轮次评估）、`brain_subagent.py`（子智能体调度、辩论与结果收尾）
+  - `brain_state.py` 声明共享状态（29 个实例属性）、类常量（`_MAX_MESSAGE_CHARS` 等 5 项）与 64 个方法签名；AgentBrain 仍从原路径导出，`ai_bridge` / `ceshu_controller` 等调用方无需改动
+  - 等价性验证：AST 比对 66 个函数，函数体逐字一致（0 差异）；模块级符号完整性检查通过（本轮补回切分窗口漏取的模块级 `logger`）
+  - 回归：805 passed / 0 skipped（覆盖率 32.51%）、e2e 44 passed、ruff 全绿、mypy 301 文件 0 错误；AgentBrain 构造/健康检查/会话统计/token 估算/分发器装配冒烟通过
 
 ## [Unreleased] - 2026-09-15
 

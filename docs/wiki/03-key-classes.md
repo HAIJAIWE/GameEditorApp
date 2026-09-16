@@ -160,7 +160,9 @@ Excel 风格属性公式计算引擎，支持依赖拓扑排序求值。
 
 ### 4.1 `AgentBrain` — `src/core/agent/brain.py`
 
-Agent 核心大脑，控制全局流程。
+Agent 核心大脑，控制全局流程。方法按职责拆分在六个 mixin 中（`brain_session` 会话与配置 /
+`brain_plan` 计划执行 / `brain_llm` LLM 迭代 / `brain_prompt` 提示词构建 /
+`brain_reflect` 反思评估 / `brain_subagent` 子智能体），共享状态与签名见 `brain_state.py`。
 
 | 方法 | 说明 |
 |------|------|

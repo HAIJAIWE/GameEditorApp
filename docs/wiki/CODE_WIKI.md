@@ -389,7 +389,7 @@ CI（`.github/workflows/ci.yml`）包含 lint（ruff）、typecheck（mypy）、
 
 | 文件 | 职责 |
 |------|------|
-| `brain.py` | `AgentBrain` 核心大脑：意图识别、计划执行、LLM 迭代、失败反思与自愈、子智能体调度、多智能体辩论、会话管理、危险操作拦截 |
+| `brain.py` | `AgentBrain` 核心大脑：意图识别、计划执行、LLM 迭代、失败反思与自愈、子智能体调度、多智能体辩论、会话管理、危险操作拦截（方法按职责拆到 `brain_session` / `_plan` / `_llm` / `_prompt` / `_reflect` / `_subagent` 六个 mixin，共享状态见 `brain_state.py`） |
 | `dispatcher.py` | `ToolDispatcher` 技能注册与分发中心：技能发现、模糊匹配、并行执行、拓扑排序、参数修复、MCP 工具注册 |
 | `intent.py` | `IntentParser`（关键词/LLM 意图解析）+ `Planner`（结构化计划生成） |
 | `mcp.py` | `MCPRegistry`：外部 MCP 服务注册、HTTP/STDIO 工具发现、代理调用 |
@@ -721,7 +721,9 @@ Excel 风格属性公式计算引擎，支持依赖拓扑排序求值。
 
 ### 4.1 `AgentBrain` — `src/core/agent/brain.py`
 
-Agent 核心大脑，控制全局流程。
+Agent 核心大脑，控制全局流程。方法按职责拆分在六个 mixin 中（`brain_session` 会话与配置 /
+`brain_plan` 计划执行 / `brain_llm` LLM 迭代 / `brain_prompt` 提示词构建 /
+`brain_reflect` 反思评估 / `brain_subagent` 子智能体），共享状态与签名见 `brain_state.py`。
 
 | 方法 | 说明 |
 |------|------|

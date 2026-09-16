@@ -105,7 +105,7 @@
 
 | 文件 | 职责 |
 |------|------|
-| `brain.py` | `AgentBrain` 核心大脑：意图识别、计划执行、LLM 迭代、失败反思与自愈、子智能体调度、多智能体辩论、会话管理、危险操作拦截 |
+| `brain.py` | `AgentBrain` 核心大脑：意图识别、计划执行、LLM 迭代、失败反思与自愈、子智能体调度、多智能体辩论、会话管理、危险操作拦截（方法按职责拆到 `brain_session` / `_plan` / `_llm` / `_prompt` / `_reflect` / `_subagent` 六个 mixin，共享状态见 `brain_state.py`） |
 | `dispatcher.py` | `ToolDispatcher` 技能注册与分发中心：技能发现、模糊匹配、并行执行、拓扑排序、参数修复、MCP 工具注册 |
 | `intent.py` | `IntentParser`（关键词/LLM 意图解析）+ `Planner`（结构化计划生成） |
 | `mcp.py` | `MCPRegistry`：外部 MCP 服务注册、HTTP/STDIO 工具发现、代理调用 |
