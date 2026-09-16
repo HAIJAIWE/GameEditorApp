@@ -824,53 +824,6 @@ def theme_color(key: str, theme_name: str = None) -> str:
     return cfg.get(key, "")
 
 
-# 智能体 id → 主题令牌映射
-_AGENT_TOKEN_MAP = {
-    "steward": "agent_steward",
-    "data_operator": "agent_operator",
-    "schema_manager": "agent_schema",
-    "planner": "agent_planner",
-    "analyst": "agent_analyst",
-    "web_surfer": "agent_web",
-    "media_creator": "agent_media",
-    "dev_coder": "agent_dev",
-    "ops_coder": "agent_ops",
-    "fixer": "agent_fixer",
-}
-
-# 智能体默认硬编码颜色（当主题中没有对应令牌时的兜底）
-_AGENT_FALLBACK_COLORS = {
-    "steward": "#a855f7",
-    "data_operator": "#58a6ff",
-    "schema_manager": "#38bdf8",
-    "planner": "#30d158",
-    "analyst": "#db61a2",
-    "web_surfer": "#f0883e",
-    "media_creator": "#c084fc",
-    "dev_coder": "#f97316",
-    "ops_coder": "#fb923c",
-    "fixer": "#ef4444",
-}
-
-
-def get_agent_color(agent_id: str, theme_name: str = None) -> str:
-    """获取智能体的主题化颜色
-
-    Args:
-        agent_id: 智能体 id（如 'boss', 'game_designer' 等）
-        theme_name: 主题名称，默认使用当前主题
-
-    Returns:
-        str: 颜色值，如果主题中没有对应令牌则返回兜底颜色
-    """
-    token = _AGENT_TOKEN_MAP.get(agent_id)
-    if token:
-        color = theme_color(token, theme_name)
-        if color:
-            return color
-    return _AGENT_FALLBACK_COLORS.get(agent_id, "#58a6ff")
-
-
 def get_chat_css(theme_name: str = None) -> str:
     """生成聊天区域 HTML 默认样式表（用于 QTextEdit.document().setDefaultStyleSheet()）
 

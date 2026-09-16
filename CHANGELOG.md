@@ -13,9 +13,15 @@
 - **`ceshu_pptx_exporter` 的可选依赖回退分支使 mypy 门禁失败（此前被增量缓存掩盖）**：模块级 `try: from pptx... except ImportError:` 回退里重定义了 `RGBColor` / `MSO_SHAPE` / `PP_ALIGN` / `Inches` / `Pt`，mypy 会同时分析两个分支，报 `assignment` / `no-redef` / `misc` 共 4 个错误——且结果随环境是否安装 python-pptx 而变（这正是此前为 `semantic_memory` 消除的那类环境相关 `type: ignore`）。改为 `if TYPE_CHECKING: <真实导入> / else: <try/except 回退>`：mypy 只分析真实依赖分支，运行时行为完全不变。验证：清空 mypy 缓存（`--cache-dir` 指向空目录）后 `mypy src/` **299 个源文件 0 错误**；回退分支用 meta_path 拦截器模拟「未安装 pptx」实测：`_PPTX_AVAILABLE=False`、占位常量可用、`export_ceshu_to_pptx` 仍抛出中文 ImportError 提示
 - **注意（检查方法）**：mypy 增量缓存会沿用旧的「干净」结论，此前几轮「0 错误」结论均在缓存命中下得到；后续验证统一改用空 `--cache-dir` 复核，结论已更新为干净缓存下的 0 错误
 
+### 清理
+
+- **删除删除组件后遗留的孤儿符号（无任何调用点）**：
+  - `ui/themes.get_agent_color()` 与 `_AGENT_TOKEN_MAP` / `_AGENT_FALLBACK_COLORS`（仅被已删除的 `AgentSelectorWidget` 调用），同步从 `ui.themes.__init__` 的导入与 `__all__` 移除；主题里的 `agent_*` 令牌本身仍被 `ai_panel` / `ceshu_theme` / `competitive_chart` 使用，故保留
+  - `AgentManager.set_active_agent()` / `get_active_agent()`：其内部状态 `_active_agent_id` 从未在 `__init__` 初始化、除自身外无任何读写点（Brain 用 `list_agents()` + 团队模式判定），亦无持久化字段引用，一并删除
+
 ### 测试
 
-- 本轮实况：**794 passed / 0 skipped**（覆盖率 32.80%，门槛 30%）、e2e 44 passed（合计 838 passed）、ruff 全绿、mypy 299 文件 0 错误（干净缓存）
+- 本轮实况：**794 passed / 0 skipped**（覆盖率 32.81%，门槛 30%）、e2e 44 passed（合计 838 passed）、ruff 全绿、mypy 299 文件 0 错误（干净缓存）；冒烟确认 `ui.themes` 正常、`get_agent_color` / `set_active_agent` 已不可访问、`AgentManager` 仍能列出 10 个智能体
 
 ## [Unreleased] - 2026-09-15（大文件拆分）
 

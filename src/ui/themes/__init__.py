@@ -31,7 +31,6 @@ from .themes import (
     _is_dark_theme,
     apply_button_variant,
     generate_digital_panel_qss,
-    get_agent_color,
     get_button_variant_qss,
     get_chat_bubble_css,
     get_chat_css,
@@ -45,7 +44,7 @@ from .themes import (
 __all__ = [
     'THEMES', 'generate_digital_panel_qss', '_THEME_CONFIGS', '_is_dark_theme',
     'set_current_theme', 'get_current_theme', 'get_theme_colors', 'is_dark_theme',
-    'theme_color', 'get_agent_color', 'get_chat_css', 'get_chat_bubble_css',
+    'theme_color', 'get_chat_css', 'get_chat_bubble_css',
     # P2-6: 设计令牌常量
     'FONT_SIZE_XS', 'FONT_SIZE_SM', 'FONT_SIZE_MD', 'FONT_SIZE_LG', 'FONT_SIZE_XL', 'FONT_SIZE_2XL',
     'SPACING_XS', 'SPACING_SM', 'SPACING_MD', 'SPACING_LG', 'SPACING_XL', 'SPACING_2XL',

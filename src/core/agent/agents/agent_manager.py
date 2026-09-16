@@ -256,18 +256,6 @@ class AgentManager:
     def set_current_team(self, team_id: str | None):
         self._current_team_id = team_id
 
-    def set_active_agent(self, agent_id: str) -> bool:
-        """设置当前活跃的智能体 ID（用于 boss 模式下标记当前执行者）"""
-        if agent_id in self._agents:
-            self._active_agent_id = agent_id
-            return True
-        self._logger.warning(f"未知智能体: {agent_id}")
-        return False
-
-    def get_active_agent(self) -> str | None:
-        """获取当前活跃的智能体 ID"""
-        return getattr(self, "_active_agent_id", None)
-
     def get_current_team(self) -> Team | None:
         if self._current_team_id:
             return self._teams.get(self._current_team_id)
