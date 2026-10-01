@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import type { CeshuSummary } from '../../shared/ceshuConstants'
+import { filterItemRecords } from '../../shared/dataTableOps'
 import type { AppInfo, DataTypeDef, ImportSummary, ItemRecord } from '../../shared/types'
 
+import BatchEditPanel from './components/BatchEditPanel'
 import CeshuView from './components/CeshuView'
 import ItemForm from './components/ItemForm'
 import TypeEditorPanel from './components/TypeEditorPanel'
@@ -36,6 +38,19 @@ export default function App() {
 
   const fields = activeType ? (types.find((def) => def.id === activeType)?.formFields ?? []) : []
   const selectedItem = items.find((item) => item.id === selectedId) ?? null
+  const [query, setQuery] = useState('')
+  const [debouncedQuery, setDebouncedQuery] = useState('')
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [batchOpen, setBatchOpen] = useState(false)
+
+  const filteredItems = useMemo(() => filterItemRecords(items, debouncedQuery), [items, debouncedQuery])
+  // 仅统计仍然存在的勾选项（重载/删除后失效的 id 不参与批量操作）
+  const aliveIds = useMemo(() => new Set(items.map((item) => item.id)), [items])
+  const selectedVisibleIds = useMemo(
+    () => [...selectedIds].filter((id) => aliveIds.has(id)),
+    [selectedIds, aliveIds]
+  )
+  const allSelected = filteredItems.length > 0 && filteredItems.every((item) => selectedIds.has(item.id))
 
   /** 事件处理器使用的重新加载（不在 effect 中直接调用，避免级联渲染） */
   const reload = useCallback(async (type: string): Promise<void> => {
@@ -123,9 +138,48 @@ export default function App() {
     }
   }, [activeType])
 
+  // 搜索防抖：输入停止 150ms 后再过滤列表
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(query), 150)
+    return () => clearTimeout(timer)
+  }, [query])
+
   const selectType = (id: string): void => {
     setSelectedId(null)
     setActiveType(id)
+    setQuery('')
+    setSelectedIds(new Set())
+    setBatchOpen(false)
+  }
+
+  const toggleSelect = (id: string): void => {
+    setSelectedIds((current) => {
+      const next = new Set(current)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  /** 全选/全不选：作用于当前过滤结果（与搜索联动） */
+  const toggleSelectAll = (): void => {
+    setSelectedIds((current) => {
+      const next = new Set(current)
+      const allChecked = filteredItems.length > 0 && filteredItems.every((item) => next.has(item.id))
+      for (const item of filteredItems) {
+        if (allChecked) next.delete(item.id)
+        else next.add(item.id)
+      }
+      return next
+    })
+  }
+
+  /** 批量操作完成：提示结果、清空勾选、关闭面板并刷新列表 */
+  const handleBatchApplied = (message: string): void => {
+    setNotice(message)
+    setSelectedIds(new Set())
+    setBatchOpen(false)
+    if (activeType) void reload(activeType)
   }
 
   const handleCreate = async (): Promise<void> => {
@@ -314,44 +368,109 @@ export default function App() {
                 <TypeEditorPanel types={types} onSaved={handleSchemaSaved} onClose={() => setEditorOpen(false)} />
               ) : (
                 <>
-                  <div className="list">
-                {!activeType ? (
-                  <div className="empty">正在加载数据类型…</div>
-                ) : items.length === 0 ? (
-                  <div className="empty">暂无数据，点击「新增测试条目」或「导入旧数据」</div>
-                ) : (
-                  items.map((item) => (
-                    <div
-                      key={item.id}
-                      className={`item-row${item.id === selectedId ? ' selected' : ''}`}
-                      data-testid="item-row"
-                      onClick={() => setSelectedId(item.id)}
-                    >
-                      <span className="item-name">{String(item.data.name ?? item.id)}</span>
-                      <span className="item-meta">{item.id.slice(0, 8)}</span>
+                  <div className="list-column">
+                    <div className="list-toolbar">
+                      <input
+                        className="form-input search-input"
+                        data-testid="search-input"
+                        value={query}
+                        placeholder="搜索 名称 / 描述 / ID（空格分词）"
+                        onChange={(event) => setQuery(event.target.value)}
+                      />
+                      {query !== '' && (
+                        <button type="button" className="btn slim" data-testid="search-clear" onClick={() => setQuery('')}>
+                          清除
+                        </button>
+                      )}
+                      <label className="ai-gen-check">
+                        <input
+                          type="checkbox"
+                          data-testid="select-all"
+                          checked={allSelected}
+                          disabled={filteredItems.length === 0}
+                          onChange={toggleSelectAll}
+                        />
+                        全选
+                      </label>
+                      <span className="item-meta" data-testid="list-count">
+                        显示 {filteredItems.length} / {items.length} 条
+                      </span>
                       <button
                         type="button"
-                        className="btn danger"
-                        onClick={(event) => {
-                          event.stopPropagation()
-                          void handleDelete(item.id)
-                        }}
+                        className="btn"
+                        data-testid="open-batch-edit"
+                        disabled={selectedVisibleIds.length === 0}
+                        onClick={() => setBatchOpen(true)}
                       >
-                        删除
+                        批量操作（{selectedVisibleIds.length}）
                       </button>
                     </div>
-                  ))
-                )}
-              </div>
 
-              {selectedItem && (
-                <ItemForm
-                  key={`${selectedItem.id}:${selectedItem.updatedAt}`}
-                  item={selectedItem}
-                  fields={fields}
-                  onSaved={handleSaved}
-                />
-              )}
+                    <div className="list">
+                      {!activeType ? (
+                        <div className="empty">正在加载数据类型…</div>
+                      ) : items.length === 0 ? (
+                        <div className="empty">暂无数据，点击「新增测试条目」或「导入旧数据」</div>
+                      ) : filteredItems.length === 0 ? (
+                        <div className="empty" data-testid="search-empty">
+                          没有匹配「{debouncedQuery}」的数据
+                        </div>
+                      ) : (
+                        filteredItems.map((item) => (
+                          <div
+                            key={item.id}
+                            className={`item-row${item.id === selectedId ? ' selected' : ''}`}
+                            data-testid="item-row"
+                            onClick={() => {
+                              setSelectedId(item.id)
+                              setBatchOpen(false)
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              className="item-check"
+                              data-testid="item-check"
+                              checked={selectedIds.has(item.id)}
+                              onClick={(event) => event.stopPropagation()}
+                              onChange={() => toggleSelect(item.id)}
+                            />
+                            <span className="item-name">{String(item.data.name ?? item.id)}</span>
+                            <span className="item-meta">{item.id.slice(0, 8)}</span>
+                            <button
+                              type="button"
+                              className="btn danger"
+                              onClick={(event) => {
+                                event.stopPropagation()
+                                void handleDelete(item.id)
+                              }}
+                            >
+                              删除
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  {batchOpen ? (
+                    <BatchEditPanel
+                      key={`${activeType ?? ''}:batch`}
+                      type={activeType ?? ''}
+                      typeDef={types.find((def) => def.id === activeType) ?? null}
+                      selectedIds={selectedVisibleIds}
+                      onApplied={handleBatchApplied}
+                      onClose={() => setBatchOpen(false)}
+                    />
+                  ) : (
+                    selectedItem && (
+                      <ItemForm
+                        key={`${selectedItem.id}:${selectedItem.updatedAt}`}
+                        item={selectedItem}
+                        fields={fields}
+                        onSaved={handleSaved}
+                      />
+                    )
+                  )}
                 </>
               )}
             </div>

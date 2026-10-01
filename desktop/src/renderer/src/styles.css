@@ -150,6 +150,40 @@ body {
   padding: 12px 20px;
 }
 
+/* ---- 列表工具条：搜索 / 多选 / 批量操作 ---- */
+
+.list-column {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.list-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 20px 0;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 170px;
+  max-width: 320px;
+}
+
+.item-check {
+  flex-shrink: 0;
+}
+
+.danger-hint {
+  color: var(--danger);
+  font-weight: 600;
+  line-height: 1.6;
+}
+
 .item-row {
   display: flex;
   align-items: center;

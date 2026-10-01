@@ -3,6 +3,7 @@ import { ZodError, type ZodType } from 'zod'
 
 import type { IpcChannel, IpcContract, IpcResult } from '../shared/ipc'
 import {
+  batchUpdateInputSchema,
   ceshuAiGenerateInputSchema,
   ceshuChooseExportFileInputSchema,
   ceshuCreateInputSchema,
@@ -12,6 +13,7 @@ import {
   ceshuSaveChapterInputSchema,
   createItemInputSchema,
   deleteItemInputSchema,
+  deleteManyInputSchema,
   exportLegacyInputSchema,
   importLegacyInputSchema,
   listItemsInputSchema,
@@ -58,6 +60,8 @@ export function registerIpcHandlers({
   handle('data:createItem', createItemInputSchema, (req) => dataService.createItem(req))
   handle('data:updateItem', updateItemInputSchema, (req) => dataService.updateItem(req.id, req.data))
   handle('data:deleteItem', deleteItemInputSchema, async (req) => ({ deleted: await dataService.deleteItem(req.id) }))
+  handle('data:batchUpdate', batchUpdateInputSchema, (req) => dataService.batchUpdate(req))
+  handle('data:deleteMany', deleteManyInputSchema, (req) => dataService.deleteMany(req.ids))
   handle('data:importLegacy', importLegacyInputSchema, (req) =>
     importLegacyDataFile(req.path, dataService, typeSchemaStore.getTypes())
   )

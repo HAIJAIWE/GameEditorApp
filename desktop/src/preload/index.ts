@@ -25,6 +25,8 @@ const api: MbApi = {
     createItem: (req) => invoke('data:createItem', req),
     updateItem: (req) => invoke('data:updateItem', req),
     deleteItem: (req) => invoke('data:deleteItem', req),
+    batchUpdate: (req) => invoke('data:batchUpdate', req),
+    deleteMany: (req) => invoke('data:deleteMany', req),
     importLegacy: (req) => invoke('data:importLegacy', req),
     exportLegacy: (req) => invoke('data:exportLegacy', req)
   },

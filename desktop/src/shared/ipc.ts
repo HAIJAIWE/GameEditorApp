@@ -1,15 +1,25 @@
 import type {
+  BatchUpdateInput,
   CeshuAiGenerateInput,
   CeshuChooseExportFileInput,
   CeshuCreateInput,
   CeshuDeriveInput,
   CeshuExportInput,
   CeshuSaveChapterInput,
+  DeleteManyInput,
   ExportLegacyInput,
   ImportLegacyInput,
   SchemaSaveInput
 } from './schemas'
-import type { AppInfo, DataTypeDef, ExportSummary, ImportSummary, ItemRecord } from './types'
+import type {
+  AppInfo,
+  BatchUpdateSummary,
+  DataTypeDef,
+  DeleteManySummary,
+  ExportSummary,
+  ImportSummary,
+  ItemRecord
+} from './types'
 import type { CeshuDocument, CeshuExportResult, CeshuSummary } from './ceshuConstants'
 import type { CeshuChangelog } from './ceshuDiff'
 import type { CeshuScoreReport } from './ceshuScorer'
@@ -27,6 +37,8 @@ export interface IpcContract {
   'data:createItem': { req: { type: string; data: Record<string, unknown> }; res: ItemRecord }
   'data:updateItem': { req: { id: string; data: Record<string, unknown> }; res: ItemRecord }
   'data:deleteItem': { req: { id: string }; res: { deleted: boolean } }
+  'data:batchUpdate': { req: BatchUpdateInput; res: BatchUpdateSummary }
+  'data:deleteMany': { req: DeleteManyInput; res: DeleteManySummary }
   'data:importLegacy': { req: ImportLegacyInput; res: ImportSummary }
   'data:exportLegacy': { req: ExportLegacyInput; res: ExportSummary }
   'dialog:chooseJsonFile': { req: undefined; res: { path: string | null } }

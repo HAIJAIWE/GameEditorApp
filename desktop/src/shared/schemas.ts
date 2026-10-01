@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { CESHU_EXPORT_FORMATS } from './ceshuConstants'
+import { ADJUST_MODES, BATCH_OP_KINDS } from './dataTableOps'
 import { FIELD_TYPES } from './typeSchemaFile'
 import type { FieldType } from './types'
 
@@ -33,6 +34,36 @@ export const updateItemInputSchema = z.object({
 
 export const exportLegacyInputSchema = z.object({
   path: z.string().min(1)
+})
+
+/* ---- 数据表批量操作 ---- */
+
+export const batchOpSchema = z
+  .object({
+    kind: z.enum(BATCH_OP_KINDS),
+    field: z.string().min(1).max(64),
+    value: z.string().max(5000).default(''),
+    separator: z.string().max(20).default(','),
+    mode: z.enum(ADJUST_MODES).default('add'),
+    adjust: z.number().int().min(-99999).max(99999).default(0)
+  })
+  .superRefine((op, ctx) => {
+    if (op.kind === 'append_value' && op.value === '') {
+      ctx.addIssue({ code: 'custom', message: '请填写追加内容' })
+    }
+    if (op.kind === 'add_tag' && op.value === '') {
+      ctx.addIssue({ code: 'custom', message: '请填写标签内容' })
+    }
+  })
+
+export const batchUpdateInputSchema = z.object({
+  type: z.string().min(1),
+  ids: z.array(z.string().min(1)).min(1).max(5000),
+  op: batchOpSchema
+})
+
+export const deleteManyInputSchema = z.object({
+  ids: z.array(z.string().min(1)).min(1).max(5000)
 })
 
 /* ---- 数据类型 schema（字段结构编辑器） ---- */
@@ -116,6 +147,9 @@ export type DeleteItemInput = z.infer<typeof deleteItemInputSchema>
 export type ImportLegacyInput = z.infer<typeof importLegacyInputSchema>
 export type UpdateItemInput = z.infer<typeof updateItemInputSchema>
 export type ExportLegacyInput = z.infer<typeof exportLegacyInputSchema>
+export type BatchOpInput = z.infer<typeof batchOpSchema>
+export type BatchUpdateInput = z.infer<typeof batchUpdateInputSchema>
+export type DeleteManyInput = z.infer<typeof deleteManyInputSchema>
 export type SchemaSaveInput = z.infer<typeof schemaSaveInputSchema>
 export type CeshuCreateInput = z.infer<typeof ceshuCreateInputSchema>
 export type CeshuSaveChapterInput = z.infer<typeof ceshuSaveChapterInputSchema>

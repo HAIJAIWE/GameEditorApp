@@ -62,6 +62,19 @@ export interface DataTypeDef {
   formFields: TypeFieldDef[]
 }
 
+/** 批量字段操作结果（affected=已写入，skipped=非数值跳过，missing=不存在或类型不符） */
+export interface BatchUpdateSummary {
+  affected: number
+  skipped: number
+  missing: number
+}
+
+/** 批量删除结果 */
+export interface DeleteManySummary {
+  deleted: number
+  missing: number
+}
+
 /** 旧数据导入结果 */
 export interface ImportSummary {
   filePath: string

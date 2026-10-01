@@ -110,4 +110,50 @@ describe('DataService', () => {
     const service = createService()
     await expect(service.updateItem('NOT_EXIST', {})).rejects.toThrow('数据不存在')
   })
+
+  it('批量字段操作：全部写入、createdAt 保留、data.id 不变', async () => {
+    const service = createService()
+    const a = await service.createItem({ type: 'skill', data: { name: 'A' } })
+    const b = await service.createItem({ type: 'skill', data: { name: 'B' } })
+
+    const summary = await service.batchUpdate({
+      type: 'skill',
+      ids: [a.id, b.id],
+      op: { kind: 'set_value', field: 'category', value: '攻击', separator: ',', mode: 'add', adjust: 0 }
+    })
+    expect(summary).toEqual({ affected: 2, skipped: 0, missing: 0 })
+
+    const list = service.listItems('skill')
+    expect(list.map((item) => item.data['category'])).toEqual(['攻击', '攻击'])
+    expect(list.find((item) => item.id === a.id)?.createdAt).toBe(a.createdAt)
+    expect(list.find((item) => item.id === a.id)?.data['id']).toBe(a.id)
+  })
+
+  it('批量数值增减：非数值跳过、缺字段按 0 处理、类型不符计入 missing', async () => {
+    const service = createService()
+    const numeric = await service.createItem({ type: 'skill', data: { name: '火球术', value: 100 } })
+    const percent = await service.createItem({ type: 'skill', data: { name: '冰霜箭', value: '50%' } })
+    const text = await service.createItem({ type: 'skill', data: { name: '文字条目' } })
+    const invalid = await service.createItem({ type: 'skill', data: { name: '异常值', value: 'abc' } })
+    const other = await service.createItem({ type: 'item', data: { value: 1 } })
+
+    const summary = await service.batchUpdate({
+      type: 'skill',
+      ids: [numeric.id, percent.id, text.id, invalid.id, other.id, 'NOT_EXIST'],
+      op: { kind: 'adjust_number', field: 'value', value: '', separator: ',', mode: 'add', adjust: 5 }
+    })
+    // 文字条目缺 value 字段 → 按 0 处理 → 写入 5；'abc' 非数值跳过；item 类型与不存在 id 计入 missing
+    expect(summary).toEqual({ affected: 3, skipped: 1, missing: 2 })
+    expect(service.listItems('skill').map((item) => item.data['value'])).toEqual(['105', '55', '5', 'abc'])
+  })
+
+  it('批量删除：已删除与不存在分别计数', async () => {
+    const service = createService()
+    const a = await service.createItem({ type: 'skill', data: {} })
+    const b = await service.createItem({ type: 'skill', data: {} })
+
+    const summary = await service.deleteMany([a.id, b.id, 'NOT_EXIST'])
+    expect(summary).toEqual({ deleted: 2, missing: 1 })
+    expect(service.listItems('skill')).toHaveLength(0)
+  })
 })

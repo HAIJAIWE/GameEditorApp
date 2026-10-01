@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto'
 
-import type { CreateItemInput } from '../../shared/schemas'
-import type { ItemRecord } from '../../shared/types'
+import { applyBatchOp } from '../../shared/dataTableOps'
+import type { BatchUpdateInput, CreateItemInput } from '../../shared/schemas'
+import type { BatchUpdateSummary, DeleteManySummary, ItemRecord } from '../../shared/types'
 import type { ItemsRepository } from './repository'
 
 /** 导入记录：id 与业务数据来自旧版 JSON，type 已映射为单数类型键 */
@@ -63,6 +64,49 @@ export class DataService {
       }
       this.repo.upsertItem(next)
       return next
+    })
+  }
+
+  /**
+   * 批量字段操作（匹平 Python BatchEditDialog._on_apply）：整批走一次写队列任务。
+   * 逐条读取最新数据 → 用共享纯函数计算新值 → 写回；
+   * - adjust_number 遇非数值：skipped 计数（与 Python continue 一致，不阻断整批）
+   * - id 不存在或类型不符：missing 计数
+   */
+  batchUpdate(input: BatchUpdateInput): Promise<BatchUpdateSummary> {
+    return this.enqueueWrite(() => {
+      const summary: BatchUpdateSummary = { affected: 0, skipped: 0, missing: 0 }
+      const now = new Date().toISOString()
+      for (const id of input.ids) {
+        const existing = this.repo.findItem(id)
+        if (!existing || existing.type !== input.type) {
+          summary.missing++
+          continue
+        }
+        const nextData = applyBatchOp(existing.data, input.op)
+        if (!nextData) {
+          summary.skipped++
+          continue
+        }
+        this.repo.upsertItem({ ...existing, data: { ...nextData, id }, updatedAt: now })
+        summary.affected++
+      }
+      return summary
+    })
+  }
+
+  /** 批量删除：整批走一次写队列任务（与 Python delete_selected 一致，无级联） */
+  deleteMany(ids: string[]): Promise<DeleteManySummary> {
+    return this.enqueueWrite(() => {
+      const summary: DeleteManySummary = { deleted: 0, missing: 0 }
+      for (const id of ids) {
+        if (this.repo.deleteItem(id)) {
+          summary.deleted++
+        } else {
+          summary.missing++
+        }
+      }
+      return summary
     })
   }
 
