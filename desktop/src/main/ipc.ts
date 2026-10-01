@@ -15,6 +15,7 @@ import {
   exportLegacyInputSchema,
   importLegacyInputSchema,
   listItemsInputSchema,
+  schemaSaveInputSchema,
   updateItemInputSchema
 } from '../shared/schemas'
 import {
@@ -23,7 +24,6 @@ import {
   isChapterKey
 } from '../shared/ceshuConstants'
 import { buildChapterPrompt, filterGeneratedFields, mergeChapterDraft, parseLlmJson } from '../shared/ceshuAi'
-import { listTypeSummaries } from '../shared/typeSchema'
 import { scoreCeshu } from '../shared/ceshuScorer'
 import { validateCeshu } from '../shared/ceshuValidation'
 import type { AppInfo } from '../shared/types'
@@ -33,24 +33,37 @@ import { exportLegacyDataFile } from './data/legacyExport'
 import { importLegacyDataFile } from './data/legacyImport'
 import type { DataService } from './data/service'
 import type { LlmClient } from './llm/client'
+import type { TypeSchemaStore } from './schema/store'
 
 interface IpcHandlerDeps {
   dataService: DataService
   ceshuManager: CeshuManager
+  typeSchemaStore: TypeSchemaStore
   llmClient: LlmClient
   getAppInfo: () => AppInfo
 }
 
 /** 注册全部 IPC 处理器：入口统一做 zod 校验，结果统一包裹为 IpcResult */
-export function registerIpcHandlers({ dataService, ceshuManager, llmClient, getAppInfo }: IpcHandlerDeps): void {
+export function registerIpcHandlers({
+  dataService,
+  ceshuManager,
+  typeSchemaStore,
+  llmClient,
+  getAppInfo
+}: IpcHandlerDeps): void {
   handle('app:info', undefined, () => getAppInfo())
-  handle('data:listTypes', undefined, () => listTypeSummaries())
+  handle('schema:list', undefined, () => typeSchemaStore.getTypes())
+  handle('schema:save', schemaSaveInputSchema, (req) => typeSchemaStore.saveTypes(req.types))
   handle('data:listItems', listItemsInputSchema, (req) => dataService.listItems(req.type))
   handle('data:createItem', createItemInputSchema, (req) => dataService.createItem(req))
   handle('data:updateItem', updateItemInputSchema, (req) => dataService.updateItem(req.id, req.data))
   handle('data:deleteItem', deleteItemInputSchema, async (req) => ({ deleted: await dataService.deleteItem(req.id) }))
-  handle('data:importLegacy', importLegacyInputSchema, (req) => importLegacyDataFile(req.path, dataService))
-  handle('data:exportLegacy', exportLegacyInputSchema, (req) => exportLegacyDataFile(req.path, dataService))
+  handle('data:importLegacy', importLegacyInputSchema, (req) =>
+    importLegacyDataFile(req.path, dataService, typeSchemaStore.getTypes())
+  )
+  handle('data:exportLegacy', exportLegacyInputSchema, (req) =>
+    exportLegacyDataFile(req.path, dataService, typeSchemaStore.getTypes())
+  )
   handle('ceshu:list', undefined, () => ceshuManager.list())
   handle('ceshu:create', ceshuCreateInputSchema, (req) => ceshuManager.create(req))
   handle('ceshu:get', ceshuGetInputSchema, (req) => ceshuManager.get(req.id))

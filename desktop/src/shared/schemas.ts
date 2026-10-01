@@ -1,6 +1,8 @@
 import { z } from 'zod'
 
 import { CESHU_EXPORT_FORMATS } from './ceshuConstants'
+import { FIELD_TYPES } from './typeSchemaFile'
+import type { FieldType } from './types'
 
 /**
  * IPC 请求 schema（仅主进程导入，用于入口运行时校验）。
@@ -31,6 +33,31 @@ export const updateItemInputSchema = z.object({
 
 export const exportLegacyInputSchema = z.object({
   path: z.string().min(1)
+})
+
+/* ---- 数据类型 schema（字段结构编辑器） ---- */
+
+export const typeFieldDefSchema = z.object({
+  name: z.string().min(1).max(64),
+  label: z.string().min(1).max(200),
+  type: z.enum(FIELD_TYPES as [FieldType, ...FieldType[]]),
+  editable: z.boolean(),
+  values: z.array(z.string().max(500)).max(500).optional(),
+  from: z.number().optional(),
+  to: z.number().optional(),
+  refType: z.string().max(64).optional()
+})
+
+export const dataTypeDefSchema = z.object({
+  id: z.string().min(1).max(64),
+  name: z.string().min(1).max(200),
+  pluralKey: z.string().min(1).max(64),
+  color: z.string().max(40),
+  formFields: z.array(typeFieldDefSchema).min(1).max(300)
+})
+
+export const schemaSaveInputSchema = z.object({
+  types: z.array(dataTypeDefSchema).min(1).max(100)
 })
 
 /* ---- 策划书（GDD） ---- */
@@ -89,6 +116,7 @@ export type DeleteItemInput = z.infer<typeof deleteItemInputSchema>
 export type ImportLegacyInput = z.infer<typeof importLegacyInputSchema>
 export type UpdateItemInput = z.infer<typeof updateItemInputSchema>
 export type ExportLegacyInput = z.infer<typeof exportLegacyInputSchema>
+export type SchemaSaveInput = z.infer<typeof schemaSaveInputSchema>
 export type CeshuCreateInput = z.infer<typeof ceshuCreateInputSchema>
 export type CeshuSaveChapterInput = z.infer<typeof ceshuSaveChapterInputSchema>
 export type CeshuExportInput = z.infer<typeof ceshuExportInputSchema>

@@ -672,3 +672,98 @@ body {
   color: var(--danger);
   font-size: 12px;
 }
+
+/* ---- 字段结构编辑器 ---- */
+
+.te-layout {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.te-side {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 190px;
+  flex-shrink: 0;
+  padding: 12px;
+  border-right: 1px solid var(--border);
+  overflow: auto;
+}
+
+.te-type-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.te-main {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 20px;
+  overflow: auto;
+}
+
+.te-field-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.te-field-row:last-child {
+  border-bottom: none;
+}
+
+.te-col-name {
+  width: 130px;
+}
+
+.te-col-label {
+  width: 150px;
+}
+
+.te-col-type {
+  width: 130px;
+}
+
+.te-col-color {
+  width: 110px;
+}
+
+.te-col-values {
+  flex: 1;
+  min-width: 160px;
+}
+
+.te-col-num {
+  width: 90px;
+}
+
+.te-col-range {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.te-col-ref {
+  width: 170px;
+}
+
+.te-field-buttons {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.btn.slim {
+  padding: 2px 8px;
+  font-size: 12px;
+  line-height: 1.4;
+}

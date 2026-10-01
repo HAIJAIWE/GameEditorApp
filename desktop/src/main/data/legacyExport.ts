@@ -1,23 +1,23 @@
 import { rename, writeFile } from 'node:fs/promises'
 
-import { DATA_TYPES, getTypeById } from '../../shared/typeSchema'
-import type { ExportSummary, ItemRecord } from '../../shared/types'
+import { getTypeById } from '../../shared/typeSchema'
+import type { DataTypeDef, ExportSummary, ItemRecord } from '../../shared/types'
 import type { DataService } from './service'
 
 /**
  * 数据导出（Phase 1 数据核心 W2）：把入库数据导回旧版 JSON 交换格式 { 复数键: [条目] }。
- * - 12 种内置类型按 schema 顺序输出（空类型也保留空数组，与旧版文件同构）
+ * - 全部类型按当前 schema 顺序输出（空类型也保留空数组，与旧版文件同构）
  * - 未收录类型键保持原键名，排序后追加（数据无损）
  * - 条目按 record.data 原样写出（导入前形状）
  * - 原子写：临时文件 + rename
  */
 
-export function buildLegacyPayload(records: ItemRecord[]): Record<string, unknown[]> {
-  const knownPluralKeys = new Set(DATA_TYPES.map((def) => def.pluralKey))
+export function buildLegacyPayload(records: ItemRecord[], types: DataTypeDef[]): Record<string, unknown[]> {
+  const knownPluralKeys = new Set(types.map((def) => def.pluralKey))
   const buckets = new Map<string, unknown[]>()
 
   for (const record of records) {
-    const key = getTypeById(record.type)?.pluralKey ?? record.type
+    const key = getTypeById(types, record.type)?.pluralKey ?? record.type
     const bucket = buckets.get(key)
     if (bucket) {
       bucket.push(record.data)
@@ -27,7 +27,7 @@ export function buildLegacyPayload(records: ItemRecord[]): Record<string, unknow
   }
 
   const payload: Record<string, unknown[]> = {}
-  for (const def of DATA_TYPES) {
+  for (const def of types) {
     payload[def.pluralKey] = buckets.get(def.pluralKey) ?? []
   }
   const extraKeys = [...buckets.keys()].filter((key) => !knownPluralKeys.has(key)).sort()
@@ -37,9 +37,13 @@ export function buildLegacyPayload(records: ItemRecord[]): Record<string, unknow
   return payload
 }
 
-export async function exportLegacyDataFile(filePath: string, service: DataService): Promise<ExportSummary> {
+export async function exportLegacyDataFile(
+  filePath: string,
+  service: DataService,
+  types: DataTypeDef[]
+): Promise<ExportSummary> {
   const records = service.listAllItems()
-  const payload = buildLegacyPayload(records)
+  const payload = buildLegacyPayload(records, types)
   const content = JSON.stringify(payload, null, 2)
 
   const tempPath = `${filePath}.tmp`

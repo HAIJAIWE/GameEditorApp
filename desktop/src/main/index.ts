@@ -8,6 +8,7 @@ import { DataService } from './data/service'
 import { SqliteItemsRepository } from './data/sqliteRepo'
 import { registerIpcHandlers } from './ipc'
 import { LlmClient } from './llm/client'
+import { TypeSchemaStore } from './schema/store'
 
 // E2E / 便携模式：允许外部指定 userData 目录（隔离测试数据）
 const userDataOverride = process.env['MB_USER_DATA_DIR']
@@ -64,6 +65,7 @@ app.whenReady().then(() => {
   registerIpcHandlers({
     dataService,
     ceshuManager: new CeshuManager(new CeshuStorage(join(app.getPath('userData'), 'ceshu'))),
+    typeSchemaStore: new TypeSchemaStore(join(app.getPath('userData'), 'type_schema.json')),
     llmClient: new LlmClient(),
     getAppInfo: () => ({
       name: app.getName(),

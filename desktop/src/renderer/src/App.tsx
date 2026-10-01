@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 
-import { getTypeById } from '../../shared/typeSchema'
 import type { CeshuSummary } from '../../shared/ceshuConstants'
-import type { AppInfo, ImportSummary, ItemRecord, TypeSummary } from '../../shared/types'
+import type { AppInfo, DataTypeDef, ImportSummary, ItemRecord } from '../../shared/types'
 
 import CeshuView from './components/CeshuView'
 import ItemForm from './components/ItemForm'
+import TypeEditorPanel from './components/TypeEditorPanel'
 
 function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
@@ -22,7 +22,7 @@ function formatImportSummary(summary: ImportSummary): string {
 
 export default function App() {
   const [info, setInfo] = useState<AppInfo | null>(null)
-  const [types, setTypes] = useState<TypeSummary[]>([])
+  const [types, setTypes] = useState<DataTypeDef[]>([])
   const [activeType, setActiveType] = useState<string | null>(null)
   const [items, setItems] = useState<ItemRecord[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -30,10 +30,11 @@ export default function App() {
   const [notice, setNotice] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [mode, setMode] = useState<'data' | 'ceshu'>('data')
+  const [editorOpen, setEditorOpen] = useState(false)
   const [ceshuList, setCeshuList] = useState<CeshuSummary[]>([])
   const [activeCeshuId, setActiveCeshuId] = useState<string | null>(null)
 
-  const fields = activeType ? (getTypeById(activeType)?.formFields ?? []) : []
+  const fields = activeType ? (types.find((def) => def.id === activeType)?.formFields ?? []) : []
   const selectedItem = items.find((item) => item.id === selectedId) ?? null
 
   /** 事件处理器使用的重新加载（不在 effect 中直接调用，避免级联渲染） */
@@ -65,11 +66,11 @@ export default function App() {
       .catch((err: unknown) => setError(toErrorMessage(err)))
   }, [])
 
-  // 加载 12 数据类型 schema（由主进程下发），默认选中第一个类型
+  // 加载数据类型 schema（主进程下发，用户可在「字段结构」中编辑并持久化），默认选中第一个类型
   useEffect(() => {
     let cancelled = false
-    window.mbApi.data
-      .listTypes()
+    window.mbApi.schema
+      .list()
       .then((list) => {
         if (cancelled) return
         setTypes(list)
@@ -194,6 +195,12 @@ export default function App() {
     }
   }
 
+  /** 字段结构保存后：刷新类型列表；当前类型被删除时回退到第一个 */
+  const handleSchemaSaved = (saved: DataTypeDef[]): void => {
+    setTypes(saved)
+    setActiveType((current) => (saved.some((def) => def.id === current) ? current : (saved[0]?.id ?? null)))
+  }
+
   const handleCreateCeshu = async (): Promise<void> => {
     try {
       setError(null)
@@ -282,6 +289,15 @@ export default function App() {
               </button>
               <button
                 type="button"
+                className="btn"
+                data-testid="open-type-editor"
+                disabled={busy}
+                onClick={() => setEditorOpen(true)}
+              >
+                字段结构
+              </button>
+              <button
+                type="button"
                 className="btn primary"
                 disabled={busy || !activeType}
                 onClick={() => void handleCreate()}
@@ -294,7 +310,11 @@ export default function App() {
             {notice && <div className="notice-banner">{notice}</div>}
 
             <div className="content">
-              <div className="list">
+              {editorOpen ? (
+                <TypeEditorPanel types={types} onSaved={handleSchemaSaved} onClose={() => setEditorOpen(false)} />
+              ) : (
+                <>
+                  <div className="list">
                 {!activeType ? (
                   <div className="empty">正在加载数据类型…</div>
                 ) : items.length === 0 ? (
@@ -331,6 +351,8 @@ export default function App() {
                   fields={fields}
                   onSaved={handleSaved}
                 />
+              )}
+                </>
               )}
             </div>
           </>

@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest'
 
 import { buildLegacyPayload, exportLegacyDataFile } from '../../src/main/data/legacyExport'
 import { importLegacyDataFile } from '../../src/main/data/legacyImport'
+import { BUILTIN_DATA_TYPES } from '../../src/shared/typeSchema'
 import type { ItemsRepository } from '../../src/main/data/repository'
 import { DataService } from '../../src/main/data/service'
 import type { ItemRecord } from '../../src/shared/types'
@@ -60,7 +61,7 @@ describe('旧版 JSON 导出（W2）', () => {
       { id: 'S1', type: 'skill', data: { id: 'S1', name: '火球术' }, createdAt: '', updatedAt: '' },
       { id: 'X1', type: 'players', data: { id: 'X1' }, createdAt: '', updatedAt: '' }
     ]
-    const payload = buildLegacyPayload(records)
+    const payload = buildLegacyPayload(records, BUILTIN_DATA_TYPES)
 
     expect(Object.keys(payload).slice(0, 12)).toEqual([
       'roles',
@@ -88,10 +89,10 @@ describe('旧版 JSON 导出（W2）', () => {
       roles: [{ id: 'ROLE001', name: '艾尔文', skills: ['SKILL001'] }]
     })
     const serviceA = new DataService(new InMemoryItemsRepository())
-    await importLegacyDataFile(source, serviceA)
+    await importLegacyDataFile(source, serviceA, BUILTIN_DATA_TYPES)
 
     const exportPath = join(mkdtempSync(join(tmpdir(), 'mb-export-out-')), 'exported.json')
-    const summary = await exportLegacyDataFile(exportPath, serviceA)
+    const summary = await exportLegacyDataFile(exportPath, serviceA, BUILTIN_DATA_TYPES)
     expect(summary.totalItems).toBe(2)
     expect(summary.byType).toEqual({ skill: 1, role: 1 })
 
@@ -101,7 +102,7 @@ describe('旧版 JSON 导出（W2）', () => {
     expect((exportedRaw['roles']?.[0] as { skills: string[] }).skills).toEqual(['SKILL001'])
 
     const serviceB = new DataService(new InMemoryItemsRepository())
-    const roundTrip = await importLegacyDataFile(exportPath, serviceB)
+    const roundTrip = await importLegacyDataFile(exportPath, serviceB, BUILTIN_DATA_TYPES)
     expect(roundTrip.imported).toBe(2)
     expect(serviceB.listItems('skill')[0]?.data).toEqual({ id: 'SKILL000', name: '技能名称' })
   })

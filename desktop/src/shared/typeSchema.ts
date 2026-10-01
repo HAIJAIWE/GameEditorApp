@@ -1,7 +1,9 @@
-import type { DataTypeDef, FieldType, TypeFieldDef, TypeSummary } from './types'
+import type { DataTypeDef, FieldType, TypeFieldDef } from './types'
 
 /**
  * 12 种内置数据类型定义（自 Python 版 core/defaults/rpg_schema.py v2.4 匹平迁移）。
+ * 本文件是「内置默认 schema」；运行期实际使用的主进程 TypeSchemaStore 可加载用户编辑后的
+ * type_schema.json（缺省即以此为准），相关纯函数均按传入的 types 列表工作。
  * - id：单数键（新架构内部与存储使用）
  * - pluralKey：旧版数据文件的复数键（存量数据导入映射用）
  * - aiContext（AI 生成上下文）暂不迁移，留待 AI 阶段统一设计
@@ -16,7 +18,7 @@ function idField(): TypeFieldDef {
   return field('id', 'ID:', 'entry', { editable: false })
 }
 
-export const DATA_TYPES: DataTypeDef[] = [
+export const BUILTIN_DATA_TYPES: DataTypeDef[] = [
   {
     id: 'role',
     name: '角色',
@@ -350,21 +352,12 @@ export const DATA_TYPES: DataTypeDef[] = [
   }
 ]
 
-export function getTypeById(id: string): DataTypeDef | undefined {
-  return DATA_TYPES.find((t) => t.id === id)
+/** 按类型 id 查找（types 为运行期 schema 列表） */
+export function getTypeById(types: DataTypeDef[], id: string): DataTypeDef | undefined {
+  return types.find((t) => t.id === id)
 }
 
 /** 按旧版数据文件的键（复数键或单数键）查找类型 */
-export function getTypeByLegacyKey(key: string): DataTypeDef | undefined {
-  return DATA_TYPES.find((t) => t.pluralKey === key || t.id === key)
-}
-
-export function listTypeSummaries(): TypeSummary[] {
-  return DATA_TYPES.map((t) => ({
-    id: t.id,
-    name: t.name,
-    pluralKey: t.pluralKey,
-    color: t.color,
-    fieldCount: t.formFields.length
-  }))
+export function getTypeByLegacyKey(types: DataTypeDef[], key: string): DataTypeDef | undefined {
+  return types.find((t) => t.pluralKey === key || t.id === key)
 }

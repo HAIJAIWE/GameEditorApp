@@ -20,6 +20,7 @@ export interface AppInfo {
 export type FieldType =
   | 'entry'
   | 'spinbox'
+  | 'double_spin'
   | 'combobox'
   | 'multiselect'
   | 'desc'
@@ -59,15 +60,6 @@ export interface DataTypeDef {
   pluralKey: string
   color: string
   formFields: TypeFieldDef[]
-}
-
-/** 供渲染层侧边栏使用的轻量摘要 */
-export interface TypeSummary {
-  id: string
-  name: string
-  pluralKey: string
-  color: string
-  fieldCount: number
 }
 
 /** 旧数据导入结果 */

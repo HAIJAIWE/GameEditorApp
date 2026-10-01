@@ -25,7 +25,7 @@ function buildInitialDraft(data: Record<string, unknown>, fields: TypeFieldDef[]
     const value = data[field.name]
     if (usesJsonEditor(field, value)) {
       draft[field.name] = value === undefined || value === null ? '' : JSON.stringify(value, null, 2)
-    } else if (field.type === 'spinbox') {
+    } else if (field.type === 'spinbox' || field.type === 'double_spin') {
       draft[field.name] = value === undefined || value === null ? '' : String(value)
     } else if (field.type === 'multiselect' || field.type === 'tags') {
       draft[field.name] = Array.isArray(value) ? value.join(', ') : (value ?? '')
@@ -63,7 +63,7 @@ function buildPayload(
       }
       continue
     }
-    if (field.type === 'spinbox') {
+    if (field.type === 'spinbox' || field.type === 'double_spin') {
       if (raw === '' || raw === null || raw === undefined) {
         delete payload[name]
         continue
@@ -110,6 +110,7 @@ function FieldControl({ field, value, jsonMode, onChange }: FieldControlProps) {
 
   switch (field.type) {
     case 'spinbox':
+    case 'double_spin':
       return (
         <input
           id={testId}
@@ -118,6 +119,7 @@ function FieldControl({ field, value, jsonMode, onChange }: FieldControlProps) {
           data-testid={testId}
           min={field.from}
           max={field.to}
+          step={field.type === 'double_spin' ? 'any' : undefined}
           value={String(value ?? '')}
           readOnly={!field.editable}
           onChange={(event) => onChange(event.target.value)}

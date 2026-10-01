@@ -6,9 +6,10 @@ import type {
   CeshuExportInput,
   CeshuSaveChapterInput,
   ExportLegacyInput,
-  ImportLegacyInput
+  ImportLegacyInput,
+  SchemaSaveInput
 } from './schemas'
-import type { AppInfo, ExportSummary, ImportSummary, ItemRecord, TypeSummary } from './types'
+import type { AppInfo, DataTypeDef, ExportSummary, ImportSummary, ItemRecord } from './types'
 import type { CeshuDocument, CeshuExportResult, CeshuSummary } from './ceshuConstants'
 import type { CeshuChangelog } from './ceshuDiff'
 import type { CeshuScoreReport } from './ceshuScorer'
@@ -20,7 +21,8 @@ import type { CeshuAiGenerateResult } from './ceshuAi'
  */
 export interface IpcContract {
   'app:info': { req: undefined; res: AppInfo }
-  'data:listTypes': { req: undefined; res: TypeSummary[] }
+  'schema:list': { req: undefined; res: DataTypeDef[] }
+  'schema:save': { req: SchemaSaveInput; res: DataTypeDef[] }
   'data:listItems': { req: { type: string }; res: ItemRecord[] }
   'data:createItem': { req: { type: string; data: Record<string, unknown> }; res: ItemRecord }
   'data:updateItem': { req: { id: string; data: Record<string, unknown> }; res: ItemRecord }

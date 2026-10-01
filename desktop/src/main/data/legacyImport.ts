@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 
 import { getTypeByLegacyKey } from '../../shared/typeSchema'
-import type { ImportSummary } from '../../shared/types'
+import type { DataTypeDef, ImportSummary } from '../../shared/types'
 import type { DataService, ImportRecord } from './service'
 
 /**
@@ -20,7 +20,7 @@ export interface ParsedLegacyData {
   unknownTypes: Record<string, number>
 }
 
-export function parseLegacyData(raw: unknown): ParsedLegacyData {
+export function parseLegacyData(raw: unknown, types: DataTypeDef[]): ParsedLegacyData {
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
     throw new Error('旧数据文件格式不正确：顶层应为「数据类型 → 条目数组」的对象')
   }
@@ -33,7 +33,7 @@ export function parseLegacyData(raw: unknown): ParsedLegacyData {
     if (!Array.isArray(value)) {
       continue
     }
-    const typeDef = getTypeByLegacyKey(key)
+    const typeDef = getTypeByLegacyKey(types, key)
     const resolvedType = typeDef?.id ?? key
 
     for (const entry of value) {
@@ -60,7 +60,11 @@ export function parseLegacyData(raw: unknown): ParsedLegacyData {
   return { records, skipped, unknownTypes }
 }
 
-export async function importLegacyDataFile(filePath: string, service: DataService): Promise<ImportSummary> {
+export async function importLegacyDataFile(
+  filePath: string,
+  service: DataService,
+  types: DataTypeDef[]
+): Promise<ImportSummary> {
   let raw: unknown
   try {
     raw = JSON.parse(await readFile(filePath, 'utf-8'))
@@ -68,7 +72,7 @@ export async function importLegacyDataFile(filePath: string, service: DataServic
     throw new Error(`读取旧数据文件失败：${error instanceof Error ? error.message : String(error)}`, { cause: error })
   }
 
-  const parsed = parseLegacyData(raw)
+  const parsed = parseLegacyData(raw, types)
   const { imported, updated } = await service.importRecords(parsed.records)
 
   const byType: Record<string, number> = {}

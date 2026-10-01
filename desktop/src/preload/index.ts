@@ -16,8 +16,11 @@ const api: MbApi = {
   app: {
     info: () => invoke('app:info', undefined)
   },
+  schema: {
+    list: () => invoke('schema:list', undefined),
+    save: (req) => invoke('schema:save', req)
+  },
   data: {
-    listTypes: () => invoke('data:listTypes', undefined),
     listItems: (req) => invoke('data:listItems', req),
     createItem: (req) => invoke('data:createItem', req),
     updateItem: (req) => invoke('data:updateItem', req),
