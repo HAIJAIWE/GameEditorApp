@@ -1018,3 +1018,72 @@ button.ref-row:hover {
   color: var(--text-muted);
   font-size: 12px;
 }
+
+/* ---- 条目属性面板编辑器（attrpanel 字段） ---- */
+
+.attr-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.attr-panel-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.attr-panel-select {
+  flex: 1;
+  min-width: 0;
+}
+
+.attr-panel-head,
+.attr-panel-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.attr-panel-head {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.attr-panel-category {
+  width: 60px;
+}
+
+.attr-panel-name {
+  width: 80px;
+}
+
+.attr-panel-formula {
+  flex: 1;
+  min-width: 0;
+}
+
+.attr-panel-result {
+  width: 52px;
+  text-align: right;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.attr-panel-result.invalid {
+  color: var(--text-muted);
+}
+
+.attr-panel-remove {
+  flex-shrink: 0;
+}
+
+.attr-panel-error {
+  flex-basis: 100%;
+  color: var(--danger);
+  font-size: 12px;
+}

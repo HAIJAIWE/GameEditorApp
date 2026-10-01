@@ -8,7 +8,7 @@ import type { DataTypeDef, FieldType, TypeFieldDef } from './types'
  * 字段键：name/label/type/editable/values/from_/to/ref_type（TS 内部用 camelCase from/to/refType）。
  */
 
-/** 字段类型中文标签（与 Python config/constants.py FIELD_TYPE_MAP 一致 + attrtable） */
+/** 字段类型中文标签（与 Python config/constants.py FIELD_TYPE_MAP 一致 + attrtable + attrpanel） */
 export const FIELD_TYPE_LABELS: Record<FieldType, string> = {
   entry: '文本输入',
   combobox: '下拉选择',
@@ -25,7 +25,8 @@ export const FIELD_TYPE_LABELS: Record<FieldType, string> = {
   dialog: '关联对话',
   droptable: '掉落表',
   multiselect: '多选引用',
-  attrtable: '属性表'
+  attrtable: '属性表',
+  attrpanel: '属性面板'
 }
 
 export const FIELD_TYPES = Object.keys(FIELD_TYPE_LABELS) as FieldType[]

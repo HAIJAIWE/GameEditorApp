@@ -31,6 +31,7 @@ export type FieldType =
   | 'image_desc'
   | 'image_tags'
   | 'attrtable'
+  | 'attrpanel'
   | 'droptable'
   | 'achievement_desc'
   | 'dialog'

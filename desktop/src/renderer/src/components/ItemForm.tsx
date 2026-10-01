@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 
 import { attrListToRows, rowsToAttrList, type AttrRow } from '../../../shared/attrList'
+import { attrPanelToRows, defaultAttrPanelRows, rowsToAttrPanel, type AttrPanelRow } from '../../../shared/attrPanel'
 import type { AttrSystem } from '../../../shared/attrSystem'
 import type { ItemRecord, TypeFieldDef } from '../../../shared/types'
 
+import AttrPanelEditor from './AttrPanelEditor'
 import AttrTableEditor from './AttrTableEditor'
 
 interface ItemFormProps {
@@ -28,12 +30,25 @@ function asAttrRows(value: unknown): AttrRow[] {
   return Array.isArray(value) ? (value as AttrRow[]) : []
 }
 
-function buildInitialDraft(data: Record<string, unknown>, fields: TypeFieldDef[]): Record<string, unknown> {
+/** draft 中的 attrpanel 值（始终为编辑行数组；防御异常数据） */
+function asAttrPanelRows(value: unknown): AttrPanelRow[] {
+  return Array.isArray(value) ? (value as AttrPanelRow[]) : []
+}
+
+function buildInitialDraft(
+  data: Record<string, unknown>,
+  fields: TypeFieldDef[],
+  typeId: string
+): Record<string, unknown> {
   const draft: Record<string, unknown> = { ...data }
   for (const field of fields) {
     const value = data[field.name]
     if (field.type === 'attrtable') {
       draft[field.name] = attrListToRows(value)
+    } else if (field.type === 'attrpanel') {
+      // 对应 Python load_data：无有效数据时套用该类型的默认模板（role=新手 / monster=小怪）
+      const rows = attrPanelToRows(value)
+      draft[field.name] = rows.length > 0 ? rows : defaultAttrPanelRows(typeId)
     } else if (usesJsonEditor(field, value)) {
       draft[field.name] = value === undefined || value === null ? '' : JSON.stringify(value, null, 2)
     } else if (field.type === 'spinbox' || field.type === 'double_spin') {
@@ -64,6 +79,10 @@ function buildPayload(
     }
     if (field.type === 'attrtable') {
       payload[name] = rowsToAttrList(asAttrRows(raw), field.label)
+      continue
+    }
+    if (field.type === 'attrpanel') {
+      payload[name] = rowsToAttrPanel(asAttrPanelRows(raw))
       continue
     }
     if (jsonFields.has(name)) {
@@ -193,7 +212,7 @@ function FieldControl({ field, value, jsonMode, onChange }: FieldControlProps) {
 }
 
 export default function ItemForm({ item, fields, onSaved }: ItemFormProps) {
-  const [draft, setDraft] = useState<Record<string, unknown>>(() => buildInitialDraft(item.data, fields))
+  const [draft, setDraft] = useState<Record<string, unknown>>(() => buildInitialDraft(item.data, fields, item.type))
   const [saving, setSaving] = useState(false)
   const [localError, setLocalError] = useState<string | null>(null)
   const hasAttrTable = fields.some((field) => field.type === 'attrtable')
@@ -226,7 +245,7 @@ export default function ItemForm({ item, fields, onSaved }: ItemFormProps) {
   }
 
   const handleReset = (): void => {
-    setDraft(buildInitialDraft(item.data, fields))
+    setDraft(buildInitialDraft(item.data, fields, item.type))
     setLocalError(null)
   }
 
@@ -266,6 +285,13 @@ export default function ItemForm({ item, fields, onSaved }: ItemFormProps) {
                 rows={asAttrRows(draft[field.name])}
                 attrSystem={attrSystem}
                 systemError={attrSystemError}
+                onChange={(rows) => setValue(field.name, rows)}
+              />
+            ) : field.type === 'attrpanel' ? (
+              <AttrPanelEditor
+                fieldName={field.name}
+                typeId={item.type}
+                rows={asAttrPanelRows(draft[field.name])}
                 onChange={(rows) => setValue(field.name, rows)}
               />
             ) : (

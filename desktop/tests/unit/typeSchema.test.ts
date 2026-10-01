@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest'
 
 import { BUILTIN_DATA_TYPES, getTypeById, getTypeByLegacyKey } from '../../src/shared/typeSchema'
 
-/** 迁移锁定：各类型字段数与 Python 版 rpg_schema.py v2.4 一致 */
+/** 迁移锁定：各类型字段数与 Python 版 rpg_schema.py v2.4 一致（role/monster 增补 attrpanel 字段除外 +2） */
 const EXPECTED_FIELD_COUNTS: Record<string, number> = {
-  role: 16,
+  role: 17,
   job: 24,
-  monster: 20,
+  monster: 21,
   equip: 15,
   skill: 18,
   talent: 16,
@@ -25,7 +25,7 @@ describe('12 数据类型 schema', () => {
     expect(new Set(BUILTIN_DATA_TYPES.map((t) => t.pluralKey)).size).toBe(12)
 
     const total = BUILTIN_DATA_TYPES.reduce((sum, t) => sum + t.formFields.length, 0)
-    expect(total).toBe(182)
+    expect(total).toBe(184)
 
     for (const t of BUILTIN_DATA_TYPES) {
       expect(t.formFields.length).toBe(EXPECTED_FIELD_COUNTS[t.id])
