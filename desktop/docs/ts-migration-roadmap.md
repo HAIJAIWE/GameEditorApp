@@ -26,7 +26,8 @@
 | W21 | 章节笔记（独立 JSON CRUD） | `chapter_notes.py` | `shared/ceshuNotes.ts`、`main/ceshu/notesStore.ts`、`components/ChapterNotesPanel.tsx` |
 | W22 | 属性系统 JSON 导入/导出 | `attr_system_editor.py` | `main/attr/attrSystemJsonFile.ts` |
 | W23 | 字数统计（18 章完成度 + 写作建议 + 面板） | `ui/ceshu/word_stats_dialog.py` | `shared/ceshuWordStats.ts`、`components/WordStatsPanel.tsx` |
-| W24 | 字段/系统依赖图**共享逻辑**（依赖规则 20 条 + 图结构/层级；IPC 与 UI 待接） | `field_dependencies.py`、`field_dependency_graph.py`、`system_dependency_graph.py` | `shared/ceshuFieldDeps.ts`（单测 40） |
+| W24 | 字段/系统依赖检查（20 条依赖 + 两张依赖图 + 双视图面板） | `field_dependencies.py`、`field_dependency_graph.py`、`system_dependency_graph.py` | `shared/ceshuFieldDeps.ts`（单测 40）、`components/FieldDepsPanel.tsx`、E2E |
+| W25(预演) | Excel 导出保真预演（**正式实现待做**） | `ceshu_excel_exporter.py` | `package.json`（exceljs ^4.4.0）、`spikes/excel-spike.mjs`（回读 24 项断言通过） |
 
 ## 2. 剩余工作清单（按体量分档）
 
@@ -103,8 +104,8 @@ node_modules\.bin\playwright test          ← 必须 dangerouslyDisableSandbox=
 | 编号 | 切片 | 说明 |
 |---|---|---|
 | ~~W23~~ | ~~字数统计~~ | ✅ 已完成（IPC `ceshu:wordStats` + `WordStatsPanel` + E2E） |
-| W24 | 依赖图（字段/系统） | ✅ 共享逻辑已完成（`shared/ceshuFieldDeps.ts`，单测 40）；**待接**：IPC `ceshu:fieldDeps` + 面板（层级/边/违规标记） |
-| W25 | Excel 导出 | 依赖预演（exceljs）→ `main/ceshu/export/excel.ts`，补满 6 种导出 |
+| ~~W24~~ | ~~依赖检查（字段/系统）~~ | ✅ 已完成（IPC `ceshu:fieldDeps` + `FieldDepsPanel` 双视图 + E2E 25-25） |
+| W25 | Excel 导出（补满 6 种） | ✅ 预演完成：**exceljs ^4.4.0**（纯 JS、无原生编译，主进程可用；`spikes/excel-spike.mjs`，回读 24 项断言通过）。**待做**：`main/ceshu/export/excel.ts`（建议拆 `buildWorkbook` / `writeExcel` 两步便于单测）+ IPC + UI 格式项 + E2E。预演提示：sheet 名 ≤31 字符且禁 `[]:*?/\`（需兜底）、列宽需自算（clamp 8~60）、数值类型需按正则判 int/float、冻结用 `ws.views=[{state:'frozen',ySplit:1}]` |
 | W26 | 版本时间线 | 复用 `ceshu:versions` |
 | W27+ | 自定义模板（拆两刀）/ AI 生成数据表 / 首页卡片 … | 见 B 档 |
 | 之后 | 库管理（多库） → AI/Agent 引擎（需方案设计） | A 档 |
