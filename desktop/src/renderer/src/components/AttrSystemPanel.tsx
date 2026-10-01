@@ -15,6 +15,7 @@ import {
 } from '../../../shared/attrSystem'
 
 import AttrLivePreview from './AttrLivePreview'
+import EquipPreviewPanel from './EquipPreviewPanel'
 
 /**
  * 属性系统编辑器（属性库切片，对应 Python attr_system_editor 的左侧属性库 + attr_library）：
@@ -37,7 +38,7 @@ export default function AttrSystemPanel({ onClose }: AttrSystemPanelProps) {
   const [notice, setNotice] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [resetToken, setResetToken] = useState(0)
-  const [view, setView] = useState<'list' | 'matrix' | 'live'>('list')
+  const [view, setView] = useState<'list' | 'matrix' | 'live' | 'equip'>('list')
   const [matrixFilter, setMatrixFilter] = useState<'all' | 'derived' | 'combat'>('all')
 
   useEffect(() => {
@@ -319,6 +320,15 @@ export default function AttrSystemPanel({ onClose }: AttrSystemPanelProps) {
           >
             实时预览
           </button>
+          <button
+            type="button"
+            className={`btn${view === 'equip' ? ' primary' : ''}`}
+            data-testid="attr-view-equip"
+            disabled={busy}
+            onClick={() => setView('equip')}
+          >
+            装备预览
+          </button>
           <button type="button" className="btn" data-testid="attr-default" disabled={busy} onClick={handleLoadDefault}>
             恢复默认
           </button>
@@ -541,9 +551,13 @@ export default function AttrSystemPanel({ onClose }: AttrSystemPanelProps) {
             点击单元格修改系数会自动更新对应公式与示例值（0 = 不写入公式）；「清空系数」作用于当前筛选出的行
           </div>
         </div>
-      ) : (
+      ) : view === 'live' ? (
         <div className="changelog-entry" data-testid="attr-live">
           {draft ? <AttrLivePreview system={draft} /> : <div className="empty">正在加载属性系统…</div>}
+        </div>
+      ) : (
+        <div className="changelog-entry" data-testid="attr-equip">
+          {draft ? <EquipPreviewPanel system={draft} /> : <div className="empty">正在加载属性系统…</div>}
         </div>
       )}
 
