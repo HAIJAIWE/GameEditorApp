@@ -2,6 +2,7 @@ import { join } from 'node:path'
 
 import { app, BrowserWindow, shell } from 'electron'
 
+import { AttrSystemStore } from './attr/attrSystemStore'
 import { CeshuManager } from './ceshu/manager'
 import { CeshuStorage } from './ceshu/storage'
 import { DataService } from './data/service'
@@ -66,6 +67,7 @@ app.whenReady().then(() => {
     dataService,
     ceshuManager: new CeshuManager(new CeshuStorage(join(app.getPath('userData'), 'ceshu'))),
     typeSchemaStore: new TypeSchemaStore(join(app.getPath('userData'), 'type_schema.json')),
+    attrSystemStore: new AttrSystemStore(join(app.getPath('userData'), 'attr_system.json')),
     llmClient: new LlmClient(),
     getAppInfo: () => ({
       name: app.getName(),

@@ -4,6 +4,7 @@ import type { CeshuSummary } from '../../shared/ceshuConstants'
 import { filterItemRecords } from '../../shared/dataTableOps'
 import type { AppInfo, DataTypeDef, ImportSummary, ItemRecord } from '../../shared/types'
 
+import AttrSystemPanel from './components/AttrSystemPanel'
 import BatchEditPanel from './components/BatchEditPanel'
 import CeshuView from './components/CeshuView'
 import ItemForm from './components/ItemForm'
@@ -39,6 +40,7 @@ export default function App() {
   const [busy, setBusy] = useState(false)
   const [mode, setMode] = useState<'data' | 'ceshu'>('data')
   const [editorOpen, setEditorOpen] = useState(false)
+  const [attrSysOpen, setAttrSysOpen] = useState(false)
   const [ceshuList, setCeshuList] = useState<CeshuSummary[]>([])
   const [activeCeshuId, setActiveCeshuId] = useState<string | null>(null)
 
@@ -369,6 +371,15 @@ export default function App() {
               <button
                 type="button"
                 className="btn"
+                data-testid="open-attr-system"
+                disabled={busy}
+                onClick={() => setAttrSysOpen(true)}
+              >
+                属性系统
+              </button>
+              <button
+                type="button"
+                className="btn"
                 data-testid="open-references"
                 disabled={busy || !selectedItem}
                 onClick={() =>
@@ -394,6 +405,8 @@ export default function App() {
             <div className="content">
               {editorOpen ? (
                 <TypeEditorPanel types={types} onSaved={handleSchemaSaved} onClose={() => setEditorOpen(false)} />
+              ) : attrSysOpen ? (
+                <AttrSystemPanel onClose={() => setAttrSysOpen(false)} />
               ) : (
                 <>
                   <div className="list-column">

@@ -857,3 +857,70 @@ button.ref-row:hover {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ---- 属性系统编辑器 ---- */
+
+.attr-head,
+.attr-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.attr-head {
+  margin-top: 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.attr-name {
+  width: 100px;
+}
+
+.attr-display {
+  width: 100px;
+}
+
+.attr-type {
+  width: 110px;
+}
+
+.attr-category {
+  width: 100px;
+}
+
+.attr-num {
+  width: 76px;
+}
+
+.attr-formula {
+  flex: 1;
+  min-width: 200px;
+}
+
+.attr-formula.invalid {
+  border-color: var(--danger);
+}
+
+.attr-preview {
+  min-width: 72px;
+  text-align: right;
+  font-weight: 600;
+  color: var(--accent);
+  font-size: 13px;
+}
+
+.attr-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.attr-invalid {
+  color: var(--danger);
+  font-size: 12px;
+}

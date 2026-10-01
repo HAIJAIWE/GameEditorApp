@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { ATTR_TYPES } from './attrSystem'
 import { CESHU_EXPORT_FORMATS } from './ceshuConstants'
 import { ADJUST_MODES, BATCH_OP_KINDS } from './dataTableOps'
 import { FIELD_TYPES } from './typeSchemaFile'
@@ -95,6 +96,30 @@ export const schemaSaveInputSchema = z.object({
   types: z.array(dataTypeDefSchema).min(1).max(100)
 })
 
+/* ---- 属性系统 ---- */
+
+export const attrFormulaSchema = z.object({
+  coefficients: z.record(z.string().min(1).max(64), z.number()),
+  baseValue: z.number()
+})
+
+export const attrDefinitionSchema = z.object({
+  name: z.string().min(1).max(64),
+  type: z.enum(ATTR_TYPES),
+  category: z.string().max(64),
+  displayName: z.string().max(64),
+  minValue: z.number(),
+  maxValue: z.number().nullable(),
+  defaultValue: z.number(),
+  formula: attrFormulaSchema
+})
+
+export const attrSystemSaveInputSchema = z.object({
+  system: z.object({
+    attributes: z.record(z.string().min(1).max(64), attrDefinitionSchema)
+  })
+})
+
 /* ---- 策划书（GDD） ---- */
 
 export const ceshuCreateInputSchema = z.object({
@@ -156,6 +181,7 @@ export type BatchUpdateInput = z.infer<typeof batchUpdateInputSchema>
 export type DeleteManyInput = z.infer<typeof deleteManyInputSchema>
 export type ReferencesInput = z.infer<typeof referencesInputSchema>
 export type SchemaSaveInput = z.infer<typeof schemaSaveInputSchema>
+export type AttrSystemSaveInput = z.infer<typeof attrSystemSaveInputSchema>
 export type CeshuCreateInput = z.infer<typeof ceshuCreateInputSchema>
 export type CeshuSaveChapterInput = z.infer<typeof ceshuSaveChapterInputSchema>
 export type CeshuExportInput = z.infer<typeof ceshuExportInputSchema>

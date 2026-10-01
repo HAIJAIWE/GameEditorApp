@@ -3,6 +3,7 @@ import { ZodError, type ZodType } from 'zod'
 
 import type { IpcChannel, IpcContract, IpcResult } from '../shared/ipc'
 import {
+  attrSystemSaveInputSchema,
   batchUpdateInputSchema,
   ceshuAiGenerateInputSchema,
   ceshuChooseExportFileInputSchema,
@@ -31,6 +32,7 @@ import { buildReferenceReport } from '../shared/references'
 import { scoreCeshu } from '../shared/ceshuScorer'
 import { validateCeshu } from '../shared/ceshuValidation'
 import type { AppInfo } from '../shared/types'
+import type { AttrSystemStore } from './attr/attrSystemStore'
 import type { CeshuManager } from './ceshu/manager'
 import { exportCeshuDocument } from './ceshu/export/exporter'
 import { exportLegacyDataFile } from './data/legacyExport'
@@ -43,6 +45,7 @@ interface IpcHandlerDeps {
   dataService: DataService
   ceshuManager: CeshuManager
   typeSchemaStore: TypeSchemaStore
+  attrSystemStore: AttrSystemStore
   llmClient: LlmClient
   getAppInfo: () => AppInfo
 }
@@ -52,12 +55,15 @@ export function registerIpcHandlers({
   dataService,
   ceshuManager,
   typeSchemaStore,
+  attrSystemStore,
   llmClient,
   getAppInfo
 }: IpcHandlerDeps): void {
   handle('app:info', undefined, () => getAppInfo())
   handle('schema:list', undefined, () => typeSchemaStore.getTypes())
   handle('schema:save', schemaSaveInputSchema, (req) => typeSchemaStore.saveTypes(req.types))
+  handle('attrSystem:get', undefined, () => attrSystemStore.getSystem())
+  handle('attrSystem:save', attrSystemSaveInputSchema, (req) => attrSystemStore.saveSystem(req.system))
   handle('data:listItems', listItemsInputSchema, (req) => dataService.listItems(req.type))
   handle('data:createItem', createItemInputSchema, (req) => dataService.createItem(req))
   handle('data:updateItem', updateItemInputSchema, (req) => dataService.updateItem(req.id, req.data))

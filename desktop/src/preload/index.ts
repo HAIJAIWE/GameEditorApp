@@ -20,6 +20,10 @@ const api: MbApi = {
     list: () => invoke('schema:list', undefined),
     save: (req) => invoke('schema:save', req)
   },
+  attrSystem: {
+    get: () => invoke('attrSystem:get', undefined),
+    save: (req) => invoke('attrSystem:save', req)
+  },
   data: {
     listItems: (req) => invoke('data:listItems', req),
     createItem: (req) => invoke('data:createItem', req),

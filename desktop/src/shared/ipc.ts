@@ -1,4 +1,5 @@
 import type {
+  AttrSystemSaveInput,
   BatchUpdateInput,
   CeshuAiGenerateInput,
   CeshuChooseExportFileInput,
@@ -26,6 +27,7 @@ import type { CeshuChangelog } from './ceshuDiff'
 import type { CeshuScoreReport } from './ceshuScorer'
 import type { CeshuAiGenerateResult } from './ceshuAi'
 import type { ReferenceReport } from './references'
+import type { AttrSystem } from './attrSystem'
 
 /**
  * IPC 契约：通道 → 请求/响应类型。
@@ -35,6 +37,8 @@ export interface IpcContract {
   'app:info': { req: undefined; res: AppInfo }
   'schema:list': { req: undefined; res: DataTypeDef[] }
   'schema:save': { req: SchemaSaveInput; res: DataTypeDef[] }
+  'attrSystem:get': { req: undefined; res: AttrSystem }
+  'attrSystem:save': { req: AttrSystemSaveInput; res: AttrSystem }
   'data:listItems': { req: { type: string }; res: ItemRecord[] }
   'data:createItem': { req: { type: string; data: Record<string, unknown> }; res: ItemRecord }
   'data:updateItem': { req: { id: string; data: Record<string, unknown> }; res: ItemRecord }

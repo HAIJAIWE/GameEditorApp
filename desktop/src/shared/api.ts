@@ -9,6 +9,10 @@ export interface MbApi {
     list(): Promise<IpcContract['schema:list']['res']>
     save(req: IpcContract['schema:save']['req']): Promise<IpcContract['schema:save']['res']>
   }
+  attrSystem: {
+    get(): Promise<IpcContract['attrSystem:get']['res']>
+    save(req: IpcContract['attrSystem:save']['req']): Promise<IpcContract['attrSystem:save']['res']>
+  }
   data: {
     listItems(req: IpcContract['data:listItems']['req']): Promise<IpcContract['data:listItems']['res']>
     createItem(req: IpcContract['data:createItem']['req']): Promise<IpcContract['data:createItem']['res']>
