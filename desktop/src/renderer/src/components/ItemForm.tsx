@@ -1,6 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
+import { attrListToRows, rowsToAttrList, type AttrRow } from '../../../shared/attrList'
+import type { AttrSystem } from '../../../shared/attrSystem'
 import type { ItemRecord, TypeFieldDef } from '../../../shared/types'
+
+import AttrTableEditor from './AttrTableEditor'
 
 interface ItemFormProps {
   item: ItemRecord
@@ -14,16 +18,23 @@ function isObjectArray(value: unknown): boolean {
 }
 
 function usesJsonEditor(field: TypeFieldDef, value: unknown): boolean {
-  if (field.type === 'attrtable' || field.type === 'droptable') return true
+  if (field.type === 'droptable') return true
   if (field.type === 'multiselect') return isObjectArray(value)
   return false
+}
+
+/** draft 中的 attrtable 值（始终为编辑行数组；防御异常数据） */
+function asAttrRows(value: unknown): AttrRow[] {
+  return Array.isArray(value) ? (value as AttrRow[]) : []
 }
 
 function buildInitialDraft(data: Record<string, unknown>, fields: TypeFieldDef[]): Record<string, unknown> {
   const draft: Record<string, unknown> = { ...data }
   for (const field of fields) {
     const value = data[field.name]
-    if (usesJsonEditor(field, value)) {
+    if (field.type === 'attrtable') {
+      draft[field.name] = attrListToRows(value)
+    } else if (usesJsonEditor(field, value)) {
       draft[field.name] = value === undefined || value === null ? '' : JSON.stringify(value, null, 2)
     } else if (field.type === 'spinbox' || field.type === 'double_spin') {
       draft[field.name] = value === undefined || value === null ? '' : String(value)
@@ -49,6 +60,10 @@ function buildPayload(
 
     if (name === 'id') {
       payload.id = id
+      continue
+    }
+    if (field.type === 'attrtable') {
+      payload[name] = rowsToAttrList(asAttrRows(raw), field.label)
       continue
     }
     if (jsonFields.has(name)) {
@@ -181,6 +196,26 @@ export default function ItemForm({ item, fields, onSaved }: ItemFormProps) {
   const [draft, setDraft] = useState<Record<string, unknown>>(() => buildInitialDraft(item.data, fields))
   const [saving, setSaving] = useState(false)
   const [localError, setLocalError] = useState<string | null>(null)
+  const hasAttrTable = fields.some((field) => field.type === 'attrtable')
+  const [attrSystem, setAttrSystem] = useState<AttrSystem | null>(null)
+  const [attrSystemError, setAttrSystemError] = useState<string | null>(null)
+
+  // 属性系统懒加载（仅含 attrtable 字段的表单需要，用于计算预览）
+  useEffect(() => {
+    if (!hasAttrTable) return
+    let cancelled = false
+    window.mbApi.attrSystem
+      .get()
+      .then((system) => {
+        if (!cancelled) setAttrSystem(system)
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) setAttrSystemError(error instanceof Error ? error.message : String(error))
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [hasAttrTable])
 
   const jsonFields = new Set(
     fields.filter((field) => usesJsonEditor(field, item.data[field.name])).map((field) => field.name)
@@ -225,12 +260,22 @@ export default function ItemForm({ item, fields, onSaved }: ItemFormProps) {
             <label className="form-label" htmlFor={`field-${field.name}`}>
               {field.label}
             </label>
-            <FieldControl
-              field={field}
-              value={draft[field.name]}
-              jsonMode={jsonFields.has(field.name)}
-              onChange={(value) => setValue(field.name, value)}
-            />
+            {field.type === 'attrtable' ? (
+              <AttrTableEditor
+                fieldName={field.name}
+                rows={asAttrRows(draft[field.name])}
+                attrSystem={attrSystem}
+                systemError={attrSystemError}
+                onChange={(rows) => setValue(field.name, rows)}
+              />
+            ) : (
+              <FieldControl
+                field={field}
+                value={draft[field.name]}
+                jsonMode={jsonFields.has(field.name)}
+                onChange={(value) => setValue(field.name, value)}
+              />
+            )}
           </div>
         ))}
       </div>
