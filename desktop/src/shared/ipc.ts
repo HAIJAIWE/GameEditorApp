@@ -40,6 +40,7 @@ import type { CeshuScoreReport } from './ceshuScorer'
 import type { ChecklistReport } from './ceshuChecklist'
 import type { CeshuNote } from './ceshuNotes'
 import type { CeshuWordStatsReport } from './ceshuWordStats'
+import type { CeshuFieldDepsReport } from './ceshuFieldDeps'
 import type { CeshuAiGenerateResult, CeshuAiReviewResult } from './ceshuAi'
 import type { ReferenceReport } from './references'
 import type { AttrSystem } from './attrSystem'
@@ -93,6 +94,7 @@ export interface IpcContract {
   'ceshu:notes:update': { req: NotesUpdateInput; res: CeshuNote }
   'ceshu:notes:delete': { req: NotesDeleteInput; res: { deleted: boolean } }
   'ceshu:wordStats': { req: { id: string }; res: CeshuWordStatsReport }
+  'ceshu:fieldDeps': { req: { id: string }; res: CeshuFieldDepsReport }
   'dialog:chooseCeshuExportFile': { req: CeshuChooseExportFileInput; res: { path: string | null } }
 }
 

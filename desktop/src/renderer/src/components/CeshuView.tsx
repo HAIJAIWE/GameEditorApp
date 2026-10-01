@@ -20,6 +20,7 @@ import AiReviewPanel from './AiReviewPanel'
 import ChapterForm from './ChapterForm'
 import ChapterNotesPanel from './ChapterNotesPanel'
 import ChecklistPanel from './ChecklistPanel'
+import FieldDepsPanel from './FieldDepsPanel'
 import VersionDiffPanel from './VersionDiffPanel'
 import WordStatsPanel from './WordStatsPanel'
 
@@ -56,7 +57,17 @@ export default function CeshuView({ ceshuId, onChanged, onSelect }: CeshuViewPro
   const [deriveOpen, setDeriveOpen] = useState(false)
   const [deriveNote, setDeriveNote] = useState('')
   const [panel, setPanel] = useState<
-    'changelog' | 'validate' | 'score' | 'aiFull' | 'aiReview' | 'checklist' | 'diff' | 'notes' | 'wordStats' | null
+    | 'changelog'
+    | 'validate'
+    | 'score'
+    | 'aiFull'
+    | 'aiReview'
+    | 'checklist'
+    | 'diff'
+    | 'notes'
+    | 'wordStats'
+    | 'fieldDeps'
+    | null
   >(null)
   const [changelog, setChangelog] = useState<CeshuChangelog | null>(null)
   const [validateErrors, setValidateErrors] = useState<string[]>([])
@@ -282,6 +293,9 @@ export default function CeshuView({ ceshuId, onChanged, onSelect }: CeshuViewPro
         <button type="button" className="btn" data-testid="ceshu-wordstats" disabled={busy} onClick={() => setPanel('wordStats')}>
           字数统计
         </button>
+        <button type="button" className="btn" data-testid="ceshu-fielddeps" disabled={busy} onClick={() => setPanel('fieldDeps')}>
+          依赖检查
+        </button>
         <button type="button" className="btn" data-testid="ceshu-checklist" disabled={busy} onClick={() => setPanel('checklist')}>
           清单
         </button>
@@ -360,6 +374,8 @@ export default function CeshuView({ ceshuId, onChanged, onSelect }: CeshuViewPro
           <ChapterNotesPanel key={doc.ceshu_id} ceshuId={doc.ceshu_id} onClose={() => setPanel(null)} />
         ) : panel === 'wordStats' ? (
           <WordStatsPanel key={doc.ceshu_id} ceshuId={doc.ceshu_id} onClose={() => setPanel(null)} />
+        ) : panel === 'fieldDeps' ? (
+          <FieldDepsPanel key={doc.ceshu_id} ceshuId={doc.ceshu_id} onClose={() => setPanel(null)} />
         ) : panel === 'changelog' && changelog ? (
           <div className="changelog-panel" data-testid="changelog-panel">
             <div className="changelog-header">

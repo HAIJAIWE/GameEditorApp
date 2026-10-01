@@ -1037,6 +1037,37 @@ body {
   color: #e57373;
 }
 
+/* ---- 依赖检查面板 ---- */
+
+.deps-layer {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 0;
+}
+
+.deps-layer-index {
+  flex-shrink: 0;
+  width: 26px;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.deps-node {
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-panel);
+  font-size: 11px;
+}
+
+.deps-missing {
+  margin-left: 8px;
+  color: var(--danger);
+  font-size: 12px;
+}
+
 /* ---- AI 一键生成面板 ---- */
 
 .ai-gen-row {

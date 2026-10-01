@@ -70,7 +70,8 @@ const api: MbApi = {
       update: (req) => invoke('ceshu:notes:update', req),
       remove: (req) => invoke('ceshu:notes:delete', req)
     },
-    wordStats: (req) => invoke('ceshu:wordStats', req)
+    wordStats: (req) => invoke('ceshu:wordStats', req),
+    fieldDeps: (req) => invoke('ceshu:fieldDeps', req)
   }
 }
 

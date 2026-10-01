@@ -38,6 +38,20 @@ export type FieldDependencyStatus =
   | typeof STATUS_WARNING
   | typeof STATUS_VIOLATION
 
+/** 依赖类型中文名（UI 展示用） */
+export const DEP_TYPE_LABELS: Record<FieldDependencyType, string> = {
+  [DEP_TYPE_CONSISTENCY]: '一致性',
+  [DEP_TYPE_DERIVED]: '派生',
+  [DEP_TYPE_REFERENCE]: '引用'
+}
+
+/** 状态展示元信息（图标/颜色/标签，供面板与图节点着色） */
+export const STATUS_META: Record<FieldDependencyStatus, { icon: string; color: string; label: string }> = {
+  [STATUS_OK]: { icon: '✅', color: '#22C55E', label: '通过' },
+  [STATUS_WARNING]: { icon: '⚠️', color: '#F59E0B', label: '警告' },
+  [STATUS_VIOLATION]: { icon: '❌', color: '#EF4444', label: '冲突' }
+}
+
 /** 状态严重度（取章节相关依赖中最严重者） */
 const STATUS_SEVERITY: Record<FieldDependencyStatus, number> = {
   [STATUS_OK]: 0,
@@ -643,4 +657,25 @@ export function buildSystemDependencyGraph(doc?: CeshuDocument): SystemDependenc
   }
 
   return { nodes, edges, layers, missing_dependencies: missingDependencies }
+}
+
+/* ---- 聚合报告（供 IPC 一次返回面板所需的全部数据） ---- */
+
+export interface CeshuFieldDepsReport {
+  /** 20 条依赖的逐条检查结果 */
+  results: FieldDependencyResult[]
+  /** 章节 → 最严重违规状态（图节点着色用） */
+  chapter_status: Record<string, FieldDependencyStatus>
+  field_graph: FieldDependencyGraph
+  system_graph: SystemDependencyGraph
+}
+
+/** 汇总字段依赖检查 + 两张依赖图（对应 Python 两个依赖图对话框的数据来源） */
+export function buildFieldDepsReport(doc: CeshuDocument): CeshuFieldDepsReport {
+  return {
+    results: evaluateFieldDependencies(doc),
+    chapter_status: getChapterViolationSummary(doc),
+    field_graph: buildFieldDependencyGraph(doc),
+    system_graph: buildSystemDependencyGraph(doc)
+  }
 }
