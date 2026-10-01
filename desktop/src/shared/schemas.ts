@@ -128,6 +128,23 @@ export const attrGameConfigExportInputSchema = z.object({
   system: attrSystemSchema
 })
 
+/** 导出属性系统 JSON：路径 + 当前草稿系统 */
+export const attrSystemJsonExportInputSchema = z.object({
+  path: z.string().min(1),
+  system: attrSystemSchema
+})
+
+/** 导入属性系统 JSON：仅路径（主进程读文件并解析） */
+export const attrSystemJsonImportInputSchema = z.object({
+  path: z.string().min(1)
+})
+
+/** 属性系统 JSON 文件选择对话框（mode 区分导入/导出；导出可用 defaultName 预填文件名） */
+export const attrJsonDialogInputSchema = z.object({
+  mode: z.enum(['open', 'save']),
+  defaultName: z.string().max(200).optional()
+})
+
 /* ---- 策划书（GDD） ---- */
 
 export const ceshuCreateInputSchema = z.object({
@@ -241,6 +258,9 @@ export type ReferencesInput = z.infer<typeof referencesInputSchema>
 export type SchemaSaveInput = z.infer<typeof schemaSaveInputSchema>
 export type AttrSystemSaveInput = z.infer<typeof attrSystemSaveInputSchema>
 export type AttrGameConfigExportInput = z.infer<typeof attrGameConfigExportInputSchema>
+export type AttrSystemJsonExportInput = z.infer<typeof attrSystemJsonExportInputSchema>
+export type AttrSystemJsonImportInput = z.infer<typeof attrSystemJsonImportInputSchema>
+export type AttrJsonDialogInput = z.infer<typeof attrJsonDialogInputSchema>
 export type CeshuCreateInput = z.infer<typeof ceshuCreateInputSchema>
 export type CeshuSaveChapterInput = z.infer<typeof ceshuSaveChapterInputSchema>
 export type CeshuExportInput = z.infer<typeof ceshuExportInputSchema>

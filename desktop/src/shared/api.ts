@@ -15,6 +15,8 @@ export interface MbApi {
     exportGameConfig(
       req: IpcContract['attrSystem:exportGameConfig']['req']
     ): Promise<IpcContract['attrSystem:exportGameConfig']['res']>
+    exportJson(req: IpcContract['attrSystem:exportJson']['req']): Promise<IpcContract['attrSystem:exportJson']['res']>
+    importJson(req: IpcContract['attrSystem:importJson']['req']): Promise<IpcContract['attrSystem:importJson']['res']>
   }
   data: {
     listItems(req: IpcContract['data:listItems']['req']): Promise<IpcContract['data:listItems']['res']>
@@ -33,6 +35,9 @@ export interface MbApi {
     chooseCeshuExportFile(
       req: IpcContract['dialog:chooseCeshuExportFile']['req']
     ): Promise<IpcContract['dialog:chooseCeshuExportFile']['res']>
+    chooseAttrSystemJsonFile(
+      req: IpcContract['dialog:chooseAttrSystemJsonFile']['req']
+    ): Promise<IpcContract['dialog:chooseAttrSystemJsonFile']['res']>
   }
   ceshu: {
     list(): Promise<IpcContract['ceshu:list']['res']>

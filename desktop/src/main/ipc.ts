@@ -4,6 +4,9 @@ import { ZodError, type ZodType } from 'zod'
 import type { IpcChannel, IpcContract, IpcResult } from '../shared/ipc'
 import {
   attrGameConfigExportInputSchema,
+  attrJsonDialogInputSchema,
+  attrSystemJsonExportInputSchema,
+  attrSystemJsonImportInputSchema,
   attrSystemSaveInputSchema,
   batchUpdateInputSchema,
   ceshuAiGenerateInputSchema,
@@ -46,6 +49,7 @@ import { validateCeshu } from '../shared/ceshuValidation'
 import type { AppInfo } from '../shared/types'
 import type { AttrSystemStore } from './attr/attrSystemStore'
 import { exportAttrGameConfigFile } from './attr/attrGameConfigExport'
+import { exportAttrSystemJsonFile, importAttrSystemJsonFile } from './attr/attrSystemJsonFile'
 import type { CeshuManager } from './ceshu/manager'
 import type { CeshuNotesStore } from './ceshu/notesStore'
 import { exportCeshuDocument } from './ceshu/export/exporter'
@@ -84,6 +88,32 @@ export function registerIpcHandlers({
   handle('attrSystem:exportGameConfig', attrGameConfigExportInputSchema, (req) =>
     exportAttrGameConfigFile(req.path, req.system)
   )
+  handle('attrSystem:exportJson', attrSystemJsonExportInputSchema, (req) =>
+    exportAttrSystemJsonFile(req.path, req.system)
+  )
+  handle('attrSystem:importJson', attrSystemJsonImportInputSchema, (req) =>
+    importAttrSystemJsonFile(req.path)
+  )
+  handle('dialog:chooseAttrSystemJsonFile', attrJsonDialogInputSchema, async (req) => {
+    const filters = [{ name: 'JSON 文件', extensions: ['json'] }]
+    const focused = BrowserWindow.getFocusedWindow()
+    if (req.mode === 'save') {
+      const options: SaveDialogOptions = {
+        title: '导出属性系统（JSON）',
+        defaultPath: req.defaultName ?? 'attr_system.json',
+        filters
+      }
+      const result = focused ? await dialog.showSaveDialog(focused, options) : await dialog.showSaveDialog(options)
+      return { path: result.canceled || !result.filePath ? null : result.filePath }
+    }
+    const options: OpenDialogOptions = {
+      title: '导入属性系统（JSON）',
+      filters,
+      properties: ['openFile']
+    }
+    const result = focused ? await dialog.showOpenDialog(focused, options) : await dialog.showOpenDialog(options)
+    return { path: result.canceled || result.filePaths.length === 0 ? null : (result.filePaths[0] ?? null) }
+  })
   handle('data:listItems', listItemsInputSchema, (req) => dataService.listItems(req.type))
   handle('data:createItem', createItemInputSchema, (req) => dataService.createItem(req))
   handle('data:updateItem', updateItemInputSchema, (req) => dataService.updateItem(req.id, req.data))

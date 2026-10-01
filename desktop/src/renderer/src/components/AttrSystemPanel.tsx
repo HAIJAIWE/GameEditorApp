@@ -275,6 +275,47 @@ export default function AttrSystemPanel({ onClose }: AttrSystemPanelProps) {
     }
   }
 
+  /** 导出属性系统 JSON：导出当前草稿（Python 导出前同样不做领域校验）；主进程原子写盘 */
+  const handleExportJson = async (): Promise<void> => {
+    setErrors([])
+    setNotice(null)
+    if (!draft) return
+    try {
+      const chosen = await window.mbApi.dialog.chooseAttrSystemJsonFile({ mode: 'save', defaultName: 'attr_system.json' })
+      if (!chosen.path) return
+      setBusy(true)
+      const result = await window.mbApi.attrSystem.exportJson({ path: chosen.path, system: draft })
+      setNotice(`属性系统已导出：${result.filePath}`)
+    } catch (error) {
+      setErrors([error instanceof Error ? error.message : String(error)])
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  /** 导入属性系统 JSON：替换当前草稿（结构与公式异常以警告提示），需再点「保存」才落盘（对应 Python 导入后仍要「确定」） */
+  const handleImportJson = async (): Promise<void> => {
+    setErrors([])
+    setNotice(null)
+    try {
+      const chosen = await window.mbApi.dialog.chooseAttrSystemJsonFile({ mode: 'open' })
+      if (!chosen.path) return
+      setBusy(true)
+      const result = await window.mbApi.attrSystem.importJson({ path: chosen.path })
+      applySystem(result.system)
+      const count = Object.keys(result.system.attributes).length
+      setNotice(
+        result.warnings.length > 0
+          ? `已导入 ${count} 个属性，其中 ${result.warnings.length} 条已修正：${result.warnings.join('；')}（请检查后点击「保存」生效）`
+          : `已导入 ${count} 个属性，请检查后点击「保存」生效`
+      )
+    } catch (error) {
+      setErrors([error instanceof Error ? error.message : String(error)])
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const handleReset = (): void => {
     if (!baseline) return
     setErrors([])
@@ -343,6 +384,24 @@ export default function AttrSystemPanel({ onClose }: AttrSystemPanelProps) {
             onClick={() => void handleExportGameConfig()}
           >
             导出游戏配置
+          </button>
+          <button
+            type="button"
+            className="btn"
+            data-testid="attr-import-json"
+            disabled={busy || !draft}
+            onClick={() => void handleImportJson()}
+          >
+            导入 JSON
+          </button>
+          <button
+            type="button"
+            className="btn"
+            data-testid="attr-export-json"
+            disabled={busy || !draft}
+            onClick={() => void handleExportJson()}
+          >
+            导出 JSON
           </button>
           <button
             type="button"

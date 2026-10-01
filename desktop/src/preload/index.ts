@@ -23,7 +23,9 @@ const api: MbApi = {
   attrSystem: {
     get: () => invoke('attrSystem:get', undefined),
     save: (req) => invoke('attrSystem:save', req),
-    exportGameConfig: (req) => invoke('attrSystem:exportGameConfig', req)
+    exportGameConfig: (req) => invoke('attrSystem:exportGameConfig', req),
+    exportJson: (req) => invoke('attrSystem:exportJson', req),
+    importJson: (req) => invoke('attrSystem:importJson', req)
   },
   data: {
     listItems: (req) => invoke('data:listItems', req),
@@ -39,7 +41,8 @@ const api: MbApi = {
   dialog: {
     chooseJsonFile: () => invoke('dialog:chooseJsonFile', undefined),
     chooseSaveJsonFile: () => invoke('dialog:chooseSaveJsonFile', undefined),
-    chooseCeshuExportFile: (req) => invoke('dialog:chooseCeshuExportFile', req)
+    chooseCeshuExportFile: (req) => invoke('dialog:chooseCeshuExportFile', req),
+    chooseAttrSystemJsonFile: (req) => invoke('dialog:chooseAttrSystemJsonFile', req)
   },
   ceshu: {
     list: () => invoke('ceshu:list', undefined),

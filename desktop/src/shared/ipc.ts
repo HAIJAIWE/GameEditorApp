@@ -1,5 +1,8 @@
 import type {
   AttrGameConfigExportInput,
+  AttrJsonDialogInput,
+  AttrSystemJsonExportInput,
+  AttrSystemJsonImportInput,
   AttrSystemSaveInput,
   BatchUpdateInput,
   CeshuAiGenerateInput,
@@ -51,6 +54,9 @@ export interface IpcContract {
   'attrSystem:get': { req: undefined; res: AttrSystem }
   'attrSystem:save': { req: AttrSystemSaveInput; res: AttrSystem }
   'attrSystem:exportGameConfig': { req: AttrGameConfigExportInput; res: { filePath: string } }
+  'attrSystem:exportJson': { req: AttrSystemJsonExportInput; res: { filePath: string } }
+  'attrSystem:importJson': { req: AttrSystemJsonImportInput; res: { system: AttrSystem; warnings: string[] } }
+  'dialog:chooseAttrSystemJsonFile': { req: AttrJsonDialogInput; res: { path: string | null } }
   'data:listItems': { req: { type: string }; res: ItemRecord[] }
   'data:createItem': { req: { type: string; data: Record<string, unknown> }; res: ItemRecord }
   'data:updateItem': { req: { id: string; data: Record<string, unknown> }; res: ItemRecord }

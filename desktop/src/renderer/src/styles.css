@@ -284,6 +284,7 @@ body {
 .editor-actions {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
   justify-content: flex-end;
   padding: 12px 16px;
   border-top: 1px solid var(--border);
