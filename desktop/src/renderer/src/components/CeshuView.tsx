@@ -22,6 +22,7 @@ import ChapterNotesPanel from './ChapterNotesPanel'
 import ChecklistPanel from './ChecklistPanel'
 import FieldDepsPanel from './FieldDepsPanel'
 import VersionDiffPanel from './VersionDiffPanel'
+import VersionTimelinePanel from './VersionTimelinePanel'
 import WordStatsPanel from './WordStatsPanel'
 
 interface CeshuViewProps {
@@ -67,6 +68,7 @@ export default function CeshuView({ ceshuId, onChanged, onSelect }: CeshuViewPro
     | 'notes'
     | 'wordStats'
     | 'fieldDeps'
+    | 'timeline'
     | null
   >(null)
   const [changelog, setChangelog] = useState<CeshuChangelog | null>(null)
@@ -281,6 +283,15 @@ export default function CeshuView({ ceshuId, onChanged, onSelect }: CeshuViewPro
         <button type="button" className="btn" data-testid="ceshu-diff" disabled={busy} onClick={() => setPanel('diff')}>
           版本对比
         </button>
+        <button
+          type="button"
+          className="btn"
+          data-testid="ceshu-timeline"
+          disabled={busy}
+          onClick={() => setPanel('timeline')}
+        >
+          版本时间线
+        </button>
         <button type="button" className="btn" data-testid="ceshu-notes" disabled={busy} onClick={() => setPanel('notes')}>
           笔记
         </button>
@@ -370,6 +381,14 @@ export default function CeshuView({ ceshuId, onChanged, onSelect }: CeshuViewPro
           />
         ) : panel === 'diff' ? (
           <VersionDiffPanel key={doc.ceshu_id} ceshuId={doc.ceshu_id} onClose={() => setPanel(null)} />
+        ) : panel === 'timeline' ? (
+          <VersionTimelinePanel
+            key={doc.ceshu_id}
+            ceshuId={doc.ceshu_id}
+            currentId={doc.ceshu_id}
+            onSelect={onSelect}
+            onClose={() => setPanel(null)}
+          />
         ) : panel === 'notes' ? (
           <ChapterNotesPanel key={doc.ceshu_id} ceshuId={doc.ceshu_id} onClose={() => setPanel(null)} />
         ) : panel === 'wordStats' ? (

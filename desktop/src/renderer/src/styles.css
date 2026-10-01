@@ -1905,3 +1905,47 @@ button.ref-row:hover {
   color: var(--text-muted);
   font-size: 12px;
 }
+
+/* ---- 版本时间线（策划书） ---- */
+
+.timeline-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.timeline-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.timeline-canvas {
+  overflow: auto;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+
+.timeline-node {
+  cursor: pointer;
+}
+
+.timeline-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+  color: var(--text);
+  font-size: 13px;
+}
+
+.timeline-detail-title {
+  font-weight: 600;
+}

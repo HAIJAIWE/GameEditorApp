@@ -228,6 +228,8 @@ export interface CeshuSummary {
   parentId: string
   isActive: boolean
   createdAt: string
+  /** 版本说明（派生时填写；版本时间线详情用） */
+  versionNote: string
 }
 
 /* ---- 导出 ---- */

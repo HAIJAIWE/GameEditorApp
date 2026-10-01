@@ -155,7 +155,8 @@ export class CeshuManager {
       progress: computeChapterProgress(doc).total ?? 0,
       parentId: doc.parent_id,
       isActive: doc.is_active,
-      createdAt: doc.created_at
+      createdAt: doc.created_at,
+      versionNote: doc.version_note
     }
   }
 

@@ -1,7 +1,7 @@
 # TS 迁移路线图与推进纪律（desktop/）
 
 > 用途：跨会话/跨子代理的**唯一进度与计划事实来源**。每完成一片，回写本文件「进度台账」并同步 `project_memory.md`。
-> 基线：Python 侧 299 文件 / 78,746 行；TS 侧 `desktop/src` 72 文件 / 14,232 行（≈18% 行数当量）。
+> 基线：Python 侧 299 文件 / 78,746 行；TS 侧 `desktop/src` 79 文件 / 15,958 行（≈20% 行数当量）。
 
 ## 1. 进度台账（已完成）
 
@@ -28,6 +28,7 @@
 | W23 | 字数统计（18 章完成度 + 写作建议 + 面板） | `ui/ceshu/word_stats_dialog.py` | `shared/ceshuWordStats.ts`、`components/WordStatsPanel.tsx` |
 | W24 | 字段/系统依赖检查（20 条依赖 + 两张依赖图 + 双视图面板） | `field_dependencies.py`、`field_dependency_graph.py`、`system_dependency_graph.py` | `shared/ceshuFieldDeps.ts`（单测 40）、`components/FieldDepsPanel.tsx`、E2E |
 | W25 | Excel 导出（8 Sheet 工作簿，导出格式补满 6 种） | `ceshu_excel_exporter.py` | `main/ceshu/export/excel.ts`（exceljs ^4.4.0；预演见 `spikes/excel-spike.mjs`） |
+| W26 | 版本时间线（横向 SVG 时间线 + 节点详情 + 切换版本；复用 `ceshu:versions`） | `ui/ceshu/version_timeline_dialog.py` | `shared/ceshuTimeline.ts`（单测 12）、`components/VersionTimelinePanel.tsx`、E2E |
 
 ## 2. 剩余工作清单（按体量分档）
 
@@ -38,10 +39,10 @@
 ### B 档（可独立成刀）
 | 备选切片 | Python 参照（行数） | 备注 |
 |---|---|---|
-| 字数统计 | `ui/ceshu/word_stats_dialog.py` 237 | **注意**：该文件自带基准表，与 `ceshu_scorer.py` 的基准表**数值不同**，不可复用 scorer 的表；字数统计函数可直接复用 `shared/ceshuScorer.ts::countWordsInChapter` |
+| ~~字数统计~~ | `ui/ceshu/word_stats_dialog.py` 237 | ✅ W23 已完成（备注：该文件自带基准表，与 `ceshu_scorer.py` 的表数值不同，未复用） |
 | ~~Excel 导出（补满 6 种）~~ | `core/ceshu/ceshu_excel_exporter.py` 326 | ✅ W25 已完成（8 Sheet：概览/系统配置/数值表/角色/里程碑/风险/竞品/校验报告） |
 | 依赖图（字段/系统） | `core/ceshu/field_dependencies.py` 233 + `ui/ceshu/field_dependency_graph.py` 403 + `system_dependency_graph.py` 307 | 纯逻辑（可用性/触发规则）+ 图渲染 |
-| 版本时间线 | `ui/ceshu/version_timeline_dialog.py` 405 | 复用已有 `ceshu:versions` 数据 |
+| ~~版本时间线~~ | `ui/ceshu/version_timeline_dialog.py` 405 | ✅ W26 已完成（`shared/ceshuTimeline.ts` 布局/文案纯逻辑 + `VersionTimelinePanel` SVG 时间线 + E2E；`CeshuSummary` 增 `versionNote`） |
 | 自定义模板 | `custom_template_manager.py` 380 + `template_editor_dialog.py` 514 + `template_picker_dialog.py` 439 + `chapter_templates.py` 133 | ≈1,466 行，建议再拆两刀 |
 | AI 生成数据表 | `ui/ceshu/ai_data_generate_dialog.py` 305 | 复用 `shared/ceshuAi.ts` 提示词框架 |
 | 预设市场 / 竞品图表 | `preset_market_dialog.py` 300 + `competitive_chart.py` 80 | 数据 + 简单图表 |
@@ -106,6 +107,7 @@ node_modules\.bin\playwright test          ← 必须 dangerouslyDisableSandbox=
 | ~~W23~~ | ~~字数统计~~ | ✅ 已完成（IPC `ceshu:wordStats` + `WordStatsPanel` + E2E） |
 | ~~W24~~ | ~~依赖检查（字段/系统）~~ | ✅ 已完成（IPC `ceshu:fieldDeps` + `FieldDepsPanel` 双视图 + E2E 25-25） |
 | ~~W25~~ | ~~Excel 导出（补满 6 种）~~ | ✅ 已完成：`main/ceshu/export/excel.ts`（`buildExcelWorkbook` + `renderCeshuExcel`，8 Sheet：概览/系统配置/数值表/角色/里程碑/风险/竞品/校验报告；标题行蓝底白字加粗 + 冻结首行 + 列宽自适应 + 数字型字符串转 int/float）→ 单测 7 + E2E（xlsx 魔数 + exceljs 回读 8 Sheet） |
-| W26 | 版本时间线 | 复用 `ceshu:versions` |
-| W27+ | 自定义模板（拆两刀）/ AI 生成数据表 / 首页卡片 … | 见 B 档 |
+| ~~W26~~ | ~~版本时间线~~ | ✅ 已完成：`shared/ceshuTimeline.ts`（尺寸/配色/文案/布局/默认选中/详情，单测 12）+ `VersionTimelinePanel`（SVG 主轴+节点+箭头、图例、节点详情、切换到此版本）+ E2E 26-26 |
+| W27 | 自定义模板（第一刀：模板模型 + 存储 + 选择器） | `chapter_templates.py` 133 + `custom_template_manager.py` 380 + `template_picker_dialog.py` 439 |
+| W28+ | 自定义模板（第二刀：模板编辑器）/ AI 生成数据表 / 预设市场 / 竞品图表 / 首页卡片 … | 见 B 档 |
 | 之后 | 库管理（多库） → AI/Agent 引擎（需方案设计） | A 档 |
