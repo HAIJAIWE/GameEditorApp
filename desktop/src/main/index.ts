@@ -4,6 +4,7 @@ import { app, BrowserWindow, shell } from 'electron'
 
 import { AttrSystemStore } from './attr/attrSystemStore'
 import { CeshuManager } from './ceshu/manager'
+import { CeshuNotesStore } from './ceshu/notesStore'
 import { CeshuStorage } from './ceshu/storage'
 import { DataService } from './data/service'
 import { SqliteItemsRepository } from './data/sqliteRepo'
@@ -66,6 +67,7 @@ app.whenReady().then(() => {
   registerIpcHandlers({
     dataService,
     ceshuManager: new CeshuManager(new CeshuStorage(join(app.getPath('userData'), 'ceshu'))),
+    ceshuNotesStore: new CeshuNotesStore(join(app.getPath('userData'), 'ceshu_notes')),
     typeSchemaStore: new TypeSchemaStore(join(app.getPath('userData'), 'type_schema.json')),
     attrSystemStore: new AttrSystemStore(join(app.getPath('userData'), 'attr_system.json')),
     llmClient: new LlmClient(),

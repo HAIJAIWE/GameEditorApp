@@ -62,5 +62,11 @@ export interface MbApi {
     exportDiffReport(
       req: IpcContract['ceshu:exportDiffReport']['req']
     ): Promise<IpcContract['ceshu:exportDiffReport']['res']>
+    notes: {
+      list(req: IpcContract['ceshu:notes:list']['req']): Promise<IpcContract['ceshu:notes:list']['res']>
+      add(req: IpcContract['ceshu:notes:add']['req']): Promise<IpcContract['ceshu:notes:add']['res']>
+      update(req: IpcContract['ceshu:notes:update']['req']): Promise<IpcContract['ceshu:notes:update']['res']>
+      remove(req: IpcContract['ceshu:notes:delete']['req']): Promise<IpcContract['ceshu:notes:delete']['res']>
+    }
   }
 }

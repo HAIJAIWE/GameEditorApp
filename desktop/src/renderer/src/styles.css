@@ -909,6 +909,89 @@ body {
   word-break: break-all;
 }
 
+/* ---- 章节笔记面板 ---- */
+
+.notes-body {
+  display: flex;
+  flex: 1;
+  gap: 12px;
+  min-height: 0;
+}
+
+.notes-side {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  gap: 6px;
+  width: 300px;
+  min-height: 0;
+}
+
+.notes-list {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  overflow: auto;
+}
+
+.notes-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 12px;
+  text-align: left;
+}
+
+.notes-item.active {
+  border-color: var(--accent);
+}
+
+.notes-item-title {
+  font-weight: 600;
+}
+
+.notes-item-preview {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.notes-item-meta {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.notes-editor {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.notes-editor-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.notes-editor-row .form-input {
+  min-width: 180px;
+  flex: 1;
+}
+
+.notes-content {
+  flex: 1;
+  min-height: 200px;
+}
+
 /* ---- AI 一键生成面板 ---- */
 
 .ai-gen-row {

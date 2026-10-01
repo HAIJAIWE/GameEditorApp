@@ -18,6 +18,7 @@ import type { CeshuAiGenerateResult } from '../../../shared/ceshuAi'
 import AiFullGeneratePanel from './AiFullGeneratePanel'
 import AiReviewPanel from './AiReviewPanel'
 import ChapterForm from './ChapterForm'
+import ChapterNotesPanel from './ChapterNotesPanel'
 import ChecklistPanel from './ChecklistPanel'
 import VersionDiffPanel from './VersionDiffPanel'
 
@@ -53,9 +54,9 @@ export default function CeshuView({ ceshuId, onChanged, onSelect }: CeshuViewPro
   const [exportFormat, setExportFormat] = useState<CeshuExportFormat>('markdown')
   const [deriveOpen, setDeriveOpen] = useState(false)
   const [deriveNote, setDeriveNote] = useState('')
-  const [panel, setPanel] = useState<'changelog' | 'validate' | 'score' | 'aiFull' | 'aiReview' | 'checklist' | 'diff' | null>(
-    null
-  )
+  const [panel, setPanel] = useState<
+    'changelog' | 'validate' | 'score' | 'aiFull' | 'aiReview' | 'checklist' | 'diff' | 'notes' | null
+  >(null)
   const [changelog, setChangelog] = useState<CeshuChangelog | null>(null)
   const [validateErrors, setValidateErrors] = useState<string[]>([])
   const [score, setScore] = useState<CeshuScoreReport | null>(null)
@@ -268,6 +269,9 @@ export default function CeshuView({ ceshuId, onChanged, onSelect }: CeshuViewPro
         <button type="button" className="btn" data-testid="ceshu-diff" disabled={busy} onClick={() => setPanel('diff')}>
           版本对比
         </button>
+        <button type="button" className="btn" data-testid="ceshu-notes" disabled={busy} onClick={() => setPanel('notes')}>
+          笔记
+        </button>
         <button type="button" className="btn" data-testid="ceshu-validate" disabled={busy} onClick={() => void handleValidate()}>
           校验
         </button>
@@ -348,6 +352,8 @@ export default function CeshuView({ ceshuId, onChanged, onSelect }: CeshuViewPro
           />
         ) : panel === 'diff' ? (
           <VersionDiffPanel key={doc.ceshu_id} ceshuId={doc.ceshu_id} onClose={() => setPanel(null)} />
+        ) : panel === 'notes' ? (
+          <ChapterNotesPanel key={doc.ceshu_id} ceshuId={doc.ceshu_id} onClose={() => setPanel(null)} />
         ) : panel === 'changelog' && changelog ? (
           <div className="changelog-panel" data-testid="changelog-panel">
             <div className="changelog-header">

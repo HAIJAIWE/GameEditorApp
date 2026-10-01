@@ -60,7 +60,13 @@ const api: MbApi = {
     autoFill: (req) => invoke('ceshu:autoFill', req),
     exportChecklistReport: (req) => invoke('ceshu:exportChecklistReport', req),
     diff: (req) => invoke('ceshu:diff', req),
-    exportDiffReport: (req) => invoke('ceshu:exportDiffReport', req)
+    exportDiffReport: (req) => invoke('ceshu:exportDiffReport', req),
+    notes: {
+      list: (req) => invoke('ceshu:notes:list', req),
+      add: (req) => invoke('ceshu:notes:add', req),
+      update: (req) => invoke('ceshu:notes:update', req),
+      remove: (req) => invoke('ceshu:notes:delete', req)
+    }
   }
 }
 

@@ -23,6 +23,10 @@ import {
   exportLegacyInputSchema,
   importLegacyInputSchema,
   listItemsInputSchema,
+  notesAddInputSchema,
+  notesDeleteInputSchema,
+  notesListInputSchema,
+  notesUpdateInputSchema,
   referencesInputSchema,
   schemaSaveInputSchema,
   updateItemInputSchema
@@ -43,6 +47,7 @@ import type { AppInfo } from '../shared/types'
 import type { AttrSystemStore } from './attr/attrSystemStore'
 import { exportAttrGameConfigFile } from './attr/attrGameConfigExport'
 import type { CeshuManager } from './ceshu/manager'
+import type { CeshuNotesStore } from './ceshu/notesStore'
 import { exportCeshuDocument } from './ceshu/export/exporter'
 import { exportTextReportFile } from './ceshu/reportExport'
 import { exportLegacyDataFile } from './data/legacyExport'
@@ -54,6 +59,7 @@ import type { TypeSchemaStore } from './schema/store'
 interface IpcHandlerDeps {
   dataService: DataService
   ceshuManager: CeshuManager
+  ceshuNotesStore: CeshuNotesStore
   typeSchemaStore: TypeSchemaStore
   attrSystemStore: AttrSystemStore
   llmClient: LlmClient
@@ -64,6 +70,7 @@ interface IpcHandlerDeps {
 export function registerIpcHandlers({
   dataService,
   ceshuManager,
+  ceshuNotesStore,
   typeSchemaStore,
   attrSystemStore,
   llmClient,
@@ -173,6 +180,17 @@ export function registerIpcHandlers({
   handle('ceshu:exportDiffReport', ceshuDiffExportInputSchema, (req) =>
     exportTextReportFile(req.path, req.content, '对比报告')
   )
+  handle('ceshu:notes:list', notesListInputSchema, (req) => ceshuNotesStore.list(req.id, req.chapterKey))
+  handle('ceshu:notes:add', notesAddInputSchema, (req) => {
+    if (!isChapterKey(req.chapterKey)) {
+      throw new Error(`未知章节：${req.chapterKey}`)
+    }
+    return ceshuNotesStore.add(req.id, req.chapterKey, req.content, req.author)
+  })
+  handle('ceshu:notes:update', notesUpdateInputSchema, (req) =>
+    ceshuNotesStore.update(req.id, req.noteId, req.content, req.author)
+  )
+  handle('ceshu:notes:delete', notesDeleteInputSchema, (req) => ceshuNotesStore.remove(req.id, req.noteId))
   handle('dialog:chooseCeshuExportFile', ceshuChooseExportFileInputSchema, async (req) => {
     const extension = CESHU_FORMAT_EXTENSIONS[req.format]
     const options: SaveDialogOptions = {

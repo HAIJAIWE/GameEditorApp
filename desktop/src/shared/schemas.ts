@@ -202,6 +202,32 @@ export const ceshuDiffExportInputSchema = z.object({
   content: z.string().min(1)
 })
 
+/* ---- 章节笔记 ---- */
+
+export const notesListInputSchema = z.object({
+  id: z.string().min(1),
+  chapterKey: z.string().max(50).optional()
+})
+
+export const notesAddInputSchema = z.object({
+  id: z.string().min(1),
+  chapterKey: z.string().min(1).max(50),
+  content: z.string().max(20000).default(''),
+  author: z.string().max(100).optional()
+})
+
+export const notesUpdateInputSchema = z.object({
+  id: z.string().min(1),
+  noteId: z.string().min(1),
+  content: z.string().max(20000).default(''),
+  author: z.string().max(100).optional()
+})
+
+export const notesDeleteInputSchema = z.object({
+  id: z.string().min(1),
+  noteId: z.string().min(1)
+})
+
 export type ListItemsInput = z.infer<typeof listItemsInputSchema>
 export type CreateItemInput = z.infer<typeof createItemInputSchema>
 export type DeleteItemInput = z.infer<typeof deleteItemInputSchema>
@@ -225,3 +251,7 @@ export type CeshuReviewExportInput = z.infer<typeof ceshuReviewExportInputSchema
 export type CeshuChecklistExportInput = z.infer<typeof ceshuChecklistExportInputSchema>
 export type CeshuDiffInput = z.infer<typeof ceshuDiffInputSchema>
 export type CeshuDiffExportInput = z.infer<typeof ceshuDiffExportInputSchema>
+export type NotesListInput = z.infer<typeof notesListInputSchema>
+export type NotesAddInput = z.infer<typeof notesAddInputSchema>
+export type NotesUpdateInput = z.infer<typeof notesUpdateInputSchema>
+export type NotesDeleteInput = z.infer<typeof notesDeleteInputSchema>
