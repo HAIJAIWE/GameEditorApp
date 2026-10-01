@@ -16,6 +16,12 @@ export default tseslint.config(
     }
   },
   {
+    files: ['spikes/**/*.mjs'],
+    languageOptions: {
+      globals: globals.node
+    }
+  },
+  {
     files: ['src/renderer/**/*.{ts,tsx}'],
     languageOptions: {
       globals: globals.browser
