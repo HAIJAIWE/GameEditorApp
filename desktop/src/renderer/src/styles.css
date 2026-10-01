@@ -461,3 +461,67 @@ body {
 .toolbar .export-format {
   width: auto;
 }
+
+/* ---- 版本链：派生面板与变更记录 ---- */
+
+.derive-panel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-panel);
+}
+
+.derive-panel .form-input {
+  flex: 1;
+  max-width: 420px;
+}
+
+.changelog-panel {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  overflow: auto;
+  padding: 16px 20px;
+}
+
+.changelog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.changelog-entry {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  background: var(--bg-panel);
+}
+
+.changelog-entry-title {
+  font-weight: 600;
+}
+
+.changelog-chapter {
+  margin-top: 8px;
+}
+
+.changelog-line {
+  padding: 2px 0;
+  font-size: 13px;
+}
+
+.changelog-line.added {
+  color: #22c55e;
+}
+
+.changelog-line.removed {
+  color: var(--danger);
+}
+
+.changelog-line.modified {
+  color: #f59e0b;
+}

@@ -189,7 +189,7 @@ export interface CeshuDocumentBase {
 
 export type CeshuDocument = CeshuDocumentBase & CeshuChapters
 
-/** 侧边栏列表摘要 */
+/** 侧边栏/版本链列表摘要 */
 export interface CeshuSummary {
   id: string
   gameName: string
@@ -198,6 +198,10 @@ export interface CeshuSummary {
   updatedAt: string
   /** 总进度 0~1（按档位可见章节平均） */
   progress: number
+  /** 父策划书 id（主策划为空字符串） */
+  parentId: string
+  isActive: boolean
+  createdAt: string
 }
 
 /* ---- 导出 ---- */

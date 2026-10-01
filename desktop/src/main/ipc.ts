@@ -5,6 +5,7 @@ import type { IpcChannel, IpcContract, IpcResult } from '../shared/ipc'
 import {
   ceshuChooseExportFileInputSchema,
   ceshuCreateInputSchema,
+  ceshuDeriveInputSchema,
   ceshuExportInputSchema,
   ceshuGetInputSchema,
   ceshuSaveChapterInputSchema,
@@ -57,6 +58,10 @@ export function registerIpcHandlers({ dataService, ceshuManager, getAppInfo }: I
     const doc = ceshuManager.get(req.id)
     return exportCeshuDocument(doc, req.format, req.path)
   })
+  handle('ceshu:versions', ceshuGetInputSchema, (req) => ceshuManager.versions(req.id))
+  handle('ceshu:derive', ceshuDeriveInputSchema, (req) => ceshuManager.derive(req.id, req.note))
+  handle('ceshu:setActive', ceshuGetInputSchema, (req) => ceshuManager.setActive(req.id))
+  handle('ceshu:changelog', ceshuGetInputSchema, (req) => ceshuManager.changelog(req.id))
   handle('dialog:chooseCeshuExportFile', ceshuChooseExportFileInputSchema, async (req) => {
     const extension = CESHU_FORMAT_EXTENSIONS[req.format]
     const options: SaveDialogOptions = {

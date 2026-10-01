@@ -27,5 +27,9 @@ export interface MbApi {
     get(req: IpcContract['ceshu:get']['req']): Promise<IpcContract['ceshu:get']['res']>
     saveChapter(req: IpcContract['ceshu:saveChapter']['req']): Promise<IpcContract['ceshu:saveChapter']['res']>
     export(req: IpcContract['ceshu:export']['req']): Promise<IpcContract['ceshu:export']['res']>
+    versions(req: IpcContract['ceshu:versions']['req']): Promise<IpcContract['ceshu:versions']['res']>
+    derive(req: IpcContract['ceshu:derive']['req']): Promise<IpcContract['ceshu:derive']['res']>
+    setActive(req: IpcContract['ceshu:setActive']['req']): Promise<IpcContract['ceshu:setActive']['res']>
+    changelog(req: IpcContract['ceshu:changelog']['req']): Promise<IpcContract['ceshu:changelog']['res']>
   }
 }

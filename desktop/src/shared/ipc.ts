@@ -1,6 +1,7 @@
 import type {
   CeshuChooseExportFileInput,
   CeshuCreateInput,
+  CeshuDeriveInput,
   CeshuExportInput,
   CeshuSaveChapterInput,
   ExportLegacyInput,
@@ -8,6 +9,7 @@ import type {
 } from './schemas'
 import type { AppInfo, ExportSummary, ImportSummary, ItemRecord, TypeSummary } from './types'
 import type { CeshuDocument, CeshuExportResult, CeshuSummary } from './ceshuConstants'
+import type { CeshuChangelog } from './ceshuDiff'
 
 /**
  * IPC 契约：通道 → 请求/响应类型。
@@ -29,6 +31,10 @@ export interface IpcContract {
   'ceshu:get': { req: { id: string }; res: CeshuDocument }
   'ceshu:saveChapter': { req: CeshuSaveChapterInput; res: CeshuDocument }
   'ceshu:export': { req: CeshuExportInput; res: CeshuExportResult }
+  'ceshu:versions': { req: { id: string }; res: CeshuSummary[] }
+  'ceshu:derive': { req: CeshuDeriveInput; res: CeshuDocument }
+  'ceshu:setActive': { req: { id: string }; res: CeshuDocument }
+  'ceshu:changelog': { req: { id: string }; res: CeshuChangelog }
   'dialog:chooseCeshuExportFile': { req: CeshuChooseExportFileInput; res: { path: string | null } }
 }
 

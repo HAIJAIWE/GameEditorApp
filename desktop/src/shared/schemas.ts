@@ -61,6 +61,11 @@ export const ceshuChooseExportFileInputSchema = z.object({
   defaultName: z.string().max(200).default('策划书')
 })
 
+export const ceshuDeriveInputSchema = z.object({
+  id: z.string().min(1),
+  note: z.string().max(500).default('')
+})
+
 export type ListItemsInput = z.infer<typeof listItemsInputSchema>
 export type CreateItemInput = z.infer<typeof createItemInputSchema>
 export type DeleteItemInput = z.infer<typeof deleteItemInputSchema>
@@ -71,3 +76,4 @@ export type CeshuCreateInput = z.infer<typeof ceshuCreateInputSchema>
 export type CeshuSaveChapterInput = z.infer<typeof ceshuSaveChapterInputSchema>
 export type CeshuExportInput = z.infer<typeof ceshuExportInputSchema>
 export type CeshuChooseExportFileInput = z.infer<typeof ceshuChooseExportFileInputSchema>
+export type CeshuDeriveInput = z.infer<typeof ceshuDeriveInputSchema>

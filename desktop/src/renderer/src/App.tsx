@@ -258,7 +258,10 @@ export default function App() {
                 onClick={() => setActiveCeshuId(item.id)}
               >
                 <span className="item-name">{item.gameName || '未命名策划书'}</span>
-                <span className="item-meta">{Math.round(item.progress * 100)}%</span>
+                <span className="item-meta">
+                  {item.versionLabel}
+                  {item.isActive ? ' ★' : ''} · {Math.round(item.progress * 100)}%
+                </span>
               </button>
             ))}
             {ceshuList.length === 0 && <div className="sidebar-hint">暂无策划书，点击上方新建</div>}
@@ -332,7 +335,7 @@ export default function App() {
             </div>
           </>
         ) : (
-          <CeshuView ceshuId={activeCeshuId} onChanged={() => void reloadCeshuList()} />
+          <CeshuView ceshuId={activeCeshuId} onChanged={() => void reloadCeshuList()} onSelect={setActiveCeshuId} />
         )}
 
         <footer className="statusbar">

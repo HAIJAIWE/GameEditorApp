@@ -1,5 +1,6 @@
 import type { CeshuDocument, CeshuSummary, ChapterData, ChapterKey, GddScope } from '../../shared/ceshuConstants'
-import { computeChapterProgress, createDefaultCeshu, getGddScope, withChapter } from '../../shared/ceshuModel'
+import { buildChangelogEntry, compareVersionLabels, nextVersionLabel, type CeshuChangelog } from '../../shared/ceshuDiff'
+import { computeChapterProgress, createCeshuId, createDefaultCeshu, formatLocalTimestamp, getGddScope, withChapter } from '../../shared/ceshuModel'
 import { CeshuStorage } from './storage'
 
 /**
@@ -41,6 +42,82 @@ export class CeshuManager {
     })
   }
 
+  /** 版本链列表：主策划在首位，其余按版本号排序（对应 Python list_versions） */
+  versions(id: string): CeshuSummary[] {
+    const target = this.storage.load(id)
+    const rootId = target.parent_id || target.ceshu_id
+    const chain = this.storage
+      .listDocuments()
+      .filter((doc) => doc.ceshu_id === rootId || doc.parent_id === rootId)
+    const main = chain.filter((doc) => doc.ceshu_id === rootId)
+    const subs = chain
+      .filter((doc) => doc.ceshu_id !== rootId)
+      .sort((a, b) => compareVersionLabels(a.version_label, b.version_label))
+    return [...main, ...subs].map((doc) => this.toSummary(doc))
+  }
+
+  /**
+   * 派生新版本（对应 Python derive_version）：
+   * 复制父本全部内容 → parent_id 指向链根 → 版本号自动递增 → 默认非激活。
+   */
+  derive(id: string, note: string): Promise<CeshuDocument> {
+    return this.enqueueWrite(() => {
+      const parent = this.storage.load(id)
+      const rootId = parent.parent_id || parent.ceshu_id
+      const existingLabels = this.versions(rootId).map((item) => item.versionLabel)
+      const versionLabel = nextVersionLabel(parent.version_label, existingLabels)
+      const now = formatLocalTimestamp()
+      const next: CeshuDocument = {
+        ...structuredClone(parent),
+        ceshu_id: createCeshuId(),
+        parent_id: rootId,
+        version_label: versionLabel,
+        version_note: note,
+        is_active: false,
+        created_at: now,
+        updated_at: now
+      }
+      this.storage.save(next)
+      return next
+    })
+  }
+
+  /** 设为激活版本：同链其他版本取消激活（对应 Python set_active_version） */
+  setActive(id: string): Promise<CeshuDocument> {
+    return this.enqueueWrite(() => {
+      const target = this.storage.load(id)
+      const rootId = target.parent_id || target.ceshu_id
+      for (const doc of this.storage.listDocuments()) {
+        const inChain = doc.ceshu_id === rootId || doc.parent_id === rootId
+        if (!inChain || doc.ceshu_id === id || !doc.is_active) continue
+        doc.is_active = false
+        this.storage.save(doc)
+      }
+      target.is_active = true
+      this.storage.save(target)
+      return target
+    })
+  }
+
+  /** 变更日志：同链版本按时间升序逐对计算 diff（对应 Python generate_changelog） */
+  changelog(id: string): CeshuChangelog {
+    const target = this.storage.load(id)
+    const rootId = target.parent_id || target.ceshu_id
+    const chain = this.versions(rootId)
+    if (chain.length < 2) return { entries: [] }
+    const docs = chain
+      .map((item) => this.storage.load(item.id))
+      .sort((a, b) => (a.updated_at || a.created_at || '').localeCompare(b.updated_at || b.created_at || ''))
+    const entries = []
+    for (let index = 1; index < docs.length; index++) {
+      const oldDoc = docs[index - 1]
+      const newDoc = docs[index]
+      if (!oldDoc || !newDoc || oldDoc.ceshu_id === newDoc.ceshu_id) continue
+      entries.push(buildChangelogEntry(oldDoc, newDoc, newDoc.version_label, newDoc.updated_at || newDoc.created_at))
+    }
+    return { entries }
+  }
+
   private toSummary(doc: CeshuDocument): CeshuSummary {
     const gameName = doc.meta.game_name
     return {
@@ -49,7 +126,10 @@ export class CeshuManager {
       scope: getGddScope(doc),
       versionLabel: doc.version_label,
       updatedAt: doc.updated_at,
-      progress: computeChapterProgress(doc).total ?? 0
+      progress: computeChapterProgress(doc).total ?? 0,
+      parentId: doc.parent_id,
+      isActive: doc.is_active,
+      createdAt: doc.created_at
     }
   }
 
