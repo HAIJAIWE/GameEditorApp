@@ -17,6 +17,14 @@ class InMemoryItemsRepository implements ItemsRepository {
     return [...this.rows.values()].filter((row) => row.type === type)
   }
 
+  findItem(id: string): ItemRecord | undefined {
+    return this.rows.get(id)
+  }
+
+  listAllItems(): ItemRecord[] {
+    return [...this.rows.values()]
+  }
+
   insertItem(record: ItemRecord): void {
     this.rows.set(record.id, record)
   }

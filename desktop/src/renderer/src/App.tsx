@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 
+import { getTypeById } from '../../shared/typeSchema'
+import type { CeshuSummary } from '../../shared/ceshuConstants'
 import type { AppInfo, ImportSummary, ItemRecord, TypeSummary } from '../../shared/types'
+
+import CeshuView from './components/CeshuView'
+import ItemForm from './components/ItemForm'
 
 function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
@@ -20,9 +25,16 @@ export default function App() {
   const [types, setTypes] = useState<TypeSummary[]>([])
   const [activeType, setActiveType] = useState<string | null>(null)
   const [items, setItems] = useState<ItemRecord[]>([])
+  const [selectedId, setSelectedId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [mode, setMode] = useState<'data' | 'ceshu'>('data')
+  const [ceshuList, setCeshuList] = useState<CeshuSummary[]>([])
+  const [activeCeshuId, setActiveCeshuId] = useState<string | null>(null)
+
+  const fields = activeType ? (getTypeById(activeType)?.formFields ?? []) : []
+  const selectedItem = items.find((item) => item.id === selectedId) ?? null
 
   /** 事件处理器使用的重新加载（不在 effect 中直接调用，避免级联渲染） */
   const reload = useCallback(async (type: string): Promise<void> => {
@@ -30,6 +42,17 @@ export default function App() {
       const list = await window.mbApi.data.listItems({ type })
       setItems(list)
       setError(null)
+    } catch (err) {
+      setError(toErrorMessage(err))
+    }
+  }, [])
+
+  /** 策划书列表刷新；无选中项时自动选中第一份 */
+  const reloadCeshuList = useCallback(async (): Promise<void> => {
+    try {
+      const list = await window.mbApi.ceshu.list()
+      setCeshuList(list)
+      setActiveCeshuId((current) => current ?? list[0]?.id ?? null)
     } catch (err) {
       setError(toErrorMessage(err))
     }
@@ -60,6 +83,25 @@ export default function App() {
     }
   }, [])
 
+  // 切换到策划书模式时加载列表（懒加载，避免启动即访问文件系统）
+  useEffect(() => {
+    if (mode !== 'ceshu') return
+    let cancelled = false
+    window.mbApi.ceshu
+      .list()
+      .then((list) => {
+        if (cancelled) return
+        setCeshuList(list)
+        setActiveCeshuId((current) => current ?? list[0]?.id ?? null)
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) setError(toErrorMessage(err))
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [mode])
+
   // 切换数据类型时加载列表；cancelled 防止快速切换导致的过期响应回写
   useEffect(() => {
     if (!activeType) return
@@ -80,13 +122,22 @@ export default function App() {
     }
   }, [activeType])
 
+  const selectType = (id: string): void => {
+    setSelectedId(null)
+    setActiveType(id)
+  }
+
   const handleCreate = async (): Promise<void> => {
     if (!activeType) return
     setBusy(true)
     try {
       const label = types.find((t) => t.id === activeType)?.name ?? activeType
-      await window.mbApi.data.createItem({ type: activeType, data: { name: `${label} ${items.length + 1}` } })
+      const created = await window.mbApi.data.createItem({
+        type: activeType,
+        data: { name: `${label} ${items.length + 1}` }
+      })
       await reload(activeType)
+      setSelectedId(created.id)
     } catch (err) {
       setError(toErrorMessage(err))
     } finally {
@@ -98,10 +149,16 @@ export default function App() {
     if (!activeType) return
     try {
       await window.mbApi.data.deleteItem({ id })
+      if (selectedId === id) setSelectedId(null)
       await reload(activeType)
     } catch (err) {
       setError(toErrorMessage(err))
     }
+  }
+
+  const handleSaved = (updated: ItemRecord): void => {
+    setNotice(`已保存：${String(updated.data.name ?? updated.id)}`)
+    if (activeType) void reload(activeType)
   }
 
   const handleImportLegacy = async (): Promise<void> => {
@@ -121,6 +178,34 @@ export default function App() {
     }
   }
 
+  const handleExportLegacy = async (): Promise<void> => {
+    try {
+      setError(null)
+      setNotice(null)
+      const chosen = await window.mbApi.dialog.chooseSaveJsonFile()
+      if (!chosen.path) return
+      setBusy(true)
+      const summary = await window.mbApi.data.exportLegacy({ path: chosen.path })
+      setNotice(`已导出 ${summary.totalItems} 条数据：${summary.filePath}`)
+    } catch (err) {
+      setError(toErrorMessage(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleCreateCeshu = async (): Promise<void> => {
+    try {
+      setError(null)
+      setNotice(null)
+      const created = await window.mbApi.ceshu.create({ name: '', scope: 'full' })
+      await reloadCeshuList()
+      setActiveCeshuId(created.ceshu_id)
+    } catch (err) {
+      setError(toErrorMessage(err))
+    }
+  }
+
   return (
     <div className="app">
       <aside className="sidebar">
@@ -128,52 +213,127 @@ export default function App() {
           墨白可视化编辑
           <small>TS 重写版 · Phase 1 数据核心</small>
         </div>
-        {types.map((t) => (
+        <div className="mode-switch">
           <button
-            key={t.id}
             type="button"
-            className={`type-tab${t.id === activeType ? ' active' : ''}`}
-            data-testid="type-tab"
-            onClick={() => setActiveType(t.id)}
+            data-testid="mode-data"
+            className={`mode-btn${mode === 'data' ? ' active' : ''}`}
+            onClick={() => setMode('data')}
           >
-            <span className="type-dot" style={{ background: t.color }} />
-            {t.name}
+            数据表
           </button>
-        ))}
+          <button
+            type="button"
+            data-testid="mode-ceshu"
+            className={`mode-btn${mode === 'ceshu' ? ' active' : ''}`}
+            onClick={() => setMode('ceshu')}
+          >
+            策划书
+          </button>
+        </div>
+        {mode === 'data' ? (
+          types.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              className={`type-tab${t.id === activeType ? ' active' : ''}`}
+              data-testid="type-tab"
+              onClick={() => selectType(t.id)}
+            >
+              <span className="type-dot" style={{ background: t.color }} />
+              {t.name}
+            </button>
+          ))
+        ) : (
+          <>
+            <button type="button" className="btn" data-testid="ceshu-create" onClick={() => void handleCreateCeshu()}>
+              新建策划书
+            </button>
+            {ceshuList.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                data-testid="ceshu-row"
+                className={`type-tab${item.id === activeCeshuId ? ' active' : ''}`}
+                onClick={() => setActiveCeshuId(item.id)}
+              >
+                <span className="item-name">{item.gameName || '未命名策划书'}</span>
+                <span className="item-meta">{Math.round(item.progress * 100)}%</span>
+              </button>
+            ))}
+            {ceshuList.length === 0 && <div className="sidebar-hint">暂无策划书，点击上方新建</div>}
+          </>
+        )}
       </aside>
 
       <div className="main">
-        <header className="toolbar">
-          <h1>数据表预览</h1>
-          <button type="button" className="btn" disabled={busy} onClick={() => void handleImportLegacy()}>
-            导入旧数据
-          </button>
-          <button type="button" className="btn primary" disabled={busy || !activeType} onClick={() => void handleCreate()}>
-            新增测试条目
-          </button>
-        </header>
+        {mode === 'data' ? (
+          <>
+            <header className="toolbar">
+              <h1>数据表预览</h1>
+              <button type="button" className="btn" disabled={busy} onClick={() => void handleImportLegacy()}>
+                导入旧数据
+              </button>
+              <button type="button" className="btn" disabled={busy} onClick={() => void handleExportLegacy()}>
+                导出为 JSON
+              </button>
+              <button
+                type="button"
+                className="btn primary"
+                disabled={busy || !activeType}
+                onClick={() => void handleCreate()}
+              >
+                新增测试条目
+              </button>
+            </header>
 
-        {error && <div className="error-banner">{error}</div>}
-        {notice && <div className="notice-banner">{notice}</div>}
+            {error && <div className="error-banner">{error}</div>}
+            {notice && <div className="notice-banner">{notice}</div>}
 
-        <div className="list">
-          {!activeType ? (
-            <div className="empty">正在加载数据类型…</div>
-          ) : items.length === 0 ? (
-            <div className="empty">暂无数据，点击「新增测试条目」或「导入旧数据」</div>
-          ) : (
-            items.map((item) => (
-              <div key={item.id} className="item-row" data-testid="item-row">
-                <span className="item-name">{String(item.data.name ?? item.id)}</span>
-                <span className="item-meta">{item.id.slice(0, 8)}</span>
-                <span className="item-meta">{new Date(item.createdAt).toLocaleTimeString()}</span>
-                <button type="button" className="btn danger" onClick={() => void handleDelete(item.id)}>
-                  删除
-                </button>
+            <div className="content">
+              <div className="list">
+                {!activeType ? (
+                  <div className="empty">正在加载数据类型…</div>
+                ) : items.length === 0 ? (
+                  <div className="empty">暂无数据，点击「新增测试条目」或「导入旧数据」</div>
+                ) : (
+                  items.map((item) => (
+                    <div
+                      key={item.id}
+                      className={`item-row${item.id === selectedId ? ' selected' : ''}`}
+                      data-testid="item-row"
+                      onClick={() => setSelectedId(item.id)}
+                    >
+                      <span className="item-name">{String(item.data.name ?? item.id)}</span>
+                      <span className="item-meta">{item.id.slice(0, 8)}</span>
+                      <button
+                        type="button"
+                        className="btn danger"
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          void handleDelete(item.id)
+                        }}
+                      >
+                        删除
+                      </button>
+                    </div>
+                  ))
+                )}
               </div>
-            ))
-          )}
-        </div>
+
+              {selectedItem && (
+                <ItemForm
+                  key={`${selectedItem.id}:${selectedItem.updatedAt}`}
+                  item={selectedItem}
+                  fields={fields}
+                  onSaved={handleSaved}
+                />
+              )}
+            </div>
+          </>
+        ) : (
+          <CeshuView ceshuId={activeCeshuId} onChanged={() => void reloadCeshuList()} />
+        )}
 
         <footer className="statusbar">
           {info ? (

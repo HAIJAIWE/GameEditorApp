@@ -2,6 +2,8 @@ import { join } from 'node:path'
 
 import { app, BrowserWindow, shell } from 'electron'
 
+import { CeshuManager } from './ceshu/manager'
+import { CeshuStorage } from './ceshu/storage'
 import { DataService } from './data/service'
 import { SqliteItemsRepository } from './data/sqliteRepo'
 import { registerIpcHandlers } from './ipc'
@@ -60,6 +62,7 @@ app.whenReady().then(() => {
 
   registerIpcHandlers({
     dataService,
+    ceshuManager: new CeshuManager(new CeshuStorage(join(app.getPath('userData'), 'ceshu'))),
     getAppInfo: () => ({
       name: app.getName(),
       version: app.getVersion(),

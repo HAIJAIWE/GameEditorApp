@@ -12,6 +12,14 @@ class InMemoryItemsRepository implements ItemsRepository {
     return [...this.rows.values()].filter((row) => row.type === type)
   }
 
+  findItem(id: string): ItemRecord | undefined {
+    return this.rows.get(id)
+  }
+
+  listAllItems(): ItemRecord[] {
+    return [...this.rows.values()]
+  }
+
   insertItem(record: ItemRecord): void {
     this.rows.set(record.id, record)
   }
@@ -85,5 +93,21 @@ describe('DataService', () => {
     expect(second).toEqual({ imported: 0, updated: 2 })
     expect(service.listItems('skill')).toHaveLength(2)
     expect(service.listItems('skill').find((item) => item.id === 'S1')?.createdAt).toBe(createdAt)
+  })
+
+  it('更新条目：data.id 强制与记录 id 一致，原 createdAt 保留', async () => {
+    const service = createService()
+    const created = await service.createItem({ type: 'skill', data: { name: '旧名' } })
+
+    const updated = await service.updateItem(created.id, { id: 'HACKED', name: '新名' })
+    expect(updated.data['name']).toBe('新名')
+    expect(updated.data['id']).toBe(created.id)
+    expect(updated.createdAt).toBe(created.createdAt)
+    expect(service.listItems('skill')[0]?.data['name']).toBe('新名')
+  })
+
+  it('更新不存在的条目时报错可读', async () => {
+    const service = createService()
+    await expect(service.updateItem('NOT_EXIST', {})).rejects.toThrow('数据不存在')
   })
 })

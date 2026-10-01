@@ -1,5 +1,6 @@
-import type { ImportLegacyInput } from './schemas'
-import type { AppInfo, ImportSummary, ItemRecord, TypeSummary } from './types'
+import type { CeshuCreateInput, CeshuSaveChapterInput, ExportLegacyInput, ImportLegacyInput } from './schemas'
+import type { AppInfo, ExportSummary, ImportSummary, ItemRecord, TypeSummary } from './types'
+import type { CeshuDocument, CeshuSummary } from './ceshuConstants'
 
 /**
  * IPC 契约：通道 → 请求/响应类型。
@@ -10,9 +11,16 @@ export interface IpcContract {
   'data:listTypes': { req: undefined; res: TypeSummary[] }
   'data:listItems': { req: { type: string }; res: ItemRecord[] }
   'data:createItem': { req: { type: string; data: Record<string, unknown> }; res: ItemRecord }
+  'data:updateItem': { req: { id: string; data: Record<string, unknown> }; res: ItemRecord }
   'data:deleteItem': { req: { id: string }; res: { deleted: boolean } }
   'data:importLegacy': { req: ImportLegacyInput; res: ImportSummary }
+  'data:exportLegacy': { req: ExportLegacyInput; res: ExportSummary }
   'dialog:chooseJsonFile': { req: undefined; res: { path: string | null } }
+  'dialog:chooseSaveJsonFile': { req: undefined; res: { path: string | null } }
+  'ceshu:list': { req: undefined; res: CeshuSummary[] }
+  'ceshu:create': { req: CeshuCreateInput; res: CeshuDocument }
+  'ceshu:get': { req: { id: string }; res: CeshuDocument }
+  'ceshu:saveChapter': { req: CeshuSaveChapterInput; res: CeshuDocument }
 }
 
 export type IpcChannel = keyof IpcContract

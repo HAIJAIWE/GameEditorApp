@@ -82,3 +82,11 @@ export interface ImportSummary {
   /** 文件中出现但当前 schema 未收录的复数键及其条数（数据已保留入库） */
   unknownTypes: Record<string, number>
 }
+
+/** 数据导出结果（导回旧版 JSON 交换格式） */
+export interface ExportSummary {
+  filePath: string
+  totalItems: number
+  /** 每类型导出条数（键为数据类型 id 或原始键名） */
+  byType: Record<string, number>
+}

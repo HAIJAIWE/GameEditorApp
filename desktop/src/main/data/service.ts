@@ -25,6 +25,11 @@ export class DataService {
     return this.repo.listItems(type)
   }
 
+  /** 导出快照：全量条目（按类型分组由导出模块完成） */
+  listAllItems(): ItemRecord[] {
+    return this.repo.listAllItems()
+  }
+
   createItem(input: CreateItemInput): Promise<ItemRecord> {
     return this.enqueueWrite(() => {
       const now = new Date().toISOString()
@@ -42,6 +47,23 @@ export class DataService {
 
   deleteItem(id: string): Promise<boolean> {
     return this.enqueueWrite(() => this.repo.deleteItem(id))
+  }
+
+  /** 更新条目业务数据：id 不可变（data.id 强制与记录 id 一致），updatedAt 刷新 */
+  updateItem(id: string, data: Record<string, unknown>): Promise<ItemRecord> {
+    return this.enqueueWrite(() => {
+      const existing = this.repo.findItem(id)
+      if (!existing) {
+        throw new Error('数据不存在，可能已被删除')
+      }
+      const next: ItemRecord = {
+        ...existing,
+        data: { ...data, id },
+        updatedAt: new Date().toISOString()
+      }
+      this.repo.upsertItem(next)
+      return next
+    })
   }
 
   /**

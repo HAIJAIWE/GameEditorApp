@@ -9,10 +9,19 @@ export interface MbApi {
     listTypes(): Promise<IpcContract['data:listTypes']['res']>
     listItems(req: IpcContract['data:listItems']['req']): Promise<IpcContract['data:listItems']['res']>
     createItem(req: IpcContract['data:createItem']['req']): Promise<IpcContract['data:createItem']['res']>
+    updateItem(req: IpcContract['data:updateItem']['req']): Promise<IpcContract['data:updateItem']['res']>
     deleteItem(req: IpcContract['data:deleteItem']['req']): Promise<IpcContract['data:deleteItem']['res']>
     importLegacy(req: IpcContract['data:importLegacy']['req']): Promise<IpcContract['data:importLegacy']['res']>
+    exportLegacy(req: IpcContract['data:exportLegacy']['req']): Promise<IpcContract['data:exportLegacy']['res']>
   }
   dialog: {
     chooseJsonFile(): Promise<IpcContract['dialog:chooseJsonFile']['res']>
+    chooseSaveJsonFile(): Promise<IpcContract['dialog:chooseSaveJsonFile']['res']>
+  }
+  ceshu: {
+    list(): Promise<IpcContract['ceshu:list']['res']>
+    create(req: IpcContract['ceshu:create']['req']): Promise<IpcContract['ceshu:create']['res']>
+    get(req: IpcContract['ceshu:get']['req']): Promise<IpcContract['ceshu:get']['res']>
+    saveChapter(req: IpcContract['ceshu:saveChapter']['req']): Promise<IpcContract['ceshu:saveChapter']['res']>
   }
 }

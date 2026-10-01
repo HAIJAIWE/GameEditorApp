@@ -25,13 +25,21 @@ export class SqliteItemsRepository implements ItemsRepository {
     const rows = this.db
       .prepare('SELECT id, type, data, created_at, updated_at FROM items WHERE type = ? ORDER BY created_at DESC')
       .all(type) as ItemRow[]
-    return rows.map((row) => ({
-      id: row.id,
-      type: row.type,
-      data: JSON.parse(row.data) as Record<string, unknown>,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at
-    }))
+    return rows.map((row) => this.rowToRecord(row))
+  }
+
+  findItem(id: string): ItemRecord | undefined {
+    const row = this.db
+      .prepare('SELECT id, type, data, created_at, updated_at FROM items WHERE id = ?')
+      .get(id) as ItemRow | undefined
+    return row ? this.rowToRecord(row) : undefined
+  }
+
+  listAllItems(): ItemRecord[] {
+    const rows = this.db
+      .prepare('SELECT id, type, data, created_at, updated_at FROM items ORDER BY type, created_at ASC')
+      .all() as ItemRow[]
+    return rows.map((row) => this.rowToRecord(row))
   }
 
   insertItem(record: ItemRecord): void {
@@ -59,6 +67,16 @@ export class SqliteItemsRepository implements ItemsRepository {
 
   close(): void {
     this.db.close()
+  }
+
+  private rowToRecord(row: ItemRow): ItemRecord {
+    return {
+      id: row.id,
+      type: row.type,
+      data: JSON.parse(row.data) as Record<string, unknown>,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    }
   }
 
   /** 迁移：以 PRAGMA user_version 记录 schema 版本，版本只增不改 */

@@ -20,11 +20,20 @@ const api: MbApi = {
     listTypes: () => invoke('data:listTypes', undefined),
     listItems: (req) => invoke('data:listItems', req),
     createItem: (req) => invoke('data:createItem', req),
+    updateItem: (req) => invoke('data:updateItem', req),
     deleteItem: (req) => invoke('data:deleteItem', req),
-    importLegacy: (req) => invoke('data:importLegacy', req)
+    importLegacy: (req) => invoke('data:importLegacy', req),
+    exportLegacy: (req) => invoke('data:exportLegacy', req)
   },
   dialog: {
-    chooseJsonFile: () => invoke('dialog:chooseJsonFile', undefined)
+    chooseJsonFile: () => invoke('dialog:chooseJsonFile', undefined),
+    chooseSaveJsonFile: () => invoke('dialog:chooseSaveJsonFile', undefined)
+  },
+  ceshu: {
+    list: () => invoke('ceshu:list', undefined),
+    create: (req) => invoke('ceshu:create', req),
+    get: (req) => invoke('ceshu:get', req),
+    saveChapter: (req) => invoke('ceshu:saveChapter', req)
   }
 }
 
