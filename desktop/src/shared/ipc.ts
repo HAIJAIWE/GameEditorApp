@@ -9,6 +9,7 @@ import type {
   DeleteManyInput,
   ExportLegacyInput,
   ImportLegacyInput,
+  ReferencesInput,
   SchemaSaveInput
 } from './schemas'
 import type {
@@ -24,6 +25,7 @@ import type { CeshuDocument, CeshuExportResult, CeshuSummary } from './ceshuCons
 import type { CeshuChangelog } from './ceshuDiff'
 import type { CeshuScoreReport } from './ceshuScorer'
 import type { CeshuAiGenerateResult } from './ceshuAi'
+import type { ReferenceReport } from './references'
 
 /**
  * IPC 契约：通道 → 请求/响应类型。
@@ -39,6 +41,7 @@ export interface IpcContract {
   'data:deleteItem': { req: { id: string }; res: { deleted: boolean } }
   'data:batchUpdate': { req: BatchUpdateInput; res: BatchUpdateSummary }
   'data:deleteMany': { req: DeleteManyInput; res: DeleteManySummary }
+  'data:references': { req: ReferencesInput; res: ReferenceReport }
   'data:importLegacy': { req: ImportLegacyInput; res: ImportSummary }
   'data:exportLegacy': { req: ExportLegacyInput; res: ExportSummary }
   'dialog:chooseJsonFile': { req: undefined; res: { path: string | null } }

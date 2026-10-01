@@ -66,6 +66,10 @@ export const deleteManyInputSchema = z.object({
   ids: z.array(z.string().min(1)).min(1).max(5000)
 })
 
+export const referencesInputSchema = z.object({
+  id: z.string().min(1)
+})
+
 /* ---- 数据类型 schema（字段结构编辑器） ---- */
 
 export const typeFieldDefSchema = z.object({
@@ -150,6 +154,7 @@ export type ExportLegacyInput = z.infer<typeof exportLegacyInputSchema>
 export type BatchOpInput = z.infer<typeof batchOpSchema>
 export type BatchUpdateInput = z.infer<typeof batchUpdateInputSchema>
 export type DeleteManyInput = z.infer<typeof deleteManyInputSchema>
+export type ReferencesInput = z.infer<typeof referencesInputSchema>
 export type SchemaSaveInput = z.infer<typeof schemaSaveInputSchema>
 export type CeshuCreateInput = z.infer<typeof ceshuCreateInputSchema>
 export type CeshuSaveChapterInput = z.infer<typeof ceshuSaveChapterInputSchema>

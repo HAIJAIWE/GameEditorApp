@@ -7,10 +7,16 @@ import type { AppInfo, DataTypeDef, ImportSummary, ItemRecord } from '../../shar
 import BatchEditPanel from './components/BatchEditPanel'
 import CeshuView from './components/CeshuView'
 import ItemForm from './components/ItemForm'
+import ReferencesPanel, { type ReferenceTarget } from './components/ReferencesPanel'
 import TypeEditorPanel from './components/TypeEditorPanel'
 
 function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
+}
+
+function itemDisplayName(item: ItemRecord): string {
+  const name = item.data['name']
+  return typeof name === 'string' && name !== '' ? name : item.id
 }
 
 function formatImportSummary(summary: ImportSummary): string {
@@ -42,6 +48,7 @@ export default function App() {
   const [debouncedQuery, setDebouncedQuery] = useState('')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [batchOpen, setBatchOpen] = useState(false)
+  const [refTarget, setRefTarget] = useState<ReferenceTarget | null>(null)
 
   const filteredItems = useMemo(() => filterItemRecords(items, debouncedQuery), [items, debouncedQuery])
   // 仅统计仍然存在的勾选项（重载/删除后失效的 id 不参与批量操作）
@@ -150,6 +157,15 @@ export default function App() {
     setQuery('')
     setSelectedIds(new Set())
     setBatchOpen(false)
+    setRefTarget(null)
+  }
+
+  /** 引用跳转：切到目标类型并选中该条目（保留引用面板，便于沿引用链继续查看） */
+  const handleJump = (type: string, itemId: string, name: string): void => {
+    setRefTarget({ type, id: itemId, name })
+    setQuery('')
+    setSelectedId(itemId)
+    setActiveType(type)
   }
 
   const toggleSelect = (id: string): void => {
@@ -352,6 +368,18 @@ export default function App() {
               </button>
               <button
                 type="button"
+                className="btn"
+                data-testid="open-references"
+                disabled={busy || !selectedItem}
+                onClick={() =>
+                  selectedItem &&
+                  setRefTarget({ type: selectedItem.type, id: selectedItem.id, name: itemDisplayName(selectedItem) })
+                }
+              >
+                引用关系
+              </button>
+              <button
+                type="button"
                 className="btn primary"
                 disabled={busy || !activeType}
                 onClick={() => void handleCreate()}
@@ -400,7 +428,10 @@ export default function App() {
                         className="btn"
                         data-testid="open-batch-edit"
                         disabled={selectedVisibleIds.length === 0}
-                        onClick={() => setBatchOpen(true)}
+                        onClick={() => {
+                          setBatchOpen(true)
+                          setRefTarget(null)
+                        }}
                       >
                         批量操作（{selectedVisibleIds.length}）
                       </button>
@@ -424,6 +455,7 @@ export default function App() {
                             onClick={() => {
                               setSelectedId(item.id)
                               setBatchOpen(false)
+                              setRefTarget(null)
                             }}
                           >
                             <input
@@ -452,7 +484,14 @@ export default function App() {
                     </div>
                   </div>
 
-                  {batchOpen ? (
+                  {refTarget ? (
+                    <ReferencesPanel
+                      target={refTarget}
+                      types={types}
+                      onJump={handleJump}
+                      onClose={() => setRefTarget(null)}
+                    />
+                  ) : batchOpen ? (
                     <BatchEditPanel
                       key={`${activeType ?? ''}:batch`}
                       type={activeType ?? ''}

@@ -17,6 +17,7 @@ import {
   exportLegacyInputSchema,
   importLegacyInputSchema,
   listItemsInputSchema,
+  referencesInputSchema,
   schemaSaveInputSchema,
   updateItemInputSchema
 } from '../shared/schemas'
@@ -26,6 +27,7 @@ import {
   isChapterKey
 } from '../shared/ceshuConstants'
 import { buildChapterPrompt, filterGeneratedFields, mergeChapterDraft, parseLlmJson } from '../shared/ceshuAi'
+import { buildReferenceReport } from '../shared/references'
 import { scoreCeshu } from '../shared/ceshuScorer'
 import { validateCeshu } from '../shared/ceshuValidation'
 import type { AppInfo } from '../shared/types'
@@ -62,6 +64,14 @@ export function registerIpcHandlers({
   handle('data:deleteItem', deleteItemInputSchema, async (req) => ({ deleted: await dataService.deleteItem(req.id) }))
   handle('data:batchUpdate', batchUpdateInputSchema, (req) => dataService.batchUpdate(req))
   handle('data:deleteMany', deleteManyInputSchema, (req) => dataService.deleteMany(req.ids))
+  handle('data:references', referencesInputSchema, (req) => {
+    const items = dataService.listAllItems()
+    const target = items.find((item) => item.id === req.id)
+    if (!target) {
+      throw new Error('数据不存在，可能已被删除')
+    }
+    return buildReferenceReport(typeSchemaStore.getTypes(), items, { id: target.id, type: target.type })
+  })
   handle('data:importLegacy', importLegacyInputSchema, (req) =>
     importLegacyDataFile(req.path, dataService, typeSchemaStore.getTypes())
   )

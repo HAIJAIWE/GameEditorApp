@@ -801,3 +801,59 @@ body {
   font-size: 12px;
   line-height: 1.4;
 }
+
+/* ---- 引用关系面板 ---- */
+
+.ref-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.ref-tab {
+  flex: 1;
+  padding: 6px 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.ref-tab.active {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.ref-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+button.ref-row:hover {
+  border-color: var(--accent);
+}
+
+.ref-row.dangling {
+  cursor: default;
+}
+
+.ref-row-main {
+  font-size: 13px;
+  font-weight: 600;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
