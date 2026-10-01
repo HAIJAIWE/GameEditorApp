@@ -22,6 +22,8 @@ import {
   isChapterKey
 } from '../shared/ceshuConstants'
 import { listTypeSummaries } from '../shared/typeSchema'
+import { scoreCeshu } from '../shared/ceshuScorer'
+import { validateCeshu } from '../shared/ceshuValidation'
 import type { AppInfo } from '../shared/types'
 import type { CeshuManager } from './ceshu/manager'
 import { exportCeshuDocument } from './ceshu/export/exporter'
@@ -62,6 +64,8 @@ export function registerIpcHandlers({ dataService, ceshuManager, getAppInfo }: I
   handle('ceshu:derive', ceshuDeriveInputSchema, (req) => ceshuManager.derive(req.id, req.note))
   handle('ceshu:setActive', ceshuGetInputSchema, (req) => ceshuManager.setActive(req.id))
   handle('ceshu:changelog', ceshuGetInputSchema, (req) => ceshuManager.changelog(req.id))
+  handle('ceshu:validate', ceshuGetInputSchema, (req) => validateCeshu(ceshuManager.get(req.id)))
+  handle('ceshu:score', ceshuGetInputSchema, (req) => scoreCeshu(ceshuManager.get(req.id)))
   handle('dialog:chooseCeshuExportFile', ceshuChooseExportFileInputSchema, async (req) => {
     const extension = CESHU_FORMAT_EXTENSIONS[req.format]
     const options: SaveDialogOptions = {

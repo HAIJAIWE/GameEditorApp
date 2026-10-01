@@ -39,7 +39,9 @@ const api: MbApi = {
     versions: (req) => invoke('ceshu:versions', req),
     derive: (req) => invoke('ceshu:derive', req),
     setActive: (req) => invoke('ceshu:setActive', req),
-    changelog: (req) => invoke('ceshu:changelog', req)
+    changelog: (req) => invoke('ceshu:changelog', req),
+    validate: (req) => invoke('ceshu:validate', req),
+    score: (req) => invoke('ceshu:score', req)
   }
 }
 

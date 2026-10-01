@@ -1,0 +1,105 @@
+import { describe, expect, it } from 'vitest'
+
+import { CHAPTER_KEYS, type CeshuDocument } from '../../src/shared/ceshuConstants'
+import { createDefaultCeshu } from '../../src/shared/ceshuModel'
+import {
+  CHAPTER_WORD_BENCHMARK,
+  INDUSTRY_BENCHMARKS,
+  PASS_THRESHOLDS,
+  countWordsInChapter,
+  gradeLabel,
+  scoreCeshu
+} from '../../src/shared/ceshuScorer'
+
+/**
+ * 空文档：以 createDefaultCeshu 为骨架，将 18 章全部清空。
+ * （仓库默认档在 meta/systems 中含 version/date/系统名等初始文案，按“完全未填写”口径清空后评分。）
+ */
+function emptyDoc(): CeshuDocument {
+  const doc = createDefaultCeshu({ scope: 'full' })
+  const target = doc as unknown as Record<string, unknown>
+  for (const key of CHAPTER_KEYS) {
+    target[key] = {}
+  }
+  return doc
+}
+
+describe('N4 评分引擎：三维度（匹平 Python ceshu_scorer）', () => {
+  it('空文档：结构/质量/市场均为 0，等级 D，18 章明细，全部不及格', () => {
+    const report = scoreCeshu(emptyDoc())
+    expect(report.structure_score).toBe(0)
+    expect(report.content_quality_score).toBe(0)
+    expect(report.market_potential_score).toBe(0)
+    expect(report.total_score).toBe(0)
+    expect(report.grade).toBe('D')
+    expect(report.chapter_scores).toHaveLength(18)
+    expect(report.pass_status).toEqual({ structure: false, quality: false, market: false, total: false })
+    expect(report.suggestions.some((s) => s.includes('有 18 章完全未填写'))).toBe(true)
+  })
+
+  it('仅填 meta 四必填：meta 章 79、结构/总分 2.3、systems 章 20', () => {
+    const doc = emptyDoc()
+    doc.meta = { game_name: '测试游戏', game_type: 'RPG', positioning: '一句话定位', tags: ['标签'] }
+    const report = scoreCeshu(doc)
+
+    const meta = report.chapter_scores.find((c) => c.chapter_key === 'meta')
+    const systems = report.chapter_scores.find((c) => c.chapter_key === 'systems')
+    // 0.5*100 + 0.3*30（12 字 < 50 最低标准）+ 0.2*100
+    expect(meta?.score).toBe(79)
+    expect(meta?.word_count).toBe(12)
+    expect(meta?.has_required).toBe(true)
+    expect(systems?.score).toBe(20) // 无必填字段 → 必填分 100；完成度与字数 0
+
+    expect(report.structure_score).toBe(2.3)
+    expect(report.total_score).toBe(2.3)
+  })
+
+  it('市场潜力：市场分析 7 + 商业模式 10 + MVP 10 + 差异化 1 = 28（kpi_forecast 为空对象不得分）', () => {
+    const doc = emptyDoc()
+    doc.meta = { game_name: '测试游戏', game_type: 'RPG', positioning: '一句话定位', tags: ['标签'] }
+    doc.market_analysis = { target_market: '国内', market_size: '百亿', competitors: [{ name: 'A' }, { name: 'B' }] }
+    doc.monetization = { payment_model: 'f2p', pricing_tiers: ['6', '30', '68'], iap_design: [{ item: '礼包' }], arpu_target: '100' }
+    doc.mvp = { mvp_scope: '核心循环', mvp_timeline: '3 个月', milestones: [{ name: 'M1' }, { name: 'M2' }], success_criteria: '留存 40%' }
+    doc.vision = { differentiation: '差异化' }
+
+    const report = scoreCeshu(doc)
+    expect(report.market_potential_score).toBe(28)
+  })
+})
+
+describe('N4 评分引擎：字数统计与文案', () => {
+  it('中文字符 + 英文词；递归 str/dict/list，其余类型 0', () => {
+    expect(countWordsInChapter('中文abc中文123')).toBe(6) // 4 个中文字 + 2 个英文词
+    expect(countWordsInChapter({ a: ['中文'], b: { c: 'abc' } })).toBe(3) // 2 中文字 + 1 英文词
+    expect(countWordsInChapter(123)).toBe(0)
+    expect(countWordsInChapter(true)).toBe(0)
+  })
+
+  it('等级文案：S 含“卓越”、D 含“不足”', () => {
+    expect(gradeLabel('S')).toContain('卓越')
+    expect(gradeLabel('D')).toContain('不足')
+  })
+
+  it('行业基准：RPG → label/top_games/vs_total', () => {
+    const doc = emptyDoc()
+    doc.meta = { game_type: 'RPG' }
+    const report = scoreCeshu(doc)
+    expect(report.industry_benchmark.game_type).toBe('RPG')
+    expect(report.industry_benchmark.label).toBe('RPG / ARPG')
+    expect(report.industry_benchmark.top_games).toContain('原神')
+    expect(report.industry_benchmark.vs_total).toBe(Math.round((report.total_score - 77) * 10) / 10)
+
+    // 未命中的 game_type 回退 default
+    const other = emptyDoc()
+    other.meta = { game_type: '未知类型' }
+    expect(scoreCeshu(other).industry_benchmark.label).toBe(INDUSTRY_BENCHMARKS.default.label)
+  })
+})
+
+describe('N4 评分引擎：导出常量锁定', () => {
+  it('字数基准 / 及格阈值 / 行业基准 default', () => {
+    expect(CHAPTER_WORD_BENCHMARK.meta).toEqual([50, 300, 150])
+    expect(PASS_THRESHOLDS).toEqual({ structure: 18, quality: 24, market: 18, total: 60 })
+    expect(INDUSTRY_BENCHMARKS.default.top_games).toEqual([])
+  })
+})

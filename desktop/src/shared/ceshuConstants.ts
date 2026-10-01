@@ -113,6 +113,32 @@ export const SYSTEM_LABELS: Record<string, string> = {
   competitive: '排位竞技'
 }
 
+/** 系统间硬依赖：启用某系统时，其依赖的系统必须也已启用（与 Python SYSTEM_DEPENDENCIES 一致） */
+export const SYSTEM_DEPENDENCIES: Record<string, string[]> = {
+  battle: ['character', 'skill'],
+  skill: ['character'],
+  equipment: ['character', 'item'],
+  gacha: ['item', 'economy'],
+  growth: ['character'],
+  quest: ['character', 'item'],
+  social: ['character'],
+  economy: ['item'],
+  competitive: ['battle', 'character'],
+  customization: ['character'],
+  content: ['character', 'battle']
+}
+
+/** 检查已启用系统的依赖是否满足（对应 Python check_system_dependencies） */
+export function checkSystemDependencies(enabledSystems: string[]): Array<{ system: string; missing: string[] }> {
+  const enabled = new Set(enabledSystems)
+  const result: Array<{ system: string; missing: string[] }> = []
+  for (const system of enabledSystems) {
+    const missing = (SYSTEM_DEPENDENCIES[system] ?? []).filter((dependency) => !enabled.has(dependency))
+    if (missing.length > 0) result.push({ system, missing })
+  }
+  return result
+}
+
 /* ---- 章节表单字段描述（渲染层 schema 驱动表单用） ---- */
 
 export type CeshuFieldKind =

@@ -1,0 +1,140 @@
+import { describe, expect, it } from 'vitest'
+
+import type { CeshuDocument } from '../../src/shared/ceshuConstants'
+import { createDefaultCeshu } from '../../src/shared/ceshuModel'
+import { validateCeshu } from '../../src/shared/ceshuValidation'
+
+function makeDoc(scope: 'full' | 'lite' = 'full'): CeshuDocument {
+  return createDefaultCeshu({ scope })
+}
+
+/** 是否有错误包含指定片段 */
+function hasError(errors: string[], fragment: string): boolean {
+  return errors.some((error) => error.includes(fragment))
+}
+
+describe('策划书校验：必填字段（匹平 Python validate_ceshu）', () => {
+  it('空文档：必填字段逐项报错（35 条，budget 默认 {} 不算空），无依赖错误', () => {
+    const errors = validateCeshu(makeDoc())
+    expect(errors).toHaveLength(35)
+    expect(hasError(errors, "第一章·项目元信息：字段 'game_name' 为必填项")).toBe(true)
+    expect(hasError(errors, "第十八章·可访问性与本地化：字段 'accessibility_features' 为必填项")).toBe(true)
+    // Python 语义：空字典 {} 不算空（第九章 budget 默认 {}，故不报错）
+    expect(hasError(errors, "第九章·资源规划：字段 'budget' 为必填项")).toBe(false)
+    expect(hasError(errors, '依赖缺失')).toBe(false)
+  })
+
+  it('lite 档只校验基础 9 章（17 条）', () => {
+    const errors = validateCeshu(makeDoc('lite'))
+    expect(errors).toHaveLength(17)
+    expect(hasError(errors, '第十章')).toBe(false)
+    expect(hasError(errors, '第十八章')).toBe(false)
+  })
+
+  it('必填字段填满后该项不再报错（空数组与 0 视为未填）', () => {
+    const doc = makeDoc()
+    doc.meta.game_name = '游戏'
+    doc.meta.game_type = 'RPG'
+    doc.meta.positioning = '定位'
+    doc.meta.tags = []
+    const errors = validateCeshu(doc)
+    expect(hasError(errors, "第一章·项目元信息：字段 'tags' 为必填项")).toBe(true)
+    expect(hasError(errors, "第一章·项目元信息：字段 'game_name' 为必填项")).toBe(false)
+  })
+})
+
+describe('策划书校验：章节间一致性（11 项中的关键项）', () => {
+  it('战斗模式与 systems.battle.config.turn_mode 冲突', () => {
+    const doc = makeDoc()
+    doc.combat.combat_mode = 'turn_based'
+    ;(doc.systems.battle as { config: Record<string, unknown> }).config.turn_mode = 'realtime'
+    expect(hasError(validateCeshu(doc), "一致性冲突：第十二章 combat.combat_mode='turn_based'")).toBe(true)
+
+    doc.combat.combat_mode = 'realtime'
+    expect(hasError(validateCeshu(doc), '一致性冲突：第十二章')).toBe(false)
+  })
+
+  it('付费模式与 systems.economy.config.payment_system 冲突', () => {
+    const doc = makeDoc()
+    doc.monetization.payment_model = 'f2p'
+    ;(doc.systems.economy as { config: Record<string, unknown> }).config.payment_system = 'p2p'
+    expect(hasError(validateCeshu(doc), "一致性冲突：第十四章 monetization.payment_model='f2p'")).toBe(true)
+  })
+
+  it('两份风险矩阵内容不一致时警告，内容一致不报', () => {
+    const doc = makeDoc()
+    doc.risk_handling.risk_matrix = ['进度风险']
+    doc.resources.risk_matrix = ['技术风险']
+    expect(hasError(validateCeshu(doc), 'risk_handling.risk_matrix 与 resources.risk_matrix')).toBe(true)
+
+    doc.resources.risk_matrix = ['进度风险']
+    expect(hasError(validateCeshu(doc), 'risk_handling.risk_matrix 与 resources.risk_matrix')).toBe(false)
+  })
+
+  it('已设定阵营但 faction_system=none 时冲突', () => {
+    const doc = makeDoc()
+    doc.worldview.factions = ['联盟']
+    ;(doc.systems.social as { config: Record<string, unknown> }).config.faction_system = 'none'
+    expect(hasError(validateCeshu(doc), 'worldview.factions 已设定阵营')).toBe(true)
+  })
+
+  it('像素风美术 + 交响乐音乐警告；其他组合不报', () => {
+    const doc = makeDoc()
+    doc.art.art_style = '像素风'
+    doc.audio.music_style = '交响乐'
+    expect(hasError(validateCeshu(doc), '风格不协调')).toBe(true)
+
+    doc.audio.music_style = '电子音乐'
+    expect(hasError(validateCeshu(doc), '风格不协调')).toBe(false)
+  })
+
+  it('MVP 里程碑与技术里程碑不一致时警告；定价档位与充值档位比较兼容逗号字符串', () => {
+    const doc = makeDoc()
+    doc.mvp.milestones = [{ name: 'M1' }]
+    doc.tech.milestones = [{ phase: 'P1' }]
+    expect(hasError(validateCeshu(doc), 'mvp.milestones 与 第八章 tech.milestones 不一致')).toBe(true)
+
+    doc.monetization.pricing_tiers = ['6', '30']
+    ;(doc.systems.economy as { config: Record<string, unknown> }).config.recharge_tiers = '6, 30'
+    expect(hasError(validateCeshu(doc), 'monetization.pricing_tiers 与')).toBe(false)
+    ;(doc.systems.economy as { config: Record<string, unknown> }).config.recharge_tiers = '6, 68'
+    expect(hasError(validateCeshu(doc), 'monetization.pricing_tiers 与')).toBe(true)
+  })
+
+  it('语言列表与本地化资源不一致时警告', () => {
+    const doc = makeDoc()
+    doc.accessibility.language_list = ['简体中文', 'English']
+    doc.resources.localization = ['简体中文']
+    expect(hasError(validateCeshu(doc), 'accessibility.language_list 与 第九章')).toBe(true)
+  })
+
+  it('NPC 数量与实际列表差异过大时警告（阈值 max(2, 20%)）', () => {
+    const doc = makeDoc()
+    doc.characters.main_npc_count = 10
+    doc.characters.npc_list = [{ name: 'A' }, { name: 'B' }, { name: 'C' }]
+    expect(hasError(validateCeshu(doc), 'npc_list 实际数量=3')).toBe(true)
+
+    doc.characters.main_npc_count = 4
+    expect(hasError(validateCeshu(doc), 'npc_list 实际数量')).toBe(false)
+  })
+
+  it('货币类型名称集合不一致时警告；名称一致不报', () => {
+    const doc = makeDoc()
+    doc.economy.currency_types = [{ name: '金币' }, { name: '钻石' }]
+    ;(doc.systems.economy as { config: Record<string, unknown> }).config.currency_types = '金币, 银币'
+    expect(hasError(validateCeshu(doc), 'economy.currency_types 与')).toBe(true)
+
+    ;(doc.systems.economy as { config: Record<string, unknown> }).config.currency_types = '钻石, 金币'
+    expect(hasError(validateCeshu(doc), 'economy.currency_types 与')).toBe(false)
+  })
+
+  it('系统依赖缺失：启用 battle 未启用 character/skill 时报错，补齐依赖后通过', () => {
+    const doc = makeDoc()
+    ;(doc.systems.battle as { enabled: boolean }).enabled = true
+    expect(hasError(validateCeshu(doc), '依赖缺失：第五章 systems.battle 已启用，但其依赖系统 [character、skill] 未启用')).toBe(true)
+
+    ;(doc.systems.character as { enabled: boolean }).enabled = true
+    ;(doc.systems.skill as { enabled: boolean }).enabled = true
+    expect(hasError(validateCeshu(doc), '依赖缺失')).toBe(false)
+  })
+})

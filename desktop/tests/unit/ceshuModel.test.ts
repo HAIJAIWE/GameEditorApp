@@ -7,6 +7,8 @@ import {
   createDefaultCeshu,
   formatLocalTimestamp,
   getGddScope,
+  isEmptyRequiredValue,
+  isFilledValue,
   normalizeCeshu,
   withChapter
 } from '../../src/shared/ceshuModel'
@@ -134,5 +136,20 @@ describe('策划书模型（W3 第一切片）', () => {
   it('formatLocalTimestamp：与 Python 版同为本地时间字符串（YYYY-MM-DD HH:mm:ss）', () => {
     const stamp = formatLocalTimestamp(new Date(2026, 9, 1, 8, 5, 3))
     expect(stamp).toBe('2026-10-01 08:05:03')
+  })
+
+  it('空对象 {} 的双重语义：进度视为未填（真值），校验不视为空（_is_empty_required_value）', () => {
+    const doc = createDefaultCeshu({ scope: 'full' })
+    // resources 必填 = budget({}) + risk_matrix([]) → 进度 0
+    expect(computeChapterProgress(doc).resources).toBe(0)
+    doc.resources.budget = { summary: '预算' }
+    expect(computeChapterProgress(doc).resources).toBe(0.5)
+
+    expect(isFilledValue({})).toBe(false)
+    expect(isFilledValue({ summary: 'x' })).toBe(true)
+    expect(isEmptyRequiredValue({})).toBe(false)
+    expect(isEmptyRequiredValue([])).toBe(true)
+    expect(isEmptyRequiredValue(0)).toBe(true)
+    expect(isEmptyRequiredValue('x')).toBe(false)
   })
 })

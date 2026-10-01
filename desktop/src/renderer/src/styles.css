@@ -525,3 +525,58 @@ body {
 .changelog-line.modified {
   color: #f59e0b;
 }
+
+/* ---- 校验与评分面板 ---- */
+
+.validate-line {
+  padding: 2px 0;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.score-total {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.score-total-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.score-total-grade {
+  color: var(--text-muted);
+}
+
+.score-dimensions {
+  display: flex;
+  gap: 16px;
+  margin: 8px 0;
+  font-size: 13px;
+}
+
+.score-suggestion {
+  padding: 2px 0;
+  font-size: 13px;
+}
+
+.score-table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-top: 6px;
+}
+
+.score-table th,
+.score-table td {
+  border: 1px solid var(--border);
+  padding: 4px 8px;
+  font-size: 12px;
+  text-align: left;
+}
+
+.score-table th {
+  background: var(--bg-hover);
+  color: var(--text-muted);
+}

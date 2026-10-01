@@ -10,6 +10,7 @@ import type {
 import type { AppInfo, ExportSummary, ImportSummary, ItemRecord, TypeSummary } from './types'
 import type { CeshuDocument, CeshuExportResult, CeshuSummary } from './ceshuConstants'
 import type { CeshuChangelog } from './ceshuDiff'
+import type { CeshuScoreReport } from './ceshuScorer'
 
 /**
  * IPC 契约：通道 → 请求/响应类型。
@@ -35,6 +36,8 @@ export interface IpcContract {
   'ceshu:derive': { req: CeshuDeriveInput; res: CeshuDocument }
   'ceshu:setActive': { req: { id: string }; res: CeshuDocument }
   'ceshu:changelog': { req: { id: string }; res: CeshuChangelog }
+  'ceshu:validate': { req: { id: string }; res: string[] }
+  'ceshu:score': { req: { id: string }; res: CeshuScoreReport }
   'dialog:chooseCeshuExportFile': { req: CeshuChooseExportFileInput; res: { path: string | null } }
 }
 

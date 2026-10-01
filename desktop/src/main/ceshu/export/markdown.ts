@@ -1,5 +1,6 @@
 import { CHAPTER_LABELS, type CeshuDocument } from '../../../shared/ceshuConstants'
-import { computeChapterProgress, formatLocalTimestamp, getGddScope } from '../../../shared/ceshuModel'
+import { formatLocalTimestamp, getGddScope } from '../../../shared/ceshuModel'
+import { validateCeshu } from '../../../shared/ceshuValidation'
 
 import {
   EMPTY_PLACEHOLDER,
@@ -26,7 +27,7 @@ export function renderCeshuMarkdown(doc: CeshuDocument): string {
   for (const entry of visibleChapterEntries(getGddScope(doc))) {
     blocks.push(renderChapter(doc, entry))
   }
-  blocks.push(renderProgressReport(doc))
+  blocks.push(renderValidationReport(doc))
   return blocks.join(MD_SEPARATOR) + '\n'
 }
 
@@ -111,15 +112,16 @@ function renderSystemsTable(data: Record<string, unknown> | undefined): string[]
   return lines
 }
 
-/** 附录：章节完成度（校验报告尚未移植，先以进度代替） */
-function renderProgressReport(doc: CeshuDocument): string {
-  const progress = computeChapterProgress(doc)
-  const lines = ['## 附录：章节完成度', '', '| 章节 | 进度 |', '|------|------|']
-  for (const entry of visibleChapterEntries(getGddScope(doc))) {
-    const percent = Math.round((progress[entry.key] ?? 0) * 100)
-    lines.push(`| ${CHAPTER_LABELS[entry.key]} | ${percent}% |`)
+/** 附录：数据校验报告（对应 Python _render_validation_report） */
+function renderValidationReport(doc: CeshuDocument): string {
+  const lines = ['## 附录：数据校验报告', '']
+  const errors = validateCeshu(doc)
+  if (errors.length === 0) {
+    lines.push('✅ 所有校验通过，未发现错误。')
+    return lines.join('\n')
   }
-  lines.push(`| **总进度** | **${Math.round((progress.total ?? 0) * 100)}%** |`)
+  lines.push(`共发现 ${errors.length} 个问题：`, '')
+  errors.forEach((error, index) => lines.push(`${index + 1}. ${error}`))
   return lines.join('\n')
 }
 

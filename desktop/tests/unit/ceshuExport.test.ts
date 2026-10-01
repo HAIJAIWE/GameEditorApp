@@ -43,8 +43,9 @@ describe('策划书导出：Markdown', () => {
     expect(markdown).toContain('### 已启用系统配置详情')
     expect(markdown).toContain('#### 战斗 (battle)')
     expect(markdown).toContain('- **turn_mode**: turn_based')
-    expect(markdown).toContain('## 附录：章节完成度')
-    expect(markdown).toContain('| **总进度** | **')
+    expect(markdown).toContain('## 附录：数据校验报告')
+    expect(markdown).toContain('共发现 ')
+    expect(markdown).toContain('问题：')
     expect(markdown).toContain('\n\n---\n\n')
   })
 

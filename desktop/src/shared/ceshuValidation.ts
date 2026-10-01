@@ -1,0 +1,179 @@
+import {
+  CHAPTER_LABELS,
+  CHAPTER_REQUIRED_FIELDS,
+  checkSystemDependencies,
+  visibleChapterKeys,
+  type CeshuDocument
+} from './ceshuConstants'
+import { normalizeValue } from './ceshuDiff'
+import { getGddScope, isEmptyRequiredValue, isPlainObject } from './ceshuModel'
+
+/**
+ * 策划书数据完整性校验（自 Python ceshu_validation.py 匹平迁移）。
+ * 校验范围：必填字段非空 + 11 项章节间一致性检查；返回错误/警告文案列表（空数组=全部通过）。
+ */
+export function validateCeshu(doc: CeshuDocument): string[] {
+  const errors: string[] = []
+
+  // 基础必填字段检查（按档位可见章节：lite 只校验基础 9 章）
+  for (const key of visibleChapterKeys(getGddScope(doc))) {
+    if (key === 'systems') continue // 游戏系统无必填字段
+    const required = CHAPTER_REQUIRED_FIELDS[key]
+    if (required.length === 0) continue
+    const label = CHAPTER_LABELS[key]
+    const data = doc[key]
+    if (!isPlainObject(data)) {
+      errors.push(`${label}：章节数据格式异常`)
+      continue
+    }
+    for (const field of required) {
+      if (isEmptyRequiredValue(data[field])) {
+        errors.push(`${label}：字段 '${field}' 为必填项`)
+      }
+    }
+  }
+
+  // === 章节间一致性检查 ===
+
+  const battleConfig = systemConfig(doc, 'battle')
+  const economyConfig = systemConfig(doc, 'economy')
+
+  // 1. combat.combat_mode 与 systems.battle.config.turn_mode 应一致
+  const combatMode = readText(doc.combat.combat_mode)
+  const battleTurnMode = readText(battleConfig['turn_mode'])
+  if (combatMode && battleTurnMode && combatMode !== battleTurnMode) {
+    errors.push(
+      `一致性冲突：第十二章 combat.combat_mode='${combatMode}' 与 第五章 systems.battle.config.turn_mode='${battleTurnMode}' 不一致`
+    )
+  }
+
+  // 2. monetization.payment_model 与 systems.economy.config.payment_system 应一致
+  const paymentModel = readText(doc.monetization.payment_model)
+  const economyPayment = readText(economyConfig['payment_system'])
+  if (paymentModel && economyPayment && paymentModel !== economyPayment) {
+    errors.push(
+      `一致性冲突：第十四章 monetization.payment_model='${paymentModel}' 与 第五章 systems.economy.config.payment_system='${economyPayment}' 不一致`
+    )
+  }
+
+  // 3. risk_handling.risk_matrix 与 resources.risk_matrix 应同步
+  const riskHandling = nonEmptyArray(doc.risk_handling.risk_matrix)
+  const resourcesRisk = nonEmptyArray(doc.resources.risk_matrix)
+  if (riskHandling && resourcesRisk && normalizeValue(riskHandling) !== normalizeValue(resourcesRisk)) {
+    errors.push('一致性警告：risk_handling.risk_matrix 与 resources.risk_matrix 内容不一致，建议统一')
+  }
+
+  // 4. worldview.factions 与 social.faction_system 应协同
+  const factions = nonEmptyArray(doc.worldview.factions)
+  const factionSystem = readText(systemConfig(doc, 'social')['faction_system'])
+  if (factions && factionSystem === 'none') {
+    errors.push("一致性冲突：第三章 worldview.factions 已设定阵营，但 systems.social.config.faction_system='none'")
+  }
+
+  // 5. art.art_style 与 audio.music_style 风格应协同（像素风 ↔ 交响乐提示）
+  const artStyle = readText(doc.art.art_style)
+  const musicStyle = readText(doc.audio.music_style)
+  if (artStyle && musicStyle) {
+    const artLower = artStyle.toLowerCase()
+    const musicLower = musicStyle.toLowerCase()
+    if ((artStyle.includes('像素') || artLower.includes('pixel')) && (musicStyle.includes('交响') || musicLower.includes('symphony'))) {
+      errors.push(
+        `一致性警告：第七章 art.art_style='${artStyle}' 与 第十七章 audio.music_style='${musicStyle}' 风格不协调，建议匹配`
+      )
+    }
+  }
+
+  // 6. mvp.milestones 与 tech.milestones 应一致
+  const mvpMilestones = nonEmptyArray(doc.mvp.milestones)
+  const techMilestones = nonEmptyArray(doc.tech.milestones)
+  if (mvpMilestones && techMilestones && normalizeValue(mvpMilestones) !== normalizeValue(techMilestones)) {
+    errors.push('一致性警告：第十五章 mvp.milestones 与 第八章 tech.milestones 不一致，MVP 里程碑应与技术里程碑对齐')
+  }
+
+  // 7. monetization.pricing_tiers 与 systems.economy.config.recharge_tiers 应一致
+  const pricingTiers = nonEmptyArray(doc.monetization.pricing_tiers)
+  const rechargeRaw = economyConfig['recharge_tiers']
+  if (pricingTiers && rechargeRaw) {
+    const rechargeTiers = typeof rechargeRaw === 'string'
+      ? rechargeRaw.split(',').map((item) => item.trim()).filter((item) => item !== '')
+      : Array.isArray(rechargeRaw)
+        ? rechargeRaw
+        : []
+    if (rechargeTiers.length > 0 && normalizeValue(rechargeTiers) !== normalizeValue(pricingTiers)) {
+      errors.push('一致性警告：第十四章 monetization.pricing_tiers 与 systems.economy.config.recharge_tiers 不一致，建议统一')
+    }
+  }
+
+  // 8. accessibility.language_list 与 resources.localization 应一致
+  const languageList = nonEmptyArray(doc.accessibility.language_list)
+  const localization = nonEmptyArray(doc.resources.localization)
+  if (languageList && localization && normalizeValue(languageList) !== normalizeValue(localization)) {
+    errors.push('一致性警告：第十八章 accessibility.language_list 与 第九章 resources.localization 不一致，建议统一')
+  }
+
+  // 9. characters.main_npc_count 与 characters.npc_list 数量应一致
+  const npcCount = doc.characters.main_npc_count
+  const npcList = nonEmptyArray(doc.characters.npc_list)
+  if (typeof npcCount === 'number' && npcCount !== 0 && npcList && Math.abs(npcCount - npcList.length) > Math.max(2, Math.trunc(npcCount * 0.2))) {
+    errors.push(`一致性警告：第十一章 characters.main_npc_count=${npcCount} 与 npc_list 实际数量=${npcList.length} 差异较大，请核对`)
+  }
+
+  // 10. economy.currency_types 与 systems.economy.config.currency_types 应一致
+  const economyCurrencies = nonEmptyArray(doc.economy.currency_types)
+  const systemCurrencies = economyConfig['currency_types']
+  if (economyCurrencies && systemCurrencies) {
+    const economyNames = extractNames(economyCurrencies)
+    const systemNames = typeof systemCurrencies === 'string'
+      ? systemCurrencies.split(',').map((item) => item.trim()).filter((item) => item !== '')
+      : Array.isArray(systemCurrencies)
+        ? extractNames(systemCurrencies)
+        : []
+    const economySet = new Set(economyNames.filter(Boolean))
+    const systemSet = new Set(systemNames.filter(Boolean))
+    if (economySet.size > 0 && systemSet.size > 0 && !sameStringSet(economySet, systemSet)) {
+      errors.push('一致性警告：第十三章 economy.currency_types 与 systems.economy.config.currency_types 不一致，建议统一')
+    }
+  }
+
+  // 11. 游戏系统依赖检查：启用某系统时，其依赖的系统必须也已启用
+  const enabledSystems = Object.entries(doc.systems)
+    .filter(([, value]) => isPlainObject(value) && (value.enabled === undefined ? true : Boolean(value.enabled)))
+    .map(([key]) => key)
+  for (const item of checkSystemDependencies(enabledSystems)) {
+    errors.push(`依赖缺失：第五章 systems.${item.system} 已启用，但其依赖系统 [${item.missing.join('、')}] 未启用`)
+  }
+
+  return errors
+}
+
+/** 读取系统 config（缺省为空对象） */
+function systemConfig(doc: CeshuDocument, systemId: string): Record<string, unknown> {
+  const entry = doc.systems[systemId]
+  if (!isPlainObject(entry) || !isPlainObject(entry.config)) return {}
+  return entry.config
+}
+
+function readText(value: unknown): string {
+  return typeof value === 'string' ? value : ''
+}
+
+function nonEmptyArray(value: unknown): unknown[] | null {
+  return Array.isArray(value) && value.length > 0 ? value : null
+}
+
+/** 提取货币名称：dict 取 name，字符串原样（对应 Python 名称提取规则） */
+function extractNames(items: unknown[]): string[] {
+  return items.map((item) => {
+    if (isPlainObject(item)) return typeof item.name === 'string' ? item.name : ''
+    if (typeof item === 'string') return item
+    return ''
+  })
+}
+
+function sameStringSet(left: Set<string>, right: Set<string>): boolean {
+  if (left.size !== right.size) return false
+  for (const item of left) {
+    if (!right.has(item)) return false
+  }
+  return true
+}

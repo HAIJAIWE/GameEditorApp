@@ -125,7 +125,7 @@ export function computeChapterProgress(doc: CeshuDocument): Record<string, numbe
       continue
     }
     const data = doc[key]
-    const filled = required.filter((field) => isFilled(data[field])).length
+    const filled = required.filter((field) => isFilledValue(data[field])).length
     progress[key] = round2(filled / required.length)
   }
   const sum = visible.reduce((acc, key) => acc + progress[key], 0)
@@ -159,14 +159,33 @@ export function computeEnabledEditors(doc: CeshuDocument): EnabledEditor[] {
   return result
 }
 
-/** Python 真值语义：'' / 0 / false / null / 空数组视为空（空对象 {} 视为非空） */
-function isFilled(value: unknown): boolean {
+/**
+ * Python 真值语义（进度计算用）：'' / 0 / false / null / 空数组 / 空对象 均视为未填。
+ * 注意与「校验用空值判定」isEmptyRequiredValue 的区别：后者按 Python
+ * _is_empty_required_value 语义，空对象 {} 不视为空。
+ */
+export function isFilledValue(value: unknown): boolean {
   if (value === null || value === undefined) return false
   if (typeof value === 'string') return value !== ''
   if (typeof value === 'boolean') return value
   if (typeof value === 'number') return value !== 0
   if (Array.isArray(value)) return value.length > 0
+  if (isPlainObject(value)) return Object.keys(value).length > 0
   return true
+}
+
+/**
+ * 校验用空值判定（对应 Python _is_empty_required_value）：
+ * '' / 0 / false / null / 空数组视为空；空对象 {} 与其余类型不视为空
+ * （保持历史行为：resources.budget 等字段默认为 {} 不报错）。
+ */
+export function isEmptyRequiredValue(value: unknown): boolean {
+  if (value === null || value === undefined) return true
+  if (typeof value === 'string') return value === ''
+  if (typeof value === 'boolean') return !value
+  if (typeof value === 'number') return value === 0
+  if (Array.isArray(value)) return value.length === 0
+  return false
 }
 
 function isEnabledEditor(value: unknown): value is EnabledEditor {
