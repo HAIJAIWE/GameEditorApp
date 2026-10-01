@@ -804,6 +804,111 @@ body {
   color: var(--text-muted);
 }
 
+/* ---- 版本对比面板 ---- */
+
+.diff-selectors {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.diff-selectors .form-select {
+  min-width: 220px;
+  flex: 1;
+}
+
+.diff-stats {
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.diff-body {
+  display: flex;
+  flex: 1;
+  gap: 12px;
+  min-height: 0;
+}
+
+.diff-chapters {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  gap: 4px;
+  width: 240px;
+  overflow: auto;
+}
+
+.diff-chapter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 12px;
+  text-align: left;
+}
+
+.diff-chapter.active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.diff-chapter.changed .diff-chapter-count {
+  color: #f59e0b;
+}
+
+.diff-chapter-count {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.diff-fields {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  overflow: auto;
+}
+
+.diff-fields .score-table tbody tr {
+  cursor: pointer;
+}
+
+.diff-fields .score-table tbody tr.selected td {
+  background: var(--bg-hover);
+}
+
+.diff-detail {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  background: var(--bg-panel);
+}
+
+.diff-detail-title {
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.diff-detail-value {
+  margin: 2px 0 8px;
+  padding: 6px 8px;
+  border-radius: var(--radius);
+  background: var(--bg-hover);
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
 /* ---- AI 一键生成面板 ---- */
 
 .ai-gen-row {

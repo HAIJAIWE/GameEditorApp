@@ -144,6 +144,248 @@ export function compareVersionLabels(left: string, right: string): number {
   return a[0] - b[0] || a[1] - b[1]
 }
 
+/* ---- 版本对比（N1，自 Python version_diff_dialog 匹平迁移） ---- */
+
+export interface CeshuVersionFieldDiff {
+  /** 字段路径（如 meta.game_name / systems.battle.enabled） */
+  field_path: string
+  /** 字段显示名（如 game_name / battle (enabled)） */
+  field_label: string
+  old_value: unknown
+  new_value: unknown
+  diff_type: CeshuDiffType
+}
+
+export interface CeshuChapterDiff {
+  chapter_key: ChapterKey
+  chapter_label: string
+  /** 该章全部字段的 diff（含 unchanged） */
+  field_diffs: CeshuVersionFieldDiff[]
+  added_count: number
+  removed_count: number
+  modified_count: number
+  unchanged_count: number
+}
+
+export interface CeshuVersionDiff {
+  old_version_label: string
+  new_version_label: string
+  old_ceshu_id: string
+  new_ceshu_id: string
+  chapter_diffs: CeshuChapterDiff[]
+  total_added: number
+  total_removed: number
+  total_modified: number
+  total_unchanged: number
+}
+
+/** 变更类型展示映射（文案 + 颜色，与 Python DIFF_DISPLAY 一致） */
+export const DIFF_DISPLAY: Record<CeshuDiffType, { text: string; color: string }> = {
+  added: { text: '✚ 新增', color: '#22C55E' },
+  removed: { text: '✖ 删除', color: '#EF4444' },
+  modified: { text: '✎ 修改', color: '#F59E0B' },
+  unchanged: { text: '未变', color: '#888888' }
+}
+
+/** 章节变更总数（新增 + 删除 + 修改） */
+export function chapterTotalChanges(chapterDiff: CeshuChapterDiff): number {
+  return chapterDiff.added_count + chapterDiff.removed_count + chapterDiff.modified_count
+}
+
+/** 报告变更总数 */
+export function versionDiffTotalChanges(diff: CeshuVersionDiff): number {
+  return diff.total_added + diff.total_removed + diff.total_modified
+}
+
+/**
+ * 字段值格式化（对应 Python _format_value）：null → (空)；bool → 是/否；对象 → JSON；其余 String。
+ * maxLength > 0 时截断并补省略号（对应 _iter_changed_renders 的 max_len）。
+ */
+export function formatDiffValue(value: unknown, maxLength = 0): string {
+  let text: string
+  if (value === null || value === undefined) text = '(空)'
+  else if (typeof value === 'boolean') text = value ? '是' : '否'
+  else if (typeof value === 'object') text = JSON.stringify(value) ?? String(value)
+  else text = String(value)
+  return maxLength > 0 && text.length > maxLength ? `${text.slice(0, maxLength)}...` : text
+}
+
+/**
+ * 两个版本之间的完整章节级 Diff（对应 Python compute_version_diff）：
+ * 章节相等时短路（仅按旧章扁平键数计未变）；否则逐字段分类计数（含 unchanged）。
+ */
+export function buildVersionDiff(oldDoc: CeshuDocument, newDoc: CeshuDocument): CeshuVersionDiff {
+  const chapter_diffs: CeshuChapterDiff[] = []
+  let totalAdded = 0
+  let totalRemoved = 0
+  let totalModified = 0
+  let totalUnchanged = 0
+
+  for (const key of CHAPTER_KEYS) {
+    const label = CHAPTER_LABELS[key]
+    const oldData = oldDoc[key]
+    const newData = newDoc[key]
+    let chapterDiff: CeshuChapterDiff
+    if (normalizeValue(oldData) === normalizeValue(newData)) {
+      // 章节相等：不展开字段，未变数按旧章扁平键数近似（对应 Python 短路分支）
+      const flat = flattenChapter(isPlainObject(oldData) ? oldData : {})
+      chapterDiff = {
+        chapter_key: key,
+        chapter_label: label,
+        field_diffs: [],
+        added_count: 0,
+        removed_count: 0,
+        modified_count: 0,
+        unchanged_count: Object.keys(flat).length
+      }
+    } else if (key === 'systems') {
+      chapterDiff = versionDiffSystems(key, label, oldData, newData)
+    } else {
+      chapterDiff = versionDiffFlat(key, label, oldData, newData)
+    }
+    chapter_diffs.push(chapterDiff)
+    totalAdded += chapterDiff.added_count
+    totalRemoved += chapterDiff.removed_count
+    totalModified += chapterDiff.modified_count
+    totalUnchanged += chapterDiff.unchanged_count
+  }
+
+  return {
+    old_version_label: oldDoc.version_label,
+    new_version_label: newDoc.version_label,
+    old_ceshu_id: oldDoc.ceshu_id,
+    new_ceshu_id: newDoc.ceshu_id,
+    chapter_diffs,
+    total_added: totalAdded,
+    total_removed: totalRemoved,
+    total_modified: totalModified,
+    total_unchanged: totalUnchanged
+  }
+}
+
+/** 版本对比 Markdown 报告（对应 Python VersionDiffDialog._build_markdown，字段值截断 60） */
+export function buildVersionDiffMarkdown(diff: CeshuVersionDiff, timestamp: string): string {
+  const lines: string[] = [
+    '# 版本对比报告',
+    '',
+    `- **旧版本**: ${diff.old_version_label} (${diff.old_ceshu_id})`,
+    `- **新版本**: ${diff.new_version_label} (${diff.new_ceshu_id})`,
+    `- **对比时间**: ${timestamp}`,
+    '',
+    '## 变更统计',
+    '',
+    `- ✚ 新增字段: ${diff.total_added}`,
+    `- ✖ 删除字段: ${diff.total_removed}`,
+    `- ✎ 修改字段: ${diff.total_modified}`,
+    `- 未变字段: ${diff.total_unchanged}`,
+    `- 总变更: ${versionDiffTotalChanges(diff)}`,
+    '',
+    '## 章节明细',
+    ''
+  ]
+  for (const chapter of diff.chapter_diffs) {
+    if (chapterTotalChanges(chapter) === 0) {
+      lines.push(`### ${chapter.chapter_label} — 未变`, '')
+      continue
+    }
+    lines.push(`### ${chapter.chapter_label}`, '')
+    lines.push(
+      `新增 ${chapter.added_count} | 删除 ${chapter.removed_count} | 修改 ${chapter.modified_count} | 未变 ${chapter.unchanged_count}`,
+      ''
+    )
+    lines.push('| 字段 | 旧值 | 新值 | 类型 |', '|------|------|------|------|')
+    for (const field of chapter.field_diffs) {
+      if (field.diff_type === 'unchanged') continue
+      const oldText = escapeMarkdownCell(formatDiffValue(field.old_value, 60))
+      const newText = escapeMarkdownCell(formatDiffValue(field.new_value, 60))
+      lines.push(`| ${field.field_label} | ${oldText} | ${newText} | ${DIFF_DISPLAY[field.diff_type].text} |`)
+    }
+    lines.push('')
+  }
+  return lines.join('\n')
+}
+
+/** Markdown 表格单元格转义：折叠换行 + 转义管道符（对应 Python 导出时的处理） */
+function escapeMarkdownCell(text: string): string {
+  return text.replace(/\n/g, ' ').replace(/\|/g, '\\|')
+}
+
+/** 普通章节：扁平化后逐字段分类计数（含未变） */
+function versionDiffFlat(
+  chapterKey: ChapterKey,
+  label: string,
+  oldData: unknown,
+  newData: unknown
+): CeshuChapterDiff {
+  const oldFlat = flattenChapter(isPlainObject(oldData) ? oldData : {})
+  const newFlat = flattenChapter(isPlainObject(newData) ? newData : {})
+  const oldKeys = new Set(Object.keys(oldFlat))
+  const newKeys = new Set(Object.keys(newFlat))
+  const allKeys = [...new Set([...oldKeys, ...newKeys])].sort()
+  const chapterDiff: CeshuChapterDiff = {
+    chapter_key: chapterKey,
+    chapter_label: label,
+    field_diffs: [],
+    added_count: 0,
+    removed_count: 0,
+    modified_count: 0,
+    unchanged_count: 0
+  }
+  for (const field of allKeys) {
+    const inOld = oldKeys.has(field)
+    const inNew = newKeys.has(field)
+    const oldValue = inOld ? oldFlat[field] : null
+    const newValue = inNew ? newFlat[field] : null
+    const diffType = classifyFieldDiff(inOld, inNew, oldValue, newValue)
+    countIntoChapterDiff(chapterDiff, diffType)
+    chapterDiff.field_diffs.push({
+      field_path: `${chapterKey}.${field}`,
+      field_label: field,
+      old_value: oldValue,
+      new_value: newValue,
+      diff_type: diffType
+    })
+  }
+  return chapterDiff
+}
+
+/** systems 章：按系统 enabled 状态逐项计数（含未变） */
+function versionDiffSystems(
+  chapterKey: ChapterKey,
+  label: string,
+  oldData: unknown,
+  newData: unknown
+): CeshuChapterDiff {
+  const chapterDiff: CeshuChapterDiff = {
+    chapter_key: chapterKey,
+    chapter_label: label,
+    field_diffs: [],
+    added_count: 0,
+    removed_count: 0,
+    modified_count: 0,
+    unchanged_count: 0
+  }
+  for (const diff of diffSystems(oldData, newData)) {
+    countIntoChapterDiff(chapterDiff, diff.diffType)
+    const systemId = diff.field.includes(' ') ? diff.field.split(' ')[0] : diff.field
+    chapterDiff.field_diffs.push({
+      field_path: `systems.${systemId}.enabled`,
+      field_label: diff.field,
+      old_value: diff.oldValue,
+      new_value: diff.newValue,
+      diff_type: diff.diffType
+    })
+  }
+  return chapterDiff
+}
+
+function countIntoChapterDiff(chapterDiff: CeshuChapterDiff, diffType: CeshuDiffType): void {
+  if (diffType === 'added') chapterDiff.added_count += 1
+  else if (diffType === 'removed') chapterDiff.removed_count += 1
+  else if (diffType === 'modified') chapterDiff.modified_count += 1
+  else chapterDiff.unchanged_count += 1
+}
+
 /** 普通章节 diff：字段扁平化后逐键比较 */
 function diffChapterFlat(chapter: ChapterKey, oldData: unknown, newData: unknown): CeshuFieldDiff[] {
   const oldFlat = flattenChapter(isPlainObject(oldData) ? oldData : {})

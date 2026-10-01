@@ -58,5 +58,9 @@ export interface MbApi {
     exportChecklistReport(
       req: IpcContract['ceshu:exportChecklistReport']['req']
     ): Promise<IpcContract['ceshu:exportChecklistReport']['res']>
+    diff(req: IpcContract['ceshu:diff']['req']): Promise<IpcContract['ceshu:diff']['res']>
+    exportDiffReport(
+      req: IpcContract['ceshu:exportDiffReport']['req']
+    ): Promise<IpcContract['ceshu:exportDiffReport']['res']>
   }
 }

@@ -190,6 +190,18 @@ export const ceshuChecklistExportInputSchema = z.object({
   content: z.string().min(1)
 })
 
+/** 版本对比：两个不同版本 id */
+export const ceshuDiffInputSchema = z.object({
+  id: z.string().min(1),
+  otherId: z.string().min(1)
+})
+
+/** 版本对比报告导出（渲染层生成 Markdown，主进程原子写盘） */
+export const ceshuDiffExportInputSchema = z.object({
+  path: z.string().min(1),
+  content: z.string().min(1)
+})
+
 export type ListItemsInput = z.infer<typeof listItemsInputSchema>
 export type CreateItemInput = z.infer<typeof createItemInputSchema>
 export type DeleteItemInput = z.infer<typeof deleteItemInputSchema>
@@ -211,3 +223,5 @@ export type CeshuDeriveInput = z.infer<typeof ceshuDeriveInputSchema>
 export type CeshuAiGenerateInput = z.infer<typeof ceshuAiGenerateInputSchema>
 export type CeshuReviewExportInput = z.infer<typeof ceshuReviewExportInputSchema>
 export type CeshuChecklistExportInput = z.infer<typeof ceshuChecklistExportInputSchema>
+export type CeshuDiffInput = z.infer<typeof ceshuDiffInputSchema>
+export type CeshuDiffExportInput = z.infer<typeof ceshuDiffExportInputSchema>

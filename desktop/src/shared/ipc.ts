@@ -7,6 +7,8 @@ import type {
   CeshuChooseExportFileInput,
   CeshuCreateInput,
   CeshuDeriveInput,
+  CeshuDiffExportInput,
+  CeshuDiffInput,
   CeshuExportInput,
   CeshuReviewExportInput,
   CeshuSaveChapterInput,
@@ -26,7 +28,7 @@ import type {
   ItemRecord
 } from './types'
 import type { CeshuDocument, CeshuExportResult, CeshuSummary } from './ceshuConstants'
-import type { CeshuChangelog } from './ceshuDiff'
+import type { CeshuChangelog, CeshuVersionDiff } from './ceshuDiff'
 import type { CeshuScoreReport } from './ceshuScorer'
 import type { ChecklistReport } from './ceshuChecklist'
 import type { CeshuAiGenerateResult, CeshuAiReviewResult } from './ceshuAi'
@@ -72,6 +74,8 @@ export interface IpcContract {
   'ceshu:checklist': { req: { id: string }; res: ChecklistReport }
   'ceshu:autoFill': { req: { id: string }; res: { doc: CeshuDocument; filled: number } }
   'ceshu:exportChecklistReport': { req: CeshuChecklistExportInput; res: { filePath: string } }
+  'ceshu:diff': { req: CeshuDiffInput; res: CeshuVersionDiff }
+  'ceshu:exportDiffReport': { req: CeshuDiffExportInput; res: { filePath: string } }
   'dialog:chooseCeshuExportFile': { req: CeshuChooseExportFileInput; res: { path: string | null } }
 }
 

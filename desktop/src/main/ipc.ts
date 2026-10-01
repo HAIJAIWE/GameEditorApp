@@ -11,6 +11,8 @@ import {
   ceshuChooseExportFileInputSchema,
   ceshuCreateInputSchema,
   ceshuDeriveInputSchema,
+  ceshuDiffExportInputSchema,
+  ceshuDiffInputSchema,
   ceshuExportInputSchema,
   ceshuGetInputSchema,
   ceshuSaveChapterInputSchema,
@@ -32,6 +34,7 @@ import {
 } from '../shared/ceshuConstants'
 import { buildChapterPrompt, buildReviewPrompts, filterGeneratedFields, mergeChapterDraft, parseLlmJson, parseReviewResponse } from '../shared/ceshuAi'
 import { runChecklist } from '../shared/ceshuChecklist'
+import { buildVersionDiff } from '../shared/ceshuDiff'
 import { computeChapterProgress } from '../shared/ceshuModel'
 import { buildReferenceReport } from '../shared/references'
 import { scoreCeshu } from '../shared/ceshuScorer'
@@ -160,6 +163,15 @@ export function registerIpcHandlers({
   handle('ceshu:autoFill', ceshuGetInputSchema, (req) => ceshuManager.autoFill(req.id))
   handle('ceshu:exportChecklistReport', ceshuChecklistExportInputSchema, (req) =>
     exportTextReportFile(req.path, req.content, '检查报告')
+  )
+  handle('ceshu:diff', ceshuDiffInputSchema, (req) => {
+    if (req.id === req.otherId) {
+      throw new Error('请选择两个不同的版本')
+    }
+    return buildVersionDiff(ceshuManager.get(req.id), ceshuManager.get(req.otherId))
+  })
+  handle('ceshu:exportDiffReport', ceshuDiffExportInputSchema, (req) =>
+    exportTextReportFile(req.path, req.content, '对比报告')
   )
   handle('dialog:chooseCeshuExportFile', ceshuChooseExportFileInputSchema, async (req) => {
     const extension = CESHU_FORMAT_EXTENSIONS[req.format]
