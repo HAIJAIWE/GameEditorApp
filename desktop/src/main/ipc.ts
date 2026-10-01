@@ -3,6 +3,7 @@ import { ZodError, type ZodType } from 'zod'
 
 import type { IpcChannel, IpcContract, IpcResult } from '../shared/ipc'
 import {
+  ceshuAiGenerateInputSchema,
   ceshuChooseExportFileInputSchema,
   ceshuCreateInputSchema,
   ceshuDeriveInputSchema,
@@ -21,6 +22,7 @@ import {
   CESHU_FORMAT_LABELS,
   isChapterKey
 } from '../shared/ceshuConstants'
+import { buildChapterPrompt, filterGeneratedFields, parseLlmJson } from '../shared/ceshuAi'
 import { listTypeSummaries } from '../shared/typeSchema'
 import { scoreCeshu } from '../shared/ceshuScorer'
 import { validateCeshu } from '../shared/ceshuValidation'
@@ -30,15 +32,17 @@ import { exportCeshuDocument } from './ceshu/export/exporter'
 import { exportLegacyDataFile } from './data/legacyExport'
 import { importLegacyDataFile } from './data/legacyImport'
 import type { DataService } from './data/service'
+import type { LlmClient } from './llm/client'
 
 interface IpcHandlerDeps {
   dataService: DataService
   ceshuManager: CeshuManager
+  llmClient: LlmClient
   getAppInfo: () => AppInfo
 }
 
 /** 注册全部 IPC 处理器：入口统一做 zod 校验，结果统一包裹为 IpcResult */
-export function registerIpcHandlers({ dataService, ceshuManager, getAppInfo }: IpcHandlerDeps): void {
+export function registerIpcHandlers({ dataService, ceshuManager, llmClient, getAppInfo }: IpcHandlerDeps): void {
   handle('app:info', undefined, () => getAppInfo())
   handle('data:listTypes', undefined, () => listTypeSummaries())
   handle('data:listItems', listItemsInputSchema, (req) => dataService.listItems(req.type))
@@ -66,6 +70,20 @@ export function registerIpcHandlers({ dataService, ceshuManager, getAppInfo }: I
   handle('ceshu:changelog', ceshuGetInputSchema, (req) => ceshuManager.changelog(req.id))
   handle('ceshu:validate', ceshuGetInputSchema, (req) => validateCeshu(ceshuManager.get(req.id)))
   handle('ceshu:score', ceshuGetInputSchema, (req) => scoreCeshu(ceshuManager.get(req.id)))
+  handle('ceshu:aiGenerateChapter', ceshuAiGenerateInputSchema, async (req) => {
+    if (!isChapterKey(req.chapter)) {
+      throw new Error(`未知章节：${req.chapter}`)
+    }
+    const doc = ceshuManager.get(req.id)
+    const built = buildChapterPrompt(doc, req.chapter, { onlyEmpty: req.onlyEmpty })
+    if (req.onlyEmpty && built.fields.length === 0) {
+      // 无空字段：不调用 LLM，直接返回空结果（UI 提示「无需补全」）
+      return { model: '', fields: {}, rawText: '' }
+    }
+    const { model, content } = await llmClient.generate(built.system, built.prompt)
+    const parsed = parseLlmJson(content)
+    return { model, fields: filterGeneratedFields(doc, req.chapter, parsed), rawText: content }
+  })
   handle('dialog:chooseCeshuExportFile', ceshuChooseExportFileInputSchema, async (req) => {
     const extension = CESHU_FORMAT_EXTENSIONS[req.format]
     const options: SaveDialogOptions = {

@@ -33,5 +33,8 @@ export interface MbApi {
     changelog(req: IpcContract['ceshu:changelog']['req']): Promise<IpcContract['ceshu:changelog']['res']>
     validate(req: IpcContract['ceshu:validate']['req']): Promise<IpcContract['ceshu:validate']['res']>
     score(req: IpcContract['ceshu:score']['req']): Promise<IpcContract['ceshu:score']['res']>
+    aiGenerateChapter(
+      req: IpcContract['ceshu:aiGenerateChapter']['req']
+    ): Promise<IpcContract['ceshu:aiGenerateChapter']['res']>
   }
 }

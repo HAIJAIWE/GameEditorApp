@@ -410,8 +410,22 @@ body {
 }
 
 .chapter-form-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   font-size: 15px;
   font-weight: 600;
+}
+
+.chapter-form-ai {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.notice-banner.inline {
+  margin: 0;
 }
 
 /* ---- 游戏系统编辑器 ---- */

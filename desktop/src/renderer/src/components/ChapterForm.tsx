@@ -1,6 +1,7 @@
 import { useState } from 'react'
 
 import { CHAPTER_LABELS, type CeshuFieldDef, type ChapterData, type ChapterKey } from '../../../shared/ceshuConstants'
+import type { CeshuAiGenerateResult } from '../../../shared/ceshuAi'
 import { isPlainObject } from '../../../shared/ceshuModel'
 import { CESHU_CHAPTER_FIELDS } from '../../../shared/ceshuFields'
 
@@ -12,17 +13,21 @@ interface ChapterFormProps {
   data: ChapterData
   busy: boolean
   onSave: (chapter: ChapterKey, data: ChapterData) => Promise<void>
+  /** AI 生成本章（onlyEmpty=true 时仅补全空字段）；由上层走 IPC 调本地模型 */
+  onAiGenerate: (chapter: ChapterKey, onlyEmpty: boolean) => Promise<CeshuAiGenerateResult>
 }
 
 /**
  * 章节表单：由 CESHU_CHAPTER_FIELDS 驱动渲染；保存时在原始章节数据上合并字段值，
  * 未在 schema 中出现的扩展/未知字段原样保留（与旧数据兼容）。
  */
-export default function ChapterForm({ chapter, data, busy, onSave }: ChapterFormProps) {
+export default function ChapterForm({ chapter, data, busy, onSave, onAiGenerate }: ChapterFormProps) {
   const fields = CESHU_CHAPTER_FIELDS[chapter] ?? []
   const [inputs, setInputs] = useState<Record<string, FieldInput>>(() => buildInputs(fields, data))
   const [systemsDraft, setSystemsDraft] = useState<ChapterData>(() => structuredClone(data))
   const [formError, setFormError] = useState<string | null>(null)
+  const [formNotice, setFormNotice] = useState<string | null>(null)
+  const [aiBusy, setAiBusy] = useState(false)
 
   const handleSave = async (): Promise<void> => {
     setFormError(null)
@@ -41,9 +46,74 @@ export default function ChapterForm({ chapter, data, busy, onSave }: ChapterForm
     }
   }
 
+  /** AI 生成：结果按字段 schema 转为编辑值填入草稿，由用户检查后手动保存 */
+  const handleAiGenerate = async (onlyEmpty: boolean): Promise<void> => {
+    setFormError(null)
+    setFormNotice(null)
+    setAiBusy(true)
+    try {
+      const result = await onAiGenerate(chapter, onlyEmpty)
+      const patch: Record<string, FieldInput> = {}
+      for (const field of fields) {
+        const parts = field.key.split('.')
+        let value: unknown
+        if (parts.length === 1) {
+          if (!(parts[0] in result.fields)) continue
+          value = result.fields[parts[0]]
+        } else {
+          const parent = result.fields[parts[0]]
+          if (!isPlainObject(parent)) continue
+          value = parent[parts.slice(1).join('.')]
+          if (value === undefined) continue
+        }
+        patch[field.key] = fieldValueToInput(field, value)
+      }
+      const count = Object.keys(patch).length
+      if (count === 0) {
+        setFormError(
+          onlyEmpty ? '本章没有可补全的空字段（或 AI 输出无法解析）' : 'AI 未返回可应用的字段（请检查本地模型输出）'
+        )
+        return
+      }
+      setInputs((prev) => ({ ...prev, ...patch }))
+      setFormNotice(`AI 已生成 ${count} 个字段${result.model ? `（模型 ${result.model}）` : ''}，请检查后点「保存本章」`)
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : String(error))
+    } finally {
+      setAiBusy(false)
+    }
+  }
+
   return (
     <div className="chapter-form" data-testid="chapter-form">
-      <div className="chapter-form-title">{CHAPTER_LABELS[chapter]}</div>
+      <div className="chapter-form-title">
+        <span>{CHAPTER_LABELS[chapter]}</span>
+        {chapter !== 'systems' && (
+          <span className="chapter-form-ai">
+            {aiBusy && <span className="item-meta">AI 生成中…</span>}
+            <button
+              type="button"
+              className="btn"
+              data-testid="ai-generate-chapter"
+              disabled={aiBusy}
+              onClick={() => void handleAiGenerate(false)}
+            >
+              AI 生成本章
+            </button>
+            <button
+              type="button"
+              className="btn"
+              data-testid="ai-fill-empty"
+              disabled={aiBusy}
+              onClick={() => void handleAiGenerate(true)}
+            >
+              AI 补全空白
+            </button>
+          </span>
+        )}
+      </div>
+
+      {formNotice && <div className="notice-banner inline">{formNotice}</div>}
 
       {chapter === 'systems' ? (
         <SystemsEditor systems={systemsDraft} onChange={setSystemsDraft} />
@@ -58,7 +128,11 @@ export default function ChapterForm({ chapter, data, busy, onSave }: ChapterForm
         ))
       )}
 
-      {formError && <div className="form-error">{formError}</div>}
+      {formError && (
+        <div className="form-error" data-testid="chapter-form-error">
+          {formError}
+        </div>
+      )}
 
       <div className="editor-actions">
         <button type="button" className="btn primary" data-testid="chapter-save" disabled={busy} onClick={() => void handleSave()}>

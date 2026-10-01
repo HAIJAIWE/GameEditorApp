@@ -1,4 +1,5 @@
 import type {
+  CeshuAiGenerateInput,
   CeshuChooseExportFileInput,
   CeshuCreateInput,
   CeshuDeriveInput,
@@ -11,6 +12,7 @@ import type { AppInfo, ExportSummary, ImportSummary, ItemRecord, TypeSummary } f
 import type { CeshuDocument, CeshuExportResult, CeshuSummary } from './ceshuConstants'
 import type { CeshuChangelog } from './ceshuDiff'
 import type { CeshuScoreReport } from './ceshuScorer'
+import type { CeshuAiGenerateResult } from './ceshuAi'
 
 /**
  * IPC 契约：通道 → 请求/响应类型。
@@ -38,6 +40,7 @@ export interface IpcContract {
   'ceshu:changelog': { req: { id: string }; res: CeshuChangelog }
   'ceshu:validate': { req: { id: string }; res: string[] }
   'ceshu:score': { req: { id: string }; res: CeshuScoreReport }
+  'ceshu:aiGenerateChapter': { req: CeshuAiGenerateInput; res: CeshuAiGenerateResult }
   'dialog:chooseCeshuExportFile': { req: CeshuChooseExportFileInput; res: { path: string | null } }
 }
 

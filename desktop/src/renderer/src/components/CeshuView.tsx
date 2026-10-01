@@ -13,6 +13,7 @@ import {
 import { computeChapterProgress, getGddScope } from '../../../shared/ceshuModel'
 import type { CeshuChangeItem, CeshuChangelog } from '../../../shared/ceshuDiff'
 import { gradeLabel, type CeshuScoreReport } from '../../../shared/ceshuScorer'
+import type { CeshuAiGenerateResult } from '../../../shared/ceshuAi'
 
 import ChapterForm from './ChapterForm'
 
@@ -91,6 +92,15 @@ export default function CeshuView({ ceshuId, onChanged, onSelect }: CeshuViewPro
       }
     },
     [ceshuId, onChanged]
+  )
+
+  /** AI 生成本章：走 IPC 调本地模型（ollama），返回清洗后的字段供表单填入草稿 */
+  const handleAiGenerate = useCallback(
+    async (chapter: ChapterKey, onlyEmpty: boolean): Promise<CeshuAiGenerateResult> => {
+      if (!ceshuId) throw new Error('未选择策划书')
+      return window.mbApi.ceshu.aiGenerateChapter({ id: ceshuId, chapter, onlyEmpty })
+    },
+    [ceshuId]
   )
 
   if (!ceshuId) {
@@ -438,6 +448,7 @@ export default function CeshuView({ ceshuId, onChanged, onSelect }: CeshuViewPro
                 data={doc[activeChapter]}
                 busy={busy}
                 onSave={handleSave}
+                onAiGenerate={handleAiGenerate}
               />
             </div>
           </>
