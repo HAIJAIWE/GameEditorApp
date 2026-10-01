@@ -46,6 +46,7 @@ import { computeChapterProgress } from '../shared/ceshuModel'
 import { buildReferenceReport } from '../shared/references'
 import { scoreCeshu } from '../shared/ceshuScorer'
 import { validateCeshu } from '../shared/ceshuValidation'
+import { buildWordStatsReport } from '../shared/ceshuWordStats'
 import type { AppInfo } from '../shared/types'
 import type { AttrSystemStore } from './attr/attrSystemStore'
 import { exportAttrGameConfigFile } from './attr/attrGameConfigExport'
@@ -221,6 +222,7 @@ export function registerIpcHandlers({
     ceshuNotesStore.update(req.id, req.noteId, req.content, req.author)
   )
   handle('ceshu:notes:delete', notesDeleteInputSchema, (req) => ceshuNotesStore.remove(req.id, req.noteId))
+  handle('ceshu:wordStats', ceshuGetInputSchema, (req) => buildWordStatsReport(ceshuManager.get(req.id)))
   handle('dialog:chooseCeshuExportFile', ceshuChooseExportFileInputSchema, async (req) => {
     const extension = CESHU_FORMAT_EXTENSIONS[req.format]
     const options: SaveDialogOptions = {

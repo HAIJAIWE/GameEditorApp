@@ -21,6 +21,7 @@ import ChapterForm from './ChapterForm'
 import ChapterNotesPanel from './ChapterNotesPanel'
 import ChecklistPanel from './ChecklistPanel'
 import VersionDiffPanel from './VersionDiffPanel'
+import WordStatsPanel from './WordStatsPanel'
 
 interface CeshuViewProps {
   ceshuId: string | null
@@ -55,7 +56,7 @@ export default function CeshuView({ ceshuId, onChanged, onSelect }: CeshuViewPro
   const [deriveOpen, setDeriveOpen] = useState(false)
   const [deriveNote, setDeriveNote] = useState('')
   const [panel, setPanel] = useState<
-    'changelog' | 'validate' | 'score' | 'aiFull' | 'aiReview' | 'checklist' | 'diff' | 'notes' | null
+    'changelog' | 'validate' | 'score' | 'aiFull' | 'aiReview' | 'checklist' | 'diff' | 'notes' | 'wordStats' | null
   >(null)
   const [changelog, setChangelog] = useState<CeshuChangelog | null>(null)
   const [validateErrors, setValidateErrors] = useState<string[]>([])
@@ -278,6 +279,9 @@ export default function CeshuView({ ceshuId, onChanged, onSelect }: CeshuViewPro
         <button type="button" className="btn" data-testid="ceshu-score" disabled={busy} onClick={() => void handleScore()}>
           评分
         </button>
+        <button type="button" className="btn" data-testid="ceshu-wordstats" disabled={busy} onClick={() => setPanel('wordStats')}>
+          字数统计
+        </button>
         <button type="button" className="btn" data-testid="ceshu-checklist" disabled={busy} onClick={() => setPanel('checklist')}>
           清单
         </button>
@@ -354,6 +358,8 @@ export default function CeshuView({ ceshuId, onChanged, onSelect }: CeshuViewPro
           <VersionDiffPanel key={doc.ceshu_id} ceshuId={doc.ceshu_id} onClose={() => setPanel(null)} />
         ) : panel === 'notes' ? (
           <ChapterNotesPanel key={doc.ceshu_id} ceshuId={doc.ceshu_id} onClose={() => setPanel(null)} />
+        ) : panel === 'wordStats' ? (
+          <WordStatsPanel key={doc.ceshu_id} ceshuId={doc.ceshu_id} onClose={() => setPanel(null)} />
         ) : panel === 'changelog' && changelog ? (
           <div className="changelog-panel" data-testid="changelog-panel">
             <div className="changelog-header">

@@ -73,5 +73,6 @@ export interface MbApi {
       update(req: IpcContract['ceshu:notes:update']['req']): Promise<IpcContract['ceshu:notes:update']['res']>
       remove(req: IpcContract['ceshu:notes:delete']['req']): Promise<IpcContract['ceshu:notes:delete']['res']>
     }
+    wordStats(req: IpcContract['ceshu:wordStats']['req']): Promise<IpcContract['ceshu:wordStats']['res']>
   }
 }

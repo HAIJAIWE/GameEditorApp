@@ -993,6 +993,50 @@ body {
   min-height: 200px;
 }
 
+/* ---- 字数统计面板 ---- */
+
+.wordstats-summary {
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.wordstats-progress {
+  height: 18px;
+  margin-top: 6px;
+  border-radius: 9px;
+  background: var(--bg-hover);
+  overflow: hidden;
+}
+
+.wordstats-progress-fill {
+  height: 100%;
+  border-radius: 9px;
+}
+
+.wordstats-progress-fill.hi {
+  background: #81c784;
+}
+
+.wordstats-progress-fill.mid {
+  background: #fff176;
+}
+
+.wordstats-progress-fill.low {
+  background: #e57373;
+}
+
+.wordstats-percent.hi {
+  color: #81c784;
+}
+
+.wordstats-percent.mid {
+  color: #fff176;
+}
+
+.wordstats-percent.low {
+  color: #e57373;
+}
+
 /* ---- AI 一键生成面板 ---- */
 
 .ai-gen-row {

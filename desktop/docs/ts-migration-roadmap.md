@@ -25,6 +25,8 @@
 | W20 | 版本对比（章节级 Diff + 报告） | `version_diff_dialog.py` | `shared/ceshuDiff.ts`、`components/VersionDiffPanel.tsx` |
 | W21 | 章节笔记（独立 JSON CRUD） | `chapter_notes.py` | `shared/ceshuNotes.ts`、`main/ceshu/notesStore.ts`、`components/ChapterNotesPanel.tsx` |
 | W22 | 属性系统 JSON 导入/导出 | `attr_system_editor.py` | `main/attr/attrSystemJsonFile.ts` |
+| W23 | 字数统计（18 章完成度 + 写作建议 + 面板） | `ui/ceshu/word_stats_dialog.py` | `shared/ceshuWordStats.ts`、`components/WordStatsPanel.tsx` |
+| W24 | 字段/系统依赖图**共享逻辑**（依赖规则 20 条 + 图结构/层级；IPC 与 UI 待接） | `field_dependencies.py`、`field_dependency_graph.py`、`system_dependency_graph.py` | `shared/ceshuFieldDeps.ts`（单测 40） |
 
 ## 2. 剩余工作清单（按体量分档）
 
@@ -100,8 +102,8 @@ node_modules\.bin\playwright test          ← 必须 dangerouslyDisableSandbox=
 
 | 编号 | 切片 | 说明 |
 |---|---|---|
-| W23 | 字数统计 | 共享层 `shared/ceshuWordStats.ts`（自带基准表）+ 面板 |
-| W24 | 依赖图（字段/系统）共享逻辑 | `shared/ceshuFieldDeps.ts`（可用性/触发规则 + 图结构） |
+| ~~W23~~ | ~~字数统计~~ | ✅ 已完成（IPC `ceshu:wordStats` + `WordStatsPanel` + E2E） |
+| W24 | 依赖图（字段/系统） | ✅ 共享逻辑已完成（`shared/ceshuFieldDeps.ts`，单测 40）；**待接**：IPC `ceshu:fieldDeps` + 面板（层级/边/违规标记） |
 | W25 | Excel 导出 | 依赖预演（exceljs）→ `main/ceshu/export/excel.ts`，补满 6 种导出 |
 | W26 | 版本时间线 | 复用 `ceshu:versions` |
 | W27+ | 自定义模板（拆两刀）/ AI 生成数据表 / 首页卡片 … | 见 B 档 |
