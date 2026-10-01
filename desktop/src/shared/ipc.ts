@@ -1,4 +1,5 @@
 import type {
+  AttrGameConfigExportInput,
   AttrSystemSaveInput,
   BatchUpdateInput,
   CeshuAiGenerateInput,
@@ -39,6 +40,7 @@ export interface IpcContract {
   'schema:save': { req: SchemaSaveInput; res: DataTypeDef[] }
   'attrSystem:get': { req: undefined; res: AttrSystem }
   'attrSystem:save': { req: AttrSystemSaveInput; res: AttrSystem }
+  'attrSystem:exportGameConfig': { req: AttrGameConfigExportInput; res: { filePath: string } }
   'data:listItems': { req: { type: string }; res: ItemRecord[] }
   'data:createItem': { req: { type: string; data: Record<string, unknown> }; res: ItemRecord }
   'data:updateItem': { req: { id: string; data: Record<string, unknown> }; res: ItemRecord }

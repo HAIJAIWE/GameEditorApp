@@ -1087,3 +1087,71 @@ button.ref-row:hover {
   color: var(--danger);
   font-size: 12px;
 }
+
+/* ---- 属性关系矩阵（属性系统编辑器） ---- */
+
+.attr-matrix-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.attr-matrix-filter {
+  width: 150px;
+}
+
+.attr-matrix-scroll {
+  max-height: 56vh;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.attr-matrix {
+  border-collapse: collapse;
+  width: max-content;
+  min-width: 100%;
+}
+
+.attr-matrix th,
+.attr-matrix td {
+  padding: 2px 4px;
+  border: 1px solid var(--border);
+  font-size: 12px;
+}
+
+.attr-matrix thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bg-panel);
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.attr-matrix tbody th {
+  position: sticky;
+  left: 0;
+  background: var(--bg-panel);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.attr-matrix thead th.attr-matrix-corner {
+  left: 0;
+  z-index: 2;
+  text-align: left;
+}
+
+.attr-matrix-cell {
+  width: 68px;
+  padding: 2px 4px;
+  text-align: right;
+}
+
+.attr-matrix-hint {
+  margin-top: 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+}

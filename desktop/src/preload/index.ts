@@ -22,7 +22,8 @@ const api: MbApi = {
   },
   attrSystem: {
     get: () => invoke('attrSystem:get', undefined),
-    save: (req) => invoke('attrSystem:save', req)
+    save: (req) => invoke('attrSystem:save', req),
+    exportGameConfig: (req) => invoke('attrSystem:exportGameConfig', req)
   },
   data: {
     listItems: (req) => invoke('data:listItems', req),

@@ -12,6 +12,9 @@ export interface MbApi {
   attrSystem: {
     get(): Promise<IpcContract['attrSystem:get']['res']>
     save(req: IpcContract['attrSystem:save']['req']): Promise<IpcContract['attrSystem:save']['res']>
+    exportGameConfig(
+      req: IpcContract['attrSystem:exportGameConfig']['req']
+    ): Promise<IpcContract['attrSystem:exportGameConfig']['res']>
   }
   data: {
     listItems(req: IpcContract['data:listItems']['req']): Promise<IpcContract['data:listItems']['res']>

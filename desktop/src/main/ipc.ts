@@ -3,6 +3,7 @@ import { ZodError, type ZodType } from 'zod'
 
 import type { IpcChannel, IpcContract, IpcResult } from '../shared/ipc'
 import {
+  attrGameConfigExportInputSchema,
   attrSystemSaveInputSchema,
   batchUpdateInputSchema,
   ceshuAiGenerateInputSchema,
@@ -33,6 +34,7 @@ import { scoreCeshu } from '../shared/ceshuScorer'
 import { validateCeshu } from '../shared/ceshuValidation'
 import type { AppInfo } from '../shared/types'
 import type { AttrSystemStore } from './attr/attrSystemStore'
+import { exportAttrGameConfigFile } from './attr/attrGameConfigExport'
 import type { CeshuManager } from './ceshu/manager'
 import { exportCeshuDocument } from './ceshu/export/exporter'
 import { exportLegacyDataFile } from './data/legacyExport'
@@ -64,6 +66,9 @@ export function registerIpcHandlers({
   handle('schema:save', schemaSaveInputSchema, (req) => typeSchemaStore.saveTypes(req.types))
   handle('attrSystem:get', undefined, () => attrSystemStore.getSystem())
   handle('attrSystem:save', attrSystemSaveInputSchema, (req) => attrSystemStore.saveSystem(req.system))
+  handle('attrSystem:exportGameConfig', attrGameConfigExportInputSchema, (req) =>
+    exportAttrGameConfigFile(req.path, req.system)
+  )
   handle('data:listItems', listItemsInputSchema, (req) => dataService.listItems(req.type))
   handle('data:createItem', createItemInputSchema, (req) => dataService.createItem(req))
   handle('data:updateItem', updateItemInputSchema, (req) => dataService.updateItem(req.id, req.data))

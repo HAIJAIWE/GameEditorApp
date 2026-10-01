@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  buildAttrGameConfig,
   calculateAttributes,
   createDefaultAttrSystem,
   defaultBaseValues,
@@ -218,5 +219,64 @@ describe('文件序列化 / 解析（Python attr_system.json 同构）', () => {
   it('结构异常：顶层非对象、空文件均抛中文错误', () => {
     expect(() => parseAttrSystemFile([])).toThrow('顶层应为 JSON 对象')
     expect(() => parseAttrSystemFile({})).toThrow('未解析出任何属性')
+  })
+})
+
+describe('游戏配置导出（匹平 Python _build_game_config）', () => {
+  it('默认集：基础属性列表 + 派生/战斗 linear 公式 + 计算顺序 + 约束', () => {
+    const config = buildAttrGameConfig(createDefaultAttrSystem())
+    expect(config.version).toBe('1.0')
+    expect(config.base_attributes).toEqual([
+      { name: '力量', display_name: '力量', min: 0, max: null, default: 10 },
+      { name: '智力', display_name: '智力', min: 0, max: null, default: 10 },
+      { name: '敏捷', display_name: '敏捷', min: 0, max: null, default: 10 },
+      { name: '体质', display_name: '体质', min: 0, max: null, default: 10 }
+    ])
+    expect(config.derived_formulas['HP']).toEqual({
+      type: 'linear',
+      base: 0,
+      coefficients: { 力量: 10, 体质: 20, 敏捷: 5 },
+      min: 0,
+      max: null
+    })
+    expect(config.derived_formulas['暴击率']).toEqual({
+      type: 'linear',
+      base: 5,
+      coefficients: { 敏捷: 0.4 },
+      min: 0,
+      max: 100
+    })
+    expect(Object.keys(config.derived_formulas)).toHaveLength(13)
+    expect(config.calculation_order).toHaveLength(17)
+    expect(config.calculation_order.indexOf('力量')).toBeLessThan(config.calculation_order.indexOf('HP'))
+    expect(config.attribute_constraints['暴击率']).toEqual({ min: 0, max: 100 })
+    expect(config.attribute_constraints['力量']).toEqual({ min: 0, max: null })
+  })
+
+  it('零系数剔除、常数项保留', () => {
+    const system: AttrSystem = {
+      attributes: {
+        力量: attr('力量', { type: 'base', defaultValue: 10 }),
+        体质: attr('体质', { type: 'base', defaultValue: 10 }),
+        剔零: attr('剔零', { formula: { coefficients: { 力量: 0, 体质: 2 }, baseValue: 7 } })
+      }
+    }
+    expect(buildAttrGameConfig(system).derived_formulas['剔零']).toEqual({
+      type: 'linear',
+      base: 7,
+      coefficients: { 体质: 2 },
+      min: 0,
+      max: null
+    })
+  })
+
+  it('环依赖：计算顺序为空数组（对应 Python 抛错回退）', () => {
+    const system: AttrSystem = {
+      attributes: {
+        A: attr('A', { formula: { coefficients: { B: 1 }, baseValue: 0 } }),
+        B: attr('B', { formula: { coefficients: { A: 1 }, baseValue: 0 } })
+      }
+    }
+    expect(buildAttrGameConfig(system).calculation_order).toEqual([])
   })
 })

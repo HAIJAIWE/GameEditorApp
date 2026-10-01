@@ -114,10 +114,18 @@ export const attrDefinitionSchema = z.object({
   formula: attrFormulaSchema
 })
 
+const attrSystemSchema = z.object({
+  attributes: z.record(z.string().min(1).max(64), attrDefinitionSchema)
+})
+
 export const attrSystemSaveInputSchema = z.object({
-  system: z.object({
-    attributes: z.record(z.string().min(1).max(64), attrDefinitionSchema)
-  })
+  system: attrSystemSchema
+})
+
+/** 导出游戏配置：路径 + 当前草稿系统（导出未保存的编辑，对应 Python 就地编辑后导出） */
+export const attrGameConfigExportInputSchema = z.object({
+  path: z.string().min(1),
+  system: attrSystemSchema
 })
 
 /* ---- 策划书（GDD） ---- */
@@ -182,6 +190,7 @@ export type DeleteManyInput = z.infer<typeof deleteManyInputSchema>
 export type ReferencesInput = z.infer<typeof referencesInputSchema>
 export type SchemaSaveInput = z.infer<typeof schemaSaveInputSchema>
 export type AttrSystemSaveInput = z.infer<typeof attrSystemSaveInputSchema>
+export type AttrGameConfigExportInput = z.infer<typeof attrGameConfigExportInputSchema>
 export type CeshuCreateInput = z.infer<typeof ceshuCreateInputSchema>
 export type CeshuSaveChapterInput = z.infer<typeof ceshuSaveChapterInputSchema>
 export type CeshuExportInput = z.infer<typeof ceshuExportInputSchema>

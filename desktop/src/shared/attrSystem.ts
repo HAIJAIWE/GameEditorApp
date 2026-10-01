@@ -296,6 +296,77 @@ export function validateAttrSystem(system: AttrSystem): string[] {
   return errors
 }
 
+/* ---- 游戏引擎配置导出（对应 Python AttrSystemEditor._build_game_config） ---- */
+
+export interface AttrGameConfigBaseAttribute {
+  name: string
+  display_name: string
+  min: number
+  max: number | null
+  default: number
+}
+
+export interface AttrGameConfigFormula {
+  type: string
+  base: number
+  coefficients: Record<string, number>
+  min: number | null
+  max: number | null
+}
+
+export interface AttrGameConfig {
+  version: string
+  base_attributes: AttrGameConfigBaseAttribute[]
+  derived_formulas: Record<string, AttrGameConfigFormula>
+  /** 拓扑计算顺序；存在环依赖时为空数组（对应 Python _topological_sort 抛错回退） */
+  calculation_order: string[]
+  attribute_constraints: Record<string, { min: number; max: number | null }>
+}
+
+/**
+ * 构建游戏引擎可用的属性配置：基础属性列表 + 派生/战斗公式（linear，零系数剔除）+ 计算顺序 + 约束。
+ * 与 Python 同构（version "1.0"）；TS 无 ExtendedFormula 模型，公式统一输出 linear（Python 无 config 时亦然）。
+ */
+export function buildAttrGameConfig(system: AttrSystem): AttrGameConfig {
+  const baseAttributes: AttrGameConfigBaseAttribute[] = []
+  const derivedFormulas: Record<string, AttrGameConfigFormula> = {}
+  const attributeConstraints: Record<string, { min: number; max: number | null }> = {}
+
+  for (const [name, attr] of Object.entries(system.attributes)) {
+    attributeConstraints[name] = { min: attr.minValue, max: attr.maxValue }
+    if (attr.type === 'base') {
+      baseAttributes.push({
+        name,
+        display_name: attr.displayName,
+        min: attr.minValue,
+        max: attr.maxValue,
+        default: attr.defaultValue
+      })
+      continue
+    }
+    const coefficients: Record<string, number> = {}
+    for (const [dep, coeff] of Object.entries(attr.formula.coefficients)) {
+      if (coeff !== 0) coefficients[dep] = coeff
+    }
+    derivedFormulas[name] = {
+      type: 'linear',
+      base: attr.formula.baseValue,
+      coefficients,
+      min: attr.minValue,
+      max: attr.maxValue
+    }
+  }
+
+  const topo = topoSortAttributes(system)
+  return {
+    version: '1.0',
+    base_attributes: baseAttributes,
+    derived_formulas: derivedFormulas,
+    calculation_order: topo.cycle ? [] : topo.order,
+    attribute_constraints: attributeConstraints
+  }
+}
+
 /* ---- 文件序列化 / 解析（与 Python attr_system.json 同构） ---- */
 
 export interface AttrSystemFileEntry {
