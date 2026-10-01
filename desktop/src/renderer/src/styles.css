@@ -1385,3 +1385,84 @@ button.ref-row:hover {
 .equip-compare-diff.negative {
   color: var(--danger);
 }
+
+/* ---- AI 智能审阅（策划书） ---- */
+
+.review-dim-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.review-dim-label {
+  width: 88px;
+  flex-shrink: 0;
+  font-size: 13px;
+}
+
+.review-dim-track {
+  flex: 1;
+  min-width: 120px;
+  height: 12px;
+  border-radius: 6px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.review-dim-fill {
+  height: 100%;
+  border-radius: 6px;
+  background: var(--text-muted);
+  transition: width 0.2s ease;
+}
+
+.review-dim-fill.hi {
+  background: #22c55e;
+}
+
+.review-dim-fill.mid {
+  background: #3b82f6;
+}
+
+.review-dim-fill.low {
+  background: #f59e0b;
+}
+
+.review-dim-fill.fail {
+  background: #ef4444;
+}
+
+.review-dim-score {
+  width: 60px;
+  flex-shrink: 0;
+  text-align: right;
+  color: var(--text-muted);
+  font-family: Consolas, monospace;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.review-dim-score.hi {
+  color: #22c55e;
+}
+
+.review-dim-score.mid {
+  color: #3b82f6;
+}
+
+.review-dim-score.low {
+  color: #f59e0b;
+}
+
+.review-dim-score.fail {
+  color: #ef4444;
+}
+
+.review-dim-feedback {
+  flex-basis: 100%;
+  padding-left: 96px;
+  color: var(--text-muted);
+  font-size: 12px;
+}

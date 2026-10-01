@@ -178,6 +178,12 @@ export const ceshuAiGenerateInputSchema = z.object({
     .optional()
 })
 
+/** AI 审阅报告导出（渲染层生成 Markdown，主进程原子写盘） */
+export const ceshuReviewExportInputSchema = z.object({
+  path: z.string().min(1),
+  content: z.string().min(1)
+})
+
 export type ListItemsInput = z.infer<typeof listItemsInputSchema>
 export type CreateItemInput = z.infer<typeof createItemInputSchema>
 export type DeleteItemInput = z.infer<typeof deleteItemInputSchema>
@@ -197,3 +203,4 @@ export type CeshuExportInput = z.infer<typeof ceshuExportInputSchema>
 export type CeshuChooseExportFileInput = z.infer<typeof ceshuChooseExportFileInputSchema>
 export type CeshuDeriveInput = z.infer<typeof ceshuDeriveInputSchema>
 export type CeshuAiGenerateInput = z.infer<typeof ceshuAiGenerateInputSchema>
+export type CeshuReviewExportInput = z.infer<typeof ceshuReviewExportInputSchema>

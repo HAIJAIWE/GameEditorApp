@@ -6,16 +6,114 @@ import {
   buildChapterOrder,
   buildChapterPrompt,
   buildFullGeneratePlan,
+  buildReviewMarkdown,
+  buildReviewPrompts,
+  buildReviewSummary,
   filterGeneratedFields,
   getStyleGlossary,
   mapStyleLabelToKey,
   mapTypeLabelToKey,
   mergeChapterDraft,
   normalizeFullGenerateInput,
-  parseLlmJson
+  parseLlmJson,
+  parseReviewResponse,
+  type CeshuAiReviewResult
 } from '../../src/shared/ceshuAi'
 import { CHAPTER_KEYS } from '../../src/shared/ceshuConstants'
 import { createDefaultCeshu } from '../../src/shared/ceshuModel'
+
+describe('AI 结构化审阅（匹平 Python _ai_review + AIReviewDialog）', () => {
+  it('章节摘要：仅标量真值、【标签】+ key: value、每值截断 60 字', () => {
+    const doc = createDefaultCeshu({ scope: 'full' })
+    doc.meta.game_name = '测试游戏'
+    doc.meta.player_count = 0
+    doc.vision.core_fantasy = 'x'.repeat(80)
+    const summary = buildReviewSummary(doc)
+    expect(summary).toContain('【第一章·项目元信息】')
+    expect(summary).toContain('game_name: 测试游戏')
+    expect(summary).not.toContain('player_count') // 0 视为未填（Python 真值语义）
+    expect(summary).toContain(`core_fantasy: ${'x'.repeat(60)}`)
+    expect(summary).not.toContain('x'.repeat(61))
+  })
+
+  it('空内容摘要与提示词（含评分标准 / 进度 / 校验数 / 严格 JSON 要求）', () => {
+    const doc = createDefaultCeshu({ scope: 'full' })
+    for (const key of CHAPTER_KEYS) doc[key] = {}
+    expect(buildReviewSummary(doc)).toBe('(策划书内容为空)')
+
+    const built = buildReviewPrompts(doc, { progressTotal: 0.25, validationCount: 3 })
+    expect(built.system).toContain('"suggestions"')
+    expect(built.system).toContain('只输出 JSON')
+    expect(built.prompt).toContain('(策划书内容为空)')
+    expect(built.prompt).toContain('完成进度: 25%')
+    expect(built.prompt).toContain('内置校验问题数: 3')
+    expect(built.prompt).toContain('评分标准：1-3 分（严重不足）')
+  })
+
+  it('解析：规范顺序 / 分数截断（1-10）/ 标签兜底 / 建议补足 3 条', () => {
+    const content = JSON.stringify({
+      dimensions: [
+        { key: 'creativity', label: '创意度', score: 9.7, feedback: '有亮点' },
+        { key: 'completeness', score: 0, feedback: '不足' },
+        { key: 'market', score: 99 },
+        { key: 'consistency', score: 'x' },
+        { key: 'technical', score: 6, label: '技术可行性', feedback: '可行' }
+      ],
+      overall: '总体不错',
+      suggestions: ['建议一', '建议二']
+    })
+    const payload = parseReviewResponse(content)
+    expect(payload.parsed).toBe(true)
+    expect(payload.dimensions.map((dimension) => dimension.key)).toEqual([
+      'completeness',
+      'consistency',
+      'market',
+      'technical',
+      'creativity'
+    ])
+    expect(payload.dimensions.map((dimension) => dimension.score)).toEqual([1, 1, 10, 6, 9])
+    expect(payload.dimensions[0].label).toBe('内容完整性')
+    expect(payload.dimensions[0].feedback).toBe('不足')
+    expect(payload.suggestions).toEqual(['建议一', '建议二', '（暂无更多建议）'])
+    expect(payload.overall).toBe('总体不错')
+  })
+
+  it('解析：markdown 围栏与字符串建议容错；非法输出 parsed=false 且保留原文', () => {
+    const fenced =
+      '```json\n{"dimensions":[{"key":"completeness","score":8,"feedback":"ok"}],"overall":"好","suggestions":"单一建议"}\n```'
+    const payload = parseReviewResponse(fenced)
+    expect(payload.parsed).toBe(true)
+    expect(payload.dimensions[0].score).toBe(8)
+    expect(payload.suggestions[0]).toBe('单一建议')
+    expect(payload.suggestions).toHaveLength(3)
+
+    const broken = parseReviewResponse('完全不是 JSON')
+    expect(broken.parsed).toBe(false)
+    expect(broken.rawText).toBe('完全不是 JSON')
+    expect(broken.dimensions).toEqual([])
+  })
+
+  it('报告 Markdown：表格 / 竖线转义 / 进度与校验行', () => {
+    const result: CeshuAiReviewResult = {
+      model: 'test-model',
+      parsed: true,
+      rawText: '',
+      progressTotal: 0.5,
+      validationCount: 2,
+      overall: '总体评价',
+      suggestions: ['A', 'B', 'C'],
+      dimensions: [{ key: 'completeness', label: '内容完整性', score: 8, feedback: '反馈|含竖线\n换行' }]
+    }
+    const markdown = buildReviewMarkdown('测试游戏', '2026-10-01 12:00:00', result)
+    expect(markdown).toContain('# AI 智能审阅报告')
+    expect(markdown).toContain('**游戏名称**: 测试游戏')
+    expect(markdown).toContain('| 内容完整性 | 8 / 10 | 反馈\\|含竖线 换行 |')
+    expect(markdown).toContain('## Top 3 改进建议')
+    expect(markdown).toContain('1. A')
+    expect(markdown).toContain('**策划书完成进度**: 50%')
+    expect(markdown).toContain('**内置校验问题数**: 2')
+  })
+})
 
 describe('AI 生成：子智能体路由与风格术语（匹平 Python AgentRouter / _STYLE_GLOSSARIES）', () => {
   it('18 章均有路由与展示名；关键映射与章节提示语正确', () => {

@@ -13,6 +13,7 @@ import {
   ceshuExportInputSchema,
   ceshuGetInputSchema,
   ceshuSaveChapterInputSchema,
+  ceshuReviewExportInputSchema,
   createItemInputSchema,
   deleteItemInputSchema,
   deleteManyInputSchema,
@@ -28,7 +29,8 @@ import {
   CESHU_FORMAT_LABELS,
   isChapterKey
 } from '../shared/ceshuConstants'
-import { buildChapterPrompt, filterGeneratedFields, mergeChapterDraft, parseLlmJson } from '../shared/ceshuAi'
+import { buildChapterPrompt, buildReviewPrompts, filterGeneratedFields, mergeChapterDraft, parseLlmJson, parseReviewResponse } from '../shared/ceshuAi'
+import { computeChapterProgress } from '../shared/ceshuModel'
 import { buildReferenceReport } from '../shared/references'
 import { scoreCeshu } from '../shared/ceshuScorer'
 import { validateCeshu } from '../shared/ceshuValidation'
@@ -37,6 +39,7 @@ import type { AttrSystemStore } from './attr/attrSystemStore'
 import { exportAttrGameConfigFile } from './attr/attrGameConfigExport'
 import type { CeshuManager } from './ceshu/manager'
 import { exportCeshuDocument } from './ceshu/export/exporter'
+import { exportReviewReportFile } from './ceshu/reviewExport'
 import { exportLegacyDataFile } from './data/legacyExport'
 import { importLegacyDataFile } from './data/legacyImport'
 import type { DataService } from './data/service'
@@ -132,6 +135,25 @@ export function registerIpcHandlers({
     const parsed = parseLlmJson(content)
     return { model, fields: filterGeneratedFields(doc, req.chapter, parsed), rawText: content }
   })
+  handle('ceshu:aiReview', ceshuGetInputSchema, async (req) => {
+    const doc = ceshuManager.get(req.id)
+    const progress = computeChapterProgress(doc)
+    const validationErrors = validateCeshu(doc)
+    const built = buildReviewPrompts(doc, {
+      progressTotal: progress.total ?? 0,
+      validationCount: validationErrors.length
+    })
+    const { model, content } = await llmClient.generate(built.system, built.prompt)
+    return {
+      model,
+      ...parseReviewResponse(content),
+      progressTotal: progress.total ?? 0,
+      validationCount: validationErrors.length
+    }
+  })
+  handle('ceshu:exportReviewReport', ceshuReviewExportInputSchema, (req) =>
+    exportReviewReportFile(req.path, req.content)
+  )
   handle('dialog:chooseCeshuExportFile', ceshuChooseExportFileInputSchema, async (req) => {
     const extension = CESHU_FORMAT_EXTENSIONS[req.format]
     const options: SaveDialogOptions = {

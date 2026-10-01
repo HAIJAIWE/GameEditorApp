@@ -1,5 +1,6 @@
 import {
   BASE_CHAPTER_KEYS,
+  CHAPTER_KEYS,
   CHAPTER_LABELS,
   GDD_SCOPE_LITE,
   isChapterKey,
@@ -533,4 +534,157 @@ function buildUserInputLines(input: FullGenerateInput): string[] {
   if (input.platforms.length > 0) lines.push(`目标平台: ${input.platforms.join(', ')}`)
   if (input.businessModel) lines.push(`商业模式: ${input.businessModel}`)
   return lines
+}
+
+/* ---- AI 结构化审阅（N6，对应 Python CeshuSkill._ai_review + AIReviewDialog） ---- */
+
+/** 5 维顺序（固定为规范顺序；Python 用 set 遍历、顺序不稳定，已修正） */
+export const REVIEW_DIMENSION_KEYS = ['completeness', 'consistency', 'market', 'technical', 'creativity'] as const
+export type ReviewDimensionKey = (typeof REVIEW_DIMENSION_KEYS)[number]
+
+export const REVIEW_DIMENSION_LABELS: Record<ReviewDimensionKey, string> = {
+  completeness: '内容完整性',
+  consistency: '逻辑一致性',
+  market: '市场可行性',
+  technical: '技术可行性',
+  creativity: '创意度'
+}
+
+export interface CeshuReviewDimension {
+  key: string
+  label: string
+  score: number
+  feedback: string
+}
+
+export interface CeshuReviewPayload {
+  dimensions: CeshuReviewDimension[]
+  overall: string
+  suggestions: string[]
+  /** LLM 原始输出（解析失败时供 UI 展示排查） */
+  rawText: string
+  /** 是否成功解析出 dimensions */
+  parsed: boolean
+}
+
+export interface CeshuAiReviewResult extends CeshuReviewPayload {
+  model: string
+  /** 总进度 0~1（LLM 提示词与报告用） */
+  progressTotal: number
+  /** 内置校验问题数 */
+  validationCount: number
+}
+
+/** 章节填充摘要（照抄 Python：仅标量真值、每值截断 60 字、【章节标签】+ key: value） */
+export function buildReviewSummary(doc: CeshuDocument): string {
+  const parts: string[] = []
+  for (const key of CHAPTER_KEYS) {
+    const chapterData: unknown = doc[key]
+    if (!isPlainObject(chapterData)) continue
+    const filled = Object.entries(chapterData).filter(
+      ([, value]) => (typeof value === 'string' && value !== '') || (typeof value === 'number' && value !== 0)
+    )
+    if (filled.length === 0) continue
+    parts.push(
+      `【${CHAPTER_LABELS[key]}】` +
+        filled.map(([field, value]) => `${field}: ${String(value).slice(0, 60)}`).join(' / ')
+    )
+  }
+  return parts.length > 0 ? parts.join('\n') : '(策划书内容为空)'
+}
+
+/** 审阅提示词（照抄 Python system/user 文案；要求严格 JSON 输出） */
+export function buildReviewPrompts(
+  doc: CeshuDocument,
+  input: { progressTotal: number; validationCount: number }
+): { system: string; prompt: string } {
+  const system = [
+    '你是资深游戏策划审阅专家。请对策划书进行结构化审阅，输出严格 JSON。',
+    'JSON 格式如下：',
+    '{',
+    '  "dimensions": [',
+    '    {"key":"completeness","label":"内容完整性","score":1-10,"feedback":"详细反馈"},',
+    '    {"key":"consistency","label":"逻辑一致性","score":1-10,"feedback":"详细反馈"},',
+    '    {"key":"market","label":"市场可行性","score":1-10,"feedback":"详细反馈"},',
+    '    {"key":"technical","label":"技术可行性","score":1-10,"feedback":"详细反馈"},',
+    '    {"key":"creativity","label":"创意度","score":1-10,"feedback":"详细反馈"}',
+    '  ],',
+    '  "overall":"总体评价 100-200 字",',
+    '  "suggestions":["改进建议1","改进建议2","改进建议3"]',
+    '}',
+    '只输出 JSON，不要加任何解释或 markdown 标记。'
+  ].join('\n')
+
+  const prompt =
+    `请对以下策划书进行 5 维度结构化审阅：\n\n${buildReviewSummary(doc)}\n\n` +
+    `完成进度: ${Math.round(input.progressTotal * 100)}%\n` +
+    `内置校验问题数: ${input.validationCount}\n` +
+    `风格: ${doc.style || '未指定'}, 模块类型: ${doc.module_type || '未指定'}\n\n` +
+    '评分标准：1-3 分（严重不足）/ 4-6 分（合格）/ 7-8 分（良好）/ 9-10 分（优秀）。'
+
+  return { system, prompt }
+}
+
+/** 解析审阅输出：维度按规范顺序补全、分数截断到 1-10、建议补足 3 条；失败时 parsed=false 且保留原文 */
+export function parseReviewResponse(content: string): CeshuReviewPayload {
+  const parsed = parseLlmJson(content)
+  const rawDimensions = parsed['dimensions']
+  if (!Array.isArray(rawDimensions)) {
+    return { dimensions: [], overall: '', suggestions: [], rawText: content, parsed: false }
+  }
+  const byKey = new Map<string, Record<string, unknown>>()
+  for (const entry of rawDimensions) {
+    if (isPlainObject(entry) && typeof entry['key'] === 'string') byKey.set(entry['key'], entry)
+  }
+  const dimensions: CeshuReviewDimension[] = REVIEW_DIMENSION_KEYS.map((key) => {
+    const entry = byKey.get(key)
+    const rawScore = Number(entry?.['score'])
+    let score = Number.isFinite(rawScore) ? Math.trunc(rawScore) : 0
+    if (score < 1) score = 1
+    if (score > 10) score = 10
+    const label = typeof entry?.['label'] === 'string' && entry['label'] !== '' ? entry['label'] : REVIEW_DIMENSION_LABELS[key]
+    const feedback = typeof entry?.['feedback'] === 'string' ? entry['feedback'] : ''
+    return { key, label, score, feedback }
+  })
+
+  const rawSuggestions = parsed['suggestions']
+  const list: unknown[] = Array.isArray(rawSuggestions)
+    ? rawSuggestions
+    : typeof rawSuggestions === 'string'
+      ? [rawSuggestions]
+      : []
+  const suggestions = list.map((item) => String(item)).filter((item) => item !== '').slice(0, 3)
+  while (suggestions.length < 3) suggestions.push('（暂无更多建议）')
+
+  const overall = typeof parsed['overall'] === 'string' ? parsed['overall'] : ''
+  return { dimensions, overall, suggestions, rawText: content, parsed: true }
+}
+
+/** 审阅报告 Markdown（照抄 Python AIReviewDialog._build_markdown） */
+export function buildReviewMarkdown(
+  gameName: string,
+  reviewedAt: string,
+  result: CeshuAiReviewResult
+): string {
+  const lines = [
+    '# AI 智能审阅报告',
+    '',
+    `**游戏名称**: ${gameName}`,
+    `**审阅时间**: ${reviewedAt}`,
+    '',
+    '## 维度评分',
+    '',
+    '| 维度 | 分数 | 反馈 |',
+    '|------|------|------|'
+  ]
+  for (const dim of result.dimensions) {
+    const feedback = dim.feedback.replace(/\n/g, ' ').replace(/\|/g, '\\|')
+    lines.push(`| ${dim.label} | ${dim.score} / 10 | ${feedback} |`)
+  }
+  lines.push('', '## 总体评价', '', result.overall || '（无）')
+  lines.push('', '## Top 3 改进建议', '')
+  result.suggestions.slice(0, 3).forEach((suggestion, index) => lines.push(`${index + 1}. ${suggestion}`))
+  if (result.progressTotal > 0) lines.push('', `**策划书完成进度**: ${Math.round(result.progressTotal * 100)}%`)
+  if (result.validationCount > 0) lines.push(`**内置校验问题数**: ${result.validationCount}`)
+  return lines.join('\n')
 }

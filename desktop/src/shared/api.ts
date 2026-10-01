@@ -49,5 +49,9 @@ export interface MbApi {
     aiGenerateChapter(
       req: IpcContract['ceshu:aiGenerateChapter']['req']
     ): Promise<IpcContract['ceshu:aiGenerateChapter']['res']>
+    aiReview(req: IpcContract['ceshu:aiReview']['req']): Promise<IpcContract['ceshu:aiReview']['res']>
+    exportReviewReport(
+      req: IpcContract['ceshu:exportReviewReport']['req']
+    ): Promise<IpcContract['ceshu:exportReviewReport']['res']>
   }
 }

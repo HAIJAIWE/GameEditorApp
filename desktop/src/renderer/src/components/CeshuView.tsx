@@ -16,6 +16,7 @@ import { gradeLabel, type CeshuScoreReport } from '../../../shared/ceshuScorer'
 import type { CeshuAiGenerateResult } from '../../../shared/ceshuAi'
 
 import AiFullGeneratePanel from './AiFullGeneratePanel'
+import AiReviewPanel from './AiReviewPanel'
 import ChapterForm from './ChapterForm'
 
 interface CeshuViewProps {
@@ -50,7 +51,7 @@ export default function CeshuView({ ceshuId, onChanged, onSelect }: CeshuViewPro
   const [exportFormat, setExportFormat] = useState<CeshuExportFormat>('markdown')
   const [deriveOpen, setDeriveOpen] = useState(false)
   const [deriveNote, setDeriveNote] = useState('')
-  const [panel, setPanel] = useState<'changelog' | 'validate' | 'score' | 'aiFull' | null>(null)
+  const [panel, setPanel] = useState<'changelog' | 'validate' | 'score' | 'aiFull' | 'aiReview' | null>(null)
   const [changelog, setChangelog] = useState<CeshuChangelog | null>(null)
   const [validateErrors, setValidateErrors] = useState<string[]>([])
   const [score, setScore] = useState<CeshuScoreReport | null>(null)
@@ -260,6 +261,9 @@ export default function CeshuView({ ceshuId, onChanged, onSelect }: CeshuViewPro
         <button type="button" className="btn" data-testid="ceshu-score" disabled={busy} onClick={() => void handleScore()}>
           评分
         </button>
+        <button type="button" className="btn" data-testid="ceshu-ai-review" disabled={busy} onClick={() => setPanel('aiReview')}>
+          AI 审阅
+        </button>
         <button type="button" className="btn" data-testid="ceshu-ai-full" disabled={busy} onClick={() => setPanel('aiFull')}>
           AI 一键生成
         </button>
@@ -303,7 +307,14 @@ export default function CeshuView({ ceshuId, onChanged, onSelect }: CeshuViewPro
       {notice && <div className="notice-banner">{notice}</div>}
 
       <div className="content">
-        {panel === 'aiFull' ? (
+        {panel === 'aiReview' ? (
+          <AiReviewPanel
+            key={doc.ceshu_id}
+            ceshuId={doc.ceshu_id}
+            gameName={gameName}
+            onClose={() => setPanel(null)}
+          />
+        ) : panel === 'aiFull' ? (
           <AiFullGeneratePanel
             key={doc.ceshu_id}
             ceshuId={doc.ceshu_id}
