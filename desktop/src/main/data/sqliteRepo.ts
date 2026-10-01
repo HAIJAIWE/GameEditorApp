@@ -40,6 +40,19 @@ export class SqliteItemsRepository implements ItemsRepository {
       .run(record.id, record.type, JSON.stringify(record.data), record.createdAt, record.updatedAt)
   }
 
+  upsertItem(record: ItemRecord): void {
+    this.db
+      .prepare(
+        `INSERT INTO items (id, type, data, created_at, updated_at) VALUES (?, ?, ?, ?, ?)
+         ON CONFLICT(id) DO UPDATE SET type = excluded.type, data = excluded.data, updated_at = excluded.updated_at`
+      )
+      .run(record.id, record.type, JSON.stringify(record.data), record.createdAt, record.updatedAt)
+  }
+
+  exists(id: string): boolean {
+    return this.db.prepare('SELECT 1 FROM items WHERE id = ?').get(id) !== undefined
+  }
+
   deleteItem(id: string): boolean {
     return this.db.prepare('DELETE FROM items WHERE id = ?').run(id).changes > 0
   }

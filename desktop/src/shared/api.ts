@@ -6,8 +6,13 @@ export interface MbApi {
     info(): Promise<IpcContract['app:info']['res']>
   }
   data: {
+    listTypes(): Promise<IpcContract['data:listTypes']['res']>
     listItems(req: IpcContract['data:listItems']['req']): Promise<IpcContract['data:listItems']['res']>
     createItem(req: IpcContract['data:createItem']['req']): Promise<IpcContract['data:createItem']['res']>
     deleteItem(req: IpcContract['data:deleteItem']['req']): Promise<IpcContract['data:deleteItem']['res']>
+    importLegacy(req: IpcContract['data:importLegacy']['req']): Promise<IpcContract['data:importLegacy']['res']>
+  }
+  dialog: {
+    chooseJsonFile(): Promise<IpcContract['dialog:chooseJsonFile']['res']>
   }
 }

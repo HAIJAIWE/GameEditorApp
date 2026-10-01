@@ -1,5 +1,5 @@
-import type { CreateItemInput, DeleteItemInput, ListItemsInput } from './schemas'
-import type { AppInfo, ItemRecord } from './types'
+import type { ImportLegacyInput } from './schemas'
+import type { AppInfo, ImportSummary, ItemRecord, TypeSummary } from './types'
 
 /**
  * IPC 契约：通道 → 请求/响应类型。
@@ -7,9 +7,12 @@ import type { AppInfo, ItemRecord } from './types'
  */
 export interface IpcContract {
   'app:info': { req: undefined; res: AppInfo }
-  'data:listItems': { req: ListItemsInput; res: ItemRecord[] }
-  'data:createItem': { req: CreateItemInput; res: ItemRecord }
-  'data:deleteItem': { req: DeleteItemInput; res: { deleted: boolean } }
+  'data:listTypes': { req: undefined; res: TypeSummary[] }
+  'data:listItems': { req: { type: string }; res: ItemRecord[] }
+  'data:createItem': { req: { type: string; data: Record<string, unknown> }; res: ItemRecord }
+  'data:deleteItem': { req: { id: string }; res: { deleted: boolean } }
+  'data:importLegacy': { req: ImportLegacyInput; res: ImportSummary }
+  'dialog:chooseJsonFile': { req: undefined; res: { path: string | null } }
 }
 
 export type IpcChannel = keyof IpcContract

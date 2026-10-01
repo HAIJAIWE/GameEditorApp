@@ -4,6 +4,13 @@ import type { CreateItemInput } from '../../shared/schemas'
 import type { ItemRecord } from '../../shared/types'
 import type { ItemsRepository } from './repository'
 
+/** 导入记录：id 与业务数据来自旧版 JSON，type 已映射为单数类型键 */
+export interface ImportRecord {
+  type: string
+  id: string
+  data: Record<string, unknown>
+}
+
 /**
  * 数据服务：全应用唯一的数据写入者。
  * - 写操作经内部串行队列执行，从结构上消除并发写竞态；
@@ -35,6 +42,34 @@ export class DataService {
 
   deleteItem(id: string): Promise<boolean> {
     return this.enqueueWrite(() => this.repo.deleteItem(id))
+  }
+
+  /**
+   * 批量导入（旧数据迁移用）：整批走一次写队列，保持"唯一写者"语义。
+   * 已存在的 id 更新其数据并保留原 createdAt。
+   */
+  importRecords(records: ImportRecord[]): Promise<{ imported: number; updated: number }> {
+    return this.enqueueWrite(() => {
+      let imported = 0
+      let updated = 0
+      for (const record of records) {
+        const now = new Date().toISOString()
+        const existed = this.repo.exists(record.id)
+        this.repo.upsertItem({
+          id: record.id,
+          type: record.type,
+          data: record.data,
+          createdAt: now,
+          updatedAt: now
+        })
+        if (existed) {
+          updated++
+        } else {
+          imported++
+        }
+      }
+      return { imported, updated }
+    })
   }
 
   dispose(): void {

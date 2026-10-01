@@ -16,6 +16,15 @@ class InMemoryItemsRepository implements ItemsRepository {
     this.rows.set(record.id, record)
   }
 
+  upsertItem(record: ItemRecord): void {
+    const previous = this.rows.get(record.id)
+    this.rows.set(record.id, previous ? { ...record, createdAt: previous.createdAt } : record)
+  }
+
+  exists(id: string): boolean {
+    return this.rows.has(id)
+  }
+
   deleteItem(id: string): boolean {
     return this.rows.delete(id)
   }
@@ -59,5 +68,22 @@ describe('DataService', () => {
     expect(await service.deleteItem(a.id)).toBe(false)
     expect(service.listItems('skill')).toHaveLength(0)
     expect(service.listItems('item')).toHaveLength(1)
+  })
+
+  it('批量导入：新增/更新分别计数，重复导入幂等且保留原 createdAt', async () => {
+    const service = createService()
+    const records = [
+      { type: 'skill', id: 'S1', data: { id: 'S1', name: '火球术' } },
+      { type: 'skill', id: 'S2', data: { id: 'S2', name: '冰霜箭' } }
+    ]
+
+    const first = await service.importRecords(records)
+    expect(first).toEqual({ imported: 2, updated: 0 })
+    const createdAt = service.listItems('skill').find((item) => item.id === 'S1')?.createdAt
+
+    const second = await service.importRecords(records)
+    expect(second).toEqual({ imported: 0, updated: 2 })
+    expect(service.listItems('skill')).toHaveLength(2)
+    expect(service.listItems('skill').find((item) => item.id === 'S1')?.createdAt).toBe(createdAt)
   })
 })

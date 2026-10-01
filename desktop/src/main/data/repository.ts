@@ -7,6 +7,9 @@ import type { ItemRecord } from '../../shared/types'
 export interface ItemsRepository {
   listItems(type: string): ItemRecord[]
   insertItem(record: ItemRecord): void
+  /** 按 id 插入或更新（旧数据导入用；更新时保留原 createdAt） */
+  upsertItem(record: ItemRecord): void
+  exists(id: string): boolean
   deleteItem(id: string): boolean
   close(): void
 }

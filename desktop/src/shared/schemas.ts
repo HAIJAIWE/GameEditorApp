@@ -18,6 +18,11 @@ export const deleteItemInputSchema = z.object({
   id: z.string().min(1)
 })
 
+export const importLegacyInputSchema = z.object({
+  path: z.string().min(1)
+})
+
 export type ListItemsInput = z.infer<typeof listItemsInputSchema>
 export type CreateItemInput = z.infer<typeof createItemInputSchema>
 export type DeleteItemInput = z.infer<typeof deleteItemInputSchema>
+export type ImportLegacyInput = z.infer<typeof importLegacyInputSchema>

@@ -17,9 +17,14 @@ const api: MbApi = {
     info: () => invoke('app:info', undefined)
   },
   data: {
+    listTypes: () => invoke('data:listTypes', undefined),
     listItems: (req) => invoke('data:listItems', req),
     createItem: (req) => invoke('data:createItem', req),
-    deleteItem: (req) => invoke('data:deleteItem', req)
+    deleteItem: (req) => invoke('data:deleteItem', req),
+    importLegacy: (req) => invoke('data:importLegacy', req)
+  },
+  dialog: {
+    chooseJsonFile: () => invoke('dialog:chooseJsonFile', undefined)
   }
 }
 

@@ -14,3 +14,71 @@ export interface AppInfo {
   platform: string
   dbPath: string
 }
+
+/* ---- 数据类型 schema（自 Python 版 core/defaults/rpg_schema.py v2.4 匹平迁移） ---- */
+
+export type FieldType =
+  | 'entry'
+  | 'spinbox'
+  | 'combobox'
+  | 'multiselect'
+  | 'desc'
+  | 'content'
+  | 'tags'
+  | 'template'
+  | 'image'
+  | 'image_desc'
+  | 'image_tags'
+  | 'attrtable'
+  | 'droptable'
+  | 'achievement_desc'
+  | 'dialog'
+
+export interface TypeFieldDef {
+  name: string
+  label: string
+  type: FieldType
+  /** 是否允许用户编辑（id 等系统字段为 false） */
+  editable: boolean
+  /** combobox/template 的可选值 */
+  values?: string[]
+  /** spinbox 下限（对应 Python 侧 from_） */
+  from?: number
+  /** spinbox 上限 */
+  to?: number
+  /** multiselect 引用的数据类型 id */
+  refType?: string
+}
+
+export interface DataTypeDef {
+  /** 单数键：新架构内部与存储使用 */
+  id: string
+  /** 中文名 */
+  name: string
+  /** 旧版数据文件的复数键（导入映射用） */
+  pluralKey: string
+  color: string
+  formFields: TypeFieldDef[]
+}
+
+/** 供渲染层侧边栏使用的轻量摘要 */
+export interface TypeSummary {
+  id: string
+  name: string
+  pluralKey: string
+  color: string
+  fieldCount: number
+}
+
+/** 旧数据导入结果 */
+export interface ImportSummary {
+  filePath: string
+  totalItems: number
+  imported: number
+  updated: number
+  skipped: number
+  /** 每类型入库条数（键为数据类型 id 或未识别复数键） */
+  byType: Record<string, number>
+  /** 文件中出现但当前 schema 未收录的复数键及其条数（数据已保留入库） */
+  unknownTypes: Record<string, number>
+}
