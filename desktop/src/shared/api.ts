@@ -53,5 +53,10 @@ export interface MbApi {
     exportReviewReport(
       req: IpcContract['ceshu:exportReviewReport']['req']
     ): Promise<IpcContract['ceshu:exportReviewReport']['res']>
+    checklist(req: IpcContract['ceshu:checklist']['req']): Promise<IpcContract['ceshu:checklist']['res']>
+    autoFill(req: IpcContract['ceshu:autoFill']['req']): Promise<IpcContract['ceshu:autoFill']['res']>
+    exportChecklistReport(
+      req: IpcContract['ceshu:exportChecklistReport']['req']
+    ): Promise<IpcContract['ceshu:exportChecklistReport']['res']>
   }
 }

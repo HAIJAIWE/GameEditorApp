@@ -629,6 +629,181 @@ body {
   color: var(--text-muted);
 }
 
+/* ---- GDD 完备性检查清单面板 ---- */
+
+.checklist-top {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.checklist-score {
+  width: 90px;
+  flex-shrink: 0;
+  font-size: 36px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.checklist-status {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.checklist-score.ready,
+.checklist-status.ready {
+  color: #22c55e;
+}
+
+.checklist-score.warn,
+.checklist-status.warn {
+  color: #f59e0b;
+}
+
+.checklist-score.fail,
+.checklist-status.fail {
+  color: var(--danger);
+}
+
+.checklist-summary-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.checklist-progress {
+  height: 14px;
+  border-radius: 7px;
+  background: var(--bg-hover);
+  overflow: hidden;
+}
+
+.checklist-progress-fill {
+  height: 100%;
+  border-radius: 7px;
+}
+
+.checklist-progress-fill.ready {
+  background: #22c55e;
+}
+
+.checklist-progress-fill.warn {
+  background: #f59e0b;
+}
+
+.checklist-progress-fill.fail {
+  background: var(--danger);
+}
+
+.checklist-body {
+  display: flex;
+  flex: 1;
+  gap: 12px;
+  min-height: 0;
+}
+
+.checklist-categories {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  gap: 6px;
+  width: 210px;
+}
+
+.checklist-category {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 13px;
+  text-align: left;
+}
+
+.checklist-category.active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.checklist-category.failed {
+  color: var(--danger);
+}
+
+.checklist-items {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  overflow: auto;
+}
+
+.checklist-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+}
+
+.checklist-item-icon {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 13px;
+  font-size: 13px;
+}
+
+.checklist-item-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.checklist-item-title {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.checklist-required-mark {
+  color: var(--danger);
+}
+
+.checklist-item-desc {
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.checklist-item-msg {
+  margin-top: 2px;
+  font-size: 11px;
+}
+
+.checklist-item-badge {
+  flex-shrink: 0;
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-size: 10px;
+}
+
+.checklist-item-badge.required {
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--danger);
+}
+
+.checklist-item-badge.optional {
+  background: var(--bg-hover);
+  color: var(--text-muted);
+}
+
 /* ---- AI 一键生成面板 ---- */
 
 .ai-gen-row {

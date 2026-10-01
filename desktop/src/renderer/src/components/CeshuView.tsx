@@ -18,6 +18,7 @@ import type { CeshuAiGenerateResult } from '../../../shared/ceshuAi'
 import AiFullGeneratePanel from './AiFullGeneratePanel'
 import AiReviewPanel from './AiReviewPanel'
 import ChapterForm from './ChapterForm'
+import ChecklistPanel from './ChecklistPanel'
 
 interface CeshuViewProps {
   ceshuId: string | null
@@ -51,7 +52,7 @@ export default function CeshuView({ ceshuId, onChanged, onSelect }: CeshuViewPro
   const [exportFormat, setExportFormat] = useState<CeshuExportFormat>('markdown')
   const [deriveOpen, setDeriveOpen] = useState(false)
   const [deriveNote, setDeriveNote] = useState('')
-  const [panel, setPanel] = useState<'changelog' | 'validate' | 'score' | 'aiFull' | 'aiReview' | null>(null)
+  const [panel, setPanel] = useState<'changelog' | 'validate' | 'score' | 'aiFull' | 'aiReview' | 'checklist' | null>(null)
   const [changelog, setChangelog] = useState<CeshuChangelog | null>(null)
   const [validateErrors, setValidateErrors] = useState<string[]>([])
   const [score, setScore] = useState<CeshuScoreReport | null>(null)
@@ -232,6 +233,12 @@ export default function CeshuView({ ceshuId, onChanged, onSelect }: CeshuViewPro
     onChanged()
   }
 
+  /** 一键修复应用完成：更新当前文档，有实际填充时刷新侧边栏进度 */
+  const handleChecklistFilled = (updated: CeshuDocument, filled: number): void => {
+    setDoc(updated)
+    if (filled > 0) onChanged()
+  }
+
   return (
     <div className="ceshu-view">
       <header className="toolbar">
@@ -260,6 +267,9 @@ export default function CeshuView({ ceshuId, onChanged, onSelect }: CeshuViewPro
         </button>
         <button type="button" className="btn" data-testid="ceshu-score" disabled={busy} onClick={() => void handleScore()}>
           评分
+        </button>
+        <button type="button" className="btn" data-testid="ceshu-checklist" disabled={busy} onClick={() => setPanel('checklist')}>
+          清单
         </button>
         <button type="button" className="btn" data-testid="ceshu-ai-review" disabled={busy} onClick={() => setPanel('aiReview')}>
           AI 审阅
@@ -320,6 +330,14 @@ export default function CeshuView({ ceshuId, onChanged, onSelect }: CeshuViewPro
             ceshuId={doc.ceshu_id}
             doc={doc}
             onApplied={handleAiApplied}
+            onClose={() => setPanel(null)}
+          />
+        ) : panel === 'checklist' ? (
+          <ChecklistPanel
+            key={doc.ceshu_id}
+            ceshuId={doc.ceshu_id}
+            gameName={gameName}
+            onFilled={handleChecklistFilled}
             onClose={() => setPanel(null)}
           />
         ) : panel === 'changelog' && changelog ? (

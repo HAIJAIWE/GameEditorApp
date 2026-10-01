@@ -1,6 +1,7 @@
 import type { CeshuDocument, CeshuSummary, ChapterData, ChapterKey, GddScope } from '../../shared/ceshuConstants'
 import { buildChangelogEntry, compareVersionLabels, nextVersionLabel, type CeshuChangelog } from '../../shared/ceshuDiff'
-import { computeChapterProgress, createCeshuId, createDefaultCeshu, formatLocalTimestamp, getGddScope, withChapter } from '../../shared/ceshuModel'
+import { autoFillRequiredFields } from '../../shared/ceshuFill'
+import { computeChapterProgress, computeEnabledEditors, createCeshuId, createDefaultCeshu, formatLocalTimestamp, getGddScope, withChapter } from '../../shared/ceshuModel'
 import { CeshuStorage } from './storage'
 
 /**
@@ -46,6 +47,24 @@ export class CeshuManager {
       if (docFields.moduleType !== undefined) next.module_type = docFields.moduleType
       this.storage.save(next)
       return next
+    })
+  }
+
+  /**
+   * 一键修复（对应 Python CeshuModel.auto_fill_required）：
+   * 按规则自动填充空必填字段 → 刷新时间戳/启用编辑器 → 整文档原子写盘。
+   * 无字段可填时不写盘，原样返回。
+   */
+  autoFill(id: string): Promise<{ doc: CeshuDocument; filled: number }> {
+    return this.enqueueWrite(() => {
+      const doc = this.storage.load(id)
+      const { doc: filledDoc, filled } = autoFillRequiredFields(doc)
+      if (filled > 0) {
+        filledDoc.updated_at = formatLocalTimestamp()
+        filledDoc.enabled_editors = computeEnabledEditors(filledDoc)
+        this.storage.save(filledDoc)
+      }
+      return { doc: filledDoc, filled }
     })
   }
 

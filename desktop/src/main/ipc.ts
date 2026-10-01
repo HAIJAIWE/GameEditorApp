@@ -7,6 +7,7 @@ import {
   attrSystemSaveInputSchema,
   batchUpdateInputSchema,
   ceshuAiGenerateInputSchema,
+  ceshuChecklistExportInputSchema,
   ceshuChooseExportFileInputSchema,
   ceshuCreateInputSchema,
   ceshuDeriveInputSchema,
@@ -30,6 +31,7 @@ import {
   isChapterKey
 } from '../shared/ceshuConstants'
 import { buildChapterPrompt, buildReviewPrompts, filterGeneratedFields, mergeChapterDraft, parseLlmJson, parseReviewResponse } from '../shared/ceshuAi'
+import { runChecklist } from '../shared/ceshuChecklist'
 import { computeChapterProgress } from '../shared/ceshuModel'
 import { buildReferenceReport } from '../shared/references'
 import { scoreCeshu } from '../shared/ceshuScorer'
@@ -39,7 +41,7 @@ import type { AttrSystemStore } from './attr/attrSystemStore'
 import { exportAttrGameConfigFile } from './attr/attrGameConfigExport'
 import type { CeshuManager } from './ceshu/manager'
 import { exportCeshuDocument } from './ceshu/export/exporter'
-import { exportReviewReportFile } from './ceshu/reviewExport'
+import { exportTextReportFile } from './ceshu/reportExport'
 import { exportLegacyDataFile } from './data/legacyExport'
 import { importLegacyDataFile } from './data/legacyImport'
 import type { DataService } from './data/service'
@@ -152,7 +154,12 @@ export function registerIpcHandlers({
     }
   })
   handle('ceshu:exportReviewReport', ceshuReviewExportInputSchema, (req) =>
-    exportReviewReportFile(req.path, req.content)
+    exportTextReportFile(req.path, req.content, '审阅报告')
+  )
+  handle('ceshu:checklist', ceshuGetInputSchema, (req) => runChecklist(ceshuManager.get(req.id)))
+  handle('ceshu:autoFill', ceshuGetInputSchema, (req) => ceshuManager.autoFill(req.id))
+  handle('ceshu:exportChecklistReport', ceshuChecklistExportInputSchema, (req) =>
+    exportTextReportFile(req.path, req.content, '检查报告')
   )
   handle('dialog:chooseCeshuExportFile', ceshuChooseExportFileInputSchema, async (req) => {
     const extension = CESHU_FORMAT_EXTENSIONS[req.format]

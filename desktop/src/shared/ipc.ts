@@ -3,6 +3,7 @@ import type {
   AttrSystemSaveInput,
   BatchUpdateInput,
   CeshuAiGenerateInput,
+  CeshuChecklistExportInput,
   CeshuChooseExportFileInput,
   CeshuCreateInput,
   CeshuDeriveInput,
@@ -27,6 +28,7 @@ import type {
 import type { CeshuDocument, CeshuExportResult, CeshuSummary } from './ceshuConstants'
 import type { CeshuChangelog } from './ceshuDiff'
 import type { CeshuScoreReport } from './ceshuScorer'
+import type { ChecklistReport } from './ceshuChecklist'
 import type { CeshuAiGenerateResult, CeshuAiReviewResult } from './ceshuAi'
 import type { ReferenceReport } from './references'
 import type { AttrSystem } from './attrSystem'
@@ -67,6 +69,9 @@ export interface IpcContract {
   'ceshu:aiGenerateChapter': { req: CeshuAiGenerateInput; res: CeshuAiGenerateResult }
   'ceshu:aiReview': { req: { id: string }; res: CeshuAiReviewResult }
   'ceshu:exportReviewReport': { req: CeshuReviewExportInput; res: { filePath: string } }
+  'ceshu:checklist': { req: { id: string }; res: ChecklistReport }
+  'ceshu:autoFill': { req: { id: string }; res: { doc: CeshuDocument; filled: number } }
+  'ceshu:exportChecklistReport': { req: CeshuChecklistExportInput; res: { filePath: string } }
   'dialog:chooseCeshuExportFile': { req: CeshuChooseExportFileInput; res: { path: string | null } }
 }
 
