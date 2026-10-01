@@ -14,6 +14,8 @@ import {
   type AttrType
 } from '../../../shared/attrSystem'
 
+import AttrLivePreview from './AttrLivePreview'
+
 /**
  * 属性系统编辑器（属性库切片，对应 Python attr_system_editor 的左侧属性库 + attr_library）：
  * - 属性增删改（名称/显示名/类型/分类/默认值/最小·上限）+ 系数公式文本编辑（如 "= 力量*10 + 体质*20"）
@@ -35,7 +37,7 @@ export default function AttrSystemPanel({ onClose }: AttrSystemPanelProps) {
   const [notice, setNotice] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [resetToken, setResetToken] = useState(0)
-  const [view, setView] = useState<'list' | 'matrix'>('list')
+  const [view, setView] = useState<'list' | 'matrix' | 'live'>('list')
   const [matrixFilter, setMatrixFilter] = useState<'all' | 'derived' | 'combat'>('all')
 
   useEffect(() => {
@@ -308,6 +310,15 @@ export default function AttrSystemPanel({ onClose }: AttrSystemPanelProps) {
           >
             关系矩阵
           </button>
+          <button
+            type="button"
+            className={`btn${view === 'live' ? ' primary' : ''}`}
+            data-testid="attr-view-live"
+            disabled={busy}
+            onClick={() => setView('live')}
+          >
+            实时预览
+          </button>
           <button type="button" className="btn" data-testid="attr-default" disabled={busy} onClick={handleLoadDefault}>
             恢复默认
           </button>
@@ -455,7 +466,7 @@ export default function AttrSystemPanel({ onClose }: AttrSystemPanelProps) {
             </button>
           </div>
         </div>
-      ) : (
+      ) : view === 'matrix' ? (
         <div className="changelog-entry" data-testid="attr-matrix">
           <div className="form-label">
             关系矩阵（行=派生/战斗属性，列=基础属性）· 修改单元格系数即同步公式（0 表示无关系）· 示例值实时联动
@@ -529,6 +540,10 @@ export default function AttrSystemPanel({ onClose }: AttrSystemPanelProps) {
           <div className="attr-matrix-hint">
             点击单元格修改系数会自动更新对应公式与示例值（0 = 不写入公式）；「清空系数」作用于当前筛选出的行
           </div>
+        </div>
+      ) : (
+        <div className="changelog-entry" data-testid="attr-live">
+          {draft ? <AttrLivePreview system={draft} /> : <div className="empty">正在加载属性系统…</div>}
         </div>
       )}
 
