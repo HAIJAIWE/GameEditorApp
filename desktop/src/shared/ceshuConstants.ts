@@ -232,7 +232,7 @@ export interface CeshuSummary {
 
 /* ---- 导出 ---- */
 
-export const CESHU_EXPORT_FORMATS = ['markdown', 'html', 'docx', 'pptx', 'pdf'] as const
+export const CESHU_EXPORT_FORMATS = ['markdown', 'html', 'docx', 'pptx', 'pdf', 'excel'] as const
 export type CeshuExportFormat = (typeof CESHU_EXPORT_FORMATS)[number]
 
 export const CESHU_FORMAT_LABELS: Record<CeshuExportFormat, string> = {
@@ -240,7 +240,8 @@ export const CESHU_FORMAT_LABELS: Record<CeshuExportFormat, string> = {
   html: 'HTML 网页',
   docx: 'Word 文档（docx）',
   pptx: 'PowerPoint 演示（pptx）',
-  pdf: 'PDF 文档'
+  pdf: 'PDF 文档',
+  excel: 'Excel 表格（xlsx）'
 }
 
 export const CESHU_FORMAT_EXTENSIONS: Record<CeshuExportFormat, string> = {
@@ -248,10 +249,11 @@ export const CESHU_FORMAT_EXTENSIONS: Record<CeshuExportFormat, string> = {
   html: '.html',
   docx: '.docx',
   pptx: '.pptx',
-  pdf: '.pdf'
+  pdf: '.pdf',
+  excel: '.xlsx'
 }
 
-/** 导出结果（Excel 待预演后补充） */
+/** 导出结果 */
 export interface CeshuExportResult {
   filePath: string
   format: CeshuExportFormat

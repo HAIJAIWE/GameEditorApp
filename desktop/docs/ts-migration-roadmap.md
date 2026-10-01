@@ -27,7 +27,7 @@
 | W22 | 属性系统 JSON 导入/导出 | `attr_system_editor.py` | `main/attr/attrSystemJsonFile.ts` |
 | W23 | 字数统计（18 章完成度 + 写作建议 + 面板） | `ui/ceshu/word_stats_dialog.py` | `shared/ceshuWordStats.ts`、`components/WordStatsPanel.tsx` |
 | W24 | 字段/系统依赖检查（20 条依赖 + 两张依赖图 + 双视图面板） | `field_dependencies.py`、`field_dependency_graph.py`、`system_dependency_graph.py` | `shared/ceshuFieldDeps.ts`（单测 40）、`components/FieldDepsPanel.tsx`、E2E |
-| W25(预演) | Excel 导出保真预演（**正式实现待做**） | `ceshu_excel_exporter.py` | `package.json`（exceljs ^4.4.0）、`spikes/excel-spike.mjs`（回读 24 项断言通过） |
+| W25 | Excel 导出（8 Sheet 工作簿，导出格式补满 6 种） | `ceshu_excel_exporter.py` | `main/ceshu/export/excel.ts`（exceljs ^4.4.0；预演见 `spikes/excel-spike.mjs`） |
 
 ## 2. 剩余工作清单（按体量分档）
 
@@ -39,7 +39,7 @@
 | 备选切片 | Python 参照（行数） | 备注 |
 |---|---|---|
 | 字数统计 | `ui/ceshu/word_stats_dialog.py` 237 | **注意**：该文件自带基准表，与 `ceshu_scorer.py` 的基准表**数值不同**，不可复用 scorer 的表；字数统计函数可直接复用 `shared/ceshuScorer.ts::countWordsInChapter` |
-| Excel 导出（补满 6 种） | `core/ceshu/ceshu_excel_exporter.py` 326 | 需选定依赖（候选 exceljs）并做保真预演 |
+| ~~Excel 导出（补满 6 种）~~ | `core/ceshu/ceshu_excel_exporter.py` 326 | ✅ W25 已完成（8 Sheet：概览/系统配置/数值表/角色/里程碑/风险/竞品/校验报告） |
 | 依赖图（字段/系统） | `core/ceshu/field_dependencies.py` 233 + `ui/ceshu/field_dependency_graph.py` 403 + `system_dependency_graph.py` 307 | 纯逻辑（可用性/触发规则）+ 图渲染 |
 | 版本时间线 | `ui/ceshu/version_timeline_dialog.py` 405 | 复用已有 `ceshu:versions` 数据 |
 | 自定义模板 | `custom_template_manager.py` 380 + `template_editor_dialog.py` 514 + `template_picker_dialog.py` 439 + `chapter_templates.py` 133 | ≈1,466 行，建议再拆两刀 |
@@ -105,7 +105,7 @@ node_modules\.bin\playwright test          ← 必须 dangerouslyDisableSandbox=
 |---|---|---|
 | ~~W23~~ | ~~字数统计~~ | ✅ 已完成（IPC `ceshu:wordStats` + `WordStatsPanel` + E2E） |
 | ~~W24~~ | ~~依赖检查（字段/系统）~~ | ✅ 已完成（IPC `ceshu:fieldDeps` + `FieldDepsPanel` 双视图 + E2E 25-25） |
-| W25 | Excel 导出（补满 6 种） | ✅ 预演完成：**exceljs ^4.4.0**（纯 JS、无原生编译，主进程可用；`spikes/excel-spike.mjs`，回读 24 项断言通过）。**待做**：`main/ceshu/export/excel.ts`（建议拆 `buildWorkbook` / `writeExcel` 两步便于单测）+ IPC + UI 格式项 + E2E。预演提示：sheet 名 ≤31 字符且禁 `[]:*?/\`（需兜底）、列宽需自算（clamp 8~60）、数值类型需按正则判 int/float、冻结用 `ws.views=[{state:'frozen',ySplit:1}]` |
+| ~~W25~~ | ~~Excel 导出（补满 6 种）~~ | ✅ 已完成：`main/ceshu/export/excel.ts`（`buildExcelWorkbook` + `renderCeshuExcel`，8 Sheet：概览/系统配置/数值表/角色/里程碑/风险/竞品/校验报告；标题行蓝底白字加粗 + 冻结首行 + 列宽自适应 + 数字型字符串转 int/float）→ 单测 7 + E2E（xlsx 魔数 + exceljs 回读 8 Sheet） |
 | W26 | 版本时间线 | 复用 `ceshu:versions` |
 | W27+ | 自定义模板（拆两刀）/ AI 生成数据表 / 首页卡片 … | 见 B 档 |
 | 之后 | 库管理（多库） → AI/Agent 引擎（需方案设计） | A 档 |

@@ -9,6 +9,7 @@ import {
 } from '../../../shared/ceshuConstants'
 
 import { renderCeshuDocx } from './docx'
+import { renderCeshuExcel } from './excel'
 import { renderCeshuHtml } from './html'
 import { renderCeshuMarkdown } from './markdown'
 import { renderCeshuPdf } from './pdf'
@@ -47,6 +48,8 @@ async function renderContent(doc: CeshuDocument, format: CeshuExportFormat): Pro
       return renderCeshuPptx(doc)
     case 'pdf':
       return renderCeshuPdf(doc)
+    case 'excel':
+      return renderCeshuExcel(doc)
   }
 }
 
