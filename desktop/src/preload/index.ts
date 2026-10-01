@@ -27,13 +27,15 @@ const api: MbApi = {
   },
   dialog: {
     chooseJsonFile: () => invoke('dialog:chooseJsonFile', undefined),
-    chooseSaveJsonFile: () => invoke('dialog:chooseSaveJsonFile', undefined)
+    chooseSaveJsonFile: () => invoke('dialog:chooseSaveJsonFile', undefined),
+    chooseCeshuExportFile: (req) => invoke('dialog:chooseCeshuExportFile', req)
   },
   ceshu: {
     list: () => invoke('ceshu:list', undefined),
     create: (req) => invoke('ceshu:create', req),
     get: (req) => invoke('ceshu:get', req),
-    saveChapter: (req) => invoke('ceshu:saveChapter', req)
+    saveChapter: (req) => invoke('ceshu:saveChapter', req),
+    export: (req) => invoke('ceshu:export', req)
   }
 }
 

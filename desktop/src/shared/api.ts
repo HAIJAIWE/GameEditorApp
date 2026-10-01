@@ -17,11 +17,15 @@ export interface MbApi {
   dialog: {
     chooseJsonFile(): Promise<IpcContract['dialog:chooseJsonFile']['res']>
     chooseSaveJsonFile(): Promise<IpcContract['dialog:chooseSaveJsonFile']['res']>
+    chooseCeshuExportFile(
+      req: IpcContract['dialog:chooseCeshuExportFile']['req']
+    ): Promise<IpcContract['dialog:chooseCeshuExportFile']['res']>
   }
   ceshu: {
     list(): Promise<IpcContract['ceshu:list']['res']>
     create(req: IpcContract['ceshu:create']['req']): Promise<IpcContract['ceshu:create']['res']>
     get(req: IpcContract['ceshu:get']['req']): Promise<IpcContract['ceshu:get']['res']>
     saveChapter(req: IpcContract['ceshu:saveChapter']['req']): Promise<IpcContract['ceshu:saveChapter']['res']>
+    export(req: IpcContract['ceshu:export']['req']): Promise<IpcContract['ceshu:export']['res']>
   }
 }

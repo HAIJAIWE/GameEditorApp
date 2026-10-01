@@ -199,3 +199,31 @@ export interface CeshuSummary {
   /** 总进度 0~1（按档位可见章节平均） */
   progress: number
 }
+
+/* ---- 导出 ---- */
+
+export const CESHU_EXPORT_FORMATS = ['markdown', 'html', 'docx', 'pptx', 'pdf'] as const
+export type CeshuExportFormat = (typeof CESHU_EXPORT_FORMATS)[number]
+
+export const CESHU_FORMAT_LABELS: Record<CeshuExportFormat, string> = {
+  markdown: 'Markdown 文档',
+  html: 'HTML 网页',
+  docx: 'Word 文档（docx）',
+  pptx: 'PowerPoint 演示（pptx）',
+  pdf: 'PDF 文档'
+}
+
+export const CESHU_FORMAT_EXTENSIONS: Record<CeshuExportFormat, string> = {
+  markdown: '.md',
+  html: '.html',
+  docx: '.docx',
+  pptx: '.pptx',
+  pdf: '.pdf'
+}
+
+/** 导出结果（Excel 待预演后补充） */
+export interface CeshuExportResult {
+  filePath: string
+  format: CeshuExportFormat
+  bytes: number
+}

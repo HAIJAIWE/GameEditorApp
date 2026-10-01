@@ -457,3 +457,7 @@ body {
   gap: 6px;
   font-size: 13px;
 }
+
+.toolbar .export-format {
+  width: auto;
+}

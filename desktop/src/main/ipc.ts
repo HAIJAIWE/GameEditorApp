@@ -3,7 +3,9 @@ import { ZodError, type ZodType } from 'zod'
 
 import type { IpcChannel, IpcContract, IpcResult } from '../shared/ipc'
 import {
+  ceshuChooseExportFileInputSchema,
   ceshuCreateInputSchema,
+  ceshuExportInputSchema,
   ceshuGetInputSchema,
   ceshuSaveChapterInputSchema,
   createItemInputSchema,
@@ -13,10 +15,15 @@ import {
   listItemsInputSchema,
   updateItemInputSchema
 } from '../shared/schemas'
-import { isChapterKey } from '../shared/ceshuConstants'
+import {
+  CESHU_FORMAT_EXTENSIONS,
+  CESHU_FORMAT_LABELS,
+  isChapterKey
+} from '../shared/ceshuConstants'
 import { listTypeSummaries } from '../shared/typeSchema'
 import type { AppInfo } from '../shared/types'
 import type { CeshuManager } from './ceshu/manager'
+import { exportCeshuDocument } from './ceshu/export/exporter'
 import { exportLegacyDataFile } from './data/legacyExport'
 import { importLegacyDataFile } from './data/legacyImport'
 import type { DataService } from './data/service'
@@ -45,6 +52,21 @@ export function registerIpcHandlers({ dataService, ceshuManager, getAppInfo }: I
       throw new Error(`未知章节：${req.chapter}`)
     }
     return ceshuManager.saveChapter(req.id, req.chapter, req.data)
+  })
+  handle('ceshu:export', ceshuExportInputSchema, (req) => {
+    const doc = ceshuManager.get(req.id)
+    return exportCeshuDocument(doc, req.format, req.path)
+  })
+  handle('dialog:chooseCeshuExportFile', ceshuChooseExportFileInputSchema, async (req) => {
+    const extension = CESHU_FORMAT_EXTENSIONS[req.format]
+    const options: SaveDialogOptions = {
+      title: `导出策划书（${CESHU_FORMAT_LABELS[req.format]}）`,
+      defaultPath: `${req.defaultName}${extension}`,
+      filters: [{ name: CESHU_FORMAT_LABELS[req.format], extensions: [extension.slice(1)] }]
+    }
+    const focused = BrowserWindow.getFocusedWindow()
+    const result = focused ? await dialog.showSaveDialog(focused, options) : await dialog.showSaveDialog(options)
+    return { path: result.canceled || !result.filePath ? null : result.filePath }
   })
   handle('dialog:chooseSaveJsonFile', undefined, async () => {
     const options: SaveDialogOptions = {

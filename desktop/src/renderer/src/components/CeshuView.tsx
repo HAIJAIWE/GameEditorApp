@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import {
+  CESHU_EXPORT_FORMATS,
+  CESHU_FORMAT_LABELS,
   CHAPTER_LABELS,
   visibleChapterKeys,
   type CeshuDocument,
+  type CeshuExportFormat,
   type ChapterData,
   type ChapterKey
 } from '../../../shared/ceshuConstants'
@@ -27,6 +30,7 @@ export default function CeshuView({ ceshuId, onChanged }: CeshuViewProps) {
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [exportFormat, setExportFormat] = useState<CeshuExportFormat>('markdown')
 
   useEffect(() => {
     if (!ceshuId) return
@@ -88,6 +92,23 @@ export default function CeshuView({ ceshuId, onChanged }: CeshuViewProps) {
   const progress = computeChapterProgress(doc)
   const gameName = typeof doc.meta.game_name === 'string' && doc.meta.game_name ? doc.meta.game_name : '未命名策划书'
 
+  /** 导出当前策划书：选择保存路径 → 主进程按格式渲染并原子写盘 */
+  const handleExport = async (): Promise<void> => {
+    try {
+      setError(null)
+      setNotice(null)
+      const chosen = await window.mbApi.dialog.chooseCeshuExportFile({ format: exportFormat, defaultName: gameName })
+      if (!chosen.path) return
+      setBusy(true)
+      const result = await window.mbApi.ceshu.export({ id: doc.ceshu_id, format: exportFormat, path: chosen.path })
+      setNotice(`已导出（${CESHU_FORMAT_LABELS[result.format]}）：${result.filePath}`)
+    } catch (err) {
+      setError(toErrorMessage(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <div className="ceshu-view">
       <header className="toolbar">
@@ -96,6 +117,21 @@ export default function CeshuView({ ceshuId, onChanged }: CeshuViewProps) {
         <span className="item-meta" data-testid="ceshu-total-progress">
           总进度 {Math.round((progress.total ?? 0) * 100)}%
         </span>
+        <select
+          className="form-select export-format"
+          data-testid="export-format"
+          value={exportFormat}
+          onChange={(event) => setExportFormat(event.target.value as CeshuExportFormat)}
+        >
+          {CESHU_EXPORT_FORMATS.map((format) => (
+            <option key={format} value={format}>
+              {CESHU_FORMAT_LABELS[format]}
+            </option>
+          ))}
+        </select>
+        <button type="button" className="btn" data-testid="ceshu-export" disabled={busy} onClick={() => void handleExport()}>
+          导出
+        </button>
       </header>
 
       {error && <div className="error-banner">{error}</div>}

@@ -1,6 +1,13 @@
-import type { CeshuCreateInput, CeshuSaveChapterInput, ExportLegacyInput, ImportLegacyInput } from './schemas'
+import type {
+  CeshuChooseExportFileInput,
+  CeshuCreateInput,
+  CeshuExportInput,
+  CeshuSaveChapterInput,
+  ExportLegacyInput,
+  ImportLegacyInput
+} from './schemas'
 import type { AppInfo, ExportSummary, ImportSummary, ItemRecord, TypeSummary } from './types'
-import type { CeshuDocument, CeshuSummary } from './ceshuConstants'
+import type { CeshuDocument, CeshuExportResult, CeshuSummary } from './ceshuConstants'
 
 /**
  * IPC 契约：通道 → 请求/响应类型。
@@ -21,6 +28,8 @@ export interface IpcContract {
   'ceshu:create': { req: CeshuCreateInput; res: CeshuDocument }
   'ceshu:get': { req: { id: string }; res: CeshuDocument }
   'ceshu:saveChapter': { req: CeshuSaveChapterInput; res: CeshuDocument }
+  'ceshu:export': { req: CeshuExportInput; res: CeshuExportResult }
+  'dialog:chooseCeshuExportFile': { req: CeshuChooseExportFileInput; res: { path: string | null } }
 }
 
 export type IpcChannel = keyof IpcContract
