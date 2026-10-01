@@ -1,10 +1,17 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  CHAPTER_GENERATION_HINTS,
   agentForChapter,
+  buildChapterOrder,
   buildChapterPrompt,
+  buildFullGeneratePlan,
   filterGeneratedFields,
   getStyleGlossary,
+  mapStyleLabelToKey,
+  mapTypeLabelToKey,
+  mergeChapterDraft,
+  normalizeFullGenerateInput,
   parseLlmJson
 } from '../../src/shared/ceshuAi'
 import { CHAPTER_KEYS } from '../../src/shared/ceshuConstants'
@@ -111,5 +118,141 @@ describe('AI 生成：字段清洗', () => {
 
     const meta = filterGeneratedFields(doc, 'meta', { version: '0.2.0', game_name: '游戏' })
     expect(meta).toEqual({ version: '0.2.0', game_name: '游戏' })
+  })
+})
+
+describe('AI 全量生成：章节顺序与生成要求（匹平 Python _build_chapter_order / chapter_hint）', () => {
+  it('含市场/风险为 18 章，顺序与 Python 一致', () => {
+    expect(buildChapterOrder(true, true)).toEqual([
+      'meta',
+      'vision',
+      'market_analysis',
+      'worldview',
+      'characters',
+      'gameplay',
+      'combat',
+      'systems',
+      'economy',
+      'monetization',
+      'numeric',
+      'art',
+      'audio',
+      'tech',
+      'risk_handling',
+      'mvp',
+      'resources',
+      'accessibility'
+    ])
+  })
+
+  it('关闭市场/风险后为 16 章且位置正确', () => {
+    const order = buildChapterOrder(false, false)
+    expect(order).toHaveLength(16)
+    expect(order).not.toContain('market_analysis')
+    expect(order).not.toContain('risk_handling')
+    expect(order[0]).toBe('meta')
+    expect(order[1]).toBe('vision')
+    expect(order[order.length - 1]).toBe('accessibility')
+  })
+
+  it('18 章生成要求文案齐全（抽查关键条目）', () => {
+    for (const chapter of CHAPTER_KEYS) {
+      expect(CHAPTER_GENERATION_HINTS[chapter].length).toBeGreaterThan(0)
+    }
+    expect(CHAPTER_GENERATION_HINTS.systems).toContain('enabled/config')
+    expect(CHAPTER_GENERATION_HINTS.combat).toContain('伤害公式')
+    expect(CHAPTER_GENERATION_HINTS.risk_handling).toContain('应急预案')
+  })
+})
+
+describe('AI 全量生成：计划组装（匹平 Python _ai_generate_full / _build_chapter_prompts / _build_meta_seed）', () => {
+  const form = {
+    gameName: '星河战记',
+    gameType: 'RPG',
+    style: '仙侠',
+    description: '修真者探索三界',
+    references: '原神, 艾尔登法环',
+    platforms: ['PC', '移动端'],
+    businessModel: 'F2P'
+  }
+
+  it('轻量档只含基础 9 章（依赖顺序）；meta 种子与风格/类型映射正确', () => {
+    const plan = buildFullGeneratePlan(form, { scope: 'lite', includeMarket: true, includeRisk: true })
+    expect(plan.order).toEqual([
+      'meta',
+      'vision',
+      'worldview',
+      'gameplay',
+      'systems',
+      'numeric',
+      'art',
+      'tech',
+      'resources'
+    ])
+    expect(plan.styleKey).toBe('xianxia')
+    expect(plan.typeKey).toBe('rpg')
+    expect(plan.metaSeed).toEqual({
+      game_name: '星河战记',
+      game_type: 'RPG',
+      platform: ['PC', '移动端'],
+      positioning: '',
+      tags: ['仙侠']
+    })
+  })
+
+  it('工业级档：市场/风险开关生效；每章提示词含【章节】【用户输入】【生成要求】', () => {
+    const full = buildFullGeneratePlan(form, { scope: 'full', includeMarket: true, includeRisk: true })
+    expect(full.order).toHaveLength(18)
+    const prompt = full.chapterPrompts.systems ?? ''
+    expect(prompt).toContain('【章节】第五章·游戏系统设计')
+    expect(prompt).toContain('【用户输入】')
+    expect(prompt).toContain('游戏名称: 星河战记')
+    expect(prompt).toContain('概念描述: 修真者探索三界')
+    expect(prompt).toContain('参考游戏: 原神, 艾尔登法环')
+    expect(prompt).toContain('【生成要求】')
+    expect(prompt).toContain('enabled/config')
+    expect(prompt.endsWith('只输出 JSON。')).toBe(true)
+
+    const noMarket = buildFullGeneratePlan(form, { scope: 'full', includeMarket: false, includeRisk: false })
+    expect(noMarket.order).toHaveLength(16)
+    expect(noMarket.chapterPrompts.market_analysis).toBeUndefined()
+  })
+
+  it('归一化：逗号拆分参考游戏、清理空白', () => {
+    const input = normalizeFullGenerateInput({ ...form, references: ' 原神 ,, 艾尔登法环 ', gameName: ' 星 ' })
+    expect(input.references).toEqual(['原神', '艾尔登法环'])
+    expect(input.gameName).toBe('星')
+  })
+})
+
+describe('AI 全量生成：提示词补充参数与草稿合并', () => {
+  it('extraPrompt 追加在默认提示之后；styleOverride 优先于 doc.style', () => {
+    const doc = createDefaultCeshu({ scope: 'full' })
+    const built = buildChapterPrompt(doc, 'meta', {
+      extraPrompt: '【生成要求】请生成项目元信息。',
+      styleOverride: 'xianxia'
+    })
+    expect(built.prompt.endsWith('【生成要求】请生成项目元信息。')).toBe(true)
+    expect(built.prompt).toContain('风格: xianxia')
+    expect(built.prompt).toContain('渡劫')
+  })
+
+  it('mergeChapterDraft：逐章浅合并、原文档不变、未知键忽略', () => {
+    const doc = createDefaultCeshu({ scope: 'full' })
+    const merged = mergeChapterDraft(doc, { meta: { game_name: 'AI 名称' }, unknown: { a: 1 } })
+    expect(merged.meta.game_name).toBe('AI 名称')
+    expect(merged.meta.positioning).toBe('')
+    expect(merged).not.toBe(doc)
+    expect(doc.meta.game_name).toBe('')
+    expect(Object.keys(merged)).not.toContain('unknown')
+  })
+
+  it('风格/类型标签映射：已知标签映射、未知返回空串', () => {
+    expect(mapStyleLabelToKey('仙侠')).toBe('xianxia')
+    expect(mapStyleLabelToKey('二次元')).toBe('anime')
+    expect(mapStyleLabelToKey('未知')).toBe('')
+    expect(mapTypeLabelToKey('RPG')).toBe('rpg')
+    expect(mapTypeLabelToKey('策略')).toBe('strategy')
+    expect(mapTypeLabelToKey('未知')).toBe('')
   })
 })

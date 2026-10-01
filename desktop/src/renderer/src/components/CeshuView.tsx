@@ -15,6 +15,7 @@ import type { CeshuChangeItem, CeshuChangelog } from '../../../shared/ceshuDiff'
 import { gradeLabel, type CeshuScoreReport } from '../../../shared/ceshuScorer'
 import type { CeshuAiGenerateResult } from '../../../shared/ceshuAi'
 
+import AiFullGeneratePanel from './AiFullGeneratePanel'
 import ChapterForm from './ChapterForm'
 
 interface CeshuViewProps {
@@ -49,7 +50,7 @@ export default function CeshuView({ ceshuId, onChanged, onSelect }: CeshuViewPro
   const [exportFormat, setExportFormat] = useState<CeshuExportFormat>('markdown')
   const [deriveOpen, setDeriveOpen] = useState(false)
   const [deriveNote, setDeriveNote] = useState('')
-  const [panel, setPanel] = useState<'changelog' | 'validate' | 'score' | null>(null)
+  const [panel, setPanel] = useState<'changelog' | 'validate' | 'score' | 'aiFull' | null>(null)
   const [changelog, setChangelog] = useState<CeshuChangelog | null>(null)
   const [validateErrors, setValidateErrors] = useState<string[]>([])
   const [score, setScore] = useState<CeshuScoreReport | null>(null)
@@ -223,6 +224,13 @@ export default function CeshuView({ ceshuId, onChanged, onSelect }: CeshuViewPro
     }
   }
 
+  /** AI 一键生成应用完成：更新当前文档并刷新列表 */
+  const handleAiApplied = (updated: CeshuDocument, appliedChapters: number): void => {
+    setDoc(updated)
+    setNotice(`AI 生成内容已保存：${appliedChapters} 章`)
+    onChanged()
+  }
+
   return (
     <div className="ceshu-view">
       <header className="toolbar">
@@ -251,6 +259,9 @@ export default function CeshuView({ ceshuId, onChanged, onSelect }: CeshuViewPro
         </button>
         <button type="button" className="btn" data-testid="ceshu-score" disabled={busy} onClick={() => void handleScore()}>
           评分
+        </button>
+        <button type="button" className="btn" data-testid="ceshu-ai-full" disabled={busy} onClick={() => setPanel('aiFull')}>
+          AI 一键生成
         </button>
         <select
           className="form-select export-format"
@@ -292,7 +303,15 @@ export default function CeshuView({ ceshuId, onChanged, onSelect }: CeshuViewPro
       {notice && <div className="notice-banner">{notice}</div>}
 
       <div className="content">
-        {panel === 'changelog' && changelog ? (
+        {panel === 'aiFull' ? (
+          <AiFullGeneratePanel
+            key={doc.ceshu_id}
+            ceshuId={doc.ceshu_id}
+            doc={doc}
+            onApplied={handleAiApplied}
+            onClose={() => setPanel(null)}
+          />
+        ) : panel === 'changelog' && changelog ? (
           <div className="changelog-panel" data-testid="changelog-panel">
             <div className="changelog-header">
               <span className="chapter-form-title">变更记录（{changelog.entries.length} 次版本变更）</span>

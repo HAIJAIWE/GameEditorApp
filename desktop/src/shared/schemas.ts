@@ -47,7 +47,10 @@ export const ceshuGetInputSchema = z.object({
 export const ceshuSaveChapterInputSchema = z.object({
   id: z.string().min(1),
   chapter: z.string().min(1),
-  data: z.record(z.string(), z.unknown())
+  data: z.record(z.string(), z.unknown()),
+  /** 同时写回的文档级字段（一键生成应用时写入风格/类型 key） */
+  style: z.string().max(50).optional(),
+  moduleType: z.string().max(50).optional()
 })
 
 export const ceshuExportInputSchema = z.object({
@@ -69,7 +72,15 @@ export const ceshuDeriveInputSchema = z.object({
 export const ceshuAiGenerateInputSchema = z.object({
   id: z.string().min(1),
   chapter: z.string().min(1),
-  onlyEmpty: z.boolean().default(false)
+  onlyEmpty: z.boolean().default(false),
+  /** 一键生成上下文：draft 仅合并进提示词作为上下文，不写盘 */
+  fullGenerate: z
+    .object({
+      styleKey: z.string().max(50).default(''),
+      extraPrompt: z.string().max(6000).default(''),
+      draft: z.record(z.string(), z.record(z.string(), z.unknown())).default({})
+    })
+    .optional()
 })
 
 export type ListItemsInput = z.infer<typeof listItemsInputSchema>

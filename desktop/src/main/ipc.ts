@@ -22,7 +22,7 @@ import {
   CESHU_FORMAT_LABELS,
   isChapterKey
 } from '../shared/ceshuConstants'
-import { buildChapterPrompt, filterGeneratedFields, parseLlmJson } from '../shared/ceshuAi'
+import { buildChapterPrompt, filterGeneratedFields, mergeChapterDraft, parseLlmJson } from '../shared/ceshuAi'
 import { listTypeSummaries } from '../shared/typeSchema'
 import { scoreCeshu } from '../shared/ceshuScorer'
 import { validateCeshu } from '../shared/ceshuValidation'
@@ -58,7 +58,10 @@ export function registerIpcHandlers({ dataService, ceshuManager, llmClient, getA
     if (!isChapterKey(req.chapter)) {
       throw new Error(`未知章节：${req.chapter}`)
     }
-    return ceshuManager.saveChapter(req.id, req.chapter, req.data)
+    return ceshuManager.saveChapter(req.id, req.chapter, req.data, {
+      style: req.style,
+      moduleType: req.moduleType
+    })
   })
   handle('ceshu:export', ceshuExportInputSchema, (req) => {
     const doc = ceshuManager.get(req.id)
@@ -74,8 +77,15 @@ export function registerIpcHandlers({ dataService, ceshuManager, llmClient, getA
     if (!isChapterKey(req.chapter)) {
       throw new Error(`未知章节：${req.chapter}`)
     }
-    const doc = ceshuManager.get(req.id)
-    const built = buildChapterPrompt(doc, req.chapter, { onlyEmpty: req.onlyEmpty })
+    const base = ceshuManager.get(req.id)
+    const draft = req.fullGenerate?.draft ?? {}
+    // 一键生成：draft（已生成章节 + meta 种子）仅作为提示词上下文合并，不写盘
+    const doc = Object.keys(draft).length > 0 ? mergeChapterDraft(base, draft) : base
+    const built = buildChapterPrompt(doc, req.chapter, {
+      onlyEmpty: req.onlyEmpty,
+      styleOverride: req.fullGenerate?.styleKey,
+      extraPrompt: req.fullGenerate?.extraPrompt
+    })
     if (req.onlyEmpty && built.fields.length === 0) {
       // 无空字段：不调用 LLM，直接返回空结果（UI 提示「无需补全」）
       return { model: '', fields: {}, rawText: '' }

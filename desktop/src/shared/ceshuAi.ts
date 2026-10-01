@@ -1,6 +1,12 @@
 import {
+  BASE_CHAPTER_KEYS,
+  CHAPTER_LABELS,
+  GDD_SCOPE_LITE,
+  isChapterKey,
   type CeshuDocument,
-  type ChapterKey
+  type ChapterData,
+  type ChapterKey,
+  type GddScope
 } from './ceshuConstants'
 import { CESHU_CHAPTER_FIELDS } from './ceshuFields'
 import { isPlainObject } from './ceshuModel'
@@ -129,10 +135,18 @@ const REQUIREMENTS_FULL = [
   '6. 只输出 JSON，不要加任何解释'
 ].join('\n')
 
+export interface ChapterPromptOptions {
+  onlyEmpty?: boolean
+  /** 风格 key 覆盖（全量生成时用用户所选风格，如 xianxia；为空回退 doc.style） */
+  styleOverride?: string
+  /** 追加到默认提示之后的定制提示（全量生成的【章节】/【用户输入】/【生成要求】块） */
+  extraPrompt?: string
+}
+
 export function buildChapterPrompt(
   doc: CeshuDocument,
   chapter: ChapterKey,
-  options: { onlyEmpty?: boolean } = {}
+  options: ChapterPromptOptions = {}
 ): ChapterPromptResult {
   const onlyEmpty = options.onlyEmpty === true
   const agent = agentForChapter(chapter)
@@ -159,10 +173,11 @@ export function buildChapterPrompt(
   if (gameName) contextLines.push(`游戏名称: ${gameName}`)
   if (gameType) contextLines.push(`游戏类型: ${gameType}`)
   if (positioning) contextLines.push(`市场定位: ${positioning}`)
-  if (doc.style) {
-    const glossary = getStyleGlossary(doc.style)
+  const style = options.styleOverride || doc.style
+  if (style) {
+    const glossary = getStyleGlossary(style)
     if (glossary) {
-      contextLines.push(`风格: ${doc.style}`)
+      contextLines.push(`风格: ${style}`)
       contextLines.push(`风格术语表:\n${glossary}`)
     }
   }
@@ -181,6 +196,9 @@ export function buildChapterPrompt(
     prompt += `已有非空内容（请保留并补充其他字段）:\n${existingContent}\n\n`
   }
   prompt += onlyEmpty ? REQUIREMENTS_ONLY_EMPTY : REQUIREMENTS_FULL
+  if (options.extraPrompt) {
+    prompt += `\n\n${options.extraPrompt}`
+  }
 
   return { system, prompt, fields }
 }
@@ -266,4 +284,253 @@ function isTruthyValue(value: unknown): boolean {
 
 function readText(value: unknown): string {
   return typeof value === 'string' ? value : ''
+}
+
+/* ---- 全量生成（一键生成完整策划书，匹平 Python ai_full_generate_dialog + ceshu_skill_prompt） ---- */
+
+export const FULL_GEN_GAME_TYPES = [
+  'RPG',
+  'MMORPG',
+  'ARPG',
+  'MOBA',
+  'FPS',
+  'SLG',
+  '休闲',
+  '放置',
+  '卡牌',
+  '塔防',
+  'Roguelike',
+  '策略'
+]
+
+export const FULL_GEN_STYLES = [
+  '仙侠',
+  '武侠',
+  '科幻',
+  '现代',
+  '奇幻',
+  '末日',
+  '历史',
+  '二次元',
+  '暗黑',
+  '赛博朋克',
+  '蒸汽朋克'
+]
+
+export const FULL_GEN_BUSINESS_MODELS = ['F2P', 'P2P', 'Buyonce', '混合']
+
+export const FULL_GEN_PLATFORMS = ['PC', '移动端', '主机', 'Web']
+
+const STYLE_LABEL_TO_KEY: Record<string, string> = {
+  仙侠: 'xianxia',
+  武侠: 'wuxia',
+  科幻: 'sci-fi',
+  现代: 'realistic',
+  奇幻: 'fantasy',
+  末日: 'post_apoc',
+  历史: 'realistic',
+  二次元: 'anime',
+  暗黑: 'dark',
+  赛博朋克: 'cyberpunk',
+  蒸汽朋克: 'steampunk'
+}
+
+const TYPE_LABEL_TO_KEY: Record<string, string> = {
+  RPG: 'rpg',
+  MMORPG: 'mmorpg',
+  ARPG: 'arpg',
+  MOBA: 'moba',
+  FPS: 'fps',
+  SLG: 'slg',
+  休闲: 'casual',
+  放置: 'casual',
+  卡牌: 'card',
+  塔防: 'tower_defense',
+  Roguelike: 'roguelike',
+  策略: 'strategy'
+}
+
+/** 风格中文标签 → style key（对应 Python _map_style_to_key） */
+export function mapStyleLabelToKey(label: string): string {
+  return STYLE_LABEL_TO_KEY[label.trim()] ?? ''
+}
+
+/** 游戏类型中文标签 → module_type key（对应 Python _map_type_to_key） */
+export function mapTypeLabelToKey(label: string): string {
+  return TYPE_LABEL_TO_KEY[label.trim()] ?? ''
+}
+
+/** 全量生成表单原始输入（渲染层收集，未归一化） */
+export interface FullGenerateFormInput {
+  gameName: string
+  gameType: string
+  style: string
+  description: string
+  references: string | string[]
+  platforms: string | string[]
+  businessModel: string
+}
+
+/** 归一化后的全量生成输入（对应 Python _normalize_user_input） */
+export interface FullGenerateInput {
+  gameName: string
+  gameType: string
+  style: string
+  description: string
+  references: string[]
+  platforms: string[]
+  businessModel: string
+}
+
+/** 18 章生成顺序（对应 Python _build_chapter_order：market 在 vision 后、risk 在 tech 后） */
+export function buildChapterOrder(includeMarket: boolean, includeRisk: boolean): ChapterKey[] {
+  const order: ChapterKey[] = ['meta', 'vision']
+  if (includeMarket) order.push('market_analysis')
+  order.push(
+    'worldview',
+    'characters',
+    'gameplay',
+    'combat',
+    'systems',
+    'economy',
+    'monetization',
+    'numeric',
+    'art',
+    'audio',
+    'tech'
+  )
+  if (includeRisk) order.push('risk_handling')
+  order.push('mvp', 'resources', 'accessibility')
+  return order
+}
+
+/** meta 章节种子（对应 Python _build_meta_seed；风格以中文标签写入 tags） */
+export function buildMetaSeed(input: FullGenerateInput): ChapterData {
+  return {
+    game_name: input.gameName,
+    game_type: input.gameType,
+    platform: [...input.platforms],
+    positioning: '',
+    tags: input.style ? [input.style] : []
+  }
+}
+
+/** 全量生成计划（渲染层驱动逐章生成用：顺序 + 每章定制提示 + meta 种子） */
+export interface FullGeneratePlan {
+  scope: GddScope
+  order: ChapterKey[]
+  chapterPrompts: Partial<Record<ChapterKey, string>>
+  metaSeed: ChapterData
+  /** 风格 key（如 xianxia，用于提示词术语表与文档 style 写回） */
+  styleKey: string
+  /** 类型 key（如 rpg，用于文档 module_type 写回） */
+  typeKey: string
+}
+
+/** 归一化全量生成输入（对应 Python _normalize_user_input：空白清理 + 逗号拆分） */
+export function normalizeFullGenerateInput(raw: FullGenerateFormInput): FullGenerateInput {
+  return {
+    gameName: raw.gameName.trim(),
+    gameType: raw.gameType.trim(),
+    style: raw.style.trim(),
+    description: raw.description.trim(),
+    references: splitList(raw.references),
+    platforms: splitList(raw.platforms),
+    businessModel: raw.businessModel.trim()
+  }
+}
+
+/**
+ * 组装全量生成计划（对应 Python _ai_generate_full）：章节顺序 + 每章定制提示词 + meta 种子。
+ * 轻量档（lite）按基础 9 章裁剪（与 Python 对话框按 BASE_CHAPTER_KEYS 过滤一致）。
+ */
+export function buildFullGeneratePlan(
+  raw: FullGenerateFormInput,
+  options: { scope: GddScope; includeMarket: boolean; includeRisk: boolean }
+): FullGeneratePlan {
+  const input = normalizeFullGenerateInput(raw)
+  let order = buildChapterOrder(options.includeMarket, options.includeRisk)
+  if (options.scope === GDD_SCOPE_LITE) {
+    const base = new Set<string>(BASE_CHAPTER_KEYS)
+    order = order.filter((chapter) => base.has(chapter))
+  }
+  return {
+    scope: options.scope,
+    order,
+    chapterPrompts: buildChapterPrompts(input, order),
+    metaSeed: buildMetaSeed(input),
+    styleKey: mapStyleLabelToKey(input.style),
+    typeKey: mapTypeLabelToKey(input.gameType)
+  }
+}
+
+/** 18 章生成要求（照抄 Python chapter_hint，供全量生成逐章追加提示） */
+export const CHAPTER_GENERATION_HINTS: Record<ChapterKey, string> = {
+  meta: '请生成项目元信息：游戏名称、类型、市场定位（一句话）、标签列表（3-5个）。',
+  vision: '请生成产品愿景：设计愿景、差异化卖点、用户画像（主/次/潜在）、商业模式。',
+  market_analysis: '请生成市场分析：目标市场、市场容量、用户画像、竞品列表、市场定位、进入壁垒、市场趋势、KPI预测。',
+  worldview: '请生成世界观：世界观架构、历史时代、阵营列表、地理设定、主线剧情、分支结局、角色关系网。',
+  characters: '请生成角色设计：主角设定、主要NPC数量与列表、反派设计、Boss设计、敌人类型、同伴系统、角色成长弧线。',
+  gameplay: '请生成核心玩法：核心循环、操作方案、首30分钟体验、游戏模式、胜负条件、新手引导。',
+  combat: '请生成战斗系统：战斗模式、伤害公式、技能系统、Buff机制、元素系统、战斗节奏、PVP/PVE设计、Boss机制。',
+  systems: '请生成游戏系统：基于玩法需求推荐应启用的游戏系统及配置（保留 systems 结构中 enabled/config 字段）。',
+  economy: '请生成经济系统：货币类型、产出与回收机制、掉落表、生产链、市场设计、通胀控制、经济目标。',
+  monetization: '请生成商业化设计：付费模式、定价档位、内购设计、广告策略、订阅制、赛季通行证、VIP系统、收入预测。',
+  numeric: '请生成数值设计：核心公式、成长曲线、掉落表、经济模型、平衡原则。',
+  art: '请生成美术设计：美术风格、角色设计、环境设计、UI设计语言、色彩系统、字体、特效、动画、多分辨率。',
+  audio: '请生成音频设计：音乐风格、音效数量、配乐清单、音效清单、配音设计、音频引擎、动态音频、音频预算。',
+  tech: '请生成技术规格：引擎选型、核心架构、第三方依赖、性能目标、里程碑、团队结构、QA计划。',
+  risk_handling: '请生成风险控制：风险矩阵、应急预案、技术风险、市场风险、团队风险、法律风险、进度风险、监控机制。',
+  mvp: '请生成MVP规划：MVP范围、时间线、核心特性、暂缓特性、原型特性、里程碑、成功标准、团队规模、预算估算。',
+  resources: '请生成资源规划：美术资产、音频资产、本地化、外包、预算、风险矩阵、应急预案、IP、附录。',
+  accessibility: '请生成可访问性与本地化：支持语言列表、本地化策略、文化适配、无障碍特性、字幕设计、色盲支持、分级认证。'
+}
+
+/**
+ * 每章定制提示词（对应 Python _build_chapter_prompts）：由全量生成流程逐章追加到默认提示之后。
+ */
+export function buildChapterPrompts(
+  input: FullGenerateInput,
+  order: ChapterKey[]
+): Partial<Record<ChapterKey, string>> {
+  const userInputText = buildUserInputLines(input).join('\n')
+  const prompts: Partial<Record<ChapterKey, string>> = {}
+  for (const chapter of order) {
+    prompts[chapter] =
+      `【章节】${CHAPTER_LABELS[chapter]}\n` +
+      `【用户输入】\n${userInputText || '(无)'}\n` +
+      `【生成要求】${CHAPTER_GENERATION_HINTS[chapter]}\n` +
+      '输出 JSON，键为字段名，值为生成内容；只输出 JSON。'
+  }
+  return prompts
+}
+
+/**
+ * 合并草稿章节（全量生成时把已生成结果与 meta 种子作为后续章节提示词上下文，不写盘）：
+ * 逐章浅合并，未知键忽略，返回新文档对象。
+ */
+export function mergeChapterDraft(doc: CeshuDocument, draft: Record<string, ChapterData>): CeshuDocument {
+  const next: CeshuDocument = { ...doc }
+  for (const [key, value] of Object.entries(draft)) {
+    if (!isChapterKey(key)) continue
+    next[key] = { ...next[key], ...value }
+  }
+  return next
+}
+
+function splitList(value: string | string[]): string[] {
+  const parts = Array.isArray(value) ? value : value.split(',')
+  return parts.map((item) => String(item).trim()).filter(Boolean)
+}
+
+function buildUserInputLines(input: FullGenerateInput): string[] {
+  const lines: string[] = []
+  if (input.gameName) lines.push(`游戏名称: ${input.gameName}`)
+  if (input.gameType) lines.push(`游戏类型: ${input.gameType}`)
+  if (input.style) lines.push(`风格: ${input.style}`)
+  if (input.description) lines.push(`概念描述: ${input.description}`)
+  if (input.references.length > 0) lines.push(`参考游戏: ${input.references.join(', ')}`)
+  if (input.platforms.length > 0) lines.push(`目标平台: ${input.platforms.join(', ')}`)
+  if (input.businessModel) lines.push(`商业模式: ${input.businessModel}`)
+  return lines
 }

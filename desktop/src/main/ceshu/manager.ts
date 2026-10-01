@@ -33,10 +33,17 @@ export class CeshuManager {
   }
 
   /** 保存单章：读最新文件 → 合并章节 → 刷新时间戳/启用编辑器 → 原子写回 */
-  saveChapter(id: string, chapter: ChapterKey, data: ChapterData): Promise<CeshuDocument> {
+  saveChapter(
+    id: string,
+    chapter: ChapterKey,
+    data: ChapterData,
+    docFields: { style?: string; moduleType?: string } = {}
+  ): Promise<CeshuDocument> {
     return this.enqueueWrite(() => {
       const doc = this.storage.load(id)
       const next = withChapter(doc, chapter, data)
+      if (docFields.style !== undefined) next.style = docFields.style
+      if (docFields.moduleType !== undefined) next.module_type = docFields.moduleType
       this.storage.save(next)
       return next
     })

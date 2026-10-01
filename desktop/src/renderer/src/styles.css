@@ -594,3 +594,81 @@ body {
   background: var(--bg-hover);
   color: var(--text-muted);
 }
+
+/* ---- AI 一键生成面板 ---- */
+
+.ai-gen-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 8px;
+  font-size: 13px;
+}
+
+.ai-gen-row .form-label {
+  margin: 0;
+}
+
+.ai-gen-row .form-input {
+  flex: 1;
+  min-width: 180px;
+  max-width: 340px;
+}
+
+.ai-gen-row .form-select {
+  width: auto;
+}
+
+.ai-gen-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.ai-gen-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.ai-gen-block .form-input {
+  width: 100%;
+  resize: vertical;
+}
+
+.ai-gen-status {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 2px 0;
+  font-size: 13px;
+}
+
+.ai-gen-status-label {
+  min-width: 190px;
+}
+
+.ai-gen-status-value.pending {
+  color: var(--text-muted);
+}
+
+.ai-gen-status-value.running {
+  color: var(--accent);
+}
+
+.ai-gen-status-value.done {
+  color: #22c55e;
+}
+
+.ai-gen-status-value.failed {
+  color: var(--danger);
+}
+
+.ai-gen-status-error {
+  color: var(--danger);
+  font-size: 12px;
+}
