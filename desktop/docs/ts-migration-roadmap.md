@@ -1,7 +1,7 @@
 # TS 迁移路线图与推进纪律（desktop/）
 
 > 用途：跨会话/跨子代理的**唯一进度与计划事实来源**。每完成一片，回写本文件「进度台账」并同步 `project_memory.md`。
-> 基线：Python 侧 299 文件 / 78,746 行；TS 侧 `desktop/src` 79 文件 / 15,958 行（≈20% 行数当量）。
+> 基线：Python 侧 299 文件 / 78,746 行；TS 侧 `desktop/src` 82 文件 / 17,871 行（≈23% 行数当量）。
 
 ## 1. 进度台账（已完成）
 
@@ -29,6 +29,7 @@
 | W24 | 字段/系统依赖检查（20 条依赖 + 两张依赖图 + 双视图面板） | `field_dependencies.py`、`field_dependency_graph.py`、`system_dependency_graph.py` | `shared/ceshuFieldDeps.ts`（单测 40）、`components/FieldDepsPanel.tsx`、E2E |
 | W25 | Excel 导出（8 Sheet 工作簿，导出格式补满 6 种） | `ceshu_excel_exporter.py` | `main/ceshu/export/excel.ts`（exceljs ^4.4.0；预演见 `spikes/excel-spike.mjs`） |
 | W26 | 版本时间线（横向 SVG 时间线 + 节点详情 + 切换版本；复用 `ceshu:versions`） | `ui/ceshu/version_timeline_dialog.py` | `shared/ceshuTimeline.ts`（单测 12）、`components/VersionTimelinePanel.tsx`、E2E |
+| W27 | 章节模板库第一刀（18 章 34 个内置模板 + 搜索/预览 + 三应用模式 + 回填章节草稿） | `data/chapter_templates_data.py`、`ui/ceshu/chapter_templates.py`、`ui/ceshu/template_picker_dialog.py` | `shared/ceshuTemplateData.ts`（机械转换）、`shared/ceshuTemplates.ts`（单测 14）、`components/TemplatePickerPanel.tsx`、ChapterForm 集成、E2E |
 
 ## 2. 剩余工作清单（按体量分档）
 
@@ -43,7 +44,7 @@
 | ~~Excel 导出（补满 6 种）~~ | `core/ceshu/ceshu_excel_exporter.py` 326 | ✅ W25 已完成（8 Sheet：概览/系统配置/数值表/角色/里程碑/风险/竞品/校验报告） |
 | 依赖图（字段/系统） | `core/ceshu/field_dependencies.py` 233 + `ui/ceshu/field_dependency_graph.py` 403 + `system_dependency_graph.py` 307 | 纯逻辑（可用性/触发规则）+ 图渲染 |
 | ~~版本时间线~~ | `ui/ceshu/version_timeline_dialog.py` 405 | ✅ W26 已完成（`shared/ceshuTimeline.ts` 布局/文案纯逻辑 + `VersionTimelinePanel` SVG 时间线 + E2E；`CeshuSummary` 增 `versionNote`） |
-| 自定义模板 | `custom_template_manager.py` 380 + `template_editor_dialog.py` 514 + `template_picker_dialog.py` 439 + `chapter_templates.py` 133 | ≈1,466 行，建议再拆两刀 |
+| 自定义模板 | `custom_template_manager.py` 380 + `template_editor_dialog.py` 514 + `template_picker_dialog.py` 439 + `chapter_templates.py` 133 | 拆三刀：① ✅ W27 内置模板库（`chapter_templates*` + `template_picker_dialog`）② W28 自定义模板存储与 IPC（`custom_template_manager` + 选择器内「另存为模板」）③ W29 模板编辑器（`template_editor_dialog`：编辑/迁移/导入导出） |
 | AI 生成数据表 | `ui/ceshu/ai_data_generate_dialog.py` 305 | 复用 `shared/ceshuAi.ts` 提示词框架 |
 | 预设市场 / 竞品图表 | `preset_market_dialog.py` 300 + `competitive_chart.py` 80 | 数据 + 简单图表 |
 | 系统依赖确认 / 数据同步 | `system_confirm_dialog.py` 242 + `ceshu_data_sync.py` 248 | 与 systems 章、数据表联动 |
@@ -89,6 +90,8 @@ node_modules\.bin\playwright test          ← 必须 dangerouslyDisableSandbox=
 - 存储写入：串行写队列（唯一写者）+「临时文件 + rename」原子写；每份文档一个 JSON 文件。
 - 离线 LLM 测试：`MB_OLLAMA_HOST: 'http://127.0.0.1:1'`，错误文案须含 `Ollama` 与 `ollama serve`。
 - 章节中文标签为「第一章·项目元信息」格式，测试断言按真实文案。
+- **E2E 跑的是 `out/` 产物**：改渲染层后必须先 `electron-vite build` 再 `playwright test`，否则新按钮/面板在 E2E 中不可见（症状为定位器 30s 超时）。
+- 单行 `<input>` 会丢弃换行（浏览器 value 净化，与 QLineEdit 同行为）：`append` 模式拼接的文本在输入框里显示为连写，但草稿数据仍含 `\n` → UI 断言用正则、落盘断言用精确值。
 
 ## 5. 子代理并行约定（重要）
 
@@ -108,6 +111,8 @@ node_modules\.bin\playwright test          ← 必须 dangerouslyDisableSandbox=
 | ~~W24~~ | ~~依赖检查（字段/系统）~~ | ✅ 已完成（IPC `ceshu:fieldDeps` + `FieldDepsPanel` 双视图 + E2E 25-25） |
 | ~~W25~~ | ~~Excel 导出（补满 6 种）~~ | ✅ 已完成：`main/ceshu/export/excel.ts`（`buildExcelWorkbook` + `renderCeshuExcel`，8 Sheet：概览/系统配置/数值表/角色/里程碑/风险/竞品/校验报告；标题行蓝底白字加粗 + 冻结首行 + 列宽自适应 + 数字型字符串转 int/float）→ 单测 7 + E2E（xlsx 魔数 + exceljs 回读 8 Sheet） |
 | ~~W26~~ | ~~版本时间线~~ | ✅ 已完成：`shared/ceshuTimeline.ts`（尺寸/配色/文案/布局/默认选中/详情，单测 12）+ `VersionTimelinePanel`（SVG 主轴+节点+箭头、图例、节点详情、切换到此版本）+ E2E 26-26 |
-| W27 | 自定义模板（第一刀：模板模型 + 存储 + 选择器） | `chapter_templates.py` 133 + `custom_template_manager.py` 380 + `template_picker_dialog.py` 439 |
-| W28+ | 自定义模板（第二刀：模板编辑器）/ AI 生成数据表 / 预设市场 / 竞品图表 / 首页卡片 … | 见 B 档 |
+| ~~W27~~ | ~~章节模板库（第一刀：内置模板 + 选择器）~~ | ✅ 已完成：`shared/ceshuTemplateData.ts`（18 章 34 模板，由 Python 数据池机械转换）+ `shared/ceshuTemplates.ts`（查询/三模式合并/预览树，单测 14）+ `TemplatePickerPanel`（筛选/搜索/预览/二次确认）+ ChapterForm「模板库」入口（回填章节草稿，需再点保存）+ E2E 27-27 |
+| W28 | 自定义模板（第二刀：模型 + 存储 + IPC + 「另存为模板」） | `custom_template_manager.py` 380（分类文件 `custom_templates/<category>.json`、CRUD/search/import/export/count） |
+| W29 | 模板编辑器（第三刀） | `template_editor_dialog.py` 514（列表含内置+自定义、编辑/迁移分类/删除/导入导出） |
+| W30+ | AI 生成数据表 / 预设市场 / 竞品图表 / 首页卡片 … | 见 B 档 |
 | 之后 | 库管理（多库） → AI/Agent 引擎（需方案设计） | A 档 |

@@ -1949,3 +1949,146 @@ button.ref-row:hover {
 .timeline-detail-title {
   font-weight: 600;
 }
+
+/* ---- 章节模板库（策划书章节表单） ---- */
+
+.template-confirm {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+  font-size: 13px;
+}
+
+.template-filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.template-filters .form-select {
+  min-width: 200px;
+}
+
+.template-filters .form-input {
+  flex: 1;
+  min-width: 200px;
+}
+
+.template-body {
+  display: flex;
+  flex: 1;
+  gap: 12px;
+  min-height: 0;
+}
+
+.template-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 45%;
+  min-width: 260px;
+  max-height: 420px;
+  overflow: auto;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+
+.template-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.template-item:hover {
+  border-color: var(--accent);
+}
+
+.template-item.active {
+  border-color: var(--accent);
+  background: var(--bg-hover);
+}
+
+.template-item-tags {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.template-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  max-height: 420px;
+  overflow: auto;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+
+.template-preview-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.template-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.template-tag {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--bg-hover);
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.template-preview-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.template-preview-row {
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+
+.template-preview-row.group {
+  font-weight: 600;
+}
+
+.template-preview-row.item,
+.template-preview-row.value {
+  color: var(--text-muted);
+}
+
+.template-mode-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.template-mode-row .form-select {
+  flex: 1;
+}
