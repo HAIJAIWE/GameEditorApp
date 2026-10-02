@@ -73,6 +73,11 @@ export interface MbApi {
       update(req: IpcContract['ceshu:notes:update']['req']): Promise<IpcContract['ceshu:notes:update']['res']>
       remove(req: IpcContract['ceshu:notes:delete']['req']): Promise<IpcContract['ceshu:notes:delete']['res']>
     }
+    templates: {
+      list(req: IpcContract['ceshu:templates:list']['req']): Promise<IpcContract['ceshu:templates:list']['res']>
+      save(req: IpcContract['ceshu:templates:save']['req']): Promise<IpcContract['ceshu:templates:save']['res']>
+      remove(req: IpcContract['ceshu:templates:delete']['req']): Promise<IpcContract['ceshu:templates:delete']['res']>
+    }
     wordStats(req: IpcContract['ceshu:wordStats']['req']): Promise<IpcContract['ceshu:wordStats']['res']>
     fieldDeps(req: IpcContract['ceshu:fieldDeps']['req']): Promise<IpcContract['ceshu:fieldDeps']['res']>
   }

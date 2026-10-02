@@ -31,6 +31,9 @@ import {
   notesListInputSchema,
   notesUpdateInputSchema,
   referencesInputSchema,
+  templatesDeleteInputSchema,
+  templatesListInputSchema,
+  templatesSaveInputSchema,
   schemaSaveInputSchema,
   updateItemInputSchema
 } from '../shared/schemas'
@@ -54,6 +57,7 @@ import { exportAttrGameConfigFile } from './attr/attrGameConfigExport'
 import { exportAttrSystemJsonFile, importAttrSystemJsonFile } from './attr/attrSystemJsonFile'
 import type { CeshuManager } from './ceshu/manager'
 import type { CeshuNotesStore } from './ceshu/notesStore'
+import type { CeshuTemplateStore } from './ceshu/templateStore'
 import { exportCeshuDocument } from './ceshu/export/exporter'
 import { exportTextReportFile } from './ceshu/reportExport'
 import { exportLegacyDataFile } from './data/legacyExport'
@@ -66,6 +70,7 @@ interface IpcHandlerDeps {
   dataService: DataService
   ceshuManager: CeshuManager
   ceshuNotesStore: CeshuNotesStore
+  ceshuTemplateStore: CeshuTemplateStore
   typeSchemaStore: TypeSchemaStore
   attrSystemStore: AttrSystemStore
   llmClient: LlmClient
@@ -77,6 +82,7 @@ export function registerIpcHandlers({
   dataService,
   ceshuManager,
   ceshuNotesStore,
+  ceshuTemplateStore,
   typeSchemaStore,
   attrSystemStore,
   llmClient,
@@ -223,6 +229,14 @@ export function registerIpcHandlers({
     ceshuNotesStore.update(req.id, req.noteId, req.content, req.author)
   )
   handle('ceshu:notes:delete', notesDeleteInputSchema, (req) => ceshuNotesStore.remove(req.id, req.noteId))
+  handle('ceshu:templates:list', templatesListInputSchema, (req) => ceshuTemplateStore.list(req.chapterKey))
+  handle('ceshu:templates:save', templatesSaveInputSchema, (req) => {
+    if (req.chapterKey && !isChapterKey(req.chapterKey)) {
+      throw new Error(`未知章节：${req.chapterKey}`)
+    }
+    return ceshuTemplateStore.save(req)
+  })
+  handle('ceshu:templates:delete', templatesDeleteInputSchema, (req) => ceshuTemplateStore.remove(req.id))
   handle('ceshu:wordStats', ceshuGetInputSchema, (req) => buildWordStatsReport(ceshuManager.get(req.id)))
   handle('ceshu:fieldDeps', ceshuGetInputSchema, (req) => buildFieldDepsReport(ceshuManager.get(req.id)))
   handle('dialog:chooseCeshuExportFile', ceshuChooseExportFileInputSchema, async (req) => {

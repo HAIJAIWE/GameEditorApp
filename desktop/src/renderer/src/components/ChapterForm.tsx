@@ -21,6 +21,8 @@ interface ChapterFormProps {
   chapter: ChapterKey
   data: ChapterData
   busy: boolean
+  /** 来源游戏名（自定义模板的 source_game） */
+  gameName: string
   onSave: (chapter: ChapterKey, data: ChapterData) => Promise<void>
   /** AI 生成本章（onlyEmpty=true 时仅补全空字段）；由上层走 IPC 调本地模型 */
   onAiGenerate: (chapter: ChapterKey, onlyEmpty: boolean) => Promise<CeshuAiGenerateResult>
@@ -30,7 +32,7 @@ interface ChapterFormProps {
  * 章节表单：由 CESHU_CHAPTER_FIELDS 驱动渲染；保存时在原始章节数据上合并字段值，
  * 未在 schema 中出现的扩展/未知字段原样保留（与旧数据兼容）。
  */
-export default function ChapterForm({ chapter, data, busy, onSave, onAiGenerate }: ChapterFormProps) {
+export default function ChapterForm({ chapter, data, busy, gameName, onSave, onAiGenerate }: ChapterFormProps) {
   const fields = CESHU_CHAPTER_FIELDS[chapter] ?? []
   const [inputs, setInputs] = useState<Record<string, FieldInput>>(() => buildInputs(fields, data))
   const [systemsDraft, setSystemsDraft] = useState<ChapterData>(() => structuredClone(data))
@@ -165,7 +167,13 @@ export default function ChapterForm({ chapter, data, busy, onSave, onAiGenerate 
       {formNotice && <div className="notice-banner inline">{formNotice}</div>}
 
       {pickerOpen ? (
-        <TemplatePickerPanel chapter={chapter} onApply={handleApplyTemplate} onClose={() => setPickerOpen(false)} />
+        <TemplatePickerPanel
+          chapter={chapter}
+          gameName={gameName}
+          onCaptureChapter={collectChapterData}
+          onApply={handleApplyTemplate}
+          onClose={() => setPickerOpen(false)}
+        />
       ) : chapter === 'systems' ? (
         <SystemsEditor systems={systemsDraft} onChange={setSystemsDraft} />
       ) : (

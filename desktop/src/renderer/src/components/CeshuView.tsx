@@ -550,6 +550,7 @@ export default function CeshuView({ ceshuId, onChanged, onSelect }: CeshuViewPro
                 chapter={activeChapter}
                 data={doc[activeChapter]}
                 busy={busy}
+                gameName={gameName}
                 onSave={handleSave}
                 onAiGenerate={handleAiGenerate}
               />

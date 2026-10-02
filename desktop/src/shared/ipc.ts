@@ -23,7 +23,10 @@ import type {
   NotesListInput,
   NotesUpdateInput,
   ReferencesInput,
-  SchemaSaveInput
+  SchemaSaveInput,
+  TemplatesDeleteInput,
+  TemplatesListInput,
+  TemplatesSaveInput
 } from './schemas'
 import type {
   AppInfo,
@@ -39,6 +42,7 @@ import type { CeshuChangelog, CeshuVersionDiff } from './ceshuDiff'
 import type { CeshuScoreReport } from './ceshuScorer'
 import type { ChecklistReport } from './ceshuChecklist'
 import type { CeshuNote } from './ceshuNotes'
+import type { CeshuCustomTemplate } from './ceshuCustomTemplates'
 import type { CeshuWordStatsReport } from './ceshuWordStats'
 import type { CeshuFieldDepsReport } from './ceshuFieldDeps'
 import type { CeshuAiGenerateResult, CeshuAiReviewResult } from './ceshuAi'
@@ -93,6 +97,9 @@ export interface IpcContract {
   'ceshu:notes:add': { req: NotesAddInput; res: CeshuNote }
   'ceshu:notes:update': { req: NotesUpdateInput; res: CeshuNote }
   'ceshu:notes:delete': { req: NotesDeleteInput; res: { deleted: boolean } }
+  'ceshu:templates:list': { req: TemplatesListInput; res: CeshuCustomTemplate[] }
+  'ceshu:templates:save': { req: TemplatesSaveInput; res: CeshuCustomTemplate }
+  'ceshu:templates:delete': { req: TemplatesDeleteInput; res: { deleted: boolean } }
   'ceshu:wordStats': { req: { id: string }; res: CeshuWordStatsReport }
   'ceshu:fieldDeps': { req: { id: string }; res: CeshuFieldDepsReport }
   'dialog:chooseCeshuExportFile': { req: CeshuChooseExportFileInput; res: { path: string | null } }

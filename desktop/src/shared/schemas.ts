@@ -245,6 +245,26 @@ export const notesDeleteInputSchema = z.object({
   noteId: z.string().min(1)
 })
 
+/* ---- 自定义模板 ---- */
+
+export const templatesListInputSchema = z.object({
+  chapterKey: z.string().max(50).optional()
+})
+
+export const templatesSaveInputSchema = z.object({
+  name: z.string().min(1).max(200),
+  description: z.string().max(2000).default(''),
+  tags: z.array(z.string().max(50)).max(50).default([]),
+  /** 所属章节键；空串表示全局模板 */
+  chapterKey: z.string().max(50).default(''),
+  data: z.record(z.string(), z.unknown()).default({}),
+  sourceGame: z.string().max(200).default('')
+})
+
+export const templatesDeleteInputSchema = z.object({
+  id: z.string().min(1)
+})
+
 export type ListItemsInput = z.infer<typeof listItemsInputSchema>
 export type CreateItemInput = z.infer<typeof createItemInputSchema>
 export type DeleteItemInput = z.infer<typeof deleteItemInputSchema>
@@ -275,3 +295,6 @@ export type NotesListInput = z.infer<typeof notesListInputSchema>
 export type NotesAddInput = z.infer<typeof notesAddInputSchema>
 export type NotesUpdateInput = z.infer<typeof notesUpdateInputSchema>
 export type NotesDeleteInput = z.infer<typeof notesDeleteInputSchema>
+export type TemplatesListInput = z.infer<typeof templatesListInputSchema>
+export type TemplatesSaveInput = z.infer<typeof templatesSaveInputSchema>
+export type TemplatesDeleteInput = z.infer<typeof templatesDeleteInputSchema>

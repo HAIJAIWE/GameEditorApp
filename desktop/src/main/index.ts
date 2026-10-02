@@ -5,6 +5,7 @@ import { app, BrowserWindow, shell } from 'electron'
 import { AttrSystemStore } from './attr/attrSystemStore'
 import { CeshuManager } from './ceshu/manager'
 import { CeshuNotesStore } from './ceshu/notesStore'
+import { CeshuTemplateStore } from './ceshu/templateStore'
 import { CeshuStorage } from './ceshu/storage'
 import { DataService } from './data/service'
 import { SqliteItemsRepository } from './data/sqliteRepo'
@@ -68,6 +69,7 @@ app.whenReady().then(() => {
     dataService,
     ceshuManager: new CeshuManager(new CeshuStorage(join(app.getPath('userData'), 'ceshu'))),
     ceshuNotesStore: new CeshuNotesStore(join(app.getPath('userData'), 'ceshu_notes')),
+    ceshuTemplateStore: new CeshuTemplateStore(join(app.getPath('userData'), 'ceshu_templates')),
     typeSchemaStore: new TypeSchemaStore(join(app.getPath('userData'), 'type_schema.json')),
     attrSystemStore: new AttrSystemStore(join(app.getPath('userData'), 'attr_system.json')),
     llmClient: new LlmClient(),
