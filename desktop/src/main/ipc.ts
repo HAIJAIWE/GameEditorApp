@@ -31,9 +31,13 @@ import {
   notesListInputSchema,
   notesUpdateInputSchema,
   referencesInputSchema,
+  templateJsonDialogInputSchema,
   templatesDeleteInputSchema,
+  templatesExportInputSchema,
+  templatesImportInputSchema,
   templatesListInputSchema,
   templatesSaveInputSchema,
+  templatesUpdateInputSchema,
   schemaSaveInputSchema,
   updateItemInputSchema
 } from '../shared/schemas'
@@ -237,6 +241,42 @@ export function registerIpcHandlers({
     return ceshuTemplateStore.save(req)
   })
   handle('ceshu:templates:delete', templatesDeleteInputSchema, (req) => ceshuTemplateStore.remove(req.id))
+  handle('ceshu:templates:update', templatesUpdateInputSchema, (req) => {
+    if (req.chapterKey && !isChapterKey(req.chapterKey)) {
+      throw new Error(`未知章节：${req.chapterKey}`)
+    }
+    return ceshuTemplateStore.update(req.id, {
+      name: req.name,
+      description: req.description,
+      tags: req.tags,
+      chapterKey: req.chapterKey,
+      data: req.data,
+      sourceGame: req.sourceGame
+    })
+  })
+  handle('ceshu:templates:export', templatesExportInputSchema, (req) => ceshuTemplateStore.exportAll(req.path))
+  handle('ceshu:templates:import', templatesImportInputSchema, (req) =>
+    ceshuTemplateStore.importFrom(req.path, req.overwrite)
+  )
+  handle('dialog:chooseTemplateJsonFile', templateJsonDialogInputSchema, async (req) => {
+    const focused = BrowserWindow.getFocusedWindow()
+    if (req.mode === 'open') {
+      const options: OpenDialogOptions = {
+        title: '选择模板 JSON 文件',
+        filters: [{ name: 'JSON 文件', extensions: ['json'] }],
+        properties: ['openFile']
+      }
+      const result = focused ? await dialog.showOpenDialog(focused, options) : await dialog.showOpenDialog(options)
+      return { path: result.canceled || result.filePaths.length === 0 ? null : result.filePaths[0] }
+    }
+    const options: SaveDialogOptions = {
+      title: '导出模板 JSON 文件',
+      defaultPath: `${req.defaultName || 'custom_templates'}.json`,
+      filters: [{ name: 'JSON 文件', extensions: ['json'] }]
+    }
+    const result = focused ? await dialog.showSaveDialog(focused, options) : await dialog.showSaveDialog(options)
+    return { path: result.canceled || !result.filePath ? null : result.filePath }
+  })
   handle('ceshu:wordStats', ceshuGetInputSchema, (req) => buildWordStatsReport(ceshuManager.get(req.id)))
   handle('ceshu:fieldDeps', ceshuGetInputSchema, (req) => buildFieldDepsReport(ceshuManager.get(req.id)))
   handle('dialog:chooseCeshuExportFile', ceshuChooseExportFileInputSchema, async (req) => {

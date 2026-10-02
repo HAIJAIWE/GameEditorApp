@@ -114,6 +114,121 @@ describe('自定义模板存储（W28）', () => {
     expect(readdirSync(dir).sort()).toEqual(['art.json', 'meta.json', 'vision.json'])
   })
 
+  it('update：原地更新字段并刷新 updated_at；名称空 → updated=false 且不写盘', async () => {
+    const dir = makeDir()
+    const store = new CeshuTemplateStore(dir)
+    const created = await store.save({ name: '旧名', chapterKey: 'meta', tags: ['旧'], data: { a: 1 } })
+    const before = readCategory(dir, 'meta').templates[0]?.['created_at']
+
+    await expect(
+      store.update(created.id, { name: '  新名  ', description: '新描述', tags: [' 新 ', ''], data: { b: 2 } })
+    ).resolves.toEqual({ updated: true })
+    const updated = readCategory(dir, 'meta').templates[0]
+    expect(updated).toMatchObject({
+      id: created.id,
+      name: '新名',
+      description: '新描述',
+      tags: ['新'],
+      chapter_key: 'meta',
+      data: { b: 2 },
+      created_at: before
+    })
+    // 时间戳精确到秒，同秒内 updated_at 可能与 created_at 相同，此处只校验格式合法
+    expect(String(updated?.['updated_at'])).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)
+
+    await expect(store.update(created.id, { name: '   ' })).resolves.toEqual({ updated: false })
+    expect(readCategory(dir, 'meta').templates[0]?.['name']).toBe('新名')
+    await expect(store.update('not-exist', { name: 'X' })).resolves.toEqual({ updated: false })
+    await expect(store.update('', { name: 'X' })).resolves.toEqual({ updated: false })
+  })
+
+  it('update：章节变化 → 迁移分类文件（旧文件摘除 + 新文件追加）', async () => {
+    const dir = makeDir()
+    const store = new CeshuTemplateStore(dir)
+    const created = await store.save({ name: '迁移我', chapterKey: 'meta' })
+
+    await expect(store.update(created.id, { chapterKey: 'vision' })).resolves.toEqual({ updated: true })
+    expect(readCategory(dir, 'meta').templates).toEqual([])
+    expect(readCategory(dir, 'vision').templates[0]).toMatchObject({ id: created.id, chapter_key: 'vision' })
+
+    // 迁到全局
+    await expect(store.update(created.id, { chapterKey: '' })).resolves.toEqual({ updated: true })
+    expect(readCategory(dir, 'vision').templates).toEqual([])
+    expect(readCategory(dir, 'global').templates[0]).toMatchObject({ chapter_key: '' })
+  })
+
+  it('exportAll：非 .json 后缀自动补全；载荷含 _export_meta 与 _category', async () => {
+    const dir = makeDir()
+    // 导出/导入用的文件放在**模板目录之外**（目录内任何 *.json 都会被当作分类文件读取）
+    const filesDir = makeDir()
+    const store = new CeshuTemplateStore(dir)
+    await store.save({ name: '元信息', chapterKey: 'meta' })
+    await store.save({ name: '全局', chapterKey: '' })
+
+    const withoutSuffix = join(filesDir, 'out', 'templates-export')
+    await expect(store.exportAll(withoutSuffix)).resolves.toEqual({
+      filePath: `${withoutSuffix}.json`,
+      count: 2
+    })
+    const payload = JSON.parse(readFileSync(`${withoutSuffix}.json`, 'utf-8')) as {
+      _export_meta: { export_time: string; template_count: number }
+      templates: Array<Record<string, unknown>>
+    }
+    expect(payload._export_meta.template_count).toBe(2)
+    expect(payload._export_meta.export_time).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)
+    expect(payload.templates.map((item) => item['_category'])).toEqual(['global', 'meta'])
+
+    // 已有 .json 后缀不重复追加
+    const withSuffix = join(filesDir, 'again.json')
+    await expect(store.exportAll(withSuffix)).resolves.toMatchObject({ filePath: withSuffix, count: 2 })
+  })
+
+  it('importFrom：跳过同 id；overwrite=true 覆盖；按 chapter_key 落分类；异常文件抛中文错误', async () => {
+    const dir = makeDir()
+    const filesDir = makeDir()
+    const store = new CeshuTemplateStore(dir)
+    const created = await store.save({ name: '原模板', chapterKey: 'meta', data: { a: 1 } })
+
+    const importPath = join(filesDir, 'incoming.json')
+    writeFileSync(
+      importPath,
+      JSON.stringify({
+        // 导入条目带稳定 id，便于验证「同 id 跳过 / 覆盖」语义（缺 id 每次导入都会生成新 id）
+        templates: [
+          { id: created.id, name: '导入覆盖版', chapter_key: 'meta', data: { a: 2 } },
+          { id: 'vision000001', name: '新模板', chapter_key: 'vision' },
+          { id: 'global000001', name: '全局新模板', chapter_key: '' }
+        ]
+      }),
+      'utf-8'
+    )
+
+    // 默认跳过同 id
+    await expect(store.importFrom(importPath)).resolves.toEqual({ imported: 2, skipped: 1 })
+    expect(store.list('meta').map((item) => item.name)).toEqual(['原模板'])
+    expect(store.list('vision').map((item) => item.name)).toEqual(['新模板'])
+    expect(readCategory(dir, 'global').templates[0]?.['name']).toBe('全局新模板')
+
+    // overwrite=true 覆盖同 id（原分类内替换，不产生重复）
+    await expect(store.importFrom(importPath, true)).resolves.toEqual({ imported: 3, skipped: 0 })
+    const meta = store.list('meta')
+    expect(meta).toHaveLength(1)
+    expect(meta[0]).toMatchObject({ id: created.id, name: '导入覆盖版', data: { a: 2 } })
+    expect(store.list()).toHaveLength(3)
+
+    // 裸数组也支持
+    const arrayPath = join(filesDir, 'array.json')
+    writeFileSync(arrayPath, JSON.stringify([{ name: '数组模板', chapter_key: 'art' }]), 'utf-8')
+    await expect(store.importFrom(arrayPath)).resolves.toEqual({ imported: 1, skipped: 0 })
+    expect(store.list('art').map((item) => item.name)).toEqual(['数组模板'])
+
+    // 异常路径
+    await expect(store.importFrom(join(filesDir, 'missing.json'))).rejects.toThrow('模板文件不存在')
+    const brokenPath = join(filesDir, 'broken.json')
+    writeFileSync(brokenPath, '{ 坏', 'utf-8')
+    await expect(store.importFrom(brokenPath)).rejects.toThrow('模板文件内容损坏（JSON 解析失败）：broken.json')
+  })
+
   it('缺失目录 → 空列表；损坏文件抛中文错误（含文件名，不静默当空）', async () => {
     const dir = makeDir()
     const store = new CeshuTemplateStore(join(dir, 'not-created'))

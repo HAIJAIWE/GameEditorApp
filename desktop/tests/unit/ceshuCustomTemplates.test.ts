@@ -3,14 +3,18 @@ import { describe, expect, it } from 'vitest'
 import {
   CUSTOM_TEMPLATE_GLOBAL_CATEGORY,
   TEMPLATE_NAME_REQUIRED_ERROR,
+  applyCustomTemplateUpdate,
+  buildTemplateExportFile,
   createCustomTemplate,
   customTemplateToChapterTemplate,
   filterCustomTemplates,
   isValidCustomTemplateName,
   normalizeCustomTemplate,
+  normalizeImportedTemplate,
   normalizeTemplateCategory,
   normalizeTemplateTags,
   parseTemplateCategoryFile,
+  parseTemplatesImportFile,
   parseTemplateTagsInput,
   safeTemplateCategory,
   searchCustomTemplates,
@@ -175,5 +179,110 @@ describe('ceshuCustomTemplates 查询与适配', () => {
       tags: ['t'],
       data: { k: 1 }
     })
+  })
+})
+
+describe('ceshuCustomTemplates 编辑（对应 Python update_template）', () => {
+  it('仅更新传入字段，其余保持；updated_at 刷新', () => {
+    const target = template({ name: '旧名', description: '旧描述', tags: ['旧'], data: { a: 1 }, source_game: '旧来源' })
+    const updated = applyCustomTemplateUpdate(target, { name: '  新名  ', tags: [' 新 ', ''] }, '2026-10-03 20:00:00')
+    expect(updated).toMatchObject({
+      id: 'aaaaaaaaaaaa',
+      name: '新名',
+      description: '旧描述',
+      tags: ['新'],
+      chapter_key: 'meta',
+      data: { a: 1 },
+      source_game: '旧来源',
+      created_at: '2026-10-03 10:00:00',
+      updated_at: '2026-10-03 20:00:00'
+    })
+    // 不修改原对象
+    expect(target.name).toBe('旧名')
+  })
+
+  it('名称传入但去空白为空 → null（Python update_template 返回 False）', () => {
+    expect(applyCustomTemplateUpdate(template(), { name: '   ' }, 'now')).toBeNull()
+    expect(applyCustomTemplateUpdate(template(), { name: '' }, 'now')).toBeNull()
+    // 不传 name 则不受影响
+    expect(applyCustomTemplateUpdate(template(), { description: 'D' }, 'now')?.name).toBe('模板A')
+  })
+
+  it('章节与数据归一化：chapterKey 生效、data 非对象退化为空对象', () => {
+    const updated = applyCustomTemplateUpdate(
+      template(),
+      { chapterKey: 'vision', data: 'x' as unknown as Record<string, unknown> },
+      'now'
+    )
+    expect(updated).toMatchObject({ chapter_key: 'vision', data: {} })
+  })
+})
+
+describe('ceshuCustomTemplates 导出（对应 Python export_templates）', () => {
+  it('按分类名排序展平，每项附 _category，meta 计数正确', () => {
+    const payload = buildTemplateExportFile(
+      {
+        vision: [template({ id: 'v1', chapter_key: 'vision' })],
+        global: [template({ id: 'g1', chapter_key: '' })],
+        meta: [template({ id: 'm1' }), template({ id: 'm2', name: '模板B' })]
+      },
+      '2026-10-03 21:00:00'
+    )
+    expect(payload._export_meta).toEqual({ export_time: '2026-10-03 21:00:00', template_count: 4 })
+    expect(payload.templates.map((item) => `${item._category}:${item.id}`)).toEqual([
+      'global:g1',
+      'meta:m1',
+      'meta:m2',
+      'vision:v1'
+    ])
+  })
+
+  it('空分类集合 → 计数 0', () => {
+    expect(buildTemplateExportFile({}, 'now')).toEqual({
+      _export_meta: { export_time: 'now', template_count: 0 },
+      templates: []
+    })
+  })
+})
+
+describe('ceshuCustomTemplates 导入（对应 Python import_templates）', () => {
+  it('支持 {"templates": [...]} 与裸数组；缺 id 生成、名称兜底、时间兜底', () => {
+    const fromObject = parseTemplatesImportFile(
+      { templates: [{ name: '  有名字  ' }, { name: '' }, 5] },
+      '2026-10-03 22:00:00'
+    )
+    expect(fromObject.skipped).toBe(1)
+    expect(fromObject.templates).toHaveLength(2)
+    expect(fromObject.templates[0]).toMatchObject({
+      name: '有名字',
+      created_at: '2026-10-03 22:00:00',
+      updated_at: '2026-10-03 22:00:00'
+    })
+    expect(fromObject.templates[0]?.id).toMatch(/^[0-9a-f]{12}$/)
+    expect(fromObject.templates[1]?.name).toBe('未命名模板')
+
+    const fromArray = parseTemplatesImportFile([{ id: 'fixed1', name: 'A', created_at: '2026-01-01 00:00:00' }], 'now')
+    expect(fromArray.templates[0]).toMatchObject({ id: 'fixed1', created_at: '2026-01-01 00:00:00', updated_at: 'now' })
+  })
+
+  it('根结构不可用时返回空（Python 返回 0）', () => {
+    expect(parseTemplatesImportFile(null, 'now')).toEqual({ templates: [], skipped: 0 })
+    expect(parseTemplatesImportFile({ templates: 'x' }, 'now')).toEqual({ templates: [], skipped: 0 })
+    expect(parseTemplatesImportFile('raw', 'now')).toEqual({ templates: [], skipped: 0 })
+  })
+
+  it('单条归一化：标签清理、data 非对象 → {}、chapter_key/source_game 兜底', () => {
+    expect(normalizeImportedTemplate({ id: 'x', tags: [' a ', 3], data: [], chapter_key: 5 }, 'now')).toEqual({
+      id: 'x',
+      name: '未命名模板',
+      description: '',
+      tags: ['a'],
+      chapter_key: '',
+      data: {},
+      created_at: 'now',
+      updated_at: 'now',
+      source_game: ''
+    })
+    expect(normalizeImportedTemplate(3, 'now')).toBeNull()
   })
 })

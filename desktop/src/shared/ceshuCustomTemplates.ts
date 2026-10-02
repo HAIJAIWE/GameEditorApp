@@ -177,3 +177,106 @@ export function normalizeCustomTemplate(raw: unknown): CeshuCustomTemplate | nul
 export function serializeTemplateCategoryFile(templates: CeshuCustomTemplate[]): CustomTemplateFile {
   return { templates: sortCustomTemplates(templates) }
 }
+
+/* ---- 编辑（对应 Python update_template） ---- */
+
+/** 可更新字段（仅传入的键会被改动，对应 Python **fields） */
+export interface CustomTemplateUpdate {
+  name?: string
+  description?: string
+  tags?: string[]
+  chapterKey?: string
+  data?: Record<string, unknown>
+  sourceGame?: string
+}
+
+/**
+ * 应用字段更新（对应 Python `update_template` 的字段归一化）：
+ * name 传入且去空白为空 → 返回 null（调用方按「更新失败」处理）；其余字段仅在传入时更新；updated_at 刷新。
+ * 说明：章节（chapter_key）变化后的**分类文件迁移**由存储层负责。
+ */
+export function applyCustomTemplateUpdate(
+  target: CeshuCustomTemplate,
+  fields: CustomTemplateUpdate,
+  now: string
+): CeshuCustomTemplate | null {
+  if (fields.name !== undefined && !isValidCustomTemplateName(fields.name)) return null
+  return {
+    ...target,
+    name: fields.name !== undefined ? fields.name.trim() : target.name,
+    description: fields.description !== undefined ? fields.description : target.description,
+    tags: fields.tags !== undefined ? normalizeTemplateTags(fields.tags) : target.tags,
+    chapter_key: fields.chapterKey !== undefined ? fields.chapterKey : target.chapter_key,
+    data: fields.data !== undefined ? (isPlainObject(fields.data) ? fields.data : {}) : target.data,
+    source_game: fields.sourceGame !== undefined ? fields.sourceGame : target.source_game,
+    updated_at: now
+  }
+}
+
+/* ---- 导出（对应 Python export_templates） ---- */
+
+/** 导出条目：模板字段 + `_category` 归属分类 */
+export type CustomTemplateExportEntry = CeshuCustomTemplate & { _category: string }
+
+/** 导出文件结构（对应 Python `{_export_meta, templates}`） */
+export interface CustomTemplateExportFile {
+  _export_meta: { export_time: string; template_count: number }
+  templates: CustomTemplateExportEntry[]
+}
+
+/** 构造导出载荷：按分类名排序展平，每项附 `_category`（对应 Python `sorted(all_cats.items())`） */
+export function buildTemplateExportFile(
+  categories: Record<string, CeshuCustomTemplate[]>,
+  exportTime: string
+): CustomTemplateExportFile {
+  const templates: CustomTemplateExportEntry[] = []
+  for (const category of Object.keys(categories).sort()) {
+    for (const template of categories[category] ?? []) {
+      templates.push({ ...template, _category: category })
+    }
+  }
+  return {
+    _export_meta: { export_time: exportTime, template_count: templates.length },
+    templates
+  }
+}
+
+/* ---- 导入（对应 Python import_templates） ---- */
+
+/** 单条导入归一化：缺 id 生成新 id；名称空 → 「未命名模板」；updated_at = 导入时间 */
+export function normalizeImportedTemplate(raw: unknown, now: string): CeshuCustomTemplate | null {
+  if (!isPlainObject(raw)) return null
+  const rawName = typeof raw.name === 'string' ? raw.name.trim() : ''
+  return {
+    id: typeof raw.id === 'string' && raw.id ? raw.id : createCustomTemplateId(),
+    name: rawName || '未命名模板',
+    description: typeof raw.description === 'string' ? raw.description : '',
+    tags: normalizeTemplateTags(Array.isArray(raw.tags) ? raw.tags.filter((tag): tag is string => typeof tag === 'string') : []),
+    chapter_key: typeof raw.chapter_key === 'string' ? raw.chapter_key : '',
+    data: isPlainObject(raw.data) ? raw.data : {},
+    created_at: typeof raw.created_at === 'string' && raw.created_at ? raw.created_at : now,
+    updated_at: now,
+    source_game: typeof raw.source_game === 'string' ? raw.source_game : ''
+  }
+}
+
+/**
+ * 解析导入文件（对应 Python `import_templates` 的读取部分）：
+ * 支持 `{"templates": [...]}` 与裸数组；返回归一化列表与结构上被丢弃的条目数。
+ * 说明：同 id 是否覆盖由存储层判定（需要已知现有模板）。
+ */
+export function parseTemplatesImportFile(
+  raw: unknown,
+  now: string
+): { templates: CeshuCustomTemplate[]; skipped: number } {
+  const list = Array.isArray(raw) ? raw : isPlainObject(raw) && Array.isArray(raw.templates) ? raw.templates : null
+  if (!list) return { templates: [], skipped: 0 }
+  const templates: CeshuCustomTemplate[] = []
+  let skipped = 0
+  for (const item of list) {
+    const template = normalizeImportedTemplate(item, now)
+    if (template) templates.push(template)
+    else skipped += 1
+  }
+  return { templates, skipped }
+}

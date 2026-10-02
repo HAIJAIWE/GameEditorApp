@@ -1,15 +1,19 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync } from 'node:fs'
-import { basename, join } from 'node:path'
+import { basename, dirname, extname, join } from 'node:path'
 
 import {
+  applyCustomTemplateUpdate,
+  buildTemplateExportFile,
   createCustomTemplate,
   filterCustomTemplates,
   normalizeTemplateCategory,
   parseTemplateCategoryFile,
+  parseTemplatesImportFile,
   safeTemplateCategory,
   serializeTemplateCategoryFile,
   type CeshuCustomTemplate,
-  type CustomTemplateDraft
+  type CustomTemplateDraft,
+  type CustomTemplateUpdate
 } from '../../shared/ceshuCustomTemplates'
 import { formatLocalTimestamp } from '../../shared/ceshuModel'
 
@@ -51,6 +55,103 @@ export class CeshuTemplateStore {
         return { deleted: true }
       }
       return { deleted: false }
+    })
+  }
+
+  /**
+   * 更新模板（对应 Python `update_template`）：
+   * 跨分类查找 → 字段归一化（名称传入但为空视为失败）→ 章节变化时迁移分类文件。
+   */
+  update(templateId: string, fields: CustomTemplateUpdate): Promise<{ updated: boolean }> {
+    return this.enqueueWrite(() => {
+      if (!templateId) return { updated: false }
+      const all = this.readAll()
+      for (const [category, templates] of Object.entries(all)) {
+        const target = templates.find((template) => template.id === templateId)
+        if (!target) continue
+        const next = applyCustomTemplateUpdate(target, fields, formatLocalTimestamp())
+        if (!next) return { updated: false }
+        const nextCategory = normalizeTemplateCategory(next.chapter_key)
+        if (nextCategory === category) {
+          this.writeCategory(category, templates.map((item) => (item.id === templateId ? next : item)))
+        } else {
+          this.writeCategory(
+            category,
+            templates.filter((item) => item.id !== templateId)
+          )
+          this.writeCategory(nextCategory, [...this.readCategory(nextCategory), next])
+        }
+        return { updated: true }
+      }
+      return { updated: false }
+    })
+  }
+
+  /** 导出全部自定义模板为 JSON（对应 Python `export_templates`；非 .json 后缀自动补全） */
+  exportAll(outputPath: string): Promise<{ filePath: string; count: number }> {
+    return this.enqueueWrite(() => {
+      const payload = buildTemplateExportFile(this.readAll(), formatLocalTimestamp())
+      const filePath = extname(outputPath).toLowerCase() === '.json' ? outputPath : `${outputPath}.json`
+      mkdirSync(dirname(filePath), { recursive: true })
+      writeFileSync(filePath, JSON.stringify(payload, null, 2), 'utf-8')
+      return { filePath, count: payload.templates.length }
+    })
+  }
+
+  /**
+   * 从 JSON 导入模板（对应 Python `import_templates`）：
+   * 支持 `{"templates": [...]}` 与裸数组；同 id 已存在时默认跳过（overwrite=true 先删除再写入）。
+   */
+  importFrom(inputPath: string, overwrite = false): Promise<{ imported: number; skipped: number }> {
+    return this.enqueueWrite(() => {
+      if (!existsSync(inputPath)) {
+        throw new Error(`模板文件不存在：${inputPath}`)
+      }
+      let raw: unknown
+      try {
+        raw = JSON.parse(readFileSync(inputPath, 'utf-8'))
+      } catch {
+        throw new Error(`模板文件内容损坏（JSON 解析失败）：${basename(inputPath)}`)
+      }
+      const parsed = parseTemplatesImportFile(raw, formatLocalTimestamp())
+      const all = this.readAll()
+      const existingIds = new Set(Object.values(all).flat().map((template) => template.id))
+      const buckets = new Map<string, CeshuCustomTemplate[]>()
+      let imported = 0
+      let skipped = parsed.skipped
+
+      for (const template of parsed.templates) {
+        const duplicate = existingIds.has(template.id)
+        if (duplicate && !overwrite) {
+          skipped += 1
+          continue
+        }
+        const category = normalizeTemplateCategory(template.chapter_key)
+        const bucket = buckets.get(category) ?? []
+        if (duplicate) {
+          // 覆盖：从原分类移除旧条目（旧分类可能与本条目标分类不同）
+          for (const [oldCategory, list] of Object.entries(all)) {
+            if (list.some((item) => item.id === template.id)) {
+              all[oldCategory] = list.filter((item) => item.id !== template.id)
+            }
+          }
+        }
+        bucket.push(template)
+        buckets.set(category, bucket)
+        imported += 1
+      }
+
+      // 覆盖模式先落盘被摘除的分类，再逐分类追加（对应 Python 先 delete 后 append）
+      if (overwrite) {
+        for (const [category, list] of Object.entries(all)) {
+          this.writeCategory(category, list)
+        }
+      }
+      for (const [category, list] of buckets) {
+        const existing = this.readCategory(category)
+        this.writeCategory(category, [...existing, ...list])
+      }
+      return { imported, skipped }
     })
   }
 

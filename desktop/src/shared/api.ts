@@ -32,6 +32,9 @@ export interface MbApi {
   dialog: {
     chooseJsonFile(): Promise<IpcContract['dialog:chooseJsonFile']['res']>
     chooseSaveJsonFile(): Promise<IpcContract['dialog:chooseSaveJsonFile']['res']>
+    chooseTemplateJsonFile(
+      req: IpcContract['dialog:chooseTemplateJsonFile']['req']
+    ): Promise<IpcContract['dialog:chooseTemplateJsonFile']['res']>
     chooseCeshuExportFile(
       req: IpcContract['dialog:chooseCeshuExportFile']['req']
     ): Promise<IpcContract['dialog:chooseCeshuExportFile']['res']>
@@ -77,6 +80,13 @@ export interface MbApi {
       list(req: IpcContract['ceshu:templates:list']['req']): Promise<IpcContract['ceshu:templates:list']['res']>
       save(req: IpcContract['ceshu:templates:save']['req']): Promise<IpcContract['ceshu:templates:save']['res']>
       remove(req: IpcContract['ceshu:templates:delete']['req']): Promise<IpcContract['ceshu:templates:delete']['res']>
+      update(req: IpcContract['ceshu:templates:update']['req']): Promise<IpcContract['ceshu:templates:update']['res']>
+      exportAll(
+        req: IpcContract['ceshu:templates:export']['req']
+      ): Promise<IpcContract['ceshu:templates:export']['res']>
+      importAll(
+        req: IpcContract['ceshu:templates:import']['req']
+      ): Promise<IpcContract['ceshu:templates:import']['res']>
     }
     wordStats(req: IpcContract['ceshu:wordStats']['req']): Promise<IpcContract['ceshu:wordStats']['res']>
     fieldDeps(req: IpcContract['ceshu:fieldDeps']['req']): Promise<IpcContract['ceshu:fieldDeps']['res']>

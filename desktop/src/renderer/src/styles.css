@@ -2085,6 +2085,48 @@ button.ref-row:hover {
   min-width: 110px;
 }
 
+/* ---- GDD 模板编辑器（W29） ---- */
+
+.template-editor-body {
+  display: flex;
+  flex: 1;
+  gap: 12px;
+  min-height: 0;
+}
+
+.template-editor-body .template-list {
+  width: 40%;
+}
+
+.template-editor-item.active {
+  border-color: var(--accent);
+  background: var(--bg-hover);
+}
+
+.template-editor-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.template-editor-data {
+  min-height: 180px;
+  font-family: Consolas, monospace;
+  font-size: 12px;
+}
+
+.template-editor-actions {
+  flex-wrap: wrap;
+}
+
+.template-editor-sep {
+  width: 1px;
+  align-self: stretch;
+  background: var(--border);
+}
+
 .template-item-tags {
   color: var(--text-muted);
   font-size: 11px;

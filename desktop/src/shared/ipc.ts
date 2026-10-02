@@ -24,9 +24,13 @@ import type {
   NotesUpdateInput,
   ReferencesInput,
   SchemaSaveInput,
+  TemplateJsonDialogInput,
   TemplatesDeleteInput,
+  TemplatesExportInput,
+  TemplatesImportInput,
   TemplatesListInput,
-  TemplatesSaveInput
+  TemplatesSaveInput,
+  TemplatesUpdateInput
 } from './schemas'
 import type {
   AppInfo,
@@ -100,6 +104,10 @@ export interface IpcContract {
   'ceshu:templates:list': { req: TemplatesListInput; res: CeshuCustomTemplate[] }
   'ceshu:templates:save': { req: TemplatesSaveInput; res: CeshuCustomTemplate }
   'ceshu:templates:delete': { req: TemplatesDeleteInput; res: { deleted: boolean } }
+  'ceshu:templates:update': { req: TemplatesUpdateInput; res: { updated: boolean } }
+  'ceshu:templates:export': { req: TemplatesExportInput; res: { filePath: string; count: number } }
+  'ceshu:templates:import': { req: TemplatesImportInput; res: { imported: number; skipped: number } }
+  'dialog:chooseTemplateJsonFile': { req: TemplateJsonDialogInput; res: { path: string | null } }
   'ceshu:wordStats': { req: { id: string }; res: CeshuWordStatsReport }
   'ceshu:fieldDeps': { req: { id: string }; res: CeshuFieldDepsReport }
   'dialog:chooseCeshuExportFile': { req: CeshuChooseExportFileInput; res: { path: string | null } }

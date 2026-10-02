@@ -42,7 +42,8 @@ const api: MbApi = {
     chooseJsonFile: () => invoke('dialog:chooseJsonFile', undefined),
     chooseSaveJsonFile: () => invoke('dialog:chooseSaveJsonFile', undefined),
     chooseCeshuExportFile: (req) => invoke('dialog:chooseCeshuExportFile', req),
-    chooseAttrSystemJsonFile: (req) => invoke('dialog:chooseAttrSystemJsonFile', req)
+    chooseAttrSystemJsonFile: (req) => invoke('dialog:chooseAttrSystemJsonFile', req),
+    chooseTemplateJsonFile: (req) => invoke('dialog:chooseTemplateJsonFile', req)
   },
   ceshu: {
     list: () => invoke('ceshu:list', undefined),
@@ -73,7 +74,10 @@ const api: MbApi = {
     templates: {
       list: (req) => invoke('ceshu:templates:list', req),
       save: (req) => invoke('ceshu:templates:save', req),
-      remove: (req) => invoke('ceshu:templates:delete', req)
+      remove: (req) => invoke('ceshu:templates:delete', req),
+      update: (req) => invoke('ceshu:templates:update', req),
+      exportAll: (req) => invoke('ceshu:templates:export', req),
+      importAll: (req) => invoke('ceshu:templates:import', req)
     },
     wordStats: (req) => invoke('ceshu:wordStats', req),
     fieldDeps: (req) => invoke('ceshu:fieldDeps', req)

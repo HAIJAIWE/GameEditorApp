@@ -21,6 +21,7 @@ import ChapterForm from './ChapterForm'
 import ChapterNotesPanel from './ChapterNotesPanel'
 import ChecklistPanel from './ChecklistPanel'
 import FieldDepsPanel from './FieldDepsPanel'
+import TemplateEditorPanel from './TemplateEditorPanel'
 import VersionDiffPanel from './VersionDiffPanel'
 import VersionTimelinePanel from './VersionTimelinePanel'
 import WordStatsPanel from './WordStatsPanel'
@@ -69,6 +70,7 @@ export default function CeshuView({ ceshuId, onChanged, onSelect }: CeshuViewPro
     | 'wordStats'
     | 'fieldDeps'
     | 'timeline'
+    | 'templateEditor'
     | null
   >(null)
   const [changelog, setChangelog] = useState<CeshuChangelog | null>(null)
@@ -251,6 +253,13 @@ export default function CeshuView({ ceshuId, onChanged, onSelect }: CeshuViewPro
     onChanged()
   }
 
+  /** 模板编辑器「应用到该章节」完成：更新当前文档并刷新列表（进度可能变化） */
+  const handleTemplateApplied = (updated: CeshuDocument, chapter: ChapterKey): void => {
+    setDoc(updated)
+    setNotice(`模板数据已应用到「${CHAPTER_LABELS[chapter]}」`)
+    onChanged()
+  }
+
   /** 一键修复应用完成：更新当前文档，有实际填充时刷新侧边栏进度 */
   const handleChecklistFilled = (updated: CeshuDocument, filled: number): void => {
     setDoc(updated)
@@ -291,6 +300,15 @@ export default function CeshuView({ ceshuId, onChanged, onSelect }: CeshuViewPro
           onClick={() => setPanel('timeline')}
         >
           版本时间线
+        </button>
+        <button
+          type="button"
+          className="btn"
+          data-testid="ceshu-template-editor"
+          disabled={busy}
+          onClick={() => setPanel('templateEditor')}
+        >
+          模板编辑器
         </button>
         <button type="button" className="btn" data-testid="ceshu-notes" disabled={busy} onClick={() => setPanel('notes')}>
           笔记
@@ -387,6 +405,16 @@ export default function CeshuView({ ceshuId, onChanged, onSelect }: CeshuViewPro
             ceshuId={doc.ceshu_id}
             currentId={doc.ceshu_id}
             onSelect={onSelect}
+            onClose={() => setPanel(null)}
+          />
+        ) : panel === 'templateEditor' ? (
+          <TemplateEditorPanel
+            key={doc.ceshu_id}
+            ceshuId={doc.ceshu_id}
+            doc={doc}
+            currentChapter={activeChapter}
+            gameName={gameName}
+            onApplied={handleTemplateApplied}
             onClose={() => setPanel(null)}
           />
         ) : panel === 'notes' ? (
