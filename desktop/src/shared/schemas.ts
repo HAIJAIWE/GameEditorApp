@@ -181,6 +181,12 @@ export const ceshuDeriveInputSchema = z.object({
   note: z.string().max(500).default('')
 })
 
+/** 混合玩法预设市场：应用某个预设到当前策划书 */
+export const ceshuApplyPresetInputSchema = z.object({
+  id: z.string().min(1),
+  presetKey: z.string().min(1).max(50)
+})
+
 export const ceshuAiGenerateInputSchema = z.object({
   id: z.string().min(1),
   chapter: z.string().min(1),
@@ -320,6 +326,7 @@ export type CeshuSaveChapterInput = z.infer<typeof ceshuSaveChapterInputSchema>
 export type CeshuExportInput = z.infer<typeof ceshuExportInputSchema>
 export type CeshuChooseExportFileInput = z.infer<typeof ceshuChooseExportFileInputSchema>
 export type CeshuDeriveInput = z.infer<typeof ceshuDeriveInputSchema>
+export type CeshuApplyPresetInput = z.infer<typeof ceshuApplyPresetInputSchema>
 export type CeshuAiGenerateInput = z.infer<typeof ceshuAiGenerateInputSchema>
 export type CeshuDataGenInput = z.infer<typeof ceshuDataGenInputSchema>
 export type CeshuReviewExportInput = z.infer<typeof ceshuReviewExportInputSchema>

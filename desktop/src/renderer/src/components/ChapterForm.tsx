@@ -14,6 +14,7 @@ import {
 } from '../../../shared/ceshuTemplates'
 
 import { CeshuFieldControl, fieldValueToInput, inputToFieldValue, type FieldInput } from './CeshuFieldControl'
+import CompetitiveChart from './CompetitiveChart'
 import SystemsEditor from './SystemsEditor'
 import TemplatePickerPanel from './TemplatePickerPanel'
 
@@ -185,6 +186,14 @@ export default function ChapterForm({ chapter, data, busy, gameName, onSave, onA
             onChange={(next) => setInputs((prev) => ({ ...prev, [field.key]: next }))}
           />
         ))
+      )}
+
+      {/* 第二章：竞品象限图（对应 Python ChapterPanel 在 vision 章附加 CompetitiveChart） */}
+      {chapter === 'vision' && !pickerOpen && (
+        <div className="competitive-chart-block">
+          <span className="form-label">竞品象限图（横轴=创新度，纵轴=完成度）</span>
+          <CompetitiveChart competitors={(draftData ?? data).competitive_analysis} />
+        </div>
       )}
 
       {formError && (

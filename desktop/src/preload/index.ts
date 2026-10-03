@@ -53,6 +53,7 @@ const api: MbApi = {
     export: (req) => invoke('ceshu:export', req),
     versions: (req) => invoke('ceshu:versions', req),
     derive: (req) => invoke('ceshu:derive', req),
+    applyPreset: (req) => invoke('ceshu:applyPreset', req),
     setActive: (req) => invoke('ceshu:setActive', req),
     changelog: (req) => invoke('ceshu:changelog', req),
     validate: (req) => invoke('ceshu:validate', req),

@@ -1,7 +1,7 @@
 # TS 迁移路线图与推进纪律（desktop/）
 
 > 用途：跨会话/跨子代理的**唯一进度与计划事实来源**。每完成一片，回写本文件「进度台账」并同步 `project_memory.md`。
-> 基线：Python 侧 299 文件 / 78,746 行；TS 侧 `desktop/src` 87 文件 / 19,884 行（≈25% 行数当量）。
+> 基线：Python 侧 299 文件 / 78,746 行；TS 侧 `desktop/src` 91 文件 / 20,568 行（≈26% 行数当量，`*.ts|*.tsx` 非空行口径）。
 
 ## 1. 进度台账（已完成）
 
@@ -33,6 +33,7 @@
 | W28 | 自定义模板第二刀（分类文件存储 + 另存为模板（章节/全局）+ 来源筛选 + 删除） | `core/ceshu/custom_template_manager.py` | `shared/ceshuCustomTemplates.ts`（单测 12）、`main/ceshu/templateStore.ts`（单测 6）、IPC `ceshu:templates:*`、选择器内另存/删除 + E2E |
 | W29 | 模板编辑器第三刀（内置+自定义列表/编辑/迁移分类/应用到章节/删除/导出/导入） | `ui/ceshu/template_editor_dialog.py` | `shared/ceshuCustomTemplates.ts`（+update/export/import 纯逻辑，单测 20）、`templateStore.ts`（+update/exportAll/importFrom，单测 10）、IPC `ceshu:templates:update/export/import` + `dialog:chooseTemplateJsonFile`、`components/TemplateEditorPanel.tsx`、E2E |
 | W30 | AI 生成数据表（策划书设定 → 候选 → 人工勾选 → 导入数据表） | `core/agent/skills/ceshu_skill_generate.py::_ai_generate_data`、`ui/ceshu/ai_data_generate_dialog.py` | `shared/ceshuDataGen.ts`（类型/条数/背景/提示词/归一化，单测 14）、IPC `ceshu:aiGenerateData`、`components/AiDataGenPanel.tsx`、E2E（含 **Ollama 桩服务**全链路） |
+| W31 | 混合玩法预设市场 + 竞品象限图（18 预设卡片/搜索/一键应用；vision 章散点图） | `core/ceshu/ceshu_constants.py::HYBRID_GAMEPLAY_PRESETS`、`ui/ceshu/preset_market_dialog.py` 300、`ui/ceshu/competitive_chart.py` 80 | `shared/ceshuPresets.ts`（18 预设逐字搬运 + 搜索 + 应用语义，单测 14）、`shared/ceshuCompetitiveChart.ts`（几何/归一化，单测 12）、IPC `ceshu:applyPreset`（manager 一次写 systems+meta）、`components/PresetMarketPanel.tsx`、`components/CompetitiveChart.tsx`（vision 章内嵌）、E2E（应用落盘 + 散点渲染 2 条） |
 
 ## 2. 剩余工作清单（按体量分档）
 
@@ -50,7 +51,7 @@
 | ~~版本时间线~~ | `ui/ceshu/version_timeline_dialog.py` 405 | ✅ W26 已完成（`shared/ceshuTimeline.ts` 布局/文案纯逻辑 + `VersionTimelinePanel` SVG 时间线 + E2E；`CeshuSummary` 增 `versionNote`） |
 | ~~自定义模板~~ | `custom_template_manager.py` 380 + `template_editor_dialog.py` 514 + `template_picker_dialog.py` 439 + `chapter_templates.py` 133 | ✅ 三刀全部完成（W27 内置模板库 / W28 自定义存储与选择器 / W29 模板编辑器）。**有意未移植**：`count_all`/`count_by_chapter`（UI 端按已加载列表计数即可，避免死代码）；`import_templates` 的 `overwrite` 已在 W29 以「覆盖同 ID」开关暴露 |
 | ~~AI 生成数据表~~ | `ui/ceshu/ai_data_generate_dialog.py` 305 + `ceshu_skill_generate.py::_ai_generate_data` 152 | ✅ W30 已完成（提示词逐句匹平；候选项 `id` 剥离后由数据层生成；E2E 用 Ollama 桩服务打通「生成→勾选→导入」） |
-| 预设市场 / 竞品图表 | `preset_market_dialog.py` 300 + `competitive_chart.py` 80 | 数据 + 简单图表 |
+| ~~预设市场 / 竞品图表~~ | `preset_market_dialog.py` 300 + `competitive_chart.py` 80 | ✅ W31 已完成（`shared/ceshuPresets.ts` + `shared/ceshuCompetitiveChart.ts` 纯逻辑；IPC `ceshu:applyPreset` 一次写 systems+meta；`PresetMarketPanel` 卡片/搜索/确认框；`CompetitiveChart` 内嵌 vision 章） |
 | 系统依赖确认 / 数据同步 | `system_confirm_dialog.py` 242 + `ceshu_data_sync.py` 248 | 与 systems 章、数据表联动 |
 | 首页/卡片 | `home_view.py` 452 + `home_card.py` 136 | 需要多文档聚合视图 |
 | 迁移工具 | `ceshu_migration.py` 111 | 旧版库迁移 |
@@ -98,6 +99,8 @@ node_modules\.bin\playwright test          ← 必须 dangerouslyDisableSandbox=
 - 单行 `<input>` 会丢弃换行（浏览器 value 净化，与 QLineEdit 同行为）：`append` 模式拼接的文本在输入框里显示为连写，但草稿数据仍含 `\n` → UI 断言用正则、落盘断言用精确值。
 - **LLM 相关 E2E 可用「Ollama 桩服务」打通全链路**：`node:http` 监听随机端口，`GET /api/tags` 返回 `{models:[{name:'stub:latest',...}]}`、`POST /api/generate` 返回 `{response: "<目标 JSON 字符串>", done:true,...}`，通过 `MB_OLLAMA_HOST` 注入；还能把收到的 `prompt` 收集起来断言提示词组装（见 `tests/e2e/ceshu-ai-datagen.spec.ts`）。
 - 勾选项的 `data-testid` 若挂在 `<input>` 上，`toContainText` 断言要落在其外层 `label` 上（input 自身无文本）。
+- **SVG 里用内联 `fill` 着色的元素，CSS 不要再写 `fill`**（CSS 会覆盖 presentation attribute，导致颜色失效）——竞品散点名只能控字号。
+- **给子代理的「精确文案/数字」契约必须直接抄自 Python 源码，不能凭记忆写**：W31 委派时 `formatRecommendedSystems` 契约误写成「rpg 输出全部 9 项」，子代理按契约实现了错误的「>9 才截断」；正确语义是 Python 的 `rec_systems[:6]`（始终取前 6 项，>6 追加「 等 N 项」）。子代理会在汇报里指出冲突，但**必须当场按源码修正并回归单测**。
 
 ## 5. 子代理并行约定（重要）
 

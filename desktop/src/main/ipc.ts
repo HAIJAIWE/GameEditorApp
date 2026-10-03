@@ -10,6 +10,7 @@ import {
   attrSystemSaveInputSchema,
   batchUpdateInputSchema,
   ceshuAiGenerateInputSchema,
+  ceshuApplyPresetInputSchema,
   ceshuChecklistExportInputSchema,
   ceshuChooseExportFileInputSchema,
   ceshuCreateInputSchema,
@@ -175,6 +176,9 @@ export function registerIpcHandlers({
   })
   handle('ceshu:versions', ceshuGetInputSchema, (req) => ceshuManager.versions(req.id))
   handle('ceshu:derive', ceshuDeriveInputSchema, (req) => ceshuManager.derive(req.id, req.note))
+  handle('ceshu:applyPreset', ceshuApplyPresetInputSchema, (req) =>
+    ceshuManager.applyPreset(req.id, req.presetKey)
+  )
   handle('ceshu:setActive', ceshuGetInputSchema, (req) => ceshuManager.setActive(req.id))
   handle('ceshu:changelog', ceshuGetInputSchema, (req) => ceshuManager.changelog(req.id))
   handle('ceshu:validate', ceshuGetInputSchema, (req) => validateCeshu(ceshuManager.get(req.id)))

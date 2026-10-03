@@ -2,6 +2,7 @@ import type { CeshuDocument, CeshuSummary, ChapterData, ChapterKey, GddScope } f
 import { buildChangelogEntry, compareVersionLabels, nextVersionLabel, type CeshuChangelog } from '../../shared/ceshuDiff'
 import { autoFillRequiredFields } from '../../shared/ceshuFill'
 import { computeChapterProgress, computeEnabledEditors, createCeshuId, createDefaultCeshu, formatLocalTimestamp, getGddScope, withChapter } from '../../shared/ceshuModel'
+import { buildPresetApplication } from '../../shared/ceshuPresets'
 import { CeshuStorage } from './storage'
 
 /**
@@ -65,6 +66,30 @@ export class CeshuManager {
         this.storage.save(filledDoc)
       }
       return { doc: filledDoc, filled }
+    })
+  }
+
+  /**
+   * 应用混合玩法预设（对应 Python PresetMarketDialog._on_apply）：
+   * 启用推荐系统 + 空 game_type 时写入预设模块类型，systems 与 meta 两章一次原子写盘。
+   */
+  applyPreset(
+    id: string,
+    presetKey: string
+  ): Promise<{ doc: CeshuDocument; enabledCount: number; presetLabel: string; gameTypeFilled: boolean }> {
+    return this.enqueueWrite(() => {
+      const doc = this.storage.load(id)
+      const application = buildPresetApplication(doc, presetKey)
+      if (!application) throw new Error(`未知预设：${presetKey}`)
+      const withSystems = withChapter(doc, 'systems', application.systems)
+      const next = withChapter(withSystems, 'meta', application.meta)
+      this.storage.save(next)
+      return {
+        doc: next,
+        enabledCount: application.enabledCount,
+        presetLabel: application.preset.label,
+        gameTypeFilled: application.gameTypeFilled
+      }
     })
   }
 

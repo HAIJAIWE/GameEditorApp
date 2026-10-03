@@ -22,6 +22,7 @@ import ChapterForm from './ChapterForm'
 import ChapterNotesPanel from './ChapterNotesPanel'
 import ChecklistPanel from './ChecklistPanel'
 import FieldDepsPanel from './FieldDepsPanel'
+import PresetMarketPanel from './PresetMarketPanel'
 import TemplateEditorPanel from './TemplateEditorPanel'
 import VersionDiffPanel from './VersionDiffPanel'
 import VersionTimelinePanel from './VersionTimelinePanel'
@@ -73,6 +74,7 @@ export default function CeshuView({ ceshuId, onChanged, onSelect }: CeshuViewPro
     | 'timeline'
     | 'templateEditor'
     | 'aiDataGen'
+    | 'presetMarket'
     | null
   >(null)
   const [changelog, setChangelog] = useState<CeshuChangelog | null>(null)
@@ -268,6 +270,13 @@ export default function CeshuView({ ceshuId, onChanged, onSelect }: CeshuViewPro
     if (filled > 0) onChanged()
   }
 
+  /** 预设市场应用完成：systems/meta 已在主进程写盘，更新文档并刷新侧边栏 */
+  const handlePresetApplied = (updated: CeshuDocument, enabledCount: number, presetLabel: string): void => {
+    setDoc(updated)
+    setNotice(`已应用预设【${presetLabel}】，新启用 ${enabledCount} 个游戏系统`)
+    onChanged()
+  }
+
   return (
     <div className="ceshu-view">
       <header className="toolbar">
@@ -345,6 +354,15 @@ export default function CeshuView({ ceshuId, onChanged, onSelect }: CeshuViewPro
         >
           AI 生成数据
         </button>
+        <button
+          type="button"
+          className="btn"
+          data-testid="ceshu-preset-market"
+          disabled={busy}
+          onClick={() => setPanel('presetMarket')}
+        >
+          预设市场
+        </button>
         <select
           className="form-select export-format"
           data-testid="export-format"
@@ -420,6 +438,13 @@ export default function CeshuView({ ceshuId, onChanged, onSelect }: CeshuViewPro
           />
         ) : panel === 'aiDataGen' ? (
           <AiDataGenPanel key={doc.ceshu_id} ceshuId={doc.ceshu_id} onClose={() => setPanel(null)} />
+        ) : panel === 'presetMarket' ? (
+          <PresetMarketPanel
+            key={doc.ceshu_id}
+            ceshuId={doc.ceshu_id}
+            onApplied={handlePresetApplied}
+            onClose={() => setPanel(null)}
+          />
         ) : panel === 'templateEditor' ? (
           <TemplateEditorPanel
             key={doc.ceshu_id}

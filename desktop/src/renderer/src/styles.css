@@ -1906,6 +1906,129 @@ button.ref-row:hover {
   font-size: 12px;
 }
 
+/* ---- 混合玩法预设市场（策划书） ---- */
+
+.preset-search {
+  width: 100%;
+  margin: 8px 0;
+}
+
+.preset-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.preset-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+}
+
+.preset-card:hover {
+  border-color: var(--accent);
+  background: var(--bg-hover);
+}
+
+.preset-card-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.preset-card-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.preset-badge {
+  padding: 2px 8px;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.preset-badge-module {
+  background: var(--accent);
+}
+
+.preset-highlight {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.preset-systems {
+  font-size: 11px;
+}
+
+.preset-secondary {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.preset-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 0;
+  padding: 12px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+}
+
+.preset-confirm-list {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+/* ---- 竞品象限图（策划书第二章） ---- */
+
+.competitive-chart-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.competitive-chart {
+  width: 100%;
+  max-width: 480px;
+  height: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+}
+
+.competitive-chart-grid {
+  stroke: var(--border);
+  stroke-width: 0.5;
+}
+
+.competitive-chart-axis {
+  stroke: var(--text-muted);
+  stroke-width: 1;
+}
+
+.competitive-chart-label {
+  fill: var(--text-muted);
+  font-size: 9px;
+}
+
+/* 散点名称颜色由组件内联 fill 提供，此处只控字号 */
+.competitive-chart-name {
+  font-size: 9px;
+}
+
 /* ---- 版本时间线（策划书） ---- */
 
 .timeline-legend {
