@@ -24,6 +24,7 @@ import type {
   NotesUpdateInput,
   ReferencesInput,
   SchemaSaveInput,
+  CeshuDataGenInput,
   TemplateJsonDialogInput,
   TemplatesDeleteInput,
   TemplatesExportInput,
@@ -50,6 +51,7 @@ import type { CeshuCustomTemplate } from './ceshuCustomTemplates'
 import type { CeshuWordStatsReport } from './ceshuWordStats'
 import type { CeshuFieldDepsReport } from './ceshuFieldDeps'
 import type { CeshuAiGenerateResult, CeshuAiReviewResult } from './ceshuAi'
+import type { CeshuDataGenResult } from './ceshuDataGen'
 import type { ReferenceReport } from './references'
 import type { AttrSystem } from './attrSystem'
 
@@ -91,6 +93,7 @@ export interface IpcContract {
   'ceshu:score': { req: { id: string }; res: CeshuScoreReport }
   'ceshu:aiGenerateChapter': { req: CeshuAiGenerateInput; res: CeshuAiGenerateResult }
   'ceshu:aiReview': { req: { id: string }; res: CeshuAiReviewResult }
+  'ceshu:aiGenerateData': { req: CeshuDataGenInput; res: CeshuDataGenResult }
   'ceshu:exportReviewReport': { req: CeshuReviewExportInput; res: { filePath: string } }
   'ceshu:checklist': { req: { id: string }; res: ChecklistReport }
   'ceshu:autoFill': { req: { id: string }; res: { doc: CeshuDocument; filled: number } }

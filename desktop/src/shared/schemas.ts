@@ -195,6 +195,14 @@ export const ceshuAiGenerateInputSchema = z.object({
     .optional()
 })
 
+/** AI 生成候选游戏数据（数值/系统章作为设定 → 候选 → 人工导入） */
+export const ceshuDataGenInputSchema = z.object({
+  id: z.string().min(1),
+  dataTypes: z.array(z.string().max(50)).max(30).default([]),
+  count: z.number().int().min(1).max(20).default(5),
+  instruction: z.string().max(500).default('')
+})
+
 /** AI 审阅报告导出（渲染层生成 Markdown，主进程原子写盘） */
 export const ceshuReviewExportInputSchema = z.object({
   path: z.string().min(1),
@@ -313,6 +321,7 @@ export type CeshuExportInput = z.infer<typeof ceshuExportInputSchema>
 export type CeshuChooseExportFileInput = z.infer<typeof ceshuChooseExportFileInputSchema>
 export type CeshuDeriveInput = z.infer<typeof ceshuDeriveInputSchema>
 export type CeshuAiGenerateInput = z.infer<typeof ceshuAiGenerateInputSchema>
+export type CeshuDataGenInput = z.infer<typeof ceshuDataGenInputSchema>
 export type CeshuReviewExportInput = z.infer<typeof ceshuReviewExportInputSchema>
 export type CeshuChecklistExportInput = z.infer<typeof ceshuChecklistExportInputSchema>
 export type CeshuDiffInput = z.infer<typeof ceshuDiffInputSchema>

@@ -1,7 +1,7 @@
 # TS 迁移路线图与推进纪律（desktop/）
 
 > 用途：跨会话/跨子代理的**唯一进度与计划事实来源**。每完成一片，回写本文件「进度台账」并同步 `project_memory.md`。
-> 基线：Python 侧 299 文件 / 78,746 行；TS 侧 `desktop/src` 85 文件 / 19,323 行（≈25% 行数当量）。
+> 基线：Python 侧 299 文件 / 78,746 行；TS 侧 `desktop/src` 87 文件 / 19,884 行（≈25% 行数当量）。
 
 ## 1. 进度台账（已完成）
 
@@ -32,6 +32,7 @@
 | W27 | 章节模板库第一刀（18 章 34 个内置模板 + 搜索/预览 + 三应用模式 + 回填章节草稿） | `data/chapter_templates_data.py`、`ui/ceshu/chapter_templates.py`、`ui/ceshu/template_picker_dialog.py` | `shared/ceshuTemplateData.ts`（机械转换）、`shared/ceshuTemplates.ts`（单测 14）、`components/TemplatePickerPanel.tsx`、ChapterForm 集成、E2E |
 | W28 | 自定义模板第二刀（分类文件存储 + 另存为模板（章节/全局）+ 来源筛选 + 删除） | `core/ceshu/custom_template_manager.py` | `shared/ceshuCustomTemplates.ts`（单测 12）、`main/ceshu/templateStore.ts`（单测 6）、IPC `ceshu:templates:*`、选择器内另存/删除 + E2E |
 | W29 | 模板编辑器第三刀（内置+自定义列表/编辑/迁移分类/应用到章节/删除/导出/导入） | `ui/ceshu/template_editor_dialog.py` | `shared/ceshuCustomTemplates.ts`（+update/export/import 纯逻辑，单测 20）、`templateStore.ts`（+update/exportAll/importFrom，单测 10）、IPC `ceshu:templates:update/export/import` + `dialog:chooseTemplateJsonFile`、`components/TemplateEditorPanel.tsx`、E2E |
+| W30 | AI 生成数据表（策划书设定 → 候选 → 人工勾选 → 导入数据表） | `core/agent/skills/ceshu_skill_generate.py::_ai_generate_data`、`ui/ceshu/ai_data_generate_dialog.py` | `shared/ceshuDataGen.ts`（类型/条数/背景/提示词/归一化，单测 14）、IPC `ceshu:aiGenerateData`、`components/AiDataGenPanel.tsx`、E2E（含 **Ollama 桩服务**全链路） |
 
 ## 2. 剩余工作清单（按体量分档）
 
@@ -47,7 +48,7 @@
 | 依赖图（字段/系统） | `core/ceshu/field_dependencies.py` 233 + `ui/ceshu/field_dependency_graph.py` 403 + `system_dependency_graph.py` 307 | 纯逻辑（可用性/触发规则）+ 图渲染 |
 | ~~版本时间线~~ | `ui/ceshu/version_timeline_dialog.py` 405 | ✅ W26 已完成（`shared/ceshuTimeline.ts` 布局/文案纯逻辑 + `VersionTimelinePanel` SVG 时间线 + E2E；`CeshuSummary` 增 `versionNote`） |
 | ~~自定义模板~~ | `custom_template_manager.py` 380 + `template_editor_dialog.py` 514 + `template_picker_dialog.py` 439 + `chapter_templates.py` 133 | ✅ 三刀全部完成（W27 内置模板库 / W28 自定义存储与选择器 / W29 模板编辑器）。**有意未移植**：`count_all`/`count_by_chapter`（UI 端按已加载列表计数即可，避免死代码）；`import_templates` 的 `overwrite` 已在 W29 以「覆盖同 ID」开关暴露 |
-| AI 生成数据表 | `ui/ceshu/ai_data_generate_dialog.py` 305 | 复用 `shared/ceshuAi.ts` 提示词框架 |
+| ~~AI 生成数据表~~ | `ui/ceshu/ai_data_generate_dialog.py` 305 + `ceshu_skill_generate.py::_ai_generate_data` 152 | ✅ W30 已完成（提示词逐句匹平；候选项 `id` 剥离后由数据层生成；E2E 用 Ollama 桩服务打通「生成→勾选→导入」） |
 | 预设市场 / 竞品图表 | `preset_market_dialog.py` 300 + `competitive_chart.py` 80 | 数据 + 简单图表 |
 | 系统依赖确认 / 数据同步 | `system_confirm_dialog.py` 242 + `ceshu_data_sync.py` 248 | 与 systems 章、数据表联动 |
 | 首页/卡片 | `home_view.py` 452 + `home_card.py` 136 | 需要多文档聚合视图 |
@@ -94,6 +95,8 @@ node_modules\.bin\playwright test          ← 必须 dangerouslyDisableSandbox=
 - 章节中文标签为「第一章·项目元信息」格式，测试断言按真实文案。
 - **E2E 跑的是 `out/` 产物**：改渲染层后必须先 `electron-vite build` 再 `playwright test`，否则新按钮/面板在 E2E 中不可见（症状为定位器 30s 超时）。
 - 单行 `<input>` 会丢弃换行（浏览器 value 净化，与 QLineEdit 同行为）：`append` 模式拼接的文本在输入框里显示为连写，但草稿数据仍含 `\n` → UI 断言用正则、落盘断言用精确值。
+- **LLM 相关 E2E 可用「Ollama 桩服务」打通全链路**：`node:http` 监听随机端口，`GET /api/tags` 返回 `{models:[{name:'stub:latest',...}]}`、`POST /api/generate` 返回 `{response: "<目标 JSON 字符串>", done:true,...}`，通过 `MB_OLLAMA_HOST` 注入；还能把收到的 `prompt` 收集起来断言提示词组装（见 `tests/e2e/ceshu-ai-datagen.spec.ts`）。
+- 勾选项的 `data-testid` 若挂在 `<input>` 上，`toContainText` 断言要落在其外层 `label` 上（input 自身无文本）。
 
 ## 5. 子代理并行约定（重要）
 
@@ -116,6 +119,7 @@ node_modules\.bin\playwright test          ← 必须 dangerouslyDisableSandbox=
 | ~~W27~~ | ~~章节模板库（第一刀：内置模板 + 选择器）~~ | ✅ 已完成：`shared/ceshuTemplateData.ts`（18 章 34 模板，由 Python 数据池机械转换）+ `shared/ceshuTemplates.ts`（查询/三模式合并/预览树，单测 14）+ `TemplatePickerPanel`（筛选/搜索/预览/二次确认）+ ChapterForm「模板库」入口（回填章节草稿，需再点保存）+ E2E 27-27 |
 | ~~W28~~ | ~~自定义模板（第二刀）~~ | ✅ 已完成：`shared/ceshuCustomTemplates.ts`（分类净化/归一化/搜索/筛选，单测 12）+ `main/ceshu/templateStore.ts`（`userData/ceshu_templates/<category>.json`，串行写队列 + 原子写，单测 6）+ IPC `ceshu:templates:list/save/delete` + 选择器「另存为模板」（章节/全局）、来源筛选（全部/内置/自定义）、删除二次确认 + E2E 28-28 |
 | ~~W29~~ | ~~模板编辑器（第三刀）~~ | ✅ 已完成：`TemplateEditorPanel`（筛选=全部章节/仅自定义/仅内置/18 章 + 搜索；编辑器=名称/章节/描述/标签/来源/数据 JSON；新建/保存/另存为自定义/删除/导出/导入（可勾选覆盖同 ID）/应用到该章节）+ IPC 4 通道 + E2E 29-29 |
-| W30 | AI 生成数据表（`ai_data_generate_dialog.py` 305） | 复用 `shared/ceshuAi.ts` 提示词框架 |
-| W31+ | 预设市场 / 竞品图表 / 系统依赖确认 / 数据同步 / 首页卡片 … | 见 B 档 |
+| ~~W30~~ | ~~AI 生成数据表~~ | ✅ 已完成：`shared/ceshuDataGen.ts`（类型解析/条数归一/背景与字段提示/提示词/候选归一化/摘要，单测 14）+ IPC `ceshu:aiGenerateData` + `AiDataGenPanel`（12 类勾选、每类数量 1~20、补充要求、分类标签预览、全选、勾选导入）+ E2E 2 条（离线提示 + 桩服务全链路） |
+| W31 | 预设市场（`preset_market_dialog.py` 300）/ 竞品图表（`competitive_chart.py` 80） | 数据 + 简单图表 |
+| W32+ | 系统依赖确认 / 数据同步 / 首页卡片 / 迁移工具 … | 见 B 档 |
 | 之后 | 库管理（多库） → AI/Agent 引擎（需方案设计） | A 档 |

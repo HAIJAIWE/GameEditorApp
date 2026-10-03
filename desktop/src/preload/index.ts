@@ -59,6 +59,7 @@ const api: MbApi = {
     score: (req) => invoke('ceshu:score', req),
     aiGenerateChapter: (req) => invoke('ceshu:aiGenerateChapter', req),
     aiReview: (req) => invoke('ceshu:aiReview', req),
+    aiGenerateData: (req) => invoke('ceshu:aiGenerateData', req),
     exportReviewReport: (req) => invoke('ceshu:exportReviewReport', req),
     checklist: (req) => invoke('ceshu:checklist', req),
     autoFill: (req) => invoke('ceshu:autoFill', req),

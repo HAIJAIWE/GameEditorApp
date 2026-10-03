@@ -15,6 +15,7 @@ import type { CeshuChangeItem, CeshuChangelog } from '../../../shared/ceshuDiff'
 import { gradeLabel, type CeshuScoreReport } from '../../../shared/ceshuScorer'
 import type { CeshuAiGenerateResult } from '../../../shared/ceshuAi'
 
+import AiDataGenPanel from './AiDataGenPanel'
 import AiFullGeneratePanel from './AiFullGeneratePanel'
 import AiReviewPanel from './AiReviewPanel'
 import ChapterForm from './ChapterForm'
@@ -71,6 +72,7 @@ export default function CeshuView({ ceshuId, onChanged, onSelect }: CeshuViewPro
     | 'fieldDeps'
     | 'timeline'
     | 'templateEditor'
+    | 'aiDataGen'
     | null
   >(null)
   const [changelog, setChangelog] = useState<CeshuChangelog | null>(null)
@@ -334,6 +336,15 @@ export default function CeshuView({ ceshuId, onChanged, onSelect }: CeshuViewPro
         <button type="button" className="btn" data-testid="ceshu-ai-full" disabled={busy} onClick={() => setPanel('aiFull')}>
           AI 一键生成
         </button>
+        <button
+          type="button"
+          className="btn"
+          data-testid="ceshu-ai-datagen"
+          disabled={busy}
+          onClick={() => setPanel('aiDataGen')}
+        >
+          AI 生成数据
+        </button>
         <select
           className="form-select export-format"
           data-testid="export-format"
@@ -407,6 +418,8 @@ export default function CeshuView({ ceshuId, onChanged, onSelect }: CeshuViewPro
             onSelect={onSelect}
             onClose={() => setPanel(null)}
           />
+        ) : panel === 'aiDataGen' ? (
+          <AiDataGenPanel key={doc.ceshu_id} ceshuId={doc.ceshu_id} onClose={() => setPanel(null)} />
         ) : panel === 'templateEditor' ? (
           <TemplateEditorPanel
             key={doc.ceshu_id}

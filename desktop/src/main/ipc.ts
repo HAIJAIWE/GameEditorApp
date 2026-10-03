@@ -16,6 +16,7 @@ import {
   ceshuDeriveInputSchema,
   ceshuDiffExportInputSchema,
   ceshuDiffInputSchema,
+  ceshuDataGenInputSchema,
   ceshuExportInputSchema,
   ceshuGetInputSchema,
   ceshuSaveChapterInputSchema,
@@ -47,6 +48,16 @@ import {
   isChapterKey
 } from '../shared/ceshuConstants'
 import { buildChapterPrompt, buildReviewPrompts, filterGeneratedFields, mergeChapterDraft, parseLlmJson, parseReviewResponse } from '../shared/ceshuAi'
+import {
+  DATA_GEN_ERROR_EMPTY,
+  DATA_GEN_ERROR_NO_TYPE,
+  DATA_GEN_ERROR_UNPARSABLE,
+  buildDataGenPrompt,
+  buildDataGenSummaryMessage,
+  clampDataGenCount,
+  normalizeDataGenCandidates,
+  resolveSelectedDataTypes
+} from '../shared/ceshuDataGen'
 import { runChecklist } from '../shared/ceshuChecklist'
 import { buildVersionDiff } from '../shared/ceshuDiff'
 import { buildFieldDepsReport } from '../shared/ceshuFieldDeps'
@@ -188,6 +199,31 @@ export function registerIpcHandlers({
     const { model, content } = await llmClient.generate(built.system, built.prompt)
     const parsed = parseLlmJson(content)
     return { model, fields: filterGeneratedFields(doc, req.chapter, parsed), rawText: content }
+  })
+  handle('ceshu:aiGenerateData', ceshuDataGenInputSchema, async (req) => {
+    const doc = ceshuManager.get(req.id)
+    const types = typeSchemaStore.getTypes()
+    const selected = resolveSelectedDataTypes(types, req.dataTypes)
+    if (selected.length === 0) {
+      throw new Error(DATA_GEN_ERROR_NO_TYPE)
+    }
+    const built = buildDataGenPrompt(doc, types, selected, clampDataGenCount(req.count), req.instruction.trim())
+    const { model, content } = await llmClient.generate(built.system, built.prompt)
+    const parsed = parseLlmJson(content)
+    if (Object.keys(parsed).length === 0) {
+      throw new Error(DATA_GEN_ERROR_UNPARSABLE)
+    }
+    const normalized = normalizeDataGenCandidates(parsed, selected, new Set(types.map((type) => type.pluralKey)))
+    if (normalized.total === 0) {
+      throw new Error(DATA_GEN_ERROR_EMPTY)
+    }
+    return {
+      model,
+      candidates: normalized.candidates,
+      generatedCounts: normalized.generatedCounts,
+      total: normalized.total,
+      summary: buildDataGenSummaryMessage(normalized.generatedCounts)
+    }
   })
   handle('ceshu:aiReview', ceshuGetInputSchema, async (req) => {
     const doc = ceshuManager.get(req.id)

@@ -2085,6 +2085,70 @@ button.ref-row:hover {
   min-width: 110px;
 }
 
+/* ---- AI 数据生成（W30） ---- */
+
+.datagen-types {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.datagen-type-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.datagen-count {
+  width: 72px;
+  flex: 0 0 auto;
+}
+
+.datagen-tabs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.datagen-tab {
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.datagen-tab:hover {
+  border-color: var(--accent);
+}
+
+.datagen-tab.active {
+  border-color: var(--accent);
+  background: var(--bg-hover);
+}
+
+.datagen-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-height: 160px;
+  max-height: 320px;
+  overflow: auto;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+
+.datagen-item {
+  font-size: 13px;
+}
+
 /* ---- GDD 模板编辑器（W29） ---- */
 
 .template-editor-body {
