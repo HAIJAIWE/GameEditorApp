@@ -36,9 +36,10 @@
 
 ## 2. 剩余工作清单（按体量分档）
 
-### A 档（大块，需单独立项）
-1. **AI/Agent 引擎**（≈27,500 行，占全域 35%）：`core/agent/` 97 文件（技能注册与调用、LLM 代码执行与自愈改码、`brain_llm`、`shell_skill` 白名单、向量检索、多智能体路由）+ `ui/digital_panel_*`(+`digital_employee`/`chat_renderer`/`ai_bridge` ≈2,900 行) + `src/features/` 2,827 行。**已预演**：quickjs-emscripten 沙箱、ollama 客户端、vectra 向量库（`main/security/jsSandbox.ts`、`main/llm/client.ts`）。
-2. **库管理（多库）**（≈1,600 行）：`core/library_manager.py` 626 + `ui/widgets/library_bar` + `ui/library_controller.py` 39 + `ui/ceshu_controller.py` 337 + `ui/data_tab.py` 库联动。**影响**：数据层与策划书/笔记归属路径需按库隔离（当前为 `userData` 单库直存）。
+### A 档（大块，需单独立项）—— **已立项，方案见 [`a-tier-plan.md`](./a-tier-plan.md)**
+> 立项调研结论（3 子代理并行盘点）：**不需要 1:1 复刻 21,669 行**。按迁移价值三分——必修核心契约 ≈6–8k 行（技能协议/调度/LLM 循环/SafetyGuard/会话持久化）、重设计 ≈7–8k 行（执行沙箱→quickjs、向量→vectra、MCP、诊断自愈 4.5k 降级）、**砍掉 ≈3–4k 行**（`code_sandbox.py` 202 行死代码重复、`llm_healer` 名不符实 148 行、`digital_panel_state.py` 类型桩 222 行、PyQt 内省/QSS 胶水 ≈700 行、库管理 schema 自动升级与整库导入占 manager 近半）。关键发现：**没有任何 `exec/eval` 执行 LLM 生成代码**；Python 沙箱实为 `subprocess` + 可绕的正则黑名单（`security/sandbox.py:36/166`）；自愈改码会无原子回滚地改写源文件（`tool_repair.py:786-792`），**TS 侧明确不做**。
+1. **AI/Agent 引擎**（≈27,500 行，占全域 35%）：`core/agent/` 97 文件 / 21,669 行 + `ui/digital_panel_*`(+`digital_employee`/`chat_renderer`/`ai_bridge` ≈2,834 行) + `src/features/` 2,827 行（经查**与 core/agent 零耦合**，是旧 AI 通道与导出/统计等杂项，按各自域迁）。**已预演**：quickjs-emscripten 沙箱、ollama 客户端、vectra 向量库（`main/security/jsSandbox.ts`、`main/llm/client.ts`）。**分期**：A1-1 技能协议+调度器 → A1-2 Brain 循环+事件流 → A1-3 会话与记忆 → A1-4 数字员工面板 → A1-5 业务技能接线+托盘/热键。
+2. **库管理（多库）**（≈1,600 行）：`core/library_manager.py` 626 + `ui/widgets/library_bar` 356 + `ui/library_controller.py` 39 + `ui/ceshu_controller.py` 337 + `ui/data_tab.py` 库联动。**影响**：数据层与策划书/笔记/模板/属性/schema 归属路径需按库隔离（当前为 `userData` 单库直存，**6 处 store 前缀 + 库注册表 + `library:changed` 广播**即可，不涉业务重写）。**分期**：A2-1 库服务与路径迁移 → A2-2 库条 UI 与切换联动。
 
 ### B 档（可独立成刀）
 | 备选切片 | Python 参照（行数） | 备注 |
@@ -122,4 +123,5 @@ node_modules\.bin\playwright test          ← 必须 dangerouslyDisableSandbox=
 | ~~W30~~ | ~~AI 生成数据表~~ | ✅ 已完成：`shared/ceshuDataGen.ts`（类型解析/条数归一/背景与字段提示/提示词/候选归一化/摘要，单测 14）+ IPC `ceshu:aiGenerateData` + `AiDataGenPanel`（12 类勾选、每类数量 1~20、补充要求、分类标签预览、全选、勾选导入）+ E2E 2 条（离线提示 + 桩服务全链路） |
 | W31 | 预设市场（`preset_market_dialog.py` 300）/ 竞品图表（`competitive_chart.py` 80） | 数据 + 简单图表 |
 | W32+ | 系统依赖确认 / 数据同步 / 首页卡片 / 迁移工具 … | 见 B 档 |
-| 之后 | 库管理（多库） → AI/Agent 引擎（需方案设计） | A 档 |
+| A2-1 / A2-2 | **库管理（多库）**：库服务+注册表+存储按库隔离 → 库条 UI 与切换联动 | 方案见 [`a-tier-plan.md`](./a-tier-plan.md)（建议先做：改动集中且越晚做迁移成本越高） |
+| A1-1 … A1-5 | **AI/Agent 引擎**：技能协议+调度器 → Brain 循环+事件流 → 会话与记忆 → 数字员工面板 → 业务技能接线 | 同上；LLM 相关 E2E 一律用 Ollama 桩服务（W30 技法） |
