@@ -12,6 +12,7 @@ import {
   type GddScope
 } from './ceshuConstants'
 import { createDefaultChapters } from './ceshuDefaults'
+import { migrateV4ToV5, needsV4Migration } from './ceshuMigration'
 
 /**
  * 策划书纯逻辑（跨进程共用：主进程存取用，渲染层进度展示用）。
@@ -62,6 +63,8 @@ export function createDefaultCeshu(options: { scope: GddScope; name?: string }):
 
 /**
  * 归一化磁盘数据为 CeshuDocument。
+ * - 迁移：检测到 v4.0 / 缺失新增章节时先跑 `migrateV4ToV5`（对齐 Python `CeshuModel.from_dict`
+ *   的懒加载迁移）；必须在套用默认值之前，才能读到旧章节的原始值
  * - 章节：raw 里存在且为对象则整体替换默认值（与 Python from_dict 行为一致，容错旧版字段差异）
  * - 顶层未知键保留（兼容旧版与未来扩展）
  */
@@ -69,29 +72,30 @@ export function normalizeCeshu(raw: unknown): CeshuDocument {
   if (!isPlainObject(raw)) {
     throw new Error('策划书文件格式不正确：期望 JSON 对象')
   }
+  const source: Record<string, unknown> = needsV4Migration(raw) ? migrateV4ToV5(raw) : raw
   const now = formatLocalTimestamp()
   const base: CeshuDocument = {
-    version: typeof raw.version === 'string' ? raw.version : '5.0',
-    ceshu_id: typeof raw.ceshu_id === 'string' && raw.ceshu_id ? raw.ceshu_id : createCeshuId(),
-    created_at: typeof raw.created_at === 'string' ? raw.created_at : now,
-    updated_at: typeof raw.updated_at === 'string' ? raw.updated_at : now,
-    parent_id: typeof raw.parent_id === 'string' ? raw.parent_id : '',
-    version_label: typeof raw.version_label === 'string' && raw.version_label ? raw.version_label : 'v1.0',
-    is_active: typeof raw.is_active === 'boolean' ? raw.is_active : true,
-    version_note: typeof raw.version_note === 'string' ? raw.version_note : '',
-    style: typeof raw.style === 'string' ? raw.style : '',
-    module_type: typeof raw.module_type === 'string' ? raw.module_type : '',
+    version: typeof source.version === 'string' ? source.version : '5.0',
+    ceshu_id: typeof source.ceshu_id === 'string' && source.ceshu_id ? source.ceshu_id : createCeshuId(),
+    created_at: typeof source.created_at === 'string' ? source.created_at : now,
+    updated_at: typeof source.updated_at === 'string' ? source.updated_at : now,
+    parent_id: typeof source.parent_id === 'string' ? source.parent_id : '',
+    version_label: typeof source.version_label === 'string' && source.version_label ? source.version_label : 'v1.0',
+    is_active: typeof source.is_active === 'boolean' ? source.is_active : true,
+    version_note: typeof source.version_note === 'string' ? source.version_note : '',
+    style: typeof source.style === 'string' ? source.style : '',
+    module_type: typeof source.module_type === 'string' ? source.module_type : '',
     ...createDefaultChapters(),
-    enabled_editors: Array.isArray(raw.enabled_editors) ? raw.enabled_editors.filter(isEnabledEditor) : [],
-    editor_configs: isPlainObject(raw.editor_configs) ? raw.editor_configs : {}
+    enabled_editors: Array.isArray(source.enabled_editors) ? source.enabled_editors.filter(isEnabledEditor) : [],
+    editor_configs: isPlainObject(source.editor_configs) ? source.editor_configs : {}
   }
   for (const key of CHAPTER_KEYS) {
-    const value = raw[key]
+    const value = source[key]
     if (isPlainObject(value)) {
       base[key] = value
     }
   }
-  for (const [key, value] of Object.entries(raw)) {
+  for (const [key, value] of Object.entries(source)) {
     if (key in base) continue
     const target = base as unknown as Record<string, unknown>
     target[key] = value
