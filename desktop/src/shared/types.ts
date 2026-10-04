@@ -106,3 +106,14 @@ export interface ExportSummary {
   /** 每类型导出条数（键为数据类型 id 或原始键名） */
   byType: Record<string, number>
 }
+
+/** CSV 导出结果：每种数据类型一个文件（Python `export_csv` 同构） */
+export interface CsvExportSummary {
+  /** 导出目录 */
+  dir: string
+  /** 已写出的文件绝对路径（按 schema 顺序） */
+  files: string[]
+  totalItems: number
+  /** 每类型导出条数（键为数据类型 id） */
+  byType: Record<string, number>
+}

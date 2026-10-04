@@ -25,7 +25,9 @@ import type {
   CeshuSaveChapterInput,
   DeleteManyInput,
   EngineExportInput,
+  ExportDirInput,
   ExportLegacyInput,
+  ImportDataFileInput,
   ImportLegacyInput,
   NotesAddInput,
   NotesDeleteInput,
@@ -56,6 +58,7 @@ import type {
   AppInfo,
   AppLogInput,
   BatchUpdateSummary,
+  CsvExportSummary,
   DataTypeDef,
   DeleteManySummary,
   ExportSummary,
@@ -118,6 +121,14 @@ export interface IpcContract {
   'data:references': { req: ReferencesInput; res: ReferenceReport }
   'data:importLegacy': { req: ImportLegacyInput; res: ImportSummary }
   'data:exportLegacy': { req: ExportLegacyInput; res: ExportSummary }
+  // 游戏数据 CSV / Excel 导入导出（迁移 features/export.py 的 export_csv/import_csv/export_excel/import_excel）
+  'data:exportCsv': { req: ExportDirInput; res: CsvExportSummary }
+  'data:importCsv': { req: ImportDataFileInput; res: ImportSummary }
+  'data:exportExcel': { req: ExportDirInput; res: ExportSummary }
+  'data:importExcel': { req: ImportDataFileInput; res: ImportSummary }
+  'dialog:chooseExportDir': { req: undefined; res: { path: string | null } }
+  'dialog:chooseCsvFile': { req: undefined; res: { path: string | null } }
+  'dialog:chooseExcelFile': { req: undefined; res: { path: string | null } }
   // 引擎代码导出（P0：Lua）。渲染/落盘在 main/engineExport，取数由 handler 注入。
   'engine:exportData': { req: EngineExportInput; res: { filePath: string; engine: string; bytes: number } }
   'dialog:chooseJsonFile': { req: undefined; res: { path: string | null } }

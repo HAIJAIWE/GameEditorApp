@@ -37,6 +37,18 @@ export const exportLegacyInputSchema = z.object({
   path: z.string().min(1)
 })
 
+/* ---- 游戏数据 CSV / Excel 导入导出（features/export.py 迁移） ---- */
+
+/** 导出目录（CSV 按类型分文件 / Excel 写 game_data.xlsx） */
+export const exportDirInputSchema = z.object({
+  dir: z.string().min(1)
+})
+
+/** 导入源文件路径（CSV / Excel） */
+export const importDataFileInputSchema = z.object({
+  path: z.string().min(1)
+})
+
 /* ---- 引擎代码导出 ---- */
 
 /** 引擎代码导出：目标引擎（当前仅支持 lua）+ 目标路径（缺扩展名时导出侧补 `.lua`） */
@@ -444,6 +456,8 @@ export type DeleteItemInput = z.infer<typeof deleteItemInputSchema>
 export type ImportLegacyInput = z.infer<typeof importLegacyInputSchema>
 export type UpdateItemInput = z.infer<typeof updateItemInputSchema>
 export type ExportLegacyInput = z.infer<typeof exportLegacyInputSchema>
+export type ExportDirInput = z.infer<typeof exportDirInputSchema>
+export type ImportDataFileInput = z.infer<typeof importDataFileInputSchema>
 export type EngineExportInput = z.infer<typeof engineExportInputSchema>
 export type BatchOpInput = z.infer<typeof batchOpSchema>
 export type BatchUpdateInput = z.infer<typeof batchUpdateInputSchema>

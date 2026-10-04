@@ -47,7 +47,9 @@ import {
   deleteItemInputSchema,
   deleteManyInputSchema,
   engineExportInputSchema,
+  exportDirInputSchema,
   exportLegacyInputSchema,
+  importDataFileInputSchema,
   importLegacyInputSchema,
   listItemsInputSchema,
   notesAddInputSchema,
@@ -119,6 +121,8 @@ import { exportCeshuDocument } from './ceshu/export/exporter'
 import { exportTextReportFile } from './ceshu/reportExport'
 import { exportLegacyDataFile } from './data/legacyExport'
 import { importLegacyDataFile } from './data/legacyImport'
+import { exportCsvFiles, importCsvFile } from './data/csvIO'
+import { exportExcelFile, importExcelFile } from './data/excelIO'
 import { deleteBackupFile, listBackups } from './backup/backupStore'
 import { createLibraryBackup, restoreLibraryBackup } from './backup/restore'
 import type { DataService } from './data/service'
@@ -308,6 +312,36 @@ export function registerIpcHandlers({
     const result = focused ? await dialog.showOpenDialog(focused, options) : await dialog.showOpenDialog(options)
     return { path: result.canceled || result.filePaths.length === 0 ? null : (result.filePaths[0] ?? null) }
   })
+  // 游戏数据 CSV / Excel 的文件/目录选择（导出与导入共用；取消返回 null）
+  handle('dialog:chooseExportDir', undefined, async () => {
+    const focused = BrowserWindow.getFocusedWindow()
+    const options: OpenDialogOptions = {
+      title: '选择导出目录',
+      properties: ['openDirectory', 'createDirectory']
+    }
+    const result = focused ? await dialog.showOpenDialog(focused, options) : await dialog.showOpenDialog(options)
+    return { path: result.canceled || result.filePaths.length === 0 ? null : (result.filePaths[0] ?? null) }
+  })
+  handle('dialog:chooseCsvFile', undefined, async () => {
+    const focused = BrowserWindow.getFocusedWindow()
+    const options: OpenDialogOptions = {
+      title: '导入 CSV',
+      filters: [{ name: 'CSV 文件', extensions: ['csv'] }],
+      properties: ['openFile']
+    }
+    const result = focused ? await dialog.showOpenDialog(focused, options) : await dialog.showOpenDialog(options)
+    return { path: result.canceled || result.filePaths.length === 0 ? null : (result.filePaths[0] ?? null) }
+  })
+  handle('dialog:chooseExcelFile', undefined, async () => {
+    const focused = BrowserWindow.getFocusedWindow()
+    const options: OpenDialogOptions = {
+      title: '导入 Excel',
+      filters: [{ name: 'Excel 文件', extensions: ['xlsx'] }],
+      properties: ['openFile']
+    }
+    const result = focused ? await dialog.showOpenDialog(focused, options) : await dialog.showOpenDialog(options)
+    return { path: result.canceled || result.filePaths.length === 0 ? null : (result.filePaths[0] ?? null) }
+  })
   handle('data:listItems', listItemsInputSchema, (req) => dataService.listItems(req.type))
   // 全量条目（跨类型）：统计面板需要全局视角，逐类型拉会 N 次往返
   handle('data:listAll', undefined, () => dataService.listAllItems())
@@ -352,6 +386,23 @@ export function registerIpcHandlers({
   handle('data:exportLegacy', exportLegacyInputSchema, (req) =>
     exportLegacyDataFile(req.path, dataService, typeSchemaStore.getTypes())
   )
+  // 游戏数据 CSV / Excel 导入导出（迁移 features/export.py）
+  handle('data:exportCsv', exportDirInputSchema, (req) =>
+    exportCsvFiles(req.dir, dataService, typeSchemaStore.getTypes())
+  )
+  handle('data:importCsv', importDataFileInputSchema, async (req) => {
+    const summary = await importCsvFile(req.path, dataService, typeSchemaStore.getTypes())
+    await dataSync.onDataChanged()
+    return summary
+  })
+  handle('data:exportExcel', exportDirInputSchema, (req) =>
+    exportExcelFile(req.dir, dataService, typeSchemaStore.getTypes())
+  )
+  handle('data:importExcel', importDataFileInputSchema, async (req) => {
+    const summary = await importExcelFile(req.path, dataService, typeSchemaStore.getTypes())
+    await dataSync.onDataChanged()
+    return summary
+  })
   // 引擎代码导出（P0：Lua）：取全量数据快照 + 当前 schema，渲染并原子落盘
   handle('engine:exportData', engineExportInputSchema, (req) =>
     exportEngineData(dataService.listAllItems(), typeSchemaStore.getTypes(), {

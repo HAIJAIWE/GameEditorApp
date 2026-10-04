@@ -77,6 +77,10 @@ export interface MbApi {
     references(req: IpcContract['data:references']['req']): Promise<IpcContract['data:references']['res']>
     importLegacy(req: IpcContract['data:importLegacy']['req']): Promise<IpcContract['data:importLegacy']['res']>
     exportLegacy(req: IpcContract['data:exportLegacy']['req']): Promise<IpcContract['data:exportLegacy']['res']>
+    exportCsv(req: IpcContract['data:exportCsv']['req']): Promise<IpcContract['data:exportCsv']['res']>
+    importCsv(req: IpcContract['data:importCsv']['req']): Promise<IpcContract['data:importCsv']['res']>
+    exportExcel(req: IpcContract['data:exportExcel']['req']): Promise<IpcContract['data:exportExcel']['res']>
+    importExcel(req: IpcContract['data:importExcel']['req']): Promise<IpcContract['data:importExcel']['res']>
   }
   engine: {
     exportData(req: IpcContract['engine:exportData']['req']): Promise<IpcContract['engine:exportData']['res']>
@@ -94,6 +98,9 @@ export interface MbApi {
       req: IpcContract['dialog:chooseEngineExportFile']['req']
     ): Promise<IpcContract['dialog:chooseEngineExportFile']['res']>
     chooseSaveJsonFile(): Promise<IpcContract['dialog:chooseSaveJsonFile']['res']>
+    chooseExportDir(): Promise<IpcContract['dialog:chooseExportDir']['res']>
+    chooseCsvFile(): Promise<IpcContract['dialog:chooseCsvFile']['res']>
+    chooseExcelFile(): Promise<IpcContract['dialog:chooseExcelFile']['res']>
     chooseTemplateJsonFile(
       req: IpcContract['dialog:chooseTemplateJsonFile']['req']
     ): Promise<IpcContract['dialog:chooseTemplateJsonFile']['res']>

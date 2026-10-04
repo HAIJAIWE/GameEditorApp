@@ -324,6 +324,72 @@ export default function App() {
     }
   }
 
+  const handleImportCsv = async (): Promise<void> => {
+    try {
+      setError(null)
+      setNotice(null)
+      const chosen = await window.mbApi.dialog.chooseCsvFile()
+      if (!chosen.path) return
+      setBusy(true)
+      const summary = await window.mbApi.data.importCsv({ path: chosen.path })
+      setNotice(formatImportSummary(summary))
+      if (activeType) await reload(activeType)
+    } catch (err) {
+      setError(toErrorMessage(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleExportCsv = async (): Promise<void> => {
+    try {
+      setError(null)
+      setNotice(null)
+      const chosen = await window.mbApi.dialog.chooseExportDir()
+      if (!chosen.path) return
+      setBusy(true)
+      const summary = await window.mbApi.data.exportCsv({ dir: chosen.path })
+      setNotice(`已导出 ${summary.files.length} 个 CSV 文件（共 ${summary.totalItems} 条）到 ${summary.dir}`)
+    } catch (err) {
+      setError(toErrorMessage(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleImportExcel = async (): Promise<void> => {
+    try {
+      setError(null)
+      setNotice(null)
+      const chosen = await window.mbApi.dialog.chooseExcelFile()
+      if (!chosen.path) return
+      setBusy(true)
+      const summary = await window.mbApi.data.importExcel({ path: chosen.path })
+      setNotice(formatImportSummary(summary))
+      if (activeType) await reload(activeType)
+    } catch (err) {
+      setError(toErrorMessage(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleExportExcel = async (): Promise<void> => {
+    try {
+      setError(null)
+      setNotice(null)
+      const chosen = await window.mbApi.dialog.chooseExportDir()
+      if (!chosen.path) return
+      setBusy(true)
+      const summary = await window.mbApi.data.exportExcel({ dir: chosen.path })
+      setNotice(`已导出 ${summary.totalItems} 条数据：${summary.filePath}`)
+    } catch (err) {
+      setError(toErrorMessage(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
   /** 字段结构保存后：刷新类型列表；当前类型被删除时回退到第一个 */
   const handleSchemaSaved = (saved: DataTypeDef[]): void => {
     setTypes(saved)
@@ -459,6 +525,42 @@ export default function App() {
               </button>
               <button type="button" className="btn" disabled={busy} onClick={() => void handleExportLegacy()}>
                 导出为 JSON
+              </button>
+              <button
+                type="button"
+                className="btn"
+                data-testid="export-csv"
+                disabled={busy}
+                onClick={() => void handleExportCsv()}
+              >
+                导出 CSV
+              </button>
+              <button
+                type="button"
+                className="btn"
+                data-testid="import-csv"
+                disabled={busy}
+                onClick={() => void handleImportCsv()}
+              >
+                导入 CSV
+              </button>
+              <button
+                type="button"
+                className="btn"
+                data-testid="export-excel"
+                disabled={busy}
+                onClick={() => void handleExportExcel()}
+              >
+                导出 Excel
+              </button>
+              <button
+                type="button"
+                className="btn"
+                data-testid="import-excel"
+                disabled={busy}
+                onClick={() => void handleImportExcel()}
+              >
+                导入 Excel
               </button>
               <EngineExportButton />
               <button

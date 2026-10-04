@@ -306,7 +306,7 @@
 | _ai_dialog.py | 923 | ◐55% | UI 被 `AiDataGenPanel.tsx`+`ceshuDataGen.ts` 取代；缺技能专属模板模式/`normalize_item_fields`/策划文档长文生成/多对象括号级解析 |
 | ai.py | 556 | ◐40% | AI 生成→`ceshuDataGen.ts`；审核→`DigitalPanel`/`AiReviewPanel`；缺 schema 驱动的直调生成/AI 平衡分析/API 配置 |
 | advanced.py | 431 | ◐25% | 关系图→`ReferencesPanel`；缺属性图表/高级搜索/关键词模板配置/清理未用图片 |
-| export.py | 705 | ◐50% | JSON 导入导出/批量编辑已迁；**缺 CSV 与 Excel 的游戏数据导入导出**（`main/ceshu/export/excel.ts` 是策划书，非此） |
+| export.py | 705 | ◐90% | JSON（→`data:importLegacy`/`exportLegacy`）/CSV（→`main/data/csvIO.ts`）/Excel（→`main/data/excelIO.ts`，E19–E20）/批量编辑（→`BatchEditPanel`）已迁；仅剩 `batch_import` 的「重生成 id 追加」语义（现由 `importLegacy` 的 upsert 覆盖，属有意收敛）与 `batch_edit` 重复实现（见「已知待修」） |
 | _ai_image.py | 365 | ⚠️ | **AI 生图/配图整块无 TS 对应**（文生图+下载落盘+进度、`generate_desc_only` 等） |
 | statistics.py | 273 | ⚠️ | 数据统计/平衡分析（`analyze_balance` 系列）无 TS（**注意 `ceshuScorer`/`ceshuWordStats` 是策划书域**） |
 | backup.py | 42 | ✅ | `export_for_game` 已迁（`data:exportLegacy`）；`show_backup_manager` 已迁（`BackupPanel.tsx` + `backup:*` 4 条 IPC，见 `ui/dialogs/backup_manager.py` 行）。**不迁** `common/auto_backup.py`（死代码，见 `common/` 域） |
@@ -321,8 +321,8 @@
 | **2** | `core/agent` 记忆系统补全（`memory_history` 211 + `memory_store` 195 + `memory_vector` 271 + `memory_search` 231） | ≈900 行 | ◐ **只做了偏好/反馈层**（E9，`learner.py` 子集）；对话历史/向量/搜索仍**未迁**。当前记忆**只增不学** |
 | **3** | `ui/dialogs` 未迁（含 `common/data_diff`）：`quick_create` 543 / `statistics` 374 / `template_manager` 411 / `advanced_search` 172 / `type_visibility` 121 / `data_diff` 154+197 / `backup_manager` 155（+`features/backup` 42） | ≈2,170 行 | ✅ **已全部迁完**（E10–E16）；都是**日常可达**的功能，非外围 |
 | **4** | 引用类字段编辑器：`multi_select`→`RefTableWidget`（258）+ `drop_table`→`DropTableWidget`（225） | ≈410 行 | ✅ **已迁**（E17/E18，`RefTableEditor.tsx`+`DropTableEditor.tsx`）；原是 JSON/逗号串降级，现为专用表格编辑器（内联选库） |
-| **5** | `features/export.py` 的 CSV + Excel 游戏数据导入导出 | ≈230 行 | 你作为策划，导表进 Excel 调整是常见动作 ← **下一批首选** |
-| **6** | `core/style_manager.py`（289 行） | 289 行 | D 档最后一个活模块；**但需先定其全局单例状态在 TS 放哪** |
+| **5** | `features/export.py` 的 CSV + Excel 游戏数据导入导出 | ≈230 行 | ✅ **已迁**（E19–E20，`main/data/csvIO.ts`+`excelIO.ts` + 4 条 IPC + 工具栏入口） |
+| **6** | `core/style_manager.py`（289 行） | 289 行 | D 档最后一个活模块；**但需先定其全局单例状态在 TS 放哪** ← **下一批首选** |
 | **7** | `features/_ai_image.py` AI 生图（365 行） | 365 行 | 新架构**完全没有**的能力（可选） |
 | **8** | C 档外围：主题/特效 1,905 + 菜单/多标签/窗口状态 690 + 设置/i18n | ≈3,700 行 | **多为「体验完整度」而非核心功能**，可长期后排 |
 

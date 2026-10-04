@@ -62,7 +62,11 @@ const api: MbApi = {
     deleteMany: (req) => invoke('data:deleteMany', req),
     references: (req) => invoke('data:references', req),
     importLegacy: (req) => invoke('data:importLegacy', req),
-    exportLegacy: (req) => invoke('data:exportLegacy', req)
+    exportLegacy: (req) => invoke('data:exportLegacy', req),
+    exportCsv: (req) => invoke('data:exportCsv', req),
+    importCsv: (req) => invoke('data:importCsv', req),
+    exportExcel: (req) => invoke('data:exportExcel', req),
+    importExcel: (req) => invoke('data:importExcel', req)
   },
   engine: {
     exportData: (req) => invoke('engine:exportData', req)
@@ -77,6 +81,9 @@ const api: MbApi = {
     chooseJsonFile: () => invoke('dialog:chooseJsonFile', undefined),
     chooseEngineExportFile: (req) => invoke('dialog:chooseEngineExportFile', req),
     chooseSaveJsonFile: () => invoke('dialog:chooseSaveJsonFile', undefined),
+    chooseExportDir: () => invoke('dialog:chooseExportDir', undefined),
+    chooseCsvFile: () => invoke('dialog:chooseCsvFile', undefined),
+    chooseExcelFile: () => invoke('dialog:chooseExcelFile', undefined),
     chooseCeshuExportFile: (req) => invoke('dialog:chooseCeshuExportFile', req),
     chooseAttrSystemJsonFile: (req) => invoke('dialog:chooseAttrSystemJsonFile', req),
     chooseTemplateJsonFile: (req) => invoke('dialog:chooseTemplateJsonFile', req)
