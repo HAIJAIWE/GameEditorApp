@@ -112,6 +112,8 @@ export interface BrainRunResult {
   events: BrainEvent[]
   /** 是否走到最终答复（false 表示因 LLM 传输失败中断） */
   completed: boolean
+  /** 本轮完整消息序列（供会话持久化复用，见 `main/agent/sessionStore.ts`） */
+  messages: BrainMessage[]
 }
 
 export const DEFAULT_MAX_ITERATIONS = 8
@@ -207,7 +209,7 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
       })
     } catch (error) {
       emit({ type: 'error', message: error instanceof Error ? error.message : String(error) })
-      return { text: fallbackAnswer(results), events, completed: false }
+      return { text: fallbackAnswer(results), events, completed: false, messages }
     }
 
     emit({ type: 'stream_done', fullText: reply.content })
@@ -216,7 +218,7 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
     if (reply.finishReason === 'stop' && reply.toolCalls.length === 0) {
       const text = reply.content.trim()
       emit({ type: 'done', text })
-      return { text, events, completed: true }
+      return { text, events, completed: true, messages }
     }
 
     if (reply.toolCalls.length === 0) break
@@ -274,5 +276,5 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
 
   const text = fallbackAnswer(results)
   emit({ type: 'done', text })
-  return { text, events, completed: true }
+  return { text, events, completed: true, messages }
 }

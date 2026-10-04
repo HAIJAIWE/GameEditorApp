@@ -3,6 +3,8 @@ import { join } from 'node:path'
 import { app, BrowserWindow, shell } from 'electron'
 
 import { AgentBrainService } from './agent/brainService'
+import { AgentMemoryStore } from './agent/memoryStore'
+import { AgentSessionStore } from './agent/sessionStore'
 import { SkillDispatcher } from './agent/dispatcher'
 import { createCeshuSkill } from './agent/skills/ceshuSkill'
 import { createGameDataSkill } from './agent/skills/gameDataSkill'
@@ -76,7 +78,13 @@ app.whenReady().then(() => {
   const agentDispatcher = new SkillDispatcher()
   agentDispatcher.register(createGameDataSkill({ dataService, typeSchemaStore }))
   agentDispatcher.register(createCeshuSkill({ ceshuManager }))
-  const agentBrain = new AgentBrainService({ dispatcher: agentDispatcher })
+  // Agent 会话与记忆（A1-3）：统一落在 userData/agent 下；A2-1 引入多库后只改这一处
+  const agentDir = join(app.getPath('userData'), 'agent')
+  const agentBrain = new AgentBrainService({
+    dispatcher: agentDispatcher,
+    sessionStore: new AgentSessionStore(agentDir),
+    memoryStore: new AgentMemoryStore(agentDir)
+  })
 
   registerIpcHandlers({
     dataService,

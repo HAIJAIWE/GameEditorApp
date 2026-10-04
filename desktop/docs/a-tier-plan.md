@@ -196,9 +196,23 @@ userData/
 | A2-2 库条 UI 与切换联动 | ⬜ 未开始 | — | — |
 | A1-1 技能协议 + 调度器 | ✅ 完成 | `20ec1ff` | `shared/agent/protocol.ts`（协议/风险策略/参数修正，单测 18）+ `main/agent/dispatcher.ts`（注册表/模糊解析/危险确认门，单测 15）+ 2 个 action-based 技能（`system.game_data` 读写数据表 / `system.ceshu` 只读策划书，单测 13）+ IPC `agent:listTools`/`agent:executeTool` + E2E `agent-execute-tool.spec.ts`（沙箱未实跑） |
 | A1-2 Brain 循环 + 事件流 | ✅ 完成 | `a377e3c` | `shared/agent/brain.ts`（事件流 + 循环纯逻辑，单测 19）+ `shared/agent/prompts.ts`（提示词骨架）+ `main/agent/ollamaTransport.ts`（`/api/chat` NDJSON 流式 + tool_calls）+ `main/agent/brainService.ts`（调度器适配）+ IPC `agent:chat` + E2E `agent-brain-chat.spec.ts`（`/api/chat` 桩两轮，沙箱未实跑） |
-| A1-3 会话与记忆 | ⬜ 未开始 | — | — |
+| A1-3 会话与记忆 | ✅ 完成 | `<PENDING_HASH>` | `shared/agent/session.ts`（快照/截断纯逻辑）+ `main/agent/sessionStore.ts`（原子写 + 串行队列 + 严格/容错两档读取 + metrics.jsonl）+ `shared/agent/memory.ts`（确定性 n-gram 嵌入）+ `main/agent/memoryStore.ts`（vectra 索引）；接入 `AgentBrainService`（记忆注入 + 会话落盘 + 问答回写）；单测 22 |
 | A1-4 数字员工面板 | ⬜ 未开始 | — | — |
 | A1-5 业务技能接线 + 托盘/热键 | ⬜ 未开始 | — | — |
+
+### A1-3 落地记录（2026-10-04）
+
+**产物**：`shared/agent/session.ts`（`truncateSessionMessage`/`buildSessionSnapshot`/`isSessionSnapshot`/`sessionInfoFromSnapshot`）、`main/agent/sessionStore.ts`（`AgentSessionStore`：save/readActive/tryRestore/info/clear/recordMetric）、`shared/agent/memory.ts`（`embedText`，32 维确定性 bigram 哈希 + L2 归一）、`main/agent/memoryStore.ts`（`AgentMemoryStore`：vectra `LocalIndex` 的 add/search/count）、接入 `AgentBrainService`（检索注入 `## 相关记忆` + 每轮落盘会话 + 问答回写记忆）、单测 `agentSession`(12)/`agentMemory`(10)。
+
+**有意偏离 Python / 本方案（逐条有据）**：
+1. **截断规则与「只留最近 50 条」提为常量并单测锁定**：Python 内联在 `_save_session` 的闭包与 `messages[-50:]` 切片里，无法单测。
+2. **读取分两档**：`readActive()` 严格（损坏抛中文错误，便于排障）+ `tryRestore()` 容错（任何异常视为无会话，对齐 Python `_try_restore_session`）。本方案 §A1-3 验收要求「损坏文件抛中文错误」，Python 实际是静默吞掉——两档并存兼顾。
+3. **会话目录暂为 `userData/agent/`**（Python 是库内 `<workspace>/memory/`）：A2-1 引入多库后**只改 `main/index.ts` 一处注入点**，本模块不感知库结构。
+4. **记忆检索用 vectra 替代 Python 自研 ngram/TF-IDF**（§2.5 选型）；嵌入保持**确定性**以便单测锁死「命中/未命中」排序。Python 的 ngram bug（`memory_embedder.py:11`）不复刻。
+5. **不移植**：persona/identity/user 文件工作区、多 workspace 切换、项目记忆提炼、黑板上下文、perf 面板——归 A1-5 业务接线。
+6. **会话恢复（restore / takePending / clear）暂未接 IPC**：需要「是否恢复上次会话」的交互，归 A1-4 面板；本批次已验证 store 层语义。
+
+**未验证项**：无新增 E2E（本方案 §A1-3 验收为单测口径）；既有 E2E 仍受沙箱 Electron 启动限制。
 
 ### A1-1 落地记录（2026-10-04）
 

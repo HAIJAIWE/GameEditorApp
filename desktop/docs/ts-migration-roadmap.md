@@ -39,6 +39,7 @@
 | W34 | 策划书首页卡片视图（卡片网格：名称/类型/状态/版本徽章/日期/进度 + 搜索 + 最近打开 + 新建（空白/从已有复制）+ 卡片操作：重命名/复制/派生/删除） | `home_view.py` 513 + `home_card.py` 161（原注 452/136 为口径差异） | `shared/ceshuHome.ts`（状态标签/卡片视图模型/搜索/最近/复制命名，单测 11）、`CeshuSummary` 增 `gameType`/`status`、`CeshuManager` 增 `rename`/`remove`/`duplicate` + `CeshuStorage.remove`（单测 7）、IPC `ceshu:rename`/`ceshu:delete`/`ceshu:duplicate`、`components/CeshuHomePanel.tsx`、E2E `ceshu-home-cards.spec.ts` |
 | **A1-1** | Agent 技能协议 + 调度器内核（注册表 / 名称解析 / 危险操作确认门 / 结构化错误；数据表读写 + 策划书只读技能） | `core/agent/skill_protocol.py` 107、`dispatcher.py` 585、`security/acl.py` 141、`skills/{game_data,ceshu}_skill.py` | `shared/agent/protocol.ts`（协议 + 风险策略 + 参数修正，单测 18）、`main/agent/dispatcher.ts`（注册表 + 模糊解析 + 危险确认门，单测 15）、`main/agent/skills/{gameDataSkill,ceshuSkill}.ts`（单测 13）、IPC `agent:listTools`/`agent:executeTool`、E2E `agent-execute-tool.spec.ts`；**顺带修复 W32 `CeshuDataSync` 用复数键查数据的真 bug**（详见 [`a-tier-plan.md`](./a-tier-plan.md) §6） |
 | **A1-2** | Agent Brain 循环 + 事件流 + LLM 工具调用（step/stream/done/error 事件、tool_calls 协议、危险操作审批点、提示词骨架） | `core/agent/brain_llm.py` 474、`brain_prompt.py` 294、`brain_subagent.py`（fallback） | `shared/agent/brain.ts`（事件流 + `runBrainLoop`，注入传输层/工具执行器故可纯单测 19）、`shared/agent/prompts.ts`（骨架）、`main/agent/ollamaTransport.ts`（`/api/chat` NDJSON 流式 + tool_calls）、`main/agent/brainService.ts`（调度器适配）、IPC `agent:chat`、E2E `agent-brain-chat.spec.ts`（**Ollama 桩服务两轮**：工具调用 → 流式终稿） |
+| **A1-3** | Agent 会话与记忆（会话快照持久化：原子写 + 串行队列 + 超长截断；语义记忆检索：vectra 索引 + 确定性嵌入） | `core/agent/brain_session.py` 248、`memory_embedder.py`、`memory_vector.py` | `shared/agent/session.ts`（快照/截断纯逻辑）、`main/agent/sessionStore.ts`（严格/容错两档读取 + metrics.jsonl）、`shared/agent/memory.ts`（32 维确定性嵌入）、`main/agent/memoryStore.ts`（vectra）；接入 `AgentBrainService`（记忆注入 + 会话落盘 + 问答回写）；单测 22 |
 
 ## 2. 剩余工作清单（按体量分档）
 
@@ -139,6 +140,7 @@ node_modules\.bin\playwright test          ← 必须 dangerouslyDisableSandbox=
 | W33 | 迁移工具（v4.0→v5.0 策划书数据迁移） | ✅ 已完成（进度台账 W33） |
 | W34 | 策划书首页卡片视图 | ✅ 已完成（进度台账 W34）—— **B 档收官，后续转 A 档** |
 | **A1-1** | **技能协议 + 调度器内核** | ✅ 已完成（见 [`a-tier-plan.md`](./a-tier-plan.md) §6 落地记录）。**执行顺序调整**：A1-1/A1-2 先于 A2 —— A2-1 的验收依赖「全量 E2E 回归」，而本沙箱 Electron 起不来，先把**不碰存储路径、可单测闭环**的 A1-1 做掉；A1-1/A1-2 无会话目录，故不会产生 §4 所述的返工 |
-| **A1-2** | **Brain 循环 + 事件流 + LLM 工具调用** | ✅ 已完成（同上 §6）。下一步 **A1-3 会话与记忆**（开始引入会话目录，建议在此之前先确认 A2 存储路径是否要一起动） |
+| **A1-2** | **Brain 循环 + 事件流 + LLM 工具调用** | ✅ 已完成（同上 §6） |
+| **A1-3** | **Agent 会话与记忆** | ✅ 已完成（同上 §6）。会话目录暂落 `userData/agent/`——**A2-1 引入多库后只需改 `main/index.ts` 一处注入点**，故本刀与 A2-1 无返工耦合；下一步 **A1-4 数字员工面板**（含「是否恢复上次会话」交互 + 危险操作审批模态） |
 | A2-1 / A2-2 | **库管理（多库，A 档内部优先）**：库服务+注册表+存储按库隔离 → 库条 UI 与切换联动 | 方案见 [`a-tier-plan.md`](./a-tier-plan.md)；**已拍板：A 档整体后置，先清上面 W31–W34（B 档小件）** |
 | A1-1 … A1-5 | **AI/Agent 引擎**：技能协议+调度器 → Brain 循环+事件流 → 会话与记忆 → 数字员工面板 → 业务技能接线 | 同上；**拍板：完全不做自愈**（工具报错直接回传 LLM 重新规划）；技能先只做最小集；LLM 相关 E2E 一律用 Ollama 桩服务（W30 技法） |
