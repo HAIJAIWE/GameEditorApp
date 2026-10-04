@@ -15,11 +15,12 @@
 
 export const VISIBLE_TYPES_STORAGE_KEY = 'mb.visibleTypes'
 
-export interface StorageLike {
-  getItem(key: string): string | null
-  setItem(key: string, value: string): void
-  removeItem(key: string): void
-}
+/**
+ * `StorageLike` 的**唯一真源**是 `settingsStore.ts`（统一设置基座）；
+ * 此处 re-export 以保持既有 import 不破。
+ */
+export type { StorageLike } from './settingsStore'
+import type { StorageLike } from './settingsStore'
 
 /** null=全部可见；否则只有集合内可见 */
 export function isTypeVisible(id: string, visible: readonly string[] | null): boolean {

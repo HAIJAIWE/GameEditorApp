@@ -8,6 +8,12 @@ import {
   type ItemDiffType,
   type LibraryDiffGroup
 } from '../../../shared/itemDiff'
+import {
+  SETTINGS_KEYS,
+  readJsonSetting,
+  removeSetting,
+  writeJsonSetting
+} from '../../../shared/settingsStore'
 import type { ItemRecord } from '../../../shared/types'
 
 /**
@@ -20,36 +26,27 @@ import type { ItemRecord } from '../../../shared/types'
  *   真正做双侧 diff（引擎见 `shared/itemDiff.ts`）。
  */
 
-const BASELINE_KEY = 'mb.dataDiffBaseline'
+const BASELINE_KEY = SETTINGS_KEYS.dataDiffBaseline
 
-/** 上一次 localStorage 写入是否失败（供组件提示用；同步读写，无并发问题） */
+/** 上一次写入是否失败（供组件提示用；同步读写，无并发问题） */
 let baselineWriteFailed = false
 
 /** 读取基线：坏数据/异常一律返回 null（不抛） */
 function loadBaseline(): ItemRecord[] | null {
-  try {
-    const raw = window.localStorage.getItem(BASELINE_KEY)
-    if (raw === null || raw === '') return null
-    const parsed: unknown = JSON.parse(raw)
-    if (!Array.isArray(parsed)) return null
-    return parsed as ItemRecord[]
-  } catch {
-    return null
-  }
+  const parsed = readJsonSetting<unknown>(BASELINE_KEY, null)
+  if (!Array.isArray(parsed)) return null
+  return parsed as ItemRecord[]
 }
 
 /** 保存基线：写失败不崩，置错误标志由调用方提示 */
 function saveBaseline(items: ItemRecord[] | null): void {
-  baselineWriteFailed = false
-  try {
-    if (items === null) {
-      window.localStorage.removeItem(BASELINE_KEY)
-    } else {
-      window.localStorage.setItem(BASELINE_KEY, JSON.stringify(items))
-    }
-  } catch (err) {
+  if (items === null) {
+    baselineWriteFailed = !removeSetting(BASELINE_KEY)
+    return
+  }
+  if (!writeJsonSetting(BASELINE_KEY, items)) {
     baselineWriteFailed = true
-    console.warn('数据对比：基线写入 localStorage 失败', err)
+    console.warn('数据对比：基线写入失败（localStorage 不可用或已满）')
   }
 }
 
