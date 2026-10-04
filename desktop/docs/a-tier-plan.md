@@ -200,7 +200,7 @@ userData/
 | A1-4 数字员工面板 | ✅ 完成 | `c38199b` | `shared/agent/panel.ts`（事件流 → 面板视图模型纯归约，单测 13）+ `main/agent/approvalBroker.ts`（审批中转，单测 6）+ `renderer/src/components/digital/DigitalPanel.tsx` + App 第三模式 `mode-digital` + IPC `agent:approvalResponse`/`agent:sessionInfo|Restore|Clear` + 主进程 `agent:event` 推送 + E2E `agent-digital-panel.spec.ts`（2 例，沙箱未实跑） |
 | A1-5 业务技能接线 + 托盘/热键 | ✅ 完成 | `26b217f` |
 | A1-4b 交互通道补完（参数澄清 + 删除确认） | ✅ 完成 | `ac2c6ec` |
-| A1-5b 收尾三项（策略书删/导出 + 交互超时 + 托盘图标资源） | ✅ 完成 | `<PENDING_HASH>` | `system.ceshu` 补 `delete`（confirm 交互）/`export`（导出到默认目录并回报路径）+ 交互**超时保护**（默认 120s，超时按未答复回落）+ `resources/tray-icon.png` 正式图标（脚本生成 + 位图兜底）；单测 +8 | 统一 `SkillResult.interaction`（`confirm`/`question`）→ Brain `interaction_required` 事件 + 复用审批 broker 回传答复；生产者：`system.game_data.delete`（confirm，批准后带 `confirm:true` 重执行）+ `tool.ask_user`（question，答复回灌为工具结果）；面板交互模态；单测 +17 | `system.code`（jsSandbox，**SYSTEM 级**，单测 9）+ `system.ceshu` 补 `create`/`update`（单测 3）+ `main/tray.ts`（Tray + `Ctrl+Shift+M`，防御式）+ **补齐 A1-4 遗留的审批端到端拦截 E2E**（拒绝→不执行 / 批准→真执行，见 `agent-digital-panel.spec.ts`） |
+| A1-5b 收尾三项（策划书删/导出 + 交互超时 + 托盘图标资源） | ✅ 完成 | `b7a0a47` | `system.ceshu` 补 `delete`（confirm 交互）/`export`（导出到默认目录并回报路径）+ 交互**超时保护**（默认 120s，超时按未答复回落）+ `resources/tray-icon.png` 正式图标（脚本生成 + 位图兜底）；单测 +8 | 统一 `SkillResult.interaction`（`confirm`/`question`）→ Brain `interaction_required` 事件 + 复用审批 broker 回传答复；生产者：`system.game_data.delete`（confirm，批准后带 `confirm:true` 重执行）+ `tool.ask_user`（question，答复回灌为工具结果）；面板交互模态；单测 +17 | `system.code`（jsSandbox，**SYSTEM 级**，单测 9）+ `system.ceshu` 补 `create`/`update`（单测 3）+ `main/tray.ts`（Tray + `Ctrl+Shift+M`，防御式）+ **补齐 A1-4 遗留的审批端到端拦截 E2E**（拒绝→不执行 / 批准→真执行，见 `agent-digital-panel.spec.ts`） |
 
 ### A1-5b 落地记录（2026-10-04）· 收尾三项
 

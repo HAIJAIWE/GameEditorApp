@@ -1,7 +1,0 @@
-feat: 收尾三项（A1-5b：策划书删除/导出 + 交互超时保护 + 托盘正式图标）
-
-- system.ceshu 补 delete（confirm 交互，复用 A1-4b 通道）与 export（导到 userData/exports 并回报路径；未注入管道则报「导出功能未启用」）
-- 交互超时保护：DEFAULT_INTERACTION_TIMEOUT_MS=120s；危险确认与技能交互的 await 都过超时，超时按未答复回落（不隐式放行），避免无人值守永久挂住
-- resources/tray-icon.png 正式图标（scripts/gen-tray-icon.cjs 手写 PNG：zlib+CRC32，不引 sharp/canvas）；tray 优先从文件加载，打包未分发时回落位图
-- eslint 增 scripts 下 cjs 的 Node/CommonJS override
-- 单测 +8（全量 vitest 57 文件/587 用例通过）；eslint/双端 tsc/build 全绿
