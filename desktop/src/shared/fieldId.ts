@@ -63,12 +63,12 @@ const ASCII_ALNUM = /[a-zA-Z0-9]/
 /** 合法字段 ID：字母或下划线开头，其后仅字母/数字/下划线（对齐 Python `_validate_field_id`） */
 const VALID_ID = /^[a-zA-Z_][a-zA-Z0-9_]*$/
 
-export type SuggestionSource = 'term' | 'literal'
+export type SuggestionSource = 'term' | 'literal' | 'ai'
 
 export interface FieldIdSuggestion {
   /** 建议的字段 ID（已合法、已避开重名） */
   id: string
-  /** `term`=术语表命中；`literal`=从标签里的英文/数字提取 */
+  /** `term`=术语表命中；`literal`=从标签里的英文/数字提取；`ai`=AI 候选 */
   source: SuggestionSource
   /** 术语表未收录、被跳过的中文片段（**UI 必须展示**，不静默丢弃） */
   skipped: string[]

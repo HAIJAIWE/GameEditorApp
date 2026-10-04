@@ -60,6 +60,7 @@ import {
   templatesSaveInputSchema,
   templatesUpdateInputSchema,
   schemaSaveInputSchema,
+  fieldIdSuggestInputSchema,
   updateItemInputSchema
 } from '../shared/schemas'
 import {
@@ -80,6 +81,7 @@ import {
   resolveSelectedDataTypes
 } from '../shared/ceshuDataGen'
 import { runChecklist } from '../shared/ceshuChecklist'
+import { buildFieldIdPrompt, parseFieldIdCandidates } from '../shared/fieldIdAi'
 import { buildVersionDiff } from '../shared/ceshuDiff'
 import { buildFieldDepsReport } from '../shared/ceshuFieldDeps'
 import { computeChapterProgress } from '../shared/ceshuModel'
@@ -211,6 +213,18 @@ export function registerIpcHandlers({
   })
   handle('schema:list', undefined, () => typeSchemaStore.getTypes())
   handle('schema:save', schemaSaveInputSchema, (req) => typeSchemaStore.saveTypes(req.types))
+  /**
+   * 字段 ID 的 AI 候选：术语表未收录时由用户显式点击触发（同 W30「AI 生成数据表」的形态）。
+   * 模型给出但清洗后不合法的候选会被丢弃（见 `shared/fieldIdAi.ts`），绝不产出垃圾。
+   */
+  handle('schema:suggestFieldIds', fieldIdSuggestInputSchema, async (req) => {
+    const built = buildFieldIdPrompt(req.label, req.existingNames, {
+      typeName: req.typeName,
+      fieldType: req.fieldType
+    })
+    const { model, content } = await llmClient.generate(built.system, built.prompt)
+    return { model, candidates: parseFieldIdCandidates(content, req.existingNames) }
+  })
   handle('attrSystem:get', undefined, () => attrSystemStore.getSystem())
   handle('attrSystem:save', attrSystemSaveInputSchema, (req) => attrSystemStore.saveSystem(req.system))
   handle('attrSystem:exportGameConfig', attrGameConfigExportInputSchema, (req) =>

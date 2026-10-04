@@ -18,7 +18,8 @@ const api: MbApi = {
   },
   schema: {
     list: () => invoke('schema:list', undefined),
-    save: (req) => invoke('schema:save', req)
+    save: (req) => invoke('schema:save', req),
+    suggestFieldIds: (req) => invoke('schema:suggestFieldIds', req)
   },
   agent: {
     listTools: () => invoke('agent:listTools', undefined),

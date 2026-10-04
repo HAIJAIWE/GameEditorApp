@@ -32,6 +32,7 @@ import type {
   AgentExecuteToolInput,
   AgentInteractionResponseInput,
   EngineExportFileDialogInput,
+  FieldIdSuggestInput,
   LibraryCreateInput,
   LibraryNameInput,
   LibraryRenameInput,
@@ -68,6 +69,7 @@ import type { CeshuFieldDepsReport } from './ceshuFieldDeps'
 import type { CeshuAiGenerateResult, CeshuAiReviewResult } from './ceshuAi'
 import type { CeshuDataGenResult } from './ceshuDataGen'
 import type { ReferenceReport } from './references'
+import type { FieldIdSuggestResult } from './fieldIdAi'
 import type { AttrSystem } from './attrSystem'
 
 /**
@@ -78,6 +80,8 @@ export interface IpcContract {
   'app:info': { req: undefined; res: AppInfo }
   'schema:list': { req: undefined; res: DataTypeDef[] }
   'schema:save': { req: SchemaSaveInput; res: DataTypeDef[] }
+  /** 字段 ID 的 AI 候选（术语表未收录时由用户显式点击触发） */
+  'schema:suggestFieldIds': { req: FieldIdSuggestInput; res: FieldIdSuggestResult }
   'attrSystem:get': { req: undefined; res: AttrSystem }
   'attrSystem:save': { req: AttrSystemSaveInput; res: AttrSystem }
   'attrSystem:exportGameConfig': { req: AttrGameConfigExportInput; res: { filePath: string } }

@@ -1,6 +1,10 @@
 import { useMemo, useState } from 'react'
 
-import { suggestFieldIds, type SuggestFieldIdResult } from '../../../shared/fieldId'
+import { suggestFieldIds, type FieldIdSuggestion, type SuggestFieldIdResult } from '../../../shared/fieldId'
+import {
+  FIELD_ID_AI_ERROR_EMPTY_LABEL,
+  FIELD_ID_AI_ERROR_NO_CANDIDATE
+} from '../../../shared/fieldIdAi'
 import { FIELD_TYPE_LABELS, FIELD_TYPES, validateTypeSchema } from '../../../shared/typeSchemaFile'
 import { TYPE_TEMPLATE_NAMES, TYPE_TEMPLATES, buildNewTypeDraft } from '../../../shared/typeTemplates'
 import type { DataTypeDef, FieldType, TypeFieldDef } from '../../../shared/types'
@@ -21,6 +25,24 @@ interface TypeEditorPanelProps {
   onClose: () => void
 }
 
+/** 字段 ID 候选条的状态：规则层结果 + AI 追加的候选 */
+interface IdSuggestState {
+  index: number
+  /** 规则层（术语表命中 + 标签内英文数字提取） */
+  rule: SuggestFieldIdResult
+  /** AI 追加的候选（未请求时为空数组） */
+  ai: FieldIdSuggestion[]
+  aiLoading: boolean
+  aiError: string | null
+}
+
+/** 取「AI 候选里不与规则候选重复」的部分 */
+function aiOnlyOf(state: IdSuggestState): FieldIdSuggestion[] {
+  return state.ai.filter(
+    (candidate) => !state.rule.suggestions.some((rule) => rule.id === candidate.id)
+  )
+}
+
 export default function TypeEditorPanel({ types, onSaved, onClose }: TypeEditorPanelProps) {
   const [draft, setDraft] = useState<DataTypeDef[]>(() => structuredClone(types))
   const [selectedId, setSelectedId] = useState<string>(() => types[0]?.id ?? '')
@@ -29,8 +51,8 @@ export default function TypeEditorPanel({ types, onSaved, onClose }: TypeEditorP
   const [notice, setNotice] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [resetToken, setResetToken] = useState(0)
-  /** 当前展开「字段 ID 候选」的行及其结果（同一时刻只开一个） */
-  const [idSuggest, setIdSuggest] = useState<{ index: number; result: SuggestFieldIdResult } | null>(null)
+  /** 当前展开「字段 ID 候选」的行及状态（同一时刻只开一个） */
+  const [idSuggest, setIdSuggest] = useState<IdSuggestState | null>(null)
 
   const baseIds = useMemo(() => new Set(types.map((def) => def.id)), [types])
   const current = draft.find((def) => def.id === selectedId) ?? null
@@ -84,7 +106,49 @@ export default function TypeEditorPanel({ types, onSaved, onClose }: TypeEditorP
     }
     const label = current.formFields[index]?.label ?? ''
     const others = current.formFields.filter((_, i) => i !== index).map((field) => field.name)
-    setIdSuggest({ index, result: suggestFieldIds(label, others) })
+    setIdSuggest({
+      index,
+      rule: suggestFieldIds(label, others),
+      ai: [],
+      aiLoading: false,
+      aiError: null
+    })
+  }
+
+  /**
+   * 让 AI 给几个候选（术语表未收录时的第二级兜底）。
+   * **只提案不写入**：候选项要用户点选后才落到字段名上。
+   */
+  const requestAiSuggestions = async (index: number): Promise<void> => {
+    if (!current) return
+    const field = current.formFields[index]
+    const label = String(field?.label ?? '').trim()
+    if (label === '') {
+      setIdSuggest((prev) => (prev === null ? prev : { ...prev, aiError: FIELD_ID_AI_ERROR_EMPTY_LABEL }))
+      return
+    }
+    const others = current.formFields.filter((_, i) => i !== index).map((item) => item.name)
+    setIdSuggest((prev) => (prev === null ? prev : { ...prev, aiLoading: true, aiError: null }))
+    try {
+      const result = await window.mbApi.schema.suggestFieldIds({
+        label,
+        existingNames: others,
+        typeName: current.name,
+        fieldType: field?.type
+      })
+      setIdSuggest((prev) => {
+        if (prev === null || prev.index !== index) return prev
+        return {
+          ...prev,
+          aiLoading: false,
+          ai: result.candidates,
+          aiError: result.candidates.length === 0 ? FIELD_ID_AI_ERROR_NO_CANDIDATE : null
+        }
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      setIdSuggest((prev) => (prev === null || prev.index !== index ? prev : { ...prev, aiLoading: false, aiError: message }))
+    }
   }
 
   const moveField = (index: number, delta: -1 | 1): void => {
@@ -279,6 +343,7 @@ export default function TypeEditorPanel({ types, onSaved, onClose }: TypeEditorP
               <div className="form-label">字段列表（{current.formFields.length}）</div>
               {current.formFields.map((field, index) => {
                 const isIdField = field.name === 'id'
+                const aiOnly = idSuggest?.index === index ? aiOnlyOf(idSuggest) : []
                 return (
                   <div className={`te-field-row${isIdField ? ' locked' : ''}`} key={index} data-testid={`te-field-${index}`}>
                     <input
@@ -418,18 +483,15 @@ export default function TypeEditorPanel({ types, onSaved, onClose }: TypeEditorP
                     </span>
                     {idSuggest?.index === index && (
                       <div className="te-id-suggest" data-testid={`te-id-suggest-${index}`}>
-                        {idSuggest.result.error !== null ? (
-                          <div className="te-id-suggest-error" data-testid={`te-id-suggest-error-${index}`}>
-                            {idSuggest.result.error}
-                          </div>
-                        ) : (
+                        {idSuggest.rule.suggestions.length > 0 && (
                           <>
                             <span className="te-id-suggest-label">候选：</span>
-                            {idSuggest.result.suggestions.map((suggestion) => (
+                            {idSuggest.rule.suggestions.map((suggestion) => (
                               <button
                                 type="button"
                                 className="btn slim te-id-suggest-apply"
                                 key={suggestion.id}
+                                data-source={suggestion.source}
                                 data-testid={`te-id-suggest-apply-${index}`}
                                 onClick={() => {
                                   updateField(index, { name: suggestion.id })
@@ -439,19 +501,57 @@ export default function TypeEditorPanel({ types, onSaved, onClose }: TypeEditorP
                                 {suggestion.id}
                               </button>
                             ))}
-                            {idSuggest.result.suggestions.some((s) => s.renamedFrom !== null) && (
-                              <span className="te-id-suggest-note" data-testid={`te-id-suggest-renamed-${index}`}>
-                                （原为 {idSuggest.result.suggestions[0]?.renamedFrom}，已重名故加后缀）
-                              </span>
-                            )}
-                            {idSuggest.result.suggestions[0]?.skipped.length ? (
-                              <span className="te-id-suggest-note" data-testid={`te-id-suggest-skipped-${index}`}>
-                                术语表未收录：
-                                {idSuggest.result.suggestions[0]?.skipped.join('、')}
-                                （需手动补全）
-                              </span>
-                            ) : null}
                           </>
+                        )}
+                        {idSuggest.rule.error !== null && (
+                          <span className="te-id-suggest-error" data-testid={`te-id-suggest-error-${index}`}>
+                            {idSuggest.rule.error}
+                          </span>
+                        )}
+
+                        {aiOnly.map((suggestion) => (
+                          <button
+                            type="button"
+                            className="btn slim te-id-suggest-apply"
+                            key={suggestion.id}
+                            data-source={suggestion.source}
+                            data-testid={`te-id-suggest-apply-${index}`}
+                            onClick={() => {
+                              updateField(index, { name: suggestion.id })
+                              setIdSuggest(null)
+                            }}
+                          >
+                            {suggestion.id}
+                          </button>
+                        ))}
+
+                        {idSuggest.rule.suggestions.some((s) => s.renamedFrom !== null) && (
+                          <span className="te-id-suggest-note" data-testid={`te-id-suggest-renamed-${index}`}>
+                            （原为 {idSuggest.rule.suggestions[0]?.renamedFrom}，已重名故加后缀）
+                          </span>
+                        )}
+                        {idSuggest.rule.suggestions[0]?.skipped.length ? (
+                          <span className="te-id-suggest-note" data-testid={`te-id-suggest-skipped-${index}`}>
+                            术语表未收录：
+                            {idSuggest.rule.suggestions[0]?.skipped.join('、')}
+                            （需手动补全）
+                          </span>
+                        ) : null}
+
+                        <button
+                          type="button"
+                          className="btn slim"
+                          data-testid={`te-id-suggest-ai-${index}`}
+                          disabled={idSuggest.aiLoading}
+                          title="让 AI 给几个候选（需本地 Ollama；AI 只提案，点选后才写入）"
+                          onClick={() => void requestAiSuggestions(index)}
+                        >
+                          {idSuggest.aiLoading ? 'AI 生成中…' : 'AI 候选'}
+                        </button>
+                        {idSuggest.aiError !== null && (
+                          <span className="te-id-suggest-error" data-testid={`te-id-suggest-ai-error-${index}`}>
+                            {idSuggest.aiError}
+                          </span>
                         )}
                       </div>
                     )}

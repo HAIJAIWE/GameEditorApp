@@ -34,6 +34,10 @@ export interface MbApi {
   schema: {
     list(): Promise<IpcContract['schema:list']['res']>
     save(req: IpcContract['schema:save']['req']): Promise<IpcContract['schema:save']['res']>
+    /** 字段 ID 的 AI 候选（术语表未收录时使用；需本地 Ollama） */
+    suggestFieldIds(
+      req: IpcContract['schema:suggestFieldIds']['req']
+    ): Promise<IpcContract['schema:suggestFieldIds']['res']>
   }
   attrSystem: {
     get(): Promise<IpcContract['attrSystem:get']['res']>

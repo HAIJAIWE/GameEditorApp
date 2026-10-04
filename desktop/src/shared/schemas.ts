@@ -104,6 +104,14 @@ export const schemaSaveInputSchema = z.object({
   types: z.array(dataTypeDefSchema).min(1).max(100)
 })
 
+/** 字段 ID 的 AI 候选请求（术语表未收录时使用） */
+export const fieldIdSuggestInputSchema = z.object({
+  label: z.string().min(1).max(64),
+  existingNames: z.array(z.string().max(64)).max(500),
+  typeName: z.string().max(64).optional(),
+  fieldType: z.string().max(32).optional()
+})
+
 /* ---- 属性系统 ---- */
 
 export const attrFormulaSchema = z.object({
@@ -399,6 +407,7 @@ export type BatchUpdateInput = z.infer<typeof batchUpdateInputSchema>
 export type DeleteManyInput = z.infer<typeof deleteManyInputSchema>
 export type ReferencesInput = z.infer<typeof referencesInputSchema>
 export type SchemaSaveInput = z.infer<typeof schemaSaveInputSchema>
+export type FieldIdSuggestInput = z.infer<typeof fieldIdSuggestInputSchema>
 export type AttrSystemSaveInput = z.infer<typeof attrSystemSaveInputSchema>
 export type AttrGameConfigExportInput = z.infer<typeof attrGameConfigExportInputSchema>
 export type AttrSystemJsonExportInput = z.infer<typeof attrSystemJsonExportInputSchema>
