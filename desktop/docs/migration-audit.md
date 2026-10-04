@@ -309,7 +309,7 @@
 | ai.py | 556 | ◐40% | AI 生成→`ceshuDataGen.ts`；审核→`DigitalPanel`/`AiReviewPanel`；缺 schema 驱动的直调生成/AI 平衡分析/API 配置 |
 | advanced.py | 431 | ◐25% | 关系图→`ReferencesPanel`；缺属性图表/高级搜索/关键词模板配置/清理未用图片 |
 | export.py | 705 | ◐90% | JSON（→`data:importLegacy`/`exportLegacy`）/CSV（→`main/data/csvIO.ts`）/Excel（→`main/data/excelIO.ts`，E19–E20）/批量编辑（→`BatchEditPanel`）已迁；仅剩 `batch_import` 的「重生成 id 追加」语义（现由 `importLegacy` 的 upsert 覆盖，属有意收敛）与 `batch_edit` 重复实现（见「已知待修」） |
-| _ai_image.py | 365 | ⚠️ | **AI 生图/配图整块无 TS 对应**（文生图+下载落盘+进度、`generate_desc_only` 等） |
+| _ai_image.py | 365 | ⚠️ | **AI 生图/配图整块无 TS 对应，且本文件在 Python 侧已是死壳**。它只是 `common.ai_client.generate_image` 的 PyQt 适配层：`apply_desc_template`/`auto_generate_image_info` 是**空实现**、`dynamic_form._on_ai_image` 是**死桩**（仅弹「需配置 API Key」、从不调 `generate_ai_image`）；唯一"引用"是 `features/__init__.py` 的 re-export，**无运行期调用者**。真正的生图引擎在 `common/ai_client.py:647 generate_image`（被 `core/agent/skills/image_skill.py:351` 使用），**依赖 OpenAI dall-e-3 / Qwen dashscope / 豆包 ark 等云付费图像 API + Key**，本地 Qwen3-4B 文本模型无法复用；`security/acl.py` 把 `system.image_gen` 标 NETWORK 风险。TS 侧仅有本地 Ollama 纯文本（`main/llm/client.ts`），`shared/agent/protocol.ts:64` 虽预留 `system.image_gen` 契约但 dispatcher **无 handler**，零生图代码/SK。→ 属**能力缺口（且源 app 自身也未真正接线）**，非遗漏迁移。**处置：有意不迁/待决策**（见 §4 #7）。若要做需新建整条子系统（provider 配置+云 API 客户端+下载落盘+Key 配置 UI，约 500–600 行）+ 外部图像 API/费用，属新功能而非迁移；按「警惕过度开发 / 无消费者不预建」不投机预建。若将来要做，应迁 `common/ai_client.generate_image` 的云端点分支而非这层壳 |
 | statistics.py | 273 | ⚠️ | 数据统计/平衡分析（`analyze_balance` 系列）无 TS（**注意 `ceshuScorer`/`ceshuWordStats` 是策划书域**） |
 | backup.py | 42 | ✅ | `export_for_game` 已迁（`data:exportLegacy`）；`show_backup_manager` 已迁（`BackupPanel.tsx` + `backup:*` 4 条 IPC，见 `ui/dialogs/backup_manager.py` 行）。**不迁** `common/auto_backup.py`（死代码，见 `common/` 域） |
 | engine_export.py | 75 | ◐15% | 薄壳；TS 只做 Lua，缺 `show_game_data_preview` |
@@ -325,7 +325,7 @@
 | **4** | 引用类字段编辑器：`multi_select`→`RefTableWidget`（258）+ `drop_table`→`DropTableWidget`（225） | ≈410 行 | ✅ **已迁**（E17/E18，`RefTableEditor.tsx`+`DropTableEditor.tsx`）；原是 JSON/逗号串降级，现为专用表格编辑器（内联选库） |
 | **5** | `features/export.py` 的 CSV + Excel 游戏数据导入导出 | ≈230 行 | ✅ **已迁**（E19–E20，`main/data/csvIO.ts`+`excelIO.ts` + 4 条 IPC + 工具栏入口） |
 | **6** | `core/style_manager.py`（289 行） | 289 行 | ✅ **已迁**（E21，`shared/gameStyle.ts` + 2 条消费者接线 + 工具栏手工入口）。**D 档至此收官**：`core` 顶层/`defaults` 域的 ⚠️ 列清零 |
-| **7** | `features/_ai_image.py` AI 生图（365 行） | 365 行 | 新架构**完全没有**的能力（可选） |
+| **7** | `features/_ai_image.py` AI 生图（365 行） | 365 行 | ⚠️ **未迁（能力缺口，待决策）**：本文件在 Python 侧已是**死壳**（`dynamic_form._on_ai_image` 是只弹提示的死桩、无运行期调用者；`apply_desc_template`/`auto_generate_image_info` 空实现）；真正生图引擎在 `common/ai_client.generate_image`（被 `image_skill.py` 用）**依赖云付费图像 API + Key**。TS 仅 Ollama 本地纯文本、**零生图代码/SK**（protocol 仅预留 `system.image_gen` 契约、dispatcher 无 handler）。要做需新建整条子系统（云 API+下载落盘+Key 配置，~500–600 行）+ 外部费用，**非迁移范畴**，按「警惕过度开发」不投机预建 → 有意不迁候选，待用户决策 |
 | **8** | C 档外围：主题/特效 1,905 + 菜单/多标签/窗口状态 690 + 设置/i18n | ≈3,700 行 | **多为「体验完整度」而非核心功能**，可长期后排 |
 
 ## 5. 方法与可复核性
