@@ -2623,3 +2623,39 @@ button.ref-row:hover {
 .digital-input-row .form-input {
   flex: 1;
 }
+
+/* ---- 库条（A2-2） ---- */
+
+.library-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.library-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.library-bar-row .form-select {
+  flex: 1;
+  min-width: 0;
+}
+
+.library-bar-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.library-bar-edit {
+  display: flex;
+  gap: 4px;
+}
+
+.library-bar-edit .form-input {
+  flex: 1;
+  min-width: 0;
+}

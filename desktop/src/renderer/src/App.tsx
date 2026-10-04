@@ -8,6 +8,7 @@ import AttrSystemPanel from './components/AttrSystemPanel'
 import BatchEditPanel from './components/BatchEditPanel'
 import CeshuHomePanel from './components/CeshuHomePanel'
 import DigitalPanel from './components/digital/DigitalPanel'
+import LibraryBar from './components/LibraryBar'
 import CeshuView from './components/CeshuView'
 import ItemForm from './components/ItemForm'
 import ReferencesPanel, { type ReferenceTarget } from './components/ReferencesPanel'
@@ -41,6 +42,17 @@ export default function App() {
   const [notice, setNotice] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [mode, setMode] = useState<'data' | 'ceshu' | 'digital'>('data')
+
+  // 活跃库切换（A2-2）：主进程已重建全部 store，渲染层直接整页重载——
+  // 这样所有视图（数据表/策划书/属性系统/数字员工）都从新库重新拉取，无需逐处写刷新逻辑。
+  useEffect(() => {
+    const library = (window.mbApi as unknown as { library?: { onChanged?: (h: (p: unknown) => void) => () => void } })
+      .library
+    if (library?.onChanged === undefined) return undefined
+    return library.onChanged(() => {
+      window.location.reload()
+    })
+  }, [])
   const [editorOpen, setEditorOpen] = useState(false)
   const [attrSysOpen, setAttrSysOpen] = useState(false)
   const [ceshuList, setCeshuList] = useState<CeshuSummary[]>([])
@@ -302,6 +314,7 @@ export default function App() {
           墨白可视化编辑
           <small>TS 重写版 · Phase 1 数据核心</small>
         </div>
+        <LibraryBar />
         <div className="mode-switch">
           <button
             type="button"

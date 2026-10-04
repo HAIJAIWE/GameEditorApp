@@ -193,7 +193,7 @@ userData/
 |---|---|---|---|
 | 调研（本文） | ✅ 完成 | — | 3 子代理并行盘点；核验 `core/agent` 97 文件 / 21,669 行、`library_manager.py` 626 行 |
 | A2-1 库服务与路径迁移 | ✅ 完成（**降级验证**） | `bd9d2d9` | `main/library/{store,manager,migrate}.ts`（注册表 + 库服务 + 一次性搬迁，单测 15）+ 六处 store 统一改为 `libraries/<活跃库>/…` + `main/index.ts` 抽出 `buildStores()`/`activateLibrary()` + IPC `library:list/create/rename/remove/switch` + `disposeIpcHandlers()` 支持切换后重建 + `library:changed` 广播；**E2E 未写**（见落地记录） |
-| A2-2 库条 UI 与切换联动 | ⬜ 未开始 | — | — |
+| A2-2 库条 UI 与切换联动 | ✅ 完成（**降级验证**） | `<PENDING_HASH>` | `components/LibraryBar.tsx`（新建/重命名/删除/切换 + 初始库禁删 + 中文错误展示）+ App 侧栏挂载 + `library:changed` → 整页重载 + E2E `library-bar.spec.ts`（3 例，沙箱未实跑） |
 | A1-1 技能协议 + 调度器 | ✅ 完成 | `20ec1ff` | `shared/agent/protocol.ts`（协议/风险策略/参数修正，单测 18）+ `main/agent/dispatcher.ts`（注册表/模糊解析/危险确认门，单测 15）+ 2 个 action-based 技能（`system.game_data` 读写数据表 / `system.ceshu` 只读策划书，单测 13）+ IPC `agent:listTools`/`agent:executeTool` + E2E `agent-execute-tool.spec.ts`（沙箱未实跑） |
 | A1-2 Brain 循环 + 事件流 | ✅ 完成 | `a377e3c` | `shared/agent/brain.ts`（事件流 + 循环纯逻辑，单测 19）+ `shared/agent/prompts.ts`（提示词骨架）+ `main/agent/ollamaTransport.ts`（`/api/chat` NDJSON 流式 + tool_calls）+ `main/agent/brainService.ts`（调度器适配）+ IPC `agent:chat` + E2E `agent-brain-chat.spec.ts`（`/api/chat` 桩两轮，沙箱未实跑） |
 | A1-3 会话与记忆 | ✅ 完成 | `7794a84` | `shared/agent/session.ts`（快照/截断纯逻辑）+ `main/agent/sessionStore.ts`（原子写 + 串行队列 + 严格/容错两档读取 + metrics.jsonl）+ `shared/agent/memory.ts`（确定性 n-gram 嵌入）+ `main/agent/memoryStore.ts`（vectra 索引）；接入 `AgentBrainService`（记忆注入 + 会话落盘 + 问答回写）；单测 22 |
@@ -201,6 +201,17 @@ userData/
 | A1-5 业务技能接线 + 托盘/热键 | ✅ 完成 | `26b217f` |
 | A1-4b 交互通道补完（参数澄清 + 删除确认） | ✅ 完成 | `ac2c6ec` |
 | A1-5b 收尾三项（策划书删/导出 + 交互超时 + 托盘图标资源） | ✅ 完成 | `b7a0a47` | `system.ceshu` 补 `delete`（confirm 交互）/`export`（导出到默认目录并回报路径）+ 交互**超时保护**（默认 120s，超时按未答复回落）+ `resources/tray-icon.png` 正式图标（脚本生成 + 位图兜底）；单测 +8 | 统一 `SkillResult.interaction`（`confirm`/`question`）→ Brain `interaction_required` 事件 + 复用审批 broker 回传答复；生产者：`system.game_data.delete`（confirm，批准后带 `confirm:true` 重执行）+ `tool.ask_user`（question，答复回灌为工具结果）；面板交互模态；单测 +17 | `system.code`（jsSandbox，**SYSTEM 级**，单测 9）+ `system.ceshu` 补 `create`/`update`（单测 3）+ `main/tray.ts`（Tray + `Ctrl+Shift+M`，防御式）+ **补齐 A1-4 遗留的审批端到端拦截 E2E**（拒绝→不执行 / 批准→真执行，见 `agent-digital-panel.spec.ts`） |
+
+### A2-2 落地记录（2026-10-04）· A 档收官
+
+**产物**：`components/LibraryBar.tsx`（`library-select` 切换 + 新建/重命名/删除 + 初始库禁删 + 错误展示）、App 侧栏挂载、`library:changed` → **整页重载**、E2E `library-bar.spec.ts`（3 例：切换隔离 / 重启保持活跃库 / 非法名被拒）。
+
+**有意偏离 / 关键决策**：
+1. **校验口径：主进程是唯一权威**。渲染层只做「非空 + ≤40 字」的按钮启用预检（UX），真正的拒绝理由一律展示主进程返回的中文错误——**刻意不做两份校验规则**（漂移风险大于收益）。
+2. **切换后整页重载**（`window.location.reload()`）而非逐视图刷新：主进程此时已重建全部 store，整页重载让数据表/策划书/属性系统/数字员工都从新库重新拉取，**零刷新逻辑**且不可能漏掉某个视图。代价是丢失 UI 局部状态（当前页签/滚动位置）——但切库本身就是上下文切换，可接受。方案原文写的是「清缓存并重载全部视图」，此处取最朴素实现。
+3. 初始库删除按钮 `disabled` + `title` 说明，同时主进程仍会拒绝（**UI 禁用只是不给无效入口，服务端才是防线**）。
+
+**降级验证说明**：3 例 E2E 已写但**沙箱 Electron 起不来**（`Process failed to launch!`），故端到端未验；A2-2 本身无新增纯逻辑单测（组件行为依赖真实 IPC）。
 
 ### A2-1 落地记录（2026-10-04）· 降级验证
 
