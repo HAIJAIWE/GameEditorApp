@@ -50,6 +50,7 @@ const api: MbApi = {
   },
   data: {
     listItems: (req) => invoke('data:listItems', req),
+    listAll: () => invoke('data:listAll', undefined),
     createItem: (req) => invoke('data:createItem', req),
     updateItem: (req) => invoke('data:updateItem', req),
     deleteItem: (req) => invoke('data:deleteItem', req),

@@ -14,6 +14,7 @@ import CeshuView from './components/CeshuView'
 import ItemForm from './components/ItemForm'
 import QuickCreatePanel from './components/QuickCreatePanel'
 import ReferencesPanel, { type ReferenceTarget } from './components/ReferencesPanel'
+import StatisticsPanel from './components/StatisticsPanel'
 import TypeEditorPanel from './components/TypeEditorPanel'
 
 function toErrorMessage(error: unknown): string {
@@ -69,6 +70,7 @@ export default function App() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [batchOpen, setBatchOpen] = useState(false)
   const [quickCreateOpen, setQuickCreateOpen] = useState(false)
+  const [statsOpen, setStatsOpen] = useState(false)
   const [refTarget, setRefTarget] = useState<ReferenceTarget | null>(null)
 
   const filteredItems = useMemo(() => filterItemRecords(items, debouncedQuery), [items, debouncedQuery])
@@ -510,6 +512,19 @@ export default function App() {
                       >
                         快速创建
                       </button>
+                      <button
+                        type="button"
+                        className="btn"
+                        data-testid="open-stats"
+                        onClick={() => {
+                          setStatsOpen(true)
+                          setRefTarget(null)
+                          setBatchOpen(false)
+                          setQuickCreateOpen(false)
+                        }}
+                      >
+                        统计
+                      </button>
                     </div>
 
                     <div className="list">
@@ -531,6 +546,7 @@ export default function App() {
                               setSelectedId(item.id)
                               setBatchOpen(false)
                               setQuickCreateOpen(false)
+                              setStatsOpen(false)
                               setRefTarget(null)
                             }}
                           >
@@ -567,6 +583,8 @@ export default function App() {
                       onJump={handleJump}
                       onClose={() => setRefTarget(null)}
                     />
+                  ) : statsOpen ? (
+                    <StatisticsPanel types={types} onClose={() => setStatsOpen(false)} />
                   ) : quickCreateOpen ? (
                     <QuickCreatePanel
                       key={`${activeType ?? ''}:quick`}

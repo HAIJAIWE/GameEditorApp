@@ -53,6 +53,8 @@ export interface MbApi {
   }
   data: {
     listItems(req: IpcContract['data:listItems']['req']): Promise<IpcContract['data:listItems']['res']>
+    /** 全量条目（跨类型） */
+    listAll(): Promise<IpcContract['data:listAll']['res']>
     createItem(req: IpcContract['data:createItem']['req']): Promise<IpcContract['data:createItem']['res']>
     updateItem(req: IpcContract['data:updateItem']['req']): Promise<IpcContract['data:updateItem']['res']>
     deleteItem(req: IpcContract['data:deleteItem']['req']): Promise<IpcContract['data:deleteItem']['res']>

@@ -281,6 +281,8 @@ export function registerIpcHandlers({
     return { path: result.canceled || result.filePaths.length === 0 ? null : (result.filePaths[0] ?? null) }
   })
   handle('data:listItems', listItemsInputSchema, (req) => dataService.listItems(req.type))
+  // 全量条目（跨类型）：统计面板需要全局视角，逐类型拉会 N 次往返
+  handle('data:listAll', undefined, () => dataService.listAllItems())
   handle('data:createItem', createItemInputSchema, async (req) => {
     const item = await dataService.createItem(req)
     await dataSync.onDataChanged()

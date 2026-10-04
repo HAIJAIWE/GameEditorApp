@@ -2906,3 +2906,107 @@ button.ref-row:hover {
   min-width: 0;
   word-break: break-all;
 }
+
+/* 数据统计：标签页 / 分布柱条 / 数值摘要 */
+.qc-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.qc-tab {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.qc-tab.active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.qc-stat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.qc-stat-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.qc-stat-name {
+  min-width: 56px;
+  flex-shrink: 0;
+}
+
+.qc-stat-bar {
+  flex: 1;
+  height: 10px;
+  border-radius: 5px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.qc-stat-bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+
+.qc-stat-value {
+  min-width: 92px;
+  text-align: right;
+  color: var(--text-muted);
+}
+
+.qc-stat-total {
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.qc-summary {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+}
+
+.qc-summary-title {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.qc-summary-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 10px;
+  font-size: 12px;
+}
+
+.qc-summary-grid span:nth-child(odd) {
+  color: var(--text-muted);
+}
+
+.qc-verdict {
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.qc-verdict.good {
+  color: var(--success, #4caf50);
+}
+
+.qc-verdict.needs_adjust {
+  color: var(--warning, #ff9800);
+}

@@ -93,6 +93,8 @@ export interface IpcContract {
   'attrSystem:importJson': { req: AttrSystemJsonImportInput; res: { system: AttrSystem; warnings: string[] } }
   'dialog:chooseAttrSystemJsonFile': { req: AttrJsonDialogInput; res: { path: string | null } }
   'data:listItems': { req: { type: string }; res: ItemRecord[] }
+  /** 全量条目（跨类型；统计面板等需要全局视角的消费者用） */
+  'data:listAll': { req: undefined; res: ItemRecord[] }
   'data:createItem': { req: { type: string; data: Record<string, unknown> }; res: ItemRecord }
   'data:updateItem': { req: { id: string; data: Record<string, unknown> }; res: ItemRecord }
   'data:deleteItem': { req: { id: string }; res: { deleted: boolean } }
