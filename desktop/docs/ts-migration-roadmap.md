@@ -194,7 +194,7 @@
 > **不开新 IPC**：模板是静态常量（渲染层直引 `shared/*`，同 `ceshuConstants`）；落库复用既有 `data:createItem`，id 由主进程 `randomUUID()` 生成（对应 Python `generate_id`）。
 > **验证**：单测 12（12 类型 / 61 模板 / 每个带 name+desc+非空 defaults / 值皆字符串 / 键为单数 / 同类型无重名 + 求交过滤）+ E2E 1（**未实跑**，Electron 沙箱不可用；已用 `playwright test --list` 确认被收集）+ eslint/双端 tsc/build 全绿 + 全量 vitest 72 文件/790 用例。
 
-> ✅ **E11（2026-10-04）：数据统计与平衡性分析（迁移 `ui/dialogs/statistics.py`，374 行）**。
+> ✅ **E11（2026-10-04）：数据统计与平衡性分析（迁移 `ui/dialogs/statistics.py`，374 行），提交 `2f77c32`**。
 > **为什么做**：审计 #3 批第 2 件。统计是「看全局」的入口，且能验证前面几刀造的数据。
 > **交付**：`shared/dataStats.ts`（`mean` / **样本**标准差对齐 `statistics.stdev` / 平衡性判定阈值 0.3 / 按类型计数与占比 / `summarizeNumeric`）+ `StatisticsPanel.tsx`（概览柱条 + 平衡性分析）+ IPC `data:listAll`（跨类型全量，避免逐类型 N 次往返）。
 > **关键接地结论（直译会变死代码，故改设计）**：Python `_analyze_roles`/`_analyze_monsters` 读扁平字段 `hp`/`atk`/`def`，但 TS schema 里 **`role` 与 `monster` 根本没有这些字段** —— 属性存在 `attr_list`（`attrpanel`）。硬编码字段名会让这两块永远只输出「总数 N」。故改为**按 schema 的 `spinbox` 字段自动发现**（skill→value/cd，monster→level，job→4 个加成%；**role 无数值字段，因此不出现在分析列表**），换 schema 也成立。
