@@ -567,6 +567,18 @@ body {
   width: auto;
 }
 
+/* 工具栏内联表单控件（标签 + 控件横排；控件不撑满） */
+.toolbar-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.toolbar .game-style-select {
+  width: auto;
+}
+
 /* ---- 版本链：派生面板与变更记录 ---- */
 
 .derive-panel {

@@ -1,3 +1,4 @@
+import { resolveFieldLabel } from './gameStyle'
 import type { FieldType, TypeFieldDef } from './types'
 
 /**
@@ -22,10 +23,16 @@ import type { FieldType, TypeFieldDef } from './types'
  *   `layout == 'grid'` 分支被调用，而有 grid 分区的类型是 `{job, skill, talent, equip, item}`，
  *   `STAT_HINTS` 的键却是 `{role, monster}`——**交集为空**，提示标签永远不会被创建，
  *   `_update_stat_hints()` 因此必然早退。整套属性参考范围提示是死代码。
- * - `_styled_label`（`style_manager.resolve_field_label` 术语替换）：属独立的 D 档项 `style_manager.py`（289 行），
- *   且其唯一触发是 `ceshu_controller.py` 加载策划书时设置**全局单例**活跃风格——TS 侧刻意无全局可变态。
- *   未实现期间使用字段原始 `label`；在**默认无活跃风格**下 Python 亦原样返回（`resolve_label`：`if not sid: return label`），
- *   故默认行为等价。
+ * - `_styled_label`（`style_manager.resolve_field_label` 术语替换）：已迁（E21，见 `shared/gameStyle.ts`）。
+ *   Python 靠 `style_manager` 的**全局单例**承载活跃风格；TS 无全局可变态，改为 `App` 持 state 并
+ *   以 `styleId` 参数显式传入（`fieldLabelFor` / `ItemForm` 的 `gameStyle` prop）。
+ *   **默认无活跃风格（`''`）下与 Python 等价**：`resolveLabel` 对空 styleId 原样返回。
+ *
+ * ## 字段标签的渲染口径（照抄 Python `dynamic_form.py`）
+ * - `layout: 'grid'`：`STAT_LABELS[field.name] ?? resolveFieldLabel(field.label, styleId)`
+ *   （Python `STAT_LABELS.get(fname, _styled_label(field['label']))` —— **命中 STAT_LABELS 时不参与术语替换**，
+ *   故必须先取 STAT_LABELS、再退化为「已替换的字段标签」，顺序不能颠倒）
+ * - 其他分支：`resolveFieldLabel(field.label, styleId)`
  *
  * ## 对 Python 的有意偏离（TS 修正）
  * - Python 的 `attribute_panel` 分区不把字段计入 `grouped_fields`，而 `role`/`monster` 的 schema 里又有
@@ -161,7 +168,7 @@ export const FORM_GROUPS: Readonly<Record<string, readonly FormSectionDef[]>> = 
 
 /**
  * 双列网格分区里覆盖字段标签（照抄 Python `STAT_LABELS`，仅用于 `layout: 'grid'`；
- * 单列表单分区用字段自身 label）。
+ * 未命中时退化为经过术语替换的字段 label）。
  */
 export const STAT_LABELS: Readonly<Record<string, string>> = {
   hp: '❤️ HP',
@@ -207,10 +214,13 @@ export function isComplexFieldType(type: FieldType): boolean {
   return COMPLEX_FIELD_TYPES.has(type)
 }
 
-/** 分区内字段的显示标签：grid 分区优先 `STAT_LABELS`，否则用字段自身 label */
-export function fieldLabelFor(field: TypeFieldDef, layout: 'form' | 'grid'): string {
-  if (layout === 'grid') return STAT_LABELS[field.name] ?? field.label
-  return field.label
+/**
+ * 分区内字段的显示标签：grid 分区优先 `STAT_LABELS`（命中即不替换）；
+ * 否则用字段自身 label 经 `resolveFieldLabel` 做术语替换（`styleId` 为空则原样）。
+ */
+export function fieldLabelFor(field: TypeFieldDef, layout: 'form' | 'grid', styleId = ''): string {
+  if (layout === 'grid') return STAT_LABELS[field.name] ?? resolveFieldLabel(field.label, styleId)
+  return resolveFieldLabel(field.label, styleId)
 }
 
 /**

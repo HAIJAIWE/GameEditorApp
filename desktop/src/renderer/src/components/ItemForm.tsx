@@ -10,6 +10,7 @@ import {
   type DropEntry
 } from '../../../shared/dropTable'
 import { buildFormLayout, fieldLabelFor, isComplexFieldType } from '../../../shared/formSections'
+import { resolveFieldLabel } from '../../../shared/gameStyle'
 import {
   canParseAsRefTable,
   normalizeRefEntries,
@@ -29,6 +30,12 @@ interface ItemFormProps {
   fields: TypeFieldDef[]
   /** 全部数据类型定义（引用类字段解析 refType → 单数 id + 中文名） */
   types: readonly DataTypeDef[]
+  /**
+   * 当前活跃的游戏风格 id（`game_styles.json` 的 id，如 `xianxia`）。
+   * 用于按风格替换字段标签术语（对应 Python `style_manager.resolve_field_label`）；
+   * `''` = 不启用，标签原样显示（与 Python 无活跃风格时等价）。
+   */
+  gameStyle?: string
   onSaved: (updated: ItemRecord) => void
 }
 
@@ -251,7 +258,7 @@ function FieldControl({ field, value, jsonMode, onChange }: FieldControlProps) {
   }
 }
 
-export default function ItemForm({ item, fields, types, onSaved }: ItemFormProps) {
+export default function ItemForm({ item, fields, types, gameStyle = '', onSaved }: ItemFormProps) {
   const [draft, setDraft] = useState<Record<string, unknown>>(() => buildInitialDraft(item.data, fields, item.type))
   const [saving, setSaving] = useState(false)
   const [localError, setLocalError] = useState<string | null>(null)
@@ -395,10 +402,10 @@ export default function ItemForm({ item, fields, types, onSaved }: ItemFormProps
               })()
             ) : section.layout === 'grid' ? (
               <div className="form-grid" data-testid={`form-section-${index}-grid`}>
-                {section.fields.map((field) => renderFieldRow(field, fieldLabelFor(field, 'grid')))}
+                {section.fields.map((field) => renderFieldRow(field, fieldLabelFor(field, 'grid', gameStyle)))}
               </div>
             ) : (
-              section.fields.map((field) => renderFieldRow(field, field.label))
+              section.fields.map((field) => renderFieldRow(field, fieldLabelFor(field, 'form', gameStyle)))
             )}
           </FormSectionCard>
         ))}
@@ -407,7 +414,7 @@ export default function ItemForm({ item, fields, types, onSaved }: ItemFormProps
             // 兜底：复杂控件单独成区（对应 Python P0-2），避免与普通字段混排
             <FormSectionCard
               key={field.name}
-              title={field.label}
+              title={resolveFieldLabel(field.label, gameStyle)}
               icon="📋"
               collapsed={false}
               testId={`form-section-ungrouped-${field.name}`}
@@ -415,7 +422,7 @@ export default function ItemForm({ item, fields, types, onSaved }: ItemFormProps
               {renderFieldControl(field)}
             </FormSectionCard>
           ) : (
-            renderFieldRow(field, field.label)
+            renderFieldRow(field, fieldLabelFor(field, 'form', gameStyle))
           )
         )}
       </div>

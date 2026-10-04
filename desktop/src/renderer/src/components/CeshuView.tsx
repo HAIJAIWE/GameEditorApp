@@ -10,7 +10,7 @@ import {
   type ChapterData,
   type ChapterKey
 } from '../../../shared/ceshuConstants'
-import { computeChapterProgress, getGddScope } from '../../../shared/ceshuModel'
+import { computeChapterProgress, getGddScope, resolveDocGameStyle } from '../../../shared/ceshuModel'
 import type { CeshuChangeItem, CeshuChangelog } from '../../../shared/ceshuDiff'
 import { gradeLabel, type CeshuScoreReport } from '../../../shared/ceshuScorer'
 import type { CeshuAiGenerateResult } from '../../../shared/ceshuAi'
@@ -34,6 +34,11 @@ interface CeshuViewProps {
   onChanged: () => void
   /** 切换当前策划书（派生新版本后自动切到新版本） */
   onSelect: (id: string) => void
+  /**
+   * 打开策划书时回填活跃术语风格（对应 Python `ceshu_controller.open_ceshu`：
+   * 由 meta 推断风格后 `set_active_style`；本版优先采用用户显式选过的 `doc.style`）。
+   */
+  onGameStyleChange?: (styleId: string) => void
 }
 
 function toErrorMessage(error: unknown): string {
@@ -52,7 +57,7 @@ function groupByChapter(changes: CeshuChangeItem[]): Array<[string, CeshuChangeI
 }
 
 /** 策划书编辑器：章节导航（含进度）+ 章节表单 + 版本链操作 */
-export default function CeshuView({ ceshuId, onChanged, onSelect }: CeshuViewProps) {
+export default function CeshuView({ ceshuId, onChanged, onSelect, onGameStyleChange }: CeshuViewProps) {
   const [doc, setDoc] = useState<CeshuDocument | null>(null)
   const [activeChapter, setActiveChapter] = useState<ChapterKey>('meta')
   const [error, setError] = useState<string | null>(null)
@@ -95,6 +100,8 @@ export default function CeshuView({ ceshuId, onChanged, onSelect }: CeshuViewPro
         setError(null)
         setPanel(null)
         setDeriveOpen(false)
+        // 打开策划书 → 回填活跃术语风格（Python 在 open_ceshu 里 set_active_style）
+        onGameStyleChange?.(resolveDocGameStyle(loaded))
       })
       .catch((err: unknown) => {
         if (!cancelled) setError(toErrorMessage(err))
@@ -102,7 +109,7 @@ export default function CeshuView({ ceshuId, onChanged, onSelect }: CeshuViewPro
     return () => {
       cancelled = true
     }
-  }, [ceshuId])
+  }, [ceshuId, onGameStyleChange])
 
   const handleSave = useCallback(
     async (chapter: ChapterKey, data: ChapterData): Promise<void> => {

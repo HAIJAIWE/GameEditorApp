@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import type { CeshuSummary } from '../../shared/ceshuConstants'
 import { filterItemRecords } from '../../shared/dataTableOps'
+import { GAME_STYLES, loadGameStyle, normalizeGameStyleId, saveGameStyle } from '../../shared/gameStyle'
 import type { AppInfo, DataTypeDef, ImportSummary, ItemRecord } from '../../shared/types'
 import { isTypeVisible, loadVisibleTypes, saveVisibleTypes } from '../../shared/visibleTypes'
 
@@ -82,6 +83,16 @@ export default function App() {
   const [typeVisibilityOpen, setTypeVisibilityOpen] = useState(false)
   /** 侧栏显示哪些类型（null = 全部）；持久化在 localStorage，随会话保留 */
   const [visibleTypes, setVisibleTypes] = useState<string[] | null>(() => loadVisibleTypes())
+  /**
+   * 活跃游戏风格 id（术语风格）。用于条目表单的字段标签术语替换
+   * （对应 Python `style_manager` 的**全局单例** `_active_style`；TS 无全局可变态，落在 App state）。
+   *
+   * 触发方式（两条，与 Python 对齐 + 一处有意增强）：
+   * - 打开某份策划书时由 `CeshuView` 回填：优先 `doc.style`（用户显式选过），否则由 meta 文本推断（Python 行为）
+   * - 工具栏下拉手工切换（**Python 无此入口**；Python 只能靠推断，且推断不出时无从设置）
+   * `''` = 原始术语（不替换）。
+   */
+  const [gameStyle, setGameStyle] = useState<string>(() => loadGameStyle())
   const [refTarget, setRefTarget] = useState<ReferenceTarget | null>(null)
 
   const filteredItems = useMemo(() => filterItemRecords(items, debouncedQuery), [items, debouncedQuery])
@@ -206,6 +217,16 @@ export default function App() {
     saveVisibleTypes(next)
     setTypeVisibilityOpen(false)
   }
+
+  /**
+   * 切换术语风格：未知 id 归一为 `''`（原始术语），并持久化。
+   * `useCallback` 稳定引用——`CeshuView` 的加载 effect 依赖它，否则每次渲染都会重跑 effect。
+   */
+  const handleGameStyleChange = useCallback((styleId: string): void => {
+    const normalized = normalizeGameStyleId(styleId)
+    setGameStyle(normalized)
+    saveGameStyle(normalized)
+  }, [])
 
   /** 侧栏可见的类型（null = 全部） */
   const visibleTypeDefs = useMemo(
@@ -520,6 +541,23 @@ export default function App() {
           <>
             <header className="toolbar">
               <h1>数据表预览</h1>
+              <label className="toolbar-field">
+                <span className="form-label">术语风格</span>
+                <select
+                  className="form-select game-style-select"
+                  data-testid="game-style"
+                  title="按游戏风格替换条目表单的字段标签术语（如 生命 → 气血）"
+                  value={gameStyle}
+                  onChange={(event) => handleGameStyleChange(event.target.value)}
+                >
+                  <option value="">原始术语</option>
+                  {GAME_STYLES.map((style) => (
+                    <option key={style.id} value={style.id}>
+                      {style.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <button type="button" className="btn" disabled={busy} onClick={() => void handleImportLegacy()}>
                 导入旧数据
               </button>
@@ -853,6 +891,7 @@ export default function App() {
                         item={selectedItem}
                         fields={fields}
                         types={types}
+                        gameStyle={gameStyle}
                         onSaved={handleSaved}
                       />
                     )
@@ -874,7 +913,12 @@ export default function App() {
             }}
           />
         ) : (
-          <CeshuView ceshuId={activeCeshuId} onChanged={() => void reloadCeshuList()} onSelect={handleOpenCeshu} />
+          <CeshuView
+            ceshuId={activeCeshuId}
+            onChanged={() => void reloadCeshuList()}
+            onSelect={handleOpenCeshu}
+            onGameStyleChange={handleGameStyleChange}
+          />
         )}
 
         <footer className="statusbar">

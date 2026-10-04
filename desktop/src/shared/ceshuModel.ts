@@ -12,6 +12,7 @@ import {
   type GddScope
 } from './ceshuConstants'
 import { createDefaultChapters } from './ceshuDefaults'
+import { getStyle, inferStyleFromText } from './gameStyle'
 import { migrateV4ToV5, needsV4Migration } from './ceshuMigration'
 
 /**
@@ -198,4 +199,39 @@ function isEnabledEditor(value: unknown): value is EnabledEditor {
 
 function round2(value: number): number {
   return Math.round(value * 100) / 100
+}
+
+/** 从 meta 取字符串（非字符串一律视为空） */
+function readMetaText(meta: Record<string, unknown>, key: string): string {
+  const value = meta[key]
+  return typeof value === 'string' ? value : ''
+}
+
+/**
+ * 由策划书推导活跃游戏风格 id（用于条目表单字段标签的术语替换）。
+ *
+ * 对应 Python `ui/ceshu_controller.py::open_ceshu`：
+ * ```python
+ * inferred = infer_style_from_text(game_type + " " + tags)
+ * if not inferred:
+ *     inferred = infer_style_from_text(meta.get("positioning", ""))
+ * set_active_style(inferred)
+ * ```
+ *
+ * **对 Python 的有意增强**：先看 `doc.style`。Python 完全忽略它，只做关键词推断——
+ * 而 `doc.style` 是用户在「AI 一键生成 / 预设应用」里**显式选择**的风格 key，
+ * 比启发式推断更权威；两者都拿不到时才回退到推断。
+ *
+ * 返回 `''` 表示「无活跃风格」（标签原样显示），与 Python `set_active_style("")` 同义。
+ */
+export function resolveDocGameStyle(doc: CeshuDocument): string {
+  const declared = typeof doc.style === 'string' ? doc.style : ''
+  if (declared && getStyle(declared) !== undefined) return declared
+
+  const meta = isPlainObject(doc.meta) ? doc.meta : {}
+  const tags = Array.isArray(meta.tags) ? meta.tags.filter((tag) => typeof tag === 'string').join(' ') : ''
+  const inferred = inferStyleFromText(`${readMetaText(meta, 'game_type')} ${tags}`)
+  if (inferred) return inferred
+
+  return inferStyleFromText(readMetaText(meta, 'positioning'))
 }

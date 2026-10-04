@@ -192,6 +192,28 @@ describe('formSections：分区解析', () => {
     expect(fieldLabelFor(other, 'grid')).toBe('伤害类型:')
     expect(fieldLabelFor(value, 'form')).toBe('数值:')
   })
+
+  it('fieldLabelFor：省略 styleId 时不替换（默认行为与 Python 无活跃风格等价）', () => {
+    expect(fieldLabelFor(f('hp_bonus', '生命加成%:'), 'grid')).toBe('生命加成%:')
+    expect(fieldLabelFor(f('skills', '技能列表:'), 'form')).toBe('技能列表:')
+  })
+
+  it('fieldLabelFor：grid 分区未命中 STAT_LABELS 时按风格替换字段 label', () => {
+    // 对应 Python `STAT_LABELS.get(fname, _styled_label(field['label']))`
+    expect(fieldLabelFor(f('hp_bonus', '生命加成%:'), 'grid', 'xianxia')).toBe('气血加成%:')
+    expect(fieldLabelFor(f('mp_bonus', '法力加成%:'), 'grid', 'scifi')).toBe('能量加成%:')
+  })
+
+  it('fieldLabelFor：命中 STAT_LABELS 时**不**参与术语替换（顺序不可颠倒）', () => {
+    // hp 同时是 STAT_LABELS 键；若先替换再取 STAT_LABELS 就会变成「❤️ 气血」——Python 不会这样
+    expect(fieldLabelFor(f('hp', '生命:'), 'grid', 'xianxia')).toBe('❤️ HP')
+    expect(fieldLabelFor(f('value', '数值:'), 'grid', 'xianxia')).toBe('📊 数值')
+  })
+
+  it('fieldLabelFor：表单分区按风格替换字段 label，未知风格原样返回', () => {
+    expect(fieldLabelFor(f('skills', '技能列表:'), 'form', 'xianxia')).toBe('功法列表:')
+    expect(fieldLabelFor(f('skills', '技能列表:'), 'form', 'no_such_style')).toBe('技能列表:')
+  })
 })
 
 describe('formSections × 真实内置 schema：不变式', () => {

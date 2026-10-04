@@ -10,6 +10,7 @@ import {
   isEmptyRequiredValue,
   isFilledValue,
   normalizeCeshu,
+  resolveDocGameStyle,
   withChapter
 } from '../../src/shared/ceshuModel'
 
@@ -151,5 +152,62 @@ describe('策划书模型（W3 第一切片）', () => {
     expect(isEmptyRequiredValue([])).toBe(true)
     expect(isEmptyRequiredValue(0)).toBe(true)
     expect(isEmptyRequiredValue('x')).toBe(false)
+  })
+})
+
+describe('resolveDocGameStyle：策划书 → 活跃术语风格', () => {
+  const base = (): CeshuDocument => createDefaultCeshu({ scope: 'full' })
+
+  it('doc.style 为已知风格 id 时优先采用（Python 忽略它，此处有意增强）', () => {
+    const doc = base()
+    doc.style = 'xianxia'
+    doc.meta.game_type = ''
+    doc.meta.tags = []
+    doc.meta.positioning = ''
+    expect(resolveDocGameStyle(doc)).toBe('xianxia')
+  })
+
+  it('doc.style 未知/为空时回退到关键词推断（对齐 Python open_ceshu）', () => {
+    const unknown = base()
+    unknown.style = '不存在的风格'
+    unknown.meta.game_type = '仙侠MMORPG'
+    unknown.meta.tags = ['修仙', '飞升']
+    expect(resolveDocGameStyle(unknown)).toBe('xianxia')
+
+    const byType = base()
+    byType.meta.game_type = '星际 殖民'
+    expect(resolveDocGameStyle(byType)).toBe('scifi')
+  })
+
+  it('game_type + tags 推断不出时回退 positioning（Python 的第二段 fallback）', () => {
+    const doc = base()
+    doc.meta.game_type = '未知类型'
+    doc.meta.tags = []
+    doc.meta.positioning = '魔法 龙 精灵'
+    expect(resolveDocGameStyle(doc)).toBe('fantasy')
+  })
+
+  it('全都推断不出 → 空串（= 无活跃风格，标签原样显示，同 Python set_active_style("")）', () => {
+    const doc = base()
+    doc.meta.game_type = ''
+    doc.meta.tags = []
+    doc.meta.positioning = ''
+    expect(resolveDocGameStyle(doc)).toBe('')
+  })
+
+  it('meta 字段类型异常（非字符串/非数组）不抛错', () => {
+    const doc = base()
+    doc.style = 42 as unknown as string
+    doc.meta.game_type = { nested: true }
+    doc.meta.tags = '修仙'
+    doc.meta.positioning = null
+    expect(resolveDocGameStyle(doc)).toBe('')
+  })
+
+  it('tags 含非字符串项时跳过，不影响其余推断', () => {
+    const doc = base()
+    doc.meta.game_type = '仙侠'
+    doc.meta.tags = [123, '修仙', null]
+    expect(resolveDocGameStyle(doc)).toBe('xianxia')
   })
 })
