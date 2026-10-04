@@ -1,4 +1,4 @@
-import type { ChapterKey, CeshuFieldDef } from './ceshuConstants'
+import type { ChapterKey, CeshuFieldDef } from '../../ceshuConstants'
 
 /** 18 章表单字段描述（标签取自 Python chapter_forms/_base.py 与 _industrial.py） */
 

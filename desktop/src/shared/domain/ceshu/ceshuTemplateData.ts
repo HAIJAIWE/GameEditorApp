@@ -3,7 +3,7 @@
  * 18 章 / 34 个内置范例模板，字段与 `CeshuModel.get_chapter(key)` 对齐。
  * 查询/合并逻辑见 `shared/ceshuTemplates.ts`。
  */
-import type { ChapterTemplate } from './ceshuTemplates'
+import type { ChapterTemplate } from '../../ceshuTemplates'
 
 export const CHAPTER_TEMPLATES: Record<string, ChapterTemplate[]> = {
   "meta": [

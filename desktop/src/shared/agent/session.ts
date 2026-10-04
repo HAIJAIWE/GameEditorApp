@@ -9,7 +9,8 @@
  * 「只留最后 50 条」硬编码在切片里，这里提出来做常量并单测锁定。
  */
 
-import { formatLocalTimestamp } from '../ceshuModel'
+// `formatLocalTimestamp` 来自 `shared/util/`（纯工具层），不引入 agent → ceshu 的跨业务域依赖。
+import { formatLocalTimestamp } from '../util/datetime'
 
 /** 只保留最近 N 条消息（对齐 Python `messages[-50:]`） */
 export const SESSION_MAX_MESSAGES = 50

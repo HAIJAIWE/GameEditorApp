@@ -1,0 +1,70 @@
+%% shared/ 分层依赖矩阵（实测：101 条内部边 = 46 type-only + 55 value）
+%% 数字来源：对 src/shared/**/*.ts 做 import 扫描，按目录归簇
+%% 关键结论：跨业务域违规边仅 5 条，其中真跨域仅 2 条
+graph LR
+    subgraph CONTRACT["contract 层 (3 文件 / 920 行) — 留根"]
+        types["types.ts<br/>118"]
+        schemas["schemas.ts<br/>549"]
+        ipc["ipc.ts<br/>253"]
+    end
+
+    subgraph CESHU["domain/ceshu (26 / 8770)"]
+        cm["ceshuModel.ts"]
+        cc["ceshuConstants.ts"]
+        cr["ceshuRest.ts (20)"]
+    end
+
+    subgraph ATTR["domain/attr (5 / 1285)"]
+        as["attrSystem.ts"]
+        ap["attrPanel.ts"]
+    end
+
+    subgraph TYPE["domain/type (3 / 738)"]
+        ts["typeSchema.ts"]
+        tsf["typeSchemaFile.ts"]
+    end
+
+    subgraph AGENT["domain/agent (8 / 1483) — 保留现名不改"]
+        ap2["agent/protocol.ts"]
+        ab["agent/brain.ts"]
+        ase["agent/session.ts"]
+    end
+
+    subgraph CONFIG["config (4 / 1019)"]
+        ss["settingsStore.ts"]
+        gs["gameStyle.ts"]
+    end
+
+    subgraph SERVICE["service (4 / 522)"]
+        api["api.ts"]
+        img["imageGen.ts"]
+    end
+
+    subgraph UTIL["util (11 / 1986)"]
+        idf["itemDiff.ts"]
+        dt["dropTable.ts"]
+        fb["formulaBuilder.ts"]
+    end
+
+    %% ---- 实测违规边（仅 5 条，图中高亮标注）----
+    ase -.->|"违规① 仅为 formatLocalTimestamp"| cm
+    as -.->|"违规② 仅为 isPlainObject"| cm
+    cm -->|"违规③"| gs
+    cr -->|"违规④⑤ 非真违规"| CONFIG
+
+    classDef viol fill:#ffe0e0,stroke:#c00,stroke-width:2px
+    class ase,as,cm viol
+
+    %% ---- 正常依赖 ----
+    ipc -->|"19 条全部 import type<br/>编译后擦除，运行时零耦合"| CESHU
+    ipc -->|"type only"| ATTR
+    ipc -->|"type only"| AGENT
+    schemas --> CESHU
+    schemas --> ATTR
+    schemas --> TYPE
+    CESHU --> CONFIG
+    CONFIG --> ss
+    UTIL --> types
+    UTIL --> cc
+    AGENT --> ap2
+    api -.->|"type only"| ipc

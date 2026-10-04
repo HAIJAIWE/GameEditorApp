@@ -11,28 +11,24 @@ import {
   type EnabledEditor,
   type GddScope
 } from './ceshuConstants'
-import { createDefaultChapters } from './ceshuDefaults'
+import { createDefaultChapters } from './domain/ceshu/ceshuDefaults'
 import { getStyle, inferStyleFromText } from './gameStyle'
 import { migrateV4ToV5, needsV4Migration } from './ceshuMigration'
+import { formatLocalTimestamp } from './util/datetime'
+import { isPlainObject } from './util/guards'
 
 /**
  * 策划书纯逻辑（跨进程共用：主进程存取用，渲染层进度展示用）。
  * 与 Python 版 ceshu_model.py 行为对齐：本地时间字符串、8 位 id、v5.0 结构。
  */
 
-/** 本地时间字符串（与 Python 版一致：YYYY-MM-DD HH:mm:ss，非 ISO） */
-export function formatLocalTimestamp(date: Date = new Date()): string {
-  const pad = (n: number): string => String(n).padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
-}
+// `formatLocalTimestamp` / `isPlainObject` 已下沉到 `shared/util/`（消除 agent→ceshu、attr→ceshu
+// 两条跨业务域依赖）。此处 re-export 以保持既有 60+ 处 `from './ceshuModel'` 的调用方不受影响。
+export { formatLocalTimestamp, isPlainObject }
 
 /** 策划书 id：8 位十六进制（与 Python uuid4[:8] 格式兼容） */
 export function createCeshuId(): string {
   return globalThis.crypto.randomUUID().replace(/-/g, '').slice(0, 8)
-}
-
-export function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 /** 新建策划书：18 章默认值 + 档位写入 meta.gdd_scope */

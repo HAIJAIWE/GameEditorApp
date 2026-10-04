@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
-import type { MbApi } from '../shared/api'
+import type { MbApi } from '../shared/service/api'
 import { IpcInvokeError, type IpcChannel, type IpcContract, type IpcResult } from '../shared/ipc'
 
 /** 类型安全的 invoke：统一解包 IpcResult，失败抛出 IpcInvokeError */

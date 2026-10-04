@@ -9,7 +9,7 @@ import {
   type ChapterKey,
   type GddScope
 } from './ceshuConstants'
-import { CESHU_CHAPTER_FIELDS } from './ceshuFields'
+import { CESHU_CHAPTER_FIELDS } from './domain/ceshu/ceshuFields'
 import { isPlainObject } from './ceshuModel'
 
 /**

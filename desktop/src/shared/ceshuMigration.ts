@@ -14,7 +14,7 @@
  * （`ceshuModel` → `ceshuMigration` → `ceshuModel`）；`ceshuCompetitiveChart.ts` 亦为同样处理。
  */
 
-import { createDefaultChapters } from './ceshuDefaults'
+import { createDefaultChapters } from './domain/ceshu/ceshuDefaults'
 
 /** v5.0 相对 v4.0 新增的 9 章（顺序与 Python `from_dict` 缺章检测一致） */
 export const V5_NEW_CHAPTER_KEYS = [

@@ -1,0 +1,39 @@
+%% 方案 C 的执行序列：约束先行，零高风险
+%% 数值均为实测：10 处 import / 7 个文件（对比全量拆分 376 处 / 190 文件）
+sequenceDiagram
+    autonumber
+    actor Dev as 开发者
+    participant RE as shared/README.md
+    participant ES as eslint.config.mjs
+    participant SS as shared/ 子目录
+    participant CI as npm run lint / typecheck / test
+
+    Note over Dev,CI: 阶段一：建立机器可校验的边界（零 import 改动）
+
+    Dev->>RE: 写入 5 层分区表 + 允许/禁止 import 规则
+    Dev->>ES: 加 4 条 no-restricted-imports（按域锁定）
+    Dev->>CI: npm run lint
+    CI-->>Dev: EXIT 0（零新增依赖，typescript-eslint 已装）
+
+    Note over Dev,CI: 阶段二：定向移出零内部依赖叶子（不改 1 条内部边）
+
+    Dev->>SS: 移动 ceshuDefaults.ts / ceshuFields.ts / ceshuTemplateData.ts
+    Note right of SS: 三者实测无运行时内部依赖<br/>ceshuFields / ceshuTemplateData 仅 type-only
+    SS->>SS: 改 ceshuMigration / ceshuAi / ceshuTemplates 共 3 处 import
+
+    Dev->>SS: 移动 api.ts → service/
+    Note right of SS: api.ts 未被任何测试 import
+
+    Dev->>CI: npm run typecheck && npm test
+    CI-->>Dev: EXIT 0 / 90 files 1292 tests passed
+
+    Note over Dev,CI: 阶段三：消除 2 条真跨域边（纯重构）
+
+    Dev->>SS: agent/session.ts 的 formatLocalTimestamp → util/
+    Dev->>SS: attrSystem.ts 的 isPlainObject → util/
+    Dev->>CI: npm run lint
+    CI-->>Dev: EXIT 0（此时 ESLint 规则全绿，边界真正闭合）
+
+    Note over Dev,CI: 阶段四：验证 TS6307 红线（否决下放 renderer）
+    Dev->>CI: 尝试把 shared 文件移到 src/renderer/
+    CI-->>Dev: TS6307 File not listed within the file list of project<br/>因 tsconfig.node.json composite:true 且不含 src/renderer<br/>且 58/64 文件被测试直接 import → 方案立即撤销

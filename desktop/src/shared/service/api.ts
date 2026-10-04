@@ -1,4 +1,4 @@
-import type { IpcContract } from './ipc'
+import type { IpcContract } from '../ipc'
 
 /** 暴露给渲染层的 window.mbApi 接口（preload 实现、渲染层声明共用） */
 export interface MbApi {
