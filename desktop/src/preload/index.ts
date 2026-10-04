@@ -106,6 +106,22 @@ const api: MbApi = {
     },
     wordStats: (req) => invoke('ceshu:wordStats', req),
     fieldDeps: (req) => invoke('ceshu:fieldDeps', req)
+  },
+
+  library: {
+    list: () => invoke('library:list', undefined),
+    create: (req) => invoke('library:create', req),
+    rename: (req) => invoke('library:rename', req),
+    remove: (req) => invoke('library:remove', req),
+    switch: (req) => invoke('library:switch', req),
+    /** 订阅活跃库变化；返回取消订阅函数 */
+    onChanged: (handler: (payload: unknown) => void): (() => void) => {
+      const listener = (_event: unknown, payload: unknown): void => handler(payload)
+      ipcRenderer.on('library:changed', listener)
+      return () => {
+        ipcRenderer.removeListener('library:changed', listener)
+      }
+    }
   }
 }
 

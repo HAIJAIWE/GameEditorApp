@@ -21,6 +21,16 @@ export interface MbApi {
     /** 订阅主进程推送的事件流；返回取消订阅函数 */
     onEvent(handler: (event: unknown) => void): () => void
   }
+
+  library: {
+    list(): Promise<IpcContract['library:list']['res']>
+    create(req: IpcContract['library:create']['req']): Promise<IpcContract['library:create']['res']>
+    rename(req: IpcContract['library:rename']['req']): Promise<IpcContract['library:rename']['res']>
+    remove(req: IpcContract['library:remove']['req']): Promise<IpcContract['library:remove']['res']>
+    switch(req: IpcContract['library:switch']['req']): Promise<IpcContract['library:switch']['res']>
+    /** 订阅活跃库变化；返回取消订阅函数 */
+    onChanged(handler: (payload: unknown) => void): () => void
+  }
   schema: {
     list(): Promise<IpcContract['schema:list']['res']>
     save(req: IpcContract['schema:save']['req']): Promise<IpcContract['schema:save']['res']>

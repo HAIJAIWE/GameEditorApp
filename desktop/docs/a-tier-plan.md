@@ -192,7 +192,7 @@ userData/
 | 期次 | 状态 | 提交 | 备注 |
 |---|---|---|---|
 | 调研（本文） | ✅ 完成 | — | 3 子代理并行盘点；核验 `core/agent` 97 文件 / 21,669 行、`library_manager.py` 626 行 |
-| A2-1 库服务与路径迁移 | ⬜ 未开始 | — | — |
+| A2-1 库服务与路径迁移 | ✅ 完成（**降级验证**） | `<PENDING_HASH>` | `main/library/{store,manager,migrate}.ts`（注册表 + 库服务 + 一次性搬迁，单测 15）+ 六处 store 统一改为 `libraries/<活跃库>/…` + `main/index.ts` 抽出 `buildStores()`/`activateLibrary()` + IPC `library:list/create/rename/remove/switch` + `disposeIpcHandlers()` 支持切换后重建 + `library:changed` 广播；**E2E 未写**（见落地记录） |
 | A2-2 库条 UI 与切换联动 | ⬜ 未开始 | — | — |
 | A1-1 技能协议 + 调度器 | ✅ 完成 | `20ec1ff` | `shared/agent/protocol.ts`（协议/风险策略/参数修正，单测 18）+ `main/agent/dispatcher.ts`（注册表/模糊解析/危险确认门，单测 15）+ 2 个 action-based 技能（`system.game_data` 读写数据表 / `system.ceshu` 只读策划书，单测 13）+ IPC `agent:listTools`/`agent:executeTool` + E2E `agent-execute-tool.spec.ts`（沙箱未实跑） |
 | A1-2 Brain 循环 + 事件流 | ✅ 完成 | `a377e3c` | `shared/agent/brain.ts`（事件流 + 循环纯逻辑，单测 19）+ `shared/agent/prompts.ts`（提示词骨架）+ `main/agent/ollamaTransport.ts`（`/api/chat` NDJSON 流式 + tool_calls）+ `main/agent/brainService.ts`（调度器适配）+ IPC `agent:chat` + E2E `agent-brain-chat.spec.ts`（`/api/chat` 桩两轮，沙箱未实跑） |
@@ -201,6 +201,30 @@ userData/
 | A1-5 业务技能接线 + 托盘/热键 | ✅ 完成 | `26b217f` |
 | A1-4b 交互通道补完（参数澄清 + 删除确认） | ✅ 完成 | `ac2c6ec` |
 | A1-5b 收尾三项（策划书删/导出 + 交互超时 + 托盘图标资源） | ✅ 完成 | `b7a0a47` | `system.ceshu` 补 `delete`（confirm 交互）/`export`（导出到默认目录并回报路径）+ 交互**超时保护**（默认 120s，超时按未答复回落）+ `resources/tray-icon.png` 正式图标（脚本生成 + 位图兜底）；单测 +8 | 统一 `SkillResult.interaction`（`confirm`/`question`）→ Brain `interaction_required` 事件 + 复用审批 broker 回传答复；生产者：`system.game_data.delete`（confirm，批准后带 `confirm:true` 重执行）+ `tool.ask_user`（question，答复回灌为工具结果）；面板交互模态；单测 +17 | `system.code`（jsSandbox，**SYSTEM 级**，单测 9）+ `system.ceshu` 补 `create`/`update`（单测 3）+ `main/tray.ts`（Tray + `Ctrl+Shift+M`，防御式）+ **补齐 A1-4 遗留的审批端到端拦截 E2E**（拒绝→不执行 / 批准→真执行，见 `agent-digital-panel.spec.ts`） |
+
+### A2-1 落地记录（2026-10-04）· 降级验证
+
+**🎯 验证口径（重要）**：本沙箱 Electron 起不来（全部既有 E2E 都报 `Process failed to launch!`），故本刀按**降级验证**交付：**存储布局/生命周期/搬迁逻辑全部由单测覆盖**（15 例），E2E 断言留待 CI。**这不是「已验证完成」，是「逻辑已验证、端到端未验」**。
+
+**产物**：
+- `main/library/store.ts`：`LibraryRegistryStore`（`libraries.json` 原子写 + 串行队列；`readStrict` 抛中文错误 / `read` 容错回落默认）；`INITIAL_LIBRARY_NAME`。
+- `main/library/manager.ts`：`LibraryManager`（list/active/activeDir/dirOf/ensureReady/create/rename/remove/switch）+ `validateLibraryName`。
+- `main/library/migrate.ts`：`migrateFlatToLibraries`（平铺 → `libraries/<初始库>/`，幂等、可回退）。
+- `main/index.ts`：抽出 `buildStores(libDir)` + `activateLibrary()`；**六处 store 统一改前缀**（db / ceshu / ceshu_notes / ceshu_templates / type_schema / attr_system），并**顺势把 Agent 会话与记忆也落到库内**（`<库>/agent`，A1-3 预留的那一处注入点兑现）。
+- `main/ipc.ts`：新增 `disposeIpcHandlers()`（记录已注册通道并统一注销）——切换库需重建 store，而 handler 闭包捕获了 deps，**无法就地替换，只能注销后重注册**。
+- IPC `library:list/create/rename/remove/switch` 五处接线 + 主进程 `library:changed` 广播。
+
+**有意偏离 / 设计决策**：
+1. **路径只由库服务产出**，各 store 不再自己算路径（Python 是 manager + workspace 双源全局态）。
+2. **库名参与拼路径 → 强校验**：非空、≤40 字、禁 `\ / : * ? " < > |`、禁 `..`、禁点开头。这既是可用性也是**删除目录的越界防护**（保证删除目标必落在 `libraries/` 之内）。
+3. **删活跃库先切回初始库再删**（Python 无此分支）：不隐式删掉用户当前所在的库。
+4. **switch 采用「注销并重注册 IPC」**而非可变全局 deps：与「避免全局可变态」的取向一致，代价是切换时重建全部 store（本地场景开销可接受）。
+5. **搬迁失败不阻塞启动**：抛中文错误并保留原文件，以新结构空库启动 + 控制台留因（搬一半比不搬更糟，但也不该让应用起不来）。
+6. 未移植（§3.4 已列）：schema 升级三件套、整库导入、初始库样本数据、全局模板目录（TS 改为按库，属有意偏离）。
+
+**未完成（明示）**：
+- **A2-1 的 E2E 未写**（「新建库 → 切换 → 数据/策划书互相隔离 → 重启保持活跃库」）：逻辑层已有单测，端到端用例待 CI 环境。
+- **A2-2（渲染层库条 UI）未开始**：`library:*` IPC 已就绪，但界面还没有入口——**当前用户无法在 UI 上切库**，只能用 IPC。
 
 ### A1-5b 落地记录（2026-10-04）· 收尾三项
 

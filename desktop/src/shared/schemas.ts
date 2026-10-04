@@ -156,6 +156,23 @@ export const ceshuGetInputSchema = z.object({
   id: z.string().min(1)
 })
 
+/** 库管理（A2-1）：新建库 */
+export const libraryCreateInputSchema = z.object({
+  name: z.string().min(1).max(40),
+  description: z.string().max(200).optional()
+})
+
+/** 库管理：重命名库 */
+export const libraryRenameInputSchema = z.object({
+  from: z.string().min(1).max(40),
+  to: z.string().min(1).max(40)
+})
+
+/** 库管理：按库名操作（删除 / 切换） */
+export const libraryNameInputSchema = z.object({
+  name: z.string().min(1).max(40)
+})
+
 /** Agent Brain：审批回传（渲染层弹模态后按 requestId 回传决定） */
 export const agentApprovalResponseInputSchema = z.object({
   requestId: z.string().min(1),
@@ -380,6 +397,9 @@ export type AgentExecuteToolInput = z.infer<typeof agentExecuteToolInputSchema>
 export type AgentChatInput = z.infer<typeof agentChatInputSchema>
 export type AgentApprovalResponseInput = z.infer<typeof agentApprovalResponseInputSchema>
 export type AgentInteractionResponseInput = z.infer<typeof agentInteractionResponseInputSchema>
+export type LibraryCreateInput = z.infer<typeof libraryCreateInputSchema>
+export type LibraryRenameInput = z.infer<typeof libraryRenameInputSchema>
+export type LibraryNameInput = z.infer<typeof libraryNameInputSchema>
 export type CeshuApplyPresetInput = z.infer<typeof ceshuApplyPresetInputSchema>
 export type CeshuConfirmSystemsInput = z.infer<typeof ceshuConfirmSystemsInputSchema>
 export type CeshuSyncDataInput = z.infer<typeof ceshuSyncDataInputSchema>

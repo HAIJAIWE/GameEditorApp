@@ -33,6 +33,9 @@ import {
   agentInteractionResponseInputSchema,
   agentExecuteToolInputSchema,
   ceshuGetInputSchema,
+  libraryCreateInputSchema,
+  libraryNameInputSchema,
+  libraryRenameInputSchema,
   ceshuRenameInputSchema,
   ceshuSaveChapterInputSchema,
   ceshuReviewExportInputSchema,
@@ -88,6 +91,7 @@ import type { AgentApprovalBroker, AgentInteractionAnswer } from './agent/approv
 import type { AgentBrainService } from './agent/brainService'
 import type { SkillDispatcher } from './agent/dispatcher'
 import type { AgentSessionStore } from './agent/sessionStore'
+import type { LibraryManager } from './library/manager'
 import type { AttrSystemStore } from './attr/attrSystemStore'
 import { exportAttrGameConfigFile } from './attr/attrGameConfigExport'
 import { exportAttrSystemJsonFile, importAttrSystemJsonFile } from './attr/attrSystemJsonFile'
@@ -116,6 +120,9 @@ interface IpcHandlerDeps {
   agentBrain: AgentBrainService
   agentSessionStore: AgentSessionStore
   approvalBroker: AgentApprovalBroker
+  libraryManager: LibraryManager
+  /** 切换活跃库（由 `main/index.ts` 负责重建 store 与广播） */
+  onSwitchLibrary: (name: string) => Promise<void>
   getAppInfo: () => AppInfo
 }
 
@@ -133,6 +140,8 @@ export function registerIpcHandlers({
   agentBrain,
   agentSessionStore,
   approvalBroker,
+  libraryManager,
+  onSwitchLibrary,
   getAppInfo
 }: IpcHandlerDeps): void {
   handle('app:info', undefined, () => getAppInfo())
@@ -181,6 +190,21 @@ export function registerIpcHandlers({
     return { messages: snapshot?.messages ?? [] }
   })
   handle('agent:sessionClear', undefined, async () => ({ cleared: await agentSessionStore.clear() }))
+
+  // 库管理（A2-1）：切换由 onSwitchLibrary 负责重建 store 并广播 library:changed
+  handle('library:list', undefined, () => libraryManager.list())
+  handle('library:create', libraryCreateInputSchema, (req) =>
+    libraryManager.create(req.name, req.description ?? '')
+  )
+  handle('library:rename', libraryRenameInputSchema, async (req) => {
+    await libraryManager.rename(req.from, req.to)
+    return { ok: true }
+  })
+  handle('library:remove', libraryNameInputSchema, (req) => libraryManager.remove(req.name))
+  handle('library:switch', libraryNameInputSchema, async (req) => {
+    await onSwitchLibrary(req.name)
+    return { ok: true }
+  })
   handle('schema:list', undefined, () => typeSchemaStore.getTypes())
   handle('schema:save', schemaSaveInputSchema, (req) => typeSchemaStore.saveTypes(req.types))
   handle('attrSystem:get', undefined, () => attrSystemStore.getSystem())
@@ -485,6 +509,17 @@ export function registerIpcHandlers({
   })
 }
 
+/** 已注册的 IPC 通道（A2-1 切换库重建 store 时需要先全部注销再注册） */
+const registeredChannels = new Set<IpcChannel>()
+
+/** 注销全部 IPC handler（配合 `registerIpcHandlers` 重新注册） */
+export function disposeIpcHandlers(): void {
+  for (const channel of registeredChannels) {
+    ipcMain.removeHandler(channel)
+  }
+  registeredChannels.clear()
+}
+
 function handle<C extends IpcChannel>(
   channel: C,
   schema: ZodType | undefined,
@@ -493,6 +528,7 @@ function handle<C extends IpcChannel>(
     event: IpcMainInvokeEvent
   ) => IpcContract[C]['res'] | Promise<IpcContract[C]['res']>
 ): void {
+  registeredChannels.add(channel)
   ipcMain.handle(channel, async (event, raw: unknown): Promise<IpcResult<IpcContract[C]['res']>> => {
     try {
       const req = (schema ? schema.parse(raw) : raw) as IpcContract[C]['req']

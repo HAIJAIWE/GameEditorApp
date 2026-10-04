@@ -20,7 +20,10 @@ import { CeshuTemplateStore } from './ceshu/templateStore'
 import { CeshuStorage } from './ceshu/storage'
 import { DataService } from './data/service'
 import { SqliteItemsRepository } from './data/sqliteRepo'
-import { registerIpcHandlers } from './ipc'
+import { disposeIpcHandlers, registerIpcHandlers } from './ipc'
+import { LibraryManager } from './library/manager'
+import { migrateFlatToLibraries } from './library/migrate'
+import { INITIAL_LIBRARY_NAME } from './library/store'
 import { LlmClient } from './llm/client'
 import { TypeSchemaStore } from './schema/store'
 import { disposeTray, registerShortcuts, setupTray, unregisterShortcuts } from './tray'
@@ -33,7 +36,25 @@ if (userDataOverride) {
 
 const rendererDevUrl = process.env['ELECTRON_RENDERER_URL']
 
+/** 一套随活跃库重建的 store 组合（A2-1） */
+interface AppStores {
+  dbPath: string
+  dataService: DataService
+  ceshuManager: CeshuManager
+  typeSchemaStore: TypeSchemaStore
+  ceshuNotesStore: CeshuNotesStore
+  ceshuTemplateStore: CeshuTemplateStore
+  attrSystemStore: AttrSystemStore
+  dataSync: CeshuDataSync
+  agentDispatcher: SkillDispatcher
+  agentBrain: AgentBrainService
+  agentSessionStore: AgentSessionStore
+  approvalBroker: AgentApprovalBroker
+  llmClient: LlmClient
+}
+
 let mainWindow: BrowserWindow | null = null
+let stores: AppStores | null = null
 let dataService: DataService | null = null
 let appTray: Tray | null = null
 
@@ -74,55 +95,100 @@ function createWindow(): void {
   }
 }
 
-app.whenReady().then(() => {
-  const dbPath = join(app.getPath('userData'), 'mb-editor.db')
-  dataService = new DataService(new SqliteItemsRepository(dbPath))
-  const ceshuManager = new CeshuManager(new CeshuStorage(join(app.getPath('userData'), 'ceshu')))
-  const typeSchemaStore = new TypeSchemaStore(join(app.getPath('userData'), 'type_schema.json'))
+/**
+ * 由**活跃库目录**构造全部 store（A2-1：切换库时整体重建）。
+ * 各 store 不再自己算路径，统一由库服务给出的 `libDir` 派生 —— 避免 Python 那种双源全局态。
+ */
+function buildStores(libDir: string): AppStores {
+  const dbPath = join(libDir, 'mb-editor.db')
+  const data = new DataService(new SqliteItemsRepository(dbPath))
+  const ceshu = new CeshuManager(new CeshuStorage(join(libDir, 'ceshu')))
+  const schema = new TypeSchemaStore(join(libDir, 'type_schema.json'))
 
-  // Agent 技能调度器（A1-1）：注册最小内置技能，服务在构造时注入
-  const agentDispatcher = new SkillDispatcher()
-  agentDispatcher.register(createGameDataSkill({ dataService, typeSchemaStore }))
-  agentDispatcher.register(
+  // Agent 技能调度器：注册内置技能，服务在构造时注入
+  const dispatcher = new SkillDispatcher()
+  dispatcher.register(createGameDataSkill({ dataService: data, typeSchemaStore: schema }))
+  dispatcher.register(
     createCeshuSkill({
-      ceshuManager,
+      ceshuManager: ceshu,
       exportDocument: exportCeshuDocument,
-      exportDir: join(app.getPath('userData'), 'exports')
+      exportDir: join(libDir, 'exports')
     })
   )
-  agentDispatcher.register(createAskUserSkill())
-  // 沙箱代码技能（A1-5）：SYSTEM 级风险，每次调用都需用户确认
-  agentDispatcher.register(createCodeSkill())
-  // Agent 会话与记忆（A1-3）：统一落在 userData/agent 下；A2-1 引入多库后只改这一处
-  const agentDir = join(app.getPath('userData'), 'agent')
-  const agentSessionStore = new AgentSessionStore(agentDir)
-  const agentBrain = new AgentBrainService({
-    dispatcher: agentDispatcher,
-    sessionStore: agentSessionStore,
-    memoryStore: new AgentMemoryStore(agentDir)
-  })
-  const approvalBroker = new AgentApprovalBroker()
+  dispatcher.register(createAskUserSkill())
+  // 沙箱代码技能：SYSTEM 级风险，每次调用都需用户确认
+  dispatcher.register(createCodeSkill())
 
+  // Agent 会话与记忆随库隔离（A2-1 起落在 <库>/agent 下）
+  const agentDir = join(libDir, 'agent')
+  const sessionStore = new AgentSessionStore(agentDir)
+
+  return {
+    dbPath,
+    dataService: data,
+    ceshuManager: ceshu,
+    typeSchemaStore: schema,
+    ceshuNotesStore: new CeshuNotesStore(join(libDir, 'ceshu_notes')),
+    ceshuTemplateStore: new CeshuTemplateStore(join(libDir, 'ceshu_templates')),
+    attrSystemStore: new AttrSystemStore(join(libDir, 'attr_system.json')),
+    dataSync: new CeshuDataSync(ceshu, data, schema),
+    agentDispatcher: dispatcher,
+    agentBrain: new AgentBrainService({
+      dispatcher,
+      sessionStore,
+      memoryStore: new AgentMemoryStore(agentDir)
+    }),
+    agentSessionStore: sessionStore,
+    approvalBroker: new AgentApprovalBroker(),
+    llmClient: new LlmClient()
+  }
+}
+
+/**
+ * 切换/初始化活跃库：释放旧 store → 重建 → **注销并重注册 IPC**（handler 闭包捕获了 deps，
+ * 无法就地替换）→ 广播 `library:changed` 让渲染层清缓存重载。
+ */
+function activateLibrary(libraryManager: LibraryManager): void {
+  stores?.dataService.dispose()
+  const next = buildStores(libraryManager.activeDir())
+  stores = next
+  dataService = next.dataService
+
+  disposeIpcHandlers()
   registerIpcHandlers({
-    dataService,
-    ceshuManager,
-    ceshuNotesStore: new CeshuNotesStore(join(app.getPath('userData'), 'ceshu_notes')),
-    ceshuTemplateStore: new CeshuTemplateStore(join(app.getPath('userData'), 'ceshu_templates')),
-    typeSchemaStore,
-    attrSystemStore: new AttrSystemStore(join(app.getPath('userData'), 'attr_system.json')),
-    dataSync: new CeshuDataSync(ceshuManager, dataService, typeSchemaStore),
-    agentDispatcher,
-    agentBrain,
-    agentSessionStore,
-    approvalBroker,
-    llmClient: new LlmClient(),
+    ...next,
+    libraryManager,
+    onSwitchLibrary: async (name) => {
+      await libraryManager.switch(name)
+      activateLibrary(libraryManager)
+      mainWindow?.webContents.send('library:changed', { active: libraryManager.active() })
+    },
     getAppInfo: () => ({
       name: app.getName(),
       version: app.getVersion(),
       platform: process.platform,
-      dbPath
+      dbPath: next.dbPath
     })
   })
+}
+
+app.whenReady().then(async () => {
+  const userDataDir = app.getPath('userData')
+
+  // A2-1 一次性搬迁：平铺旧存储 → libraries/<初始库>/
+  try {
+    const migration = migrateFlatToLibraries(userDataDir, INITIAL_LIBRARY_NAME)
+    if (migration !== null) {
+      console.log(`[Library] 旧数据已搬入「${INITIAL_LIBRARY_NAME}」: ${migration.moved.join(', ')}`)
+    }
+  } catch (error) {
+    // 搬迁失败：原文件保留，仍以新结构启动（该库从空开始），把原因打出来供排障
+    console.error('[Library]', error instanceof Error ? error.message : String(error))
+  }
+
+  const libraryManager = new LibraryManager(userDataDir)
+  await libraryManager.ensureReady()
+  activateLibrary(libraryManager)
 
   createWindow()
 

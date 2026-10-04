@@ -30,6 +30,9 @@ import type {
   AgentChatInput,
   AgentExecuteToolInput,
   AgentInteractionResponseInput,
+  LibraryCreateInput,
+  LibraryNameInput,
+  LibraryRenameInput,
   SchemaSaveInput,
   CeshuDataGenInput,
   TemplateJsonDialogInput,
@@ -123,6 +126,20 @@ export interface IpcContract {
   'agent:sessionInfo': { req: undefined; res: SessionInfo }
   'agent:sessionRestore': { req: undefined; res: { messages: Array<Record<string, unknown>> } }
   'agent:sessionClear': { req: undefined; res: { cleared: boolean } }
+
+  // 库管理（A2-1）。库条目结构以 `main/library/store.ts` 的 `LibraryEntry` 为准，
+  // 这里按线格式内联声明，避免 shared 反向依赖 main。
+  'library:list': {
+    req: undefined
+    res: Array<{ name: string; createdAt: string; description: string; isInitial: boolean }>
+  }
+  'library:create': {
+    req: LibraryCreateInput
+    res: { name: string; createdAt: string; description: string; isInitial: boolean }
+  }
+  'library:rename': { req: LibraryRenameInput; res: { ok: boolean } }
+  'library:remove': { req: LibraryNameInput; res: { switchedTo: string | null } }
+  'library:switch': { req: LibraryNameInput; res: { ok: boolean } }
   'ceshu:rename': { req: CeshuRenameInput; res: CeshuDocument }
   'ceshu:delete': { req: { id: string }; res: { deleted: boolean } }
   'ceshu:duplicate': { req: { id: string }; res: CeshuDocument }
