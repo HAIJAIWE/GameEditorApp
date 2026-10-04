@@ -59,13 +59,41 @@ function makeDataService(seed: Record<string, Array<Record<string, unknown>>> = 
   } as unknown as DataService
 }
 
+/** 内存版 CeshuManager：覆盖 list/get/create/saveChapter */
 function makeCeshuManager(list: Array<{ id: string; gameName: string }>): CeshuManager {
+  type Doc = { ceshu_id: string; version_label: string; meta: Record<string, unknown> }
+  const docs = new Map<string, Doc>(
+    list.map((item) => [item.id, { ceshu_id: item.id, version_label: 'v1.0', meta: { game_name: item.gameName } }])
+  )
+  let seq = list.length
   return {
-    list: () => list,
-    get: (id: string) => {
-      const target = list.find((item) => item.id === id)
-      if (target === undefined) throw new Error('策划书不存在，可能已被删除')
-      return { ceshu_id: target.id, version_label: 'v1.0', meta: { game_name: target.gameName } }
+    list: () =>
+      [...docs.values()].map((doc) => ({
+        id: doc.ceshu_id,
+        gameName: typeof doc.meta.game_name === 'string' ? doc.meta.game_name : '',
+        versionLabel: doc.version_label
+      })),
+    get: (id: string): Doc => {
+      const doc = docs.get(id)
+      if (doc === undefined) throw new Error('策划书不存在，可能已被删除')
+      return doc
+    },
+    create: async (options: { scope: string; name?: string }): Promise<Doc> => {
+      const id = `new-${++seq}`
+      const doc: Doc = {
+        ceshu_id: id,
+        version_label: 'v1.0',
+        meta: { game_name: options.name ?? '', gdd_scope: options.scope }
+      }
+      docs.set(id, doc)
+      return doc
+    },
+    saveChapter: async (id: string, _chapter: string, data: Record<string, unknown>): Promise<Doc> => {
+      const doc = docs.get(id)
+      if (doc === undefined) throw new Error('策划书不存在，可能已被删除')
+      const updated: Doc = { ...doc, meta: { ...doc.meta, ...data } }
+      docs.set(id, updated)
+      return updated
     }
   } as unknown as CeshuManager
 }
@@ -175,6 +203,60 @@ describe('system.game_data 技能（A1-1 最小集）', () => {
     const skill = createGameDataSkill({ dataService: makeDataService(), typeSchemaStore: makeSchemaStore() })
     const result = await skill.execute({ action: 'explode' }, {})
     expect(result).toEqual({ success: false, error: '未知动作: explode', message: '' })
+  })
+})
+
+describe('system.ceshu 技能（A1-5 写操作）', () => {
+  const docs = [{ id: 'c1', gameName: '仙侠 RPG' }]
+
+  it('create：按档位建库；带 meta 时合并写入并回报名称', async () => {
+    const skill = createCeshuSkill({ ceshuManager: makeCeshuManager(docs) })
+
+    const plain = await skill.execute({ action: 'create' }, {})
+    expect(plain.success).toBe(true)
+    expect(plain.message).toContain('已创建策划书（v1.0，工业级档位，id=')
+    expect((plain.data as { meta: Record<string, unknown> }).meta.gdd_scope).toBe('full')
+
+    const lite = await skill.execute({ action: 'create', scope: 'lite', name: '小项目' }, {})
+    expect(lite.success).toBe(true)
+    expect(lite.message).toContain('基础档位')
+
+    const named = await skill.execute(
+      { action: 'create', scope: 'full', name: '原始名', meta: { game_name: '改后的名', tags: ['a'] } },
+      {}
+    )
+    expect(named.success).toBe(true)
+    expect(named.message).toContain('已创建策划书「改后的名」')
+    expect((named.data as { meta: Record<string, unknown> }).meta.tags).toEqual(['a'])
+  })
+
+  it('update：写入指定章节；缺 ceshu_id / 未知章节 / 缺 data 给出中文错误', async () => {
+    const skill = createCeshuSkill({ ceshuManager: makeCeshuManager(docs) })
+
+    const noId = await skill.execute({ action: 'update', data: { game_name: 'x' } }, {})
+    expect(noId).toEqual({ success: false, error: '缺少 ceshu_id 参数', message: '' })
+
+    const badChapter = await skill.execute({ action: 'update', ceshu_id: 'c1', chapter: 'nope', data: {} }, {})
+    expect(badChapter.success).toBe(false)
+    expect(badChapter.error).toContain('未知章节: nope。可用章节: meta, vision')
+
+    const noData = await skill.execute({ action: 'update', ceshu_id: 'c1', chapter: 'meta' }, {})
+    expect(noData).toEqual({
+      success: false,
+      error: '缺少 data 对象（要写入该章节的字段）',
+      message: ''
+    })
+
+    // 默认章节 meta
+    const ok = await skill.execute({ action: 'update', ceshu_id: 'c1', data: { game_name: '改名了' } }, {})
+    expect(ok.success).toBe(true)
+    expect(ok.message).toBe('已更新策划书「改名了」的「第一章·项目元信息」')
+  })
+
+  it('update：文档不存在时透出存储层中文错误', async () => {
+    const skill = createCeshuSkill({ ceshuManager: makeCeshuManager(docs) })
+    const result = await skill.execute({ action: 'update', ceshu_id: 'nope', data: { a: 1 } }, {})
+    expect(result).toEqual({ success: false, error: '策划书不存在，可能已被删除', message: '' })
   })
 })
 

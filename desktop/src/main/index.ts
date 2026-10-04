@@ -1,6 +1,6 @@
 import { join } from 'node:path'
 
-import { app, BrowserWindow, shell } from 'electron'
+import { app, BrowserWindow, shell, type Tray } from 'electron'
 
 import { AgentApprovalBroker } from './agent/approvalBroker'
 import { AgentBrainService } from './agent/brainService'
@@ -8,6 +8,7 @@ import { AgentMemoryStore } from './agent/memoryStore'
 import { AgentSessionStore } from './agent/sessionStore'
 import { SkillDispatcher } from './agent/dispatcher'
 import { createCeshuSkill } from './agent/skills/ceshuSkill'
+import { createCodeSkill } from './agent/skills/codeSkill'
 import { createGameDataSkill } from './agent/skills/gameDataSkill'
 import { AttrSystemStore } from './attr/attrSystemStore'
 import { CeshuManager } from './ceshu/manager'
@@ -20,6 +21,7 @@ import { SqliteItemsRepository } from './data/sqliteRepo'
 import { registerIpcHandlers } from './ipc'
 import { LlmClient } from './llm/client'
 import { TypeSchemaStore } from './schema/store'
+import { disposeTray, registerShortcuts, setupTray, unregisterShortcuts } from './tray'
 
 // E2E / 便携模式：允许外部指定 userData 目录（隔离测试数据）
 const userDataOverride = process.env['MB_USER_DATA_DIR']
@@ -31,6 +33,7 @@ const rendererDevUrl = process.env['ELECTRON_RENDERER_URL']
 
 let mainWindow: BrowserWindow | null = null
 let dataService: DataService | null = null
+let appTray: Tray | null = null
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -79,6 +82,8 @@ app.whenReady().then(() => {
   const agentDispatcher = new SkillDispatcher()
   agentDispatcher.register(createGameDataSkill({ dataService, typeSchemaStore }))
   agentDispatcher.register(createCeshuSkill({ ceshuManager }))
+  // 沙箱代码技能（A1-5）：SYSTEM 级风险，每次调用都需用户确认
+  agentDispatcher.register(createCodeSkill())
   // Agent 会话与记忆（A1-3）：统一落在 userData/agent 下；A2-1 引入多库后只改这一处
   const agentDir = join(app.getPath('userData'), 'agent')
   const agentSessionStore = new AgentSessionStore(agentDir)
@@ -112,6 +117,17 @@ app.whenReady().then(() => {
 
   createWindow()
 
+  // 托盘与全局热键（A1-5）：失败不阻塞启动（无桌面会话 / 热键被占用 / 缺图标资源）
+  const trayCallbacks = {
+    showWindow: (): void => {
+      if (mainWindow === null) return
+      mainWindow.show()
+      mainWindow.focus()
+    }
+  }
+  appTray = setupTray(trayCallbacks)
+  registerShortcuts(trayCallbacks)
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
@@ -122,6 +138,9 @@ app.on('window-all-closed', () => {
 })
 
 app.on('will-quit', () => {
+  unregisterShortcuts()
+  disposeTray(appTray)
+  appTray = null
   dataService?.dispose()
   dataService = null
 })

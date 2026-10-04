@@ -198,7 +198,23 @@ userData/
 | A1-2 Brain 循环 + 事件流 | ✅ 完成 | `a377e3c` | `shared/agent/brain.ts`（事件流 + 循环纯逻辑，单测 19）+ `shared/agent/prompts.ts`（提示词骨架）+ `main/agent/ollamaTransport.ts`（`/api/chat` NDJSON 流式 + tool_calls）+ `main/agent/brainService.ts`（调度器适配）+ IPC `agent:chat` + E2E `agent-brain-chat.spec.ts`（`/api/chat` 桩两轮，沙箱未实跑） |
 | A1-3 会话与记忆 | ✅ 完成 | `7794a84` | `shared/agent/session.ts`（快照/截断纯逻辑）+ `main/agent/sessionStore.ts`（原子写 + 串行队列 + 严格/容错两档读取 + metrics.jsonl）+ `shared/agent/memory.ts`（确定性 n-gram 嵌入）+ `main/agent/memoryStore.ts`（vectra 索引）；接入 `AgentBrainService`（记忆注入 + 会话落盘 + 问答回写）；单测 22 |
 | A1-4 数字员工面板 | ✅ 完成 | `c38199b` | `shared/agent/panel.ts`（事件流 → 面板视图模型纯归约，单测 13）+ `main/agent/approvalBroker.ts`（审批中转，单测 6）+ `renderer/src/components/digital/DigitalPanel.tsx` + App 第三模式 `mode-digital` + IPC `agent:approvalResponse`/`agent:sessionInfo|Restore|Clear` + 主进程 `agent:event` 推送 + E2E `agent-digital-panel.spec.ts`（2 例，沙箱未实跑） |
-| A1-5 业务技能接线 + 托盘/热键 | ⬜ 未开始 | — | — |
+| A1-5 业务技能接线 + 托盘/热键 | ✅ 完成 | `<PENDING_HASH>` | `system.code`（jsSandbox，**SYSTEM 级**，单测 9）+ `system.ceshu` 补 `create`/`update`（单测 3）+ `main/tray.ts`（Tray + `Ctrl+Shift+M`，防御式）+ **补齐 A1-4 遗留的审批端到端拦截 E2E**（拒绝→不执行 / 批准→真执行，见 `agent-digital-panel.spec.ts`） |
+
+### A1-5 落地记录（2026-10-04）· **A1（AI/Agent 引擎）全部收官**
+
+**产物**：
+- `main/agent/skills/codeSkill.ts`：`system.code`（QuickJS WASM 沙箱执行不可信 JS）。**实现整体替换** Python 的 `subprocess + 正则黑名单`（可绕）——用已预演的 `runInSandbox`（零宿主能力 + CPU 超时 + 内存上限）；超时/内存参数被夹到安全上限，不接受 LLM 传超大值。单测 9。
+- `main/agent/skills/ceshuSkill.ts` 补 `create` / `update`（章节写入，`isChapterKey` 校验 + 中文错误），把已有策划书能力接进统一协议。单测 +3。
+- `main/tray.ts`：`Tray`（上下文菜单：显示主窗口/退出）+ `globalShortcut` `CommandOrControl+Shift+M`；**全部防御式包装**（无桌面会话/热键被占用/图标缺失都不阻塞启动），图标用原始位图现场生成（避免引入打包资产）。
+- **A1-4 遗留项已补齐**：`agent-digital-panel.spec.ts` 增 2 例审批端到端——**拒绝路径断言沙箱没有被执行**、批准路径断言代码真跑了（`执行成功: 42`）。
+
+**有意偏离 / 说明**：
+1. `system.code` 风险等级沿用 `TOOL_RISK_MAP` 的 `SYSTEM` → 每次调用都过审批门；这也是补齐「审批端到端拦截」的关键前提。
+2. `system.ceshu` 的 `delete` / `export` / `import` **未移植**：UI 已有完整入口（首页卡片删除、导出面板），再经 Agent 暴露会与既有交互重复且更难确认；`ai_*` 动作的返回是「待应用字段」而非落盘结果，需要一层「应用」语义，同样留后立项。
+3. 托盘/热键按方案仅在smoke 层验证（本沙箱无法实跑）；正式托盘图标资源待补。
+4. **A1-4 遗留的另两类确认（参数澄清 / 删除确认）仍未做**：本批次只把「危险确认」打通到端到端。参数澄清需要「暂停循环 → 向用户提问 → 回灌答案」的交互（`ask_user` 技能族），与 A1-4 已建立的审批通道同构，可后续按需立项。
+
+**未验证项**：E2E（4 例）仍受沙箱 Electron 启动限制，待 CI 跑。
 
 ### A1-4 落地记录（2026-10-04）
 

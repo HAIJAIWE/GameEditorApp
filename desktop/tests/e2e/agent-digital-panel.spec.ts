@@ -10,10 +10,8 @@ import { _electron as electron, expect, test } from '@playwright/test'
  * Ollama `/api/chat` 桩服务驱动一轮「思考 → 工具 → 结果」，断言
  * 对话气泡、流式文本、折叠步骤、任务列表与状态文案。
  *
- * 注：**危险操作审批的端到端拦截**需要 SYSTEM 级技能（本批次只注册了 DATA_WRITE 级的
- * `system.game_data` / `system.ceshu`），故审批链路由单测三层覆盖
- * （`agentBrain` 循环门 / `agentPanel` 归约 / `agentApprovalBroker` 中转），
- * 端到端用例待 A1-5 接入 SYSTEM 级技能后补。
+ * 危险操作确认的端到端拦截由 `system.code`（SYSTEM 级，A1-5 接入）承载：
+ * 拒绝路径断言沙箱**没有被执行**，批准路径断言代码真的跑了。
  */
 
 interface OllamaChatStub {
@@ -21,8 +19,19 @@ interface OllamaChatStub {
   close: () => Promise<void>
 }
 
+interface StubOptions {
+  /** 第一轮要求调用的工具 */
+  toolName?: string
+  toolArgs?: Record<string, unknown>
+  /** 第二轮流式终稿分片 */
+  finalChunks?: string[]
+}
+
 /** 第 1 次请求返回 tool_call，第 2 次返回流式终稿 */
-async function startOllamaChatStub(): Promise<OllamaChatStub> {
+async function startOllamaChatStub(options: StubOptions = {}): Promise<OllamaChatStub> {
+  const toolName = options.toolName ?? 'system.game_data'
+  const toolArgs = options.toolArgs ?? { action: 'list_types' }
+  const finalChunks = options.finalChunks ?? ['共', ' 13 种数据类型']
   let call = 0
   const lines = (rows: unknown[]): string => rows.map((row) => `${JSON.stringify(row)}\n`).join('')
   const server = createServer((req, res) => {
@@ -43,7 +52,7 @@ async function startOllamaChatStub(): Promise<OllamaChatStub> {
                 message: {
                   role: 'assistant',
                   content: '',
-                  tool_calls: [{ function: { name: 'system.game_data', arguments: { action: 'list_types' } } }]
+                  tool_calls: [{ function: { name: toolName, arguments: toolArgs } }]
                 },
                 done: false
               },
@@ -54,8 +63,7 @@ async function startOllamaChatStub(): Promise<OllamaChatStub> {
         }
         res.end(
           lines([
-            { message: { role: 'assistant', content: '共' }, done: false },
-            { message: { role: 'assistant', content: ' 13 种数据类型' }, done: false },
+            ...finalChunks.map((text) => ({ message: { role: 'assistant', content: text }, done: false })),
             { message: { role: 'assistant', content: '' }, done: true, done_reason: 'stop' }
           ])
         )
@@ -186,4 +194,76 @@ test('数字员工面板：上一轮会话落盘后，重新启动可看到「�
   } finally {
     await stub.close()
   }
+})
+
+/** 危险操作确认（A1-4 遗留项）：SYSTEM 级技能必须经用户批准才执行 */
+async function runDangerousRound(decision: 'approve' | 'reject'): Promise<{
+  approvalVisible: boolean
+  stepTexts: string[]
+  finalText: string
+}> {
+  const stub = await startOllamaChatStub({
+    toolName: 'system.code',
+    toolArgs: { action: 'execute', code: 'return 40 + 2' },
+    finalChunks: ['已按你的要求处理']
+  })
+  const userDataDir = mkdtempSync(join(tmpdir(), `mb-agent-approval-${decision}-`))
+  const app = await electron.launch({
+    args: ['.'],
+    cwd: join(__dirname, '..', '..'),
+    env: {
+      ...process.env,
+      MB_USER_DATA_DIR: userDataDir,
+      MB_OLLAMA_HOST: stub.host,
+      MB_OLLAMA_MODEL: 'stub:latest'
+    }
+  })
+
+  try {
+    const window = await app.firstWindow()
+    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await window.getByTestId('mode-digital').click()
+
+    await window.getByTestId('digital-input').fill('帮我算 40+2')
+    await window.getByTestId('digital-send').click()
+
+    // 危险操作模态：显示工具与操作
+    await expect(window.getByTestId('digital-approval')).toBeVisible({ timeout: 15_000 })
+    await expect(window.getByTestId('digital-approval')).toContainText('system.code')
+    await expect(window.getByTestId('digital-approval')).toContainText('execute')
+    await expect(window.getByTestId('digital-status')).toHaveText('等待确认')
+
+    const buttonId = decision === 'approve' ? 'digital-approval-approve' : 'digital-approval-reject'
+    await window.getByTestId(buttonId).click()
+
+    // 模态关闭 + 终稿到达
+    await expect(window.getByTestId('digital-approval')).toHaveCount(0)
+    await expect(
+      window.getByTestId('digital-message').filter({ hasText: '已按你的要求处理' })
+    ).toHaveCount(1, { timeout: 15_000 })
+
+    const stepTexts = await window.getByTestId('digital-step').allInnerTexts()
+    const finalText = await window.getByTestId('digital-message').filter({ hasText: '已按你的要求处理' }).innerText()
+    return { approvalVisible: true, stepTexts, finalText }
+  } finally {
+    await app.close()
+    await stub.close()
+  }
+}
+
+test('数字员工面板：SYSTEM 级技能触发危险确认，拒绝后不执行代码', async () => {
+  const { stepTexts } = await runDangerousRound('reject')
+  const joined = stepTexts.join('\n')
+  expect(joined).toContain('system.code')
+  expect(joined).toContain('[STOP] 用户未确认危险操作: system.code')
+  // 沙箱没有被执行：不应出现任何「执行成功」
+  expect(joined).not.toContain('执行成功')
+})
+
+test('数字员工面板：SYSTEM 级技能获批后在沙箱执行并回灌结果', async () => {
+  const { stepTexts } = await runDangerousRound('approve')
+  const joined = stepTexts.join('\n')
+  expect(joined).toContain('system.code')
+  expect(joined).toContain('执行成功: 42')
+  expect(joined).not.toContain('[STOP]')
 })
