@@ -180,7 +180,7 @@
 > **明确不做**：Python 版的「环形缓冲供 LLM 注入上下文」在 TS 侧**当前无消费者**（agent/brain 上下文来自 memory 不来自日志），按「无消费者不预建」原则暂不实现；待 LLM 上下文注入需求出现再补 `app:recentLogs` + 环形缓冲。
 > **验证**：单测 12（`formatLogLine` 对齐 Python Formatter / `needsRotate` / `rotateLogFile` 轮转语义 / `initLogger` 写文件与超限轮转 / 渲染层转发与桥接异常降级）+ eslint/双端 tsc/build 全绿 + 全量 vitest 70 文件/756 用例。
 
-> ✅ **E9（2026-10-04）：Agent 偏好/反馈（迁移 `core/agent/learner.py` 的偏好/反馈子集）**。
+> ✅ **E9（2026-10-04）：Agent 偏好/反馈（迁移 `core/agent/learner.py` 的偏好/反馈子集），提交 `e273254`**。
 > **为什么做**：`core/agent` 是最大域（24,670 行，34 文件整块未迁），其中 `learner.py`（543 行）是**唯一小而自成闭环**的一刀 —— 它的偏好/反馈能直接接进**已存在**的消费点 `buildSystemPrompts({ extraBlocks })`，不必先迁 Brain 大块。
 > **范围（刻意克制，防过度开发）**：① `shared/agent/personalization.ts` —— `extractPreferences`（关键词→偏好键值，纯函数）+ `buildPersonalizedContext`（拼提示词片段；**键排序**保证输出与输入顺序无关）；② `main/agent/preferenceStore.ts` —— `PreferenceStore`/`FeedbackStore`（JSON 落盘，**随库隔离**在 `<库>/agent`）；③ `brainService.ts` 每次 `chat()` 实时读偏好并注入；④ `agent:feedback` IPC 五处接线。
 > **明确不做**：Python 的动作计数/转移矩阵、下一步建议、时间峰值预测、技能模板自动生成 —— 依赖 TS 没有的 `Intent`/`BrainState`，属过度设计，**有意不迁**（写在审计「◐部分已迁」的缺口里）。冷启动偏好为空（与 Python Learner 一致），**不伪造**初始偏好。
