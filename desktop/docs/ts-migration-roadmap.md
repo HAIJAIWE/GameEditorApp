@@ -187,7 +187,7 @@
 > **诚实说明（避免自欺）**：`agent:feedback` 目前**无 UI 调用方**（渲染层现只调 `agent:chat`）。之所以仍接：它是偏好库**唯一的写入路径**，缺了它偏好库恒为空、`brainService` 的消费链就永远不生效 —— 它属于「让已有消费者真正可产出」的生产者接缝，不是凭空预建。**UI 评分入口属后续步骤**。
 > **验证**：单测 22（extractPreferences 命中/大小写/未命中不发明 + buildPersonalizedContext 空/单/多/顺序无关 + PreferenceStore 读写落盘/损坏文件兜底 + FeedbackStore 高评分提炼/负评不提炼/空评论不提炼/重建恢复）+ eslint/双端 tsc 全绿 + 全量 vitest 71 文件/778 用例。
 
-> ✅ **E10（2026-10-04）：快速创建向导（迁移 `ui/dialogs/quick_create.py`，543 行）**。
+> ✅ **E10（2026-10-04）：快速创建向导（迁移 `ui/dialogs/quick_create.py`，543 行），提交 `a744b27`**。
 > **为什么做**：审计 #3 批（`ui/dialogs` 未迁 7 件 ≈1,930 行）里**体量最大且日常可达**的一件 —— 用户每建一条数据都可能用到。
 > **交付**：`shared/quickCreate.ts`（`TEMPLATE_DEFS` 12 类型 / 61 模板 + `DATA_TYPE_LABELS` + `filterQuickCreateTypes`）+ `QuickCreatePanel.tsx`（类型下拉 → 卡片网格 → 初始值预览 → 创建）+ 工具栏「快速创建」入口（与批量操作/引用互斥）。
 > **刻意修正的两处 Python 问题（不是漏迁）**：① `_on_create` 里 `plural = get_type_schema(); data_type + "s"` 是**死代码**（拼接结果被丢弃、后续 `for...break` 也无效），不复制；② Python 类型下拉取自 schema，但 TS `DataService.createItem` **不校验 type** —— 若直接列静态 12 类型会造出**无类型定义的孤儿条目**，故新增 `filterQuickCreateTypes` 与 schema 求交（默认 schema 恰含 12 类型，视觉无差异，**换 schema 后才显出差别**）。
