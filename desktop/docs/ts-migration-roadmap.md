@@ -263,13 +263,13 @@
 
 > ⚙️ **本批的推进方式（E17–E18 同批交付）**：两个切片都要改 `ItemForm.tsx`/`App.tsx`/`styles.css`（共享接线），故沿用 E14–E16 的模式：2 个实现子代理并行产出**互不冲突的新文件**（`shared/refTable.ts`+单测、`shared/dropTable.ts`+单测，禁止触碰共享文件），两个 React 编辑器组件与全部接线（`ItemForm`/`App`/样式/E2E/文档）由主代理串行完成。**教训延续**：先钉死 shared 接口再并行，可零冲突合并（本次 2 份 shared 文件导出与调用方逐字吻合，无需返工）。
 
-> ✅ **E19（2026-10-05）：游戏数据 CSV 导入导出（迁移 `features/export.py` 的 `export_csv`/`import_csv`）**。
+> ✅ **E19（2026-10-05）：游戏数据 CSV 导入导出（迁移 `features/export.py` 的 `export_csv`/`import_csv`），提交 `da320b6`**。
 > **交付**：`main/data/csvIO.ts`（`serializeCsvCell`/`collectHeaders`/`buildCsvText`/`parseCsvText`/`decodeCsvCell`/`rowsToImportRecords`/`exportCsvFiles`/`importCsvFile`）+ 4 条 IPC（`data:exportCsv`/`importCsv` + `dialog:chooseExportDir`/`chooseCsvFile`）+ 工具栏入口。
 > **两处修正 Python**：① 表头取**全部条目键的并集（保序）**——Python 只取 `items[0].keys()`，异质条目会丢列/崩；② 复杂值（数组/对象）导出为**真 JSON**（导入侧还原）——Python 直接 str() 出单引号伪 JSON，往返必坏。
 > **落盘**：文件名用 `pluralKey`（与 Python 兼容，导入侧 `getTypeByLegacyKey` 双向命中单/复数）；**UTF-8 BOM**（Excel 中文友好）；**原子写**（tmp+rename）。
 > **导入语义**：走既有的 `service.importRecords` **upsert**（同 id 更新、缺 id 生成 UUID）——与 `data:importLegacy` 一致；**有意偏离** Python 的「always 重生成 id」既有行为（那会导致导出→导入原地重复）。
 
-> ✅ **E20（2026-10-05）：游戏数据 Excel 导入导出（迁移 `features/export.py` 的 `export_excel`/`import_excel`）**。
+> ✅ **E20（2026-10-05）：游戏数据 Excel 导入导出（迁移 `features/export.py` 的 `export_excel`/`import_excel`），提交 `da320b6`**。
 > **交付**：`main/data/excelIO.ts`（`buildDataWorkbook`/`renderDataExcel`/`exportExcelFile`/`importExcelFile`）+ 4 条 IPC（`data:exportExcel`/`importExcel` + `dialog:chooseExcelFile`）+ 工具栏入口。
 > **复用既有 exceljs 基建**：样式照抄 `main/ceshu/export/excel.ts`（表头 `FF4472C4`+白字加粗、细边框、偶数据行底 `FFF2F2F2`、冻结 `A2`、自动筛选、列宽 clamp 8~60）。**exceljs 本就是依赖，无新增**。单文件 `game_data.xlsx`。
 > **工作表名用 `def.name`（中文）**——**有意偏离** Python 的硬编码 `EXCEL_TYPE_LABELS`（那份表漏了 story/task/dialog/job 四类；用 `def.name` 覆盖全部 12 类且与 schema 永不脱节，且与 Python 文件的 sheet 名兼容）。导入侧按 `def.name` → `getTypeByLegacyKey` → 小写键 三级解析。
