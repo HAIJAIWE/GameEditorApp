@@ -46,6 +46,9 @@
 
 | **E1** | **引擎代码导出（全量数据 → Lua 数据模块）** | ✅ 完成（`b7a2b9f`，D 档首刀）。团队交付：PM 定范围（`docs/prd/engine-export-prd.md`）→ 工程师实现 → QA 独立验证（路由 **NoOne**）。新增 `src/main/engineExport/{luaLiteral,lua,exporter}.ts` + IPC `engine:exportData`；单测 11 + 对抗性 13 + 集成 2；**未碰** `main/library`/数据增删改/既有导出管道。**E2 ✅ 渲染层入口已补**（数据视图工具条「导出引擎代码（Lua）」+ `dialog:chooseEngineExportFile` 保存对话框 + `EngineExportButton` 独立状态组件；用户取消静默返回）。**遗留**：产物未经真实 Lua 解析器校验（本机无 lua/luac）；原生保存对话框 + 按钮点击属 Electron-only，本沙箱无法验证 |
 
+| **E3-1** | **会话级回滚核心**（D 档 `core/operation_log.py` 迁移第一刀） | ✅ 完成（`8ff0b0d`）。`shared/agent/operationLog.ts`（`buildRollbackPlan` 纯函数：逆序生成逆向动作）+ `main/agent/operationLogStore.ts`（内存环形日志 5000/批清 500 + `executeRollbackPlan` 单步失败不中断）+ 单测 11。**语义澄清**：Python 该模块**不是通用撤销**，而是 **AI 会话级安全网**（只在有 conv_id 时记录，不记手动编辑）。**TS 差异**：Python 用 `threading.local`，TS 单线程异步无此语义 → 改走显式 `SkillExecutionContext.sessionId`。**⚠️ 当前是不可用的半成品**：日志**还没有写入者**，也没有触发入口，见下条 |
+| **E3-2** | **会话级回滚接线**（记录点 + 触发入口） | ⬜ **未开始（下一刀，已定方案）**。① 记录点：包一层 `main/agent/brainService.ts::createDispatcherToolRunner()`——它是 Agent 改数据的**唯一漏斗**且天然知道 `sessionId`；对 `system.game_data` 的 create/update/delete 抓 before/after（update/delete 的 before 需在执行前查一次条目），仅当 `ctx.sessionId` 存在时记录（对齐 Python 的 `if not conv_id: return`）。② 触发入口：加 `tool.rollback_ai_changes` 技能（`action: 'rollback'`）→ 复用 A1-4b 的 confirm 交互（「确认撤销本次对话的全部改动（N 项）？」）→ 经 `executeRollbackPlan` 执行 → 回滚后 `clearConversation` 防重复回滚。**走技能而非新 UI**，使能力经现有数字员工面板即可触达。③ 测试：记录器（会话隔离、update 的 before 快照）、技能（确认/拒绝/无记录三种路径） |
+
 ## 2. 剩余工作清单（按体量分档）
 
 ### A 档（大块，需单独立项）—— **已立项，方案见 [`a-tier-plan.md`](./a-tier-plan.md)**
