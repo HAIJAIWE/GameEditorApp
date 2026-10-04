@@ -32,6 +32,7 @@ import {
   agentChatInputSchema,
   agentInteractionResponseInputSchema,
   agentExecuteToolInputSchema,
+  agentFeedbackInputSchema,
   ceshuGetInputSchema,
   engineExportFileDialogInputSchema,
   libraryCreateInputSchema,
@@ -98,6 +99,7 @@ import type { AgentApprovalBroker, AgentInteractionAnswer } from './agent/approv
 import type { AgentBrainService } from './agent/brainService'
 import type { SkillDispatcher } from './agent/dispatcher'
 import type { AgentSessionStore } from './agent/sessionStore'
+import type { FeedbackStore } from './agent/preferenceStore'
 import type { LibraryManager } from './library/manager'
 import type { AttrSystemStore } from './attr/attrSystemStore'
 import { exportAttrGameConfigFile } from './attr/attrGameConfigExport'
@@ -127,6 +129,7 @@ interface IpcHandlerDeps {
   agentDispatcher: SkillDispatcher
   agentBrain: AgentBrainService
   agentSessionStore: AgentSessionStore
+  agentFeedback: FeedbackStore
   approvalBroker: AgentApprovalBroker
   libraryManager: LibraryManager
   /** 切换活跃库（由 `main/index.ts` 负责重建 store 与广播） */
@@ -147,6 +150,7 @@ export function registerIpcHandlers({
   agentDispatcher,
   agentBrain,
   agentSessionStore,
+  agentFeedback,
   approvalBroker,
   libraryManager,
   onSwitchLibrary,
@@ -210,6 +214,12 @@ export function registerIpcHandlers({
     return { messages: snapshot?.messages ?? [] }
   })
   handle('agent:sessionClear', undefined, async () => ({ cleared: await agentSessionStore.clear() }))
+  // 用户反馈（偏好/反馈 store 的生产者接缝）：评分 ≥4 且评论非空时提炼偏好写入偏好库，
+  // 供后续 chat() 注入系统提示词。UI 评分入口是后续步骤，此处只接好主进程写路径。
+  handle('agent:feedback', agentFeedbackInputSchema, (req) => {
+    agentFeedback.record(req.rating, req.comment)
+    return undefined
+  })
 
   // 库管理（A2-1）：切换由 onSwitchLibrary 负责重建 store 并广播 library:changed
   handle('library:list', undefined, () => libraryManager.list())

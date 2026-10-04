@@ -31,6 +31,7 @@ const api: MbApi = {
     sessionInfo: () => invoke('agent:sessionInfo', undefined),
     sessionRestore: () => invoke('agent:sessionRestore', undefined),
     sessionClear: () => invoke('agent:sessionClear', undefined),
+    feedback: (req) => invoke('agent:feedback', req),
     /** 订阅主进程推送的事件流；返回取消订阅函数 */
     onEvent: (handler: (event: unknown) => void): (() => void) => {
       const listener = (_event: unknown, payload: unknown): void => handler(payload)

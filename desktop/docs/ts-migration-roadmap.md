@@ -56,11 +56,11 @@
 > | 判定 | 文件 | 行数 | 占比 |
 > |---|---|---|---|
 > | ✅ 已迁 | 83 | 32,450 | 35.6% |
-> | ◐ 部分已迁 | 62 | 22,286 | 24.4% |
+> | ◐ 部分已迁 | 63 | 22,829 | 25.0% |
 > | ⛔ 有意不迁（决策，非欠债） | 84 | 16,851 | 18.5% |
-> | ⚠️ **未迁（整块没做）** | **70** | **19,577** | **21.5%** |
+> | ⚠️ **未迁（整块没做）** | **69** | **19,034** | **20.9%** |
 >
-> 对账 PASS：`83+62+84+70 = 299` 文件、`32450+22286+16851+19577 = 91,164` 行。
+> 对账 PASS：`83+63+84+69 = 299` 文件、`32450+22829+16851+19034 = 91,164` 行。
 >
 > **结论：真实剩余 ≈ 3.0–3.4 万行（33–37%）** —— 而不是早前口头估算的「3.5–4.5k 行（4–5%）」。那句估算**口径过窄**（把 `ui/widgets`/`ui/dialogs`/`features` 三个混合态域当成了基本迁完）且未做文件级核实，**已被本审计推翻**。
 > 三个最意外的数字：**① `core/agent`（最大域 24,670 行）只有 1,689 行是完整已迁**（A 档做的是核心闭环，不是整个 Agent 引擎）；**② `ui/` 顶层+主题 9,883 行里仅 917 行完整已迁**；**③ `features` 9 文件完整已迁为 0**。
@@ -179,6 +179,13 @@
 > **范围（刻意克制，防过度开发）**：① 主进程轮转文件日志（`main/logger.ts`，10MB×5 备份，对齐 Python RotatingFileHandler）；② 统一入口 `shared/logger.ts`（渲染层经 `app:log` IPC 转发到主进程写文件，绝不渲染层直写）；③ 接线 `initLogger`（启动即落盘到 `userData/logs`）。
 > **明确不做**：Python 版的「环形缓冲供 LLM 注入上下文」在 TS 侧**当前无消费者**（agent/brain 上下文来自 memory 不来自日志），按「无消费者不预建」原则暂不实现；待 LLM 上下文注入需求出现再补 `app:recentLogs` + 环形缓冲。
 > **验证**：单测 12（`formatLogLine` 对齐 Python Formatter / `needsRotate` / `rotateLogFile` 轮转语义 / `initLogger` 写文件与超限轮转 / 渲染层转发与桥接异常降级）+ eslint/双端 tsc/build 全绿 + 全量 vitest 70 文件/756 用例。
+
+> ✅ **E9（2026-10-04）：Agent 偏好/反馈（迁移 `core/agent/learner.py` 的偏好/反馈子集）**。
+> **为什么做**：`core/agent` 是最大域（24,670 行，34 文件整块未迁），其中 `learner.py`（543 行）是**唯一小而自成闭环**的一刀 —— 它的偏好/反馈能直接接进**已存在**的消费点 `buildSystemPrompts({ extraBlocks })`，不必先迁 Brain 大块。
+> **范围（刻意克制，防过度开发）**：① `shared/agent/personalization.ts` —— `extractPreferences`（关键词→偏好键值，纯函数）+ `buildPersonalizedContext`（拼提示词片段；**键排序**保证输出与输入顺序无关）；② `main/agent/preferenceStore.ts` —— `PreferenceStore`/`FeedbackStore`（JSON 落盘，**随库隔离**在 `<库>/agent`）；③ `brainService.ts` 每次 `chat()` 实时读偏好并注入；④ `agent:feedback` IPC 五处接线。
+> **明确不做**：Python 的动作计数/转移矩阵、下一步建议、时间峰值预测、技能模板自动生成 —— 依赖 TS 没有的 `Intent`/`BrainState`，属过度设计，**有意不迁**（写在审计「◐部分已迁」的缺口里）。冷启动偏好为空（与 Python Learner 一致），**不伪造**初始偏好。
+> **诚实说明（避免自欺）**：`agent:feedback` 目前**无 UI 调用方**（渲染层现只调 `agent:chat`）。之所以仍接：它是偏好库**唯一的写入路径**，缺了它偏好库恒为空、`brainService` 的消费链就永远不生效 —— 它属于「让已有消费者真正可产出」的生产者接缝，不是凭空预建。**UI 评分入口属后续步骤**。
+> **验证**：单测 22（extractPreferences 命中/大小写/未命中不发明 + buildPersonalizedContext 空/单/多/顺序无关 + PreferenceStore 读写落盘/损坏文件兜底 + FeedbackStore 高评分提炼/负评不提炼/空评论不提炼/重建恢复）+ eslint/双端 tsc 全绿 + 全量 vitest 71 文件/778 用例。
 
 ## 3. 每片执行流程（固定顺序）
 

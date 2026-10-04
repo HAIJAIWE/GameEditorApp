@@ -232,6 +232,12 @@ export const agentExecuteToolInputSchema = z.object({
   params: z.record(z.string(), z.unknown()).default({})
 })
 
+/** Agent 反馈：评分（1-5）+ 可选评论；评分 ≥4 且评论非空时提炼偏好写入偏好库 */
+export const agentFeedbackInputSchema = z.object({
+  rating: z.number().int().min(1).max(5),
+  comment: z.string().max(4000).default('')
+})
+
 /** 首页卡片：重命名策划书（对齐 Python `rename_ceshu`，名称非空） */
 export const ceshuRenameInputSchema = z.object({
   id: z.string().min(1),
@@ -427,6 +433,7 @@ export type CeshuChooseExportFileInput = z.infer<typeof ceshuChooseExportFileInp
 export type CeshuDeriveInput = z.infer<typeof ceshuDeriveInputSchema>
 export type CeshuRenameInput = z.infer<typeof ceshuRenameInputSchema>
 export type AgentExecuteToolInput = z.infer<typeof agentExecuteToolInputSchema>
+export type AgentFeedbackInput = z.infer<typeof agentFeedbackInputSchema>
 export type AgentChatInput = z.infer<typeof agentChatInputSchema>
 export type AgentApprovalResponseInput = z.infer<typeof agentApprovalResponseInputSchema>
 export type AgentInteractionResponseInput = z.infer<typeof agentInteractionResponseInputSchema>

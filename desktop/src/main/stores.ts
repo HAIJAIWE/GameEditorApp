@@ -16,6 +16,8 @@ import { OperationLogStore } from './agent/operationLogStore'
 import { createRecordingToolRunner } from './agent/operationRecorder'
 import { createRollbackSkill } from './agent/skills/rollbackSkill'
 import { AgentMemoryStore } from './agent/memoryStore'
+import { createPersonalizationStores } from './agent/preferenceStore'
+import type { FeedbackStore, PreferenceStore } from './agent/preferenceStore'
 import { AgentSessionStore } from './agent/sessionStore'
 import { SkillDispatcher } from './agent/dispatcher'
 import { createAskUserSkill } from './agent/skills/askUserSkill'
@@ -47,6 +49,8 @@ export interface AppStores {
   agentDispatcher: SkillDispatcher
   agentBrain: AgentBrainService
   agentSessionStore: AgentSessionStore
+  agentPreferences: PreferenceStore
+  agentFeedback: FeedbackStore
   approvalBroker: AgentApprovalBroker
   llmClient: LlmClient
 }
@@ -83,6 +87,8 @@ export function buildStores(libDir: string): AppStores {
   // Agent 会话与记忆随库隔离（A2-1 起落在 <库>/agent 下）
   const agentDir = join(libDir, 'agent')
   const sessionStore = new AgentSessionStore(agentDir)
+  // 用户偏好 / 反馈：随库隔离，构造时即从磁盘加载；偏好注入系统提示词（见 brainService）
+  const personalization = createPersonalizationStores(agentDir)
 
   return {
     dbPath,
@@ -98,9 +104,12 @@ export function buildStores(libDir: string): AppStores {
       dispatcher,
       sessionStore,
       memoryStore: new AgentMemoryStore(agentDir),
+      preferences: personalization.preferences,
       runner
     }),
     agentSessionStore: sessionStore,
+    agentPreferences: personalization.preferences,
+    agentFeedback: personalization.feedback,
     approvalBroker: new AgentApprovalBroker(),
     llmClient: new LlmClient()
   }

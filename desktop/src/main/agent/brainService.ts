@@ -20,8 +20,10 @@ import {
   type BrainToolRunner
 } from '../../shared/agent/brain'
 import { buildSystemPrompts } from '../../shared/agent/prompts'
+import { buildPersonalizedContext } from '../../shared/agent/personalization'
 import { RISK_LEVEL, resolveRiskLevel, type SkillExecutionContext } from '../../shared/agent/protocol'
 import type { AgentMemoryStore } from './memoryStore'
+import type { PreferenceStore } from './preferenceStore'
 import type { SkillDispatcher } from './dispatcher'
 import { OllamaChatTransport } from './ollamaTransport'
 import type { AgentSessionStore } from './sessionStore'
@@ -62,6 +64,8 @@ export interface AgentBrainServiceDeps {
   sessionStore?: AgentSessionStore
   /** 语义记忆（A1-3）；缺省不检索也不回写 */
   memoryStore?: AgentMemoryStore
+  /** 用户偏好（来自历史反馈，确定性键值）；缺省不注入个性化片段 */
+  preferences?: PreferenceStore
   /** 工具执行器覆盖（E3-2）：接线层可传入包了记录器的 runner，Brain 本身不感知记录逻辑 */
   runner?: BrainToolRunner
 }
@@ -106,9 +110,16 @@ export class AgentBrainService {
    */
   async chat(input: string, options: AgentChatOptions = {}): Promise<BrainRunResult> {
     const memoryBlock = await this.buildMemoryBlock(input)
+    const extraBlocks: string[] = []
+    if (memoryBlock !== null) extraBlocks.push(memoryBlock)
+    // 个性化片段：偏好来自历史反馈，冷启动为空时不注入（与 Python Learner 一致）
+    if (this.deps.preferences) {
+      const prefBlock = buildPersonalizedContext(this.deps.preferences.getAll())
+      if (prefBlock !== '') extraBlocks.push(prefBlock)
+    }
     const systemPrompts = buildSystemPrompts({
       toolsDescription: this.deps.dispatcher.toolsDescription(),
-      ...(memoryBlock !== null ? { extraBlocks: [memoryBlock] } : {})
+      ...(extraBlocks.length > 0 ? { extraBlocks } : {})
     })
 
     const requestApproval = options.requestApproval ?? this.deps.requestApproval

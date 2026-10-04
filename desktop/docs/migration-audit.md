@@ -9,26 +9,26 @@
 | 判定 | 文件 | 行数 | 占比 |
 |---|---|---|---|
 | ✅ 已迁 | 83 | 32,450 | 35.6% |
-| ◐ 部分已迁 | 62 | 22,286 | 24.4% |
+| ◐ 部分已迁 | 63 | 22,829 | 25.0% |
 | ⛔ 有意不迁 | 84 | 16,851 | 18.5% |
-| ⚠️ 未迁（整块没做） | 70 | 19,577 | 21.5% |
+| ⚠️ 未迁（整块没做） | 69 | 19,034 | 20.9% |
 
-**对账（必须相等，已 PASS）**：`83+62+84+70 = 299` ✓、`32450+22286+16851+19577 = 91,164` ✓
+**对账（必须相等，已 PASS）**：`83+63+84+69 = 299` ✓、`32450+22829+16851+19034 = 91,164` ✓
 
 ### 真实剩余 ≈ 3.0–3.4 万行（33–37%）
 
-- **确定未迁（整块没做）＝ 19,732 行 / 71 文件**（精确数字）
+- **确定未迁（整块没做）＝ 19,034 行 / 69 文件**（精确数字）
 - **部分已迁里的缺口 ≈ 1.0–1.4 万行**（**估算**：按各文件的完成度估计汇总，各代理给的完成度多在 25%–75%，本身带主观性）
 - 合计 **≈ 3.0–3.4 万行**，占旧代码 **33–37%**
 
 > **口径说明**：不能把「⛔有意不迁」的 16,851 行算成欠债 —— 那些是**决策**（自愈链 5,372、样例数据 1,125、PyQt 胶水、死代码等），各有实证依据。
-> 但也不能把「◐部分已迁」算成已迁 —— 那 22,286 行里有一部分是真缺口。
+> 但也不能把「◐部分已迁」算成已迁 —— 那 22,829 行里有一部分是真缺口。
 
 ## 2. 汇总（按域）
 
 | 域 | 文件 | 行数 | ✅已迁 | ◐部分 | ⛔不迁 | ⚠️未迁 |
 |---|---|---|---|---|---|---|
-| `core/agent` | 97 | 24,670 | 8 / 1,689 | 22 / 6,209 | 33 / 7,810 | 34 / 8,962 |
+| `core/agent` | 97 | 24,670 | 8 / 1,689 | 23 / 6,752 | 33 / 7,810 | 33 / 8,419 |
 | `ui/ceshu` | 35 | 14,620 | 25 / 12,123 | 5 / 1,834 | 3 / 363 | 2 / 300 |
 | `ui/widgets` | 24 | 9,232 | 11 / 4,966 | 5 / 1,882 | 6 / 962 | 2 / 1,422 |
 | `ui/` 顶层 + `themes` + `components` | 31 | 9,883 | 4 / 917 | 9 / 4,748 | 7 / 1,029 | 11 / 3,189 |
@@ -70,7 +70,7 @@
 | memory_search.py | 231 | ◐ | `memoryStore.ts::search(topK)`；多路召回/去重未迁 |
 | memory_store.py | 195 | ◐ | `memoryStore.ts` add/count；反馈/偏好持久化未迁 |
 | memory_vector.py | 271 | ◐ | 自研向量→vectra 替代 |
-| models.py | 52 | ◐ | `SkillResult`/`SkillExecutionContext`→`protocol.ts`；Intent/MemoryEntry/FeedbackRecord 未迁 |
+| models.py | 52 | ◐ | `SkillResult`/`SkillExecutionContext`→`protocol.ts`；`FeedbackRecord`→`shared/agent/personalization.ts`；Intent/MemoryEntry 未迁 |
 | prompts.py | 598 | ◐30% | `shared/agent/prompts.ts` 仅骨架；USER_AGENTS/TEAM_AGENTS/STEWARD_BASE_PROMPT 未迁 |
 | safety_guard.py | 154 | ◐50% | `protocol.ts` 风险分级 + `approvalBroker`；token 裁剪/工具替代建议未迁 |
 | semantic_memory.py | 233 | ◐ | ChromaDB→vectra 重设计 |
@@ -96,7 +96,7 @@
 | brain_reflect.py | 108 | ⚠️ | 失败反思，A1-2 明确不移植 |
 | brain_subagent.py | 67 | ⚠️ | SubAgent 通道，A1-1 明确不移植 |
 | intent.py | 718 | ⚠️ | 规则意图解析+Planner，TS 无 |
-| learner.py | 543 | ⚠️ | 反馈学习/偏好，TS 无 |
+| learner.py | 543 | ◐ | **偏好/反馈子集已迁**：`shared/agent/personalization.ts`（extractPreferences/buildPersonalizedContext）+ `main/agent/preferenceStore.ts`（PreferenceStore/FeedbackStore）+ `brainService.ts` 注入系统提示词 + `agent:feedback` IPC；**未迁**：动作计数/转移矩阵、下一步建议、时间峰值、技能模板自动生成（依赖 TS 没有的 `Intent`/`BrainState`，属过度设计，有意不迁） |
 | mcp.py | 391 | ⚠️ | MCP 客户端（方案列「重设计」，未实施） |
 | memory_history.py | 211 | ⚠️ | 对话历史/反馈持久化，TS 无 |
 | model_registry.py | 186 | ⚠️ | 模型注册/切换，TS 无 |

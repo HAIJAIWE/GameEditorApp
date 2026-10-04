@@ -19,6 +19,8 @@ export interface MbApi {
     sessionInfo(): Promise<IpcContract['agent:sessionInfo']['res']>
     sessionRestore(): Promise<IpcContract['agent:sessionRestore']['res']>
     sessionClear(): Promise<IpcContract['agent:sessionClear']['res']>
+    /** 提交用户反馈（评分 + 可选评论）；评分高且带评论时提炼偏好 */
+    feedback(req: IpcContract['agent:feedback']['req']): Promise<IpcContract['agent:feedback']['res']>
     /** 订阅主进程推送的事件流；返回取消订阅函数 */
     onEvent(handler: (event: unknown) => void): () => void
   }

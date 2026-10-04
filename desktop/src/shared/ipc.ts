@@ -30,6 +30,7 @@ import type {
   CeshuRenameInput,
   AgentChatInput,
   AgentExecuteToolInput,
+  AgentFeedbackInput,
   AgentInteractionResponseInput,
   EngineExportFileDialogInput,
   FieldIdSuggestInput,
@@ -137,6 +138,8 @@ export interface IpcContract {
   'agent:sessionInfo': { req: undefined; res: SessionInfo }
   'agent:sessionRestore': { req: undefined; res: { messages: Array<Record<string, unknown>> } }
   'agent:sessionClear': { req: undefined; res: { cleared: boolean } }
+  /** 用户反馈：评分 + 可选评论；评分 ≥4 且评论非空时提炼偏好写入偏好库 */
+  'agent:feedback': { req: AgentFeedbackInput; res: undefined }
 
   'dialog:chooseEngineExportFile': { req: EngineExportFileDialogInput; res: { path: string | null } }
 
