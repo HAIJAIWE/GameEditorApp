@@ -2,30 +2,12 @@ import { join } from 'node:path'
 
 import { app, BrowserWindow, shell, type Tray } from 'electron'
 
-import { AgentApprovalBroker } from './agent/approvalBroker'
-import { AgentBrainService } from './agent/brainService'
-import { AgentMemoryStore } from './agent/memoryStore'
-import { AgentSessionStore } from './agent/sessionStore'
-import { SkillDispatcher } from './agent/dispatcher'
-import { createAskUserSkill } from './agent/skills/askUserSkill'
-import { createCeshuSkill } from './agent/skills/ceshuSkill'
-import { createCodeSkill } from './agent/skills/codeSkill'
-import { createGameDataSkill } from './agent/skills/gameDataSkill'
-import { AttrSystemStore } from './attr/attrSystemStore'
-import { exportCeshuDocument } from './ceshu/export/exporter'
-import { CeshuManager } from './ceshu/manager'
-import { CeshuDataSync } from './ceshu/dataSync'
-import { CeshuNotesStore } from './ceshu/notesStore'
-import { CeshuTemplateStore } from './ceshu/templateStore'
-import { CeshuStorage } from './ceshu/storage'
-import { DataService } from './data/service'
-import { SqliteItemsRepository } from './data/sqliteRepo'
+import type { DataService } from './data/service'
 import { disposeIpcHandlers, registerIpcHandlers } from './ipc'
 import { LibraryManager } from './library/manager'
 import { migrateFlatToLibraries } from './library/migrate'
 import { INITIAL_LIBRARY_NAME } from './library/store'
-import { LlmClient } from './llm/client'
-import { TypeSchemaStore } from './schema/store'
+import { buildStores, type AppStores } from './stores'
 import { disposeTray, registerShortcuts, setupTray, unregisterShortcuts } from './tray'
 
 // E2E / 便携模式：允许外部指定 userData 目录（隔离测试数据）
@@ -35,23 +17,6 @@ if (userDataOverride) {
 }
 
 const rendererDevUrl = process.env['ELECTRON_RENDERER_URL']
-
-/** 一套随活跃库重建的 store 组合（A2-1） */
-interface AppStores {
-  dbPath: string
-  dataService: DataService
-  ceshuManager: CeshuManager
-  typeSchemaStore: TypeSchemaStore
-  ceshuNotesStore: CeshuNotesStore
-  ceshuTemplateStore: CeshuTemplateStore
-  attrSystemStore: AttrSystemStore
-  dataSync: CeshuDataSync
-  agentDispatcher: SkillDispatcher
-  agentBrain: AgentBrainService
-  agentSessionStore: AgentSessionStore
-  approvalBroker: AgentApprovalBroker
-  llmClient: LlmClient
-}
 
 let mainWindow: BrowserWindow | null = null
 let stores: AppStores | null = null
@@ -92,55 +57,6 @@ function createWindow(): void {
     void mainWindow.loadURL(rendererDevUrl)
   } else {
     void mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
-  }
-}
-
-/**
- * 由**活跃库目录**构造全部 store（A2-1：切换库时整体重建）。
- * 各 store 不再自己算路径，统一由库服务给出的 `libDir` 派生 —— 避免 Python 那种双源全局态。
- */
-function buildStores(libDir: string): AppStores {
-  const dbPath = join(libDir, 'mb-editor.db')
-  const data = new DataService(new SqliteItemsRepository(dbPath))
-  const ceshu = new CeshuManager(new CeshuStorage(join(libDir, 'ceshu')))
-  const schema = new TypeSchemaStore(join(libDir, 'type_schema.json'))
-
-  // Agent 技能调度器：注册内置技能，服务在构造时注入
-  const dispatcher = new SkillDispatcher()
-  dispatcher.register(createGameDataSkill({ dataService: data, typeSchemaStore: schema }))
-  dispatcher.register(
-    createCeshuSkill({
-      ceshuManager: ceshu,
-      exportDocument: exportCeshuDocument,
-      exportDir: join(libDir, 'exports')
-    })
-  )
-  dispatcher.register(createAskUserSkill())
-  // 沙箱代码技能：SYSTEM 级风险，每次调用都需用户确认
-  dispatcher.register(createCodeSkill())
-
-  // Agent 会话与记忆随库隔离（A2-1 起落在 <库>/agent 下）
-  const agentDir = join(libDir, 'agent')
-  const sessionStore = new AgentSessionStore(agentDir)
-
-  return {
-    dbPath,
-    dataService: data,
-    ceshuManager: ceshu,
-    typeSchemaStore: schema,
-    ceshuNotesStore: new CeshuNotesStore(join(libDir, 'ceshu_notes')),
-    ceshuTemplateStore: new CeshuTemplateStore(join(libDir, 'ceshu_templates')),
-    attrSystemStore: new AttrSystemStore(join(libDir, 'attr_system.json')),
-    dataSync: new CeshuDataSync(ceshu, data, schema),
-    agentDispatcher: dispatcher,
-    agentBrain: new AgentBrainService({
-      dispatcher,
-      sessionStore,
-      memoryStore: new AgentMemoryStore(agentDir)
-    }),
-    agentSessionStore: sessionStore,
-    approvalBroker: new AgentApprovalBroker(),
-    llmClient: new LlmClient()
   }
 }
 
