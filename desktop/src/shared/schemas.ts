@@ -112,6 +112,13 @@ export const fieldIdSuggestInputSchema = z.object({
   fieldType: z.string().max(32).optional()
 })
 
+/** 渲染层转发到主进程的日志条目 */
+export const appLogInputSchema = z.object({
+  level: z.enum(['debug', 'info', 'warn', 'error']),
+  message: z.string().min(1).max(4096),
+  meta: z.unknown().optional()
+})
+
 /* ---- 属性系统 ---- */
 
 export const attrFormulaSchema = z.object({

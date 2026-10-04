@@ -2,8 +2,10 @@ import { join } from 'node:path'
 
 import { app, BrowserWindow, shell, type Tray } from 'electron'
 
+import { log } from '../shared/logger'
 import type { DataService } from './data/service'
 import { disposeIpcHandlers, registerIpcHandlers } from './ipc'
+import { initLogger } from './logger'
 import { LibraryManager } from './library/manager'
 import { migrateFlatToLibraries } from './library/migrate'
 import { INITIAL_LIBRARY_NAME } from './library/store'
@@ -90,16 +92,18 @@ function activateLibrary(libraryManager: LibraryManager): void {
 
 app.whenReady().then(async () => {
   const userDataDir = app.getPath('userData')
+  // 日志先行：主进程日志落盘到 userData/logs，渲染层经 IPC 转发到此
+  initLogger(join(userDataDir, 'logs'))
 
   // A2-1 一次性搬迁：平铺旧存储 → libraries/<初始库>/
   try {
     const migration = migrateFlatToLibraries(userDataDir, INITIAL_LIBRARY_NAME)
     if (migration !== null) {
-      console.log(`[Library] 旧数据已搬入「${INITIAL_LIBRARY_NAME}」: ${migration.moved.join(', ')}`)
+      log.info(`[Library] 旧数据已搬入「${INITIAL_LIBRARY_NAME}」: ${migration.moved.join(', ')}`)
     }
   } catch (error) {
     // 搬迁失败：原文件保留，仍以新结构启动（该库从空开始），把原因打出来供排障
-    console.error('[Library]', error instanceof Error ? error.message : String(error))
+    log.error('[Library] 搬迁失败', error instanceof Error ? error : String(error))
   }
 
   const libraryManager = new LibraryManager(userDataDir)

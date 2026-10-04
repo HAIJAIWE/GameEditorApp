@@ -4,6 +4,7 @@ import type { IpcContract } from './ipc'
 export interface MbApi {
   app: {
     info(): Promise<IpcContract['app:info']['res']>
+    log(req: IpcContract['app:log']['req']): Promise<IpcContract['app:log']['res']>
   }
   agent: {
     listTools(): Promise<IpcContract['agent:listTools']['res']>

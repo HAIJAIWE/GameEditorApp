@@ -15,6 +15,16 @@ export interface AppInfo {
   dbPath: string
 }
 
+/** 单条日志条目（渲染层 → 主进程转发的载荷） */
+export type LogLevel = 'debug' | 'info' | 'warn' | 'error'
+
+export interface AppLogInput {
+  level: LogLevel
+  message: string
+  /** 可选的结构化附带信息（错误对象、上下文等） */
+  meta?: unknown
+}
+
 /* ---- 数据类型 schema（自 Python 版 core/defaults/rpg_schema.py v2.4 匹平迁移） ---- */
 
 export type FieldType =

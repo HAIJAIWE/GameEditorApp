@@ -48,6 +48,7 @@ import type {
 } from './schemas'
 import type {
   AppInfo,
+  AppLogInput,
   BatchUpdateSummary,
   DataTypeDef,
   DeleteManySummary,
@@ -78,6 +79,8 @@ import type { AttrSystem } from './attrSystem'
  */
 export interface IpcContract {
   'app:info': { req: undefined; res: AppInfo }
+  /** 渲染层转发日志到主进程（主进程写文件 + 回显控制台）。req 为单条日志条目 */
+  'app:log': { req: AppLogInput; res: undefined }
   'schema:list': { req: undefined; res: DataTypeDef[] }
   'schema:save': { req: SchemaSaveInput; res: DataTypeDef[] }
   /** 字段 ID 的 AI 候选（术语表未收录时由用户显式点击触发） */

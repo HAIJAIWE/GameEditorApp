@@ -61,8 +61,11 @@ import {
   templatesUpdateInputSchema,
   schemaSaveInputSchema,
   fieldIdSuggestInputSchema,
+  appLogInputSchema,
   updateItemInputSchema
 } from '../shared/schemas'
+import { log } from '../shared/logger'
+import type { LogLevel } from '../shared/types'
 import {
   CESHU_FORMAT_EXTENSIONS,
   CESHU_FORMAT_LABELS,
@@ -150,6 +153,17 @@ export function registerIpcHandlers({
   getAppInfo
 }: IpcHandlerDeps): void {
   handle('app:info', undefined, () => getAppInfo())
+  // 渲染层转发日志：req 为单条日志条目，主进程按自身配置写入文件
+  handle('app:log', appLogInputSchema, (req) => {
+    const sink: Record<LogLevel, (message: string, meta?: unknown) => void> = {
+      debug: log.debug,
+      info: log.info,
+      warn: log.warn,
+      error: log.error
+    }
+    sink[req.level](req.message, req.meta)
+    return undefined
+  })
   // Agent 技能调度：listTools 供提示词/面板展示，executeTool 走统一调度与安全门
   handle('agent:listTools', undefined, () => ({
     description: agentDispatcher.toolsDescription(),

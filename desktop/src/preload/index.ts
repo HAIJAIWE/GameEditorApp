@@ -14,7 +14,8 @@ async function invoke<C extends IpcChannel>(channel: C, req: IpcContract[C]['req
 
 const api: MbApi = {
   app: {
-    info: () => invoke('app:info', undefined)
+    info: () => invoke('app:info', undefined),
+    log: (req) => invoke('app:log', req)
   },
   schema: {
     list: () => invoke('schema:list', undefined),
