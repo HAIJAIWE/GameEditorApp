@@ -12,6 +12,7 @@ import { createCeshuSkill } from './agent/skills/ceshuSkill'
 import { createCodeSkill } from './agent/skills/codeSkill'
 import { createGameDataSkill } from './agent/skills/gameDataSkill'
 import { AttrSystemStore } from './attr/attrSystemStore'
+import { exportCeshuDocument } from './ceshu/export/exporter'
 import { CeshuManager } from './ceshu/manager'
 import { CeshuDataSync } from './ceshu/dataSync'
 import { CeshuNotesStore } from './ceshu/notesStore'
@@ -82,7 +83,13 @@ app.whenReady().then(() => {
   // Agent 技能调度器（A1-1）：注册最小内置技能，服务在构造时注入
   const agentDispatcher = new SkillDispatcher()
   agentDispatcher.register(createGameDataSkill({ dataService, typeSchemaStore }))
-  agentDispatcher.register(createCeshuSkill({ ceshuManager }))
+  agentDispatcher.register(
+    createCeshuSkill({
+      ceshuManager,
+      exportDocument: exportCeshuDocument,
+      exportDir: join(app.getPath('userData'), 'exports')
+    })
+  )
   agentDispatcher.register(createAskUserSkill())
   // 沙箱代码技能（A1-5）：SYSTEM 级风险，每次调用都需用户确认
   agentDispatcher.register(createCodeSkill())

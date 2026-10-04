@@ -199,7 +199,25 @@ userData/
 | A1-3 会话与记忆 | ✅ 完成 | `7794a84` | `shared/agent/session.ts`（快照/截断纯逻辑）+ `main/agent/sessionStore.ts`（原子写 + 串行队列 + 严格/容错两档读取 + metrics.jsonl）+ `shared/agent/memory.ts`（确定性 n-gram 嵌入）+ `main/agent/memoryStore.ts`（vectra 索引）；接入 `AgentBrainService`（记忆注入 + 会话落盘 + 问答回写）；单测 22 |
 | A1-4 数字员工面板 | ✅ 完成 | `c38199b` | `shared/agent/panel.ts`（事件流 → 面板视图模型纯归约，单测 13）+ `main/agent/approvalBroker.ts`（审批中转，单测 6）+ `renderer/src/components/digital/DigitalPanel.tsx` + App 第三模式 `mode-digital` + IPC `agent:approvalResponse`/`agent:sessionInfo|Restore|Clear` + 主进程 `agent:event` 推送 + E2E `agent-digital-panel.spec.ts`（2 例，沙箱未实跑） |
 | A1-5 业务技能接线 + 托盘/热键 | ✅ 完成 | `26b217f` |
-| A1-4b 交互通道补完（参数澄清 + 删除确认） | ✅ 完成 | `ac2c6ec` | 统一 `SkillResult.interaction`（`confirm`/`question`）→ Brain `interaction_required` 事件 + 复用审批 broker 回传答复；生产者：`system.game_data.delete`（confirm，批准后带 `confirm:true` 重执行）+ `tool.ask_user`（question，答复回灌为工具结果）；面板交互模态；单测 +17 | `system.code`（jsSandbox，**SYSTEM 级**，单测 9）+ `system.ceshu` 补 `create`/`update`（单测 3）+ `main/tray.ts`（Tray + `Ctrl+Shift+M`，防御式）+ **补齐 A1-4 遗留的审批端到端拦截 E2E**（拒绝→不执行 / 批准→真执行，见 `agent-digital-panel.spec.ts`） |
+| A1-4b 交互通道补完（参数澄清 + 删除确认） | ✅ 完成 | `ac2c6ec` |
+| A1-5b 收尾三项（策略书删/导出 + 交互超时 + 托盘图标资源） | ✅ 完成 | `<PENDING_HASH>` | `system.ceshu` 补 `delete`（confirm 交互）/`export`（导出到默认目录并回报路径）+ 交互**超时保护**（默认 120s，超时按未答复回落）+ `resources/tray-icon.png` 正式图标（脚本生成 + 位图兜底）；单测 +8 | 统一 `SkillResult.interaction`（`confirm`/`question`）→ Brain `interaction_required` 事件 + 复用审批 broker 回传答复；生产者：`system.game_data.delete`（confirm，批准后带 `confirm:true` 重执行）+ `tool.ask_user`（question，答复回灌为工具结果）；面板交互模态；单测 +17 | `system.code`（jsSandbox，**SYSTEM 级**，单测 9）+ `system.ceshu` 补 `create`/`update`（单测 3）+ `main/tray.ts`（Tray + `Ctrl+Shift+M`，防御式）+ **补齐 A1-4 遗留的审批端到端拦截 E2E**（拒绝→不执行 / 批准→真执行，见 `agent-digital-panel.spec.ts`） |
+
+### A1-5b 落地记录（2026-10-04）· 收尾三项
+
+**1. `system.ceshu` 补 `delete` / `export`**
+- `delete`：与 `system.game_data.delete` 同一取向——未带 `confirm: true` 时返回 **confirm 交互**，批准后重执行（复用 A1-4b 通道）。
+- `export`：注入导出管道（`exportCeshuDocument`）+ 默认导出目录 `userData/exports`，**Agent 场景无人点「另存为」**，故导出到默认目录并回报绝对路径与字节数；文件名做安全化（去路径分隔符/Windows 非法字符），扩展名交由导出管道按格式补全。未注入管道时明确报「导出功能未启用」。
+
+**2. 交互超时保护**（`DEFAULT_INTERACTION_TIMEOUT_MS = 120_000`，对齐 Python `ask_user` 的 `timeout=120`）
+危险确认与技能交互的 `await` 都过一层超时：**超时按「未确认/未答复」回落**（不隐式放行），避免无人值守时循环永久挂住。置 0 表示不超时。
+
+**3. 托盘正式图标资源**
+新增 `scripts/gen-tray-icon.cjs`（手写 PNG：zlib + CRC32 拼合法 RGBA，避免为 32x32 图标引入 `sharp`/`canvas` 原生依赖），产物 `resources/tray-icon.png` 入库；`tray.ts` 优先 `nativeImage.createFromPath`，**打包后资源未分发时回落到现场位图**（托盘仍能创建）。eslint 为 `scripts/**/*.cjs` 增 Node/CommonJS override。
+
+**仍未做（明示，附理由）**：
+- `ask_user` 的**多问题**（Python 的 `questions` 数组 + `multiSelect`）：需要多字段模态 UI（面板侧改动量大于本批其余项之和），单个提问已覆盖 LLM 的主流需求。
+- `system.ceshu` 的 **`import`**：导入是文件选择器驱动的（UI 已有入口），Agent 侧需要「源路径」语义，价值低于导出。
+- **`ai_*` 动作**：涉及一个**架构决策而非实现**——技能内自行调 LLM（需把 transport 注入技能，形成第二条 LLM 通路）vs 由 Brain 直接用现有 LLM 生成。建议保持单条 LLM 通路（由 Brain 负责），故 `ai_*` 不应做成技能。
 
 ### A1-4b 落地记录（2026-10-04）· 三类确认补齐
 

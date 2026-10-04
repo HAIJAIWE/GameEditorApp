@@ -524,6 +524,43 @@ describe('runBrainLoop：技能交互（确认 / 提问）', () => {
     expect(secondMessages.some((message) => message.role === 'tool' && message.content === '用户回答：法师')).toBe(true)
   })
 
+  it('超时保护：用户迟迟不答复 → 按未确认回落，循环不永久挂住', async () => {
+    const runner = makeConfirmRunner()
+    const transport = scripted([toolCall('c1', 'system.game_data', { action: 'delete' }), FINAL])
+    const result = await runBrainLoop({
+      input: 'x',
+      systemPrompts: [],
+      transport,
+      runner,
+      interactionTimeoutMs: 10,
+      // 永不兑现的答复通道（模拟用户无视弹窗）
+      requestInteraction: () => new Promise(() => undefined)
+    })
+
+    expect(runner.calls).toHaveLength(1)
+    expect(
+      result.events.some(
+        (event) => event.type === 'step_done' && event.result === '[STOP] 用户未确认该操作: system.game_data'
+      )
+    ).toBe(true)
+    expect(result.completed).toBe(true)
+  })
+
+  it('超时保护：危险操作审批超时同样按未批准处理', async () => {
+    const transport = scripted([toolCall('c1', 'system.shell', { action: 'execute' }), FINAL])
+    const runner = makeRunner({ dangerous: () => true })
+    const result = await runBrainLoop({
+      input: 'x',
+      systemPrompts: [],
+      transport,
+      runner,
+      interactionTimeoutMs: 10,
+      requestApproval: () => new Promise(() => undefined)
+    })
+    expect(runner.executed).toHaveLength(0)
+    expect(result.events.some((event) => event.type === 'step_done' && event.result.includes('[STOP]'))).toBe(true)
+  })
+
   it('question：答复为空 → 记 [STOP] 未解答', async () => {
     const runner: BrainToolRunner = {
       resolve: (name) => name,

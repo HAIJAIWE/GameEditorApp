@@ -7,9 +7,12 @@
  * 设计：**全部操作防御式包装并返回是否成功**——托盘/热键在无桌面会话、被其它应用占用、
  * 或图标资源缺失时都会失败，**不应阻塞应用启动**。
  *
- * 图标说明：正式托盘图标资源待补，这里用原始位图现场生成一个 16x16 实心方块
- * （避免为了一个图标引入打包资产与路径问题）。
+ * 图标：优先加载 `resources/tray-icon.png`（由 `scripts/gen-tray-icon.cjs` 生成并入库）；
+ * 开发态路径为 `out/main/../../resources`。**打包后若资源未随包分发则回落**到
+ * 现场生成的 16x16 位图，保证托盘仍能创建（不阻塞启动）。
  */
+
+import { join } from 'node:path'
 
 import { Menu, Tray, app, globalShortcut, nativeImage, type NativeImage } from 'electron'
 
@@ -18,8 +21,24 @@ export const SHOW_WINDOW_SHORTCUT = 'CommandOrControl+Shift+M'
 
 const ICON_SIZE = 16
 
+/** 图标资源路径（dev: desktop/resources；打包态如未分发则由兜底位图接管） */
+function trayIconPath(): string {
+  return join(__dirname, '..', '..', 'resources', 'tray-icon.png')
+}
+
+/** 优先用正式资源；加载不到时回落到现场生成的位图 */
+function resolveTrayIcon(): NativeImage {
+  try {
+    const fromFile = nativeImage.createFromPath(trayIconPath())
+    if (!fromFile.isEmpty()) return fromFile
+  } catch {
+    // 落到兜底位图
+  }
+  return buildFallbackIcon()
+}
+
 /** 现场生成 16x16 实心图标（BGRA；Electron `createFromBitmap` 的约定） */
-function buildTrayIcon(): NativeImage {
+function buildFallbackIcon(): NativeImage {
   const bitmap = Buffer.alloc(ICON_SIZE * ICON_SIZE * 4)
   for (let index = 0; index < ICON_SIZE * ICON_SIZE; index++) {
     const offset = index * 4
@@ -39,7 +58,7 @@ export interface TrayCallbacks {
 /** 创建托盘；失败返回 null（不抛错，不阻塞启动） */
 export function setupTray(callbacks: TrayCallbacks): Tray | null {
   try {
-    const tray = new Tray(buildTrayIcon())
+    const tray = new Tray(resolveTrayIcon())
     tray.setToolTip('墨白可视化编辑')
     tray.setContextMenu(
       Menu.buildFromTemplate([

@@ -27,6 +27,17 @@ export default tseslint.config(
     }
   },
   {
+    // 一次性脚本（Node CommonJS，用 require/__dirname）
+    files: ['scripts/**/*.cjs'],
+    languageOptions: {
+      globals: globals.node,
+      sourceType: 'commonjs'
+    },
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off'
+    }
+  },
+  {
     files: ['src/renderer/**/*.{ts,tsx}'],
     languageOptions: {
       globals: globals.browser

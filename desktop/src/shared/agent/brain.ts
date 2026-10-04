@@ -140,6 +140,8 @@ export interface RunBrainLoopOptions {
   requestInteraction?: BrainInteractionResponder
   /** 审批请求 id 生成器（默认进程内自增；测试可注入确定性实现） */
   newRequestId?: () => string
+  /** 等待用户答复的超时（毫秒）；超时按「未确认/未答复」处理，0 表示不超时 */
+  interactionTimeoutMs?: number
   context?: SkillExecutionContext
   /** 事件实时回调（A1-4 面板流式渲染用；事件同样会收集进返回值） */
   onEvent?: (event: BrainEvent) => void
@@ -155,6 +157,12 @@ export interface BrainRunResult {
 }
 
 export const DEFAULT_MAX_ITERATIONS = 8
+
+/**
+ * 等待用户答复（危险确认 / 技能交互）的默认超时（毫秒，对齐 Python `ask_user` 的 `timeout=120`）。
+ * 超时按「未确认/未答复」处理——无人值守时不会永久挂住循环。设为 0 或负数表示不超时。
+ */
+export const DEFAULT_INTERACTION_TIMEOUT_MS = 120_000
 
 /** 无法继续时的兜底答复（对齐 Python `_fallback_answer`） */
 export const FALLBACK_ANSWER = '抱歉，暂时无法处理这个请求。'
@@ -223,6 +231,23 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
   const context: SkillExecutionContext = options.context ?? {}
   let requestSeq = 0
   const newRequestId = options.newRequestId ?? ((): string => `approval_${++requestSeq}`)
+  const interactionTimeoutMs = options.interactionTimeoutMs ?? DEFAULT_INTERACTION_TIMEOUT_MS
+
+  /** 等待答复的超时保护：超时按「未答复」回落，避免无人值守时永久挂住 */
+  const withAnswerTimeout = async <T>(task: Promise<T>, fallback: T): Promise<T> => {
+    if (interactionTimeoutMs <= 0) return task
+    let timer: ReturnType<typeof setTimeout> | undefined
+    try {
+      return await Promise.race([
+        task,
+        new Promise<T>((resolve) => {
+          timer = setTimeout(() => resolve(fallback), interactionTimeoutMs)
+        })
+      ])
+    } finally {
+      if (timer !== undefined) clearTimeout(timer)
+    }
+  }
   const tools = options.tools ?? []
 
   const events: BrainEvent[] = []
@@ -252,7 +277,7 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
     const requestId = newRequestId()
     emit({ type: 'interaction_required', requestId, tool: toolId, action, interaction })
     const answer = requestInteraction
-      ? await requestInteraction({ requestId, tool: toolId, action, interaction })
+      ? await withAnswerTimeout(Promise.resolve(requestInteraction({ requestId, tool: toolId, action, interaction })), {})
       : {}
 
     if (interaction.kind === 'confirm') {
@@ -324,7 +349,10 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
         const requestId = newRequestId()
         emit({ type: 'approval_required', requestId, tool: resolved, action, params: call.arguments })
         const approved = requestApproval
-          ? await requestApproval({ requestId, tool: resolved, action, params: call.arguments })
+          ? await withAnswerTimeout(
+              Promise.resolve(requestApproval({ requestId, tool: resolved, action, params: call.arguments })),
+              false
+            )
           : false
         if (approved !== true) {
           const text = `[STOP] 用户未确认危险操作: ${resolved}`

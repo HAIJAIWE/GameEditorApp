@@ -12,24 +12,49 @@
  *    需要一层「应用」语义，故同样留到后续立项。
  */
 
+import { join } from 'node:path'
+
 import {
+  CESHU_EXPORT_FORMATS,
   CHAPTER_KEYS,
   CHAPTER_LABELS,
   isChapterKey,
   isGddScope,
   type CeshuDocument,
+  type CeshuExportFormat,
   type ChapterKey,
   type GddScope
 } from '../../../shared/ceshuConstants'
 import type { SkillExecutionContext, SkillProtocol, SkillResult } from '../../../shared/agent/protocol'
 import type { CeshuManager } from '../../ceshu/manager'
 
-const ACTIONS = ['list', 'get', 'create', 'update'] as const
+const ACTIONS = ['list', 'get', 'create', 'update', 'delete', 'export'] as const
 
 const DEFAULT_SCOPE: GddScope = 'full'
 
-export function createCeshuSkill(deps: { ceshuManager: CeshuManager }): SkillProtocol {
-  const { ceshuManager } = deps
+/** 默认导出格式 */
+const DEFAULT_EXPORT_FORMAT: CeshuExportFormat = 'markdown'
+
+export interface CeshuSkillDeps {
+  ceshuManager: CeshuManager
+  /** 导出管道（不注入则 `export` 动作不可用）；由 `main/index.ts` 注入以避免技能直接依赖导出模块 */
+  exportDocument?: (
+    doc: CeshuDocument,
+    format: CeshuExportFormat,
+    targetPath: string
+  ) => Promise<{ filePath: string; format: string; bytes: number }>
+  /** 默认导出目录（Agent 场景无人点「另存为」，故导出到默认目录并回报路径） */
+  exportDir?: string
+}
+
+/** 文件名安全化（去掉路径分隔符与 Windows 非法字符） */
+function safeFileName(name: string): string {
+  const cleaned = name.replace(/[\\/:*?"<>|]/gu, '_').trim()
+  return cleaned === '' ? '策划书' : cleaned.slice(0, 60)
+}
+
+export function createCeshuSkill(deps: CeshuSkillDeps): SkillProtocol {
+  const { ceshuManager, exportDocument, exportDir } = deps
 
   function fail(error: string): SkillResult {
     return { success: false, error, message: '' }
@@ -141,6 +166,64 @@ export function createCeshuSkill(deps: { ceshuManager: CeshuManager }): SkillPro
     })
   }
 
+  /**
+   * 删除策划书：与 `system.game_data.delete` 同一取向——**未带 `confirm: true` 时返回 confirm 交互**，
+   * 由 Brain 暂停询问；批准后带 `confirm: true` 重执行。（Python 的 `needs_confirm` 无消费者，属死路。）
+   */
+  function deleteCeshu(params: Record<string, unknown>): Promise<SkillResult> {
+    return guard(async () => {
+      const id = typeof params.ceshu_id === 'string' ? params.ceshu_id.trim() : ''
+      if (id === '') return fail('缺少 ceshu_id 参数')
+      const doc = ceshuManager.get(id)
+      const name = gameNameOf(doc)
+
+      if (params.confirm !== true) {
+        const prompt = `确认删除策划书「${name}」？此操作不可撤销。`
+        return {
+          success: false,
+          message: '',
+          error: `[WARN] ${prompt}`,
+          interaction: { kind: 'confirm', prompt }
+        }
+      }
+
+      const removed = await ceshuManager.remove(id)
+      if (!removed) return fail(`策划书 ${id} 不存在，可能已被删除`)
+      return { success: true, message: `已删除策划书「${name}」（id=${id}）`, data: { id } }
+    })
+  }
+
+  /** 导出策划书到文件；未指定 path 时落到默认导出目录并回报绝对路径 */
+  function exportCeshu(params: Record<string, unknown>): Promise<SkillResult> {
+    return guard(async () => {
+      if (exportDocument === undefined || exportDir === undefined) {
+        return fail('导出功能未启用')
+      }
+      const id = typeof params.ceshu_id === 'string' ? params.ceshu_id.trim() : ''
+      if (id === '') return fail('缺少 ceshu_id 参数')
+      const doc = ceshuManager.get(id)
+
+      const rawFormat = params.format
+      const format: CeshuExportFormat =
+        typeof rawFormat === 'string' && (CESHU_EXPORT_FORMATS as readonly string[]).includes(rawFormat)
+          ? (rawFormat as CeshuExportFormat)
+          : DEFAULT_EXPORT_FORMAT
+      const rawPath = typeof params.path === 'string' ? params.path.trim() : ''
+      // 不指定扩展名——导出管道会按格式补全
+      const target =
+        rawPath !== ''
+          ? rawPath
+          : join(exportDir, `${safeFileName(gameNameOf(doc))}-${Date.now().toString(36)}`)
+
+      const result = await exportDocument(doc, format, target)
+      return {
+        success: true,
+        message: `已导出「${gameNameOf(doc)}」到 ${result.filePath}（${format}，${result.bytes} 字节）`,
+        data: result
+      }
+    })
+  }
+
   function run(params: Record<string, unknown>, _ctx: SkillExecutionContext): Promise<SkillResult> {
     const action = typeof params.action === 'string' ? params.action : ''
     switch (action) {
@@ -152,6 +235,10 @@ export function createCeshuSkill(deps: { ceshuManager: CeshuManager }): SkillPro
         return createCeshu(params)
       case 'update':
         return updateCeshu(params)
+      case 'delete':
+        return deleteCeshu(params)
+      case 'export':
+        return exportCeshu(params)
       default:
         return Promise.resolve(fail(`未知动作: ${action}`))
     }
@@ -159,7 +246,7 @@ export function createCeshuSkill(deps: { ceshuManager: CeshuManager }): SkillPro
 
   return {
     id: 'system.ceshu',
-    description: '策划书管理: list=列表, get=获取详情, create=创建, update=更新章节。',
+    description: '策划书管理: list=列表, get=获取详情, create=创建, update=更新章节, delete=删除（需用户确认）, export=导出文件。',
     version: '1.0.0',
     parametersSchema: {
       type: 'object',
@@ -167,7 +254,7 @@ export function createCeshuSkill(deps: { ceshuManager: CeshuManager }): SkillPro
         action: {
           type: 'string',
           enum: ACTIONS,
-          description: '操作类型: list=列表, get=详情, create=创建, update=更新章节'
+          description: '操作类型: list=列表, get=详情, create=创建, update=更新章节, delete=删除, export=导出'
         },
         ceshu_id: { type: 'string', description: '策划书 ID（get/update 时必填）' },
         keyword: { type: 'string', description: '按名称过滤的关键词（list 时使用）' },
@@ -185,7 +272,15 @@ export function createCeshuSkill(deps: { ceshuManager: CeshuManager }): SkillPro
           description: '章节键名（update 时使用）',
           default: 'meta'
         },
-        data: { type: 'object', description: '要写入该章节的字段对象（update 时使用）' }
+        data: { type: 'object', description: '要写入该章节的字段对象（update 时使用）' },
+        confirm: { type: 'boolean', description: '删除确认标记（delete 时由系统在用户确认后置为 true）' },
+        format: {
+          type: 'string',
+          enum: CESHU_EXPORT_FORMATS,
+          description: '导出格式（export 时使用）',
+          default: DEFAULT_EXPORT_FORMAT
+        },
+        path: { type: 'string', description: '导出目标路径（export 时可选；缺省落到默认导出目录）' }
       },
       required: ['action']
     },

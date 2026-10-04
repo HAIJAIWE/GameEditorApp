@@ -102,6 +102,7 @@ function makeCeshuManager(list: Array<{ id: string; gameName: string }>): CeshuM
       docs.set(id, doc)
       return doc
     },
+    remove: async (id: string): Promise<boolean> => docs.delete(id),
     saveChapter: async (id: string, _chapter: string, data: Record<string, unknown>): Promise<Doc> => {
       const doc = docs.get(id)
       if (doc === undefined) throw new Error('策划书不存在，可能已被删除')
@@ -350,6 +351,84 @@ describe('system.ceshu 技能（A1-5 写操作）', () => {
     const skill = createCeshuSkill({ ceshuManager: makeCeshuManager(docs) })
     const result = await skill.execute({ action: 'update', ceshu_id: 'nope', data: { a: 1 } }, {})
     expect(result).toEqual({ success: false, error: '策划书不存在，可能已被删除', message: '' })
+  })
+
+  it('delete：未确认时返回 confirm 交互（不删），确认后真正删除', async () => {
+    const ceshuManager = makeCeshuManager(docs)
+    const skill = createCeshuSkill({ ceshuManager })
+
+    const pending = await skill.execute({ action: 'delete', ceshu_id: 'c1' }, {})
+    expect(pending.success).toBe(false)
+    expect(pending.interaction).toEqual({
+      kind: 'confirm',
+      prompt: '确认删除策划书「仙侠 RPG」？此操作不可撤销。'
+    })
+    expect(ceshuManager.list()).toHaveLength(1)
+
+    const done = await skill.execute({ action: 'delete', ceshu_id: 'c1', confirm: true }, {})
+    expect(done.success).toBe(true)
+    expect(done.message).toBe('已删除策划书「仙侠 RPG」（id=c1）')
+    expect(ceshuManager.list()).toHaveLength(0)
+  })
+
+  it('delete：缺 ceshu_id / 文档不存在', async () => {
+    const skill = createCeshuSkill({ ceshuManager: makeCeshuManager(docs) })
+    expect(await skill.execute({ action: 'delete' }, {})).toEqual({
+      success: false,
+      error: '缺少 ceshu_id 参数',
+      message: ''
+    })
+    expect(await skill.execute({ action: 'delete', ceshu_id: 'nope', confirm: true }, {})).toEqual({
+      success: false,
+      error: '策划书不存在，可能已被删除',
+      message: ''
+    })
+  })
+
+  it('export：未注入导出管道时明确报错；注入后导出并回报路径与字节数', async () => {
+    const disabled = createCeshuSkill({ ceshuManager: makeCeshuManager(docs) })
+    expect(await disabled.execute({ action: 'export', ceshu_id: 'c1' }, {})).toEqual({
+      success: false,
+      error: '导出功能未启用',
+      message: ''
+    })
+
+    const calls: Array<{ format: string; path: string }> = []
+    const skill = createCeshuSkill({
+      ceshuManager: makeCeshuManager(docs),
+      exportDir: 'D:/exports',
+      exportDocument: async (_doc, format, targetPath) => {
+        calls.push({ format, path: targetPath })
+        return { filePath: `${targetPath}.md`, format, bytes: 128 }
+      }
+    })
+
+    const result = await skill.execute({ action: 'export', ceshu_id: 'c1' }, {})
+    expect(result.success).toBe(true)
+    // 默认格式 markdown；文件名安全化 + 落到注入的导出目录
+    expect(calls[0]?.format).toBe('markdown')
+    // 注意：path.join 在 Windows 产出反斜杠，断言前统一成正斜杠
+    expect(calls[0]?.path.replace(/\\/gu, '/')).toMatch(/^D:\/exports\/仙侠 RPG-[a-z0-9]+$/u)
+    expect(result.message.replace(/\\/gu, '/')).toContain('已导出「仙侠 RPG」到 D:/exports/')
+    expect(result.message).toContain('markdown，128 字节')
+  })
+
+  it('export：显式路径与格式优先；非法格式回落默认', async () => {
+    const seen: string[] = []
+    const skill = createCeshuSkill({
+      ceshuManager: makeCeshuManager(docs),
+      exportDir: 'D:/exports',
+      exportDocument: async (_doc, format, targetPath) => {
+        seen.push(`${format}|${targetPath}`)
+        return { filePath: targetPath, format, bytes: 1 }
+      }
+    })
+
+    await skill.execute({ action: 'export', ceshu_id: 'c1', format: 'excel', path: 'D:/out/书' }, {})
+    await skill.execute({ action: 'export', ceshu_id: 'c1', format: '不存在的格式' }, {})
+    const normalized = seen.map((entry) => entry.replace(/\\/gu, '/'))
+    expect(normalized[0]).toBe('excel|D:/out/书')
+    expect(normalized[1]?.startsWith('markdown|D:/exports/')).toBe(true)
   })
 })
 
