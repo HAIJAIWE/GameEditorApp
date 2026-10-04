@@ -36,6 +36,7 @@
 | W31 | 混合玩法预设市场 + 竞品象限图（18 预设卡片/搜索/一键应用；vision 章散点图） | `core/ceshu/ceshu_constants.py::HYBRID_GAMEPLAY_PRESETS`、`ui/ceshu/preset_market_dialog.py` 300、`ui/ceshu/competitive_chart.py` 80 | `shared/ceshuPresets.ts`（18 预设逐字搬运 + 搜索 + 应用语义，单测 14）、`shared/ceshuCompetitiveChart.ts`（几何/归一化，单测 12）、IPC `ceshu:applyPreset`（manager 一次写 systems+meta）、`components/PresetMarketPanel.tsx`、`components/CompetitiveChart.tsx`（vision 章内嵌）、E2E（应用落盘 + 散点渲染 2 条） |
 | W32 | 系统依赖确认 + 数据同步（AI 生成策划书后确认启用系统 / 增删自定义系统 / 写回 systems 章；双向同步注册启用系统的 data_type 类型 + 回填 actual_count） | `system_confirm_dialog.py` 242 + `ceshu_data_sync.py` 248 | `shared/ceshuSystemConfirm.ts`（字段预览 / 确认结果纯逻辑，单测 10）、`main/ceshu/dataSync.ts`（`CeshuDataSync` 双向同步协调器，单测 11）、IPC `ceshu:confirmSystems` / `ceshu:syncData`、`components/SystemConfirmPanel.tsx`（勾选 / 字段架构预览 / 自定义系统）、E2E `ceshu-system-confirm.spec.ts`（确认落盘 + 双向同步注册类型） |
 | W33 | 迁移工具（v4.0 旧策划书加载时自动迁移到 v5.0：补新 9 章默认值 + 从旧章节派生新章节字段 + 版本升级） | `ceshu_migration.py` 124（原注「111」为口径差异） | `shared/ceshuMigration.ts`（`needsV4Migration` + `migrateV4ToV5` 纯函数，单测 21）、接入 `ceshuModel.normalizeCeshu` 加载路径、E2E `ceshu-migration.spec.ts`（磁盘预置 v4 → 加载验证派生） |
+| W34 | 策划书首页卡片视图（卡片网格：名称/类型/状态/版本徽章/日期/进度 + 搜索 + 最近打开 + 新建（空白/从已有复制）+ 卡片操作：重命名/复制/派生/删除） | `home_view.py` 513 + `home_card.py` 161（原注 452/136 为口径差异） | `shared/ceshuHome.ts`（状态标签/卡片视图模型/搜索/最近/复制命名，单测 11）、`CeshuSummary` 增 `gameType`/`status`、`CeshuManager` 增 `rename`/`remove`/`duplicate` + `CeshuStorage.remove`（单测 7）、IPC `ceshu:rename`/`ceshu:delete`/`ceshu:duplicate`、`components/CeshuHomePanel.tsx`、E2E `ceshu-home-cards.spec.ts` |
 
 ## 2. 剩余工作清单（按体量分档）
 
@@ -55,7 +56,7 @@
 | ~~AI 生成数据表~~ | `ui/ceshu/ai_data_generate_dialog.py` 305 + `ceshu_skill_generate.py::_ai_generate_data` 152 | ✅ W30 已完成（提示词逐句匹平；候选项 `id` 剥离后由数据层生成；E2E 用 Ollama 桩服务打通「生成→勾选→导入」） |
 | ~~预设市场 / 竞品图表~~ | `preset_market_dialog.py` 300 + `competitive_chart.py` 80 | ✅ W31 已完成（`shared/ceshuPresets.ts` + `shared/ceshuCompetitiveChart.ts` 纯逻辑；IPC `ceshu:applyPreset` 一次写 systems+meta；`PresetMarketPanel` 卡片/搜索/确认框；`CompetitiveChart` 内嵌 vision 章） |
 | ~~系统依赖确认 / 数据同步~~ | `system_confirm_dialog.py` 242 + `ceshu_data_sync.py` 248 | ✅ W32 已完成（`shared/ceshuSystemConfirm.ts` + `main/ceshu/dataSync.ts` + IPC `ceshu:confirmSystems`/`ceshu:syncData` + `SystemConfirmPanel`；E2E 已写，本沙箱 Electron 启动受限未跑，与既有 E2E 同源受限） |
-| 首页/卡片 | `home_view.py` 452 + `home_card.py` 136 | 需要多文档聚合视图 |
+| ~~首页/卡片~~ | `home_view.py` 513 + `home_card.py` 161 | ✅ W34 已完成——**B 档至此全部收官**。`shared/ceshuHome.ts` + `CeshuHomePanel` + IPC 3 通道；E2E 已写，本沙箱 Electron 启动受限未跑。有意未移植：PyQt 右键 `QMenu`（改为卡片内联按钮）、「从模板新建」（Python `CeshuTemplate` 是整文档模板，TS 模板为章节级，非同一概念）、首页 AI 入口卡（TS AI 一键生成已在编辑器内可达） |
 | ~~迁移工具~~ | `ceshu_migration.py` 124 | ✅ W33 已完成。**勘误**：该文件实为 **v4.0→v5.0 策划书数据迁移**（9→18 章派生），原描述「旧版库迁移」有误（「旧版库」是 `library_manager.migrate_legacy_library` 的另一件事）。E2E 已写，本沙箱 Electron 启动受限未跑 |
 
 ### C 档（骨架/外围）
@@ -102,6 +103,8 @@ node_modules\.bin\playwright test          ← 必须 dangerouslyDisableSandbox=
 - **LLM 相关 E2E 可用「Ollama 桩服务」打通全链路**：`node:http` 监听随机端口，`GET /api/tags` 返回 `{models:[{name:'stub:latest',...}]}`、`POST /api/generate` 返回 `{response: "<目标 JSON 字符串>", done:true,...}`，通过 `MB_OLLAMA_HOST` 注入；还能把收到的 `prompt` 收集起来断言提示词组装（见 `tests/e2e/ceshu-ai-datagen.spec.ts`）。
 - 勾选项的 `data-testid` 若挂在 `<input>` 上，`toContainText` 断言要落在其外层 `label` 上（input 自身无文本）。
 - **SVG 里用内联 `fill` 着色的元素，CSS 不要再写 `fill`**（CSS 会覆盖 presentation attribute，导致颜色失效）——竞品散点名只能控字号。
+- **`mode-ceshu` 的落点依赖「自动选中第一份」**：`App.tsx` 的 `useEffect([mode])` 载入列表后 `setActiveCeshuId(current => current ?? list[0]?.id)`。7 个既有 E2E（checklist / fielddeps / notes / validate-score / version-diff / wordstats / export）在 `mode-ceshu` 后**直接点 CeshuView 工具栏按钮**，故 W34 的首页卡片视图必须走**显式入口**（侧栏「全部策划书」`ceshu-home` + `ceshuHomeVisible` 状态），**不可**把落点改成首页，否则打断这批 E2E。
+- `CeshuSummary` 增必填字段会波及所有构造该类型的测试桩（`ceshuTimeline.test.ts` 的 `summary()`），加字段后需同步补齐。
 - **v4→v5 迁移必须在套用默认值之前跑**（对齐 Python `from_dict`）：`normalizeCeshu` 内先 `needsV4Migration(raw)` 判定、再 `migrateV4ToV5(raw)`，最后才 `createDefaultChapters()` 兜底。若顺序颠倒，派生会读到 TS 默认章的值（如默认 `systems.battle.config`）而产生伪派生。判据：`version === "4.0"` 或 9 个新增章任一缺失。
 - **派生规则有先后优先级**：`vision.business_model` 先于 `systems.economy.config.payment_system` 写 `monetization.payment_model`（即顺序=Python 顺序，勿调换）；`vip_system`/`season_pass` 用 `is not None` 而非真值判定（显式 `false` 也要转成「未启用」）。
 - **`shared/` 内避免循环导入**：`ceshuMigration` 被 `ceshuModel` 引用，故其 `isPlainObject`/`pyTruthy` 本地定义（同 `ceshuCompetitiveChart.ts` 先例），勿从 `ceshuModel` 反向 import。
@@ -132,6 +135,6 @@ node_modules\.bin\playwright test          ← 必须 dangerouslyDisableSandbox=
 | W31 | 预设市场（`preset_market_dialog.py` 300）/ 竞品图表（`competitive_chart.py` 80） | 数据 + 简单图表 |
 | W32 | 系统依赖确认 / 数据同步 | ✅ 已完成（进度台账 W32） |
 | W33 | 迁移工具（v4.0→v5.0 策划书数据迁移） | ✅ 已完成（进度台账 W33） |
-| W32+ | 首页卡片 … | 见 B 档 |
+| W34 | 策划书首页卡片视图 | ✅ 已完成（进度台账 W34）—— **B 档收官，后续转 A 档** |
 | A2-1 / A2-2 | **库管理（多库，A 档内部优先）**：库服务+注册表+存储按库隔离 → 库条 UI 与切换联动 | 方案见 [`a-tier-plan.md`](./a-tier-plan.md)；**已拍板：A 档整体后置，先清上面 W31–W34（B 档小件）** |
 | A1-1 … A1-5 | **AI/Agent 引擎**：技能协议+调度器 → Brain 循环+事件流 → 会话与记忆 → 数字员工面板 → 业务技能接线 | 同上；**拍板：完全不做自愈**（工具报错直接回传 LLM 重新规划）；技能先只做最小集；LLM 相关 E2E 一律用 Ollama 桩服务（W30 技法） |

@@ -156,6 +156,12 @@ export const ceshuGetInputSchema = z.object({
   id: z.string().min(1)
 })
 
+/** 首页卡片：重命名策划书（对齐 Python `rename_ceshu`，名称非空） */
+export const ceshuRenameInputSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1).max(200)
+})
+
 export const ceshuSaveChapterInputSchema = z.object({
   id: z.string().min(1),
   chapter: z.string().min(1),
@@ -341,6 +347,7 @@ export type CeshuSaveChapterInput = z.infer<typeof ceshuSaveChapterInputSchema>
 export type CeshuExportInput = z.infer<typeof ceshuExportInputSchema>
 export type CeshuChooseExportFileInput = z.infer<typeof ceshuChooseExportFileInputSchema>
 export type CeshuDeriveInput = z.infer<typeof ceshuDeriveInputSchema>
+export type CeshuRenameInput = z.infer<typeof ceshuRenameInputSchema>
 export type CeshuApplyPresetInput = z.infer<typeof ceshuApplyPresetInputSchema>
 export type CeshuConfirmSystemsInput = z.infer<typeof ceshuConfirmSystemsInputSchema>
 export type CeshuSyncDataInput = z.infer<typeof ceshuSyncDataInputSchema>

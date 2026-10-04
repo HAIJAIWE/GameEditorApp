@@ -1,6 +1,7 @@
 import type { CeshuDocument, CeshuSummary, ChapterData, ChapterKey, GddScope } from '../../shared/ceshuConstants'
 import { buildChangelogEntry, compareVersionLabels, nextVersionLabel, type CeshuChangelog } from '../../shared/ceshuDiff'
 import { autoFillRequiredFields } from '../../shared/ceshuFill'
+import { buildDuplicateName } from '../../shared/ceshuHome'
 import { computeChapterProgress, computeEnabledEditors, createCeshuId, createDefaultCeshu, formatLocalTimestamp, getGddScope, withChapter } from '../../shared/ceshuModel'
 import { buildPresetApplication } from '../../shared/ceshuPresets'
 import { CeshuStorage } from './storage'
@@ -31,6 +32,44 @@ export class CeshuManager {
       const doc = createDefaultCeshu(options)
       this.storage.save(doc)
       return doc
+    })
+  }
+
+  /** 重命名策划书（对应 Python `rename_ceshu`：改 meta.game_name 后原子写盘 + 刷新时间戳） */
+  rename(id: string, name: string): Promise<CeshuDocument> {
+    return this.enqueueWrite(() => {
+      const doc = this.storage.load(id)
+      const next = withChapter(doc, 'meta', { ...doc.meta, game_name: name })
+      this.storage.save(next)
+      return next
+    })
+  }
+
+  /** 删除策划书（对应 Python `delete_ceshu`）；文件不存在时返回 false */
+  remove(id: string): Promise<boolean> {
+    return this.enqueueWrite(() => this.storage.remove(id))
+  }
+
+  /**
+   * 复制为独立副本（对应 Python `duplicate_ceshu`）：新 id + 名称加「 (副本)」+ 刷新时间戳。
+   * 偏离：`parent_id` 置空——Python 会原样保留，与其 UI「独立副本 / 不建立版本关系」的表述自相矛盾。
+   */
+  duplicate(id: string): Promise<CeshuDocument> {
+    return this.enqueueWrite(() => {
+      const doc = this.storage.load(id)
+      const now = formatLocalTimestamp()
+      const gameName = typeof doc.meta.game_name === 'string' ? doc.meta.game_name : ''
+      const copy: CeshuDocument = {
+        ...structuredClone(doc),
+        ceshu_id: createCeshuId(),
+        parent_id: '',
+        created_at: now,
+        updated_at: now,
+        meta: { ...doc.meta, game_name: buildDuplicateName(gameName) }
+      }
+      copy.enabled_editors = computeEnabledEditors(copy)
+      this.storage.save(copy)
+      return copy
     })
   }
 
@@ -171,6 +210,8 @@ export class CeshuManager {
 
   private toSummary(doc: CeshuDocument): CeshuSummary {
     const gameName = doc.meta.game_name
+    const gameType = doc.meta.game_type
+    const status = doc.meta.status
     return {
       id: doc.ceshu_id,
       gameName: typeof gameName === 'string' ? gameName : '',
@@ -181,7 +222,9 @@ export class CeshuManager {
       parentId: doc.parent_id,
       isActive: doc.is_active,
       createdAt: doc.created_at,
-      versionNote: doc.version_note
+      versionNote: doc.version_note,
+      gameType: typeof gameType === 'string' ? gameType : '',
+      status: typeof status === 'string' && status !== '' ? status : 'draft'
     }
   }
 

@@ -55,6 +55,9 @@ export interface MbApi {
       req: IpcContract['ceshu:confirmSystems']['req']
     ): Promise<IpcContract['ceshu:confirmSystems']['res']>
     syncData(req: IpcContract['ceshu:syncData']['req']): Promise<IpcContract['ceshu:syncData']['res']>
+    rename(req: IpcContract['ceshu:rename']['req']): Promise<IpcContract['ceshu:rename']['res']>
+    remove(req: IpcContract['ceshu:delete']['req']): Promise<IpcContract['ceshu:delete']['res']>
+    duplicate(req: IpcContract['ceshu:duplicate']['req']): Promise<IpcContract['ceshu:duplicate']['res']>
     setActive(req: IpcContract['ceshu:setActive']['req']): Promise<IpcContract['ceshu:setActive']['res']>
     changelog(req: IpcContract['ceshu:changelog']['req']): Promise<IpcContract['ceshu:changelog']['res']>
     validate(req: IpcContract['ceshu:validate']['req']): Promise<IpcContract['ceshu:validate']['res']>

@@ -1991,6 +1991,136 @@ button.ref-row:hover {
   font-size: 12px;
 }
 
+/* ---- 策划书首页（W34：卡片视图） ---- */
+
+.home-search {
+  width: 100%;
+  margin: 8px 0;
+}
+
+.home-recent {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.home-section-label {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.home-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.home-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+}
+
+.home-card.active {
+  border-color: var(--accent);
+}
+
+.home-card-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.home-card-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.home-card-badges {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.home-badge {
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.home-badge-type {
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+.home-badge-status {
+  background: var(--bg-hover);
+  color: var(--text-muted);
+}
+
+.home-badge-version {
+  border: 1px solid var(--accent);
+  color: var(--accent);
+}
+
+.home-card-date {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.home-card-progress {
+  display: block;
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--bg-hover);
+  overflow: hidden;
+}
+
+.home-card-progress-fill {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+
+.home-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.home-card-inline,
+.home-copy-picker {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.home-card-inline .form-input,
+.home-copy-picker .form-input {
+  flex: 1;
+  min-width: 140px;
+}
+
 /* ---- 竞品象限图（策划书第二章） ---- */
 
 .competitive-chart-block {

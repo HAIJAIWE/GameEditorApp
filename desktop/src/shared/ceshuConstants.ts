@@ -230,6 +230,10 @@ export interface CeshuSummary {
   createdAt: string
   /** 版本说明（派生时填写；版本时间线详情用） */
   versionNote: string
+  /** 游戏类型（meta.game_type，首页卡片类型标签用；空串表示未分类） */
+  gameType: string
+  /** 文档状态（meta.status，首页卡片状态徽章用；缺省 "draft"） */
+  status: string
 }
 
 /* ---- 导出 ---- */

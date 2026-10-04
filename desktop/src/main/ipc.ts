@@ -22,6 +22,7 @@ import {
   ceshuDataGenInputSchema,
   ceshuExportInputSchema,
   ceshuGetInputSchema,
+  ceshuRenameInputSchema,
   ceshuSaveChapterInputSchema,
   ceshuReviewExportInputSchema,
   createItemInputSchema,
@@ -234,6 +235,14 @@ export function registerIpcHandlers({
     const doc = ceshuManager.get(req.id)
     return dataSync.syncBoth(doc, req.id, '')
   })
+  handle('ceshu:rename', ceshuRenameInputSchema, (req) => ceshuManager.rename(req.id, req.name))
+  handle('ceshu:delete', ceshuGetInputSchema, async (req) => {
+    const deleted = await ceshuManager.remove(req.id)
+    // 被删除的文档若正是数据同步的当前上下文，清空以免后续同步指向已不存在的文档
+    if (deleted) dataSync.clearCurrentCeshu()
+    return { deleted }
+  })
+  handle('ceshu:duplicate', ceshuGetInputSchema, (req) => ceshuManager.duplicate(req.id))
   handle('ceshu:setActive', ceshuGetInputSchema, (req) => ceshuManager.setActive(req.id))
   handle('ceshu:changelog', ceshuGetInputSchema, (req) => ceshuManager.changelog(req.id))
   handle('ceshu:validate', ceshuGetInputSchema, (req) => validateCeshu(ceshuManager.get(req.id)))

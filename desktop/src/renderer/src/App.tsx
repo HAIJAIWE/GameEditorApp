@@ -6,6 +6,7 @@ import type { AppInfo, DataTypeDef, ImportSummary, ItemRecord } from '../../shar
 
 import AttrSystemPanel from './components/AttrSystemPanel'
 import BatchEditPanel from './components/BatchEditPanel'
+import CeshuHomePanel from './components/CeshuHomePanel'
 import CeshuView from './components/CeshuView'
 import ItemForm from './components/ItemForm'
 import ReferencesPanel, { type ReferenceTarget } from './components/ReferencesPanel'
@@ -43,6 +44,8 @@ export default function App() {
   const [attrSysOpen, setAttrSysOpen] = useState(false)
   const [ceshuList, setCeshuList] = useState<CeshuSummary[]>([])
   const [activeCeshuId, setActiveCeshuId] = useState<string | null>(null)
+  /** 策划书首页卡片视图（显式入口；默认落在编辑器，保持既有单文档优先的落点行为） */
+  const [ceshuHomeVisible, setCeshuHomeVisible] = useState(false)
 
   const fields = activeType ? (types.find((def) => def.id === activeType)?.formFields ?? []) : []
   const selectedItem = items.find((item) => item.id === selectedId) ?? null
@@ -279,10 +282,16 @@ export default function App() {
       setNotice(null)
       const created = await window.mbApi.ceshu.create({ name: '', scope: 'full' })
       await reloadCeshuList()
-      setActiveCeshuId(created.ceshu_id)
+      handleOpenCeshu(created.ceshu_id)
     } catch (err) {
       setError(toErrorMessage(err))
     }
+  }
+
+  /** 打开某份策划书（同时离开首页卡片视图） */
+  const handleOpenCeshu = (id: string): void => {
+    setActiveCeshuId(id)
+    setCeshuHomeVisible(false)
   }
 
   return (
@@ -325,6 +334,14 @@ export default function App() {
           ))
         ) : (
           <>
+            <button
+              type="button"
+              data-testid="ceshu-home"
+              className={`type-tab${ceshuHomeVisible ? ' active' : ''}`}
+              onClick={() => setCeshuHomeVisible(true)}
+            >
+              <span className="item-name">🗂 全部策划书</span>
+            </button>
             <button type="button" className="btn" data-testid="ceshu-create" onClick={() => void handleCreateCeshu()}>
               新建策划书
             </button>
@@ -333,8 +350,8 @@ export default function App() {
                 key={item.id}
                 type="button"
                 data-testid="ceshu-row"
-                className={`type-tab${item.id === activeCeshuId ? ' active' : ''}`}
-                onClick={() => setActiveCeshuId(item.id)}
+                className={`type-tab${!ceshuHomeVisible && item.id === activeCeshuId ? ' active' : ''}`}
+                onClick={() => handleOpenCeshu(item.id)}
               >
                 <span className="item-name">{item.gameName || '未命名策划书'}</span>
                 <span className="item-meta">
@@ -527,8 +544,18 @@ export default function App() {
               )}
             </div>
           </>
+        ) : ceshuHomeVisible || !activeCeshuId ? (
+          <CeshuHomePanel
+            summaries={ceshuList}
+            activeId={activeCeshuId}
+            onOpen={handleOpenCeshu}
+            onChanged={() => void reloadCeshuList()}
+            onDeleted={(deletedId) => {
+              setActiveCeshuId((current) => (current === deletedId ? null : current))
+            }}
+          />
         ) : (
-          <CeshuView ceshuId={activeCeshuId} onChanged={() => void reloadCeshuList()} onSelect={setActiveCeshuId} />
+          <CeshuView ceshuId={activeCeshuId} onChanged={() => void reloadCeshuList()} onSelect={handleOpenCeshu} />
         )}
 
         <footer className="statusbar">

@@ -26,6 +26,7 @@ import type {
   NotesListInput,
   NotesUpdateInput,
   ReferencesInput,
+  CeshuRenameInput,
   SchemaSaveInput,
   CeshuDataGenInput,
   TemplateJsonDialogInput,
@@ -102,6 +103,9 @@ export interface IpcContract {
     req: CeshuSyncDataInput
     res: { toData: { addedTypes: string[]; ensuredKeys: string[]; errors: string[] }; toCeshu: Record<string, number> }
   }
+  'ceshu:rename': { req: CeshuRenameInput; res: CeshuDocument }
+  'ceshu:delete': { req: { id: string }; res: { deleted: boolean } }
+  'ceshu:duplicate': { req: { id: string }; res: CeshuDocument }
   'ceshu:setActive': { req: { id: string }; res: CeshuDocument }
   'ceshu:changelog': { req: { id: string }; res: CeshuChangelog }
   'ceshu:validate': { req: { id: string }; res: string[] }

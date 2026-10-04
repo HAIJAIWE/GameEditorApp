@@ -29,6 +29,8 @@ function summary(overrides: Partial<CeshuSummary> = {}): CeshuSummary {
     isActive: false,
     createdAt: '2026-10-01 09:00:00',
     versionNote: '',
+    gameType: '',
+    status: 'draft',
     ...overrides
   }
 }

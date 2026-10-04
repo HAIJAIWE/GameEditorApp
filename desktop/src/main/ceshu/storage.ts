@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import type { CeshuDocument } from '../../shared/ceshuConstants'
@@ -50,6 +50,14 @@ export class CeshuStorage {
     const tmpPath = `${path}.tmp`
     writeFileSync(tmpPath, JSON.stringify(doc, null, 2), 'utf-8')
     renameSync(tmpPath, path)
+  }
+
+  /** 删除策划书文件；文件不存在时返回 false（对齐 Python `delete_ceshu`） */
+  remove(id: string): boolean {
+    const path = this.filePath(id)
+    if (!existsSync(path)) return false
+    rmSync(path)
+    return true
   }
 
   /** 列出目录内的策划书 id（文件名为 <id>.json） */
