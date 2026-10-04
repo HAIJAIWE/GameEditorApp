@@ -11,6 +11,8 @@ import {
   batchUpdateInputSchema,
   ceshuAiGenerateInputSchema,
   ceshuApplyPresetInputSchema,
+  ceshuConfirmSystemsInputSchema,
+  ceshuSyncDataInputSchema,
   ceshuChecklistExportInputSchema,
   ceshuChooseExportFileInputSchema,
   ceshuCreateInputSchema,
@@ -46,7 +48,8 @@ import {
 import {
   CESHU_FORMAT_EXTENSIONS,
   CESHU_FORMAT_LABELS,
-  isChapterKey
+  isChapterKey,
+  type SystemEntry
 } from '../shared/ceshuConstants'
 import { buildChapterPrompt, buildReviewPrompts, filterGeneratedFields, mergeChapterDraft, parseLlmJson, parseReviewResponse } from '../shared/ceshuAi'
 import {
@@ -63,6 +66,7 @@ import { runChecklist } from '../shared/ceshuChecklist'
 import { buildVersionDiff } from '../shared/ceshuDiff'
 import { buildFieldDepsReport } from '../shared/ceshuFieldDeps'
 import { computeChapterProgress } from '../shared/ceshuModel'
+import { buildSystemConfirmResult } from '../shared/ceshuSystemConfirm'
 import { buildReferenceReport } from '../shared/references'
 import { scoreCeshu } from '../shared/ceshuScorer'
 import { validateCeshu } from '../shared/ceshuValidation'
@@ -73,6 +77,7 @@ import { exportAttrGameConfigFile } from './attr/attrGameConfigExport'
 import { exportAttrSystemJsonFile, importAttrSystemJsonFile } from './attr/attrSystemJsonFile'
 import type { CeshuManager } from './ceshu/manager'
 import type { CeshuNotesStore } from './ceshu/notesStore'
+import { CeshuDataSync } from './ceshu/dataSync'
 import type { CeshuTemplateStore } from './ceshu/templateStore'
 import { exportCeshuDocument } from './ceshu/export/exporter'
 import { exportTextReportFile } from './ceshu/reportExport'
@@ -90,6 +95,7 @@ interface IpcHandlerDeps {
   typeSchemaStore: TypeSchemaStore
   attrSystemStore: AttrSystemStore
   llmClient: LlmClient
+  dataSync: CeshuDataSync
   getAppInfo: () => AppInfo
 }
 
@@ -102,6 +108,7 @@ export function registerIpcHandlers({
   typeSchemaStore,
   attrSystemStore,
   llmClient,
+  dataSync,
   getAppInfo
 }: IpcHandlerDeps): void {
   handle('app:info', undefined, () => getAppInfo())
@@ -139,11 +146,31 @@ export function registerIpcHandlers({
     return { path: result.canceled || result.filePaths.length === 0 ? null : (result.filePaths[0] ?? null) }
   })
   handle('data:listItems', listItemsInputSchema, (req) => dataService.listItems(req.type))
-  handle('data:createItem', createItemInputSchema, (req) => dataService.createItem(req))
-  handle('data:updateItem', updateItemInputSchema, (req) => dataService.updateItem(req.id, req.data))
-  handle('data:deleteItem', deleteItemInputSchema, async (req) => ({ deleted: await dataService.deleteItem(req.id) }))
-  handle('data:batchUpdate', batchUpdateInputSchema, (req) => dataService.batchUpdate(req))
-  handle('data:deleteMany', deleteManyInputSchema, (req) => dataService.deleteMany(req.ids))
+  handle('data:createItem', createItemInputSchema, async (req) => {
+    const item = await dataService.createItem(req)
+    await dataSync.onDataChanged()
+    return item
+  })
+  handle('data:updateItem', updateItemInputSchema, async (req) => {
+    const item = await dataService.updateItem(req.id, req.data)
+    await dataSync.onDataChanged()
+    return item
+  })
+  handle('data:deleteItem', deleteItemInputSchema, async (req) => {
+    const result = { deleted: await dataService.deleteItem(req.id) }
+    await dataSync.onDataChanged()
+    return result
+  })
+  handle('data:batchUpdate', batchUpdateInputSchema, async (req) => {
+    const summary = await dataService.batchUpdate(req)
+    await dataSync.onDataChanged()
+    return summary
+  })
+  handle('data:deleteMany', deleteManyInputSchema, async (req) => {
+    const summary = await dataService.deleteMany(req.ids)
+    await dataSync.onDataChanged()
+    return summary
+  })
   handle('data:references', referencesInputSchema, (req) => {
     const items = dataService.listAllItems()
     const target = items.find((item) => item.id === req.id)
@@ -152,23 +179,34 @@ export function registerIpcHandlers({
     }
     return buildReferenceReport(typeSchemaStore.getTypes(), items, { id: target.id, type: target.type })
   })
-  handle('data:importLegacy', importLegacyInputSchema, (req) =>
-    importLegacyDataFile(req.path, dataService, typeSchemaStore.getTypes())
-  )
+  handle('data:importLegacy', importLegacyInputSchema, async (req) => {
+    const summary = importLegacyDataFile(req.path, dataService, typeSchemaStore.getTypes())
+    await dataSync.onDataChanged()
+    return summary
+  })
   handle('data:exportLegacy', exportLegacyInputSchema, (req) =>
     exportLegacyDataFile(req.path, dataService, typeSchemaStore.getTypes())
   )
   handle('ceshu:list', undefined, () => ceshuManager.list())
   handle('ceshu:create', ceshuCreateInputSchema, (req) => ceshuManager.create(req))
-  handle('ceshu:get', ceshuGetInputSchema, (req) => ceshuManager.get(req.id))
-  handle('ceshu:saveChapter', ceshuSaveChapterInputSchema, (req) => {
+  handle('ceshu:get', ceshuGetInputSchema, (req) => {
+    const doc = ceshuManager.get(req.id)
+    dataSync.setCurrentCeshu(req.id)
+    return doc
+  })
+  handle('ceshu:saveChapter', ceshuSaveChapterInputSchema, async (req) => {
     if (!isChapterKey(req.chapter)) {
       throw new Error(`未知章节：${req.chapter}`)
     }
-    return ceshuManager.saveChapter(req.id, req.chapter, req.data, {
+    const updated = await ceshuManager.saveChapter(req.id, req.chapter, req.data, {
       style: req.style,
       moduleType: req.moduleType
     })
+    // 系统章/元信息章保存后，确保启用系统的数据结构已注册（对齐 Python ceshu_changed → sync_systems_to_data）
+    if (req.chapter === 'systems' || req.chapter === 'meta') {
+      dataSync.syncSystemsToData(updated, '')
+    }
+    return updated
   })
   handle('ceshu:export', ceshuExportInputSchema, (req) => {
     const doc = ceshuManager.get(req.id)
@@ -176,9 +214,26 @@ export function registerIpcHandlers({
   })
   handle('ceshu:versions', ceshuGetInputSchema, (req) => ceshuManager.versions(req.id))
   handle('ceshu:derive', ceshuDeriveInputSchema, (req) => ceshuManager.derive(req.id, req.note))
-  handle('ceshu:applyPreset', ceshuApplyPresetInputSchema, (req) =>
-    ceshuManager.applyPreset(req.id, req.presetKey)
-  )
+  handle('ceshu:applyPreset', ceshuApplyPresetInputSchema, async (req) => {
+    const result = await ceshuManager.applyPreset(req.id, req.presetKey)
+    dataSync.syncSystemsToData(result.doc, '')
+    return result
+  })
+  handle('ceshu:confirmSystems', ceshuConfirmSystemsInputSchema, async (req) => {
+    const doc = ceshuManager.get(req.id)
+    const baseSystems = (doc.systems ?? {}) as Record<string, SystemEntry>
+    const { systems } = buildSystemConfirmResult(baseSystems, req.enabledKeys, req.customSystems)
+    const updated = await ceshuManager.saveChapter(req.id, 'systems', systems)
+    const syncResult = dataSync.syncSystemsToData(updated, '')
+    const systemsMap = updated.systems as Record<string, { enabled: boolean }>
+    const enabledCount = Object.values(systemsMap).filter((entry) => entry.enabled === true).length
+    const addedCustom = req.customSystems.filter((custom) => !(custom.key in baseSystems)).length
+    return { doc: updated, enabledCount, addedCustom, addedTypes: syncResult.addedTypes }
+  })
+  handle('ceshu:syncData', ceshuSyncDataInputSchema, async (req) => {
+    const doc = ceshuManager.get(req.id)
+    return dataSync.syncBoth(doc, req.id, '')
+  })
   handle('ceshu:setActive', ceshuGetInputSchema, (req) => ceshuManager.setActive(req.id))
   handle('ceshu:changelog', ceshuGetInputSchema, (req) => ceshuManager.changelog(req.id))
   handle('ceshu:validate', ceshuGetInputSchema, (req) => validateCeshu(ceshuManager.get(req.id)))

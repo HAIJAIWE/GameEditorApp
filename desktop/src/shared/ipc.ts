@@ -7,6 +7,8 @@ import type {
   BatchUpdateInput,
   CeshuAiGenerateInput,
   CeshuApplyPresetInput,
+  CeshuConfirmSystemsInput,
+  CeshuSyncDataInput,
   CeshuChecklistExportInput,
   CeshuChooseExportFileInput,
   CeshuCreateInput,
@@ -91,6 +93,14 @@ export interface IpcContract {
   'ceshu:applyPreset': {
     req: CeshuApplyPresetInput
     res: { doc: CeshuDocument; enabledCount: number; presetLabel: string; gameTypeFilled: boolean }
+  }
+  'ceshu:confirmSystems': {
+    req: CeshuConfirmSystemsInput
+    res: { doc: CeshuDocument; enabledCount: number; addedCustom: number; addedTypes: string[] }
+  }
+  'ceshu:syncData': {
+    req: CeshuSyncDataInput
+    res: { toData: { addedTypes: string[]; ensuredKeys: string[]; errors: string[] }; toCeshu: Record<string, number> }
   }
   'ceshu:setActive': { req: { id: string }; res: CeshuDocument }
   'ceshu:changelog': { req: { id: string }; res: CeshuChangelog }

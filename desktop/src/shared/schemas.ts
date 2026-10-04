@@ -187,6 +187,21 @@ export const ceshuApplyPresetInputSchema = z.object({
   presetKey: z.string().min(1).max(50)
 })
 
+/** 系统确认：确认/调整游戏系统（对齐 Python SystemConfirmDialog._on_confirm） */
+export const ceshuConfirmSystemsInputSchema = z.object({
+  id: z.string().min(1),
+  enabledKeys: z.array(z.string().min(1).max(64)).max(200),
+  customSystems: z
+    .array(z.object({ key: z.string().min(1).max(64), name: z.string().min(1).max(120) }))
+    .max(200)
+    .default([])
+})
+
+/** 数据同步：双向同步策划书 systems ↔ 游戏数据（对齐 Python CeshuDataSync.syncBoth） */
+export const ceshuSyncDataInputSchema = z.object({
+  id: z.string().min(1)
+})
+
 export const ceshuAiGenerateInputSchema = z.object({
   id: z.string().min(1),
   chapter: z.string().min(1),
@@ -327,6 +342,8 @@ export type CeshuExportInput = z.infer<typeof ceshuExportInputSchema>
 export type CeshuChooseExportFileInput = z.infer<typeof ceshuChooseExportFileInputSchema>
 export type CeshuDeriveInput = z.infer<typeof ceshuDeriveInputSchema>
 export type CeshuApplyPresetInput = z.infer<typeof ceshuApplyPresetInputSchema>
+export type CeshuConfirmSystemsInput = z.infer<typeof ceshuConfirmSystemsInputSchema>
+export type CeshuSyncDataInput = z.infer<typeof ceshuSyncDataInputSchema>
 export type CeshuAiGenerateInput = z.infer<typeof ceshuAiGenerateInputSchema>
 export type CeshuDataGenInput = z.infer<typeof ceshuDataGenInputSchema>
 export type CeshuReviewExportInput = z.infer<typeof ceshuReviewExportInputSchema>

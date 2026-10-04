@@ -23,6 +23,7 @@ import ChapterNotesPanel from './ChapterNotesPanel'
 import ChecklistPanel from './ChecklistPanel'
 import FieldDepsPanel from './FieldDepsPanel'
 import PresetMarketPanel from './PresetMarketPanel'
+import SystemConfirmPanel from './SystemConfirmPanel'
 import TemplateEditorPanel from './TemplateEditorPanel'
 import VersionDiffPanel from './VersionDiffPanel'
 import VersionTimelinePanel from './VersionTimelinePanel'
@@ -75,6 +76,7 @@ export default function CeshuView({ ceshuId, onChanged, onSelect }: CeshuViewPro
     | 'templateEditor'
     | 'aiDataGen'
     | 'presetMarket'
+    | 'systemConfirm'
     | null
   >(null)
   const [changelog, setChangelog] = useState<CeshuChangelog | null>(null)
@@ -277,6 +279,13 @@ export default function CeshuView({ ceshuId, onChanged, onSelect }: CeshuViewPro
     onChanged()
   }
 
+  /** 系统确认完成：systems 已写盘 + 数据同步已触发，更新文档并刷新侧边栏 */
+  const handleSystemConfirmed = (updated: CeshuDocument, enabledCount: number, addedCustom: number): void => {
+    setDoc(updated)
+    setNotice(`已确认游戏系统：启用 ${enabledCount} 个${addedCustom > 0 ? `（新增自定义 ${addedCustom} 个）` : ''}`)
+    onChanged()
+  }
+
   return (
     <div className="ceshu-view">
       <header className="toolbar">
@@ -363,6 +372,15 @@ export default function CeshuView({ ceshuId, onChanged, onSelect }: CeshuViewPro
         >
           预设市场
         </button>
+        <button
+          type="button"
+          className="btn"
+          data-testid="ceshu-system-confirm"
+          disabled={busy}
+          onClick={() => setPanel('systemConfirm')}
+        >
+          确认游戏系统
+        </button>
         <select
           className="form-select export-format"
           data-testid="export-format"
@@ -443,6 +461,13 @@ export default function CeshuView({ ceshuId, onChanged, onSelect }: CeshuViewPro
             key={doc.ceshu_id}
             ceshuId={doc.ceshu_id}
             onApplied={handlePresetApplied}
+            onClose={() => setPanel(null)}
+          />
+        ) : panel === 'systemConfirm' ? (
+          <SystemConfirmPanel
+            key={doc.ceshu_id}
+            ceshuId={doc.ceshu_id}
+            onApplied={handleSystemConfirmed}
             onClose={() => setPanel(null)}
           />
         ) : panel === 'templateEditor' ? (

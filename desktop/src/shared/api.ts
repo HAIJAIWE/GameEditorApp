@@ -51,6 +51,10 @@ export interface MbApi {
     versions(req: IpcContract['ceshu:versions']['req']): Promise<IpcContract['ceshu:versions']['res']>
     derive(req: IpcContract['ceshu:derive']['req']): Promise<IpcContract['ceshu:derive']['res']>
     applyPreset(req: IpcContract['ceshu:applyPreset']['req']): Promise<IpcContract['ceshu:applyPreset']['res']>
+    confirmSystems(
+      req: IpcContract['ceshu:confirmSystems']['req']
+    ): Promise<IpcContract['ceshu:confirmSystems']['res']>
+    syncData(req: IpcContract['ceshu:syncData']['req']): Promise<IpcContract['ceshu:syncData']['res']>
     setActive(req: IpcContract['ceshu:setActive']['req']): Promise<IpcContract['ceshu:setActive']['res']>
     changelog(req: IpcContract['ceshu:changelog']['req']): Promise<IpcContract['ceshu:changelog']['res']>
     validate(req: IpcContract['ceshu:validate']['req']): Promise<IpcContract['ceshu:validate']['res']>

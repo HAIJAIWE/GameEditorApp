@@ -4,6 +4,7 @@ import { app, BrowserWindow, shell } from 'electron'
 
 import { AttrSystemStore } from './attr/attrSystemStore'
 import { CeshuManager } from './ceshu/manager'
+import { CeshuDataSync } from './ceshu/dataSync'
 import { CeshuNotesStore } from './ceshu/notesStore'
 import { CeshuTemplateStore } from './ceshu/templateStore'
 import { CeshuStorage } from './ceshu/storage'
@@ -64,14 +65,17 @@ function createWindow(): void {
 app.whenReady().then(() => {
   const dbPath = join(app.getPath('userData'), 'mb-editor.db')
   dataService = new DataService(new SqliteItemsRepository(dbPath))
+  const ceshuManager = new CeshuManager(new CeshuStorage(join(app.getPath('userData'), 'ceshu')))
+  const typeSchemaStore = new TypeSchemaStore(join(app.getPath('userData'), 'type_schema.json'))
 
   registerIpcHandlers({
     dataService,
-    ceshuManager: new CeshuManager(new CeshuStorage(join(app.getPath('userData'), 'ceshu'))),
+    ceshuManager,
     ceshuNotesStore: new CeshuNotesStore(join(app.getPath('userData'), 'ceshu_notes')),
     ceshuTemplateStore: new CeshuTemplateStore(join(app.getPath('userData'), 'ceshu_templates')),
-    typeSchemaStore: new TypeSchemaStore(join(app.getPath('userData'), 'type_schema.json')),
+    typeSchemaStore,
     attrSystemStore: new AttrSystemStore(join(app.getPath('userData'), 'attr_system.json')),
+    dataSync: new CeshuDataSync(ceshuManager, dataService, typeSchemaStore),
     llmClient: new LlmClient(),
     getAppInfo: () => ({
       name: app.getName(),
