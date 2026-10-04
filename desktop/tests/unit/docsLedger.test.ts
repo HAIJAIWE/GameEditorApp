@@ -53,6 +53,7 @@ const REQUIRED_ROADMAP_MARKERS: readonly string[] = [
   '82a59c9', // E21 术语风格（迁移 core/style_manager.py）
   '9294a8a', // E22 AI 生图子系统（补齐 §4 #7 能力缺口）
   '5e5b0b0', // E23 统一设置存储基座（#8 C 档外围第一项）
+  'c11ed5f', // E24 收敛重复 storage 助手 + 窗口状态持久化（#8 第二项）
   'E4（2026-10-04）',
   'E5（2026-10-04）',
   'E6（2026-10-04）',
@@ -73,6 +74,7 @@ const REQUIRED_ROADMAP_MARKERS: readonly string[] = [
   'E21（2026-10-05）',
   'E22（2026-10-05）',
   'E23（2026-10-05）',
+  'E24（2026-10-05）',
   '已由 E7 补齐', // E6 遗留项已被 E7 补齐的标记（回退会退回旧措辞）
   'migration-audit.md' // §2 必须指向文件级审计
 ]
@@ -92,7 +94,7 @@ describe('文档守护：迁移台账不得被静默截断', () => {
 
   it('§2 的审计结论块在场（真实剩余量的唯一入口）', () => {
     expect(roadmap).toContain('真实剩余量已被**文件级审计**确定')
-    expect(roadmap).toContain('真实剩余 ≈ 2.7–3.1 万行（30–34%）')
+    expect(roadmap).toContain('真实剩余 ≈ 2.4–2.8 万行（26–31%）')
   })
 })
 

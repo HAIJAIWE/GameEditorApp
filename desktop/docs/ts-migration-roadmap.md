@@ -55,14 +55,14 @@
 >
 > | 判定 | 文件 | 行数 | 占比 |
 > |---|---|---|---|
-> | ✅ 已迁 | 94 | 34,971 | 38.4% |
+> | ✅ 已迁 | 95 | 35,125 | 38.5% |
 > | ◐ 部分已迁 | 61 | 22,917 | 25.1% |
-> | ⛔ 有意不迁（决策，非欠债） | 85 | 17,252 | 18.9% |
-> | ⚠️ **未迁（整块没做）** | **59** | **16,024** | **17.6%** |
+> | ⛔ 有意不迁（决策，非欠债） | 89 | 19,157 | 21.0% |
+> | ⚠️ **未迁（整块没做）** | **54** | **13,965** | **15.3%** |
 >
-> 对账 PASS：`94+61+85+59 = 299` 文件、`34971+22917+17252+16024 = 91,164` 行。
+> 对账 PASS：`95+61+89+54 = 299` 文件、`35125+22917+19157+13965 = 91,164` 行。
 >
-> **结论：真实剩余 ≈ 2.7–3.1 万行（30–34%）** —— 而不是早前口头估算的「3.5–4.5k 行（4–5%）」。那句估算**口径过窄**（把 `ui/widgets`/`ui/dialogs`/`features` 三个混合态域当成了基本迁完）且未做文件级核实，**已被本审计推翻**。
+> **结论：真实剩余 ≈ 2.4–2.8 万行（26–31%）** —— 而不是早前口头估算的「3.5–4.5k 行（4–5%）」。那句估算**口径过窄**（把 `ui/widgets`/`ui/dialogs`/`features` 三个混合态域当成了基本迁完）且未做文件级核实，**已被本审计推翻**。
 > 三个最意外的数字：**① `core/agent`（最大域 24,670 行）只有 1,689 行是完整已迁**（A 档做的是核心闭环，不是整个 Agent 引擎）；**② `ui/` 顶层+主题 9,883 行里仅 917 行完整已迁**；**③ `features` 9 文件完整已迁为 0**。
 > **本审计同时纠正了 3 条错误的「已迁」映射线索**（`ui/dialogs/template_manager.py`、`statistics.py`、`data_diff_dialog.py` 都不是策划书那套的同名对应物，实为未迁），并查明 `common/` 不可整体按「用不到」处理（`logger.py` 被引用 **142 处**、`event_bus.py` 18 处等，属未迁而非设计不迁）。
 
@@ -301,6 +301,15 @@
 > **审计数字**：i18n 改判使 §1 变为 ⛔85/17,252、⚠️59/16,024（对账仍 299/91,164）。
 > **验证**：eslint 0 / 双端 tsc 0 / vitest **88 文件 1245 测试全绿**（+1 文件 +25 用例）/ `electron-vite build` OK。
 > **本批推进方式**：2 个只读调研子代理（主题/特效、设置/i18n/菜单窗口）并行摸底，主代理**不空等**——先独立 grep 实证 4 处散点，再自写基座 + 单测 + 收拢接线（子代理只调研、不碰代码）。
+
+> ✅ **E24（2026-10-05）：收敛重复 storage 助手 + 窗口状态持久化（#8 第二项），提交 `c11ed5f`**。
+> **两项内容**：① E23 收尾未彻底——`StorageLike` 类型虽已收敛，但 **`defaultStorage()` 函数体仍有三份逐字重复**（`visibleTypes`/`gameStyle`/`imageGenConfig`），本刀全改为调用 `settingsStore.defaultSettingsStorage()`（多一层 try/cash 更健壮），并修正两处「真源是 visibleTypes」的过期注释；② 迁移 `ui/window_state.py`（154 行）→ `main/windowState.ts`（单测 23）+ `app:setWindowMode` IPC（5 处接线）。
+> **窗口状态逐字段取舍**（读源码后定，非按名字臆测）：**迁** `window_x/y/w/h`、`is_maximized`、`last_tab_index→lastMode`；**不迁** `theme`（TS 无多主题）、`layout_mode`（Python 硬编码 `"three_column"`，**常量无信息**）、`splitter_ratio`（TS 侧栏是 CSS Grid，**无 QSplitter 等价物**）、`auto_save_*`（TS 是条目级即时落库，无此机制）；**`has_unsaved_changes`/`compute_data_hash`/`check_data_changed` 刻意不迁**——读源码确认 Python 靠内存态 `_data_version` vs `_saved_version` 判脏，而 TS 每次保存直接落 SQLite，**不存在内存脏状态**，这套机制在 TS 是无源之水（不造空壳）。
+> **关键实现细节**：用 **`getNormalBounds()`** 而非 `getBounds()`（最大化时后者被系统改写，存它会导致「取消最大化后窗口恢复成全屏尺寸」）；`resize`/`move` **防抖 500ms** 落盘 + `close` 时强制落一次；写盘**原子写**（tmp+rename）；`setWindowMode` 经 `registerIpcHandlers` **依赖注入**传入（`index.ts` 已 import `ipc.ts`，顶层 export 会**循环依赖**）。
+> **#8 主题/特效整块判定为 ⛔ 有意不迁**（调研 + 逐条实证）：`themes/themes.py`(1,097) + `effects/theme_effects/text_glow_effect`(808) 共 1,905 行里 **86% 是 Qt QSS/hex 字面量**（Web 端不可用），且**实证为死代码**——`Glow*` 控件 `src/` 内零引用、`apply_text_glow` 遍历的 `glow_widgets` 恒为空（初始化 `[]` 后从未 append）、`generate_digital_panel_qss` 无真正调用者。唯一有价值的 33 行设计令牌（`FONT_SIZE_*`/`SPACING_*`）已作为 CSS 自定义属性覆盖。多主题切换属**独立立项**（`[data-theme]` 覆写 ~80-100 行），不搭车。
+> **审计数字大幅改善**：⛔85→**89**（+1,905 行主题 + 401 行 i18n 转为决策）、⚠️59→**54**、✅94→**95**；**真实剩余从「2.7–3.1 万行（30–34%）」降到「2.4–2.8 万行（26–31%）」**（对账仍 299/91,164）。
+> **验证**：eslint 0 / 双端 tsc 0 / vitest **89 文件 1268 测试全绿**（+1 文件 +23 用例）/ `electron-vite build` OK。
+> **踩坑**：写 `windowState.ts` 时 `clampDim()` 只用了 `MIN_WIDTH` 漏了 `MIN_HEIGHT`——**eslint 的 `no-unused-vars` 当场抓出**（tsc 不报未使用的局部 const），说明「大段 Edit 后必看 lint」这条铁律继续有效。另：`WindowModeInput` 一度被误加进 `shared/ipc.ts` 的 `./types` 导入块（实际定义在 `./schemas`），tsc TS2305 抓出。
 
 ## 3. 每片执行流程（固定顺序）
 
