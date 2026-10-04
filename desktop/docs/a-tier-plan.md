@@ -194,7 +194,7 @@ userData/
 | 调研（本文） | ✅ 完成 | — | 3 子代理并行盘点；核验 `core/agent` 97 文件 / 21,669 行、`library_manager.py` 626 行 |
 | A2-1 库服务与路径迁移 | ⬜ 未开始 | — | — |
 | A2-2 库条 UI 与切换联动 | ⬜ 未开始 | — | — |
-| A1-1 技能协议 + 调度器 | ✅ 完成 | `<PENDING_HASH>` | `shared/agent/protocol.ts`（协议/风险策略/参数修正，单测 18）+ `main/agent/dispatcher.ts`（注册表/模糊解析/危险确认门，单测 15）+ 2 个 action-based 技能（`system.game_data` 读写数据表 / `system.ceshu` 只读策划书，单测 13）+ IPC `agent:listTools`/`agent:executeTool` + E2E `agent-execute-tool.spec.ts`（沙箱未实跑） |
+| A1-1 技能协议 + 调度器 | ✅ 完成 | `20ec1ff` | `shared/agent/protocol.ts`（协议/风险策略/参数修正，单测 18）+ `main/agent/dispatcher.ts`（注册表/模糊解析/危险确认门，单测 15）+ 2 个 action-based 技能（`system.game_data` 读写数据表 / `system.ceshu` 只读策划书，单测 13）+ IPC `agent:listTools`/`agent:executeTool` + E2E `agent-execute-tool.spec.ts`（沙箱未实跑） |
 | A1-2 Brain 循环 + 事件流 | ⬜ 未开始 | — | — |
 | A1-3 会话与记忆 | ⬜ 未开始 | — | — |
 | A1-4 数字员工面板 | ⬜ 未开始 | — | — |
