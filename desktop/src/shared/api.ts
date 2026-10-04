@@ -82,6 +82,9 @@ export interface MbApi {
     exportExcel(req: IpcContract['data:exportExcel']['req']): Promise<IpcContract['data:exportExcel']['res']>
     importExcel(req: IpcContract['data:importExcel']['req']): Promise<IpcContract['data:importExcel']['res']>
   }
+  image: {
+    generate(req: IpcContract['image:generate']['req']): Promise<IpcContract['image:generate']['res']>
+  }
   engine: {
     exportData(req: IpcContract['engine:exportData']['req']): Promise<IpcContract['engine:exportData']['res']>
   }
@@ -101,6 +104,7 @@ export interface MbApi {
     chooseExportDir(): Promise<IpcContract['dialog:chooseExportDir']['res']>
     chooseCsvFile(): Promise<IpcContract['dialog:chooseCsvFile']['res']>
     chooseExcelFile(): Promise<IpcContract['dialog:chooseExcelFile']['res']>
+    chooseImageSaveDir(): Promise<IpcContract['dialog:chooseImageSaveDir']['res']>
     chooseTemplateJsonFile(
       req: IpcContract['dialog:chooseTemplateJsonFile']['req']
     ): Promise<IpcContract['dialog:chooseTemplateJsonFile']['res']>

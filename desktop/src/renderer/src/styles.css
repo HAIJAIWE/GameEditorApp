@@ -519,6 +519,17 @@ body {
   margin: 0;
 }
 
+/* ---- AI 生图面板 ---- */
+
+.image-gen-preview {
+  max-width: 100%;
+  max-height: 420px;
+  object-fit: contain;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+}
+
 /* ---- 游戏系统编辑器 ---- */
 
 .systems-editor {

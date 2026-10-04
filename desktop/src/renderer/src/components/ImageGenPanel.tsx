@@ -1,0 +1,264 @@
+import { useState } from 'react'
+
+import type { ImageGenConfig } from '../../../shared/imageGen'
+import { loadImageGenConfig, saveImageGenConfig } from '../../../shared/imageGenConfig'
+import type { StoredImageGenConfig, StoredProvider } from '../../../shared/imageGenConfig'
+
+/**
+ * AI 生图面板（对应 Python `features/_ai_image.py` 的 UI 层）。
+ *
+ * Python 侧该文件的 UI 入口（`dynamic_form._on_ai_image`）本身是**死桩**（只弹「需配置
+ * API Key」提示、从不真正调用），这里按其**设计意图**（`show_ai_image_dialog`：
+ * 填描述 → 调 `generate_ai_image` → 下载落盘）做一个真正可用的实现。
+ *
+ * 与 Python 的差异：
+ * - 配置（provider/apiKey/model/baseUrl）持久化在 localStorage（Python 存 `config.json`，
+ *   但本仓尚无设置存储基座，见 #8；此处先用 localStorage，与 visibleTypes/gameStyle 一致）；
+ * - 落盘目录由用户经原生对话框选择（Python 是从 `assets_dir` 推导）。
+ */
+
+const PROVIDER_LABELS: Readonly<Record<StoredProvider, string>> = {
+  openai: 'OpenAI（dall-e-3）',
+  qwen: '通义千问（DashScope）',
+  doubao: '豆包（火山方舟 Ark）',
+  generic: '自定义兼容端点'
+}
+
+interface ImageGenPanelProps {
+  onClose: () => void
+}
+
+export default function ImageGenPanel({ onClose }: ImageGenPanelProps) {
+  // 挂载时读一次持久化配置
+  const [config, setConfig] = useState<StoredImageGenConfig>(() => loadImageGenConfig())
+  const [prompt, setPrompt] = useState('')
+  const [saveDir, setSaveDir] = useState('')
+  const [previewUrl, setPreviewUrl] = useState('')
+  const [savedPath, setSavedPath] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [status, setStatus] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  const update = <K extends keyof StoredImageGenConfig>(
+    key: K,
+    value: StoredImageGenConfig[K]
+  ): void => {
+    const next = { ...config, [key]: value }
+    setConfig(next)
+    saveImageGenConfig(next)
+  }
+
+  const handleChooseDir = async (): Promise<void> => {
+    setError(null)
+    try {
+      const result = await window.mbApi.dialog.chooseImageSaveDir()
+      if (result.path === null) {
+        return
+      }
+      setSaveDir(result.path)
+      setStatus(`保存目录：${result.path}`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    }
+  }
+
+  const handleGenerate = async (): Promise<void> => {
+    setError(null)
+    setPreviewUrl('')
+    setSavedPath('')
+
+    const promptText = prompt.trim()
+    if (promptText === '') {
+      setError('请先填写图片描述')
+      return
+    }
+    if (config.apiKey.trim() === '') {
+      setError('请先填写 API Key')
+      return
+    }
+    if (saveDir.trim() === '') {
+      setError('请先选择保存目录')
+      return
+    }
+
+    // shared/imageGen.ts 的 ImageGenConfig：空串统一转 undefined，避免把 '' 当有效值下发
+    const request: ImageGenConfig = {
+      enabled: true,
+      provider: config.provider,
+      apiKey: config.apiKey,
+      model: config.model.trim() === '' ? undefined : config.model.trim(),
+      baseUrl: config.baseUrl.trim() === '' ? undefined : config.baseUrl.trim()
+    }
+
+    setBusy(true)
+    setStatus('生成中…（云端 API 请求可能需要数十秒）')
+    try {
+      const result = await window.mbApi.image.generate({
+        config: request,
+        prompt: promptText,
+        saveDir
+      })
+      if (result.ok) {
+        setPreviewUrl(result.url)
+        setSavedPath(result.path)
+        setStatus(`已保存到：${result.path}`)
+      } else {
+        setStatus(null)
+        setError(result.error)
+      }
+    } catch (err) {
+      setStatus(null)
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="editor" data-testid="image-gen-panel">
+      <div className="editor-header">
+        <div className="editor-title">
+          AI 生图
+          <small>调用云端图像 API 生成并落盘</small>
+        </div>
+        <button type="button" className="btn slim" onClick={onClose}>
+          关闭
+        </button>
+      </div>
+
+      <div className="editor-body">
+        <div className="form-row">
+          <label className="form-label" htmlFor="image-gen-provider">
+            服务商
+          </label>
+          <select
+            id="image-gen-provider"
+            className="form-input"
+            data-testid="image-gen-provider"
+            value={config.provider}
+            onChange={(e) => update('provider', e.target.value as StoredProvider)}
+          >
+            {(Object.keys(PROVIDER_LABELS) as StoredProvider[]).map((id) => (
+              <option key={id} value={id}>
+                {PROVIDER_LABELS[id]}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="form-row">
+          <label className="form-label" htmlFor="image-gen-apikey">
+            API Key
+          </label>
+          <input
+            id="image-gen-apikey"
+            className="form-input"
+            data-testid="image-gen-apikey"
+            type="password"
+            value={config.apiKey}
+            placeholder="sk-…（仅存本机 localStorage）"
+            onChange={(e) => update('apiKey', e.target.value)}
+          />
+        </div>
+
+        <div className="form-row">
+          <label className="form-label" htmlFor="image-gen-model">
+            模型（可选）
+          </label>
+          <input
+            id="image-gen-model"
+            className="form-input"
+            data-testid="image-gen-model"
+            value={config.model}
+            placeholder="留空则用服务商默认模型"
+            onChange={(e) => update('model', e.target.value)}
+          />
+        </div>
+
+        {config.provider === 'generic' && (
+          <div className="form-row">
+            <label className="form-label" htmlFor="image-gen-baseurl">
+              Base URL
+            </label>
+            <input
+              id="image-gen-baseurl"
+              className="form-input"
+              data-testid="image-gen-baseurl"
+              value={config.baseUrl}
+              placeholder="https://your-endpoint/v1"
+              onChange={(e) => update('baseUrl', e.target.value)}
+            />
+          </div>
+        )}
+
+        <div className="form-row">
+          <label className="form-label" htmlFor="image-gen-prompt">
+            图片描述
+          </label>
+          <textarea
+            id="image-gen-prompt"
+            className="form-textarea"
+            data-testid="image-gen-prompt"
+            rows={4}
+            value={prompt}
+            placeholder="越具体越好：主体 / 服装 / 姿势 / 背景 / 光线 / 视角"
+            onChange={(e) => setPrompt(e.target.value)}
+          />
+        </div>
+
+        <div className="form-row">
+          <button
+            type="button"
+            className="btn"
+            data-testid="image-gen-choose-dir"
+            disabled={busy}
+            onClick={() => void handleChooseDir()}
+          >
+            选择保存目录
+          </button>
+          <button
+            type="button"
+            className="btn primary"
+            data-testid="image-gen-generate"
+            disabled={busy}
+            onClick={() => void handleGenerate()}
+          >
+            {busy ? '生成中…' : '生成图片'}
+          </button>
+        </div>
+
+        {status !== null && (
+          <div className="notice-banner inline" data-testid="image-gen-status">
+            {status}
+          </div>
+        )}
+        {error !== null && (
+          <div className="error-banner" data-testid="image-gen-error">
+            {error}
+          </div>
+        )}
+
+        {previewUrl !== '' && (
+          <div className="form-row">
+            <img
+              className="image-gen-preview"
+              data-testid="image-gen-preview"
+              src={previewUrl}
+              alt="生成的图片预览"
+            />
+          </div>
+        )}
+        {savedPath !== '' && (
+          <div className="form-row">
+            <input
+              className="form-input"
+              data-testid="image-gen-saved-path"
+              readOnly
+              value={savedPath}
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

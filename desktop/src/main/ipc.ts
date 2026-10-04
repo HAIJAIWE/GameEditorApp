@@ -51,6 +51,7 @@ import {
   exportLegacyInputSchema,
   importDataFileInputSchema,
   importLegacyInputSchema,
+  imageGenInputSchema,
   listItemsInputSchema,
   notesAddInputSchema,
   notesDeleteInputSchema,
@@ -127,6 +128,8 @@ import { deleteBackupFile, listBackups } from './backup/backupStore'
 import { createLibraryBackup, restoreLibraryBackup } from './backup/restore'
 import type { DataService } from './data/service'
 import { exportEngineData } from './engineExport/exporter'
+import { generateImage } from './imageGen/client'
+import { saveImageFromUrl } from './imageGen/save'
 import type { LlmClient } from './llm/client'
 import type { TypeSchemaStore } from './schema/store'
 import type { FieldTemplateStore } from './schema/fieldTemplateStore'
@@ -342,6 +345,16 @@ export function registerIpcHandlers({
     const result = focused ? await dialog.showOpenDialog(focused, options) : await dialog.showOpenDialog(options)
     return { path: result.canceled || result.filePaths.length === 0 ? null : (result.filePaths[0] ?? null) }
   })
+  // AI 生图：选择保存目录（取消返回 null）
+  handle('dialog:chooseImageSaveDir', undefined, async () => {
+    const focused = BrowserWindow.getFocusedWindow()
+    const options: OpenDialogOptions = {
+      title: '选择生图保存目录',
+      properties: ['openDirectory', 'createDirectory']
+    }
+    const result = focused ? await dialog.showOpenDialog(focused, options) : await dialog.showOpenDialog(options)
+    return { path: result.canceled || result.filePaths.length === 0 ? null : (result.filePaths[0] ?? null) }
+  })
   handle('data:listItems', listItemsInputSchema, (req) => dataService.listItems(req.type))
   // 全量条目（跨类型）：统计面板需要全局视角，逐类型拉会 N 次往返
   handle('data:listAll', undefined, () => dataService.listAllItems())
@@ -402,6 +415,14 @@ export function registerIpcHandlers({
     const summary = await importExcelFile(req.path, dataService, typeSchemaStore.getTypes())
     await dataSync.onDataChanged()
     return summary
+  })
+  // AI 生图（features/_ai_image.py 能力缺口补齐）：生成 + 落盘到指定目录
+  handle('image:generate', imageGenInputSchema, async (req) => {
+    const gen = await generateImage(req.config, req.prompt)
+    if (!gen.ok) return { ok: false, error: gen.error }
+    const saved = await saveImageFromUrl(gen.url, req.saveDir, req.filename)
+    if (!saved.ok) return { ok: false, error: saved.error }
+    return { ok: true, url: gen.url, path: saved.path }
   })
   // 引擎代码导出（P0：Lua）：取全量数据快照 + 当前 schema，渲染并原子落盘
   handle('engine:exportData', engineExportInputSchema, (req) =>

@@ -49,6 +49,38 @@ export const importDataFileInputSchema = z.object({
   path: z.string().min(1)
 })
 
+/* ---- AI 生图（features/_ai_image.py 能力缺口补齐：云图像 API 客户端） ---- */
+
+/** 生图 provider 配置（对齐 Python common/ai_client.generate_image） */
+export const imageGenConfigSchema = z.object({
+  enabled: z.boolean(),
+  provider: z.enum(['openai', 'qwen', 'doubao', 'generic']),
+  apiKey: z.string(),
+  baseUrl: z.string().optional(),
+  model: z.string().optional(),
+  modelOverrides: z
+    .object({
+      image: z
+        .object({
+          model: z.string().optional(),
+          apiKey: z.string().optional(),
+          baseUrl: z.string().optional()
+        })
+        .optional()
+    })
+    .optional()
+})
+
+/** 生图请求：配置 + 提示词 + 落盘目录（+ 可选文件名） */
+export const imageGenInputSchema = z.object({
+  config: imageGenConfigSchema,
+  prompt: z.string().min(1),
+  saveDir: z.string().min(1),
+  filename: z.string().optional()
+})
+
+export type ImageGenInput = z.infer<typeof imageGenInputSchema>
+
 /* ---- 引擎代码导出 ---- */
 
 /** 引擎代码导出：目标引擎（当前仅支持 lua）+ 目标路径（缺扩展名时导出侧补 `.lua`） */

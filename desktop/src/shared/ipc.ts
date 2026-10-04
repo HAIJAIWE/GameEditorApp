@@ -26,6 +26,7 @@ import type {
   DeleteManyInput,
   EngineExportInput,
   ExportDirInput,
+  ImageGenInput,
   ExportLegacyInput,
   ImportDataFileInput,
   ImportLegacyInput,
@@ -129,6 +130,12 @@ export interface IpcContract {
   'dialog:chooseExportDir': { req: undefined; res: { path: string | null } }
   'dialog:chooseCsvFile': { req: undefined; res: { path: string | null } }
   'dialog:chooseExcelFile': { req: undefined; res: { path: string | null } }
+  // AI 生图（features/_ai_image.py 能力缺口补齐）：生成 + 落盘
+  'image:generate': {
+    req: ImageGenInput
+    res: { ok: true; url: string; path: string } | { ok: false; error: string }
+  }
+  'dialog:chooseImageSaveDir': { req: undefined; res: { path: string | null } }
   // 引擎代码导出（P0：Lua）。渲染/落盘在 main/engineExport，取数由 handler 注入。
   'engine:exportData': { req: EngineExportInput; res: { filePath: string; engine: string; bytes: number } }
   'dialog:chooseJsonFile': { req: undefined; res: { path: string | null } }

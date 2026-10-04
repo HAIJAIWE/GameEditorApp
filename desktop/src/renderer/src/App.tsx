@@ -9,6 +9,7 @@ import { isTypeVisible, loadVisibleTypes, saveVisibleTypes } from '../../shared/
 import AdvancedSearchPanel from './components/AdvancedSearchPanel'
 import AttrSystemPanel from './components/AttrSystemPanel'
 import BackupPanel from './components/BackupPanel'
+import ImageGenPanel from './components/ImageGenPanel'
 import BatchEditPanel from './components/BatchEditPanel'
 import CeshuHomePanel from './components/CeshuHomePanel'
 import DataDiffPanel from './components/DataDiffPanel'
@@ -80,6 +81,7 @@ export default function App() {
   const [advancedSearchOpen, setAdvancedSearchOpen] = useState(false)
   const [dataDiffOpen, setDataDiffOpen] = useState(false)
   const [backupOpen, setBackupOpen] = useState(false)
+  const [imageGenOpen, setImageGenOpen] = useState(false)
   const [typeVisibilityOpen, setTypeVisibilityOpen] = useState(false)
   /** 侧栏显示哪些类型（null = 全部）；持久化在 localStorage，随会话保留 */
   const [visibleTypes, setVisibleTypes] = useState<string[] | null>(() => loadVisibleTypes())
@@ -640,6 +642,25 @@ export default function App() {
               </button>
               <button
                 type="button"
+                className="btn"
+                data-testid="open-image-gen"
+                disabled={busy}
+                onClick={() => {
+                  setRefTarget(null)
+                  setBatchOpen(false)
+                  setStatsOpen(false)
+                  setQuickCreateOpen(false)
+                  setAdvancedSearchOpen(false)
+                  setDataDiffOpen(false)
+                  setBackupOpen(false)
+                  setTypeVisibilityOpen(false)
+                  setImageGenOpen(true)
+                }}
+              >
+                AI 生图
+              </button>
+              <button
+                type="button"
                 className="btn primary"
                 disabled={busy || !activeType}
                 onClick={() => void handleCreate()}
@@ -867,6 +888,8 @@ export default function App() {
                       onConfirm={handleVisibilityConfirmed}
                       onClose={() => setTypeVisibilityOpen(false)}
                     />
+                  ) : imageGenOpen ? (
+                    <ImageGenPanel onClose={() => setImageGenOpen(false)} />
                   ) : quickCreateOpen ? (
                     <QuickCreatePanel
                       key={`${activeType ?? ''}:quick`}

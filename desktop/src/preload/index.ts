@@ -71,6 +71,9 @@ const api: MbApi = {
   engine: {
     exportData: (req) => invoke('engine:exportData', req)
   },
+  image: {
+    generate: (req) => invoke('image:generate', req)
+  },
   backup: {
     list: () => invoke('backup:list', undefined),
     create: (req) => invoke('backup:create', req),
@@ -84,6 +87,7 @@ const api: MbApi = {
     chooseExportDir: () => invoke('dialog:chooseExportDir', undefined),
     chooseCsvFile: () => invoke('dialog:chooseCsvFile', undefined),
     chooseExcelFile: () => invoke('dialog:chooseExcelFile', undefined),
+    chooseImageSaveDir: () => invoke('dialog:chooseImageSaveDir', undefined),
     chooseCeshuExportFile: (req) => invoke('dialog:chooseCeshuExportFile', req),
     chooseAttrSystemJsonFile: (req) => invoke('dialog:chooseAttrSystemJsonFile', req),
     chooseTemplateJsonFile: (req) => invoke('dialog:chooseTemplateJsonFile', req)
