@@ -1,0 +1,291 @@
+import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
+
+import type { BrainEvent } from '../../../../shared/agent/brain'
+import {
+  hydrateFromSession,
+  initialDigitalPanelState,
+  isRunning,
+  reduceBrainEvent,
+  resolveApproval,
+  submitUserMessage,
+  summarizeToolTasks,
+  type DigitalPanelState
+} from '../../../../shared/agent/panel'
+
+/**
+ * 数字员工面板（A1-4）：对话气泡 + 流式文本 + 可折叠步骤 + 任务列表 + 危险操作审批模态。
+ *
+ * 行为全部在 `shared/agent/panel.ts` 的纯归约里（可单测），本组件只做：
+ * 订阅主进程事件流 → dispatch、发送输入、回传审批决定、会话恢复入口。
+ */
+
+interface ChatApi {
+  chat: (req: { input: string }) => Promise<{ text: string }>
+  respondApproval: (req: { requestId: string; approved: boolean }) => Promise<{ ok: boolean }>
+  sessionInfo: () => Promise<{ hasSession: boolean; messageCount: number; savedAt: string }>
+  sessionRestore: () => Promise<{ messages: Array<{ role?: unknown; content?: unknown }> }>
+  sessionClear: () => Promise<{ cleared: boolean }>
+  onEvent: (handler: (event: unknown) => void) => () => void
+}
+
+type Action =
+  | { kind: 'event'; event: BrainEvent }
+  | { kind: 'submit'; text: string }
+  | { kind: 'approval'; approved: boolean }
+  | { kind: 'hydrate'; history: Array<{ role?: unknown; content?: unknown }> }
+
+function reducer(state: DigitalPanelState, action: Action): DigitalPanelState {
+  switch (action.kind) {
+    case 'event':
+      return reduceBrainEvent(state, action.event)
+    case 'submit':
+      return submitUserMessage(state, action.text)
+    case 'approval':
+      return resolveApproval(state, action.approved)
+    case 'hydrate':
+      return hydrateFromSession(state, action.history)
+    default:
+      return state
+  }
+}
+
+function toErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
+}
+
+const STATUS_LABELS: Record<DigitalPanelState['status'], string> = {
+  idle: '待命',
+  thinking: '思考中…',
+  waiting_approval: '等待确认',
+  done: '已完成',
+  error: '出错'
+}
+
+export default function DigitalPanel() {
+  const [state, dispatch] = useReducer(reducer, initialDigitalPanelState)
+  const [input, setInput] = useState('')
+  const [stepsOpen, setStepsOpen] = useState(true)
+  const [sessionHint, setSessionHint] = useState<{ messageCount: number; savedAt: string } | null>(null)
+  const [localError, setLocalError] = useState<string | null>(null)
+  const scrollRef = useRef<HTMLDivElement | null>(null)
+
+  const api = useMemo(() => (window.mbApi as unknown as { agent: ChatApi }).agent, [])
+  const tasks = useMemo(() => summarizeToolTasks(state.steps), [state.steps])
+  const running = isRunning(state)
+
+  // 订阅主进程推送的事件流（与 chat 的返回值二选一即可，这里用推送保证流式可见）
+  useEffect(() => {
+    const unsubscribe = api.onEvent((payload) => {
+      dispatch({ kind: 'event', event: payload as BrainEvent })
+    })
+    return unsubscribe
+  }, [api])
+
+  // 询问是否有可恢复会话
+  useEffect(() => {
+    let cancelled = false
+    api
+      .sessionInfo()
+      .then((info) => {
+        if (!cancelled && info.hasSession) {
+          setSessionHint({ messageCount: info.messageCount, savedAt: info.savedAt })
+        }
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [api])
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight })
+  }, [state.messages.length, state.streaming])
+
+  const handleSend = (): void => {
+    const text = input.trim()
+    if (text === '' || running) return
+    setLocalError(null)
+    setInput('')
+    dispatch({ kind: 'submit', text })
+    void api.chat({ input: text }).catch((error: unknown) => {
+      setLocalError(toErrorMessage(error))
+    })
+  }
+
+  const handleApproval = (approved: boolean): void => {
+    const approval = state.approval
+    if (approval === null) return
+    dispatch({ kind: 'approval', approved })
+    void api.respondApproval({ requestId: approval.requestId, approved }).catch((error: unknown) => {
+      setLocalError(toErrorMessage(error))
+    })
+  }
+
+  const handleRestore = (): void => {
+    void api
+      .sessionRestore()
+      .then((result) => {
+        dispatch({ kind: 'hydrate', history: result.messages })
+        setSessionHint(null)
+      })
+      .catch((error: unknown) => setLocalError(toErrorMessage(error)))
+  }
+
+  return (
+    <div className="digital-panel" data-testid="digital-panel">
+      <div className="changelog-header">
+        <span className="chapter-form-title">🤖 数字员工</span>
+        <div className="editor-actions">
+          <span className="item-meta" data-testid="digital-status">
+            {STATUS_LABELS[state.status]}
+          </span>
+        </div>
+      </div>
+
+      {(localError !== null || state.error !== null) && (
+        <div className="form-error" data-testid="digital-error">
+          {localError ?? state.error}
+        </div>
+      )}
+
+      {sessionHint !== null && (
+        <div className="notice-banner inline" data-testid="digital-session-prompt">
+          检测到上次会话（{sessionHint.messageCount} 条消息，{sessionHint.savedAt}）
+          <button type="button" className="btn slim" data-testid="digital-session-restore" onClick={handleRestore}>
+            恢复
+          </button>
+          <button
+            type="button"
+            className="btn slim"
+            data-testid="digital-session-dismiss"
+            onClick={() => setSessionHint(null)}
+          >
+            忽略
+          </button>
+        </div>
+      )}
+
+      <div className="digital-messages" ref={scrollRef} data-testid="digital-messages">
+        {state.messages
+          .filter((message) => message.role === 'user' || message.role === 'assistant')
+          .map((message) => (
+            <div
+              key={message.id}
+              className={`digital-bubble digital-bubble-${message.role}`}
+              data-testid="digital-message"
+              data-role={message.role}
+            >
+              {message.text}
+            </div>
+          ))}
+        {state.streaming !== '' && (
+          <div className="digital-bubble digital-bubble-assistant" data-testid="digital-streaming">
+            {state.streaming}
+          </div>
+        )}
+        {state.messages.length === 0 && state.streaming === '' && (
+          <div className="empty">描述你想做的事，我会调用工具完成（例如「列出所有角色数据」）。</div>
+        )}
+      </div>
+
+      {state.steps.length > 0 && (
+        <div className="digital-steps" data-testid="digital-steps">
+          <button
+            type="button"
+            className="btn-link"
+            data-testid="digital-steps-toggle"
+            onClick={() => setStepsOpen((open) => !open)}
+          >
+            {stepsOpen ? '收起执行步骤' : `展开执行步骤（${state.steps.length}）`}
+          </button>
+          {stepsOpen && (
+            <ol className="digital-step-list">
+              {state.steps.map((step, index) => (
+                <li
+                  key={`${step.order}-${step.tool}-${index}`}
+                  className={`digital-step digital-step-${step.status}`}
+                  data-testid="digital-step"
+                  data-status={step.status}
+                >
+                  <span className="digital-step-tool">{step.tool}</span>
+                  <span className="item-meta">
+                    {step.status === 'running' ? '执行中…' : null}
+                    {step.status === 'done' ? '✅' : null}
+                    {step.status === 'failed' ? '❌' : null}
+                  </span>
+                  {step.result !== undefined && step.result !== '' && (
+                    <div className="digital-step-result">{step.result}</div>
+                  )}
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
+      )}
+
+      {tasks.length > 0 && (
+        <div className="digital-tasks" data-testid="digital-tasks">
+          <span className="home-section-label">任务</span>
+          {tasks.map((task, index) => (
+            <div className="digital-task" data-testid="digital-task" key={`${task.tool}-${index}`}>
+              <span>{task.success ? '✅' : '❌'}</span>
+              <span className="digital-task-tool">{task.tool}</span>
+              <span className="item-meta">{task.summary}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {state.approval !== null && (
+        <div className="digital-approval" data-testid="digital-approval">
+          <div className="form-label">⚠️ 危险操作确认</div>
+          <div className="item-meta">
+            工具：{state.approval.tool} · 操作：{state.approval.action || '(未指定)'}
+          </div>
+          <pre className="digital-approval-params">{JSON.stringify(state.approval.params, null, 2)}</pre>
+          <div className="editor-actions">
+            <button
+              type="button"
+              className="btn danger"
+              data-testid="digital-approval-approve"
+              onClick={() => handleApproval(true)}
+            >
+              允许执行
+            </button>
+            <button
+              type="button"
+              className="btn"
+              data-testid="digital-approval-reject"
+              onClick={() => handleApproval(false)}
+            >
+              拒绝
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="digital-input-row">
+        <input
+          className="form-input"
+          data-testid="digital-input"
+          placeholder="和数字员工说点什么…"
+          value={input}
+          disabled={running}
+          onChange={(event) => setInput(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') handleSend()
+          }}
+        />
+        <button
+          type="button"
+          className="btn primary"
+          data-testid="digital-send"
+          disabled={running || input.trim() === ''}
+          onClick={handleSend}
+        >
+          发送
+        </button>
+      </div>
+    </div>
+  )
+}

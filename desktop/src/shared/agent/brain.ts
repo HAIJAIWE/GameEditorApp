@@ -75,13 +75,21 @@ export type BrainEvent =
   | { type: 'step_start'; order: number; tool: string }
   | { type: 'stream_chunk'; text: string }
   | { type: 'stream_done'; fullText: string }
-  | { type: 'approval_required'; tool: string; action: string; params: Record<string, unknown> }
+  | {
+      type: 'approval_required'
+      /** 与审批回传配对的请求 id（面板据此回传决定） */
+      requestId: string
+      tool: string
+      action: string
+      params: Record<string, unknown>
+    }
   | { type: 'step_done'; tool: string; result: string; success: boolean }
   | { type: 'done'; text: string }
   | { type: 'error'; message: string }
 
 /** 审批请求（由调用方弹窗/回传；返回 true 才放行） */
 export interface BrainApprovalRequest {
+  requestId: string
   tool: string
   action: string
   params: Record<string, unknown>
@@ -102,6 +110,8 @@ export interface RunBrainLoopOptions {
   maxIterations?: number
   /** 危险操作审批；未提供 → 一律视为未确认（拒绝） */
   requestApproval?: BrainApprover
+  /** 审批请求 id 生成器（默认进程内自增；测试可注入确定性实现） */
+  newRequestId?: () => string
   context?: SkillExecutionContext
   /** 事件实时回调（A1-4 面板流式渲染用；事件同样会收集进返回值） */
   onEvent?: (event: BrainEvent) => void
@@ -183,6 +193,8 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
   const { input, systemPrompts, transport, runner, requestApproval, onEvent } = options
   const maxIterations = options.maxIterations ?? DEFAULT_MAX_ITERATIONS
   const context: SkillExecutionContext = options.context ?? {}
+  let requestSeq = 0
+  const newRequestId = options.newRequestId ?? ((): string => `approval_${++requestSeq}`)
   const tools = options.tools ?? []
 
   const events: BrainEvent[] = []
@@ -238,9 +250,10 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
 
       const action = typeof call.arguments.action === 'string' ? call.arguments.action : ''
       if (runner.needsConfirmation(resolved, action)) {
-        emit({ type: 'approval_required', tool: resolved, action, params: call.arguments })
+        const requestId = newRequestId()
+        emit({ type: 'approval_required', requestId, tool: resolved, action, params: call.arguments })
         const approved = requestApproval
-          ? await requestApproval({ tool: resolved, action, params: call.arguments })
+          ? await requestApproval({ requestId, tool: resolved, action, params: call.arguments })
           : false
         if (approved !== true) {
           const text = `[STOP] 用户未确认危险操作: ${resolved}`

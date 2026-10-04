@@ -23,7 +23,19 @@ const api: MbApi = {
   agent: {
     listTools: () => invoke('agent:listTools', undefined),
     executeTool: (req) => invoke('agent:executeTool', req),
-    chat: (req) => invoke('agent:chat', req)
+    chat: (req) => invoke('agent:chat', req),
+    respondApproval: (req) => invoke('agent:approvalResponse', req),
+    sessionInfo: () => invoke('agent:sessionInfo', undefined),
+    sessionRestore: () => invoke('agent:sessionRestore', undefined),
+    sessionClear: () => invoke('agent:sessionClear', undefined),
+    /** 订阅主进程推送的事件流；返回取消订阅函数 */
+    onEvent: (handler: (event: unknown) => void): (() => void) => {
+      const listener = (_event: unknown, payload: unknown): void => handler(payload)
+      ipcRenderer.on('agent:event', listener)
+      return () => {
+        ipcRenderer.removeListener('agent:event', listener)
+      }
+    }
   },
   attrSystem: {
     get: () => invoke('attrSystem:get', undefined),

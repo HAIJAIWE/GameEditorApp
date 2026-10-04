@@ -258,6 +258,7 @@ describe('runBrainLoop：分支与兜底', () => {
     const approval = result.events.find((event) => event.type === 'approval_required')
     expect(approval).toEqual({
       type: 'approval_required',
+      requestId: expect.any(String),
       tool: 'system.shell',
       action: 'exec',
       params: { action: 'exec' }
@@ -291,12 +292,12 @@ describe('runBrainLoop：分支与兜底', () => {
       runner,
       context,
       requestApproval: (request) => {
-        approvals.push(`${request.tool}/${request.action}`)
+        approvals.push(`${request.requestId}:${request.tool}/${request.action}`)
         return true
       }
     })
 
-    expect(approvals).toEqual(['system.shell/exec'])
+    expect(approvals).toEqual([expect.stringMatching(/^approval_\d+:system\.shell\/exec$/u)])
     expect(runner.executed).toEqual([{ tool: 'system.shell', params: { action: 'exec' } }])
     expect(context).toMatchObject({ dangerConfirmed: { tool: 'system.shell', action: 'exec' } })
     expect(result.events.some((event) => event.type === 'step_done' && event.success)).toBe(true)

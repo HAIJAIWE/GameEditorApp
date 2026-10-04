@@ -12,6 +12,7 @@ import {
   DEFAULT_MAX_ITERATIONS,
   runBrainLoop,
   type BrainApprover,
+  type BrainEvent,
   type BrainLlmTransport,
   type BrainMessage,
   type BrainRunResult,
@@ -34,6 +35,17 @@ export function createDispatcherToolRunner(dispatcher: SkillDispatcher): BrainTo
     needsConfirmation: (toolName, action) => resolveRiskLevel(toolName, action) >= RISK_LEVEL.SYSTEM,
     execute: (toolName, params, ctx) => dispatcher.execute(toolName, params, ctx)
   }
+}
+
+/** 单次调用可覆盖的选项（A1-4 面板注入事件流与审批） */
+export interface AgentChatOptions {
+  context?: SkillExecutionContext
+  /** 事件流实时回调（面板流式渲染） */
+  onEvent?: (event: BrainEvent) => void
+  /** 本次调用的危险操作审批（优先于构造时的缺省审批） */
+  requestApproval?: BrainApprover
+  /** 审批请求 id 生成器（与 broker 配对） */
+  newRequestId?: () => string
 }
 
 export interface AgentBrainServiceDeps {
@@ -73,14 +85,17 @@ export class AgentBrainService {
   /**
    * 跑一轮完整的「思考 → 工具 → 终稿」循环：
    * 1) 先按输入检索记忆并注入系统提示词；2) 跑循环；3) 落盘会话；4) 把本轮问答回写进记忆。
+   *
+   * `options` 供 IPC/面板按次注入：事件流回调（流式渲染）、危险操作审批、审批 id 生成器。
    */
-  async chat(input: string, context: SkillExecutionContext = {}): Promise<BrainRunResult> {
+  async chat(input: string, options: AgentChatOptions = {}): Promise<BrainRunResult> {
     const memoryBlock = await this.buildMemoryBlock(input)
     const systemPrompts = buildSystemPrompts({
       toolsDescription: this.deps.dispatcher.toolsDescription(),
       ...(memoryBlock !== null ? { extraBlocks: [memoryBlock] } : {})
     })
 
+    const requestApproval = options.requestApproval ?? this.deps.requestApproval
     const result = await runBrainLoop({
       input,
       systemPrompts,
@@ -88,8 +103,10 @@ export class AgentBrainService {
       runner: createDispatcherToolRunner(this.deps.dispatcher),
       tools: this.deps.dispatcher.toolsJsonSchema(),
       maxIterations: this.deps.maxIterations ?? DEFAULT_MAX_ITERATIONS,
-      ...(this.deps.requestApproval ? { requestApproval: this.deps.requestApproval } : {}),
-      context
+      ...(requestApproval ? { requestApproval } : {}),
+      ...(options.newRequestId ? { newRequestId: options.newRequestId } : {}),
+      ...(options.onEvent ? { onEvent: options.onEvent } : {}),
+      context: options.context ?? {}
     })
 
     if (this.deps.sessionStore) {

@@ -50,6 +50,7 @@ import type {
 } from './types'
 import type { CeshuDocument, CeshuExportResult, CeshuSummary } from './ceshuConstants'
 import type { BrainEvent } from './agent/brain'
+import type { SessionInfo } from './agent/session'
 import type { JsonObjectSchema, SkillResult } from './agent/protocol'
 import type { CeshuChangelog, CeshuVersionDiff } from './ceshuDiff'
 import type { CeshuScoreReport } from './ceshuScorer'
@@ -116,6 +117,10 @@ export interface IpcContract {
   }
   'agent:executeTool': { req: AgentExecuteToolInput; res: SkillResult }
   'agent:chat': { req: AgentChatInput; res: { text: string; events: BrainEvent[]; completed: boolean } }
+  'agent:approvalResponse': { req: { requestId: string; approved: boolean }; res: { ok: boolean } }
+  'agent:sessionInfo': { req: undefined; res: SessionInfo }
+  'agent:sessionRestore': { req: undefined; res: { messages: Array<Record<string, unknown>> } }
+  'agent:sessionClear': { req: undefined; res: { cleared: boolean } }
   'ceshu:rename': { req: CeshuRenameInput; res: CeshuDocument }
   'ceshu:delete': { req: { id: string }; res: { deleted: boolean } }
   'ceshu:duplicate': { req: { id: string }; res: CeshuDocument }

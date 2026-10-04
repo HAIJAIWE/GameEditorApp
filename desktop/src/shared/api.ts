@@ -9,6 +9,14 @@ export interface MbApi {
     listTools(): Promise<IpcContract['agent:listTools']['res']>
     executeTool(req: IpcContract['agent:executeTool']['req']): Promise<IpcContract['agent:executeTool']['res']>
     chat(req: IpcContract['agent:chat']['req']): Promise<IpcContract['agent:chat']['res']>
+    respondApproval(
+      req: IpcContract['agent:approvalResponse']['req']
+    ): Promise<IpcContract['agent:approvalResponse']['res']>
+    sessionInfo(): Promise<IpcContract['agent:sessionInfo']['res']>
+    sessionRestore(): Promise<IpcContract['agent:sessionRestore']['res']>
+    sessionClear(): Promise<IpcContract['agent:sessionClear']['res']>
+    /** 订阅主进程推送的事件流；返回取消订阅函数 */
+    onEvent(handler: (event: unknown) => void): () => void
   }
   schema: {
     list(): Promise<IpcContract['schema:list']['res']>

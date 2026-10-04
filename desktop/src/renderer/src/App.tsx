@@ -7,6 +7,7 @@ import type { AppInfo, DataTypeDef, ImportSummary, ItemRecord } from '../../shar
 import AttrSystemPanel from './components/AttrSystemPanel'
 import BatchEditPanel from './components/BatchEditPanel'
 import CeshuHomePanel from './components/CeshuHomePanel'
+import DigitalPanel from './components/digital/DigitalPanel'
 import CeshuView from './components/CeshuView'
 import ItemForm from './components/ItemForm'
 import ReferencesPanel, { type ReferenceTarget } from './components/ReferencesPanel'
@@ -39,7 +40,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const [mode, setMode] = useState<'data' | 'ceshu'>('data')
+  const [mode, setMode] = useState<'data' | 'ceshu' | 'digital'>('data')
   const [editorOpen, setEditorOpen] = useState(false)
   const [attrSysOpen, setAttrSysOpen] = useState(false)
   const [ceshuList, setCeshuList] = useState<CeshuSummary[]>([])
@@ -318,6 +319,14 @@ export default function App() {
           >
             策划书
           </button>
+          <button
+            type="button"
+            data-testid="mode-digital"
+            className={`mode-btn${mode === 'digital' ? ' active' : ''}`}
+            onClick={() => setMode('digital')}
+          >
+            数字员工
+          </button>
         </div>
         {mode === 'data' ? (
           types.map((t) => (
@@ -363,6 +372,7 @@ export default function App() {
             {ceshuList.length === 0 && <div className="sidebar-hint">暂无策划书，点击上方新建</div>}
           </>
         )}
+        {mode === 'digital' && <div className="sidebar-hint">数字员工对话在右侧主区域</div>}
       </aside>
 
       <div className="main">
@@ -544,6 +554,8 @@ export default function App() {
               )}
             </div>
           </>
+        ) : mode !== 'ceshu' ? (
+          <DigitalPanel />
         ) : ceshuHomeVisible || !activeCeshuId ? (
           <CeshuHomePanel
             summaries={ceshuList}

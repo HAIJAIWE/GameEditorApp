@@ -156,6 +156,12 @@ export const ceshuGetInputSchema = z.object({
   id: z.string().min(1)
 })
 
+/** Agent Brain：审批回传（渲染层弹模态后按 requestId 回传决定） */
+export const agentApprovalResponseInputSchema = z.object({
+  requestId: z.string().min(1),
+  approved: z.boolean()
+})
+
 /** Agent Brain：跑一轮对话循环（输入用户消息，返回事件流与最终文本） */
 export const agentChatInputSchema = z.object({
   input: z.string().min(1).max(4000)
@@ -361,6 +367,7 @@ export type CeshuDeriveInput = z.infer<typeof ceshuDeriveInputSchema>
 export type CeshuRenameInput = z.infer<typeof ceshuRenameInputSchema>
 export type AgentExecuteToolInput = z.infer<typeof agentExecuteToolInputSchema>
 export type AgentChatInput = z.infer<typeof agentChatInputSchema>
+export type AgentApprovalResponseInput = z.infer<typeof agentApprovalResponseInputSchema>
 export type CeshuApplyPresetInput = z.infer<typeof ceshuApplyPresetInputSchema>
 export type CeshuConfirmSystemsInput = z.infer<typeof ceshuConfirmSystemsInputSchema>
 export type CeshuSyncDataInput = z.infer<typeof ceshuSyncDataInputSchema>

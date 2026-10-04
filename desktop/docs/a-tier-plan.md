@@ -197,8 +197,21 @@ userData/
 | A1-1 技能协议 + 调度器 | ✅ 完成 | `20ec1ff` | `shared/agent/protocol.ts`（协议/风险策略/参数修正，单测 18）+ `main/agent/dispatcher.ts`（注册表/模糊解析/危险确认门，单测 15）+ 2 个 action-based 技能（`system.game_data` 读写数据表 / `system.ceshu` 只读策划书，单测 13）+ IPC `agent:listTools`/`agent:executeTool` + E2E `agent-execute-tool.spec.ts`（沙箱未实跑） |
 | A1-2 Brain 循环 + 事件流 | ✅ 完成 | `a377e3c` | `shared/agent/brain.ts`（事件流 + 循环纯逻辑，单测 19）+ `shared/agent/prompts.ts`（提示词骨架）+ `main/agent/ollamaTransport.ts`（`/api/chat` NDJSON 流式 + tool_calls）+ `main/agent/brainService.ts`（调度器适配）+ IPC `agent:chat` + E2E `agent-brain-chat.spec.ts`（`/api/chat` 桩两轮，沙箱未实跑） |
 | A1-3 会话与记忆 | ✅ 完成 | `7794a84` | `shared/agent/session.ts`（快照/截断纯逻辑）+ `main/agent/sessionStore.ts`（原子写 + 串行队列 + 严格/容错两档读取 + metrics.jsonl）+ `shared/agent/memory.ts`（确定性 n-gram 嵌入）+ `main/agent/memoryStore.ts`（vectra 索引）；接入 `AgentBrainService`（记忆注入 + 会话落盘 + 问答回写）；单测 22 |
-| A1-4 数字员工面板 | ⬜ 未开始 | — | — |
+| A1-4 数字员工面板 | ✅ 完成 | `<PENDING_HASH>` | `shared/agent/panel.ts`（事件流 → 面板视图模型纯归约，单测 13）+ `main/agent/approvalBroker.ts`（审批中转，单测 6）+ `renderer/src/components/digital/DigitalPanel.tsx` + App 第三模式 `mode-digital` + IPC `agent:approvalResponse`/`agent:sessionInfo|Restore|Clear` + 主进程 `agent:event` 推送 + E2E `agent-digital-panel.spec.ts`（2 例，沙箱未实跑） |
 | A1-5 业务技能接线 + 托盘/热键 | ⬜ 未开始 | — | — |
+
+### A1-4 落地记录（2026-10-04）
+
+**产物**：`shared/agent/panel.ts`（`DigitalPanelState` + `reduceBrainEvent` 归约：气泡/流式/步骤/任务/审批/状态）、`main/agent/approvalBroker.ts`（按 requestId 登记 promise 并兑现）、`renderer/src/components/digital/DigitalPanel.tsx`、App 第三模式 `mode-digital`（`mode: 'data' | 'ceshu' | 'digital'`）、IPC：`agent:approvalResponse` + `agent:sessionInfo/sessionRestore/sessionClear` + 主进程 `agent:event` 事件推送、E2E `agent-digital-panel.spec.ts`（面板流程 / 会话恢复 2 例）。
+
+**有意偏离 / 关键实现决策（逐条有据）**：
+1. **行为全在纯归约里**：Python 的面板是 PyQt widget 树 + `digital_panel_state.py` 类型桩（无法脱离 GUI 测试）；TS 把「事件 → 状态」提成纯函数，组件退化为 `useReducer` 薄壳。
+2. **`handle()` 包装器扩展为可把 `event` 传给 handler**（既有单参 handler 不受影响，TS 允许少参函数赋给多参签名），这样 `agent:chat` 才能 `event.sender.send('agent:event', …)` 推事件流。
+3. **审批竞态**：`runBrainLoop` 先 emit `approval_required` 再 `await requestApproval`，用户可能「秒点」批准；故 IPC 层**在分配 requestId 时就登记**待审批 promise（`newRequestId` 里 register），`requestApproval` 只取回它——否则决定会因「id 未登记」被丢弃。
+4. **审批的端到端拦截待补**：需要 SYSTEM 级（risk ≥ 4）技能，本批次只注册了 DATA_WRITE 级 `system.game_data` / `system.ceshu`，故审批链路由**单测三层覆盖**（`agentBrain` 循环门 / `agentPanel` 归约 / `agentApprovalBroker` 中转）；E2E 拦截用例待 **A1-5** 接入 SYSTEM 级技能（如 jsSandbox 代码技能）后补。
+5. **未移植**：markdown 渲染 + 代码高亮（§2.4 待接 react-markdown）、Python 独立的 `digital_panel_tasks` 后端（TS 的任务列表由工具步骤派生）、富文本草稿（§2.5 已声明旧草稿不迁移）。
+
+**未验证项**：2 例 E2E 仍受沙箱 Electron 启动限制（`Process failed to launch!`），待 CI 跑。
 
 ### A1-3 落地记录（2026-10-04）
 

@@ -1,4 +1,11 @@
-import { BrowserWindow, dialog, ipcMain, type OpenDialogOptions, type SaveDialogOptions } from 'electron'
+import {
+  BrowserWindow,
+  dialog,
+  ipcMain,
+  type IpcMainInvokeEvent,
+  type OpenDialogOptions,
+  type SaveDialogOptions
+} from 'electron'
 import { ZodError, type ZodType } from 'zod'
 
 import type { IpcChannel, IpcContract, IpcResult } from '../shared/ipc'
@@ -21,6 +28,7 @@ import {
   ceshuDiffInputSchema,
   ceshuDataGenInputSchema,
   ceshuExportInputSchema,
+  agentApprovalResponseInputSchema,
   agentChatInputSchema,
   agentExecuteToolInputSchema,
   ceshuGetInputSchema,
@@ -75,8 +83,10 @@ import { scoreCeshu } from '../shared/ceshuScorer'
 import { validateCeshu } from '../shared/ceshuValidation'
 import { buildWordStatsReport } from '../shared/ceshuWordStats'
 import type { AppInfo } from '../shared/types'
+import type { AgentApprovalBroker } from './agent/approvalBroker'
 import type { AgentBrainService } from './agent/brainService'
 import type { SkillDispatcher } from './agent/dispatcher'
+import type { AgentSessionStore } from './agent/sessionStore'
 import type { AttrSystemStore } from './attr/attrSystemStore'
 import { exportAttrGameConfigFile } from './attr/attrGameConfigExport'
 import { exportAttrSystemJsonFile, importAttrSystemJsonFile } from './attr/attrSystemJsonFile'
@@ -103,6 +113,8 @@ interface IpcHandlerDeps {
   dataSync: CeshuDataSync
   agentDispatcher: SkillDispatcher
   agentBrain: AgentBrainService
+  agentSessionStore: AgentSessionStore
+  approvalBroker: AgentApprovalBroker
   getAppInfo: () => AppInfo
 }
 
@@ -118,6 +130,8 @@ export function registerIpcHandlers({
   dataSync,
   agentDispatcher,
   agentBrain,
+  agentSessionStore,
+  approvalBroker,
   getAppInfo
 }: IpcHandlerDeps): void {
   handle('app:info', undefined, () => getAppInfo())
@@ -129,8 +143,32 @@ export function registerIpcHandlers({
   handle('agent:executeTool', agentExecuteToolInputSchema, (req) =>
     agentDispatcher.execute(req.tool, req.params, {})
   )
-  // Agent Brain 循环：输入 → 事件流 + 终稿（A1-2；危险操作因无审批通道而一律拒绝）
-  handle('agent:chat', agentChatInputSchema, (req) => agentBrain.chat(req.input))
+  // Agent Brain 循环（A1-2/A1-4）：事件流实时推给渲染层；危险操作经审批 broker 等渲染层决定
+  handle('agent:chat', agentChatInputSchema, async (req, event) => {
+    // 注意竞态：事件在 await requestApproval 之前就已推给渲染层，用户可能「秒点」批准。
+    // 故在**分配 id 时就登记**待审批 promise，requestApproval 只取回它，避免决定被丢弃。
+    const preRegistered = new Map<string, Promise<boolean>>()
+    return agentBrain.chat(req.input, {
+      onEvent: (payload) => {
+        event.sender.send('agent:event', payload)
+      },
+      newRequestId: () => {
+        const requestId = approvalBroker.nextId()
+        preRegistered.set(requestId, approvalBroker.registerWith(requestId))
+        return requestId
+      },
+      requestApproval: (request) => preRegistered.get(request.requestId) ?? Promise.resolve(false)
+    })
+  })
+  handle('agent:approvalResponse', agentApprovalResponseInputSchema, (req) => ({
+    ok: approvalBroker.resolve(req.requestId, req.approved)
+  }))
+  handle('agent:sessionInfo', undefined, () => agentSessionStore.info())
+  handle('agent:sessionRestore', undefined, () => {
+    const snapshot = agentSessionStore.tryRestore()
+    return { messages: snapshot?.messages ?? [] }
+  })
+  handle('agent:sessionClear', undefined, async () => ({ cleared: await agentSessionStore.clear() }))
   handle('schema:list', undefined, () => typeSchemaStore.getTypes())
   handle('schema:save', schemaSaveInputSchema, (req) => typeSchemaStore.saveTypes(req.types))
   handle('attrSystem:get', undefined, () => attrSystemStore.getSystem())
@@ -438,12 +476,15 @@ export function registerIpcHandlers({
 function handle<C extends IpcChannel>(
   channel: C,
   schema: ZodType | undefined,
-  handler: (req: IpcContract[C]['req']) => IpcContract[C]['res'] | Promise<IpcContract[C]['res']>
+  handler: (
+    req: IpcContract[C]['req'],
+    event: IpcMainInvokeEvent
+  ) => IpcContract[C]['res'] | Promise<IpcContract[C]['res']>
 ): void {
-  ipcMain.handle(channel, async (_event, raw: unknown): Promise<IpcResult<IpcContract[C]['res']>> => {
+  ipcMain.handle(channel, async (event, raw: unknown): Promise<IpcResult<IpcContract[C]['res']>> => {
     try {
       const req = (schema ? schema.parse(raw) : raw) as IpcContract[C]['req']
-      const data = await handler(req)
+      const data = await handler(req, event)
       return { ok: true, data }
     } catch (error) {
       return {

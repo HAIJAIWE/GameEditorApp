@@ -2,6 +2,7 @@ import { join } from 'node:path'
 
 import { app, BrowserWindow, shell } from 'electron'
 
+import { AgentApprovalBroker } from './agent/approvalBroker'
 import { AgentBrainService } from './agent/brainService'
 import { AgentMemoryStore } from './agent/memoryStore'
 import { AgentSessionStore } from './agent/sessionStore'
@@ -80,11 +81,13 @@ app.whenReady().then(() => {
   agentDispatcher.register(createCeshuSkill({ ceshuManager }))
   // Agent 会话与记忆（A1-3）：统一落在 userData/agent 下；A2-1 引入多库后只改这一处
   const agentDir = join(app.getPath('userData'), 'agent')
+  const agentSessionStore = new AgentSessionStore(agentDir)
   const agentBrain = new AgentBrainService({
     dispatcher: agentDispatcher,
-    sessionStore: new AgentSessionStore(agentDir),
+    sessionStore: agentSessionStore,
     memoryStore: new AgentMemoryStore(agentDir)
   })
+  const approvalBroker = new AgentApprovalBroker()
 
   registerIpcHandlers({
     dataService,
@@ -96,6 +99,8 @@ app.whenReady().then(() => {
     dataSync: new CeshuDataSync(ceshuManager, dataService, typeSchemaStore),
     agentDispatcher,
     agentBrain,
+    agentSessionStore,
+    approvalBroker,
     llmClient: new LlmClient(),
     getAppInfo: () => ({
       name: app.getName(),
