@@ -51,6 +51,7 @@ const REQUIRED_ROADMAP_MARKERS: readonly string[] = [
   '92b29ed', // E17–E18 引用表 + 掉落表字段编辑器（同批）
   'da320b6', // E19–E20 游戏数据 CSV + Excel 导入导出（同批）
   '82a59c9', // E21 术语风格（迁移 core/style_manager.py）
+  '9294a8a', // E22 AI 生图子系统（补齐 §4 #7 能力缺口）
   'E4（2026-10-04）',
   'E5（2026-10-04）',
   'E6（2026-10-04）',
@@ -69,6 +70,7 @@ const REQUIRED_ROADMAP_MARKERS: readonly string[] = [
   'E19（2026-10-05）',
   'E20（2026-10-05）',
   'E21（2026-10-05）',
+  'E22（2026-10-05）',
   '已由 E7 补齐', // E6 遗留项已被 E7 补齐的标记（回退会退回旧措辞）
   'migration-audit.md' // §2 必须指向文件级审计
 ]

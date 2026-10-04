@@ -55,12 +55,12 @@
 >
 > | 判定 | 文件 | 行数 | 占比 |
 > |---|---|---|---|
-> | ✅ 已迁 | 93 | 34,606 | 38.0% |
+> | ✅ 已迁 | 94 | 34,971 | 38.4% |
 > | ◐ 部分已迁 | 61 | 22,917 | 25.1% |
 > | ⛔ 有意不迁（决策，非欠债） | 84 | 16,851 | 18.5% |
-> | ⚠️ **未迁（整块没做）** | **61** | **16,790** | **18.4%** |
+> | ⚠️ **未迁（整块没做）** | **60** | **16,425** | **18.0%** |
 >
-> 对账 PASS：`93+61+84+61 = 299` 文件、`34606+22917+16851+16790 = 91,164` 行。
+> 对账 PASS：`94+61+84+60 = 299` 文件、`34971+22917+16851+16425 = 91,164` 行。
 >
 > **结论：真实剩余 ≈ 2.7–3.1 万行（30–34%）** —— 而不是早前口头估算的「3.5–4.5k 行（4–5%）」。那句估算**口径过窄**（把 `ui/widgets`/`ui/dialogs`/`features` 三个混合态域当成了基本迁完）且未做文件级核实，**已被本审计推翻**。
 > 三个最意外的数字：**① `core/agent`（最大域 24,670 行）只有 1,689 行是完整已迁**（A 档做的是核心闭环，不是整个 Agent 引擎）；**② `ui/` 顶层+主题 9,883 行里仅 917 行完整已迁**；**③ `features` 9 文件完整已迁为 0**。
@@ -285,6 +285,14 @@
 > **验证**：单测 **64**（`gameStyle.test.ts`）+ `formSections` +5（`STAT_LABELS` 命中不替换 / grid 未命中走替换 / 省略 styleId 不替换）+ `ceshuModel` +6；eslint 0 / 双端 tsc 0 / vitest **84 文件 1130 测试全绿** / `electron-vite build` OK / E2E 收集 **65** 例（新增 `game-style.spec.ts`：仙侠下 `生命加成%:`→`气血加成%:`、`法力加成%:`→`灵力加成%:`、`技能列表:`→`功法列表:` + 重载持久化）。
 > **实证方法（关键，避免自我循环）**：另写**一次性差分测试**——按 Python 源码**独立重实现** `_build_cross_style_map`/`_build_replacement_pairs`/`resolve_label`/`infer_style_from_text`，与 TS 实现在 **300+ 标签（含全部 schema 字段标签/STAT_LABELS/术语值/别名/对抗串）× 10 个 styleId** 上逐条比对，四个函数**全部一致**；再逐字段比对确认 `GAME_STYLES` 内联数据与 `game_styles.json` **完全一致（6 风格 × 46 键，无抄写错误）**。两个一次性测试跑完即删，不进仓库。
 > **本批纠正的子代理错误汇报**：实现子代理口头汇报称「47 个概念，只有 34 个六风格全覆盖，3 个别名键从未出现在任何术语表」。**实测全部为假**：概念 **46** 个、**46 个在 6 风格中全覆盖**、**0 个失效别名键**（这些错数字**未写进代码**）。教训：子代理的"实证数字"必须自己复算一遍。
+
+> ✅ **E22（2026-10-05）：AI 生图子系统（补齐 §4 #7 能力缺口），提交 `9294a8a`**。
+> **背景反转**：#7 原经双源调研（只读子代理 + 主代理独立 grep）判定「有意不迁/待决策」并记档（`5b455d6`）——因 Python 侧 `_ai_image.py` 本身是死壳、且真引擎依赖云付费 API。后**用户决策「都做了」→ 立项补齐**。这正是「有意不迁 vs 能力缺口」两种处置的差别：前者是设计决策，后者等用户拍板后可作新功能补齐。
+> **交付**：`shared/imageGen.ts`（前置校验 `checkImageConfig` + `resolveImageConfig` image 维度覆盖 + `buildImageRequest` 四 provider + `extractImageUrl`，单测 52）、`main/imageGen/client.ts`（fetch + 重试 2 次 + 进程内限流 2s）、`main/imageGen/save.ts`（stream 落盘 + tmp→rename 原子写 + 文件名 basename 防穿越）、`shared/imageGenConfig.ts`（面板配置 localStorage，复用 `visibleTypes` 的 `StorageLike`）、`ImageGenPanel.tsx` + 工具栏「AI 生图」入口；5 处 IPC 接线（`image:generate` + `dialog:chooseImageSaveDir`）。
+> **四 provider**（照 Python `generate_image`）：OpenAI `dall-e-3`、`Qwen` dashscope `qwen-vl`（响应走 `output.results[0].url`）、`豆包` Ark、`Generic` 自定义 base_url。响应解析：openai/doubao/generic 走 `data[0].url ?? data[0].b64_json`。
+> **有意偏离**：① 限流用**进程内最小间隔**（2s ≈ 0.5 QPS）近似 Python `image_gen` 桶，而非跨模块 `RateLimiter`（Electron 主进程单实例足够）；② 配置落 **localStorage**（Python 存 `config.json`，本仓尚无设置存储基座 → 属 #8 待建）；③ 面板按 `show_ai_image_dialog` 的**设计意图**做成真正可用版（Python 该入口是死桩，只弹「需配置 Key」）。
+> **验证**：单测 90（imageGen 52 + client/save 21 + config 17）；eslint 0 / 双端 tsc 0 / vitest **87 文件 1220 测试全绿**（上批 84/1130）/ `electron-vite build` OK / E2E 已收集（`image-gen.spec.ts`，本沙箱无 Electron 未实跑）。**已知限制**：真实云调用需 API Key + 计费，E2E 只覆盖面板/前置校验/配置持久化，**未实跑云端链路**。
+> **踩坑**：① 两个子代理（`main`/`panel`）因 **429 频率限制**中途失败 → 主代理接手自写这两块 + 修它们已落盘的半成品测试（`imageGenClient.test.ts` 按旧松散签名写、断言「保存图像失败」但实现是「下载图像失败」——**实现对、断言错**，改断言而非改实现）。② 纯逻辑助手原放 `renderer/components/` → 被 node 端 tsc 拒绝（`tsconfig.node.json` 只 include `main|preload|shared`）→ **移到 `src/shared/`**（既符合本仓「可单测纯逻辑都在 shared」约定，又自然被两套 tsc 覆盖；**不要**为它给 node 配置加 renderer）。③ `ImageGenPanel` 标 `: JSX.Element` 报 TS2503（React 19 新 jsx runtime 无全局 JSX 命名空间）→ 去掉返回标注，与既有组件一致。
 
 ## 3. 每片执行流程（固定顺序）
 
