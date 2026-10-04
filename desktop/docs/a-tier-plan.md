@@ -197,7 +197,7 @@ userData/
 | A1-1 技能协议 + 调度器 | ✅ 完成 | `20ec1ff` | `shared/agent/protocol.ts`（协议/风险策略/参数修正，单测 18）+ `main/agent/dispatcher.ts`（注册表/模糊解析/危险确认门，单测 15）+ 2 个 action-based 技能（`system.game_data` 读写数据表 / `system.ceshu` 只读策划书，单测 13）+ IPC `agent:listTools`/`agent:executeTool` + E2E `agent-execute-tool.spec.ts`（沙箱未实跑） |
 | A1-2 Brain 循环 + 事件流 | ✅ 完成 | `a377e3c` | `shared/agent/brain.ts`（事件流 + 循环纯逻辑，单测 19）+ `shared/agent/prompts.ts`（提示词骨架）+ `main/agent/ollamaTransport.ts`（`/api/chat` NDJSON 流式 + tool_calls）+ `main/agent/brainService.ts`（调度器适配）+ IPC `agent:chat` + E2E `agent-brain-chat.spec.ts`（`/api/chat` 桩两轮，沙箱未实跑） |
 | A1-3 会话与记忆 | ✅ 完成 | `7794a84` | `shared/agent/session.ts`（快照/截断纯逻辑）+ `main/agent/sessionStore.ts`（原子写 + 串行队列 + 严格/容错两档读取 + metrics.jsonl）+ `shared/agent/memory.ts`（确定性 n-gram 嵌入）+ `main/agent/memoryStore.ts`（vectra 索引）；接入 `AgentBrainService`（记忆注入 + 会话落盘 + 问答回写）；单测 22 |
-| A1-4 数字员工面板 | ✅ 完成 | `<PENDING_HASH>` | `shared/agent/panel.ts`（事件流 → 面板视图模型纯归约，单测 13）+ `main/agent/approvalBroker.ts`（审批中转，单测 6）+ `renderer/src/components/digital/DigitalPanel.tsx` + App 第三模式 `mode-digital` + IPC `agent:approvalResponse`/`agent:sessionInfo|Restore|Clear` + 主进程 `agent:event` 推送 + E2E `agent-digital-panel.spec.ts`（2 例，沙箱未实跑） |
+| A1-4 数字员工面板 | ✅ 完成 | `c38199b` | `shared/agent/panel.ts`（事件流 → 面板视图模型纯归约，单测 13）+ `main/agent/approvalBroker.ts`（审批中转，单测 6）+ `renderer/src/components/digital/DigitalPanel.tsx` + App 第三模式 `mode-digital` + IPC `agent:approvalResponse`/`agent:sessionInfo|Restore|Clear` + 主进程 `agent:event` 推送 + E2E `agent-digital-panel.spec.ts`（2 例，沙箱未实跑） |
 | A1-5 业务技能接线 + 托盘/热键 | ⬜ 未开始 | — | — |
 
 ### A1-4 落地记录（2026-10-04）
