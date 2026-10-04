@@ -86,6 +86,22 @@ export interface MbApi {
   image: {
     generate(req: IpcContract['image:generate']['req']): Promise<IpcContract['image:generate']['res']>
   }
+  /**
+   * 系统钥匙串（主进程用 Electron `safeStorage` 加密落盘到 `userData/secrets.enc`）。
+   *
+   * 注意：**没有「读取明文」接口**——渲染层永远拿不到 API Key 明文，只知道有没有配过。
+   * 需要用 Key 的操作（如生图）由主进程在本地解密自用，不经 IPC 回传。
+   */
+  settings: {
+    /** 某密钥是否已配置（不解密，渲染层就靠它显示「已配置」） */
+    hasSecret(req: IpcContract['settings:hasSecret']['req']): Promise<IpcContract['settings:hasSecret']['res']>
+    /** 写入密钥（主进程加密落盘；成功后调用方应立即清空自己持有的明文） */
+    setSecret(req: IpcContract['settings:setSecret']['req']): Promise<IpcContract['settings:setSecret']['res']>
+    /** 删除密钥 */
+    deleteSecret(
+      req: IpcContract['settings:deleteSecret']['req']
+    ): Promise<IpcContract['settings:deleteSecret']['res']>
+  }
   engine: {
     exportData(req: IpcContract['engine:exportData']['req']): Promise<IpcContract['engine:exportData']['res']>
   }

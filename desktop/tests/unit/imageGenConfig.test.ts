@@ -24,17 +24,16 @@ function fakeStorage(initial: Record<string, string> = {}): StorageLike & { data
 }
 
 describe('imageGenConfig：默认值', () => {
-  it('DEFAULT_IMAGE_GEN_CONFIG 是 openai + 全空', () => {
-    expect(DEFAULT_IMAGE_GEN_CONFIG).toEqual({ provider: 'openai', apiKey: '', model: '', baseUrl: '' })
+  it('DEFAULT_IMAGE_GEN_CONFIG 是 openai + 全空（**不含 apiKey**）', () => {
+    expect(DEFAULT_IMAGE_GEN_CONFIG).toEqual({ provider: 'openai', model: '', baseUrl: '' })
+    expect('apiKey' in DEFAULT_IMAGE_GEN_CONFIG).toBe(false)
   })
 
   it('默认值不被 load/save 改动（返回副本）', () => {
     const storage = fakeStorage()
     const loaded = loadImageGenConfig(storage)
     loaded.provider = 'qwen'
-    loaded.apiKey = 'mutated'
     expect(DEFAULT_IMAGE_GEN_CONFIG.provider).toBe('openai')
-    expect(DEFAULT_IMAGE_GEN_CONFIG.apiKey).toBe('')
     // 再读一次仍应是默认（未被上一步污染）
     expect(loadImageGenConfig(fakeStorage()).provider).toBe('openai')
   })
@@ -85,21 +84,30 @@ describe('imageGenConfig：读取', () => {
 describe('imageGenConfig：字段级容错', () => {
   it('provider 非法 → 回落 openai，其余字段正常读', () => {
     const storage = fakeStorage({
-      [IMAGE_GEN_CONFIG_KEY]: JSON.stringify({ provider: 'not-a-provider', apiKey: 'k', model: 'm' })
+      [IMAGE_GEN_CONFIG_KEY]: JSON.stringify({ provider: 'not-a-provider', model: 'm' })
     })
-    expect(loadImageGenConfig(storage)).toEqual({ provider: 'openai', apiKey: 'k', model: 'm', baseUrl: '' })
+    expect(loadImageGenConfig(storage)).toEqual({ provider: 'openai', model: 'm', baseUrl: '' })
   })
 
   it('缺字段 → 该字段回落默认（不补 undefined 键）', () => {
     const storage = fakeStorage({ [IMAGE_GEN_CONFIG_KEY]: JSON.stringify({ provider: 'doubao' }) })
-    expect(loadImageGenConfig(storage)).toEqual({ provider: 'doubao', apiKey: '', model: '', baseUrl: '' })
+    expect(loadImageGenConfig(storage)).toEqual({ provider: 'doubao', model: '', baseUrl: '' })
   })
 
   it('字段类型不对（数字/对象）→ 回落空串', () => {
     const storage = fakeStorage({
-      [IMAGE_GEN_CONFIG_KEY]: JSON.stringify({ provider: 'qwen', apiKey: 123, model: { a: 1 }, baseUrl: null })
+      [IMAGE_GEN_CONFIG_KEY]: JSON.stringify({ provider: 'qwen', model: { a: 1 }, baseUrl: null })
     })
-    expect(loadImageGenConfig(storage)).toEqual({ provider: 'qwen', apiKey: '', model: '', baseUrl: '' })
+    expect(loadImageGenConfig(storage)).toEqual({ provider: 'qwen', model: '', baseUrl: '' })
+  })
+
+  it('E22 遗留的明文 apiKey 字段被忽略（不再读进内存）', () => {
+    const storage = fakeStorage({
+      [IMAGE_GEN_CONFIG_KEY]: JSON.stringify({ provider: 'openai', apiKey: 'sk-legacy', model: 'm' })
+    })
+    const loaded = loadImageGenConfig(storage)
+    expect('apiKey' in loaded).toBe(false)
+    expect(JSON.stringify(loaded)).not.toContain('sk-legacy')
   })
 
   it('四个合法 provider 都能读回', () => {
@@ -115,7 +123,6 @@ describe('imageGenConfig：写入', () => {
     const storage = fakeStorage()
     const config: StoredImageGenConfig = {
       provider: 'generic',
-      apiKey: 'sk-test',
       model: 'my-model',
       baseUrl: 'https://example.com/v1'
     }
@@ -127,6 +134,15 @@ describe('imageGenConfig：写入', () => {
     const storage = fakeStorage()
     saveImageGenConfig({ ...DEFAULT_IMAGE_GEN_CONFIG }, storage)
     expect(storage.data.has(IMAGE_GEN_CONFIG_KEY)).toBe(true)
+  })
+
+  it('**白名单**：即便调用方硬塞 apiKey，也绝不落进 localStorage', () => {
+    const storage = fakeStorage()
+    // 模拟「不守规矩的调用方」：把明文混进要保存的对象里
+    saveImageGenConfig({ ...DEFAULT_IMAGE_GEN_CONFIG, apiKey: 'sk-leak' } as StoredImageGenConfig, storage)
+    const raw = storage.getItem(IMAGE_GEN_CONFIG_KEY) ?? ''
+    expect(raw).not.toContain('apiKey')
+    expect(raw).not.toContain('sk-leak')
   })
 
   it('storage 为 null → 静默 no-op（不抛）', () => {
@@ -146,8 +162,8 @@ describe('imageGenConfig：写入', () => {
 
   it('后写覆盖前写', () => {
     const storage = fakeStorage()
-    saveImageGenConfig({ ...DEFAULT_IMAGE_GEN_CONFIG, apiKey: 'first' }, storage)
-    saveImageGenConfig({ ...DEFAULT_IMAGE_GEN_CONFIG, apiKey: 'second' }, storage)
-    expect(loadImageGenConfig(storage).apiKey).toBe('second')
+    saveImageGenConfig({ ...DEFAULT_IMAGE_GEN_CONFIG, model: 'first' }, storage)
+    saveImageGenConfig({ ...DEFAULT_IMAGE_GEN_CONFIG, model: 'second' }, storage)
+    expect(loadImageGenConfig(storage).model).toBe('second')
   })
 })

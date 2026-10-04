@@ -47,6 +47,8 @@ import type {
   LibraryRenameInput,
   SchemaSaveInput,
   CeshuDataGenInput,
+  SecretNameInput,
+  SetSecretInput,
   TemplateJsonDialogInput,
   TemplatesDeleteInput,
   TemplatesExportInput,
@@ -134,11 +136,20 @@ export interface IpcContract {
   'dialog:chooseCsvFile': { req: undefined; res: { path: string | null } }
   'dialog:chooseExcelFile': { req: undefined; res: { path: string | null } }
   // AI 生图（features/_ai_image.py 能力缺口补齐）：生成 + 落盘
+  // 注意：req.config.apiKey 由渲染层传空串即可，主进程会用系统钥匙串里的真实 Key 覆盖
+  // （见 main/ipc.ts 的 image:generate handler）——明文不进 IPC 的「回程」也不进 localStorage。
   'image:generate': {
     req: ImageGenInput
     res: { ok: true; url: string; path: string } | { ok: false; error: string }
   }
   'dialog:chooseImageSaveDir': { req: undefined; res: { path: string | null } }
+  // ---- 系统钥匙串（API Key 等敏感配置）----
+  // 安全约定（不可违背）：渲染层是 sandbox + contextIsolation，**永远拿不到明文**。
+  // 因此这里只有「有没有配过 / 写入 / 删除」三条通道，**刻意不存在**「读出明文」的 IPC。
+  // 真正需要用 Key 时（如生图加 Authorization 头）由主进程在本地解密自用。
+  'settings:hasSecret': { req: SecretNameInput; res: { has: boolean } }
+  'settings:setSecret': { req: SetSecretInput; res: { ok: boolean; error?: string } }
+  'settings:deleteSecret': { req: SecretNameInput; res: { ok: boolean; error?: string } }
   // 引擎代码导出（P0：Lua）。渲染/落盘在 main/engineExport，取数由 handler 注入。
   'engine:exportData': { req: EngineExportInput; res: { filePath: string; engine: string; bytes: number } }
   'dialog:chooseJsonFile': { req: undefined; res: { path: string | null } }

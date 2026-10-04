@@ -10,6 +10,7 @@ import { LibraryManager } from './library/manager'
 import { migrateFlatToLibraries } from './library/migrate'
 import { INITIAL_LIBRARY_NAME } from './library/store'
 import { buildStores, type AppStores } from './stores'
+import { getSecretStore } from './settings/secretStoreInstance'
 import { disposeTray, registerShortcuts, setupTray, unregisterShortcuts } from './tray'
 import { DEFAULT_WINDOW_STATE, readWindowState, writeWindowState } from './windowState'
 
@@ -135,6 +136,8 @@ function activateLibrary(libraryManager: LibraryManager): void {
   registerIpcHandlers({
     ...next,
     libraryManager,
+    // 敏感配置（API Key）走 safeStorage 加密的钥匙串；懒加载单例，首次取值在 whenReady 之后
+    secretStore: getSecretStore(),
     onSwitchLibrary: async (name) => {
       await libraryManager.switch(name)
       activateLibrary(libraryManager)

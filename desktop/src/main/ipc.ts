@@ -74,7 +74,9 @@ import {
   updateItemInputSchema,
   backupCreateInputSchema,
   backupRestoreInputSchema,
-  backupDeleteInputSchema
+  backupDeleteInputSchema,
+  secretNameInputSchema,
+  setSecretInputSchema
 } from '../shared/schemas'
 import { log } from '../shared/logger'
 import type { LogLevel } from '../shared/types'
@@ -129,8 +131,11 @@ import { deleteBackupFile, listBackups } from './backup/backupStore'
 import { createLibraryBackup, restoreLibraryBackup } from './backup/restore'
 import type { DataService } from './data/service'
 import { exportEngineData } from './engineExport/exporter'
+import type { ImageGenConfig } from '../shared/imageGen'
 import { generateImage } from './imageGen/client'
 import { saveImageFromUrl } from './imageGen/save'
+import { isValidSecretName, type SecretStore } from './settings/secretStore'
+import { SECRET_NAMES } from '../shared/secretNames'
 import type { LlmClient } from './llm/client'
 import type { TypeSchemaStore } from './schema/store'
 import type { FieldTemplateStore } from './schema/fieldTemplateStore'
@@ -152,6 +157,12 @@ interface IpcHandlerDeps {
   agentFeedback: FeedbackStore
   approvalBroker: AgentApprovalBroker
   libraryManager: LibraryManager
+  /**
+   * 系统钥匙串（`safeStorage` 加密的 API Key 存储）。
+   * 由 `main/index.ts` 注入（`getSecretStore()`），**不在本模块 import electron 薄壳**——
+   * 既照 `getAppInfo` / `setWindowMode` 的既有依赖注入先例走，也避免 `ipc.ts` ↔ `index.ts` 循环依赖。
+   */
+  secretStore: SecretStore
   /** 切换活跃库（由 `main/index.ts` 负责重建 store 与广播） */
   onSwitchLibrary: (name: string) => Promise<void>
   getAppInfo: () => AppInfo
@@ -176,6 +187,7 @@ export function registerIpcHandlers({
   agentFeedback,
   approvalBroker,
   libraryManager,
+  secretStore,
   onSwitchLibrary,
   getAppInfo,
   setWindowMode
@@ -196,6 +208,34 @@ export function registerIpcHandlers({
     }
     sink[req.level](req.message, req.meta)
     return undefined
+  })
+  // ---- 系统钥匙串（API Key 等敏感配置）----
+  // 设计前提：渲染层永远拿不到明文，所以只有 has / set / delete 三条通道，**没有 get**。
+  // 三条 handler 都**不抛**：失败转成 `{ ok: false, error }`（照本仓既有风格），
+  // 免得渲染层只能靠 catch 拿一个结构化 IpcInvokeError 才能显示原因。
+  handle('settings:hasSecret', secretNameInputSchema, async (req) => {
+    if (!isValidSecretName(req.name)) {
+      return { has: false }
+    }
+    try {
+      return { has: await secretStore.has(req.name) }
+    } catch {
+      // 读盘异常时保守回答「未配置」：宁可让用户重新配一次，也不要误报已配置
+      return { has: false }
+    }
+  })
+  handle('settings:setSecret', setSecretInputSchema, async (req) => {
+    // 名字合法性用 secretStore 自己的校验函数复核（zod 只挡了长度/类型）
+    if (!isValidSecretName(req.name)) {
+      return { ok: false, error: '非法的密钥名' }
+    }
+    return secretStore.set(req.name, req.plaintext)
+  })
+  handle('settings:deleteSecret', secretNameInputSchema, async (req) => {
+    if (!isValidSecretName(req.name)) {
+      return { ok: false, error: '非法的密钥名' }
+    }
+    return secretStore.remove(req.name)
   })
   // Agent 技能调度：listTools 供提示词/面板展示，executeTool 走统一调度与安全门
   handle('agent:listTools', undefined, () => ({
@@ -426,8 +466,18 @@ export function registerIpcHandlers({
     return summary
   })
   // AI 生图（features/_ai_image.py 能力缺口补齐）：生成 + 落盘到指定目录
+  //
+  // API Key 的取值纪律：渲染层**不持有**明文（`req.config.apiKey` 传空串即可），
+  // 真实 Key 由主进程从系统钥匙串解密后**在本地覆盖进 config**。
+  // 这样即便渲染层被 XSS，也拿不到长期密钥；同时也兼容了「E22 时期把 Key 存在
+  // localStorage」的老配置（已由 shared/secretMigration.ts 一次性搬到钥匙串）。
   handle('image:generate', imageGenInputSchema, async (req) => {
-    const gen = await generateImage(req.config, req.prompt)
+    const stored = await secretStore.get(SECRET_NAMES.imageGenApiKey)
+    if (!stored.ok) {
+      return { ok: false, error: `${stored.error}；请先在生图面板把 API Key 保存到系统钥匙串` }
+    }
+    const config: ImageGenConfig = { ...req.config, apiKey: stored.plaintext }
+    const gen = await generateImage(config, req.prompt)
     if (!gen.ok) return { ok: false, error: gen.error }
     const saved = await saveImageFromUrl(gen.url, req.saveDir, req.filename)
     if (!saved.ok) return { ok: false, error: saved.error }

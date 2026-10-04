@@ -75,6 +75,12 @@ const api: MbApi = {
   image: {
     generate: (req) => invoke('image:generate', req)
   },
+  // 系统钥匙串：注意这里**刻意没有** getSecret —— 明文不出主进程
+  settings: {
+    hasSecret: (req) => invoke('settings:hasSecret', req),
+    setSecret: (req) => invoke('settings:setSecret', req),
+    deleteSecret: (req) => invoke('settings:deleteSecret', req)
+  },
   backup: {
     list: () => invoke('backup:list', undefined),
     create: (req) => invoke('backup:create', req),
