@@ -192,7 +192,7 @@ userData/
 | 期次 | 状态 | 提交 | 备注 |
 |---|---|---|---|
 | 调研（本文） | ✅ 完成 | — | 3 子代理并行盘点；核验 `core/agent` 97 文件 / 21,669 行、`library_manager.py` 626 行 |
-| A2-1 库服务与路径迁移 | ✅ 完成（**降级验证**） | `<PENDING_HASH>` | `main/library/{store,manager,migrate}.ts`（注册表 + 库服务 + 一次性搬迁，单测 15）+ 六处 store 统一改为 `libraries/<活跃库>/…` + `main/index.ts` 抽出 `buildStores()`/`activateLibrary()` + IPC `library:list/create/rename/remove/switch` + `disposeIpcHandlers()` 支持切换后重建 + `library:changed` 广播；**E2E 未写**（见落地记录） |
+| A2-1 库服务与路径迁移 | ✅ 完成（**降级验证**） | `bd9d2d9` | `main/library/{store,manager,migrate}.ts`（注册表 + 库服务 + 一次性搬迁，单测 15）+ 六处 store 统一改为 `libraries/<活跃库>/…` + `main/index.ts` 抽出 `buildStores()`/`activateLibrary()` + IPC `library:list/create/rename/remove/switch` + `disposeIpcHandlers()` 支持切换后重建 + `library:changed` 广播；**E2E 未写**（见落地记录） |
 | A2-2 库条 UI 与切换联动 | ⬜ 未开始 | — | — |
 | A1-1 技能协议 + 调度器 | ✅ 完成 | `20ec1ff` | `shared/agent/protocol.ts`（协议/风险策略/参数修正，单测 18）+ `main/agent/dispatcher.ts`（注册表/模糊解析/危险确认门，单测 15）+ 2 个 action-based 技能（`system.game_data` 读写数据表 / `system.ceshu` 只读策划书，单测 13）+ IPC `agent:listTools`/`agent:executeTool` + E2E `agent-execute-tool.spec.ts`（沙箱未实跑） |
 | A1-2 Brain 循环 + 事件流 | ✅ 完成 | `a377e3c` | `shared/agent/brain.ts`（事件流 + 循环纯逻辑，单测 19）+ `shared/agent/prompts.ts`（提示词骨架）+ `main/agent/ollamaTransport.ts`（`/api/chat` NDJSON 流式 + tool_calls）+ `main/agent/brainService.ts`（调度器适配）+ IPC `agent:chat` + E2E `agent-brain-chat.spec.ts`（`/api/chat` 桩两轮，沙箱未实跑） |
