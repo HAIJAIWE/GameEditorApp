@@ -77,13 +77,13 @@
 
 ### D 档（属性/数值域剩余）
 
-`core/extended_formulas.py` **456 行 —— 经实证为死代码，已改列「有意不迁」**（见 E4 条）、`style_manager.py` 236、`game_templates.py` 239、`editor_layout.py` 177、`cedict.py` 58、引擎代码导出（`ui/dialogs/engine_export.py` Unity/Unreal/Cocos）。**已交付**：`operation_log.py`（会话级回滚，E3）、`ui/widgets/formula_builder.py` 486（系数公式编辑器，E4）。
+`core/extended_formulas.py` **456 行 —— 实证死代码，已列「有意不迁」**（见 E4）、`core/game_templates.py` **326 行 —— 实证死代码**（仅 `core/__init__.py` re-export）、`core/editor_layout.py` **208 行 —— 实证「能写、没人读、且已过期」的配置，已列「有意不迁」**（见 E5）、`core/style_manager.py` **289 行（活的，被 dynamic_form 用）**、`core/cedict.py` **72 行（活的，被类型编辑器用）**、引擎代码导出（`ui/dialogs/engine_export.py` Unity/Unreal/Cocos）。**已交付**：`operation_log.py`（会话级回滚，E3）、`ui/widgets/formula_builder.py` 486（系数公式编辑器，E4）、`ui/widgets/dynamic_form.py::FIELD_GROUPS`（条目编辑器分区，E5）。
 
 > ✅ **D 档「引擎代码导出」已交付首刀（见 §1 台账 E1，提交 `b7a2b9f`）**：只做 **Lua**，且只做「全量数据 → 单个 Lua 数据模块」。  
 > **与 Python 参考版的有意偏离**：Python 支持 Unity/Unreal/Godot/Cocos 骨架，**反而没有 Lua**——本刀补的是它缺的那条主路径，其余引擎按 P1/P2 待排。  
 > **已补 E2**：渲染层 UI 入口（数据视图工具条按钮 + 原生保存对话框）已就绪，界面上可点了。  
 > **未做**：Godot/Cocos、Unity/Unreal 数据填充；产物未经真实 Lua 解析器校验（本机无 `lua`/`luac`）；保存对话框与按钮点击属 Electron-only，本沙箱无法验证。  
-> D 档其余项：`extended_formulas`（**实证死代码 → 改为「有意不迁」**）、`style_manager`/`game_templates`/`editor_layout`/`cedict`；C 档（菜单快捷键/窗口状态/主题/设置/i18n）仍待排。
+> D 档**仍活着的**剩余项：`style_manager.py` 289（游戏风格术语替换）、`cedict.py` 72（中文字段名→英文 key 的词典管线）。**已判死代码/不迁**：`extended_formulas` 456、`game_templates` 326、`editor_layout` 208（详见 E4/E5）。C 档（菜单快捷键/窗口状态/主题/设置/i18n）仍待排。
 
 > ✅ **D 档「会话级回滚」（`core/operation_log.py` 154 行）已完整交付**：**E3-1** 核心（`8ff0b0d`：`buildRollbackPlan` 纯函数 + 内存环形日志 5000/批清 500 + `executeRollbackPlan` 单步失败不中断，单测 11）+ **E3-2** 接线（`7478c43`：`operationRecorder` 包在 runner 上记录 + `tool.rollback_ai_changes` 技能复用 confirm 交互，单测 15）。
 > **语义澄清（勿按名字臆测）**：这不是通用撤销，而是 **AI 会话级安全网**——Python 原实现只记 AI 会话内的数据变更（`if not conv_id: return`），不记手动编辑。
@@ -104,6 +104,22 @@
 > - **一个已实证并写进模块文档的行为**：重建后**项顺序按属性列表归一**，不保留原文书写顺序（Python 同此：实跑 HP → `=力量*10+敏捷*5+体质*20`）。数值等价，但**不保证逐字一致**。
 > - **未验证**：Electron 内的点击链路（E2E 沙箱不可用；`playwright --list` 已确认新 E2E 被收集，非静默排除）。
 > - **本轮自纠**：3 个单测首跑失败，根因是**我的期望写错**（照默认系数 dict 顺序而非属性列表顺序），代码本身与 Python 一致；已用 Python 实跑取证后修正期望并把该实证串锁进测试。
+
+> ✅ **E5（2026-10-04）：条目编辑器分区布局 —— `ui/widgets/dynamic_form.py` 的 `FIELD_GROUPS` 迁移，提交 `dbfe391`**。
+> **本轮又把一个排期项判为「不该做」，结论与台账相反**：
+> - 台账列的是 `core/editor_layout.py`（原记 177 行，实测 **208 行**）。它**不该 1:1 迁**，因为它是一套**「能写、没人读、且已经过期」**的配置，三项实证：
+>   ① `dynamic_form.py:262` 用的是**硬编码常量** `FIELD_GROUPS`，而 `FIELD_GROUPS = {` 是该名字**唯一**的赋值处（`grep` 全命中即此），**从不读 JSON**；
+>   ② `data/editor_layouts.json` 只被 `EditorLayout` 读写，其消费者只有布局编辑器 `type_editor_layout_widget.py` 与 Agent 技能 `editor_layout_skill.py`——**条目编辑器从不读它**；
+>   ③ 两者**已漂移**（AST 实测对比）：`FIELD_GROUPS` 的 `skill`/`equip`/`item` 有「关联 Buff」分区、`job` 有「属性列表」分区，**JSON 都没有**；`role`/`monster`「技能 & 天赋」字段数 **3 vs 2**；`STAT_HINTS` 亦不一致。
+>   → 按权威（用户在界面上真正看到的）`FIELD_GROUPS` 迁移；JSON + 布局编辑器 + Agent 技能整套列 **「有意不迁」**。
+> - 顺带实证 **`STAT_HINTS` + `_create_stat_hint`/`_update_stat_hints` 是死代码**：`_create_stat_hint()` **只在 `layout == 'grid'` 分支**被调用，而有 grid 分区的类型是 `{job, skill, talent, equip, item}`，`STAT_HINTS` 的键却是 `{role, monster}`——**交集为 ∅**，提示标签永不会被创建，`_update_stat_hints()` 必然早退。→ 不迁。
+> - **有意不迁 `style_manager` 术语替换**（`_styled_label`）：它是独立的 D 档项（289 行），且唯一触发是 `ceshu_controller.py` 加载策划书时设置**全局单例**活跃风格——TS 刻意无全局可变态。默认无活跃风格时 Python 亦原样返回 label（`resolve_label`：`if not sid: return label`），故**默认行为等价**。
+> **交付**：`shared/formSections.ts`（`FORM_GROUPS` 照抄：7 类型 / 124 个字段名 + `STAT_LABELS` 8 条 + `buildFormLayout` 纯函数）+ `components/FormSectionCard.tsx`（图标+标题+受控折叠）+ `ItemForm.tsx` 改为按分区渲染 + 单测 18 + E2E 2 例。
+> **对 Python 的两处有意修正**：① Python 的 `attribute_panel` 分区不把字段计入 `grouped_fields`，而 `role`/`monster` schema 里又有 `attr_list` → 它会再走兜底**重复渲染**（同一数据两个控件、保存互相覆盖）；TS 绑定到 `attrpanel` 字段并只渲染一次。② 渲染不出内容的分区不产出（Python 会留一张空折叠卡片）。
+> **schema 差异（本刀不修，留下确切清单）**：`FIELD_GROUPS` 引用的字段名有 **6 个在 TS schema 中不存在** —— `monster.generic_drops`、`talent` 的 `multiplier`/`cd`/`damage_type`/`consume`/`effect`。故 `talent` 的「数值配置」在 TS 下只剩 `value`，其 5 个字段（`owner`/`level`/`rarity`/`effect_type`/`unlock_condition`）走兜底平铺，**一个都没丢**。属 schema 平移差异，需单独核对。
+> **不变式测试**：12 个内置类型「分区字段 + 未归组字段**恰好覆盖每个字段一次**（无遗漏、无重复）」——可捕获未来的 schema 改名与重复渲染。
+> **未验证**：Electron 内点击链路（E2E 沙箱不可用；`playwright --list` 已确认新 E2E 被收集）。**已核对既有 E2E 引用的 `field-*` 无一位于默认折叠分区**，不会破坏既有用例。
+> - **本轮自纠**：1 个单测首跑失败，同样是**我的期望写错**（`desc` 属「描述 & 图片」而非「基础信息」），代码正确。
 
 ## 3. 每片执行流程（固定顺序）
 
