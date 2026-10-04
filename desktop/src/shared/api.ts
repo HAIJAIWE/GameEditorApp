@@ -55,6 +55,9 @@ export interface MbApi {
     importLegacy(req: IpcContract['data:importLegacy']['req']): Promise<IpcContract['data:importLegacy']['res']>
     exportLegacy(req: IpcContract['data:exportLegacy']['req']): Promise<IpcContract['data:exportLegacy']['res']>
   }
+  engine: {
+    exportData(req: IpcContract['engine:exportData']['req']): Promise<IpcContract['engine:exportData']['res']>
+  }
   dialog: {
     chooseJsonFile(): Promise<IpcContract['dialog:chooseJsonFile']['res']>
     chooseSaveJsonFile(): Promise<IpcContract['dialog:chooseSaveJsonFile']['res']>

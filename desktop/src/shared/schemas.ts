@@ -37,6 +37,14 @@ export const exportLegacyInputSchema = z.object({
   path: z.string().min(1)
 })
 
+/* ---- 引擎代码导出 ---- */
+
+/** 引擎代码导出：目标引擎（当前仅支持 lua）+ 目标路径（缺扩展名时导出侧补 `.lua`） */
+export const engineExportInputSchema = z.object({
+  engine: z.enum(['lua']),
+  path: z.string().min(1)
+})
+
 /* ---- 数据表批量操作 ---- */
 
 export const batchOpSchema = z
@@ -380,6 +388,7 @@ export type DeleteItemInput = z.infer<typeof deleteItemInputSchema>
 export type ImportLegacyInput = z.infer<typeof importLegacyInputSchema>
 export type UpdateItemInput = z.infer<typeof updateItemInputSchema>
 export type ExportLegacyInput = z.infer<typeof exportLegacyInputSchema>
+export type EngineExportInput = z.infer<typeof engineExportInputSchema>
 export type BatchOpInput = z.infer<typeof batchOpSchema>
 export type BatchUpdateInput = z.infer<typeof batchUpdateInputSchema>
 export type DeleteManyInput = z.infer<typeof deleteManyInputSchema>

@@ -19,6 +19,7 @@ import type {
   CeshuReviewExportInput,
   CeshuSaveChapterInput,
   DeleteManyInput,
+  EngineExportInput,
   ExportLegacyInput,
   ImportLegacyInput,
   NotesAddInput,
@@ -91,6 +92,8 @@ export interface IpcContract {
   'data:references': { req: ReferencesInput; res: ReferenceReport }
   'data:importLegacy': { req: ImportLegacyInput; res: ImportSummary }
   'data:exportLegacy': { req: ExportLegacyInput; res: ExportSummary }
+  // 引擎代码导出（P0：Lua）。渲染/落盘在 main/engineExport，取数由 handler 注入。
+  'engine:exportData': { req: EngineExportInput; res: { filePath: string; engine: string; bytes: number } }
   'dialog:chooseJsonFile': { req: undefined; res: { path: string | null } }
   'dialog:chooseSaveJsonFile': { req: undefined; res: { path: string | null } }
   'ceshu:list': { req: undefined; res: CeshuSummary[] }

@@ -42,6 +42,7 @@ import {
   createItemInputSchema,
   deleteItemInputSchema,
   deleteManyInputSchema,
+  engineExportInputSchema,
   exportLegacyInputSchema,
   importLegacyInputSchema,
   listItemsInputSchema,
@@ -104,6 +105,7 @@ import { exportTextReportFile } from './ceshu/reportExport'
 import { exportLegacyDataFile } from './data/legacyExport'
 import { importLegacyDataFile } from './data/legacyImport'
 import type { DataService } from './data/service'
+import { exportEngineData } from './engineExport/exporter'
 import type { LlmClient } from './llm/client'
 import type { TypeSchemaStore } from './schema/store'
 
@@ -280,6 +282,13 @@ export function registerIpcHandlers({
   })
   handle('data:exportLegacy', exportLegacyInputSchema, (req) =>
     exportLegacyDataFile(req.path, dataService, typeSchemaStore.getTypes())
+  )
+  // 引擎代码导出（P0：Lua）：取全量数据快照 + 当前 schema，渲染并原子落盘
+  handle('engine:exportData', engineExportInputSchema, (req) =>
+    exportEngineData(dataService.listAllItems(), typeSchemaStore.getTypes(), {
+      engine: req.engine,
+      targetPath: req.path
+    })
   )
   handle('ceshu:list', undefined, () => ceshuManager.list())
   handle('ceshu:create', ceshuCreateInputSchema, (req) => ceshuManager.create(req))

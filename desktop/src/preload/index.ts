@@ -56,6 +56,9 @@ const api: MbApi = {
     importLegacy: (req) => invoke('data:importLegacy', req),
     exportLegacy: (req) => invoke('data:exportLegacy', req)
   },
+  engine: {
+    exportData: (req) => invoke('engine:exportData', req)
+  },
   dialog: {
     chooseJsonFile: () => invoke('dialog:chooseJsonFile', undefined),
     chooseSaveJsonFile: () => invoke('dialog:chooseSaveJsonFile', undefined),
