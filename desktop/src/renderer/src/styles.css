@@ -1527,6 +1527,96 @@ button.ref-row:hover {
   font-size: 12px;
 }
 
+/* 公式列（输入框 + 系数编辑器入口） */
+.attr-panel-formula-cell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.attr-panel-builder-toggle {
+  flex-shrink: 0;
+  font-family: 'Consolas', monospace;
+}
+
+/* 系数公式编辑器（内联展开；Python 为双击公式列弹出的 QDialog） */
+.attr-panel-builder {
+  flex-basis: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 6px 0 2px;
+  padding: 8px 10px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.attr-panel-builder-title {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.attr-panel-builder-hint {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.attr-panel-builder-warning {
+  padding: 6px 8px;
+  color: var(--danger);
+  font-size: 12px;
+  background: var(--bg);
+  border: 1px solid var(--danger);
+  border-radius: 4px;
+}
+
+.attr-panel-builder-rows {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+}
+
+.attr-panel-builder-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.attr-panel-builder-name {
+  min-width: 56px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.attr-panel-builder-coeff {
+  width: 96px;
+  font-family: 'Consolas', monospace;
+}
+
+.attr-panel-builder-foot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.attr-panel-builder-preview {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 8px;
+  overflow: hidden;
+  color: var(--accent);
+  font-family: 'Consolas', monospace;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
 /* ---- 属性关系矩阵（属性系统编辑器） ---- */
 
 .attr-matrix-toolbar {

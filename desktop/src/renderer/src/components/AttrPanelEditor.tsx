@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 
 import {
   ATTR_PANEL_CATEGORY_SUGGESTIONS,
@@ -7,13 +7,15 @@ import {
   evaluateAttrPanel,
   type AttrPanelRow
 } from '../../../shared/attrPanel'
+import AttrFormulaBuilder from './AttrFormulaBuilder'
 
 /**
  * 条目级属性面板编辑器（attrpanel 字段，对应 Python AttributePanelWidget）：
  * - 行=类别/属性名称/公式/计算结果；名称为本行列表内的变量，公式按行间依赖拓扑序求值（修正 Python 行序缺陷）
  * - 工具条：载入模板（role 7 套 / monster 4 套，照抄 Python，选择即整体替换）、快速添加（照抄预置类别/公式）、添加行
  * - 错误（未定义名称/非法公式/除零/环依赖）行下红字提示；结果列只读、按 Python 语义展示 1 位小数
- * 明确推迟：公式构建器对话框（Python 双击公式弹出）、多选批量删除（TS 用逐行 ✕）。
+ * - 系数公式编辑器：每行公式框旁的 ƒx 按钮内联展开（Python 双击公式列弹 QDialog）
+ * 明确推迟：多选批量删除（TS 用逐行 ✕）。
  */
 
 interface AttrPanelEditorProps {
@@ -29,8 +31,16 @@ export default function AttrPanelEditor({ fieldName, typeId, rows, onChange }: A
   const templates = ATTR_PANEL_TEMPLATES[typeId] ?? null
   const templateNames = templates ? Object.keys(templates) : []
   const evaluation = useMemo(() => evaluateAttrPanel(rows), [rows])
+  /** 当前展开系数公式编辑器的行号（同一时刻只开一个） */
+  const [builderRow, setBuilderRow] = useState<number | null>(null)
   const testId = (suffix: string): string => `field-${fieldName}-${suffix}`
   const listId = (suffix: string): string => `attr-panel-${suffix}-${fieldName}`
+
+  /**
+   * 系数编辑器的可用属性 = 面板各行名称（单一真源）。含被编辑行自身，
+   * 与 Python 一致（自引用由求值器的环依赖诊断提示，不在此处静默禁止）。
+   */
+  const availableAttrs = rows.map((row) => String(row.name ?? '').trim()).filter((name) => name !== '')
 
   const updateRow = (index: number, patch: Partial<AttrPanelRow>): void => {
     onChange(rows.map((row, current) => (current === index ? { ...row, ...patch } : row)))
@@ -128,13 +138,24 @@ export default function AttrPanelEditor({ fieldName, typeId, rows, onChange }: A
             value={String(row.name ?? '')}
             onChange={(event) => updateRow(index, { name: event.target.value })}
           />
-          <input
-            className="form-input attr-panel-formula"
-            data-testid={testId(`formula-${index}`)}
-            placeholder="=力量*10 或 数字"
-            value={String(row.formula ?? '')}
-            onChange={(event) => updateRow(index, { formula: event.target.value })}
-          />
+          <div className="attr-panel-formula-cell">
+            <input
+              className="form-input attr-panel-formula"
+              data-testid={testId(`formula-${index}`)}
+              placeholder="=力量*10 或 数字"
+              value={String(row.formula ?? '')}
+              onChange={(event) => updateRow(index, { formula: event.target.value })}
+            />
+            <button
+              type="button"
+              className="btn slim attr-panel-builder-toggle"
+              data-testid={testId(`formula-builder-toggle-${index}`)}
+              title="用系数配置公式"
+              onClick={() => setBuilderRow(builderRow === index ? null : index)}
+            >
+              ƒx
+            </button>
+          </div>
           <span
             className={`attr-panel-result${evaluation.errors[index] ? ' invalid' : ''}`}
             data-testid={testId(`result-${index}`)}
@@ -154,6 +175,18 @@ export default function AttrPanelEditor({ fieldName, typeId, rows, onChange }: A
             <div className="attr-panel-error" data-testid={testId(`error-${index}`)}>
               {evaluation.errors[index]}
             </div>
+          )}
+          {builderRow === index && (
+            <AttrFormulaBuilder
+              key={index}
+              fieldName={fieldName}
+              rowIndex={index}
+              derivedName={String(row.name ?? '').trim()}
+              availableAttrs={availableAttrs}
+              formula={String(row.formula ?? '')}
+              onApply={(formula) => updateRow(index, { formula })}
+              onClose={() => setBuilderRow(null)}
+            />
           )}
         </div>
       ))}
