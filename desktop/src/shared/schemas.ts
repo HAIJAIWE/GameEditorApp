@@ -156,6 +156,11 @@ export const ceshuGetInputSchema = z.object({
   id: z.string().min(1)
 })
 
+/** Agent Brain：跑一轮对话循环（输入用户消息，返回事件流与最终文本） */
+export const agentChatInputSchema = z.object({
+  input: z.string().min(1).max(4000)
+})
+
 /** Agent 技能调度：执行工具（tool 为技能 id 或可模糊解析的别名） */
 export const agentExecuteToolInputSchema = z.object({
   tool: z.string().min(1).max(80),
@@ -355,6 +360,7 @@ export type CeshuChooseExportFileInput = z.infer<typeof ceshuChooseExportFileInp
 export type CeshuDeriveInput = z.infer<typeof ceshuDeriveInputSchema>
 export type CeshuRenameInput = z.infer<typeof ceshuRenameInputSchema>
 export type AgentExecuteToolInput = z.infer<typeof agentExecuteToolInputSchema>
+export type AgentChatInput = z.infer<typeof agentChatInputSchema>
 export type CeshuApplyPresetInput = z.infer<typeof ceshuApplyPresetInputSchema>
 export type CeshuConfirmSystemsInput = z.infer<typeof ceshuConfirmSystemsInputSchema>
 export type CeshuSyncDataInput = z.infer<typeof ceshuSyncDataInputSchema>

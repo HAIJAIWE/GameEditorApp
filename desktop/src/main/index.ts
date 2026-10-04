@@ -2,6 +2,7 @@ import { join } from 'node:path'
 
 import { app, BrowserWindow, shell } from 'electron'
 
+import { AgentBrainService } from './agent/brainService'
 import { SkillDispatcher } from './agent/dispatcher'
 import { createCeshuSkill } from './agent/skills/ceshuSkill'
 import { createGameDataSkill } from './agent/skills/gameDataSkill'
@@ -75,6 +76,7 @@ app.whenReady().then(() => {
   const agentDispatcher = new SkillDispatcher()
   agentDispatcher.register(createGameDataSkill({ dataService, typeSchemaStore }))
   agentDispatcher.register(createCeshuSkill({ ceshuManager }))
+  const agentBrain = new AgentBrainService({ dispatcher: agentDispatcher })
 
   registerIpcHandlers({
     dataService,
@@ -85,6 +87,7 @@ app.whenReady().then(() => {
     attrSystemStore: new AttrSystemStore(join(app.getPath('userData'), 'attr_system.json')),
     dataSync: new CeshuDataSync(ceshuManager, dataService, typeSchemaStore),
     agentDispatcher,
+    agentBrain,
     llmClient: new LlmClient(),
     getAppInfo: () => ({
       name: app.getName(),

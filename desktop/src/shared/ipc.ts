@@ -27,6 +27,7 @@ import type {
   NotesUpdateInput,
   ReferencesInput,
   CeshuRenameInput,
+  AgentChatInput,
   AgentExecuteToolInput,
   SchemaSaveInput,
   CeshuDataGenInput,
@@ -48,6 +49,7 @@ import type {
   ItemRecord
 } from './types'
 import type { CeshuDocument, CeshuExportResult, CeshuSummary } from './ceshuConstants'
+import type { BrainEvent } from './agent/brain'
 import type { JsonObjectSchema, SkillResult } from './agent/protocol'
 import type { CeshuChangelog, CeshuVersionDiff } from './ceshuDiff'
 import type { CeshuScoreReport } from './ceshuScorer'
@@ -113,6 +115,7 @@ export interface IpcContract {
     }
   }
   'agent:executeTool': { req: AgentExecuteToolInput; res: SkillResult }
+  'agent:chat': { req: AgentChatInput; res: { text: string; events: BrainEvent[]; completed: boolean } }
   'ceshu:rename': { req: CeshuRenameInput; res: CeshuDocument }
   'ceshu:delete': { req: { id: string }; res: { deleted: boolean } }
   'ceshu:duplicate': { req: { id: string }; res: CeshuDocument }

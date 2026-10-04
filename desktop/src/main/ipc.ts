@@ -21,6 +21,7 @@ import {
   ceshuDiffInputSchema,
   ceshuDataGenInputSchema,
   ceshuExportInputSchema,
+  agentChatInputSchema,
   agentExecuteToolInputSchema,
   ceshuGetInputSchema,
   ceshuRenameInputSchema,
@@ -74,6 +75,7 @@ import { scoreCeshu } from '../shared/ceshuScorer'
 import { validateCeshu } from '../shared/ceshuValidation'
 import { buildWordStatsReport } from '../shared/ceshuWordStats'
 import type { AppInfo } from '../shared/types'
+import type { AgentBrainService } from './agent/brainService'
 import type { SkillDispatcher } from './agent/dispatcher'
 import type { AttrSystemStore } from './attr/attrSystemStore'
 import { exportAttrGameConfigFile } from './attr/attrGameConfigExport'
@@ -100,6 +102,7 @@ interface IpcHandlerDeps {
   llmClient: LlmClient
   dataSync: CeshuDataSync
   agentDispatcher: SkillDispatcher
+  agentBrain: AgentBrainService
   getAppInfo: () => AppInfo
 }
 
@@ -114,6 +117,7 @@ export function registerIpcHandlers({
   llmClient,
   dataSync,
   agentDispatcher,
+  agentBrain,
   getAppInfo
 }: IpcHandlerDeps): void {
   handle('app:info', undefined, () => getAppInfo())
@@ -125,6 +129,8 @@ export function registerIpcHandlers({
   handle('agent:executeTool', agentExecuteToolInputSchema, (req) =>
     agentDispatcher.execute(req.tool, req.params, {})
   )
+  // Agent Brain 循环：输入 → 事件流 + 终稿（A1-2；危险操作因无审批通道而一律拒绝）
+  handle('agent:chat', agentChatInputSchema, (req) => agentBrain.chat(req.input))
   handle('schema:list', undefined, () => typeSchemaStore.getTypes())
   handle('schema:save', schemaSaveInputSchema, (req) => typeSchemaStore.saveTypes(req.types))
   handle('attrSystem:get', undefined, () => attrSystemStore.getSystem())

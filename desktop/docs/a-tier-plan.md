@@ -195,7 +195,7 @@ userData/
 | A2-1 库服务与路径迁移 | ⬜ 未开始 | — | — |
 | A2-2 库条 UI 与切换联动 | ⬜ 未开始 | — | — |
 | A1-1 技能协议 + 调度器 | ✅ 完成 | `20ec1ff` | `shared/agent/protocol.ts`（协议/风险策略/参数修正，单测 18）+ `main/agent/dispatcher.ts`（注册表/模糊解析/危险确认门，单测 15）+ 2 个 action-based 技能（`system.game_data` 读写数据表 / `system.ceshu` 只读策划书，单测 13）+ IPC `agent:listTools`/`agent:executeTool` + E2E `agent-execute-tool.spec.ts`（沙箱未实跑） |
-| A1-2 Brain 循环 + 事件流 | ⬜ 未开始 | — | — |
+| A1-2 Brain 循环 + 事件流 | ✅ 完成 | `<PENDING_HASH>` | `shared/agent/brain.ts`（事件流 + 循环纯逻辑，单测 19）+ `shared/agent/prompts.ts`（提示词骨架）+ `main/agent/ollamaTransport.ts`（`/api/chat` NDJSON 流式 + tool_calls）+ `main/agent/brainService.ts`（调度器适配）+ IPC `agent:chat` + E2E `agent-brain-chat.spec.ts`（`/api/chat` 桩两轮，沙箱未实跑） |
 | A1-3 会话与记忆 | ⬜ 未开始 | — | — |
 | A1-4 数字员工面板 | ⬜ 未开始 | — | — |
 | A1-5 业务技能接线 + 托盘/热键 | ⬜ 未开始 | — | — |
@@ -215,6 +215,21 @@ userData/
 **顺带修复的真 Bug（W32 遗留）**：`main/ceshu/dataSync.ts::syncDataProgressToCeshu` 原本用 `pluralKey`（`roles`）查数据条目数，但 **TS 数据表以单数 `DataTypeDef.id`（`role`）为键**（`items.type` 由 `legacyImport` 把旧复数键映射为 `typeDef.id`，渲染层也用 `activeType = type.id`）→ 该计数**恒为 0**。已改为按单数 id 查询，`ensuredKeys` 同步改为单数键口径，并更新 W32 单测期望。
 
 **未验证项**：E2E 仍受沙箱 Electron 启动限制（`Process failed to launch!`，与既有全部 E2E 同源），待 CI 跑。
+
+### A1-2 落地记录（2026-10-04）
+
+**产物**：`shared/agent/brain.ts`（`BrainEvent` 事件流 + `runBrainLoop`，注入 `BrainLlmTransport`/`BrainToolRunner` 故可纯单测）、`shared/agent/prompts.ts`（身份 + `## 规则` + 工具描述骨架）、`main/agent/ollamaTransport.ts`、`main/agent/brainService.ts`、IPC `agent:chat`、单测 `agentBrain`（19）、E2E `agent-brain-chat.spec.ts`。
+
+**事件流**：`step_start(llm_think)` → `stream_chunk*` → `stream_done` →（有工具时）`step_start(并行N工具)` → `approval_required?` → `step_done*` → … → `done`。
+
+**有意偏离 Python / 本方案（逐条有据）**：
+1. **无确认即拒绝**：Python `_check_dangerous` 在「无法弹出对话框」时的注释写「回落文本确认（允许继续）」但代码实为拦截；TS 统一明确为「未拿到显式批准一律不执行」，并把 `[STOP]` 结果回灌给 LLM。
+2. **每个 tool_call 都产出 tool 消息**：Python 在用户取消时 `_execute_and_reflect` 直接 `return`，会留下「assistant 带 tool_calls 却无对应 tool 结果」的**非法消息序列**（OpenAI/Ollama 协议要求一一对应），下一轮请求可能报错；TS 一律补齐。
+3. **不走 `ollama` npm 客户端，直接 `fetch /api/chat`**：需完全控制 `tool_calls[].function.arguments` 的形状（不同客户端版本为对象或 JSON 字符串）与 NDJSON 流式解析，也让桩服务契约显式可读。
+4. **不移植**：滑动窗口压缩、会话持久化/恢复、插件钩子（`on_agent_start`/`on_tool_call`/`on_agent_finish`）、性能统计、团队模式工具白名单、计划驱动执行（`_plan`/`_execute_plan`）——分别归 A1-3（会话与记忆）与 A1-5（业务接线）。提示词也**只移植骨架**（persona 文件、用户画像、长期记忆、黑板上下文、个性化学习块均未移植）。
+5. **A1-2 无审批 UI** → 危险操作（risk ≥ SYSTEM）一律拒绝；审批交互归 A1-4 面板。
+
+**未验证项**：E2E 仍受沙箱 Electron 启动限制（与既有全部 E2E 同源），待 CI 跑。
 
 ### 拍板结论（2026-10-04，用户已确认）
 

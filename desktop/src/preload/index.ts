@@ -22,7 +22,8 @@ const api: MbApi = {
   },
   agent: {
     listTools: () => invoke('agent:listTools', undefined),
-    executeTool: (req) => invoke('agent:executeTool', req)
+    executeTool: (req) => invoke('agent:executeTool', req),
+    chat: (req) => invoke('agent:chat', req)
   },
   attrSystem: {
     get: () => invoke('attrSystem:get', undefined),

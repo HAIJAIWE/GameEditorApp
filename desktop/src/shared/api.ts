@@ -8,6 +8,7 @@ export interface MbApi {
   agent: {
     listTools(): Promise<IpcContract['agent:listTools']['res']>
     executeTool(req: IpcContract['agent:executeTool']['req']): Promise<IpcContract['agent:executeTool']['res']>
+    chat(req: IpcContract['agent:chat']['req']): Promise<IpcContract['agent:chat']['res']>
   }
   schema: {
     list(): Promise<IpcContract['schema:list']['res']>
