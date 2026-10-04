@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 
+import { suggestFieldIds, type SuggestFieldIdResult } from '../../../shared/fieldId'
 import { FIELD_TYPE_LABELS, FIELD_TYPES, validateTypeSchema } from '../../../shared/typeSchemaFile'
 import { TYPE_TEMPLATE_NAMES, TYPE_TEMPLATES, buildNewTypeDraft } from '../../../shared/typeTemplates'
 import type { DataTypeDef, FieldType, TypeFieldDef } from '../../../shared/types'
@@ -9,7 +10,8 @@ import type { DataTypeDef, FieldType, TypeFieldDef } from '../../../shared/types
  * - 类型：新建 / 删除 / 名称·复数键·颜色编辑（既有类型的 ID 锁定，避免存量条目失联）
  * - 字段：增删 / 排序 / 名称·标签·控件类型·可编辑·可选值·数值范围·引用类型
  * - 模板：7 套内置字段模板整体替换；保存前领域校验；保存走 IPC（主进程原子写 type_schema.json）
- * 明确未迁移：布局分区编辑、AI 推荐字段、拼音/英译辅助（后续切片）。
+ * - 字段 ID 生成：由中文显示名给候选（术语表命中 + 英文数字提取），见 `shared/fieldId.ts`
+ * 明确未迁移：布局分区编辑、AI 推荐字段、拼音兜底（后续切片）。
  */
 
 interface TypeEditorPanelProps {
@@ -27,6 +29,8 @@ export default function TypeEditorPanel({ types, onSaved, onClose }: TypeEditorP
   const [notice, setNotice] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [resetToken, setResetToken] = useState(0)
+  /** 当前展开「字段 ID 候选」的行及其结果（同一时刻只开一个） */
+  const [idSuggest, setIdSuggest] = useState<{ index: number; result: SuggestFieldIdResult } | null>(null)
 
   const baseIds = useMemo(() => new Set(types.map((def) => def.id)), [types])
   const current = draft.find((def) => def.id === selectedId) ?? null
@@ -66,6 +70,21 @@ export default function TypeEditorPanel({ types, onSaved, onClose }: TypeEditorP
     if (!current) return
     if (current.formFields[index]?.name === 'id') return
     updateType({ formFields: current.formFields.filter((_, i) => i !== index) })
+  }
+
+  /**
+   * 由该行的中文显示名生成字段 ID 候选。
+   * 现有字段名用于避开重名，**排除本行自身**（否则把「保持原名」误判为重名）。
+   */
+  const requestIdSuggestions = (index: number): void => {
+    if (!current) return
+    if (idSuggest?.index === index) {
+      setIdSuggest(null)
+      return
+    }
+    const label = current.formFields[index]?.label ?? ''
+    const others = current.formFields.filter((_, i) => i !== index).map((field) => field.name)
+    setIdSuggest({ index, result: suggestFieldIds(label, others) })
   }
 
   const moveField = (index: number, delta: -1 | 1): void => {
@@ -270,6 +289,16 @@ export default function TypeEditorPanel({ types, onSaved, onClose }: TypeEditorP
                       title={isIdField ? 'id 字段为系统字段，不可改名/删除' : '字段名（英文/数字/下划线）'}
                       onChange={(event) => updateField(index, { name: event.target.value })}
                     />
+                    <button
+                      type="button"
+                      className="btn slim"
+                      data-testid={`te-field-generate-${index}`}
+                      disabled={isIdField}
+                      title="由中文显示名生成字段 ID（不覆盖已填内容，先给候选）"
+                      onClick={() => requestIdSuggestions(index)}
+                    >
+                      生成
+                    </button>
                     <input
                       className="form-input te-col-label"
                       data-testid={`te-field-label-${index}`}
@@ -387,6 +416,45 @@ export default function TypeEditorPanel({ types, onSaved, onClose }: TypeEditorP
                         ✕
                       </button>
                     </span>
+                    {idSuggest?.index === index && (
+                      <div className="te-id-suggest" data-testid={`te-id-suggest-${index}`}>
+                        {idSuggest.result.error !== null ? (
+                          <div className="te-id-suggest-error" data-testid={`te-id-suggest-error-${index}`}>
+                            {idSuggest.result.error}
+                          </div>
+                        ) : (
+                          <>
+                            <span className="te-id-suggest-label">候选：</span>
+                            {idSuggest.result.suggestions.map((suggestion) => (
+                              <button
+                                type="button"
+                                className="btn slim te-id-suggest-apply"
+                                key={suggestion.id}
+                                data-testid={`te-id-suggest-apply-${index}`}
+                                onClick={() => {
+                                  updateField(index, { name: suggestion.id })
+                                  setIdSuggest(null)
+                                }}
+                              >
+                                {suggestion.id}
+                              </button>
+                            ))}
+                            {idSuggest.result.suggestions.some((s) => s.renamedFrom !== null) && (
+                              <span className="te-id-suggest-note" data-testid={`te-id-suggest-renamed-${index}`}>
+                                （原为 {idSuggest.result.suggestions[0]?.renamedFrom}，已重名故加后缀）
+                              </span>
+                            )}
+                            {idSuggest.result.suggestions[0]?.skipped.length ? (
+                              <span className="te-id-suggest-note" data-testid={`te-id-suggest-skipped-${index}`}>
+                                术语表未收录：
+                                {idSuggest.result.suggestions[0]?.skipped.join('、')}
+                                （需手动补全）
+                              </span>
+                            ) : null}
+                          </>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )
               })}

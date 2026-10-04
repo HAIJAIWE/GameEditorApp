@@ -1251,6 +1251,31 @@ body {
   border-bottom: none;
 }
 
+/* 字段 ID 候选（由中文显示名生成；行内末位 + flex-basis:100% 独占一行） */
+.te-id-suggest {
+  flex-basis: 100%;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 0 6px 10px;
+  border-left: 2px solid var(--border);
+  font-size: 12px;
+}
+
+.te-id-suggest-label,
+.te-id-suggest-note {
+  color: var(--text-muted);
+}
+
+.te-id-suggest-apply {
+  font-family: 'Consolas', monospace;
+}
+
+.te-id-suggest-error {
+  color: var(--danger);
+}
+
 .te-col-name {
   width: 130px;
 }
