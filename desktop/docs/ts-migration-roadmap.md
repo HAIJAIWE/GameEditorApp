@@ -77,18 +77,33 @@
 
 ### D 档（属性/数值域剩余）
 
-`core/extended_formulas.py` 390（ExtendedFormula 未移植）、`style_manager.py` 236、`game_templates.py` 239、`editor_layout.py` 177、`operation_log.py` 123（撤销/操作日志）、`cedict.py` 58、公式构建器对话框、引擎代码导出（`ui/dialogs/engine_export.py` Unity/Unreal/Cocos）。
+`core/extended_formulas.py` **456 行 —— 经实证为死代码，已改列「有意不迁」**（见 E4 条）、`style_manager.py` 236、`game_templates.py` 239、`editor_layout.py` 177、`cedict.py` 58、引擎代码导出（`ui/dialogs/engine_export.py` Unity/Unreal/Cocos）。**已交付**：`operation_log.py`（会话级回滚，E3）、`ui/widgets/formula_builder.py` 486（系数公式编辑器，E4）。
 
 > ✅ **D 档「引擎代码导出」已交付首刀（见 §1 台账 E1，提交 `b7a2b9f`）**：只做 **Lua**，且只做「全量数据 → 单个 Lua 数据模块」。  
 > **与 Python 参考版的有意偏离**：Python 支持 Unity/Unreal/Godot/Cocos 骨架，**反而没有 Lua**——本刀补的是它缺的那条主路径，其余引擎按 P1/P2 待排。  
 > **已补 E2**：渲染层 UI 入口（数据视图工具条按钮 + 原生保存对话框）已就绪，界面上可点了。  
 > **未做**：Godot/Cocos、Unity/Unreal 数据填充；产物未经真实 Lua 解析器校验（本机无 `lua`/`luac`）；保存对话框与按钮点击属 Electron-only，本沙箱无法验证。  
-> D 档其余项（`extended_formulas`/`style_manager`/`game_templates`/`editor_layout`/`operation_log`/`cedict`）与 C 档（菜单快捷键/窗口状态/主题/设置/i18n）仍待排。
+> D 档其余项：`extended_formulas`（**实证死代码 → 改为「有意不迁」**）、`style_manager`/`game_templates`/`editor_layout`/`cedict`；C 档（菜单快捷键/窗口状态/主题/设置/i18n）仍待排。
 
 > ✅ **D 档「会话级回滚」（`core/operation_log.py` 154 行）已完整交付**：**E3-1** 核心（`8ff0b0d`：`buildRollbackPlan` 纯函数 + 内存环形日志 5000/批清 500 + `executeRollbackPlan` 单步失败不中断，单测 11）+ **E3-2** 接线（`7478c43`：`operationRecorder` 包在 runner 上记录 + `tool.rollback_ai_changes` 技能复用 confirm 交互，单测 15）。
 > **语义澄清（勿按名字臆测）**：这不是通用撤销，而是 **AI 会话级安全网**——Python 原实现只记 AI 会话内的数据变更（`if not conv_id: return`），不记手动编辑。
 > **回滚范围 = 单次对话轮次**（一次 `chat()` 内的全部数据变更），**有意取最小爆炸半径**；跨轮次会话级回滚需会话 id 持久化，**未做**。
 > **宁缺勿错**：只记成功操作；update/delete 的 before 定位不到或同名歧义 → `before=null` → 归入 `skipped` 并给中文原因，**绝不伪造快照**（伪造会在回滚时写坏用户数据）。**未验证**：Electron 内端到端「说一句撤销 → 真的回滚」链路（E2E 沙箱不可用）。
+
+> ✅ **E4（2026-10-04）：系数公式编辑器 —— `ui/widgets/formula_builder.py` 486 行，提交 `3988b92`**。
+> **本轮先做了调研纠偏，结论与排期相反，必须记下来**：
+> - `core/extended_formulas.py`（台账原记「390 行」，实测 **456 行**）**是死代码**：全仓 `grep ExtendedFormula|FormulaType.` 仅命中 `core/__init__.py` 的 re-export，**UI 上不可达、无任何消费者** → 从「待迁」改列 **「有意不迁」**（与 `diagnostics`/`tool_repair` 同类，是决策不是欠债）。**不 1:1 复刻、不造第二套公式系统**。
+> - 真正有缺口的是 `formula_builder.py`（**活代码**：`attribute_panel.py:498`、`dynamic_form.py:481` 都在调），且 TS 侧 `AttrPanelEditor.tsx` 原本就显式记录了「明确推迟：公式构建器对话框」→ 本轮补它。
+> - **四个 Python 缺陷（均为 offscreen 实跑取证，非阅读推断）**：
+>   **A.** 打开编辑器**不回填** `current_formula`（`__init__` 只赋值、从不解析）→ 实测传 `=智力*5` 时对话框显示 `=力量*2+敏捷*1`，**点确定即覆盖用户原公式**（调用方确实传了该参数，属真数据丢失风险）。
+>   **B1.** 调用方传入的 `available_attrs` **从未被使用** → 实测传 5 个属性（含「幸运」）时表格恒显示硬编码四项。
+>   **B2.** 生成/返回公式时迭代**类常量** `BASE_ATTRS` 而非实例列表 `base_attrs` → 实测「幸运」系数设 7 后 `get_formula()` 仍返回 `=力量*2+敏捷*1`（**新增属性系数被静默丢弃**）。
+>   **C.** `_refresh_coeff_table` 的 `clear()` 连带清掉表头 → 实测刷新后 `horizontalHeaderItem(0/1)` 均为 `None`（此项 TS 无对应物，因 React 重渲染天然不会丢表头）。
+> - **交付**：`shared/formulaBuilder.ts`（系数 ⇄ legacy 公式字符串纯逻辑：`buildFormulaFromCoeffs` 按传入 entries 顺序输出修 B2；`parseFormulaToCoeffs` 只接受可**无损表示**的线性式、其余明确拒绝并给中文原因；`initialEntries` 回填修 A、不可回填时归零+警告原文；`resolveBuilderAttrs` 以调用方列表为权威修 B1）+ `components/AttrFormulaBuilder.tsx`（内联展开：渲染层无模态约定，沿用 `.attr-panel-error` 的 `flex-basis:100%` 先例）+ 每行公式框旁 `ƒx` 入口 + 单测 23 + E2E 2 例。
+> - **有意不迁**：Python「＋添加属性」按钮（属性集合应由面板行提供＝单一真源；在编辑器里凭空造属性名，产物必被求值器判「未定义的属性名」，是陷阱非功能）、`desc_label`（死 UI，建了空 QLabel 从未 `setText`）、4 个只定义未使用的样式常量。
+> - **一个已实证并写进模块文档的行为**：重建后**项顺序按属性列表归一**，不保留原文书写顺序（Python 同此：实跑 HP → `=力量*10+敏捷*5+体质*20`）。数值等价，但**不保证逐字一致**。
+> - **未验证**：Electron 内的点击链路（E2E 沙箱不可用；`playwright --list` 已确认新 E2E 被收集，非静默排除）。
+> - **本轮自纠**：3 个单测首跑失败，根因是**我的期望写错**（照默认系数 dict 顺序而非属性列表顺序），代码本身与 Python 一致；已用 Python 实跑取证后修正期望并把该实证串锁进测试。
 
 ## 3. 每片执行流程（固定顺序）
 
