@@ -77,34 +77,74 @@
 
 ### D 档（属性/数值域剩余）
 
-`core/extended_formulas.py` **456 行 —— 经实证为死代码，已改列「有意不迁」**（见 E4 条）、`style_manager.py` 236、`game_templates.py` 239、`editor_layout.py` 177、`cedict.py` 58、引擎代码导出（`ui/dialogs/engine_export.py` Unity/Unreal/Cocos）。**已交付**：`operation_log.py`（会话级回滚，E3）、`ui/widgets/formula_builder.py` 486（系数公式编辑器，E4）。
+`core/extended_formulas.py` **456 行 —— 实证死代码，已列「有意不迁」**（见 E4）、`core/game_templates.py` **326 行 —— 实证死代码**（仅 `core/__init__.py` re-export）、`core/editor_layout.py` **208 行 —— 实证「能写、没人读、且已过期」的配置，已列「有意不迁」**（见 E5）、`core/style_manager.py` **289 行（活的，被 dynamic_form 用）**、`core/cedict.py` **72 行 —— 评估后「有意不迁」**（见 E6：实测会产出垃圾 ID、且该层几乎必然空转）、引擎代码导出（`ui/dialogs/engine_export.py` Unity/Unreal/Cocos）。**已交付**：`operation_log.py`（会话级回滚，E3）、`ui/widgets/formula_builder.py` 486（系数公式编辑器，E4）、`ui/widgets/dynamic_form.py::FIELD_GROUPS`（条目编辑器分区，E5）、`ui/dialogs/type_editor_field_widget.py` 的字段 ID 生成（E6）。
 
 > ✅ **D 档「引擎代码导出」已交付首刀（见 §1 台账 E1，提交 `b7a2b9f`）**：只做 **Lua**，且只做「全量数据 → 单个 Lua 数据模块」。  
 > **与 Python 参考版的有意偏离**：Python 支持 Unity/Unreal/Godot/Cocos 骨架，**反而没有 Lua**——本刀补的是它缺的那条主路径，其余引擎按 P1/P2 待排。  
 > **已补 E2**：渲染层 UI 入口（数据视图工具条按钮 + 原生保存对话框）已就绪，界面上可点了。  
 > **未做**：Godot/Cocos、Unity/Unreal 数据填充；产物未经真实 Lua 解析器校验（本机无 `lua`/`luac`）；保存对话框与按钮点击属 Electron-only，本沙箱无法验证。  
-> D 档其余项：`extended_formulas`（**实证死代码 → 改为「有意不迁」**）、`style_manager`/`game_templates`/`editor_layout`/`cedict`；C 档（菜单快捷键/窗口状态/主题/设置/i18n）仍待排。
+> D 档**仍活着的**剩余项：`style_manager.py` 289（游戏风格术语替换）。**已判死代码/不迁**：`extended_formulas` 456、`game_templates` 326、`editor_layout` 208、`cedict` 72（详见 E4/E5/E6）。C 档（菜单快捷键/窗口状态/主题/设置/i18n）仍待排。
 
-> ✅ **D 档「会话级回滚」（`core/operation_log.py` 154 行）已完整交付**：**E3-1** 核心（`8ff0b0d`：`buildRollbackPlan` 纯函数 + 内存环形日志 5000/批清 500 + `executeRollbackPlan` 单步失败不中断，单测 11）+ **E3-2** 接线（`7478c43`：`operationRecorder` 包在 runner 上记录 + `tool.rollback_ai_changes` 技能复用 confirm 交互，单测 15）。  
-> **语义澄清（勿按名字臆测）**：这不是通用撤销，而是 **AI 会话级安全网**——Python 原实现只记 AI 会话内的数据变更（`if not conv_id: return`），不记手动编辑。  
-> **回滚范围 = 单次对话轮次**（一次 `chat()` 内的全部数据变更），**有意取最小爆炸半径**；跨轮次会话级回滚需会话 id 持久化，**未做**。  
+> ✅ **D 档「会话级回滚」（`core/operation_log.py` 154 行）已完整交付**：**E3-1** 核心（`8ff0b0d`：`buildRollbackPlan` 纯函数 + 内存环形日志 5000/批清 500 + `executeRollbackPlan` 单步失败不中断，单测 11）+ **E3-2** 接线（`7478c43`：`operationRecorder` 包在 runner 上记录 + `tool.rollback_ai_changes` 技能复用 confirm 交互，单测 15）。
+> **语义澄清（勿按名字臆测）**：这不是通用撤销，而是 **AI 会话级安全网**——Python 原实现只记 AI 会话内的数据变更（`if not conv_id: return`），不记手动编辑。
+> **回滚范围 = 单次对话轮次**（一次 `chat()` 内的全部数据变更），**有意取最小爆炸半径**；跨轮次会话级回滚需会话 id 持久化，**未做**。
 > **宁缺勿错**：只记成功操作；update/delete 的 before 定位不到或同名歧义 → `before=null` → 归入 `skipped` 并给中文原因，**绝不伪造快照**（伪造会在回滚时写坏用户数据）。**未验证**：Electron 内端到端「说一句撤销 → 真的回滚」链路（E2E 沙箱不可用）。
 
-> ✅ **E4（2026-10-04）：系数公式编辑器 —— `ui/widgets/formula_builder.py` 486 行，提交 `3988b92`**。  
+> ✅ **E4（2026-10-04）：系数公式编辑器 —— `ui/widgets/formula_builder.py` 486 行，提交 `3988b92`**。
 > **本轮先做了调研纠偏，结论与排期相反，必须记下来**：
->
 > - `core/extended_formulas.py`（台账原记「390 行」，实测 **456 行**）**是死代码**：全仓 `grep ExtendedFormula|FormulaType.` 仅命中 `core/__init__.py` 的 re-export，**UI 上不可达、无任何消费者** → 从「待迁」改列 **「有意不迁」**（与 `diagnostics`/`tool_repair` 同类，是决策不是欠债）。**不 1:1 复刻、不造第二套公式系统**。
 > - 真正有缺口的是 `formula_builder.py`（**活代码**：`attribute_panel.py:498`、`dynamic_form.py:481` 都在调），且 TS 侧 `AttrPanelEditor.tsx` 原本就显式记录了「明确推迟：公式构建器对话框」→ 本轮补它。
-> - **四个 Python 缺陷（均为 offscreen 实跑取证，非阅读推断）**：  
->   **A.** 打开编辑器**不回填** `current_formula`（`__init__` 只赋值、从不解析）→ 实测传 `=智力*5` 时对话框显示 `=力量*2+敏捷*1`，**点确定即覆盖用户原公式**（调用方确实传了该参数，属真数据丢失风险）。  
->   **B1.** 调用方传入的 `available_attrs` **从未被使用** → 实测传 5 个属性（含「幸运」）时表格恒显示硬编码四项。  
->   **B2.** 生成/返回公式时迭代**类常量** `BASE_ATTRS` 而非实例列表 `base_attrs` → 实测「幸运」系数设 7 后 `get_formula()` 仍返回 `=力量*2+敏捷*1`（**新增属性系数被静默丢弃**）。  
+> - **四个 Python 缺陷（均为 offscreen 实跑取证，非阅读推断）**：
+>   **A.** 打开编辑器**不回填** `current_formula`（`__init__` 只赋值、从不解析）→ 实测传 `=智力*5` 时对话框显示 `=力量*2+敏捷*1`，**点确定即覆盖用户原公式**（调用方确实传了该参数，属真数据丢失风险）。
+>   **B1.** 调用方传入的 `available_attrs` **从未被使用** → 实测传 5 个属性（含「幸运」）时表格恒显示硬编码四项。
+>   **B2.** 生成/返回公式时迭代**类常量** `BASE_ATTRS` 而非实例列表 `base_attrs` → 实测「幸运」系数设 7 后 `get_formula()` 仍返回 `=力量*2+敏捷*1`（**新增属性系数被静默丢弃**）。
 >   **C.** `_refresh_coeff_table` 的 `clear()` 连带清掉表头 → 实测刷新后 `horizontalHeaderItem(0/1)` 均为 `None`（此项 TS 无对应物，因 React 重渲染天然不会丢表头）。
 > - **交付**：`shared/formulaBuilder.ts`（系数 ⇄ legacy 公式字符串纯逻辑：`buildFormulaFromCoeffs` 按传入 entries 顺序输出修 B2；`parseFormulaToCoeffs` 只接受可**无损表示**的线性式、其余明确拒绝并给中文原因；`initialEntries` 回填修 A、不可回填时归零+警告原文；`resolveBuilderAttrs` 以调用方列表为权威修 B1）+ `components/AttrFormulaBuilder.tsx`（内联展开：渲染层无模态约定，沿用 `.attr-panel-error` 的 `flex-basis:100%` 先例）+ 每行公式框旁 `ƒx` 入口 + 单测 23 + E2E 2 例。
 > - **有意不迁**：Python「＋添加属性」按钮（属性集合应由面板行提供＝单一真源；在编辑器里凭空造属性名，产物必被求值器判「未定义的属性名」，是陷阱非功能）、`desc_label`（死 UI，建了空 QLabel 从未 `setText`）、4 个只定义未使用的样式常量。
 > - **一个已实证并写进模块文档的行为**：重建后**项顺序按属性列表归一**，不保留原文书写顺序（Python 同此：实跑 HP → `=力量*10+敏捷*5+体质*20`）。数值等价，但**不保证逐字一致**。
 > - **未验证**：Electron 内的点击链路（E2E 沙箱不可用；`playwright --list` 已确认新 E2E 被收集，非静默排除）。
 > - **本轮自纠**：3 个单测首跑失败，根因是**我的期望写错**（照默认系数 dict 顺序而非属性列表顺序），代码本身与 Python 一致；已用 Python 实跑取证后修正期望并把该实证串锁进测试。
+
+> ✅ **E5（2026-10-04）：条目编辑器分区布局 —— `ui/widgets/dynamic_form.py` 的 `FIELD_GROUPS` 迁移，提交 `dbfe391`**。
+> **本轮又把一个排期项判为「不该做」，结论与台账相反**：
+> - 台账列的是 `core/editor_layout.py`（原记 177 行，实测 **208 行**）。它**不该 1:1 迁**，因为它是一套**「能写、没人读、且已经过期」**的配置，三项实证：
+>   ① `dynamic_form.py:262` 用的是**硬编码常量** `FIELD_GROUPS`，而 `FIELD_GROUPS = {` 是该名字**唯一**的赋值处（`grep` 全命中即此），**从不读 JSON**；
+>   ② `data/editor_layouts.json` 只被 `EditorLayout` 读写，其消费者只有布局编辑器 `type_editor_layout_widget.py` 与 Agent 技能 `editor_layout_skill.py`——**条目编辑器从不读它**；
+>   ③ 两者**已漂移**（AST 实测对比）：`FIELD_GROUPS` 的 `skill`/`equip`/`item` 有「关联 Buff」分区、`job` 有「属性列表」分区，**JSON 都没有**；`role`/`monster`「技能 & 天赋」字段数 **3 vs 2**；`STAT_HINTS` 亦不一致。
+>   → 按权威（用户在界面上真正看到的）`FIELD_GROUPS` 迁移；JSON + 布局编辑器 + Agent 技能整套列 **「有意不迁」**。
+> - 顺带实证 **`STAT_HINTS` + `_create_stat_hint`/`_update_stat_hints` 是死代码**：`_create_stat_hint()` **只在 `layout == 'grid'` 分支**被调用，而有 grid 分区的类型是 `{job, skill, talent, equip, item}`，`STAT_HINTS` 的键却是 `{role, monster}`——**交集为 ∅**，提示标签永不会被创建，`_update_stat_hints()` 必然早退。→ 不迁。
+> - **有意不迁 `style_manager` 术语替换**（`_styled_label`）：它是独立的 D 档项（289 行），且唯一触发是 `ceshu_controller.py` 加载策划书时设置**全局单例**活跃风格——TS 刻意无全局可变态。默认无活跃风格时 Python 亦原样返回 label（`resolve_label`：`if not sid: return label`），故**默认行为等价**。
+> **交付**：`shared/formSections.ts`（`FORM_GROUPS` 照抄：7 类型 / 124 个字段名 + `STAT_LABELS` 8 条 + `buildFormLayout` 纯函数）+ `components/FormSectionCard.tsx`（图标+标题+受控折叠）+ `ItemForm.tsx` 改为按分区渲染 + 单测 18 + E2E 2 例。
+> **对 Python 的两处有意修正**：① Python 的 `attribute_panel` 分区不把字段计入 `grouped_fields`，而 `role`/`monster` schema 里又有 `attr_list` → 它会再走兜底**重复渲染**（同一数据两个控件、保存互相覆盖）；TS 绑定到 `attrpanel` 字段并只渲染一次。② 渲染不出内容的分区不产出（Python 会留一张空折叠卡片）。
+> **schema 差异（本刀不修，留下确切清单）**：`FIELD_GROUPS` 引用的字段名有 **6 个在 TS schema 中不存在** —— `monster.generic_drops`、`talent` 的 `multiplier`/`cd`/`damage_type`/`consume`/`effect`。故 `talent` 的「数值配置」在 TS 下只剩 `value`，其 5 个字段（`owner`/`level`/`rarity`/`effect_type`/`unlock_condition`）走兜底平铺，**一个都没丢**。属 schema 平移差异，需单独核对。
+> **不变式测试**：12 个内置类型「分区字段 + 未归组字段**恰好覆盖每个字段一次**（无遗漏、无重复）」——可捕获未来的 schema 改名与重复渲染。
+> **未验证**：Electron 内点击链路（E2E 沙箱不可用；`playwright --list` 已确认新 E2E 被收集）。**已核对既有 E2E 引用的 `field-*` 无一位于默认折叠分区**，不会破坏既有用例。
+> - **本轮自纠**：1 个单测首跑失败，同样是**我的期望写错**（`desc` 属「描述 & 图片」而非「基础信息」），代码正确。
+
+> ✅ **E6（2026-10-04）：字段 ID 生成（中文显示名 → 英文字段 ID），提交 `e59ba0e`**。
+> **先实跑取证，炸出两个真缺陷**（用 offscreen 起真控件跑 `FieldEditorWidget._translate_game_terms`，非阅读推断）：
+>
+> | 输入 | Python 实测输出 | TS 现产出 |
+> |---|---|---|
+> | `HP上限` | `h_p_max` | `hp_max` |
+> | `HP` | `h_p` | `hp` |
+> | `hp_max`（**本身已是合法 ID**） | `h_p_m_a_x` | `hp_max` |
+> | `ATK加成` | `a_t_k_canada_surname` | `atk_bonus` |
+> | `斗能`（**Python 文档自己举的示例词**） | `abbr_surname` | 明确报「未收录」 |
+> | `物防` | `protect` | 明确报「未收录」 |
+>
+> 1. **ASCII 被逐字打碎**：Python 的 ASCII 分支每读一个字符就 `append`，最后用 `_` 拼接 → `HP` → `h_p`，连本就合法的 `hp_max` 都被打成 `h_p_m_a_x`。TS 把**连续字母数字累积为一个 token**。
+> 2. **未收录的中文交给词典 → 产出垃圾**：`斗能 → abbr_surname`。TS **不接词典**，未收录段落记入 `skipped` 并如实提示，**绝不产出看起来像答案的垃圾**。
+>
+> **决策：CEDICT 词典不迁（`cedict.py` 72 行）**，实证支撑：压缩包实测 **3.8MB**（`Content-Length: 3978521`；`11MB` 是解压后 `data/cedict.txt`）、Python **在 UI 线程同步下载**（首次阻塞最多 30s）、失败静默吞掉；实测前缀 1555 行只保留「简体 + 首个释义」，**丢弃 717 个额外释义与 4954 个拼音音节**；它能答的通用词已被 143 条术语表覆盖，唯一会落到它的自造词它又查不到 → **该层几乎必然空转**。
+> **决策纠正：不加 Lua 保留字黑名单**（原计划有）。查证后判为不需要：导出器 `main/engineExport/luaLiteral.ts::toLuaKey` 对保留字已自动降级为 `["key"]`，JS 侧字段名只作对象键，两处都安全；新加一张黑名单既与导出器不一致，又会误伤 `class`/`level`/`order` 这类常用游戏字段名。
+> **术语表口径**：Python `GAME_TERMS_CN` 实测 **143 条**（此前台账所说的「63 条」是错的——那是在数行数）。用 **AST 提取**生成 `shared/glossaryTerms.ts`（沿用本项目 `sample_data.py` 的「零转写误差」先例，可随 Python 侧更新重新生成，脚本 `scripts/extract_glossary.py`）。
+> **补充术语只有一条**：`加成 → bonus`，依据是**代码库自身**的 `hp_bonus`/`mp_bonus`/`atk_bonus`/`def_bonus`（`typeSchema.ts:62-65`）。
+> **已知缺口（故意不补）**：`物防`/`物攻`/`魔防` 未收录 → 如实报「未收录」。补的前提是**先定命名**（`phys_def`? `pdef`?），代码库无先例，凭空补就是发明。
+> **交付**：`shared/fieldId.ts`（`suggestFieldIds`/`validateFieldId`/`uniquifyFieldId`）+ `TypeEditorPanel` 字段名旁「生成」按钮 + 行内候选条 + 单测 21 + E2E 1。（UI 把候选面板放在**行内末位 + `flex-basis:100%`** 独占一行，沿用既有先例。）
+> **未做（明示）**：① **AI 候选**——位置已留好（`suggestFieldIds` 返回列表），可照 **W30 既有先例**接入（`main/ipc.ts:370/382/407` 已有三处 `llmClient.generate(system, prompt)`；提示词构建与响应解析都该写成纯函数）；② **拼音兜底**——需新增依赖 `pinyin-pro`（npm 已验证可达 3.29.4），未做期间未收录词一律走「如实提示」。
+> **未验证**：Electron 内点击链路（E2E 沙箱不可用；`playwright --list` 已确认新 E2E 被收集）。
+> ⚠️ **事故记录**：`e59ba0e` 提交时误将**被静默回退的旧版** `ts-migration-roadmap.md` 一并提交，导致 E5 台账与 D 档更新被删。已从 `5737477` 恢复并核实（`grep -c` 为 2）；代码文件经核查未受影响。
 
 ## 3. 每片执行流程（固定顺序）
 
@@ -162,7 +202,6 @@ node_modules\.bin\playwright test          ← 必须 dangerouslyDisableSandbox=
 - **父代理负责**：调研把关、IPC 接线、UI 集成、E2E、全量验证、提交、台账回写。
 - 并行上限 **2–3 个子代理**；每个任务必须写清：目标文件路径、Python 参照与语义要点、精确数字要求、验证命令、禁止事项。
 - 子代理交付时须附「语义对照」说明（Python 函数 ↔ TS 函数 + 有意偏离项），便于父代理复核。
-
 
 ## 6. 下一批分片排期（默认顺序）
 
