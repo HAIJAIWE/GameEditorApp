@@ -8,6 +8,7 @@ import AttrSystemPanel from './components/AttrSystemPanel'
 import BatchEditPanel from './components/BatchEditPanel'
 import CeshuHomePanel from './components/CeshuHomePanel'
 import DigitalPanel from './components/digital/DigitalPanel'
+import EngineExportButton from './components/EngineExportButton'
 import LibraryBar from './components/LibraryBar'
 import CeshuView from './components/CeshuView'
 import ItemForm from './components/ItemForm'
@@ -399,6 +400,7 @@ export default function App() {
               <button type="button" className="btn" disabled={busy} onClick={() => void handleExportLegacy()}>
                 导出为 JSON
               </button>
+              <EngineExportButton />
               <button
                 type="button"
                 className="btn"

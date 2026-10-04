@@ -61,6 +61,7 @@ const api: MbApi = {
   },
   dialog: {
     chooseJsonFile: () => invoke('dialog:chooseJsonFile', undefined),
+    chooseEngineExportFile: (req) => invoke('dialog:chooseEngineExportFile', req),
     chooseSaveJsonFile: () => invoke('dialog:chooseSaveJsonFile', undefined),
     chooseCeshuExportFile: (req) => invoke('dialog:chooseCeshuExportFile', req),
     chooseAttrSystemJsonFile: (req) => invoke('dialog:chooseAttrSystemJsonFile', req),

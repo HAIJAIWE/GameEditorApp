@@ -60,6 +60,9 @@ export interface MbApi {
   }
   dialog: {
     chooseJsonFile(): Promise<IpcContract['dialog:chooseJsonFile']['res']>
+    chooseEngineExportFile(
+      req: IpcContract['dialog:chooseEngineExportFile']['req']
+    ): Promise<IpcContract['dialog:chooseEngineExportFile']['res']>
     chooseSaveJsonFile(): Promise<IpcContract['dialog:chooseSaveJsonFile']['res']>
     chooseTemplateJsonFile(
       req: IpcContract['dialog:chooseTemplateJsonFile']['req']

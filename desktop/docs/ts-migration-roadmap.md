@@ -44,7 +44,7 @@
 | **A1-5** | 业务技能接线 + 托盘/热键（`system.code` 沙箱技能 / 策划书写操作 / Tray + 全局热键） | `skills/code_skill.py`、`skills/ceshu_skill.py`、`ui/digital_employee.py`（常驻入口） | `main/agent/skills/codeSkill.ts`（QuickJS 沙箱，**SYSTEM 级**，单测 9）、`ceshuSkill` 补 `create`/`update`（单测 3）、`main/tray.ts`（Tray + `Ctrl+Shift+M`，防御式）；**补齐审批端到端拦截 E2E**（拒绝→不执行 / 批准→真执行） |
 | **A1-4b** | 三类确认补齐（**参数澄清** + **删除确认**）：统一 `SkillResult.interaction` 交互通道 | `skills/ask_user_skill.py`（阻塞式提问）、`game_data_skill.py:414`（`needs_confirm`，**Python 无消费者=死路**） | `system.game_data.delete`（confirm 交互 → 批准后 `confirm:true` 重执行）+ `tool.ask_user`（question 交互 → 答复回灌）；面板交互模态 + `agent:interactionResponse`；单测 +17、E2E +2 |
 
-| **E1** | **引擎代码导出（全量数据 → Lua 数据模块）** | ✅ 完成（`b7a2b9f`，D 档首刀）。团队交付：PM 定范围（`docs/prd/engine-export-prd.md`）→ 工程师实现 → QA 独立验证（路由 **NoOne**）。新增 `src/main/engineExport/{luaLiteral,lua,exporter}.ts` + IPC `engine:exportData`；单测 11 + 对抗性 13 + 集成 2；**未碰** `main/library`/数据增删改/既有导出管道。**遗留**：渲染层无 UI 入口（PRD 列 P1）、产物未经真实 Lua 解析器校验（本机无 lua/luac） |
+| **E1** | **引擎代码导出（全量数据 → Lua 数据模块）** | ✅ 完成（`b7a2b9f`，D 档首刀）。团队交付：PM 定范围（`docs/prd/engine-export-prd.md`）→ 工程师实现 → QA 独立验证（路由 **NoOne**）。新增 `src/main/engineExport/{luaLiteral,lua,exporter}.ts` + IPC `engine:exportData`；单测 11 + 对抗性 13 + 集成 2；**未碰** `main/library`/数据增删改/既有导出管道。**E2 ✅ 渲染层入口已补**（数据视图工具条「导出引擎代码（Lua）」+ `dialog:chooseEngineExportFile` 保存对话框 + `EngineExportButton` 独立状态组件；用户取消静默返回）。**遗留**：产物未经真实 Lua 解析器校验（本机无 lua/luac）；原生保存对话框 + 按钮点击属 Electron-only，本沙箱无法验证 |
 
 ## 2. 剩余工作清单（按体量分档）
 
@@ -75,7 +75,8 @@
 
 > ✅ **D 档「引擎代码导出」已交付首刀（见 §1 台账 E1，提交 `b7a2b9f`）**：只做 **Lua**，且只做「全量数据 → 单个 Lua 数据模块」。
 > **与 Python 参考版的有意偏离**：Python 支持 Unity/Unreal/Godot/Cocos 骨架，**反而没有 Lua**——本刀补的是它缺的那条主路径，其余引擎按 P1/P2 待排。
-> **未做**：渲染层 UI 入口（PRD 列 P1，目前仅 IPC 可达）、Godot/Cocos、Unity/Unreal 数据填充；产物未经真实 Lua 解析器校验（本机无 `lua`/`luac`）。
+> **已补 E2**：渲染层 UI 入口（数据视图工具条按钮 + 原生保存对话框）已就绪，界面上可点了。
+> **未做**：Godot/Cocos、Unity/Unreal 数据填充；产物未经真实 Lua 解析器校验（本机无 `lua`/`luac`）；保存对话框与按钮点击属 Electron-only，本沙箱无法验证。
 > D 档其余项（`extended_formulas`/`style_manager`/`game_templates`/`editor_layout`/`operation_log`/`cedict`）与 C 档（菜单快捷键/窗口状态/主题/设置/i18n）仍待排。
 
 ## 3. 每片执行流程（固定顺序）

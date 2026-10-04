@@ -33,6 +33,7 @@ import {
   agentInteractionResponseInputSchema,
   agentExecuteToolInputSchema,
   ceshuGetInputSchema,
+  engineExportFileDialogInputSchema,
   libraryCreateInputSchema,
   libraryNameInputSchema,
   libraryRenameInputSchema,
@@ -491,6 +492,16 @@ export function registerIpcHandlers({
       title: `导出策划书（${CESHU_FORMAT_LABELS[req.format]}）`,
       defaultPath: `${req.defaultName}${extension}`,
       filters: [{ name: CESHU_FORMAT_LABELS[req.format], extensions: [extension.slice(1)] }]
+    }
+    const focused = BrowserWindow.getFocusedWindow()
+    const result = focused ? await dialog.showSaveDialog(focused, options) : await dialog.showSaveDialog(options)
+    return { path: result.canceled || !result.filePath ? null : result.filePath }
+  })
+  handle('dialog:chooseEngineExportFile', engineExportFileDialogInputSchema, async (req) => {
+    const options: SaveDialogOptions = {
+      title: '导出引擎代码（Lua 数据模块）',
+      defaultPath: `${req.defaultName}.lua`,
+      filters: [{ name: 'Lua 数据模块', extensions: ['lua'] }]
     }
     const focused = BrowserWindow.getFocusedWindow()
     const result = focused ? await dialog.showSaveDialog(focused, options) : await dialog.showSaveDialog(options)

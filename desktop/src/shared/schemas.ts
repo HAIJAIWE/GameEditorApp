@@ -164,6 +164,11 @@ export const ceshuGetInputSchema = z.object({
   id: z.string().min(1)
 })
 
+/** 引擎代码导出（E2）：选择导出文件路径 */
+export const engineExportFileDialogInputSchema = z.object({
+  defaultName: z.string().min(1).max(120)
+})
+
 /** 库管理（A2-1）：新建库 */
 export const libraryCreateInputSchema = z.object({
   name: z.string().min(1).max(40),
@@ -409,6 +414,7 @@ export type AgentExecuteToolInput = z.infer<typeof agentExecuteToolInputSchema>
 export type AgentChatInput = z.infer<typeof agentChatInputSchema>
 export type AgentApprovalResponseInput = z.infer<typeof agentApprovalResponseInputSchema>
 export type AgentInteractionResponseInput = z.infer<typeof agentInteractionResponseInputSchema>
+export type EngineExportFileDialogInput = z.infer<typeof engineExportFileDialogInputSchema>
 export type LibraryCreateInput = z.infer<typeof libraryCreateInputSchema>
 export type LibraryRenameInput = z.infer<typeof libraryRenameInputSchema>
 export type LibraryNameInput = z.infer<typeof libraryNameInputSchema>

@@ -31,6 +31,7 @@ import type {
   AgentChatInput,
   AgentExecuteToolInput,
   AgentInteractionResponseInput,
+  EngineExportFileDialogInput,
   LibraryCreateInput,
   LibraryNameInput,
   LibraryRenameInput,
@@ -129,6 +130,8 @@ export interface IpcContract {
   'agent:sessionInfo': { req: undefined; res: SessionInfo }
   'agent:sessionRestore': { req: undefined; res: { messages: Array<Record<string, unknown>> } }
   'agent:sessionClear': { req: undefined; res: { cleared: boolean } }
+
+  'dialog:chooseEngineExportFile': { req: EngineExportFileDialogInput; res: { path: string | null } }
 
   // 库管理（A2-1）。库条目结构以 `main/library/store.ts` 的 `LibraryEntry` 为准，
   // 这里按线格式内联声明，避免 shared 反向依赖 main。
