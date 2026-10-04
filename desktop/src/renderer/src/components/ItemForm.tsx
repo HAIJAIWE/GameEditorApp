@@ -3,27 +3,43 @@ import { useEffect, useMemo, useState } from 'react'
 import { attrListToRows, rowsToAttrList, type AttrRow } from '../../../shared/attrList'
 import { attrPanelToRows, defaultAttrPanelRows, rowsToAttrPanel, type AttrPanelRow } from '../../../shared/attrPanel'
 import type { AttrSystem } from '../../../shared/attrSystem'
+import {
+  canParseAsDropTable,
+  normalizeDropEntries,
+  serializeDropEntries,
+  type DropEntry
+} from '../../../shared/dropTable'
 import { buildFormLayout, fieldLabelFor, isComplexFieldType } from '../../../shared/formSections'
-import type { ItemRecord, TypeFieldDef } from '../../../shared/types'
+import {
+  canParseAsRefTable,
+  normalizeRefEntries,
+  serializeRefEntries,
+  type ReferenceEntry
+} from '../../../shared/refTable'
+import type { DataTypeDef, ItemRecord, TypeFieldDef } from '../../../shared/types'
 
 import AttrPanelEditor from './AttrPanelEditor'
 import AttrTableEditor from './AttrTableEditor'
+import DropTableEditor from './DropTableEditor'
 import FormSectionCard from './FormSectionCard'
+import RefTableEditor from './RefTableEditor'
 
 interface ItemFormProps {
   item: ItemRecord
   fields: TypeFieldDef[]
+  /** 全部数据类型定义（引用类字段解析 refType → 单数 id + 中文名） */
+  types: readonly DataTypeDef[]
   onSaved: (updated: ItemRecord) => void
 }
 
-/** 数组元素含对象（如 [{name,count}]）时改用 JSON 编辑器，避免破坏结构 */
-function isObjectArray(value: unknown): boolean {
-  return Array.isArray(value) && value.some((entry) => typeof entry === 'object' && entry !== null)
-}
-
+/**
+ * 该字段是否退化为 JSON 文本框（仅当值无法被专用编辑器无损表示时，保留原始数据防止丢失）。
+ * - droptable：无法归一的（结构异常）走 JSON
+ * - multiselect：无法归一的走 JSON
+ */
 function usesJsonEditor(field: TypeFieldDef, value: unknown): boolean {
-  if (field.type === 'droptable') return true
-  if (field.type === 'multiselect') return isObjectArray(value)
+  if (field.type === 'droptable') return !canParseAsDropTable(value)
+  if (field.type === 'multiselect') return !canParseAsRefTable(value)
   return false
 }
 
@@ -35,6 +51,16 @@ function asAttrRows(value: unknown): AttrRow[] {
 /** draft 中的 attrpanel 值（始终为编辑行数组；防御异常数据） */
 function asAttrPanelRows(value: unknown): AttrPanelRow[] {
   return Array.isArray(value) ? (value as AttrPanelRow[]) : []
+}
+
+/** draft 中的 multiselect 值（已归一化；防御异常数据） */
+function asRefEntries(value: unknown): ReferenceEntry[] {
+  return Array.isArray(value) ? (value as ReferenceEntry[]) : []
+}
+
+/** draft 中的 droptable 值（已归一化；防御异常数据） */
+function asDropEntries(value: unknown): DropEntry[] {
+  return Array.isArray(value) ? (value as DropEntry[]) : []
 }
 
 function buildInitialDraft(
@@ -53,9 +79,13 @@ function buildInitialDraft(
       draft[field.name] = rows.length > 0 ? rows : defaultAttrPanelRows(typeId)
     } else if (usesJsonEditor(field, value)) {
       draft[field.name] = value === undefined || value === null ? '' : JSON.stringify(value, null, 2)
+    } else if (field.type === 'multiselect') {
+      draft[field.name] = normalizeRefEntries(value)
+    } else if (field.type === 'droptable') {
+      draft[field.name] = normalizeDropEntries(value)
     } else if (field.type === 'spinbox' || field.type === 'double_spin') {
       draft[field.name] = value === undefined || value === null ? '' : String(value)
-    } else if (field.type === 'multiselect' || field.type === 'tags') {
+    } else if (field.type === 'tags') {
       draft[field.name] = Array.isArray(value) ? value.join(', ') : (value ?? '')
     }
   }
@@ -111,7 +141,15 @@ function buildPayload(
       payload[name] = numeric
       continue
     }
-    if (field.type === 'multiselect' && typeof raw === 'string') {
+    if (field.type === 'multiselect') {
+      payload[name] = serializeRefEntries(asRefEntries(raw))
+      continue
+    }
+    if (field.type === 'droptable') {
+      payload[name] = serializeDropEntries(asDropEntries(raw))
+      continue
+    }
+    if (field.type === 'tags' && typeof raw === 'string') {
       payload[name] = raw
         .split(/[,，]/)
         .map((part) => part.trim())
@@ -213,7 +251,7 @@ function FieldControl({ field, value, jsonMode, onChange }: FieldControlProps) {
   }
 }
 
-export default function ItemForm({ item, fields, onSaved }: ItemFormProps) {
+export default function ItemForm({ item, fields, types, onSaved }: ItemFormProps) {
   const [draft, setDraft] = useState<Record<string, unknown>>(() => buildInitialDraft(item.data, fields, item.type))
   const [saving, setSaving] = useState(false)
   const [localError, setLocalError] = useState<string | null>(null)
@@ -288,6 +326,26 @@ export default function ItemForm({ item, fields, onSaved }: ItemFormProps) {
           typeId={item.type}
           rows={asAttrPanelRows(draft[field.name])}
           onChange={(rows) => setValue(field.name, rows)}
+        />
+      )
+    }
+    if (field.type === 'multiselect' && !jsonFields.has(field.name)) {
+      return (
+        <RefTableEditor
+          fieldName={field.name}
+          refType={field.refType ?? ''}
+          types={types}
+          entries={asRefEntries(draft[field.name])}
+          onChange={(entries) => setValue(field.name, entries)}
+        />
+      )
+    }
+    if (field.type === 'droptable' && !jsonFields.has(field.name)) {
+      return (
+        <DropTableEditor
+          fieldName={field.name}
+          entries={asDropEntries(draft[field.name])}
+          onChange={(entries) => setValue(field.name, entries)}
         />
       )
     }

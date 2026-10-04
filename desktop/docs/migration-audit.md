@@ -8,12 +8,12 @@
 
 | 判定 | 文件 | 行数 | 占比 |
 |---|---|---|---|
-| ✅ 已迁 | 90 | 33,834 | 37.1% |
-| ◐ 部分已迁 | 63 | 23,400 | 25.7% |
+| ✅ 已迁 | 92 | 34,317 | 37.6% |
+| ◐ 部分已迁 | 61 | 22,917 | 25.1% |
 | ⛔ 有意不迁 | 84 | 16,851 | 18.5% |
 | ⚠️ 未迁（整块没做） | 62 | 17,079 | 18.7% |
 
-**对账（必须相等，已 PASS）**：`90+63+84+62 = 299` ✓、`33834+23400+16851+17079 = 91,164` ✓
+**对账（必须相等，已 PASS）**：`92+61+84+62 = 299` ✓、`34317+22917+16851+17079 = 91,164` ✓
 
 ### 真实剩余 ≈ 2.7–3.1 万行（30–34%）
 
@@ -30,15 +30,15 @@
 |---|---|---|---|---|---|---|
 | `core/agent` | 97 | 24,670 | 8 / 1,689 | 23 / 6,752 | 33 / 7,810 | 33 / 8,419 |
 | `ui/ceshu` | 35 | 14,620 | 25 / 12,123 | 5 / 1,834 | 3 / 363 | 2 / 300 |
-| `ui/widgets` | 24 | 9,232 | 11 / 4,966 | 5 / 1,882 | 6 / 962 | 2 / 1,422 |
+| `ui/widgets` | 24 | 9,232 | 13 / 5,449 | 3 / 1,399 | 6 / 962 | 2 / 1,422 |
 | `ui/` 顶层 + `themes` + `components` | 31 | 9,883 | 4 / 917 | 9 / 4,748 | 7 / 1,029 | 11 / 3,189 |
 | `core/ceshu` + `core` 顶层 + `defaults` | 38 | 12,602 | 27 / 10,840 | 2 / 225 | 8 / 1,248 | 1 / 289 |
 | `ui/dialogs` | 20 | 6,055 | 7 / 1,718 | 7 / 2,493 | 4 / 487 | 2 / 1,357 |
 | `common` + `config` + `security` + `data` + 顶层 | 45 | 10,672 | 6 / 1,384 | 7 / 2,776 | 22 / 4,892 | 10 / 1,620 |
 | `features` | 9 | 3,430 | 1 / 42 | 5 / 2,690 | 1 / 60 | 2 / 638 |
-| **合计** | **299** | **91,164** | **89 / 33,679** | **63 / 23,400** | **84 / 16,851** | **63 / 17,234** |
+| **合计** | **299** | **91,164** | **91 / 34,162** | **61 / 22,917** | **84 / 16,851** | **63 / 17,234** |
 
-> **注**：上表「合计」是各域行直接相加（89/63/84/63 = 299 文件、33,679+23,400+16,851+17,234 = 91,164 行，**内部自洽**）；它与 §1 结论表仍存在 **±1 文件 / 155 行** 的差异（个别文件在「已迁 ↔ 未迁」间归类不同）。**§1 是结论表、也是守护测试的解析源，以 §1 为准**；域行的这一处差异待逐文件复核。
+> **注**：上表「合计」是各域行直接相加（91/61/84/63 = 299 文件、34,162+22,917+16,851+17,234 = 91,164 行，**内部自洽**）；它与 §1 结论表仍存在 **±1 文件 / 155 行** 的差异（个别文件在「已迁 ↔ 未迁」间归类不同）。**§1 是结论表、也是守护测试的解析源，以 §1 为准**；域行的这一处差异待逐文件复核。
 
 **三个最值得注意的域**：
 1. **`core/agent`（最大域，24,670 行）→ 只有 8 个文件（1,689 行）是完整已迁**，33 个文件（8,419 行）整块未迁。A 档做的是「核心闭环」，不是「整个 Agent 引擎」。
@@ -167,9 +167,9 @@
 | relation_graph.py | 407 | ✅ | `shared/references.ts`（注释注明与 reference_panel 合并迁移）+`ReferencesPanel.tsx` |
 | relation_matrix.py | 265 | ✅ | `AttrSystemPanel.tsx` matrix 视图+`attrSystem.ts::topoSortAttributes` |
 | collapsible_task_panel.py | 243 | ◐35% | `DigitalPanel.tsx` 有折叠步骤+`panel.ts::reduceBrainEvent`；缺任务工作区折叠面板 |
-| drop_table.py | 225 | ◐20% | `ItemForm.tsx` 降级为 JSON 文本框；缺表格 UI+选库对话框+掉率校验（影响 monster 三个掉落字段） |
+| drop_table.py | 225 | ✅ | `shared/dropTable.ts`+`DropTableEditor.tsx`（名称/掉率/最小/最大 + 内联选库 + 夹紧；E18） |
 | dynamic_form.py | 839 | ◐75% | `formSections.ts`+`ItemForm.tsx`+`FormSectionCard.tsx`；缺 image/dialog/formula_builder/image_tags/AI 按钮等专用控件 |
-| multi_select.py | 258 | ◐30% | 降级为逗号分隔 id/JSON；缺 `RefTableWidget`+`RefSelectDialog`（影响 role/monster/job/skill 的引用字段） |
+| multi_select.py | 258 | ✅ | `shared/refTable.ts`+`RefTableEditor.tsx`（refType 解析→单数 id + 名称/等级 + 内联选库；E17） |
 | task_row.py | 317 | ◐40% | `panel.ts::summarizeToolTasks` 派生扁平列表；缺可展开任务卡/状态徽章/完成删除动作 |
 | home_widget.py | 604 | ⚠️ | 整块未迁：`OnboardingGuide`（5 步引导+持久化）、`QUICK_ACTIONS`、数据概览卡 |
 | team_dialog.py | 818 | ⚠️ | 整块未迁：团队 CRUD/成员工具覆盖/自定义提示词/智能体定义管理 |
@@ -320,8 +320,8 @@
 | **1** | `common/logger.py`（155 行）+ TS 文件日志 | 中 | ✅ **已迁**（E8，`main/logger.ts` + `shared/logger.ts`）；**被引用 142 处**，原有 TS 只有 console.* |
 | **2** | `core/agent` 记忆系统补全（`memory_history` 211 + `memory_store` 195 + `memory_vector` 271 + `memory_search` 231） | ≈900 行 | ◐ **只做了偏好/反馈层**（E9，`learner.py` 子集）；对话历史/向量/搜索仍**未迁**。当前记忆**只增不学** |
 | **3** | `ui/dialogs` 未迁（含 `common/data_diff`）：`quick_create` 543 / `statistics` 374 / `template_manager` 411 / `advanced_search` 172 / `type_visibility` 121 / `data_diff` 154+197 / `backup_manager` 155（+`features/backup` 42） | ≈2,170 行 | ✅ **已全部迁完**（E10–E16）；都是**日常可达**的功能，非外围 |
-| **4** | 引用类字段编辑器：`multi_select`→`RefTableWidget`（258）+ `drop_table`→`DropTableWidget`（225） | ≈410 行 | 现在降级成 JSON 文本框，**编辑体验退化**（影响 role/monster/job/skill 多处）← **下一批首选** |
-| **5** | `features/export.py` 的 CSV + Excel 游戏数据导入导出 | ≈230 行 | 你作为策划，导表进 Excel 调整是常见动作 |
+| **4** | 引用类字段编辑器：`multi_select`→`RefTableWidget`（258）+ `drop_table`→`DropTableWidget`（225） | ≈410 行 | ✅ **已迁**（E17/E18，`RefTableEditor.tsx`+`DropTableEditor.tsx`）；原是 JSON/逗号串降级，现为专用表格编辑器（内联选库） |
+| **5** | `features/export.py` 的 CSV + Excel 游戏数据导入导出 | ≈230 行 | 你作为策划，导表进 Excel 调整是常见动作 ← **下一批首选** |
 | **6** | `core/style_manager.py`（289 行） | 289 行 | D 档最后一个活模块；**但需先定其全局单例状态在 TS 放哪** |
 | **7** | `features/_ai_image.py` AI 生图（365 行） | 365 行 | 新架构**完全没有**的能力（可选） |
 | **8** | C 档外围：主题/特效 1,905 + 菜单/多标签/窗口状态 690 + 设置/i18n | ≈3,700 行 | **多为「体验完整度」而非核心功能**，可长期后排 |

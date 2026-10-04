@@ -44,7 +44,10 @@ test('引用关系：被谁引用 / 引用了谁 / 相似数据与跳转', async
       await window.getByRole('button', { name: '新增测试条目' }).click()
       await expect(window.getByTestId('field-name')).not.toHaveValue(previousName)
       await window.getByTestId('field-name').fill(name)
-      await window.getByTestId('field-skills').fill(skillId)
+      // 引用表编辑器：+ 添加技能 → 在选库面板选中该技能 → 确定
+      await window.getByTestId('reftable-skills-add').click()
+      await window.getByTestId(`reftable-skills-option-${skillId}`).click()
+      await window.getByTestId('reftable-skills-confirm').click()
       await window.getByTestId('field-job').selectOption('战士')
       await window.getByTestId('field-race').selectOption('人类')
       await window.getByTestId('item-editor').getByRole('button', { name: '保存' }).click()

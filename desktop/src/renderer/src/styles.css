@@ -1478,6 +1478,129 @@ button.ref-row:hover {
   justify-content: flex-end;
 }
 
+/* ---- 引用表 / 掉落表编辑器（multiselect / droptable 字段） ---- */
+
+.ref-drop {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ref-drop-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ref-drop-title {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.ref-drop-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.ref-drop-empty {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.ref-drop-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.ref-drop-table th,
+.ref-drop-table td {
+  padding: 3px 6px;
+  border: 1px solid var(--border);
+  text-align: left;
+}
+
+.ref-drop-table tbody tr {
+  cursor: pointer;
+}
+
+.ref-drop-table tbody tr.selected {
+  background: var(--bg-hover);
+}
+
+.ref-drop-level-col,
+.ref-drop-num-col {
+  width: 72px;
+  text-align: center;
+}
+
+.ref-drop-level,
+.ref-drop-num {
+  width: 64px;
+  text-align: center;
+}
+
+.ref-drop-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+}
+
+.ref-drop-candidates {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.ref-drop-candidate {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ref-drop-candidate:hover {
+  background: var(--bg-hover);
+}
+
+.ref-drop-candidate.selected {
+  border-color: var(--accent);
+}
+
+.ref-drop-candidate small {
+  color: var(--text-muted);
+}
+
+.ref-drop-picker-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ref-drop-picker-foot label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
 .attr-calc {
   padding: 8px 10px;
   border: 1px solid var(--border);

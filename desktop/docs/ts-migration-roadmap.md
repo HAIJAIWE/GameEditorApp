@@ -55,12 +55,12 @@
 >
 > | 判定 | 文件 | 行数 | 占比 |
 > |---|---|---|---|
-> | ✅ 已迁 | 90 | 33,834 | 37.1% |
-> | ◐ 部分已迁 | 63 | 23,400 | 25.7% |
+> | ✅ 已迁 | 92 | 34,317 | 37.6% |
+> | ◐ 部分已迁 | 61 | 22,917 | 25.1% |
 > | ⛔ 有意不迁（决策，非欠债） | 84 | 16,851 | 18.5% |
 > | ⚠️ **未迁（整块没做）** | **62** | **17,079** | **18.7%** |
 >
-> 对账 PASS：`90+63+84+62 = 299` 文件、`33834+23400+16851+17079 = 91,164` 行。
+> 对账 PASS：`92+61+84+62 = 299` 文件、`34317+22917+16851+17079 = 91,164` 行。
 >
 > **结论：真实剩余 ≈ 2.7–3.1 万行（30–34%）** —— 而不是早前口头估算的「3.5–4.5k 行（4–5%）」。那句估算**口径过窄**（把 `ui/widgets`/`ui/dialogs`/`features` 三个混合态域当成了基本迁完）且未做文件级核实，**已被本审计推翻**。
 > 三个最意外的数字：**① `core/agent`（最大域 24,670 行）只有 1,689 行是完整已迁**（A 档做的是核心闭环，不是整个 Agent 引擎）；**② `ui/` 顶层+主题 9,883 行里仅 917 行完整已迁**；**③ `features` 9 文件完整已迁为 0**。
@@ -245,6 +245,23 @@
 
 > ⚙️ **本批的推进方式（E14–E16 同批交付）**：因为三个切片都要改**同一批共享接线文件**（`App.tsx`/`styles.css`/5 个 IPC 文件/文档），真并行写码必然互相覆盖，故采用「**并行做互不冲突的调研 + 各自只写新文件，共享接线由主代理串行收口**」：3 个只读子代理并行摸清三个 Python 文件的语义/消费者/TS 覆盖/是否需新 IPC；再由 3 个实现子代理并行产出**各自的新文件**（共享逻辑 + 面板 + 单测 + E2E，**禁止触碰 App.tsx/styles.css/IPC/文档**）；最后由主代理串行完成全部接线、恢复编排、4 条 IPC、文档与提交。**教训**：`type_visibility`/`data_diff` 都能**不开新 IPC**（前者 localStorage、后者纯函数），只有 backup 必须开 —— 若一开始就并行改共享文件，会白做大量冲突调解。
 > **事故记录（本会话第 4 次静默回退）**：子代理跑完后 `git status` 发现 `ts-migration-roadmap.md` **再次**被退成更旧的快照（**E12 与 E13 台账同时消失**、§2 数字退回 `64/23,203`+`67/18,117`）。处置同上：备份损坏版 → `git checkout HEAD --` 还原 → 重做台账。**缓解措施维持不变**：提交前 `git status`、`git add` 后核对 `--cached --name-only`、提交后 `grep -c` + `git diff --quiet`。
+
+> ✅ **E17（2026-10-05）：引用表字段编辑器（迁移 `ui/widgets/multi_select.py`，258 行）**。
+> **交付**：`shared/refTable.ts`（`ReferenceEntry`/`clampRefLevel`/`resolveRefTypeId`/`refTypeDisplayName`/`canParseAsRefTable`/`normalizeRefEntries`/`serializeRefEntries`）+ `RefTableEditor.tsx`（名称/等级两列 + 内联选库面板）+ `ItemForm` 接线（`types` prop 传入）。
+> **替换的降级**：原 `multiselect` 是逗号分隔串或 JSON 文本框；现为专用表格编辑器。**不再有 JSON 降级**，仅当值无法归一（结构异常）才回退 JSON（防丢数据）。
+> **键口径修正**：Python `_get_name_by_id` 用 **复数键** 查 `data_manager.data[pluralKey]`；TS 用单数 type id 经 `DataService.listItems` 查（`resolveRefTypeId` 双向命中 `id`/`pluralKey`，schema 的 `refType` 是复数，而存储用单数）。
+> **修 Python 缺陷**：SQL 式「名称解析」改由候选表内存映射解析；删除按「选中行」与 Python 一致。
+> **E2E 影响**：`references.spec.ts` 原 `fill('field-skills', id)` 依赖文本框行为 → 已改为内联选库流程（点 `+ 添加技能` → 选选项 → 确定）。
+> **验证**：单测 35 + E2E（并入 ref-drop-editors.spec，**未实跑**，已确认被收集）。
+
+> ✅ **E18（2026-10-05）：掉落表字段编辑器（迁移 `ui/widgets/drop_table.py`，225 行）**。
+> **交付**：`shared/dropTable.ts`（`DropEntry`/`clampDropRate`/`clampDropCount`/`normalizeDropRange`/`dropSourceTypeId`/`dropSourceLabel`/`canParseAsDropTable`/`normalizeDropEntries`/`serializeDropEntries`）+ `DropTableEditor.tsx`（名称/掉率% / 最小/最大四列 + 内联选库）+ `ItemForm` 接线。
+> **替换的降级**：原 `droptable` **恒为 JSON 文本框**；现为专用表格编辑器。
+> **存储格式逐字照搬**：`[{name, rate, count_min, count_max}]` —— **仅 name、无 id**。这是 Python 既有数据模型（存量数据无 id），保持格式兼容优先；**已知局限**（照搬不修）：来源条目改名后掉落引用会失配，已在源码注释标注，如需改 id 引用应作为独立设计变更并迁移存量数据。
+> **选库口径**：照搬 Python —— `equip_drops` → 装备库（`equip`）/ 标签「装备」；**其余（含 `item_drops`/`title_drops`）→ 道具库（`item`）/ 标签「道具」**（Python 的真实行为，`title_drops` 落到道具是其既有瑕疵，注释已写明）。
+> **验证**：单测 40 + E2E（并入 ref-drop-editors.spec，**未实跑**，已确认被收集）。
+
+> ⚙️ **本批的推进方式（E17–E18 同批交付）**：两个切片都要改 `ItemForm.tsx`/`App.tsx`/`styles.css`（共享接线），故沿用 E14–E16 的模式：2 个实现子代理并行产出**互不冲突的新文件**（`shared/refTable.ts`+单测、`shared/dropTable.ts`+单测，禁止触碰共享文件），两个 React 编辑器组件与全部接线（`ItemForm`/`App`/样式/E2E/文档）由主代理串行完成。**教训延续**：先钉死 shared 接口再并行，可零冲突合并（本次 2 份 shared 文件导出与调用方逐字吻合，无需返工）。
 
 ## 3. 每片执行流程（固定顺序）
 

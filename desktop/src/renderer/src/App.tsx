@@ -750,6 +750,7 @@ export default function App() {
                         key={`${selectedItem.id}:${selectedItem.updatedAt}`}
                         item={selectedItem}
                         fields={fields}
+                        types={types}
                         onSaved={handleSaved}
                       />
                     )
