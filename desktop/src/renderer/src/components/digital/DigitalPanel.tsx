@@ -4,6 +4,8 @@ import type { BrainEvent } from '../../../../shared/agent/brain'
 import {
   hydrateFromSession,
   initialDigitalPanelState,
+  isAnswerComplete,
+  isMultiQuestion,
   isRunning,
   reduceBrainEvent,
   resolveApproval,
@@ -23,7 +25,12 @@ import {
 interface ChatApi {
   chat: (req: { input: string }) => Promise<{ text: string }>
   respondApproval: (req: { requestId: string; approved: boolean }) => Promise<{ ok: boolean }>
-  respondInteraction: (req: { requestId: string; approved?: boolean; answer?: string }) => Promise<{ ok: boolean }>
+  respondInteraction: (req: {
+    requestId: string
+    approved?: boolean
+    answer?: string
+    answers?: string[]
+  }) => Promise<{ ok: boolean }>
   sessionInfo: () => Promise<{ hasSession: boolean; messageCount: number; savedAt: string }>
   sessionRestore: () => Promise<{ messages: Array<{ role?: unknown; content?: unknown }> }>
   sessionClear: () => Promise<{ cleared: boolean }>
@@ -73,12 +80,24 @@ export default function DigitalPanel() {
   const [stepsOpen, setStepsOpen] = useState(true)
   const [sessionHint, setSessionHint] = useState<{ messageCount: number; savedAt: string } | null>(null)
   const [interactionAnswer, setInteractionAnswer] = useState('')
+  /** 多问题：自由文本作答（按下标对齐） */
+  const [multiText, setMultiText] = useState<string[]>([])
+  /** 多问题：点选作答（按下标对齐；多选题为多个 label） */
+  const [multiChoice, setMultiChoice] = useState<string[][]>([])
   const [localError, setLocalError] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement | null>(null)
 
   const api = useMemo(() => (window.mbApi as unknown as { agent: ChatApi }).agent, [])
   const tasks = useMemo(() => summarizeToolTasks(state.steps), [state.steps])
   const running = isRunning(state)
+
+  const currentInteraction = state.interaction?.interaction ?? null
+  const multiAnswers = (currentInteraction?.questions ?? []).map((question, index) =>
+    question.options !== undefined && question.options.length > 0
+      ? (multiChoice[index] ?? []).join('、')
+      : (multiText[index] ?? '').trim()
+  )
+  const multiReady = currentInteraction !== null && isAnswerComplete(currentInteraction, multiAnswers)
 
   // 订阅主进程推送的事件流（与 chat 的返回值二选一即可，这里用推送保证流式可见）
   useEffect(() => {
@@ -128,14 +147,41 @@ export default function DigitalPanel() {
     })
   }
 
-  /** 交互答复（确认破坏性动作 / 回答提问） */
-  const handleInteraction = (payload: { approved?: boolean; answer?: string }): void => {
+  /** 交互答复（确认破坏性动作 / 回答提问，含多问题） */
+  const handleInteraction = (payload: { approved?: boolean; answer?: string; answers?: string[] }): void => {
     const pending = state.interaction
     if (pending === null) return
     setInteractionAnswer('')
+    setMultiText([])
+    setMultiChoice([])
     dispatch({ kind: 'interaction' })
     void api.respondInteraction({ requestId: pending.requestId, ...payload }).catch((error: unknown) => {
       setLocalError(toErrorMessage(error))
+    })
+  }
+
+  /** 多问题：按题组装答复（有选项的题取点选结果，其余取文本输入） */
+  const submitMultiAnswers = (): void => {
+    const questions = state.interaction?.interaction.questions ?? []
+    const answers = questions.map((question, index) =>
+      question.options !== undefined && question.options.length > 0
+        ? (multiChoice[index] ?? []).join('、')
+        : (multiText[index] ?? '').trim()
+    )
+    handleInteraction({ answers })
+  }
+
+  /** 点选/取消某题的一个候选 */
+  const toggleChoice = (index: number, label: string, multiSelect: boolean): void => {
+    setMultiChoice((current) => {
+      const next = [...current]
+      const picked = next[index] ?? []
+      if (!multiSelect) {
+        next[index] = picked[0] === label ? [] : [label]
+        return next
+      }
+      next[index] = picked.includes(label) ? picked.filter((item) => item !== label) : [...picked, label]
+      return next
     })
   }
 
@@ -285,6 +331,67 @@ export default function DigitalPanel() {
                 取消
               </button>
             </div>
+          ) : isMultiQuestion(state.interaction.interaction) ? (
+            /* 多问题（对齐 Python questions 数组）：逐题作答后一次性提交 */
+            <div className="digital-multi-form" data-testid="digital-multi-form">
+              {(state.interaction.interaction.questions ?? []).map((question, index) => (
+                <div
+                  className="digital-multi-item"
+                  data-testid="digital-multi-question"
+                  key={`${index}-${question.prompt}`}
+                >
+                  <div className="digital-interaction-prompt">
+                    {index + 1}. {question.prompt}
+                    {question.multiSelect === true ? '（可多选）' : ''}
+                  </div>
+                  {question.options !== undefined && question.options.length > 0 ? (
+                    <div className="editor-actions">
+                      {question.options.map((option) => {
+                        const picked = (multiChoice[index] ?? []).includes(option.label)
+                        return (
+                          <button
+                            key={option.label}
+                            type="button"
+                            className={`btn slim${picked ? ' primary' : ''}`}
+                            data-testid="digital-multi-option"
+                            data-picked={picked ? 'true' : 'false'}
+                            title={option.description ?? undefined}
+                            onClick={() => toggleChoice(index, option.label, question.multiSelect === true)}
+                          >
+                            {option.label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <input
+                      className="form-input"
+                      data-testid="digital-multi-input"
+                      placeholder="输入回答…"
+                      value={multiText[index] ?? ''}
+                      onChange={(event) =>
+                        setMultiText((current) => {
+                          const next = [...current]
+                          next[index] = event.target.value
+                          return next
+                        })
+                      }
+                    />
+                  )}
+                </div>
+              ))}
+              <div className="editor-actions">
+                <button
+                  type="button"
+                  className="btn primary"
+                  data-testid="digital-multi-submit"
+                  disabled={!multiReady}
+                  onClick={submitMultiAnswers}
+                >
+                  提交全部回答
+                </button>
+              </div>
+            </div>
           ) : (
             <>
               <div className="digital-input-row">
@@ -314,13 +421,14 @@ export default function DigitalPanel() {
                 <div className="editor-actions">
                   {(state.interaction.interaction.options ?? []).map((option) => (
                     <button
-                      key={option}
+                      key={option.label}
                       type="button"
                       className="btn slim"
                       data-testid="digital-interaction-option"
-                      onClick={() => handleInteraction({ answer: option })}
+                      title={option.description ?? undefined}
+                      onClick={() => handleInteraction({ answer: option.label })}
                     >
-                      {option}
+                      {option.label}
                     </button>
                   ))}
                 </div>

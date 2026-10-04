@@ -198,6 +198,18 @@ export function resolveInteraction(state: DigitalPanelState): DigitalPanelState 
   return { ...state, interaction: null, status: 'thinking' }
 }
 
+/** 是否为多问题交互（决定面板渲染单输入框还是多问题表单） */
+export function isMultiQuestion(interaction: SkillInteraction): boolean {
+  return interaction.kind === 'question' && interaction.questions !== undefined && interaction.questions.length > 0
+}
+
+/** 多问题答复是否完整（供「提交」按钮启用判断；空串按未作答计） */
+export function isAnswerComplete(interaction: SkillInteraction, answers: readonly string[]): boolean {
+  const questions = interaction.questions ?? []
+  if (questions.length === 0) return false
+  return questions.every((_, index) => (answers[index] ?? '').trim() !== '')
+}
+
 /** 由工具步骤派生任务列表（面板「任务」区展示） */
 export function summarizeToolTasks(steps: DigitalStep[]): DigitalTask[] {
   return steps

@@ -504,7 +504,7 @@ describe('runBrainLoop：技能交互（确认 / 提问）', () => {
         return {
           success: true,
           message: '',
-          interaction: { kind: 'question', prompt: '用哪个职业？', options: ['战士', '法师'] }
+          interaction: { kind: 'question', prompt: '用哪个职业？', options: [{ label: '战士' }, { label: '法师' }] }
         }
       }
     }
@@ -559,6 +559,66 @@ describe('runBrainLoop：技能交互（确认 / 提问）', () => {
     })
     expect(runner.executed).toHaveLength(0)
     expect(result.events.some((event) => event.type === 'step_done' && event.result.includes('[STOP]'))).toBe(true)
+  })
+
+  it('多问题：全部作答 → 按序号回灌；缺项 → 记 [STOP]', async () => {
+    const runner: BrainToolRunner = {
+      resolve: (name) => name,
+      needsConfirmation: () => false,
+      execute: async () => ({
+        success: true,
+        message: '',
+        interaction: {
+          kind: 'question',
+          prompt: '请回答以下 2 个问题',
+          questions: [
+            { prompt: '用哪个职业？', options: [{ label: '战士' }, { label: '法师' }] },
+            { prompt: '要哪些流派？', options: [{ label: '普攻流' }, { label: 'CD 流' }], multiSelect: true }
+          ]
+        }
+      })
+    }
+
+    const okTransport = scripted([toolCall('c1', 'tool.ask_user', { action: 'ask' }), FINAL])
+    const ok = await runBrainLoop({
+      input: 'x',
+      systemPrompts: [],
+      transport: okTransport,
+      runner,
+      requestInteraction: () => ({ answers: ['法师', '普攻流、CD 流'] })
+    })
+    const expected = '用户回答：\n1. 用哪个职业？ → 法师\n2. 要哪些流派？ → 普攻流、CD 流'
+    expect(ok.events.some((event) => event.type === 'step_done' && event.result === expected)).toBe(true)
+
+    // 只答一题 → 拒绝（要求全部作答）
+    const partialTransport = scripted([toolCall('c1', 'tool.ask_user', { action: 'ask' }), FINAL])
+    const partial = await runBrainLoop({
+      input: 'x',
+      systemPrompts: [],
+      transport: partialTransport,
+      runner,
+      requestInteraction: () => ({ answers: ['法师', ''] })
+    })
+    expect(
+      partial.events.some(
+        (event) => event.type === 'step_done' && event.result === '[STOP] 用户未解答全部提问（缺 1/2）'
+      )
+    ).toBe(true)
+
+    // 完全没给 answers → 同样按缺 2/2 处理
+    const noneTransport = scripted([toolCall('c1', 'tool.ask_user', { action: 'ask' }), FINAL])
+    const none = await runBrainLoop({
+      input: 'x',
+      systemPrompts: [],
+      transport: noneTransport,
+      runner,
+      requestInteraction: () => ({})
+    })
+    expect(
+      none.events.some(
+        (event) => event.type === 'step_done' && event.result === '[STOP] 用户未解答全部提问（缺 2/2）'
+      )
+    ).toBe(true)
   })
 
   it('question：答复为空 → 记 [STOP] 未解答', async () => {

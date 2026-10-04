@@ -200,7 +200,8 @@ userData/
 | A1-4 数字员工面板 | ✅ 完成 | `c38199b` | `shared/agent/panel.ts`（事件流 → 面板视图模型纯归约，单测 13）+ `main/agent/approvalBroker.ts`（审批中转，单测 6）+ `renderer/src/components/digital/DigitalPanel.tsx` + App 第三模式 `mode-digital` + IPC `agent:approvalResponse`/`agent:sessionInfo|Restore|Clear` + 主进程 `agent:event` 推送 + E2E `agent-digital-panel.spec.ts`（2 例，沙箱未实跑） |
 | A1-5 业务技能接线 + 托盘/热键 | ✅ 完成 | `26b217f` |
 | A1-4b 交互通道补完（参数澄清 + 删除确认） | ✅ 完成 | `ac2c6ec` |
-| A1-5b 收尾三项（策划书删/导出 + 交互超时 + 托盘图标资源） | ✅ 完成 | `b7a0a47` | `system.ceshu` 补 `delete`（confirm 交互）/`export`（导出到默认目录并回报路径）+ 交互**超时保护**（默认 120s，超时按未答复回落）+ `resources/tray-icon.png` 正式图标（脚本生成 + 位图兜底）；单测 +8 | 统一 `SkillResult.interaction`（`confirm`/`question`）→ Brain `interaction_required` 事件 + 复用审批 broker 回传答复；生产者：`system.game_data.delete`（confirm，批准后带 `confirm:true` 重执行）+ `tool.ask_user`（question，答复回灌为工具结果）；面板交互模态；单测 +17 | `system.code`（jsSandbox，**SYSTEM 级**，单测 9）+ `system.ceshu` 补 `create`/`update`（单测 3）+ `main/tray.ts`（Tray + `Ctrl+Shift+M`，防御式）+ **补齐 A1-4 遗留的审批端到端拦截 E2E**（拒绝→不执行 / 批准→真执行，见 `agent-digital-panel.spec.ts`） |
+| A1-5b 收尾三项（策划书删/导出 + 交互超时 + 托盘图标资源） | ✅ 完成 | `b7a0a47` |
+| A1-4c 多问题提问（对齐 Python `questions` 数组 + multiSelect；选项形状统一为 `{label, description}`） | ✅ 完成 | `<PENDING_HASH>` | `SkillInteractionQuestion` + `resolveInteractionQuestions`；Brain `answers[]` 按序号回灌、缺项即 `[STOP]`；`tool.ask_user` 支持 `questions`；面板多问题表单（单选/多选/文本 + 完整才可提交）；单测 +3、E2E +1 | `system.ceshu` 补 `delete`（confirm 交互）/`export`（导出到默认目录并回报路径）+ 交互**超时保护**（默认 120s，超时按未答复回落）+ `resources/tray-icon.png` 正式图标（脚本生成 + 位图兜底）；单测 +8 | 统一 `SkillResult.interaction`（`confirm`/`question`）→ Brain `interaction_required` 事件 + 复用审批 broker 回传答复；生产者：`system.game_data.delete`（confirm，批准后带 `confirm:true` 重执行）+ `tool.ask_user`（question，答复回灌为工具结果）；面板交互模态；单测 +17 | `system.code`（jsSandbox，**SYSTEM 级**，单测 9）+ `system.ceshu` 补 `create`/`update`（单测 3）+ `main/tray.ts`（Tray + `Ctrl+Shift+M`，防御式）+ **补齐 A1-4 遗留的审批端到端拦截 E2E**（拒绝→不执行 / 批准→真执行，见 `agent-digital-panel.spec.ts`） |
 
 ### A2-2 落地记录（2026-10-04）· A 档收官
 
@@ -242,6 +243,19 @@ userData/
 **未完成（明示）**：
 - **A2-1 的 E2E 未写**（「新建库 → 切换 → 数据/策划书互相隔离 → 重启保持活跃库」）：真实存储行为已由集成测试覆盖，只剩 Electron UI 链路待 CI。
 - **A2-2（渲染层库条 UI）未开始**：`library:*` IPC 已就绪，但界面还没有入口——**当前用户无法在 UI 上切库**，只能用 IPC。
+
+### A1-4c 落地记录（2026-10-04）· 多问题提问
+
+**背景**：A1-4b 把「三类确认」打通时只做了单问题提问；Python `ask_user_skill` 的 `questions` 数组（+ `multiSelect`）当时被我以「UI 改动量大于本批其余项之和」为由推后，现补齐。
+
+**协议变更（顺带修了一个不一致点）**：
+- 新增 `SkillInteractionQuestion { prompt, options?, multiSelect? }` 与 `SkillInteraction.questions`；`resolveInteractionQuestions()` 统一取题（`questions` 优先，否则由 `options` 折成单问题）。
+- **候选项形状统一为 `{label, description?}`**：此前是 `options: readonly string[]`，与 Python 的 `{label, description}` 不一致，导致「协议说字符串、Python 传对象」的隐性错配。现在单一形状，`normalizeOptions()` 兼容两种输入（字符串 / 对象）。
+- `BrainInteractionAnswer` 增 `answers?: readonly string[]`（**按下标对齐 questions**）；多问题时缺任一项即 `[STOP] 用户未解答全部提问（缺 x/y）`，答复回灌为带序号的清单。
+
+**面板**：`waiting_input` 下若为多问题则渲染表单——每题按「有候选→点选（`multiSelect` 可多选，选中态用 `data-picked` 暴露给测试）／无候选→文本框」，**逐题非空才启用「提交全部回答」**（`isAnswerComplete`，纯函数可单测）。
+
+**未变**：无答复通道 / 超时（120s）/ 部分作答 → 一律 `[STOP]`，仍不做隐式放行。
 
 ### A1-5b 落地记录（2026-10-04）· 收尾三项
 

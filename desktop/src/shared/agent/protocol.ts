@@ -165,12 +165,31 @@ export interface SkillExecutionContext {
  * 背景：Python 里 `needs_confirm`（`game_data_skill.py:414`）**只有生产者、没有消费者**，
  * 标志位无人处理、循环只把错误文案回灌给 LLM —— 属死路。TS 把它做成真实通道。
  */
+/** 候选项（对齐 Python `ask_user_skill` 的 `{label, description}`） */
+export interface SkillInteractionOption {
+  label: string
+  description?: string
+}
+
+/** 单个问题（`questions` 的元素，对齐 Python `{question, options, multiSelect}`） */
+export interface SkillInteractionQuestion {
+  prompt: string
+  options?: readonly SkillInteractionOption[]
+  /** 是否可多选 */
+  multiSelect?: boolean
+}
+
 export interface SkillInteraction {
   kind: 'confirm' | 'question'
-  /** 展示给用户的文案 */
+  /** 展示给用户的文案（多问题时作为总标题） */
   prompt: string
-  /** kind === 'question' 时的候选选项（留空表示自由文本回答） */
-  options?: readonly string[]
+  /**
+   * kind === 'question' 的单问题候选选项（留空表示自由文本回答）。
+   * 注意：这是 `questions` 长度为 1 时的便捷写法；两者同时存在时**以 `questions` 为准**。
+   */
+  options?: readonly SkillInteractionOption[]
+  /** kind === 'question' 的多问题列表（对齐 Python `questions`） */
+  questions?: readonly SkillInteractionQuestion[]
 }
 
 /** 技能执行结果（对齐 Python 归一化后的 `{success, message, data}`，另加 `interaction`） */
@@ -266,12 +285,49 @@ export function getToolDescription(skill: SkillProtocol): string {
 
 /* ---- 结果归一化 ---- */
 
+function isOptionList(value: unknown): boolean {
+  if (!Array.isArray(value)) return false
+  return value.every(
+    (item) =>
+      item !== null &&
+      typeof item === 'object' &&
+      typeof (item as { label?: unknown }).label === 'string' &&
+      (item as { label: string }).label !== ''
+  )
+}
+
 /** 结构校验：只有 kind 合法且 prompt 非空的才算有效交互请求 */
 export function isSkillInteraction(value: unknown): value is SkillInteraction {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) return false
   const record = value as Record<string, unknown>
   if (record.kind !== 'confirm' && record.kind !== 'question') return false
-  return typeof record.prompt === 'string' && record.prompt !== ''
+  if (typeof record.prompt !== 'string' || record.prompt === '') return false
+  if (record.options !== undefined && !isOptionList(record.options)) return false
+  if (record.questions !== undefined) {
+    if (!Array.isArray(record.questions) || record.questions.length === 0) return false
+    return record.questions.every((item) => {
+      if (item === null || typeof item !== 'object') return false
+      const question = item as Record<string, unknown>
+      if (typeof question.prompt !== 'string' || question.prompt === '') return false
+      return question.options === undefined || isOptionList(question.options)
+    })
+  }
+  return true
+}
+
+/** 取出真正要问的问题列表：`questions` 优先，否则由 `options` 折成单问题 */
+export function resolveInteractionQuestions(
+  interaction: SkillInteraction
+): readonly SkillInteractionQuestion[] {
+  if (interaction.questions !== undefined && interaction.questions.length > 0) {
+    return interaction.questions
+  }
+  return [
+    {
+      prompt: interaction.prompt,
+      ...(interaction.options !== undefined ? { options: interaction.options } : {})
+    }
+  ]
 }
 
 /** 归一化技能返回（对齐 Python `ToolDispatcher._normalize_result`，去掉内部 `_raw`） */

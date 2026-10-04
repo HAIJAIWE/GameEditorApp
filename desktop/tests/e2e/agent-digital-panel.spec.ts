@@ -268,6 +268,66 @@ test('数字员工面板：SYSTEM 级技能获批后在沙箱执行并回灌结�
   expect(joined).not.toContain('[STOP]')
 })
 
+test('数字员工面板：多问题提问逐题作答后一次性提交，答复按序号回灌', async () => {
+  const stub = await startOllamaChatStub({
+    toolName: 'tool.ask_user',
+    toolArgs: {
+      action: 'ask',
+      questions: [
+        { question: '用哪个职业？', options: ['战士', '法师'] },
+        { question: '要哪些流派？', options: ['普攻流', 'CD 技能流'], multiSelect: true }
+      ]
+    },
+    finalChunks: ['收到']
+  })
+  const userDataDir = mkdtempSync(join(tmpdir(), 'mb-agent-multi-ask-'))
+  const app = await electron.launch({
+    args: ['.'],
+    cwd: join(__dirname, '..', '..'),
+    env: {
+      ...process.env,
+      MB_USER_DATA_DIR: userDataDir,
+      MB_OLLAMA_HOST: stub.host,
+      MB_OLLAMA_MODEL: 'stub:latest'
+    }
+  })
+
+  try {
+    const window = await app.firstWindow()
+    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await window.getByTestId('mode-digital').click()
+    await window.getByTestId('digital-input').fill('帮我设计一个角色')
+    await window.getByTestId('digital-send').click()
+
+    // 多问题表单：两题 + 未答完时不可提交
+    await expect(window.getByTestId('digital-multi-form')).toBeVisible({ timeout: 15_000 })
+    await expect(window.getByTestId('digital-multi-question')).toHaveCount(2)
+    await expect(window.getByTestId('digital-multi-submit')).toBeDisabled()
+
+    // 第 1 题单选「法师」
+    await window.getByTestId('digital-multi-question').nth(0).getByText('法师').click()
+    await expect(window.getByTestId('digital-multi-submit')).toBeDisabled()
+
+    // 第 2 题多选两项
+    const second = window.getByTestId('digital-multi-question').nth(1)
+    await second.getByText('普攻流').click()
+    await second.getByText('CD 技能流').click()
+    await expect(window.getByTestId('digital-multi-submit')).toBeEnabled()
+
+    await window.getByTestId('digital-multi-submit').click()
+    await expect(window.getByTestId('digital-multi-form')).toHaveCount(0)
+    await expect(
+      window.getByTestId('digital-step').filter({ hasText: '用哪个职业？ → 法师' })
+    ).toHaveCount(1, { timeout: 15_000 })
+    await expect(
+      window.getByTestId('digital-step').filter({ hasText: '要哪些流派？ → 普攻流、CD 技能流' })
+    ).toHaveCount(1)
+  } finally {
+    await app.close()
+    await stub.close()
+  }
+})
+
 test('数字员工面板：删除条目走「操作确认」交互，确认后真正删除', async () => {
   const stub = await startOllamaChatStub({
     toolName: 'system.game_data',

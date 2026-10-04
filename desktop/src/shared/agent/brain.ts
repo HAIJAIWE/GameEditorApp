@@ -113,10 +113,11 @@ export interface BrainInteractionRequest {
   interaction: SkillInteraction
 }
 
-/** 交互答复：confirm 用 `approved`，question 用 `answer` */
+/** 交互答复：confirm 用 `approved`；question 单问题用 `answer`、多问题用 `answers`（按下标对齐） */
 export interface BrainInteractionAnswer {
   approved?: boolean
   answer?: string
+  answers?: readonly string[]
 }
 
 export type BrainInteractionResponder = (
@@ -298,6 +299,26 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
       }
     }
 
+    // 多问题形态（对齐 Python `questions` 数组）：按下标取 answers，缺一不可
+    if (interaction.questions !== undefined && interaction.questions.length > 0) {
+      const questions = interaction.questions
+      const raw = Array.isArray(answer.answers) ? answer.answers : []
+      const normalized = questions.map((_, index) => {
+        const value = raw[index]
+        return typeof value === 'string' ? value.trim() : ''
+      })
+      const missing = normalized.filter((text) => text === '').length
+      if (missing > 0) {
+        return {
+          text: `[STOP] 用户未解答全部提问（缺 ${missing}/${questions.length}）`,
+          success: false
+        }
+      }
+      const lines = questions.map((question, index) => `${index + 1}. ${question.prompt} → ${normalized[index]}`)
+      return { text: `用户回答：\n${lines.join('\n')}`, success: true }
+    }
+
+    // 单问题形态
     const answerText = typeof answer.answer === 'string' ? answer.answer.trim() : ''
     if (answerText === '') {
       return { text: `[STOP] 用户未解答提问: ${interaction.prompt}`, success: false }

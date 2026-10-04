@@ -6,6 +6,8 @@ import {
   applyBrainEvents,
   hydrateFromSession,
   initialDigitalPanelState,
+  isAnswerComplete,
+  isMultiQuestion,
   isRunning,
   reduceBrainEvent,
   resolveApproval,
@@ -178,15 +180,34 @@ describe('digital panel：技能交互（确认 / 提问）', () => {
     expect(submitUserMessage(waiting, '换个说法').interaction).toBeNull()
   })
 
+  it('多问题：isMultiQuestion 区分单/多，isAnswerComplete 要求逐题非空', () => {
+    const single = { kind: 'question' as const, prompt: '用哪个职业？' }
+    const multi = {
+      kind: 'question' as const,
+      prompt: '请回答以下 2 个问题',
+      questions: [{ prompt: '职业？' }, { prompt: '流派？' }]
+    }
+
+    expect(isMultiQuestion(single)).toBe(false)
+    expect(isMultiQuestion(multi)).toBe(true)
+    expect(isMultiQuestion({ kind: 'confirm', prompt: '确认？' })).toBe(false)
+
+    // 单问题走 answer 通道，isAnswerComplete 只针对多问题
+    expect(isAnswerComplete(single, ['x'])).toBe(false)
+    expect(isAnswerComplete(multi, ['法师', '普攻流'])).toBe(true)
+    expect(isAnswerComplete(multi, ['法师'])).toBe(false)
+    expect(isAnswerComplete(multi, ['法师', '   '])).toBe(false)
+  })
+
   it('question 交互带候选选项', () => {
     const state = reduceBrainEvent(initialDigitalPanelState, {
       type: 'interaction_required',
       requestId: 'approval_10',
       tool: 'tool.ask_user',
       action: 'ask',
-      interaction: { kind: 'question', prompt: '用哪个职业？', options: ['战士', '法师'] }
+      interaction: { kind: 'question', prompt: '用哪个职业？', options: [{ label: '战士' }, { label: '法师' }] }
     })
-    expect(state.interaction?.interaction.options).toEqual(['战士', '法师'])
+    expect(state.interaction?.interaction.options).toEqual([{ label: '战士' }, { label: '法师' }])
     expect(state.status).toBe('waiting_input')
   })
 })

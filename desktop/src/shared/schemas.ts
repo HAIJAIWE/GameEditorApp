@@ -184,11 +184,14 @@ export const agentInteractionResponseInputSchema = z
   .object({
     requestId: z.string().min(1),
     approved: z.boolean().optional(),
-    answer: z.string().max(4000).optional()
+    answer: z.string().max(4000).optional(),
+    /** 多问题答复：按下标对齐（与 questions 顺序一致） */
+    answers: z.array(z.string().max(4000)).max(20).optional()
   })
-  .refine((value) => value.approved !== undefined || value.answer !== undefined, {
-    message: '必须提供 approved 或 answer'
-  })
+  .refine(
+    (value) => value.approved !== undefined || value.answer !== undefined || value.answers !== undefined,
+    { message: '必须提供 approved、answer 或 answers' }
+  )
 
 /** Agent Brain：跑一轮对话循环（输入用户消息，返回事件流与最终文本） */
 export const agentChatInputSchema = z.object({

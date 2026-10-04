@@ -181,7 +181,8 @@ export function registerIpcHandlers({
   handle('agent:interactionResponse', agentInteractionResponseInputSchema, (req) => ({
     ok: approvalBroker.resolve(req.requestId, {
       ...(req.approved !== undefined ? { approved: req.approved } : {}),
-      ...(req.answer !== undefined ? { answer: req.answer } : {})
+      ...(req.answer !== undefined ? { answer: req.answer } : {}),
+      ...(req.answers !== undefined ? { answers: req.answers } : {})
     })
   }))
   handle('agent:sessionInfo', undefined, () => agentSessionStore.info())

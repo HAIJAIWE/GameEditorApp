@@ -269,7 +269,39 @@ describe('tool.ask_user 技能（参数澄清）', () => {
     expect(result.interaction).toEqual({
       kind: 'question',
       prompt: '用哪个职业？',
-      options: ['战士', '法师']
+      options: [{ label: '战士' }, { label: '法师' }]
+    })
+  })
+
+  it('多问题（Python questions 形态）：兼容 {question, options:[{label,description}], multiSelect}', async () => {
+    const skill = createAskUserSkill()
+    const result = await skill.execute(
+      {
+        action: 'ask',
+        questions: [
+          { question: '用哪个职业？', options: [{ label: '战士', description: '近战' }, '法师'] },
+          { prompt: '要哪些流派？', options: [{ label: '普攻流' }, { label: 'CD 流' }], multiSelect: true },
+          { question: '' } // 无效项应被丢弃
+        ]
+      },
+      {}
+    )
+
+    expect(result.success).toBe(true)
+    expect(result.interaction?.prompt).toBe('请回答以下 2 个问题')
+    expect(result.interaction?.questions).toEqual([
+      { prompt: '用哪个职业？', options: [{ label: '战士', description: '近战' }, { label: '法师' }] },
+      { prompt: '要哪些流派？', options: [{ label: '普攻流' }, { label: 'CD 流' }], multiSelect: true }
+    ])
+  })
+
+  it('多问题：全部无效时明确报错', async () => {
+    const skill = createAskUserSkill()
+    const result = await skill.execute({ action: 'ask', questions: [{ question: '' }, 123] }, {})
+    expect(result).toEqual({
+      success: false,
+      error: 'questions 里没有有效问题（每项需有 question 或 prompt）',
+      message: ''
     })
   })
 
@@ -281,7 +313,7 @@ describe('tool.ask_user 技能（参数澄清）', () => {
     })
     expect(await skill.execute({ action: 'ask' }, {})).toEqual({
       success: false,
-      error: '缺少 question 参数',
+      error: '缺少 question 参数（或改用 questions 数组）',
       message: ''
     })
     expect(await skill.execute({ action: 'nope', question: 'x' }, {})).toEqual({
