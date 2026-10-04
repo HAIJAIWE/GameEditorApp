@@ -55,12 +55,12 @@
 >
 > | 判定 | 文件 | 行数 | 占比 |
 > |---|---|---|---|
-> | ✅ 已迁 | 92 | 34,317 | 37.6% |
+> | ✅ 已迁 | 93 | 34,606 | 38.0% |
 > | ◐ 部分已迁 | 61 | 22,917 | 25.1% |
 > | ⛔ 有意不迁（决策，非欠债） | 84 | 16,851 | 18.5% |
-> | ⚠️ **未迁（整块没做）** | **62** | **17,079** | **18.7%** |
+> | ⚠️ **未迁（整块没做）** | **61** | **16,790** | **18.4%** |
 >
-> 对账 PASS：`92+61+84+62 = 299` 文件、`34317+22917+16851+17079 = 91,164` 行。
+> 对账 PASS：`93+61+84+61 = 299` 文件、`34606+22917+16851+16790 = 91,164` 行。
 >
 > **结论：真实剩余 ≈ 2.7–3.1 万行（30–34%）** —— 而不是早前口头估算的「3.5–4.5k 行（4–5%）」。那句估算**口径过窄**（把 `ui/widgets`/`ui/dialogs`/`features` 三个混合态域当成了基本迁完）且未做文件级核实，**已被本审计推翻**。
 > 三个最意外的数字：**① `core/agent`（最大域 24,670 行）只有 1,689 行是完整已迁**（A 档做的是核心闭环，不是整个 Agent 引擎）；**② `ui/` 顶层+主题 9,883 行里仅 917 行完整已迁**；**③ `features` 9 文件完整已迁为 0**。
@@ -276,6 +276,15 @@
 > **验证**：单测 28（含真实文件往返：导出→空库导入、JSON 单元格还原、数字/布尔类型保持、未知 sheet 落 unknownTypes、原子写不残留 `.tmp`）。
 
 > ⚙️ **本批的推进方式（E19–E20 同批交付）**：同 E17–E18 —— 2 个实现子代理并行产出互不冲突的新文件（`main/data/csvIO.ts`+单测、`main/data/excelIO.ts`+单测），全部共享接线（7 条 IPC 五处接线 + `App.tsx` 工具栏 + E2E + 文档）由主代理串行完成。**教训**：本批主代理在插入 dialog handler 时**误删了相邻的 `data:listItems` handler**，靠 eslint 的 `no-unused-vars`（`listItemsInputSchema` 未用）**当场抓出** —— 大段 Edit 后必看 lint，别只信 tsc。
+
+> ✅ **E21（2026-10-05）：术语风格 —— 按游戏风格替换字段标签（迁移 `core/style_manager.py`），提交 `82a59c9`**。
+> **交付**：`shared/gameStyle.ts`（`GAME_STYLES` 内联 6 风格×**46** 概念 + `CONCEPT_ALIASES` 23 条；纯函数 `resolveLabel`/`resolveFieldLabel`/`inferStyleFromText`/`buildCrossStyleMap`/`buildReplacementPairs`/`getTerminology`/`listStyleNames`/`normalizeGameStyleId`/`loadGameStyle`/`saveGameStyle`）、`ceshuModel.ts::resolveDocGameStyle`、`fieldLabelFor(field, layout, styleId)`、`ItemForm.gameStyle` prop、工具栏 `game-style` 下拉（localStorage `mb.gameStyle`）。
+> **口径照抄 Python**：`STAT_LABELS.get(fname, _styled_label(label))` —— **命中 `STAT_LABELS` 时不参与术语替换**（顺序不可颠倒，已单测钉死）；替换是 **`str.replace` 全部替换**语义（用 `split/join` 而非 `String.replace`）。
+> **有意偏离（4 条，均已记档）**：① 无全局可变单例 —— `styleId` 由 `App` state 显式传入（Python 用模块级 `_active_style`）；② 活跃风格**落 localStorage**（Python 不持久化，重启即丢）；③ `resolveDocGameStyle` **优先 `doc.style`**（用户在 AI 一键生成/预设里显式选过）再回退关键词推断，Python 完全忽略 `doc.style`；④ 工具栏新增**手工入口**（Python 只能靠推断，推断不出时无从设置）。**有意不迁**：`get_styles`（≡ `GAME_STYLES` 常量）、`get_active_style_name`（TS 里活跃风格是参数不是状态）。
+> **忠实保留的 Python 缺陷**：连锁二次替换 —— `resolve_label('内力','fantasy')` = **`'生命值值'`**（先 `内力→生命值`，再 `生命→生命值`）。**未修**：修了会与 Python 输出不一致；真实 schema 标签不受影响（已实测全量标签 × 6 风格走不到该路径）。已钉死用例，防将来被当成"顺手 bug"改掉。
+> **验证**：单测 **64**（`gameStyle.test.ts`）+ `formSections` +5（`STAT_LABELS` 命中不替换 / grid 未命中走替换 / 省略 styleId 不替换）+ `ceshuModel` +6；eslint 0 / 双端 tsc 0 / vitest **84 文件 1130 测试全绿** / `electron-vite build` OK / E2E 收集 **65** 例（新增 `game-style.spec.ts`：仙侠下 `生命加成%:`→`气血加成%:`、`法力加成%:`→`灵力加成%:`、`技能列表:`→`功法列表:` + 重载持久化）。
+> **实证方法（关键，避免自我循环）**：另写**一次性差分测试**——按 Python 源码**独立重实现** `_build_cross_style_map`/`_build_replacement_pairs`/`resolve_label`/`infer_style_from_text`，与 TS 实现在 **300+ 标签（含全部 schema 字段标签/STAT_LABELS/术语值/别名/对抗串）× 10 个 styleId** 上逐条比对，四个函数**全部一致**；再逐字段比对确认 `GAME_STYLES` 内联数据与 `game_styles.json` **完全一致（6 风格 × 46 键，无抄写错误）**。两个一次性测试跑完即删，不进仓库。
+> **本批纠正的子代理错误汇报**：实现子代理口头汇报称「47 个概念，只有 34 个六风格全覆盖，3 个别名键从未出现在任何术语表」。**实测全部为假**：概念 **46** 个、**46 个在 6 风格中全覆盖**、**0 个失效别名键**（这些错数字**未写进代码**）。教训：子代理的"实证数字"必须自己复算一遍。
 
 ## 3. 每片执行流程（固定顺序）
 
