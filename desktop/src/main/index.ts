@@ -2,6 +2,9 @@ import { join } from 'node:path'
 
 import { app, BrowserWindow, shell } from 'electron'
 
+import { SkillDispatcher } from './agent/dispatcher'
+import { createCeshuSkill } from './agent/skills/ceshuSkill'
+import { createGameDataSkill } from './agent/skills/gameDataSkill'
 import { AttrSystemStore } from './attr/attrSystemStore'
 import { CeshuManager } from './ceshu/manager'
 import { CeshuDataSync } from './ceshu/dataSync'
@@ -68,6 +71,11 @@ app.whenReady().then(() => {
   const ceshuManager = new CeshuManager(new CeshuStorage(join(app.getPath('userData'), 'ceshu')))
   const typeSchemaStore = new TypeSchemaStore(join(app.getPath('userData'), 'type_schema.json'))
 
+  // Agent 技能调度器（A1-1）：注册最小内置技能，服务在构造时注入
+  const agentDispatcher = new SkillDispatcher()
+  agentDispatcher.register(createGameDataSkill({ dataService, typeSchemaStore }))
+  agentDispatcher.register(createCeshuSkill({ ceshuManager }))
+
   registerIpcHandlers({
     dataService,
     ceshuManager,
@@ -76,6 +84,7 @@ app.whenReady().then(() => {
     typeSchemaStore,
     attrSystemStore: new AttrSystemStore(join(app.getPath('userData'), 'attr_system.json')),
     dataSync: new CeshuDataSync(ceshuManager, dataService, typeSchemaStore),
+    agentDispatcher,
     llmClient: new LlmClient(),
     getAppInfo: () => ({
       name: app.getName(),

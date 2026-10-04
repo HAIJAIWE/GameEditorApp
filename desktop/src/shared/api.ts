@@ -5,6 +5,10 @@ export interface MbApi {
   app: {
     info(): Promise<IpcContract['app:info']['res']>
   }
+  agent: {
+    listTools(): Promise<IpcContract['agent:listTools']['res']>
+    executeTool(req: IpcContract['agent:executeTool']['req']): Promise<IpcContract['agent:executeTool']['res']>
+  }
   schema: {
     list(): Promise<IpcContract['schema:list']['res']>
     save(req: IpcContract['schema:save']['req']): Promise<IpcContract['schema:save']['res']>

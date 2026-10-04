@@ -27,6 +27,7 @@ import type {
   NotesUpdateInput,
   ReferencesInput,
   CeshuRenameInput,
+  AgentExecuteToolInput,
   SchemaSaveInput,
   CeshuDataGenInput,
   TemplateJsonDialogInput,
@@ -47,6 +48,7 @@ import type {
   ItemRecord
 } from './types'
 import type { CeshuDocument, CeshuExportResult, CeshuSummary } from './ceshuConstants'
+import type { JsonObjectSchema, SkillResult } from './agent/protocol'
 import type { CeshuChangelog, CeshuVersionDiff } from './ceshuDiff'
 import type { CeshuScoreReport } from './ceshuScorer'
 import type { ChecklistReport } from './ceshuChecklist'
@@ -103,6 +105,14 @@ export interface IpcContract {
     req: CeshuSyncDataInput
     res: { toData: { addedTypes: string[]; ensuredKeys: string[]; errors: string[] }; toCeshu: Record<string, number> }
   }
+  'agent:listTools': {
+    req: undefined
+    res: {
+      description: string
+      tools: Array<{ name: string; description: string; parameters: JsonObjectSchema }>
+    }
+  }
+  'agent:executeTool': { req: AgentExecuteToolInput; res: SkillResult }
   'ceshu:rename': { req: CeshuRenameInput; res: CeshuDocument }
   'ceshu:delete': { req: { id: string }; res: { deleted: boolean } }
   'ceshu:duplicate': { req: { id: string }; res: CeshuDocument }

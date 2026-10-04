@@ -51,7 +51,7 @@ function makeCeshuManager() {
 let currentModel: CeshuDocument = createDefaultCeshu({ scope: 'full' })
 
 describe('ceshuDataSync systems → data', () => {
-  it('启用内置类型 data_type 时复用现有 pluralKey，不重复注册类型', () => {
+  it('启用内置类型 data_type 时复用现有类型，不重复注册', () => {
     currentModel = createDefaultCeshu({ scope: 'full' })
     // 手动把 character 系统的 data_type 指向内置类型 role（pluralKey=roles）
     ;(currentModel.systems as Record<string, SystemEntry>).character.data_type = 'role'
@@ -62,7 +62,8 @@ describe('ceshuDataSync systems → data', () => {
 
     const result = dataSync.syncSystemsToData(currentModel, '')
     expect(result.addedTypes).toEqual([]) // role 已存在
-    expect(result.ensuredKeys).toEqual(['roles'])
+    // 数据键为单数类型 id（SQLite items.type 存单数），不是 pluralKey
+    expect(result.ensuredKeys).toEqual(['role'])
     expect(result.errors).toEqual([])
   })
 
@@ -78,7 +79,7 @@ describe('ceshuDataSync systems → data', () => {
     const result = dataSync.syncSystemsToData(currentModel, '')
 
     expect(result.addedTypes).toEqual(['character'])
-    expect(result.ensuredKeys).toEqual(['characters'])
+    expect(result.ensuredKeys).toEqual(['character'])
     const after = schemaStore.getTypes()
     expect(after.map((t) => t.id)).toContain('character')
     const added = after.find((t) => t.id === 'character')!
@@ -119,7 +120,7 @@ describe('ceshuDataSync data → systems 进度回填', () => {
     ;(currentModel.systems as Record<string, SystemEntry>).character.data_type = 'role' // 复用内置 role(pluralKey=roles)
 
     const schemaStore = makeSchemaStore(BUILTIN_DATA_TYPES)
-    const dataService = makeDataService({ roles: 3 })
+    const dataService = makeDataService({ role: 3 })
     const ceshuManager = makeCeshuManager()
     const dataSync = new CeshuDataSync(ceshuManager as never, dataService as never, schemaStore as never)
 
@@ -136,7 +137,7 @@ describe('ceshuDataSync data → systems 进度回填', () => {
     ;(currentModel.systems as Record<string, SystemEntry>).character.data_type = 'role'
 
     const schemaStore = makeSchemaStore(BUILTIN_DATA_TYPES)
-    const dataService = makeDataService({ roles: 5 })
+    const dataService = makeDataService({ role: 5 })
     const ceshuManager = makeCeshuManager()
     const dataSync = new CeshuDataSync(ceshuManager as never, dataService as never, schemaStore as never)
 
@@ -170,7 +171,7 @@ describe('ceshuDataSync 双向同步 + 回调', () => {
     ;(currentModel.systems as Record<string, SystemEntry>).battle.enabled = true // 新类型 battle→battles
 
     const schemaStore = makeSchemaStore(BUILTIN_DATA_TYPES)
-    const dataService = makeDataService({ roles: 2, battles: 7 })
+    const dataService = makeDataService({ role: 2, battle: 7 })
     const ceshuManager = makeCeshuManager()
     const dataSync = new CeshuDataSync(ceshuManager as never, dataService as never, schemaStore as never)
 
@@ -194,7 +195,7 @@ describe('ceshuDataSync 双向同步 + 回调', () => {
     ;(currentModel.systems as Record<string, SystemEntry>).character.data_type = 'role'
 
     const schemaStore = makeSchemaStore(BUILTIN_DATA_TYPES)
-    const dataService = makeDataService({ roles: 4 })
+    const dataService = makeDataService({ role: 4 })
     const ceshuManager = makeCeshuManager()
     const dataSync = new CeshuDataSync(ceshuManager as never, dataService as never, schemaStore as never)
     dataSync.setCurrentCeshu('cid')

@@ -29,7 +29,7 @@ import type { DataTypeDef } from '../../shared/types'
 export interface SyncToDataResult {
   /** 新增注册到 type_schema 的数据类型 id */
   addedTypes: string[]
-  /** 已确保存在的数据键（复数键清单） */
+  /** 已确保存在的数据键（**单数类型 id** 清单，与 DataService.listItems 入参一致） */
   ensuredKeys: string[]
   /** 过程中的错误信息（不抛出） */
   errors: string[]
@@ -109,15 +109,13 @@ export class CeshuDataSync {
     if (this.syncing) return result
     this.syncing = true
     try {
-      const types = this.typeSchemaStore.getTypes()
-      const pluralById = new Map(types.map((type) => [type.id, type.pluralKey]))
-
       for (const [key, entryRaw] of Object.entries(model.systems)) {
         if (!isSystemEntry(entryRaw)) continue
         const entry = entryRaw as SystemEntry
+        // 数据表以**单数类型 id**（如 role）为键，不是 pluralKey（roles）——
+        // SQLite 的 items.type 存单数 id（legacyImport 把旧复数键映射为 typeDef.id）
         const dataType = typeof entry.data_type === 'string' && entry.data_type ? entry.data_type : key
-        const pluralKey = pluralById.get(dataType) ?? `${dataType}s`
-        const count = this.dataService.listItems(pluralKey).length
+        const count = this.dataService.listItems(dataType).length
 
         if (!isPlainObject(entry.config)) entry.config = {}
         entry.config.actual_count = count
@@ -214,11 +212,14 @@ export class CeshuDataSync {
     return toAdd.map((type) => type.id)
   }
 
-  /** 确保默认数据文件中有对应复数键（TS 数据层隐式存在，仅产出清单） */
+  /**
+   * 确保数据层存在对应类型键（TS 数据层按单数 id 隐式存在，仅产出清单）。
+   * 键取**单数类型 id**，与 `DataService.listItems` 的入参口径一致。
+   */
   private ensureDataKeys(enabledTypes: EnabledType[]): string[] {
     const ensured: string[] = []
-    for (const { pluralKey } of enabledTypes) {
-      if (!ensured.includes(pluralKey)) ensured.push(pluralKey)
+    for (const { dataType } of enabledTypes) {
+      if (!ensured.includes(dataType)) ensured.push(dataType)
     }
     return ensured
   }

@@ -156,6 +156,12 @@ export const ceshuGetInputSchema = z.object({
   id: z.string().min(1)
 })
 
+/** Agent 技能调度：执行工具（tool 为技能 id 或可模糊解析的别名） */
+export const agentExecuteToolInputSchema = z.object({
+  tool: z.string().min(1).max(80),
+  params: z.record(z.string(), z.unknown()).default({})
+})
+
 /** 首页卡片：重命名策划书（对齐 Python `rename_ceshu`，名称非空） */
 export const ceshuRenameInputSchema = z.object({
   id: z.string().min(1),
@@ -348,6 +354,7 @@ export type CeshuExportInput = z.infer<typeof ceshuExportInputSchema>
 export type CeshuChooseExportFileInput = z.infer<typeof ceshuChooseExportFileInputSchema>
 export type CeshuDeriveInput = z.infer<typeof ceshuDeriveInputSchema>
 export type CeshuRenameInput = z.infer<typeof ceshuRenameInputSchema>
+export type AgentExecuteToolInput = z.infer<typeof agentExecuteToolInputSchema>
 export type CeshuApplyPresetInput = z.infer<typeof ceshuApplyPresetInputSchema>
 export type CeshuConfirmSystemsInput = z.infer<typeof ceshuConfirmSystemsInputSchema>
 export type CeshuSyncDataInput = z.infer<typeof ceshuSyncDataInputSchema>

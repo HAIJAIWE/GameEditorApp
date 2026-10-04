@@ -194,11 +194,27 @@ userData/
 | 调研（本文） | ✅ 完成 | — | 3 子代理并行盘点；核验 `core/agent` 97 文件 / 21,669 行、`library_manager.py` 626 行 |
 | A2-1 库服务与路径迁移 | ⬜ 未开始 | — | — |
 | A2-2 库条 UI 与切换联动 | ⬜ 未开始 | — | — |
-| A1-1 技能协议 + 调度器 | ⬜ 未开始 | — | — |
+| A1-1 技能协议 + 调度器 | ✅ 完成 | `<PENDING_HASH>` | `shared/agent/protocol.ts`（协议/风险策略/参数修正，单测 18）+ `main/agent/dispatcher.ts`（注册表/模糊解析/危险确认门，单测 15）+ 2 个 action-based 技能（`system.game_data` 读写数据表 / `system.ceshu` 只读策划书，单测 13）+ IPC `agent:listTools`/`agent:executeTool` + E2E `agent-execute-tool.spec.ts`（沙箱未实跑） |
 | A1-2 Brain 循环 + 事件流 | ⬜ 未开始 | — | — |
 | A1-3 会话与记忆 | ⬜ 未开始 | — | — |
 | A1-4 数字员工面板 | ⬜ 未开始 | — | — |
 | A1-5 业务技能接线 + 托盘/热键 | ⬜ 未开始 | — | — |
+
+### A1-1 落地记录（2026-10-04）
+
+**产物**：`shared/agent/protocol.ts`、`main/agent/dispatcher.ts`、`main/agent/skills/{gameDataSkill,ceshuSkill}.ts`、IPC `agent:listTools`/`agent:executeTool`、单测 `agentProtocol`(18)/`agentDispatcher`(15)/`agentSkills`(13)、E2E `agent-execute-tool.spec.ts`。
+
+**有意偏离 Python / 本方案（逐条有据）**：
+1. **实现为 2 个 action-based 技能**（`system.game_data` / `system.ceshu`）而非「3 个独立技能」。理由：Python 的安全策略 `TOOL_RISK_MAP` 是「工具 + action」**二维**风险（同一工具 `list` 只读、`create/update` 写），拆成 3 个工具会丢掉按 action 分级的能力，也破坏 `_fix_params` 的 action 推断。
+2. **模糊别名表只保留已注册技能相关条目**：Python 那张约 200 行的表里大量映射指向本批次未注册的工具（`system.file_system` 等），照搬会产出指向不存在技能的映射（反而有害）。同理 `inferAction` 只覆盖 game_data/ceshu，shell/file_ops/code/ui_control 的推断待其技能接线时再补。
+3. **action 别名在调度器层统一归一**（Python 是在各技能内部调 `normalize_params`）。单一归一化点更稳，副作用是「高危操作需用户确认: 工具/操作」与危险令牌里的操作名是**规范动作名**（`exec` → `execute`）。
+4. **结果不再产出 Python 的内部字段 `_raw`**（实现细节泄漏）。
+5. **不移植**：MCP 注册、SubAgent 通道、`execute_parallel`（拓扑排序 + 线程池，PyQt/QThread 专有；TS 线程模型改为事件流，见 §2.5）；`REQUIRES_MAIN_THREAD` 降级为语义标记 `requiresMainThread`。
+6. 技能最小集只做「读数据表 / 写数据表（list_types/list/query/create/update）+ 读策划书（list/get）」；`delete`/`batch_*`/`switch_*` 与 `system.ceshu` 的 `create/update/delete/export/ai_*` 留到 A1-5 接线。
+
+**顺带修复的真 Bug（W32 遗留）**：`main/ceshu/dataSync.ts::syncDataProgressToCeshu` 原本用 `pluralKey`（`roles`）查数据条目数，但 **TS 数据表以单数 `DataTypeDef.id`（`role`）为键**（`items.type` 由 `legacyImport` 把旧复数键映射为 `typeDef.id`，渲染层也用 `activeType = type.id`）→ 该计数**恒为 0**。已改为按单数 id 查询，`ensuredKeys` 同步改为单数键口径，并更新 W32 单测期望。
+
+**未验证项**：E2E 仍受沙箱 Electron 启动限制（`Process failed to launch!`，与既有全部 E2E 同源），待 CI 跑。
 
 ### 拍板结论（2026-10-04，用户已确认）
 

@@ -21,6 +21,7 @@ import {
   ceshuDiffInputSchema,
   ceshuDataGenInputSchema,
   ceshuExportInputSchema,
+  agentExecuteToolInputSchema,
   ceshuGetInputSchema,
   ceshuRenameInputSchema,
   ceshuSaveChapterInputSchema,
@@ -73,6 +74,7 @@ import { scoreCeshu } from '../shared/ceshuScorer'
 import { validateCeshu } from '../shared/ceshuValidation'
 import { buildWordStatsReport } from '../shared/ceshuWordStats'
 import type { AppInfo } from '../shared/types'
+import type { SkillDispatcher } from './agent/dispatcher'
 import type { AttrSystemStore } from './attr/attrSystemStore'
 import { exportAttrGameConfigFile } from './attr/attrGameConfigExport'
 import { exportAttrSystemJsonFile, importAttrSystemJsonFile } from './attr/attrSystemJsonFile'
@@ -97,6 +99,7 @@ interface IpcHandlerDeps {
   attrSystemStore: AttrSystemStore
   llmClient: LlmClient
   dataSync: CeshuDataSync
+  agentDispatcher: SkillDispatcher
   getAppInfo: () => AppInfo
 }
 
@@ -110,9 +113,18 @@ export function registerIpcHandlers({
   attrSystemStore,
   llmClient,
   dataSync,
+  agentDispatcher,
   getAppInfo
 }: IpcHandlerDeps): void {
   handle('app:info', undefined, () => getAppInfo())
+  // Agent 技能调度：listTools 供提示词/面板展示，executeTool 走统一调度与安全门
+  handle('agent:listTools', undefined, () => ({
+    description: agentDispatcher.toolsDescription(),
+    tools: agentDispatcher.toolsJsonSchema()
+  }))
+  handle('agent:executeTool', agentExecuteToolInputSchema, (req) =>
+    agentDispatcher.execute(req.tool, req.params, {})
+  )
   handle('schema:list', undefined, () => typeSchemaStore.getTypes())
   handle('schema:save', schemaSaveInputSchema, (req) => typeSchemaStore.saveTypes(req.types))
   handle('attrSystem:get', undefined, () => attrSystemStore.getSystem())

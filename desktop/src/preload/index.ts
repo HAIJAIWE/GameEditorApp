@@ -20,6 +20,10 @@ const api: MbApi = {
     list: () => invoke('schema:list', undefined),
     save: (req) => invoke('schema:save', req)
   },
+  agent: {
+    listTools: () => invoke('agent:listTools', undefined),
+    executeTool: (req) => invoke('agent:executeTool', req)
+  },
   attrSystem: {
     get: () => invoke('attrSystem:get', undefined),
     save: (req) => invoke('attrSystem:save', req),
