@@ -11,7 +11,10 @@
 import { join } from 'node:path'
 
 import { AgentApprovalBroker } from './agent/approvalBroker'
-import { AgentBrainService } from './agent/brainService'
+import { AgentBrainService, createDispatcherToolRunner } from './agent/brainService'
+import { OperationLogStore } from './agent/operationLogStore'
+import { createRecordingToolRunner } from './agent/operationRecorder'
+import { createRollbackSkill } from './agent/skills/rollbackSkill'
 import { AgentMemoryStore } from './agent/memoryStore'
 import { AgentSessionStore } from './agent/sessionStore'
 import { SkillDispatcher } from './agent/dispatcher'
@@ -69,6 +72,14 @@ export function buildStores(libDir: string): AppStores {
   // 沙箱代码技能：SYSTEM 级风险，每次调用都需用户确认
   dispatcher.register(createCodeSkill())
 
+  // 会话级回滚（E3）：日志 + 回滚技能，记录器包在 runner 上（Agent 改数据的唯一漏斗）
+  const operationLog = new OperationLogStore()
+  dispatcher.register(createRollbackSkill({ operationLog, dataService: data }))
+  const runner = createRecordingToolRunner(createDispatcherToolRunner(dispatcher), {
+    operationLog,
+    listItems: () => data.listAllItems()
+  })
+
   // Agent 会话与记忆随库隔离（A2-1 起落在 <库>/agent 下）
   const agentDir = join(libDir, 'agent')
   const sessionStore = new AgentSessionStore(agentDir)
@@ -86,7 +97,8 @@ export function buildStores(libDir: string): AppStores {
     agentBrain: new AgentBrainService({
       dispatcher,
       sessionStore,
-      memoryStore: new AgentMemoryStore(agentDir)
+      memoryStore: new AgentMemoryStore(agentDir),
+      runner
     }),
     agentSessionStore: sessionStore,
     approvalBroker: new AgentApprovalBroker(),

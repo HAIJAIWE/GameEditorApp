@@ -62,10 +62,23 @@ export interface AgentBrainServiceDeps {
   sessionStore?: AgentSessionStore
   /** 语义记忆（A1-3）；缺省不检索也不回写 */
   memoryStore?: AgentMemoryStore
+  /** 工具执行器覆盖（E3-2）：接线层可传入包了记录器的 runner，Brain 本身不感知记录逻辑 */
+  runner?: BrainToolRunner
 }
 
 export class AgentBrainService {
   private readonly transport: BrainLlmTransport
+  private sessionSeq = 0
+
+  /**
+   * 生成会话 id。**本刀的回滚范围是单次对话轮次**（一次 `chat()` 内的全部数据变更）——
+   * 取最小爆炸半径：宁可只撤销「刚才那一下」，也不误伤更早的改动。
+   * 跨轮次的会话级回滚需会话 id 持久化，属后续工作。
+   */
+  private nextSessionId(): string {
+    this.sessionSeq += 1
+    return `chat_${Date.now().toString(36)}_${this.sessionSeq}`
+  }
 
   constructor(private readonly deps: AgentBrainServiceDeps) {
     this.transport = deps.transport ?? new OllamaChatTransport()
@@ -99,18 +112,23 @@ export class AgentBrainService {
     })
 
     const requestApproval = options.requestApproval ?? this.deps.requestApproval
+    // E3-2：为本次对话轮次补一个会话 id，使操作记录器与回滚技能能按「这一轮」分组
+    const context: SkillExecutionContext = { ...(options.context ?? {}) }
+    if (typeof context.sessionId !== 'string' || context.sessionId.trim() === '') {
+      context.sessionId = this.nextSessionId()
+    }
     const result = await runBrainLoop({
       input,
       systemPrompts,
       transport: this.transport,
-      runner: createDispatcherToolRunner(this.deps.dispatcher),
+      runner: this.deps.runner ?? createDispatcherToolRunner(this.deps.dispatcher),
       tools: this.deps.dispatcher.toolsJsonSchema(),
       maxIterations: this.deps.maxIterations ?? DEFAULT_MAX_ITERATIONS,
       ...(requestApproval ? { requestApproval } : {}),
       ...(options.requestInteraction ? { requestInteraction: options.requestInteraction } : {}),
       ...(options.newRequestId ? { newRequestId: options.newRequestId } : {}),
       ...(options.onEvent ? { onEvent: options.onEvent } : {}),
-      context: options.context ?? {}
+      context
     })
 
     if (this.deps.sessionStore) {
