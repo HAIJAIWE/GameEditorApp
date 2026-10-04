@@ -202,7 +202,7 @@
 > **判定为 ◐ 而非 ✅**：上面两条缺失是真实的（角色/怪物的 hp/atk/def 分析、图表页），故计入「◐部分已迁」，不自封完成。
 > **验证**：单测 15（均值/样本标准差 n-1 与总体区分 / 阈值边界 3 与 10 / 均值≤0 不谎报良好 / 孤儿条目不计入类型列但计入总量 / 字符串数字识别与脏数据跳过 / 全脏数据返回 null）+ E2E 1（**未实跑**，已确认被收集）+ eslint/双端 tsc/build 全绿 + 全量 vitest 73 文件/805 用例。
 
-> ✅ **E12（2026-10-04）：自定义字段模板（迁移 `ui/dialogs/template_manager.py` 的模板存取，411 行）**。
+> ✅ **E12（2026-10-04）：自定义字段模板（迁移 `ui/dialogs/template_manager.py` 的模板存取，411 行），提交 `cf5cd51`**。
 > **先做的判定（避免重复造）**：`template_manager.py` 的**字段编辑**部分（增/删/上移/下移 + 名称·标签·类型·可编辑·可选值·数值范围）**早已由 `TypeEditorPanel` 覆盖** —— 本刀**不重做第二套**，也不把它重复计入「已迁」。真正缺的只有**模板存取**。
 > **Python 的模板语义是残废的（实证）**：`save_current_as_template` 只写 `fields[type][field.name] = field.label`；`apply_template`（`settings.py:780-786`）**只覆盖 label** —— 字段类型/可选值/数值范围/可编辑**全部丢失**。故**刻意不复制**：TS 改存**完整 `TypeFieldDef[]`**，应用即整体还原（比 Python 强）。
 > **交付**：`main/schema/fieldTemplateStore.ts`（单文件 `<库>/field_templates.json` 键名即模板名，**天然免疫路径分隔**；原子写 tmp+rename，与 `TypeSchemaStore` 同构；校验名称/非空/字段类型/重名）+ 4 条 IPC + `TypeEditorPanel` 内置/自定义模板同下拉（optgroup 分组，内置不可删）。
