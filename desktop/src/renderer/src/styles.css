@@ -3010,3 +3010,12 @@ button.ref-row:hover {
 .qc-verdict.needs_adjust {
   color: var(--warning, #ff9800);
 }
+
+/* ---- 高级搜索面板 ---- */
+
+.adv-search-results {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}

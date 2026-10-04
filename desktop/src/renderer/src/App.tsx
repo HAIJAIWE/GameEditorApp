@@ -4,6 +4,7 @@ import type { CeshuSummary } from '../../shared/ceshuConstants'
 import { filterItemRecords } from '../../shared/dataTableOps'
 import type { AppInfo, DataTypeDef, ImportSummary, ItemRecord } from '../../shared/types'
 
+import AdvancedSearchPanel from './components/AdvancedSearchPanel'
 import AttrSystemPanel from './components/AttrSystemPanel'
 import BatchEditPanel from './components/BatchEditPanel'
 import CeshuHomePanel from './components/CeshuHomePanel'
@@ -71,6 +72,7 @@ export default function App() {
   const [batchOpen, setBatchOpen] = useState(false)
   const [quickCreateOpen, setQuickCreateOpen] = useState(false)
   const [statsOpen, setStatsOpen] = useState(false)
+  const [advancedSearchOpen, setAdvancedSearchOpen] = useState(false)
   const [refTarget, setRefTarget] = useState<ReferenceTarget | null>(null)
 
   const filteredItems = useMemo(() => filterItemRecords(items, debouncedQuery), [items, debouncedQuery])
@@ -180,6 +182,9 @@ export default function App() {
     setQuery('')
     setSelectedIds(new Set())
     setBatchOpen(false)
+    setStatsOpen(false)
+    setQuickCreateOpen(false)
+    setAdvancedSearchOpen(false)
     setRefTarget(null)
   }
 
@@ -496,6 +501,7 @@ export default function App() {
                         onClick={() => {
                           setBatchOpen(true)
                           setRefTarget(null)
+                          setAdvancedSearchOpen(false)
                         }}
                       >
                         批量操作（{selectedVisibleIds.length}）
@@ -508,6 +514,7 @@ export default function App() {
                           setQuickCreateOpen(true)
                           setRefTarget(null)
                           setBatchOpen(false)
+                          setAdvancedSearchOpen(false)
                         }}
                       >
                         快速创建
@@ -521,9 +528,24 @@ export default function App() {
                           setRefTarget(null)
                           setBatchOpen(false)
                           setQuickCreateOpen(false)
+                          setAdvancedSearchOpen(false)
                         }}
                       >
                         统计
+                      </button>
+                      <button
+                        type="button"
+                        className="btn"
+                        data-testid="open-advanced-search"
+                        onClick={() => {
+                          setAdvancedSearchOpen(true)
+                          setRefTarget(null)
+                          setBatchOpen(false)
+                          setQuickCreateOpen(false)
+                          setStatsOpen(false)
+                        }}
+                      >
+                        高级搜索
                       </button>
                     </div>
 
@@ -547,6 +569,7 @@ export default function App() {
                               setBatchOpen(false)
                               setQuickCreateOpen(false)
                               setStatsOpen(false)
+                              setAdvancedSearchOpen(false)
                               setRefTarget(null)
                             }}
                           >
@@ -585,6 +608,8 @@ export default function App() {
                     />
                   ) : statsOpen ? (
                     <StatisticsPanel types={types} onClose={() => setStatsOpen(false)} />
+                  ) : advancedSearchOpen ? (
+                    <AdvancedSearchPanel types={types} onJump={handleJump} onClose={() => setAdvancedSearchOpen(false)} />
                   ) : quickCreateOpen ? (
                     <QuickCreatePanel
                       key={`${activeType ?? ''}:quick`}
