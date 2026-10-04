@@ -53,6 +53,12 @@ export default function App() {
   const [busy, setBusy] = useState(false)
   const [mode, setMode] = useState<'data' | 'ceshu' | 'digital'>('data')
 
+  // 窗口状态持久化（迁移 ui/window_state.py 的 last_tab_index）：模式切换时上报主进程，
+  // 落进 window-state.json，下次启动恢复。失败静默（不影响功能）。
+  useEffect(() => {
+    void window.mbApi.app.setWindowMode({ mode }).catch(() => undefined)
+  }, [mode])
+
   // 活跃库切换（A2-2）：主进程已重建全部 store，渲染层直接整页重载——
   // 这样所有视图（数据表/策划书/属性系统/数字员工）都从新库重新拉取，无需逐处写刷新逻辑。
   useEffect(() => {

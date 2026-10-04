@@ -5,6 +5,7 @@ export interface MbApi {
   app: {
     info(): Promise<IpcContract['app:info']['res']>
     log(req: IpcContract['app:log']['req']): Promise<IpcContract['app:log']['res']>
+    setWindowMode(req: IpcContract['app:setWindowMode']['req']): Promise<IpcContract['app:setWindowMode']['res']>
   }
   agent: {
     listTools(): Promise<IpcContract['agent:listTools']['res']>

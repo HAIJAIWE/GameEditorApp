@@ -23,12 +23,13 @@
  *   **不保留任何模块级可变状态**（便于测试与 React 状态管理），活跃风格由调用方
  *   （React state）持有，因此所有需要风格的函数都把 `styleId` 作为必填参数。
  *   不做 fs / IPC / React 依赖，也不导出单例。
- * - `loadGameStyle` / `saveGameStyle` 采用与 `visibleTypes.ts` 一致的 `StorageLike` + 可选注入模式
+ * - `loadGameStyle` / `saveGameStyle` 采用 `settingsStore.ts` 的 `StorageLike` + 可选注入模式
  *   （Node 下无 localStorage 时静默处理）。Python 的活跃风格**不持久化**（进程内单例，重启即丢）；
  *   此处落 localStorage 属有意增强，避免重载后标签"莫名"变回原始术语。
  */
 
-import type { StorageLike } from './visibleTypes'
+import type { StorageLike } from './settingsStore'
+import { defaultSettingsStorage } from './settingsStore'
 
 export interface GameStyleDef {
   id: string
@@ -409,10 +410,9 @@ export const CONCEPT_ALIASES: Readonly<Record<string, readonly string[]>> = {
 
 export const ACTIVE_GAME_STYLE_STORAGE_KEY = 'mb.gameStyle'
 
-/** 取默认 storage（浏览器 localStorage）；Node / 主进程下可能不存在 → null */
+/** 取默认 storage（复用 `settingsStore` 的单一真源；Node / 主进程下可能不存在 → null） */
 function defaultStorage(): StorageLike | null {
-  const holder = globalThis as unknown as { localStorage?: StorageLike }
-  return holder.localStorage ?? null
+  return defaultSettingsStorage()
 }
 
 /** 按 id 取风格；不存在返回 undefined */

@@ -1,14 +1,15 @@
 /**
  * 生图面板配置的 localStorage 持久化（纯逻辑，无 React，可单测）。
  *
- * 复用 `visibleTypes.ts` 的 `StorageLike` 与其 `defaultStorage()` 取法
- * （同一事实单一真源；本仓 localStorage 助手统一放 shared/，才能被 node 端 tsc 覆盖单测）。
+ * `StorageLike` 与 `defaultSettingsStorage()` 均取自 `settingsStore.ts`（统一设置基座，
+ * 唯一真源）；本仓 localStorage 助手统一放 shared/，才能被 node 端 tsc 覆盖单测。
  *
  * 存的是**面板表单**字段（provider/apiKey/model/baseUrl），不含 `enabled`
  * （面板总是以 enabled=true 发起，由 imageGen.ts 做前置校验）。
  */
 
-import type { StorageLike } from './visibleTypes'
+import type { StorageLike } from './settingsStore'
+import { defaultSettingsStorage } from './settingsStore'
 
 export type { StorageLike }
 
@@ -33,8 +34,7 @@ export const DEFAULT_IMAGE_GEN_CONFIG: StoredImageGenConfig = {
 const PROVIDERS: readonly StoredProvider[] = ['openai', 'qwen', 'doubao', 'generic']
 
 function defaultStorage(): StorageLike | null {
-  const holder = globalThis as unknown as { localStorage?: StorageLike }
-  return holder.localStorage ?? null
+  return defaultSettingsStorage()
 }
 
 function isProvider(value: unknown): value is StoredProvider {

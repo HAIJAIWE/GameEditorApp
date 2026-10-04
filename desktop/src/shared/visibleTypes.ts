@@ -21,6 +21,7 @@ export const VISIBLE_TYPES_STORAGE_KEY = 'mb.visibleTypes'
  */
 export type { StorageLike } from './settingsStore'
 import type { StorageLike } from './settingsStore'
+import { defaultSettingsStorage } from './settingsStore'
 
 /** null=全部可见；否则只有集合内可见 */
 export function isTypeVisible(id: string, visible: readonly string[] | null): boolean {
@@ -28,10 +29,9 @@ export function isTypeVisible(id: string, visible: readonly string[] | null): bo
   return visible.includes(id)
 }
 
-/** 取默认 storage（浏览器 localStorage）；Node / 主进程下可能不存在 → null */
+/** 取默认 storage（复用 `settingsStore` 的单一真源；Node / 主进程下可能不存在 → null） */
 function defaultStorage(): StorageLike | null {
-  const holder = globalThis as unknown as { localStorage?: StorageLike }
-  return holder.localStorage ?? null
+  return defaultSettingsStorage()
 }
 
 /** 把任意 JSON 值规范化为偏好值：

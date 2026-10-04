@@ -70,6 +70,7 @@ import {
   fieldTemplateNameInputSchema,
   fieldTemplateSaveInputSchema,
   appLogInputSchema,
+  windowModeInputSchema,
   updateItemInputSchema,
   backupCreateInputSchema,
   backupRestoreInputSchema,
@@ -154,6 +155,8 @@ interface IpcHandlerDeps {
   /** 切换活跃库（由 `main/index.ts` 负责重建 store 与广播） */
   onSwitchLibrary: (name: string) => Promise<void>
   getAppInfo: () => AppInfo
+  /** 渲染层上报最后停留的界面模式，供 window-state.json 落盘（迁移 ui/window_state.py 的 last_tab_index） */
+  setWindowMode: (mode: string) => void
 }
 
 /** 注册全部 IPC 处理器：入口统一做 zod 校验，结果统一包裹为 IpcResult */
@@ -174,9 +177,15 @@ export function registerIpcHandlers({
   approvalBroker,
   libraryManager,
   onSwitchLibrary,
-  getAppInfo
+  getAppInfo,
+  setWindowMode
 }: IpcHandlerDeps): void {
   handle('app:info', undefined, () => getAppInfo())
+  // 窗口状态：渲染层切模式时上报，落进 window-state.json（下次启动恢复）
+  handle('app:setWindowMode', windowModeInputSchema, (req) => {
+    setWindowMode(req.mode)
+    return undefined
+  })
   // 渲染层转发日志：req 为单条日志条目，主进程按自身配置写入文件
   handle('app:log', appLogInputSchema, (req) => {
     const sink: Record<LogLevel, (message: string, meta?: unknown) => void> = {

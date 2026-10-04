@@ -11,6 +11,19 @@ import { migrateFlatToLibraries } from './library/migrate'
 import { INITIAL_LIBRARY_NAME } from './library/store'
 import { buildStores, type AppStores } from './stores'
 import { disposeTray, registerShortcuts, setupTray, unregisterShortcuts } from './tray'
+import { DEFAULT_WINDOW_STATE, readWindowState, writeWindowState } from './windowState'
+
+/** 最后停留的界面模式（data/ceshu/digital），由渲染层经 `app:setWindowMode` 上报，仅用于窗口状态落盘 */
+let lastWindowMode = DEFAULT_WINDOW_STATE.lastMode
+
+/** 供 IPC handler 调用的 setter（渲染层切模式时上报，落进 window-state.json）。
+ *  注意：不要 `export` —— `ipc.ts` 已在本模块 import，顶层 export 会形成循环依赖；
+ *  通过 `registerIpcHandlers({ setWindowMode })` 依赖注入传给 handler。 */
+function setWindowMode(mode: string): void {
+  if (mode !== '') {
+    lastWindowMode = mode
+  }
+}
 
 // E2E / 便携模式：允许外部指定 userData 目录（隔离测试数据）
 const userDataOverride = process.env['MB_USER_DATA_DIR']
@@ -26,9 +39,14 @@ let dataService: DataService | null = null
 let appTray: Tray | null = null
 
 function createWindow(): void {
+  // 恢复上次窗口几何（无状态文件时用默认；坏数据已由 normalizeWindowState 逐字段兜底）
+  const saved = readWindowState(app.getPath('userData'))
+  const bounds = saved ?? DEFAULT_WINDOW_STATE
   mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 820,
+    x: bounds.x,
+    y: bounds.y,
+    width: bounds.width,
+    height: bounds.height,
     minWidth: 960,
     minHeight: 640,
     show: false,
@@ -43,7 +61,48 @@ function createWindow(): void {
     }
   })
 
+  if (bounds.maximized) {
+    mainWindow.maximize()
+  }
+
   mainWindow.once('ready-to-show', () => mainWindow?.show())
+
+  // 窗口状态持久化（迁移 ui/window_state.py）：resize/move 防抖 500ms 落盘，关闭时强制落一次。
+  // 用 getNormalBounds() 而非 getBounds()：最大化/最小化时 getBounds 会被系统改写，
+  // 存它会导致「取消最大化后窗口恢复成全屏尺寸」。
+  let persistTimer: NodeJS.Timeout | null = null
+  const persistWindowState = (): void => {
+    if (mainWindow === null || mainWindow.isDestroyed()) {
+      return
+    }
+    const normal = mainWindow.getNormalBounds()
+    writeWindowState(app.getPath('userData'), {
+      x: normal.x,
+      y: normal.y,
+      width: normal.width,
+      height: normal.height,
+      maximized: mainWindow.isMaximized(),
+      lastMode: lastWindowMode
+    })
+  }
+  const schedulePersist = (): void => {
+    if (persistTimer !== null) {
+      clearTimeout(persistTimer)
+    }
+    persistTimer = setTimeout(() => {
+      persistTimer = null
+      persistWindowState()
+    }, 500)
+  }
+  mainWindow.on('resize', schedulePersist)
+  mainWindow.on('move', schedulePersist)
+  mainWindow.on('close', () => {
+    if (persistTimer !== null) {
+      clearTimeout(persistTimer)
+      persistTimer = null
+    }
+    persistWindowState()
+  })
 
   // 安全基线：拒绝应用内开新窗口（https 外链交给系统浏览器），拒绝导航到应用外地址
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -86,7 +145,8 @@ function activateLibrary(libraryManager: LibraryManager): void {
       version: app.getVersion(),
       platform: process.platform,
       dbPath: next.dbPath
-    })
+    }),
+    setWindowMode
   })
 }
 

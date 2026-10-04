@@ -53,7 +53,8 @@ import type {
   TemplatesImportInput,
   TemplatesListInput,
   TemplatesSaveInput,
-  TemplatesUpdateInput
+  TemplatesUpdateInput,
+  WindowModeInput
 } from './schemas'
 import type {
   AppInfo,
@@ -93,6 +94,8 @@ export interface IpcContract {
   'app:info': { req: undefined; res: AppInfo }
   /** 渲染层转发日志到主进程（主进程写文件 + 回显控制台）。req 为单条日志条目 */
   'app:log': { req: AppLogInput; res: undefined }
+  /** 渲染层上报最后停留的界面模式（迁移 ui/window_state.py 的 last_tab_index） */
+  'app:setWindowMode': { req: WindowModeInput; res: undefined }
   'schema:list': { req: undefined; res: DataTypeDef[] }
   'schema:save': { req: SchemaSaveInput; res: DataTypeDef[] }
   /** 字段 ID 的 AI 候选（术语表未收录时由用户显式点击触发） */

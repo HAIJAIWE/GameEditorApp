@@ -174,6 +174,12 @@ export const appLogInputSchema = z.object({
   meta: z.unknown().optional()
 })
 
+/** 渲染层上报最后停留的界面模式（落进 window-state.json，下次启动恢复） */
+export const windowModeInputSchema = z.object({
+  mode: z.enum(['data', 'ceshu', 'digital'])
+})
+export type WindowModeInput = z.infer<typeof windowModeInputSchema>
+
 /* ---- 属性系统 ---- */
 
 export const attrFormulaSchema = z.object({
