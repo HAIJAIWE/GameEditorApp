@@ -1,12 +1,14 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { attrListToRows, rowsToAttrList, type AttrRow } from '../../../shared/attrList'
 import { attrPanelToRows, defaultAttrPanelRows, rowsToAttrPanel, type AttrPanelRow } from '../../../shared/attrPanel'
 import type { AttrSystem } from '../../../shared/attrSystem'
+import { buildFormLayout, fieldLabelFor, isComplexFieldType } from '../../../shared/formSections'
 import type { ItemRecord, TypeFieldDef } from '../../../shared/types'
 
 import AttrPanelEditor from './AttrPanelEditor'
 import AttrTableEditor from './AttrTableEditor'
+import FormSectionCard from './FormSectionCard'
 
 interface ItemFormProps {
   item: ItemRecord
@@ -240,6 +242,9 @@ export default function ItemForm({ item, fields, onSaved }: ItemFormProps) {
     fields.filter((field) => usesJsonEditor(field, item.data[field.name])).map((field) => field.name)
   )
 
+  /** 条目编辑器分区布局（分区/折叠/双列；未归组字段走兜底，一个都不丢） */
+  const layout = useMemo(() => buildFormLayout(item.type, fields), [item.type, fields])
+
   const setValue = (name: string, value: unknown): void => {
     setDraft((current) => ({ ...current, [name]: value }))
   }
@@ -263,6 +268,49 @@ export default function ItemForm({ item, fields, onSaved }: ItemFormProps) {
     }
   }
 
+  /** 单个字段的编辑控件（不含标签；标签由分区分发处负责） */
+  const renderFieldControl = (field: TypeFieldDef): React.ReactElement => {
+    if (field.type === 'attrtable') {
+      return (
+        <AttrTableEditor
+          fieldName={field.name}
+          rows={asAttrRows(draft[field.name])}
+          attrSystem={attrSystem}
+          systemError={attrSystemError}
+          onChange={(rows) => setValue(field.name, rows)}
+        />
+      )
+    }
+    if (field.type === 'attrpanel') {
+      return (
+        <AttrPanelEditor
+          fieldName={field.name}
+          typeId={item.type}
+          rows={asAttrPanelRows(draft[field.name])}
+          onChange={(rows) => setValue(field.name, rows)}
+        />
+      )
+    }
+    return (
+      <FieldControl
+        field={field}
+        value={draft[field.name]}
+        jsonMode={jsonFields.has(field.name)}
+        onChange={(value) => setValue(field.name, value)}
+      />
+    )
+  }
+
+  /** 普通字段行（标签 + 控件） */
+  const renderFieldRow = (field: TypeFieldDef, label: string): React.ReactElement => (
+    <div className="form-row" key={field.name}>
+      <label className="form-label" htmlFor={`field-${field.name}`}>
+        {label}
+      </label>
+      {renderFieldControl(field)}
+    </div>
+  )
+
   return (
     <aside className="editor" data-testid="item-editor">
       <div className="editor-header">
@@ -274,36 +322,44 @@ export default function ItemForm({ item, fields, onSaved }: ItemFormProps) {
 
       <div className="editor-body">
         {localError && <div className="form-error">{localError}</div>}
-        {fields.map((field) => (
-          <div className="form-row" key={field.name}>
-            <label className="form-label" htmlFor={`field-${field.name}`}>
-              {field.label}
-            </label>
-            {field.type === 'attrtable' ? (
-              <AttrTableEditor
-                fieldName={field.name}
-                rows={asAttrRows(draft[field.name])}
-                attrSystem={attrSystem}
-                systemError={attrSystemError}
-                onChange={(rows) => setValue(field.name, rows)}
-              />
-            ) : field.type === 'attrpanel' ? (
-              <AttrPanelEditor
-                fieldName={field.name}
-                typeId={item.type}
-                rows={asAttrPanelRows(draft[field.name])}
-                onChange={(rows) => setValue(field.name, rows)}
-              />
+        {layout.sections.map((section, index) => (
+          <FormSectionCard
+            key={`${section.title}-${index}`}
+            title={section.title}
+            icon={section.icon}
+            collapsed={section.collapsed}
+            testId={`form-section-${index}`}
+          >
+            {section.panelField !== null ? (
+              (() => {
+                const panel = fields.find((field) => field.name === section.panelField)
+                return panel ? renderFieldControl(panel) : null
+              })()
+            ) : section.layout === 'grid' ? (
+              <div className="form-grid" data-testid={`form-section-${index}-grid`}>
+                {section.fields.map((field) => renderFieldRow(field, fieldLabelFor(field, 'grid')))}
+              </div>
             ) : (
-              <FieldControl
-                field={field}
-                value={draft[field.name]}
-                jsonMode={jsonFields.has(field.name)}
-                onChange={(value) => setValue(field.name, value)}
-              />
+              section.fields.map((field) => renderFieldRow(field, field.label))
             )}
-          </div>
+          </FormSectionCard>
         ))}
+        {layout.ungrouped.map((field) =>
+          isComplexFieldType(field.type) ? (
+            // 兜底：复杂控件单独成区（对应 Python P0-2），避免与普通字段混排
+            <FormSectionCard
+              key={field.name}
+              title={field.label}
+              icon="📋"
+              collapsed={false}
+              testId={`form-section-ungrouped-${field.name}`}
+            >
+              {renderFieldControl(field)}
+            </FormSectionCard>
+          ) : (
+            renderFieldRow(field, field.label)
+          )
+        )}
       </div>
 
       <div className="editor-actions">

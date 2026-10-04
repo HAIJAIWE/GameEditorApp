@@ -245,6 +245,62 @@ body {
   gap: 4px;
 }
 
+/* ---- 条目编辑器分区（对应 Python CollapsibleSection + FIELD_GROUPS） ---- */
+
+.form-section {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+}
+
+.form-section-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 10px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.form-section-head:hover {
+  background: var(--bg-hover);
+}
+
+.form-section-icon {
+  flex-shrink: 0;
+}
+
+.form-section-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.form-section-caret {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.form-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 8px 10px 10px;
+  border-top: 1px solid var(--border);
+}
+
+/* 双列网格分区（Python `layout: 'grid'`，一行两个字段） */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 12px;
+}
+
 .form-label {
   color: var(--text-muted);
   font-size: 12px;
