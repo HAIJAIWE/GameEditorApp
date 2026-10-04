@@ -13,6 +13,7 @@ import {
   runBrainLoop,
   type BrainApprover,
   type BrainEvent,
+  type BrainInteractionResponder,
   type BrainLlmTransport,
   type BrainMessage,
   type BrainRunResult,
@@ -44,6 +45,8 @@ export interface AgentChatOptions {
   onEvent?: (event: BrainEvent) => void
   /** 本次调用的危险操作审批（优先于构造时的缺省审批） */
   requestApproval?: BrainApprover
+  /** 技能交互（确认/提问）答复通道 */
+  requestInteraction?: BrainInteractionResponder
   /** 审批请求 id 生成器（与 broker 配对） */
   newRequestId?: () => string
 }
@@ -104,6 +107,7 @@ export class AgentBrainService {
       tools: this.deps.dispatcher.toolsJsonSchema(),
       maxIterations: this.deps.maxIterations ?? DEFAULT_MAX_ITERATIONS,
       ...(requestApproval ? { requestApproval } : {}),
+      ...(options.requestInteraction ? { requestInteraction: options.requestInteraction } : {}),
       ...(options.newRequestId ? { newRequestId: options.newRequestId } : {}),
       ...(options.onEvent ? { onEvent: options.onEvent } : {}),
       context: options.context ?? {}

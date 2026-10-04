@@ -12,6 +12,9 @@ export interface MbApi {
     respondApproval(
       req: IpcContract['agent:approvalResponse']['req']
     ): Promise<IpcContract['agent:approvalResponse']['res']>
+    respondInteraction(
+      req: IpcContract['agent:interactionResponse']['req']
+    ): Promise<IpcContract['agent:interactionResponse']['res']>
     sessionInfo(): Promise<IpcContract['agent:sessionInfo']['res']>
     sessionRestore(): Promise<IpcContract['agent:sessionRestore']['res']>
     sessionClear(): Promise<IpcContract['agent:sessionClear']['res']>

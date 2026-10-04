@@ -42,6 +42,7 @@
 | **A1-3** | Agent 会话与记忆（会话快照持久化：原子写 + 串行队列 + 超长截断；语义记忆检索：vectra 索引 + 确定性嵌入） | `core/agent/brain_session.py` 248、`memory_embedder.py`、`memory_vector.py` | `shared/agent/session.ts`（快照/截断纯逻辑）、`main/agent/sessionStore.ts`（严格/容错两档读取 + metrics.jsonl）、`shared/agent/memory.ts`（32 维确定性嵌入）、`main/agent/memoryStore.ts`（vectra）；接入 `AgentBrainService`（记忆注入 + 会话落盘 + 问答回写）；单测 22 |
 | **A1-4** | 数字员工面板（对话气泡 + 流式文本 + 折叠步骤 + 任务列表 + 危险操作审批模态 + 会话恢复入口） | `ui/digital_panel_*`（PyQt 面板语义）、`digital_panel_tasks.py` | `shared/agent/panel.ts`（事件流 → 面板视图模型纯归约，单测 13）、`main/agent/approvalBroker.ts`（审批中转，单测 6）、`components/digital/DigitalPanel.tsx`、App 第三模式 `mode-digital`、IPC `agent:approvalResponse`+`agent:sessionInfo/Restore/Clear`+`agent:event` 推送、E2E `agent-digital-panel.spec.ts`（4 例） |
 | **A1-5** | 业务技能接线 + 托盘/热键（`system.code` 沙箱技能 / 策划书写操作 / Tray + 全局热键） | `skills/code_skill.py`、`skills/ceshu_skill.py`、`ui/digital_employee.py`（常驻入口） | `main/agent/skills/codeSkill.ts`（QuickJS 沙箱，**SYSTEM 级**，单测 9）、`ceshuSkill` 补 `create`/`update`（单测 3）、`main/tray.ts`（Tray + `Ctrl+Shift+M`，防御式）；**补齐审批端到端拦截 E2E**（拒绝→不执行 / 批准→真执行） |
+| **A1-4b** | 三类确认补齐（**参数澄清** + **删除确认**）：统一 `SkillResult.interaction` 交互通道 | `skills/ask_user_skill.py`（阻塞式提问）、`game_data_skill.py:414`（`needs_confirm`，**Python 无消费者=死路**） | `system.game_data.delete`（confirm 交互 → 批准后 `confirm:true` 重执行）+ `tool.ask_user`（question 交互 → 答复回灌）；面板交互模态 + `agent:interactionResponse`；单测 +17、E2E +2 |
 
 ## 2. 剩余工作清单（按体量分档）
 

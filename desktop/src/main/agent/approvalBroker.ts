@@ -9,8 +9,14 @@
  * id 由本模块统一发（`nextId`），避免多次并发会话都从 `approval_1` 开始而冲突。
  */
 
+/** 交互答复：confirm 用 `approved`；question 用 `answer` */
+export interface AgentInteractionAnswer {
+  approved?: boolean
+  answer?: string
+}
+
 export class AgentApprovalBroker {
-  private readonly pending = new Map<string, (approved: boolean) => void>()
+  private readonly pending = new Map<string, (answer: AgentInteractionAnswer) => void>()
   private seq = 0
 
   /** 分配一个新的审批请求 id */
@@ -18,19 +24,19 @@ export class AgentApprovalBroker {
     return `approval_${++this.seq}`
   }
 
-  /** 按给定 id 登记待审批，返回等待决定的 promise */
-  registerWith(requestId: string): Promise<boolean> {
-    return new Promise<boolean>((resolve) => {
+  /** 按给定 id 登记待答复，返回等待答复的 promise */
+  registerWith(requestId: string): Promise<AgentInteractionAnswer> {
+    return new Promise<AgentInteractionAnswer>((resolve) => {
       this.pending.set(requestId, resolve)
     })
   }
 
-  /** 渲染层回传决定；未知 id 返回 false（可能已被取消或过期） */
-  resolve(requestId: string, approved: boolean): boolean {
+  /** 渲染层回传答复；未知 id 返回 false（可能已被取消或过期） */
+  resolve(requestId: string, answer: AgentInteractionAnswer): boolean {
     const settle = this.pending.get(requestId)
     if (settle === undefined) return false
     this.pending.delete(requestId)
-    settle(approved)
+    settle(answer)
     return true
   }
 
@@ -39,9 +45,9 @@ export class AgentApprovalBroker {
     return this.pending.size
   }
 
-  /** 全部按「未批准」兑现（窗口关闭/会话中断） */
+  /** 全部按「未确认/未答复」兑现（窗口关闭/会话中断） */
   rejectAll(): void {
-    for (const settle of this.pending.values()) settle(false)
+    for (const settle of this.pending.values()) settle({ approved: false })
     this.pending.clear()
   }
 }

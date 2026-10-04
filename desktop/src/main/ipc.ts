@@ -30,6 +30,7 @@ import {
   ceshuExportInputSchema,
   agentApprovalResponseInputSchema,
   agentChatInputSchema,
+  agentInteractionResponseInputSchema,
   agentExecuteToolInputSchema,
   ceshuGetInputSchema,
   ceshuRenameInputSchema,
@@ -83,7 +84,7 @@ import { scoreCeshu } from '../shared/ceshuScorer'
 import { validateCeshu } from '../shared/ceshuValidation'
 import { buildWordStatsReport } from '../shared/ceshuWordStats'
 import type { AppInfo } from '../shared/types'
-import type { AgentApprovalBroker } from './agent/approvalBroker'
+import type { AgentApprovalBroker, AgentInteractionAnswer } from './agent/approvalBroker'
 import type { AgentBrainService } from './agent/brainService'
 import type { SkillDispatcher } from './agent/dispatcher'
 import type { AgentSessionStore } from './agent/sessionStore'
@@ -145,9 +146,11 @@ export function registerIpcHandlers({
   )
   // Agent Brain 循环（A1-2/A1-4）：事件流实时推给渲染层；危险操作经审批 broker 等渲染层决定
   handle('agent:chat', agentChatInputSchema, async (req, event) => {
-    // 注意竞态：事件在 await requestApproval 之前就已推给渲染层，用户可能「秒点」批准。
-    // 故在**分配 id 时就登记**待审批 promise，requestApproval 只取回它，避免决定被丢弃。
-    const preRegistered = new Map<string, Promise<boolean>>()
+    // 注意竞态：事件在 await requestApproval/requestInteraction 之前就已推给渲染层，
+    // 用户可能「秒点」批准。故在**分配 id 时就登记**待答复 promise，二者只取回它，避免答复被丢弃。
+    const preRegistered = new Map<string, Promise<AgentInteractionAnswer>>()
+    const take = (requestId: string): Promise<AgentInteractionAnswer> =>
+      preRegistered.get(requestId) ?? Promise.resolve({ approved: false })
     return agentBrain.chat(req.input, {
       onEvent: (payload) => {
         event.sender.send('agent:event', payload)
@@ -157,11 +160,20 @@ export function registerIpcHandlers({
         preRegistered.set(requestId, approvalBroker.registerWith(requestId))
         return requestId
       },
-      requestApproval: (request) => preRegistered.get(request.requestId) ?? Promise.resolve(false)
+      // 危险确认：只有明确 approved 才放行
+      requestApproval: async (request) => (await take(request.requestId)).approved === true,
+      // 技能交互（确认/提问）：原样把答复交给 Brain 处理
+      requestInteraction: (request) => take(request.requestId)
     })
   })
   handle('agent:approvalResponse', agentApprovalResponseInputSchema, (req) => ({
-    ok: approvalBroker.resolve(req.requestId, req.approved)
+    ok: approvalBroker.resolve(req.requestId, { approved: req.approved })
+  }))
+  handle('agent:interactionResponse', agentInteractionResponseInputSchema, (req) => ({
+    ok: approvalBroker.resolve(req.requestId, {
+      ...(req.approved !== undefined ? { approved: req.approved } : {}),
+      ...(req.answer !== undefined ? { answer: req.answer } : {})
+    })
   }))
   handle('agent:sessionInfo', undefined, () => agentSessionStore.info())
   handle('agent:sessionRestore', undefined, () => {

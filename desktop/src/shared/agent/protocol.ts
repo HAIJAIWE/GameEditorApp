@@ -74,7 +74,8 @@ export const TOOL_RISK_MAP: Record<string, RiskLevel | Record<string, RiskLevel>
   'system.batch_data': RISK_LEVEL.DATA_WRITE,
   'system.pdf_parse': RISK_LEVEL.FILE_SYSTEM,
   'system.git': RISK_LEVEL.FILE_SYSTEM,
-  'system.ask_user': RISK_LEVEL.READ_ONLY
+  'system.ask_user': RISK_LEVEL.READ_ONLY,
+  'tool.ask_user': RISK_LEVEL.READ_ONLY
 }
 
 /** 未在表中登记的工具默认风险（对齐 Python `TOOL_RISK_MAP.get(tool, DATA_WRITE)`） */
@@ -156,12 +157,30 @@ export interface SkillExecutionContext {
   [key: string]: unknown
 }
 
-/** 技能执行结果（对齐 Python 归一化后的 `{success, message, data}`） */
+/**
+ * 技能与用户的交互请求（TS 侧新增，统一覆盖两类「非危险」确认）：
+ *  - `confirm`：破坏性动作的二次确认（→ 批准后带 `confirm: true` 重执行）
+ *  - `question`：参数/选项不确定时向用户提问（→ 答复作为工具结果回灌）
+ *
+ * 背景：Python 里 `needs_confirm`（`game_data_skill.py:414`）**只有生产者、没有消费者**，
+ * 标志位无人处理、循环只把错误文案回灌给 LLM —— 属死路。TS 把它做成真实通道。
+ */
+export interface SkillInteraction {
+  kind: 'confirm' | 'question'
+  /** 展示给用户的文案 */
+  prompt: string
+  /** kind === 'question' 时的候选选项（留空表示自由文本回答） */
+  options?: readonly string[]
+}
+
+/** 技能执行结果（对齐 Python 归一化后的 `{success, message, data}`，另加 `interaction`） */
 export interface SkillResult {
   success: boolean
   message: string
   data?: unknown
   error?: string
+  /** 需要与用户交互（确认/提问）；由 Brain 循环暂停并等待回答 */
+  interaction?: SkillInteraction
 }
 
 /** 技能协议：实现该接口即可被调度器注册 */
@@ -247,14 +266,29 @@ export function getToolDescription(skill: SkillProtocol): string {
 
 /* ---- 结果归一化 ---- */
 
+/** 结构校验：只有 kind 合法且 prompt 非空的才算有效交互请求 */
+export function isSkillInteraction(value: unknown): value is SkillInteraction {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return false
+  const record = value as Record<string, unknown>
+  if (record.kind !== 'confirm' && record.kind !== 'question') return false
+  return typeof record.prompt === 'string' && record.prompt !== ''
+}
+
 /** 归一化技能返回（对齐 Python `ToolDispatcher._normalize_result`，去掉内部 `_raw`） */
 export function normalizeSkillResult(raw: unknown): SkillResult {
   if (raw !== null && typeof raw === 'object' && !Array.isArray(raw)) {
     const record = raw as Record<string, unknown>
     const message = typeof record.message === 'string' ? record.message : ''
     const error = typeof record.error === 'string' ? record.error : undefined
+    const interaction = isSkillInteraction(record.interaction) ? record.interaction : undefined
     if (typeof record.success === 'boolean') {
-      return { success: record.success, message, data: record.data, ...(error ? { error } : {}) }
+      return {
+        success: record.success,
+        message,
+        data: record.data,
+        ...(error ? { error } : {}),
+        ...(interaction ? { interaction } : {})
+      }
     }
     return {
       success: true,

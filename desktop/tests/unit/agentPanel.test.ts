@@ -9,6 +9,7 @@ import {
   isRunning,
   reduceBrainEvent,
   resolveApproval,
+  resolveInteraction,
   submitUserMessage,
   summarizeToolTasks
 } from '../../src/shared/agent/panel'
@@ -136,6 +137,57 @@ describe('digital panel：危险操作审批', () => {
     })
     expect(reduceBrainEvent(waiting, { type: 'done', text: '好' }).approval).toBeNull()
     expect(reduceBrainEvent(waiting, { type: 'error', message: '炸了' }).approval).toBeNull()
+  })
+})
+
+describe('digital panel：技能交互（确认 / 提问）', () => {
+  const confirmEvent: BrainEvent = {
+    type: 'interaction_required',
+    requestId: 'approval_9',
+    tool: 'system.game_data',
+    action: 'delete',
+    interaction: { kind: 'confirm', prompt: '确认删除角色【法师】？' }
+  }
+
+  it('interaction_required：进入等待回答态并携带交互内容', () => {
+    const state = reduceBrainEvent(initialDigitalPanelState, confirmEvent)
+    expect(state.interaction).toEqual({
+      requestId: 'approval_9',
+      tool: 'system.game_data',
+      action: 'delete',
+      interaction: { kind: 'confirm', prompt: '确认删除角色【法师】？' }
+    })
+    expect(state.status).toBe('waiting_input')
+    expect(isRunning(state)).toBe(true)
+  })
+
+  it('resolveInteraction：清掉待答复并回到思考态；无待办时是恒等变换', () => {
+    const waiting = reduceBrainEvent(initialDigitalPanelState, confirmEvent)
+    expect(resolveInteraction(waiting)).toMatchObject({ interaction: null, status: 'thinking' })
+    expect(resolveInteraction(initialDigitalPanelState)).toBe(initialDigitalPanelState)
+  })
+
+  it('done / error 会顺带清掉残留的交互项', () => {
+    const waiting = reduceBrainEvent(initialDigitalPanelState, confirmEvent)
+    expect(reduceBrainEvent(waiting, { type: 'done', text: '好' }).interaction).toBeNull()
+    expect(reduceBrainEvent(waiting, { type: 'error', message: '炸了' }).interaction).toBeNull()
+  })
+
+  it('提交新消息也会清掉上一轮的交互项', () => {
+    const waiting = reduceBrainEvent(initialDigitalPanelState, confirmEvent)
+    expect(submitUserMessage(waiting, '换个说法').interaction).toBeNull()
+  })
+
+  it('question 交互带候选选项', () => {
+    const state = reduceBrainEvent(initialDigitalPanelState, {
+      type: 'interaction_required',
+      requestId: 'approval_10',
+      tool: 'tool.ask_user',
+      action: 'ask',
+      interaction: { kind: 'question', prompt: '用哪个职业？', options: ['战士', '法师'] }
+    })
+    expect(state.interaction?.interaction.options).toEqual(['战士', '法师'])
+    expect(state.status).toBe('waiting_input')
   })
 })
 

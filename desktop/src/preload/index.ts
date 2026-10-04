@@ -25,6 +25,7 @@ const api: MbApi = {
     executeTool: (req) => invoke('agent:executeTool', req),
     chat: (req) => invoke('agent:chat', req),
     respondApproval: (req) => invoke('agent:approvalResponse', req),
+    respondInteraction: (req) => invoke('agent:interactionResponse', req),
     sessionInfo: () => invoke('agent:sessionInfo', undefined),
     sessionRestore: () => invoke('agent:sessionRestore', undefined),
     sessionClear: () => invoke('agent:sessionClear', undefined),

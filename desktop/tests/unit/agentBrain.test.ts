@@ -383,3 +383,169 @@ describe('runBrainLoop：分支与兜底', () => {
     expect(DEFAULT_MAX_ITERATIONS).toBe(8)
   })
 })
+
+/* ---- 技能交互（确认破坏性动作 / 提问澄清） ---- */
+
+interface InteractionRunner extends BrainToolRunner {
+  calls: Array<Record<string, unknown>>
+}
+
+/** 首次返回 confirm 交互、带 confirm:true 时成功删除的 runner */
+function makeConfirmRunner(): InteractionRunner {
+  const calls: Array<Record<string, unknown>> = []
+  return {
+    calls,
+    resolve: (name) => name,
+    needsConfirmation: () => false,
+    execute: async (_tool, params) => {
+      calls.push({ ...params })
+      if (params.confirm !== true) {
+        const prompt = '确认删除角色【法师】？此操作不可撤销。'
+        return {
+          success: false,
+          message: '',
+          error: `[WARN] ${prompt}`,
+          interaction: { kind: 'confirm', prompt }
+        }
+      }
+      return { success: true, message: '已删除角色【法师】' }
+    }
+  }
+}
+
+describe('runBrainLoop：技能交互（确认 / 提问）', () => {
+  it('confirm：批准后带 confirm:true 重执行，结果回灌', async () => {
+    const runner = makeConfirmRunner()
+    const transport = scripted([toolCall('c1', 'system.game_data', { action: 'delete', name: '法师' }), FINAL])
+    const result = await runBrainLoop({
+      input: '删掉法师',
+      systemPrompts: [],
+      transport,
+      runner,
+      requestInteraction: () => ({ approved: true })
+    })
+
+    expect(runner.calls).toEqual([
+      { action: 'delete', name: '法师' },
+      { action: 'delete', name: '法师', confirm: true }
+    ])
+    const required = result.events.find((event) => event.type === 'interaction_required')
+    expect(required).toEqual({
+      type: 'interaction_required',
+      requestId: expect.any(String),
+      tool: 'system.game_data',
+      action: 'delete',
+      interaction: { kind: 'confirm', prompt: '确认删除角色【法师】？此操作不可撤销。' }
+    })
+    expect(result.events.some((event) => event.type === 'step_done' && event.result === '已删除角色【法师】')).toBe(true)
+  })
+
+  it('confirm：用户取消 → 记 [STOP] 且不重执行', async () => {
+    const runner = makeConfirmRunner()
+    const transport = scripted([toolCall('c1', 'system.game_data', { action: 'delete' }), FINAL])
+    const result = await runBrainLoop({
+      input: 'x',
+      systemPrompts: [],
+      transport,
+      runner,
+      requestInteraction: () => ({ approved: false })
+    })
+
+    expect(runner.calls).toHaveLength(1)
+    expect(
+      result.events.some(
+        (event) => event.type === 'step_done' && event.result === '[STOP] 用户未确认该操作: system.game_data'
+      )
+    ).toBe(true)
+  })
+
+  it('confirm：无答复通道 → 按未确认处理（不做隐式放行）', async () => {
+    const runner = makeConfirmRunner()
+    const transport = scripted([toolCall('c1', 'system.game_data', { action: 'delete' }), FINAL])
+    const result = await runBrainLoop({ input: 'x', systemPrompts: [], transport, runner })
+    expect(runner.calls).toHaveLength(1)
+    expect(result.events.some((event) => event.type === 'step_done' && event.result.includes('[STOP]'))).toBe(true)
+  })
+
+  it('confirm：确认后仍要求确认 → 直接停止（不做多次重试）', async () => {
+    const runner: BrainToolRunner = {
+      resolve: (name) => name,
+      needsConfirmation: () => false,
+      execute: async () => ({
+        success: false,
+        message: '',
+        error: '[WARN] 还要确认',
+        interaction: { kind: 'confirm', prompt: '还要确认' }
+      })
+    }
+    const transport = scripted([toolCall('c1', 'system.game_data', { action: 'delete' }), FINAL])
+    const result = await runBrainLoop({
+      input: 'x',
+      systemPrompts: [],
+      transport,
+      runner,
+      requestInteraction: () => ({ approved: true })
+    })
+    expect(
+      result.events.some(
+        (event) =>
+          event.type === 'step_done' && event.result === '[STOP] 确认后该操作仍要求再次确认: system.game_data'
+      )
+    ).toBe(true)
+  })
+
+  it('question：答复作为「用户回答：…」回灌，且不重执行', async () => {
+    const calls: Array<Record<string, unknown>> = []
+    const runner: BrainToolRunner = {
+      resolve: (name) => name,
+      needsConfirmation: () => false,
+      execute: async (_tool, params) => {
+        calls.push({ ...params })
+        return {
+          success: true,
+          message: '',
+          interaction: { kind: 'question', prompt: '用哪个职业？', options: ['战士', '法师'] }
+        }
+      }
+    }
+    const transport = scripted([toolCall('c1', 'tool.ask_user', { action: 'ask' }), FINAL])
+    const result = await runBrainLoop({
+      input: 'x',
+      systemPrompts: [],
+      transport,
+      runner,
+      requestInteraction: () => ({ answer: '法师' })
+    })
+
+    expect(calls).toHaveLength(1)
+    expect(result.events.some((event) => event.type === 'step_done' && event.result === '用户回答：法师')).toBe(true)
+    // 答复回灌进消息序列，供 LLM 下一轮使用
+    const secondMessages = transport.calls[1]?.messages ?? []
+    expect(secondMessages.some((message) => message.role === 'tool' && message.content === '用户回答：法师')).toBe(true)
+  })
+
+  it('question：答复为空 → 记 [STOP] 未解答', async () => {
+    const runner: BrainToolRunner = {
+      resolve: (name) => name,
+      needsConfirmation: () => false,
+      execute: async () => ({
+        success: true,
+        message: '',
+        interaction: { kind: 'question', prompt: '用哪个职业？' }
+      })
+    }
+    const transport = scripted([toolCall('c1', 'tool.ask_user', { action: 'ask' }), FINAL])
+    const result = await runBrainLoop({
+      input: 'x',
+      systemPrompts: [],
+      transport,
+      runner,
+      requestInteraction: () => ({})
+    })
+    expect(
+      result.events.some(
+        (event) => event.type === 'step_done' && event.result === '[STOP] 用户未解答提问: 用哪个职业？'
+      )
+    ).toBe(true)
+  })
+})

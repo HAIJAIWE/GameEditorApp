@@ -29,6 +29,7 @@ import type {
   CeshuRenameInput,
   AgentChatInput,
   AgentExecuteToolInput,
+  AgentInteractionResponseInput,
   SchemaSaveInput,
   CeshuDataGenInput,
   TemplateJsonDialogInput,
@@ -118,6 +119,7 @@ export interface IpcContract {
   'agent:executeTool': { req: AgentExecuteToolInput; res: SkillResult }
   'agent:chat': { req: AgentChatInput; res: { text: string; events: BrainEvent[]; completed: boolean } }
   'agent:approvalResponse': { req: { requestId: string; approved: boolean }; res: { ok: boolean } }
+  'agent:interactionResponse': { req: AgentInteractionResponseInput; res: { ok: boolean } }
   'agent:sessionInfo': { req: undefined; res: SessionInfo }
   'agent:sessionRestore': { req: undefined; res: { messages: Array<Record<string, unknown>> } }
   'agent:sessionClear': { req: undefined; res: { cleared: boolean } }

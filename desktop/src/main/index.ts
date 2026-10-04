@@ -7,6 +7,7 @@ import { AgentBrainService } from './agent/brainService'
 import { AgentMemoryStore } from './agent/memoryStore'
 import { AgentSessionStore } from './agent/sessionStore'
 import { SkillDispatcher } from './agent/dispatcher'
+import { createAskUserSkill } from './agent/skills/askUserSkill'
 import { createCeshuSkill } from './agent/skills/ceshuSkill'
 import { createCodeSkill } from './agent/skills/codeSkill'
 import { createGameDataSkill } from './agent/skills/gameDataSkill'
@@ -82,6 +83,7 @@ app.whenReady().then(() => {
   const agentDispatcher = new SkillDispatcher()
   agentDispatcher.register(createGameDataSkill({ dataService, typeSchemaStore }))
   agentDispatcher.register(createCeshuSkill({ ceshuManager }))
+  agentDispatcher.register(createAskUserSkill())
   // 沙箱代码技能（A1-5）：SYSTEM 级风险，每次调用都需用户确认
   agentDispatcher.register(createCodeSkill())
   // Agent 会话与记忆（A1-3）：统一落在 userData/agent 下；A2-1 引入多库后只改这一处

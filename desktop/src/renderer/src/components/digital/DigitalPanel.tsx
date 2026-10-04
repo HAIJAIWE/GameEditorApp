@@ -7,6 +7,7 @@ import {
   isRunning,
   reduceBrainEvent,
   resolveApproval,
+  resolveInteraction,
   submitUserMessage,
   summarizeToolTasks,
   type DigitalPanelState
@@ -22,6 +23,7 @@ import {
 interface ChatApi {
   chat: (req: { input: string }) => Promise<{ text: string }>
   respondApproval: (req: { requestId: string; approved: boolean }) => Promise<{ ok: boolean }>
+  respondInteraction: (req: { requestId: string; approved?: boolean; answer?: string }) => Promise<{ ok: boolean }>
   sessionInfo: () => Promise<{ hasSession: boolean; messageCount: number; savedAt: string }>
   sessionRestore: () => Promise<{ messages: Array<{ role?: unknown; content?: unknown }> }>
   sessionClear: () => Promise<{ cleared: boolean }>
@@ -32,6 +34,7 @@ type Action =
   | { kind: 'event'; event: BrainEvent }
   | { kind: 'submit'; text: string }
   | { kind: 'approval'; approved: boolean }
+  | { kind: 'interaction' }
   | { kind: 'hydrate'; history: Array<{ role?: unknown; content?: unknown }> }
 
 function reducer(state: DigitalPanelState, action: Action): DigitalPanelState {
@@ -42,6 +45,8 @@ function reducer(state: DigitalPanelState, action: Action): DigitalPanelState {
       return submitUserMessage(state, action.text)
     case 'approval':
       return resolveApproval(state, action.approved)
+    case 'interaction':
+      return resolveInteraction(state)
     case 'hydrate':
       return hydrateFromSession(state, action.history)
     default:
@@ -57,6 +62,7 @@ const STATUS_LABELS: Record<DigitalPanelState['status'], string> = {
   idle: '待命',
   thinking: '思考中…',
   waiting_approval: '等待确认',
+  waiting_input: '等待回答',
   done: '已完成',
   error: '出错'
 }
@@ -66,6 +72,7 @@ export default function DigitalPanel() {
   const [input, setInput] = useState('')
   const [stepsOpen, setStepsOpen] = useState(true)
   const [sessionHint, setSessionHint] = useState<{ messageCount: number; savedAt: string } | null>(null)
+  const [interactionAnswer, setInteractionAnswer] = useState('')
   const [localError, setLocalError] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement | null>(null)
 
@@ -117,6 +124,17 @@ export default function DigitalPanel() {
     if (approval === null) return
     dispatch({ kind: 'approval', approved })
     void api.respondApproval({ requestId: approval.requestId, approved }).catch((error: unknown) => {
+      setLocalError(toErrorMessage(error))
+    })
+  }
+
+  /** 交互答复（确认破坏性动作 / 回答提问） */
+  const handleInteraction = (payload: { approved?: boolean; answer?: string }): void => {
+    const pending = state.interaction
+    if (pending === null) return
+    setInteractionAnswer('')
+    dispatch({ kind: 'interaction' })
+    void api.respondInteraction({ requestId: pending.requestId, ...payload }).catch((error: unknown) => {
       setLocalError(toErrorMessage(error))
     })
   }
@@ -233,6 +251,82 @@ export default function DigitalPanel() {
               <span className="item-meta">{task.summary}</span>
             </div>
           ))}
+        </div>
+      )}
+
+      {state.interaction !== null && (
+        <div className="digital-approval" data-testid="digital-interaction">
+          <div className="form-label">
+            {state.interaction.interaction.kind === 'confirm' ? '⚠️ 操作确认' : '❓ 需要你澄清'}
+          </div>
+          <div className="item-meta">
+            {state.interaction.tool} · {state.interaction.action || '(未指定)'}
+          </div>
+          <div className="digital-interaction-prompt" data-testid="digital-interaction-prompt">
+            {state.interaction.interaction.prompt}
+          </div>
+
+          {state.interaction.interaction.kind === 'confirm' ? (
+            <div className="editor-actions">
+              <button
+                type="button"
+                className="btn danger"
+                data-testid="digital-interaction-approve"
+                onClick={() => handleInteraction({ approved: true })}
+              >
+                确认执行
+              </button>
+              <button
+                type="button"
+                className="btn"
+                data-testid="digital-interaction-reject"
+                onClick={() => handleInteraction({ approved: false })}
+              >
+                取消
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="digital-input-row">
+                <input
+                  className="form-input"
+                  data-testid="digital-interaction-input"
+                  placeholder="输入你的回答…"
+                  value={interactionAnswer}
+                  onChange={(event) => setInteractionAnswer(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && interactionAnswer.trim() !== '') {
+                      handleInteraction({ answer: interactionAnswer })
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  className="btn primary"
+                  data-testid="digital-interaction-submit"
+                  disabled={interactionAnswer.trim() === ''}
+                  onClick={() => handleInteraction({ answer: interactionAnswer })}
+                >
+                  提交
+                </button>
+              </div>
+              {(state.interaction.interaction.options ?? []).length > 0 && (
+                <div className="editor-actions">
+                  {(state.interaction.interaction.options ?? []).map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      className="btn slim"
+                      data-testid="digital-interaction-option"
+                      onClick={() => handleInteraction({ answer: option })}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
 

@@ -198,7 +198,26 @@ userData/
 | A1-2 Brain 循环 + 事件流 | ✅ 完成 | `a377e3c` | `shared/agent/brain.ts`（事件流 + 循环纯逻辑，单测 19）+ `shared/agent/prompts.ts`（提示词骨架）+ `main/agent/ollamaTransport.ts`（`/api/chat` NDJSON 流式 + tool_calls）+ `main/agent/brainService.ts`（调度器适配）+ IPC `agent:chat` + E2E `agent-brain-chat.spec.ts`（`/api/chat` 桩两轮，沙箱未实跑） |
 | A1-3 会话与记忆 | ✅ 完成 | `7794a84` | `shared/agent/session.ts`（快照/截断纯逻辑）+ `main/agent/sessionStore.ts`（原子写 + 串行队列 + 严格/容错两档读取 + metrics.jsonl）+ `shared/agent/memory.ts`（确定性 n-gram 嵌入）+ `main/agent/memoryStore.ts`（vectra 索引）；接入 `AgentBrainService`（记忆注入 + 会话落盘 + 问答回写）；单测 22 |
 | A1-4 数字员工面板 | ✅ 完成 | `c38199b` | `shared/agent/panel.ts`（事件流 → 面板视图模型纯归约，单测 13）+ `main/agent/approvalBroker.ts`（审批中转，单测 6）+ `renderer/src/components/digital/DigitalPanel.tsx` + App 第三模式 `mode-digital` + IPC `agent:approvalResponse`/`agent:sessionInfo|Restore|Clear` + 主进程 `agent:event` 推送 + E2E `agent-digital-panel.spec.ts`（2 例，沙箱未实跑） |
-| A1-5 业务技能接线 + 托盘/热键 | ✅ 完成 | `26b217f` | `system.code`（jsSandbox，**SYSTEM 级**，单测 9）+ `system.ceshu` 补 `create`/`update`（单测 3）+ `main/tray.ts`（Tray + `Ctrl+Shift+M`，防御式）+ **补齐 A1-4 遗留的审批端到端拦截 E2E**（拒绝→不执行 / 批准→真执行，见 `agent-digital-panel.spec.ts`） |
+| A1-5 业务技能接线 + 托盘/热键 | ✅ 完成 | `26b217f` |
+| A1-4b 交互通道补完（参数澄清 + 删除确认） | ✅ 完成 | `<PENDING_HASH>` | 统一 `SkillResult.interaction`（`confirm`/`question`）→ Brain `interaction_required` 事件 + 复用审批 broker 回传答复；生产者：`system.game_data.delete`（confirm，批准后带 `confirm:true` 重执行）+ `tool.ask_user`（question，答复回灌为工具结果）；面板交互模态；单测 +17 | `system.code`（jsSandbox，**SYSTEM 级**，单测 9）+ `system.ceshu` 补 `create`/`update`（单测 3）+ `main/tray.ts`（Tray + `Ctrl+Shift+M`，防御式）+ **补齐 A1-4 遗留的审批端到端拦截 E2E**（拒绝→不执行 / 批准→真执行，见 `agent-digital-panel.spec.ts`） |
+
+### A1-4b 落地记录（2026-10-04）· 三类确认补齐
+
+**背景**：A1-4 只做完了「危险确认」（risk ≥ SYSTEM 的审批门），方案里点名的另两类——**参数澄清**与**删除确认**——当时是缺口。
+
+**关键发现**：Python 的删除确认是**死路**——`game_data_skill.py:414` 产出 `needs_confirm: True`，但**全项目没有任何消费者**（grep 只命中产出那一行），循环只把错误文案回灌给 LLM，标志位无人处理。
+
+**设计（统一交互通道，复用 A1-4 已建成的审批链路）**：
+`SkillResult.interaction: { kind: 'confirm' | 'question', prompt, options? }`
+→ Brain 发 `interaction_required` 事件（带 requestId）→ 经同一 broker 等渲染层答复 →
+- `confirm`：批准后带 `confirm: true` **重执行一次**（显式不做多次重试，避免自旋）；拒绝记 `[STOP]`
+- `question`：答复作为 `用户回答：…` 回灌为工具结果（不重执行）
+
+**生产者**：`system.game_data.delete`（未带 `confirm: true` 时返回 confirm 交互，DATA_WRITE 风险 + 交互确认双重保护）、`tool.ask_user`（question，可带候选选项；`TOOL_RISK_MAP` 补 `tool.ask_user: READ_ONLY`，模糊别名补「提问/询问/澄清」）。
+
+**未答复即拒绝**：无答复通道 / 用户未答复 → 一律 `[STOP]`，与危险确认门同一取向（不做隐式放行）。
+
+**新增单测 +17**（循环层 6：批准重执行 / 取消 / 无通道 / 二次确认停止 / 提问回灌 / 空答复；面板层 5；技能层 6）。E2E 补 2 例（删除确认、ask_user 提问）。
 
 ### A1-5 落地记录（2026-10-04）· **A1（AI/Agent 引擎）全部收官**
 

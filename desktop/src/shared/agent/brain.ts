@@ -20,7 +20,7 @@
  *    计划驱动执行（`_plan` / `_execute_plan`）——分别属 A1-3（会话与记忆）与 A1-5（业务接线）。
  */
 
-import type { SkillExecutionContext, SkillResult } from './protocol'
+import { isSkillInteraction, type SkillExecutionContext, type SkillInteraction, type SkillResult } from './protocol'
 
 /* ---- 消息与传输层 ---- */
 
@@ -83,6 +83,14 @@ export type BrainEvent =
       action: string
       params: Record<string, unknown>
     }
+  | {
+      /** 技能要求与用户交互（确认破坏性动作 / 提问澄清参数） */
+      type: 'interaction_required'
+      requestId: string
+      tool: string
+      action: string
+      interaction: SkillInteraction
+    }
   | { type: 'step_done'; tool: string; result: string; success: boolean }
   | { type: 'done'; text: string }
   | { type: 'error'; message: string }
@@ -97,6 +105,24 @@ export interface BrainApprovalRequest {
 
 export type BrainApprover = (request: BrainApprovalRequest) => Promise<boolean> | boolean
 
+/** 交互请求（技能要求确认或提问） */
+export interface BrainInteractionRequest {
+  requestId: string
+  tool: string
+  action: string
+  interaction: SkillInteraction
+}
+
+/** 交互答复：confirm 用 `approved`，question 用 `answer` */
+export interface BrainInteractionAnswer {
+  approved?: boolean
+  answer?: string
+}
+
+export type BrainInteractionResponder = (
+  request: BrainInteractionRequest
+) => Promise<BrainInteractionAnswer> | BrainInteractionAnswer
+
 export interface RunBrainLoopOptions {
   /** 用户本轮输入 */
   input: string
@@ -110,6 +136,8 @@ export interface RunBrainLoopOptions {
   maxIterations?: number
   /** 危险操作审批；未提供 → 一律视为未确认（拒绝） */
   requestApproval?: BrainApprover
+  /** 技能交互（确认/提问）答复通道；未提供 → 视为用户未确认/未答复 */
+  requestInteraction?: BrainInteractionResponder
   /** 审批请求 id 生成器（默认进程内自增；测试可注入确定性实现） */
   newRequestId?: () => string
   context?: SkillExecutionContext
@@ -190,7 +218,7 @@ export function formatToolResult(result: SkillResult): string {
  *  5. 迭代用尽 → 兜底答复。
  */
 export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainRunResult> {
-  const { input, systemPrompts, transport, runner, requestApproval, onEvent } = options
+  const { input, systemPrompts, transport, runner, requestApproval, requestInteraction, onEvent } = options
   const maxIterations = options.maxIterations ?? DEFAULT_MAX_ITERATIONS
   const context: SkillExecutionContext = options.context ?? {}
   let requestSeq = 0
@@ -208,6 +236,49 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
     { role: 'user', content: input }
   ]
   const results: string[] = []
+
+  /**
+   * 处理技能提出的交互请求：
+   *  - confirm：批准后带 `confirm: true` **重执行一次**（不做多次重试，避免自旋）；拒绝则记 `[STOP]`
+   *  - question：把用户答复作为工具结果回灌（不重执行）
+   * 未提供答复通道 / 用户未答复 → 一律按未确认处理（与危险确认门同一取向：不做隐式放行）
+   */
+  const settleInteraction = async (
+    interaction: SkillInteraction,
+    toolId: string,
+    action: string,
+    params: Record<string, unknown>
+  ): Promise<{ text: string; success: boolean }> => {
+    const requestId = newRequestId()
+    emit({ type: 'interaction_required', requestId, tool: toolId, action, interaction })
+    const answer = requestInteraction
+      ? await requestInteraction({ requestId, tool: toolId, action, interaction })
+      : {}
+
+    if (interaction.kind === 'confirm') {
+      if (answer.approved !== true) {
+        return { text: `[STOP] 用户未确认该操作: ${toolId}`, success: false }
+      }
+      try {
+        const retried = await runner.execute(toolId, { ...params, confirm: true }, context)
+        if (retried.interaction !== undefined) {
+          return { text: `[STOP] 确认后该操作仍要求再次确认: ${toolId}`, success: false }
+        }
+        return { text: formatToolResult(retried), success: retried.success }
+      } catch (error) {
+        return {
+          text: `执行失败: ${error instanceof Error ? error.message : String(error)}`,
+          success: false
+        }
+      }
+    }
+
+    const answerText = typeof answer.answer === 'string' ? answer.answer.trim() : ''
+    if (answerText === '') {
+      return { text: `[STOP] 用户未解答提问: ${interaction.prompt}`, success: false }
+    }
+    return { text: `用户回答：${answerText}`, success: true }
+  }
 
   for (let iteration = 0; iteration < maxIterations; iteration++) {
     emit({ type: 'step_start', order: iteration, tool: 'llm_think' })
@@ -271,6 +342,13 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
         const result = await runner.execute(resolved, call.arguments, context)
         success = result.success
         text = formatToolResult(result)
+
+        // 技能要求交互（确认破坏性动作 / 提问澄清）→ 暂停并等用户回答
+        if (isSkillInteraction(result.interaction)) {
+          const settled = await settleInteraction(result.interaction, resolved, action, call.arguments)
+          text = settled.text
+          success = settled.success
+        }
       } catch (error) {
         success = false
         text = `执行失败: ${error instanceof Error ? error.message : String(error)}`

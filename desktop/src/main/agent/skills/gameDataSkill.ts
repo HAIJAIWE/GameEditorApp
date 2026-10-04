@@ -12,8 +12,9 @@
 import type { SkillExecutionContext, SkillProtocol, SkillResult } from '../../../shared/agent/protocol'
 import type { DataService } from '../../data/service'
 import type { TypeSchemaStore } from '../../schema/store'
+import type { ItemRecord } from '../../../shared/types'
 
-const ACTIONS = ['list_types', 'list', 'query', 'create', 'update'] as const
+const ACTIONS = ['list_types', 'list', 'query', 'create', 'update', 'delete'] as const
 
 const DEFAULT_LIMIT = 20
 
@@ -212,6 +213,56 @@ export function createGameDataSkill(deps: {
     }
   }
 
+  /**
+   * 删除条目：**破坏性动作，未带 `confirm: true` 时返回 confirm 交互**（对齐 Python
+   * `game_data_skill.py:413` 的 `needs_confirm`，但 TS 侧该标志真的有消费者——Brain 会暂停询问，
+   * 批准后带 `confirm: true` 重执行）。
+   */
+  function deleteItem(params: Record<string, unknown>): SkillResult | Promise<SkillResult> {
+    const itemId = typeof params.item_id === 'string' ? params.item_id.trim() : ''
+    const name = typeof params.name === 'string' ? params.name.trim() : ''
+    const rawType = typeof params.data_type === 'string' ? params.data_type : ''
+    const resolved = rawType !== '' ? resolveType(rawType) : null
+    if (rawType !== '' && resolved === null) {
+      return fail(`未知数据类型: ${rawType}。可用类型: ${availableSingles()}`)
+    }
+
+    let target: ItemRecord | undefined
+    if (itemId !== '') {
+      target = dataService.listAllItems().find((item) => item.id === itemId)
+      if (target === undefined) return fail(`条目 ${itemId} 不存在`)
+    } else if (name !== '') {
+      const candidates = resolved !== null ? dataService.listItems(resolved.key) : dataService.listAllItems()
+      target = candidates.find((item) => itemName(item) === name)
+      if (target === undefined) {
+        return fail(`找不到名称「${name}」对应的条目。请检查名称是否正确，或提供 data_type 缩小范围。`)
+      }
+    } else {
+      return fail('找不到要删除的条目。请提供 name 参数（如 \'name\':\'火系法师\'）或 item_id 参数。')
+    }
+
+    const label = typeSchemaStore.getTypes().find((entry) => entry.id === target?.type)?.name ?? target.type
+    const displayName = itemName(target)
+
+    if (params.confirm !== true) {
+      const prompt = `确认删除${label}【${displayName}】？此操作不可撤销。`
+      return {
+        success: false,
+        message: '',
+        error: `[WARN] ${prompt}`,
+        interaction: { kind: 'confirm', prompt }
+      }
+    }
+
+    return deleteItemAsync(target.id, label, displayName)
+  }
+
+  async function deleteItemAsync(id: string, label: string, displayName: string): Promise<SkillResult> {
+    const deleted = await dataService.deleteItem(id)
+    if (!deleted) return fail(`条目 ${id} 不存在`)
+    return { success: true, message: `已删除${label}【${displayName}】（id=${id}）`, data: null }
+  }
+
   function run(params: Record<string, unknown>, _ctx: SkillExecutionContext): SkillResult | Promise<SkillResult> {
     const action = typeof params.action === 'string' ? params.action : ''
     switch (action) {
@@ -225,6 +276,8 @@ export function createGameDataSkill(deps: {
         return createItem(params)
       case 'update':
         return updateItem(params)
+      case 'delete':
+        return deleteItem(params)
       default:
         return fail(`未知动作: ${action}`)
     }
@@ -240,7 +293,8 @@ export function createGameDataSkill(deps: {
         action: {
           type: 'string',
           enum: ACTIONS,
-          description: '操作类型: list_types=列出数据类型, list=列出条目, query=按名称查询, create=创建条目, update=修改条目'
+          description:
+            '操作类型: list_types=列出数据类型, list=列出条目, query=按名称查询, create=创建条目, update=修改条目, delete=删除条目（需用户确认）'
         },
         data_type: {
           type: 'string',
@@ -252,6 +306,7 @@ export function createGameDataSkill(deps: {
         data: { type: 'object', description: '数据属性对象，如 {"attack":100,"defense":50}' },
         field: { type: 'string', description: '要修改的字段名（update 时使用）' },
         value: { type: 'string', description: '字段新值（update 配合 field 使用）' },
+        confirm: { type: 'boolean', description: '删除确认标记（delete 时由系统在用户确认后置为 true）' },
         limit: { type: 'integer', description: '返回条数上限', default: DEFAULT_LIMIT }
       },
       required: ['action']

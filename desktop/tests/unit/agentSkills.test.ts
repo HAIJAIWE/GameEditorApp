@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { SkillDispatcher } from '../../src/main/agent/dispatcher'
+import { createAskUserSkill } from '../../src/main/agent/skills/askUserSkill'
 import { createCeshuSkill } from '../../src/main/agent/skills/ceshuSkill'
 import { createGameDataSkill } from '../../src/main/agent/skills/gameDataSkill'
 import type { CeshuManager } from '../../src/main/ceshu/manager'
@@ -44,6 +45,19 @@ function makeDataService(seed: Record<string, Array<Record<string, unknown>>> = 
       }
       store.set(input.type, [...(store.get(input.type) ?? []), item])
       return item
+    },
+    deleteItem: async (id: string): Promise<boolean> => {
+      for (const [type, items] of store) {
+        const index = items.findIndex((item) => item.id === id)
+        if (index >= 0) {
+          store.set(
+            type,
+            items.filter((_item, at) => at !== index)
+          )
+          return true
+        }
+      }
+      return false
     },
     updateItem: async (id: string, data: Record<string, unknown>): Promise<ItemRecord> => {
       for (const items of store.values()) {
@@ -203,6 +217,85 @@ describe('system.game_data 技能（A1-1 最小集）', () => {
     const skill = createGameDataSkill({ dataService: makeDataService(), typeSchemaStore: makeSchemaStore() })
     const result = await skill.execute({ action: 'explode' }, {})
     expect(result).toEqual({ success: false, error: '未知动作: explode', message: '' })
+  })
+
+  it('delete：未确认时返回 confirm 交互（不删数据），确认后真正删除', async () => {
+    const dataService = makeDataService({ [ROLE.id]: [{ name: '法师' }, { name: '战士' }] })
+    const skill = createGameDataSkill({ dataService, typeSchemaStore: makeSchemaStore() })
+
+    const pending = await skill.execute({ action: 'delete', data_type: 'role', name: '法师' }, {})
+    expect(pending.success).toBe(false)
+    expect(pending.error).toBe(`[WARN] 确认删除${ROLE.name}【法师】？此操作不可撤销。`)
+    expect(pending.interaction).toEqual({
+      kind: 'confirm',
+      prompt: `确认删除${ROLE.name}【法师】？此操作不可撤销。`
+    })
+    // 未确认 → 数据没动
+    expect(dataService.listItems(ROLE.id)).toHaveLength(2)
+
+    const done = await skill.execute({ action: 'delete', data_type: 'role', name: '法师', confirm: true }, {})
+    expect(done.success).toBe(true)
+    expect(done.message).toBe(`已删除${ROLE.name}【法师】（id=role-1）`)
+    expect(dataService.listItems(ROLE.id).map((item) => item.data.name)).toEqual(['战士'])
+  })
+
+  it('delete：按 item_id；条目不存在 / 未给定位条件时给中文错误', async () => {
+    const dataService = makeDataService({ [ROLE.id]: [{ name: '法师' }] })
+    const skill = createGameDataSkill({ dataService, typeSchemaStore: makeSchemaStore() })
+
+    expect(await skill.execute({ action: 'delete' }, {})).toEqual({
+      success: false,
+      error: "找不到要删除的条目。请提供 name 参数（如 'name':'火系法师'）或 item_id 参数。",
+      message: ''
+    })
+    expect(await skill.execute({ action: 'delete', item_id: 'nope', confirm: true }, {})).toEqual({
+      success: false,
+      error: '条目 nope 不存在',
+      message: ''
+    })
+    // item_id + confirm 直接删
+    const byId = await skill.execute({ action: 'delete', item_id: 'role-1', confirm: true }, {})
+    expect(byId.success).toBe(true)
+    expect(dataService.listItems(ROLE.id)).toHaveLength(0)
+  })
+})
+
+describe('tool.ask_user 技能（参数澄清）', () => {
+  it('返回 question 交互（含候选选项）', async () => {
+    const skill = createAskUserSkill()
+    const result = await skill.execute({ action: 'ask', question: '用哪个职业？', options: ['战士', '', '法师'] }, {})
+    expect(result.success).toBe(true)
+    expect(result.interaction).toEqual({
+      kind: 'question',
+      prompt: '用哪个职业？',
+      options: ['战士', '法师']
+    })
+  })
+
+  it('无选项时不带 options 字段；缺 question / 未知动作报错', async () => {
+    const skill = createAskUserSkill()
+    expect((await skill.execute({ action: 'ask', question: '继续吗' }, {})).interaction).toEqual({
+      kind: 'question',
+      prompt: '继续吗'
+    })
+    expect(await skill.execute({ action: 'ask' }, {})).toEqual({
+      success: false,
+      error: '缺少 question 参数',
+      message: ''
+    })
+    expect(await skill.execute({ action: 'nope', question: 'x' }, {})).toEqual({
+      success: false,
+      error: '未知动作: nope',
+      message: ''
+    })
+  })
+
+  it('经调度器可被「提问」别名解析（READ_ONLY，不需危险确认）', async () => {
+    const dispatcher = new SkillDispatcher()
+    dispatcher.register(createAskUserSkill())
+    const result = await dispatcher.execute('提问', { action: 'ask', question: '用哪个职业？' })
+    expect(result.success).toBe(true)
+    expect(result.interaction?.kind).toBe('question')
   })
 })
 

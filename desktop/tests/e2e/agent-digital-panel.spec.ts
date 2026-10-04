@@ -267,3 +267,100 @@ test('数字员工面板：SYSTEM 级技能获批后在沙箱执行并回灌结�
   expect(joined).toContain('执行成功: 42')
   expect(joined).not.toContain('[STOP]')
 })
+
+test('数字员工面板：删除条目走「操作确认」交互，确认后真正删除', async () => {
+  const stub = await startOllamaChatStub({
+    toolName: 'system.game_data',
+    toolArgs: { action: 'delete', data_type: 'role', name: '待删法师' },
+    finalChunks: ['已删除']
+  })
+  const userDataDir = mkdtempSync(join(tmpdir(), 'mb-agent-delete-confirm-'))
+  const app = await electron.launch({
+    args: ['.'],
+    cwd: join(__dirname, '..', '..'),
+    env: {
+      ...process.env,
+      MB_USER_DATA_DIR: userDataDir,
+      MB_OLLAMA_HOST: stub.host,
+      MB_OLLAMA_MODEL: 'stub:latest'
+    }
+  })
+
+  try {
+    const window = await app.firstWindow()
+    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    // 先造一条待删数据
+    await window.evaluate(async () => {
+      const api = (globalThis as unknown as { mbApi: { data: { createItem: (req: unknown) => Promise<unknown> } } })
+        .mbApi
+      await api.data.createItem({ type: 'role', data: { name: '待删法师' } })
+    })
+
+    await window.getByTestId('mode-digital').click()
+    await window.getByTestId('digital-input').fill('删掉待删法师')
+    await window.getByTestId('digital-send').click()
+
+    // 删除确认模态（confirm 类交互）
+    await expect(window.getByTestId('digital-interaction')).toBeVisible({ timeout: 15_000 })
+    await expect(window.getByTestId('digital-interaction-prompt')).toContainText('确认删除')
+    await expect(window.getByTestId('digital-interaction-prompt')).toContainText('待删法师')
+
+    await window.getByTestId('digital-interaction-approve').click()
+    await expect(window.getByTestId('digital-interaction')).toHaveCount(0)
+    await expect(window.getByTestId('digital-step').filter({ hasText: '已删除' })).toHaveCount(1, {
+      timeout: 15_000
+    })
+
+    // 数据确实被删掉
+    const remaining = (await window.evaluate(async () => {
+      const api = (globalThis as unknown as { mbApi: { data: { listItems: (req: unknown) => Promise<unknown[]> } } })
+        .mbApi
+      return api.data.listItems({ type: 'role' })
+    })) as unknown[]
+    expect(remaining).toHaveLength(0)
+  } finally {
+    await app.close()
+    await stub.close()
+  }
+})
+
+test('数字员工面板：ask_user 提问走「需要你澄清」交互，答复回灌为工具结果', async () => {
+  const stub = await startOllamaChatStub({
+    toolName: 'tool.ask_user',
+    toolArgs: { action: 'ask', question: '用哪个职业？', options: ['战士', '法师'] },
+    finalChunks: ['收到']
+  })
+  const userDataDir = mkdtempSync(join(tmpdir(), 'mb-agent-ask-user-'))
+  const app = await electron.launch({
+    args: ['.'],
+    cwd: join(__dirname, '..', '..'),
+    env: {
+      ...process.env,
+      MB_USER_DATA_DIR: userDataDir,
+      MB_OLLAMA_HOST: stub.host,
+      MB_OLLAMA_MODEL: 'stub:latest'
+    }
+  })
+
+  try {
+    const window = await app.firstWindow()
+    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await window.getByTestId('mode-digital').click()
+    await window.getByTestId('digital-input').fill('帮我建个角色')
+    await window.getByTestId('digital-send').click()
+
+    await expect(window.getByTestId('digital-interaction')).toBeVisible({ timeout: 15_000 })
+    await expect(window.getByTestId('digital-interaction-prompt')).toHaveText('用哪个职业？')
+    await expect(window.getByTestId('digital-interaction-option')).toHaveCount(2)
+
+    // 点候选选项（法师）→ 答复回灌
+    await window.getByTestId('digital-interaction-option').filter({ hasText: '法师' }).click()
+    await expect(window.getByTestId('digital-interaction')).toHaveCount(0)
+    await expect(window.getByTestId('digital-step').filter({ hasText: '用户回答：法师' })).toHaveCount(1, {
+      timeout: 15_000
+    })
+  } finally {
+    await app.close()
+    await stub.close()
+  }
+})

@@ -11,8 +11,9 @@
  */
 
 import type { BrainEvent } from './brain'
+import type { SkillInteraction } from './protocol'
 
-export type DigitalStatus = 'idle' | 'thinking' | 'waiting_approval' | 'done' | 'error'
+export type DigitalStatus = 'idle' | 'thinking' | 'waiting_approval' | 'waiting_input' | 'done' | 'error'
 
 /** 步骤类型：LLM 思考轮 / 工具批 / 单个工具执行 */
 export type DigitalStepKind = 'think' | 'batch' | 'tool'
@@ -48,6 +49,14 @@ export interface DigitalTask {
   summary: string
 }
 
+/** 技能提出的交互请求（确认破坏性动作 / 提问澄清参数） */
+export interface DigitalInteraction {
+  requestId: string
+  tool: string
+  action: string
+  interaction: SkillInteraction
+}
+
 export interface DigitalPanelState {
   messages: DigitalMessage[]
   steps: DigitalStep[]
@@ -55,6 +64,8 @@ export interface DigitalPanelState {
   streaming: string
   /** 待用户审批的危险操作；非空时 status 为 waiting_approval */
   approval: DigitalApproval | null
+  /** 待用户答复的技能交互；非空时 status 为 waiting_input */
+  interaction: DigitalInteraction | null
   status: DigitalStatus
   error: string | null
   /** 自增序号（生成稳定的消息 id） */
@@ -66,6 +77,7 @@ export const initialDigitalPanelState: DigitalPanelState = {
   steps: [],
   streaming: '',
   approval: null,
+  interaction: null,
   status: 'idle',
   error: null,
   seq: 0
@@ -84,6 +96,7 @@ export function submitUserMessage(state: DigitalPanelState, text: string): Digit
     steps: [],
     streaming: '',
     approval: null,
+    interaction: null,
     status: 'thinking',
     error: null
   }
@@ -115,6 +128,17 @@ export function reduceBrainEvent(state: DigitalPanelState, event: BrainEvent): D
         },
         status: 'waiting_approval'
       }
+    case 'interaction_required':
+      return {
+        ...state,
+        interaction: {
+          requestId: event.requestId,
+          tool: event.tool,
+          action: event.action,
+          interaction: event.interaction
+        },
+        status: 'waiting_input'
+      }
     case 'step_done':
       return {
         ...state,
@@ -142,11 +166,12 @@ export function reduceBrainEvent(state: DigitalPanelState, event: BrainEvent): D
             : [...state.messages, { id: `m${seq}`, role: 'assistant', text }],
         streaming: '',
         approval: null,
+        interaction: null,
         status: 'done'
       }
     }
     case 'error':
-      return { ...state, error: event.message, approval: null, status: 'error' }
+      return { ...state, error: event.message, approval: null, interaction: null, status: 'error' }
     default:
       return state
   }
@@ -167,6 +192,12 @@ export function resolveApproval(state: DigitalPanelState, approved: boolean): Di
   }
 }
 
+/** 交互答复完成（确认/提问都要清，避免模态卡住） */
+export function resolveInteraction(state: DigitalPanelState): DigitalPanelState {
+  if (state.interaction === null) return state
+  return { ...state, interaction: null, status: 'thinking' }
+}
+
 /** 由工具步骤派生任务列表（面板「任务」区展示） */
 export function summarizeToolTasks(steps: DigitalStep[]): DigitalTask[] {
   return steps
@@ -180,7 +211,7 @@ export function summarizeToolTasks(steps: DigitalStep[]): DigitalTask[] {
 
 /** 是否正在运行（用于禁用输入框 / 显示停止按钮） */
 export function isRunning(state: DigitalPanelState): boolean {
-  return state.status === 'thinking' || state.status === 'waiting_approval'
+  return state.status === 'thinking' || state.status === 'waiting_approval' || state.status === 'waiting_input'
 }
 
 /** 用历史会话消息初始化面板（会话恢复入口） */
@@ -198,5 +229,15 @@ export function hydrateFromSession(
     seq += 1
     messages.push({ id: `m${seq}`, role, text: content })
   }
-  return { ...state, seq, messages, steps: [], streaming: '', approval: null, status: 'idle', error: null }
+  return {
+    ...state,
+    seq,
+    messages,
+    steps: [],
+    streaming: '',
+    approval: null,
+    interaction: null,
+    status: 'idle',
+    error: null
+  }
 }
