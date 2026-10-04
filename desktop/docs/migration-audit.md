@@ -8,21 +8,21 @@
 
 | 判定 | 文件 | 行数 | 占比 |
 |---|---|---|---|
-| ✅ 已迁 | 85 | 33,165 | 36.4% |
-| ◐ 部分已迁 | 64 | 23,442 | 25.7% |
+| ✅ 已迁 | 90 | 33,834 | 37.1% |
+| ◐ 部分已迁 | 63 | 23,400 | 25.7% |
 | ⛔ 有意不迁 | 84 | 16,851 | 18.5% |
-| ⚠️ 未迁（整块没做） | 66 | 17,706 | 19.4% |
+| ⚠️ 未迁（整块没做） | 62 | 17,079 | 18.7% |
 
-**对账（必须相等，已 PASS）**：`85+64+84+66 = 299` ✓、`33165+23442+16851+17706 = 91,164` ✓
+**对账（必须相等，已 PASS）**：`90+63+84+62 = 299` ✓、`33834+23400+16851+17079 = 91,164` ✓
 
-### 真实剩余 ≈ 3.0–3.4 万行（33–37%）
+### 真实剩余 ≈ 2.7–3.1 万行（30–34%）
 
-- **确定未迁（整块没做）＝ 17,706 行 / 66 文件**（精确数字）
+- **确定未迁（整块没做）＝ 17,079 行 / 62 文件**（精确数字）
 - **部分已迁里的缺口 ≈ 1.0–1.4 万行**（**估算**：按各文件的完成度估计汇总，各代理给的完成度多在 25%–75%，本身带主观性）
-- 合计 **≈ 3.0–3.4 万行**，占旧代码 **33–37%**
+- 合计 **≈ 2.7–3.1 万行**，占旧代码 **30–34%**
 
 > **口径说明**：不能把「⛔有意不迁」的 16,851 行算成欠债 —— 那些是**决策**（自愈链 5,372、样例数据 1,125、PyQt 胶水、死代码等），各有实证依据。
-> 但也不能把「◐部分已迁」算成已迁 —— 那 23,614 行里有一部分是真缺口。
+> 但也不能把「◐部分已迁」算成已迁 —— 那 23,400 行里有一部分是真缺口。
 
 ## 2. 汇总（按域）
 
@@ -33,17 +33,17 @@
 | `ui/widgets` | 24 | 9,232 | 11 / 4,966 | 5 / 1,882 | 6 / 962 | 2 / 1,422 |
 | `ui/` 顶层 + `themes` + `components` | 31 | 9,883 | 4 / 917 | 9 / 4,748 | 7 / 1,029 | 11 / 3,189 |
 | `core/ceshu` + `core` 顶层 + `defaults` | 38 | 12,602 | 27 / 10,840 | 2 / 225 | 8 / 1,248 | 1 / 289 |
-| `ui/dialogs` | 20 | 6,055 | 4 / 1,288 | 7 / 2,493 | 4 / 487 | 5 / 1,787 |
-| `common` + `config` + `security` + `data` + 顶层 | 45 | 10,672 | 5 / 1,187 | 7 / 2,776 | 22 / 4,892 | 11 / 1,817 |
-| `features` | 9 | 3,430 | 0 / 0 | 6 / 2,732 | 1 / 60 | 2 / 638 |
-| **合计** | **299** | **91,164** | **84 / 33,010** | **64 / 23,442** | **84 / 16,851** | **67 / 17,861** |
+| `ui/dialogs` | 20 | 6,055 | 7 / 1,718 | 7 / 2,493 | 4 / 487 | 2 / 1,357 |
+| `common` + `config` + `security` + `data` + 顶层 | 45 | 10,672 | 6 / 1,384 | 7 / 2,776 | 22 / 4,892 | 10 / 1,620 |
+| `features` | 9 | 3,430 | 1 / 42 | 5 / 2,690 | 1 / 60 | 2 / 638 |
+| **合计** | **299** | **91,164** | **89 / 33,679** | **63 / 23,400** | **84 / 16,851** | **63 / 17,234** |
 
-> **注**：上表「合计」是各域行直接相加；它与 §1 结论表存在 **±1 文件 / 155 行** 的差异（个别文件在「已迁 ↔ 未迁」间归类不同）。**§1 是结论表、也是守护测试的解析源，以 §1 为准**；域行的这一处差异待逐文件复核。
+> **注**：上表「合计」是各域行直接相加（89/63/84/63 = 299 文件、33,679+23,400+16,851+17,234 = 91,164 行，**内部自洽**）；它与 §1 结论表仍存在 **±1 文件 / 155 行** 的差异（个别文件在「已迁 ↔ 未迁」间归类不同）。**§1 是结论表、也是守护测试的解析源，以 §1 为准**；域行的这一处差异待逐文件复核。
 
 **三个最值得注意的域**：
 1. **`core/agent`（最大域，24,670 行）→ 只有 8 个文件（1,689 行）是完整已迁**，33 个文件（8,419 行）整块未迁。A 档做的是「核心闭环」，不是「整个 Agent 引擎」。
 2. **`ui/` 顶层 + 主题（9,883 行）→ 仅 917 行完整已迁**，主题/特效/菜单/多标签/窗口状态整块未做（多为 C 档，但那是**决策**还是**欠债**需区分：主题≠核心功能）。
-3. **`ui/dialogs`（6,055 行）→ 仅 1,288 行完整已迁**，5 个文件（1,787 行）整块未迁（API 配置、备份、设置、类型可见性、数据对比）；快速创建/统计/字段模板已由此前的 E10–E12 迁出该列。
+3. **`ui/dialogs`（6,055 行）→ 仅 1,718 行完整已迁**，2 个文件（1,357 行）整块未迁（API 配置、设置）；快速创建/统计/字段模板/高级搜索/类型可见性/数据对比/备份已由此前的 E10–E16 迁出该列。
 
 ## 3. 逐文件明细
 
@@ -258,13 +258,13 @@
 | type_editor_dialog.py | 528 | ◐70% | `TypeEditorPanel.tsx`；缺布局分区编辑（已判不迁）/智能工具栏/拼音英译按钮 |
 | type_editor_field_widget.py | 345 | ◐80% | 字段全属性+ID 生成（`fieldId.ts`/`fieldIdAi.ts`）；缺拼音兜底（E6 明示未做） |
 | api_config.py | 686 | ⚠️ | 多服务商配置整块未迁（TS 仅 `MB_OLLAMA_HOST/MODEL` 环境变量） |
-| backup_manager.py | 155 | ⚠️ | 备份列表/创建/恢复/删除整块未迁 |
-| data_diff_dialog.py | 154 | ⚠️ | `common/data_diff.py::DataDiff` 及 UI 未迁（**注意 `ceshuDiff.ts` 对应的是另一文件**） |
+| backup_manager.py | 155 | ✅ | `shared/backup.ts`（命名/时间戳/`BackupEntry`/`RestoreOutcome`）+ `main/backup/backupStore.ts`（**原子写 tmp+rename**、**软删除**改名 `.deleted`、**路径包含校验** 拒目录穿越）+ `main/backup/restore.ts`（**恢复前自动 pre-restore 快照**、按 id 差集删除多余条目后 upsert，**保留 id 故引用不错乱**）+ 4 条 IPC + `BackupPanel.tsx`。**刻意修正 Python 四处缺陷**：只改内存不落盘（假成功）、无 pre-restore 备份、`unlink` 永久删、`split(' - ')[1]` 反推文件名 |
+| data_diff_dialog.py | 154 | ✅ | `DataDiffPanel.tsx`（**当前 vs 用户设定的基线**，基线缓存在 localStorage）。**不照搬 Python 的残废行为**：Python 执行 `DataDiff.compare({}, {...})` 拿空 dict 与当前数据比，**永远只输出「全部新增」**、从不做真对比（文件头却自称对比历史版本）；TS 改为真正的双侧对比。**注意 `ceshuDiff.ts` 对应的是另一文件（策划书版本），与此无关** |
 | quick_create.py | 543 | ✅ | `shared/quickCreate.ts`（TEMPLATE_DEFS 12 类/61 模板 + DATA_TYPE_LABELS）+ `QuickCreatePanel.tsx`；落库复用 `data:createItem`。**刻意修正**：Python `_on_create` 里 `data_type + "s"` 死代码不复制；类型下拉与 schema 求交（`filterQuickCreateTypes`），防造出无类型定义的孤儿条目 |
 | settings_dialog.py | 671 | ⚠️ | 设置面板整块未迁（C 档） |
 | statistics.py | 374 | ◐ | **已迁**：`shared/dataStats.ts`（均值/样本标准差/平衡性判定阈值 0.3/按类型计数与占比/**按 schema spinbox 字段自动发现数值字段**）+ `StatisticsPanel.tsx`（概览柱条 + 平衡性分析）+ IPC `data:listAll`。<br>**缺**：① 角色/怪物的 `hp`/`atk`/`def` 分析 —— TS schema 里 **`role`/`monster` 根本没有这些扁平字段**（属性在 `attr_list`），直译即死代码，故改为自动发现（role 因此不出现在分析列表）；② Python 的「📈 图表」页是 **matplotlib 占位符**，不复制，改用 CSS 柱条真实渲染 |
 | template_manager.py | 411 | ◐ | **字段编辑部分早已由 `TypeEditorPanel` 覆盖**（增/删/上移/下移/名称·标签·类型·可编辑·可选值·数值范围），故本刀不重做第二套（避免重复计「已迁」）。<br>**本刀补齐的是模板存取**：`main/schema/fieldTemplateStore.ts`（`<库>/field_templates.json`，原子写）+ 4 条 IPC（`schema:listFieldTemplates`/`getFieldTemplate`/`saveFieldTemplate`/`deleteFieldTemplate`）+ `TypeEditorPanel` 里「保存当前为模板 / 删除模板」，自定义模板与内置模板在同一个下拉里（optgroup 分组），内置不可删。<br>**刻意不迁**：Python 的模板只存 `{字段名: 显示标签}`（`settings.py:780-786` 应用时**只覆盖 label**，类型/可选值/范围全丢）——是残废语义，TS 改存**完整 `TypeFieldDef[]`**，应用即整体还原（比 Python 强） |
-| type_visibility_dialog.py | 121 | ⚠️ | 首页概览「显示哪些数据类型」未迁 |
+| type_visibility_dialog.py | 121 | ✅ | `shared/visibleTypes.ts`（`isTypeVisible`/`normalizeVisibleTypes`/`resolveVisibilityResult`/`load`+`save`，语义：null=全部、`[]`=全隐藏）+ `TypeVisibilityPanel.tsx` + 侧栏「⚙ 管理显示类型」入口。**不开新 IPC**（纯渲染层 + localStorage）。**刻意修 Python 缺陷**：`settings.py:650` 用 `if ... and vt:` 判空列表 → 「全不选」重启即失效，TS 用「键是否存在」区分 |
 | `__init__.py` / auto_input_dialog.py / type_editor_dialog_state.py / type_editor_layout_widget.py | 25+60+99+303 | ⛔ | 包胶水 / QDialog 输入胶水 / mixin 类型桩 / E5 已实证不迁 |
 
 ### 3.7 `common` + `config` + `security` + `data` + 顶层（45 文件 / 10,672 行）
@@ -284,7 +284,7 @@
 | config/settings.py | 858 | ◐ | `fields_config`→`typeSchema.ts`；缺 visible_types/backup_dir/startup_mode/api_*（TS 刻意无全局单例）；引用 26 处 |
 | security/sandbox.py | 325 | ◐ | 已由 `main/security/jsSandbox.ts`（QuickJS 白名单）**设计性替换**；引用 2 处 |
 | common/auto_updater.py | 60 | ⚠️ | TS 无；引用 1 处 |
-| common/data_diff.py | 197 | ⚠️ | TS 无通用 diff；引用 1 处 |
+| common/data_diff.py | 197 | ✅ | `shared/itemDiff.ts`（`diffValues`/`diffItems`/`diffLibraries`/`collectLeaves`/`summarizeDiff`）。**修 Python 三处缺陷**：① 数组元素**不递归**（`_compare_list` 整块标 MODIFIED）→ 递归；② `compare_items_by_id` 新增/删除只塞 `name` 一个标量 → 携带 `data` 全量；③ 从不产出的 `UNCHANGED` 死枚举 → 无变化即不产出。**有意保留**数组按下标对齐（与 Python 一致，已在注释标注局限） |
 | common/data_importer.py | 269 | ⚠️ | TS 无（`legacyImport.ts` 仅旧 JSON；CSV/Excel 缺） |
 | common/data_ref.py | 209 | ⚠️ | `@data[...]` 解析无 TS；引用 1 处 |
 | common/event_bus.py | 87 | ⚠️ | TS 用 IPC + brain 事件流替代；**引用 18 处** |
@@ -309,7 +309,7 @@
 | export.py | 705 | ◐50% | JSON 导入导出/批量编辑已迁；**缺 CSV 与 Excel 的游戏数据导入导出**（`main/ceshu/export/excel.ts` 是策划书，非此） |
 | _ai_image.py | 365 | ⚠️ | **AI 生图/配图整块无 TS 对应**（文生图+下载落盘+进度、`generate_desc_only` 等） |
 | statistics.py | 273 | ⚠️ | 数据统计/平衡分析（`analyze_balance` 系列）无 TS（**注意 `ceshuScorer`/`ceshuWordStats` 是策划书域**） |
-| backup.py | 42 | ◐30% | `export_for_game` 已迁；`show_backup_manager` 未迁 |
+| backup.py | 42 | ✅ | `export_for_game` 已迁（`data:exportLegacy`）；`show_backup_manager` 已迁（`BackupPanel.tsx` + `backup:*` 4 条 IPC，见 `ui/dialogs/backup_manager.py` 行）。**不迁** `common/auto_backup.py`（死代码，见 `common/` 域） |
 | engine_export.py | 75 | ◐15% | 薄壳；TS 只做 Lua，缺 `show_game_data_preview` |
 | __init__.py | 60 | ⛔ | 包 re-export 胶水 |
 
@@ -317,10 +317,10 @@
 
 | 优先 | 项 | 量级 | 为什么 |
 |---|---|---|---|
-| **1** | `common/logger.py`（155 行）+ TS 文件日志 | 中 | **被引用 142 处**；TS 目前只有 console.*，无落盘日志 —— 排障基础设施 |
-| **2** | `core/agent` 记忆系统补全（`memory_history` 211 + `memory_store` 195 + `memory_vector` 271 + `memory_search` 231） | ≈900 行 | 当前记忆**只增不学**（对话历史/偏好/反馈未迁） |
-| **3** | `ui/dialogs` 未迁 8 件：`quick_create` 543 / `statistics` 374 / `template_manager` 411 / `advanced_search` 172 / `type_visibility` 121 / `data_diff` 154 / `backup_manager` 155 | ≈1,930 行 | 都是**日常可达**的功能，非外围 |
-| **4** | 引用类字段编辑器：`multi_select`→`RefTableWidget`（258）+ `drop_table`→`DropTableWidget`（225） | ≈410 行 | 现在降级成 JSON 文本框，**编辑体验退化**（影响 role/monster/job/skill 多处） |
+| **1** | `common/logger.py`（155 行）+ TS 文件日志 | 中 | ✅ **已迁**（E8，`main/logger.ts` + `shared/logger.ts`）；**被引用 142 处**，原有 TS 只有 console.* |
+| **2** | `core/agent` 记忆系统补全（`memory_history` 211 + `memory_store` 195 + `memory_vector` 271 + `memory_search` 231） | ≈900 行 | ◐ **只做了偏好/反馈层**（E9，`learner.py` 子集）；对话历史/向量/搜索仍**未迁**。当前记忆**只增不学** |
+| **3** | `ui/dialogs` 未迁（含 `common/data_diff`）：`quick_create` 543 / `statistics` 374 / `template_manager` 411 / `advanced_search` 172 / `type_visibility` 121 / `data_diff` 154+197 / `backup_manager` 155（+`features/backup` 42） | ≈2,170 行 | ✅ **已全部迁完**（E10–E16）；都是**日常可达**的功能，非外围 |
+| **4** | 引用类字段编辑器：`multi_select`→`RefTableWidget`（258）+ `drop_table`→`DropTableWidget`（225） | ≈410 行 | 现在降级成 JSON 文本框，**编辑体验退化**（影响 role/monster/job/skill 多处）← **下一批首选** |
 | **5** | `features/export.py` 的 CSV + Excel 游戏数据导入导出 | ≈230 行 | 你作为策划，导表进 Excel 调整是常见动作 |
 | **6** | `core/style_manager.py`（289 行） | 289 行 | D 档最后一个活模块；**但需先定其全局单例状态在 TS 放哪** |
 | **7** | `features/_ai_image.py` AI 生图（365 行） | 365 行 | 新架构**完全没有**的能力（可选） |
@@ -336,6 +336,6 @@
 
 ## 6. 本次审计纠正的三处早前误判
 
-1. **roadmap §2 的「剩余 ≈3.5–4.5k 行（4–5%）」是错的** —— 真实剩余 **≈3.0–3.4 万行（33–37%）**。那句话把三个混合态域当成了基本迁完，且口径过窄。
-2. **三条「已迁映射」线索是错的**（幸好标注了"须自行核实"）：`ui/dialogs/template_manager.py` ✗≠ `TemplateEditorPanel`（后者对应**策划书**模板）、`statistics.py` ✗≠ `WordStatsPanel`（后者是策划书字数）、`data_diff_dialog.py` ✗≠ `ceshuDiff.ts`（后者对应策划书版本对比）。这三个文件实为**未迁**。
+1. **roadmap §2 的「剩余 ≈3.5–4.5k 行（4–5%）」是错的** —— 真实剩余 **≈2.7–3.1 万行（30–34%）**。那句话把三个混合态域当成了基本迁完，且口径过窄。
+2. **三条「已迁映射」线索是错的**（幸好标注了"须自行核实"）：`ui/dialogs/template_manager.py` ✗≠ `TemplateEditorPanel`（后者对应**策划书**模板）、`statistics.py` ✗≠ `WordStatsPanel`（后者是策划书字数）、`data_diff_dialog.py` ✗≠ `ceshuDiff.ts`（后者对应策划书版本对比）。这三个文件当时实为**未迁** —— **均已于后续切片迁完**（E12 / E11 / E15）。
 3. **`common/` 不能整体按「用不到」处理**：`logger.py` 引用 142 处、`event_bus.py` 18 处、`lucide_icon.py` 11 处、`i18n.py` 4 处、`rate_limiter.py` 2 处 —— 这些**有真实消费者**，属未迁而非"设计上不迁"。（其余 15 个文件确认 src 内 0 引用，是真死代码。）

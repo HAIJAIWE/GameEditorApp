@@ -4,6 +4,9 @@ import type {
   AttrSystemJsonExportInput,
   AttrSystemJsonImportInput,
   AttrSystemSaveInput,
+  BackupCreateInput,
+  BackupDeleteInput,
+  BackupRestoreInput,
   BatchUpdateInput,
   CeshuAiGenerateInput,
   CeshuApplyPresetInput,
@@ -76,6 +79,7 @@ import type { CeshuDataGenResult } from './ceshuDataGen'
 import type { ReferenceReport } from './references'
 import type { FieldIdSuggestResult } from './fieldIdAi'
 import type { AttrSystem } from './attrSystem'
+import type { BackupEntry, RestoreOutcome } from './backup'
 
 /**
  * IPC 契约：通道 → 请求/响应类型。
@@ -199,6 +203,17 @@ export interface IpcContract {
   'ceshu:wordStats': { req: { id: string }; res: CeshuWordStatsReport }
   'ceshu:fieldDeps': { req: { id: string }; res: CeshuFieldDepsReport }
   'dialog:chooseCeshuExportFile': { req: CeshuChooseExportFileInput; res: { path: string | null } }
+
+  // 数据备份（整个活跃库的全量快照，存 <库>/backups/）。恢复/删除是**破坏性**操作：
+  // req.confirm 必须为 true，主进程会再校验一次（渲染层确认可被绕过）。
+  /** 列出活跃库的备份（按修改时间降序） */
+  'backup:list': { req: undefined; res: BackupEntry[] }
+  /** 创建备份（当前全量数据快照），返回新备份条目 */
+  'backup:create': { req: BackupCreateInput; res: BackupEntry }
+  /** 恢复备份：恢复前自动为当前数据生成 pre-restore 快照 */
+  'backup:restore': { req: BackupRestoreInput; res: RestoreOutcome }
+  /** 删除备份（软删除，改名为 .deleted 而非物理删除） */
+  'backup:delete': { req: BackupDeleteInput; res: { deleted: boolean } }
 }
 
 export type IpcChannel = keyof IpcContract

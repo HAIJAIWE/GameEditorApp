@@ -81,6 +81,13 @@ export interface MbApi {
   engine: {
     exportData(req: IpcContract['engine:exportData']['req']): Promise<IpcContract['engine:exportData']['res']>
   }
+  /** 数据备份（整库快照）。restore/remove 为破坏性操作，需传 confirm=true */
+  backup: {
+    list(): Promise<IpcContract['backup:list']['res']>
+    create(req: IpcContract['backup:create']['req']): Promise<IpcContract['backup:create']['res']>
+    restore(req: IpcContract['backup:restore']['req']): Promise<IpcContract['backup:restore']['res']>
+    remove(req: IpcContract['backup:delete']['req']): Promise<IpcContract['backup:delete']['res']>
+  }
   dialog: {
     chooseJsonFile(): Promise<IpcContract['dialog:chooseJsonFile']['res']>
     chooseEngineExportFile(

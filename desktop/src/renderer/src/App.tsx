@@ -3,11 +3,14 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { CeshuSummary } from '../../shared/ceshuConstants'
 import { filterItemRecords } from '../../shared/dataTableOps'
 import type { AppInfo, DataTypeDef, ImportSummary, ItemRecord } from '../../shared/types'
+import { isTypeVisible, loadVisibleTypes, saveVisibleTypes } from '../../shared/visibleTypes'
 
 import AdvancedSearchPanel from './components/AdvancedSearchPanel'
 import AttrSystemPanel from './components/AttrSystemPanel'
+import BackupPanel from './components/BackupPanel'
 import BatchEditPanel from './components/BatchEditPanel'
 import CeshuHomePanel from './components/CeshuHomePanel'
+import DataDiffPanel from './components/DataDiffPanel'
 import DigitalPanel from './components/digital/DigitalPanel'
 import EngineExportButton from './components/EngineExportButton'
 import LibraryBar from './components/LibraryBar'
@@ -17,6 +20,7 @@ import QuickCreatePanel from './components/QuickCreatePanel'
 import ReferencesPanel, { type ReferenceTarget } from './components/ReferencesPanel'
 import StatisticsPanel from './components/StatisticsPanel'
 import TypeEditorPanel from './components/TypeEditorPanel'
+import TypeVisibilityPanel from './components/TypeVisibilityPanel'
 
 function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
@@ -73,6 +77,11 @@ export default function App() {
   const [quickCreateOpen, setQuickCreateOpen] = useState(false)
   const [statsOpen, setStatsOpen] = useState(false)
   const [advancedSearchOpen, setAdvancedSearchOpen] = useState(false)
+  const [dataDiffOpen, setDataDiffOpen] = useState(false)
+  const [backupOpen, setBackupOpen] = useState(false)
+  const [typeVisibilityOpen, setTypeVisibilityOpen] = useState(false)
+  /** 侧栏显示哪些类型（null = 全部）；持久化在 localStorage，随会话保留 */
+  const [visibleTypes, setVisibleTypes] = useState<string[] | null>(() => loadVisibleTypes())
   const [refTarget, setRefTarget] = useState<ReferenceTarget | null>(null)
 
   const filteredItems = useMemo(() => filterItemRecords(items, debouncedQuery), [items, debouncedQuery])
@@ -185,8 +194,24 @@ export default function App() {
     setStatsOpen(false)
     setQuickCreateOpen(false)
     setAdvancedSearchOpen(false)
+    setDataDiffOpen(false)
+    setBackupOpen(false)
+    setTypeVisibilityOpen(false)
     setRefTarget(null)
   }
+
+  /** 侧栏显示类型偏好确认：写 localStorage 并即时生效（侧栏过滤在渲染处完成） */
+  const handleVisibilityConfirmed = (next: string[] | null): void => {
+    setVisibleTypes(next)
+    saveVisibleTypes(next)
+    setTypeVisibilityOpen(false)
+  }
+
+  /** 侧栏可见的类型（null = 全部） */
+  const visibleTypeDefs = useMemo(
+    () => types.filter((def) => isTypeVisible(def.id, visibleTypes)),
+    [types, visibleTypes]
+  )
 
   /** 引用跳转：切到目标类型并选中该条目（保留引用面板，便于沿引用链继续查看） */
   const handleJump = (type: string, itemId: string, name: string): void => {
@@ -358,18 +383,38 @@ export default function App() {
           </button>
         </div>
         {mode === 'data' ? (
-          types.map((t) => (
+          <>
+            {visibleTypeDefs.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                className={`type-tab${t.id === activeType ? ' active' : ''}`}
+                data-testid="type-tab"
+                onClick={() => selectType(t.id)}
+              >
+                <span className="type-dot" style={{ background: t.color }} />
+                {t.name}
+              </button>
+            ))}
             <button
-              key={t.id}
               type="button"
-              className={`type-tab${t.id === activeType ? ' active' : ''}`}
-              data-testid="type-tab"
-              onClick={() => selectType(t.id)}
+              className="type-tab"
+              data-testid="open-type-visibility"
+              title="选择侧栏要显示的数据类型"
+              onClick={() => {
+                setTypeVisibilityOpen(true)
+                setRefTarget(null)
+                setBatchOpen(false)
+                setStatsOpen(false)
+                setQuickCreateOpen(false)
+                setAdvancedSearchOpen(false)
+                setDataDiffOpen(false)
+                setBackupOpen(false)
+              }}
             >
-              <span className="type-dot" style={{ background: t.color }} />
-              {t.name}
+              <span className="item-name">⚙ 管理显示类型</span>
             </button>
-          ))
+          </>
         ) : (
           <>
             <button
@@ -439,10 +484,17 @@ export default function App() {
                 className="btn"
                 data-testid="open-references"
                 disabled={busy || !selectedItem}
-                onClick={() =>
-                  selectedItem &&
+                onClick={() => {
+                  if (!selectedItem) return
                   setRefTarget({ type: selectedItem.type, id: selectedItem.id, name: itemDisplayName(selectedItem) })
-                }
+                  setBatchOpen(false)
+                  setStatsOpen(false)
+                  setQuickCreateOpen(false)
+                  setAdvancedSearchOpen(false)
+                  setDataDiffOpen(false)
+                  setBackupOpen(false)
+                  setTypeVisibilityOpen(false)
+                }}
               >
                 引用关系
               </button>
@@ -502,6 +554,9 @@ export default function App() {
                           setBatchOpen(true)
                           setRefTarget(null)
                           setAdvancedSearchOpen(false)
+                          setDataDiffOpen(false)
+                          setBackupOpen(false)
+                          setTypeVisibilityOpen(false)
                         }}
                       >
                         批量操作（{selectedVisibleIds.length}）
@@ -515,6 +570,9 @@ export default function App() {
                           setRefTarget(null)
                           setBatchOpen(false)
                           setAdvancedSearchOpen(false)
+                          setDataDiffOpen(false)
+                          setBackupOpen(false)
+                          setTypeVisibilityOpen(false)
                         }}
                       >
                         快速创建
@@ -529,6 +587,9 @@ export default function App() {
                           setBatchOpen(false)
                           setQuickCreateOpen(false)
                           setAdvancedSearchOpen(false)
+                          setDataDiffOpen(false)
+                          setBackupOpen(false)
+                          setTypeVisibilityOpen(false)
                         }}
                       >
                         统计
@@ -543,9 +604,46 @@ export default function App() {
                           setBatchOpen(false)
                           setQuickCreateOpen(false)
                           setStatsOpen(false)
+                          setDataDiffOpen(false)
+                          setBackupOpen(false)
+                          setTypeVisibilityOpen(false)
                         }}
                       >
                         高级搜索
+                      </button>
+                      <button
+                        type="button"
+                        className="btn"
+                        data-testid="open-data-diff"
+                        onClick={() => {
+                          setDataDiffOpen(true)
+                          setRefTarget(null)
+                          setBatchOpen(false)
+                          setQuickCreateOpen(false)
+                          setStatsOpen(false)
+                          setAdvancedSearchOpen(false)
+                          setBackupOpen(false)
+                          setTypeVisibilityOpen(false)
+                        }}
+                      >
+                        数据对比
+                      </button>
+                      <button
+                        type="button"
+                        className="btn"
+                        data-testid="open-backup"
+                        onClick={() => {
+                          setBackupOpen(true)
+                          setRefTarget(null)
+                          setBatchOpen(false)
+                          setQuickCreateOpen(false)
+                          setStatsOpen(false)
+                          setAdvancedSearchOpen(false)
+                          setDataDiffOpen(false)
+                          setTypeVisibilityOpen(false)
+                        }}
+                      >
+                        备份
                       </button>
                     </div>
 
@@ -570,6 +668,9 @@ export default function App() {
                               setQuickCreateOpen(false)
                               setStatsOpen(false)
                               setAdvancedSearchOpen(false)
+                              setDataDiffOpen(false)
+                              setBackupOpen(false)
+                              setTypeVisibilityOpen(false)
                               setRefTarget(null)
                             }}
                           >
@@ -610,6 +711,22 @@ export default function App() {
                     <StatisticsPanel types={types} onClose={() => setStatsOpen(false)} />
                   ) : advancedSearchOpen ? (
                     <AdvancedSearchPanel types={types} onJump={handleJump} onClose={() => setAdvancedSearchOpen(false)} />
+                  ) : dataDiffOpen ? (
+                    <DataDiffPanel onClose={() => setDataDiffOpen(false)} />
+                  ) : backupOpen ? (
+                    <BackupPanel
+                      onRestored={() => {
+                        if (activeType) void reload(activeType)
+                      }}
+                      onClose={() => setBackupOpen(false)}
+                    />
+                  ) : typeVisibilityOpen ? (
+                    <TypeVisibilityPanel
+                      types={types}
+                      value={visibleTypes}
+                      onConfirm={handleVisibilityConfirmed}
+                      onClose={() => setTypeVisibilityOpen(false)}
+                    />
                   ) : quickCreateOpen ? (
                     <QuickCreatePanel
                       key={`${activeType ?? ''}:quick`}

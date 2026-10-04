@@ -67,6 +67,12 @@ const api: MbApi = {
   engine: {
     exportData: (req) => invoke('engine:exportData', req)
   },
+  backup: {
+    list: () => invoke('backup:list', undefined),
+    create: (req) => invoke('backup:create', req),
+    restore: (req) => invoke('backup:restore', req),
+    remove: (req) => invoke('backup:delete', req)
+  },
   dialog: {
     chooseJsonFile: () => invoke('dialog:chooseJsonFile', undefined),
     chooseEngineExportFile: (req) => invoke('dialog:chooseEngineExportFile', req),

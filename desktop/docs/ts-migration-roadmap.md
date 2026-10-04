@@ -55,14 +55,14 @@
 >
 > | 判定 | 文件 | 行数 | 占比 |
 > |---|---|---|---|
-> | ✅ 已迁 | 85 | 33,165 | 36.4% |
-> | ◐ 部分已迁 | 64 | 23,442 | 25.7% |
+> | ✅ 已迁 | 90 | 33,834 | 37.1% |
+> | ◐ 部分已迁 | 63 | 23,400 | 25.7% |
 > | ⛔ 有意不迁（决策，非欠债） | 84 | 16,851 | 18.5% |
-> | ⚠️ **未迁（整块没做）** | **66** | **17,706** | **19.4%** |
+> | ⚠️ **未迁（整块没做）** | **62** | **17,079** | **18.7%** |
 >
-> 对账 PASS：`85+64+84+66 = 299` 文件、`33165+23442+16851+17706 = 91,164` 行。
+> 对账 PASS：`90+63+84+62 = 299` 文件、`33834+23400+16851+17079 = 91,164` 行。
 >
-> **结论：真实剩余 ≈ 3.0–3.4 万行（33–37%）** —— 而不是早前口头估算的「3.5–4.5k 行（4–5%）」。那句估算**口径过窄**（把 `ui/widgets`/`ui/dialogs`/`features` 三个混合态域当成了基本迁完）且未做文件级核实，**已被本审计推翻**。
+> **结论：真实剩余 ≈ 2.7–3.1 万行（30–34%）** —— 而不是早前口头估算的「3.5–4.5k 行（4–5%）」。那句估算**口径过窄**（把 `ui/widgets`/`ui/dialogs`/`features` 三个混合态域当成了基本迁完）且未做文件级核实，**已被本审计推翻**。
 > 三个最意外的数字：**① `core/agent`（最大域 24,670 行）只有 1,689 行是完整已迁**（A 档做的是核心闭环，不是整个 Agent 引擎）；**② `ui/` 顶层+主题 9,883 行里仅 917 行完整已迁**；**③ `features` 9 文件完整已迁为 0**。
 > **本审计同时纠正了 3 条错误的「已迁」映射线索**（`ui/dialogs/template_manager.py`、`statistics.py`、`data_diff_dialog.py` 都不是策划书那套的同名对应物，实为未迁），并查明 `common/` 不可整体按「用不到」处理（`logger.py` 被引用 **142 处**、`event_bus.py` 18 处等，属未迁而非设计不迁）。
 
@@ -218,6 +218,33 @@
 > **验证**：单测 12（字段口径 id 取记录 id / 数字转串 / 空关键词空数组 / 大小写不敏感 / 限定类型 / 全部类型跨类型 / 按 desc 字段 / 全部字段 / AND 分词 / 无结果不抛 / truncateMatch）+ E2E 1（**未实跑**，已确认被收集）+ eslint/双端 tsc/build 全绿 + 全量 vitest 75 文件/833 用例。
 > **顺带修掉审计文档的两处内部不一致**：① §2 域表「合计」行原本（82/32,295…）与各域行相加不符，已按域行改为 84/33,010…；② 「三个最值得注意的域」里 `core/agent`（34 文件/8,962 行）与 `ui/dialogs`（573 行/8 文件 3,115 行）两处 prose 数字是 E10–E12 前的旧值，已改正为 33/8,419 与 1,288/5 文件 1,787 行。域表合计与 §1 结论表仍有 **±1 文件/155 行** 的差异（个别文件归类不同），已加注说明**以 §1 为准**，待逐文件复核。
 > **事故记录（本会话再次发生，非假想）**：提交前 `git status` 发现工作区的 `ts-migration-roadmap.md` 是**静默回退的旧快照** —— 缺整段 E12 台账、§2 数字退回 `64/23,203` + `67/18,117`、表格被重排为旧格式、且多出两个空行。已 `cp` 备份损坏版到 `/tmp`、`git checkout HEAD --` 还原后重做本刀台账。**又一次印证**：提交前必看 `git status`，提交后必复核。
+
+> ✅ **E14（2026-10-05）：侧栏类型可见性（迁移 `ui/dialogs/type_visibility_dialog.py`，121 行）**。
+> **交付**：`shared/visibleTypes.ts`（语义：`null`=全部显示、`[]`=全隐藏、数组=白名单；`isTypeVisible`/`normalizeVisibleTypes`/`resolveVisibilityResult`/`load`+`save`）+ `TypeVisibilityPanel.tsx` + 侧栏「⚙ 管理显示类型」入口。
+> **不开新 IPC**：纯渲染层 + `localStorage`（项目此前**零** localStorage 使用）；偏好不进主进程文件，故**不动** 5 个共享接线文件。
+> **刻意修 Python 缺陷**：`settings.py:650` 用 `if isinstance(vt, list) and vt:` 判空 → `[]` 为 falsy → **「全不选」重启即失效**；TS 以「键是否存在」区分（只有 `null` 才 `removeItem`）。
+> **语义收敛（有意）**：Python 对话框文案说只影响「首页概览卡片」，实际还经 `tab_manager.is_type_allowed` 隐藏**整个侧栏页签**（文案与行为不符）；TS 明确收敛到**侧栏类型列表**。
+> **最大风险已规避**：**7 个既有 E2E 断言侧栏 `type-tab` 计数 = 12** → 默认（未设偏好）必须显示全部；且这些 E2E 每个都用全新 `MB_USER_DATA_DIR`（localStorage 干净）。
+> **验证**：单测 22 + E2E 1（**未实跑**，已确认被收集）。
+
+> ✅ **E15（2026-10-05）：数据对比（迁移 `common/data_diff.py` 197 行 + `ui/dialogs/data_diff_dialog.py` 154 行）**。
+> **先核实的判定**：审计「`data_diff_dialog.py` ≠ `ceshuDiff.ts`」**成立**（后者是**策划书版本**对比，数据模型完全不同）；但审计把「缺什么」写得不准 —— Python 的 data_diff **本来就是残废的**，不是「有功能没迁」。
+> **Python 的致命缺陷（故不照搬其 UI 行为）**：`data_diff_dialog.py:141` 执行 `DataDiff.compare({}, {"count":N,"items":[...]})` —— 拿**空 dict** 与当前数据比，**永远只输出「全部新增」**、从不做真正的双侧对比（文件头却自称「对比备份/历史版本」）。照搬=把残废语义搬过来。
+> **交付**：`shared/itemDiff.ts`（`diffValues`/`diffItems`/`diffLibraries`/`collectLeaves`/`summarizeDiff`）+ `DataDiffPanel.tsx`（**当前 vs 用户手动设定的基线**，基线缓存在 localStorage）+ 工具条「数据对比」入口。
+> **修 Python 三处缺陷**：① 数组元素**不递归**（`_compare_list` 整块标 MODIFIED，缺陷 C）→ 递归进嵌套；② `compare_items_by_id` 新增/删除**只塞 `name` 一个标量**（缺陷 D）→ 携带 `data` 全量；③ 从不产出的 `UNCHANGED` 死枚举 → 无变化即不产出。另**排除 `createdAt`/`updatedAt`**（否则每次保存全条目恒判「已改」）。
+> **有意保留**：数组按**下标**对齐（与 Python 一致），已在源码注释标注「插入/删除会错位」的局限。
+> **不开新 IPC**：纯函数 + 既有 `data:listAll`。
+> **验证**：单测 29 + E2E 1（**未实跑**，已确认被收集）。
+
+> ✅ **E16（2026-10-05）：数据备份（迁移 `ui/dialogs/backup_manager.py` 155 行 + `features/backup.py` 42 行）**。
+> **本批唯一必须新开 IPC 的一件**（列表/创建/恢复/删除都要访问主进程受管目录）。备份单位 = **整个活跃库**；目录由主进程固定为 `<活跃库>/backups`（**不沿用** Python 的仓库内 `data/backups`，也**刻意不引入第三套**：Python 侧另有 `tool_advanced.py` 的 AI 工具备份与**死代码** `auto_backup.py`，不合并、不迁）。目录在**每次注册 handler 时**由 `libraryManager.activeDir()` 派生 → 切库会 dispose+重注册 → **天然随库隔离**。
+> **交付**：`shared/backup.ts`（命名/时间戳/`BackupEntry`/`RestoreOutcome`）+ `main/backup/backupStore.ts`（纯 fs，不依赖 electron）+ `main/backup/restore.ts`（编排）+ 4 条 IPC 五处接线 + `BackupPanel.tsx`。
+> **安全护栏（逐条对应 Python 缺陷）**：① **恢复前自动生成 `pre-restore` 快照**（Python 对话框路径没有；快照失败则**中止恢复**，宁可不动）；② **精确还原** = 先按 id 差集 `deleteMany` 再 `importRecords` upsert（**只 upsert 无法删除「备份没有、当前却有」的条目**；Python 是整体替换内存字典，TS 是 SQLite —— 这是本刀**核心设计差异**）；③ **软删除**（改名 `.deleted`）而非 Python 的 `unlink` 永久删；④ **原子写**（tmp+rename）而非 `open('w')`；⑤ **路径包含校验**（正则 + `startsWith(root+sep)`）拒绝目录穿越（Python 用 `backup_dir / name` 直拼、还用 `split(' - ')[1]` 从显示文本反推文件名）；⑥ **主进程再校验 `confirm: true`**（渲染层确认可被脚本绕过）。
+> **修 Python 的「假成功」**：Python 恢复**只改内存不落盘**（`backup_manager.py:117-122` 未更新 `_data_version`/`current_file`），提示成功但重启即丢；TS 数据本就在 SQLite 落盘，且 `importRecords` **保留原 id** → 引用关系不会因恢复而错乱。
+> **验证**：单测 23（命名/时间戳/拒非法名/拒目录穿越/原子写/忽略 tmp·deleted/软删撞名递推）+ **恢复测试 7（真 SQLite + 真文件系统）**（精确还原=删多余+还原值+保留 id、pre-restore 快照存在、恢复到空库、坏名不误伤数据）+ E2E 1（**未实跑**，已确认被收集）。
+
+> ⚙️ **本批的推进方式（E14–E16 同批交付）**：因为三个切片都要改**同一批共享接线文件**（`App.tsx`/`styles.css`/5 个 IPC 文件/文档），真并行写码必然互相覆盖，故采用「**并行做互不冲突的调研 + 各自只写新文件，共享接线由主代理串行收口**」：3 个只读子代理并行摸清三个 Python 文件的语义/消费者/TS 覆盖/是否需新 IPC；再由 3 个实现子代理并行产出**各自的新文件**（共享逻辑 + 面板 + 单测 + E2E，**禁止触碰 App.tsx/styles.css/IPC/文档**）；最后由主代理串行完成全部接线、恢复编排、4 条 IPC、文档与提交。**教训**：`type_visibility`/`data_diff` 都能**不开新 IPC**（前者 localStorage、后者纯函数），只有 backup 必须开 —— 若一开始就并行改共享文件，会白做大量冲突调解。
+> **事故记录（本会话第 4 次静默回退）**：子代理跑完后 `git status` 发现 `ts-migration-roadmap.md` **再次**被退成更旧的快照（**E12 与 E13 台账同时消失**、§2 数字退回 `64/23,203`+`67/18,117`）。处置同上：备份损坏版 → `git checkout HEAD --` 还原 → 重做台账。**缓解措施维持不变**：提交前 `git status`、`git add` 后核对 `--cached --name-only`、提交后 `grep -c` + `git diff --quiet`。
 
 ## 3. 每片执行流程（固定顺序）
 
