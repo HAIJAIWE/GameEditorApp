@@ -246,7 +246,7 @@
 > ⚙️ **本批的推进方式（E14–E16 同批交付）**：因为三个切片都要改**同一批共享接线文件**（`App.tsx`/`styles.css`/5 个 IPC 文件/文档），真并行写码必然互相覆盖，故采用「**并行做互不冲突的调研 + 各自只写新文件，共享接线由主代理串行收口**」：3 个只读子代理并行摸清三个 Python 文件的语义/消费者/TS 覆盖/是否需新 IPC；再由 3 个实现子代理并行产出**各自的新文件**（共享逻辑 + 面板 + 单测 + E2E，**禁止触碰 App.tsx/styles.css/IPC/文档**）；最后由主代理串行完成全部接线、恢复编排、4 条 IPC、文档与提交。**教训**：`type_visibility`/`data_diff` 都能**不开新 IPC**（前者 localStorage、后者纯函数），只有 backup 必须开 —— 若一开始就并行改共享文件，会白做大量冲突调解。
 > **事故记录（本会话第 4 次静默回退）**：子代理跑完后 `git status` 发现 `ts-migration-roadmap.md` **再次**被退成更旧的快照（**E12 与 E13 台账同时消失**、§2 数字退回 `64/23,203`+`67/18,117`）。处置同上：备份损坏版 → `git checkout HEAD --` 还原 → 重做台账。**缓解措施维持不变**：提交前 `git status`、`git add` 后核对 `--cached --name-only`、提交后 `grep -c` + `git diff --quiet`。
 
-> ✅ **E17（2026-10-05）：引用表字段编辑器（迁移 `ui/widgets/multi_select.py`，258 行）**。
+> ✅ **E17（2026-10-05）：引用表字段编辑器（迁移 `ui/widgets/multi_select.py`，258 行），提交 `92b29ed`**。
 > **交付**：`shared/refTable.ts`（`ReferenceEntry`/`clampRefLevel`/`resolveRefTypeId`/`refTypeDisplayName`/`canParseAsRefTable`/`normalizeRefEntries`/`serializeRefEntries`）+ `RefTableEditor.tsx`（名称/等级两列 + 内联选库面板）+ `ItemForm` 接线（`types` prop 传入）。
 > **替换的降级**：原 `multiselect` 是逗号分隔串或 JSON 文本框；现为专用表格编辑器。**不再有 JSON 降级**，仅当值无法归一（结构异常）才回退 JSON（防丢数据）。
 > **键口径修正**：Python `_get_name_by_id` 用 **复数键** 查 `data_manager.data[pluralKey]`；TS 用单数 type id 经 `DataService.listItems` 查（`resolveRefTypeId` 双向命中 `id`/`pluralKey`，schema 的 `refType` 是复数，而存储用单数）。
@@ -254,7 +254,7 @@
 > **E2E 影响**：`references.spec.ts` 原 `fill('field-skills', id)` 依赖文本框行为 → 已改为内联选库流程（点 `+ 添加技能` → 选选项 → 确定）。
 > **验证**：单测 35 + E2E（并入 ref-drop-editors.spec，**未实跑**，已确认被收集）。
 
-> ✅ **E18（2026-10-05）：掉落表字段编辑器（迁移 `ui/widgets/drop_table.py`，225 行）**。
+> ✅ **E18（2026-10-05）：掉落表字段编辑器（迁移 `ui/widgets/drop_table.py`，225 行），提交 `92b29ed`**。
 > **交付**：`shared/dropTable.ts`（`DropEntry`/`clampDropRate`/`clampDropCount`/`normalizeDropRange`/`dropSourceTypeId`/`dropSourceLabel`/`canParseAsDropTable`/`normalizeDropEntries`/`serializeDropEntries`）+ `DropTableEditor.tsx`（名称/掉率% / 最小/最大四列 + 内联选库）+ `ItemForm` 接线。
 > **替换的降级**：原 `droptable` **恒为 JSON 文本框**；现为专用表格编辑器。
 > **存储格式逐字照搬**：`[{name, rate, count_min, count_max}]` —— **仅 name、无 id**。这是 Python 既有数据模型（存量数据无 id），保持格式兼容优先；**已知局限**（照搬不修）：来源条目改名后掉落引用会失配，已在源码注释标注，如需改 id 引用应作为独立设计变更并迁移存量数据。
