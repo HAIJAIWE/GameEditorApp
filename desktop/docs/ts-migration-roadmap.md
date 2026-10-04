@@ -174,7 +174,7 @@
 > **测试**：单测 15 + E2E 2（桩服务：未收录 → AI 候选出现 → **点选才写入** + 断言发出去的提示词内容；离线：中文错误提示、不静默失败）。**未验证**：Electron 内点击链路（E2E 沙箱不可用；`playwright --list` 已确认 2 条新 E2E 被收集）。
 > **E6/E7 之后，D 档「中文字段名 → 英文 ID」这条线只剩可选的一步**：拼音兜底（`pinyin-pro` 依赖）。
 
-> ✅ **E8（2026-10-04）：TS 文件日志（迁移 `common/logger.py`，Python 侧被 142 处引用）**。
+> ✅ **E8（2026-10-04）：TS 文件日志（迁移 `common/logger.py`，Python 侧被 142 处引用），提交 `d0b923e`**。
 > **为什么做**：审计里 `common/logger.py` 被引用 **142 处**，但 TS 侧当时只有 `console.*`，无落盘日志 —— 排障基础设施缺位。
 > **范围（刻意克制，防过度开发）**：① 主进程轮转文件日志（`main/logger.ts`，10MB×5 备份，对齐 Python RotatingFileHandler）；② 统一入口 `shared/logger.ts`（渲染层经 `app:log` IPC 转发到主进程写文件，绝不渲染层直写）；③ 接线 `initLogger`（启动即落盘到 `userData/logs`）。
 > **明确不做**：Python 版的「环形缓冲供 LLM 注入上下文」在 TS 侧**当前无消费者**（agent/brain 上下文来自 memory 不来自日志），按「无消费者不预建」原则暂不实现；待 LLM 上下文注入需求出现再补 `app:recentLogs` + 环形缓冲。
