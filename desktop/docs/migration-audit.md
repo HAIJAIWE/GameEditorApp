@@ -10,10 +10,10 @@
 |---|---|---|---|
 | ✅ 已迁 | 94 | 34,971 | 38.4% |
 | ◐ 部分已迁 | 61 | 22,917 | 25.1% |
-| ⛔ 有意不迁 | 84 | 16,851 | 18.5% |
-| ⚠️ 未迁（整块没做） | 60 | 16,425 | 18.0% |
+| ⛔ 有意不迁 | 85 | 17,252 | 18.9% |
+| ⚠️ 未迁（整块没做） | 59 | 16,024 | 17.6% |
 
-**对账（必须相等，已 PASS）**：`94+61+84+60 = 299` ✓、`34971+22917+16851+16425 = 91,164` ✓
+**对账（必须相等，已 PASS）**：`94+61+85+59 = 299` ✓、`34971+22917+17252+16024 = 91,164` ✓
 
 ### 真实剩余 ≈ 2.7–3.1 万行（30–34%）
 
@@ -34,7 +34,7 @@
 | `ui/` 顶层 + `themes` + `components` | 31 | 9,883 | 4 / 917 | 9 / 4,748 | 7 / 1,029 | 11 / 3,189 |
 | `core/ceshu` + `core` 顶层 + `defaults` | 38 | 12,602 | 28 / 11,129 | 2 / 225 | 8 / 1,248 | 0 / 0 |
 | `ui/dialogs` | 20 | 6,055 | 7 / 1,718 | 7 / 2,493 | 4 / 487 | 2 / 1,357 |
-| `common` + `config` + `security` + `data` + 顶层 | 45 | 10,672 | 6 / 1,384 | 7 / 2,776 | 22 / 4,892 | 10 / 1,620 |
+| `common` + `config` + `security` + `data` + 顶层 | 45 | 10,672 | 6 / 1,384 | 7 / 2,776 | 23 / 5,293 | 9 / 1,219 |
 | `features` | 9 | 3,430 | 2 / 407 | 5 / 2,690 | 1 / 60 | 1 / 273 |
 | **合计** | **299** | **91,164** | **92 / 34,451** | **61 / 22,917** | **84 / 16,851** | **62 / 16,945** |
 
@@ -283,14 +283,14 @@
 | common/exceptions.py | 195 | ◐ | `shared/ipc.ts` IpcInvokeError；缺友好化；引用 2 处 |
 | common/shortcuts.py | 177 | ◐ | `main/tray.ts` 单热键；缺 ShortcutManager/DEFAULT_SHORTCUTS |
 | config/constants.py | 181 | ◐ | 类型/字段/属性/策划常量已迁；缺窗口/主题/文件名常量；引用 31 处 |
-| config/settings.py | 858 | ◐ | `fields_config`→`typeSchema.ts`；缺 visible_types/backup_dir/startup_mode/api_*（TS 刻意无全局单例）；引用 26 处 |
+| config/settings.py | 858 | ◐ | `fields_config`→`typeSchema.ts`；**E23 补存储基座**：`shared/settingsStore.ts`（统一 localStorage 读写/枚举/导出/导入/重置，`StorageLike` 单一真源，已收拢 4 处散点）。仍缺 `backup_dir`/`startup_mode`/`api_*`（TS 刻意无全局单例；api_* 现由 `imageGenConfig` 单独存） |
 | security/sandbox.py | 325 | ◐ | 已由 `main/security/jsSandbox.ts`（QuickJS 白名单）**设计性替换**；引用 2 处 |
 | common/auto_updater.py | 60 | ⚠️ | TS 无；引用 1 处 |
 | common/data_diff.py | 197 | ✅ | `shared/itemDiff.ts`（`diffValues`/`diffItems`/`diffLibraries`/`collectLeaves`/`summarizeDiff`）。**修 Python 三处缺陷**：① 数组元素**不递归**（`_compare_list` 整块标 MODIFIED）→ 递归；② `compare_items_by_id` 新增/删除只塞 `name` 一个标量 → 携带 `data` 全量；③ 从不产出的 `UNCHANGED` 死枚举 → 无变化即不产出。**有意保留**数组按下标对齐（与 Python 一致，已在注释标注局限） |
 | common/data_importer.py | 269 | ⚠️ | TS 无（`legacyImport.ts` 仅旧 JSON；CSV/Excel 缺） |
 | common/data_ref.py | 209 | ⚠️ | `@data[...]` 解析无 TS；引用 1 处 |
 | common/event_bus.py | 87 | ⚠️ | TS 用 IPC + brain 事件流替代；**引用 18 处** |
-| common/i18n.py | 401 | ⚠️ | TS 无 i18n（C 档）；引用 4-5 处 |
+| common/i18n.py | 401 | ⛔ | **有意不迁（E23 决策）**：这是**全局翻译框架**，而 TS 侧 UI 文案目前 100% 硬编码中文——接入需翻译全部组件（数十文件、上千字符串），属**独立立项**而非存储基座职责。注意 `core/agent/i18n.py::AgentI18n` 早已是死代码（无 import/调用点），勿混淆两者 |
 | common/logger.py | 155 | ✅ | 已迁为 `shared/logger.ts`（统一入口，渲染层经 IPC 转发到主进程）+ `main/logger.ts`（轮转文件日志，10MB×5 备份）；原 142 处引用现统一走 `log` 入口（E8） |
 | common/lucide_icon.py | 214 | ⚠️ | renderer 用 emoji/内联 SVG；引用 11 处 |
 | common/rate_limiter.py | 85 | ⚠️ | TS 无 TokenBucket；引用 2 处 |

@@ -57,10 +57,10 @@
 > |---|---|---|---|
 > | ✅ 已迁 | 94 | 34,971 | 38.4% |
 > | ◐ 部分已迁 | 61 | 22,917 | 25.1% |
-> | ⛔ 有意不迁（决策，非欠债） | 84 | 16,851 | 18.5% |
-> | ⚠️ **未迁（整块没做）** | **60** | **16,425** | **18.0%** |
+> | ⛔ 有意不迁（决策，非欠债） | 85 | 17,252 | 18.9% |
+> | ⚠️ **未迁（整块没做）** | **59** | **16,024** | **17.6%** |
 >
-> 对账 PASS：`94+61+84+60 = 299` 文件、`34971+22917+16851+16425 = 91,164` 行。
+> 对账 PASS：`94+61+85+59 = 299` 文件、`34971+22917+17252+16024 = 91,164` 行。
 >
 > **结论：真实剩余 ≈ 2.7–3.1 万行（30–34%）** —— 而不是早前口头估算的「3.5–4.5k 行（4–5%）」。那句估算**口径过窄**（把 `ui/widgets`/`ui/dialogs`/`features` 三个混合态域当成了基本迁完）且未做文件级核实，**已被本审计推翻**。
 > 三个最意外的数字：**① `core/agent`（最大域 24,670 行）只有 1,689 行是完整已迁**（A 档做的是核心闭环，不是整个 Agent 引擎）；**② `ui/` 顶层+主题 9,883 行里仅 917 行完整已迁**；**③ `features` 9 文件完整已迁为 0**。
@@ -293,6 +293,14 @@
 > **有意偏离**：① 限流用**进程内最小间隔**（2s ≈ 0.5 QPS）近似 Python `image_gen` 桶，而非跨模块 `RateLimiter`（Electron 主进程单实例足够）；② 配置落 **localStorage**（Python 存 `config.json`，本仓尚无设置存储基座 → 属 #8 待建）；③ 面板按 `show_ai_image_dialog` 的**设计意图**做成真正可用版（Python 该入口是死桩，只弹「需配置 Key」）。
 > **验证**：单测 90（imageGen 52 + client/save 21 + config 17）；eslint 0 / 双端 tsc 0 / vitest **87 文件 1220 测试全绿**（上批 84/1130）/ `electron-vite build` OK / E2E 已收集（`image-gen.spec.ts`，本沙箱无 Electron 未实跑）。**已知限制**：真实云调用需 API Key + 计费，E2E 只覆盖面板/前置校验/配置持久化，**未实跑云端链路**。
 > **踩坑**：① 两个子代理（`main`/`panel`）因 **429 频率限制**中途失败 → 主代理接手自写这两块 + 修它们已落盘的半成品测试（`imageGenClient.test.ts` 按旧松散签名写、断言「保存图像失败」但实现是「下载图像失败」——**实现对、断言错**，改断言而非改实现）。② 纯逻辑助手原放 `renderer/components/` → 被 node 端 tsc 拒绝（`tsconfig.node.json` 只 include `main|preload|shared`）→ **移到 `src/shared/`**（既符合本仓「可单测纯逻辑都在 shared」约定，又自然被两套 tsc 覆盖；**不要**为它给 node 配置加 renderer）。③ `ImageGenPanel` 标 `: JSX.Element` 报 TS2503（React 19 新 jsx runtime 无全局 JSX 命名空间）→ 去掉返回标注，与既有组件一致。
+
+> ✅ **E23（2026-10-05）：统一设置存储基座（#8 C 档外围第一项），提交 `5e5b0b0`**。
+> **动因（实证，非臆测）**：全量 grep 发现 TS 侧 localStorage 有 **4 处散点、3 种写法**——`visibleTypes`/`gameStyle`/`imageGenConfig` 各有 `StorageLike`（后两者已复用），但 `DataDiffPanel.tsx` 用**裸 `window.localStorage` + 组件内 try/catch**；且**无一支持枚举/导出/重置**。`ImageGenPanel.tsx` 注释早已标注「本仓尚无设置存储基座，属 #8 待建」。
+> **交付**：`shared/settingsStore.ts`（单测 25）——`StorageLike` 收敛为**唯一真源**（`visibleTypes.ts` 改 re-export，既有 104 测试未破）；统一 `readSetting`/`writeSetting`（空串视为清除）/`removeSetting`/`readJsonSetting`/`writeJsonSetting`；`listSettingKeys`（只列 `mb.` 前缀）+ `exportSettings`/`importSettings`（只接受带前缀键，防塞入任意键）/`resetAllSettings`；`SETTINGS_KEYS` 单一清单。收拢第 4 处散点（`DataDiffPanel` 改走基座，行为等价）。
+> **有意不迁（本刀决策，已记审计）**：**i18n** 从 ⚠️ 改判 ⛔ —— `common/i18n.py` 是**全局翻译框架**，而 TS 侧 UI 文案 100% 硬编码中文，接入需翻译全部组件（数十文件、上千字符串），属**独立立项**而非存储基座职责。（注意 `core/agent/i18n.py::AgentI18n` 早已是死代码，勿与前者混淆。）
+> **审计数字**：i18n 改判使 §1 变为 ⛔85/17,252、⚠️59/16,024（对账仍 299/91,164）。
+> **验证**：eslint 0 / 双端 tsc 0 / vitest **88 文件 1245 测试全绿**（+1 文件 +25 用例）/ `electron-vite build` OK。
+> **本批推进方式**：2 个只读调研子代理（主题/特效、设置/i18n/菜单窗口）并行摸底，主代理**不空等**——先独立 grep 实证 4 处散点，再自写基座 + 单测 + 收拢接线（子代理只调研、不碰代码）。
 
 ## 3. 每片执行流程（固定顺序）
 
