@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { suggestFieldIds, type FieldIdSuggestion, type SuggestFieldIdResult } from '../../../shared/fieldId'
 import {
@@ -53,6 +53,24 @@ export default function TypeEditorPanel({ types, onSaved, onClose }: TypeEditorP
   const [resetToken, setResetToken] = useState(0)
   /** 当前展开「字段 ID 候选」的行及状态（同一时刻只开一个） */
   const [idSuggest, setIdSuggest] = useState<IdSuggestState | null>(null)
+  /** 用户自定义字段模板名（内置模板在 `TYPE_TEMPLATES` 常量里，自定义需读盘） */
+  const [customTemplates, setCustomTemplates] = useState<string[]>([])
+  const [newTemplateName, setNewTemplateName] = useState('')
+
+  useEffect(() => {
+    let alive = true
+    window.mbApi.schema
+      .listFieldTemplates()
+      .then((result) => {
+        if (alive) setCustomTemplates(result.custom)
+      })
+      .catch(() => undefined) // 拉取失败不阻塞编辑器（模板是辅助功能）
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  const isBuiltinTemplate = TYPE_TEMPLATE_NAMES.includes(templateName)
 
   const baseIds = useMemo(() => new Set(types.map((def) => def.id)), [types])
   const current = draft.find((def) => def.id === selectedId) ?? null
@@ -163,13 +181,63 @@ export default function TypeEditorPanel({ types, onSaved, onClose }: TypeEditorP
   }
 
   /** 应用模板：整体替换字段（含 id 字段，与 Python 导入模板行为一致） */
-  const applyTemplate = (): void => {
+  const applyTemplate = async (): Promise<void> => {
     if (!current) return
-    const fields = TYPE_TEMPLATES[templateName]
-    if (!fields) return
-    updateType({ formFields: structuredClone(fields) })
-    bumpReset()
-    setNotice(`已应用模板「${templateName}」（尚未保存）`)
+    // 内置模板在 shared 常量里直接取；自定义模板需向主进程要完整字段定义
+    const builtin = TYPE_TEMPLATES[templateName]
+    if (builtin) {
+      updateType({ formFields: structuredClone(builtin) })
+      bumpReset()
+      setNotice(`已应用模板「${templateName}」（尚未保存）`)
+      return
+    }
+    try {
+      const { fields } = await window.mbApi.schema.getFieldTemplate({ name: templateName })
+      if (fields === null) {
+        setErrors([`模板「${templateName}」不存在`])
+        return
+      }
+      updateType({ formFields: fields })
+      bumpReset()
+      setNotice(`已应用模板「${templateName}」（尚未保存）`)
+    } catch (error) {
+      setErrors([error instanceof Error ? error.message : String(error)])
+    }
+  }
+
+  /** 把当前类型的字段存为自定义模板（存完整定义，非 Python 那样只存标签） */
+  const saveAsTemplate = async (): Promise<void> => {
+    if (!current) return
+    const name = newTemplateName.trim()
+    if (name === '') {
+      setErrors(['请填写模板名称'])
+      return
+    }
+    try {
+      await window.mbApi.schema.saveFieldTemplate({ name, fields: current.formFields })
+      setCustomTemplates((prev) => (prev.includes(name) ? prev : [...prev, name].sort((a, b) => a.localeCompare(b, 'zh-CN'))))
+      setNewTemplateName('')
+      setNotice(`模板「${name}」已保存`)
+    } catch (error) {
+      setErrors([error instanceof Error ? error.message : String(error)])
+    }
+  }
+
+  /** 删除自定义模板（内置模板不允许删除） */
+  const deleteTemplate = async (): Promise<void> => {
+    if (isBuiltinTemplate) return
+    try {
+      const { deleted } = await window.mbApi.schema.deleteFieldTemplate({ name: templateName })
+      if (!deleted) {
+        setErrors([`模板「${templateName}」不存在`])
+        return
+      }
+      setCustomTemplates((prev) => prev.filter((name) => name !== templateName))
+      setTemplateName(TYPE_TEMPLATE_NAMES[0] ?? '')
+      setNotice(`模板「${templateName}」已删除`)
+    } catch (error) {
+      setErrors([error instanceof Error ? error.message : String(error)])
+    }
   }
 
   const addType = (): void => {
@@ -324,17 +392,60 @@ export default function TypeEditorPanel({ types, onSaved, onClose }: TypeEditorP
                   value={templateName}
                   onChange={(event) => setTemplateName(event.target.value)}
                 >
-                  {TYPE_TEMPLATE_NAMES.map((name) => (
-                    <option key={name} value={name}>
-                      {name}
-                    </option>
-                  ))}
+                  <optgroup label="内置模板">
+                    {TYPE_TEMPLATE_NAMES.map((name) => (
+                      <option key={name} value={name}>
+                        {name}
+                      </option>
+                    ))}
+                  </optgroup>
+                  {customTemplates.length > 0 && (
+                    <optgroup label="自定义模板">
+                      {customTemplates.map((name) => (
+                        <option key={name} value={name}>
+                          {name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
                 </select>
-                <button type="button" className="btn" data-testid="te-apply-template" onClick={applyTemplate}>
+                <button
+                  type="button"
+                  className="btn"
+                  data-testid="te-apply-template"
+                  onClick={() => void applyTemplate()}
+                >
                   应用模板（替换全部字段）
                 </button>
                 <button type="button" className="btn" data-testid="te-add-field" onClick={addField}>
                   添加字段
+                </button>
+              </div>
+              <div className="ai-gen-row">
+                <input
+                  className="form-input"
+                  data-testid="te-template-name"
+                  value={newTemplateName}
+                  placeholder="模板名称"
+                  onChange={(event) => setNewTemplateName(event.target.value)}
+                />
+                <button
+                  type="button"
+                  className="btn"
+                  data-testid="te-save-template"
+                  onClick={() => void saveAsTemplate()}
+                >
+                  保存当前为模板
+                </button>
+                <button
+                  type="button"
+                  className="btn danger"
+                  data-testid="te-delete-template"
+                  disabled={isBuiltinTemplate}
+                  title={isBuiltinTemplate ? '内置模板不允许删除' : undefined}
+                  onClick={() => void deleteTemplate()}
+                >
+                  删除模板
                 </button>
               </div>
             </div>

@@ -37,7 +37,7 @@ test('数据统计：概览计数与占比 → 平衡性分析（按 schema 数�
 
     // 切到技能并造两条带数值的数据，再回来应能算出均值
     await window.getByTestId('stats-panel').getByRole('button', { name: '关闭' }).click()
-    await window.getByTestId('type-tab', { hasText: '技能' }).click()
+    await window.getByTestId('type-tab').filter({ hasText: '技能' }).click()
     await createButton.click()
     await window.getByTestId('item-row').first().click()
     await window.getByTestId('field-value').fill('10')

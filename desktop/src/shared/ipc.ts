@@ -16,6 +16,8 @@ import type {
   CeshuDiffExportInput,
   CeshuDiffInput,
   CeshuExportInput,
+  FieldTemplateNameInput,
+  FieldTemplateSaveInput,
   CeshuReviewExportInput,
   CeshuSaveChapterInput,
   DeleteManyInput,
@@ -55,7 +57,8 @@ import type {
   DeleteManySummary,
   ExportSummary,
   ImportSummary,
-  ItemRecord
+  ItemRecord,
+  TypeFieldDef
 } from './types'
 import type { CeshuDocument, CeshuExportResult, CeshuSummary } from './ceshuConstants'
 import type { BrainEvent } from './agent/brain'
@@ -86,6 +89,14 @@ export interface IpcContract {
   'schema:save': { req: SchemaSaveInput; res: DataTypeDef[] }
   /** 字段 ID 的 AI 候选（术语表未收录时由用户显式点击触发） */
   'schema:suggestFieldIds': { req: FieldIdSuggestInput; res: FieldIdSuggestResult }
+  /** 字段模板名清单（内置在 shared 常量里，自定义需读盘，故经 IPC） */
+  'schema:listFieldTemplates': { req: undefined; res: { builtin: string[]; custom: string[] } }
+  /** 读取一个自定义模板的完整字段定义；不存在返回 null */
+  'schema:getFieldTemplate': { req: FieldTemplateNameInput; res: { fields: TypeFieldDef[] | null } }
+  /** 保存（新建/覆盖）自定义模板 */
+  'schema:saveFieldTemplate': { req: FieldTemplateSaveInput; res: { name: string } }
+  /** 删除自定义模板（内置模板不允许删除，由主进程拒绝） */
+  'schema:deleteFieldTemplate': { req: FieldTemplateNameInput; res: { deleted: boolean } }
   'attrSystem:get': { req: undefined; res: AttrSystem }
   'attrSystem:save': { req: AttrSystemSaveInput; res: AttrSystem }
   'attrSystem:exportGameConfig': { req: AttrGameConfigExportInput; res: { filePath: string } }

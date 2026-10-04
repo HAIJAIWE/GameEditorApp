@@ -35,6 +35,7 @@ import { DataService } from './data/service'
 import { SqliteItemsRepository } from './data/sqliteRepo'
 import { LlmClient } from './llm/client'
 import { TypeSchemaStore } from './schema/store'
+import { FieldTemplateStore } from './schema/fieldTemplateStore'
 
 /** 一套随活跃库重建的 store 组合 */
 export interface AppStores {
@@ -42,6 +43,7 @@ export interface AppStores {
   dataService: DataService
   ceshuManager: CeshuManager
   typeSchemaStore: TypeSchemaStore
+  fieldTemplates: FieldTemplateStore
   ceshuNotesStore: CeshuNotesStore
   ceshuTemplateStore: CeshuTemplateStore
   attrSystemStore: AttrSystemStore
@@ -95,6 +97,7 @@ export function buildStores(libDir: string): AppStores {
     dataService: data,
     ceshuManager: ceshu,
     typeSchemaStore: schema,
+    fieldTemplates: new FieldTemplateStore(join(libDir, 'field_templates.json')),
     ceshuNotesStore: new CeshuNotesStore(join(libDir, 'ceshu_notes')),
     ceshuTemplateStore: new CeshuTemplateStore(join(libDir, 'ceshu_templates')),
     attrSystemStore: new AttrSystemStore(join(libDir, 'attr_system.json')),

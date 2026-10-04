@@ -62,6 +62,8 @@ import {
   templatesUpdateInputSchema,
   schemaSaveInputSchema,
   fieldIdSuggestInputSchema,
+  fieldTemplateNameInputSchema,
+  fieldTemplateSaveInputSchema,
   appLogInputSchema,
   updateItemInputSchema
 } from '../shared/schemas'
@@ -116,6 +118,8 @@ import type { DataService } from './data/service'
 import { exportEngineData } from './engineExport/exporter'
 import type { LlmClient } from './llm/client'
 import type { TypeSchemaStore } from './schema/store'
+import type { FieldTemplateStore } from './schema/fieldTemplateStore'
+import { TYPE_TEMPLATE_NAMES } from '../shared/typeTemplates'
 
 interface IpcHandlerDeps {
   dataService: DataService
@@ -123,6 +127,7 @@ interface IpcHandlerDeps {
   ceshuNotesStore: CeshuNotesStore
   ceshuTemplateStore: CeshuTemplateStore
   typeSchemaStore: TypeSchemaStore
+  fieldTemplates: FieldTemplateStore
   attrSystemStore: AttrSystemStore
   llmClient: LlmClient
   dataSync: CeshuDataSync
@@ -144,6 +149,7 @@ export function registerIpcHandlers({
   ceshuNotesStore,
   ceshuTemplateStore,
   typeSchemaStore,
+  fieldTemplates,
   attrSystemStore,
   llmClient,
   dataSync,
@@ -237,6 +243,21 @@ export function registerIpcHandlers({
   })
   handle('schema:list', undefined, () => typeSchemaStore.getTypes())
   handle('schema:save', schemaSaveInputSchema, (req) => typeSchemaStore.saveTypes(req.types))
+  // 用户自定义字段模板（存完整 TypeFieldDef[]，非 Python 那样只存标签 —— 见 fieldTemplateStore 注释）
+  handle('schema:listFieldTemplates', undefined, () => ({
+    builtin: [...TYPE_TEMPLATE_NAMES],
+    custom: fieldTemplates.listNames()
+  }))
+  handle('schema:getFieldTemplate', fieldTemplateNameInputSchema, (req) => ({
+    fields: fieldTemplates.get(req.name)
+  }))
+  handle('schema:saveFieldTemplate', fieldTemplateSaveInputSchema, (req) => {
+    fieldTemplates.save(req.name, req.fields)
+    return { name: req.name }
+  })
+  handle('schema:deleteFieldTemplate', fieldTemplateNameInputSchema, (req) => ({
+    deleted: fieldTemplates.remove(req.name)
+  }))
   /**
    * 字段 ID 的 AI 候选：术语表未收录时由用户显式点击触发（同 W30「AI 生成数据表」的形态）。
    * 模型给出但清洗后不合法的候选会被丢弃（见 `shared/fieldIdAi.ts`），绝不产出垃圾。

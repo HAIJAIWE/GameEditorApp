@@ -20,7 +20,11 @@ const api: MbApi = {
   schema: {
     list: () => invoke('schema:list', undefined),
     save: (req) => invoke('schema:save', req),
-    suggestFieldIds: (req) => invoke('schema:suggestFieldIds', req)
+    suggestFieldIds: (req) => invoke('schema:suggestFieldIds', req),
+    listFieldTemplates: () => invoke('schema:listFieldTemplates', undefined),
+    getFieldTemplate: (req) => invoke('schema:getFieldTemplate', req),
+    saveFieldTemplate: (req) => invoke('schema:saveFieldTemplate', req),
+    deleteFieldTemplate: (req) => invoke('schema:deleteFieldTemplate', req)
   },
   agent: {
     listTools: () => invoke('agent:listTools', undefined),

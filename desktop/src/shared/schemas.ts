@@ -112,6 +112,17 @@ export const fieldIdSuggestInputSchema = z.object({
   fieldType: z.string().max(32).optional()
 })
 
+/** 用户自定义字段模板：保存（新建/覆盖）。存完整字段定义，非 Python 那样只存标签 */
+export const fieldTemplateSaveInputSchema = z.object({
+  name: z.string().min(1).max(40),
+  fields: z.array(typeFieldDefSchema).min(1).max(300)
+})
+
+/** 用户自定义字段模板：按名操作（读取 / 删除） */
+export const fieldTemplateNameInputSchema = z.object({
+  name: z.string().min(1).max(40)
+})
+
 /** 渲染层转发到主进程的日志条目 */
 export const appLogInputSchema = z.object({
   level: z.enum(['debug', 'info', 'warn', 'error']),
@@ -420,6 +431,8 @@ export type BatchUpdateInput = z.infer<typeof batchUpdateInputSchema>
 export type DeleteManyInput = z.infer<typeof deleteManyInputSchema>
 export type ReferencesInput = z.infer<typeof referencesInputSchema>
 export type SchemaSaveInput = z.infer<typeof schemaSaveInputSchema>
+export type FieldTemplateSaveInput = z.infer<typeof fieldTemplateSaveInputSchema>
+export type FieldTemplateNameInput = z.infer<typeof fieldTemplateNameInputSchema>
 export type FieldIdSuggestInput = z.infer<typeof fieldIdSuggestInputSchema>
 export type AttrSystemSaveInput = z.infer<typeof attrSystemSaveInputSchema>
 export type AttrGameConfigExportInput = z.infer<typeof attrGameConfigExportInputSchema>

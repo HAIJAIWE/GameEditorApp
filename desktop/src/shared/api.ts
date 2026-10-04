@@ -41,6 +41,20 @@ export interface MbApi {
     suggestFieldIds(
       req: IpcContract['schema:suggestFieldIds']['req']
     ): Promise<IpcContract['schema:suggestFieldIds']['res']>
+    /** 字段模板名清单（内置 + 用户自定义） */
+    listFieldTemplates(): Promise<IpcContract['schema:listFieldTemplates']['res']>
+    /** 读取自定义模板的完整字段定义 */
+    getFieldTemplate(
+      req: IpcContract['schema:getFieldTemplate']['req']
+    ): Promise<IpcContract['schema:getFieldTemplate']['res']>
+    /** 保存（新建/覆盖）自定义字段模板 */
+    saveFieldTemplate(
+      req: IpcContract['schema:saveFieldTemplate']['req']
+    ): Promise<IpcContract['schema:saveFieldTemplate']['res']>
+    /** 删除自定义字段模板 */
+    deleteFieldTemplate(
+      req: IpcContract['schema:deleteFieldTemplate']['req']
+    ): Promise<IpcContract['schema:deleteFieldTemplate']['res']>
   }
   attrSystem: {
     get(): Promise<IpcContract['attrSystem:get']['res']>
