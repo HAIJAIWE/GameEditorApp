@@ -85,6 +85,11 @@
 > **未做**：Godot/Cocos、Unity/Unreal 数据填充；产物未经真实 Lua 解析器校验（本机无 `lua`/`luac`）；保存对话框与按钮点击属 Electron-only，本沙箱无法验证。  
 > D 档其余项（`extended_formulas`/`style_manager`/`game_templates`/`editor_layout`/`operation_log`/`cedict`）与 C 档（菜单快捷键/窗口状态/主题/设置/i18n）仍待排。
 
+> ✅ **D 档「会话级回滚」（`core/operation_log.py` 154 行）已完整交付**：**E3-1** 核心（`8ff0b0d`：`buildRollbackPlan` 纯函数 + 内存环形日志 5000/批清 500 + `executeRollbackPlan` 单步失败不中断，单测 11）+ **E3-2** 接线（`7478c43`：`operationRecorder` 包在 runner 上记录 + `tool.rollback_ai_changes` 技能复用 confirm 交互，单测 15）。
+> **语义澄清（勿按名字臆测）**：这不是通用撤销，而是 **AI 会话级安全网**——Python 原实现只记 AI 会话内的数据变更（`if not conv_id: return`），不记手动编辑。
+> **回滚范围 = 单次对话轮次**（一次 `chat()` 内的全部数据变更），**有意取最小爆炸半径**；跨轮次会话级回滚需会话 id 持久化，**未做**。
+> **宁缺勿错**：只记成功操作；update/delete 的 before 定位不到或同名歧义 → `before=null` → 归入 `skipped` 并给中文原因，**绝不伪造快照**（伪造会在回滚时写坏用户数据）。**未验证**：Electron 内端到端「说一句撤销 → 真的回滚」链路（E2E 沙箱不可用）。
+
 ## 3. 每片执行流程（固定顺序）
 
 1. **调研**：读 Python 源码，锁定语义与缺陷，写成「调研结论」（含精确数字）。
