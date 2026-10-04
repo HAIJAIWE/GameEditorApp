@@ -219,7 +219,7 @@
 > **顺带修掉审计文档的两处内部不一致**：① §2 域表「合计」行原本（82/32,295…）与各域行相加不符，已按域行改为 84/33,010…；② 「三个最值得注意的域」里 `core/agent`（34 文件/8,962 行）与 `ui/dialogs`（573 行/8 文件 3,115 行）两处 prose 数字是 E10–E12 前的旧值，已改正为 33/8,419 与 1,288/5 文件 1,787 行。域表合计与 §1 结论表仍有 **±1 文件/155 行** 的差异（个别文件归类不同），已加注说明**以 §1 为准**，待逐文件复核。
 > **事故记录（本会话再次发生，非假想）**：提交前 `git status` 发现工作区的 `ts-migration-roadmap.md` 是**静默回退的旧快照** —— 缺整段 E12 台账、§2 数字退回 `64/23,203` + `67/18,117`、表格被重排为旧格式、且多出两个空行。已 `cp` 备份损坏版到 `/tmp`、`git checkout HEAD --` 还原后重做本刀台账。**又一次印证**：提交前必看 `git status`，提交后必复核。
 
-> ✅ **E14（2026-10-05）：侧栏类型可见性（迁移 `ui/dialogs/type_visibility_dialog.py`，121 行）**。
+> ✅ **E14（2026-10-05）：侧栏类型可见性（迁移 `ui/dialogs/type_visibility_dialog.py`，121 行），提交 `7ea64fa`**。
 > **交付**：`shared/visibleTypes.ts`（语义：`null`=全部显示、`[]`=全隐藏、数组=白名单；`isTypeVisible`/`normalizeVisibleTypes`/`resolveVisibilityResult`/`load`+`save`）+ `TypeVisibilityPanel.tsx` + 侧栏「⚙ 管理显示类型」入口。
 > **不开新 IPC**：纯渲染层 + `localStorage`（项目此前**零** localStorage 使用）；偏好不进主进程文件，故**不动** 5 个共享接线文件。
 > **刻意修 Python 缺陷**：`settings.py:650` 用 `if isinstance(vt, list) and vt:` 判空 → `[]` 为 falsy → **「全不选」重启即失效**；TS 以「键是否存在」区分（只有 `null` 才 `removeItem`）。
@@ -227,7 +227,7 @@
 > **最大风险已规避**：**7 个既有 E2E 断言侧栏 `type-tab` 计数 = 12** → 默认（未设偏好）必须显示全部；且这些 E2E 每个都用全新 `MB_USER_DATA_DIR`（localStorage 干净）。
 > **验证**：单测 22 + E2E 1（**未实跑**，已确认被收集）。
 
-> ✅ **E15（2026-10-05）：数据对比（迁移 `common/data_diff.py` 197 行 + `ui/dialogs/data_diff_dialog.py` 154 行）**。
+> ✅ **E15（2026-10-05）：数据对比（迁移 `common/data_diff.py` 197 行 + `ui/dialogs/data_diff_dialog.py` 154 行），提交 `7ea64fa`**。
 > **先核实的判定**：审计「`data_diff_dialog.py` ≠ `ceshuDiff.ts`」**成立**（后者是**策划书版本**对比，数据模型完全不同）；但审计把「缺什么」写得不准 —— Python 的 data_diff **本来就是残废的**，不是「有功能没迁」。
 > **Python 的致命缺陷（故不照搬其 UI 行为）**：`data_diff_dialog.py:141` 执行 `DataDiff.compare({}, {"count":N,"items":[...]})` —— 拿**空 dict** 与当前数据比，**永远只输出「全部新增」**、从不做真正的双侧对比（文件头却自称「对比备份/历史版本」）。照搬=把残废语义搬过来。
 > **交付**：`shared/itemDiff.ts`（`diffValues`/`diffItems`/`diffLibraries`/`collectLeaves`/`summarizeDiff`）+ `DataDiffPanel.tsx`（**当前 vs 用户手动设定的基线**，基线缓存在 localStorage）+ 工具条「数据对比」入口。
@@ -236,7 +236,7 @@
 > **不开新 IPC**：纯函数 + 既有 `data:listAll`。
 > **验证**：单测 29 + E2E 1（**未实跑**，已确认被收集）。
 
-> ✅ **E16（2026-10-05）：数据备份（迁移 `ui/dialogs/backup_manager.py` 155 行 + `features/backup.py` 42 行）**。
+> ✅ **E16（2026-10-05）：数据备份（迁移 `ui/dialogs/backup_manager.py` 155 行 + `features/backup.py` 42 行），提交 `7ea64fa`**。
 > **本批唯一必须新开 IPC 的一件**（列表/创建/恢复/删除都要访问主进程受管目录）。备份单位 = **整个活跃库**；目录由主进程固定为 `<活跃库>/backups`（**不沿用** Python 的仓库内 `data/backups`，也**刻意不引入第三套**：Python 侧另有 `tool_advanced.py` 的 AI 工具备份与**死代码** `auto_backup.py`，不合并、不迁）。目录在**每次注册 handler 时**由 `libraryManager.activeDir()` 派生 → 切库会 dispose+重注册 → **天然随库隔离**。
 > **交付**：`shared/backup.ts`（命名/时间戳/`BackupEntry`/`RestoreOutcome`）+ `main/backup/backupStore.ts`（纯 fs，不依赖 electron）+ `main/backup/restore.ts`（编排）+ 4 条 IPC 五处接线 + `BackupPanel.tsx`。
 > **安全护栏（逐条对应 Python 缺陷）**：① **恢复前自动生成 `pre-restore` 快照**（Python 对话框路径没有；快照失败则**中止恢复**，宁可不动）；② **精确还原** = 先按 id 差集 `deleteMany` 再 `importRecords` upsert（**只 upsert 无法删除「备份没有、当前却有」的条目**；Python 是整体替换内存字典，TS 是 SQLite —— 这是本刀**核心设计差异**）；③ **软删除**（改名 `.deleted`）而非 Python 的 `unlink` 永久删；④ **原子写**（tmp+rename）而非 `open('w')`；⑤ **路径包含校验**（正则 + `startsWith(root+sep)`）拒绝目录穿越（Python 用 `backup_dir / name` 直拼、还用 `split(' - ')[1]` 从显示文本反推文件名）；⑥ **主进程再校验 `confirm: true`**（渲染层确认可被脚本绕过）。
