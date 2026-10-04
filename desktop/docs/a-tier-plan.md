@@ -195,7 +195,7 @@ userData/
 | A2-1 库服务与路径迁移 | ⬜ 未开始 | — | — |
 | A2-2 库条 UI 与切换联动 | ⬜ 未开始 | — | — |
 | A1-1 技能协议 + 调度器 | ✅ 完成 | `20ec1ff` | `shared/agent/protocol.ts`（协议/风险策略/参数修正，单测 18）+ `main/agent/dispatcher.ts`（注册表/模糊解析/危险确认门，单测 15）+ 2 个 action-based 技能（`system.game_data` 读写数据表 / `system.ceshu` 只读策划书，单测 13）+ IPC `agent:listTools`/`agent:executeTool` + E2E `agent-execute-tool.spec.ts`（沙箱未实跑） |
-| A1-2 Brain 循环 + 事件流 | ✅ 完成 | `<PENDING_HASH>` | `shared/agent/brain.ts`（事件流 + 循环纯逻辑，单测 19）+ `shared/agent/prompts.ts`（提示词骨架）+ `main/agent/ollamaTransport.ts`（`/api/chat` NDJSON 流式 + tool_calls）+ `main/agent/brainService.ts`（调度器适配）+ IPC `agent:chat` + E2E `agent-brain-chat.spec.ts`（`/api/chat` 桩两轮，沙箱未实跑） |
+| A1-2 Brain 循环 + 事件流 | ✅ 完成 | `a377e3c` | `shared/agent/brain.ts`（事件流 + 循环纯逻辑，单测 19）+ `shared/agent/prompts.ts`（提示词骨架）+ `main/agent/ollamaTransport.ts`（`/api/chat` NDJSON 流式 + tool_calls）+ `main/agent/brainService.ts`（调度器适配）+ IPC `agent:chat` + E2E `agent-brain-chat.spec.ts`（`/api/chat` 桩两轮，沙箱未实跑） |
 | A1-3 会话与记忆 | ⬜ 未开始 | — | — |
 | A1-4 数字员工面板 | ⬜ 未开始 | — | — |
 | A1-5 业务技能接线 + 托盘/热键 | ⬜ 未开始 | — | — |
