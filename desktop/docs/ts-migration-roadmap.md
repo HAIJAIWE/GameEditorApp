@@ -209,7 +209,7 @@
 > **验证**：单测 16（存完整定义而非只标签 / 落盘重载 / 覆盖 / 删除存在性 / 副本不污染 / 空名·路径分隔·超长·空字段·重名·坏类型全部报错 / 坏 JSON 抛中文错 / 坏条目丢弃好条目保留）+ E2E 1（**未实跑**，已确认被收集）+ eslint/双端 tsc/build 全绿 + 全量 vitest 74 文件/821 用例。
 > **顺带修掉一个已提交的 tsc 错误**：E11 的 `statistics.spec.ts:40` 误用 `getByTestId(id, { hasText })`（该重载不存在），改为 `.filter({ hasText })`。教训：**每刀都要跑双端 tsc** —— E11 那批只跑了 eslint/vitest/build，正好漏掉它。
 
-> ✅ **E13（2026-10-04）：高级搜索（迁移 `ui/dialogs/advanced_search.py`，172 行）**。
+> ✅ **E13（2026-10-04）：高级搜索（迁移 `ui/dialogs/advanced_search.py`，172 行），提交 `a985b15`**。
 > **先做的更正（有实证）**：审计原写「已迁单类型关键字过滤；**缺跨类型搜索**/按字段选择/结果跳转」。读源码后发现后两项 Python **本来就有**（`field_combo`＝名称/ID/类型/描述、结果**双击跳转**），而「跨类型搜索」Python **压根没有**（只有 `type_combo` 单类型）。故本刀是**把 Python 真实能力补齐**，并把「全部类型/全部字段」作为 **TS 增强**（Python 只能单选）——不是补一个 Python 本就有的缺口。
 > **口径提醒（易错）**：Python 的 `item['type']` 指**条目自己的字段**（如技能的「攻击/治疗」），对应 TS `item.data['type']`，**不是** `item.type`（schema 类型 id，如 `skill`）。
 > **交付**：`shared/advancedSearch.ts`（`searchItems`＝类型+字段+关键词过滤、`resolveSearchValue`、`SEARCH_FIELD_OPTIONS` 对齐 Python 四项、`truncateMatch`）+ `AdvancedSearchPanel.tsx`（类型/字段下拉 + 关键词 + 结果列表 + 点击跳转）+ 工具栏「高级搜索」入口（与引用/批量/快速创建/统计互斥）+ 单测 12 + E2E 1。
