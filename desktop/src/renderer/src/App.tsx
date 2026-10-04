@@ -12,6 +12,7 @@ import EngineExportButton from './components/EngineExportButton'
 import LibraryBar from './components/LibraryBar'
 import CeshuView from './components/CeshuView'
 import ItemForm from './components/ItemForm'
+import QuickCreatePanel from './components/QuickCreatePanel'
 import ReferencesPanel, { type ReferenceTarget } from './components/ReferencesPanel'
 import TypeEditorPanel from './components/TypeEditorPanel'
 
@@ -67,6 +68,7 @@ export default function App() {
   const [debouncedQuery, setDebouncedQuery] = useState('')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [batchOpen, setBatchOpen] = useState(false)
+  const [quickCreateOpen, setQuickCreateOpen] = useState(false)
   const [refTarget, setRefTarget] = useState<ReferenceTarget | null>(null)
 
   const filteredItems = useMemo(() => filterItemRecords(items, debouncedQuery), [items, debouncedQuery])
@@ -214,6 +216,12 @@ export default function App() {
     setNotice(message)
     setSelectedIds(new Set())
     setBatchOpen(false)
+    if (activeType) void reload(activeType)
+  }
+
+  const handleQuickCreated = (message: string): void => {
+    setNotice(message)
+    setQuickCreateOpen(false)
     if (activeType) void reload(activeType)
   }
 
@@ -490,6 +498,18 @@ export default function App() {
                       >
                         批量操作（{selectedVisibleIds.length}）
                       </button>
+                      <button
+                        type="button"
+                        className="btn"
+                        data-testid="open-quick-create"
+                        onClick={() => {
+                          setQuickCreateOpen(true)
+                          setRefTarget(null)
+                          setBatchOpen(false)
+                        }}
+                      >
+                        快速创建
+                      </button>
                     </div>
 
                     <div className="list">
@@ -510,6 +530,7 @@ export default function App() {
                             onClick={() => {
                               setSelectedId(item.id)
                               setBatchOpen(false)
+                              setQuickCreateOpen(false)
                               setRefTarget(null)
                             }}
                           >
@@ -545,6 +566,14 @@ export default function App() {
                       types={types}
                       onJump={handleJump}
                       onClose={() => setRefTarget(null)}
+                    />
+                  ) : quickCreateOpen ? (
+                    <QuickCreatePanel
+                      key={`${activeType ?? ''}:quick`}
+                      type={activeType ?? ''}
+                      types={types}
+                      onCreated={handleQuickCreated}
+                      onClose={() => setQuickCreateOpen(false)}
                     />
                   ) : batchOpen ? (
                     <BatchEditPanel

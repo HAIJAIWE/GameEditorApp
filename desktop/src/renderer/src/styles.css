@@ -2830,3 +2830,79 @@ button.ref-row:hover {
   flex: 1;
   min-width: 0;
 }
+
+/* 快速创建：模板卡片网格（对应 Python quick_create 的卡片式向导） */
+.qc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.qc-card {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.qc-card:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.qc-card.selected {
+  border: 2px solid var(--accent);
+  background: var(--accent-light, var(--bg-panel));
+}
+
+.qc-card:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.qc-card-name {
+  font-weight: 600;
+}
+
+.qc-card-desc {
+  color: var(--text-muted);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.qc-preview {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+}
+
+.qc-preview-title {
+  color: var(--text-muted);
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.qc-preview-row {
+  display: flex;
+  gap: 8px;
+  font-size: 12px;
+  padding: 2px 0;
+}
+
+.qc-preview-key {
+  color: var(--text-muted);
+  min-width: 96px;
+}
+
+.qc-preview-value {
+  min-width: 0;
+  word-break: break-all;
+}
