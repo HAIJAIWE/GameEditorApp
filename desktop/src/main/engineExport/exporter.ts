@@ -3,14 +3,16 @@ import { dirname } from 'node:path'
 
 import type { DataTypeDef, ItemRecord } from '../../shared/types'
 
+import { bucketize, ENGINE_EXTENSIONS as KIND_EXTENSIONS, ENGINE_RENDERERS, type EngineKind } from './engines'
 import { renderLuaGameData } from './lua'
 
-/** 支持的目标引擎（当前仅 Lua）；后续引擎在此追加渲染器即可扩展 */
-export type EngineTarget = 'lua'
+/** 支持的目标引擎：`lua` + 四个对齐 PyQt `features/engine_export.py` 的引擎 */
+export type EngineTarget = 'lua' | EngineKind
 
-/** 引擎 → 产物扩展名 */
+/** 引擎 → 产物扩展名（`.lua` 之外四个来自 `./engines`） */
 const ENGINE_EXTENSIONS: Record<EngineTarget, string> = {
-  lua: '.lua'
+  lua: '.lua',
+  ...KIND_EXTENSIONS
 }
 
 export interface EngineExportOptions {
@@ -24,23 +26,35 @@ export interface EngineExportResult {
   bytes: number
 }
 
+/** 目标引擎是否受支持（IPC 侧另有 zod 枚举兜底，这里给主进程内部调用方一个判据） */
+export function isEngineTarget(value: string): value is EngineTarget {
+  return value in ENGINE_EXTENSIONS
+}
+
 /**
  * 引擎数据导出：按引擎渲染 → 临时文件 + rename 原子写盘 → 返回结果。
  * - 渲染为纯函数（返回 string），落盘与扩展名兜底集中在此
  * - 原子写：先写 `<filePath>.tmp` 再 rename，成功后不残留临时文件
  * - `bytes === Buffer.byteLength(content)`（UTF-8 字节数）
+ *
+ * 五个目标各走各的渲染器（`lua` 独立模块，其余四个在 `./engines`）。
+ * 此前这里只有 `lua` 一个分支，菜单里「导出为 Unity/Unreal/Godot/Cocos2d 格式」
+ * 四项全都落到 `.lua` —— 文案与产物不符，已修正。
  */
 export async function exportEngineData(
   records: ItemRecord[],
   types: DataTypeDef[],
   options: EngineExportOptions
 ): Promise<EngineExportResult> {
-  if (options.engine !== 'lua') {
+  if (!isEngineTarget(options.engine)) {
     throw new Error(`目标引擎不支持：${options.engine}`)
   }
 
   const filePath = ensureExtension(options.targetPath, ENGINE_EXTENSIONS[options.engine])
-  const content = renderLuaGameData(records, types)
+  const content =
+    options.engine === 'lua'
+      ? renderLuaGameData(records, types)
+      : ENGINE_RENDERERS[options.engine](bucketize(records, types))
 
   mkdirSync(dirname(filePath), { recursive: true })
   const tmpPath = `${filePath}.tmp`

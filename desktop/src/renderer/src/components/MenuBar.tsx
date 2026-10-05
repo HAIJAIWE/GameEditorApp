@@ -1,7 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 
+import type { EngineExportInput } from '../../../shared/schemas'
 import LibraryBar from './LibraryBar'
 import LucideIcon from './LucideIcon'
+
+/** 目标引擎枚举（与主进程 `engine:exportData` 的 zod 契约同源） */
+type EngineTarget = EngineExportInput['engine']
 
 /**
  * 顶部菜单栏（对齐 PyQt `ui/menus.py` 的 MENU_CONFIG + `ui/main_window.py` 的角部件）。
@@ -22,7 +26,8 @@ export interface MenuActions {
   exportCsv: () => void
   exportExcel: () => void
   batchEdit: () => void
-  engineExport: () => void
+  /** 引擎数据导出：按目标引擎走各自的渲染器与扩展名（对齐 PyQt `features/engine_export.py`） */
+  engineExport: (engine: EngineTarget) => void
   backup: () => void
   undo: () => void
   redo: () => void
@@ -52,6 +57,11 @@ interface MenuActionItem {
   label: string
   action: keyof MenuActions
   disabled?: boolean
+  /**
+   * 动作参数（目前仅 `engineExport` 用：四个引擎菜单项共用一个 action，
+   * 靠 `arg` 区分目标引擎 —— 此前四项**全都落到 lua**，菜单文案与产物不符）。
+   */
+  arg?: string
   /**
    * 稳定测试锚点（E2E 用）。仅挂在**真正可用**的菜单项上；
    * `action: 'notImplemented'` 的占位项与分隔符一律不给（避免暗示「可测/可用」）。
@@ -101,8 +111,11 @@ export default function MenuBar({ canUndo, canRedo, actions }: MenuBarProps) {
   const run = (item: MenuActionItem): void => {
     if (item.action === 'notImplemented') {
       actions.notImplemented(item.label)
+    } else if (item.action === 'engineExport') {
+      // 四个引擎菜单项共用一个 action，用 arg 传目标引擎（缺省 lua 兼容旧调用）
+      actions.engineExport((item.arg ?? 'lua') as EngineTarget)
     } else {
-      actions[item.action]()
+      ;(actions[item.action] as () => void)()
     }
     setOpenIndex(null)
   }
@@ -136,10 +149,10 @@ export default function MenuBar({ canUndo, canRedo, actions }: MenuBarProps) {
           { type: 'separator' },
           { type: 'action', label: '导出游戏数据', action: 'notImplemented' },
           { type: 'separator' },
-          { type: 'action', label: '导出为 Unity 格式', action: 'engineExport', testid: 'menuitem-file-exportUnity' },
-          { type: 'action', label: '导出为 Unreal 格式', action: 'engineExport', testid: 'menuitem-file-exportUnreal' },
-          { type: 'action', label: '导出为 Godot 格式', action: 'engineExport', testid: 'menuitem-file-exportGodot' },
-          { type: 'action', label: '导出为 Cocos2d 格式', action: 'engineExport', testid: 'menuitem-file-exportCocos' },
+          { type: 'action', label: '导出为 Unity 格式', action: 'engineExport', arg: 'unity', testid: 'menuitem-file-exportUnity' },
+          { type: 'action', label: '导出为 Unreal 格式', action: 'engineExport', arg: 'unreal', testid: 'menuitem-file-exportUnreal' },
+          { type: 'action', label: '导出为 Godot 格式', action: 'engineExport', arg: 'godot', testid: 'menuitem-file-exportGodot' },
+          { type: 'action', label: '导出为 Cocos2d 格式', action: 'engineExport', arg: 'cocos2d', testid: 'menuitem-file-exportCocos' },
           { type: 'separator' },
           { type: 'action', label: '游戏数据预览', action: 'notImplemented' }
         ]

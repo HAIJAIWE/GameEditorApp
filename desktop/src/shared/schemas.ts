@@ -108,9 +108,15 @@ export type SetSecretInput = z.infer<typeof setSecretInputSchema>
 
 /* ---- 引擎代码导出 ---- */
 
-/** 引擎代码导出：目标引擎（当前仅支持 lua）+ 目标路径（缺扩展名时导出侧补 `.lua`） */
+/**
+ * 引擎代码导出：目标引擎 + 目标路径（缺扩展名时导出侧按引擎补）。
+ * 五个目标 = `lua` + 对齐 PyQt `features/engine_export.py` 的四个引擎
+ * （Unity/Unreal/Godot/Cocos2d 产物分别为 `.cs` / `.h` / `.gd` / `.json`）。
+ */
+export const engineTargetSchema = z.enum(['lua', 'unity', 'unreal', 'godot', 'cocos2d'])
+
 export const engineExportInputSchema = z.object({
-  engine: z.enum(['lua']),
+  engine: engineTargetSchema,
   path: z.string().min(1)
 })
 
@@ -265,9 +271,10 @@ export const ceshuGetInputSchema = z.object({
   id: z.string().min(1)
 })
 
-/** 引擎代码导出（E2）：选择导出文件路径 */
+/** 引擎代码导出（E2）：选择导出文件路径（`engine` 决定默认扩展名与过滤器标题） */
 export const engineExportFileDialogInputSchema = z.object({
-  defaultName: z.string().min(1).max(120)
+  defaultName: z.string().min(1).max(120),
+  engine: engineTargetSchema.default('lua')
 })
 
 /** 库管理（A2-1）：新建库 */

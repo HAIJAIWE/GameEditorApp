@@ -154,8 +154,11 @@ describe('引擎代码导出 · Lua（P0，AC1–AC9）', () => {
   // AC7：非法输入中文错误
   it('AC7 非法引擎 / 空 types 抛中文错误', async () => {
     const dir = makeDir()
+    // 「非法引擎」样本用 `unreal5` 这类**真不在枚举里**的值 ——
+    // 早期这里写的是 'unity'，那是单引擎时代（只支持 lua）的遗留断言，
+    // 补齐 unity/unreal/godot/cocos2d 后 unity 已是合法目标。
     await expect(
-      exportEngineData([], TYPES, { engine: 'unity' as unknown as EngineTarget, targetPath: join(dir, 'x') })
+      exportEngineData([], TYPES, { engine: 'unreal5' as unknown as EngineTarget, targetPath: join(dir, 'x') })
     ).rejects.toThrow('目标引擎不支持')
 
     await expect(
@@ -201,7 +204,10 @@ describe('引擎代码导出 · Lua（P0，AC1–AC9）', () => {
     expect(engineExportInputSchema.safeParse({ engine: 'lua', path: '/tmp/game.lua' }).success).toBe(true)
     expect(engineExportInputSchema.safeParse({ engine: 'lua' }).success).toBe(false)
     expect(engineExportInputSchema.safeParse({ engine: 'lua', path: '' }).success).toBe(false)
-    expect(engineExportInputSchema.safeParse({ engine: 'unity', path: '/tmp/game.lua' }).success).toBe(false)
-    expect(engineExportInputSchema.safeParse({ engine: 'lua', path: '/tmp/game.lua' }).success).toBe(true)
+    // 五个目标全部合法（补齐 unity/unreal/godot/cocos2d 后，unity 不再是「非法」样本）
+    for (const engine of ['unity', 'unreal', 'godot', 'cocos2d']) {
+      expect(engineExportInputSchema.safeParse({ engine, path: '/tmp/game' }).success).toBe(true)
+    }
+    expect(engineExportInputSchema.safeParse({ engine: 'unreal5', path: '/tmp/game' }).success).toBe(false)
   })
 })

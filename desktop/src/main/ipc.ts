@@ -108,6 +108,7 @@ import { scoreCeshu } from '../shared/ceshuScorer'
 import { validateCeshu } from '../shared/ceshuValidation'
 import { buildWordStatsReport } from '../shared/ceshuWordStats'
 import type { AppInfo } from '../shared/types'
+import { ENGINE_EXTENSIONS as ENGINE_KIND_EXTENSIONS, ENGINE_LABELS as ENGINE_KIND_LABELS } from './engineExport/engines'
 import type { AgentApprovalBroker, AgentInteractionAnswer } from './agent/approvalBroker'
 import type { AgentBrainService } from './agent/brainService'
 import type { SkillDispatcher } from './agent/dispatcher'
@@ -711,10 +712,14 @@ export function registerIpcHandlers({
     return { path: result.canceled || !result.filePath ? null : result.filePath }
   })
   handle('dialog:chooseEngineExportFile', engineExportFileDialogInputSchema, async (req) => {
+    // 扩展名/过滤器随目标引擎变（PyQt `ui/dialogs/engine_export.py::export_file`
+    // 同样是按 engine_type 追加 .cs / .h / .gd / .json）
+    const extension = req.engine === 'lua' ? '.lua' : ENGINE_KIND_EXTENSIONS[req.engine]
+    const label = req.engine === 'lua' ? 'Lua 数据模块' : `${ENGINE_KIND_LABELS[req.engine]} 数据`
     const options: SaveDialogOptions = {
-      title: '导出引擎代码（Lua 数据模块）',
-      defaultPath: `${req.defaultName}.lua`,
-      filters: [{ name: 'Lua 数据模块', extensions: ['lua'] }]
+      title: `导出为 ${label} 格式`,
+      defaultPath: `${req.defaultName}${extension}`,
+      filters: [{ name: label, extensions: [extension.replace('.', '')] }]
     }
     const focused = BrowserWindow.getFocusedWindow()
     const result = focused ? await dialog.showSaveDialog(focused, options) : await dialog.showSaveDialog(options)

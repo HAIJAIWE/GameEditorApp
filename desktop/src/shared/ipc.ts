@@ -156,7 +156,8 @@ export interface IpcContract {
   'settings:hasSecret': { req: SecretNameInput; res: { has: boolean } }
   'settings:setSecret': { req: SetSecretInput; res: { ok: boolean; error?: string } }
   'settings:deleteSecret': { req: SecretNameInput; res: { ok: boolean; error?: string } }
-  // 引擎代码导出（P0：Lua）。渲染/落盘在 main/engineExport，取数由 handler 注入。
+  // 引擎数据导出：lua + unity/unreal/godot/cocos2d（对齐 PyQt `features/engine_export.py`）。
+  // 渲染/落盘在 main/engineExport（lua 在 ./lua，其余四个在 ./engines），取数由 handler 注入。
   'engine:exportData': { req: EngineExportInput; res: { filePath: string; engine: string; bytes: number } }
   'dialog:chooseJsonFile': { req: undefined; res: { path: string | null } }
   'dialog:chooseSaveJsonFile': { req: undefined; res: { path: string | null } }

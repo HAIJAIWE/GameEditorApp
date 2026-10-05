@@ -5,6 +5,7 @@ import { loadGameStyle, normalizeGameStyleId, saveGameStyle } from '../../shared
 import type { AppInfo, DataTypeDef, ImportSummary } from '../../shared/types'
 import { applyTheme, loadTheme, saveTheme, type ThemeMode } from '../../shared/theme'
 import { buildAiSeedPrompt } from '../../shared/aiSeedPrompt'
+import type { EngineExportInput } from '../../shared/schemas'
 
 import AdvancedSearchPanel from './components/AdvancedSearchPanel'
 import AttrSystemPanel from './components/AttrSystemPanel'
@@ -445,16 +446,30 @@ export default function App() {
     }
   }
 
-  /** 引擎代码导出（Lua）：菜单「导出 → 导出为 * 格式」共用此逻辑（与 EngineExportButton 等价） */
-  const handleEngineExport = async (): Promise<void> => {
+  /**
+   * 引擎数据导出：菜单「导出 → 导出为 XX 格式」按目标引擎各走各的渲染器与扩展名
+   * （对齐 PyQt `features/engine_export.py` 的四个独立导出器）。
+   * 此前四个菜单项全都硬编码 `engine: 'lua'`，点「导出为 Unity 格式」拿到的是 `.lua`。
+   */
+  const handleEngineExport = async (engine: EngineExportInput['engine']): Promise<void> => {
     try {
       const api = window.mbApi as unknown as {
-        dialog: { chooseEngineExportFile: (req: { defaultName: string }) => Promise<{ path: string | null }> }
-        engine: { exportData: (req: { engine: 'lua'; path: string }) => Promise<{ filePath: string; engine: string; bytes: number }> }
+        dialog: {
+          chooseEngineExportFile: (req: {
+            defaultName: string
+            engine: EngineExportInput['engine']
+          }) => Promise<{ path: string | null }>
+        }
+        engine: {
+          exportData: (req: {
+            engine: EngineExportInput['engine']
+            path: string
+          }) => Promise<{ filePath: string; engine: string; bytes: number }>
+        }
       }
-      const picked = await api.dialog.chooseEngineExportFile({ defaultName: 'GameData' })
+      const picked = await api.dialog.chooseEngineExportFile({ defaultName: 'GameData', engine })
       if (picked.path === null) return
-      const result = await api.engine.exportData({ engine: 'lua', path: picked.path })
+      const result = await api.engine.exportData({ engine, path: picked.path })
       setNotice(`已导出 ${result.filePath}（${result.bytes} 字节）`)
     } catch (err) {
       setError(toErrorMessage(err))
@@ -545,7 +560,7 @@ export default function App() {
           exportCsv: handleExportCsv,
           exportExcel: handleExportExcel,
           batchEdit: () => openPanel('batch'),
-          engineExport: () => void handleEngineExport(),
+          engineExport: (engine) => void handleEngineExport(engine),
           backup: () => openPanel('backup'),
           undo: () => void performUndo(),
           redo: () => void performRedo(),
