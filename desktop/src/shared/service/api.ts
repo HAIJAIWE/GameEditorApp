@@ -20,6 +20,12 @@ export interface MbApi {
     sessionInfo(): Promise<IpcContract['agent:sessionInfo']['res']>
     sessionRestore(): Promise<IpcContract['agent:sessionRestore']['res']>
     sessionClear(): Promise<IpcContract['agent:sessionClear']['res']>
+    /** 草稿：保存当前会话为草稿（名字空则主进程回落默认名） */
+    draftSave(req: IpcContract['agent:draftSave']['req']): Promise<IpcContract['agent:draftSave']['res']>
+    /** 草稿：列出最近草稿（上限 5 条，按时间倒序） */
+    draftList(): Promise<IpcContract['agent:draftList']['res']>
+    /** 草稿：读取指定草稿 */
+    draftLoad(req: IpcContract['agent:draftLoad']['req']): Promise<IpcContract['agent:draftLoad']['res']>
     /** 提交用户反馈（评分 + 可选评论）；评分高且带评论时提炼偏好 */
     feedback(req: IpcContract['agent:feedback']['req']): Promise<IpcContract['agent:feedback']['res']>
     /** 订阅主进程推送的事件流；返回取消订阅函数 */

@@ -38,6 +38,8 @@ import type {
   CeshuRenameInput,
   AgentChatInput,
   AgentExecuteToolInput,
+  AgentDraftLoadInput,
+  AgentDraftSaveInput,
   AgentFeedbackInput,
   AgentInteractionResponseInput,
   EngineExportFileDialogInput,
@@ -72,7 +74,7 @@ import type {
 } from './types'
 import type { CeshuDocument, CeshuExportResult, CeshuSummary } from './ceshuConstants'
 import type { BrainEvent } from './agent/brain'
-import type { SessionInfo } from './agent/session'
+import type { DraftSummary, SessionInfo } from './agent/session'
 import type { JsonObjectSchema, SkillResult } from './agent/protocol'
 import type { CeshuChangelog, CeshuVersionDiff } from './ceshuDiff'
 import type { CeshuScoreReport } from './ceshuScorer'
@@ -194,6 +196,10 @@ export interface IpcContract {
   'agent:sessionInfo': { req: undefined; res: SessionInfo }
   'agent:sessionRestore': { req: undefined; res: { messages: Array<Record<string, unknown>> } }
   'agent:sessionClear': { req: undefined; res: { cleared: boolean } }
+  // 草稿管理（对齐 Python `ui/digital_panel_workspace.py` 的 `_save_draft` / `_load_draft_from` / `_list_drafts`）
+  'agent:draftSave': { req: AgentDraftSaveInput; res: DraftSummary }
+  'agent:draftList': { req: undefined; res: DraftSummary[] }
+  'agent:draftLoad': { req: AgentDraftLoadInput; res: { name: string; messages: Array<Record<string, unknown>> } }
   /** 用户反馈：评分 + 可选评论；评分 ≥4 且评论非空时提炼偏好写入偏好库 */
   'agent:feedback': { req: AgentFeedbackInput; res: undefined }
 

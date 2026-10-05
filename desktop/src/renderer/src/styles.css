@@ -951,6 +951,30 @@ body {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
 }
 
+/* AI 停靠栏在窗口最右侧，下拉必须靠右对齐，否则 left:0 会顶出屏幕右缘 */
+.ai-dock .toolbar-more-menu {
+  left: auto;
+  right: 0;
+}
+
+/* 草稿保存行：名字输入框 + 按钮挤一行（面板窄，输入框可压缩不撑破） */
+.digital-draft-save {
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+}
+
+.digital-draft-save .form-input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.digital-draft-list-label {
+  padding: 4px 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
 /* 分组间画分隔线（末组不画） */
 .toolbar-more-group + .toolbar-more-group {
   margin-top: 4px;

@@ -9,19 +9,27 @@
  * **A2-1 引入多库后只需改注入点**，本模块不感知库结构。
  */
 
-import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
+import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import {
+  buildDraftFile,
   buildSessionSnapshot,
+  draftSummaryOf,
+  isDraftFile,
   isSessionSnapshot,
+  safeDraftFileName,
   sessionInfoFromSnapshot,
+  DRAFT_LIST_LIMIT,
+  type DraftFile,
+  type DraftSummary,
   type SessionInfo,
   type SessionSnapshot
 } from '../../shared/agent/session'
 
 const SESSION_FILE = 'active_session.json'
 const METRICS_FILE = 'metrics.jsonl'
+const DRAFTS_DIR = 'drafts'
 
 export class AgentSessionStore {
   /** 写操作串行队列（唯一写者） */
@@ -95,6 +103,75 @@ export class AgentSessionStore {
       const entry = { type, timestamp: Math.floor(Date.now() / 1000), ...payload }
       appendFileSync(join(this.dir, METRICS_FILE), `${JSON.stringify(entry)}\n`, 'utf-8')
     })
+  }
+
+  /**
+   * 保存当前会话为草稿（对齐 Python `ui/digital_panel_workspace.py::_save_draft`）。
+   *
+   * **从磁盘上的活跃会话快照取数据**，不从渲染层传消息 ——
+   * 少一次跨进程传输，也避免「渲染层 state 与落盘不一致时存出旧草稿」。
+   * 落盘纪律与 `save()` 一致：临时文件 + rename 原子写。
+   *
+   * @param name 用户填写的草稿名；空名/全非法字符时回落 `defaultDraftName`
+   * @returns 草稿摘要（含 `path`，UI 不构造路径）
+   */
+  saveDraft(name: string): Promise<DraftSummary> {
+    return this.enqueue(() => {
+      const fileName = safeDraftFileName(name)
+      const snapshot = this.readActive()
+      if (snapshot === null || snapshot.messages.length === 0) {
+        throw new Error('当前没有可保存的对话（会话为空）')
+      }
+      const draft = buildDraftFile(fileName, snapshot.messages)
+      const dir = this.draftsDir
+      mkdirSync(dir, { recursive: true })
+      const path = join(dir, `${fileName}.json`)
+      const tmpPath = `${path}.tmp`
+      writeFileSync(tmpPath, JSON.stringify(draft, null, 2), 'utf-8')
+      renameSync(tmpPath, path)
+      return draftSummaryOf(draft, path)
+    })
+  }
+
+  /**
+   * 列出最近草稿（对齐 Python `_list_drafts`：最多 `DRAFT_LIST_LIMIT` 条、按时间倒序）。
+   * 单个草稿损坏时**跳过**而不是整体失败 —— 草稿是辅助功能，不该因为一个坏文件就用不了。
+   */
+  listDrafts(): DraftSummary[] {
+    const dir = this.draftsDir
+    if (!existsSync(dir)) return []
+    const summaries: DraftSummary[] = []
+    for (const entry of readdirSync(dir)) {
+      if (!entry.endsWith('.json')) continue
+      const path = join(dir, entry)
+      try {
+        const raw: unknown = JSON.parse(readFileSync(path, 'utf-8'))
+        if (!isDraftFile(raw)) continue
+        summaries.push(draftSummaryOf(raw, path))
+      } catch {
+        continue // 坏草稿跳过，不影响其余
+      }
+    }
+    summaries.sort((a, b) => (a.time < b.time ? 1 : a.time > b.time ? -1 : a.path < b.path ? -1 : 1))
+    return summaries.slice(0, DRAFT_LIST_LIMIT)
+  }
+
+  /** 读指定草稿（**不**写入活跃会话 —— 由调用方决定是否恢复） */
+  readDraft(path: string): DraftFile {
+    if (!existsSync(path)) throw new Error('草稿文件不存在')
+    let raw: unknown
+    try {
+      raw = JSON.parse(readFileSync(path, 'utf-8'))
+    } catch {
+      throw new Error('草稿文件损坏（JSON 解析失败）')
+    }
+    if (!isDraftFile(raw)) throw new Error('草稿文件格式不正确：期望 { name, time, messages }')
+    return raw
+  }
+
+  /** 草稿目录绝对路径 */
+  private get draftsDir(): string {
+    return join(this.dir, DRAFTS_DIR)
   }
 
   /** 写操作串行队列：前一个写完成才执行下一个；失败不阻塞后续任务 */

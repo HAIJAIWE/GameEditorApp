@@ -113,6 +113,18 @@ export type SetSecretInput = z.infer<typeof setSecretInputSchema>
  * 五个目标 = `lua` + 对齐 PyQt `features/engine_export.py` 的四个引擎
  * （Unity/Unreal/Godot/Cocos2d 产物分别为 `.cs` / `.h` / `.gd` / `.json`）。
  */
+/** AI 对话草稿：保存当前会话为草稿（对齐 PyQt 数字员工面板的草稿管理） */
+export const agentDraftSaveInputSchema = z.object({
+  /** 草稿名（空串会被主进程回落成 `对话草稿_MMDD_HHMM`；限长防超长文件名） */
+  name: z.string().max(80)
+})
+
+/** AI 对话草稿：读取指定草稿 */
+export const agentDraftLoadInputSchema = z.object({
+  /** 草稿绝对路径（由 `agent:draftList` 返回，UI 不自行拼接） */
+  path: z.string().min(1)
+})
+
 export const engineTargetSchema = z.enum(['lua', 'unity', 'unreal', 'godot', 'cocos2d'])
 
 export const engineExportInputSchema = z.object({
@@ -549,6 +561,8 @@ export type CeshuChooseExportFileInput = z.infer<typeof ceshuChooseExportFileInp
 export type CeshuDeriveInput = z.infer<typeof ceshuDeriveInputSchema>
 export type CeshuRenameInput = z.infer<typeof ceshuRenameInputSchema>
 export type AgentExecuteToolInput = z.infer<typeof agentExecuteToolInputSchema>
+export type AgentDraftSaveInput = z.infer<typeof agentDraftSaveInputSchema>
+export type AgentDraftLoadInput = z.infer<typeof agentDraftLoadInputSchema>
 export type AgentFeedbackInput = z.infer<typeof agentFeedbackInputSchema>
 export type AgentChatInput = z.infer<typeof agentChatInputSchema>
 export type AgentApprovalResponseInput = z.infer<typeof agentApprovalResponseInputSchema>

@@ -85,3 +85,83 @@ export function sessionInfoFromSnapshot(snapshot: SessionSnapshot | null): Sessi
     savedAt: typeof savedAt === 'string' ? savedAt : ''
   }
 }
+
+/* ============================================================
+   草稿（对齐 Python `ui/digital_panel_workspace.py` 的草稿保存/恢复机制）
+   ============================================================ */
+
+/** 草稿文件内容：`<userData>/agent/drafts/<名字>.json` */
+export interface DraftFile {
+  /** 草稿名（用户填写；也是文件名） */
+  name: string
+  /** 保存时间（本地时间字符串，与 `formatLocalTimestamp` 同格式） */
+  time: string
+  /** 会话消息（**存结构化消息，不是 HTML** —— Python 存的是 `QTextEdit.toHtml()`，TS 侧无需如此） */
+  messages: Array<Record<string, unknown>>
+}
+
+/** 草稿列表项（给 UI 展示用；不含 messages，避免列表响应过大） */
+export interface DraftSummary {
+  name: string
+  time: string
+  messageCount: number
+  /** 绝对路径（回填用；由主进程生成，UI 不构造） */
+  path: string
+}
+
+/** 草稿列表最多返回几条（对齐 PyQt `_show_draft_menu` 的「最近草稿」上限 5） */
+export const DRAFT_LIST_LIMIT = 5
+
+/** 默认草稿名（对齐 PyQt `对话草稿_{MMdd_HHMM}`） */
+export function defaultDraftName(now: Date = new Date()): string {
+  const pad = (value: number): string => String(value).padStart(2, '0')
+  return `对话草稿_${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`
+}
+
+/** Windows 文件名非法字符（`\ / : * ? " < > |`） */
+const DRAFT_ILLEGAL_CHARS = '<>:"/\\|?*'
+
+/**
+ * 文件名安全化：草稿名会直接当文件名用。
+ * - 控制字符（U+0000-U+001F、U+007F）与 Windows 非法字符替换为下划线
+ * - 末尾的点/空格去掉（Windows 不允许）
+ * - 空名回落 `defaultDraftName`
+ *
+ * **刻意保留空格与连字符**（草稿名里很常见），**不静默截断**（非法字符替换而非删字）。
+ * 用显式码点判断而非正则字符类：控制字符写进字符类容易误成范围（踩过 `*-<0x1F>` 这个坑，
+ * 那是反向范围，JS 解析期直接 SyntaxError）。
+ */
+export function safeDraftFileName(name: string, now: Date = new Date()): string {
+  const cleaned = [...name]
+    .map((char) => {
+      const code = char.codePointAt(0) ?? 0
+      if (code < 0x20 || code === 0x7f) return '_'
+      return DRAFT_ILLEGAL_CHARS.includes(char) ? '_' : char
+    })
+    .join('')
+    .replace(/[. ]+$/g, '')
+    .trim()
+  return cleaned === '' ? defaultDraftName(now) : cleaned
+}
+
+/** 判断未知值是否为草稿文件（容错读取用：结构不对返回 null 而不抛错） */
+export function isDraftFile(value: unknown): value is DraftFile {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return false
+  const record = value as Record<string, unknown>
+  return typeof record.name === 'string' && Array.isArray(record.messages)
+}
+
+/** 组装草稿文件内容（复用会话的截断/清洗规则，保证草稿与活跃会话同构） */
+export function buildDraftFile(
+  name: string,
+  messages: Array<Record<string, unknown>>,
+  now: Date = new Date()
+): DraftFile {
+  const snapshot = buildSessionSnapshot(messages, now)
+  return { name, time: snapshot.meta.saved_at, messages: snapshot.messages }
+}
+
+/** 草稿 → 列表项（消息数取实际条数） */
+export function draftSummaryOf(draft: DraftFile, path: string): DraftSummary {
+  return { name: draft.name, time: draft.time, messageCount: draft.messages.length, path }
+}

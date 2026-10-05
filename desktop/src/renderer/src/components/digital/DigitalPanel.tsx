@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 
+import { defaultDraftName, type DraftSummary } from '../../../../shared/agent/session'
+
+import LucideIcon from '../LucideIcon'
+
 import type { BrainEvent } from '../../../../shared/agent/brain'
 import {
   hydrateFromSession,
@@ -34,6 +38,9 @@ interface ChatApi {
   sessionInfo: () => Promise<{ hasSession: boolean; messageCount: number; savedAt: string }>
   sessionRestore: () => Promise<{ messages: Array<{ role?: unknown; content?: unknown }> }>
   sessionClear: () => Promise<{ cleared: boolean }>
+  draftSave: (req: { name: string }) => Promise<DraftSummary>
+  draftList: () => Promise<DraftSummary[]>
+  draftLoad: (req: { path: string }) => Promise<{ name: string; messages: Array<{ role?: unknown; content?: unknown }> }>
   onEvent: (handler: (event: unknown) => void) => () => void
 }
 
@@ -96,6 +103,20 @@ export default function DigitalPanel({ seed = null }: DigitalPanelProps) {
   const [localError, setLocalError] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement | null>(null)
   const inputRef = useRef<HTMLInputElement | null>(null)
+  /** 「新建对话」下拉展开状态 */
+  const [clearMenuOpen, setClearMenuOpen] = useState(false)
+  /** 「草稿管理」下拉展开状态 */
+  const [draftMenuOpen, setDraftMenuOpen] = useState(false)
+  /** 草稿列表（打开下拉时按需拉取，不常驻轮询） */
+  const [drafts, setDrafts] = useState<DraftSummary[]>([])
+  /** 草稿名输入框（空串由主进程回落成默认名 `对话草稿_MMDD_HHMM`） */
+  const [draftName, setDraftName] = useState('')
+  /** 草稿保存进行中（避免重复点击；与「发送中」互不干扰） */
+  const [draftBusy, setDraftBusy] = useState(false)
+  /** 轻提示（草稿保存/恢复成功后的回执，与 localError 上下呼应） */
+  const [notice, setNotice] = useState<string | null>(null)
+  const clearMenuRef = useRef<HTMLDivElement | null>(null)
+  const draftMenuRef = useRef<HTMLDivElement | null>(null)
   /** 已消费的外部播种 nonce（防止依赖变化导致同一播种被重复投递） */
   const consumedSeedNonce = useRef<number | null>(null)
 
@@ -226,6 +247,85 @@ export default function DigitalPanel({ seed = null }: DigitalPanelProps) {
     })
   }
 
+  /**
+   * 两个下拉的「点击外部 / Esc 关闭」（与工具栏「更多 ▸」同一套交互）。
+   * 监听挂在 document 上、命中判定用各自的 ref —— 两个下拉互不影响。
+   */
+  useEffect(() => {
+    if (!clearMenuOpen && !draftMenuOpen) return undefined
+    const onDocClick = (event: MouseEvent): void => {
+      const target = event.target as Node
+      if (clearMenuOpen && clearMenuRef.current && !clearMenuRef.current.contains(target)) {
+        setClearMenuOpen(false)
+      }
+      if (draftMenuOpen && draftMenuRef.current && !draftMenuRef.current.contains(target)) {
+        setDraftMenuOpen(false)
+      }
+    }
+    const onKey = (event: KeyboardEvent): void => {
+      if (event.key !== 'Escape') return
+      setClearMenuOpen(false)
+      setDraftMenuOpen(false)
+    }
+    document.addEventListener('mousedown', onDocClick)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDocClick)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [clearMenuOpen, draftMenuOpen])
+
+  /** 拉草稿列表（打开下拉时触发；失败只提示不打断面板） */
+  const loadDrafts = async (): Promise<void> => {
+    try {
+      setDrafts(await api.draftList())
+    } catch (error: unknown) {
+      setLocalError(toErrorMessage(error))
+    }
+  }
+
+  /** 新建对话：清掉主进程活跃会话 + 清空面板消息（TS 只有一份会话，见菜单项注释） */
+  const handleNewChat = async (): Promise<void> => {
+    setLocalError(null)
+    try {
+      await api.sessionClear()
+      dispatch({ kind: 'hydrate', history: [] })
+      setSessionHint(null)
+      setInput('')
+    } catch (error: unknown) {
+      setLocalError(toErrorMessage(error))
+    }
+  }
+
+  /** 保存当前对话为草稿（主进程从落盘的活跃会话取数据，渲染层不传消息） */
+  const handleSaveDraft = async (): Promise<void> => {
+    setLocalError(null)
+    setDraftBusy(true)
+    try {
+      const saved = await api.draftSave({ name: draftName.trim() })
+      setDraftName('')
+      setDrafts(await api.draftList())
+      setNotice(`💾 草稿已保存：${saved.name}`)
+    } catch (error: unknown) {
+      setLocalError(toErrorMessage(error))
+    } finally {
+      setDraftBusy(false)
+    }
+  }
+
+  /** 从草稿恢复：只灌历史，不动主进程活跃会话（用户点「恢复上次会话」才落盘） */
+  const handleLoadDraft = async (path: string): Promise<void> => {
+    setLocalError(null)
+    setDraftMenuOpen(false)
+    try {
+      const draft = await api.draftLoad({ path })
+      dispatch({ kind: 'hydrate', history: draft.messages })
+      setNotice(`📂 已恢复草稿：${draft.name}`)
+    } catch (error: unknown) {
+      setLocalError(toErrorMessage(error))
+    }
+  }
+
   const handleRestore = (): void => {
     void api
       .sessionRestore()
@@ -244,12 +344,120 @@ export default function DigitalPanel({ seed = null }: DigitalPanelProps) {
           <span className="item-meta" data-testid="digital-status">
             {STATUS_LABELS[state.status]}
           </span>
+
+          {/* 「新建对话」（对齐 PyQt `digital_panel_ui.py:132-147` 的清空按钮 + `_show_clear_menu`）。
+              PyQt 菜单有「新建对话 / 清空当前对话 / 删除全部聊天记录」三项，但它的历史是**按对话分文件**的；
+              TS 只有**一份**活跃会话（`agent/sessionStore.ts` 的 `active_session.json`），
+              三项在 TS 语义上完全等价 —— 宁缺勿错，只给一项，不摆三个点下去一样的按钮。 */}
+          <div className="toolbar-more" ref={clearMenuRef}>
+            <button
+              type="button"
+              className="btn slim"
+              data-testid="digital-clear"
+              title="新建对话（清空当前记录）"
+              aria-haspopup="menu"
+              aria-expanded={clearMenuOpen}
+              onClick={() => setClearMenuOpen((open) => !open)}
+            >
+              <LucideIcon name="trash" size={14} />
+            </button>
+            {clearMenuOpen && (
+              <div className="toolbar-more-menu" role="menu" data-testid="digital-clear-menu">
+                <div className="toolbar-more-group">
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="toolbar-more-item"
+                    data-testid="digital-clear-new"
+                    onClick={() => {
+                      setClearMenuOpen(false)
+                      handleNewChat()
+                    }}
+                  >
+                    新建对话（清空当前记录）
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 草稿管理（对齐 PyQt `digital_panel_ui.py:149-159` + `digital_panel_workspace.py:156-179`）：
+              保存当前对话为草稿 / 从最近草稿恢复（上限 5 条）。 */}
+          <div className="toolbar-more" ref={draftMenuRef}>
+            <button
+              type="button"
+              className="btn slim"
+              data-testid="digital-draft"
+              title="草稿管理（保存 / 恢复对话）"
+              aria-haspopup="menu"
+              aria-expanded={draftMenuOpen}
+              onClick={() => {
+                setDraftMenuOpen((open) => !open)
+                setNotice(null)
+                if (!draftMenuOpen) void loadDrafts()
+              }}
+            >
+              <LucideIcon name="database" size={14} />
+            </button>
+            {draftMenuOpen && (
+              <div className="toolbar-more-menu" role="menu" data-testid="digital-draft-menu">
+                <div className="toolbar-more-group">
+                  <div className="digital-draft-save">
+                    <input
+                      className="form-input"
+                      data-testid="digital-draft-name"
+                      placeholder={defaultDraftName()}
+                      value={draftName}
+                      maxLength={80}
+                      onChange={(event) => setDraftName(event.target.value)}
+                    />
+                    <button
+                      type="button"
+                      className="btn primary slim"
+                      data-testid="digital-draft-save"
+                      disabled={draftBusy}
+                      onClick={() => void handleSaveDraft()}
+                    >
+                      保存为草稿
+                    </button>
+                  </div>
+                </div>
+                <div className="toolbar-more-group">
+                  <div className="digital-draft-list-label">最近草稿</div>
+                  {drafts.length === 0 ? (
+                    <div className="item-meta" data-testid="digital-draft-empty">
+                      暂无草稿
+                    </div>
+                  ) : (
+                    drafts.map((draft) => (
+                      <button
+                        key={draft.path}
+                        type="button"
+                        role="menuitem"
+                        className="toolbar-more-item"
+                        data-testid="digital-draft-load"
+                        onClick={() => void handleLoadDraft(draft.path)}
+                      >
+                        {draft.name}（{draft.time} · {draft.messageCount} 条）
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       {(localError !== null || state.error !== null) && (
         <div className="form-error" data-testid="digital-error">
           {localError ?? state.error}
+        </div>
+      )}
+
+      {notice !== null && (
+        <div className="notice-banner inline" data-testid="digital-notice">
+          {notice}
         </div>
       )}
 

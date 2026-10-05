@@ -36,6 +36,8 @@ import {
   agentExecuteToolInputSchema,
   agentFeedbackInputSchema,
   ceshuGetInputSchema,
+  agentDraftLoadInputSchema,
+  agentDraftSaveInputSchema,
   engineExportFileDialogInputSchema,
   libraryCreateInputSchema,
   libraryNameInputSchema,
@@ -287,6 +289,13 @@ export function registerIpcHandlers({
     return { messages: snapshot?.messages ?? [] }
   })
   handle('agent:sessionClear', undefined, async () => ({ cleared: await agentSessionStore.clear() }))
+  // 草稿管理（对齐 PyQt 数字员工面板的草稿保存/恢复/列表）
+  handle('agent:draftSave', agentDraftSaveInputSchema, (req) => agentSessionStore.saveDraft(req.name))
+  handle('agent:draftList', undefined, () => agentSessionStore.listDrafts())
+  handle('agent:draftLoad', agentDraftLoadInputSchema, (req) => {
+    const draft = agentSessionStore.readDraft(req.path)
+    return { name: draft.name, messages: draft.messages }
+  })
   // 用户反馈（偏好/反馈 store 的生产者接缝）：评分 ≥4 且评论非空时提炼偏好写入偏好库，
   // 供后续 chat() 注入系统提示词。UI 评分入口是后续步骤，此处只接好主进程写路径。
   handle('agent:feedback', agentFeedbackInputSchema, (req) => {
