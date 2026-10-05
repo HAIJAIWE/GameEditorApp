@@ -703,7 +703,9 @@ export default function App() {
         {mode === 'digital' && <div className="sidebar-hint">数字员工对话在右侧主区域</div>}
       </aside>
 
-      <div className="main">
+      <div className={`main mode-${mode}`}>
+        <div className="main-body">
+          <div className="main-area">
         {mode === 'data' ? (
           <>
             <header className="toolbar">
@@ -1108,26 +1110,31 @@ export default function App() {
               )}
             </div>
           </>
-        ) : mode !== 'ceshu' ? (
-          <DigitalPanel />
-        ) : ceshuHomeVisible || !activeCeshuId ? (
-          <CeshuHomePanel
-            summaries={ceshuList}
-            activeId={activeCeshuId}
-            onOpen={handleOpenCeshu}
-            onChanged={() => void reloadCeshuList()}
-            onDeleted={(deletedId) => {
-              setActiveCeshuId((current) => (current === deletedId ? null : current))
-            }}
-          />
-        ) : (
-          <CeshuView
-            ceshuId={activeCeshuId}
-            onChanged={() => void reloadCeshuList()}
-            onSelect={handleOpenCeshu}
-            onGameStyleChange={handleGameStyleChange}
-          />
-        )}
+        ) : mode === 'ceshu' ? (
+          ceshuHomeVisible || !activeCeshuId ? (
+            <CeshuHomePanel
+              summaries={ceshuList}
+              activeId={activeCeshuId}
+              onOpen={handleOpenCeshu}
+              onChanged={() => void reloadCeshuList()}
+              onDeleted={(deletedId) => {
+                setActiveCeshuId((current) => (current === deletedId ? null : current))
+              }}
+            />
+          ) : (
+            <CeshuView
+              ceshuId={activeCeshuId}
+              onChanged={() => void reloadCeshuList()}
+              onSelect={handleOpenCeshu}
+              onGameStyleChange={handleGameStyleChange}
+            />
+          )
+        ) : null}
+          </div>
+          <aside className="ai-dock" data-testid="ai-dock">
+            <DigitalPanel />
+          </aside>
+        </div>
 
         <footer className="statusbar">
           {info ? (

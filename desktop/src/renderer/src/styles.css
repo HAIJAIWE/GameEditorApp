@@ -206,6 +206,53 @@ body {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
+}
+
+/* 主区下半部：左=页面内容，右=AI 对话停靠栏（对齐 PyQt 中央 QSplitter 的 3:1 两栏） */
+.main-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.main-area {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+/*
+ * AI 对话停靠栏：常驻右栏，默认约 1/4 宽（PyQt 默认 75:25）。
+ * `resize: horizontal` 提供原生拖拽调宽（需 overflow 非 visible）。
+ */
+.ai-dock {
+  display: flex;
+  flex-direction: column;
+  width: 320px;
+  min-width: 200px;
+  max-width: 640px;
+  /* 可收缩：窗口变窄时让位给数据区，避免列表被挤到 0 宽（min-width 兜底） */
+  flex-shrink: 1;
+  border-left: 1px solid var(--border);
+  background: var(--bg-panel);
+  overflow: hidden;
+  resize: horizontal;
+}
+
+/* 数字员工模式：AI 对话占满主区（隐去左侧内容），作为「专注对话」视图 */
+.main.mode-digital .main-area {
+  display: none;
+}
+
+.main.mode-digital .ai-dock {
+  width: auto;
+  max-width: none;
+  flex: 1;
+  border-left: none;
+  resize: none;
 }
 
 .toolbar {
@@ -257,6 +304,8 @@ body {
   display: flex;
   flex: 1;
   min-height: 0;
+  /* 窄窗口下让数据区横向滚动，而不是把列表挤到 0 宽（AI 停靠栏占宽时尤其） */
+  overflow-x: auto;
 }
 
 .list {
@@ -274,7 +323,8 @@ body {
 .list-column {
   display: flex;
   flex: 1;
-  min-width: 0;
+  /* 220px 下限：防止被右侧面板 + AI 停靠栏挤到不可用（超出则由 .content 横向滚动兜底） */
+  min-width: 220px;
   flex-direction: column;
   overflow: hidden;
 }
