@@ -311,6 +311,24 @@
 > **验证**：eslint 0 / 双端 tsc 0 / vitest **89 文件 1268 测试全绿**（+1 文件 +23 用例）/ `electron-vite build` OK。
 > **踩坑**：写 `windowState.ts` 时 `clampDim()` 只用了 `MIN_WIDTH` 漏了 `MIN_HEIGHT`——**eslint 的 `no-unused-vars` 当场抓出**（tsc 不报未使用的局部 const），说明「大段 Edit 后必看 lint」这条铁律继续有效。另：`WindowModeInput` 一度被误加进 `shared/ipc.ts` 的 `./types` 导入块（实际定义在 `./schemas`），tsc TS2305 抓出。
 
+> ✅ **E25（2026-10-05）：API Key 迁 Electron safeStorage（修一次安全性退步），提交 `10887fa`**。
+> **退步事实**：E22 把 AI 生图 apiKey 明文存 localStorage（`mb.imageGenConfig`），而 Python `config/settings.py` 用 Fernet 加密存 key。`shared/secretNames.ts` 仅登记 `imageGen.apiKey`（不进 `ItemRecord`，快照无密钥泄漏）。
+> **核心设计（渲染层永远拿不到明文）**：渲染层 `sandbox:true`+`contextIsolation:true` 本就无 `safeStorage`；写入=明文经 IPC 交主进程 `secretStore` 加密落 `userData/secrets.enc`，成功即清空输入框；读取=**刻意不提供取明文 IPC**（`MbApi.settings` 仅 has/set/delete，preload 同），`image:generate` 传空 key、主进程 `secretStore.get()` 本地解密自用。**safeStorage 不可用 → 拒绝写入，绝不降级明文**。
+> **一次性迁移**：E22 旧明文 → 搬进钥匙串 → **无论成败都无条件抹掉 localStorage 该字段**（失败保留明文=给攻击者无限重试窗口，取舍认可）。`StoredImageGenConfig` 的 apiKey 字段**整个删除** + `saveImageGenConfig` 改显式白名单（硬塞也写不出去）。
+> **验证**：eslint 0 / 双端 tsc 0 / vitest **91 文件 1313 测试全绿**（+2 文件 +43）/ build OK。主代理独立复算并另验 4 条安全属性（无取明文通道 / preload 无 get 桥 / imageGenConfig 零引用 apiKey / 主进程本地解密），非采信自报。**审计数字不变（TS 侧安全加固，非 Python 迁移）**。
+
+> ✅ **E26（2026-10-05）：`shared/` 分层最小整理（方案 C），提交 `3a0c469`**。
+> **背景**：架构师调研 + 主代理独立复算后否决「全量重排 shared/（66 文件/17,011 行）」——跨业务域违规仅 2 条（`agent/session.ts`→`ceshuModel.formatLocalTimestamp`、`attrSystem.ts`→`ceshuModel.isPlainObject`）；`ipc.ts` 19 个内部依赖全 `import type`（运行时零耦合）；TS6307 硬红线（58/66 文件被测试直接 import，下放 renderer 即报错）。全量拆分=手改 354 处 import 无兜底。
+> **采纳方案 C（成本全量 1/38）**：`shared/README.md` 分区契约（contract/domain/config/service/util + 放置决策树 + 预挂规则说明）+ 4 条 ESLint `no-restricted-imports` 边界规则（零新依赖，**自动阻止混装继续累积**）；定向移出 5 个零内部依赖叶子文件（`ceshuDefaults`/`ceshuFields`/`ceshuTemplateData` → `domain/ceshu/`，`api` → `service/api`）+ 消除 2 条真跨域边（`isPlainObject`/`formatLocalTimestamp` 下沉 `util/` 并 re-export 兼容 ~60 调用方）。
+> **验证**：eslint 0 / 双端 tsc 0 / vitest 全绿 / build OK。规则经 ESLint Node API 探针实证 4 条全 FIRES（非死规则）。**审计数字不变（TS 侧重构，非 Python 迁移）**。
+
+> ✅ **E27（2026-10-05）：通用撤销/重做（undo/redo）"安全子集"，提交 `581c64c`**。
+> **动因（读源码后定，非按名字）**：TS 侧**完全没有**用户手动操作撤销/重做，误删/误改无法回退，是唯一数据安全缺口。Python `brain_plan.py:225-260` 的 `_undo_stack`（深度 50）**只服务 AI plan**、只处理 create/delete 且 delete 撤销不了、update 未记录 → 不能照搬；TS `operationLog.ts::buildRollbackPlan` 逆向能力更全（缺快照进 `skipped` 附中文原因）但仅限 AI 会话。**本刀=把逆向能力改造成持久可交互的 undo/redo 栈，服务对象扩到用户手动操作**。
+> **两点设计决策（诚实 scope）**：① **栈进主进程 `AppStores`**（`stores.ts` 每库重建 → 切换库物理清空，零额外代码，E7 结构性保证；不用模块级单例——违反零全局可变状态）；② **记录点在 `DataService` 漏斗**（7 个渲染层调用点 + AI `gameDataSkill` 全部经此，一次覆盖）；复用 `operationLog` 的中文原因纪律但新写纯栈逻辑于 `shared/util/undoStack.ts`（双端 tsc 覆盖，且不 import `agent/` 业务层以守分层）。**排除** importRecords（靠 backup）、持久化、跨库 redo。
+> **fail-soft 铁律（宁缺勿错）**：compare-and-skip 防覆盖（撤销 create/update 时条目被改过 → 跳过，绝不丢用户后续编辑；E2/E3 最值钱）、E4 撤销 delete 时 id 冲突 → 跳过绝不盲覆盖、E8 peek-then-commit（写失败保留 entry、历史不丢）、E10 经 `restoreItem` 写回完整快照（含 createdAt，恢复被删项不丢排序）、重入防护（undo/redo 只走 `restoreItem`/`deleteById` 非记录原语，不自记录成环）。
+> **交付**：`shared/util/undoStack.ts`（224）+ `main/data/undoRecorder.ts`（220）+ `main/data/service.ts`（+147，5 个 mutator 记录 + 非记录原语 `restoreItem`/`deleteById`/`runAtomicTask`/`getItem`/`exists`）+ `main/stores.ts`（+7）+ `shared/ipc.ts`（+27，3 通道）+ `main/ipc.ts`（+8）+ `shared/service/api.ts`（+6）+ `preload/index.ts`（+3）+ `renderer/App.tsx`（+101，Ctrl/Cmd+Z 撤销、Ctrl/Cmd+Shift+Z/Ctrl+Y 重做、工具栏 undo/redo 按钮、setNotice 反馈）+ 3 个测试文件（unit×2 199+369、e2e×1 109）。
+> **验证（主代理独立复算，非采信自报）**：双端 tsc **0 错误** / eslint **0 error** / undo 单元 **24/24 通过**（含 E2/E3/E8 三危险路径：create 后被改→跳过保留编辑、update 后被改→跳过不回写且栈顶保留、restore 抛错→failed 返回且 entry 保留历史不丢）；**E2E 本沙箱无 Electron 未实跑**（与既有 E2E 同源受限）。**审计数字不变（TS 侧新功能，非 Python 迁移）**。
+
 ## 3. 每片执行流程（固定顺序）
 
 1. **调研**：读 Python 源码，锁定语义与缺陷，写成「调研结论」（含精确数字）。

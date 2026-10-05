@@ -54,6 +54,9 @@ const REQUIRED_ROADMAP_MARKERS: readonly string[] = [
   '9294a8a', // E22 AI 生图子系统（补齐 §4 #7 能力缺口）
   '5e5b0b0', // E23 统一设置存储基座（#8 C 档外围第一项）
   'c11ed5f', // E24 收敛重复 storage 助手 + 窗口状态持久化（#8 第二项）
+  '10887fa', // E25 API Key 迁 Electron safeStorage（修安全性退步）
+  '3a0c469', // E26 shared/ 分层最小整理（方案 C）
+  '581c64c', // E27 通用撤销/重做（undo/redo 安全子集）
   'E4（2026-10-04）',
   'E5（2026-10-04）',
   'E6（2026-10-04）',
@@ -75,6 +78,9 @@ const REQUIRED_ROADMAP_MARKERS: readonly string[] = [
   'E22（2026-10-05）',
   'E23（2026-10-05）',
   'E24（2026-10-05）',
+  'E25（2026-10-05）',
+  'E26（2026-10-05）',
+  'E27（2026-10-05）',
   '已由 E7 补齐', // E6 遗留项已被 E7 补齐的标记（回退会退回旧措辞）
   'migration-audit.md' // §2 必须指向文件级审计
 ]
