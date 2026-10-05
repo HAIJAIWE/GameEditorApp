@@ -60,6 +60,7 @@ const REQUIRED_ROADMAP_MARKERS: readonly string[] = [
   'de104be', // E28 顶层 IA 对齐 PyQt（去侧栏 + 角部件 + 策划书中心）
   '8502638', // E29 E2E 全量迁移——地基（helper + 收敛 51 文件门禁）
   '5471256', // E29 E2E 全量迁移——收尾（数字员工面板去 mode-digital，死引用归零）
+  '1d96b0e', // E30 视觉与交互细节对齐 PyQt（配色/图标/首页AI卡/表单行/章节导航）
   'E4（2026-10-04）',
   'E5（2026-10-04）',
   'E6（2026-10-04）',
@@ -86,6 +87,7 @@ const REQUIRED_ROADMAP_MARKERS: readonly string[] = [
   'E27（2026-10-05）',
   'E28（2026-10-05）',
   'E29（2026-10-05）',
+  'E30（2026-10-06）',
   '已由 E7 补齐', // E6 遗留项已被 E7 补齐的标记（回退会退回旧措辞）
   'migration-audit.md' // §2 必须指向文件级审计
 ]
