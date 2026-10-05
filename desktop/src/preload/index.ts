@@ -93,6 +93,10 @@ const api: MbApi = {
     restore: (req) => invoke('backup:restore', req),
     remove: (req) => invoke('backup:delete', req)
   },
+  llm: {
+    /** 单次文本生成（字段级 AI 按钮）；失败由主进程抛中文错误 */
+    generate: (req: { system: string; prompt: string }) => invoke('llm:generate', req)
+  },
   dialog: {
     chooseJsonFile: () => invoke('dialog:chooseJsonFile', undefined),
     chooseEngineExportFile: (req) => invoke('dialog:chooseEngineExportFile', req),

@@ -124,6 +124,10 @@ export interface MbApi {
     restore(req: IpcContract['backup:restore']['req']): Promise<IpcContract['backup:restore']['res']>
     remove(req: IpcContract['backup:delete']['req']): Promise<IpcContract['backup:delete']['res']>
   }
+  llm: {
+    /** 单次文本生成（数据编辑器字段级 AI 按钮） */
+    generate(req: IpcContract['llm:generate']['req']): Promise<IpcContract['llm:generate']['res']>
+  },
   dialog: {
     chooseJsonFile(): Promise<IpcContract['dialog:chooseJsonFile']['res']>
     chooseEngineExportFile(

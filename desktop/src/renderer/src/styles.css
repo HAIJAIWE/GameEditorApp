@@ -706,6 +706,34 @@ body {
   background: var(--bg);
 }
 
+/* desc 类字段的容器（文本域 + AI 按钮行），纵向排布让按钮落在文本域下方 */
+.desc-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+/*
+ * 字段级 AI 按钮行。对齐 PyQt `_create_desc_widget` 的
+ * `QHBoxLayout` + `addStretch()`：按钮左对齐、右侧留白，不撑满。
+ */
+.field-ai-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* AI 失败原因就地显示（不弹窗打断表单填写） */
+.field-ai-error {
+  color: var(--danger);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /*
  * `image_desc` 专用高度：PyQt `dynamic_form.py` 的 image_desc 分支是
  * `QTextEdit` + `setMaximumHeight(60)`（多行，但比 desc 的 120 矮一半）。

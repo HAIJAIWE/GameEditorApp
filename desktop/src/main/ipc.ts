@@ -40,6 +40,7 @@ import {
   agentDraftLoadInputSchema,
   agentDraftSaveInputSchema,
   engineExportFileDialogInputSchema,
+  llmGenerateInputSchema,
   libraryCreateInputSchema,
   libraryNameInputSchema,
   libraryRenameInputSchema,
@@ -109,6 +110,7 @@ import { buildSystemConfirmResult } from '../shared/ceshuSystemConfirm'
 import { buildReferenceReport } from '../shared/references'
 import { scoreCeshu } from '../shared/ceshuScorer'
 import { validateCeshu } from '../shared/ceshuValidation'
+
 import { buildWordStatsReport } from '../shared/ceshuWordStats'
 import { buildImagePreviewDataUrl } from '../shared/imagePreview'
 import type { AppInfo } from '../shared/types'
@@ -217,6 +219,14 @@ export function registerIpcHandlers({
     sink[req.level](req.message, req.meta)
     return undefined
   })
+  /**
+   * 单次文本生成（数据编辑器字段级 AI 按钮）。
+   * 复用 `main/llm/client.ts` 的既有 `LlmClient`（本地 ollama）——
+   * 项目里已有这个客户端与它的中文错误文案，**刻意不新建第二套模型客户端**。
+   * 失败直接抛（handler 层会转成 `{code,message}` 抛回渲染层），UI 展示中文原因。
+   */
+  handle('llm:generate', llmGenerateInputSchema, async (req) => llmClient.generate(req.system, req.prompt))
+
   // ---- 系统钥匙串（API Key 等敏感配置）----
   // 设计前提：渲染层永远拿不到明文，所以只有 has / set / delete 三条通道，**没有 get**。
   // 三条 handler 都**不抛**：失败转成 `{ ok: false, error }`（照本仓既有风格），

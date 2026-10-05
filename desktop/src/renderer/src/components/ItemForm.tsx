@@ -10,7 +10,18 @@ import {
   type DropEntry
 } from '../../../shared/dropTable'
 import { buildFormLayout, fieldLabelFor, isComplexFieldType } from '../../../shared/formSections'
+import {
+  autoFillLabel,
+  buildAutoImageInfo,
+  buildDescContext,
+  buildDescPrompt,
+  buildImageTagsPrompt,
+  mergeImageTagsResult
+} from '../../../shared/fieldAiAssist'
 import { imagePreviewUnavailableReason } from '../../../shared/imagePreview'
+import type { ImageGenConfig } from '../../../shared/imageGen'
+import { loadImageGenConfig } from '../../../shared/imageGenConfig'
+import { SECRET_NAMES } from '../../../shared/secretNames'
 import { resolveFieldLabel } from '../../../shared/gameStyle'
 import {
   canParseAsRefTable,
@@ -196,9 +207,45 @@ interface FieldControlProps {
    * 用来把模板文本联动写进同类型的 `desc` 字段 —— 语义由调用方决定，这里只负责传出来。
    */
   onTemplatePicked?: (templateText: string) => void
+  /**
+   * 字段级 AI 辅助所需的上下文（PyQt `dynamic_form.py::_create_desc_widget` 等
+   * 靠 `self.get_data()` / `self.widgets` 拿同表单的其它值）。
+   * TS 侧由 ItemForm 显式传入 —— **不引全局单例**，组件自己不知道整份表单长什么样。
+   */
+  aiAssist?: FieldAiAssist
+  /** 当前表单里 `image` 字段的值（图片类按钮需要路径才能分析/生图） */
+  imagePath?: string
+  /** 当前条目的名称（「自动填充」模板要它，对齐 PyQt `_on_auto_generate_image_info` 的 `data.get('name')`） */
+  itemName?: string
 }
 
-function FieldControl({ field, value, jsonMode, onChange, onTemplatePicked }: FieldControlProps) {
+/**
+ * 字段级 AI 按钮需要的宿主能力。
+ * 都是 async 且**由 ItemForm 统一兜错**，控件本身只管显示按钮与忙态。
+ */
+interface FieldAiAssist {
+  /** 生成 desc（对齐 PyQt `_on_ai_generate` → `features.generate_desc_only`） */
+  generateDesc: (fieldLabel: string, currentText: string) => Promise<string>
+  /**
+   * 为某个字段生成配图（对齐 PyQt `_on_ai_image`）。
+   * PyQt 只是 `QMessageBox.information("需要配置API密钥")` 的**占位桩**；
+   * TS 侧接真实的 `image:generate`（项目已有该通道）—— 详见 ItemForm 里的说明。
+   */
+  generateImage: (prompt: string) => Promise<string>
+  /** 现有图片路径存在时，让模型提取标签（对齐 PyQt `_on_ai_analyze_image`） */
+  analyzeImageTags: (imagePath: string) => Promise<string>
+}
+
+function FieldControl({
+  field,
+  value,
+  jsonMode,
+  onChange,
+  onTemplatePicked,
+  aiAssist,
+  imagePath,
+  itemName = ''
+}: FieldControlProps) {
   const testId = `field-${field.name}`
   /**
    * 本次会话里刚选中的图片（路径 + 主进程回传的 data URL）。
@@ -208,6 +255,29 @@ function FieldControl({ field, value, jsonMode, onChange, onTemplatePicked }: Fi
    */
   const [picked, setPicked] = useState<{ path: string; dataUrl: string; bytes: number } | null>(null)
   const [picking, setPicking] = useState(false)
+  /**
+   * 正在跑的 AI 动作（键是动作名，用于按钮各自的忙态）。
+   * 用派生渲染而非多个布尔 —— 三个布尔会出现「两个同时转圈」的不可能状态。
+   */
+  const [aiBusy, setAiBusy] = useState<string | null>(null)
+  /** AI 失败的中文原因（就地显示，不弹窗打断表单） */
+  const [aiError, setAiError] = useState<string | null>(null)
+
+  /**
+   * 跑一个 AI 动作并把结果写回字段。
+   * `apply` 拿到结果决定写什么（整段替换还是追加），出错统一显示中文原因。
+   */
+  const runAi = async (name: string, action: () => Promise<string>, apply: (result: string) => void): Promise<void> => {
+    setAiBusy(name)
+    setAiError(null)
+    try {
+      apply(await action())
+    } catch (error: unknown) {
+      setAiError(error instanceof Error ? error.message : String(error))
+    } finally {
+      setAiBusy(null)
+    }
+  }
 
   if (jsonMode) {
     return (
@@ -387,30 +457,163 @@ function FieldControl({ field, value, jsonMode, onChange, onTemplatePicked }: Fi
      */
     case 'image_desc':
       return (
-        <textarea
-          id={testId}
-          className="form-textarea image-desc-textarea"
-          data-testid={testId}
-          rows={2}
-          value={String(value ?? '')}
-          readOnly={!field.editable}
-          onChange={(event) => onChange(event.target.value)}
-        />
+        <div className="image-field" data-testid={`${testId}-wrap`}>
+          <textarea
+            id={testId}
+            className="form-textarea image-desc-textarea"
+            data-testid={testId}
+            rows={2}
+            value={String(value ?? '')}
+            readOnly={!field.editable}
+            onChange={(event) => onChange(event.target.value)}
+          />
+          <div className="field-ai-actions">
+            <button
+              type="button"
+              className="btn slim"
+              data-testid={`${testId}-auto-fill`}
+              disabled={!field.editable}
+              title="按条目名称填入占位描述（纯模板，不调用 AI）"
+              onClick={() => onChange(buildAutoImageInfo(itemName, '').desc)}
+            >
+              {autoFillLabel()}
+            </button>
+          </div>
+        </div>
       )
+    /*
+     * `desc` / `content` / `achievement_desc`：文本域 + 两个 AI 按钮
+     * （对齐 PyQt `dynamic_form.py::_create_desc_widget`：QTextEdit(120px) + 「AI生成」「AI生图」两枚）。
+     *
+     * 「AI生图」与 PyQt **刻意不同**：PyQt 的 `_on_ai_image` 只是一句
+     * `QMessageBox.information("AI图片生成功能需要配置API密钥")` 的**占位桩**（零能力）。
+     * TS 侧接真实的 `image:generate`（项目已有该通道，且主进程会用钥匙串里的 Key 覆盖空串），
+     * 否则这枚按钮就是「点了只弹一句你还没配 API」的装饰 —— 与项目「不放点了没反应的按钮」铁律冲突。
+     */
     case 'desc':
     case 'content':
-    case 'achievement_desc':
+    case 'achievement_desc': {
+      const current = String(value ?? '')
+      const locked = !field.editable
       return (
-        <textarea
-          id={testId}
-          className="form-textarea"
-          data-testid={testId}
-          rows={4}
-          value={String(value ?? '')}
-          readOnly={!field.editable}
-          onChange={(event) => onChange(event.target.value)}
-        />
+        <div className="desc-field" data-testid={`${testId}-wrap`}>
+          <textarea
+            id={testId}
+            className="form-textarea"
+            data-testid={testId}
+            rows={4}
+            value={current}
+            readOnly={locked}
+            onChange={(event) => onChange(event.target.value)}
+          />
+          {aiAssist !== undefined && (
+            <div className="field-ai-actions">
+              <button
+                type="button"
+                className="btn slim accent-outline"
+                data-testid={`${testId}-ai-generate`}
+                disabled={locked || aiBusy !== null}
+                title="按本表单已有的其它字段作为上下文，生成一段 50-100 字的描述"
+                onClick={() =>
+                  void runAi(
+                    'desc',
+                    () => aiAssist.generateDesc(field.label, current),
+                    onChange
+                  )
+                }
+              >
+                {aiBusy === 'desc' ? '生成中…' : 'AI生成'}
+              </button>
+              <button
+                type="button"
+                className="btn slim"
+                data-testid={`${testId}-ai-image`}
+                disabled={locked || aiBusy !== null}
+                title="用「AI生图」面板的同一套通道，按本条目名称与描述生成一张配图"
+                onClick={() =>
+                  void runAi(
+                    'image',
+                    () => aiAssist.generateImage(field.label),
+                    (result) => onChange(`${current}${current === '' ? '' : '\n'}${result}`)
+                  )
+                }
+              >
+                {aiBusy === 'image' ? '生图中…' : 'AI生图'}
+              </button>
+              {aiError !== null && (
+                <span className="form-hint field-ai-error" data-testid={`${testId}-ai-error`}>
+                  {aiError}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
       )
+    }
+    /*
+     * `image_tags`：单行标签框 + 「自动填充」「AI分析」
+     * （对齐 PyQt `dynamic_form.py::_create_image_tags_widget` 的两枚按钮）。
+     *
+     * **「自动填充」不调 AI**：PyQt 的 `_on_auto_generate_image_info` 是纯字符串模板
+     * （`f'{name}的图片描述'` / `f'{name},图片,游戏'`），按钮名里的「生成」容易误读成 AI。
+     * TS 侧文案明确叫「自动填充」，语义与 PyQt 一致但不骗人（详见 shared/fieldAiAssist.ts）。
+     */
+    case 'image_tags': {
+      const current = Array.isArray(value) ? value.map((part) => String(part)).join(', ') : String(value ?? '')
+      const locked = !field.editable
+      return (
+        <div className="image-field" data-testid={`${testId}-wrap`}>
+          <input
+            id={testId}
+            type="text"
+            className="form-input"
+            data-testid={testId}
+            placeholder="多个标签用逗号分隔"
+            value={current}
+            readOnly={locked}
+            onChange={(event) => onChange(event.target.value)}
+          />
+          <div className="field-ai-actions">
+            <button
+              type="button"
+              className="btn slim"
+              data-testid={`${testId}-auto-fill`}
+              disabled={locked}
+              title="按条目名称填入占位标签与描述（纯模板，不调用 AI）"
+              onClick={() => onChange(buildAutoImageInfo(itemName, '').tags)}
+            >
+              {autoFillLabel()}
+            </button>
+            <button
+              type="button"
+              className="btn slim accent-outline"
+              data-testid={`${testId}-ai-analyze`}
+              disabled={locked || aiBusy !== null || (imagePath ?? '') === ''}
+              title={
+                (imagePath ?? '') === ''
+                  ? '请先选择一张图片'
+                  : '让模型读取图片路径并提取视觉标签（追加到现有标签后）'
+              }
+              onClick={() => {
+                const path = imagePath ?? ''
+                void runAi(
+                  'analyze',
+                  () => (aiAssist === undefined ? Promise.reject(new Error('AI 能力不可用')) : aiAssist.analyzeImageTags(path)),
+                  (result) => onChange(mergeImageTagsResult(current, result))
+                )
+              }}
+            >
+              {aiBusy === 'analyze' ? '分析中…' : 'AI分析'}
+            </button>
+            {aiError !== null && (
+              <span className="form-hint field-ai-error" data-testid={`${testId}-ai-error`}>
+                {aiError}
+              </span>
+            )}
+          </div>
+        </div>
+      )
+    }
     default:
       return (
         <input
@@ -497,6 +700,25 @@ export default function ItemForm({
    *   是留给子类实现的钩子）。TS 侧同样**不猜占位符语义**，只做原文写入 —— 免得替换错了
    *   悄悄改掉用户的数据。
    */
+  /**
+   * 字段级 AI 的系统提示词。
+   *
+   * PyQt 的 `generate_desc_only` 把角色说明**内联在 user prompt 里**（`prompt = f"""【角色】…"""`），
+   * `system_prompt` 参数留空。TS 侧刻意拆成 system + prompt 两段：
+   * 本地 ollama 的 system 段参与「格式遵循」，拆开后角色约束更稳；
+   * **user prompt 的正文逐字照抄 PyQt**（见 `buildDescPrompt`），两边的提示词不打架。
+   */
+  const SYSTEM_PROMPT_TEXT = '你是一位游戏文案创作专家，擅长用精炼、有感染力的中文写出令人印象深刻的游戏描述。'
+
+  /** 当前条目所属类型的中文名（PyQt 直接传 `data_type`，那是英文 id；TS 侧用中文名更像给人看的上下文） */
+  const typeLabel = types.find((definition) => definition.id === item.type)?.name ?? item.type
+
+  /** 当前草稿里 `image` 字段的路径（图片类 AI 按钮需要它才能分析） */
+  const currentImagePath = (): string => {
+    const value = draft['image']
+    return typeof value === 'string' ? value : ''
+  }
+
   const handleTemplatePicked = (templateText: string): void => {
     const descField = fields.find((item) => item.name === 'desc' && item.editable)
     if (descField === undefined) return
@@ -507,6 +729,89 @@ export default function ItemForm({
     setDraft(buildInitialDraft(item.data, fields, item.type))
     setLocalError(null)
   }
+
+  /* ---- 字段级 AI 辅助（对齐 PyQt `dynamic_form.py` 的四个回调） ----
+     能力实现在这里、控件只管按钮与忙态 —— 这样上下文（整份表单草稿）只有一份真源。
+     提示词组装在 `shared/fieldAiAssist.ts`（纯函数、可单测），此处只负责发 IPC 与取回结果。 */
+
+  /** 当前草稿里的条目名（PyQt `data.get('name', '')`） */
+  const currentItemName = (): string => {
+    const value = draft['name']
+    return typeof value === 'string' ? value : ''
+  }
+
+  /** 「AI生成」：把整份草稿（排除 desc/description/image/id）作为上下文交给模型 */
+  const generateDescFor = async (fieldLabel: string, currentText: string): Promise<string> => {
+    const api = window.mbApi as unknown as {
+      llm: { generate: (req: { system: string; prompt: string }) => Promise<{ content: string }> }
+    }
+    const context = buildDescContext(typeLabel, draft)
+    // 字段标签进上下文：同类型里 desc / content 语义不同（描述 vs 正文），模型得知道写哪个
+    const prompt = `${buildDescPrompt(typeLabel, context)}\n【本次要填的字段】${fieldLabel}`
+    const reply = await api.llm.generate({ system: SYSTEM_PROMPT_TEXT, prompt })
+    const text = reply.content.trim()
+    if (text === '') throw new Error('AI 未返回内容，请重试或检查本地模型')
+    // 已有内容时追加而不是覆盖：用户手写的前半段不该被一键抹掉（PyQt 是直接 setPlainText 覆盖）
+    return currentText === '' ? text : `${currentText}\n${text}`
+  }
+
+  /**
+   * 「AI生图」：走项目既有的 `image:generate` 通道。
+   *
+   * 与 PyQt 的**本质差异**：PyQt `_on_ai_image` 只弹一句「需要配置API密钥」，是零能力桩；
+   * TS 侧是真的去生图。这里必须先落盘路径 —— `image:generate` 要求 `saveDir`，
+   * 未选过目录时弹原生目录选择框（复用 `dialog:chooseImageSaveDir`）。
+   */
+  const generateImageFor = async (fieldLabel: string): Promise<string> => {
+    const api = window.mbApi as unknown as {
+      dialog: { chooseImageSaveDir: () => Promise<{ path: string | null }> }
+      settings: { hasSecret: (req: { name: string }) => Promise<{ has: boolean }> }
+      image: {
+        generate: (req: unknown) => Promise<{ ok: true; path: string } | { ok: false; error: string }>
+      }
+    }
+    // 配置形态与 `ImageGenPanel` 保持一致：`apiKey` 传空串，主进程会用钥匙串里的真 Key 覆盖
+    // （见 main/ipc.ts 的 image:generate handler）—— 渲染层永远碰不到明文。
+    const stored = loadImageGenConfig()
+    const hasKey = await api.settings.hasSecret({ name: SECRET_NAMES.imageGenApiKey })
+    if (!hasKey.has) throw new Error('请先在「AI 生图」面板里配置 API Key')
+    const config: ImageGenConfig = {
+      enabled: true,
+      provider: stored.provider,
+      apiKey: '',
+      model: stored.model.trim() === '' ? undefined : stored.model.trim(),
+      baseUrl: stored.baseUrl.trim() === '' ? undefined : stored.baseUrl.trim()
+    }
+    const picked = await api.dialog.chooseImageSaveDir()
+    if (picked.path === null) throw new Error('已取消：未选择保存目录')
+    const subject = currentItemName()
+    const prompt = subject === '' ? `为${fieldLabel}生成一张配图` : `为「${subject}」生成一张配图（${fieldLabel}）`
+    const result = await api.image.generate({ config, prompt, saveDir: picked.path })
+    if (!result.ok) throw new Error(result.error)
+    return `配图已保存：${result.path}`
+  }
+
+  /** 「AI分析」：把图片路径交给模型提取标签（对齐 PyQt `_on_ai_analyze_image`） */
+  const analyzeImageTagsFor = async (imagePath: string): Promise<string> => {
+    const api = window.mbApi as unknown as {
+      llm: { generate: (req: { system: string; prompt: string }) => Promise<{ content: string }> }
+    }
+    const reply = await api.llm.generate({
+      system: SYSTEM_PROMPT_TEXT,
+      prompt: buildImageTagsPrompt(imagePath)
+    })
+    const text = reply.content.trim()
+    if (text === '') throw new Error('AI 未返回内容，请重试或检查本地模型')
+    return text
+  }
+
+  /** 传给所有字段控件的 AI 能力（一次构造，值稳定） */
+  const aiAssist = useMemo<FieldAiAssist>(
+    () => ({ generateDesc: generateDescFor, generateImage: generateImageFor, analyzeImageTags: analyzeImageTagsFor }),
+    // 依赖草稿与类型名：这两个进了提示词与生图 prompt，必须跟着变
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [draft, typeLabel]
+  )
 
   const handleSave = async (): Promise<void> => {
     setLocalError(null)
@@ -596,6 +901,9 @@ export default function ItemForm({
         jsonMode={jsonFields.has(field.name)}
         onChange={(value) => setValue(field.name, value)}
         onTemplatePicked={handleTemplatePicked}
+        aiAssist={aiAssist}
+        imagePath={currentImagePath()}
+        itemName={currentItemName()}
       />
     )
   }

@@ -39,6 +39,7 @@ import type {
   AgentChatInput,
   AgentExecuteToolInput,
   AgentDraftLoadInput,
+  LlmGenerateInput,
   AgentDraftSaveInput,
   AgentFeedbackInput,
   AgentInteractionResponseInput,
@@ -156,6 +157,12 @@ export interface IpcContract {
    * 渲染层不能直接引用本地路径（`webSecurity`），故由主进程代读。
    */
   'dialog:chooseImageFile': { req: undefined; res: { path: string | null; dataUrl: string; bytes: number } }
+  /**
+   * 单次文本生成（数据编辑器 desc 类字段的「AI生成」/ 图片标签的「AI分析」）。
+   * 复用主进程既有的 `LlmClient`（本地 ollama），**不新建模型客户端**。
+   */
+  'llm:generate': { req: LlmGenerateInput; res: { model: string; content: string } }
+
   // ---- 系统钥匙串（API Key 等敏感配置）----
   // 安全约定（不可违背）：渲染层是 sandbox + contextIsolation，**永远拿不到明文**。
   // 因此这里只有「有没有配过 / 写入 / 删除」三条通道，**刻意不存在**「读出明文」的 IPC。

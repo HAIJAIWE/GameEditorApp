@@ -125,6 +125,18 @@ export const agentDraftLoadInputSchema = z.object({
   path: z.string().min(1)
 })
 
+/* ---- 字段级 AI 辅助（对齐 Python `features/_ai_image.py` 的 desc 生成） ---- */
+
+/** 单次文本生成的入参 */
+export const llmGenerateInputSchema = z.object({
+  /** 系统提示（缺省则用一个通用的「游戏文案助手」人格） */
+  system: z.string().max(4000).default(''),
+  /** 用户提示（必填；组装逻辑在 shared/fieldAiAssist，渲染层只传结果） */
+  prompt: z.string().min(1).max(20000)
+})
+
+export type LlmGenerateInput = z.infer<typeof llmGenerateInputSchema>
+
 export const engineTargetSchema = z.enum(['lua', 'unity', 'unreal', 'godot', 'cocos2d'])
 
 export const engineExportInputSchema = z.object({
