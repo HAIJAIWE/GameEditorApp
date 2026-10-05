@@ -490,7 +490,6 @@ export default function App() {
       <MenuBar
         canUndo={undoUi.canUndo}
         canRedo={undoUi.canRedo}
-        hasSelection={true}
         actions={{
           importJson: handleImportLegacy,
           importCsv: handleImportCsv,

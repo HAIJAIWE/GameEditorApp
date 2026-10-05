@@ -67,11 +67,10 @@ type MenuNode = MenuActionItem | MenuSeparator | MenuSubmenu
 interface MenuBarProps {
   canUndo: boolean
   canRedo: boolean
-  hasSelection: boolean
   actions: MenuActions
 }
 
-export default function MenuBar({ canUndo, canRedo, hasSelection, actions }: MenuBarProps) {
+export default function MenuBar({ canUndo, canRedo, actions }: MenuBarProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(null)
   const barRef = useRef<HTMLDivElement>(null)
 
@@ -155,7 +154,7 @@ export default function MenuBar({ canUndo, canRedo, hasSelection, actions }: Men
     [
       { type: 'action', label: '快速创建向导', action: 'quickCreate' },
       { type: 'action', label: '批量修改数据', action: 'batchEdit' },
-      { type: 'action', label: '数据关联预览', action: 'references', disabled: !hasSelection },
+      { type: 'action', label: '数据关联预览', action: 'references' },
       { type: 'separator' },
       { type: 'action', label: '关系图', action: 'notImplemented' },
       { type: 'action', label: '数据对比', action: 'dataDiff' },
