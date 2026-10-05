@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { attrListToRows, rowsToAttrList, type AttrRow } from '../../../shared/attrList'
 import { attrPanelToRows, defaultAttrPanelRows, rowsToAttrPanel, type AttrPanelRow } from '../../../shared/attrPanel'
@@ -37,6 +37,24 @@ interface ItemFormProps {
    */
   gameStyle?: string
   onSaved: (updated: ItemRecord) => void
+  /**
+   * 打开「字段结构编辑器」（App 级浮层 TypeEditorPanel）编辑当前条目所属类型。
+   * 不提供则「更多 ▸」里不出现该项——本组件不自行造浮层，也不放点了没反应的按钮。
+   */
+  onEditType?: (typeId: string) => void
+  /**
+   * 打开「数据关联预览」（App 级浮层 ReferencesPanel）查看当前条目的引用关系。
+   * 入参形状与 `ReferencesPanel` 的 `ReferenceTarget` 一致（type / id / name）。
+   * 不提供则「更多 ▸」里不出现该项。
+   */
+  onShowReferences?: (target: { type: string; id: string; name: string }) => void
+  /** 打开「AI 数据生成」面板（宿主编排书级浮层 AiDataGenPanel）；不提供则不渲染该按钮 */
+  onAiGenerate?: (typeId: string) => void
+  /**
+   * 复制完成后回调（父级可据此选中副本并给出专门提示）。
+   * 复制本身由本组件走既有 `data:createItem` 完成；未提供时回退 `onSaved` 触发列表刷新。
+   */
+  onDuplicated?: (created: ItemRecord) => void
 }
 
 /**
@@ -258,10 +276,22 @@ function FieldControl({ field, value, jsonMode, onChange }: FieldControlProps) {
   }
 }
 
-export default function ItemForm({ item, fields, types, gameStyle = '', onSaved }: ItemFormProps) {
+export default function ItemForm({
+  item,
+  fields,
+  types,
+  gameStyle = '',
+  onSaved,
+  onEditType,
+  onShowReferences,
+  onAiGenerate,
+  onDuplicated
+}: ItemFormProps) {
   const [draft, setDraft] = useState<Record<string, unknown>>(() => buildInitialDraft(item.data, fields, item.type))
   const [saving, setSaving] = useState(false)
   const [localError, setLocalError] = useState<string | null>(null)
+  const [moreOpen, setMoreOpen] = useState(false)
+  const moreRef = useRef<HTMLDivElement | null>(null)
   const hasAttrTable = fields.some((field) => field.type === 'attrtable')
   const [attrSystem, setAttrSystem] = useState<AttrSystem | null>(null)
   const [attrSystemError, setAttrSystemError] = useState<string | null>(null)
@@ -282,6 +312,19 @@ export default function ItemForm({ item, fields, types, gameStyle = '', onSaved 
       cancelled = true
     }
   }, [hasAttrTable])
+
+  // 「更多 ▸」下拉：点击别处关闭（对齐工具栏下拉的常规行为）
+  useEffect(() => {
+    if (!moreOpen) return
+    const handleOutside = (event: MouseEvent): void => {
+      const node = event.target
+      if (moreRef.current !== null && node instanceof Node && !moreRef.current.contains(node)) {
+        setMoreOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleOutside)
+    return () => document.removeEventListener('mousedown', handleOutside)
+  }, [moreOpen])
 
   const jsonFields = new Set(
     fields.filter((field) => usesJsonEditor(field, item.data[field.name])).map((field) => field.name)
@@ -306,6 +349,30 @@ export default function ItemForm({ item, fields, types, gameStyle = '', onSaved 
       setSaving(true)
       const updated = await window.mbApi.data.updateItem({ id: item.id, data: payload })
       onSaved(updated)
+    } catch (error) {
+      setLocalError(error instanceof Error ? error.message : String(error))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  /**
+   * 复制当前条目为独立副本（对应 PyQt `data_tab._on_copy_clicked`）：
+   * 沿用当前表单内容 + 新 id（主进程 `createItem` 生成，对应 Python `generate_id`）。
+   * 副本不带原 id——`DataService.updateItem` 会在下次保存时把 data.id 与记录 id 对齐。
+   */
+  const handleDuplicate = async (): Promise<void> => {
+    setLocalError(null)
+    try {
+      const payload = buildPayload(draft, fields, item.id, jsonFields)
+      delete payload.id
+      setSaving(true)
+      const created = await window.mbApi.data.createItem({ type: item.type, data: payload })
+      if (onDuplicated) {
+        onDuplicated(created)
+      } else {
+        onSaved(created)
+      }
     } catch (error) {
       setLocalError(error instanceof Error ? error.message : String(error))
     } finally {
@@ -434,6 +501,81 @@ export default function ItemForm({ item, fields, types, gameStyle = '', onSaved 
         <button type="button" className="btn primary" disabled={saving} onClick={() => void handleSave()}>
           保存
         </button>
+        <button
+          type="button"
+          className="btn"
+          data-testid="item-form-duplicate"
+          disabled={saving}
+          onClick={() => void handleDuplicate()}
+        >
+          复制
+        </button>
+        {onAiGenerate !== undefined && (
+          <button
+            type="button"
+            className="btn"
+            data-testid="item-form-ai-generate"
+            onClick={() => onAiGenerate(item.type)}
+          >
+            AI 生成
+          </button>
+        )}
+        {/*
+          「更多 ▸」收纳低频项（对应 PyQt data_tab 的 more_btn 菜单）。
+          每一项仅在父级确实传入了回调时才渲染，保证菜单里不存在点了没反应的死控件。
+          新建 / 删除按既有约定留在左栏（DataEditorTab），此处不再重复。
+        */}
+        {(onEditType !== undefined || onShowReferences !== undefined) && (
+          <div className="toolbar-more" ref={moreRef}>
+            <button
+              type="button"
+              className="btn"
+              data-testid="item-form-more"
+              aria-expanded={moreOpen}
+              onClick={() => setMoreOpen((open) => !open)}
+            >
+              更多 ▸
+            </button>
+            {moreOpen && (
+              <div className="toolbar-more-menu" data-testid="item-form-more-menu">
+                {onEditType !== undefined && (
+                  <div className="toolbar-more-group">
+                    <button
+                      type="button"
+                      className="toolbar-more-item"
+                      data-testid="item-form-more-edit-type"
+                      onClick={() => {
+                        setMoreOpen(false)
+                        onEditType(item.type)
+                      }}
+                    >
+                      编辑当前类型字段结构
+                    </button>
+                  </div>
+                )}
+                {onShowReferences !== undefined && (
+                  <div className="toolbar-more-group">
+                    <button
+                      type="button"
+                      className="toolbar-more-item"
+                      data-testid="item-form-more-references"
+                      onClick={() => {
+                        setMoreOpen(false)
+                        onShowReferences({
+                          type: item.type,
+                          id: item.id,
+                          name: String(item.data.name ?? item.id)
+                        })
+                      }}
+                    >
+                      查看此项的引用关系
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </aside>
   )
