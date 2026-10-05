@@ -92,7 +92,8 @@ test('数字员工面板：桩服务驱动一轮「思考 → 工具 → 结果�
     const window = await app.firstWindow()
     await waitReady(window)
 
-    await window.getByTestId('mode-digital').click()
+    // 新 IA 下 AI 助手（数字员工）面板常驻右栏——`App.tsx` 的 `.ai-dock` 无条件渲染，
+    // 侧栏与 `mode-digital` 切换入口已随 IA 重写删除，故无需再点击进入。
     await expect(window.getByTestId('digital-panel')).toBeVisible()
     await expect(window.getByTestId('digital-status')).toHaveText('待命')
 
@@ -149,7 +150,7 @@ test('数字员工面板：上一轮会话落盘后，重新启动可看到「�
     try {
       const firstWindow = await first.firstWindow()
       await waitReady(firstWindow)
-      await firstWindow.getByTestId('mode-digital').click()
+      // AI 面板常驻右栏，无需切换入口
       await firstWindow.getByTestId('digital-input').fill('看看有哪些数据类型')
       await firstWindow.getByTestId('digital-send').click()
       await expect(
@@ -164,7 +165,7 @@ test('数字员工面板：上一轮会话落盘后，重新启动可看到「�
     try {
       const window = await second.firstWindow()
       await waitReady(window)
-      await window.getByTestId('mode-digital').click()
+      // AI 面板常驻右栏，无需切换入口
       await expect(window.getByTestId('digital-session-prompt')).toBeVisible()
       await expect(window.getByTestId('digital-session-prompt')).toContainText('检测到上次会话')
 
@@ -196,7 +197,7 @@ async function runDangerousRound(decision: 'approve' | 'reject'): Promise<{
   try {
     const window = await app.firstWindow()
     await waitReady(window)
-    await window.getByTestId('mode-digital').click()
+    // AI 面板常驻右栏，无需切换入口
 
     await window.getByTestId('digital-input').fill('帮我算 40+2')
     await window.getByTestId('digital-send').click()
@@ -260,7 +261,7 @@ test('数字员工面板：多问题提问逐题作答后一次性提交，答�
   try {
     const window = await app.firstWindow()
     await waitReady(window)
-    await window.getByTestId('mode-digital').click()
+    // AI 面板常驻右栏，无需切换入口
     await window.getByTestId('digital-input').fill('帮我设计一个角色')
     await window.getByTestId('digital-send').click()
 
@@ -312,7 +313,7 @@ test('数字员工面板：删除条目走「操作确认」交互，确认后�
       await api.data.createItem({ type: 'role', data: { name: '待删法师' } })
     })
 
-    await window.getByTestId('mode-digital').click()
+    // AI 面板常驻右栏，无需切换入口
     await window.getByTestId('digital-input').fill('删掉待删法师')
     await window.getByTestId('digital-send').click()
 
@@ -352,7 +353,7 @@ test('数字员工面板：ask_user 提问走「需要你澄清」交互，答�
   try {
     const window = await app.firstWindow()
     await waitReady(window)
-    await window.getByTestId('mode-digital').click()
+    // AI 面板常驻右栏，无需切换入口
     await window.getByTestId('digital-input').fill('帮我建个角色')
     await window.getByTestId('digital-send').click()
 
