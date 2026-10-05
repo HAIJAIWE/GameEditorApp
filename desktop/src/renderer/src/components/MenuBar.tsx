@@ -36,6 +36,8 @@ export interface MenuActions {
   dataDiff: () => void
   stats: () => void
   attrSystem: () => void
+  /** 游戏数据预览（对齐 PyQt `menus.py:69`「导出 → 游戏数据预览」） */
+  gameDataPreview: () => void
   /** 字段结构编辑器（TS 独有入口：该面板无 PyQt 菜单项） */
   fieldEditor: () => void
   /** 高级搜索（TS 独有入口） */
@@ -154,7 +156,7 @@ export default function MenuBar({ canUndo, canRedo, actions }: MenuBarProps) {
           { type: 'action', label: '导出为 Godot 格式', action: 'engineExport', arg: 'godot', testid: 'menuitem-file-exportGodot' },
           { type: 'action', label: '导出为 Cocos2d 格式', action: 'engineExport', arg: 'cocos2d', testid: 'menuitem-file-exportCocos' },
           { type: 'separator' },
-          { type: 'action', label: '游戏数据预览', action: 'notImplemented' }
+          { type: 'action', label: '游戏数据预览', action: 'gameDataPreview', testid: 'menuitem-file-gameDataPreview' }
         ]
       },
       { type: 'separator' },

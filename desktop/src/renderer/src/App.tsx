@@ -12,6 +12,7 @@ import AttrSystemPanel from './components/AttrSystemPanel'
 import BackupPanel from './components/BackupPanel'
 import BatchEditPanel from './components/BatchEditPanel'
 import CeshuHomePanel from './components/CeshuHomePanel'
+import GameDataPreviewPanel from './components/GameDataPreviewPanel'
 import CeshuView from './components/CeshuView'
 import { type PreviewJumpTarget } from './components/ceshu/CeshuDataPreview'
 import DataDiffPanel from './components/DataDiffPanel'
@@ -51,6 +52,7 @@ type OverlayPanel =
   | 'quickCreate'
   | 'batch'
   | 'references'
+  | 'gameDataPreview'
 
 /** 浮层头部标题（与菜单项一致，便于用户确认当前打开的是哪个能力） */
 const PANEL_TITLES: Record<OverlayPanel, string> = {
@@ -63,7 +65,8 @@ const PANEL_TITLES: Record<OverlayPanel, string> = {
   imageGen: 'AI 生图',
   quickCreate: '快速创建向导',
   batch: '批量修改数据',
-  references: '数据关联预览'
+  references: '数据关联预览',
+  gameDataPreview: '游戏数据预览'
 }
 
 /**
@@ -218,6 +221,21 @@ export default function App() {
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [performUndo, performRedo])
+
+  /**
+   * Esc 关闭当前浮层面板（对齐 PyQt 的 QDialog 默认行为：`Esc` = 取消/关闭）。
+   * TS 的浮层是 div 不是 QDialog，不注册这个键就关不掉 —— 属于交互缺失而非风格差异。
+   * 已在输入框/下拉里按 Esc 的先由各自处理（事件冒泡到这里时浮层多半也该关，故不额外判断）。
+   */
+  useEffect(() => {
+    if (panel === null) return undefined
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key !== 'Escape') return
+      setPanel(null)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [panel])
 
   useEffect(() => {
     window.mbApi.app
@@ -515,6 +533,8 @@ export default function App() {
         return <BackupPanel onRestored={() => refreshUndo()} onClose={() => setPanel(null)} />
       case 'imageGen':
         return <ImageGenPanel onClose={() => setPanel(null)} />
+      case 'gameDataPreview':
+        return <GameDataPreviewPanel />
       case 'quickCreate':
         return (
           <QuickCreatePanel
@@ -566,6 +586,7 @@ export default function App() {
           redo: () => void performRedo(),
           quickCreate: () => openPanel('quickCreate'),
           references: () => openPanel('references'),
+          gameDataPreview: () => openPanel('gameDataPreview'),
           dataDiff: () => openPanel('dataDiff'),
           stats: () => openPanel('stats'),
           attrSystem: () => openPanel('attrSystem'),

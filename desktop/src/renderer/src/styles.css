@@ -657,6 +657,27 @@ body {
   resize: vertical;
 }
 
+/*
+ * 游戏数据预览的 JSON 文本（对齐 PyQt 只读 QTextEdit 的等宽字体：
+ * `Cascadia Code, Consolas, 9`；此处用 CSS 栈取系统等宽，不绑死具体字体名）。
+ */
+.game-data-preview-text {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  padding: 12px 14px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Cascadia Code', Consolas, 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre;
+  tab-size: 2;
+}
+
 /* 图片字段：只读路径框 + 选择按钮一行，缩略图在下（对齐 PyQt 的三件套布局） */
 .image-field {
   display: flex;

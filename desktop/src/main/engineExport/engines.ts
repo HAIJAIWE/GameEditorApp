@@ -1,5 +1,4 @@
-import { getTypeById } from '../../shared/typeSchema'
-import type { DataTypeDef, ItemRecord } from '../../shared/types'
+import { bucketize } from '../../shared/dataBuckets'
 
 /**
  * 目标引擎（不含 `lua`——Lua 渲染器在 `./lua.ts`，本文件处理另外四个）。
@@ -38,25 +37,10 @@ const COCOS_KEYS = ['skills', 'roles', 'monsters', 'equips', 'items', 'talents',
 const TEMPLATE_KEYS = ['skills', 'roles', 'monsters', 'equips', 'items'] as const
 
 /**
- * 数据按 schema 的 `pluralKey` 归桶。
- *
- * 与 Python 的 `data_manager.data`（`dict[str, list[dict]]`，键是复数类型名）语义对齐；
- * `pluralKey` 缺失时回退 `record.type` 原文，**保证数据不丢**。
+ * 数据分桶：实现已上移到 `shared/dataBuckets.ts`（「游戏数据预览」面板也要用同一份口径），
+ * 这里转出去以保持本模块既有的导出面不变。
  */
-export function bucketize(records: ItemRecord[], types: DataTypeDef[]): Map<string, Record<string, unknown>[]> {
-  const buckets = new Map<string, Record<string, unknown>[]>()
-  for (const record of records) {
-    const key = getTypeById(types, record.type)?.pluralKey ?? record.type
-    const bucket = buckets.get(key)
-    const row = record.data as Record<string, unknown>
-    if (bucket) {
-      bucket.push(row)
-    } else {
-      buckets.set(key, [row])
-    }
-  }
-  return buckets
-}
+export { bucketize }
 
 /** 取某桶的数据行；不存在返回空数组（不返回 undefined，调用方不必判空） */
 function rowsOf(buckets: Map<string, Record<string, unknown>[]>, key: string): Record<string, unknown>[] {
