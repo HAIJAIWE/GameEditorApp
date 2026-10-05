@@ -21,7 +21,7 @@ import AiFullGeneratePanel from './AiFullGeneratePanel'
 import AiReviewPanel from './AiReviewPanel'
 import ChapterForm from './ChapterForm'
 import ChapterNotesPanel from './ChapterNotesPanel'
-import CeshuDataPreview from './ceshu/CeshuDataPreview'
+import CeshuDataPreview, { type PreviewJumpTarget } from './ceshu/CeshuDataPreview'
 import ChecklistPanel from './ChecklistPanel'
 import FieldDepsPanel from './FieldDepsPanel'
 import PresetMarketPanel from './PresetMarketPanel'
@@ -47,6 +47,12 @@ interface CeshuViewProps {
   gameStyle?: string
   /** 返回策划书首页（对齐 PyQt `editor_view.py::_on_back` 的 `back_requested`） */
   onBack: () => void
+  /** 跳转定位目标（透传给内嵌数据预览面板，命中启用编辑器时定位到对应条目） */
+  jumpTarget?: PreviewJumpTarget | null
+  /** 跳转已处理（透传；宿主据此清空 jumpTarget） */
+  onJumpHandled?: () => void
+  /** 跳转未命中（透传；宿主据此提示目标类型未被启用系统覆盖） */
+  onJumpMissed?: (name: string) => void
 }
 
 function toErrorMessage(error: unknown): string {
@@ -65,7 +71,18 @@ function groupByChapter(changes: CeshuChangeItem[]): Array<[string, CeshuChangeI
 }
 
 /** 策划书编辑器：章节导航（含进度）+ 章节表单 + 版本链操作 */
-export default function CeshuView({ ceshuId, onChanged, onSelect, onGameStyleChange, types, gameStyle, onBack }: CeshuViewProps) {
+export default function CeshuView({
+  ceshuId,
+  onChanged,
+  onSelect,
+  onGameStyleChange,
+  types,
+  gameStyle,
+  onBack,
+  jumpTarget,
+  onJumpHandled,
+  onJumpMissed
+}: CeshuViewProps) {
   const [doc, setDoc] = useState<CeshuDocument | null>(null)
   const [activeChapter, setActiveChapter] = useState<ChapterKey>('meta')
   const [error, setError] = useState<string | null>(null)
@@ -150,7 +167,7 @@ export default function CeshuView({ ceshuId, onChanged, onSelect, onGameStyleCha
   if (!ceshuId) {
     return (
       <div className="ceshu-view">
-        <div className="empty">请在左侧选择或新建策划书</div>
+        <div className="empty">请选择或新建策划书</div>
       </div>
     )
   }
@@ -679,6 +696,9 @@ export default function CeshuView({ ceshuId, onChanged, onSelect, onGameStyleCha
               gameStyle={gameStyle}
               onGotoSystems={() => setActiveChapter('systems')}
               onDataChanged={onChanged}
+              jumpTarget={jumpTarget}
+              onJumpHandled={onJumpHandled}
+              onJumpMissed={onJumpMissed}
             />
           </div>
         )}

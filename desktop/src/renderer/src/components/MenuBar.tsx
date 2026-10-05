@@ -34,8 +34,6 @@ export interface MenuActions {
   fieldEditor: () => void
   /** 高级搜索（TS 独有入口） */
   advancedSearch: () => void
-  /** 数据可见类型（TS 独有入口） */
-  typeVisibility: () => void
   /** AI 生图（TS 独有入口） */
   imageGen: () => void
   /** 角部件「设置」按钮 */
@@ -183,7 +181,6 @@ export default function MenuBar({ canUndo, canRedo, hasSelection, actions }: Men
       { type: 'action', label: '属性系统编辑器', action: 'attrSystem' },
       { type: 'action', label: '字段结构编辑器', action: 'fieldEditor' },
       { type: 'action', label: '高级搜索', action: 'advancedSearch' },
-      { type: 'action', label: '数据可见类型', action: 'typeVisibility' },
       { type: 'action', label: 'AI 生图', action: 'imageGen' },
       { type: 'action', label: '清理未使用图片', action: 'notImplemented' }
     ],

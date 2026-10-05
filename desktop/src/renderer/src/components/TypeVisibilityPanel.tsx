@@ -7,9 +7,10 @@ import { resolveVisibilityResult } from '../../../shared/visibleTypes'
  * 显示类型选择面板 —— 迁移自 Python `ui/dialogs/type_visibility_dialog.py`
  * 的 `TypeVisibilityDialog`。
  *
- * 作用域差异：Python 控制「首页数据概览卡片」，TS 侧收敛到**侧栏的类型列表**
- * （接线在 App.tsx，由父代理完成）。确认结果语义不变：
- * 全选→null（=默认全部显示）、全不选→[]（=全隐藏）、否则为勾选 id 列表。
+ * ⚠️ 当前**未接线**：它原本用于过滤侧栏的类型列表，而侧栏已随顶层 IA 重写一并下线
+ * （且 PyQt 无对应功能）。组件文件保留以留迁移痕迹，不再有菜单/入口引用。
+ *
+ * 确认结果语义不变：全选→null（=默认全部显示）、全不选→[]（=全隐藏）、否则为勾选 id 列表。
  */
 
 interface TypeVisibilityPanelProps {
@@ -50,7 +51,7 @@ export default function TypeVisibilityPanel({
 
       <div className="editor-body">
         <div className="form-label">
-          勾选要在侧栏显示的类型，未勾选的类型不会丢失数据，只是不在侧栏显示
+          勾选要显示的数据类型；未勾选的类型不会丢失数据，只是不在列表中显示
         </div>
 
         <div style={{ display: 'flex', gap: 8 }}>

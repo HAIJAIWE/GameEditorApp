@@ -11,6 +11,7 @@ import BackupPanel from './components/BackupPanel'
 import BatchEditPanel from './components/BatchEditPanel'
 import CeshuHomePanel from './components/CeshuHomePanel'
 import CeshuView from './components/CeshuView'
+import { type PreviewJumpTarget } from './components/ceshu/CeshuDataPreview'
 import DataDiffPanel from './components/DataDiffPanel'
 import DigitalPanel from './components/digital/DigitalPanel'
 import ImageGenPanel from './components/ImageGenPanel'
@@ -19,7 +20,6 @@ import QuickCreatePanel from './components/QuickCreatePanel'
 import ReferencesPanel, { type ReferenceTarget } from './components/ReferencesPanel'
 import StatisticsPanel from './components/StatisticsPanel'
 import TypeEditorPanel from './components/TypeEditorPanel'
-import TypeVisibilityPanel from './components/TypeVisibilityPanel'
 
 function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
@@ -48,7 +48,6 @@ type OverlayPanel =
   | 'imageGen'
   | 'quickCreate'
   | 'batch'
-  | 'typeVisibility'
   | 'references'
 
 /** 浮层头部标题（与菜单项一致，便于用户确认当前打开的是哪个能力） */
@@ -62,7 +61,6 @@ const PANEL_TITLES: Record<OverlayPanel, string> = {
   imageGen: 'AI 生图',
   quickCreate: '快速创建向导',
   batch: '批量修改数据',
-  typeVisibility: '数据可见类型',
   references: '数据关联预览'
 }
 
@@ -120,6 +118,8 @@ export default function App() {
   const [gameStyle, setGameStyle] = useState<string>(() => loadGameStyle())
   /** 引用面板的目标条目；由「高级搜索 → 点击结果跳转」回填，供菜单「数据关联预览」打开引用面板 */
   const [refTarget, setRefTarget] = useState<ReferenceTarget | null>(null)
+  /** 跳转定位目标（含递增 nonce 以支持重复跳转同一类型）；命中启用编辑器时在策划书预览面板定位条目 */
+  const [jumpTarget, setJumpTarget] = useState<PreviewJumpTarget | null>(null)
 
   /** 浮层面板需要「一个类型」作为载体时使用的兜底：schema 里第一个类型 */
   const firstType = types[0]?.id ?? null
@@ -271,8 +271,8 @@ export default function App() {
 
   /**
    * 打开浮层面板（菜单入口）。
-   * 需要「一个类型 / 一个目标条目」才能工作的面板（快速创建 / 批量 / 引用），
-   * 若无可用值则只给出 notice，不打开空面板。
+   * 需要「一个类型」才能工作的面板（快速创建 / 批量）若无可用类型则只给 notice。
+   * 「数据关联预览」无目标时不打开空面板，改为引导到「高级搜索」先完成定位（保证入口永不灰死）。
    */
   const openPanel = (kind: OverlayPanel): void => {
     if ((kind === 'quickCreate' || kind === 'batch') && firstType === null) {
@@ -280,16 +280,31 @@ export default function App() {
       return
     }
     if (kind === 'references' && refTarget === null) {
-      setNotice('「数据关联预览」需要一个目标条目：请先在「高级搜索」中点击某条结果完成定位')
+      setNotice('请先在「高级搜索」中搜索并点击一条结果完成定位，随后即可查看其引用关系')
+      setPanel('advancedSearch')
       return
     }
     setPanel(kind)
   }
 
-  /** 引用跳转：记录目标条目并提示（数据表视图已下线，无法直接定位到条目） */
+  /**
+   * 引用/搜索跳转：切到策划书编辑器并下发跳转目标以定位条目
+   * （对齐 PyQt `main_window._goto_data_design` / `preview_panel.focus_first_editor`）。
+   * 同时记录 refTarget，使「数据关联预览」可以直接打开该条目的引用关系。
+   */
   const handleJump = (type: string, itemId: string, name: string): void => {
     setRefTarget({ type, id: itemId, name })
-    setNotice(`已定位条目：${name}（${type}）`)
+    setCeshuHomeVisible(false)
+    setPanel(null)
+    setJumpTarget((prev) => ({ type, itemId, name, nonce: (prev?.nonce ?? 0) + 1 }))
+  }
+
+  /** 跳转已处理（预览面板点击标签页 / 未命中被驳回）：清空 jumpTarget，避免重复触发 */
+  const handleJumpHandled = (): void => setJumpTarget(null)
+
+  /** 跳转未命中：目标类型不在当前策划书启用的游戏系统里，给出可理解的提示 */
+  const handleJumpMissed = (name: string): void => {
+    setNotice(`该条目「${name}」所属的数据类型未在当前策划书启用的游戏系统中，无法定位`)
   }
 
   /** 浮层通知的「尚未实现」轻提示（供菜单项复用） */
@@ -454,20 +469,13 @@ export default function App() {
             key={`${firstType ?? ''}:batch`}
             type={firstType ?? ''}
             typeDef={types.find((def) => def.id === firstType) ?? null}
-            selectedIds={[]}
+            types={types}
             onApplied={handleBatchApplied}
             onClose={() => setPanel(null)}
           />
         )
-      case 'typeVisibility':
-        return (
-          <TypeVisibilityPanel
-            types={types}
-            value={null}
-            onConfirm={() => setPanel(null)}
-            onClose={() => setPanel(null)}
-          />
-        )
+      // 注：原「数据可见类型」面板（TypeVisibilityPanel）不再接线——它唯一的作用是过滤
+      // 已随侧栏一并下线的类型列表，且 PyQt 无对应功能。组件文件保留（迁移留痕），但不再有入口。
       case 'references':
         return refTarget ? (
           <ReferencesPanel target={refTarget} types={types} onJump={handleJump} onClose={() => setPanel(null)} />
@@ -482,7 +490,7 @@ export default function App() {
       <MenuBar
         canUndo={undoUi.canUndo}
         canRedo={undoUi.canRedo}
-        hasSelection={refTarget !== null}
+        hasSelection={true}
         actions={{
           importJson: handleImportLegacy,
           importCsv: handleImportCsv,
@@ -502,7 +510,6 @@ export default function App() {
           attrSystem: () => openPanel('attrSystem'),
           fieldEditor: () => openPanel('typeEditor'),
           advancedSearch: () => openPanel('advancedSearch'),
-          typeVisibility: () => openPanel('typeVisibility'),
           imageGen: () => openPanel('imageGen'),
           settings: () => notImplemented('设置'),
           agentEditor: () => notImplemented('智能体编辑器'),
@@ -546,6 +553,9 @@ export default function App() {
                   types={types}
                   gameStyle={gameStyle}
                   onBack={() => setCeshuHomeVisible(true)}
+                  jumpTarget={jumpTarget}
+                  onJumpHandled={handleJumpHandled}
+                  onJumpMissed={handleJumpMissed}
                 />
               )}
             </div>

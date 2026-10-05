@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import {
   ADJUST_MODES,
@@ -11,24 +11,51 @@ import {
 import type { DataTypeDef } from '../../../shared/types'
 
 /**
- * 批量操作面板（对应 Python BatchEditDialog）：
+ * 批量操作面板（对应 Python `ui/dialogs/batch_edit.py::BatchEditDialog`）。
+ *
  * 设置字段值 / 追加字段值（文本）/ 数值增减（加·乘·设）/ 添加标签 / 删除选中项。
- * 选中项来自左侧列表勾选；删除需二次确认（Python 为弹窗确认）；应用走 IPC 批量写入（单次写队列任务）。
+ *
+ * **作用范围（自选）**：对齐 PyQt——批量修改数据从菜单直接打开，由面板**自己选范围**
+ * （选类型 → 作用于该类型全部条目），不依赖任何外部勾选。当宿主传入非空 `selectedIds`
+ * 时才以传入选中为范围；否则顶部提供类型下拉，以该类型全部条目为范围。
+ * 删除需二次确认（Python 为弹窗确认）；应用/删除走 IPC 批量写入（单次写队列任务）。
  */
 
 type OpChoice = BatchOpKind | 'delete_selected'
 
 interface BatchEditPanelProps {
+  /** 初始作用类型（宿主一般传当前 schema 的第一个类型） */
   type: string
   typeDef: DataTypeDef | null
-  selectedIds: string[]
+  /** 全部数据类型定义（自选范围下类型下拉的选项来源） */
+  types: readonly DataTypeDef[]
+  /** 外部传入的选中条目 id；缺省/空表示改用面板自选的「整类型」范围 */
+  selectedIds?: string[]
   onApplied: (message: string) => void
   onClose: () => void
 }
 
-export default function BatchEditPanel({ type, typeDef, selectedIds, onApplied, onClose }: BatchEditPanelProps) {
+export default function BatchEditPanel({
+  type,
+  typeDef,
+  types,
+  selectedIds = [],
+  onApplied,
+  onClose
+}: BatchEditPanelProps) {
+  /** 外部是否提供了选中项（true 时沿用传入选中，false 时面板自选整类型范围） */
+  const externalSelection = selectedIds.length > 0
+  /** 自选作用类型：初始取传入 type（不在 types 中则回退到第一个类型） */
+  const [scopeType, setScopeType] = useState<string>(() =>
+    types.some((def) => def.id === type) ? type : (types[0]?.id ?? type)
+  )
+  /** 自选范围下该类型的全部条目 id（异步加载） */
+  const [scopeIds, setScopeIds] = useState<string[]>([])
+
+  const scopeDef = types.find((def) => def.id === scopeType) ?? typeDef
   // 字段选项与 Python _populate_fields 一致（列出全部字段）；id 为系统字段，排除以避免破坏条目身份
-  const fieldOptions = (typeDef?.formFields ?? []).filter((field) => field.name !== 'id')
+  const fieldOptions = (scopeDef?.formFields ?? []).filter((field) => field.name !== 'id')
+
   const [op, setOp] = useState<OpChoice>('set_value')
   const [field, setField] = useState(() => fieldOptions[0]?.name ?? 'name')
   const [value, setValue] = useState('')
@@ -39,10 +66,45 @@ export default function BatchEditPanel({ type, typeDef, selectedIds, onApplied, 
   const [errors, setErrors] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
 
-  const selectedCount = selectedIds.length
+  // 自选范围：按当前 scopeType 拉取该类型的全部条目 id。
+  // setState 只在 promise 回调里发生（不在 effect 体内同步 setState，避免级联渲染被 lint 禁止）。
+  useEffect(() => {
+    let cancelled = false
+    window.mbApi.data
+      .listItems({ type: scopeType })
+      .then((list) => {
+        if (!cancelled) setScopeIds(list.map((item) => item.id))
+      })
+      .catch(() => {
+        if (!cancelled) setScopeIds([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [scopeType])
+
+  /** 实际作用类型：外部选中用传入 type，自选范围用 scopeType */
+  const effectiveType = externalSelection ? type : scopeType
+  /** 实际作用 id 列表：外部选中优先，否则用自选范围加载结果 */
+  const effectiveIds = externalSelection ? selectedIds : scopeIds
+  const effectiveCount = effectiveIds.length
+  /** 当前生效字段（换类型后旧字段可能不在新字段表中，回退到第一个） */
+  const effectiveField = fieldOptions.some((option) => option.name === field)
+    ? field
+    : (fieldOptions[0]?.name ?? '')
 
   const changeOp = (next: OpChoice): void => {
     setOp(next)
+    setDeleteConfirm(false)
+    setErrors([])
+  }
+
+  /** 切换自选类型：同步重置字段选项（在事件处理器内完成，避免 effect 内 setState） */
+  const changeScopeType = (nextId: string): void => {
+    setScopeType(nextId)
+    const nextDef = types.find((def) => def.id === nextId)
+    const nextFields = (nextDef?.formFields ?? []).filter((item) => item.name !== 'id')
+    setField(nextFields[0]?.name ?? 'name')
     setDeleteConfirm(false)
     setErrors([])
   }
@@ -51,7 +113,7 @@ export default function BatchEditPanel({ type, typeDef, selectedIds, onApplied, 
     setErrors([])
     if (op === 'delete_selected') return
     // 与 Python _on_apply 的告警条件一致：追加/标签要求内容非空；其余要求选中字段
-    if (field === '') {
+    if (effectiveField === '') {
       setErrors(['请选择字段'])
       return
     }
@@ -66,9 +128,9 @@ export default function BatchEditPanel({ type, typeDef, selectedIds, onApplied, 
     setBusy(true)
     try {
       const summary = await window.mbApi.data.batchUpdate({
-        type,
-        ids: selectedIds,
-        op: { kind: op, field, value, separator, mode, adjust: clampInt(adjustText) }
+        type: effectiveType,
+        ids: effectiveIds,
+        op: { kind: op, field: effectiveField, value, separator, mode, adjust: clampInt(adjustText) }
       })
       const parts = [`已处理 ${summary.affected} 项`]
       if (summary.skipped > 0) parts.push(`${summary.skipped} 项非数值已跳过`)
@@ -85,7 +147,7 @@ export default function BatchEditPanel({ type, typeDef, selectedIds, onApplied, 
     setErrors([])
     setBusy(true)
     try {
-      const summary = await window.mbApi.data.deleteMany({ ids: selectedIds })
+      const summary = await window.mbApi.data.deleteMany({ ids: effectiveIds })
       const parts = [`已删除 ${summary.deleted} 项`]
       if (summary.missing > 0) parts.push(`${summary.missing} 项已不存在`)
       onApplied(`批量删除完成：${parts.join('，')}`)
@@ -96,18 +158,46 @@ export default function BatchEditPanel({ type, typeDef, selectedIds, onApplied, 
     }
   }
 
+  const scopeLabel = scopeDef?.name ?? effectiveType
+  const scopeSummary = externalSelection ? `作用范围：选中 ${effectiveCount} 项` : `作用范围：全部 ${effectiveCount} 项`
+
   return (
     <aside className="editor" data-testid="batch-panel">
       <div className="editor-header">
         <div className="editor-title">
           批量操作
           <small>
-            {typeDef?.name ?? type} · 已选中 {selectedCount} 项
+            {scopeLabel} · {scopeSummary}
           </small>
         </div>
       </div>
 
       <div className="editor-body">
+        {!externalSelection && (
+          <div className="form-row">
+            <label className="form-label" htmlFor="batch-type">
+              作用类型
+            </label>
+            <select
+              id="batch-type"
+              className="form-select"
+              data-testid="batch-type"
+              value={scopeType}
+              disabled={busy}
+              onChange={(event) => changeScopeType(event.target.value)}
+            >
+              {types.map((def) => (
+                <option key={def.id} value={def.id}>
+                  {def.name}（{def.id}）
+                </option>
+              ))}
+            </select>
+            <div className="item-meta" data-testid="batch-scope-hint">
+              {effectiveCount === 0 ? '该类型暂无数据' : `该类型共 ${effectiveCount} 项，将对全部条目生效`}
+            </div>
+          </div>
+        )}
+
         <div className="form-row">
           <label className="form-label" htmlFor="batch-op">
             操作
@@ -125,7 +215,7 @@ export default function BatchEditPanel({ type, typeDef, selectedIds, onApplied, 
                 {BATCH_OP_LABELS[kind]}
               </option>
             ))}
-            <option value="delete_selected">删除选中项</option>
+            <option value="delete_selected">删除作用范围内条目</option>
           </select>
         </div>
 
@@ -138,7 +228,7 @@ export default function BatchEditPanel({ type, typeDef, selectedIds, onApplied, 
               id="batch-field"
               className="form-select"
               data-testid="batch-field"
-              value={field}
+              value={effectiveField}
               disabled={busy}
               onChange={(event) => setField(event.target.value)}
             >
@@ -261,7 +351,7 @@ export default function BatchEditPanel({ type, typeDef, selectedIds, onApplied, 
 
         {op === 'delete_selected' && (
           <div className="form-row">
-            <div className="danger-hint">将删除左侧勾选的 {selectedCount} 项数据，此操作不可撤销！</div>
+            <div className="danger-hint">将删除作用范围内的 {effectiveCount} 项数据，此操作不可撤销！</div>
           </div>
         )}
 
@@ -282,10 +372,10 @@ export default function BatchEditPanel({ type, typeDef, selectedIds, onApplied, 
                 type="button"
                 className="btn danger"
                 data-testid="batch-delete-confirm"
-                disabled={busy || selectedCount === 0}
+                disabled={busy || effectiveCount === 0}
                 onClick={() => void handleDelete()}
               >
-                确认删除 {selectedCount} 项
+                确认删除 {effectiveCount} 项
               </button>
               <button type="button" className="btn" disabled={busy} onClick={() => setDeleteConfirm(false)}>
                 取消
@@ -296,10 +386,10 @@ export default function BatchEditPanel({ type, typeDef, selectedIds, onApplied, 
               type="button"
               className="btn danger"
               data-testid="batch-delete"
-              disabled={busy || selectedCount === 0}
+              disabled={busy || effectiveCount === 0}
               onClick={() => setDeleteConfirm(true)}
             >
-              删除选中项
+              删除作用范围内条目
             </button>
           )
         ) : (
@@ -307,10 +397,10 @@ export default function BatchEditPanel({ type, typeDef, selectedIds, onApplied, 
             type="button"
             className="btn primary"
             data-testid="batch-apply"
-            disabled={busy || selectedCount === 0}
+            disabled={busy || effectiveCount === 0}
             onClick={() => void handleApply()}
           >
-            应用（{selectedCount} 项）
+            应用（{effectiveCount} 项）
           </button>
         )}
         <button type="button" className="btn" data-testid="batch-close" disabled={busy} onClick={onClose}>

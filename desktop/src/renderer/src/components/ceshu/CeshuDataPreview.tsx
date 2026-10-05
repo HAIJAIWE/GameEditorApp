@@ -1,9 +1,17 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import type { EnabledEditor } from '../../../../shared/ceshuConstants'
 import type { DataTypeDef } from '../../../../shared/types'
 
 import DataEditorTab from '../DataEditorTab'
+
+/** 跳转目标（由「高级搜索 / 引用关系」的 onJump 触发；nonce 递增以支持重复跳转同一类型） */
+export interface PreviewJumpTarget {
+  type: string
+  itemId: string
+  name: string
+  nonce: number
+}
 
 interface CeshuDataPreviewProps {
   /** 由策划书 systems 派生的启用编辑器（computeEnabledEditors 的输出） */
@@ -16,6 +24,12 @@ interface CeshuDataPreviewProps {
   onGotoSystems?: () => void
   /** 任一数据编辑器发生数据变更后的回调 */
   onDataChanged?: () => void
+  /** 外部跳转目标：命中启用编辑器时定位到对应条目标签页 */
+  jumpTarget?: PreviewJumpTarget | null
+  /** 跳转已处理（用户点击任意标签页，或目标未命中被驳回）——宿主据此清空 jumpTarget */
+  onJumpHandled?: () => void
+  /** 跳转目标所属类型不在当前启用编辑器中（未命中）——宿主据此给出提示 */
+  onJumpMissed?: (name: string) => void
 }
 
 /** 空状态引导文案（对齐 PyQt preview_panel.py:55-63；配合 CSS white-space: pre-line 渲染换行） */
@@ -29,22 +43,46 @@ const EMPTY_HINT =
  *
  * 顶部标签行：每个启用的游戏系统一个标签（标签文字 = 系统显示名，指向其 data_type 数据编辑器），
  * 末尾固定一个「📊 数据引用」标签；无启用系统时显示空状态引导。
+ *
+ * 跳转联动（对齐 PyQt `main_window._goto_data_design` / `preview_panel.focus_first_editor`）：
+ * 当宿主传入 `jumpTarget` 且其类型命中某个启用编辑器时，优先选中该编辑器的标签页，
+ * 并把条目 id / nonce 透传给 DataEditorTab 完成定位；未命中则回调 `onJumpMissed` 交由宿主提示。
  */
 export default function CeshuDataPreview({
   enabledEditors,
   types,
   gameStyle,
   onGotoSystems,
-  onDataChanged
+  onDataChanged,
+  jumpTarget,
+  onJumpHandled,
+  onJumpMissed
 }: CeshuDataPreviewProps) {
   const [activeKey, setActiveKey] = useState<string | null>(null)
   /** 「📊 数据引用」标签是否选中（与系统标签互斥） */
   const [showRefs, setShowRefs] = useState(false)
 
-  // 默认选中第一个启用系统；activeKey 失效（对应系统被取消启用）时由 `?? enabledEditors[0]`
-  // 自动回退到第一个，无需额外 effect（effect 内同步 setState 会触发级联渲染，被 lint 禁止）
-  const activeEditor = enabledEditors.find((editor) => editor.key === activeKey) ?? enabledEditors[0] ?? null
+  // 跳转优先：命中的启用编辑器覆盖当前 activeKey；否则按 activeKey 选，最后回退第一个。
+  const jumpEditor = jumpTarget ? enabledEditors.find((editor) => editor.data_type === jumpTarget.type) : undefined
+  const activeEditor =
+    jumpEditor ?? enabledEditors.find((editor) => editor.key === activeKey) ?? enabledEditors[0] ?? null
   const isEmpty = enabledEditors.length === 0
+
+  // 跳转未命中（目标类型未被任何启用系统覆盖）：提示宿主并清空目标。
+  // 仅在 effect 内调用宿主回调（不在渲染期产生副作用）；jumpTarget 被清空后本次 effect 自然不再触发。
+  useEffect(() => {
+    if (!jumpTarget) return
+    const hit = enabledEditors.some((editor) => editor.data_type === jumpTarget.type)
+    if (!hit) {
+      onJumpMissed?.(jumpTarget.name)
+      onJumpHandled?.()
+    }
+  }, [jumpTarget, enabledEditors, onJumpMissed, onJumpHandled])
+
+  /** 命中跳转时，向 DataEditorTab 下发定位参数（用 nonce 参与 key 以支持重复跳转同一类型重挂载） */
+  const jumping = jumpEditor !== undefined && activeEditor?.key === jumpEditor.key
+  const targetNonce = jumping ? jumpTarget?.nonce : undefined
+  const initialSelectedId = jumping ? jumpTarget?.itemId : undefined
 
   return (
     <div className="ceshu-preview">
@@ -59,6 +97,7 @@ export default function CeshuDataPreview({
             onClick={() => {
               setActiveKey(editor.key)
               setShowRefs(false)
+              onJumpHandled?.()
             }}
           >
             {editor.name}
@@ -68,7 +107,10 @@ export default function CeshuDataPreview({
           type="button"
           data-testid="ceshu-preview-refs"
           className={`ceshu-preview-tab${showRefs ? ' active' : ''}`}
-          onClick={() => setShowRefs(true)}
+          onClick={() => {
+            setShowRefs(true)
+            onJumpHandled?.()
+          }}
         >
           📊 数据引用
         </button>
@@ -92,11 +134,13 @@ export default function CeshuDataPreview({
           <div className="empty">数据引用解析（@data[...]）尚未迁移到 TS 版，此标签页暂时为空。</div>
         ) : activeEditor ? (
           <DataEditorTab
-            key={activeEditor.data_type}
+            key={`${activeEditor.data_type}:${targetNonce ?? ''}`}
             type={activeEditor.data_type}
             types={types}
             gameStyle={gameStyle}
             onDataChanged={onDataChanged}
+            initialSelectedId={initialSelectedId}
+            targetNonce={targetNonce}
           />
         ) : null}
       </div>

@@ -14,6 +14,10 @@ interface DataEditorTabProps {
   gameStyle?: string
   /** 数据发生创建/删除/保存后回调（供外层刷新进度、引用等） */
   onDataChanged?: () => void
+  /** 跳转定位：首次加载后自动选中的条目 id（命中列表时生效） */
+  initialSelectedId?: string
+  /** 跳转序号：父组件将其编入 key（重挂载触发重定位）；组件本身不消费，仅作契约声明 */
+  targetNonce?: number
 }
 
 function toErrorMessage(error: unknown): string {
@@ -26,7 +30,7 @@ function toErrorMessage(error: unknown): string {
  * 对齐 PyQt `ui/data_tab.py::DataEditorTab`：左侧条目列表（搜索 / 新建 / 删除） +
  * 右侧条目表单。完全自包含，不依赖 App 状态——只消费传入的 `type` 与 `types`。
  */
-export default function DataEditorTab({ type, types, gameStyle = '', onDataChanged }: DataEditorTabProps) {
+export default function DataEditorTab({ type, types, gameStyle = '', onDataChanged, initialSelectedId }: DataEditorTabProps) {
   const [items, setItems] = useState<ItemRecord[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [query, setQuery] = useState('')
@@ -52,16 +56,19 @@ export default function DataEditorTab({ type, types, gameStyle = '', onDataChang
     }
   }, [type])
 
-  // 切换类型时加载列表：父组件以 key=type 强制重挂载，故此处只需处理首次加载；
-  // cancelled 防止卸载（或 StrictMode 双调用）下的过期响应回写
+  // 切换类型时加载列表：父组件以 key=`type:nonce` 强制重挂载，故此处只需处理首次加载；
+  // cancelled 防止卸载（或 StrictMode 双调用）下的过期响应回写。
+  // 若带跳转定位（initialSelectedId）且命中列表，则加载完成后直接选中该条目。
   useEffect(() => {
     let cancelled = false
     window.mbApi.data
       .listItems({ type })
       .then((list) => {
-        if (!cancelled) {
-          setItems(list)
-          setError(null)
+        if (cancelled) return
+        setItems(list)
+        setError(null)
+        if (initialSelectedId !== undefined && list.some((item) => item.id === initialSelectedId)) {
+          setSelectedId(initialSelectedId)
         }
       })
       .catch((err: unknown) => {
@@ -70,7 +77,7 @@ export default function DataEditorTab({ type, types, gameStyle = '', onDataChang
     return () => {
       cancelled = true
     }
-  }, [type])
+  }, [type, initialSelectedId])
 
   // 搜索防抖：输入停止 150ms 后再过滤列表（与 App.tsx 一致）
   useEffect(() => {
