@@ -9,19 +9,19 @@
 | 判定 | 文件 | 行数 | 占比 |
 |---|---|---|---|
 | ✅ 已迁 | 95 | 35,125 | 38.5% |
-| ◐ 部分已迁 | 61 | 22,917 | 25.1% |
-| ⛔ 有意不迁 | 89 | 19,157 | 21.0% |
-| ⚠️ 未迁（整块没做） | 54 | 13,965 | 15.3% |
+| ◐ 部分已迁 | 59 | 22,489 | 24.7% |
+| ⛔ 有意不迁 | 92 | 19,858 | 21.8% |
+| ⚠️ 未迁（整块没做） | 53 | 13,692 | 15.0% |
 
 **对账（必须相等，已 PASS）**：`95+61+89+54 = 299` ✓、`35125+22917+19157+13965 = 91,164` ✓
 
 ### 真实剩余 ≈ 2.4–2.8 万行（26–31%）
 
-- **确定未迁（整块没做）＝ 13,965 行 / 54 文件**（精确数字）
+- **确定未迁（整块没做）＝ 13,692 行 / 53 文件**（精确数字）
 - **部分已迁里的缺口 ≈ 1.0–1.4 万行**（**估算**：按各文件的完成度估计汇总，各代理给的完成度多在 25%–75%，本身带主观性）
 - 合计 **≈ 2.4–2.8 万行**，占旧代码 **26–31%**
 
-> **口径说明**：不能把「⛔有意不迁」的 19,157 行算成欠债 —— 那些是**决策**（自愈链 5,372、样例数据 1,125、PyQt 胶水、死代码、Qt QSS 主题栈等），各有实证依据。
+> **口径说明**：不能把「⛔有意不迁」的 19,858 行算成欠债 —— 那些是**决策**（自愈链 5,372、样例数据 1,125、PyQt 胶水、死代码、Qt QSS 主题栈等），各有实证依据。
 > 但也不能把「◐部分已迁」算成已迁 —— 那 22,917 行里有一部分是真缺口。
 
 ## 2. 汇总（按域）
@@ -33,10 +33,10 @@
 | `ui/widgets` | 24 | 9,232 | 13 / 5,449 | 3 / 1,399 | 6 / 962 | 2 / 1,422 |
 | `ui/` 顶层 + `themes` + `components` | 31 | 9,883 | 5 / 1,071 | 9 / 4,748 | 11 / 2,934 | 6 / 1,130 |
 | `core/ceshu` + `core` 顶层 + `defaults` | 38 | 12,602 | 28 / 11,129 | 2 / 225 | 8 / 1,248 | 0 / 0 |
-| `ui/dialogs` | 20 | 6,055 | 7 / 1,718 | 7 / 2,493 | 4 / 487 | 2 / 1,357 |
+| `ui/dialogs` | 20 | 6,055 | 7 / 1,718 | 6 / 2,140 | 5 / 840 | 2 / 1,357 |
 | `common` + `config` + `security` + `data` + 顶层 | 45 | 10,672 | 6 / 1,384 | 7 / 2,776 | 23 / 5,293 | 9 / 1,219 |
-| `features` | 9 | 3,430 | 2 / 407 | 5 / 2,690 | 1 / 60 | 1 / 273 |
-| **合计** | **299** | **91,164** | **93 / 34,605** | **61 / 22,917** | **88 / 18,756** | **57 / 14,886** |
+| `features` | 9 | 3,430 | 2 / 407 | 4 / 2,615 | 3 / 408 | 0 / 0 |
+| **合计** | **299** | **91,164** | **93 / 34,605** | **59 / 22,489** | **91 / 19,457** | **56 / 14,613** |
 
 > **注**：上表「合计」是各域行直接相加（93+61+88+57 = 299 文件、34,605+22,917+18,756+14,886 = 91,164 行，**内部自洽**）；它与 §1 结论表仍存在 **±2 文件 / 480 行** 的差异（个别文件在「已迁 ↔ 未迁」间归类不同）。**§1 是结论表、也是守护测试的解析源，以 §1 为准**；域行的这一处差异待逐文件复核。
 
@@ -254,7 +254,7 @@
 | batch_edit.py | 312 | ✅ | `BatchEditPanel.tsx`+`dataTableOps.ts`+IPC `data:batchUpdate`/`deleteMany` |
 | reference_panel.py | 261 | ✅ | `ReferencesPanel.tsx`+`shared/references.ts`+IPC `data:references` |
 | advanced_search.py | 172 | ✅ | `shared/advancedSearch.ts`（`searchItems`/`resolveSearchValue`/`SEARCH_FIELD_OPTIONS`/`truncateMatch`）+ `AdvancedSearchPanel.tsx`：选类型 + 选字段（名称/ID/类型/描述）+ 关键词 + 结果 + 点击跳转（复用 `handleJump`），与 Python 能力对齐；**TS 增强**「全部类型」「全部字段」两个哨兵（Python 只能单选）。数据走既有 `data:listAll`，**不开新 IPC**。**更正**：审计原写「跨类型搜索」为 Python 缺失项，实为 Python 本就单类型（`type_combo`），此项是 TS 增强而非补缺 |
-| engine_export.py | 353 | ◐30% | 已迁 Lua（Python 反而没有！）；缺 Unity/Unreal/Godot/Cocos2d 四引擎 |
+| engine_export.py | 353 | ⛔ | **有意不迁四引擎模板**（Unity/Unreal/Godot/Cocos2d 是**纯静态代码模板字符串**、无运行时数据计算，仅按字段名插值）；TS 刻意走 **Lua 数据模块导出**（`EngineExportButton`+`engine.exportData`）匹配用户真实的 Lua/fengari ARPG 管线（**Python 反而没有 Lua 导出**）。故四引擎模板对本案属装饰性死代码，不搬 |
 | startup_mode_dialog.py | 144 | ◐60% | 模式切换已迁；缺启动弹窗+「记住选择」持久化 |
 | type_editor_ai.py | 338 | ◐25% | 模板导入已迁；缺 AI 推荐字段/分析现有数据/联网参考 |
 | type_editor_dialog.py | 528 | ◐70% | `TypeEditorPanel.tsx`；缺布局分区编辑（已判不迁）/智能工具栏/拼音英译按钮 |
@@ -310,9 +310,9 @@
 | advanced.py | 431 | ◐25% | 关系图→`ReferencesPanel`；缺属性图表/高级搜索/关键词模板配置/清理未用图片 |
 | export.py | 705 | ◐90% | JSON（→`data:importLegacy`/`exportLegacy`）/CSV（→`main/data/csvIO.ts`）/Excel（→`main/data/excelIO.ts`，E19–E20）/批量编辑（→`BatchEditPanel`）已迁；仅剩 `batch_import` 的「重生成 id 追加」语义（现由 `importLegacy` 的 upsert 覆盖，属有意收敛）与 `batch_edit` 重复实现（见「已知待修」） |
 | _ai_image.py | 365 | ✅ | **E22 已迁**（`shared/imageGen.ts` 纯逻辑 + `main/imageGen/client.ts` 云调用 + `main/imageGen/save.ts` 原子落盘 + `ImageGenPanel.tsx` 面板；四 provider：OpenAI/dashscope/豆包/Generic）。真实生图引擎在 `common/ai_client.generate_image`，`image_skill` 消费者仍待接线 |
-| statistics.py | 273 | ⚠️ | 数据统计/平衡分析（`analyze_balance` 系列）无 TS（**注意 `ceshuScorer`/`ceshuWordStats` 是策划书域**） |
+| statistics.py | 273 | ⛔ | **有意不迁**（2026 实测：角色/怪物平衡分析硬编码 `hp`/`atk`，但内置 schema `typeSchema.ts` 的 `role`/`monster` **无扁平 hp/atk**（在 `attr_list`），直译即死代码——该能力已由 E11 `shared/dataStats.ts`（`summarizeNumeric`/`assessBalance`，按 schema spinbox 字段自动发现）覆盖且更优）。唯一独有逻辑 `calculate_overall_score`/`generate_issues`/`generate_recommendations`（总分+问题+建议）依赖上述死代码分析、需重架构为 schema 感知，且与 StatisticsPanel 已展示的逐字段判定部分冗余，列为**可选未来项**而非缺口。**注意 `ceshuScorer`/`ceshuWordStats` 是策划书域，与此无关** |
 | backup.py | 42 | ✅ | `export_for_game` 已迁（`data:exportLegacy`）；`show_backup_manager` 已迁（`BackupPanel.tsx` + `backup:*` 4 条 IPC，见 `ui/dialogs/backup_manager.py` 行）。**不迁** `common/auto_backup.py`（死代码，见 `common/` 域） |
-| engine_export.py | 75 | ◐15% | 薄壳；TS 只做 Lua，缺 `show_game_data_preview` |
+| engine_export.py | 75 | ⛔ | **有意不迁**：`export_to_unity/unreal/godot/cocos2d` 仅为上述四引擎模板对话框的启动器（同判不迁）。`show_game_data_preview`（纯 JSON 树预览，~25 行无逻辑）为**可选小便利**，非缺口，留作未来可选 |
 | __init__.py | 60 | ⛔ | 包 re-export 胶水 |
 
 ## 4. 真实剩余里值得排期的功能（按性价比）
