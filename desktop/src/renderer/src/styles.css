@@ -754,6 +754,57 @@ body {
   width: auto;
 }
 
+/* ---- 工具栏「更多 ▸」下拉（对齐 PyQt editor_view.py 的 _btn_more 菜单） ---- */
+
+/* 下拉定位容器；工具栏本身是 flex-wrap，需显式 relative 才能让菜单挂在按钮下方 */
+.toolbar-more {
+  position: relative;
+}
+
+.toolbar-more-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  /* 必须盖过下方 .content（章节表单/预览）与 .panel-overlay 之下的内容区 */
+  z-index: 300;
+  min-width: 190px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+}
+
+/* 分组间画分隔线（末组不画） */
+.toolbar-more-group + .toolbar-more-group {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+}
+
+.toolbar-more-item {
+  display: block;
+  width: 100%;
+  padding: 7px 12px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.toolbar-more-item:hover {
+  background: var(--bg-hover);
+}
+
+.toolbar-more-item:disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
 /* 工具栏内联表单控件（标签 + 控件横排；控件不撑满） */
 .toolbar-field {
   display: flex;

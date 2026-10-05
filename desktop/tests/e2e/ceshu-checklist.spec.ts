@@ -84,6 +84,8 @@ test('完备性检查清单：IPC 精确结果 + 一键修复 + UI 面板', asyn
     await waitReady(window)
     await expect(window.getByTestId('home-card')).toHaveCount(1)
     await window.getByTestId('home-card').first().getByTestId('home-card-open').click()
+    // 「ceshu-checklist」已收进工具栏「更多 ▸」下拉（对齐 PyQt），需先展开再点
+    await window.getByTestId('ceshu-more').click()
     await window.getByTestId('ceshu-checklist').click()
     await expect(window.getByTestId('checklist-panel')).toBeVisible()
     await expect(window.getByTestId('checklist-score')).toHaveText('5')

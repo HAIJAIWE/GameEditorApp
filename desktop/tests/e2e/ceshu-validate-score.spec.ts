@@ -97,6 +97,8 @@ test('校验与评分：IPC 精确结果 + UI 面板展示', async () => {
     await window.getByTestId('validate-close').click()
     await expect(window.getByTestId('validate-panel')).toHaveCount(0)
 
+    // 「ceshu-score」已收进工具栏「更多 ▸」下拉（对齐 PyQt），需先展开再点
+    await window.getByTestId('ceshu-more').click()
     await window.getByTestId('ceshu-score').click()
     await expect(window.getByTestId('score-panel')).toBeVisible()
     await expect(window.getByTestId('score-panel')).toContainText('结构 3/30')

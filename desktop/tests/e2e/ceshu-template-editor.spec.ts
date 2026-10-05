@@ -63,6 +63,8 @@ test('模板编辑器：列表筛选 → 新建/保存 → 编辑更新 → 应�
     await window.getByTestId('home-card').filter({ hasText: '模板编辑器E2E' }).getByTestId('home-card-open').click()
 
     // 打开编辑器：默认筛选当前章节（meta 的 3 个内置模板）
+    // 「ceshu-template-editor」已收进工具栏「更多 ▸」下拉（对齐 PyQt），需先展开再点
+    await window.getByTestId('ceshu-more').click()
     await window.getByTestId('ceshu-template-editor').click()
     await expect(window.getByTestId('template-editor-panel')).toBeVisible()
     await expect(window.getByTestId('editor-item')).toHaveCount(3)

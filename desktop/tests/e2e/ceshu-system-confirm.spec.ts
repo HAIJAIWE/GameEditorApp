@@ -53,6 +53,8 @@ test('系统确认：勾选启用 + 自定义系统 + 确认落盘 + 双向同�
     await window.reload()
     await waitReady(window)
     await window.getByTestId('home-card').filter({ hasText: 'W32系统确认E2E' }).getByTestId('home-card-open').click()
+    // 「ceshu-system-confirm」已收进工具栏「更多 ▸」下拉（对齐 PyQt），需先展开再点
+    await window.getByTestId('ceshu-more').click()
     await window.getByTestId('ceshu-system-confirm').click()
     await expect(window.getByTestId('system-confirm-panel')).toBeVisible()
     await expect(window.getByTestId(`sys-card-${keyA}`)).toBeVisible()

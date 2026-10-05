@@ -117,6 +117,8 @@ test('依赖检查：IPC 精确结构 + 字段/系统双视图面板', async () 
     await window.reload()
     await waitReady(window)
     await window.getByTestId('home-card').filter({ hasText: '依赖E2E' }).getByTestId('home-card-open').click()
+    // 「ceshu-fielddeps」已收进工具栏「更多 ▸」下拉（对齐 PyQt），需先展开再点
+    await window.getByTestId('ceshu-more').click()
     await window.getByTestId('ceshu-fielddeps').click()
     await expect(window.getByTestId('fielddeps-panel')).toBeVisible()
     await expect(window.getByTestId('fielddeps-summary')).toContainText('字段依赖共 20 条')

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import {
   CESHU_EXPORT_FORMATS,
@@ -112,6 +112,27 @@ export default function CeshuView({
   const [changelog, setChangelog] = useState<CeshuChangelog | null>(null)
   const [validateErrors, setValidateErrors] = useState<string[]>([])
   const [score, setScore] = useState<CeshuScoreReport | null>(null)
+  /** 「更多 ▸」下拉展开状态（对齐 PyQt `editor_view.py:154` 的 `_btn_more` 菜单） */
+  const [moreOpen, setMoreOpen] = useState(false)
+  const moreRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!moreOpen) return undefined
+    const onDocClick = (event: MouseEvent): void => {
+      if (moreRef.current && !moreRef.current.contains(event.target as Node)) {
+        setMoreOpen(false)
+      }
+    }
+    const onKey = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') setMoreOpen(false)
+    }
+    document.addEventListener('mousedown', onDocClick)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDocClick)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [moreOpen])
 
   useEffect(() => {
     if (!ceshuId) return
@@ -320,6 +341,36 @@ export default function CeshuView({
     onChanged()
   }
 
+  /**
+   * 「更多 ▸」菜单分组。对齐 PyQt `editor_view.py:160-187` 的 `_more_menu` 顺序与分隔。
+   * **刻意不列** TS 尚无对应能力的三项（AI 整章 / AI 补全空白字段 / 档位切换）——
+   * 宁缺勿错，不放点了没反应的装饰按钮。
+   * 每项 testid 保持与改造前平铺按钮**逐一同名**，既有 E2E 只需补一步展开即可继续命中。
+   */
+  const moreMenuGroups: { testid: string; label: string; run: () => void }[][] = [
+    [
+      { testid: 'ceshu-derive', label: '派生新版本', run: () => setDeriveOpen((open) => !open) },
+      { testid: 'ceshu-ai-review', label: 'AI 审阅', run: () => setPanel('aiReview') }
+    ],
+    [
+      { testid: 'ceshu-preset-market', label: '预设市场', run: () => setPanel('presetMarket') },
+      { testid: 'ceshu-template-editor', label: '模板编辑器', run: () => setPanel('templateEditor') }
+    ],
+    [
+      { testid: 'ceshu-score', label: '评分', run: () => void handleScore() },
+      { testid: 'ceshu-wordstats', label: '字数统计', run: () => setPanel('wordStats') },
+      { testid: 'ceshu-diff', label: '版本对比', run: () => setPanel('diff') },
+      { testid: 'ceshu-timeline', label: '版本时间线', run: () => setPanel('timeline') },
+      { testid: 'ceshu-checklist', label: '清单', run: () => setPanel('checklist') },
+      { testid: 'ceshu-changelog', label: '变更记录', run: () => void handleShowChangelog() },
+      { testid: 'ceshu-fielddeps', label: '依赖检查', run: () => setPanel('fieldDeps') }
+    ],
+    [
+      { testid: 'ceshu-notes', label: '笔记', run: () => setPanel('notes') },
+      { testid: 'ceshu-system-confirm', label: '确认游戏系统', run: () => setPanel('systemConfirm') }
+    ]
+  ]
+
   return (
     <div className="ceshu-view">
       <header className="toolbar">
@@ -346,53 +397,8 @@ export default function CeshuView({
             设为激活
           </button>
         )}
-        <button type="button" className="btn" data-testid="ceshu-derive" disabled={busy} onClick={() => setDeriveOpen((open) => !open)}>
-          派生新版本
-        </button>
-        <button type="button" className="btn" data-testid="ceshu-changelog" disabled={busy} onClick={() => void handleShowChangelog()}>
-          变更记录
-        </button>
-        <button type="button" className="btn" data-testid="ceshu-diff" disabled={busy} onClick={() => setPanel('diff')}>
-          版本对比
-        </button>
-        <button
-          type="button"
-          className="btn"
-          data-testid="ceshu-timeline"
-          disabled={busy}
-          onClick={() => setPanel('timeline')}
-        >
-          版本时间线
-        </button>
-        <button
-          type="button"
-          className="btn"
-          data-testid="ceshu-template-editor"
-          disabled={busy}
-          onClick={() => setPanel('templateEditor')}
-        >
-          模板编辑器
-        </button>
-        <button type="button" className="btn" data-testid="ceshu-notes" disabled={busy} onClick={() => setPanel('notes')}>
-          笔记
-        </button>
         <button type="button" className="btn" data-testid="ceshu-validate" disabled={busy} onClick={() => void handleValidate()}>
           校验
-        </button>
-        <button type="button" className="btn" data-testid="ceshu-score" disabled={busy} onClick={() => void handleScore()}>
-          评分
-        </button>
-        <button type="button" className="btn" data-testid="ceshu-wordstats" disabled={busy} onClick={() => setPanel('wordStats')}>
-          字数统计
-        </button>
-        <button type="button" className="btn" data-testid="ceshu-fielddeps" disabled={busy} onClick={() => setPanel('fieldDeps')}>
-          依赖检查
-        </button>
-        <button type="button" className="btn" data-testid="ceshu-checklist" disabled={busy} onClick={() => setPanel('checklist')}>
-          清单
-        </button>
-        <button type="button" className="btn" data-testid="ceshu-ai-review" disabled={busy} onClick={() => setPanel('aiReview')}>
-          AI 审阅
         </button>
         <button type="button" className="btn" data-testid="ceshu-ai-full" disabled={busy} onClick={() => setPanel('aiFull')}>
           AI 一键生成
@@ -406,24 +412,46 @@ export default function CeshuView({
         >
           AI 生成数据
         </button>
-        <button
-          type="button"
-          className="btn"
-          data-testid="ceshu-preset-market"
-          disabled={busy}
-          onClick={() => setPanel('presetMarket')}
-        >
-          预设市场
-        </button>
-        <button
-          type="button"
-          className="btn"
-          data-testid="ceshu-system-confirm"
-          disabled={busy}
-          onClick={() => setPanel('systemConfirm')}
-        >
-          确认游戏系统
-        </button>
+        {/* 「更多 ▸」：对齐 PyQt `editor_view.py:154` —— 低频/高级功能收进下拉，
+            工具栏只留高频操作（返回/保存/校验/AI/导出），避免「一屏 19 个按钮」的操作带过载
+            （正是 docs/ux-simplification-plan.md 的 P3「操作带过多，层级重叠」） */}
+        <div className="toolbar-more" ref={moreRef}>
+          <button
+            type="button"
+            className="btn"
+            data-testid="ceshu-more"
+            disabled={busy}
+            aria-haspopup="menu"
+            aria-expanded={moreOpen}
+            onClick={() => setMoreOpen((open) => !open)}
+          >
+            更多 ▸
+          </button>
+          {moreOpen && (
+            <div className="toolbar-more-menu" role="menu" data-testid="ceshu-more-menu">
+              {moreMenuGroups.map((group, groupIndex) => (
+                <div className="toolbar-more-group" key={groupIndex}>
+                  {group.map((item) => (
+                    <button
+                      key={item.testid}
+                      type="button"
+                      role="menuitem"
+                      className="toolbar-more-item"
+                      data-testid={item.testid}
+                      disabled={busy}
+                      onClick={() => {
+                        setMoreOpen(false)
+                        item.run()
+                      }}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
         <select
           className="form-select export-format"
           data-testid="export-format"

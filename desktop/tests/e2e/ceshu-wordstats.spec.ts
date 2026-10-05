@@ -99,6 +99,8 @@ test('字数统计：IPC 精确数字 + 面板表格与总览', async () => {
     await window.reload()
     await waitReady(window)
     await window.getByTestId('home-card').first().getByTestId('home-card-open').click()
+    // 「ceshu-wordstats」已收进工具栏「更多 ▸」下拉（对齐 PyQt），需先展开再点
+    await window.getByTestId('ceshu-more').click()
     await window.getByTestId('ceshu-wordstats').click()
     await expect(window.getByTestId('wordstats-panel')).toBeVisible()
     await expect(window.getByTestId('wordstats-overview')).toContainText('总字数：47 字')

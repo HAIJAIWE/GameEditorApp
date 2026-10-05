@@ -122,6 +122,8 @@ test('章节笔记：IPC 增删改查 + 磁盘落盘 + UI 面板全链路', asyn
     await window.reload()
     await waitReady(window)
     await window.getByTestId('home-card').filter({ hasText: '笔记E2E' }).getByTestId('home-card-open').click()
+    // 「ceshu-notes」已收进工具栏「更多 ▸」下拉（对齐 PyQt），需先展开再点
+    await window.getByTestId('ceshu-more').click()
     await window.getByTestId('ceshu-notes').click()
     await expect(window.getByTestId('notes-panel')).toBeVisible()
     await expect(window.getByTestId('notes-panel')).toContainText('共 2 条')
