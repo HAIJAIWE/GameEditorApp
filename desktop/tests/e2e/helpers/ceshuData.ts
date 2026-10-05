@@ -131,3 +131,43 @@ export async function openDataEditor(window: Page, label: string): Promise<void>
 export async function createDataItem(window: Page): Promise<void> {
   await window.getByTestId('ceshu-data-create').click()
 }
+
+/** 顶部菜单栏的 5 个菜单名（与 `MenuBar.tsx::MENU_TITLE_TESTIDS` 同序同义） */
+export type MenuName = 'file' | 'edit' | 'tools' | 'settings' | 'help'
+
+/**
+ * 展开顶部菜单 → 点击菜单项。
+ *
+ * `MenuBar.tsx` 的事实：菜单项**只在对应下拉展开时才存在于 DOM**
+ * （`{openIndex === idx && <div className="menu-dropdown">…}`），且 `run()` 点击后立即
+ * `setOpenIndex(null)` 收起并重新挂载——故每次动作都必须先点菜单标题展开一次。
+ * 子菜单（导入/导出/数据分析）的条目在父菜单展开时是**内联渲染**的，无需额外 hover 展开。
+ *
+ * @param action 菜单项的 action 名（`menuitem-<menu>-<action>` 的后半段），如 `advancedSearch`
+ */
+export async function openMenuItem(window: Page, menu: MenuName, action: string): Promise<void> {
+  await window.getByTestId(`menu-title-${menu}`).click()
+  await window.getByTestId(`menuitem-${menu}-${action}`).click()
+}
+
+/** 通过渲染层 IPC 读取某类型的全部条目（批量/统计等 spec 回读数据层用） */
+export async function readItems(
+  window: Page,
+  type: string
+): Promise<Array<{ id: string; data: Record<string, unknown> }>> {
+  return window.evaluate(
+    async (targetType: string) => {
+      const api = (
+        globalThis as unknown as {
+          mbApi: {
+            data: {
+              listItems: (req: { type: string }) => Promise<Array<{ id: string; data: Record<string, unknown> }>>
+            }
+          }
+        }
+      ).mbApi
+      return api.data.listItems({ type: targetType })
+    },
+    type
+  )
+}

@@ -1,34 +1,18 @@
-import { mkdtempSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { test } from '@playwright/test'
 
-import { expect, test } from '@playwright/test'
-import { launchApp, waitReady } from './helpers/app'
-
-test('类型可见性：默认显示全部，取消勾选「技能」后侧栏隐藏该类型', async () => {
-  const userDataDir = mkdtempSync(join(tmpdir(), 'mb-type-visibility-e2e-'))
-  const app = await launchApp(userDataDir)
-
-  try {
-    const window = await app.firstWindow()
-
-    // 默认（未设置偏好）必须显示全部 12 个类型，否则会拖挂其他 E2E
-    await waitReady(window)
-
-    await window.getByTestId('open-type-visibility').click()
-    await expect(window.getByTestId('type-visibility-panel')).toBeVisible()
-
-    // 取消勾选「技能 (skill)」（侧栏类型列表中的第 5 个）
-    const skillCheck = window
-      .locator('label.ai-gen-check', { hasText: '技能 (skill)' })
-      .getByTestId('tv-check')
-    await skillCheck.uncheck()
-    await expect(window.getByTestId('tv-count')).toContainText('已选择 11/12 个类型')
-
-    await window.getByTestId('tv-confirm').click()
-    await expect(window.getByTestId('type-visibility-panel')).toBeHidden()
-    await expect(window.getByTestId('type-tab')).toHaveCount(11)
-  } finally {
-    await app.close()
-  }
+/**
+ * 类型可见性（原「数据可见类型」面板）已被**有意移除**，本用例永远不可能通过。
+ *
+ * 事实依据：
+ * - 该面板唯一的作用是过滤已随左侧栏一并下线的「类型列表」，PyQt 侧也没有对应功能；
+ * - `App.tsx` 的 `renderPanel` 里原 `type-visibility` 分支处留有中文注释，明确说明
+ *   组件文件保留（迁移留痕）但**不再有任何入口**。
+ * - 因此旧入口（面板 testid 与菜单项）与它最终要断言的「类型列表计数」都已不存在，
+ *   没有可替代的等价入口。
+ *
+ * 处理方式：按「宁缺勿错」保留文件、整体标记为 fixme 占位留痕（不删除），
+ * 待将来若重新设计「类型可见性」再另立用例。
+ */
+test.fixme('类型可见性：默认显示全部，取消勾选「技能」后列表隐藏该类型（功能已移除，无入口无替代）', async () => {
+  // 见文件头说明：该功能与其实体入口均已随新 IA 下线，无等价断言可写。
 })

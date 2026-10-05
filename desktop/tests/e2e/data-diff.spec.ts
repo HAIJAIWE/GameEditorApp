@@ -4,27 +4,34 @@ import { join } from 'node:path'
 
 import { expect, test } from '@playwright/test'
 import { launchApp, waitReady } from './helpers/app'
+import { createDataItem, openCeshuFromHome, openDataEditor, openMenuItem, seedCeshu } from './helpers/ceshuData'
 
 /**
  * 数据对比面板：设基线 → 改数据并保存 → 重开 → 与基线对比，应报告「修改」。
- * 依赖父代理在工具条接线的 testid `open-data-diff`（本切片不接线）。
+ * 新 IA 下入口从工具栏迁到「工具」菜单（`menuitem-tools-dataDiff`）。
  */
 test('数据对比：设定基线后修改数据 → 与基线对比应报告修改', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-data-diff-e2e-'))
+  const title = 'E2E 数据对比'
+  seedCeshu(userDataDir, {
+    title,
+    systems: [{ key: 'role', label: '角色', dataType: 'role' }]
+  })
   const app = await launchApp(userDataDir)
 
   try {
     const window = await app.firstWindow()
     await waitReady(window)
+    await openCeshuFromHome(window, title)
+    await openDataEditor(window, '角色')
 
-    // 建 2 条角色（默认活跃类型为 role）
-    const createButton = window.getByRole('button', { name: '新增测试条目' })
-    await createButton.click()
-    await createButton.click()
-    await expect(window.getByTestId('item-row')).toHaveCount(2)
+    // 建 2 条角色
+    await createDataItem(window)
+    await createDataItem(window)
+    await expect(window.getByTestId('ceshu-data-item-row')).toHaveCount(2)
 
     // 打开数据对比，设当前为基线，然后关闭
-    await window.getByTestId('open-data-diff').click()
+    await openMenuItem(window, 'tools', 'dataDiff')
     const panel = window.getByTestId('data-diff-panel')
     await expect(panel).toBeVisible()
     await expect(window.getByTestId('dd-counts')).toContainText('当前条目数：2')
@@ -34,13 +41,13 @@ test('数据对比：设定基线后修改数据 → 与基线对比应报告修
     await expect(panel).toHaveCount(0)
 
     // 改一条角色数据并保存
-    await window.getByTestId('item-row').first().click()
+    await window.getByTestId('ceshu-data-item-row').first().click()
     await window.getByTestId('field-name').fill('改动后的角色名')
     await window.getByTestId('item-editor').getByRole('button', { name: '保存' }).click()
     await expect(window.locator('.notice-banner')).toContainText('已保存')
 
     // 重开数据对比 → 与基线对比
-    await window.getByTestId('open-data-diff').click()
+    await openMenuItem(window, 'tools', 'dataDiff')
     const reopened = window.getByTestId('data-diff-panel')
     await expect(reopened).toBeVisible()
     // 有基线时按钮可用

@@ -4,9 +4,16 @@ import { join } from 'node:path'
 
 import { expect, test } from '@playwright/test'
 import { launchApp, waitReady } from './helpers/app'
+import { createDataItem, openCeshuFromHome, openDataEditor, openMenuItem, seedCeshu } from './helpers/ceshuData'
 
 test('字段结构：新增字段 → 保存 → 数据表表单联动 → 重启后持久化', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-type-editor-e2e-'))
+  const title = 'E2E 字段结构'
+  // 后续要在「职业」数据编辑器里验证新字段联动，故启用 job 系统
+  seedCeshu(userDataDir, {
+    title,
+    systems: [{ key: 'job', label: '职业', dataType: 'job' }]
+  })
   const launch = (): ReturnType<typeof launchApp> =>
     launchApp(userDataDir)
 
@@ -14,9 +21,10 @@ test('字段结构：新增字段 → 保存 → 数据表表单联动 → 重�
   try {
     const window = await app.firstWindow()
     await waitReady(window)
+    await openCeshuFromHome(window, title)
 
-    // 打开字段结构编辑器，选中「职业」类型（24 字段的既有类型）
-    await window.getByTestId('open-type-editor').click()
+    // 打开字段结构编辑器（工具菜单），选中「职业」类型（既有类型）
+    await openMenuItem(window, 'tools', 'fieldEditor')
     await expect(window.getByTestId('type-editor-panel')).toBeVisible()
     await window.getByTestId('te-type-tab').filter({ hasText: '职业' }).click()
 
@@ -37,8 +45,8 @@ test('字段结构：新增字段 → 保存 → 数据表表单联动 → 重�
     await expect(window.getByTestId('type-editor-panel')).toBeHidden()
 
     // 表单联动：切到职业类型，新增条目 → 表单出现新字段，填写并保存
-    await window.getByTestId('type-tab').filter({ hasText: '职业' }).click()
-    await window.getByRole('button', { name: '新增测试条目' }).click()
+    await openDataEditor(window, '职业')
+    await createDataItem(window)
     await expect(window.getByTestId('field-test_field')).toBeVisible()
     await window.getByTestId('field-test_field').fill('hello')
     await window.getByTestId('item-editor').getByRole('button', { name: '保存' }).click()
@@ -52,8 +60,9 @@ test('字段结构：新增字段 → 保存 → 数据表表单联动 → 重�
   try {
     const window = await app2.firstWindow()
     await waitReady(window)
-    await window.getByTestId('type-tab').filter({ hasText: '职业' }).click()
-    await window.getByTestId('item-row').first().click()
+    await openCeshuFromHome(window, title)
+    await openDataEditor(window, '职业')
+    await window.getByTestId('ceshu-data-item-row').first().click()
     await expect(window.getByTestId('field-test_field')).toHaveValue('hello')
   } finally {
     await app2.close()

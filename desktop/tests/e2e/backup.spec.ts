@@ -4,24 +4,31 @@ import { join } from 'node:path'
 
 import { expect, test } from '@playwright/test'
 import { launchApp, waitReady } from './helpers/app'
+import { createDataItem, openCeshuFromHome, openDataEditor, openMenuItem, seedCeshu } from './helpers/ceshuData'
 
 test('数据备份：创建 → 列表可见 → 删除（软删除）', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-backup-e2e-'))
+  const title = 'E2E 数据备份'
+  // 新 IA：数据编辑在策划书预览面板；「备份管理」从「文件」菜单打开
+  seedCeshu(userDataDir, {
+    title,
+    systems: [{ key: 'role', label: '角色', dataType: 'role' }]
+  })
   const app = await launchApp(userDataDir)
 
   try {
     const window = await app.firstWindow()
     await waitReady(window)
+    await openCeshuFromHome(window, title)
+    await openDataEditor(window, '角色')
 
     // 造两条数据再备份（否则备份内容为空，看不出差别）
-    const createButton = window.getByRole('button', { name: '新增测试条目' })
-    for (let index = 0; index < 2; index++) {
-      await createButton.click()
-    }
-    await expect(window.getByTestId('item-row')).toHaveCount(2)
+    await createDataItem(window)
+    await createDataItem(window)
+    await expect(window.getByTestId('ceshu-data-item-row')).toHaveCount(2)
 
     // 打开备份面板：初始应为空
-    await window.getByTestId('open-backup').click()
+    await openMenuItem(window, 'file', 'backup')
     await expect(window.getByTestId('backup-panel')).toBeVisible()
     await expect(window.getByTestId('backup-empty')).toBeVisible()
 
