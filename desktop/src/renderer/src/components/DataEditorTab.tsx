@@ -4,6 +4,7 @@ import { filterItemRecords } from '../../../shared/dataTableOps'
 import type { DataTypeDef, ItemRecord } from '../../../shared/types'
 
 import ItemForm from './ItemForm'
+import LucideIcon from './LucideIcon'
 
 interface DataEditorTabProps {
   /** 目标数据类型 id（对应策划书 enabled_editors[].data_type） */
@@ -18,6 +19,12 @@ interface DataEditorTabProps {
   initialSelectedId?: string
   /** 跳转序号：父组件将其编入 key（重挂载触发重定位）；组件本身不消费，仅作契约声明 */
   targetNonce?: number
+  /** 打开「字段结构编辑器」编辑当前数据类型；不传则条目表单不渲染该菜单项 */
+  onEditType?: (typeId: string) => void
+  /** 打开「数据关联预览」查看某条目引用关系；不传则不渲染该菜单项 */
+  onShowReferences?: (target: { type: string; id: string; name: string }) => void
+  /** 打开「AI 数据生成」面板；不传则不渲染该按钮 */
+  onAiGenerate?: (typeId: string) => void
 }
 
 function toErrorMessage(error: unknown): string {
@@ -30,7 +37,16 @@ function toErrorMessage(error: unknown): string {
  * 对齐 PyQt `ui/data_tab.py::DataEditorTab`：左侧条目列表（搜索 / 新建 / 删除） +
  * 右侧条目表单。完全自包含，不依赖 App 状态——只消费传入的 `type` 与 `types`。
  */
-export default function DataEditorTab({ type, types, gameStyle = '', onDataChanged, initialSelectedId }: DataEditorTabProps) {
+export default function DataEditorTab({
+  type,
+  types,
+  gameStyle = '',
+  onDataChanged,
+  initialSelectedId,
+  onEditType,
+  onShowReferences,
+  onAiGenerate
+}: DataEditorTabProps) {
   const [items, setItems] = useState<ItemRecord[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [query, setQuery] = useState('')
@@ -119,6 +135,17 @@ export default function DataEditorTab({ type, types, gameStyle = '', onDataChang
     onDataChanged?.()
   }
 
+  /**
+   * 表单复制完成：重载列表并**选中副本**（对齐 PyQt `data_tab._on_copy_clicked` 复制后定位新条目）。
+   * ItemForm 已自行完成 createItem 落盘，这里只负责列表同步与选中。
+   */
+  const handleDuplicated = async (created: ItemRecord): Promise<void> => {
+    await reload()
+    setSelectedId(created.id)
+    setNotice(`已复制：${String(created.data.name ?? created.id)}`)
+    onDataChanged?.()
+  }
+
   return (
     <div className="data-editor-tab">
       {error && <div className="error-banner">{error}</div>}
@@ -141,6 +168,7 @@ export default function DataEditorTab({ type, types, gameStyle = '', onDataChang
               disabled={busy}
               onClick={() => void handleCreate()}
             >
+              <LucideIcon name="plus" size={14} />
               新建
             </button>
             <span className="item-meta">
@@ -176,6 +204,7 @@ export default function DataEditorTab({ type, types, gameStyle = '', onDataChang
                       void handleDelete(item.id)
                     }}
                   >
+                    <LucideIcon name="trash" size={12} />
                     删除
                   </button>
                 </div>
@@ -192,6 +221,10 @@ export default function DataEditorTab({ type, types, gameStyle = '', onDataChang
             types={types}
             gameStyle={gameStyle}
             onSaved={handleSaved}
+            onEditType={onEditType}
+            onShowReferences={onShowReferences}
+            onAiGenerate={onAiGenerate}
+            onDuplicated={(created) => void handleDuplicated(created)}
           />
         ) : (
           <div className="empty">请选择或新建一条数据</div>

@@ -23,6 +23,7 @@ import AttrPanelEditor from './AttrPanelEditor'
 import AttrTableEditor from './AttrTableEditor'
 import DropTableEditor from './DropTableEditor'
 import FormSectionCard from './FormSectionCard'
+import LucideIcon from './LucideIcon'
 import RefTableEditor from './RefTableEditor'
 
 interface ItemFormProps {
@@ -517,6 +518,7 @@ export default function ItemForm({
             data-testid="item-form-ai-generate"
             onClick={() => onAiGenerate(item.type)}
           >
+            <LucideIcon name="bot" size={14} />
             AI 生成
           </button>
         )}
@@ -534,7 +536,8 @@ export default function ItemForm({
               aria-expanded={moreOpen}
               onClick={() => setMoreOpen((open) => !open)}
             >
-              更多 ▸
+              更多
+              <LucideIcon name="chevron-down" size={14} />
             </button>
             {moreOpen && (
               <div className="toolbar-more-menu" data-testid="item-form-more-menu">
@@ -549,6 +552,7 @@ export default function ItemForm({
                         onEditType(item.type)
                       }}
                     >
+                      <LucideIcon name="settings" size={14} />
                       编辑当前类型字段结构
                     </button>
                   </div>
@@ -568,6 +572,7 @@ export default function ItemForm({
                         })
                       }}
                     >
+                      <LucideIcon name="link" size={14} />
                       查看此项的引用关系
                     </button>
                   </div>

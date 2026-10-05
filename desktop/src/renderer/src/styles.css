@@ -1,28 +1,95 @@
+/* ============================================================
+   主题令牌
+   ------------------------------------------------------------
+   **默认档 = PyQt「默认」主题（浅色）** —— 与 `src/ui/main_window.py:116`
+   `self.current_theme = "默认"` 一致，色值逐一取自
+   `src/ui/themes/themes.py::_THEME_CONFIGS["默认"]`，不是另配一套配色。
+   `[data-theme="dark"]` 为深色档（对齐 PyQt「深色」主题家族）。
+   全文规则一律用 var(--xxx)，切换 `data-theme` 即整站换肤。
+   ============================================================ */
 :root {
+  color-scheme: light;
+
+  /* 表面 */
+  --bg: #f8fafc; /* PyQt bg */
+  --bg-panel: #ffffff; /* PyQt input_bg / menu_bg */
+  --bg-hover: #f0f9ff; /* PyQt hover_bg */
+  --border: #e2e8f0; /* PyQt border */
+  --divider: #f1f5f9; /* PyQt divider */
+  --cell-bg: #fafbfc; /* PyQt cell_bg */
+
+  /* 文本 */
+  --text: #000000; /* PyQt fg */
+  --text-secondary: #334155; /* PyQt secondary_fg */
+  --text-muted: #556678; /* PyQt hint */
+  --section-title: #1e293b; /* PyQt section_title */
+  --btn-text: #ffffff; /* PyQt btn_text：主按钮/强调底上的前景 */
+
+  /* 强调色（PyQt accent 家族） */
+  --accent: #0ea5e9;
+  --accent-hover: #0284c7;
+  --accent-active: #0369a1;
+  --accent-light: #f0f9ff; /* 淡底：选中行 / 标题栏 / 分组头 */
+  --accent-bg: rgba(14, 165, 233, 0.06);
+  --accent-soft: rgba(14, 165, 233, 0.12);
+
+  /* 语义色 */
+  --danger: #EF4444;
+  --danger-hover: #dc2626;
+  --danger-bg: rgba(239, 68, 68, 0.08);
+  --danger-soft: rgba(239, 68, 68, 0.12);
+  --success: #22C55E;
+  --warning: #F59E0B;
+
+  /* 失效态 */
+  --disabled-bg: #e2e8f0;
+  --disabled-fg: #94a3b8;
+
+  /* 其他 */
+  --scroll: #cbd5e1;
+  --tooltip-bg: #1e293b;
+  --tooltip-fg: #bae6fd;
+
+  --radius: 8px;
+}
+
+/* ---- 深色档覆盖（沿用 :root 的令牌结构；整站换肤无需改任何规则） ---- */
+[data-theme='dark'] {
   color-scheme: dark;
+
   --bg: #14161a;
   --bg-panel: #1b1e24;
   --bg-hover: #23272f;
   --border: rgba(255, 255, 255, 0.08);
-  --text: #e6e8ee;
-  --text-muted: #9aa1ad;
-  --accent: #0fdc78;
-  --danger: #e8463a;
-  --radius: 8px;
-}
+  --divider: rgba(255, 255, 255, 0.06);
+  --cell-bg: #1b1e24;
 
-/* ---- 主题切换：浅色覆盖（深/浅两档，沿用 :root 的令牌结构；全文规则皆用 var(--xxx)，切换即整站换肤） ---- */
-[data-theme="light"] {
-  color-scheme: light;
-  --bg: #f5f6f8;
-  --bg-panel: #ffffff;
-  --bg-hover: #eceef1;
-  --border: rgba(0, 0, 0, 0.10);
-  --text: #1b1e24;
-  --text-muted: #6b7280;
-  /* 浅底上需要对比度更高的绿/红（原深色令牌在白底偏淡） */
-  --accent: #0a9d5a;
-  --danger: #d23b2f;
+  --text: #e6e8ee;
+  --text-secondary: #c3c9d4;
+  --text-muted: #9aa1ad;
+  --section-title: #e6e8ee;
+  --btn-text: #06281a;
+
+  --accent: #0fdc78;
+  --accent-hover: #22e88b;
+  --accent-active: #0bbd66;
+  --accent-light: #182b22;
+  --accent-bg: rgba(15, 220, 120, 0.06);
+  --accent-soft: rgba(15, 220, 120, 0.16);
+
+  --danger: #e8463a;
+  --danger-hover: #f2574b;
+  --danger-bg: rgba(232, 70, 58, 0.08);
+  --danger-soft: rgba(232, 70, 58, 0.12);
+  --success: #22C55E;
+  --warning: #F59E0B;
+
+  --disabled-bg: #23272f;
+  --disabled-fg: #6b7280;
+
+  --scroll: #3a4049;
+  --tooltip-bg: #1b1e24;
+  --tooltip-fg: #7ee2ae;
 }
 
 * {
@@ -314,6 +381,9 @@ body {
 }
 
 .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 8px 14px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -327,8 +397,24 @@ body {
 .btn.primary {
   border-color: var(--accent);
   background: var(--accent);
-  color: #06281a;
+  color: var(--btn-text);
   font-weight: 600;
+}
+
+/*
+ * 强调色描边按钮 —— 对齐 PyQt `ceshu_theme.py::ceshu_editor_btn_export_qss()`：
+ * `border:1px solid accent; color:accent; background:bg`，hover 只换底色。
+ * PyQt 的编辑器工具栏把「校验 / AI 生成 / AI 数据 / 更多 / 导出」都套了这套描边，
+ * 一眼看过去是**一排蓝色描边按钮**，不是中性灰 —— 这是与 PyQt 观感的第二处主因。
+ */
+.btn.accent-outline {
+  border-color: var(--accent);
+  background: var(--bg);
+  color: var(--accent);
+}
+
+.btn.accent-outline:hover:not(:disabled) {
+  background: var(--bg-hover);
 }
 
 .btn:disabled {
@@ -448,12 +534,6 @@ body {
   padding: 12px 16px;
 }
 
-.form-row {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
 /* ---- 条目编辑器分区（对应 Python CollapsibleSection + FIELD_GROUPS） ---- */
 
 .form-section {
@@ -504,14 +584,50 @@ body {
 }
 
 /* 双列网格分区（Python `layout: 'grid'`，一行两个字段） */
+/*
+ * 表单行 —— 对齐 PyQt 章节/条目表单的 `QFormLayout`（`chapter_forms/_common.py::_add_row`）：
+ * **标签在左、字段在右**，不是上下堆叠。实测 QFormLayout 默认
+ * `labelAlignment = AlignLeft`、`formAlignment = AlignLeft|AlignTop`、`rowWrapPolicy = DontWrapRows`，
+ * 即：标签左对齐、所有行的字段起始 x 对齐（标签列等宽）、标签从不换行到字段下方。
+ * 因为每行是独立 flex 容器拿不到「全表最宽标签」，这里用固定标签列宽近似 QFormLayout 的等宽列。
+ */
+.form-row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.form-row > .form-label {
+  /* QFormLayout 的标签列：等宽、左对齐、不参与拉伸 */
+  flex: 0 0 120px;
+  max-width: 45%;
+  padding-top: 7px; /* 与 6px 内边距的输入框首行文字对齐 */
+  color: var(--text-secondary); /* PyQt `ceshu_form_label_qss` 用的是 secondary_fg */
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+/* 除标签与按钮外，行内其余控件占满剩余宽度（按钮保持自身尺寸，避免被拉伸） */
+.form-row > :not(.form-label):not(.btn) {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* 两列网格里的行更窄，标签列相应收窄 */
+.form-grid .form-row > .form-label {
+  flex: 0 0 88px;
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px 12px;
+  align-items: start;
 }
 
 .form-label {
-  color: var(--text-muted);
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -579,7 +695,7 @@ body {
   padding: 10px 14px;
   border: 1px solid var(--danger);
   border-radius: var(--radius);
-  background: rgba(232, 70, 58, 0.08);
+  background: var(--danger-bg);
   color: var(--danger);
 }
 
@@ -588,7 +704,7 @@ body {
   padding: 10px 14px;
   border: 1px solid var(--accent);
   border-radius: var(--radius);
-  background: rgba(15, 220, 120, 0.08);
+  background: var(--accent-bg);
   color: var(--accent);
 }
 
@@ -622,26 +738,33 @@ body {
   background: var(--bg-panel);
 }
 
+/*
+ * 章节导航项 —— 对齐 PyQt `chapter_panel.py::_CollapsibleSection._apply_theme()`：
+ * 白底 + 1px 边框 + **左侧 3px 强调色竖条** + 10px 圆角 + 左对齐 13px 文字，
+ * hover 变 `accent_light`。PyQt 是折叠面板，所有标题栏同款；TS 是单选切换，
+ * 故额外给选中项加一层 `accent_light` 底 + 强调色描边作为「当前章」指示。
+ */
 .chapter-tab {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 10px;
-  border: 1px solid transparent;
-  border-radius: var(--radius);
-  background: transparent;
-  color: var(--text-muted);
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 10px;
+  background: var(--bg-panel);
+  color: var(--text);
   text-align: left;
   cursor: pointer;
 }
 
 .chapter-tab:hover {
-  background: var(--bg-hover);
+  background: var(--accent-light);
   color: var(--text);
 }
 
 .chapter-tab.active {
-  background: var(--bg-hover);
+  background: var(--accent-light);
   border-color: var(--accent);
   color: var(--text);
 }
@@ -652,9 +775,25 @@ body {
   font-size: 13px;
 }
 
+/*
+ * 章节完成度迷你进度条 —— 对齐 PyQt 的 `QProgressBar`：固定 60x6、圆角 3，
+ * 轨道用 `border`、填充用 `hint`（**刻意不用强调色**，PyQt 就是这么配的：
+ * 完成度是信息而非行动，不该抢强调色的注意力）。百分比仍以 title 提供。
+ */
 .chapter-progress {
-  color: var(--text-muted);
-  font-size: 12px;
+  flex: 0 0 60px;
+  width: 60px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.chapter-progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--text-muted);
 }
 
 .chapter-nav-hint {
@@ -872,7 +1011,7 @@ body {
 }
 
 .changelog-line.added {
-  color: #22c55e;
+  color: var(--success);
 }
 
 .changelog-line.removed {
@@ -880,7 +1019,7 @@ body {
 }
 
 .changelog-line.modified {
-  color: #f59e0b;
+  color: var(--warning);
 }
 
 /* ---- 校验与评分面板 ---- */
@@ -961,12 +1100,12 @@ body {
 
 .checklist-score.ready,
 .checklist-status.ready {
-  color: #22c55e;
+  color: var(--success);
 }
 
 .checklist-score.warn,
 .checklist-status.warn {
-  color: #f59e0b;
+  color: var(--warning);
 }
 
 .checklist-score.fail,
@@ -995,11 +1134,11 @@ body {
 }
 
 .checklist-progress-fill.ready {
-  background: #22c55e;
+  background: var(--success);
 }
 
 .checklist-progress-fill.warn {
-  background: #f59e0b;
+  background: var(--warning);
 }
 
 .checklist-progress-fill.fail {
@@ -1104,7 +1243,7 @@ body {
 }
 
 .checklist-item-badge.required {
-  background: rgba(239, 68, 68, 0.12);
+  background: var(--danger-soft);
   color: var(--danger);
 }
 
@@ -1169,7 +1308,7 @@ body {
 }
 
 .diff-chapter.changed .diff-chapter-count {
-  color: #f59e0b;
+  color: var(--warning);
 }
 
 .diff-chapter-count {
@@ -1442,7 +1581,7 @@ body {
 }
 
 .ai-gen-status-value.done {
-  color: #22c55e;
+  color: var(--success);
 }
 
 .ai-gen-status-value.failed {
@@ -2404,7 +2543,7 @@ button.ref-row:hover {
 }
 
 .review-dim-fill.hi {
-  background: #22c55e;
+  background: var(--success);
 }
 
 .review-dim-fill.mid {
@@ -2412,11 +2551,11 @@ button.ref-row:hover {
 }
 
 .review-dim-fill.low {
-  background: #f59e0b;
+  background: var(--warning);
 }
 
 .review-dim-fill.fail {
-  background: #ef4444;
+  background: var(--danger);
 }
 
 .review-dim-score {
@@ -2430,7 +2569,7 @@ button.ref-row:hover {
 }
 
 .review-dim-score.hi {
-  color: #22c55e;
+  color: var(--success);
 }
 
 .review-dim-score.mid {
@@ -2438,11 +2577,11 @@ button.ref-row:hover {
 }
 
 .review-dim-score.low {
-  color: #f59e0b;
+  color: var(--warning);
 }
 
 .review-dim-score.fail {
-  color: #ef4444;
+  color: var(--danger);
 }
 
 .review-dim-feedback {
@@ -2496,7 +2635,7 @@ button.ref-row:hover {
 .preset-badge {
   padding: 2px 8px;
   border-radius: 8px;
-  color: #fff;
+  color: var(--btn-text);
   font-size: 10px;
   font-weight: 700;
 }
@@ -2538,6 +2677,74 @@ button.ref-row:hover {
 }
 
 /* ---- 策划书首页（W34：卡片视图） ---- */
+
+/*
+ * 首页「AI 入口卡」——1:1 对齐 PyQt `ui/ceshu/ceshu_theme.py::ceshu_home_ai_card_qss()`：
+ * 强调色渐变底 + 白字标题/提示 + 白色输入框 + 白底强调字按钮。
+ * 按钮刻意**不跟**主题的 `.btn.primary`（那是 accent 底 + btn-text 字），
+ * 而是在本卡片内覆盖成「白底 + accent 字」，否则在渐变底上会和卡片糊成一片。
+ */
+.home-ai-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 10px 0 12px;
+  padding: 16px 20px; /* PyQt setContentsMargins(20, 16, 20, 16) */
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+}
+
+.home-ai-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.home-ai-hint {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.home-ai-input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.home-ai-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  background: rgba(255, 255, 255, 0.95);
+  border: none;
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: #333333;
+  font-size: 13px;
+}
+
+.home-ai-input:focus {
+  border: none;
+  outline: 2px solid rgba(255, 255, 255, 0.9);
+  outline-offset: 1px;
+}
+
+.home-ai-card .btn.primary {
+  flex: 0 0 auto;
+  background: #ffffff;
+  color: var(--accent);
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.home-ai-card .btn.primary:hover {
+  background: #f0f0f0;
+  color: var(--accent-hover);
+}
 
 .home-search {
   width: 100%;
@@ -2854,7 +3061,7 @@ button.ref-row:hover {
 }
 
 .template-badge.custom {
-  background: rgba(15, 220, 120, 0.16);
+  background: var(--accent-soft);
   color: var(--accent);
 }
 
@@ -3091,7 +3298,7 @@ button.ref-row:hover {
 .digital-bubble-user {
   align-self: flex-end;
   background: var(--accent);
-  color: #10131a;
+  color: var(--btn-text);
 }
 
 .digital-bubble-assistant {

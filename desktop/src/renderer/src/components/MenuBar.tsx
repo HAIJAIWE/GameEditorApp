@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 import LibraryBar from './LibraryBar'
+import LucideIcon from './LucideIcon'
 
 /**
  * 顶部菜单栏（对齐 PyQt `ui/menus.py` 的 MENU_CONFIG + `ui/main_window.py` 的角部件）。
@@ -267,6 +268,7 @@ export default function MenuBar({ canUndo, canRedo, actions }: MenuBarProps) {
           data-testid="menubar-settings"
           onClick={() => actions.settings()}
         >
+          <LucideIcon name="settings" size={14} />
           设置
         </button>
         <button
@@ -275,9 +277,11 @@ export default function MenuBar({ canUndo, canRedo, actions }: MenuBarProps) {
           data-testid="menubar-agent"
           onClick={() => actions.agentEditor()}
         >
+          <LucideIcon name="brain" size={14} />
           智能体
         </button>
         <button type="button" className="btn slim primary" data-testid="menubar-ai" onClick={() => actions.aiPanel()}>
+          <LucideIcon name="bot" size={14} />
           AI
         </button>
       </div>

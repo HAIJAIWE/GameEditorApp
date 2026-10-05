@@ -20,6 +20,8 @@ import type { DataTypeDef } from '../../../shared/types'
 
 interface AiDataGenPanelProps {
   ceshuId: string
+  /** 打开时预选的数据类型 id（由条目表单的「AI 生成」传入；不传则默认全选，与 Python 一致） */
+  initialTypeId?: string
   onClose: () => void
 }
 
@@ -27,7 +29,7 @@ function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
 
-export default function AiDataGenPanel({ ceshuId, onClose }: AiDataGenPanelProps) {
+export default function AiDataGenPanel({ ceshuId, initialTypeId, onClose }: AiDataGenPanelProps) {
   const [types, setTypes] = useState<DataTypeDef[]>([])
   const [checkedTypeIds, setCheckedTypeIds] = useState<string[]>([])
   const [count, setCount] = useState(DATA_GEN_DEFAULT_COUNT)
@@ -47,8 +49,13 @@ export default function AiDataGenPanel({ ceshuId, onClose }: AiDataGenPanelProps
       .then((loaded) => {
         if (cancelled) return
         setTypes(loaded)
-        // 默认全选（与 Python 一致）
-        setCheckedTypeIds(loaded.map((type) => type.id))
+        // 默认全选（与 Python 一致）；若由条目表单指定了类型，则只预选该类型，
+        // 避免用户从「某条数据的 AI 生成」进来后还要手动取消其余类型。
+        setCheckedTypeIds(
+          initialTypeId !== undefined && loaded.some((type) => type.id === initialTypeId)
+            ? [initialTypeId]
+            : loaded.map((type) => type.id)
+        )
       })
       .catch((err: unknown) => {
         if (!cancelled) setError(toErrorMessage(err))
@@ -56,7 +63,7 @@ export default function AiDataGenPanel({ ceshuId, onClose }: AiDataGenPanelProps
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [initialTypeId])
 
   const pluralKeys = result ? Object.keys(result.candidates) : []
   const activeItems = result && activeTab ? (result.candidates[activeTab] ?? []) : []

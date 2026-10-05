@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
+import LucideIcon from './LucideIcon'
+
 /**
  * 库条（A2-2）：新建 / 重命名 / 删除 / 切换活跃库。
  *
@@ -147,6 +149,7 @@ export default function LibraryBar() {
           disabled={busy}
           onClick={() => startEdit('create')}
         >
+          <LucideIcon name="plus" size={14} />
           新建
         </button>
         <button
@@ -156,6 +159,7 @@ export default function LibraryBar() {
           disabled={busy || current === undefined}
           onClick={() => startEdit('rename')}
         >
+          <LucideIcon name="pencil" size={14} />
           重命名
         </button>
         <button
@@ -167,6 +171,7 @@ export default function LibraryBar() {
           title={current?.isInitial === true ? '初始库不可删除' : undefined}
           onClick={handleRemove}
         >
+          <LucideIcon name="trash" size={14} />
           删除
         </button>
       </div>

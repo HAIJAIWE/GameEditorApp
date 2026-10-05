@@ -21,6 +21,8 @@ import type { DataTypeDef, FieldType, TypeFieldDef } from '../../../shared/types
 interface TypeEditorPanelProps {
   /** 当前已保存的 schema（基线，用于重置/判断新类型） */
   types: DataTypeDef[]
+  /** 打开时预选的类型 id（由条目表单的「编辑当前类型字段结构」传入）；不传则选第一个类型 */
+  initialTypeId?: string
   onSaved: (types: DataTypeDef[]) => void
   onClose: () => void
 }
@@ -43,9 +45,13 @@ function aiOnlyOf(state: IdSuggestState): FieldIdSuggestion[] {
   )
 }
 
-export default function TypeEditorPanel({ types, onSaved, onClose }: TypeEditorPanelProps) {
+export default function TypeEditorPanel({ types, initialTypeId, onSaved, onClose }: TypeEditorPanelProps) {
   const [draft, setDraft] = useState<DataTypeDef[]>(() => structuredClone(types))
-  const [selectedId, setSelectedId] = useState<string>(() => types[0]?.id ?? '')
+  const [selectedId, setSelectedId] = useState<string>(() =>
+    initialTypeId !== undefined && types.some((def) => def.id === initialTypeId)
+      ? initialTypeId
+      : (types[0]?.id ?? '')
+  )
   const [templateName, setTemplateName] = useState(TYPE_TEMPLATE_NAMES[0] ?? '')
   const [errors, setErrors] = useState<string[]>([])
   const [notice, setNotice] = useState<string | null>(null)

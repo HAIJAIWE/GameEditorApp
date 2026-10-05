@@ -4,6 +4,7 @@ import type { CeshuSummary } from '../../shared/ceshuConstants'
 import { loadGameStyle, normalizeGameStyleId, saveGameStyle } from '../../shared/gameStyle'
 import type { AppInfo, DataTypeDef, ImportSummary } from '../../shared/types'
 import { applyTheme, loadTheme, saveTheme, type ThemeMode } from '../../shared/theme'
+import { buildAiSeedPrompt } from '../../shared/aiSeedPrompt'
 
 import AdvancedSearchPanel from './components/AdvancedSearchPanel'
 import AttrSystemPanel from './components/AttrSystemPanel'
@@ -118,6 +119,14 @@ export default function App() {
   const [gameStyle, setGameStyle] = useState<string>(() => loadGameStyle())
   /** 引用面板的目标条目；由「高级搜索 → 点击结果跳转」回填，供菜单「数据关联预览」打开引用面板 */
   const [refTarget, setRefTarget] = useState<ReferenceTarget | null>(null)
+  /** 「字段结构编辑器」打开时要预选的类型；由条目表单的「更多 ▸」回填，菜单入口保持默认（第一个类型） */
+  const [typeEditorTarget, setTypeEditorTarget] = useState<string | null>(null)
+  /**
+   * 待投递给右侧 AI 面板的一条播种消息（由策划书首页的 AI 入口卡触发）。
+   * App 只负责「组装引导前缀 + 递增 nonce」，真正的发送由 `DigitalPanel` 消费 `seed` 完成
+   * （对齐 PyQt `home_view.py::_on_ai_send`：把 guided_text 塞进 digital_panel 输入框并发送）。
+   */
+  const [aiSeed, setAiSeed] = useState<{ text: string; nonce: number } | null>(null)
   /** 跳转定位目标（含递增 nonce 以支持重复跳转同一类型）；命中启用编辑器时在策划书预览面板定位条目 */
   const [jumpTarget, setJumpTarget] = useState<PreviewJumpTarget | null>(null)
 
@@ -306,6 +315,33 @@ export default function App() {
   /** 跳转已处理（预览面板点击标签页 / 未命中被驳回）：清空 jumpTarget，避免重复触发 */
   const handleJumpHandled = (): void => setJumpTarget(null)
 
+  /**
+   * 首页 AI 入口卡发送：把用户输入包成引导前缀后投给右侧 AI 面板。
+   * 空白输入返回 `null` → 直接忽略（对齐 Python `if not text: return`）。
+   */
+  const handleSendToAi = (text: string): void => {
+    const prompt = buildAiSeedPrompt(text)
+    if (prompt === null) return
+    setAiSeed((prev) => ({ text: prompt, nonce: (prev?.nonce ?? 0) + 1 }))
+  }
+
+  /** 条目表单「更多 ▸ → 编辑当前类型字段结构」：打开字段结构编辑器并预选该类型 */
+  const handleEditType = (typeId: string): void => {
+    setTypeEditorTarget(typeId)
+    setPanel('typeEditor')
+  }
+
+  /**
+   * 条目表单「更多 ▸ → 查看此项的引用关系」：先落 `refTarget` 再开面板。
+   *
+   * ⚠️ **不能走 `openPanel('references')`** —— 那条通道带「无 refTarget 则改跳高级搜索」的守卫，
+   * 而同一批次内 `setRefTarget` 尚未生效，守卫会读到旧的 `null`，把用户弹去高级搜索。
+   */
+  const handleShowReferences = (target: ReferenceTarget): void => {
+    setRefTarget(target)
+    setPanel('references')
+  }
+
   /** 跳转未命中：目标类型不在当前策划书启用的游戏系统里，给出可理解的提示 */
   const handleJumpMissed = (name: string): void => {
     setNotice(`该条目「${name}」所属的数据类型未在当前策划书启用的游戏系统中，无法定位`)
@@ -444,7 +480,14 @@ export default function App() {
   const renderPanel = (): ReactNode => {
     switch (panel) {
       case 'typeEditor':
-        return <TypeEditorPanel types={types} onSaved={(saved) => setTypes(saved)} onClose={() => setPanel(null)} />
+        return (
+          <TypeEditorPanel
+            types={types}
+            initialTypeId={typeEditorTarget ?? undefined}
+            onSaved={(saved) => setTypes(saved)}
+            onClose={() => setPanel(null)}
+          />
+        )
       case 'attrSystem':
         return <AttrSystemPanel onClose={() => setPanel(null)} />
       case 'stats':
@@ -511,7 +554,11 @@ export default function App() {
           dataDiff: () => openPanel('dataDiff'),
           stats: () => openPanel('stats'),
           attrSystem: () => openPanel('attrSystem'),
-          fieldEditor: () => openPanel('typeEditor'),
+          fieldEditor: () => {
+            // 菜单入口 = 通用字段结构编辑器，清掉条目表单可能留下的预选类型
+            setTypeEditorTarget(null)
+            openPanel('typeEditor')
+          },
           advancedSearch: () => openPanel('advancedSearch'),
           imageGen: () => openPanel('imageGen'),
           settings: () => notImplemented('设置'),
@@ -546,6 +593,7 @@ export default function App() {
                   onDeleted={(deletedId) => {
                     setActiveCeshuId((current) => (current === deletedId ? null : current))
                   }}
+                  onSendToAi={handleSendToAi}
                 />
               ) : (
                 <CeshuView
@@ -557,13 +605,15 @@ export default function App() {
                   gameStyle={gameStyle}
                   onBack={() => setCeshuHomeVisible(true)}
                   jumpTarget={jumpTarget}
+                  onEditType={handleEditType}
+                  onShowReferences={handleShowReferences}
                   onJumpHandled={handleJumpHandled}
                   onJumpMissed={handleJumpMissed}
                 />
               )}
             </div>
             <aside className="ai-dock" data-testid="ai-dock">
-              <DigitalPanel />
+              <DigitalPanel seed={aiSeed} />
             </aside>
           </div>
 

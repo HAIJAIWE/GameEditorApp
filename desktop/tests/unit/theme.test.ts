@@ -21,12 +21,13 @@ function memStorage(initial: Record<string, string> = {}): StorageLike & { data:
 }
 
 describe('theme：读取与校验', () => {
-  it('storage=null → 回落默认深色', () => {
+  it('storage=null → 回落默认主题（浅色，对齐 PyQt「默认」）', () => {
     expect(loadTheme(null)).toBe(DEFAULT_THEME)
+    expect(DEFAULT_THEME).toBe('light')
   })
 
-  it('键缺失 → 回落默认深色', () => {
-    expect(loadTheme(memStorage())).toBe('dark')
+  it('键缺失 → 回落默认主题', () => {
+    expect(loadTheme(memStorage())).toBe(DEFAULT_THEME)
   })
 
   it('合法值 light / dark 原样返回', () => {
@@ -34,10 +35,10 @@ describe('theme：读取与校验', () => {
     expect(loadTheme(memStorage({ 'mb.theme': 'dark' }))).toBe('dark')
   })
 
-  it('非法值（如 "blue" / 空串 / 数字） → 回落默认深色', () => {
-    expect(loadTheme(memStorage({ 'mb.theme': 'blue' }))).toBe('dark')
-    expect(loadTheme(memStorage({ 'mb.theme': '' }))).toBe('dark')
-    expect(loadTheme(memStorage({ 'mb.theme': 'DARK' }))).toBe('dark')
+  it('非法值（如 "blue" / 空串 / 数字） → 回落默认主题', () => {
+    expect(loadTheme(memStorage({ 'mb.theme': 'blue' }))).toBe(DEFAULT_THEME)
+    expect(loadTheme(memStorage({ 'mb.theme': '' }))).toBe(DEFAULT_THEME)
+    expect(loadTheme(memStorage({ 'mb.theme': 'DARK' }))).toBe(DEFAULT_THEME)
   })
 })
 
@@ -71,14 +72,14 @@ describe('theme：应用到 DOM', () => {
     ;(globalThis as { document?: unknown }).document = original
   })
 
-  it('light → 设置 data-theme="light"', () => {
+  it('light（默认档）→ 移除 data-theme（回退 :root 的浅色默认）', () => {
+    root.attrs['data-theme'] = 'dark'
     applyTheme('light' as ThemeMode)
-    expect(root.attrs['data-theme']).toBe('light')
+    expect(root.attrs['data-theme']).toBeUndefined()
   })
 
-  it('dark → 移除 data-theme（回退 :root）', () => {
-    root.attrs['data-theme'] = 'light'
+  it('dark → 设置 data-theme="dark"', () => {
     applyTheme('dark' as ThemeMode)
-    expect(root.attrs['data-theme']).toBeUndefined()
+    expect(root.attrs['data-theme']).toBe('dark')
   })
 })

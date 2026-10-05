@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 
 import type { BrainEvent } from '../../../../shared/agent/brain'
 import {
@@ -74,7 +74,16 @@ const STATUS_LABELS: Record<DigitalPanelState['status'], string> = {
   error: '出错'
 }
 
-export default function DigitalPanel() {
+export interface DigitalPanelProps {
+  /**
+   * 外部播种的一条待发送消息（对齐 PyQt：策划书首页的 AI 入口卡会把文本塞进本面板输入框
+   * 并立即发送，见 `home_view.py::_on_ai_send`）。TS 侧没有全局事件总线，改用 props 通道；
+   * 用递增 `nonce` 区分「同一文本被再次投递」。
+   */
+  seed?: { text: string; nonce: number } | null
+}
+
+export default function DigitalPanel({ seed = null }: DigitalPanelProps) {
   const [state, dispatch] = useReducer(reducer, initialDigitalPanelState)
   const [input, setInput] = useState('')
   const [stepsOpen, setStepsOpen] = useState(true)
@@ -86,6 +95,9 @@ export default function DigitalPanel() {
   const [multiChoice, setMultiChoice] = useState<string[][]>([])
   const [localError, setLocalError] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement | null>(null)
+  const inputRef = useRef<HTMLInputElement | null>(null)
+  /** 已消费的外部播种 nonce（防止依赖变化导致同一播种被重复投递） */
+  const consumedSeedNonce = useRef<number | null>(null)
 
   const api = useMemo(() => (window.mbApi as unknown as { agent: ChatApi }).agent, [])
   const tasks = useMemo(() => summarizeToolTasks(state.steps), [state.steps])
@@ -127,16 +139,45 @@ export default function DigitalPanel() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight })
   }, [state.messages.length, state.streaming])
 
-  const handleSend = (): void => {
-    const text = input.trim()
-    if (text === '' || running) return
-    setLocalError(null)
-    setInput('')
-    dispatch({ kind: 'submit', text })
-    void api.chat({ input: text }).catch((error: unknown) => {
-      setLocalError(toErrorMessage(error))
+  /** 提交一段文本（输入框发送与外部播种共用；空文本或正在运行则忽略） */
+  const submitText = useCallback(
+    (raw: string): void => {
+      const text = raw.trim()
+      if (text === '' || running) return
+      setLocalError(null)
+      setInput('')
+      dispatch({ kind: 'submit', text })
+      void api.chat({ input: text }).catch((error: unknown) => {
+        setLocalError(toErrorMessage(error))
+      })
+    },
+    [running, api]
+  )
+
+  const handleSend = (): void => submitText(input)
+
+  /**
+   * 消费外部播种（策划书首页 AI 入口卡 → 本面板）。
+   *
+   * ⚠️ `submitText` 会**同步** setState，而 `react-hooks` v7 把「effect 体内同步 setState」
+   * 判为 error（`set-state-in-effect`）→ 放进微任务回调里执行。
+   * 用 `consumedSeedNonce` 去重：`submitText` 的依赖（running/api）变化时本 effect 会重跑，
+   * 没有去重就会出现「同一条播种被重复发送」。
+   */
+  useEffect(() => {
+    if (seed === null) return undefined
+    if (consumedSeedNonce.current === seed.nonce) return undefined
+    let cancelled = false
+    void Promise.resolve().then(() => {
+      if (cancelled) return
+      consumedSeedNonce.current = seed.nonce
+      submitText(seed.text)
+      inputRef.current?.focus()
     })
-  }
+    return () => {
+      cancelled = true
+    }
+  }, [seed, submitText])
 
   const handleApproval = (approved: boolean): void => {
     const approval = state.approval
@@ -468,6 +509,7 @@ export default function DigitalPanel() {
 
       <div className="digital-input-row">
         <input
+          ref={inputRef}
           className="form-input"
           data-testid="digital-input"
           placeholder="和数字员工说点什么…"

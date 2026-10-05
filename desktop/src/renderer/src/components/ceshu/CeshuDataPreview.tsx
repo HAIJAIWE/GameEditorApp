@@ -26,6 +26,12 @@ interface CeshuDataPreviewProps {
   onDataChanged?: () => void
   /** 外部跳转目标：命中启用编辑器时定位到对应条目标签页 */
   jumpTarget?: PreviewJumpTarget | null
+  /** 打开「字段结构编辑器」编辑指定类型（透传给条目表单的「更多 ▸」） */
+  onEditType?: (typeId: string) => void
+  /** 打开「数据关联预览」查看某条目引用关系（透传给条目表单的「更多 ▸」） */
+  onShowReferences?: (target: { type: string; id: string; name: string }) => void
+  /** 打开「AI 数据生成」面板（透传给条目表单；typeId = 当前条目类型，用于预选） */
+  onAiGenerate?: (typeId: string) => void
   /** 跳转已处理（用户点击任意标签页，或目标未命中被驳回）——宿主据此清空 jumpTarget */
   onJumpHandled?: () => void
   /** 跳转目标所属类型不在当前启用编辑器中（未命中）——宿主据此给出提示 */
@@ -55,6 +61,9 @@ export default function CeshuDataPreview({
   onGotoSystems,
   onDataChanged,
   jumpTarget,
+  onEditType,
+  onShowReferences,
+  onAiGenerate,
   onJumpHandled,
   onJumpMissed
 }: CeshuDataPreviewProps) {
@@ -141,6 +150,9 @@ export default function CeshuDataPreview({
             onDataChanged={onDataChanged}
             initialSelectedId={initialSelectedId}
             targetNonce={targetNonce}
+            onEditType={onEditType}
+            onShowReferences={onShowReferences}
+            onAiGenerate={onAiGenerate}
           />
         ) : null}
       </div>

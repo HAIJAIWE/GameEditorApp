@@ -24,6 +24,7 @@ import ChapterNotesPanel from './ChapterNotesPanel'
 import CeshuDataPreview, { type PreviewJumpTarget } from './ceshu/CeshuDataPreview'
 import ChecklistPanel from './ChecklistPanel'
 import FieldDepsPanel from './FieldDepsPanel'
+import LucideIcon from './LucideIcon'
 import PresetMarketPanel from './PresetMarketPanel'
 import SystemConfirmPanel from './SystemConfirmPanel'
 import TemplateEditorPanel from './TemplateEditorPanel'
@@ -53,6 +54,10 @@ interface CeshuViewProps {
   onJumpHandled?: () => void
   /** 跳转未命中（透传；宿主据此提示目标类型未被启用系统覆盖） */
   onJumpMissed?: (name: string) => void
+  /** 打开「字段结构编辑器」编辑指定类型（由条目表单的「更多 ▸」触发，宿主负责开面板） */
+  onEditType?: (typeId: string) => void
+  /** 打开「数据关联预览」查看某条目引用关系（由条目表单的「更多 ▸」触发，宿主负责开面板） */
+  onShowReferences?: (target: { type: string; id: string; name: string }) => void
 }
 
 function toErrorMessage(error: unknown): string {
@@ -81,7 +86,9 @@ export default function CeshuView({
   onBack,
   jumpTarget,
   onJumpHandled,
-  onJumpMissed
+  onJumpMissed,
+  onEditType,
+  onShowReferences
 }: CeshuViewProps) {
   const [doc, setDoc] = useState<CeshuDocument | null>(null)
   const [activeChapter, setActiveChapter] = useState<ChapterKey>('meta')
@@ -114,6 +121,8 @@ export default function CeshuView({
   const [score, setScore] = useState<CeshuScoreReport | null>(null)
   /** 「更多 ▸」下拉展开状态（对齐 PyQt `editor_view.py:154` 的 `_btn_more` 菜单） */
   const [moreOpen, setMoreOpen] = useState(false)
+  /** 「AI 生成数据」的预选类型（由条目表单的「AI 生成」按钮指定；null = 面板默认全选） */
+  const [aiGenTarget, setAiGenTarget] = useState<string | null>(null)
   const moreRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -387,6 +396,7 @@ export default function CeshuView({
           title="返回策划书首页"
           onClick={onBack}
         >
+          <LucideIcon name="chevron-left" size={18} />
           返回
         </button>
         <h1>{gameName}</h1>
@@ -403,18 +413,22 @@ export default function CeshuView({
             设为激活
           </button>
         )}
-        <button type="button" className="btn" data-testid="ceshu-validate" disabled={busy} onClick={() => void handleValidate()}>
+        <button type="button" className="btn accent-outline" data-testid="ceshu-validate" disabled={busy} onClick={() => void handleValidate()}>
           校验
         </button>
-        <button type="button" className="btn" data-testid="ceshu-ai-full" disabled={busy} onClick={() => setPanel('aiFull')}>
+        <button type="button" className="btn accent-outline" data-testid="ceshu-ai-full" disabled={busy} onClick={() => setPanel('aiFull')}>
           AI 一键生成
         </button>
         <button
           type="button"
-          className="btn"
+          className="btn accent-outline"
           data-testid="ceshu-ai-datagen"
           disabled={busy}
-          onClick={() => setPanel('aiDataGen')}
+          onClick={() => {
+            // 工具栏入口是「全局生成」：清掉条目表单可能留下的预选类型，回到默认全选
+            setAiGenTarget(null)
+            setPanel('aiDataGen')
+          }}
         >
           AI 生成数据
         </button>
@@ -424,14 +438,15 @@ export default function CeshuView({
         <div className="toolbar-more" ref={moreRef}>
           <button
             type="button"
-            className="btn"
+            className="btn accent-outline"
             data-testid="ceshu-more"
             disabled={busy}
             aria-haspopup="menu"
             aria-expanded={moreOpen}
             onClick={() => setMoreOpen((open) => !open)}
           >
-            更多 ▸
+            更多
+            <LucideIcon name="chevron-down" size={14} />
           </button>
           {moreOpen && (
             <div className="toolbar-more-menu" role="menu" data-testid="ceshu-more-menu">
@@ -470,7 +485,7 @@ export default function CeshuView({
             </option>
           ))}
         </select>
-        <button type="button" className="btn" data-testid="ceshu-export" disabled={busy} onClick={() => void handleExport()}>
+        <button type="button" className="btn accent-outline" data-testid="ceshu-export" disabled={busy} onClick={() => void handleExport()}>
           导出
         </button>
       </header>
@@ -532,7 +547,12 @@ export default function CeshuView({
             onClose={() => setPanel(null)}
           />
         ) : panel === 'aiDataGen' ? (
-          <AiDataGenPanel key={doc.ceshu_id} ceshuId={doc.ceshu_id} onClose={() => setPanel(null)} />
+          <AiDataGenPanel
+            key={doc.ceshu_id}
+            ceshuId={doc.ceshu_id}
+            initialTypeId={aiGenTarget ?? undefined}
+            onClose={() => setPanel(null)}
+          />
         ) : panel === 'presetMarket' ? (
           <PresetMarketPanel
             key={doc.ceshu_id}
@@ -695,18 +715,24 @@ export default function CeshuView({
         ) : (
           <div className="ceshu-pane-row">
             <div className="chapter-nav">
-              {visible.map((key) => (
-                <button
-                  key={key}
-                  type="button"
-                  data-testid="chapter-tab"
-                  className={`chapter-tab${key === activeChapter ? ' active' : ''}`}
-                  onClick={() => setActiveChapter(key)}
-                >
-                  <span className="chapter-tab-label">{CHAPTER_LABELS[key]}</span>
-                  <span className="chapter-progress">{Math.round((progress[key] ?? 0) * 100)}%</span>
-                </button>
-              ))}
+              {visible.map((key) => {
+                const pct = Math.round((progress[key] ?? 0) * 100)
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    data-testid="chapter-tab"
+                    className={`chapter-tab${key === activeChapter ? ' active' : ''}`}
+                    onClick={() => setActiveChapter(key)}
+                  >
+                    <span className="chapter-tab-label">{CHAPTER_LABELS[key]}</span>
+                    {/* 完成度：迷你进度条（对齐 PyQt 的 QProgressBar 60x6）；百分比进 title 供悬停查看 */}
+                    <span className="chapter-progress" title={`完成度 ${pct}%`} role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+                      <span className="chapter-progress-fill" style={{ width: `${pct}%` }} />
+                    </span>
+                  </button>
+                )
+              })}
               {scope === 'lite' && (
                 <div className="chapter-nav-hint">轻量档仅含基础 9 章；在「项目元信息」中可切换为工业级 18 章</div>
               )}
@@ -731,6 +757,12 @@ export default function CeshuView({
               onGotoSystems={() => setActiveChapter('systems')}
               onDataChanged={onChanged}
               jumpTarget={jumpTarget}
+              onEditType={onEditType}
+              onShowReferences={onShowReferences}
+              onAiGenerate={(typeId) => {
+                setAiGenTarget(typeId)
+                setPanel('aiDataGen')
+              }}
               onJumpHandled={onJumpHandled}
               onJumpMissed={onJumpMissed}
             />
