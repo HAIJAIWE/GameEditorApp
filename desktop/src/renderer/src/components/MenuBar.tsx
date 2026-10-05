@@ -51,6 +51,11 @@ interface MenuActionItem {
   label: string
   action: keyof MenuActions
   disabled?: boolean
+  /**
+   * 稳定测试锚点（E2E 用）。仅挂在**真正可用**的菜单项上；
+   * `action: 'notImplemented'` 的占位项与分隔符一律不给（避免暗示「可测/可用」）。
+   */
+  testid?: string
 }
 interface MenuSeparator {
   type: 'separator'
@@ -110,9 +115,9 @@ export default function MenuBar({ canUndo, canRedo, actions }: MenuBarProps) {
         type: 'submenu',
         label: '导入',
         items: [
-          { type: 'action', label: '导入 JSON', action: 'importJson' },
-          { type: 'action', label: '导入 CSV', action: 'importCsv' },
-          { type: 'action', label: '导入 Excel', action: 'importExcel' },
+          { type: 'action', label: '导入 JSON', action: 'importJson', testid: 'menuitem-file-importJson' },
+          { type: 'action', label: '导入 CSV', action: 'importCsv', testid: 'menuitem-file-importCsv' },
+          { type: 'action', label: '导入 Excel', action: 'importExcel', testid: 'menuitem-file-importExcel' },
           { type: 'separator' },
           { type: 'action', label: '批量导入', action: 'notImplemented' }
         ]
@@ -121,43 +126,43 @@ export default function MenuBar({ canUndo, canRedo, actions }: MenuBarProps) {
         type: 'submenu',
         label: '导出',
         items: [
-          { type: 'action', label: '导出 JSON', action: 'exportJson' },
-          { type: 'action', label: '导出 CSV', action: 'exportCsv' },
-          { type: 'action', label: '导出 Excel', action: 'exportExcel' },
+          { type: 'action', label: '导出 JSON', action: 'exportJson', testid: 'menuitem-file-exportJson' },
+          { type: 'action', label: '导出 CSV', action: 'exportCsv', testid: 'menuitem-file-exportCsv' },
+          { type: 'action', label: '导出 Excel', action: 'exportExcel', testid: 'menuitem-file-exportExcel' },
           { type: 'separator' },
           { type: 'action', label: '批量导出', action: 'notImplemented' },
-          { type: 'action', label: '批量编辑', action: 'batchEdit' },
+          { type: 'action', label: '批量编辑', action: 'batchEdit', testid: 'menuitem-file-batchEdit' },
           { type: 'separator' },
           { type: 'action', label: '导出游戏数据', action: 'notImplemented' },
           { type: 'separator' },
-          { type: 'action', label: '导出为 Unity 格式', action: 'engineExport' },
-          { type: 'action', label: '导出为 Unreal 格式', action: 'engineExport' },
-          { type: 'action', label: '导出为 Godot 格式', action: 'engineExport' },
-          { type: 'action', label: '导出为 Cocos2d 格式', action: 'engineExport' },
+          { type: 'action', label: '导出为 Unity 格式', action: 'engineExport', testid: 'menuitem-file-exportUnity' },
+          { type: 'action', label: '导出为 Unreal 格式', action: 'engineExport', testid: 'menuitem-file-exportUnreal' },
+          { type: 'action', label: '导出为 Godot 格式', action: 'engineExport', testid: 'menuitem-file-exportGodot' },
+          { type: 'action', label: '导出为 Cocos2d 格式', action: 'engineExport', testid: 'menuitem-file-exportCocos' },
           { type: 'separator' },
           { type: 'action', label: '游戏数据预览', action: 'notImplemented' }
         ]
       },
       { type: 'separator' },
-      { type: 'action', label: '备份管理', action: 'backup' },
+      { type: 'action', label: '备份管理', action: 'backup', testid: 'menuitem-file-backup' },
       { type: 'separator' },
-      { type: 'action', label: '退出', action: 'quit' }
+      { type: 'action', label: '退出', action: 'quit', testid: 'menuitem-file-quit' }
     ],
     [
-      { type: 'action', label: '撤销 (Ctrl+Z)', action: 'undo', disabled: !canUndo },
-      { type: 'action', label: '重做 (Ctrl+Y)', action: 'redo', disabled: !canRedo },
+      { type: 'action', label: '撤销 (Ctrl+Z)', action: 'undo', disabled: !canUndo, testid: 'menuitem-edit-undo' },
+      { type: 'action', label: '重做 (Ctrl+Y)', action: 'redo', disabled: !canRedo, testid: 'menuitem-edit-redo' },
       { type: 'separator' },
       { type: 'action', label: '模板管理', action: 'notImplemented' },
       { type: 'separator' },
       { type: 'action', label: '清空所有数据', action: 'notImplemented' }
     ],
     [
-      { type: 'action', label: '快速创建向导', action: 'quickCreate' },
-      { type: 'action', label: '批量修改数据', action: 'batchEdit' },
-      { type: 'action', label: '数据关联预览', action: 'references' },
+      { type: 'action', label: '快速创建向导', action: 'quickCreate', testid: 'menuitem-tools-quickCreate' },
+      { type: 'action', label: '批量修改数据', action: 'batchEdit', testid: 'menuitem-tools-batchEdit' },
+      { type: 'action', label: '数据关联预览', action: 'references', testid: 'menuitem-tools-references' },
       { type: 'separator' },
       { type: 'action', label: '关系图', action: 'notImplemented' },
-      { type: 'action', label: '数据对比', action: 'dataDiff' },
+      { type: 'action', label: '数据对比', action: 'dataDiff', testid: 'menuitem-tools-dataDiff' },
       { type: 'separator' },
       {
         type: 'submenu',
@@ -165,7 +170,7 @@ export default function MenuBar({ canUndo, canRedo, actions }: MenuBarProps) {
         items: [
           { type: 'action', label: '属性分布图表', action: 'notImplemented' },
           { type: 'action', label: '平衡性分析工具', action: 'notImplemented' },
-          { type: 'action', label: '游戏数据统计', action: 'stats' }
+          { type: 'action', label: '游戏数据统计', action: 'stats', testid: 'menuitem-tools-stats' }
         ]
       },
       {
@@ -177,10 +182,10 @@ export default function MenuBar({ canUndo, canRedo, actions }: MenuBarProps) {
         ]
       },
       { type: 'separator' },
-      { type: 'action', label: '属性系统编辑器', action: 'attrSystem' },
-      { type: 'action', label: '字段结构编辑器', action: 'fieldEditor' },
-      { type: 'action', label: '高级搜索', action: 'advancedSearch' },
-      { type: 'action', label: 'AI 生图', action: 'imageGen' },
+      { type: 'action', label: '属性系统编辑器', action: 'attrSystem', testid: 'menuitem-tools-attrSystem' },
+      { type: 'action', label: '字段结构编辑器', action: 'fieldEditor', testid: 'menuitem-tools-fieldEditor' },
+      { type: 'action', label: '高级搜索', action: 'advancedSearch', testid: 'menuitem-tools-advancedSearch' },
+      { type: 'action', label: 'AI 生图', action: 'imageGen', testid: 'menuitem-tools-imageGen' },
       { type: 'action', label: '清理未使用图片', action: 'notImplemented' }
     ],
     [{ type: 'action', label: '打开设置...', action: 'notImplemented' }],
@@ -199,6 +204,7 @@ export default function MenuBar({ canUndo, canRedo, actions }: MenuBarProps) {
           <button
             type="button"
             className={`menu-title${openIndex === idx ? ' open' : ''}`}
+            data-testid={MENU_TITLE_TESTIDS[idx]}
             onClick={() => setOpenIndex(openIndex === idx ? null : idx)}
             onMouseEnter={() => {
               if (openIndex !== null) setOpenIndex(idx)
@@ -223,6 +229,7 @@ export default function MenuBar({ canUndo, canRedo, actions }: MenuBarProps) {
                             type="button"
                             key={sIdx}
                             className="menu-item"
+                            data-testid={sub.testid}
                             disabled={sub.disabled}
                             onClick={() => run(sub)}
                           >
@@ -237,6 +244,7 @@ export default function MenuBar({ canUndo, canRedo, actions }: MenuBarProps) {
                     type="button"
                     key={nIdx}
                     className="menu-item"
+                    data-testid={node.testid}
                     disabled={node.disabled}
                     onClick={() => run(node)}
                   >
@@ -278,3 +286,6 @@ export default function MenuBar({ canUndo, canRedo, actions }: MenuBarProps) {
 }
 
 const MENU_TITLES = ['文件', '编辑', '工具', '设置', '帮助']
+
+/** 菜单标题的稳定测试锚点：与 MENU_TITLES **同序**按 idx 取用（不做中文转写） */
+const MENU_TITLE_TESTIDS = ['menu-title-file', 'menu-title-edit', 'menu-title-tools', 'menu-title-settings', 'menu-title-help']
