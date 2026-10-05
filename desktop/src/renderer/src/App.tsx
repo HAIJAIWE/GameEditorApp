@@ -296,6 +296,10 @@ export default function App() {
     setRefTarget({ type, id: itemId, name })
     setCeshuHomeVisible(false)
     setPanel(null)
+    // 跳转成功即清掉此前的引导类 notice（如「请先在「高级搜索」中…完成定位」），
+    // 否则用户已定位到条目、顶部却仍挂着要求他去定位的提示。
+    // 若目标未命中，预览面板随后会调 onJumpMissed 写入新的提示。
+    setNotice(null)
     setJumpTarget((prev) => ({ type, itemId, name, nonce: (prev?.nonce ?? 0) + 1 }))
   }
 
