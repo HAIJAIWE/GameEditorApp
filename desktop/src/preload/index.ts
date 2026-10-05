@@ -101,6 +101,7 @@ const api: MbApi = {
     chooseCsvFile: () => invoke('dialog:chooseCsvFile', undefined),
     chooseExcelFile: () => invoke('dialog:chooseExcelFile', undefined),
     chooseImageSaveDir: () => invoke('dialog:chooseImageSaveDir', undefined),
+    chooseImageFile: () => invoke('dialog:chooseImageFile', undefined),
     chooseCeshuExportFile: (req) => invoke('dialog:chooseCeshuExportFile', req),
     chooseAttrSystemJsonFile: (req) => invoke('dialog:chooseAttrSystemJsonFile', req),
     chooseTemplateJsonFile: (req) => invoke('dialog:chooseTemplateJsonFile', req)

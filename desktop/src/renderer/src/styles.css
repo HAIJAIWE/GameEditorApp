@@ -657,6 +657,44 @@ body {
   resize: vertical;
 }
 
+/* 图片字段：只读路径框 + 选择按钮一行，缩略图在下（对齐 PyQt 的三件套布局） */
+.image-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.image-field-row {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+}
+
+.image-field-row .form-input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.image-field-preview {
+  align-self: flex-start;
+  max-width: 100%;
+  max-height: 160px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+
+/*
+ * `image_desc` 专用高度：PyQt `dynamic_form.py` 的 image_desc 分支是
+ * `QTextEdit` + `setMaximumHeight(60)`（多行，但比 desc 的 120 矮一半）。
+ * 用 max-height 而非 min-height：既能显示两三行，又不会被拉成和 desc 一样高。
+ */
+.image-desc-textarea {
+  min-height: 48px;
+  max-height: 60px;
+}
+
 .form-input:read-only,
 .form-textarea:read-only {
   opacity: 0.6;
@@ -716,13 +754,24 @@ body {
   color: var(--accent);
 }
 
+/* 状态栏：底色/文字/上边框对齐 PyQt `themes.py` 的 QStatusBar 规则（bg / hint / border） */
 .statusbar {
   display: flex;
+  align-items: center;
   gap: 16px;
-  padding: 8px 20px;
+  padding: 4px 20px;
   border-top: 1px solid var(--border);
+  background: var(--bg);
   color: var(--text-muted);
   font-size: 12px;
+}
+
+/* 快捷键提示（PyQt 侧是常驻的 shortcut_label，11px + 左右留白） */
+.statusbar-hint {
+  padding: 0 10px;
+  color: var(--text-muted);
+  font-size: 11px;
+  white-space: nowrap;
 }
 
 /* ---- 策划书编辑器 ---- */

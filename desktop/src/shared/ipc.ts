@@ -151,6 +151,11 @@ export interface IpcContract {
     res: { ok: true; url: string; path: string } | { ok: false; error: string }
   }
   'dialog:chooseImageSaveDir': { req: undefined; res: { path: string | null } }
+  /**
+   * 选一张本地图片（数据编辑器「图片」字段）：主进程读文件并回传 `data:` URL。
+   * 渲染层不能直接引用本地路径（`webSecurity`），故由主进程代读。
+   */
+  'dialog:chooseImageFile': { req: undefined; res: { path: string | null; dataUrl: string; bytes: number } }
   // ---- 系统钥匙串（API Key 等敏感配置）----
   // 安全约定（不可违背）：渲染层是 sandbox + contextIsolation，**永远拿不到明文**。
   // 因此这里只有「有没有配过 / 写入 / 删除」三条通道，**刻意不存在**「读出明文」的 IPC。

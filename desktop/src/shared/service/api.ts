@@ -134,6 +134,8 @@ export interface MbApi {
     chooseCsvFile(): Promise<IpcContract['dialog:chooseCsvFile']['res']>
     chooseExcelFile(): Promise<IpcContract['dialog:chooseExcelFile']['res']>
     chooseImageSaveDir(): Promise<IpcContract['dialog:chooseImageSaveDir']['res']>
+    /** 选一张本地图片（数据编辑器「图片」字段）；主进程代读文件并回传 data URL */
+    chooseImageFile(): Promise<IpcContract['dialog:chooseImageFile']['res']>
     chooseTemplateJsonFile(
       req: IpcContract['dialog:chooseTemplateJsonFile']['req']
     ): Promise<IpcContract['dialog:chooseTemplateJsonFile']['res']>

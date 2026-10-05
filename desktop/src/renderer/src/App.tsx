@@ -652,6 +652,15 @@ export default function App() {
             >
               {theme === 'dark' ? '☀️ 浅色' : '🌙 深色'}
             </button>
+            {/*
+              快捷键提示（对齐 PyQt `main_window.py:566-569` 的常驻 `shortcut_label`）。
+              **只列 TS 真实注册的快捷键**：PyQt 提示含 `Ctrl+S保存`，但 TS 的「保存」是
+              章节草稿级、刻意不做整文档保存（见 roadmap E30 的诚实边界），没有 `Ctrl+S`
+              —— 照抄提示文案等于给一个按了没反应的键做广告，故省。
+            */}
+            <span className="statusbar-hint" data-testid="statusbar-shortcuts">
+              Ctrl+Z 撤销 · Ctrl+Y 重做
+            </span>
           </footer>
         </div>
       </div>

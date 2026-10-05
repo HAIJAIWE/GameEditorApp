@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import {
@@ -109,6 +110,7 @@ import { buildReferenceReport } from '../shared/references'
 import { scoreCeshu } from '../shared/ceshuScorer'
 import { validateCeshu } from '../shared/ceshuValidation'
 import { buildWordStatsReport } from '../shared/ceshuWordStats'
+import { buildImagePreviewDataUrl } from '../shared/imagePreview'
 import type { AppInfo } from '../shared/types'
 import { ENGINE_EXTENSIONS as ENGINE_KIND_EXTENSIONS, ENGINE_LABELS as ENGINE_KIND_LABELS } from './engineExport/engines'
 import type { AgentApprovalBroker, AgentInteractionAnswer } from './agent/approvalBroker'
@@ -408,6 +410,29 @@ export function registerIpcHandlers({
     return { path: result.canceled || result.filePaths.length === 0 ? null : (result.filePaths[0] ?? null) }
   })
   // AI 生图：选择保存目录（取消返回 null）
+  /**
+   * 选一张本地图片（数据编辑器「图片」字段，对齐 PyQt `_create_image_widget` 的「选择图片」）。
+   * 主进程代读文件并回传 `data:` URL —— 渲染层直接引用 `C://...` 会被 `webSecurity` 拦。
+   * 格式不支持或超过体积上限时 `dataUrl` 返回空串，UI 显示中文原因而不是留白。
+   */
+  handle('dialog:chooseImageFile', undefined, async () => {
+    const focused = BrowserWindow.getFocusedWindow()
+    const options: OpenDialogOptions = {
+      title: '选择图片',
+      properties: ['openFile'],
+      filters: [{ name: '图片文件', extensions: ['png', 'jpg', 'jpeg', 'bmp', 'gif'] }]
+    }
+    const result = focused ? await dialog.showOpenDialog(focused, options) : await dialog.showOpenDialog(options)
+    const path = result.canceled || result.filePaths.length === 0 ? null : (result.filePaths[0] ?? null)
+    if (path === null) return { path: null, dataUrl: '', bytes: 0 }
+    try {
+      const buffer = readFileSync(path)
+      return { path, bytes: buffer.byteLength, dataUrl: buildImagePreviewDataUrl(path, buffer.byteLength, buffer.toString('base64')) }
+    } catch (error) {
+      log.warn('读取图片失败', { path, error: error instanceof Error ? error.message : String(error) })
+      return { path, dataUrl: '', bytes: 0 }
+    }
+  })
   handle('dialog:chooseImageSaveDir', undefined, async () => {
     const focused = BrowserWindow.getFocusedWindow()
     const options: OpenDialogOptions = {
