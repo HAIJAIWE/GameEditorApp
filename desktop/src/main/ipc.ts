@@ -535,11 +535,17 @@ export function registerIpcHandlers({
     const baseSystems = (doc.systems ?? {}) as Record<string, SystemEntry>
     const { systems } = buildSystemConfirmResult(baseSystems, req.enabledKeys, req.customSystems)
     const updated = await ceshuManager.saveChapter(req.id, 'systems', systems)
-    const syncResult = dataSync.syncSystemsToData(updated, '')
-    const systemsMap = updated.systems as Record<string, { enabled: boolean }>
+    // 对齐 PyQt `editor_view_mixins.py:833`：确认后置 `meta.system_confirmed`，
+    // 之后再次打开该策划书就不再自动弹确认对话框（PyQt 的弹窗条件是「未确认 且 已启用系统」）
+    const confirmed = await ceshuManager.saveChapter(req.id, 'meta', {
+      ...(updated.meta ?? {}),
+      system_confirmed: true
+    })
+    const syncResult = dataSync.syncSystemsToData(confirmed, '')
+    const systemsMap = confirmed.systems as Record<string, { enabled: boolean }>
     const enabledCount = Object.values(systemsMap).filter((entry) => entry.enabled === true).length
     const addedCustom = req.customSystems.filter((custom) => !(custom.key in baseSystems)).length
-    return { doc: updated, enabledCount, addedCustom, addedTypes: syncResult.addedTypes }
+    return { doc: confirmed, enabledCount, addedCustom, addedTypes: syncResult.addedTypes }
   })
   handle('ceshu:syncData', ceshuSyncDataInputSchema, async (req) => {
     const doc = ceshuManager.get(req.id)

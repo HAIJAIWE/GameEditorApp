@@ -146,6 +146,13 @@ export default function CeshuView({
         setError(null)
         setPanel(null)
         setDeriveOpen(false)
+        // 对齐 PyQt `ceshu_controller.py:66-71`：打开策划书时，若**尚未确认过系统**且
+        // 已有启用系统，则自动弹出「确认游戏系统」对话框（PyQt 无手动菜单项，TS 同步移除）。
+        // 注意在 promise 回调里 setState —— react-hooks v7 禁止 effect 体内同步 setState。
+        const alreadyConfirmed = loaded.meta?.system_confirmed === true
+        if (!alreadyConfirmed && computeEnabledEditors(loaded).length > 0) {
+          setPanel('systemConfirm')
+        }
         // 打开策划书 → 回填活跃术语风格（Python 在 open_ceshu 里 set_active_style）
         onGameStyleChange?.(resolveDocGameStyle(loaded))
       })
@@ -365,10 +372,9 @@ export default function CeshuView({
       { testid: 'ceshu-changelog', label: '变更记录', run: () => void handleShowChangelog() },
       { testid: 'ceshu-fielddeps', label: '依赖检查', run: () => setPanel('fieldDeps') }
     ],
-    [
-      { testid: 'ceshu-notes', label: '笔记', run: () => setPanel('notes') },
-      { testid: 'ceshu-system-confirm', label: '确认游戏系统', run: () => setPanel('systemConfirm') }
-    ]
+    // 「确认游戏系统」**不在菜单里**：PyQt 无此菜单项，改为打开策划书时自动弹窗
+    // （见上方加载回调；条件 = 未确认过 且 已有启用系统）
+    [{ testid: 'ceshu-notes', label: '笔记', run: () => setPanel('notes') }]
   ]
 
   return (

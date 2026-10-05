@@ -54,6 +54,12 @@ export interface SeedCeshuOptions {
   id?: string
   /** 术语风格 id（可选，写入 doc.style） */
   style?: string
+  /**
+   * `meta.system_confirmed`（可选，默认 **true**）。
+   * 传 `false` 才会让打开该策划书时自动弹出「确认游戏系统」对话框
+   * （对齐 PyQt `ceshu_controller.py:66-71` 的条件：未确认 且 已有启用系统）。
+   */
+  systemConfirmed?: boolean
 }
 
 /** 策划书磁盘目录：`<userData>/libraries/<初始库>/ceshu`（与 `stores.ts` 的构造一致） */
@@ -86,7 +92,19 @@ export function seedCeshu(userDataDir: string, options: SeedCeshuOptions): strin
     version_label: 'v1.0',
     is_active: true,
     style: options.style ?? '',
-    meta: { game_name: options.title, game_type: '', gdd_scope: 'full', status: 'draft' },
+    meta: {
+      game_name: options.title,
+      game_type: '',
+      gdd_scope: 'full',
+      status: 'draft',
+      /**
+       * 默认 `true`：播种文档视为「已确认过游戏系统」，打开时**不**自动弹确认对话框
+       * （PyQt 弹窗条件 = 未确认 且 已启用系统）。
+       * 17 个既有 spec 都靠播种进入编辑器，默认 true 才不会被弹窗打断；
+       * 需要测自动弹窗的 spec 显式传 `systemConfirmed: false`。
+       */
+      system_confirmed: options.systemConfirmed !== false
+    },
     systems
   }
   mkdirSync(ceshuStorageDir(userDataDir), { recursive: true })

@@ -49,13 +49,34 @@ test('系统确认：勾选启用 + 自定义系统 + 确认落盘 + 双向同�
     const keyC = allKeys.find((k) => k !== keyA && k !== keyB)!
     const customName = 'tower_defense'
 
-    // 文档经 IPC 旁路创建 → 重载首页列表 → 打开对应卡片 → 打开系统确认面板
+    // 对齐 PyQt `ceshu_controller.py:66-71`：确认对话框**没有菜单入口**，
+    // 条件是「打开策划书时未确认过系统 且 已有启用系统」→ 自动弹出。
+    // 新文档的 systems 全为 disabled，故先旁路启用一个（keyD），让自动弹窗条件成立。
+    const keyD = allKeys.find((k) => k !== keyA && k !== keyB && k !== keyC)!
+    await window.evaluate(
+      async ({ id, key }) => {
+        const api = (
+          globalThis as unknown as {
+            mbApi: {
+              ceshu: {
+                get: (req: { id: string }) => Promise<{ systems: Record<string, unknown> }>
+                saveChapter: (req: { id: string; chapter: string; data: unknown }) => Promise<unknown>
+              }
+            }
+          }
+        ).mbApi
+        const doc = await api.ceshu.get({ id })
+        const systems = { ...doc.systems }
+        systems[key] = { ...(systems[key] as Record<string, unknown>), enabled: true }
+        await api.ceshu.saveChapter({ id, chapter: 'systems', data: systems })
+      },
+      { id: createdId, key: keyD }
+    )
+
+    // 文档经 IPC 旁路创建 → 重载首页列表 → 打开对应卡片 → **自动**弹出确认对话框
     await window.reload()
     await waitReady(window)
     await window.getByTestId('home-card').filter({ hasText: 'W32系统确认E2E' }).getByTestId('home-card-open').click()
-    // 「ceshu-system-confirm」已收进工具栏「更多 ▸」下拉（对齐 PyQt），需先展开再点
-    await window.getByTestId('ceshu-more').click()
-    await window.getByTestId('ceshu-system-confirm').click()
     await expect(window.getByTestId('system-confirm-panel')).toBeVisible()
     await expect(window.getByTestId(`sys-card-${keyA}`)).toBeVisible()
 
@@ -74,6 +95,12 @@ test('系统确认：勾选启用 + 自定义系统 + 确认落盘 + 双向同�
     // 确认生成
     await window.getByTestId('sys-confirm').click()
     await expect(window.getByTestId('system-confirm-panel')).toContainText('已确认游戏系统')
+
+    // 确认已写 `meta.system_confirmed` → 重新打开**不再**自动弹（对齐 PyQt 的一次性语义）
+    await window.reload()
+    await waitReady(window)
+    await window.getByTestId('home-card').filter({ hasText: 'W32系统确认E2E' }).getByTestId('home-card-open').click()
+    await expect(window.getByTestId('system-confirm-panel')).toHaveCount(0)
 
     // IPC 核对：勾选项启用、自定义系统写入、未勾选项保持关闭
     const doc = (await window.evaluate(async (id) => {

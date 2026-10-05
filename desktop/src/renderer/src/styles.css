@@ -280,10 +280,12 @@ body {
 .ai-dock {
   display: flex;
   flex-direction: column;
-  width: 320px;
-  min-width: 200px;
-  max-width: 640px;
-  /* 可收缩：窗口变窄时让位给数据区，避免列表被挤到 0 宽（min-width 兜底） */
+  /* 对齐 PyQt `layout_builder.py:145-149`：QSplitter stretch 3:1、初始 **75:25**、
+     右栏 `setMinimumWidth(300)`、**无上限**（P3-12 已移除 520 硬上限）。
+     此前是定宽 320px —— 1280 窗下碰巧与 25% 一致，宽屏（1920）则 PyQt 480px vs TS 320px。 */
+  width: 25%;
+  min-width: 300px;
+  /* 不设 max-width：与 PyQt「自由拖动、无上限」一致 */
   flex-shrink: 1;
   border-left: 1px solid var(--border);
   background: var(--bg-panel);
@@ -3406,7 +3408,10 @@ button.ref-row:hover {
 .ceshu-preview {
   display: flex;
   flex-direction: column;
-  width: 380px;
+  /* 对齐 PyQt `editor_view.py:216 setSizes([500, 400])` —— 章节区 : 预览 ≈ 55.6% : 44.4%。
+     此前是定宽 380px（PyQt 是按比例的 QSplitter，宽屏下差异明显）。
+     保留 260px 兜底：窄窗口下不让预览塌到不可用。 */
+  width: 44%;
   min-width: 260px;
   flex-shrink: 0;
   min-height: 0;
