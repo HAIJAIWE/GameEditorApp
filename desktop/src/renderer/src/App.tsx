@@ -11,6 +11,7 @@ import AdvancedSearchPanel from './components/AdvancedSearchPanel'
 import AttrSystemPanel from './components/AttrSystemPanel'
 import BackupPanel from './components/BackupPanel'
 import ImageGenPanel from './components/ImageGenPanel'
+import MenuBar from './components/MenuBar'
 import BatchEditPanel from './components/BatchEditPanel'
 import CeshuHomePanel from './components/CeshuHomePanel'
 import DataDiffPanel from './components/DataDiffPanel'
@@ -516,6 +517,31 @@ export default function App() {
     }
   }
 
+  /** 引擎代码导出（Lua）：菜单「导出 → 导出为 * 格式」共用此逻辑（与 EngineExportButton 等价） */
+  const handleEngineExport = async (): Promise<void> => {
+    try {
+      const api = window.mbApi as unknown as {
+        dialog: { chooseEngineExportFile: (req: { defaultName: string }) => Promise<{ path: string | null }> }
+        engine: { exportData: (req: { engine: 'lua'; path: string }) => Promise<{ filePath: string; engine: string; bytes: number }> }
+      }
+      const picked = await api.dialog.chooseEngineExportFile({ defaultName: 'GameData' })
+      if (picked.path === null) return
+      const result = await api.engine.exportData({ engine: 'lua', path: picked.path })
+      setNotice(`已导出 ${result.filePath}（${result.bytes} 字节）`)
+    } catch (err) {
+      setError(toErrorMessage(err))
+    }
+  }
+
+  /** 退出：关闭渲染进程窗口（Electron 主窗口关闭即退出） */
+  const handleQuit = (): void => {
+    try {
+      window.close()
+    } catch {
+      /* 忽略：无主窗口上下文时静默 */
+    }
+  }
+
   /** 字段结构保存后：刷新类型列表；当前类型被删除时回退到第一个 */
   const handleSchemaSaved = (saved: DataTypeDef[]): void => {
     setTypes(saved)
@@ -542,6 +568,42 @@ export default function App() {
 
   return (
     <div className="app">
+      <MenuBar
+        canUndo={undoUi.canUndo}
+        canRedo={undoUi.canRedo}
+        hasSelection={!!selectedItem}
+        actions={{
+          importJson: handleImportLegacy,
+          importCsv: handleImportCsv,
+          importExcel: handleImportExcel,
+          exportJson: handleExportLegacy,
+          exportCsv: handleExportCsv,
+          exportExcel: handleExportExcel,
+          batchEdit: () => setBatchOpen(true),
+          engineExport: () => void handleEngineExport(),
+          backup: () => setBackupOpen(true),
+          undo: () => void performUndo(),
+          redo: () => void performRedo(),
+          quickCreate: () => setQuickCreateOpen(true),
+          references: () => {
+            if (!selectedItem) return
+            setRefTarget({ type: selectedItem.type, id: selectedItem.id, name: itemDisplayName(selectedItem) })
+            setBatchOpen(false)
+            setStatsOpen(false)
+            setQuickCreateOpen(false)
+            setAdvancedSearchOpen(false)
+            setDataDiffOpen(false)
+            setBackupOpen(false)
+            setTypeVisibilityOpen(false)
+          },
+          dataDiff: () => setDataDiffOpen(true),
+          stats: () => setStatsOpen(true),
+          attrSystem: () => setAttrSysOpen(true),
+          notImplemented: (label: string) => setNotice(`「${label}」尚未在 TS 版实现`),
+          quit: handleQuit
+        }}
+      />
+      <div className="app-body">
       <aside className="sidebar">
         <div className="brand">
           墨白可视化编辑
@@ -1088,6 +1150,7 @@ export default function App() {
             {theme === 'dark' ? '☀️ 浅色' : '🌙 深色'}
           </button>
         </footer>
+      </div>
       </div>
     </div>
   )

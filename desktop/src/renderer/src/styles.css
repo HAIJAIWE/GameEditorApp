@@ -43,9 +43,108 @@ body {
 }
 
 .app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* 菜单栏下方的两栏主体（侧栏 220px + 主区），与 PyQt 的「菜单栏在上、主体在下」等价 */
+.app-body {
   display: grid;
   grid-template-columns: 220px 1fr;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ---- 顶部菜单栏（对齐 PyQt ui/menus.py 的 MENU_CONFIG） ---- */
+
+.menubar {
+  display: flex;
+  align-items: stretch;
+  flex-shrink: 0;
+  height: 36px;
+  padding: 0 6px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-panel);
+}
+
+.menu {
+  position: relative;
+  display: flex;
+}
+
+.menu-title {
+  padding: 0 12px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.menu-title:hover,
+.menu-title.open {
+  background: var(--bg-hover);
+}
+
+.menu-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 100;
+  min-width: 200px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+}
+
+.menu-item {
+  display: block;
+  width: 100%;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.menu-item:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+
+.menu-item:disabled {
+  color: var(--text-muted);
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.menu-separator {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--border);
+}
+
+.menu-submenu {
+  padding: 2px 0;
+}
+
+.menu-submenu-label {
+  padding: 4px 12px 2px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.menu-submenu-items {
+  display: flex;
+  flex-direction: column;
 }
 
 .sidebar {
