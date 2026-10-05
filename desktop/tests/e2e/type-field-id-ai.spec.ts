@@ -92,7 +92,9 @@ test('AI 候选：未收录词由 AI 给候选，点选后才写入字段名（�
   try {
     const window = await app.firstWindow()
     await waitReady(window)
-    await window.getByTestId('open-type-editor').click()
+    // 新 IA 无侧栏入口：工具菜单 → 字段结构编辑器
+    await window.getByTestId('menu-title-tools').click()
+    await window.getByTestId('menuitem-tools-fieldEditor').click()
     await window.getByTestId('te-type-tab').filter({ hasText: '职业' }).click()
 
     // 「斗能」不在术语表内 → 规则层如实报未收录、不给候选
@@ -140,7 +142,9 @@ test('AI 候选：本地 Ollama 不可用时给中文错误提示，不静默失
   try {
     const window = await app.firstWindow()
     await waitReady(window)
-    await window.getByTestId('open-type-editor').click()
+    // 新 IA 无侧栏入口：工具菜单 → 字段结构编辑器
+    await window.getByTestId('menu-title-tools').click()
+    await window.getByTestId('menuitem-tools-fieldEditor').click()
     await window.getByTestId('te-type-tab').filter({ hasText: '职业' }).click()
 
     await window.getByTestId('te-add-field').click()

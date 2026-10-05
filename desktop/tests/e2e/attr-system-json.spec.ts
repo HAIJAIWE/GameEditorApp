@@ -138,8 +138,9 @@ test('属性系统 JSON 导入导出：往返一致性 + 异常文件警告 + �
     expect(raw['HP']?.formula).toBe('= 力量*10 + 体质*20 + 敏捷*5')
     expect(text).not.toContain('\\u')
 
-    // UI：面板提供「导入 JSON / 导出 JSON」入口
-    await window.getByTestId('open-attr-system').click()
+    // UI：面板提供「导入 JSON / 导出 JSON」入口（新 IA 无侧栏入口：工具菜单）
+    await window.getByTestId('menu-title-tools').click()
+    await window.getByTestId('menuitem-tools-attrSystem').click()
     await expect(window.getByTestId('attr-system-panel')).toBeVisible()
     await expect(window.getByTestId('attr-import-json')).toBeVisible()
     await expect(window.getByTestId('attr-import-json')).toBeEnabled()

@@ -13,14 +13,17 @@ test('自定义字段模板：保存 → 出现在下拉 → 应用还原完整�
     const window = await app.firstWindow()
     await waitReady(window)
 
-    await window.getByTestId('open-type-editor').click()
+    // 新 IA 无侧栏入口：工具菜单 → 字段结构编辑器
+    await window.getByTestId('menu-title-tools').click()
+    await window.getByTestId('menuitem-tools-fieldEditor').click()
     await expect(window.getByTestId('type-editor-panel')).toBeVisible()
     await window.getByTestId('te-type-tab').filter({ hasText: '职业' }).click()
 
     // 改出一个可辨识的字段集：删掉最后一个字段，便于验证「应用模板」能还原
     const nameInputs = window.locator('[data-testid^="te-field-name-"]')
     const beforeCount = await nameInputs.count()
-    await window.getByTestId('te-delete-field').last().click()
+    // 字段行删除按钮已随编辑器重写改为 per-row testid（前缀 `te-field-remove-`，含行索引）
+    await window.locator('[data-testid^="te-field-remove-"]').last().click()
     await expect(nameInputs).toHaveCount(beforeCount - 1)
 
     // 保存为自定义模板

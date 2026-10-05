@@ -15,7 +15,9 @@ test('属性系统：改公式示例值实时更新 → 非法公式/悬空依�
     const window = await app.firstWindow()
     await waitReady(window)
 
-    await window.getByTestId('open-attr-system').click()
+    // 新 IA 无侧栏入口：工具菜单 → 属性系统编辑器
+    await window.getByTestId('menu-title-tools').click()
+    await window.getByTestId('menuitem-tools-attrSystem').click()
     await expect(window.getByTestId('attr-system-panel')).toBeVisible()
 
     // 默认集第 5 行是 HP（前 4 行为基础属性）：默认基础值 10 → 350
@@ -54,7 +56,9 @@ test('属性系统：改公式示例值实时更新 → 非法公式/悬空依�
   try {
     const window = await app2.firstWindow()
     await waitReady(window)
-    await window.getByTestId('open-attr-system').click()
+    // 新 IA 无侧栏入口：工具菜单 → 属性系统编辑器
+    await window.getByTestId('menu-title-tools').click()
+    await window.getByTestId('menuitem-tools-attrSystem').click()
     await expect(window.getByTestId('attr-formula-4')).toHaveValue('= 力量*12 + 体质*20 + 敏捷*5')
     await expect(window.getByTestId('attr-preview-4')).toHaveText('370')
   } finally {

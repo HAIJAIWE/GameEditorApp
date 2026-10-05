@@ -28,7 +28,9 @@ test('装备预览：放装/卸下 → Buff 叠加/移除 → 属性对比差值
       await api.data.createItem({ type: 'equip', data: { name: '旧饰品', part: '饰品', rare: '普通' } })
     })
 
-    await window.getByTestId('open-attr-system').click()
+    // 新 IA 无侧栏入口：工具菜单 → 属性系统编辑器
+    await window.getByTestId('menu-title-tools').click()
+    await window.getByTestId('menuitem-tools-attrSystem').click()
     await window.getByTestId('attr-view-equip').click()
     await expect(window.getByTestId('attr-equip')).toBeVisible()
 

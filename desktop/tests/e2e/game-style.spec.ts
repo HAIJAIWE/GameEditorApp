@@ -5,7 +5,7 @@ import { test } from '@playwright/test'
  *
  * 原用例验证的是**工具栏「术语风格」下拉**（testid `game-style`）的手工切换 + 字段标签术语替换 + 持久化。
  *
- * 但新 IA 已随左侧栏/数据表工具栏一并下线该下拉：全仓 `grep data-testid="game-style"` 命中 **0**
+ * 但新 IA 已随左侧栏/数据表工具栏一并下线该下拉：全仓以该 testid 检索命中 **0**
  * （仅 `styles.css` 残留 `.toolbar .game-style-select` 样式，无渲染入口）。术语风格现只剩**唯一入口**：
  * 打开策划书时由 `CeshuView.tsx:129` 的 `resolveDocGameStyle(doc)` 按 `doc.style` / `meta` 文本推断，
  * 再经 `App.handleGameStyleChange` 回填（用户无法再手工选择，只能由文档携带）。

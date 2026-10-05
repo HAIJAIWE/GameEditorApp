@@ -21,8 +21,9 @@ test('AI 生图：面板打开 → 前置校验 → Key 进钥匙串且本地无
     const window = await app.firstWindow()
     await waitReady(window)
 
-    // 打开生图面板
-    await window.getByTestId('open-image-gen').click()
+    // 新 IA 无侧栏入口：工具菜单 → AI 生图
+    await window.getByTestId('menu-title-tools').click()
+    await window.getByTestId('menuitem-tools-imageGen').click()
     await expect(window.getByTestId('image-gen-panel')).toBeVisible()
     await expect(window.getByTestId('image-gen-provider')).toBeVisible()
     await expect(window.getByTestId('image-gen-prompt')).toBeVisible()
@@ -55,7 +56,9 @@ test('AI 生图：面板打开 → 前置校验 → Key 进钥匙串且本地无
     await window.reload()
     await waitReady(window)
 
-    await window.getByTestId('open-image-gen').click()
+    // 新 IA 无侧栏入口：工具菜单 → AI 生图
+    await window.getByTestId('menu-title-tools').click()
+    await window.getByTestId('menuitem-tools-imageGen').click()
     await expect(window.getByTestId('image-gen-provider')).toHaveValue('qwen')
     await expect(window.getByTestId('image-gen-model')).toHaveValue('qwen-vl-max')
     // 重载后仍显示「已配置」→ Key 真进了 safeStorage，不是内存里的假象

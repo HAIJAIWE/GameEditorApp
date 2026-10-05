@@ -16,7 +16,9 @@ test('关系矩阵与游戏配置导出：改系数 → 公式/示例值联动 �
   try {
     const window = await app.firstWindow()
     await waitReady(window)
-    await window.getByTestId('open-attr-system').click()
+    // 新 IA 无侧栏入口：工具菜单 → 属性系统编辑器
+    await window.getByTestId('menu-title-tools').click()
+    await window.getByTestId('menuitem-tools-attrSystem').click()
     await expect(window.getByTestId('attr-system-panel')).toBeVisible()
 
     // 切到关系矩阵：默认集 13 行（派生 7 + 战斗 6）× 4 列基础属性

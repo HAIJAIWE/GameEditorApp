@@ -25,7 +25,9 @@ test('字段 ID 生成：术语表命中 / 未收录如实提示 / 重名加后�
     const window = await app.firstWindow()
     await waitReady(window)
 
-    await window.getByTestId('open-type-editor').click()
+    // 新 IA 无侧栏入口：工具菜单 → 字段结构编辑器
+    await window.getByTestId('menu-title-tools').click()
+    await window.getByTestId('menuitem-tools-fieldEditor').click()
     await expect(window.getByTestId('type-editor-panel')).toBeVisible()
     await window.getByTestId('te-type-tab').filter({ hasText: '职业' }).click()
 
@@ -117,7 +119,9 @@ test('字段 ID 生成：术语表命中 / 未收录如实提示 / 重名加后�
   try {
     const window = await app2.firstWindow()
     await waitReady(window)
-    await window.getByTestId('open-type-editor').click()
+    // 新 IA 无侧栏入口：工具菜单 → 字段结构编辑器
+    await window.getByTestId('menu-title-tools').click()
+    await window.getByTestId('menuitem-tools-fieldEditor').click()
     await window.getByTestId('te-type-tab').filter({ hasText: '职业' }).click()
     await expect(window.locator('[data-testid^="te-field-name-"]').last()).toHaveValue('hp_2')
     const allNames = await window

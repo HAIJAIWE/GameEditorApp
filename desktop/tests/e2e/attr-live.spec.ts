@@ -12,7 +12,9 @@ test('实时预览：基础值/装备/Buff 联动 → 计算过程 → 重置数
   try {
     const window = await app.firstWindow()
     await waitReady(window)
-    await window.getByTestId('open-attr-system').click()
+    // 新 IA 无侧栏入口：工具菜单 → 属性系统编辑器
+    await window.getByTestId('menu-title-tools').click()
+    await window.getByTestId('menuitem-tools-attrSystem').click()
     await expect(window.getByTestId('attr-system-panel')).toBeVisible()
 
     // 切到实时预览：默认基础值 10 → HP = 350
