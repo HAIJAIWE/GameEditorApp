@@ -112,15 +112,19 @@ body {
 .toolbar {
   display: flex;
   align-items: center;
+  /* 空间不足时换行，而不是把按钮压成「一字宽」竖排（中文 min-content = 单字） */
+  flex-wrap: wrap;
   gap: 12px;
   padding: 16px 20px;
   border-bottom: 1px solid var(--border);
 }
 
 .toolbar h1 {
-  flex: 1;
+  /* 0 份额会被压到单字宽竖排；auto 基底保住自然宽度，剩余空间仍由 grow 撑满 */
+  flex: 1 0 auto;
   margin: 0;
   font-size: 16px;
+  white-space: nowrap;
 }
 
 .btn {
@@ -130,6 +134,8 @@ body {
   background: var(--bg-panel);
   color: var(--text);
   cursor: pointer;
+  /* 按钮文字永不逐字断行（防 flex 挤压时中文竖排；配合容器的 flex-wrap 换行解决） */
+  white-space: nowrap;
 }
 
 .btn.primary {
