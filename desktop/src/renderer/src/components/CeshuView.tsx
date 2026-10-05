@@ -10,16 +10,18 @@ import {
   type ChapterData,
   type ChapterKey
 } from '../../../shared/ceshuConstants'
-import { computeChapterProgress, getGddScope, resolveDocGameStyle } from '../../../shared/ceshuModel'
+import { computeChapterProgress, computeEnabledEditors, getGddScope, resolveDocGameStyle } from '../../../shared/ceshuModel'
 import type { CeshuChangeItem, CeshuChangelog } from '../../../shared/ceshuDiff'
 import { gradeLabel, type CeshuScoreReport } from '../../../shared/ceshuScorer'
 import type { CeshuAiGenerateResult } from '../../../shared/ceshuAi'
+import type { DataTypeDef } from '../../../shared/types'
 
 import AiDataGenPanel from './AiDataGenPanel'
 import AiFullGeneratePanel from './AiFullGeneratePanel'
 import AiReviewPanel from './AiReviewPanel'
 import ChapterForm from './ChapterForm'
 import ChapterNotesPanel from './ChapterNotesPanel'
+import CeshuDataPreview from './ceshu/CeshuDataPreview'
 import ChecklistPanel from './ChecklistPanel'
 import FieldDepsPanel from './FieldDepsPanel'
 import PresetMarketPanel from './PresetMarketPanel'
@@ -39,6 +41,10 @@ interface CeshuViewProps {
    * 由 meta 推断风格后 `set_active_style`；本版优先采用用户显式选过的 `doc.style`）。
    */
   onGameStyleChange?: (styleId: string) => void
+  /** 全部数据类型定义（内嵌数据编辑器标签页渲染条目表单用） */
+  types: readonly DataTypeDef[]
+  /** 活跃术语风格 id（透传给内嵌数据编辑器的字段标签术语替换） */
+  gameStyle?: string
 }
 
 function toErrorMessage(error: unknown): string {
@@ -57,12 +63,14 @@ function groupByChapter(changes: CeshuChangeItem[]): Array<[string, CeshuChangeI
 }
 
 /** 策划书编辑器：章节导航（含进度）+ 章节表单 + 版本链操作 */
-export default function CeshuView({ ceshuId, onChanged, onSelect, onGameStyleChange }: CeshuViewProps) {
+export default function CeshuView({ ceshuId, onChanged, onSelect, onGameStyleChange, types, gameStyle }: CeshuViewProps) {
   const [doc, setDoc] = useState<CeshuDocument | null>(null)
   const [activeChapter, setActiveChapter] = useState<ChapterKey>('meta')
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  /** 内嵌数据预览面板（由第五章启用的游戏系统驱动）是否展开 */
+  const [previewOpen, setPreviewOpen] = useState(false)
   const [exportFormat, setExportFormat] = useState<CeshuExportFormat>('markdown')
   const [deriveOpen, setDeriveOpen] = useState(false)
   const [deriveNote, setDeriveNote] = useState('')
@@ -159,6 +167,8 @@ export default function CeshuView({ ceshuId, onChanged, onSelect, onGameStyleCha
   const scope = getGddScope(doc)
   const visible = visibleChapterKeys(scope)
   const progress = computeChapterProgress(doc)
+  /** 由第五章游戏系统派生的启用编辑器（内嵌数据预览面板据此渲染标签页） */
+  const enabledEditors = computeEnabledEditors(doc)
   const gameName = typeof doc.meta.game_name === 'string' && doc.meta.game_name ? doc.meta.game_name : '未命名策划书'
 
   /** 导出当前策划书：选择保存路径 → 主进程按格式渲染并原子写盘 */
@@ -387,6 +397,16 @@ export default function CeshuView({ ceshuId, onChanged, onSelect, onGameStyleCha
           onClick={() => setPanel('systemConfirm')}
         >
           确认游戏系统
+        </button>
+        <button
+          type="button"
+          className={previewOpen ? 'btn primary' : 'btn'}
+          data-testid="ceshu-toggle-preview"
+          disabled={busy}
+          title="打开/关闭游戏数据编辑器（由第五章启用的游戏系统驱动）"
+          onClick={() => setPreviewOpen((v) => !v)}
+        >
+          {previewOpen ? '数据编辑 ✓' : '数据编辑'}
         </button>
         <select
           className="form-select export-format"
@@ -623,7 +643,7 @@ export default function CeshuView({ ceshuId, onChanged, onSelect, onGameStyleCha
             )}
           </div>
         ) : (
-          <>
+          <div className="ceshu-pane-row">
             <div className="chapter-nav">
               {visible.map((key) => (
                 <button
@@ -653,7 +673,17 @@ export default function CeshuView({ ceshuId, onChanged, onSelect, onGameStyleCha
                 onAiGenerate={handleAiGenerate}
               />
             </div>
-          </>
+
+            {previewOpen && (
+              <CeshuDataPreview
+                enabledEditors={enabledEditors}
+                types={types}
+                gameStyle={gameStyle}
+                onGotoSystems={() => setActiveChapter('systems')}
+                onDataChanged={onChanged}
+              />
+            )}
+          </div>
         )}
       </div>
     </div>

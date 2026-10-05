@@ -1127,6 +1127,8 @@ export default function App() {
               onChanged={() => void reloadCeshuList()}
               onSelect={handleOpenCeshu}
               onGameStyleChange={handleGameStyleChange}
+              types={types}
+              gameStyle={gameStyle}
             />
           )
         ) : null}

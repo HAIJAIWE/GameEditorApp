@@ -3334,3 +3334,91 @@ button.ref-row:hover {
   gap: 6px;
   margin-top: 8px;
 }
+
+/* ---- 策划书内嵌数据预览面板（对齐 PyQt ui/ceshu/preview_panel.py::EditorPreviewPanel） ---- */
+
+/* 章节导航 + 章节表单 + 内嵌数据编辑器 三栏同排（外层 .content 为 flex 行容器） */
+.ceshu-pane-row {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.ceshu-preview {
+  display: flex;
+  flex-direction: column;
+  width: 380px;
+  min-width: 260px;
+  flex-shrink: 0;
+  min-height: 0;
+  border-left: 1px solid var(--border);
+  background: var(--bg-panel);
+}
+
+.ceshu-preview-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 8px 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+/* 标签样式对齐 .chapter-tab（同视觉权重；胶囊按钮） */
+.ceshu-preview-tab {
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.ceshu-preview-tab:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.ceshu-preview-tab.active {
+  background: var(--bg-hover);
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.ceshu-preview-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.ceshu-preview-empty {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  text-align: center;
+  color: var(--text-muted);
+  /* 空状态文案含 \n，按换行渲染（对齐 PyQt QLabel 多行文本） */
+  white-space: pre-line;
+}
+
+/* 内嵌数据编辑器（DataEditorTab）：提示条 + 「列表 | 表单」两栏 */
+.data-editor-tab {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.data-editor-tab-main {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
