@@ -27,7 +27,13 @@ describe('JS 沙箱预演', () => {
     expect(Date.now() - start).toBeLessThan(3000)
   })
 
-  it('内存炸弹被上限终止（不会拖垮宿主）', async () => {
+  // 该用例故意执行无界内存分配，靠沙箱自身的 timeoutMs:2000 / memoryLimitMb:32 终止，
+  // 因此**墙钟耗时不可控**：正常约 1.6-1.8s，但 vitest 默认 94 个 worker 并行（isolate
+  // 模式下每文件一个 worker）会 CPU 过订阅，墙钟可被拉到 5s 以上，撞上 vitest 默认的
+  // 5000ms 用例超时——那是**测试基建的竞速**，与本用例要断言的沙箱行为无关（实测在
+  // --testTimeout=60000 下必过，且满载时失败信息恒为 "Test timed out in 5000ms"）。
+  // 故显式放宽本用例的用例级超时，断言保持原样（仍要求 result.ok === false）。
+  it('内存炸弹被上限终止（不会拖垮宿主）', { timeout: 30000 }, async () => {
     const result = await runInSandbox('const a = []; while (true) { a.push(new Array(100000).fill(1)) }', {
       timeoutMs: 2000,
       memoryLimitMb: 32
