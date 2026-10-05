@@ -20,8 +20,8 @@ test('策划书导出 UI：格式选择（6 种）与导出按钮存在', async 
     const window = await app.firstWindow()
     await waitReady(window)
 
-    await window.getByTestId('mode-ceshu').click()
-    await window.getByTestId('ceshu-create').click()
+    // 新建空白策划书 → 自动进入编辑器（导出按钮/格式选择在工具栏）
+    await window.getByTestId('home-new-blank').click()
     await expect(window.getByTestId('ceshu-export')).toBeVisible()
     await expect(window.getByTestId('export-format').locator('option')).toHaveCount(6)
   } finally {

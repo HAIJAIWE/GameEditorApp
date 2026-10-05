@@ -116,9 +116,8 @@ test('迁移工具：v4.0 旧策划书加载时自动迁移到 v5.0 并派生新
     expect(doc.vision.business_model).toBe('买断制')
     expect(doc.systems.battle.config.damage_formula).toBe('ATK-DEF')
 
-    // UI：旧文档仍出现在策划书列表
-    await window.getByTestId('mode-ceshu').click()
-    await expect(window.getByTestId('ceshu-row').filter({ hasText: '旧版迁移E2E' })).toBeVisible()
+    // UI：旧文档仍出现在策划书首页卡片
+    await expect(window.getByTestId('home-card').filter({ hasText: '旧版迁移E2E' })).toBeVisible()
   } finally {
     await app.close()
   }

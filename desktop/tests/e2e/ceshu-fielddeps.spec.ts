@@ -113,7 +113,10 @@ test('依赖检查：IPC 精确结构 + 字段/系统双视图面板', async () 
     expect(probe.firstRow).not.toBe('')
 
     // UI：字段依赖视图（20 行 + 10 层）→ 系统依赖视图（缺失标红）
-    await window.getByTestId('mode-ceshu').click()
+    // 文档经 IPC 旁路创建 → 重载首页列表后打开对应卡片 → 打开依赖检查面板
+    await window.reload()
+    await waitReady(window)
+    await window.getByTestId('home-card').filter({ hasText: '依赖E2E' }).getByTestId('home-card-open').click()
     await window.getByTestId('ceshu-fielddeps').click()
     await expect(window.getByTestId('fielddeps-panel')).toBeVisible()
     await expect(window.getByTestId('fielddeps-summary')).toContainText('字段依赖共 20 条')

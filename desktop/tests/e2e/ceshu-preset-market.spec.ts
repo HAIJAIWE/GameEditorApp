@@ -23,8 +23,10 @@ test('预设市场：18 卡片 + 搜索筛选 + 应用预设（启用推荐系�
       return created.ceshu_id
     })) as string
 
-    await window.getByTestId('mode-ceshu').click()
-    await window.getByTestId('ceshu-row').filter({ hasText: '预设市场E2E' }).click()
+    // 文档经 IPC 旁路创建 → 重载首页列表后打开对应卡片 → 打开预设市场面板
+    await window.reload()
+    await waitReady(window)
+    await window.getByTestId('home-card').filter({ hasText: '预设市场E2E' }).getByTestId('home-card-open').click()
     await window.getByTestId('ceshu-preset-market').click()
 
     await expect(window.getByTestId('preset-market-panel')).toBeVisible()
@@ -147,10 +149,12 @@ test('竞品象限图：vision 章渲染散点 + 空数据仅网格', async () =
       await api.ceshu.create({ name: '竞品图空E2E', scope: 'full' })
     })
 
-    await window.getByTestId('mode-ceshu').click()
+    // 文档经 IPC 旁路创建 → 重载首页列表
+    await window.reload()
+    await waitReady(window)
 
     // 有数据：2 个散点 + 名称 + 轴标签
-    await window.getByTestId('ceshu-row').filter({ hasText: '竞品图E2E' }).click()
+    await window.getByTestId('home-card').filter({ hasText: '竞品图E2E' }).getByTestId('home-card-open').click()
     await window.getByTestId('chapter-tab').filter({ hasText: '第二章·产品愿景' }).click()
     await expect(window.getByTestId('competitive-chart')).toBeVisible()
     await expect(window.getByTestId('competitor-point')).toHaveCount(2)
@@ -159,8 +163,9 @@ test('竞品象限图：vision 章渲染散点 + 空数据仅网格', async () =
     await expect(window.getByTestId('competitive-chart')).toContainText('创新度 →')
     await expect(window.getByTestId('competitive-chart')).toContainText('完成度 →')
 
-    // 空数据：仍渲染网格，无散点
-    await window.getByTestId('ceshu-row').filter({ hasText: '竞品图空E2E' }).click()
+    // 空数据：仍渲染网格，无散点（新 IA 切换策划书需先返回首页再打开另一卡片）
+    await window.getByTestId('ceshu-back').click()
+    await window.getByTestId('home-card').filter({ hasText: '竞品图空E2E' }).getByTestId('home-card-open').click()
     await window.getByTestId('chapter-tab').filter({ hasText: '第二章·产品愿景' }).click()
     await expect(window.getByTestId('competitive-chart')).toBeVisible()
     await expect(window.getByTestId('competitor-point')).toHaveCount(0)

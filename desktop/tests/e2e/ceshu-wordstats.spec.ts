@@ -95,8 +95,10 @@ test('字数统计：IPC 精确数字 + 面板表格与总览', async () => {
     expect(probe.firstLabel).toBe('第一章·项目元信息')
     expect(probe.lastLabel).toBe('第十八章·可访问性与本地化')
 
-    // UI 侧：面板总览 + 18 行章节表
-    await window.getByTestId('mode-ceshu').click()
+    // UI 侧：文档经 IPC 旁路创建 → 重载首页列表 → 打开唯一卡片 → 面板总览 + 18 行章节表
+    await window.reload()
+    await waitReady(window)
+    await window.getByTestId('home-card').first().getByTestId('home-card-open').click()
     await window.getByTestId('ceshu-wordstats').click()
     await expect(window.getByTestId('wordstats-panel')).toBeVisible()
     await expect(window.getByTestId('wordstats-overview')).toContainText('总字数：47 字')

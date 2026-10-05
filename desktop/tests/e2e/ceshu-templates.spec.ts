@@ -39,8 +39,10 @@ test('章节模板库：筛选/预览/三模式应用/保存落盘/无数据模�
       return doc.ceshu_id
     })) as string
 
-    await window.getByTestId('mode-ceshu').click()
-    await window.getByTestId('ceshu-row').filter({ hasText: '模板E2E' }).click()
+    // 文档经 IPC 旁路创建 → 重载首页列表后打开对应卡片
+    await window.reload()
+    await waitReady(window)
+    await window.getByTestId('home-card').filter({ hasText: '模板E2E' }).getByTestId('home-card-open').click()
     await expect(window.getByTestId('ceshu-field-game_name')).toHaveValue('模板E2E')
 
     // 打开模板库：默认筛选当前章节（meta 3 个模板）

@@ -57,8 +57,10 @@ test('模板编辑器：列表筛选 → 新建/保存 → 编辑更新 → 应�
       return doc.ceshu_id
     })) as string
 
-    await window.getByTestId('mode-ceshu').click()
-    await window.getByTestId('ceshu-row').filter({ hasText: '模板编辑器E2E' }).click()
+    // 文档经 IPC 旁路创建 → 重载首页列表后打开对应卡片
+    await window.reload()
+    await waitReady(window)
+    await window.getByTestId('home-card').filter({ hasText: '模板编辑器E2E' }).getByTestId('home-card-open').click()
 
     // 打开编辑器：默认筛选当前章节（meta 的 3 个内置模板）
     await window.getByTestId('ceshu-template-editor').click()

@@ -146,9 +146,11 @@ test('版本对比：派生改字段 → 精确 Diff 计数 + 面板断言 + 导
     expect(probe.exportedPath).toBe(reportPath)
     expect(readFileSync(reportPath, 'utf-8')).toContain('- 修改: 1')
 
-    // UI 侧：打开版本对比面板 → 开始对比 → 统计/章节/字段/详情
-    await window.getByTestId('mode-ceshu').click()
-    await expect(window.getByTestId('ceshu-row')).toHaveCount(2)
+    // UI 侧：文档经 IPC 旁路创建 → 重载首页列表 → 打开 v1.0（根）卡片 → 版本对比面板
+    await window.reload()
+    await waitReady(window)
+    await expect(window.getByTestId('home-card')).toHaveCount(2)
+    await window.getByTestId('home-card').filter({ hasText: '差异A' }).getByTestId('home-card-open').click()
     await window.getByTestId('ceshu-diff').click()
     await expect(window.getByTestId('diff-panel')).toBeVisible()
     await expect(window.getByTestId('diff-old')).toHaveValue(probe.rootId)

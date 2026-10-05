@@ -31,14 +31,12 @@ test('策划书：读取旧版文件 → 新建 → 编辑保存章节 → 磁�
     const window = await app.firstWindow()
     await waitReady(window)
 
-    // 切到策划书模式：能读到旧版文件
-    await window.getByTestId('mode-ceshu').click()
-    await expect(window.getByTestId('ceshu-row')).toHaveCount(1)
-    await expect(window.getByTestId('ceshu-row').first()).toContainText('旧版策划书')
+    // 默认落在策划书首页：首页卡片能读到旧版文件
+    await expect(window.getByTestId('home-card')).toHaveCount(1)
+    await expect(window.getByTestId('home-card').first()).toContainText('旧版策划书')
 
-    // 新建策划书（默认工业级 18 章）
-    await window.getByTestId('ceshu-create').click()
-    await expect(window.getByTestId('ceshu-row')).toHaveCount(2)
+    // 新建空白策划书（默认工业级 18 章）→ 自动进入编辑器
+    await window.getByTestId('home-new-blank').click()
     await expect(window.getByTestId('chapter-tab')).toHaveCount(18)
     await expect(window.getByTestId('chapter-form')).toContainText('第一章·项目元信息')
 
@@ -47,7 +45,15 @@ test('策划书：读取旧版文件 → 新建 → 编辑保存章节 → 磁�
     await window.getByTestId('ceshu-field-positioning').fill('一句话定位')
     await window.getByTestId('chapter-save').click()
     await expect(window.getByText('已保存：第一章·项目元信息')).toBeVisible()
-    await expect(window.getByTestId('ceshu-row').filter({ hasText: 'E2E 测试游戏' })).toBeVisible()
+    // 新 IA 无侧栏列表：返回首页核对卡片标题已随保存更新，再打开该卡片继续编辑
+    await window.getByTestId('ceshu-back').click()
+    await expect(window.getByTestId('home-card')).toHaveCount(2)
+    await expect(window.getByTestId('home-card').filter({ hasText: 'E2E 测试游戏' })).toBeVisible()
+    await window
+      .getByTestId('home-card')
+      .filter({ hasText: 'E2E 测试游戏' })
+      .getByTestId('home-card-open')
+      .click()
 
     // 编辑第十二章（战斗）并保存：进度从 0% → 50%
     const combatTab = window.getByTestId('chapter-tab').filter({ hasText: '第十二章·战斗系统设计' })

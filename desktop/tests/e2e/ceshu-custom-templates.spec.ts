@@ -55,8 +55,10 @@ test('自定义模板：另存为模板（章节/全局）→ 来源筛选 → �
       return doc.ceshu_id
     })) as string
 
-    await window.getByTestId('mode-ceshu').click()
-    await window.getByTestId('ceshu-row').filter({ hasText: '自定义模板E2E' }).click()
+    // 文档经 IPC 旁路创建 → 重载首页列表后打开对应卡片
+    await window.reload()
+    await waitReady(window)
+    await window.getByTestId('home-card').filter({ hasText: '自定义模板E2E' }).getByTestId('home-card-open').click()
     await expect(window.getByTestId('ceshu-field-game_name')).toHaveValue('自定义模板E2E')
 
     // 准备模板快照内容

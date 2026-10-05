@@ -84,9 +84,11 @@ test('校验与评分：IPC 精确结果 + UI 面板展示', async () => {
     expect(setup.filledTotal).toBe(3)
     expect(setup.filledMetaScore).toBe(79)
 
-    // UI 侧：校验面板与评分面板
-    await window.getByTestId('mode-ceshu').click()
-    await expect(window.getByTestId('ceshu-row')).toHaveCount(1)
+    // UI 侧：文档经 IPC 旁路创建 → 重载首页列表后打开唯一卡片 → 校验面板与评分面板
+    await window.reload()
+    await waitReady(window)
+    await expect(window.getByTestId('home-card')).toHaveCount(1)
+    await window.getByTestId('home-card').first().getByTestId('home-card-open').click()
 
     await window.getByTestId('ceshu-validate').click()
     await expect(window.getByTestId('validate-panel')).toBeVisible()

@@ -48,10 +48,9 @@ test('策划书首页：卡片渲染 + 搜索 + 最近打开 + 重命名/复制/
     })) as string[]
     const [idA, idB, idC] = ids
 
-    // 进入策划书模式（默认落在编辑器）→ 切到首页卡片视图
-    await window.getByTestId('mode-ceshu').click()
-    await window.getByTestId('ceshu-home').click()
-    await expect(window.getByTestId('ceshu-home-panel')).toBeVisible()
+    // 新 IA 默认已落在策划书首页：文档经 IPC 旁路创建 → 重载首页列表后核对卡片
+    await window.reload()
+    await waitReady(window)
     await expect(window.getByTestId('home-card')).toHaveCount(3)
 
     // 卡片内容：标题 / 类型 / 状态 / 版本徽章 / 日期

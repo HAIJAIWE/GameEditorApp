@@ -14,8 +14,8 @@ test('AI 审阅：面板结构（5 维度）与离线中文错误路径', async 
     const window = await app.firstWindow()
     await waitReady(window)
 
-    await window.getByTestId('mode-ceshu').click()
-    await window.getByTestId('ceshu-create').click()
+    // 新建空白策划书 → 自动进入编辑器
+    await window.getByTestId('home-new-blank').click()
 
     await window.getByTestId('ceshu-ai-review').click()
     await expect(window.getByTestId('ai-review-panel')).toBeVisible()

@@ -79,9 +79,11 @@ test('完备性检查清单：IPC 精确结果 + 一键修复 + UI 面板', asyn
     expect(before.platformItem).toBe('目标平台未设置')
     expect(before.manualItem).toBe('manual')
 
-    // UI 侧：打开清单面板 → 一键修复 → 就绪度与统计刷新
-    await window.getByTestId('mode-ceshu').click()
-    await expect(window.getByTestId('ceshu-row')).toHaveCount(1)
+    // UI 侧：文档经 IPC 旁路创建 → 重载首页列表 → 打开卡片 → 打开清单面板 → 一键修复
+    await window.reload()
+    await waitReady(window)
+    await expect(window.getByTestId('home-card')).toHaveCount(1)
+    await window.getByTestId('home-card').first().getByTestId('home-card-open').click()
     await window.getByTestId('ceshu-checklist').click()
     await expect(window.getByTestId('checklist-panel')).toBeVisible()
     await expect(window.getByTestId('checklist-score')).toHaveText('5')

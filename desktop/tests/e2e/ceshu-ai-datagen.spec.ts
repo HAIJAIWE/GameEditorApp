@@ -91,8 +91,10 @@ test('AI 生成数据（离线）：面板结构完整 + 本地服务不可用�
       await api.ceshu.create({ name: '数据生成离线E2E', scope: 'full' })
     })
 
-    await window.getByTestId('mode-ceshu').click()
-    await window.getByTestId('ceshu-row').filter({ hasText: '数据生成离线E2E' }).click()
+    // 文档经 IPC 旁路创建 → 重载首页列表后打开对应卡片
+    await window.reload()
+    await waitReady(window)
+    await window.getByTestId('home-card').filter({ hasText: '数据生成离线E2E' }).getByTestId('home-card-open').click()
     await window.getByTestId('ceshu-ai-datagen').click()
     await expect(window.getByTestId('datagen-panel')).toBeVisible()
 
@@ -149,8 +151,10 @@ test('AI 生成数据（桩服务）：提示词组装 → 候选预览 → 勾�
       await api.ceshu.create({ name: '数据生成E2E', scope: 'full' })
     })
 
-    await window.getByTestId('mode-ceshu').click()
-    await window.getByTestId('ceshu-row').filter({ hasText: '数据生成E2E' }).click()
+    // 文档经 IPC 旁路创建 → 重载首页列表后打开对应卡片
+    await window.reload()
+    await waitReady(window)
+    await window.getByTestId('home-card').filter({ hasText: '数据生成E2E' }).getByTestId('home-card-open').click()
     await window.getByTestId('ceshu-ai-datagen').click()
 
     // 只勾选「角色 / 技能」（其余取消），每类 2 条 + 补充要求

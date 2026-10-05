@@ -49,9 +49,10 @@ test('系统确认：勾选启用 + 自定义系统 + 确认落盘 + 双向同�
     const keyC = allKeys.find((k) => k !== keyA && k !== keyB)!
     const customName = 'tower_defense'
 
-    // 进入策划书视图 → 打开系统确认面板
-    await window.getByTestId('mode-ceshu').click()
-    await window.getByTestId('ceshu-row').filter({ hasText: 'W32系统确认E2E' }).click()
+    // 文档经 IPC 旁路创建 → 重载首页列表 → 打开对应卡片 → 打开系统确认面板
+    await window.reload()
+    await waitReady(window)
+    await window.getByTestId('home-card').filter({ hasText: 'W32系统确认E2E' }).getByTestId('home-card-open').click()
     await window.getByTestId('ceshu-system-confirm').click()
     await expect(window.getByTestId('system-confirm-panel')).toBeVisible()
     await expect(window.getByTestId(`sys-card-${keyA}`)).toBeVisible()

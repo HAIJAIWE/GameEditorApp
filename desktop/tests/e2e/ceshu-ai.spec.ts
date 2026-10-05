@@ -14,8 +14,8 @@ test('AI 生成：按钮存在；本地服务不可用时给出中文可操作�
     const window = await app.firstWindow()
     await waitReady(window)
 
-    await window.getByTestId('mode-ceshu').click()
-    await window.getByTestId('ceshu-create').click()
+    // 新建空白策划书 → 自动进入编辑器
+    await window.getByTestId('home-new-blank').click()
 
     // 章节表单（非 systems 章）应出现两个 AI 按钮
     await expect(window.getByTestId('ai-generate-chapter')).toBeVisible()
@@ -46,8 +46,8 @@ test('AI 一键生成：离线时首章失败即中断并给出错误汇总，�
     const window = await app.firstWindow()
     await waitReady(window)
 
-    await window.getByTestId('mode-ceshu').click()
-    await window.getByTestId('ceshu-create').click()
+    // 新建空白策划书 → 自动进入编辑器
+    await window.getByTestId('home-new-blank').click()
 
     // 打开一键生成面板：进度列表按依赖顺序展示（meta 在前）
     await window.getByTestId('ceshu-ai-full').click()

@@ -118,8 +118,10 @@ test('章节笔记：IPC 增删改查 + 磁盘落盘 + UI 面板全链路', asyn
     expect(raw.notes).toHaveLength(2)
     expect(raw.notes[0]).toMatchObject({ chapter_key: 'meta', content: '已更新正文', author: '策划A' })
 
-    // UI 侧：打开面板 → 筛选 → 新建 → 保存 → 删除
-    await window.getByTestId('mode-ceshu').click()
+    // UI 侧：文档经 IPC 旁路创建 → 重载首页列表后打开对应卡片 → 打开面板 → 筛选 → 新建 → 保存 → 删除
+    await window.reload()
+    await waitReady(window)
+    await window.getByTestId('home-card').filter({ hasText: '笔记E2E' }).getByTestId('home-card-open').click()
     await window.getByTestId('ceshu-notes').click()
     await expect(window.getByTestId('notes-panel')).toBeVisible()
     await expect(window.getByTestId('notes-panel')).toContainText('共 2 条')

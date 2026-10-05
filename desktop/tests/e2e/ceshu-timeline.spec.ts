@@ -79,10 +79,11 @@ test('版本时间线：版本链顺序与节点文案 → 点击详情 → 切�
     expect(setup.nodeActive).toEqual([false, true, false])
     expect(setup.nodeParents).toEqual(['', setup.rootId, setup.rootId])
 
-    // UI 侧：打开 v1.0 → 版本时间线面板
-    await window.getByTestId('mode-ceshu').click()
-    await expect(window.getByTestId('ceshu-row')).toHaveCount(3)
-    await window.getByTestId('ceshu-row').filter({ hasText: 'v1.0' }).click()
+    // UI 侧：文档经 IPC 旁路创建 → 重载首页列表 → 打开 v1.0 卡片 → 版本时间线面板
+    await window.reload()
+    await waitReady(window)
+    await expect(window.getByTestId('home-card')).toHaveCount(3)
+    await window.getByTestId('home-card').filter({ hasText: 'v1.0' }).getByTestId('home-card-open').click()
     await expect(window.getByTestId('ceshu-version')).toContainText('v1.0')
 
     await window.getByTestId('ceshu-timeline').click()
