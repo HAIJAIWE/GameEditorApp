@@ -1,25 +1,20 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 
 import type { CeshuSummary } from '../../shared/ceshuConstants'
-import { filterItemRecords } from '../../shared/dataTableOps'
-import { GAME_STYLES, loadGameStyle, normalizeGameStyleId, saveGameStyle } from '../../shared/gameStyle'
-import type { AppInfo, DataTypeDef, ImportSummary, ItemRecord } from '../../shared/types'
-import { isTypeVisible, loadVisibleTypes, saveVisibleTypes } from '../../shared/visibleTypes'
+import { loadGameStyle, normalizeGameStyleId, saveGameStyle } from '../../shared/gameStyle'
+import type { AppInfo, DataTypeDef, ImportSummary } from '../../shared/types'
 import { applyTheme, loadTheme, saveTheme, type ThemeMode } from '../../shared/theme'
 
 import AdvancedSearchPanel from './components/AdvancedSearchPanel'
 import AttrSystemPanel from './components/AttrSystemPanel'
 import BackupPanel from './components/BackupPanel'
-import ImageGenPanel from './components/ImageGenPanel'
-import MenuBar from './components/MenuBar'
 import BatchEditPanel from './components/BatchEditPanel'
 import CeshuHomePanel from './components/CeshuHomePanel'
+import CeshuView from './components/CeshuView'
 import DataDiffPanel from './components/DataDiffPanel'
 import DigitalPanel from './components/digital/DigitalPanel'
-import EngineExportButton from './components/EngineExportButton'
-import LibraryBar from './components/LibraryBar'
-import CeshuView from './components/CeshuView'
-import ItemForm from './components/ItemForm'
+import ImageGenPanel from './components/ImageGenPanel'
+import MenuBar from './components/MenuBar'
 import QuickCreatePanel from './components/QuickCreatePanel'
 import ReferencesPanel, { type ReferenceTarget } from './components/ReferencesPanel'
 import StatisticsPanel from './components/StatisticsPanel'
@@ -28,11 +23,6 @@ import TypeVisibilityPanel from './components/TypeVisibilityPanel'
 
 function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
-}
-
-function itemDisplayName(item: ItemRecord): string {
-  const name = item.data['name']
-  return typeof name === 'string' && name !== '' ? name : item.id
 }
 
 function formatImportSummary(summary: ImportSummary): string {
@@ -44,34 +34,66 @@ function formatImportSummary(summary: ImportSummary): string {
   return `导入完成：新增 ${summary.imported} 条，更新 ${summary.updated} 条，跳过 ${summary.skipped} 条${unknownNote}`
 }
 
+/**
+ * 顶层「面板浮层」的键：这些能力原先挂在下线前的「数据表视图」工具栏上，
+ * 现统一由菜单栏唤起，主区内**同时最多只渲染一个**（互斥，对齐 PyQt 的单中央堆栈）。
+ */
+type OverlayPanel =
+  | 'typeEditor'
+  | 'attrSystem'
+  | 'stats'
+  | 'advancedSearch'
+  | 'dataDiff'
+  | 'backup'
+  | 'imageGen'
+  | 'quickCreate'
+  | 'batch'
+  | 'typeVisibility'
+  | 'references'
+
+/** 浮层头部标题（与菜单项一致，便于用户确认当前打开的是哪个能力） */
+const PANEL_TITLES: Record<OverlayPanel, string> = {
+  typeEditor: '字段结构编辑器',
+  attrSystem: '属性系统编辑器',
+  stats: '游戏数据统计',
+  advancedSearch: '高级搜索',
+  dataDiff: '数据对比',
+  backup: '备份管理',
+  imageGen: 'AI 生图',
+  quickCreate: '快速创建向导',
+  batch: '批量修改数据',
+  typeVisibility: '数据可见类型',
+  references: '数据关联预览'
+}
+
+/**
+ * 顶层外壳（Phase B：对齐 PyQt 的信息架构）。
+ *
+ * 设计要点（对应 PyQt `ui/layout_builder.py::_build_three_column` + `ui/main_window.py`）：
+ * - **无左侧栏**：所有能力走顶部菜单栏；库选择与「设置 / 智能体 / AI」按钮挂在菜单栏右侧角部件。
+ * - 中央是**单栈**：策划书首页 ↔ 策划书编辑器（编辑器内嵌数据预览面板且常驻），默认落在首页。
+ * - 右侧 `.ai-dock` 为常驻数字员工停靠栏（单一实例）。
+ * - 底部状态栏（版本 / 类型数 / 数据库路径 / 主题切换）常驻。
+ */
 export default function App() {
   const [info, setInfo] = useState<AppInfo | null>(null)
   const [types, setTypes] = useState<DataTypeDef[]>([])
-  const [activeType, setActiveType] = useState<string | null>(null)
-  const [items, setItems] = useState<ItemRecord[]>([])
-  const [selectedId, setSelectedId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
-  /** 撤销/重做状态（按钮 disabled 与 tooltip 标签用） */
+  /** 撤销/重做状态（菜单项 disabled 与 tooltip 标签用） */
   const [undoUi, setUndoUi] = useState<{ canUndo: boolean; canRedo: boolean; nextUndo: string | null; nextRedo: string | null }>({
     canUndo: false,
     canRedo: false,
     nextUndo: null,
     nextRedo: null
   })
-  const [busy, setBusy] = useState(false)
-  const [mode, setMode] = useState<'data' | 'ceshu' | 'digital'>('data')
+  /** 主区内当前打开的浮层面板（null = 未打开，渲染策划书首页/编辑器） */
+  const [panel, setPanel] = useState<OverlayPanel | null>(null)
   /** 主题（深/浅）：持久化在 localStorage，随会话保留；启动时由 main.tsx 预应用以避免闪屏 */
   const [theme, setTheme] = useState<ThemeMode>(() => loadTheme())
 
-  // 窗口状态持久化（迁移 ui/window_state.py 的 last_tab_index）：模式切换时上报主进程，
-  // 落进 window-state.json，下次启动恢复。失败静默（不影响功能）。
-  useEffect(() => {
-    void window.mbApi.app.setWindowMode({ mode }).catch(() => undefined)
-  }, [mode])
-
   // 活跃库切换（A2-2）：主进程已重建全部 store，渲染层直接整页重载——
-  // 这样所有视图（数据表/策划书/属性系统/数字员工）都从新库重新拉取，无需逐处写刷新逻辑。
+  // 这样所有视图（策划书/属性系统/数字员工）都从新库重新拉取，无需逐处写刷新逻辑。
   useEffect(() => {
     const library = (window.mbApi as unknown as { library?: { onChanged?: (h: (p: unknown) => void) => () => void } })
       .library
@@ -80,28 +102,12 @@ export default function App() {
       window.location.reload()
     })
   }, [])
-  const [editorOpen, setEditorOpen] = useState(false)
-  const [attrSysOpen, setAttrSysOpen] = useState(false)
+
   const [ceshuList, setCeshuList] = useState<CeshuSummary[]>([])
   const [activeCeshuId, setActiveCeshuId] = useState<string | null>(null)
-  /** 策划书首页卡片视图（显式入口；默认落在编辑器，保持既有单文档优先的落点行为） */
-  const [ceshuHomeVisible, setCeshuHomeVisible] = useState(false)
+  /** 策划书首页卡片视图：默认落在首页（对齐 PyQt `_center_stack.setCurrentWidget(ceshu_home)`） */
+  const [ceshuHomeVisible, setCeshuHomeVisible] = useState(true)
 
-  const fields = activeType ? (types.find((def) => def.id === activeType)?.formFields ?? []) : []
-  const selectedItem = items.find((item) => item.id === selectedId) ?? null
-  const [query, setQuery] = useState('')
-  const [debouncedQuery, setDebouncedQuery] = useState('')
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-  const [batchOpen, setBatchOpen] = useState(false)
-  const [quickCreateOpen, setQuickCreateOpen] = useState(false)
-  const [statsOpen, setStatsOpen] = useState(false)
-  const [advancedSearchOpen, setAdvancedSearchOpen] = useState(false)
-  const [dataDiffOpen, setDataDiffOpen] = useState(false)
-  const [backupOpen, setBackupOpen] = useState(false)
-  const [imageGenOpen, setImageGenOpen] = useState(false)
-  const [typeVisibilityOpen, setTypeVisibilityOpen] = useState(false)
-  /** 侧栏显示哪些类型（null = 全部）；持久化在 localStorage，随会话保留 */
-  const [visibleTypes, setVisibleTypes] = useState<string[] | null>(() => loadVisibleTypes())
   /**
    * 活跃游戏风格 id（术语风格）。用于条目表单的字段标签术语替换
    * （对应 Python `style_manager` 的**全局单例** `_active_style`；TS 无全局可变态，落在 App state）。
@@ -112,29 +118,13 @@ export default function App() {
    * `''` = 原始术语（不替换）。
    */
   const [gameStyle, setGameStyle] = useState<string>(() => loadGameStyle())
+  /** 引用面板的目标条目；由「高级搜索 → 点击结果跳转」回填，供菜单「数据关联预览」打开引用面板 */
   const [refTarget, setRefTarget] = useState<ReferenceTarget | null>(null)
 
-  const filteredItems = useMemo(() => filterItemRecords(items, debouncedQuery), [items, debouncedQuery])
-  // 仅统计仍然存在的勾选项（重载/删除后失效的 id 不参与批量操作）
-  const aliveIds = useMemo(() => new Set(items.map((item) => item.id)), [items])
-  const selectedVisibleIds = useMemo(
-    () => [...selectedIds].filter((id) => aliveIds.has(id)),
-    [selectedIds, aliveIds]
-  )
-  const allSelected = filteredItems.length > 0 && filteredItems.every((item) => selectedIds.has(item.id))
+  /** 浮层面板需要「一个类型」作为载体时使用的兜底：schema 里第一个类型 */
+  const firstType = types[0]?.id ?? null
 
-  /** 事件处理器使用的重新加载（不在 effect 中直接调用，避免级联渲染） */
-  const reload = useCallback(async (type: string): Promise<void> => {
-    try {
-      const list = await window.mbApi.data.listItems({ type })
-      setItems(list)
-      setError(null)
-    } catch (err) {
-      setError(toErrorMessage(err))
-    }
-  }, [])
-
-  /** 刷新增撤/重做状态（数据变更后调用，保证按钮 disabled 与标签正确） */
+  /** 刷新增撤/重做状态（数据变更后调用，保证菜单项 disabled 与标签正确） */
   const refreshUndo = useCallback((): void => {
     void window.mbApi.data
       .undoState()
@@ -179,7 +169,8 @@ export default function App() {
   }, [])
 
   /** 策划书列表刷新；无选中项时自动选中第一份 */
-  const reloadCeshuList = useCallback(async (): Promise<void> => {    try {
+  const reloadCeshuList = useCallback(async (): Promise<void> => {
+    try {
       const list = await window.mbApi.ceshu.list()
       setCeshuList(list)
       setActiveCeshuId((current) => current ?? list[0]?.id ?? null)
@@ -188,7 +179,7 @@ export default function App() {
     }
   }, [])
 
-  // 初始化撤销/重做状态（启动时填充按钮 disabled 与标签）
+  // 初始化撤销/重做状态（启动时填充菜单项 disabled 与标签）
   useEffect(() => {
     void window.mbApi.data.undoState().then(setUndoUi).catch(() => undefined)
   }, [])
@@ -225,15 +216,13 @@ export default function App() {
       .catch((err: unknown) => setError(toErrorMessage(err)))
   }, [])
 
-  // 加载数据类型 schema（主进程下发，用户可在「字段结构」中编辑并持久化），默认选中第一个类型
+  // 加载数据类型 schema（主进程下发，用户可在「字段结构」中编辑并持久化）
   useEffect(() => {
     let cancelled = false
     window.mbApi.schema
       .list()
       .then((list) => {
-        if (cancelled) return
-        setTypes(list)
-        setActiveType((current) => current ?? list[0]?.id ?? null)
+        if (!cancelled) setTypes(list)
       })
       .catch((err: unknown) => {
         if (!cancelled) setError(toErrorMessage(err))
@@ -243,9 +232,8 @@ export default function App() {
     }
   }, [])
 
-  // 切换到策划书模式时加载列表（懒加载，避免启动即访问文件系统）
+  // 启动即加载策划书列表（首页卡片视图依赖它；懒加载避免在此之前访问文件系统）
   useEffect(() => {
-    if (mode !== 'ceshu') return
     let cancelled = false
     window.mbApi.ceshu
       .list()
@@ -260,55 +248,7 @@ export default function App() {
     return () => {
       cancelled = true
     }
-  }, [mode])
-
-  // 切换数据类型时加载列表；cancelled 防止快速切换导致的过期响应回写
-  useEffect(() => {
-    if (!activeType) return
-    let cancelled = false
-    window.mbApi.data
-      .listItems({ type: activeType })
-      .then((list) => {
-        if (!cancelled) {
-          setItems(list)
-          setError(null)
-        }
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) setError(toErrorMessage(err))
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [activeType])
-
-  // 搜索防抖：输入停止 150ms 后再过滤列表
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedQuery(query), 150)
-    return () => clearTimeout(timer)
-  }, [query])
-
-  const selectType = (id: string): void => {
-    setSelectedId(null)
-    setActiveType(id)
-    setQuery('')
-    setSelectedIds(new Set())
-    setBatchOpen(false)
-    setStatsOpen(false)
-    setQuickCreateOpen(false)
-    setAdvancedSearchOpen(false)
-    setDataDiffOpen(false)
-    setBackupOpen(false)
-    setTypeVisibilityOpen(false)
-    setRefTarget(null)
-  }
-
-  /** 侧栏显示类型偏好确认：写 localStorage 并即时生效（侧栏过滤在渲染处完成） */
-  const handleVisibilityConfirmed = (next: string[] | null): void => {
-    setVisibleTypes(next)
-    saveVisibleTypes(next)
-    setTypeVisibilityOpen(false)
-  }
+  }, [])
 
   /**
    * 切换术语风格：未知 id 归一为 `''`（原始术语），并持久化。
@@ -329,92 +269,43 @@ export default function App() {
     })
   }, [])
 
-  /** 侧栏可见的类型（null = 全部） */
-  const visibleTypeDefs = useMemo(
-    () => types.filter((def) => isTypeVisible(def.id, visibleTypes)),
-    [types, visibleTypes]
-  )
+  /**
+   * 打开浮层面板（菜单入口）。
+   * 需要「一个类型 / 一个目标条目」才能工作的面板（快速创建 / 批量 / 引用），
+   * 若无可用值则只给出 notice，不打开空面板。
+   */
+  const openPanel = (kind: OverlayPanel): void => {
+    if ((kind === 'quickCreate' || kind === 'batch') && firstType === null) {
+      setNotice('当前没有可用的数据类型（schema 为空），请先在「字段结构编辑器」中新增类型')
+      return
+    }
+    if (kind === 'references' && refTarget === null) {
+      setNotice('「数据关联预览」需要一个目标条目：请先在「高级搜索」中点击某条结果完成定位')
+      return
+    }
+    setPanel(kind)
+  }
 
-  /** 引用跳转：切到目标类型并选中该条目（保留引用面板，便于沿引用链继续查看） */
+  /** 引用跳转：记录目标条目并提示（数据表视图已下线，无法直接定位到条目） */
   const handleJump = (type: string, itemId: string, name: string): void => {
     setRefTarget({ type, id: itemId, name })
-    setQuery('')
-    setSelectedId(itemId)
-    setActiveType(type)
+    setNotice(`已定位条目：${name}（${type}）`)
   }
 
-  const toggleSelect = (id: string): void => {
-    setSelectedIds((current) => {
-      const next = new Set(current)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }
+  /** 浮层通知的「尚未实现」轻提示（供菜单项复用） */
+  const notImplemented = (label: string): void => setNotice(`「${label}」尚未在 TS 版实现`)
 
-  /** 全选/全不选：作用于当前过滤结果（与搜索联动） */
-  const toggleSelectAll = (): void => {
-    setSelectedIds((current) => {
-      const next = new Set(current)
-      const allChecked = filteredItems.length > 0 && filteredItems.every((item) => next.has(item.id))
-      for (const item of filteredItems) {
-        if (allChecked) next.delete(item.id)
-        else next.add(item.id)
-      }
-      return next
-    })
-  }
-
-  /** 批量操作完成：提示结果、清空勾选、关闭面板并刷新列表 */
+  /** 批量操作完成：提示结果、关闭面板并刷新增撤状态 */
   const handleBatchApplied = (message: string): void => {
     setNotice(message)
-    setSelectedIds(new Set())
-    setBatchOpen(false)
-    if (activeType) void reload(activeType)
+    setPanel(null)
     refreshUndo()
   }
 
+  /** 快速创建完成：提示结果、关闭面板并刷新增撤状态 */
   const handleQuickCreated = (message: string): void => {
     setNotice(message)
-    setQuickCreateOpen(false)
-    if (activeType) void reload(activeType)
-    refreshUndo()
-  }
-
-  const handleCreate = async (): Promise<void> => {
-    if (!activeType) return
-    setBusy(true)
-    try {
-      const label = types.find((t) => t.id === activeType)?.name ?? activeType
-      const created = await window.mbApi.data.createItem({
-        type: activeType,
-        data: { name: `${label} ${items.length + 1}` }
-      })
-      await reload(activeType)
-      setSelectedId(created.id)
-      refreshUndo()
-    } catch (err) {
-      setError(toErrorMessage(err))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const handleDelete = async (id: string): Promise<void> => {
-    if (!activeType) return
-    try {
-      await window.mbApi.data.deleteItem({ id })
-      if (selectedId === id) setSelectedId(null)
-      await reload(activeType)
-      refreshUndo()
-    } catch (err) {
-      setError(toErrorMessage(err))
-    }
-  }
-
-  const handleSaved = (updated: ItemRecord): void => {
-    setNotice(`已保存：${String(updated.data.name ?? updated.id)}`)
-    if (activeType) void reload(activeType)
+    setPanel(null)
     refreshUndo()
   }
 
@@ -424,14 +315,11 @@ export default function App() {
       setNotice(null)
       const chosen = await window.mbApi.dialog.chooseJsonFile()
       if (!chosen.path) return
-      setBusy(true)
       const summary = await window.mbApi.data.importLegacy({ path: chosen.path })
       setNotice(formatImportSummary(summary))
-      if (activeType) await reload(activeType)
+      refreshUndo()
     } catch (err) {
       setError(toErrorMessage(err))
-    } finally {
-      setBusy(false)
     }
   }
 
@@ -441,13 +329,10 @@ export default function App() {
       setNotice(null)
       const chosen = await window.mbApi.dialog.chooseSaveJsonFile()
       if (!chosen.path) return
-      setBusy(true)
       const summary = await window.mbApi.data.exportLegacy({ path: chosen.path })
       setNotice(`已导出 ${summary.totalItems} 条数据：${summary.filePath}`)
     } catch (err) {
       setError(toErrorMessage(err))
-    } finally {
-      setBusy(false)
     }
   }
 
@@ -457,14 +342,11 @@ export default function App() {
       setNotice(null)
       const chosen = await window.mbApi.dialog.chooseCsvFile()
       if (!chosen.path) return
-      setBusy(true)
       const summary = await window.mbApi.data.importCsv({ path: chosen.path })
       setNotice(formatImportSummary(summary))
-      if (activeType) await reload(activeType)
+      refreshUndo()
     } catch (err) {
       setError(toErrorMessage(err))
-    } finally {
-      setBusy(false)
     }
   }
 
@@ -474,13 +356,10 @@ export default function App() {
       setNotice(null)
       const chosen = await window.mbApi.dialog.chooseExportDir()
       if (!chosen.path) return
-      setBusy(true)
       const summary = await window.mbApi.data.exportCsv({ dir: chosen.path })
       setNotice(`已导出 ${summary.files.length} 个 CSV 文件（共 ${summary.totalItems} 条）到 ${summary.dir}`)
     } catch (err) {
       setError(toErrorMessage(err))
-    } finally {
-      setBusy(false)
     }
   }
 
@@ -490,14 +369,11 @@ export default function App() {
       setNotice(null)
       const chosen = await window.mbApi.dialog.chooseExcelFile()
       if (!chosen.path) return
-      setBusy(true)
       const summary = await window.mbApi.data.importExcel({ path: chosen.path })
       setNotice(formatImportSummary(summary))
-      if (activeType) await reload(activeType)
+      refreshUndo()
     } catch (err) {
       setError(toErrorMessage(err))
-    } finally {
-      setBusy(false)
     }
   }
 
@@ -507,13 +383,10 @@ export default function App() {
       setNotice(null)
       const chosen = await window.mbApi.dialog.chooseExportDir()
       if (!chosen.path) return
-      setBusy(true)
       const summary = await window.mbApi.data.exportExcel({ dir: chosen.path })
       setNotice(`已导出 ${summary.totalItems} 条数据：${summary.filePath}`)
     } catch (err) {
       setError(toErrorMessage(err))
-    } finally {
-      setBusy(false)
     }
   }
 
@@ -542,28 +415,66 @@ export default function App() {
     }
   }
 
-  /** 字段结构保存后：刷新类型列表；当前类型被删除时回退到第一个 */
-  const handleSchemaSaved = (saved: DataTypeDef[]): void => {
-    setTypes(saved)
-    setActiveType((current) => (saved.some((def) => def.id === current) ? current : (saved[0]?.id ?? null)))
-  }
-
-  const handleCreateCeshu = async (): Promise<void> => {
-    try {
-      setError(null)
-      setNotice(null)
-      const created = await window.mbApi.ceshu.create({ name: '', scope: 'full' })
-      await reloadCeshuList()
-      handleOpenCeshu(created.ceshu_id)
-    } catch (err) {
-      setError(toErrorMessage(err))
-    }
-  }
-
   /** 打开某份策划书（同时离开首页卡片视图） */
   const handleOpenCeshu = (id: string): void => {
     setActiveCeshuId(id)
     setCeshuHomeVisible(false)
+  }
+
+  /** 渲染当前打开的浮层面板（互斥；面板 props 里来自已下线数据态的项一律给兜底值） */
+  const renderPanel = (): ReactNode => {
+    switch (panel) {
+      case 'typeEditor':
+        return <TypeEditorPanel types={types} onSaved={(saved) => setTypes(saved)} onClose={() => setPanel(null)} />
+      case 'attrSystem':
+        return <AttrSystemPanel onClose={() => setPanel(null)} />
+      case 'stats':
+        return <StatisticsPanel types={types} onClose={() => setPanel(null)} />
+      case 'advancedSearch':
+        return <AdvancedSearchPanel types={types} onJump={handleJump} onClose={() => setPanel(null)} />
+      case 'dataDiff':
+        return <DataDiffPanel onClose={() => setPanel(null)} />
+      case 'backup':
+        return <BackupPanel onRestored={() => refreshUndo()} onClose={() => setPanel(null)} />
+      case 'imageGen':
+        return <ImageGenPanel onClose={() => setPanel(null)} />
+      case 'quickCreate':
+        return (
+          <QuickCreatePanel
+            key={`${firstType ?? ''}:quick`}
+            type={firstType ?? ''}
+            types={types}
+            onCreated={handleQuickCreated}
+            onClose={() => setPanel(null)}
+          />
+        )
+      case 'batch':
+        return (
+          <BatchEditPanel
+            key={`${firstType ?? ''}:batch`}
+            type={firstType ?? ''}
+            typeDef={types.find((def) => def.id === firstType) ?? null}
+            selectedIds={[]}
+            onApplied={handleBatchApplied}
+            onClose={() => setPanel(null)}
+          />
+        )
+      case 'typeVisibility':
+        return (
+          <TypeVisibilityPanel
+            types={types}
+            value={null}
+            onConfirm={() => setPanel(null)}
+            onClose={() => setPanel(null)}
+          />
+        )
+      case 'references':
+        return refTarget ? (
+          <ReferencesPanel target={refTarget} types={types} onJump={handleJump} onClose={() => setPanel(null)} />
+        ) : null
+      default:
+        return null
+    }
   }
 
   return (
@@ -571,7 +482,7 @@ export default function App() {
       <MenuBar
         canUndo={undoUi.canUndo}
         canRedo={undoUi.canRedo}
-        hasSelection={!!selectedItem}
+        hasSelection={refTarget !== null}
         actions={{
           importJson: handleImportLegacy,
           importCsv: handleImportCsv,
@@ -579,587 +490,92 @@ export default function App() {
           exportJson: handleExportLegacy,
           exportCsv: handleExportCsv,
           exportExcel: handleExportExcel,
-          batchEdit: () => setBatchOpen(true),
+          batchEdit: () => openPanel('batch'),
           engineExport: () => void handleEngineExport(),
-          backup: () => setBackupOpen(true),
+          backup: () => openPanel('backup'),
           undo: () => void performUndo(),
           redo: () => void performRedo(),
-          quickCreate: () => setQuickCreateOpen(true),
-          references: () => {
-            if (!selectedItem) return
-            setRefTarget({ type: selectedItem.type, id: selectedItem.id, name: itemDisplayName(selectedItem) })
-            setBatchOpen(false)
-            setStatsOpen(false)
-            setQuickCreateOpen(false)
-            setAdvancedSearchOpen(false)
-            setDataDiffOpen(false)
-            setBackupOpen(false)
-            setTypeVisibilityOpen(false)
-          },
-          dataDiff: () => setDataDiffOpen(true),
-          stats: () => setStatsOpen(true),
-          attrSystem: () => setAttrSysOpen(true),
-          notImplemented: (label: string) => setNotice(`「${label}」尚未在 TS 版实现`),
+          quickCreate: () => openPanel('quickCreate'),
+          references: () => openPanel('references'),
+          dataDiff: () => openPanel('dataDiff'),
+          stats: () => openPanel('stats'),
+          attrSystem: () => openPanel('attrSystem'),
+          fieldEditor: () => openPanel('typeEditor'),
+          advancedSearch: () => openPanel('advancedSearch'),
+          typeVisibility: () => openPanel('typeVisibility'),
+          imageGen: () => openPanel('imageGen'),
+          settings: () => notImplemented('设置'),
+          agentEditor: () => notImplemented('智能体编辑器'),
+          aiPanel: () => setNotice('AI 助手已在右侧常驻'),
+          notImplemented,
           quit: handleQuit
         }}
       />
       <div className="app-body">
-      <aside className="sidebar">
-        <div className="brand">
-          墨白可视化编辑
-          <small>TS 重写版 · Phase 1 数据核心</small>
-        </div>
-        <LibraryBar />
-        <div className="mode-switch">
-          <button
-            type="button"
-            data-testid="mode-data"
-            className={`mode-btn${mode === 'data' ? ' active' : ''}`}
-            onClick={() => setMode('data')}
-          >
-            数据表
-          </button>
-          <button
-            type="button"
-            data-testid="mode-ceshu"
-            className={`mode-btn${mode === 'ceshu' ? ' active' : ''}`}
-            onClick={() => setMode('ceshu')}
-          >
-            策划书
-          </button>
-          <button
-            type="button"
-            data-testid="mode-digital"
-            className={`mode-btn${mode === 'digital' ? ' active' : ''}`}
-            onClick={() => setMode('digital')}
-          >
-            数字员工
-          </button>
-        </div>
-        {mode === 'data' ? (
-          <>
-            {visibleTypeDefs.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                className={`type-tab${t.id === activeType ? ' active' : ''}`}
-                data-testid="type-tab"
-                onClick={() => selectType(t.id)}
-              >
-                <span className="type-dot" style={{ background: t.color }} />
-                {t.name}
-              </button>
-            ))}
-            <button
-              type="button"
-              className="type-tab"
-              data-testid="open-type-visibility"
-              title="选择侧栏要显示的数据类型"
-              onClick={() => {
-                setTypeVisibilityOpen(true)
-                setRefTarget(null)
-                setBatchOpen(false)
-                setStatsOpen(false)
-                setQuickCreateOpen(false)
-                setAdvancedSearchOpen(false)
-                setDataDiffOpen(false)
-                setBackupOpen(false)
-              }}
-            >
-              <span className="item-name">⚙ 管理显示类型</span>
-            </button>
-          </>
-        ) : (
-          <>
-            <button
-              type="button"
-              data-testid="ceshu-home"
-              className={`type-tab${ceshuHomeVisible ? ' active' : ''}`}
-              onClick={() => setCeshuHomeVisible(true)}
-            >
-              <span className="item-name">🗂 全部策划书</span>
-            </button>
-            <button type="button" className="btn" data-testid="ceshu-create" onClick={() => void handleCreateCeshu()}>
-              新建策划书
-            </button>
-            {ceshuList.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                data-testid="ceshu-row"
-                className={`type-tab${!ceshuHomeVisible && item.id === activeCeshuId ? ' active' : ''}`}
-                onClick={() => handleOpenCeshu(item.id)}
-              >
-                <span className="item-name">{item.gameName || '未命名策划书'}</span>
-                <span className="item-meta">
-                  {item.versionLabel}
-                  {item.isActive ? ' ★' : ''} · {Math.round(item.progress * 100)}%
-                </span>
-              </button>
-            ))}
-            {ceshuList.length === 0 && <div className="sidebar-hint">暂无策划书，点击上方新建</div>}
-          </>
-        )}
-        {mode === 'digital' && <div className="sidebar-hint">数字员工对话在右侧主区域</div>}
-      </aside>
-
-      <div className={`main mode-${mode}`}>
-        <div className="main-body">
-          <div className="main-area">
-        {mode === 'data' ? (
-          <>
-            <header className="toolbar">
-              <h1>数据表预览</h1>
-              <label className="toolbar-field">
-                <span className="form-label">术语风格</span>
-                <select
-                  className="form-select game-style-select"
-                  data-testid="game-style"
-                  title="按游戏风格替换条目表单的字段标签术语（如 生命 → 气血）"
-                  value={gameStyle}
-                  onChange={(event) => handleGameStyleChange(event.target.value)}
-                >
-                  <option value="">原始术语</option>
-                  {GAME_STYLES.map((style) => (
-                    <option key={style.id} value={style.id}>
-                      {style.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <button type="button" className="btn" disabled={busy} onClick={() => void handleImportLegacy()}>
-                导入旧数据
-              </button>
-              <button type="button" className="btn" disabled={busy} onClick={() => void handleExportLegacy()}>
-                导出为 JSON
-              </button>
-              <button
-                type="button"
-                className="btn"
-                data-testid="export-csv"
-                disabled={busy}
-                onClick={() => void handleExportCsv()}
-              >
-                导出 CSV
-              </button>
-              <button
-                type="button"
-                className="btn"
-                data-testid="import-csv"
-                disabled={busy}
-                onClick={() => void handleImportCsv()}
-              >
-                导入 CSV
-              </button>
-              <button
-                type="button"
-                className="btn"
-                data-testid="export-excel"
-                disabled={busy}
-                onClick={() => void handleExportExcel()}
-              >
-                导出 Excel
-              </button>
-              <button
-                type="button"
-                className="btn"
-                data-testid="import-excel"
-                disabled={busy}
-                onClick={() => void handleImportExcel()}
-              >
-                导入 Excel
-              </button>
-              <EngineExportButton />
-              <button
-                type="button"
-                className="btn"
-                data-testid="open-type-editor"
-                disabled={busy}
-                onClick={() => setEditorOpen(true)}
-              >
-                字段结构
-              </button>
-              <button
-                type="button"
-                className="btn"
-                data-testid="open-attr-system"
-                disabled={busy}
-                onClick={() => setAttrSysOpen(true)}
-              >
-                属性系统
-              </button>
-              <button
-                type="button"
-                className="btn"
-                data-testid="open-references"
-                disabled={busy || !selectedItem}
-                onClick={() => {
-                  if (!selectedItem) return
-                  setRefTarget({ type: selectedItem.type, id: selectedItem.id, name: itemDisplayName(selectedItem) })
-                  setBatchOpen(false)
-                  setStatsOpen(false)
-                  setQuickCreateOpen(false)
-                  setAdvancedSearchOpen(false)
-                  setDataDiffOpen(false)
-                  setBackupOpen(false)
-                  setTypeVisibilityOpen(false)
-                }}
-              >
-                引用关系
-              </button>
-              <button
-                type="button"
-                className="btn"
-                data-testid="open-image-gen"
-                disabled={busy}
-                onClick={() => {
-                  setRefTarget(null)
-                  setBatchOpen(false)
-                  setStatsOpen(false)
-                  setQuickCreateOpen(false)
-                  setAdvancedSearchOpen(false)
-                  setDataDiffOpen(false)
-                  setBackupOpen(false)
-                  setTypeVisibilityOpen(false)
-                  setImageGenOpen(true)
-                }}
-              >
-                AI 生图
-              </button>
-              <button
-                type="button"
-                className="btn primary"
-                disabled={busy || !activeType}
-                onClick={() => void handleCreate()}
-              >
-                新增测试条目
-              </button>
-            </header>
-
-            {error && <div className="error-banner">{error}</div>}
-            {notice && <div className="notice-banner">{notice}</div>}
-
-            <div className="content">
-              {editorOpen ? (
-                <TypeEditorPanel types={types} onSaved={handleSchemaSaved} onClose={() => setEditorOpen(false)} />
-              ) : attrSysOpen ? (
-                <AttrSystemPanel onClose={() => setAttrSysOpen(false)} />
-              ) : (
-                <>
-                  <div className="list-column">
-                    <div className="list-toolbar">
-                      <input
-                        className="form-input search-input"
-                        data-testid="search-input"
-                        value={query}
-                        placeholder="搜索 名称 / 描述 / ID（空格分词）"
-                        onChange={(event) => setQuery(event.target.value)}
-                      />
-                      {query !== '' && (
-                        <button type="button" className="btn slim" data-testid="search-clear" onClick={() => setQuery('')}>
-                          清除
-                        </button>
-                      )}
-                      <label className="ai-gen-check">
-                        <input
-                          type="checkbox"
-                          data-testid="select-all"
-                          checked={allSelected}
-                          disabled={filteredItems.length === 0}
-                          onChange={toggleSelectAll}
-                        />
-                        全选
-                      </label>
-                      <span className="item-meta" data-testid="list-count">
-                        显示 {filteredItems.length} / {items.length} 条
-                      </span>
-                      <button
-                        type="button"
-                        className="btn"
-                        data-testid="undo"
-                        disabled={!undoUi.canUndo}
-                        title={undoUi.nextUndo ?? '撤销'}
-                        onClick={() => void performUndo()}
-                      >
-                        撤销
-                      </button>
-                      <button
-                        type="button"
-                        className="btn"
-                        data-testid="redo"
-                        disabled={!undoUi.canRedo}
-                        title={undoUi.nextRedo ?? '重做'}
-                        onClick={() => void performRedo()}
-                      >
-                        重做
-                      </button>
-                      <button
-                        type="button"
-                        className="btn"
-                        data-testid="open-batch-edit"
-                        disabled={selectedVisibleIds.length === 0}
-                        onClick={() => {
-                          setBatchOpen(true)
-                          setRefTarget(null)
-                          setAdvancedSearchOpen(false)
-                          setDataDiffOpen(false)
-                          setBackupOpen(false)
-                          setTypeVisibilityOpen(false)
-                        }}
-                      >
-                        批量操作（{selectedVisibleIds.length}）
-                      </button>
-                      <button
-                        type="button"
-                        className="btn"
-                        data-testid="open-quick-create"
-                        onClick={() => {
-                          setQuickCreateOpen(true)
-                          setRefTarget(null)
-                          setBatchOpen(false)
-                          setAdvancedSearchOpen(false)
-                          setDataDiffOpen(false)
-                          setBackupOpen(false)
-                          setTypeVisibilityOpen(false)
-                        }}
-                      >
-                        快速创建
-                      </button>
-                      <button
-                        type="button"
-                        className="btn"
-                        data-testid="open-stats"
-                        onClick={() => {
-                          setStatsOpen(true)
-                          setRefTarget(null)
-                          setBatchOpen(false)
-                          setQuickCreateOpen(false)
-                          setAdvancedSearchOpen(false)
-                          setDataDiffOpen(false)
-                          setBackupOpen(false)
-                          setTypeVisibilityOpen(false)
-                        }}
-                      >
-                        统计
-                      </button>
-                      <button
-                        type="button"
-                        className="btn"
-                        data-testid="open-advanced-search"
-                        onClick={() => {
-                          setAdvancedSearchOpen(true)
-                          setRefTarget(null)
-                          setBatchOpen(false)
-                          setQuickCreateOpen(false)
-                          setStatsOpen(false)
-                          setDataDiffOpen(false)
-                          setBackupOpen(false)
-                          setTypeVisibilityOpen(false)
-                        }}
-                      >
-                        高级搜索
-                      </button>
-                      <button
-                        type="button"
-                        className="btn"
-                        data-testid="open-data-diff"
-                        onClick={() => {
-                          setDataDiffOpen(true)
-                          setRefTarget(null)
-                          setBatchOpen(false)
-                          setQuickCreateOpen(false)
-                          setStatsOpen(false)
-                          setAdvancedSearchOpen(false)
-                          setBackupOpen(false)
-                          setTypeVisibilityOpen(false)
-                        }}
-                      >
-                        数据对比
-                      </button>
-                      <button
-                        type="button"
-                        className="btn"
-                        data-testid="open-backup"
-                        onClick={() => {
-                          setBackupOpen(true)
-                          setRefTarget(null)
-                          setBatchOpen(false)
-                          setQuickCreateOpen(false)
-                          setStatsOpen(false)
-                          setAdvancedSearchOpen(false)
-                          setDataDiffOpen(false)
-                          setTypeVisibilityOpen(false)
-                        }}
-                      >
-                        备份
-                      </button>
-                    </div>
-
-                    <div className="list">
-                      {!activeType ? (
-                        <div className="empty">正在加载数据类型…</div>
-                      ) : items.length === 0 ? (
-                        <div className="empty">暂无数据，点击「新增测试条目」或「导入旧数据」</div>
-                      ) : filteredItems.length === 0 ? (
-                        <div className="empty" data-testid="search-empty">
-                          没有匹配「{debouncedQuery}」的数据
-                        </div>
-                      ) : (
-                        filteredItems.map((item) => (
-                          <div
-                            key={item.id}
-                            className={`item-row${item.id === selectedId ? ' selected' : ''}`}
-                            data-testid="item-row"
-                            onClick={() => {
-                              setSelectedId(item.id)
-                              setBatchOpen(false)
-                              setQuickCreateOpen(false)
-                              setStatsOpen(false)
-                              setAdvancedSearchOpen(false)
-                              setDataDiffOpen(false)
-                              setBackupOpen(false)
-                              setTypeVisibilityOpen(false)
-                              setRefTarget(null)
-                            }}
-                          >
-                            <input
-                              type="checkbox"
-                              className="item-check"
-                              data-testid="item-check"
-                              checked={selectedIds.has(item.id)}
-                              onClick={(event) => event.stopPropagation()}
-                              onChange={() => toggleSelect(item.id)}
-                            />
-                            <span className="item-name">{String(item.data.name ?? item.id)}</span>
-                            <span className="item-meta">{item.id.slice(0, 8)}</span>
-                            <button
-                              type="button"
-                              className="btn danger"
-                              onClick={(event) => {
-                                event.stopPropagation()
-                                void handleDelete(item.id)
-                              }}
-                            >
-                              删除
-                            </button>
-                          </div>
-                        ))
-                      )}
-                    </div>
+        <div className="main">
+          <div className="main-body">
+            <div className="main-area">
+              {error && <div className="error-banner">{error}</div>}
+              {notice && <div className="notice-banner">{notice}</div>}
+              {panel !== null ? (
+                <div className="panel-overlay">
+                  <div className="panel-overlay-header">
+                    <span className="chapter-form-title">{PANEL_TITLES[panel]}</span>
+                    <button type="button" className="btn" data-testid="panel-close" onClick={() => setPanel(null)}>
+                      关闭
+                    </button>
                   </div>
-
-                  {refTarget ? (
-                    <ReferencesPanel
-                      target={refTarget}
-                      types={types}
-                      onJump={handleJump}
-                      onClose={() => setRefTarget(null)}
-                    />
-                  ) : statsOpen ? (
-                    <StatisticsPanel types={types} onClose={() => setStatsOpen(false)} />
-                  ) : advancedSearchOpen ? (
-                    <AdvancedSearchPanel types={types} onJump={handleJump} onClose={() => setAdvancedSearchOpen(false)} />
-                  ) : dataDiffOpen ? (
-                    <DataDiffPanel onClose={() => setDataDiffOpen(false)} />
-                  ) : backupOpen ? (
-                    <BackupPanel
-                      onRestored={() => {
-                        if (activeType) void reload(activeType)
-                      }}
-                      onClose={() => setBackupOpen(false)}
-                    />
-                  ) : typeVisibilityOpen ? (
-                    <TypeVisibilityPanel
-                      types={types}
-                      value={visibleTypes}
-                      onConfirm={handleVisibilityConfirmed}
-                      onClose={() => setTypeVisibilityOpen(false)}
-                    />
-                  ) : imageGenOpen ? (
-                    <ImageGenPanel onClose={() => setImageGenOpen(false)} />
-                  ) : quickCreateOpen ? (
-                    <QuickCreatePanel
-                      key={`${activeType ?? ''}:quick`}
-                      type={activeType ?? ''}
-                      types={types}
-                      onCreated={handleQuickCreated}
-                      onClose={() => setQuickCreateOpen(false)}
-                    />
-                  ) : batchOpen ? (
-                    <BatchEditPanel
-                      key={`${activeType ?? ''}:batch`}
-                      type={activeType ?? ''}
-                      typeDef={types.find((def) => def.id === activeType) ?? null}
-                      selectedIds={selectedVisibleIds}
-                      onApplied={handleBatchApplied}
-                      onClose={() => setBatchOpen(false)}
-                    />
-                  ) : (
-                    selectedItem && (
-                      <ItemForm
-                        key={`${selectedItem.id}:${selectedItem.updatedAt}`}
-                        item={selectedItem}
-                        fields={fields}
-                        types={types}
-                        gameStyle={gameStyle}
-                        onSaved={handleSaved}
-                      />
-                    )
-                  )}
-                </>
+                  <div className="panel-overlay-body">{renderPanel()}</div>
+                </div>
+              ) : ceshuHomeVisible ? (
+                <CeshuHomePanel
+                  summaries={ceshuList}
+                  activeId={activeCeshuId}
+                  onOpen={handleOpenCeshu}
+                  onChanged={() => void reloadCeshuList()}
+                  onDeleted={(deletedId) => {
+                    setActiveCeshuId((current) => (current === deletedId ? null : current))
+                  }}
+                />
+              ) : (
+                <CeshuView
+                  ceshuId={activeCeshuId}
+                  onChanged={() => void reloadCeshuList()}
+                  onSelect={handleOpenCeshu}
+                  onGameStyleChange={handleGameStyleChange}
+                  types={types}
+                  gameStyle={gameStyle}
+                  onBack={() => setCeshuHomeVisible(true)}
+                />
               )}
             </div>
-          </>
-        ) : mode === 'ceshu' ? (
-          ceshuHomeVisible || !activeCeshuId ? (
-            <CeshuHomePanel
-              summaries={ceshuList}
-              activeId={activeCeshuId}
-              onOpen={handleOpenCeshu}
-              onChanged={() => void reloadCeshuList()}
-              onDeleted={(deletedId) => {
-                setActiveCeshuId((current) => (current === deletedId ? null : current))
-              }}
-            />
-          ) : (
-            <CeshuView
-              ceshuId={activeCeshuId}
-              onChanged={() => void reloadCeshuList()}
-              onSelect={handleOpenCeshu}
-              onGameStyleChange={handleGameStyleChange}
-              types={types}
-              gameStyle={gameStyle}
-            />
-          )
-        ) : null}
+            <aside className="ai-dock" data-testid="ai-dock">
+              <DigitalPanel />
+            </aside>
           </div>
-          <aside className="ai-dock" data-testid="ai-dock">
-            <DigitalPanel />
-          </aside>
-        </div>
 
-        <footer className="statusbar">
-          {info ? (
-            <>
-              <span>版本 {info.version}</span>
-              <span>类型 {types.length} 种</span>
-              <span>数据：SQLite（{info.dbPath}）</span>
-            </>
-          ) : (
-            <span>正在读取应用信息…</span>
-          )}
-          <button
-            type="button"
-            className="btn slim"
-            data-testid="theme-toggle"
-            style={{ marginLeft: 'auto' }}
-            title="切换深色 / 浅色主题（偏好会自动保存）"
-            onClick={() => toggleTheme()}
-          >
-            {theme === 'dark' ? '☀️ 浅色' : '🌙 深色'}
-          </button>
-        </footer>
-      </div>
+          <footer className="statusbar">
+            {info ? (
+              <>
+                <span>版本 {info.version}</span>
+                <span>类型 {types.length} 种</span>
+                <span>数据：SQLite（{info.dbPath}）</span>
+              </>
+            ) : (
+              <span>正在读取应用信息…</span>
+            )}
+            <button
+              type="button"
+              className="btn slim"
+              data-testid="theme-toggle"
+              style={{ marginLeft: 'auto' }}
+              title="切换深色 / 浅色主题（偏好会自动保存）"
+              onClick={() => toggleTheme()}
+            >
+              {theme === 'dark' ? '☀️ 浅色' : '🌙 深色'}
+            </button>
+          </footer>
+        </div>
       </div>
     </div>
   )

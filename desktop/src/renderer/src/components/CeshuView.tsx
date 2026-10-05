@@ -45,6 +45,8 @@ interface CeshuViewProps {
   types: readonly DataTypeDef[]
   /** 活跃术语风格 id（透传给内嵌数据编辑器的字段标签术语替换） */
   gameStyle?: string
+  /** 返回策划书首页（对齐 PyQt `editor_view.py::_on_back` 的 `back_requested`） */
+  onBack: () => void
 }
 
 function toErrorMessage(error: unknown): string {
@@ -63,14 +65,12 @@ function groupByChapter(changes: CeshuChangeItem[]): Array<[string, CeshuChangeI
 }
 
 /** 策划书编辑器：章节导航（含进度）+ 章节表单 + 版本链操作 */
-export default function CeshuView({ ceshuId, onChanged, onSelect, onGameStyleChange, types, gameStyle }: CeshuViewProps) {
+export default function CeshuView({ ceshuId, onChanged, onSelect, onGameStyleChange, types, gameStyle, onBack }: CeshuViewProps) {
   const [doc, setDoc] = useState<CeshuDocument | null>(null)
   const [activeChapter, setActiveChapter] = useState<ChapterKey>('meta')
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  /** 内嵌数据预览面板（由第五章启用的游戏系统驱动）是否展开 */
-  const [previewOpen, setPreviewOpen] = useState(false)
   const [exportFormat, setExportFormat] = useState<CeshuExportFormat>('markdown')
   const [deriveOpen, setDeriveOpen] = useState(false)
   const [deriveNote, setDeriveNote] = useState('')
@@ -306,6 +306,15 @@ export default function CeshuView({ ceshuId, onChanged, onSelect, onGameStyleCha
   return (
     <div className="ceshu-view">
       <header className="toolbar">
+        <button
+          type="button"
+          className="btn"
+          data-testid="ceshu-back"
+          title="返回策划书首页"
+          onClick={onBack}
+        >
+          返回
+        </button>
         <h1>{gameName}</h1>
         <span className="item-meta" data-testid="ceshu-version">
           {doc.version_label}
@@ -397,16 +406,6 @@ export default function CeshuView({ ceshuId, onChanged, onSelect, onGameStyleCha
           onClick={() => setPanel('systemConfirm')}
         >
           确认游戏系统
-        </button>
-        <button
-          type="button"
-          className={previewOpen ? 'btn primary' : 'btn'}
-          data-testid="ceshu-toggle-preview"
-          disabled={busy}
-          title="打开/关闭游戏数据编辑器（由第五章启用的游戏系统驱动）"
-          onClick={() => setPreviewOpen((v) => !v)}
-        >
-          {previewOpen ? '数据编辑 ✓' : '数据编辑'}
         </button>
         <select
           className="form-select export-format"
@@ -674,15 +673,13 @@ export default function CeshuView({ ceshuId, onChanged, onSelect, onGameStyleCha
               />
             </div>
 
-            {previewOpen && (
-              <CeshuDataPreview
-                enabledEditors={enabledEditors}
-                types={types}
-                gameStyle={gameStyle}
-                onGotoSystems={() => setActiveChapter('systems')}
-                onDataChanged={onChanged}
-              />
-            )}
+            <CeshuDataPreview
+              enabledEditors={enabledEditors}
+              types={types}
+              gameStyle={gameStyle}
+              onGotoSystems={() => setActiveChapter('systems')}
+              onDataChanged={onChanged}
+            />
           </div>
         )}
       </div>

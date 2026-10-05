@@ -48,10 +48,9 @@ body {
   height: 100%;
 }
 
-/* 菜单栏下方的两栏主体（侧栏 220px + 主区），与 PyQt 的「菜单栏在上、主体在下」等价 */
+/* 菜单栏下方的单栏主体（无侧栏，对齐 PyQt「菜单栏在上、主体在下」） */
 .app-body {
-  display: grid;
-  grid-template-columns: 220px 1fr;
+  display: flex;
   flex: 1;
   min-height: 0;
 }
@@ -60,12 +59,52 @@ body {
 
 .menubar {
   display: flex;
-  align-items: stretch;
+  align-items: center;
+  /* 菜单项 + 右侧角部件同排，永不换行（角部件用 margin-left:auto 靠右） */
+  flex-wrap: nowrap;
   flex-shrink: 0;
-  height: 36px;
+  /* min-height（而非固定 height）：角部件内的库下拉/按钮较高时仍能完整显示 */
+  min-height: 36px;
   padding: 0 6px;
   border-bottom: 1px solid var(--border);
   background: var(--bg-panel);
+}
+
+/* 右侧角部件（对齐 PyQt `menuBar().setCornerWidget`）：库标签 + 库条 + 设置/智能体/AI */
+.menubar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.menubar-label {
+  color: var(--text-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* 库条自侧栏迁入菜单栏角部件后改为**横向紧凑**排布（保持可见，E2E 依赖 library-bar 可见） */
+.menubar-right .library-bar {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border-bottom: none;
+}
+
+.menubar-right .library-bar-row {
+  gap: 6px;
+}
+
+.menubar-right .library-bar-row .form-select {
+  flex: 0 1 auto;
+  min-width: 120px;
+  max-width: 180px;
+}
+
+.menubar-right .library-bar-actions {
+  gap: 4px;
 }
 
 .menu {
@@ -147,29 +186,8 @@ body {
   flex-direction: column;
 }
 
-.sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 16px 12px;
-  border-right: 1px solid var(--border);
-  background: var(--bg-panel);
-}
-
-.brand {
-  padding: 4px 8px 12px;
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.brand small {
-  display: block;
-  margin-top: 2px;
-  color: var(--text-muted);
-  font-size: 12px;
-  font-weight: 400;
-}
-
+/* 类型列表条目样式：侧栏已下线，但「字段结构编辑器」的类型列表仍复用 `.type-tab` / `.type-dot`，
+   故这些规则保留（不再有其它引用；`.brand` / `.sidebar-hint` / `.mode-*` 等已确认无引用而删除）。 */
 .type-tab {
   display: flex;
   align-items: center;
@@ -204,6 +222,7 @@ body {
 
 .main {
   display: flex;
+  flex: 1;
   flex-direction: column;
   min-width: 0;
   min-height: 0;
@@ -225,6 +244,36 @@ body {
 }
 
 /*
+ * 顶部菜单唤起的「浮层面板」宿主（字段结构 / 属性系统 / 统计 / 备份 / …）：
+ * 铺满主区，顶部一条标题 + 关闭按钮，正文滚动。同一时刻只渲染一个（互斥）。
+ */
+.panel-overlay {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.panel-overlay-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.panel-overlay-body {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+/*
  * AI 对话停靠栏：常驻右栏，默认约 1/4 宽（PyQt 默认 75:25）。
  * `resize: horizontal` 提供原生拖拽调宽（需 overflow 非 visible）。
  */
@@ -242,18 +291,7 @@ body {
   resize: horizontal;
 }
 
-/* 数字员工模式：AI 对话占满主区（隐去左侧内容），作为「专注对话」视图 */
-.main.mode-digital .main-area {
-  display: none;
-}
-
-.main.mode-digital .ai-dock {
-  width: auto;
-  max-width: none;
-  flex: 1;
-  border-left: none;
-  resize: none;
-}
+/* 数字员工停靠栏常驻右侧，无「专注对话」全屏模式（对齐 PyQt：AI 面板恒为右栏） */
 
 .toolbar {
   display: flex;
@@ -557,37 +595,6 @@ body {
   gap: 16px;
   padding: 8px 20px;
   border-top: 1px solid var(--border);
-  color: var(--text-muted);
-  font-size: 12px;
-}
-
-/* ---- 模式切换（数据表 / 策划书） ---- */
-
-.mode-switch {
-  display: flex;
-  gap: 4px;
-  margin-bottom: 8px;
-}
-
-.mode-btn {
-  flex: 1;
-  padding: 6px 8px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: transparent;
-  color: var(--text-muted);
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.mode-btn.active {
-  background: var(--bg-hover);
-  border-color: var(--accent);
-  color: var(--text);
-}
-
-.sidebar-hint {
-  padding: 8px;
   color: var(--text-muted);
   font-size: 12px;
 }
@@ -3446,12 +3453,12 @@ button.ref-row:hover {
   border-top: 1px solid var(--border);
 }
 
-/* 展开预览面板时三栏各自保底宽度：窗口过窄则内容区横向滚动，
-   而不是把章节表单压成中文竖排（仅在选择器命中预览面板时生效，默认关闭预览时布局不变） */
-.ceshu-pane-row:has(.ceshu-preview) {
+/* 预览面板**常驻**：三栏各自保底宽度，窗口过窄则内容区横向滚动，
+   而不是把章节表单压成中文竖排 */
+.ceshu-pane-row {
   min-width: min-content;
 }
 
-.ceshu-pane-row:has(.ceshu-preview) .chapter-body {
+.ceshu-pane-row > .chapter-body {
   min-width: 240px;
 }

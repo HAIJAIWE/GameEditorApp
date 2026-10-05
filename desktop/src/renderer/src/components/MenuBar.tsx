@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 
+import LibraryBar from './LibraryBar'
+
 /**
- * 顶部菜单栏（对齐 PyQt `ui/menus.py` 的 MENU_CONFIG）。
+ * 顶部菜单栏（对齐 PyQt `ui/menus.py` 的 MENU_CONFIG + `ui/main_window.py` 的角部件）。
  *
  * 设计取舍：
- * - 这是**增量外壳元素**——PyQt 同时有「全局菜单栏」+「数据标签页内按钮行」，TS 当前已有后者
- *   （顶栏 11 按钮 + 列表工具条），本组件补上前者，使外壳拓扑与 PyQt 一致。
+ * - 菜单栏是整个应用**唯一的能力入口**（对齐 PyQt：无侧栏，能力全在菜单里）。
  * - 凡 TS 已有对应能力的菜单项直接接线；尚无实现的项（引擎批量导入/导出、关系图、数据分析子项、
  *   设置/帮助等）保持与 PyQt 一致的菜单结构，但点击后给出「尚未实现」的轻提示，不伪造功能。
- * - 全部现有按钮的 `data-testid` 与可见性保持不变（E2E 强依赖，例如 data-io 校验导入/导出按钮可见）。
+ * - 菜单栏**右侧角部件**（对齐 PyQt `menuBar().setCornerWidget`）承载库选择与
+ *   「设置 / 智能体 / AI」三个强调按钮；库条（`library-bar`）自侧栏迁入此处并保持可见。
  */
 
 export interface MenuActions {
@@ -28,6 +30,20 @@ export interface MenuActions {
   dataDiff: () => void
   stats: () => void
   attrSystem: () => void
+  /** 字段结构编辑器（TS 独有入口：该面板无 PyQt 菜单项） */
+  fieldEditor: () => void
+  /** 高级搜索（TS 独有入口） */
+  advancedSearch: () => void
+  /** 数据可见类型（TS 独有入口） */
+  typeVisibility: () => void
+  /** AI 生图（TS 独有入口） */
+  imageGen: () => void
+  /** 角部件「设置」按钮 */
+  settings: () => void
+  /** 角部件「智能体」按钮（打开智能体编辑器） */
+  agentEditor: () => void
+  /** 角部件「AI」按钮（唤起 AI 助手） */
+  aiPanel: () => void
   notImplemented: (label: string) => void
   quit: () => void
 }
@@ -165,6 +181,10 @@ export default function MenuBar({ canUndo, canRedo, hasSelection, actions }: Men
       },
       { type: 'separator' },
       { type: 'action', label: '属性系统编辑器', action: 'attrSystem' },
+      { type: 'action', label: '字段结构编辑器', action: 'fieldEditor' },
+      { type: 'action', label: '高级搜索', action: 'advancedSearch' },
+      { type: 'action', label: '数据可见类型', action: 'typeVisibility' },
+      { type: 'action', label: 'AI 生图', action: 'imageGen' },
       { type: 'action', label: '清理未使用图片', action: 'notImplemented' }
     ],
     [{ type: 'action', label: '打开设置...', action: 'notImplemented' }],
@@ -232,6 +252,31 @@ export default function MenuBar({ canUndo, canRedo, hasSelection, actions }: Men
           )}
         </div>
       ))}
+
+      {/* 右侧角部件（对齐 PyQt `menuBar().setCornerWidget`）：库标签 + 库条 + 设置/智能体/AI */}
+      <div className="menubar-right">
+        <span className="menubar-label">当前库:</span>
+        <LibraryBar />
+        <button
+          type="button"
+          className="btn slim"
+          data-testid="menubar-settings"
+          onClick={() => actions.settings()}
+        >
+          设置
+        </button>
+        <button
+          type="button"
+          className="btn slim"
+          data-testid="menubar-agent"
+          onClick={() => actions.agentEditor()}
+        >
+          智能体
+        </button>
+        <button type="button" className="btn slim primary" data-testid="menubar-ai" onClick={() => actions.aiPanel()}>
+          AI
+        </button>
+      </div>
     </div>
   )
 }
