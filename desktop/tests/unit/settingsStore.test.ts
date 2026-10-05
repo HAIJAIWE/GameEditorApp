@@ -217,7 +217,8 @@ describe('settingsStore：已登记键清单', () => {
       visibleTypes: 'mb.visibleTypes',
       gameStyle: 'mb.gameStyle',
       imageGenConfig: 'mb.imageGenConfig',
-      dataDiffBaseline: 'mb.dataDiffBaseline'
+      dataDiffBaseline: 'mb.dataDiffBaseline',
+      theme: 'mb.theme'
     })
   })
 

@@ -11,6 +11,20 @@
   --radius: 8px;
 }
 
+/* ---- 主题切换：浅色覆盖（深/浅两档，沿用 :root 的令牌结构；全文规则皆用 var(--xxx)，切换即整站换肤） ---- */
+[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f5f6f8;
+  --bg-panel: #ffffff;
+  --bg-hover: #eceef1;
+  --border: rgba(0, 0, 0, 0.10);
+  --text: #1b1e24;
+  --text-muted: #6b7280;
+  /* 浅底上需要对比度更高的绿/红（原深色令牌在白底偏淡） */
+  --accent: #0a9d5a;
+  --danger: #d23b2f;
+}
+
 * {
   box-sizing: border-box;
 }

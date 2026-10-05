@@ -5,6 +5,7 @@ import { filterItemRecords } from '../../shared/dataTableOps'
 import { GAME_STYLES, loadGameStyle, normalizeGameStyleId, saveGameStyle } from '../../shared/gameStyle'
 import type { AppInfo, DataTypeDef, ImportSummary, ItemRecord } from '../../shared/types'
 import { isTypeVisible, loadVisibleTypes, saveVisibleTypes } from '../../shared/visibleTypes'
+import { applyTheme, loadTheme, saveTheme, type ThemeMode } from '../../shared/theme'
 
 import AdvancedSearchPanel from './components/AdvancedSearchPanel'
 import AttrSystemPanel from './components/AttrSystemPanel'
@@ -59,6 +60,8 @@ export default function App() {
   })
   const [busy, setBusy] = useState(false)
   const [mode, setMode] = useState<'data' | 'ceshu' | 'digital'>('data')
+  /** 主题（深/浅）：持久化在 localStorage，随会话保留；启动时由 main.tsx 预应用以避免闪屏 */
+  const [theme, setTheme] = useState<ThemeMode>(() => loadTheme())
 
   // 窗口状态持久化（迁移 ui/window_state.py 的 last_tab_index）：模式切换时上报主进程，
   // 落进 window-state.json，下次启动恢复。失败静默（不影响功能）。
@@ -175,8 +178,7 @@ export default function App() {
   }, [])
 
   /** 策划书列表刷新；无选中项时自动选中第一份 */
-  const reloadCeshuList = useCallback(async (): Promise<void> => {
-    try {
+  const reloadCeshuList = useCallback(async (): Promise<void> => {    try {
       const list = await window.mbApi.ceshu.list()
       setCeshuList(list)
       setActiveCeshuId((current) => current ?? list[0]?.id ?? null)
@@ -189,6 +191,11 @@ export default function App() {
   useEffect(() => {
     void window.mbApi.data.undoState().then(setUndoUi).catch(() => undefined)
   }, [])
+
+  // 应用主题：状态变化即同步到 <html> 的 data-theme（挂载时本 effect 也会执行一次）
+  useEffect(() => {
+    applyTheme(theme)
+  }, [theme])
 
   // 键盘快捷键：Ctrl/Cmd+Z 撤销；Ctrl/Cmd+Shift+Z 或 Ctrl+Y 重做（输入框内不拦截，保留本地撤销）
   useEffect(() => {
@@ -310,6 +317,15 @@ export default function App() {
     const normalized = normalizeGameStyleId(styleId)
     setGameStyle(normalized)
     saveGameStyle(normalized)
+  }, [])
+
+  /** 切换主题：翻转深/浅并持久化（functional update 避免闭包取到旧值） */
+  const toggleTheme = useCallback((): void => {
+    setTheme((prev) => {
+      const next: ThemeMode = prev === 'dark' ? 'light' : 'dark'
+      saveTheme(next)
+      return next
+    })
   }, [])
 
   /** 侧栏可见的类型（null = 全部） */
@@ -1061,6 +1077,16 @@ export default function App() {
           ) : (
             <span>正在读取应用信息…</span>
           )}
+          <button
+            type="button"
+            className="btn slim"
+            data-testid="theme-toggle"
+            style={{ marginLeft: 'auto' }}
+            title="切换深色 / 浅色主题（偏好会自动保存）"
+            onClick={() => toggleTheme()}
+          >
+            {theme === 'dark' ? '☀️ 浅色' : '🌙 深色'}
+          </button>
         </footer>
       </div>
     </div>

@@ -24,8 +24,10 @@
  * - **不做 i18n**：Python `common/i18n.py`（401 行）是全局翻译框架，而 TS 侧 UI 文案
  *   目前 100% 硬编码中文。接入 i18n 需翻译全部组件文案（数十个文件、上千字符串），
  *   属**独立立项**，不是存储基座的职责。
- * - **不做窗口状态 / 主题系统**：Electron 侧由 BrowserWindow 能力覆盖或与 CSS 变量体系
- *   无关，见审计 §4 #8 的分项结论。
+ * - **不做窗口几何状态**：Electron 侧窗口尺寸/位置由 `main/windowState.ts` 覆盖（原子写
+ *   落 `window-state.json`），与「用户偏好设置」语义不同，不混进本模块的 `mb.` 命名空间。
+ * - **主题系统已迁**：多主题（深/浅）偏好见 `shared/theme.ts`，挂在 `mb.theme`，复用本模块
+ *   的 `readSetting` / `writeSetting`——存储真源仍在此，只是逻辑独立成模块。
  *
  * ## 存储位置
  * 沿用既有做法落 **localStorage**（键前缀 `mb.`），而非 Python 的 `config.json`——
@@ -229,7 +231,8 @@ export const SETTINGS_KEYS = {
   visibleTypes: 'mb.visibleTypes',
   gameStyle: 'mb.gameStyle',
   imageGenConfig: 'mb.imageGenConfig',
-  dataDiffBaseline: 'mb.dataDiffBaseline'
+  dataDiffBaseline: 'mb.dataDiffBaseline',
+  theme: 'mb.theme'
 } as const
 
 export type SettingsKey = (typeof SETTINGS_KEYS)[keyof typeof SETTINGS_KEYS]
