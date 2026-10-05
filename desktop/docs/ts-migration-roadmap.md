@@ -329,6 +329,20 @@
 > **交付**：`shared/util/undoStack.ts`（224）+ `main/data/undoRecorder.ts`（220）+ `main/data/service.ts`（+147，5 个 mutator 记录 + 非记录原语 `restoreItem`/`deleteById`/`runAtomicTask`/`getItem`/`exists`）+ `main/stores.ts`（+7）+ `shared/ipc.ts`（+27，3 通道）+ `main/ipc.ts`（+8）+ `shared/service/api.ts`（+6）+ `preload/index.ts`（+3）+ `renderer/App.tsx`（+101，Ctrl/Cmd+Z 撤销、Ctrl/Cmd+Shift+Z/Ctrl+Y 重做、工具栏 undo/redo 按钮、setNotice 反馈）+ 3 个测试文件（unit×2 199+369、e2e×1 109）。
 > **验证（主代理独立复算，非采信自报）**：双端 tsc **0 错误** / eslint **0 error** / undo 单元 **24/24 通过**（含 E2/E3/E8 三危险路径：create 后被改→跳过保留编辑、update 后被改→跳过不回写且栈顶保留、restore 抛错→failed 返回且 entry 保留历史不丢）；**E2E 本沙箱无 Electron 未实跑**（与既有 E2E 同源受限）。**审计数字不变（TS 侧新功能，非 Python 迁移）**。
 
+> ✅ **E28（2026-10-05）：顶层 IA 对齐 PyQt（去侧栏 + 菜单栏角部件 + 策划书中心），提交 `de104be`**（收口 `2519c2c` / `0dc2211` / `f0a6694`）。
+> **动因（读 Python 源码后定，非按名字）**：用户要求「布局跟 PyQt 一样」。逐行核实 PyQt 真实拓扑：`layout_builder.py:92-153` 的 `_build_three_column`（方法名误导）实为**两栏** `QSplitter`（`_center_stack` : `DigitalPanel` ≈ 75:25），默认落**策划书首页**；`main_window.py:455-511` 菜单栏**右上角部件** = 库条（当前库 + 下拉 + 数量）+ 设置/智能体/AI 三按钮；`editor_view.py:202-219` 编辑器 = [章节编辑 | 预览面板]，**预览常驻无开关**、工具栏第一个是返回；`menus.py` MENU_CONFIG 里**全部能力从菜单进**。**全仓无左侧栏** —— TS 原来的「品牌 + 库条 + 三模式 tab + 类型列表 + 策划书列表」纯属自造。
+> **实现**：删整个 `.sidebar` 与 `mode` 状态；中央单栈 = 浮层 ? 策划书首页 : 编辑器（`ceshuHomeVisible` 默认 true）；库条移入 `.menubar-right` 角部件；编辑器加 `ceshu-back`、预览面板改**常驻**（去掉 `ceshu-toggle-preview`）；原 11 个顶层数据页面板收拢为**互斥浮层** `.panel-overlay`（标题 + `panel-close`）；工具菜单追加 4 项（字段结构编辑器/高级搜索/数据可见类型/AI 生图）。4 文件 +374/−909。
+> **核验抓出 3 个真实缺陷（`2519c2c` 修）**：① `BatchEditPanel` **死控件** —— `App.tsx` 传 `selectedIds={[]}` → 应用/删除**永远 disabled**，而面板自身无勾选 UI（PyQt `BatchEditDialog` 是「选类型 + 条件作用于整类」）→ 改为面板**自持作用域**（`batch-type` 下拉 + 按类型拉全部 id，`effectiveCount===0` 才禁用）；② `TypeVisibilityPanel` **假控件** —— `value={null}` + `onConfirm=关闭`，`visibleTypes` 全仓无消费者，且 **PyQt 本无此功能** → 撤掉菜单项（组件文件保留，避免扰动审计）；③ `handleJump` **假跳转** —— 只 `setRefTarget` + notice、不发生导航 → 落 `jumpTarget`（含 `nonce` 防重复）+ 逐层下钻到 `DataEditorTab.initialSelectedId`，靠 `key` 重挂载（**不能用 effect 内 setState**，react-hooks v7 是 error）；失配为**静默无选中 + 中性文案**，绝不伪造「定位失败」。
+> **我追加两处微清理**：`0dc2211`（删掉 `hasSelection` 恒真常量 prop —— PyQt `menus.py:94` 该菜单项本就无 disabled 语义）、`f0a6694`（跳转成功后清掉残留引导 notice，避免与「已定位」自相矛盾）。
+> **验证（独立对抗核验 PASS）**：双端 tsc 0 / eslint 0 / vitest **94 文件 1344 用例** / build OK；核验方另写**整机渲染证明**（`npm run build` + 本地静态服务 + Playwright chromium + `addInitScript` 注入忠实桩 `window.mbApi`）：`render-adversarial.mjs` **24/24**、`render-proof.mjs` **20/20** —— 批量面板**回读数据层**确认内容真变、跳转 miss 给诚实 notice 且不选中、重复跳转同一 item 仍选中、无未捕获 pageerror。**审计数字不变（TS 侧外壳重构，非 Python 迁移）**。
+
+> ✅ **E29（2026-10-05）：E2E 全量迁移到新 IA（51 个 spec），提交 `8502638` → `5471256`（7 笔）**。
+> **背景**：E28 的 IA 重写使 **51/51 个 spec 全部失效** —— 50 个的门禁判据 `getByRole('heading',{name:'数据表预览'})`（71 处）随顶层数据页删除，第 51 个是 `type-tab` count=12；**27 个 testid 死引用、187 处、横跨 47 文件**；且**零共享 helper**（`electron.launch` 内联 73 次、门禁 51 份复制粘贴）。用户裁决**全量一次性推完**。
+> **提交链**：`8502638` 地基（`helpers/app.ts` 的 `launchApp`/`waitReady` + 收敛 51 文件启动与门禁，52 files +288/−490）→ `5d07bad` 菜单栏补 `data-testid`（`menu-title-{file,edit,tools,settings,help}` + `menuitem-<menu>-<action>`；`notImplemented` 占位项**一律不加**）→ `b6d2d06` 策划书编辑流簇 20 spec → `b5791ca` 数据编辑簇 7 spec（+ `helpers/ceshuData.ts`）→ `8ccb65e` 混合簇 10 spec → `e8ec290` 工具入口簇 10 spec → `5471256` 数字员工面板（删已下线的 `mode-digital`）。
+> **helper 关键设计**：`activeCeshuId` 是**渲染层 state**，纯 IPC 建文档 UI 不会切过去 → `seedCeshu()` **启动前把策划书 JSON 写进 `<userData>/libraries/初始库/ceshu/` 播种**，再从首页卡片打开（且**首页列表只在挂载时拉一次**，IPC 旁路建文档后须 `reload()`）。
+> **最终独立核验（主代理自己跑，非采信子代理自报）**：① 已删 testid 的全仓 `getByTestId` 存活引用 **归零**（18 个锚点：`mode-*`/`type-tab`/`open-*`/`te-delete-field`/`export-csv` 等）；② 51 个 spec **全部**走 helper（`electron.launch` 仅存在于 `tests/e2e/helpers/`）；③ `test.fixme` **仅 2 处**且均附中文原因（`game-style` 待按 `doc.style` 重写、`type-visibility` 功能已移除）；④ tsc node/web 0 + eslint 0 + vitest 94 文件 1344 用例全过。
+> **诚实边界**：**51 个 E2E 至今未在真机跑过**（沙箱无 Electron，`Process failed to launch!`），只能按既有模式写就、待 CI 实跑。**审计数字不变（测试侧迁移，非 Python 迁移）**。
+
 ## 3. 每片执行流程（固定顺序）
 
 1. **调研**：读 Python 源码，锁定语义与缺陷，写成「调研结论」（含精确数字）。

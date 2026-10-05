@@ -57,6 +57,9 @@ const REQUIRED_ROADMAP_MARKERS: readonly string[] = [
   '10887fa', // E25 API Key 迁 Electron safeStorage（修安全性退步）
   '3a0c469', // E26 shared/ 分层最小整理（方案 C）
   '581c64c', // E27 通用撤销/重做（undo/redo 安全子集）
+  'de104be', // E28 顶层 IA 对齐 PyQt（去侧栏 + 角部件 + 策划书中心）
+  '8502638', // E29 E2E 全量迁移——地基（helper + 收敛 51 文件门禁）
+  '5471256', // E29 E2E 全量迁移——收尾（数字员工面板去 mode-digital，死引用归零）
   'E4（2026-10-04）',
   'E5（2026-10-04）',
   'E6（2026-10-04）',
@@ -81,6 +84,8 @@ const REQUIRED_ROADMAP_MARKERS: readonly string[] = [
   'E25（2026-10-05）',
   'E26（2026-10-05）',
   'E27（2026-10-05）',
+  'E28（2026-10-05）',
+  'E29（2026-10-05）',
   '已由 E7 补齐', // E6 遗留项已被 E7 补齐的标记（回退会退回旧措辞）
   'migration-audit.md' // §2 必须指向文件级审计
 ]
