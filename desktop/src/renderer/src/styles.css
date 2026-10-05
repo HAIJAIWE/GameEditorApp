@@ -40,6 +40,14 @@
   --danger-soft: rgba(239, 68, 68, 0.12);
   --success: #22C55E;
   --warning: #F59E0B;
+  /* 完成度三色阈值（PyQt `chapter_panel.py::set_progress`：<50 / 50-79 / >=80） */
+  --progress-low: #e57373;
+  --progress-mid: #fff176;
+  --progress-hi: #81c784;
+  /* 完成度三色阈值（PyQt `chapter_panel.py::set_progress`：<50 / 50-79 / >=80） */
+  --progress-low: #e57373;
+  --progress-mid: #fff176;
+  --progress-hi: #81c784;
 
   /* 失效态 */
   --disabled-bg: #e2e8f0;
@@ -776,11 +784,12 @@ body {
 }
 
 /*
- * 章节完成度迷你进度条 —— 对齐 PyQt 的 `QProgressBar`：固定 60x6、圆角 3，
- * 轨道用 `border`、填充用 `hint`（**刻意不用强调色**，PyQt 就是这么配的：
- * 完成度是信息而非行动，不该抢强调色的注意力）。百分比仍以 title 提供。
+ * 章节完成度迷你进度条 —— 对齐 PyQt `chapter_panel.py::_CollapsibleSection`：
+ * 固定 60x6、圆角 3，轨道用 `border`；填充**按完成度三色**（`set_progress`：
+ * <50 红 / 50-79 黄 / >=80 绿），与「字数统计」面板共用 `--progress-*` 令牌。
  */
 .chapter-progress {
+  position: relative;
   flex: 0 0 60px;
   width: 60px;
   height: 6px;
@@ -793,7 +802,33 @@ body {
   display: block;
   height: 100%;
   border-radius: 3px;
-  background: var(--text-muted);
+  background: var(--progress-low);
+}
+
+.chapter-progress-fill.mid {
+  background: var(--progress-mid);
+}
+
+.chapter-progress-fill.hi {
+  background: var(--progress-hi);
+}
+
+/*
+ * 百分比文本：视觉上**不显示**（PyQt 用 `setTextVisible(False)`，只有迷你条），
+ * 但**必须留在 DOM 文本里** —— `tests/e2e/ceshu.spec.ts:63` 断言
+ * `expect(combatTab).toContainText('50%')`，删掉会打破既有 E2E 契约。
+ * 用 .sr-only 而非 title：既保文本契约，又对读屏软件可读。
+ */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .chapter-nav-hint {
@@ -1461,27 +1496,27 @@ body {
 }
 
 .wordstats-progress-fill.hi {
-  background: #81c784;
+  background: var(--progress-hi);
 }
 
 .wordstats-progress-fill.mid {
-  background: #fff176;
+  background: var(--progress-mid);
 }
 
 .wordstats-progress-fill.low {
-  background: #e57373;
+  background: var(--progress-low);
 }
 
 .wordstats-percent.hi {
-  color: #81c784;
+  color: var(--progress-hi);
 }
 
 .wordstats-percent.mid {
-  color: #fff176;
+  color: var(--progress-mid);
 }
 
 .wordstats-percent.low {
-  color: #e57373;
+  color: var(--progress-low);
 }
 
 /* ---- 依赖检查面板 ---- */

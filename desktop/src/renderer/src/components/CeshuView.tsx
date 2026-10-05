@@ -358,9 +358,12 @@ export default function CeshuView({
   }
 
   /**
-   * 「更多 ▸」菜单分组。对齐 PyQt `editor_view.py:160-187` 的 `_more_menu` 顺序与分隔。
-   * **刻意不列** TS 尚无对应能力的三项（AI 整章 / AI 补全空白字段 / 档位切换）——
-   * 宁缺勿错，不放点了没反应的装饰按钮。
+   * 「更多 ▸」菜单分组。骨架对齐 PyQt `editor_view.py:160-187` 的 `_more_menu` 顺序与分隔。
+   *
+   * **与 PyQt 菜单仍有差异（E30 审计确认，非笔误）**：PyQt 另有「档位切换（轻量 9 章 ↔ 工业级 18 章）、
+   * 补全空白字段、更多模板、导出 AI 报告」四项，TS 侧**没有对应入口**（不是按钮失效，是真没有）。
+   * 其中「补全空白字段」的能力其实**已实现**（`ChecklistPanel` 的自动填充 + 清单面板入口），
+   * 只是没有挂进这个菜单 —— 属**待收口**而非「无能力」，注释勿再写成「无能力」。
    * 每项 testid 保持与改造前平铺按钮**逐一同名**，既有 E2E 只需补一步展开即可继续命中。
    */
   const moreMenuGroups: { testid: string; label: string; run: () => void }[][] = [
@@ -717,6 +720,8 @@ export default function CeshuView({
             <div className="chapter-nav">
               {visible.map((key) => {
                 const pct = Math.round((progress[key] ?? 0) * 100)
+                // 完成度三色阈值与 PyQt `chapter_panel.py::set_progress` 一致（<50 / 50-79 / >=80）
+                const level = pct >= 80 ? 'hi' : pct >= 50 ? 'mid' : 'low'
                 return (
                   <button
                     key={key}
@@ -726,9 +731,17 @@ export default function CeshuView({
                     onClick={() => setActiveChapter(key)}
                   >
                     <span className="chapter-tab-label">{CHAPTER_LABELS[key]}</span>
-                    {/* 完成度：迷你进度条（对齐 PyQt 的 QProgressBar 60x6）；百分比进 title 供悬停查看 */}
-                    <span className="chapter-progress" title={`完成度 ${pct}%`} role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
-                      <span className="chapter-progress-fill" style={{ width: `${pct}%` }} />
+                    <span
+                      className="chapter-progress"
+                      title={`完成度 ${pct}%`}
+                      role="progressbar"
+                      aria-valuenow={pct}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                    >
+                      <span className={`chapter-progress-fill ${level}`} style={{ width: `${pct}%` }} />
+                      {/* 视觉隐藏但保留在文本里：E2E `ceshu.spec.ts:63` 断言 toContainText('50%') */}
+                      <span className="sr-only">{pct}%</span>
                     </span>
                   </button>
                 )

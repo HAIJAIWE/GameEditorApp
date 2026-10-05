@@ -28,22 +28,36 @@ describe('字段结构文件格式（与 Python type_schema.json 同构）', () 
     expect(parsed.types).toEqual(BUILTIN_DATA_TYPES)
   })
 
-  it('解析容错/报错：顶层非对象、缺 data_types、未知控件类型均给出中文错误', () => {
+  it('解析容错：顶层非对象、缺 data_types 给出中文错误', () => {
     expect(() => parseTypeSchemaFile([])).toThrow('顶层应为 JSON 对象')
     expect(() => parseTypeSchemaFile({ version: '2.4' })).toThrow('data_types')
-    expect(() =>
-      parseTypeSchemaFile({
-        data_types: [
-          {
-            id: 'a',
-            name: 'A',
-            plural_key: 'as',
-            color: '#ffffff',
-            form_fields: [{ name: 'x', label: 'X', type: 'not_a_type' }]
-          }
-        ]
-      })
-    ).toThrow('未知控件类型')
+  })
+
+  it('未知控件类型**降级为 entry 而不抛错**（对齐 Python field_config.py 的 else: QLineEdit 兜底）', () => {
+    // 动机：字段结构文件与 Python 版同构（<库目录>/type_schema.json），PyQt 独有而 TS 未收录的
+    // 控件类型（已核实 ref / textarea）不能把整个应用锁死 —— 否则 schema:list 抛错 → 应用打不开。
+    const parsed = parseTypeSchemaFile({
+      data_types: [
+        {
+          id: 'a',
+          name: 'A',
+          plural_key: 'as',
+          color: '#ffffff',
+          form_fields: [
+            { name: 'x', label: 'X', type: 'not_a_type' },
+            { name: 'y', label: 'Y', type: 'ref' },
+            { name: 'z', label: 'Z', type: 'textarea' },
+            { name: 'w', label: 'W', type: 'entry' }
+          ]
+        }
+      ]
+    })
+    const types = parsed.types.map((def) => def.formFields ?? [])
+    expect(types).toHaveLength(1)
+    expect(types[0]?.map((field) => field.type)).toEqual(['entry', 'entry', 'entry', 'entry'])
+    // 字段名/标签必须原样保留（降级只动控件类型，不动用户数据语义）
+    expect(types[0]?.map((field) => field.name)).toEqual(['x', 'y', 'z', 'w'])
+    expect(types[0]?.map((field) => field.label)).toEqual(['X', 'Y', 'Z', 'W'])
   })
 })
 

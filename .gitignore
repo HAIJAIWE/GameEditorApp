@@ -98,3 +98,6 @@ perf/
 *.db
 src/logs/
 src/exports/
+
+# electron-vite 构建残留（转译出的临时 .mjs 配置，未跟踪但会污染 git status）
+desktop/electron.vite.config.*.mjs

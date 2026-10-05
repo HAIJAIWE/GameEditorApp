@@ -138,13 +138,27 @@ function parseField(raw: unknown, typeName: string, index: number): TypeFieldDef
     throw new Error(`类型「${typeName}」第 ${index + 1} 个字段缺少 name 或 type`)
   }
   if (!isFieldType(type)) {
-    throw new Error(`类型「${typeName}」的字段「${name}」使用了未知控件类型：${type}`)
+    /*
+     * **刻意降级而非抛错**（对齐 Python `field_config.py` 的 `else: QLineEdit()` 兜底）。
+     *
+     * 为什么必须这样：字段结构文件存在 `<库目录>/type_schema.json`，**与 Python 版同构**
+     * （`main/stores.ts` 用 `join(libDir, 'type_schema.json')`）。PyQt 支持而 TS 尚未收录的
+     * 控件类型（已核实：`ref` 引用表、`textarea`）会让旧库文件带着未知 type —— 若这里 throw，
+     * `TypeSchemaStore.load()` 会把异常一路抛到 `schema:list`，结果是**整个应用打不开**，
+     * 用户的数据（旧策划书/条目）全部访问不到。为一个「控件没收录」把整个应用锁死不划算。
+     *
+     * 降级为最接近的可用控件（未知类型一律当单行文本），保证**库能打开、数据能读写**；
+     * 原始 type 串记到控制台，方便后续补控件时对账。
+     */
+    console.warn(
+      `[typeSchemaFile] 类型「${typeName}」的字段「${name}」使用了 TS 尚未收录的控件类型「${type}」，已降级为「entry」`
+    )
   }
 
   const field: TypeFieldDef = {
     name,
     label: readString(record.label) || name,
-    type,
+    type: isFieldType(type) ? type : 'entry',
     editable: record.editable !== false
   }
   if (Array.isArray(record.values)) {
