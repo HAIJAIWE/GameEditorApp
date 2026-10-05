@@ -4,6 +4,7 @@ import { join } from 'node:path'
 
 import { expect, test } from '@playwright/test'
 import { launchApp, waitReady } from './helpers/app'
+import { createDataItem, openCeshuFromHome, openDataEditor, seedCeshu } from './helpers/ceshuData'
 
 /**
  * 系数公式编辑器（对应 Python `FormulaBuilderDialog`）。
@@ -17,6 +18,12 @@ import { launchApp, waitReady } from './helpers/app'
  */
 test('系数公式编辑器：回填原公式 → 改系数联动 → 应用落盘 → 不可回填时警告且不覆盖', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-formula-builder-e2e-'))
+  const title = 'E2E 系数公式编辑器'
+  // 播种启用「角色」系统的策划书：`field-attr_list-formula-builder-*` 由 attrpanel 渲染（role.attr_list）
+  seedCeshu(userDataDir, {
+    title,
+    systems: [{ key: 'role', label: '角色', dataType: 'role' }]
+  })
   const launch = (): ReturnType<typeof launchApp> =>
     launchApp(userDataDir)
 
@@ -24,10 +31,11 @@ test('系数公式编辑器：回填原公式 → 改系数联动 → 应用落�
   try {
     const window = await app.firstWindow()
     await waitReady(window)
+    await openCeshuFromHome(window, title)
+    await openDataEditor(window, '角色')
 
-    await window.getByTestId('type-tab').filter({ hasText: '角色' }).click()
-    await window.getByRole('button', { name: '新增测试条目' }).click()
-    await window.getByTestId('item-row').first().click()
+    await createDataItem(window)
+    await window.getByTestId('ceshu-data-item-row').first().click()
     await expect(window.getByTestId('item-editor')).toBeVisible()
 
     // 新手模板行序：0=力量 1=智力 2=敏捷 3=体质 4=HP；HP = 5*10 + 5*20 + 5*5 = 175.0
@@ -123,8 +131,9 @@ test('系数公式编辑器：回填原公式 → 改系数联动 → 应用落�
   try {
     const window = await app2.firstWindow()
     await waitReady(window)
-    await window.getByTestId('type-tab').filter({ hasText: '角色' }).click()
-    await window.getByTestId('item-row').first().click()
+    await openCeshuFromHome(window, title)
+    await openDataEditor(window, '角色')
+    await window.getByTestId('ceshu-data-item-row').first().click()
     await expect(window.getByTestId('field-attr_list-result-4')).toHaveText('225.0')
     await window.getByTestId('field-attr_list-formula-builder-toggle-4').click()
     await expect(window.getByTestId('field-attr_list-formula-builder-4-coeff-0')).toHaveValue('20')
@@ -136,14 +145,20 @@ test('系数公式编辑器：回填原公式 → 改系数联动 → 应用落�
 
 test('系数公式编辑器：纯常量公式（=100）同样拒绝回填并给警告', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-formula-builder-const-e2e-'))
+  const title = 'E2E 纯常量公式'
+  seedCeshu(userDataDir, {
+    title,
+    systems: [{ key: 'role', label: '角色', dataType: 'role' }]
+  })
   const app = await launchApp(userDataDir)
 
   try {
     const window = await app.firstWindow()
     await waitReady(window)
-    await window.getByTestId('type-tab').filter({ hasText: '角色' }).click()
-    await window.getByRole('button', { name: '新增测试条目' }).click()
-    await window.getByTestId('item-row').first().click()
+    await openCeshuFromHome(window, title)
+    await openDataEditor(window, '角色')
+    await createDataItem(window)
+    await window.getByTestId('ceshu-data-item-row').first().click()
 
     await window.getByTestId('field-attr_list-formula-4').fill('=100')
     await window.getByTestId('field-attr_list-formula-builder-toggle-4').click()

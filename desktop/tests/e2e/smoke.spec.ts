@@ -4,6 +4,7 @@ import { join } from 'node:path'
 
 import { expect, test, type Page } from '@playwright/test'
 import { launchApp, waitReady } from './helpers/app'
+import { createDataItem, openCeshuFromHome, openDataEditor, seedCeshu } from './helpers/ceshuData'
 
 import type { ExportSummary, ImportSummary } from '../../src/shared/types'
 
@@ -48,31 +49,40 @@ test('启动应用并完成「新增 → 编辑 → 删除 → 导入 → 导出
     'utf-8'
   )
 
+  const title = 'E2E 全链路'
+  // 新 IA：数据编辑在策划书预览面板的「技能」/「角色」标签里；两者都启用以便切换标签触发重载
+  seedCeshu(userDataDir, {
+    title,
+    systems: [
+      { key: 'skill', label: '技能', dataType: 'skill' },
+      { key: 'role', label: '角色', dataType: 'role' }
+    ]
+  })
   const app = await launchApp(userDataDir)
 
   try {
     const window = await app.firstWindow()
     await waitReady(window)
+    await openCeshuFromHome(window, title)
 
-    // 等待 schema 下发的 12 个类型加载完成，并明确选中「技能」
-    await expect(window.getByTestId('type-tab')).toHaveCount(12)
-    await window.getByTestId('type-tab').filter({ hasText: '技能' }).click()
+    // 进入「技能」数据编辑器
+    await openDataEditor(window, '技能')
 
-    await window.getByRole('button', { name: '新增测试条目' }).click()
-    await expect(window.getByTestId('item-row')).toHaveCount(1)
+    await createDataItem(window)
+    await expect(window.getByTestId('ceshu-data-item-row')).toHaveCount(1)
 
     // 选中条目并编辑保存：动态表单 → updateItem → 列表回显
-    await window.getByTestId('item-row').first().click()
+    await window.getByTestId('ceshu-data-item-row').first().click()
     await expect(window.getByTestId('item-editor')).toBeVisible()
     await window.getByTestId('field-name').fill('改后的技能名')
-    await window.getByRole('button', { name: '保存' }).click()
-    await expect(window.getByTestId('item-row')).toContainText('改后的技能名')
+    await window.getByTestId('item-editor').getByRole('button', { name: '保存' }).click()
+    await expect(window.getByTestId('ceshu-data-item-row')).toContainText('改后的技能名')
 
-    await window.getByRole('button', { name: '新增测试条目' }).click()
-    await expect(window.getByTestId('item-row')).toHaveCount(2)
+    await createDataItem(window)
+    await expect(window.getByTestId('ceshu-data-item-row')).toHaveCount(2)
 
-    await window.getByTestId('item-row').first().getByRole('button', { name: '删除' }).click()
-    await expect(window.getByTestId('item-row')).toHaveCount(1)
+    await window.getByTestId('ceshu-data-item-row').first().getByTestId('ceshu-data-delete').click()
+    await expect(window.getByTestId('ceshu-data-item-row')).toHaveCount(1)
 
     // 旧数据导入：渲染层 IPC → 主进程 → 真实 SQLite upsert
     const summary = await importViaIpc(window, legacyFilePath)
@@ -81,9 +91,9 @@ test('启动应用并完成「新增 → 编辑 → 删除 → 导入 → 导出
     expect(summary.byType['skill']).toBe(2)
 
     // 切走再切回「技能」触发重新加载，导入数据应出现在列表中
-    await window.getByTestId('type-tab').filter({ hasText: '角色' }).click()
-    await window.getByTestId('type-tab').filter({ hasText: '技能' }).click()
-    await expect(window.getByTestId('item-row')).toHaveCount(3)
+    await openDataEditor(window, '角色')
+    await openDataEditor(window, '技能')
+    await expect(window.getByTestId('ceshu-data-item-row')).toHaveCount(3)
     await expect(window.getByText('导入技能A')).toBeVisible()
 
     // 导出回旧版 JSON：渲染层 IPC → 主进程 → 原子写入文件

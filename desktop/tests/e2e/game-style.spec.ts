@@ -1,63 +1,20 @@
-import { mkdtempSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-
-import { expect, test } from '@playwright/test'
-import { launchApp, waitReady } from './helpers/app'
+import { test } from '@playwright/test'
 
 /**
  * 术语风格（迁移自 Python `core/style_manager.py`）。
  *
- * 覆盖两件事：
- * 1. 工具栏「术语风格」下拉按风格替换条目表单的字段标签（`resolve_field_label` 的 user-visible 效果）
- *    —— 用 Python docstring 的原例：仙侠下 `生命加成%:` → `气血加成%:`、`法力加成%:` → `灵力加成%:`
- * 2. 选择结果持久化（localStorage `mb.gameStyle`），重载后仍生效
+ * 原用例验证的是**工具栏「术语风格」下拉**（testid `game-style`）的手工切换 + 字段标签术语替换 + 持久化。
  *
- * Python 侧唯一的触发是「打开策划书时由 meta 推断风格」；TS 保留该链路（`resolveDocGameStyle`），
- * 并额外提供本下拉作为手工入口（Python 无此入口）。
+ * 但新 IA 已随左侧栏/数据表工具栏一并下线该下拉：全仓 `grep data-testid="game-style"` 命中 **0**
+ * （仅 `styles.css` 残留 `.toolbar .game-style-select` 样式，无渲染入口）。术语风格现只剩**唯一入口**：
+ * 打开策划书时由 `CeshuView.tsx:129` 的 `resolveDocGameStyle(doc)` 按 `doc.style` / `meta` 文本推断，
+ * 再经 `App.handleGameStyleChange` 回填（用户无法再手工选择，只能由文档携带）。
+ *
+ * 因此原用例的「手工下拉 + localStorage 持久化」两段前提都已不成立；在把断言改为
+ * 「按 `doc.style` 播种策划书 → 断言条目表单字段标签被替换」并**真机确认标签渲染**之前，
+ * 不写没把握的断言，先标记为 fixme，待另立用例。
  */
-test('术语风格：字段标签按风格替换并可持久化', async () => {
-  const userDataDir = mkdtempSync(join(tmpdir(), 'mb-game-style-e2e-'))
-  const app = await launchApp(userDataDir)
-
-  try {
-    const window = await app.firstWindow()
-    await waitReady(window)
-
-    // 默认：原始术语（无活跃风格 → resolveLabel 原样返回，与 Python 默认行为等价）
-    const styleSelect = window.getByTestId('game-style')
-    await expect(styleSelect).toHaveValue('')
-
-    // 职业（job）的「武器 & 加成」是双列网格分区，字段标签即 Python docstring 的例子
-    await window.getByTestId('type-tab').filter({ hasText: '职业' }).click()
-    await window.getByRole('button', { name: '新增测试条目' }).click()
-
-    const hpLabel = window.locator('label[for="field-hp_bonus"]')
-    const mpLabel = window.locator('label[for="field-mp_bonus"]')
-    await expect(hpLabel).toHaveText('生命加成%:')
-    await expect(mpLabel).toHaveText('法力加成%:')
-
-    // 切到仙侠：术语替换生效
-    await styleSelect.selectOption('xianxia')
-    await expect(hpLabel).toHaveText('气血加成%:')
-    await expect(mpLabel).toHaveText('灵力加成%:')
-
-    // 非网格分区（单列表单）同样替换：角色的「技能列表:」→「功法列表:」
-    await window.getByTestId('type-tab').filter({ hasText: '角色' }).click()
-    await window.getByRole('button', { name: '新增测试条目' }).click()
-    await expect(window.locator('label[for="field-skills"]')).toHaveText('功法列表:')
-
-    // 持久化：重载后仍是仙侠，标签仍被替换
-    await window.reload()
-    await expect(window.getByTestId('game-style')).toHaveValue('xianxia')
-    await window.getByTestId('type-tab').filter({ hasText: '角色' }).click()
-    await window.getByRole('button', { name: '新增测试条目' }).click()
-    await expect(window.locator('label[for="field-skills"]')).toHaveText('功法列表:')
-
-    // 切回「原始术语」应立刻还原
-    await window.getByTestId('game-style').selectOption('')
-    await expect(window.locator('label[for="field-skills"]')).toHaveText('技能列表:')
-  } finally {
-    await app.close()
-  }
+test.fixme('术语风格：字段标签按风格替换并可持久化（新 IA 已下线手工下拉入口，待按 doc.style 重写）', async () => {
+  // 待重写：用 seedCeshu({ title, style: 'xianxia', systems: [{ key: 'job', label: '职业', dataType: 'job' }] })
+  // 播种 → 打开策划书 → 断言 label[for="field-hp_bonus"] 被替换为「气血加成%:」（需真机确认标签渲染）。
 })

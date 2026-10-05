@@ -4,9 +4,16 @@ import { join } from 'node:path'
 
 import { expect, test } from '@playwright/test'
 import { launchApp, waitReady } from './helpers/app'
+import { createDataItem, openCeshuFromHome, openDataEditor, seedCeshu } from './helpers/ceshuData'
 
 test('角色属性面板：默认模板 → 模板切换/改值联动 → 快速添加与错误提示 → 保存 → 重启保持', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-attr-panel-e2e-'))
+  const title = 'E2E 角色属性面板'
+  // 播种启用「角色」系统的策划书（data_type=role，其 attr_list 为 attrpanel，默认载入「新手」模板）
+  seedCeshu(userDataDir, {
+    title,
+    systems: [{ key: 'role', label: '角色', dataType: 'role' }]
+  })
   const launch = (): ReturnType<typeof launchApp> =>
     launchApp(userDataDir)
 
@@ -14,12 +21,12 @@ test('角色属性面板：默认模板 → 模板切换/改值联动 → 快速
   try {
     const window = await app.firstWindow()
     await waitReady(window)
+    await openCeshuFromHome(window, title)
+    await openDataEditor(window, '角色')
 
-    await expect(window.getByTestId('type-tab')).toHaveCount(12)
-    await window.getByTestId('type-tab').filter({ hasText: '角色' }).click()
-    await window.getByRole('button', { name: '新增测试条目' }).click()
-    await expect(window.getByTestId('item-row')).toHaveCount(1)
-    await window.getByTestId('item-row').first().click()
+    await createDataItem(window)
+    await expect(window.getByTestId('ceshu-data-item-row')).toHaveCount(1)
+    await window.getByTestId('ceshu-data-item-row').first().click()
     await expect(window.getByTestId('item-editor')).toBeVisible()
 
     // 新条目默认载入「新手」模板：HP = 5*10 + 5*20 + 5*5 = 175.0
@@ -93,8 +100,9 @@ test('角色属性面板：默认模板 → 模板切换/改值联动 → 快速
   try {
     const window = await app2.firstWindow()
     await waitReady(window)
-    await window.getByTestId('type-tab').filter({ hasText: '角色' }).click()
-    await window.getByTestId('item-row').first().click()
+    await openCeshuFromHome(window, title)
+    await openDataEditor(window, '角色')
+    await window.getByTestId('ceshu-data-item-row').first().click()
     await expect(window.getByTestId('field-attr_list-formula-0')).toHaveValue('15')
     await expect(window.getByTestId('field-attr_list-name-17')).toHaveValue('经验值')
     await expect(window.getByTestId('field-attr_list-result-4')).toHaveText('275.0')
@@ -105,16 +113,22 @@ test('角色属性面板：默认模板 → 模板切换/改值联动 → 快速
 
 test('怪物属性面板：新条目默认载入「小怪」模板并联动计算', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-attr-panel-monster-e2e-'))
+  const title = 'E2E 怪物属性面板'
+  // 播种启用「怪物」系统的策划书（data_type=monster，默认载入「小怪」模板）
+  seedCeshu(userDataDir, {
+    title,
+    systems: [{ key: 'monster', label: '怪物', dataType: 'monster' }]
+  })
   const app = await launchApp(userDataDir)
 
   try {
     const window = await app.firstWindow()
     await waitReady(window)
-    await expect(window.getByTestId('type-tab')).toHaveCount(12)
-    await window.getByTestId('type-tab').filter({ hasText: '怪物' }).click()
-    await window.getByRole('button', { name: '新增测试条目' }).click()
-    await expect(window.getByTestId('item-row')).toHaveCount(1)
-    await window.getByTestId('item-row').first().click()
+    await openCeshuFromHome(window, title)
+    await openDataEditor(window, '怪物')
+    await createDataItem(window)
+    await expect(window.getByTestId('ceshu-data-item-row')).toHaveCount(1)
+    await window.getByTestId('ceshu-data-item-row').first().click()
 
     await expect(window.getByTestId('field-attr_list-name-0')).toHaveValue('力量')
     await expect(window.getByTestId('field-attr_list-formula-0')).toHaveValue('3')

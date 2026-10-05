@@ -4,9 +4,17 @@ import { join } from 'node:path'
 
 import { expect, test } from '@playwright/test'
 import { launchApp, waitReady } from './helpers/app'
+import { createDataItem, openCeshuFromHome, openDataEditor, seedCeshu } from './helpers/ceshuData'
 
 test('条目属性列表：增删行 → 计算预览 → 保存 → 重启后保持', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-attr-list-e2e-'))
+  const title = 'E2E 属性列表'
+  // 新 IA：数据编辑内嵌在策划书预览面板，标签由「已启用系统」派生。
+  // 播种一份启用「职业」系统的策划书（data_type=job，其 attr_list 为 attrtable），启动后点卡片进入。
+  seedCeshu(userDataDir, {
+    title,
+    systems: [{ key: 'job', label: '职业', dataType: 'job' }]
+  })
   const launch = (): ReturnType<typeof launchApp> =>
     launchApp(userDataDir)
 
@@ -14,13 +22,13 @@ test('条目属性列表：增删行 → 计算预览 → 保存 → 重启后�
   try {
     const window = await app.firstWindow()
     await waitReady(window)
+    await openCeshuFromHome(window, title)
+    await openDataEditor(window, '职业')
 
-    // 选中「职业」（默认 schema 中唯一带属性列表 attrtable 的类型）并新建条目
-    await expect(window.getByTestId('type-tab')).toHaveCount(12)
-    await window.getByTestId('type-tab').filter({ hasText: '职业' }).click()
-    await window.getByRole('button', { name: '新增测试条目' }).click()
-    await expect(window.getByTestId('item-row')).toHaveCount(1)
-    await window.getByTestId('item-row').first().click()
+    // 进入「职业」数据编辑器并新建条目
+    await createDataItem(window)
+    await expect(window.getByTestId('ceshu-data-item-row')).toHaveCount(1)
+    await window.getByTestId('ceshu-data-item-row').first().click()
     await expect(window.getByTestId('item-editor')).toBeVisible()
 
     // 属性列表以表格（非 JSON 文本框）渲染；初始为空，预览提示添加行
@@ -78,8 +86,9 @@ test('条目属性列表：增删行 → 计算预览 → 保存 → 重启后�
   try {
     const window = await app2.firstWindow()
     await waitReady(window)
-    await window.getByTestId('type-tab').filter({ hasText: '职业' }).click()
-    await window.getByTestId('item-row').first().click()
+    await openCeshuFromHome(window, title)
+    await openDataEditor(window, '职业')
+    await window.getByTestId('ceshu-data-item-row').first().click()
     await expect(window.getByTestId('field-attr_list-name-0')).toHaveValue('力量')
     await expect(window.getByTestId('field-attr_list-name-1')).toHaveValue('体质')
     await expect(window.getByTestId('field-attr_list-value-0')).toHaveValue('20')

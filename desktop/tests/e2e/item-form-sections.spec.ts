@@ -4,6 +4,7 @@ import { join } from 'node:path'
 
 import { expect, test } from '@playwright/test'
 import { launchApp, waitReady } from './helpers/app'
+import { createDataItem, openCeshuFromHome, openDataEditor, seedCeshu } from './helpers/ceshuData'
 
 /**
  * 条目编辑器分区布局（对应 Python `DynamicFormWidget` + `FIELD_GROUPS`）。
@@ -18,16 +19,27 @@ import { launchApp, waitReady } from './helpers/app'
  */
 test('条目编辑器分区：结构/折叠/双列标签 + attrpanel 不重复渲染 + 保存往返', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-form-sections-e2e-'))
+  const title = 'E2E 分区布局'
+  // 新 IA：三个数据编辑器（角色 / 技能 / 职业）都从预览面板标签进入
+  seedCeshu(userDataDir, {
+    title,
+    systems: [
+      { key: 'role', label: '角色', dataType: 'role' },
+      { key: 'skill', label: '技能', dataType: 'skill' },
+      { key: 'job', label: '职业', dataType: 'job' }
+    ]
+  })
   const app = await launchApp(userDataDir)
 
   try {
     const window = await app.firstWindow()
     await waitReady(window)
+    await openCeshuFromHome(window, title)
 
     // —— 角色：5 个分区，属性面板分区在第 1 个 ——
-    await window.getByTestId('type-tab').filter({ hasText: '角色' }).click()
-    await window.getByRole('button', { name: '新增测试条目' }).click()
-    await window.getByTestId('item-row').first().click()
+    await openDataEditor(window, '角色')
+    await createDataItem(window)
+    await window.getByTestId('ceshu-data-item-row').first().click()
     await expect(window.getByTestId('item-editor')).toBeVisible()
 
     await expect(window.getByTestId('form-section-0')).toContainText('基础信息')
@@ -67,9 +79,9 @@ test('条目编辑器分区：结构/折叠/双列标签 + attrpanel 不重复�
     await expect(window.getByTestId('field-name')).toHaveValue('角色 1')
 
     // —— 技能：数值配置为双列 grid，标签用 STAT_LABELS 覆盖 ——
-    await window.getByTestId('type-tab').filter({ hasText: '技能' }).click()
-    await window.getByRole('button', { name: '新增测试条目' }).click()
-    await window.getByTestId('item-row').first().click()
+    await openDataEditor(window, '技能')
+    await createDataItem(window)
+    await window.getByTestId('ceshu-data-item-row').first().click()
     const grid = window.getByTestId('form-section-1')
     await expect(grid).toContainText('数值配置')
     await expect(window.getByTestId('form-section-1-grid')).toBeVisible()
@@ -80,9 +92,9 @@ test('条目编辑器分区：结构/折叠/双列标签 + attrpanel 不重复�
     await expect(window.getByTestId('form-section-0')).toContainText('技能名称:')
 
     // —— 职业：7 个分区，后三个默认折叠 ——
-    await window.getByTestId('type-tab').filter({ hasText: '职业' }).click()
-    await window.getByRole('button', { name: '新增测试条目' }).click()
-    await window.getByTestId('item-row').first().click()
+    await openDataEditor(window, '职业')
+    await createDataItem(window)
+    await window.getByTestId('ceshu-data-item-row').first().click()
     await expect(window.getByTestId('form-section-6')).toContainText('进阶 & 标签')
     await expect(window.getByTestId('form-section-7')).toHaveCount(0)
     await expect(window.getByTestId('form-section-4-toggle')).toHaveAttribute('aria-expanded', 'false')
@@ -96,14 +108,20 @@ test('条目编辑器分区：结构/折叠/双列标签 + attrpanel 不重复�
 
 test('条目编辑器分区：未归组字段走兜底，一个都不丢（talent 的 schema 差异）', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-form-sections-ungrouped-e2e-'))
+  const title = 'E2E 未归组兜底'
+  seedCeshu(userDataDir, {
+    title,
+    systems: [{ key: 'talent', label: '天赋', dataType: 'talent' }]
+  })
   const app = await launchApp(userDataDir)
 
   try {
     const window = await app.firstWindow()
     await waitReady(window)
-    await window.getByTestId('type-tab').filter({ hasText: '天赋' }).click()
-    await window.getByRole('button', { name: '新增测试条目' }).click()
-    await window.getByTestId('item-row').first().click()
+    await openCeshuFromHome(window, title)
+    await openDataEditor(window, '天赋')
+    await createDataItem(window)
+    await window.getByTestId('ceshu-data-item-row').first().click()
 
     // talent 的 FIELD_GROUPS 引用了 TS schema 里不存在的 5 个字段 →
     // 「数值配置」只剩 value，其余字段必须以平铺行的形式保留
