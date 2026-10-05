@@ -3422,3 +3422,36 @@ button.ref-row:hover {
   min-width: 0;
   min-height: 0;
 }
+
+/* 预览面板较窄（380px）：内嵌「列表 | 表单」由左右两栏改为上下堆叠，
+   并让条目表单自适应宽度——避免固定 400px 的 .editor + 220px 的 .list-column 横向溢出 */
+.ceshu-preview .data-editor-tab-main {
+  flex-direction: column;
+}
+
+.ceshu-preview .list-column {
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.ceshu-preview .list-column .list {
+  max-height: 240px;
+}
+
+.ceshu-preview .editor {
+  width: auto;
+  flex: 1 1 auto;
+  min-width: 0;
+  border-left: none;
+  border-top: 1px solid var(--border);
+}
+
+/* 展开预览面板时三栏各自保底宽度：窗口过窄则内容区横向滚动，
+   而不是把章节表单压成中文竖排（仅在选择器命中预览面板时生效，默认关闭预览时布局不变） */
+.ceshu-pane-row:has(.ceshu-preview) {
+  min-width: min-content;
+}
+
+.ceshu-pane-row:has(.ceshu-preview) .chapter-body {
+  min-width: 240px;
+}
