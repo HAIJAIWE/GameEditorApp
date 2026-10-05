@@ -2,7 +2,8 @@ import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { _electron as electron, expect, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+import { launchApp, waitReady } from './helpers/app'
 
 /**
  * A2-2 库条端到端验收：新建库 → 切换 → 数据互相隔离 → 切回原库数据仍在 → 重启保持活跃库。
@@ -21,12 +22,8 @@ function makeUserDataDir(tag: string): string {
   return mkdtempSync(join(tmpdir(), `mb-library-bar-${tag}-`))
 }
 
-function launch(userDataDir: string): ReturnType<typeof electron.launch> {
-  return electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: { ...process.env, MB_USER_DATA_DIR: userDataDir }
-  })
+function launch(userDataDir: string): ReturnType<typeof launchApp> {
+  return launchApp(userDataDir)
 }
 
 test('库条：新建库 → 切换 → 数据互相隔离 → 切回原库数据仍在', async () => {
@@ -35,7 +32,7 @@ test('库条：新建库 → 切换 → 数据互相隔离 → 切回原库数�
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
 
     // 初始库的库条状态
     await expect(window.getByTestId('library-bar')).toBeVisible()

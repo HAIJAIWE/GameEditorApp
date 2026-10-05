@@ -2,7 +2,8 @@ import { existsSync, mkdtempSync, readdirSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { _electron as electron, expect, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+import { launchApp, waitReady } from './helpers/app'
 
 /** 策划书首页卡片视图的 IPC 形状（仅本用例用到的部分） */
 interface HomeApi {
@@ -19,15 +20,11 @@ interface HomeApi {
  */
 test('策划书首页：卡片渲染 + 搜索 + 最近打开 + 重命名/复制/删除', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-ceshu-home-e2e-'))
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: { ...process.env, MB_USER_DATA_DIR: userDataDir }
-  })
+  const app = await launchApp(userDataDir)
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
 
     // 造 3 份文档：不同名称 / 类型 / 状态
     const ids = (await window.evaluate(async () => {

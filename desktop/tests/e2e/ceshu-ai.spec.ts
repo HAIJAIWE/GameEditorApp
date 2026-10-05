@@ -2,20 +2,17 @@ import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { _electron as electron, expect, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+import { launchApp, waitReady } from './helpers/app'
 
 test('AI 生成：按钮存在；本地服务不可用时给出中文可操作提示（含 ollama 指引）', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-ceshu-ai-e2e-'))
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    // 指向不可达端口，保证离线环境下错误路径可确定复现
-    env: { ...process.env, MB_USER_DATA_DIR: userDataDir, MB_OLLAMA_HOST: 'http://127.0.0.1:1' }
-  })
+  // 指向不可达端口，保证离线环境下错误路径可确定复现
+  const app = await launchApp(userDataDir, { MB_OLLAMA_HOST: 'http://127.0.0.1:1' })
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
 
     await window.getByTestId('mode-ceshu').click()
     await window.getByTestId('ceshu-create').click()
@@ -42,16 +39,12 @@ test('AI 生成：按钮存在；本地服务不可用时给出中文可操作�
 
 test('AI 一键生成：离线时首章失败即中断并给出错误汇总，后续章节保持待生成', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-ceshu-ai-full-e2e-'))
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    // 指向不可达端口，保证离线环境下错误路径可确定复现
-    env: { ...process.env, MB_USER_DATA_DIR: userDataDir, MB_OLLAMA_HOST: 'http://127.0.0.1:1' }
-  })
+  // 指向不可达端口，保证离线环境下错误路径可确定复现
+  const app = await launchApp(userDataDir, { MB_OLLAMA_HOST: 'http://127.0.0.1:1' })
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
 
     await window.getByTestId('mode-ceshu').click()
     await window.getByTestId('ceshu-create').click()

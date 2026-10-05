@@ -2,7 +2,8 @@ import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { _electron as electron, expect, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+import { launchApp, waitReady } from './helpers/app'
 
 /**
  * 条目编辑器分区布局（对应 Python `DynamicFormWidget` + `FIELD_GROUPS`）。
@@ -17,15 +18,11 @@ import { _electron as electron, expect, test } from '@playwright/test'
  */
 test('条目编辑器分区：结构/折叠/双列标签 + attrpanel 不重复渲染 + 保存往返', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-form-sections-e2e-'))
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: { ...process.env, MB_USER_DATA_DIR: userDataDir }
-  })
+  const app = await launchApp(userDataDir)
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
 
     // —— 角色：5 个分区，属性面板分区在第 1 个 ——
     await window.getByTestId('type-tab').filter({ hasText: '角色' }).click()
@@ -99,15 +96,11 @@ test('条目编辑器分区：结构/折叠/双列标签 + attrpanel 不重复�
 
 test('条目编辑器分区：未归组字段走兜底，一个都不丢（talent 的 schema 差异）', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-form-sections-ungrouped-e2e-'))
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: { ...process.env, MB_USER_DATA_DIR: userDataDir }
-  })
+  const app = await launchApp(userDataDir)
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
     await window.getByTestId('type-tab').filter({ hasText: '天赋' }).click()
     await window.getByRole('button', { name: '新增测试条目' }).click()
     await window.getByTestId('item-row').first().click()

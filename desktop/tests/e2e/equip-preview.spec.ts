@@ -2,19 +2,16 @@ import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { _electron as electron, expect, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+import { launchApp, waitReady } from './helpers/app'
 
 test('装备预览：放装/卸下 → Buff 叠加/移除 → 属性对比差值 → 不可放置提示 → 基础值联动', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-equip-preview-e2e-'))
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: { ...process.env, MB_USER_DATA_DIR: userDataDir }
-  })
+  const app = await launchApp(userDataDir)
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
 
     // 准备数据：装备（base_attrs 力量 +10）、Buff（属性提升 +20 力量）、旧数据「饰品」部位（不可放置）
     await window.evaluate(async () => {

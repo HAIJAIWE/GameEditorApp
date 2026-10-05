@@ -2,7 +2,8 @@ import { mkdtempSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { _electron as electron, expect, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+import { launchApp, waitReady } from './helpers/app'
 
 interface DiffProbe {
   rootId: string
@@ -20,15 +21,11 @@ interface DiffProbe {
 test('版本对比：派生改字段 → 精确 Diff 计数 + 面板断言 + 导出报告', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-ceshu-diff-e2e-'))
   const reportPath = join(userDataDir, 'diff-report.md')
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: { ...process.env, MB_USER_DATA_DIR: userDataDir }
-  })
+  const app = await launchApp(userDataDir)
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
 
     // IPC 侧：v1.0 → 派生 v1.1 → 改 meta.game_name 与 vision.design_vision → 对比计数
     const probe = (await window.evaluate(

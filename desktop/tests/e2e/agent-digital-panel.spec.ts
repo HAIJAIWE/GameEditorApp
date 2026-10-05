@@ -3,7 +3,8 @@ import { createServer } from 'node:http'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { _electron as electron, expect, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+import { launchApp, waitReady } from './helpers/app'
 
 /**
  * A1-4 数字员工面板端到端验收：
@@ -85,20 +86,11 @@ async function startOllamaChatStub(options: StubOptions = {}): Promise<OllamaCha
 test('数字员工面板：桩服务驱动一轮「思考 → 工具 → 结果」并渲染步骤与任务', async () => {
   const stub = await startOllamaChatStub()
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-agent-panel-e2e-'))
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: {
-      ...process.env,
-      MB_USER_DATA_DIR: userDataDir,
-      MB_OLLAMA_HOST: stub.host,
-      MB_OLLAMA_MODEL: 'stub:latest'
-    }
-  })
+  const app = await launchApp(userDataDir, { MB_OLLAMA_HOST: stub.host, MB_OLLAMA_MODEL: 'stub:latest' })
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
 
     await window.getByTestId('mode-digital').click()
     await expect(window.getByTestId('digital-panel')).toBeVisible()
@@ -148,24 +140,15 @@ test('数字员工面板：桩服务驱动一轮「思考 → 工具 → 结果�
 test('数字员工面板：上一轮会话落盘后，重新启动可看到「恢复上次会话」提示并回填历史', async () => {
   const stub = await startOllamaChatStub()
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-agent-panel-session-e2e-'))
-  const launch = (): ReturnType<typeof electron.launch> =>
-    electron.launch({
-      args: ['.'],
-      cwd: join(__dirname, '..', '..'),
-      env: {
-        ...process.env,
-        MB_USER_DATA_DIR: userDataDir,
-        MB_OLLAMA_HOST: stub.host,
-        MB_OLLAMA_MODEL: 'stub:latest'
-      }
-    })
+  const launch = (): ReturnType<typeof launchApp> =>
+    launchApp(userDataDir, { MB_OLLAMA_HOST: stub.host, MB_OLLAMA_MODEL: 'stub:latest' })
 
   try {
     // 第一次启动：跑一轮对话让会话落盘
     const first = await launch()
     try {
       const firstWindow = await first.firstWindow()
-      await expect(firstWindow.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+      await waitReady(firstWindow)
       await firstWindow.getByTestId('mode-digital').click()
       await firstWindow.getByTestId('digital-input').fill('看看有哪些数据类型')
       await firstWindow.getByTestId('digital-send').click()
@@ -180,7 +163,7 @@ test('数字员工面板：上一轮会话落盘后，重新启动可看到「�
     const second = await launch()
     try {
       const window = await second.firstWindow()
-      await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+      await waitReady(window)
       await window.getByTestId('mode-digital').click()
       await expect(window.getByTestId('digital-session-prompt')).toBeVisible()
       await expect(window.getByTestId('digital-session-prompt')).toContainText('检测到上次会话')
@@ -208,20 +191,11 @@ async function runDangerousRound(decision: 'approve' | 'reject'): Promise<{
     finalChunks: ['已按你的要求处理']
   })
   const userDataDir = mkdtempSync(join(tmpdir(), `mb-agent-approval-${decision}-`))
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: {
-      ...process.env,
-      MB_USER_DATA_DIR: userDataDir,
-      MB_OLLAMA_HOST: stub.host,
-      MB_OLLAMA_MODEL: 'stub:latest'
-    }
-  })
+  const app = await launchApp(userDataDir, { MB_OLLAMA_HOST: stub.host, MB_OLLAMA_MODEL: 'stub:latest' })
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
     await window.getByTestId('mode-digital').click()
 
     await window.getByTestId('digital-input').fill('帮我算 40+2')
@@ -281,20 +255,11 @@ test('数字员工面板：多问题提问逐题作答后一次性提交，答�
     finalChunks: ['收到']
   })
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-agent-multi-ask-'))
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: {
-      ...process.env,
-      MB_USER_DATA_DIR: userDataDir,
-      MB_OLLAMA_HOST: stub.host,
-      MB_OLLAMA_MODEL: 'stub:latest'
-    }
-  })
+  const app = await launchApp(userDataDir, { MB_OLLAMA_HOST: stub.host, MB_OLLAMA_MODEL: 'stub:latest' })
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
     await window.getByTestId('mode-digital').click()
     await window.getByTestId('digital-input').fill('帮我设计一个角色')
     await window.getByTestId('digital-send').click()
@@ -335,20 +300,11 @@ test('数字员工面板：删除条目走「操作确认」交互，确认后�
     finalChunks: ['已删除']
   })
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-agent-delete-confirm-'))
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: {
-      ...process.env,
-      MB_USER_DATA_DIR: userDataDir,
-      MB_OLLAMA_HOST: stub.host,
-      MB_OLLAMA_MODEL: 'stub:latest'
-    }
-  })
+  const app = await launchApp(userDataDir, { MB_OLLAMA_HOST: stub.host, MB_OLLAMA_MODEL: 'stub:latest' })
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
     // 先造一条待删数据
     await window.evaluate(async () => {
       const api = (globalThis as unknown as { mbApi: { data: { createItem: (req: unknown) => Promise<unknown> } } })
@@ -391,20 +347,11 @@ test('数字员工面板：ask_user 提问走「需要你澄清」交互，答�
     finalChunks: ['收到']
   })
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-agent-ask-user-'))
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: {
-      ...process.env,
-      MB_USER_DATA_DIR: userDataDir,
-      MB_OLLAMA_HOST: stub.host,
-      MB_OLLAMA_MODEL: 'stub:latest'
-    }
-  })
+  const app = await launchApp(userDataDir, { MB_OLLAMA_HOST: stub.host, MB_OLLAMA_MODEL: 'stub:latest' })
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
     await window.getByTestId('mode-digital').click()
     await window.getByTestId('digital-input').fill('帮我建个角色')
     await window.getByTestId('digital-send').click()

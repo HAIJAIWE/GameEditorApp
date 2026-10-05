@@ -2,7 +2,8 @@ import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { _electron as electron, expect, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+import { launchApp, waitReady } from './helpers/app'
 
 /**
  * E17/E18 回归：引用表字段（multiselect，原 JSON/逗号串降级）与掉落表字段（droptable，原恒 JSON 降级）
@@ -15,15 +16,11 @@ import { _electron as electron, expect, test } from '@playwright/test'
  */
 test('引用表 / 掉落表编辑器：选库添加 + 数值编辑 + 保存持久化 + 删除', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-ref-drop-e2e-'))
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: { ...process.env, MB_USER_DATA_DIR: userDataDir }
-  })
+  const app = await launchApp(userDataDir)
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
 
     const findId = async (type: string, name: string): Promise<string> =>
       window.evaluate(

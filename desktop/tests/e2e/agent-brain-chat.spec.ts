@@ -3,7 +3,8 @@ import { createServer } from 'node:http'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { _electron as electron, expect, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+import { launchApp, waitReady } from './helpers/app'
 
 /** 事件流与最终结果（IPC 解包后） */
 interface BrainEventShape {
@@ -140,20 +141,11 @@ async function startOllamaChatStub(): Promise<OllamaChatStub> {
 test('Agent Brain 循环：桩服务返回工具调用 → 执行工具 → 流式终稿', async () => {
   const stub = await startOllamaChatStub()
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-agent-brain-e2e-'))
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: {
-      ...process.env,
-      MB_USER_DATA_DIR: userDataDir,
-      MB_OLLAMA_HOST: stub.host,
-      MB_OLLAMA_MODEL: 'stub:latest'
-    }
-  })
+  const app = await launchApp(userDataDir, { MB_OLLAMA_HOST: stub.host, MB_OLLAMA_MODEL: 'stub:latest' })
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
 
     // 造一条数据，让后续工具执行有真实内容
     await window.evaluate(async () => {

@@ -3,7 +3,8 @@ import { createServer } from 'node:http'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { _electron as electron, expect, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+import { launchApp, waitReady } from './helpers/app'
 
 interface OllamaStub {
   host: string
@@ -75,15 +76,11 @@ async function startOllamaStub(responseText: string): Promise<OllamaStub> {
 
 test('AI 生成数据（离线）：面板结构完整 + 本地服务不可用时中文提示', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-ceshu-datagen-offline-'))
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: { ...process.env, MB_USER_DATA_DIR: userDataDir, MB_OLLAMA_HOST: 'http://127.0.0.1:1' }
-  })
+  const app = await launchApp(userDataDir, { MB_OLLAMA_HOST: 'http://127.0.0.1:1' })
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
 
     await window.evaluate(async () => {
       const api = (
@@ -137,15 +134,11 @@ test('AI 生成数据（桩服务）：提示词组装 → 候选预览 → 勾�
     })
   )
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-ceshu-datagen-e2e-'))
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: { ...process.env, MB_USER_DATA_DIR: userDataDir, MB_OLLAMA_HOST: stub.host }
-  })
+  const app = await launchApp(userDataDir, { MB_OLLAMA_HOST: stub.host })
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
 
     await window.evaluate(async () => {
       const api = (

@@ -2,7 +2,8 @@ import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { _electron as electron, type Page, expect, test } from '@playwright/test'
+import { type Page, expect, test } from '@playwright/test'
+import { launchApp, waitReady } from './helpers/app'
 
 interface StoredTemplate {
   id: string
@@ -40,15 +41,11 @@ async function readMeta(window: Page, id: string): Promise<Record<string, unknow
 test('模板编辑器：列表筛选 → 新建/保存 → 编辑更新 → 应用到该章节 → 删除 → 导出/导入（UI 与 IPC 全链路）', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-ceshu-template-editor-e2e-'))
   const filesDir = mkdtempSync(join(tmpdir(), 'mb-ceshu-template-editor-files-'))
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: { ...process.env, MB_USER_DATA_DIR: userDataDir }
-  })
+  const app = await launchApp(userDataDir)
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
 
     const ceshuId = (await window.evaluate(async () => {
       const api = (

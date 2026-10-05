@@ -2,7 +2,8 @@ import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { _electron as electron, expect, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+import { launchApp, waitReady } from './helpers/app'
 
 /**
  * 术语风格（迁移自 Python `core/style_manager.py`）。
@@ -17,15 +18,11 @@ import { _electron as electron, expect, test } from '@playwright/test'
  */
 test('术语风格：字段标签按风格替换并可持久化', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-game-style-e2e-'))
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: { ...process.env, MB_USER_DATA_DIR: userDataDir }
-  })
+  const app = await launchApp(userDataDir)
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
 
     // 默认：原始术语（无活跃风格 → resolveLabel 原样返回，与 Python 默认行为等价）
     const styleSelect = window.getByTestId('game-style')

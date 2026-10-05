@@ -2,7 +2,8 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { _electron as electron, expect, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+import { launchApp, waitReady } from './helpers/app'
 
 /** 迁移后（v5.0）文档中本用例断言到的字段形状 */
 interface MigratedDoc {
@@ -71,15 +72,11 @@ test('迁移工具：v4.0 旧策划书加载时自动迁移到 v5.0 并派生新
   }
   writeFileSync(join(ceshuDir, `${docId}.json`), JSON.stringify(v4Doc), 'utf-8')
 
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: { ...process.env, MB_USER_DATA_DIR: userDataDir }
-  })
+  const app = await launchApp(userDataDir)
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
 
     // IPC 回读：加载路径已把 v4.0 迁移为 v5.0
     const doc = (await window.evaluate(async (id) => {

@@ -2,7 +2,8 @@ import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { _electron as electron, expect, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+import { launchApp, waitReady } from './helpers/app'
 
 /** 技能执行结果（IPC 解包后） */
 interface SkillResultShape {
@@ -32,15 +33,11 @@ interface AgentApi {
  */
 test('Agent 技能调度：listTools + 只读技能执行 + 结构化错误', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-agent-tool-e2e-'))
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: { ...process.env, MB_USER_DATA_DIR: userDataDir }
-  })
+  const app = await launchApp(userDataDir)
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
 
     // 1) listTools：两个内置技能 + 提示词描述
     const meta = (await window.evaluate(async () => {

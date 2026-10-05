@@ -2,19 +2,16 @@ import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { _electron as electron, expect, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+import { launchApp, waitReady } from './helpers/app'
 
 test('批量操作与搜索：搜索过滤 → 批量改值 → 非数值跳过计数 → 二次确认批量删除', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-data-batch-e2e-'))
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: { ...process.env, MB_USER_DATA_DIR: userDataDir }
-  })
+  const app = await launchApp(userDataDir)
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
 
     // 新建 3 条角色（名称自动为「角色 1..3」）
     const createButton = window.getByRole('button', { name: '新增测试条目' })

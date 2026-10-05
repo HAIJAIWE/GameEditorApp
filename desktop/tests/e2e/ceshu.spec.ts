@@ -2,7 +2,8 @@ import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFil
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { _electron as electron, expect, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+import { launchApp, waitReady } from './helpers/app'
 
 test('策划书：读取旧版文件 → 新建 → 编辑保存章节 → 磁盘落盘（Python 兼容格式）', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-ceshu-e2e-'))
@@ -24,15 +25,11 @@ test('策划书：读取旧版文件 → 新建 → 编辑保存章节 → 磁�
     'utf-8'
   )
 
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: { ...process.env, MB_USER_DATA_DIR: userDataDir }
-  })
+  const app = await launchApp(userDataDir)
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
 
     // 切到策划书模式：能读到旧版文件
     await window.getByTestId('mode-ceshu').click()

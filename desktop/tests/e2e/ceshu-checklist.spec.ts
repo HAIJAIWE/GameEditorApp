@@ -2,7 +2,8 @@ import { mkdtempSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { _electron as electron, expect, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+import { launchApp, waitReady } from './helpers/app'
 
 interface ChecklistSnapshot {
   ceshuId: string
@@ -18,15 +19,11 @@ interface ChecklistSnapshot {
 test('完备性检查清单：IPC 精确结果 + 一键修复 + UI 面板', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-ceshu-checklist-e2e-'))
   const reportPath = join(userDataDir, 'checklist-report.md')
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: { ...process.env, MB_USER_DATA_DIR: userDataDir }
-  })
+  const app = await launchApp(userDataDir)
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
 
     // IPC 侧：空文档（仅填游戏名）→ 检查清单精确数字
     const before = (await window.evaluate(async () => {

@@ -2,19 +2,16 @@ import { mkdtempSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { _electron as electron, expect, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+import { launchApp, waitReady } from './helpers/app'
 
 test('预设市场：18 卡片 + 搜索筛选 + 应用预设（启用推荐系统 / 回填 game_type / 落盘）', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-ceshu-preset-e2e-'))
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: { ...process.env, MB_USER_DATA_DIR: userDataDir }
-  })
+  const app = await launchApp(userDataDir)
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
 
     const createdId = (await window.evaluate(async () => {
       const api = (
@@ -114,15 +111,11 @@ test('预设市场：18 卡片 + 搜索筛选 + 应用预设（启用推荐系�
 
 test('竞品象限图：vision 章渲染散点 + 空数据仅网格', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-ceshu-chart-e2e-'))
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: { ...process.env, MB_USER_DATA_DIR: userDataDir }
-  })
+  const app = await launchApp(userDataDir)
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
 
     // 两份文档：一份 vision 带竞品数据，一份保持默认空
     await window.evaluate(async () => {

@@ -2,7 +2,8 @@ import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { _electron as electron, expect, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+import { launchApp, waitReady } from './helpers/app'
 
 interface CsvExportProbe {
   files: string[]
@@ -33,15 +34,11 @@ test('游戏数据 CSV / Excel：导出文件结构 + 往返 upsert + 工具栏�
   const csvDir = mkdtempSync(join(tmpdir(), 'mb-csv-out-'))
   const xlsxDir = mkdtempSync(join(tmpdir(), 'mb-xlsx-out-'))
 
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: { ...process.env, MB_USER_DATA_DIR: userDataDir }
-  })
+  const app = await launchApp(userDataDir)
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
 
     // 1) 建一个角色（保证至少有一条已知数据参与导出）
     await window.getByTestId('type-tab').filter({ hasText: '角色' }).click()

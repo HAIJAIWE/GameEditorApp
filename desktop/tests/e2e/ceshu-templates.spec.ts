@@ -2,7 +2,8 @@ import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { _electron as electron, type Page, expect, test } from '@playwright/test'
+import { type Page, expect, test } from '@playwright/test'
+import { launchApp, waitReady } from './helpers/app'
 
 /** 读取 meta 章节关键字段（走 IPC，用于核对落盘结果） */
 async function readMeta(window: Page, id: string): Promise<{ gameName: string; positioning: string }> {
@@ -22,15 +23,11 @@ async function readMeta(window: Page, id: string): Promise<{ gameName: string; p
 
 test('章节模板库：筛选/预览/三模式应用/保存落盘/无数据模板提示（UI 全链路）', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-ceshu-templates-e2e-'))
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: { ...process.env, MB_USER_DATA_DIR: userDataDir }
-  })
+  const app = await launchApp(userDataDir)
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
 
     const ceshuId = (await window.evaluate(async () => {
       const api = (

@@ -2,7 +2,8 @@ import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { _electron as electron, expect, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+import { launchApp, waitReady } from './helpers/app'
 
 /**
  * 字段 ID 生成（中文显示名 → 英文字段 ID）。
@@ -16,17 +17,13 @@ import { _electron as electron, expect, test } from '@playwright/test'
  */
 test('字段 ID 生成：术语表命中 / 未收录如实提示 / 重名加后缀 / 保存重启保持', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-field-id-e2e-'))
-  const launch = (): ReturnType<typeof electron.launch> =>
-    electron.launch({
-      args: ['.'],
-      cwd: join(__dirname, '..', '..'),
-      env: { ...process.env, MB_USER_DATA_DIR: userDataDir }
-    })
+  const launch = (): ReturnType<typeof launchApp> =>
+    launchApp(userDataDir)
 
   const app = await launch()
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
 
     await window.getByTestId('open-type-editor').click()
     await expect(window.getByTestId('type-editor-panel')).toBeVisible()
@@ -119,7 +116,7 @@ test('字段 ID 生成：术语表命中 / 未收录如实提示 / 重名加后�
   const app2 = await launch()
   try {
     const window = await app2.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
     await window.getByTestId('open-type-editor').click()
     await window.getByTestId('te-type-tab').filter({ hasText: '职业' }).click()
     await expect(window.locator('[data-testid^="te-field-name-"]').last()).toHaveValue('hp_2')

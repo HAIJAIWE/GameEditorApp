@@ -2,7 +2,8 @@ import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { _electron as electron, expect, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+import { launchApp, waitReady } from './helpers/app'
 
 interface VersionSetupResult {
   rootId: string
@@ -19,15 +20,11 @@ interface VersionSetupResult {
 
 test('版本链：派生 → 编辑子版本 → 变更记录 → 激活切换（IPC 与 UI 全链路）', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-ceshu-versions-e2e-'))
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: { ...process.env, MB_USER_DATA_DIR: userDataDir }
-  })
+  const app = await launchApp(userDataDir)
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
 
     // IPC 侧：建链 → 派生 → 改子版本 → 变更记录 → 激活子版本
     const setup = (await window.evaluate(async () => {

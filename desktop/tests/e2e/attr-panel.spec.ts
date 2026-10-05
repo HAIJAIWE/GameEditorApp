@@ -2,21 +2,18 @@ import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { _electron as electron, expect, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+import { launchApp, waitReady } from './helpers/app'
 
 test('角色属性面板：默认模板 → 模板切换/改值联动 → 快速添加与错误提示 → 保存 → 重启保持', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-attr-panel-e2e-'))
-  const launch = (): ReturnType<typeof electron.launch> =>
-    electron.launch({
-      args: ['.'],
-      cwd: join(__dirname, '..', '..'),
-      env: { ...process.env, MB_USER_DATA_DIR: userDataDir }
-    })
+  const launch = (): ReturnType<typeof launchApp> =>
+    launchApp(userDataDir)
 
   const app = await launch()
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
 
     await expect(window.getByTestId('type-tab')).toHaveCount(12)
     await window.getByTestId('type-tab').filter({ hasText: '角色' }).click()
@@ -95,7 +92,7 @@ test('角色属性面板：默认模板 → 模板切换/改值联动 → 快速
   const app2 = await launch()
   try {
     const window = await app2.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
     await window.getByTestId('type-tab').filter({ hasText: '角色' }).click()
     await window.getByTestId('item-row').first().click()
     await expect(window.getByTestId('field-attr_list-formula-0')).toHaveValue('15')
@@ -108,15 +105,11 @@ test('角色属性面板：默认模板 → 模板切换/改值联动 → 快速
 
 test('怪物属性面板：新条目默认载入「小怪」模板并联动计算', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-attr-panel-monster-e2e-'))
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: { ...process.env, MB_USER_DATA_DIR: userDataDir }
-  })
+  const app = await launchApp(userDataDir)
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
     await expect(window.getByTestId('type-tab')).toHaveCount(12)
     await window.getByTestId('type-tab').filter({ hasText: '怪物' }).click()
     await window.getByRole('button', { name: '新增测试条目' }).click()

@@ -2,19 +2,16 @@ import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { _electron as electron, expect, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+import { launchApp, waitReady } from './helpers/app'
 
 test('快速创建：打开面板 → 选模板 → 创建（字段初始值来自模板）→ 换类型清空选中', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-quick-create-e2e-'))
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: { ...process.env, MB_USER_DATA_DIR: userDataDir }
-  })
+  const app = await launchApp(userDataDir)
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
 
     // 打开快速创建面板（默认类型 = 当前活跃类型 role）
     await window.getByTestId('open-quick-create').click()

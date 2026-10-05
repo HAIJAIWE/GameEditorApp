@@ -3,7 +3,8 @@ import { createServer } from 'node:http'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { _electron as electron, expect, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+import { launchApp, waitReady } from './helpers/app'
 
 /**
  * 字段 ID 的 **AI 候选**（术语表未收录时的第二级兜底）。
@@ -86,15 +87,11 @@ async function startOllamaStub(responseText: string): Promise<OllamaStub> {
 test('AI 候选：未收录词由 AI 给候选，点选后才写入字段名（桩服务）', async () => {
   const stub = await startOllamaStub('{"candidates": ["combat_energy", "fight_energy", "energy"]}')
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-field-id-ai-e2e-'))
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: { ...process.env, MB_USER_DATA_DIR: userDataDir, MB_OLLAMA_HOST: stub.host }
-  })
+  const app = await launchApp(userDataDir, { MB_OLLAMA_HOST: stub.host })
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
     await window.getByTestId('open-type-editor').click()
     await window.getByTestId('te-type-tab').filter({ hasText: '职业' }).click()
 
@@ -138,15 +135,11 @@ test('AI 候选：未收录词由 AI 给候选，点选后才写入字段名（�
 
 test('AI 候选：本地 Ollama 不可用时给中文错误提示，不静默失败', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-field-id-ai-offline-e2e-'))
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: { ...process.env, MB_USER_DATA_DIR: userDataDir, MB_OLLAMA_HOST: 'http://127.0.0.1:1' }
-  })
+  const app = await launchApp(userDataDir, { MB_OLLAMA_HOST: 'http://127.0.0.1:1' })
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
     await window.getByTestId('open-type-editor').click()
     await window.getByTestId('te-type-tab').filter({ hasText: '职业' }).click()
 

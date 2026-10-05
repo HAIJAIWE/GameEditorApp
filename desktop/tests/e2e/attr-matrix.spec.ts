@@ -2,23 +2,20 @@ import { mkdtempSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { _electron as electron, expect, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+import { launchApp, waitReady } from './helpers/app'
 
 test('关系矩阵与游戏配置导出：改系数 → 公式/示例值联动 → 筛选清空 → 保存 → 导出文件结构断言', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-attr-matrix-e2e-'))
   const fixtureDir = mkdtempSync(join(tmpdir(), 'mb-attr-matrix-out-'))
   const exportPath = join(fixtureDir, 'game_attr_config.json')
-  const launch = (): ReturnType<typeof electron.launch> =>
-    electron.launch({
-      args: ['.'],
-      cwd: join(__dirname, '..', '..'),
-      env: { ...process.env, MB_USER_DATA_DIR: userDataDir }
-    })
+  const launch = (): ReturnType<typeof launchApp> =>
+    launchApp(userDataDir)
 
   const app = await launch()
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
     await window.getByTestId('open-attr-system').click()
     await expect(window.getByTestId('attr-system-panel')).toBeVisible()
 

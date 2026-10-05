@@ -2,7 +2,8 @@ import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { _electron as electron, expect, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+import { launchApp, waitReady } from './helpers/app'
 
 interface WordStatsProbe {
   rowCount: number
@@ -22,15 +23,11 @@ interface WordStatsProbe {
 
 test('字数统计：IPC 精确数字 + 面板表格与总览', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-ceshu-wordstats-e2e-'))
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: { ...process.env, MB_USER_DATA_DIR: userDataDir }
-  })
+  const app = await launchApp(userDataDir)
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
 
     const probe = (await window.evaluate(async () => {
       interface WordStatRow {

@@ -2,21 +2,18 @@ import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { _electron as electron, expect, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+import { launchApp, waitReady } from './helpers/app'
 
 test('条目属性列表：增删行 → 计算预览 → 保存 → 重启后保持', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-attr-list-e2e-'))
-  const launch = (): ReturnType<typeof electron.launch> =>
-    electron.launch({
-      args: ['.'],
-      cwd: join(__dirname, '..', '..'),
-      env: { ...process.env, MB_USER_DATA_DIR: userDataDir }
-    })
+  const launch = (): ReturnType<typeof launchApp> =>
+    launchApp(userDataDir)
 
   const app = await launch()
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
 
     // 选中「职业」（默认 schema 中唯一带属性列表 attrtable 的类型）并新建条目
     await expect(window.getByTestId('type-tab')).toHaveCount(12)
@@ -80,7 +77,7 @@ test('条目属性列表：增删行 → 计算预览 → 保存 → 重启后�
   const app2 = await launch()
   try {
     const window = await app2.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
     await window.getByTestId('type-tab').filter({ hasText: '职业' }).click()
     await window.getByTestId('item-row').first().click()
     await expect(window.getByTestId('field-attr_list-name-0')).toHaveValue('力量')

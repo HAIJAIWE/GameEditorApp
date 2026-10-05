@@ -2,7 +2,8 @@ import { mkdtempSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { _electron as electron, expect, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+import { launchApp, waitReady } from './helpers/app'
 
 /**
  * W32 系统依赖确认 + 数据同步 端到端验收。
@@ -15,15 +16,11 @@ import { _electron as electron, expect, test } from '@playwright/test'
  */
 test('系统确认：勾选启用 + 自定义系统 + 确认落盘 + 双向同步注册类型', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-ceshu-confirm-e2e-'))
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: { ...process.env, MB_USER_DATA_DIR: userDataDir }
-  })
+  const app = await launchApp(userDataDir)
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
 
     const createdId = (await window.evaluate(async () => {
       const api = (

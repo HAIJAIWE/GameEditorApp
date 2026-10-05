@@ -2,7 +2,8 @@ import { mkdtempSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { _electron as electron, expect, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+import { launchApp, waitReady } from './helpers/app'
 import ExcelJS from 'exceljs'
 
 interface CeshuExportResult {
@@ -14,14 +15,10 @@ interface CeshuExportResult {
 /** 导出按钮/格式选择在 UI 中可见 */
 test('策划书导出 UI：格式选择（6 种）与导出按钮存在', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-ceshu-export-ui-'))
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: { ...process.env, MB_USER_DATA_DIR: userDataDir }
-  })
+  const app = await launchApp(userDataDir)
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
 
     await window.getByTestId('mode-ceshu').click()
     await window.getByTestId('ceshu-create').click()
@@ -36,15 +33,11 @@ test('策划书导出 UI：格式选择（6 种）与导出按钮存在', async 
 test('策划书导出：Markdown/HTML/docx/pptx/PDF/Excel 全链路落盘', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-ceshu-export-e2e-'))
   const outDir = mkdtempSync(join(tmpdir(), 'mb-ceshu-export-out-'))
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: { ...process.env, MB_USER_DATA_DIR: userDataDir }
-  })
+  const app = await launchApp(userDataDir)
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
 
     const results = await window.evaluate(async (targetDir) => {
       const api = (

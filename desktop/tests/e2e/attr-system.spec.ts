@@ -2,21 +2,18 @@ import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { _electron as electron, expect, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+import { launchApp, waitReady } from './helpers/app'
 
 test('属性系统：改公式示例值实时更新 → 非法公式/悬空依赖被拒 → 保存 → 重启后持久化', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-attr-system-e2e-'))
-  const launch = (): ReturnType<typeof electron.launch> =>
-    electron.launch({
-      args: ['.'],
-      cwd: join(__dirname, '..', '..'),
-      env: { ...process.env, MB_USER_DATA_DIR: userDataDir }
-    })
+  const launch = (): ReturnType<typeof launchApp> =>
+    launchApp(userDataDir)
 
   const app = await launch()
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
 
     await window.getByTestId('open-attr-system').click()
     await expect(window.getByTestId('attr-system-panel')).toBeVisible()
@@ -56,7 +53,7 @@ test('属性系统：改公式示例值实时更新 → 非法公式/悬空依�
   const app2 = await launch()
   try {
     const window = await app2.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
     await window.getByTestId('open-attr-system').click()
     await expect(window.getByTestId('attr-formula-4')).toHaveValue('= 力量*12 + 体质*20 + 敏捷*5')
     await expect(window.getByTestId('attr-preview-4')).toHaveText('370')

@@ -2,7 +2,8 @@ import { existsSync, mkdtempSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { _electron as electron, type Page, expect, test } from '@playwright/test'
+import { type Page, expect, test } from '@playwright/test'
+import { launchApp, waitReady } from './helpers/app'
 
 interface StoredTemplate {
   id: string
@@ -38,15 +39,11 @@ async function readChapterPositioning(window: Page, id: string): Promise<string>
 
 test('自定义模板：另存为模板（章节/全局）→ 来源筛选 → 套用覆盖 → 删除（IPC 与 UI 全链路）', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-ceshu-custom-templates-e2e-'))
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: { ...process.env, MB_USER_DATA_DIR: userDataDir }
-  })
+  const app = await launchApp(userDataDir)
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
 
     const ceshuId = (await window.evaluate(async () => {
       const api = (

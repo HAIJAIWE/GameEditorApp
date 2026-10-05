@@ -2,7 +2,8 @@ import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { _electron as electron, expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
+import { launchApp, waitReady } from './helpers/app'
 
 import type { ExportSummary, ImportSummary } from '../../src/shared/types'
 
@@ -47,15 +48,11 @@ test('启动应用并完成「新增 → 编辑 → 删除 → 导入 → 导出
     'utf-8'
   )
 
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: { ...process.env, MB_USER_DATA_DIR: userDataDir }
-  })
+  const app = await launchApp(userDataDir)
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
 
     // 等待 schema 下发的 12 个类型加载完成，并明确选中「技能」
     await expect(window.getByTestId('type-tab')).toHaveCount(12)

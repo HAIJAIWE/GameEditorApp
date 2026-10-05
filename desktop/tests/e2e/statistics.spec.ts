@@ -2,19 +2,16 @@ import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { _electron as electron, expect, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+import { launchApp, waitReady } from './helpers/app'
 
 test('数据统计：概览计数与占比 → 平衡性分析（按 schema 数值字段自动发现）', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-statistics-e2e-'))
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: { ...process.env, MB_USER_DATA_DIR: userDataDir }
-  })
+  const app = await launchApp(userDataDir)
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
 
     // 默认活跃类型 role（schema 里 role 无扁平数值字段，属性在 attr_list）
     const createButton = window.getByRole('button', { name: '新增测试条目' })

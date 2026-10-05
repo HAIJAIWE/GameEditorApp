@@ -2,7 +2,8 @@ import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { _electron as electron, expect, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+import { launchApp, waitReady } from './helpers/app'
 
 interface ValidateScoreSetup {
   emptyErrorCount: number
@@ -18,15 +19,11 @@ interface ValidateScoreSetup {
 
 test('校验与评分：IPC 精确结果 + UI 面板展示', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-ceshu-score-e2e-'))
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: { ...process.env, MB_USER_DATA_DIR: userDataDir }
-  })
+  const app = await launchApp(userDataDir)
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
 
     // IPC 侧：空文档校验/评分 → 填 meta 后再次校验/评分（数字与 Python 公式一致）
     const setup = (await window.evaluate(async () => {

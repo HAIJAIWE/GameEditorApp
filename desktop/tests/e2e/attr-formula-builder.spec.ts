@@ -2,7 +2,8 @@ import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { _electron as electron, expect, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+import { launchApp, waitReady } from './helpers/app'
 
 /**
  * 系数公式编辑器（对应 Python `FormulaBuilderDialog`）。
@@ -16,17 +17,13 @@ import { _electron as electron, expect, test } from '@playwright/test'
  */
 test('系数公式编辑器：回填原公式 → 改系数联动 → 应用落盘 → 不可回填时警告且不覆盖', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-formula-builder-e2e-'))
-  const launch = (): ReturnType<typeof electron.launch> =>
-    electron.launch({
-      args: ['.'],
-      cwd: join(__dirname, '..', '..'),
-      env: { ...process.env, MB_USER_DATA_DIR: userDataDir }
-    })
+  const launch = (): ReturnType<typeof launchApp> =>
+    launchApp(userDataDir)
 
   const app = await launch()
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
 
     await window.getByTestId('type-tab').filter({ hasText: '角色' }).click()
     await window.getByRole('button', { name: '新增测试条目' }).click()
@@ -125,7 +122,7 @@ test('系数公式编辑器：回填原公式 → 改系数联动 → 应用落�
   const app2 = await launch()
   try {
     const window = await app2.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
     await window.getByTestId('type-tab').filter({ hasText: '角色' }).click()
     await window.getByTestId('item-row').first().click()
     await expect(window.getByTestId('field-attr_list-result-4')).toHaveText('225.0')
@@ -139,15 +136,11 @@ test('系数公式编辑器：回填原公式 → 改系数联动 → 应用落�
 
 test('系数公式编辑器：纯常量公式（=100）同样拒绝回填并给警告', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-formula-builder-const-e2e-'))
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: { ...process.env, MB_USER_DATA_DIR: userDataDir }
-  })
+  const app = await launchApp(userDataDir)
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
     await window.getByTestId('type-tab').filter({ hasText: '角色' }).click()
     await window.getByRole('button', { name: '新增测试条目' }).click()
     await window.getByTestId('item-row').first().click()

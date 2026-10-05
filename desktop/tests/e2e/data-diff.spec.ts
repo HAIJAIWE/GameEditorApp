@@ -2,7 +2,8 @@ import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { _electron as electron, expect, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+import { launchApp, waitReady } from './helpers/app'
 
 /**
  * 数据对比面板：设基线 → 改数据并保存 → 重开 → 与基线对比，应报告「修改」。
@@ -10,15 +11,11 @@ import { _electron as electron, expect, test } from '@playwright/test'
  */
 test('数据对比：设定基线后修改数据 → 与基线对比应报告修改', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-data-diff-e2e-'))
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: { ...process.env, MB_USER_DATA_DIR: userDataDir }
-  })
+  const app = await launchApp(userDataDir)
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
 
     // 建 2 条角色（默认活跃类型为 role）
     const createButton = window.getByRole('button', { name: '新增测试条目' })

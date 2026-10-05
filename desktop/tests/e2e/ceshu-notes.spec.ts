@@ -2,7 +2,8 @@ import { mkdtempSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { _electron as electron, expect, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+import { launchApp, waitReady } from './helpers/app'
 
 interface NoteRecord {
   id: string
@@ -30,15 +31,11 @@ interface NotesProbe {
 
 test('章节笔记：IPC 增删改查 + 磁盘落盘 + UI 面板全链路', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-ceshu-notes-e2e-'))
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: { ...process.env, MB_USER_DATA_DIR: userDataDir }
-  })
+  const app = await launchApp(userDataDir)
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
 
     // IPC 侧：增 / 查 / 改 / 删 + 错误路径 + 磁盘结构
     const probe = (await window.evaluate(async () => {

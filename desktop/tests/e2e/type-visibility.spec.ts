@@ -2,21 +2,18 @@ import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { _electron as electron, expect, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+import { launchApp, waitReady } from './helpers/app'
 
 test('类型可见性：默认显示全部，取消勾选「技能」后侧栏隐藏该类型', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-type-visibility-e2e-'))
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: { ...process.env, MB_USER_DATA_DIR: userDataDir }
-  })
+  const app = await launchApp(userDataDir)
 
   try {
     const window = await app.firstWindow()
 
     // 默认（未设置偏好）必须显示全部 12 个类型，否则会拖挂其他 E2E
-    await expect(window.getByTestId('type-tab')).toHaveCount(12)
+    await waitReady(window)
 
     await window.getByTestId('open-type-visibility').click()
     await expect(window.getByTestId('type-visibility-panel')).toBeVisible()

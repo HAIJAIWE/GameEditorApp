@@ -2,7 +2,8 @@ import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { _electron as electron, expect, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+import { launchApp, waitReady } from './helpers/app'
 
 /**
  * AI 生图面板（迁移 `features/_ai_image.py` 的 UI 能力）。
@@ -14,15 +15,11 @@ import { _electron as electron, expect, test } from '@playwright/test'
  */
 test('AI 生图：面板打开 → 前置校验 → Key 进钥匙串且本地无明文', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-imagegen-e2e-'))
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: { ...process.env, MB_USER_DATA_DIR: userDataDir }
-  })
+  const app = await launchApp(userDataDir)
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
 
     // 打开生图面板
     await window.getByTestId('open-image-gen').click()
@@ -56,7 +53,7 @@ test('AI 生图：面板打开 → 前置校验 → Key 进钥匙串且本地无
     await window.getByTestId('image-gen-model').fill('qwen-vl-max')
     await window.getByTestId('image-gen-prompt').fill('')
     await window.reload()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
 
     await window.getByTestId('open-image-gen').click()
     await expect(window.getByTestId('image-gen-provider')).toHaveValue('qwen')

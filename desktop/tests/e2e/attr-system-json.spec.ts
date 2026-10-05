@@ -2,7 +2,8 @@ import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { _electron as electron, expect, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+import { launchApp, waitReady } from './helpers/app'
 
 interface AttrJsonProbe {
   sourceCount: number
@@ -52,15 +53,11 @@ test('属性系统 JSON 导入导出：往返一致性 + 异常文件警告 + �
   )
   writeFileSync(corruptPath, '{not-json', 'utf-8')
 
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: { ...process.env, MB_USER_DATA_DIR: userDataDir }
-  })
+  const app = await launchApp(userDataDir)
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
 
     const probe = (await window.evaluate(
       async (args: { exportPath: string; warningPath: string; corruptPath: string; missingPath: string }) => {

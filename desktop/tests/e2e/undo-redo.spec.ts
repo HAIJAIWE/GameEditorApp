@@ -2,7 +2,8 @@ import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { _electron as electron, expect, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+import { launchApp, waitReady } from './helpers/app'
 
 /**
  * 通用撤销/重做 E2E（迁移收尾第三项）。
@@ -13,15 +14,11 @@ import { _electron as electron, expect, test } from '@playwright/test'
  */
 test('通用撤销/重做：创建→撤销→重做（evaluate + 键盘）往返一致', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-undo-e2e-'))
-  const app = await electron.launch({
-    args: ['.'],
-    cwd: join(__dirname, '..', '..'),
-    env: { ...process.env, MB_USER_DATA_DIR: userDataDir }
-  })
+  const app = await launchApp(userDataDir)
 
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
 
     // 直调 IPC 创建一条角色（绕开 UI 时序）
     const id = await window.evaluate(async () => {

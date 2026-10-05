@@ -2,21 +2,18 @@ import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { _electron as electron, expect, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+import { launchApp, waitReady } from './helpers/app'
 
 test('字段结构：新增字段 → 保存 → 数据表表单联动 → 重启后持久化', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-type-editor-e2e-'))
-  const launch = (): ReturnType<typeof electron.launch> =>
-    electron.launch({
-      args: ['.'],
-      cwd: join(__dirname, '..', '..'),
-      env: { ...process.env, MB_USER_DATA_DIR: userDataDir }
-    })
+  const launch = (): ReturnType<typeof launchApp> =>
+    launchApp(userDataDir)
 
   const app = await launch()
   try {
     const window = await app.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
 
     // 打开字段结构编辑器，选中「职业」类型（24 字段的既有类型）
     await window.getByTestId('open-type-editor').click()
@@ -54,7 +51,7 @@ test('字段结构：新增字段 → 保存 → 数据表表单联动 → 重�
   const app2 = await launch()
   try {
     const window = await app2.firstWindow()
-    await expect(window.getByRole('heading', { name: '数据表预览' })).toBeVisible()
+    await waitReady(window)
     await window.getByTestId('type-tab').filter({ hasText: '职业' }).click()
     await window.getByTestId('item-row').first().click()
     await expect(window.getByTestId('field-test_field')).toHaveValue('hello')
