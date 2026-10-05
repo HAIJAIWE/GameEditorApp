@@ -130,6 +130,7 @@ import { exportExcelFile, importExcelFile } from './data/excelIO'
 import { deleteBackupFile, listBackups } from './backup/backupStore'
 import { createLibraryBackup, restoreLibraryBackup } from './backup/restore'
 import type { DataService } from './data/service'
+import { UndoRecorder } from './data/undoRecorder'
 import { exportEngineData } from './engineExport/exporter'
 import type { ImageGenConfig } from '../shared/imageGen'
 import { generateImage } from './imageGen/client'
@@ -143,6 +144,7 @@ import { TYPE_TEMPLATE_NAMES } from '../shared/typeTemplates'
 
 interface IpcHandlerDeps {
   dataService: DataService
+  undoRecorder: UndoRecorder
   ceshuManager: CeshuManager
   ceshuNotesStore: CeshuNotesStore
   ceshuTemplateStore: CeshuTemplateStore
@@ -173,6 +175,7 @@ interface IpcHandlerDeps {
 /** 注册全部 IPC 处理器：入口统一做 zod 校验，结果统一包裹为 IpcResult */
 export function registerIpcHandlers({
   dataService,
+  undoRecorder,
   ceshuManager,
   ceshuNotesStore,
   ceshuTemplateStore,
@@ -432,6 +435,11 @@ export function registerIpcHandlers({
     await dataSync.onDataChanged()
     return summary
   })
+  // 通用撤销/重做（用户手动操作的安全子集）：栈在主进程随库隔离，
+  // handler 经 registerIpcHandlers({...next}) 闭包拿到 undoRecorder（与 dataService 同来源）
+  handle('data:undo', undefined, () => undoRecorder.undo())
+  handle('data:redo', undefined, () => undoRecorder.redo())
+  handle('data:undoState', undefined, () => undoRecorder.getState())
   handle('data:references', referencesInputSchema, (req) => {
     const items = dataService.listAllItems()
     const target = items.find((item) => item.id === req.id)

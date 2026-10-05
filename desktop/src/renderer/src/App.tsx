@@ -50,6 +50,13 @@ export default function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  /** 撤销/重做状态（按钮 disabled 与 tooltip 标签用） */
+  const [undoUi, setUndoUi] = useState<{ canUndo: boolean; canRedo: boolean; nextUndo: string | null; nextRedo: string | null }>({
+    canUndo: false,
+    canRedo: false,
+    nextUndo: null,
+    nextRedo: null
+  })
   const [busy, setBusy] = useState(false)
   const [mode, setMode] = useState<'data' | 'ceshu' | 'digital'>('data')
 
@@ -123,6 +130,50 @@ export default function App() {
     }
   }, [])
 
+  /** 刷新增撤/重做状态（数据变更后调用，保证按钮 disabled 与标签正确） */
+  const refreshUndo = useCallback((): void => {
+    void window.mbApi.data
+      .undoState()
+      .then(setUndoUi)
+      .catch(() => undefined)
+  }, [])
+
+  /** 撤销：执行后刷新状态与按钮，并用 notice 反馈（对齐 AI 回滚风格） */
+  const performUndo = useCallback(async (): Promise<void> => {
+    try {
+      const result = await window.mbApi.data.undo()
+      const state = await window.mbApi.data.undoState()
+      setUndoUi(state)
+      const parts: string[] = []
+      if (result.applied > 0) parts.push(`已撤销 ${result.applied} 项`)
+      else if (result.failed.length === 0 && result.skipped.length === 0) parts.push('没有可撤销的操作')
+      if (result.failed.length > 0) parts.push(`${result.failed.length} 项失败：${result.failed.map((f) => f.name).join('、')}`)
+      if (result.skipped.length > 0)
+        parts.push(`${result.skipped.length} 项跳过：${result.skipped.map((s) => `${s.name}（${s.reason}）`).join('、')}`)
+      setNotice(parts.join('。') || '已撤销')
+    } catch (err) {
+      setError(toErrorMessage(err))
+    }
+  }, [])
+
+  /** 重做：对称于撤销 */
+  const performRedo = useCallback(async (): Promise<void> => {
+    try {
+      const result = await window.mbApi.data.redo()
+      const state = await window.mbApi.data.undoState()
+      setUndoUi(state)
+      const parts: string[] = []
+      if (result.applied > 0) parts.push(`已重做 ${result.applied} 项`)
+      else if (result.failed.length === 0 && result.skipped.length === 0) parts.push('没有可重做的操作')
+      if (result.failed.length > 0) parts.push(`${result.failed.length} 项失败：${result.failed.map((f) => f.name).join('、')}`)
+      if (result.skipped.length > 0)
+        parts.push(`${result.skipped.length} 项跳过：${result.skipped.map((s) => `${s.name}（${s.reason}）`).join('、')}`)
+      setNotice(parts.join('。') || '已重做')
+    } catch (err) {
+      setError(toErrorMessage(err))
+    }
+  }, [])
+
   /** 策划书列表刷新；无选中项时自动选中第一份 */
   const reloadCeshuList = useCallback(async (): Promise<void> => {
     try {
@@ -133,6 +184,31 @@ export default function App() {
       setError(toErrorMessage(err))
     }
   }, [])
+
+  // 初始化撤销/重做状态（启动时填充按钮 disabled 与标签）
+  useEffect(() => {
+    void window.mbApi.data.undoState().then(setUndoUi).catch(() => undefined)
+  }, [])
+
+  // 键盘快捷键：Ctrl/Cmd+Z 撤销；Ctrl/Cmd+Shift+Z 或 Ctrl+Y 重做（输入框内不拦截，保留本地撤销）
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent): void => {
+      const target = event.target as HTMLElement | null
+      const tag = target?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || target?.isContentEditable === true) return
+      if (!(event.ctrlKey || event.metaKey)) return
+      const key = event.key.toLowerCase()
+      if (key === 'z' && !event.shiftKey) {
+        event.preventDefault()
+        void performUndo()
+      } else if ((key === 'z' && event.shiftKey) || key === 'y') {
+        event.preventDefault()
+        void performRedo()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [performUndo, performRedo])
 
   useEffect(() => {
     window.mbApi.app
@@ -278,12 +354,14 @@ export default function App() {
     setSelectedIds(new Set())
     setBatchOpen(false)
     if (activeType) void reload(activeType)
+    refreshUndo()
   }
 
   const handleQuickCreated = (message: string): void => {
     setNotice(message)
     setQuickCreateOpen(false)
     if (activeType) void reload(activeType)
+    refreshUndo()
   }
 
   const handleCreate = async (): Promise<void> => {
@@ -297,6 +375,7 @@ export default function App() {
       })
       await reload(activeType)
       setSelectedId(created.id)
+      refreshUndo()
     } catch (err) {
       setError(toErrorMessage(err))
     } finally {
@@ -310,6 +389,7 @@ export default function App() {
       await window.mbApi.data.deleteItem({ id })
       if (selectedId === id) setSelectedId(null)
       await reload(activeType)
+      refreshUndo()
     } catch (err) {
       setError(toErrorMessage(err))
     }
@@ -318,6 +398,7 @@ export default function App() {
   const handleSaved = (updated: ItemRecord): void => {
     setNotice(`已保存：${String(updated.data.name ?? updated.id)}`)
     if (activeType) void reload(activeType)
+    refreshUndo()
   }
 
   const handleImportLegacy = async (): Promise<void> => {
@@ -712,6 +793,26 @@ export default function App() {
                       <span className="item-meta" data-testid="list-count">
                         显示 {filteredItems.length} / {items.length} 条
                       </span>
+                      <button
+                        type="button"
+                        className="btn"
+                        data-testid="undo"
+                        disabled={!undoUi.canUndo}
+                        title={undoUi.nextUndo ?? '撤销'}
+                        onClick={() => void performUndo()}
+                      >
+                        撤销
+                      </button>
+                      <button
+                        type="button"
+                        className="btn"
+                        data-testid="redo"
+                        disabled={!undoUi.canRedo}
+                        title={undoUi.nextRedo ?? '重做'}
+                        onClick={() => void performRedo()}
+                      >
+                        重做
+                      </button>
                       <button
                         type="button"
                         className="btn"

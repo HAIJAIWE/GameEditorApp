@@ -32,6 +32,7 @@ import { CeshuNotesStore } from './ceshu/notesStore'
 import { CeshuStorage } from './ceshu/storage'
 import { CeshuTemplateStore } from './ceshu/templateStore'
 import { DataService } from './data/service'
+import { UndoRecorder } from './data/undoRecorder'
 import { SqliteItemsRepository } from './data/sqliteRepo'
 import { LlmClient } from './llm/client'
 import { TypeSchemaStore } from './schema/store'
@@ -41,6 +42,8 @@ import { FieldTemplateStore } from './schema/fieldTemplateStore'
 export interface AppStores {
   dbPath: string
   dataService: DataService
+  /** 撤销记录器（随活跃库重建；切换库即清空栈，见 activateLibrary 的结构性保证） */
+  undoRecorder: UndoRecorder
   ceshuManager: CeshuManager
   typeSchemaStore: TypeSchemaStore
   fieldTemplates: FieldTemplateStore
@@ -61,6 +64,9 @@ export interface AppStores {
 export function buildStores(libDir: string): AppStores {
   const dbPath = join(libDir, 'mb-editor.db')
   const data = new DataService(new SqliteItemsRepository(dbPath))
+  // 撤销记录器随活跃库重建；库切换时 buildStores 重新执行 → 旧栈随对象丢弃而清空（E7）
+  const undoRecorder = new UndoRecorder(data)
+  data.attachUndoRecorder(undoRecorder)
   const ceshu = new CeshuManager(new CeshuStorage(join(libDir, 'ceshu')))
   const schema = new TypeSchemaStore(join(libDir, 'type_schema.json'))
 
@@ -95,6 +101,7 @@ export function buildStores(libDir: string): AppStores {
   return {
     dbPath,
     dataService: data,
+    undoRecorder,
     ceshuManager: ceshu,
     typeSchemaStore: schema,
     fieldTemplates: new FieldTemplateStore(join(libDir, 'field_templates.json')),

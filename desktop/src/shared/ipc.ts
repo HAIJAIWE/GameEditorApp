@@ -124,6 +124,12 @@ export interface IpcContract {
   'data:deleteItem': { req: { id: string }; res: { deleted: boolean } }
   'data:batchUpdate': { req: BatchUpdateInput; res: BatchUpdateSummary }
   'data:deleteMany': { req: DeleteManyInput; res: DeleteManySummary }
+  /** 通用撤销/重做（用户手动操作的安全子集）：撤销栈顶操作 */
+  'data:undo': { req: undefined; res: UndoResult }
+  /** 通用撤销/重做：重做栈顶操作 */
+  'data:redo': { req: undefined; res: UndoResult }
+  /** 通用撤销/重做：当前可撤销/重做状态（按钮 disabled + 标签用） */
+  'data:undoState': { req: undefined; res: UndoState }
   'data:references': { req: ReferencesInput; res: ReferenceReport }
   'data:importLegacy': { req: ImportLegacyInput; res: ImportSummary }
   'data:exportLegacy': { req: ExportLegacyInput; res: ExportSummary }
@@ -246,6 +252,27 @@ export interface IpcContract {
   'backup:restore': { req: BackupRestoreInput; res: RestoreOutcome }
   /** 删除备份（软删除，改名为 .deleted 而非物理删除） */
   'backup:delete': { req: BackupDeleteInput; res: { deleted: boolean } }
+}
+
+/** 撤销/重做结果（对齐 AI 回滚风格：成功数 + 失败 + 跳过，绝不假装「全部成功」） */
+export interface UndoResult {
+  /** 实际应用的条目数 */
+  applied: number
+  /** 执行失败条目（中文原因） */
+  failed: { name: string; reason: string }[]
+  /** 因存在性/冲突/被改过等前置检查未通过而跳过的条目 */
+  skipped: { name: string; reason: string }[]
+  canUndo: boolean
+  canRedo: boolean
+}
+
+/** 撤销/重做状态（渲染层按钮 disabled 与标签用） */
+export interface UndoState {
+  canUndo: boolean
+  canRedo: boolean
+  /** 栈顶操作的展示名；批量操作为「批量操作（N 项）」 */
+  nextUndo: string | null
+  nextRedo: string | null
 }
 
 export type IpcChannel = keyof IpcContract

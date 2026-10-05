@@ -75,6 +75,12 @@ export interface MbApi {
     deleteItem(req: IpcContract['data:deleteItem']['req']): Promise<IpcContract['data:deleteItem']['res']>
     batchUpdate(req: IpcContract['data:batchUpdate']['req']): Promise<IpcContract['data:batchUpdate']['res']>
     deleteMany(req: IpcContract['data:deleteMany']['req']): Promise<IpcContract['data:deleteMany']['res']>
+    /** 撤销栈顶操作（用户手动操作的安全子集） */
+    undo(): Promise<IpcContract['data:undo']['res']>
+    /** 重做栈顶操作 */
+    redo(): Promise<IpcContract['data:redo']['res']>
+    /** 当前可撤销/重做状态 */
+    undoState(): Promise<IpcContract['data:undoState']['res']>
     references(req: IpcContract['data:references']['req']): Promise<IpcContract['data:references']['res']>
     importLegacy(req: IpcContract['data:importLegacy']['req']): Promise<IpcContract['data:importLegacy']['res']>
     exportLegacy(req: IpcContract['data:exportLegacy']['req']): Promise<IpcContract['data:exportLegacy']['res']>
