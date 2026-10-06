@@ -234,7 +234,12 @@ export const SETTINGS_KEYS = {
   dataDiffBaseline: 'mb.dataDiffBaseline',
   theme: 'mb.theme',
   fontSize: 'mb.fontSize',
-  confirmDelete: 'mb.confirmDelete'
+  confirmDelete: 'mb.confirmDelete',
+  /**
+   * AI 关键词模板（5 类可编辑，对齐 Python `features/advanced.py:206-306`）。
+   * 不登记到这里的话，`exportSettings` / `resetAllSettings` 不会覆盖它。
+   */
+  keywordTemplates: 'mb.keywordTemplates'
 } as const
 
 export type SettingsKey = (typeof SETTINGS_KEYS)[keyof typeof SETTINGS_KEYS]

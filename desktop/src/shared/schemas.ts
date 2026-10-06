@@ -137,6 +137,22 @@ export const llmGenerateInputSchema = z.object({
 
 export type LlmGenerateInput = z.infer<typeof llmGenerateInputSchema>
 
+/* ---- 图片库扫描 / 清理（迁移 `features/advanced.py::cleanup_unused_images`） ---- */
+
+/**
+ * 物理删除图片。**破坏性操作**：`confirm` 必须为 `true`。
+ *
+ * 主进程会**再跑一次差集复核**才动手 —— 不只信渲染层传来的 `paths`。
+ * 理由：渲染层算的是「扫描那一刻」的未引用集合，用户可能在此期间改了数据。
+ */
+export const deleteImagesInputSchema = z.object({
+  paths: z.array(z.string().min(1)),
+  /** 破坏性操作的显式确认位；缺失或 false 时主进程直接拒绝 */
+  confirm: z.literal(true)
+})
+
+export type DeleteImagesInput = z.infer<typeof deleteImagesInputSchema>
+
 export const engineTargetSchema = z.enum(['lua', 'unity', 'unreal', 'godot', 'cocos2d'])
 
 export const engineExportInputSchema = z.object({

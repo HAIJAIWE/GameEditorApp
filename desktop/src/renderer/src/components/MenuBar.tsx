@@ -71,6 +71,10 @@ export interface MenuActions {
   imageGen: () => void
   /** 角部件「设置」按钮 **与** 菜单「设置 → 打开设置...」共用的动作（打开设置面板） */
   settings: () => void
+  /** 清理未使用图片（迁移 `features/advanced.py::cleanup_unused_images`，破坏性） */
+  cleanupUnusedImages: () => void
+  /** AI 关键词模板配置（PyQt 只在设置面板工具页有，`menus.py` 零引用） */
+  keywordTemplates: () => void
   /** 角部件「智能体」按钮（打开智能体编辑器） */
   agentEditor: () => void
   /** 角部件「AI」按钮（唤起 AI 助手） */
@@ -233,7 +237,7 @@ export default function MenuBar({ canUndo, canRedo, actions }: MenuBarProps) {
       { type: 'action', label: '字段结构编辑器', action: 'fieldEditor', testid: 'menuitem-tools-fieldEditor' },
       { type: 'action', label: '高级搜索', action: 'advancedSearch', testid: 'menuitem-tools-advancedSearch' },
       { type: 'action', label: 'AI 生图', action: 'imageGen', testid: 'menuitem-tools-imageGen' },
-      { type: 'action', label: '清理未使用图片', action: 'notImplemented' }
+      { type: 'action', label: '清理未使用图片', action: 'cleanupUnusedImages', testid: 'menuitem-tools-cleanupUnusedImages' }
     ],
     [{ type: 'action', label: '打开设置...', action: 'settings', testid: 'menuitem-settings-open' }],
     [

@@ -98,6 +98,15 @@ const api: MbApi = {
     /** 单次文本生成（字段级 AI 按钮）；失败由主进程抛中文错误 */
     generate: (req: { system: string; prompt: string }) => invoke('llm:generate', req)
   },
+  /**
+   * 图片库扫描 / 清理（破坏性）。
+   * `deleteImages` 传 `confirm: true` 才会真删 —— 契约里是 `z.literal(true)`，
+   * 渲染层漏传会直接被主进程 schema 拒掉。
+   */
+  images: {
+    listLibraryImages: () => invoke('images:listLibraryImages', undefined),
+    deleteImages: (req: { paths: string[]; confirm: true }) => invoke('images:deleteImages', req)
+  },
   dialog: {
     chooseJsonFile: () => invoke('dialog:chooseJsonFile', undefined),
     chooseEngineExportFile: (req) => invoke('dialog:chooseEngineExportFile', req),

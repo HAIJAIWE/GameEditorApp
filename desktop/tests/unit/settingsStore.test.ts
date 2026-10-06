@@ -221,7 +221,9 @@ describe('settingsStore：已登记键清单', () => {
       theme: 'mb.theme',
       // 设置面板两项（逻辑在 shared/settingsPreferences.ts，键名登记在本清单）
       fontSize: 'mb.fontSize',
-      confirmDelete: 'mb.confirmDelete'
+      confirmDelete: 'mb.confirmDelete',
+      // AI 关键词模板（逻辑在 shared/keywordTemplates.ts）
+      keywordTemplates: 'mb.keywordTemplates'
     })
   })
 

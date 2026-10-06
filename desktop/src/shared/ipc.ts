@@ -40,6 +40,7 @@ import type {
   AgentChatInput,
   AgentExecuteToolInput,
   AgentDraftLoadInput,
+  DeleteImagesInput,
   LlmGenerateInput,
   AgentDraftSaveInput,
   AgentFeedbackInput,
@@ -168,6 +169,18 @@ export interface IpcContract {
    * 单次文本生成（数据编辑器 desc 类字段的「AI生成」/ 图片标签的「AI分析」）。
    * 复用主进程既有的 `LlmClient`（本地 ollama），**不新建模型客户端**。
    */
+  /**
+   * 列出图片库（`settings_dialog.py` → 工具页「清理未使用图片」的扫描侧）。
+   *
+   * `dir` 一并返回：渲染层要靠它把相对路径解析成可显示的完整路径。
+   * 目录取 `<活跃库目录>/images` —— 切库时天然跟随，不需要渲染层传路径。
+   */
+  'images:listLibraryImages': { req: undefined; res: { dir: string; files: string[] } }
+  /** 物理删除图片。破坏性：主进程再校验 `confirm` 且**重跑差集复核** */
+  'images:deleteImages': {
+    req: DeleteImagesInput
+    res: { deleted: number; failed: Array<{ path: string; reason: string }> }
+  }
   'llm:generate': { req: LlmGenerateInput; res: { model: string; content: string } }
 
   // ---- 系统钥匙串（API Key 等敏感配置）----

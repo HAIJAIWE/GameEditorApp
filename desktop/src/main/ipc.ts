@@ -1,5 +1,15 @@
+import { readdir, unlink } from 'node:fs/promises'
 import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { extname, join } from 'node:path'
+import {
+  collectReferencedImagePaths,
+  diffUnusedImages,
+  imagePathKey,
+  IMAGE_EXTENSIONS
+} from '../shared/cleanupImages'
+
+/** 扩展名白名单的 Set 形态（热路径查表用；真源仍是 shared 的 IMAGE_EXTENSIONS 数组） */
+const IMAGE_EXTENSION_SET: ReadonlySet<string> = new Set(IMAGE_EXTENSIONS)
 
 import {
   BrowserWindow,
@@ -40,6 +50,7 @@ import {
   agentDraftLoadInputSchema,
   agentDraftSaveInputSchema,
   engineExportFileDialogInputSchema,
+  deleteImagesInputSchema,
   llmGenerateInputSchema,
   libraryCreateInputSchema,
   libraryNameInputSchema,
@@ -226,6 +237,81 @@ export function registerIpcHandlers({
    * 项目里已有这个客户端与它的中文错误文案，**刻意不新建第二套模型客户端**。
    * 失败直接抛（handler 层会转成 `{code,message}` 抛回渲染层），UI 展示中文原因。
    */
+  /**
+   * 递归收集 `<dir>` 下的全部图片文件。
+   *
+   * 对齐 PyQt `features/advanced.py:405` 的 `data_dir.rglob(f'*{ext}')`。
+   * 目录不存在时返回空列表（首次使用就是空的，不该抛错）。
+   */
+  async function listAllImagePaths(dir: string): Promise<string[]> {
+    const out: string[] = []
+    const walk = async (current: string): Promise<void> => {
+      let entries: Array<{ name: string; isDirectory(): boolean }>
+      try {
+        entries = await readdir(current, { withFileTypes: true })
+      } catch {
+        return
+      }
+      for (const entry of entries) {
+        const full = join(current, entry.name)
+        if (entry.isDirectory()) {
+          await walk(full)
+        } else if (IMAGE_EXTENSION_SET.has(extname(entry.name).toLowerCase())) {
+          out.push(full)
+        }
+      }
+    }
+    await walk(dir)
+    return out.sort()
+  }
+
+  /**
+   * 列出图片库（渲染层是 sandbox，没有 fs，故由主进程代扫）。
+   *
+   * 目录取 `<活跃库目录>/images` —— 切库时闭包里的 `libraryManager` 天然跟随活跃库，
+   * 渲染层不需要（也不该）自己拼路径。
+   */
+  handle('images:listLibraryImages', undefined, async () => {
+    const dir = join(libraryManager.activeDir(), 'images')
+    return { dir, files: await listAllImagePaths(dir) }
+  })
+
+  /**
+   * 物理删除图片（**破坏性**）。
+   *
+   * ⚠️ **不只信渲染层传来的 `paths`**：删除前**重跑一次差集复核**，只删「此刻仍未被引用」的。
+   * 理由：扫描是扫描那一刻的快照，用户可能在此期间改了数据；照单全收会删掉刚被引用的文件。
+   * 被复核否决的也**如实报告**（`reason` 说明原因），不静默丢弃。
+   */
+  handle('images:deleteImages', deleteImagesInputSchema, async (req) => {
+    if (req.confirm !== true) {
+      throw new Error('删除图片需要显式确认')
+    }
+    const dir = join(libraryManager.activeDir(), 'images')
+    const wanted = new Set(req.paths)
+
+    const records = await dataService.listAllItems()
+    const referencedKeys = collectReferencedImagePaths(records, dir).map((p) => imagePathKey(p))
+    const scan = diffUnusedImages(await listAllImagePaths(dir), referencedKeys)
+    const deletable = new Set(scan.unused.filter((full) => wanted.has(full)))
+
+    let deleted = 0
+    const failed: Array<{ path: string; reason: string }> = []
+    for (const target of req.paths) {
+      if (!deletable.has(target)) {
+        failed.push({ path: target, reason: '复核后认为该图片已被引用，未删除' })
+        continue
+      }
+      try {
+        await unlink(target)
+        deleted += 1
+      } catch (error) {
+        failed.push({ path: target, reason: error instanceof Error ? error.message : String(error) })
+      }
+    }
+    return { deleted, failed }
+  })
+
   handle('llm:generate', llmGenerateInputSchema, async (req) => llmClient.generate(req.system, req.prompt))
 
   // ---- 系统钥匙串（API Key 等敏感配置）----

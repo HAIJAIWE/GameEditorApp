@@ -133,6 +133,11 @@ export interface MbApi {
     /** 单次文本生成（数据编辑器字段级 AI 按钮） */
     generate(req: IpcContract['llm:generate']['req']): Promise<IpcContract['llm:generate']['res']>
   },
+  /** 图片库扫描 / 清理（`deleteImages` 是破坏性操作，`confirm` 必填true） */
+  images: {
+    listLibraryImages(): Promise<IpcContract['images:listLibraryImages']['res']>
+    deleteImages(req: IpcContract['images:deleteImages']['req']): Promise<IpcContract['images:deleteImages']['res']>
+  },
   dialog: {
     chooseJsonFile(): Promise<IpcContract['dialog:chooseJsonFile']['res']>
     chooseEngineExportFile(
