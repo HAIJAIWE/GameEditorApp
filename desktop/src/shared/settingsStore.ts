@@ -232,7 +232,9 @@ export const SETTINGS_KEYS = {
   gameStyle: 'mb.gameStyle',
   imageGenConfig: 'mb.imageGenConfig',
   dataDiffBaseline: 'mb.dataDiffBaseline',
-  theme: 'mb.theme'
+  theme: 'mb.theme',
+  fontSize: 'mb.fontSize',
+  confirmDelete: 'mb.confirmDelete'
 } as const
 
 export type SettingsKey = (typeof SETTINGS_KEYS)[keyof typeof SETTINGS_KEYS]

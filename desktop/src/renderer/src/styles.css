@@ -8,6 +8,23 @@
    全文规则一律用 var(--xxx)，切换 `data-theme` 即整站换肤。
    ============================================================ */
 :root {
+  /*
+   * 全站字号缩放系数（设置面板「字体大小」写入）。
+   *
+   * **全站正文字号都写成 `calc(13px * var(--ui-font-scale) * k)`**，13px 是基准
+   * （对齐 PyQt `settings_dialog.py:401` 的 `setValue(13)`），k 是该元素的相对比例
+   * （12px → 12/13、11px → 11/13…，用**精确分数**而非小数 —— 小数系数（如 0.8462）
+   * 在 scale=1 时会还原成 11.001px / 14.999px，累积成「默认值下视觉与改动前不一致」
+   * 的隐性回归；分数形式在 scale=1 时**精确还原**每个原值）。
+   *
+   * 之所以要逐个改而不是只给 body 设一个 font-size：本文件有 134 处硬编码字号，
+   * 只改 body 的话它们全都不跟随 —— 用户改了设置会看到「没反应」。
+   *
+   * **不参与缩放**：`32px`（`.score-total-value`）/ `36px`（`.checklist-score`）
+   * 是分数数字展示，缩放易撑破卡片。
+   * 缩放上下限见 `shared/settingsStore.ts::fontSizeToScale`。
+   */
+  --ui-font-scale: 1;
   color-scheme: light;
 
   /* 表面 */
@@ -114,7 +131,15 @@ body,
 body {
   background: var(--bg);
   color: var(--text);
-  font: 14px/1.6 "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  /*
+   * 基准字号缩放：与下文上百处 `calc(13px * var(--ui-font-scale) * k)` 同一套算法。
+   * 这里必须**拆掉 `font:` 简写**写成 font-size —— 简写里的 `14px` 是硬编码值，
+   * 不参与缩放的话 body 字号就成了「改了设置但正文没变」的唯一漏网之鱼。
+   * 14/13 = 保持与改动前一致的 14px 基准（scale=1 时精确还原）。
+   */
+  font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  font-size: calc(13px * var(--ui-font-scale) * 14/13);
+  line-height: 1.6;
 }
 
 .app {
@@ -155,7 +180,7 @@ body {
 
 .menubar-label {
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
   white-space: nowrap;
 }
 
@@ -192,7 +217,7 @@ body {
   border: none;
   background: transparent;
   color: var(--text);
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale) * 1.0);
   white-space: nowrap;
   cursor: pointer;
 }
@@ -223,7 +248,7 @@ body {
   border-radius: 4px;
   background: transparent;
   color: var(--text);
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale) * 1.0);
   text-align: left;
   white-space: nowrap;
   cursor: pointer;
@@ -252,7 +277,7 @@ body {
 .menu-submenu-label {
   padding: 4px 12px 2px;
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: calc(13px * var(--ui-font-scale) * 11/13);
   font-weight: 600;
 }
 
@@ -384,7 +409,7 @@ body {
   /* 0 份额会被压到单字宽竖排；auto 基底保住自然宽度，剩余空间仍由 grow 撑满 */
   flex: 1 0 auto;
   margin: 0;
-  font-size: 16px;
+  font-size: calc(13px * var(--ui-font-scale) * 16/13);
   white-space: nowrap;
 }
 
@@ -518,7 +543,7 @@ body {
 }
 
 .editor-title {
-  font-size: 14px;
+  font-size: calc(13px * var(--ui-font-scale) * 14/13);
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -529,7 +554,7 @@ body {
   display: block;
   margin-top: 2px;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
   font-weight: 400;
 }
 
@@ -559,7 +584,7 @@ body {
   border: none;
   background: transparent;
   color: var(--text);
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale) * 1.0);
   font-weight: 600;
   text-align: left;
   cursor: pointer;
@@ -580,7 +605,7 @@ body {
 
 .form-section-caret {
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: calc(13px * var(--ui-font-scale) * 11/13);
 }
 
 .form-section-body {
@@ -612,7 +637,7 @@ body {
   max-width: 45%;
   padding-top: 7px; /* 与 6px 内边距的输入框首行文字对齐 */
   color: var(--text-secondary); /* PyQt `ceshu_form_label_qss` 用的是 secondary_fg */
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
   line-height: 1.45;
 }
 
@@ -636,7 +661,7 @@ body {
 
 .form-label {
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
 
 .form-input,
@@ -649,7 +674,7 @@ body {
   background: var(--bg);
   color: var(--text);
   font: inherit;
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale) * 1.0);
 }
 
 .form-textarea {
@@ -672,7 +697,7 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: 'Cascadia Code', Consolas, 'Courier New', monospace;
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
   line-height: 1.5;
   white-space: pre;
   tab-size: 2;
@@ -754,7 +779,7 @@ body {
   border: 1px solid var(--danger);
   border-radius: var(--radius);
   color: var(--danger);
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
 
 .editor-actions {
@@ -776,7 +801,7 @@ body {
 
 .item-meta {
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
 
 .empty {
@@ -812,14 +837,14 @@ body {
   border-top: 1px solid var(--border);
   background: var(--bg);
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
 
 /* 快捷键提示（PyQt 侧是常驻的 shortcut_label，11px + 左右留白） */
 .statusbar-hint {
   padding: 0 10px;
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: calc(13px * var(--ui-font-scale) * 11/13);
   white-space: nowrap;
 }
 
@@ -878,7 +903,7 @@ body {
 .chapter-tab-label {
   flex: 1;
   min-width: 0;
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale) * 1.0);
 }
 
 /*
@@ -932,7 +957,7 @@ body {
 .chapter-nav-hint {
   padding: 8px;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
 
 .chapter-body {
@@ -954,7 +979,7 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 15px;
+  font-size: calc(13px * var(--ui-font-scale) * 15/13);
   font-weight: 600;
 }
 
@@ -1021,7 +1046,7 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale) * 1.0);
 }
 
 .toolbar .export-format {
@@ -1070,7 +1095,7 @@ body {
 .digital-draft-list-label {
   padding: 4px 8px;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
 
 /* 分组间画分隔线（末组不画） */
@@ -1088,7 +1113,7 @@ body {
   border-radius: 4px;
   background: transparent;
   color: var(--text);
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale) * 1.0);
   text-align: left;
   white-space: nowrap;
   cursor: pointer;
@@ -1164,7 +1189,7 @@ body {
 
 .changelog-line {
   padding: 2px 0;
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale) * 1.0);
 }
 
 .changelog-line.added {
@@ -1183,7 +1208,7 @@ body {
 
 .validate-line {
   padding: 2px 0;
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale) * 1.0);
   line-height: 1.7;
 }
 
@@ -1207,12 +1232,12 @@ body {
   display: flex;
   gap: 16px;
   margin: 8px 0;
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale) * 1.0);
 }
 
 .score-suggestion {
   padding: 2px 0;
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale) * 1.0);
 }
 
 .score-table {
@@ -1225,7 +1250,7 @@ body {
 .score-table td {
   border: 1px solid var(--border);
   padding: 4px 8px;
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
   text-align: left;
 }
 
@@ -1251,7 +1276,7 @@ body {
 }
 
 .checklist-status {
-  font-size: 16px;
+  font-size: calc(13px * var(--ui-font-scale) * 16/13);
   font-weight: 700;
 }
 
@@ -1324,7 +1349,7 @@ body {
   background: var(--bg-panel);
   color: var(--text);
   cursor: pointer;
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale) * 1.0);
   text-align: left;
 }
 
@@ -1364,7 +1389,7 @@ body {
   width: 26px;
   height: 26px;
   border-radius: 13px;
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale) * 1.0);
 }
 
 .checklist-item-body {
@@ -1373,7 +1398,7 @@ body {
 }
 
 .checklist-item-title {
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale) * 1.0);
   font-weight: 600;
 }
 
@@ -1384,19 +1409,19 @@ body {
 .checklist-item-desc {
   margin-top: 2px;
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: calc(13px * var(--ui-font-scale) * 11/13);
 }
 
 .checklist-item-msg {
   margin-top: 2px;
-  font-size: 11px;
+  font-size: calc(13px * var(--ui-font-scale) * 11/13);
 }
 
 .checklist-item-badge {
   flex-shrink: 0;
   padding: 2px 6px;
   border-radius: 8px;
-  font-size: 10px;
+  font-size: calc(13px * var(--ui-font-scale) * 10/13);
 }
 
 .checklist-item-badge.required {
@@ -1424,7 +1449,7 @@ body {
 }
 
 .diff-stats {
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale) * 1.0);
   line-height: 1.8;
 }
 
@@ -1455,7 +1480,7 @@ body {
   background: var(--bg-panel);
   color: var(--text);
   cursor: pointer;
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
   text-align: left;
 }
 
@@ -1471,7 +1496,7 @@ body {
 .diff-chapter-count {
   flex-shrink: 0;
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: calc(13px * var(--ui-font-scale) * 11/13);
 }
 
 .diff-fields {
@@ -1500,7 +1525,7 @@ body {
 
 .diff-detail-title {
   margin-bottom: 6px;
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale) * 1.0);
   font-weight: 600;
 }
 
@@ -1509,7 +1534,7 @@ body {
   padding: 6px 8px;
   border-radius: var(--radius);
   background: var(--bg-hover);
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
   white-space: pre-wrap;
   word-break: break-all;
 }
@@ -1550,7 +1575,7 @@ body {
   background: var(--bg-panel);
   color: var(--text);
   cursor: pointer;
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
   text-align: left;
 }
 
@@ -1564,12 +1589,12 @@ body {
 
 .notes-item-preview {
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: calc(13px * var(--ui-font-scale) * 11/13);
 }
 
 .notes-item-meta {
   color: var(--text-muted);
-  font-size: 10px;
+  font-size: calc(13px * var(--ui-font-scale) * 10/13);
 }
 
 .notes-editor {
@@ -1600,7 +1625,7 @@ body {
 /* ---- 字数统计面板 ---- */
 
 .wordstats-summary {
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale) * 1.0);
   line-height: 1.8;
 }
 
@@ -1655,7 +1680,7 @@ body {
   flex-shrink: 0;
   width: 26px;
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: calc(13px * var(--ui-font-scale) * 11/13);
 }
 
 .deps-node {
@@ -1663,13 +1688,13 @@ body {
   border: 1px solid var(--border);
   border-radius: 10px;
   background: var(--bg-panel);
-  font-size: 11px;
+  font-size: calc(13px * var(--ui-font-scale) * 11/13);
 }
 
 .deps-missing {
   margin-left: 8px;
   color: var(--danger);
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
 
 /* ---- AI 一键生成面板 ---- */
@@ -1680,7 +1705,7 @@ body {
   flex-wrap: wrap;
   gap: 12px;
   margin-top: 8px;
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale) * 1.0);
 }
 
 .ai-gen-row .form-label {
@@ -1722,7 +1747,7 @@ body {
   align-items: baseline;
   gap: 10px;
   padding: 2px 0;
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale) * 1.0);
 }
 
 .ai-gen-status-label {
@@ -1747,7 +1772,7 @@ body {
 
 .ai-gen-status-error {
   color: var(--danger);
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
 
 /* ---- 字段结构编辑器 ---- */
@@ -1808,7 +1833,7 @@ body {
   gap: 6px;
   padding: 4px 0 6px 10px;
   border-left: 2px solid var(--border);
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
 
 .te-id-suggest-label,
@@ -1866,7 +1891,7 @@ body {
 
 .btn.slim {
   padding: 2px 8px;
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
   line-height: 1.4;
 }
 
@@ -1885,7 +1910,7 @@ body {
   border-radius: var(--radius);
   background: transparent;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
   cursor: pointer;
 }
 
@@ -1918,7 +1943,7 @@ button.ref-row:hover {
 }
 
 .ref-row-main {
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale) * 1.0);
   font-weight: 600;
   max-width: 100%;
   overflow: hidden;
@@ -1941,7 +1966,7 @@ button.ref-row:hover {
 .attr-head {
   margin-top: 8px;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
 
 .attr-name {
@@ -1978,7 +2003,7 @@ button.ref-row:hover {
   text-align: right;
   font-weight: 600;
   color: var(--accent);
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale) * 1.0);
 }
 
 .attr-actions {
@@ -1990,7 +2015,7 @@ button.ref-row:hover {
 
 .attr-invalid {
   color: var(--danger);
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
 
 /* ---- 条目级属性列表编辑器（attrtable 字段） ---- */
@@ -2018,7 +2043,7 @@ button.ref-row:hover {
 
 .attr-list-empty {
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
 
 .attr-list-actions {
@@ -2043,7 +2068,7 @@ button.ref-row:hover {
 
 .ref-drop-title {
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
 
 .ref-drop-actions {
@@ -2053,13 +2078,13 @@ button.ref-row:hover {
 
 .ref-drop-empty {
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
 
 .ref-drop-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
 
 .ref-drop-table th,
@@ -2117,7 +2142,7 @@ button.ref-row:hover {
   border-radius: 4px;
   background: var(--bg);
   color: var(--text);
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
   text-align: left;
   cursor: pointer;
 }
@@ -2146,7 +2171,7 @@ button.ref-row:hover {
   align-items: center;
   gap: 4px;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
 
 .attr-calc {
@@ -2159,7 +2184,7 @@ button.ref-row:hover {
 .attr-calc-title {
   margin-bottom: 6px;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
 
 .attr-calc-rows {
@@ -2172,7 +2197,7 @@ button.ref-row:hover {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale) * 1.0);
 }
 
 .attr-calc-name {
@@ -2188,7 +2213,7 @@ button.ref-row:hover {
   border: 1px solid var(--border);
   border-radius: 8px;
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: calc(13px * var(--ui-font-scale) * 11/13);
 }
 
 .attr-calc-source.input {
@@ -2200,14 +2225,14 @@ button.ref-row:hover {
   min-width: 64px;
   text-align: right;
   color: var(--accent);
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale) * 1.0);
   font-weight: 600;
 }
 
 .attr-calc-note {
   margin-top: 6px;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
 
 /* ---- 条目属性面板编辑器（attrpanel 字段） ---- */
@@ -2241,7 +2266,7 @@ button.ref-row:hover {
 
 .attr-panel-head {
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
 
 .attr-panel-category {
@@ -2261,7 +2286,7 @@ button.ref-row:hover {
   width: 52px;
   text-align: right;
   color: var(--accent);
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale) * 1.0);
   font-weight: 600;
 }
 
@@ -2276,7 +2301,7 @@ button.ref-row:hover {
 .attr-panel-error {
   flex-basis: 100%;
   color: var(--danger);
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
 
 /* 公式列（输入框 + 系数编辑器入口） */
@@ -2307,19 +2332,19 @@ button.ref-row:hover {
 }
 
 .attr-panel-builder-title {
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
   font-weight: 600;
 }
 
 .attr-panel-builder-hint {
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
 
 .attr-panel-builder-warning {
   padding: 6px 8px;
   color: var(--danger);
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
   background: var(--bg);
   border: 1px solid var(--danger);
   border-radius: 4px;
@@ -2340,7 +2365,7 @@ button.ref-row:hover {
 .attr-panel-builder-name {
   min-width: 56px;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
 
 .attr-panel-builder-coeff {
@@ -2361,7 +2386,7 @@ button.ref-row:hover {
   overflow: hidden;
   color: var(--accent);
   font-family: 'Consolas', monospace;
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale) * 1.0);
   text-overflow: ellipsis;
   white-space: nowrap;
   background: var(--bg);
@@ -2399,7 +2424,7 @@ button.ref-row:hover {
 .attr-matrix td {
   padding: 2px 4px;
   border: 1px solid var(--border);
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
 
 .attr-matrix thead th {
@@ -2434,7 +2459,7 @@ button.ref-row:hover {
 .attr-matrix-hint {
   margin-top: 8px;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
 
 /* ---- 实时预览（属性系统编辑器） ---- */
@@ -2457,7 +2482,7 @@ button.ref-row:hover {
 
 .attr-live-title {
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
   font-weight: 600;
 }
 
@@ -2473,7 +2498,7 @@ button.ref-row:hover {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale) * 1.0);
 }
 
 .attr-live-input {
@@ -2483,7 +2508,7 @@ button.ref-row:hover {
 .attr-live-bonus-label {
   width: 96px;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
 
 .attr-live-bonus {
@@ -2504,7 +2529,7 @@ button.ref-row:hover {
 
 .attr-live-result-value {
   color: var(--text);
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale) * 1.0);
   font-weight: 600;
 }
 
@@ -2520,7 +2545,7 @@ button.ref-row:hover {
   background: var(--bg-panel);
   color: var(--text);
   font-family: Consolas, monospace;
-  font-size: 11px;
+  font-size: calc(13px * var(--ui-font-scale) * 11/13);
   line-height: 1.5;
   white-space: pre-wrap;
 }
@@ -2569,7 +2594,7 @@ button.ref-row:hover {
   background: var(--bg-panel);
   color: var(--text);
   font: inherit;
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale) * 1.0);
   text-align: left;
   cursor: pointer;
 }
@@ -2585,7 +2610,7 @@ button.ref-row:hover {
 .equip-preview-item-bonus {
   margin-left: auto;
   color: var(--accent);
-  font-size: 11px;
+  font-size: calc(13px * var(--ui-font-scale) * 11/13);
 }
 
 .equip-preview-inspector {
@@ -2607,11 +2632,11 @@ button.ref-row:hover {
   width: 56px;
   flex-shrink: 0;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
 
 .equip-slot-item {
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale) * 1.0);
   font-weight: 600;
 }
 
@@ -2629,7 +2654,7 @@ button.ref-row:hover {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
 
 .equip-compare-name {
@@ -2680,7 +2705,7 @@ button.ref-row:hover {
 .review-dim-label {
   width: 88px;
   flex-shrink: 0;
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale) * 1.0);
 }
 
 .review-dim-track {
@@ -2721,7 +2746,7 @@ button.ref-row:hover {
   text-align: right;
   color: var(--text-muted);
   font-family: Consolas, monospace;
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale) * 1.0);
   font-weight: 600;
 }
 
@@ -2745,7 +2770,7 @@ button.ref-row:hover {
   flex-basis: 100%;
   padding-left: 96px;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
 
 /* ---- 混合玩法预设市场（策划书） ---- */
@@ -2785,7 +2810,7 @@ button.ref-row:hover {
 }
 
 .preset-card-title {
-  font-size: 14px;
+  font-size: calc(13px * var(--ui-font-scale) * 14/13);
   font-weight: 600;
 }
 
@@ -2793,7 +2818,7 @@ button.ref-row:hover {
   padding: 2px 8px;
   border-radius: 8px;
   color: var(--btn-text);
-  font-size: 10px;
+  font-size: calc(13px * var(--ui-font-scale) * 10/13);
   font-weight: 700;
 }
 
@@ -2803,16 +2828,16 @@ button.ref-row:hover {
 
 .preset-highlight {
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: calc(13px * var(--ui-font-scale) * 11/13);
 }
 
 .preset-systems {
-  font-size: 11px;
+  font-size: calc(13px * var(--ui-font-scale) * 11/13);
 }
 
 .preset-secondary {
   color: var(--text-muted);
-  font-size: 10px;
+  font-size: calc(13px * var(--ui-font-scale) * 10/13);
 }
 
 .preset-confirm {
@@ -2830,7 +2855,7 @@ button.ref-row:hover {
   margin: 0;
   padding-left: 18px;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
 
 /* ---- 策划书首页（W34：卡片视图） ---- */
@@ -2854,14 +2879,14 @@ button.ref-row:hover {
 
 .home-ai-title {
   margin: 0;
-  font-size: 16px;
+  font-size: calc(13px * var(--ui-font-scale) * 16/13);
   font-weight: 600;
   color: #ffffff;
 }
 
 .home-ai-hint {
   margin: 0;
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
   color: rgba(255, 255, 255, 0.85);
 }
 
@@ -2878,7 +2903,7 @@ button.ref-row:hover {
   border-radius: 8px;
   padding: 10px 14px;
   color: #333333;
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale) * 1.0);
 }
 
 .home-ai-input:focus {
@@ -2894,7 +2919,7 @@ button.ref-row:hover {
   border: none;
   border-radius: 8px;
   padding: 10px 20px;
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale) * 1.0);
   font-weight: 600;
 }
 
@@ -2918,7 +2943,7 @@ button.ref-row:hover {
 
 .home-section-label {
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
   font-weight: 600;
 }
 
@@ -2957,7 +2982,7 @@ button.ref-row:hover {
 }
 
 .home-card-title {
-  font-size: 14px;
+  font-size: calc(13px * var(--ui-font-scale) * 14/13);
   font-weight: 600;
 }
 
@@ -2971,7 +2996,7 @@ button.ref-row:hover {
 .home-badge {
   padding: 2px 8px;
   border-radius: 8px;
-  font-size: 10px;
+  font-size: calc(13px * var(--ui-font-scale) * 10/13);
   font-weight: 700;
 }
 
@@ -2992,7 +3017,7 @@ button.ref-row:hover {
 
 .home-card-date {
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: calc(13px * var(--ui-font-scale) * 11/13);
 }
 
 .home-card-progress {
@@ -3061,12 +3086,12 @@ button.ref-row:hover {
 
 .competitive-chart-label {
   fill: var(--text-muted);
-  font-size: 9px;
+  font-size: calc(13px * var(--ui-font-scale) * 9/13);
 }
 
 /* 散点名称颜色由组件内联 fill 提供，此处只控字号 */
 .competitive-chart-name {
-  font-size: 9px;
+  font-size: calc(13px * var(--ui-font-scale) * 9/13);
 }
 
 /* ---- 版本时间线（策划书） ---- */
@@ -3076,7 +3101,7 @@ button.ref-row:hover {
   flex-wrap: wrap;
   gap: 16px;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
 
 .timeline-legend-item {
@@ -3106,7 +3131,7 @@ button.ref-row:hover {
   border-radius: var(--radius);
   background: var(--bg-panel);
   color: var(--text);
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale) * 1.0);
 }
 
 .timeline-detail-title {
@@ -3124,7 +3149,7 @@ button.ref-row:hover {
   border: 1px solid var(--accent);
   border-radius: var(--radius);
   background: var(--bg-panel);
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale) * 1.0);
 }
 
 .template-filters {
@@ -3194,7 +3219,7 @@ button.ref-row:hover {
   background: transparent;
   color: var(--text);
   font: inherit;
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale) * 1.0);
   text-align: left;
   cursor: pointer;
 }
@@ -3213,7 +3238,7 @@ button.ref-row:hover {
   border-radius: 999px;
   background: var(--bg-hover);
   color: var(--text-muted);
-  font-size: 10px;
+  font-size: calc(13px * var(--ui-font-scale) * 10/13);
   vertical-align: middle;
 }
 
@@ -3281,7 +3306,7 @@ button.ref-row:hover {
   background: var(--bg-panel);
   color: var(--text);
   font: inherit;
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
   cursor: pointer;
 }
 
@@ -3309,7 +3334,7 @@ button.ref-row:hover {
 }
 
 .datagen-item {
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale) * 1.0);
 }
 
 /* ---- GDD 模板编辑器（W29） ---- */
@@ -3341,7 +3366,7 @@ button.ref-row:hover {
 .template-editor-data {
   min-height: 180px;
   font-family: Consolas, monospace;
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
 
 .template-editor-actions {
@@ -3356,7 +3381,7 @@ button.ref-row:hover {
 
 .template-item-tags {
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: calc(13px * var(--ui-font-scale) * 11/13);
 }
 
 .template-preview {
@@ -3374,7 +3399,7 @@ button.ref-row:hover {
 }
 
 .template-preview-title {
-  font-size: 14px;
+  font-size: calc(13px * var(--ui-font-scale) * 14/13);
   font-weight: 600;
 }
 
@@ -3389,7 +3414,7 @@ button.ref-row:hover {
   border-radius: 999px;
   background: var(--bg-hover);
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: calc(13px * var(--ui-font-scale) * 11/13);
 }
 
 .template-preview-rows {
@@ -3399,7 +3424,7 @@ button.ref-row:hover {
 }
 
 .template-preview-row {
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
   white-space: pre-wrap;
 }
 
@@ -3447,7 +3472,7 @@ button.ref-row:hover {
   max-width: 78%;
   padding: 8px 12px;
   border-radius: var(--radius);
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale) * 1.0);
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -3478,7 +3503,7 @@ button.ref-row:hover {
 .digital-step-list {
   margin: 0;
   padding-left: 20px;
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
 
 .digital-step-tool {
@@ -3488,7 +3513,7 @@ button.ref-row:hover {
 
 .digital-step-result {
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: calc(13px * var(--ui-font-scale) * 11/13);
   white-space: pre-wrap;
 }
 
@@ -3500,7 +3525,7 @@ button.ref-row:hover {
   display: flex;
   align-items: baseline;
   gap: 6px;
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
 
 .digital-task-tool {
@@ -3522,7 +3547,7 @@ button.ref-row:hover {
   max-height: 120px;
   overflow: auto;
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: calc(13px * var(--ui-font-scale) * 11/13);
 }
 
 .digital-input-row {
@@ -3611,7 +3636,7 @@ button.ref-row:hover {
 
 .qc-card-desc {
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
   margin-top: 4px;
 }
 
@@ -3625,14 +3650,14 @@ button.ref-row:hover {
 
 .qc-preview-title {
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
   margin-bottom: 6px;
 }
 
 .qc-preview-row {
   display: flex;
   gap: 8px;
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
   padding: 2px 0;
 }
 
@@ -3678,7 +3703,7 @@ button.ref-row:hover {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
 
 .qc-stat-name {
@@ -3710,7 +3735,7 @@ button.ref-row:hover {
   margin-top: 6px;
   padding-top: 8px;
   border-top: 1px solid var(--border);
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
   color: var(--text-muted);
 }
 
@@ -3730,7 +3755,7 @@ button.ref-row:hover {
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 2px 10px;
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
 
 .qc-summary-grid span:nth-child(odd) {
@@ -3739,7 +3764,7 @@ button.ref-row:hover {
 
 .qc-verdict {
   margin-top: 8px;
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
 
 .qc-verdict.good {
@@ -3798,7 +3823,7 @@ button.ref-row:hover {
   border-radius: 4px;
   background: transparent;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
   cursor: pointer;
 }
 

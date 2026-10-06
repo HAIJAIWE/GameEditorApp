@@ -69,7 +69,7 @@ export interface MenuActions {
   advancedSearch: () => void
   /** AI 生图（TS 独有入口） */
   imageGen: () => void
-  /** 角部件「设置」按钮 */
+  /** 角部件「设置」按钮 **与** 菜单「设置 → 打开设置...」共用的动作（打开设置面板） */
   settings: () => void
   /** 角部件「智能体」按钮（打开智能体编辑器） */
   agentEditor: () => void
@@ -235,7 +235,7 @@ export default function MenuBar({ canUndo, canRedo, actions }: MenuBarProps) {
       { type: 'action', label: 'AI 生图', action: 'imageGen', testid: 'menuitem-tools-imageGen' },
       { type: 'action', label: '清理未使用图片', action: 'notImplemented' }
     ],
-    [{ type: 'action', label: '打开设置...', action: 'notImplemented' }],
+    [{ type: 'action', label: '打开设置...', action: 'settings', testid: 'menuitem-settings-open' }],
     [
       { type: 'action', label: '快速入门', action: 'notImplemented' },
       { type: 'action', label: '快捷键参考', action: 'shortcuts', testid: 'menuitem-help-shortcuts' },

@@ -212,13 +212,16 @@ describe('settingsStore：导出 / 导入 / 重置', () => {
 })
 
 describe('settingsStore：已登记键清单', () => {
-  it('四个键都与既有实现一致（防漂移）', () => {
+  it('每个键都与既有实现一致（防漂移）', () => {
     expect(SETTINGS_KEYS).toEqual({
       visibleTypes: 'mb.visibleTypes',
       gameStyle: 'mb.gameStyle',
       imageGenConfig: 'mb.imageGenConfig',
       dataDiffBaseline: 'mb.dataDiffBaseline',
-      theme: 'mb.theme'
+      theme: 'mb.theme',
+      // 设置面板两项（逻辑在 shared/settingsPreferences.ts，键名登记在本清单）
+      fontSize: 'mb.fontSize',
+      confirmDelete: 'mb.confirmDelete'
     })
   })
 

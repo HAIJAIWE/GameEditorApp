@@ -8,6 +8,7 @@ import {
   type BatchOpKind,
   type AdjustMode
 } from '../../../shared/dataTableOps'
+import { loadConfirmDelete } from '../../../shared/settingsPreferences'
 import type { DataTypeDef } from '../../../shared/types'
 
 /**
@@ -66,6 +67,13 @@ export default function BatchEditPanel({
   const [errors, setErrors] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
 
+  /**
+   * 「删除时确认」偏好（Python `settings_dialog.py:239` 的 QCheckBox，本面板是其真实消费者）。
+   * 惰性初值：面板挂载时读一次即可 —— 设置面板与批量面板是互斥浮层，用户不可能同时改偏好。
+   * 关闭时删除**直接执行不确认**（破坏性，故默认开启，见 `settingsPreferences` 的说明）。
+   */
+  const [confirmDelete] = useState<boolean>(() => loadConfirmDelete())
+
   // 自选范围：按当前 scopeType 拉取该类型的全部条目 id。
   // setState 只在 promise 回调里发生（不在 effect 体内同步 setState，避免级联渲染被 lint 禁止）。
   useEffect(() => {
@@ -107,6 +115,19 @@ export default function BatchEditPanel({
     setField(nextFields[0]?.name ?? 'name')
     setDeleteConfirm(false)
     setErrors([])
+  }
+
+  /**
+   * 点「删除作用范围内条目」：按「删除时确认」偏好决定是否先要一次确认。
+   * 偏好开启 → 先进入内联两按钮确认态（项目对模态弹窗的既有替代方案）；
+   * 偏好关闭 → 直接执行删除。
+   */
+  const handleDeleteClick = (): void => {
+    if (!confirmDelete) {
+      void handleDelete()
+      return
+    }
+    setDeleteConfirm(true)
   }
 
   const handleApply = async (): Promise<void> => {
@@ -351,7 +372,15 @@ export default function BatchEditPanel({
 
         {op === 'delete_selected' && (
           <div className="form-row">
-            <div className="danger-hint">将删除作用范围内的 {effectiveCount} 项数据，此操作不可撤销！</div>
+            <div className="danger-hint" data-testid="batch-delete-hint">
+              将删除作用范围内的 {effectiveCount} 项数据，此操作不可撤销！
+              {confirmDelete ? null : (
+                <>
+                  <br />
+                  <b>「删除时确认」已关闭</b>：点击后立即删除，不再二次确认。
+                </>
+              )}
+            </div>
           </div>
         )}
 
@@ -387,7 +416,7 @@ export default function BatchEditPanel({
               className="btn danger"
               data-testid="batch-delete"
               disabled={busy || effectiveCount === 0}
-              onClick={() => setDeleteConfirm(true)}
+              onClick={() => handleDeleteClick()}
             >
               删除作用范围内条目
             </button>

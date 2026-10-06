@@ -24,6 +24,7 @@ import MenuBar from './components/MenuBar'
 import QuickCreatePanel from './components/QuickCreatePanel'
 import ReferencesPanel, { type ReferenceTarget } from './components/ReferencesPanel'
 import ShortcutsPanel from './components/ShortcutsPanel'
+import SettingsPanel from './components/SettingsPanel'
 import StatisticsPanel from './components/StatisticsPanel'
 import TypeEditorPanel from './components/TypeEditorPanel'
 
@@ -59,6 +60,7 @@ type OverlayPanel =
   | 'shortcuts'
   | 'about'
   | 'clearAll'
+  | 'settings'
 
 /** 浮层头部标题（与菜单项一致，便于用户确认当前打开的是哪个能力） */
 const PANEL_TITLES: Record<OverlayPanel, string> = {
@@ -75,7 +77,8 @@ const PANEL_TITLES: Record<OverlayPanel, string> = {
   gameDataPreview: '游戏数据预览',
   shortcuts: '快捷键参考',
   about: '关于墨白编辑器',
-  clearAll: '清空所有数据'
+  clearAll: '清空所有数据',
+  settings: '设置'
 }
 
 /**
@@ -576,6 +579,8 @@ export default function App() {
         return <AboutPanel version={info?.version ?? null} />
       case 'clearAll':
         return <ClearAllPanel onCleared={handleDataCleared} />
+      case 'settings':
+        return <SettingsPanel />
       case 'quickCreate':
         return (
           <QuickCreatePanel
@@ -656,7 +661,7 @@ export default function App() {
           clearAll: () => openPanel('clearAll'),
           shortcuts: () => openPanel('shortcuts'),
           about: () => openPanel('about'),
-          settings: () => notImplemented('设置'),
+          settings: () => openPanel('settings'),
           agentEditor: () => notImplemented('智能体编辑器'),
           aiPanel: () => setNotice('AI 助手已在右侧常驻'),
           notImplemented,
