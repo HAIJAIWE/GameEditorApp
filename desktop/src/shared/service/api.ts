@@ -81,6 +81,11 @@ export interface MbApi {
     deleteItem(req: IpcContract['data:deleteItem']['req']): Promise<IpcContract['data:deleteItem']['res']>
     batchUpdate(req: IpcContract['data:batchUpdate']['req']): Promise<IpcContract['data:batchUpdate']['res']>
     deleteMany(req: IpcContract['data:deleteMany']['req']): Promise<IpcContract['data:deleteMany']['res']>
+    /**
+     * 清空整个活跃库的数据（破坏性）：req.confirm 必须为 true。
+     * 走 deleteMany 的统一路径 ⇒ 可用「撤销 (Ctrl+Z)」整批找回。
+     */
+    clearAll(req: IpcContract['data:clearAll']['req']): Promise<IpcContract['data:clearAll']['res']>
     /** 撤销栈顶操作（用户手动操作的安全子集） */
     undo(): Promise<IpcContract['data:undo']['res']>
     /** 重做栈顶操作 */

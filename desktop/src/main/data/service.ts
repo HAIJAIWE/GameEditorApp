@@ -205,6 +205,22 @@ export class DataService implements UndoRecorderPort {
   }
 
   /**
+   * 清空所有数据（对齐 PyQt `data_manager.clear_all`，菜单入口 `编辑 → 清空所有数据`）。
+   *
+   * 实现要点：**刻意走 `listAllItems()` + `deleteMany(ids)` 的统一路径**，
+   * 而不是直接 `DELETE FROM items` —— 后者绕过撤销记录器，用户按下「撤销 (Ctrl+Z)」
+   * 却发现数据回不来（PyQt 侧的 `clear_all` 也是走 manager 的统一删除路径，故同样可撤销）。
+   *
+   * 规模：`deleteMany` 逐条删（本仓数据量级下 O(N) 可接受），且整批只落**一条**
+   * `deleteMany` 撤销条目（children 逐条），撤销栈不会被清空操作刷爆。
+   * 空库时 ids 为空数组：`deleteMany([])` 不记条目、直接返回，故天然幂等且不报错。
+   */
+  clearAll(): Promise<{ deleted: number }> {
+    const ids = this.repo.listAllItems().map((record) => record.id)
+    return this.deleteMany(ids).then((summary) => ({ deleted: summary.deleted }))
+  }
+
+  /**
    * 批量导入（旧数据迁移用）：整批走一次写队列，保持"唯一写者"语义。
    * 已存在的 id 更新其数据并保留原 createdAt。
    */

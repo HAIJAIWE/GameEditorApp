@@ -174,6 +174,15 @@ export const deleteManyInputSchema = z.object({
   ids: z.array(z.string().min(1)).min(1).max(5000)
 })
 
+/**
+ * 清空所有数据：**破坏性**操作。
+ * confirm 必须为 true —— 渲染层的二次确认可被绕过，主进程再校验一次
+ * （与 `backupRestoreInputSchema` / `backupDeleteInputSchema` 同一约定）。
+ */
+export const clearAllInputSchema = z.object({
+  confirm: z.boolean()
+})
+
 export const referencesInputSchema = z.object({
   id: z.string().min(1)
 })
@@ -556,6 +565,7 @@ export type EngineExportInput = z.infer<typeof engineExportInputSchema>
 export type BatchOpInput = z.infer<typeof batchOpSchema>
 export type BatchUpdateInput = z.infer<typeof batchUpdateInputSchema>
 export type DeleteManyInput = z.infer<typeof deleteManyInputSchema>
+export type ClearAllInput = z.infer<typeof clearAllInputSchema>
 export type ReferencesInput = z.infer<typeof referencesInputSchema>
 export type SchemaSaveInput = z.infer<typeof schemaSaveInputSchema>
 export type FieldTemplateSaveInput = z.infer<typeof fieldTemplateSaveInputSchema>

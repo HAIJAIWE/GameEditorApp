@@ -64,6 +64,7 @@ const api: MbApi = {
     deleteItem: (req) => invoke('data:deleteItem', req),
     batchUpdate: (req) => invoke('data:batchUpdate', req),
     deleteMany: (req) => invoke('data:deleteMany', req),
+    clearAll: (req) => invoke('data:clearAll', req),
     undo: () => invoke('data:undo', undefined),
     redo: () => invoke('data:redo', undefined),
     undoState: () => invoke('data:undoState', undefined),

@@ -19,6 +19,7 @@ import type {
   CeshuDiffExportInput,
   CeshuDiffInput,
   CeshuExportInput,
+  ClearAllInput,
   FieldTemplateNameInput,
   FieldTemplateSaveInput,
   CeshuReviewExportInput,
@@ -127,6 +128,12 @@ export interface IpcContract {
   'data:deleteItem': { req: { id: string }; res: { deleted: boolean } }
   'data:batchUpdate': { req: BatchUpdateInput; res: BatchUpdateSummary }
   'data:deleteMany': { req: DeleteManyInput; res: DeleteManySummary }
+  /**
+   * 清空整个活跃库的数据（PyQt `data_manager.clear_all`）。
+   * 破坏性操作：req.confirm 必须为 true，主进程再校验一次。
+   * 走 `deleteMany` 的统一路径 ⇒ 整批落一条可撤销记录（用户可 Ctrl+Z 找回）。
+   */
+  'data:clearAll': { req: ClearAllInput; res: { deleted: number } }
   /** 通用撤销/重做（用户手动操作的安全子集）：撤销栈顶操作 */
   'data:undo': { req: undefined; res: UndoResult }
   /** 通用撤销/重做：重做栈顶操作 */

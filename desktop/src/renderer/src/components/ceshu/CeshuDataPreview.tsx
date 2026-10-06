@@ -20,6 +20,12 @@ interface CeshuDataPreviewProps {
   types: readonly DataTypeDef[]
   /** 活跃术语风格 id（透传给条目表单的字段标签术语替换） */
   gameStyle?: string
+  /**
+   * 数据纪元（`CeshuView` 透传；App 在「清空所有数据」成功后递增）。
+   * 并入 `DataEditorTab` 的 key → 强制重挂载 → 重新 `listItems`，
+   * 避免条目页签继续列着已被清空的条目（对齐 PyQt `clear_all_data` 的 `_refresh_all_tabs()`）。
+   */
+  dataEpoch?: number
   /** 空状态「去勾选游戏系统」按钮回调（跳到第五章） */
   onGotoSystems?: () => void
   /** 任一数据编辑器发生数据变更后的回调 */
@@ -58,6 +64,7 @@ export default function CeshuDataPreview({
   enabledEditors,
   types,
   gameStyle,
+  dataEpoch = 0,
   onGotoSystems,
   onDataChanged,
   jumpTarget,
@@ -143,7 +150,7 @@ export default function CeshuDataPreview({
           <div className="empty">数据引用解析（@data[...]）尚未迁移到 TS 版，此标签页暂时为空。</div>
         ) : activeEditor ? (
           <DataEditorTab
-            key={`${activeEditor.data_type}:${targetNonce ?? ''}`}
+            key={`${activeEditor.data_type}:${targetNonce ?? ''}:${dataEpoch}`}
             type={activeEditor.data_type}
             types={types}
             gameStyle={gameStyle}

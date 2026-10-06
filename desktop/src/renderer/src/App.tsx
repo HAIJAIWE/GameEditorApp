@@ -8,10 +8,12 @@ import { buildAiSeedPrompt } from '../../shared/aiSeedPrompt'
 import type { EngineExportInput } from '../../shared/schemas'
 
 import AdvancedSearchPanel from './components/AdvancedSearchPanel'
+import AboutPanel from './components/AboutPanel'
 import AttrSystemPanel from './components/AttrSystemPanel'
 import BackupPanel from './components/BackupPanel'
 import BatchEditPanel from './components/BatchEditPanel'
 import CeshuHomePanel from './components/CeshuHomePanel'
+import ClearAllPanel from './components/ClearAllPanel'
 import GameDataPreviewPanel from './components/GameDataPreviewPanel'
 import CeshuView from './components/CeshuView'
 import { type PreviewJumpTarget } from './components/ceshu/CeshuDataPreview'
@@ -21,6 +23,7 @@ import ImageGenPanel from './components/ImageGenPanel'
 import MenuBar from './components/MenuBar'
 import QuickCreatePanel from './components/QuickCreatePanel'
 import ReferencesPanel, { type ReferenceTarget } from './components/ReferencesPanel'
+import ShortcutsPanel from './components/ShortcutsPanel'
 import StatisticsPanel from './components/StatisticsPanel'
 import TypeEditorPanel from './components/TypeEditorPanel'
 
@@ -53,6 +56,9 @@ type OverlayPanel =
   | 'batch'
   | 'references'
   | 'gameDataPreview'
+  | 'shortcuts'
+  | 'about'
+  | 'clearAll'
 
 /** 浮层头部标题（与菜单项一致，便于用户确认当前打开的是哪个能力） */
 const PANEL_TITLES: Record<OverlayPanel, string> = {
@@ -66,7 +72,10 @@ const PANEL_TITLES: Record<OverlayPanel, string> = {
   quickCreate: '快速创建向导',
   batch: '批量修改数据',
   references: '数据关联预览',
-  gameDataPreview: '游戏数据预览'
+  gameDataPreview: '游戏数据预览',
+  shortcuts: '快捷键参考',
+  about: '关于墨白编辑器',
+  clearAll: '清空所有数据'
 }
 
 /**
@@ -133,6 +142,12 @@ export default function App() {
   const [aiSeed, setAiSeed] = useState<{ text: string; nonce: number } | null>(null)
   /** 跳转定位目标（含递增 nonce 以支持重复跳转同一类型）；命中启用编辑器时在策划书预览面板定位条目 */
   const [jumpTarget, setJumpTarget] = useState<PreviewJumpTarget | null>(null)
+  /**
+   * 数据纪元：每次「清空所有数据」成功 +1，经 `CeshuView` 透传进内嵌 `DataEditorTab` 的 `key`，
+   * 强制重挂载 → 重新 `listItems`（否则条目页签仍列着已被删掉的条目）。
+   * 用「重挂载」而非新增一个 refresh 通道：项目既有做法（跳转定位/切库）都是 key 重挂载。
+   */
+  const [dataEpoch, setDataEpoch] = useState(0)
 
   /** 浮层面板需要「一个类型」作为载体时使用的兜底：schema 里第一个类型 */
   const firstType = types[0]?.id ?? null
@@ -296,6 +311,26 @@ export default function App() {
       return next
     })
   }, [])
+
+  /**
+   * 「清空所有数据」完成后的刷新（对齐 PyQt `clear_all_data` 里的 `_refresh_all_tabs()`）。
+   *
+   * 做三件事：
+   * 1. `refreshUndo()` —— 清空落了一条 `deleteMany` 撤销记录，菜单项的 disabled/标签要跟上；
+   * 2. `setDataEpoch` 递增 —— 经 CeshuView 透传到内嵌数据编辑器的 `key`，
+   *    强制重挂载 → 重新拉条目列表（否则条目页签会继续显示已被删掉的条目，
+   *    点进去报「数据不存在」）；
+   * 3. 提示结果并关面板。
+   */
+  const handleDataCleared = useCallback(
+    (deleted: number): void => {
+      setDataEpoch((prev) => prev + 1)
+      setNotice(`数据已清空：删除 ${deleted} 条（可按 Ctrl+Z 撤销）`)
+      setPanel(null)
+      refreshUndo()
+    },
+    [refreshUndo]
+  )
 
   /**
    * 打开浮层面板（菜单入口）。
@@ -535,6 +570,12 @@ export default function App() {
         return <ImageGenPanel onClose={() => setPanel(null)} />
       case 'gameDataPreview':
         return <GameDataPreviewPanel />
+      case 'shortcuts':
+        return <ShortcutsPanel />
+      case 'about':
+        return <AboutPanel version={info?.version ?? null} />
+      case 'clearAll':
+        return <ClearAllPanel onCleared={handleDataCleared} />
       case 'quickCreate':
         return (
           <QuickCreatePanel
@@ -612,6 +653,9 @@ export default function App() {
           },
           advancedSearch: () => openPanel('advancedSearch'),
           imageGen: () => openPanel('imageGen'),
+          clearAll: () => openPanel('clearAll'),
+          shortcuts: () => openPanel('shortcuts'),
+          about: () => openPanel('about'),
           settings: () => notImplemented('设置'),
           agentEditor: () => notImplemented('智能体编辑器'),
           aiPanel: () => setNotice('AI 助手已在右侧常驻'),
@@ -656,6 +700,7 @@ export default function App() {
                   gameStyle={gameStyle}
                   onBack={() => setCeshuHomeVisible(true)}
                   jumpTarget={jumpTarget}
+                  dataEpoch={dataEpoch}
                   onEditType={handleEditType}
                   onShowReferences={handleShowReferences}
                   onJumpHandled={handleJumpHandled}

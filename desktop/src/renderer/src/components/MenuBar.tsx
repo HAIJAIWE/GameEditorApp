@@ -75,6 +75,12 @@ export interface MenuActions {
   agentEditor: () => void
   /** 角部件「AI」按钮（唤起 AI 助手） */
   aiPanel: () => void
+  /** 「编辑 → 清空所有数据」：破坏性操作，交互由宿主做内联二次确认 */
+  clearAll: () => void
+  /** 「帮助 → 快捷键参考」 */
+  shortcuts: () => void
+  /** 「帮助 → 关于墨白编辑器」 */
+  about: () => void
   notImplemented: (label: string) => void
   quit: () => void
 }
@@ -195,7 +201,7 @@ export default function MenuBar({ canUndo, canRedo, actions }: MenuBarProps) {
       { type: 'separator' },
       { type: 'action', label: '模板管理', action: 'notImplemented' },
       { type: 'separator' },
-      { type: 'action', label: '清空所有数据', action: 'notImplemented' }
+      { type: 'action', label: '清空所有数据', action: 'clearAll', testid: 'menuitem-edit-clearAll' }
     ],
     [
       { type: 'action', label: '快速创建向导', action: 'quickCreate', testid: 'menuitem-tools-quickCreate' },
@@ -232,9 +238,9 @@ export default function MenuBar({ canUndo, canRedo, actions }: MenuBarProps) {
     [{ type: 'action', label: '打开设置...', action: 'notImplemented' }],
     [
       { type: 'action', label: '快速入门', action: 'notImplemented' },
-      { type: 'action', label: '快捷键参考', action: 'notImplemented' },
+      { type: 'action', label: '快捷键参考', action: 'shortcuts', testid: 'menuitem-help-shortcuts' },
       { type: 'separator' },
-      { type: 'action', label: '关于墨白编辑器', action: 'notImplemented' }
+      { type: 'action', label: '关于墨白编辑器', action: 'about', testid: 'menuitem-help-about' }
     ]
   ]
 

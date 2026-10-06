@@ -54,6 +54,8 @@ interface CeshuViewProps {
   onJumpHandled?: () => void
   /** 跳转未命中（透传；宿主据此提示目标类型未被启用系统覆盖） */
   onJumpMissed?: (name: string) => void
+  /** 数据纪元（App 在「清空所有数据」成功后递增）：并入内嵌数据编辑器的 key 强制重挂载刷新 */
+  dataEpoch?: number
   /** 打开「字段结构编辑器」编辑指定类型（由条目表单的「更多 ▸」触发，宿主负责开面板） */
   onEditType?: (typeId: string) => void
   /** 打开「数据关联预览」查看某条目引用关系（由条目表单的「更多 ▸」触发，宿主负责开面板） */
@@ -85,6 +87,7 @@ export default function CeshuView({
   gameStyle,
   onBack,
   jumpTarget,
+  dataEpoch = 0,
   onJumpHandled,
   onJumpMissed,
   onEditType,
@@ -767,6 +770,7 @@ export default function CeshuView({
               enabledEditors={enabledEditors}
               types={types}
               gameStyle={gameStyle}
+              dataEpoch={dataEpoch}
               onGotoSystems={() => setActiveChapter('systems')}
               onDataChanged={onChanged}
               jumpTarget={jumpTarget}

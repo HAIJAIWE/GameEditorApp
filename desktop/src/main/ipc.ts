@@ -50,6 +50,7 @@ import {
   createItemInputSchema,
   deleteItemInputSchema,
   deleteManyInputSchema,
+  clearAllInputSchema,
   engineExportInputSchema,
   exportDirInputSchema,
   exportLegacyInputSchema,
@@ -477,6 +478,14 @@ export function registerIpcHandlers({
   })
   handle('data:deleteMany', deleteManyInputSchema, async (req) => {
     const summary = await dataService.deleteMany(req.ids)
+    await dataSync.onDataChanged()
+    return summary
+  })
+  // 清空所有数据：破坏性操作，confirm 位在主进程再校验一次（渲染层确认可被绕过）。
+  // 内部走 deleteMany 的统一路径 ⇒ 整批落一条可撤销记录，用户可 Ctrl+Z 找回。
+  handle('data:clearAll', clearAllInputSchema, async (req) => {
+    if (req.confirm !== true) throw new Error('清空所有数据需要确认')
+    const summary = await dataService.clearAll()
     await dataSync.onDataChanged()
     return summary
   })
