@@ -52,6 +52,8 @@ import {
   engineExportFileDialogInputSchema,
   deleteImagesInputSchema,
   llmGenerateInputSchema,
+  llmConfigureInputSchema,
+  llmStatusInputSchema,
   libraryCreateInputSchema,
   libraryNameInputSchema,
   libraryRenameInputSchema,
@@ -156,6 +158,7 @@ import { generateImage } from './imageGen/client'
 import { saveImageFromUrl } from './imageGen/save'
 import { isValidSecretName, type SecretStore } from './settings/secretStore'
 import { SECRET_NAMES } from '../shared/secretNames'
+import type { StoredLlmConfig } from '../shared/llmConfig'
 import type { LlmClient } from './llm/client'
 import type { TypeSchemaStore } from './schema/store'
 import type { FieldTemplateStore } from './schema/fieldTemplateStore'
@@ -312,7 +315,29 @@ export function registerIpcHandlers({
     return { deleted, failed }
   })
 
-  handle('llm:generate', llmGenerateInputSchema, async (req) => llmClient.generate(req.system, req.prompt))
+  /*
+   * ---- LLM 配置（对齐 Python `ui/dialogs/api_config.py` 的「基础设置」）----
+   *
+   * 配置的**唯一真源**是渲染层 localStorage 的 `mb.llmConfig`（主进程读不到 localStorage）。
+   * 渲染层在启动时调 `llm:configure` 推一份**非敏感**镜像过来，主进程缓存；
+   * API Key **不在镜像里**，每次调用时由 `secretStore`（safeStorage 加密盘）现取现解密。
+   * 好处与 `image:generate`（见上方 :618 注释）同源：渲染层永不持有长期明文 Key。
+   */
+  let llmConfigMirror: StoredLlmConfig | null = null
+  const llmCallOptions = async (): Promise<{ config?: StoredLlmConfig; apiKey?: string }> => {
+    const secret = await secretStore.get(SECRET_NAMES.llmApiKey)
+    return { config: llmConfigMirror ?? undefined, apiKey: secret.ok ? secret.plaintext : '' }
+  }
+
+  handle('llm:configure', llmConfigureInputSchema, (req) => {
+    llmConfigMirror = req.config
+    return { ok: true }
+  })
+  handle('llm:status', llmStatusInputSchema, async () => llmClient.status(await llmCallOptions()))
+
+  handle('llm:generate', llmGenerateInputSchema, async (req) =>
+    llmClient.generate(req.system, req.prompt, await llmCallOptions())
+  )
 
   // ---- 系统钥匙串（API Key 等敏感配置）----
   // 设计前提：渲染层永远拿不到明文，所以只有 has / set / delete 三条通道，**没有 get**。
@@ -442,7 +467,7 @@ export function registerIpcHandlers({
       typeName: req.typeName,
       fieldType: req.fieldType
     })
-    const { model, content } = await llmClient.generate(built.system, built.prompt)
+    const { model, content } = await llmClient.generate(built.system, built.prompt, await llmCallOptions())
     return { model, candidates: parseFieldIdCandidates(content, req.existingNames) }
   })
   handle('attrSystem:get', undefined, () => attrSystemStore.getSystem())
@@ -720,7 +745,7 @@ export function registerIpcHandlers({
       // 无空字段：不调用 LLM，直接返回空结果（UI 提示「无需补全」）
       return { model: '', fields: {}, rawText: '' }
     }
-    const { model, content } = await llmClient.generate(built.system, built.prompt)
+    const { model, content } = await llmClient.generate(built.system, built.prompt, await llmCallOptions())
     const parsed = parseLlmJson(content)
     return { model, fields: filterGeneratedFields(doc, req.chapter, parsed), rawText: content }
   })
@@ -732,7 +757,7 @@ export function registerIpcHandlers({
       throw new Error(DATA_GEN_ERROR_NO_TYPE)
     }
     const built = buildDataGenPrompt(doc, types, selected, clampDataGenCount(req.count), req.instruction.trim())
-    const { model, content } = await llmClient.generate(built.system, built.prompt)
+    const { model, content } = await llmClient.generate(built.system, built.prompt, await llmCallOptions())
     const parsed = parseLlmJson(content)
     if (Object.keys(parsed).length === 0) {
       throw new Error(DATA_GEN_ERROR_UNPARSABLE)
@@ -757,7 +782,7 @@ export function registerIpcHandlers({
       progressTotal: progress.total ?? 0,
       validationCount: validationErrors.length
     })
-    const { model, content } = await llmClient.generate(built.system, built.prompt)
+    const { model, content } = await llmClient.generate(built.system, built.prompt, await llmCallOptions())
     return {
       model,
       ...parseReviewResponse(content),

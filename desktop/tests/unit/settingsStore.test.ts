@@ -223,7 +223,9 @@ describe('settingsStore：已登记键清单', () => {
       fontSize: 'mb.fontSize',
       confirmDelete: 'mb.confirmDelete',
       // AI 关键词模板（逻辑在 shared/keywordTemplates.ts）
-      keywordTemplates: 'mb.keywordTemplates'
+      keywordTemplates: 'mb.keywordTemplates',
+      // LLM 服务商配置（逻辑在 shared/llmConfig.ts；apiKey 走 safeStorage 不在此）
+      llmConfig: 'mb.llmConfig'
     })
   })
 

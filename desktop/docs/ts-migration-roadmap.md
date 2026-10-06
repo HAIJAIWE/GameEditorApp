@@ -435,6 +435,17 @@
 > **顺带修**：`eslint.config.mjs` 补 `preview/**` 的 node+browser globals（此前 `preview/` 脚本的 `window`/`console`/`process` 报 16 个 `no-undef`）。
 > **审计数字不变（本轮补的是 TS 侧缺口，不改 Python 迁移面）**。
 
+> ✅ **E41（2026-10-07）：迁「AI 配置」基础页 —— 多服务商 LLM 配置真接通（不只是存得下，真调得通）**。
+> **动因**：`migration-audit.md:262` 记 `ui/dialogs/api_config.py`（686 行）判 **⚠️未迁**（多服务商配置整块未迁，TS 仅 `MB_OLLAMA_HOST/MODEL` 环境变量）—— 是剩余缺口里**直接影响你换模型服务商**的一项（E40 排查后优先级最高）。**读源码后确认范围**：那 686 行是 4 个 tab，**只有「基础设置」有真实消费者**，故只迁它（刻意收窄，不照搬整页）。
+> **消费者实证（判「真缺口」而非「有意不迁」的依据）**：`features/ai.py:43`（`get_config()` 后判 `config.enabled`）、`core/agent/intent.py:434`、`core/agent/skills/code_skill.py:270`、`ceshu_skill_generate.py:25` **都真读** `enabled/api_key/base_url/provider/model/temperature/max_tokens`。
+> **三处刻意不做（宁缺勿错）**：① **「模型管理」tab 的自定义模型增删改**（`api_config.py:249-286`+`:478-547`）写的是 PyQt 自己的 `custom_models.json`，而 TS 侧模型清单**来自 Ollama 运行时**（`llm/client.ts` `client.list()`）⇒ 照搬是「能存没人读」的假控件；② **「视觉模型」tab** —— TS 侧无视觉模型消费者（无截图识别/UI 分析链路）；③ **「模板设置」tab** 实为**技能生成模板偏好**（`skill_default_mode`），属策划内容域，混进 API 配置是职责错位。
+> **两种传输（不是所有 provider 都走 ollama 协议）**：Ollama 走原生 `/api/generate`（**不回归**）；OpenAI/豆包/Qwen/DeepSeek 走 OpenAI 兼容 `POST {baseUrl}/chat/completions`；**Claude 明确报「暂未接入」并给出原因**（Anthropic Messages API 不兼容 OpenAI 协议，强行发必被拒 ⇒ 不发注定失败的请求、不假装成功）。
+> **🔒 安全硬约束不退步（E22/E25 既定）**：**API Key 绝不进 localStorage**。非敏感字段落 `mb.llmConfig`（`shared/llmConfig.ts`，**字段白名单**，写库前 `sanitize` 剔键）；Key 走 `settings:setSecret` → safeStorage 加密盘（`shared/secretNames.ts` 的 `llmApiKey`，**独立于 `mb.` 设置键空间**）；主进程每次调用现取现解密注入 `Authorization` 头，**渲染层永不持有也不回显长期明文**。单测锁死「写库 JSON 里没有 apiKey」+「只写 6 个白名单字段」。
+> **配置怎么到主进程（踩坑记录）**：主进程**读不到 localStorage**，而配置刻意存 localStorage ⇒ 沿用 `image:generate` 的既定纪律：渲染层新增 `llm:configure` 把**非敏感镜像**推给主进程（启动/改设置各一次）+ 新增 `llm:status`；`llmCallOptions()` 统一为**全部 5 个 `llmClient.generate` 调用点**注入配置与解密后的 Key（逐点改 schema 属重复劳动，抽一个辅助函数消解）。
+> **验证**：双端 tsc 0 / eslint 0 / vitest **108 文件 1614 用例**（+40：`llmConfig` 26 + `llmClient` 协议分流 14）/ build OK；**Edge 实测**：6 个服务商下拉齐全、Ollama 时**不显示** API Key 框、切 OpenAI 自动带出预设 base_url+首个模型、Claude 显示不兼容警示、Key 保存后 **localStorage 扫描 `sk-test-123456` 命中 0 个键**、`llm:configure` 实收 4 次 —— **0 pageerror**。
+> **守护测试生效实录**：新增 `SETTINGS_KEYS.llmConfig` 后 `settingsStore.test.ts` 的「防漂移」用例**如期变红**（清单少一键），已同步登记 ⇒ 证明该守卫真的在拦漂移，不是摆设。
+> **审计数字更新**：`api_config.py` 686 行从「⚠️整块未迁」降为「◐基础设置已迁 / 模型管理+视觉+模板三 tab 未迁」。
+
 ## 3. 每片执行流程（固定顺序）
 
 1. **调研**：读 Python 源码，锁定语义与缺陷，写成「调研结论」（含精确数字）。

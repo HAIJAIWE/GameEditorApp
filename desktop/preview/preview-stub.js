@@ -186,6 +186,21 @@
     engine: { exportData: async () => ({ filePath: '', engine: 'lua', bytes: 0 }) },
     image: { generate: async () => ({ url: '' }) },
     settings: { hasSecret: async () => false, setSecret: ok, deleteSecret: ok },
+    llm: {
+      generate: async () => ({ model: 'stub-model', content: '（预览桩）AI 回复占位' }),
+      // 记录渲染层推来的配置镜像，便于浏览器实测自检「配置真的推给了主进程」
+      configure: async (req) => {
+        window.__llmConfigureCalls = window.__llmConfigureCalls || []
+        window.__llmConfigureCalls.push(req && req.config)
+        return { ok: true }
+      },
+      status: async () => ({
+        available: true,
+        models: ['qwen2.5:7b', 'qwen2.5:14b', 'qwen3:8b'],
+        message: '（预览桩）本地模型 3 个',
+        provider: 'ollama'
+      })
+    },
     backup: { list: async () => [], create: async () => ({ name: 'snap' }), restore: async () => ({ restored: true }), remove: ok },
     dialog: {
       chooseJsonFile: async () => ({ path: null }), chooseEngineExportFile: async () => ({ path: null }),

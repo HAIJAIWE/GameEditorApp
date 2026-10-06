@@ -239,7 +239,9 @@ export const SETTINGS_KEYS = {
    * AI 关键词模板（5 类可编辑，对齐 Python `features/advanced.py:206-306`）。
    * 不登记到这里的话，`exportSettings` / `resetAllSettings` 不会覆盖它。
    */
-  keywordTemplates: 'mb.keywordTemplates'
+  keywordTemplates: 'mb.keywordTemplates',
+  /** LLM 服务商配置（不含 apiKey，Key 走 safeStorage，见 shared/llmConfig.ts） */
+  llmConfig: 'mb.llmConfig'
 } as const
 
 export type SettingsKey = (typeof SETTINGS_KEYS)[keyof typeof SETTINGS_KEYS]

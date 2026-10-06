@@ -137,6 +137,28 @@ export const llmGenerateInputSchema = z.object({
 
 export type LlmGenerateInput = z.infer<typeof llmGenerateInputSchema>
 
+/**
+ * LLM 非敏感配置（对齐 Python `api_config.py` 的 `save_config` 前半段字段）。
+ * **刻意不含 apiKey** —— Key 走 safeStorage（见 `shared/secretNames.ts` 的 `llmApiKey`）。
+ */
+export const llmConfigSchema = z.object({
+  enabled: z.boolean(),
+  provider: z.enum(['ollama', 'openai', 'doubao', 'qwen', 'claude', 'deepseek']),
+  model: z.string().max(200),
+  baseUrl: z.string().max(500),
+  temperature: z.number().min(0).max(2),
+  maxTokens: z.number().int().min(1).max(32000)
+})
+
+/** 渲染层 → 主进程推配置镜像（启动时 + 改设置时各一次） */
+export const llmConfigureInputSchema = z.object({
+  config: llmConfigSchema
+})
+
+export const llmStatusInputSchema = z.object({})
+
+export type LlmConfigureInput = z.infer<typeof llmConfigureInputSchema>
+
 /* ---- 图片库扫描 / 清理（迁移 `features/advanced.py::cleanup_unused_images`） ---- */
 
 /**

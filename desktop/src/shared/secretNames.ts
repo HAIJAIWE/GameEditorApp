@@ -19,7 +19,12 @@ export const SECRET_NAMES = {
    * 迁移背景：E22 把生图 apiKey 以**明文**存进了 localStorage 的 `mb.imageGenConfig`，
    * 现改为本进程 `safeStorage` 加密落盘；旧明文的一次性搬迁见 `shared/secretMigration.ts`。
    */
-  imageGenApiKey: 'imageGen.apiKey'
+  imageGenApiKey: 'imageGen.apiKey',
+  /**
+   * LLM 服务商 API Key（对齐 Python `api_config.py` 的 `config.api_key`）。
+   * 同样**明文不进 localStorage**，只经 `safeStorage` 加密落盘（理由同 imageGenApiKey）。
+   */
+  llmApiKey: 'llm.apiKey'
 } as const
 
 /** 本仓已登记的 secret 名（联合类型，供需要类型安全的地方引用） */

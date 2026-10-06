@@ -132,6 +132,10 @@ export interface MbApi {
   llm: {
     /** 单次文本生成（数据编辑器字段级 AI 按钮） */
     generate(req: IpcContract['llm:generate']['req']): Promise<IpcContract['llm:generate']['res']>
+    /** 推 LLM 非敏感配置镜像（对齐 Python `ui/dialogs/api_config.py` 基础设置） */
+    configure(req: IpcContract['llm:configure']['req']): Promise<IpcContract['llm:configure']['res']>
+    /** 探测当前配置下的服务可用性（设置面板状态提示用） */
+    status(): Promise<IpcContract['llm:status']['res']>
   },
   /** 图片库扫描 / 清理（`deleteImages` 是破坏性操作，`confirm` 必填true） */
   images: {

@@ -1,6 +1,19 @@
 import { useState } from 'react'
 
 import {
+  LLM_MAX_TOKENS_MAX,
+  LLM_PROVIDER_ORDER,
+  LLM_PROVIDER_PRESETS,
+  LLM_TEMPERATURE_MAX,
+  LLM_TEMPERATURE_MIN,
+  loadLlmConfig,
+  resolveLlmBaseUrl,
+  saveLlmConfig,
+  type LlmProvider,
+  type StoredLlmConfig
+} from '../../../shared/llmConfig'
+import { SECRET_NAMES } from '../../../shared/secretNames'
+import {
   applyFontSize,
   applyTheme,
   DEFAULT_FONT_SIZE,
@@ -19,13 +32,21 @@ import {
 /**
  * 设置面板（对齐 Python `ui/dialogs/settings_dialog.py`，菜单入口 `设置 → 打开设置...`）。
  *
- * Python 是 4 页签（通用 / AI / 编辑器 / 工具）的 QDialog。**TS 侧本轮只做三项**，
- * 其余五项**刻意不做**（逐条依据见 `shared/settingsPreferences.ts` 末尾的表格）：
- * API Key 三类配置（要动主进程加密存储 = 敏感面）、语言下拉（无 i18n 框架）、
- * 自动保存（TS 侧不存在该功能）、界面布局（IA 已重写为无侧栏单栈，不是三栏）、
- * 工具页开关（未核实消费者）。**宁可少做，不做假控件。**
+ * Python 是 4 页签（通用 / AI / 编辑器 / 工具）的 QDialog。TS 侧做**四项**：
+ * 字体大小 / 主题 / 删除时确认（前三项，`shared/settingsPreferences.ts`）+ 
+ * **AI 模型服务**（E41 新增，`shared/llmConfig.ts`，对齐 `ui/dialogs/api_config.py` 基础设置页）。
+ * 仍**刻意不做**：语言下拉（无 i18n 框架）、自动保存（TS 侧无此功能）、
+ * 界面布局（IA 已重写为无侧栏单栈）、工具页开关（未核实消费者）、
+ * 视觉模型页（TS 侧无视觉模型消费者）、技能生成模板偏好（属策划内容域，职责错位）。
+ * **宁可少做，不做假控件。**
  *
- * ## 三项各自的状态来源（读写全部委托 `shared/settingsPreferences`，组件只管渲染）
+ * ## AI 模型服务（E41）
+ * 非敏感字段走 `shared/llmConfig.ts`（localStorage `mb.llmConfig`），
+ * 每次改动即调 `llm:configure` 推给主进程；**API Key 不进 localStorage**，
+ * 走 `settings:setSecret` → safeStorage 加密盘（`shared/secretNames.ts` 的 `llmApiKey`），
+ * 渲染层永不持有也不回显长期明文。
+ *
+ * ## 前三项各自的状态来源（读写全部委托 `shared/settingsPreferences`，组件只管渲染）
  * - **字体大小**：`loadFontSize` 惰性初值 → `saveFontSize` 落盘 + `applyFontSize` **立即生效**
  * - **主题**：委托 `theme.ts`（唯一真源），面板只提供二选一入口
  * - **删除时确认**：`loadConfirmDelete` 惰性初值 → `saveConfirmDelete`，消费者 `BatchEditPanel`
@@ -68,6 +89,59 @@ export default function SettingsPanel() {
   const handleConfirmDeleteChange = (next: boolean): void => {
     setConfirmDelete(next)
     saveConfirmDelete(next)
+  }
+
+  /* ---- LLM 服务商配置（对齐 Python `ui/dialogs/api_config.py` 基础设置页） ---- */
+  const [llm, setLlm] = useState<StoredLlmConfig>(() => loadLlmConfig())
+  const [llmKeyDraft, setLlmKeyDraft] = useState('')
+  const [llmNotice, setLlmNotice] = useState<string | null>(null)
+  const [llmKeySaved, setLlmKeySaved] = useState(false)
+
+  const llmPreset = LLM_PROVIDER_PRESETS[llm.provider]
+
+  /** 改配置：落盘 + 立刻推给主进程（下次 AI 调用即生效） */
+  const commitLlm = (next: StoredLlmConfig): void => {
+    const saved = saveLlmConfig(next)
+    setLlm(next)
+    setLlmNotice(null)
+    if (!saved) {
+      setLlmNotice('配置保存失败：浏览器存储不可用')
+      return
+    }
+    void window.mbApi.llm
+      .configure({ config: next })
+      .catch(() => setLlmNotice('已保存到本地，但推送给主进程失败，AI 调用可能仍用旧配置'))
+  }
+
+  /** 切服务商：带出该服务商的预设地址与首个模型（对齐 PyQt `on_provider_changed`） */
+  const handleProviderChange = (next: LlmProvider): void => {
+    const preset = LLM_PROVIDER_PRESETS[next]
+    commitLlm({
+      ...llm,
+      provider: next,
+      baseUrl: preset.baseUrl,
+      model: preset.models[0] ?? ''
+    })
+  }
+
+  /** API Key 存进系统钥匙串（渲染层不保存明文，只存「有没有」这个事实） */
+  const saveLlmKey = async (): Promise<void> => {
+    const plaintext = llmKeyDraft.trim()
+    if (plaintext === '') {
+      setLlmNotice('请先填写 API Key')
+      return
+    }
+    const res = await window.mbApi.settings.setSecret({
+      name: SECRET_NAMES.llmApiKey,
+      plaintext
+    })
+    if (!res.ok) {
+      setLlmNotice(`API Key 保存失败：${res.error ?? '未知原因'}`)
+      return
+    }
+    setLlmKeyDraft('')
+    setLlmKeySaved(true)
+    setLlmNotice('API Key 已存入系统钥匙串（加密落盘，不写入浏览器存储）')
   }
 
   return (
@@ -160,10 +234,158 @@ export default function SettingsPanel() {
           </div>
         </div>
 
+        {/* ---- LLM 服务商配置（对齐 Python `api_config.py` 基础设置页） ---- */}
+        <div className="form-section" data-testid="settings-llm">
+          <strong>AI 模型服务</strong>
+
+          <label className="check-option" data-testid="llm-enabled">
+            <input
+              type="checkbox"
+              checked={llm.enabled}
+              onChange={(e) => commitLlm({ ...llm, enabled: e.target.checked })}
+            />
+            启用 API
+          </label>
+
+          <div className="form-row">
+            <label className="form-label" htmlFor="llm-provider">
+              API 服务
+            </label>
+            <div className="form-field">
+              <select
+                id="llm-provider"
+                data-testid="llm-provider"
+                value={llm.provider}
+                onChange={(e) => handleProviderChange(e.target.value as LlmProvider)}
+              >
+                {LLM_PROVIDER_ORDER.map((p) => (
+                  <option key={p} value={p}>
+                    {LLM_PROVIDER_PRESETS[p].label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {llmPreset.requiresApiKey && (
+            <div className="form-row">
+              <label className="form-label" htmlFor="llm-api-key">
+                API Key
+              </label>
+              <div className="form-field">
+                <input
+                  id="llm-api-key"
+                  type="password"
+                  data-testid="llm-api-key"
+                  placeholder={llmKeySaved ? '已存入钥匙串（不回显）' : '请输入 API Key'}
+                  value={llmKeyDraft}
+                  onChange={(e) => {
+                    setLlmKeyDraft(e.target.value)
+                    setLlmKeySaved(false)
+                  }}
+                />
+                <button type="button" className="btn" data-testid="llm-save-key" onClick={() => void saveLlmKey()}>
+                  保存到钥匙串
+                </button>
+                <div className="item-meta">
+                  密钥经 Electron safeStorage 加密落盘，不写入浏览器存储，渲染层也不回显。
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="form-row">
+            <label className="form-label" htmlFor="llm-base-url">
+              接口地址
+            </label>
+            <div className="form-field">
+              <input
+                id="llm-base-url"
+                type="text"
+                data-testid="llm-base-url"
+                placeholder={llmPreset.baseUrl}
+                value={llm.baseUrl}
+                onChange={(e) => commitLlm({ ...llm, baseUrl: e.target.value })}
+              />
+              <div className="item-meta" data-testid="llm-base-url-effective">
+                实际生效：{resolveLlmBaseUrl(llm)}
+              </div>
+            </div>
+          </div>
+
+          <div className="form-row">
+            <label className="form-label" htmlFor="llm-model">
+              模型
+            </label>
+            <div className="form-field">
+              <input
+                id="llm-model"
+                type="text"
+                list="llm-model-options"
+                data-testid="llm-model"
+                value={llm.model}
+                onChange={(e) => commitLlm({ ...llm, model: e.target.value })}
+              />
+              <datalist id="llm-model-options">
+                {llmPreset.models.map((m) => (
+                  <option key={m} value={m} />
+                ))}
+              </datalist>
+            </div>
+          </div>
+
+          <div className="form-row">
+            <label className="form-label" htmlFor="llm-temperature">
+              温度
+            </label>
+            <div className="form-field">
+              <input
+                id="llm-temperature"
+                type="number"
+                min={LLM_TEMPERATURE_MIN}
+                max={LLM_TEMPERATURE_MAX}
+                step="0.1"
+                data-testid="llm-temperature"
+                value={llm.temperature}
+                onChange={(e) => commitLlm({ ...llm, temperature: Number(e.target.value) })}
+              />
+            </div>
+          </div>
+
+          <div className="form-row">
+            <label className="form-label" htmlFor="llm-max-tokens">
+              最大令牌
+            </label>
+            <div className="form-field">
+              <input
+                id="llm-max-tokens"
+                type="number"
+                min={1}
+                max={LLM_MAX_TOKENS_MAX}
+                data-testid="llm-max-tokens"
+                value={llm.maxTokens}
+                onChange={(e) => commitLlm({ ...llm, maxTokens: Number(e.target.value) })}
+              />
+            </div>
+          </div>
+
+          {llmNotice !== null && (
+            <div className="item-meta" data-testid="llm-notice">
+              {llmNotice}
+            </div>
+          )}
+
+          {llm.provider === 'claude' && (
+            <div className="danger-hint" data-testid="llm-claude-unsupported">
+              Claude 走 Anthropic Messages API，与 OpenAI 协议不兼容，本版暂未接入调用。
+            </div>
+          )}
+        </div>
+
         {/* ---- 范围外项目：显式列出并说明为何不做（静默省略会让用户以为漏做了） ---- */}
         <div className="item-meta" data-testid="settings-out-of-scope">
           本版未提供：语言（无多语言框架）、自动保存（本应用无自动保存）、界面布局（已固定为单栏工作区）、
-          AI 模型 API Key（密钥走主进程加密存储，渲染层不读取明文）。
+          视觉模型配置（TS 侧无视觉模型消费者）、技能生成模板偏好（属策划内容域，见上）。
         </div>
       </div>
     </div>

@@ -96,7 +96,24 @@ const api: MbApi = {
   },
   llm: {
     /** 单次文本生成（字段级 AI 按钮）；失败由主进程抛中文错误 */
-    generate: (req: { system: string; prompt: string }) => invoke('llm:generate', req)
+    generate: (req: { system: string; prompt: string }) => invoke('llm:generate', req),
+    /**
+     * 推 LLM 非敏感配置镜像（对齐 Python `api_config.py`）。
+     * 渲染层启动时 + 改设置时各调一次；**不要把 apiKey 放进来** ——
+     * 它走 `settings:setSecret` 进 safeStorage，由主进程每次调用时自行解密注入。
+     */
+    configure: (req: {
+      config: {
+        enabled: boolean
+        provider: 'ollama' | 'openai' | 'doubao' | 'qwen' | 'claude' | 'deepseek'
+        model: string
+        baseUrl: string
+        temperature: number
+        maxTokens: number
+      }
+    }) => invoke('llm:configure', req),
+    /** 探测当前配置下的服务可用性（供设置面板显示状态） */
+    status: () => invoke('llm:status', {})
   },
   /**
    * 图片库扫描 / 清理（破坏性）。

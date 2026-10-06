@@ -42,6 +42,7 @@ import type {
   AgentDraftLoadInput,
   DeleteImagesInput,
   LlmGenerateInput,
+  LlmConfigureInput,
   AgentDraftSaveInput,
   AgentFeedbackInput,
   AgentInteractionResponseInput,
@@ -182,6 +183,12 @@ export interface IpcContract {
     res: { deleted: number; failed: Array<{ path: string; reason: string }> }
   }
   'llm:generate': { req: LlmGenerateInput; res: { model: string; content: string } }
+  /** 渲染层推 LLM 非敏感配置镜像（主进程读不到 localStorage）；API Key 不在其中 */
+  'llm:configure': { req: LlmConfigureInput; res: { ok: boolean } }
+  'llm:status': {
+    req: Record<string, never>
+    res: { available: boolean; models: string[]; message: string; provider?: string; model?: string }
+  }
 
   // ---- 系统钥匙串（API Key 等敏感配置）----
   // 安全约定（不可违背）：渲染层是 sandbox + contextIsolation，**永远拿不到明文**。
