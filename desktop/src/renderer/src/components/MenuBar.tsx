@@ -67,6 +67,7 @@ export interface MenuActions {
   fieldEditor: () => void
   /** 高级搜索（TS 独有入口） */
   advancedSearch: () => void
+  attributeChart: () => void
   /** AI 生图（TS 独有入口） */
   imageGen: () => void
   /** 角部件「设置」按钮 **与** 菜单「设置 → 打开设置...」共用的动作（打开设置面板） */
@@ -204,7 +205,7 @@ export default function MenuBar({ canUndo, canRedo, actions }: MenuBarProps) {
       { type: 'action', label: '撤销 (Ctrl+Z)', action: 'undo', disabled: !canUndo, testid: 'menuitem-edit-undo' },
       { type: 'action', label: '重做 (Ctrl+Y)', action: 'redo', disabled: !canRedo, testid: 'menuitem-edit-redo' },
       { type: 'separator' },
-      { type: 'action', label: '模板管理', action: 'notImplemented' },
+      { type: 'action', label: '模板管理', action: 'fieldEditor', testid: 'menuitem-edit-templateManager' },
       { type: 'separator' },
       { type: 'action', label: '清空所有数据', action: 'clearAll', testid: 'menuitem-edit-clearAll' }
     ],
@@ -220,7 +221,7 @@ export default function MenuBar({ canUndo, canRedo, actions }: MenuBarProps) {
         type: 'submenu',
         label: '数据分析',
         items: [
-          { type: 'action', label: '属性分布图表', action: 'notImplemented' },
+          { type: 'action', label: '属性分布图表', action: 'attributeChart', testid: 'menuitem-tools-attributeChart' },
           { type: 'action', label: '平衡性分析工具', action: 'notImplemented' },
           { type: 'action', label: '游戏数据统计', action: 'stats', testid: 'menuitem-tools-stats' }
         ]

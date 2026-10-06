@@ -424,6 +424,15 @@
 > **验证**：双端 tsc 0 / eslint 0 / vitest **105 文件 1549 用例** / build OK；Edge 截图 **8/8**（home/agent-editor/settings/about/shortcuts/clearAll/keywordTemplates/cleanupImages）**全程 0 console/page error**——这是「渲染层可脱离 Electron 独立运行」的整机证明。
 > **审计数字不变（预览工具不触 Python 迁移面）**。
 
+> ✅ **E40（2026-10-07）：补「属性分布图表」真实缺口 + 修「模板管理」入口错位，提交见 git log**。
+> **动因**：E38 排查「假入口」时顺带查出两处。① **属性分布图表是真实能力缺口** —— PyQt `features/advanced.py:48` `show_attribute_charts()` 是可用实现（等宽字符条形图 + 统计块），而 TS 侧菜单写 `notImplemented`；审计 `migration-audit.md:310` 把它归为 `advanced.py ◐25%` 的**缺口**、**不是**「有意不迁」，故本轮补齐。② **模板管理是入口错位** —— 能力完整存在于 `TypeEditorPanel`（`te-template`/`te-save-template`/`te-delete-template` 三个 IPC 全通），菜单却写 `notImplemented` ⇒ 改指向既有 `fieldEditor` 动作（**刻意不新建面板、不抽包装层**：换名字不产生行为差异，违反「不过度开发」）。
+> **属性分布图表三处刻意偏差（均有实证，非照抄）**：① **属性下拉按 schema 自动发现**（复用 `dataStats.ts:96` `numericFieldNames()`，按 `spinbox` 字段）—— PyQt `advanced.py:82` 写死 `['value','hp','mp','atk','def','level']`，但 TS schema 里这些字段不存在（数值在 `attr_list`）⇒ 照抄必然得到「没有可用数据」的空图，是**能打开但永远空着的控件**（比不做更糟）；② **类型下拉按已注册 schema 列出**（含用户自建类型），不用 PyQt `advanced.py:77` 写死的中文→plural 映射；③ **柱条用 CSS 而非 `█` 字符**（不依赖等宽字体、不受中文名宽度影响），与 `StatisticsPanel` 「不复制 matplotlib 占位符」的取舍一致。
+> **键口径坑（差点写错）**：`ItemRecord` 的业务字段在 **`item.data` 下**（`{id,type,data:{name,hp},createdAt,updatedAt}`），与 `dataStats.ts::summarizeNumeric` 读 `item.data[field]` 同口径。首版误写 `row[field]` ⇒ 浏览器实测「图表行数 0」才暴露（单测当时喂的是扁平对象、测不出来）⇒ 已补 **6 条 `ItemRecord` 真实形状**单测锁死。
+> **react-hooks v7 约束**：「类型/字段回退到首项」用**惰性派生表达式**（`effectiveTypeId`/`effectiveField`），不在 effect 里 setState（`set-state-in-effect` 是 error）。
+> **验证**：双端 tsc 0 / eslint 0 / vitest **106 文件 1574 用例**（+25）/ build OK；Edge 实测：类型下拉 `["职业（roles）","怪物（monsters）"]`、属性下拉随类型自动跟随（`hp/mp/atk/def` ↔ `level/hp/atk`）、职业 hp 分布 `战士320/法师180` 柱宽 `100%/56.25%`、怪物 level 6 条降序（巨龙60→史莱姆1）柱宽 `100%/41.67%/20%/13.33%/5%/1.67%`、统计 avg 250.0 sum 500 —— **全程 0 pageerror**。
+> **顺带修**：`eslint.config.mjs` 补 `preview/**` 的 node+browser globals（此前 `preview/` 脚本的 `window`/`console`/`process` 报 16 个 `no-undef`）。
+> **审计数字不变（本轮补的是 TS 侧缺口，不改 Python 迁移面）**。
+
 ## 3. 每片执行流程（固定顺序）
 
 1. **调研**：读 Python 源码，锁定语义与缺陷，写成「调研结论」（含精确数字）。

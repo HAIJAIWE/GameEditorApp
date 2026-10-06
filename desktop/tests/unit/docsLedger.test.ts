@@ -104,6 +104,7 @@ const REQUIRED_ROADMAP_MARKERS: readonly string[] = [
   'E36（2026-10-07）',
   'E37（2026-10-07）',
   'E38（2026-10-07）',
+  'E40（2026-10-07）',
   '已由 E7 补齐', // E6 遗留项已被 E7 补齐的标记（回退会退回旧措辞）
   'migration-audit.md' // §2 必须指向文件级审计
 ]

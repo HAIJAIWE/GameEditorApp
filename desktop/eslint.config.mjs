@@ -27,6 +27,13 @@ export default tseslint.config(
     }
   },
   {
+    // 浏览器预览工具（Node 跑静态服务器 + 注入 window.mbApi 桩 + Edge 截图驱动）
+    files: ['preview/**/*.mjs', 'preview/**/*.js'],
+    languageOptions: {
+      globals: { ...globals.node, ...globals.browser }
+    }
+  },
+  {
     // 一次性脚本（Node CommonJS，用 require/__dirname）
     files: ['scripts/**/*.cjs'],
     languageOptions: {

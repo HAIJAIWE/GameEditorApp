@@ -29,7 +29,9 @@
     updatedAt: '2026-01-01T00:00:00.000Z', progress: 0.4, parentId: '', isActive: true,
     createdAt: '2026-01-01T00:00:00.000Z', versionNote: '', gameType: 'RPG', status: 'draft'
   }
-  const item = (id, type, name) => ({ id, type, data: { name }, createdAt: '', updatedAt: '' })
+  const item = (id, type, name, extra) => ({
+    id, type, data: extra ? { name, ...extra } : { name }, createdAt: '', updatedAt: ''
+  })
   const ok = async () => ({ ok: true })
   const emptyUndo = { applied: 0, failed: [], skipped: [] }
   const undoState = { canUndo: false, canRedo: false, nextUndo: null, nextRedo: null }
@@ -118,8 +120,18 @@
     schema: {
       list: async () => [
         { id: 'skill', name: '技能', formFields: [{ name: 'id' }, { name: 'name' }], listFields: ['name'] },
-        { id: 'role', name: '职业', formFields: [{ name: 'id' }, { name: 'name' }], listFields: ['name'] },
-        { id: 'monster', name: '怪物', formFields: [{ name: 'id' }, { name: 'name' }], listFields: ['name'] },
+        { id: 'role', name: '职业', pluralKey: 'roles', color: '#0EA5E9',
+          formFields: [
+            { name: 'id', type: 'text' }, { name: 'name', type: 'text' },
+            { name: 'hp', type: 'spinbox' }, { name: 'mp', type: 'spinbox' },
+            { name: 'atk', type: 'spinbox' }, { name: 'def', type: 'spinbox' }
+          ], listFields: ['name', 'hp', 'mp', 'atk', 'def'] },
+        { id: 'monster', name: '怪物', pluralKey: 'monsters', color: '#EF4444',
+          formFields: [
+            { name: 'id', type: 'text' }, { name: 'name', type: 'text' },
+            { name: 'level', type: 'spinbox' }, { name: 'hp', type: 'spinbox' },
+            { name: 'atk', type: 'spinbox' }
+          ], listFields: ['name', 'level', 'hp', 'atk'] },
         { id: 'item', name: '物品', formFields: [{ name: 'id' }, { name: 'name' }], listFields: ['name'] }
       ],
       save: async (req) => (req && req.types) || [],
@@ -143,7 +155,18 @@
     },
     data: {
       listItems: async () => [item('i1', 'skill', '示例技能A'), item('i2', 'role', '示例职业B'), item('i3', 'item', '示例物品C')],
-      listAll: async () => [item('i1', 'skill', '示例技能A'), item('i2', 'item', '示例物品B'), item('i3', 'monster', '示例怪物C')],
+      listAll: async () => [
+        item('i1', 'skill', '示例技能A'),
+        item('i2', 'item', '示例物品B'),
+        item('m1', 'monster', '哥布林', { level: 3, hp: 45, atk: 8 }),
+        item('m2', 'monster', '兽人战士', { level: 12, hp: 180, atk: 34 }),
+        item('m3', 'monster', '亡灵法师', { level: 25, hp: 320, atk: 71 }),
+        item('m4', 'monster', '巨龙', { level: 60, hp: 4200, atk: 260 }),
+        item('m5', 'monster', '史莱姆', { level: 1, hp: 12, atk: 2 }),
+        item('m6', 'monster', '暗影狼', { level: 8, hp: 96, atk: 21 }),
+        item('r1', 'role', '战士', { hp: 320, mp: 80, atk: 45, def: 30 }),
+        item('r2', 'role', '法师', { hp: 180, mp: 400, atk: 62, def: 12 })
+      ],
       createItem: async (req) => ({ id: 'new-' + Date.now(), type: req.type, data: req.data, createdAt: '', updatedAt: '' }),
       updateItem: async (req) => req.item,
       deleteItem: ok,
