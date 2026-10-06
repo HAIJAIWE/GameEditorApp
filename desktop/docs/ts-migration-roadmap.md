@@ -474,6 +474,32 @@
 > `monster.m1.hp=45`、`nope.x=未找到`、中文引用被正确忽略 —— **0 pageerror**。
 > **审计**：`preview_panel.py` 222 行由 ⚠️ 降为 ◐（引用概览已迁；`enabled_editors` 动态编辑器半边仍未迁）。
 
+> ✅ **E45（2026-10-07）：补 Toast 非阻塞通知（E43 缺口第 2 条），并清掉一处死状态**。
+> **动因**：`ui/components/toast.py`（98 行）在 PyQt 侧有 **9 处真实调用**（`data_tab.py` 的
+> `_show_toast`：保存成功 / 删除成功 / AI 生成内容已添加 / 已选择模板 / 已选择参考策划案 …）。
+> TS 侧原先只有 `App.tsx:109` 一个全局 `notice-banner`，它有三个毛病：**不会自动消失**、
+> **占据布局空间**（把下方面板往下挤）、**只能显示一条**（后一条直接覆盖，前一条语义丢失）。
+> **新增**：`shared/toast.ts`（纯逻辑，21 用例）+ `components/ToastHost.tsx` + `styles.css` 的 `.toast-*`。
+> **与 PyQt 的三处刻意差异**：① **可多条并存**（上限 3，超出丢最旧）—— PyQt 是单实例覆盖，
+> 而 TS 一次操作常连发多条反馈（「已保存」+「已同步」），覆盖会丢信息；
+> ② **淡出用 CSS 而非 QTimer 逐帧改 opacity**；③ **位置改右上角**（PyQt 是父窗口顶部居中 +60px，
+> 本项目顶部已有菜单栏/浮层头部，放右上更不挡内容）。配色沿用 PyQt 三套语义：
+> default=`--bg-panel` / success=`--accent` / error=`--danger`，前景一律 `--btn-text`。
+> **技术约束**：用 `useSyncExternalStore` 订阅模块级轻量 store，**不用 effect+setState**
+> （react-hooks v7 的 `set-state-in-effect` 是 error）；用模块级订阅器而非 Context，
+> 是为了让任意深度组件都能直接 `showToast(...)`，不必造 prop 透传管道。
+> **接线的三处（`DataEditorTab.tsx`）**：保存 / 复制（原走 notice-banner，改 Toast）、
+> **删除成功（原先删完**完全没有反馈**，补上，对齐 `data_tab.py:526`）**。
+> 同时清掉因此变成死状态的 `notice` state 与其 `notice-banner` 渲染（留着就是永远为空的死代码）。
+> **⚠️ 本轮验证的诚实边界**：单测 21 条覆盖了自动消失、队列上限、脏时长夹紧、订阅/退订、
+> `getToasts` 稳定引用（防 `useSyncExternalStore` 无限重渲染）等**全部逻辑**；
+> 并确认 `toast-host` 已进打包产物（JS + CSS 各命中）。但 **未做浏览器实机触发** ——
+> `DataEditorTab` 需 `doc.systems` 派生出 `enabled_editors` 才渲染，桩里补 systems
+> 会连带触发「确认游戏系统」自动弹窗（改变预览行为），故已回退该桩改动。
+> 该项目无 jsdom/组件测试设施（vitest `environment: 'node'`），为它加依赖属过度开发。
+> ⇒ **Toast 的真实点击效果待真机 E2E 验证**（51 个 E2E 至今未在真机跑过，属既有边界）。
+> **验证**：双端 tsc 0 / eslint 0 / vitest **110 文件 1673 用例**（+21）/ build OK。
+
 > 🔴 **E42（2026-10-07）：主理人裁决 —— `core/agent` 停止 1:1 迁移，改为「AI 框架重写」**。
 > **主理人原话**：「**ai 那边就不搞了。框架可能要重写**」。
 > **决策落地（写入 `migration-audit.md` 顶部横幅 + 本条，作为跨会话唯一事实源）**：

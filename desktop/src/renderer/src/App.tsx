@@ -30,6 +30,7 @@ import AgentEditorPanel from './components/AgentEditorPanel'
 import AttributeChartPanel from './components/AttributeChartPanel'
 import SettingsPanel from './components/SettingsPanel'
 import StatisticsPanel from './components/StatisticsPanel'
+import ToastHost from './components/ToastHost'
 import TypeEditorPanel from './components/TypeEditorPanel'
 
 function toErrorMessage(error: unknown): string {
@@ -741,6 +742,8 @@ export default function App() {
             </aside>
           </div>
 
+          {/* Toast 宿主：absolute 浮层，不占布局空间（对齐 PyQt ui/components/toast.py） */}
+          <ToastHost />
           <footer className="statusbar">
             {info ? (
               <>

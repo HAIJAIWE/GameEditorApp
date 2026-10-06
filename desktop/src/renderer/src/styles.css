@@ -3917,3 +3917,97 @@ button.ref-row:hover {
 .ceshu-pane-row > .chapter-body {
   min-width: 240px;
 }
+
+/* ---- Toast 非阻塞通知（对齐 Python ui/components/toast.py）---- */
+/*
+ * 配色沿用 PyQt 的三套 QSS 语义：
+ *   default → theme_color('bg')      ⇒ 这里用 --bg-panel（QSS 是深色底 + 白字，
+ *             但本项目默认主题是浅色，故取面板底 + --text 前景，保证浅色主题下可读）
+ *   success → theme_color('accent')  ⇒ --accent（#0EA5E9）
+ *   error   → theme_color('danger')  ⇒ --danger（#EF4444）
+ * 前景一律用 --btn-text（对齐 PyQt 的 theme_color('btn_text')）。
+ *
+ * 定位刻意用 absolute：宿主**不占布局空间**，不会推挤下方面板
+ * （这正是 notice-banner 的痛点）。PyQt 是「父窗口顶部居中 +60px」，
+ * 本项目界面顶部已有菜单栏/浮层头部，放右上角更不挡内容。
+ */
+.toast-host {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  /* 容器本身不吃鼠标事件，只有内部的 toast 吃 —— 避免挡住下方操作 */
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 420px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--bg-panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.14);
+  font-size: 13px;
+  line-height: 1.45;
+  animation: toast-in 160ms ease-out;
+}
+
+.toast-success {
+  background: var(--accent);
+  color: var(--btn-text);
+  border-color: var(--accent-active);
+}
+
+.toast-error {
+  background: var(--danger);
+  color: var(--btn-text);
+  border-color: var(--danger-hover);
+}
+
+.toast-text {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.toast-close {
+  flex: 0 0 auto;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.75;
+  padding: 0 2px;
+}
+
+.toast-close:hover {
+  opacity: 1;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 尊重「减少动效」的系统偏好（无障碍） */
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+  }
+}

@@ -255,7 +255,7 @@
 | themes/themes.py | 1097 | ⛔ | **有意不迁（E24 判定）**：`_THEME_QSS`(255 行) + `_DIGITAL_PANEL_QSS`(200 行) + 5 套 `_THEME_CONFIGS` 主题字典(210 行) **全是 Qt QSS 字符串**，Web 端不可用；TS 已有 CSS 变量深色主题（`styles.css` 9 个变量）。唯一有价值的是 33 行**设计令牌**（`FONT_SIZE_XS..XL` 11/12/13/14/16、`SPACING_XS..XL` 4/8/12/16/24），已作为 CSS 自定义属性覆盖（`:root` 变量层）。多主题切换属**独立立项**（需 `[data-theme]` 覆写 ~80-100 行），不搭车 |
 | menus.py / shortcuts_dialog.py / tab_manager.py / window_state.py | 180+107+249+154 | ◐ | **window_state.py 已迁（E24）**：`main/windowState.ts`（几何 + 最大化 + lastMode，原子写）+ `app:setWindowMode` IPC。**tab_manager** 核心（多标签/延迟切标签/侧栏计数）已由 TS `mode-data`/`mode-ceshu`/`mode-digital` + `LibraryBar` 覆盖，仅剩「标签撕裂保护」边缘情形。**menus.py** 26 项中 TS 已覆盖 16 项（工具栏+侧栏），缺 5 类：撤销/重做（**TS 完全没有**，但 Python 亦仅菜单置灰）、数据关系图、清理未用图片、多引擎导出。**shortcuts_dialog** 是纯键盘映射表（无消费者），随 menus 不迁 |
 | components/image_loader.py | 324 | ⚠️ | `LazyImageLabel`/异步加载缓存无 TS（装备/角色图片无缩略图） |
-| components/toast.py | 98 | ⚠️ | 无 Toast 组件；仅 `notice-banner` 内联提示 |
+| components/toast.py | 98 | ◐ | **E45 已补 Toast 组件**（`shared/toast.ts` + `ToastHost`，多条并存/自动消失/三态配色）；**未完全对齐**：未做 E2E 实机点击验证（无 jsdom 设施，见 roadmap E45 的诚实边界） |
 | `__init__.py`×3 / ai_bridge.py / digital_panel_state.py / digital_panel_theme.py / layout_builder.py | 32+116+232+338+245 等 | ⛔ | 包胶水 / `a-tier-plan` 明列不迁（初始化窗口定位、类型桩、QSS 注入、QSplitter 布局） |
 
 ### 3.5 `core/ceshu` + `core` 顶层 + `core/defaults`（38 文件 / 12,602 行）

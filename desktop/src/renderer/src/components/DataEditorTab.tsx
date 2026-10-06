@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import { filterItemRecords } from '../../../shared/dataTableOps'
+import { showToast } from '../../../shared/toast'
 import type { DataTypeDef, ItemRecord } from '../../../shared/types'
 
 import ItemForm from './ItemForm'
@@ -53,7 +54,6 @@ export default function DataEditorTab({
   const [debouncedQuery, setDebouncedQuery] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [notice, setNotice] = useState<string | null>(null)
 
   const typeDef = types.find((def) => def.id === type) ?? null
   const typeName = typeDef?.name ?? type
@@ -123,6 +123,8 @@ export default function DataEditorTab({
       if (selectedId === id) setSelectedId(null)
       await reload()
       onDataChanged?.()
+      // 对齐 PyQt data_tab.py:526 的「删除成功」toast（原先这里删完**没有任何反馈**）
+      showToast('已删除', { kind: 'success' })
     } catch (err) {
       setError(toErrorMessage(err))
     }
@@ -130,7 +132,7 @@ export default function DataEditorTab({
 
   /** 表单保存完成：重载列表并提示（ItemForm 自身已完成 updateItem 落盘） */
   const handleSaved = (updated: ItemRecord): void => {
-    setNotice(`已保存：${String(updated.data.name ?? updated.id)}`)
+    showToast(`已保存：${String(updated.data.name ?? updated.id)}`, { kind: 'success' })
     void reload()
     onDataChanged?.()
   }
@@ -142,14 +144,13 @@ export default function DataEditorTab({
   const handleDuplicated = async (created: ItemRecord): Promise<void> => {
     await reload()
     setSelectedId(created.id)
-    setNotice(`已复制：${String(created.data.name ?? created.id)}`)
+    showToast(`已复制：${String(created.data.name ?? created.id)}`, { kind: 'success' })
     onDataChanged?.()
   }
 
   return (
     <div className="data-editor-tab">
       {error && <div className="error-banner">{error}</div>}
-      {notice && <div className="notice-banner">{notice}</div>}
 
       <div className="data-editor-tab-main">
         <div className="list-column">
