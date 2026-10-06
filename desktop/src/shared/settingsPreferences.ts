@@ -35,10 +35,10 @@ import type { ThemeMode } from './theme'
 export const DEFAULT_FONT_SIZE = 13
 
 /** 字号下限（px）：对齐 `settings_dialog.py:400` 的 `setRange(8, 48)` 下界 */
-export const MIN_FONT_SIZE = 8
+export const MIN_FONT_SIZE = 10
 
 /** 字号上限（px）：对齐 `setRange(8, 48)` 上界 */
-export const MAX_FONT_SIZE = 48
+export const MAX_FONT_SIZE = 21
 
 /** CSS 自定义属性名（与 `styles.css` 的 `:root` 声明同名，勿单方面改名） */
 export const UI_FONT_SCALE_VAR = '--ui-font-scale'

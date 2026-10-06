@@ -90,8 +90,9 @@ describe('settingsPreferences：① 键缺失回落默认', () => {
  * ========================================================================== */
 describe('settingsPreferences：② 非法字号被规整', () => {
   it('范围与 PyQt setRange(8, 48) 一致', () => {
-    expect(MIN_FONT_SIZE).toBe(8)
-    expect(MAX_FONT_SIZE).toBe(48)
+    // 锁定这个决策，防止后人「对齐 PyQt」时改回去：Electron 窄栏撑不住 3.69 倍字号
+    expect(MIN_FONT_SIZE).toBe(10)
+    expect(MAX_FONT_SIZE).toBe(21)
   })
 
   it('999 → clamp 到上限 48：不是照单全收，也不是跳回默认 13', () => {
@@ -125,7 +126,7 @@ describe('settingsPreferences：② 非法字号被规整', () => {
 
   it('小数先取整再 clamp（13.4 → 13；47.6 → 48），避免子像素抖动', () => {
     expect(normalizeFontSize(13.4)).toBe(13)
-    expect(normalizeFontSize(47.6)).toBe(48)
+    expect(normalizeFontSize(20.7)).toBe(21)
   })
 
   it('边界值 8 与 48 原样保留（闭区间）', () => {
