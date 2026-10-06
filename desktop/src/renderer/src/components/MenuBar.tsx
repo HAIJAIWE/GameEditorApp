@@ -237,7 +237,8 @@ export default function MenuBar({ canUndo, canRedo, actions }: MenuBarProps) {
       { type: 'action', label: '字段结构编辑器', action: 'fieldEditor', testid: 'menuitem-tools-fieldEditor' },
       { type: 'action', label: '高级搜索', action: 'advancedSearch', testid: 'menuitem-tools-advancedSearch' },
       { type: 'action', label: 'AI 生图', action: 'imageGen', testid: 'menuitem-tools-imageGen' },
-      { type: 'action', label: '清理未使用图片', action: 'cleanupUnusedImages', testid: 'menuitem-tools-cleanupUnusedImages' }
+      { type: 'action', label: '清理未使用图片', action: 'cleanupUnusedImages', testid: 'menuitem-tools-cleanupUnusedImages' },
+      { type: 'action', label: '关键词模板配置', action: 'keywordTemplates', testid: 'menuitem-tools-keywordTemplates' }
     ],
     [{ type: 'action', label: '打开设置...', action: 'settings', testid: 'menuitem-settings-open' }],
     [

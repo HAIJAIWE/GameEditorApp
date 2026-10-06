@@ -26,6 +26,7 @@ import ReferencesPanel, { type ReferenceTarget } from './components/ReferencesPa
 import ShortcutsPanel from './components/ShortcutsPanel'
 import CleanupImagesPanel from './components/CleanupImagesPanel'
 import KeywordTemplatePanel from './components/KeywordTemplatePanel'
+import AgentEditorPanel from './components/AgentEditorPanel'
 import SettingsPanel from './components/SettingsPanel'
 import StatisticsPanel from './components/StatisticsPanel'
 import TypeEditorPanel from './components/TypeEditorPanel'
@@ -65,6 +66,7 @@ type OverlayPanel =
   | 'settings'
   | 'cleanupImages'
   | 'keywordTemplates'
+  | 'agentEditor'
 
 /** 浮层头部标题（与菜单项一致，便于用户确认当前打开的是哪个能力） */
 const PANEL_TITLES: Record<OverlayPanel, string> = {
@@ -84,7 +86,8 @@ const PANEL_TITLES: Record<OverlayPanel, string> = {
   clearAll: '清空所有数据',
   settings: '设置',
   cleanupImages: '清理未使用图片',
-  keywordTemplates: '关键词模板配置'
+  keywordTemplates: '关键词模板配置',
+  agentEditor: '智能体可用能力'
 }
 
 /**
@@ -591,6 +594,8 @@ export default function App() {
         return <CleanupImagesPanel />
       case 'keywordTemplates':
         return <KeywordTemplatePanel />
+      case 'agentEditor':
+        return <AgentEditorPanel />
       case 'quickCreate':
         return (
           <QuickCreatePanel
@@ -674,7 +679,7 @@ export default function App() {
           settings: () => openPanel('settings'),
           cleanupUnusedImages: () => openPanel('cleanupImages'),
           keywordTemplates: () => openPanel('keywordTemplates'),
-          agentEditor: () => notImplemented('智能体编辑器'),
+          agentEditor: () => openPanel('agentEditor'),
           aiPanel: () => setNotice('AI 助手已在右侧常驻'),
           notImplemented,
           quit: handleQuit

@@ -416,6 +416,14 @@
 > **⚠️ 环境变化（后续会话必读）**：本机 {BT}C:/Users/Administrator/AppData/Local/ms-playwright/{BT} **目录已不存在**，9 个 harness 里硬编码的 `chromium-1234/chrome-win64/chrome.exe` **全部失效、直接 THREW**。实证替代：用系统 Edge（`C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe`，同 Chromium 内核）+ `sed` 生成**临时副本**跑，**原 harness 文件一字未改**；新建的 `render-newpanels.mjs` 内置 `resolveChromium()` 兜底。⚠️ `render-adversarial.mjs` 的路径常量名是 `CHROME`（其余是 `executablePath`），批量替换易漏。
 > **审计数字不变（本轮仍是 TS 侧补齐，非 Python 迁移）**。
 
+> ✅ **E38（2026-10-07）：浏览器真机预览工具（`desktop/preview/`）+ 修两个「够不着」的面板，提交见 git log**。
+> **动因**：沙箱跑不了 Electron（E2E 限制依旧），但用户要求「打开给我看看」。实证渲染层是纯 `window.mbApi` 消费者（grep 无 `electron`/`require`/`process`）⇒ 托管 `out/renderer/` 静态站 + 注入忠实桩即可在真浏览器点真 UI。
+> **三个新文件（`desktop/preview/`）**：① `serve-preview.mjs` —— 静态托管 + SPA 回退 + 遍历防护；**所有 `.html` 响应**都注入 `<script src="/stub.js">`（首个版本只在回退分支注入，真 `index.html` 漏桩——curl 自查验出）；因 `index.html` 严格 CSP（`script-src 'self'`）必须用同源经典脚本、且经典脚本同步执行抢在 `type="module"` 之前，桩先于 React 挂载。② `preview-stub.js` —— 忠实 `window.mbApi` 桩：`app.info` 返回 `9.9.9`（**故意 ≠ 硬编码 1.0.0**，防版本号写死回归）；`agent.listTools` 返回 **5 个真实注册技能**（从 `src/main/agent/skills/*.ts` 抄真 id/描述/参数）。③ `shot.mjs` —— Edge（`msedge.exe` 兜底，ms-playwright 目录已消失）逐面板截图驱动，**每面板 fresh goto** 避免浮层状态串台。
+> **截图驱出两个真缺陷（不修截图就是假证据）**：① `keywordTemplates` 面板在 `App.tsx` 已接线但**全仓无入口**（union/PANEL_TITLES/renderPanel 都在，MenuBar 没有菜单项）⇒ 补 `menuitem-tools-keywordTemplates`；② **`AgentEditorPanel` 整个是死组件** —— `App.tsx:677` 的 `agentEditor` 动作是 `notImplemented('智能体编辑器')`，`OverlayPanel` union 无 `agentEditor`、`renderPanel` 无 case ⇒ 角部件「智能体」按钮点了**毫无反应**（正是「点了没反应的按钮」铁律禁止的形态）⇒ 五处接线补齐（import + union + `PANEL_TITLES` + renderPanel case + `openPanel('agentEditor')`）。
+> **桩的形状 bug（截图内容抓出来的）**：首版 `listTools` 返回裸数组，面板读 `res.tools` 得 undefined ⇒ 显示「调度器当前没有注册任何技能」。对照 `shared/ipc.ts:217` 真契约 `res: { description, tools: [...] }` 修正后，面板如实渲染 5 技能（含风险等级/动作/参数）。
+> **验证**：双端 tsc 0 / eslint 0 / vitest **105 文件 1549 用例** / build OK；Edge 截图 **8/8**（home/agent-editor/settings/about/shortcuts/clearAll/keywordTemplates/cleanupImages）**全程 0 console/page error**——这是「渲染层可脱离 Electron 独立运行」的整机证明。
+> **审计数字不变（预览工具不触 Python 迁移面）**。
+
 ## 3. 每片执行流程（固定顺序）
 
 1. **调研**：读 Python 源码，锁定语义与缺陷，写成「调研结论」（含精确数字）。
