@@ -22,6 +22,7 @@ import AiReviewPanel from './AiReviewPanel'
 import ChapterForm from './ChapterForm'
 import ChapterNotesPanel from './ChapterNotesPanel'
 import CeshuDataPreview, { type PreviewJumpTarget } from './ceshu/CeshuDataPreview'
+import CeshuDataRefsPanel from './ceshu/CeshuDataRefsPanel'
 import ChecklistPanel from './ChecklistPanel'
 import FieldDepsPanel from './FieldDepsPanel'
 import LucideIcon from './LucideIcon'
@@ -117,6 +118,7 @@ export default function CeshuView({
     | 'aiDataGen'
     | 'presetMarket'
     | 'systemConfirm'
+    | 'dataRefs'
     | null
   >(null)
   const [changelog, setChangelog] = useState<CeshuChangelog | null>(null)
@@ -385,7 +387,8 @@ export default function CeshuView({
       { testid: 'ceshu-timeline', label: '版本时间线', run: () => setPanel('timeline') },
       { testid: 'ceshu-checklist', label: '清单', run: () => setPanel('checklist') },
       { testid: 'ceshu-changelog', label: '变更记录', run: () => void handleShowChangelog() },
-      { testid: 'ceshu-fielddeps', label: '依赖检查', run: () => setPanel('fieldDeps') }
+      { testid: 'ceshu-fielddeps', label: '依赖检查', run: () => setPanel('fieldDeps') },
+      { testid: 'ceshu-datarefs', label: '数据引用', run: () => setPanel('dataRefs') }
     ],
     // 「确认游戏系统」**不在菜单里**：PyQt 无此菜单项，改为打开策划书时自动弹窗
     // （见上方加载回调；条件 = 未确认过 且 已有启用系统）
@@ -587,6 +590,8 @@ export default function CeshuView({
           <ChapterNotesPanel key={doc.ceshu_id} ceshuId={doc.ceshu_id} onClose={() => setPanel(null)} />
         ) : panel === 'wordStats' ? (
           <WordStatsPanel key={doc.ceshu_id} ceshuId={doc.ceshu_id} onClose={() => setPanel(null)} />
+        ) : panel === 'dataRefs' ? (
+          <CeshuDataRefsPanel key={doc.ceshu_id} chapters={doc} types={types} />
         ) : panel === 'fieldDeps' ? (
           <FieldDepsPanel key={doc.ceshu_id} ceshuId={doc.ceshu_id} onClose={() => setPanel(null)} />
         ) : panel === 'changelog' && changelog ? (

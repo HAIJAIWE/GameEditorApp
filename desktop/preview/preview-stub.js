@@ -23,6 +23,9 @@
   }
   for (const k of CHAPTER_KEYS) DOC[k] = {}
   DOC.meta = { game_name: '验证用策划书', game_type: 'RPG', status: 'draft' }
+  // 造 @data[...] 引用（对齐 shared/dataRef.ts 语法），用于验证「数据引用概览」面板
+  DOC.meta.battle_power = '战士攻击力 @data[role.r1.atk]、法力 @data[role.r1.mp]；不带 id 取首条 @data[role.atk]'
+  DOC.combat = { monster_note: '哥布林血量 @data[monster.m1.hp]；不存在的条目 @data[role.no_such_id.atk]；不存在的类型 @data[nope.x]；中文段 @data[角色.攻击]（语法不支持，应被忽略）' }
 
   const SUMMARY = {
     id: 'abc12345', gameName: '验证用策划书', scope: 'full', versionLabel: 'v1.0',

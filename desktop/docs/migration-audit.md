@@ -201,7 +201,7 @@
 | changelog_dialog.py | 326 | ◐80% | 视图+日志已迁；缺「导出 MD/HTML/Text」 |
 | ai_panel.py | 248 | ◐60% | 通用对话由 `DigitalPanel` 承接；策划书专属 8 主题快捷面板未迁 |
 | editor_view_workers.py | 101 | ◐50% | 整章 AI 已迁；单字段填充 `_AIFillFieldWorker` 无对应 |
-| preview_panel.py | 222 | ⚠️ | **数据引用预览缺失**：`enabled_editors` 动态编辑器 + `@data[...]` 解析无 TS |
+| preview_panel.py | 222 | ◐ | **E44 已迁「数据引用概览」**（`@data[...]` 解析 + 实时值 + 分组统计，见 `shared/dataRef.ts`；并修正 PyQt 单复数键不匹配的 bug）；**未迁**：`enabled_editors` 动态编辑器半边（TS 编辑器布局另有实现） |
 | ai_field_button.py | 78 | ⚠️ | 字段级「AI 帮我填」无 TS（`ceshuFieldControl` 无 AI 入口） |
 | ceshu_theme.py / 2 个 `__init__.py` | 238+65+60 | ⛔ | QSS 主题胶水 / 包 re-export |
 

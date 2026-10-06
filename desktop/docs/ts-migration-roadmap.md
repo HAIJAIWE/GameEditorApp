@@ -446,6 +446,34 @@
 > **守护测试生效实录**：新增 `SETTINGS_KEYS.llmConfig` 后 `settingsStore.test.ts` 的「防漂移」用例**如期变红**（清单少一键），已同步登记 ⇒ 证明该守卫真的在拦漂移，不是摆设。
 > **审计数字更新**：`api_config.py` 686 行从「⚠️整块未迁」降为「◐基础设置已迁 / 模型管理+视觉+模板三 tab 未迁」**（已被下方 E42 裁决覆盖，见 E42）**。
 
+> ✅ **E44（2026-10-07）：补「数据引用概览」—— 非 AI 缺口里价值最高的一条，并修正 PyQt 真 bug**。
+> **动因**：E43 复核出的 6 条非 AI 缺口之首。`ui/ceshu/preview_panel.py:102` `_refresh_refs` +
+> `common/data_ref.py`（209 行）：策划书正文写 `@data[role.atk]`，面板列出全部引用及其**实时值**，
+> 数值改动后不用来回切页核对。新增 `shared/dataRef.ts`（纯逻辑）+
+> `ceshu/CeshuDataRefsPanel.tsx` + CeshuView 三处接线（更多▸菜单「数据引用」）。
+> **🔧 修正了 PyQt 的真 bug（读源码实测，非臆测）**：`data_ref.py:89` 是 `items = raw.get(type_key)`
+> —— `type_key` 来自引用文本的**单数**片段（`@data[role.atk]` ⇒ `role`），但
+> `core/data_manager.py:56-59` 的 `self.data` 按 **`schema.plural_keys`（复数 `roles`）**建
+> ⇒ **两边对不上，PyQt 里 `@data[role.atk]` 永远解析不到、恒显「未找到」**。
+> TS 修正为：先按单数 `id` 归一（条目 `type` 存单数，与 `dataStats`/`attributeChart` 同口径），
+> 找不到再按 `pluralKey`（兼容复数写法 `@data[roles.atk]`）。
+> **刻意不做「点击跳转数据表」**：PyQt `render_refs_to_html` 有 `data-ref://` 链接可跳表，
+> 但 TS 侧 `CeshuView` 不持有跳转处理器（它是**接收**宿主 `App.tsx:159` 的 `jumpTarget`），
+> 同层 `FieldDepsPanel` 也没有跳转 ⇒ 凭空加按钮就是「点了没反应的按钮」⇒ 只做只读概览，
+> 要跳转需新开 `panel → 宿主 setJumpTarget` 接线（独立立项）。同批不搬 `preview_panel` 的
+> `enabled_editors` 动态编辑器半边（另案，`editor_layout.py` 208 行仍缺）。
+> **两处语法限制如实记录（对齐 Python，非 TS 缺陷）**：① 正则只认 ASCII 标识符
+> （`[a-zA-Z_]`，Python 同）⇒ `@data[角色.攻击]` **整体不匹配**（不是显示为未找到，是根本不当作引用）；
+> ② 4 段以上跳过、一段不匹配。
+> **浏览器实测抓出的崩溃（已修）**：桩里 `{ id:'skill' }` 无 `pluralKey` ⇒
+> `t.pluralKey.toLowerCase()` 抛 undefined ⇒ **整面板白屏**。修复：归一函数对 `id`/`pluralKey`
+> 全部空值保护（`norm()`），单测加 2 条脏数据用例锁死。**教训同 attributeChart 那次：
+> 运行时数据完整性永远不能信声明，必须实测。**
+> **验证**：双端 tsc 0 / eslint 0 / vitest **109 文件 1652 用例**（+38 dataRef）/ build OK；
+> Edge 实测：`共 6 个引用（有效 4/6）`、role 分组 `r1.atk=45 / r1.mp=80 / 首条=45 / no_such_id=未找到`、
+> `monster.m1.hp=45`、`nope.x=未找到`、中文引用被正确忽略 —— **0 pageerror**。
+> **审计**：`preview_panel.py` 222 行由 ⚠️ 降为 ◐（引用概览已迁；`enabled_editors` 动态编辑器半边仍未迁）。
+
 > 🔴 **E42（2026-10-07）：主理人裁决 —— `core/agent` 停止 1:1 迁移，改为「AI 框架重写」**。
 > **主理人原话**：「**ai 那边就不搞了。框架可能要重写**」。
 > **决策落地（写入 `migration-audit.md` 顶部横幅 + 本条，作为跨会话唯一事实源）**：
