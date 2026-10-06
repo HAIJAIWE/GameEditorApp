@@ -444,7 +444,31 @@
 > **配置怎么到主进程（踩坑记录）**：主进程**读不到 localStorage**，而配置刻意存 localStorage ⇒ 沿用 `image:generate` 的既定纪律：渲染层新增 `llm:configure` 把**非敏感镜像**推给主进程（启动/改设置各一次）+ 新增 `llm:status`；`llmCallOptions()` 统一为**全部 5 个 `llmClient.generate` 调用点**注入配置与解密后的 Key（逐点改 schema 属重复劳动，抽一个辅助函数消解）。
 > **验证**：双端 tsc 0 / eslint 0 / vitest **108 文件 1614 用例**（+40：`llmConfig` 26 + `llmClient` 协议分流 14）/ build OK；**Edge 实测**：6 个服务商下拉齐全、Ollama 时**不显示** API Key 框、切 OpenAI 自动带出预设 base_url+首个模型、Claude 显示不兼容警示、Key 保存后 **localStorage 扫描 `sk-test-123456` 命中 0 个键**、`llm:configure` 实收 4 次 —— **0 pageerror**。
 > **守护测试生效实录**：新增 `SETTINGS_KEYS.llmConfig` 后 `settingsStore.test.ts` 的「防漂移」用例**如期变红**（清单少一键），已同步登记 ⇒ 证明该守卫真的在拦漂移，不是摆设。
-> **审计数字更新**：`api_config.py` 686 行从「⚠️整块未迁」降为「◐基础设置已迁 / 模型管理+视觉+模板三 tab 未迁」。
+> **审计数字更新**：`api_config.py` 686 行从「⚠️整块未迁」降为「◐基础设置已迁 / 模型管理+视觉+模板三 tab 未迁」**（已被下方 E42 裁决覆盖，见 E42）**。
+
+> 🔴 **E42（2026-10-07）：主理人裁决 —— `core/agent` 停止 1:1 迁移，改为「AI 框架重写」**。
+> **主理人原话**：「**ai 那边就不搞了。框架可能要重写**」。
+> **决策落地（写入 `migration-audit.md` 顶部横幅 + 本条，作为跨会话唯一事实源）**：
+> `core/agent` 域剩余 **33 文件 / 8,419 行「⚠️未迁」全部不再计入迁移欠债**（记忆向量检索 883 行、
+> `learner` 学习闭环 543 行、`intent` 意图解析 718 行、`mcp` 客户端 391 行、团队 CRUD 818 行、
+> `model_registry` 186 行、自愈链 4,166 行〔本就刻意不迁〕）。
+> **⇒ 剩余量口径变更**：「≈2.4–2.8 万行 / 26–31%」**应扣除 core/agent 未迁部分** ⇒ 编辑器侧真实剩余 ≈ **1.4–1.7 万行**。⚠️ **该数字待重跑审计后更新，本轮不伪造统计**。
+> **🔑 必须区分两类 AI 能力（否则重写会误伤在用功能）**：
+> - **要重写**：Agent 框架本身（brain / dispatcher / skills / 记忆 / 意图那套自主决策循环）。
+> - **必须保留**：**LLM 调用能力** —— 被 **4 个非 Agent 功能**真实消费且**不依赖框架**：
+>   `schema:suggestFieldIds`（字段 ID 建议）、`ceshu:aiGenerateData`（策划书数据生成）、
+>   `ceshu:aiReview`（策划书审查）、`llm:generate`（字段级 AI 按钮）。它们经
+>   `main/llm/client.ts`（E41 两种传输）**绕开 brain/dispatcher 直接调 LLM**。
+> **现有 Agent 资产实测（重写时的输入，非裁决）**：`shared/agent/` **1,564 行**（brain 420 / protocol 472 /
+> panel 255 / session 167 / operationLog 100 / personalization 75 / prompts 44 / memory 31）+
+> `main/agent/` **1,187 行**（dispatcher 233 / sessionStore 183 / brainService 165 / ollamaTransport 139 /
+> preferenceStore 131 / operationRecorder 123 / operationLogStore 96 / memoryStore 64 / approvalBroker 53）
+> + skills 5 个 + **12 个 agent 单测文件**。
+> **耦合面实测很窄**（这是「重写成本可控」的实证依据）：仅 **2 个渲染组件**（`DigitalPanel` /
+> `AgentEditorPanel`）+ **28 个 IPC handler** 依赖 agent 层，**不渗进数据/策划书内核**
+> ⇒ 拆掉重写不会牵动编辑器主体。
+> **守卫**：`tests/unit/docsLedger.test.ts` 新增标记 `E42（2026-10-07）` + `停止 1:1 迁移`，
+> 防止该裁决被文档回退静默抹掉。
 
 ## 3. 每片执行流程（固定顺序）
 
