@@ -108,7 +108,6 @@ const REQUIRED_ROADMAP_MARKERS: readonly string[] = [
   'E41（2026-10-07）',
   'E42（2026-10-07）',
   '停止 1:1 迁移',
-  '非 AI 部分的一致性',
   '已由 E7 补齐', // E6 遗留项已被 E7 补齐的标记（回退会退回旧措辞）
   'migration-audit.md' // §2 必须指向文件级审计
 ]
@@ -126,11 +125,32 @@ describe('文档守护：迁移台账不得被静默截断', () => {
     expect(sections).toHaveLength(6)
   })
 
+  it('审计顶部裁决横幅在场（E42/E43，防文档回退静默抹掉）', () => {
+    const audit = readDoc('migration-audit.md')
+    const missing = REQUIRED_AUDIT_MARKERS.filter((marker) => !audit.includes(marker))
+    expect(missing, `审计文档缺失裁决标记：${missing.join('、')}`).toEqual([])
+  })
+
   it('§2 的审计结论块在场（真实剩余量的唯一入口）', () => {
     expect(roadmap).toContain('真实剩余量已被**文件级审计**确定')
     expect(roadmap).toContain('真实剩余 ≈ 2.4–2.8 万行（26–31%）')
   })
 })
+
+/**
+ * 审计文档顶部两块裁决横幅的**必需标记**。
+ *
+ * ## 为什么单独一张清单（而不是并进 `REQUIRED_ROADMAP_MARKERS`）
+ * 那两块横幅写的是 **`migration-audit.md`**（E42「core/agent 停止 1:1 迁移」+
+ * E43「非 AI 部分的一致性」复核），而 `REQUIRED_ROADMAP_MARKERS` 查的是 **roadmap** 文件。
+ * 放进同一张表会让守卫去 roadmap 里找一个只存在于 audit 的短语 ⇒ **永远红**。
+ * 本项目文档已被静默回退过 4 次，两个文件的裁决都要守，故分表各守其位。
+ */
+const REQUIRED_AUDIT_MARKERS: readonly string[] = [
+  'core/agent` 域**停止 1:1 迁移', // E42 裁决：停止迁移改重写
+  '非 AI 部分的一致性', // E43 复核：主体一致但有缺口
+  '±2 文件 / 480 行' // 审计自认的数据矛盾（复核前必须留着，不能悄悄抹平）
+]
 
 describe('文档守护：审计数字必须自洽且两处一致', () => {
   const roadmap = readDoc('ts-migration-roadmap.md')
