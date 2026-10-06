@@ -574,6 +574,21 @@ export default function App() {
         canRedo={undoUi.canRedo}
         actions={{
           importJson: handleImportLegacy,
+          /*
+           * 「打开」/「保存」/「批量导入」/「批量导出」四项与 `importJson`/`exportJson`
+           * **共用同一对 handler**（`App.tsx:385-410` 已完整实现）。
+           * 语义澄清：这里的「打开/保存」是**整个数据仓库的 JSON 文件 I/O**
+           * （PyQt `main_window.py:710-753`），**不是**编辑器里章节级的「保存本章」。
+           * 不抽包装层：抽了只是给同一个函数换两个名字，不产生行为差异（铁律：不过度开发）。
+           *
+           * ⚠️ 已知的 PyQt 语义差异（详见 `MenuBar.tsx` 的 `MenuActions.open` 注释）：
+           * PyQt「打开」是整库替换 + 记忆 `current_file`，「批量导入」会重生成 id；
+           * 而 `importLegacy` 是按 id upsert 的合并、每次都问路径。补齐需新增 IPC，不在本轮范围。
+           */
+          open: handleImportLegacy,
+          save: handleExportLegacy,
+          batchImport: handleImportLegacy,
+          batchExport: handleExportLegacy,
           importCsv: handleImportCsv,
           importExcel: handleImportExcel,
           exportJson: handleExportLegacy,

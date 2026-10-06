@@ -28,6 +28,31 @@ export interface MenuActions {
   batchEdit: () => void
   /** 引擎数据导出：按目标引擎走各自的渲染器与扩展名（对齐 PyQt `features/engine_export.py`） */
   engineExport: (engine: EngineTarget) => void
+  /**
+   * 「打开」/「保存」—— 整个数据仓库的 JSON 文件 I/O
+   * （对齐 PyQt `main_window.py:710` 的 `open_file` / `:730` 的 `save_file`）。
+   *
+   * ⚠️ **与 PyQt 的已知语义差异**（勿改文案掩盖）：
+   * - PyQt `打开` 是**整库替换**（`data_manager.py:382` 直接 `self.data = temp_data`）并记录
+   *   `current_file`；TS 的 `importLegacy` 是**按 id upsert 的合并**，不删除既有条目。
+   * - PyQt `保存` 复用 `current_file`（第二次起不再问路径）；TS 每次都弹另存为对话框。
+   * 补齐需新增 IPC（整库替换 + current_file 记忆），不在本轮「零新能力」范围内。
+   */
+  open: () => void
+  /** 「保存」，与 `open` 成对，共用 `handleExportLegacy`（差异同上） */
+  save: () => void
+  /**
+   * 「导入 → 批量导入」（PyQt `features/export.py:168` 的 `batch_import`：
+   * 读 JSON 后**为每条重新生成 id** 再追加）。
+   * ⚠️ TS 的 `importLegacy` 保留原 id（缺失才生成 UUID），重复导入同一文件是**幂等更新**
+   * 而非「每次追加一份新副本」——与 PyQt 有行为差异，详见上方 `open` 的说明。
+   */
+  batchImport: () => void
+  /**
+   * 「导出 → 批量导出」（PyQt `features/export.py:206`：与 `export_json` **共用同一个函数**
+   * `_export_data_as_json`，仅对话框标题/成功文案不同）→ 故与 `exportJson` 同实现是精确对齐。
+   */
+  batchExport: () => void
   backup: () => void
   undo: () => void
   redo: () => void
@@ -124,8 +149,8 @@ export default function MenuBar({ canUndo, canRedo, actions }: MenuBarProps) {
 
   const menuTree: MenuNode[][] = [
     [
-      { type: 'action', label: '打开', action: 'notImplemented' },
-      { type: 'action', label: '保存', action: 'notImplemented' },
+      { type: 'action', label: '打开', action: 'open', testid: 'menuitem-file-open' },
+      { type: 'action', label: '保存', action: 'save', testid: 'menuitem-file-save' },
       { type: 'separator' },
       {
         type: 'submenu',
@@ -135,7 +160,7 @@ export default function MenuBar({ canUndo, canRedo, actions }: MenuBarProps) {
           { type: 'action', label: '导入 CSV', action: 'importCsv', testid: 'menuitem-file-importCsv' },
           { type: 'action', label: '导入 Excel', action: 'importExcel', testid: 'menuitem-file-importExcel' },
           { type: 'separator' },
-          { type: 'action', label: '批量导入', action: 'notImplemented' }
+          { type: 'action', label: '批量导入', action: 'batchImport', testid: 'menuitem-file-batchImport' }
         ]
       },
       {
@@ -146,7 +171,7 @@ export default function MenuBar({ canUndo, canRedo, actions }: MenuBarProps) {
           { type: 'action', label: '导出 CSV', action: 'exportCsv', testid: 'menuitem-file-exportCsv' },
           { type: 'action', label: '导出 Excel', action: 'exportExcel', testid: 'menuitem-file-exportExcel' },
           { type: 'separator' },
-          { type: 'action', label: '批量导出', action: 'notImplemented' },
+          { type: 'action', label: '批量导出', action: 'batchExport', testid: 'menuitem-file-batchExport' },
           { type: 'action', label: '批量编辑', action: 'batchEdit', testid: 'menuitem-file-batchEdit' },
           { type: 'separator' },
           { type: 'action', label: '导出游戏数据', action: 'notImplemented' },
