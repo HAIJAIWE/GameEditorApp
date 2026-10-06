@@ -356,6 +356,66 @@
 > **诚实边界**：① 全部 **51 个 E2E 仍未在真机跑过**（沙箱无 Electron）；② **PyQt「保存」（存整文档 + 清 dirty）与「AI 整章」刻意未跟** —— TS 是章节草稿级、无 dirty 概念，语义不同硬加会误导；③ **章节面板是折叠手风琴、TS 是单击切换 tabs**，属**结构差异**，需重写编辑器布局且会动 51 个 E2E 的导航契约，**留待用户裁决**，本刀只对齐了导航项的视觉；④ 编辑器内 TS 是「导航列 + 表单列 + 预览」三段，PyQt 是「折叠面板列 + 预览」两段（合计宽度一致），属既有 TS 适配，未动。
 > **审计数字不变（TS 侧视觉复刻，非 Python 迁移）**。
 
+> ✅ **E31（2026-10-06）：修 E30 引入的 E2E 契约回归 + 章节进度三色 + 旧库字段类型降级兜底，提交 `7850541`**。
+> **动因**：E30 之后的差异审计（3 个只读子代理分区块 + 主代理复核）抓出三条，其中**一条是本轮自己引入的回归**。
+> **① 回归（我自己引入的）**：章节进度从「百分比文字」改成迷你条后，`tests/e2e/ceshu.spec.ts:63` 的 `expect(combatTab).toContainText('50%')` 会失败（文字被挪进了 `title`）。改为在条内加 `.sr-only` 保留百分比文本 —— 视觉仍是 PyQt 的 `setTextVisible(False)` 形态，文本契约与读屏都保住。**教训：E2E 除了 testid 还有「文本内容」契约，IA 类改动要一并核。**
+> **② 注释错误**：我原写「填充刻意不用强调色」，只读了 `_setup_ui` 没读 `set_progress` —— 实际 `chapter_panel.py:149-165` 是**三色阈值**（<50 红 {BT}#e57373{BT} / 50-79 黄 {BT}#fff176{BT} / >=80 绿 {BT}#81c784{BT}）。已实现三色，并与字数统计面板共用新增的 `--progress-low/mid/hi` 令牌（顺手把那 6 处硬编码也令牌化）。**教训：PyQt 真值要读方法体，不能只读初始化。**
+> **③ 阻断级隐患**：`typeSchemaFile.ts::parseField` 对未收录控件类型 `throw`，而字段结构文件是 {BT}<库目录>/type_schema.json{BT}、**与 Python 版同构**（`main/stores.ts:71`）。PyQt 独有而 TS 未收录的 {BT}ref{BT} / {BT}textarea{BT} 会让旧库一被读就抛错 → **整个应用打不开、旧数据全部访问不到**。改为降级为 {BT}entry{BT} + `console.warn` 记原始类型（对齐 Python `field_config.py` 的 `else: QLineEdit()` 兜底：永不让控件缺失锁死应用）。同步改掉断言旧行为的单测。
+> **④ 清理**：删除 `desktop/electron.vite.config.*.mjs` 构建残留并加进 `.gitignore`（未被跟踪但污染 `git status`）。
+> **验证**：双端 tsc 0 / eslint 0 / vitest 95 文件 1350 用例 / build OK；`render-pyqt-visual` 22/22，既有 5 个 harness 全绿。
+> **审计数字不变**。
+
+> ✅ **E32（2026-10-07）：引擎导出补齐 Unity / Unreal / Godot / Cocos2d 四个真导出器，提交 `437223c`**。
+> **动因（功能性误导，非外观问题）**：`文件 → 导出为 Unity / Unreal / Godot / Cocos2d` 四个菜单项**全都调同一个 `handleEngineExport`，而 `EngineTarget` 只有 `{BT}lua{BT}`** ⇒ 四个菜单项点下去**全都拿到 `.lua` 文件**。PyQt 侧 `features/engine_export.py` 是**四个各自独立**的导出器（`export_to_unity/unreal/godot/cocos2d`），产物扩展名分别是 `.cs` / `.h` / `.gd` / `.json`。
+> **改动**：新增 `main/engineExport/engines.ts` 四个纯函数渲染器 + 分桶（`bucketize`，按 `pluralKey` 归桶、缺失回退 `type` 原文不丢数据）+ 五处 IPC 接线（文件对话框的默认扩展名与过滤器随引擎变）。
+> **顺手修 PyQt 三处缺陷**（项目规矩：Python 缺陷在 TS 侧修正并记录）：① 对话框承诺「模板 + 实际数据」但三个生成器**只吐类/结构体声明、一行真实数据都没有** → TS 补数据块；② `RoleData` 声明了 `public List<TalentRef> talents;` 却**从未定义 `TalentRef`** —— 生成的 `.cs` **编译不过** → TS 补上；③ Cocos2d 分支只写死 7 个键，**多出来的桶被丢弃** → TS 保留 7 个规范键在最前、其余按名排序追加。
+> **顺手修两处陈旧断言**：`engineExportLua.test.ts` 的 AC7/AC9 拿 {BT}'unity'{BT} 当「非法引擎」样本 —— 补齐四引擎后 unity 已是合法目标，换成真正非法的 {BT}'unreal5'{BT} 并**保留原断言语义**。
+> **验证**：双端 tsc 0 / eslint 0 / vitest 96 文件 1368 用例（+18）/ build OK；7 个 harness 共 100 条断言全绿。
+
+> ✅ **E33（2026-10-07）：AI 面板补「新建对话」与「草稿管理」，提交 `59c6f5c`**。
+> **动因**：PyQt `digital_panel_ui.py:132-159` 标题栏有两个图标按钮，TS 侧都没有入口 —— 清空按钮（`_show_clear_menu`：新建对话 / 清空当前 / 删除全部）与草稿按钮（`_show_draft_menu`：保存为草稿 / 从草稿恢复 / 最近 5 条）。
+> **改动**：`shared/agent/session.ts` 加 `DraftFile`/`DraftSummary` + 5 个纯函数（含 `safeDraftFileName`）；`main/agent/sessionStore.ts` 加 `saveDraft`/`listDrafts`/`readDraft`，草稿落 {BT}<userData>/agent/drafts/<名字>.json{BT}，**沿用既有「临时文件 + rename」原子写纪律**；`saveDraft` **从落盘的活跃会话取数据**而非让渲染层传消息（少一次跨进程传输，也避免「渲染层 state 与落盘不一致时存出旧草稿」）；三个 IPC 通道 + 五处接线；`DigitalPanel.tsx` 加两个图标按钮与下拉（复用 `.toolbar-more*` 样式与「点击外部 / Esc 关闭」交互）。**样式坑**：AI 面板在窗口最右侧，下拉必须 `{BT}left:auto; right:0{BT}`，沿用 `left:0` 会顶出屏幕右缘。
+> **三处有意不照抄 PyQt**：① 清空菜单**只给一项** —— TS 只有一份活跃会话（`active_session.json`），PyQt 三项语义完全等价，摆三个点下去一样的按钮是假控件；② 草稿存**结构化 messages** 而非 PyQt 的 `QTextEdit.toHtml()`；③ **不写活跃会话** —— 恢复草稿只灌 UI，用户点「恢复上次会话」才落盘。
+> **踩坑**：`safeDraftFileName` 最初用正则字符类写控制字符范围，heredoc 把 `\u0000-\u001f` 写成 `*-<0x1F>` —— **反向字符范围，JS 解析期直接 SyntaxError**。改用显式码点判断（`code < 0x20 || code === 0x7f`），并单测锁死「空格与连字符必须保留」。
+> **验证**：双端 tsc 0 / eslint 0 / vitest 97 文件 1385 用例（+17）/ build OK；`render-pyqt-visual` 25/25（新增 3 条：两按钮各含内嵌 svg、草稿下拉右对齐不出屏、Esc 关闭）；其余 6 个 harness 共 75 条断言全绿。
+
+> ✅ **E34（2026-10-07）：补 4 类字段控件形态 + 状态栏快捷键提示，提交 `14577df`**。
+> **动因与排序依据**：**不照抄审计报告的排序**，先 node 扫 {BT}shared/typeSchema.ts{BT} 得内置 schema **173 个字段的真实类型分布**（combobox 44 / entry 30 / spinbox 17 / desc 14 / tags 14 / multiselect 12 / **template 9 / image 8 / image_desc 7 / image_tags 6** / content 4…），按真实使用量排，本刀覆盖 **38 个字段**。
+> **① `template`（9 字段）**：从不可编辑 `<select>` → **可编辑** `<input list>`+`<datalist>`，并选中后**联动写入 `desc`**（PyQt `combo.setEditable(True)` + `_on_template_changed`）。**不猜占位符语义** —— PyQt 的 `_apply_desc_template` 实际就是 `return template_text`（**没做 {BT}{{职业}}{BT} 替换**，是留给子类的钩子），TS 同样只原文写入，免得替换错了悄悄改掉用户数据。
+> **② `tags`（14 字段）**：补 placeholder「多个标签用逗号分隔」+ 显式「数组 ↔ 逗号串」转换。**两条路径都要接住**（别以为只有一条）：常见路径是 `buildInitialDraft` 已把数组 `join(', ')` 成**字符串**放进草稿；防御路径是值仍为数组时自己拼。
+> **③ `image`（8 字段）**：只读路径框 + 「选择图片」+ **实时预览**（PyQt `_create_image_widget` 的三件套）。**预览走 data URL 而非本地路径** —— 渲染层在 Electron 里是独立来源，直接引用 `C:\...` 会被 `webSecurity` 拦掉，打包后（自定义协议）更读不到任意本地路径，故新增 `dialog:chooseImageFile` 由**主进程代读文件**。8 MB 上限 + 格式白名单，不满足时**给中文原因**而不是留白。预览状态用**派生判断**（`picked.path === 当前字段值`）而非 effect 同步。
+> **④ `image_desc`（7 字段）**：单行 → `<textarea>` + `max-height: 60px`（PyQt 是 `QTextEdit` + `setMaximumHeight(60)`）。
+> **⑤ 状态栏**：加常驻快捷键提示，但**只列 TS 真实注册的 `Ctrl+Z` / `Ctrl+Y`** —— PyQt 提示含 `Ctrl+S保存`，而 TS 的保存是章节草稿级、刻意不做整文档保存（见 E30 诚实边界②），没有 `Ctrl+S`。**照抄文案等于给一个按了没反应的键做广告。**
+> **未做（诚实边界）**：`image_tags`（6）的「自动生成/AI分析」与 `desc` 类（19）的「AI生成/AI生图」按钮（需新增 AI IPC）→ 已在 E36 补齐；`dialog` 字段的「选择对话」弹窗（内置 schema 只用 1 处，优先级最低，仍未做）。
+> **验证**：双端 tsc 0 / eslint 0 / vitest 98 文件 1394 用例（+9）/ build OK；**新增渲染证明 `render-field-controls.mjs` 11/11**；既有 7 个 harness 共 103 条断言全绿。
+> **harness 踩坑（4 条）**：① **点条目行中心会静默只删不选中** —— 行内「删除」按钮带 `stopPropagation`，行中心正落在它上面，Playwright 视为命中后代**不报错**；② 关注字段都在「描述 & 图片」分区里，而该分区**默认折叠**，不展开量不到；③ **`doc.systems` 是按 key 的字典**（`computeEnabledEditors` 遍历 `Object.entries`），写成 `{BT}{{ items: [...] }}{BT}` 会**静默开不出编辑器标签页**；④ 共享桩 `schema.list` 返回空数组 → 字段全空，形态断言无从谈起，须内联最小 schema。
+
+> ✅ **E35（2026-10-07）：补「游戏数据预览」面板 + Esc 关闭浮层，提交 `7421893`**。
+> **动因**：`文件 → 导出 → 游戏数据预览` 一直是 `notImplemented`。**先核实不是死代码** —— grep 到 5 处引用、`menus.py:69` 有真实菜单项（这与 `menus.py:167 setup_agent_toolbar()` 那类死代码不是一回事，值得先分清）。
+> **共用逻辑上移**：把 `bucketize` 从 `main/engineExport/engines.ts` **上移到 `shared/dataBuckets.ts`** —— 引擎导出与预览面板需要同一份 `pluralKey` 口径，两处各写一份迟早漂移；`engines.ts` 改为转出，导出面不变、既有测试 import 路径照旧可用。
+> **两处有意不照抄 PyQt**：① **不做 50000 字符截断** —— 那是 Qt 单个 `QTextEdit` 的现实约束，`<pre>` 扛得住；截断反而让用户看不到自己数据的全貌，改为在标题显式告知「已渲染全量，未截断」；② **键序按字典序稳定、空桶不出现** —— PyQt 直接倾倒 `data_manager.data`（插入序不稳定 + 一堆空数组）。
+> **Esc 关闭浮层**（PyQt `QDialog` 默认行为）：渲染证明抓到的**真交互缺失** —— TS 的浮层是 `div` 不是 `QDialog`，不注册这个键就没有「取消」语义。在 `App.tsx` 加了 panel 非空时监听 Esc → `setPanel(null)`。**这是 PyQt 免费的、我们没有的**。
+> **验证**：双端 tsc 0 / eslint 0 / vitest 99 文件 1401 用例（+7）/ build OK；`render-field-controls.mjs` 扩到 **13/13**（从真实菜单路径打开面板 → 断言 `"roles"` 桶与条目名真在文本里、规模摘要、等宽字体、无横向溢出、Esc 可关闭）；其余 7 个 harness 共 103 条断言全绿。
+> **harness 踩坑（3 条）**：① 子菜单定位**不能** `.menu-item` + `hasText('导出')` —— 菜单里还有「批量导出」也含「导出」，`first()` 命中它，要用 `.menu-submenu-label` + `hasText(/^导出$/)`；② 面板读 `data.listAll` 而非 `listItems`，只覆盖后者会走空态没有 `<pre>`；③ **bash heredoc 会吃掉中文多字节字符**（本轮咬坏 3 处）⇒ **凡是要写中文进文件，一律用 Write 工具或 python 写**。
+
+> ✅ **E36（2026-10-07）：字段级 AI 辅助按钮（desc 类 19 + image_tags 6 + image_desc 7），提交 `ab2aa09`**。
+> **读 PyQt 真源挖出三件按名字猜不到的事**：① `_on_ai_image`（desc 的「AI生图」）**是零能力桩** —— 函数体只有一句 `QMessageBox.information("AI图片生成功能需要配置API密钥")`，不生成任何东西；② `_on_auto_generate_image_info`（image_tags 的「自动生成」）**不调 AI** —— 纯模板 `f'{name}的图片描述'` / `f'{name},图片,游戏'`，按钮名里的「生成」纯属误导；③ `generate_desc_only` 在 `features/_ai_image.py:271`（不在 `features/ai/`），且会弹 `AIGenerateDialog`。
+> **四处有意偏差**：① **「AI生图」接真实 `image:generate`** —— PyQt 是桩，照抄就是一枚「点了只弹你还没配 API」的装饰按钮，**违反项目「不放点了没反应的按钮」铁律**；未配 Key 时**如实报错**不假装成功；② 「自动生成」改叫**「自动填充」** —— 语义一致但文案不误导；③ **desc 生成是追加不是覆盖** —— PyQt `setPlainText` 会抹掉用户手写内容；④ 上下文**跳过数组/对象字段** —— PyQt 的 `f"{{value}}"` 会把 `['火','远程']` 喂给模型，TS 跳过并计数说明（**不猜怎么把引用列表描述成句子**），另加单值 200 字 / 单行 260 字 / 20 字段上限防 prompt 爆炸。`buildDescPrompt` 的正文**逐字对齐** PyQt。
+> **技术决定**：新增 `llm:generate` IPC，**复用 `main/llm/client.ts` 里已注入的 `llmClient`** —— 刻意不新建第二套模型客户端（踩过坑：该类是 `registerIpcHandlers({{ llmClient }})` 解构注入，自己 `new` 会 tsc 报重复标识符）。
+> **单测抓到真 bug**：`mergeImageTagsResult` 对纯空白结果会压成 `,` → 写出「已有, ,」脏值。**改实现不改断言**（切分逐段 trim、剔空段再拼）。
+> **验证**：双端 tsc 0 / eslint 0 / vitest 100 文件 1420 用例（+19）/ build OK；`render-field-controls.mjs` 扩到 **21/21**（新增 6 条，含**失败路径**：llm 抛错时就地显示中文原因不弹窗）；其余 7 个 harness 共 103 条断言全绿。
+> **harness 踩坑（4 条）**：① **override 层会重跑 `mbApiStub()`** —— 共享桩里加的通道会被擦掉，harness 自己的 `overrides` 里必须再写一份；② **不能对只读框用 `fill('')`** —— Playwright 会重试到超时；③ **AI 断言必须排在「开面板再 Esc 关」那段之前** —— 浮层关掉后编辑器整页被换掉，`field-*` testid 全部查不到；④ python 写 `.mjs` 里的单引号会被吃掉 → 按行号改写。
+
+> ✅ **E37（2026-10-07）：接上「打开/保存/批量导入/批量导出」四个假动作 + 补「关于」「快捷键参考」「清空所有数据」，提交 `7d84338` 与 `3fc07ef`**。
+> **动因**：主理人按用户裁决分批清理菜单里的 `notImplemented`。**先逐项 grep 实证 21 项真伪**（不靠子代理转述），结论分四类：
+> **① 四个「菜单在骗人」的真接线**：`打开`/`保存`/`批量导入`/`批量导出` 原写 `action:'notImplemented'`（**用户点了毫无反应**），但 `App.tsx:385-410` 的 `handleImportLegacy`/`handleExportLegacy` **早已完整实现**，`dialog:chooseJsonFile`/`chooseSaveJsonFile`（`ipc.ts:176-177`）与 `data:importLegacy`/`data:exportLegacy`（`ipc.ts:496-503` → `main/data/legacyImport.ts:63`）**全都有**，且 TS 侧比 PyQt 严谨（PyQt `features/export.py:168` 无校验直接 append，TS 有 `parseLegacyData` + `skipped` 计数 + 自动刷新）。⇒ **零新能力、零新 IPC、零新对话框**，只差菜单接线。**刻意不抽包装层**（换名字不产生行为差异，违反「不过度开发」）。
+> **② ⚠️ 与 PyQt 的四处已知语义差异（如实标注，不靠改文案掩盖）**：PyQt `打开` 是**整库替换**（`core/data_manager.py:382` 直接 `self.data = temp_data`）并记 `current_file`，TS 的 `importLegacy` 是**按 id upsert 合并**；PyQt `保存` 复用 `current_file` 不再问路径，TS 每次都弹另存为；PyQt `批量导入` 是 `features/export.py:188` `item['id'] = dm.generate_id(key)` **每条重生成 id**（重复导入得 N 份副本），TS 保留原 id ⇒ **幂等更新**（有单测锁定）；只有 `批量导出` 与 `export_json` **是同一函数**、映射精确。补齐前两项需新增 IPC（TS 无 `current_file` 概念），**本轮刻意不做**。
+> **③ 判定不做**：「快速入门」是 PyQt **死代码**（`main_window.py:998-1008` 的 `getattr(self,'home_widget',None)`，而 `self.home_widget` **全仓零赋值** ⇒ 在 PyQt 里点了**什么都不发生**，其 docstring 自述属「已移除的旧三栏布局」）；「工具 → 关系图」是 `RelationTablePanel`（跨类型全库引用表 + 双击跳转），需新写导航逻辑，而条目维度已由 `ReferencesPanel` 覆盖 ⇒ 按「宁缺勿错」不做。
+> **④ 补三项真缺口**：「关于面板」（PyQt `main_window.py:1043-1053` 静态 HTML；版本号取真实 `app:info` 不硬编码）；「快捷键参考」（PyQt `shortcuts.py:17-52` 共 **35 条**，TS **只注册 3 个** `App.tsx:211-216` ⇒ **只列 3 条**，照抄=给 32 个死键做广告；`Escape` 不列入（交互键非命令键）；清单放 `shared/shortcuts.ts`，单测做**双向守护**（清单→代码 + 代码→清单，防「加了键忘更新面板」））；「清空所有数据」（PyQt `main_window.py:757-768` 有 `QMessageBox.question` 二次确认，TS `data:` 通道原本**无 `clearAll`**）⇒ `DataService.clearAll()`（`service.ts:218`）走 **`listAllItems()` + `deleteMany(ids)`** 而非直写 SQL（**复用 undo 记录 + `enqueueWrite` 串行化**，与 PyQt 走 manager 统一路径一致），`confirm:true` 校验同 `backup:restore`；确认交互照 `BatchEditPanel.tsx:368-394` 内联两按钮态，**显示具体条数**，并**如实告知「未保存草稿会丢失」+「可 Ctrl+Z 找回」**（不是真不可撤销）；刷新用 `dataEpoch` 并入 `DataEditorTab` 的 `key` 强制重挂载，**不新增 refresh 通道**。
+> **验证**：双端 tsc 0 / eslint 0 / vitest **102 文件 1430 用例**（+10）/ build OK；自建 `render-newpanels.mjs` **22/22**；既有 8 个 harness 共 124 条断言全绿 + 新面板 22 条 = **146 条**。**主代理独立复算**（非采信子代理自报），并**验证守卫有效**：往快捷键清单注入假的 `Ctrl+S` → 3 个用例如期变红，还原后 6/6 绿。
+> **⚠️ 环境变化（后续会话必读）**：本机 {BT}C:/Users/Administrator/AppData/Local/ms-playwright/{BT} **目录已不存在**，9 个 harness 里硬编码的 `chromium-1234/chrome-win64/chrome.exe` **全部失效、直接 THREW**。实证替代：用系统 Edge（`C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe`，同 Chromium 内核）+ `sed` 生成**临时副本**跑，**原 harness 文件一字未改**；新建的 `render-newpanels.mjs` 内置 `resolveChromium()` 兜底。⚠️ `render-adversarial.mjs` 的路径常量名是 `CHROME`（其余是 `executablePath`），批量替换易漏。
+> **审计数字不变（本轮仍是 TS 侧补齐，非 Python 迁移）**。
+
 ## 3. 每片执行流程（固定顺序）
 
 1. **调研**：读 Python 源码，锁定语义与缺陷，写成「调研结论」（含精确数字）。
