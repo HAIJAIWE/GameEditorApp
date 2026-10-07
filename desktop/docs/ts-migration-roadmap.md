@@ -538,6 +538,15 @@
 > **刻意范围收窄（宁缺勿错）**：不迁数据概览的「⚙ 管理显示类型」按钮 —— 其唯一消费者 `TypeVisibilityPanel` 在 TS 已随侧栏刻意下线（`App.tsx` 注释明示），PyQt 亦无等价物，概览区改为路由到既有「游戏数据统计」；不接线按 `visible_types` 过滤；`view_relations` 走既有 `references` 入口守卫，无定位目标时如实引导到「高级搜索」而非打开空面板。
 > **验证**：双端 tsc 0 / eslint 0 / vitest（含新增 `onboarding.test.ts`：默认/往返/容错/进度/完成/不可变/重置 + 常量 id）/ `electron-vite build` OK；docsLedger 守卫（audit 数字已同步：◐ 62/23,589、⚠️ 50/12,592，总 299/91,164）。
 
+> ✅ **E49（2026-10-07）：代码+文档准确性收口 —— 补评分报告 Markdown 导出（唯一真实功能遗留），修审计 3 处不实陈述 + 清 2 处死/误导入口（§1 数字不变）。**
+> **性质**：本片是**代码 + 文档准确性** pass，**不改动 §1/§2 分类计数**（仍 95 / 62 / 92 / 50、总 299 文件 / 91,164 行）。
+> **动因**：对「◐ 部分已迁」条目逐条实测复核后确认**无功能级 backlog**，但抓到 3 处审计「自述缺口」与源码不符，且菜单/预览各留 1 处死/误导入口。
+> **① 评分报告 Markdown 导出（真实功能遗留，本轮补齐）**：对齐 Python `score_report_dialog.py::_build_markdown`（549-603）+ `_on_export_md`（535-547）。新增纯函数 `shared/ceshuScorer.ts::buildScoreReportMarkdown(gameName, gameType, report, timestamp)`（标题 / meta / 总评 / 章节明细表 / 改进建议 / 同行业对比逐节对齐；完成度 `int(completion*100)`、必填 `齐全` 或 `缺 N`、备注 `; ` 连接、差距带符号）。走标准 5 点接线（`shared/ipc.ts` `ceshu:exportScoreReport` → `shared/schemas.ts` `ceshuScoreExportInputSchema` → `main/ipc.ts` 复用 `exportTextReportFile(...,'评分报告')` → `preload/index.ts` → `shared/service/api.ts`）；`CeshuView.tsx` 评分面板加 `data-testid="score-export"`「导出评分报告」按钮（`chooseCeshuExportFile` → build → `exportScoreReport` → notice / 错误进面板 error，完全镜像 `ChecklistPanel.handleExport`）。新增 `tests/unit/ceshuScoreReport.test.ts`（**真实 `CeshuScoreReport` 形状夹具**，断言各节标题 / 总分等级行 / 表格头与行 / 建议 / 行业行 / 负向差距 / 单元格转义）。
+> **② 菜单死入口「平衡性分析工具」**：`MenuBar.tsx` 该条目原 `action:'notImplemented'`（点击报「尚未实现」），改接既有 `action:'stats'`（`testid: 'menuitem-tools-balance'`）打开统计面板的平衡性分析视图——能力早已存在（`StatisticsPanel`），只是菜单没接。
+> **③ `ceshu/CeshuDataPreview.tsx` 误导占位**：`showRefs` 分支原渲染「数据引用解析（@data[...]）尚未迁移到 TS 版」**为假**（`CeshuDataRefsPanel` 早已存在且经 `CeshuView`「更多 ▸ 数据引用」可达）。改为**真接线**：给 `CeshuDataPreview` 增 `chapters` 度（宿主 `CeshuView` 单点传入 `doc`，非跨组件 prop-drilling），`showRefs` 标签内直接渲染 `<CeshuDataRefsPanel chapters={chapters} types={types} />`。
+> **④ 审计 3 处不实陈述修正（实测翻案）**：`common/common.py` 的 `safe_dict` **在 Python 源中根本不存在**（grep 零命中），`safe_int`/`safe_float`/`safe_str` **仅定义 + 再导出、零业务调用点** ⇒ 非缺口（该文件真实消费者是 `atomic_write_*`/`is_test_env`，已迁）；`menus/shortcuts/tab/window_state` 行原写「撤销/重做 **TS 完全没有**」为误——**已迁**（E27：`data:undo`/`data:redo`/`data:undoState` + `main/data/undoRecorder.ts` + `App.tsx` 按钮与 Ctrl+Z/Y），且清理未用图片 / 多引擎导出 / Lua 导出均已完成；`preview_panel.py` 行的 `enabled_editors` 半边原写「未迁」为误——`ceshu/CeshuDataPreview.tsx` 已实现 `enabledEditors` → `DataEditorTab` 渲染。另在审计 §1 增 `### ◐ 复核（2026-10-07）` 小结（**不改 §1 数字**）。
+> **验证**：双端 tsc 0 / eslint 0 / vitest 全绿（含新增 `ceshuScoreReport.test.ts`）/ `electron-vite build` OK；docsLedger 守卫全绿（§1 数字未变：◐ 62/23,589，总 299/91,164）。
+
 > 🔴 **E42（2026-10-07）：主理人裁决 —— `core/agent` 停止 1:1 迁移，改为「AI 框架重写」**。
 > **主理人原话**：「**ai 那边就不搞了。框架可能要重写**」。
 > **决策落地（写入 `migration-audit.md` 顶部横幅 + 本条，作为跨会话唯一事实源）**：

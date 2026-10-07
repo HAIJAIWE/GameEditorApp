@@ -167,6 +167,7 @@ const api: MbApi = {
     exportChecklistReport: (req) => invoke('ceshu:exportChecklistReport', req),
     diff: (req) => invoke('ceshu:diff', req),
     exportDiffReport: (req) => invoke('ceshu:exportDiffReport', req),
+    exportScoreReport: (req) => invoke('ceshu:exportScoreReport', req),
     notes: {
       list: (req) => invoke('ceshu:notes:list', req),
       add: (req) => invoke('ceshu:notes:add', req),

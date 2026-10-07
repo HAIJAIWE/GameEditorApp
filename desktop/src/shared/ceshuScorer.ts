@@ -406,6 +406,79 @@ function buildPassStatus(structure: number, quality: number, market: number, tot
   }
 }
 
+/* ---- Markdown 报告（对应 Python score_report_dialog._build_markdown） ---- */
+
+/** 有符号差距格式化：对齐 Python `f"{x:+.1f}"`（恒带符号 + 一位小数，如 +5.5 / -3.0） */
+function formatSignedDiff(value: number): string {
+  return `${value >= 0 ? '+' : ''}${value.toFixed(1)}`
+}
+
+/** 章节明细表格单元格转义：转义管道符，避免破坏 Markdown 表格（与 ceshuChecklist 同款） */
+function escapeScoreCell(text: string): string {
+  return text.replace(/\|/g, '\\|')
+}
+
+/**
+ * 生成评分报告的 Markdown 文本（逐节对齐 Python `score_report_dialog._build_markdown`，603 行）。
+ * 纯函数：`gameName`/`gameType`/`timestamp` 由调用方传入，便于渲染层展示与测试固定。
+ */
+export function buildScoreReportMarkdown(
+  gameName: string,
+  gameType: string,
+  report: CeshuScoreReport,
+  timestamp: string
+): string {
+  const r = report
+  const lines: string[] = [
+    '# 工业级 GDD 评分报告',
+    '',
+    `**游戏名称**: ${gameName || '未命名'}`,
+    `**游戏类型**: ${gameType || '未知'}`,
+    `**评分时间**: ${timestamp}`,
+    '',
+    '## 总评',
+    '',
+    `- **总分**: ${r.total_score.toFixed(1)} / 100`,
+    `- **等级**: ${r.grade} (${gradeLabel(r.grade)})`,
+    `- **结构完整度**: ${r.structure_score.toFixed(1)} / 30`,
+    `- **内容质量**: ${r.content_quality_score.toFixed(1)} / 40`,
+    `- **市场潜力**: ${r.market_potential_score.toFixed(1)} / 30`,
+    '',
+    '## 章节明细',
+    '',
+    '| 章节 | 评分 | 完成度 | 字数 | 必填字段 | 备注 |',
+    '|------|------|--------|------|----------|------|'
+  ]
+  for (const cs of r.chapter_scores) {
+    const pct = pyInt(cs.completion * 100)
+    const req = cs.has_required ? '齐全' : `缺 ${cs.missing_required.length}`
+    const notes = cs.notes.length > 0 ? escapeScoreCell(cs.notes.join('; ')) : '—'
+    lines.push(
+      `| ${escapeScoreCell(cs.chapter_label)} | ${cs.score.toFixed(1)} | ${pct}% | ${cs.word_count} | ${req} | ${notes} |`
+    )
+  }
+
+  lines.push('', '## 改进建议', '')
+  for (const suggestion of r.suggestions) {
+    lines.push(`- ${suggestion}`)
+  }
+
+  lines.push(
+    '',
+    '## 同行业对比',
+    '',
+    `- **行业**: ${r.industry_benchmark.label || '未知'}`,
+    `- **行业平均总分**: ${r.industry_benchmark.total_avg.toFixed(1)}`,
+    `- **你的总分**: ${r.total_score.toFixed(1)}`,
+    `- **差距**: ${formatSignedDiff(r.industry_benchmark.vs_total)}`
+  )
+  if (r.industry_benchmark.top_games.length > 0) {
+    lines.push(`- **行业代表**: ${r.industry_benchmark.top_games.join(', ')}`)
+  }
+
+  return lines.join('\n')
+}
+
 /** N4: 评估 CeshuDocument 的工业级 GDD 评分 */
 export function scoreCeshu(doc: CeshuDocument): CeshuScoreReport {
   const chapterScores = scoreChapters(doc)

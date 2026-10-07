@@ -40,6 +40,7 @@ import {
   ceshuDeriveInputSchema,
   ceshuDiffExportInputSchema,
   ceshuDiffInputSchema,
+  ceshuScoreExportInputSchema,
   ceshuDataGenInputSchema,
   ceshuExportInputSchema,
   agentApprovalResponseInputSchema,
@@ -867,6 +868,9 @@ export function registerIpcHandlers({
   })
   handle('ceshu:exportDiffReport', ceshuDiffExportInputSchema, (req) =>
     exportTextReportFile(req.path, req.content, '对比报告')
+  )
+  handle('ceshu:exportScoreReport', ceshuScoreExportInputSchema, (req) =>
+    exportTextReportFile(req.path, req.content, '评分报告')
   )
   handle('ceshu:notes:list', notesListInputSchema, (req) => ceshuNotesStore.list(req.id, req.chapterKey))
   handle('ceshu:notes:add', notesAddInputSchema, (req) => {

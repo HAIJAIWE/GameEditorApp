@@ -224,7 +224,7 @@ export default function MenuBar({ canUndo, canRedo, actions }: MenuBarProps) {
         label: '数据分析',
         items: [
           { type: 'action', label: '属性分布图表', action: 'attributeChart', testid: 'menuitem-tools-attributeChart' },
-          { type: 'action', label: '平衡性分析工具', action: 'notImplemented' },
+          { type: 'action', label: '平衡性分析工具', action: 'stats', testid: 'menuitem-tools-balance' },
           { type: 'action', label: '游戏数据统计', action: 'stats', testid: 'menuitem-tools-stats' }
         ]
       },

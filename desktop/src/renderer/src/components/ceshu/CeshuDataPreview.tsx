@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 
-import type { EnabledEditor } from '../../../../shared/ceshuConstants'
+import type { CeshuChapters, EnabledEditor } from '../../../../shared/ceshuConstants'
 import type { DataTypeDef } from '../../../../shared/types'
 
 import DataEditorTab from '../DataEditorTab'
+import CeshuDataRefsPanel from './CeshuDataRefsPanel'
 
 /** 跳转目标（由「高级搜索 / 引用关系」的 onJump 触发；nonce 递增以支持重复跳转同一类型） */
 export interface PreviewJumpTarget {
@@ -18,6 +19,8 @@ interface CeshuDataPreviewProps {
   enabledEditors: readonly EnabledEditor[]
   /** 全部数据类型定义（下发给 DataEditorTab 渲染条目表单） */
   types: readonly DataTypeDef[]
+  /** 整本策划书章节数据（本面板内嵌「📊 数据引用」概览据此解析 `@data[...]`；宿主直接传 doc） */
+  chapters: CeshuChapters | null
   /** 活跃术语风格 id（透传给条目表单的字段标签术语替换） */
   gameStyle?: string
   /**
@@ -63,6 +66,7 @@ const EMPTY_HINT =
 export default function CeshuDataPreview({
   enabledEditors,
   types,
+  chapters,
   gameStyle,
   dataEpoch = 0,
   onGotoSystems,
@@ -147,7 +151,7 @@ export default function CeshuDataPreview({
             </button>
           </div>
         ) : showRefs ? (
-          <div className="empty">数据引用解析（@data[...]）尚未迁移到 TS 版，此标签页暂时为空。</div>
+          <CeshuDataRefsPanel chapters={chapters} types={types} />
         ) : activeEditor ? (
           <DataEditorTab
             key={`${activeEditor.data_type}:${targetNonce ?? ''}:${dataEpoch}`}

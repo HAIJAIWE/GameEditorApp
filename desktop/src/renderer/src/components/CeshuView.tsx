@@ -10,9 +10,15 @@ import {
   type ChapterData,
   type ChapterKey
 } from '../../../shared/ceshuConstants'
-import { computeChapterProgress, computeEnabledEditors, getGddScope, resolveDocGameStyle } from '../../../shared/ceshuModel'
+import {
+  computeChapterProgress,
+  computeEnabledEditors,
+  formatLocalTimestamp,
+  getGddScope,
+  resolveDocGameStyle
+} from '../../../shared/ceshuModel'
 import type { CeshuChangeItem, CeshuChangelog } from '../../../shared/ceshuDiff'
-import { gradeLabel, type CeshuScoreReport } from '../../../shared/ceshuScorer'
+import { buildScoreReportMarkdown, gradeLabel, type CeshuScoreReport } from '../../../shared/ceshuScorer'
 import type { CeshuAiGenerateResult } from '../../../shared/ceshuAi'
 import type { DataTypeDef } from '../../../shared/types'
 
@@ -229,6 +235,7 @@ export default function CeshuView({
   /** 由第五章游戏系统派生的启用编辑器（内嵌数据预览面板据此渲染标签页） */
   const enabledEditors = computeEnabledEditors(doc)
   const gameName = typeof doc.meta.game_name === 'string' && doc.meta.game_name ? doc.meta.game_name : '未命名策划书'
+  const gameType = typeof doc.meta.game_type === 'string' && doc.meta.game_type ? doc.meta.game_type : '未知'
 
   /** 导出当前策划书：选择保存路径 → 主进程按格式渲染并原子写盘 */
   const handleExport = async (): Promise<void> => {
@@ -325,6 +332,25 @@ export default function CeshuView({
       setError(toErrorMessage(err))
     } finally {
       setBusy(false)
+    }
+  }
+
+  /** 导出评分报告：渲染层生成 Markdown → 主进程原子写盘（对齐 Python score_report_dialog._on_export_md） */
+  const handleExportScore = async (): Promise<void> => {
+    if (!score) return
+    try {
+      setError(null)
+      setNotice(null)
+      const chosen = await window.mbApi.dialog.chooseCeshuExportFile({
+        format: 'markdown',
+        defaultName: `${gameName}-GDD评分报告`
+      })
+      if (!chosen.path) return
+      const markdown = buildScoreReportMarkdown(gameName, gameType, score, formatLocalTimestamp())
+      const exported = await window.mbApi.ceshu.exportScoreReport({ path: chosen.path, content: markdown })
+      setNotice(`评分报告已导出：${exported.filePath}`)
+    } catch (err) {
+      setError(toErrorMessage(err))
     }
   }
 
@@ -651,9 +677,20 @@ export default function CeshuView({
           <div className="changelog-panel" data-testid="score-panel">
             <div className="changelog-header">
               <span className="chapter-form-title">质量评分</span>
-              <button type="button" className="btn" data-testid="score-close" onClick={() => setPanel(null)}>
-                关闭
-              </button>
+              <div className="editor-actions">
+                <button
+                  type="button"
+                  className="btn"
+                  data-testid="score-export"
+                  disabled={!score}
+                  onClick={() => void handleExportScore()}
+                >
+                  导出评分报告
+                </button>
+                <button type="button" className="btn" data-testid="score-close" onClick={() => setPanel(null)}>
+                  关闭
+                </button>
+              </div>
             </div>
             {!score ? (
               <div className="empty">正在评分…</div>
@@ -774,6 +811,7 @@ export default function CeshuView({
             <CeshuDataPreview
               enabledEditors={enabledEditors}
               types={types}
+              chapters={doc}
               gameStyle={gameStyle}
               dataEpoch={dataEpoch}
               onGotoSystems={() => setActiveChapter('systems')}
