@@ -68,14 +68,12 @@
 >
 > **⚠️ 不计入上表的「重写」工作**：`core/agent` 域（97 文件 / 24,670 行）+ 数字员工 UI 与任务面板，按 **E42 裁决走「AI 框架整体重写」而非 1:1 移植** —— 它**不算迁移欠债**，但**也不是零工作量**，规模与范围待框架设计定案。
 >
-> 📄 **框架设计已出草案 v0.2**：[`agent-framework-design.md`](./agent-framework-design.md)（E59，待裁决）。
-> **定位纠正（v0.2 重点）**：本项目**不是从零设计 agent 框架** —— 已有 4 份设计资产
-> （① `docs/archive/AGENT_OS_BLUEPRINT_STATUS.md` L6 蓝图 · ② `desktop/docs/a-tier-plan.md` **A1-1~A1-5 已于 2026-10-04 全部收官** · ③ `data/libraries/<库>/.workspace/` 活的身份/记忆/能力清单 · ④ `desktop/docs/shared-layering-design.md` 分层契约），
-> 且已落地 QuickJS WASM 沙箱等预演资产。⇒ E42「停止 1:1 迁移」的真实含义是**别再往那 22,981 行投入**，
-> 本设计的任务是**已收官的 A1 在 4B + 4K 真实约束下够不够、差在哪、补多少**。
-> **已定位的真缺口**（`[实测]`）：**全仓未设 `num_ctx` ⇒ 实际上下文只有 Ollama 默认的 4096**（8GB 卡第 7 轮即半句截断）·
-> 工具面 35 个（4B 会「只挑第一个」）· 缺逐轮 token/延迟观测 · 终止只有 `MAX_ITERATIONS=5`（无 maxToolCalls/wallClock）· 压缩策略可能选错（Anthropic 2026：context reset 优于 compact）。
-> **结论**：不引入任何 agent 框架（Anthropic 一手即持此立场），在 A1 上定向加固，**净新增 ~300–500 行**；路线图 M0–M4，建议先做 **M0（上下文+终止）+ M1（观测先行）**。文档末尾列了 **5 个待主理人拍板的开放决策**。
+> 📄 **框架设计已出草案 v0.4**：[`agent-framework-design.md`](./agent-framework-design.md)（E59，待裁决）。
+> **产品前提（主理人裁定）**：**云端优先、本地兜底**。⇒ 设计的骨架是**双档**，不是"本地单档"。
+> **定位纠正**：本项目**不是从零设计 agent 框架** —— 已有 4 份设计资产（① `docs/archive/AGENT_OS_BLUEPRINT_STATUS.md` L6 蓝图 · ② `desktop/docs/a-tier-plan.md` **A1-1~A1-5 已于 2026-10-04 全部收官** · ③ `data/libraries/<库>/.workspace/` 活的身份/记忆/能力清单 · ④ `desktop/docs/shared-layering-design.md` 分层契约），且 `main/llm/client.ts` **已真实现 6 家服务商**（OpenAI 兼容 `/chat/completions` + Claude `x-api-key`/`anthropic-version`）⇒ **云端优先不需要新建传输层，只需改默认与加策略**。
+> **已定位的最高优先缺口** `[实测]`：**G0 默认档位错** —— `LLM_PROVIDER_ORDER` 把 `ollama` 排第一（实为对齐 Python `MODEL_PRESETS` 声明顺序的迁移保真产物，**非产品决策**；项目里 grep 不到任何「云端优先」的既定记录）、`client.ts:43-44` 未配置**静默回落 ollama**、`client.ts:144` 错误提示写死 `ollama pull qwen3:8b`。
+> **另一条产品判断**：本地档的真正价值不是"免费算力"，而是**保密 / 离线 / 零成本**——本项目处理的是**未发布的游戏设计稿**，上传云端对不少独立开发者不可接受 ⇒ 应有**显式「保密模式」开关**，而不是让"本地"仅作静默回落。
+> **结论**：不引入任何 agent 框架，在已收官 A1 上定向加固（净新增 ~500–700 行）；路线图 **M0（档位纠正）→ M1（观测先行）→ …**，建议 **M0+M1 先行**。文档末尾列了**已裁定项**与**待裁决项 + 实现影响清单（file:line）**。
 
 ### A 档（大块，需单独立项）—— **已立项，方案见 [`a-tier-plan.md`](./a-tier-plan.md)**
 
