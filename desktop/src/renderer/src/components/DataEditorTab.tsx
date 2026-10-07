@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 
-import { filterItemRecords } from '../../../shared/dataTableOps'
+import {
+  buildCountConstraintMessage,
+  exceedsCountConstraint,
+  type CountConstraint
+} from '../../../shared/dataCountConstraint'
+import { filterItemRecords, withRenamedName } from '../../../shared/dataTableOps'
 import { showToast } from '../../../shared/toast'
 import type { DataTypeDef, ItemRecord } from '../../../shared/types'
 
@@ -26,7 +31,28 @@ interface DataEditorTabProps {
   onShowReferences?: (target: { type: string; id: string; name: string }) => void
   /** 打开「AI 数据生成」面板；不传则不渲染该按钮 */
   onAiGenerate?: (typeId: string) => void
+  /**
+   * 策划书给出的该类数据数量上限（由宿主用 `findCountConstraint(chapters.systems, type)` 解析）。
+   * 非空且当前条目数已达上限时，「新建」先给出确认（对齐 PyQt `data_tab._check_count_constraint`）。
+   */
+  countConstraint?: CountConstraint | null
 }
+
+/** 右键菜单定位（视口坐标，用 `position: fixed` 渲染） */
+interface RowMenuState {
+  id: string
+  x: number
+  y: number
+}
+
+/**
+ * 右键菜单尺寸估计（用于把浮层夹在视口内）：宽度对齐 CSS `.row-context-menu` 的 `min-width: 104px`；
+ * 高度 = 4 个 `.btn.slim`（约 26px）+ 3 个 2px 间隔 + 8px 内边距 ≈ 120px。
+ * 取整偏大即可 —— 只为防止贴右/下缘时出界，宁可多留 8px 边距。
+ */
+const CONTEXT_MENU_WIDTH = 104
+const CONTEXT_MENU_HEIGHT = 122
+const CONTEXT_MENU_MARGIN = 8
 
 function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
@@ -35,8 +61,13 @@ function toErrorMessage(error: unknown): string {
 /**
  * 单数据类型编辑器（内嵌于策划书右侧预览面板的一个标签页）。
  *
- * 对齐 PyQt `ui/data_tab.py::DataEditorTab`：左侧条目列表（搜索 / 新建 / 删除） +
+ * 对齐 PyQt `ui/data_tab.py::DataEditorTab`：左侧条目列表（搜索 / 新建 / 删除 / 右键菜单 / F2 重命名） +
  * 右侧条目表单。完全自包含，不依赖 App 状态——只消费传入的 `type` 与 `types`。
+ *
+ * 与 PyQt 的两处**刻意**差异（已记入 `docs/migration-audit.md`）：
+ * - 重命名用行内输入框，而不是 PyQt 的 `QInputDialog` 模态框（Electron 渲染层没有 `window.prompt`）。
+ * - 列表上**不**绑定 Delete 键：PyQt 的 Delete 会先弹「确定要删除这个项目吗？」再删，
+ *   而本组件现有的删除按钮是**无确认直删**，贸然加退格键会变成「一键误删」。
  */
 export default function DataEditorTab({
   type,
@@ -46,7 +77,8 @@ export default function DataEditorTab({
   initialSelectedId,
   onEditType,
   onShowReferences,
-  onAiGenerate
+  onAiGenerate,
+  countConstraint = null
 }: DataEditorTabProps) {
   const [items, setItems] = useState<ItemRecord[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -54,6 +86,12 @@ export default function DataEditorTab({
   const [debouncedQuery, setDebouncedQuery] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  /** 超限确认横幅正文（非空 = 正在等待用户确认是否继续创建） */
+  const [countWarning, setCountWarning] = useState<string | null>(null)
+  /** 正在行内重命名的条目 id（null = 未在重命名） */
+  const [renamingId, setRenamingId] = useState<string | null>(null)
+  const [renameDraft, setRenameDraft] = useState('')
+  const [menu, setMenu] = useState<RowMenuState | null>(null)
 
   const typeDef = types.find((def) => def.id === type) ?? null
   const typeName = typeDef?.name ?? type
@@ -101,8 +139,25 @@ export default function DataEditorTab({
     return () => clearTimeout(timer)
   }, [query])
 
-  /** 新建：命名 `${类型名} ${序号}`，创建后重载并选中新条目（对应 App.handleCreate） */
-  const handleCreate = async (): Promise<void> => {
+  // 右键菜单开着时，点击别处 / 失焦 / Esc 关闭（事件监听里的 setState 不属于「渲染期副作用」）
+  useEffect(() => {
+    if (menu === null) return
+    const close = (): void => setMenu(null)
+    const onKey = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') close()
+    }
+    window.addEventListener('click', close)
+    window.addEventListener('blur', close)
+    window.addEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('click', close)
+      window.removeEventListener('blur', close)
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [menu])
+
+  /** 真正落盘的新建（已过数量约束确认） */
+  const doCreate = async (): Promise<void> => {
     setBusy(true)
     try {
       const created = await window.mbApi.data.createItem({ type, data: { name: `${typeName} ${items.length + 1}` } })
@@ -116,6 +171,21 @@ export default function DataEditorTab({
     }
   }
 
+  /**
+   * 新建：命名 `${类型名} ${序号}`，创建后重载并选中新条目（对应 App.handleCreate）。
+   * 策划书给该类数据设了数量上限且已满时，先弹行内确认（对齐 PyQt `_check_count_constraint`，
+   * 默认取消；无策划书上下文 / 上限非法 / 未超限都直接创建）。
+   */
+  const handleCreate = async (): Promise<void> => {
+    const blocking = exceedsCountConstraint(items.length, countConstraint) ? countConstraint : null
+    if (countWarning === null && blocking !== null) {
+      setCountWarning(buildCountConstraintMessage(blocking, items.length))
+      return
+    }
+    setCountWarning(null)
+    await doCreate()
+  }
+
   /** 删除：若删的是当前选中项则清空选择，随后重载 */
   const handleDelete = async (id: string): Promise<void> => {
     try {
@@ -125,6 +195,54 @@ export default function DataEditorTab({
       onDataChanged?.()
       // 对齐 PyQt data_tab.py:526 的「删除成功」toast（原先这里删完**没有任何反馈**）
       showToast('已删除', { kind: 'success' })
+    } catch (err) {
+      setError(toErrorMessage(err))
+    }
+  }
+
+  /** 复制条目为独立副本（对齐 PyQt `_on_context_menu` → `_on_copy_clicked`：以列表项为准，副本不带原 id） */
+  const handleDuplicate = async (id: string): Promise<void> => {
+    const item = items.find((entry) => entry.id === id)
+    if (!item) return
+    try {
+      const payload: Record<string, unknown> = { ...item.data }
+      delete payload.id
+      const created = await window.mbApi.data.createItem({ type, data: payload })
+      await reload()
+      setSelectedId(created.id)
+      showToast(`已复制：${String(created.data.name ?? created.id)}`, { kind: 'success' })
+      onDataChanged?.()
+    } catch (err) {
+      setError(toErrorMessage(err))
+    }
+  }
+
+  /** 进入行内重命名（对齐 PyQt F2 / 右键「重命名」：先选中该条目，再以原名预填） */
+  const startRename = (id: string): void => {
+    const item = items.find((entry) => entry.id === id)
+    if (!item) return
+    setMenu(null)
+    setSelectedId(id)
+    setRenameDraft(String(item.data.name ?? ''))
+    setRenamingId(id)
+  }
+
+  /** 提交重命名：空白名视为取消（对齐 PyQt `if ok and new_name.strip()`）；落盘后重载列表并选中 */
+  const commitRename = async (): Promise<void> => {
+    const id = renamingId
+    setRenamingId(null)
+    if (id === null) return
+    const item = items.find((entry) => entry.id === id)
+    if (!item) return
+    const next = withRenamedName(item.data, renameDraft)
+    if (next === null) return
+    if (next.name === item.data.name) return // 未改动，不产生无意义的写盘与提示
+    try {
+      await window.mbApi.data.updateItem({ id, data: next })
+      await reload()
+      setSelectedId(id)
+      showToast(`已重命名为：${String(next.name)}`, { kind: 'success' })
+      onDataChanged?.()
     } catch (err) {
       setError(toErrorMessage(err))
     }
@@ -148,9 +266,33 @@ export default function DataEditorTab({
     onDataChanged?.()
   }
 
+  const menuItem = menu === null ? null : (items.find((item) => item.id === menu.id) ?? null)
+
   return (
     <div className="data-editor-tab">
       {error && <div className="error-banner">{error}</div>}
+
+      {countWarning !== null && (
+        <div className="count-warning" data-testid="ceshu-data-count-warning">
+          <span className="count-warning-text">{countWarning}</span>
+          <button
+            type="button"
+            className="btn danger"
+            data-testid="ceshu-data-count-continue"
+            onClick={() => void handleCreate()}
+          >
+            继续创建
+          </button>
+          <button
+            type="button"
+            className="btn"
+            data-testid="ceshu-data-count-cancel"
+            onClick={() => setCountWarning(null)}
+          >
+            取消
+          </button>
+        </div>
+      )}
 
       <div className="data-editor-tab-main">
         <div className="list-column">
@@ -177,7 +319,18 @@ export default function DataEditorTab({
             </span>
           </div>
 
-          <div className="list">
+          <div
+            className="list"
+            // F2 重命名：焦点在列表上时才响应（对齐 PyQt 把 F2 绑在 list widget 的 WidgetShortcut）
+            tabIndex={0}
+            data-testid="ceshu-data-list"
+            onKeyDown={(event) => {
+              if (event.key === 'F2' && selectedId !== null) {
+                event.preventDefault()
+                startRename(selectedId)
+              }
+            }}
+          >
             {items.length === 0 ? (
               <div className="empty" data-testid="ceshu-data-empty">
                 暂无数据，点击「新建」创建第一条
@@ -193,8 +346,41 @@ export default function DataEditorTab({
                   className={`item-row${item.id === selectedId ? ' selected' : ''}`}
                   data-testid="ceshu-data-item-row"
                   onClick={() => setSelectedId(item.id)}
+                  onContextMenu={(event) => {
+                    event.preventDefault()
+                    setSelectedId(item.id)
+                    // 浮层用 position:fixed 且定位取 clientX/clientY，贴右/下缘时会出界被裁 ——
+                    // 事件触发时按当前视口夹一次（不缓存，窗口尺寸变化后仍正确）。
+                    setMenu({
+                      id: item.id,
+                      x: Math.max(CONTEXT_MENU_MARGIN, Math.min(event.clientX, window.innerWidth - CONTEXT_MENU_WIDTH - CONTEXT_MENU_MARGIN)),
+                      y: Math.max(CONTEXT_MENU_MARGIN, Math.min(event.clientY, window.innerHeight - CONTEXT_MENU_HEIGHT - CONTEXT_MENU_MARGIN))
+                    })
+                  }}
                 >
-                  <span className="item-name">{String(item.data.name ?? item.id)}</span>
+                  {renamingId === item.id ? (
+                    <input
+                      className="form-input rename-input"
+                      data-testid="ceshu-data-rename-input"
+                      value={renameDraft}
+                      // 行内重命名必须立刻可输入（对齐 PyQt QInputDialog 的模态抢焦点）
+                      autoFocus
+                      onClick={(event) => event.stopPropagation()}
+                      onChange={(event) => setRenameDraft(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                          event.preventDefault()
+                          void commitRename()
+                        } else if (event.key === 'Escape') {
+                          event.preventDefault()
+                          setRenamingId(null)
+                        }
+                      }}
+                      onBlur={() => void commitRename()}
+                    />
+                  ) : (
+                    <span className="item-name">{String(item.data.name ?? item.id)}</span>
+                  )}
                   <span className="item-meta">{item.id.slice(0, 8)}</span>
                   <button
                     type="button"
@@ -231,6 +417,58 @@ export default function DataEditorTab({
           <div className="empty">请选择或新建一条数据</div>
         )}
       </div>
+
+      {menu !== null && menuItem !== null && (
+        <div
+          className="row-context-menu"
+          data-testid="ceshu-data-menu"
+          style={{ left: menu.x, top: menu.y }}
+          onContextMenu={(event) => event.preventDefault()}
+        >
+          {/* 菜单项与 PyQt `virtual_list.py:217-231` 一致：重命名 / 编辑 / 复制 / 删除 */}
+          <button
+            type="button"
+            className="btn slim"
+            data-testid="ceshu-data-menu-rename"
+            onClick={() => startRename(menu.id)}
+          >
+            重命名
+          </button>
+          <button
+            type="button"
+            className="btn slim"
+            data-testid="ceshu-data-menu-edit"
+            onClick={() => {
+              setSelectedId(menu.id)
+              setMenu(null)
+            }}
+          >
+            编辑
+          </button>
+          <button
+            type="button"
+            className="btn slim"
+            data-testid="ceshu-data-menu-copy"
+            onClick={() => {
+              setMenu(null)
+              void handleDuplicate(menu.id)
+            }}
+          >
+            复制
+          </button>
+          <button
+            type="button"
+            className="btn slim"
+            data-testid="ceshu-data-menu-delete"
+            onClick={() => {
+              setMenu(null)
+              void handleDelete(menu.id)
+            }}
+          >
+            删除
+          </button>
+        </div>
+      )}
     </div>
   )
 }

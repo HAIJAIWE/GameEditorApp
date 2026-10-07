@@ -43,6 +43,12 @@ export interface SeedSystem {
   dataType: string
   /** 是否启用；默认 true */
   enabled?: boolean
+  /**
+   * 系统 `config`（可选，默认 `{}`）。
+   * 数量约束 spec 用它写上限字段（`count` / `<dataType>_count` / `max_count` / `total_count`）——
+   * 见 `src/shared/dataCountConstraint.ts::countLimitFieldNames`。
+   */
+  config?: Record<string, unknown>
 }
 
 export interface SeedCeshuOptions {
@@ -79,7 +85,7 @@ export function seedCeshu(userDataDir: string, options: SeedCeshuOptions): strin
       enabled: system.enabled !== false,
       name: system.label,
       data_type: system.dataType,
-      config: {}
+      config: system.config ?? {}
     }
   }
   const now = '2026-01-01 00:00:00'

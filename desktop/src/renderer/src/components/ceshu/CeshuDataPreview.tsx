@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import type { CeshuChapters, EnabledEditor } from '../../../../shared/ceshuConstants'
+import { findCountConstraint } from '../../../../shared/dataCountConstraint'
 import type { DataTypeDef } from '../../../../shared/types'
 
 import DataEditorTab from '../DataEditorTab'
@@ -164,6 +165,7 @@ export default function CeshuDataPreview({
             onEditType={onEditType}
             onShowReferences={onShowReferences}
             onAiGenerate={onAiGenerate}
+            countConstraint={findCountConstraint(chapters?.systems, activeEditor.data_type)}
           />
         ) : null}
       </div>

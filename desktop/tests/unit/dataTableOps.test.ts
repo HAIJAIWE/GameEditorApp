@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { applyBatchOp, filterItemRecords } from '../../src/shared/dataTableOps'
+import { applyBatchOp, filterItemRecords, withRenamedName } from '../../src/shared/dataTableOps'
 import type { ItemRecord } from '../../src/shared/types'
 
 function record(id: string, data: Record<string, unknown>): ItemRecord {
@@ -80,5 +80,25 @@ describe('批量操作纯函数（匹平 Python BatchEditDialog._on_apply）', (
     expect(applyBatchOp({ v: 'abc' }, { kind: 'adjust_number', field: 'v', mode: 'add', adjust: 1 })).toBeNull()
     expect(applyBatchOp({ v: '' }, { kind: 'adjust_number', field: 'v', mode: 'add', adjust: 1 })).toBeNull()
     expect(applyBatchOp({ v: true }, { kind: 'adjust_number', field: 'v', mode: 'add', adjust: 1 })).toBeNull()
+  })
+})
+describe('条目重命名（匹平 Python data_tab._on_rename_item）', () => {
+  it('新名称去首尾空白后写入 name，其余字段原样保留、不修改入参', () => {
+    const source = { id: 'R1', name: '旧名', desc: '描述' }
+    const next = withRenamedName(source, '  新名  ')
+    expect(next).toEqual({ id: 'R1', name: '新名', desc: '描述' })
+    // 不修改入参
+    expect(source.name).toBe('旧名')
+    expect(next).not.toBe(source)
+  })
+
+  it('空白/仅空格名称视为取消（Python `if ok and new_name.strip()`）→ null', () => {
+    expect(withRenamedName({ name: '旧名' }, '')).toBeNull()
+    expect(withRenamedName({ name: '旧名' }, '   ')).toBeNull()
+    expect(withRenamedName({ name: '旧名' }, '\t\n')).toBeNull()
+  })
+
+  it('原无 name 字段时也能补上', () => {
+    expect(withRenamedName({ id: 'R2' }, '新条目')).toEqual({ id: 'R2', name: '新条目' })
   })
 })

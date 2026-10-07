@@ -83,15 +83,35 @@
 对全部「◐ 部分已迁」条目做了逐条实测复核。**E50 已将下列 STALE-DONE（TS 已等价实现、原 ◐ 判定过期）文件重新分类为 ✅**：window_state / preview_panel / statistics / template_manager / common / export / advanced / chat_renderer / image_loader / toast / home_widget。余下 ◐ 条目属下列两类之一：
 
 - **DESIGN-DIFFERENT（TS 有意替换，非缺口）**：themes / QSS 主题栈、agent UI（per E42 重写域）、buff / equipment 系统、`_ai_dialog` 模板模式。
-- **genuine-partial（仍有真实缺口）**：`data_tab`（P5 数量约束软检查 / AI 生成的规划·技能模板选择上下文 / F2·右键重命名 未迁；见 §4 下条）。
+- **genuine-partial（仍有真实缺口）**：`data_tab`（AI 生成时的「技能锚点模板」选择上下文未迁，见 §4 下条；P5 数量约束软检查、F2·右键重命名与条目右键菜单已由 **E51** 补齐）。
 
 > 另：`dynamic_form` / `main_window` 曾被 E49 复核记入 STALE-DONE 名单，但**不在 E50 的 12 个候选范围内**，本轮未重新分类（仍为 ◐，待后续实测）。
 
 **仅有的真实遗留**（本轮实测确认）：
 
 1. **评分报告 Markdown 导出** —— 已由 **E49** 补齐（`shared/ceshuScorer.ts::buildScoreReportMarkdown` + `ceshu:exportScoreReport` 接线 + 面板「导出评分报告」按钮）。
-2. **`components/virtual_list.py` 的条目右键菜单** —— 候选遗留；其「拖拽排序」属 **DESIGN-DIFFERENT**（Python 重排**内存数组**，而 TS 条目来自 **SQLite、无数组序**），非缺口。
-3. **`ui/data_tab.py` 的少量缺口** —— P5 数量约束软检查、AI 生成的「参考策划方案 / 技能模板」选择上下文、F2·右键重命名；核心数据编辑能力（列表/搜索/增删改/复制/类型编辑/引用/AI 生成/撤销重做）均已迁，故本文件**保持 ◐**（未达「完全等价」）。
+2. **`components/virtual_list.py` 的条目右键菜单** —— 已由 **E51** 补齐（`DataEditorTab` 的 `row-context-menu`：重命名 / 编辑 / 复制 / 删除，与 Python `virtual_list.py:217-231` 同序）；其「拖拽排序」属 **DESIGN-DIFFERENT**（Python 重排**内存数组**，而 TS 条目来自 **SQLite、无数组序**），非缺口。全仓 `VirtualListWidget` 的真实消费者只有 `data_tab.py`（`ui/components/__init__.py` 与 `ui/__init__.py` 仅 re-export），故该组件可视为已迁。
+3. **`ui/data_tab.py` 的少量缺口** —— **E51 已补两项**：① P5 数量约束软检查（`shared/dataCountConstraint.ts` + `DataEditorTab` 行内确认）；② F2 / 右键「重命名」（行内输入框，替代 Electron 渲染层不存在的 `QInputDialog`/`window.prompt`）。**仅剩** AI 生成的「技能锚点模板」选择上下文：TS 的 `AiDataGenPanel` 走**策划书驱动**的另一种设计，Python 的「参考策划方案」一项已被取代，但「选一个角色/怪物/装备作为技能归属」的锚点仍是真实缺口（且改动会触及 AI 生成提示词与 IPC 契约，需先裁决）。核心数据编辑能力（列表/搜索/增删改/复制/类型编辑/引用/AI 生成/撤销重做）均已迁，故本文件**保持 ◐**（未达「完全等价」）。
+
+### E51 数量约束：对 Python 的有意偏离（逐例实测对照）
+
+E51 新增的 `shared/dataCountConstraint.ts` 把 Python `data_tab.py:370-432` 的 P5 软约束搬到了 TS。
+**一致**的部分：候选字段优先级（`count` → `<type>_count` → `max_count` → `total_count`）、非法值跳过继续试下一字段、
+上限 ≤0 视为无约束、`current < limit` 才放行、只取第一个 `data_type` 命中的系统。
+
+**不一致**的 4 处，全部用 `python -c` 与 `node -e` 逐例跑过（下表的「Python」列是真跑出来的值）：
+
+| 输入 | Python | TS | 性质 |
+|---|---|---|---|
+| `{count: true}` | `1`（生效） | `null`（不约束） | **刻意**：上限字段出现布尔本身就是数据错误 |
+| `{count: '1_0'}` | `10` | `null` | **刻意**：Python `int()` 接受下划线分隔与全角数字，TS 只认 `^[+-]?\d+$` |
+| `{count: '１２'}` | `12` | `null` | 同上 |
+| `{count: 3.0}` | `null`（float 被跳过） | `3`（生效） | **语言层不可复现**：`JSON.parse('{"count":3.0}')` 在 JS 里就是数字 `3`，无法与 `3` 区分 |
+| 系统缺 `data_type` | 永不约束（严格 `==`） | 回退系统 key 后参与约束 | **刻意**：与 TS `computeEnabledEditors` 的 `data_type ?? key` 口径统一 |
+
+前 3 处在策划书第五章的字段形态下**不可达**（上限来自系统 config 表单，只有整数/文本两种形态），
+第 4 处是刻意的口径统一。**测试已把这 4 处钉住**（`tests/unit/dataCountConstraint.test.ts`），
+不靠注释约定。
 
 ## 2. 汇总（按域）
 
@@ -257,7 +277,7 @@
 | field_config.py | 360 | ✅ | `TypeEditorPanel.tsx` |
 | library_controller.py | 48 | ✅ | `main/library/manager.ts`+`LibraryBar.tsx` |
 | ceshu_controller.py | 379 | ◐65% | `main/ceshu/manager.ts`+`CeshuView.tsx`；缺 tab 过滤/`send_ceshu_ai_context` |
-| data_tab.py | 1157 | ◐65% | `ItemForm.tsx`+各类编辑器+`BatchEditPanel`+`ReferencesPanel`；**E50 更正**：原写「缺 undo/redo(~130)」为误——**已迁**（E27：`data:undo`/`data:redo`/`data:undoState` + `main/data/undoRecorder.ts` + App 按钮与 Ctrl+Z/Y）。**仍缺**：P5 数量约束软检查、AI 生成的「参考策划方案 / 技能模板」选择上下文、F2·右键重命名 ⇒ E50 实测后**保持 ◐**（未达完全等价） |
+| data_tab.py | 1157 | ◐65% | `ItemForm.tsx`+各类编辑器+`BatchEditPanel`+`ReferencesPanel`；**E50 更正**：原写「缺 undo/redo(~130)」为误——**已迁**（E27：`data:undo`/`data:redo`/`data:undoState` + `main/data/undoRecorder.ts` + App 按钮与 Ctrl+Z/Y）。**E51 补齐**：P5 数量约束软检查（`shared/dataCountConstraint.ts`，`CeshuDataPreview` 解析 → `DataEditorTab` 行内确认）、F2/右键重命名 + 条目右键菜单（重命名/编辑/复制/删除，同 `virtual_list.py:217-231`）。**仍缺**：AI 生成的「技能锚点模板」选择上下文（Python 的「参考策划方案」一项已被 TS 的策划书驱动生成取代）⇒ **保持 ◐**（未达完全等价） |
 | digital_employee.py | 486 | ◐55% | `DigitalPanel.tsx`+`main/tray.ts`；缺独立弹窗/浮窗常驻 |
 | digital_panel_chat.py | 504 | ◐75% | `panel.ts::reduceBrainEvent`+`DigitalPanel`；缺 markdown 气泡/记忆上下文/欢迎语 |
 | digital_panel_input.py | 209 | ◐40% | 输入+发送已迁；缺斜杠命令/编辑器上下文采集 |

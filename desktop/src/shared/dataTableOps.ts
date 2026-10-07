@@ -30,6 +30,19 @@ export function filterItemRecords(items: ItemRecord[], query: string): ItemRecor
   })
 }
 
+/* ---- 条目重命名 ---- */
+
+/**
+ * 条目重命名（对应 Python `ui/data_tab.py::_on_rename_item`）：
+ * 新名称去首尾空白后写入 `name`；空白名称视为取消（Python `if ok and new_name.strip()`），返回 null。
+ * 不修改入参，返回新的 data 对象。
+ */
+export function withRenamedName(data: Record<string, unknown>, rawName: string): Record<string, unknown> | null {
+  const name = rawName.trim()
+  if (name === '') return null
+  return { ...data, name }
+}
+
 /* ---- 批量操作 ---- */
 
 export const BATCH_OP_KINDS = ['set_value', 'append_value', 'adjust_number', 'add_tag'] as const

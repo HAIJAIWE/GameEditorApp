@@ -1,49 +1,80 @@
-E50: ◐→✅ 重新分类（STALE-DONE 文件）
+E51: data_tab.py 残留缺口收口（P5 数量约束 + F2/右键重命名 + 条目右键菜单）
 
-本片是文档准确性 pass：对 12 个「◐ 部分已迁」候选逐条实测（读 Python 源
-D:/GameEditorApp/src/<path> + grep desktop/src 的 TS 对照物），把确认 TS 已等价
-实现（含刻意重设计）的 11 个文件从 ◐ 上移为 ✅，并重算 §1/§2 计数。1 个文件
-（data_tab.py）实测发现真实缺口，保持 ◐。总 299 文件 / 91,164 行不变。
+本片是代码 pass，不改动 §1/§2 分类计数：ui/data_tab.py 仍为 ◐（还剩「技能锚点模板」
+一项，未达完全等价），仍 106 / 51 / 92 / 50，总 299 文件 / 91,164 行。
 
-1) 重新分类为 ✅ 的 11 个文件（附 TS 对照物证据）
-- common/common.py 287：真实消费者 atomic_write_*/is_test_env 已迁；safe_*/is_number/
-  merge_dicts 等 14 个函数 Python 源零调用点 = 死代码（非缺口）。
-- ui/window_state.py 154：E24 main/windowState.ts（几何+最大化+lastMode，原子写）+
-  app:setWindowMode IPC；从「menus/shortcuts/tab_manager/window_state」捆绑行拆出独立 ✅ 行。
-- ui/ceshu/preview_panel.py 222：shared/dataRef.ts（@data[...] 解析）+ ceshu/
-  CeshuDataPreview.tsx（enabled_editors 动态编辑器）两半均迁。
-- ui/dialogs/statistics.py 374：shared/dataStats.ts + StatisticsPanel.tsx。
-- ui/dialogs/template_manager.py 411：main/schema/fieldTemplateStore.ts + TypeEditorPanel
-  模板存取（比 Python 残缺语义强）。
-- ui/chat_renderer.py 172：E47 react-markdown+remark-gfm+remark-breaks+rehype-highlight
-  至 digital/ChatMarkdown.tsx。
-- ui/components/image_loader.py 324：E46 shared/imageCache.ts + components/LazyImage.tsx。
-- ui/components/toast.py 98：E45 shared/toast.ts + components/ToastHost.tsx。
-- ui/widgets/home_widget.py 604：E48 shared/onboarding.ts + components/OnboardingPanel.tsx。
-- features/export.py 705：main/data/{csvIO,excelIO,legacyExport}.ts + BatchEditPanel。
-- features/advanced.py 431：E38–E41 的 attributeChart/advancedSearch/KeywordTemplatePanel/
-  CleanupImagesPanel/SettingsPanel-AI/ReferencesPanel 全接线；余 3 个函数（工作流配置/
-  规则验证/规则配置）在 Python 侧本就是纯占位对话框，非缺口。
+动因：E49/E50 复核把 data_tab.py 的三条残留如实留下，本轮把其中两条无设计分歧的补齐
+（第三条触及 AI 生成提示词与 IPC 契约，属设计裁决，不动）。
 
-2) 保持 ◐（发现真实缺口，不误判）
-- ui/data_tab.py 1157：核心数据编辑（列表/搜索/增删改/复制/类型编辑/引用/AI 生成/
-  撤销重做 E27）均已迁，但 P5 数量约束软检查、AI 生成的「参考策划方案·技能模板」
-  选择上下文、F2·右键重命名 在 TS 侧 grep 确缺 ⇒ 未达完全等价，保持 ◐ 并更正其行
-  （原写「缺 undo/redo」为误 —— E27 已迁）。
+1) P5 数量约束软检查（Python data_tab.py:370-432）
+- 新增纯逻辑 src/shared/dataCountConstraint.ts：
+  countLimitFieldNames（顺序照抄 Python 字面量 count / <type>_count / max_count /
+  total_count）、resolveCountLimit（只认整数值或十进制整数字符串，非法值跳过继续试下一个
+  字段）、findCountConstraint（只取第一个 data_type 命中的系统；命中但上限缺失/非法/<=0
+  ⇒ 不约束）、exceedsCountConstraint（current >= limit 才拦，对应 Python current < limit
+  才放行）、buildCountConstraintMessage（文案逐句对齐 QMessageBox 正文）。
+- ceshu/CeshuDataPreview.tsx 用 findCountConstraint(chapters?.systems,
+  activeEditor.data_type) 解析后作为 countConstraint 度下发给 DataEditorTab。
+- DataEditorTab.handleCreate 在已满时先渲染行内确认横幅（.count-warning：继续创建/取消），
+  确认后复用同一落盘路径。不引入任何原生对话框（Electron 渲染层无 window.prompt，
+  window.confirm 也无法在 vitest 中断言）。
 
-3) §1 重算（总 299 文件 / 91,164 行不变）
-- ✅ 95→106 文件 / 35,125→38,907 行（38.5%→42.7%）
-- ◐ 62→51 文件 / 23,589→19,807 行（25.9%→21.7%）
-- ⛔ 92/19,858（21.8%）、⚠️ 50/12,592（13.8%）不变
-- 对账：106+51+92+50=299 文件；38,907+19,807+19,858+12,592=91,164 行。
-- §2 域表：ui/ / ui/ceshu / ui/widgets / ui/dialogs / features / common 六域 ✅◐ 列 +
-  合计行同步（合计 ✅ 105/38,752、◐ 49/19,031，仍与 §1 有既有 ±2 文件/480 行差异，保留）。
+  与 Python 一致的只有：字段优先级 / 非法值 continue / <=0 不算约束。另有 4 处有意偏离，
+  已逐例用 python -c 与 node -e 实测对照并存档到 docs/migration-audit.md 新增小节
+  「E51 数量约束：对 Python 的有意偏离（逐例实测对照）」：
+  (a) {count:true}：Python int(True)==1 ⇒ 上限 1；TS 跳过（上限字段出现布尔本身就是数据错误）。
+  (b) '1_0' / '１２'：Python int() 宽松解析 ⇒ 10 / 12；TS 只认 ^[+-]?\d+$ ⇒ 跳过。
+  (c) {count:3.0}：Python float 被跳过 ⇒ 无约束；TS 生效 —— JSON.parse 在 JS 里就是数字 3，
+      与 3 无法区分，属语言层不可复现。
+  (d) 系统缺 data_type：Python 严格 == 永不约束；TS 回退系统 key，与 computeEnabledEditors
+      的 data_type ?? key 口径统一，避免「系统已启用、编辑器也显示了，却查不到约束」的静默漏判。
+  前三处在策划书第五章的字段形态下不可达；(a)-(c) 已由单测钉住，不靠注释约定。
 
-4) 文档
-- docs/migration-audit.md：§1 表+对账行、§2 域表+合计+注、### ◐ 复核（E50 更新）、
-  §3 各文件行（追加 E50 标记）、捆绑行拆出 window_state。
-- docs/ts-migration-roadmap.md：§2 mirror 表+对账行同步；新增 E50 台账条目。
-- tests/unit/docsLedger.test.ts：REQUIRED_ROADMAP_MARKERS 增 'E50（2026-10-07）'。
+2) F2 / 右键「重命名」（Python data_tab.py:108-111, 542-561）
+- src/shared/dataTableOps.ts 新增 withRenamedName（去首尾空白；空白名视为取消返回 null，
+  同 Python if ok and new_name.strip()；不修改入参）。
+- DataEditorTab 新增 renamingId/renameDraft：F2 键绑在 .list 容器上（该容器加 tabIndex={0}，
+  语义等价于 PyQt 的 WidgetShortcut，不会在搜索框里误触发），右键菜单「重命名」走同一路径；
+  提交走既有 data:updateItem，Enter 提交 / Esc 取消 / 失焦提交。
 
-验证：docsLedger 7/7 绿（§1↔roadmap §2 一致 + 对账 299/91,164）；双端 tsc 0；eslint 0；
-vitest 全量 114 文件 1738 用例全绿。
+3) 条目右键菜单（Python ui/components/virtual_list.py:217-231）
+- DataEditorTab 新增 row-context-menu，四项同序：重命名 / 编辑 / 复制 / 删除
+  （复制 = 以列表项为准、剥离 id 后走 data:createItem，对齐 _on_copy_clicked）。
+- VirtualListWidget 全仓真实消费者只有 data_tab.py（ui/components/__init__.py 与
+  ui/__init__.py 仅 re-export）⇒ 该组件随本轮可视为已迁。
+- 健壮性：菜单用 position:fixed + clientX/clientY 定位，贴右/下缘会出界被裁 ⇒ 改为事件触发时
+  按当前视口 clamp（CONTEXT_MENU_WIDTH=104 / HEIGHT=122 / MARGIN=8）。
+
+4) 刻意不跟（已写入审计）
+- 列表上的 Delete 键：PyQt 先弹「确定要删除这个项目吗？」，而 TS 现有删除按钮是无确认直删，
+  加退格键会变成一键误删。
+- AI 生成的「技能锚点模板」选择上下文：TS 的 AiDataGenPanel 走策划书驱动的另一种设计，
+  Python 的「参考策划方案」一项已被取代，但角色/怪物/装备锚点仍是真实缺口，需先裁决。
+
+5) 端到端契约网
+- 此前 tests/e2e/helpers/ceshuData.ts 恒播 config: {} ⇒ 数量横幅在 E2E 里永不触发，
+  等于新代码没有端到端网。SeedSystem 增可选 config（config: system.config ?? {}），
+  既有 51 个 spec 不传 config ⇒ undefined ?? {} = {}，播种结果逐字不变。
+- 新增 tests/e2e/data-count-constraint.spec.ts（2 例：上限拦截的取消/继续；右键菜单四项 +
+  重命名去空白 + F2 空白名取消）。该 spec 本沙箱跑不了 Electron，期望值取自
+  preview/verify-e51.mjs 在真实 Chromium 上跑通的同一组断言，不是凭代码臆测。
+
+6) 测试与文档
+- 新增 tests/unit/dataCountConstraint.test.ts（15 例）；tests/unit/dataTableOps.test.ts +3 例。
+- docs/migration-audit.md：§1「仅有的真实遗留」第 2/3 条、### ◐ 复核 的 genuine-partial 行、
+  §3 data_tab.py 行均改写为 E51 后的状态；新增 ### E51 数量约束：对 Python 的有意偏离 小节。
+  §1 结论表与对账行数字未动。
+- docs/ts-migration-roadmap.md：新增 E51 台账条目。
+- tests/unit/docsLedger.test.ts：REQUIRED_ROADMAP_MARKERS 增 'E51（2026-10-07）'。
+- preview/：新增可复现举证脚手架 e51-stub.js / serve-e51.mjs / verify-e51.mjs（shots/ 已被
+  preview/.gitignore 忽略），提交方式同 E46 的 verify-image-e46.mjs。
+
+验证：双端 tsc 0；eslint 0；vitest 全量 115 文件 1756 用例全绿；docsLedger 7/7 绿
+（§1↔roadmap §2 一致 + 对账 299/91,164）；electron-vite build OK。
+独立验证（两个验证者，均未改产品代码）：
+- 渲染侧：真实 Chromium + 忠实 mbApi 桩，T0-T6 共 41/41 断言通过 —— 超限拦截（取消不建/继续才建）、
+  未超限与无约束都不打扰、右键重命名闭环（自动聚焦 + trim 提交 + updateItem 无 blur 双触发）、
+  F2 + 空白名取消、菜单 clamp 确认触发（clientX 698→588，反事实不 clamp 会越界 102px）。
+- 契约侧：51 个 spec 静态复核无回归（播种 config 默认 {} 逐字不变、行 DOM 非重命名态逐字不变、
+  .selected 逻辑未变）；testid 全部存在且只在 DataEditorTab.tsx；审计偏离表逐格与实测相符。
+已知未能验证：Electron 本体启动（沙箱环境限制，E2E 待 CI）；真实 IPC/主进程落盘未覆盖。
