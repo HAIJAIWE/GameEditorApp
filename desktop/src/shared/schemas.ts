@@ -138,6 +138,17 @@ export const llmGenerateInputSchema = z.object({
 export type LlmGenerateInput = z.infer<typeof llmGenerateInputSchema>
 
 /**
+ * 按路径读取图片（供「已保存的图片路径」回显预览）。
+ * **刻意不收任意绝对路径**：主进程只允许读「当前库 images 目录」内的文件，
+ * 越界一律拒绝 —— 渲染层永远不该有能力指定任意本地文件被读进内存。
+ */
+export const imageReadByPathInputSchema = z.object({
+  path: z.string().min(1).max(1000)
+})
+
+export type ImageReadByPathInput = z.infer<typeof imageReadByPathInputSchema>
+
+/**
  * LLM 非敏感配置（对齐 Python `api_config.py` 的 `save_config` 前半段字段）。
  * **刻意不含 apiKey** —— Key 走 safeStorage（见 `shared/secretNames.ts` 的 `llmApiKey`）。
  */

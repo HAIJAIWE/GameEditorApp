@@ -122,6 +122,9 @@ const api: MbApi = {
    */
   images: {
     listLibraryImages: () => invoke('images:listLibraryImages', undefined),
+    // 按已保存路径回显预览（对齐 PyQt LazyImageLabel.load_image）
+    // ⚠️ 主进程只允许读当前库 images 目录内的文件，越界返回 reason 说明，不静默失败
+    readByPath: (req: { path: string }) => invoke('images:readByPath', req),
     deleteImages: (req: { paths: string[]; confirm: true }) => invoke('images:deleteImages', req)
   },
   dialog: {

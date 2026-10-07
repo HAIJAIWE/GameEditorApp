@@ -23,7 +23,7 @@
 > - **`ui/ceshu/preview_panel.py` 222 行** —— 右侧「数据引用」实时预览：`@data[role.atk]` 引用解析
 >   + 按 `enabled_editors` 动态渲染编辑器。实测 TS 侧 `@data[` **零命中** ⇒ **确缺**。
 > - **`ui/widgets/home_widget.py` 604 行** —— 5 步新手引导 + `QUICK_ACTIONS` + 数据概览卡。TS 无（E40 已更正 roadmap 的错误依据）。
-> - **`components/image_loader.py` 324 行** —— `LazyImageLabel` 异步加载缓存。实测 TS **无 `loading="lazy"`** ⇒ 装备/角色图片无缩略图。
+> - **`components/image_loader.py` 324 行** —— `LazyImageLabel` 异步加载缓存。**E46 已补** `LazyImage`（按已保存绝对路径经 `images:readByPath` 回读 data URL 回显预览，含 `loading="lazy"`）；未对齐 PIL 位图重采样（刻意规避过度开发）。
 > - **`components/toast.py` 98 行** —— 无 Toast 组件，TS 只有内联 `notice-banner`。
 > - **`ui/chat_renderer.py` 172 行** —— markdown→HTML + 代码高亮。实测 TS **无 markdown 渲染库**。
 > - **`core/editor_layout.py` 208 行** —— 动态编辑器布局。TS 有 `enabledEditors` 消费但**无同等的动态布局生成**。
@@ -63,9 +63,9 @@
 | 判定 | 文件 | 行数 | 占比 |
 |---|---|---|---|
 | ✅ 已迁 | 95 | 35,125 | 38.5% |
-| ◐ 部分已迁 | 59 | 22,489 | 24.7% |
+| ◐ 部分已迁 | 60 | 22,813 | 25.0% |
 | ⛔ 有意不迁 | 92 | 19,858 | 21.8% |
-| ⚠️ 未迁（整块没做） | 53 | 13,692 | 15.0% |
+| ⚠️ 未迁（整块没做） | 52 | 13,368 | 14.7% |
 
 **对账（必须相等，已 PASS）**：`95+61+89+54 = 299` ✓、`35125+22917+19157+13965 = 91,164` ✓
 
@@ -85,12 +85,12 @@
 | `core/agent` | 97 | 24,670 | 8 / 1,689 | 23 / 6,752 | 33 / 7,810 | 33 / 8,419 |
 | `ui/ceshu` | 35 | 14,620 | 25 / 12,123 | 5 / 1,834 | 3 / 363 | 2 / 300 |
 | `ui/widgets` | 24 | 9,232 | 13 / 5,449 | 3 / 1,399 | 6 / 962 | 2 / 1,422 |
-| `ui/` 顶层 + `themes` + `components` | 31 | 9,883 | 5 / 1,071 | 9 / 4,748 | 11 / 2,934 | 6 / 1,130 |
+| `ui/` 顶层 + `themes` + `components` | 31 | 9,883 | 5 / 1,071 | 10 / 5,072 | 11 / 2,934 | 5 / 806 |
 | `core/ceshu` + `core` 顶层 + `defaults` | 38 | 12,602 | 28 / 11,129 | 2 / 225 | 8 / 1,248 | 0 / 0 |
 | `ui/dialogs` | 20 | 6,055 | 7 / 1,718 | 6 / 2,140 | 5 / 840 | 2 / 1,357 |
 | `common` + `config` + `security` + `data` + 顶层 | 45 | 10,672 | 6 / 1,384 | 7 / 2,776 | 23 / 5,293 | 9 / 1,219 |
 | `features` | 9 | 3,430 | 2 / 407 | 4 / 2,615 | 3 / 408 | 0 / 0 |
-| **合计** | **299** | **91,164** | **94 / 34,970** | **59 / 22,489** | **92 / 19,858** | **54 / 13,847** |
+| **合计** | **299** | **91,164** | **94 / 34,970** | **60 / 22,813** | **92 / 19,858** | **53 / 13,523** |
 
 > **注**：上表「合计」是各域行直接相加（93+61+88+57 = 299 文件、34,605+22,917+18,756+14,886 = 91,164 行，**内部自洽**）；它与 §1 结论表仍存在 **±2 文件 / 480 行** 的差异（个别文件在「已迁 ↔ 未迁」间归类不同）。**§1 是结论表、也是守护测试的解析源，以 §1 为准**；域行的这一处差异待逐文件复核。
 
@@ -254,7 +254,7 @@
 | effects.py / theme_effects.py / text_glow_effect.py | 459+201+148 | ⛔ | **有意不迁（E24 判定）**：**86% 是 Qt QSS/hex 字面量**（技术上不可迁）；且**实证死代码**——`GlowButton`/`GlowLineEdit`/`GlowComboBox`/`GlowListWidget`/`SuccessToast` 在 `src/` 内**零引用**；`apply_text_glow` 遍历的 `main_window.glow_widgets` 初始化为 `[]` 后**从未 append**（恒空转）；`generate_digital_panel_qss` 仅被 `themes/__init__` 再导出，**无真正调用者**（数字员工面板已由 A1-4 `DigitalPanel.tsx` 覆盖） |
 | themes/themes.py | 1097 | ⛔ | **有意不迁（E24 判定）**：`_THEME_QSS`(255 行) + `_DIGITAL_PANEL_QSS`(200 行) + 5 套 `_THEME_CONFIGS` 主题字典(210 行) **全是 Qt QSS 字符串**，Web 端不可用；TS 已有 CSS 变量深色主题（`styles.css` 9 个变量）。唯一有价值的是 33 行**设计令牌**（`FONT_SIZE_XS..XL` 11/12/13/14/16、`SPACING_XS..XL` 4/8/12/16/24），已作为 CSS 自定义属性覆盖（`:root` 变量层）。多主题切换属**独立立项**（需 `[data-theme]` 覆写 ~80-100 行），不搭车 |
 | menus.py / shortcuts_dialog.py / tab_manager.py / window_state.py | 180+107+249+154 | ◐ | **window_state.py 已迁（E24）**：`main/windowState.ts`（几何 + 最大化 + lastMode，原子写）+ `app:setWindowMode` IPC。**tab_manager** 核心（多标签/延迟切标签/侧栏计数）已由 TS `mode-data`/`mode-ceshu`/`mode-digital` + `LibraryBar` 覆盖，仅剩「标签撕裂保护」边缘情形。**menus.py** 26 项中 TS 已覆盖 16 项（工具栏+侧栏），缺 5 类：撤销/重做（**TS 完全没有**，但 Python 亦仅菜单置灰）、数据关系图、清理未用图片、多引擎导出。**shortcuts_dialog** 是纯键盘映射表（无消费者），随 menus 不迁 |
-| components/image_loader.py | 324 | ⚠️ | `LazyImageLabel`/异步加载缓存无 TS（装备/角色图片无缩略图） |
+| components/image_loader.py | 324 | ◐ | **E46 已迁 `LazyImageLabel` 行为**（`shared/imageCache.ts` LRU 缓存 + `LazyImage` 组件，按已保存绝对路径经 `images:readByPath` 回读 data URL 回显预览，修「已保存图片路径不回显」的真 bug）；**未对齐**：不做 PIL 位图重采样（浏览器 `<img>` 引擎解码，CSS 限尺寸即可，属刻意的过度开发规避） |
 | components/toast.py | 98 | ◐ | **E45 已补 Toast 组件**（`shared/toast.ts` + `ToastHost`，多条并存/自动消失/三态配色）；**未完全对齐**：未做 E2E 实机点击验证（无 jsdom 设施，见 roadmap E45 的诚实边界） |
 | `__init__.py`×3 / ai_bridge.py / digital_panel_state.py / digital_panel_theme.py / layout_builder.py | 32+116+232+338+245 等 | ⛔ | 包胶水 / `a-tier-plan` 明列不迁（初始化窗口定位、类型桩、QSS 注入、QSplitter 布局） |
 

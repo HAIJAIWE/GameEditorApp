@@ -18,7 +18,6 @@ import {
   buildImageTagsPrompt,
   mergeImageTagsResult
 } from '../../../shared/fieldAiAssist'
-import { imagePreviewUnavailableReason } from '../../../shared/imagePreview'
 import type { ImageGenConfig } from '../../../shared/imageGen'
 import { loadImageGenConfig } from '../../../shared/imageGenConfig'
 import { SECRET_NAMES } from '../../../shared/secretNames'
@@ -36,6 +35,7 @@ import AttrTableEditor from './AttrTableEditor'
 import DropTableEditor from './DropTableEditor'
 import FormSectionCard from './FormSectionCard'
 import LucideIcon from './LucideIcon'
+import LazyImage from './LazyImage'
 import RefTableEditor from './RefTableEditor'
 
 interface ItemFormProps {
@@ -247,13 +247,6 @@ function FieldControl({
   itemName = ''
 }: FieldControlProps) {
   const testId = `field-${field.name}`
-  /**
-   * 本次会话里刚选中的图片（路径 + 主进程回传的 data URL）。
-   * **刻意用派生判断而非 effect 同步**：预览只在 `picked.path === 当前字段值` 时显示，
-   * 字段被别处改掉就自动不匹配 → 预览消失。react-hooks v7 把「effect 内同步 setState」
-   * 判为 error，且这里也确实不需要 effect。
-   */
-  const [picked, setPicked] = useState<{ path: string; dataUrl: string; bytes: number } | null>(null)
   const [picking, setPicking] = useState(false)
   /**
    * 正在跑的 AI 动作（键是动作名，用于按钮各自的忙态）。
@@ -397,13 +390,13 @@ function FieldControl({
      * 选择按钮 + `LazyImageLabel` 预览）。TS 原先落到 `default` 分支是**可编辑**单行框 ——
      * 路径得手打、且看不到图对不对。
      *
-     * 预览图用主进程回传的 `data:` URL（`dialog:chooseImageFile`）：
-     * 渲染层直接引用 `C://...` 会被 `webSecurity` 拦，打包后更读不到任意本地路径。
+     * 预览图用主进程回传的 `data:` URL，但**不再依赖本会话刚选过的 `picked`**：
+     * 直接用字段值（已保存的绝对路径）经 `images:readByPath` 回读 —— 这样打开已保存图片
+     * 的条目也能看到图（对齐 PyQt `load_image(str(value))`）。渲染层直接引用 `C://...`
+     * 会被 `webSecurity` 拦，故一律走主进程读文件转 data URL。
      */
     case 'image': {
       const current = value === null || value === undefined ? '' : String(value)
-      const preview = picked !== null && picked.path === current ? picked : null
-      const previewReason = preview === null ? null : imagePreviewUnavailableReason(preview.path, preview.bytes)
       return (
         <div className="image-field" data-testid={`${testId}-wrap`}>
           <div className="image-field-row">
@@ -423,16 +416,10 @@ function FieldControl({
               disabled={picking || !field.editable}
               onClick={() => {
                 setPicking(true)
-                const api = window.mbApi as unknown as {
-                  dialog: {
-                    chooseImageFile: () => Promise<{ path: string | null; dataUrl: string; bytes: number }>
-                  }
-                }
-                void api.dialog
+                void window.mbApi.dialog
                   .chooseImageFile()
                   .then((pickedFile) => {
                     if (pickedFile.path === null) return
-                    setPicked({ path: pickedFile.path, dataUrl: pickedFile.dataUrl, bytes: pickedFile.bytes })
                     onChange(pickedFile.path)
                   })
                   .catch(() => undefined) // 取消/读失败都不打断表单
@@ -442,12 +429,12 @@ function FieldControl({
               选择图片
             </button>
           </div>
-          {preview !== null && preview.dataUrl !== '' && <img className="image-field-preview" data-testid={`${testId}-preview`} src={preview.dataUrl} alt="图片预览" />}
-          {preview !== null && previewReason !== null && (
-            <div className="form-hint" data-testid={`${testId}-preview-hint`}>
-              {previewReason}
-            </div>
-          )}
+          {/*
+           * 预览改成 <LazyImage>：按「已保存的绝对路径」经主进程 `images:readByPath`
+           * 回读 data URL。这样**打开已保存图片路径的条目**也能看到图（修复原 TS 只在
+           * 刚选过才显示、打开已保存条目看不到图的问题，对齐 PyQt `load_image(str(value))`）。
+           */}
+          <LazyImage path={current} width={120} height={120} alt="图片预览" />
         </div>
       )
     }

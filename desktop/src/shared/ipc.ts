@@ -42,6 +42,7 @@ import type {
   AgentDraftLoadInput,
   DeleteImagesInput,
   LlmGenerateInput,
+  ImageReadByPathInput,
   LlmConfigureInput,
   AgentDraftSaveInput,
   AgentFeedbackInput,
@@ -177,6 +178,14 @@ export interface IpcContract {
    * 目录取 `<活跃库目录>/images` —— 切库时天然跟随，不需要渲染层传路径。
    */
   'images:listLibraryImages': { req: undefined; res: { dir: string; files: string[] } }
+  /**
+   * 按已保存路径读取图片为 data URL。
+   * ⚠️ 主进程只允许读**当前库 images 目录内**的文件，越界一律拒绝（安全硬约束）。
+   */
+  'images:readByPath': {
+    req: ImageReadByPathInput
+    res: { path: string | null; dataUrl: string; bytes: number; reason: string | null }
+  }
   /** 物理删除图片。破坏性：主进程再校验 `confirm` 且**重跑差集复核** */
   'images:deleteImages': {
     req: DeleteImagesInput

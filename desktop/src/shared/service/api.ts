@@ -140,6 +140,8 @@ export interface MbApi {
   /** 图片库扫描 / 清理（`deleteImages` 是破坏性操作，`confirm` 必填true） */
   images: {
     listLibraryImages(): Promise<IpcContract['images:listLibraryImages']['res']>
+    /** 按已保存路径回显预览（对齐 PyQt `LazyImageLabel.load_image`；主进程限库内 images 目录） */
+    readByPath(req: IpcContract['images:readByPath']['req']): Promise<IpcContract['images:readByPath']['res']>
     deleteImages(req: IpcContract['images:deleteImages']['req']): Promise<IpcContract['images:deleteImages']['res']>
   },
   dialog: {

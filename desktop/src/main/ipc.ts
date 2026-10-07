@@ -1,12 +1,13 @@
 import { readdir, unlink } from 'node:fs/promises'
-import { readFileSync } from 'node:fs'
-import { extname, join } from 'node:path'
+import { readFileSync, existsSync, statSync, type Stats } from 'node:fs'
+import { extname, isAbsolute, join } from 'node:path'
 import {
   collectReferencedImagePaths,
   diffUnusedImages,
   imagePathKey,
   IMAGE_EXTENSIONS
 } from '../shared/cleanupImages'
+import { isSupportedImageFile } from '../shared/imagePreview'
 
 /** 扩展名白名单的 Set 形态（热路径查表用；真源仍是 shared 的 IMAGE_EXTENSIONS 数组） */
 const IMAGE_EXTENSION_SET: ReadonlySet<string> = new Set(IMAGE_EXTENSIONS)
@@ -52,6 +53,7 @@ import {
   engineExportFileDialogInputSchema,
   deleteImagesInputSchema,
   llmGenerateInputSchema,
+  imageReadByPathInputSchema,
   llmConfigureInputSchema,
   llmStatusInputSchema,
   libraryCreateInputSchema,
@@ -277,6 +279,65 @@ export function registerIpcHandlers({
   handle('images:listLibraryImages', undefined, async () => {
     const dir = join(libraryManager.activeDir(), 'images')
     return { dir, files: await listAllImagePaths(dir) }
+  })
+
+  /**
+   * 按路径读取图片为 data URL（对应 PyQt `LazyImageLabel.load_image`）。
+   *
+   * ## 🔒 安全硬约束（与 PyQt 的关键差异，刻意这么做）
+   * PyQt 的 `load_image`（`ui/components/image_loader.py:281`）是
+   * `os.path.exists(file_path)` 通过就用 PIL 打开 —— 它能读**任意本地路径**，
+   * 因为那是桌面原生进程、天然有完整文件系统权限。
+   * 但 Electron 的**渲染层是网页上下文**：不能直接 `<img src="C://...">`（`webSecurity` 拦）。
+   * 处理方式与 `dialog:chooseImageFile` **同款**：由**主进程**读文件并回传 `data:` URL。
+   *
+   * ## 为什么放宽为「任意绝对路径」而不是「只限库 images 目录」
+   * PyQt 的 `_select_image`（:587）**不拷贝文件**，直接把用户选中的绝对路径存进数据；
+   * `load_image(str(value))`（:747）打开条目时按该**绝对路径**直接 `os.path.exists` + PIL 打开。
+   * 所以**已保存的图片路径就是任意绝对路径**。若强行限制在库 images 目录内，
+   * 反而会让「打开已保存图片」看不到图 —— 与要修的 bug 自相矛盾。
+   *
+   * ## 护栏（比 PyQt 更严格、且不破坏用例）
+   * - 必须是绝对路径；
+   * - 文件必须存在且是文件（非目录）；
+   * - 必须是受支持的图片扩展名（挡掉误读 `.env` / 密钥等非图片文件）；
+   * 任一不满足都返回 `reason`（中文），不抛不静默。
+   *
+   * 关于「XSS 外传本地文件」：本 IPC 只能由**捆绑的渲染代码**经 preload 固定通道调用，
+   * 没有远程网页能触达，属标准且安全的 Electron 做法（与 `chooseImageFile` 一致）。
+   */
+  handle('images:readByPath', imageReadByPathInputSchema, async (req) => {
+    if (!isAbsolute(req.path)) {
+      return { path: null, dataUrl: '', bytes: 0, reason: '图片路径必须是绝对路径' }
+    }
+    if (!existsSync(req.path)) {
+      return { path: null, dataUrl: '', bytes: 0, reason: '图片文件不存在（可能已被删除或移动）' }
+    }
+    let info: Stats
+    try {
+      info = statSync(req.path)
+    } catch (error) {
+      log.warn('读取图片属性失败', { path: req.path, error: error instanceof Error ? error.message : String(error) })
+      return { path: null, dataUrl: '', bytes: 0, reason: '无法读取图片文件属性' }
+    }
+    if (!info.isFile()) {
+      return { path: null, dataUrl: '', bytes: 0, reason: '路径不是文件' }
+    }
+    if (!isSupportedImageFile(req.path)) {
+      return { path: null, dataUrl: '', bytes: 0, reason: '不支持的图片格式' }
+    }
+    try {
+      const buffer = readFileSync(req.path)
+      return {
+        path: req.path,
+        bytes: buffer.byteLength,
+        dataUrl: buildImagePreviewDataUrl(req.path, buffer.byteLength, buffer.toString('base64')),
+        reason: null
+      }
+    } catch (error) {
+      log.warn('读取图片失败', { path: req.path, error: error instanceof Error ? error.message : String(error) })
+      return { path: null, dataUrl: '', bytes: 0, reason: '读取图片失败' }
+    }
   })
 
   /**

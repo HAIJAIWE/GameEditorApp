@@ -187,7 +187,20 @@
       importExcel: async () => ({ filePath: '', totalItems: 0, imported: 0, updated: 0, skipped: 0, byType: {}, unknownTypes: {} })
     },
     engine: { exportData: async () => ({ filePath: '', engine: 'lua', bytes: 0 }) },
-    image: { generate: async () => ({ url: '' }) },
+    images: {
+      listLibraryImages: async () => ({ dir: '(预览桩)/images', files: ['goblin.png', 'hero.png'] }),
+      // 按已保存路径回显预览（对齐 PyQt LazyImageLabel.load_image）。
+      // 桩：返回一张有效 1x1 PNG 的 data URL —— 目的是让预览桩能验证「打开已保存图片
+      // 路径的条目也能看到图」这条修复（真实路径在沙箱里读不到，故桩直接给成功响应）。
+      readByPath: async (req) => {
+        window.__imageReadCalls = window.__imageReadCalls || []
+        window.__imageReadCalls.push(req && req.path)
+        const PNG_1X1 =
+          'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M8AAAMBAQDJ/pLvAAAAAElFTkSuQmCC'
+        return { path: (req && req.path) || 'stub.png', dataUrl: PNG_1X1, bytes: 95, reason: null }
+      },
+      deleteImages: ok
+    },
     settings: { hasSecret: async () => false, setSecret: ok, deleteSecret: ok },
     llm: {
       generate: async () => ({ model: 'stub-model', content: '（预览桩）AI 回复占位' }),

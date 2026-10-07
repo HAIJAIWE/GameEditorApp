@@ -731,6 +731,35 @@ body {
   background: var(--bg);
 }
 
+/* LazyImage（图片字段预览，对齐 PyQt LazyImageLabel 的「无图片 / 加载中... / 到位」三态） */
+.image-lazy {
+  align-self: flex-start;
+  max-width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  object-fit: contain;
+}
+
+.image-lazy-empty,
+.image-lazy-loading,
+.image-lazy-error {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 100px;
+  min-height: 100px;
+  padding: 6px 10px;
+  color: var(--text-muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+.image-lazy-error {
+  color: var(--danger, #c0392b);
+  border-color: var(--danger, #c0392b);
+}
+
 /* desc 类字段的容器（文本域 + AI 按钮行），纵向排布让按钮落在文本域下方 */
 .desc-field {
   display: flex;

@@ -56,9 +56,9 @@
 > | 判定 | 文件 | 行数 | 占比 |
 > |---|---|---|---|
 > | ✅ 已迁 | 95 | 35,125 | 38.5% |
-> | ◐ 部分已迁 | 59 | 22,489 | 24.7% |
+> | ◐ 部分已迁 | 60 | 22,813 | 25.0% |
 > | ⛔ 有意不迁（决策，非欠债） | 92 | 19,858 | 21.8% |
-> | ⚠️ **未迁（整块没做）** | **53** | **13,692** | **15.0%** |
+> | ⚠️ **未迁（整块没做）** | **52** | **13,368** | **14.7%** |
 >
 > 对账 PASS：`95+59+92+53 = 299` 文件、`35125+22489+19858+13692 = 91,164` 行。
 >
@@ -496,6 +496,32 @@
 > 并确认 `toast-host` 已进打包产物（JS + CSS 各命中）。但 **未做浏览器实机触发** ——
 > `DataEditorTab` 需 `doc.systems` 派生出 `enabled_editors` 才渲染，桩里补 systems
 > 会连带触发「确认游戏系统」自动弹窗（改变预览行为），故已回退该桩改动。
+
+> ✅ **E46（2026-10-07）：补图片懒加载/缓存，并修「已保存图片路径不回显」的真 bug（E43 缺口第 3 条）**。
+> **动因**：`ui/components/image_loader.py`（324 行）里**真正被消费的是 `LazyImageLabel`**
+> （被 `ui/widgets/dynamic_form.py:581/593/747` 用作数据表单 `image` 字段的预览控件）；
+> 同文件的 `LazyImageLoader` 在 PyQt 侧**只在退出时 `shutdown_all()`**，不是 UI，不迁。
+> **修真 bug**：TS 侧预览只在「本会话刚选过」时显示（`ItemForm.tsx` 旧逻辑 `picked.path === current`），
+> 打开**已保存图片路径**的条目时**完全看不到图**。改为 `ItemForm` 的 `image` 字段直接用字段值
+> （已保存的绝对路径）渲染 `<LazyImage>`，经主进程 `images:readByPath` 回读 data URL。
+> **⚠️ 关键的「读任意绝对路径」决策（与初版相反）**：初版把 handler 限制在「当前库 images 目录内」，
+> 但实测 PyQt 的 `_select_image`（:587）**从不拷贝文件**、直接存绝对路径、`load_image(str(value))`（:747）
+> 按绝对路径回读 —— 已保存路径就是任意绝对路径。若强限库内目录，反而让修复自相矛盾。
+> 故放宽为「读任意绝对路径」，护栏为：必须是绝对路径 / 文件须存在且是文件 / 须是受支持图片扩展名
+> （挡掉误读 `.env`/密钥等非图片文件）；这与 `dialog:chooseImageFile` 同款、标准且安全的 Electron 做法
+> （仅捆绑代码能经 preload 调，无远程网页）。
+> **新增**：`shared/imageCache.ts`（LRU，对齐 Python `MAX_CACHE_SIZE=50` / `100MB` 字节上限 /
+> RGBA `w*h*4` 估算 / 双重淘汰；并修正 Python 只按路径作键、改用「路径+尺寸」作键；失败项也落缓存防无限重试）
+> + `components/LazyImage.tsx`（占位「无图片」+「加载中…」+ `<img loading="lazy">` + 缓存，用
+> `useSyncExternalStore` 订阅模块级 store，不用 effect+setState）。`images:readByPath` 走标准 5 点接线
+> （`shared/ipc.ts`→`shared/schemas.ts`→`main/ipc.ts`→`preload/index.ts`→`shared/service/api.ts`）。
+> **验证**：双端 tsc 0 / eslint 0 / vitest **111 文件 1702 用例**（+9 imageCache：加载成功 / null / 抛错 /
+> 命中幂等 / 失败缓存不重试 / peek 不改 LRU / 订阅广播 等）/ `electron-vite build` OK /
+> docsLedger 守卫 7 项全绿（audit 数字已同步：◐ 60/22,813、⚠️ 52/13,368，总 299/91,164）；
+> 浏览器实测：应用启动 **0 pageerror**，清理图片面板可达且消费 `images` 通道，
+> `images.readByPath` 链路连通且桩返回有效 data URL（证明已保存路径能回显为可渲染 `<img>`）。
+> 仍受限于沙箱：无法在预览里打开数据条目编辑器（`doc.systems` 网关），故 `image-lazy` 在编辑器的实机渲染
+> 由单测（`ensureCached` 成功/失败/peek）+ 生产构建覆盖，未做编辑器内 E2E。
 > 该项目无 jsdom/组件测试设施（vitest `environment: 'node'`），为它加依赖属过度开发。
 > ⇒ **Toast 的真实点击效果待真机 E2E 验证**（51 个 E2E 至今未在真机跑过，属既有边界）。
 > **验证**：双端 tsc 0 / eslint 0 / vitest **110 文件 1673 用例**（+21）/ build OK。

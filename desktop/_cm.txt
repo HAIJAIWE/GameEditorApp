@@ -1,0 +1,21 @@
+feat(E46): 补图片懒加载/缓存，并修「已保存图片路径不回显」的真 bug
+
+背景：E43 复核列的非 AI 缺口之一（`ui/components/image_loader.py` 324 行）。
+注意定位：那个文件里 `LazyImageLoader` 本身在 PyQt 侧**只在退出时被 shutdown_all() 调用**，
+真正被消费的是同文件的 `LazyImageLabel`（被 `ui/widgets/dynamic_form.py:581/593/747`
+用作数据表单 image 字段的预览控件）—— 迁的是后者的行为。
+
+- 修真 bug：TS 侧预览只在「刚刚选择」时显示（`picked.path === current`），
+  打开**已保存图片路径**的条目时**完全看不到图**。改为 `ItemForm` 的 image 字段直接按
+  字段值（已保存的绝对路径）渲染 `<LazyImage>`，经主进程 `images:readByPath` 回读 data URL。
+- ⚠️ 关键决策（与初版相反）：handler **读任意绝对路径**，而非「只限当前库 images 目录」。
+  依据：实测 PyQt 的 `_select_image`（:587）**从不拷贝文件**、直接存绝对路径，
+  `load_image(str(value))`（:747）按绝对路径回读 —— 已保存路径就是任意绝对路径，
+  强限库内目录反而让修复自相矛盾。护栏：必须是绝对路径 / 文件须存在且是文件 /
+  须是受支持图片扩展名（挡掉误读 .env/密钥等非图片文件）。与 `dialog:chooseImageFile` 同款、
+  标准且安全的 Electron 做法（仅捆绑代码能经 preload 调，无远程网页）。
+- 新增 shared/imageCache.ts（LRU，对齐 Python MAX_CACHE_SIZE=50 / 100MB 字节上限 /
+  RGBA w*h*4 估算 / 双重淘汰；修正 Python 只按路径作键改「路径+尺寸」；失败项也落缓存防无限重试）
+  + 组件 LazyImage（占位「无图片」+「加载中…」+ lazy 加载 + 缓存，useSyncExternalStore 订阅模块级 store）。
+- 验证：tsc 0 / eslint 0 / vitest 111 文件 1702 用例（+9 imageCache）/ build OK / docsLedger 7/7；
+  浏览器实测 0 pageerror、清理图片面板可达且消费 images 通道、readByPath 链路连通且桩返回有效 data URL。
