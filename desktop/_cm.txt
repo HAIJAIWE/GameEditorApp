@@ -1,50 +1,49 @@
-E49: 补齐评分报告 Markdown 导出 + 修审计 3 处不实陈述 + 清 2 处死/误导入口
+E50: ◐→✅ 重新分类（STALE-DONE 文件）
 
-本片是代码 + 文档准确性 pass：逐条实测复核全部「◐ 部分已迁」条目后确认无功能级
-backlog，故只补唯一真实功能遗留（评分报告 MD 导出）并修正审计中 3 处与源码不符的
-自述缺口、清掉菜单/预览里各 1 处死/误导入口。§1/§2 分类计数保持不变。
+本片是文档准确性 pass：对 12 个「◐ 部分已迁」候选逐条实测（读 Python 源
+D:/GameEditorApp/src/<path> + grep desktop/src 的 TS 对照物），把确认 TS 已等价
+实现（含刻意重设计）的 11 个文件从 ◐ 上移为 ✅，并重算 §1/§2 计数。1 个文件
+（data_tab.py）实测发现真实缺口，保持 ◐。总 299 文件 / 91,164 行不变。
 
-1) 评分报告 Markdown 导出（真实功能遗留，对齐 Python score_report_dialog.py）
-- shared/ceshuScorer.ts：新增纯函数 buildScoreReportMarkdown(gameName, gameType, report,
-  timestamp)，逐节对齐 Python _build_markdown（549-603）：标题 / meta（游戏名称·类型·时间）/
-  ## 总评（总分·等级+label·结构30·内容40·市场30）/ ## 章节明细 表（章节|评分|完成度|字数|
-  必填字段|备注；完成度 int(completion*100)%、必填 齐全 或 缺 N、备注 "; " 连接或 —）/
-  ## 改进建议 列表 / ## 同行业对比（行业·行业平均总分·你的总分·差距带符号 %+.1f·行业代表）。
-  单元格转义管道符（与 ceshuChecklist 一致）。
-- IPC 标准 5 点接线：shared/ipc.ts ceshu:exportScoreReport → shared/schemas.ts
-  ceshuScoreExportInputSchema(+ CeshuScoreExportInput) → main/ipc.ts 复用
-  exportTextReportFile(req.path, req.content, '评分报告') → preload/index.ts → shared/service/api.ts。
-- CeshuView.tsx 评分面板加 data-testid="score-export"「导出评分报告」按钮（chooseCeshuExportFile
-  → build → exportScoreReport → notice；错误进面板 error），镜像 ChecklistPanel.handleExport；
-  新增 gameType 派生（doc.meta.game_type）。
-- 单测 tests/unit/ceshuScoreReport.test.ts：真实 CeshuScoreReport 形状夹具，断言各节标题 /
-  总分等级行 / 表格头与行 / 建议 / 行业行 / 负向差距 / 单元格转义。
+1) 重新分类为 ✅ 的 11 个文件（附 TS 对照物证据）
+- common/common.py 287：真实消费者 atomic_write_*/is_test_env 已迁；safe_*/is_number/
+  merge_dicts 等 14 个函数 Python 源零调用点 = 死代码（非缺口）。
+- ui/window_state.py 154：E24 main/windowState.ts（几何+最大化+lastMode，原子写）+
+  app:setWindowMode IPC；从「menus/shortcuts/tab_manager/window_state」捆绑行拆出独立 ✅ 行。
+- ui/ceshu/preview_panel.py 222：shared/dataRef.ts（@data[...] 解析）+ ceshu/
+  CeshuDataPreview.tsx（enabled_editors 动态编辑器）两半均迁。
+- ui/dialogs/statistics.py 374：shared/dataStats.ts + StatisticsPanel.tsx。
+- ui/dialogs/template_manager.py 411：main/schema/fieldTemplateStore.ts + TypeEditorPanel
+  模板存取（比 Python 残缺语义强）。
+- ui/chat_renderer.py 172：E47 react-markdown+remark-gfm+remark-breaks+rehype-highlight
+  至 digital/ChatMarkdown.tsx。
+- ui/components/image_loader.py 324：E46 shared/imageCache.ts + components/LazyImage.tsx。
+- ui/components/toast.py 98：E45 shared/toast.ts + components/ToastHost.tsx。
+- ui/widgets/home_widget.py 604：E48 shared/onboarding.ts + components/OnboardingPanel.tsx。
+- features/export.py 705：main/data/{csvIO,excelIO,legacyExport}.ts + BatchEditPanel。
+- features/advanced.py 431：E38–E41 的 attributeChart/advancedSearch/KeywordTemplatePanel/
+  CleanupImagesPanel/SettingsPanel-AI/ReferencesPanel 全接线；余 3 个函数（工作流配置/
+  规则验证/规则配置）在 Python 侧本就是纯占位对话框，非缺口。
 
-2) 菜单死入口「平衡性分析工具」（MenuBar.tsx）
-- 工具 → 数据分析 下该条目原 action:'notImplemented'（点击报「尚未实现」），改接既有
-  action:'stats'（新增 testid menuitem-tools-balance）→ 打开统计面板的平衡性分析视图
-  （能力早已存在于 StatisticsPanel，仅菜单未接）。
+2) 保持 ◐（发现真实缺口，不误判）
+- ui/data_tab.py 1157：核心数据编辑（列表/搜索/增删改/复制/类型编辑/引用/AI 生成/
+  撤销重做 E27）均已迁，但 P5 数量约束软检查、AI 生成的「参考策划方案·技能模板」
+  选择上下文、F2·右键重命名 在 TS 侧 grep 确缺 ⇒ 未达完全等价，保持 ◐ 并更正其行
+  （原写「缺 undo/redo」为误 —— E27 已迁）。
 
-3) ceshu/CeshuDataPreview.tsx 误导占位（改为真接线）
-- showRefs 分支原渲染「数据引用解析（@data[...]）尚未迁移到 TS 版」为假：CeshuDataRefsPanel
-  早已存在且经 CeshuView「更多 ▸ 数据引用」可达。给 CeshuDataPreview 增 chapters 度（宿主
-  CeshuView 单点传入 doc，非跨组件 prop-drilling），showRefs 标签内直接渲染
-  <CeshuDataRefsPanel chapters={chapters} types={types} />。
+3) §1 重算（总 299 文件 / 91,164 行不变）
+- ✅ 95→106 文件 / 35,125→38,907 行（38.5%→42.7%）
+- ◐ 62→51 文件 / 23,589→19,807 行（25.9%→21.7%）
+- ⛔ 92/19,858（21.8%）、⚠️ 50/12,592（13.8%）不变
+- 对账：106+51+92+50=299 文件；38,907+19,807+19,858+12,592=91,164 行。
+- §2 域表：ui/ / ui/ceshu / ui/widgets / ui/dialogs / features / common 六域 ✅◐ 列 +
+  合计行同步（合计 ✅ 105/38,752、◐ 49/19,031，仍与 §1 有既有 ±2 文件/480 行差异，保留）。
 
-4) 审计修正（docs/migration-audit.md，实测翻案 3 处）
-- common/common.py 行：safe_dict 在 Python 源中根本不存在（grep 零命中）；safe_int/float/str
-  仅定义 + 包再导出、零业务调用点 ⇒ 非缺口（真实消费者 atomic_write_*/is_test_env 已迁）。
-- menus/shortcuts/tab/window_state 行：原写「撤销/重做 TS 完全没有」为误 —— 已迁（E27：
-  data:undo/redo/undoState + main/data/undoRecorder.ts + App.tsx 按钮与 Ctrl+Z/Y）；清理未用图片
-  （images:deleteImages）/多引擎导出/ Lua 导出均已完成；仅剩「数据关系图」为真实缺口。
-- preview_panel.py 行：enabled_editors 半边原写「未迁」为误 —— ceshu/CeshuDataPreview.tsx 已
-  实现 enabledEditors → DataEditorTab 渲染。
-- 新增 §1 子节 ### ◐ 复核（2026-10-07）：无功能级 backlog；STALE-DONE 与 DESIGN-DIFFERENT 归类；
-  真实遗留仅评分报告 MD 导出（E49 补齐）与 virtual_list 条目右键菜单（候选）。
+4) 文档
+- docs/migration-audit.md：§1 表+对账行、§2 域表+合计+注、### ◐ 复核（E50 更新）、
+  §3 各文件行（追加 E50 标记）、捆绑行拆出 window_state。
+- docs/ts-migration-roadmap.md：§2 mirror 表+对账行同步；新增 E50 台账条目。
+- tests/unit/docsLedger.test.ts：REQUIRED_ROADMAP_MARKERS 增 'E50（2026-10-07）'。
 
-5) 文档台账
-- docs/ts-migration-roadmap.md 增 E49 台账条目（镜像 E48 格式；声明 §1 数字不变）。
-- tests/unit/docsLedger.test.ts：REQUIRED_ROADMAP_MARKERS 增 'E49（2026-10-07）'。
-
-验证：双端 tsc 0 / eslint 0 / vitest 114 文件 1738 用例全绿 / electron-vite build OK；
-docsLedger 守卫全绿（§1 数字未变：◐ 62/23,589，总 299/91,164）。
+验证：docsLedger 7/7 绿（§1↔roadmap §2 一致 + 对账 299/91,164）；双端 tsc 0；eslint 0；
+vitest 全量 114 文件 1738 用例全绿。

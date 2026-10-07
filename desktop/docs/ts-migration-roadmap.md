@@ -55,15 +55,15 @@
 >
 > | 判定 | 文件 | 行数 | 占比 |
 > |---|---|---|---|
-> | ✅ 已迁 | 95 | 35,125 | 38.5% |
-> | ◐ 部分已迁 | 62 | 23,589 | 25.9% |
+> | ✅ 已迁 | 106 | 38,907 | 42.7% |
+> | ◐ 部分已迁 | 51 | 19,807 | 21.7% |
 > | ⛔ 有意不迁（决策，非欠债） | 92 | 19,858 | 21.8% |
 > | ⚠️ **未迁（整块没做）** | **50** | **12,592** | **13.8%** |
 >
-> 对账 PASS：`95+62+92+50 = 299` 文件、`35125+23589+19858+12592 = 91,164` 行。
+> 对账 PASS：`106+51+92+50 = 299` 文件、`38907+19807+19858+12592 = 91,164` 行。
 >
 > **结论：真实剩余 ≈ 2.4–2.8 万行（26–31%）** —— 而不是早前口头估算的「3.5–4.5k 行（4–5%）」。那句估算**口径过窄**（把 `ui/widgets`/`ui/dialogs`/`features` 三个混合态域当成了基本迁完）且未做文件级核实，**已被本审计推翻**。
-> 三个最意外的数字：**① `core/agent`（最大域 24,670 行）只有 1,689 行是完整已迁**（A 档做的是核心闭环，不是整个 Agent 引擎）；**② `ui/` 顶层+主题 9,883 行里仅 917 行完整已迁**；**③ `features` 9 文件完整已迁为 0**。
+> 三个最意外的数字：**① `core/agent`（最大域 24,670 行）只有 1,689 行是完整已迁**（A 档做的是核心闭环，不是整个 Agent 引擎）；**② `ui/` 顶层+主题 9,883 行里仅 1,819 行完整已迁**；**③ `features` 9 文件完整已迁为 4 个（1,543 行）**（E50 更新为最新 §1/§2 数字）。
 > **本审计同时纠正了 3 条错误的「已迁」映射线索**（`ui/dialogs/template_manager.py`、`statistics.py`、`data_diff_dialog.py` 都不是策划书那套的同名对应物，实为未迁），并查明 `common/` 不可整体按「用不到」处理（`logger.py` 被引用 **142 处**、`event_bus.py` 18 处等，属未迁而非设计不迁）。
 
 ### A 档（大块，需单独立项）—— **已立项，方案见 [`a-tier-plan.md`](./a-tier-plan.md)**
@@ -546,6 +546,13 @@
 > **③ `ceshu/CeshuDataPreview.tsx` 误导占位**：`showRefs` 分支原渲染「数据引用解析（@data[...]）尚未迁移到 TS 版」**为假**（`CeshuDataRefsPanel` 早已存在且经 `CeshuView`「更多 ▸ 数据引用」可达）。改为**真接线**：给 `CeshuDataPreview` 增 `chapters` 度（宿主 `CeshuView` 单点传入 `doc`，非跨组件 prop-drilling），`showRefs` 标签内直接渲染 `<CeshuDataRefsPanel chapters={chapters} types={types} />`。
 > **④ 审计 3 处不实陈述修正（实测翻案）**：`common/common.py` 的 `safe_dict` **在 Python 源中根本不存在**（grep 零命中），`safe_int`/`safe_float`/`safe_str` **仅定义 + 再导出、零业务调用点** ⇒ 非缺口（该文件真实消费者是 `atomic_write_*`/`is_test_env`，已迁）；`menus/shortcuts/tab/window_state` 行原写「撤销/重做 **TS 完全没有**」为误——**已迁**（E27：`data:undo`/`data:redo`/`data:undoState` + `main/data/undoRecorder.ts` + `App.tsx` 按钮与 Ctrl+Z/Y），且清理未用图片 / 多引擎导出 / Lua 导出均已完成；`preview_panel.py` 行的 `enabled_editors` 半边原写「未迁」为误——`ceshu/CeshuDataPreview.tsx` 已实现 `enabledEditors` → `DataEditorTab` 渲染。另在审计 §1 增 `### ◐ 复核（2026-10-07）` 小结（**不改 §1 数字**）。
 > **验证**：双端 tsc 0 / eslint 0 / vitest 全绿（含新增 `ceshuScoreReport.test.ts`）/ `electron-vite build` OK；docsLedger 守卫全绿（§1 数字未变：◐ 62/23,589，总 299/91,164）。
+
+> ✅ **E50（2026-10-07）：◐→✅ 重新分类 —— 把实测确认 STALE-DONE 的 11 个文件从「部分已迁」上移为「已迁」。**
+> **性质**：文档准确性 pass，**重算 §1/§2 分类计数**（✅ 95→106 文件 / 35,125→38,907 行；◐ 62→51 文件 / 23,589→19,807 行；⛔ 92/19,858、⚠️ 50/12,592 均不变；总 **299 文件 / 91,164 行不变**）。
+> **逐文件实测（读 Python 源 + grep TS 对照物）重新分类为 ✅ 的 11 个文件**：`common/common.py`（`atomic_write_*`/`is_test_env` 真实消费者已迁；`safe_*`/`is_number`/`merge_dicts` 等 14 函数 Python 源**零调用点=死代码**）、`ui/window_state.py`（E24 `main/windowState.ts`；从「menus/shortcuts/tab_manager/window_state」捆绑行**拆出**为独立 ✅ 行）、`ui/ceshu/preview_panel.py`（`shared/dataRef.ts` + `ceshu/CeshuDataPreview.tsx`，两半均迁）、`ui/dialogs/statistics.py`（`shared/dataStats.ts` + `StatisticsPanel.tsx`）、`ui/dialogs/template_manager.py`（`main/schema/fieldTemplateStore.ts` + `TypeEditorPanel` 模板存取，比 Python 的残缺语义强）、`ui/chat_renderer.py`（E47 react-markdown 栈）、`ui/components/image_loader.py`（E46 `imageCache.ts` + `LazyImage.tsx`）、`ui/components/toast.py`（E45 `toast.ts` + `ToastHost.tsx`）、`ui/widgets/home_widget.py`（E48 `onboarding.ts` + `OnboardingPanel.tsx`）、`features/export.py`（`csvIO`/`excelIO`/`legacyExport` + `BatchEditPanel`）、`features/advanced.py`（E38–E41 的图表/搜索/关键词/清理/API 全接线）。
+> **保持 ◐（实测发现真实缺口，不误判）**：`ui/data_tab.py`（1157 行）—— 核心数据编辑能力（列表/搜索/增删改/复制/类型编辑/引用/AI 生成/撤销重做）均已迁，但 **P5 数量约束软检查 / AI 生成的「参考策划方案·技能模板」选择上下文 / F2·右键重命名** 在 TS 侧经 grep 确缺，未达「完全等价」，故**保持 ◐**。
+> **审计同步**：`docs/migration-audit.md` §1 结论表 + 对账行、§2 域表（`ui/` / `ui/ceshu` / `ui/widgets` / `ui/dialogs` / `features` / `common` 六域）的 ✅/◐ 列与合计行、`### ◐ 复核（2026-10-07，E50 更新）` 小节、§3 各文件行（追加 `（E50 重新分类为 ✅：TS 已等价实现，原 ◐ 判定过期）` 标记）均已更新；域表与 §1 的既有小差异（**`±2 文件 / 480 行`**）保持不变。
+> **验证**：`tests/unit/docsLedger.test.ts` 的 §1↔roadmap §2 四类数字一致断言 + 对账（299/91,164）全绿；`REQUIRED_ROADMAP_MARKERS` 增 `'E50（2026-10-07）'`。
 
 > 🔴 **E42（2026-10-07）：主理人裁决 —— `core/agent` 停止 1:1 迁移，改为「AI 框架重写」**。
 > **主理人原话**：「**ai 那边就不搞了。框架可能要重写**」。
