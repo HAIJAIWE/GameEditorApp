@@ -315,19 +315,33 @@ SOUL 硬边界、turn limit、MCP、`shared/` 分层契约、**6 家服务商的
 
 ### 5.5.3 对设计的修正（v0.5 新增/修订）
 
-| # | 内容 | 类型 |
-|---|---|---|
-| **DD-17** | **`ceshu:ai*` 纳入风险分级与审批闸**（复用 `TOOL_RISK_MAP` + `approvalBroker`，不新建机制）；创作面**仍不进 agent 循环**，只共用防护 | 新增（修 ①） |
-| **DD-18** | **域 context provider**：常驻注入「类型 schema + `CHAPTER_KEYS` + 143 条术语表 + 当前系统开关」。这是本项目 grounding 的第一手段 | 新增（修 ②，具体化 DD-16） |
-| **DD-19** | **产出契约 + 确定性评分门**：agent 产出必须过 `validateCeshu` → `scoreCeshu` → `dataCountConstraint`/`assessBalance`；LLM judge 只补机器判不了的维度，且**默认权重大幅低于确定性门** | 新增（修 ③⑧，**v0.5 第一优先**） |
-| **DD-20** | **跨域一致性工具**作为一等工具（重命名类型→全库引用同步、删系统→停用数据表、字段改名→迁移引用…）；这些同时是 DD-15 复合工具的最佳用例 | 新增（修 ④⑥） |
-| **DD-21** | 工具面**按三个真实场景重组**（策划书创作 / 数据编辑 / 系统设计），替代按 Python 技能表删减 | 新增（修 ⑤） |
-| **修订 DD-9** | 评估器：先核实的不再是 Python 的 `auto_evaluator.py`，而是**「确定性门是否已接进产出路径」** | 修订（修 ⑧） |
-| **修订 §9** | M4 从"核实评估器上下文"改为 **"接确定性评分门 + 产出契约"**（DD-19），优先级上调到 M2 之后 | 修订 |
+| # | 问题 | 证据 | 决策 | 处置 | 档位 | 复盘条件 |
+|---|---|---|---|---|---|---|
+| **DD-17** ⭐**✅ 已实现** | `ceshu:ai*` 纳入确认门 | §5.5.2① | 判定抽成纯函数 `shared/agent/protocol.ts::llmConfirmReason` / `isBulkLlmCall`（**判定与文案同源**）；两个 AI schema 加 `confirmed` 可选标志；`main/ipc.ts` 在调 LLM 前拦；渲染层用**内联两按钮确认态**（`AiFullGeneratePanel` / `AiDataGenPanel`，沿用 `ClearAllPanel` 范式，不自造弹窗） | 新增 | **两档** | 保密模式（M6）落地后，可再加"本地档禁止出境"语义 |
+| **DD-18** | 缺域词汇/域契约 | §5.5.2② | **域 context provider**：常驻注入「类型 schema + `CHAPTER_KEYS` + 143 条术语表 + 当前系统开关」——这是本项目 grounding 的第一手段 | 新增（具体化 DD-16） | 两档 | — |
+| **DD-19** ⭐**✅ 已实现** | 产出无法机器验证 | §5.5.2③⑧ | 新增 `shared/agent/qualityGate.ts::evaluateChapterDraft`：把生成字段**合并进文档**后重跑 `validateCeshu` + `scoreCeshu`，给出 before/after 的错误数与评分变化 + `blocking`（只收必填/硬冲突，软警告不算）+ 一句话 `summary`。已接进 `ceshu:aiGenerateChapter` 响应的 `quality` 字段（**可选，旧调用方不受影响**） | 新增 | **两档** | 数据侧（`dataCountConstraint`/`assessBalance`）与 LLM judge 权重待 M5 接 |
+| **DD-20** | 策划书⇄数据双向依赖无表达 | §5.5.2④⑥ | **跨域一致性工具**作为一等工具（重命名类型→全库引用同步、删系统→停用数据表、字段改名→迁移引用…）；同时是 DD-15 复合工具的最佳用例 | 新增 | 两档 | — |
+| **DD-21** | 35 个技能清单 ≠ 域能力清单 | §5.5.2⑤ | 工具面**按三个真实场景重组**（策划书创作 / 数据编辑 / 系统设计），替代按 Python 技能表删减 | 新增 | 两档 | — |
+| **修订 DD-9** | 评估器问错了问题 | §5.5.2⑧ | 先核实的不再是 Python 的 `auto_evaluator.py`（TS 侧没这文件），而是**「确定性门是否已接进产出路径」** | 修订 | 两档 | — |
+| **修订 §9** | 路线图优先级 | — | M4 从"核实评估器上下文"改为 **"接确定性评分门 + 产出契约"**（DD-19），优先级上调到 M2 之后 | 修订 | — | — |
 
 > **一句话总结这一节**：v0.1~v0.4 把这个项目当成"一个要加固的通用 agent 框架"，
 > 但**真正的缺口不在 agent 机制本身，而在于「创作面绕过了防护」与「域内现成的确定性检查没被用起来」**。
 > 前者是安全/一致性问题（①④），后者是**投入产出比最高的机会**（③⑨——7,114 行现成 rubric 已经在生产里跑着了）。
+
+### 5.5.4 实现记录（E60）：DD-17 + DD-19 已落地
+
+| 项 | 落地 |
+|---|---|
+| `shared/agent/protocol.ts` | 新增 `LLM_BULK_COUNT_THRESHOLD`（10）、`LlmCallScope`、`isBulkLlmCall`、`llmConfirmReason`（判定与文案同源） |
+| `shared/schemas.ts` | `ceshuAiGenerateInputSchema` / `ceshuDataGenInputSchema` 各加 `confirmed: z.boolean().optional()`（**刻意不用 `default`**——契约类型取 `z.infer`（输出类型），用 `default` 会逼 3 个既有调用点补传） |
+| `shared/agent/qualityGate.ts` | 新增（DD-19）：`evaluateChapterDraft` + `QualityGateVerdict` |
+| `shared/ceshuAi.ts` | `CeshuAiGenerateResult` 加可选 `quality?: QualityGateVerdict \| null` |
+| `main/ipc.ts` | 两个 AI handler 在调 LLM 前走确认门；`aiGenerateChapter` 返回 `quality` |
+| `AiFullGeneratePanel.tsx` | 内联确认态（`ai-full-confirm` / `-yes` / `-no`），确认后带 `confirmed: true` |
+| `AiDataGenPanel.tsx` | 同上（`datagen-confirm` / `-yes` / `-no`），仅当 `count > 10` |
+| 单测 | `agentProtocol.test.ts` +7（25 例）、新增 `agentQualityGate.test.ts` 9 例 |
+| **运行期举证** | `preview/verify-e59.mjs` **11/11**（批量 12 条出确认且不发起调用 / 取消可回退 / 5 条不拦 / 整篇出确认且带出 **18 次**）；回归 verify-e51 41/41 · e57 46/46 · e58 14/14 |
 
 ---
 

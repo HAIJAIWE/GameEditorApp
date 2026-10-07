@@ -62,6 +62,8 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
   const [applying, setApplying] = useState(false)
   const [summary, setSummary] = useState<string | null>(null)
   const [panelError, setPanelError] = useState<string | null>(null)
+  /** 整篇生成的内联确认态（v0.5 DD-17：大范围云端调用需先确认） */
+  const [confirming, setConfirming] = useState(false)
   const stopRef = useRef(false)
   const resultsRef = useRef<Partial<Record<ChapterKey, ChapterData>>>({})
 
@@ -100,7 +102,8 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
             styleKey: plan.styleKey,
             extraPrompt: plan.chapterPrompts[chapter] ?? '',
             draft: buildDraftPayload(plan, draftResults)
-          }
+          },
+          confirmed: true
         })
         if (Object.keys(response.fields).length === 0) {
           throw new Error('AI 未返回有效内容')
@@ -136,12 +139,22 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
     }
   }
 
+  /**
+   * 整篇生成属「大范围云端调用」（v0.5 DD-17）⇒ **首次点击只进入内联确认态**，
+   * 再点「确认生成」才真正发起。交互沿用项目既有做法（`ClearAllPanel` / `BatchEditPanel`），
+   * 不自造弹窗组件。
+   */
   const handleStart = async (): Promise<void> => {
     setPanelError(null)
     if (!description.trim()) {
       setPanelError('请填写简要描述，便于 AI 生成有针对性的内容。')
       return
     }
+    if (!confirming) {
+      setConfirming(true)
+      return
+    }
+    setConfirming(false)
     resultsRef.current = {}
     setResults({})
     setErrors({})
@@ -370,6 +383,30 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
       </div>
 
       <div className="editor-actions">
+        {confirming && (
+          <div className="form-row" data-testid="ai-full-confirm">
+            <span className="form-label">
+              整篇生成将连续调用 {plan.order.length} 次云端模型，耗时较长且 token 消耗较高，确认开始？
+            </span>
+            <button
+              type="button"
+              className="btn primary"
+              data-testid="ai-full-confirm-yes"
+              disabled={locked}
+              onClick={() => void handleStart()}
+            >
+              确认生成
+            </button>
+            <button
+              type="button"
+              className="btn"
+              data-testid="ai-full-confirm-no"
+              onClick={() => setConfirming(false)}
+            >
+              取消
+            </button>
+          </div>
+        )}
         <button
           type="button"
           className="btn primary"

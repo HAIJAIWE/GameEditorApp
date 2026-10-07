@@ -11,8 +11,11 @@ import {
   getToolDescription,
   inferAction,
   normalizeSkillResult,
+  isBulkLlmCall,
+  llmConfirmReason,
   resolveRiskLevel,
   toJsonSchema,
+  LLM_BULK_COUNT_THRESHOLD,
   type SkillProtocol
 } from '../../src/shared/agent/protocol'
 
@@ -224,5 +227,53 @@ describe('agent 协议：JSON Schema 与工具描述', () => {
     expect(lines[0]).toBe('- system.demo: 演示技能')
     expect(lines[1]).toBe('    *action: 操作类型 (type=string, enum=[go|stop])')
     expect(lines[2]).toBe('    count: 次数 (type=integer, default=1)')
+  })
+})
+
+describe('策划书 / 数据域云端 LLM 调用的确认门（v0.5 DD-17）', () => {
+  /**
+   * 为什么要有这一套：`ceshu:aiGenerate*` / `ceshu:aiReview` 走的**不是** agent 技能通路
+   * （渲染层直连，`window.mbApi.ceshu.*` 53 处 vs `window.mbApi.agent` 1 处），
+   * 所以 `TOOL_RISK_MAP` 与 `approvalBroker` 对它们**不生效**。
+   * 本套判定让两条通路**共用同一个"要不要先问用户"的口径**，而不新造机制。
+   */
+  it('单次调用无需确认', () => {
+    expect(isBulkLlmCall({})).toBe(false)
+    expect(llmConfirmReason({})).toBeNull()
+  })
+
+  it('整篇 / 一键生成需确认', () => {
+    expect(isBulkLlmCall({ bulk: true })).toBe(true)
+    expect(llmConfirmReason({ bulk: true })).toContain('连续多次调用云端模型')
+  })
+
+  it('批量条数 ≤ 阈值无需确认（默认 5 条属于常规操作）', () => {
+    expect(LLM_BULK_COUNT_THRESHOLD).toBe(10)
+    expect(isBulkLlmCall({ count: LLM_BULK_COUNT_THRESHOLD })).toBe(false)
+    expect(llmConfirmReason({ count: 5 })).toBeNull()
+  })
+
+  it('批量条数 > 阈值需确认，且原因里带出条数', () => {
+    const reason = llmConfirmReason({ count: 12 })
+    expect(reason).not.toBeNull()
+    expect(reason).toContain('12')
+    expect(reason).toContain('token')
+  })
+
+  it('非法 / 非数字 count 不误判为批量', () => {
+    expect(llmConfirmReason({ count: Number.NaN })).toBeNull()
+    expect(llmConfirmReason({ count: undefined })).toBeNull()
+    expect(llmConfirmReason({ count: Number.POSITIVE_INFINITY })).toBeNull()
+  })
+
+  it('bulk 优先于 count（两者都给时按整篇的文案）', () => {
+    expect(llmConfirmReason({ bulk: true, count: 12 })).toContain('整篇')
+  })
+
+  it('判定与文案同源：isBulkLlmCall 与 llmConfirmReason 永不矛盾', () => {
+    const cases = [{}, { bulk: true }, { count: 5 }, { count: 11 }, { bulk: false, count: 11 }]
+    for (const scope of cases) {
+      expect(isBulkLlmCall(scope), JSON.stringify(scope)).toBe(llmConfirmReason(scope) !== null)
+    }
   })
 })

@@ -92,6 +92,43 @@ export function resolveRiskLevel(toolId: string, action = ''): RiskLevel {
   return entry[action] ?? DEFAULT_TOOL_RISK
 }
 
+/* ---- 策划书 / 数据域「云端 LLM 调用」的确认门（v0.5 DD-17） ---- */
+
+/**
+ * 为什么单独一套判定：`ceshu:aiGenerateChapter` / `ceshu:aiGenerateData` / `ceshu:aiReview`
+ * 走的**不是** agent 的技能通路（`dispatcher.execute`），而是渲染层直连的独立 IPC
+ * （`window.mbApi.ceshu.*` 53 处 / `data.*` 42 处，`window.mbApi.agent` 仅 1 处，见
+ * `docs/agent-framework-design.md` §5.5.1）⇒ `TOOL_RISK_MAP` 与 `approvalBroker` 对它们**不生效**。
+ * 本套判定把「要不要先问用户」抽成纯函数，让这两条通路**共用同一个口径**，而不新造机制。
+ */
+
+/** 批量生成的条目数阈值（`ceshuDataGenInputSchema.count` 上限 20 的一半） */
+export const LLM_BULK_COUNT_THRESHOLD = 10
+
+export interface LlmCallScope {
+  /** 是否属于大范围调用（如整篇 / 一键生成） */
+  bulk?: boolean
+  /** 批量生成的条目数 */
+  count?: number
+}
+
+/** 一次云端 LLM 调用是否属于「大范围操作」（≥ 阈值即需先确认） */
+export function isBulkLlmCall(scope: LlmCallScope): boolean {
+  return llmConfirmReason(scope) !== null
+}
+
+/** 需先确认时给出中文原因；无需确认返回 `null`（判定与文案同源，避免两处漂移） */
+export function llmConfirmReason(scope: LlmCallScope): string | null {
+  if (scope.bulk === true) {
+    return '整篇 / 一键生成会连续多次调用云端模型，耗时较长且 token 消耗较高'
+  }
+  const count = scope.count
+  if (typeof count === 'number' && Number.isFinite(count) && count > LLM_BULK_COUNT_THRESHOLD) {
+    return `批量生成 ${count} 条（超过 ${LLM_BULK_COUNT_THRESHOLD} 条）会调用云端模型，token 消耗较高`
+  }
+  return null
+}
+
 export interface PermissionCheck {
   allowed: boolean
   risk: RiskLevel

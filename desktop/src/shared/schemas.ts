@@ -476,7 +476,15 @@ export const ceshuAiGenerateInputSchema = z.object({
       extraPrompt: z.string().max(6000).default(''),
       draft: z.record(z.string(), z.record(z.string(), z.unknown())).default({})
     })
-    .optional()
+    .optional(),
+  /**
+   * 大范围调用（一键生成 / 批量）的用户确认标志（v0.5 DD-17）。
+   * 主进程判定需要确认时会**拒绝并给出中文原因**，渲染层确认后**带 `confirmed: true` 重发**，
+   * 与 `main/agent/dispatcher.ts` 的 `dangerConfirmed` 同一模式。
+   * **刻意用 `optional` 而非 `default`**：契约类型取的是 `z.infer`（输出类型），
+   * 用 `default` 会逼所有既有调用点补传该字段。
+   */
+  confirmed: z.boolean().optional()
 })
 
 /** AI 生成候选游戏数据（数值/系统章作为设定 → 候选 → 人工导入） */
@@ -484,7 +492,9 @@ export const ceshuDataGenInputSchema = z.object({
   id: z.string().min(1),
   dataTypes: z.array(z.string().max(50)).max(30).default([]),
   count: z.number().int().min(1).max(20).default(5),
-  instruction: z.string().max(500).default('')
+  instruction: z.string().max(500).default(''),
+  /** 批量超过阈值时的用户确认标志（v0.5 DD-17，同 `ceshuAiGenerateInputSchema.confirmed`） */
+  confirmed: z.boolean().optional()
 })
 
 /** AI 审阅报告导出（渲染层生成 Markdown，主进程原子写盘） */

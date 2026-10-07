@@ -10,6 +10,7 @@ import {
   type GddScope
 } from './ceshuConstants'
 import { CESHU_CHAPTER_FIELDS } from './domain/ceshu/ceshuFields'
+import type { QualityGateVerdict } from './agent/qualityGate'
 import { isPlainObject } from './ceshuModel'
 
 /**
@@ -213,6 +214,13 @@ export interface CeshuAiGenerateResult {
   fields: Record<string, unknown>
   /** LLM 原始输出（便于排查） */
   rawText: string
+  /**
+   * 生成结果的**确定性评分门**结论（v0.5 DD-19）。
+   * 由 `shared/agent/qualityGate.ts::evaluateChapterDraft` 产出：把 `fields` 合并进文档后
+   * 重跑 `validateCeshu` + `scoreCeshu`，给出「生成前/后」的错误数与评分变化。
+   * **可选**：仅当章节 key 合法时才有值；旧调用方忽略该字段即可。
+   */
+  quality?: QualityGateVerdict | null
 }
 
 /**

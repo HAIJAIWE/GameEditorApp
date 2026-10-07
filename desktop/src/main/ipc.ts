@@ -110,6 +110,8 @@ import {
   isChapterKey,
   type SystemEntry
 } from '../shared/ceshuConstants'
+import { llmConfirmReason } from '../shared/agent/protocol'
+import { evaluateChapterDraft } from '../shared/agent/qualityGate'
 import { buildChapterPrompt, buildReviewPrompts, filterGeneratedFields, mergeChapterDraft, parseLlmJson, parseReviewResponse } from '../shared/ceshuAi'
 import {
   DATA_GEN_ERROR_EMPTY,
@@ -810,9 +812,22 @@ export function registerIpcHandlers({
       // 无空字段：不调用 LLM，直接返回空结果（UI 提示「无需补全」）
       return { model: '', fields: {}, rawText: '' }
     }
+    // v0.5 DD-17：整篇 / 一键生成属「大范围云端调用」，需渲染层带 `confirmed: true` 重发
+    // （判定走 shared/agent/protocol.ts::llmConfirmReason，与 agent 技能通路同一口径）
+    const confirmReason = llmConfirmReason({ bulk: req.fullGenerate !== undefined })
+    if (confirmReason !== null && req.confirmed !== true) {
+      throw new Error(confirmReason)
+    }
     const { model, content } = await llmClient.generate(built.system, built.prompt, await llmCallOptions())
     const parsed = parseLlmJson(content)
-    return { model, fields: filterGeneratedFields(doc, req.chapter, parsed), rawText: content }
+    const fields = filterGeneratedFields(doc, req.chapter, parsed)
+    return {
+      model,
+      fields,
+      rawText: content,
+      // v0.5 DD-19：产出过确定性评分门（validateCeshu + scoreCeshu），供 UI 展示"生成有没有变好"
+      quality: evaluateChapterDraft(base, req.chapter, fields)
+    }
   })
   handle('ceshu:aiGenerateData', ceshuDataGenInputSchema, async (req) => {
     const doc = ceshuManager.get(req.id)
@@ -821,7 +836,13 @@ export function registerIpcHandlers({
     if (selected.length === 0) {
       throw new Error(DATA_GEN_ERROR_NO_TYPE)
     }
-    const built = buildDataGenPrompt(doc, types, selected, clampDataGenCount(req.count), req.instruction.trim())
+    // v0.5 DD-17：批量生成超过阈值属「大范围云端调用」，需渲染层带 `confirmed: true` 重发
+    const count = clampDataGenCount(req.count)
+    const confirmReason = llmConfirmReason({ count })
+    if (confirmReason !== null && req.confirmed !== true) {
+      throw new Error(confirmReason)
+    }
+    const built = buildDataGenPrompt(doc, types, selected, count, req.instruction.trim())
     const { model, content } = await llmClient.generate(built.system, built.prompt, await llmCallOptions())
     const parsed = parseLlmJson(content)
     if (Object.keys(parsed).length === 0) {

@@ -8,6 +8,7 @@ import {
   summarizeCandidateItem,
   type CeshuDataGenResult
 } from '../../../shared/ceshuDataGen'
+import { LLM_BULK_COUNT_THRESHOLD, isBulkLlmCall } from '../../../shared/agent/protocol'
 import type { DataTypeDef } from '../../../shared/types'
 
 /**
@@ -41,6 +42,8 @@ export default function AiDataGenPanel({ ceshuId, initialTypeId, onClose }: AiDa
   const [importing, setImporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  /** 批量生成的内联确认态（v0.5 DD-17：超过阈值的云端调用需先确认） */
+  const [confirming, setConfirming] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -84,13 +87,21 @@ export default function AiDataGenPanel({ ceshuId, initialTypeId, onClose }: AiDa
       setError(DATA_GEN_ERROR_NO_TYPE)
       return
     }
+    // v0.5 DD-17：超过阈值的批量生成属「大范围云端调用」⇒ 首次点击只进入内联确认态
+    // （交互沿用项目既有做法，同 `ClearAllPanel` / `BatchEditPanel`，不自造弹窗）
+    if (isBulkLlmCall({ count }) && !confirming) {
+      setConfirming(true)
+      return
+    }
+    setConfirming(false)
     setBusy(true)
     try {
       const generated = await window.mbApi.ceshu.aiGenerateData({
         id: ceshuId,
         dataTypes: checkedTypeIds,
         count,
-        instruction: instruction.trim()
+        instruction: instruction.trim(),
+        confirmed: true
       })
       setResult(generated)
       setCheckedItems(
@@ -230,6 +241,30 @@ export default function AiDataGenPanel({ ceshuId, initialTypeId, onClose }: AiDa
         >
           {busy ? '生成中…' : '生成候选'}
         </button>
+        {confirming && (
+          <div className="form-row" data-testid="datagen-confirm">
+            <span className="form-label">
+              将调用云端模型生成 {count} 条候选（超过 {LLM_BULK_COUNT_THRESHOLD} 条），token 消耗较高，确认生成？
+            </span>
+            <button
+              type="button"
+              className="btn primary"
+              data-testid="datagen-confirm-yes"
+              disabled={busy}
+              onClick={() => void handleGenerate()}
+            >
+              确认生成
+            </button>
+            <button
+              type="button"
+              className="btn"
+              data-testid="datagen-confirm-no"
+              onClick={() => setConfirming(false)}
+            >
+              取消
+            </button>
+          </div>
+        )}
       </div>
 
       {!result ? (

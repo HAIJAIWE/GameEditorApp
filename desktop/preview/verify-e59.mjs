@@ -1,0 +1,179 @@
+/*
+ * E59 渲染层交互 · 运行时验证（Playwright chromium/Edge + 预览服务器 + 忠实 mbApi 桩）。
+ *
+ * 证明目标（逐条给断言输出）—— v0.5 的 DD-17「创作面的确认门」：
+ *   T1 批量生成 > 阈值（12 条）：首次点「生成候选」**不发起调用**，出现内联确认态
+ *      （`datagen-confirm`），且提示文案带出条数与阈值；
+ *   T2 点「取消」⇒ 确认态消失、回到可再次点击的状态（不是死路）；
+ *   T3 批量 ≤ 阈值（5 条）：**不出现**确认态（常规操作不该被拦），直接走生成路径；
+ *   T4 整篇生成面板：填描述后首次点「开始生成」⇒ 出现内联确认态（`ai-full-confirm`），
+ *      再次点击（确认）才真正发起。
+ *
+ * 背景：策划书/数据的 AI 能力走的是**渲染层直连**通路（`window.mbApi.ceshu.*` 53 处 /
+ * `data.*` 42 处），agent 通路只服务对话面（`window.mbApi.agent` 仅 1 处）
+ * ⇒ `TOOL_RISK_MAP` 与 `approvalBroker` 对它们不生效。DD-17 让两条通路共用同一口径，
+ * 判定抽成纯函数 `shared/agent/protocol.ts::llmConfirmReason`（判定与文案同源）。
+ *
+ * 运行：先 `npm run build`，再 `node preview/verify-e59.mjs`（脚本自带服务器）。
+ * 端口：5202（与 serve-e57 的 5200 / verify-e58 的 5201 隔离，复用同一套桩链）。
+ */
+import { chromium } from 'playwright'
+import { spawn } from 'node:child_process'
+import { mkdirSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { setTimeout as delay } from 'node:timers/promises'
+
+const EDGE = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'
+const PORT = 5202
+const BASE = `http://127.0.0.1:${PORT}/`
+const HERE = import.meta.dirname
+const SHOTS = join(HERE, 'shots')
+mkdirSync(SHOTS, { recursive: true })
+
+const SEL = {
+  home: '[data-testid="ceshu-home-panel"]',
+  open: '[data-testid="home-card-open"]',
+  datagenEntry: '[data-testid="ceshu-ai-datagen"]',
+  datagenTypes: '[data-testid="datagen-types"]',
+  datagenType: '[data-testid="datagen-type"]',
+  datagenCount: '[data-testid="datagen-count"]',
+  datagenGenerate: '[data-testid="datagen-generate"]',
+  datagenConfirm: '[data-testid="datagen-confirm"]',
+  datagenConfirmNo: '[data-testid="datagen-confirm-no"]',
+  datagenConfirmYes: '[data-testid="datagen-confirm-yes"]',
+  datagenError: '[data-testid="datagen-error"]',
+  fullEntry: '[data-testid="ceshu-ai-full"]',
+  fullDesc: '[data-testid="ai-full-desc"]',
+  fullStart: '[data-testid="ai-full-start"]',
+  fullConfirm: '[data-testid="ai-full-confirm"]'
+}
+
+const results = []
+function check(name, cond, detail) {
+  const pass = !!cond
+  results.push({ name, pass, detail: detail ?? '' })
+  console.log(`${pass ? 'PASS' : 'FAIL'} | ${name}${detail !== undefined ? `  :: ${detail}` : ''}`)
+}
+
+/** 与 verify-e51/e57 同一份种子契约（`window.__E51_SEED`） */
+const SEED = {
+  title: '验证用策划书',
+  systems: { skills: { enabled: true, name: '技能系统', data_type: 'skill', config: {} } },
+  data: { skill: [{ id: 'SKILL000', data: { name: '火球术' } }] }
+}
+
+const server = spawn(process.execPath, [join(HERE, 'serve-e57.mjs'), String(PORT)], { stdio: 'inherit' })
+await delay(700)
+
+const browser = await chromium.launch({ executablePath: EDGE, args: ['--no-sandbox', '--disable-gpu'] })
+
+async function runCase(tag, fn, viewport = { width: 1440, height: 1000 }) {
+  const ctx = await browser.newContext({ viewport })
+  const page = await ctx.newPage()
+  const errs = []
+  page.on('pageerror', (e) => errs.push('pageerror: ' + e.message))
+  page.on('console', (m) => {
+    if (m.type() === 'error') errs.push('console: ' + m.text())
+  })
+  await page.addInitScript((s) => {
+    window.__E51_SEED = s
+  }, SEED)
+  try {
+    await page.goto(BASE, { waitUntil: 'domcontentloaded' })
+    await page.waitForSelector(SEL.home, { timeout: 15000 })
+    await fn(page)
+  } catch (e) {
+    check(`${tag} · 未抛异常`, false, String((e && e.message) || e))
+  } finally {
+    console.log(`   [${tag}] 页面错误: ${errs.length ? errs.join(' | ') : '(none)'}`)
+    await ctx.close()
+  }
+}
+
+/** 从首页打开策划书 */
+async function openCeshu(page) {
+  await page.click(SEL.open)
+  await page.waitForSelector(SEL.datagenEntry, { timeout: 15000 })
+}
+
+try {
+  // ================= T1 批量 > 阈值 ⇒ 出现确认态，且不发起调用 =================
+  await runCase('T1', async (page) => {
+    await openCeshu(page)
+    await page.click(SEL.datagenEntry)
+    await page.waitForSelector(SEL.datagenTypes, { timeout: 8000 })
+    // 勾一个类型（否则会因「未选类型」提前返回，测不到确认门）
+    await page.locator(SEL.datagenType).first().check()
+    await page.locator(SEL.datagenCount).fill('12')
+    await page.click(SEL.datagenGenerate)
+    await page.waitForSelector(SEL.datagenConfirm, { timeout: 5000 })
+    const text = await page.locator(SEL.datagenConfirm).textContent()
+    check('T1 批量 12 条 ⇒ 出现内联确认态（datagen-confirm）', true)
+    check('T1 提示文案带出条数', String(text).includes('12'), String(text).trim())
+    check('T1 提示文案带出阈值 10', String(text).includes('10'), String(text).trim())
+    check('T1 提示说明是云端模型调用', String(text).includes('云端模型'), String(text).trim())
+    // 关键：没有真的去调 LLM（否则会出「未检测到本地模型」之类的错误）
+    const err = await page.locator(SEL.datagenError).count()
+    check('T1 首次点击**没有**发起 LLM 调用（无错误横幅）', err === 0, `error节点=${err}`)
+    await page.screenshot({ path: join(SHOTS, 'e59-t1-datagen-confirm.png') })
+  })
+
+  // ================= T2 取消 ⇒ 回到可再点击状态（不是死路） =================
+  await runCase('T2', async (page) => {
+    await openCeshu(page)
+    await page.click(SEL.datagenEntry)
+    await page.waitForSelector(SEL.datagenTypes, { timeout: 8000 })
+    await page.locator(SEL.datagenType).first().check()
+    await page.locator(SEL.datagenCount).fill('12')
+    await page.click(SEL.datagenGenerate)
+    await page.waitForSelector(SEL.datagenConfirm, { timeout: 5000 })
+    await page.click(SEL.datagenConfirmNo)
+    await page.waitForFunction(
+      (sel) => document.querySelectorAll(sel).length === 0,
+      SEL.datagenConfirm,
+      { timeout: 5000 }
+    )
+    check('T2 点「取消」⇒ 确认态消失', true)
+    // 取消后按钮仍在、可再来一次
+    check('T2 「生成候选」按钮仍在（不是死路）', (await page.locator(SEL.datagenGenerate).count()) === 1)
+  })
+
+  // ================= T3 ≤ 阈值 ⇒ 不该被拦 =================
+  await runCase('T3', async (page) => {
+    await openCeshu(page)
+    await page.click(SEL.datagenEntry)
+    await page.waitForSelector(SEL.datagenTypes, { timeout: 8000 })
+    await page.locator(SEL.datagenType).first().check()
+    await page.locator(SEL.datagenCount).fill('5')
+    await page.click(SEL.datagenGenerate)
+    await delay(1200) // 给生成路径一点时间（会去调 LLM 并失败，但重点是"没被拦"）
+    const confirm = await page.locator(SEL.datagenConfirm).count()
+    check('T3 批量 5 条（≤ 阈值）⇒ **不出现**确认态', confirm === 0, `confirm节点=${confirm}`)
+  })
+
+  // ================= T4 整篇生成面板的确认态 =================
+  await runCase('T4', async (page) => {
+    await openCeshu(page)
+    await page.click(SEL.fullEntry)
+    await page.waitForSelector(SEL.fullDesc, { timeout: 8000 })
+    await page.locator(SEL.fullDesc).fill('一款以东方幻想为背景的回合制策略游戏')
+    await page.click(SEL.fullStart)
+    await page.waitForSelector(SEL.fullConfirm, { timeout: 5000 })
+    const text = await page.locator(SEL.fullConfirm).textContent()
+    check('T4 整篇生成首次点击 ⇒ 出现内联确认态（ai-full-confirm）', true)
+    check('T4 提示说明是连续多次云端调用', String(text).includes('连续调用'), String(text).trim())
+    check('T4 提示带出章节次数', /\d+\s*次/.test(String(text)), String(text).trim())
+    await page.screenshot({ path: join(SHOTS, 'e59-t4-full-confirm.png') })
+  })
+} finally {
+  await browser.close().catch(() => undefined)
+  server.kill()
+}
+
+const passed = results.filter((r) => r.pass).length
+const failed = results.filter((r) => !r.pass)
+console.log(`\n===== E59 渲染验证汇总: ${passed}/${results.length} 通过 =====`)
+if (failed.length) console.log('未通过:\n' + failed.map((f) => `  - ${f.name} :: ${f.detail}`).join('\n'))
+writeFileSync(join(SHOTS, 'e59-report.json'), JSON.stringify({ passed, total: results.length, results }, null, 2), 'utf-8')
+console.log('报告: preview/shots/e59-report.json')
+process.exit(failed.length ? 1 : 0)
