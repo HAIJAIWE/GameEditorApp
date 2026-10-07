@@ -4194,3 +4194,219 @@ button.ref-row:hover {
     animation: none;
   }
 }
+
+/* ================= 快速入门面板（对齐 Python ui/widgets/home_widget.py） ================= */
+
+.onboarding .editor-title.onboarding-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: normal;
+}
+
+.onboarding-collapse,
+.onboarding-dismiss {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: calc(13px * var(--ui-font-scale) * 1.1);
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: var(--radius);
+}
+
+.onboarding-collapse:hover,
+.onboarding-dismiss:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.onboarding-heading {
+  font-weight: 700;
+}
+
+.onboarding-progress {
+  color: var(--text-muted);
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
+  font-weight: 400;
+}
+
+.onboarding-dismiss {
+  margin-left: auto;
+}
+
+.onboarding-error {
+  color: #dc2626;
+}
+
+.onboarding-steps,
+.onboarding-quick,
+.onboarding-stats {
+  display: grid;
+  gap: 12px;
+}
+
+/* 步骤卡 3 列（与 TS 侧 STEPS_PER_ROW 一致） */
+.onboarding-steps {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.onboarding-step {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+}
+
+.onboarding-step--done {
+  opacity: 0.65;
+}
+
+.onboarding-step-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.onboarding-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  background: var(--accent);
+  color: #fff;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.onboarding-badge--done {
+  background: var(--text-muted);
+}
+
+.onboarding-step-icon {
+  font-size: calc(13px * var(--ui-font-scale) * 18/13);
+  line-height: 1;
+}
+
+.onboarding-step-title {
+  font-weight: 700;
+}
+
+.onboarding-step-desc {
+  color: var(--text-muted);
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
+}
+
+.onboarding-step-start {
+  align-self: flex-start;
+}
+
+.onboarding-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.onboarding-section-title {
+  font-size: calc(13px * var(--ui-font-scale) * 16/13);
+  font-weight: 700;
+}
+
+.onboarding-subtitle {
+  margin-top: -4px;
+}
+
+/* 快捷操作卡 3 列 */
+.onboarding-quick {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.onboarding-quick-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+}
+
+.onboarding-quick-card:hover {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+
+.onboarding-quick-icon {
+  font-size: calc(13px * var(--ui-font-scale) * 20/13);
+  line-height: 1.2;
+}
+
+.onboarding-quick-label {
+  font-weight: 700;
+}
+
+.onboarding-quick-desc {
+  color: var(--text-muted);
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
+}
+
+.onboarding-stats-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.onboarding-link {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--accent);
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
+  padding: 2px 6px;
+  border-radius: var(--radius);
+}
+
+.onboarding-link:hover {
+  background: var(--accent-soft);
+}
+
+/* 数据概览卡 4 列（与 TS 侧 STATS_PER_ROW 一致） */
+.onboarding-stats {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.onboarding-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+}
+
+.onboarding-stat-count {
+  font-size: calc(13px * var(--ui-font-scale) * 20/13);
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.onboarding-stat-name {
+  color: var(--text-muted);
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
+}

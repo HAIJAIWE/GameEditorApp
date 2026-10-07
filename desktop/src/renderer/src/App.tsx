@@ -28,6 +28,7 @@ import CleanupImagesPanel from './components/CleanupImagesPanel'
 import KeywordTemplatePanel from './components/KeywordTemplatePanel'
 import AgentEditorPanel from './components/AgentEditorPanel'
 import AttributeChartPanel from './components/AttributeChartPanel'
+import OnboardingPanel from './components/OnboardingPanel'
 import SettingsPanel from './components/SettingsPanel'
 import StatisticsPanel from './components/StatisticsPanel'
 import ToastHost from './components/ToastHost'
@@ -70,6 +71,7 @@ type OverlayPanel =
   | 'keywordTemplates'
   | 'agentEditor'
   | 'attributeChart'
+  | 'onboarding'
 
 /** 浮层头部标题（与菜单项一致，便于用户确认当前打开的是哪个能力） */
 const PANEL_TITLES: Record<OverlayPanel, string> = {
@@ -91,7 +93,8 @@ const PANEL_TITLES: Record<OverlayPanel, string> = {
   cleanupImages: '清理未使用图片',
   keywordTemplates: '关键词模板配置',
   agentEditor: '智能体可用能力',
-  attributeChart: '属性分布图表'
+  attributeChart: '属性分布图表',
+  onboarding: '快速入门'
 }
 
 /**
@@ -150,6 +153,11 @@ export default function App() {
   const [refTarget, setRefTarget] = useState<ReferenceTarget | null>(null)
   /** 「字段结构编辑器」打开时要预选的类型；由条目表单的「更多 ▸」回填，菜单入口保持默认（第一个类型） */
   const [typeEditorTarget, setTypeEditorTarget] = useState<string | null>(null)
+  /**
+   * 「快速创建向导」的目标类型：由「快速入门」的快捷操作卡回填（点「创建角色」→ `role`）。
+   * 菜单入口保持默认（null → 第一个类型）；每次从菜单打开都会清掉，避免上次的选择粘住。
+   */
+  const [quickCreateTarget, setQuickCreateTarget] = useState<string | null>(null)
   /**
    * 待投递给右侧 AI 面板的一条播种消息（由策划书首页的 AI 入口卡触发）。
    * App 只负责「组装引导前缀 + 递增 nonce」，真正的发送由 `DigitalPanel` 消费 `seed` 完成
@@ -364,6 +372,67 @@ export default function App() {
       return
     }
     setPanel(kind)
+  }
+
+  /**
+   * 「快速入门」面板派发的动作 → App 级导航（对齐 Python `HomeWidget.action_triggered`
+   * 到各主窗口 handler 的映射）。
+   *
+   * 有意省略 Python 数据概览头的「⚙ 管理显示类型」：它唯一的消费者 `TypeVisibilityPanel`
+   * 在 TS 已随侧栏刻意下线（见下方 renderPanel 注释），PyQt 亦无等价物 —— 宁缺勿错。
+   * 「查看关联」走既有 `references` 入口的守卫：无定位目标时如实引导到「高级搜索」。
+   */
+  const handleOnboardingAction = (actionId: string, dataType: string): void => {
+    switch (actionId) {
+      case 'create_role':
+      case 'create_monster':
+      case 'create_skill':
+      case 'create_equip':
+        setQuickCreateTarget(dataType)
+        setPanel('quickCreate')
+        return
+      case 'batch_create':
+        // 复用 openPanel 对「无类型」的同一 guard 与文案（不另造提示）
+        if (firstType === null) {
+          setNotice('当前没有可用的数据类型（schema 为空），请先在「字段结构编辑器」中新增类型')
+        } else {
+          setPanel('batch')
+        }
+        return
+      case 'view_relations':
+        openPanel('references')
+        return
+      case 'onboarding_library':
+        setNotice('在界面右上角「当前库」处可切换或新建游戏库')
+        return
+      case 'onboarding_types':
+        setTypeEditorTarget(null)
+        setPanel('typeEditor')
+        return
+      case 'onboarding_data':
+        if (activeCeshuId === null) {
+          setNotice('请先打开一本策划书…')
+          setCeshuHomeVisible(true)
+          setPanel(null)
+        } else {
+          // 对齐 Python `_goto_data_design`：离开浮层、进入策划书编辑器的数据设计区
+          setPanel(null)
+          setCeshuHomeVisible(false)
+        }
+        return
+      case 'onboarding_ceshu':
+        setPanel(null)
+        setCeshuHomeVisible(true)
+        return
+      case 'onboarding_ai':
+        setNotice('AI 助手在界面右侧常驻栏，直接输入即可')
+        return
+      case 'stats':
+        openPanel('stats')
+        return
+      default:
+        return
+    }
   }
 
   /**
@@ -602,11 +671,13 @@ export default function App() {
         return <AgentEditorPanel />
       case 'attributeChart':
         return <AttributeChartPanel types={types} />
+      case 'onboarding':
+        return <OnboardingPanel types={types} onAction={handleOnboardingAction} onClose={() => setPanel(null)} />
       case 'quickCreate':
         return (
           <QuickCreatePanel
-            key={`${firstType ?? ''}:quick`}
-            type={firstType ?? ''}
+            key={`${quickCreateTarget ?? firstType ?? ''}:quick`}
+            type={quickCreateTarget ?? firstType ?? ''}
             types={types}
             onCreated={handleQuickCreated}
             onClose={() => setPanel(null)}
@@ -666,7 +737,11 @@ export default function App() {
           backup: () => openPanel('backup'),
           undo: () => void performUndo(),
           redo: () => void performRedo(),
-          quickCreate: () => openPanel('quickCreate'),
+          quickCreate: () => {
+            // 菜单入口：清掉「快速入门」快捷卡可能留下的目标类型，回到默认（第一个类型）
+            setQuickCreateTarget(null)
+            openPanel('quickCreate')
+          },
           references: () => openPanel('references'),
           gameDataPreview: () => openPanel('gameDataPreview'),
           dataDiff: () => openPanel('dataDiff'),
@@ -687,6 +762,7 @@ export default function App() {
           keywordTemplates: () => openPanel('keywordTemplates'),
           agentEditor: () => openPanel('agentEditor'),
           attributeChart: () => openPanel('attributeChart'),
+          onboarding: () => openPanel('onboarding'),
           aiPanel: () => setNotice('AI 助手已在右侧常驻'),
           notImplemented,
           quit: handleQuit

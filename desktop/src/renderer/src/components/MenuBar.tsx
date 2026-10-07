@@ -86,6 +86,8 @@ export interface MenuActions {
   shortcuts: () => void
   /** 「帮助 → 关于墨白编辑器」 */
   about: () => void
+  /** 「帮助 → 快速入门」：打开引导式主页浮层（对齐 PyQt `HomeWidget`） */
+  onboarding: () => void
   notImplemented: (label: string) => void
   quit: () => void
 }
@@ -244,7 +246,7 @@ export default function MenuBar({ canUndo, canRedo, actions }: MenuBarProps) {
     ],
     [{ type: 'action', label: '打开设置...', action: 'settings', testid: 'menuitem-settings-open' }],
     [
-      { type: 'action', label: '快速入门', action: 'notImplemented' },
+      { type: 'action', label: '快速入门', action: 'onboarding', testid: 'menuitem-help-onboarding' },
       { type: 'action', label: '快捷键参考', action: 'shortcuts', testid: 'menuitem-help-shortcuts' },
       { type: 'separator' },
       { type: 'action', label: '关于墨白编辑器', action: 'about', testid: 'menuitem-help-about' }

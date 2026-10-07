@@ -56,11 +56,11 @@
 > | 判定 | 文件 | 行数 | 占比 |
 > |---|---|---|---|
 > | ✅ 已迁 | 95 | 35,125 | 38.5% |
-> | ◐ 部分已迁 | 61 | 22,985 | 25.2% |
+> | ◐ 部分已迁 | 62 | 23,589 | 25.9% |
 > | ⛔ 有意不迁（决策，非欠债） | 92 | 19,858 | 21.8% |
-> | ⚠️ **未迁（整块没做）** | **51** | **13,196** | **14.5%** |
+> | ⚠️ **未迁（整块没做）** | **50** | **12,592** | **13.8%** |
 >
-> 对账 PASS：`95+61+92+51 = 299` 文件、`35125+22985+19858+13196 = 91,164` 行。
+> 对账 PASS：`95+62+92+50 = 299` 文件、`35125+23589+19858+12592 = 91,164` 行。
 >
 > **结论：真实剩余 ≈ 2.4–2.8 万行（26–31%）** —— 而不是早前口头估算的「3.5–4.5k 行（4–5%）」。那句估算**口径过窄**（把 `ui/widgets`/`ui/dialogs`/`features` 三个混合态域当成了基本迁完）且未做文件级核实，**已被本审计推翻**。
 > 三个最意外的数字：**① `core/agent`（最大域 24,670 行）只有 1,689 行是完整已迁**（A 档做的是核心闭环，不是整个 Agent 引擎）；**② `ui/` 顶层+主题 9,883 行里仅 917 行完整已迁**；**③ `features` 9 文件完整已迁为 0**。
@@ -531,6 +531,12 @@
 > **做法**：新增 `components/digital/ChatMarkdown.tsx`（memo 组件），`react-markdown` + `remark-gfm`（tables/sane_lists）+ `remark-breaks`（nl2br）+ `rehype-highlight`（codehilite/fenced_code，highlight.js 语法高亮）渲染 `state.messages` 里 `user`/`assistant` 气泡；不动 `state.streaming` 流式气泡（保留纯文本 `pre-wrap`，避免不完整代码围栏闪烁）。
 > **刻意范围收窄**：Python 的 `system`/`error`/`plan` 气泡类型在 TS 状态模型里不存在（`panel.ts` 的 `DigitalMessage.role` 只有 `user`/`assistant`，其余走独立 `error` 字段 / 步骤 UI），故只迁这两类气泡，不新增消息类型；Python 的 `try/except` 兜底在 react-markdown 下不需要（产物是 React 元素、无 XSS、对畸形输入容错），不加错误边界。
 > **验证**：双端 tsc 0 / eslint 0 / vitest（含新增 `chatMarkdown.test.ts`：粗体斜体 / 围栏代码 hljs / GFM 表格 / 空文本 null / 单换行 <br>）/ `electron-vite build` OK；docsLedger 守卫（audit 数字已同步：◐ 61/22,985、⚠️ 51/13,196，总 299/91,164）。
+
+> ✅ **E48（2026-10-07）：迁移 `home_widget.py` 引导式主页（5 步引导 + 6 快捷操作卡 + 数据概览卡）至 `OnboardingPanel.tsx`，接上菜单 帮助 → 快速入门。**
+> **动因**：`ui/widgets/home_widget.py`（604 行）是 PyQt 的引导式主页 `HomeWidget`：`OnboardingGuide`（5 步引导 + 折叠/关闭/完成度持久化）+ `QUICK_ACTIONS`（6 张快捷操作卡）+ 数据概览卡。TS 侧菜单「帮助 → 快速入门」此前落在 `notImplemented` 占位（`MenuBar.tsx:247`），整块未迁。
+> **做法**：新增纯逻辑 `shared/onboarding.ts`（`ONBOARDING_STEPS` / `QUICK_ACTIONS` 常量逐项照搬含 emoji；`load/save/reset` 经 `shared/settingsStore` 落 `mb.onboarding`，逐字段校验容错）+ 渲染组件 `components/OnboardingPanel.tsx`（引导区折叠/关闭/逐步完成 + 快捷操作卡 + 数据概览卡，计数取自 `countByType`）；`App.tsx` 加 `onboarding` 浮层键、`PANEL_TITLES`、`renderPanel` 分支、`quickCreateTarget` 状态与 `handleOnboardingAction` 动作映射（快捷操作卡 → 快速创建/批量创建/关联预览/字段编辑器/策划书/数据设计；5 步全成 → `setTimeout(500ms)` 自动折叠，对齐 Python `QTimer.singleShot`）；`MenuBar.tsx` 把「快速入门」由 `notImplemented` 接到 `onboarding`（`menuitem-help-onboarding`）。
+> **刻意范围收窄（宁缺勿错）**：不迁数据概览的「⚙ 管理显示类型」按钮 —— 其唯一消费者 `TypeVisibilityPanel` 在 TS 已随侧栏刻意下线（`App.tsx` 注释明示），PyQt 亦无等价物，概览区改为路由到既有「游戏数据统计」；不接线按 `visible_types` 过滤；`view_relations` 走既有 `references` 入口守卫，无定位目标时如实引导到「高级搜索」而非打开空面板。
+> **验证**：双端 tsc 0 / eslint 0 / vitest（含新增 `onboarding.test.ts`：默认/往返/容错/进度/完成/不可变/重置 + 常量 id）/ `electron-vite build` OK；docsLedger 守卫（audit 数字已同步：◐ 62/23,589、⚠️ 50/12,592，总 299/91,164）。
 
 > 🔴 **E42（2026-10-07）：主理人裁决 —— `core/agent` 停止 1:1 迁移，改为「AI 框架重写」**。
 > **主理人原话**：「**ai 那边就不搞了。框架可能要重写**」。

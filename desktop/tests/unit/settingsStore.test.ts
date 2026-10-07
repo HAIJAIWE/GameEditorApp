@@ -225,7 +225,9 @@ describe('settingsStore：已登记键清单', () => {
       // AI 关键词模板（逻辑在 shared/keywordTemplates.ts）
       keywordTemplates: 'mb.keywordTemplates',
       // LLM 服务商配置（逻辑在 shared/llmConfig.ts；apiKey 走 safeStorage 不在此）
-      llmConfig: 'mb.llmConfig'
+      llmConfig: 'mb.llmConfig',
+      // 「快速入门」引导区状态（逻辑在 shared/onboarding.ts）
+      onboarding: 'mb.onboarding'
     })
   })
 

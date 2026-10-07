@@ -241,7 +241,9 @@ export const SETTINGS_KEYS = {
    */
   keywordTemplates: 'mb.keywordTemplates',
   /** LLM 服务商配置（不含 apiKey，Key 走 safeStorage，见 shared/llmConfig.ts） */
-  llmConfig: 'mb.llmConfig'
+  llmConfig: 'mb.llmConfig',
+  /** 「快速入门」引导区状态（折叠/关闭/完成度，见 shared/onboarding.ts） */
+  onboarding: 'mb.onboarding'
 } as const
 
 export type SettingsKey = (typeof SETTINGS_KEYS)[keyof typeof SETTINGS_KEYS]

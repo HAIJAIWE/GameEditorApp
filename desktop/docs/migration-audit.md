@@ -22,7 +22,7 @@
 > **③ 非 AI 域**仍然真实存在的缺口**（10-07 实测确认，均非 AI 框架部分）：
 > - **`ui/ceshu/preview_panel.py` 222 行** —— 右侧「数据引用」实时预览：`@data[role.atk]` 引用解析
 >   + 按 `enabled_editors` 动态渲染编辑器。实测 TS 侧 `@data[` **零命中** ⇒ **确缺**。
-> - **`ui/widgets/home_widget.py` 604 行** —— 5 步新手引导 + `QUICK_ACTIONS` + 数据概览卡。TS 无（E40 已更正 roadmap 的错误依据）。
+> - **`ui/widgets/home_widget.py` 604 行** —— 5 步新手引导 + `QUICK_ACTIONS` + 数据概览卡。**E48 已迁** `OnboardingPanel.tsx`（菜单 帮助→快速入门）；刻意不迁数据概览的「⚙ 管理显示类型」按钮与 `visible_types` 过滤。
 > - **`components/image_loader.py` 324 行** —— `LazyImageLabel` 异步加载缓存。**E46 已补** `LazyImage`（按已保存绝对路径经 `images:readByPath` 回读 data URL 回显预览，含 `loading="lazy"`）；未对齐 PIL 位图重采样（刻意规避过度开发）。
 > - **`components/toast.py` 98 行** —— 无 Toast 组件，TS 只有内联 `notice-banner`。
 > - **`ui/chat_renderer.py` 172 行** —— markdown→HTML + 代码高亮。实测 TS **无 markdown 渲染库**。
@@ -63,11 +63,11 @@
 | 判定 | 文件 | 行数 | 占比 |
 |---|---|---|---|
 | ✅ 已迁 | 95 | 35,125 | 38.5% |
-| ◐ 部分已迁 | 61 | 22,985 | 25.2% |
+| ◐ 部分已迁 | 62 | 23,589 | 25.9% |
 | ⛔ 有意不迁 | 92 | 19,858 | 21.8% |
-| ⚠️ 未迁（整块没做） | 51 | 13,196 | 14.5% |
+| ⚠️ 未迁（整块没做） | 50 | 12,592 | 13.8% |
 
-**对账（必须相等，已 PASS）**：`95+61+92+51 = 299` ✓、`35125+22985+19858+13196 = 91,164` ✓
+**对账（必须相等，已 PASS）**：`95+62+92+50 = 299` ✓、`35125+23589+19858+12592 = 91,164` ✓
 
 ### 真实剩余 ≈ 2.4–2.8 万行（26–31%）
 
@@ -225,7 +225,7 @@
 | dynamic_form.py | 839 | ◐75% | `formSections.ts`+`ItemForm.tsx`+`FormSectionCard.tsx`；缺 image/dialog/formula_builder/image_tags/AI 按钮等专用控件 |
 | multi_select.py | 258 | ✅ | `shared/refTable.ts`+`RefTableEditor.tsx`（refType 解析→单数 id + 名称/等级 + 内联选库；E17） |
 | task_row.py | 317 | ◐40% | `panel.ts::summarizeToolTasks` 派生扁平列表；缺可展开任务卡/状态徽章/完成删除动作 |
-| home_widget.py | 604 | ⚠️ | 整块未迁：`OnboardingGuide`（5 步引导+持久化）、`QUICK_ACTIONS`、数据概览卡 |
+| home_widget.py | 604 | ◐ | E48 已迁 5 步引导（含完成度持久化）+ 6 张快捷操作卡 + 数据概览卡 至 `OnboardingPanel.tsx`（菜单 帮助→快速入门）；刻意不迁：数据概览的「⚙ 管理显示类型」按钮（TypeVisibilityPanel 在 TS 已刻意下线）、按 visible_types 过滤（TS 不接线） |
 | team_dialog.py | 818 | ⚠️ | 整块未迁：团队 CRUD/成员工具覆盖/自定义提示词/智能体定义管理 |
 | __init__.py | 22 | ⛔ | 包 re-export |
 | agent_monitor.py | 131 | ⛔ | 死代码：`AgentMonitorPanel` 无 import/实例化 |
