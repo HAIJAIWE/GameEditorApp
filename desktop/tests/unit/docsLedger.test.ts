@@ -144,7 +144,7 @@ describe('文档守护：迁移台账不得被静默截断', () => {
 
   it('§2 的审计结论块在场（真实剩余量的唯一入口）', () => {
     expect(roadmap).toContain('真实剩余量已被**文件级审计**确定')
-    expect(roadmap).toContain('真实剩余 ≈ 1.1–1.5 万行（12–16%）')
+    expect(roadmap).toContain('真实剩余 ≈ 1.0–1.4 万行（11–15%）')
   })
 })
 
