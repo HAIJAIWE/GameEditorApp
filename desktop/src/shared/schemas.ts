@@ -517,6 +517,30 @@ export const ceshuScoreExportInputSchema = z.object({
   content: z.string().min(1)
 })
 
+/** 校验报告导出（渲染层生成 Markdown，主进程原子写盘） */
+export const ceshuValidationExportInputSchema = z.object({
+  path: z.string().min(1),
+  content: z.string().min(1)
+})
+
+/** 变更日志导出（渲染层生成 MD/HTML/Text，主进程原子写盘） */
+export const ceshuChangelogExportInputSchema = z.object({
+  path: z.string().min(1),
+  content: z.string().min(1)
+})
+
+/**
+ * 报告文件保存对话框（按扩展名/显示名动态生成过滤器）。
+ * 用于「导出校验报告 / 变更日志」这类**非策划书导出格式枚举**内的文件
+ * （`CESHU_EXPORT_FORMATS` 只有 markdown/html/docx/pptx/pdf/excel，不含纯文本）。
+ */
+export const reportFileDialogInputSchema = z.object({
+  defaultName: z.string().max(200),
+  /** 含点扩展名，如 `.md` / `.html` / `.txt` */
+  extension: z.string().min(2).max(10),
+  label: z.string().min(1).max(50)
+})
+
 /* ---- 章节笔记 ---- */
 
 export const notesListInputSchema = z.object({
@@ -658,6 +682,9 @@ export type CeshuChecklistExportInput = z.infer<typeof ceshuChecklistExportInput
 export type CeshuDiffInput = z.infer<typeof ceshuDiffInputSchema>
 export type CeshuDiffExportInput = z.infer<typeof ceshuDiffExportInputSchema>
 export type CeshuScoreExportInput = z.infer<typeof ceshuScoreExportInputSchema>
+export type CeshuValidationExportInput = z.infer<typeof ceshuValidationExportInputSchema>
+export type CeshuChangelogExportInput = z.infer<typeof ceshuChangelogExportInputSchema>
+export type ReportFileDialogInput = z.infer<typeof reportFileDialogInputSchema>
 export type NotesListInput = z.infer<typeof notesListInputSchema>
 export type NotesAddInput = z.infer<typeof notesAddInputSchema>
 export type NotesUpdateInput = z.infer<typeof notesUpdateInputSchema>

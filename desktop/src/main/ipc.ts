@@ -36,11 +36,14 @@ import {
   ceshuSyncDataInputSchema,
   ceshuChecklistExportInputSchema,
   ceshuChooseExportFileInputSchema,
+  reportFileDialogInputSchema,
   ceshuCreateInputSchema,
   ceshuDeriveInputSchema,
   ceshuDiffExportInputSchema,
   ceshuDiffInputSchema,
   ceshuScoreExportInputSchema,
+  ceshuValidationExportInputSchema,
+  ceshuChangelogExportInputSchema,
   ceshuDataGenInputSchema,
   ceshuExportInputSchema,
   agentApprovalResponseInputSchema,
@@ -872,6 +875,12 @@ export function registerIpcHandlers({
   handle('ceshu:exportScoreReport', ceshuScoreExportInputSchema, (req) =>
     exportTextReportFile(req.path, req.content, '评分报告')
   )
+  handle('ceshu:exportValidationReport', ceshuValidationExportInputSchema, (req) =>
+    exportTextReportFile(req.path, req.content, '校验报告')
+  )
+  handle('ceshu:exportChangelogReport', ceshuChangelogExportInputSchema, (req) =>
+    exportTextReportFile(req.path, req.content, '变更日志')
+  )
   handle('ceshu:notes:list', notesListInputSchema, (req) => ceshuNotesStore.list(req.id, req.chapterKey))
   handle('ceshu:notes:add', notesAddInputSchema, (req) => {
     if (!isChapterKey(req.chapterKey)) {
@@ -935,6 +944,17 @@ export function registerIpcHandlers({
       title: `导出策划书（${CESHU_FORMAT_LABELS[req.format]}）`,
       defaultPath: `${req.defaultName}${extension}`,
       filters: [{ name: CESHU_FORMAT_LABELS[req.format], extensions: [extension.slice(1)] }]
+    }
+    const focused = BrowserWindow.getFocusedWindow()
+    const result = focused ? await dialog.showSaveDialog(focused, options) : await dialog.showSaveDialog(options)
+    return { path: result.canceled || !result.filePath ? null : result.filePath }
+  })
+  handle('dialog:chooseReportFile', reportFileDialogInputSchema, async (req) => {
+    const ext = req.extension.startsWith('.') ? req.extension : `.${req.extension}`
+    const options: SaveDialogOptions = {
+      title: `导出${req.label}`,
+      defaultPath: `${req.defaultName}${ext}`,
+      filters: [{ name: req.label, extensions: [ext.slice(1)] }]
     }
     const focused = BrowserWindow.getFocusedWindow()
     const result = focused ? await dialog.showSaveDialog(focused, options) : await dialog.showSaveDialog(options)

@@ -1,54 +1,26 @@
-E56: ◐ 行文件级复核 —— 58 个「◐部分已迁」逐条做实，落实 E42 的 AI 域口径（◐ 58→22）
+迁移前端尾巴 1/3：导出类 —— 校验报告 Markdown + 变更日志 MD/HTML/Text
 
-动因：E54 统一了数字口径，但「◐ 部分已迁」里混着三类东西 ——
-① 属 E42 裁定「AI 框架重写、不 1:1 迁移」的 AI 域文件（却仍记 ◐）；
-② 能力实测早已存在、只是台账没跟（STALE-DONE）；③ 死代码 / 设计性替换。
-不逐条做实，头部「真实剩余量」就偏保守。
+承接「把前端没迁的 py 都重构为 ts」。本片先做两个纯导出缺口（不依赖 AI）：
 
-做法：§3 全部 56 条 ◐ 行（58 文件）逐条重读 Python 真源 + grep TS 对照物，
-按三条规则改判（主理人 2026-10-07 就 AI 域口径裁定「归入 ⛔」）：
+1. 校验报告导出（Python ui/ceshu/validation_dialog.py::_on_export_md）
+   - 新增 shared/ceshuReports.ts::buildValidationReportMarkdown + categorizeValidationError
+     + VALIDATION_CATEGORY_META（逐行对齐 Python _build_markdown：评分=100-错误数*3、
+     摘要分类计数、问题清单分组、章节完成度表、结论与建议）
+   - CeshuView 校验面板加「导出校验报告」按钮（testid: validate-export）
+2. 变更日志三格式导出（Python ui/ceshu/changelog_dialog.py::_on_export）
+   - buildChangelogMarkdown / buildChangelogText / buildChangelogHtml
+     （逐行对齐 ceshu_changelog.py::Changelog.to_{markdown,text,html}，含 HTML 转义）
+   - CeshuView 变更记录面板加「导出 Markdown / HTML / Text」三按钮
+     （testid: changelog-export-md/html/text，无变更时禁用）
 
-1. E42「AI 框架重写」域 ⇒ ⛔（30 文件 / 9,033 行）
-   - core/agent 全部 23 个 ◐（6,752 行）：brain / brain_prompt / dispatcher /
-     frontend_snapshot / memory(+context/embedder/index/search/store/vector) /
-     models / prompts / safety_guard / semantic_memory / workspace /
-     skills(ceshu_skill[_data|_generate|_review] / common / game_data_skill) / learner
-   - 数字员工与任务面板 7 个（2,281 行）：digital_employee / digital_panel_chat /
-     _input / _tasks / _workspace / collapsible_task_panel / task_row
-   每行依据末尾追加「｜ E56：属 E42「AI 框架重写」域 —— 未迁部分随框架重写、
-   不 1:1 移植，不计迁移欠账（已迁部分为在用资产、保留）」
-2. 能力实测已存在 ⇒ ✅（2 文件）
-   - ui/ceshu/score_report_dialog.py 603（ceshu:exportScoreReport + CeshuView
-     的「导出评分报告」按钮 —— E49 就补了，台账没跟）
-   - ui/shortcuts_dialog.py 107（ShortcutsPanel.tsx + 菜单「帮助 → 快捷键参考」，E37）
-3. 死代码 / 设计性替换 ⇒ ⛔（4 文件）
-   - security/sandbox.py 325（jsSandbox.ts 设计性替换，2 消费者全在 core/agent 域）
-   - core/buff_system.py 129 + core/equipment_system.py 96（使用面已由
-     shared/attrPreview.ts 等价实现，未迁部分 Python 源内无调用点）
-   - ui/tab_manager.py 249（多标签形态被 E28 顶层 IA 重写取代，技术前提消失）
+新增 IPC（各 5 点接线：schemas → ipc → main/ipc → preload → service/api）：
+- ceshu:exportValidationReport  { path, content } → exportTextReportFile(…, '校验报告')
+- ceshu:exportChangelogReport   { path, content } → exportTextReportFile(…, '变更日志')
+- dialog:chooseReportFile       { defaultName, extension, label } → 动态扩展名保存对话框
+  （CESHU_EXPORT_FORMATS 只有 markdown/html/docx/pptx/pdf/excel，不含纯文本，
+   故为报告导出单开一个按扩展名生成过滤器的通用保存通道）
 
-另修 4 处「依据过期、缺口仍在」的行（判定不动、只更正依据）：dynamic_form、
-virtual_list、common/ai_client.py（完成度 15%→40%）、menus.py；并把
-menus/shortcuts_dialog/tab_manager 的捆绑行拆为 3 个独立行（◐ / ✅ / ⛔）。
+单测：tests/unit/ceshuReports.test.ts（8 例：分类判定顺序、评分下限与不合格、
+章节完成度阈值、三格式结构与 HTML 转义、空日志占位）。
 
-数字变化（唯一真源 §3 复算，8 个域锚点 Δ=0/0）：
-- 审计 §1 / §2 与 roadmap §2：
-  ✅ 109/40,116 → 111/40,826；◐ 58/21,503 → 22/10,961；
-  ⛔ 126/29,095 → 160/38,927；⚠️ 6/450 不变；总 299 文件 / 91,164 行不变
-- §1 = §2 = Σ§3 逐格相等（111+22+160+6=299；40826+10961+38927+450=91,164）
-- core/agent 与 core/ceshu 两域 ◐ 清零
-- 真实剩余 1.0–1.4 万行（11–15%）→ 0.5–0.8 万行（6–9%）
-
-同步文档：审计 §1（表 / 对账 / 真实剩余段 / 新增「E56 ◐ 行文件级复核」块）、
-§2（8 域行 + 合计 + 两处注）、顶部横幅 ①、§6 第 1 条、「◐ 复核（E50 更新）」小节；
-roadmap §2 镜像表 + 对账 + 结论行 + E42 块的剩余量口径 + 新增 E56 块。
-
-守卫（tests/unit/docsLedger.test.ts）：REQUIRED_ROADMAP_MARKERS 增
-'E56（2026-10-07）'；§2 结论块断言改为 '真实剩余 ≈ 0.5–0.8 万行（6–9%）'；
-E54「§1↔§2 合计逐格一致」断言的有效性用已知坏版本复验（把 §2 合计 ✅ 改成 110
-⇒ 如实报「§2 合计的「✅ 已迁」与 §1 不一致」），恢复后全绿 8/8。
-
-注意（口径）：core/agent AI 框架重写（97 文件 / 24,670 行 + 数字员工 UI）
-不计入上述迁移欠债，但也不是零工作量，规模待框架设计定案。
-
-验证：eslint 0 / 双端 tsc 0 / vitest 115 文件 1757 用例全绿 / electron-vite build 成功。
+验证：eslint 0 / 双端 tsc 0 / vitest 116 文件 1765 用例全绿（+1 文件 +8 用例）。

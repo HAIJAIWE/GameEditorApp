@@ -162,6 +162,9 @@ export interface MbApi {
     chooseCeshuExportFile(
       req: IpcContract['dialog:chooseCeshuExportFile']['req']
     ): Promise<IpcContract['dialog:chooseCeshuExportFile']['res']>
+    chooseReportFile(
+      req: IpcContract['dialog:chooseReportFile']['req']
+    ): Promise<IpcContract['dialog:chooseReportFile']['res']>
     chooseAttrSystemJsonFile(
       req: IpcContract['dialog:chooseAttrSystemJsonFile']['req']
     ): Promise<IpcContract['dialog:chooseAttrSystemJsonFile']['res']>
@@ -208,6 +211,12 @@ export interface MbApi {
     exportScoreReport(
       req: IpcContract['ceshu:exportScoreReport']['req']
     ): Promise<IpcContract['ceshu:exportScoreReport']['res']>
+    exportValidationReport(
+      req: IpcContract['ceshu:exportValidationReport']['req']
+    ): Promise<IpcContract['ceshu:exportValidationReport']['res']>
+    exportChangelogReport(
+      req: IpcContract['ceshu:exportChangelogReport']['req']
+    ): Promise<IpcContract['ceshu:exportChangelogReport']['res']>
     notes: {
       list(req: IpcContract['ceshu:notes:list']['req']): Promise<IpcContract['ceshu:notes:list']['res']>
       add(req: IpcContract['ceshu:notes:add']['req']): Promise<IpcContract['ceshu:notes:add']['res']>

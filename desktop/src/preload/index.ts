@@ -137,6 +137,7 @@ const api: MbApi = {
     chooseImageSaveDir: () => invoke('dialog:chooseImageSaveDir', undefined),
     chooseImageFile: () => invoke('dialog:chooseImageFile', undefined),
     chooseCeshuExportFile: (req) => invoke('dialog:chooseCeshuExportFile', req),
+    chooseReportFile: (req) => invoke('dialog:chooseReportFile', req),
     chooseAttrSystemJsonFile: (req) => invoke('dialog:chooseAttrSystemJsonFile', req),
     chooseTemplateJsonFile: (req) => invoke('dialog:chooseTemplateJsonFile', req)
   },
@@ -168,6 +169,8 @@ const api: MbApi = {
     diff: (req) => invoke('ceshu:diff', req),
     exportDiffReport: (req) => invoke('ceshu:exportDiffReport', req),
     exportScoreReport: (req) => invoke('ceshu:exportScoreReport', req),
+    exportValidationReport: (req) => invoke('ceshu:exportValidationReport', req),
+    exportChangelogReport: (req) => invoke('ceshu:exportChangelogReport', req),
     notes: {
       list: (req) => invoke('ceshu:notes:list', req),
       add: (req) => invoke('ceshu:notes:add', req),

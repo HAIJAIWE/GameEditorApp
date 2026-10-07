@@ -14,11 +14,14 @@ import type {
   CeshuSyncDataInput,
   CeshuChecklistExportInput,
   CeshuChooseExportFileInput,
+  ReportFileDialogInput,
   CeshuCreateInput,
   CeshuDeriveInput,
   CeshuDiffExportInput,
   CeshuDiffInput,
   CeshuScoreExportInput,
+  CeshuValidationExportInput,
+  CeshuChangelogExportInput,
   CeshuExportInput,
   ClearAllInput,
   FieldTemplateNameInput,
@@ -284,6 +287,8 @@ export interface IpcContract {
   'ceshu:diff': { req: CeshuDiffInput; res: CeshuVersionDiff }
   'ceshu:exportDiffReport': { req: CeshuDiffExportInput; res: { filePath: string } }
   'ceshu:exportScoreReport': { req: CeshuScoreExportInput; res: { filePath: string } }
+  'ceshu:exportValidationReport': { req: CeshuValidationExportInput; res: { filePath: string } }
+  'ceshu:exportChangelogReport': { req: CeshuChangelogExportInput; res: { filePath: string } }
   'ceshu:notes:list': { req: NotesListInput; res: CeshuNote[] }
   'ceshu:notes:add': { req: NotesAddInput; res: CeshuNote }
   'ceshu:notes:update': { req: NotesUpdateInput; res: CeshuNote }
@@ -298,6 +303,7 @@ export interface IpcContract {
   'ceshu:wordStats': { req: { id: string }; res: CeshuWordStatsReport }
   'ceshu:fieldDeps': { req: { id: string }; res: CeshuFieldDepsReport }
   'dialog:chooseCeshuExportFile': { req: CeshuChooseExportFileInput; res: { path: string | null } }
+  'dialog:chooseReportFile': { req: ReportFileDialogInput; res: { path: string | null } }
 
   // 数据备份（整个活跃库的全量快照，存 <库>/backups/）。恢复/删除是**破坏性**操作：
   // req.confirm 必须为 true，主进程会再校验一次（渲染层确认可被绕过）。

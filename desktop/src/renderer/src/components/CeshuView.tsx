@@ -18,6 +18,12 @@ import {
   resolveDocGameStyle
 } from '../../../shared/ceshuModel'
 import type { CeshuChangeItem, CeshuChangelog } from '../../../shared/ceshuDiff'
+import {
+  buildChangelogHtml,
+  buildChangelogMarkdown,
+  buildChangelogText,
+  buildValidationReportMarkdown
+} from '../../../shared/ceshuReports'
 import { buildScoreReportMarkdown, gradeLabel, type CeshuScoreReport } from '../../../shared/ceshuScorer'
 import type { CeshuAiGenerateResult } from '../../../shared/ceshuAi'
 import type { DataTypeDef } from '../../../shared/types'
@@ -354,6 +360,58 @@ export default function CeshuView({
     }
   }
 
+  /** 导出校验报告：渲染层生成 Markdown → 主进程原子写盘（对齐 Python validation_dialog._on_export_md） */
+  const handleExportValidation = async (): Promise<void> => {
+    try {
+      setError(null)
+      setNotice(null)
+      // 文件名安全化：保留字母/数字/._-（含 CJK，对齐 Python str.isalnum 语义）
+      const safeName = [...gameName].filter((ch) => /[\p{L}\p{N}._-]/u.test(ch)).join('') || 'ceshu'
+      const chosen = await window.mbApi.dialog.chooseReportFile({
+        defaultName: `${safeName}_${doc.version_label || 'v1.0'}_校验报告`,
+        extension: '.md',
+        label: 'Markdown 文件'
+      })
+      if (!chosen.path) return
+      const markdown = buildValidationReportMarkdown(
+        gameName,
+        doc.version_label || 'v1.0',
+        formatLocalTimestamp(),
+        validateErrors,
+        progress
+      )
+      const exported = await window.mbApi.ceshu.exportValidationReport({ path: chosen.path, content: markdown })
+      setNotice(`校验报告已导出：${exported.filePath}`)
+    } catch (err) {
+      setError(toErrorMessage(err))
+    }
+  }
+
+  /** 导出变更日志：MD / HTML / Text 三格式（对齐 Python changelog_dialog._on_export） */
+  const handleExportChangelog = async (format: 'md' | 'html' | 'text'): Promise<void> => {
+    if (!changelog) return
+    try {
+      setError(null)
+      setNotice(null)
+      const spec =
+        format === 'html'
+          ? { content: buildChangelogHtml(changelog), extension: '.html', label: 'HTML 文件' }
+          : format === 'text'
+            ? { content: buildChangelogText(changelog), extension: '.txt', label: '文本文件' }
+            : { content: buildChangelogMarkdown(changelog), extension: '.md', label: 'Markdown 文件' }
+      const chosen = await window.mbApi.dialog.chooseReportFile({
+        defaultName: 'changelog',
+        extension: spec.extension,
+        label: spec.label
+      })
+      if (!chosen.path) return
+      const exported = await window.mbApi.ceshu.exportChangelogReport({ path: chosen.path, content: spec.content })
+      setNotice(`变更日志已导出：${exported.filePath}`)
+    } catch (err) {
+      setError(toErrorMessage(err))
+    }
+  }
+
   /** AI 一键生成应用完成：更新当前文档并刷新列表 */
   const handleAiApplied = (updated: CeshuDocument, appliedChapters: number): void => {
     setDoc(updated)
@@ -624,9 +682,38 @@ export default function CeshuView({
           <div className="changelog-panel" data-testid="changelog-panel">
             <div className="changelog-header">
               <span className="chapter-form-title">变更记录（{changelog.entries.length} 次版本变更）</span>
-              <button type="button" className="btn" data-testid="changelog-close" onClick={() => setPanel(null)}>
-                关闭
-              </button>
+              <div className="editor-actions">
+                <button
+                  type="button"
+                  className="btn"
+                  data-testid="changelog-export-md"
+                  disabled={changelog.entries.length === 0}
+                  onClick={() => void handleExportChangelog('md')}
+                >
+                  导出 Markdown
+                </button>
+                <button
+                  type="button"
+                  className="btn"
+                  data-testid="changelog-export-html"
+                  disabled={changelog.entries.length === 0}
+                  onClick={() => void handleExportChangelog('html')}
+                >
+                  导出 HTML
+                </button>
+                <button
+                  type="button"
+                  className="btn"
+                  data-testid="changelog-export-text"
+                  disabled={changelog.entries.length === 0}
+                  onClick={() => void handleExportChangelog('text')}
+                >
+                  导出 Text
+                </button>
+                <button type="button" className="btn" data-testid="changelog-close" onClick={() => setPanel(null)}>
+                  关闭
+                </button>
+              </div>
             </div>
             {changelog.entries.length === 0 ? (
               <div className="empty">暂无变更记录（版本链只有一份文档时无对比对象）</div>
@@ -657,9 +744,19 @@ export default function CeshuView({
               <span className="chapter-form-title">
                 数据校验{validateErrors.length > 0 ? `（${validateErrors.length} 个问题）` : ''}
               </span>
-              <button type="button" className="btn" data-testid="validate-close" onClick={() => setPanel(null)}>
-                关闭
-              </button>
+              <div className="editor-actions">
+                <button
+                  type="button"
+                  className="btn"
+                  data-testid="validate-export"
+                  onClick={() => void handleExportValidation()}
+                >
+                  导出校验报告
+                </button>
+                <button type="button" className="btn" data-testid="validate-close" onClick={() => setPanel(null)}>
+                  关闭
+                </button>
+              </div>
             </div>
             {validateErrors.length === 0 ? (
               <div className="empty">✅ 所有校验通过，未发现错误</div>
