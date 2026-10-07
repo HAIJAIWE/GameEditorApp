@@ -3575,6 +3575,34 @@ button.ref-row:hover {
   font-size: calc(13px * var(--ui-font-scale) * 1.0);
 }
 
+/* ---- 数据候选确定性质量门结论（v0.5 DD-19 数据半边） ---- */
+.datagen-quality {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elevated, var(--bg));
+  font-size: calc(13px * var(--ui-font-scale) * 1.0);
+}
+.datagen-quality-title {
+  font-weight: 600;
+  margin: 0 0 6px;
+}
+.datagen-quality-issues {
+  list-style: disc;
+  margin: 6px 0 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.datagen-quality-issues li.is-count {
+  color: var(--danger, #d33);
+}
+.datagen-quality-issues li.is-balance {
+  color: var(--warning, #c90);
+}
+
 /* ---- GDD 模板编辑器（W29） ---- */
 
 .template-editor-body {

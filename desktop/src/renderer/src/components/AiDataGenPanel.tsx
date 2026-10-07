@@ -9,6 +9,7 @@ import {
   type CeshuDataGenResult
 } from '../../../shared/ceshuDataGen'
 import { LLM_BULK_COUNT_THRESHOLD, isBulkLlmCall } from '../../../shared/agent/protocol'
+import type { DataQualityVerdict } from '../../../shared/agent/qualityGate'
 import type { DataTypeDef } from '../../../shared/types'
 
 /**
@@ -44,6 +45,8 @@ export default function AiDataGenPanel({ ceshuId, initialTypeId, onClose }: AiDa
   const [notice, setNotice] = useState<string | null>(null)
   /** 批量生成的内联确认态（v0.5 DD-17：超过阈值的云端调用需先确认） */
   const [confirming, setConfirming] = useState(false)
+  /** 候选的确定性质量门结论（v0.5 DD-19 数据半边） */
+  const [quality, setQuality] = useState<DataQualityVerdict | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -111,9 +114,11 @@ export default function AiDataGenPanel({ ceshuId, initialTypeId, onClose }: AiDa
       )
       setActiveTab(Object.keys(generated.candidates)[0] ?? '')
       setNotice(generated.summary)
+      setQuality(generated.quality ?? null)
     } catch (err) {
       setResult(null)
       setCheckedItems({})
+      setQuality(null)
       setError(toErrorMessage(err))
     } finally {
       setBusy(false)
@@ -189,6 +194,24 @@ export default function AiDataGenPanel({ ceshuId, initialTypeId, onClose }: AiDa
       {notice && (
         <div className="notice-banner inline" data-testid="datagen-notice">
           {notice}
+        </div>
+      )}
+      {/* v0.5 DD-19（数据半边）：候选的确定性质量门结论 —— 数量约束（硬）+ 平衡性（建议） */}
+      {quality && (
+        <div className="datagen-quality" data-testid="datagen-quality">
+          <p className="datagen-quality-title">质量门：{quality.summary}</p>
+          {quality.issues.length > 0 && (
+            <ul className="datagen-quality-issues">
+              {quality.issues.map((issue, index) => (
+                <li
+                  key={`${issue.kind}:${issue.type}:${index}`}
+                  className={issue.kind === 'count_limit' ? 'is-count' : 'is-balance'}
+                >
+                  {issue.message}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
 

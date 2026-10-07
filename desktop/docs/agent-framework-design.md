@@ -16,6 +16,13 @@
 >   取证发现**策划书/数据的 AI 能力 100% 绕过 agent 层**（`window.mbApi.ceshu` 53 处 / `data` 42 处全直连，
 >   `agent` 仅 1 处且只服务对话面），而**域内 7,114 行确定性 rubric 已在生产里跑着却没接进产出路径**。
 >   新增 DD-17~DD-21、修订 DD-9 与路线图 M4。
+> - **v0.5 → v0.6**（本次会话）：把 DD-19 从"仅策划书半边"补完**数据半边**——新增 `evaluateDataCandidates`
+>   （复用 `dataCountConstraint::findCountConstraint`/`exceedsCountConstraint` 数量约束 + `dataStats::assessBalance` 平衡性），
+>   接进 `ceshu:aiGenerateData` 响应的 `quality` 字段，并在 `AiDataGenPanel` 渲染质量门结论块
+>   （`datagen-quality`，数量约束 `is-count` / 平衡性 `is-balance` 分色）。DD-19 至此**策划书 + 数据两个面都过确定性门**。
+>   ⇒ 这同时是 M5 成本护栏的前置——有了数据侧门才能按"生成后是否违反数量约束/平衡性"判定值不值得导入。
+>   ⚠️ **本次会话遇到文档静默回退**：工作树 `agent-framework-design.md` 被回退成 v0.3 坏快照
+>   （HEAD `337d8bc` 才是 v0.5 真值），已按铁律备份 `/tmp` 并从 HEAD 还原后再做增量。
 >
 > **证据强度标注**（全文通用）：
 > `[实测]` 本机/本仓跑出来的 · `[一手]` 模型厂商官方文档 · `[GitHub]` 直接抓成熟框架仓库所得 · `[二手]` 第三方文章/实测（附出处）· `[推断]` 我的推理，未直接验证
@@ -319,7 +326,7 @@ SOUL 硬边界、turn limit、MCP、`shared/` 分层契约、**6 家服务商的
 |---|---|---|---|---|---|---|
 | **DD-17** ⭐**✅ 已实现** | `ceshu:ai*` 纳入确认门 | §5.5.2① | 判定抽成纯函数 `shared/agent/protocol.ts::llmConfirmReason` / `isBulkLlmCall`（**判定与文案同源**）；两个 AI schema 加 `confirmed` 可选标志；`main/ipc.ts` 在调 LLM 前拦；渲染层用**内联两按钮确认态**（`AiFullGeneratePanel` / `AiDataGenPanel`，沿用 `ClearAllPanel` 范式，不自造弹窗） | 新增 | **两档** | 保密模式（M6）落地后，可再加"本地档禁止出境"语义 |
 | **DD-18** | 缺域词汇/域契约 | §5.5.2② | **域 context provider**：常驻注入「类型 schema + `CHAPTER_KEYS` + 143 条术语表 + 当前系统开关」——这是本项目 grounding 的第一手段 | 新增（具体化 DD-16） | 两档 | — |
-| **DD-19** ⭐**✅ 已实现** | 产出无法机器验证 | §5.5.2③⑧ | 新增 `shared/agent/qualityGate.ts::evaluateChapterDraft`：把生成字段**合并进文档**后重跑 `validateCeshu` + `scoreCeshu`，给出 before/after 的错误数与评分变化 + `blocking`（只收必填/硬冲突，软警告不算）+ 一句话 `summary`。已接进 `ceshu:aiGenerateChapter` 响应的 `quality` 字段（**可选，旧调用方不受影响**） | 新增 | **两档** | 数据侧（`dataCountConstraint`/`assessBalance`）与 LLM judge 权重待 M5 接 |
+| **DD-19** ⭐**✅ 已实现** | 产出无法机器验证 | §5.5.2③⑧ | **策划书半边**（`evaluateChapterDraft`，已接 `aiGenerateChapter.quality`）；**数据半边**（v0.6 补完）：`evaluateDataCandidates` 复用 `dataCountConstraint`（数量约束，硬）+ `dataStats::assessBalance`（离散度，建议），接进 `ceshu:aiGenerateData.quality`，并在 `AiDataGenPanel` 渲染结论块（`is-count`/`is-balance` 分色）。**两个面都过确定性门**。LLM judge 权重与"导入前二次确认"待 M5 接 | 新增 | **两档** | M5 成本护栏依赖本门的"是否违反约束"判定 |
 | **DD-20** | 策划书⇄数据双向依赖无表达 | §5.5.2④⑥ | **跨域一致性工具**作为一等工具（重命名类型→全库引用同步、删系统→停用数据表、字段改名→迁移引用…）；同时是 DD-15 复合工具的最佳用例 | 新增 | 两档 | — |
 | **DD-21** | 35 个技能清单 ≠ 域能力清单 | §5.5.2⑤ | 工具面**按三个真实场景重组**（策划书创作 / 数据编辑 / 系统设计），替代按 Python 技能表删减 | 新增 | 两档 | — |
 | **修订 DD-9** | 评估器问错了问题 | §5.5.2⑧ | 先核实的不再是 Python 的 `auto_evaluator.py`（TS 侧没这文件），而是**「确定性门是否已接进产出路径」** | 修订 | 两档 | — |
@@ -335,13 +342,15 @@ SOUL 硬边界、turn limit、MCP、`shared/` 分层契约、**6 家服务商的
 |---|---|
 | `shared/agent/protocol.ts` | 新增 `LLM_BULK_COUNT_THRESHOLD`（10）、`LlmCallScope`、`isBulkLlmCall`、`llmConfirmReason`（判定与文案同源） |
 | `shared/schemas.ts` | `ceshuAiGenerateInputSchema` / `ceshuDataGenInputSchema` 各加 `confirmed: z.boolean().optional()`（**刻意不用 `default`**——契约类型取 `z.infer`（输出类型），用 `default` 会逼 3 个既有调用点补传） |
-| `shared/agent/qualityGate.ts` | 新增（DD-19）：`evaluateChapterDraft` + `QualityGateVerdict` |
+| `shared/agent/qualityGate.ts` | 新增（DD-19）：`evaluateChapterDraft` + `QualityGateVerdict`（策划书半边）；`evaluateDataCandidates` + `DataQualityVerdict` + `DataQualityIssue` + `DataBalanceRow`（数据半边，v0.6） |
 | `shared/ceshuAi.ts` | `CeshuAiGenerateResult` 加可选 `quality?: QualityGateVerdict \| null` |
-| `main/ipc.ts` | 两个 AI handler 在调 LLM 前走确认门；`aiGenerateChapter` 返回 `quality` |
+| `shared/ceshuDataGen.ts` | `CeshuDataGenResult` 加可选 `quality?: DataQualityVerdict \| null`（v0.6） |
+| `main/ipc.ts` | 两个 AI handler 在调 LLM 前走确认门；`aiGenerateChapter` 返回 `quality`（策划书门）；`aiGenerateData` 返回 `quality`（数据门，v0.6，复用 `dataService.listAllItems` 取现有条数合并算数量约束） |
 | `AiFullGeneratePanel.tsx` | 内联确认态（`ai-full-confirm` / `-yes` / `-no`），确认后带 `confirmed: true` |
-| `AiDataGenPanel.tsx` | 同上（`datagen-confirm` / `-yes` / `-no`），仅当 `count > 10` |
-| 单测 | `agentProtocol.test.ts` +7（25 例）、新增 `agentQualityGate.test.ts` 9 例 |
-| **运行期举证** | `preview/verify-e59.mjs` **11/11**（批量 12 条出确认且不发起调用 / 取消可回退 / 5 条不拦 / 整篇出确认且带出 **18 次**）；回归 verify-e51 41/41 · e57 46/46 · e58 14/14 |
+| `AiDataGenPanel.tsx` | 同上（`datagen-confirm` / `-yes` / `-no`，仅当 `count > 10`）；v0.6 新增质量门结论块渲染（`datagen-quality`，`is-count`/`is-balance` 分色） |
+| `styles.css` | `.datagen-quality` / `.datagen-quality-title` / `.datagen-quality-issues` / `.is-count` / `.is-balance`（v0.6） |
+| 单测 | `agentProtocol.test.ts` +7（25 例）、新增 `agentQualityGate.test.ts` **19 例**（策划书 9 + 数据 10） |
+| **运行期举证** | `preview/verify-e59.mjs` **15/15**（新增 T5：数据质量门 UI 渲染 `datagen-quality` 出现且 `is-balance` 落位）；回归 verify-e51 41/41 · e57 46/46 · e58 14/14 · docsLedger 8/8 全绿 |
 
 ---
 

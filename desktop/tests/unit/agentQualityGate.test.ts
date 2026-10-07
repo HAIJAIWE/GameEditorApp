@@ -95,3 +95,124 @@ describe('策划书 AI 产出的确定性评分门（v0.5 DD-19）', () => {
     expect(verdict!.afterScore).toBe(verdict!.beforeScore + verdict!.scoreDelta)
   })
 })
+
+/* ---- 数据半边：候选的确定性质量门（v0.5 DD-19） ---- */
+
+import type { DataTypeDef } from '../../src/shared/types'
+import { evaluateDataCandidates } from '../../src/shared/agent/qualityGate'
+
+function makeType(
+  id: string,
+  pluralKey: string,
+  fields: Array<{ name: string; label: string; type: 'spinbox' | 'entry' }>
+): DataTypeDef {
+  return {
+    id,
+    name: id === 'role' ? '角色' : id,
+    pluralKey,
+    color: '#607D8B',
+    formFields: fields.map((field) => ({ ...field, editable: true })) as DataTypeDef['formFields']
+  }
+}
+
+const spinboxType = makeType('role', 'roles', [
+  { name: 'hp', label: '生命值:', type: 'spinbox' },
+  { name: 'atk', label: '攻击力:', type: 'spinbox' }
+])
+
+describe('数据 AI 候选的确定性质量门（v0.5 DD-19 数据半边）', () => {
+  it('无类型定义时不误报（只统计条数）', () => {
+    const verdict = evaluateDataCandidates({ roles: [{ hp: 100 }, { hp: 120 }] })
+    expect(verdict.total).toBe(2)
+    expect(verdict.counts.roles).toBe(2)
+    expect(verdict.issues).toHaveLength(0)
+    expect(verdict.hasIssues).toBe(false)
+  })
+
+  it('数量约束超限 ⇒ 报 count_limit（硬问题，排在最前）', () => {
+    // 系统 config 声明角色上限 2
+    const systems = { social: { name: '社交系统', data_type: 'role', config: { max_count: 2 } } }
+    const verdict = evaluateDataCandidates({ roles: [{ hp: 100 }, { hp: 110 }, { hp: 120 }] }, {
+      types: [spinboxType],
+      systems
+    })
+    expect(verdict.issues.length).toBeGreaterThan(0)
+    expect(verdict.issues[0]!.kind).toBe('count_limit')
+    expect(verdict.issues[0]!.message).toContain('上限 2')
+    expect(verdict.summary).toContain('数量上限')
+  })
+
+  it('数量约束：现有 + 本次合并计算（不是只看本次）', () => {
+    const systems = { social: { name: '社交系统', data_type: 'role', config: { count: 5 } } }
+    // 本次 2 条 ≤ 上限，但现有已有 4 个 ⇒ 合并 6 > 5 应报
+    const verdict = evaluateDataCandidates({ roles: [{ hp: 100 }, { hp: 110 }] }, {
+      types: [spinboxType],
+      systems,
+      existingCounts: { role: 4 }
+    })
+    expect(verdict.issues.some((issue) => issue.kind === 'count_limit')).toBe(true)
+    expect(verdict.issues[0]!.message).toContain('现有 4')
+  })
+
+  it('未超上限 ⇒ 不报数量约束', () => {
+    const systems = { social: { name: '社交系统', data_type: 'role', config: { count: 10 } } }
+    const verdict = evaluateDataCandidates({ roles: [{ hp: 100 }, { hp: 110 }] }, {
+      types: [spinboxType],
+      systems
+    })
+    expect(verdict.issues.some((issue) => issue.kind === 'count_limit')).toBe(false)
+  })
+
+  it('数值离散度偏高 ⇒ 报 balance（建议，排在数量约束之后）', () => {
+    // hp 取 100 与 1000 ⇒ 离散度远超阈值 0.3
+    const verdict = evaluateDataCandidates({ roles: [{ hp: 100, atk: 10 }, { hp: 1000, atk: 12 }] }, {
+      types: [spinboxType]
+    })
+    const balanceIssues = verdict.issues.filter((issue) => issue.kind === 'balance')
+    expect(balanceIssues.length).toBeGreaterThan(0)
+    expect(balanceIssues[0]!.message).toContain('离散度偏高')
+  })
+
+  it('数值接近 ⇒ 平衡性判定为 good，不产生问题', () => {
+    const verdict = evaluateDataCandidates(
+      { roles: [{ hp: 100, atk: 10 }, { hp: 104, atk: 11 }, { hp: 102, atk: 10 }] },
+      { types: [spinboxType] }
+    )
+    expect(verdict.balance.length).toBeGreaterThan(0)
+    expect(verdict.balance.every((row) => row.verdict === 'good')).toBe(true)
+    expect(verdict.issues).toHaveLength(0)
+    expect(verdict.summary).toContain('通过数量约束与平衡性检查')
+  })
+
+  it('balance 行的 label 去掉表单标签的冒号后缀', () => {
+    const verdict = evaluateDataCandidates({ roles: [{ hp: 100 }, { hp: 110 }] }, { types: [spinboxType] })
+    expect(verdict.balance[0]!.label).toBe('生命值')
+  })
+
+  it('无法解析为数字的值被跳过（对齐 dataStats 的 toFiniteNumber 口径）', () => {
+    const verdict = evaluateDataCandidates(
+      { roles: [{ hp: '100' }, { hp: '不是数字' }, { hp: '' }, { hp: 120 }] },
+      { types: [spinboxType] }
+    )
+    const hpRow = verdict.balance.find((row) => row.field === 'hp')
+    expect(hpRow).toBeDefined()
+    expect(hpRow!.count).toBe(2) // 只有 '100' 与 120 有效
+  })
+
+  it('数量约束问题优先于平衡性问题（issues 排序）', () => {
+    const systems = { social: { name: '社交系统', data_type: 'role', config: { count: 1 } } }
+    const verdict = evaluateDataCandidates({ roles: [{ hp: 100 }, { hp: 1000 }] }, {
+      types: [spinboxType],
+      systems
+    })
+    expect(verdict.issues[0]!.kind).toBe('count_limit')
+    expect(verdict.issues.some((issue) => issue.kind === 'balance')).toBe(true)
+  })
+
+  it('空候选 ⇒ total 为 0、无问题', () => {
+    const verdict = evaluateDataCandidates({}, { types: [spinboxType] })
+    expect(verdict.total).toBe(0)
+    expect(verdict.issues).toHaveLength(0)
+    expect(verdict.hasIssues).toBe(false)
+  })
+})

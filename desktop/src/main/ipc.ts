@@ -111,7 +111,7 @@ import {
   type SystemEntry
 } from '../shared/ceshuConstants'
 import { llmConfirmReason } from '../shared/agent/protocol'
-import { evaluateChapterDraft } from '../shared/agent/qualityGate'
+import { evaluateChapterDraft, evaluateDataCandidates } from '../shared/agent/qualityGate'
 import { buildChapterPrompt, buildReviewPrompts, filterGeneratedFields, mergeChapterDraft, parseLlmJson, parseReviewResponse } from '../shared/ceshuAi'
 import {
   DATA_GEN_ERROR_EMPTY,
@@ -852,12 +852,23 @@ export function registerIpcHandlers({
     if (normalized.total === 0) {
       throw new Error(DATA_GEN_ERROR_EMPTY)
     }
+    // v0.5 DD-19（数据半边）：候选过确定性质量门 —— 数量约束（P5，硬）+ 平衡性（建议）。
+    // `items.type` 存的是**单数**类型 id（见 roadmap「数据表键口径」），故 existingCounts 以它为键。
+    const existingCounts: Record<string, number> = {}
+    for (const item of await dataService.listAllItems()) {
+      existingCounts[item.type] = (existingCounts[item.type] ?? 0) + 1
+    }
     return {
       model,
       candidates: normalized.candidates,
       generatedCounts: normalized.generatedCounts,
       total: normalized.total,
-      summary: buildDataGenSummaryMessage(normalized.generatedCounts)
+      summary: buildDataGenSummaryMessage(normalized.generatedCounts),
+      quality: evaluateDataCandidates(normalized.candidates, {
+        types,
+        systems: doc.systems,
+        existingCounts
+      })
     }
   })
   handle('ceshu:aiReview', ceshuGetInputSchema, async (req) => {

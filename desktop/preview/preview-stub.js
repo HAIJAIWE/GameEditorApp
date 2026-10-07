@@ -232,8 +232,29 @@
       confirmSystems: async () => DOC, syncData: async () => DOC, rename: ok,
       remove: async () => ({ deleted: true }), duplicate: async () => DOC, setActive: async () => DOC,
       changelog: async () => ({ entries: [] }), validate: async () => [], score: async () => ({}),
-      aiGenerateChapter: async () => ({ fields: {} }), aiReview: async () => ({}),
-      aiGenerateData: async () => ({}), exportReviewReport: async () => ({ filePath: '' }),
+      aiGenerateChapter: async () => ({ fields: {}, quality: undefined }), aiReview: async () => ({}),
+      // 预览桩：返回带确定性质量门的候选包（证明 DD-19 数据半边的 UI 渲染块接线正确；
+      // 真实计算已在 tests/unit/agentQualityGate.test.ts 用真值 findCountConstraint/assessBalance 覆盖）。
+      aiGenerateData: async () => ({
+        model: 'stub-model',
+        candidates: { roles: [{ hp: 100 }, { hp: 1000 }] },
+        generatedCounts: { roles: 2 },
+        total: 2,
+        summary: '2 条候选通过数量约束，但有 1 个数值字段离散度偏高，建议复核后再导入',
+        quality: {
+          total: 2,
+          counts: { roles: 2 },
+          issues: [
+            { type: 'roles', typeName: '角色', kind: 'balance', message: '「角色」的生命值离散度偏高（均值 550.0、标准差 450.0），建议复核数值平衡' }
+          ],
+          balance: [
+            { type: 'roles', typeName: '角色', field: 'hp', label: '生命值', count: 2, avg: 550, std: 450, verdict: 'needs_adjust' }
+          ],
+          hasIssues: true,
+          summary: '2 条候选通过数量约束，但有 1 个数值字段离散度偏高，建议复核后再导入'
+        }
+      }),
+      exportReviewReport: async () => ({ filePath: '' }),
       checklist: async () => ({ items: [] }), autoFill: async () => ({ filled: 0 }),
       exportChecklistReport: async () => ({ filePath: '' }), diff: async () => ({}),
       exportDiffReport: async () => ({ filePath: '' }), wordStats: async () => ({ total: 0 }),

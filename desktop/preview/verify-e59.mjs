@@ -42,6 +42,8 @@ const SEL = {
   datagenConfirmNo: '[data-testid="datagen-confirm-no"]',
   datagenConfirmYes: '[data-testid="datagen-confirm-yes"]',
   datagenError: '[data-testid="datagen-error"]',
+  datagenQuality: '[data-testid="datagen-quality"]',
+  datagenQualityIssue: '[data-testid="datagen-quality"] .datagen-quality-issues li',
   fullEntry: '[data-testid="ceshu-ai-full"]',
   fullDesc: '[data-testid="ai-full-desc"]',
   fullStart: '[data-testid="ai-full-start"]',
@@ -164,6 +166,27 @@ try {
     check('T4 提示说明是连续多次云端调用', String(text).includes('连续调用'), String(text).trim())
     check('T4 提示带出章节次数', /\d+\s*次/.test(String(text)), String(text).trim())
     await page.screenshot({ path: join(SHOTS, 'e59-t4-full-confirm.png') })
+  })
+
+  // ================= T5 数据侧确定性质量门 UI 渲染（DD-19 数据半边） =================
+  // 说明：预览桩的 `ceshu.aiGenerateData` 直接返回带 `quality` 的候选包（真实计算由单测覆盖），
+  // 这里只验证「质量门结论块」已在渲染层正确接线、可见、且样式类正确。
+  await runCase('T5', async (page) => {
+    await openCeshu(page)
+    await page.click(SEL.datagenEntry)
+    await page.waitForSelector(SEL.datagenTypes, { timeout: 8000 })
+    await page.locator(SEL.datagenType).first().check()
+    await page.locator(SEL.datagenCount).fill('5') // ≤ 阈值，不触发确认门，直走生成
+    await page.click(SEL.datagenGenerate)
+    await page.waitForSelector(SEL.datagenQuality, { timeout: 8000 })
+    check('T5 生成后 ⇒ 出现质量门结论块（datagen-quality）', true)
+    const summary = await page.locator(SEL.datagenQuality).textContent()
+    check('T5 结论文案带出「离散度偏高」', String(summary).includes('离散度偏高'), String(summary).trim())
+    const issueCount = await page.locator(SEL.datagenQualityIssue).count()
+    check('T5 至少渲染出 1 条问题（li）', issueCount >= 1, `li数=${issueCount}`)
+    const isBalance = await page.locator('[data-testid="datagen-quality"] .datagen-quality-issues li.is-balance').count()
+    check('T5 平衡性问题的样式类 is-balance 正确落位', isBalance >= 1, `is-balance数=${isBalance}`)
+    await page.screenshot({ path: join(SHOTS, 'e59-t5-data-quality.png') })
   })
 } finally {
   await browser.close().catch(() => undefined)

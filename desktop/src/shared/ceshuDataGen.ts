@@ -1,3 +1,4 @@
+import type { DataQualityVerdict } from './agent/qualityGate'
 import { isPlainObject } from './ceshuModel'
 import type { CeshuDocument } from './ceshuConstants'
 import type { DataTypeDef } from './types'
@@ -54,6 +55,13 @@ export interface CeshuDataGenResult {
   total: number
   /** 汇总文案（含分类计数） */
   summary: string
+  /**
+   * 候选的**确定性质量门**结论（v0.5 DD-19 的数据半边）。
+   * 由 `shared/agent/qualityGate.ts::evaluateDataCandidates` 产出：数量约束（P5，硬）
+   * + 数值平衡性（`dataStats::assessBalance`，建议）。
+   * **可选**：旧调用方忽略该字段即可。
+   */
+  quality?: DataQualityVerdict | null
 }
 
 /**
