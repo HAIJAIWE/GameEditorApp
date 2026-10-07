@@ -148,6 +148,7 @@ Python 的字段 ID 生成有两条**正交**的路子：**英译**（`_auto_tra
 - `SuggestionSource` 增 `'pinyin'`；`TypeEditorPanel.tsx` 字段行新增**「拼音」按钮**（`te-field-pinyin-{i}`），候选条中拼音层与规则层 / AI 层**同面板并列**（`data-source` 区分），沿用「**只提案不写入**」。
 - **新建类型的 ID 随中文名自动填拼音**（对齐 `type_editor_dialog.add_type` 的 `tname_edit.textChanged → tid_edit.setText(_chinese_to_pinyin(...))`）：仅对**尚未保存的新类型**且 **ID 未被用户手改过**（`manualTypeIds` 记录，等价 Python 的 `tid_edit.isModified()`）时生效；**既有类型 ID 锁定、永不被自动改**。
 - **有意不迁（保持）**：CEDICT + `jieba` 词典回退 —— `fieldId.ts` 已实证其产出 `abbr_surname` / `canada_surname` 类垃圾，故不接；未收录词仍如实提示（并引导点「拼音」）。
+- **放置判据（E58 被主理人当场纠正过一次）**：拼音层放 `shared/` 由**渲染层同步**直调，而非再包一层 IPC。理由是**同步性**（新建类型的 ID 随中文名输入即填，走 IPC 必引入响应乱序竞态），**不是包体积** —— 本项目是 **Electron 客户端**（本地 SQLite / 本地文件 / `safeStorage`，无服务端），仓库无任何体积门禁，renderer 2.65MB 相对 Electron 运行时本身 ~200MB 可忽略。主/渲染的真实边界只有「**要不要 Node / electron 能力**」这一条（`fs`/`node:path`/原生插件 `better-sqlite3`/`safeStorage`/`dialog`）：`better-sqlite3`（原生插件）、`docx`/`exceljs`/`pptxjs`（经 `reportExport.ts` 落盘）、`ollama`（`safeStorage` 存密钥）全都在 main **是因为这个，与包多大无关**。
 
 **③ `ui/dialogs/type_editor_dialog.py`（528 行）保持 ◐（依据已在本轮补精确）** —— 拼音/英译按钮已补齐（见 ②）；余下未迁面**均非缺口**：**布局分区编辑**（已判不迁，Web 无 QSplitter 分区形态）、**智能工具栏** 4 项中的 3 项（`AI推荐字段` / `分析现有数据` / `联网参考`）**属 AI 域**（随 E42 框架重写），第 4 项 `导入模板` 已迁（`TypeEditorPanel` 的「字段模板」）。故保持 ◐。
 
