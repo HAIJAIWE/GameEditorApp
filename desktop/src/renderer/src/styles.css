@@ -374,6 +374,23 @@ body {
 }
 
 /*
+ * 浮层面板正文占满主区（E57 实测截图驱出的修复）。
+ *
+ * 背景：菜单唤起的浮层面板（统计 / 设置 / 备份 / 数据对比 / 关系图 …）根节点都复用了
+ * `.editor` —— 那是**右侧详情栏**的样式（`width: 400px; flex-shrink: 0`）。放进
+ * `display:flex` 的 `.panel-overlay-body` 里就只剩左侧 400px，右侧留下大片空白
+ * （E57 关系图面板截图可见，实测 `preview/verify-e57.mjs` 的 T6 断言）。
+ * 因此这里**只针对浮层正文的直接子元素**放开定宽；`.editor` 在真正的右侧栏语境
+ * （`.ceshu-preview .editor` 等）完全不受影响。
+ */
+.panel-overlay-body > .editor {
+  width: auto;
+  flex: 1 1 auto;
+  min-width: 0;
+  border-left: none;
+}
+
+/*
  * AI 对话停靠栏：常驻右栏，默认约 1/4 宽（PyQt 默认 75:25）。
  * `resize: horizontal` 提供原生拖拽调宽（需 overflow 非 visible）。
  */
@@ -2058,6 +2075,118 @@ button.ref-row:hover {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* ---- 关系图面板（对齐 PyQt `ui/widgets/relation_graph.py::RelationTablePanel`） ---- */
+
+.rg-picker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.rg-picker-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
+  color: var(--text-muted);
+}
+
+.rg-select {
+  min-width: 100px;
+  /* 窄容器（浮层面板正文可窄至 380px）内允许压缩，不撑破父级 */
+  max-width: 100%;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+  color: var(--text);
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
+}
+
+.rg-select.wide {
+  min-width: 180px;
+}
+
+.rg-subject-card {
+  border: 2px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+  padding: 10px 12px;
+}
+
+.rg-subject-name {
+  font-size: calc(13px * var(--ui-font-scale) * 18/13);
+  font-weight: 700;
+  color: var(--text);
+  word-break: break-all;
+}
+
+.rg-subject-detail {
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
+  word-break: break-all;
+}
+
+.rg-relations-title {
+  font-size: calc(13px * var(--ui-font-scale) * 13/13);
+  font-weight: 700;
+  color: var(--section-title);
+}
+
+.rg-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--border);
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
+  table-layout: fixed;
+}
+
+.rg-table th {
+  padding: 8px;
+  border-bottom: 2px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-weight: 700;
+  text-align: left;
+}
+
+.rg-table td {
+  padding: 6px 8px;
+  border-top: 1px solid var(--divider);
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rg-table tbody tr:nth-child(even) {
+  background: var(--cell-bg);
+}
+
+.rg-row {
+  cursor: pointer;
+}
+
+.rg-row:hover {
+  background: var(--accent-bg);
+}
+
+.rg-row.dangling {
+  cursor: default;
+  color: var(--text-muted);
+}
+
+.rg-table .rg-cell-name {
+  font-weight: 600;
+}
+
+.rg-table .rg-cell-id {
+  color: var(--text-muted);
+  font-family: Consolas, 'Courier New', monospace;
 }
 
 /* ---- 属性系统编辑器 ---- */

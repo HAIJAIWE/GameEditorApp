@@ -23,6 +23,7 @@ import ImageGenPanel from './components/ImageGenPanel'
 import MenuBar from './components/MenuBar'
 import QuickCreatePanel from './components/QuickCreatePanel'
 import ReferencesPanel, { type ReferenceTarget } from './components/ReferencesPanel'
+import RelationGraphPanel from './components/RelationGraphPanel'
 import ShortcutsPanel from './components/ShortcutsPanel'
 import CleanupImagesPanel from './components/CleanupImagesPanel'
 import KeywordTemplatePanel from './components/KeywordTemplatePanel'
@@ -62,6 +63,7 @@ type OverlayPanel =
   | 'quickCreate'
   | 'batch'
   | 'references'
+  | 'relationGraph'
   | 'gameDataPreview'
   | 'shortcuts'
   | 'about'
@@ -85,6 +87,7 @@ const PANEL_TITLES: Record<OverlayPanel, string> = {
   quickCreate: '快速创建向导',
   batch: '批量修改数据',
   references: '数据关联预览',
+  relationGraph: '关系图',
   gameDataPreview: '游戏数据预览',
   shortcuts: '快捷键参考',
   about: '关于墨白编辑器',
@@ -380,7 +383,8 @@ export default function App() {
    *
    * 有意省略 Python 数据概览头的「⚙ 管理显示类型」：它唯一的消费者 `TypeVisibilityPanel`
    * 在 TS 已随侧栏刻意下线（见下方 renderPanel 注释），PyQt 亦无等价物 —— 宁缺勿错。
-   * 「查看关联」走既有 `references` 入口的守卫：无定位目标时如实引导到「高级搜索」。
+   * 「查看关联」对齐 PyQt `main_window.py:1200`（`view_relations` → `_show_relation_graph()`），
+   * 打开**关系图**面板（自带类型/主体选择器，无需先定位目标条目）。
    */
   const handleOnboardingAction = (actionId: string, dataType: string): void => {
     switch (actionId) {
@@ -400,7 +404,9 @@ export default function App() {
         }
         return
       case 'view_relations':
-        openPanel('references')
+        // 对齐 Python `main_window.py:1200`：`view_relations` → `_show_relation_graph()`。
+        // 关系图面板自带类型/主体选择器，无需先定位目标条目（旧行为弹去高级搜索是偏差，已改正）。
+        openPanel('relationGraph')
         return
       case 'onboarding_library':
         setNotice('在界面右上角「当前库」处可切换或新建游戏库')
@@ -486,8 +492,11 @@ export default function App() {
     setNotice(`该条目「${name}」所属的数据类型未在当前策划书启用的游戏系统中，无法定位`)
   }
 
-  /** 浮层通知的「尚未实现」轻提示（供菜单项复用） */
-  const notImplemented = (label: string): void => setNotice(`「${label}」尚未在 TS 版实现`)
+  /**
+   * 注：原先这里有一个 `notImplemented(label)` 轻提示，供「点了只报尚未实现」的菜单占位项复用。
+   * E57 删掉最后两个此类占位项（PyQt 侧的「内容关联管理 / 关联可视化」实为死入口，见 `MenuBar.tsx`）
+   * 后该函数已无消费者，一并移除 —— 菜单里不再有「点了没反应」的项。
+   */
 
   /** 批量操作完成：提示结果、关闭面板并刷新增撤状态 */
   const handleBatchApplied = (message: string): void => {
@@ -700,6 +709,8 @@ export default function App() {
         return refTarget ? (
           <ReferencesPanel target={refTarget} types={types} onJump={handleJump} onClose={() => setPanel(null)} />
         ) : null
+      case 'relationGraph':
+        return <RelationGraphPanel types={types} onJump={handleJump} />
       default:
         return null
     }
@@ -743,6 +754,7 @@ export default function App() {
             openPanel('quickCreate')
           },
           references: () => openPanel('references'),
+          relationGraph: () => openPanel('relationGraph'),
           gameDataPreview: () => openPanel('gameDataPreview'),
           dataDiff: () => openPanel('dataDiff'),
           stats: () => openPanel('stats'),
@@ -764,7 +776,6 @@ export default function App() {
           attributeChart: () => openPanel('attributeChart'),
           onboarding: () => openPanel('onboarding'),
           aiPanel: () => setNotice('AI 助手已在右侧常驻'),
-          notImplemented,
           quit: handleQuit
         }}
       />

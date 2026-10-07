@@ -9,7 +9,7 @@
 > （⚠️ 审计表头是 10-04 的，以下每条都在 10-07 重新 grep 核实过，**已剔除因 E28–E41 而过期的判定**）。
 >
 > **① 审计数据自相矛盾（E54 已复核消除）**：原先 §1 结论表、§2 域表、§3 逐文件明细**三套分类计数互不相同** —— 对外表现为 **±2 文件 / 480 行** 的差异（§2 一度算出 `93+61+88+57=299`、行数 `34,605+22,917+18,756+14,886`，与 §1 加总对不上）。
-> **E54（2026-10-07）已以 §3 逐文件明细为唯一真源重算 §1/§2**，三者现**逐格相等**（E54 后为 `109 / 58 / 126 / 6` = 299 文件、`40,116 + 21,503 + 29,095 + 450` = 91,164 行；**E56 复核后为 `111 / 22 / 160 / 6`**，总量不变）；方法与逐笔来源见 §1 的「E54 台账校准」块与「E56 ◐ 行文件级复核」块。
+> **E54（2026-10-07）已以 §3 逐文件明细为唯一真源重算 §1/§2**，三者现**逐格相等**（E54 后为 `109 / 58 / 126 / 6` = 299 文件、`40,116 + 21,503 + 29,095 + 450` = 91,164 行；**E56 复核后为 `111 / 22 / 160 / 6`**；**E57 收口后为 `113 / 18 / 162 / 6`**，总量始终不变）；方法与逐笔来源见 §1 的「E54 台账校准」块、「E56 ◐ 行文件级复核」块与「E57 前端尾巴收口」块。
 >
 > **② 审计已过期、本轮实测复核的 3 条**（2 条翻案成立、1 条翻案被 E53 推翻）：
 > | 原判 | 实测 | 证据 |
@@ -67,12 +67,12 @@
 
 | 判定 | 文件 | 行数 | 占比 |
 |---|---|---|---|
-| ✅ 已迁 | 111 | 40,826 | 44.8% |
-| ◐ 部分已迁 | 22 | 10,961 | 12.0% |
-| ⛔ 有意不迁 | 160 | 38,927 | 42.7% |
+| ✅ 已迁 | 113 | 41,845 | 45.9% |
+| ◐ 部分已迁 | 18 | 9,555 | 10.5% |
+| ⛔ 有意不迁 | 162 | 39,314 | 43.1% |
 | ⚠️ 未迁（整块没做） | 6 | 450 | 0.5% |
 
-**对账（必须相等，已 PASS）**：`111+22+160+6 = 299` ✓、`40826+10961+38927+450 = 91,164` ✓
+**对账（必须相等，已 PASS）**：`113+18+162+6 = 299` ✓、`41845+9555+39314+450 = 91,164` ✓
 
 > ### E54 台账校准（2026-10-07）—— 本文件此前有「三套互不一致的数字」，本轮统一
 >
@@ -102,14 +102,39 @@
 **结果**：**§1 = §2 = Σ§3 = ✅ 111 / 40,826 · ◐ 22 / 10,961 · ⛔ 160 / 38,927 · ⚠️ 6 / 450**（合计 **299 文件 / 91,164 行**，逐格相等；8 个域锚点 Δ=0/0）。
 **真实剩余**：由「≈1.0–1.4 万行（11–15%）」再降为 **≈0.5–0.8 万行（6–9%）**。
 
-### 真实剩余 ≈ 0.5–0.8 万行（6–9%）
+### E57 前端尾巴收口（2026-10-07）—— 4 个 ◐ 文件做实 + 2 处真缺口补码
+
+**动因**：主理人问「前端是哪个没迁」→ 列出 `ui/` 域 15 个 ◐ + 1 个 ⚠️（≈7,400 行）并逐条给缺口；主理人裁决「**就是 py 都重构 ts**」。本轮把其中**能落实的全部落实**，剩下的**给出实证判为 ⛔ 或列出具体缺口**，不留含糊。
+
+**① 两处真缺口，已写码补齐（不是台账调整，是新能力）**：
+
+| 缺口 | Python 依据 | TS 补法 |
+|---|---|---|
+| **「工具 → 关系图」菜单项** | `menus.py:96` → `main_window.py:1158 _show_relation_graph` → `ui/widgets/relation_graph.py::RelationTablePanel`（407 行：类型/主体双选择器 + 主体信息卡 + 关联数据表 5 列 + 双击跳转） | 新增 `shared/relationGraph.ts`（`buildRelationRows` / `buildSubjectDetailLine` / `itemDisplayName`，纯逻辑）+ `components/RelationGraphPanel.tsx`（表格式，双击行跳转复用 `handleJump`）；`App.tsx` 五处接线（import / OverlayPanel union / `PANEL_TITLES` / `renderPanel` / `openPanel`）+ `MenuBar.tsx` 把该条目由 `notImplemented` 接到 `relationGraph`（`menuitem-tools-relationGraph`）。**顺带修**：`handleOnboardingAction('view_relations')` 原走 `references`（该通道带「无目标则弹去高级搜索」守卫，与 PyQt `main_window.py:1200 → _show_relation_graph()` 不符）⇒ 改正为 `relationGraph` |
+| **`dialog` 字段控件形态** | `ui/widgets/dynamic_form.py:450` `field_type == 'dialog'`；默认 schema 真实使用（`typeSchema.ts:327` `field('dialog_id', '对话ID:', 'dialog')`） | `ItemForm.tsx` 增 `case 'dialog'`（`<select>` 列同库 `dialog` 类型条目、空态提示、值含失效 id 时以「（已失效）」保留不静默丢值）+ `dialogOptions` 懒加载（`data.listItems({type:'dialog'})`）。此前落到默认渲染 = 纯文本输入框 |
+
+**运行期举证（`preview/verify-e57.mjs`，46/46 通过、页面错误 0）**：Playwright chromium（Edge）+ 预览服务器 + 忠实桩，6 组用例逐条断言：菜单收口（新项在场 / 死入口已删 / 相邻项未误删）、面板逐格取值（类型→主体→信息卡→5 列表格 / 悬空 token 行 / 无关联空态）、悬空行双击不跳转、已解析行双击跳转、`dialog` 下拉的选项与失效值保留、面板宽度。**其中截图驱出一个此前无人发现的真缺陷**：浮层面板根节点复用的 `.editor` 带 `width:400px; flex-shrink:0`（那是**右侧详情栏**的样式），放进 `.panel-overlay-body` 后 9 个菜单面板全部只占左侧 400px、右侧留大片空白 ⇒ 新增一条 `.panel-overlay-body > .editor { width:auto; flex:1 1 auto; min-width:0; border-left:none }`（**只作用于浮层正文直接子元素**，右侧栏语境不受影响），并由 T6/T7 覆盖（逐个打开 9 个面板量宽 + 查横向溢出）。另修**预览桩过期**：`schema:listFieldTemplates` 的真实契约为 `{builtin, custom}`，桩仍返回 `[]` ⇒ `字段结构编辑器` 在所有预览脚手架下必然抛 `Cannot read properties of undefined (reading 'length')`（既有 E51/E46 脚手架都没打开过该面板，故长期未暴露），已按真实契约修正。
+
+**② 4 个 ◐ 文件逐条做实（2 升 ✅ / 2 改判 ⛔）**：
+
+1. **`ui/widgets/dynamic_form.py`（839 行）◐→✅** —— 18 个字段形态分支逐一对表：缺的只有 `dialog`（本轮已补）与 `formula_builder`。后者**全仓仅 dynamic_form 自身分支**（`grep -rn formula_builder src/` 命中：`attribute_panel.py:27` + `widgets/__init__.py:6` 消费的是 **`FormulaBuilderDialog`** 本身，即**属性面板**的公式编辑器，TS 已由 `AttrFormulaBuilder.tsx` 等价实现；**无任何 schema 产出 `formula_builder` 形态的字段**）⇒ 死代码，非缺口。`entry`/`multiselect`/`droptable`/`attrtable`/`attrpanel` 由 `COMPLEX_FIELD_TYPES` + `RefTableEditor`/`DropTableEditor`/`AttrTableEditor`/`AttrPanelEditor` 承接。
+2. **`ui/menus.py`（180 行）◐→✅** —— 「数据关系图」已实现（见上）；**另一项此前台账漏记**：「内容关联」子菜单两项（`show_content_relations` / `show_relation_visualization`）在 PyQt 侧**是死入口** —— `features/advanced.py:30-45` 两个函数**函数体完全相同**，都是 `ReferencePanel(dm, "", "", mw)`（**空 type / 空 id**），而 `reference_panel.py:46-53` 的 `_find_item()` 对空 type 必然返回 `None` ⇒ 该对话框**任何情况下只渲染「未找到该数据」**。TS 侧原先保留这两项为 `notImplemented`（点了报「尚未实现」），本轮**直接删除**（能力面已由 `references`（按目标看引用）+ 新增 `relationGraph`（按主体浏览关联）覆盖，删掉不丢能力；`notImplemented` 占位机制随之成为无用户代码，一并移除）。`menus.py:167 setup_agent_toolbar()` 仍是全仓无调用点的死代码（真值角部件在 `main_window.py:450`）。
+3. **`ui/dialogs/startup_mode_dialog.py`（144 行）◐→⛔** —— **设计性替换**：该对话框是「选择工作模式」（数据设计 ↔ 策划书两条主线），依赖 PyQt 的双模式启动形态；E28 顶层 IA 已重写为「无侧栏单栈：策划书首页 ↔ 编辑器，一切能力从菜单进」⇒ **TS 全仓 `startupMode`/`startup_mode`/`mode-data`/`mode-ceshu` 零命中**，工作模式概念不存在。同 `tab_manager.py` 的处置。
+4. **`ui/components/virtual_list.py`（243 行）◐→⛔** —— **唯一真实消费者是 `data_tab.py`**（另两处只是 `ui/components/__init__.py` 与 `ui/__init__.py` 的 re-export），而数据表页已随 E28 IA 重写下线；其**条目右键菜单语义已由 E51 并入 `DataEditorTab`**（`row-context-menu`：重命名/编辑/复制/删除，同 `virtual_list.py:217-231` 顺序）；「拖拽排序」此前已判 DESIGN-DIFFERENT（PyQt 重排**内存数组**，TS 条目来自 SQLite、无数组序）；余下「虚拟滚动」是 PyQt 的**渲染技术**（`QListView` 只画可见行），Web 侧为原生滚动列表，**无用户可见能力差异**。⇒ 归入「有意不迁」，并记**复盘条件**：若真实数据集（单类型条目数）出现滚动卡顿，再引入窗口化渲染（`react-window` 类），届时按新能力立项而不是补旧账。
+
+**③ `ui/dialogs/api_config.py`（686 行）保持 ◐（依据已在本轮补精确）** —— 「基础设置」页 E41 已迁（`shared/llmConfig.ts` + `SettingsPanel`，Key 走 `safeStorage`）；**三个未迁 tab 各有依据**：模型管理（自定义模型增删改写 PyQt 私有 `custom_models.json`，而 TS 的模型输入是「预设 datalist + 自由文本」，任何模型名可直接使用并持久化 ⇒ 无同一消费者）、视觉模型（TS 无截图识别/UI 分析链路）、模板设置（实为技能生成模板偏好，属策划内容域）。**本轮新发现一处真缺口**：基础设置页的「**测试连接**」按钮（`api_config.py:641-685` → `common/ai_client.test_api_connection`）TS 侧**无对应**（全仓 `测试连接`/`testConnection` 零命中），依赖 AI 域的客户端实现 ⇒ 保留 ◐ 并把该条写入 §3 依据。
+
+**结果**：**§1 = §2 = Σ§3 = ✅ 113 / 41,845 · ◐ 18 / 9,555 · ⛔ 162 / 39,314 · ⚠️ 6 / 450**（合计 **299 文件 / 91,164 行**，逐格相等；8 个域锚点 Δ=0/0）。
+**真实剩余**：由「≈0.5–0.8 万行（6–9%）」再降为 **≈0.5–0.7 万行（6–8%）**。
+
+### 真实剩余 ≈ 0.5–0.7 万行（6–8%）
 
 - **确定未迁（整块没做）＝ 450 行 / 6 文件**（精确数字）
-- **部分已迁里的缺口 ≈ 0.5–0.7 万行**（**估算**：10,961 行按各文件给出的完成度 25%–75% 折算，未完成部分过半）
-- 合计 **≈ 0.5–0.8 万行**，占旧代码 **≈ 6–9%**
+- **部分已迁里的缺口 ≈ 0.5–0.6 万行**（**估算**：9,555 行按各文件给出的完成度 25%–75% 折算，未完成部分过半）
+- 合计 **≈ 0.5–0.7 万行**，占旧代码 **≈ 6–8%**
 
-> **口径说明（E56 更新）**：不能把「⛔有意不迁」的 38,927 行算成欠债 —— 那些是**决策**（`core/agent` AI 框架重写域 24,670 行中的绝大部分、团队 CRUD 818、自愈链 4,166、样例数据 1,125、PyQt 胶水、死代码、Qt QSS 主题栈、`themes`/QSS 与 `tab_manager` 的设计性替换等），各有实证依据。
-> 但也不能把「◐部分已迁」算成已迁 —— 那 10,961 行里有一部分是真缺口。
+> **口径说明（E57 更新）**：不能把「⛔有意不迁」的 39,314 行算成欠债 —— 那些是**决策**（`core/agent` AI 框架重写域 24,670 行中的绝大部分、团队 CRUD 818、自愈链 4,166、样例数据 1,125、PyQt 胶水、死代码、Qt QSS 主题栈、`themes`/QSS 与 `tab_manager`/`startup_mode`/`virtual_list` 的设计性替换等），各有实证依据。
+> 但也不能把「◐部分已迁」算成已迁 —— 那 9,555 行里有一部分是真缺口。
 >
 > **⚠️ 除本表之外还有一块「重写」而非「移植」的工作**：**AI 框架整体重写**（`core/agent` 域 97 文件 / 24,670 行 + 数字员工 UI 与任务面板）。它**不计入上面的迁移欠债**（E42 裁决），但也**不是零工作量** —— 只是走重写路径，规模与范围待框架设计定案。
 
@@ -117,7 +142,7 @@
 
 对全部「◐ 部分已迁」条目做了逐条实测复核。
 
-> **⚠️ E56 已把本节结论整体刷新**：E50 只处理了 STALE-DONE（TS 已等价实现但判定过期）一类，**当时的 ◐ 仍为 58 文件 / 21,503 行**；**E56（见 §1「E56 ◐ 行文件级复核」块）逐条重判后降为 22 文件 / 10,961 行**。以下 E50 名单保留为**历史痕迹**，**当前 ◐ 明细请以 §3 与 §1 的 E56 块为准**。
+> **⚠️ E56 已把本节结论整体刷新**：E50 只处理了 STALE-DONE（TS 已等价实现但判定过期）一类，**当时的 ◐ 仍为 58 文件 / 21,503 行**；**E56（见 §1「E56 ◐ 行文件级复核」块）逐条重判后降为 22 文件 / 10,961 行**，**E57（见 §1「E57 前端尾巴收口」块）再降为 18 文件 / 9,555 行**。以下 E50 名单保留为**历史痕迹**，**当前 ◐ 明细请以 §3 与 §1 的 E57 块为准**。
 
 **E50 首轮（已升 ✅，共 11 文件）**：window_state / preview_panel / statistics / template_manager / common / export / advanced / chat_renderer / image_loader / toast / home_widget（TS 已等价实现、原 ◐ 判定过期）。
 
@@ -126,15 +151,19 @@
 - **能力实测已存在 ⇒ ✅（2 文件）**：`score_report_dialog.py`（E49 就补了，台账没跟）、`shortcuts_dialog.py`（E37 的 `ShortcutsPanel` + 菜单入口）。
 - **死代码 / 设计性替换 ⇒ ⛔（4 文件）**：`security/sandbox.py`（`jsSandbox.ts` 设计性替换）、`buff_system.py` + `equipment_system.py`（使用面已由 `attrPreview.ts` 等价实现，未迁部分无调用点）、`tab_manager.py`（多标签形态被 E28 顶层 IA 取代）。
 
-**E56 后仍为 ◐ 的 22 文件（真实缺口）**，属下列两类之一：
+**E57 收口（2 升 ✅ / 2 改判 ⛔，共 4 文件）**：
+- **升 ✅**：`dynamic_form.py`（839 行，`dialog` 形态本轮补齐；余下唯一「未迁」的 `formula_builder` 经 grep 实证为**无 schema 产出**的死代码 ⇒ 非缺口）、`menus.py`（180 行，「数据关系图」本轮实现；「内容关联」两项经实证为 PyQt **死入口** ⇒ 删除而非迁）。
+- **改判 ⛔**：`startup_mode_dialog.py`（144 行，工作模式概念随 E28 IA 重写消失）、`components/virtual_list.py`（243 行，唯一消费者页已下线 + 右键菜单语义务 E51 并入 `DataEditorTab`；余下「虚拟滚动」是渲染技术差异）。
 
-- **DESIGN-DIFFERENT（TS 有意替换，非缺口；但整文件尚有其他未迁面，故未升 ✅）**：`themes` / QSS 主题栈（`ui/` 顶层域）、`_ai_dialog` 模板模式、`virtual_list` 的「拖拽排序」（Python 重排内存数组，TS 条目来自 SQLite、无数组序）。
-- **genuine-partial（仍有真实缺口）**：`data_tab`（AI 生成时的「技能锚点模板」选择上下文未迁，见 §4；P5 数量约束软检查、F2·右键重命名与条目右键菜单已由 **E51** 补齐）；`dynamic_form`（仅剩 `dialog`/`formula` 两种控件形态，image / image_tags / AI 按钮已迁）；`virtual_list`（虚拟滚动未做）；`common/ai_client.py`（仅剩流式 / tools / vision / 限流，完成度 40%）；`menus.py`（仅剩「数据关系图」一项）；`api_config.py`（模型管理 / 视觉 / 模板三 tab）、`type_editor_*`、`startup_mode_dialog` 等。
+**E57 后仍为 ◐ 的 18 文件（真实缺口）**，属下列两类之一：
+
+- **DESIGN-DIFFERENT（TS 有意替换，非缺口；但整文件尚有其他未迁面，故未升 ✅）**：`themes` / QSS 主题栈（`ui/` 顶层域）、`_ai_dialog` 模板模式。
+- **genuine-partial（仍有真实缺口）**：`data_tab`（AI 生成时的「技能锚点模板」选择上下文未迁，见 §4；P5 数量约束软检查、F2·右键重命名与条目右键菜单已由 **E51** 补齐）；`common/ai_client.py`（仅剩流式 / tools / vision / 限流，完成度 40%）；`api_config.py`（三 tab 未迁 + 「测试连接」无对应，见上）；`type_editor_*` 等 AI 依赖面。
 
 **仅有的真实遗留**（本轮实测确认）：
 
 1. **评分报告 Markdown 导出** —— 已由 **E49** 补齐（`shared/ceshuScorer.ts::buildScoreReportMarkdown` + `ceshu:exportScoreReport` 接线 + 面板「导出评分报告」按钮）。
-2. **`components/virtual_list.py` 的条目右键菜单** —— 已由 **E51** 补齐（`DataEditorTab` 的 `row-context-menu`：重命名 / 编辑 / 复制 / 删除，与 Python `virtual_list.py:217-231` 同序）；其「拖拽排序」属 **DESIGN-DIFFERENT**（Python 重排**内存数组**，而 TS 条目来自 **SQLite、无数组序**），非缺口。全仓 `VirtualListWidget` 的真实消费者只有 `data_tab.py`（`ui/components/__init__.py` 与 `ui/__init__.py` 仅 re-export），故该组件可视为已迁。
+2. **`components/virtual_list.py` 的条目右键菜单** —— 已由 **E51** 补齐（`DataEditorTab` 的 `row-context-menu`：重命名 / 编辑 / 复制 / 删除，与 Python `virtual_list.py:217-231` 同序）。**E57** 完成该文件的收口判定：全仓 `VirtualListWidget` 的真实消费者只有 `data_tab.py`（`ui/components/__init__.py` 与 `ui/__init__.py` 仅 re-export），而数据表页已随 E28 IA 重写下线；「拖拽排序」属 **DESIGN-DIFFERENT**（Python 重排**内存数组**，而 TS 条目来自 **SQLite、无数组序**）；「虚拟滚动」是 PyQt 的渲染技术（`QListView` 只画可见行）而非用户可见能力。⇒ 整文件**改判 ⛔**（复盘条件见 §1「E57 前端尾巴收口」）。
 3. **`ui/data_tab.py` 的少量缺口** —— **E51 已补两项**：① P5 数量约束软检查（`shared/dataCountConstraint.ts` + `DataEditorTab` 行内确认）；② F2 / 右键「重命名」（行内输入框，替代 Electron 渲染层不存在的 `QInputDialog`/`window.prompt`）。**仅剩** AI 生成的「技能锚点模板」选择上下文：TS 的 `AiDataGenPanel` 走**策划书驱动**的另一种设计，Python 的「参考策划方案」一项已被取代，但「选一个角色/怪物/装备作为技能归属」的锚点仍是真实缺口（且改动会触及 AI 生成提示词与 IPC 契约，需先裁决）。核心数据编辑能力（列表/搜索/增删改/复制/类型编辑/引用/AI 生成/撤销重做）均已迁，故本文件**保持 ◐**（未达「完全等价」）。
 
 ### E51 数量约束：对 Python 的有意偏离（逐例实测对照）
@@ -183,22 +212,22 @@ E51 的独立验证者报告：在策划书右侧预览面板里，条目行的*
 |---|---|---|---|---|---|---|
 | `core/agent` | 97 | 24,670 | 8 / 1,689 | 0 / 0 | 89 / 22,981 | 0 / 0 |
 | `ui/ceshu` | 35 | 14,620 | 27 / 12,948 | 4 / 1,231 | 3 / 363 | 1 / 78 |
-| `ui/widgets` | 24 | 9,232 | 14 / 6,053 | 1 / 839 | 9 / 2,340 | 0 / 0 |
-| `ui/` 顶层 + `themes` + `components` | 31 | 9,883 | 9 / 1,772 | 5 / 3,207 | 17 / 4,904 | 0 / 0 |
+| `ui/widgets` | 24 | 9,232 | 15 / 6,892 | 0 / 0 | 9 / 2,340 | 0 / 0 |
+| `ui/` 顶层 + `themes` + `components` | 31 | 9,883 | 10 / 1,952 | 3 / 2,784 | 18 / 5,147 | 0 / 0 |
 | `core/ceshu` + `core` 顶层 + `defaults` | 38 | 12,602 | 28 / 11,129 | 0 / 0 | 10 / 1,473 | 0 / 0 |
-| `ui/dialogs` | 20 | 6,055 | 10 / 3,174 | 5 / 2,041 | 5 / 840 | 0 / 0 |
+| `ui/dialogs` | 20 | 6,055 | 10 / 3,174 | 4 / 1,897 | 6 / 984 | 0 / 0 |
 | `common` + `config` + `security` + `data` + 顶层 | 45 | 10,672 | 11 / 2,518 | 5 / 2,164 | 24 / 5,618 | 5 / 372 |
 | `features` | 9 | 3,430 | 4 / 1,543 | 2 / 1,479 | 3 / 408 | 0 / 0 |
-| **合计** | **299** | **91,164** | **111 / 40,826** | **22 / 10,961** | **160 / 38,927** | **6 / 450** |
+| **合计** | **299** | **91,164** | **113 / 41,845** | **18 / 9,555** | **162 / 39,314** | **6 / 450** |
 
-> **注（E54 已消除漂移；E56 同步 ◐ 复核结果）**：上表「合计」是各域行直接相加，且与 §1 结论表**逐格相等**（111 / 22 / 160 / 6 = 299 文件；40,826 + 10,961 + 38,927 + 450 = 91,164 行）。此前 §1 与 §2 存在 **±2 文件 / 480 行** 的差异、§1 与 §3 明细差 7 文件，**E54 已按 §3 逐文件明细统一**（方法与逐笔来源见 §1 的「E54 台账校准」块）；**E56** 又把 30 行 ◐→⛔（AI 框架重写域）、2 行 ◐→✅、4 行改判 ⛔，各域行随之更新（见 §1 的「E56 ◐ 行文件级复核」块）。**§1 仍是守护测试的解析源**。
+> **注（E54 已消除漂移；E57 同步收口结果）**：上表「合计」是各域行直接相加，且与 §1 结论表**逐格相等**（113 / 18 / 162 / 6 = 299 文件；41,845 + 9,555 + 39,314 + 450 = 91,164 行）。此前 §1 与 §2 存在 **±2 文件 / 480 行** 的差异、§1 与 §3 明细差 7 文件，**E54 已按 §3 逐文件明细统一**（方法与逐笔来源见 §1 的「E54 台账校准」块）；**E56** 又把 30 行 ◐→⛔（AI 框架重写域）、2 行 ◐→✅、4 行改判 ⛔；**E57** 再 2 行 ◐→✅（`dynamic_form` / `menus`）、2 行 ◐→⛔（`startup_mode_dialog` / `virtual_list`），各域行随之更新（见 §1 的「E57 前端尾巴收口」块）。**§1 仍是守护测试的解析源**。
 >
-> **E56 后各域 ◐ 列**：`core/agent` / `core/ceshu` 两域 **◐ 已清零**（前者全部归 ⛔，后者本就无 ◐）；余下 ◐ 集中在 `ui/dialogs`（5 / 2,041）、`ui/` 顶层+主题（5 / 3,207）、`ui/ceshu`（4 / 1,231）、`features`（2 / 1,479）、`ui/widgets`（1 / 839）、`common`（5 / 2,164）。
+> **E57 后各域 ◐ 列**：`core/agent` / `ui/widgets` / `core/ceshu` 三域 **◐ 已清零**；余下 ◐ 集中在 `ui/dialogs`（4 / 1,897）、`ui/` 顶层+主题（3 / 2,784）、`ui/ceshu`（4 / 1,231）、`features`（2 / 1,479）、`common`（5 / 2,164）。
 
 **三个最值得注意的域**：
 1. **`core/agent`（最大域，24,670 行）→ 只有 8 个文件（1,689 行）是完整已迁**；其余 **89 个文件（22,981 行）全部 ⛔**（E56 后 ◐ 清零）：其中 33 文件 / 8,419 行按 **E42** 改判「不迁（框架改为重写）」，再叠加 **E56** 把余下的 23 个 ◐ 文件（6,752 行）一并归入该重写域。A 档做的是「核心闭环」，不是「整个 Agent 引擎」。
-2. **`ui/` 顶层 + 主题（9,883 行）→ 仅 1,772 行完整已迁**（E56 把 `shortcuts_dialog.py` 107 上移 ✅、`tab_manager.py` 249 与 `buff`/`equipment` 等改判 ⛔），主题/特效/菜单/多标签整块未做（多为 C 档，但那是**决策**还是**欠债**需区分：主题≠核心功能）。
-3. **`ui/dialogs`（6,055 行）→ 已完整迁出 3,174 行**（E54 把 `settings_dialog.py` 671 行从 ⚠️ 上移 ✅），该域 **⚠️ 列已清零**；余下 `api_config.py`（模型管理/视觉/模板三 tab 未迁）等为 ◐。快速创建/统计/字段模板/高级搜索/类型可见性/数据对比/备份已由此前的 E10–E16 迁出。
+2. **`ui/` 顶层 + 主题（9,883 行）→ 仅 1,952 行完整已迁**（E56 把 `shortcuts_dialog.py` 107 上移 ✅、`tab_manager.py` 249 与 `buff`/`equipment` 等改判 ⛔；E57 把 `menus.py` 180 上移 ✅、`virtual_list.py` 243 改判 ⛔），主题/特效/多标签整块未做（多为 C 档，但那是**决策**还是**欠债**需区分：主题≠核心功能）。
+3. **`ui/dialogs`（6,055 行）→ 已完整迁出 3,174 行**（E54 把 `settings_dialog.py` 671 行从 ⚠️ 上移 ✅），该域 **⚠️ 列已清零**；余下 `api_config.py`（模型管理/视觉/模板三 tab 未迁 + 「测试连接」无对应）等为 ◐（E57 把 `startup_mode_dialog.py` 144 改判 ⛔）。快速创建/统计/字段模板/高级搜索/类型可见性/数据对比/备份已由此前的 E10–E16 迁出。
 
 ## 3. 逐文件明细
 
@@ -319,11 +348,11 @@ E51 的独立验证者报告：在策划书右侧预览面板里，条目行的*
 | formula_builder.py | 486 | ✅ | `shared/formulaBuilder.ts`+`AttrFormulaBuilder.tsx` |
 | library_bar.py | 418 | ✅ | `LibraryBar.tsx`+`main/library/manager.ts` |
 | live_preview.py | 472 | ✅ | `shared/attrPreview.ts`+`AttrLivePreview.tsx` |
-| relation_graph.py | 407 | ✅ | `shared/references.ts`（注释注明与 reference_panel 合并迁移）+`ReferencesPanel.tsx` |
+| relation_graph.py | 407 | ✅ | `shared/references.ts`（引用报告纯逻辑：「引用了谁 / 被谁引用 / 相似数据」，与 `reference_panel` 合并迁移）+ `ReferencesPanel.tsx`；**E57 补**：本文件的**表格式面板 UI**（`RelationTablePanel`：类型/主体双选择器 + 主体信息卡 + 关联数据表 5 列 + 双击跳转）此前**并未迁移**（原判定只覆盖了引用计算层，`RelationTablePanel`/`relationGraph` 在 TS 侧零命中）⇒ 新增 `shared/relationGraph.ts`（`buildRelationRows`/`buildSubjectDetailLine`/`itemDisplayName`）+ `components/RelationGraphPanel.tsx`，并把「工具 → 关系图」菜单项由 `notImplemented` 接到真实能力 |
 | relation_matrix.py | 265 | ✅ | `AttrSystemPanel.tsx` matrix 视图+`attrSystem.ts::topoSortAttributes` |
 | collapsible_task_panel.py | 243 | ⛔ | `DigitalPanel.tsx` 有折叠步骤+`panel.ts::reduceBrainEvent`；缺任务工作区折叠面板 ｜ **E56**：属 E42「AI 框架重写」域 —— **未迁部分随框架重写、不 1:1 移植，不计迁移欠账**（已迁部分为在用资产、保留）（原判 ◐35%） |
 | drop_table.py | 225 | ✅ | `shared/dropTable.ts`+`DropTableEditor.tsx`（名称/掉率/最小/最大 + 内联选库 + 夹紧；E18） |
-| dynamic_form.py | 839 | ◐75% | `formSections.ts`+`ItemForm.tsx`+`FormSectionCard.tsx`。**E56 更正**：原「缺 image/dialog/formula_builder/image_tags/AI 按钮」**多数已迁** —— `image`/`image_tags`（含「自动填充」「AI分析」两钮，对齐 `_create_image_tags_widget`）/`template`/`desc`/`content`/`tags`/`spinbox`/`double_spin`/`combobox`/`image_desc` 均有 `case`，AI 按钮 `item-form-ai-generate`（E36）。**仍缺**：`dialog` 形态的专用控件（`FieldType` 已含 `'dialog'` 但 `ItemForm` 无 `case 'dialog'`，落到默认渲染）与 `formula` 形态（TS 的 `AttrFormulaBuilder` 是**属性面板**的公式编辑器，非条目字段控件）⇒ 保持 ◐ |
+| dynamic_form.py | 839 | ✅ | `formSections.ts`+`ItemForm.tsx`+`FormSectionCard.tsx`。**E56 更正**：原「缺 image/dialog/formula_builder/image_tags/AI 按钮」**多数已迁** —— `image`/`image_tags`（含「自动填充」「AI分析」两钮，对齐 `_create_image_tags_widget`）/`template`/`desc`/`content`/`tags`/`spinbox`/`double_spin`/`combobox`/`image_desc` 均有 `case`，AI 按钮 `item-form-ai-generate`（E36）。**E57 收口为 ✅**：① `dialog` 形态**本轮补齐**（`ItemForm.tsx` 的 `case 'dialog'`：`<select>` 列同库 `dialog` 条目 + 失效 id 保留；默认 schema 真实使用，`typeSchema.ts:327` `field('dialog_id','对话ID:','dialog')`）；② 唯一余项 `formula_builder` 经 grep 实证**无 schema 产出**（`grep -rn formula_builder src/` 只命中 dynamic_form 自身分支与 `FormulaBuilderDialog` 的类定义/导出；后者的真实消费者是 `attribute_panel.py:27`，即**属性面板**公式编辑器，TS 已由 `AttrFormulaBuilder.tsx` 实现）⇒ 死代码，非缺口；③ `entry`/`multiselect`/`droptable`/`attrtable`/`attrpanel` 由 `COMPLEX_FIELD_TYPES` + `RefTableEditor`/`DropTableEditor`/`AttrTableEditor`/`AttrPanelEditor` 承接 |
 | multi_select.py | 258 | ✅ | `shared/refTable.ts`+`RefTableEditor.tsx`（refType 解析→单数 id + 名称/等级 + 内联选库；E17） |
 | task_row.py | 317 | ⛔ | `panel.ts::summarizeToolTasks` 派生扁平列表；缺可展开任务卡/状态徽章/完成删除动作 ｜ **E56**：属 E42「AI 框架重写」域 —— **未迁部分随框架重写、不 1:1 移植，不计迁移欠账**（已迁部分为在用资产、保留）（原判 ◐40%） |
 | home_widget.py | 604 | ✅ | E48 已迁 5 步引导（含完成度持久化）+ 6 张快捷操作卡 + 数据概览卡 至 `OnboardingPanel.tsx`（菜单 帮助→快速入门）；刻意不迁：数据概览的「⚙ 管理显示类型」按钮（TypeVisibilityPanel 在 TS 已刻意下线）、按 visible_types 过滤（TS 不接线）（E50 重新分类为 ✅：TS 已等价实现，原 ◐ 判定过期） |
@@ -350,12 +379,12 @@ E51 的独立验证者报告：在策划书右侧预览面板里，条目行的*
 | digital_panel_tasks.py | 214 | ⛔ | 后端重设计为 `summarizeToolTasks`；独立任务 CRUD 未迁 ｜ **E56**：属 E42「AI 框架重写」域 —— **未迁部分随框架重写、不 1:1 移植，不计迁移欠账**（已迁部分为在用资产、保留）（原判 ◐50%） |
 | digital_panel_workspace.py | 308 | ⛔ | 会话快照→`sessionStore.ts`；富文本草稿/多工作区未迁 ｜ **E56**：属 E42「AI 框架重写」域 —— **未迁部分随框架重写、不 1:1 移植，不计迁移欠账**（已迁部分为在用资产、保留）（原判 ◐40%） |
 | main_window.py | 1248 | ◐40% | `App.tsx` 骨架+`LibraryBar`+模式切换；缺多标签/菜单/窗口状态/自动保存 |
-| components/virtual_list.py | 243 | ◐40% | 搜索过滤/多选已迁；**E51 已补条目右键菜单**（`DataEditorTab` 的 `row-context-menu`：重命名/编辑/复制/删除，同 `virtual_list.py:217-231` 顺序；E56 实测 `row-context-menu` 在场）。**仍缺**：虚拟滚动。**拖拽排序属 DESIGN-DIFFERENT**（PyQt 重排**内存数组**，TS 条目来自 SQLite、**无数组序**）⇒ 保持 ◐ |
+| components/virtual_list.py | 243 | ⛔ | 搜索过滤/多选已迁；条目右键菜单**E51 已补**（`DataEditorTab` 的 `row-context-menu`：重命名/编辑/复制/删除，同 `virtual_list.py:217-231` 顺序；E56 实测 `row-context-menu` 在场）。**E57 改判 ⛔（有意不迁）**：全仓 `VirtualListWidget` 的**唯一真实消费者是 `data_tab.py`**（`ui/components/__init__.py:4` 与 `ui/__init__.py:3` 只是 re-export），而数据表页已随 **E28 顶层 IA 重写**下线；「拖拽排序」属 **DESIGN-DIFFERENT**（PyQt 重排**内存数组**，TS 条目来自 SQLite、**无数组序**）；余下「虚拟滚动」是 PyQt 的**渲染技术**（`QListView` 只画可见行），Web 侧为原生滚动列表，**无用户可见能力差异**。复盘条件：若真实数据集单类型条目数出现滚动卡顿，再引入窗口化渲染（届时按新能力立项，不作为补旧账） |
 | chat_renderer.py | 172 | ✅ | markdown→HTML+代码高亮已迁（E47：react-markdown+remark-gfm+remark-breaks+rehype-highlight 至 DigitalPanel 气泡）；system/error/plan 气泡类型因 TS 状态模型不同未迁（TS 用独立 error 字段/步骤 UI），属刻意范围收窄（E50 重新分类为 ✅：TS 已等价实现，原 ◐ 判定过期） |
 | effects.py / theme_effects.py / text_glow_effect.py | 459+201+148 | ⛔ | **有意不迁（E24 判定）**：**86% 是 Qt QSS/hex 字面量**（技术上不可迁）；且**实证死代码**——`GlowButton`/`GlowLineEdit`/`GlowComboBox`/`GlowListWidget`/`SuccessToast` 在 `src/` 内**零引用**；`apply_text_glow` 遍历的 `main_window.glow_widgets` 初始化为 `[]` 后**从未 append**（恒空转）；`generate_digital_panel_qss` 仅被 `themes/__init__` 再导出，**无真正调用者**（数字员工面板已由 A1-4 `DigitalPanel.tsx` 覆盖） |
 | themes/themes.py | 1097 | ⛔ | **有意不迁（E24 判定）**：`_THEME_QSS`(255 行) + `_DIGITAL_PANEL_QSS`(200 行) + 5 套 `_THEME_CONFIGS` 主题字典(210 行) **全是 Qt QSS 字符串**，Web 端不可用；TS 已有 CSS 变量深色主题（`styles.css` 9 个变量）。唯一有价值的是 33 行**设计令牌**（`FONT_SIZE_XS..XL` 11/12/13/14/16、`SPACING_XS..XL` 4/8/12/16/24），已作为 CSS 自定义属性覆盖（`:root` 变量层）。多主题切换属**独立立项**（需 `[data-theme]` 覆写 ~80-100 行），不搭车 |
 | window_state.py | 154 | ✅ | **E24 已迁**：`main/windowState.ts`（几何 + 最大化 + lastMode，原子写）+ `app:setWindowMode` IPC。**刻意不迁**（TS 无对应物，非缺口）：theme（TS 无多主题，`themes.py` 已判不迁）、layout_mode（Python 硬编码 `"three_column"` 常量、无信息）、splitter_ratio（TS 侧栏是 CSS Grid、无 QSplitter）、auto_save_enabled/interval（TS 条目级即时落库、无内存脏状态）、has_unsaved_changes/compute_data_hash/check_data_changed（TS 无内存脏状态，无源之水）（E50 从捆绑行拆出并重新分类为 ✅：TS 已等价实现，原 ◐ 判定过期） |
-| menus.py | 180 | ◐ | **E56 从捆绑行拆出为独立行**。26 项中 TS 已覆盖 16 项（工具栏+侧栏）；**E49 更正（实测翻案）**：原写「撤销/重做 **TS 完全没有**」**为误**——撤销/重做**已迁**（E27：`data:undo`/`data:redo`/`data:undoState` + `main/data/undoRecorder.ts` + `App.tsx` 按钮与 Ctrl+Z/Y）；清理未用图片（IPC `images:deleteImages` + 菜单 `menuitem-tools-cleanupUnusedImages`）、多引擎导出（Unity/Unreal/Godot/Cocos2d 四导出器 + Lua 导出 `main/engineExport/lua.ts`）**均已迁**。**仅剩「数据关系图」一项为真实缺口**（E56 实测 TS 侧 `数据关系图`/`relationGraph`/`dataRelation` **零命中**）⇒ 保持 ◐ |
+| menus.py | 180 | ✅ | **E56 从捆绑行拆出为独立行**；**E57 收口为 ✅**。全部菜单项逐一对照 `MenuBar.tsx`：文件（打开/保存/导入×4/导出×12/备份管理/退出）、编辑（撤销/重做/模板管理/清空所有数据）、工具（快速创建向导/批量修改数据/数据关联预览/**关系图**/数据对比/数据分析×3/属性系统编辑器/清理未使用图片）、设置（打开设置）、帮助（快速入门/快捷键参考/关于）**均有真实接线**。**「数据关系图」原为真实缺口**（E56 实测 TS 侧 `relationGraph`/`dataRelation` 零命中；此前 `MenuBar.tsx` 写 `notImplemented`）⇒ **E57 已实现**（`RelationGraphPanel.tsx` + `shared/relationGraph.ts`，见 §1「E57 前端尾巴收口」）。**「内容关联」子菜单两项（`show_content_relations`/`show_relation_visualization`）不迁**：`features/advanced.py:30-45` 两函数**函数体完全相同**（都是 `ReferencePanel(dm, "", "", mw)`，空 type/空 id），而 `reference_panel.py::_find_item()` 对空 type 必返 `None` ⇒ **PyQt 侧本就是只渲染「未找到该数据」的死入口**；TS 原为 `notImplemented` 占位，E57 **直接删除**（能力面已由 `references` + `relationGraph` 覆盖）。`setup_agent_toolbar()`（:167）为全仓无调用点死代码（真值角部件在 `main_window.py:450`） |
 | shortcuts_dialog.py | 107 | ✅ | **E56 实证已迁**：`renderer/src/components/ShortcutsPanel.tsx`（docblock 明写「对齐 Python `ui/shortcuts_dialog.py::ShortcutsDialog`」）+ 菜单入口「帮助 → 快捷键参考」（`MenuBar.tsx:250` `menuitem-help-shortcuts`，E37 `3fc07ef`）。原判「纯键盘映射表、无消费者、随 menus 不迁」是 E37 之前的快照 |
 | tab_manager.py | 249 | ⛔ | **E56 改判（设计性替换）**：Python 的多标签编辑器（延迟切标签 / 侧栏计数 / 标签撕裂保护）已被 **E28 顶层 IA 重写**取代 —— 中央单栈 `mode-data`/`mode-ceshu` + `LibraryBar`，**「标签」这一形态在 TS 已不存在**，该机制的技术前提消失 ⇒ 有意不迁（与 `themes`/QSS 同类：Web 侧不适用） |
 | components/image_loader.py | 324 | ✅ | **E46 已迁 `LazyImageLabel` 行为**（`shared/imageCache.ts` LRU 缓存 + `LazyImage` 组件，按已保存绝对路径经 `images:readByPath` 回读 data URL 回显预览，修「已保存图片路径不回显」的真 bug）；**未对齐**：不做 PIL 位图重采样（浏览器 `<img>` 引擎解码，CSS 限尺寸即可，属刻意的过度开发规避）（E50 重新分类为 ✅：TS 已等价实现，原 ◐ 判定过期） |
@@ -413,11 +442,11 @@ E51 的独立验证者报告：在策划书右侧预览面板里，条目行的*
 | reference_panel.py | 261 | ✅ | `ReferencesPanel.tsx`+`shared/references.ts`+IPC `data:references` |
 | advanced_search.py | 172 | ✅ | `shared/advancedSearch.ts`（`searchItems`/`resolveSearchValue`/`SEARCH_FIELD_OPTIONS`/`truncateMatch`）+ `AdvancedSearchPanel.tsx`：选类型 + 选字段（名称/ID/类型/描述）+ 关键词 + 结果 + 点击跳转（复用 `handleJump`），与 Python 能力对齐；**TS 增强**「全部类型」「全部字段」两个哨兵（Python 只能单选）。数据走既有 `data:listAll`，**不开新 IPC**。**更正**：审计原写「跨类型搜索」为 Python 缺失项，实为 Python 本就单类型（`type_combo`），此项是 TS 增强而非补缺 |
 | engine_export.py | 353 | ⛔ | **有意不迁四引擎模板**（Unity/Unreal/Godot/Cocos2d 是**纯静态代码模板字符串**、无运行时数据计算，仅按字段名插值）；TS 刻意走 **Lua 数据模块导出**（`EngineExportButton`+`engine.exportData`）匹配用户真实的 Lua/fengari ARPG 管线（**Python 反而没有 Lua 导出**）。故四引擎模板对本案属装饰性死代码，不搬 |
-| startup_mode_dialog.py | 144 | ◐60% | 模式切换已迁；缺启动弹窗+「记住选择」持久化 |
+| startup_mode_dialog.py | 144 | ⛔ | **E57 改判 ⛔（设计性替换）**。该对话框是「**选择工作模式**」（数据设计 ↔ 策划书两条主线），依赖 PyQt 的双模式启动形态；**E28 顶层 IA 重写**后 TS 为「无侧栏单栈：策划书首页 ↔ 编辑器，一切能力从菜单进」⇒ **TS 全仓 `startupMode`/`startup_mode`/`mode-data`/`mode-ceshu` 零命中**，工作模式概念已不存在（同 `tab_manager.py` 的处置）。原判定「模式切换已迁」是误记（该「模式切换」指状态栏主题切换，与工作模式无关） |
 | type_editor_ai.py | 338 | ◐25% | 模板导入已迁；缺 AI 推荐字段/分析现有数据/联网参考 |
 | type_editor_dialog.py | 528 | ◐70% | `TypeEditorPanel.tsx`；缺布局分区编辑（已判不迁）/智能工具栏/拼音英译按钮 |
 | type_editor_field_widget.py | 345 | ◐80% | 字段全属性+ID 生成（`fieldId.ts`/`fieldIdAi.ts`）；缺拼音兜底（E6 明示未做） |
-| api_config.py | 686 | ◐ | **E41 已迁「基础设置」**（6 家服务商 / base_url / model / 温度 / 最大令牌 + Key 走 safeStorage，见 `shared/llmConfig.ts` + `main/llm/client.ts`）；**未迁**：模型管理 tab（自定义模型增删改，写 PyQt 私有 `custom_models.json`，TS 模型清单来自 Ollama 运行时）、视觉模型 tab（TS 无消费者）、模板设置 tab（实为技能生成偏好，属内容域） |
+| api_config.py | 686 | ◐ | **E41 已迁「基础设置」**（6 家服务商 / base_url / model / 温度 / 最大令牌 + Key 走 safeStorage，见 `shared/llmConfig.ts` + `main/llm/client.ts`）；**未迁**：模型管理 tab（自定义模型增删改，写 PyQt 私有 `custom_models.json`，无同一消费者）、视觉模型 tab（TS 无截图识别/UI 分析消费者）、模板设置 tab（实为技能生成偏好，属内容域）。**E57 补一处真缺口**：基础设置页的「**测试连接**」按钮（`api_config.py:641-685` → `common/ai_client.test_api_connection`）TS 侧**无对应**（全仓 `测试连接`/`testConnection` 零命中），依赖 AI 域客户端实现（`common/ai_client.py` 自身完成度 40%）⇒ 保留 ◐ |
 | backup_manager.py | 155 | ✅ | `shared/backup.ts`（命名/时间戳/`BackupEntry`/`RestoreOutcome`）+ `main/backup/backupStore.ts`（**原子写 tmp+rename**、**软删除**改名 `.deleted`、**路径包含校验** 拒目录穿越）+ `main/backup/restore.ts`（**恢复前自动 pre-restore 快照**、按 id 差集删除多余条目后 upsert，**保留 id 故引用不错乱**）+ 4 条 IPC + `BackupPanel.tsx`。**刻意修正 Python 四处缺陷**：只改内存不落盘（假成功）、无 pre-restore 备份、`unlink` 永久删、`split(' - ')[1]` 反推文件名 |
 | data_diff_dialog.py | 154 | ✅ | `DataDiffPanel.tsx`（**当前 vs 用户设定的基线**，基线缓存在 localStorage）。**不照搬 Python 的残废行为**：Python 执行 `DataDiff.compare({}, {...})` 拿空 dict 与当前数据比，**永远只输出「全部新增」**、从不做真对比（文件头却自称对比历史版本）；TS 改为真正的双侧对比。**注意 `ceshuDiff.ts` 对应的是另一文件（策划书版本），与此无关** |
 | quick_create.py | 543 | ✅ | `shared/quickCreate.ts`（TEMPLATE_DEFS 12 类/61 模板 + DATA_TYPE_LABELS）+ `QuickCreatePanel.tsx`；落库复用 `data:createItem`。**刻意修正**：Python `_on_create` 里 `data_type + "s"` 死代码不复制；类型下拉与 schema 求交（`filterQuickCreateTypes`），防造出无类型定义的孤儿条目 |
@@ -491,11 +520,11 @@ E51 的独立验证者报告：在策划书右侧预览面板里，条目行的*
 - **全量枚举**：脚本统计 `src/**/*.py`（排除 `__pycache__`）→ 299 文件 / 91,164 行，按域分组行数。
 - **逐文件判定**：8 个**只读**子代理并行审计（每个域一个），要求对每个文件给出**具体依据** —— TS 文件路径 + 导出符号，或「grep 无消费者」这类实证；明确禁止「文件名相似即判已迁」。
 - **域总量对账**：每份审计的（文件 / 行）总量必须与脚本统计的域总量相等；8 份全部通过。**E54 补**：此前四类**分类计数**虽总和正确，但 §1 / §2 / §3 三处互相不一致；E54 已以 §3 逐文件明细为准统一（见 §1），并修掉 §3 两处不精确行数。
-- **全局对账**：四类合计 = 299 文件 / 91,164 行，**PASS**（见 §1）；且 §1 = §2 = Σ§3，**逐格相等**（E54 校准，E56 同步后仍成立）。
+- **全局对账**：四类合计 = 299 文件 / 91,164 行，**PASS**（见 §1）；且 §1 = §2 = Σ§3，**逐格相等**（E54 校准，E56 / E57 同步后仍成立）。
 - **已知误差来源**：①「◐部分已迁」的完成度是**估计值**（各代理给出，主观性存在）；②「⛔有意不迁」的判定依赖既有决策记录 + grep 实证，若某模块将来被需要需重新评估；③ 判定粒度是「文件」，同一文件内不同功能的迁移状态可能不一致（已在依据里尽量写明）。
 
 ## 6. 本次审计纠正的三处早前误判
 
-1. **roadmap §2 的「剩余 ≈3.5–4.5k 行（4–5%）」是错的** —— 逐文件审计给出的真实剩余，经 E42 / E54 / E56 三轮扣减后为 **≈0.5–0.8 万行（6–9%）**（时间线：10-04 首版 ≈2.4–2.8 万行 → E42 写掉 `core/agent` 未迁部分 → E54 校准 → E56 落实 AI 域口径，见 §1「E56 ◐ 行文件级复核」）。那句估算把三个混合态域当成了基本迁完，且口径过窄。
+1. **roadmap §2 的「剩余 ≈3.5–4.5k 行（4–5%）」是错的** —— 逐文件审计给出的真实剩余，经 E42 / E54 / E56 / E57 四轮扣减后为 **≈0.5–0.7 万行（6–8%）**（时间线：10-04 首版 ≈2.4–2.8 万行 → E42 写掉 `core/agent` 未迁部分 → E54 校准 → E56 落实 AI 域口径 → E57 前端尾巴收口，见 §1「E56 ◐ 行文件级复核」/「E57 前端尾巴收口」）。那句估算把三个混合态域当成了基本迁完，且口径过窄。
 2. **三条「已迁映射」线索是错的**（幸好标注了"须自行核实"）：`ui/dialogs/template_manager.py` ✗≠ `TemplateEditorPanel`（后者对应**策划书**模板）、`statistics.py` ✗≠ `WordStatsPanel`（后者是策划书字数）、`data_diff_dialog.py` ✗≠ `ceshuDiff.ts`（后者对应策划书版本对比）。这三个文件当时实为**未迁** —— **均已于后续切片迁完**（E12 / E11 / E15）。
 3. **`common/` 不能整体按「用不到」处理**：`logger.py` 引用 142 处、`event_bus.py` 18 处、`lucide_icon.py` 11 处、`i18n.py` 4 处、`rate_limiter.py` 2 处 —— 这些**有真实消费者**，属未迁而非"设计上不迁"。（其余 15 个文件确认 src 内 0 引用，是真死代码。）

@@ -12,8 +12,9 @@ type EngineTarget = EngineExportInput['engine']
  *
  * 设计取舍：
  * - 菜单栏是整个应用**唯一的能力入口**（对齐 PyQt：无侧栏，能力全在菜单里）。
- * - 凡 TS 已有对应能力的菜单项直接接线；尚无实现的项（引擎批量导入/导出、关系图、数据分析子项、
- *   设置/帮助等）保持与 PyQt 一致的菜单结构，但点击后给出「尚未实现」的轻提示，不伪造功能。
+ * - **全部菜单项均已接线**（E37 起分批清理 `notImplemented` 占位，E57 收掉最后两项 → 见
+ *   `menuTree` 里「内容关联」位置的注释）。菜单里**不存在**「点了只报尚未实现」的占位项，
+ *   故 `notImplemented` 这个动作与对应的占位机制已一并移除 —— 今后新能力要么接线、要么不进菜单。
  * - 菜单栏**右侧角部件**（对齐 PyQt `menuBar().setCornerWidget`）承载库选择与
  *   「设置 / 智能体 / AI」三个强调按钮；库条（`library-bar`）自侧栏迁入此处并保持可见。
  */
@@ -58,6 +59,8 @@ export interface MenuActions {
   redo: () => void
   quickCreate: () => void
   references: () => void
+  /** 「工具 → 关系图」：表格式总览某条数据的关联数据（对齐 PyQt `relation_graph.py::RelationTablePanel`） */
+  relationGraph: () => void
   dataDiff: () => void
   stats: () => void
   attrSystem: () => void
@@ -88,7 +91,6 @@ export interface MenuActions {
   about: () => void
   /** 「帮助 → 快速入门」：打开引导式主页浮层（对齐 PyQt `HomeWidget`） */
   onboarding: () => void
-  notImplemented: (label: string) => void
   quit: () => void
 }
 
@@ -103,8 +105,8 @@ interface MenuActionItem {
    */
   arg?: string
   /**
-   * 稳定测试锚点（E2E 用）。仅挂在**真正可用**的菜单项上；
-   * `action: 'notImplemented'` 的占位项与分隔符一律不给（避免暗示「可测/可用」）。
+   * 稳定测试锚点（E2E 用）。菜单项**全部可点**（无占位项），但仍只给「有真实行为」的项挂
+   * testid：分隔符不挂。
    */
   testid?: string
 }
@@ -149,9 +151,7 @@ export default function MenuBar({ canUndo, canRedo, actions }: MenuBarProps) {
   }, [openIndex])
 
   const run = (item: MenuActionItem): void => {
-    if (item.action === 'notImplemented') {
-      actions.notImplemented(item.label)
-    } else if (item.action === 'engineExport') {
+    if (item.action === 'engineExport') {
       // 四个引擎菜单项共用一个 action，用 arg 传目标引擎（缺省 lua 兼容旧调用）
       actions.engineExport((item.arg ?? 'lua') as EngineTarget)
     } else {
@@ -216,7 +216,7 @@ export default function MenuBar({ canUndo, canRedo, actions }: MenuBarProps) {
       { type: 'action', label: '批量修改数据', action: 'batchEdit', testid: 'menuitem-tools-batchEdit' },
       { type: 'action', label: '数据关联预览', action: 'references', testid: 'menuitem-tools-references' },
       { type: 'separator' },
-      { type: 'action', label: '关系图', action: 'notImplemented' },
+      { type: 'action', label: '关系图', action: 'relationGraph', testid: 'menuitem-tools-relationGraph' },
       { type: 'action', label: '数据对比', action: 'dataDiff', testid: 'menuitem-tools-dataDiff' },
       { type: 'separator' },
       {
@@ -228,14 +228,14 @@ export default function MenuBar({ canUndo, canRedo, actions }: MenuBarProps) {
           { type: 'action', label: '游戏数据统计', action: 'stats', testid: 'menuitem-tools-stats' }
         ]
       },
-      {
-        type: 'submenu',
-        label: '内容关联',
-        items: [
-          { type: 'action', label: '内容关联管理', action: 'notImplemented' },
-          { type: 'action', label: '关联可视化', action: 'notImplemented' }
-        ]
-      },
+      /*
+       * 原「内容关联」子菜单两项（内容关联管理 / 关联可视化）**已删除**（E57）。
+       * 依据：PyQt `features/advanced.py:30-45` 两个 handler **函数体完全相同**，都是
+       * `ReferencePanel(dm, "", "", mw)`（**空 type / 空 id**），而 `reference_panel.py::_find_item()`
+       * 对空 type 必然返回 `None` ⇒ 该对话框**任何情况下只渲染「未找到该数据」**，是死入口。
+       * 其能力面已由两条真实入口覆盖：`references`（「数据关联预览」，按目标看引用）+
+       * `relationGraph`（「关系图」，按类型/主体浏览关联）。**不保留占位项**（点了报「尚未实现」= 假控件）。
+       */
       { type: 'separator' },
       { type: 'action', label: '属性系统编辑器', action: 'attrSystem', testid: 'menuitem-tools-attrSystem' },
       { type: 'action', label: '字段结构编辑器', action: 'fieldEditor', testid: 'menuitem-tools-fieldEditor' },

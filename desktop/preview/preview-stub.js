@@ -139,7 +139,7 @@
       ],
       save: async (req) => (req && req.types) || [],
       suggestFieldIds: async () => ({ suggestions: [] }),
-      listFieldTemplates: async () => [], getFieldTemplate: async () => ({ fields: [] }),
+      listFieldTemplates: async () => ({ builtin: [], custom: [] }), getFieldTemplate: async () => ({ fields: [] }),
       saveFieldTemplate: ok, deleteFieldTemplate: async () => ({ deleted: true })
     },
     agent: {

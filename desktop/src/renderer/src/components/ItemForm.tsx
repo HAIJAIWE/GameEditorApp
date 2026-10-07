@@ -217,6 +217,12 @@ interface FieldControlProps {
   imagePath?: string
   /** 当前条目的名称（「自动填充」模板要它，对齐 PyQt `_on_auto_generate_image_info` 的 `data.get('name')`） */
   itemName?: string
+  /**
+   * `dialog` 字段可选的对话条目（对齐 PyQt `dynamic_form.py::_on_select_dialog`：
+   * 从 `data['dialogs']` 里选一条，写回其 **id**，列表显示 `id — name`）。
+   * 由 ItemForm 懒加载后传入；缺省空数组时控件禁用并给出提示。
+   */
+  dialogOptions?: readonly ItemRecord[]
 }
 
 /**
@@ -236,6 +242,12 @@ interface FieldAiAssist {
   analyzeImageTags: (imagePath: string) => Promise<string>
 }
 
+/** 条目显示名（name 优先，回退 id）——`dialog` 候选列表与只读展示共用 */
+function itemNameOf(record: ItemRecord): string {
+  const name = record.data.name
+  return typeof name === 'string' && name !== '' ? name : record.id
+}
+
 function FieldControl({
   field,
   value,
@@ -244,7 +256,8 @@ function FieldControl({
   onTemplatePicked,
   aiAssist,
   imagePath,
-  itemName = ''
+  itemName = '',
+  dialogOptions = []
 }: FieldControlProps) {
   const testId = `field-${field.name}`
   const [picking, setPicking] = useState(false)
@@ -601,6 +614,45 @@ function FieldControl({
         </div>
       )
     }
+    /*
+     * `dialog`：**只读展示当前 id + 下拉选择一条对话**
+     * （对齐 PyQt `dynamic_form.py::_create_dialog_widget` + `_on_select_dialog`：
+     * 只读 QLineEdit + 「选择对话」按钮 → 列出 `dialogs` 的 `id — name`，选中后写回其 **id**）。
+     * TS 原先落到 `default` 分支是**可编辑**单行框 —— id 得手打、也没有候选可挑。
+     */
+    case 'dialog': {
+      const current = value === null || value === undefined ? '' : String(value)
+      const locked = !field.editable
+      const known = dialogOptions.some((entry) => entry.id === current)
+      const hasOptions = dialogOptions.length > 0
+      return (
+        <div className="dialog-field" data-testid={`${testId}-wrap`}>
+          <select
+            id={testId}
+            className="form-select"
+            data-testid={testId}
+            value={current}
+            disabled={locked || !hasOptions}
+            title={hasOptions ? undefined : '没有可用的对话数据，请先在「对话」类型中创建数据'}
+            onChange={(event) => onChange(event.target.value)}
+          >
+            <option value="">（未选择）</option>
+            {/* 值指向已被删除的对话时保留原值可见（不静默清空），与 Python 的只读框行为一致 */}
+            {current !== '' && !known && <option value={current}>{current}（已失效）</option>}
+            {dialogOptions.map((entry) => (
+              <option key={entry.id} value={entry.id}>
+                {entry.id} — {itemNameOf(entry)}
+              </option>
+            ))}
+          </select>
+          {!hasOptions && (
+            <span className="form-hint" data-testid={`${testId}-empty`}>
+              没有可用的对话数据，请先在「对话」类型中创建数据
+            </span>
+          )}
+        </div>
+      )
+    }
     default:
       return (
         <input
@@ -615,7 +667,6 @@ function FieldControl({
       )
   }
 }
-
 export default function ItemForm({
   item,
   fields,
@@ -633,8 +684,11 @@ export default function ItemForm({
   const [moreOpen, setMoreOpen] = useState(false)
   const moreRef = useRef<HTMLDivElement | null>(null)
   const hasAttrTable = fields.some((field) => field.type === 'attrtable')
+  const hasDialogField = fields.some((field) => field.type === 'dialog')
   const [attrSystem, setAttrSystem] = useState<AttrSystem | null>(null)
   const [attrSystemError, setAttrSystemError] = useState<string | null>(null)
+  /** `dialog` 字段的候选对话（懒加载；无该形态字段时不请求） */
+  const [dialogOptions, setDialogOptions] = useState<ItemRecord[]>([])
 
   // 属性系统懒加载（仅含 attrtable 字段的表单需要，用于计算预览）
   useEffect(() => {
@@ -652,6 +706,24 @@ export default function ItemForm({
       cancelled = true
     }
   }, [hasAttrTable])
+
+  // `dialog` 字段候选懒加载（对齐 PyQt `_on_select_dialog` 读 `data['dialogs']`）
+  useEffect(() => {
+    if (!hasDialogField) return undefined
+    let cancelled = false
+    window.mbApi.data
+      .listItems({ type: 'dialog' })
+      .then((items) => {
+        if (!cancelled) setDialogOptions(items)
+      })
+      .catch(() => {
+        // 读取失败按「暂无候选」处理（控件会显示空态提示），不打断整表单
+        if (!cancelled) setDialogOptions([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [hasDialogField])
 
   // 「更多 ▸」下拉：点击别处关闭（对齐工具栏下拉的常规行为）
   useEffect(() => {
@@ -891,6 +963,7 @@ export default function ItemForm({
         aiAssist={aiAssist}
         imagePath={currentImagePath()}
         itemName={currentItemName()}
+        dialogOptions={dialogOptions}
       />
     )
   }
