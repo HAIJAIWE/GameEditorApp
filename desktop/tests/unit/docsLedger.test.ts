@@ -117,6 +117,7 @@ const REQUIRED_ROADMAP_MARKERS: readonly string[] = [
   'E51（2026-10-07）',
   'E52（2026-10-07）',
   'E53（2026-10-07）',
+  'E54（2026-10-07）',
   '停止 1:1 迁移',
   '已由 E7 补齐', // E6 遗留项已被 E7 补齐的标记（回退会退回旧措辞）
   'migration-audit.md' // §2 必须指向文件级审计
@@ -143,7 +144,7 @@ describe('文档守护：迁移台账不得被静默截断', () => {
 
   it('§2 的审计结论块在场（真实剩余量的唯一入口）', () => {
     expect(roadmap).toContain('真实剩余量已被**文件级审计**确定')
-    expect(roadmap).toContain('真实剩余 ≈ 2.4–2.8 万行（26–31%）')
+    expect(roadmap).toContain('真实剩余 ≈ 1.1–1.5 万行（12–16%）')
   })
 })
 
@@ -159,7 +160,7 @@ describe('文档守护：迁移台账不得被静默截断', () => {
 const REQUIRED_AUDIT_MARKERS: readonly string[] = [
   'core/agent` 域**停止 1:1 迁移', // E42 裁决：停止迁移改重写
   '非 AI 部分的一致性', // E43 复核：主体一致但有缺口
-  '±2 文件 / 480 行' // 审计自认的数据矛盾（复核前必须留着，不能悄悄抹平）
+  '±2 文件 / 480 行' // 审计曾自认的数据矛盾（E54 已复核消除；保留其历史痕迹，防文档回退抹掉这段纠错记录）
 ]
 
 describe('文档守护：审计数字必须自洽且两处一致', () => {
@@ -194,5 +195,39 @@ describe('文档守护：审计数字必须自洽且两处一致', () => {
   it('审计文档写明它推翻了早前的 4–5% 估算（保留纠错痕迹）', () => {
     expect(audit).toContain('4–5%')
     expect(roadmap).toContain('4–5%')
+  })
+
+  /**
+   * E54（2026-10-07）新增：锁死「§1 ＝ §2 域表合计」。
+   *
+   * ## 为什么会有这条
+   * E54 之前，同一份审计里存在**三套互不相等的分类计数**：
+   * §1 结论表 `106 / 51 / 92 / 50`、§2 域表合计 `105 / 49 / 92 / 53`、§3 逐文件明细加总 `105 / 58 / 92 / 44`。
+   * 三者**总量**都 = 299 / 91,164，但逐类对不上，且这条矛盾在审计顶部横幅里被「承认过」却**两年没复核**。
+   * E54 以 §3 逐文件明细为唯一真源统一为 `109 / 58 / 125 / 7`。
+   * 本用例只需一条断言即可防住它再次漂移 —— 只要有人改了 §1 却不同步 §2（或反之），立刻红。
+   *
+   * 有效性已用**已知坏版本**验过：拿 `git show HEAD:desktop/docs/migration-audit.md`（§1=106、§2 合计=105）
+   * 跑同一段解析逻辑，如实报 `files 105 ≠ 106`。
+   */
+  it('审计 §1 与 §2 域表「合计」逐格一致（E54 校准成果，防再次漂移）', () => {
+    const totalRow = audit.split('\n').find((line) => /^\|\s*\*\*合计\*\*\s*\|/.test(line))
+    expect(totalRow, '审计 §2 缺「合计」行').toBeTruthy()
+    // '| a | b | 合计 | 299 | 91,164 | 109 / 40,116 | 58 / 21,503 | 125 / 28,277 | 7 / 1,268 |'
+    const cells = totalRow!.split('|').map((cell) => cell.replace(/[*`]/g, '').trim())
+    const totalFiles = Number(cells[2].replace(/,/g, ''))
+    const totalLines = Number(cells[3].replace(/,/g, ''))
+    expect(totalFiles, '§2 合计文件数').toBe(299)
+    expect(totalLines, '§2 合计行数').toBe(91_164)
+    const pairs: readonly [string, number, { files: number; lines: number }][] = [
+      ['✅ 已迁', 4, migrated],
+      ['◐ 部分已迁', 5, partial],
+      ['⛔ 有意不迁', 6, skipped],
+      ['⚠️ 未迁', 7, todo]
+    ]
+    for (const [label, index, row] of pairs) {
+      const [files, lines] = cells[index].split('/').map((value) => Number(value.replace(/,/g, '').trim()))
+      expect({ files, lines }, `§2 合计的「${label}」与 §1 不一致`).toEqual({ files: row.files, lines: row.lines })
+    }
   })
 })

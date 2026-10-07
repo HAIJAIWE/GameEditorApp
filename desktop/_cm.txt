@@ -1,74 +1,46 @@
-E53: 复核 3 项「TS 等价物待核」+ 更正审计一处自相矛盾（不改迁移计数）
+E54: 台账校准 —— 消除审计「三套数字互相矛盾」（§1 = §2 = Σ§3 逐格相等）
 
-性质：文档准确性 pass（复核 + 纠错），不新增产品代码。
-不改 §1/§2 分类计数（仍 106 / 51 / 92 / 50，总 299 文件 / 91,164 行）。
+动因：同一份审计里存在 3 套互不相等的分类计数 —— §1 结论表 106/51/92/50、
+§2 域表合计 105/49/92/53、§3 逐文件明细加总 105/58/92/44。三者总量都 = 299/91,164，
+但逐类对不上；审计顶部横幅自己承认过「±2 文件 / 480 行待复核」，一直没复核。
 
-1) 复核 E52 遗留的 3 项（读 Python 真源 + grep TS 对照物，不按名字臆测）
-1. `data_tab.py`「更多 ▾」按钮分组 = **多数已迁**。
-   `ItemForm.tsx:987-1044` 有 toolbar-more / toolbar-more-menu /
-   item-form-more-edit-type / item-form-more-references，docblock 明写
-   「对应 PyQt data_tab 的 more_btn 菜单」，已收纳 PyQt 三项中的 2 项
-   （编辑当前类型字段结构 / 查看此项的引用关系）。
-   但**第 3 项「参考策划方案 / 模板」无 TS**（PyQt `_planning_action` →
-   `_on_select_planning` / `_on_select_template`）：实测 TS 侧
-   `planning_docs_v3` / `selected_planning_doc` / 技能归属模板选择**零命中**；
-   Python 侧是活代码（`data_tab.py:648-657` 用 `selected_planning_doc`
-   拼 AI 提示词：游戏理念/世界观/玩法）。
-   ⇒ 这正是 `data_tab.py` 维持 ◐ 的那条残留（E50/E51 已记）。
+做法（可复现）：以 §3 逐文件明细为唯一真源（唯一带逐文件证据、可脚本复算的一层），
+写脚本把每行（含「a / b / c」与「N 个 xxx」聚合行）折算成（文件数, 行数, 判定）后机械加总，
+重算 §1 与 §2；并修掉 §3 两处不精确行数（§3.4 聚合行 963→1,029、§3.7 聚合行 3,097→3,269），
+使 §3 加总精确 = 299 / 91,164。
 
-2. `_base.py` 的 `ai_path` = **确缺**（原判「已做」是错的，见第 2 节）。
-   `ai_path` 不是「某个字段的标注」，而是 **F1 章节表单按字段 AI 填充**整条机制：
-   `ai_field_button.py`(78 行) → `_common.py::_add_row(…, ai_path)` 建
-   `AIFieldButton` 并打 `ai_field_path` 属性 → `apply_ai_content_to_form` 回填 →
-   信号链 `chapter_panel.py:262-265` → `editor_view.py:210` →
-   `editor_view_mixins.py:56 _on_ai_fill_field` → `_AIFillFieldWorker`。
-   调用点 **111 处**（`_base.py` 32 / `_industrial.py` 79；
-   如「主要用户」= `vision.user_personas.primary`）。
-   TS 侧 `ai_field_path` / `AIFieldButton` / `ai_fill_requested` /
-   `apply_ai_content` / `aiFieldPath` **全部零命中**；
-   `shared/ceshuAi.ts` 只有整章 `buildChapterPrompt`。
+域级独立复算：脚本枚举 src/ 下 8 个域的（文件/行），与 §2 域表逐格相等
+（core/agent 97/24,670、ui/ceshu 35/14,620、ui/widgets 24/9,232、ui 顶层+themes+components
+31/9,883、core/ceshu+core 顶层+defaults 38/12,602、ui/dialogs 20/6,055、
+common+config+security+data+顶层 45/10,672、features 9/3,430）。
 
-3. `preview_panel.py::focus_first_editor()` = **已迁**。
-   `ceshu/CeshuDataPreview.tsx:63-66,86-106`：jumpEditor 命中即覆盖 activeKey、
-   targetNonce 支持重复跳转同一类型、未命中回落 onJumpMissed、
-   enabledEditors.length===0 走空态；docblock 已显式标注对齐 focus_first_editor。
+两处改判（逐条实证）：
+1) E42 裁决落地为数字 —— core/agent 的 33 文件 / 8,419 行「⚠️未迁」→「⛔」（框架改重写，
+   不再计入迁移欠债）。
+2) 4 个「早已迁完」文件 ⚠️→✅，共 1,363 行：ui/dialogs/settings_dialog.py 671
+   （SettingsPanel.tsx 21 个 testid）、common/data_importer.py 269（data:importCsv/importExcel
+   → csvIO.ts/excelIO.ts）、common/data_ref.py 209（shared/dataRef.ts，E44）、
+   common/lucide_icon.py 214（shared/lucideIcons.ts 43+33 键，E30）。
 
-2) 更正审计自相矛盾（本次真实缺陷）
-审计顶部「翻案」表原写 `ui/dialogs/ai_field_button.py` 78 行
-「字段级 AI 无 TS」= **已做**，证据 `ItemForm.tsx:751,799`。该判定**三处错**：
-- ① 路径误写：`ui/dialogs/` 不存在；真身 `ui/ceshu/ai_field_button.py`
-  （全仓仅此一个 78 行同名文件）。
-- ② 证据张冠李戴：`ItemForm.tsx:751/799` 是**数据条目表单**的字段 AI
-  （`FieldAiAssist`：generateDesc / generateImage / analyzeImageTags，
-  即审计顶部 AI 横幅里那条第 4 项 `llm:generate` 字段级按钮 ——
-  **已迁且在用，重写 AI 框架时必须保留**），**不等于**章节表单的 `ai_path`。
-- ③ 与 §3.2 的 `ai_field_button.py | ⚠️` 行、`editor_view_workers.py |
-  ◐50% 单字段填充 _AIFillFieldWorker 无对应` 行**直接打架**。
-已按实测更正为「**翻案不成立 ⇒ 维持未迁**」，并把表头由
-「翻案的 3 条」改为「复核的 3 条（2 条成立、1 条被推翻）」，
-另新增「②-b」小表存档三项待核的结论。
+结果：✅109 / 40,116 · ◐58 / 21,503 · ⛔125 / 28,277 · ⚠️7 / 1,268（合计 299 文件 / 91,164 行，
+§1 = §2 = Σ§3 逐格相等）。真实剩余由「≈2.4–2.8 万行（26–31%）」降为「≈1.1–1.5 万行（12–16%）」，
+下降逐笔可复核：8,419 行＝E42 改判为不迁（决策，非已做完）；1,363 行＝4 个早已迁完文件上移 ✅；
+1,542 行＝§1 与 §3 明细对不上的 6 文件归位为「◐」。
 
-3) 未做（刻意，等裁决）
-**不移植** F1 字段级 AI 填充，也不补 `data_tab.py` 的「参考策划方案」残留。
-理由：二者整条依赖 AI 能力链，而主理人已裁决 AI 框架**重写**
-（audit 顶部 E42 横幅）；此刻 1:1 移植 111 处调用点 = 极可能白做，属过度开发。
+顺带修正的过期数字：
+- roadmap §2 基线行「Python 299 文件 / 78,746 行；TS 91 文件 / 20,568 行（≈26% 当量）」
+  → 实测 Python 91,164 行（非空 78,830）、TS 215 文件 / 44,050 行。
+- roadmap §6 排期表「下一步 A2-1」→ A2-1 已落地（main/library/{manager,migrate,store}.ts
+  + main/index.ts:161-174 首启 migrateFlatToLibraries 搬进 libraries/初始库/）。
 
-4) §3.2 依据同步（计数未动）
-`_common.py` / `_base.py` / `_industrial.py` 三行**仍标 ✅**（本审计粒度是「文件」，
-其表单构建确实已迁；§5 已声明同一文件内功能可处于不同迁移态），
-但各加一句 E53 补充指向未迁的 `ai_path` 机制，避免读者误判整文件零缺口。
-**若主理人认为应按「机制粒度」把这些文件降为 ◐，需同步改 §1 + §2 + roadmap §2
-三处计数 —— 本轮未动，不擅自改数。**
+守卫（tests/unit/docsLedger.test.ts）：
+- 新增断言「审计 §1 与 §2 域表合计逐格一致」；有效性已用 git HEAD 坏版本验过 —— 对 HEAD
+  （§1=106、§2 合计=105）如实报 3 处不一致（✅/◐/⚠️），对当前工作区全通过。
+- REQUIRED_ROADMAP_MARKERS 增 'E54（2026-10-07）'；§2 结论块断言改为新的
+  '真实剩余 ≈ 1.1–1.5 万行（12–16%）'；'±2 文件 / 480 行' 标记保留（历史纠错痕迹）。
 
-5) 文档与守卫
-- `docs/migration-audit.md`：顶部「②」表更正 + 新增「②-b」三项待核结论表；
-  §3.2 四行依据补充（`ai_field_button.py` ⚠️ 行 + 三个 ✅ 行的 E53 补充）。
-- `docs/ts-migration-roadmap.md`：新增 E53 台账条目；E52 的「待核」行改写为
-  「E53 已复核（①多数已迁 ②确缺 ③已迁）」。
-- `tests/unit/docsLedger.test.ts`：REQUIRED_ROADMAP_MARKERS 增
-  'E53（2026-10-07）'。
-- §1 结论表与对账行数字未动（四类仍 106/51/92/50，合计 299 文件 / 91,164 行）。
+未做（刻意，等裁决）：ui/widgets/team_dialog.py（818 行）在 §3 记 ⚠️ —— E42 横幅举例文字里
+提过「team_dialog 团队 CRUD」，但该文件属 ui/widgets 域、不在 core/agent 的 33 文件内，
+故未擅自改判（改判只需改一行）。
 
-验证：docsLedger 7/7（§1↔roadmap §2 一致 + 对账 299/91,164；两文档 ^## 各 6）；
-双端 tsc 0（`npm run typecheck`）/ eslint 0 / vitest 115 文件 1756 用例全绿
-（本次无代码改动，属回归确认）。
+验证：eslint 0 / 双端 tsc 0 / vitest 115 文件 1757 用例全绿 / electron-vite build OK。

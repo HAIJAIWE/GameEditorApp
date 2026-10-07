@@ -8,9 +8,8 @@
 > 这些**主干功能逻辑一致**；仍有**若干真实缺口 + 1 处审计自身的数据自相矛盾**。逐条实测如下
 > （⚠️ 审计表头是 10-04 的，以下每条都在 10-07 重新 grep 核实过，**已剔除因 E28–E41 而过期的判定**）。
 >
-> **① 审计数据自相矛盾（未解决）**：§1 结论表与 §2 域表存在 **±2 文件 / 480 行** 差异
-> （§2 合计 93+61+88+57=299 但行数为 34,605+22,917+18,756+14,886，与 §1 的分项加总对不上）。
-> 审计自己写了「域行的这一处差异待逐文件复核」，**至今未复核**。⇒ 引用审计数字时**只能用 §1**。
+> **① 审计数据自相矛盾（E54 已复核消除）**：原先 §1 结论表、§2 域表、§3 逐文件明细**三套分类计数互不相同** —— 对外表现为 **±2 文件 / 480 行** 的差异（§2 一度算出 `93+61+88+57=299`、行数 `34,605+22,917+18,756+14,886`，与 §1 加总对不上）。
+> **E54（2026-10-07）已以 §3 逐文件明细为唯一真源重算 §1/§2**，三者现**逐格相等**（109 / 58 / 125 / 7 = 299 文件、40,116 + 21,503 + 28,277 + 1,268 = 91,164 行）；方法与逐笔来源见 §1 的「E54 台账校准」块。
 >
 > **② 审计已过期、本轮实测复核的 3 条**（2 条翻案成立、1 条翻案被 E53 推翻）：
 > | 原判 | 实测 | 证据 |
@@ -45,9 +44,8 @@
 > `intent.py` 规则意图解析 718 行、`mcp.py` 客户端 391 行、`team_dialog` 团队 CRUD、
 > `model_registry` 模型注册切换、以及**刻意不迁**的自愈链 4,166 行）**全部不再计入迁移欠债**。
 >
-> **含义**：本文件剩余量「≈2.4–2.8 万行 / 26–31%」这个数字**从 E42 起应扣除 `core/agent` 未迁部分**，
-> 即编辑器侧真实剩余 ≈ **1.4–1.7 万行**。⚠️ 该数字**待重跑审计后更新**（本轮未重跑，
-> 按项目纪律不伪造统计）。
+> **含义**：本文件剩余量已按此扣除 —— **E54（2026-10-07）已重跑审计**，现为 **≈1.1–1.5 万行（12–16%）**，
+> 其中「整块没做」的 ⚠️ 只剩 **7 文件 / 1,268 行**（`ai_field_button` 78 / `team_dialog` 818 / `auto_updater` 60 / `event_bus` 87 / `rate_limiter` 85 / `sentry_client` 52 / `privacy` 88，见 §1 与 §3 逐行）。
 >
 > **但请注意区分两类 AI 能力**（否则会误伤已迁且在用的功能）：
 > - **要重写的是「Agent 框架」**（brain/dispatcher/skills/记忆/意图那套自主决策循环）。
@@ -65,25 +63,41 @@
 
 ## 1. 结论
 
-**总计 299 文件 / 91,164 行**（`src/` 下全部 `.py`，不含 `__pycache__`）。
+**总计 299 文件 / 91,164 行**（`src/` 下全部 `.py`，不含 `__pycache__`；E54 用真源码枚举逐域复算，与 §2 域表**逐格相等**）。
 
 | 判定 | 文件 | 行数 | 占比 |
 |---|---|---|---|
-| ✅ 已迁 | 106 | 38,907 | 42.7% |
-| ◐ 部分已迁 | 51 | 19,807 | 21.7% |
-| ⛔ 有意不迁 | 92 | 19,858 | 21.8% |
-| ⚠️ 未迁（整块没做） | 50 | 12,592 | 13.8% |
+| ✅ 已迁 | 109 | 40,116 | 44.0% |
+| ◐ 部分已迁 | 58 | 21,503 | 23.6% |
+| ⛔ 有意不迁 | 125 | 28,277 | 31.0% |
+| ⚠️ 未迁（整块没做） | 7 | 1,268 | 1.4% |
 
-**对账（必须相等，已 PASS）**：`106+51+92+50 = 299` ✓、`38907+19807+19858+12592 = 91,164` ✓
+**对账（必须相等，已 PASS）**：`109+58+125+7 = 299` ✓、`40116+21503+28277+1268 = 91,164` ✓
 
-### 真实剩余 ≈ 2.4–2.8 万行（26–31%）
+> ### E54 台账校准（2026-10-07）—— 本文件此前有「三套互不一致的数字」，本轮统一
+>
+> **问题**：同一份审计里 **§1 结论表**（106 / 51 / 92 / 50）、**§2 域表合计**（105 / 49 / 92 / 53）、**§3 逐文件明细加总**（105 / 58 / 92 / 44）三套分类计数互不相同。三者总量都等于 299 / 91,164，但**逐类对不上**（7 个文件在 §1 与 §3 间归类不同，9 个在 §2 与 §3 间不同）。审计顶部横幅自己也承认过「±2 文件 / 480 行差异待逐文件复核」，一直没复核。
+>
+> **E54 做法**：以 **§3 逐文件明细为唯一真源**（唯一带逐文件证据、且可脚本复算的一层）机械重算 §1 与 §2，使三者完全一致；并把 §3 两处「不精确行数」改精确（§3.4 聚合行 963→**1,029**、§3.7 聚合行 3,097→**3,269**），使 §3 加总**精确**等于 299 / 91,164。
+>
+> **同批的两处改判**（这才是「数字下降」的真实来源）：
+> 1. **E42 裁决落地**：`core/agent` 的 **33 文件 / 8,419 行「⚠️未迁」→ ⛔**（框架改为重写、不再计入迁移欠债）。
+> 2. **4 个「早已迁完」文件 ⚠️→✅**（逐条实证，共 1,363 行）：`ui/dialogs/settings_dialog.py` 671（`SettingsPanel.tsx` 21 个 testid）、`common/data_importer.py` 269（`data:importCsv`/`importExcel`）、`common/data_ref.py` 209（`shared/dataRef.ts`，E44）、`common/lucide_icon.py` 214（`shared/lucideIcons.ts` 43+33 键，E30）。
+>
+> **域级复算**：`src/` 下 8 个域的（文件数 / 行数）已用脚本枚举实测，与 §2 域表**逐格相等**（`core/agent` 97/24,670、`ui/ceshu` 35/14,620、`ui/widgets` 24/9,232、`ui/` 顶层+`themes`+`components` 31/9,883、`core/ceshu`+`core` 顶层+`defaults` 38/12,602、`ui/dialogs` 20/6,055、`common`+`config`+`security`+`data`+顶层 45/10,672、`features` 9/3,430）。
+>
+> **仍待裁决**：`ui/widgets/team_dialog.py`（818 行）现按 §3 记 **⚠️**；E42 横幅的举例文字里提过「team_dialog 团队 CRUD」，但该文件在 `ui/widgets` 域、不在 `core/agent` 的 33 文件内，故**未擅自改判**，留待主理人裁决（改判只需改一行）。
 
-- **确定未迁（整块没做）＝ 13,692 行 / 53 文件**（精确数字）
+### 真实剩余 ≈ 1.1–1.5 万行（12–16%）
+
+- **确定未迁（整块没做）＝ 1,268 行 / 7 文件**（精确数字）
 - **部分已迁里的缺口 ≈ 1.0–1.4 万行**（**估算**：按各文件的完成度估计汇总，各代理给的完成度多在 25%–75%，本身带主观性）
-- 合计 **≈ 2.4–2.8 万行**，占旧代码 **26–31%**
+- 合计 **≈ 1.1–1.5 万行**，占旧代码 **12–16%**
 
-> **口径说明**：不能把「⛔有意不迁」的 19,858 行算成欠债 —— 那些是**决策**（自愈链 5,372、样例数据 1,125、PyQt 胶水、死代码、Qt QSS 主题栈等），各有实证依据。
-> 但也不能把「◐部分已迁」算成已迁 —— 那 22,917 行里有一部分是真缺口。
+> **口径说明**：不能把「⛔有意不迁」的 28,277 行算成欠债 —— 那些是**决策**（`core/agent` 框架重写域 8,419、自愈链 4,166、样例数据 1,125、PyQt 胶水、死代码、Qt QSS 主题栈等），各有实证依据。
+> 但也不能把「◐部分已迁」算成已迁 —— 那 21,503 行里有一部分是真缺口。
+>
+> **相较 10-04 原判「≈2.4–2.8 万行（26–31%）」的下降，逐笔可复核**：① 8,419 行＝E42 把 `core/agent` 未迁**改判为不迁**（**决策，不等于已做完**）；② 1,363 行＝4 个早已迁完的文件从 ⚠️ 上移 ✅；③ 1,542 行＝§1 与 §3 明细对不上的 6 个文件归位为「◐」。
 
 ### ◐ 复核（2026-10-07，E50 更新）
 
@@ -144,22 +158,22 @@ E51 的独立验证者报告：在策划书右侧预览面板里，条目行的*
 
 | 域 | 文件 | 行数 | ✅已迁 | ◐部分 | ⛔不迁 | ⚠️未迁 |
 |---|---|---|---|---|---|---|
-| `core/agent` | 97 | 24,670 | 8 / 1,689 | 23 / 6,752 | 33 / 7,810 | 33 / 8,419 |
-| `ui/ceshu` | 35 | 14,620 | 26 / 12,345 | 4 / 1,612 | 3 / 363 | 2 / 300 |
-| `ui/widgets` | 24 | 9,232 | 14 / 6,053 | 2 / 795 | 6 / 962 | 2 / 1,422 |
-| `ui/` 顶层 + `themes` + `components` | 31 | 9,883 | 9 / 1,819 | 6 / 4,324 | 11 / 2,934 | 5 / 806 |
+| `core/agent` | 97 | 24,670 | 8 / 1,689 | 23 / 6,752 | 66 / 16,229 | 0 / 0 |
+| `ui/ceshu` | 35 | 14,620 | 26 / 12,345 | 5 / 1,834 | 3 / 363 | 1 / 78 |
+| `ui/widgets` | 24 | 9,232 | 14 / 6,053 | 3 / 1,399 | 6 / 962 | 1 / 818 |
+| `ui/` 顶层 + `themes` + `components` | 31 | 9,883 | 8 / 1,665 | 12 / 5,284 | 11 / 2,934 | 0 / 0 |
 | `core/ceshu` + `core` 顶层 + `defaults` | 38 | 12,602 | 28 / 11,129 | 2 / 225 | 8 / 1,248 | 0 / 0 |
-| `ui/dialogs` | 20 | 6,055 | 9 / 2,503 | 4 / 1,355 | 5 / 840 | 2 / 1,357 |
-| `common` + `config` + `security` + `data` + 顶层 | 45 | 10,672 | 7 / 1,671 | 6 / 2,489 | 23 / 5,293 | 9 / 1,219 |
+| `ui/dialogs` | 20 | 6,055 | 10 / 3,174 | 5 / 2,041 | 5 / 840 | 0 / 0 |
+| `common` + `config` + `security` + `data` + 顶层 | 45 | 10,672 | 11 / 2,518 | 6 / 2,489 | 23 / 5,293 | 5 / 372 |
 | `features` | 9 | 3,430 | 4 / 1,543 | 2 / 1,479 | 3 / 408 | 0 / 0 |
-| **合计** | **299** | **91,164** | **105 / 38,752** | **49 / 19,031** | **92 / 19,858** | **53 / 13,523** |
+| **合计** | **299** | **91,164** | **109 / 40,116** | **58 / 21,503** | **125 / 28,277** | **7 / 1,268** |
 
-> **注**：上表「合计」是各域行直接相加（105+49+92+53 = 299 文件、38,752+19,031+19,858+13,523 = 91,164 行，**内部自洽**）；它与 §1 结论表仍存在 **±2 文件 / 480 行** 的差异（个别文件在「已迁 ↔ 未迁」间归类不同）。**§1 是结论表、也是守护测试的解析源，以 §1 为准**；域行的这一处差异待逐文件复核。
+> **注（E54 已消除漂移）**：上表「合计」是各域行直接相加，且与 §1 结论表**逐格相等**（109 / 58 / 125 / 7 = 299 文件；40,116 + 21,503 + 28,277 + 1,268 = 91,164 行）。此前 §1 与 §2 存在 **±2 文件 / 480 行** 的差异、§1 与 §3 明细差 7 文件，**E54 已按 §3 逐文件明细统一**（方法、逐笔来源与仍待裁决项见 §1 的「E54 台账校准」块）；**§1 仍是守护测试的解析源**。
 
 **三个最值得注意的域**：
-1. **`core/agent`（最大域，24,670 行）→ 只有 8 个文件（1,689 行）是完整已迁**，33 个文件（8,419 行）整块未迁。A 档做的是「核心闭环」，不是「整个 Agent 引擎」。
-2. **`ui/` 顶层 + 主题（9,883 行）→ 仅 1,819 行完整已迁**，主题/特效/菜单/多标签整块未做（多为 C 档，但那是**决策**还是**欠债**需区分：主题≠核心功能）。
-3. **`ui/dialogs`（6,055 行）→ 仅 2,503 行完整已迁**，2 个文件（1,357 行）整块未迁（API 配置、设置）；快速创建/统计/字段模板/高级搜索/类型可见性/数据对比/备份已由此前的 E10–E16 迁出该列。
+1. **`core/agent`（最大域，24,670 行）→ 只有 8 个文件（1,689 行）是完整已迁**；另有 33 个文件（8,419 行）按 **E42** 改判「不迁（框架改为重写）」，不再计入欠债。A 档做的是「核心闭环」，不是「整个 Agent 引擎」。
+2. **`ui/` 顶层 + 主题（9,883 行）→ 仅 1,665 行完整已迁**，主题/特效/菜单/多标签整块未做（多为 C 档，但那是**决策**还是**欠债**需区分：主题≠核心功能）。
+3. **`ui/dialogs`（6,055 行）→ 已完整迁出 3,174 行**（E54 把 `settings_dialog.py` 671 行从 ⚠️ 上移 ✅），该域 **⚠️ 列已清零**；余下 `api_config.py`（模型管理/视觉/模板三 tab 未迁）等为 ◐。快速创建/统计/字段模板/高级搜索/类型可见性/数据对比/备份已由此前的 E10–E16 迁出。
 
 ## 3. 逐文件明细
 
@@ -210,24 +224,24 @@ E51 的独立验证者报告：在策划书右侧预览面板里，条目行的*
 | tools/tool_repair.py | 1,206 | ⛔ | 明确不迁（`tool_repair.py:786-792` 无原子回滚改写源文件） |
 | tools/tool_advanced.py | 856 | ⛔ | 仅被 `diagnosis_skill.py` 消费，属自愈链 |
 | tools/tool_shared.py + 5 个 `__init__.py` | 12+53 | ⛔ | 辅助常量 / 包 re-export |
-| brain_plan.py | 287 | ⚠️ | 计划驱动执行，A1-2 明确不移植 |
-| brain_reflect.py | 108 | ⚠️ | 失败反思，A1-2 明确不移植 |
-| brain_subagent.py | 67 | ⚠️ | SubAgent 通道，A1-1 明确不移植 |
-| intent.py | 718 | ⚠️ | 规则意图解析+Planner，TS 无 |
+| brain_plan.py | 287 | ⛔ | 计划驱动执行，A1-2 明确不移植 |
+| brain_reflect.py | 108 | ⛔ | 失败反思，A1-2 明确不移植 |
+| brain_subagent.py | 67 | ⛔ | SubAgent 通道，A1-1 明确不移植 |
+| intent.py | 718 | ⛔ | 规则意图解析+Planner，TS 无 |
 | learner.py | 543 | ◐ | **偏好/反馈子集已迁**：`shared/agent/personalization.ts`（extractPreferences/buildPersonalizedContext）+ `main/agent/preferenceStore.ts`（PreferenceStore/FeedbackStore）+ `brainService.ts` 注入系统提示词 + `agent:feedback` IPC；**未迁**：动作计数/转移矩阵、下一步建议、时间峰值、技能模板自动生成（依赖 TS 没有的 `Intent`/`BrainState`，属过度设计，有意不迁） |
-| mcp.py | 391 | ⚠️ | MCP 客户端（方案列「重设计」，未实施） |
-| memory_history.py | 211 | ⚠️ | 对话历史/反馈持久化，TS 无 |
-| model_registry.py | 186 | ⚠️ | 模型注册/切换，TS 无 |
-| speech_service.py / vision_capture.py | 235+306 | ⚠️ | TTS/ASR、截图 Vision，随技能暂缓 |
-| agents/agent_manager.py / collaboration.py / subagent_engine.py | 338+72+219 | ⚠️ | 团队/黑板/子智能体，TS 无 |
-| skills/audio_skill.py / image_skill.py / pdf_parse_skill.py | 246+487+465 | ⚠️ | 拍板暂缓 |
-| skills/model_skill.py / shell_skill.py / system_skill.py | 156+297+614 | ⚠️ | TS 无注册 |
-| skills/ui_control_skill.py / ui_preview_skill.py | 404+161 | ⚠️ | 操控 PyQt 界面，Electron 无对应 |
-| skills/schema_edit_skill.py / batch_data_skill.py | 359+65 | ⚠️ | UI 有对应能力但未接协议技能 |
-| skills/export_doc_skill.py / game_balance_skill.py / git_tool_skill.py | 152+155+190 | ⚠️ | TS 无 |
-| skills/todo_skill.py / web_search_skill.py / visualization_skill.py | 172+198+162 | ⚠️ | TS 无 |
-| skills/delegate_skill.py / scheduler_skill.py / workflow_skill.py | 75+155+214 | ⚠️ | 依赖未迁的团队/工作流 |
-| workflow/scheduler.py / workflow_engine.py | 242+312 | ⚠️ | 仅被 scheduler/workflow_skill 消费 |
+| mcp.py | 391 | ⛔ | MCP 客户端（方案列「重设计」，未实施） |
+| memory_history.py | 211 | ⛔ | 对话历史/反馈持久化，TS 无 |
+| model_registry.py | 186 | ⛔ | 模型注册/切换，TS 无 |
+| speech_service.py / vision_capture.py | 235+306 | ⛔ | TTS/ASR、截图 Vision，随技能暂缓 |
+| agents/agent_manager.py / collaboration.py / subagent_engine.py | 338+72+219 | ⛔ | 团队/黑板/子智能体，TS 无 |
+| skills/audio_skill.py / image_skill.py / pdf_parse_skill.py | 246+487+465 | ⛔ | 拍板暂缓 |
+| skills/model_skill.py / shell_skill.py / system_skill.py | 156+297+614 | ⛔ | TS 无注册 |
+| skills/ui_control_skill.py / ui_preview_skill.py | 404+161 | ⛔ | 操控 PyQt 界面，Electron 无对应 |
+| skills/schema_edit_skill.py / batch_data_skill.py | 359+65 | ⛔ | UI 有对应能力但未接协议技能 |
+| skills/export_doc_skill.py / game_balance_skill.py / git_tool_skill.py | 152+155+190 | ⛔ | TS 无 |
+| skills/todo_skill.py / web_search_skill.py / visualization_skill.py | 172+198+162 | ⛔ | TS 无 |
+| skills/delegate_skill.py / scheduler_skill.py / workflow_skill.py | 75+155+214 | ⛔ | 依赖未迁的团队/工作流 |
+| workflow/scheduler.py / workflow_engine.py | 242+312 | ⛔ | 仅被 scheduler/workflow_skill 消费 |
 
 ### 3.2 `ui/ceshu`（35 文件 / 14,620 行）—— **本域迁移质量最高**
 
@@ -319,7 +333,7 @@ E51 的独立验证者报告：在策划书右侧预览面板里，条目行的*
 | menus.py / shortcuts_dialog.py / tab_manager.py | 180+107+249 | ◐ | **tab_manager** 核心（多标签/延迟切标签/侧栏计数）已由 TS `mode-data`/`mode-ceshu`/`mode-digital` + `LibraryBar` 覆盖，仅剩「标签撕裂保护」边缘情形。**menus.py** 26 项中 TS 已覆盖 16 项（工具栏+侧栏）；**E49 更正（实测翻案）**：原写「撤销/重做 **TS 完全没有**」**为误**——撤销/重做**已迁**（E27：`shared/ipc.ts` `data:undo`/`data:redo`/`data:undoState` + `main/data/undoRecorder.ts` + `App.tsx` 按钮与 Ctrl+Z/Y）；清理未用图片（IPC `images:deleteImages` + 菜单 `menuitem-tools-cleanupUnusedImages`）、多引擎导出（Unity/Unreal/Godot/Cocos2d 四导出器 + Lua 导出 `main/engineExport/lua.ts`）**均已迁**。仅剩「数据关系图」一项为真实缺口（TS 无对应）。**shortcuts_dialog** 是纯键盘映射表（无消费者），随 menus 不迁（E50：window_state 已拆为独立 ✅ 行） |
 | components/image_loader.py | 324 | ✅ | **E46 已迁 `LazyImageLabel` 行为**（`shared/imageCache.ts` LRU 缓存 + `LazyImage` 组件，按已保存绝对路径经 `images:readByPath` 回读 data URL 回显预览，修「已保存图片路径不回显」的真 bug）；**未对齐**：不做 PIL 位图重采样（浏览器 `<img>` 引擎解码，CSS 限尺寸即可，属刻意的过度开发规避）（E50 重新分类为 ✅：TS 已等价实现，原 ◐ 判定过期） |
 | components/toast.py | 98 | ✅ | **E45 已补 Toast 组件**（`shared/toast.ts` + `ToastHost`，多条并存/自动消失/三态配色）；**未完全对齐**：未做 E2E 实机点击验证（无 jsdom 设施，见 roadmap E45 的诚实边界）（E50 重新分类为 ✅：TS 已等价实现，原 ◐ 判定过期） |
-| `__init__.py`×3 / ai_bridge.py / digital_panel_state.py / digital_panel_theme.py / layout_builder.py | 32+116+232+338+245 等 | ⛔ | 包胶水 / `a-tier-plan` 明列不迁（初始化窗口定位、类型桩、QSS 注入、QSplitter 布局） |
+| `__init__.py`×3 / ai_bridge.py / digital_panel_state.py / digital_panel_theme.py / layout_builder.py | 98+116+232+338+245 | ⛔ | 包胶水 / `a-tier-plan` 明列不迁（初始化窗口定位、类型桩、QSS 注入、QSplitter 布局）。**E54 校准**：原写 `32+116+… 等`（尾带「等」），实测三个 `__init__.py` 合计 **98**（32+10+56），故本行精确为 1,029 行 |
 
 ### 3.5 `core/ceshu` + `core` 顶层 + `core/defaults`（38 文件 / 12,602 行）
 
@@ -380,7 +394,7 @@ E51 的独立验证者报告：在策划书右侧预览面板里，条目行的*
 | backup_manager.py | 155 | ✅ | `shared/backup.ts`（命名/时间戳/`BackupEntry`/`RestoreOutcome`）+ `main/backup/backupStore.ts`（**原子写 tmp+rename**、**软删除**改名 `.deleted`、**路径包含校验** 拒目录穿越）+ `main/backup/restore.ts`（**恢复前自动 pre-restore 快照**、按 id 差集删除多余条目后 upsert，**保留 id 故引用不错乱**）+ 4 条 IPC + `BackupPanel.tsx`。**刻意修正 Python 四处缺陷**：只改内存不落盘（假成功）、无 pre-restore 备份、`unlink` 永久删、`split(' - ')[1]` 反推文件名 |
 | data_diff_dialog.py | 154 | ✅ | `DataDiffPanel.tsx`（**当前 vs 用户设定的基线**，基线缓存在 localStorage）。**不照搬 Python 的残废行为**：Python 执行 `DataDiff.compare({}, {...})` 拿空 dict 与当前数据比，**永远只输出「全部新增」**、从不做真对比（文件头却自称对比历史版本）；TS 改为真正的双侧对比。**注意 `ceshuDiff.ts` 对应的是另一文件（策划书版本），与此无关** |
 | quick_create.py | 543 | ✅ | `shared/quickCreate.ts`（TEMPLATE_DEFS 12 类/61 模板 + DATA_TYPE_LABELS）+ `QuickCreatePanel.tsx`；落库复用 `data:createItem`。**刻意修正**：Python `_on_create` 里 `data_type + "s"` 死代码不复制；类型下拉与 schema 求交（`filterQuickCreateTypes`），防造出无类型定义的孤儿条目 |
-| settings_dialog.py | 671 | ⚠️ | 设置面板整块未迁（C 档） |
+| settings_dialog.py | 671 | ✅ | **E54 实证已迁**：`renderer/src/components/SettingsPanel.tsx`（**21 个 `data-testid`**；E41 又补了 AI 模型服务区）。原判「设置面板整块未迁（C 档）」是 10-04 的过期快照 |
 | statistics.py | 374 | ✅ | **已迁**：`shared/dataStats.ts`（均值/样本标准差/平衡性判定阈值 0.3/按类型计数与占比/**按 schema spinbox 字段自动发现数值字段**）+ `StatisticsPanel.tsx`（概览柱条 + 平衡性分析）+ IPC `data:listAll`。<br>**缺**：① 角色/怪物的 `hp`/`atk`/`def` 分析 —— TS schema 里 **`role`/`monster` 根本没有这些扁平字段**（属性在 `attr_list`），直译即死代码，故改为自动发现（role 因此不出现在分析列表）；② Python 的「📈 图表」页是 **matplotlib 占位符**，不复制，改用 CSS 柱条真实渲染（E50 重新分类为 ✅：TS 已等价实现，原 ◐ 判定过期） |
 | template_manager.py | 411 | ✅ | **字段编辑部分早已由 `TypeEditorPanel` 覆盖**（增/删/上移/下移/名称·标签·类型·可编辑·可选值·数值范围），故本刀不重做第二套（避免重复计「已迁」）。<br>**本刀补齐的是模板存取**：`main/schema/fieldTemplateStore.ts`（`<库>/field_templates.json`，原子写）+ 4 条 IPC（`schema:listFieldTemplates`/`getFieldTemplate`/`saveFieldTemplate`/`deleteFieldTemplate`）+ `TypeEditorPanel` 里「保存当前为模板 / 删除模板」，自定义模板与内置模板在同一个下拉里（optgroup 分组），内置不可删。<br>**刻意不迁**：Python 的模板只存 `{字段名: 显示标签}`（`settings.py:780-786` 应用时**只覆盖 label**，类型/可选值/范围全丢）——是残废语义，TS 改存**完整 `TypeFieldDef[]`**，应用即整体还原（比 Python 强）（E50 重新分类为 ✅：TS 已等价实现，原 ◐ 判定过期） |
 | type_visibility_dialog.py | 121 | ✅ | `shared/visibleTypes.ts`（`isTypeVisible`/`normalizeVisibleTypes`/`resolveVisibilityResult`/`load`+`save`，语义：null=全部、`[]`=全隐藏）+ `TypeVisibilityPanel.tsx` + 侧栏「⚙ 管理显示类型」入口。**不开新 IPC**（纯渲染层 + localStorage）。**刻意修 Python 缺陷**：`settings.py:650` 用 `if ... and vt:` 判空列表 → 「全不选」重启即失效，TS 用「键是否存在」区分 |
@@ -404,16 +418,16 @@ E51 的独立验证者报告：在策划书右侧预览面板里，条目行的*
 | security/sandbox.py | 325 | ◐ | 已由 `main/security/jsSandbox.ts`（QuickJS 白名单）**设计性替换**；引用 2 处 |
 | common/auto_updater.py | 60 | ⚠️ | TS 无；引用 1 处 |
 | common/data_diff.py | 197 | ✅ | `shared/itemDiff.ts`（`diffValues`/`diffItems`/`diffLibraries`/`collectLeaves`/`summarizeDiff`）。**修 Python 三处缺陷**：① 数组元素**不递归**（`_compare_list` 整块标 MODIFIED）→ 递归；② `compare_items_by_id` 新增/删除只塞 `name` 一个标量 → 携带 `data` 全量；③ 从不产出的 `UNCHANGED` 死枚举 → 无变化即不产出。**有意保留**数组按下标对齐（与 Python 一致，已在注释标注局限） |
-| common/data_importer.py | 269 | ⚠️ | TS 无（`legacyImport.ts` 仅旧 JSON；CSV/Excel 缺） |
-| common/data_ref.py | 209 | ⚠️ | `@data[...]` 解析无 TS；引用 1 处 |
+| common/data_importer.py | 269 | ✅ | **E54 实证已迁**：`main/ipc.ts:690` `data:importCsv`（+`data:importExcel`）→ `main/data/csvIO.ts::importCsvFile` / `excelIO.ts::importExcelFile`；旧 JSON 走 `data:importLegacy`（`legacyImport.ts`）。原判「TS 无」过期 |
+| common/data_ref.py | 209 | ✅ | **E54 实证已迁**：`shared/dataRef.ts`（E44：`@data[...]` 解析 + 实时值 + 分组统计）+ `ceshu/CeshuDataPreview.tsx`「📊 数据引用」标签（`CeshuDataRefsPanel`）。原判「无 TS」是 E44 之前的快照 |
 | common/event_bus.py | 87 | ⚠️ | TS 用 IPC + brain 事件流替代；**引用 18 处** |
 | common/i18n.py | 401 | ⛔ | **有意不迁（E23 决策）**：这是**全局翻译框架**，而 TS 侧 UI 文案目前 100% 硬编码中文——接入需翻译全部组件（数十文件、上千字符串），属**独立立项**而非存储基座职责。注意 `core/agent/i18n.py::AgentI18n` 早已是死代码（无 import/调用点），勿混淆两者 |
 | common/logger.py | 155 | ✅ | 已迁为 `shared/logger.ts`（统一入口，渲染层经 IPC 转发到主进程）+ `main/logger.ts`（轮转文件日志，10MB×5 备份）；原 142 处引用现统一走 `log` 入口（E8） |
-| common/lucide_icon.py | 214 | ⚠️ | renderer 用 emoji/内联 SVG；引用 11 处 |
+| common/lucide_icon.py | 214 | ✅ | **E54 实证已迁**：`shared/lucideIcons.ts`（`LUCIDE_ICON_PATHS` **43 键** / `LUCIDE_ICON_ALIASES` **33 键**，由 `lucide_icon.py` 的 `_ICON_PATHS`/`_ALIASES` **脚本机械导出**，另有 `resolveIconName`）+ `LucideIcon.tsx`（`currentColor`/stroke 2.5/24×24，未收录名不渲染）——E30 落地。原判「renderer 用 emoji/内联 SVG」是 E30 之前的快照 |
 | common/rate_limiter.py | 85 | ⚠️ | TS 无 TokenBucket；引用 2 处 |
 | common/sentry_client.py | 52 | ⚠️ | TS 无；引用 1 处 |
 | security/privacy.py | 88 | ⚠️ | TS 无 `summarize_sensitive`；引用 1 处 |
-| async_runner / auto_backup / cache / config_schema / data_validator / icons / interfaces / lazy_loader / llm_provider / metrics / path_utils / text / text_game_export / validator / `__init__` | 3,097 | ⛔ | **src 内 0 引用**（仅 `common/__init__.py` re-export）＝真死代码 |
+| async_runner / auto_backup / cache / config_schema / data_validator / icons / interfaces / lazy_loader / llm_provider / metrics / path_utils / text / text_game_export / validator / `__init__` | 3,269 | ⛔ | **src 内 0 引用**（仅 `common/__init__.py` re-export）＝真死代码。**E54 校准**：原写 `3,097`，实测 15 文件合计 **3,269** 行 |
 | security/encryption.py / guard.py / rate_limiter.py | 458 | ⛔ | 死代码，且**与 settings.py / core/agent/safety_guard.py / common/rate_limiter.py 重复** |
 | data/sample_data.py | 1125 | ⛔ | 有意不迁（立项 §3.4「不迁移样本数据」） |
 | config/`__init__.py` / security/`__init__.py` / data/`__init__.py` | 40 | ⛔ | 包 re-export / 文档字符串 |
@@ -449,12 +463,12 @@ E51 的独立验证者报告：在策划书右侧预览面板里，条目行的*
 
 - **全量枚举**：脚本统计 `src/**/*.py`（排除 `__pycache__`）→ 299 文件 / 91,164 行，按域分组行数。
 - **逐文件判定**：8 个**只读**子代理并行审计（每个域一个），要求对每个文件给出**具体依据** —— TS 文件路径 + 导出符号，或「grep 无消费者」这类实证；明确禁止「文件名相似即判已迁」。
-- **域总量对账**：每份审计的四类计数必须与脚本统计的域总量相等；8 份全部通过。
-- **全局对账**：四类合计 = 299 文件 / 91,164 行，**PASS**（见 §1）。
+- **域总量对账**：每份审计的（文件 / 行）总量必须与脚本统计的域总量相等；8 份全部通过。**E54 补**：此前四类**分类计数**虽总和正确，但 §1 / §2 / §3 三处互相不一致；E54 已以 §3 逐文件明细为准统一（见 §1），并修掉 §3 两处不精确行数。
+- **全局对账**：四类合计 = 299 文件 / 91,164 行，**PASS**（见 §1）；且 §1 = §2 = Σ§3，**逐格相等**（E54）。
 - **已知误差来源**：①「◐部分已迁」的完成度是**估计值**（各代理给出，主观性存在）；②「⛔有意不迁」的判定依赖既有决策记录 + grep 实证，若某模块将来被需要需重新评估；③ 判定粒度是「文件」，同一文件内不同功能的迁移状态可能不一致（已在依据里尽量写明）。
 
 ## 6. 本次审计纠正的三处早前误判
 
-1. **roadmap §2 的「剩余 ≈3.5–4.5k 行（4–5%）」是错的** —— 真实剩余 **≈2.4–2.8 万行（26–31%）**。那句话把三个混合态域当成了基本迁完，且口径过窄。
+1. **roadmap §2 的「剩余 ≈3.5–4.5k 行（4–5%）」是错的** —— 逐文件审计给出的真实剩余是 **≈1.1–1.5 万行（12–16%）**（10-04 首版为 ≈2.4–2.8 万行，E42 写掉 `core/agent` 未迁部分 + E54 校准后见 §1）。那句话把三个混合态域当成了基本迁完，且口径过窄。
 2. **三条「已迁映射」线索是错的**（幸好标注了"须自行核实"）：`ui/dialogs/template_manager.py` ✗≠ `TemplateEditorPanel`（后者对应**策划书**模板）、`statistics.py` ✗≠ `WordStatsPanel`（后者是策划书字数）、`data_diff_dialog.py` ✗≠ `ceshuDiff.ts`（后者对应策划书版本对比）。这三个文件当时实为**未迁** —— **均已于后续切片迁完**（E12 / E11 / E15）。
 3. **`common/` 不能整体按「用不到」处理**：`logger.py` 引用 142 处、`event_bus.py` 18 处、`lucide_icon.py` 11 处、`i18n.py` 4 处、`rate_limiter.py` 2 处 —— 这些**有真实消费者**，属未迁而非"设计上不迁"。（其余 15 个文件确认 src 内 0 引用，是真死代码。）
