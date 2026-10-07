@@ -12,12 +12,19 @@
 > （§2 合计 93+61+88+57=299 但行数为 34,605+22,917+18,756+14,886，与 §1 的分项加总对不上）。
 > 审计自己写了「域行的这一处差异待逐文件复核」，**至今未复核**。⇒ 引用审计数字时**只能用 §1**。
 >
-> **② 审计已过期、本轮实测翻案的 3 条**（原先判 ⚠️未迁，实际 E28–E41 已做）：
+> **② 审计已过期、本轮实测复核的 3 条**（2 条翻案成立、1 条翻案被 E53 推翻）：
 > | 原判 | 实测 | 证据 |
 > |---|---|---|
 > | `ui/dialogs/settings_dialog.py` 671 行「设置面板整块未迁」 | **已做** | `renderer/src/components/SettingsPanel.tsx`（21 个 testid，E41 又加了 AI 模型服务区） |
 > | `common/data_importer.py` 269 行「TS 无（CSV/Excel 缺）」 | **已做** | `main/ipc.ts:628` `data:importCsv` / `importExcelFile`（`data/csvIO.ts`、`data/excelIO.ts`） |
-> | `ui/dialogs/ai_field_button.py` 78 行「字段级 AI 无 TS」 | **已做** | `ItemForm.tsx:751,799` 调 `api.llm.generate`（E36） |
+> | `ui/dialogs/ai_field_button.py` 78 行「字段级 AI 无 TS」 | **翻案不成立 ⇒ 维持未迁**（E53 更正） | 原证据 `ItemForm.tsx:751,799` 实为**数据条目表单**的字段 AI（`FieldAiAssist`：`generateDesc`/`generateImage`/`analyzeImageTags`，＝§ 顶部 AI 横幅里那条第 4 项 `llm:generate` 字段级按钮），**不等于**章节表单的 `ai_path` 机制。且路径误写 `ui/dialogs/`，真身是 `ui/ceshu/ai_field_button.py`（全仓仅此一个 78 行同名文件） |
+>
+> **②-b E53 复核三项「Python 侧 TS 等价物待核」（实测结论，见 §3.2 对应行）**：
+> | 待核项 | 结论 | 证据 |
+> |---|---|---|
+> | `data_tab.py`「更多 ▾」按钮分组 | **多数已迁** | `ItemForm.tsx:987–1044`（`toolbar-more`/`toolbar-more-menu`/`item-form-more-edit-type`/`item-form-more-references`）已收纳 PyQt 三项中的 2 项（编辑类型 / 引用关系）。**第 3 项「参考策划方案 / 模板」无 TS** ⇒ 即 `data_tab.py` 保持 ◐ 的那条残留 |
+> | `_base.py` 的 `ai_path`（章节表单按字段 AI 填充） | **确缺**（审计自相矛盾已更正） | F1 机制实测为**活代码**：`ai_field_button.py`（78）+ `_common.py::_add_row(…, ai_path)` 建 `AIFieldButton` + `apply_ai_content_to_form` 回填 + 信号链 `chapter_panel.py:262-265` → `editor_view.py:210` → `editor_view_mixins.py:56 _on_ai_fill_field` → `_AIFillFieldWorker`。调用点 **111 处**（`_base.py` 32 / `_industrial.py` 79）。TS 侧 `ai_field_path`/`AIFieldButton`/`ai_fill_requested`/`apply_ai_content`/`aiFieldPath` **全部零命中**；`shared/ceshuAi.ts` 只有整章 `buildChapterPrompt` |
+> | `preview_panel.py::focus_first_editor()` | **已迁** | `ceshu/CeshuDataPreview.tsx:63-66,86-106`（`jumpEditor` 命中覆盖 activeKey / `targetNonce` 支持重复跳转 / 未命中回调 `onJumpMissed` / `enabledEditors.length===0` 空态），docblock 已显式标注对齐 `preview_panel.focus_first_editor` |
 >
 > **③ 非 AI 域**仍然真实存在的缺口**（10-07 实测确认，均非 AI 框架部分）：
 > - **`ui/ceshu/preview_panel.py` 222 行** —— 右侧「数据引用」实时预览：`@data[role.atk]` 引用解析
@@ -226,13 +233,13 @@ E51 的独立验证者报告：在策划书右侧预览面板里，条目行的*
 
 | 文件 | 行数 | 判定 | 依据 |
 |---|---|---|---|
-| chapter_forms/_industrial.py | 1246 | ✅ | `ChapterForm.tsx`+`CeshuFieldControl`+`shared/ceshuFields.ts` |
+| chapter_forms/_industrial.py | 1246 | ✅ | `ChapterForm.tsx`+`CeshuFieldControl`+`shared/ceshuFields.ts`。**E53 补充**：`_add_row` 的 **79 处** `ai_path` 同 `_base.py`，属未迁的字段级 AI |
 | editor_view_mixins.py | 871 | ✅ | `CeshuView.tsx` + 各 Panel |
 | version_diff_dialog.py | 855 | ✅ | `VersionDiffPanel.tsx`+`shared/ceshuDiff.ts` |
 | ai_full_generate_dialog.py | 801 | ✅ | `AiFullGeneratePanel.tsx`+`shared/ceshuAi.ts` |
 | systems_editor.py | 611 | ✅ | `SystemsEditor.tsx` |
 | template_editor_dialog.py | 589 | ✅ | `TemplateEditorPanel.tsx`+`ceshuCustomTemplates.ts`+`main/ceshu/templateStore.ts` |
-| chapter_forms/_base.py | 571 | ✅ | `ChapterForm.tsx`+`ceshuFields.ts`/`ceshuDefaults.ts` |
+| chapter_forms/_base.py | 571 | ✅ | `ChapterForm.tsx`+`ceshuFields.ts`/`ceshuDefaults.ts`。**E53 补充**：`_add_row` 的 **32 处** `ai_path`（如「主要用户」= `vision.user_personas.primary`）属**未迁**的字段级 AI，见 `ai_field_button.py` 行 |
 | editor_view.py | 528 | ✅ | `CeshuView.tsx` |
 | template_picker_dialog.py | 520 | ✅ | `TemplatePickerPanel.tsx`+`ceshuTemplates.ts` |
 | home_view.py | 513 | ✅ | `CeshuHomePanel.tsx`+`shared/ceshuHome.ts` |
@@ -247,7 +254,7 @@ E51 的独立验证者报告：在策划书右侧预览面板里，条目行的*
 | preset_market_dialog.py | 346 | ✅ | `PresetMarketPanel.tsx`+`ceshuPresets.ts` |
 | system_confirm_dialog.py | 282 | ✅ | `SystemConfirmPanel.tsx`+`main/ceshu/dataSync.ts` |
 | word_stats_dialog.py | 259 | ✅ | `WordStatsPanel.tsx`+`ceshuWordStats.ts` |
-| chapter_forms/_common.py | 231 | ✅ | 并入 `ChapterForm.tsx`+`CeshuFieldControl.tsx` |
+| chapter_forms/_common.py | 231 | ✅ | 并入 `ChapterForm.tsx`+`CeshuFieldControl.tsx`。**E53 补充**：本文件另含 F1 按字段 AI 填充机制（`_add_row` 的 `ai_path` 参数 / `apply_ai_content_to_form`），该机制**未迁** —— 单独计入 `ai_field_button.py` 行（⚠️），故本行 ✅ 不变 |
 | chapter_templates.py | 170 | ✅ | `ceshuTemplateData.ts::CHAPTER_TEMPLATES` |
 | home_card.py | 161 | ✅ | `ceshuHome.ts::buildCeshuCards` |
 | competitive_chart.py | 99 | ✅ | `CompetitiveChart.tsx`+`ceshuCompetitiveChart.ts` |
@@ -257,7 +264,7 @@ E51 的独立验证者报告：在策划书右侧预览面板里，条目行的*
 | ai_panel.py | 248 | ◐60% | 通用对话由 `DigitalPanel` 承接；策划书专属 8 主题快捷面板未迁 |
 | editor_view_workers.py | 101 | ◐50% | 整章 AI 已迁；单字段填充 `_AIFillFieldWorker` 无对应 |
 | preview_panel.py | 222 | ✅ | **E44 已迁「数据引用概览」**（`@data[...]` 解析 + 实时值 + 分组统计，见 `shared/dataRef.ts`；并修正 PyQt 单复数键不匹配的 bug）。**E49 更正（实测翻案）**：原写「`enabled_editors` 动态编辑器半边未迁」**为误**——该半边**亦已迁**：`ceshu/CeshuDataPreview.tsx` 按 `computeEnabledEditors(doc)` 逐启用系统渲染标签页并内嵌 `DataEditorTab`，同面板「📊 数据引用」标签渲染 `CeshuDataRefsPanel`。`core/editor_layout.py` 是另一文件（⛔ E5 已实证过期死代码），与此无关（E50 重新分类为 ✅：TS 已等价实现，原 ◐ 判定过期） |
-| ai_field_button.py | 78 | ⚠️ | 字段级「AI 帮我填」无 TS（`ceshuFieldControl` 无 AI 入口） |
+| ai_field_button.py | 78 | ⚠️ | **E53 实证**：章节表单字段级「AI 帮我填」全链无 TS —— 本文件（真身 `ui/ceshu/ai_field_button.py`，非 `ui/dialogs/`）+ `chapter_forms/_common.py::_add_row(…, ai_path)` + `apply_ai_content_to_form` + 信号链（`chapter_panel.py:262-265`→`editor_view.py:210`→`editor_view_mixins.py:56`→`_AIFillFieldWorker`）在 TS **零对应**；`ceshuFieldControl`/`ChapterForm.tsx` 无 AI 入口。**注意区分**：数据条目表单的字段级 AI（`ItemForm.tsx` 的 `FieldAiAssist`）**已迁且在用**，不要混为一谈 |
 | ceshu_theme.py / 2 个 `__init__.py` | 238+65+60 | ⛔ | QSS 主题胶水 / 包 re-export |
 
 ### 3.3 `ui/widgets`（24 文件 / 9,232 行）

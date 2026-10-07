@@ -575,8 +575,19 @@
 > **守卫有效性已用「已知坏版本」验证**（本仓库铁律，不做橡皮图章）：`preview/measure-row.mjs` 已升级为**断言脚本**（行中心命中删除钮即退出码 1）；把 `styles.css` 退回 E51 提交版重跑，wide / mid 两档**如实报失败**（名称 18.7px、命中 `ceshu-data-delete`），恢复修复版后全部通过。E51 的 41 条渲染断言复跑仍 **41/41**（无回归）。
 > **遗留（未修，属另一既有问题）**：视口 ≤900px 时 AI 停靠栏会叠在预览面板之上，行取不到点（`elementFromPoint` → `digital-panel`）。与本条无关，本轮不处理。
 > **同批落盘（另一件事，Python 侧）**：Python 应用（迁移的权威源）有一轮**先前完成但从未提交**的 UX 简化（对应 `CHANGELOG.md` 的 2026-09-16 条目 + `docs/ux-simplification-plan.md`），本轮实测核实后一并提交：**pytest 839 passed / ruff 全绿 / mypy 299 文件 0 错误**，与其文档自述**逐项一致**（此前 3 周一直躺工作区，有静默丢失风险）。
-> **⚠️ 待核（未做，故不写进计数）**：上述 Python 轮次里有 3 项**在 TS 侧是否已有等价物尚未逐项核对** —— `data_tab.py` 的「更多 ▾」按钮分组、`ceshu/chapter_forms/_base.py` 给「主要用户」补的 `ai_path` AI 生成钮、`ceshu/preview_panel.py::focus_first_editor()`。等下一轮审计再判。
+> **⚠️ 待核（E53 已复核，见下条）**：上述 Python 轮次里有 3 项**在 TS 侧是否已有等价物尚未逐项核对** —— `data_tab.py` 的「更多 ▾」按钮分组、`ceshu/chapter_forms/_base.py` 给「主要用户」补的 `ai_path` AI 生成钮、`ceshu/preview_panel.py::focus_first_editor()`。**E53 复核结论：①多数已迁（缺「参考策划方案」项）②确缺 ③已迁。**
 > **验证**：双端 tsc 0 / eslint 0 / vitest 115 文件 1756 用例全绿 / `electron-vite build` OK / docsLedger 守卫全绿。
+
+> ✅ **E53（2026-10-07）：复核 E52 遗留的 3 项「TS 等价物待核」+ 更正审计一处自相矛盾（不改 §1/§2 计数）。**
+> **性质**：文档准确性 pass（复核 + 纠错），**不动 §1/§2 分类计数**（仍 106 / 51 / 92 / 50，总 299 文件 / 91,164 行）；不新增产品代码。
+> **逐项实测结论**（读 Python 真源 + grep TS 对照物，不按名字臆测）：
+> 1. **`data_tab.py`「更多 ▾」按钮分组 = 多数已迁**。`ItemForm.tsx:987–1044` 有 `toolbar-more`/`toolbar-more-menu`/`item-form-more-edit-type`/`item-form-more-references`，docblock 明写「对应 PyQt data_tab 的 more_btn 菜单」，已收纳 PyQt 三项中的 2 项（编辑当前类型字段结构 / 查看此项的引用关系）。**但第 3 项「参考策划方案 / 模板」无 TS**（PyQt `_planning_action` → `_on_select_planning`/`_on_select_template`）：实测 TS 侧 `planning_docs_v3` / `selected_planning_doc` / 技能归属模板选择**零命中**，而 Python 侧是活代码（`data_tab.py:648-657` 用 `selected_planning_doc` 拼 AI 提示词：游戏理念/世界观/玩法）。⇒ 这正是 `data_tab.py` 维持 ◐ 的那条残留（E50/E51 已记）。
+> 2. **`_base.py` 的 `ai_path` = 确缺**（原「已做」判定是错的，见下段纠错）。`ai_path` 不是「某个字段的标注」，而是 **F1 章节表单按字段 AI 填充**整条机制：`ai_field_button.py`(78 行) → `_common.py::_add_row(…, ai_path)` 建 `AIFieldButton` 并打 `ai_field_path` 属性 → `apply_ai_content_to_form` 回填 → 信号链 `chapter_panel.py:262-265` → `editor_view.py:210` → `editor_view_mixins.py:56 _on_ai_fill_field` → `_AIFillFieldWorker`。调用点 **111 处**（`_base.py` 32 / `_industrial.py` 79；如「主要用户」= `vision.user_personas.primary`）。TS 侧 `ai_field_path`/`AIFieldButton`/`ai_fill_requested`/`apply_ai_content`/`aiFieldPath` **全部零命中**；`shared/ceshuAi.ts` 只有整章 `buildChapterPrompt`。
+> 3. **`preview_panel.py::focus_first_editor()` = 已迁**。`ceshu/CeshuDataPreview.tsx:63-66,86-106`：`jumpEditor` 命中即覆盖 activeKey、`targetNonce` 支持重复跳转同一类型、未命中回落 `onJumpMissed`、`enabledEditors.length===0` 走空态；docblock 已显式标注对齐 `focus_first_editor`。
+> **⚠️ 本轮更正的审计自相矛盾（这才是本次的真实缺陷）**：审计顶部「翻案」表原写 `ui/dialogs/ai_field_button.py` 78 行「字段级 AI 无 TS」= **已做**，证据 `ItemForm.tsx:751,799` —— 该判定有**三处错**：① **路径误写**（`ui/dialogs/` 不存在；真身 `ui/ceshu/ai_field_button.py`，全仓仅此一个 78 行同名文件）；② **证据张冠李戴**：`ItemForm.tsx:751/799` 是**数据条目表单**的字段 AI（`FieldAiAssist`：`generateDesc`/`generateImage`/`analyzeImageTags`，即审计顶部 AI 横幅里那条第 4 项 `llm:generate` 字段级按钮 —— **已迁且在用，重写框架时必须保留**），**不等于**章节表单的 `ai_path`；③ 与 §3.2 的 `ai_field_button.py | ⚠️` 行、`editor_view_workers.py | ◐50% 单字段填充 _AIFillFieldWorker 无对应` 行**直接打架**。已按实测更正为「**翻案不成立 ⇒ 维持未迁**」并补 §3.2 依据（含 111 处调用点 + 完整信号链实证）。
+> **未做（刻意，等裁决）**：**不移植** F1 字段级 AI 填充，也不补 `data_tab.py` 的「参考策划方案」残留。理由：二者整条依赖 AI 能力链，而主理人已裁决 AI 框架**重写**（audit 顶部 E42 横幅）；此刻 1:1 移植 111 处调用点 = 极可能白做，属过度开发。
+> **§3.2 依据同步**：`_common.py` / `_base.py` / `_industrial.py` 三行**仍标 ✅**（本审计粒度是「文件」，其表单构建确实已迁；§5 已声明同一文件内功能可处于不同迁移态），但各加一句 E53 补充指向未迁的 `ai_path` 机制，避免读者误判整文件零缺口。**若主理人认为应按「机制粒度」把这些文件降为 ◐，需同步改 §1 + §2 + roadmap §2 三处计数 —— 本轮未动，不擅自改数。**
+> **验证**：docsLedger 守卫全绿（§1 四类仍 106/51/92/50，合计 299 文件 / 91,164 行；两文档 `^## ` 各 6；E42/E43 横幅标记在场）；双端 tsc 0 / eslint 0 / vitest 115 文件 1756 用例全绿（无代码改动，回归确认）。`REQUIRED_ROADMAP_MARKERS` 增 `'E53（2026-10-07）'`。
 
 > 🔴 **E42（2026-10-07）：主理人裁决 —— `core/agent` 停止 1:1 迁移，改为「AI 框架重写」**。
 > **主理人原话**：「**ai 那边就不搞了。框架可能要重写**」。

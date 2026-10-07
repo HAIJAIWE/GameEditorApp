@@ -1,52 +1,74 @@
-E52: 修「窄列下点行中心 = 误删」+ 举证守卫（不改迁移计数）
+E53: 复核 3 项「TS 等价物待核」+ 更正审计一处自相矛盾（不改迁移计数）
 
-性质：TS 渲染层健壮性修复 + 可复现守卫；每处都实测取证。
-不改动迁移 §1/§2 分类计数（仍 106 / 51 / 92 / 50，总 299 文件 / 91,164 行）。
-同批还落盘了 Python 侧一轮先前未提交的 UX 简化（另一个 commit ac0e34d）。
+性质：文档准确性 pass（复核 + 纠错），不新增产品代码。
+不改 §1/§2 分类计数（仍 106 / 51 / 92 / 50，总 299 文件 / 91,164 行）。
 
-1) 缺陷（既有，非 E51 引入）
-E51 的渲染侧独立验证者报告：策划书右侧预览面板里条目行只有 160px，行的**几何中心
-落在「删除」按钮上**，其 T5 用例第一次因此**误删**而非选中。
+1) 复核 E52 遗留的 3 项（读 Python 真源 + grep TS 对照物，不按名字臆测）
+1. `data_tab.py`「更多 ▾」按钮分组 = **多数已迁**。
+   `ItemForm.tsx:987-1044` 有 toolbar-more / toolbar-more-menu /
+   item-form-more-edit-type / item-form-more-references，docblock 明写
+   「对应 PyQt data_tab 的 more_btn 菜单」，已收纳 PyQt 三项中的 2 项
+   （编辑当前类型字段结构 / 查看此项的引用关系）。
+   但**第 3 项「参考策划方案 / 模板」无 TS**（PyQt `_planning_action` →
+   `_on_select_planning` / `_on_select_template`）：实测 TS 侧
+   `planning_docs_v3` / `selected_planning_doc` / 技能归属模板选择**零命中**；
+   Python 侧是活代码（`data_tab.py:648-657` 用 `selected_planning_doc`
+   拼 AI 提示词：游戏理念/世界观/玩法）。
+   ⇒ 这正是 `data_tab.py` 维持 ◐ 的那条残留（E50/E51 已记）。
 
-2) 实测根因（新增 preview/measure-row.mjs，用 document.elementFromPoint(行中心)
-   判落点，不靠读 CSS 推理）
-- .ceshu-preview .list-column 固定 flex: 0 0 200px，.list 左右各 20px 内边距 ⇒ 行 160px。
-- 默认布局：删除钮 74.7px（整行 47%）、名称被压到 18.7px（「技能 1」文本需 40px，
-  scrollWidth 40 > clientWidth 19 ⇒ 已截断）。
-- document.elementFromPoint(行的几何中心) → ceshu-data-delete ⇒ 点中心即删除。
+2. `_base.py` 的 `ai_path` = **确缺**（原判「已做」是错的，见第 2 节）。
+   `ai_path` 不是「某个字段的标注」，而是 **F1 章节表单按字段 AI 填充**整条机制：
+   `ai_field_button.py`(78 行) → `_common.py::_add_row(…, ai_path)` 建
+   `AIFieldButton` 并打 `ai_field_path` 属性 → `apply_ai_content_to_form` 回填 →
+   信号链 `chapter_panel.py:262-265` → `editor_view.py:210` →
+   `editor_view_mixins.py:56 _on_ai_fill_field` → `_AIFillFieldWorker`。
+   调用点 **111 处**（`_base.py` 32 / `_industrial.py` 79；
+   如「主要用户」= `vision.user_personas.primary`）。
+   TS 侧 `ai_field_path` / `AIFieldButton` / `ai_fill_requested` /
+   `apply_ai_content` / `aiFieldPath` **全部零命中**；
+   `shared/ceshuAi.ts` 只有整章 `buildChapterPrompt`。
 
-3) 修法（styles.css，全部限定在 .ceshu-preview .item-row 作用域）
-- 删除钮文本包进 .btn-label 并在窄列 display:none ⇒ 收成 26px 图标；按钮本体与
-  data-testid="ceshu-data-delete" 均保留（smoke.spec.ts:84 的
-  getByTestId('ceshu-data-delete').click() 照旧可用），补 title/aria-label 保可访问性。
-- .item-meta（8 位短 id）display:none 让位给名称；id 仍可由行 title 与右侧表单读到。
-- .item-name { min-width: 64px } 兜底；删除钮 padding: 4px 6px。
-- DataEditorTab.tsx：按钮文字包 <span class="btn-label">；行加 title="{name} | {id}"。
+3. `preview_panel.py::focus_first_editor()` = **已迁**。
+   `ceshu/CeshuDataPreview.tsx:63-66,86-106`：jumpEditor 命中即覆盖 activeKey、
+   targetNonce 支持重复跳转同一类型、未命中回落 onJumpMissed、
+   enabledEditors.length===0 走空态；docblock 已显式标注对齐 focus_first_editor。
 
-4) 效果（实测三档视口 wide-1440 / mid-1100 / narrow-900）
-- 名称 18.7px → 92px（scrollWidth == clientWidth，不再截断）
-- 删除钮 74.7px → 26px
-- elementFromPoint(行中心) → ceshu-data-item-row（= 选中该条目）
+2) 更正审计自相矛盾（本次真实缺陷）
+审计顶部「翻案」表原写 `ui/dialogs/ai_field_button.py` 78 行
+「字段级 AI 无 TS」= **已做**，证据 `ItemForm.tsx:751,799`。该判定**三处错**：
+- ① 路径误写：`ui/dialogs/` 不存在；真身 `ui/ceshu/ai_field_button.py`
+  （全仓仅此一个 78 行同名文件）。
+- ② 证据张冠李戴：`ItemForm.tsx:751/799` 是**数据条目表单**的字段 AI
+  （`FieldAiAssist`：generateDesc / generateImage / analyzeImageTags，
+  即审计顶部 AI 横幅里那条第 4 项 `llm:generate` 字段级按钮 ——
+  **已迁且在用，重写 AI 框架时必须保留**），**不等于**章节表单的 `ai_path`。
+- ③ 与 §3.2 的 `ai_field_button.py | ⚠️` 行、`editor_view_workers.py |
+  ◐50% 单字段填充 _AIFillFieldWorker 无对应` 行**直接打架**。
+已按实测更正为「**翻案不成立 ⇒ 维持未迁**」，并把表头由
+「翻案的 3 条」改为「复核的 3 条（2 条成立、1 条被推翻）」，
+另新增「②-b」小表存档三项待核的结论。
 
-5) 守卫（按本仓库铁律用「已知坏版本」验过有效性，不做橡皮图章）
-- preview/measure-row.mjs 已从「报告脚本」升级为**断言脚本**：行中心命中删除钮 ⇒
-  退出码 1。把 styles.css 退回 E51 提交版重跑，wide/mid 两档**如实报失败**
-  （名称 18.7px、命中 ceshu-data-delete）；恢复修复版后全部通过。
-- E51 的 41 条渲染断言（preview/verify-e51.mjs）复跑仍 41/41，无回归。
-- verify-e51.mjs 里那句「行中心会命中删除按钮，必须点 .item-name」的注释已按产品现状更新
-  （harness 不得比产品陈旧）。
+3) 未做（刻意，等裁决）
+**不移植** F1 字段级 AI 填充，也不补 `data_tab.py` 的「参考策划方案」残留。
+理由：二者整条依赖 AI 能力链，而主理人已裁决 AI 框架**重写**
+（audit 顶部 E42 横幅）；此刻 1:1 移植 111 处调用点 = 极可能白做，属过度开发。
 
-6) 文档
-- docs/ts-migration-roadmap.md：新增 E52 台账条目（含「Python 侧 3 项 TS 等价物待核」的
-  明确标记，不写进计数）。
-- docs/migration-audit.md：新增 ### E52 条目行点击落点（窄列误删修复，实测记录）小节
-  （修前/修后四行对照表 + 守卫有效性说明 + 遗留项）。
-- tests/unit/docsLedger.test.ts：REQUIRED_ROADMAP_MARKERS 增 'E52（2026-10-07）'。
-- §1 结论表与对账行数字未动。
+4) §3.2 依据同步（计数未动）
+`_common.py` / `_base.py` / `_industrial.py` 三行**仍标 ✅**（本审计粒度是「文件」，
+其表单构建确实已迁；§5 已声明同一文件内功能可处于不同迁移态），
+但各加一句 E53 补充指向未迁的 `ai_path` 机制，避免读者误判整文件零缺口。
+**若主理人认为应按「机制粒度」把这些文件降为 ◐，需同步改 §1 + §2 + roadmap §2
+三处计数 —— 本轮未动，不擅自改数。**
 
-7) 遗留（未修，属另一既有问题）
-视口 ≤900px 时 AI 停靠栏会叠在预览面板之上，行取不到点（elementFromPoint → digital-panel）。
-与条目行布局无关，本轮不处理。
+5) 文档与守卫
+- `docs/migration-audit.md`：顶部「②」表更正 + 新增「②-b」三项待核结论表；
+  §3.2 四行依据补充（`ai_field_button.py` ⚠️ 行 + 三个 ✅ 行的 E53 补充）。
+- `docs/ts-migration-roadmap.md`：新增 E53 台账条目；E52 的「待核」行改写为
+  「E53 已复核（①多数已迁 ②确缺 ③已迁）」。
+- `tests/unit/docsLedger.test.ts`：REQUIRED_ROADMAP_MARKERS 增
+  'E53（2026-10-07）'。
+- §1 结论表与对账行数字未动（四类仍 106/51/92/50，合计 299 文件 / 91,164 行）。
 
-验证：双端 tsc 0 / eslint 0 / vitest 115 文件 1756 用例全绿 / docsLedger 7/7 /
-electron-vite build OK / preview/measure-row.mjs 守卫全通过 / preview/verify-e51.mjs 41/41。
+验证：docsLedger 7/7（§1↔roadmap §2 一致 + 对账 299/91,164；两文档 ^## 各 6）；
+双端 tsc 0（`npm run typecheck`）/ eslint 0 / vitest 115 文件 1756 用例全绿
+（本次无代码改动，属回归确认）。
