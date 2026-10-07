@@ -9,7 +9,7 @@
 > （⚠️ 审计表头是 10-04 的，以下每条都在 10-07 重新 grep 核实过，**已剔除因 E28–E41 而过期的判定**）。
 >
 > **① 审计数据自相矛盾（E54 已复核消除）**：原先 §1 结论表、§2 域表、§3 逐文件明细**三套分类计数互不相同** —— 对外表现为 **±2 文件 / 480 行** 的差异（§2 一度算出 `93+61+88+57=299`、行数 `34,605+22,917+18,756+14,886`，与 §1 加总对不上）。
-> **E54（2026-10-07）已以 §3 逐文件明细为唯一真源重算 §1/§2**，三者现**逐格相等**（109 / 58 / 126 / 6 = 299 文件、40,116 + 21,503 + 29,095 + 450 = 91,164 行）；方法与逐笔来源见 §1 的「E54 台账校准」块。
+> **E54（2026-10-07）已以 §3 逐文件明细为唯一真源重算 §1/§2**，三者现**逐格相等**（E54 后为 `109 / 58 / 126 / 6` = 299 文件、`40,116 + 21,503 + 29,095 + 450` = 91,164 行；**E56 复核后为 `111 / 22 / 160 / 6`**，总量不变）；方法与逐笔来源见 §1 的「E54 台账校准」块与「E56 ◐ 行文件级复核」块。
 >
 > **② 审计已过期、本轮实测复核的 3 条**（2 条翻案成立、1 条翻案被 E53 推翻）：
 > | 原判 | 实测 | 证据 |
@@ -67,12 +67,12 @@
 
 | 判定 | 文件 | 行数 | 占比 |
 |---|---|---|---|
-| ✅ 已迁 | 109 | 40,116 | 44.0% |
-| ◐ 部分已迁 | 58 | 21,503 | 23.6% |
-| ⛔ 有意不迁 | 126 | 29,095 | 31.9% |
+| ✅ 已迁 | 111 | 40,826 | 44.8% |
+| ◐ 部分已迁 | 22 | 10,961 | 12.0% |
+| ⛔ 有意不迁 | 160 | 38,927 | 42.7% |
 | ⚠️ 未迁（整块没做） | 6 | 450 | 0.5% |
 
-**对账（必须相等，已 PASS）**：`109+58+126+6 = 299` ✓、`40116+21503+29095+450 = 91,164` ✓
+**对账（必须相等，已 PASS）**：`111+22+160+6 = 299` ✓、`40826+10961+38927+450 = 91,164` ✓
 
 > ### E54 台账校准（2026-10-07）—— 本文件此前有「三套互不一致的数字」，本轮统一
 >
@@ -89,27 +89,47 @@
 >
 > **此前待裁决项已落地（2026-10-07）**：`ui/widgets/team_dialog.py`（818 行）原按 §3 记 ⚠️，经主理人批准已改判 **⛔**（见上「三处改判」第 3 条）。
 
-### 真实剩余 ≈ 1.0–1.4 万行（11–15%）
+### E56 ◐ 行文件级复核（2026-10-07）—— 把 58 个「◐ 部分已迁」逐条做实，并落实 E42 的 AI 域口径
+
+**做法**：§3 全部 56 条 ◐ 行（58 文件）逐条重新实证（读 Python 真源 + grep TS 对照物），按三条规则改判：
+
+1. **E42「AI 框架重写」域 ⇒ ⛔**（主理人 2026-10-07 裁定「归入 ⛔」，不再计入迁移欠债）。含 `core/agent` 全部 **23 个 ◐ 文件（6,752 行）**（brain / dispatcher / prompts / memory×7 / models / safety_guard / semantic_memory / workspace / skills×7 / learner）+ **数字员工与任务面板 7 个（2,281 行）**（`digital_employee` / `digital_panel_chat` / `_input` / `_tasks` / `_workspace` / `collapsible_task_panel` / `task_row`）⇒ 共 **30 文件 / 9,033 行**。**已迁部分是在用资产、保留**；未迁部分随框架重写，不 1:1 移植。
+2. **能力实测已存在 ⇒ ✅**：① `ui/ceshu/score_report_dialog.py` 603（`ceshu:exportScoreReport` + `CeshuView` 的「导出评分报告」按钮 —— **E49 就补了，台账没跟**）；② `ui/shortcuts_dialog.py` 107（`ShortcutsPanel.tsx` + 菜单「帮助 → 快捷键参考」，E37）。
+3. **死代码 / 设计性替换 ⇒ ⛔**：`security/sandbox.py` 325（`jsSandbox.ts` 设计性替换，其 2 处消费者全在 core/agent 域）、`core/buff_system.py` 129 + `core/equipment_system.py` 96（真实使用面已由 `attrPreview.ts` 等价实现，未迁部分 Python 源内**无调用点**）、`ui/tab_manager.py` 249（多标签形态被 E28 顶层 IA 重写取代，技术前提消失）。
+
+**顺带修 4 处「依据过期、但缺口仍在」的行**（判定不动，只改依据）：`dynamic_form`（image / image_tags / AI 按钮 **已迁**，仅剩 `dialog`/`formula` 两种形态）、`virtual_list`（条目右键菜单 E51 **已补**，仅剩虚拟滚动；拖拽排序属 DESIGN-DIFFERENT）、`common/ai_client.py`（**6 家服务商** E41 + 生图 E22 已迁，仅剩流式 / tools / vision / 限流 ⇒ 完成度 15% → **40%**）、`menus.py` / `shortcuts_dialog.py` / `tab_manager.py` 捆绑行**拆为 3 个独立行**（分别是 ◐ / ✅ / ⛔）。
+
+**结果**：**§1 = §2 = Σ§3 = ✅ 111 / 40,826 · ◐ 22 / 10,961 · ⛔ 160 / 38,927 · ⚠️ 6 / 450**（合计 **299 文件 / 91,164 行**，逐格相等；8 个域锚点 Δ=0/0）。
+**真实剩余**：由「≈1.0–1.4 万行（11–15%）」再降为 **≈0.5–0.8 万行（6–9%）**。
+
+### 真实剩余 ≈ 0.5–0.8 万行（6–9%）
 
 - **确定未迁（整块没做）＝ 450 行 / 6 文件**（精确数字）
-- **部分已迁里的缺口 ≈ 1.0–1.4 万行**（**估算**：按各文件的完成度估计汇总，各代理给的完成度多在 25%–75%，本身带主观性）
-- 合计 **≈ 1.0–1.4 万行**，占旧代码 **11–15%**
+- **部分已迁里的缺口 ≈ 0.5–0.7 万行**（**估算**：10,961 行按各文件给出的完成度 25%–75% 折算，未完成部分过半）
+- 合计 **≈ 0.5–0.8 万行**，占旧代码 **≈ 6–9%**
 
-> **口径说明**：不能把「⛔有意不迁」的 29,095 行算成欠债 —— 那些是**决策**（`core/agent` 框架重写域 8,419 + 团队 CRUD 818、自愈链 4,166、样例数据 1,125、PyQt 胶水、死代码、Qt QSS 主题栈等），各有实证依据。
-> 但也不能把「◐部分已迁」算成已迁 —— 那 21,503 行里有一部分是真缺口。
+> **口径说明（E56 更新）**：不能把「⛔有意不迁」的 38,927 行算成欠债 —— 那些是**决策**（`core/agent` AI 框架重写域 24,670 行中的绝大部分、团队 CRUD 818、自愈链 4,166、样例数据 1,125、PyQt 胶水、死代码、Qt QSS 主题栈、`themes`/QSS 与 `tab_manager` 的设计性替换等），各有实证依据。
+> 但也不能把「◐部分已迁」算成已迁 —— 那 10,961 行里有一部分是真缺口。
 >
-> **相比 10-04 原判「≈2.4–2.8 万行（26–31%）」的下降，逐笔可复核**：① 8,419 行＝E42 把 `core/agent` 未迁**改判为不迁**（**决策，不等于已做完**）；② 1,363 行＝4 个早已迁完的文件从 ⚠️ 上移 ✅；③ 1,542 行＝§1 与 §3 明细对不上的 6 个文件归位为「◐」；④ 818 行＝`ui/widgets/team_dialog.py` 按 E42 域归入 ⛔。
->
-> **⚠️ 现在「整块没做」的 6 文件已全部是「小件 + AI 待重写」**：`common/auto_updater.py` 60、`common/event_bus.py` 87、`common/rate_limiter.py` 85、`common/sentry_client.py` 52、`security/privacy.py` 88、`ui/ceshu/ai_field_button.py` 78（章节字段级 AI，随框架重写一起做）。**编辑器内核已无「整块没做」的功能缺口**。
+> **⚠️ 除本表之外还有一块「重写」而非「移植」的工作**：**AI 框架整体重写**（`core/agent` 域 97 文件 / 24,670 行 + 数字员工 UI 与任务面板）。它**不计入上面的迁移欠债**（E42 裁决），但也**不是零工作量** —— 只是走重写路径，规模与范围待框架设计定案。
 
-### ◐ 复核（2026-10-07，E50 更新）
+### ◐ 复核（2026-10-07：E50 首轮 + E56 收口）
 
-对全部「◐ 部分已迁」条目做了逐条实测复核。**E50 已将下列 STALE-DONE（TS 已等价实现、原 ◐ 判定过期）文件重新分类为 ✅**：window_state / preview_panel / statistics / template_manager / common / export / advanced / chat_renderer / image_loader / toast / home_widget。余下 ◐ 条目属下列两类之一：
+对全部「◐ 部分已迁」条目做了逐条实测复核。
 
-- **DESIGN-DIFFERENT（TS 有意替换，非缺口）**：themes / QSS 主题栈、agent UI（per E42 重写域）、buff / equipment 系统、`_ai_dialog` 模板模式。
-- **genuine-partial（仍有真实缺口）**：`data_tab`（AI 生成时的「技能锚点模板」选择上下文未迁，见 §4 下条；P5 数量约束软检查、F2·右键重命名与条目右键菜单已由 **E51** 补齐）。
+> **⚠️ E56 已把本节结论整体刷新**：E50 只处理了 STALE-DONE（TS 已等价实现但判定过期）一类，**当时的 ◐ 仍为 58 文件 / 21,503 行**；**E56（见 §1「E56 ◐ 行文件级复核」块）逐条重判后降为 22 文件 / 10,961 行**。以下 E50 名单保留为**历史痕迹**，**当前 ◐ 明细请以 §3 与 §1 的 E56 块为准**。
 
-> 另：`dynamic_form` / `main_window` 曾被 E49 复核记入 STALE-DONE 名单，但**不在 E50 的 12 个候选范围内**，本轮未重新分类（仍为 ◐，待后续实测）。
+**E50 首轮（已升 ✅，共 11 文件）**：window_state / preview_panel / statistics / template_manager / common / export / advanced / chat_renderer / image_loader / toast / home_widget（TS 已等价实现、原 ◐ 判定过期）。
+
+**E56 收口（三类改判，共 36 文件）**：
+- **AI 框架重写域 ⇒ ⛔（30 文件 / 9,033 行）**：`core/agent` 全部 23 个 ◐（6,752 行）+ 数字员工与任务面板 7 个（2,281 行）。**已迁部分保留**，未迁部分随框架重写、不 1:1 移植。
+- **能力实测已存在 ⇒ ✅（2 文件）**：`score_report_dialog.py`（E49 就补了，台账没跟）、`shortcuts_dialog.py`（E37 的 `ShortcutsPanel` + 菜单入口）。
+- **死代码 / 设计性替换 ⇒ ⛔（4 文件）**：`security/sandbox.py`（`jsSandbox.ts` 设计性替换）、`buff_system.py` + `equipment_system.py`（使用面已由 `attrPreview.ts` 等价实现，未迁部分无调用点）、`tab_manager.py`（多标签形态被 E28 顶层 IA 取代）。
+
+**E56 后仍为 ◐ 的 22 文件（真实缺口）**，属下列两类之一：
+
+- **DESIGN-DIFFERENT（TS 有意替换，非缺口；但整文件尚有其他未迁面，故未升 ✅）**：`themes` / QSS 主题栈（`ui/` 顶层域）、`_ai_dialog` 模板模式、`virtual_list` 的「拖拽排序」（Python 重排内存数组，TS 条目来自 SQLite、无数组序）。
+- **genuine-partial（仍有真实缺口）**：`data_tab`（AI 生成时的「技能锚点模板」选择上下文未迁，见 §4；P5 数量约束软检查、F2·右键重命名与条目右键菜单已由 **E51** 补齐）；`dynamic_form`（仅剩 `dialog`/`formula` 两种控件形态，image / image_tags / AI 按钮已迁）；`virtual_list`（虚拟滚动未做）；`common/ai_client.py`（仅剩流式 / tools / vision / 限流，完成度 40%）；`menus.py`（仅剩「数据关系图」一项）；`api_config.py`（模型管理 / 视觉 / 模板三 tab）、`type_editor_*`、`startup_mode_dialog` 等。
 
 **仅有的真实遗留**（本轮实测确认）：
 
@@ -161,21 +181,23 @@ E51 的独立验证者报告：在策划书右侧预览面板里，条目行的*
 
 | 域 | 文件 | 行数 | ✅已迁 | ◐部分 | ⛔不迁 | ⚠️未迁 |
 |---|---|---|---|---|---|---|
-| `core/agent` | 97 | 24,670 | 8 / 1,689 | 23 / 6,752 | 66 / 16,229 | 0 / 0 |
-| `ui/ceshu` | 35 | 14,620 | 26 / 12,345 | 5 / 1,834 | 3 / 363 | 1 / 78 |
-| `ui/widgets` | 24 | 9,232 | 14 / 6,053 | 3 / 1,399 | 7 / 1,780 | 0 / 0 |
-| `ui/` 顶层 + `themes` + `components` | 31 | 9,883 | 8 / 1,665 | 12 / 5,284 | 11 / 2,934 | 0 / 0 |
-| `core/ceshu` + `core` 顶层 + `defaults` | 38 | 12,602 | 28 / 11,129 | 2 / 225 | 8 / 1,248 | 0 / 0 |
+| `core/agent` | 97 | 24,670 | 8 / 1,689 | 0 / 0 | 89 / 22,981 | 0 / 0 |
+| `ui/ceshu` | 35 | 14,620 | 27 / 12,948 | 4 / 1,231 | 3 / 363 | 1 / 78 |
+| `ui/widgets` | 24 | 9,232 | 14 / 6,053 | 1 / 839 | 9 / 2,340 | 0 / 0 |
+| `ui/` 顶层 + `themes` + `components` | 31 | 9,883 | 9 / 1,772 | 5 / 3,207 | 17 / 4,904 | 0 / 0 |
+| `core/ceshu` + `core` 顶层 + `defaults` | 38 | 12,602 | 28 / 11,129 | 0 / 0 | 10 / 1,473 | 0 / 0 |
 | `ui/dialogs` | 20 | 6,055 | 10 / 3,174 | 5 / 2,041 | 5 / 840 | 0 / 0 |
-| `common` + `config` + `security` + `data` + 顶层 | 45 | 10,672 | 11 / 2,518 | 6 / 2,489 | 23 / 5,293 | 5 / 372 |
+| `common` + `config` + `security` + `data` + 顶层 | 45 | 10,672 | 11 / 2,518 | 5 / 2,164 | 24 / 5,618 | 5 / 372 |
 | `features` | 9 | 3,430 | 4 / 1,543 | 2 / 1,479 | 3 / 408 | 0 / 0 |
-| **合计** | **299** | **91,164** | **109 / 40,116** | **58 / 21,503** | **126 / 29,095** | **6 / 450** |
+| **合计** | **299** | **91,164** | **111 / 40,826** | **22 / 10,961** | **160 / 38,927** | **6 / 450** |
 
-> **注（E54 已消除漂移）**：上表「合计」是各域行直接相加，且与 §1 结论表**逐格相等**（109 / 58 / 126 / 6 = 299 文件；40,116 + 21,503 + 29,095 + 450 = 91,164 行）。此前 §1 与 §2 存在 **±2 文件 / 480 行** 的差异、§1 与 §3 明细差 7 文件，**E54 已按 §3 逐文件明细统一**（方法与逐笔来源见 §1 的「E54 台账校准」块）；**§1 仍是守护测试的解析源**。
+> **注（E54 已消除漂移；E56 同步 ◐ 复核结果）**：上表「合计」是各域行直接相加，且与 §1 结论表**逐格相等**（111 / 22 / 160 / 6 = 299 文件；40,826 + 10,961 + 38,927 + 450 = 91,164 行）。此前 §1 与 §2 存在 **±2 文件 / 480 行** 的差异、§1 与 §3 明细差 7 文件，**E54 已按 §3 逐文件明细统一**（方法与逐笔来源见 §1 的「E54 台账校准」块）；**E56** 又把 30 行 ◐→⛔（AI 框架重写域）、2 行 ◐→✅、4 行改判 ⛔，各域行随之更新（见 §1 的「E56 ◐ 行文件级复核」块）。**§1 仍是守护测试的解析源**。
+>
+> **E56 后各域 ◐ 列**：`core/agent` / `core/ceshu` 两域 **◐ 已清零**（前者全部归 ⛔，后者本就无 ◐）；余下 ◐ 集中在 `ui/dialogs`（5 / 2,041）、`ui/` 顶层+主题（5 / 3,207）、`ui/ceshu`（4 / 1,231）、`features`（2 / 1,479）、`ui/widgets`（1 / 839）、`common`（5 / 2,164）。
 
 **三个最值得注意的域**：
-1. **`core/agent`（最大域，24,670 行）→ 只有 8 个文件（1,689 行）是完整已迁**；另有 33 个文件（8,419 行）按 **E42** 改判「不迁（框架改为重写）」，不再计入欠债。A 档做的是「核心闭环」，不是「整个 Agent 引擎」。
-2. **`ui/` 顶层 + 主题（9,883 行）→ 仅 1,665 行完整已迁**，主题/特效/菜单/多标签整块未做（多为 C 档，但那是**决策**还是**欠债**需区分：主题≠核心功能）。
+1. **`core/agent`（最大域，24,670 行）→ 只有 8 个文件（1,689 行）是完整已迁**；其余 **89 个文件（22,981 行）全部 ⛔**（E56 后 ◐ 清零）：其中 33 文件 / 8,419 行按 **E42** 改判「不迁（框架改为重写）」，再叠加 **E56** 把余下的 23 个 ◐ 文件（6,752 行）一并归入该重写域。A 档做的是「核心闭环」，不是「整个 Agent 引擎」。
+2. **`ui/` 顶层 + 主题（9,883 行）→ 仅 1,772 行完整已迁**（E56 把 `shortcuts_dialog.py` 107 上移 ✅、`tab_manager.py` 249 与 `buff`/`equipment` 等改判 ⛔），主题/特效/菜单/多标签整块未做（多为 C 档，但那是**决策**还是**欠债**需区分：主题≠核心功能）。
 3. **`ui/dialogs`（6,055 行）→ 已完整迁出 3,174 行**（E54 把 `settings_dialog.py` 671 行从 ⚠️ 上移 ✅），该域 **⚠️ 列已清零**；余下 `api_config.py`（模型管理/视觉/模板三 tab 未迁）等为 ◐。快速创建/统计/字段模板/高级搜索/类型可见性/数据对比/备份已由此前的 E10–E16 迁出。
 
 ## 3. 逐文件明细
@@ -194,28 +216,28 @@ E51 的独立验证者报告：在策划书右侧预览面板里，条目行的*
 | ceshu_agent_router.py | 74 | ✅ | `shared/ceshuAi.ts::agentForChapter` |
 | ceshu_style_helpers.py | 106 | ✅ | `shared/ceshuAi.ts::STYLE_GLOSSARIES/getStyleGlossary` |
 | ceshu_skill_prompt.py | 201 | ✅ | `shared/ceshuAi.ts::buildChapterPrompt/buildChapterOrder/buildMetaSeed` |
-| brain.py | 130 | ◐50% | 门面→`brainService.ts`；intent/learner/plan/reflect/subagent/plugin/perf 装配未迁 |
-| brain_prompt.py | 294 | ◐30% | `shared/agent/prompts.ts` 仅骨架；persona/画像/长期记忆/黑板未迁 |
-| dispatcher.py | 585 | ◐70% | `main/agent/dispatcher.ts`；MCP/SubAgent/`execute_parallel` 未迁 |
-| frontend_snapshot.py | 480 | ◐35% | 内省约 300 行为 PyQt 胶水；库信息→`library/manager.ts`、危险确认→`approvalBroker.ts` |
-| memory.py | 80 | ◐25% | 门面→`shared/agent/memory.ts`+`memoryStore.ts`（仅嵌入/检索/写入） |
-| memory_context.py | 136 | ◐25% | `brainService.ts` 注入「## 相关记忆」；项目记忆/上下文块未迁 |
-| memory_embedder.py | 114 | ◐ | `shared/agent/memory.ts::embedText`（32 维确定性；原 ngram/TF-IDF bug 不复刻） |
-| memory_index.py | 74 | ◐ | vectra `LocalIndex`（`memoryStore.ts`） |
-| memory_search.py | 231 | ◐ | `memoryStore.ts::search(topK)`；多路召回/去重未迁 |
-| memory_store.py | 195 | ◐ | `memoryStore.ts` add/count；反馈/偏好持久化未迁 |
-| memory_vector.py | 271 | ◐ | 自研向量→vectra 替代 |
-| models.py | 52 | ◐ | `SkillResult`/`SkillExecutionContext`→`protocol.ts`；`FeedbackRecord`→`shared/agent/personalization.ts`；Intent/MemoryEntry 未迁 |
-| prompts.py | 598 | ◐30% | `shared/agent/prompts.ts` 仅骨架；USER_AGENTS/TEAM_AGENTS/STEWARD_BASE_PROMPT 未迁 |
-| safety_guard.py | 154 | ◐50% | `protocol.ts` 风险分级 + `approvalBroker`；token 裁剪/工具替代建议未迁 |
-| semantic_memory.py | 233 | ◐ | ChromaDB→vectra 重设计 |
-| workspace.py | 227 | ◐40% | →`main/library/*` + `<库>/agent`；persona/多工作区未迁 |
-| skills/ceshu_skill.py | 138 | ◐ | `ceshuSkill.ts`；`ai_*` 动作未接 |
-| skills/ceshu_skill_data.py | 120 | ◐ | CRUD 已迁；`import` 未迁 |
-| skills/ceshu_skill_generate.py | 684 | ◐55% | `ceshuAi.ts`+`ceshuDataGen.ts`；`ai_fill_field`/`analyze_description` 无 TS |
-| skills/ceshu_skill_review.py | 299 | ◐50% | review 维度+`AiReviewPanel`；`ai_review_full`/系统推荐应用未迁 |
-| skills/common.py | 106 | ◐ | `protocol.ts::inferAction/fixParams`+`dispatcher.ts` 归一 |
-| skills/game_data_skill.py | 1008 | ◐45% | `gameDataSkill.ts`（list/query/create/update/delete）；batch/switch/统计未迁 |
+| brain.py | 130 | ⛔ | 门面→`brainService.ts`；intent/learner/plan/reflect/subagent/plugin/perf 装配未迁 ｜ **E56**：属 E42「AI 框架重写」域 —— **未迁部分随框架重写、不 1:1 移植，不计迁移欠账**（已迁部分为在用资产、保留）（原判 ◐50%） |
+| brain_prompt.py | 294 | ⛔ | `shared/agent/prompts.ts` 仅骨架；persona/画像/长期记忆/黑板未迁 ｜ **E56**：属 E42「AI 框架重写」域 —— **未迁部分随框架重写、不 1:1 移植，不计迁移欠账**（已迁部分为在用资产、保留）（原判 ◐30%） |
+| dispatcher.py | 585 | ⛔ | `main/agent/dispatcher.ts`；MCP/SubAgent/`execute_parallel` 未迁 ｜ **E56**：属 E42「AI 框架重写」域 —— **未迁部分随框架重写、不 1:1 移植，不计迁移欠账**（已迁部分为在用资产、保留）（原判 ◐70%） |
+| frontend_snapshot.py | 480 | ⛔ | 内省约 300 行为 PyQt 胶水；库信息→`library/manager.ts`、危险确认→`approvalBroker.ts` ｜ **E56**：属 E42「AI 框架重写」域 —— **未迁部分随框架重写、不 1:1 移植，不计迁移欠账**（已迁部分为在用资产、保留）（原判 ◐35%） |
+| memory.py | 80 | ⛔ | 门面→`shared/agent/memory.ts`+`memoryStore.ts`（仅嵌入/检索/写入） ｜ **E56**：属 E42「AI 框架重写」域 —— **未迁部分随框架重写、不 1:1 移植，不计迁移欠账**（已迁部分为在用资产、保留）（原判 ◐25%） |
+| memory_context.py | 136 | ⛔ | `brainService.ts` 注入「## 相关记忆」；项目记忆/上下文块未迁 ｜ **E56**：属 E42「AI 框架重写」域 —— **未迁部分随框架重写、不 1:1 移植，不计迁移欠账**（已迁部分为在用资产、保留）（原判 ◐25%） |
+| memory_embedder.py | 114 | ⛔ | `shared/agent/memory.ts::embedText`（32 维确定性；原 ngram/TF-IDF bug 不复刻） ｜ **E56**：属 E42「AI 框架重写」域 —— **未迁部分随框架重写、不 1:1 移植，不计迁移欠账**（已迁部分为在用资产、保留） |
+| memory_index.py | 74 | ⛔ | vectra `LocalIndex`（`memoryStore.ts`） ｜ **E56**：属 E42「AI 框架重写」域 —— **未迁部分随框架重写、不 1:1 移植，不计迁移欠账**（已迁部分为在用资产、保留） |
+| memory_search.py | 231 | ⛔ | `memoryStore.ts::search(topK)`；多路召回/去重未迁 ｜ **E56**：属 E42「AI 框架重写」域 —— **未迁部分随框架重写、不 1:1 移植，不计迁移欠账**（已迁部分为在用资产、保留） |
+| memory_store.py | 195 | ⛔ | `memoryStore.ts` add/count；反馈/偏好持久化未迁 ｜ **E56**：属 E42「AI 框架重写」域 —— **未迁部分随框架重写、不 1:1 移植，不计迁移欠账**（已迁部分为在用资产、保留） |
+| memory_vector.py | 271 | ⛔ | 自研向量→vectra 替代 ｜ **E56**：属 E42「AI 框架重写」域 —— **未迁部分随框架重写、不 1:1 移植，不计迁移欠账**（已迁部分为在用资产、保留） |
+| models.py | 52 | ⛔ | `SkillResult`/`SkillExecutionContext`→`protocol.ts`；`FeedbackRecord`→`shared/agent/personalization.ts`；Intent/MemoryEntry 未迁 ｜ **E56**：属 E42「AI 框架重写」域 —— **未迁部分随框架重写、不 1:1 移植，不计迁移欠账**（已迁部分为在用资产、保留） |
+| prompts.py | 598 | ⛔ | `shared/agent/prompts.ts` 仅骨架；USER_AGENTS/TEAM_AGENTS/STEWARD_BASE_PROMPT 未迁 ｜ **E56**：属 E42「AI 框架重写」域 —— **未迁部分随框架重写、不 1:1 移植，不计迁移欠账**（已迁部分为在用资产、保留）（原判 ◐30%） |
+| safety_guard.py | 154 | ⛔ | `protocol.ts` 风险分级 + `approvalBroker`；token 裁剪/工具替代建议未迁 ｜ **E56**：属 E42「AI 框架重写」域 —— **未迁部分随框架重写、不 1:1 移植，不计迁移欠账**（已迁部分为在用资产、保留）（原判 ◐50%） |
+| semantic_memory.py | 233 | ⛔ | ChromaDB→vectra 重设计 ｜ **E56**：属 E42「AI 框架重写」域 —— **未迁部分随框架重写、不 1:1 移植，不计迁移欠账**（已迁部分为在用资产、保留） |
+| workspace.py | 227 | ⛔ | →`main/library/*` + `<库>/agent`；persona/多工作区未迁 ｜ **E56**：属 E42「AI 框架重写」域 —— **未迁部分随框架重写、不 1:1 移植，不计迁移欠账**（已迁部分为在用资产、保留）（原判 ◐40%） |
+| skills/ceshu_skill.py | 138 | ⛔ | `ceshuSkill.ts`；`ai_*` 动作未接 ｜ **E56**：属 E42「AI 框架重写」域 —— **未迁部分随框架重写、不 1:1 移植，不计迁移欠账**（已迁部分为在用资产、保留） |
+| skills/ceshu_skill_data.py | 120 | ⛔ | CRUD 已迁；`import` 未迁 ｜ **E56**：属 E42「AI 框架重写」域 —— **未迁部分随框架重写、不 1:1 移植，不计迁移欠账**（已迁部分为在用资产、保留） |
+| skills/ceshu_skill_generate.py | 684 | ⛔ | `ceshuAi.ts`+`ceshuDataGen.ts`；`ai_fill_field`/`analyze_description` 无 TS ｜ **E56**：属 E42「AI 框架重写」域 —— **未迁部分随框架重写、不 1:1 移植，不计迁移欠账**（已迁部分为在用资产、保留）（原判 ◐55%） |
+| skills/ceshu_skill_review.py | 299 | ⛔ | review 维度+`AiReviewPanel`；`ai_review_full`/系统推荐应用未迁 ｜ **E56**：属 E42「AI 框架重写」域 —— **未迁部分随框架重写、不 1:1 移植，不计迁移欠账**（已迁部分为在用资产、保留）（原判 ◐50%） |
+| skills/common.py | 106 | ⛔ | `protocol.ts::inferAction/fixParams`+`dispatcher.ts` 归一 ｜ **E56**：属 E42「AI 框架重写」域 —— **未迁部分随框架重写、不 1:1 移植，不计迁移欠账**（已迁部分为在用资产、保留） |
+| skills/game_data_skill.py | 1008 | ⛔ | `gameDataSkill.ts`（list/query/create/update/delete）；batch/switch/统计未迁 ｜ **E56**：属 E42「AI 框架重写」域 —— **未迁部分随框架重写、不 1:1 移植，不计迁移欠账**（已迁部分为在用资产、保留）（原判 ◐45%） |
 | __init__.py / brain_state.py / memory_state.py / ceshu_skill_state.py | 41+197+147+79 | ⛔ | 包 re-export 胶水 + 类型桩（自述「不承载运行时代码」） |
 | code_sandbox.py | 237 | ⛔ | 死代码（全仓仅自身命中）；`security/sandbox.py` 另有同名类 |
 | i18n.py | 107 | ⛔ | 死代码：`AgentI18n` 无 import/调用点 |
@@ -231,7 +253,7 @@ E51 的独立验证者报告：在策划书右侧预览面板里，条目行的*
 | brain_reflect.py | 108 | ⛔ | 失败反思，A1-2 明确不移植 |
 | brain_subagent.py | 67 | ⛔ | SubAgent 通道，A1-1 明确不移植 |
 | intent.py | 718 | ⛔ | 规则意图解析+Planner，TS 无 |
-| learner.py | 543 | ◐ | **偏好/反馈子集已迁**：`shared/agent/personalization.ts`（extractPreferences/buildPersonalizedContext）+ `main/agent/preferenceStore.ts`（PreferenceStore/FeedbackStore）+ `brainService.ts` 注入系统提示词 + `agent:feedback` IPC；**未迁**：动作计数/转移矩阵、下一步建议、时间峰值、技能模板自动生成（依赖 TS 没有的 `Intent`/`BrainState`，属过度设计，有意不迁） |
+| learner.py | 543 | ⛔ | **偏好/反馈子集已迁**：`shared/agent/personalization.ts`（extractPreferences/buildPersonalizedContext）+ `main/agent/preferenceStore.ts`（PreferenceStore/FeedbackStore）+ `brainService.ts` 注入系统提示词 + `agent:feedback` IPC；**未迁**：动作计数/转移矩阵、下一步建议、时间峰值、技能模板自动生成（依赖 TS 没有的 `Intent`/`BrainState`，属过度设计，有意不迁） ｜ **E56**：属 E42「AI 框架重写」域 —— **未迁部分随框架重写、不 1:1 移植，不计迁移欠账**（已迁部分为在用资产、保留） |
 | mcp.py | 391 | ⛔ | MCP 客户端（方案列「重设计」，未实施） |
 | memory_history.py | 211 | ⛔ | 对话历史/反馈持久化，TS 无 |
 | model_registry.py | 186 | ⛔ | 模型注册/切换，TS 无 |
@@ -275,7 +297,7 @@ E51 的独立验证者报告：在策划书右侧预览面板里，条目行的*
 | chapter_templates.py | 170 | ✅ | `ceshuTemplateData.ts::CHAPTER_TEMPLATES` |
 | home_card.py | 161 | ✅ | `ceshuHome.ts::buildCeshuCards` |
 | competitive_chart.py | 99 | ✅ | `CompetitiveChart.tsx`+`ceshuCompetitiveChart.ts` |
-| score_report_dialog.py | 603 | ◐90% | 视图已迁；缺「导出 Markdown 评分报告」 |
+| score_report_dialog.py | 603 | ✅ | **E56 实证已迁**：`ceshu:exportScoreReport`（`main/ipc.ts:872` → `exportTextReportFile`）+ `CeshuView.tsx:338-351` 的 `buildScoreReportMarkdown` 与「导出评分报告」按钮（E49 补齐，对齐 Python `_on_export_md`）。原判「缺导出 Markdown 评分报告」是 E49 之前的快照 |
 | validation_dialog.py | 556 | ◐90% | 视图已迁；缺「导出 Markdown 校验报告」 |
 | changelog_dialog.py | 326 | ◐80% | 视图+日志已迁；缺「导出 MD/HTML/Text」 |
 | ai_panel.py | 248 | ◐60% | 通用对话由 `DigitalPanel` 承接；策划书专属 8 主题快捷面板未迁 |
@@ -299,11 +321,11 @@ E51 的独立验证者报告：在策划书右侧预览面板里，条目行的*
 | live_preview.py | 472 | ✅ | `shared/attrPreview.ts`+`AttrLivePreview.tsx` |
 | relation_graph.py | 407 | ✅ | `shared/references.ts`（注释注明与 reference_panel 合并迁移）+`ReferencesPanel.tsx` |
 | relation_matrix.py | 265 | ✅ | `AttrSystemPanel.tsx` matrix 视图+`attrSystem.ts::topoSortAttributes` |
-| collapsible_task_panel.py | 243 | ◐35% | `DigitalPanel.tsx` 有折叠步骤+`panel.ts::reduceBrainEvent`；缺任务工作区折叠面板 |
+| collapsible_task_panel.py | 243 | ⛔ | `DigitalPanel.tsx` 有折叠步骤+`panel.ts::reduceBrainEvent`；缺任务工作区折叠面板 ｜ **E56**：属 E42「AI 框架重写」域 —— **未迁部分随框架重写、不 1:1 移植，不计迁移欠账**（已迁部分为在用资产、保留）（原判 ◐35%） |
 | drop_table.py | 225 | ✅ | `shared/dropTable.ts`+`DropTableEditor.tsx`（名称/掉率/最小/最大 + 内联选库 + 夹紧；E18） |
-| dynamic_form.py | 839 | ◐75% | `formSections.ts`+`ItemForm.tsx`+`FormSectionCard.tsx`；缺 image/dialog/formula_builder/image_tags/AI 按钮等专用控件 |
+| dynamic_form.py | 839 | ◐75% | `formSections.ts`+`ItemForm.tsx`+`FormSectionCard.tsx`。**E56 更正**：原「缺 image/dialog/formula_builder/image_tags/AI 按钮」**多数已迁** —— `image`/`image_tags`（含「自动填充」「AI分析」两钮，对齐 `_create_image_tags_widget`）/`template`/`desc`/`content`/`tags`/`spinbox`/`double_spin`/`combobox`/`image_desc` 均有 `case`，AI 按钮 `item-form-ai-generate`（E36）。**仍缺**：`dialog` 形态的专用控件（`FieldType` 已含 `'dialog'` 但 `ItemForm` 无 `case 'dialog'`，落到默认渲染）与 `formula` 形态（TS 的 `AttrFormulaBuilder` 是**属性面板**的公式编辑器，非条目字段控件）⇒ 保持 ◐ |
 | multi_select.py | 258 | ✅ | `shared/refTable.ts`+`RefTableEditor.tsx`（refType 解析→单数 id + 名称/等级 + 内联选库；E17） |
-| task_row.py | 317 | ◐40% | `panel.ts::summarizeToolTasks` 派生扁平列表；缺可展开任务卡/状态徽章/完成删除动作 |
+| task_row.py | 317 | ⛔ | `panel.ts::summarizeToolTasks` 派生扁平列表；缺可展开任务卡/状态徽章/完成删除动作 ｜ **E56**：属 E42「AI 框架重写」域 —— **未迁部分随框架重写、不 1:1 移植，不计迁移欠账**（已迁部分为在用资产、保留）（原判 ◐40%） |
 | home_widget.py | 604 | ✅ | E48 已迁 5 步引导（含完成度持久化）+ 6 张快捷操作卡 + 数据概览卡 至 `OnboardingPanel.tsx`（菜单 帮助→快速入门）；刻意不迁：数据概览的「⚙ 管理显示类型」按钮（TypeVisibilityPanel 在 TS 已刻意下线）、按 visible_types 过滤（TS 不接线）（E50 重新分类为 ✅：TS 已等价实现，原 ◐ 判定过期） |
 | team_dialog.py | 818 | ⛔ | **E42 裁决域 · E54 落地改判**：整块是 AI **团队 CRUD / 成员工具覆盖 / 自定义提示词 / 智能体定义管理** —— 属「Agent 框架」被重写的范畴（主理人 2026-10-07 批准「改吧」），**不再计入迁移欠债**。TS 侧零对应（`shared/agent/` 无团队模型） |
 | __init__.py | 22 | ⛔ | 包 re-export |
@@ -322,18 +344,20 @@ E51 的独立验证者报告：在策划书右侧预览面板里，条目行的*
 | library_controller.py | 48 | ✅ | `main/library/manager.ts`+`LibraryBar.tsx` |
 | ceshu_controller.py | 379 | ◐65% | `main/ceshu/manager.ts`+`CeshuView.tsx`；缺 tab 过滤/`send_ceshu_ai_context` |
 | data_tab.py | 1157 | ◐65% | `ItemForm.tsx`+各类编辑器+`BatchEditPanel`+`ReferencesPanel`；**E50 更正**：原写「缺 undo/redo(~130)」为误——**已迁**（E27：`data:undo`/`data:redo`/`data:undoState` + `main/data/undoRecorder.ts` + App 按钮与 Ctrl+Z/Y）。**E51 补齐**：P5 数量约束软检查（`shared/dataCountConstraint.ts`，`CeshuDataPreview` 解析 → `DataEditorTab` 行内确认）、F2/右键重命名 + 条目右键菜单（重命名/编辑/复制/删除，同 `virtual_list.py:217-231`）。**仍缺**：AI 生成的「技能锚点模板」选择上下文（Python 的「参考策划方案」一项已被 TS 的策划书驱动生成取代）⇒ **保持 ◐**（未达完全等价） |
-| digital_employee.py | 486 | ◐55% | `DigitalPanel.tsx`+`main/tray.ts`；缺独立弹窗/浮窗常驻 |
-| digital_panel_chat.py | 504 | ◐75% | `panel.ts::reduceBrainEvent`+`DigitalPanel`；缺 markdown 气泡/记忆上下文/欢迎语 |
-| digital_panel_input.py | 209 | ◐40% | 输入+发送已迁；缺斜杠命令/编辑器上下文采集 |
-| digital_panel_tasks.py | 214 | ◐50% | 后端重设计为 `summarizeToolTasks`；独立任务 CRUD 未迁 |
-| digital_panel_workspace.py | 308 | ◐40% | 会话快照→`sessionStore.ts`；富文本草稿/多工作区未迁 |
+| digital_employee.py | 486 | ⛔ | `DigitalPanel.tsx`+`main/tray.ts`；缺独立弹窗/浮窗常驻 ｜ **E56**：属 E42「AI 框架重写」域 —— **未迁部分随框架重写、不 1:1 移植，不计迁移欠账**（已迁部分为在用资产、保留）（原判 ◐55%） |
+| digital_panel_chat.py | 504 | ⛔ | `panel.ts::reduceBrainEvent`+`DigitalPanel`；缺 markdown 气泡/记忆上下文/欢迎语 ｜ **E56**：属 E42「AI 框架重写」域 —— **未迁部分随框架重写、不 1:1 移植，不计迁移欠账**（已迁部分为在用资产、保留）（原判 ◐75%） |
+| digital_panel_input.py | 209 | ⛔ | 输入+发送已迁；缺斜杠命令/编辑器上下文采集 ｜ **E56**：属 E42「AI 框架重写」域 —— **未迁部分随框架重写、不 1:1 移植，不计迁移欠账**（已迁部分为在用资产、保留）（原判 ◐40%） |
+| digital_panel_tasks.py | 214 | ⛔ | 后端重设计为 `summarizeToolTasks`；独立任务 CRUD 未迁 ｜ **E56**：属 E42「AI 框架重写」域 —— **未迁部分随框架重写、不 1:1 移植，不计迁移欠账**（已迁部分为在用资产、保留）（原判 ◐50%） |
+| digital_panel_workspace.py | 308 | ⛔ | 会话快照→`sessionStore.ts`；富文本草稿/多工作区未迁 ｜ **E56**：属 E42「AI 框架重写」域 —— **未迁部分随框架重写、不 1:1 移植，不计迁移欠账**（已迁部分为在用资产、保留）（原判 ◐40%） |
 | main_window.py | 1248 | ◐40% | `App.tsx` 骨架+`LibraryBar`+模式切换；缺多标签/菜单/窗口状态/自动保存 |
-| components/virtual_list.py | 243 | ◐40% | 搜索过滤/多选已迁；缺虚拟滚动/拖拽排序/右键菜单 |
+| components/virtual_list.py | 243 | ◐40% | 搜索过滤/多选已迁；**E51 已补条目右键菜单**（`DataEditorTab` 的 `row-context-menu`：重命名/编辑/复制/删除，同 `virtual_list.py:217-231` 顺序；E56 实测 `row-context-menu` 在场）。**仍缺**：虚拟滚动。**拖拽排序属 DESIGN-DIFFERENT**（PyQt 重排**内存数组**，TS 条目来自 SQLite、**无数组序**）⇒ 保持 ◐ |
 | chat_renderer.py | 172 | ✅ | markdown→HTML+代码高亮已迁（E47：react-markdown+remark-gfm+remark-breaks+rehype-highlight 至 DigitalPanel 气泡）；system/error/plan 气泡类型因 TS 状态模型不同未迁（TS 用独立 error 字段/步骤 UI），属刻意范围收窄（E50 重新分类为 ✅：TS 已等价实现，原 ◐ 判定过期） |
 | effects.py / theme_effects.py / text_glow_effect.py | 459+201+148 | ⛔ | **有意不迁（E24 判定）**：**86% 是 Qt QSS/hex 字面量**（技术上不可迁）；且**实证死代码**——`GlowButton`/`GlowLineEdit`/`GlowComboBox`/`GlowListWidget`/`SuccessToast` 在 `src/` 内**零引用**；`apply_text_glow` 遍历的 `main_window.glow_widgets` 初始化为 `[]` 后**从未 append**（恒空转）；`generate_digital_panel_qss` 仅被 `themes/__init__` 再导出，**无真正调用者**（数字员工面板已由 A1-4 `DigitalPanel.tsx` 覆盖） |
 | themes/themes.py | 1097 | ⛔ | **有意不迁（E24 判定）**：`_THEME_QSS`(255 行) + `_DIGITAL_PANEL_QSS`(200 行) + 5 套 `_THEME_CONFIGS` 主题字典(210 行) **全是 Qt QSS 字符串**，Web 端不可用；TS 已有 CSS 变量深色主题（`styles.css` 9 个变量）。唯一有价值的是 33 行**设计令牌**（`FONT_SIZE_XS..XL` 11/12/13/14/16、`SPACING_XS..XL` 4/8/12/16/24），已作为 CSS 自定义属性覆盖（`:root` 变量层）。多主题切换属**独立立项**（需 `[data-theme]` 覆写 ~80-100 行），不搭车 |
 | window_state.py | 154 | ✅ | **E24 已迁**：`main/windowState.ts`（几何 + 最大化 + lastMode，原子写）+ `app:setWindowMode` IPC。**刻意不迁**（TS 无对应物，非缺口）：theme（TS 无多主题，`themes.py` 已判不迁）、layout_mode（Python 硬编码 `"three_column"` 常量、无信息）、splitter_ratio（TS 侧栏是 CSS Grid、无 QSplitter）、auto_save_enabled/interval（TS 条目级即时落库、无内存脏状态）、has_unsaved_changes/compute_data_hash/check_data_changed（TS 无内存脏状态，无源之水）（E50 从捆绑行拆出并重新分类为 ✅：TS 已等价实现，原 ◐ 判定过期） |
-| menus.py / shortcuts_dialog.py / tab_manager.py | 180+107+249 | ◐ | **tab_manager** 核心（多标签/延迟切标签/侧栏计数）已由 TS `mode-data`/`mode-ceshu`/`mode-digital` + `LibraryBar` 覆盖，仅剩「标签撕裂保护」边缘情形。**menus.py** 26 项中 TS 已覆盖 16 项（工具栏+侧栏）；**E49 更正（实测翻案）**：原写「撤销/重做 **TS 完全没有**」**为误**——撤销/重做**已迁**（E27：`shared/ipc.ts` `data:undo`/`data:redo`/`data:undoState` + `main/data/undoRecorder.ts` + `App.tsx` 按钮与 Ctrl+Z/Y）；清理未用图片（IPC `images:deleteImages` + 菜单 `menuitem-tools-cleanupUnusedImages`）、多引擎导出（Unity/Unreal/Godot/Cocos2d 四导出器 + Lua 导出 `main/engineExport/lua.ts`）**均已迁**。仅剩「数据关系图」一项为真实缺口（TS 无对应）。**shortcuts_dialog** 是纯键盘映射表（无消费者），随 menus 不迁（E50：window_state 已拆为独立 ✅ 行） |
+| menus.py | 180 | ◐ | **E56 从捆绑行拆出为独立行**。26 项中 TS 已覆盖 16 项（工具栏+侧栏）；**E49 更正（实测翻案）**：原写「撤销/重做 **TS 完全没有**」**为误**——撤销/重做**已迁**（E27：`data:undo`/`data:redo`/`data:undoState` + `main/data/undoRecorder.ts` + `App.tsx` 按钮与 Ctrl+Z/Y）；清理未用图片（IPC `images:deleteImages` + 菜单 `menuitem-tools-cleanupUnusedImages`）、多引擎导出（Unity/Unreal/Godot/Cocos2d 四导出器 + Lua 导出 `main/engineExport/lua.ts`）**均已迁**。**仅剩「数据关系图」一项为真实缺口**（E56 实测 TS 侧 `数据关系图`/`relationGraph`/`dataRelation` **零命中**）⇒ 保持 ◐ |
+| shortcuts_dialog.py | 107 | ✅ | **E56 实证已迁**：`renderer/src/components/ShortcutsPanel.tsx`（docblock 明写「对齐 Python `ui/shortcuts_dialog.py::ShortcutsDialog`」）+ 菜单入口「帮助 → 快捷键参考」（`MenuBar.tsx:250` `menuitem-help-shortcuts`，E37 `3fc07ef`）。原判「纯键盘映射表、无消费者、随 menus 不迁」是 E37 之前的快照 |
+| tab_manager.py | 249 | ⛔ | **E56 改判（设计性替换）**：Python 的多标签编辑器（延迟切标签 / 侧栏计数 / 标签撕裂保护）已被 **E28 顶层 IA 重写**取代 —— 中央单栈 `mode-data`/`mode-ceshu` + `LibraryBar`，**「标签」这一形态在 TS 已不存在**，该机制的技术前提消失 ⇒ 有意不迁（与 `themes`/QSS 同类：Web 侧不适用） |
 | components/image_loader.py | 324 | ✅ | **E46 已迁 `LazyImageLabel` 行为**（`shared/imageCache.ts` LRU 缓存 + `LazyImage` 组件，按已保存绝对路径经 `images:readByPath` 回读 data URL 回显预览，修「已保存图片路径不回显」的真 bug）；**未对齐**：不做 PIL 位图重采样（浏览器 `<img>` 引擎解码，CSS 限尺寸即可，属刻意的过度开发规避）（E50 重新分类为 ✅：TS 已等价实现，原 ◐ 判定过期） |
 | components/toast.py | 98 | ✅ | **E45 已补 Toast 组件**（`shared/toast.ts` + `ToastHost`，多条并存/自动消失/三态配色）；**未完全对齐**：未做 E2E 实机点击验证（无 jsdom 设施，见 roadmap E45 的诚实边界）（E50 重新分类为 ✅：TS 已等价实现，原 ◐ 判定过期） |
 | `__init__.py`×3 / ai_bridge.py / digital_panel_state.py / digital_panel_theme.py / layout_builder.py | 98+116+232+338+245 | ⛔ | 包胶水 / `a-tier-plan` 明列不迁（初始化窗口定位、类型桩、QSS 注入、QSplitter 布局）。**E54 校准**：原写 `32+116+… 等`（尾带「等」），实测三个 `__init__.py` 合计 **98**（32+10+56），故本行精确为 1,029 行 |
@@ -369,8 +393,8 @@ E51 的独立验证者报告：在策划书右侧预览面板里，条目行的*
 | operation_log.py | 154 | ✅ | `shared/agent/operationLog.ts`+`operationLogStore.ts` |
 | calc_engine.py | 170 | ✅ | `attrSystem.ts` 等价实现（Python 源仅单测/`__init__` 引用） |
 | defaults/rpg_schema.py | 786 | ✅ | `shared/typeSchema.ts::BUILTIN_DATA_TYPES` |
-| buff_system.py | 129 | ◐40% | 加成预览已迁（`attrPreview.ts`）；模板/tick/active 管理未迁（src 内无调用点） |
-| equipment_system.py | 96 | ◐40% | bonuses/EQUIP_SLOTS 已迁；槽位注册/穿脱 API 未迁（无调用点） |
+| buff_system.py | 129 | ⛔ | **E56 改判（死代码 + 设计性替换）**：真实使用面（`BuffSystem` 百分比加成）只被 `ui/widgets/live_preview.py` 消费，该面已由 `shared/attrPreview.ts`（`buffBonuses` 百分比加成 + 装备固定加成 + 拓扑计算）**等价实现**；未迁的「模板/tick/active 管理」在 Python 源内**无调用点**（死代码）⇒ 非缺口 |
+| equipment_system.py | 96 | ⛔ | **E56 改判（同 `buff_system`）**：真实使用面（`EquipmentSystem` 固定加成 / `EQUIP_SLOTS`）已由 `shared/attrPreview.ts` 等价实现；未迁的「槽位注册 / 穿脱 API」**无调用点**（死代码）⇒ 非缺口 |
 | style_manager.py | 289 | ✅ | `shared/gameStyle.ts`（E21：`GAME_STYLES` 内联 6 风格×46 概念 + `CONCEPT_ALIASES` 23 条；`resolveLabel`/`resolveFieldLabel`/`inferStyleFromText`/`buildReplacementPairs` 等纯函数）+ `ceshuModel.ts::resolveDocGameStyle` + `fieldLabelFor(field,layout,styleId)`/`ItemForm.gameStyle` + 工具栏 `game-style` 下拉。**无消费者而有意不迁**：`get_styles`（≡ `GAME_STYLES` 常量）、`get_active_style_name`（活跃风格在 TS 是参数非状态）；`list_style_names`/`get_terminology` 已按 1:1 移植但**暂无 TS 消费者**（保留以便对照，非预建） |
 | `__init__.py`×2 + defaults/`__init__.py` | 31+35+4 | ⛔ | 包 re-export |
 | extended_formulas.py | 455 | ⛔ | 死代码（仅 `core/__init__` re-export）—— E4 已实证 |
@@ -412,13 +436,13 @@ E51 的独立验证者报告：在策划书右侧预览面板里，条目行的*
 | data/chapter_templates_data.py | 800 | ✅ | `shared/ceshuTemplateData.ts::CHAPTER_TEMPLATES` |
 | data/type_editor_templates.py | 98 | ✅ | `shared/typeTemplates.ts::TYPE_TEMPLATES` |
 | app.py | 103 | ✅ | `desktop/src/main/index.ts`（crash 日志/sentry 未随迁） |
-| common/ai_client.py | 753 | ◐15% | 已迁 `main/llm/client.ts`；缺 OpenAI/Qwen/豆包/DeepSeek/流式/tools/vision/生图/限流；**引用 14 处** |
+| common/ai_client.py | 753 | ◐40% | 已迁 `main/llm/client.ts` + `shared/llmConfig.ts`。**E56 更正**：原「缺 OpenAI/Qwen/豆包/DeepSeek/生图」**多数已迁** —— **6 家服务商**（`ollama`/`openai`/`doubao`/`qwen`/`claude`/`deepseek`，E41，Key 走 safeStorage）+ AI 生图四 provider（E22 `imageGen/`）。**仍缺**：流式输出（`client.ts` 写死 `stream: false`）、tools / function-calling、vision 多模态、限流；**引用 14 处** ⇒ 保持 ◐ |
 | common/common.py | 287 | ✅ | 原子写（`atomic_write_*`）/uuid/`is_test_env` **已迁**（文件真实消费者）。**E49 更正**：`safe_dict` 在 Python 源中**根本不存在**（grep 零命中）；`safe_int`/`safe_float`/`safe_str` **仅有定义（`common.py:157/174/191`）+ `common/__init__.py` 再导出、零业务调用点** ⇒ 非缺口（E50 重新分类为 ✅：TS 已等价实现，原 ◐ 判定过期） |
 | common/exceptions.py | 195 | ◐ | `shared/ipc.ts` IpcInvokeError；缺友好化；引用 2 处 |
 | common/shortcuts.py | 177 | ◐ | `main/tray.ts` 单热键；缺 ShortcutManager/DEFAULT_SHORTCUTS |
 | config/constants.py | 181 | ◐ | 类型/字段/属性/策划常量已迁；缺窗口/主题/文件名常量；引用 31 处 |
 | config/settings.py | 858 | ◐ | `fields_config`→`typeSchema.ts`；**E23 补存储基座**：`shared/settingsStore.ts`（统一 localStorage 读写/枚举/导出/导入/重置，`StorageLike` 单一真源，已收拢 4 处散点）。仍缺 `backup_dir`/`startup_mode`/`api_*`（TS 刻意无全局单例；api_* 现由 `imageGenConfig` 单独存） |
-| security/sandbox.py | 325 | ◐ | 已由 `main/security/jsSandbox.ts`（QuickJS 白名单）**设计性替换**；引用 2 处 |
+| security/sandbox.py | 325 | ⛔ | **E56 改判（设计性替换）**：已由 `main/security/jsSandbox.ts`（QuickJS 白名单）**设计性替换**（E56 实测该文件在场）；其 2 处消费者（`code_skill.py` / `shell_skill.py`）**都在 core/agent 重写域**（见 §3.1）⇒ 非编辑器侧缺口 |
 | common/auto_updater.py | 60 | ⚠️ | TS 无；引用 1 处 |
 | common/data_diff.py | 197 | ✅ | `shared/itemDiff.ts`（`diffValues`/`diffItems`/`diffLibraries`/`collectLeaves`/`summarizeDiff`）。**修 Python 三处缺陷**：① 数组元素**不递归**（`_compare_list` 整块标 MODIFIED）→ 递归；② `compare_items_by_id` 新增/删除只塞 `name` 一个标量 → 携带 `data` 全量；③ 从不产出的 `UNCHANGED` 死枚举 → 无变化即不产出。**有意保留**数组按下标对齐（与 Python 一致，已在注释标注局限） |
 | common/data_importer.py | 269 | ✅ | **E54 实证已迁**：`main/ipc.ts:690` `data:importCsv`（+`data:importExcel`）→ `main/data/csvIO.ts::importCsvFile` / `excelIO.ts::importExcelFile`；旧 JSON 走 `data:importLegacy`（`legacyImport.ts`）。原判「TS 无」过期 |
@@ -467,11 +491,11 @@ E51 的独立验证者报告：在策划书右侧预览面板里，条目行的*
 - **全量枚举**：脚本统计 `src/**/*.py`（排除 `__pycache__`）→ 299 文件 / 91,164 行，按域分组行数。
 - **逐文件判定**：8 个**只读**子代理并行审计（每个域一个），要求对每个文件给出**具体依据** —— TS 文件路径 + 导出符号，或「grep 无消费者」这类实证；明确禁止「文件名相似即判已迁」。
 - **域总量对账**：每份审计的（文件 / 行）总量必须与脚本统计的域总量相等；8 份全部通过。**E54 补**：此前四类**分类计数**虽总和正确，但 §1 / §2 / §3 三处互相不一致；E54 已以 §3 逐文件明细为准统一（见 §1），并修掉 §3 两处不精确行数。
-- **全局对账**：四类合计 = 299 文件 / 91,164 行，**PASS**（见 §1）；且 §1 = §2 = Σ§3，**逐格相等**（E54）。
+- **全局对账**：四类合计 = 299 文件 / 91,164 行，**PASS**（见 §1）；且 §1 = §2 = Σ§3，**逐格相等**（E54 校准，E56 同步后仍成立）。
 - **已知误差来源**：①「◐部分已迁」的完成度是**估计值**（各代理给出，主观性存在）；②「⛔有意不迁」的判定依赖既有决策记录 + grep 实证，若某模块将来被需要需重新评估；③ 判定粒度是「文件」，同一文件内不同功能的迁移状态可能不一致（已在依据里尽量写明）。
 
 ## 6. 本次审计纠正的三处早前误判
 
-1. **roadmap §2 的「剩余 ≈3.5–4.5k 行（4–5%）」是错的** —— 逐文件审计给出的真实剩余是 **≈1.0–1.4 万行（11–15%）**（10-04 首版为 ≈2.4–2.8 万行，E42 写掉 `core/agent` 未迁部分 + E54 校准后见 §1）。那句话把三个混合态域当成了基本迁完，且口径过窄。
+1. **roadmap §2 的「剩余 ≈3.5–4.5k 行（4–5%）」是错的** —— 逐文件审计给出的真实剩余，经 E42 / E54 / E56 三轮扣减后为 **≈0.5–0.8 万行（6–9%）**（时间线：10-04 首版 ≈2.4–2.8 万行 → E42 写掉 `core/agent` 未迁部分 → E54 校准 → E56 落实 AI 域口径，见 §1「E56 ◐ 行文件级复核」）。那句估算把三个混合态域当成了基本迁完，且口径过窄。
 2. **三条「已迁映射」线索是错的**（幸好标注了"须自行核实"）：`ui/dialogs/template_manager.py` ✗≠ `TemplateEditorPanel`（后者对应**策划书**模板）、`statistics.py` ✗≠ `WordStatsPanel`（后者是策划书字数）、`data_diff_dialog.py` ✗≠ `ceshuDiff.ts`（后者对应策划书版本对比）。这三个文件当时实为**未迁** —— **均已于后续切片迁完**（E12 / E11 / E15）。
 3. **`common/` 不能整体按「用不到」处理**：`logger.py` 引用 142 处、`event_bus.py` 18 处、`lucide_icon.py` 11 处、`i18n.py` 4 处、`rate_limiter.py` 2 处 —— 这些**有真实消费者**，属未迁而非"设计上不迁"。（其余 15 个文件确认 src 内 0 引用，是真死代码。）
