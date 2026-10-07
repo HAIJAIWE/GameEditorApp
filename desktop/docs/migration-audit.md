@@ -67,12 +67,12 @@
 
 | 判定 | 文件 | 行数 | 占比 |
 |---|---|---|---|
-| ✅ 已迁 | 113 | 41,845 | 45.9% |
-| ◐ 部分已迁 | 18 | 9,555 | 10.5% |
+| ✅ 已迁 | 116 | 43,072 | 47.2% |
+| ◐ 部分已迁 | 15 | 8,328 | 9.1% |
 | ⛔ 有意不迁 | 162 | 39,314 | 43.1% |
 | ⚠️ 未迁（整块没做） | 6 | 450 | 0.5% |
 
-**对账（必须相等，已 PASS）**：`113+18+162+6 = 299` ✓、`41845+9555+39314+450 = 91,164` ✓
+**对账（必须相等，已 PASS）**：`116+15+162+6 = 299` ✓、`43072+8328+39314+450 = 91,164` ✓
 
 > ### E54 台账校准（2026-10-07）—— 本文件此前有「三套互不一致的数字」，本轮统一
 >
@@ -127,10 +127,39 @@
 **结果**：**§1 = §2 = Σ§3 = ✅ 113 / 41,845 · ◐ 18 / 9,555 · ⛔ 162 / 39,314 · ⚠️ 6 / 450**（合计 **299 文件 / 91,164 行**，逐格相等；8 个域锚点 Δ=0/0）。
 **真实剩余**：由「≈0.5–0.8 万行（6–9%）」再降为 **≈0.5–0.7 万行（6–8%）**。
 
+### E58 前端尾巴 3/3（2026-10-07）—— 台账滞后修复 + 拼音兜底
+
+**动因**：「前端尾巴 1/3」（`d5ad355`，导出类 —— 校验报告 Markdown + 变更日志 MD/HTML/Text）**只写码、未同步台账**，导致 §3 仍把两个文件记 ◐；另主理人裁决「引入 `pinyin-pro` 并实现」拼音兜底。
+
+**① 台账滞后修复（2 文件 ◐→✅ —— 是补记，不是新码）**：
+
+| 文件 | 行数 | 依据 |
+|---|---|---|
+| `ui/ceshu/validation_dialog.py` | 556 | 「视图已迁、缺导出 Markdown 校验报告」—— 该导出**已由 `d5ad355` 实现并接线**（`shared/ceshuReports.ts::buildValidationReportMarkdown` + `CeshuView.tsx` 的 `validate-export` 按钮 → `ceshu:exportValidationReport`）。同批的「**一键修复必填字段**」（`_on_auto_fix` → `auto_fill_required`）另有对应物：`shared/ceshuFill.ts::autoFillRequiredFields` + `ceshu:autoFill` + `ChecklistPanel` 的「一键修复」 |
+| `ui/ceshu/changelog_dialog.py` | 326 | 「视图+日志已迁、缺导出 MD/HTML/Text」—— 三格式导出**已由 `d5ad355` 实现**（`buildChangelog{Markdown,Text,Html}` + `CeshuView` 的 `changelog-export-md/html/text` → `ceshu:exportChangelogReport`） |
+
+> 这两行的滞后**成因可复现**：`d5ad355` 的 `git show --stat` 里**没有任何 `docs/` 文件**，即「写码未同步台账」；而紧随其后的 E57 提交流程只按自己那 4 个文件收了口，把这两行漏在 ◐ 里。⇒ 台账与代码不同步**未必是文档被回退**，也可能是「提交时忘了记账」，同样要用 §3 逐文件对账才能发现。
+
+**② 拼音兜底实现（`ui/dialogs/type_editor_field_widget.py` ◐→✅）** ——
+
+Python 的字段 ID 生成有两条**正交**的路子：**英译**（`_auto_translate` → 术语表，`攻击力 → atk`）与**拼音**（`_auto_pinyin` → `pypinyin`，`攻击力 → gong_ji_li`，**支持任意汉字**）。TS 此前只有前者（`shared/fieldId.ts`），拼音层**刻意留空**（E6 明示未做）。本轮补齐：
+
+- 新增 `shared/pinyinFieldId.ts`（依赖 `pinyin-pro ~3.29`）：`chineseToPinyin` 复现 `pypinyin.lazy_pinyin` 口径（逐字取音节 → `_` 连接 → 清洗 `[^a-zA-Z0-9_]` → 折叠 `_` → 转小写；`nonZh:'consecutive'` 保证**连续 ASCII 成段**，`hp_max → hp_max` 不被打碎）+ `suggestPinyinFieldId`（与 `suggestFieldIds` 同形，`source:'pinyin'`、`skipped` 恒空）。
+- `SuggestionSource` 增 `'pinyin'`；`TypeEditorPanel.tsx` 字段行新增**「拼音」按钮**（`te-field-pinyin-{i}`），候选条中拼音层与规则层 / AI 层**同面板并列**（`data-source` 区分），沿用「**只提案不写入**」。
+- **新建类型的 ID 随中文名自动填拼音**（对齐 `type_editor_dialog.add_type` 的 `tname_edit.textChanged → tid_edit.setText(_chinese_to_pinyin(...))`）：仅对**尚未保存的新类型**且 **ID 未被用户手改过**（`manualTypeIds` 记录，等价 Python 的 `tid_edit.isModified()`）时生效；**既有类型 ID 锁定、永不被自动改**。
+- **有意不迁（保持）**：CEDICT + `jieba` 词典回退 —— `fieldId.ts` 已实证其产出 `abbr_surname` / `canada_surname` 类垃圾，故不接；未收录词仍如实提示（并引导点「拼音」）。
+
+**③ `ui/dialogs/type_editor_dialog.py`（528 行）保持 ◐（依据已在本轮补精确）** —— 拼音/英译按钮已补齐（见 ②）；余下未迁面**均非缺口**：**布局分区编辑**（已判不迁，Web 无 QSplitter 分区形态）、**智能工具栏** 4 项中的 3 项（`AI推荐字段` / `分析现有数据` / `联网参考`）**属 AI 域**（随 E42 框架重写），第 4 项 `导入模板` 已迁（`TypeEditorPanel` 的「字段模板」）。故保持 ◐。
+
+**运行期举证（`preview/verify-e58.mjs`，14/14 通过、页面错误 0）**：复用 E57 桩链、独立端口 5201，6 组用例 —— 未收录词「斗能」规则层如实报未收录 + 拼音层给 `dou_neng`；`攻击力` 两层对照（`atk` / `gong_ji_li`）同时在场；展开候选不覆盖字段名、点选后才写入；无可用字符（`$$$`）拼音层如实报错且不给候选；新建类型「卡牌」→ ID `ka_pai`、手改 `card` 后不再被覆盖；既有类型改中文名 ID 保持 `role`。回归 `verify-e51` 41/41、`verify-e57` 46/46 仍绿。
+
+**结果**：**§1 = §2 = Σ§3 = ✅ 116 / 43,072 · ◐ 15 / 8,328 · ⛔ 162 / 39,314 · ⚠️ 6 / 450**（合计 **299 文件 / 91,164 行**，逐格相等；8 个域锚点 Δ=0/0）。
+**真实剩余**：量级不变，仍为 **≈0.5–0.7 万行（6–8%）**（本轮清掉的是 1.2 千行细项）。
+
 ### 真实剩余 ≈ 0.5–0.7 万行（6–8%）
 
 - **确定未迁（整块没做）＝ 450 行 / 6 文件**（精确数字）
-- **部分已迁里的缺口 ≈ 0.5–0.6 万行**（**估算**：9,555 行按各文件给出的完成度 25%–75% 折算，未完成部分过半）
+- **部分已迁里的缺口 ≈ 0.5–0.6 万行**（**估算**：8,673 行按各文件给出的完成度 25%–75% 折算，未完成部分过半）
 - 合计 **≈ 0.5–0.7 万行**，占旧代码 **≈ 6–8%**
 
 > **口径说明（E57 更新）**：不能把「⛔有意不迁」的 39,314 行算成欠债 —— 那些是**决策**（`core/agent` AI 框架重写域 24,670 行中的绝大部分、团队 CRUD 818、自愈链 4,166、样例数据 1,125、PyQt 胶水、死代码、Qt QSS 主题栈、`themes`/QSS 与 `tab_manager`/`startup_mode`/`virtual_list` 的设计性替换等），各有实证依据。
@@ -142,7 +171,7 @@
 
 对全部「◐ 部分已迁」条目做了逐条实测复核。
 
-> **⚠️ E56 已把本节结论整体刷新**：E50 只处理了 STALE-DONE（TS 已等价实现但判定过期）一类，**当时的 ◐ 仍为 58 文件 / 21,503 行**；**E56（见 §1「E56 ◐ 行文件级复核」块）逐条重判后降为 22 文件 / 10,961 行**，**E57（见 §1「E57 前端尾巴收口」块）再降为 18 文件 / 9,555 行**。以下 E50 名单保留为**历史痕迹**，**当前 ◐ 明细请以 §3 与 §1 的 E57 块为准**。
+> **⚠️ E56 已把本节结论整体刷新**：E50 只处理了 STALE-DONE（TS 已等价实现但判定过期）一类，**当时的 ◐ 仍为 58 文件 / 21,503 行**；**E56（见 §1「E56 ◐ 行文件级复核」块）逐条重判后降为 22 文件 / 10,961 行**，**E57（见 §1「E57 前端尾巴收口」块）再降为 18 文件 / 9,555 行**，**E58 再降为 15 文件 / 8,328 行**。以下 E50 名单保留为**历史痕迹**，**当前 ◐ 明细请以 §3 与 §1 的 E58 块为准**。
 
 **E50 首轮（已升 ✅，共 11 文件）**：window_state / preview_panel / statistics / template_manager / common / export / advanced / chat_renderer / image_loader / toast / home_widget（TS 已等价实现、原 ◐ 判定过期）。
 
@@ -155,10 +184,10 @@
 - **升 ✅**：`dynamic_form.py`（839 行，`dialog` 形态本轮补齐；余下唯一「未迁」的 `formula_builder` 经 grep 实证为**无 schema 产出**的死代码 ⇒ 非缺口）、`menus.py`（180 行，「数据关系图」本轮实现；「内容关联」两项经实证为 PyQt **死入口** ⇒ 删除而非迁）。
 - **改判 ⛔**：`startup_mode_dialog.py`（144 行，工作模式概念随 E28 IA 重写消失）、`components/virtual_list.py`（243 行，唯一消费者页已下线 + 右键菜单语义务 E51 并入 `DataEditorTab`；余下「虚拟滚动」是渲染技术差异）。
 
-**E57 后仍为 ◐ 的 18 文件（真实缺口）**，属下列两类之一：
+**E58 后仍为 ◐ 的 15 文件（真实缺口）**，属下列两类之一（E58 把 `validation_dialog` / `changelog_dialog` / `type_editor_field_widget` 三个文件清出 ◐ —— 前两个是 `d5ad355` 的**台账滞后**、第三个补了拼音兜底）：
 
 - **DESIGN-DIFFERENT（TS 有意替换，非缺口；但整文件尚有其他未迁面，故未升 ✅）**：`themes` / QSS 主题栈（`ui/` 顶层域）、`_ai_dialog` 模板模式。
-- **genuine-partial（仍有真实缺口）**：`data_tab`（AI 生成时的「技能锚点模板」选择上下文未迁，见 §4；P5 数量约束软检查、F2·右键重命名与条目右键菜单已由 **E51** 补齐）；`common/ai_client.py`（仅剩流式 / tools / vision / 限流，完成度 40%）；`api_config.py`（三 tab 未迁 + 「测试连接」无对应，见上）；`type_editor_*` 等 AI 依赖面。
+- **genuine-partial（仍有真实缺口）**：`data_tab.py`（AI 生成时的「技能锚点模板」选择上下文，见 §4；P5 数量约束软检查、F2·右键重命名与条目右键菜单已由 **E51** 补齐）；`ceshu_controller.py`（tab 过滤已由 `computeEnabledEditors` 设计性取代，`send_ceshu_ai_context` 属 AI 域）；`main_window.py`（外壳骨架已迁 `App.tsx`，多标签被 E28 IA 取代、窗口状态已迁 `main/windowState.ts`，余下为 AI context 与更新检查）；`common/ai_client.py`（仅剩流式 / tools / vision / 限流，完成度 40%）；`api_config.py`（三 tab 未迁 + 「测试连接」无对应，见上）；`type_editor_dialog.py`（布局分区 + 智能工具栏的 AI 三项）、`type_editor_ai.py` 等 AI 依赖面。
 
 **仅有的真实遗留**（本轮实测确认）：
 
@@ -211,23 +240,23 @@ E51 的独立验证者报告：在策划书右侧预览面板里，条目行的*
 | 域 | 文件 | 行数 | ✅已迁 | ◐部分 | ⛔不迁 | ⚠️未迁 |
 |---|---|---|---|---|---|---|
 | `core/agent` | 97 | 24,670 | 8 / 1,689 | 0 / 0 | 89 / 22,981 | 0 / 0 |
-| `ui/ceshu` | 35 | 14,620 | 27 / 12,948 | 4 / 1,231 | 3 / 363 | 1 / 78 |
+| `ui/ceshu` | 35 | 14,620 | 29 / 13,830 | 2 / 349 | 3 / 363 | 1 / 78 |
 | `ui/widgets` | 24 | 9,232 | 15 / 6,892 | 0 / 0 | 9 / 2,340 | 0 / 0 |
 | `ui/` 顶层 + `themes` + `components` | 31 | 9,883 | 10 / 1,952 | 3 / 2,784 | 18 / 5,147 | 0 / 0 |
 | `core/ceshu` + `core` 顶层 + `defaults` | 38 | 12,602 | 28 / 11,129 | 0 / 0 | 10 / 1,473 | 0 / 0 |
-| `ui/dialogs` | 20 | 6,055 | 10 / 3,174 | 4 / 1,897 | 6 / 984 | 0 / 0 |
+| `ui/dialogs` | 20 | 6,055 | 11 / 3,519 | 3 / 1,552 | 6 / 984 | 0 / 0 |
 | `common` + `config` + `security` + `data` + 顶层 | 45 | 10,672 | 11 / 2,518 | 5 / 2,164 | 24 / 5,618 | 5 / 372 |
 | `features` | 9 | 3,430 | 4 / 1,543 | 2 / 1,479 | 3 / 408 | 0 / 0 |
-| **合计** | **299** | **91,164** | **113 / 41,845** | **18 / 9,555** | **162 / 39,314** | **6 / 450** |
+| **合计** | **299** | **91,164** | **116 / 43,072** | **15 / 8,328** | **162 / 39,314** | **6 / 450** |
 
-> **注（E54 已消除漂移；E57 同步收口结果）**：上表「合计」是各域行直接相加，且与 §1 结论表**逐格相等**（113 / 18 / 162 / 6 = 299 文件；41,845 + 9,555 + 39,314 + 450 = 91,164 行）。此前 §1 与 §2 存在 **±2 文件 / 480 行** 的差异、§1 与 §3 明细差 7 文件，**E54 已按 §3 逐文件明细统一**（方法与逐笔来源见 §1 的「E54 台账校准」块）；**E56** 又把 30 行 ◐→⛔（AI 框架重写域）、2 行 ◐→✅、4 行改判 ⛔；**E57** 再 2 行 ◐→✅（`dynamic_form` / `menus`）、2 行 ◐→⛔（`startup_mode_dialog` / `virtual_list`），各域行随之更新（见 §1 的「E57 前端尾巴收口」块）。**§1 仍是守护测试的解析源**。
+> **注（E54 已消除漂移；E58 同步收口结果）**：上表「合计」是各域行直接相加，且与 §1 结论表**逐格相等**（116 / 15 / 162 / 6 = 299 文件；43,072 + 8,328 + 39,314 + 450 = 91,164 行）。此前 §1 与 §2 存在 **±2 文件 / 480 行** 的差异、§1 与 §3 明细差 7 文件，**E54 已按 §3 逐文件明细统一**（方法与逐笔来源见 §1 的「E54 台账校准」块）；**E56** 又把 30 行 ◐→⛔（AI 框架重写域）、2 行 ◐→✅、4 行改判 ⛔；**E57** 再 2 行 ◐→✅（`dynamic_form` / `menus`）、2 行 ◐→⛔（`startup_mode_dialog` / `virtual_list`）；**E58** 再 3 行 ◐→✅（`validation_dialog` / `changelog_dialog` 为 `d5ad355` 的台账滞后补记；`type_editor_field_widget` 补拼音兜底），各域行随之更新（见 §1 的「E58 前端尾巴 3/3」块）。**§1 仍是守护测试的解析源**。
 >
-> **E57 后各域 ◐ 列**：`core/agent` / `ui/widgets` / `core/ceshu` 三域 **◐ 已清零**；余下 ◐ 集中在 `ui/dialogs`（4 / 1,897）、`ui/` 顶层+主题（3 / 2,784）、`ui/ceshu`（4 / 1,231）、`features`（2 / 1,479）、`common`（5 / 2,164）。
+> **E58 后各域 ◐ 列**：`core/agent` / `ui/widgets` / `core/ceshu` 三域 **◐ 已清零**；余下 ◐ 集中在 `ui/dialogs`（3 / 1,552）、`ui/` 顶层+主题（3 / 2,784）、`ui/ceshu`（2 / 349）、`features`（2 / 1,479）、`common`（5 / 2,164）。
 
 **三个最值得注意的域**：
 1. **`core/agent`（最大域，24,670 行）→ 只有 8 个文件（1,689 行）是完整已迁**；其余 **89 个文件（22,981 行）全部 ⛔**（E56 后 ◐ 清零）：其中 33 文件 / 8,419 行按 **E42** 改判「不迁（框架改为重写）」，再叠加 **E56** 把余下的 23 个 ◐ 文件（6,752 行）一并归入该重写域。A 档做的是「核心闭环」，不是「整个 Agent 引擎」。
 2. **`ui/` 顶层 + 主题（9,883 行）→ 仅 1,952 行完整已迁**（E56 把 `shortcuts_dialog.py` 107 上移 ✅、`tab_manager.py` 249 与 `buff`/`equipment` 等改判 ⛔；E57 把 `menus.py` 180 上移 ✅、`virtual_list.py` 243 改判 ⛔），主题/特效/多标签整块未做（多为 C 档，但那是**决策**还是**欠债**需区分：主题≠核心功能）。
-3. **`ui/dialogs`（6,055 行）→ 已完整迁出 3,174 行**（E54 把 `settings_dialog.py` 671 行从 ⚠️ 上移 ✅），该域 **⚠️ 列已清零**；余下 `api_config.py`（模型管理/视觉/模板三 tab 未迁 + 「测试连接」无对应）等为 ◐（E57 把 `startup_mode_dialog.py` 144 改判 ⛔）。快速创建/统计/字段模板/高级搜索/类型可见性/数据对比/备份已由此前的 E10–E16 迁出。
+3. **`ui/dialogs`（6,055 行）→ 已完整迁出 3,519 行**（E54 把 `settings_dialog.py` 671 行从 ⚠️ 上移 ✅；E58 再把 `type_editor_field_widget.py` 345 行上移 ✅），该域 **⚠️ 列已清零**；余下 `api_config.py`（模型管理/视觉/模板三 tab 未迁 + 「测试连接」无对应）等为 ◐（E57 把 `startup_mode_dialog.py` 144 改判 ⛔）。快速创建/统计/字段模板/高级搜索/类型可见性/数据对比/备份已由此前的 E10–E16 迁出。
 
 ## 3. 逐文件明细
 
@@ -327,8 +356,8 @@ E51 的独立验证者报告：在策划书右侧预览面板里，条目行的*
 | home_card.py | 161 | ✅ | `ceshuHome.ts::buildCeshuCards` |
 | competitive_chart.py | 99 | ✅ | `CompetitiveChart.tsx`+`ceshuCompetitiveChart.ts` |
 | score_report_dialog.py | 603 | ✅ | **E56 实证已迁**：`ceshu:exportScoreReport`（`main/ipc.ts:872` → `exportTextReportFile`）+ `CeshuView.tsx:338-351` 的 `buildScoreReportMarkdown` 与「导出评分报告」按钮（E49 补齐，对齐 Python `_on_export_md`）。原判「缺导出 Markdown 评分报告」是 E49 之前的快照 |
-| validation_dialog.py | 556 | ◐90% | 视图已迁；缺「导出 Markdown 校验报告」 |
-| changelog_dialog.py | 326 | ◐80% | 视图+日志已迁；缺「导出 MD/HTML/Text」 |
+| validation_dialog.py | 556 | ✅ | **E58 补记（原判 ◐90% —— 台账滞后）**。「导出 Markdown 校验报告」**已由 `d5ad355` 实现并接线**：`shared/ceshuReports.ts::buildValidationReportMarkdown`（逐行对齐 `_build_markdown`：评分 `100−错误数×3`、分类摘要、问题清单分组、章节完成度表、结论与建议）+ `CeshuView.tsx` 的 `validate-export` 按钮 → `ceshu:exportValidationReport`（主进程原子写盘）。视图侧 `validate-panel` 早已迁；「**一键修复必填字段**」（`_on_auto_fix` → `auto_fill_required`）另有对应物 `shared/ceshuFill.ts::autoFillRequiredFields` + `ceshu:autoFill` + `ChecklistPanel` 的「一键修复」。**该行是被 `d5ad355` 遗漏同步的**（该提交未改任何 `docs/` 文件） |
+| changelog_dialog.py | 326 | ✅ | **E58 补记（原判 ◐80% —— 台账滞后）**。「导出 MD/HTML/Text」**已由 `d5ad355` 实现**：`shared/ceshuReports.ts::buildChangelog{Markdown,Text,Html}`（对齐 `core/ceshu/ceshu_changelog.py::Changelog.to_{markdown,text,html}`，含 HTML 转义与内联样式）+ `CeshuView` 的 `changelog-export-md/html/text` 三按钮 → `ceshu:exportChangelogReport`。版本范围选择 + 生成 + 渲染此前已迁。**该行是被 `d5ad355` 遗漏同步的** |
 | ai_panel.py | 248 | ◐60% | 通用对话由 `DigitalPanel` 承接；策划书专属 8 主题快捷面板未迁 |
 | editor_view_workers.py | 101 | ◐50% | 整章 AI 已迁；单字段填充 `_AIFillFieldWorker` 无对应 |
 | preview_panel.py | 222 | ✅ | **E44 已迁「数据引用概览」**（`@data[...]` 解析 + 实时值 + 分组统计，见 `shared/dataRef.ts`；并修正 PyQt 单复数键不匹配的 bug）。**E49 更正（实测翻案）**：原写「`enabled_editors` 动态编辑器半边未迁」**为误**——该半边**亦已迁**：`ceshu/CeshuDataPreview.tsx` 按 `computeEnabledEditors(doc)` 逐启用系统渲染标签页并内嵌 `DataEditorTab`，同面板「📊 数据引用」标签渲染 `CeshuDataRefsPanel`。`core/editor_layout.py` 是另一文件（⛔ E5 已实证过期死代码），与此无关（E50 重新分类为 ✅：TS 已等价实现，原 ◐ 判定过期） |
@@ -443,9 +472,9 @@ E51 的独立验证者报告：在策划书右侧预览面板里，条目行的*
 | advanced_search.py | 172 | ✅ | `shared/advancedSearch.ts`（`searchItems`/`resolveSearchValue`/`SEARCH_FIELD_OPTIONS`/`truncateMatch`）+ `AdvancedSearchPanel.tsx`：选类型 + 选字段（名称/ID/类型/描述）+ 关键词 + 结果 + 点击跳转（复用 `handleJump`），与 Python 能力对齐；**TS 增强**「全部类型」「全部字段」两个哨兵（Python 只能单选）。数据走既有 `data:listAll`，**不开新 IPC**。**更正**：审计原写「跨类型搜索」为 Python 缺失项，实为 Python 本就单类型（`type_combo`），此项是 TS 增强而非补缺 |
 | engine_export.py | 353 | ⛔ | **有意不迁四引擎模板**（Unity/Unreal/Godot/Cocos2d 是**纯静态代码模板字符串**、无运行时数据计算，仅按字段名插值）；TS 刻意走 **Lua 数据模块导出**（`EngineExportButton`+`engine.exportData`）匹配用户真实的 Lua/fengari ARPG 管线（**Python 反而没有 Lua 导出**）。故四引擎模板对本案属装饰性死代码，不搬 |
 | startup_mode_dialog.py | 144 | ⛔ | **E57 改判 ⛔（设计性替换）**。该对话框是「**选择工作模式**」（数据设计 ↔ 策划书两条主线），依赖 PyQt 的双模式启动形态；**E28 顶层 IA 重写**后 TS 为「无侧栏单栈：策划书首页 ↔ 编辑器，一切能力从菜单进」⇒ **TS 全仓 `startupMode`/`startup_mode`/`mode-data`/`mode-ceshu` 零命中**，工作模式概念已不存在（同 `tab_manager.py` 的处置）。原判定「模式切换已迁」是误记（该「模式切换」指状态栏主题切换，与工作模式无关） |
-| type_editor_ai.py | 338 | ◐25% | 模板导入已迁；缺 AI 推荐字段/分析现有数据/联网参考 |
-| type_editor_dialog.py | 528 | ◐70% | `TypeEditorPanel.tsx`；缺布局分区编辑（已判不迁）/智能工具栏/拼音英译按钮 |
-| type_editor_field_widget.py | 345 | ◐80% | 字段全属性+ID 生成（`fieldId.ts`/`fieldIdAi.ts`）；缺拼音兜底（E6 明示未做） |
+| type_editor_ai.py | 338 | ◐25% | 模板导入已迁；缺 AI 推荐字段/分析现有数据/联网参考（**均属 AI 域**，随 E42 框架重写） |
+| type_editor_dialog.py | 528 | ◐70% | `TypeEditorPanel.tsx`；**E58 补齐拼音/英译按钮**（「拼音」→ `shared/pinyinFieldId.ts`、「生成」→ `shared/fieldId.ts`）。**仍缺**：布局分区编辑（已判不迁，Web 无 QSplitter 分区形态）、智能工具栏 4 项中的 3 项 AI 工具（`AI推荐字段` / `分析现有数据` / `联网参考`，属 AI 域；第 4 项 `导入模板` 已迁至「字段模板」） |
+| type_editor_field_widget.py | 345 | ✅ | **E58 补拼音兜底（原判 ◐80%）**：新增 `shared/pinyinFieldId.ts`（`pinyin-pro`）+ `TypeEditorPanel` 的「拼音」按钮（`te-field-pinyin-{i}`），对齐 `_auto_pinyin` / `_chinese_to_pinyin`；英译层由 `shared/fieldId.ts` 承接（并修掉 Python 逐字打碎 ASCII 的缺陷）；字段 ID 合法性由 `validateFieldId` + 保存前 `validateTypeSchema` 负责。**有意不迁**：CEDICT + `jieba` 词典回退（`fieldId.ts` 实证其产出 `abbr_surname` 类垃圾） |
 | api_config.py | 686 | ◐ | **E41 已迁「基础设置」**（6 家服务商 / base_url / model / 温度 / 最大令牌 + Key 走 safeStorage，见 `shared/llmConfig.ts` + `main/llm/client.ts`）；**未迁**：模型管理 tab（自定义模型增删改，写 PyQt 私有 `custom_models.json`，无同一消费者）、视觉模型 tab（TS 无截图识别/UI 分析消费者）、模板设置 tab（实为技能生成偏好，属内容域）。**E57 补一处真缺口**：基础设置页的「**测试连接**」按钮（`api_config.py:641-685` → `common/ai_client.test_api_connection`）TS 侧**无对应**（全仓 `测试连接`/`testConnection` 零命中），依赖 AI 域客户端实现（`common/ai_client.py` 自身完成度 40%）⇒ 保留 ◐ |
 | backup_manager.py | 155 | ✅ | `shared/backup.ts`（命名/时间戳/`BackupEntry`/`RestoreOutcome`）+ `main/backup/backupStore.ts`（**原子写 tmp+rename**、**软删除**改名 `.deleted`、**路径包含校验** 拒目录穿越）+ `main/backup/restore.ts`（**恢复前自动 pre-restore 快照**、按 id 差集删除多余条目后 upsert，**保留 id 故引用不错乱**）+ 4 条 IPC + `BackupPanel.tsx`。**刻意修正 Python 四处缺陷**：只改内存不落盘（假成功）、无 pre-restore 备份、`unlink` 永久删、`split(' - ')[1]` 反推文件名 |
 | data_diff_dialog.py | 154 | ✅ | `DataDiffPanel.tsx`（**当前 vs 用户设定的基线**，基线缓存在 localStorage）。**不照搬 Python 的残废行为**：Python 执行 `DataDiff.compare({}, {...})` 拿空 dict 与当前数据比，**永远只输出「全部新增」**、从不做真对比（文件头却自称对比历史版本）；TS 改为真正的双侧对比。**注意 `ceshuDiff.ts` 对应的是另一文件（策划书版本），与此无关** |
@@ -520,7 +549,8 @@ E51 的独立验证者报告：在策划书右侧预览面板里，条目行的*
 - **全量枚举**：脚本统计 `src/**/*.py`（排除 `__pycache__`）→ 299 文件 / 91,164 行，按域分组行数。
 - **逐文件判定**：8 个**只读**子代理并行审计（每个域一个），要求对每个文件给出**具体依据** —— TS 文件路径 + 导出符号，或「grep 无消费者」这类实证；明确禁止「文件名相似即判已迁」。
 - **域总量对账**：每份审计的（文件 / 行）总量必须与脚本统计的域总量相等；8 份全部通过。**E54 补**：此前四类**分类计数**虽总和正确，但 §1 / §2 / §3 三处互相不一致；E54 已以 §3 逐文件明细为准统一（见 §1），并修掉 §3 两处不精确行数。
-- **全局对账**：四类合计 = 299 文件 / 91,164 行，**PASS**（见 §1）；且 §1 = §2 = Σ§3，**逐格相等**（E54 校准，E56 / E57 同步后仍成立）。
+- **全局对账**：四类合计 = 299 文件 / 91,164 行，**PASS**（见 §1）；且 §1 = §2 = Σ§3，**逐格相等**（E54 校准，E56 / E57 / E58 同步后仍成立）。
+- **台账滞后同样要防**：E58 发现「前端尾巴 1/3」（`d5ad355`）**只写码未同步台账**，使两个已迁完的文件在 §3 里挂了 3 天 ◐ —— 故「§1 = §2 = Σ§3」这类对账**只能证明三处自洽，不能证明与代码同步**；判断某行是否过时仍需**回到 Python 真源 + grep TS 对应物**（E58 即这样复核实证）。
 - **已知误差来源**：①「◐部分已迁」的完成度是**估计值**（各代理给出，主观性存在）；②「⛔有意不迁」的判定依赖既有决策记录 + grep 实证，若某模块将来被需要需重新评估；③ 判定粒度是「文件」，同一文件内不同功能的迁移状态可能不一致（已在依据里尽量写明）。
 
 ## 6. 本次审计纠正的三处早前误判

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import { suggestFieldIds, type FieldIdSuggestion, type SuggestFieldIdResult } from '../../../shared/fieldId'
+import { chineseToPinyin, suggestPinyinFieldId } from '../../../shared/pinyinFieldId'
 import {
   FIELD_ID_AI_ERROR_EMPTY_LABEL,
   FIELD_ID_AI_ERROR_NO_CANDIDATE
@@ -14,8 +15,9 @@ import type { DataTypeDef, FieldType, TypeFieldDef } from '../../../shared/types
  * - 类型：新建 / 删除 / 名称·复数键·颜色编辑（既有类型的 ID 锁定，避免存量条目失联）
  * - 字段：增删 / 排序 / 名称·标签·控件类型·可编辑·可选值·数值范围·引用类型
  * - 模板：7 套内置字段模板整体替换；保存前领域校验；保存走 IPC（主进程原子写 type_schema.json）
- * - 字段 ID 生成：由中文显示名给候选（术语表命中 + 英文数字提取），见 `shared/fieldId.ts`
- * 明确未迁移：布局分区编辑、AI 推荐字段、拼音兜底（后续切片）。
+ * - 字段 ID 生成：两条独立路子 —— **英译**（术语表，`shared/fieldId.ts`）+ **拼音**（`shared/pinyinFieldId.ts`）
+ * - 新建类型的 ID：随中文名自动填拼音（对齐 Python `type_editor_dialog.add_type`，仅当 ID 未被手改）
+ * 明确未迁移：布局分区编辑、AI 推荐字段/分析数据/联网参考（属 AI 域，见 roadmap E42/E56）。
  */
 
 interface TypeEditorPanelProps {
@@ -27,11 +29,13 @@ interface TypeEditorPanelProps {
   onClose: () => void
 }
 
-/** 字段 ID 候选条的状态：规则层结果 + AI 追加的候选 */
+/** 字段 ID 候选条的状态：规则层结果 + 拼音候选 + AI 追加的候选 */
 interface IdSuggestState {
   index: number
-  /** 规则层（术语表命中 + 标签内英文数字提取） */
+  /** 规则层（术语表命中 + 标签内英文数字提取），「生成」按钮产生 */
   rule: SuggestFieldIdResult
+  /** 拼音层（中文→拼音兜底），「拼音」按钮产生；未请求时为 null */
+  pinyin: SuggestFieldIdResult | null
   /** AI 追加的候选（未请求时为空数组） */
   ai: FieldIdSuggestion[]
   aiLoading: boolean
@@ -62,6 +66,11 @@ export default function TypeEditorPanel({ types, initialTypeId, onSaved, onClose
   /** 用户自定义字段模板名（内置模板在 `TYPE_TEMPLATES` 常量里，自定义需读盘） */
   const [customTemplates, setCustomTemplates] = useState<string[]>([])
   const [newTemplateName, setNewTemplateName] = useState('')
+  /**
+   * 被用户**手动改过 ID** 的类型（用于抑制「中文名 → 拼音 ID」自动填充，
+   * 对齐 Python `add_type` 里的 `tid_edit.isModified()` 判定）。
+   */
+  const [manualTypeIds, setManualTypeIds] = useState<readonly string[]>([])
 
   useEffect(() => {
     let alive = true
@@ -96,6 +105,32 @@ export default function TypeEditorPanel({ types, initialTypeId, onSaved, onClose
     setSelectedId(newId)
   }
 
+  /** 用户手动编辑类型 ID：记「已手改」，此后中文名不再自动覆盖它 */
+  const editTypeId = (newId: string): void => {
+    if (!current) return
+    setManualTypeIds((prev) => (prev.includes(newId) ? prev : [...prev, newId]))
+    renameType(newId)
+  }
+
+  /**
+   * 编辑中文名：**新建类型**（尚未保存进 `types` 基线）且其 ID 未被手改时，
+   * 同步把 ID 填成拼音，对齐 Python `type_editor_dialog.add_type` 的
+   * `tname_edit.textChanged → tid_edit.setText(_chinese_to_pinyin(...))`。
+   * 既有类型的 ID 已锁定（输入框 readOnly），绝不自动改。
+   */
+  const updateTypeName = (name: string): void => {
+    if (!current) return
+    const canAutofill = !baseIds.has(current.id) && !manualTypeIds.includes(current.id)
+    const autoId = canAutofill ? chineseToPinyin(name) : ''
+    if (autoId !== '' && autoId !== current.id) {
+      const oldId = current.id
+      setDraft((prev) => prev.map((def) => (def.id === oldId ? { ...def, name, id: autoId } : def)))
+      setSelectedId(autoId)
+      return
+    }
+    updateType({ name })
+  }
+
   const updateField = (index: number, patch: Partial<TypeFieldDef>): void => {
     if (!current) return
     const fields = current.formFields.map((field, i) => (i === index ? { ...field, ...patch } : field))
@@ -122,20 +157,57 @@ export default function TypeEditorPanel({ types, initialTypeId, onSaved, onClose
    * 由该行的中文显示名生成字段 ID 候选。
    * 现有字段名用于避开重名，**排除本行自身**（否则把「保持原名」误判为重名）。
    */
+  /** 该行的「显示名 + 其它字段名」，供两层候选共用 */
+  const fieldIdContext = (index: number): { label: string; others: string[] } => {
+    const fields = current?.formFields ?? []
+    return {
+      label: fields[index]?.label ?? '',
+      others: fields.filter((_, i) => i !== index).map((field) => field.name)
+    }
+  }
+
+  /** 打开/更新候选条：同一行则合并状态，换行则重置 */
+  const patchSuggest = (index: number, patch: Partial<IdSuggestState>): void => {
+    setIdSuggest((prev) => {
+      const base: IdSuggestState =
+        prev !== null && prev.index === index
+          ? prev
+          : {
+              index,
+              rule: { suggestions: [], error: null },
+              pinyin: null,
+              ai: [],
+              aiLoading: false,
+              aiError: null
+            }
+      return { ...base, ...patch }
+    })
+  }
+
+  /**
+   * 「生成」：术语表/字面量候选（规则层）。
+   * 再点一次收起 —— 但若候选条是由「拼音」打开的，则改为把规则层候选并入同一面板。
+   */
   const requestIdSuggestions = (index: number): void => {
     if (!current) return
-    if (idSuggest?.index === index) {
+    if (idSuggest?.index === index && idSuggest.pinyin === null) {
       setIdSuggest(null)
       return
     }
-    const label = current.formFields[index]?.label ?? ''
-    const others = current.formFields.filter((_, i) => i !== index).map((field) => field.name)
-    setIdSuggest({
-      index,
+    const { label, others } = fieldIdContext(index)
+    patchSuggest(index, { rule: suggestFieldIds(label, others) })
+  }
+
+  /**
+   * 「拼音」：中文→拼音兜底候选（对齐 Python `_auto_pinyin`）。
+   * 同步纯计算；开启时一并带上规则层候选，便于对照（术语语义 vs 拼音音节）。
+   */
+  const requestPinyinSuggestions = (index: number): void => {
+    if (!current) return
+    const { label, others } = fieldIdContext(index)
+    patchSuggest(index, {
       rule: suggestFieldIds(label, others),
-      ai: [],
-      aiLoading: false,
-      aiError: null
+      pinyin: suggestPinyinFieldId(label, others)
     })
   }
 
@@ -352,14 +424,14 @@ export default function TypeEditorPanel({ types, initialTypeId, onSaved, onClose
                   value={current.id}
                   readOnly={baseIds.has(current.id)}
                   title={baseIds.has(current.id) ? '既有类型的 ID 不可修改（存量条目按 ID 关联）' : ''}
-                  onChange={(event) => renameType(event.target.value)}
+                  onChange={(event) => editTypeId(event.target.value)}
                 />
                 <span className="form-label">中文名</span>
                 <input
                   className="form-input"
                   data-testid="te-type-name"
                   value={current.name}
-                  onChange={(event) => updateType({ name: event.target.value })}
+                  onChange={(event) => updateTypeName(event.target.value)}
                 />
               </div>
               <div className="ai-gen-row">
@@ -480,6 +552,16 @@ export default function TypeEditorPanel({ types, initialTypeId, onSaved, onClose
                       onClick={() => requestIdSuggestions(index)}
                     >
                       生成
+                    </button>
+                    <button
+                      type="button"
+                      className="btn slim"
+                      data-testid={`te-field-pinyin-${index}`}
+                      disabled={isIdField}
+                      title="中文→拼音（如「攻击力」→ gong_ji_li），任意汉字可用；不覆盖已填内容"
+                      onClick={() => requestPinyinSuggestions(index)}
+                    >
+                      拼音
                     </button>
                     <input
                       className="form-input te-col-label"
@@ -626,6 +708,32 @@ export default function TypeEditorPanel({ types, initialTypeId, onSaved, onClose
                           </span>
                         )}
 
+                        {idSuggest.pinyin !== null && idSuggest.pinyin.suggestions.length > 0 && (
+                          <>
+                            <span className="te-id-suggest-label">拼音：</span>
+                            {idSuggest.pinyin.suggestions.map((suggestion) => (
+                              <button
+                                type="button"
+                                className="btn slim te-id-suggest-apply"
+                                key={`pinyin-${suggestion.id}`}
+                                data-source={suggestion.source}
+                                data-testid={`te-id-suggest-apply-${index}`}
+                                onClick={() => {
+                                  updateField(index, { name: suggestion.id })
+                                  setIdSuggest(null)
+                                }}
+                              >
+                                {suggestion.id}
+                              </button>
+                            ))}
+                          </>
+                        )}
+                        {idSuggest.pinyin !== null && idSuggest.pinyin.error !== null && (
+                          <span className="te-id-suggest-error" data-testid={`te-id-suggest-pinyin-error-${index}`}>
+                            {idSuggest.pinyin.error}
+                          </span>
+                        )}
+
                         {aiOnly.map((suggestion) => (
                           <button
                             type="button"
@@ -651,7 +759,7 @@ export default function TypeEditorPanel({ types, initialTypeId, onSaved, onClose
                           <span className="te-id-suggest-note" data-testid={`te-id-suggest-skipped-${index}`}>
                             术语表未收录：
                             {idSuggest.rule.suggestions[0]?.skipped.join('、')}
-                            （需手动补全）
+                            （可点「拼音」或手动补全）
                           </span>
                         ) : null}
 

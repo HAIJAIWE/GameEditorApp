@@ -30,8 +30,9 @@ import { GAME_TERMS } from './glossaryTerms'
  * - **CEDICT 词典**（`core/cedict.py`）：实测 3.8MB 下载 / 11MB 落盘、同步阻塞 UI 线程、失败静默；
  *   且它唯一能答的「通用词」早已被术语表覆盖，唯一会落到它的「自造词」它又查不到，
  *   更糟的是会产出 `abbr_surname` 这类垃圾。→ 不迁。术语表未收录时如实提示，未来可接 AI 候选。
- * - **`pypinyin` 拼音兜底**：TS 无对应能力，需新增依赖（`pinyin-pro`）。**本刀未做**，
- *   是刻意留出的独立一步（见 roadmap）；未做期间未收录词一律走「如实提示」。
+ * - **`pypinyin` 拼音兜底**：**已迁**（E58）。TS 侧由 `shared/pinyinFieldId.ts`（依赖 `pinyin-pro`）承接，
+ *   `攻击力 → gong_ji_li`、支持任意汉字。与本模块**正交**：本模块走术语表（语义优先，`攻击力 → atk`），
+ *   拼音模块走音节（兜底），UI 上两个按钮各自独立给候选，互不自动覆盖。
  * - **Lua 保留字黑名单**：曾计划加，查证后**判断为不需要**——导出器 `main/engineExport/luaLiteral.ts::toLuaKey`
  *   已对保留字自动降级为 `["key"]`，而 JS 侧字段名只作对象键使用，两处都安全；
  *   强行加一张黑名单会与之**不一致**，更会误伤 `class`/`level`/`order` 这类常用游戏字段名。
@@ -63,12 +64,12 @@ const ASCII_ALNUM = /[a-zA-Z0-9]/
 /** 合法字段 ID：字母或下划线开头，其后仅字母/数字/下划线（对齐 Python `_validate_field_id`） */
 const VALID_ID = /^[a-zA-Z_][a-zA-Z0-9_]*$/
 
-export type SuggestionSource = 'term' | 'literal' | 'ai'
+export type SuggestionSource = 'term' | 'literal' | 'ai' | 'pinyin'
 
 export interface FieldIdSuggestion {
   /** 建议的字段 ID（已合法、已避开重名） */
   id: string
-  /** `term`=术语表命中；`literal`=从标签里的英文/数字提取；`ai`=AI 候选 */
+  /** `term`=术语表命中；`literal`=从标签里的英文/数字提取；`ai`=AI 候选；`pinyin`=拼音兜底 */
   source: SuggestionSource
   /** 术语表未收录、被跳过的中文片段（**UI 必须展示**，不静默丢弃） */
   skipped: string[]
