@@ -1,16 +1,20 @@
 # 智能体框架重写设计（E59 起）
 
-> **状态**：v0.2 草案（**已重写**，取代 v0.1），待主理人裁决。
+> **状态**：v0.3 草案（**已重写**，取代 v0.1/v0.2），待主理人裁决。
 > **动因**：E42 裁决「`core/agent` 域停止 1:1 迁移，改为框架重写」——方向定了，架构未定。
 >
-> **⚠️ 修订记录（v0.1 → v0.2，重要）**
-> v0.1 我犯了一个**根本性的方法错误**：把它当成「从零设计一个 2026 最新 agent 框架」，
-> 于是去外部找资料、写了与本项目无关的 NPC `agent_os` 对照，**而完全没有先读本项目已有的设计文档**。
-> 读完本项目 4 份 agent 设计资产后，真相是：**这个项目的 agent 框架不是"要设计"，而是"已收官过一次、
-> 现在要判断要不要按 4B 实况调整"**。v0.2 全部重写，第 10 节记录了我读错的地方与正确读法。
+> **修订记录**
+> - **v0.1 → v0.2**：我犯了一个**根本性的方法错误**：把它当成「从零设计一个 2026 最新 agent 框架」，
+>   于是去外部找资料、写了与本项目无关的 NPC `agent_os` 对照，**而完全没有先读本项目已有的设计文档**。
+>   读完本项目 4 份 agent 设计资产后，真相是：**这个项目的 agent 框架不是"要设计"，而是"已收官过一次、
+>   现在要判断要不要按 4B 实况调整"**。v0.2 全部重写。
+> - **v0.2 → v0.3**：主理人指示「**去看最新智能体框架的项目，到 GitHub 那边看看，成熟的框架**」。
+>   于是本轮**直接抓取 6 个成熟框架的 GitHub 仓库**（`smolagents` / `deepagents` / `deepagentsjs` /
+>   `letta` / `mastra` / `atomic-agents`），新增 **§3.5 GitHub 实证对照**、重做 §6 选型表、
+>   新增 **DD-15（步数预算）/ DD-16（Context Provider 式注入）**。**结论未变，但依据更硬、且发现了新选项。**
 >
 > **证据强度标注**（全文通用）：
-> `[实测]` 本机/本仓跑出来的 · `[一手]` 模型厂商官方文档 · `[二手]` 第三方文章/实测（附出处）· `[推断]` 我的推理，未直接验证
+> `[实测]` 本机/本仓跑出来的 · `[一手]` 模型厂商官方文档 · `[GitHub]` 直接抓取成熟框架仓库所得 · `[二手]` 第三方文章/实测（附出处）· `[推断]` 我的推理，未直接验证
 
 ---
 
@@ -91,6 +95,66 @@
 
 **结论：架构思想基本不落后，落后的是「在 4B 上跑不动」和「观测缺失」。**
 
+### 3.5 GitHub 上的成熟框架实证（2026-10-07 直接抓仓库，非二手博客）
+
+> 抓取对象：`smolagents` / `deepagents` / `deepagentsjs` / `letta` / `mastra` / `atomic-agents` 的 GitHub 仓库
+> README 与仓库结构。**star 数只当注意力信号，不当选型依据**（见下方「star 陷阱」）。
+
+**① smolagents（HuggingFace）—— 对我们 4B 最有用的一份**
+
+| 事实 | 出处 | 对我们的意义 |
+|---|---|---|
+| **agent 逻辑只写 ~1,000 行**（`agents.py`），"We kept abstractions to their minimal shape **above raw code**" | README | 印证「薄 harness」路线；**1,000 行**是我们净新增预算的参照上限 |
+| **`CodeAgent`（把动作写成 Python 代码）比「让 LLM 输出工具调用字典」少用 30% 步数**（= 少 30% LLM 调用），且高难 benchmark 表现更好 | README | **本轮拿到的最有价值新数据**：在 4B + 4K 下，**步数 = token = 上下文预算**，省 30% 步数是命门级收益 |
+| `LocalPythonExecutor` **不是安全沙箱**——"applies some restrictions but **can be bypassed and must not be used as a security boundary**" | README Security | 印证我们「用 QuickJS 而非 Python 黑名单」的历史决定是对的 |
+| 沙箱支持 E2B / Blaxel / Modal / **Docker**；模型支持本地 `transformers`、**`ollama`**、LiteLLM 100+ | README | 本地模型一等公民，不是二等公民 |
+| "**why use a framework at all?**" 正面回答：代码 agent 需要在 **system prompt / parser / execution 三处保持一致格式**，这个复杂度非平凡；但鼓励"只取需要的部分" | README | 给出「引 vs 自建」的判据：**只有当框架替你省掉一段非平凡的一致性维护时才引** |
+
+> ⚠️ 我们**不能直接用 CodeAgent**（它需要 Python 执行器做沙箱，而我们的沙箱是 **QuickJS WASM**，`system.code` 已就位），
+> 但可以借它的**思想**：**一次动作里串联多个工具**（其示例一次 action 循环搜索 3 个站点），而不是每个工具一次 LLM 往返。
+
+**② Deep Agents（`deepagents` + `deepagentsjs`）—— 姿态与我们最像**
+
+- **有官方 TypeScript 版**（`npm install deepagents`，**且提供 `deepagents/browser` 入口**「no Node-only exports」）——这是我上轮只知 Python 版的漏项。
+- 4 件套：`write_todos` / filesystem 六工具 / `task`（sub-agent 独立上下文）/ 上下文管理中间件。
+- **依赖是 peer dependencies**：`@langchain/core` + `@langchain/langgraph` + `@langchain/langgraph-checkpoint` + `@langchain/langgraph-sdk` + `langchain` + `langsmith` —— **6 个包**才能装起来。
+- **安全立场（重要背书）**："Deep Agents follows a **'trust the LLM'** model. The agent can do anything its tools allow. **Enforce boundaries at the tool/sandbox level, not by expecting the model to self-police.**"
+  ⇒ 与我们已有的 `approvalBroker` + `TOOL_RISK_MAP` + QuickJS 沙箱**方向完全一致**，属背书而非改动。
+
+**③ Letta —— 形态上与我们最接近的成熟产品**
+
+- 定位 **"Platform for stateful agents: AI with advanced memory that can learn and improve over time"**（f.k.a. MemGPT）。
+- 主流源码已迁到 **`letta-ai/letta-code`**，npm 包 **`@letta-ai/letta-code`**；**有 Windows/macOS/Linux 桌面 app** + 本地/自托管 `letta server` + **TypeScript 的 Letta Agent SDK**。旧 V1 API server 已进 `archive` 分支。
+- **对本项目最大的启示**：它把 agent 定义为 **stateful 系统**，而不是"无状态的 LLM 循环"——
+  这与我们已有的 `.workspace/`（identity / persona / MEMORY / LEARNINGS / CAPABILITIES）**方向一致**，说明我们这条路是对的。
+- 但它是一个**完整的记忆服务器产品**，我们只需借它的理念，不该引入。
+
+**④ Mastra（TS 生态最大）—— 两个必须知道的坑**
+
+- 亮点确实实在：model routing 40+ providers、**graph-based workflows**（`.then()/.branch()/.parallel()`）、
+  **suspend & resume**（用 storage 记住执行状态，**可无限期暂停后恢复**）、**Observational Memory**、MCP 双向、内建 evals + observability、本地 Studio。
+- **坑 1（许可）**：**双许可证**——核心 Apache-2.0，但 **`ee/` 目录是 Mastra Enterprise License**（source-available，非开源）。选型时要逐目录看。
+- **坑 2（形态）**：自带 Studio（`localhost:4111`）、对项目结构 opinionated、为**部署成服务**设计——我们是进程内客户端，收益面窄。
+
+**⑤ Atomic Agents（极简派，值得抄它的哲学）**
+
+- 极简模块化：**Single-purpose / Reusable / Composable / Predictable**；建在 Instructor + Pydantic 上。
+- **Agent = System Prompt + Input Schema + Output Schema + History + Context Providers**（五件套，职责极清晰）。
+- **"All logic and control flows are written in Python"** —— 明确反对**框架接管控制流**。
+- **Context Providers = "Inject dynamic context into the agent's system prompt at runtime"** —— 这正是我们"按会话注入 ≤8 个工具"的现成说法。
+- 文档工程做得极好：`llms.txt` / `llms-full.txt` / Context7 索引 / Agent Skills。
+
+**⚠️ star 陷阱（必须知道）** `[二手·GitHub 快照 2026-05~06]`
+
+- 排名最高的一批里，**最大 star 属于一个已冻结的项目**：`microsoft/autogen` **58,025 star，frozen**（Microsoft 已把 AutoGen + Semantic Kernel 合入 Agent Framework，并劝用户别再基于它新建项目）。
+- vendor SDK（OpenAI / Anthropic / Google / AWS / Microsoft）**集体只有约一年历史**。
+- 结论：**star 衡量的是注意力，不是架构**；选型要读源码与安全立场（本轮最有力的信号是 Deep Agents 那句 "trust the LLM + 边界设在工具层" 与 smolagents 那句 "LocalPythonExecutor 不是安全边界"）。
+
+**⑥ 跨框架的「五个轮子」框架** `[二手]`
+所有 agent 运行时都在解同样 5 个问题：**记忆在哪 / 工具在哪执行 / 怎么学"做法"而不是"调能力" / 谁批准危险动作 / 人怎么把消息送进循环**。
+一篇 2026-06 的横向评测断言：**只有 Letta 真正解了记忆，只有 smolagents 真正解了沙箱**。
+⇒ 对我们：**记忆与沙箱两块我们已有（workspace + QuickJS）**，这恰好是别人最难的两块；**缺的是"做法"（Skills 渐进披露）与"治理"（成本观测）**——与 §5 的 G2/G3/G6 一致。
+
 ---
 
 ## 4. 4B 小模型会推翻 2026 主流的三条 `[二手]`
@@ -139,7 +203,11 @@ QuickJS 沙箱（**已整体替换掉可绕的黑名单**）、SOUL 硬边界、
 | **Claude Agent SDK** | 否决 | 每轮 **~35,000 input tokens**（其余框架 1,288–1,432 的 **25 倍**）、8.5s、299MB，**不支持换模型厂商** ⇒ 本地 Qwen 直接出局 `[二手]` |
 | **LangGraph(.js)** | 否决 | 最成熟的状态图/checkpoint/HITL，但为**服务端编排**设计、Python 为主；且 `sessionStore` + `operationLog` 已覆盖其核心诉求 |
 | **Mastra** | 否决 | TS 原生、最快，但 **240 包 / 176MB**；且是"应用框架"（自带 Studio、结构 opinionated），与"薄 harness"相反 |
-| **Deep Agents** | 否决（**但四件套我们已有 3.5 件**） | 建在 LangGraph 上；我们手写这 4 件的核心成本远低于引入 |
+| **Deep Agents（Python）** | 否决 | 建在 LangGraph 上；且**需要 6 个 peer deps**（`@langchain/core`/`langgraph`/`langgraph-checkpoint`/`langgraph-sdk`/`langchain`/`langsmith`）才能装 |
+| **Deep Agents JS（`deepagentsjs`）** | **否决（本轮新增评估）** | **有官方 TS 版且有 `deepagents/browser` 入口**（比我上轮掌握的更贴近本项目）⇒ 但：① 那 6 个 peer deps 仍要装；② **4 件套我们已有 3.5 件**（`todo_skill`、`workspace/` 文件系统、TaskTicket），唯一缺的是「大结果落盘 + 路径引用」＝ **DD-7，自己写约 200 行**；③ 它的 `task` sub-agent 在 4B 上不可用（§4 实测 2）⇒ **引它只为省 200 行，不值** |
+| **smolagents** | 否决（**但必读**） | 不可 —— 它是 Python；但**本项目最有价值的一份参照**：agent 逻辑只写 **~1,000 行**，且给出了「CodeAgent 比工具调用字典**少 30% 步数**」的硬数据（§3.5①） |
+| **Letta** | 否决（**长期参照**） | 形态最接近（桌面 app + 本地 server + TS SDK），但它是**完整记忆服务器产品**；我们只需借它「agent 是 **stateful 系统**而非无状态循环」这一理念——而这条路我们 `.workspace/` 已经在走 |
+| **Mastra** | 否决 | TS 生态最大、suspend/resume 与 Observational Memory 值得读；**但双许可证**（`ee/` 是 Enterprise source-available）+ 自带 Studio + 为部署成服务设计 ⇒ 进程内客户端收益面窄 |
 | **Vercel AI SDK 7** | 备选 | 最轻（15 包/53MB）、provider-agnostic。但"你拥有这个 loop"——状态仍在自己手里，**不省事，只多一层** |
 | **自建薄 harness** | **采纳** | Anthropic 一手即持此立场：**「Framework abstraction is an anti-pattern」**；框架注入开销（1,288–1,432 之间 11% 差异）在 4K 预算下是**实质成本** |
 
@@ -216,6 +284,8 @@ data/libraries/<库>/.workspace/
 | **DD-12** | 沙箱 | `a-tier-plan §2.4` 已落地 | **完全复用** QuickJS WASM（零宿主能力 + CPU 超时 + 内存上限 + 参数夹取上限）；**不复刻** Python 黑名单 | **复用** | 无 |
 | **DD-13** | 多 agent | 4B 实测 2 + 协调税 | **不恢复** 5 Agent / 并行竞标 / 辩论共识；**不做动态 sub-agent**。若将来验证需要，只用**静态专家 + 显式任务描述** | **不做**（永久 ⛔，除非换模型档位） |
 | **DD-14** | 协议 | 2.8 | 工具层按 MCP 的 schema 纪律（统一命名、清晰描述、声明式权限）；**不做 A2A** | 复用已有 `mcp.py` 思路 | 要接外部 agent 时 |
+| **DD-15** | 步数预算 | `[二手·GitHub]` smolagents 实测：**CodeAgent（动作写成代码）比「LLM 输出工具调用字典」少 30% 步数** | **每个动作允许串联多个工具调用**；并对高频组合**提供复合工具**（如 `batchUpdateItems`）而不是让模型逐个调。理由：4B + 4K 下**每一步都是命门**，省 30% 步数是本轮拿到的最大单项收益 | 新增（协议层加"批量动作"语义 + 优先补复合工具） | 升级大模型后可回退 |
+| **DD-16** | 上下文注入方式 | `[GitHub]` atomic-agents 的 **Context Providers**：「Inject dynamic context into the agent's system prompt at runtime」 | 用**同一机制**实现 DD-3/DD-4：把「本次会话可见的 ≤8 个工具 + 相关记忆片段 + 数据概览」做成**运行时注入的 context provider**，而不是把 35 条能力静态拼进提示词 | 新增（对齐已验证的成熟范式） | 无 |
 
 ---
 
@@ -226,6 +296,7 @@ data/libraries/<库>/.workspace/
 | **M0 上下文与终止** | 修 G1 + G4 | `num_ctx` 可配且有默认；三道计数闸生效；触发后带部分产出 finalize 并诚实显示 | ~200 行 |
 | **M1 观测先行** | 修 G3 | 每轮有 token/延迟/成本行；面板可见"已用轮次/上限"；**先有数据再调提示词** | ~150 行 |
 | **M2 提示词瘦身** | 修 G6 + DD-6 | `identity.md` ≤30 行断言转绿；`CAPABILITIES.md` 改渐进披露；单测跑 8 类典型请求，工具调用成功率 ≥80% | ~300 行 |
+| **M2.5 步数预算** | 修 DD-15 | 每个动作可串联多工具；补 ≥2 个高频**复合工具**；单跑同一任务**步数下降 ≥20%** | ~200 行 |
 | **M3 工具面收敛** | 修 G2 + DD-3/4 | 协议层分组、每次会话 ≤8 工具；用户显式选技能；场景下工具调用成功率 ≥80% | ~250 行 |
 | **M4 评估器核实** | 修 G7 | 确认评估器上下文隔离；生成类任务可选跑 | ~200 行（可能更少） |
 
@@ -310,7 +381,17 @@ M1 必须紧跟 M0——**没有成本数据，后面所有调优都是盲调**�
 
 **外部一手**：Anthropic《building effective agents》（五模式 +「Framework abstraction is an anti-pattern」+ 工具设计是首要失败模式）、《Effective context engineering》、《Writing tools for agents》、《Effective harnesses for long-running agents》、2026 harness 文章（context anxiety / **reset 优于 compact** / generator-evaluator）、Claude Managed Agents 公测（**Outcomes：独立上下文评分器，docx +8.4% / pptx +10.1%**）、LangChain Deep Agents 文档（四件套 / `interrupt_on` / 支持 Ollama）
 
-**外部二手**：4B 三教训、≤4B 工具调用分档（7–8B 黄金区间）、8GB 卡 Ollama 默认 `num_ctx=4096` + 第 7 轮截断、九框架同题实测（Claude Agent SDK ~35,000 tok/轮）、2026 多 agent 架构综述（≤5 agent、协调税、共享状态层、逐 agent 埋成本、协调死锁）
+**GitHub 实证（2026-10-07 直接抓仓库，非二手博客）`[GitHub]`**
+- `huggingface/smolagents` README —— agent 逻辑 **~1,000 行**；**CodeAgent 比「输出工具调用字典」少 30% 步数**；`LocalPythonExecutor` **不是安全沙箱**（可绕、不得作安全边界）；沙箱支持 E2B/Blaxel/Modal/Docker；支持本地 `transformers` / `ollama` / LiteLLM 100+；正面回答「为什么要框架」（system prompt / parser / execution 三处格式一致性）
+- `langchain-ai/deepagents` README —— 4 件套；**model-agnostic 含 Ollama/vLLM/llama.cpp**；**安全立场「trust the LLM，边界设在工具/沙箱层，不指望模型自我审查」**；"Inspired by Claude Code"
+- `langchain-ai/deepagentsjs`（**TS 版，645 commits，2026-10-05 仍在更**）—— `npm install deepagents` + **`deepagents/browser` 入口（无 Node-only 导出）**；**6 个 peer deps**（`@langchain/core`/`langgraph`/`langgraph-checkpoint`/`langgraph-sdk`/`langchain`/`langsmith`）；`createDeepAgent` 返回 compiled LangGraph
+- `letta-ai/letta` README —— **"Platform for stateful agents: AI with advanced memory"**（f.k.a. MemGPT）；主流源码迁至 **`letta-ai/letta-code`**，npm **`@letta-ai/letta-code`**；**有 Windows/macOS/Linux 桌面 app** + 本地 `letta server` + **TypeScript Agent SDK**；旧 V1 server 已 archive
+- `mastra-ai/mastra` README —— 40+ providers；**graph-based workflows**（`.then()/.branch()/.parallel()`）；**suspend & resume**（storage 记状态、可无限期暂停）；**Observational Memory**；MCP 双向；evals + observability；本地 Studio；**双许可证：核心 Apache-2.0，`ee/` 为 Enterprise source-available**
+- `BrainBlend-AI/atomic-agents`（仓库现址 `Eigenwise/atomic-agents`）README —— 极简模块化（Single-purpose/Reusable/Composable/Predictable）；**Agent = System Prompt + Input Schema + Output Schema + History + Context Providers**；**"All logic and control flows are written in Python"**（反对框架接管控制流）；Context Providers = 运行时注入系统提示；经 Instructor 支持 Ollama / 任何 OpenAI-compatible；文档工程有 `llms.txt`/`llms-full.txt`/Context7
+- GitHub star 快照 `[二手]` —— `microsoft/autogen` **58,025 但 frozen**（Microsoft 已并入 Agent Framework 并劝用户别再基于它新建）；`langchain` 136,707 / `crewAI` 51,380 / `agno` 40,118 / `langgraph` 32,027 / `smolagents` 27,302 / `vercel/ai` 24,220 / `mastra` 23,871 / `letta` 22,707 / `pydantic-ai` 17,055 / `claude-agent-sdk-python` 6,860；TS 阵营还有 `n8n` 187,791 / `cline` 61,755 / `flowise` 52,810
+- 「五个轮子」横向评测 `[二手]`（2026-06）：记忆 / 沙箱 / skills-vs-MCP / 工具治理 / 传输；**只有 Letta 解了记忆，只有 smolagents 解了沙箱**
+
+**外部二手**：4B 三教训（提示词冗长税 / 软路由失效 / 数字硬上限胜于提示词条款）、≤4B 工具调用分档（≤4B 不可生产、7–8B 黄金区间）、8GB 卡 Ollama 默认 `num_ctx=4096` + 第 7 轮截断、九框架同题实测（Claude Agent SDK ~35,000 tok/轮 = 25 倍、8.5s、299MB）、2026 多 agent 架构综述（≤5 agent、协调税、共享状态层、逐 agent 埋成本、协调死锁）
 
 **未能实测（诚实边界）**
 - 本机 **Ollama 当前未运行**（`curl 127.0.0.1:11434` 连接被拒）⇒ `num_ctx` 实际生效值、
