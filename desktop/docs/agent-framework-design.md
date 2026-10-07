@@ -1,436 +1,319 @@
 # 智能体框架重写设计（E59 起）
 
-> **状态**：v0.1 草案，待主理人裁决（本文末尾列出 5 个**必须由你拍板**的开放决策）。
-> **动因**：E42 裁决「`core/agent` 域停止 1:1 迁移，改为框架重写」——但架构一直没定，本片定它。
-> **一句话结论**：**不引入任何 agent 框架**，用已��的薄层自建 harness；核心是把业界 2026 的共识**按 4B 小模型实况裁剪**，而不是照抄。
+> **状态**：v0.2 草案（**已重写**，取代 v0.1），待主理人裁决。
+> **动因**：E42 裁决「`core/agent` 域停止 1:1 迁移，改为框架重写」——方向定了，架构未定。
+>
+> **⚠️ 修订记录（v0.1 → v0.2，重要）**
+> v0.1 我犯了一个**根本性的方法错误**：把它当成「从零设计一个 2026 最新 agent 框架」，
+> 于是去外部找资料、写了与本项目无关的 NPC `agent_os` 对照，**而完全没有先读本项目已有的设计文档**。
+> 读完本项目 4 份 agent 设计资产后，真相是：**这个项目的 agent 框架不是"要设计"，而是"已收官过一次、
+> 现在要判断要不要按 4B 实况调整"**。v0.2 全部重写，第 10 节记录了我读错的地方与正确读法。
 >
 > **证据强度标注**（全文通用）：
-> `[实测]` = 本机/本仓跑出来的 · `[一手]` = 模型厂商官方文档 · `[二手]` = 第三方文章/实测（附出处）· `[推断]` = 我的推理，未直接验证
+> `[实测]` 本机/本仓跑出来的 · `[一手]` 模型厂商官方文档 · `[二手]` 第三方文章/实测（附出处）· `[推断]` 我的推理，未直接验证
 
 ---
 
-## 1. 为什么要做、为什么现在做
+## 1. 先纠正定位：本项目**不是**从零设计 agent
 
-### 1.1 欠债规模
+这是 v0.2 与 v0.1 最大的差别。本项目已有 **4 份 agent 设计资产 + 1 个已收官的实现计划**：
 
-| 域 | 文件 | 行数 | 现状 |
-|---|---|---|---|
-| `core/agent` | 97 | 24,670 | 8 文件 1,689 行已迁（在用资产），**89 文件 22,981 行判 ⛔** |
-| 数字员工 UI + 任务面板 | 7 | 2,281 | 随框架重写 |
-| `ui/widgets/team_dialog.py` | 1 | 818 | 团队 CRUD 属本框架范畴 |
-| **合计** | **105** | **27,769** | 仅 **6.7%** 已迁 |
+| # | 资产 | 位置 | 规模 | 状态 |
+|---|---|---|---|---|
+| A1 | **Agent OS 底层框架设计蓝图** | `docs/archive/AGENT_OS_BLUEPRINT_STATUS.md` | 132 行 | 2026-05-27 存档，**2026-06-23 归档**（自评「L6 自我进化体 ✅ 100% 实现」） |
+| A2 | **A 档立项方案（AI/Agent 引擎 + 库管理）** | `desktop/docs/a-tier-plan.md` | 375 行 | **A1-1~A1-5 全部 ✅ 完成（2026-10-04）**，带 commit 号与回写记录 |
+| A3 | **Agent 工作区实态** | `data/libraries/default/.workspace/` | 166 行 | **活着**（`memory/MEMORY.md` 最后更新 `2026-10-07 19:22:35`） |
+| A4 | **`shared/` 分层契约 + 分层拆分方案** | `desktop/src/shared/README.md` / `desktop/docs/shared-layering-design.md` | 206 / 362 行 | 生效中（4 条 ESLint 边界规则） |
 
-### 1.2 但它**不是**当前阻塞项
+**A1 蓝图已经实现的东西** `[实测·读源码]`：
 
-`desktop/docs/migration-audit.md` §1 的结论是 ✅116/43,072、◐15/8,328，总 299 文件 / 91,164 行，
-**真实剩余 ≈0.5–0.7 万行（6–8%）**，且其中绝大部分是 AI 域 + 设计性替换。
-换句话说：**编辑器内核已无整块缺口，agent 框架是"加分项"而不是"阻塞项"。**
-
-这决定了本设计的优先级：**可以做慢，但不可以做错**；且必须**每期都能独立交付价值**，
-不能变成"半年后一次性交付一个大而无当的框架"。
-
-### 1.3 三条硬约束（决定一切）
-
-| # | 约束 | `[实测]` 证据 |
-|---|---|---|
-| **A** | **本地单机 Ollama，RTX 4060 8GB，主力模型 4B 级** | `src/main/agent/ollamaTransport.ts:19` 写死默认 `http://127.0.0.1:11434`；`shared/llmConfig.ts:68` 的 ollama 预置含 `qwen3:8b`/`qwen2.5:7b`，主力按项目约定为 `MB_OLLAMA_MODEL`（4B 级 Qwen3） |
-| **B** | **TS + Electron 客户端，无服务端** | 全部 agent 资产在 `src/main/agent/` + `src/shared/agent/`，跑在主进程 |
-| **C** | **实际上下文预算只有 4K** | `grep num_ctx` 全仓**零命中** ⇒ 吃 Ollama 默认；Ollama 按显存定默认，**<24GiB ⇒ 4096** `[二手]` |
-
-**C 是最容易被忽略、也最致命的一条。** 同规格 8GB 卡上的实测：多轮对话到第 7 轮
-就开始**半句截断**——不是变慢、不是变笨，而是**没空间把话说完** `[二手]`。
-而我们 Python 侧 `src/core/agent/brain_prompt.py:105-126` 恰恰在做
-`plan_ctx` / `learn_ctx` 往 prompt 里拼装 —— **正是让 4B 模型毒上加毒的模式**。
-
----
-
-## 2. 2026 业界共识（先摆事实，再裁剪）
-
-### 2.1 五个可组合模式 `[一手]`
-
-Anthropic《Building effective agents》给出可组合的工作流原语，官方明确
-**"the most successful implementations use simple, composable patterns rather than complex frameworks"**：
-
-| 模式 | 何时用 |
+| 部分 | 内容 |
 |---|---|
-| **prompt chaining** | 任务能干净拆成固定子步骤（每步 gate 校验） |
-| **routing** | 输入有明确类别，分类后分给专门提示词 |
-| **parallelization** | 子任务彼此独立 |
-| **orchestrator-workers** | **子任务事先无法预定义**（写代码类任务） |
-| **evaluator-optimizer** | 生成器 + 评估器迭代循环，**正确性比速度重要** |
+| 多智能体 | 5 Agent（`boss` + 4 workers：game_designer / data_analyst / content_writer / code_assistant），**独立目录 + 工具集隔离** |
+| 身份 | `IdentityManager.load_identity(id) → SystemPrompt`；**SOUL 5 要素硬边界**（核心身份/职责/绝对边界/工作风格/输出格式） |
+| 编排 | `brain.process()` → `intent.Planner.plan()` → `agent_manager`；TaskTicket 7 字段 + `delegate_to_agent` |
+| 协作三模式 | 顺序接力 / **并行竞标 `parallel_bidding`** / **辩论共识 `debate_consensus`** |
+| 记忆 | 三层（短期/长期/情节）+ `LEARNINGS.jsonl` + 容量上限 |
+| 反思 | `brain._reflect_on_failures` + `evaluation/auto_evaluator.py` **LLM-as-Judge** |
+| 工具 | `dispatcher.register/execute` + `skill_protocol` + `mcp.py`（MCP server 已实现）+ **16 激活技能** |
+| 防护 | `_DEFAULT_MAX_ITERATIONS = 5`、每轮 SOUL 硬边界、`_replan_step` 动态修正、`_sliding_window_compress` |
+| 未接 | LangChain / AutoGen「预留接口，未实际对接」 |
 
-同文还有一条对本项目至关重要的告诫：
-> **"Framework abstraction is an anti-pattern."** —— 框架会遮蔽底层 prompt 与响应、让调试变难；
-> 建议**直接用 LLM API 起步**，很多模式只需几行代码。
+**A2 计划已经落地的东西** `[实测·读回写区]`：
 
-### 2.2 三角色 harness + 评估器隔离 `[一手/二手]`
+- §0 结论：**不需要 1:1 复刻 21,669 行**（三分：必修核心契约 ≈6,000–8,000 / 按需 / 其余）
+- A1-1 技能协议 + 调度器内核（`shared/agent/protocol.ts` 18 例 + `main/agent/dispatcher.ts` 15 例）✅
+- A1-2 Brain 循环 + 事件流 + Ollama 工具调用（`shared/agent/brain.ts`）✅
+- A1-3 会话与记忆（`sessionStore.ts` / `memoryStore.ts`）✅
+- A1-4 审批通道端到端（含「拒绝路径断言沙箱没有被执行」）✅
+- A1-5 业务技能 + 托盘/全局热键（`main/tray.ts`）✅ —— **A1 全部收官**
+- **`system.code` 用 QuickJS WASM 沙箱「整体替换」** Python 的 `subprocess + 正则黑名单`（后者可绕）`[实测]`
+- 有意不移植并写明理由：`system.ceshu` 的 delete/export/import（UI 已有入口，再暴露会重复且更难确认）
 
-Anthropic 2026 年的 harness 文章（planner / generator / evaluator 三 agent，通过**文件**通信）
-指出两个反复出现的失败：**长任务失去连贯性**、**自评偏乐观**。对策是角色分离 +
-**generator-evaluator 循环**（GAN 式）。Claude Managed Agents 2026 公测的
-**Outcomes** 把这件事产品化：写 rubric → **评分器在独立上下文窗口**评估（与产出它的 agent 隔离）
-→ 指出问题后 agent 迭代。报告增益 **docx +8.4% / pptx +10.1%**。
-另注：多 agent 研究系统用 lead + 并行 subagent（各自独立 context window）比单 agent 基线好 **90.2%**，
-但**token 用量单独解释了 80% 的性能方差**。
+**⇒ 所以 E42「停止 1:1 迁移」的真正含义不是"要设计一个新框架"，而是"别再往 22,981 行上投入"**。
+本设计的任务因此变成：**已收官的 A1，在 4B + 4K 的真实约束下够不够？差在哪？补多少？**
 
-### 2.3 三种典型失败模式 `[二手]`
+---
 
-| 失败 | 表现 | 对策 |
+## 2. 本项目的三条硬约束（决定一切）`[实测]`
+
+| # | 约束 | 证据 |
 |---|---|---|
-| **agentic laziness** | 50 条只审到 35 条就宣布完成 | 进度可见化 + 外部校验闸 |
-| **self-preference bias** | 自评系统性偏松 | **评估器独立上下文**（见 2.2） |
-| **goal drift** | 反复压缩上下文后，"不要做 X" 这类约束**静默消失** | **context reset（带结构化交接开新 agent）优于单纯 compact** |
+| **A** | **本地单机 Ollama，8GB 卡，主力 4B 级** | `src/main/agent/ollamaTransport.ts:19` 写死 `http://127.0.0.1:11434`；`shared/llmConfig.ts:68` 预置含 `qwen3:8b`/`qwen2.5:7b` |
+| **B** | **TS + Electron 客户端，无服务端** | agent 资产全在 `src/main/agent/` + `src/shared/agent/`，跑在主进程 |
+| **C** | **实际上下文只有 4K** | `grep -rn "num_ctx\|num_predict" src/` **零命中** ⇒ 吃 Ollama 默认；Ollama 按显存定默认、**<24GiB ⇒ 4096** `[二手]` |
 
-### 2.4 Deep Agents 的四件套 `[一手]`
+**C 最容易漏、也最致命**：同规格 8GB 卡实测第 7 轮即**半句截断**——不是变慢、不是变笨，是**没空间说完** `[二手]`。
+而 Python 侧 `src/core/agent/brain_prompt.py:105-126` 正在往 prompt 拼 `plan_ctx`/`learn_ctx`——**正是让 4B 毒上加毒的模式**。
 
-LangChain Deep Agents（v0.6 / 2026-06）把长任务工程做法抽象成 4 个可换组件：
-**planning**（`write_todos` 维护带状态的任务清单）、**虚拟文件系统**
-（`read/write/edit/ls/glob/grep`，**大工具结果落盘、上下文只留路径**）、
-**sub-agent 委派**（独立上下文，返回压缩结果）、**上下文管理中间件**（压缩 / 落盘 / 隔离 / prompt 缓存）。
-另支持 MCP、HITL 中断审批、**Ollama**。
-
-### 2.5 Skills 的真身 `[二手]`
-
-- `SKILL.md` 是**枢纽**，指向具体文件；整个文件系统 = **渐进披露式上下文工程**
-- **skill 的 description 不是人类摘要，而是给模型判断"谁该处理"的触发条件**
-- **gotchas（坑记录）是任何 skill 里最高信号的内容**，应持续累积
-
-### 2.6 上下文工程 `[一手]`
-
-> "Context rot is real." —— 把上下文当**有限资源**，不管窗口多大。
-
-2026 代的规则反转（Anthropic 对 Claude 5 代模型**删掉 80% 系统提示词后编码基准无下降**）：
-**给判断而非给规则 · 设计好接口而非给例子 · 渐进披露而非一次性全给 · 简洁工具描述而非重复强调 ·
-自动记忆而非手写长期记忆文件**。
-
-### 2.7 工具设计 `[一手]`
-
-> **"Tool design is a primary failure mode."**
-
-少而精的工具胜过多个重叠工具；工具名**加统一前缀**降混淆；返回**高信号数据**（人可读名而非 UUID）；
-**让 agent 自己控制输出详略**；**错误信息要引导下一步、不能抛原始 traceback**；
-工具文档的严谨度要等同系统提示词。
-
-### 2.8 协议与状态 `[二手]`
-
-**MCP（垂直，连工具/数据）+ A2A（水平，agent 间）** 各管一段，不要二选一。
-**共享状态层是前提**：状态更新走事件并反映到共享层，**没有 agent 私有状态**（Confluent / Redis 立场）。
-必须从第一天就埋 **token 成本 / 工具调用延迟 / 成功率**；agent 交接处建**验证闸**；
-防**协调死锁**（timeout / turn limit / 指定 tie-breaker）与**成本爆炸**。
+**另一条被低估的事实** `[实测]`：**35 个技能**（`CAPABILITIES.md`，2026-06-21 生成），
+而 `identity.md` 里已经写了「**闲聊时绝不调用工具**」——说明**工具调用难用这件事早被感知到，只是没解决**。
 
 ---
 
-## 3. 决定性取舍：4B 模型把上面几乎全部推翻了
+## 3. 2026 业界共识 × 我们的蓝图：对照表
 
-这是本设计与"照抄 2026 主流"的分水岭。三条来自 4B 级模型**真实跑出来的**教训 `[二手]`：
+这一节是 v0.2 新增的核心。**好消息是：我们的蓝图大部分方向已经是对的。**
 
-### 3.1 提示词冗长税 —— 4B 直接停止使用工具
-
-实测：写一份 **60 行**的 agent 定义（工作流 + 硬规则 + 错误处理 + 输出格式 + 防循环），
-4B 模型**看完后完全不用工具**，直接生成"研究形状"的答案（"找不到来源"）——**纯表面模仿**。
-**砍到 8 行**（"先搜索 → 读 2 个 URL → 引用 → 别循环"）→ **工具调用回来了**，1 分 26 秒给出带引用的正确答案。
-25 行版本（仅加错误恢复与调用上限）也work。经验阈值 ≈ **30 行**。
-
-> 关键机理：提示词长到一定程度，模型把它当成"**要照着复述的上下文**"，而不是"**要执行的指令**"。
-
-**这与 2.6「删 80% 提示词反而更强」在 4B 上是同一条规律的两个方向。**
-
-### 3.2 软路由在 4B 上失效 —— agent 选择是**人的事**
-
-实测：在全局指令里写"当用户问需要外部事实信息时，委派给 researcher 子 agent"，
-**Qwen 与 Gemma 都完全无视**，自己硬扛并死循环。显式 `--agent researcher` 标志则工作正常。
-结论：**"agent 选择应该是人类的工作，而不是模型的工作"**。
-
-### 3.3 提示词里的错误恢复条款 < 数字硬上限
-
-实测：一个 URL 返回 403 后，agent 连续 **150+ 次** `Invalid Tool` 直到运行时崩溃。
-在提示词里写"工具连续错两次就停下来写部分报告"→ **无效，仍在循环**。
-真正有用的：**数字硬上限**（如"最多 6 次工具调用，到第 6 次就 finalize"）。
-
-> 机理：**模型无法自省自己的重试模式，但能数数。**
-
-### 3.4 工具调用可靠性按参数量分档 `[二手]`
-
-| 参数量 | 结论 |
-|---|---|
-| **≤4B** | **可用于 edge / 测试，不建议生产**。具体崩坏：函数描述超 2–3 行 → "读不完"漏参数；请求里多个工具 → 只挑第一个；非标准措辞 → 改回输出文本；enum / 嵌套对象参数 → 无效 JSON |
-| **7–8B** | **本地部署的"黄金区间"**（`qwen3:8b` 工具调用约 85%） |
-| 20–24GB 显存 | `gemma4:26b` 约 93% |
-
-**我们正好卡在最勉强的一档。** `shared/llmConfig.ts:68` 已有 `qwen3:8b` 预置 —— 8GB 卡装得下（5.2GB），
-**这是本文档给出的最高性价比单点建议**（见 DD-5）。
-
-### 3.5 小模型的 sub-agent 表现差
-
-`[二手]` 明确列出："small models struggle with sub-agent tasks"，
-建议**关掉动态 sub-agent，改用静态 sub-agent + 显式任务描述**。
-
----
-
-## 4. 选型结论：**不引框架**
-
-| 候选 | 判定 | 理由（含 `[二手]` 实测数据） |
+| 2026 共识 | 我们有没有 | 判定 |
 |---|---|---|
-| **Claude Agent SDK** | **否决** | **每轮 ~35,000 input tokens（其余框架的 25 倍）、中位延迟 8.5s、299MB（内含整套 Node CLI）**，且**不支持换模型厂商**——我们是本地 Qwen，直接出局 |
-| **LangGraph(.js)** | 否决 | 最成熟的状态图/checkpoint/HITL，但为**服务端编排**设计、Python 为主；且我们已有 `sessionStore` + `operationLog` 覆盖其核心诉求 |
-| **Mastra** | 否决 | TS 原生、性能最好（中位 2.2s），但 **240 包 / 176MB**；且它是"应用框架"（自带 Studio、项目结构 opinionated），与我们要的"薄 harness"相反 |
-| **Deep Agents** | 否决（但**借鉴其四件套**） | 4 件套正中靶心且支持 Ollama，但建在 LangGraph 上；**我们手写这 4 件的核心，成本远低于引入它** |
-| **Vercel AI SDK 7** | 备选 | 最轻（15 包 / 53MB）、provider-agnostic、TS 原生。**但**它"你拥有这个 loop"——状态仍在你自己手里，**不省事，只多一层** |
-| **自建薄 harness** | **采纳** | Anthropic 官方即持此立场 `[一手]`；我们要**逐 token 控制**提示词与工具面（3.1/3.3 的教训要求），框架的注入开销（实测 1,288–1,432 tokens 之间 11% 差异）在 4K 预算下是**实质成本** |
+| 五可组合模式（chaining/routing/parallelization/**orchestrator-workers**/**evaluator-optimizer**）`[一手]` | ReAct while 循环 + planner | ✅ 已有 |
+| **planner / generator / evaluator 三角色分离** `[一手]` | planner=`intent.Planner`、generator=`brain._agent_loop`、evaluator=`evaluation/auto_evaluator.py` | ✅ 已有 |
+| **评估器独立上下文**（Outcomes 报告 docx +8.4% / pptx +10.1%）`[二手]` | `auto_evaluator.py` 存在，**但是否独立上下文未核** | ⚠️ **待核** |
+| **Deep Agents 四件套**：todo / 虚拟文件系统 / sub-agent 独立上下文 / 上下文管理中间件 `[一手]` | `todo_skill` ✅、`workspace/*.md` ✅、TaskTicket ✅、`_sliding_window_compress` ✅ | ✅ 大部分已有 |
+| **Skills 渐进披露**（`SKILL.md` 枢纽、description 是触发条件、gotchas 最高信号）`[二手]` | `CAPABILITIES.md` 是**扁平清单**（35 条 name/desc/tags），非渐进披露 | ⚠️ **形态落后** |
+| **context engineering**：context rot、just-in-time、**2026 代删 80% 提示词反而更强** `[一手]` | `_sliding_window_compress` 做压缩 | ⚠️ **手段可能选错**（见 §5） |
+| 工具设计：少而精、工具名加前缀、高信号返回、错误信息要引导 `[一手]` | `protocol.ts` 有 `TOOL_RISK_MAP` 风险分级 ✅；工具数 ❌ | ⚠️ **数量失控** |
+| MCP（垂直连工具）`[二手]` | `mcp.py` 已实现 server | ✅ 已有 |
+| 共享状态层、无 agent 私有状态 `[二手]` | `sessionStore` + `operationLog` 已是单一真源 | ✅ 已有 |
+| 逐 agent 埋 token / 延迟 / 成功率 `[二手]` | `operationLogStore` 记录操作，**未见 token/延迟成本** | ⚠️ **缺** |
+| **协调死锁防护**（timeout / turn limit / tie-breaker）`[二手]` | `_DEFAULT_MAX_ITERATIONS = 5` | ✅ 已有 turn limit |
 
-> 一句话：**框架的抽象税 + 提示词注入税，在这个 4B / 4K / 本地的组合下，我们付不起也不需要。**
-> 但 2.1–2.8 的**共识原语全部吸收**，只是按第 3 章裁剪。
+**结论：架构思想基本不落后，落后的是「在 4B 上跑不动」和「观测缺失」。**
 
 ---
 
-## 5. 目标架构
+## 4. 4B 小模型会推翻 2026 主流的三条 `[二手]`
+
+这是本设计与"照抄主流"的分水岭，也是**重写 L6 蓝图的真正理由**：
+
+1. **提示词冗长税**：60 行 agent 定义 ⇒ 4B **完全不用工具**、纯表面模仿「研究形状」的答案；砍到 8 行 ⇒ 工具调用回来。阈值 ≈ **30 行**。
+2. **软路由失效**：写「需要外部信息就委派给 researcher 子 agent」被 Qwen/Gemma **完全无视**（自己硬扛并死循环）；显式指定 agent 才行。⇒ **agent 选择归人，不归模型**。
+3. **数字硬上限 > 提示词条款**：150+ 次 `Invalid Tool` 死循环时，提示词写「错两次就停」**无效**；「最多 6 次调用」**有效**。机理：模型无法自省重试，**但能数数**。
+
+**对照我们的蓝图，4B 上的必然失效点** `[推断，基于上述实测]`：
+
+| 蓝图设计 | 在 4B 上的问题 | 对应实测 |
+|---|---|---|
+| **5 Agent + 工具集隔离** | 4B 无法在 35 个工具里挑对（"多工具只挑第一个"） | 3 |
+| **并行竞标 `parallel_bidding`** | 多 agent 协调税 + 小模型 sub-agent 表现差 | 2 |
+| **辩论共识 `debate_consensus`** | 需要长时程多轮论证，4B 上下文撑不住 | 上下文 4K |
+| **16~35 个激活技能** | 描述超 2–3 行就"读不完"漏参数 | 3 |
+| **`_sliding_window_compress`** | Anthropic 2026 实测：**context reset（带结构化交接开新 agent）优于单纯 compact**，且 compact 会导致「goal drift：约束静默消失」 | 见上 |
+| **详细 SOUL prompt** | 提示词冗长税 | 1 |
+
+---
+
+## 5. 差距分析：已收官 A1 在 4B 下的真实缺口
+
+| 缺口 | 严重度 | 依据 |
+|---|---|---|
+| **G1 上下文只有 4K，且未显式设定 `num_ctx`** | 🔴 最高 | `[实测]` 零配置 ⇒ 默认 4096；8GB 卡第 7 轮截断 |
+| **G2 工具面 35 个（协议层声明 12 个 `system.*` 槽位，实现 5 个）** | 🔴 高 | `[实测]` 4B「多工具只挑第一个」；且 `identity.md` 已写「闲聊时绝不调用工具」= 症状已现 |
+| **G3 无逐轮成本/延迟观测** | 🟠 中高 | `[实测]` operationLog 无 token/延迟；`[二手]` token 用量单独解释 80% 性能方差 |
+| **G4 终止只有 `MAX_ITERATIONS=5`，无 maxToolCalls / wallClock** | 🟠 中高 | `[二手]` 计数式硬闸才有效；150+ 次死循环靠 turn limit 拦不住 |
+| **G5 压缩策略可能选错**（compact vs context reset） | 🟡 中 | `[二手]` Anthropic 2026：reset 优于 compact；compact 导致 goal drift |
+| **G6 `CAPABILITIES.md` 是扁平清单，非渐进披露** | 🟡 中 | `[二手]` Skills 最佳实践：SKILL.md 枢纽 + 渐进披露 |
+| **G7 评估器是否真在独立上下文未核** | 🟡 中 | `[二手]` Outcomes 增益的核心正是上下文隔离 |
+| **G8 主力模型 4B 本身可靠性不足** | 🟠 中高 | `[二手]` ≤4B 工具调用不建议生产；7–8B 是黄金区间 |
+
+**不需要动的**（已验证到位）：审批闸与风险分级、事件流 reducer、会话/记忆落盘、
+QuickJS 沙箱（**已整体替换掉可绕的黑名单**）、SOUL 硬边界、turn limit、MCP、`shared/` 分层契约。
+
+---
+
+## 6. 选型：不引入 agent 框架（结论不变，依据更硬）
+
+| 候选 | 判定 | 理由 |
+|---|---|---|
+| **Claude Agent SDK** | 否决 | 每轮 **~35,000 input tokens**（其余框架 1,288–1,432 的 **25 倍**）、8.5s、299MB，**不支持换模型厂商** ⇒ 本地 Qwen 直接出局 `[二手]` |
+| **LangGraph(.js)** | 否决 | 最成熟的状态图/checkpoint/HITL，但为**服务端编排**设计、Python 为主；且 `sessionStore` + `operationLog` 已覆盖其核心诉求 |
+| **Mastra** | 否决 | TS 原生、最快，但 **240 包 / 176MB**；且是"应用框架"（自带 Studio、结构 opinionated），与"薄 harness"相反 |
+| **Deep Agents** | 否决（**但四件套我们已有 3.5 件**） | 建在 LangGraph 上；我们手写这 4 件的核心成本远低于引入 |
+| **Vercel AI SDK 7** | 备选 | 最轻（15 包/53MB）、provider-agnostic。但"你拥有这个 loop"——状态仍在自己手里，**不省事，只多一层** |
+| **自建薄 harness** | **采纳** | Anthropic 一手即持此立场：**「Framework abstraction is an anti-pattern」**；框架注入开销（1,288–1,432 之间 11% 差异）在 4K 预算下是**实质成本** |
+
+> **但有一条要改口径** `[纠正 v0.1]`：本项目**已有"预演资产"**——`a-tier-plan.md §2.4` 明确记载
+> **QuickJS WASM 沙箱已在 A1-5 落地并整体替换 Python 黑名单**。所以不是"从零自建"，
+> 而是**在已收官的 A1 上做定向加固**。净新增因此更小。
+
+---
+
+## 7. 目标架构（在已有资产上加固，不重建）
 
 ```
-┌─ 渲染层（React）──────────────────────────────────────────┐
-│  数字员工面板 · 任务卡 · 进度可见化 · 审批对话框            │  ← agentic laziness 的解药
-└───────────────▲───────────────────────────────────────────┘
-                │ 事件流（reducer，纯函数，可测）
-┌───────────────┴───────────────────────────────────────────┐
-│ 共享层 shared/agent/  协议 protocol · 会话 · 操作日志 · 预算  │  ← 单一真源
-└───────────────▲───────────────────────────────────────────┘
-┌───────────────┴───────────────────────────────────────────┐
-│ 主进程 main/agent/                                         │
-│                                                          │
-│  ┌── Harness（薄，~300 行新增）──────────────────────┐  │
-│  │  loop:  用户输入 → 拼提示词(预算闸) → 调模型        │  │
-│  │         → 若要调工具: 审批闸 → 执行 → 落盘大结果    │  │
-│  │         → 计数/超时闸 → 回灌 → … → 产出            │  │
-│  │  计数器: maxToolCalls / maxTurns / wallClock       │  │
-│  └────────────────────────────────────────────────────┘  │
-│      ▲                    ▲                    ▲           │
-│  ┌───┴────┐          ┌────┴─────┐        ┌─────┴────┐    │
-│  │ 技能注册│          │ 工具执行 │        │ 预算/观测 │    │
-│  │ (静态) │          │ (少而精) │        │ 逐轮落盘  │    │
-│  └────────┘          └──────────┘        └──────────┘    │
-│      ▲                                                  │
-│  ┌───┴──────────────── 传输层 ollamaTransport ────────┐  │
-│  │ /api/chat + tools + stream(NDJSON)  【num_ctx 待显式设置】│
-│  └────────────────────────────────────────────────────┘  │
-└──────────────────────────────────────────────────────────┘
+┌─ 渲染层 ────────────────────────────────────────────────┐
+│  数字员工面板 · 任务卡 · 进度可见化 · 审批对话框 · 成本行   │ ← agentic laziness 的解药
+└───────────────▲────────────────────────────────────────┘
+                │ 事件流（reduceBrainEvent，纯 reducer ✅已有）
+┌───────────────┴────────────────────────────────────────┐
+│ shared/agent/  protocol ✅ · brain ✅ · session ✅ · panel ✅│  ← 分层契约：保留原样不改名
+│                 ⬆ 新增：budget.ts（成本/闸门/观测）        │     (shared-layering-design §2.1)
+└───────────────▲────────────────────────────────────────┘
+┌───────────────┴────────────────────────────────────────┐
+│ main/agent/  brainService · dispatcher · ollamaTransport  │
+│               approvalBroker ✅ · operationLog ✅           │
+│   ┌── Harness 加固（净新增 ~300–500 行）──────────────┐   │
+│   │ 拼提示词(≤30行 闸) → 调模型 → 审批闸 → 执行        │   │
+│   │ → 大结果落盘 → 计数闸(maxToolCalls/maxTurns/     │   │
+│   │ wallClock) → 回灌 → … → 产出                      │   │
+│   └───────────────────────────────────────────────────┘   │
+│   skills/  system.game_data ✅ · system.ceshu ✅ · system.code ✅(QuickJS) │
+│            ask_user ❌(A1-4 遗留) · rollback ✅            │
+└───────────────▲────────────────────────────────────────┘
+┌───────────────┴────────────────────────────────────────┐
+│ ollamaTransport  /api/chat + tools + stream(NDJSON) ✅    │
+│                  ⬆ 显式 num_ctx（G1）· 考虑提 qwen3:8b（G8）│
+└────────────────────────────────────────────────────────┘
+
+工作区（✅ 已有，方向正确，强化而非重写）：
+data/libraries/<库>/.workspace/
+  identity.md    SOUL 5 要素硬边界（✅ 已有，正是「≤30 行」的载体）
+  persona.md     小墨人格（✅）
+  memory/MEMORY.md  长期记忆/用户偏好（✅ 活着）
+  memory/capabilities/CAPABILITIES.md  ⚠️ 35 条扁平清单 → 改渐进披露（G6）
+  memory/LEARNINGS.jsonl  反思经验（✅）
 ```
 
-### 5.1 与现有资产的关系（**不推倒**）
+### 7.1 与 `shared/` 分层契约的对齐 `[实测·读 shared/README.md]`
 
-| 现有 | 行数 | 处置 |
-|---|---|---|
-| `shared/agent/protocol.ts` | 472 | **保留**：事件协议 / 风险分级已有 |
-| `shared/agent/panel.ts` | 255 | **保留**：`reduceBrainEvent` 已是纯 reducer |
-| `main/agent/dispatcher.ts` | 233 | **保留并瘦身**：去掉 `execute_parallel` 之类的多 agent 编排（3.5） |
-| `main/agent/ollamaTransport.ts` | 139 | **保留 + 补 `num_ctx`**（DD-5） |
-| `main/agent/approvalBroker.ts` | 53 | **保留**：即 2.8 的"验证闸"雏形 |
-| `main/agent/operationLogStore.ts` / `operationRecorder.ts` | 96 / 123 | **保留 + 扩展**：即 2.8 的"可观测"雏形 |
-| `main/agent/sessionStore.ts` / `memoryStore.ts` | 183 / 64 | **保留**：会话与记忆已是本地存储 |
-| `main/agent/skills/*`（5 个） | 944 | **重构为静态技能表**（DD-1） |
-| `main/llm/client.ts` | 259 | **保留**：6 家服务商 + `safeStorage` 密钥 |
-| `DigitalPanel.tsx` + `ChatMarkdown.tsx` | 796 | **保留 UI，扩进度可见化** |
-
-**净新增预期 ≈ 800–1,200 行**（harness + 预算闸 + 观测 + 评估器），
-**不是** 22,981 行的 1:1 翻译——那正是 E42 否掉的东西。
+- `shared/agent/` **保留原样、不改名**（`shared-layering-design.md §2.1`）—— 本设计遵守。
+- 依赖方向：`main` **禁止**直接 import `shared/domain/**`（ESLint 规则 4 已生效）⇒
+  **新增的 `budget.ts` 放 `shared/agent/`（已被现有规则覆盖），不放 `domain/agent/`**——
+  后者虽有"预挂规则"但**当前无文件**，贸然启用会引入新的边界。
+- 五分区（contract/domain/config/service/util）中，agent 属 **domain 性质但已在 `shared/agent/`**，
+  本设计**不动这个既有决策**（它有 91% 文件被测试直接 import 的取证支撑）。
 
 ---
 
-## 6. 关键设计决策（DD）
+## 8. 设计决策（DD）
 
-每条格式：**问题 → 证据 → 决策 → 代价 → 复盘条件**。
+格式：**问题 → 证据 → 决策 → 处置（复用/重做/不做）→ 代价 → 复盘条件**
 
-### DD-1 静态技能路由：路由由人做，不交给模型
-- **问题**：谁来判断"这个请求该交给哪个技能/子 agent"？
-- **证据**：3.2 —— 4B 完全无视 AGENTS.md 里的委派指令；`[二手]` 明确建议本地小模型
-  "disable dynamic sub-agents, use static sub-agents with explicit task descriptions"。
-- **决策**：技能（skill）**由用户在界面上显式选定**（菜单/下拉），不做模型软路由。
-  一次会话锁定一个技能域。
-- **代价**：少了"一句话自动分流"的爽感。
-- **复盘条件**：换到 ≥14B 本地模型、或接入云端大模型后，可重新评估软路由。
-
-### DD-2 单 agent loop + 每技能 ≤8 个工具
-- **问题**：要不要多 agent 协作？
-- **证据**：3.5（小模型 sub-agent 差）；`[二手]`「Agent 数量控制在 5 个以内是生产最佳实践，
-  选型不当引入 coordination tax」；但 `[一手]` Anthropic 内部研究系统用 lead+subagent 拿到 90.2% 提升——
-  **前提是 Claude Opus/Sonnet 级别的模型与预算**。
-- **决策**：**单 loop**。多 agent 只保留一处：**评估器独立上下文**（DD-7）。
-  工具总数**硬上限 8 个/技能**，工具名统一前缀（2.7）。
-- **代价**：复杂任务拆解能力弱于多 agent。
-- **复盘条件**：出现明确的"一棵树深度 >2 的复合任务"且 4B 能稳定跑通单 loop 两次以上。
-
-### DD-3 提示词预算闸：系统提示词 ≤30 行
-- **问题**：提示词写多详细？
-- **证据**：3.1（60 行 ⇒ 停止用工具；8–25 行 ⇒ 正常）；2.6（Anthropic 对新模型删 80% 反而更强）。
-- **决策**：**系统提示词硬上限 30 行**，超限在**构建期/单测期报错**（不是运行时才发现）。
-  内容顺序：身份 → 硬约束（≤5 条）→ 可用工具（≤8 行）→ 输出格式 → 反循环规则（计数式）。
-- **代价**：规则少了，需要靠工具描述与硬闸兜住。
-- **复盘条件**：升级到 ≥14B 后可放宽。
-
-### DD-4 终止靠计数器，不靠提示词
-- **问题**：agent 死循环 / 幻觉循环怎么停？
-- **证据**：3.3（150+ 次 `Invalid Tool`；提示词条款无效；数字硬上限有效）。
-- **决策**：三道硬闸，任何一道触发即**带着部分产出 finalize**：
-  `maxToolCalls`（默认 8）、`maxTurns`（默认 6）、`wallClockMs`（默认 120s）。
-  **提示词里不写"出错就停"这类条款**（写了也没用，且占预算）。
-- **代价**：可能过早收敛；需在 UI 上诚实显示"已达上限，已产出部分结果"。
-- **复盘条件**：无。
-
-### DD-5 显式设定 `num_ctx`，并优先考虑把主力模型提到 8B
-- **问题**：为什么现在响应会"半句截断"？
-- **证据**：1.3-C（全仓无 `num_ctx` ⇒ 吃 Ollama 默认 ⇒ <24GiB 显存默认 **4096**）；
-  `[二手]` 同规格 8GB 卡第 7 轮即截断；修法是建带 `num_ctx 16384` 的模型变体。
-  3.4（4B 工具调用不可用于生产；7–8B 是黄金区间；`qwen3:8b` 5.2GB 装得下 8GB 卡）。
-- **决策**：(a) 传输层显式下发 `num_ctx`（默认 **16384**，可在设置里调）；
-  (b) **把默认主力模型从 4B 提到 `qwen3:8b`**（`llmConfig.ts:68` 已有预置），
-  保留 4B 作为"低配回退"。
-- **代价**：8B 更慢、显存更紧（若溢出到系统 RAM 会**大幅变慢**——需在设置里显式提示）。
-- **复盘条件**：无。这是本次设计里**性价比最高的单点**。
-
-### DD-6 大结果落盘 + just-in-time 引用
-- **问题**：工具返回几千行 JSON 撑爆上下文。
-- **证据**：2.4（Deep Agents 虚拟文件系统：大结果落盘、上下文只留路径）；2.6（just-in-time context loading）。
-- **决策**：工具返回值超过阈值（建议 2KB）即**写入 `<库>/agent/run/<runId>/` 下文件**，
-  上下文里只留**相对路径 + 摘要行 + 行数**；模型需要细节时用只读工具按路径取回。
-  这同时是"大结果"和"可回溯产物"两用。
-- **代价**：多一层文件管理；需保证临时目录清理策略。
-- **复盘条件**：无。
-
-### DD-7 评估器用独立上下文（自评隔离）
-- **问题**：agent 自评"我做完了"靠得住吗？
-- **证据**：2.2（Outcomes 把评分器放进**独立上下文窗口**，报告 docx +8.4% / pptx +10.1%）；
-  2.3（self-preference bias）。
-- **决策**：对**"生成类"任务**（策划书整章、数据批量生成）可选跑一次**独立上下文的评估器**
-  （rubric 打分 + 指出问题），与产出它的上下文**完全隔离**。
-- **代价**：多一次模型调用（4B 下延迟明显）。
-- **复盘条件**：若用户反馈"AI 生成结果需要反复手动修"，则升级为**默认开启**。
-
-### DD-8 审批闸 + 操作日志（可回溯）
-- **问题**：agent 做危险操作怎么办？出错了怎么查？
-- **证据**：2.8（每个交接处建验证闸）；2.3（agentic laziness 的解药是外部校验）；
-  2.6（禁止 agent 删改测试的同类教训：agent 会为了"通过"而破坏验证物）。
-- **决策**：保留并强化现有 `approvalBroker`：**危险操作（写库/改名/删除/导出/改 schema）逐次确认**；
-  `operationLog` 记录**每轮**的：技能、模型、输入 token、输出 token、工具调用序列、耗时、审批决定。
-- **代价**：多一次点击。
-- **复盘条件**：无。
-
-### DD-9 观测先行
-- **问题**：怎么知道"这次到底哪一步慢/贵/错"？
-- **证据**：2.2（token 用量单独解释 80% 性能方差）；2.8（必须从第一天埋成本）。
-- **决策**：复用 `operationLogStore`，把 §6 的三个闸的计数 + token + 耗时落盘；
-  面板上给"本次消耗 / 已用轮次 / 上限"一行。
-- **代价**：几乎为零。
-- **复盘条件**：无。
-
-### DD-10 MCP 只做工具层，不做 A2A
-- **问题**：要不要上 MCP / A2A？
-- **证据**：2.8（MCP 垂直连工具、A2A 水平连 agent）。
-- **决策**：工具层按 MCP 的**schema 纪律**做（统一命名空间、清晰描述、声明式权限），
-  便于未来接真 MCP server；**不做 A2A**（单机进程内通信用不上网络协议）。
-- **代价**：不是"真 MCP"，只是"按 MCP 规范纪律"。
-- **复盘条件**：将来要接外部 agent 时再引入 A2A。
+| # | 问题 | 证据 | 决策 | 处置 | 复盘条件 |
+|---|---|---|---|---|---|
+| **DD-1** | 上下文预算 | G1 | 传输层**显式下发 `num_ctx`**，默认 16384，可在设置调 | 重做（改 1 处 + 传输层字段） | 无 |
+| **DD-2** | 主力模型 | G8 | 默认从 4B 提到 **`qwen3:8b`**（`llmConfig.ts:68` 已有预置，5.2GB 装得下 8GB 卡），保留 4B 为低配回退；设置里显式警告"溢出到系统 RAM 会大幅变慢" | 配置 | 无（性价比最高） |
+| **DD-3** | 工具面 | G2 | **协议层 12 个 `system.*` 槽位收敛为按场景分组、每次会话只暴露 ≤8 个**；技能总清单保留但**不一次性注入** | 重做（`protocol.ts` 分组 + `CAPABILITIES.md` 改渐进披露） | 升级 ≥14B 可放宽 |
+| **DD-4** | 路由归谁 | 4B 实测 2 | **技能由用户显式选定**（面板下拉），不做模型软路由；`identity.md` 的「闲聊时绝不调用工具」升级为机器可执行的路由前置 | 重做（面板 + 路由前置） | 升级 ≥14B / 接云端大模型 |
+| **DD-5** | 终止 | G4 + 4B 实测 3 | 三道计数硬闸 `maxToolCalls`(8) / `maxTurns`(6) / `wallClockMs`(120s)，任一触发即**带部分产出 finalize**；**提示词里不写"出错就停"** | 新增（`budget.ts`） | 无 |
+| **DD-6** | 提示词预算 | 4B 实测 1 | **系统提示词 ≤30 行**（`identity.md` 天然载体），**构建期/单测期断言**；超限即红 | 新增断言 | 升级 ≥14B 放宽 |
+| **DD-7** | 大结果 | 2.1 just-in-time | 工具返回 >2KB 落盘到 `<库>/.workspace/agent/run/<runId>/`，上下文只留**相对路径 + 摘要 + 行数**，可按路径取回 | 新增 | 无 |
+| **DD-8** | 压缩策略 | G5 | 从 `_sliding_window_compress`（Py 侧）改为 **context reset**：到达阈值时**带结构化交接摘要开新轮**（约束显式重述，防 goal drift） | 新增（替代压缩） | 无 |
+| **DD-9** | 评估器 | G7 + `[二手]` Outcomes | 先**核实** `auto_evaluator.py` 是否独立上下文；若否，改为独立调用；默认关，面板给开关 | 核实 + 可能重做 | 用户反馈"AI 结果需反复手改"则默认开 |
+| **DD-10** | 观测 | G3 + `[二手]` token 解释 80% 方差 | 复用 `operationLog`，**每轮追加**：输入/输出 token、耗时、工具调用序列、三闸计数、审批决定；面板加"本次消耗/已用轮次/上限"一行 | 新增（扩展已有 store） | 无 |
+| **DD-11** | 审批闸 | A1-4/A1-5 已验证 | **完全复用**（`approvalBroker` + `TOOL_RISK_MAP` + 拒绝路径断言沙箱未执行）；不新造 | **复用** | 无 |
+| **DD-12** | 沙箱 | `a-tier-plan §2.4` 已落地 | **完全复用** QuickJS WASM（零宿主能力 + CPU 超时 + 内存上限 + 参数夹取上限）；**不复刻** Python 黑名单 | **复用** | 无 |
+| **DD-13** | 多 agent | 4B 实测 2 + 协调税 | **不恢复** 5 Agent / 并行竞标 / 辩论共识；**不做动态 sub-agent**。若将来验证需要，只用**静态专家 + 显式任务描述** | **不做**（永久 ⛔，除非换模型档位） |
+| **DD-14** | 协议 | 2.8 | 工具层按 MCP 的 schema 纪律（统一命名、清晰描述、声明式权限）；**不做 A2A** | 复用已有 `mcp.py` 思路 | 要接外部 agent 时 |
 
 ---
 
-## 7. 分期路线图
-
-每期**独立可交付**，且都遵守"提示词 ≤30 行 / 硬闸生效"。
+## 9. 路线图 M0–M4（每期独立可交付，**都只是"加固"**）
 
 | 期 | 目标 | 出口（可验收） | 规模 |
 |---|---|---|---|
-| **M0 地基** | 观测 + 硬闸 + 上下文预算 | 三个闸（`maxToolCalls`/`maxTurns`/`wallClock`）生效；`num_ctx` 可配；每次运行有成本行 | ~200 行 |
-| **M1 提示词瘦身** | 现有 5 个技能重写提示词 | `prompts.ts` 的构建期行数断言（≤30）转绿；单测跑 8 类典型请求，工具调用成功率 ≥ 80% | ~300 行 |
-| **M2 静态技能路由** | 用户显式选技能 | 面板上技能下拉在场；每次运行落日志含技能名 | ~250 行 |
-| **M3 落盘 + just-in-time** | 大结果不撑爆上下文 | 4KB+ 结果自动落盘、上下文只留路径；路径可取回 | ~250 行 |
-| **M4 评估器（可选）** | 自评隔离 | 选做：对生成类任务跑独立评估并给 rubric 分 | ~200 行 |
+| **M0 上下文与终止** | 修 G1 + G4 | `num_ctx` 可配且有默认；三道计数闸生效；触发后带部分产出 finalize 并诚实显示 | ~200 行 |
+| **M1 观测先行** | 修 G3 | 每轮有 token/延迟/成本行；面板可见"已用轮次/上限"；**先有数据再调提示词** | ~150 行 |
+| **M2 提示词瘦身** | 修 G6 + DD-6 | `identity.md` ≤30 行断言转绿；`CAPABILITIES.md` 改渐进披露；单测跑 8 类典型请求，工具调用成功率 ≥80% | ~300 行 |
+| **M3 工具面收敛** | 修 G2 + DD-3/4 | 协议层分组、每次会话 ≤8 工具；用户显式选技能；场景下工具调用成功率 ≥80% | ~250 行 |
+| **M4 评估器核实** | 修 G7 | 确认评估器上下文隔离；生成类任务可选跑 | ~200 行（可能更少） |
 
-**建议先做 M0**——它是纯增量、零风险，且立刻让 4B 的"半句截断"和"死循环"变成**可见且可控**的现象。
-
----
-
-## 8. 风险与明确不做的事
-
-| 风险 | 缓解 |
-|---|---|
-| **4B 上限**（工具调用不可靠） | DD-5 提 8B；DD-1/2/3/4 把复杂度压到 4B 能承载 |
-| 显存溢出到系统 RAM ⇒ 大幅变慢 | 设置里显式警告 + 提供 `num_ctx` 调低建议 |
-| E2E 覆盖不到 | 本域沿用 `preview/` 运行时举证；每期至少 1 组可复跑脚本 |
-| 做成"长期半成品" | 每期独立可交付；M0 单独就能上线 |
-| 过度工程 | 净新增仅 800–1,200 行；**明确不做**：多 agent 图编排、A2A、动态 sub-agent、语义向量检索（`memory_vector`/`memory_search` 共 502 行先不重写）、语音（`speech_service`）、视觉（`vision_capture`） |
-
-**明确不做的（附理由）**：
-- **不引入 agent 框架**（第 4 节）
-- **不做动态 sub-agent**（3.5）
-- **不做软路由**（3.2）
-- **不重写向量检索**：`memory_vector` 271 + `memory_search` 231 行属"能用就行"的规模，
-  且与"无 embedding 模型"的现状匹配；真有需求先做 just-in-time 文件检索（DD-6）已能覆盖大部分
-- **不把"诊断域"（`diagnostics/` 3,796 行）纳入**：那是代码修复/自愈工具链，
-  与游戏设计数据编辑器是**两个产品**，要单独立项
+**建议先做 M0**：纯增量、零风险，且立刻让 4B 的「半句截断」和「死循环」变成**可见可控**的现象。
+M1 必须紧跟 M0——**没有成本数据，后面所有调优都是盲调**。
 
 ---
 
-## 9. 与 NPC 项目 `agent_os` 的关系（**待你裁决**）
+## 10. Python `core/agent` 22,981 行的处置 `[实测]`
 
-`[实测]` `grep 9573|agent_os src/` **零命中** ⇒ 墨白编辑器**目前完全没有接** NPC 那套
-（`D:/NPC/visual-novel` 的 `agent_os` Fastify 后端，Fastify + orchestrator/planner/executor + crews，跑在 `localhost:9573`）。
+**它现在是什么**：22 个外部 `import` 点，**全部来自 `src/ui/`（PyQt 界面层）**
+（`ai_bridge.py` / `digital_employee.py` / `digital_panel_tasks.py` / `digital_panel_ui.py` / `ceshu/*`）。
+而 PyQt 界面正被 Electron 逐片取代（E28 已重写顶层 IA、E57 完成前端尾巴）
+⇒ **在 Electron 客户端里，这 22,981 行是纯死代码。**
 
-三者对照：
+**三个选项**（需裁决）：
 
-| 维度 | 墨白编辑器（本文档） | NPC 项目 `agent_os` |
+| 选项 | 说明 | 代价 |
 |---|---|---|
-| 形态 | **Electron 客户端内、进程内** | **独立 Fastify 服务** |
-| 规模 | 单人设计工具 | 多 agent 世界引擎 |
-| 已知问题 | 4B / 4K / 单机 | —（B1–B4 已落地，有 pivotEngine 等在用资产） |
+| **保留（现状）** | 作为 Python 侧的权威参考与审计基线（`migration-audit.md` 的 299 文件 / 91,164 行是迁移基线，删了会破坏对账） | 仓库体积、维护心智负担 |
+| **归档** | 移到 `src/_retired_agent/`，在 `docs/archive/` 留一份说明，保持 git 历史 | 需要同步改审计的域文件数（97 → 0），牵连 docsLedger 守卫 |
+| **删除** | 彻底移除 | 同上，且**丢失"原实现"参照**——对后续复核不利 |
 
-**建议：借鉴，不复用。** 具体是——
-- ✅ **借鉴**：planner / generator / evaluator 三角色分离、crew 化编排的**经验**；
-  若 agent_os 已在实践中验证了某个模式，直接照搬结论比重新踩坑便宜。
-- ❌ **不复用代码**：一个是进程内客户端、一个是多服务后端，运行时假设（生命周期、并发、
-  状态持久化、模型供给）完全不同，强行共享会造出一个既不像客户端也不像服务的中间层。
-- ❓ **待你裁决**：是否需要把 agent_os 作为一个**可选的远程 provider** 接入
-  （`llmConfig.ts` 的 6 家服务商之外加一个"自建服务"）？——这会让墨白编辑器在大模型上
-  获得 4B 做不到的能力，**但也引入"必须另起一个服务"的部署成本**。
+**我的建议**：**先不动**。理由：① 它现在零运行时成本（客户端根本不加载 Python）；
+② 删它会动审计基线（299 文件 / 91,164 行）并牵连守卫，性价比极低；
+③ 真正该做的是**在文档里标明"这 22,981 行在客户端里是死代码"**，避免后人误以为还需迁移。
+——这一条已在本节记录，**并建议回写进 `migration-audit.md` 的 E42 横幅**。
 
 ---
 
-## 10. 必须由你拍板的 5 个开放决策
+## 11. 明确不做（附理由）
+
+| 不做 | 理由 |
+|---|---|
+| 不引入 agent 框架 | §6 |
+| 不恢复 5 Agent / 并行竞标 / 辩论共识 / 动态 sub-agent | DD-13；4B 实测 + 协调税 |
+| 不做模型软路由 | DD-4（4B 实测失效） |
+| 不重写向量检索（`memory_vector` 271 + `memory_search` 231 行） | "能用就行"规模，且与"无 embedding 模型"现状匹配；DD-7 的文件检索已覆盖大部分 |
+| 不做语音 / 视觉 | `speech_service.py` / `vision_capture.py` 属独立能力线 |
+| 不把 `diagnostics/`（3,796 行）纳入 | 是**代码修复/自愈工具链**，与游戏设计数据编辑器是两个产品，要单独立项 |
+| 不动 `shared/` 分层既有决策 | §7.1；`shared/agent/` 保留原样有 91% 测试直接 import 的取证支撑 |
+
+---
+
+## 12. 需要主理人裁决的 5 件事
 
 | # | 决策 | 我的推荐 |
 |---|---|---|
-| **D1** | 默认主力模型是否从 4B 提到 `qwen3:8b`（DD-5）？ | **提**。8GB 装得下（5.2GB），工具调用可靠性从"生产不可用"到"约 85%"，是本设计最大单点收益。代价是更慢。 |
-| **D2** | 是否把 `agent_os` 作为可选远程 provider 接入（第 9 节）？ | **暂不**。先把本地 M0–M3 跑通；等本地确实撞到 4B 天花板再议。 |
-| **D3** | 提示词上限定 30 行还是更松（50 行）？ | **先 30**。3.1 的实测阈值是 30 行；可配置，随时放宽。 |
-| **D4** | 评估器（DD-7）默认开还是默认关？ | **默认关**（4B 下多一次调用延迟明显）；面板给开关。 |
-| **D5** | 起步是否只做 M0？ | **是**。M0 纯增量、零风险、立刻解决"半句截断"和"死循环"两个可复现问题。 |
+| **D1** | 默认主力模型是否 4B → `qwen3:8b`（DD-2）？ | **提**。8GB 装得下（5.2GB），工具调用可靠性从"生产不可用"到约 85%，**本设计性价比最高的单点**。代价是更慢。 |
+| **D2** | Python `core/agent` 22,981 行的处置（§10）？ | **先不动 + 回写文档标注死代码**。删它会破坏审计基线，性价比极低。 |
+| **D3** | 工具面收敛到多少（DD-3）？ | **每次会话 ≤8**；总清单保留但分组懒加载。 |
+| **D4** | 评估器默认开还是关（DD-9）？ | **默认关**（4B 下多一次调用延迟明显），面板给开关。 |
+| **D5** | 起步范围：只做 M0+M1，还是 M0–M3 一起？ | **M0+M1 先行**。M0 修命门、M1 给数据；没有 M1 的数据，M2/M3 的调优是盲调。 |
 
 ---
 
-## 附录 A：证据索引
+## 附录 A：v0.1 读错的地方（留档，防止重犯）
 
-**一手（模型厂商官方）**
-- Anthropic《Building effective agents》——五模式 / workflow vs agent 之分 / **"Framework abstraction is an anti-pattern"** / 工具设计是首要失败模式
-- Anthropic《Effective context engineering for AI agents》——context rot / just-in-time / 混合检索
-- Anthropic《Writing tools for agents》——少而精 / 前缀 / 高信号 / 错误信息要引导
-- Anthropic《Effective harnesses for long-running agents》——Initializer + Coding 双 agent / 一次一 feature / 用 JSON 不用 Markdown / 禁止改测试 / 浏览器自动化提升 bug 发现
-- Anthropic 2026 harness 文章（planner/generator/evaluator）——context anxiety、**context reset 优于 compact**、generator-evaluator 循环
-- Claude Managed Agents（2026 公测）——Multiagent Orchestration（lead + subagent + 共享文件系统 + 事件记忆 + tracing）、**Outcomes**（独立上下文评分器，docx +8.4% / pptx +10.1%）
-- LangChain Deep Agents 文档——`write_todos` / 虚拟文件系统 / `task` sub-agent / 上下文管理中间件 / `interrupt_on` 审批 / 支持 Ollama
+| v0.1 的错误 | 正确读法 |
+|---|---|
+| 把它当"从零设计 2026 框架"，去外部找资料 | **先读本项目 4 份 agent 设计资产**：`docs/archive/AGENT_OS_BLUEPRINT_STATUS.md`、`desktop/docs/a-tier-plan.md`、`data/libraries/default/.workspace/`、`desktop/docs/shared-layering-design.md` |
+| 写了与本项目无关的 **NPC `agent_os`** 对照章节 | 用户没提该项目。**本项目 `grep 9573\|agent_os src/` 零命中**，两者无技术关联 |
+| 把「LLM-as-Judge / Skills / MCP / turn limit / 压缩」当成 2026 新发现 | 我们**蓝图里全都有**（A1 第三/四/五部分），2026 只是给了新证据 |
+| 完全无视 `shared-layering-design.md` 的分层契约 | 新增模块必须落在 `shared/agent/`（保留原样不改名），且 `main` 禁直接碰 `domain/**` |
+| 以为 Python 22,981 行是"待迁移欠债" | 实测 22 个 import 点**全在 PyQt UI** ⇒ 客户端里是**死代码**，与"重写框架"无关 |
+| 漏掉 `a-tier-plan.md` 里**已有的预演资产**（QuickJS 沙箱已整体替换黑名单） | 是"在已收官的 A1 上加固"，不是"从零自建"，净新增因此更小 |
 
-**二手（第三方实测/综述，均已注明）**
-- 4B 模型三教训（提示词冗长税 / 软路由失效 / 数字硬上限胜于提示词）
-- Ollama 小模型工具调用可靠性分档（≤4B 不可生产、7–8B 黄金区间）
-- 8GB 卡 Ollama 默认 `num_ctx=4096`、第 7 轮截断、建 `num_ctx 16384` 变体的修法
-- 九框架同题实测（Mastra 2.2s/1,371 tok … Claude Agent SDK 8.5s/**35,000 tok**/299MB）
-- 2026 多 agent 架构综述（≤5 个 agent、coordination tax、共享状态层、逐 agent 埋成本、验证闸、协调死锁）
+## 附录 B：证据索引
 
-**本仓实测**
-- `src/main/agent/ollamaTransport.ts:19`（默认 `127.0.0.1:11434`；`stream: true` + NDJSON）
-- `grep -rn "num_ctx\|num_predict" src/` → **零命中**（吃 Ollama 默认）
-- `grep -rn "9573\|agent_os" src/` → **零命中**（未接 NPC 的 agent_os）
-- `src/core/agent/brain_prompt.py:105-126`（`plan_ctx` / `learn_ctx` 往 prompt 拼装）
-- `shared/llmConfig.ts:64-107`（6 家服务商；ollama 预置含 `qwen3:8b` / `qwen2.5:7b`）
-- TS 侧 agent 资产清单（`main/agent/` 14 文件 2,033 行、`shared/agent/` 8 文件 1,564 行、digital UI 796 行、`main/llm/client.ts` 259 行）
+**本仓实测（`[实测]`）**
+- `docs/archive/AGENT_OS_BLUEPRINT_STATUS.md`（132 行全文读过）—— L6 蓝图、5 Agent、SOUL 5 要素、协作三模式、`_DEFAULT_MAX_ITERATIONS=5`、`_sliding_window_compress`、LLM-as-Judge、MCP 已实现、LangChain/AutoGen 仅预留
+- `desktop/docs/a-tier-plan.md`（§0 结论 / §2.1–2.5 / §6 回写区读过）—— 不需 1:1 复刻、A1-1~A1-5 收官、QuickJS 替换黑名单、有意不移植清单
+- `data/libraries/default/.workspace/`（4 文件读过）—— identity/persona/MEMORY(最后更新 2026-10-07 19:22:35)/CAPABILITIES(35 技能)
+- `desktop/docs/shared-layering-design.md` §0/§1.3/§2.1 + `src/shared/README.md` 五分区与依赖方向表
+- `src/main/agent/ollamaTransport.ts:19,61-62`（默认 host、`stream:true`+tools）
+- `grep "num_ctx\|num_predict" src/` → 零命中；`grep "9573\|agent_os" src/` → 零命中
+- `grep "from core.agent" src/ --include=*.py` → 22 点，**全在 `src/ui/`**
+- `src/shared/agent/protocol.ts:31-63` → 12 个 `system.*` 工具槽位 + `TOOL_RISK_MAP`
+- `src/core/agent/brain_prompt.py:105-126` → `plan_ctx`/`learn_ctx` 拼装
+- TS 侧 agent 资产：`main/agent/` 14 文件 2,033 行、`shared/agent/` 8 文件 1,564 行、digital UI 796 行、`main/llm/client.ts` 259 行
 - `docs/migration-audit.md` §1（✅116/43,072 · ◐15/8,328 · ⛔162/39,314 · ⚠️6/450 = 299 / 91,164）
 
+**外部一手**：Anthropic《building effective agents》（五模式 +「Framework abstraction is an anti-pattern」+ 工具设计是首要失败模式）、《Effective context engineering》、《Writing tools for agents》、《Effective harnesses for long-running agents》、2026 harness 文章（context anxiety / **reset 优于 compact** / generator-evaluator）、Claude Managed Agents 公测（**Outcomes：独立上下文评分器，docx +8.4% / pptx +10.1%**）、LangChain Deep Agents 文档（四件套 / `interrupt_on` / 支持 Ollama）
+
+**外部二手**：4B 三教训、≤4B 工具调用分档（7–8B 黄金区间）、8GB 卡 Ollama 默认 `num_ctx=4096` + 第 7 轮截断、九框架同题实测（Claude Agent SDK ~35,000 tok/轮）、2026 多 agent 架构综述（≤5 agent、协调税、共享状态层、逐 agent 埋成本、协调死锁）
+
 **未能实测（诚实边界）**
-- 本机 Ollama 当前**未运行**（`curl 127.0.0.1:11434` 连接被拒）⇒ `num_ctx` 实际生效值、
-  Qwen3-4B 的真实工具调用成功率、8B 升级后的延迟/显存，**本文档全部未在本机跑过**
-- 51 个 E2E 至今未在真机跑过；本域的运行时举证需另建脚手架
+- 本机 **Ollama 当前未运行**（`curl 127.0.0.1:11434` 连接被拒）⇒ `num_ctx` 实际生效值、
+  4B 真实工具调用成功率、8B 升级后的延迟/显存，**本文档全部未在本机跑过**
+- `auto_evaluator.py` 是否真在独立上下文，**本轮未核**（DD-9 的第一动作就是核这个）
+- 51 个 E2E 至今未在真机跑过

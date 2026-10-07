@@ -68,7 +68,14 @@
 >
 > **⚠️ 不计入上表的「重写」工作**：`core/agent` 域（97 文件 / 24,670 行）+ 数字员工 UI 与任务面板，按 **E42 裁决走「AI 框架整体重写」而非 1:1 移植** —— 它**不算迁移欠债**，但**也不是零工作量**，规模与范围待框架设计定案。
 >
-> 📄 **框架设计已出草案**：[`agent-framework-design.md`](./agent-framework-design.md)（E59，v0.1 待裁决）。核心结论：**不引入任何 agent 框架**，用现有薄层自建 harness（净新增预期 800–1,200 行，而非 1:1 翻译 22,981 行）——依据是 Anthropic 官方「框架抽象是反模式」+ **本项目硬约束实测**（本地 Ollama / 8GB / 4B 模型 / 实际上下文仅 4096 token 因全仓未设 `num_ctx`），而 4B 级模型的实测失败模式（提示词冗长 ⇒ 停止用工具、软路由失效、死循环只能靠数字硬上限停）会**推翻大部分 2026 主流做法**。文档末尾列了 **5 个待主理人拍板的开放决策**。
+> 📄 **框架设计已出草案 v0.2**：[`agent-framework-design.md`](./agent-framework-design.md)（E59，待裁决）。
+> **定位纠正（v0.2 重点）**：本项目**不是从零设计 agent 框架** —— 已有 4 份设计资产
+> （① `docs/archive/AGENT_OS_BLUEPRINT_STATUS.md` L6 蓝图 · ② `desktop/docs/a-tier-plan.md` **A1-1~A1-5 已于 2026-10-04 全部收官** · ③ `data/libraries/<库>/.workspace/` 活的身份/记忆/能力清单 · ④ `desktop/docs/shared-layering-design.md` 分层契约），
+> 且已落地 QuickJS WASM 沙箱等预演资产。⇒ E42「停止 1:1 迁移」的真实含义是**别再往那 22,981 行投入**，
+> 本设计的任务是**已收官的 A1 在 4B + 4K 真实约束下够不够、差在哪、补多少**。
+> **已定位的真缺口**（`[实测]`）：**全仓未设 `num_ctx` ⇒ 实际上下文只有 Ollama 默认的 4096**（8GB 卡第 7 轮即半句截断）·
+> 工具面 35 个（4B 会「只挑第一个」）· 缺逐轮 token/延迟观测 · 终止只有 `MAX_ITERATIONS=5`（无 maxToolCalls/wallClock）· 压缩策略可能选错（Anthropic 2026：context reset 优于 compact）。
+> **结论**：不引入任何 agent 框架（Anthropic 一手即持此立场），在 A1 上定向加固，**净新增 ~300–500 行**；路线图 M0–M4，建议先做 **M0（上下文+终止）+ M1（观测先行）**。文档末尾列了 **5 个待主理人拍板的开放决策**。
 
 ### A 档（大块，需单独立项）—— **已立项，方案见 [`a-tier-plan.md`](./a-tier-plan.md)**
 

@@ -47,6 +47,16 @@
 > **含义**：本文件剩余量已按此扣除 —— **E54（2026-10-07）已重跑审计**，现为 **≈1.1–1.5 万行（12–16%）**，
 > 其中「整块没做」的 ⚠️ 只剩 **6 文件 / 450 行**（`auto_updater` 60 / `event_bus` 87 / `rate_limiter` 85 / `sentry_client` 52 / `privacy` 88 / `ai_field_button` 78，见 §1 与 §3 逐行）；`team_dialog.py`（818）已经主理人批准归入 ⛔（团队 CRUD 属被重写的 Agent 框架）。
 >
+> **⚠️ E59 补充的「客户端侧真相」（实测，重要）**：① `src/core/agent/` 剩余那 22,981 行在 **Electron 客户端里已是死代码** ——
+> `grep "from core.agent" src/ --include=*.py` 只有 **22 个外部 import 点且全部在 `src/ui/`（PyQt 界面层）**，
+> 而 PyQt 正被 Electron 逐片取代（E28 顶层 IA 已重写、E57 前端尾巴已收口）⇒ 它们**既不是「待迁移欠债」、也与「框架重写」无关**。
+> ② 本项目**并非从零设计 agent 框架**：`docs/archive/AGENT_OS_BLUEPRINT_STATUS.md`（L6 蓝图）与
+> `desktop/docs/a-tier-plan.md`（**A1-1~A1-5 已于 2026-10-04 全部收官**，「结论先行：不需要 1:1 复刻」）是既有资产。
+> ③ **agent 侧首要待修项**：全仓**未设 `num_ctx`** ⇒ 客户端 agent 的**实际上下文只有 Ollama 默认的 4096**
+> （同规格 8GB 卡实测第 7 轮即**半句截断**）。
+> 架构结论见 [`agent-framework-design.md`](./agent-framework-design.md)（E59，v0.2 待裁决：不引框架、在已收官 A1 上定向加固）。
+> **本表数字不动** —— 删那 22,981 行会破坏 299 文件 / 91,164 行的审计基线与 `docsLedger` 对账，故**建议保留不删、只标注死代码**。
+>
 > **但请注意区分两类 AI 能力**（否则会误伤已迁且在用的功能）：
 > - **要重写的是「Agent 框架」**（brain/dispatcher/skills/记忆/意图那套自主决策循环）。
 > - **不是「LLM 调用能力」** —— 后者被 **4 个非 Agent 功能**真实消费，且**不依赖框架**：
