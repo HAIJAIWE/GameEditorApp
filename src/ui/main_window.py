@@ -1205,11 +1205,37 @@ class MainWindow(QMainWindow):
             self.tab_mgr.deferred_switch_library()
             QTimer.singleShot(200, self._tab_dropdown_open_type_editor)
         elif action_id == "onboarding_data":
-            self.tab_mgr.deferred_switch_tab(0)
+            self._goto_data_design()
         elif action_id == "onboarding_ceshu":
-            self.tab_mgr.deferred_switch_tab(1)
+            self._goto_ceshu_home()
         elif action_id == "onboarding_ai":
             QTimer.singleShot(50, self.ai_bridge.toggle_digital_panel)
+
+    # ---- 主线导航：写策划书 → 设计游戏数据 ----
+
+    def _goto_ceshu_home(self):
+        """回到策划书页（主线第一步：写策划书）"""
+        home = getattr(self, 'ceshu_home', None)
+        if home is not None and hasattr(self, '_center_stack'):
+            self._center_stack.setCurrentWidget(home)
+
+    def _goto_data_design(self):
+        """打开当前策划书的数据设计区（主线第二步）
+
+        数据编辑器由策划书驱动：只有在「第五章·游戏系统设计」勾选游戏系统后才会出现，
+        因此这里没有可切的目标时，明确提示并回到策划书首页，而不是静默失败。
+        """
+        editor = getattr(self, 'ceshu_editor', None)
+        panel = getattr(editor, 'preview_panel', None) if editor is not None else None
+        if panel is not None and hasattr(self, '_center_stack'):
+            self._center_stack.setCurrentWidget(editor)
+            if panel.focus_first_editor():
+                self.status_bar.showMessage("已切到数据设计区（可在此增删改游戏数据）", 3000)
+                return
+        self.status_bar.showMessage(
+            "请先打开一本策划书，并在「第五章·游戏系统设计」中勾选游戏系统后再设计数据",
+            6000)
+        self._goto_ceshu_home()
 
     def _show_quick_create_for_type(self, data_type):
         from ui.dialogs.quick_create import QuickCreateDialog

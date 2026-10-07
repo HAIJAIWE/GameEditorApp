@@ -4,8 +4,15 @@
 """
 from __future__ import annotations
 
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QLabel, QTabWidget, QTextEdit, QVBoxLayout, QWidget
+from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtWidgets import (
+    QLabel,
+    QPushButton,
+    QTabWidget,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
 
 from common.data_ref import extract_all_refs, resolve_ref
 from common.event_bus import EventBus
@@ -18,6 +25,9 @@ logger = get_logger()
 
 class EditorPreviewPanel(QWidget):
     """编辑器预览面板 — 策划书驱动编辑器的核心落地"""
+
+    # 空状态里「去勾选游戏系统」按钮：主线为 策划书 → 数据，这里把下一步直接指出来
+    goto_systems_requested = pyqtSignal()
 
     def __init__(self, data_manager=None, parent=None):
         super().__init__(parent)
@@ -36,12 +46,24 @@ class EditorPreviewPanel(QWidget):
         self._tabs.setMovable(True)
         self._tabs.setTabsClosable(False)
         self._tabs.setUsesScrollButtons(True)
+
+        # 空状态 = 主线引导：先写策划书，再勾选游戏系统，数据编辑器才会出现
+        self._empty_box = QWidget()
+        empty_layout = QVBoxLayout(self._empty_box)
+        empty_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        empty_layout.setSpacing(12)
         self._empty_label = QLabel(
-            "暂无启用的游戏系统\n\n"
-            "在左侧「第五章·游戏系统设计」中勾选游戏系统后，\n"
-            "对应编辑器面板将出现在这里")
+            "设计游戏数据前，先启用游戏系统\n\n"
+            "数据编辑器由策划书驱动：在左侧「第五章·游戏系统设计」\n"
+            "勾选要做的系统后，对应的数据编辑器就会出现在这里。")
         self._empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._empty_label.setStyleSheet(ceshu_preview_empty_qss())
+        empty_layout.addWidget(self._empty_label)
+        self._goto_systems_btn = QPushButton("去「第五章·游戏系统设计」勾选")
+        self._goto_systems_btn.setToolTip("跳转到第五章，勾选游戏系统后对应的数据编辑器会出现在这里")
+        self._goto_systems_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._goto_systems_btn.clicked.connect(self.goto_systems_requested.emit)
+        empty_layout.addWidget(self._goto_systems_btn, 0, Qt.AlignmentFlag.AlignCenter)
 
         # 数据引用标签 — 始终存在
         self._ref_tab = QWidget()
@@ -58,8 +80,10 @@ class EditorPreviewPanel(QWidget):
         ref_layout.addWidget(self._ref_display)
         self._tabs.addTab(self._ref_tab, "📊 数据引用")
 
-        layout.addWidget(self._tabs)
-        layout.addWidget(self._empty_label)
+        # 引导框在上、标签页在下：没有启用游戏系统时引导与「数据引用」同时可见，
+        # 启用后引导自动隐藏、标签页占满整个面板
+        layout.addWidget(self._empty_box)
+        layout.addWidget(self._tabs, 1)
         self._tabs.hide()
 
     def set_data_manager(self, data_manager) -> None:
@@ -134,13 +158,14 @@ class EditorPreviewPanel(QWidget):
         self._editor_tabs.clear()
 
         if not enabled_editors:
+            # 没有启用的游戏系统：保留只读的「数据引用」，同时把「下一步该做什么」直接摆出来
             self._tabs.addTab(self._ref_tab, "📊 数据引用")
             self._tabs.show()
-            self._empty_label.hide()
+            self._empty_box.show()
             return
 
         self._tabs.show()
-        self._empty_label.hide()
+        self._empty_box.hide()
 
         for entry in enabled_editors:
             # 兼容 str 和 dict 两种格式
@@ -182,3 +207,16 @@ class EditorPreviewPanel(QWidget):
     def get_editor(self, editor_key: str):
         """获取指定游戏系统的编辑器实例"""
         return self._editor_tabs.get(editor_key)
+
+    def focus_first_editor(self) -> bool:
+        """切到第一个数据编辑器标签页
+
+        供「主线导航」（策划书写完 → 设计游戏数据）与 AI 技能切换数据类型时使用。
+        返回 False 表示当前没有已启用的游戏系统。
+        """
+        if not self._editor_tabs:
+            return False
+        self._empty_box.hide()
+        self._tabs.show()
+        self._tabs.setCurrentIndex(0)
+        return True

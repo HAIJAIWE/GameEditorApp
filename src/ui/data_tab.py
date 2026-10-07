@@ -10,6 +10,7 @@ from PyQt6.QtWidgets import (
     QInputDialog,
     QLabel,
     QLineEdit,
+    QMenu,
     QMessageBox,
     QPushButton,
     QSpinBox,
@@ -77,10 +78,15 @@ class DataEditorTab(QWidget):
         left_panel = self._create_left_panel()
         right_panel = self._create_right_panel()
 
+        # 左列（搜索 + 数据列表）必须有最小宽度：表单列的固有最小宽约 700px，
+        # 在窄容器里（如策划书编辑器内嵌使用）若无此保护，列表会被压成几十像素的细条，
+        # 既看不见数据也让空状态文案被截断
+        left_panel.setMinimumWidth(200)
         splitter.addWidget(left_panel)
         splitter.addWidget(right_panel)
         splitter.setStretchFactor(0, 1)
         splitter.setStretchFactor(1, 2)
+        splitter.setSizes([240, 720])
 
         layout.addWidget(splitter)
 
@@ -135,7 +141,7 @@ class DataEditorTab(QWidget):
         self.list_widget.items_reordered.connect(self._on_items_reordered)
         self.list_widget.rename_requested.connect(self._on_rename_item)
         # P4-13: 空状态提示
-        self.list_widget.set_empty_text("暂无数据，点击「新建」按钮添加")
+        self.list_widget.set_empty_text("暂无数据，点「新建」添加")
         layout.addWidget(self.list_widget)
 
         return self.left_panel
@@ -210,7 +216,25 @@ class DataEditorTab(QWidget):
         self.ref_btn.setIconSize(QSize(14, 14))
         self.ref_btn.setToolTip("查看此数据的引用关系")
         self.ref_btn.clicked.connect(self._on_show_references)
-        button_layout.addWidget(self.ref_btn)
+
+        # 低频操作（编辑类型 / 参考策划 / 关联）收进「更多」，避免一排 8 个按钮平铺
+        more_btn = QPushButton(" 更多")
+        more_btn.setIcon(get_icon("chevron-down", "#666", 14))
+        more_btn.setIconSize(QSize(14, 14))
+        more_btn.setToolTip("编辑类型 / 参考策划 / 关联")
+        more_menu = QMenu(more_btn)
+        self._type_edit_action = more_menu.addAction(
+            get_icon("settings", "#666", 14), "编辑当前类型字段结构", self._on_type_edit)
+        self._planning_action = more_menu.addAction(
+            get_icon("clipboard", "#666", 14), "参考策划方案 / 模板", self.planning_btn.click)
+        self._ref_action = more_menu.addAction(
+            get_icon("link", "#666", 14), "查看此项的引用关系", self._on_show_references)
+        more_btn.setMenu(more_menu)
+        button_layout.addWidget(more_btn)
+
+        # 这三个按钮保留对象（状态与文案仍被逻辑引用），只是不再占用按钮行
+        for _btn in (self.type_edit_btn, self.planning_btn, self.ref_btn):
+            _btn.hide()
 
         layout.addLayout(button_layout)
 
@@ -281,7 +305,7 @@ class DataEditorTab(QWidget):
         if query and self.list_widget.get_item_count() == 0:
             self.list_widget.set_empty_text(f"未找到匹配「{query}」的数据")
         else:
-            self.list_widget.set_empty_text("暂无数据，点击「新建」按钮添加")
+            self.list_widget.set_empty_text("暂无数据，点「新建」添加")
 
     def _on_item_selected(self, item):
         if self._pending_new_item and self.current_item:

@@ -211,6 +211,8 @@ class CeshuEditorView(QWidget, AIMixin, ExportMixin, ReviewMixin, SystemMixin, T
         self._splitter.addWidget(self._chapter_panel)
 
         self._preview_panel = EditorPreviewPanel(parent=self)
+        # 数据区空状态的「去勾选游戏系统」按钮 → 跳到第五章（主线：策划书 → 数据）
+        self._preview_panel.goto_systems_requested.connect(lambda: self.set_chapter("systems"))
         self._splitter.addWidget(self._preview_panel)
 
         self._splitter.setSizes([500, 400])
@@ -339,8 +341,8 @@ class CeshuEditorView(QWidget, AIMixin, ExportMixin, ReviewMixin, SystemMixin, T
         return self._chapter_panel
 
     def set_chapter(self, chapter_key: str) -> None:
-        """外部导航跳转到指定章节（由顶层左栏调用）"""
-        self._chapter_panel._on_section_clicked(chapter_key)
+        """外部导航跳转到指定章节（由顶层左栏 / 数据区引导按钮调用）"""
+        self._chapter_panel.go_to_section(chapter_key)
 
     def set_data_manager(self, data_manager) -> None:
         """P6: 注入 DataManager，供 ChapterPanel/SystemsEditor 显示进度；N20: 供 AI 数据生成导入"""

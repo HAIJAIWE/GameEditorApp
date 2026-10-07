@@ -182,7 +182,7 @@ class ChapterVisionForm(QWidget):
         self._primary_user = _text_field("主要目标用户", 80)
         self._primary_user.setPlainText(personas.get("primary", ""))
         self._primary_user.textChanged.connect(lambda: self._emit())
-        _add_row(form, "主要用户", self._primary_user)
+        _add_row(form, "主要用户", self._primary_user, "vision.user_personas.primary")
 
         self._secondary_user = _text_field("次要目标用户", 80)
         self._secondary_user.setPlainText(personas.get("secondary", ""))

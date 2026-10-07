@@ -297,6 +297,21 @@ class ChapterEditPanel(QScrollArea):
         self._current_chapter = key
         self.chapter_changed.emit(key)
 
+    def go_to_section(self, key: str) -> bool:
+        """滚动到并展开指定章节（供外部导航使用，如数据区的「去第五章勾选」）
+
+        与 _on_section_clicked 的区别：后者只是记录当前章节，不做任何视觉跳转。
+        返回 False 表示该章节在当前档位下不存在。
+        """
+        section = self._sections.get(key)
+        if section is None:
+            return False
+        section.set_expanded(True)
+        self._current_chapter = key
+        self.chapter_changed.emit(key)
+        self.ensureWidgetVisible(section)
+        return True
+
     def get_current_chapter(self) -> str:
         return self._current_chapter
 
