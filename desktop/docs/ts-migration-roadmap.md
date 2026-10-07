@@ -566,6 +566,18 @@
 > **健壮性**：`.row-context-menu` 原样用 `clientX/clientY` 定位，贴右/下缘会出界被裁 —— 改为事件触发时按当前视口 clamp（`CONTEXT_MENU_*` 常量 + 8px 边距）。
 > **验证**：双端 tsc 0 / eslint 0 / vitest 全绿（115 文件 / 1756 测试，含新增 `tests/unit/dataCountConstraint.test.ts` 15 例 + `dataTableOps.test.ts` 增 3 例重命名）/ docsLedger 守卫全绿；渲染面由独立验证者用真实 Chromium 实证 5 条交互路径（33/33 断言）+ 菜单 clamp 夹取，契约面静态复核 51 个 spec 无回归；`REQUIRED_ROADMAP_MARKERS` 增 `'E51（2026-10-07）'`。
 
+> ✅ **E52（2026-10-07）：条目行点击落点修复 —— 窄列下「点行中心 = 误删」+ 举证守卫；同批落盘 Python 侧一轮先前未提交的 UX 简化。**
+> **性质**：TS 渲染层健壮性修复 + 可复现守卫；**不改动 §1/§2 分类计数**（仍 106 / 51 / 92 / 50，总 299 文件 / 91,164 行）。
+> **动因**：E51 的渲染侧独立验证者报告——预览面板列窄时条目行只有 160px，行的**几何中心落在「删除」按钮上**，其 T5 用例第一次因此**误删**而非选中。属既有缺陷（E51 未引入），本轮修掉。
+> **实测根因**（新增 `preview/measure-row.mjs`，用 `document.elementFromPoint(行中心)` 判落点，不靠读 CSS 推理）：`.ceshu-preview .list-column` 固定 `flex: 0 0 200px` + `.list` 左右各 20px 内边距 ⇒ 行 **160px**；默认布局里删除钮占 **74.7px（整行 47%）**、名称被压到 **18.7px**（「技能 1」文本需 40px，已截断），`elementFromPoint(行中心)` 命中 **`ceshu-data-delete`**。
+> **修法**（全部限定在 `.ceshu-preview .item-row` 作用域）：① 删除钮文本包进 `.btn-label` 并在窄列 `display:none` ⇒ 收成 **26px 图标**（按钮本体与 `data-testid="ceshu-data-delete"` 均保留，`smoke.spec.ts:84` 的 `getByTestId(...).click()` 照旧可用；补 `title`/`aria-label` 保可访问性）；② `.item-meta`（8 位短 id）`display:none` 让位给名称（行 `title` 与右侧条目表单仍可读到 id）；③ `.item-name { min-width: 64px }` 兜底；④ 删除钮 `padding: 4px 6px`。
+> **效果（实测三档视口 wide-1440 / mid-1100 / narrow-900）**：名称 18.7px → **92px**（不再截断）、删除钮 74.7px → **26px**、`elementFromPoint(行中心)` 由 `ceshu-data-delete` 变为 **`ceshu-data-item-row`**（= 选中该条目）。
+> **守卫有效性已用「已知坏版本」验证**（本仓库铁律，不做橡皮图章）：`preview/measure-row.mjs` 已升级为**断言脚本**（行中心命中删除钮即退出码 1）；把 `styles.css` 退回 E51 提交版重跑，wide / mid 两档**如实报失败**（名称 18.7px、命中 `ceshu-data-delete`），恢复修复版后全部通过。E51 的 41 条渲染断言复跑仍 **41/41**（无回归）。
+> **遗留（未修，属另一既有问题）**：视口 ≤900px 时 AI 停靠栏会叠在预览面板之上，行取不到点（`elementFromPoint` → `digital-panel`）。与本条无关，本轮不处理。
+> **同批落盘（另一件事，Python 侧）**：Python 应用（迁移的权威源）有一轮**先前完成但从未提交**的 UX 简化（对应 `CHANGELOG.md` 的 2026-09-16 条目 + `docs/ux-simplification-plan.md`），本轮实测核实后一并提交：**pytest 839 passed / ruff 全绿 / mypy 299 文件 0 错误**，与其文档自述**逐项一致**（此前 3 周一直躺工作区，有静默丢失风险）。
+> **⚠️ 待核（未做，故不写进计数）**：上述 Python 轮次里有 3 项**在 TS 侧是否已有等价物尚未逐项核对** —— `data_tab.py` 的「更多 ▾」按钮分组、`ceshu/chapter_forms/_base.py` 给「主要用户」补的 `ai_path` AI 生成钮、`ceshu/preview_panel.py::focus_first_editor()`。等下一轮审计再判。
+> **验证**：双端 tsc 0 / eslint 0 / vitest 115 文件 1756 用例全绿 / `electron-vite build` OK / docsLedger 守卫全绿。
+
 > 🔴 **E42（2026-10-07）：主理人裁决 —— `core/agent` 停止 1:1 迁移，改为「AI 框架重写」**。
 > **主理人原话**：「**ai 那边就不搞了。框架可能要重写**」。
 > **决策落地（写入 `migration-audit.md` 顶部横幅 + 本条，作为跨会话唯一事实源）**：

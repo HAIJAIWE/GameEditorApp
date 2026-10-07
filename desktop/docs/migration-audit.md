@@ -113,6 +113,26 @@ E51 新增的 `shared/dataCountConstraint.ts` 把 Python `data_tab.py:370-432` �
 第 4 处是刻意的口径统一。**测试已把这 4 处钉住**（`tests/unit/dataCountConstraint.test.ts`），
 不靠注释约定。
 
+### E52 条目行点击落点（窄列误删修复，实测记录）
+
+E51 的独立验证者报告：在策划书右侧预览面板里，条目行的**几何中心**落在「删除」按钮上，其用例第一次因此**误删**而非选中。这是**既有**缺陷（E51 未引入），E52 修掉。
+
+**实测根因**（`preview/measure-row.mjs`，用 `document.elementFromPoint(行中心)` 判落点，非读 CSS 推理）：
+
+| | 修前 | 修后 |
+|---|---|---|
+| 行宽 | 160px（`.list-column` 固定 200px − `.list` 左右各 20px） | 160px（不变） |
+| 名称盒 | **18.7px**（「技能 1」文本需 40px，`scrollWidth 40 > clientWidth 19` ⇒ 已截断） | **92px**（`92 == 92`，不截断） |
+| 删除钮 | **74.7px**（占整行 47%） | **26px**（图标态） |
+| `elementFromPoint(行中心)` | **`ceshu-data-delete`**（点中心即删除） | **`ceshu-data-item-row`**（= 选中该条目） |
+
+**修法**（`styles.css`，全部限定在 `.ceshu-preview .item-row` 作用域）：删除钮文本包进 `.btn-label` 并在窄列 `display:none`；`.item-meta`（8 位短 id）`display:none` 让位（id 仍可由行 `title` 与右侧表单读到）；`.item-name { min-width: 64px }` 兜底；删除钮 `padding: 4px 6px`。
+**E2E 契约不变**：按钮本体与 `data-testid="ceshu-data-delete"` 保留（`smoke.spec.ts:84` 唯一的删除点击照旧可用），无任何 spec 断言行内 `item-meta` 文本。
+
+**守卫**：`preview/measure-row.mjs` 已从「报告脚本」升级为**断言脚本**（行中心命中删除钮 ⇒ 退出码 1）；按本仓库铁律用**已知坏版本验过有效性** —— 把 `styles.css` 退回 E51 提交版重跑，wide-1440 / mid-1100 两档如实报失败（名称 18.7px、命中 `ceshu-data-delete`），恢复后全通过。同批 E51 的 41 条渲染断言复跑仍 41/41。
+
+**遗留（未修）**：视口 ≤900px 时 AI 停靠栏叠在预览面板之上，行取不到点（`elementFromPoint` → `digital-panel`）。与条目行布局无关，未处理。
+
 ## 2. 汇总（按域）
 
 | 域 | 文件 | 行数 | ✅已迁 | ◐部分 | ⛔不迁 | ⚠️未迁 |

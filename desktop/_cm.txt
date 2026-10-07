@@ -1,80 +1,52 @@
-E51: data_tab.py 残留缺口收口（P5 数量约束 + F2/右键重命名 + 条目右键菜单）
+E52: 修「窄列下点行中心 = 误删」+ 举证守卫（不改迁移计数）
 
-本片是代码 pass，不改动 §1/§2 分类计数：ui/data_tab.py 仍为 ◐（还剩「技能锚点模板」
-一项，未达完全等价），仍 106 / 51 / 92 / 50，总 299 文件 / 91,164 行。
+性质：TS 渲染层健壮性修复 + 可复现守卫；每处都实测取证。
+不改动迁移 §1/§2 分类计数（仍 106 / 51 / 92 / 50，总 299 文件 / 91,164 行）。
+同批还落盘了 Python 侧一轮先前未提交的 UX 简化（另一个 commit ac0e34d）。
 
-动因：E49/E50 复核把 data_tab.py 的三条残留如实留下，本轮把其中两条无设计分歧的补齐
-（第三条触及 AI 生成提示词与 IPC 契约，属设计裁决，不动）。
+1) 缺陷（既有，非 E51 引入）
+E51 的渲染侧独立验证者报告：策划书右侧预览面板里条目行只有 160px，行的**几何中心
+落在「删除」按钮上**，其 T5 用例第一次因此**误删**而非选中。
 
-1) P5 数量约束软检查（Python data_tab.py:370-432）
-- 新增纯逻辑 src/shared/dataCountConstraint.ts：
-  countLimitFieldNames（顺序照抄 Python 字面量 count / <type>_count / max_count /
-  total_count）、resolveCountLimit（只认整数值或十进制整数字符串，非法值跳过继续试下一个
-  字段）、findCountConstraint（只取第一个 data_type 命中的系统；命中但上限缺失/非法/<=0
-  ⇒ 不约束）、exceedsCountConstraint（current >= limit 才拦，对应 Python current < limit
-  才放行）、buildCountConstraintMessage（文案逐句对齐 QMessageBox 正文）。
-- ceshu/CeshuDataPreview.tsx 用 findCountConstraint(chapters?.systems,
-  activeEditor.data_type) 解析后作为 countConstraint 度下发给 DataEditorTab。
-- DataEditorTab.handleCreate 在已满时先渲染行内确认横幅（.count-warning：继续创建/取消），
-  确认后复用同一落盘路径。不引入任何原生对话框（Electron 渲染层无 window.prompt，
-  window.confirm 也无法在 vitest 中断言）。
+2) 实测根因（新增 preview/measure-row.mjs，用 document.elementFromPoint(行中心)
+   判落点，不靠读 CSS 推理）
+- .ceshu-preview .list-column 固定 flex: 0 0 200px，.list 左右各 20px 内边距 ⇒ 行 160px。
+- 默认布局：删除钮 74.7px（整行 47%）、名称被压到 18.7px（「技能 1」文本需 40px，
+  scrollWidth 40 > clientWidth 19 ⇒ 已截断）。
+- document.elementFromPoint(行的几何中心) → ceshu-data-delete ⇒ 点中心即删除。
 
-  与 Python 一致的只有：字段优先级 / 非法值 continue / <=0 不算约束。另有 4 处有意偏离，
-  已逐例用 python -c 与 node -e 实测对照并存档到 docs/migration-audit.md 新增小节
-  「E51 数量约束：对 Python 的有意偏离（逐例实测对照）」：
-  (a) {count:true}：Python int(True)==1 ⇒ 上限 1；TS 跳过（上限字段出现布尔本身就是数据错误）。
-  (b) '1_0' / '１２'：Python int() 宽松解析 ⇒ 10 / 12；TS 只认 ^[+-]?\d+$ ⇒ 跳过。
-  (c) {count:3.0}：Python float 被跳过 ⇒ 无约束；TS 生效 —— JSON.parse 在 JS 里就是数字 3，
-      与 3 无法区分，属语言层不可复现。
-  (d) 系统缺 data_type：Python 严格 == 永不约束；TS 回退系统 key，与 computeEnabledEditors
-      的 data_type ?? key 口径统一，避免「系统已启用、编辑器也显示了，却查不到约束」的静默漏判。
-  前三处在策划书第五章的字段形态下不可达；(a)-(c) 已由单测钉住，不靠注释约定。
+3) 修法（styles.css，全部限定在 .ceshu-preview .item-row 作用域）
+- 删除钮文本包进 .btn-label 并在窄列 display:none ⇒ 收成 26px 图标；按钮本体与
+  data-testid="ceshu-data-delete" 均保留（smoke.spec.ts:84 的
+  getByTestId('ceshu-data-delete').click() 照旧可用），补 title/aria-label 保可访问性。
+- .item-meta（8 位短 id）display:none 让位给名称；id 仍可由行 title 与右侧表单读到。
+- .item-name { min-width: 64px } 兜底；删除钮 padding: 4px 6px。
+- DataEditorTab.tsx：按钮文字包 <span class="btn-label">；行加 title="{name} | {id}"。
 
-2) F2 / 右键「重命名」（Python data_tab.py:108-111, 542-561）
-- src/shared/dataTableOps.ts 新增 withRenamedName（去首尾空白；空白名视为取消返回 null，
-  同 Python if ok and new_name.strip()；不修改入参）。
-- DataEditorTab 新增 renamingId/renameDraft：F2 键绑在 .list 容器上（该容器加 tabIndex={0}，
-  语义等价于 PyQt 的 WidgetShortcut，不会在搜索框里误触发），右键菜单「重命名」走同一路径；
-  提交走既有 data:updateItem，Enter 提交 / Esc 取消 / 失焦提交。
+4) 效果（实测三档视口 wide-1440 / mid-1100 / narrow-900）
+- 名称 18.7px → 92px（scrollWidth == clientWidth，不再截断）
+- 删除钮 74.7px → 26px
+- elementFromPoint(行中心) → ceshu-data-item-row（= 选中该条目）
 
-3) 条目右键菜单（Python ui/components/virtual_list.py:217-231）
-- DataEditorTab 新增 row-context-menu，四项同序：重命名 / 编辑 / 复制 / 删除
-  （复制 = 以列表项为准、剥离 id 后走 data:createItem，对齐 _on_copy_clicked）。
-- VirtualListWidget 全仓真实消费者只有 data_tab.py（ui/components/__init__.py 与
-  ui/__init__.py 仅 re-export）⇒ 该组件随本轮可视为已迁。
-- 健壮性：菜单用 position:fixed + clientX/clientY 定位，贴右/下缘会出界被裁 ⇒ 改为事件触发时
-  按当前视口 clamp（CONTEXT_MENU_WIDTH=104 / HEIGHT=122 / MARGIN=8）。
+5) 守卫（按本仓库铁律用「已知坏版本」验过有效性，不做橡皮图章）
+- preview/measure-row.mjs 已从「报告脚本」升级为**断言脚本**：行中心命中删除钮 ⇒
+  退出码 1。把 styles.css 退回 E51 提交版重跑，wide/mid 两档**如实报失败**
+  （名称 18.7px、命中 ceshu-data-delete）；恢复修复版后全部通过。
+- E51 的 41 条渲染断言（preview/verify-e51.mjs）复跑仍 41/41，无回归。
+- verify-e51.mjs 里那句「行中心会命中删除按钮，必须点 .item-name」的注释已按产品现状更新
+  （harness 不得比产品陈旧）。
 
-4) 刻意不跟（已写入审计）
-- 列表上的 Delete 键：PyQt 先弹「确定要删除这个项目吗？」，而 TS 现有删除按钮是无确认直删，
-  加退格键会变成一键误删。
-- AI 生成的「技能锚点模板」选择上下文：TS 的 AiDataGenPanel 走策划书驱动的另一种设计，
-  Python 的「参考策划方案」一项已被取代，但角色/怪物/装备锚点仍是真实缺口，需先裁决。
+6) 文档
+- docs/ts-migration-roadmap.md：新增 E52 台账条目（含「Python 侧 3 项 TS 等价物待核」的
+  明确标记，不写进计数）。
+- docs/migration-audit.md：新增 ### E52 条目行点击落点（窄列误删修复，实测记录）小节
+  （修前/修后四行对照表 + 守卫有效性说明 + 遗留项）。
+- tests/unit/docsLedger.test.ts：REQUIRED_ROADMAP_MARKERS 增 'E52（2026-10-07）'。
+- §1 结论表与对账行数字未动。
 
-5) 端到端契约网
-- 此前 tests/e2e/helpers/ceshuData.ts 恒播 config: {} ⇒ 数量横幅在 E2E 里永不触发，
-  等于新代码没有端到端网。SeedSystem 增可选 config（config: system.config ?? {}），
-  既有 51 个 spec 不传 config ⇒ undefined ?? {} = {}，播种结果逐字不变。
-- 新增 tests/e2e/data-count-constraint.spec.ts（2 例：上限拦截的取消/继续；右键菜单四项 +
-  重命名去空白 + F2 空白名取消）。该 spec 本沙箱跑不了 Electron，期望值取自
-  preview/verify-e51.mjs 在真实 Chromium 上跑通的同一组断言，不是凭代码臆测。
+7) 遗留（未修，属另一既有问题）
+视口 ≤900px 时 AI 停靠栏会叠在预览面板之上，行取不到点（elementFromPoint → digital-panel）。
+与条目行布局无关，本轮不处理。
 
-6) 测试与文档
-- 新增 tests/unit/dataCountConstraint.test.ts（15 例）；tests/unit/dataTableOps.test.ts +3 例。
-- docs/migration-audit.md：§1「仅有的真实遗留」第 2/3 条、### ◐ 复核 的 genuine-partial 行、
-  §3 data_tab.py 行均改写为 E51 后的状态；新增 ### E51 数量约束：对 Python 的有意偏离 小节。
-  §1 结论表与对账行数字未动。
-- docs/ts-migration-roadmap.md：新增 E51 台账条目。
-- tests/unit/docsLedger.test.ts：REQUIRED_ROADMAP_MARKERS 增 'E51（2026-10-07）'。
-- preview/：新增可复现举证脚手架 e51-stub.js / serve-e51.mjs / verify-e51.mjs（shots/ 已被
-  preview/.gitignore 忽略），提交方式同 E46 的 verify-image-e46.mjs。
-
-验证：双端 tsc 0；eslint 0；vitest 全量 115 文件 1756 用例全绿；docsLedger 7/7 绿
-（§1↔roadmap §2 一致 + 对账 299/91,164）；electron-vite build OK。
-独立验证（两个验证者，均未改产品代码）：
-- 渲染侧：真实 Chromium + 忠实 mbApi 桩，T0-T6 共 41/41 断言通过 —— 超限拦截（取消不建/继续才建）、
-  未超限与无约束都不打扰、右键重命名闭环（自动聚焦 + trim 提交 + updateItem 无 blur 双触发）、
-  F2 + 空白名取消、菜单 clamp 确认触发（clientX 698→588，反事实不 clamp 会越界 102px）。
-- 契约侧：51 个 spec 静态复核无回归（播种 config 默认 {} 逐字不变、行 DOM 非重命名态逐字不变、
-  .selected 逻辑未变）；testid 全部存在且只在 DataEditorTab.tsx；审计偏离表逐格与实测相符。
-已知未能验证：Electron 本体启动（沙箱环境限制，E2E 待 CI）；真实 IPC/主进程落盘未覆盖。
+验证：双端 tsc 0 / eslint 0 / vitest 115 文件 1756 用例全绿 / docsLedger 7/7 /
+electron-vite build OK / preview/measure-row.mjs 守卫全通过 / preview/verify-e51.mjs 41/41。

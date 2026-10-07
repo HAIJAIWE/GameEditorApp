@@ -174,7 +174,8 @@ try {
 
   // ================= T5 F2 + 空白名取消 =================
   await runCase('T5', { title: '验证用策划书', systems: systems({ skill_count: 9 }), data: { skill: skill(3) } }, async (page) => {
-    // 注意：预览面板列很窄（行 ~160px），行中心会命中「删除」按钮——必须点 .item-name 才选中而非误删
+    // 注：预览面板列窄（行 160px），E52 之前行中心会命中「删除」按钮；E52 已把删除钮在窄列收成图标
+    // 并把行中心落点还回名称（守卫见 preview/measure-row.mjs）。此处仍点名，语义最明确。
     await page.locator('[data-testid="ceshu-data-item-row"] .item-name').first().click()
     await page.waitForTimeout(150)
     check('T5 点名后该行被选中', (await page.$$eval('[data-testid="ceshu-data-item-row"].selected', (e) => e.length)) === 1)

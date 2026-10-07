@@ -345,6 +345,7 @@ export default function DataEditorTab({
                   key={item.id}
                   className={`item-row${item.id === selectedId ? ' selected' : ''}`}
                   data-testid="ceshu-data-item-row"
+                  title={`${String(item.data.name ?? item.id)} | ${item.id}`}
                   onClick={() => setSelectedId(item.id)}
                   onContextMenu={(event) => {
                     event.preventDefault()
@@ -381,18 +382,22 @@ export default function DataEditorTab({
                   ) : (
                     <span className="item-name">{String(item.data.name ?? item.id)}</span>
                   )}
+                  {/* 短 id 在窄列里让位给名称（见 styles.css 的 .ceshu-preview .item-row 规则）；
+                      完整的 id 仍可从行的 title 与右侧条目表单读到 */}
                   <span className="item-meta">{item.id.slice(0, 8)}</span>
                   <button
                     type="button"
                     className="btn danger"
                     data-testid="ceshu-data-delete"
+                    title="删除"
+                    aria-label="删除"
                     onClick={(event) => {
                       event.stopPropagation()
                       void handleDelete(item.id)
                     }}
                   >
                     <LucideIcon name="trash" size={12} />
-                    删除
+                    <span className="btn-label">删除</span>
                   </button>
                 </div>
               ))
