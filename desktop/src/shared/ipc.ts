@@ -278,7 +278,7 @@ export interface IpcContract {
   'ceshu:validate': { req: { id: string }; res: string[] }
   'ceshu:score': { req: { id: string }; res: CeshuScoreReport }
   'ceshu:aiGenerateChapter': { req: CeshuAiGenerateInput; res: CeshuAiGenerateResult }
-  'ceshu:aiReview': { req: { id: string }; res: CeshuAiReviewResult }
+  'ceshu:aiReview': { req: { id: string; confirmed?: boolean }; res: CeshuAiReviewResult }
   'ceshu:aiGenerateData': { req: CeshuDataGenInput; res: CeshuDataGenResult }
   'ceshu:exportReviewReport': { req: CeshuReviewExportInput; res: { filePath: string } }
   'ceshu:checklist': { req: { id: string }; res: ChecklistReport }

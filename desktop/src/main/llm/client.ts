@@ -6,6 +6,7 @@ import {
   resolveLlmBaseUrl,
   validateLlmConfig,
   type LlmProvider,
+  type LlmUsage,
   type StoredLlmConfig
 } from '../../shared/llmConfig'
 
@@ -167,7 +168,7 @@ export class LlmClient {
     system: string,
     prompt: string,
     options: LlmCallOptions = {}
-  ): Promise<{ model: string; content: string }> {
+  ): Promise<{ model: string; content: string; usage?: LlmUsage }> {
     const config = resolveConfig(options)
     const invalid = validateLlmConfig(config)
     if (invalid !== null) throw new Error(invalid)
@@ -197,7 +198,19 @@ export class LlmClient {
         prompt,
         options: { temperature: config.temperature }
       })
-      return { model, content: response.response ?? '' }
+      // Ollama 在 generate 响应上带 token 计数（`prompt_eval_count` / `eval_count`），
+      // 但 SDK 的 TS 类型未暴露 ⇒ 取下钻后的字段（v0.6 M5）。
+      const counts = response as unknown as { prompt_eval_count?: number; eval_count?: number }
+      const promptTokens = counts.prompt_eval_count ?? 0
+      const completionTokens = counts.eval_count ?? 0
+      return {
+        model,
+        content: response.response ?? '',
+        usage:
+          promptTokens > 0 || completionTokens > 0
+            ? { promptTokens, completionTokens, totalTokens: promptTokens + completionTokens }
+            : undefined
+      }
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error)
       throw new Error(`AI 调用失败：${detail.slice(0, 120)}`, { cause: error })
@@ -209,7 +222,7 @@ export class LlmClient {
     config: LlmRuntimeConfig,
     system: string,
     prompt: string
-  ): Promise<{ model: string; content: string }> {
+  ): Promise<{ model: string; content: string; usage?: LlmUsage }> {
     const preset = LLM_PROVIDER_PRESETS[config.provider]
     if (config.model.trim() === '') {
       throw new Error(`请先为「${preset.label}」选择或填写模型`)
@@ -249,11 +262,21 @@ export class LlmClient {
 
     const payload = (await response.json()) as {
       choices?: Array<{ message?: { content?: string } }>
+      usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number }
     }
     const content = payload.choices?.[0]?.message?.content ?? ''
     if (content === '') {
       throw new Error(`${preset.label} 返回了空内容（可能被内容策略拦截或模型名不正确）`)
     }
-    return { model: config.model, content }
+    const u = payload.usage
+    const usage: LlmUsage | undefined =
+      u && (u.prompt_tokens ?? 0) + (u.completion_tokens ?? 0) > 0
+        ? {
+            promptTokens: u.prompt_tokens ?? 0,
+            completionTokens: u.completion_tokens ?? 0,
+            totalTokens: u.total_tokens ?? (u.prompt_tokens ?? 0) + (u.completion_tokens ?? 0)
+          }
+        : undefined
+    return { model: config.model, content, usage }
   }
 }

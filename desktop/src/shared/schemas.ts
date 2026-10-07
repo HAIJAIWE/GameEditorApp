@@ -350,7 +350,9 @@ export const ceshuCreateInputSchema = z.object({
 })
 
 export const ceshuGetInputSchema = z.object({
-  id: z.string().min(1)
+  id: z.string().min(1),
+  /** 云端档超预算确认标志（v0.6 M5，同 `ceshuAiGenerateInputSchema.confirmed`） */
+  confirmed: z.boolean().optional()
 })
 
 /** 引擎代码导出（E2）：选择导出文件路径（`engine` 决定默认扩展名与过滤器标题） */

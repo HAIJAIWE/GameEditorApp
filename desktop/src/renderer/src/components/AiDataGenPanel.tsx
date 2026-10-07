@@ -9,6 +9,7 @@ import {
   type CeshuDataGenResult
 } from '../../../shared/ceshuDataGen'
 import { LLM_BULK_COUNT_THRESHOLD, isBulkLlmCall } from '../../../shared/agent/protocol'
+import { evaluateBudget, taskBudget } from '../../../shared/agent/budget'
 import type { DataQualityVerdict } from '../../../shared/agent/qualityGate'
 import type { DataTypeDef } from '../../../shared/types'
 
@@ -214,6 +215,24 @@ export default function AiDataGenPanel({ ceshuId, initialTypeId, onClose }: AiDa
           )}
         </div>
       )}
+      {/* v0.6 M5：本次生成的 token 花费 + 预算条（本地档 usage 为空时不显示） */}
+      {result?.usage && result.usage.totalTokens > 0 && (() => {
+        const budget = taskBudget('datagen', { count })
+        const status = evaluateBudget(result.usage.totalTokens, budget, true)
+        return (
+          <div className="datagen-cost" data-testid="datagen-cost">
+            <span className="datagen-cost-label">
+              本次花费 {result.usage.totalTokens} token（预算 {budget}）
+            </span>
+            <div className="budget-bar">
+              <div
+                className={`budget-bar-fill level-${status.level}`}
+                style={{ width: `${Math.min(100, Math.round(status.ratio * 100))}%` }}
+              />
+            </div>
+          </div>
+        )
+      })()}
 
       <div className="datagen-types" data-testid="datagen-types">
         <span className="form-label">生成的数据类型</span>

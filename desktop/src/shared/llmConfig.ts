@@ -135,6 +135,13 @@ export interface StoredLlmConfig {
   maxTokens: number
 }
 
+/** 一次 LLM 调用的 token 用量（v0.6 M5：成本护栏的观测地基；client 层填充，shared 层复用） */
+export interface LlmUsage {
+  promptTokens: number
+  completionTokens: number
+  totalTokens: number
+}
+
 export const LLM_CONFIG_KEY = 'mb.llmConfig'
 
 export const DEFAULT_LLM_CONFIG: StoredLlmConfig = {

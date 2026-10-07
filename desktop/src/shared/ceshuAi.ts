@@ -9,6 +9,7 @@ import {
   type ChapterKey,
   type GddScope
 } from './ceshuConstants'
+import type { LlmUsage } from './llmConfig'
 import { CESHU_CHAPTER_FIELDS } from './domain/ceshu/ceshuFields'
 import type { QualityGateVerdict } from './agent/qualityGate'
 import { isPlainObject } from './ceshuModel'
@@ -221,6 +222,8 @@ export interface CeshuAiGenerateResult {
    * **可选**：仅当章节 key 合法时才有值；旧调用方忽略该字段即可。
    */
   quality?: QualityGateVerdict | null
+  /** 本次调用的 token 用量（v0.6 M5：成本护栏的观测数据）；本地档可能为空 */
+  usage?: LlmUsage | null
 }
 
 /**
@@ -581,6 +584,8 @@ export interface CeshuAiReviewResult extends CeshuReviewPayload {
   progressTotal: number
   /** 内置校验问题数 */
   validationCount: number
+  /** 本次调用的 token 用量（v0.6 M5：成本护栏的观测数据）；本地档可能为空 */
+  usage?: LlmUsage | null
 }
 
 /** 章节填充摘要（照抄 Python：仅标量真值、每值截断 60 字、【章节标签】+ key: value） */

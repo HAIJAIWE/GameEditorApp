@@ -232,7 +232,7 @@
       confirmSystems: async () => DOC, syncData: async () => DOC, rename: ok,
       remove: async () => ({ deleted: true }), duplicate: async () => DOC, setActive: async () => DOC,
       changelog: async () => ({ entries: [] }), validate: async () => [], score: async () => ({}),
-      aiGenerateChapter: async () => ({ fields: {}, quality: undefined }), aiReview: async () => ({}),
+      aiGenerateChapter: async () => ({ fields: { name: '测试章节', summary: '预览桩占位内容' }, quality: undefined, usage: { promptTokens: 800, completionTokens: 400, totalTokens: 1200 } }), aiReview: async () => ({ usage: { promptTokens: 500, completionTokens: 200, totalTokens: 700 } }),
       // 预览桩：返回带确定性质量门的候选包（证明 DD-19 数据半边的 UI 渲染块接线正确；
       // 真实计算已在 tests/unit/agentQualityGate.test.ts 用真值 findCountConstraint/assessBalance 覆盖）。
       aiGenerateData: async () => ({
@@ -241,6 +241,7 @@
         generatedCounts: { roles: 2 },
         total: 2,
         summary: '2 条候选通过数量约束，但有 1 个数值字段离散度偏高，建议复核后再导入',
+        usage: { promptTokens: 600, completionTokens: 300, totalTokens: 900 },
         quality: {
           total: 2,
           counts: { roles: 2 },

@@ -3603,6 +3603,35 @@ button.ref-row:hover {
   color: var(--warning, #c90);
 }
 
+/* ---- token 花费 + 预算条（v0.6 M5） ---- */
+.datagen-cost {
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elevated, var(--bg));
+  font-size: calc(13px * var(--ui-font-scale) * 1.0);
+}
+.datagen-cost-label {
+  display: block;
+  margin-bottom: 6px;
+}
+.budget-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--bg, #eee);
+  overflow: hidden;
+}
+.budget-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.2s ease;
+}
+.budget-bar-fill.level-free { background: var(--accent, #0ea5e9); }
+.budget-bar-fill.level-ok { background: var(--success, #2e9e5b); }
+.budget-bar-fill.level-warn { background: var(--warning, #c90); }
+.budget-bar-fill.level-over { background: var(--danger, #d33); }
+
 /* ---- GDD 模板编辑器（W29） ---- */
 
 .template-editor-body {

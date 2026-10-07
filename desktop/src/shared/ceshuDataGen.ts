@@ -2,6 +2,7 @@ import type { DataQualityVerdict } from './agent/qualityGate'
 import { isPlainObject } from './ceshuModel'
 import type { CeshuDocument } from './ceshuConstants'
 import type { DataTypeDef } from './types'
+import type { LlmUsage } from './llmConfig'
 
 /**
  * AI 生成候选游戏数据纯逻辑（自 Python `core/agent/skills/ceshu_skill_generate.py::_ai_generate_data`
@@ -62,6 +63,8 @@ export interface CeshuDataGenResult {
    * **可选**：旧调用方忽略该字段即可。
    */
   quality?: DataQualityVerdict | null
+  /** 本次调用的 token 用量（v0.6 M5：成本护栏的观测数据）；本地档可能为空 */
+  usage?: LlmUsage | null
 }
 
 /**

@@ -1,6 +1,6 @@
 # 智能体框架重写设计（E59 起）
 
-> **状态**：v0.5 草案（**已重写**，取代 v0.1~v0.4），待主理人裁决。
+> **状态**：v0.7 草案（**已重写**，取代 v0.1~v0.4），待主理人裁决。
 > **动因**：E42 裁决「`core/agent` 域停止 1:1 迁移，改为框架重写」——方向定了，架构未定。
 >
 > **修订记录（四次纠错，全部记录在案）**
@@ -23,6 +23,13 @@
 >   ⇒ 这同时是 M5 成本护栏的前置——有了数据侧门才能按"生成后是否违反数量约束/平衡性"判定值不值得导入。
 >   ⚠️ **本次会话遇到文档静默回退**：工作树 `agent-framework-design.md` 被回退成 v0.3 坏快照
 >   （HEAD `337d8bc` 才是 v0.5 真值），已按铁律备份 `/tmp` 并从 HEAD 还原后再做增量。
+> - **v0.6 → v0.7**（本次会话）：落地 **M5 成本护栏（DD-5b 护栏级）**。新增 `shared/agent/budget.ts`
+>   （`taskBudget`/`estimateTaskTokens`/`estimateTokens`/`evaluateBudget` 纯函数，按任务分档预算：chapter 4000 / full 章数×3000 / datagen 条数×2000 / review 8000）；
+>   先补 token 用量观测地基——`main/llm/client.ts` 的 `generate()` 真正从 OpenAI `usage` 与 Ollama `prompt_eval_count`/`eval_count` 取 `usage`，`LlmUsage` 类型因分层约束（shared 禁 import main）移到 `shared/llmConfig.ts`；
+>   `protocol.ts::llmConfirmReason` 复用 DD-17 确认门入口，当 `isCloud && taskType && estimatedTokens` 时算预算与 `evaluateBudget`，`over` 即前置二次确认"预计花费约 X token（预算 Y），建议拆分任务"；
+>   渲染层在 `AiDataGenPanel`/`AiFullGeneratePanel` 渲染 token 花费块（`datagen-cost`/`ai-full-cost` + `.budget-bar` 分色 free/ok/warn/over）。
+>   ⚠️ **仅护栏级**：预算条 + 超限前二次确认**已落地**；DD-5b 的"超预算真降级（收缩可见工具→缩短上下文）"**未做**，留待后续（需结合 DD-3 工具面与 DD-8 上下文管理）。本地 Ollama 视为 free、不拦截。
+>   ⇒ 运行期举证 `preview/verify-e59.mjs` **22/22**（新增 T6 数据花费块 / T7 整篇累计花费块）；vitest **1825 passed**；`npm run build` 通过。
 >
 > **证据强度标注**（全文通用）：
 > `[实测]` 本机/本仓跑出来的 · `[一手]` 模型厂商官方文档 · `[GitHub]` 直接抓成熟框架仓库所得 · `[二手]` 第三方文章/实测（附出处）· `[推断]` 我的推理，未直接验证
@@ -352,6 +359,24 @@ SOUL 硬边界、turn limit、MCP、`shared/` 分层契约、**6 家服务商的
 | 单测 | `agentProtocol.test.ts` +7（25 例）、新增 `agentQualityGate.test.ts` **19 例**（策划书 9 + 数据 10） |
 | **运行期举证** | `preview/verify-e59.mjs` **15/15**（新增 T5：数据质量门 UI 渲染 `datagen-quality` 出现且 `is-balance` 落位）；回归 verify-e51 41/41 · e57 46/46 · e58 14/14 · docsLedger 8/8 全绿 |
 
+### 5.5.5 实现记录（v0.7）：M5 成本护栏（DD-5b 护栏级）
+
+| 项 | 落地 |
+|---|---|
+| `shared/agent/budget.ts` | 新增（M5 核心）：`LlmTaskType`（`chapter`/`full`/`datagen`/`review`）；`taskBudget`（chapter 4000 / full `章数×3000` / datagen `条数×2000` / review 8000）；`estimateTaskTokens`（经验值，口径略宽于预算：3500 / `×3200` / `×1800` / 7500）；`estimateTokens(text)=⌈len/2⌉`（主进程按提示词长度粗估）；`evaluateBudget`（ratio>1→over / >0.8→warn / 非云端→free） |
+| `shared/llmConfig.ts` | 新增 `LlmUsage` 接口（从 `main/llm/client.ts` 移入——分层约束 `shared` 禁 import `main`，否则 TS6307） |
+| `src/main/llm/client.ts` | `generate()` 真正取用量：OpenAI 兼容分支解析 `usage.{prompt_tokens,completion_tokens,total_tokens}`；Ollama 分支取 `prompt_eval_count`/`eval_count`；返回加 `usage?: LlmUsage`（两分支都只在有值时返回） |
+| `shared/agent/protocol.ts` | `LlmCallScope` 加 `taskType?`/`estimatedTokens?`/`isCloud?`；`llmConfirmReason` 在 bulk/count 判定之后，当 `isCloud && taskType && estimatedTokens!=null` 时算 `taskBudget`+`evaluateBudget`，`over` 即返回"预计花费约 X token（预算 Y），建议拆分任务…"——**复用 DD-17 确认门入口，不新造机制** |
+| `main/ipc.ts` | `ceshu:aiGenerateChapter` / `ceshu:aiGenerateData` / `ceshu:aiReview` 三处：调 LLM 前算 `isCloud`（provider≠ollama）、`estimated=estimateTokens(system+prompt)`，连同 `taskType`（`full?'full':'chapter'` / `'datagen'` / `'review'`）传入 `llmConfirmReason`；解构 `usage` 随结果返回 `usage: usage ?? null`；`aiGenerateData` 把 `buildDataGenPrompt` 提到门之前 |
+| `shared/ceshuAi.ts` / `shared/ceshuDataGen.ts` | `CeshuAiGenerateResult` / `CeshuDataGenResult` / `CeshuAiReviewResult`（extends）均加 `usage?: LlmUsage \| null`；`shared/schemas.ts` 的 `ceshuGetInputSchema` 加 `confirmed: z.boolean().optional()`；`shared/ipc.ts` 契约 `ceshu:aiReview` req 加 `confirmed?` |
+| `AiDataGenPanel.tsx` | 生成后渲染 `datagen-cost`（`datagen-cost` testid）："本次花费 {usage.totalTokens} token（预算 {budget}）"+ `.budget-bar`/`.budget-bar-fill.level-{status.level}`（width=min(100,ratio*100)%）；仅当 `result?.usage && total>0` |
+| `AiFullGeneratePanel.tsx` | 累加 `usageAcc += response.usage?.totalTokens ?? 0`；生成后渲染 `ai-full-cost`：同预算条，预算取自 `taskBudget('full',{chapters:plan.order.length})` |
+| `styles.css` | `.datagen-cost`/`.datagen-cost-label`/`.budget-bar`/`.budget-bar-fill`/`.budget-bar-fill.level-free/ok/warn/over`（色走 `--accent/--success/--warning/--danger`） |
+| 单测 | 新增 `tests/unit/agentBudget.test.ts` **11 例**（预算线性缩放 / estimateTokens / 本地=free / ok·warn·over 阈值 / 零预算安全）；`agentProtocol.test.ts` 的 `llmConfirmReason` 覆盖云端超限分支 |
+| **运行期举证** | `preview/verify-e59.mjs` **22/22**（新增 **T6** 数据花费块出现「本次花费 900 token（预算 10000）」+ 预算条渲染；**T7** 整篇生成后累计花费块「本次花费 21600 token（预算 54000）」）；回归 verify-e51 41/41 · e57 46/46 · e58 14/14 同前；vitest **1825 passed**（原 1804→1814→1825）；`npm run build` 通过 |
+
+> **M5 范围判定（避免过度）**：本次只做「护栏级」——**预算条 + 超限前二次确认**。DD-5b 原话的"超预算真降级（收缩可见工具→缩短上下文→明确告知已降级）"**未实现**，理由：① 真降级要动 DD-3 工具面与 DD-8 上下文管理，二者尚未落地；② 当前"提示拆分 + 显式确认"已是有效护栏，不会静默烧钱，符合 G5 核心诉求。本地 Ollama 视为 free、全程不拦。
+
 ---
 
 ## 6. 选型：不引入 agent 框架（结论不变，依据更硬）
@@ -444,7 +469,7 @@ data/libraries/<库>/.workspace/
 | **DD-3** | 工具面 | G2 | **协议层 12 个 `system.*` 槽位改为按场景分组**：本地档每次会话暴露 **≤8 个**；云端档可放宽到 **≤15 个**（上限更高但仍分组懒加载，不一次性注入） | 重做（`protocol.ts` 分组 + `CAPABILITIES.md` 改渐进披露） | **两档（上限不同）** | 云端实测工具挑选准确率显著优于本地档时可再放宽 |
 | **DD-4** | 路由归谁 | 4.1 实测 2 | **本地档**：技能由**用户显式选定**，不做模型软路由。**云端档**：**可试模型软路由**（前沿模型有能力做），但**必须保留显式选择作为兜底与可解释性手段** | 重做（面板 + 路由前置 + 按档位开关） | **两档（策略不同）** | 云端实测软路由成功率 ≥90% 则默认开 |
 | **DD-5** | 终止 | G4 + 4.1 实测 3 | 三道计数硬闸 `maxToolCalls`(8) / `maxTurns`(6) / `wallClockMs`(120s)，任一触发即**带部分产出 finalize**；**提示词里不写"出错就停"**。云端档的 `maxTurns` 可放宽（步数不再受上下文限制，但受成本限制 ⇒ 见 DD-5b） | 新增（`budget.ts`） | **两档（阈值不同）** | 无 |
-| **DD-5b** | **成本护栏** | G5 `[二手]` token 解释 80% 方差 | **仅云端档**：每任务 **token 预算**（按任务分档：快问快答 / 批量生成 / 整章重写）；**超预算降级**（收缩可见工具 → 缩短上下文 → 明确告知"已降级"）而非静默烧钱 | 新增（`budget.ts`） | **云端** | 无 |
+| **DD-5b** ⭐**✅ 已实现（护栏级）** | **成本护栏** | G5 `[二手]` token 解释 80% 方差 | **仅云端档**：每任务 **token 预算**（按任务分档：快问快答 / 批量生成 / 整章重写）；**超预算降级**（收缩可见工具 → 缩短上下文 → 明确告知"已降级"）而非静默烧钱 | 新增（`budget.ts`：预算条 + 超限前二次确认；**真降级待补**） | **云端** | 真降级（DD-3/DD-8）落地后复盘 |
 | **DD-6** | 提示词预算 | 4.1 实测 1 + 一手 | **两档都做，但理由不同**：本地档是**硬闸**（4B 读不完长提示词，≤30 行，构建期断言）；云端档是**优化项**（新模型有判断力、旧规则是过时的 casts ⇒ 同样砍到 ≤30 行，但按"精"而非"短"）。**实现共用一套断言** | 新增断言（两档同源） | **两档（本地=硬闸 / 云端=优化）** | 云端实测长提示词无质量损失则云端档放宽 |
 | **DD-7** | 大结果 | 2.1 just-in-time | 工具返回 >2KB 落盘到 `<库>/.workspace/agent/run/<runId>/`，上下文只留**相对路径 + 摘要 + 行数**，可按路径取回 | 新增 | **两档** | 无 |
 | **DD-8** | 压缩策略 | G6 | 从 `_sliding_window_compress`（Py 侧）改为 **context reset**：到达阈值时**带结构化交接摘要开新轮**（约束显式重述，防 goal drift）。**云端档因上下文宽裕，可只在超长任务时触发** | 新增（替代压缩） | **两档（阈值不同）** | 无 |
@@ -470,7 +495,7 @@ data/libraries/<库>/.workspace/
 | **M2.5 步数预算** | 修 DD-15 | 两档 | 每个动作可串联多工具；补 ≥2 个高频**复合工具**；单跑同一任务**步数下降 ≥20%** | ~200 行 |
 | **M3 工具面与路由** | 修 G2 + DD-3/4 | 两档 | 协议层分组、按档位限量（本地 ≤8 / 云端 ≤15）；本地=用户显式选技能、云端=软路由可选且保留显式兜底；成功率 ≥80% | ~250 行 |
 | **M4 确定性评分门 + 产出契约** ⭐ | 修 G8 + **DD-19** | 两档 | agent 产出必须过 `validateCeshu`→`scoreCeshu`→`dataCountConstraint`/`assessBalance`；LLM judge 只补机器判不了的维度且权重远低于确定性门 | ~250 行 |
-| **M5 成本护栏** | 修 G5 | 云端 | token 预算按任务分档；超预算**降级而非静默烧钱**；面板显示预算条 | ~150 行 |
+| **M5 成本护栏** ⭐ | 修 G5 | 云端 | token 预算按任务分档 + 预算条 + 超限前二次确认（**护栏级；真降级待补**）；面板显示预算条 | ✅ 已落地（v0.7，~200 行 + 单测 11 例） |
 | **M6 保密模式** | 修 G9 | 本地 | 显式 🔒 开关 + "数据不出本机"告知 + 强制本地校验；与云端档在 UI 并列 | ~120 行 |
 
 **建议先做 M0**：它把**产品意志（云端优先）落到代码**，是本轮唯一的**语义修正**而非能力增强；

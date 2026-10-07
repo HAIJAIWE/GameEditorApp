@@ -47,7 +47,11 @@ const SEL = {
   fullEntry: '[data-testid="ceshu-ai-full"]',
   fullDesc: '[data-testid="ai-full-desc"]',
   fullStart: '[data-testid="ai-full-start"]',
-  fullConfirm: '[data-testid="ai-full-confirm"]'
+  fullConfirm: '[data-testid="ai-full-confirm"]',
+  fullConfirmYes: '[data-testid="ai-full-confirm-yes"]',
+  datagenCost: '[data-testid="datagen-cost"]',
+  fullCost: '[data-testid="ai-full-cost"]',
+  budgetBarFill: '.budget-bar-fill'
 }
 
 const results = []
@@ -187,6 +191,43 @@ try {
     const isBalance = await page.locator('[data-testid="datagen-quality"] .datagen-quality-issues li.is-balance').count()
     check('T5 平衡性问题的样式类 is-balance 正确落位', isBalance >= 1, `is-balance数=${isBalance}`)
     await page.screenshot({ path: join(SHOTS, 'e59-t5-data-quality.png') })
+  })
+
+  // ================= T6 数据生成后的 token 花费 + 预算条（M5 成本护栏） =================
+  await runCase('T6', async (page) => {
+    await openCeshu(page)
+    await page.click(SEL.datagenEntry)
+    await page.waitForSelector(SEL.datagenTypes, { timeout: 8000 })
+    await page.locator(SEL.datagenType).first().check()
+    await page.locator(SEL.datagenCount).fill('5')
+    await page.click(SEL.datagenGenerate)
+    await page.waitForSelector(SEL.datagenCost, { timeout: 8000 })
+    check('T6 生成后 ⇒ 出现 token 花费块（datagen-cost）', true)
+    const text = await page.locator(SEL.datagenCost).textContent()
+    check('T6 文案带出「本次花费」与「token」', String(text).includes('本次花费') && String(text).includes('token'), String(text).trim())
+    check('T6 文案带出「预算」', String(text).includes('预算'), String(text).trim())
+    const bar = await page.locator(SEL.budgetBarFill).count()
+    check('T6 渲染出预算进度条（budget-bar-fill）', bar >= 1, `bar数=${bar}`)
+    await page.screenshot({ path: join(SHOTS, 'e59-t6-data-cost.png') })
+  })
+
+  // ================= T7 整篇生成后的累计 token 花费 + 预算条（M5 成本护栏） =================
+  await runCase('T7', async (page) => {
+    await openCeshu(page)
+    await page.click(SEL.fullEntry)
+    await page.waitForSelector(SEL.fullDesc, { timeout: 8000 })
+    await page.locator(SEL.fullDesc).fill('一款以东方幻想为背景的回合制策略游戏')
+    await page.click(SEL.fullStart)
+    await page.waitForSelector(SEL.fullConfirm, { timeout: 5000 })
+    await page.click(SEL.fullConfirmYes)
+    // 整篇生成逐章调用，等成本块出现
+    await page.waitForSelector(SEL.fullCost, { timeout: 15000 })
+    check('T7 整篇生成后 ⇒ 出现累计花费块（ai-full-cost）', true)
+    const text = await page.locator(SEL.fullCost).textContent()
+    check('T7 文案带出「本次花费」与「token」', String(text).includes('本次花费') && String(text).includes('token'), String(text).trim())
+    const bar = await page.locator(SEL.budgetBarFill).count()
+    check('T7 渲染出预算进度条', bar >= 1, `bar数=${bar}`)
+    await page.screenshot({ path: join(SHOTS, 'e59-t7-full-cost.png') })
   })
 } finally {
   await browser.close().catch(() => undefined)

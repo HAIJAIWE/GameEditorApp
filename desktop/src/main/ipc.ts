@@ -111,6 +111,7 @@ import {
   type SystemEntry
 } from '../shared/ceshuConstants'
 import { llmConfirmReason } from '../shared/agent/protocol'
+import { estimateTokens } from '../shared/agent/budget'
 import { evaluateChapterDraft, evaluateDataCandidates } from '../shared/agent/qualityGate'
 import { buildChapterPrompt, buildReviewPrompts, filterGeneratedFields, mergeChapterDraft, parseLlmJson, parseReviewResponse } from '../shared/ceshuAi'
 import {
@@ -812,13 +813,21 @@ export function registerIpcHandlers({
       // 无空字段：不调用 LLM，直接返回空结果（UI 提示「无需补全」）
       return { model: '', fields: {}, rawText: '' }
     }
-    // v0.5 DD-17：整篇 / 一键生成属「大范围云端调用」，需渲染层带 `confirmed: true` 重发
-    // （判定走 shared/agent/protocol.ts::llmConfirmReason，与 agent 技能通路同一口径）
-    const confirmReason = llmConfirmReason({ bulk: req.fullGenerate !== undefined })
+    // v0.5 DD-17 + v0.6 M5：整篇 / 一键生成属「大范围云端调用」，需渲染层带 `confirmed: true` 重发；
+    // 云端档若预估超预算也需先确认（降级 = 提示拆分，而非静默烧钱）
+    const callOpts = await llmCallOptions()
+    const isCloud = (callOpts.config?.provider ?? 'ollama') !== 'ollama'
+    const estimated = estimateTokens(built.system + built.prompt)
+    const confirmReason = llmConfirmReason({
+      bulk: req.fullGenerate !== undefined,
+      taskType: req.fullGenerate !== undefined ? 'full' : 'chapter',
+      estimatedTokens: estimated,
+      isCloud
+    })
     if (confirmReason !== null && req.confirmed !== true) {
       throw new Error(confirmReason)
     }
-    const { model, content } = await llmClient.generate(built.system, built.prompt, await llmCallOptions())
+    const { model, content, usage } = await llmClient.generate(built.system, built.prompt, callOpts)
     const parsed = parseLlmJson(content)
     const fields = filterGeneratedFields(doc, req.chapter, parsed)
     return {
@@ -826,7 +835,9 @@ export function registerIpcHandlers({
       fields,
       rawText: content,
       // v0.5 DD-19：产出过确定性评分门（validateCeshu + scoreCeshu），供 UI 展示"生成有没有变好"
-      quality: evaluateChapterDraft(base, req.chapter, fields)
+      quality: evaluateChapterDraft(base, req.chapter, fields),
+      // v0.6 M5：成本护栏的观测数据
+      usage: usage ?? null
     }
   })
   handle('ceshu:aiGenerateData', ceshuDataGenInputSchema, async (req) => {
@@ -836,14 +847,22 @@ export function registerIpcHandlers({
     if (selected.length === 0) {
       throw new Error(DATA_GEN_ERROR_NO_TYPE)
     }
-    // v0.5 DD-17：批量生成超过阈值属「大范围云端调用」，需渲染层带 `confirmed: true` 重发
+    // v0.5 DD-17 + v0.6 M5：批量生成超过阈值 / 云端档超预算，都需渲染层带 `confirmed: true` 重发
     const count = clampDataGenCount(req.count)
-    const confirmReason = llmConfirmReason({ count })
+    const built = buildDataGenPrompt(doc, types, selected, count, req.instruction.trim())
+    const callOpts = await llmCallOptions()
+    const isCloud = (callOpts.config?.provider ?? 'ollama') !== 'ollama'
+    const estimated = estimateTokens(built.system + built.prompt)
+    const confirmReason = llmConfirmReason({
+      count,
+      taskType: 'datagen',
+      estimatedTokens: estimated,
+      isCloud
+    })
     if (confirmReason !== null && req.confirmed !== true) {
       throw new Error(confirmReason)
     }
-    const built = buildDataGenPrompt(doc, types, selected, count, req.instruction.trim())
-    const { model, content } = await llmClient.generate(built.system, built.prompt, await llmCallOptions())
+    const { model, content, usage } = await llmClient.generate(built.system, built.prompt, callOpts)
     const parsed = parseLlmJson(content)
     if (Object.keys(parsed).length === 0) {
       throw new Error(DATA_GEN_ERROR_UNPARSABLE)
@@ -868,7 +887,9 @@ export function registerIpcHandlers({
         types,
         systems: doc.systems,
         existingCounts
-      })
+      }),
+      // v0.6 M5：成本护栏的观测数据
+      usage: usage ?? null
     }
   })
   handle('ceshu:aiReview', ceshuGetInputSchema, async (req) => {
@@ -879,12 +900,22 @@ export function registerIpcHandlers({
       progressTotal: progress.total ?? 0,
       validationCount: validationErrors.length
     })
-    const { model, content } = await llmClient.generate(built.system, built.prompt, await llmCallOptions())
+    // v0.6 M5：云端档超预算需先确认（审阅整篇也可能很长）
+    const callOpts = await llmCallOptions()
+    const isCloud = (callOpts.config?.provider ?? 'ollama') !== 'ollama'
+    const estimated = estimateTokens(built.system + built.prompt)
+    const confirmReason = llmConfirmReason({ taskType: 'review', estimatedTokens: estimated, isCloud })
+    if (confirmReason !== null && req.confirmed !== true) {
+      throw new Error(confirmReason)
+    }
+    const { model, content, usage } = await llmClient.generate(built.system, built.prompt, callOpts)
     return {
       model,
       ...parseReviewResponse(content),
       progressTotal: progress.total ?? 0,
-      validationCount: validationErrors.length
+      validationCount: validationErrors.length,
+      // v0.6 M5：成本护栏的观测数据
+      usage: usage ?? null
     }
   })
   handle('ceshu:exportReviewReport', ceshuReviewExportInputSchema, (req) =>

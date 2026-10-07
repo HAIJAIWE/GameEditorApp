@@ -18,6 +18,7 @@ import {
   type FullGeneratePlan
 } from '../../../shared/ceshuAi'
 import { getGddScope, isPlainObject } from '../../../shared/ceshuModel'
+import { evaluateBudget, taskBudget } from '../../../shared/agent/budget'
 
 /**
  * AI 一键生成完整策划书（对应 Python N10 AIFullGenerateDialog）：
@@ -62,6 +63,8 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
   const [applying, setApplying] = useState(false)
   const [summary, setSummary] = useState<string | null>(null)
   const [panelError, setPanelError] = useState<string | null>(null)
+  /** 整篇生成的累计 token 花费（v0.6 M5：成本护栏的观测数据） */
+  const [usageTotal, setUsageTotal] = useState(0)
   /** 整篇生成的内联确认态（v0.5 DD-17：大范围云端调用需先确认） */
   const [confirming, setConfirming] = useState(false)
   const stopRef = useRef(false)
@@ -86,10 +89,12 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
     setRunning(true)
     setPanelError(null)
     setSummary(null)
+    setUsageTotal(0)
     stopRef.current = false
     const draftResults: Partial<Record<ChapterKey, ChapterData>> = { ...resultsRef.current }
     let succeeded = 0
     let failed = 0
+    let usageAcc = 0
     for (const chapter of targets) {
       if (stopRef.current) break
       setStatuses((prev) => ({ ...prev, [chapter]: 'running' }))
@@ -111,6 +116,8 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
         draftResults[chapter] = response.fields
         resultsRef.current = { ...draftResults }
         setResults({ ...draftResults })
+        usageAcc += response.usage?.totalTokens ?? 0
+        setUsageTotal(usageAcc)
         setStatuses((prev) => ({ ...prev, [chapter]: 'done' }))
         setErrors((prev) => withoutKey(prev, chapter))
         succeeded++
@@ -458,6 +465,24 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
           {summary}
         </div>
       )}
+      {/* v0.6 M5：整篇生成的累计 token 花费 + 预算条 */}
+      {usageTotal > 0 && (() => {
+        const budget = taskBudget('full', { chapters: plan.order.length })
+        const status = evaluateBudget(usageTotal, budget, true)
+        return (
+          <div className="datagen-cost" data-testid="ai-full-cost">
+            <span className="datagen-cost-label">
+              本次花费 {usageTotal} token（预算 {budget}）
+            </span>
+            <div className="budget-bar">
+              <div
+                className={`budget-bar-fill level-${status.level}`}
+                style={{ width: `${Math.min(100, Math.round(status.ratio * 100))}%` }}
+              />
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }

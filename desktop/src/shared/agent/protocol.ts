@@ -13,6 +13,9 @@
  *    改名为 `requiresMainThread` 仅作语义标记（A1-4 面板复用）。
  */
 
+// 预算护栏的纯逻辑在 budget.ts；确认门（DD-17 + M5）复用其计算。
+import { taskBudget, evaluateBudget, type LlmTaskType } from './budget'
+
 /* ---- 风险等级与权限（对齐 security/acl.py） ---- */
 
 /** 风险等级（数值越大越高危；对齐 Python `RiskLevel` IntEnum） */
@@ -110,6 +113,10 @@ export interface LlmCallScope {
   bulk?: boolean
   /** 批量生成的条目数 */
   count?: number
+  /** v0.6 M5：预算护栏用 —— 任务类型、预估 token、是否云端档 */
+  taskType?: LlmTaskType
+  estimatedTokens?: number
+  isCloud?: boolean
 }
 
 /** 一次云端 LLM 调用是否属于「大范围操作」（≥ 阈值即需先确认） */
@@ -125,6 +132,14 @@ export function llmConfirmReason(scope: LlmCallScope): string | null {
   const count = scope.count
   if (typeof count === 'number' && Number.isFinite(count) && count > LLM_BULK_COUNT_THRESHOLD) {
     return `批量生成 ${count} 条（超过 ${LLM_BULK_COUNT_THRESHOLD} 条）会调用云端模型，token 消耗较高`
+  }
+  // v0.6 M5：云端档超预算也要先确认（降级 = 提示拆分，而非静默烧钱）
+  if (scope.isCloud && scope.taskType && typeof scope.estimatedTokens === 'number') {
+    const budget = taskBudget(scope.taskType, { count: scope.count })
+    const status = evaluateBudget(scope.estimatedTokens, budget, true)
+    if (status.over) {
+      return `预计花费约 ${status.estimated} token（预算 ${status.budget}），可能超出预算，建议拆分任务（如减少条数或改为单章生成）后再试`
+    }
   }
   return null
 }
