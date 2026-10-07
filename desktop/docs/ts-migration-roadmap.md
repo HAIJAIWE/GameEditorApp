@@ -68,12 +68,18 @@
 >
 > **⚠️ 不计入上表的「重写」工作**：`core/agent` 域（97 文件 / 24,670 行）+ 数字员工 UI 与任务面板，按 **E42 裁决走「AI 框架整体重写」而非 1:1 移植** —— 它**不算迁移欠债**，但**也不是零工作量**，规模与范围待框架设计定案。
 >
-> 📄 **框架设计已出草案 v0.4**：[`agent-framework-design.md`](./agent-framework-design.md)（E59，待裁决）。
+> 📄 **框架设计已出草案 v0.5**：[`agent-framework-design.md`](./agent-framework-design.md)（E59，待裁决）。
 > **产品前提（主理人裁定）**：**云端优先、本地兜底**。⇒ 设计的骨架是**双档**，不是"本地单档"。
-> **定位纠正**：本项目**不是从零设计 agent 框架** —— 已有 4 份设计资产（① `docs/archive/AGENT_OS_BLUEPRINT_STATUS.md` L6 蓝图 · ② `desktop/docs/a-tier-plan.md` **A1-1~A1-5 已于 2026-10-04 全部收官** · ③ `data/libraries/<库>/.workspace/` 活的身份/记忆/能力清单 · ④ `desktop/docs/shared-layering-design.md` 分层契约），且 `main/llm/client.ts` **已真实现 6 家服务商**（OpenAI 兼容 `/chat/completions` + Claude `x-api-key`/`anthropic-version`）⇒ **云端优先不需要新建传输层，只需改默认与加策略**。
-> **已定位的最高优先缺口** `[实测]`：**G0 默认档位错** —— `LLM_PROVIDER_ORDER` 把 `ollama` 排第一（实为对齐 Python `MODEL_PRESETS` 声明顺序的迁移保真产物，**非产品决策**；项目里 grep 不到任何「云端优先」的既定记录）、`client.ts:43-44` 未配置**静默回落 ollama**、`client.ts:144` 错误提示写死 `ollama pull qwen3:8b`。
-> **另一条产品判断**：本地档的真正价值不是"免费算力"，而是**保密 / 离线 / 零成本**——本项目处理的是**未发布的游戏设计稿**，上传云端对不少独立开发者不可接受 ⇒ 应有**显式「保密模式」开关**，而不是让"本地"仅作静默回落。
-> **结论**：不引入任何 agent 框架，在已收官 A1 上定向加固（净新增 ~500–700 行）；路线图 **M0（档位纠正）→ M1（观测先行）→ …**，建议 **M0+M1 先行**。文档末尾列了**已裁定项**与**待裁决项 + 实现影响清单（file:line）**。
+> **⚠️ v0.5 最重要的发现（域内审视，前四版全漏）**：本项目的产品是**游戏策划书 + 游戏数据**，不是通用助手。
+> 取证 `[实测]`：**渲染层 `window.mbApi.ceshu` 53 处 / `data` 42 处全部直连，`window.mbApi.agent` 仅 1 处**（`DigitalPanel.tsx:125`，只服务对话面）
+> ⇒ **策划书/数据的 AI 能力 100% 绕过 agent 层**——不进 `dispatcher`、不进 `protocol.ts` 技能注册、**不进 `approvalBroker` 审批闸**；
+> 而三个 `ceshu:ai*`（`aiGenerateChapter` 整章重写 / `aiGenerateData` 批量生成 / `aiReview`）**均无风险分级无审批**
+> ⇒ **最危险的操作恰恰是唯一没有防护的**（这是 A1 的既定选择，不是 bug，见 `a-tier-plan.md` A1-5 落地记录）。
+> **另一半机会**：域内已有 **7,114 行确定性 rubric 纯逻辑已在生产里跑着**（`validateCeshu` / `scoreCeshu` / `assessBalance` / `dataCountConstraint` / `dataRef` / `ceshuFieldDeps`），**却没接进 agent 的产出路径**
+> ⇒ 评估器应以**确定性门为主、LLM judge 为辅**（对应 Anthropic「code 有自动化测试即客观验证」）。新增 **DD-19 产出契约 + 确定性评分门**，路线图 M4 已改为此项并**上调到 M2 之后**。
+> **另一条产品前提**：本项目不是从零设计 agent —— 已有 4 份设计资产（① `docs/archive/AGENT_OS_BLUEPRINT_STATUS.md` L6 蓝图 · ② `desktop/docs/a-tier-plan.md` **A1-1~A1-5 已于 2026-10-04 全部收官** · ③ `data/libraries/<库>/.workspace/` 活的身份/记忆/能力清单 · ④ `desktop/docs/shared-layering-design.md` 分层契约），且 `main/llm/client.ts` **已真实现 6 家服务商** ⇒ **云端优先不需新建传输层，只需改默认与加策略**。
+> **G0 仍为最高优先缺口** `[实测]`：`LLM_PROVIDER_ORDER` 把 `ollama` 排第一（实为对齐 Python `MODEL_PRESETS` 声明顺序的迁移保真产物，**非产品决策**；项目里 grep 不到任何「云端优先」既定记录）、`client.ts:43-44` 未配置**静默回落 ollama**、`client.ts:144` 错误提示写死 `ollama pull qwen3:8b`。
+> **结论**：不引入任何 agent 框架，在已收官 A1 上定向加固（净新增 ~500–700 行）；路线图 **M0（档位纠正）→ M1（观测先行）→ …**，建议 **M0+M1 先行**。文档 §12 列了**已裁定项 / 待裁决项 / 实现影响清单（file:line）**。
 
 ### A 档（大块，需单独立项）—— **已立项，方案见 [`a-tier-plan.md`](./a-tier-plan.md)**
 
