@@ -56,11 +56,11 @@
 > | 判定 | 文件 | 行数 | 占比 |
 > |---|---|---|---|
 > | ✅ 已迁 | 95 | 35,125 | 38.5% |
-> | ◐ 部分已迁 | 60 | 22,813 | 25.0% |
+> | ◐ 部分已迁 | 61 | 22,985 | 25.2% |
 > | ⛔ 有意不迁（决策，非欠债） | 92 | 19,858 | 21.8% |
-> | ⚠️ **未迁（整块没做）** | **52** | **13,368** | **14.7%** |
+> | ⚠️ **未迁（整块没做）** | **51** | **13,196** | **14.5%** |
 >
-> 对账 PASS：`95+59+92+53 = 299` 文件、`35125+22489+19858+13692 = 91,164` 行。
+> 对账 PASS：`95+61+92+51 = 299` 文件、`35125+22985+19858+13196 = 91,164` 行。
 >
 > **结论：真实剩余 ≈ 2.4–2.8 万行（26–31%）** —— 而不是早前口头估算的「3.5–4.5k 行（4–5%）」。那句估算**口径过窄**（把 `ui/widgets`/`ui/dialogs`/`features` 三个混合态域当成了基本迁完）且未做文件级核实，**已被本审计推翻**。
 > 三个最意外的数字：**① `core/agent`（最大域 24,670 行）只有 1,689 行是完整已迁**（A 档做的是核心闭环，不是整个 Agent 引擎）；**② `ui/` 顶层+主题 9,883 行里仅 917 行完整已迁**；**③ `features` 9 文件完整已迁为 0**。
@@ -525,6 +525,12 @@
 > 该项目无 jsdom/组件测试设施（vitest `environment: 'node'`），为它加依赖属过度开发。
 > ⇒ **Toast 的真实点击效果待真机 E2E 验证**（51 个 E2E 至今未在真机跑过，属既有边界）。
 > **验证**：双端 tsc 0 / eslint 0 / vitest **110 文件 1673 用例**（+21）/ build OK。
+
+> ✅ **E47（2026-10-07）：markdown→HTML + 代码高亮迁至数字员工气泡（对齐 Python `chat_renderer.py::render_markdown`）。**
+> **动因**：`ui/chat_renderer.py`（172 行）用 markdown 扩展 `codehilite`/`fenced_code`/`tables`/`sane_lists`/`nl2br` 把 AI 消息渲成富文本；TS 侧 `DigitalPanel` 此前把 `message.text` 当纯文本 `pre-wrap` 输出，丢掉全部 markdown 格式与代码高亮。
+> **做法**：新增 `components/digital/ChatMarkdown.tsx`（memo 组件），`react-markdown` + `remark-gfm`（tables/sane_lists）+ `remark-breaks`（nl2br）+ `rehype-highlight`（codehilite/fenced_code，highlight.js 语法高亮）渲染 `state.messages` 里 `user`/`assistant` 气泡；不动 `state.streaming` 流式气泡（保留纯文本 `pre-wrap`，避免不完整代码围栏闪烁）。
+> **刻意范围收窄**：Python 的 `system`/`error`/`plan` 气泡类型在 TS 状态模型里不存在（`panel.ts` 的 `DigitalMessage.role` 只有 `user`/`assistant`，其余走独立 `error` 字段 / 步骤 UI），故只迁这两类气泡，不新增消息类型；Python 的 `try/except` 兜底在 react-markdown 下不需要（产物是 React 元素、无 XSS、对畸形输入容错），不加错误边界。
+> **验证**：双端 tsc 0 / eslint 0 / vitest（含新增 `chatMarkdown.test.ts`：粗体斜体 / 围栏代码 hljs / GFM 表格 / 空文本 null / 单换行 <br>）/ `electron-vite build` OK；docsLedger 守卫（audit 数字已同步：◐ 61/22,985、⚠️ 51/13,196，总 299/91,164）。
 
 > 🔴 **E42（2026-10-07）：主理人裁决 —— `core/agent` 停止 1:1 迁移，改为「AI 框架重写」**。
 > **主理人原话**：「**ai 那边就不搞了。框架可能要重写**」。

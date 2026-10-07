@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'r
 
 import { defaultDraftName, type DraftSummary } from '../../../../shared/agent/session'
 
+import ChatMarkdown from './ChatMarkdown'
+
 import LucideIcon from '../LucideIcon'
 
 import type { BrainEvent } from '../../../../shared/agent/brain'
@@ -488,7 +490,7 @@ export default function DigitalPanel({ seed = null }: DigitalPanelProps) {
               data-testid="digital-message"
               data-role={message.role}
             >
-              {message.text}
+              <ChatMarkdown text={message.text} />
             </div>
           ))}
         {state.streaming !== '' && (

@@ -63,11 +63,11 @@
 | 判定 | 文件 | 行数 | 占比 |
 |---|---|---|---|
 | ✅ 已迁 | 95 | 35,125 | 38.5% |
-| ◐ 部分已迁 | 60 | 22,813 | 25.0% |
+| ◐ 部分已迁 | 61 | 22,985 | 25.2% |
 | ⛔ 有意不迁 | 92 | 19,858 | 21.8% |
-| ⚠️ 未迁（整块没做） | 52 | 13,368 | 14.7% |
+| ⚠️ 未迁（整块没做） | 51 | 13,196 | 14.5% |
 
-**对账（必须相等，已 PASS）**：`95+61+89+54 = 299` ✓、`35125+22917+19157+13965 = 91,164` ✓
+**对账（必须相等，已 PASS）**：`95+61+92+51 = 299` ✓、`35125+22985+19858+13196 = 91,164` ✓
 
 ### 真实剩余 ≈ 2.4–2.8 万行（26–31%）
 
@@ -250,7 +250,7 @@
 | digital_panel_workspace.py | 308 | ◐40% | 会话快照→`sessionStore.ts`；富文本草稿/多工作区未迁 |
 | main_window.py | 1248 | ◐40% | `App.tsx` 骨架+`LibraryBar`+模式切换；缺多标签/菜单/窗口状态/自动保存 |
 | components/virtual_list.py | 243 | ◐40% | 搜索过滤/多选已迁；缺虚拟滚动/拖拽排序/右键菜单 |
-| chat_renderer.py | 172 | ⚠️ | markdown→HTML+代码高亮无 TS（`a-tier-plan.md:320` 标「待接 react-markdown」） |
+| chat_renderer.py | 172 | ◐ | markdown→HTML+代码高亮已迁（E47：react-markdown+remark-gfm+remark-breaks+rehype-highlight 至 DigitalPanel 气泡）；system/error/plan 气泡类型因 TS 状态模型不同未迁（TS 用独立 error 字段/步骤 UI），属刻意范围收窄 |
 | effects.py / theme_effects.py / text_glow_effect.py | 459+201+148 | ⛔ | **有意不迁（E24 判定）**：**86% 是 Qt QSS/hex 字面量**（技术上不可迁）；且**实证死代码**——`GlowButton`/`GlowLineEdit`/`GlowComboBox`/`GlowListWidget`/`SuccessToast` 在 `src/` 内**零引用**；`apply_text_glow` 遍历的 `main_window.glow_widgets` 初始化为 `[]` 后**从未 append**（恒空转）；`generate_digital_panel_qss` 仅被 `themes/__init__` 再导出，**无真正调用者**（数字员工面板已由 A1-4 `DigitalPanel.tsx` 覆盖） |
 | themes/themes.py | 1097 | ⛔ | **有意不迁（E24 判定）**：`_THEME_QSS`(255 行) + `_DIGITAL_PANEL_QSS`(200 行) + 5 套 `_THEME_CONFIGS` 主题字典(210 行) **全是 Qt QSS 字符串**，Web 端不可用；TS 已有 CSS 变量深色主题（`styles.css` 9 个变量）。唯一有价值的是 33 行**设计令牌**（`FONT_SIZE_XS..XL` 11/12/13/14/16、`SPACING_XS..XL` 4/8/12/16/24），已作为 CSS 自定义属性覆盖（`:root` 变量层）。多主题切换属**独立立项**（需 `[data-theme]` 覆写 ~80-100 行），不搭车 |
 | menus.py / shortcuts_dialog.py / tab_manager.py / window_state.py | 180+107+249+154 | ◐ | **window_state.py 已迁（E24）**：`main/windowState.ts`（几何 + 最大化 + lastMode，原子写）+ `app:setWindowMode` IPC。**tab_manager** 核心（多标签/延迟切标签/侧栏计数）已由 TS `mode-data`/`mode-ceshu`/`mode-digital` + `LibraryBar` 覆盖，仅剩「标签撕裂保护」边缘情形。**menus.py** 26 项中 TS 已覆盖 16 项（工具栏+侧栏），缺 5 类：撤销/重做（**TS 完全没有**，但 Python 亦仅菜单置灰）、数据关系图、清理未用图片、多引擎导出。**shortcuts_dialog** 是纯键盘映射表（无消费者），随 menus 不迁 |
