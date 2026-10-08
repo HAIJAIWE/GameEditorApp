@@ -1,17 +1,27 @@
-修保密模式的 baseUrl 漏洞：保密时必须忽略云端接口地址（截图举证抓出）
+落地 M0 默认档位纠正（DD-0，v0.10）：默认走云端 + 未配置不再静默回落本地
 
-f506c97 只强制了 provider，不够：用户若此前选过云端，stored.baseUrl 里存的是
-`https://api.deepseek.com/v1`，保密模式沿用会让 `new Ollama({host:'api.deepseek.com'})`
-去连**云端域名** —— 既报错、又违背「数据不出本机」；设置面板「实际生效」也会显示云端地址。
+产品裁定「优先云端，然后本地」。本项目处理未发布的游戏设计稿 ⇒ 本地档是保密档、不是降级备份。
+本轮修三件事：默认档位是 ollama、未配置时静默回落本地、错误文案档位错位。
 
-- shared/llmConfig.ts::resolveLlmBaseUrl：confidential 时一律忽略 stored.baseUrl，回落 effectiveProvider 的预设（Ollama ⇒ http://localhost:11434/v1）
-- main/llm/client.ts::resolveConfig：effective==='ollama' 且 confidential 时忽略 stored.baseUrl，回落 MB_OLLAMA_HOST（原先只判 baseUrl 是否为空）
-- tests/unit/llmConfig.test.ts：新增回归 1 例（保密 ⇒ resolveLlmBaseUrl 不返回云端域名）⇒ 32 passed
-- preview/verify-e59.mjs：T9 增 1 子项（「实际生效」接口地址回落 localhost 且不含 deepseek）⇒ 38/38
-- 文档 §5.5.7 增补该 bug 行与修订记录数字
+- shared/llmConfig.ts（+365）：新增 7 个导出，四态判定与文案各有单一真源
+  · FALLBACK_LLM_PROVIDER='ollama'：非法 provider 的回落值**独立于 DEFAULT_LLM_CONFIG.provider**。原先两者是一回事，改默认档位后写坏/被篡改的 provider 会静默回落成云端 ⇒ 真发请求 + 弹花费确认，违背保密底线
+  · hasStoredLlmConfig(storage?)：「有效配置存在」（键存在 ∧ JSON 可解析为对象）。JSON 损坏归入「未配置」而非「已关闭」，后者会静默死锁
+  · resolveLlmTier(config|undefined)：'cloud'|'local'|'unconfigured'，档位判定唯一真源
+  · llmSetupState / llmSetupGuide(config, hasStored)：四态 never-configured/disabled/misconfigured/ready。hasStored 是**入参**不内部读 storage ⇒ 依赖注入可测
+  · buildConfidentialConfig(current)：一键保密写 enabled/confidential/provider/baseUrl，**model 保留原值**（清掉丢用户数据）
+  · LLM_MESSAGES：6 条文案唯一落点（4 字符串 + 2 函数），跨进程跨面板共用防漂移
+  · DEFAULT_LLM_CONFIG.provider → 'deepseek'；LLM_PROVIDER_ORDER 云端在前、ollama 末位（注释钉死「产品决策覆盖 Python MODEL_PRESETS 声明顺序，勿改回」）
+  · **loadLlmConfig 前置 hasStoredLlmConfig 守卫**：修一个会静默推翻产品裁定的缺陷——readJsonSetting 对「键缺失」与「JSON 损坏」都返回 {}，而 {} 是合法 object ⇒ 原守卫判不出 ⇒ 掉进逐字段夹取、provider 被兜成 ollama ⇒ 新装用户打开设置看到本地 Ollama
+  · 零 interface 字段新增 ⇒ 不触发 zod object() 静默剥键、不连锁命中对象字面量
+- main/llm/client.ts（+90）：删 DEFAULT_STORED_CONFIG（它强行 enabled:true，既静默又绕过 validateLlmConfig 唯一闸门）；generate() 新增 options.config===undefined 前置闸，位置在 validateLlmConfig 与 status() **之前** ⇒ 未配置时零网络请求；5 处文案改引 LLM_MESSAGES；删不可达死路径 if(!model)；4 处失效注释改写
+- main/ipc.ts（+21）：3 处 isCloudProvider(config ?? DEFAULT_LLM_CONFIG) → isCloudCall() 走 resolveLlmTier。改默认档位后原写法会让未配置用户算出 isCloud=true ⇒ 先弹云端花费确认、确认后才收到「未配置」，顺序倒错
+- main/agent/ollamaTransport.ts（+19）：数字员工对话面是独立链路（只读 MB_OLLAMA_* 环境变量、不读 StoredLlmConfig），2 处文案对齐并注明「设置面板对本对话面不生效」；未启动文案复用同一常量
+- renderer/llmBootstrap.ts（新增）+ main.tsx（+11）：启动时推配置镜像。**必须先 hasStoredLlmConfig() 守卫**——loadLlmConfig 永不返回 undefined，无条件推送会使镜像恒非 null ⇒ notConfigured 闸永不成立（用户被误告知「你禁用了 API」）且 resolveLlmTier(DEFAULT) 因 provider=deepseek 判成 cloud ⇒ 把上面修好的顺序倒错退回去
+- SettingsPanel.tsx（+87）：未配置引导块（llm-setup-guide）+ 一键启用保密模式；点击后调 llm:status 按 available+models.length 显示**真实**三态（本地可用 N 个模型 / 未启动 / 没有模型），**禁止**显示「已启用」就算成功；复用既有 llmNotice 与 notice-banner CSS，未新增样式类
+- 测试：llmConfig.test.ts 32→73 例（+41）；llmClient.test.ts +5 例（含 fetch 零调用物理保证、跨层前提回归锁）；llmClientProviders.test.ts 改写骗人 describe 标题并补 provider 断言；e2e 两份 spec 6 处断言改「尚未配置 AI 服务」，桩服务用例补显式 llm.configure（它原本靠被删的静默回落才跑通）
 
-教训：这是**截图/整机渲染举证抓出来的**，纯读代码想不到 —— 「强制 provider」看起来已经
-封住了云端路径，实际 baseUrl 是第二个独立出口。⇒ 每个「强制本地」的开关都要把
-provider / baseUrl / apiKey **三个出口**一起看。
+验证：双端 tsc 0 错 · eslint 0 问题 · vitest 120 文件 / 1877 用例全绿 · npm run build 成功
+渲染举证：verify-e59 38/38 · verify-e51 41/41 · verify-e57 46/46 · verify-e58 14/14（均与改动前基线一致）
+e2e：受本机沙箱限制跑不了（Electron GUI 进程 Target crashed），按既有基线留待 CI
 
-验证：eslint 0 / 双端 tsc 0 / build 成功；verify-e59 38/38；llmConfig 32 + llmClientProviders 14 用例；回归 e51 41/41 · e57 46/46 · e58 14/14全绿
+范围判定（刻意不做）：不做「去设置」跳转按钮——实测渲染层无编程式打开面板能力（openPanel 是 App.tsx 局部函数、全仓 createContext/dispatchEvent 0 命中），新建跨组件桥要动最重的 App.tsx，推迟 M1；错误文案给出精确路径「设置 → AI 模型服务」即满足 DD-0；不做启动弹窗（不动外壳）；不给 ollamaTransport 接档位路由（属 M3，接了会提前烧掉 M0.5 的 num_ctx 设计空间）

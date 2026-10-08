@@ -1,16 +1,20 @@
 import { useState } from 'react'
 
 import {
+  buildConfidentialConfig,
   effectiveProvider,
+  hasStoredLlmConfig,
   LLM_MAX_TOKENS_MAX,
   LLM_PROVIDER_ORDER,
   LLM_PROVIDER_PRESETS,
   LLM_TEMPERATURE_MAX,
   LLM_TEMPERATURE_MIN,
+  llmSetupGuide,
   loadLlmConfig,
   resolveLlmBaseUrl,
   saveLlmConfig,
   type LlmProvider,
+  type LlmSetupGuide,
   type StoredLlmConfig
 } from '../../../shared/llmConfig'
 import { SECRET_NAMES } from '../../../shared/secretNames'
@@ -97,6 +101,15 @@ export default function SettingsPanel() {
   const [llmKeyDraft, setLlmKeyDraft] = useState('')
   const [llmNotice, setLlmNotice] = useState<string | null>(null)
   const [llmKeySaved, setLlmKeySaved] = useState(false)
+  /*
+   * M0「默认档位纠正」：AI 配置四态的引导内容。
+   * 惰性初值（与本文件其余 4 个 `useState(() => ...)` 同风格）：避免每次渲染都读一遍 storage。
+   * ⚠️ `llmSetupGuide` 的 `hasStored` 是**入参**（shared 层刻意不读 storage，依赖注入以便测试），
+   * 所以这里必须自己调 `hasStoredLlmConfig()` 再传进去，不能只传 `loadLlmConfig()`。
+   */
+  const [setupGuide, setSetupGuide] = useState<LlmSetupGuide>(() => llmSetupGuide(loadLlmConfig(), hasStoredLlmConfig()))
+  /** 「一键启用保密模式」的本地探测是否在途（用于禁用按钮，防重复点击） */
+  const [llmProbing, setLlmProbing] = useState(false)
 
   const llmPreset = LLM_PROVIDER_PRESETS[effectiveProvider(llm)]
 
@@ -109,6 +122,13 @@ export default function SettingsPanel() {
       setLlmNotice('配置保存失败：浏览器存储不可用')
       return
     }
+    /*
+     * 刷新四态引导。⚠️ 写在**事件处理器**里而不是 `useEffect`：
+     * react-hooks v7 把 `set-state-in-effect` / `set-state-in-render` 判为 **error**。
+     * 且必须落在上面 `if (!saved) {...return}` 的**早退分支之后** ——
+     * 存储写失败时配置根本没落盘，此时若刷新引导会把「没存上」显示成「已生效」。
+     */
+    setSetupGuide(llmSetupGuide(next, hasStoredLlmConfig()))
     void window.mbApi.llm
       .configure({ config: next })
       .catch(() => setLlmNotice('已保存到本地，但推送给主进程失败，AI 调用可能仍用旧配置'))
@@ -143,6 +163,40 @@ export default function SettingsPanel() {
     setLlmKeyDraft('')
     setLlmKeySaved(true)
     setLlmNotice('API Key 已存入系统钥匙串（加密落盘，不写入浏览器存储）')
+  }
+
+  /**
+   * 「一键启用保密模式」：切到本地 Ollama 档，然后**如实汇报本地到底能不能用**（M0 / DD-0）。
+   *
+   * ## 铁律：不假装成功
+   * 配置**保存成功 ≠ 本地可用**。本地档真正能不能跑，取决于两件用户自己才能解决的事：
+   * Ollama 服务有没有起（`ollama serve`）、有没有拉过模型（`ollama pull`）。
+   * 所以点完按钮必须发一次 `llm:status` 探测，并按 `available` + `models.length`
+   * **两个结构化字段**分四态显示。⚠️ 绝不用 `message.includes('...')` 判定 ——
+   * 那是文案判定，文案一改判定就跟着漂（且 `message` 是主进程自由发挥的字符串）。
+   * ⚠️ 也绝不在任何分支显示「已启用」了事。
+   */
+  const enableConfidential = async (): Promise<void> => {
+    setLlmNotice(null)
+    setLlmProbing(true)
+    const next = buildConfidentialConfig(llm)
+    commitLlm(next)
+    try {
+      // 渲染层首次调用 `llm:status`（此前该 IPC 通道从未被渲染层用过）
+      const st = await window.mbApi.llm.status()
+      if (st.available) {
+        setLlmNotice(`本地可用（${st.models.length} 个模型）`)
+      } else if (st.models.length > 0) {
+        setLlmNotice('本地 Ollama 未启动')
+      } else {
+        setLlmNotice('已开启保密模式，但本地还没有模型，请先在命令行执行 ollama pull <model 或 qwen3:8b> 拉取模型')
+      }
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err)
+      setLlmNotice(`已保存配置，但无法连接本地 Ollama：${reason}，请确认已启动（ollama serve）`)
+    } finally {
+      setLlmProbing(false)
+    }
   }
 
   return (
@@ -238,6 +292,39 @@ export default function SettingsPanel() {
         {/* ---- LLM 服务商配置（对齐 Python `api_config.py` 基础设置页） ---- */}
         <div className="form-section" data-testid="settings-llm">
           <strong>AI 模型服务</strong>
+
+          {/*
+            M0 未配置引导块。位置在「AI 模型服务」标题之后、「启用 API」复选框之前 ——
+            引导说的是「你还没配」，必须**先于**配置控件出现，否则用户先看到一堆
+            选填项、不知道哪些是必填。块内元素与既有 `form-section` 内的
+            `check-option` 同为块级流式排布，不改动任何既有元素的相对位置。
+            ⚠️ `body` 含 `\n`（三步说明），必须靠 `whiteSpace: 'pre-line'` 渲染换行；
+            直接塞进普通 div 会把三行压成一行糊掉。
+          */}
+          {setupGuide.showGuide && (
+            <div className="notice-banner inline" data-testid="llm-setup-guide">
+              <b data-testid="llm-setup-title">{setupGuide.title}</b>
+              <div className="item-meta" data-testid="llm-setup-body" style={{ whiteSpace: 'pre-line' }}>
+                {setupGuide.body}
+              </div>
+              {setupGuide.showEnableConfidential && (
+                <button
+                  type="button"
+                  className="btn"
+                  data-testid="llm-enable-confidential"
+                  disabled={llmProbing}
+                  onClick={() => void enableConfidential()}
+                >
+                  🔒 一键启用保密模式
+                </button>
+              )}
+            </div>
+          )}
+          {setupGuide.hint !== null && (
+            <div className="item-meta" data-testid="llm-setup-hint">
+              {setupGuide.hint}
+            </div>
+          )}
 
           <label className="check-option" data-testid="llm-enabled">
             <input

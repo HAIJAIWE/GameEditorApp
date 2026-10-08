@@ -74,7 +74,7 @@ async function startOllamaStub(responseText: string): Promise<OllamaStub> {
   }
 }
 
-test('AI 生成数据（离线）：面板结构完整 + 本地服务不可用时中文提示', async () => {
+test('AI 生成数据（未配置）：面板结构完整 + 未配置时给出可执行的中文指引', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-ceshu-datagen-offline-'))
   const app = await launchApp(userDataDir, { MB_OLLAMA_HOST: 'http://127.0.0.1:1' })
 
@@ -107,10 +107,14 @@ test('AI 生成数据（离线）：面板结构完整 + 本地服务不可用�
     await expect(window.getByTestId('datagen-status')).toHaveText('尚未生成。选择类型后点击「生成候选」开始。')
     await expect(window.getByTestId('datagen-types')).toContainText('角色')
 
-    // 离线路径：错误提示含 Ollama 与 ollama serve
+    // 未配置路径：M0（DD-0）后未配置**不再回落到探本地 Ollama**，
+    // 而是在发请求前抛「尚未配置 AI 服务」并给出可执行指引。
+    // ⚠️ 前提是本用例用 `mkdtempSync` 新建的空 userDataDir（localStorage 为空）
+    // ⇒ `llmBootstrap` 的 `hasStoredLlmConfig()` 守卫跳过推送 ⇒ 主进程镜像保持 null。
+    // 渲染层**是**会启动推送的，别再写成「渲染层不推」（那是守卫落地前的旧状态）。
     await window.getByTestId('datagen-generate').click()
-    await expect(window.getByTestId('datagen-error')).toContainText('Ollama')
-    await expect(window.getByTestId('datagen-error')).toContainText('ollama serve')
+    await expect(window.getByTestId('datagen-error')).toContainText('尚未配置 AI 服务')
+    await expect(window.getByTestId('datagen-error')).toContainText('设置 → AI 模型服务')
     await expect(window.getByTestId('datagen-import')).toHaveCount(0)
 
     // 一种类型都没勾选 → 前端直接拦截（不发起请求）
@@ -156,6 +160,36 @@ test('AI 生成数据（桩服务）：提示词组装 → 候选预览 → 勾�
     await waitReady(window)
     await window.getByTestId('home-card').filter({ hasText: '数据生成E2E' }).getByTestId('home-card-open').click()
     await window.getByTestId('ceshu-ai-datagen').click()
+
+    /*
+     * ⚠️ M0（DD-0）后必须**显式推一份配置**，桩服务才会被调用。
+     *
+     * 旧版这里能跑通，靠的是 `client.ts` 里那条「未配置 ⇒ 假定 `{enabled:true}` + 探
+     * 本地 Ollama」的静默回落 —— 也就是「用户从没配过 AI，服务却已经跑起来了」。
+     * M0 把那条路径删了（未配置 ⇒ 发请求前失败），所以桩服务用例必须先配置。
+     *
+     * 放在 `reload()` **之后**：`llmConfigMirror` 是主进程内存态（渲染层 reload 不清），
+     * 但把它排在最后一次导航之后，读者不必去查「reload 会不会把镜像清掉」。
+     *
+     * `confidential: true` 走 DD-0b 保密模式（强制本地、无视 baseUrl），
+     * 与「处理未发布设计稿要保密」的产品底线一致，也让本用例天然不碰任何云端地址。
+     * 字段集与 `shared/schemas.ts::llmConfigSchema` 一一对应（zod 会剥掉未知键，多写无效）。
+     */
+    await window.evaluate(async () => {
+      const api = (globalThis as unknown as { mbApi: { llm: { configure: (req: unknown) => Promise<unknown> } } })
+        .mbApi
+      await api.llm.configure({
+        config: {
+          enabled: true,
+          provider: 'ollama',
+          model: 'stub:latest',
+          baseUrl: '',
+          temperature: 0.7,
+          maxTokens: 1000,
+          confidential: true
+        }
+      })
+    })
 
     // 只勾选「角色 / 技能」（其余取消），每类 2 条 + 补充要求
     const typeCount = await window.getByTestId('datagen-type').count()

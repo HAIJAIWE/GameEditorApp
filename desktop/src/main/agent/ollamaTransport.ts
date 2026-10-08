@@ -6,8 +6,16 @@
  * 直接用 `fetch` 打 `/api/chat` 更稳，也让桩服务 E2E 的契约显式可读。
  *
  * 主机/模型沿用项目既有约定：`MB_OLLAMA_HOST`（默认 127.0.0.1:11434）、`MB_OLLAMA_MODEL`。
+ *
+ * ## ⚠️ 本层**不受设置面板的「AI 模型服务」影响**（不是 bug，是 M0 有意留下的边界）
+ * 它是数字员工对话面（`agent:chat`）的**第三条独立链路**：不 import `StoredLlmConfig`、
+ * 不读 `confidential`、不走 `resolveLlmTier`。用户在这里改不动、在这里也看不到，
+ * 改完设置发现本对话面没变化是**预期行为**。
+ * 之所以在错误文案里明说这一点，是为了不给用户「设置没生效」的错觉（那才是真误导）。
+ * 接档位路由属 M3；现在接会提前烧掉 M0.5 的 `num_ctx` 设计空间。
  */
 
+import { LLM_MESSAGES } from '../../shared/llmConfig'
 import {
   parseToolArguments,
   type BrainLlmReply,
@@ -48,7 +56,10 @@ export class OllamaChatTransport implements BrainLlmTransport {
   private resolveModel(): string {
     const model = this.options.model ?? process.env['MB_OLLAMA_MODEL']
     if (model === undefined || model === '') {
-      throw new Error('未指定本地模型：请设置 MB_OLLAMA_MODEL，或先 ollama pull 拉取模型后重试')
+      throw new Error(
+        '未指定本地模型：数字员工对话面读取的是环境变量 MB_OLLAMA_MODEL（或本机已拉取的默认模型），' +
+          '请先 ollama pull 拉取模型并设置该环境变量后重试（设置面板的「AI 模型服务」对本对话面不生效）'
+      )
     }
     return model
   }
@@ -71,10 +82,8 @@ export class OllamaChatTransport implements BrainLlmTransport {
         body
       })
     } catch (error) {
-      throw new Error(
-        `未检测到本地 Ollama 服务，请先启动（ollama serve，地址 ${this.resolveHost()}）后重试`,
-        { cause: error }
-      )
+      // 与 `main/llm/client.ts` 的 Ollama 分支共用同一常量 ⇒ 两处「本地未启动」文案永不漂移
+      throw new Error(LLM_MESSAGES.ollamaNotRunning(this.resolveHost()), { cause: error })
     }
 
     if (!response.ok || response.body === null) {

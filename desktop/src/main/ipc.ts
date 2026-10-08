@@ -167,7 +167,7 @@ import { generateImage } from './imageGen/client'
 import { saveImageFromUrl } from './imageGen/save'
 import { isValidSecretName, type SecretStore } from './settings/secretStore'
 import { SECRET_NAMES } from '../shared/secretNames'
-import { DEFAULT_LLM_CONFIG, isCloudProvider, type StoredLlmConfig } from '../shared/llmConfig'
+import { resolveLlmTier, type StoredLlmConfig } from '../shared/llmConfig'
 import type { LlmClient } from './llm/client'
 import type { TypeSchemaStore } from './schema/store'
 import type { FieldTemplateStore } from './schema/fieldTemplateStore'
@@ -396,6 +396,19 @@ export function registerIpcHandlers({
     const secret = await secretStore.get(SECRET_NAMES.llmApiKey)
     return { config: llmConfigMirror ?? undefined, apiKey: secret.ok ? secret.plaintext : '' }
   }
+  /**
+   * 本次调用是否走云端（决定要不要先弹「云端花费确认」）。**只用 `resolveLlmTier` 判**。
+   *
+   * ⚠️ M0 之前这里是 `isCloudProvider(callOpts.config ?? DEFAULT_LLM_CONFIG)`，
+   * 在默认服务商改成云端 DeepSeek 之后会**顺序倒错**：未配置用户
+   * （`llmConfigMirror === null` ⇒ `config === undefined`）被算成云端档，
+   * 于是点「一键生成」**先弹花钱确认、确认后才收到「尚未配置」** ——
+   * 比静默回落更让人困惑（他要为一个根本没配的档位做付费决策）。
+   * `resolveLlmTier(undefined) === 'unconfigured'` ⇒ `isCloud === false` ⇒
+   * 不弹确认，直接由 `llmClient.generate` 的未配置闸给出可执行指引。
+   */
+  const isCloudCall = (callOpts: { config?: StoredLlmConfig }): boolean =>
+    resolveLlmTier(callOpts.config) === 'cloud'
 
   handle('llm:configure', llmConfigureInputSchema, (req) => {
     llmConfigMirror = req.config
@@ -816,7 +829,7 @@ export function registerIpcHandlers({
     // v0.5 DD-17 + v0.6 M5：整篇 / 一键生成属「大范围云端调用」，需渲染层带 `confirmed: true` 重发；
     // 云端档若预估超预算也需先确认（降级 = 提示拆分，而非静默烧钱）
     const callOpts = await llmCallOptions()
-    const isCloud = isCloudProvider(callOpts.config ?? DEFAULT_LLM_CONFIG)
+    const isCloud = isCloudCall(callOpts)
     const estimated = estimateTokens(built.system + built.prompt)
     const confirmReason = llmConfirmReason({
       bulk: req.fullGenerate !== undefined,
@@ -851,7 +864,7 @@ export function registerIpcHandlers({
     const count = clampDataGenCount(req.count)
     const built = buildDataGenPrompt(doc, types, selected, count, req.instruction.trim())
     const callOpts = await llmCallOptions()
-    const isCloud = isCloudProvider(callOpts.config ?? DEFAULT_LLM_CONFIG)
+    const isCloud = isCloudCall(callOpts)
     const estimated = estimateTokens(built.system + built.prompt)
     const confirmReason = llmConfirmReason({
       count,
@@ -902,7 +915,7 @@ export function registerIpcHandlers({
     })
     // v0.6 M5：云端档超预算需先确认（审阅整篇也可能很长）
     const callOpts = await llmCallOptions()
-    const isCloud = isCloudProvider(callOpts.config ?? DEFAULT_LLM_CONFIG)
+    const isCloud = isCloudCall(callOpts)
     const estimated = estimateTokens(built.system + built.prompt)
     const confirmReason = llmConfirmReason({ taskType: 'review', estimatedTokens: estimated, isCloud })
     if (confirmReason !== null && req.confirmed !== true) {

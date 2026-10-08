@@ -171,12 +171,20 @@ describe('LlmClient：status 对 OpenAI 兼容端点不发网络请求', () => {
   })
 })
 
-describe('LlmClient：未传配置时保持迁移前行为（只探 Ollama）', () => {
-  it('不传 options ⇒ 仍走 Ollama 探测分支，available 有明确布尔值', async () => {
+describe('LlmClient：未传配置时按默认服务商分支判定可用性（不静默回落本地）', () => {
+  it('不传 options ⇒ 走默认服务商（云端 DeepSeek）分支，available 有明确布尔值', async () => {
     const client = new LlmClient()
-    // 本机大概率没起 ollama；无论起没起，available 都必须是布尔且有中文 message
+    // ⚠️ 本用例的标题在 M0 之前是「保持迁移前行为（只探 Ollama）」——**那已成谎言**：
+    // `DEFAULT_LLM_CONFIG.provider` 已是 `'deepseek'`（DD-0 云端优先），
+    // 「不传配置」现在走 OpenAI 兼容分支（纯本地判定，不发网络），
+    // 而**不是**去连 127.0.0.1:11434。断言当时仍能过 ⇒ 典型的「测试绿着、注释骗人」。
+    //
+    // 真正的「不传配置 ⇒ 失败」由 `llmClient.test.ts` 的未配置用例锁（generate 抛 notConfigured）。
+    // 这里只锁 status：它按默认档位如实回报可用性，不该崩、不该返回 undefined。
     const status = await client.status()
     expect(typeof status.available).toBe('boolean')
     expect(status.message.length).toBeGreaterThan(0)
+    // 默认档位是云端 ⇒ provider 回报默认服务商，且不产生任何网络请求（纯本地判断）
+    expect(status.provider).toBe(DEFAULT_LLM_CONFIG.provider)
   })
 })
