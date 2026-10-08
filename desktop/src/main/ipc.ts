@@ -112,7 +112,8 @@ import {
 } from '../shared/ceshuConstants'
 import { llmConfirmReason } from '../shared/agent/protocol'
 import { estimateTokens } from '../shared/agent/budget'
-import { evaluateChapterDraft, evaluateDataCandidates } from '../shared/agent/qualityGate'
+import { applyJudge, evaluateChapterDraft, evaluateDataCandidates } from '../shared/agent/qualityGate'
+import { runLlmJudge } from './agent/qualityJudge'
 import { buildChapterPrompt, buildReviewPrompts, filterGeneratedFields, mergeChapterDraft, parseLlmJson, parseReviewResponse } from '../shared/ceshuAi'
 import {
   DATA_GEN_ERROR_EMPTY,
@@ -843,12 +844,16 @@ export function registerIpcHandlers({
     const { model, content, usage } = await llmClient.generate(built.system, built.prompt, callOpts)
     const parsed = parseLlmJson(content)
     const fields = filterGeneratedFields(doc, req.chapter, parsed)
+    // v0.5 DD-19：产出过确定性评分门（validateCeshu + scoreCeshu），供 UI 展示"生成有没有变好"
+    const deterministic = evaluateChapterDraft(base, req.chapter, fields)
+    // v1.0 DD-19 剩余项：确定性门为主、judge 为辅；judge 走同源 callOpts 自动遵守保密，
+    // 失败降级为 null（applyJudge 原样返回确定性 verdict，绝不阻断正文生成）
+    const judge = await runLlmJudge(callOpts, req.chapter, fields)
     return {
       model,
       fields,
       rawText: content,
-      // v0.5 DD-19：产出过确定性评分门（validateCeshu + scoreCeshu），供 UI 展示"生成有没有变好"
-      quality: evaluateChapterDraft(base, req.chapter, fields),
+      quality: applyJudge(deterministic, judge),
       // v0.6 M5：成本护栏的观测数据
       usage: usage ?? null
     }

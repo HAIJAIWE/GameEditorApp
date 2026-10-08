@@ -3,7 +3,8 @@ import { describe, expect, it } from 'vitest'
 import type { CeshuDocument } from '../../src/shared/ceshuConstants'
 import { createDefaultCeshu } from '../../src/shared/ceshuModel'
 import { validateCeshu } from '../../src/shared/ceshuValidation'
-import { evaluateChapterDraft } from '../../src/shared/agent/qualityGate'
+import { applyJudge, evaluateChapterDraft } from '../../src/shared/agent/qualityGate'
+import type { LlmJudgeVerdict } from '../../src/shared/agent/qualityGate'
 
 /**
  * 策划书 AI 产出的**确定性评分门**（v0.5 DD-19）。
@@ -214,5 +215,58 @@ describe('数据 AI 候选的确定性质量门（v0.5 DD-19 数据半边）', (
     expect(verdict.total).toBe(0)
     expect(verdict.issues).toHaveLength(0)
     expect(verdict.hasIssues).toBe(false)
+  })
+})
+
+/* ---- LLM-as-Judge 辅助维度（v1.0 DD-19 剩余项，章节侧） ---- */
+
+function safeJudge(): LlmJudgeVerdict {
+  return { toxicity: 'safe', readability: 8, creativity: 7, score: 82, comment: '文字通顺，设定有新意' }
+}
+
+describe('LLM-as-Judge 辅助维度（v1.0 DD-19 剩余项）', () => {
+  it('确定性 verdict 默认 judge 为 null（judge 异步算完才合并）', () => {
+    const verdict = evaluateChapterDraft(makeDoc(), 'meta', {})
+    expect(verdict!.judge).toBeNull()
+  })
+
+  it('applyJudge(null) ⇒ 原样返回，judge 保持 null，不抛错不改动', () => {
+    const verdict = evaluateChapterDraft(makeDoc(), 'meta', {})
+    const merged = applyJudge(verdict!, null)!
+    expect(merged.judge).toBeNull()
+    expect(merged.summary).toBe(verdict!.summary)
+    // 同一引用/值，未被 mutate 出新字段以外的变化
+    expect(merged.blocking).toBe(verdict!.blocking)
+  })
+
+  it('safe judge ⇒ 挂到 verdict.judge，summary 保持不变', () => {
+    const verdict = evaluateChapterDraft(makeDoc(), 'meta', {})
+    const baseSummary = verdict!.summary
+    const merged = applyJudge(verdict!, safeJudge())!
+    expect(merged.judge).toEqual(safeJudge())
+    expect(merged.summary).toBe(baseSummary)
+    expect(merged.blocking).toEqual(verdict!.blocking)
+    expect(merged.scoreDelta).toBe(verdict!.scoreDelta)
+  })
+
+  it('flagged 毒性 ⇒ 往 summary 追加合规提示，但不推翻 blocking / scoreDelta', () => {
+    const verdict = evaluateChapterDraft(makeDoc(), 'meta', {})
+    const flagged: LlmJudgeVerdict = { ...safeJudge(), toxicity: 'flagged', comment: '含敏感内容' }
+    const merged = applyJudge(verdict!, flagged)!
+    expect(merged.judge).toEqual(flagged)
+    expect(merged.summary).toContain('合规风险')
+    expect(merged.summary).toContain(verdict!.summary)
+    // 关键：judge 只追加提示，不修改确定性门的硬结论
+    expect(merged.blocking).toEqual(verdict!.blocking)
+    expect(merged.errorDelta).toBe(verdict!.errorDelta)
+    expect(merged.scoreDelta).toBe(verdict!.scoreDelta)
+    expect(merged.improved).toBe(verdict!.improved)
+  })
+
+  it('pure：applyJudge 不就地修改入参 verdict', () => {
+    const verdict = evaluateChapterDraft(makeDoc(), 'meta', {})
+    const snapshot = JSON.stringify(verdict)
+    applyJudge(verdict!, safeJudge())
+    expect(JSON.stringify(verdict)).toBe(snapshot)
   })
 })

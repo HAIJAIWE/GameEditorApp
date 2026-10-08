@@ -3632,6 +3632,50 @@ button.ref-row:hover {
 .budget-bar-fill.level-warn { background: var(--warning, #c90); }
 .budget-bar-fill.level-over { background: var(--danger, #d33); }
 
+/* ---- AI 辅助评审 judge 聚合块（v1.0 DD-19 剩余项，章节侧） ---- */
+.ai-full-judge {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elevated, var(--bg));
+  font-size: calc(13px * var(--ui-font-scale) * 1.0);
+}
+.ai-full-judge-head {
+  font-weight: 600;
+  margin: 0 0 6px;
+}
+.ai-full-judge-warn {
+  color: var(--danger, #d33);
+  margin: 0 0 6px;
+  font-weight: 600;
+}
+.ai-full-judge-stats {
+  margin: 0;
+  color: var(--text-muted, #888);
+}
+.ai-full-judge-note {
+  margin: 0;
+  color: var(--text-muted, #888);
+}
+/* 进度行里的 per-chapter judge 徽标 */
+.ai-full-judge-badge {
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: calc(12px * var(--ui-font-scale) * 1.0);
+  border: 1px solid var(--border);
+}
+.ai-full-judge-badge.safe {
+  color: var(--success, #2e9e5b);
+  border-color: var(--success, #2e9e5b);
+}
+.ai-full-judge-badge.flagged {
+  color: var(--danger, #d33);
+  border-color: var(--danger, #d33);
+  font-weight: 600;
+}
+
 /* ---- GDD 模板编辑器（W29） ---- */
 
 .template-editor-body {

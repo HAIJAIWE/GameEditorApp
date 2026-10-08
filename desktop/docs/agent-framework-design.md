@@ -1,6 +1,6 @@
 # 智能体框架重写设计（E59 起）
 
-> **状态**：v0.9 草案（**已重写**，取代 v0.1~v0.4），待主理人裁决。
+> **状态**：v1.0 草案（**已重写**，取代 v0.1~v0.4），待主理人裁决。
 > **动因**：E42 裁决「`core/agent` 域停止 1:1 迁移，改为框架重写」——方向定了，架构未定。
 >
 > **修订记录（四次纠错，全部记录在案）**
@@ -31,12 +31,15 @@
 >   ⚠️ **仅护栏级**：预算条 + 超限前二次确认**已落地**；DD-5b 的"超预算真降级（收缩可见工具→缩短上下文）"**未做**，留待后续（需结合 DD-3 工具面与 DD-8 上下文管理）。本地 Ollama 视为 free、不拦截。
 >   ⇒ 运行期举证 `preview/verify-e59.mjs` **22/22**（新增 T6 数据花费块 / T7 整篇累计花费块）；vitest **1825 passed**；`npm run build` 通过。
 > - **v0.7 → v0.8**（本次会话）：把 DD-19 当初**待 M5 接**的"**导入前二次确认**"真正落地——完成 M5 的原本意图（用数据侧质量门的"是否违反约束"判定作为导入前置）。`AiDataGenPanel` 的 `handleImport` 在质量门 `quality.hasIssues` 为真且未确认时，进入内联二次确认态（沿用 DD-17 范式、不自造弹窗）：提示"质量门检出 N 处问题（如：…），仍要导入勾选的 M 条？"+ `仍要导入`/`取消` 两按钮；点确认才真正写数据表，强化"AI 只产候选、人工审批后才写入"的硬约束。生成新候选时重置该态。
->   ⚠️ **范围判定**：仅以 `hasIssues`（数量约束超限或离散度偏高）为触发条件，不对"常规无问题"的生成拦路；balance 属建议项，同样纳入确认而非静默放行。LLM judge 权重仍未接。
+>   ⚠️ **范围判定**：仅以 `hasIssues`（数量约束超限或离散度偏高）为触发条件，不对"常规无问题"的生成拦路；balance 属建议项，同样纳入确认而非静默放行。LLM judge 权重已在 **v1.0** 接（见 §5.5.8，章节侧辅助维度，不覆盖确定性门）。
 >   ⇒ 运行期举证 `preview/verify-e59.mjs` **28/28**（新增 **T8**：生成后未点导入不出现确认态 / 点导入出现 `datagen-import-confirm` / 取消消失 / 仍要导入后门消失）；vitest **1825 passed**；`npm run build` 通过。
 > - **v0.8 → v0.9**（本次会话）：落地 **M6 保密模式（DD-0b）**。核心是把"数据不出本机"做成**硬保证**而非软提示——`StoredLlmConfig` 新增 `confidential:boolean`；新增 `effectiveProvider()`/`isCloudProvider()`（shared 层，主/渲染共用）；`main/llm/client.ts::resolveConfig` **无视 stored.provider、保密模式强制回落 ollama**（经 `client.generate` 实际走本地 `/api/generate`，物理上不向云端发请求）；3 个 AI handler（`aiGenerateChapter`/`aiGenerateData`/`aiReview`）的 `isCloud` 改用 `isCloudProvider()`，保密模式一律 `false`（不弹"云端花费"确认、不烧钱）；`validateLlmConfig` 按 effectiveProvider 校验（保密模式下不要求云端 Key/模型）；`shared/schemas.ts::llmConfigSchema` 补 `confidential` 字段（zod 默认剥未知键，漏加会被 IPC 边界静默吞掉）；`SettingsPanel` 新增 `llm-confidential` 显式 🔒 开关 + "数据不出本机"提示，开启后服务商选择框 disabled 且 UI 一律按 ollama 渲染。
 >   ⚠️ **范围判定**：本版是"整篇/整库一刀切"的全局保密档（G9 原始诉求）；DD-0b 文档里提的"章节级/字段级保密粒度"（v0.4 §2.3）**未做**，留待后续——那需要 per-call 携带 tier 而非全局 flag，属更大重构。
 >   ⇒ 单测 `llmConfig.test.ts` **32 passed**（新增 DD-0b effectiveProvider/isCloudProvider/保密校验/**保密忽略云端 baseUrl** 5 例 + confidential 读写 2 例）；`npm run typecheck` 0 错 + eslint 0；`npm run build` 通过。
 >   ⇒ 运行期举证 `preview/verify-e59.mjs` **38/38**（新增 **T9** 9 子项：默认关闭且无提示 / 先选云端 deepseek 出现 API Key 行 / 开保密 ⇒ 出现「数据不出本机」+ 服务商强制回落 ollama + 下拉 disabled + API Key 行消失 + **「实际生效」接口地址回落 localhost 而非云端域名** / 关保密 ⇒ 恢复原服务商）；vitest 全量 **120 文件 / 1830 用例 passed**。
+> - **v0.9 → v1.0**（本次会话）：收口 **DD-19 剩余项——LLM judge 权重接入**（章节侧）。设计定型：**确定性门为主、LLM judge 为辅**，judge 只补机器判不了的维度（毒性 / 可读性 / 创意），权重远低于确定性门——`toxicity==='flagged'` 也**不推翻** `blocking`/`scoreDelta`，只往 `summary` 追加合规提示。分层上 judge 的 LLM 调用放 `main` 层（`main/agent/qualityJudge.ts::runLlmJudge`，复用正文同源 `callOpts` ⇒ 自动走 `effectiveProvider` 遵守保密、任何失败 try/catch 降级返回 `null` 不阻断主生成），纯合并逻辑 `applyJudge` 放 `shared/agent/qualityGate.ts`（可单测、不 import main）；`QualityGateVerdict` 新增 `judge:LlmJudgeVerdict|null` 字段，确定性 `evaluateChapterDraft` 产出的 verdict 此字段为 `null`，异步算完再由 `applyJudge` 合并。`aiGenerateChapter` 在确定性门之后 `await runLlmJudge` 并用 `applyJudge` 合并；渲染层 `AiFullGeneratePanel` 收集每章 `quality.judge`，进度行加 per-chapter 徽标（`safe`/`flagged` 分色）+ 底部聚合块（合规风险高亮 + 可读性/创意均值 + 未评审计数）。**数据侧不叠 judge**（已由确定性平衡门覆盖，避免过度 + 无谓成本）。
+>   ⚠️ **范围判定**：judge 仅在章节侧接入；单章 `CeshuView` 路径只用 `result.fields` 回填表单、章节 `quality` 本就未渲染（与确定性门同现状，不单独为 judge 加展示，避免过度 + 不一致）；judge 的失败/降级一律静默返回 `null`，永不阻断或拖垮正文生成；保密模式下 judge 经 `effectiveProvider` 强制本地 Ollama，物理不触云端。
+>   ⇒ 运行期举证 `preview/verify-e59.mjs` 维持 **38/38**；单测 `agentQualityGate.test.ts` 新增 `applyJudge` 5 例（确定性 verdict 默认 `judge:null` / `null` 降级原样返回 / `safe` 不改动 summary / `flagged` 追加合规提示且不改 `blocking`/`scoreDelta` / 纯函数不改动入参）；vitest 全量 **120 文件 / 1882 用例 passed**（原 1877 + 5）；`npm run typecheck` 0 错（node+web）+ eslint 0 + `npm run build` 通过。
 >
 > **证据强度标注**（全文通用）：
 > `[实测]` 本机/本仓跑出来的 · `[一手]` 模型厂商官方文档 · `[GitHub]` 直接抓成熟框架仓库所得 · `[二手]` 第三方文章/实测（附出处）· `[推断]` 我的推理，未直接验证
@@ -340,7 +343,7 @@ SOUL 硬边界、turn limit、MCP、`shared/` 分层契约、**6 家服务商的
 |---|---|---|---|---|---|---|
 | **DD-17** ⭐**✅ 已实现** | `ceshu:ai*` 纳入确认门 | §5.5.2① | 判定抽成纯函数 `shared/agent/protocol.ts::llmConfirmReason` / `isBulkLlmCall`（**判定与文案同源**）；两个 AI schema 加 `confirmed` 可选标志；`main/ipc.ts` 在调 LLM 前拦；渲染层用**内联两按钮确认态**（`AiFullGeneratePanel` / `AiDataGenPanel`，沿用 `ClearAllPanel` 范式，不自造弹窗） | 新增 | **两档** | 保密模式（M6）落地后，可再加"本地档禁止出境"语义 |
 | **DD-18** | 缺域词汇/域契约 | §5.5.2② | **域 context provider**：常驻注入「类型 schema + `CHAPTER_KEYS` + 143 条术语表 + 当前系统开关」——这是本项目 grounding 的第一手段 | 新增（具体化 DD-16） | 两档 | — |
-| **DD-19** ⭐**✅ 已实现** | 产出无法机器验证 | §5.5.2③⑧ | **策划书半边**（`evaluateChapterDraft`，已接 `aiGenerateChapter.quality`）；**数据半边**（v0.6 补完）：`evaluateDataCandidates` 复用 `dataCountConstraint`（数量约束，硬）+ `dataStats::assessBalance`（离散度，建议），接进 `ceshu:aiGenerateData.quality`，并在 `AiDataGenPanel` 渲染结论块（`is-count`/`is-balance` 分色）。**两个面都过确定性门**。**导入前二次确认已在 v0.8 接**（质量门 `hasIssues` ⇒ 导入前内联二次确认）。LLM judge 权重仍待接 | 新增 | **两档** | M5 成本护栏依赖本门的"是否违反约束"判定 |
+| **DD-19** ⭐**✅ 已实现（v1.0 收口）** | 产出无法机器验证 | §5.5.2③⑧ | **策划书半边**（`evaluateChapterDraft`，已接 `aiGenerateChapter.quality`）；**数据半边**（v0.6 补完）：`evaluateDataCandidates` 复用 `dataCountConstraint`（数量约束，硬）+ `dataStats::assessBalance`（离散度，建议），接进 `ceshu:aiGenerateData.quality`，并在 `AiDataGenPanel` 渲染结论块（`is-count`/`is-balance` 分色）。**两个面都过确定性门**。**导入前二次确认已在 v0.8 接**（质量门 `hasIssues` ⇒ 导入前内联二次确认）。**LLM judge 权重已在 v1.0 接**（章节侧 `applyJudge` + `runLlmJudge`，辅助维度，不覆盖确定性门；见 §5.5.8） | 新增 | **两档** | M5 成本护栏依赖本门的"是否违反约束"判定 |
 | **DD-20** | 策划书⇄数据双向依赖无表达 | §5.5.2④⑥ | **跨域一致性工具**作为一等工具（重命名类型→全库引用同步、删系统→停用数据表、字段改名→迁移引用…）；同时是 DD-15 复合工具的最佳用例 | 新增 | 两档 | — |
 | **DD-21** | 35 个技能清单 ≠ 域能力清单 | §5.5.2⑤ | 工具面**按三个真实场景重组**（策划书创作 / 数据编辑 / 系统设计），替代按 Python 技能表删减 | 新增 | 两档 | — |
 | **修订 DD-9** | 评估器问错了问题 | §5.5.2⑧ | 先核实的不再是 Python 的 `auto_evaluator.py`（TS 侧没这文件），而是**「确定性门是否已接进产出路径」** | 修订 | 两档 | — |
@@ -392,7 +395,7 @@ SOUL 硬边界、turn limit、MCP、`shared/` 分层契约、**6 家服务商的
 | 触发条件 | `DataQualityVerdict.hasIssues`（数量约束超限 `count_limit` 或离散度偏高 `balance` 任一）⇒ 不对"常规无问题"的生成拦路；这是 DD-19 设计里"AI 只产候选、人工审批后才写入"硬约束的落地 |
 | 运行期举证 | `preview/verify-e59.mjs` **28/28**（新增 **T8** 6 子项：未点导入不出现确认态 / 点导入出现 `datagen-import-confirm` / 文案带出"仍要导入"与"处问题" / 取消消失 / 仍要导入后门消失）；vitest **1825 passed**；`npm run build` 通过 |
 
-> **范围判定**：仅以 `hasIssues` 触发，不额外拦路；LLM judge 权重仍未接（DD-19 原 note 的剩余项）。
+> **范围判定**：仅以 `hasIssues` 触发，不额外拦路；LLM judge 权重已在 **v1.0** 收口（见 §5.5.8，DD-19 原 note 的剩余项）。
 
 ### 5.5.7 实现记录（v0.9）：M6 保密模式（DD-0b）落地
 
@@ -407,6 +410,19 @@ SOUL 硬边界、turn limit、MCP、`shared/` 分层契约、**6 家服务商的
 | 测试 | `llmConfig.test.ts` **32 passed**（新增 effectiveProvider/isCloudProvider/保密校验 4 例 + confidential 读写 2 例 + **保密忽略云端 baseUrl 回归 1 例**，白名单键断言 6 ⇒ 7）；`npm run typecheck` 0 错；eslint 0；运行期 `preview/verify-e59.mjs` **38/38**（新增 T9 9 子项）；vitest 全量 **120 文件 / 1830 用例** |
 
 > **范围判定**：本版是**全局一刀切**保密档（G9 原始诉求）。文档 §2.3 提的**章节级/字段级保密粒度**（"只把 `vision` 章节发云端润色、数值不出本机"）**未做** —— 那需要 per-call 携带 tier 而非全局 flag，属更大重构，留待后续。
+
+### 5.5.8 实现记录（v1.0）：DD-19 剩余项——LLM judge 权重接入（章节侧）
+
+| 项 | 落地 |
+|---|---|
+| `shared/agent/qualityGate.ts` | `QualityGateVerdict` 增 `judge: LlmJudgeVerdict \| null`（确定性 `evaluateChapterDraft` 产出时恒为 `null`）；新增 `LlmJudgeVerdict` 接口（`toxicity: 'safe'\|'flagged'` / `readability` 0-10 / `creativity` 0-10 / `score` 0-100 / `comment`）+ 纯函数 `applyJudge(verdict, judge)`：judge 为 `null` ⇒ 原样返回；`toxicity==='flagged'` ⇒ 只往 `summary` 追加合规提示、**不改** `blocking`/`scoreDelta`；纯函数不就地修改入参（已单测锁死） |
+| `main/agent/qualityJudge.ts`（新增） | `runLlmJudge(callOpts, chapter, fields)`：`new LlmClient().generate(JUDGE_SYSTEM, 评审prompt, callOpts)` 取 judge。**复用正文同源 `callOpts` ⇒ `resolveConfig→effectiveProvider` 自动把保密模式的 judge 也强制本地 Ollama，物理不触云端**。整体 `try/catch`，任何失败（未配置/网络/解析）一律返回 `null`（降级，绝不阻断正文生成）；`normalizeJudge` 对 LLM 原始 JSON 做容错（毒性字段不可信即降级为 `null`，数字夹取 0-10/0-100） |
+| `main/ipc.ts::ceshu:aiGenerateChapter` | 确定性门算完（`evaluateChapterDraft`）后，`await runLlmJudge(callOpts, chapter, fields)` 再 `applyJudge(deterministic, judge)` 合并进返回 `quality`；judge 失败不影响 `fields`/`usage` 返回 |
+| `renderer/AiFullGeneratePanel.tsx` | 收集每章 `response.quality?.judge`，进度行加 per-chapter 徽标（`ai-full-judge-badge safe/flagged` 分色，显示「合规 / ⚠合规风险 + score 分」）；底部聚合块 `ai-full-judge`（合规风险高亮列章节名 + 可读性/创意均值 + 已评审 N/总 章，含「未获评审」计数）；`styles.css` 补 `.ai-full-judge*` 样式 |
+| 设计取舍 | **judge 只在章节侧接入**；数据侧已由确定性平衡门覆盖，**不叠 judge**（避免过度 + 无谓 token 成本）；单章 `CeshuView` 路径只用 `result.fields` 回填表单、章节 `quality` 本就未渲染（与确定性门同现状，不为 judge 单独加展示，避免不一致）；judge 失败/降级一律静默 `null`，永不阻断或拖垮正文生成 |
+| 测试 | `agentQualityGate.test.ts` 新增 `applyJudge` 5 例（确定性 verdict 默认 `judge:null` / `null` 降级原样返回 / `safe` 不改动 summary / `flagged` 追加合规提示且不改 `blocking`/`scoreDelta` / 纯函数不改动入参）；vitest 全量 **120 文件 / 1882 用例 passed**（原 1877 + 5）；`npm run typecheck` 0 错（node+web）+ eslint 0 + `npm run build` 通过 |
+
+> **范围判定**：judge 是**辅助**维度，权重远低于确定性门；`toxicity` 命中只追加提示、把"是否发布"的最终裁决权留在人手里，不自动拦截。保密模式下的 judge 经 `effectiveProvider` 强制本地，无需额外判断；若本地无模型致调用失败，被 `runLlmJudge` 降级为 `null`。
 
 ---
 

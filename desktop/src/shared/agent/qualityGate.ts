@@ -54,6 +54,13 @@ export interface QualityGateVerdict {
   improved: boolean
   /** 一句话结论，供 UI 直接展示 */
   summary: string
+  /**
+   * LLM-as-Judge 的**辅助**结论（DD-19 剩余项，章节侧专用）。
+   * 确定性门为主、judge 为辅：`toxicity` 命中只往 `summary` 追加合规提示，
+   * **不推翻** `blocking` / `scoreDelta`。异步计算后再由 `applyJudge` 合并进来，
+   * 故确定性 `evaluateChapterDraft` 产出的 verdict 此字段为 `null`。
+   */
+  judge: LlmJudgeVerdict | null
 }
 
 /**
@@ -119,7 +126,8 @@ export function evaluateChapterDraft(
     scoreDelta,
     gradeBefore: beforeReport.grade,
     gradeAfter: afterReport.grade,
-    improved: errorDelta < 0 || scoreDelta > 0
+    improved: errorDelta < 0 || scoreDelta > 0,
+    judge: null
   }
   return { ...verdict, summary: summarize(verdict) }
 }
@@ -278,4 +286,62 @@ export function evaluateDataCandidates(
   }
 
   return { total, counts, issues, balance, hasIssues, summary }
+}
+
+/* ---- LLM-as-Judge 的辅助维度（DD-19 剩余项，章节侧专用） ---- */
+
+/**
+ * LLM-as-Judge 的辅助结论。
+ *
+ * ## 定位：确定性门为主，judge 为辅
+ * 本项目的策划书/数据已有 7,114 行确定性纯逻辑在生产跑（`ceshuValidation` /
+ * `ceshuScorer` / `dataStats` / `dataCountConstraint`），它们给出的
+ * `blocking` / `errorDelta` / `scoreDelta` **是客观可机器判定**的质量结论。
+ * LLM judge 只补机器判不了的维度：
+ * - `toxicity`：合规红线（暴力/涉政/色情等），确定性门看不到；
+ * - `readability` / `creativity`：文字质量与创意，机器打分无能为力；
+ * - `score`：judge 综合分（0-100），**仅供参考**，不与确定性 `afterScore` 混用。
+ *
+ * 权重远低于确定性门：`toxicity === 'flagged'` 也**不推翻** `blocking` /
+ * `scoreDelta`，只由 `applyJudge` 往 `summary` 追加一条合规提示，
+ * 把"是否发布"的最终裁决权留在人手里。
+ */
+export interface LlmJudgeVerdict {
+  /** 合规性：safe = 未命中红线；flagged = 命中需人工复核 */
+  toxicity: 'safe' | 'flagged'
+  /** 可读性（0-10） */
+  readability: number
+  /** 创意性（0-10） */
+  creativity: number
+  /** judge 综合分（0-100），仅供参考 */
+  score: number
+  /** judge 评语，UI 直接展示 */
+  comment: string
+}
+
+/**
+ * 把 LLM-as-Judge 的辅助结论合并进确定性 verdict。
+ *
+ * 纯函数（不调 LLM、不改入参），可被 Node 端单测直接覆盖：
+ * - `judge` 为 `null`（judge 调用失败 / 降级 / 保密模式禁用）时**原样返回**确定性 verdict；
+ * - `toxicity === 'flagged'` 时只往 `summary` 追加合规提示，**不改动** `blocking` / `scoreDelta`；
+ * - 其余情况把 `judge` 挂到 `verdict.judge`，`summary` 保持不变。
+ *
+ * 调用方（`main/agent/qualityJudge.ts::runLlmJudge`）负责真正发起 LLM 调用、
+ * 走 `effectiveProvider` 遵守保密约束、并在失败时降级返回 `null`。
+ */
+export function applyJudge(
+  verdict: QualityGateVerdict | null,
+  judge: LlmJudgeVerdict | null
+): QualityGateVerdict | null {
+  if (verdict === null) return null
+  if (!judge) return verdict
+  if (judge.toxicity === 'flagged') {
+    return {
+      ...verdict,
+      judge,
+      summary: `${verdict.summary} ⚠️ judge 标记内容存在合规风险，建议人工复核后再发布`
+    }
+  }
+  return { ...verdict, judge }
 }

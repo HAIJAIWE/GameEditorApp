@@ -19,6 +19,7 @@ import {
 } from '../../../shared/ceshuAi'
 import { getGddScope, isPlainObject } from '../../../shared/ceshuModel'
 import { evaluateBudget, taskBudget } from '../../../shared/agent/budget'
+import type { LlmJudgeVerdict } from '../../../shared/agent/qualityGate'
 
 /**
  * AI 一键生成完整策划书（对应 Python N10 AIFullGenerateDialog）：
@@ -59,6 +60,8 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
   const [statuses, setStatuses] = useState<Partial<Record<ChapterKey, ChapterStatus>>>({})
   const [errors, setErrors] = useState<Partial<Record<ChapterKey, string>>>({})
   const [results, setResults] = useState<Partial<Record<ChapterKey, ChapterData>>>({})
+  /** 每章 LLM-as-Judge 辅助结论（v1.0 DD-19 剩余项）；null = 该章未获评审（调用失败/降级） */
+  const [judges, setJudges] = useState<Partial<Record<ChapterKey, LlmJudgeVerdict | null>>>({})
   const [running, setRunning] = useState(false)
   const [applying, setApplying] = useState(false)
   const [summary, setSummary] = useState<string | null>(null)
@@ -69,6 +72,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
   const [confirming, setConfirming] = useState(false)
   const stopRef = useRef(false)
   const resultsRef = useRef<Partial<Record<ChapterKey, ChapterData>>>({})
+  const judgesRef = useRef<Partial<Record<ChapterKey, LlmJudgeVerdict | null>>>({})
 
   const plan = useMemo(
     () =>
@@ -92,6 +96,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
     setUsageTotal(0)
     stopRef.current = false
     const draftResults: Partial<Record<ChapterKey, ChapterData>> = { ...resultsRef.current }
+    const draftJudges: Partial<Record<ChapterKey, LlmJudgeVerdict | null>> = { ...judgesRef.current }
     let succeeded = 0
     let failed = 0
     let usageAcc = 0
@@ -114,8 +119,12 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
           throw new Error('AI 未返回有效内容')
         }
         draftResults[chapter] = response.fields
+        // v1.0 DD-19 剩余项：收集每章 judge（确定性门已含在 response.quality，judge 是其辅助维度）
+        draftJudges[chapter] = response.quality?.judge ?? null
         resultsRef.current = { ...draftResults }
+        judgesRef.current = { ...draftJudges }
         setResults({ ...draftResults })
+        setJudges({ ...draftJudges })
         usageAcc += response.usage?.totalTokens ?? 0
         setUsageTotal(usageAcc)
         setStatuses((prev) => ({ ...prev, [chapter]: 'done' }))
@@ -164,6 +173,8 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
     setConfirming(false)
     resultsRef.current = {}
     setResults({})
+    judgesRef.current = {}
+    setJudges({})
     setErrors({})
     const initial: Partial<Record<ChapterKey, ChapterStatus>> = {}
     for (const chapter of plan.order) initial[chapter] = 'pending'
@@ -382,6 +393,15 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
               <div className={`ai-gen-status ${status}`} key={chapter} data-testid={`ai-full-status-${chapter}`}>
                 <span className="ai-gen-status-label">{CHAPTER_LABELS[chapter]}</span>
                 <span className={`ai-gen-status-value ${status}`}>{STATUS_LABELS[status]}</span>
+                {status === 'done' && judges[chapter] && (
+                  <span
+                    className={`ai-full-judge-badge ${judges[chapter]!.toxicity}`}
+                    data-testid={`ai-full-judge-${chapter}`}
+                  >
+                    judge：{judges[chapter]!.toxicity === 'flagged' ? '⚠合规风险' : '合规'}
+                    {judges[chapter]!.score > 0 ? ` / ${judges[chapter]!.score}分` : ''}
+                  </span>
+                )}
                 {errors[chapter] && <span className="ai-gen-status-error">{errors[chapter]}</span>}
               </div>
             )
@@ -479,6 +499,45 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
                 className={`budget-bar-fill level-${status.level}`}
                 style={{ width: `${Math.min(100, Math.round(status.ratio * 100))}%` }}
               />
+            </div>
+          </div>
+        )
+      })()}
+      {/* v1.0 DD-19 剩余项：judge 辅助评审聚合（确定性门为主，judge 为辅，不覆盖 blocking/scoreDelta） */}
+      {(() => {
+        const entries = plan.order
+          .map((chapter) => judges[chapter])
+          .filter((value): value is LlmJudgeVerdict | null => value !== undefined)
+        if (entries.length === 0) return null
+        const judged = entries.filter((value): value is LlmJudgeVerdict => value !== null)
+        if (judged.length === 0) {
+          return (
+            <div className="ai-full-judge" data-testid="ai-full-judge">
+              <span className="ai-full-judge-note">
+                本次 {entries.length} 章均未获得 judge 评审（评审调用失败/降级），不影响主生成。
+              </span>
+            </div>
+          )
+        }
+        const avgReadability =
+          Math.round((judged.reduce((sum, item) => sum + item.readability, 0) / judged.length) * 10) / 10
+        const avgCreativity =
+          Math.round((judged.reduce((sum, item) => sum + item.creativity, 0) / judged.length) * 10) / 10
+        const unjudged = entries.length - judged.length
+        const flaggedChapters = plan.order
+          .filter((chapter) => judges[chapter]?.toxicity === 'flagged')
+          .map((chapter) => CHAPTER_LABELS[chapter])
+        return (
+          <div className="ai-full-judge" data-testid="ai-full-judge">
+            <div className="ai-full-judge-head">AI 辅助评审（judge · 仅供参考，不覆盖确定性质量门）</div>
+            {flaggedChapters.length > 0 && (
+              <div className="ai-full-judge-warn">
+                ⚠️ {flaggedChapters.length} 章被判存在合规风险：{flaggedChapters.join('、')}，建议人工复核后再发布
+              </div>
+            )}
+            <div className="ai-full-judge-stats">
+              可读性均值 {avgReadability}/10 · 创意均值 {avgCreativity}/10 · 已评审 {judged.length}/{entries.length} 章
+              {unjudged > 0 ? `（${unjudged} 章未获评审）` : ''}
             </div>
           </div>
         )
