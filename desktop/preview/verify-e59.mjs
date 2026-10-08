@@ -51,7 +51,11 @@ const SEL = {
   fullConfirmYes: '[data-testid="ai-full-confirm-yes"]',
   datagenCost: '[data-testid="datagen-cost"]',
   fullCost: '[data-testid="ai-full-cost"]',
-  budgetBarFill: '.budget-bar-fill'
+  budgetBarFill: '.budget-bar-fill',
+  datagenImport: '[data-testid="datagen-import"]',
+  datagenImportConfirm: '[data-testid="datagen-import-confirm"]',
+  datagenImportConfirmNo: '[data-testid="datagen-import-confirm-no"]',
+  datagenImportConfirmYes: '[data-testid="datagen-import-confirm-yes"]'
 }
 
 const results = []
@@ -228,6 +232,38 @@ try {
     const bar = await page.locator(SEL.budgetBarFill).count()
     check('T7 渲染出预算进度条', bar >= 1, `bar数=${bar}`)
     await page.screenshot({ path: join(SHOTS, 'e59-t7-full-cost.png') })
+  })
+
+  // ================= T8 导入前二次确认（v0.7 DD-19 × M5：质量门检出问题时） =================
+  // 预览桩的 aiGenerateData 返回带 balance 问题的 quality（hasIssues=true）⇒ 应触发导入二次确认
+  await runCase('T8', async (page) => {
+    await openCeshu(page)
+    await page.click(SEL.datagenEntry)
+    await page.waitForSelector(SEL.datagenTypes, { timeout: 8000 })
+    await page.locator(SEL.datagenType).first().check()
+    await page.locator(SEL.datagenCount).fill('5') // ≤ 阈值，不触发生成确认门，直走生成
+    await page.click(SEL.datagenGenerate)
+    await page.waitForSelector(SEL.datagenQuality, { timeout: 8000 })
+    // 生成后、点击导入前：二次确认态不应出现
+    check('T8 生成后未点导入 ⇒ 不应出现导入二次确认态', (await page.locator(SEL.datagenImportConfirm).count()) === 0)
+    // 点击导入 ⇒ 出现二次确认态
+    await page.click(SEL.datagenImport)
+    await page.waitForSelector(SEL.datagenImportConfirm, { timeout: 5000 })
+    const txt = await page.locator(SEL.datagenImportConfirm).textContent()
+    check('T8 有质量问题时点导入 ⇒ 出现导入二次确认态（datagen-import-confirm）', true)
+    check('T8 确认文案带出「仍要导入」语义', String(txt).includes('仍要导入'), String(txt).trim())
+    check('T8 确认文案带出「处问题」', /处问题/.test(String(txt)), String(txt).trim())
+    // 取消 ⇒ 消失
+    await page.click(SEL.datagenImportConfirmNo)
+    await page.waitForFunction((sel) => document.querySelectorAll(sel).length === 0, SEL.datagenImportConfirm, { timeout: 5000 })
+    check('T8 点「取消」⇒ 导入二次确认态消失', true)
+    // 再点导入 ⇒ 出现 ⇒ 仍要导入 ⇒ 确认态消失（门已跨过，进入导入流程）
+    await page.click(SEL.datagenImport)
+    await page.waitForSelector(SEL.datagenImportConfirm, { timeout: 5000 })
+    await page.click(SEL.datagenImportConfirmYes)
+    await page.waitForFunction((sel) => document.querySelectorAll(sel).length === 0, SEL.datagenImportConfirm, { timeout: 5000 })
+    check('T8 点「仍要导入」⇒ 确认态消失（门已跨过，进入导入流程）', true)
+    await page.screenshot({ path: join(SHOTS, 'e59-t8-import-confirm.png') })
   })
 } finally {
   await browser.close().catch(() => undefined)

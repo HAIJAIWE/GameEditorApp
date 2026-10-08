@@ -48,6 +48,8 @@ export default function AiDataGenPanel({ ceshuId, initialTypeId, onClose }: AiDa
   const [confirming, setConfirming] = useState(false)
   /** 候选的确定性质量门结论（v0.5 DD-19 数据半边） */
   const [quality, setQuality] = useState<DataQualityVerdict | null>(null)
+  /** 导入前的二次确认态（v0.7 DD-19 × M5：质量门检出问题时需显式确认才写入数据表） */
+  const [importConfirming, setImportConfirming] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -116,6 +118,7 @@ export default function AiDataGenPanel({ ceshuId, initialTypeId, onClose }: AiDa
       setActiveTab(Object.keys(generated.candidates)[0] ?? '')
       setNotice(generated.summary)
       setQuality(generated.quality ?? null)
+      setImportConfirming(false)
     } catch (err) {
       setResult(null)
       setCheckedItems({})
@@ -140,6 +143,13 @@ export default function AiDataGenPanel({ ceshuId, initialTypeId, onClose }: AiDa
     setError(null)
     setNotice(null)
     if (!result) return
+    // DD-19 × M5：质量门检出违反项（数量约束超限或离散度偏高）时，导入前需显式二次确认，
+    // 强化「AI 只产候选、人工审批后才写入数据表」的硬约束（沿用 DD-17 内联确认范式，不自造弹窗）
+    if (quality?.hasIssues && !importConfirming) {
+      setImportConfirming(true)
+      return
+    }
+    setImportConfirming(false)
     const rows: Array<{ type: string; data: Record<string, unknown> }> = []
     for (const pluralKey of pluralKeys) {
       const items = result.candidates[pluralKey] ?? []
@@ -374,6 +384,32 @@ export default function AiDataGenPanel({ ceshuId, initialTypeId, onClose }: AiDa
               {importing ? '导入中…' : `导入勾选（${checkedCount}）`}
             </button>
           </div>
+
+          {/* v0.7 DD-19 × M5 联动：质量门检出违反项时，导入前需显式二次确认 */}
+          {importConfirming && (
+            <div className="form-row" data-testid="datagen-import-confirm">
+              <span className="form-label">
+                质量门检出 {quality?.issues.length ?? 0} 处问题（如：{quality?.issues[0]?.message}），仍要导入勾选的 {checkedCount} 条？
+              </span>
+              <button
+                type="button"
+                className="btn primary"
+                data-testid="datagen-import-confirm-yes"
+                disabled={importing}
+                onClick={() => void handleImport()}
+              >
+                仍要导入
+              </button>
+              <button
+                type="button"
+                className="btn"
+                data-testid="datagen-import-confirm-no"
+                onClick={() => setImportConfirming(false)}
+              >
+                取消
+              </button>
+            </div>
+          )}
         </>
       )}
     </div>
