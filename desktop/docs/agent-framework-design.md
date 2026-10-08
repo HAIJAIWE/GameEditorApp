@@ -1,6 +1,6 @@
 # 智能体框架重写设计（E59 起）
 
-> **状态**：v0.8 草案（**已重写**，取代 v0.1~v0.4），待主理人裁决。
+> **状态**：v0.9 草案（**已重写**，取代 v0.1~v0.4），待主理人裁决。
 > **动因**：E42 裁决「`core/agent` 域停止 1:1 迁移，改为框架重写」——方向定了，架构未定。
 >
 > **修订记录（四次纠错，全部记录在案）**
@@ -33,6 +33,10 @@
 > - **v0.7 → v0.8**（本次会话）：把 DD-19 当初**待 M5 接**的"**导入前二次确认**"真正落地——完成 M5 的原本意图（用数据侧质量门的"是否违反约束"判定作为导入前置）。`AiDataGenPanel` 的 `handleImport` 在质量门 `quality.hasIssues` 为真且未确认时，进入内联二次确认态（沿用 DD-17 范式、不自造弹窗）：提示"质量门检出 N 处问题（如：…），仍要导入勾选的 M 条？"+ `仍要导入`/`取消` 两按钮；点确认才真正写数据表，强化"AI 只产候选、人工审批后才写入"的硬约束。生成新候选时重置该态。
 >   ⚠️ **范围判定**：仅以 `hasIssues`（数量约束超限或离散度偏高）为触发条件，不对"常规无问题"的生成拦路；balance 属建议项，同样纳入确认而非静默放行。LLM judge 权重仍未接。
 >   ⇒ 运行期举证 `preview/verify-e59.mjs` **28/28**（新增 **T8**：生成后未点导入不出现确认态 / 点导入出现 `datagen-import-confirm` / 取消消失 / 仍要导入后门消失）；vitest **1825 passed**；`npm run build` 通过。
+> - **v0.8 → v0.9**（本次会话）：落地 **M6 保密模式（DD-0b）**。核心是把"数据不出本机"做成**硬保证**而非软提示——`StoredLlmConfig` 新增 `confidential:boolean`；新增 `effectiveProvider()`/`isCloudProvider()`（shared 层，主/渲染共用）；`main/llm/client.ts::resolveConfig` **无视 stored.provider、保密模式强制回落 ollama**（经 `client.generate` 实际走本地 `/api/generate`，物理上不向云端发请求）；3 个 AI handler（`aiGenerateChapter`/`aiGenerateData`/`aiReview`）的 `isCloud` 改用 `isCloudProvider()`，保密模式一律 `false`（不弹"云端花费"确认、不烧钱）；`validateLlmConfig` 按 effectiveProvider 校验（保密模式下不要求云端 Key/模型）；`shared/schemas.ts::llmConfigSchema` 补 `confidential` 字段（zod 默认剥未知键，漏加会被 IPC 边界静默吞掉）；`SettingsPanel` 新增 `llm-confidential` 显式 🔒 开关 + "数据不出本机"提示，开启后服务商选择框 disabled 且 UI 一律按 ollama 渲染。
+>   ⚠️ **范围判定**：本版是"整篇/整库一刀切"的全局保密档（G9 原始诉求）；DD-0b 文档里提的"章节级/字段级保密粒度"（v0.4 §2.3）**未做**，留待后续——那需要 per-call 携带 tier 而非全局 flag，属更大重构。
+>   ⇒ 单测 `llmConfig.test.ts` **31 passed**（新增 DD-0b effectiveProvider/isCloudProvider/保密校验 4 例 + confidential 读写 2 例）；`npm run typecheck` 0 错 + eslint 0；`npm run build` 通过。
+>   ⇒ 运行期举证 `preview/verify-e59.mjs` **37/37**（新增 **T9** 8 子项：默认关闭且无提示 / 先选云端 deepseek 出现 API Key 行 / 开保密 ⇒ 出现「数据不出本机」+ 服务商强制回落 ollama + 下拉 disabled + API Key 行消失 / 关保密 ⇒ 恢复原服务商）；vitest 全量 **120 文件 / 1830 用例 passed**。
 >
 > **证据强度标注**（全文通用）：
 > `[实测]` 本机/本仓跑出来的 · `[一手]` 模型厂商官方文档 · `[GitHub]` 直接抓成熟框架仓库所得 · `[二手]` 第三方文章/实测（附出处）· `[推断]` 我的推理，未直接验证
@@ -390,6 +394,19 @@ SOUL 硬边界、turn limit、MCP、`shared/` 分层契约、**6 家服务商的
 
 > **范围判定**：仅以 `hasIssues` 触发，不额外拦路；LLM judge 权重仍未接（DD-19 原 note 的剩余项）。
 
+### 5.5.7 实现记录（v0.9）：M6 保密模式（DD-0b）落地
+
+| 项 | 落地 |
+|---|---|
+| `shared/llmConfig.ts` | `StoredLlmConfig` 增 `confidential:boolean`；`DEFAULT_LLM_CONFIG.confidential=false`；`loadLlmConfig`/`sanitizeLlmConfig` 均读夹该字段；**新增 `effectiveProvider()`（保密 ⇒ 强制 `'ollama'`）与 `isCloudProvider()`（保密 ⇒ 恒 `false`）**；`validateLlmConfig` 改按 `effectiveProvider` 校验（保密时不要求云端 Key/模型） |
+| `main/llm/client.ts` | `resolveConfig` **无视 `stored.provider`**，保密模式经 `effectiveProvider` 强制 `'ollama'` ⇒ `generate()` 走 Ollama 原生 `/api/generate`，**物理上不向任何云端发请求**（这是"数据不出本机"的硬保证，不是 UI 文案） |
+| `main/ipc.ts` | 3 个 AI handler（`ceshu:aiGenerateChapter`/`aiGenerateData`/`aiReview`）的 `isCloud` 改 `isCloudProvider(callOpts.config ?? DEFAULT_LLM_CONFIG)` ⇒ 保密模式不弹"云端花费"确认、不烧钱 |
+| `shared/schemas.ts` | `llmConfigSchema` 补 `confidential: z.boolean()`。⚠️ zod object 默认**剥未知键**，漏加会被 IPC 边界静默吞掉（开关看着生效、实际主进程收不到） |
+| `SettingsPanel.tsx` | 新增 `llm-confidential` 显式 🔒 开关 + `llm-confidential-notice`「已开启保密模式：所有 AI 调用强制走本地 Ollama」；开启后 `llm-provider` select **disabled** 且 UI 一律按 `effectiveProvider(llm)` 渲染（`llmPreset`、Claude 不兼容提示都改用 effective） |
+| 测试 | `llmConfig.test.ts` **31 passed**（新增 effectiveProvider/isCloudProvider/保密校验 4 例 + confidential 读写 2 例，白名单键断言 6 ⇒ 7）；`npm run typecheck` 0 错；eslint 0；运行期 `preview/verify-e59.mjs` **37/37**（新增 T9 8 子项）；vitest 全量 **120 文件 / 1830 用例** |
+
+> **范围判定**：本版是**全局一刀切**保密档（G9 原始诉求）。文档 §2.3 提的**章节级/字段级保密粒度**（"只把 `vision` 章节发云端润色、数值不出本机"）**未做** —— 那需要 per-call 携带 tier 而非全局 flag，属更大重构，留待后续。
+
 ---
 
 ## 6. 选型：不引入 agent 框架（结论不变，依据更硬）
@@ -476,7 +493,7 @@ data/libraries/<库>/.workspace/
 | # | 问题 | 证据 | 决策 | 处置 | 档位 | 复盘条件 |
 |---|---|---|---|---|---|---|
 | **DD-0** | **默认档位** | G0 + 主理人裁定 | **默认走云端**（首次配置引导选服务商 + Key）；**未配置时不再静默回落 ollama**，而是**提示去设置**并**提供一键「启用保密模式」**（走本地） | 重做（`LLM_PROVIDER_ORDER` 顺序 + `resolveConfig` 回落策略 + `client.ts:144` 硬编码文案） | **两档** | 无（这是产品意志） |
-| **DD-0b** | **保密模式** | G9 `[推断]` | 新增**显式档位**：🔒 保密模式 = 强制本地 + 明确告知"数据不出本机"；与云端档在 UI 上**并列**而非隐藏在设置深处 | 新增（`tier.ts` + 面板开关） | 本地 | 无 |
+| **DD-0b** ⭐**✅ 已实现（v0.9）** | **保密模式** | G9 `[推断]` | 新增**显式档位**：🔒 保密模式 = 强制本地 + 明确告知"数据不出本机"；与云端档在 UI 上**并列**而非隐藏在设置深处 | ✅ 已实现（`confidential` flag + `effectiveProvider()` 强制 ollama + `SettingsPanel` `llm-confidential` 开关；章节级/字段级粒度**未做**，见 §2.3） | 本地 | 章节级/字段级粒度（需 per-call tier） |
 | **DD-1** | 上下文预算 | G1 | **仅本地档**：传输层显式下发 `num_ctx`（默认 16384，可调）。云端档不适用 | 重做（传输层字段） | **本地** | 无 |
 | **DD-2** | 本地档模型 | G10 | **仅本地档**：默认提到 **`qwen3:8b`**（`llmConfig.ts:68` 已有预置，5.2GB 装得下 8GB 卡），保留 4B 为低配回退；设置里显式警告"溢出到系统 RAM 会大幅变慢"。**云端档不涉及** | 配置 | **本地** | 无 |
 | **DD-3** | 工具面 | G2 | **协议层 12 个 `system.*` 槽位改为按场景分组**：本地档每次会话暴露 **≤8 个**；云端档可放宽到 **≤15 个**（上限更高但仍分组懒加载，不一次性注入） | 重做（`protocol.ts` 分组 + `CAPABILITIES.md` 改渐进披露） | **两档（上限不同）** | 云端实测工具挑选准确率显著优于本地档时可再放宽 |
@@ -509,7 +526,7 @@ data/libraries/<库>/.workspace/
 | **M3 工具面与路由** | 修 G2 + DD-3/4 | 两档 | 协议层分组、按档位限量（本地 ≤8 / 云端 ≤15）；本地=用户显式选技能、云端=软路由可选且保留显式兜底；成功率 ≥80% | ~250 行 |
 | **M4 确定性评分门 + 产出契约** ⭐ | 修 G8 + **DD-19** | 两档 | agent 产出必须过 `validateCeshu`→`scoreCeshu`→`dataCountConstraint`/`assessBalance`；LLM judge 只补机器判不了的维度且权重远低于确定性门 | ~250 行 |
 | **M5 成本护栏** ⭐ | 修 G5 | 云端 | token 预算按任务分档 + 预算条 + 超限前二次确认（**护栏级；真降级待补**）；面板显示预算条 | ✅ 已落地（v0.7，~200 行 + 单测 11 例） |
-| **M6 保密模式** | 修 G9 | 本地 | 显式 🔒 开关 + "数据不出本机"告知 + 强制本地校验；与云端档在 UI 并列 | ~120 行 |
+| **M6 保密模式** ✅**已完成（v0.9）** | 修 G9 | 本地 | 显式 🔒 开关 + "数据不出本机"告知 + 强制本地校验；与云端档在 UI 并列 | ~120 行 |
 
 **建议先做 M0**：它把**产品意志（云端优先）落到代码**，是本轮唯一的**语义修正**而非能力增强；
 且它是纯配置/文案/引导改动，零风险、无回归面。

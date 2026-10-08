@@ -102,16 +102,7 @@ const api: MbApi = {
      * 渲染层启动时 + 改设置时各调一次；**不要把 apiKey 放进来** ——
      * 它走 `settings:setSecret` 进 safeStorage，由主进程每次调用时自行解密注入。
      */
-    configure: (req: {
-      config: {
-        enabled: boolean
-        provider: 'ollama' | 'openai' | 'doubao' | 'qwen' | 'claude' | 'deepseek'
-        model: string
-        baseUrl: string
-        temperature: number
-        maxTokens: number
-      }
-    }) => invoke('llm:configure', req),
+    configure: (req: IpcContract['llm:configure']['req']) => invoke('llm:configure', req),
     /** 探测当前配置下的服务可用性（供设置面板显示状态） */
     status: () => invoke('llm:status', {})
   },

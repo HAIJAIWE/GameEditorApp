@@ -167,7 +167,7 @@ import { generateImage } from './imageGen/client'
 import { saveImageFromUrl } from './imageGen/save'
 import { isValidSecretName, type SecretStore } from './settings/secretStore'
 import { SECRET_NAMES } from '../shared/secretNames'
-import type { StoredLlmConfig } from '../shared/llmConfig'
+import { DEFAULT_LLM_CONFIG, isCloudProvider, type StoredLlmConfig } from '../shared/llmConfig'
 import type { LlmClient } from './llm/client'
 import type { TypeSchemaStore } from './schema/store'
 import type { FieldTemplateStore } from './schema/fieldTemplateStore'
@@ -816,7 +816,7 @@ export function registerIpcHandlers({
     // v0.5 DD-17 + v0.6 M5：整篇 / 一键生成属「大范围云端调用」，需渲染层带 `confirmed: true` 重发；
     // 云端档若预估超预算也需先确认（降级 = 提示拆分，而非静默烧钱）
     const callOpts = await llmCallOptions()
-    const isCloud = (callOpts.config?.provider ?? 'ollama') !== 'ollama'
+    const isCloud = isCloudProvider(callOpts.config ?? DEFAULT_LLM_CONFIG)
     const estimated = estimateTokens(built.system + built.prompt)
     const confirmReason = llmConfirmReason({
       bulk: req.fullGenerate !== undefined,
@@ -851,7 +851,7 @@ export function registerIpcHandlers({
     const count = clampDataGenCount(req.count)
     const built = buildDataGenPrompt(doc, types, selected, count, req.instruction.trim())
     const callOpts = await llmCallOptions()
-    const isCloud = (callOpts.config?.provider ?? 'ollama') !== 'ollama'
+    const isCloud = isCloudProvider(callOpts.config ?? DEFAULT_LLM_CONFIG)
     const estimated = estimateTokens(built.system + built.prompt)
     const confirmReason = llmConfirmReason({
       count,
@@ -902,7 +902,7 @@ export function registerIpcHandlers({
     })
     // v0.6 M5：云端档超预算需先确认（审阅整篇也可能很长）
     const callOpts = await llmCallOptions()
-    const isCloud = (callOpts.config?.provider ?? 'ollama') !== 'ollama'
+    const isCloud = isCloudProvider(callOpts.config ?? DEFAULT_LLM_CONFIG)
     const estimated = estimateTokens(built.system + built.prompt)
     const confirmReason = llmConfirmReason({ taskType: 'review', estimatedTokens: estimated, isCloud })
     if (confirmReason !== null && req.confirmed !== true) {

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 
 import {
+  effectiveProvider,
   LLM_MAX_TOKENS_MAX,
   LLM_PROVIDER_ORDER,
   LLM_PROVIDER_PRESETS,
@@ -97,7 +98,7 @@ export default function SettingsPanel() {
   const [llmNotice, setLlmNotice] = useState<string | null>(null)
   const [llmKeySaved, setLlmKeySaved] = useState(false)
 
-  const llmPreset = LLM_PROVIDER_PRESETS[llm.provider]
+  const llmPreset = LLM_PROVIDER_PRESETS[effectiveProvider(llm)]
 
   /** 改配置：落盘 + 立刻推给主进程（下次 AI 调用即生效） */
   const commitLlm = (next: StoredLlmConfig): void => {
@@ -247,6 +248,21 @@ export default function SettingsPanel() {
             启用 API
           </label>
 
+          {/* DD-0b 保密模式：显式开关，开启后强制本地 Ollama，与云端档并列而非隐藏 */}
+          <label className="check-option" data-testid="llm-confidential">
+            <input
+              type="checkbox"
+              checked={llm.confidential}
+              onChange={(e) => commitLlm({ ...llm, confidential: e.target.checked })}
+            />
+            🔒 保密模式（数据不出本机）
+          </label>
+          {llm.confidential && (
+            <div className="item-meta" data-testid="llm-confidential-notice">
+              已开启保密模式：所有 AI 调用强制走本地 Ollama，<b>数据不出本机</b>，不会向任何云端服务商发送数据。
+            </div>
+          )}
+
           <div className="form-row">
             <label className="form-label" htmlFor="llm-provider">
               API 服务
@@ -255,7 +271,8 @@ export default function SettingsPanel() {
               <select
                 id="llm-provider"
                 data-testid="llm-provider"
-                value={llm.provider}
+                value={effectiveProvider(llm)}
+                disabled={llm.confidential}
                 onChange={(e) => handleProviderChange(e.target.value as LlmProvider)}
               >
                 {LLM_PROVIDER_ORDER.map((p) => (
@@ -375,7 +392,7 @@ export default function SettingsPanel() {
             </div>
           )}
 
-          {llm.provider === 'claude' && (
+          {effectiveProvider(llm) === 'claude' && (
             <div className="danger-hint" data-testid="llm-claude-unsupported">
               Claude 走 Anthropic Messages API，与 OpenAI 协议不兼容，本版暂未接入调用。
             </div>

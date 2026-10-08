@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 
 import {
   DEFAULT_LLM_CONFIG,
+  effectiveProvider,
+  isCloudProvider,
   isLlmProvider,
   LLM_CONFIG_KEY,
   LLM_MAX_TOKENS_MAX,
@@ -134,10 +136,17 @@ describe('loadLlmConfig：容错读取', () => {
       model: 'deepseek-chat',
       baseUrl: 'https://api.deepseek.com/v1',
       temperature: 1.2,
-      maxTokens: 4000
+      maxTokens: 4000,
+      confidential: false
     }
     const s = memStorage({ [LLM_CONFIG_KEY]: JSON.stringify(stored) })
     expect(loadLlmConfig(s)).toEqual(stored)
+  })
+
+  it('confidential 字段能被读回', () => {
+    const stored: StoredLlmConfig = { ...DEFAULT_LLM_CONFIG, confidential: true }
+    const s = memStorage({ [LLM_CONFIG_KEY]: JSON.stringify(stored) })
+    expect(loadLlmConfig(s).confidential).toBe(true)
   })
 })
 
@@ -160,12 +169,20 @@ describe('saveLlmConfig：安全硬约束 —— apiKey 绝不入库', () => {
     expect(loaded.apiKey).toBeUndefined()
   })
 
-  it('只写白名单里的 6 个字段，不夹带额外键', () => {
+  it('只写白名单里的 7 个字段，不夹带额外键', () => {
     const s = memStorage()
     const dirty = { ...DEFAULT_LLM_CONFIG, extra: 'x', nested: { a: 1 } } as unknown as StoredLlmConfig
     saveLlmConfig(dirty, s)
     const keys = Object.keys(JSON.parse(s.dump[LLM_CONFIG_KEY] ?? '{}')).sort()
-    expect(keys).toEqual(['baseUrl', 'enabled', 'maxTokens', 'model', 'provider', 'temperature'])
+    expect(keys).toEqual([
+      'baseUrl',
+      'confidential',
+      'enabled',
+      'maxTokens',
+      'model',
+      'provider',
+      'temperature'
+    ])
   })
 
   it('sanitizeLlmConfig 剔除非法 provider 并夹紧范围', () => {
@@ -175,7 +192,8 @@ describe('saveLlmConfig：安全硬约束 —— apiKey 绝不入库', () => {
       model: 'm',
       baseUrl: 'u',
       temperature: -5,
-      maxTokens: 0
+      maxTokens: 0,
+      confidential: true
     }
     expect(sanitizeLlmConfig(dirty)).toEqual({
       enabled: true,
@@ -183,7 +201,8 @@ describe('saveLlmConfig：安全硬约束 —— apiKey 绝不入库', () => {
       model: 'm',
       baseUrl: 'u',
       temperature: LLM_TEMPERATURE_MIN,
-      maxTokens: 1
+      maxTokens: 1,
+      confidential: true
     })
   })
 
@@ -240,5 +259,30 @@ describe('validateLlmConfig：中文原因可直接展示', () => {
     expect(
       validateLlmConfig({ ...DEFAULT_LLM_CONFIG, enabled: true, provider: 'deepseek', model: 'deepseek-chat' })
     ).toBeNull()
+  })
+})
+
+describe('DD-0b 保密模式：effectiveProvider / isCloudProvider', () => {
+  it('非保密 + Ollama ⇒ 本地', () => {
+    const cfg: StoredLlmConfig = { ...DEFAULT_LLM_CONFIG, provider: 'ollama', confidential: false }
+    expect(effectiveProvider(cfg)).toBe('ollama')
+    expect(isCloudProvider(cfg)).toBe(false)
+  })
+
+  it('非保密 + 云端 ⇒ 走云端', () => {
+    const cfg: StoredLlmConfig = { ...DEFAULT_LLM_CONFIG, provider: 'deepseek', confidential: false }
+    expect(effectiveProvider(cfg)).toBe('deepseek')
+    expect(isCloudProvider(cfg)).toBe(true)
+  })
+
+  it('保密模式无视服务商，强制本地 Ollama（数据不出本机硬保证）', () => {
+    const cfg: StoredLlmConfig = { ...DEFAULT_LLM_CONFIG, provider: 'deepseek', confidential: true }
+    expect(effectiveProvider(cfg)).toBe('ollama')
+    expect(isCloudProvider(cfg)).toBe(false)
+  })
+
+  it('保密模式下校验按 Ollama 走（不要求云端 Key/模型）', () => {
+    const cfg: StoredLlmConfig = { ...DEFAULT_LLM_CONFIG, enabled: true, provider: 'deepseek', model: '', confidential: true }
+    expect(validateLlmConfig(cfg)).toBeNull()
   })
 })

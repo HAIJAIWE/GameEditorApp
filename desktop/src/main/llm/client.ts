@@ -2,6 +2,7 @@ import { Ollama } from 'ollama'
 
 import {
   DEFAULT_LLM_CONFIG,
+  effectiveProvider,
   LLM_PROVIDER_PRESETS,
   resolveLlmBaseUrl,
   validateLlmConfig,
@@ -61,8 +62,11 @@ const DEFAULT_STORED_CONFIG: StoredLlmConfig = { ...DEFAULT_LLM_CONFIG, enabled:
 /** 合并「本次调用」的配置：调用方传入优先，缺失回落默认（+ Ollama 的环境变量兜底） */
 function resolveConfig(options: LlmCallOptions): LlmRuntimeConfig {
   const stored = options.config ?? DEFAULT_STORED_CONFIG
+  // DD-0b 保密模式：无视 stored.provider，强制本地 Ollama（数据不出本机硬保证）
+  const effective = effectiveProvider(stored)
   return {
     ...stored,
+    provider: effective,
     apiKey: options.apiKey ?? '',
     /*
      * Ollama 主机：设置面板的 baseUrl 优先；它是 `http://host:11434/v1` 形态，
@@ -70,7 +74,7 @@ function resolveConfig(options: LlmCallOptions): LlmRuntimeConfig {
      * 环境变量兜底保留（迁移前的既有行为）。
      */
     baseUrl:
-      stored.provider === 'ollama' && stored.baseUrl.trim() === ''
+      effective === 'ollama' && stored.baseUrl.trim() === ''
         ? (process.env['MB_OLLAMA_HOST'] ?? '')
         : stored.baseUrl
   }

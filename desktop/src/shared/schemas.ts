@@ -158,7 +158,8 @@ export const llmConfigSchema = z.object({
   model: z.string().max(200),
   baseUrl: z.string().max(500),
   temperature: z.number().min(0).max(2),
-  maxTokens: z.number().int().min(1).max(32000)
+  maxTokens: z.number().int().min(1).max(32000),
+  confidential: z.boolean()
 })
 
 /** 渲染层 → 主进程推配置镜像（启动时 + 改设置时各一次） */

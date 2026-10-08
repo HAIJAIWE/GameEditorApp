@@ -133,6 +133,11 @@ export interface StoredLlmConfig {
   baseUrl: string
   temperature: number
   maxTokens: number
+  /**
+   * 保密模式（DD-0b）。为 true 时**强制使用本地 Ollama**，禁止任何云端服务商，
+   * 并向用户明确告知「数据不出本机」。与云端档在 UI 上**并列**（显式开关），不是隐藏设置。
+   */
+  confidential: boolean
 }
 
 /** 一次 LLM 调用的 token 用量（v0.6 M5：成本护栏的观测地基；client 层填充，shared 层复用） */
@@ -150,7 +155,8 @@ export const DEFAULT_LLM_CONFIG: StoredLlmConfig = {
   model: '',
   baseUrl: '',
   temperature: 0.7,
-  maxTokens: 1000
+  maxTokens: 1000,
+  confidential: false
 }
 
 function defaultStorage(): StorageLike | null {
@@ -196,7 +202,8 @@ export function loadLlmConfig(storage: StorageLike | null = defaultStorage()): S
       LLM_TEMPERATURE_MAX,
       DEFAULT_LLM_CONFIG.temperature
     ),
-    maxTokens: clampNumber(raw.maxTokens, LLM_MAX_TOKENS_MIN, LLM_MAX_TOKENS_MAX, DEFAULT_LLM_CONFIG.maxTokens)
+    maxTokens: clampNumber(raw.maxTokens, LLM_MAX_TOKENS_MIN, LLM_MAX_TOKENS_MAX, DEFAULT_LLM_CONFIG.maxTokens),
+    confidential: asBool(raw.confidential, DEFAULT_LLM_CONFIG.confidential)
   }
 }
 
@@ -221,8 +228,24 @@ export function sanitizeLlmConfig(config: StoredLlmConfig): StoredLlmConfig {
       LLM_TEMPERATURE_MAX,
       DEFAULT_LLM_CONFIG.temperature
     ),
-    maxTokens: clampNumber(config.maxTokens, LLM_MAX_TOKENS_MIN, LLM_MAX_TOKENS_MAX, DEFAULT_LLM_CONFIG.maxTokens)
+    maxTokens: clampNumber(config.maxTokens, LLM_MAX_TOKENS_MIN, LLM_MAX_TOKENS_MAX, DEFAULT_LLM_CONFIG.maxTokens),
+    confidential: asBool(config.confidential, DEFAULT_LLM_CONFIG.confidential)
   }
+}
+
+/**
+ * 生效的服务商（DD-0b 保密模式）。保密模式下无视用户选择的 provider，
+ * **强制回落本地 Ollama** —— 这是「数据不出本机」的硬保证，不是软提示。
+ * 所有决定「走云端还是本地」的代码都必须用这个函数，不能直接读 `config.provider`。
+ */
+export function effectiveProvider(config: StoredLlmConfig): LlmProvider {
+  if (config.confidential) return 'ollama'
+  return config.provider
+}
+
+/** 是否走云端（DD-0b）：保密模式一律=false。 */
+export function isCloudProvider(config: StoredLlmConfig): boolean {
+  return !config.confidential && config.provider !== 'ollama'
 }
 
 /** 生效的接口地址：用户填了用用户的，否则用服务商预设（对齐 PyQt 选服务商即自动填） */
@@ -238,7 +261,8 @@ export function resolveLlmBaseUrl(config: StoredLlmConfig): string {
  */
 export function validateLlmConfig(config: StoredLlmConfig): string | null {
   if (!config.enabled) return '未启用 API，请先在设置中勾选「启用 API」'
-  const preset = LLM_PROVIDER_PRESETS[config.provider]
+  // 校验"实际会用到的"服务商：保密模式强制 ollama，不能拿 stored.provider 要求云端 Key/模型
+  const preset = LLM_PROVIDER_PRESETS[effectiveProvider(config)]
   if (preset.requiresApiKey) {
     // Key 不在本结构里（走 safeStorage），这里只校验「该服务商是否需要 Key」这一事实，
     // 真正的 Key 存在性由主进程用 secretStore 判定，不在渲染层凭空猜。

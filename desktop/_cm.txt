@@ -1,26 +1,15 @@
-迁移前端尾巴 1/3：导出类 —— 校验报告 Markdown + 变更日志 MD/HTML/Text
+落地 M6 保密模式 DD-0b（v0.9）：显式 🔒 开关 = 强制本地 + 明确告知「数据不出本机」
 
-承接「把前端没迁的 py 都重构为 ts」。本片先做两个纯导出缺口（不依赖 AI）：
+- shared/llmConfig.ts：StoredLlmConfig 增 confidential:boolean；DEFAULT_LLM_CONFIG.confidential=false；loadLlmConfig/sanitizeLlmConfig 均读夹该字段；新增 effectiveProvider()（保密 ⇒ 强制 'ollama'）与 isCloudProvider()（保密 ⇒ 恒 false）；validateLlmConfig 改按 effectiveProvider 校验（保密时不要求云端 Key/模型）
+- main/llm/client.ts：resolveConfig 无视 stored.provider，保密模式经 effectiveProvider 强制 'ollama' ⇒ generate() 走 Ollama 原生 /api/generate，物理上不向任何云端发请求（这是「数据不出本机」的硬保证，不是 UI 文案）
+- main/ipc.ts：3 个 AI handler（aiGenerateChapter/aiGenerateData/aiReview）的 isCloud 改用 isCloudProvider() ⇒ 保密模式不弹「云端花费」确认、不烧钱
+- shared/schemas.ts：llmConfigSchema 补 confidential:z.boolean()（zod object 默认剥未知键，漏加会被 IPC 边界静默吞掉：开关看着生效、实际主进程收不到）
+- preload/index.ts：configure 的硬编码内联 config 类型改用 IpcContract['llm:configure']['req']（消除重复声明、不会再漏字段）
+- SettingsPanel.tsx：新增 llm-confidential 显式 🔒 开关 + llm-confidential-notice「…数据不出本机…」；开启后 llm-provider select disabled 且 UI 一律按 effectiveProvider(llm) 渲染（llmPreset、Claude 不兼容提示同步改），保密模式不改写用户已选服务商
+- tests/unit/llmConfig.test.ts：新增 DD-0b effectiveProvider/isCloudProvider/保密校验 4 例 + confidential 读写 2 例；白名单键断言 6 ⇒ 7
+- preview/verify-e59.mjs 新增 T9（8 子项）：默认关闭且无提示 / 先选云端 deepseek 出现 API Key 行 / 开保密 ⇒「数据不出本机」+ 服务商强制回落 ollama + 下拉 disabled + API Key 行消失 / 关保密 ⇒ 恢复原服务商
+- 文档 agent-framework-design.md v0.8→v0.9：DD-0b 与 M6 标已实现、新增 §5.5.7 实现记录
 
-1. 校验报告导出（Python ui/ceshu/validation_dialog.py::_on_export_md）
-   - 新增 shared/ceshuReports.ts::buildValidationReportMarkdown + categorizeValidationError
-     + VALIDATION_CATEGORY_META（逐行对齐 Python _build_markdown：评分=100-错误数*3、
-     摘要分类计数、问题清单分组、章节完成度表、结论与建议）
-   - CeshuView 校验面板加「导出校验报告」按钮（testid: validate-export）
-2. 变更日志三格式导出（Python ui/ceshu/changelog_dialog.py::_on_export）
-   - buildChangelogMarkdown / buildChangelogText / buildChangelogHtml
-     （逐行对齐 ceshu_changelog.py::Changelog.to_{markdown,text,html}，含 HTML 转义）
-   - CeshuView 变更记录面板加「导出 Markdown / HTML / Text」三按钮
-     （testid: changelog-export-md/html/text，无变更时禁用）
+验证：eslint 0 / 双端 tsc 0 / npm run build 成功；preview/verify-e59.mjs 37/37（28/28 + T9）；vitest 全量 120 文件 / 1830 用例；回归 e51 41/41 · e57 46/46 · e58 14/14 全绿
 
-新增 IPC（各 5 点接线：schemas → ipc → main/ipc → preload → service/api）：
-- ceshu:exportValidationReport  { path, content } → exportTextReportFile(…, '校验报告')
-- ceshu:exportChangelogReport   { path, content } → exportTextReportFile(…, '变更日志')
-- dialog:chooseReportFile       { defaultName, extension, label } → 动态扩展名保存对话框
-  （CESHU_EXPORT_FORMATS 只有 markdown/html/docx/pptx/pdf/excel，不含纯文本，
-   故为报告导出单开一个按扩展名生成过滤器的通用保存通道）
-
-单测：tests/unit/ceshuReports.test.ts（8 例：分类判定顺序、评分下限与不合格、
-章节完成度阈值、三格式结构与 HTML 转义、空日志占位）。
-
-验证：eslint 0 / 双端 tsc 0 / vitest 116 文件 1765 用例全绿（+1 文件 +8 用例）。
+范围判定：本版是全局一刀切保密档（G9 原始诉求）；文档 §2.3 提的章节级/字段级保密粒度未做 —— 需 per-call 携带 tier 而非全局 flag，属更大重构，留待后续
