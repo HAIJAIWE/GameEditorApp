@@ -63,6 +63,7 @@ const SEL = {
   llmProvider: '[data-testid="llm-provider"]',
   llmConfidential: '[data-testid="llm-confidential"] input',
   llmConfidentialNotice: '[data-testid="llm-confidential-notice"]',
+  llmBaseUrlEffective: '[data-testid="llm-base-url-effective"]',
   llmApiKey: '[data-testid="llm-api-key"]'
 }
 
@@ -301,6 +302,13 @@ try {
     )
     check('T9 开启保密 ⇒ 服务商下拉被禁用（不能偷偷改回云端）', await page.locator(SEL.llmProvider).isDisabled())
     check('T9 开启保密 ⇒ 云端才需要的 API Key 行消失', (await page.locator(SEL.llmApiKey).count()) === 0)
+    // 回归：保密模式必须**忽略云端 baseUrl**（否则本地 Ollama 会被指向 api.deepseek.com）
+    const effText = await page.locator(SEL.llmBaseUrlEffective).textContent()
+    check(
+      'T9 开启保密 ⇒ 「实际生效」接口地址回落本地 Ollama（不指向云端域名）',
+      String(effText).includes('localhost:11434') && !String(effText).includes('deepseek'),
+      String(effText).trim()
+    )
     await page.screenshot({ path: join(SHOTS, 'e59-t9-confidential.png') })
 
     // 关掉 ⇒ 恢复云端档（存的服务商没被保密模式改写）

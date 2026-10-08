@@ -1,15 +1,17 @@
-落地 M6 保密模式 DD-0b（v0.9）：显式 🔒 开关 = 强制本地 + 明确告知「数据不出本机」
+修保密模式的 baseUrl 漏洞：保密时必须忽略云端接口地址（截图举证抓出）
 
-- shared/llmConfig.ts：StoredLlmConfig 增 confidential:boolean；DEFAULT_LLM_CONFIG.confidential=false；loadLlmConfig/sanitizeLlmConfig 均读夹该字段；新增 effectiveProvider()（保密 ⇒ 强制 'ollama'）与 isCloudProvider()（保密 ⇒ 恒 false）；validateLlmConfig 改按 effectiveProvider 校验（保密时不要求云端 Key/模型）
-- main/llm/client.ts：resolveConfig 无视 stored.provider，保密模式经 effectiveProvider 强制 'ollama' ⇒ generate() 走 Ollama 原生 /api/generate，物理上不向任何云端发请求（这是「数据不出本机」的硬保证，不是 UI 文案）
-- main/ipc.ts：3 个 AI handler（aiGenerateChapter/aiGenerateData/aiReview）的 isCloud 改用 isCloudProvider() ⇒ 保密模式不弹「云端花费」确认、不烧钱
-- shared/schemas.ts：llmConfigSchema 补 confidential:z.boolean()（zod object 默认剥未知键，漏加会被 IPC 边界静默吞掉：开关看着生效、实际主进程收不到）
-- preload/index.ts：configure 的硬编码内联 config 类型改用 IpcContract['llm:configure']['req']（消除重复声明、不会再漏字段）
-- SettingsPanel.tsx：新增 llm-confidential 显式 🔒 开关 + llm-confidential-notice「…数据不出本机…」；开启后 llm-provider select disabled 且 UI 一律按 effectiveProvider(llm) 渲染（llmPreset、Claude 不兼容提示同步改），保密模式不改写用户已选服务商
-- tests/unit/llmConfig.test.ts：新增 DD-0b effectiveProvider/isCloudProvider/保密校验 4 例 + confidential 读写 2 例；白名单键断言 6 ⇒ 7
-- preview/verify-e59.mjs 新增 T9（8 子项）：默认关闭且无提示 / 先选云端 deepseek 出现 API Key 行 / 开保密 ⇒「数据不出本机」+ 服务商强制回落 ollama + 下拉 disabled + API Key 行消失 / 关保密 ⇒ 恢复原服务商
-- 文档 agent-framework-design.md v0.8→v0.9：DD-0b 与 M6 标已实现、新增 §5.5.7 实现记录
+f506c97 只强制了 provider，不够：用户若此前选过云端，stored.baseUrl 里存的是
+`https://api.deepseek.com/v1`，保密模式沿用会让 `new Ollama({host:'api.deepseek.com'})`
+去连**云端域名** —— 既报错、又违背「数据不出本机」；设置面板「实际生效」也会显示云端地址。
 
-验证：eslint 0 / 双端 tsc 0 / npm run build 成功；preview/verify-e59.mjs 37/37（28/28 + T9）；vitest 全量 120 文件 / 1830 用例；回归 e51 41/41 · e57 46/46 · e58 14/14 全绿
+- shared/llmConfig.ts::resolveLlmBaseUrl：confidential 时一律忽略 stored.baseUrl，回落 effectiveProvider 的预设（Ollama ⇒ http://localhost:11434/v1）
+- main/llm/client.ts::resolveConfig：effective==='ollama' 且 confidential 时忽略 stored.baseUrl，回落 MB_OLLAMA_HOST（原先只判 baseUrl 是否为空）
+- tests/unit/llmConfig.test.ts：新增回归 1 例（保密 ⇒ resolveLlmBaseUrl 不返回云端域名）⇒ 32 passed
+- preview/verify-e59.mjs：T9 增 1 子项（「实际生效」接口地址回落 localhost 且不含 deepseek）⇒ 38/38
+- 文档 §5.5.7 增补该 bug 行与修订记录数字
 
-范围判定：本版是全局一刀切保密档（G9 原始诉求）；文档 §2.3 提的章节级/字段级保密粒度未做 —— 需 per-call 携带 tier 而非全局 flag，属更大重构，留待后续
+教训：这是**截图/整机渲染举证抓出来的**，纯读代码想不到 —— 「强制 provider」看起来已经
+封住了云端路径，实际 baseUrl 是第二个独立出口。⇒ 每个「强制本地」的开关都要把
+provider / baseUrl / apiKey **三个出口**一起看。
+
+验证：eslint 0 / 双端 tsc 0 / build 成功；verify-e59 38/38；llmConfig 32 + llmClientProviders 14 用例；回归 e51 41/41 · e57 46/46 · e58 14/14全绿

@@ -72,10 +72,15 @@ function resolveConfig(options: LlmCallOptions): LlmRuntimeConfig {
      * Ollama 主机：设置面板的 baseUrl 优先；它是 `http://host:11434/v1` 形态，
      * 而 ollama SDK 要的是 `http://host:11434`（不含 /v1）⇒ 这里剥掉尾部 /v1。
      * 环境变量兜底保留（迁移前的既有行为）。
+     *
+     * ⚠️ DD-0b：保密模式下 stored.baseUrl 可能是**云端地址**（api.deepseek.com 等），
+     * 拿它当 Ollama host 会去连云端域名 ⇒ 保密模式一律忽略 stored.baseUrl。
      */
     baseUrl:
-      effective === 'ollama' && stored.baseUrl.trim() === ''
-        ? (process.env['MB_OLLAMA_HOST'] ?? '')
+      effective === 'ollama'
+        ? stored.baseUrl.trim() === '' || stored.confidential
+          ? (process.env['MB_OLLAMA_HOST'] ?? '')
+          : stored.baseUrl
         : stored.baseUrl
   }
 }

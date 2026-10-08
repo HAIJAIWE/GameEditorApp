@@ -251,8 +251,10 @@ export function isCloudProvider(config: StoredLlmConfig): boolean {
 /** 生效的接口地址：用户填了用用户的，否则用服务商预设（对齐 PyQt 选服务商即自动填） */
 export function resolveLlmBaseUrl(config: StoredLlmConfig): string {
   const trimmed = config.baseUrl.trim()
-  if (trimmed !== '') return trimmed
-  return LLM_PROVIDER_PRESETS[config.provider].baseUrl
+  // ⚠️ DD-0b 保密模式：stored.baseUrl 可能是云端地址（如 api.deepseek.com），
+  // 对本地 Ollama **毫无意义**，若沿用会让 Ollama 客户端去连云端域名 ⇒ 一律忽略。
+  if (trimmed !== '' && !config.confidential) return trimmed
+  return LLM_PROVIDER_PRESETS[effectiveProvider(config)].baseUrl
 }
 
 /**

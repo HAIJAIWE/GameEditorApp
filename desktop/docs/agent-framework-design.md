@@ -35,8 +35,8 @@
 >   ⇒ 运行期举证 `preview/verify-e59.mjs` **28/28**（新增 **T8**：生成后未点导入不出现确认态 / 点导入出现 `datagen-import-confirm` / 取消消失 / 仍要导入后门消失）；vitest **1825 passed**；`npm run build` 通过。
 > - **v0.8 → v0.9**（本次会话）：落地 **M6 保密模式（DD-0b）**。核心是把"数据不出本机"做成**硬保证**而非软提示——`StoredLlmConfig` 新增 `confidential:boolean`；新增 `effectiveProvider()`/`isCloudProvider()`（shared 层，主/渲染共用）；`main/llm/client.ts::resolveConfig` **无视 stored.provider、保密模式强制回落 ollama**（经 `client.generate` 实际走本地 `/api/generate`，物理上不向云端发请求）；3 个 AI handler（`aiGenerateChapter`/`aiGenerateData`/`aiReview`）的 `isCloud` 改用 `isCloudProvider()`，保密模式一律 `false`（不弹"云端花费"确认、不烧钱）；`validateLlmConfig` 按 effectiveProvider 校验（保密模式下不要求云端 Key/模型）；`shared/schemas.ts::llmConfigSchema` 补 `confidential` 字段（zod 默认剥未知键，漏加会被 IPC 边界静默吞掉）；`SettingsPanel` 新增 `llm-confidential` 显式 🔒 开关 + "数据不出本机"提示，开启后服务商选择框 disabled 且 UI 一律按 ollama 渲染。
 >   ⚠️ **范围判定**：本版是"整篇/整库一刀切"的全局保密档（G9 原始诉求）；DD-0b 文档里提的"章节级/字段级保密粒度"（v0.4 §2.3）**未做**，留待后续——那需要 per-call 携带 tier 而非全局 flag，属更大重构。
->   ⇒ 单测 `llmConfig.test.ts` **31 passed**（新增 DD-0b effectiveProvider/isCloudProvider/保密校验 4 例 + confidential 读写 2 例）；`npm run typecheck` 0 错 + eslint 0；`npm run build` 通过。
->   ⇒ 运行期举证 `preview/verify-e59.mjs` **37/37**（新增 **T9** 8 子项：默认关闭且无提示 / 先选云端 deepseek 出现 API Key 行 / 开保密 ⇒ 出现「数据不出本机」+ 服务商强制回落 ollama + 下拉 disabled + API Key 行消失 / 关保密 ⇒ 恢复原服务商）；vitest 全量 **120 文件 / 1830 用例 passed**。
+>   ⇒ 单测 `llmConfig.test.ts` **32 passed**（新增 DD-0b effectiveProvider/isCloudProvider/保密校验/**保密忽略云端 baseUrl** 5 例 + confidential 读写 2 例）；`npm run typecheck` 0 错 + eslint 0；`npm run build` 通过。
+>   ⇒ 运行期举证 `preview/verify-e59.mjs` **38/38**（新增 **T9** 9 子项：默认关闭且无提示 / 先选云端 deepseek 出现 API Key 行 / 开保密 ⇒ 出现「数据不出本机」+ 服务商强制回落 ollama + 下拉 disabled + API Key 行消失 + **「实际生效」接口地址回落 localhost 而非云端域名** / 关保密 ⇒ 恢复原服务商）；vitest 全量 **120 文件 / 1830 用例 passed**。
 >
 > **证据强度标注**（全文通用）：
 > `[实测]` 本机/本仓跑出来的 · `[一手]` 模型厂商官方文档 · `[GitHub]` 直接抓成熟框架仓库所得 · `[二手]` 第三方文章/实测（附出处）· `[推断]` 我的推理，未直接验证
@@ -398,12 +398,13 @@ SOUL 硬边界、turn limit、MCP、`shared/` 分层契约、**6 家服务商的
 
 | 项 | 落地 |
 |---|---|
-| `shared/llmConfig.ts` | `StoredLlmConfig` 增 `confidential:boolean`；`DEFAULT_LLM_CONFIG.confidential=false`；`loadLlmConfig`/`sanitizeLlmConfig` 均读夹该字段；**新增 `effectiveProvider()`（保密 ⇒ 强制 `'ollama'`）与 `isCloudProvider()`（保密 ⇒ 恒 `false`）**；`validateLlmConfig` 改按 `effectiveProvider` 校验（保密时不要求云端 Key/模型） |
+| `shared/llmConfig.ts` | `StoredLlmConfig` 增 `confidential:boolean`；`DEFAULT_LLM_CONFIG.confidential=false`；`loadLlmConfig`/`sanitizeLlmConfig` 均读夹该字段；**新增 `effectiveProvider()`（保密 ⇒ 强制 `'ollama'`）与 `isCloudProvider()`（保密 ⇒ 恒 `false`）**；`validateLlmConfig` 改按 `effectiveProvider` 校验（保密时不要求云端 Key/模型）；**`resolveLlmBaseUrl` 保密时忽略 `stored.baseUrl`**（见下行 bug 修复） |
+| ⚠️ **同批发现并修的 bug** | 只强制 `provider` 不够：用户若此前选过云端，`stored.baseUrl` 里存的是 `https://api.deepseek.com/v1`，沿用会让 **`new Ollama({host:'api.deepseek.com'})` 去连云端域名**（既报错又违背"数据不出本机"），且设置面板「实际生效」会显示云端地址。⇒ 保密模式下 `resolveLlmBaseUrl` 与 `client.ts::resolveConfig` **一律忽略 `stored.baseUrl`**，回落 `MB_OLLAMA_HOST` / Ollama 预设。**这是截图举证抓出来的，纯读代码想不到** |
 | `main/llm/client.ts` | `resolveConfig` **无视 `stored.provider`**，保密模式经 `effectiveProvider` 强制 `'ollama'` ⇒ `generate()` 走 Ollama 原生 `/api/generate`，**物理上不向任何云端发请求**（这是"数据不出本机"的硬保证，不是 UI 文案） |
 | `main/ipc.ts` | 3 个 AI handler（`ceshu:aiGenerateChapter`/`aiGenerateData`/`aiReview`）的 `isCloud` 改 `isCloudProvider(callOpts.config ?? DEFAULT_LLM_CONFIG)` ⇒ 保密模式不弹"云端花费"确认、不烧钱 |
 | `shared/schemas.ts` | `llmConfigSchema` 补 `confidential: z.boolean()`。⚠️ zod object 默认**剥未知键**，漏加会被 IPC 边界静默吞掉（开关看着生效、实际主进程收不到） |
 | `SettingsPanel.tsx` | 新增 `llm-confidential` 显式 🔒 开关 + `llm-confidential-notice`「已开启保密模式：所有 AI 调用强制走本地 Ollama」；开启后 `llm-provider` select **disabled** 且 UI 一律按 `effectiveProvider(llm)` 渲染（`llmPreset`、Claude 不兼容提示都改用 effective） |
-| 测试 | `llmConfig.test.ts` **31 passed**（新增 effectiveProvider/isCloudProvider/保密校验 4 例 + confidential 读写 2 例，白名单键断言 6 ⇒ 7）；`npm run typecheck` 0 错；eslint 0；运行期 `preview/verify-e59.mjs` **37/37**（新增 T9 8 子项）；vitest 全量 **120 文件 / 1830 用例** |
+| 测试 | `llmConfig.test.ts` **32 passed**（新增 effectiveProvider/isCloudProvider/保密校验 4 例 + confidential 读写 2 例 + **保密忽略云端 baseUrl 回归 1 例**，白名单键断言 6 ⇒ 7）；`npm run typecheck` 0 错；eslint 0；运行期 `preview/verify-e59.mjs` **38/38**（新增 T9 9 子项）；vitest 全量 **120 文件 / 1830 用例** |
 
 > **范围判定**：本版是**全局一刀切**保密档（G9 原始诉求）。文档 §2.3 提的**章节级/字段级保密粒度**（"只把 `vision` 章节发云端润色、数值不出本机"）**未做** —— 那需要 per-call 携带 tier 而非全局 flag，属更大重构，留待后续。
 

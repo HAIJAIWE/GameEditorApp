@@ -234,6 +234,17 @@ describe('resolveLlmBaseUrl：用户填了用用户的，否则用预设', () =>
       'https://dashscope.aliyuncs.com/compatible-mode/v1'
     )
   })
+
+  // ⚠️ DD-0b 回归：保密模式必须忽略云端 baseUrl，否则本地 Ollama 会被指向云端域名
+  it('保密模式 ⇒ 忽略云端 baseUrl，回落 Ollama 预设（数据不出本机）', () => {
+    const cfg: StoredLlmConfig = {
+      ...DEFAULT_LLM_CONFIG,
+      provider: 'deepseek',
+      baseUrl: 'https://api.deepseek.com/v1',
+      confidential: true
+    }
+    expect(resolveLlmBaseUrl(cfg)).toBe('http://localhost:11434/v1')
+  })
 })
 
 describe('validateLlmConfig：中文原因可直接展示', () => {
