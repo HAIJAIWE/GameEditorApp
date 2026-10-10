@@ -1,6 +1,6 @@
 # 智能体框架重写设计（E59 起）
 
-> **状态**：v1.2（**已重写**，取代 v0.1~v0.4）。**M0 档位纠正 / M0.5 本地上下文与终止 / M1 观测先行 / M5 成本护栏 / M6 保密模式 / DD-17 / DD-19 均已落地**；M2、M2.5、M3 待做。
+> **状态**：v1.3（**已重写**，取代 v0.1~v0.4）。**M0 档位纠正 / M0.5 本地上下文与终止 / M1 观测先行 / M2 提示词瘦身 / M5 成本护栏 / M6 保密模式 / DD-17 / DD-19 均已落地**；M2.5、M3 待做。
 > **动因**：E42 裁决「`core/agent` 域停止 1:1 迁移，改为框架重写」——方向定了，架构未定。
 >
 > **修订记录（四次纠错，全部记录在案）**
@@ -49,6 +49,12 @@
 >   **G4（终止闸）**：`brain.ts` 把原 `maxIterations` 明确为 **`maxTurns`（默认 6）**，并新增 **`maxToolCalls`（默认 8）/ `wallClockMs`（默认 120s）** 两道计数硬闸；任一命中即**带部分产出 finalize**（`completed: true`）并发 `terminated` 事件，`BrainRunResult` 增 `stopReason`。**有意保协议合法**：工具闸命中时仍为每个 `tool_call` 补一条 `[STOP]` tool 消息（避免留下「assistant 有 tool_calls 却无 tool 结果」的非法序列）。面板加「终止提示」行（`digital-terminated`）。
 >   ⚠️ **范围判定**：DD-5 的三闸阈值（6/8/120s）本版**两档共用**（云端放宽属 M3 档位路由）；`num_ctx` 仅本地档（云端 OpenAI 兼容端点不发本地推理参数，`client.ts` 已有此分流）。
 >   ⇒ 单测：`agentBrain` +6（三闸各自触发/不误伤正常完成/部分产出/stopReason/协议合法）、`ollamaTransport` +2（num_ctx 缺省与可覆盖）、`agentPanel` +2（terminated 记录与重置）、`llmConfig` +1（numCtx 默认单点锁死）。vitest 全量 **125 文件 / 1949 用例 passed**；tsc 0（node+web）+ eslint 0 + CSS 审计（仅 5 处已知模板噪声）+ `npm run build` 通过（CSS 110.23→110.48 kB）。
+> - **v1.2 → v1.3**（本次会话）：落地 **M2 提示词瘦身（G7 + DD-6）**。
+>   **DD-6（提示词预算门）**：`shared/agent/prompts.ts` 新增 `PROMPT_CORE_MAX_LINES = 30`（**两档同源闸**：本地=硬闸 / 云端=目标）+ 纯函数 `countPromptLines`/`checkPromptBudget`（**返回结果不抛异常**，供断言与观测）；核心区（身份 + 规则，不含工具目录/记忆）实测 ≤30 行。
+>   **G7（渐进披露）**：`shared/agent/protocol.ts` 新增 `getToolCatalogLine`（`- {id}: {摘要}`，折叠空白、超长截断到 `TOOL_CATALOG_SUMMARY_MAX_CHARS=60`）；`SkillDispatcher` 新增 `toolCatalog()`（每工具一行）；`brainService` 的 `## 可用工具` 由**逐参数全量 dump** 改为**紧凑目录**——参数改由 function-calling 的 `tools` JSON Schema 随请求下发，文本里重复既冗余又触发本地 4B 的「提示词冗长税」（§4.1 实测 1：>30 行 ⇒ 完全不用工具）。全量多行版 `toolsDescription()` **保留**（`agent:listTools` 的 UI 编辑器在用）。
+>   ⚠️ **口径纠正（重要）**：路线图原文写「`identity.md` ≤30 行断言；`CAPABILITIES.md` 改渐进披露」，但**实测 TS 侧根本不读这两个工作区文件**——身份是 `prompts.ts::DEFAULT_IDENTITY` 内置常量（persona/identity 文件读取属 A1-3/A1-5 未移植项），能力面来自运行时 `SkillDispatcher`（已注册 5 个工具），而 `data/libraries/default/.workspace/memory/capabilities/CAPABILITIES.md` 是 **Python 时代 35 条扁平清单**（其中绝大多数在 TS 侧不存在）**且无消费者**。⇒ 按「拒绝死代码」铁律，M2 **不编辑该 `.md`**，而是把 G7/DD-6 落在**真实提示词路径**（`prompts.ts` + `protocol.ts` + `dispatcher.ts`）上。工作区文件的接通（让 identity.md 成为可编辑的身份载体）作为独立项留待后续。
+>   ⚠️ **范围判定**：M2 只做**提示词文本瘦身 + 预算门**；工具面的**分组/按档位限量**属 M3（DD-3）。M2 出口第 3 条「8 类典型请求工具调用成功率 ≥80%」是**活模型评测**（本沙箱跑不了模型）⇒ 本版以**确定性等价物**落地：8 类典型请求 → 期望工具 id 的覆盖断言（防过度瘦身丢工具），真·成功率留 e2e/手测。
+>   ⇒ 单测：新增 `agentPrompts.test.ts`（10 例：预算门 / 核心 ≤30 行 / 目录单行不含参数 / 8 类覆盖）；`agentProtocol.test.ts` +1（`getToolCatalogLine`）、`agentDispatcher.test.ts` +1（`toolCatalog` 与全量版分工）。vitest 全量 **126 文件 / 1961 用例 passed**（原 125/1949 + 1 文件 + 12 例）；tsc 0（node+web）+ eslint 0 + CSS 审计（仅 5 处已知模板噪声）+ `npm run build` 通过（CSS 110.48 kB，本版无 CSS 改动）。
 >
 > **证据强度标注**（全文通用）：
 > `[实测]` 本机/本仓跑出来的 · `[一手]` 模型厂商官方文档 · `[GitHub]` 直接抓成熟框架仓库所得 · `[二手]` 第三方文章/实测（附出处）· `[推断]` 我的推理，未直接验证
@@ -464,6 +470,20 @@ SOUL 硬边界、turn limit、MCP、`shared/` 分层契约、**6 家服务商的
 
 > **为什么 M0.5 紧跟 M1**：M1 给了"实际发生多少"的数据，M0.5 才让本地档"**能撑住多少**"变得可控——4K 上下文截断（G1）与**无终止闸时无限重试**（G4）是本地档两个最先撞墙的点。三闸是**计数真闸**而非提示词约定，命中即**带部分产出**优雅收尾。
 
+### 5.5.11 实现记录（v1.3）：M2 提示词瘦身（G7 + DD-6）
+
+| 项 | 落地 |
+|---|---|
+| `shared/agent/prompts.ts`（改，DD-6 预算门） | 新增 **`PROMPT_CORE_MAX_LINES = 30`**（**两档同源闸**：本地=硬闸 / 云端=目标，理由不同、闸值同一）+ 纯函数 `countPromptLines(prompts)`（忽略空行）/ `checkPromptBudget(prompts, maxLines?)`（**返回 `{ok,lines,maxLines}` 不抛异常**）；选项 `toolsDescription` → **`capabilityCatalog`**（自文档化） |
+| `shared/agent/protocol.ts`（改，G7 目录） | 新增 **`getToolCatalogLine(skill)`**：`- {id}: {摘要}`，折叠空白成单行、超长截断到 **`TOOL_CATALOG_SUMMARY_MAX_CHARS = 60`**（末尾 `…`）。**只一行、不含参数明细**。全量多行版 `getToolDescription` 保留 |
+| `main/agent/dispatcher.ts`（改） | 新增 **`toolCatalog()`**：每工具一行 `getToolCatalogLine`。与全量 `toolsDescription()`（逐参数）**分工并存**——后者供 `agent:listTools` 的 UI 编辑器，前者供提示词注入 |
+| `main/agent/brainService.ts`（改） | `## 可用工具` 段改喂 `dispatcher.toolCatalog()`（渐进披露）；`tools: dispatcher.toolsJsonSchema()` **不变**——参数完整 schema 仍随 function-calling 请求下发，故文本里删掉参数 dump 不丢信息 |
+| 测试 | 新增 `agentPrompts.test.ts`（10 例：`PROMPT_CORE_MAX_LINES===30` / `countPromptLines` 忽略空行 / `checkPromptBudget` 结果与自定义上限 / **核心区 ≤30 行** / `buildSystemPrompts` 三段拼接与空目录不注入 / 自定义身份覆盖 / `getToolCatalogLine` 折叠与截断 / `toolCatalog()` 每工具一行且无参数行 / **8 类典型请求覆盖**）；`agentProtocol.test.ts` +1、`agentDispatcher.test.ts` +1。vitest 全量 **126 文件 / 1961 用例 passed**；tsc 0（node+web）+ eslint 0 + CSS 审计仅已知噪声 + `npm run build` 通过（CSS 110.48 kB） |
+| ⚠️ 口径纠正 | 路线图原判据「`identity.md` ≤30 行断言；`CAPABILITIES.md` 改渐进披露」与实际不符：**TS 侧不读这两个工作区文件**（身份=内置 `DEFAULT_IDENTITY`；能力面=运行时 `SkillDispatcher` 的已注册工具）。`CAPABILITIES.md` 是 Python 时代 35 条扁平清单**且无消费者** ⇒ 按「拒绝死代码」，**不编辑**，改把 G7/DD-6 落在真实提示词路径 |
+| 范围判定 | 只做**文本瘦身 + 预算门**；工具面的**分组/档位限量**属 M3（DD-3）。出口第 3 条「≥80% 成功率」是**活模型评测**（本沙箱无模型）⇒ 以**确定性覆盖断言**（8 类请求 → 期望工具 id 都在目录里）替代，真成功率留 e2e/手测 |
+
+> **为什么 M2 紧跟 M0.5**：M1 给了数据、M0.5 让本地档"撑得住"，M2 才处理"**读得完**"——§4.1 实测 1 表明 4B 在 >30 行提示词下**完全不用工具**。本版把 `## 可用工具` 从"逐参数 dump"改成"每工具一行"，参数改由 function-calling schema 承载，一举去掉了文本里的冗余（也即全项目最大的一段易膨胀文本）。
+
 ---
 
 ## 6. 选型：不引入 agent 框架（结论不变，依据更硬）
@@ -524,13 +544,15 @@ SOUL 硬边界、turn limit、MCP、`shared/` 分层契约、**6 家服务商的
 
 工作区（✅ 已有，方向正确，强化而非重写）：
 data/libraries/<库>/.workspace/
-  identity.md    SOUL 5 要素硬边界（✅ 已有，短提示词的载体）
-  persona.md     小墨人格（✅）
+  identity.md    SOUL 5 要素硬边界（✅ 已有；⚠️ TS 侧**暂未读取**，身份仍内置 `DEFAULT_IDENTITY`）
+  persona.md     小墨人格（✅；同上，暂未读取）
   memory/MEMORY.md  长期记忆/用户偏好（✅ 活着）
-  memory/capabilities/CAPABILITIES.md  ⚠️ 35 条扁平清单 → 改渐进披露（G7）
+  memory/capabilities/CAPABILITIES.md  ⚠️ 35 条扁平清单（Python 时代，**无 TS 消费者**）→ M2 改为在真实提示词路径做渐进披露（G7）
   memory/LEARNINGS.jsonl  反思经验（✅）
   ⬆ v0.4：保密模式下此处即「数据不出本机」的物理边界
 ```
+
+> ⚠️ **v1.3 口径纠正**：上图 `identity.md`/`persona.md`/`CAPABILITIES.md` 是 **Python 时代的工作区资产**，**当前 TS 侧无任何代码读取它们**——TS 的身份是 `prompts.ts::DEFAULT_IDENTITY` 内置常量，能力面来自运行时 `SkillDispatcher`（已注册 5 个工具）。因此 **M2 的 G7/DD-6 落在真实提示词路径**（`prompts.ts` + `protocol.ts` + `dispatcher.ts`），**不编辑**这两个 `.md`（避免死代码）。若要真正使用工作区文件（把 identity.md 变成可编辑的身份载体），需补一个工作区读取层——**独立项，留待后续**（可能与 A1-3/A1-5 的 persona 读取一并做）。
 
 ### 7.1 与 `shared/` 分层契约的对齐 `[实测·读 shared/README.md]`
 
@@ -578,7 +600,7 @@ data/libraries/<库>/.workspace/
 | **M0 档位纠正** ⭐ | 修 **G0**（最高优先） | 两档 | 默认走云端；未配置**不再静默回落 ollama**而是引导配置 + 提供「一键启用保密模式」；`client.ts:144` 硬编码 `ollama pull` 文案按档位分别给出正确指引 | ✅ 已落地（v0.10，~150 行，见修订记录"补记 v0.10"） |
 | **M0.5 本地档上下文与终止** | 修 G1 + G4 | 本地 | `num_ctx` 可配且有默认 16384；三道计数闸生效；触发后带部分产出 finalize 并诚实显示 | ✅ 已落地（v1.2，~200 行 + 单测 11 例，见 §5.5.10） |
 | **M1 观测先行** ⭐ | 修 G3 | 两档 | 每轮有档位/模型/token/延迟/成本行；面板可见"已用轮次"；**先有数据再调提示词** | ✅ 已落地（v1.1，~150 行 + 单测 9 例，见 §5.5.9） |
-| **M2 提示词瘦身** | 修 G7 + DD-6 | 两档 | `identity.md` ≤30 行断言转绿；`CAPABILITIES.md` 改渐进披露；单测跑 8 类典型请求，工具调用成功率 ≥80% | ~300 行 |
+| **M2 提示词瘦身** | 修 G7 + DD-6 | 两档 | `identity.md` ≤30 行断言转绿；`CAPABILITIES.md` 改渐进披露；单测跑 8 类典型请求，工具调用成功率 ≥80% | ✅ 已落地（v1.3，~120 行 + 单测 12 例，见 §5.5.11）。⚠️ 出口判据按 TS 现实校正：预算门 + 工具目录渐进披露落在真实提示词路径；工作区 `identity.md`/`CAPABILITIES.md` **TS 侧无消费者**，未编辑；"≥80%" 为活模型评测，以确定性覆盖断言替代 |
 | **M2.5 步数预算** | 修 DD-15 | 两档 | 每个动作可串联多工具；补 ≥2 个高频**复合工具**；单跑同一任务**步数下降 ≥20%** | ~200 行 |
 | **M3 工具面与路由** | 修 G2 + DD-3/4 | 两档 | 协议层分组、按档位限量（本地 ≤8 / 云端 ≤15）；本地=用户显式选技能、云端=软路由可选且保留显式兜底；成功率 ≥80% | ~250 行 |
 | **M4 确定性评分门 + 产出契约** ⭐ | 修 G8 + **DD-19** | 两档 | agent 产出必须过 `validateCeshu`→`scoreCeshu`→`dataCountConstraint`/`assessBalance`；LLM judge 只补机器判不了的维度且权重远低于确定性门 | ~250 行 |

@@ -203,4 +203,15 @@ describe('SkillDispatcher：供提示词与面板使用的元数据', () => {
     expect(dispatcher.count).toBe(1)
     expect(dispatcher.fuzzyMatch('system.a')).toBeNull()
   })
+
+  it('toolCatalog（M2/G7）：每工具一行摘要，不含参数明细', () => {
+    const dispatcher = new SkillDispatcher()
+    dispatcher.register(makeSkill({ id: 'system.a', description: '技能甲' }))
+    dispatcher.register(makeSkill({ id: 'system.b', description: '技能乙' }))
+
+    expect(dispatcher.toolCatalog().split('\n')).toEqual(['- system.a: 技能甲', '- system.b: 技能乙'])
+    // 全量版含参数行（`action`），目录版不含——两者分工明确
+    expect(dispatcher.toolsDescription()).toContain('action')
+    expect(dispatcher.toolCatalog()).not.toContain('action')
+  })
 })

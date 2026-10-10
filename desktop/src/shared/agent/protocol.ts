@@ -317,6 +317,31 @@ export function toJsonSchema(skill: SkillProtocol): {
 }
 
 /**
+ * 工具目录摘要的默认字符上限（渐进披露：每个工具一行，超长截断）。
+ * 太长的描述会触发本地 4B 的「提示词冗长税」（见设计文档 §4.1 实测 1）。
+ */
+export const TOOL_CATALOG_SUMMARY_MAX_CHARS = 60
+
+/**
+ * 工具目录**单行**（渐进披露，G7）：`- {id}: {摘要}`，**不含参数明细**。
+ *
+ * 为什么不带参数：参数已由 function-calling 的 `tools` JSON Schema 随请求下发
+ * （`SkillDispatcher.toolsJsonSchema()`），在文本提示词里重复是冗余，且长参数块正是
+ * 「提示词冗长税」的来源（§4.1 实测 1：>30 行 ⇒ 4B 完全不用工具）。
+ * 需要**全量多行**描述的场合（如 `agent:listTools` 给 UI 编辑器）继续用 `getToolDescription`。
+ */
+export function getToolCatalogLine(skill: SkillProtocol): string {
+  return `- ${skill.id}: ${clipToolSummary(skill.description)}`
+}
+
+/** 折成单行并截断到 `TOOL_CATALOG_SUMMARY_MAX_CHARS`（超出以 `…` 结尾） */
+function clipToolSummary(text: string): string {
+  const oneLine = text.replace(/\s+/g, ' ').trim()
+  const max = TOOL_CATALOG_SUMMARY_MAX_CHARS
+  return oneLine.length > max ? `${oneLine.slice(0, max - 1)}…` : oneLine
+}
+
+/**
  * 单行工具描述（对齐 Python `BaseSkill.get_tool_description`）：
  * `- {id}: {description}` + 每个参数一行 `    {*}{name}: {desc} ({type=.., enum=[..], default=..})`
  */

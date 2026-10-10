@@ -8,6 +8,7 @@ import {
   TOOL_RISK_MAP,
   checkPermission,
   fixParams,
+  getToolCatalogLine,
   getToolDescription,
   inferAction,
   normalizeSkillResult,
@@ -227,6 +228,13 @@ describe('agent 协议：JSON Schema 与工具描述', () => {
     expect(lines[0]).toBe('- system.demo: 演示技能')
     expect(lines[1]).toBe('    *action: 操作类型 (type=string, enum=[go|stop])')
     expect(lines[2]).toBe('    count: 次数 (type=integer, default=1)')
+  })
+
+  it('getToolCatalogLine（M2/G7）：只有一行 `- id: 摘要`，不含参数明细', () => {
+    const line = getToolCatalogLine(stub)
+    expect(line).toBe('- system.demo: 演示技能')
+    expect(line).not.toContain('action')
+    expect(line.split('\n')).toHaveLength(1)
   })
 })
 

@@ -123,7 +123,8 @@ export class AgentBrainService {
       if (prefBlock !== '') extraBlocks.push(prefBlock)
     }
     const systemPrompts = buildSystemPrompts({
-      toolsDescription: this.deps.dispatcher.toolsDescription(),
+      // M2/G7：注入**渐进披露**的紧凑能力目录（每工具一行），参数留给 function-calling schema
+      capabilityCatalog: this.deps.dispatcher.toolCatalog(),
       ...(extraBlocks.length > 0 ? { extraBlocks } : {})
     })
 

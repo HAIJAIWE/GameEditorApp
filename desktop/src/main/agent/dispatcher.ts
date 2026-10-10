@@ -19,6 +19,7 @@
 import {
   RISK_LEVEL,
   fixParams,
+  getToolCatalogLine,
   getToolDescription,
   normalizeSkillResult,
   resolveRiskLevel,
@@ -136,12 +137,23 @@ export class SkillDispatcher {
     this.fuzzyIndex.clear()
   }
 
-  /** 供 A1-2 组装提示词用（对齐 Python `get_tools_description`） */
+  /** 供 A1-2 组装提示词用（对齐 Python `get_tools_description`）——**全量多行**描述，含参数明细 */
   toolsDescription(): string {
     return this.registry
       .list()
       .map((skill) => getToolDescription(skill))
       .join('\n\n')
+  }
+
+  /**
+   * 供提示词注入用（M2/G7 **渐进披露**）：每个工具**一行摘要**，不含参数明细。
+   * 参数由 `toolsJsonSchema()` 随 function-calling 请求下发，文本里不重复。
+   */
+  toolCatalog(): string {
+    return this.registry
+      .list()
+      .map((skill) => getToolCatalogLine(skill))
+      .join('\n')
   }
 
   /** 供 LLM Function Calling 用（对齐 Python `get_tools_json_schema`） */
