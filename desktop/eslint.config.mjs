@@ -154,5 +154,52 @@ export default tseslint.config(
         }
       ]
     }
+  },
+  // 规则 5：agent skills（工具层）禁止反向依赖「编排层 / 运行时」
+  // —— 把 agent-framework-design.md §7.2 不变量 ① 变成机器可执行的守卫
+  //
+  // 分层：skills(工具层) ← dispatcher(编排层) ← brainService + transports(运行时)
+  // skills 位于最底层，只可被编排层单向引用；反向 import 会形成循环依赖并使分层腐化。
+  //
+  // ⚠️ 粒度（实测取证）：只禁编排层/运行时这 5 个文件，**不禁 Store**
+  // （`operationLogStore` / `sessionStore` / `memoryStore` / `preferenceStore`）。
+  // 因为 `rollbackSkill` 现依赖 `../operationLogStore`（工具→存储），属既有事实，
+  // 不在 §7.2 不变量范围内；若一并禁止会直接打断构建。
+  //
+  // ⚠️ 覆盖警告：flat config 同名规则**整体覆盖**而非合并，本条会盖掉规则 4 对
+  // skills 文件的配置，故此处必须重复声明 `**/shared/domain/**`，否则规则 4 在这批文件上失效。
+  {
+    files: ['src/main/agent/skills/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/shared/domain/**'],
+              message:
+                'src/main/ 禁止直接 import 业务域（shared/domain/**）；请通过 shared/api.ts 契约门面调用。'
+            },
+            {
+              group: [
+                '**/agent/dispatcher',
+                '**/agent/brainService',
+                '**/agent/approvalBroker',
+                '**/agent/qualityJudge',
+                '**/agent/operationRecorder',
+                '../dispatcher',
+                '../brainService',
+                '../approvalBroker',
+                '../qualityJudge',
+                '../operationRecorder'
+              ],
+              message:
+                'agent/skills/ 是工具层，禁止反向 import 编排层/运行时（dispatcher · brainService · approvalBroker · qualityJudge · operationRecorder）。' +
+                '依赖方向只能是「编排层 → 工具层」，见 agent-framework-design.md §7.2 不变量①。'
+            }
+          ]
+        }
+      ]
+    }
   }
 )

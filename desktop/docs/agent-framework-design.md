@@ -651,6 +651,94 @@ data/libraries/<库>/.workspace/
 - 五分区（contract/domain/config/service/util）中，agent 属 **domain 性质但已在 `shared/agent/`**，
   本设计**不动这个既有决策**（它有 91% 文件被测试直接 import 的取证支撑）。
 
+### 7.2 架构范式裁定：采用「模式二 · 分层架构型」（主理人 2026-10-10 确认）
+
+对照业界四种 Agent 项目结构范式，本项目的 `agent/` 子系统**选定「分层架构型」**。
+**关键前提：当前实现已基本合规 ⇒ 结论是「加固 + 守卫」，不是「重构」。**（勿借范式之名推倒重来）
+
+**实测分层映射（29 个文件，2026-10-10 清点）**
+
+| 分层架构型的层次 | 本项目对应 | 文件数 |
+|---|---|---|
+| 工具层（tools：封装外部能力/副作用） | `main/agent/skills/`：`ceshuSkill` `codeSkill` `gameDataSkill` `askUserSkill` `rollbackSkill` | 5 |
+| 编排层（agents：导入工具并编排） | `main/agent/dispatcher.ts` + `approvalBroker.ts` + `qualityJudge.ts` + `operationRecorder.ts` | 4 |
+| 运行时（runtime：注册与调度） | `main/agent/brainService.ts` + `agentTransport.ts` / `openAiTransport.ts` / `ollamaTransport.ts` | 4 |
+| 存储（Store） | `main/agent/`：`sessionStore` `memoryStore` `preferenceStore` `operationLogStore` | 4 |
+| 策略/配置层（纯逻辑，零运行时依赖） | `shared/agent/`：`brain` `protocol` `prompts` `budget` `qualityGate` `session` `memory` `toolGroups` `observability` `panel` `personalization` `operationLog` | 12 |
+
+**单向依赖不变量（两条，均经 grep 实测成立）**
+
+1. **skills 不反向依赖编排层**：`main/agent/skills/**` 中 **0** 处 import `dispatcher` / `brainService` / `qualityJudge` / `approvalBroker` / `operationRecorder`。
+2. **`shared/agent` 不依赖 Node/Electron**：`shared/agent/**` 中 **0** 处 import `main/` 或 `electron`——等价于既有铁律「`shared/` 不 import `main/`」。
+
+依赖流：`shared/agent`（纯策略） ← `main/agent`（编排 + 运行时 + 存储）；`skills/` 位于最底层，只被编排层单向引用。
+
+**为什么不选另外三种**
+
+- **极简框架型**：已超容（5 skill + 双传输 + 审批 + 质量裁决 + 预算 + 观测）。且工具走 zod schema + `toolGroups.ts` + IPC 四层注册，与 `@tool` 装饰器体系不兼容，装饰器会与类型化 IPC 铁律冲突。
+- **Monorepo 型**：当前属**过度开发**——单桌面应用、单 `package.json`、npm（非 pnpm workspace）；拆 `packages/` 只增加构建顺序成本、零收益。
+- **Clean Architecture 型**：核心域是「策划书 CRUD + AI 辅助」，非需要 DDD 的复杂业务规则；`domain/entities/use-cases` 样板会与 Electron 强制的四层进程模型（shared/preload/main/renderer）打架。
+
+**⚠️ 边界提醒**：模式二**只套在 `agent/` 子系统**上。整个应用仍服从 Electron 四层进程模型，两者**正交**，勿混为一谈。
+
+**翻转前提（未来触发器）**：若将来要把 agent 引擎抽出供**其他项目**复用（独立成包/发布），才有理由升级为 Monorepo 或把 `agent/` 独立发包——那是届时的独立决策，**当前不动**。
+
+**唯一值得补的东西（未做，留待后续）**：加一条 ESLint 规则或单测，禁止 `main/agent/skills/**` import 编排层，防止分层随时间腐化。除此之外**不需要另立「模式二开发路线」**——现有 §9 路线图 M0–M6 已覆盖，范式已达标。
+
+### 7.3 系统分解视角：核心骨架 × 扩展维度 `[实测 2026-10-11]`
+
+> **与 §7.2 的关系（勿混）**：§7.2 是**规范性范式**（回答"`agent/` 代码怎么分层"，只约束 agent 子系统）；
+> 本节是**描述性骨架**（回答"整个系统由什么组成"）。二者**不同层次、互补，不互相替代**。
+
+**核心骨架（必用）**
+
+| 层级 | 本项目实证 |
+|---|---|
+| 系统 | 墨白可视化编辑（`desktop/` 整个 Electron 应用） |
+| 子系统 | `main/` 下：`ceshu` `agent` `data` `attr` `schema` `engineExport` `imageGen` `library` `llm` `settings` `security` `backup`（+ `ipc.ts`/`stores.ts`/`tray.ts`/`windowState.ts`/`logger.ts` 基础设施） |
+| 模块 | 子系统内切分：`ceshu/`(storage·manager·export·dataSync·notes)、`agent/`(dispatcher·brainService·transports·skills)；`shared/` 中 ceshu 相关 20+ 模块（`ceshuScorer` `ceshuValidation` `ceshuChecklist` `ceshuDiff` `ceshuMigration` `ceshuWordStats`…） |
+| 组件 | 渲染层 React 组件：`CeshuHomePanel` `CeshuView` `DigitalPanel` `DataEditorTab` + 22 个 `OverlayPanel` |
+| 接口 | ⭐ **最重的一层**：类型化 IPC 四层契约 `schemas.ts`(zod) + `ipc.ts`(IpcContract) + `service/api.ts`(MbApi) + `preload/index.ts`；新增通道漏登任一层即 tsc 红 |
+
+**扩展维度（按需，实测强弱）**
+
+| 维度 | 本项目实证 | 判定 |
+|---|---|---|
+| 代码组织（包/命名空间/层） | 四层 `main`/`preload`/`renderer`/`shared`；`shared/` 不 import `main/` | ✅ 强（硬铁律） |
+| 通信（事件/消息/协议） | 类型化 IPC、`library:changed` 广播、agent `protocol.ts` + `reduceBrainEvent` 事件流 | ✅ 强 |
+| 设计模式 | 策略（三传输 `ollama`/`openAi`/`agentTransport`）、观察者（事件流/广播）、单例式 Store/Manager | ✅ 有实例，未成体系 |
+| 业务建模（领域/实体/聚合/仓储） | `shared/` 有 `domain`/`service`/`util` 分区，Store 近似仓储；**无正式聚合/值对象** | ⚠️ 薄（未走 DDD，与 §7.2 排除模式四自洽） |
+| 运行部署（服务/进程/容器） | 进程维：main 主进程 + renderer 渲染进程 + preload 桥；**无服务/无容器** | ⚠️ 部分适用（桌面单机，非缺陷） |
+
+**结论**：项目能映射上这套骨架，但其形状是 **Electron 进程模型 + IPC 铁律"逼"出来的**，**不是照模板搭的**；真正的骨架特色在**接口层**（比一般项目重得多）。
+
+**⚠️ 重构前置提醒（主理人已表明将做整体整理/重构）**
+
+1. **先锁再动**：动手前先补 §7.2 末那条依赖守卫（禁止 `main/agent/skills/**` 反向 import 编排层）。当前分层**已经是正确的**，重构过程中最容易发生的是"静默腐化"——结构动了、依赖方向被无意打破、且无人察觉。守卫是唯一低成本的防漏网。
+2. **不要借范式之名推倒重来**：§7.2 的审计结论是 agent 分层**已达标**；§7.3 也显示五层骨架齐全。整理应针对**真实痛点**（如模块过大、重复逻辑、命名不一致），而非把已合规的结构按模板重排——那属过度开发。
+3. **每次结构变更后复跑**：tsc + eslint + vitest，并复验 §7.2 两条不变量。
+
+### 7.4 外部实践印证与选定路径 `[web 调研 2026-10-11 · 主理人确认走 A]`
+
+**外部调研结论**
+
+| 来源 | 结论 | 对本项目的影响 |
+|---|---|---|
+| CSDN《Agent 从 Demo 到生产：企业级分层架构》 | 企业级 Agent 主流目录 = `src/api · core · tools · storage · shared`，属**阶段一（1–3 人 MVP）** | 与 `agent/` 分层**同构**，印证 §7.2 选模式二 |
+| 同上 | 拆分**渐进且有触发信号**：阶段一单仓多模块 → 阶段二（3–8 人 / 某模块成瓶颈）按层拆服务 → 阶段三（8+ 人）按域拆 | **Monorepo 不是起点**，印证 §7.2 的翻转前提 |
+| aimadetools《Monorepos for AI Products》 | 适用 =「团队频繁一起改共享契约」；警告 =「若每次改动只涉及一个应用，额外编排几乎无价值」 | 本项目单应用、单 `package.json`、单人 ⇒ 落在「不值得」侧 |
+| undercodetesting | 「只建你需要的目录…好架构不是文件夹越多越好」 | 支持「不借范式之名推倒重来」 |
+| CSDN《AI Agent 工程目录架构》 | **AGENTS.md / rules**：把纪律写成 AI 常驻可读的约束 | 启发：守卫除 ESLint/单测外，补 AGENTS.md 分层纪律（本项目重度用 AI 开发） |
+
+> **结论：外部信息已充分，不再向外收集**——继续往外看只会引入他人约束（多团队 / 多部署 / OSS 框架），诱发过度设计。
+> 真正缺的是**内部痛点数据**，那只能从本仓库扫描得到。
+
+**选定路径 A：守卫先行 + 现状体检**
+
+1. **守卫**（把 §7.2 纪律变成机器可执行）：ESLint 规则禁止 `main/agent/skills/**` 反向 import 编排层；补 AGENTS.md 分层纪律供 AI 会话常驻遵守。
+2. **体检**（用 §7.3 骨架做盘点口径）：扫描产出真实痛点清单 + 量化证据（模块体积 / 重复逻辑 / 耦合热点 / 命名一致性）。
+3. **点名后小步改**：主理人从清单中指定目标，逐项改；每次结构变更后跑 tsc + eslint + vitest，并复验 §7.2 两条不变量。
+
 ---
 
 ## 8. 设计决策（DD）

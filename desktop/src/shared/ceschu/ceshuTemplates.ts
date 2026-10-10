@@ -1,6 +1,6 @@
 import { CHAPTER_LABELS, type ChapterKey } from './ceshuConstants'
 import { isPlainObject } from './ceshuModel'
-import { CHAPTER_TEMPLATES } from './domain/ceshu/ceshuTemplateData'
+import { CHAPTER_TEMPLATES } from '../domain/ceshu/ceshuTemplateData'
 
 /**
  * 章节模板库纯逻辑（自 Python `ui/ceshu/chapter_templates.py` + `template_picker_dialog.py` 匹平迁移）：

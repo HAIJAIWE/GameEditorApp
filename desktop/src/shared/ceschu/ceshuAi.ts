@@ -9,9 +9,9 @@ import {
   type ChapterKey,
   type GddScope
 } from './ceshuConstants'
-import type { LlmUsage } from './llmConfig'
-import { CESHU_CHAPTER_FIELDS } from './domain/ceshu/ceshuFields'
-import type { QualityGateVerdict } from './agent/qualityGate'
+import type { LlmUsage } from '../llmConfig'
+import { CESHU_CHAPTER_FIELDS } from '../domain/ceshu/ceshuFields'
+import type { QualityGateVerdict } from '../agent/qualityGate'
 import { isPlainObject } from './ceshuModel'
 
 /**
