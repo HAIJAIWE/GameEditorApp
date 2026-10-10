@@ -29,6 +29,7 @@ import { buildPersonalizedContext } from '../../shared/agent/personalization'
 import {
   RISK_LEVEL,
   resolveRiskLevel,
+  toFunctionCallingTools,
   toJsonSchema,
   type SkillExecutionContext
 } from '../../shared/agent/protocol'
@@ -178,7 +179,10 @@ export class AgentBrainService {
       systemPrompts,
       transport,
       runner: this.deps.runner ?? createDispatcherToolRunner(this.deps.dispatcher),
-      tools: face.exposed.map((skill) => toJsonSchema(skill)),
+      // ⚠️ `toJsonSchema` 给的是**内层** `{name,description,parameters}`；
+      // 下发前必须套 Function Calling 线格式外层，否则云端 400 / 本地 Ollama 静默失效
+      // （见 `toFunctionCallingTools` 的注释）。此处是**全项目唯一的转换点**。
+      tools: toFunctionCallingTools(face.exposed.map((skill) => toJsonSchema(skill))),
       tier,
       maxTurns: this.deps.maxTurns ?? DEFAULT_MAX_TURNS,
       ...(this.deps.maxToolCalls !== undefined ? { maxToolCalls: this.deps.maxToolCalls } : {}),

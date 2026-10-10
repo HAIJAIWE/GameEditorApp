@@ -84,7 +84,7 @@ describe('OpenAiChatTransport：请求与响应契约', () => {
     })
     const reply = await transport.complete({
       messages: [{ role: 'user', content: '有哪些数据表' }],
-      tools: [{ name: 'system.game_data' }],
+      tools: [{ type: 'function', function: { name: 'system.game_data' } }],
       onChunk: (text) => chunks.push(text)
     })
 
@@ -93,11 +93,15 @@ describe('OpenAiChatTransport：请求与响应契约', () => {
     const body = JSON.parse(String(inits[0]?.body)) as {
       model?: string
       stream?: boolean
-      tools?: unknown[]
+      tools?: Array<{ type?: string; function?: { name?: string } }>
     }
     expect(body.model).toBe('deepseek-chat')
     expect(body.stream).toBe(false)
+    // 线格式透传守卫：传输层**不再包装**，进来什么样出去什么样。
+    // （进线前已由 brainService 套好 `{type:'function', function:{…}}`；此处摊平即被端点回 400）
     expect(body.tools).toHaveLength(1)
+    expect(body.tools?.[0]?.type).toBe('function')
+    expect(body.tools?.[0]?.function?.name).toBe('system.game_data')
 
     expect(reply.content).toBe('我先查一下数据')
     expect(reply.toolCalls).toEqual([
@@ -122,6 +126,13 @@ describe('OpenAiChatTransport：请求与响应契约', () => {
     const transport = new OpenAiChatTransport({ baseUrl: 'https://x/v1', model: 'm', apiKey: '' })
     await transport.complete({ messages: [], tools: [] })
     expect(inits[0]?.headers?.['Authorization']).toBeUndefined()
+  })
+
+  it('无工具时**省略** tools 键（`tools: []` 会被部分严格端点判为非法）', async () => {
+    const { inits } = stubFetch(jsonResponse({ choices: [{ message: { content: 'ok' } }] }))
+    const transport = new OpenAiChatTransport({ baseUrl: 'https://x/v1', model: 'm', apiKey: 'k' })
+    await transport.complete({ messages: [], tools: [] })
+    expect(JSON.parse(String(inits[0]?.body))).not.toHaveProperty('tools')
   })
 
   it('HTTP 非 2xx → 抛出带状态码的可读错误', async () => {

@@ -15,6 +15,7 @@ import {
   isBulkLlmCall,
   llmConfirmReason,
   resolveRiskLevel,
+  toFunctionCallingTools,
   toJsonSchema,
   LLM_BULK_COUNT_THRESHOLD,
   type SkillProtocol
@@ -220,6 +221,17 @@ describe('agent 协议：JSON Schema 与工具描述', () => {
       minimum: 1,
       maximum: 100
     })
+  })
+
+  it('toFunctionCallingTools：补 `{type:"function"}` 外层，且不改动内层字段', () => {
+    const single = toFunctionCallingTools([toJsonSchema(stub)])
+    expect(single).toEqual([{ type: 'function', function: toJsonSchema(stub) }])
+    expect(single[0]?.type).toBe('function')
+    expect(single[0]?.function.name).toBe('system.demo')
+    // 线格式契约：**不允许**把内层字段摊平到顶层（云端会回 400「tools.0.type must be one of ['function']」）
+    expect(single[0]).not.toHaveProperty('name')
+    expect(single[0]).not.toHaveProperty('parameters')
+    expect(toFunctionCallingTools([])).toEqual([])
   })
 
   it('getToolDescription：首行 `- id: 描述`，参数行带必填星号与约束', () => {

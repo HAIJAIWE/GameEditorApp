@@ -22,6 +22,10 @@
  *   逐字流式（`onChunk`）本次以「整段一次性回调」实现，面板仍可见最终文本，但**不是**逐 token。
  * - **Claude 不在此层**：Anthropic Messages API 与 OpenAI 协议不兼容（`client.ts` 既有结论），
  *   由 `resolveAgentTransport` 在同一处拦截并给出中文指引。
+ * - **`request.tools` 原样下发**：本层**不补** Function Calling 外层包装 —— 进来时已是
+ *   `[{type:'function', function:{…}}]`（`brainService` 经 `toFunctionCallingTools` 转好）。
+ *   若把 `toJsonSchema()` 的内层对象直接透传，OpenAI 兼容端点会回
+ *   `400 InvalidParameter: input.tools.0.type must be one of ['function']`（线上实测）。
  */
 import { LLM_MESSAGES, type LlmUsage } from '../../shared/llmConfig'
 import {
@@ -77,10 +81,11 @@ export class OpenAiChatTransport implements BrainLlmTransport {
       throw new Error('未指定云端模型：请到「设置 → AI 模型服务」选择或填写模型后重试。')
     }
 
+    // `tools: []` 会被部分严格端点判为非法（宁可省略而非空数组）；本层只做透传。
     const body = JSON.stringify({
       model,
       messages: request.messages,
-      tools: request.tools,
+      ...(request.tools.length > 0 ? { tools: request.tools } : {}),
       stream: false,
       temperature: this.options.temperature ?? 0.7
     })

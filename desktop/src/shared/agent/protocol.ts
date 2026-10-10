@@ -290,12 +290,20 @@ export interface JsonSchemaProperty {
   items?: { type: string }
 }
 
-/** 技能工具描述（对齐 Python `BaseSkill.to_json_schema`） */
-export function toJsonSchema(skill: SkillProtocol): {
+/**
+ * 单个工具的**函数体**：`{name, description, parameters}`（对齐 Python `BaseSkill.to_json_schema`）。
+ *
+ * ⚠️ 这**不是**可以直接下发给模型的线格式 —— 它是 Function Calling 线格式的**内层**对象，
+ * 外层还要套一层 `{type:'function', function: …}`（见 `toFunctionCallingTools`）。
+ */
+export interface ToolFunctionSchema {
   name: string
   description: string
   parameters: JsonObjectSchema
-} {
+}
+
+/** 技能工具描述（对齐 Python `BaseSkill.to_json_schema`） */
+export function toJsonSchema(skill: SkillProtocol): ToolFunctionSchema {
   if (skill.parametersSchema) {
     return { name: skill.id, description: skill.description, parameters: skill.parametersSchema }
   }
@@ -314,6 +322,35 @@ export function toJsonSchema(skill: SkillProtocol): {
     if (param.required) required.push(param.name)
   }
   return { name: skill.id, description: skill.description, parameters: { type: 'object', properties, required } }
+}
+
+/**
+ * 一条 Function Calling **线格式**工具（`tools` 数组的元素）。
+ *
+ * `type` 目前恒为 `'function'`（OpenAI / Ollama 均只支持这一种），保留字段是为了协议诚实。
+ */
+export interface FunctionCallingTool {
+  type: 'function'
+  function: ToolFunctionSchema
+}
+
+/**
+ * `toJsonSchema` 的产物 → 可直接下发的 Function Calling 线格式数组。
+ *
+ * ## 为什么必须有这一步（不是多余的包装）
+ * OpenAI 兼容端点（DeepSeek / DashScope / 通义 / 豆包 / Ollama `/api/chat` …）要求 `tools` 的
+ * **每个元素**都是 `{"type":"function","function":{name,description,parameters}}`；
+ * 而 `toJsonSchema()` 给的是**内层** `{name,description,parameters}`。
+ * 直接下发内层对象 ⇒ 云端返回 `400 InvalidParameter: input.tools.0.type must be one of ['function']`；
+ * 更阴的是**本地 Ollama 不报错**——它把未知字段忽略、`function` 解析成零值，
+ * 模型于是拿到一个**没有名字的工具**，表现成「模型完全不会用工具」（极难归因）。
+ *
+ * ⇒ 两档共用本函数，**一处转换、两处下发**（`brainService` 装配，传输层原样透传）。
+ */
+export function toFunctionCallingTools(
+  functions: readonly ToolFunctionSchema[]
+): FunctionCallingTool[] {
+  return functions.map((fn) => ({ type: 'function', function: fn }))
 }
 
 /**

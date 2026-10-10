@@ -85,6 +85,14 @@ describe('LLM_PROVIDER_PRESETS：baseUrl 对齐 Python api_config.py:35-100，�
     expect(LLM_PROVIDER_PRESETS.ollama.models[0]).not.toContain('r1')
   })
 
+  it('qwen 默认模型是 Max 旗舰档（不再是 qwen-turbo），且不含旧预览 id', () => {
+    // 旧默认 qwen-turbo 是清单里最弱一档 ⇒ 多轮工具调用场景表现必然像「模型不会用工具」
+    expect(LLM_PROVIDER_PRESETS.qwen.models[0]).toBe('qwen3-max')
+    expect(LLM_PROVIDER_PRESETS.qwen.models).not.toContain('qvq-max-2025-03-25')
+    // 首条必须是 Max 系列（防再被改回 turbo / 小档）
+    expect(LLM_PROVIDER_PRESETS.qwen.models[0]).toContain('max')
+  })
+
   it('只有 Ollama 不需要 API Key（对齐 PyQt test_connection 的判断）', () => {
     expect(LLM_PROVIDER_PRESETS.ollama.requiresApiKey).toBe(false)
     for (const p of LLM_PROVIDER_ORDER.filter((x) => x !== 'ollama')) {

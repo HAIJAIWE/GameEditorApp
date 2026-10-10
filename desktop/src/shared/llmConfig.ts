@@ -113,7 +113,22 @@ export const LLM_PROVIDER_PRESETS: Readonly<Record<LlmProvider, LlmProviderPrese
   qwen: {
     label: 'Qwen',
     baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
-    models: ['qwen-turbo', 'qwen-plus', 'qwen-max', 'qwen-long', 'qvq-max-2025-03-25'],
+    /**
+     * ⚠️ **`models[0]` 即「默认模型」**（同 ollama/deepseek 的约定：选服务商时取 `preset.models[0]`）。
+     *
+     * 旧值 `['qwen-turbo','qwen-plus','qwen-max','qwen-long','qvq-max-2025-03-25']` 有两处问题：
+     * 1. 默认落在 **`qwen-turbo`** —— 整份清单里**最弱**的一档（turbo = 廉价快速档），
+     *    数字员工是**多轮工具调用**场景，拿它当默认，表现必然像「模型不会用工具」；
+     * 2. `qvq-max-2025-03-25` 是 QwQ/QVQ **旧预览 id**，属死配置。
+     *
+     * 现网清单与 Function Calling 支持范围以百炼官方文档为准（千问 Max：Qwen3.8-Max / Qwen3.7-Max /
+     * Qwen3.6-Max / **Qwen3-Max** / Qwen-Max 系列；Plus / Flash / Turbo / Long 各自成系列）：
+     * - `qwen3-max`（**`models[0]` = 默认**）：旗舰档，各项均支持 OpenAI 兼容 `tools`；
+     * - `qwen3.8-max`：更新一代旗舰（想再强一档就换它 / 想省钱换 `qwen-plus`）；
+     * - `qwen-plus` / `qwen3.5-flash`：均衡档 / 低成本档；
+     * - `qwen-long`：长上下文档。
+     */
+    models: ['qwen3-max', 'qwen3.8-max', 'qwen-plus', 'qwen3.5-flash', 'qwen-long'],
     requiresApiKey: true
   },
   claude: {

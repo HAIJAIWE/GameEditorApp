@@ -1,6 +1,6 @@
 # 智能体框架重写设计（E59 起）
 
-> **状态**：v1.6（**已重写**，取代 v0.1~v0.4）。**M0 档位纠正 / M0.5 本地上下文与终止 / M1 观测先行 / M2 提示词瘦身 / M2.5 步数预算 / M3 工具面与路由 / M5 成本护栏 / M6 保密模式 / DD-17 / DD-19 均已落地**；路线图 M0–M6 **全部收口**（M4 由 DD-19 覆盖）。**v1.6 补记**：校正云端档默认模型（DeepSeek 旧 id 已停用）。
+> **状态**：v1.7（**已重写**，取代 v0.1~v0.4）。**M0 档位纠正 / M0.5 本地上下文与终止 / M1 观测先行 / M2 提示词瘦身 / M2.5 步数预算 / M3 工具面与路由 / M5 成本护栏 / M6 保密模式 / DD-17 / DD-19 均已落地**；路线图 M0–M6 **全部收口**（M4 由 DD-19 覆盖）。**v1.6 补记**：校正云端档默认模型（DeepSeek 旧 id 已停用）。**v1.7 补记**：修掉 Function Calling **线格式**真 bug（云端 400 / 本地静默失效）+ 校正 Qwen 档默认模型。
 > **动因**：E42 裁决「`core/agent` 域停止 1:1 迁移，改为框架重写」——方向定了，架构未定。
 >
 > **修订记录（四次纠错，全部记录在案）**
@@ -72,6 +72,29 @@
 >   ⚠️ **未做（诚实标注）**：DD-2 的「设置里显式警告『溢出到系统 RAM 会大幅变慢』」**未实现**（故 DD-2 记为 ◐ 部分落地）；其余服务商（openai/doubao/qwen）的 `models[0]` 同样偏弱或可能过期（如豆包首位是**账号级** `ep-*` 端点 id，对别的账号必然失效）**未**一并改——需各自核对现网 id，属独立项。
 >   ⚠️ **同期记录的已知缺陷（未修，主理人裁定「后续改」）**：M3 把数字员工对话面的 `unconfigured` 映射成「回本地 Ollama」，于是**没配过**（或启动推送失败）的用户会**静默落到本地 4B** —— 这正是 M0 要消灭的静默回落，在 agent 面被重新开了口子。建议改法：`unconfigured` 应与 M0 一致地**引导去设置**（配云端 or 显式开保密模式），而**不是**悄悄用 4B。
 >   ⇒ 单测 `llmConfig.test.ts` +2（停用 id 守卫 / 两个 `models[0]` 锁定）+ 1 条标题校正；vitest 全量 **129 文件 / 1997 用例 passed**（+2）；tsc 0（node+web）+ eslint 0 + build 通过。
+> - **补记 v1.7（Function Calling 线格式真 bug + Qwen 档默认模型）**：主理人在数字员工面板实测**云端档**时命中
+>   `400 InvalidParameter: input.tools.0.type must be one of ['function']`（DashScope 兼容端点）。**这是真 bug，不是配置问题。**
+>   **根因**：`toJsonSchema()` / `SkillDispatcher.toolsJsonSchema()` 产出的是**内层** `{name,description,parameters}`；
+>   `brainService` 把它**原样**塞进 `BrainLlmRequest.tools`，两个传输层又**原样**下发。而 OpenAI 兼容端点要求
+>   每个元素是 `{type:'function', function:{…}}`。**更值得记的是：本地档同样是错的。** Ollama `/api/chat` 与 OpenAI
+>   **同形**（官方 blog 与 JS SDK 示例均为包装形态，已核 `[一手]`），但它**不报错**——未知字段被忽略、`function`
+>   解析成零值 ⇒ 模型拿到一个**没有名字的工具**，表现成「**模型完全不会用工具**」。这很可能就是长期被归因为
+>   「4B 不行 / 提示词冗长税」的真因之一（M2 判定「>30 行提示词 ⇒ 完全不用工具」的结论需在此基础上复测）。
+>   **修法（一处转换、两处透传）**：`protocol.ts` 新增 `ToolFunctionSchema`（给 `toJsonSchema` 的产物显式命名）
+>   + `toFunctionCallingTools()`；`brainService.chat()` 是**全项目唯一转换点**；两个传输层保持原样透传并在头注
+>   写死契约。顺带硬化：`tools` 为空时**省略该键**（不空发 `[]`，部分严格端点会判非法）。
+>   **为什么之前没被测出（断言打偏了层）**：既有 e2e 与单测只断言 `tools[].name`，**从不看 `.type`** —— 恰好绕过缺陷。
+>   ⇒ 新增守卫：`agentProtocol.test.ts`（包装 + **反摊平**）、`agentBrainService.test.ts`（云端/本地/显式选择三路断言线格式）、
+>   `agentOpenAiTransport.test.ts`（透传 + 空 tools 省略）、e2e 桩改断言 `tool.function.name` 且 `type==='function'`。
+>   **同期校正 Qwen 档默认模型**：主理人截图所在档位正是 **Qwen**，而其 `models[0]` 是 **`qwen-turbo`** —— 整份清单
+>   **最弱**一档（turbo=廉价快速档），多轮工具调用场景必然像「模型不会用工具」；且 `qvq-max-2025-03-25` 是
+>   QwQ/QVQ **旧预览 id**（死配置）。按百炼官方 Function Calling 支持列表 `[一手]` 校正为
+>   `['qwen3-max','qwen3.8-max','qwen-plus','qwen3.5-flash','qwen-long']`（默认抬到 Max 旗舰档），并加守卫锁定 `models[0]`。
+>   **同批复核得旁证**：`deepseek-v4-pro` / `deepseek-v4-flash` 在百炼文档中同样在列 ⇒ 上一版（v1.6）改动正确。
+>   ⚠️ **仍未做（诚实标注）**：openai（首位 `gpt-3.5-turbo` 偏弱、整份清单疑为 2024 世代）与 doubao（首位是**账号级** `ep-*` id）
+>   的默认模型**未**校正 —— **无法在不猜的前提下确认 2026 现网 id**，宁缺勿错，留作独立项。
+>   ⇒ vitest 全量 **129 文件 / 2001 用例 passed**（+4：协议 1 / 装配 1 / 传输层 1 / qwen 守卫 1；另有 2 条既有断言就地加强）；
+>   tsc 0（node+web）+ eslint 0 + CSS 审计（仅 5 处已知模板噪声）+ `npm run build` 通过（CSS 110.48 kB 不变）。
 >
 > **证据强度标注**（全文通用）：
 > `[实测]` 本机/本仓跑出来的 · `[一手]` 模型厂商官方文档 · `[GitHub]` 直接抓成熟框架仓库所得 · `[二手]` 第三方文章/实测（附出处）· `[推断]` 我的推理，未直接验证
@@ -530,6 +553,21 @@ SOUL 硬边界、turn limit、MCP、`shared/` 分层契约、**6 家服务商的
 | ⚠️ 范围判定 | ① 出口「成功率 ≥80%」= **活模型评测**（沙箱无模型）⇒ 以确定性断言替代（分组覆盖 / 档位→传输层 / 档位→工具面口径）；② 生产**只注册 5 工具** ⇒ ≤8/≤15 上限恒满足、截断分支不触发（机制与守卫到位，工具数增长即生效）；③ 面板**工具勾选 UI**（消费 `explicitTools`）为后续 UI 项；④ 云端传输层**非流式**；⑤ **agent 对话面云端花费护栏**（复用 M5 `estimateTaskTokens`/`llmConfirmReason`）同为后续项——本版只做档位路由，未给对话面加预算门 |
 
 > **为什么 M3 是路线图最后一期**：M0–M2.5 解决「走哪档 / 上下文 / 终止 / 提示词 / 步数」，M3 解决**工具面本身**——G2 的根因是「工具一多，4B 只挑第一个」。在只有 5 个工具时它不痛，但**分组 + 档位上限 + 显式/软路由的分档**是「接 MCP / 补技能」前必须先立的闸门；早立比晚立便宜（与 DD-16 context provider 同一条演进线）。
+
+### 5.5.14 实现记录（v1.7）：Function Calling 线格式修复 + Qwen 档默认模型
+
+| 项 | 落地 |
+|---|---|
+| `shared/agent/protocol.ts`（改） | 新增 `ToolFunctionSchema`（**给 `toJsonSchema` 的产物显式命名**，并在文档里写死「这不是线格式」）+ `FunctionCallingTool`（`{type:'function', function: ToolFunctionSchema}`）+ **`toFunctionCallingTools(functions)`**（纯函数，只补外层、不动内层） |
+| `main/agent/brainService.ts`（改） | `tools: toFunctionCallingTools(face.exposed.map((skill) => toJsonSchema(skill)))` —— **全项目唯一转换点**，两档共用 |
+| `main/agent/openAiTransport.ts`（改） | 头注写死「`request.tools` 已是线格式、本层**不补包装**」；顺带硬化：`tools` 为空时**省略该键**（不空发 `[]`，部分严格端点判非法） |
+| `main/agent/ollamaTransport.ts`（改） | 头注补线格式契约 + **反面教训**（裸内层对象下 Ollama 不报错、只会「模型不会用工具」） |
+| `main/agent/dispatcher.ts`（改） | `toolsJsonSchema()` 返回类型改用具名 `ToolFunctionSchema[]`（同一函数仍供 `agent:listTools` 的 UI 编辑器，故**保持内层形态**，不改成线格式） |
+| `shared/agent/brain.ts`（改） | `BrainLlmRequest.tools` 文档改为「**Function Calling 线格式**，传输层原样下发、不做包装」+ 指回唯一转换点 |
+| `shared/llmConfig.ts`（改） | `qwen.models` 由 `['qwen-turbo','qwen-plus','qwen-max','qwen-long','qvq-max-2025-03-25']` 改为 `['qwen3-max','qwen3.8-max','qwen-plus','qwen3.5-flash','qwen-long']`（默认由**最弱**档抬到 Max 旗舰档；剔除旧预览 id `qvq-max-2025-03-25`），附「`models[0]`=默认模型」的告警注释（依据百炼官方 Function Calling 支持列表 `[一手]`） |
+| 测试 | `agentProtocol.test.ts` +1（包装 + **反摊平**）、`agentBrainService.test.ts` +1（本地档线格式；既有三例**就地加强**为断言 `tools[].type`/`function.name`）、`agentOpenAiTransport.test.ts` +1（空 tools 省略；请求契约例改为断言 `type==='function'` 透传）、`llmConfig.test.ts` +1（qwen `models[0]` 守卫 + 不含旧预览 id）；e2e `agent-brain-chat.spec.ts` 的 `ChatBody.tools` 类型与断言改打 `tool.function.name` + `type==='function'` |
+| ⚠️ 为什么漏到现在 | 既有断言**只打 `tools[].name`、从不看 `.type`** —— 断言打偏了层，于是「云端 400」与「本地静默失效」两个方向同时绕过测试。⇒ 本次修法的一半价值在于**把断言钉在真正的线格式上** |
+| ⚠️ 仍未做 | ① openai / doubao 的 `models[0]` 未校正（无法在不猜的前提下确认 2026 现网 id）；② `unconfigured`→本地 Ollama 的静默回落缺陷（主理人裁定「后续改」）；③ M2 的「>30 行提示词 ⇒ 完全不用工具」结论需在**线格式修好之后**复测（原结论可能在坏输入下得出） |
 
 ---
 

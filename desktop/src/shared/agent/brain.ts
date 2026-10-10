@@ -61,7 +61,12 @@ export interface BrainLlmReply {
 
 export interface BrainLlmRequest {
   messages: BrainMessage[]
-  /** 工具 JSON Schema（OpenAI Function Calling 形态） */
+  /**
+   * 工具清单 —— **Function Calling 线格式**（`[{type:'function', function:{name,description,parameters}}]`）。
+   *
+   * ⚠️ 传输层**原样下发、不做包装**。由 `SkillDispatcher.toolsJsonSchema()`（内层形态）到线格式的
+   * 转换在 `brainService.chat()` 一处完成（`toFunctionCallingTools`）——见该函数注释里的两个后果。
+   */
   tools: unknown[]
   /** 流式增量回调（对齐 Python `on_chunk`） */
   onChunk?: (text: string) => void

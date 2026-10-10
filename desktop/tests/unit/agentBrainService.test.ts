@@ -69,6 +69,16 @@ describe('AgentBrainService：M3 档位路由装配', () => {
 
     expect(result.stats.tier).toBe('cloud')
     expect(requests[0]?.tools).toHaveLength(3)
+    // ⚠️ 线格式守卫（回归锁）：下发给模型的必须是 `{type:'function', function:{…}}`，
+    // 而不是 `toJsonSchema()` 的**内层**对象。之前漏了这层包装 ⇒ 云端回
+    // `400 InvalidParameter: input.tools.0.type must be one of ['function']`、本地 Ollama 静默失效。
+    const wire = requests[0]?.tools as Array<{ type?: string; function?: { name?: string } }>
+    expect(wire[0]?.type).toBe('function')
+    expect(wire.map((tool) => tool.function?.name)).toEqual([
+      'system.game_data',
+      'system.ceshu',
+      'system.code'
+    ])
     const text = systemText(requests[0] as BrainLlmRequest)
     expect(text).toContain('## 可用工具')
     expect(text).toContain('云端档工具面')
@@ -97,8 +107,25 @@ describe('AgentBrainService：M3 档位路由装配', () => {
     await service.chat('只改策划书', { config: cloudConfig(), explicitTools: ['system.ceshu'] })
 
     expect(requests[0]?.tools).toHaveLength(1)
+    const wire = requests[0]?.tools as Array<{ type?: string; function?: { name?: string } }>
+    expect(wire[0]?.type).toBe('function')
+    expect(wire[0]?.function?.name).toBe('system.ceshu')
     const text = systemText(requests[0] as BrainLlmRequest)
     expect(text).toContain('system.ceshu')
     expect(text).not.toContain('system.game_data')
+  })
+
+  it('本地档（未配置）也走同一条线格式转换（本地 Ollama 与 OpenAI 同形）', async () => {
+    const { transport, requests } = capturingTransport()
+    const service = new AgentBrainService({ dispatcher: makeDispatcher(), transport })
+
+    await service.chat('你好')
+
+    const wire = requests[0]?.tools as Array<{ type?: string; function?: { name?: string } }>
+    expect(wire).toHaveLength(3)
+    expect(wire.every((tool) => tool.type === 'function')).toBe(true)
+    expect(wire[0]?.function?.name).toBe('system.game_data')
+    // 内层必须仍在 `function` 下（摊平即 Ollama 静默失效）
+    expect(wire[0]).not.toHaveProperty('parameters')
   })
 })

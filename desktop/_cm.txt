@@ -1,26 +1,30 @@
-fix(llm): 校正云端/本地默认模型（DeepSeek 旧 id 已停用；落地 DD-2，v1.6）
+fix(agent): Function Calling tools 线格式（云端 400 / 本地静默失效）+ Qwen 档默认模型
 
-问题：DeepSeek 官方 deepseek-chat / deepseek-reasoner 两个 id **已于 2026-07-24 停用**
-（请求直接失败），deepseek-coder 更早已并入 chat；而 LLM_PROVIDER_PRESETS.deepseek.models
-仍是 ['deepseek-chat','deepseek-coder']，且 SettingsPanel::handleProviderChange 取
-**preset.models[0] 作为默认模型** ⇒ 新用户选 DeepSeek 拿到的是已失效的模型名（线上死配置）。
+主理人在数字员工面板云端档实测命中 HTTP 400
+`InvalidParameter: input.tools.0.type must be one of ['function']`。
 
-- deepseek.models → ['deepseek-v4-pro', 'deepseek-v4-flash']
-  · 现网 V4 两档，皆支持 OpenAI 兼容 tools
-  · models[0] = deepseek-v4-pro 即「抬一档」；flash 是面向 agent/工具调用的低成本替代
-    （换它只改一行顺序）
-- ollama.models[0] 由 qwen2.5:7b 提到 qwen3:8b（**落地 DD-2**）
-  · Qwen3 的工具调用写在 chat template 里、Ollama tools API 直接可用；8B/Q4 塞得进 8GB 卡
-  · deepseek-r1:8b 是无工具调用的推理模型，故不置首位
-- 新增守卫断言：三个停用 id 不得再出现 + 两个 models[0] 锁定（防以「迁移保真」改回）
+根因：toJsonSchema() / SkillDispatcher.toolsJsonSchema() 产出的是**内层**
+{name,description,parameters}，brainService 把它原样塞进 BrainLlmRequest.tools，
+两个传输层又原样下发；而 OpenAI 兼容端点与 Ollama /api/chat 都要求每个元素是
+{type:'function', function:{…}}。
 
-⚠️ 未做（诚实标注）：DD-2 的「设置里显式警告溢出到系统 RAM」未实现（记为 ◐ 部分落地）；
-其余服务商（openai/doubao/qwen）的 models[0] 同样偏弱或可能过期（豆包首位是账号级 ep-* 端点 id），
-未一并改——需各自核对现网 id，属独立项。
+⚠️ 本地档同样是错的，只是「不报错」：Ollama 忽略未知字段、function 解析成零值
+⇒ 模型拿到一个没有名字的工具，表现成「模型完全不会用工具」——很可能就是长期
+被归因为「4B 不行 / 提示词冗长税」的真因之一。
 
-⚠️ 同期记录的已知缺陷（未修，主理人裁定「后续改」）：M3 把数字员工对话面的 unconfigured
-映射成「回本地 Ollama」⇒ 没配过的用户会静默落到本地 4B（M0 要消灭的静默回落被重新开了口子）。
-后续改法：unconfigured 应与 M0 一致地引导去设置，而不是悄悄用 4B。
+修法（一处转换、两处透传）：
+- protocol.ts 新增 ToolFunctionSchema + toFunctionCallingTools()
+- brainService.chat() 成为全项目唯一转换点
+- openAiTransport / ollamaTransport 保持透传并写死契约；空 tools 时省略该键
+- dispatcher.toolsJsonSchema() 改用具名类型（保持内层形态，agent:listTools 的 UI 在用）
 
-测试：llmConfig.test.ts +2（停用 id 守卫 / models[0] 锁定）+1 条标题校正；
-vitest 全量 129 文件 / 1997 例全绿；tsc 双配置 0 错；eslint 0；build 通过（CSS 110.48 kB 无变化）。
+为什么之前没被测出：既有断言只打 tools[].name、从不看 .type —— 断言打偏了层。
+⇒ 新增守卫：协议（包装 + 反摊平）/ 装配（云端·本地·显式选择三路线格式）/
+传输层（透传 + 空 tools 省略）/ e2e 桩（function.name + type==='function'）。
+
+同期校正 Qwen 档默认模型（主理人截图所在档位）：models[0] 由整份清单最弱的
+qwen-turbo 抬到 qwen3-max，剔除旧预览 id qvq-max-2025-03-25（依据百炼官方
+Function Calling 支持列表）；deepseek-v4-pro / deepseek-v4-flash 同批得到旁证。
+
+验证：vitest 129 文件 / 2001 用例 passed；tsc 0（node+web）；eslint 0；
+CSS 审计仅 5 处已知模板噪声；build 通过（CSS 110.48 kB 不变）。

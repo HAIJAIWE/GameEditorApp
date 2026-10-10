@@ -7,6 +7,12 @@
  *
  * 主机/模型沿用项目既有约定：`MB_OLLAMA_HOST`（默认 127.0.0.1:11434）、`MB_OLLAMA_MODEL`。
  *
+ * ## ⚠️ `request.tools` 原样下发（线格式契约）
+ * Ollama `/api/chat` 与 OpenAI 同形，要求 `[{type:'function', function:{name,description,parameters}}]`。
+ * 本层**不做包装**：`brainService` 已用 `toFunctionCallingTools` 转好。
+ * 反面教训（线上实测）：曾把 `toJsonSchema()` 的**内层**对象直接透传 —— 云端 400，
+ * 而 **Ollama 不报错**、把 `function` 解析成零值 ⇒ 模型拿到无名工具，表现成「模型不会用工具」。
+ *
  * ## ⚠️ 本层**不受设置面板的「AI 模型服务」影响**（不是 bug，是 M0 有意留下的边界）
  * 它是数字员工对话面（`agent:chat`）的**第三条独立链路**：不 import `StoredLlmConfig`、
  * 不读 `confidential`、不走 `resolveLlmTier`。用户在这里改不动、在这里也看不到，

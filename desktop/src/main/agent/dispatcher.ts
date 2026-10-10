@@ -24,11 +24,11 @@ import {
   normalizeSkillResult,
   resolveRiskLevel,
   toJsonSchema,
-  type JsonObjectSchema,
   type RiskLevel,
   type SkillExecutionContext,
   type SkillProtocol,
-  type SkillResult
+  type SkillResult,
+  type ToolFunctionSchema
 } from '../../shared/agent/protocol'
 
 /** 模糊索引中使用的别名（仅覆盖已注册技能的相关概念） */
@@ -156,8 +156,14 @@ export class SkillDispatcher {
       .join('\n')
   }
 
-  /** 供 LLM Function Calling 用（对齐 Python `get_tools_json_schema`） */
-  toolsJsonSchema(): Array<{ name: string; description: string; parameters: JsonObjectSchema }> {
+  /**
+   * 供 LLM Function Calling 用（对齐 Python `get_tools_json_schema`）。
+   *
+   * ⚠️ 返回的是**内层** `{name,description,parameters}`（同一个函数也供 `agent:listTools` 的
+   * UI 编辑器使用），**不是**可直接下发的线格式 —— 下发前需经 `toFunctionCallingTools` 补
+   * `{type:'function'}` 外层（`brainService` 已统一处理）。
+   */
+  toolsJsonSchema(): ToolFunctionSchema[] {
     return this.registry.list().map((skill) => toJsonSchema(skill))
   }
 
