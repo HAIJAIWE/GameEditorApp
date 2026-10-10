@@ -1,30 +1,31 @@
-fix(agent): Function Calling tools 线格式（云端 400 / 本地静默失效）+ Qwen 档默认模型
+chore!: 移除 Python 旧版（源码 + CI + Release），TS 线成为唯一产品
 
-主理人在数字员工面板云端档实测命中 HTTP 400
-`InvalidParameter: input.tools.0.type must be one of ['function']`。
+Python 版此前已按方案 2「物理隔开」到 _legacy-py/（E65），但仓库根的 src/、
+tests/ 等 350 个文件仍在 git 中，且 Python 的 CI / Release 流水线还在跑。
+本提交把 Python 线整体退场。
 
-根因：toJsonSchema() / SkillDispatcher.toolsJsonSchema() 产出的是**内层**
-{name,description,parameters}，brainService 把它原样塞进 BrainLlmRequest.tools，
-两个传输层又原样下发；而 OpenAI 兼容端点与 Ollama /api/chat 都要求每个元素是
-{type:'function', function:{…}}。
+一、删除根 Python 源码与工程文件（359 项）
+src/ (303) + tests/ (47) + app.py + build.py + build.spec + pyproject.toml +
+requirements-lock.txt + requirements-dev-lock.txt + config/mcp.json
+（工作树中的删除此前已发生，本次落库；TS 侧零引用，已核）
 
-⚠️ 本地档同样是错的，只是「不报错」：Ollama 忽略未知字段、function 解析成零值
-⇒ 模型拿到一个没有名字的工具，表现成「模型完全不会用工具」——很可能就是长期
-被归因为「4B 不行 / 提示词冗长税」的真因之一。
+二、删除 .github/workflows/ci.yml
+纯 Python 的 4 个 job（ruff / mypy / pytest+coverage / pytest e2e），
+且无路径过滤、监听 main。
+⚠️ 必须与代码删除【同一提交】：若先删代码后删它，main 会立刻 4 job 全红。
 
-修法（一处转换、两处透传）：
-- protocol.ts 新增 ToolFunctionSchema + toFunctionCallingTools()
-- brainService.chat() 成为全项目唯一转换点
-- openAiTransport / ollamaTransport 保持透传并写死契约；空 tools 时省略该键
-- dispatcher.toolsJsonSchema() 改用具名类型（保持内层形态，agent:listTools 的 UI 在用）
+三、删除 .github/workflows/release.yml
+PyInstaller 打 Python 版三平台包（pip install pyinstaller + python build.py），
+已随 Python 源码失效；留着会在推 v* tag 时爆红。
+⚠️ TS 侧暂无出包流水线（desktop/package.json 无 electron-builder / forge），
+出包能力自本提交起为空窗，需另开工作单。
 
-为什么之前没被测出：既有断言只打 tools[].name、从不看 .type —— 断言打偏了层。
-⇒ 新增守卫：协议（包装 + 反摊平）/ 装配（云端·本地·显式选择三路线格式）/
-传输层（透传 + 空 tools 省略）/ e2e 桩（function.name + type==='function'）。
+TS 侧 CI 不受影响：.github/workflows/desktop-ci.yml 早已就绪
+（npm ci → lint → typecheck → test → e2e），路径过滤 desktop/**。
 
-同期校正 Qwen 档默认模型（主理人截图所在档位）：models[0] 由整份清单最弱的
-qwen-turbo 抬到 qwen3-max，剔除旧预览 id qvq-max-2025-03-25（依据百炼官方
-Function Calling 支持列表）；deepseek-v4-pro / deepseek-v4-flash 同批得到旁证。
+回退锚点：tag python-final 指向本提交的父提交 e8d4975（含全量 Python 源码），
+可 `git checkout python-final -- src app.py ...` 还原。
 
-验证：vitest 129 文件 / 2001 用例 passed；tsc 0（node+web）；eslint 0；
-CSS 审计仅 5 处已知模板噪声；build 通过（CSS 110.48 kB 不变）。
+git 范围控制：仅显式 add 上述路径；未触碰工作树中 3 条与本次无关的
+desktop 未提交删除（HomeAiEntryCard.tsx / aiSeedPrompt.ts /
+aiSeedPrompt.test.ts）。
