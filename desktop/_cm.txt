@@ -1,27 +1,26 @@
-feat(agent): 落地 M3 工具面与路由（G2 + DD-3/4，设计文档 v1.5）
+fix(llm): 校正云端/本地默认模型（DeepSeek 旧 id 已停用；落地 DD-2，v1.6）
 
-路线图最后一期。M0–M2.5 解决「走哪档 / 上下文 / 终止 / 提示词 / 步数」，
-M3 解决工具面本身（G2 根因：工具一多，4B 只挑第一个）。
+问题：DeepSeek 官方 deepseek-chat / deepseek-reasoner 两个 id **已于 2026-07-24 停用**
+（请求直接失败），deepseek-coder 更早已并入 chat；而 LLM_PROVIDER_PRESETS.deepseek.models
+仍是 ['deepseek-chat','deepseek-coder']，且 SettingsPanel::handleProviderChange 取
+**preset.models[0] 作为默认模型** ⇒ 新用户选 DeepSeek 拿到的是已失效的模型名（线上死配置）。
 
-- 协议层分组 + 按档位限量（DD-3）：新增 shared/agent/toolGroups.ts
-  · 三场景分组 data/ceshu/system（按项目现实裁为三个真实场景，不照搬 Python 的 12 槽位）
-  · TOOL_FACE_LIMITS 本地≤8 / 云端≤15；buildToolFace(skills, tier, explicitIds?)
-  · 目录文本每工具一行摘要（复用 M2 getToolCatalogLine，参数仍走 function-calling schema）
-- 路由归谁（DD-4）：resolveRoutingPolicy —— 本地=explicit（用户显式选）/ 云端=soft（可软路由，
-  explicitTools 非空时压过）；抬头文案随策略变
-- 档位路由：新增 main/agent/agentTransport.ts（resolveLlmTier → 传输层；claude 单列返回可读错误）
-  + main/agent/openAiTransport.ts（云端 OpenAI 兼容 /chat/completions 带 tools，非流式）
-- brain.ts RunBrainLoopOptions.tier（替换两处硬编码 'local' ⇒ stats.tier 是真档位）；
-  brainService.chat({config,apiKey,explicitTools}) 一次装配「传输层 + 工具面 + 档位」；
-  ipc agent:chat 传配置镜像 + secretStore 现取 Key；面板「本次消耗」行加档位标识
+- deepseek.models → ['deepseek-v4-pro', 'deepseek-v4-flash']
+  · 现网 V4 两档，皆支持 OpenAI 兼容 tools
+  · models[0] = deepseek-v4-pro 即「抬一档」；flash 是面向 agent/工具调用的低成本替代
+    （换它只改一行顺序）
+- ollama.models[0] 由 qwen2.5:7b 提到 qwen3:8b（**落地 DD-2**）
+  · Qwen3 的工具调用写在 chat template 里、Ollama tools API 直接可用；8B/Q4 塞得进 8GB 卡
+  · deepseek-r1:8b 是无工具调用的推理模型，故不置首位
+- 新增守卫断言：三个停用 id 不得再出现 + 两个 models[0] 锁定（防以「迁移保真」改回）
 
-⚠️ 守卫测试当场抓出真缺陷：初版把回滚技能写成 system.rollback，真实 id 是
-tool.rollback_ai_changes —— agentSkills.test.ts 新增的「已注册工具全部分组」守卫直接红灯暴露，已修正。
+⚠️ 未做（诚实标注）：DD-2 的「设置里显式警告溢出到系统 RAM」未实现（记为 ◐ 部分落地）；
+其余服务商（openai/doubao/qwen）的 models[0] 同样偏弱或可能过期（豆包首位是账号级 ep-* 端点 id），
+未一并改——需各自核对现网 id，属独立项。
 
-⚠️ 范围判定：生产只注册 5 工具 ⇒ ≤8/≤15 上限恒满足、截断分支不触发（机制与守卫到位）；
-出口「成功率 ≥80%」为活模型评测（沙箱无模型）⇒ 以确定性断言替代；
-面板工具勾选 UI（消费 explicitTools）与对话面云端预算门为后续项；云端传输层非流式。
+⚠️ 同期记录的已知缺陷（未修，主理人裁定「后续改」）：M3 把数字员工对话面的 unconfigured
+映射成「回本地 Ollama」⇒ 没配过的用户会静默落到本地 4B（M0 要消灭的静默回落被重新开了口子）。
+后续改法：unconfigured 应与 M0 一致地引导去设置，而不是悄悄用 4B。
 
-测试：新增 agentToolGroups.test.ts(13) / agentOpenAiTransport.test.ts(11) / agentBrainService.test.ts(3)；
-agentBrain.test.ts +1（tier 注入）、agentSkills.test.ts +1（分组覆盖守卫）；
-vitest 全量 129 文件 / 1995 例全绿；tsc 双配置 0 错；eslint 0；CSS 审计仅已知噪声；build 通过。
+测试：llmConfig.test.ts +2（停用 id 守卫 / models[0] 锁定）+1 条标题校正；
+vitest 全量 129 文件 / 1997 例全绿；tsc 双配置 0 错；eslint 0；build 通过（CSS 110.48 kB 无变化）。

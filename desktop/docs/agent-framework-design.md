@@ -1,6 +1,6 @@
 # 智能体框架重写设计（E59 起）
 
-> **状态**：v1.5（**已重写**，取代 v0.1~v0.4）。**M0 档位纠正 / M0.5 本地上下文与终止 / M1 观测先行 / M2 提示词瘦身 / M2.5 步数预算 / M3 工具面与路由 / M5 成本护栏 / M6 保密模式 / DD-17 / DD-19 均已落地**；路线图 M0–M6 **全部收口**（M4 由 DD-19 覆盖）。
+> **状态**：v1.6（**已重写**，取代 v0.1~v0.4）。**M0 档位纠正 / M0.5 本地上下文与终止 / M1 观测先行 / M2 提示词瘦身 / M2.5 步数预算 / M3 工具面与路由 / M5 成本护栏 / M6 保密模式 / DD-17 / DD-19 均已落地**；路线图 M0–M6 **全部收口**（M4 由 DD-19 覆盖）。**v1.6 补记**：校正云端档默认模型（DeepSeek 旧 id 已停用）。
 > **动因**：E42 裁决「`core/agent` 域停止 1:1 迁移，改为框架重写」——方向定了，架构未定。
 >
 > **修订记录（四次纠错，全部记录在案）**
@@ -68,6 +68,10 @@
 >   ⚠️ **口径纠正（诚实标注）**：(1) 设计文档 §7 架构图原写「新增 `shared/agent/tier.ts`」，实际档位路由落在 `main/agent/agentTransport.ts`（**shared 不得 import main 的传输层**，路由天然属 main 层；shared 侧只新增纯策略 `toolGroups.ts`）；(2) 本项目**当前只注册 5 个工具**（`system.game_data`/`system.ceshu`/`system.code`/`tool.rollback_ai_changes`/`tool.ask_user`），故 ≤8/≤15 两道上限**恒满足**、生产不触发截断分支——本模块的真实价值是**把「必须分组、必须有档位上限」变成有守卫的约束**（工具数一旦增长即生效）＋**按档位给出口径**；(3) 出口第 4 条「成功率 ≥80%」同 M2 属**活模型评测**（沙箱无模型）⇒ 以确定性断言替代（分组覆盖守卫 / 档位→传输层映射 / 档位→工具面口径）；(4) 云端档传输层本版**非流式**（一次返回完整响应，`onChunk` 整段一次性回调）；(5) 面板的**工具勾选 UI**（消费 `explicitTools`）为后续 UI 项，协议与装配已就绪。
 >   ⚠️ **守卫测试当场抓到真缺陷**：初版 `TOOL_GROUP_MAP` 把回滚技能写成 `system.rollback`，而其真实 id 是 **`tool.rollback_ai_changes`**——`agentSkills.test.ts` 新增的「已注册工具全部分组」守卫在新技能集上直接红灯暴露，已修正（这正是该守卫存在的意义）。
 >   ⇒ 单测：新增 `agentToolGroups.test.ts`（13 例：分组表/上限/策略/装配/截断/显式选择/目录文本）、`agentOpenAiTransport.test.ts`（11 例：URL 拼接·请求契约·tool_calls/usage 解析·错误分支·档位→传输层映射·claude 拦截）、`agentBrainService.test.ts`（3 例：云端/未配置/显式选择的端到端装配）；`agentBrain.test.ts` +1（tier 注入）、`agentSkills.test.ts` +1（分组覆盖守卫）。vitest 全量 **129 文件 / 1995 用例 passed**（原 126/1966 + 3 文件 + 29 例）；tsc 0（node+web）+ eslint 0 + CSS 审计（仅 5 处已知模板噪声）+ `npm run build` 通过。
+> - **补记 v1.6（模型档位校正 / DD-2）**：发现并修掉一处**线上死配置**——「云端的默认模型」。取证：DeepSeek 官方 `deepseek-chat` / `deepseek-reasoner` 两个 id **已于 2026-07-24 停用**（请求直接失败），`deepseek-coder` 更早已并入 chat；而 `LLM_PROVIDER_PRESETS.deepseek.models` 仍是 `['deepseek-chat','deepseek-coder']`，且 `SettingsPanel::handleProviderChange` 取 **`preset.models[0]` 作为默认模型** ⇒ 新用户选 DeepSeek 后拿到的是**已失效的模型名**。改为 `['deepseek-v4-pro','deepseek-v4-flash']`（现网 V4 两档，皆支持 OpenAI 兼容 `tools`；`models[0]=deepseek-v4-pro` 即「抬一档」，`flash` 是面向 agent/工具调用的低成本替代，换它只改一行顺序）。同期把 **`ollama.models[0]` 由 `qwen2.5:7b` 提到 `qwen3:8b`**（落地 **DD-2** 的「默认提到 qwen3:8b」；Qwen3 的工具调用写在 chat template 里、Ollama `tools` API 直接可用，8B/Q4 塞得进 8GB 卡；`deepseek-r1:8b` 是无工具调用的推理模型，故**不**置首位）。新增守卫断言：三个停用 id **不得再出现** + 两个 `models[0]` 锁定（防以「迁移保真」改回）。
+>   ⚠️ **未做（诚实标注）**：DD-2 的「设置里显式警告『溢出到系统 RAM 会大幅变慢』」**未实现**（故 DD-2 记为 ◐ 部分落地）；其余服务商（openai/doubao/qwen）的 `models[0]` 同样偏弱或可能过期（如豆包首位是**账号级** `ep-*` 端点 id，对别的账号必然失效）**未**一并改——需各自核对现网 id，属独立项。
+>   ⚠️ **同期记录的已知缺陷（未修，主理人裁定「后续改」）**：M3 把数字员工对话面的 `unconfigured` 映射成「回本地 Ollama」，于是**没配过**（或启动推送失败）的用户会**静默落到本地 4B** —— 这正是 M0 要消灭的静默回落，在 agent 面被重新开了口子。建议改法：`unconfigured` 应与 M0 一致地**引导去设置**（配云端 or 显式开保密模式），而**不是**悄悄用 4B。
+>   ⇒ 单测 `llmConfig.test.ts` +2（停用 id 守卫 / 两个 `models[0]` 锁定）+ 1 条标题校正；vitest 全量 **129 文件 / 1997 用例 passed**（+2）；tsc 0（node+web）+ eslint 0 + build 通过。
 >
 > **证据强度标注**（全文通用）：
 > `[实测]` 本机/本仓跑出来的 · `[一手]` 模型厂商官方文档 · `[GitHub]` 直接抓成熟框架仓库所得 · `[二手]` 第三方文章/实测（附出处）· `[推断]` 我的推理，未直接验证
@@ -620,7 +624,7 @@ data/libraries/<库>/.workspace/
 | **DD-0** | **默认档位** | G0 + 主理人裁定 | **默认走云端**（首次配置引导选服务商 + Key）；**未配置时不再静默回落 ollama**，而是**提示去设置**并**提供一键「启用保密模式」**（走本地） | 重做（`LLM_PROVIDER_ORDER` 顺序 + `resolveConfig` 回落策略 + `client.ts:144` 硬编码文案） | **两档** | 无（这是产品意志） |
 | **DD-0b** ⭐**✅ 已实现（v0.9）** | **保密模式** | G9 `[推断]` | 新增**显式档位**：🔒 保密模式 = 强制本地 + 明确告知"数据不出本机"；与云端档在 UI 上**并列**而非隐藏在设置深处 | ✅ 已实现（`confidential` flag + `effectiveProvider()` 强制 ollama + `SettingsPanel` `llm-confidential` 开关；章节级/字段级粒度**未做**，见 §2.3） | 本地 | 章节级/字段级粒度（需 per-call tier） |
 | **DD-1** | 上下文预算 | G1 | **仅本地档**：传输层显式下发 `num_ctx`（默认 16384，可调）。云端档不适用 | 重做（传输层字段） | **本地** | 无 |
-| **DD-2** | 本地档模型 | G10 | **仅本地档**：默认提到 **`qwen3:8b`**（`llmConfig.ts:68` 已有预置，5.2GB 装得下 8GB 卡），保留 4B 为低配回退；设置里显式警告"溢出到系统 RAM 会大幅变慢"。**云端档不涉及** | 配置 | **本地** | 无 |
+| **DD-2** ◐**部分落地（v1.6）** | 本地档模型 | G10 | **仅本地档**：默认提到 **`qwen3:8b`**（`llmConfig.ts:68` 已有预置，5.2GB 装得下 8GB 卡），保留 4B 为低配回退；设置里显式警告"溢出到系统 RAM 会大幅变慢"。**云端档不涉及** | ◐ 已落地「`ollama.models[0]` → `qwen3:8b`」（补记 v1.6）；**未做**「设置里显式警告」 | **本地** | 无 |
 | **DD-3** ⭐**✅ 已实现（v1.5）** | 工具面 | G2 | **协议层 12 个 `system.*` 槽位改为按场景分组**：本地档每次会话暴露 **≤8 个**；云端档可放宽到 **≤15 个**（上限更高但仍分组懒加载，不一次性注入） | ✅ 已实现（`shared/agent/toolGroups.ts`：三场景分组 + `TOOL_FACE_LIMITS` + `buildToolFace`；按项目现实裁为**三个真实场景**而非 Python 的 12 槽位，见 §5.5.13） | **两档（上限不同）** | 云端实测工具挑选准确率显著优于本地档时可再放宽 |
 | **DD-4** ⭐**✅ 已实现（v1.5）** | 路由归谁 | 4.1 实测 2 | **本地档**：技能由**用户显式选定**，不做模型软路由。**云端档**：**可试模型软路由**（前沿模型有能力做），但**必须保留显式选择作为兜底与可解释性手段** | ✅ 已实现（`resolveRoutingPolicy`：local=explicit / cloud=soft；`explicitTools` 非空压过软路由；抬头文案随策略变） | **两档（策略不同）** | 云端实测软路由成功率 ≥90% 则默认开 |
 | **DD-5** | 终止 | G4 + 4.1 实测 3 | 三道计数硬闸 `maxToolCalls`(8) / `maxTurns`(6) / `wallClockMs`(120s)，任一触发即**带部分产出 finalize**；**提示词里不写"出错就停"**。云端档的 `maxTurns` 可放宽（步数不再受上下文限制，但受成本限制 ⇒ 见 DD-5b） | 新增（`budget.ts`） | **两档（阈值不同）** | 无 |

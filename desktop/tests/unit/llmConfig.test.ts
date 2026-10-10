@@ -42,7 +42,7 @@ function memStorage(initial: Record<string, string> = {}): StorageLike & { dump:
   }
 }
 
-describe('LLM_PROVIDER_PRESETS：逐条对齐 Python api_config.py:35-100', () => {
+describe('LLM_PROVIDER_PRESETS：baseUrl 对齐 Python api_config.py:35-100，模型清单按现网校正', () => {
   it('7 个服务商齐全，且顺序是产品决策「云端在前、ollama 末位、custom 收尾」（DD-0）', () => {
     // ⚠️ 顺序**不是**「对齐 PyQt MODEL_PRESETS 声明顺序」，那是 M0 之前的状态。
     // 现为产品裁定的云端优先（勿以「迁移保真」为由改回，见 shared/llmConfig.ts 的注释）。
@@ -58,13 +58,31 @@ describe('LLM_PROVIDER_PRESETS：逐条对齐 Python api_config.py:35-100', () =
     expect(LLM_PROVIDER_PRESETS.deepseek.baseUrl).toBe('https://api.deepseek.com/v1')
   })
 
-  it('模型条数对齐 Python（Ollama 6 / OpenAI 4 / 豆包 4 / Qwen 5 / Claude 4 / DeepSeek 2）', () => {
+  it('模型条数保持（Ollama 6 / OpenAI 4 / 豆包 4 / Qwen 5 / Claude 4 / DeepSeek 2）', () => {
     expect(LLM_PROVIDER_PRESETS.ollama.models).toHaveLength(6)
     expect(LLM_PROVIDER_PRESETS.openai.models).toHaveLength(4)
     expect(LLM_PROVIDER_PRESETS.doubao.models).toHaveLength(4)
     expect(LLM_PROVIDER_PRESETS.qwen.models).toHaveLength(5)
     expect(LLM_PROVIDER_PRESETS.claude.models).toHaveLength(4)
     expect(LLM_PROVIDER_PRESETS.deepseek.models).toHaveLength(2)
+  })
+
+  /**
+   * ⚠️ `models[0]` 就是「默认模型」（`SettingsPanel::handleProviderChange` 取首位）——
+   * 故以下两条既锁「默认选谁」，也防有人把已停用 id 以「迁移保真」改回来。
+   */
+  it('deepseek 默认模型是现网可用的更强档，且不再含已停用 id', () => {
+    expect(LLM_PROVIDER_PRESETS.deepseek.models[0]).toBe('deepseek-v4-pro')
+    // 2026-07-24 停用；deepseek-coder 更早已并入 chat
+    for (const dead of ['deepseek-chat', 'deepseek-reasoner', 'deepseek-coder']) {
+      expect(LLM_PROVIDER_PRESETS.deepseek.models).not.toContain(dead)
+    }
+  })
+
+  it('ollama 默认模型是 qwen3:8b（DD-2），而非旧世代或推理模型', () => {
+    expect(LLM_PROVIDER_PRESETS.ollama.models[0]).toBe('qwen3:8b')
+    // 推理模型无工具调用，不该被当默认（否则数字员工对话面会踩空）
+    expect(LLM_PROVIDER_PRESETS.ollama.models[0]).not.toContain('r1')
   })
 
   it('只有 Ollama 不需要 API Key（对齐 PyQt test_connection 的判断）', () => {

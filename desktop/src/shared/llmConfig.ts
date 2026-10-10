@@ -87,7 +87,15 @@ export const LLM_PROVIDER_PRESETS: Readonly<Record<LlmProvider, LlmProviderPrese
   ollama: {
     label: 'Ollama',
     baseUrl: 'http://localhost:11434/v1',
-    models: ['qwen2.5:7b', 'qwen2.5:14b', 'qwen3:8b', 'llama3.1:8b', 'mistral:7b', 'deepseek-r1:8b'],
+    /**
+     * ⚠️ **`models[0]` 即「默认模型」**（`SettingsPanel::handleProviderChange` 选服务商时取
+     * `preset.models[0]`）⇒ 顺序是产品决策，不是随便排的。
+     * `qwen3:8b` 提到首位 = **落地 DD-2**（本地档默认模型由 `qwen2.5:7b` 抬到 `qwen3:8b`）：
+     * Qwen3 的工具调用写在 chat template 里（Ollama `tools` API 直接可用），且 8B/Q4 塞得进 8GB 卡；
+     * `qwen2.5:7b` 保留作旧世代回退。**`deepseek-r1:8b` 是推理模型、无工具调用**
+     * ——在数字员工对话面会被 `agentTransport` 当普通模型用，故**不**置于首位。
+     */
+    models: ['qwen3:8b', 'qwen2.5:7b', 'qwen2.5:14b', 'llama3.1:8b', 'mistral:7b', 'deepseek-r1:8b'],
     requiresApiKey: false
   },
   openai: {
@@ -122,7 +130,15 @@ export const LLM_PROVIDER_PRESETS: Readonly<Record<LlmProvider, LlmProviderPrese
   deepseek: {
     label: 'DeepSeek',
     baseUrl: 'https://api.deepseek.com/v1',
-    models: ['deepseek-chat', 'deepseek-coder'],
+    /**
+     * ⚠️ **2026-07-24 起 `deepseek-chat` / `deepseek-reasoner` 两个 id 已停用**（请求直接失败），
+     * `deepseek-coder` 更早已并入 chat ⇒ 旧的 `['deepseek-chat','deepseek-coder']` **是死配置**。
+     * 现网可用 id 为 V4 两档（皆支持 OpenAI 兼容 `tools`）：
+     * - `deepseek-v4-pro`（**`models[0]` = 默认**）：推理更强，适合多步 agent 规划；
+     * - `deepseek-v4-flash`：为 agent / 工具调用优化的低成本档（换它只改这一行的顺序）。
+     * `llmConfig.test.ts` 有守卫断言这两个停用 id **不再出现**（防有人以「迁移保真」改回）。
+     */
+    models: ['deepseek-v4-pro', 'deepseek-v4-flash'],
     requiresApiKey: true
   },
   /**
