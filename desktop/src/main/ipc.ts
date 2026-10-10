@@ -459,12 +459,17 @@ export function registerIpcHandlers({
   )
   // Agent Brain 循环（A1-2/A1-4）：事件流实时推给渲染层；危险操作经审批 broker 等渲染层决定
   handle('agent:chat', agentChatInputSchema, async (req, event) => {
+    // M3 档位路由：把当前生效配置（非敏感镜像）+ API Key 交给 brainService，
+    // 由其经 resolveLlmTier 解析档位（云端=OpenAI 兼容 / 本地=Ollama），并据此装配工具面。
+    const llmCall = await llmCallOptions()
     // 注意竞态：事件在 await requestApproval/requestInteraction 之前就已推给渲染层，
     // 用户可能「秒点」批准。故在**分配 id 时就登记**待答复 promise，二者只取回它，避免答复被丢弃。
     const preRegistered = new Map<string, Promise<AgentInteractionAnswer>>()
     const take = (requestId: string): Promise<AgentInteractionAnswer> =>
       preRegistered.get(requestId) ?? Promise.resolve({ approved: false })
     return agentBrain.chat(req.input, {
+      ...(llmCall.config !== undefined ? { config: llmCall.config } : {}),
+      ...(llmCall.apiKey !== undefined ? { apiKey: llmCall.apiKey } : {}),
       onEvent: (payload) => {
         event.sender.send('agent:event', payload)
       },

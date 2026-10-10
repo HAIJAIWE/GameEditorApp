@@ -175,6 +175,12 @@ export interface RunBrainLoopOptions {
   runner: BrainToolRunner
   /** 暴露给 LLM 的工具 JSON Schema 列表（通常来自 `SkillDispatcher.toolsJsonSchema()`） */
   tools?: unknown[]
+  /**
+   * 生效档位（M3 档位路由）：由调用方经 `resolveLlmTier(config)` 解析后注入，
+   * 决定 `turn_stats.tier` / `AgentRunStats.tier` 的取值与提示词里的工具面口径。
+   * 缺省 `'local'`（数字员工对话面在本版默认仍走本地 Ollama 传输层）。
+   */
+  tier?: AgentRunTier
   /** 最大 LLM 轮数（DD-5 `maxTurns`，默认 6；计数式硬闸，取代原先的 `maxIterations`） */
   maxTurns?: number
   /** 累计工具调用上限（DD-5 `maxToolCalls`，默认 8）；超出即带部分产出 finalize。≤0 表示不限制 */
@@ -301,6 +307,8 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
   const maxTurns = options.maxTurns ?? DEFAULT_MAX_TURNS
   const maxToolCalls = options.maxToolCalls ?? DEFAULT_MAX_TOOL_CALLS
   const wallClockMs = options.wallClockMs ?? DEFAULT_WALL_CLOCK_MS
+  // M3 档位路由：缺省 local（与既有行为一致）；真实档位由 brainService 经 resolveLlmTier 注入
+  const tier: AgentRunTier = options.tier ?? 'local'
   const context: SkillExecutionContext = options.context ?? {}
   let requestSeq = 0
   const newRequestId = options.newRequestId ?? ((): string => `approval_${++requestSeq}`)
@@ -334,8 +342,8 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
     { role: 'user', content: input }
   ]
   const results: string[] = []
-  // M1 观测：本轮运行的累计消耗（每轮 LLM 调用后并入；数字员工对话面在 M3 接档位路由之前恒为 local）
-  let runStats: AgentRunStats = emptyAgentRunStats('local')
+  // M1 观测：本轮运行的累计消耗（每轮 LLM 调用后并入；档位来自 M3 注入的 `tier`）
+  let runStats: AgentRunStats = emptyAgentRunStats(tier)
   // M0.5 终止闸（DD-5）：轮次 / 工具调用累计 / 墙钟 三道**计数式**硬闸。
   // 任一命中 ⇒ 带部分产出 finalize（`completed: true`），并让 `stopReason` 与 `terminated` 事件如实说明原因。
   const startedAt = Date.now()
@@ -440,13 +448,13 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
     const turnModel = reply.model ?? ''
     runStats = accumulateTurn(
       runStats,
-      turnStatFromReply(iteration, turnModel, 'local', turnUsage, turnLatencyMs, turnToolCalls)
+      turnStatFromReply(iteration, turnModel, tier, turnUsage, turnLatencyMs, turnToolCalls)
     )
     emit({
       type: 'turn_stats',
       turn: iteration,
       model: turnModel,
-      tier: 'local',
+      tier,
       usage: turnUsage ?? { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
       latencyMs: turnLatencyMs,
       toolCalls: turnToolCalls

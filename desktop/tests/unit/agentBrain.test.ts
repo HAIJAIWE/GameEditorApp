@@ -708,6 +708,26 @@ describe('runBrainLoop：M1 观测', () => {
     expect(turnStats[1]).toMatchObject({ turn: 1, toolCalls: 0, usage: { totalTokens: 230 } })
   })
 
+  it('M3 档位注入：tier 选项透传到 stats 与每轮 turn_stats（缺省仍为 local）', async () => {
+    const withTier = await runBrainLoop({
+      input: 'x',
+      systemPrompts: [],
+      transport: scripted([FINAL]),
+      runner: makeRunner(),
+      tier: 'cloud'
+    })
+    expect(withTier.stats.tier).toBe('cloud')
+    expect(withTier.events.find((event) => event.type === 'turn_stats')).toMatchObject({ tier: 'cloud' })
+
+    const byDefault = await runBrainLoop({
+      input: 'x',
+      systemPrompts: [],
+      transport: scripted([FINAL]),
+      runner: makeRunner()
+    })
+    expect(byDefault.stats.tier).toBe('local')
+  })
+
   it('usage 缺失（桩未回报）→ 回落零值，不产生 NaN，也不阻塞终稿', async () => {
     const transport = scripted([FINAL]) // FINAL 无 usage / model
     const result = await runBrainLoop({ input: 'x', systemPrompts: [], transport, runner: makeRunner() })

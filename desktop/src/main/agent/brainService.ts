@@ -4,6 +4,11 @@
  * 组成：`SkillDispatcher` → `BrainToolRunner` 适配 + 提示词骨架（含记忆注入）+ LLM 传输层
  * + `AgentSessionStore`（每轮结束落盘）+ `AgentMemoryStore`（检索注入 + 回写）。
  *
+ * M3 档位路由：`chat()` 按 `options.config` 经 `resolveLlmTier` 解析生效档位 ⇒
+ * ① 选传输层（云端=OpenAI 兼容 / 本地=Ollama，见 `agentTransport.ts`）；
+ * ② 装配**按场景分组、按档位限量**的工具面（见 `shared/agent/toolGroups.ts`）；
+ * ③ 把档位注入循环（`runBrainLoop({ tier })`）供观测与提示词口径使用。
+ *
  * 尚未提供审批 UI，故**危险操作一律拒绝**（`requestApproval` 缺省不传 →
  * `runBrainLoop` 视为未确认）；审批交互属 A1-4 数字员工面板。
  */
@@ -21,11 +26,18 @@ import {
 } from '../../shared/agent/brain'
 import { buildSystemPrompts } from '../../shared/agent/prompts'
 import { buildPersonalizedContext } from '../../shared/agent/personalization'
-import { RISK_LEVEL, resolveRiskLevel, type SkillExecutionContext } from '../../shared/agent/protocol'
+import {
+  RISK_LEVEL,
+  resolveRiskLevel,
+  toJsonSchema,
+  type SkillExecutionContext
+} from '../../shared/agent/protocol'
+import { buildToolFace } from '../../shared/agent/toolGroups'
+import type { StoredLlmConfig } from '../../shared/llmConfig'
 import type { AgentMemoryStore } from './memoryStore'
 import type { PreferenceStore } from './preferenceStore'
 import type { SkillDispatcher } from './dispatcher'
-import { OllamaChatTransport } from './ollamaTransport'
+import { resolveAgentTier, resolveAgentTransport } from './agentTransport'
 import type { AgentSessionStore } from './sessionStore'
 
 /** 检索注入进提示词的记忆条数上限 */
@@ -43,6 +55,19 @@ export function createDispatcherToolRunner(dispatcher: SkillDispatcher): BrainTo
 /** 单次调用可覆盖的选项（A1-4 面板注入事件流与审批） */
 export interface AgentChatOptions {
   context?: SkillExecutionContext
+  /**
+   * 本次调用的生效配置（非敏感镜像，来自 `llm:configure`）。
+   * M3 档位路由：据此经 `resolveLlmTier` 解析档位 ⇒ 决定传输层与工具面。
+   * `undefined` ⇒ 未配置（回本地 Ollama，见 `agentTransport.ts`）。
+   */
+  config?: StoredLlmConfig
+  /** 云端档 API Key（由 ipc 从 secretStore 现取；本地/未配置档忽略） */
+  apiKey?: string
+  /**
+   * 用户**显式选定**的工具 id（DD-4 兜底）。
+   * 本地档默认不做模型软路由；面板把用户勾选的技能传进来即可收窄工具面。
+   */
+  explicitTools?: readonly string[]
   /** 事件流实时回调（面板流式渲染） */
   onEvent?: (event: BrainEvent) => void
   /** 本次调用的危险操作审批（优先于构造时的缺省审批） */
@@ -55,7 +80,10 @@ export interface AgentChatOptions {
 
 export interface AgentBrainServiceDeps {
   dispatcher: SkillDispatcher
-  /** LLM 传输层；缺省用 Ollama `/api/chat` */
+  /**
+   * 固定 LLM 传输层（测试注入 / 定制场景）。**缺省** ⇒ 按每次调用的配置做档位路由
+   * （M3：云端=OpenAI 兼容 `/chat/completions`，本地/未配置=Ollama `/api/chat`，见 `agentTransport.ts`）。
+   */
   transport?: BrainLlmTransport
   /** 最大 LLM 轮数（DD-5 maxTurns）；缺省 `DEFAULT_MAX_TURNS` */
   maxTurns?: number
@@ -76,7 +104,8 @@ export interface AgentBrainServiceDeps {
 }
 
 export class AgentBrainService {
-  private readonly transport: BrainLlmTransport
+  /** 注入的固定传输层（测试/定制）；缺省 ⇒ 每次调用按配置做档位路由（M3） */
+  private readonly fixedTransport?: BrainLlmTransport
   private sessionSeq = 0
 
   /**
@@ -90,7 +119,12 @@ export class AgentBrainService {
   }
 
   constructor(private readonly deps: AgentBrainServiceDeps) {
-    this.transport = deps.transport ?? new OllamaChatTransport()
+    this.fixedTransport = deps.transport
+  }
+
+  /** 选本次调用的传输层：注入的固定层优先，否则由配置解析（M3 档位路由） */
+  private resolveTransport(options: AgentChatOptions): BrainLlmTransport {
+    return this.fixedTransport ?? resolveAgentTransport(options.config, options.apiKey ?? '')
   }
 
   /** 检索相关记忆并折成一段系统提示词块（无命中返回 null） */
@@ -114,6 +148,11 @@ export class AgentBrainService {
    * `options` 供 IPC/面板按次注入：事件流回调（流式渲染）、危险操作审批、审批 id 生成器。
    */
   async chat(input: string, options: AgentChatOptions = {}): Promise<BrainRunResult> {
+    // M3 档位路由：由本次配置解析生效档位（cloud/local），据此选传输层 + 装配工具面
+    const tier = resolveAgentTier(options.config)
+    const transport = this.resolveTransport(options)
+    const face = buildToolFace(this.deps.dispatcher.list(), tier, options.explicitTools)
+
     const memoryBlock = await this.buildMemoryBlock(input)
     const extraBlocks: string[] = []
     if (memoryBlock !== null) extraBlocks.push(memoryBlock)
@@ -123,8 +162,8 @@ export class AgentBrainService {
       if (prefBlock !== '') extraBlocks.push(prefBlock)
     }
     const systemPrompts = buildSystemPrompts({
-      // M2/G7：注入**渐进披露**的紧凑能力目录（每工具一行），参数留给 function-calling schema
-      capabilityCatalog: this.deps.dispatcher.toolCatalog(),
+      // M2/G7 + M3/DD-3：注入**按场景分组、按档位限量**的紧凑能力目录（每工具一行）
+      capabilityCatalog: face.catalog,
       ...(extraBlocks.length > 0 ? { extraBlocks } : {})
     })
 
@@ -137,9 +176,10 @@ export class AgentBrainService {
     const result = await runBrainLoop({
       input,
       systemPrompts,
-      transport: this.transport,
+      transport,
       runner: this.deps.runner ?? createDispatcherToolRunner(this.deps.dispatcher),
-      tools: this.deps.dispatcher.toolsJsonSchema(),
+      tools: face.exposed.map((skill) => toJsonSchema(skill)),
+      tier,
       maxTurns: this.deps.maxTurns ?? DEFAULT_MAX_TURNS,
       ...(this.deps.maxToolCalls !== undefined ? { maxToolCalls: this.deps.maxToolCalls } : {}),
       ...(this.deps.wallClockMs !== undefined ? { wallClockMs: this.deps.wallClockMs } : {}),

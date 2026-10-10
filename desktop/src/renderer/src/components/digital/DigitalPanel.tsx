@@ -7,6 +7,7 @@ import ChatMarkdown from './ChatMarkdown'
 import LucideIcon from '../LucideIcon'
 
 import type { BrainEvent } from '../../../../shared/agent/brain'
+import type { AgentRunTier } from '../../../../shared/agent/observability'
 import {
   hydrateFromSession,
   initialDigitalPanelState,
@@ -81,6 +82,13 @@ const STATUS_LABELS: Record<DigitalPanelState['status'], string> = {
   waiting_input: '等待回答',
   done: '已完成',
   error: '出错'
+}
+
+/** M3：档位标识（与 `turn_stats.tier` 同源；让用户一眼看出本轮走云端还是本地） */
+const TIER_LABELS: Record<AgentRunTier, string> = {
+  cloud: '☁ 云端',
+  local: '🖥 本地',
+  unconfigured: '⚙ 未配置'
 }
 
 export default function DigitalPanel() {
@@ -508,7 +516,8 @@ export default function DigitalPanel() {
         <div className="digital-run-stats" data-testid="digital-run-stats">
           <span className="home-section-label">本次消耗</span>
           <span className="item-meta">
-            {state.runStats.turns} 轮 · {state.runStats.totalTokens} token · {state.runStats.latencyMs} ms
+            {TIER_LABELS[state.runStats.tier]} · {state.runStats.turns} 轮 · {state.runStats.totalTokens}{' '}
+            token · {state.runStats.latencyMs} ms
             {state.runStats.toolCalls > 0 ? ` · ${state.runStats.toolCalls} 次工具` : ''}
           </span>
         </div>

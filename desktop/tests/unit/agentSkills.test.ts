@@ -1,13 +1,17 @@
 import { describe, expect, it } from 'vitest'
 
 import { SkillDispatcher } from '../../src/main/agent/dispatcher'
+import { OperationLogStore } from '../../src/main/agent/operationLogStore'
 import { createAskUserSkill } from '../../src/main/agent/skills/askUserSkill'
 import { createCeshuSkill } from '../../src/main/agent/skills/ceshuSkill'
+import { createCodeSkill } from '../../src/main/agent/skills/codeSkill'
 import { createGameDataSkill } from '../../src/main/agent/skills/gameDataSkill'
+import { createRollbackSkill } from '../../src/main/agent/skills/rollbackSkill'
 import type { CeshuManager } from '../../src/main/ceshu/manager'
 import type { DataService } from '../../src/main/data/service'
 import type { TypeSchemaStore } from '../../src/main/schema/store'
 import { applyBatchOp, type BatchOp } from '../../src/shared/dataTableOps'
+import { TOOL_GROUP_MAP } from '../../src/shared/agent/toolGroups'
 import { BUILTIN_DATA_TYPES } from '../../src/shared/typeSchema'
 import type { BatchUpdateSummary, DataTypeDef, ItemRecord } from '../../src/shared/types'
 
@@ -613,5 +617,30 @@ describe('调度器 + 真实技能的端到端（等价 IPC 路径）', () => {
     const missingParam = await dispatcher.execute('system.game_data', { action: 'list' })
     expect(missingParam.success).toBe(false)
     expect(missingParam.error).toBe('缺少 data_type 参数')
+  })
+})
+
+describe('M3 守卫：全部已注册工具都登记了工具面分组', () => {
+  it('按 stores.ts 的注册顺序建全套技能，逐一断言分组表已覆盖', () => {
+    const dispatcher = new SkillDispatcher()
+    dispatcher.register(
+      createGameDataSkill({ dataService: makeDataService(), typeSchemaStore: makeSchemaStore() })
+    )
+    dispatcher.register(createCeshuSkill({ ceshuManager: makeCeshuManager([]) }))
+    dispatcher.register(createAskUserSkill())
+    dispatcher.register(createCodeSkill())
+    dispatcher.register(
+      createRollbackSkill({ operationLog: new OperationLogStore(), dataService: makeDataService() })
+    )
+
+    const ids = dispatcher.list().map((skill) => skill.id)
+    // 与 main/stores.ts 注册的 5 个技能同集
+    expect(ids.sort()).toEqual(
+      ['system.ceshu', 'system.code', 'system.game_data', 'tool.rollback_ai_changes', 'tool.ask_user'].sort()
+    )
+    // 逐个在分组表中登记：新增技能若漏登记，此处即红（提示补 TOOL_GROUP_MAP）
+    for (const id of ids) {
+      expect(TOOL_GROUP_MAP[id], `工具 ${id} 未登记分组`).toBeDefined()
+    }
   })
 })

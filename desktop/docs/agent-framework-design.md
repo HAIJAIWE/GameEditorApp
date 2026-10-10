@@ -1,6 +1,6 @@
 # 智能体框架重写设计（E59 起）
 
-> **状态**：v1.4（**已重写**，取代 v0.1~v0.4）。**M0 档位纠正 / M0.5 本地上下文与终止 / M1 观测先行 / M2 提示词瘦身 / M2.5 步数预算 / M5 成本护栏 / M6 保密模式 / DD-17 / DD-19 均已落地**；M3 待做。
+> **状态**：v1.5（**已重写**，取代 v0.1~v0.4）。**M0 档位纠正 / M0.5 本地上下文与终止 / M1 观测先行 / M2 提示词瘦身 / M2.5 步数预算 / M3 工具面与路由 / M5 成本护栏 / M6 保密模式 / DD-17 / DD-19 均已落地**；路线图 M0–M6 **全部收口**（M4 由 DD-19 覆盖）。
 > **动因**：E42 裁决「`core/agent` 域停止 1:1 迁移，改为框架重写」——方向定了，架构未定。
 >
 > **修订记录（四次纠错，全部记录在案）**
@@ -61,6 +61,13 @@
 >   ⚠️ **范围判定**：DD-20 的「**重命名类型 → 全库引用同步**」跨域复合工具**本版未做**——`TypeSchemaStore` 无 rename、`dataRef` 仅是解析器，做它需要「schema 改名 + items.type 迁移 + 全部策划书 `@data[...]` 重写」的多库事务，属独立决策。M2.5 出口「步数下降 ≥20%」是**活模型度量**（沙箱无模型）⇒ 以**确定性机制断言**替代：一次 `skill.execute` 完成 N 条（库里真的多出/改动 N 行）。
 >   ⚠️ **本次会话遇到文档静默回退（同型第二次）**：M2 提交（`8064f26`）后，工作树 `agent-framework-design.md` 被**外部覆写**回 v1.2 快照且**行尾被弄坏**（`>` 空行被吞并与上一行拼接）；同会话的 M2 源文件与 HEAD 一致、未受影响。已按铁律备份 `/tmp/doc_corrupted_1611.md` 并 `git checkout HEAD --` 还原（v1.3，731 行）后再做增量。**git 是防回退的保险绳**，此处再次生效。
 >   ⇒ 单测：`agentSkills.test.ts` +5（`batch_create` 多建/重名跳过/参数错；`batch_update` names 选中 / keyword+add / 无选择器·无匹配·缺 field），并把 `makeDataService` 补 `batchUpdate`（内存版走真 `applyBatchOp`）。vitest 全量 **126 文件 / 1966 用例 passed**（+5）；tsc 0（node+web）+ eslint 0 + CSS 审计（仅 5 处已知模板噪声）+ `npm run build` 通过。
+> - **v1.4 → v1.5**（本次会话）：落地 **M3 工具面与路由（G2 + DD-3/DD-4）**——路线图**最后一期**。
+>   **DD-3（协议层分组 + 按档位限量）**：新增纯模块 `shared/agent/toolGroups.ts`——按**三个真实场景**分组（数据编辑 / 策划书创作 / 系统与协作，不照搬 Python 的 12 个 `system.*` 槽位）、`TOOL_GROUP_MAP`（工具 id → 分组，**必须覆盖全部已注册工具**，有守卫测试）、`TOOL_FACE_LIMITS`（本地 ≤8 / 云端 ≤15）、`buildToolFace(skills, tier, explicitIds?)`（按档位裁剪 + 分组目录 + `truncated` 标记）。目录文本每工具**一行摘要**（复用 M2 的 `getToolCatalogLine`），参数仍由 function-calling schema 下发。
+>   **DD-4（路由归谁）**：`resolveRoutingPolicy(tier)`——本地=`explicit`（用户显式选，4B 无软路由能力）、云端=`soft`（允许模型在暴露面内自动挑选，**显式选择 `explicitTools` 非空时压过软路由**）；抬头文案随策略变（"只使用这份清单" / "可自动挑选"），让模型知道自己有无选择自由度。
+>   **档位路由（M1/M0.5 头注里的「接档位路由属 M3」）**：`main/agent/agentTransport.ts` 按 `resolveLlmTier(config)` 选传输层——`cloud` ⇒ 新增的 **`main/agent/openAiTransport.ts`**（OpenAI 兼容 `/chat/completions` **带 `tools`**、解析 `tool_calls`/`usage`），`local`/`unconfigured` ⇒ 既有 `OllamaChatTransport`；**claude 档单列**（Anthropic Messages API 与 OpenAI 协议不兼容，返回「调用即抛可读中文」的传输层，而非偷偷当兼容端点打）。`brain.ts` 的 `runBrainLoop` 增 `tier` 选项（替换两处硬编码 `'local'`，`turn_stats.tier`/`stats.tier` 从此是**真档位**）；`brainService.chat()` 按本次配置解析档位，一次装配「传输层 + 工具面 + 循环档位」；IPC `agent:chat` 把 `llmConfigMirror` + `secretStore` 现取的 Key 传下去；面板「本次消耗」行加档位标识（☁ 云端 / 🖥 本地）。
+>   ⚠️ **口径纠正（诚实标注）**：(1) 设计文档 §7 架构图原写「新增 `shared/agent/tier.ts`」，实际档位路由落在 `main/agent/agentTransport.ts`（**shared 不得 import main 的传输层**，路由天然属 main 层；shared 侧只新增纯策略 `toolGroups.ts`）；(2) 本项目**当前只注册 5 个工具**（`system.game_data`/`system.ceshu`/`system.code`/`tool.rollback_ai_changes`/`tool.ask_user`），故 ≤8/≤15 两道上限**恒满足**、生产不触发截断分支——本模块的真实价值是**把「必须分组、必须有档位上限」变成有守卫的约束**（工具数一旦增长即生效）＋**按档位给出口径**；(3) 出口第 4 条「成功率 ≥80%」同 M2 属**活模型评测**（沙箱无模型）⇒ 以确定性断言替代（分组覆盖守卫 / 档位→传输层映射 / 档位→工具面口径）；(4) 云端档传输层本版**非流式**（一次返回完整响应，`onChunk` 整段一次性回调）；(5) 面板的**工具勾选 UI**（消费 `explicitTools`）为后续 UI 项，协议与装配已就绪。
+>   ⚠️ **守卫测试当场抓到真缺陷**：初版 `TOOL_GROUP_MAP` 把回滚技能写成 `system.rollback`，而其真实 id 是 **`tool.rollback_ai_changes`**——`agentSkills.test.ts` 新增的「已注册工具全部分组」守卫在新技能集上直接红灯暴露，已修正（这正是该守卫存在的意义）。
+>   ⇒ 单测：新增 `agentToolGroups.test.ts`（13 例：分组表/上限/策略/装配/截断/显式选择/目录文本）、`agentOpenAiTransport.test.ts`（11 例：URL 拼接·请求契约·tool_calls/usage 解析·错误分支·档位→传输层映射·claude 拦截）、`agentBrainService.test.ts`（3 例：云端/未配置/显式选择的端到端装配）；`agentBrain.test.ts` +1（tier 注入）、`agentSkills.test.ts` +1（分组覆盖守卫）。vitest 全量 **129 文件 / 1995 用例 passed**（原 126/1966 + 3 文件 + 29 例）；tsc 0（node+web）+ eslint 0 + CSS 审计（仅 5 处已知模板噪声）+ `npm run build` 通过。
 >
 > **证据强度标注**（全文通用）：
 > `[实测]` 本机/本仓跑出来的 · `[一手]` 模型厂商官方文档 · `[GitHub]` 直接抓成熟框架仓库所得 · `[二手]` 第三方文章/实测（附出处）· `[推断]` 我的推理，未直接验证
@@ -504,6 +511,24 @@ SOUL 硬边界、turn limit、MCP、`shared/` 分层契约、**6 家服务商的
 
 ---
 
+### 5.5.13 实现记录（v1.5）：M3 工具面与路由（G2 + DD-3 + DD-4）
+
+| 项 | 落地 |
+|---|---|
+| `shared/agent/toolGroups.ts`（新增，纯模块） | 按**三个真实场景**分组（`ToolGroupId = 'data' \| 'ceshu' \| 'system'`，标签=数据编辑/策划书创作/系统与协作）；`TOOL_GROUP_MAP`（5 个已注册工具 → 分组，**漏登记被守卫测试抓住**）；`TOOL_FACE_LIMITS = {local:8, cloud:15}`（DD-3）+ `faceLimitFor(tier)`（`unconfigured` 按最保守的本地预算）；`resolveRoutingPolicy(tier)`（DD-4：cloud=soft / 其余=explicit）；`buildToolFace(skills, tier, explicitIds?)` ⇒ `{tier, policy, limit, total, exposed, truncated, catalog}`；`groupToolCatalog` 出**分组目录文本**（每工具一行摘要，复用 M2 `getToolCatalogLine`；抬头按档位给口径） |
+| `main/agent/openAiTransport.ts`（新增） | `OpenAiChatTransport implements BrainLlmTransport`：`POST {baseUrl}/chat/completions`（`buildChatCompletionsUrl` 容忍尾斜杠、不重复追加 `/v1`），带 `tools`、`stream:false`；解析 `choices[0].message.content` / `tool_calls`（args 为 JSON 串，走 `parseToolArguments`）/ `usage` / `finish_reason`（缺省按有无工具回落）；无 Key 时**不带** `Authorization` 头；HTTP 非 2xx 与 `error.message` 均转可读中文错误。**非流式**（`onChunk` 整段一次性回调） |
+| `main/agent/agentTransport.ts`（新增） | `resolveAgentTier(config)`：`resolveLlmTier(config)==='cloud' ? 'cloud' : 'local'`（`unconfigured` 归到 `local` 传输层）；`resolveAgentTransport(config, apiKey)`：cloud ⇒ `OpenAiChatTransport`（baseUrl/model 走 `resolveLlmBaseUrl`/`config.model`），**claude 单列** ⇒ `failingTransport(claudeUnsupported)`（不误当兼容端点），local/unconfigured ⇒ `OllamaChatTransport`（下发 `config.numCtx`） |
+| `shared/agent/brain.ts`（改） | `RunBrainLoopOptions` 增 `tier?: AgentRunTier`（缺省 `local`）；替换两处硬编码 `'local'`（`emptyAgentRunStats(tier)` + `turnStatFromReply(..., tier, ...)` + `turn_stats` emit）⇒ `stats.tier` 从此是**真档位** |
+| `main/agent/brainService.ts`（改） | `AgentChatOptions` 增 `config` / `apiKey` / `explicitTools`；`chat()` 先 `resolveAgentTier` → `resolveTransport`（注入的固定层优先，否则按档位解析）→ `buildToolFace` ⇒ 提示词 `capabilityCatalog` 用**分组目录**、`tools` 用 **`face.exposed` 的 schema**（不再是全量 `toolsJsonSchema()`）、循环带 `tier` |
+| `main/ipc.ts`（改） | `agent:chat` 先取 `llmCallOptions()`（配置镜像 + secretStore 现取 Key）传入 `agentBrain.chat` |
+| `renderer/.../digital/DigitalPanel.tsx`（改） | 「本次消耗」行加档位标识（`TIER_LABELS`：☁ 云端 / 🖥 本地 / ⚙ 未配置），复用既有 `item-meta` 类（无新增 CSS） |
+| 测试 | 新增 `agentToolGroups.test.ts`(13) / `agentOpenAiTransport.test.ts`(11) / `agentBrainService.test.ts`(3)；`agentBrain.test.ts` +1（tier 注入）、`agentSkills.test.ts` +1（**分组覆盖守卫**）。vitest 全量 **129 文件 / 1995 用例 passed**；tsc 0（node+web）+ eslint 0 + CSS 审计仅 5 处已知噪声 + build 通过（CSS 110.48 kB） |
+| ⚠️ 范围判定 | ① 出口「成功率 ≥80%」= **活模型评测**（沙箱无模型）⇒ 以确定性断言替代（分组覆盖 / 档位→传输层 / 档位→工具面口径）；② 生产**只注册 5 工具** ⇒ ≤8/≤15 上限恒满足、截断分支不触发（机制与守卫到位，工具数增长即生效）；③ 面板**工具勾选 UI**（消费 `explicitTools`）为后续 UI 项；④ 云端传输层**非流式**；⑤ **agent 对话面云端花费护栏**（复用 M5 `estimateTaskTokens`/`llmConfirmReason`）同为后续项——本版只做档位路由，未给对话面加预算门 |
+
+> **为什么 M3 是路线图最后一期**：M0–M2.5 解决「走哪档 / 上下文 / 终止 / 提示词 / 步数」，M3 解决**工具面本身**——G2 的根因是「工具一多，4B 只挑第一个」。在只有 5 个工具时它不痛，但**分组 + 档位上限 + 显式/软路由的分档**是「接 MCP / 补技能」前必须先立的闸门；早立比晚立便宜（与 DD-16 context provider 同一条演进线）。
+
+---
+
 ## 6. 选型：不引入 agent 框架（结论不变，依据更硬）
 
 | 候选 | 判定 | 理由 |
@@ -534,12 +559,15 @@ SOUL 硬边界、turn limit、MCP、`shared/` 分层契约、**6 家服务商的
                 │ 事件流（reduceBrainEvent，纯 reducer ✅已有）
 ┌───────────────┴────────────────────────────────────────┐
 │ shared/agent/  protocol ✅ · brain ✅ · session ✅ · panel ✅│  ← 分层契约：保留原样不改名
-│                 ⬆ 新增：budget.ts（成本/闸门/观测）        │     (shared-layering-design §2.1)
-│                 ⬆ 新增：tier.ts（档位路由 + 降级策略）      │
+│                 ⬆ 新增：budget.ts（成本/闸门）✅                │     (shared-layering-design §2.1)
+│                 ⬆ 新增：observability.ts（观测）✅             │
+│                 ⬆ 新增：toolGroups.ts（工具面分组/限量/路由）✅ │
 └───────────────▲────────────────────────────────────────┘
 ┌───────────────┴────────────────────────────────────────┐
 │ main/agent/  brainService · dispatcher · llm/client ✅     │
 │               approvalBroker ✅ · operationLog ✅           │
+│               ⬆ 新增：agentTransport.ts（档位→传输层）✅     │
+│               ⬆ 新增：openAiTransport.ts（云端带 tools）✅   │
 │   ┌── Harness 加固（净新增 ~500–700 行）──────────────┐   │
 │   │ 选档位 → 拼提示词(按档位预算) → 调模型 → 审批闸      │   │
 │   │ → 执行 → 大结果落盘 → 计数闸 + token 预算闸          │   │
@@ -593,8 +621,8 @@ data/libraries/<库>/.workspace/
 | **DD-0b** ⭐**✅ 已实现（v0.9）** | **保密模式** | G9 `[推断]` | 新增**显式档位**：🔒 保密模式 = 强制本地 + 明确告知"数据不出本机"；与云端档在 UI 上**并列**而非隐藏在设置深处 | ✅ 已实现（`confidential` flag + `effectiveProvider()` 强制 ollama + `SettingsPanel` `llm-confidential` 开关；章节级/字段级粒度**未做**，见 §2.3） | 本地 | 章节级/字段级粒度（需 per-call tier） |
 | **DD-1** | 上下文预算 | G1 | **仅本地档**：传输层显式下发 `num_ctx`（默认 16384，可调）。云端档不适用 | 重做（传输层字段） | **本地** | 无 |
 | **DD-2** | 本地档模型 | G10 | **仅本地档**：默认提到 **`qwen3:8b`**（`llmConfig.ts:68` 已有预置，5.2GB 装得下 8GB 卡），保留 4B 为低配回退；设置里显式警告"溢出到系统 RAM 会大幅变慢"。**云端档不涉及** | 配置 | **本地** | 无 |
-| **DD-3** | 工具面 | G2 | **协议层 12 个 `system.*` 槽位改为按场景分组**：本地档每次会话暴露 **≤8 个**；云端档可放宽到 **≤15 个**（上限更高但仍分组懒加载，不一次性注入） | 重做（`protocol.ts` 分组 + `CAPABILITIES.md` 改渐进披露） | **两档（上限不同）** | 云端实测工具挑选准确率显著优于本地档时可再放宽 |
-| **DD-4** | 路由归谁 | 4.1 实测 2 | **本地档**：技能由**用户显式选定**，不做模型软路由。**云端档**：**可试模型软路由**（前沿模型有能力做），但**必须保留显式选择作为兜底与可解释性手段** | 重做（面板 + 路由前置 + 按档位开关） | **两档（策略不同）** | 云端实测软路由成功率 ≥90% 则默认开 |
+| **DD-3** ⭐**✅ 已实现（v1.5）** | 工具面 | G2 | **协议层 12 个 `system.*` 槽位改为按场景分组**：本地档每次会话暴露 **≤8 个**；云端档可放宽到 **≤15 个**（上限更高但仍分组懒加载，不一次性注入） | ✅ 已实现（`shared/agent/toolGroups.ts`：三场景分组 + `TOOL_FACE_LIMITS` + `buildToolFace`；按项目现实裁为**三个真实场景**而非 Python 的 12 槽位，见 §5.5.13） | **两档（上限不同）** | 云端实测工具挑选准确率显著优于本地档时可再放宽 |
+| **DD-4** ⭐**✅ 已实现（v1.5）** | 路由归谁 | 4.1 实测 2 | **本地档**：技能由**用户显式选定**，不做模型软路由。**云端档**：**可试模型软路由**（前沿模型有能力做），但**必须保留显式选择作为兜底与可解释性手段** | ✅ 已实现（`resolveRoutingPolicy`：local=explicit / cloud=soft；`explicitTools` 非空压过软路由；抬头文案随策略变） | **两档（策略不同）** | 云端实测软路由成功率 ≥90% 则默认开 |
 | **DD-5** | 终止 | G4 + 4.1 实测 3 | 三道计数硬闸 `maxToolCalls`(8) / `maxTurns`(6) / `wallClockMs`(120s)，任一触发即**带部分产出 finalize**；**提示词里不写"出错就停"**。云端档的 `maxTurns` 可放宽（步数不再受上下文限制，但受成本限制 ⇒ 见 DD-5b） | 新增（`budget.ts`） | **两档（阈值不同）** | 无 |
 | **DD-5b** ⭐**✅ 已实现（护栏级）** | **成本护栏** | G5 `[二手]` token 解释 80% 方差 | **仅云端档**：每任务 **token 预算**（按任务分档：快问快答 / 批量生成 / 整章重写）；**超预算降级**（收缩可见工具 → 缩短上下文 → 明确告知"已降级"）而非静默烧钱 | 新增（`budget.ts`：预算条 + 超限前二次确认；**真降级待补**） | **云端** | 真降级（DD-3/DD-8）落地后复盘 |
 | **DD-6** | 提示词预算 | 4.1 实测 1 + 一手 | **两档都做，但理由不同**：本地档是**硬闸**（4B 读不完长提示词，≤30 行，构建期断言）；云端档是**优化项**（新模型有判断力、旧规则是过时的 casts ⇒ 同样砍到 ≤30 行，但按"精"而非"短"）。**实现共用一套断言** | 新增断言（两档同源） | **两档（本地=硬闸 / 云端=优化）** | 云端实测长提示词无质量损失则云端档放宽 |
@@ -620,7 +648,7 @@ data/libraries/<库>/.workspace/
 | **M1 观测先行** ⭐ | 修 G3 | 两档 | 每轮有档位/模型/token/延迟/成本行；面板可见"已用轮次"；**先有数据再调提示词** | ✅ 已落地（v1.1，~150 行 + 单测 9 例，见 §5.5.9） |
 | **M2 提示词瘦身** | 修 G7 + DD-6 | 两档 | `identity.md` ≤30 行断言转绿；`CAPABILITIES.md` 改渐进披露；单测跑 8 类典型请求，工具调用成功率 ≥80% | ✅ 已落地（v1.3，~120 行 + 单测 12 例，见 §5.5.11）。⚠️ 出口判据按 TS 现实校正：预算门 + 工具目录渐进披露落在真实提示词路径；工作区 `identity.md`/`CAPABILITIES.md` **TS 侧无消费者**，未编辑；"≥80%" 为活模型评测，以确定性覆盖断言替代 |
 | **M2.5 步数预算** | 修 DD-15 | 两档 | 每个动作可串联多工具；补 ≥2 个高频**复合工具**；单跑同一任务**步数下降 ≥20%** | ✅ 已落地（v1.4，~170 行 + 单测 5 例，见 §5.5.12）。落在「协议层批量动作」上：`system.game_data` 加 `batch_create`/`batch_update` 两个复合动作（不新增工具，保工具面 5 个）。⚠️ 「≥20%」为活模型度量，以「一次调用完成 N 条」的机制断言替代；DD-20 跨域复合工具（改名+引用同步）未做 |
-| **M3 工具面与路由** | 修 G2 + DD-3/4 | 两档 | 协议层分组、按档位限量（本地 ≤8 / 云端 ≤15）；本地=用户显式选技能、云端=软路由可选且保留显式兜底；成功率 ≥80% | ~250 行 |
+| **M3 工具面与路由** | 修 G2 + DD-3/4 | 两档 | 协议层分组、按档位限量（本地 ≤8 / 云端 ≤15）；本地=用户显式选技能、云端=软路由可选且保留显式兜底；成功率 ≥80% | ✅ 已落地（v1.5，~330 行 + 单测 29 例，见 §5.5.13）。落在 `shared/agent/toolGroups.ts`（分组 + 档位上限 + 显式/软路由）+ `main/agent/agentTransport.ts`（档位→传输层）+ `main/agent/openAiTransport.ts`（云端工具调用）。⚠️ 生产只注册 5 工具 ⇒ 上限恒满足；「≥80%」为活模型评测，以确定性断言替代；面板工具勾选 UI 与对话面云端预算门为后续项 |
 | **M4 确定性评分门 + 产出契约** ⭐ | 修 G8 + **DD-19** | 两档 | agent 产出必须过 `validateCeshu`→`scoreCeshu`→`dataCountConstraint`/`assessBalance`；LLM judge 只补机器判不了的维度且权重远低于确定性门 | ~250 行 |
 | **M5 成本护栏** ⭐ | 修 G5 | 云端 | token 预算按任务分档 + 预算条 + 超限前二次确认（**护栏级；真降级待补**）；面板显示预算条 | ✅ 已落地（v0.7，~200 行 + 单测 11 例） |
 | **M6 保密模式** ✅**已完成（v0.9）** | 修 G9 | 本地 | 显式 🔒 开关 + "数据不出本机"告知 + 强制本地校验；与云端档在 UI 并列 | ~120 行 |
