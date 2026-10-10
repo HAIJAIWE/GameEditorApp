@@ -1,6 +1,6 @@
 # 智能体框架重写设计（E59 起）
 
-> **状态**：v1.3（**已重写**，取代 v0.1~v0.4）。**M0 档位纠正 / M0.5 本地上下文与终止 / M1 观测先行 / M2 提示词瘦身 / M5 成本护栏 / M6 保密模式 / DD-17 / DD-19 均已落地**；M2.5、M3 待做。
+> **状态**：v1.4（**已重写**，取代 v0.1~v0.4）。**M0 档位纠正 / M0.5 本地上下文与终止 / M1 观测先行 / M2 提示词瘦身 / M2.5 步数预算 / M5 成本护栏 / M6 保密模式 / DD-17 / DD-19 均已落地**；M3 待做。
 > **动因**：E42 裁决「`core/agent` 域停止 1:1 迁移，改为框架重写」——方向定了，架构未定。
 >
 > **修订记录（四次纠错，全部记录在案）**
@@ -55,6 +55,12 @@
 >   ⚠️ **口径纠正（重要）**：路线图原文写「`identity.md` ≤30 行断言；`CAPABILITIES.md` 改渐进披露」，但**实测 TS 侧根本不读这两个工作区文件**——身份是 `prompts.ts::DEFAULT_IDENTITY` 内置常量（persona/identity 文件读取属 A1-3/A1-5 未移植项），能力面来自运行时 `SkillDispatcher`（已注册 5 个工具），而 `data/libraries/default/.workspace/memory/capabilities/CAPABILITIES.md` 是 **Python 时代 35 条扁平清单**（其中绝大多数在 TS 侧不存在）**且无消费者**。⇒ 按「拒绝死代码」铁律，M2 **不编辑该 `.md`**，而是把 G7/DD-6 落在**真实提示词路径**（`prompts.ts` + `protocol.ts` + `dispatcher.ts`）上。工作区文件的接通（让 identity.md 成为可编辑的身份载体）作为独立项留待后续。
 >   ⚠️ **范围判定**：M2 只做**提示词文本瘦身 + 预算门**；工具面的**分组/按档位限量**属 M3（DD-3）。M2 出口第 3 条「8 类典型请求工具调用成功率 ≥80%」是**活模型评测**（本沙箱跑不了模型）⇒ 本版以**确定性等价物**落地：8 类典型请求 → 期望工具 id 的覆盖断言（防过度瘦身丢工具），真·成功率留 e2e/手测。
 >   ⇒ 单测：新增 `agentPrompts.test.ts`（10 例：预算门 / 核心 ≤30 行 / 目录单行不含参数 / 8 类覆盖）；`agentProtocol.test.ts` +1（`getToolCatalogLine`）、`agentDispatcher.test.ts` +1（`toolCatalog` 与全量版分工）。vitest 全量 **126 文件 / 1961 用例 passed**（原 125/1949 + 1 文件 + 12 例）；tsc 0（node+web）+ eslint 0 + CSS 审计（仅 5 处已知模板噪声）+ `npm run build` 通过（CSS 110.48 kB，本版无 CSS 改动）。
+> - **v1.3 → v1.4**（本次会话）：落地 **M2.5 步数预算（DD-15）**。核心是**把模型的 N 次单条调用压成 1 次**（smolagents：CodeAgent 比「工具调用字典」少 30% 步数 ⇒ 本地省上下文、云端省钱）。
+>   **协议层"批量动作"语义 + 复合动作**：`main/agent/skills/gameDataSkill.ts` 新增两个动作——**`batch_create`**（一次调用建多条，`items` 数组，重名跳过）与 **`batch_update`**（按 `names` 精确 / `keyword` 子串选中 N 条后批量改字段；`mode` ∈ set/add/multiply/append，数值走 `adjust_number`、文本走 `set_value`）。两者复用既有 `DataService` 基元（`createItem` / 整批一次写队列的 `batchUpdate`），**不新增工具**（保持工具面 5 个，尊重 G2）——DD-15 处置原文即「协议层批量动作语义 + 复合工具」，本版落在**批量动作**上。
+>   ⚠️ **数值类型语义**：`batch_update` 复用 `shared/dataTableOps::applyBatchOp`，其数值写回为**文本**（与 Python `str(int(v))` 及 UI 批量编辑面板一致）——**应与单条 `update` 的类型保真区分**，是既有语义不是本次引入。
+>   ⚠️ **范围判定**：DD-20 的「**重命名类型 → 全库引用同步**」跨域复合工具**本版未做**——`TypeSchemaStore` 无 rename、`dataRef` 仅是解析器，做它需要「schema 改名 + items.type 迁移 + 全部策划书 `@data[...]` 重写」的多库事务，属独立决策。M2.5 出口「步数下降 ≥20%」是**活模型度量**（沙箱无模型）⇒ 以**确定性机制断言**替代：一次 `skill.execute` 完成 N 条（库里真的多出/改动 N 行）。
+>   ⚠️ **本次会话遇到文档静默回退（同型第二次）**：M2 提交（`8064f26`）后，工作树 `agent-framework-design.md` 被**外部覆写**回 v1.2 快照且**行尾被弄坏**（`>` 空行被吞并与上一行拼接）；同会话的 M2 源文件与 HEAD 一致、未受影响。已按铁律备份 `/tmp/doc_corrupted_1611.md` 并 `git checkout HEAD --` 还原（v1.3，731 行）后再做增量。**git 是防回退的保险绳**，此处再次生效。
+>   ⇒ 单测：`agentSkills.test.ts` +5（`batch_create` 多建/重名跳过/参数错；`batch_update` names 选中 / keyword+add / 无选择器·无匹配·缺 field），并把 `makeDataService` 补 `batchUpdate`（内存版走真 `applyBatchOp`）。vitest 全量 **126 文件 / 1966 用例 passed**（+5）；tsc 0（node+web）+ eslint 0 + CSS 审计（仅 5 处已知模板噪声）+ `npm run build` 通过。
 >
 > **证据强度标注**（全文通用）：
 > `[实测]` 本机/本仓跑出来的 · `[一手]` 模型厂商官方文档 · `[GitHub]` 直接抓成熟框架仓库所得 · `[二手]` 第三方文章/实测（附出处）· `[推断]` 我的推理，未直接验证
@@ -484,6 +490,18 @@ SOUL 硬边界、turn limit、MCP、`shared/` 分层契约、**6 家服务商的
 
 > **为什么 M2 紧跟 M0.5**：M1 给了数据、M0.5 让本地档"撑得住"，M2 才处理"**读得完**"——§4.1 实测 1 表明 4B 在 >30 行提示词下**完全不用工具**。本版把 `## 可用工具` 从"逐参数 dump"改成"每工具一行"，参数改由 function-calling schema 承载，一举去掉了文本里的冗余（也即全项目最大的一段易膨胀文本）。
 
+### 5.5.12 实现记录（v1.4）：M2.5 步数预算（DD-15）
+
+| 项 | 落地 |
+|---|---|
+| `main/agent/skills/gameDataSkill.ts`（改，本版主体） | 新增两个**复合批量动作**（DD-15「协议层批量动作语义」）：**`batch_create`**（`items` 数组一次建多条；每条可取 `name`，缺省 `{类型名}{序号}`；**重名跳过**并在消息里列出）与 **`batch_update`**（按 `names` 精确 或 `keyword` 子串选中 N 条后批量改字段）。`ACTIONS` 由 6→8，schema 增 `items`/`names`/`mode` 三参并更新 `action` 说明 |
+| 复用既有基元（**不新增工具**） | `batch_create` → `dataService.createItem` 循环；`batch_update` → `dataService.batchUpdate({type, ids, op})`（**整批一次写队列 + 一条撤销记录**）。`buildBatchOp` 把 `field/value/mode` 折成 `Required<BatchOp>`：数值 → `adjust_number`（`set` 用 `mode:'set'`），文本 → `set_value`，`append` → `append_value`。**保持工具面 5 个**（尊重 G2：4B 在 35 工具下"多工具只挑第一个"） |
+| ⚠️ 数值类型语义 | `applyBatchOp` 把数值写回为**文本**（`String(next)`，与 Python `str(int(v))` 及 UI `BatchEditPanel` 一致）⇒ `batch_update` 后的字段值是字符串，与单条 `update`（保原类型）**不同**。这是既有语义，未改动（改它会波及 UI + Python parity） |
+| 测试 | `agentSkills.test.ts` +5：`batch_create`（一次建 2 条·跳过 1 条重名 · 缺 data_type/未知类型/items 非法）；`batch_update`（names 选中数值 set · keyword 选中 + add 增减 · 无选择器/无匹配/缺 field）。`makeDataService` 内存版补 `batchUpdate`（走真 `applyBatchOp`，保证与生产同语义）。vitest 全量 **126 文件 / 1966 用例 passed**；tsc 0 + eslint 0 + CSS 审计仅已知噪声 + build 通过 |
+| ⚠️ 范围判定 | ① **DD-20 跨域复合工具**（重命名类型 → 全库引用同步）**未做**：需 schema 改名 + `items.type` 迁移 + 全部策划书 `@data[...]` 重写的事务化，属独立决策（`TypeSchemaStore` 无 rename、`dataRef` 仅解析器）。② 出口「步数下降 ≥20%」是**活模型度量**（沙箱无模型）⇒ 以「**一次 `skill.execute` 完成 N 条**」的机制断言替代 |
+
+> **为什么 M2.5 紧跟 M2**：M2 让提示词"读得完"，M2.5 让同样任务**少走几步**——DD-15 的依据是 smolagents 的「CodeAgent 少 30% 步数」，而本项目的**步数 = token = 本地上下文 / 云端成本**。把「批量创建 10 条」从 10 次调用压成 1 次，是这条收益最直接、最不依赖模型能力的落点（复合动作在**工具侧**完成，不赌 4B 的规划能力）。
+
 ---
 
 ## 6. 选型：不引入 agent 框架（结论不变，依据更硬）
@@ -601,7 +619,7 @@ data/libraries/<库>/.workspace/
 | **M0.5 本地档上下文与终止** | 修 G1 + G4 | 本地 | `num_ctx` 可配且有默认 16384；三道计数闸生效；触发后带部分产出 finalize 并诚实显示 | ✅ 已落地（v1.2，~200 行 + 单测 11 例，见 §5.5.10） |
 | **M1 观测先行** ⭐ | 修 G3 | 两档 | 每轮有档位/模型/token/延迟/成本行；面板可见"已用轮次"；**先有数据再调提示词** | ✅ 已落地（v1.1，~150 行 + 单测 9 例，见 §5.5.9） |
 | **M2 提示词瘦身** | 修 G7 + DD-6 | 两档 | `identity.md` ≤30 行断言转绿；`CAPABILITIES.md` 改渐进披露；单测跑 8 类典型请求，工具调用成功率 ≥80% | ✅ 已落地（v1.3，~120 行 + 单测 12 例，见 §5.5.11）。⚠️ 出口判据按 TS 现实校正：预算门 + 工具目录渐进披露落在真实提示词路径；工作区 `identity.md`/`CAPABILITIES.md` **TS 侧无消费者**，未编辑；"≥80%" 为活模型评测，以确定性覆盖断言替代 |
-| **M2.5 步数预算** | 修 DD-15 | 两档 | 每个动作可串联多工具；补 ≥2 个高频**复合工具**；单跑同一任务**步数下降 ≥20%** | ~200 行 |
+| **M2.5 步数预算** | 修 DD-15 | 两档 | 每个动作可串联多工具；补 ≥2 个高频**复合工具**；单跑同一任务**步数下降 ≥20%** | ✅ 已落地（v1.4，~170 行 + 单测 5 例，见 §5.5.12）。落在「协议层批量动作」上：`system.game_data` 加 `batch_create`/`batch_update` 两个复合动作（不新增工具，保工具面 5 个）。⚠️ 「≥20%」为活模型度量，以「一次调用完成 N 条」的机制断言替代；DD-20 跨域复合工具（改名+引用同步）未做 |
 | **M3 工具面与路由** | 修 G2 + DD-3/4 | 两档 | 协议层分组、按档位限量（本地 ≤8 / 云端 ≤15）；本地=用户显式选技能、云端=软路由可选且保留显式兜底；成功率 ≥80% | ~250 行 |
 | **M4 确定性评分门 + 产出契约** ⭐ | 修 G8 + **DD-19** | 两档 | agent 产出必须过 `validateCeshu`→`scoreCeshu`→`dataCountConstraint`/`assessBalance`；LLM judge 只补机器判不了的维度且权重远低于确定性门 | ~250 行 |
 | **M5 成本护栏** ⭐ | 修 G5 | 云端 | token 预算按任务分档 + 预算条 + 超限前二次确认（**护栏级；真降级待补**）；面板显示预算条 | ✅ 已落地（v0.7，~200 行 + 单测 11 例） |

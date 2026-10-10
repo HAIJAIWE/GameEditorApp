@@ -7,8 +7,9 @@ import { createGameDataSkill } from '../../src/main/agent/skills/gameDataSkill'
 import type { CeshuManager } from '../../src/main/ceshu/manager'
 import type { DataService } from '../../src/main/data/service'
 import type { TypeSchemaStore } from '../../src/main/schema/store'
+import { applyBatchOp, type BatchOp } from '../../src/shared/dataTableOps'
 import { BUILTIN_DATA_TYPES } from '../../src/shared/typeSchema'
-import type { DataTypeDef, ItemRecord } from '../../src/shared/types'
+import type { BatchUpdateSummary, DataTypeDef, ItemRecord } from '../../src/shared/types'
 
 const ROLE = BUILTIN_DATA_TYPES.find((type) => type.id === 'role') as DataTypeDef
 const TYPE_COUNT = BUILTIN_DATA_TYPES.length
@@ -69,6 +70,23 @@ function makeDataService(seed: Record<string, Array<Record<string, unknown>>> = 
         }
       }
       throw new Error(`条目 ${id} 不存在`)
+    },
+    batchUpdate: async (input: { type: string; ids: string[]; op: BatchOp }): Promise<BatchUpdateSummary> => {
+      const summary: BatchUpdateSummary = { affected: 0, skipped: 0, missing: 0 }
+      const items = store.get(input.type) ?? []
+      const present = new Set(items.map((item) => item.id))
+      summary.missing = input.ids.filter((id) => !present.has(id)).length
+      for (const item of items) {
+        if (!input.ids.includes(item.id)) continue
+        const next = applyBatchOp(item.data, input.op)
+        if (next === null) {
+          summary.skipped++
+          continue
+        }
+        item.data = next
+        summary.affected++
+      }
+      return summary
     }
   } as unknown as DataService
 }
@@ -259,6 +277,79 @@ describe('system.game_data 技能（A1-1 最小集）', () => {
     expect(byId.success).toBe(true)
     expect(dataService.listItems(ROLE.id)).toHaveLength(0)
   })
+
+  // ---- M2.5 复合批量动作（DD-15：一次调用完成 N 条，压缩步数） ----
+
+  it('batch_create：一次调用建多条，重名跳过（步数压缩机制）', async () => {
+    const dataService = makeDataService({ [ROLE.id]: [{ name: '法师' }] })
+    const skill = createGameDataSkill({ dataService, typeSchemaStore: makeSchemaStore() })
+    const result = await skill.execute(
+      {
+        action: 'batch_create',
+        data_type: 'role',
+        items: [{ name: '牧师', hp: 100 }, { name: '法师' }, { name: '刺客', atk: 30 }]
+      },
+      {}
+    )
+    expect(result.success).toBe(true)
+    expect(result.message).toContain('已批量创建 2 条')
+    expect(result.message).toContain('跳过 1 条重名（法师）')
+    // 一次调用 ⇒ 库里多出两行（不是两次调用）
+    expect(dataService.listItems(ROLE.id).map((item) => item.data.name)).toEqual(['法师', '牧师', '刺客'])
+  })
+
+  it('batch_create：缺 data_type / 未知类型 / items 非法 → 中文错误', async () => {
+    const skill = createGameDataSkill({ dataService: makeDataService(), typeSchemaStore: makeSchemaStore() })
+    expect((await skill.execute({ action: 'batch_create' }, {})).error).toContain('缺少 data_type 参数')
+    expect((await skill.execute({ action: 'batch_create', data_type: 'nope', items: [{}] }, {})).error).toContain(
+      '未知数据类型'
+    )
+    expect((await skill.execute({ action: 'batch_create', data_type: 'role', items: [] }, {})).error).toContain(
+      '缺少要创建的条目数组 items'
+    )
+  })
+
+  it('batch_update：按 names 选中，数值 set 走 adjust_number（与 UI 批量编辑同语义：值写回为文本）', async () => {
+    const dataService = makeDataService({
+      [ROLE.id]: [{ name: '法师', hp: '10' }, { name: '战士', hp: '20' }, { name: '弓手', hp: '30' }]
+    })
+    const skill = createGameDataSkill({ dataService, typeSchemaStore: makeSchemaStore() })
+    const result = await skill.execute(
+      { action: 'batch_update', data_type: 'role', names: ['法师', '战士'], field: 'hp', value: 100 },
+      {}
+    )
+    expect(result.success).toBe(true)
+    expect(result.message).toContain('写入 2 条')
+    expect(dataService.listItems(ROLE.id).map((item) => item.data.hp)).toEqual(['100', '100', '30'])
+  })
+
+  it('batch_update：keyword 选中 + add 模式（数值增减）', async () => {
+    const dataService = makeDataService({
+      [ROLE.id]: [{ name: '火系法师', hp: '10' }, { name: '火系战士', hp: '20' }, { name: '冰系法师', hp: '30' }]
+    })
+    const skill = createGameDataSkill({ dataService, typeSchemaStore: makeSchemaStore() })
+    const result = await skill.execute(
+      { action: 'batch_update', data_type: 'role', keyword: '火系', field: 'hp', value: 5, mode: 'add' },
+      {}
+    )
+    expect(result.message).toContain('写入 2 条')
+    expect(dataService.listItems(ROLE.id).map((item) => item.data.hp)).toEqual(['15', '25', '30'])
+  })
+
+  it('batch_update：无选择器 / 无匹配 / 缺 field → 中文错误', async () => {
+    const dataService = makeDataService({ [ROLE.id]: [{ name: '法师', hp: 10 }] })
+    const skill = createGameDataSkill({ dataService, typeSchemaStore: makeSchemaStore() })
+    expect(
+      (await skill.execute({ action: 'batch_update', data_type: 'role', field: 'hp', value: 1 }, {})).error
+    ).toContain('请提供 names 数组')
+    expect(
+      (await skill.execute({ action: 'batch_update', data_type: 'role', names: ['不存在'], field: 'hp', value: 1 }, {}))
+        .error
+    ).toContain('没有匹配的')
+    expect(
+      (await skill.execute({ action: 'batch_update', data_type: 'role', names: ['法师'], value: 1 }, {})).error
+    ).toContain('缺少要修改的字段名')
+  })
 })
 
 describe('tool.ask_user 技能（参数澄清）', () => {
@@ -340,12 +431,12 @@ describe('system.ceshu 技能（A1-5 写操作）', () => {
 
     const plain = await skill.execute({ action: 'create' }, {})
     expect(plain.success).toBe(true)
-    expect(plain.message).toContain('已创建策划书（v1.0，工业级档位，id=')
+    expect(plain.message).toContain('已创建策划书（v1.0，专业版档位，id=')
     expect((plain.data as { meta: Record<string, unknown> }).meta.gdd_scope).toBe('full')
 
     const lite = await skill.execute({ action: 'create', scope: 'lite', name: '小项目' }, {})
     expect(lite.success).toBe(true)
-    expect(lite.message).toContain('基础档位')
+    expect(lite.message).toContain('标准版档位')
 
     const named = await skill.execute(
       { action: 'create', scope: 'full', name: '原始名', meta: { game_name: '改后的名', tags: ['a'] } },
@@ -376,7 +467,7 @@ describe('system.ceshu 技能（A1-5 写操作）', () => {
     // 默认章节 meta
     const ok = await skill.execute({ action: 'update', ceshu_id: 'c1', data: { game_name: '改名了' } }, {})
     expect(ok.success).toBe(true)
-    expect(ok.message).toBe('已更新策划书「改名了」的「第一章·项目元信息」')
+    expect(ok.message).toBe('已更新策划书「改名了」的「文档信息」')
   })
 
   it('update：文档不存在时透出存储层中文错误', async () => {

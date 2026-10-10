@@ -1,20 +1,25 @@
 /**
  * `system.game_data` 内置技能（对应 Python `core/agent/skills/game_data_skill.py` 的最小集）。
  *
- * A1-1 只实现「读 + 写」两条最小通路：`list_types` / `list` / `query` / `create` / `update`。
- * **未移植**（属 A1-5 业务接线范畴）：`delete` / `batch_create` / `batch_update` /
- * `switch_tab` / `switch_library` / `load_library` —— 它们都依赖 PyQt 主窗口或库管理器。
+ * 已实现：`list_types` / `list` / `query` / `create` / `update` / `delete`，
+ * 以及 **M2.5 复合批量动作 `batch_create` / `batch_update`**（DD-15）：
+ * 把模型的 N 次单条调用压成 **1 次**——「批量创建 10 个怪物」1 次调用建成，
+ * 「把这 3 个角色的 hp 设为 100」1 次调用改完（内部按 names/keyword 解析 id 后走 `batchUpdate`）。
+ *
+ * **仍未移植**（属 A1-5 业务接线范畴）：`switch_tab` / `switch_library` / `load_library`
+ * —— 它们都依赖 PyQt 主窗口或库管理器。
  *
  * 文案约定：与 Python 能对齐的（`缺少 data_type 参数`、`找不到名称「x」对应的条目…`）逐字对齐；
  * Python 里依赖 `dm.data` 字典形态的消息（如 `可用类型: <复数键>`）在本侧按 TS 类型表重写。
  */
 
 import type { SkillExecutionContext, SkillProtocol, SkillResult } from '../../../shared/agent/protocol'
+import type { BatchOp } from '../../../shared/dataTableOps'
 import type { DataService } from '../../data/service'
 import type { TypeSchemaStore } from '../../schema/store'
 import type { ItemRecord } from '../../../shared/types'
 
-const ACTIONS = ['list_types', 'list', 'query', 'create', 'update', 'delete'] as const
+const ACTIONS = ['list_types', 'list', 'query', 'create', 'update', 'delete', 'batch_create', 'batch_update'] as const
 
 const DEFAULT_LIMIT = 20
 
@@ -263,6 +268,141 @@ export function createGameDataSkill(deps: {
     return { success: true, message: `已删除${label}【${displayName}】（id=${id}）`, data: null }
   }
 
+  /* ---- M2.5 复合批量动作（DD-15：把模型的 N 次调用压成 1 次） ---- */
+
+  /** 批量更新模式的展示文案 */
+  const MODE_LABELS: Record<string, string> = {
+    set: '设置',
+    add: '增加',
+    multiply: '乘以',
+    append: '追加'
+  }
+
+  /** 解析批量创建入参：只保留对象项；无有效项返回 null */
+  function parseCreateItems(raw: unknown): Array<Record<string, unknown>> | null {
+    if (!Array.isArray(raw)) return null
+    const items = raw.filter(
+      (entry): entry is Record<string, unknown> =>
+        entry !== null && typeof entry === 'object' && !Array.isArray(entry)
+    )
+    return items.length > 0 ? items : null
+  }
+
+  /** 一次调用创建多条（复合：模型 1 次调用 → N 条落库）；重名跳过 */
+  async function batchCreate(params: Record<string, unknown>): Promise<SkillResult> {
+    const rawType = typeof params.data_type === 'string' ? params.data_type : ''
+    if (rawType === '') return fail(`缺少 data_type 参数。可用类型: ${availableSingles()}`)
+    const resolved = resolveType(rawType)
+    if (resolved === null) return fail(`未知数据类型: ${rawType}。可用类型: ${availableSingles()}`)
+
+    const items = parseCreateItems(params.items)
+    if (items === null) {
+      return fail('缺少要创建的条目数组 items。请提供如 [{"name":"火史莱姆","hp":30}, {"name":"冰史莱姆","hp":25}]')
+    }
+
+    const existingNames = new Set(dataService.listItems(resolved.key).map((item) => itemName(item)))
+    const skipped: string[] = []
+    const created: Array<{ id: string; name: string }> = []
+    for (let index = 0; index < items.length; index++) {
+      const entry = items[index]!
+      const rawName = typeof entry.name === 'string' ? entry.name.trim() : ''
+      const name = rawName === '' ? `${resolved.label}${index + 1}` : rawName
+      if (existingNames.has(name)) {
+        skipped.push(name)
+        continue
+      }
+      const rest = { ...entry }
+      delete rest.name
+      const item = await dataService.createItem({ type: resolved.key, data: { ...rest, name } })
+      existingNames.add(name)
+      created.push({ id: item.id, name })
+    }
+
+    const skipNote = skipped.length > 0 ? `，跳过 ${skipped.length} 条重名（${skipped.join('、')}）` : ''
+    return {
+      success: true,
+      message: `已批量创建 ${created.length} 条${resolved.label}数据${skipNote}`,
+      data: { created: created.length, skipped, items: created }
+    }
+  }
+
+  /**
+   * 由 field/value/mode 组装一条批量操作（`BatchOp`）。
+   * 数值走 `adjust_number`（保留数字类型，`set` 用 mode='set'）；文本走 `set_value`；`append` 追加。
+   */
+  function buildBatchOp(field: string, mode: string, value: unknown): Required<BatchOp> {
+    const text = value === undefined || value === null ? '' : String(value)
+    if (mode === 'append') {
+      return { kind: 'append_value', field, value: text, separator: ',', mode: 'add', adjust: 0 }
+    }
+    const numeric = typeof value === 'number' ? value : Number(text.trim())
+    const isNumeric = text.trim() !== '' && Number.isFinite(numeric)
+    if (mode === 'add' || mode === 'multiply') {
+      return {
+        kind: 'adjust_number',
+        field,
+        value: '',
+        separator: ',',
+        mode,
+        adjust: isNumeric ? Math.trunc(numeric) : 0
+      }
+    }
+    if (isNumeric) {
+      return { kind: 'adjust_number', field, value: '', separator: ',', mode: 'set', adjust: Math.trunc(numeric) }
+    }
+    return { kind: 'set_value', field, value: text, separator: ',', mode: 'add', adjust: 0 }
+  }
+
+  /** 按 names（精确）或 keyword（子串）选出同类型目标条目；两者都缺 → null */
+  function selectTargets(resolved: ResolvedType, params: Record<string, unknown>): ItemRecord[] | null {
+    const all = dataService.listItems(resolved.key)
+    const names = Array.isArray(params.names)
+      ? params.names
+          .filter((entry): entry is string => typeof entry === 'string' && entry.trim() !== '')
+          .map((entry) => entry.trim())
+      : []
+    if (names.length > 0) {
+      const wanted = new Set(names)
+      return all.filter((item) => wanted.has(itemName(item)))
+    }
+    const keyword = typeof params.keyword === 'string' ? params.keyword.trim().toLowerCase() : ''
+    if (keyword !== '') {
+      return all.filter((item) => itemName(item).toLowerCase().includes(keyword))
+    }
+    return null
+  }
+
+  /** 一次调用批量改字段（复合：模型 1 次调用 → N 条更新）；复用 `dataService.batchUpdate`（整批一次写队列） */
+  async function batchUpdateItems(params: Record<string, unknown>): Promise<SkillResult> {
+    const rawType = typeof params.data_type === 'string' ? params.data_type : ''
+    if (rawType === '') return fail(`缺少 data_type 参数。可用类型: ${availableSingles()}`)
+    const resolved = resolveType(rawType)
+    if (resolved === null) return fail(`未知数据类型: ${rawType}。可用类型: ${availableSingles()}`)
+
+    const field = typeof params.field === 'string' ? params.field.trim() : ''
+    if (field === '') return fail('缺少要修改的字段名 (field 参数)')
+
+    const targets = selectTargets(resolved, params)
+    if (targets === null) {
+      return fail('请提供 names 数组（按名称选中）或 keyword（按名称关键词选中）以确定要批量修改的条目')
+    }
+    if (targets.length === 0) return fail(`没有匹配的${resolved.label}条目`)
+
+    const mode = typeof params.mode === 'string' ? params.mode : 'set'
+    const op = buildBatchOp(field, mode, params.value)
+    const summary = await dataService.batchUpdate({
+      type: resolved.key,
+      ids: targets.map((item) => item.id),
+      op
+    })
+    const modeLabel = MODE_LABELS[mode] ?? mode
+    return {
+      success: true,
+      message: `已批量${modeLabel}${resolved.label}的 ${field} 字段：写入 ${summary.affected} 条（跳过 ${summary.skipped}，缺失 ${summary.missing}）`,
+      data: summary
+    }
+  }
+
   function run(params: Record<string, unknown>, _ctx: SkillExecutionContext): SkillResult | Promise<SkillResult> {
     const action = typeof params.action === 'string' ? params.action : ''
     switch (action) {
@@ -278,6 +418,10 @@ export function createGameDataSkill(deps: {
         return updateItem(params)
       case 'delete':
         return deleteItem(params)
+      case 'batch_create':
+        return batchCreate(params)
+      case 'batch_update':
+        return batchUpdateItems(params)
       default:
         return fail(`未知动作: ${action}`)
     }
@@ -294,7 +438,7 @@ export function createGameDataSkill(deps: {
           type: 'string',
           enum: ACTIONS,
           description:
-            '操作类型: list_types=列出数据类型, list=列出条目, query=按名称查询, create=创建条目, update=修改条目, delete=删除条目（需用户确认）'
+            '操作类型: list_types=列出数据类型, list=列出条目, query=按名称查询, create=创建条目, update=修改条目, delete=删除条目（需用户确认）, batch_create=批量创建条目, batch_update=批量修改条目字段'
         },
         data_type: {
           type: 'string',
@@ -302,12 +446,28 @@ export function createGameDataSkill(deps: {
         },
         item_id: { type: 'string', description: '条目 ID（update 时使用）' },
         name: { type: 'string', description: '条目名称（create/update 时使用）' },
-        keyword: { type: 'string', description: '查询关键词（query 时使用）' },
+        keyword: { type: 'string', description: '查询关键词（query 时使用）；批量更新时也可作选中条件（按名称子串）' },
         data: { type: 'object', description: '数据属性对象，如 {"attack":100,"defense":50}' },
-        field: { type: 'string', description: '要修改的字段名（update 时使用）' },
-        value: { type: 'string', description: '字段新值（update 配合 field 使用）' },
+        field: { type: 'string', description: '要修改的字段名（update/batch_update 时使用）' },
+        value: { type: 'string', description: '字段新值（update 配合 field 使用；batch_update 为要设置/增减的值）' },
         confirm: { type: 'boolean', description: '删除确认标记（delete 时由系统在用户确认后置为 true）' },
-        limit: { type: 'integer', description: '返回条数上限', default: DEFAULT_LIMIT }
+        limit: { type: 'integer', description: '返回条数上限', default: DEFAULT_LIMIT },
+        items: {
+          type: 'array',
+          items: { type: 'object' },
+          description:
+            '批量创建（batch_create）的条目数组；每项为对象，可含 name 与各字段，如 [{"name":"火史莱姆","hp":30},{"name":"冰史莱姆","hp":25}]'
+        },
+        names: {
+          type: 'array',
+          items: { type: 'string' },
+          description: '批量更新（batch_update）按名称精确选中的条目名数组'
+        },
+        mode: {
+          type: 'string',
+          enum: ['set', 'add', 'multiply', 'append'],
+          description: '批量更新（batch_update）模式: set=设置值（缺省）, add=加/减, multiply=乘, append=追加文本'
+        }
       },
       required: ['action']
     },
