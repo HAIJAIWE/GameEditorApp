@@ -10,6 +10,9 @@ import { FIELD_TYPE_LABELS, FIELD_TYPES, validateTypeSchema } from '../../../sha
 import { TYPE_TEMPLATE_NAMES, TYPE_TEMPLATES, buildNewTypeDraft } from '../../../shared/typeTemplates'
 import type { DataTypeDef, FieldType, TypeFieldDef } from '../../../shared/types'
 
+import { refOptions, parseOptionalNumber } from './typeEditorUtils'
+import FieldIdSuggest from './FieldIdSuggest'
+
 /**
  * 数据表字段结构编辑器（对应 Python type_editor_dialog 核心切片）：
  * - 类型：新建 / 删除 / 名称·复数键·颜色编辑（既有类型的 ID 锁定，避免存量条目失联）
@@ -30,7 +33,7 @@ interface TypeEditorPanelProps {
 }
 
 /** 字段 ID 候选条的状态：规则层结果 + 拼音候选 + AI 追加的候选 */
-interface IdSuggestState {
+export interface IdSuggestState {
   index: number
   /** 规则层（术语表命中 + 标签内英文数字提取），「生成」按钮产生 */
   rule: SuggestFieldIdResult
@@ -40,13 +43,6 @@ interface IdSuggestState {
   ai: FieldIdSuggestion[]
   aiLoading: boolean
   aiError: string | null
-}
-
-/** 取「AI 候选里不与规则候选重复」的部分 */
-function aiOnlyOf(state: IdSuggestState): FieldIdSuggestion[] {
-  return state.ai.filter(
-    (candidate) => !state.rule.suggestions.some((rule) => rule.id === candidate.id)
-  )
 }
 
 export default function TypeEditorPanel({ types, initialTypeId, onSaved, onClose }: TypeEditorPanelProps) {
@@ -531,8 +527,7 @@ export default function TypeEditorPanel({ types, initialTypeId, onSaved, onClose
             <div className="changelog-entry">
               <div className="form-label">字段列表（{current.formFields.length}）</div>
               {current.formFields.map((field, index) => {
-                const isIdField = field.name === 'id'
-                const aiOnly = idSuggest?.index === index ? aiOnlyOf(idSuggest) : []
+                    const isIdField = field.name === 'id'
                 return (
                   <div className={`te-field-row${isIdField ? ' locked' : ''}`} key={index} data-testid={`te-field-${index}`}>
                     <input
@@ -681,104 +676,15 @@ export default function TypeEditorPanel({ types, initialTypeId, onSaved, onClose
                       </button>
                     </span>
                     {idSuggest?.index === index && (
-                      <div className="te-id-suggest" data-testid={`te-id-suggest-${index}`}>
-                        {idSuggest.rule.suggestions.length > 0 && (
-                          <>
-                            <span className="te-id-suggest-label">候选：</span>
-                            {idSuggest.rule.suggestions.map((suggestion) => (
-                              <button
-                                type="button"
-                                className="btn slim te-id-suggest-apply"
-                                key={suggestion.id}
-                                data-source={suggestion.source}
-                                data-testid={`te-id-suggest-apply-${index}`}
-                                onClick={() => {
-                                  updateField(index, { name: suggestion.id })
-                                  setIdSuggest(null)
-                                }}
-                              >
-                                {suggestion.id}
-                              </button>
-                            ))}
-                          </>
-                        )}
-                        {idSuggest.rule.error !== null && (
-                          <span className="te-id-suggest-error" data-testid={`te-id-suggest-error-${index}`}>
-                            {idSuggest.rule.error}
-                          </span>
-                        )}
-
-                        {idSuggest.pinyin !== null && idSuggest.pinyin.suggestions.length > 0 && (
-                          <>
-                            <span className="te-id-suggest-label">拼音：</span>
-                            {idSuggest.pinyin.suggestions.map((suggestion) => (
-                              <button
-                                type="button"
-                                className="btn slim te-id-suggest-apply"
-                                key={`pinyin-${suggestion.id}`}
-                                data-source={suggestion.source}
-                                data-testid={`te-id-suggest-apply-${index}`}
-                                onClick={() => {
-                                  updateField(index, { name: suggestion.id })
-                                  setIdSuggest(null)
-                                }}
-                              >
-                                {suggestion.id}
-                              </button>
-                            ))}
-                          </>
-                        )}
-                        {idSuggest.pinyin !== null && idSuggest.pinyin.error !== null && (
-                          <span className="te-id-suggest-error" data-testid={`te-id-suggest-pinyin-error-${index}`}>
-                            {idSuggest.pinyin.error}
-                          </span>
-                        )}
-
-                        {aiOnly.map((suggestion) => (
-                          <button
-                            type="button"
-                            className="btn slim te-id-suggest-apply"
-                            key={suggestion.id}
-                            data-source={suggestion.source}
-                            data-testid={`te-id-suggest-apply-${index}`}
-                            onClick={() => {
-                              updateField(index, { name: suggestion.id })
-                              setIdSuggest(null)
-                            }}
-                          >
-                            {suggestion.id}
-                          </button>
-                        ))}
-
-                        {idSuggest.rule.suggestions.some((s) => s.renamedFrom !== null) && (
-                          <span className="te-id-suggest-note" data-testid={`te-id-suggest-renamed-${index}`}>
-                            （原为 {idSuggest.rule.suggestions[0]?.renamedFrom}，已重名故加后缀）
-                          </span>
-                        )}
-                        {idSuggest.rule.suggestions[0]?.skipped.length ? (
-                          <span className="te-id-suggest-note" data-testid={`te-id-suggest-skipped-${index}`}>
-                            术语表未收录：
-                            {idSuggest.rule.suggestions[0]?.skipped.join('、')}
-                            （可点「拼音」或手动补全）
-                          </span>
-                        ) : null}
-
-                        <button
-                          type="button"
-                          className="btn slim"
-                          data-testid={`te-id-suggest-ai-${index}`}
-                          disabled={idSuggest.aiLoading}
-                          title="让 AI 给几个候选（需本地 Ollama；AI 只提案，点选后才写入）"
-                          onClick={() => void requestAiSuggestions(index)}
-                        >
-                          {idSuggest.aiLoading ? 'AI 生成中…' : 'AI 候选'}
-                        </button>
-                        {idSuggest.aiError !== null && (
-                          <span className="te-id-suggest-error" data-testid={`te-id-suggest-ai-error-${index}`}>
-                            {idSuggest.aiError}
-                          </span>
-                        )}
-                      </div>
+                      <FieldIdSuggest
+                        suggest={idSuggest}
+                        index={index}
+                        onApplyName={(id) => {
+                          updateField(index, { name: id })
+                          setIdSuggest(null)
+                        }}
+                        onRequestAi={() => void requestAiSuggestions(index)}
+                      />
                     )}
                   </div>
                 )
@@ -804,17 +710,4 @@ export default function TypeEditorPanel({ types, initialTypeId, onSaved, onClose
       </div>
     </div>
   )
-}
-
-/** 引用类型下拉：列出现有类型（值为复数键，与内置 schema refType 语义一致），并保留当前未知值 */
-function refOptions(types: DataTypeDef[], currentRef: string | undefined): DataTypeDef[] {
-  if (!currentRef) return types
-  if (types.some((def) => def.pluralKey === currentRef || def.id === currentRef)) return types
-  return [...types, { id: currentRef, name: currentRef, pluralKey: currentRef, color: '#607D8B', formFields: [] }]
-}
-
-function parseOptionalNumber(raw: string): number | undefined {
-  if (raw.trim() === '') return undefined
-  const value = Number(raw)
-  return Number.isFinite(value) ? value : undefined
 }

@@ -6,6 +6,8 @@ import ChatMarkdown from './ChatMarkdown'
 
 import LucideIcon from '../LucideIcon'
 
+import { DigitalApproval, DigitalStepList, DigitalTaskList } from './digitalPanelViews'
+
 import type { BrainEvent } from '../../../../shared/agent/brain'
 import type { AgentRunTier } from '../../../../shared/agent/observability'
 import {
@@ -487,28 +489,7 @@ export default function DigitalPanel() {
           >
             {stepsOpen ? '收起执行步骤' : `展开执行步骤（${state.steps.length}）`}
           </button>
-          {stepsOpen && (
-            <ol className="digital-step-list">
-              {state.steps.map((step, index) => (
-                <li
-                  key={`${step.order}-${step.tool}-${index}`}
-                  className={`digital-step digital-step-${step.status}`}
-                  data-testid="digital-step"
-                  data-status={step.status}
-                >
-                  <span className="digital-step-tool">{step.tool}</span>
-                  <span className="item-meta">
-                    {step.status === 'running' ? '执行中…' : null}
-                    {step.status === 'done' ? '✅' : null}
-                    {step.status === 'failed' ? '❌' : null}
-                  </span>
-                  {step.result !== undefined && step.result !== '' && (
-                    <div className="digital-step-result">{step.result}</div>
-                  )}
-                </li>
-              ))}
-            </ol>
-          )}
+          {stepsOpen && <DigitalStepList steps={state.steps} />}
         </div>
       )}
 
@@ -529,18 +510,7 @@ export default function DigitalPanel() {
         </div>
       )}
 
-      {tasks.length > 0 && (
-        <div className="digital-tasks" data-testid="digital-tasks">
-          <span className="home-section-label">任务</span>
-          {tasks.map((task, index) => (
-            <div className="digital-task" data-testid="digital-task" key={`${task.tool}-${index}`}>
-              <span>{task.success ? '✅' : '❌'}</span>
-              <span className="digital-task-tool">{task.tool}</span>
-              <span className="item-meta">{task.summary}</span>
-            </div>
-          ))}
-        </div>
-      )}
+      {tasks.length > 0 && <DigitalTaskList tasks={tasks} />}
 
       {state.interaction !== null && (
         <div className="digital-approval" data-testid="digital-interaction">
@@ -681,31 +651,7 @@ export default function DigitalPanel() {
       )}
 
       {state.approval !== null && (
-        <div className="digital-approval" data-testid="digital-approval">
-          <div className="form-label">⚠️ 危险操作确认</div>
-          <div className="item-meta">
-            工具：{state.approval.tool} · 操作：{state.approval.action || '(未指定)'}
-          </div>
-          <pre className="digital-approval-params">{JSON.stringify(state.approval.params, null, 2)}</pre>
-          <div className="editor-actions">
-            <button
-              type="button"
-              className="btn danger"
-              data-testid="digital-approval-approve"
-              onClick={() => handleApproval(true)}
-            >
-              允许执行
-            </button>
-            <button
-              type="button"
-              className="btn"
-              data-testid="digital-approval-reject"
-              onClick={() => handleApproval(false)}
-            >
-              拒绝
-            </button>
-          </div>
-        </div>
+        <DigitalApproval approval={state.approval} onApprove={handleApproval} />
       )}
 
       <div className="digital-input-row">

@@ -16,6 +16,7 @@ import {
 
 import AttrLivePreview from './AttrLivePreview'
 import EquipPreviewPanel from './EquipPreviewPanel'
+import { textsOf, formatPreview } from './attrSystemUtils'
 
 /**
  * 属性系统编辑器（属性库切片，对应 Python attr_system_editor 的左侧属性库 + attr_library）：
@@ -634,18 +635,4 @@ export default function AttrSystemPanel({ onClose }: AttrSystemPanelProps) {
       )}
     </div>
   )
-}
-
-function textsOf(system: AttrSystem): Record<string, string> {
-  const texts: Record<string, string> = {}
-  for (const [name, attr] of Object.entries(system.attributes)) {
-    texts[name] = formulaToText(attr.formula)
-  }
-  return texts
-}
-
-/** 示例值展示：最多保留 4 位小数（消除浮点长尾，核心计算值不受影响） */
-function formatPreview(value: number | undefined): string {
-  if (value === undefined || !Number.isFinite(value)) return '—'
-  return String(Math.round(value * 10000) / 10000)
 }
