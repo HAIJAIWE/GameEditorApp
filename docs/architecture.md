@@ -1,3 +1,8 @@
+> ⚠️ **本文档描述的是已移除的 Python 版（PyQt6），该版本已于 2026-10-10 整体退场。**
+> 现役产品是 [`desktop/`](../desktop) 下的 TypeScript + Electron 版，设计文档在 [`desktop/docs/`](../desktop/docs)。
+> 本文档仅作历史/考古参考：其中所有代码路径、类名、命令均指向已被删除的 Python 源码，**请勿据此开发**。
+> Python 全量源码可从 git tag **`python-final`** 取回。
+
 # 总体架构
 
 > 📌 **这是什么**：项目代码结构的总览图，说明每层（UI/核心/公共/安全/部署）的分工和数据流。
