@@ -9,23 +9,23 @@ import {
   type CeshuExportFormat,
   type ChapterData,
   type ChapterKey
-} from '../../../shared/ceshuConstants'
+} from '../../../shared/ceschu/ceshuConstants'
 import {
   computeChapterProgress,
   computeEnabledEditors,
   formatLocalTimestamp,
   getGddScope,
   resolveDocGameStyle
-} from '../../../shared/ceshuModel'
-import type { CeshuChangeItem, CeshuChangelog } from '../../../shared/ceshuDiff'
+} from '../../../shared/ceschu/ceshuModel'
+import type { CeshuChangelog } from '../../../shared/ceschu/ceshuDiff'
 import {
   buildChangelogHtml,
   buildChangelogMarkdown,
   buildChangelogText,
   buildValidationReportMarkdown
-} from '../../../shared/ceshuReports'
-import { buildScoreReportMarkdown, gradeLabel, type CeshuScoreReport } from '../../../shared/ceshuScorer'
-import type { CeshuAiGenerateResult } from '../../../shared/ceshuAi'
+} from '../../../shared/ceschu/ceshuReports'
+import { buildScoreReportMarkdown, gradeLabel, type CeshuScoreReport } from '../../../shared/ceschu/ceshuScorer'
+import type { CeshuAiGenerateResult } from '../../../shared/ceschu/ceshuAi'
 import type { DataTypeDef } from '../../../shared/types'
 
 import AiDataGenPanel from './AiDataGenPanel'
@@ -44,6 +44,7 @@ import TemplateEditorPanel from './TemplateEditorPanel'
 import VersionDiffPanel from './VersionDiffPanel'
 import VersionTimelinePanel from './VersionTimelinePanel'
 import WordStatsPanel from './WordStatsPanel'
+import { groupByChapter, toErrorMessage } from './ceshuViewUtils'
 
 interface CeshuViewProps {
   ceshuId: string | null
@@ -73,21 +74,6 @@ interface CeshuViewProps {
   onEditType?: (typeId: string) => void
   /** 打开「数据关联预览」查看某条目引用关系（由条目表单的「更多 ▸」触发，宿主负责开面板） */
   onShowReferences?: (target: { type: string; id: string; name: string }) => void
-}
-
-function toErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
-}
-
-/** 变更明细按章节分组（保持出现顺序） */
-function groupByChapter(changes: CeshuChangeItem[]): Array<[string, CeshuChangeItem[]]> {
-  const groups = new Map<string, CeshuChangeItem[]>()
-  for (const change of changes) {
-    const list = groups.get(change.chapter)
-    if (list) list.push(change)
-    else groups.set(change.chapter, [change])
-  }
-  return [...groups.entries()]
 }
 
 /** 策划书编辑器：章节导航（含进度）+ 章节表单 + 版本链操作 */

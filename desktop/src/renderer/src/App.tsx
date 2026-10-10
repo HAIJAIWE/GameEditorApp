@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 
-import type { CeshuSummary } from '../../shared/ceshuConstants'
+import type { CeshuSummary } from '../../shared/ceschu/ceshuConstants'
 import { loadGameStyle, normalizeGameStyleId, saveGameStyle } from '../../shared/gameStyle'
-import type { AppInfo, DataTypeDef, ImportSummary } from '../../shared/types'
+import type { AppInfo, DataTypeDef } from '../../shared/types'
 import { applyTheme, loadTheme, saveTheme, type ThemeMode } from '../../shared/theme'
 import { buildAiSeedPrompt } from '../../shared/aiSeedPrompt'
 import type { EngineExportInput } from '../../shared/schemas'
@@ -34,19 +34,7 @@ import SettingsPanel from './components/SettingsPanel'
 import StatisticsPanel from './components/StatisticsPanel'
 import ToastHost from './components/ToastHost'
 import TypeEditorPanel from './components/TypeEditorPanel'
-
-function toErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
-}
-
-function formatImportSummary(summary: ImportSummary): string {
-  const unknownKeys = Object.keys(summary.unknownTypes)
-  const unknownNote =
-    unknownKeys.length > 0
-      ? `；另有 ${unknownKeys.length} 个未收录类型键（数据已保留）：${unknownKeys.slice(0, 6).join('、')}`
-      : ''
-  return `导入完成：新增 ${summary.imported} 条，更新 ${summary.updated} 条，跳过 ${summary.skipped} 条${unknownNote}`
-}
+import { formatImportSummary, toErrorMessage } from './appUtils'
 
 /**
  * 顶层「面板浮层」的键：这些能力原先挂在下线前的「数据表视图」工具栏上，
