@@ -56,7 +56,7 @@ repair_learning.db
 # Local memory cache
 .trae-cn/
 
-# User data (not for version control) — root data/ only, src/**/data/ is tracked
+# User data (not for version control) — root data/ only
 /data/
 
 # Build dependencies
@@ -72,8 +72,6 @@ _gen_json.py
 _schemas.json
 
 # Test runtime artifacts (eval reports, coverage, etc.)
-tests/self_healing_eval_report.json
-tests/**/_eval_report.json
 .coverage
 htmlcov/
 .pytest_cache/
@@ -96,8 +94,6 @@ chroma/
 vector_index/
 perf/
 *.db
-src/logs/
-src/exports/
 
 # electron-vite 构建残留（转译出的临时 .mjs 配置，未跟踪但会污染 git status）
 desktop/electron.vite.config.*.mjs
