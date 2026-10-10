@@ -13,63 +13,25 @@ import type { LlmUsage } from '../llmConfig'
 import { CESHU_CHAPTER_FIELDS } from '../domain/ceshu/ceshuFields'
 import type { QualityGateVerdict } from '../agent/qualityGate'
 import { isPlainObject } from './ceshuModel'
+import {
+  CHAPTER_AGENT_MAP,
+  AGENT_DISPLAY,
+  CHAPTER_AGENT_PROMPTS,
+  STYLE_GLOSSARIES,
+  REQUIREMENTS_ONLY_EMPTY,
+  REQUIREMENTS_FULL,
+  STYLE_LABEL_TO_KEY,
+  TYPE_LABEL_TO_KEY,
+  CHAPTER_GENERATION_HINTS,
+  REVIEW_DIMENSION_KEYS,
+  REVIEW_DIMENSION_LABELS
+} from './ceshuAiData'
+export * from './ceshuAiData'
 
 /**
  * 策划书 AI 生成纯逻辑（自 Python core/agent/skills 的 ceshu_skill_generate / ceshu_agent_router
  * / ceshu_style_helpers 匹平迁移）：子智能体路由、风格术语表、整章提示词组装、LLM 输出容错解析。
  */
-
-/* ---- 子智能体路由（匹平 Python AgentRouter，18 章完整映射） ---- */
-
-const CHAPTER_AGENT_MAP: Record<ChapterKey, string> = {
-  meta: '通用策划助手',
-  vision: '通用策划助手',
-  worldview: 'content_writer',
-  gameplay: '通用策划助手',
-  systems: 'game_designer',
-  numeric: 'data_analyst',
-  art: '通用策划助手',
-  tech: 'code_assistant',
-  resources: '通用策划助手',
-  market_analysis: 'data_analyst',
-  characters: 'content_writer',
-  combat: 'game_designer',
-  economy: 'data_analyst',
-  monetization: '通用策划助手',
-  mvp: 'code_assistant',
-  risk_handling: '通用策划助手',
-  audio: '通用策划助手',
-  accessibility: '通用策划助手'
-}
-
-const AGENT_DISPLAY: Record<string, string> = {
-  game_designer: '策划专家',
-  content_writer: '文案写手',
-  data_analyst: '数据分析师',
-  code_assistant: '代码助手',
-  通用策划助手: '通用策划助手'
-}
-
-const CHAPTER_AGENT_PROMPTS: Record<ChapterKey, string> = {
-  meta: '请根据当前项目元信息，补充游戏名称和类型建议。',
-  vision: '请分析市场定位和竞品，给出差异化建议。',
-  worldview: '请为世界观设定提出创意构思或优化现有设定。',
-  gameplay: '请分析核心玩法设计，提出改进建议。',
-  systems: '请设计或审查游戏系统规则和参数。',
-  numeric: '请分析数值框架，提供平衡性建议。',
-  art: '请提供美术风格方向和配色方案建议。',
-  tech: '请提供技术选型、架构方案和开发计划建议。',
-  resources: '请协助规划资源清单和风险评估。',
-  market_analysis: '请分析目标市场、竞品和用户画像，提供市场定位建议。',
-  characters: '请设计主角、NPC、反派和 Boss 角色，包含背景与成长弧线。',
-  combat: '请设计战斗机制、技能系统、伤害公式和平衡策略。',
-  economy: '请设计货币体系、产出回收机制和通胀控制策略。',
-  monetization: '请设计付费模式、定价档位和运营策略，平衡免费与付费体验。',
-  mvp: '请规划 MVP 范围、里程碑和验收标准，确保核心玩法可验证。',
-  risk_handling: '请识别技术/市场/团队/进度风险，制定应对和监控策略。',
-  audio: '请设计音乐风格、音效清单和音频技术规格。',
-  accessibility: '请规划多语言支持、无障碍特性和分级认证。'
-}
 
 export interface ChapterAgent {
   agentId: string
@@ -87,22 +49,6 @@ export function agentForChapter(chapter: ChapterKey): ChapterAgent {
   }
 }
 
-/* ---- 风格术语表（匹平 Python _STYLE_GLOSSARIES） ---- */
-
-export const STYLE_GLOSSARIES: Record<string, string> = {
-  xianxia:
-    '气血=HP, 灵力=MP, 修为=经验, 渡劫=升级关键节点\n境界划分: 练气→筑基→金丹→元婴→化神→渡劫→大乘→飞升\n宗门/门派系统, 法宝=装备, 丹药=消耗品, 功法=技能\n灵石=货币, 天地人=品质分级, 仙魔妖=阵营',
-  wuxia:
-    '气血=HP, 内力=MP, 经验=阅历\n境界: 三流→二流→一流→后天→先天→宗师→大成\n门派/帮派系统, 兵器=装备, 秘籍=技能书\n银两=货币, 武功=技能, 经脉=属性系统',
-  'sci-fi':
-    'HP=生命值, MP=能量/护盾, 经验=数据/经验值\n等级=军衔/阶级, 装备=武器/护甲/模块\n货币=信用点/星币, 阵营=联邦/帝国/自由联盟\n技能=战术模块, 消耗品=医疗包/能量电池',
-  fantasy:
-    'HP=生命值, MP=魔法值, 经验=经验值\n种族: 人类/精灵/矮人/兽人/龙裔\n职业: 战士/法师/牧师/盗贼/游侠/圣骑士\n装备=武器/护甲/饰品, 货币=金币/银币/铜币\n魔法=元素: 火/水/土/风/光/暗',
-  post_apoc:
-    'HP=生命值, 辐射值=Radiation, 饥饿度/口渴度\n资源= scrap(废料)/弹药/食物/水/燃料\n装备=武器/护甲/防毒面具, 阵营=幸存者/掠夺者/军方\n技能=生存技能, 消耗品=治疗针/抗辐射药',
-  realistic:
-    'HP=生命值, 体力=Stamina, 经验=经验值\n装备=武器/护甲/配件, 货币=游戏币/真实货币\n等级=军衔/段位, 技能=主动/被动技能'
-}
 
 export function getStyleGlossary(style: string): string {
   if (!style) return ''
@@ -117,26 +63,6 @@ export interface ChapterPromptResult {
   /** 需要生成的字段（onlyEmpty 时仅空字段） */
   fields: string[]
 }
-
-const REQUIREMENTS_ONLY_EMPTY = [
-  '要求：',
-  '1. 只输出上面字段列表中列出的空字段，已填字段一律不要输出',
-  '2. 字段值要具体、专业、符合游戏类型和风格',
-  '3. 字符串字段生成 50-300 字的专业内容',
-  '4. 列表字段生成 2-5 个元素的列表',
-  '5. 数字字段生成合理的整数值',
-  '6. 只输出 JSON，不要加任何解释'
-].join('\n')
-
-const REQUIREMENTS_FULL = [
-  '要求：',
-  '1. 必须为字段列表中的每个字段都生成内容（即使是空字符串也要包含键）',
-  '2. 字段值要具体、专业、符合游戏类型和风格',
-  '3. 字符串字段生成 50-300 字的专业内容',
-  '4. 列表字段生成 2-5 个元素的列表',
-  '5. 数字字段生成合理的整数值',
-  '6. 只输出 JSON，不要加任何解释'
-].join('\n')
 
 export interface ChapterPromptOptions {
   onlyEmpty?: boolean
@@ -300,68 +226,6 @@ function readText(value: unknown): string {
 
 /* ---- 全量生成（一键生成完整策划书，匹平 Python ai_full_generate_dialog + ceshu_skill_prompt） ---- */
 
-export const FULL_GEN_GAME_TYPES = [
-  'RPG',
-  'MMORPG',
-  'ARPG',
-  'MOBA',
-  'FPS',
-  'SLG',
-  '休闲',
-  '放置',
-  '卡牌',
-  '塔防',
-  'Roguelike',
-  '策略'
-]
-
-export const FULL_GEN_STYLES = [
-  '仙侠',
-  '武侠',
-  '科幻',
-  '现代',
-  '奇幻',
-  '末日',
-  '历史',
-  '二次元',
-  '暗黑',
-  '赛博朋克',
-  '蒸汽朋克'
-]
-
-export const FULL_GEN_BUSINESS_MODELS = ['F2P', 'P2P', 'Buyonce', '混合']
-
-export const FULL_GEN_PLATFORMS = ['PC', '移动端', '主机', 'Web']
-
-const STYLE_LABEL_TO_KEY: Record<string, string> = {
-  仙侠: 'xianxia',
-  武侠: 'wuxia',
-  科幻: 'sci-fi',
-  现代: 'realistic',
-  奇幻: 'fantasy',
-  末日: 'post_apoc',
-  历史: 'realistic',
-  二次元: 'anime',
-  暗黑: 'dark',
-  赛博朋克: 'cyberpunk',
-  蒸汽朋克: 'steampunk'
-}
-
-const TYPE_LABEL_TO_KEY: Record<string, string> = {
-  RPG: 'rpg',
-  MMORPG: 'mmorpg',
-  ARPG: 'arpg',
-  MOBA: 'moba',
-  FPS: 'fps',
-  SLG: 'slg',
-  休闲: 'casual',
-  放置: 'casual',
-  卡牌: 'card',
-  塔防: 'tower_defense',
-  Roguelike: 'roguelike',
-  策略: 'strategy'
-}
-
 /** 风格中文标签 → style key（对应 Python _map_style_to_key） */
 export function mapStyleLabelToKey(label: string): string {
   return STYLE_LABEL_TO_KEY[label.trim()] ?? ''
@@ -476,27 +340,6 @@ export function buildFullGeneratePlan(
   }
 }
 
-/** 18 章生成要求（照抄 Python chapter_hint，供全量生成逐章追加提示） */
-export const CHAPTER_GENERATION_HINTS: Record<ChapterKey, string> = {
-  meta: '请生成项目元信息：游戏名称、类型、市场定位（一句话）、标签列表（3-5个）。',
-  vision: '请生成产品愿景：设计愿景、差异化卖点、用户画像（主/次/潜在）、商业模式。',
-  market_analysis: '请生成市场分析：目标市场、市场容量、用户画像、竞品列表、市场定位、进入壁垒、市场趋势、KPI预测。',
-  worldview: '请生成世界观：世界观架构、历史时代、阵营列表、地理设定、主线剧情、分支结局、角色关系网。',
-  characters: '请生成角色设计：主角设定、主要NPC数量与列表、反派设计、Boss设计、敌人类型、同伴系统、角色成长弧线。',
-  gameplay: '请生成核心玩法：核心循环、操作方案、首30分钟体验、游戏模式、胜负条件、新手引导。',
-  combat: '请生成战斗系统：战斗模式、伤害公式、技能系统、Buff机制、元素系统、战斗节奏、PVP/PVE设计、Boss机制。',
-  systems: '请生成游戏系统：基于玩法需求推荐应启用的游戏系统及配置（保留 systems 结构中 enabled/config 字段）。',
-  economy: '请生成经济系统：货币类型、产出与回收机制、掉落表、生产链、市场设计、通胀控制、经济目标。',
-  monetization: '请生成商业化设计：付费模式、定价档位、内购设计、广告策略、订阅制、赛季通行证、VIP系统、收入预测。',
-  numeric: '请生成数值设计：核心公式、成长曲线、掉落表、经济模型、平衡原则。',
-  art: '请生成美术设计：美术风格、角色设计、环境设计、UI设计语言、色彩系统、字体、特效、动画、多分辨率。',
-  audio: '请生成音频设计：音乐风格、音效数量、配乐清单、音效清单、配音设计、音频引擎、动态音频、音频预算。',
-  tech: '请生成技术规格：引擎选型、核心架构、第三方依赖、性能目标、里程碑、团队结构、QA计划。',
-  risk_handling: '请生成风险控制：风险矩阵、应急预案、技术风险、市场风险、团队风险、法律风险、进度风险、监控机制。',
-  mvp: '请生成MVP规划：MVP范围、时间线、核心特性、暂缓特性、原型特性、里程碑、成功标准、团队规模、预算估算。',
-  resources: '请生成资源规划：美术资产、音频资产、本地化、外包、预算、风险矩阵、应急预案、IP、附录。',
-  accessibility: '请生成可访问性与本地化：支持语言列表、本地化策略、文化适配、无障碍特性、字幕设计、色盲支持、分级认证。'
-}
 
 /**
  * 每章定制提示词（对应 Python _build_chapter_prompts）：由全量生成流程逐章追加到默认提示之后。
@@ -549,17 +392,6 @@ function buildUserInputLines(input: FullGenerateInput): string[] {
 
 /* ---- AI 结构化审阅（N6，对应 Python CeshuSkill._ai_review + AIReviewDialog） ---- */
 
-/** 5 维顺序（固定为规范顺序；Python 用 set 遍历、顺序不稳定，已修正） */
-export const REVIEW_DIMENSION_KEYS = ['completeness', 'consistency', 'market', 'technical', 'creativity'] as const
-export type ReviewDimensionKey = (typeof REVIEW_DIMENSION_KEYS)[number]
-
-export const REVIEW_DIMENSION_LABELS: Record<ReviewDimensionKey, string> = {
-  completeness: '内容完整性',
-  consistency: '逻辑一致性',
-  market: '市场可行性',
-  technical: '技术可行性',
-  creativity: '创意度'
-}
 
 export interface CeshuReviewDimension {
   key: string
