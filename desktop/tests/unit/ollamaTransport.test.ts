@@ -1,0 +1,102 @@
+import { afterEach, describe, expect, it } from 'vitest'
+
+import { OllamaChatTransport } from '../../src/main/agent/ollamaTransport'
+
+/**
+ * M1 观测：Ollama 传输层的 token 用量回报。
+ *
+ * 为什么用「桩 fetch + 自造 NDJSON 流」而不是起真服务：本层要验的是**解析契约**
+ * （最终 chunk 的 `prompt_eval_count` / `eval_count` 如何映射为 `usage`），
+ * 起服务只会让用例变慢且不增加断言强度（真往返已由 e2e `agent-brain-chat.spec.ts` 覆盖）。
+ */
+
+/** 造一个只含 NDJSON 流体的 fetch Response 桩（够 OllamaChatTransport 消费即可） */
+function ndjsonResponse(lines: string[]): Response {
+  const encoder = new TextEncoder()
+  const body = new ReadableStream<Uint8Array>({
+    start(controller) {
+      for (const line of lines) controller.enqueue(encoder.encode(`${line}\n`))
+      controller.close()
+    }
+  })
+  return { ok: true, status: 200, body, text: async () => '' } as unknown as Response
+}
+
+function stubFetch(response: Response): { calls: string[] } {
+  const calls: string[] = []
+  globalThis.fetch = (async (url: string) => {
+    calls.push(String(url))
+    return response
+  }) as unknown as typeof fetch
+  return { calls }
+}
+
+const originalFetch = globalThis.fetch
+
+describe('OllamaChatTransport：M1 观测（token 用量 / 模型回报）', () => {
+  afterEach(() => {
+    globalThis.fetch = originalFetch
+  })
+
+  it('解析最终 chunk 的 prompt_eval_count / eval_count 为 usage，并回报 model', async () => {
+    const { calls } = stubFetch(
+      ndjsonResponse([
+        JSON.stringify({ message: { role: 'assistant', content: '你好' }, done: false }),
+        JSON.stringify({ message: { role: 'assistant', content: '！' }, done: false }),
+        JSON.stringify({
+          message: { role: 'assistant', content: '' },
+          done: true,
+          done_reason: 'stop',
+          prompt_eval_count: 120,
+          eval_count: 45
+        })
+      ])
+    )
+    const transport = new OllamaChatTransport({ host: 'http://127.0.0.1:9', model: 'stub:latest' })
+    const reply = await transport.complete({ messages: [], tools: [] })
+
+    expect(reply.content).toBe('你好！')
+    expect(reply.finishReason).toBe('stop')
+    expect(reply.model).toBe('stub:latest')
+    expect(reply.usage).toEqual({ promptTokens: 120, completionTokens: 45, totalTokens: 165 })
+    expect(calls[0]).toContain('/api/chat')
+  })
+
+  it('done chunk 缺 token 字段 → usage 为 undefined（不伪造零值，交给上层回落）', async () => {
+    stubFetch(
+      ndjsonResponse([
+        JSON.stringify({ message: { role: 'assistant', content: 'hi' }, done: false }),
+        JSON.stringify({ message: { role: 'assistant', content: '' }, done: true, done_reason: 'stop' })
+      ])
+    )
+    const transport = new OllamaChatTransport({ host: 'http://127.0.0.1:9', model: 'stub:latest' })
+    const reply = await transport.complete({ messages: [], tools: [] })
+    expect(reply.usage).toBeUndefined()
+  })
+
+  it('tool_calls 与 usage 并存：两路信息都不丢', async () => {
+    stubFetch(
+      ndjsonResponse([
+        JSON.stringify({
+          message: {
+            role: 'assistant',
+            content: '',
+            tool_calls: [{ id: 'c1', function: { name: 'system.game_data', arguments: { action: 'list' } } }]
+          },
+          done: false
+        }),
+        JSON.stringify({
+          message: { role: 'assistant', content: '' },
+          done: true,
+          done_reason: 'tool_calls',
+          prompt_eval_count: 10,
+          eval_count: 3
+        })
+      ])
+    )
+    const transport = new OllamaChatTransport({ host: 'http://127.0.0.1:9', model: 'stub:latest' })
+    const reply = await transport.complete({ messages: [], tools: [] })
+    expect(reply.toolCalls).toEqual([{ id: 'c1', name: 'system.game_data', arguments: { action: 'list' } }])
+    expect(reply.usage).toEqual({ promptTokens: 10, completionTokens: 3, totalTokens: 13 })
+  })
+})

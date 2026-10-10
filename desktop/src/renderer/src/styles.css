@@ -117,6 +117,94 @@
   --tooltip-fg: #7ee2ae;
 }
 
+/*
+ * 暖调（E64）—— 对齐 PyQt `_THEME_CONFIGS["暖调"]`，色值**逐一取自**
+ * `src/ui/themes/themes.py`，不自配。
+ *
+ * ⚠️ 注意它是**浅色系**（bg #FFFBF7 暖白底），只是强调色换成琥珀 #D97706、
+ * 底色偏暖 —— 不是深色调。`color-scheme` 因此保持 light（否则原生滚动条/表单会变深色）。
+ */
+[data-theme='warm'] {
+  --bg: #fffbf7;
+  --bg-panel: #ffffff;
+  --bg-hover: #fff7ed;
+  --border: #e7e5e4;
+  --divider: #fafaf9;
+  --cell-bg: #fffcf8;
+
+  --text: #000000;
+  --text-secondary: #44403c;
+  --text-muted: #78716c;
+  --section-title: #292524;
+  --btn-text: #ffffff;
+
+  --accent: #d97706;
+  --accent-hover: #b45309;
+  --accent-active: #92400e;
+  --accent-light: #fff7ed;
+  --accent-bg: rgba(217, 119, 6, 0.06);
+  --accent-soft: rgba(217, 119, 6, 0.1);
+
+  --danger: #ef4444;
+  --danger-hover: #dc2626;
+  --danger-bg: rgba(239, 68, 68, 0.08);
+  --danger-soft: rgba(239, 68, 68, 0.12);
+  --success: #16a34a;
+  --warning: #d97706;
+
+  --disabled-bg: #e7e5e4;
+  --disabled-fg: #a8a29e;
+
+  --scroll: #d6d3d1;
+  --tooltip-bg: #292524;
+  --tooltip-fg: #fcd34d;
+}
+
+/*
+ * 暗夜（E64）—— 对齐 PyQt `_THEME_CONFIGS["暗夜"]`，色值取自 `themes.py`。
+ *
+ * 与「深色」同为**深色系**（bg #181418），差别在强调色是紫 #A78BFA 而非绿。
+ * ⚠️ `btn_text` 沿用 Python 的 white —— 紫底白字的对比度**待渲染确认**
+ * （深色档用的是深色字 #06281a，因为它的强调色是亮绿；紫色更亮，可能需要同改深色字）。
+ */
+[data-theme='night'] {
+  color-scheme: dark;
+
+  --bg: #181418;
+  --bg-panel: #1f1a1f;
+  --bg-hover: #1c181c;
+  --border: #2e2830;
+  --divider: #252025;
+  --cell-bg: #1c181c;
+
+  --text: #ede9ed;
+  --text-secondary: #908898;
+  --text-muted: #a098a0;
+  --section-title: #d0c8d0;
+  --btn-text: #ffffff;
+
+  --accent: #a78bfa;
+  --accent-hover: #7c3aed;
+  --accent-active: #6d28d9;
+  --accent-light: #241e2a;
+  --accent-bg: rgba(167, 139, 250, 0.08);
+  --accent-soft: rgba(167, 139, 250, 0.12);
+
+  --danger: #f87171;
+  --danger-hover: #ef4444;
+  --danger-bg: rgba(248, 113, 113, 0.08);
+  --danger-soft: rgba(248, 113, 113, 0.12);
+  --success: #34d399;
+  --warning: #fb923c;
+
+  --disabled-bg: #2e2830;
+  --disabled-fg: #78707d;
+
+  --scroll: #2e2830;
+  --tooltip-bg: #2e2830;
+  --tooltip-fg: #a78bfa;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -738,10 +826,83 @@ body {
   line-height: 1.45;
 }
 
-/* 除标签与按钮外，行内其余控件占满剩余宽度（按钮保持自身尺寸，避免被拉伸） */
-.form-row > :not(.form-label):not(.btn) {
+/*
+ * 除标签与按钮外，行内其余控件占满剩余宽度（按钮保持自身尺寸，避免被拉伸）。
+ *
+ * ⚠️ `.ceshu-field-label-row` **也必须排除**（E62 新增）：它是「字段名 + AI 按钮」的标签列单元，
+ * 若被这条规则命中就会拿到 `flex: 1 1 0` 而**撑满整行**，把输入框挤掉。
+ * （本条共 3 个类，特异性 0-3-0 高于下面 `.form-row > .ceshu-field-label-row` 的 0-2-0，
+ *   若不排除，下面的定宽会被它盖掉 —— 所以必须在这里排除，不能只靠下面加规则。）
+ */
+.form-row > :not(.form-label):not(.btn):not(.ceshu-field-label-row) {
   flex: 1 1 0;
   min-width: 0;
+}
+
+/*
+ * 按字段 AI 填充（E62）：字段名与「AI」按钮合成一个标签列单元。
+ *
+ * ⚠️ 加了这层 wrapper 后，标签**不再**是 `.form-row` 的直接子元素
+ * ⇒ 上面 `.form-row > .form-label` 的 120px 定宽不再命中，必须在这里补回来；
+ * 否则所有文本类字段（text / textarea / stringList / pipeList / json）的标签列
+ * 会失去定宽、被 flex 拉满整行 —— 这是本改动最可能的布局回归点。
+ */
+.ceshu-field-label-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+}
+
+.form-row > .ceshu-field-label-row {
+  flex: 0 0 120px;
+  max-width: 45%;
+}
+
+/* 两列网格里的行更窄，标签列相应收窄（与 `.form-grid .form-row > .form-label` 对齐） */
+.form-grid .form-row > .ceshu-field-label-row {
+  flex: 0 0 88px;
+}
+
+.ceshu-field-label-row > .form-label {
+  padding-top: 7px; /* 与输入框首行文字对齐（沿用原 `.form-row > .form-label` 的对齐值） */
+  min-width: 0;
+}
+
+/*
+ * 「AI 帮我填」小按钮 —— 对齐 Python `AIFieldButton` 的 26px 圆形按钮。
+ * Python 用 Lucide 的 bot 图标；TS 侧**未引入图标库** ⇒ 用文字「AI」，避免为此新增依赖。
+ * 配色一律走主题令牌，深色档自动跟随。
+ */
+.ai-field-btn {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: var(--bg-panel);
+  color: var(--text-secondary);
+  font-size: calc(10px * var(--ui-font-scale));
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+}
+
+.ai-field-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* busy / 禁用：对应 Python `set_busy(True)` 的「禁用按钮 + 等待光标」 */
+.ai-field-btn:disabled,
+.ai-field-btn.busy {
+  cursor: progress;
+  opacity: 0.6;
 }
 
 /* 两列网格里的行更窄，标签列相应收窄 */
@@ -996,6 +1157,20 @@ body {
 }
 
 /*
+ * 分区浮标题 —— 扁平化后已不再渲染（语义块模型：侧边栏为扁平块列表，无「区」分组标题）。
+ * 保留样式以备将来可选的「分组视图」开关，但当前运行期不产生该元素。
+ */
+.chapter-nav-part-label {
+  margin-top: 10px;
+  padding: 2px 4px;
+  color: var(--text-muted);
+  font-size: calc(11px * var(--ui-font-scale));
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  user-select: none;
+}
+
+/*
  * 章节导航项 —— 对齐 PyQt `chapter_panel.py::_CollapsibleSection._apply_theme()`：
  * 白底 + 1px 边框 + **左侧 3px 强调色竖条** + 10px 圆角 + 左对齐 13px 文字，
  * hover 变 `accent_light`。PyQt 是折叠面板，所有标题栏同款；TS 是单选切换，
@@ -1103,8 +1278,12 @@ body {
 
 .chapter-form-title {
   display: flex;
+  /* 列宽不足时让右侧 AI 按钮**换到下一行**，而不是把章节名挤成竖排 / 把按钮裁掉 */
+  flex-wrap: wrap;
   align-items: center;
   gap: 12px;
+  row-gap: 6px;
+  min-width: 0;
   font-size: calc(13px * var(--ui-font-scale) * 15/13);
   font-weight: 600;
 }
@@ -1114,6 +1293,48 @@ body {
   align-items: center;
   gap: 8px;
   margin-left: auto;
+  /* 右侧 AI 按钮不参与收缩：宁可换行，也不要把按钮文字挤成多行 */
+  flex: 0 0 auto;
+}
+
+/*
+ * 章节标题左侧的分区面包屑（如「二、游戏系统 第五章·战斗系统设计」）。
+ * 分数级字号 + 弱色 + 常规字重，让主标题仍是视觉主体；基线对齐避免两段字号不同时上下浮动。
+ */
+.chapter-form-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  /* 允许收缩（极端窄列时才裁），但换行优先 */
+  flex: 0 1 auto;
+  overflow: hidden;
+}
+
+/*
+ * 章节名（如「战斗系统设计」）。⚠️ 必须显式 nowrap：中文可在任意字间断行，
+ * 一旦列宽不足就会逐字竖排（实测成「第\n五\n章…」，见 preview/shot-parts.mjs 截图）。
+ * 换行由外层 .chapter-form-title 的 flex-wrap 负责，此处只保证不竖排。
+ */
+.chapter-form-label {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 分区面包屑 —— 扁平化后表单标题不再显示「区」面包屑，此规则当前无生效元素，保留备用 */
+.chapter-form-part {
+  color: var(--text-muted);
+  font-size: calc(12px * var(--ui-font-scale));
+  font-weight: 400;
+  /* 极端窄列时**面包屑先被裁掉**（它是辅助信息），而不是把章节名挤成竖排 */
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .notice-banner.inline {
@@ -2967,7 +3188,7 @@ button.ref-row:hover {
 }
 
 .review-dim-fill.mid {
-  background: #3b82f6;
+  background: var(--accent);
 }
 
 .review-dim-fill.low {
@@ -2993,7 +3214,7 @@ button.ref-row:hover {
 }
 
 .review-dim-score.mid {
-  color: #3b82f6;
+  color: var(--accent);
 }
 
 .review-dim-score.low {
@@ -3097,74 +3318,6 @@ button.ref-row:hover {
 }
 
 /* ---- 策划书首页（W34：卡片视图） ---- */
-
-/*
- * 首页「AI 入口卡」——1:1 对齐 PyQt `ui/ceshu/ceshu_theme.py::ceshu_home_ai_card_qss()`：
- * 强调色渐变底 + 白字标题/提示 + 白色输入框 + 白底强调字按钮。
- * 按钮刻意**不跟**主题的 `.btn.primary`（那是 accent 底 + btn-text 字），
- * 而是在本卡片内覆盖成「白底 + accent 字」，否则在渐变底上会和卡片糊成一片。
- */
-.home-ai-card {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin: 10px 0 12px;
-  padding: 16px 20px; /* PyQt setContentsMargins(20, 16, 20, 16) */
-  border: none;
-  border-radius: 14px;
-  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
-}
-
-.home-ai-title {
-  margin: 0;
-  font-size: calc(13px * var(--ui-font-scale) * 16/13);
-  font-weight: 600;
-  color: #ffffff;
-}
-
-.home-ai-hint {
-  margin: 0;
-  font-size: calc(13px * var(--ui-font-scale) * 12/13);
-  color: rgba(255, 255, 255, 0.85);
-}
-
-.home-ai-input-row {
-  display: flex;
-  gap: 8px;
-}
-
-.home-ai-input {
-  flex: 1 1 auto;
-  min-width: 0;
-  background: rgba(255, 255, 255, 0.95);
-  border: none;
-  border-radius: 8px;
-  padding: 10px 14px;
-  color: #333333;
-  font-size: calc(13px * var(--ui-font-scale) * 1.0);
-}
-
-.home-ai-input:focus {
-  border: none;
-  outline: 2px solid rgba(255, 255, 255, 0.9);
-  outline-offset: 1px;
-}
-
-.home-ai-card .btn.primary {
-  flex: 0 0 auto;
-  background: #ffffff;
-  color: var(--accent);
-  border: none;
-  border-radius: 8px;
-  padding: 10px 20px;
-  font-size: calc(13px * var(--ui-font-scale) * 1.0);
-  font-weight: 600;
-}
-
-.home-ai-card .btn.primary:hover {
-  background: #f0f0f0;
-  color: var(--accent-hover);
-}
 
 .home-search {
   width: 100%;
@@ -3862,8 +4015,11 @@ button.ref-row:hover {
   font-size: 0.92em;
 }
 .digital-bubble .markdown-body pre {
-  background: #0d1117;
-  color: #c9d1d9;
+  /* 令牌化：浅色主题浅底 + 浅色语法调色板；深色主题深底 + [data-theme=dark] 的深色调色板。
+     此前硬编码 #0d1117 深底 ⇒ 浅色主题下「黑底配深色字」，代码看不清。 */
+  background: var(--cell-bg);
+  color: var(--text);
+  border: 1px solid var(--divider);
   padding: 10px 12px;
   border-radius: 8px;
   overflow-x: auto;
@@ -4008,6 +4164,17 @@ button.ref-row:hover {
   color: var(--text-muted);
   font-size: calc(13px * var(--ui-font-scale) * 11/13);
   white-space: pre-wrap;
+}
+
+/* M1 观测：本轮运行消耗行（轮数 / token / 耗时 / 工具次数） */
+.digital-run-stats {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  border-top: 1px solid var(--border);
+  padding-top: 6px;
+  color: var(--text-muted);
+  font-size: calc(13px * var(--ui-font-scale) * 11/13);
 }
 
 .digital-step-failed .digital-step-tool {
@@ -4338,18 +4505,106 @@ button.ref-row:hover {
   overflow: auto;
 }
 
+/* 空态：做成一张「引导卡片」而非飘在空白里的两行灰字 ——
+   原本大片留白 + 小号灰字容易被误读成「界面没渲染出来」，这里明确给出
+   「当前状态 / 原因 / 下一步动作」三层信息（对齐 PyQt preview_panel.py 的 _empty_box 意图）。 */
 .ceshu-preview-empty {
   display: flex;
   flex: 1;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
   padding: 24px;
+  overflow: auto;
+}
+
+.ceshu-preview-empty-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  max-width: 460px;
+  padding: 26px 24px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
   text-align: center;
+}
+
+.ceshu-preview-empty-art {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2px;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.06));
+}
+
+.ceshu-preview-empty-eyebrow {
+  padding: 2px 10px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  color: var(--accent);
+  background: var(--accent-bg);
+  font-size: calc(13px * var(--ui-font-scale) * 11/13);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.ceshu-preview-empty-title {
+  color: var(--text);
+  font-size: calc(13px * var(--ui-font-scale) * 14/13);
+  font-weight: 600;
+}
+
+.ceshu-preview-empty-desc {
   color: var(--text-muted);
-  /* 空状态文案含 \n，按换行渲染（对齐 PyQt QLabel 多行文本） */
-  white-space: pre-line;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
+  line-height: 1.7;
+}
+
+.ceshu-preview-empty-steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 2px 0;
+}
+
+.ceshu-preview-empty-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px 3px 4px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--accent-bg);
+  color: var(--text-secondary);
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
+  white-space: nowrap;
+}
+
+.ceshu-preview-empty-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--bg-panel);
+  font-size: calc(13px * var(--ui-font-scale) * 10/13);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.ceshu-preview-empty-arrow {
+  color: var(--text-muted);
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
+}
+
+.ceshu-preview-empty-note {
+  color: var(--text-muted);
+  font-size: calc(13px * var(--ui-font-scale) * 11/13);
+  line-height: 1.6;
 }
 
 /* 内嵌数据编辑器（DataEditorTab）：提示条 + 「列表 | 表单」两栏 */
@@ -4719,4 +4974,377 @@ button.ref-row:hover {
 .onboarding-stat-name {
   color: var(--text-muted);
   font-size: calc(13px * var(--ui-font-scale) * 12/13);
+}
+
+/* ============================================================
+   系统确认面板（SystemConfirmPanel）
+   ------------------------------------------------------------
+   组件侧一直是卡片结构（.system-card 等），但样式此前整体缺失
+   ⇒ 面板裸奔成纯文本（勾选行 + pre 字段预览挤成一团）。
+   这里按全局令牌补齐：每个系统一张卡、勾选即强调色高亮，
+   字段架构预览用等宽 pre + 折叠。基底对齐 .changelog-panel。
+   ============================================================ */
+.system-confirm-panel {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  overflow: auto;
+  padding: 16px 20px;
+}
+
+.system-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.system-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+}
+
+/* 勾选启用的系统：强调色描边 + 淡底（不支持 :has 时退化为普通卡片，不影响可用性） */
+.system-card:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+
+.system-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.system-check-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: var(--text);
+  font-size: calc(13px * var(--ui-font-scale) * 14/13);
+  font-weight: 600;
+}
+
+.system-datatype {
+  color: var(--text-muted);
+  font-weight: 400;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
+}
+
+.system-reason {
+  color: var(--text-muted);
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
+}
+
+.system-tag {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: calc(13px * var(--ui-font-scale) * 11/13);
+}
+
+.system-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.system-fields {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--divider);
+  border-radius: var(--radius);
+  background: var(--cell-bg);
+  color: var(--text-secondary);
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 260px;
+  overflow: auto;
+}
+
+.btn-link {
+  align-self: flex-start;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
+}
+
+.btn-link:hover {
+  text-decoration: underline;
+}
+
+.custom-system-row {
+  display: flex;
+  gap: 8px;
+}
+
+.system-confirm-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ============================================================
+   补齐审查发现的「组件用了但 CSS 无规则」的类
+   ------------------------------------------------------------
+   来源：机械比对 JSX 的 className 与 styles.css 的定义差集
+   （`.system-*` 那次「面板裸奔成纯文本」就是同型缺陷）。
+   这些类此前没有规则 ⇒ 相关文本/控件以浏览器默认样式渲染。
+   ============================================================ */
+
+/* 提示性说明文字（对齐 PyQt hint 色） */
+.form-hint {
+  color: var(--text-muted);
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
+  line-height: 1.6;
+}
+
+/* `.form-row` 里「标签之后的控件容器」：吃掉剩余宽度并可收缩 */
+.form-field,
+.dialog-field {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* 模板条目标题 */
+.template-item-title {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* 版本对比里的章节名 */
+.diff-chapter-label {
+  color: var(--text-muted);
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
+}
+
+/* ---- 数字员工面板：AI 提问交互（多问题表单） ---- */
+.digital-interaction-prompt {
+  color: var(--text);
+  font-size: calc(13px * var(--ui-font-scale) * 13/13);
+  line-height: 1.6;
+}
+
+.digital-multi-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.digital-multi-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+}
+
+/* ============================================================
+   设置面板：Linear/Shopify 式行布局
+   ------------------------------------------------------------
+   每行 = 左「标签 + 一句话说明」 / 右「定宽控件」；
+   分区 = 卡片 + 分区头（标题 + 「✓ 已自动保存」闪现）。
+   此前控件拉伸整行、说明是开发向黑话，均按设置页 UX 范式修正。
+   ============================================================ */
+.settings-section-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--divider);
+}
+
+.settings-section-title {
+  color: var(--text);
+  font-size: calc(13px * var(--ui-font-scale) * 14/13);
+  font-weight: 600;
+}
+
+/* 自动保存反馈：落在分区头右侧，闪现后消失 */
+.settings-saved {
+  margin-left: auto;
+  color: var(--success);
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
+}
+
+.settings-body {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 16px 12px;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 12px 0;
+  border-top: 1px solid var(--divider);
+}
+
+.settings-row:first-child {
+  border-top: none;
+}
+
+.settings-row-info {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-label {
+  color: var(--text);
+  font-size: calc(13px * var(--ui-font-scale) * 14/13);
+  font-weight: 600;
+}
+
+.settings-desc {
+  color: var(--text-muted);
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
+  line-height: 1.6;
+}
+
+/* 控件列：定宽、不再拉伸整行；数字类用 narrow，纯勾选用 check 右对齐 */
+.settings-control {
+  flex: 0 0 auto;
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settings-control .form-select,
+.settings-control .form-input {
+  width: 100%;
+}
+
+.settings-control.narrow {
+  width: 130px;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
+.settings-control.check {
+  justify-content: flex-end;
+}
+
+/* ============================================================
+   设置面板补充：滑动开关 + 高级参数子分组
+   ============================================================ */
+
+/* 开关（switch）：布尔项统一用滑动开关（对齐 Slack/Notion 的 toggle row），
+   替代裸 checkbox——纯 CSS（appearance:none），无 JS 状态 */
+.switch {
+  appearance: none;
+  width: 38px;
+  height: 21px;
+  margin: 0;
+  border: none;
+  border-radius: 999px;
+  background: var(--border);
+  position: relative;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  flex-shrink: 0;
+}
+
+.switch::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  transition: transform 0.15s ease;
+}
+
+.switch:checked {
+  background: var(--accent);
+}
+
+.switch:checked::before {
+  transform: translateX(17px);
+}
+
+.switch:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 高级参数展开后的子分组：缩进 + 淡底卡片，视觉上从属于上面的开关行 */
+.settings-subgroup {
+  margin: 0 0 6px 8px;
+  padding: 0 14px;
+  border: 1px solid var(--divider);
+  border-radius: var(--radius);
+  background: var(--cell-bg);
+}
+
+.settings-subgroup .settings-row {
+  border-top: 1px solid var(--divider);
+}
+
+.settings-subgroup .settings-row:first-child {
+  border-top: none;
+}
+
+/* 云端 | 本地 分段切换（v2.3）：胶囊双段，选中段走强调色底。
+   role=tablist/tab，键盘可达；与 .switch 同一套令牌。 */
+.segmented {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--cell-bg);
+}
+
+.segmented-btn {
+  appearance: none;
+  border: none;
+  margin: 0;
+  padding: 4px 14px;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: inherit;
+  line-height: 1.4;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.segmented-btn:hover {
+  color: var(--text);
+}
+
+.segmented-btn.active {
+  background: var(--accent);
+  color: var(--btn-text);
+}
+
+.segmented-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }

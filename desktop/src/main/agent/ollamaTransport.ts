@@ -15,7 +15,7 @@
  * 接档位路由属 M3；现在接会提前烧掉 M0.5 的 `num_ctx` 设计空间。
  */
 
-import { LLM_MESSAGES } from '../../shared/llmConfig'
+import { LLM_MESSAGES, type LlmUsage } from '../../shared/llmConfig'
 import {
   parseToolArguments,
   type BrainLlmReply,
@@ -44,6 +44,9 @@ interface OllamaChatChunk {
   done?: boolean
   done_reason?: string
   error?: string
+  /** 最终 chunk 携带的 token 计数（Ollama 在 `done:true` 时给出累计值） */
+  prompt_eval_count?: number
+  eval_count?: number
 }
 
 export class OllamaChatTransport implements BrainLlmTransport {
@@ -97,6 +100,9 @@ export class OllamaChatTransport implements BrainLlmTransport {
     let content = ''
     const toolCalls: BrainToolCall[] = []
     let finishReason = 'stop'
+    // M1 观测：token 计数（仅最终 chunk 携带累计值，取最后非空值即可）
+    let promptEvalCount = 0
+    let evalCount = 0
 
     const handleLine = (line: string): void => {
       const trimmed = line.trim()
@@ -110,6 +116,8 @@ export class OllamaChatTransport implements BrainLlmTransport {
       if (typeof chunk.error === 'string' && chunk.error !== '') {
         throw new Error(`AI 调用失败：${chunk.error.slice(0, 120)}`)
       }
+      if (typeof chunk.prompt_eval_count === 'number') promptEvalCount = chunk.prompt_eval_count
+      if (typeof chunk.eval_count === 'number') evalCount = chunk.eval_count
       const message = chunk.message
       if (message !== undefined) {
         const delta = typeof message.content === 'string' ? message.content : ''
@@ -143,6 +151,11 @@ export class OllamaChatTransport implements BrainLlmTransport {
     }
     handleLine(buffer)
 
-    return { content, toolCalls, finishReason }
+    // M1 观测：token 用量（本地档 Ollama 从最终 chunk 的 prompt_eval_count/eval_count 取）
+    const usage: LlmUsage | undefined =
+      promptEvalCount > 0 || evalCount > 0
+        ? { promptTokens: promptEvalCount, completionTokens: evalCount, totalTokens: promptEvalCount + evalCount }
+        : undefined
+    return { content, toolCalls, finishReason, model, usage }
   }
 }

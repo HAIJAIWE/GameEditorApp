@@ -21,6 +21,14 @@
  */
 
 import { isSkillInteraction, type SkillExecutionContext, type SkillInteraction, type SkillResult } from './protocol'
+import type { LlmUsage } from '../llmConfig'
+import {
+  accumulateTurn,
+  type AgentRunStats,
+  type AgentRunTier,
+  emptyAgentRunStats,
+  turnStatFromReply
+} from './observability'
 
 /* ---- 消息与传输层 ---- */
 
@@ -45,6 +53,10 @@ export interface BrainLlmReply {
   toolCalls: BrainToolCall[]
   /** 对齐 Python `finish_reason`（缺省 stop） */
   finishReason: string
+  /** 实际调用的模型（M1 观测：Ollama 传输层回报；脚本化桩可留空） */
+  model?: string
+  /** 本次响应的 token 用量（M1 观测；本地档 Ollama 取 `prompt_eval_count` / `eval_count`） */
+  usage?: LlmUsage
 }
 
 export interface BrainLlmRequest {
@@ -93,6 +105,16 @@ export type BrainEvent =
     }
   | { type: 'step_done'; tool: string; result: string; success: boolean }
   | { type: 'done'; text: string }
+  /** M1 观测：每轮 LLM 调用结束后的消耗点（与 `AgentTurnStat` 同形） */
+  | {
+      type: 'turn_stats'
+      turn: number
+      model: string
+      tier: AgentRunTier
+      usage: LlmUsage
+      latencyMs: number
+      toolCalls: number
+    }
   | { type: 'error'; message: string }
 
 /** 审批请求（由调用方弹窗/回传；返回 true 才放行） */
@@ -155,6 +177,8 @@ export interface BrainRunResult {
   completed: boolean
   /** 本轮完整消息序列（供会话持久化复用，见 `main/agent/sessionStore.ts`） */
   messages: BrainMessage[]
+  /** M1 观测：本轮运行的累计消耗（面板「本次消耗」与历史统计的数据源） */
+  stats: AgentRunStats
 }
 
 export const DEFAULT_MAX_ITERATIONS = 8
@@ -262,6 +286,8 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
     { role: 'user', content: input }
   ]
   const results: string[] = []
+  // M1 观测：本轮运行的累计消耗（每轮 LLM 调用后并入；数字员工对话面在 M3 接档位路由之前恒为 local）
+  let runStats: AgentRunStats = emptyAgentRunStats('local')
 
   /**
    * 处理技能提出的交互请求：
@@ -330,6 +356,7 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
     emit({ type: 'step_start', order: iteration, tool: 'llm_think' })
 
     let reply: BrainLlmReply
+    const turnStartedAt = Date.now()
     try {
       reply = await transport.complete({
         messages: [...messages],
@@ -338,8 +365,27 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
       })
     } catch (error) {
       emit({ type: 'error', message: error instanceof Error ? error.message : String(error) })
-      return { text: fallbackAnswer(results), events, completed: false, messages }
+      return { text: fallbackAnswer(results), events, completed: false, messages, stats: runStats }
     }
+
+    // M1 观测：本论消耗点（token 用量来自响应；本地档 Ollama 经传输层取 prompt_eval_count/eval_count）
+    const turnLatencyMs = Date.now() - turnStartedAt
+    const turnUsage = reply.usage
+    const turnToolCalls = reply.toolCalls.length
+    const turnModel = reply.model ?? ''
+    runStats = accumulateTurn(
+      runStats,
+      turnStatFromReply(iteration, turnModel, 'local', turnUsage, turnLatencyMs, turnToolCalls)
+    )
+    emit({
+      type: 'turn_stats',
+      turn: iteration,
+      model: turnModel,
+      tier: 'local',
+      usage: turnUsage ?? { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+      latencyMs: turnLatencyMs,
+      toolCalls: turnToolCalls
+    })
 
     emit({ type: 'stream_done', fullText: reply.content })
     messages.push(buildAssistantMessage(reply))
@@ -347,7 +393,7 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
     if (reply.finishReason === 'stop' && reply.toolCalls.length === 0) {
       const text = reply.content.trim()
       emit({ type: 'done', text })
-      return { text, events, completed: true, messages }
+      return { text, events, completed: true, messages, stats: runStats }
     }
 
     if (reply.toolCalls.length === 0) break
@@ -416,5 +462,5 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
 
   const text = fallbackAnswer(results)
   emit({ type: 'done', text })
-  return { text, events, completed: true, messages }
+  return { text, events, completed: true, messages, stats: runStats }
 }

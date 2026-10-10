@@ -9,6 +9,7 @@ import type {
   BackupRestoreInput,
   BatchUpdateInput,
   CeshuAiGenerateInput,
+  CeshuAiGenerateFieldInput,
   CeshuApplyPresetInput,
   CeshuConfirmSystemsInput,
   CeshuSyncDataInput,
@@ -48,6 +49,7 @@ import type {
   LlmGenerateInput,
   ImageReadByPathInput,
   LlmConfigureInput,
+  LlmTestConnectionInput,
   AgentDraftSaveInput,
   AgentFeedbackInput,
   AgentInteractionResponseInput,
@@ -83,6 +85,7 @@ import type {
 } from './types'
 import type { CeshuDocument, CeshuExportResult, CeshuSummary } from './ceshuConstants'
 import type { BrainEvent } from './agent/brain'
+import type { AgentRunStats } from './agent/observability'
 import type { DraftSummary, SessionInfo } from './agent/session'
 import type { JsonObjectSchema, SkillResult } from './agent/protocol'
 import type { CeshuChangelog, CeshuVersionDiff } from './ceshuDiff'
@@ -92,7 +95,7 @@ import type { CeshuNote } from './ceshuNotes'
 import type { CeshuCustomTemplate } from './ceshuCustomTemplates'
 import type { CeshuWordStatsReport } from './ceshuWordStats'
 import type { CeshuFieldDepsReport } from './ceshuFieldDeps'
-import type { CeshuAiGenerateResult, CeshuAiReviewResult } from './ceshuAi'
+import type { CeshuAiGenerateResult, CeshuAiGenerateFieldResult, CeshuAiReviewResult } from './ceshuAi'
 import type { CeshuDataGenResult } from './ceshuDataGen'
 import type { ReferenceReport } from './references'
 import type { FieldIdSuggestResult } from './fieldIdAi'
@@ -198,6 +201,8 @@ export interface IpcContract {
   'llm:generate': { req: LlmGenerateInput; res: { model: string; content: string } }
   /** 渲染层推 LLM 非敏感配置镜像（主进程读不到 localStorage）；API Key 不在其中 */
   'llm:configure': { req: LlmConfigureInput; res: { ok: boolean } }
+  /** 测试连通性（E63）：返回可直接展示的中文结果，**失败也算成功返回**（不抛） */
+  'llm:testConnection': { req: LlmTestConnectionInput; res: { ok: boolean; message: string } }
   'llm:status': {
     req: Record<string, never>
     res: { available: boolean; models: string[]; message: string; provider?: string; model?: string }
@@ -242,7 +247,10 @@ export interface IpcContract {
     }
   }
   'agent:executeTool': { req: AgentExecuteToolInput; res: SkillResult }
-  'agent:chat': { req: AgentChatInput; res: { text: string; events: BrainEvent[]; completed: boolean } }
+  'agent:chat': {
+    req: AgentChatInput
+    res: { text: string; events: BrainEvent[]; completed: boolean; stats: AgentRunStats }
+  }
   'agent:approvalResponse': { req: { requestId: string; approved: boolean }; res: { ok: boolean } }
   'agent:interactionResponse': { req: AgentInteractionResponseInput; res: { ok: boolean } }
   'agent:sessionInfo': { req: undefined; res: SessionInfo }
@@ -278,6 +286,8 @@ export interface IpcContract {
   'ceshu:validate': { req: { id: string }; res: string[] }
   'ceshu:score': { req: { id: string }; res: CeshuScoreReport }
   'ceshu:aiGenerateChapter': { req: CeshuAiGenerateInput; res: CeshuAiGenerateResult }
+  /** 按字段 AI 填充（E62）：单字段定向生成，非整章 */
+  'ceshu:aiGenerateField': { req: CeshuAiGenerateFieldInput; res: CeshuAiGenerateFieldResult }
   'ceshu:aiReview': { req: { id: string; confirmed?: boolean }; res: CeshuAiReviewResult }
   'ceshu:aiGenerateData': { req: CeshuDataGenInput; res: CeshuDataGenResult }
   'ceshu:exportReviewReport': { req: CeshuReviewExportInput; res: { filePath: string } }

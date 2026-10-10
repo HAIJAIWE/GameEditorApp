@@ -1,6 +1,6 @@
 # 智能体框架重写设计（E59 起）
 
-> **状态**：v1.0 草案（**已重写**，取代 v0.1~v0.4），待主理人裁决。
+> **状态**：v1.1（**已重写**，取代 v0.1~v0.4）。**M0 档位纠正 / M1 观测先行 / M5 成本护栏 / M6 保密模式 / DD-17 / DD-19 均已落地**；M0.5、M2、M2.5、M3 待做。
 > **动因**：E42 裁决「`core/agent` 域停止 1:1 迁移，改为框架重写」——方向定了，架构未定。
 >
 > **修订记录（四次纠错，全部记录在案）**
@@ -40,6 +40,10 @@
 > - **v0.9 → v1.0**（本次会话）：收口 **DD-19 剩余项——LLM judge 权重接入**（章节侧）。设计定型：**确定性门为主、LLM judge 为辅**，judge 只补机器判不了的维度（毒性 / 可读性 / 创意），权重远低于确定性门——`toxicity==='flagged'` 也**不推翻** `blocking`/`scoreDelta`，只往 `summary` 追加合规提示。分层上 judge 的 LLM 调用放 `main` 层（`main/agent/qualityJudge.ts::runLlmJudge`，复用正文同源 `callOpts` ⇒ 自动走 `effectiveProvider` 遵守保密、任何失败 try/catch 降级返回 `null` 不阻断主生成），纯合并逻辑 `applyJudge` 放 `shared/agent/qualityGate.ts`（可单测、不 import main）；`QualityGateVerdict` 新增 `judge:LlmJudgeVerdict|null` 字段，确定性 `evaluateChapterDraft` 产出的 verdict 此字段为 `null`，异步算完再由 `applyJudge` 合并。`aiGenerateChapter` 在确定性门之后 `await runLlmJudge` 并用 `applyJudge` 合并；渲染层 `AiFullGeneratePanel` 收集每章 `quality.judge`，进度行加 per-chapter 徽标（`safe`/`flagged` 分色）+ 底部聚合块（合规风险高亮 + 可读性/创意均值 + 未评审计数）。**数据侧不叠 judge**（已由确定性平衡门覆盖，避免过度 + 无谓成本）。
 >   ⚠️ **范围判定**：judge 仅在章节侧接入；单章 `CeshuView` 路径只用 `result.fields` 回填表单、章节 `quality` 本就未渲染（与确定性门同现状，不单独为 judge 加展示，避免过度 + 不一致）；judge 的失败/降级一律静默返回 `null`，永不阻断或拖垮正文生成；保密模式下 judge 经 `effectiveProvider` 强制本地 Ollama，物理不触云端。
 >   ⇒ 运行期举证 `preview/verify-e59.mjs` 维持 **38/38**；单测 `agentQualityGate.test.ts` 新增 `applyJudge` 5 例（确定性 verdict 默认 `judge:null` / `null` 降级原样返回 / `safe` 不改动 summary / `flagged` 追加合规提示且不改 `blocking`/`scoreDelta` / 纯函数不改动入参）；vitest 全量 **120 文件 / 1882 用例 passed**（原 1877 + 5）；`npm run typecheck` 0 错（node+web）+ eslint 0 + `npm run build` 通过。
+> - **补记 v0.10（M0）**：落地 **默认档位纠正（DD-0 云端优先）**（commit `4db0ed8`）——`DEFAULT_LLM_CONFIG.provider` 改为 `'deepseek'`（首次打开设置默认选中云端）、`LLM_PROVIDER_ORDER` 云端在前（下拉视觉序）；并**新增独立常量 `FALLBACK_LLM_PROVIDER = 'ollama'`**：把「默认档位」（用户可见初值，由产品裁定）与「回落档位」（异常兜底，由隐私底线钉死）**拆成两件不同的事**——非法 provider 的回落必须落在**最保守的本地档**，绝不静默回落成云端（否则用户手改过 localStorage 或升级自残留旧字段时会被误伤成"真发云端请求 + 弹花费确认"）。（本条为**事后补记**：M0 落地时漏写修订记录，本次一并补正。）
+> - **v1.0 → v1.1**（本次会话）：落地 **M1 观测先行（G3）**。目标是"**先有数据再调提示词**"——把每轮 LLM 调用的档位/模型/token/延迟/工具数固化成可累加、可序列化的**纯数据**。新增纯模块 `shared/agent/observability.ts`（`AgentTurnStat` 单轮 + `AgentRunStats` 累计 + `emptyAgentRunStats`/`turnStatFromReply`/`accumulateTurn` 三个纯函数，不依赖 Electron/DOM，Node 可完整单测）；`brain.ts` 的 `BrainLlmReply` 增 `model?`/`usage?`、`BrainRunResult` 增 `stats`、`BrainEvent` 增 `turn_stats` 变体，`runBrainLoop` 每轮测延迟、累加 usage/toolCalls 并发 `turn_stats`（**三处 return 都带 `stats`**）；`ollamaTransport.ts` 解析最终 chunk 的 `prompt_eval_count`/`eval_count` 回报 `usage`+`model`（两值皆 0 时 `usage` 为 `undefined`，**不伪造零值**）；IPC `agent:chat.res` 增 `stats`；面板 `DigitalPanelState` 增 `runStats`（每轮重置）并在 `reduceBrainEvent` 归约 `turn_stats`，`DigitalPanel` 渲染「本次消耗」行（补 `.digital-run-stats` CSS，否则裸文本）。
+>   ⚠️ **范围判定**：M1 **只观测、不调优**——档位路由（`resolveLlmTier`）与本地 `num_ctx` 下发属 **M3**；`tier` 字段是**预留位**（M3 前恒 `local`），数据形状已就位届时只填值不改结构。**不做**单独的"已用轮次/上限"读条（本地档由 `maxIterations` 默认 8 + `turn_stats` 轮号间接可见，避免与 M3 档位限量重复设计）。
+>   ⇒ 新增单测 `agentObservability.test.ts`（6 例：锁累加代数——不可变 / 空值回落 / 末轮模型覆盖 / tier 末轮为准）+ `ollamaTransport.test.ts`（3 例：锁 token 解析与 usage 缺失不伪造）；`agentBrain.test.ts`（+3 M1 例，并给既有事件序列断言补 `turn_stats`）/`agentPanel.test.ts`（+2）扩展；e2e `agent-brain-chat.spec.ts` 事件序列同步补 `turn_stats`。vitest 全量 **125 文件 / 1938 用例 passed**；`npm run typecheck` 0 错（node+web）+ eslint 0 + CSS 审计（仅 5 处已知模板噪声）+ `npm run build` 通过。
 >
 > **证据强度标注**（全文通用）：
 > `[实测]` 本机/本仓跑出来的 · `[一手]` 模型厂商官方文档 · `[GitHub]` 直接抓成熟框架仓库所得 · `[二手]` 第三方文章/实测（附出处）· `[推断]` 我的推理，未直接验证
@@ -424,6 +428,21 @@ SOUL 硬边界、turn limit、MCP、`shared/` 分层契约、**6 家服务商的
 
 > **范围判定**：judge 是**辅助**维度，权重远低于确定性门；`toxicity` 命中只追加提示、把"是否发布"的最终裁决权留在人手里，不自动拦截。保密模式下的 judge 经 `effectiveProvider` 强制本地，无需额外判断；若本地无模型致调用失败，被 `runLlmJudge` 降级为 `null`。
 
+### 5.5.9 实现记录（v1.1）：M1 观测先行（G3）
+
+| 项 | 落地 |
+|---|---|
+| `shared/agent/observability.ts`（新增，纯模块） | `AgentRunTier`（`cloud`/`local`/`unconfigured`，M3 档位路由前恒 `local`）/ `AgentTurnStat`（单轮：turn/model/tier/usage/latencyMs/toolCalls）/ `AgentRunStats`（累计：turns/promptTokens/completionTokens/totalTokens/latencyMs/toolCalls/model/tier）；纯函数 `emptyAgentRunStats(tier)` / `turnStatFromReply(...)`（usage 缺失回落零值，其余字段原样保留）/ `accumulateTurn(stats, turn)`（**不可变累加**：末轮模型覆盖、空模型名保留已有非空值、tier 以末轮为准）。不 import Electron/DOM，可完整 Node 单测 |
+| `shared/agent/brain.ts`（改） | `BrainLlmReply` 增 `model?`/`usage?:LlmUsage`；`BrainRunResult` 增 `stats:AgentRunStats`；`BrainEvent` 增 `turn_stats` 变体（与 `AgentTurnStat` 同形）；`runBrainLoop` 每轮 `Date.now()` 计时、累加 usage/toolCalls 并发 `turn_stats`；**三处 return（终稿 / 传输失败 / 迭代用尽兜底）都带 `stats`**（传输失败时 `stats` 保持零值——错误不被观测吞掉） |
+| `main/agent/ollamaTransport.ts`（改） | `OllamaChatChunk` 增 `prompt_eval_count`/`eval_count`；`complete()` 解析最终 chunk 的累计计数 → `usage`（两值皆 0 时返回 `undefined`，**不伪造零值**，交给上层回落），并回报 `model` |
+| `shared/ipc.ts` | `agent:chat` 的 `res` 增 `stats:AgentRunStats` |
+| `shared/agent/panel.ts` | `DigitalPanelState` 增 `runStats`（init = `emptyAgentRunStats()`，`submitUserMessage` 每轮重置）；`reduceBrainEvent` 新增 `turn_stats` case → `accumulateTurn` |
+| `renderer/DigitalPanel.tsx` + `styles.css` | 「本次消耗」行（`digital-run-stats`：`N 轮 · M token · T ms · K 次工具`，仅 `turns>0` 时显示）；补 `.digital-run-stats` CSS（否则类是写了但无规则 ⇒ 裸文本） |
+| 测试 | 新增 `agentObservability.test.ts`（6）/ `ollamaTransport.test.ts`（3）；扩展 `agentBrain.test.ts`（+3 M1 例 + 既有事件序列断言补 `turn_stats`）/ `agentPanel.test.ts`（+2）；e2e `agent-brain-chat.spec.ts` 事件序列同步。vitest 全量 **125 文件 / 1938 用例 passed**；tsc 0（node+web）+ eslint 0 + CSS 审计仅已知模板噪声 + build 通过 |
+| 范围判定 | M1 **只做观测（记录与展示），不做调优动作**——档位路由 `resolveLlmTier` 属 M3；本地档 4B 的"已用轮次/上限"目前由 `maxIterations`（默认 8）+ `turn_stats` 轮号间接可见，**未**单独加"上限"读条（避免与 M3 的档位限量重复设计）。`tier` 是**预留位**：M3 前恒 `local`，但数据形状已就位届时只填值不改结构 |
+
+> **为什么 M1 先于 M2/M3**：没有每轮 token/延迟真值，提示词瘦身（M2）与工具面限量（M3，D4 的"上限本身要能用观测数据调"）都是**盲调**。本版把"实际发生多少"固化进 `AgentRunStats`，即 DD-10 观测项的数据源。
+
 ---
 
 ## 6. 选型：不引入 agent 框架（结论不变，依据更硬）
@@ -535,9 +554,9 @@ data/libraries/<库>/.workspace/
 
 | 期 | 目标 | 档位 | 出口（可验收） | 规模 |
 |---|---|---|---|---|
-| **M0 档位纠正** ⭐ | 修 **G0**（最高优先） | 两档 | 默认走云端；未配置**不再静默回落 ollama**而是引导配置 + 提供「一键启用保密模式」；`client.ts:144` 硬编码 `ollama pull` 文案按档位分别给出正确指引 | ~150 行 |
+| **M0 档位纠正** ⭐ | 修 **G0**（最高优先） | 两档 | 默认走云端；未配置**不再静默回落 ollama**而是引导配置 + 提供「一键启用保密模式」；`client.ts:144` 硬编码 `ollama pull` 文案按档位分别给出正确指引 | ✅ 已落地（v0.10，~150 行，见修订记录"补记 v0.10"） |
 | **M0.5 本地档上下文与终止** | 修 G1 + G4 | 本地 | `num_ctx` 可配且有默认 16384；三道计数闸生效；触发后带部分产出 finalize 并诚实显示 | ~200 行 |
-| **M1 观测先行** | 修 G3 | 两档 | 每轮有档位/模型/token/延迟/成本行；面板可见"已用轮次/上限"；**先有数据再调提示词** | ~150 行 |
+| **M1 观测先行** ⭐ | 修 G3 | 两档 | 每轮有档位/模型/token/延迟/成本行；面板可见"已用轮次"；**先有数据再调提示词** | ✅ 已落地（v1.1，~150 行 + 单测 9 例，见 §5.5.9） |
 | **M2 提示词瘦身** | 修 G7 + DD-6 | 两档 | `identity.md` ≤30 行断言转绿；`CAPABILITIES.md` 改渐进披露；单测跑 8 类典型请求，工具调用成功率 ≥80% | ~300 行 |
 | **M2.5 步数预算** | 修 DD-15 | 两档 | 每个动作可串联多工具；补 ≥2 个高频**复合工具**；单跑同一任务**步数下降 ≥20%** | ~200 行 |
 | **M3 工具面与路由** | 修 G2 + DD-3/4 | 两档 | 协议层分组、按档位限量（本地 ≤8 / 云端 ≤15）；本地=用户显式选技能、云端=软路由可选且保留显式兜底；成功率 ≥80% | ~250 行 |
@@ -603,8 +622,8 @@ M0.5 只影响本地档，可与 M0 并行。
 
 | # | 决策 | 我的推荐 |
 |---|---|---|
-| **D1** | `LLM_PROVIDER_ORDER` 当前是**对齐 Python `MODEL_PRESETS` 声明顺序**（ollama 第一）。云端优先要改这个顺序，**属于"产品决策覆盖迁移保真"** —— 改吗？ | **改**，并在代码注释里记明「产品决策覆盖 Python 声明顺序」，避免后人误改回去 |
-| **D2** | 未配置时**静默回落 ollama** 改成什么？ | **不再静默回落**。改为：弹引导（选云端服务商 / 或一键启用保密模式）。理由：静默回落会让人以为在用云端、实际数据没出去，或反之 |
+| **D1** ✅**已落地（v0.10）** | `LLM_PROVIDER_ORDER` 当前是**对齐 Python `MODEL_PRESETS` 声明顺序**（ollama 第一）。云端优先要改这个顺序，**属于"产品决策覆盖迁移保真"** —— 改吗？ | **改**，并在代码注释里记明「产品决策覆盖 Python 声明顺序」，避免后人误改回去 —— 已落码：ORDER 云端在前 + `DEFAULT_LLM_CONFIG.provider='deepseek'` |
+| **D2** ✅**已落地（v0.10）** | 未配置时**静默回落 ollama** 改成什么？ | **不再静默回落**。改为：弹引导（选云端服务商 / 或一键启用保密模式）。理由：静默回落会让人以为在用云端、实际数据没出去，或反之 —— 已落码：默认云端 + 独立 `FALLBACK_LLM_PROVIDER='ollama'`（回落只落最保守档） |
 | **D3** | Python `core/agent` 22,981 行的处置（§10）？ | **先不动 + 回写文档标注死代码**。删它会破坏审计基线，性价比极低。 |
 | **D4** | 工具面按档位限量（DD-3）：本地 ≤8 / 云端 ≤15，这个上限对吗？ | 可先都设 **≤10** 跑一轮实测再分档；**上限本身要能用观测数据调**（M1 的产出正好用来定它） |
 | **D5** | 起步范围 | **M0 + M1 先行**。M0 是语义修正（云端优先落码），M1 给数据；没有 M1 的数据，M2/M3 的调优是盲调 |

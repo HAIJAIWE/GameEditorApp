@@ -165,17 +165,19 @@ test('Agent Brain 循环：桩服务返回工具调用 → 执行工具 → 流�
     // 事件序列：思考 → 流式 → 工具执行 → 第二轮思考 → 流式 → 终稿
     expect(result.events.map((event) => event.type)).toEqual([
       'step_start',
+      'turn_stats',
       'stream_done',
       'step_start',
       'step_done',
       'step_start',
       'stream_chunk',
       'stream_chunk',
+      'turn_stats',
       'stream_done',
       'done'
     ])
-    expect(result.events[2]).toEqual({ type: 'step_start', order: 0, tool: '并行1工具' })
-    const stepDone = result.events[3]
+    expect(result.events[3]).toEqual({ type: 'step_start', order: 0, tool: '并行1工具' })
+    const stepDone = result.events[4]
     expect(stepDone?.tool).toBe('system.game_data')
     expect(stepDone?.success).toBe(true)
     expect(stepDone?.result).toContain('可用数据类型（')

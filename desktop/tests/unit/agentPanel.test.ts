@@ -247,3 +247,55 @@ describe('digital panel：任务列表与会话恢复', () => {
     expect(sent.messages.map((message) => message.id)).toEqual(['m1', 'm2'])
   })
 })
+
+describe('digital panel：M1 观测（累计消耗）', () => {
+  it('turn_stats 逐轮累加进 runStats（token / 轮数 / 工具数 / 末轮模型）', () => {
+    const state = applyBrainEvents(initialDigitalPanelState, [
+      {
+        type: 'turn_stats',
+        turn: 0,
+        model: 'qwen3:4b',
+        tier: 'local',
+        usage: { promptTokens: 100, completionTokens: 20, totalTokens: 120 },
+        latencyMs: 50,
+        toolCalls: 1
+      },
+      {
+        type: 'turn_stats',
+        turn: 1,
+        model: 'qwen3:4b',
+        tier: 'local',
+        usage: { promptTokens: 200, completionTokens: 30, totalTokens: 230 },
+        latencyMs: 70,
+        toolCalls: 0
+      }
+    ])
+    expect(state.runStats).toEqual({
+      turns: 2,
+      promptTokens: 300,
+      completionTokens: 50,
+      totalTokens: 350,
+      latencyMs: 120,
+      toolCalls: 1,
+      model: 'qwen3:4b',
+      tier: 'local'
+    })
+  })
+
+  it('submitUserMessage：新一轮清零上一轮 runStats（面板「本次消耗」只显示当前轮）', () => {
+    const previous = applyBrainEvents(initialDigitalPanelState, [
+      {
+        type: 'turn_stats',
+        turn: 0,
+        model: 'qwen3:4b',
+        tier: 'local',
+        usage: { promptTokens: 10, completionTokens: 5, totalTokens: 15 },
+        latencyMs: 12,
+        toolCalls: 0
+      }
+    ])
+    expect(previous.runStats.turns).toBe(1)
+    const next = submitUserMessage(previous, '再来一次')
+    expect(next.runStats).toEqual(initialDigitalPanelState.runStats)
+  })
+})

@@ -133,9 +133,9 @@ describe('runBrainLoop：事件序列', () => {
       runner: makeRunner()
     })
 
-    expect(types(result.events)).toEqual(['step_start', 'stream_done', 'done'])
+    expect(types(result.events)).toEqual(['step_start', 'turn_stats', 'stream_done', 'done'])
     expect(result.events[0]).toEqual({ type: 'step_start', order: 0, tool: 'llm_think' })
-    expect(result.events[2]).toEqual({ type: 'done', text: '这是最终答复' })
+    expect(result.events[3]).toEqual({ type: 'done', text: '这是最终答复' })
     expect(result.text).toBe('这是最终答复')
     expect(result.completed).toBe(true)
     // 系统提示词与用户消息按顺序注入
@@ -157,15 +157,17 @@ describe('runBrainLoop：事件序列', () => {
 
     expect(types(result.events)).toEqual([
       'step_start', // order 0 llm_think
+      'turn_stats',
       'stream_done',
       'step_start', // 并行1工具
       'step_done',
       'step_start', // order 1 llm_think
+      'turn_stats',
       'stream_done',
       'done'
     ])
-    expect(result.events[2]).toEqual({ type: 'step_start', order: 0, tool: '并行1工具' })
-    expect(result.events[3]).toEqual({
+    expect(result.events[3]).toEqual({ type: 'step_start', order: 0, tool: '并行1工具' })
+    expect(result.events[4]).toEqual({
       type: 'step_done',
       tool: 'system.game_data',
       result: '已执行 system.game_data',
@@ -190,7 +192,7 @@ describe('runBrainLoop：事件序列', () => {
     const runner = makeRunner()
     const result = await runBrainLoop({ input: 'x', systemPrompts: [], transport, runner })
 
-    expect(result.events[2]).toEqual({ type: 'step_start', order: 0, tool: '并行2工具' })
+    expect(result.events[3]).toEqual({ type: 'step_start', order: 0, tool: '并行2工具' })
     expect(runner.executed.map((entry) => entry.tool)).toEqual(['system.game_data', 'system.ceshu'])
     expect(types(result.events).filter((type) => type === 'step_done')).toHaveLength(2)
   })
@@ -204,9 +206,16 @@ describe('runBrainLoop：事件序列', () => {
       }
     }
     const result = await runBrainLoop({ input: 'x', systemPrompts: [], transport, runner: makeRunner() })
-    expect(types(result.events)).toEqual(['step_start', 'stream_chunk', 'stream_chunk', 'stream_done', 'done'])
+    expect(types(result.events)).toEqual([
+      'step_start',
+      'stream_chunk',
+      'stream_chunk',
+      'turn_stats',
+      'stream_done',
+      'done'
+    ])
     expect(result.events[1]).toEqual({ type: 'stream_chunk', text: '你' })
-    expect(result.events[3]).toEqual({ type: 'stream_done', fullText: '这是最终答复' })
+    expect(result.events[4]).toEqual({ type: 'stream_done', fullText: '这是最终答复' })
   })
 
   it('协议合法性：每个 tool_call 都有对应的 tool 消息回灌（Python 会在此留非法序列）', async () => {
@@ -237,7 +246,7 @@ describe('runBrainLoop：分支与兜底', () => {
     const transport = scripted([toolCall('c1', '不存在的工具'), FINAL])
     const result = await runBrainLoop({ input: 'x', systemPrompts: [], transport, runner: makeRunner() })
 
-    expect(result.events[3]).toEqual({
+    expect(result.events[4]).toEqual({
       type: 'step_done',
       tool: '不存在的工具',
       result: '未知工具: 不存在的工具',
@@ -245,7 +254,14 @@ describe('runBrainLoop：分支与兜底', () => {
     })
     // 没有任何工具执行成功 → 不进第二轮
     expect(transport.calls).toHaveLength(1)
-    expect(types(result.events)).toEqual(['step_start', 'stream_done', 'step_start', 'step_done', 'done'])
+    expect(types(result.events)).toEqual([
+      'step_start',
+      'turn_stats',
+      'stream_done',
+      'step_start',
+      'step_done',
+      'done'
+    ])
     expect(result.text).toBe('未知工具: 不存在的工具')
   })
 
@@ -266,13 +282,14 @@ describe('runBrainLoop：分支与兜底', () => {
     expect(runner.executed).toHaveLength(0)
     expect(types(result.events)).toEqual([
       'step_start',
+      'turn_stats',
       'stream_done',
       'step_start',
       'approval_required',
       'step_done',
       'done'
     ])
-    expect(result.events[4]).toEqual({
+    expect(result.events[5]).toEqual({
       type: 'step_done',
       tool: 'system.shell',
       result: '[STOP] 用户未确认危险操作: system.shell',
@@ -361,7 +378,7 @@ describe('runBrainLoop：分支与兜底', () => {
   it('无工具调用但 finishReason 非 stop → 退出循环并兜底', async () => {
     const transport = scripted([{ content: '半截话', toolCalls: [], finishReason: 'length' }])
     const result = await runBrainLoop({ input: 'x', systemPrompts: [], transport, runner: makeRunner() })
-    expect(types(result.events)).toEqual(['step_start', 'stream_done', 'done'])
+    expect(types(result.events)).toEqual(['step_start', 'turn_stats', 'stream_done', 'done'])
     expect(result.text).toBe(FALLBACK_ANSWER)
     expect(result.events.at(-1)).toEqual({ type: 'done', text: FALLBACK_ANSWER })
   })
@@ -644,5 +661,72 @@ describe('runBrainLoop：技能交互（确认 / 提问）', () => {
         (event) => event.type === 'step_done' && event.result === '[STOP] 用户未解答提问: 用哪个职业？'
       )
     ).toBe(true)
+  })
+})
+
+/* ---- M1 观测（每轮 token / 耗时 / 轮数 / 模型） ---- */
+
+describe('runBrainLoop：M1 观测', () => {
+  it('两轮工具往返：stats 累加 usage / 轮数 / 工具数，末轮模型入账', async () => {
+    const transport = scripted([
+      {
+        content: '',
+        toolCalls: [{ id: 'c1', name: 'system.game_data', arguments: { action: 'list' } }],
+        finishReason: 'tool_calls',
+        model: 'qwen3:4b',
+        usage: { promptTokens: 100, completionTokens: 20, totalTokens: 120 }
+      },
+      {
+        content: '完成',
+        toolCalls: [],
+        finishReason: 'stop',
+        model: 'qwen3:4b',
+        usage: { promptTokens: 200, completionTokens: 30, totalTokens: 230 }
+      }
+    ])
+    const result = await runBrainLoop({ input: 'x', systemPrompts: [], transport, runner: makeRunner() })
+
+    expect(result.stats).toMatchObject({
+      turns: 2,
+      promptTokens: 300,
+      completionTokens: 50,
+      totalTokens: 350,
+      toolCalls: 1,
+      model: 'qwen3:4b',
+      tier: 'local'
+    })
+    expect(result.stats.latencyMs).toBeGreaterThanOrEqual(0)
+
+    // 每轮恰好一个 turn_stats，且轮号 / 用量对齐
+    const turnStats = result.events.filter((event) => event.type === 'turn_stats')
+    expect(turnStats).toHaveLength(2)
+    expect(turnStats[0]).toMatchObject({ turn: 0, model: 'qwen3:4b', toolCalls: 1, usage: { totalTokens: 120 } })
+    expect(turnStats[1]).toMatchObject({ turn: 1, toolCalls: 0, usage: { totalTokens: 230 } })
+  })
+
+  it('usage 缺失（桩未回报）→ 回落零值，不产生 NaN，也不阻塞终稿', async () => {
+    const transport = scripted([FINAL]) // FINAL 无 usage / model
+    const result = await runBrainLoop({ input: 'x', systemPrompts: [], transport, runner: makeRunner() })
+
+    expect(result.stats.totalTokens).toBe(0)
+    expect(result.stats.model).toBe('')
+    const turnStats = result.events.find((event) => event.type === 'turn_stats')
+    expect(turnStats).toMatchObject({
+      model: '',
+      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 }
+    })
+  })
+
+  it('传输失败（未进入完成态）→ 无 turn_stats、stats 保持零（错误不是被观测吞掉）', async () => {
+    const transport: BrainLlmTransport = {
+      complete: async () => {
+        throw new Error('炸了')
+      }
+    }
+    const result = await runBrainLoop({ input: 'x', systemPrompts: [], transport, runner: makeRunner() })
+
+    expect(result.completed).toBe(false)
+    expect(result.stats.turns).toBe(0)
+    expect(result.events.some((event) => event.type === 'turn_stats')).toBe(false)
   })
 })

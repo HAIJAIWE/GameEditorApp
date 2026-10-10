@@ -11,6 +11,7 @@
  */
 
 import type { BrainEvent } from './brain'
+import { accumulateTurn, emptyAgentRunStats, type AgentRunStats } from './observability'
 import type { SkillInteraction } from './protocol'
 
 export type DigitalStatus = 'idle' | 'thinking' | 'waiting_approval' | 'waiting_input' | 'done' | 'error'
@@ -70,6 +71,8 @@ export interface DigitalPanelState {
   error: string | null
   /** 自增序号（生成稳定的消息 id） */
   seq: number
+  /** M1 观测：本轮运行的累计消耗（每次新发送时重置） */
+  runStats: AgentRunStats
 }
 
 export const initialDigitalPanelState: DigitalPanelState = {
@@ -80,7 +83,8 @@ export const initialDigitalPanelState: DigitalPanelState = {
   interaction: null,
   status: 'idle',
   error: null,
-  seq: 0
+  seq: 0,
+  runStats: emptyAgentRunStats()
 }
 
 /** 任务列表摘要最大长度（超出截断，避免面板被长结果撑爆） */
@@ -98,7 +102,8 @@ export function submitUserMessage(state: DigitalPanelState, text: string): Digit
     approval: null,
     interaction: null,
     status: 'thinking',
-    error: null
+    error: null,
+    runStats: emptyAgentRunStats()
   }
 }
 
@@ -153,6 +158,18 @@ export function reduceBrainEvent(state: DigitalPanelState, event: BrainEvent): D
             success: event.success
           }
         ]
+      }
+    case 'turn_stats':
+      return {
+        ...state,
+        runStats: accumulateTurn(state.runStats, {
+          turn: event.turn,
+          model: event.model,
+          tier: event.tier,
+          usage: event.usage,
+          latencyMs: event.latencyMs,
+          toolCalls: event.toolCalls
+        })
       }
     case 'done': {
       const text = event.text

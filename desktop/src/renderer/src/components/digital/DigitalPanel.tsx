@@ -83,16 +83,7 @@ const STATUS_LABELS: Record<DigitalPanelState['status'], string> = {
   error: '出错'
 }
 
-export interface DigitalPanelProps {
-  /**
-   * 外部播种的一条待发送消息（对齐 PyQt：策划书首页的 AI 入口卡会把文本塞进本面板输入框
-   * 并立即发送，见 `home_view.py::_on_ai_send`）。TS 侧没有全局事件总线，改用 props 通道；
-   * 用递增 `nonce` 区分「同一文本被再次投递」。
-   */
-  seed?: { text: string; nonce: number } | null
-}
-
-export default function DigitalPanel({ seed = null }: DigitalPanelProps) {
+export default function DigitalPanel() {
   const [state, dispatch] = useReducer(reducer, initialDigitalPanelState)
   const [input, setInput] = useState('')
   const [stepsOpen, setStepsOpen] = useState(true)
@@ -119,8 +110,6 @@ export default function DigitalPanel({ seed = null }: DigitalPanelProps) {
   const [notice, setNotice] = useState<string | null>(null)
   const clearMenuRef = useRef<HTMLDivElement | null>(null)
   const draftMenuRef = useRef<HTMLDivElement | null>(null)
-  /** 已消费的外部播种 nonce（防止依赖变化导致同一播种被重复投递） */
-  const consumedSeedNonce = useRef<number | null>(null)
 
   const api = useMemo(() => (window.mbApi as unknown as { agent: ChatApi }).agent, [])
   const tasks = useMemo(() => summarizeToolTasks(state.steps), [state.steps])
@@ -178,29 +167,6 @@ export default function DigitalPanel({ seed = null }: DigitalPanelProps) {
   )
 
   const handleSend = (): void => submitText(input)
-
-  /**
-   * 消费外部播种（策划书首页 AI 入口卡 → 本面板）。
-   *
-   * ⚠️ `submitText` 会**同步** setState，而 `react-hooks` v7 把「effect 体内同步 setState」
-   * 判为 error（`set-state-in-effect`）→ 放进微任务回调里执行。
-   * 用 `consumedSeedNonce` 去重：`submitText` 的依赖（running/api）变化时本 effect 会重跑，
-   * 没有去重就会出现「同一条播种被重复发送」。
-   */
-  useEffect(() => {
-    if (seed === null) return undefined
-    if (consumedSeedNonce.current === seed.nonce) return undefined
-    let cancelled = false
-    void Promise.resolve().then(() => {
-      if (cancelled) return
-      consumedSeedNonce.current = seed.nonce
-      submitText(seed.text)
-      inputRef.current?.focus()
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [seed, submitText])
 
   const handleApproval = (approved: boolean): void => {
     const approval = state.approval
@@ -535,6 +501,16 @@ export default function DigitalPanel({ seed = null }: DigitalPanelProps) {
               ))}
             </ol>
           )}
+        </div>
+      )}
+
+      {state.runStats.turns > 0 && (
+        <div className="digital-run-stats" data-testid="digital-run-stats">
+          <span className="home-section-label">本次消耗</span>
+          <span className="item-meta">
+            {state.runStats.turns} 轮 · {state.runStats.totalTokens} token · {state.runStats.latencyMs} ms
+            {state.runStats.toolCalls > 0 ? ` · ${state.runStats.toolCalls} 次工具` : ''}
+          </span>
         </div>
       )}
 
