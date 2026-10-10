@@ -83,6 +83,20 @@ export interface BrainToolRunner {
 
 /* ---- 事件 ---- */
 
+/**
+ * 本轮运行的中止原因（M0.5 / DD-5）。
+ * `final` = 正常走到终稿；三道计数闸（`max_turns` / `max_tool_calls` / `wall_clock`）为**优雅中止**
+ * （仍 `completed: true`，返回部分产出）；其余为边界情形。
+ */
+export type BrainStopReason =
+  | 'final'
+  | 'max_turns'
+  | 'max_tool_calls'
+  | 'wall_clock'
+  | 'no_tools'
+  | 'unresolvable_tools'
+  | 'transport_error'
+
 export type BrainEvent =
   | { type: 'step_start'; order: number; tool: string }
   | { type: 'stream_chunk'; text: string }
@@ -114,6 +128,12 @@ export type BrainEvent =
       usage: LlmUsage
       latencyMs: number
       toolCalls: number
+    }
+  /** M0.5 终止闸（DD-5）：命中三道计数闸之一时发；`detail` 供面板「诚实显示」本次为何中止 */
+  | {
+      type: 'terminated'
+      reason: 'max_turns' | 'max_tool_calls' | 'wall_clock'
+      detail: string
     }
   | { type: 'error'; message: string }
 
@@ -155,8 +175,12 @@ export interface RunBrainLoopOptions {
   runner: BrainToolRunner
   /** 暴露给 LLM 的工具 JSON Schema 列表（通常来自 `SkillDispatcher.toolsJsonSchema()`） */
   tools?: unknown[]
-  /** 最大迭代轮数（对齐 Python `_max_iterations`） */
-  maxIterations?: number
+  /** 最大 LLM 轮数（DD-5 `maxTurns`，默认 6；计数式硬闸，取代原先的 `maxIterations`） */
+  maxTurns?: number
+  /** 累计工具调用上限（DD-5 `maxToolCalls`，默认 8）；超出即带部分产出 finalize。≤0 表示不限制 */
+  maxToolCalls?: number
+  /** 墙钟上限（毫秒，DD-5 `wallClockMs`，默认 120000）；超出即带部分产出 finalize。≤0 表示不限制 */
+  wallClockMs?: number
   /** 危险操作审批；未提供 → 一律视为未确认（拒绝） */
   requestApproval?: BrainApprover
   /** 技能交互（确认/提问）答复通道；未提供 → 视为用户未确认/未答复 */
@@ -179,9 +203,16 @@ export interface BrainRunResult {
   messages: BrainMessage[]
   /** M1 观测：本轮运行的累计消耗（面板「本次消耗」与历史统计的数据源） */
   stats: AgentRunStats
+  /** M0.5 终止原因（`final` = 正常终稿；其余见 `BrainStopReason`） */
+  stopReason: BrainStopReason
 }
 
-export const DEFAULT_MAX_ITERATIONS = 8
+/** 最大 LLM 轮数默认值（DD-5 `maxTurns`：本地档 4B 的计数式硬闸；云端档可在 M3 放宽） */
+export const DEFAULT_MAX_TURNS = 6
+/** 累计工具调用上限默认值（DD-5 `maxToolCalls`） */
+export const DEFAULT_MAX_TOOL_CALLS = 8
+/** 墙钟上限默认值（毫秒，DD-5 `wallClockMs` = 120s） */
+export const DEFAULT_WALL_CLOCK_MS = 120_000
 
 /**
  * 等待用户答复（危险确认 / 技能交互）的默认超时（毫秒，对齐 Python `ask_user` 的 `timeout=120`）。
@@ -240,19 +271,36 @@ export function formatToolResult(result: SkillResult): string {
   return `执行失败: ${result.error !== undefined && result.error !== '' ? result.error : '未知'}`
 }
 
+/** 三道计数闸的中文提示文案（面板「诚实显示」用；与闸判定同源，避免两处口径漂移） */
+export function terminationDetail(
+  reason: 'max_turns' | 'max_tool_calls' | 'wall_clock',
+  limits: { maxTurns: number; maxToolCalls: number; wallClockMs: number }
+): string {
+  if (reason === 'max_tool_calls') {
+    return `已达工具调用上限（${limits.maxToolCalls} 次），以下是已完成的部分结果`
+  }
+  if (reason === 'wall_clock') {
+    return `已达时间上限（${Math.round(limits.wallClockMs / 1000)} 秒），以下是已完成的部分结果`
+  }
+  return `已达轮次上限（${limits.maxTurns} 轮），以下是已完成的部分结果`
+}
+
 /**
- * 运行 Brain 循环：推理 → 决策 → 执行 → 反思（最多 `maxIterations` 轮）。
+ * 运行 Brain 循环：推理 → 决策 → 执行 → 反思（最多 `maxTurns` 轮，另受三道计数闸约束）。
  *
- * 终止条件（对齐 Python）：
- *  1. `finishReason === 'stop'` 且无工具调用 → 以该轮文本为终稿；
- *  2. 无工具调用（但 finishReason 不是 stop）→ 退出循环，走兜底答复；
- *  3. 工具全部无法解析 → 退出循环；
- *  4. LLM 传输失败 → 发 error 事件后中断（`completed: false`）；
- *  5. 迭代用尽 → 兜底答复。
+ * 终止条件：
+ *  1. `finishReason === 'stop'` 且无工具调用 → 以该轮文本为终稿（`stopReason: 'final'`）；
+ *  2. 无工具调用（但 finishReason 不是 stop）→ 退出循环，走兜底答复（`no_tools`）；
+ *  3. 工具全部无法解析 → 退出循环（`unresolvable_tools`）；
+ *  4. LLM 传输失败 → 发 error 事件后中断（`completed: false`，`transport_error`）；
+ *  5. 三道计数闸（DD-5）任一命中 → **带部分产出 finalize**（`completed: true`）并发 `terminated` 事件：
+ *     轮数用尽（`max_turns`）/ 工具调用累计超限（`max_tool_calls`）/ 墙钟超时（`wall_clock`）。
  */
 export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainRunResult> {
   const { input, systemPrompts, transport, runner, requestApproval, requestInteraction, onEvent } = options
-  const maxIterations = options.maxIterations ?? DEFAULT_MAX_ITERATIONS
+  const maxTurns = options.maxTurns ?? DEFAULT_MAX_TURNS
+  const maxToolCalls = options.maxToolCalls ?? DEFAULT_MAX_TOOL_CALLS
+  const wallClockMs = options.wallClockMs ?? DEFAULT_WALL_CLOCK_MS
   const context: SkillExecutionContext = options.context ?? {}
   let requestSeq = 0
   const newRequestId = options.newRequestId ?? ((): string => `approval_${++requestSeq}`)
@@ -288,6 +336,11 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
   const results: string[] = []
   // M1 观测：本轮运行的累计消耗（每轮 LLM 调用后并入；数字员工对话面在 M3 接档位路由之前恒为 local）
   let runStats: AgentRunStats = emptyAgentRunStats('local')
+  // M0.5 终止闸（DD-5）：轮次 / 工具调用累计 / 墙钟 三道**计数式**硬闸。
+  // 任一命中 ⇒ 带部分产出 finalize（`completed: true`），并让 `stopReason` 与 `terminated` 事件如实说明原因。
+  const startedAt = Date.now()
+  let toolCallCount = 0
+  let stopReason: BrainStopReason = 'max_turns'
 
   /**
    * 处理技能提出的交互请求：
@@ -352,7 +405,12 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
     return { text: `用户回答：${answerText}`, success: true }
   }
 
-  for (let iteration = 0; iteration < maxIterations; iteration++) {
+  for (let iteration = 0; iteration < maxTurns; iteration++) {
+    // 墙钟闸：在再花一次 LLM 调用之前检查（单个工具很慢时也能止住）
+    if (wallClockMs > 0 && Date.now() - startedAt > wallClockMs) {
+      stopReason = 'wall_clock'
+      break
+    }
     emit({ type: 'step_start', order: iteration, tool: 'llm_think' })
 
     let reply: BrainLlmReply
@@ -365,7 +423,14 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
       })
     } catch (error) {
       emit({ type: 'error', message: error instanceof Error ? error.message : String(error) })
-      return { text: fallbackAnswer(results), events, completed: false, messages, stats: runStats }
+      return {
+        text: fallbackAnswer(results),
+        events,
+        completed: false,
+        messages,
+        stats: runStats,
+        stopReason: 'transport_error'
+      }
     }
 
     // M1 观测：本论消耗点（token 用量来自响应；本地档 Ollama 经传输层取 prompt_eval_count/eval_count）
@@ -393,12 +458,30 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
     if (reply.finishReason === 'stop' && reply.toolCalls.length === 0) {
       const text = reply.content.trim()
       emit({ type: 'done', text })
-      return { text, events, completed: true, messages, stats: runStats }
+      return { text, events, completed: true, messages, stats: runStats, stopReason: 'final' }
     }
 
-    if (reply.toolCalls.length === 0) break
+    if (reply.toolCalls.length === 0) {
+      stopReason = 'no_tools'
+      break
+    }
 
     emit({ type: 'step_start', order: iteration, tool: `并行${reply.toolCalls.length}工具` })
+
+    // 工具调用闸（DD-5）：累计（含本批）超上限 ⇒ 不再执行本批，直接 finalize。
+    // ⚠️ 仍为每个 tool_call 补一条 [STOP] tool 消息：保持「assistant.tool_calls ⟷ tool 结果」一一对应
+    // （本文件头注明的有意偏离——协议不合法会让后续会话续跑直接报错）。
+    toolCallCount += reply.toolCalls.length
+    if (maxToolCalls > 0 && toolCallCount > maxToolCalls) {
+      const text = `[STOP] 已达工具调用上限（${maxToolCalls} 次），本批未执行`
+      for (const call of reply.toolCalls) {
+        results.push(text)
+        emit({ type: 'step_done', tool: call.name, result: text, success: false })
+        messages.push(buildToolMessage(call.id, call.name, text))
+      }
+      stopReason = 'max_tool_calls'
+      break
+    }
 
     let executedAny = false
     for (const call of reply.toolCalls) {
@@ -456,11 +539,20 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
 
     if (!executedAny && reply.toolCalls.length > 0) {
       // 全部工具均无法解析 → 退出循环，避免无意义空转
+      stopReason = 'unresolvable_tools'
       break
     }
   }
 
+  // 三道终止闸命中 → 如实告知（面板据此「诚实显示」本次为部分结果）
+  if (stopReason === 'max_turns' || stopReason === 'max_tool_calls' || stopReason === 'wall_clock') {
+    emit({
+      type: 'terminated',
+      reason: stopReason,
+      detail: terminationDetail(stopReason, { maxTurns, maxToolCalls, wallClockMs })
+    })
+  }
   const text = fallbackAnswer(results)
   emit({ type: 'done', text })
-  return { text, events, completed: true, messages, stats: runStats }
+  return { text, events, completed: true, messages, stats: runStats, stopReason }
 }

@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
 import {
-  DEFAULT_MAX_ITERATIONS,
+  DEFAULT_MAX_TOOL_CALLS,
+  DEFAULT_MAX_TURNS,
+  DEFAULT_WALL_CLOCK_MS,
   FALLBACK_ANSWER,
   buildAssistantMessage,
   buildToolMessage,
@@ -356,7 +358,7 @@ describe('runBrainLoop：分支与兜底', () => {
       systemPrompts: [],
       transport,
       runner,
-      maxIterations: 1
+      maxTurns: 1
     })
     expect(result.text).toBe(FALLBACK_ANSWER)
   })
@@ -368,7 +370,7 @@ describe('runBrainLoop：分支与兜底', () => {
       systemPrompts: [],
       transport,
       runner: makeRunner(),
-      maxIterations: 1
+      maxTurns: 1
     })
     expect(transport.calls).toHaveLength(1)
     expect(result.text).toBe('已执行 system.game_data')
@@ -397,7 +399,9 @@ describe('runBrainLoop：分支与兜底', () => {
     })
     expect(transport.calls[0]?.tools).toEqual(schemas)
     expect(streamed).toEqual(result.events)
-    expect(DEFAULT_MAX_ITERATIONS).toBe(8)
+    expect(DEFAULT_MAX_TURNS).toBe(6)
+    expect(DEFAULT_MAX_TOOL_CALLS).toBe(8)
+    expect(DEFAULT_WALL_CLOCK_MS).toBe(120_000)
   })
 })
 
@@ -728,5 +732,110 @@ describe('runBrainLoop：M1 观测', () => {
     expect(result.completed).toBe(false)
     expect(result.stats.turns).toBe(0)
     expect(result.events.some((event) => event.type === 'turn_stats')).toBe(false)
+  })
+})
+
+/* ---- M0.5 三道计数闸（DD-5） ---- */
+
+describe('runBrainLoop：M0.5 终止闸', () => {
+  it('max_turns：轮次用尽 → 部分产出 finalize + stopReason=max_turns + terminated 事件', async () => {
+    // 每轮都要求工具（永不终稿）⇒ 只受轮次闸约束
+    const transport = scripted([toolCall('c1', 'system.game_data')])
+    const result = await runBrainLoop({
+      input: 'x',
+      systemPrompts: [],
+      transport,
+      runner: makeRunner(),
+      maxTurns: 2
+    })
+
+    expect(transport.calls).toHaveLength(2)
+    expect(result.completed).toBe(true)
+    expect(result.stopReason).toBe('max_turns')
+    expect(result.events.find((event) => event.type === 'terminated')).toEqual({
+      type: 'terminated',
+      reason: 'max_turns',
+      detail: expect.stringContaining('轮次上限')
+    })
+    // 部分产出：取最后一次工具结果，而非兜底文案
+    expect(result.text).toBe('已执行 system.game_data')
+  })
+
+  it('max_tool_calls：累计超限 → 本批不执行且补 [STOP] tool 消息（会话协议仍合法）', async () => {
+    // 单轮 2 个工具、上限 1 ⇒ 累计 2 > 1 ⇒ 不执行本批
+    const transport = scripted([
+      {
+        content: '',
+        toolCalls: [
+          { id: 'c1', name: 'system.game_data', arguments: { action: 'list' } },
+          { id: 'c2', name: 'system.ceshu', arguments: { action: 'list' } }
+        ],
+        finishReason: 'tool_calls'
+      },
+      FINAL
+    ])
+    const runner = makeRunner()
+    const result = await runBrainLoop({
+      input: 'x',
+      systemPrompts: [],
+      transport,
+      runner,
+      maxToolCalls: 1
+    })
+
+    expect(runner.executed).toHaveLength(0) // 超限的工具一个都没跑
+    expect(result.stopReason).toBe('max_tool_calls')
+    expect(result.events.some((event) => event.type === 'terminated' && event.reason === 'max_tool_calls')).toBe(true)
+    expect(result.completed).toBe(true)
+    // 断言真正的行为差异：每个 tool_call 都有配对的 tool 消息（否则后续会话续跑会报错）
+    const assistant = result.messages.find((message) => message.role === 'assistant' && message.tool_calls)
+    const toolIds = result.messages.filter((message) => message.role === 'tool').map((message) => message.tool_call_id)
+    expect(assistant?.tool_calls?.map((call) => call.id)).toEqual(['c1', 'c2'])
+    expect(toolIds).toEqual(['c1', 'c2'])
+    expect(result.messages.filter((message) => message.role === 'tool').every((m) => m.content.includes('工具调用上限'))).toBe(true)
+  })
+
+  it('max_tool_calls：刚好不超限时正常执行到底', async () => {
+    const transport = scripted([toolCall('c1', 'system.game_data'), FINAL])
+    const runner = makeRunner()
+    const result = await runBrainLoop({ input: 'x', systemPrompts: [], transport, runner, maxToolCalls: 1 })
+    expect(runner.executed).toHaveLength(1)
+    expect(result.stopReason).toBe('final')
+    expect(result.events.some((event) => event.type === 'terminated')).toBe(false)
+  })
+
+  it('wall_clock：墙钟超时 → 在下一轮 LLM 调用前止住并 finalize', async () => {
+    const transport: BrainLlmTransport = {
+      complete: async () => {
+        // 每轮 LLM 调用耗时 40ms，闸值 15ms ⇒ 第二轮开始前即超时
+        await new Promise((resolve) => setTimeout(resolve, 40))
+        return toolCall('c1', 'system.game_data')
+      }
+    }
+    const result = await runBrainLoop({
+      input: 'x',
+      systemPrompts: [],
+      transport,
+      runner: makeRunner(),
+      wallClockMs: 15
+    })
+    expect(result.stopReason).toBe('wall_clock')
+    expect(result.events.some((event) => event.type === 'terminated' && event.reason === 'wall_clock')).toBe(true)
+    expect(result.completed).toBe(true)
+    expect(result.stats.turns).toBe(1) // 只跑了 1 轮就被墙钟止住
+  })
+
+  it('正常终稿：无 terminated 事件、stopReason=final（闸不误伤正常完成）', async () => {
+    const transport = scripted([FINAL])
+    const result = await runBrainLoop({ input: 'x', systemPrompts: [], transport, runner: makeRunner() })
+    expect(result.stopReason).toBe('final')
+    expect(result.events.some((event) => event.type === 'terminated')).toBe(false)
+  })
+
+  it('工具全不可解析：stopReason=unresolvable_tools，且不发 terminated（非计数闸，不冒充部分结果）', async () => {
+    const transport = scripted([toolCall('c1', '不存在的工具')])
+    const result = await runBrainLoop({ input: 'x', systemPrompts: [], transport, runner: makeRunner() })
+    expect(result.stopReason).toBe('unresolvable_tools')
+    expect(result.events.some((event) => event.type === 'terminated')).toBe(false)
   })
 })

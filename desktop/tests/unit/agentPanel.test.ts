@@ -299,3 +299,22 @@ describe('digital panel：M1 观测（累计消耗）', () => {
     expect(next.runStats).toEqual(initialDigitalPanelState.runStats)
   })
 })
+
+describe('digital panel：M0.5 终止闸提示', () => {
+  it('terminated：记住诚实提示；submitUserMessage 每轮重置', () => {
+    const detail = '已达轮次上限（6 轮），以下是已完成的部分结果'
+    const state = reduceBrainEvent(initialDigitalPanelState, { type: 'terminated', reason: 'max_turns', detail })
+    expect(state.terminated).toBe(detail)
+    expect(submitUserMessage(state, '再来').terminated).toBeNull()
+    // hydrate 也要清（会话恢复不该残留上一轮的中止提示）
+    expect(hydrateFromSession(state, [{ role: 'assistant', content: '部分结果' }]).terminated).toBeNull()
+  })
+
+  it('未触发闸的普通完成：terminated 保持 null', () => {
+    const state = applyBrainEvents(initialDigitalPanelState, [
+      { type: 'stream_done', fullText: '好的' },
+      { type: 'done', text: '好的' }
+    ])
+    expect(state.terminated).toBeNull()
+  })
+})

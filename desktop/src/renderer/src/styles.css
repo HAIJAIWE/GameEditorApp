@@ -4177,6 +4177,14 @@ button.ref-row:hover {
   font-size: calc(13px * var(--ui-font-scale) * 11/13);
 }
 
+/* M0.5 终止闸：命中计数闸时的诚实提示（本次为部分结果） */
+.digital-terminated {
+  border-top: 1px solid var(--border);
+  padding-top: 6px;
+  color: var(--warning);
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
+}
+
 .digital-step-failed .digital-step-tool {
   color: var(--danger);
 }

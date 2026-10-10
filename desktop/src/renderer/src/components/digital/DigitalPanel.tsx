@@ -514,6 +514,12 @@ export default function DigitalPanel() {
         </div>
       )}
 
+      {state.terminated !== null && (
+        <div className="digital-terminated" data-testid="digital-terminated" role="status">
+          <span className="item-meta">⏹ {state.terminated}</span>
+        </div>
+      )}
+
       {tasks.length > 0 && (
         <div className="digital-tasks" data-testid="digital-tasks">
           <span className="home-section-label">任务</span>

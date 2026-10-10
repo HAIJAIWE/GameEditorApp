@@ -39,7 +39,12 @@ import {
  */
 
 /** 已登记的服务商 key（对齐 `api_config.py:35` `MODEL_PRESETS` 的 6 个键） */
-export type LlmProvider = 'ollama' | 'openai' | 'doubao' | 'qwen' | 'claude' | 'deepseek'
+/**
+ * 服务商。`custom` = **任意 OpenAI 兼容端点**（自建网关 / 中转 / 第三方聚合等）：
+ * 走与 OpenAI 相同的 `POST {baseUrl}/chat/completions`，接口地址与模型名都由用户自填，
+ * 没有预设模型列表。其它 5 家是内置预设（切服务商会自动带入预设地址与首个模型）。
+ */
+export type LlmProvider = 'ollama' | 'openai' | 'doubao' | 'qwen' | 'claude' | 'deepseek' | 'custom'
 
 /**
  * 「非法 / 被篡改 / 旧版本残留的 provider」回落到的档位（M0 新增）。
@@ -119,6 +124,17 @@ export const LLM_PROVIDER_PRESETS: Readonly<Record<LlmProvider, LlmProviderPrese
     baseUrl: 'https://api.deepseek.com/v1',
     models: ['deepseek-chat', 'deepseek-coder'],
     requiresApiKey: true
+  },
+  /**
+   * 自定义（OpenAI 兼容）：无预设地址、无预设模型，两项都由用户自填。
+   * ⚠️ `models: []` 是**刻意**的——UI 据此不再用预设模型覆盖用户手填的模型名
+   * （见 SettingsPanel::handleProviderChange）。
+   */
+  custom: {
+    label: '自定义（OpenAI 兼容）',
+    baseUrl: '',
+    models: [],
+    requiresApiKey: true
   }
 }
 
@@ -146,7 +162,8 @@ export const LLM_PROVIDER_ORDER: readonly LlmProvider[] = [
   'doubao',
   'qwen',
   'claude',
-  'ollama'
+  'ollama',
+  'custom'
 ]
 
 /** 温度上下限（对齐 PyQt `temp_spin.setRange(0.0, 2.0)` / `setSingleStep(0.1)`） */
@@ -156,6 +173,59 @@ export const LLM_TEMPERATURE_MAX = 2
 /** 最大令牌上下限（对齐 PyQt `max_tokens_spin.setRange(1, 32000)`） */
 export const LLM_MAX_TOKENS_MIN = 1
 export const LLM_MAX_TOKENS_MAX = 32000
+
+/**
+ * Top-P（核采样）上下限。`1` = 不启用（等价于只按温度采样），故默认值取 1。
+ * 值域 0–1 与 OpenAI 规范一致。
+ */
+export const LLM_TOP_P_MIN = 0
+export const LLM_TOP_P_MAX = 1
+
+/** 单次云端/自定义请求超时（毫秒）。超时后主进程抛中文「请求超时」错误，UI 直接展示。 */
+export const LLM_REQUEST_TIMEOUT_MS = 30_000
+
+/**
+ * 单次请求超时（毫秒）。云端调用是唯一真正需要它的地方——
+ * 本地 Ollama 由 SDK 自行管理；这里给云端 fetch 挂 AbortController。
+ */
+export const LLM_TIMEOUT_MS_MIN = 5_000
+export const LLM_TIMEOUT_MS_MAX = 600_000
+
+/**
+ * 本地模型（Ollama / 本地 OpenAI 兼容端点）高级采样参数上下限。
+ *
+ * 这些参数**只在「本地档」生效**：Ollama 原生支持全部；云端 OpenAI 兼容端点只认
+ * 协议兼容的子集（temperature / top_p / max_tokens / stop / seed），
+ * `num_ctx` / `repeat_penalty` / `top_k` / `mirostat*` / `num_gpu` 是 Ollama 专属
+ * （发给云端 OpenAI/DeepSeek 等会被忽略或报错，故 client 层只对 Ollama 传这些字段）。
+ */
+export const LLM_NUM_CTX_MIN = 512
+export const LLM_NUM_CTX_MAX = 128_000
+/**
+ * 本地档上下文窗口默认值（M0.5 / DD-1）。
+ *
+ * 刻意**覆盖** Ollama 的 4096 默认：4B 模型在 4K 窗口下约第 7 轮即截断，多轮工具任务跑不完。
+ * 16384 是「够跑完一条多轮任务」与「8GB 卡装得下（模型 + KV cache）」的折中；用户可在设置里调。
+ */
+export const LLM_DEFAULT_NUM_CTX = 16_384
+export const LLM_REPEAT_PENALTY_MIN = 1
+export const LLM_REPEAT_PENALTY_MAX = 2
+export const LLM_TOP_K_MIN = 0
+export const LLM_TOP_K_MAX = 100
+/** 随机种子：-1 表示每次随机（不可复现），与 Ollama 约定一致 */
+export const LLM_SEED_MIN = -1
+export const LLM_SEED_MAX = 2_147_483_647
+export const LLM_MIROSTAT_MODE_MIN = 0
+export const LLM_MIROSTAT_MODE_MAX = 2
+export const LLM_MIROSTAT_TAU_MIN = 0
+export const LLM_MIROSTAT_TAU_MAX = 10
+export const LLM_MIROSTAT_ETA_MIN = 0
+export const LLM_MIROSTAT_ETA_MAX = 1
+/** GPU 层数：-1 表示全部上 GPU（Ollama 约定） */
+export const LLM_NUM_GPU_MIN = -1
+export const LLM_NUM_GPU_MAX = 200
+/** 停止词序列（换行分隔）的最大长度 */
+export const LLM_STOP_WORDS_MAX = 2000
 
 /**
  * 落 localStorage 的非敏感字段（**没有 apiKey**，见文件头安全说明）。
@@ -179,6 +249,29 @@ export interface StoredLlmConfig {
   baseUrl: string
   temperature: number
   maxTokens: number
+  /**
+   * 核采样（top_p）。云端 / 自定义 / 本地 Ollama 均生效。值域 [LLM_TOP_P_MIN, LLM_TOP_P_MAX]。
+   */
+  topP: number
+  /* ---- 本地模型高级采样参数（仅本地档生效；云端忽略，见各字段注释与 client.ts 的传输层分流） ---- */
+  /** 上下文窗口大小（Ollama `num_ctx`）。默认 `LLM_DEFAULT_NUM_CTX`（16384，DD-1）。 */
+  numCtx: number
+  /** 重复惩罚（Ollama `repeat_penalty`）。1 = 不惩罚，越大越抑制重复。 */
+  repeatPenalty: number
+  /** 候选词 top-k 截断（Ollama `top_k`）。0 = 不截断。 */
+  topK: number
+  /** 随机种子（Ollama `seed`）。-1 = 每次随机（不可复现）。 */
+  seed: number
+  /** Mirostat 采样模式（Ollama `mirostat`）：0=关闭，1=Mirostat，2=Mirostat 2.0。 */
+  mirostatMode: number
+  /** Mirostat 目标熵（Ollama `mirostat_tau`）。 */
+  mirostatTau: number
+  /** Mirostat 学习率（Ollama `mirostat_eta`）。 */
+  mirostatEta: number
+  /** 停止词序列（Ollama `stop`），换行分隔；存储为字符串，发送时按行拆分。 */
+  stopWords: string
+  /** 上 GPU 的层数（Ollama `num_gpu`）。-1 = 全部上 GPU。 */
+  numGpu: number
   /**
    * 保密模式（DD-0b）。为 true 时**强制使用本地 Ollama**，禁止任何云端服务商，
    * 并向用户明确告知「数据不出本机」。与云端档在 UI 上**并列**（显式开关），不是隐藏设置。
@@ -214,6 +307,18 @@ export const DEFAULT_LLM_CONFIG: StoredLlmConfig = {
   baseUrl: '',
   temperature: 0.7,
   maxTokens: 1000,
+  topP: 1,
+  // 本地模型高级采样参数默认值（对齐 Ollama 官方默认值，避免「不碰就等于服务端默认」的预期漂移）
+  // ⚠️ numCtx 例外：M0.5 / DD-1 明确**不用** Ollama 默认的 4096，显式取 LLM_DEFAULT_NUM_CTX（16384）。
+  numCtx: LLM_DEFAULT_NUM_CTX,
+  repeatPenalty: 1.1,
+  topK: 40,
+  seed: -1,
+  mirostatMode: 0,
+  mirostatTau: 5,
+  mirostatEta: 0.1,
+  stopWords: '',
+  numGpu: -1,
   confidential: false
 }
 
@@ -279,6 +384,36 @@ export function loadLlmConfig(storage: StorageLike | null = defaultStorage()): S
       DEFAULT_LLM_CONFIG.temperature
     ),
     maxTokens: clampNumber(raw.maxTokens, LLM_MAX_TOKENS_MIN, LLM_MAX_TOKENS_MAX, DEFAULT_LLM_CONFIG.maxTokens),
+    topP: clampNumber(raw.topP, LLM_TOP_P_MIN, LLM_TOP_P_MAX, DEFAULT_LLM_CONFIG.topP),
+    numCtx: clampNumber(raw.numCtx, LLM_NUM_CTX_MIN, LLM_NUM_CTX_MAX, DEFAULT_LLM_CONFIG.numCtx),
+    repeatPenalty: clampNumber(
+      raw.repeatPenalty,
+      LLM_REPEAT_PENALTY_MIN,
+      LLM_REPEAT_PENALTY_MAX,
+      DEFAULT_LLM_CONFIG.repeatPenalty
+    ),
+    topK: clampNumber(raw.topK, LLM_TOP_K_MIN, LLM_TOP_K_MAX, DEFAULT_LLM_CONFIG.topK),
+    seed: clampNumber(raw.seed, LLM_SEED_MIN, LLM_SEED_MAX, DEFAULT_LLM_CONFIG.seed),
+    mirostatMode: clampNumber(
+      raw.mirostatMode,
+      LLM_MIROSTAT_MODE_MIN,
+      LLM_MIROSTAT_MODE_MAX,
+      DEFAULT_LLM_CONFIG.mirostatMode
+    ),
+    mirostatTau: clampNumber(
+      raw.mirostatTau,
+      LLM_MIROSTAT_TAU_MIN,
+      LLM_MIROSTAT_TAU_MAX,
+      DEFAULT_LLM_CONFIG.mirostatTau
+    ),
+    mirostatEta: clampNumber(
+      raw.mirostatEta,
+      LLM_MIROSTAT_ETA_MIN,
+      LLM_MIROSTAT_ETA_MAX,
+      DEFAULT_LLM_CONFIG.mirostatEta
+    ),
+    stopWords: asString(raw.stopWords),
+    numGpu: clampNumber(raw.numGpu, LLM_NUM_GPU_MIN, LLM_NUM_GPU_MAX, DEFAULT_LLM_CONFIG.numGpu),
     confidential: asBool(raw.confidential, DEFAULT_LLM_CONFIG.confidential)
   }
 }
@@ -310,6 +445,36 @@ export function sanitizeLlmConfig(config: StoredLlmConfig): StoredLlmConfig {
       DEFAULT_LLM_CONFIG.temperature
     ),
     maxTokens: clampNumber(config.maxTokens, LLM_MAX_TOKENS_MIN, LLM_MAX_TOKENS_MAX, DEFAULT_LLM_CONFIG.maxTokens),
+    topP: clampNumber(config.topP, LLM_TOP_P_MIN, LLM_TOP_P_MAX, DEFAULT_LLM_CONFIG.topP),
+    numCtx: clampNumber(config.numCtx, LLM_NUM_CTX_MIN, LLM_NUM_CTX_MAX, DEFAULT_LLM_CONFIG.numCtx),
+    repeatPenalty: clampNumber(
+      config.repeatPenalty,
+      LLM_REPEAT_PENALTY_MIN,
+      LLM_REPEAT_PENALTY_MAX,
+      DEFAULT_LLM_CONFIG.repeatPenalty
+    ),
+    topK: clampNumber(config.topK, LLM_TOP_K_MIN, LLM_TOP_K_MAX, DEFAULT_LLM_CONFIG.topK),
+    seed: clampNumber(config.seed, LLM_SEED_MIN, LLM_SEED_MAX, DEFAULT_LLM_CONFIG.seed),
+    mirostatMode: clampNumber(
+      config.mirostatMode,
+      LLM_MIROSTAT_MODE_MIN,
+      LLM_MIROSTAT_MODE_MAX,
+      DEFAULT_LLM_CONFIG.mirostatMode
+    ),
+    mirostatTau: clampNumber(
+      config.mirostatTau,
+      LLM_MIROSTAT_TAU_MIN,
+      LLM_MIROSTAT_TAU_MAX,
+      DEFAULT_LLM_CONFIG.mirostatTau
+    ),
+    mirostatEta: clampNumber(
+      config.mirostatEta,
+      LLM_MIROSTAT_ETA_MIN,
+      LLM_MIROSTAT_ETA_MAX,
+      DEFAULT_LLM_CONFIG.mirostatEta
+    ),
+    stopWords: asString(config.stopWords),
+    numGpu: clampNumber(config.numGpu, LLM_NUM_GPU_MIN, LLM_NUM_GPU_MAX, DEFAULT_LLM_CONFIG.numGpu),
     confidential: asBool(config.confidential, DEFAULT_LLM_CONFIG.confidential)
   }
 }
@@ -320,7 +485,11 @@ export function sanitizeLlmConfig(config: StoredLlmConfig): StoredLlmConfig {
  * 所有决定「走云端还是本地」的代码都必须用这个函数，不能直接读 `config.provider`。
  */
 export function effectiveProvider(config: StoredLlmConfig): LlmProvider {
-  if (config.confidential) return 'ollama'
+  // 本地档（DD-0b）：保留用户选的「本地 provider」——Ollama 原生，或自定义（OpenAI 兼容的
+  // 本地端点，如 LM Studio / vLLM / llama.cpp / Ollama 的 /v1）。「不一定是 Ollama」，
+  // 用户自己的机器上跑什么本地服务都能接。**只有云端 provider**（deepseek/openai/doubao/qwen/claude）
+  // 在本地档仍回落 Ollama，避免把数据误发到第三方域名（数据不出本机的最后兜底）。
+  if (config.confidential && config.provider !== 'ollama' && config.provider !== 'custom') return 'ollama'
   return config.provider
 }
 
@@ -332,10 +501,12 @@ export function isCloudProvider(config: StoredLlmConfig): boolean {
 /** 生效的接口地址：用户填了用用户的，否则用服务商预设（对齐 PyQt 选服务商即自动填） */
 export function resolveLlmBaseUrl(config: StoredLlmConfig): string {
   const trimmed = config.baseUrl.trim()
-  // ⚠️ DD-0b 保密模式：stored.baseUrl 可能是云端地址（如 api.deepseek.com），
-  // 对本地 Ollama **毫无意义**，若沿用会让 Ollama 客户端去连云端域名 ⇒ 一律忽略。
-  if (trimmed !== '' && !config.confidential) return trimmed
-  return LLM_PROVIDER_PRESETS[effectiveProvider(config)].baseUrl
+  const provider = effectiveProvider(config)
+  // Ollama 主机标准且可由环境变量（MB_OLLAMA_HOST）注入，地址固定派生（localhost:11434），
+  // 不靠用户手填；其余（含本地**自定义** OpenAI 兼容端点）一律以用户填写的地址为准——
+  // 这正是「本地可以是 Ollama 之外的其他服务」的落点。
+  if (trimmed !== '' && provider !== 'ollama') return trimmed
+  return LLM_PROVIDER_PRESETS[provider].baseUrl
 }
 
 /**
@@ -363,15 +534,21 @@ export function resolveLlmBaseUrl(config: StoredLlmConfig): string {
  */
 export const LLM_MESSAGES = {
   notConfigured:
-    '尚未配置 AI 服务：请到「设置 → AI 模型服务」选择服务商并填写 API Key；若你的设计稿不便上传云端，可一键启用「保密模式」，全部 AI 调用只在本机运行。',
+    '尚未配置 AI 服务：请到「设置 → AI 模型服务」选择服务商并填写 API Key；若你的设计稿不便上传云端，可在「模型来源」里切换到「本地」，全部 AI 调用只在本机运行。',
   disabled: '未启用 API，请先到「设置 → AI 模型服务」勾选「启用 API」',
   claudeUnsupported:
     'Claude（Anthropic）使用 Anthropic Messages API，与 OpenAI 协议不兼容，本版暂未接入。请改用 OpenAI / 豆包 / Qwen / DeepSeek。',
   ollamaNoModel: '未检测到本地模型。请先在命令行执行 ollama pull qwen3:8b 拉取模型后重试。',
   cloudDisabled: (label: string) =>
-    `未启用 API，请先到「设置 → AI 模型服务」勾选「启用 API」并为「${label}」选择或填写模型；若只想在本机处理，可改用 Ollama 或开启「保密模式」（数据不出本机）。`,
+    `未启用 API，请先到「设置 → AI 模型服务」勾选「启用 API」并为「${label}」选择或填写模型；若只想在本机处理，可改用 Ollama 或在「模型来源」里切换到「本地」（数据不出本机）。`,
   ollamaNotRunning: (host: string) =>
-    `未检测到本地 Ollama 服务。请先在命令行执行 ollama serve 启动（地址 ${host}），或确认该地址与设置中的接口地址一致。`
+    `未检测到本地 Ollama 服务。请先在命令行执行 ollama serve 启动（地址 ${host}），或确认该地址与设置中的接口地址一致。`,
+  /**
+   * 触发限流（E61）。对齐 Python `common/ai_client.py` 的三处文案
+   * （"请求过于频繁，请稍后再试" / "流式请求过于频繁…" / "视觉请求过于频繁…"）。
+   * Python 触发限流时**拒绝请求**，不是静默放行 —— 静默放行使限流形同虚设，故 TS 同样抛错。
+   */
+  rateLimited: 'AI 请求过于频繁，已触发限流保护。请稍候几秒后重试。'
 } as const
 
 /**
@@ -386,6 +563,10 @@ export function validateLlmConfig(config: StoredLlmConfig): string | null {
     // Key 不在本结构里（走 safeStorage），这里只校验「该服务商是否需要 Key」这一事实，
     // 真正的 Key 存在性由主进程用 secretStore 判定，不在渲染层凭空猜。
     if (config.model.trim() === '') return `请先为「${preset.label}」选择或填写模型`
+  }
+  // 自定义（OpenAI 兼容）：无预设接口地址，必须由用户自填，否则请求会落到空 URL。
+  if (effectiveProvider(config) === 'custom' && config.baseUrl.trim() === '') {
+    return '自定义平台需要填写接口地址'
   }
   return null
 }
@@ -489,7 +670,7 @@ const GUIDE_NEVER_CONFIGURED_TITLE = '尚未配置 AI 服务'
 const GUIDE_NEVER_CONFIGURED_BODY =
   '当前所有 AI 功能（策划书生成、数据批量生成、字段 AI）都不可用。请选择一种方式：\n' +
   '① 云端（推荐）：在下方选择服务商并填入 API Key，按 token 计费、模型能力更强。\n' +
-  '② 保密模式：一键启用本地 Ollama，数据不出本机、零 API 费用，但需自备本地模型。\n' +
+  '② 本地：在「模型来源」切到本地 Ollama，数据不出本机、零 API 费用，但需自备本地模型。\n' +
   '（无论选哪种，都需要先在上方「模型」栏选定一个模型。）'
 
 /** `disabled` 的纯提示（不加大按钮、不引导改服务商 —— 用户是主动关的，别啰嗦） */

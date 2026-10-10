@@ -1,6 +1,6 @@
 # 智能体框架重写设计（E59 起）
 
-> **状态**：v1.1（**已重写**，取代 v0.1~v0.4）。**M0 档位纠正 / M1 观测先行 / M5 成本护栏 / M6 保密模式 / DD-17 / DD-19 均已落地**；M0.5、M2、M2.5、M3 待做。
+> **状态**：v1.2（**已重写**，取代 v0.1~v0.4）。**M0 档位纠正 / M0.5 本地上下文与终止 / M1 观测先行 / M5 成本护栏 / M6 保密模式 / DD-17 / DD-19 均已落地**；M2、M2.5、M3 待做。
 > **动因**：E42 裁决「`core/agent` 域停止 1:1 迁移，改为框架重写」——方向定了，架构未定。
 >
 > **修订记录（四次纠错，全部记录在案）**
@@ -44,6 +44,11 @@
 > - **v1.0 → v1.1**（本次会话）：落地 **M1 观测先行（G3）**。目标是"**先有数据再调提示词**"——把每轮 LLM 调用的档位/模型/token/延迟/工具数固化成可累加、可序列化的**纯数据**。新增纯模块 `shared/agent/observability.ts`（`AgentTurnStat` 单轮 + `AgentRunStats` 累计 + `emptyAgentRunStats`/`turnStatFromReply`/`accumulateTurn` 三个纯函数，不依赖 Electron/DOM，Node 可完整单测）；`brain.ts` 的 `BrainLlmReply` 增 `model?`/`usage?`、`BrainRunResult` 增 `stats`、`BrainEvent` 增 `turn_stats` 变体，`runBrainLoop` 每轮测延迟、累加 usage/toolCalls 并发 `turn_stats`（**三处 return 都带 `stats`**）；`ollamaTransport.ts` 解析最终 chunk 的 `prompt_eval_count`/`eval_count` 回报 `usage`+`model`（两值皆 0 时 `usage` 为 `undefined`，**不伪造零值**）；IPC `agent:chat.res` 增 `stats`；面板 `DigitalPanelState` 增 `runStats`（每轮重置）并在 `reduceBrainEvent` 归约 `turn_stats`，`DigitalPanel` 渲染「本次消耗」行（补 `.digital-run-stats` CSS，否则裸文本）。
 >   ⚠️ **范围判定**：M1 **只观测、不调优**——档位路由（`resolveLlmTier`）与本地 `num_ctx` 下发属 **M3**；`tier` 字段是**预留位**（M3 前恒 `local`），数据形状已就位届时只填值不改结构。**不做**单独的"已用轮次/上限"读条（本地档由 `maxIterations` 默认 8 + `turn_stats` 轮号间接可见，避免与 M3 档位限量重复设计）。
 >   ⇒ 新增单测 `agentObservability.test.ts`（6 例：锁累加代数——不可变 / 空值回落 / 末轮模型覆盖 / tier 末轮为准）+ `ollamaTransport.test.ts`（3 例：锁 token 解析与 usage 缺失不伪造）；`agentBrain.test.ts`（+3 M1 例，并给既有事件序列断言补 `turn_stats`）/`agentPanel.test.ts`（+2）扩展；e2e `agent-brain-chat.spec.ts` 事件序列同步补 `turn_stats`。vitest 全量 **125 文件 / 1938 用例 passed**；`npm run typecheck` 0 错（node+web）+ eslint 0 + CSS 审计（仅 5 处已知模板噪声）+ `npm run build` 通过。
+> - **v1.1 → v1.2**（本次会话）：落地 **M0.5 本地档上下文与终止（G1 + G4）**。
+>   **G1（num_ctx）**：新增具名常量 `LLM_DEFAULT_NUM_CTX = 16384` 作单一来源，`DEFAULT_LLM_CONFIG.numCtx` 由 4096 抬到它（DD-1：显式覆盖 Ollama 默认，4B 在 4K 窗口约第 7 轮即截断）；数字员工对话面 `main/agent/ollamaTransport.ts` 此前**完全没发 `num_ctx`**，本版补上（缺省 `LLM_DEFAULT_NUM_CTX`，可注入覆盖）。
+>   **G4（终止闸）**：`brain.ts` 把原 `maxIterations` 明确为 **`maxTurns`（默认 6）**，并新增 **`maxToolCalls`（默认 8）/ `wallClockMs`（默认 120s）** 两道计数硬闸；任一命中即**带部分产出 finalize**（`completed: true`）并发 `terminated` 事件，`BrainRunResult` 增 `stopReason`。**有意保协议合法**：工具闸命中时仍为每个 `tool_call` 补一条 `[STOP]` tool 消息（避免留下「assistant 有 tool_calls 却无 tool 结果」的非法序列）。面板加「终止提示」行（`digital-terminated`）。
+>   ⚠️ **范围判定**：DD-5 的三闸阈值（6/8/120s）本版**两档共用**（云端放宽属 M3 档位路由）；`num_ctx` 仅本地档（云端 OpenAI 兼容端点不发本地推理参数，`client.ts` 已有此分流）。
+>   ⇒ 单测：`agentBrain` +6（三闸各自触发/不误伤正常完成/部分产出/stopReason/协议合法）、`ollamaTransport` +2（num_ctx 缺省与可覆盖）、`agentPanel` +2（terminated 记录与重置）、`llmConfig` +1（numCtx 默认单点锁死）。vitest 全量 **125 文件 / 1949 用例 passed**；tsc 0（node+web）+ eslint 0 + CSS 审计（仅 5 处已知模板噪声）+ `npm run build` 通过（CSS 110.23→110.48 kB）。
 >
 > **证据强度标注**（全文通用）：
 > `[实测]` 本机/本仓跑出来的 · `[一手]` 模型厂商官方文档 · `[GitHub]` 直接抓成熟框架仓库所得 · `[二手]` 第三方文章/实测（附出处）· `[推断]` 我的推理，未直接验证
@@ -443,6 +448,22 @@ SOUL 硬边界、turn limit、MCP、`shared/` 分层契约、**6 家服务商的
 
 > **为什么 M1 先于 M2/M3**：没有每轮 token/延迟真值，提示词瘦身（M2）与工具面限量（M3，D4 的"上限本身要能用观测数据调"）都是**盲调**。本版把"实际发生多少"固化进 `AgentRunStats`，即 DD-10 观测项的数据源。
 
+### 5.5.10 实现记录（v1.2）：M0.5 本地档上下文与终止（G1 + G4）
+
+| 项 | 落地 |
+|---|---|
+| `shared/llmConfig.ts`（改，G1 真根） | 新增具名常量 **`LLM_DEFAULT_NUM_CTX = 16_384`**；`DEFAULT_LLM_CONFIG.numCtx` 由 `4096` 改为引用该常量。**这是 G1 的真根**：此前默认 4096 = Ollama 官方默认，等于"没改"；本地 4B 的 4K 上下文会频繁截断会话。⚠️ **枚举依赖旧值的路径后确认单点**：`llmConfig.ts` 是唯一定义处；zod schema `numCtx` **无 `.default()`**（缺键即回落 `DEFAULT_LLM_CONFIG.numCtx`）；`loadLlmConfig`/`sanitizeLlmConfig` 以常量做钳制回退；`SettingsPanel` 从配置读；无测试断言旧值 |
+| `main/agent/ollamaTransport.ts`（改，G1 下发） | `OllamaChatTransportOptions` 增 `numCtx?`；请求体 options 显式下发 `num_ctx: this.options.numCtx ?? LLM_DEFAULT_NUM_CTX`。**本地档专用**——云端 OpenAI 兼容端点不发本地推理参数（`client.ts` 已有此分流）。头注更正为"接档位路由属 M3；但 `num_ctx` 已在 M0.5 落地" |
+| `shared/agent/brain.ts`（改，G4，本版最大改动） | 新增 `BrainStopReason = 'final' \| 'max_turns' \| 'max_tool_calls' \| 'wall_clock' \| 'no_tools' \| 'unresolvable_tools' \| 'transport_error'`；`BrainRunResult` 增 `stopReason`；`BrainEvent` 增 `terminated` 变体。**语义修正**：原 `maxIterations`（默认 8）明确为 **`maxTurns`（默认 6）**，并新增 **`maxToolCalls`（默认 8）/ `wallClockMs`（默认 120s）**（≤0 = 不限）；纯函数 `terminationDetail(reason, limits)` 产出中文提示。三道闸命中 → **带部分产出 finalize**（`completed:true` + 已生成文本），并非丢弃 |
+| ⚠️ 协议合法性（有意偏离 Python） | `maxToolCalls` 闸**放在** `messages.push(buildAssistantMessage(reply))` 与 `step_start` 之后：被跳过的这批 tool_call **仍逐个补 `[STOP]` tool 消息**再 `break`，避免出现"assistant 带 tool_calls 却无 tool 结果"的**非法序列**（会破坏会话续接）。单测以 `toolIds === ['c1','c2']` 锁死。G4 语义：**"提示词说别重试"无用，计数闸才有效** |
+| `main/agent/brainService.ts`（改） | 依赖项 `maxIterations?`→`maxTurns?`，新增 `maxToolCalls?`/`wallClockMs?`；调用处用条件展开透传（`undefined` 时不覆盖默认） |
+| `shared/agent/panel.ts`（改） | `DigitalPanelState` 增 `terminated: string \| null`（init `null`，`submitUserMessage`/`hydrateFromSession` 均重置）；`reduceBrainEvent` 新增 `terminated` case |
+| `renderer/DigitalPanel.tsx` + `styles.css` | 终止提示行（`digital-terminated`：`⏹ <detail>`，仅非 null 显示）；补 `.digital-terminated` CSS（否则类是写了但无规则 ⇒ 裸文本） |
+| 测试 | 新增 `agentBrain.test.ts` 终止闸 6 例（max_turns / max_tool_calls 批量不执行 + 协议合法性 / 恰好达限仍执行 / wall_clock / 正常 final 无 terminated / unresolvable_tools）；`ollamaTransport.test.ts` +2（默认 = 16384 / 覆盖 8192）；`llmConfig.test.ts` +1（**单点锁** `LLM_DEFAULT_NUM_CTX === 16384 && DEFAULT_LLM_CONFIG.numCtx === LLM_DEFAULT_NUM_CTX`）；`agentPanel.test.ts` +2。vitest 全量 **125 文件 / 1949 用例 passed**；tsc 0（node+web）+ eslint 0 + CSS 审计仅已知模板噪声 + build 通过（CSS 110.23→110.48 kB） |
+| 范围判定 | DD-5 的三闸阈值（6/8/120s）本版**两档共用**（云端放宽属 M3 档位路由）；`num_ctx` 仅本地档。**不做**云端档的独立闸值，留 M3 |
+
+> **为什么 M0.5 紧跟 M1**：M1 给了"实际发生多少"的数据，M0.5 才让本地档"**能撑住多少**"变得可控——4K 上下文截断（G1）与**无终止闸时无限重试**（G4）是本地档两个最先撞墙的点。三闸是**计数真闸**而非提示词约定，命中即**带部分产出**优雅收尾。
+
 ---
 
 ## 6. 选型：不引入 agent 框架（结论不变，依据更硬）
@@ -555,7 +576,7 @@ data/libraries/<库>/.workspace/
 | 期 | 目标 | 档位 | 出口（可验收） | 规模 |
 |---|---|---|---|---|
 | **M0 档位纠正** ⭐ | 修 **G0**（最高优先） | 两档 | 默认走云端；未配置**不再静默回落 ollama**而是引导配置 + 提供「一键启用保密模式」；`client.ts:144` 硬编码 `ollama pull` 文案按档位分别给出正确指引 | ✅ 已落地（v0.10，~150 行，见修订记录"补记 v0.10"） |
-| **M0.5 本地档上下文与终止** | 修 G1 + G4 | 本地 | `num_ctx` 可配且有默认 16384；三道计数闸生效；触发后带部分产出 finalize 并诚实显示 | ~200 行 |
+| **M0.5 本地档上下文与终止** | 修 G1 + G4 | 本地 | `num_ctx` 可配且有默认 16384；三道计数闸生效；触发后带部分产出 finalize 并诚实显示 | ✅ 已落地（v1.2，~200 行 + 单测 11 例，见 §5.5.10） |
 | **M1 观测先行** ⭐ | 修 G3 | 两档 | 每轮有档位/模型/token/延迟/成本行；面板可见"已用轮次"；**先有数据再调提示词** | ✅ 已落地（v1.1，~150 行 + 单测 9 例，见 §5.5.9） |
 | **M2 提示词瘦身** | 修 G7 + DD-6 | 两档 | `identity.md` ≤30 行断言转绿；`CAPABILITIES.md` 改渐进披露；单测跑 8 类典型请求，工具调用成功率 ≥80% | ~300 行 |
 | **M2.5 步数预算** | 修 DD-15 | 两档 | 每个动作可串联多工具；补 ≥2 个高频**复合工具**；单跑同一任务**步数下降 ≥20%** | ~200 行 |

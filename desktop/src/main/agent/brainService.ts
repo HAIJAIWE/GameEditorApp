@@ -9,7 +9,7 @@
  */
 
 import {
-  DEFAULT_MAX_ITERATIONS,
+  DEFAULT_MAX_TURNS,
   runBrainLoop,
   type BrainApprover,
   type BrainEvent,
@@ -57,7 +57,12 @@ export interface AgentBrainServiceDeps {
   dispatcher: SkillDispatcher
   /** LLM 传输层；缺省用 Ollama `/api/chat` */
   transport?: BrainLlmTransport
-  maxIterations?: number
+  /** 最大 LLM 轮数（DD-5 maxTurns）；缺省 `DEFAULT_MAX_TURNS` */
+  maxTurns?: number
+  /** 累计工具调用上限（DD-5 maxToolCalls）；缺省 `DEFAULT_MAX_TOOL_CALLS` */
+  maxToolCalls?: number
+  /** 墙钟上限（毫秒，DD-5 wallClockMs）；缺省 `DEFAULT_WALL_CLOCK_MS` */
+  wallClockMs?: number
   /** 危险操作审批回调（A1-4 接入；缺省 → 危险操作一律拒绝） */
   requestApproval?: BrainApprover
   /** 会话持久化（A1-3）；缺省不落盘 */
@@ -134,7 +139,9 @@ export class AgentBrainService {
       transport: this.transport,
       runner: this.deps.runner ?? createDispatcherToolRunner(this.deps.dispatcher),
       tools: this.deps.dispatcher.toolsJsonSchema(),
-      maxIterations: this.deps.maxIterations ?? DEFAULT_MAX_ITERATIONS,
+      maxTurns: this.deps.maxTurns ?? DEFAULT_MAX_TURNS,
+      ...(this.deps.maxToolCalls !== undefined ? { maxToolCalls: this.deps.maxToolCalls } : {}),
+      ...(this.deps.wallClockMs !== undefined ? { wallClockMs: this.deps.wallClockMs } : {}),
       ...(requestApproval ? { requestApproval } : {}),
       ...(options.requestInteraction ? { requestInteraction: options.requestInteraction } : {}),
       ...(options.newRequestId ? { newRequestId: options.newRequestId } : {}),

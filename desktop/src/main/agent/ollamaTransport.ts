@@ -12,10 +12,11 @@
  * 不读 `confidential`、不走 `resolveLlmTier`。用户在这里改不动、在这里也看不到，
  * 改完设置发现本对话面没变化是**预期行为**。
  * 之所以在错误文案里明说这一点，是为了不给用户「设置没生效」的错觉（那才是真误导）。
- * 接档位路由属 M3；现在接会提前烧掉 M0.5 的 `num_ctx` 设计空间。
+ * 接档位路由属 M3；但 **`num_ctx` 已在 M0.5 落地**——本层即本地档，显式下发
+ * `LLM_DEFAULT_NUM_CTX`（16384）覆盖 Ollama 的 4096 默认，让多轮工具任务不被 4K 窗口截断。
  */
 
-import { LLM_MESSAGES, type LlmUsage } from '../../shared/llmConfig'
+import { LLM_DEFAULT_NUM_CTX, LLM_MESSAGES, type LlmUsage } from '../../shared/llmConfig'
 import {
   parseToolArguments,
   type BrainLlmReply,
@@ -30,6 +31,8 @@ export interface OllamaChatTransportOptions {
   host?: string
   model?: string
   temperature?: number
+  /** 上下文窗口（Ollama `num_ctx`）；缺省 `LLM_DEFAULT_NUM_CTX`（DD-1） */
+  numCtx?: number
 }
 
 interface OllamaChatChunk {
@@ -74,7 +77,11 @@ export class OllamaChatTransport implements BrainLlmTransport {
       messages: request.messages,
       tools: request.tools,
       stream: true,
-      options: { temperature: this.options.temperature ?? 0.7 }
+      options: {
+        temperature: this.options.temperature ?? 0.7,
+        // M0.5 / DD-1：显式下发 num_ctx，避免 Ollama 默认 4096 把多轮任务截断
+        num_ctx: this.options.numCtx ?? LLM_DEFAULT_NUM_CTX
+      }
     })
 
     let response: Response

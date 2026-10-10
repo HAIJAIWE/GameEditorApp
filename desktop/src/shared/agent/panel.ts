@@ -73,6 +73,8 @@ export interface DigitalPanelState {
   seq: number
   /** M1 观测：本轮运行的累计消耗（每次新发送时重置） */
   runStats: AgentRunStats
+  /** M0.5 终止闸：命中计数闸时的诚实提示文案（每次新发送时重置；null = 未触发） */
+  terminated: string | null
 }
 
 export const initialDigitalPanelState: DigitalPanelState = {
@@ -84,7 +86,8 @@ export const initialDigitalPanelState: DigitalPanelState = {
   status: 'idle',
   error: null,
   seq: 0,
-  runStats: emptyAgentRunStats()
+  runStats: emptyAgentRunStats(),
+  terminated: null
 }
 
 /** 任务列表摘要最大长度（超出截断，避免面板被长结果撑爆） */
@@ -103,7 +106,8 @@ export function submitUserMessage(state: DigitalPanelState, text: string): Digit
     interaction: null,
     status: 'thinking',
     error: null,
-    runStats: emptyAgentRunStats()
+    runStats: emptyAgentRunStats(),
+    terminated: null
   }
 }
 
@@ -171,6 +175,9 @@ export function reduceBrainEvent(state: DigitalPanelState, event: BrainEvent): D
           toolCalls: event.toolCalls
         })
       }
+    case 'terminated':
+      // M0.5：命中计数闸 → 记住诚实提示（状态仍由随后的 done/error 决定）
+      return { ...state, terminated: event.detail }
     case 'done': {
       const text = event.text
       const seq = text.trim() === '' ? state.seq : state.seq + 1
@@ -267,6 +274,7 @@ export function hydrateFromSession(
     approval: null,
     interaction: null,
     status: 'idle',
-    error: null
+    error: null,
+    terminated: null
   }
 }

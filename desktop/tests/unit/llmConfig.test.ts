@@ -9,6 +9,7 @@ import {
   isCloudProvider,
   isLlmProvider,
   LLM_CONFIG_KEY,
+  LLM_DEFAULT_NUM_CTX,
   LLM_MAX_TOKENS_MAX,
   LLM_MESSAGES,
   LLM_PROVIDER_ORDER,
@@ -42,10 +43,10 @@ function memStorage(initial: Record<string, string> = {}): StorageLike & { dump:
 }
 
 describe('LLM_PROVIDER_PRESETS：逐条对齐 Python api_config.py:35-100', () => {
-  it('6 个服务商齐全，且顺序是产品决策「云端在前、ollama 末位」（DD-0）', () => {
+  it('7 个服务商齐全，且顺序是产品决策「云端在前、ollama 末位、custom 收尾」（DD-0）', () => {
     // ⚠️ 顺序**不是**「对齐 PyQt MODEL_PRESETS 声明顺序」，那是 M0 之前的状态。
     // 现为产品裁定的云端优先（勿以「迁移保真」为由改回，见 shared/llmConfig.ts 的注释）。
-    expect([...LLM_PROVIDER_ORDER]).toEqual(['deepseek', 'openai', 'doubao', 'qwen', 'claude', 'ollama'])
+    expect([...LLM_PROVIDER_ORDER]).toEqual(['deepseek', 'openai', 'doubao', 'qwen', 'claude', 'ollama', 'custom'])
   })
 
   it('各服务商的 baseUrl 与模型清单对齐 Python 真源', () => {
@@ -159,6 +160,16 @@ describe('loadLlmConfig：容错读取', () => {
       baseUrl: 'https://api.deepseek.com/v1',
       temperature: 1.2,
       maxTokens: 4000,
+      topP: 1,
+      numCtx: 8192,
+      repeatPenalty: 1.2,
+      topK: 50,
+      seed: 42,
+      mirostatMode: 0,
+      mirostatTau: 5,
+      mirostatEta: 0.1,
+      stopWords: '',
+      numGpu: -1,
       confidential: false
     }
     const s = memStorage({ [LLM_CONFIG_KEY]: JSON.stringify(stored) })
@@ -186,6 +197,12 @@ describe('loadLlmConfig：容错读取', () => {
     const s = memStorage({ [LLM_CONFIG_KEY]: JSON.stringify(stored) })
     expect(loadLlmConfig(s).confidential).toBe(true)
   })
+
+  // M0.5 / DD-1：单点锁死 numCtx 默认值（防「有人改回 4096」这类静默回退，与 provider 锁定同一取向）
+  it('numCtx 默认 = 16384（显式覆盖 Ollama 的 4096 默认）', () => {
+    expect(LLM_DEFAULT_NUM_CTX).toBe(16_384)
+    expect(DEFAULT_LLM_CONFIG.numCtx).toBe(LLM_DEFAULT_NUM_CTX)
+  })
 })
 
 describe('saveLlmConfig：安全硬约束 —— apiKey 绝不入库', () => {
@@ -207,7 +224,7 @@ describe('saveLlmConfig：安全硬约束 —— apiKey 绝不入库', () => {
     expect(loaded.apiKey).toBeUndefined()
   })
 
-  it('只写白名单里的 7 个字段，不夹带额外键', () => {
+  it('只写白名单里的 8 个字段，不夹带额外键', () => {
     const s = memStorage()
     const dirty = { ...DEFAULT_LLM_CONFIG, extra: 'x', nested: { a: 1 } } as unknown as StoredLlmConfig
     saveLlmConfig(dirty, s)
@@ -217,9 +234,19 @@ describe('saveLlmConfig：安全硬约束 —— apiKey 绝不入库', () => {
       'confidential',
       'enabled',
       'maxTokens',
+      'mirostatEta',
+      'mirostatMode',
+      'mirostatTau',
       'model',
+      'numCtx',
+      'numGpu',
       'provider',
-      'temperature'
+      'repeatPenalty',
+      'seed',
+      'stopWords',
+      'temperature',
+      'topK',
+      'topP'
     ])
   })
 
@@ -231,6 +258,16 @@ describe('saveLlmConfig：安全硬约束 —— apiKey 绝不入库', () => {
       baseUrl: 'u',
       temperature: -5,
       maxTokens: 0,
+      topP: 2,
+      numCtx: 1,
+      repeatPenalty: 99,
+      topK: 999,
+      seed: 5,
+      mirostatMode: 9,
+      mirostatTau: 99,
+      mirostatEta: 99,
+      stopWords: 'x',
+      numGpu: 999,
       confidential: true
     }
     expect(sanitizeLlmConfig(dirty)).toEqual({
@@ -238,8 +275,18 @@ describe('saveLlmConfig：安全硬约束 —— apiKey 绝不入库', () => {
       provider: 'ollama',
       model: 'm',
       baseUrl: 'u',
-      temperature: LLM_TEMPERATURE_MIN,
+      temperature: 0,
       maxTokens: 1,
+      topP: 1,
+      numCtx: 512,
+      repeatPenalty: 2,
+      topK: 100,
+      seed: 5,
+      mirostatMode: 2,
+      mirostatTau: 10,
+      mirostatEta: 1,
+      stopWords: 'x',
+      numGpu: 200,
       confidential: true
     })
   })
@@ -428,7 +475,9 @@ describe('M0 resolveLlmTier：档位判定的唯一真源', () => {
     for (const p of LLM_PROVIDER_ORDER) {
       for (const confidential of [false, true]) {
         const cfg: StoredLlmConfig = { ...DEFAULT_LLM_CONFIG, provider: p, confidential }
-        const expected = effectiveProvider(cfg) === 'ollama' ? 'local' : 'cloud'
+        // 本地档（confidential）也可以是「自定义 OpenAI 兼容端点」，引擎是 custom 而非 ollama，
+        // 但档位仍是 local——故判据是「confidential 或 ollama」，而非 effectiveProvider == 'ollama'。
+        const expected = cfg.confidential || cfg.provider === 'ollama' ? 'local' : 'cloud'
         expect(resolveLlmTier(cfg)).toBe(expected)
       }
     }
@@ -443,6 +492,16 @@ describe('M0 llmSetupState：四态真值表', () => {
     baseUrl: '',
     temperature: 0.7,
     maxTokens: 1000,
+    topP: 1,
+    numCtx: 4096,
+    repeatPenalty: 1.1,
+    topK: 40,
+    seed: -1,
+    mirostatMode: 0,
+    mirostatTau: 5,
+    mirostatEta: 0.1,
+    stopWords: '',
+    numGpu: -1,
     confidential: false
   }
 
@@ -485,6 +544,16 @@ describe('M0 llmSetupGuide：引导内容与按钮可见性', () => {
     baseUrl: '',
     temperature: 0.7,
     maxTokens: 1000,
+    topP: 1,
+    numCtx: 4096,
+    repeatPenalty: 1.1,
+    topK: 40,
+    seed: -1,
+    mirostatMode: 0,
+    mirostatTau: 5,
+    mirostatEta: 0.1,
+    stopWords: '',
+    numGpu: -1,
     confidential: false
   }
 
@@ -503,7 +572,7 @@ describe('M0 llmSetupGuide：引导内容与按钮可见性', () => {
   it('never-configured 的正文写清了 3 步（含「先选模型」这一步）', () => {
     const { body } = llmSetupGuide(DEFAULT_LLM_CONFIG, false)
     expect(body).toContain('云端')
-    expect(body).toContain('保密模式')
+    expect(body).toContain('本地')
     expect(body).toContain('模型')
   })
 
@@ -582,9 +651,19 @@ describe('M0 buildConfidentialConfig：一键切本地档', () => {
       'confidential',
       'enabled',
       'maxTokens',
+      'mirostatEta',
+      'mirostatMode',
+      'mirostatTau',
       'model',
+      'numCtx',
+      'numGpu',
       'provider',
-      'temperature'
+      'repeatPenalty',
+      'seed',
+      'stopWords',
+      'temperature',
+      'topK',
+      'topP'
     ])
   })
 })
