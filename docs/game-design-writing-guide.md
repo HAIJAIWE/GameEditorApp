@@ -1,7 +1,5 @@
-> ⚠️ **本文档描述的是已移除的 Python 版（PyQt6），该版本已于 2026-10-10 整体退场。**
-> 现役产品是 [`desktop/`](../desktop) 下的 TypeScript + Electron 版，设计文档在 [`desktop/docs/`](../desktop/docs)。
-> 本文档仅作历史/考古参考：其中所有代码路径、类名、命令均指向已被删除的 Python 源码，**请勿据此开发**。
-> Python 全量源码可从 git tag **`python-final`** 取回。
+> 📌 **本文档是「游戏策划案通用写作方法论」，与具体技术栈无关，是策划书（GDD）系统（`desktop/` TypeScript 版）所遵循的写作标准。** 现役工具已把其中的「标准结构」自动化为 [ceshu 模块的 16 章 / 5 区结构](./ceshu-user-guide.md)；本文档主要用于：调整 AI 生成策划书的风格/结构，或作为真人策划的写作规范参考。
+> 注：Python 版（PyQt6）已于 2026-10-10 整体退场，但本文档是**内容方法论**、不绑定任何代码路径，故作为现役写作规范保留。如需 Python 源码考古，可从 git tag **`python-final`** 取回。
 
 # 面向 LLM 与真人的游戏策划案通用写作指南
 

@@ -1,123 +1,119 @@
-> ⚠️ **本文档描述的是已移除的 Python 版（PyQt6），该版本已于 2026-10-10 整体退场。**
-> 现役产品是 [`desktop/`](../desktop) 下的 TypeScript + Electron 版，设计文档在 [`desktop/docs/`](../desktop/docs)。
-> 本文档仅作历史/考古参考：其中所有代码路径、类名、命令均指向已被删除的 Python 源码，**请勿据此开发**。
-> Python 全量源码可从 git tag **`python-final`** 取回。
-
 # 总体架构
 
-> 📌 **这是什么**：项目代码结构的总览图，说明每层（UI/核心/公共/安全/部署）的分工和数据流。
-> **什么时候用**：想理解整个项目怎么组织的、加新功能该放哪个目录。`
+> 📌 **这是什么**：项目代码结构的总览图，说明 `desktop/` 的每一层（`shared` / `main` / `preload` / `renderer`）分工与数据流。
+> **什么时候用**：想理解整个产品怎么组织、加新功能该放哪个目录时查阅。
 
 ## 架构概览
 
-GameEditorApp 是基于 PyQt6 的游戏数据编辑器，采用分层架构：
+墨白可视化编辑（`desktop/`）是基于 **Electron 44 + React 19 + TypeScript** 的游戏数据与策划书编辑器，采用四层清晰分工：
 
 ```
-┌─────────────────────────────────────────┐
-│              UI 层 (src/ui)              │
-│   main_window / ceshu / data_tab / ...  │
-├─────────────────────────────────────────┤
-│            核心 层 (src/core)            │
-│   ceshu / agent / type_schema / data    │
-├─────────────────────────────────────────┤
-│           公共 层 (src/common)           │
-│   logger / i18n / cache / event_bus     │
-├─────────────────────────────────────────┤
-│          安全 层 (src/security)          │
-│   sandbox / acl / encryption / guard    │
-└─────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│           渲染层 (src/renderer, React 19)                      │
+│   App / CeshuHomePanel / CeshuView / DataEditorTab / ...      │
+│   只通过 window.mbApi 调用能力，sandbox:true、无 Node 权限      │
+├─────────────────────────────────────────────────────────────┤
+│   桥接层 (src/preload, contextBridge)                          │
+│   exposeInMainWorld('mbApi', api) —— typed IPC 门面            │
+├─────────────────────────────────────────────────────────────┤
+│    主进程 (src/main, Electron Main)                            │
+│   ipc.ts 注册 handler → stores/services → SQLite(better-sqlite3)│
+│   窗口 / 托盘 / 库管理 / 原生能力（文件选择、图片、密钥）       │
+├─────────────────────────────────────────────────────────────┤
+│   共享层 (src/shared, 纯逻辑 + 类型)                           │
+│   schemas / ipc 契约 / ceshu* / agent* / typeSchema ...        │
+│   无 Electron、无 React，可独立单测                            │
+└─────────────────────────────────────────────────────────────┘
 ```
-> 注：早期独立的 `src/deployment/` 层已移除（孤儿模块清理），打包/发布统一由根目录 `scripts/build.bat` + PyInstaller/PyArmor 完成（见 [wiki/05-running](./wiki/05-running.md)）。
+
+要点：
+- `shared/` **不 import `main/`**，是纯逻辑与类型真源（`zod` schemas、`IpcContract` 契约、`MbApi` 门面、策划书/智能体纯函数）。
+- 渲染层与主进程之间**只**经 `preload` 暴露的 `window.mbApi` 通信；渲染层 `sandbox: true`、无 Node 集成（`nodeIntegration: false`）。
+- 所有主进程 handler 在 `ipc.ts` 统一入口做 zod 校验，结果统一包裹为 `{ ok, data }` / `{ ok:false, error:{code,message} }`。
 
 ## 核心模块
 
-### 1. 策划书系统 (src/core/ceshu/)
+### 1. 策划书系统（GDD）
+现役结构为 **16 个编号章节 + 文档信息段（meta，不编号）**，按 **5 个分区** 组织（`shared/ceshuConstants.ts` 单点派生）：
 
-v5.0 工业级 GDD 系统，18 章结构 + 13 游戏系统配置 + 16 项新功能（详见 [ceshu-release-notes-v5.md](./ceshu-release-notes-v5.md)）。
+- 一、产品定义：产品愿景 / 世界观与角色 / 核心玩法
+- 二、游戏系统：游戏系统设计 / 战斗系统设计 / 经济系统设计 / 数值设计
+- 三、表现设计：美术设计 / 音频设计
+- 四、技术方案：技术规格
+- 五、制作与发行：资源规划 / MVP 规划 / 风险控制 / 市场分析 / 商业化设计 / 可访问性与本地化
 
-- **CeshuModel**: 18 章 GDD 数据模型（meta/vision/worldview/gameplay/systems/numeric/art/tech/resources + v5 新增 9 章: market_analysis/characters/combat/economy/monetization/mvp/risk_handling/audio/accessibility）；支持 v4→v5 自动迁移
-- **CeshuManager**: 策划书 CRUD + 版本管理（derive/list/set_active）+ 6 种导出（docx/pdf/pptx/md/html/xlsx）
-- **CeshuDataSync**: 策划书↔游戏数据双向同步（基于 EventBus）
-- **CeshuScorer** (N4): 3 维评分引擎（结构/质量/市场），S/A/B/C/D 五级
-- **CeshuChecklist** (N11): 50 项生产就绪检查
-- **FieldDependencies** (N14): 跨章节字段依赖图
-- **CeshuChangelog** (N15): 版本变更日志
-- **CustomTemplateManager** (N13): 自定义模板 CRUD
-- **6 个 Exporter**: docx/pdf/pptx/markdown/html/excel，公用 `ceshu_export_common`
-- **CeshuTemplate**: 参数化模板引擎；**CeshuSkill**: 章节→智能体路由 + 14 个动作（含 AI 整章/字段/审阅/一键生成/AI 数据生成）
-- **档位（lite/full）**: `gdd_scope` 轻量（基础 9 章）/ 工业级（18 章），持久化在 `meta.gdd_scope`，按档位渲染章节与计算进度
-- **AI 数据生成（N20）**: 依据策划书数值/系统章生成候选游戏数据 → 预览勾选 → 人工导入数据表（数据共同开发）
+档位（lite / full）：`lite` = 核心 9 章；`full` = 全部 16 章。章节顺序与「第N章·」编号全部由 `CHAPTER_PARTS` 自动派生，重排不会漏改。
 
-### 2. Agent 系统 (src/core/agent/)
+实现位置：
+- `shared/ceshu*`：纯逻辑 —— `ceshuModel`（进度/派生）、`ceshuValidation`、`ceshuScorer`（结构/质量/市场三维，S/A/B/C/D 五级）、`ceshuChecklist`、`ceshuDiff`、`ceshuFieldDeps`、`ceshuWordStats`、`ceshuSystemConfirm`、`ceshuAi`（章节提示词/解析/合并）、`ceshuDataGen`、`ceshuPresets`、`ceshuMigration`、`ceshuConstants` 等。
+- `main/ceshu/*`：IO 与持久化 —— `manager.ts`（CRUD+版本+评分+校验）、`storage.ts`（每份策划书一个 JSON `<库>/ceshu/<id>.json`）、`notesStore.ts`、`templateStore.ts`、`dataSync.ts`（策划书↔游戏数据双向同步）、`export/*`（markdown/html/docx/pptx/pdf/excel 六格式 + 文本报告）。
+- `preload` + `ipc.ts`：`mbApi.ceshu.*` 与 `ceshu:*` 通道一一对应。
+- `renderer/src/components`：`CeshuHomePanel`（首页卡片）、`CeshuView`（编辑器，内嵌数据预览）、`ChapterForm`/`CeshuFieldControl`（schema 驱动表单）、`SystemsEditor`/`SystemConfirmPanel`、`AiFullGeneratePanel`/`AiFieldButton`/`AiReviewPanel`/`AiDataGenPanel`、`ChecklistPanel`/`VersionDiffPanel`/`VersionTimelinePanel`/`WordStatsPanel`/`FieldDepsPanel`/`ChapterNotesPanel`/`TemplateEditorPanel` 等。
 
-- **ToolDispatcher**: 技能调度器
-- **BaseSkill**: 技能基类（25 个技能，通过 discover_skills() 自动发现）
-- **brain.py**: Agent 大脑（推理+决策）
-- **diagnostics/**: 自愈与诊断（错误处理、根因分析、修复市场）
-- **workflow/**: 工作流引擎与调度器
+### 2. 智能体系统（数字员工）
+- `shared/agent/*`：纯逻辑 —— `brain`（推理循环）、`protocol`（工具协议/档位限量）、`prompts`、`budget`（token 预算与确认闸）、`qualityGate`（确定性评分门）、`session`/`memory`/`personalization`/`operationLog`/`observability`/`toolGroups`。
+- `main/agent/*`：运行时 —— `dispatcher`（技能调度）、`brainService`（循环编排）、`agentTransport`/`ollamaTransport`/`openAiTransport`（本地 Ollama / 云端 OpenAI 兼容双传输层，按 `resolveLlmTier` 档位路由）、`approvalBroker`（危险操作审批）、`memoryStore`/`sessionStore`/`preferenceStore`/`qualityJudge`/`operationRecorder`。
+- `main/agent/skills/*`：5 个技能 —— `askUserSkill`、`ceshuSkill`、`codeSkill`、`gameDataSkill`、`rollbackSkill`。
+- 渲染层：`DigitalPanel`（右侧常驻停靠栏）+ `AgentEditorPanel`（可用能力管理）。
 
-### 3. 配置表系统 (src/core/)
+### 3. 配置表 / 数据系统
+- `shared/typeSchema` / `typeTemplates` / `typeSchemaFile`：类型与字段定义（用户可在「字段结构编辑器」编辑并持久化）。
+- `main/data/*`：`service`（DataService 统一 CRUD）、`repository`/`sqliteRepo`（SQLite 持久化）、`csvIO`/`excelIO`、`legacyImport`/`legacyExport`、`undoRecorder`（通用撤销/重做）。
+- 渲染层：`DataEditorTab`/`ItemForm`/`TypeEditorPanel`/`AdvancedSearchPanel`/`DataDiffPanel`/`StatisticsPanel`/`BatchEditPanel` 等。
 
-- **TypeSchema**: 12 种内置数据类型定义（角色/职业/怪物/装备/技能/天赋/道具/成就/Buff/剧情/任务/对话）
-- **DataManager**: 数据 CRUD + 缓存 + 搜索
-- **CalcEngine**: 数值公式计算引擎
+### 4. 属性系统
+- `main/attr/*` + `shared/attrSystem`/`attrPanel` 等：属性系统编辑、`attrGameConfigExport`（导出游戏配置）、`attrSystemJsonFile`（JSON 导入导出）；渲染层 `AttrSystemPanel`/`AttrFormulaBuilder`/`AttrTableEditor`/`AttributeChartPanel`。
 
-### 4. 安全系统 (src/security/)
+### 5. 引擎代码导出
+- `main/engineExport/*`：`exporter`（取全量数据快照 + schema 渲染并原子落盘）、`engines`（Lua + Unity/Unreal/Godot/Cocos2d 四类目标）、`lua`/`luaLiteral`。渲染层 `EngineExportButton`。
 
-- **Sandbox**: 代码执行沙箱
-- **ACL**: 访问控制列表
-- **Encryption**: 数据加密
-- **SafetyGuard**: 危险操作检测
+### 6. 安全与钥匙串
+- `main/security/jsSandbox`：QuickJS 沙箱（属性公式等用户表达式执行）。
+- `main/settings/secretStore` + `shared/secretNames`：API Key 等敏感配置经 Electron `safeStorage` 加密落盘；渲染层永远拿不到明文（IPC 刻意只暴露 `has/set/delete`，无 `get`）。
+
+### 7. 库管理
+- `main/library/*`：多游戏库（`<userData>/libraries/<库>/`），`migrateFlatToLibraries` 负责把旧平铺存储一次性搬迁；切换库会重建全部 store 并广播 `library:changed`，渲染层整页重载。
+
+### 8. AI 生图
+- `shared/imageGen` + `main/imageGen/*`（client + save）；渲染层 `ImageGenPanel`。密钥同样走 `safeStorage`。
 
 ## 数据流
 
 ### 策划书工作流
-
 ```
-用户输入 → CeshuManager.create_ceshu() → CeshuModel
-    → 用户编辑章节 → CeshuModel.set_chapter()
-    → 校验 → CeshuModel.validate() (16 项一致性检查)
-    → 评分 → score_ceshu() (N4) / run_checklist() (N11)
-    → 保存 → CeshuManager.save_ceshu() (原子写入)
-    → 版本管理 → derive_version() / generate_changelog() (N15)
-    → 导出 → export_ceshu_docx/pdf/pptx/markdown/html/excel (6 格式)
-    → 同步 → CeshuDataSync 双向同步到游戏数据
+用户在 CeshuView 编辑章节
+  → renderer 调 window.mbApi.ceshu.saveChapter({id, chapter, data})
+  → preload invoke('ceshu:saveChapter')
+  → main ipc handler（zod 校验）→ CeshuManager.saveChapter → storage 写 JSON
+  → 若 systems/meta 章：CeshuDataSync.syncSystemsToData → 动态注册数据类型
+校验/评分/导出/同步 等均经同名 mbApi 通道，落到 shared 纯函数或 main 服务。
 ```
 
 ### Agent 工作流
-
 ```
-用户指令 → ToolDispatcher.dispatch()
-    → BaseSkill.execute()
-    → 返回结果
-    → UI 更新
+用户在 DigitalPanel 输入
+  → mbApi.agent.chat → agent:chat handler → brainService.chat
+  → 需要工具时经 agent:event 把事件实时推回渲染层（流式）
+  → 危险操作经 approvalBroker 暂停，等 mbApi.agent.respondApproval / respondInteraction
 ```
 
 ### 数据编辑工作流
-
 ```
-用户操作 → DataManager.add_item()
-    → DataValidator.validate()
-    → 写入 JSON 文件
-    → 更新缓存
+DataEditorTab 操作 → mbApi.data.createItem / updateItem / ...
+  → data:* handler → DataService → SQLite（better-sqlite3）
+  → 变更后 CeshuDataSync.onDataChanged（若当前有活跃策划书则同步 actual_count）
+  → 主进程 undoRecorder 记录可撤销
 ```
 
-## 主题系统
-
-10 套主题，通过 EventBus 实时切换：
-
-```
-用户选择主题 → apply_theme()
-    → EventBus.emit("theme_changed")
-    → 所有组件更新样式
-```
+## 主题与界面
+- 4 档主题（深/浅/暖调/暗夜），由 `shared/theme` + 渲染层 `loadTheme`/`applyTheme` 管理，持久化在 localStorage；状态栏一键快切深/浅。
+- 信息架构：无左侧栏，所有能力走顶部菜单栏；中央单栈（首页卡片 ↔ 编辑器），右侧常驻数字员工停靠栏，底部状态栏；其余能力以互斥浮层（overlay）承载。详见 [`ux-simplification-plan.md`](./ux-simplification-plan.md)。
 
 ## 测试架构
-
 ```
-tests/
-├── unit/           # 单元测试
-├── integration/    # 集成测试
-├── e2e/            # 端到端测试
-└── conftest.py     # 全局 fixtures
+desktop/
+├── tests/unit/         # vitest 单元测试（shared 纯函数 + main 服务，含 Ollama 桩）
+├── tests/e2e/          # Playwright 端到端（构建后跑真实 Electron 窗口）
+└── 门禁：tsc --noEmit + eslint + vitest + playwright 四道
 ```
+> 注：Python 时代的 `tests/{unit,integration,e2e}` + `conftest.py` 已随 Python 版删除；现测试基座为 **vitest + Playwright**。

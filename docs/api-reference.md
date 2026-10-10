@@ -1,246 +1,87 @@
-> ⚠️ **本文档描述的是已移除的 Python 版（PyQt6），该版本已于 2026-10-10 整体退场。**
-> 现役产品是 [`desktop/`](../desktop) 下的 TypeScript + Electron 版，设计文档在 [`desktop/docs/`](../desktop/docs)。
-> 本文档仅作历史/考古参考：其中所有代码路径、类名、命令均指向已被删除的 Python 源码，**请勿据此开发**。
-> Python 全量源码可从 git tag **`python-final`** 取回。
-
 # API 参考文档
 
-> 📌 **这是什么**：核心模块的 import 路径和调用示例，方便二次开发或写插件时快速查找。
-> **什么时候用**：写代码时忘了某个类怎么 import、参数是什么。`
+> 📌 现役产品的「公开 API」是 preload 暴露的 **`window.mbApi`**（typed IPC 门面，定义在 `shared/service/api.ts` 与 `preload/index.ts`）。本文件列出其命名空间与高频通道，以及 `shared/` 中可被二次开发直接复用的纯函数。
 
-本文档描述 GameEditorApp 的核心 API，供插件开发和二次开发参考。
+## 一、调用约定
 
-## 核心 API
-
-### CeshuModel（策划书数据模型 v5.0）
-
-> v5.0 工业级 18 章 GDD 数据模型。完整字段定义与扩展指南见 [ceshu-developer-guide.md](./ceshu-developer-guide.md)。
-
-```python
-from core.ceshu.ceshu_model import CeshuModel, CHAPTER_KEYS, CHAPTER_LABELS
-
-# 创建新策划书（v5.0 推荐：用 meta 字典而非构造参数）
-model = CeshuModel()
-model.meta["game_name"] = "游戏名称"
-model.meta["game_type"] = "RPG"
-model.style = "xianxia"        # v5 风格（可选）
-model.module_type = "rpg"      # v5 模块类型（可选）
-
-# 章节操作（18 章：meta/vision/worldview/gameplay/systems/numeric/art/tech/
-#          resources/market_analysis/characters/combat/economy/monetization/
-#          mvp/risk_handling/audio/accessibility）
-model.set_chapter("combat", {"combat_mode": "turn_based", "damage_formula": "atk - def"})
-chapter_data = model.get_chapter("combat")
-
-# 游戏系统管理（13 系统）
-model.set_system("battle", enabled=True, config={"turn_mode": "turn_based"})
-model.add_system("custom_sys", config={"key": "value"})
-model.remove_system("custom_sys")
-editors = model.compute_enabled_editors()  # 自动计算启用编辑器
-
-# 进度计算（覆盖全部 18 章）
-progress = model.chapter_progress()  # {"meta": 1.0, "vision": 0.5, ..., "total": 0.42}
-
-# 校验（16 项一致性检查 + 必填字段 + 系统依赖）
-errors = model.validate()
-
-# 自动填充空必填字段（不调用 LLM）
-filled_count = model.auto_fill_required()
-
-# 版本管理辅助
-model.is_main_version      # True 表示主策划
-model.version_display      # "v1.0 (主)★"
-
-# 序列化（自动检测 v4.0 并迁移到 v5.0）
-data = model.to_dict()
-model = CeshuModel.from_dict(data)
-model = CeshuModel.from_json_file("/path/to/ceshu.json")
+```ts
+// 渲染层（React 组件内）调用示例
+const list = await window.mbApi.ceshu.list()
+const doc = await window.mbApi.ceshu.get({ id })
+await window.mbApi.ceshu.saveChapter({
+  id,
+  chapter: 'combat',
+  data: { combat_mode: 'turn_based', damage_formula: 'atk - def' },
+  style: 'xianxia',
+  moduleType: 'rpg'
+})
 ```
 
-### CeshuManager（策划书管理器 v5.0）
+- 所有调用返回 `Promise`；主进程失败统一抛 `IpcInvokeError`（含 `code`、`message`），渲染层 `try/catch` 即可拿到中文错误。
+- 请求参数结构由 `shared/schemas.ts` 的 zod schema 强制校验（字段缺失/类型错会被主进程直接拒绝）。
+- 推送类（非请求-响应）：`mbApi.agent.onEvent(cb)`、`mbApi.library.onChanged(cb)`，返回取消订阅函数。
 
-```python
-from core.ceshu.ceshu_manager import CeshuManager
+## 二、mbApi 命名空间
 
-mgr = CeshuManager(library_root="data/libraries")
+| 命名空间 | 关键通道 | 说明 |
+|---|---|---|
+| `app` | `info` / `log` / `setWindowMode` | 应用信息、日志转发、窗口模式 |
+| `schema` | `list` / `save` / `suggestFieldIds` / `listFieldTemplates` / `getFieldTemplate` / `saveFieldTemplate` / `deleteFieldTemplate` | 数据类型与字段模板 |
+| `agent` | `listTools` / `executeTool` / `chat` / `respondApproval` / `respondInteraction` / `sessionInfo` / `sessionRestore` / `sessionClear` / `draftSave` / `draftList` / `draftLoad` / `feedback` / `onEvent` | 数字员工：工具、会话、草稿、审批、事件流 |
+| `attrSystem` | `get` / `save` / `exportGameConfig` / `exportJson` / `importJson` | 属性系统 |
+| `data` | `listItems` / `listAll` / `createItem` / `updateItem` / `deleteItem` / `batchUpdate` / `deleteMany` / `clearAll` / `undo` / `redo` / `undoState` / `references` / `importLegacy` / `exportLegacy` / `exportCsv` / `importCsv` / `exportExcel` / `importExcel` | 游戏数据 CRUD/搜索/导入导出/撤销重做 |
+| `engine` | `exportData` | 引擎代码导出（Lua/Unity/Unreal/Godot/Cocos2d） |
+| `image` | `generate` | AI 生图 |
+| `settings` | `hasSecret` / `setSecret` / `deleteSecret` | 系统钥匙串（API Key 等，仅有 has/set/delete，无 get） |
+| `backup` | `list` / `create` / `restore` / `remove` | 整库备份快照（存 `<库>/backups`） |
+| `llm` | `generate` / `configure` / `status` / `testConnection` | 单次文本生成、配置镜像、连通性探测 |
+| `images` | `listLibraryImages` / `readByPath` / `deleteImages` | 图片库扫描/预览/清理 |
+| `dialog` | `chooseJsonFile` / `chooseEngineExportFile` / `chooseSaveJsonFile` / `chooseExportDir` / `chooseCsvFile` / `chooseExcelFile` / `chooseImageSaveDir` / `chooseImageFile` / `chooseCeshuExportFile` / `chooseReportFile` / `chooseAttrSystemJsonFile` / `chooseTemplateJsonFile` | 文件/目录选择（主进程代开） |
+| `ceshu` | 见第三节 | 策划书全能力 |
+| `library` | `list` / `create` / `rename` / `remove` / `switch` / `onChanged` | 多游戏库 |
 
-# CRUD
-model = mgr.create_ceshu(library="default", template_name="RPG模板",
-                         meta={"game_name": "新游戏"})
-model = mgr.get_ceshu(ceshu_id="abc123", library="default")
-mgr.save_ceshu(model, library="default")
-mgr.delete_ceshu(ceshu_id="abc123", library="default")
-mgr.rename_ceshu(library="default", ceshu_id="abc123", new_name="新名称")
-new_model = mgr.duplicate_ceshu(library="default", ceshu_id="abc123")
+## 三、ceshu 命名空间（策划书）
 
-# 列表（带 mtime 缓存）
-ceshu_list = mgr.list_ceshu(library="default", keyword="RPG")
-recent = mgr.get_recent_ceshus(library="default", count=5)
+| 通道 | 说明 |
+|---|---|
+| `list` / `create` / `get` / `setActive` | 列表 / 新建 / 打开 / 设为主策划 |
+| `saveChapter` | 保存单章（systems/meta 章额外触发数据同步） |
+| `export` | 六格式导出（markdown/html/docx/pptx/pdf/excel） |
+| `versions` / `derive` / `changelog` | 版本链 / 派生新版本 / 变更日志 |
+| `applyPreset` | 应用混合玩法预设 |
+| `confirmSystems` | 确认游戏系统（写入 `meta.system_confirmed` 并同步数据） |
+| `syncData` | 策划书↔数据双向同步 |
+| `rename` / `remove` / `duplicate` | 重命名 / 删除 / 复制 |
+| `validate` / `score` | 一致性校验 / 三维评分 |
+| `aiGenerateChapter` / `aiGenerateField` / `aiReview` / `aiGenerateData` | AI 整章 / 单字段 / 审阅 / 数据生成 |
+| `checklist` / `autoFill` | 完备性检查 / 空必填自动补齐 |
+| `diff` + `exportDiffReport` | 版本对比 + 报告导出 |
+| `exportReviewReport` / `exportChecklistReport` / `exportScoreReport` / `exportValidationReport` / `exportChangelogReport` | 各类文本报告导出 |
+| `notes.*`（list/add/update/remove） | 章节笔记 |
+| `templates.*`（list/save/update/remove/exportAll/importAll） | 自定义模板 |
+| `wordStats` / `fieldDeps` | 字数统计 / 字段依赖报告 |
 
-# 版本管理
-new_version = mgr.derive_version(library="default", parent_ceshu_id="abc123",
-                                  version_label="v1.1", version_note="数值调整")
-versions = mgr.list_versions(library="default", root_ceshu_id="abc123")
-mgr.set_active_version(library="default", ceshu_id="def456")
+## 四、shared 纯函数（可复用，无 Electron 依赖）
 
-# 6 种导出格式
-mgr.export_ceshu_docx(ceshu_id="abc123", library="default", output="out.docx")
-mgr.export_ceshu_pdf(ceshu_id="abc123", library="default", output="out.pdf")
-mgr.export_ceshu_pptx(ceshu_id="abc123", library="default", output="out.pptx")
-mgr.export_ceshu_markdown(ceshu_id="abc123", library="default", output="out.md")
-mgr.export_ceshu_html(ceshu_id="abc123", library="default", output="out.html")
-mgr.export_ceshu_excel(ceshu_id="abc123", library="default", output="out.xlsx")
+这些函数位于 `desktop/src/shared/`，可被测试、CLI 或二次开发直接 `import`，不依赖主进程：
 
-# 导入/导出 .ceshu 文件（含可选版本链）
-mgr.export_ceshu(ceshu_id="abc123", library="default",
-                output="backup.ceshu", include_version_chain=True)
-model = mgr.import_ceshu(filepath="backup.ceshu", library="default")
-```
+- `scoreCeshu(doc)` → 三维评分（结构/质量/市场）与 S/A/B/C/D 等级（`ceshuScorer.ts`）
+- `validateCeshu(doc)` → 一致性校验错误数组（`ceshuValidation.ts`）
+- `runChecklist(doc)` → 完备性检查清单结果（`ceshuChecklist.ts`）
+- `buildVersionDiff(a, b)` → 两版本字段级差异（`ceshuDiff.ts`）
+- `buildFieldDepsReport(doc)` → 跨章节字段依赖（`ceshuFieldDeps.ts`）
+- `buildWordStatsReport(doc)` → 字数统计（`ceshuWordStats.ts`）
+- `buildSystemConfirmResult(...)` → 系统确认结果（`ceshuSystemConfirm.ts`）
+- `computeChapterProgress(doc)` → 章节进度（`ceshuModel.ts`）
+- `checkSystemDependencies(enabled)` → 系统硬依赖检查（`ceshuConstants.ts`）
+- `visibleChapterKeys(scope)` / `CHAPTER_PARTS` / `CHAPTER_NAMES` / `LITE_CHAPTER_KEYS` → 章节与档位派生（`ceshuConstants.ts`）
+- `buildChapterPrompt` / `parseLlmJson` / `mergeChapterDraft` / `filterGeneratedFields`（`ceshuAi.ts`）
+- `resolveLlmTier(config)` → 档位路由（cloud / local / unconfigured）（`llmConfig.ts`）
 
-### 评分与检查（v5.0 新增）
+## 五、Agent 技能 API（开发自定义技能）
 
-```python
-# N4 评分引擎：3 维（结构 30 + 质量 40 + 市场 30 = 100），S/A/B/C/D 五级
-from core.ceshu.ceshu_scorer import score_ceshu, grade_label
-report = score_ceshu(model)
-print(report.total_score, report.grade, report.suggestions)
+新增技能：在 `main/agent/skills/` 实现一个技能模块，向 `SkillDispatcher` 注册（见 `desktop/docs/agent-framework-design.md` 的 v1.7 设计）。技能通过 `agent:executeTool` 走统一调度与安全门；工具面下发给模型时**必须**经 `brainService.chat()` 的 `toFunctionCallingTools()` 包装为 `{type:'function', function:{...}}`（漏包装会导致云端 `400 InvalidParameter`）。
 
-# N11 50 项完备性检查
-from core.ceshu.ceshu_checklist import run_checklist
-report = run_checklist(model)
-print(report.readiness_score, report.is_production_ready)
-
-# N14 字段依赖检查
-from core.ceshu.field_dependencies import check_field_dependencies, build_dependency_graph
-results = check_field_dependencies(model)
-graph = build_dependency_graph()
-
-# N15 变更日志
-from core.ceshu.ceshu_changelog import generate_changelog_between
-entry = generate_changelog_between(old_model, new_model, version_label="v1.1")
-```
-
-### 常量与预设（v5.0 新增）
-
-```python
-from core.ceshu import (
-    CHAPTER_KEYS, CHAPTER_LABELS,                    # 18 章
-    SYSTEM_LABELS, SYSTEM_CONFIG_SCHEMA,             # 13 系统
-    SYSTEM_DEPENDENCIES, MODULE_SYSTEM_RECOMMENDATIONS,
-    HYBRID_GAMEPLAY_PRESETS,                         # 18 预设 / 12 模块
-    find_preset, get_preset_by_key, get_recommended_systems,
-    check_system_dependencies, get_reverse_dependencies,
-)
-
-# 18 个混合玩法预设匹配
-preset = find_preset("xianxia", "rpg")  # 仙侠 RPG
-core, optional = get_recommended_systems("mmorpg")
-missing = check_system_dependencies(["battle"])  # 检测缺失依赖
-```
-
-### CeshuDataSync（双向同步 v5.0）
-
-```python
-from core.ceshu.ceshu_data_sync import CeshuDataSync
-
-sync = CeshuDataSync(ceshu_manager=mgr, data_manager=data_mgr,
-                    library_manager=lib_mgr, config=config)
-sync.set_current_ceshu(ceshu_id="abc123", library="default")
-
-# 方向 1：策划书 systems → 游戏数据结构
-result = sync.sync_systems_to_data(model, library="default")
-
-# 方向 2：游戏数据条目数 → 策划书 systems[key].config.actual_count
-sync.sync_data_to_systems(model, library="default")
-```
-
-### TypeSchema（类型 Schema）
-
-```python
-from core.type_schema import TypeSchema, TypeDef, TypeField
-
-schema = TypeSchema.load("/path/to/schema.json")
-type_def = schema.get_type("role")
-fields = type_def.get_user_fields()
-```
-
-### DataManager（数据管理器）
-
-```python
-from core.data_manager import DataManager
-
-mgr = DataManager(root_dir="/path/to/data")
-record_id = mgr.add_item("roles", {"name": "角色1", "level": 1})
-record = mgr.get_item("roles", record_id)
-mgr.update_item("roles", record_id, {"level": 5})
-mgr.delete_item("roles", record_id)
-results = mgr.search_items("roles", "搜索词")
-```
-
-## Agent Skill API
-
-### BaseSkill（技能基类）
-
-```python
-from core.agent.skill_protocol import BaseSkill
-
-class MySkill(BaseSkill):
-    NAME = "my_skill"
-    DESCRIPTION = "我的技能描述"
-    
-    def execute(self, params: dict, context: dict, logger) -> dict:
-        # 实现技能逻辑
-        return {"status": "success", "data": result}
-```
-
-### ToolDispatcher（工具调度器）
-
-```python
-from core.agent.dispatcher import ToolDispatcher
-
-dispatcher = ToolDispatcher()
-dispatcher.discover_skills()  # 自动发现技能
-result = dispatcher.dispatch("my_skill", {"param": "value"}, context)
-```
-
-## UI API
-
-### 主题系统
-
-```python
-from ui.themes import theme_color, apply_theme
-
-color = theme_color("accent")  # 获取主题颜色
-apply_theme("dark")  # 应用主题
-```
-
-### EventBus（事件总线）
-
-```python
-from common.event_bus import EventBus
-
-EventBus.emit("chapter_changed", {"chapter": "overview"})
-EventBus.on("chapter_changed", handler)
-```
-
-## 安全 API
-
-### Sandbox（代码沙箱）
-
-```python
-from security.sandbox import get_sandbox
-
-sandbox = get_sandbox()
-result = sandbox.execute("python", "print('hello')", timeout=10)
-```
-
-### ACL（访问控制）
-
-```python
-from security.acl import ACL, RiskLevel
-
-acl = ACL()
-acl.set_max_risk(RiskLevel.FILE_SYSTEM)
-if acl.check("file.read", "/path/to/file"):
-    # 允许操作
-```
+## 六、相关文档
+- [总体架构](./architecture.md) · [策划书使用指南](./ceshu-user-guide.md) · [策划书开发者指南](./ceshu-developer-guide.md)
+- 智能体/AI 设计真源：`desktop/docs/agent-framework-design.md`

@@ -1,252 +1,79 @@
-> ⚠️ **本文档描述的是已移除的 Python 版（PyQt6），该版本已于 2026-10-10 整体退场。**
-> 现役产品是 [`desktop/`](../desktop) 下的 TypeScript + Electron 版，设计文档在 [`desktop/docs/`](../desktop/docs)。
-> 本文档仅作历史/考古参考：其中所有代码路径、类名、命令均指向已被删除的 Python 源码，**请勿据此开发**。
-> Python 全量源码可从 git tag **`python-final`** 取回。
-
-# 策划书 v5.0 发布说明
-
-> 📌 **这是什么**：策划书模块 v5.0 工业级 GDD 系统的完整发布说明，记录版本亮点、7 轮迭代功能、技术改进、升级指南与已知限制。
-> **什么时候用**：从 v4 升级到 v5 时查阅，或了解 v5.0 全部新功能时阅读。
-
-> 版本: v5.0 | 发布日期: 2026-07-05 | 上一版本: v4.0（九章结构）
-
----
-
-## 一、版本亮点
-
-v5.0 是策划书模块有史以来最大的一次升级，从「九章基础 GDD」跨越到「工业级 18 章 GDD」，覆盖从立项到制作落地的完整链路。
-
-### 核心数据
-
-| 指标 | v4.0 | v5.0 | 增量 |
-|------|------|------|------|
-| 章节数 | 9 | 18 | +9 |
-| 游戏系统配置 | 6 | 13 | +7 |
-| 导出格式 | 2（docx/markdown） | 6（docx/pdf/pptx/md/html/xlsx） | +4 |
-| AI 动作 | 4 | 9 | +5 |
-| 校验规则 | 5 | 16 | +11 |
-| 完备性检查项 | 0 | 50 | +50 |
-| 混合玩法预设 | 0 | 18 | +18 |
-| 模块推荐类型 | 0 | 12 | +12 |
-| 字段依赖条目 | 0 | ≥15 | +15 |
-| 核心模块文件 | 12 | 18 | +6 |
-| UI 模块文件 | 18 | 28 | +10 |
-
-### 三大跨越
-
-1. **结构工业级**：补齐市场分析、角色、战斗、经济、商业化、MVP、风险、音频、可达性 9 大工业必备章节
-2. **流程闭环化**：评分→完备性检查→字段依赖→版本对比→变更日志，形成可交付的完整生产链
-3. **AI 深度嵌入**：从「字段级补全」升级到「5 维评审 + 一键完整生成 + 章节级专业审查」
-
----
-
-## 二、7 轮迭代功能清单
-
-### 第 1 轮：工业级框架重构（基础）
-
-| 编号 | 功能 | 简要说明 |
-|------|------|----------|
-| — | 18 章新结构 | 在原 9 章基础上新增 9 章（`market_analysis`/`characters`/`combat`/`economy`/`monetization`/`mvp`/`risk_handling`/`audio`/`accessibility`），全部录入 [CHAPTER_KEYS](../src/core/ceshu/ceshu_model.py) 与 [CHAPTER_LABELS](../src/core/ceshu/ceshu_model.py) |
-| — | 13 游戏系统配置 | 新增 7 个系统配置 Schema（`equipment`/`quest`/`social`/`economy`/`growth`/`gacha`/`competitive`），见 [SYSTEM_CONFIG_SCHEMA](../src/core/ceshu/ceshu_constants.py) |
-| — | 系统硬依赖 | `SYSTEM_DEPENDENCIES` 定义依赖关系（如 `battle` 依赖 `character` + `skill`），缺失时自动告警 |
-| — | 18 混合玩法预设 | `HYBRID_GAMEPLAY_PRESETS` 覆盖仙侠 RPG、武侠 SLG、科幻 FPS 等主流组合，支持风格/模块双向匹配 |
-| — | 12 模块推荐 | `MODULE_SYSTEM_RECOMMENDATIONS` 按 `module_type` 推荐 core_systems + optional_systems |
-| — | v4→v5 自动迁移 | `CeshuModel.from_dict()` 检测 `version=="4.0"` 并触发 `_migrate_v4_to_v5()`，旧字段映射到新章节 |
-
-### 第 2 轮：评分与高级导出
-
-| 编号 | 功能 | 简要说明 |
-|------|------|----------|
-| **N4** | 评分引擎 | [ceshu_scorer.py](../src/core/ceshu/ceshu_scorer.py) 提供 3 维评分（结构 30 + 质量 40 + 市场 30 = 100），S/A/B/C/D 五级评级，含行业基准对比与改进建议 |
-| **N3** | PPT 导出 | [ceshu_pptx_exporter.py](../src/core/ceshu/ceshu_pptx_exporter.py) 一键生成 18 章演示稿，含封面、目录、章节页 |
-| **F5** | PDF 导出 | [ceshu_pdf_exporter.py](../src/core/ceshu/ceshu_pdf_exporter.py) 输出可打印的策划书 PDF |
-
-### 第 3 轮：AI 深度集成
-
-| 编号 | 功能 | 简要说明 |
-|------|------|----------|
-| **N6** | AI 5 维评审 | [ai_review_dialog.py](../src/ui/ceshu/ai_review_dialog.py) 从完备性/一致性/市场/技术/创意 5 维度生成评审报告，QThread 异步调用避免 UI 阻塞 |
-| **N10** | AI 一键完整生成 | [ai_full_generate_dialog.py](../src/ui/ceshu/ai_full_generate_dialog.py) 输入游戏概念即可批量生成全部 18 章，支持风格/模块参数化 |
-
-### 第 4 轮：版本管理
-
-| 编号 | 功能 | 简要说明 |
-|------|------|----------|
-| **N1** | 版本对比 | [version_diff_dialog.py](../src/ui/ceshu/version_diff_dialog.py) 选择两个版本高亮显示章节级差异 |
-| **N7** | 版本时间线 | [version_timeline_dialog.py](../src/ui/ceshu/version_timeline_dialog.py) 可视化展示版本链路，点击节点查看版本说明与进度 |
-| **N15** | 变更日志 | [ceshu_changelog.py](../src/core/ceshu/ceshu_changelog.py) 自动生成两版本之间的变更条目，支持 Markdown/HTML 输出 |
-
-### 第 5 轮：完备性与依赖
-
-| 编号 | 功能 | 简要说明 |
-|------|------|----------|
-| **N11** | 50 项完备性清单 | [ceshu_checklist.py](../src/core/ceshu/ceshu_checklist.py) 6 大类共 50 项检查（项目基础/章节完备/系统配置/数值/美术音效/商业化），输出就绪度评分 |
-| **N14** | 字段依赖图 | [field_dependencies.py](../src/core/ceshu/field_dependencies.py) 跨章节字段依赖表（≥15 条），支持一致性/派生/引用三种依赖类型，UI 节点着色显示违规 |
-
-### 第 6 轮：模板与笔记
-
-| 编号 | 功能 | 简要说明 |
-|------|------|----------|
-| **N13** | 自定义模板 | [custom_template_manager.py](../src/core/ceshu/custom_template_manager.py) 保存当前章节为可复用模板，按章节分类管理 |
-| **N8** | 章节笔记 | [chapter_notes.py](../src/ui/ceshu/chapter_notes.py) 为每章附加独立笔记，支持多笔记、时间戳、按章查看 |
-
-### 第 7 轮：导出扩展
-
-| 编号 | 功能 | 简要说明 |
-|------|------|----------|
-| **N9** | Markdown 导出 | [ceshu_markdown_exporter.py](../src/core/ceshu/ceshu_markdown_exporter.py) 输出含目录锚点、表格化 systems、校验报告附录的 .md 文件，适合 Git 版本控制 |
-| **N12** | HTML 导出 | [ceshu_html_exporter.py](../src/core/ceshu/ceshu_html_exporter.py) 输出带样式的单文件 HTML，支持折叠章节 |
-| **N16** | Excel 导出 | [ceshu_excel_exporter.py](../src/core/ceshu/ceshu_excel_exporter.py) 把 18 章字段平铺为多 sheet 表格，便于协作审阅 |
-
----
-
-## 三、技术改进
-
-### 3.1 代码质量
-
-- **核心层零 PyQt6 依赖**：`ceshu_model.py` / `ceshu_scorer.py` / `ceshu_checklist.py` / `ceshu_changelog.py` / `field_dependencies.py` / `custom_template_manager.py` 全部为纯 Python，可独立单元测试
-- **单一事实来源**：[CeshuModel](../src/core/ceshu/ceshu_model.py) 是 18 章数据唯一来源，所有模块通过 `model.get_chapter(key)` 读取
-- **事件驱动同步**：[CeshuDataSync](../src/core/ceshu/ceshu_data_sync.py) 通过 EventBus 订阅 `ceshu_changed` / `data_changed` / `library_switched`，实现策划书↔游戏数据双向同步
-- **原子写入**：所有持久化操作使用 `temp + os.replace` 防止崩溃损坏
-- **类型注解**：新增模块全部使用 `from __future__ import annotations` 与 `dict | None` 现代 Python 语法
-
-### 3.2 性能
-
-- **mtime 缓存**：`CeshuManager.list_ceshu()` 使用文件 mtime 缓存，避免重复扫描
-- **QThread 异步**：所有 AI 调用（N6/N10）走 QThread，UI 不卡顿
-- **惰性校验**：`validate()` 仅在保存或显式调用时执行，编辑过程不阻塞
-- **字段依赖图缓存**：`build_dependency_graph()` 结果可缓存，不每次重建
-
-### 3.3 测试覆盖
-
-新增测试文件 [tests/test_ceshu_v5.py](../tests/test_ceshu_v5.py)，覆盖：
-
-- 18 章结构 & v4→v5 自动迁移
-- 系统依赖检查（含反向依赖）
-- 18 个混合玩法预设结构 & 匹配
-- 12 模块系统推荐
-- 章节间一致性校验（combat↔battle、monetization↔economy）
-- CeshuDataSync 双向同步
-- docx 导出（含全 18 章验证）
-
-### 3.4 安全
-
-- **原子文件写入**：所有 `.json` / `.docx` / `.pdf` 写入均通过临时文件 + `os.replace`
-- **路径校验**：所有用户输入路径经过 `Path.resolve()` 校验，防止目录穿越
-- **模板隔离**：自定义模板存储于独立目录，与系统模板分离
-
----
-
-## 四、升级指南（v4 → v5 迁移）
-
-### 4.1 自动迁移（推荐）
-
-打开 v4.0 的 `ceshu.json` 时，`CeshuModel.from_dict()` 会自动检测 `version=="4.0"` 并执行 `_migrate_v4_to_v5()`，无需手动干预。
-
-字段映射规则：
-
-| v4 旧字段 | v5 新位置 | 说明 |
-|-----------|-----------|------|
-| `vision.competitive_analysis` | `market_analysis.competitors` | 竞品分析独立成章 |
-| `vision.business_model` | `monetization.payment_model` | 商业模式独立成章 |
-| `worldview.character_network` | `characters.npc_list` | 角色网络独立成章 |
-| `systems.battle` | `combat`（同时保留在 systems） | 战斗设计独立成章 |
-| `tech.milestones` | `mvp.milestones` | MVP 独立成章 |
-| `resources.risk_matrix` | `risk_handling.risks` | 风险管理独立成章 |
-| `resources.localization` | `accessibility.localization` | 可达性独立成章 |
-| `audio`（v4 无） | `audio`（v5 默认创建） | 音频章节默认空 |
-
-迁移完成后 `version` 自动设为 `"5.0"`，保存即生效。
-
-### 4.2 手动迁移
-
-如需手动控制迁移过程：
-
-```python
-from core.ceshu.ceshu_model import CeshuModel
-
-# 读取 v4 数据
-v4_data = json.load(open("old_ceshu.json", encoding="utf-8"))
-
-# 自动迁移
-model = CeshuModel.from_dict(v4_data)
-assert model.version == "5.0"
-
-# 自动补齐空必填字段（不调用 LLM）
-filled = model.auto_fill_required()
-print(f"已自动填充 {filled} 个必填字段")
-
-# 保存
-model.to_json_file("new_ceshu_v5.json")
-```
-
-### 4.3 代码层迁移
-
-如果你的代码引用了 v4 的旧 API：
-
-| v4 旧 API | v5 新 API |
-|-----------|-----------|
-| `CeshuModel(title=, game_type=)` | 保留兼容，但建议改为 `CeshuModel()` 后 `m.meta["game_name"]=` |
-| `model.set_chapter("overview", ...)` | 改为 `model.set_chapter("meta", ...)` |
-| `get_chapter_dependencies("combat")` | 使用 [field_dependencies.py](../src/core/ceshu/field_dependencies.py) 的 `FIELD_DEPENDENCIES` |
-| `export_markdown_chapters()` | 改为 `mgr.export_ceshu_markdown(...)` |
-
-### 4.4 升级检查清单
-
-升级后建议执行：
-
-1. 打开所有 v4 策划书，确认 `version` 自动变为 `"5.0"`
-2. 检查 `market_analysis` / `monetization` / `characters` / `combat` 等新章节是否已填充迁移数据
-3. 运行 `model.validate()` 确认无错误
-4. 运行 `run_checklist(model)` 检查就绪度
-5. 运行 `score_ceshu(model)` 查看新评分
-
----
-
-## 五、已知限制
-
-### 5.1 功能限制
-
-| 限制 | 说明 | 规避方案 |
-|------|------|----------|
-| AI 评审依赖外部 LLM | N6/N10 需配置可用的 LLM 后端，否则无法使用 | 在 `config.yaml` 配置 `llm.api_key` |
-| PDF 导出依赖 reportlab | 未安装 reportlab 时 PDF 导出失败 | `pip install reportlab` |
-| Excel 导出依赖 openpyxl | 未安装 openpyxl 时 Excel 导出失败 | `pip install openpyxl` |
-| 版本对比仅支持章节级 | N1 当前高亮到章节级别，不支持字段级 diff | 后续 v5.1 计划支持 |
-| 字段依赖表为静态 | N14 的依赖关系硬编码在源码中，不支持动态配置 | 后续 v5.1 计划改为 JSON 配置 |
-| 评分基准按 game_type | INDUSTRY_BENCHMARKS 仅覆盖主流类型，小众类型退化为通用基准 | 在 [ceshu_scorer.py](../src/core/ceshu/ceshu_scorer.py) 手动添加 |
-
-### 5.2 兼容性限制
-
-- **不支持 v3 及更早版本直接迁移**：v3 数据需先升级到 v4，再升级到 v5
-- **不支持 v5 回退到 v4**：迁移是单向的，v5 数据无法降级
-- **自定义模板格式变化**：v4 自定义模板需重新保存为 v5 格式
-
-### 5.3 性能限制
-
-- **大型策划书（>500KB）校验较慢**：`validate()` 在含大量 systems 配置时可能耗时 1-2 秒
-- **AI 一键生成耗时较长**：N10 生成 18 章预计 3-8 分钟，取决于 LLM 响应速度
-
----
-
-## 附：v5.1 增量更新
-
-在 v5.0 的基础上，v5.1 围绕「复杂度收敛 + AI 数据协作 + 健壮性」做了增量更新：
-
-1. **轻量/工业双档位（gdd_scope）**：`gdd_scope` 以 property 形式持久化于 `meta["gdd_scope"]`，取值 `lite`（轻量，仅基础 9 章）/ `full`（工业级，全部 18 章）。新建策划书可选档位；编辑时通过「更多」→「档位切换」调整。
-2. **AI 数据生成（N20）**：`ai_data_generate_dialog.py` 依据策划书数值/系统章为上下文，生成候选数据，人工预览勾选后再导入，形成「策划书 → 候选数据 → 确认导入」的数据共同开发工作流。
-3. **AI 补全空白字段**：只填充为空值的必填字段，不改动已有内容，避免覆盖人工成果。
-4. **AI 一键生成增强**：分档位生成（匹配 gdd_scope 可见章节），生成失败的章节可单独重试。
-5. **工具栏收敛**：高级功能收进「更多」菜单（版本 / 模板 / AI 审阅 / AI 补空 / 评分 / 分析 / 笔记 / 档位切换），主工具栏只保留高频操作。
-6. **数据健壮性**：章节表单列表字段（tags / game_modes 等）序列化防御，统一走 `chapter_forms/_base.py` 的 `_join_items()` 做 dict 兜底，修复 AI 数据混入 dict 元素导致的 `"\n".join` 打开崩溃。
-7. **清理**：删除零引用孤儿模块（`src/deployment`、`src/testing`、`src/ui/digital_employee_dialogs.py`）、临时补丁脚本与运行时产物（`logs/`、`chroma/` 等），补齐 `.gitignore`；诊断 / 语义记忆模块保留并恢复类型修复。
-
----
-
-## 六、相关文档
-
-- [策划书用户指南](./ceshu-user-guide.md) — 面向用户的功能说明与操作指引
-- [策划书开发者指南](./ceshu-developer-guide.md) — 面向开发者的架构与 API 文档
-- [策划书写作指南](./game-design-writing-guide.md) — 章节写作规范与示例
-- [总体架构](./architecture.md) — 项目整体架构概览
-- [API 参考文档](./api-reference.md) — 核心 API 速查
+# 策划书（GDD）系统 · 特性总览
+
+> 📌 现役产品的 策划书（Ceshu）模块能力清单与实现说明。
+> 设计源自 Python 版的工业级 GDD v5 框架，已在 `desktop/` 以 TypeScript 完整重实现（结构、档位、系统、评分、AI、导出一一对应）。
+> 适用模块：`desktop/src/shared/ceshu*` + `desktop/src/main/ceshu/*` + `desktop/src/renderer/src/components/{CeshuHomePanel,CeshuView,...}`
+
+## 一、能力盘点（先明确哪些是强项）
+
+一屏之内同时具备：结构化策划书编辑（分区 + 章节 + 字段级校验 + AI 单章/整章/一键生成）、13 游戏系统配置与硬依赖、可视化数据编辑（列表 + schema 驱动动态表单 + 参考策划/AI 生成/关联）、AI 工作区（数字员工）、多库切换、自动保存/撤销重做。
+
+### 与 Python 版的能力对照（重实现后）
+
+| 能力 | Python v5 | TS 版 | 备注 |
+|---|---|---|---|
+| 章节结构 | 18 章（含 worldview / characters 两章） | **16 编号章 + meta**（worldview 与 characters 合并为「世界观与角色」） | 5 分区，章号自动派生 |
+| 档位 | lite / full | lite（核心 9 章）/ full（16 章） | 同 |
+| 游戏系统 | 13 | 13 | 硬依赖同 `SYSTEM_DEPENDENCIES` |
+| 导出格式 | 6 | 6（md/html/docx/pptx/pdf/excel） | 渲染器重写 |
+| AI 动作 | 字段/整章/完整/审阅 | 字段/整章/完整/审阅/**数据生成** | 新增 AI 数据生成 |
+| 校验规则 | 16+ | 沿用 `ceshuValidation` | 必填 + 系统依赖 |
+| 完备性检查 | 50 | 沿用 `ceshuChecklist` | |
+| 评分 | 三维 S/A/B/C/D | 沿用 `ceshuScorer` | 结构30/质量40/市场30 |
+| 版本管理 | 派生/对比/时间线/变更日志 | 同（derive/diff/version timeline/changelog） | |
+| 混合玩法预设 | 18 | 沿用 `ceshuPresets` | |
+| 存储 | `<库>/ceshu/<id>.json` | 同（格式兼容，可互通） | 切库随库隔离 |
+
+## 二、核心能力分述
+
+### 1. 分区 + 章节结构（16 章 + meta + 5 区）
+见 [`ceshu-user-guide.md`](./ceshu-user-guide.md) 的「章节结构」与 [`ceshuConstants.ts`](../../desktop/src/shared/ceshuConstants.ts)。顺序由 `CHAPTER_PARTS` 单点派生，重排不会漏改编号。
+
+### 2. 游戏系统配置（13 个 + 硬依赖）
+`SYSTEM_LABELS` / `SYSTEM_DEPENDENCIES` 与 Python 版一致；启用系统时校验硬依赖（`checkSystemDependencies`），确认后写入 `meta.system_confirmed` 并触发 `CeshuDataSync.syncSystemsToData` 把系统映射为游戏数据类型。
+
+### 3. 评分与完备性
+- `scoreCeshu`：三维（结构 30 + 质量 40 + 市场 30 = 100），S/A/B/C/D 五级 + 各章明细 + 改进建议。
+- `runChecklist`：生产就绪检查（required 项全过才算 `is_production_ready`）。
+- `validateCeshu`：必填字段 + 系统依赖一致性。
+
+### 4. AI 辅助（5 类）
+- **字段级填充**（`aiGenerateField`）：单字段定向生成，不套审批闸、不跑评分门，值回填表单不落盘。
+- **整章生成**（`aiGenerateChapter`）：可「仅填空字段」；大范围云端调用需 `confirmed` 重发 + 预算确认。
+- **一键完整生成**（`aiGenerateChapter` 带 `fullGenerate`）：整篇草稿，产出过确定性评分门 + 可选 LLM judge（judge 失败降级不阻断正文）。
+- **智能审阅**（`aiReview`）：整篇审阅，给出改进建议，与进度/校验挂钩。
+- **AI 数据生成**（`aiGenerateData`）：依据策划书数值/系统生成候选游戏数据 → 预览勾选 → 人工导入数据表。
+
+### 5. 版本管理
+- `derive`：从主策划派生新版本（保留版本链）。
+- `versions` + `changelog`：版本列表与变更日志。
+- `diff` + `exportDiffReport`：两版本字段级对比与报告。
+- 版本时间线面板（`VersionTimelinePanel`）。
+
+### 6. 导出（6 格式）
+`exportCeshuDocument(doc, format, path)` 统一入口；`markdown/html/docx/pptx/pdf/excel` 各自渲染器；分区标题与章号由 `ceshu/export/common.ts` 统一生成。
+
+### 7. 模板与笔记
+- 自定义模板：`ceshu/templateStore.ts`，每分类一个 JSON，支持导入/导出。
+- 章节笔记：`ceshu/notesStore.ts`，每策划书一个 JSON。
+
+### 8. 字数统计与字段依赖
+- `buildWordStatsReport`：分章节字数。
+- `buildFieldDepsReport`：跨章节字段依赖（如「战斗公式」依赖「数值」章字段）。
+
+## 三、技术实现要点
+- 纯逻辑（`shared/ceshu*`）与主进程 IO（`main/ceshu/*`）分离，纯逻辑无 Electron 依赖、可独立单测。
+- 持久化：每份策划书一个 JSON 文件 `<库>/ceshu/<id>.json`，与 Python 版格式兼容；`ceshuMigration.ts` 负责旧版（v4→v5）数据归一。
+- 同步：`CeshuDataSync` 双向——systems → 数据类型结构；数据条目数 → `systems[key].config.actual_count`。
+- 全链路经 typed IPC（`mbApi.ceshu.*` ↔ `ceshu:*`），入口 zod 校验、结果统一包裹。
+
+## 四、已知限制（诚实边界）
+- 章节草稿级保存：刻意不做「整文档 Ctrl+S 保存」（保存是章节级草稿），避免与 Python 行为混淆。
+- 云端调用成本：整章/完整/审阅/大量数据生成属大范围调用，需用户确认并受 token 预算闸约束。
+- AI 生成质量依赖所配置模型与档位（本地 Ollama 4B 类与云端 DeepSeek 档能力差异显著）。
+
+## 五、相关文档
+- [策划书使用指南](./ceshu-user-guide.md)
+- [策划书开发者指南](./ceshu-developer-guide.md)
+- [总体架构](./architecture.md)
+- 设计真源：`desktop/docs/agent-framework-design.md`（智能体/AI 部分）、`desktop/docs/migration-audit.md`、`desktop/docs/ts-migration-roadmap.md`
