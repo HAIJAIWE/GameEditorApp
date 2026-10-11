@@ -224,7 +224,7 @@ export default function CeshuView({
   const scope = getGddScope(doc)
   const visible = visibleChapterKeys(scope)
   const progress = computeChapterProgress(doc)
-  /** 由第五章游戏系统派生的启用编辑器（内嵌数据预览面板据此渲染标签页） */
+  /** 由第四章游戏系统派生的启用编辑器（内嵌数据预览面板据此渲染标签页） */
   const enabledEditors = computeEnabledEditors(doc)
   const gameName = typeof doc.meta.game_name === 'string' && doc.meta.game_name ? doc.meta.game_name : '未命名策划书'
   const gameType = typeof doc.meta.game_type === 'string' && doc.meta.game_type ? doc.meta.game_type : '未知'
@@ -483,7 +483,7 @@ export default function CeshuView({
           {doc.version_label}
           {doc.is_active ? ' ★ 激活' : ' · 未激活'}
         </span>
-        <span className="item-meta">档位：{scope === 'lite' ? '标准版（9 章）' : '专业版（18 章）'}</span>
+        <span className="item-meta">档位：{scope === 'lite' ? '标准版（9 章）' : '专业版（16 章）'}</span>
         <span className="item-meta" data-testid="ceshu-total-progress">
           总进度 {Math.round((progress.total ?? 0) * 100)}%
         </span>
@@ -875,7 +875,7 @@ export default function CeshuView({
                 )
               })}
               {scope === 'lite' && (
-                <div className="chapter-nav-hint">标准版仅含基础 9 章；在「文档信息」中可切换为专业版 18 章</div>
+                <div className="chapter-nav-hint">标准版仅含基础 9 章；在「文档信息」中可切换为专业版 16 章</div>
               )}
             </div>
 

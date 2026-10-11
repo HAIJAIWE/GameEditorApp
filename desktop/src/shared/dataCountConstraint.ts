@@ -49,7 +49,7 @@ export interface CountConstraint {
  *    缺字段的系统永不约束。这里与 TS `computeEnabledEditors` 的口径（`data_type ?? key`）对齐，
  *    避免「系统已启用、编辑器也显示了，却查不到对应约束」的静默漏判。
  *
- * 以上 1–3 在策划书第五章的字段类型下**都不可达**（上限来自系统 config 表单，只有整数/文本两种形态）；
+ * 以上 1–3 在策划书第四章的字段类型下**都不可达**（上限来自系统 config 表单，只有整数/文本两种形态）；
  * 第 4 条是刻意的口径统一。
  */
 export function resolveCountLimit(config: unknown, dataType: string): number | null {
@@ -72,7 +72,7 @@ export function resolveCountLimit(config: unknown, dataType: string): number | n
 }
 
 /**
- * 找出约束当前数据类型的系统（`systems` = 策划书第五章章节数据）。
+ * 找出约束当前数据类型的系统（`systems` = 策划书第四章章节数据）。
  *
  * 与 Python 一致：只返回**第一个** `data_type` 命中的系统（Python 找到即 break），
  * 命中但上限缺失/非法/≤0 时返回 null（= 不约束）。

@@ -1,6 +1,7 @@
 import {
   CHAPTER_LABELS,
   CHAPTER_REQUIRED_FIELDS,
+  chapterOrdinalCn,
   checkSystemDependencies,
   visibleChapterKeys,
   type CeshuDocument
@@ -43,7 +44,7 @@ export function validateCeshu(doc: CeshuDocument): string[] {
   const battleTurnMode = readText(battleConfig['turn_mode'])
   if (combatMode && battleTurnMode && combatMode !== battleTurnMode) {
     errors.push(
-      `一致性冲突：第五章 combat.combat_mode='${combatMode}' 与 第四章 systems.battle.config.turn_mode='${battleTurnMode}' 不一致`
+      `一致性冲突：第${chapterOrdinalCn('combat')}章 combat.combat_mode='${combatMode}' 与 第${chapterOrdinalCn('systems')}章 systems.battle.config.turn_mode='${battleTurnMode}' 不一致`
     )
   }
 
@@ -52,7 +53,7 @@ export function validateCeshu(doc: CeshuDocument): string[] {
   const economyPayment = readText(economyConfig['payment_system'])
   if (paymentModel && economyPayment && paymentModel !== economyPayment) {
     errors.push(
-      `一致性冲突：第十四章 monetization.payment_model='${paymentModel}' 与 第四章 systems.economy.config.payment_system='${economyPayment}' 不一致`
+      `一致性冲突：第${chapterOrdinalCn('monetization')}章 monetization.payment_model='${paymentModel}' 与 第${chapterOrdinalCn('systems')}章 systems.economy.config.payment_system='${economyPayment}' 不一致`
     )
   }
 
@@ -67,7 +68,7 @@ export function validateCeshu(doc: CeshuDocument): string[] {
   const factions = nonEmptyArray(doc.story.factions)
   const factionSystem = readText(systemConfig(doc, 'social')['faction_system'])
   if (factions && factionSystem === 'none') {
-    errors.push("一致性冲突：第二章 story.factions 已设定阵营，但 systems.social.config.faction_system='none'")
+    errors.push(`一致性冲突：第${chapterOrdinalCn('story')}章 story.factions 已设定阵营，但 systems.social.config.faction_system='none'`)
   }
 
   // 5. art.art_style 与 audio.music_style 风格应协同（像素风 ↔ 交响乐提示）
@@ -78,7 +79,7 @@ export function validateCeshu(doc: CeshuDocument): string[] {
     const musicLower = musicStyle.toLowerCase()
     if ((artStyle.includes('像素') || artLower.includes('pixel')) && (musicStyle.includes('交响') || musicLower.includes('symphony'))) {
       errors.push(
-        `一致性警告：第七章 art.art_style='${artStyle}' 与 第十七章 audio.music_style='${musicStyle}' 风格不协调，建议匹配`
+        `一致性警告：第${chapterOrdinalCn('art')}章 art.art_style='${artStyle}' 与 第${chapterOrdinalCn('audio')}章 audio.music_style='${musicStyle}' 风格不协调，建议匹配`
       )
     }
   }
@@ -87,7 +88,7 @@ export function validateCeshu(doc: CeshuDocument): string[] {
   const mvpMilestones = nonEmptyArray(doc.mvp.milestones)
   const techMilestones = nonEmptyArray(doc.tech.milestones)
   if (mvpMilestones && techMilestones && normalizeValue(mvpMilestones) !== normalizeValue(techMilestones)) {
-    errors.push('一致性警告：第十五章 mvp.milestones 与 第八章 tech.milestones 不一致，MVP 里程碑应与技术里程碑对齐')
+    errors.push(`一致性警告：第${chapterOrdinalCn('mvp')}章 mvp.milestones 与 第${chapterOrdinalCn('tech')}章 tech.milestones 不一致，MVP 里程碑应与技术里程碑对齐`)
   }
 
   // 7. monetization.pricing_tiers 与 systems.economy.config.recharge_tiers 应一致
@@ -100,7 +101,7 @@ export function validateCeshu(doc: CeshuDocument): string[] {
         ? rechargeRaw
         : []
     if (rechargeTiers.length > 0 && normalizeValue(rechargeTiers) !== normalizeValue(pricingTiers)) {
-      errors.push('一致性警告：第十四章 monetization.pricing_tiers 与 systems.economy.config.recharge_tiers 不一致，建议统一')
+      errors.push(`一致性警告：第${chapterOrdinalCn('monetization')}章 monetization.pricing_tiers 与 systems.economy.config.recharge_tiers 不一致，建议统一`)
     }
   }
 
@@ -108,14 +109,14 @@ export function validateCeshu(doc: CeshuDocument): string[] {
   const languageList = nonEmptyArray(doc.accessibility.language_list)
   const localization = nonEmptyArray(doc.resources.localization)
   if (languageList && localization && normalizeValue(languageList) !== normalizeValue(localization)) {
-    errors.push('一致性警告：第十八章 accessibility.language_list 与 第九章 resources.localization 不一致，建议统一')
+    errors.push(`一致性警告：第${chapterOrdinalCn('accessibility')}章 accessibility.language_list 与 第${chapterOrdinalCn('resources')}章 resources.localization 不一致，建议统一`)
   }
 
   // 9. characters.main_npc_count 与 characters.npc_list 数量应一致
   const npcCount = doc.story.main_npc_count
   const npcList = nonEmptyArray(doc.story.npc_list)
   if (typeof npcCount === 'number' && npcCount !== 0 && npcList && Math.abs(npcCount - npcList.length) > Math.max(2, Math.trunc(npcCount * 0.2))) {
-    errors.push(`一致性警告：第十一章 characters.main_npc_count=${npcCount} 与 npc_list 实际数量=${npcList.length} 差异较大，请核对`)
+    errors.push(`一致性警告：第${chapterOrdinalCn('story')}章 story.main_npc_count=${npcCount} 与 npc_list 实际数量=${npcList.length} 差异较大，请核对`)
   }
 
   // 10. economy.currency_types 与 systems.economy.config.currency_types 应一致
@@ -131,7 +132,7 @@ export function validateCeshu(doc: CeshuDocument): string[] {
     const economySet = new Set(economyNames.filter(Boolean))
     const systemSet = new Set(systemNames.filter(Boolean))
     if (economySet.size > 0 && systemSet.size > 0 && !sameStringSet(economySet, systemSet)) {
-      errors.push('一致性警告：第十三章 economy.currency_types 与 systems.economy.config.currency_types 不一致，建议统一')
+      errors.push(`一致性警告：第${chapterOrdinalCn('economy')}章 economy.currency_types 与 systems.economy.config.currency_types 不一致，建议统一`)
     }
   }
 
@@ -140,7 +141,7 @@ export function validateCeshu(doc: CeshuDocument): string[] {
     .filter(([, value]) => isPlainObject(value) && (value.enabled === undefined ? true : Boolean(value.enabled)))
     .map(([key]) => key)
   for (const item of checkSystemDependencies(enabledSystems)) {
-    errors.push(`依赖缺失：第五章 systems.${item.system} 已启用，但其依赖系统 [${item.missing.join('、')}] 未启用`)
+    errors.push(`依赖缺失：第${chapterOrdinalCn('systems')}章 systems.${item.system} 已启用，但其依赖系统 [${item.missing.join('、')}] 未启用`)
   }
 
   return errors

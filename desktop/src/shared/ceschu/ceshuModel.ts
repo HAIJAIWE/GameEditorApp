@@ -31,7 +31,7 @@ export function createCeshuId(): string {
   return globalThis.crypto.randomUUID().replace(/-/g, '').slice(0, 8)
 }
 
-/** 新建策划书：18 章默认值 + 档位写入 meta.gdd_scope */
+/** 新建策划书：文档信息 + 16 章默认值 + 档位写入 meta.gdd_scope */
 export function createDefaultCeshu(options: { scope: GddScope; name?: string }): CeshuDocument {
   const now = formatLocalTimestamp()
   const chapters = createDefaultChapters()

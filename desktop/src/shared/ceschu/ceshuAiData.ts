@@ -7,7 +7,7 @@
 
 import type { ChapterKey } from './ceshuConstants'
 
-/* ---- 子智能体路由（匹平 Python AgentRouter，18 章完整映射） ---- */
+/* ---- 子智能体路由（匹平 Python AgentRouter，文档信息 + 16 章完整映射） ---- */
 
 export const CHAPTER_AGENT_MAP: Record<ChapterKey, string> = {
   meta: '通用策划助手',

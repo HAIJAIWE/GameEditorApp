@@ -1,6 +1,7 @@
 import type { ChapterKey, CeshuFieldDef } from '../../ceschu/ceshuConstants'
+import * as OPT from '../../ceschu/ceshuOptionLabels'
 
-/** 18 章表单字段描述（标签取自 Python chapter_forms/_base.py 与 _industrial.py） */
+/** 文档信息段 + 16 章表单字段描述（标签取自 Python chapter_forms/_base.py 与 _industrial.py） */
 
 function f(key: string, label: string, kind: CeshuFieldDef['kind'], extra: Partial<CeshuFieldDef> = {}): CeshuFieldDef {
   return { key, label, kind, ...extra }
@@ -41,13 +42,17 @@ export const CESHU_CHAPTER_FIELDS: Record<ChapterKey, CeshuFieldDef[]> = {
       separator: 'comma',
       placeholder: '用逗号分隔，如: 剧情向,开放世界,多人联机'
     }),
-    f('status', '文档状态', 'combo', { values: ['draft', 'in_progress', 'review', 'final'] }),
+    f('status', '文档状态', 'combo', {
+      values: ['draft', 'in_progress', 'review', 'final'],
+      optionLabels: OPT.DOC_STATUS_LABELS
+    }),
     f('confidentiality', '保密级别', 'combo', {
-      values: ['internal', 'confidential', 'strictly_confidential', 'public']
+      values: ['internal', 'confidential', 'strictly_confidential', 'public'],
+      optionLabels: OPT.CONFIDENTIALITY_LABELS
     }),
     f('gdd_scope', '策划档位', 'combo', {
       values: ['lite', 'full'],
-      optionLabels: { lite: '轻量（基础 9 章）', full: '工业级（18 章）' }
+      optionLabels: OPT.GDD_SCOPE_LABELS
     })
   ],
   vision: [
@@ -104,7 +109,8 @@ export const CESHU_CHAPTER_FIELDS: Record<ChapterKey, CeshuFieldDef[]> = {
   ],
   tech: [
     f('engine', '引擎/框架', 'combo', {
-      values: ['Unity', 'Unreal Engine', 'Godot', 'Cocos2d', 'PyGame', '自定义引擎', '其他']
+      values: ['Unity', 'Unreal Engine', 'Godot', 'Cocos2d', 'PyGame', '自定义引擎', '其他'],
+      optionLabels: OPT.ENGINE_LABELS
     }),
     f('core_architecture', '核心架构', 'textarea'),
     f('milestones', '开发里程碑', 'pipeList', { columns: [{ key: 'phase', label: '阶段' }] }),
@@ -134,13 +140,17 @@ export const CESHU_CHAPTER_FIELDS: Record<ChapterKey, CeshuFieldDef[]> = {
   ],
   combat: [
     f('combat_mode', '战斗模式', 'combo', {
-      values: ['turn_based', 'realtime', 'semi_realtime', 'auto_battle', 'atb', 'ctb', 'srpg_grid']
+      values: ['turn_based', 'realtime', 'semi_realtime', 'auto_battle', 'atb', 'ctb', 'srpg_grid'],
+      optionLabels: OPT.COMBAT_MODE_LABELS
     }),
     f('damage_formula', '伤害公式', 'textarea'),
     f('skill_system', '技能系统', 'textarea'),
     f('buff_debuff', 'Buff/Debuff', 'textarea'),
     f('element_system', '元素系统', 'textarea'),
-    f('combat_pace', '战斗节奏', 'combo', { values: ['slow', 'medium', 'fast', 'variable'] }),
+    f('combat_pace', '战斗节奏', 'combo', {
+      values: ['slow', 'medium', 'fast', 'variable'],
+      optionLabels: OPT.COMBAT_PACE_LABELS
+    }),
     f('team_formation', '队伍编排', 'textarea'),
     f('pvp_design', 'PVP 设计', 'textarea'),
     f('pve_design', 'PVE 设计', 'textarea'),
@@ -165,7 +175,8 @@ export const CESHU_CHAPTER_FIELDS: Record<ChapterKey, CeshuFieldDef[]> = {
   ],
   monetization: [
     f('payment_model', '付费模式', 'combo', {
-      values: ['f2p', 'p2p', 'b2p', 'subscription', 'f2p_p2w', 'f2p_cosmetic', 'buy_to_play']
+      values: ['f2p', 'p2p', 'b2p', 'subscription', 'f2p_p2w', 'f2p_cosmetic', 'buy_to_play'],
+      optionLabels: OPT.PAYMENT_MODEL_LABELS
     }),
     f('pricing_tiers', '定价档位', 'stringList', { placeholder: '每行一个，如 6/30/68/128/328/648' }),
     f('iap_design', '内购设计', 'pipeList', {
@@ -241,7 +252,8 @@ export const CESHU_CHAPTER_FIELDS: Record<ChapterKey, CeshuFieldDef[]> = {
     }),
     f('voice_acting', '配音设计', 'textarea'),
     f('audio_engine', '音频引擎', 'combo', {
-      values: ['FMOD', 'Wwise', 'CRI ADX', 'Unity Audio', 'Unreal Audio', '自研']
+      values: ['FMOD', 'Wwise', 'CRI ADX', 'Unity Audio', 'Unreal Audio', '自研'],
+      optionLabels: OPT.AUDIO_ENGINE_LABELS
     }),
     f('dynamic_audio', '动态音频', 'textarea'),
     f('audio_localization', '音频本地化', 'textarea'),

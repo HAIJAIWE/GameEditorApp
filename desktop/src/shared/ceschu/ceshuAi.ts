@@ -258,7 +258,7 @@ export interface FullGenerateInput {
   businessModel: string
 }
 
-/** 18 章生成顺序（对应 Python _build_chapter_order：market 在 vision 后、risk 在 tech 后） */
+/** 文档信息 + 16 章生成顺序（对应 Python _build_chapter_order：market 在 vision 后、risk 在 tech 后） */
 export function buildChapterOrder(includeMarket: boolean, includeRisk: boolean): ChapterKey[] {
   const order: ChapterKey[] = ['meta', 'vision']
   if (includeMarket) order.push('market_analysis')

@@ -8,7 +8,7 @@ import {
   type ChapterData,
   type ChapterKey,
   type GddScope
-} from '../../../shared/ceshuConstants'
+} from '../../../shared/ceschu/ceshuConstants'
 import {
   FULL_GEN_BUSINESS_MODELS,
   FULL_GEN_GAME_TYPES,
@@ -16,8 +16,8 @@ import {
   FULL_GEN_STYLES,
   buildFullGeneratePlan,
   type FullGeneratePlan
-} from '../../../shared/ceshuAi'
-import { getGddScope, isPlainObject } from '../../../shared/ceshuModel'
+} from '../../../shared/ceschu/ceshuAi'
+import { getGddScope, isPlainObject } from '../../../shared/ceschu/ceshuModel'
 import { evaluateBudget, taskBudget } from '../../../shared/agent/budget'
 import type { LlmJudgeVerdict } from '../../../shared/agent/qualityGate'
 
@@ -348,7 +348,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
               disabled={locked}
               onChange={() => setScope(GDD_SCOPE_LITE)}
             />
-            轻量（基础 9 章）
+            标准版（文档信息 + 9 章）
           </label>
           <label className="ai-gen-check">
             <input
@@ -359,7 +359,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
               disabled={locked}
               onChange={() => setScope(GDD_SCOPE_FULL)}
             />
-            工业级（全部 18 章）
+            专业版（文档信息 + 16 章）
           </label>
           <label className="ai-gen-check">
             <input

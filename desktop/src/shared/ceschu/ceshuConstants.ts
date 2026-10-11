@@ -4,7 +4,8 @@
  * - **meta（文档信息段）不占章号**：恒在 `CHAPTER_KEYS` 首位、`chapterNumber(meta) === 0`，
  *   且 label 无「第N章·」前缀。
  * - **16 个编号章**由 `CHAPTER_PARTS` 顺序展开派生（`NUMBERED_CHAPTER_KEYS`）。
- *   分区制重组把原「世界观 + 角色设计」两章并成 `story`；`combat`/`economy` 上移到核心区。
+ *   分区制重组把原「世界观 + 角色设计」两章并成 `story`；`combat`/`economy` 上移到核心区；
+ *   制作区里 `mvp` 提到 `monetization` 之前（先定 MVP 范围再定商业化）。
  * - **章号 / 标签 / 分区序号全部由数组位置派生**（`chapterNumber` / `CHAPTER_LABELS` /
  *   `partDisplayName`）。历史上出过「重排后 lite 章号跳号 1,2,3,4,5,6,11,13,14」「目录像缺页」
  *   这类只在界面上肉眼可见的缺陷 ⇒ 派生 + `ceshuConstants.test.ts` 的结构守卫就是为它们立的。
@@ -25,7 +26,7 @@ export const CHAPTER_PARTS = [
   {
     key: 'production',
     label: '制作与商业',
-    chapters: ['tech', 'resources', 'market_analysis', 'risk_handling', 'monetization', 'mvp', 'accessibility']
+    chapters: ['tech', 'resources', 'market_analysis', 'risk_handling', 'mvp', 'monetization', 'accessibility']
   }
 ] as const
 
@@ -79,6 +80,20 @@ export function chapterNumber(key: ChapterKey): number {
     return 0
   }
   return NUMBERED_CHAPTER_KEYS.indexOf(key) + 1
+}
+
+/**
+ * 中文数字章号（供文案拼 `第${chapterOrdinalCn(key)}章` 用）。
+ *
+ * 存在的理由：`ceshuValidation` 的一致性提示里散落着「第十四章 monetization…」这类**手写章号**，
+ * 分区重组后它们几乎全部漂移（art 写成第七章、audio 写成第十七章、tech 写成第八章…），
+ * 而 `ceshuChapterLabelDrift` 守卫只认「第N章·<章节名>」带间隔号的写法 ⇒ 扫不到这些。
+ * ⇒ 一律改用本函数派生，从根上消灭这一类。
+ *
+ * 文档信息段（`chapterNumber === 0`）返回空串——它不占章号，调用方不应拼进文案。
+ */
+export function chapterOrdinalCn(key: ChapterKey): string {
+  return CN_NUMERALS[chapterNumber(key) - 1] ?? ''
 }
 
 /** 章节显示标签：文档信息段无「第N章·」前缀，编号章与章号严格对齐 */
@@ -249,7 +264,7 @@ export interface EnabledEditor {
   data_type: string
 }
 
-/** 策划书文档（磁盘 JSON 与 Python 版同构：顶层元数据 + 18 章平铺） */
+/** 策划书文档（磁盘 JSON 与 Python 版同构：顶层元数据 + 文档信息段 + 16 章平铺） */
 export type CeshuChapters = { [K in ChapterKey]: ChapterData }
 
 export interface CeshuDocumentBase {

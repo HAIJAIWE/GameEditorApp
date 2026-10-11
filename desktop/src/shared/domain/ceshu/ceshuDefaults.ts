@@ -1,7 +1,7 @@
 import { SYSTEM_LABELS, type ChapterData, type ChapterKey } from '../../ceschu/ceshuConstants'
 import { SYSTEM_CONFIG_SCHEMA } from '../../systemConfigSchema'
 
-/** 18 章默认数据（自 Python ceshu_model.py _default_* 匹平迁移）；每次调用返回全新对象，避免共享可变引用 */
+/** 文档信息 + 16 章默认数据（自 Python ceshu_model.py _default_* 匹平迁移）；每次调用返回全新对象，避免共享可变引用 */
 
 function today(): string {
   const d = new Date()

@@ -1,5 +1,5 @@
-import { SYSTEM_LABELS, type ChapterData } from '../../../shared/ceshuConstants'
-import { isPlainObject } from '../../../shared/ceshuModel'
+import { SYSTEM_LABELS, type ChapterData } from '../../../shared/ceschu/ceshuConstants'
+import { isPlainObject } from '../../../shared/ceschu/ceshuModel'
 import { SYSTEM_CONFIG_SCHEMA } from '../../../shared/systemConfigSchema'
 
 import { CeshuFieldControl, fieldValueToInput, inputToFieldValue } from './CeshuFieldControl'
@@ -17,7 +17,7 @@ interface SystemEntryValue {
 }
 
 /**
- * 游戏系统编辑器（第五章）：逐系统启用开关 + 标准 config 字段表单。
+ * 游戏系统编辑器（第四章）：逐系统启用开关 + 标准 config 字段表单。
  * config 控件由 SYSTEM_CONFIG_SCHEMA（自 Python 匹平迁移）驱动。
  */
 export default function SystemsEditor({ systems, onChange }: SystemsEditorProps) {

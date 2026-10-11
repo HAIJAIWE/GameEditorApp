@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
-import type { CeshuChapters, EnabledEditor } from '../../../../shared/ceshuConstants'
+import { CHAPTER_LABELS } from '../../../../shared/ceschu/ceshuConstants'
+import type { CeshuChapters, EnabledEditor } from '../../../../shared/ceschu/ceshuConstants'
 import { findCountConstraint } from '../../../../shared/dataCountConstraint'
 import type { DataTypeDef } from '../../../../shared/types'
 
@@ -30,7 +31,7 @@ interface CeshuDataPreviewProps {
    * 避免条目页签继续列着已被清空的条目（对齐 PyQt `clear_all_data` 的 `_refresh_all_tabs()`）。
    */
   dataEpoch?: number
-  /** 空状态「去勾选游戏系统」按钮回调（跳到第五章） */
+  /** 空状态「去勾选游戏系统」按钮回调（跳到第四章） */
   onGotoSystems?: () => void
   /** 任一数据编辑器发生数据变更后的回调 */
   onDataChanged?: () => void
@@ -48,10 +49,15 @@ interface CeshuDataPreviewProps {
   onJumpMissed?: (name: string) => void
 }
 
-/** 空状态引导文案（对齐 PyQt preview_panel.py:55-63；配合 CSS white-space: pre-line 渲染换行） */
+/**
+ * 空状态引导文案（对齐 PyQt preview_panel.py:55-63；配合 CSS white-space: pre-line 渲染换行）。
+ * 章号**一律引用 `CHAPTER_LABELS`**：此处曾硬编码 systems 的旧章号（分区重组前它是第五章、
+ * 现为第四章），而 typecheck / eslint / vitest 全绿也抓不到——没有任何断言读它，只能靠截图发现
+ * ⇒ 现由 `ceshuChapterLabelDrift.test.ts` 守卫。
+ */
 const EMPTY_HINT =
   '设计游戏数据前，先启用游戏系统\n\n' +
-  '数据编辑器由策划书驱动：在左侧「第五章·游戏系统设计」\n' +
+  `数据编辑器由策划书驱动：在左侧「${CHAPTER_LABELS.systems}」\n` +
   '勾选要做的系统后，对应的数据编辑器就会出现在这里。'
 
 /**
@@ -145,10 +151,10 @@ export default function CeshuDataPreview({
               type="button"
               className="btn"
               data-testid="ceshu-preview-goto-systems"
-              title="跳转到第五章，勾选游戏系统后对应的数据编辑器会出现在这里"
+              title={`跳转到${CHAPTER_LABELS.systems}，勾选游戏系统后对应的数据编辑器会出现在这里`}
               onClick={() => onGotoSystems?.()}
             >
-              去「第五章·游戏系统设计」勾选
+              去「{CHAPTER_LABELS.systems}」勾选
             </button>
           </div>
         ) : showRefs ? (

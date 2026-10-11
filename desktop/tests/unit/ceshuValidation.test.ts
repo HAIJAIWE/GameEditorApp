@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import type { CeshuDocument } from '../../src/shared/ceschu/ceshuConstants'
+import { chapterOrdinalCn, type CeshuDocument } from '../../src/shared/ceschu/ceshuConstants'
 import { createDefaultCeshu } from '../../src/shared/ceschu/ceshuModel'
 import { validateCeshu } from '../../src/shared/ceschu/ceshuValidation'
 
@@ -48,7 +48,7 @@ describe('策划书校验：章节间一致性（11 项中的关键项）', () =
     const doc = makeDoc()
     doc.combat.combat_mode = 'turn_based'
     ;(doc.systems.battle as { config: Record<string, unknown> }).config.turn_mode = 'realtime'
-    expect(hasError(validateCeshu(doc), "一致性冲突：第五章 combat.combat_mode='turn_based'")).toBe(true)
+    expect(hasError(validateCeshu(doc), `一致性冲突：第${chapterOrdinalCn('combat')}章 combat.combat_mode='turn_based'`)).toBe(true)
 
     doc.combat.combat_mode = 'realtime'
     expect(hasError(validateCeshu(doc), '一致性冲突：第十二章')).toBe(false)
@@ -58,7 +58,7 @@ describe('策划书校验：章节间一致性（11 项中的关键项）', () =
     const doc = makeDoc()
     doc.monetization.payment_model = 'f2p'
     ;(doc.systems.economy as { config: Record<string, unknown> }).config.payment_system = 'p2p'
-    expect(hasError(validateCeshu(doc), "一致性冲突：第十四章 monetization.payment_model='f2p'")).toBe(true)
+    expect(hasError(validateCeshu(doc), `一致性冲突：第${chapterOrdinalCn('monetization')}章 monetization.payment_model='f2p'`)).toBe(true)
   })
 
   it('两份风险矩阵内容不一致时警告，内容一致不报', () => {
@@ -92,7 +92,7 @@ describe('策划书校验：章节间一致性（11 项中的关键项）', () =
     const doc = makeDoc()
     doc.mvp.milestones = [{ name: 'M1' }]
     doc.tech.milestones = [{ phase: 'P1' }]
-    expect(hasError(validateCeshu(doc), 'mvp.milestones 与 第八章 tech.milestones 不一致')).toBe(true)
+    expect(hasError(validateCeshu(doc), `mvp.milestones 与 第${chapterOrdinalCn('tech')}章 tech.milestones 不一致`)).toBe(true)
 
     doc.monetization.pricing_tiers = ['6', '30']
     ;(doc.systems.economy as { config: Record<string, unknown> }).config.recharge_tiers = '6, 30'
@@ -105,7 +105,7 @@ describe('策划书校验：章节间一致性（11 项中的关键项）', () =
     const doc = makeDoc()
     doc.accessibility.language_list = ['简体中文', 'English']
     doc.resources.localization = ['简体中文']
-    expect(hasError(validateCeshu(doc), 'accessibility.language_list 与 第九章')).toBe(true)
+    expect(hasError(validateCeshu(doc), `accessibility.language_list 与 第${chapterOrdinalCn('resources')}章`)).toBe(true)
   })
 
   it('NPC 数量与实际列表差异过大时警告（阈值 max(2, 20%)）', () => {
@@ -131,7 +131,7 @@ describe('策划书校验：章节间一致性（11 项中的关键项）', () =
   it('系统依赖缺失：启用 battle 未启用 character/skill 时报错，补齐依赖后通过', () => {
     const doc = makeDoc()
     ;(doc.systems.battle as { enabled: boolean }).enabled = true
-    expect(hasError(validateCeshu(doc), '依赖缺失：第五章 systems.battle 已启用，但其依赖系统 [character、skill] 未启用')).toBe(true)
+    expect(hasError(validateCeshu(doc), `依赖缺失：第${chapterOrdinalCn('systems')}章 systems.battle 已启用，但其依赖系统 [character、skill] 未启用`)).toBe(true)
 
     ;(doc.systems.character as { enabled: boolean }).enabled = true
     ;(doc.systems.skill as { enabled: boolean }).enabled = true

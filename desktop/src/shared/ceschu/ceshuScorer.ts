@@ -107,7 +107,7 @@ function isNumeric(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value)
 }
 
-/** 遍历全部 18 章计算单章评分（不受 lite 档裁剪——与 Python 行为一致：始终评全部章节） */
+/** 遍历全部章节计算单章评分（不受 lite 档裁剪——与 Python 行为一致：始终评全部章节） */
 function scoreChapters(doc: CeshuDocument): CeshuChapterScore[] {
   const progress = computeChapterProgress(doc)
   const chapterScores: CeshuChapterScore[] = []

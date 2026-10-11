@@ -9,6 +9,6 @@ export const systemsTemplates: ChapterTemplate[] = [
         "系统组合"
       ],
       "data": {},
-      "note": "请使用「预设」按钮应用 RPG 系统组合，或手动在第五章勾选系统。"
+      "note": "请使用「预设」按钮应用 RPG 系统组合，或手动在第四章勾选系统。"
     }
   ]

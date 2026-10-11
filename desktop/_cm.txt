@@ -1,33 +1,31 @@
-chore: 收尾移除 Python 工具链，CSS 审计脚本移植为 Node
+feat(ceshu): 下拉选项全量中文别名 + 章号改为派生（消灭硬编码章号漂移）
 
-承接 363f4a7（Python 源码 + CI/Release 退场），本提交清掉 Python 线的工具链
-残骸，并把唯一在用的 Python 工具移植为 Node —— 仓库自此零 Python。
+spec 2：下拉不再裸漏英文枚举码
+- 新增 `shared/ceschu/ceshuOptionLabels.ts`（定义层）：48 个 combo/multiCombo 的中文别名。
+  同一枚举集（战斗模式 / 战斗节奏 / 付费模式）在章节表单与系统 config 之间**共用一张表**，
+  避免两处各自翻译而漂移。
+- `systemConfigSchema`: `combo()` 的 `optionLabels` 由可选改为**必填** ⇒ 漏配从「测试期发现」
+  升级为「编译期报错」。
+- `ceshuFields`: status / confidentiality / gdd_scope / engine / combat_mode / combat_pace /
+  payment_model / audio_engine 接上别名；档位文案统一为「标准版 / 专业版」。
+  专有名词（Unity / FMOD / Cocos2d）中英同形，也显式登记——守卫要求所有 combo 都带别名表。
 
-一、删除 Python 工具链（输入源已随 src/ 删除 ⇒ 全部不可再运行）
-- .pre-commit-config.yaml（根）：钩子全是 ruff / ruff-format / mypy；且本项目
-  提交铁律用 --no-verify，TS 侧质量门在 desktop-ci.yml
-- desktop/scripts/extract_glossary.py：读 src/ui/dialogs/type_editor_field_widget.py
-  （已删）⇒ 不可再运行
-- scripts/build_ceshu_templates.py：输出到 src/core/ceshu/data/（已删）⇒ 不可再运行
-- scripts/build.bat / launch.bat / scripts/archive/：Python 版启动与打包脚本及其归档
-- ⚠️ scripts/migrate_planning_to_ceshu.py：其操作对象是 data/（真实用户数据，
-  仍在盘上）⇒ 这是本次唯一「输入仍存在」的 Python 脚本，已移入回收目录
-  D:/_py-removal-trash/2026-10-10/scripts-line/，需要时一条 mv 即可拿回
+spec 3：章节顺序按裁定调整 + 章号一律派生
+- 制作区 `mvp` 提到 `monetization` 之前（monetization 由第十四章变第十五章）。
+- `ceshuConstants` 新增 `chapterOrdinalCn()`：`ceshuValidation` 的 10 处一致性提示里的
+  「第N章」全部改为派生。顺带修掉一批**守卫扫不到**的漂移：art 写成第七章（应八）、
+  audio 第十七章（应九）、tech 第八章（应十）、accessibility 第十八章（应十六）、
+  resources 第九章（应十一）、economy 第十三章（应六）、characters（已并入 story）。
+  注意这些写法不带间隔号，`ceshuChapterLabelDrift` 守卫本来就扫不到它们。
+- `CeshuDataPreview` 空态引导改为引用 `CHAPTER_LABELS`（此前硬编码「第五章·游戏系统设计」，
+  分区重组后 systems 已是第四章，而 typecheck / eslint / vitest 全绿也抓不到）。
+- `ceshuFill` 17 处「第N章 xxx」注释剥离章号（它们整体停留在旧 18 章模型，早已失真）。
+- 清理「18 章」过期文案：现为文档信息 + 16 章（ceshuSkill 工具描述、CeshuView 徽标与
+  提示、AiFullGeneratePanel 档位单选、若干注释）。`budget.ts` 的 18 章默认值是刻意保守
+  上估，未动；`CeshuView:438` 描述的是 PyQt 历史菜单，未动。
 
-二、scripts/audit-renderer-css.py → audit-renderer-css.mjs（Node 移植）
-- 用途：渲染层「裸样式」机械审计（组件写了类名但 CSS 里无规则，肉眼看不出来）
-- 逐行等值移植，并用同一份工作树做字节级比对：**归一化行尾后完全一致**
-  （607 / 523 / 5 三个计数与 5 条明细逐字相同；唯一差异是 CRLF vs LF）
-- 顺带修掉旧版硬编码绝对路径 `D:\GameEditorApp\...` 的问题：新版由
-  import.meta.url 推导仓库根，**不依赖 cwd**（已从 /tmp 运行验证通过）
+验收：tsc node 5 / web 6（与基线一致，本次零新增）；改动文件 eslint 0 问题；
+vitest 2011 绿 / 1 红（红为**在途未提交**的 agentQualityGate，与本次无关）。
 
-三、一致性修正
-- desktop/src/shared/glossaryTerms.ts：原注释写「由脚本从 Python AST 生成、
-  请勿手改、重新生成：python scripts/extract_glossary.py」——生成器已随 src/
-  删除 ⇒ 改为「本文件即唯一真源，需直接手改」
-- .gitignore：清掉指向已删除树路径的条目（tests/*_eval_report.json、src/logs/、
-  src/exports/），并修正 data/ 的注释（src/**/data/ 已不存在）
-- README.md：加顶部横幅，声明本文档描述的是已移除的 Python 版、现役产品是
-  desktop/ 的 TS + Electron 版；README 的正式重写另开一单
-
-保留未动：data/（用户数据）、assets/、docs/（历史文档，另单处理）。
+提交纪律：git add 仅显式加这 25 个文件；`shared/agent/qualityGate.ts` 及其测试是主理人
+在途改动，未纳入；其余 dirty 未动；--no-verify + _cm.txt。

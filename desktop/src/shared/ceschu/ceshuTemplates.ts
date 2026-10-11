@@ -105,7 +105,7 @@ export function chapterTemplateSummary(): Record<string, number> {
   return result
 }
 
-/** 全部内置模板数量（18 章 34 个） */
+/** 全部内置模板数量（17 节 = 文档信息 + 16 章，34 个） */
 export function countChapterTemplates(): number {
   return Object.values(CHAPTER_TEMPLATES).reduce((sum, templates) => sum + templates.length, 0)
 }

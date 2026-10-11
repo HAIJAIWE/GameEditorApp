@@ -262,7 +262,7 @@ export function createCeshuSkill(deps: CeshuSkillDeps): SkillProtocol {
         scope: {
           type: 'string',
           enum: ['full', 'lite'],
-          description: '章节档位（create 时使用）: full=专业版 18 章, lite=标准版 9 章',
+          description: '章节档位（create 时使用）: full=专业版 16 章, lite=标准版 9 章',
           default: DEFAULT_SCOPE
         },
         meta: { type: 'object', description: '项目元信息对象（create 时使用，写入 meta 章）' },

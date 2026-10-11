@@ -30,7 +30,7 @@ export function autoFillRequiredFields(doc: CeshuDocument): AutoFillResult {
   const gameName = readText(meta.game_name) || '未命名项目'
   const gameType = readText(meta.game_type) || 'RPG'
 
-  // 第一章 meta
+  // meta
   if (isFalsy(meta.positioning)) {
     meta.positioning = `${gameName} - ${gameType} 类型项目`
     filled += 1
@@ -40,7 +40,7 @@ export function autoFillRequiredFields(doc: CeshuDocument): AutoFillResult {
     filled += 1
   }
 
-  // 第二章 vision
+  // vision
   if (isFalsy(next.vision.design_vision)) {
     next.vision.design_vision = `打造一款具有差异化体验的${gameType}游戏，核心乐趣聚焦于玩法深度与长期留存`
     filled += 1
@@ -50,7 +50,7 @@ export function autoFillRequiredFields(doc: CeshuDocument): AutoFillResult {
     filled += 1
   }
 
-  // 第三章 worldview
+  // story（原 worldview 段）
   if (isFalsy(next.story.architecture)) {
     next.story.architecture = '世界观架构待补充：建议包含时空背景、势力格局、核心冲突'
     filled += 1
@@ -60,7 +60,7 @@ export function autoFillRequiredFields(doc: CeshuDocument): AutoFillResult {
     filled += 1
   }
 
-  // 第四章 gameplay
+  // gameplay
   if (isFalsy(next.gameplay.core_loop)) {
     next.gameplay.core_loop = '核心循环待补充：建议定义 玩家行为→反馈→奖励→下一目标 的闭环'
     filled += 1
@@ -70,7 +70,7 @@ export function autoFillRequiredFields(doc: CeshuDocument): AutoFillResult {
     filled += 1
   }
 
-  // 第六章 numeric
+  // numeric
   if (isFalsy(next.numeric.core_formulas)) {
     next.numeric.core_formulas = '核心数值公式待补充：建议包含伤害公式、成长曲线、掉落概率'
     filled += 1
@@ -80,7 +80,7 @@ export function autoFillRequiredFields(doc: CeshuDocument): AutoFillResult {
     filled += 1
   }
 
-  // 第七章 art
+  // art
   if (isFalsy(next.art.art_style)) {
     next.art.art_style = `${gameType} 通用美术风格`
     filled += 1
@@ -90,7 +90,7 @@ export function autoFillRequiredFields(doc: CeshuDocument): AutoFillResult {
     filled += 1
   }
 
-  // 第八章 tech
+  // tech
   if (isFalsy(next.tech.engine)) {
     next.tech.engine = '引擎选型待确定（Unity / Unreal / 自研）'
     filled += 1
@@ -100,7 +100,7 @@ export function autoFillRequiredFields(doc: CeshuDocument): AutoFillResult {
     filled += 1
   }
 
-  // 第九章 resources
+  // resources
   if (isFalsy(next.resources.budget)) {
     next.resources.budget = { total: '', art: '', dev: '', marketing: '' }
     filled += 1
@@ -110,7 +110,7 @@ export function autoFillRequiredFields(doc: CeshuDocument): AutoFillResult {
     filled += 1
   }
 
-  // 第十章 market_analysis
+  // market_analysis
   if (isFalsy(next.market_analysis.target_market)) {
     next.market_analysis.target_market = '目标市场待补充：建议明确平台、地域、用户画像'
     filled += 1
@@ -120,7 +120,7 @@ export function autoFillRequiredFields(doc: CeshuDocument): AutoFillResult {
     filled += 1
   }
 
-  // 第十一章 characters
+  // story（原 characters 段）
   if (isFalsy(next.story.protagonist)) {
     next.story.protagonist = '主角设定待补充：背景、性格、外观、能力'
     filled += 1
@@ -130,7 +130,7 @@ export function autoFillRequiredFields(doc: CeshuDocument): AutoFillResult {
     filled += 1
   }
 
-  // 第十二章 combat
+  // combat
   if (isFalsy(next.combat.combat_mode)) {
     next.combat.combat_mode = gameType.toUpperCase().includes('RPG') ? '回合制' : '即时制'
     filled += 1
@@ -140,7 +140,7 @@ export function autoFillRequiredFields(doc: CeshuDocument): AutoFillResult {
     filled += 1
   }
 
-  // 第十三章 economy
+  // economy
   if (isFalsy(next.economy.currency_types)) {
     next.economy.currency_types = [{ name: '金币', source: '任务/掉落', sink: '商店购买' }]
     filled += 1
@@ -150,7 +150,7 @@ export function autoFillRequiredFields(doc: CeshuDocument): AutoFillResult {
     filled += 1
   }
 
-  // 第十四章 monetization
+  // monetization
   if (isFalsy(next.monetization.payment_model)) {
     next.monetization.payment_model = 'f2p' // 默认免费 + 内购
     filled += 1
@@ -160,7 +160,7 @@ export function autoFillRequiredFields(doc: CeshuDocument): AutoFillResult {
     filled += 1
   }
 
-  // 第十五章 mvp
+  // mvp
   if (isFalsy(next.mvp.mvp_scope)) {
     next.mvp.mvp_scope = 'MVP 范围待补充：建议包含核心玩法 + 1个完整章节 + 基础UI'
     filled += 1
@@ -170,7 +170,7 @@ export function autoFillRequiredFields(doc: CeshuDocument): AutoFillResult {
     filled += 1
   }
 
-  // 第十六章 risk_handling
+  // risk_handling
   if (isFalsy(next.risk_handling.risk_matrix)) {
     next.risk_handling.risk_matrix = Array.isArray(next.resources.risk_matrix) ? next.resources.risk_matrix : []
     filled += 1
@@ -180,7 +180,7 @@ export function autoFillRequiredFields(doc: CeshuDocument): AutoFillResult {
     filled += 1
   }
 
-  // 第十七章 audio
+  // audio
   if (isFalsy(next.audio.music_style)) {
     next.audio.music_style = `与${readText(next.art.art_style) || '美术风格'}协调的音乐风格`
     filled += 1
@@ -190,7 +190,7 @@ export function autoFillRequiredFields(doc: CeshuDocument): AutoFillResult {
     filled += 1
   }
 
-  // 第十八章 accessibility
+  // accessibility
   if (isFalsy(next.accessibility.language_list)) {
     next.accessibility.language_list = ['简体中文']
     filled += 1

@@ -1,6 +1,6 @@
-import { CHAPTER_LABELS, type CeshuDocument } from '../../../shared/ceshuConstants'
-import { formatLocalTimestamp, getGddScope } from '../../../shared/ceshuModel'
-import { validateCeshu } from '../../../shared/ceshuValidation'
+import { CHAPTER_LABELS, type CeshuDocument } from '../../../shared/ceschu/ceshuConstants'
+import { formatLocalTimestamp, getGddScope } from '../../../shared/ceschu/ceshuModel'
+import { validateCeshu } from '../../../shared/ceschu/ceshuValidation'
 
 import {
   EMPTY_PLACEHOLDER,
@@ -15,7 +15,7 @@ import {
 
 /**
  * Markdown 导出器（自 Python ceshu_markdown_exporter.py 匹平迁移）。
- * 18 章结构（按档位裁剪）+ 目录锚点 + systems 表格 + 完成度附录；适合 Git 版本控制。
+ * 文档信息 + 16 章结构（按档位裁剪）+ 目录锚点 + systems 表格 + 完成度附录；适合 Git 版本控制。
  */
 
 const MD_BULLET = '- '

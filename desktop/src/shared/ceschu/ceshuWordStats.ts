@@ -78,7 +78,7 @@ function buildAdvice(words: number, lo: number, hi: number): { advice: string; a
 
 /**
  * 构建字数统计报告。
- * 行序按 CHAPTER_KEYS 的 18 章全量（不受档位裁剪，与 Python _populate 一致）。
+ * 行序按 CHAPTER_KEYS 的文档信息 + 16 章全量（不受档位裁剪，与 Python _populate 一致）。
  */
 export function buildWordStatsReport(doc: CeshuDocument): CeshuWordStatsReport {
   const rows: CeshuWordStatRow[] = []

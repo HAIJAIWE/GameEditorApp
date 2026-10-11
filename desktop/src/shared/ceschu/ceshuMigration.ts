@@ -1,5 +1,5 @@
 /**
- * v4.0（9 章）→ v5.0（18 章）策划书数据迁移（自 Python `core/ceshu/ceshu_migration.py` 匹平迁移）。
+ * v4.0（9 章）→ v5.0（文档信息 + 16 章）策划书数据迁移（自 Python `core/ceshu/ceshu_migration.py` 匹平迁移）。
  *
  * 由 `normalizeCeshu` 在检测到 `version === "4.0"` 或缺失任一新增章节时调用（对齐 Python
  * `CeshuModel.from_dict` 的懒加载迁移）：把散落在旧章节中的相关字段抽取到新章节，缺失字段
@@ -62,7 +62,7 @@ export function needsV4Migration(raw: Record<string, unknown>): boolean {
 }
 
 /**
- * 把 v4.0（9 章）数据迁移到 v5.0（18 章）结构。
+ * 把 v4.0（9 章）数据迁移到 v5.0（文档信息 + 16 章）结构。
  *
  * 策略（对齐 Python `migrate_v4_to_v5`）：
  *  - 新 9 章缺失时补默认值（Python `setdefault`）；

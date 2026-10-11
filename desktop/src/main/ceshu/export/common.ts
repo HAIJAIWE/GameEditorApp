@@ -6,8 +6,8 @@ import {
   type ChapterData,
   type ChapterKey,
   type GddScope
-} from '../../../shared/ceshuConstants'
-import { isPlainObject } from '../../../shared/ceshuModel'
+} from '../../../shared/ceschu/ceshuConstants'
+import { isPlainObject } from '../../../shared/ceschu/ceshuModel'
 
 /**
  * 导出器公用工具（自 Python ceshu_export_common.py 匹平迁移）。
@@ -130,7 +130,7 @@ export function visibleChapterEntries(scope: GddScope): VisibleChapterEntry[] {
   return CHAPTER_KEYS.map((key, position) => ({ key, index: position + 1 })).filter((entry) => visible.has(entry.key))
 }
 
-/** 章节标题文本（如 "5. 第五章·游戏系统设计"） */
+/** 章节标题文本（如 "4. 第四章·游戏系统设计"；章号取自 `CHAPTER_LABELS`，勿在此硬编码） */
 export function chapterHeading(entry: VisibleChapterEntry): string {
   return `${entry.index}. ${CHAPTER_LABELS[entry.key]}`
 }
