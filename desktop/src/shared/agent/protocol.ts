@@ -392,7 +392,11 @@ export function normalizeSkillResult(raw: unknown): SkillResult {
       success: true,
       message: message !== '' ? message : String(record.data ?? ''),
       data: record.data,
-      ...(error ? { error } : {})
+      ...(error ? { error } : {}),
+      // ⚠️ 本分支同样要带上 interaction：技能若返回 `{message, interaction}` 而漏写
+      // `success`，此前交互请求会被静默丢弃（Brain 的 isSkillInteraction 拿不到它，
+      // 用户永远收不到确认/提问弹窗）。
+      ...(interaction ? { interaction } : {})
     }
   }
   return { success: true, message: String(raw), data: null }

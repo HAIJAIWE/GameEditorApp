@@ -69,4 +69,27 @@ describe('AgentApprovalBroker：危险操作审批中转', () => {
     await expect(second).resolves.toEqual({ approved: false })
     expect(broker.size).toBe(0)
   })
+
+  it('超时登记：到期自动按「未确认」兑现并清理（防登记滞留 pending）', async () => {
+    const broker = new AgentApprovalBroker()
+    const id = broker.nextId()
+    const decision = broker.registerWith(id, 10)
+    expect(broker.size).toBe(1)
+
+    await expect(decision).resolves.toEqual({ approved: false })
+    expect(broker.size).toBe(0)
+  })
+
+  it('超时登记：到期前被回传则按回传兑现，超时不再二次改写', async () => {
+    const broker = new AgentApprovalBroker()
+    const id = broker.nextId()
+    const decision = broker.registerWith(id, 20)
+    expect(broker.resolve(id, { approved: true })).toBe(true)
+    await expect(decision).resolves.toEqual({ approved: true })
+
+    // 越过原定超时点：登记不复活、不产生第二次兑现
+    await new Promise((resolve) => setTimeout(resolve, 30))
+    expect(broker.size).toBe(0)
+    expect(broker.resolve(id, { approved: false })).toBe(false)
+  })
 })

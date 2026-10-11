@@ -122,6 +122,24 @@ describe('agent 协议：结果归一化（去掉 Python 的内部 _raw）', () 
     expect(normalizeSkillResult('纯文本')).toEqual({ success: true, message: '纯文本', data: null })
     expect(normalizeSkillResult(null)).toEqual({ success: true, message: 'null', data: null })
   })
+
+  it('缺 boolean success 但带 interaction：交互请求不能被静默丢弃', () => {
+    // 修复前该分支不返回 interaction ⇒ Brain 的 isSkillInteraction 拿不到它，
+    // 用户永远收不到确认/提问弹窗
+    const interaction = { kind: 'confirm' as const, prompt: '确认删除？' }
+    expect(normalizeSkillResult({ message: '需要确认', interaction })).toEqual({
+      success: true,
+      message: '需要确认',
+      data: undefined,
+      interaction
+    })
+    // 非法 interaction 仍按结构校验丢弃（不因补齐而放松）
+    expect(normalizeSkillResult({ message: 'x', interaction: { kind: 'bad' } })).toEqual({
+      success: true,
+      message: 'x',
+      data: undefined
+    })
+  })
 })
 
 describe('agent 协议：参数修正（对齐 Python _fix_params + normalize_params）', () => {

@@ -9,10 +9,17 @@
  * id 由本模块统一发（`nextId`），避免多次并发会话都从 `approval_1` 开始而冲突。
  */
 
-/** 交互答复：confirm 用 `approved`；question 用 `answer` */
+/**
+ * 交互答复：confirm 用 `approved`；question 单问题用 `answer`、多问题用 `answers`
+ * （按下标对齐，与 Brain 侧 `BrainInteractionAnswer` 同形）。
+ *
+ * ⚠️ 此前类型漏了 `answers`，而 `agentIpc` 的对象展开会原样把它传下去、Brain 也会读——
+ * 靠展开绕过 excess property 检查才过 tsc，属类型失真，这里补齐。
+ */
 export interface AgentInteractionAnswer {
   approved?: boolean
   answer?: string
+  answers?: readonly string[]
 }
 
 export class AgentApprovalBroker {
@@ -24,10 +31,27 @@ export class AgentApprovalBroker {
     return `approval_${++this.seq}`
   }
 
-  /** 按给定 id 登记待答复，返回等待答复的 promise */
-  registerWith(requestId: string): Promise<AgentInteractionAnswer> {
+  /**
+   * 按给定 id 登记待答复，返回等待答复的 promise。
+   *
+   * `timeoutMs > 0` 时到期自动按「未确认」兑现并清理——Brain 侧虽已有等价超时，
+   * 但那条路径**不会通知本 broker**，登记会一直滞留在 `pending`
+   * （长会话反复「用户不答复」时会累积；超时语义与 Brain 的 `withAnswerTimeout` 一致）。
+   */
+  registerWith(requestId: string, timeoutMs = 0): Promise<AgentInteractionAnswer> {
     return new Promise<AgentInteractionAnswer>((resolve) => {
-      this.pending.set(requestId, resolve)
+      let timer: ReturnType<typeof setTimeout> | undefined
+      // 兑现即清计时器；resolve() 与本类的超时分支都只走这一个 settle
+      const settle = (answer: AgentInteractionAnswer): void => {
+        if (timer !== undefined) clearTimeout(timer)
+        resolve(answer)
+      }
+      this.pending.set(requestId, settle)
+      if (timeoutMs > 0) {
+        timer = setTimeout(() => {
+          this.resolve(requestId, { approved: false })
+        }, timeoutMs)
+      }
     })
   }
 

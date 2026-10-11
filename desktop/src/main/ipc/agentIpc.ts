@@ -8,6 +8,7 @@ import {
   agentDraftLoadInputSchema,
   agentDraftSaveInputSchema
 } from '../../shared/schemas'
+import { DEFAULT_INTERACTION_TIMEOUT_MS } from '../../shared/agent/brain'
 import type { AgentInteractionAnswer } from '../agent/approvalBroker'
 
 export function registerAgentIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm: LlmShared): void {
@@ -36,7 +37,9 @@ export function registerAgentIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
       },
       newRequestId: () => {
         const requestId = approvalBroker.nextId()
-        preRegistered.set(requestId, approvalBroker.registerWith(requestId))
+        // 与 Brain 的 `withAnswerTimeout` 用同一超时常量：到期双方都按「未答复」处理，
+        // broker 侧顺带清理登记（否则该 promise 会滞留在 pending 里）
+        preRegistered.set(requestId, approvalBroker.registerWith(requestId, DEFAULT_INTERACTION_TIMEOUT_MS))
         return requestId
       },
       // 危险确认：只有明确 approved 才放行
