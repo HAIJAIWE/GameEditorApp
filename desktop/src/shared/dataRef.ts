@@ -1,4 +1,4 @@
-import { CHAPTER_KEYS, type CeshuChapters } from './ceshuConstants'
+import { CHAPTER_KEYS, type CeshuChapters } from './ceschu/ceshuConstants'
 import type { DataTypeDef, ItemRecord } from './types'
 
 /**
@@ -101,12 +101,18 @@ function resolveTypeKey(typeKey: string, types: readonly DataTypeDef[]): DataTyp
 export function resolveRefValue(
   items: readonly ItemRecord[],
   types: readonly DataTypeDef[],
-  ref: DataRef
+  ref: DataRef,
+  /**
+   * 可选：按 `item.type` 预建的分桶索引。
+   * `buildRefOverview` 逐条解析整本策划书时传入，把「每个引用都全表扫描」降为 O(items + refs)；
+   * 单次调用不传即退回线性过滤（语义完全一致）。
+   */
+  rowsByType?: ReadonlyMap<string, readonly ItemRecord[]>
 ): unknown {
   const def = resolveTypeKey(ref.typeKey, types)
   // 归一后的真实单数 id —— 条目 `type` 字段存的就是它
   const target = def === null ? ref.typeKey : def.id
-  const rows = items.filter((item) => item.type === target)
+  const rows = rowsByType !== undefined ? (rowsByType.get(target) ?? []) : items.filter((item) => item.type === target)
   if (rows.length === 0) return null
 
   // itemId 为空 ⇒ 取第一条（对齐 Python `items[0]`）
@@ -204,8 +210,20 @@ export function buildRefOverview(
   const map = new Map<string, ResolvedRef[]>()
   let resolved = 0
 
+  // 一次分桶：原先每个引用都要 `items.filter(...)` 全表扫描，整本策划书解析是 O(refs × items)。
+  // 这里按 type 建一次索引（O(items)），总量降为 O(items + refs)，refs/条目多时差距显著。
+  const rowsByType = new Map<string, ItemRecord[]>()
+  for (const item of items) {
+    const bucket = rowsByType.get(item.type)
+    if (bucket === undefined) {
+      rowsByType.set(item.type, [item])
+    } else {
+      bucket.push(item)
+    }
+  }
+
   for (const ref of refs) {
-    const value = resolveRefValue(items, types, ref)
+    const value = resolveRefValue(items, types, ref, rowsByType)
     // Python 是 `if value is not None` ⇒ null/undefined 都算「未找到」
     const found = value !== null && value !== undefined
     if (found) resolved += 1

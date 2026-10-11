@@ -8,7 +8,7 @@ import {
   REF_NOT_FOUND_TEXT,
   resolveRefValue
 } from '../../src/shared/dataRef'
-import { CHAPTER_KEYS, type CeshuChapters } from '../../src/shared/ceshuConstants'
+import { CHAPTER_KEYS, type CeshuChapters } from '../../src/shared/ceschu/ceshuConstants'
 import type { DataTypeDef, ItemRecord } from '../../src/shared/types'
 
 /**
@@ -246,6 +246,23 @@ describe('buildRefOverview：概览 + 分组 + 有效计数', () => {
     const keys = ov.groups.map((g) => g.typeKey)
     expect(keys).toEqual(['role', 'skill', 'nope'])
     expect(ov.groups[0]?.refs).toHaveLength(2) // role.hero_01.atk + role.hero_09.atk
+  })
+
+  it('分桶索引路径与线性路径结果等价（O(N×M) 改造的等价性护栏）', () => {
+    // buildRefOverview 现在按 type 建一次索引；本测试逐条与「不传索引」的线性口径比对，
+    // 防止将来索引键口径（item.type / 单复数归一）被改坏而此处不报。
+    const ov = buildRefOverview(chapters, ITEMS, TYPES)
+    const refs = extractAllRefs(chapters)
+    const entries = ov.groups.flatMap((group) => group.refs)
+    expect(entries).toHaveLength(refs.length)
+
+    for (const ref of refs) {
+      const expected = resolveRefValue(ITEMS, TYPES, ref)
+      const entry = entries.find((candidate) => candidate.fullPath === ref.fullPath)
+      expect(entry).toBeDefined()
+      expect(entry?.value).toEqual(expected)
+      expect(entry?.found).toBe(expected !== null && expected !== undefined)
+    }
   })
 
   it('found 标记区分「值本身是 0」与「没找到」', () => {
