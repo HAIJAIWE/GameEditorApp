@@ -333,10 +333,26 @@ describe('UndoRecorder 边界（fail-soft）', () => {
     const r = await recorder.undo() // 栈顶 = update(A)
     expect(r.applied).toBe(0)
     expect(r.skipped).toHaveLength(1)
-    expect(r.skipped[0]?.reason).toContain('创建后已修改')
+    // 此处是「撤销 update」路径，文案应为「更新后已修改」
+    // （曾误抄 create 分支的「创建后已修改」，对用户是事实错误）
+    expect(r.skipped[0]?.reason).toContain('更新后已修改')
     expect(data.get(a.id)?.data['name']).toBe('Z') // 未回写
     // update(A) 入口保留在栈上（未弹栈）：仍可继续撤销 create(A)
     expect(recorder.getState().canUndo).toBe(true)
+  })
+
+  it('E3 边界：显式 undefined 与「键不存在」视为同一数据 → 不误判为「已修改」', async () => {
+    const { data, recorder } = setup()
+    const a = await data.createItem({ type: 'role', data: { name: 'A' } })
+    await data.updateItem(a.id, { name: 'B' }) // 记录 update：after.data = { name:'B', id }
+    // 外部形态差异：多一个显式 undefined 键（structured clone 可携带；经 JSON 落盘会消失）
+    data.forceUpdate(a.id, { name: 'B', id: a.id, note: undefined })
+
+    const r = await recorder.undo()
+    // 修复前：canonicalJson 把 `note: undefined` 当独立值 ⇒ 误判「更新后已修改」而跳过
+    expect(r.skipped).toHaveLength(0)
+    expect(r.applied).toBe(1)
+    expect(data.get(a.id)?.data['name']).toBe('A') // 已回写 before
   })
 
   it('E4：撤销 delete 时 id 冲突（已存在）→ 跳过，绝不盲覆盖', async () => {

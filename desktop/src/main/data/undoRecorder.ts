@@ -35,12 +35,20 @@ interface Issue {
   reason: string
 }
 
-/** 规范化 JSON：递归按 key 排序，忽略插入顺序差异（用于 compare-and-skip，E2/E3） */
+/**
+ * 规范化 JSON：递归按 key 排序，忽略插入顺序差异（用于 compare-and-skip，E2/E3）。
+ *
+ * `undefined` 值的键**视同不存在**——与 JSON 语义一致（`JSON.stringify` 会丢弃它们，
+ * 数据经 SQLite 往返后也会消失）。否则 `{a:undefined}` 会被判为与 `{}` 不同，
+ * 造成「用户其实没改、却报已修改」的假跳过（fail-safe 方向，但仍是误判）。
+ */
 function canonicalJson(value: unknown): string {
-  if (value === null || typeof value !== 'object') return JSON.stringify(value)
+  if (value === null || typeof value !== 'object') return String(JSON.stringify(value))
   if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`
   const obj = value as Record<string, unknown>
-  const keys = Object.keys(obj).sort()
+  const keys = Object.keys(obj)
+    .filter((key) => obj[key] !== undefined)
+    .sort()
   return `{${keys.map((k) => `${JSON.stringify(k)}:${canonicalJson(obj[k])}`).join(',')}}`
 }
 
@@ -187,7 +195,8 @@ export class UndoRecorder {
         return false
       }
       if (leaf.after !== null && !sameData(current.data, leaf.after.data)) {
-        skipped.push({ name: leaf.itemName, reason: `「${leaf.itemName}」创建后已修改，未撤销（避免丢失后续编辑）` })
+        // 这是「撤销 update」路径：条目是被**更新**过（不是创建），文案不能照抄上面 create 分支
+        skipped.push({ name: leaf.itemName, reason: `「${leaf.itemName}」更新后已修改，未撤销（避免丢失后续编辑）` })
         return false
       }
       await this.port.restoreItem(snapshot)
