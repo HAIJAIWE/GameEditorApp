@@ -1,61 +1,113 @@
 /**
- * 策划书常量（自 Python 版 core/ceshu/ceshu_model.py v5.0 与 ceshu_constants.py 匹平迁移）。
- * - 18 章工业级结构：基础 9 章（旧版保留）+ 工业级补充 9 章
- * - 档位：lite = 基础 9 章 / full = 全部 18 章，持久化在 meta.gdd_scope
+ * 策划书章节常量（**单一事实源 = `CHAPTER_PARTS`**）。
+ *
+ * - **meta（文档信息段）不占章号**：恒在 `CHAPTER_KEYS` 首位、`chapterNumber(meta) === 0`，
+ *   且 label 无「第N章·」前缀。
+ * - **16 个编号章**由 `CHAPTER_PARTS` 顺序展开派生（`NUMBERED_CHAPTER_KEYS`）。
+ *   分区制重组把原「世界观 + 角色设计」两章并成 `story`；`combat`/`economy` 上移到核心区。
+ * - **章号 / 标签 / 分区序号全部由数组位置派生**（`chapterNumber` / `CHAPTER_LABELS` /
+ *   `partDisplayName`）。历史上出过「重排后 lite 章号跳号 1,2,3,4,5,6,11,13,14」「目录像缺页」
+ *   这类只在界面上肉眼可见的缺陷 ⇒ 派生 + `ceshuConstants.test.ts` 的结构守卫就是为它们立的。
+ * - 档位：lite = 文档信息段 + 核心设计 9 章（`LITE_CHAPTER_KEYS` **恒为编号章前缀**）/
+ *   full = 全部章节。持久化在 meta.gdd_scope。
  */
 
-export const CHAPTER_KEYS = [
-  // 基础章节（旧 9 章保留）
-  'meta',
-  'vision',
-  'worldview',
-  'gameplay',
-  'systems',
-  'numeric',
-  'art',
-  'tech',
-  'resources',
-  // 工业级补充 9 章
-  'market_analysis',
-  'characters',
-  'combat',
-  'economy',
-  'monetization',
-  'mvp',
-  'risk_handling',
-  'audio',
-  'accessibility'
+/** 文档信息段：封面信息，不占章号 */
+export const META_CHAPTER_KEY = 'meta'
+
+/** 分区定义（章节顺序的唯一事实源） */
+export const CHAPTER_PARTS = [
+  {
+    key: 'core',
+    label: '核心设计',
+    chapters: ['vision', 'story', 'gameplay', 'systems', 'combat', 'economy', 'numeric', 'art', 'audio']
+  },
+  {
+    key: 'production',
+    label: '制作与商业',
+    chapters: ['tech', 'resources', 'market_analysis', 'risk_handling', 'monetization', 'mvp', 'accessibility']
+  }
 ] as const
 
-export type ChapterKey = (typeof CHAPTER_KEYS)[number]
-
-export const CHAPTER_LABELS: Record<ChapterKey, string> = {
-  // 基础 9 章
-  meta: '第一章·项目元信息',
-  vision: '第二章·产品愿景',
-  worldview: '第三章·世界观',
-  gameplay: '第四章·核心玩法',
-  systems: '第五章·游戏系统设计',
-  numeric: '第六章·数值设计',
-  art: '第七章·美术设计',
-  tech: '第八章·技术规格',
-  resources: '第九章·资源规划',
-  // 工业级补充 9 章
-  market_analysis: '第十章·市场分析',
-  characters: '第十一章·角色设计',
-  combat: '第十二章·战斗系统设计',
-  economy: '第十三章·经济系统设计',
-  monetization: '第十四章·商业化设计',
-  mvp: '第十五章·MVP 规划',
-  risk_handling: '第十六章·风险控制',
-  audio: '第十七章·音频设计',
-  accessibility: '第十八章·可访问性与本地化'
+export interface ChapterPart {
+  key: string
+  label: string
+  chapters: readonly ChapterKey[]
 }
 
-/** 轻量档可见章节（基础 9 章） */
-export const BASE_CHAPTER_KEYS: readonly ChapterKey[] = CHAPTER_KEYS.slice(0, 9)
-/** 工业级档新增章节（后 9 章） */
-export const INDUSTRIAL_CHAPTER_KEYS: readonly ChapterKey[] = CHAPTER_KEYS.slice(9)
+/** 有章号的章节 key（由分区表展开派生） */
+export type NumberedChapterKey = (typeof CHAPTER_PARTS)[number]['chapters'][number]
+
+/** 全部章节 key = 文档信息段 + 编号章 */
+export type ChapterKey = typeof META_CHAPTER_KEY | NumberedChapterKey
+
+/** 编号章顺序（**章节顺序的唯一事实源派生结果**） */
+export const NUMBERED_CHAPTER_KEYS: readonly NumberedChapterKey[] = CHAPTER_PARTS.flatMap((part) => [...part.chapters])
+
+export const CHAPTER_KEYS: readonly ChapterKey[] = [META_CHAPTER_KEY, ...NUMBERED_CHAPTER_KEYS]
+
+/** 章节中文名（`CHAPTER_LABELS` 与章号由它 + 数组位置派生） */
+export const CHAPTER_NAMES: Record<ChapterKey, string> = {
+  meta: '项目元信息',
+  vision: '产品愿景',
+  story: '世界观与角色',
+  gameplay: '核心玩法',
+  systems: '游戏系统设计',
+  combat: '战斗系统设计',
+  economy: '经济系统设计',
+  numeric: '数值设计',
+  art: '美术设计',
+  audio: '音频设计',
+  tech: '技术规格',
+  resources: '资源规划',
+  market_analysis: '市场分析',
+  risk_handling: '风险控制',
+  monetization: '商业化设计',
+  mvp: 'MVP 规划',
+  accessibility: '可访问性与本地化'
+}
+
+/** 中文数字（章号 / 分区序号共用） */
+const CN_NUMERALS = [
+  '一', '二', '三', '四', '五', '六', '七', '八', '九', '十',
+  '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十'
+] as const
+
+/** 章号：文档信息段为 0，编号章从 1 起（按 `NUMBERED_CHAPTER_KEYS` 位置派生） */
+export function chapterNumber(key: ChapterKey): number {
+  if (key === META_CHAPTER_KEY) {
+    return 0
+  }
+  return NUMBERED_CHAPTER_KEYS.indexOf(key) + 1
+}
+
+/** 章节显示标签：文档信息段无「第N章·」前缀，编号章与章号严格对齐 */
+export const CHAPTER_LABELS: Record<ChapterKey, string> = Object.fromEntries(
+  CHAPTER_KEYS.map((key) => {
+    const ordinal = chapterNumber(key)
+    const name = CHAPTER_NAMES[key]
+    return [key, ordinal === 0 ? name : `第${CN_NUMERALS[ordinal - 1]}章·${name}`]
+  })
+) as Record<ChapterKey, string>
+
+/** 该章所属分区；文档信息段返回 null（分区序号见 `partDisplayName`） */
+export function chapterPartOf(key: ChapterKey): ChapterPart | null {
+  return CHAPTER_PARTS.find((part) => (part.chapters as readonly ChapterKey[]).includes(key)) ?? null
+}
+
+/** 分区显示名：「一、核心设计」（序号按其在 `CHAPTER_PARTS` 中的位置派生） */
+export function partDisplayName(part: ChapterPart): string {
+  const index = CHAPTER_PARTS.findIndex((candidate) => candidate.key === part.key)
+  return `${CN_NUMERALS[index]}、${part.label}`
+}
+
+/** 轻量档可见的**编号**章（恒为 `NUMBERED_CHAPTER_KEYS` 的前缀 ⇒ 章号 1..9 不跳号） */
+export const LITE_CHAPTER_KEYS: readonly NumberedChapterKey[] = NUMBERED_CHAPTER_KEYS.slice(0, 9)
+
+/** @deprecated 请用 `META_CHAPTER_KEY` + `LITE_CHAPTER_KEYS`；保留仅为兼容既有调用点 */
+export const BASE_CHAPTER_KEYS: readonly ChapterKey[] = [META_CHAPTER_KEY, ...LITE_CHAPTER_KEYS]
+/** @deprecated 请用 `NUMBERED_CHAPTER_KEYS.slice(LITE_CHAPTER_KEYS.length)` */
+export const INDUSTRIAL_CHAPTER_KEYS: readonly ChapterKey[] = NUMBERED_CHAPTER_KEYS.slice(LITE_CHAPTER_KEYS.length)
 
 export const GDD_SCOPE_FULL = 'full'
 export const GDD_SCOPE_LITE = 'lite'
@@ -69,30 +121,32 @@ export function isGddScope(value: unknown): value is GddScope {
   return value === GDD_SCOPE_FULL || value === GDD_SCOPE_LITE
 }
 
-/** 按档位返回可见章节 key */
+/** 按档位返回可见章节 key：full = 全部；lite = 文档信息段 + 核心设计 9 章 */
 export function visibleChapterKeys(scope: GddScope): readonly ChapterKey[] {
-  return scope === GDD_SCOPE_LITE ? BASE_CHAPTER_KEYS : CHAPTER_KEYS
+  return scope === GDD_SCOPE_LITE ? [META_CHAPTER_KEY, ...LITE_CHAPTER_KEYS] : CHAPTER_KEYS
 }
 
-/** 每章必填字段（用于进度计算与校验，与 Python CHAPTER_REQUIRED_FIELDS 一致） */
+/**
+ * 每章必填字段（用于进度计算与校验）。
+ * `story` 是原 `worldview` + `characters` 的必填项**并集**（两章已合并）。
+ */
 export const CHAPTER_REQUIRED_FIELDS: Record<ChapterKey, string[]> = {
   meta: ['game_name', 'game_type', 'positioning', 'tags'],
   vision: ['design_vision', 'differentiation'],
-  worldview: ['architecture', 'main_plot'],
+  story: ['architecture', 'main_plot', 'protagonist', 'main_npc_count'],
   gameplay: ['core_loop', 'game_modes'],
   systems: [], // 游戏系统按 enabled 数量算进度
+  combat: ['combat_mode', 'damage_formula'],
+  economy: ['currency_types', 'source_sink'],
   numeric: ['core_formulas', 'balance_principles'],
   art: ['art_style', 'color_system'],
+  audio: ['music_style', 'sfx_count'],
   tech: ['engine', 'milestones'],
   resources: ['budget', 'risk_matrix'],
   market_analysis: ['target_market', 'competitors'],
-  characters: ['protagonist', 'main_npc_count'],
-  combat: ['combat_mode', 'damage_formula'],
-  economy: ['currency_types', 'source_sink'],
+  risk_handling: ['risk_matrix', 'contingency_plan'],
   monetization: ['payment_model', 'pricing_tiers'],
   mvp: ['mvp_scope', 'mvp_timeline'],
-  risk_handling: ['risk_matrix', 'contingency_plan'],
-  audio: ['music_style', 'sfx_count'],
   accessibility: ['language_list', 'accessibility_features']
 }
 
