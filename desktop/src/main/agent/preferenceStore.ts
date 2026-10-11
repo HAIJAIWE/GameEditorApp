@@ -8,10 +8,26 @@
  * `PreferenceStore`。未收到反馈前偏好为空（与 Python Learner 冷启动一致的空语义）。
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
 
 import { extractPreferences, type FeedbackRecord } from '../../shared/agent/personalization'
+
+/**
+ * 原子写 JSON（tmp + rename，与仓库其余 store 同一约定）。
+ *
+ * ⚠️ 父目录一律用 `dirname()` 求——**不要**用 `file.slice(0, file.lastIndexOf('/'))`：
+ * Windows 下 `join()` 产出的是反斜杠路径，`lastIndexOf('/')` 返回 -1，
+ * 会把路径**砍掉最后一个字符**并在 userData 里建出一个垃圾目录
+ * （回归测试见 `personalization.test.ts`）。
+ */
+function writeJsonAtomic(file: string, value: unknown): void {
+  const dir = dirname(file)
+  if (dir !== '' && !existsSync(dir)) mkdirSync(dir, { recursive: true })
+  const temp = `${file}.tmp`
+  writeFileSync(temp, JSON.stringify(value, null, 2), 'utf-8')
+  renameSync(temp, file)
+}
 
 /** 偏好键值存储（JSON 文件持久化） */
 export class PreferenceStore {
@@ -34,9 +50,7 @@ export class PreferenceStore {
 
   private persist(): void {
     try {
-      const dir = this.file.slice(0, this.file.lastIndexOf('/'))
-      if (dir !== '' && !existsSync(dir)) mkdirSync(dir, { recursive: true })
-      writeFileSync(this.file, JSON.stringify(this.data, null, 2), 'utf-8')
+      writeJsonAtomic(this.file, this.data)
     } catch {
       // 落盘失败：内存态仍可用，不影响本进程运行
     }
@@ -109,9 +123,7 @@ export class FeedbackStore {
 
   private persist(): void {
     try {
-      const dir = this.file.slice(0, this.file.lastIndexOf('/'))
-      if (dir !== '' && !existsSync(dir)) mkdirSync(dir, { recursive: true })
-      writeFileSync(this.file, JSON.stringify(this.records, null, 2), 'utf-8')
+      writeJsonAtomic(this.file, this.records)
     } catch {
       /* 落盘失败不阻塞 */
     }

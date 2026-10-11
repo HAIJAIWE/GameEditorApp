@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -130,6 +130,16 @@ describe('PreferenceStore：JSON 文件持久化', () => {
     reloaded.load()
     expect(reloaded.getAll()).toEqual({})
   })
+
+  it('落盘不产生垃圾目录（回归：Windows 反斜杠路径曾被 lastIndexOf("/") 砍掉尾字符）', () => {
+    const store = new PreferenceStore(file)
+    store.set('language', 'python')
+
+    expect(JSON.parse(readFileSync(file, 'utf-8'))).toEqual({ language: 'python' })
+    // 修复前（Windows 下 join 产出的反斜杠路径）会多出 `preferences.jso/` 垃圾目录 ⇒ 此处转红；
+    // 原子写的 tmp 文件也应已 rename 消失
+    expect(readdirSync(dir)).toEqual(['preferences.json'])
+  })
 })
 
 describe('FeedbackStore：反馈记录 + 偏好提炼', () => {
@@ -185,6 +195,14 @@ describe('FeedbackStore：反馈记录 + 偏好提炼', () => {
     fb2.load()
     expect(fb2.getAll()).toHaveLength(1)
     expect(prefs2.get('archive_dir')).toBe('桌面')
+  })
+
+  it('落盘同样不产生垃圾目录（与 PreferenceStore 同一回归）', () => {
+    const prefs = new PreferenceStore(join(dir, 'preferences.json'))
+    const fb = new FeedbackStore(join(dir, 'feedback.json'), prefs)
+    // 评论无关键词 ⇒ 只写 feedback.json（preferences 不落盘）
+    fb.record(5, '很好')
+    expect(readdirSync(dir)).toEqual(['feedback.json'])
   })
 })
 
