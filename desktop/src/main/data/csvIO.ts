@@ -3,7 +3,14 @@ import { readFile, rename, writeFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 
 import { getTypeByLegacyKey } from '../../shared/typeSchema'
-import type { CsvExportSummary, DataTypeDef, ImportSummary, ItemRecord } from '../../shared/types'
+import type {
+  CsvExportSummary,
+  DataTypeDef,
+  FieldType,
+  ImportSummary,
+  ItemRecord,
+  TypeFieldDef
+} from '../../shared/types'
 import type { DataService, ImportRecord } from './service'
 
 /**
@@ -14,6 +21,9 @@ import type { DataService, ImportRecord } from './service'
  * 相对 Python 版的**有意修正**：
  * - 复杂值（数组/对象）序列化为**真 JSON**（Python `csv` 对 list/dict 直接 str() 出单引号伪 JSON，
  *   往返会坏）；导入侧用 `decodeCsvCell` 还原回对象。
+ * - 导入侧再按 schema 把**数字类字段**（`spinbox` / `double_spin`）从文本还原为 `number`：
+ *   CSV 天然只有字符串，不还原会让这类字段从数字退化成字符串，违反
+ *   `itemFormUtils` 建立的「数字类字段存真数字」不变量（后果：批量调数会静默跳过这些条目）。
  * - 表头取**全部条目键的并集**（Python 只取 `items[0].keys()`，异质条目会丢列/崩）。
  * - 写出 UTF-8 BOM 且行分隔用 CRLF（Excel 打开中文/换行更友好）。
  */
@@ -161,10 +171,38 @@ export function decodeCsvCell(raw: string): unknown {
 }
 
 /**
+ * 按 schema 声明的字段类型把 CSV 单元格还原为 JSON 类型。
+ *
+ * 只有 `spinbox` / `double_spin`（数字类）需要转换——与 `itemFormUtils` 的表单归一同一口径。
+ * 空串与非有限数**保持原字符串**：不产 `NaN`、不丢数据（宁可留下可见的脏值，也不静默改坏）。
+ * 未提供 schema 字段（未知类型文件）时不转换。
+ */
+function coerceCellValue(value: unknown, fieldType: FieldType | undefined): unknown {
+  if (typeof value !== 'string') {
+    return value
+  }
+  if (fieldType !== 'spinbox' && fieldType !== 'double_spin') {
+    return value
+  }
+  if (value.trim() === '') {
+    return value
+  }
+  const numeric = Number(value)
+  return Number.isFinite(numeric) ? numeric : value
+}
+
+/**
  * 解析后的行 → 导入记录：`rows[0]` 为表头；整行全空跳过（skipped++）；
  * 跳过空表头与越界列；id 为非空字符串则保留，否则生成 UUID 并写回 `item.id`。
+ *
+ * `fields` 为已解析类型的 schema 字段（`DataTypeDef.formFields`），用于把数字类字段还原为
+ * `number`（见 `coerceCellValue`）；未知类型文件传 `undefined`，此时一律保持字符串。
  */
-export function rowsToImportRecords(rows: string[][], type: string): { records: ImportRecord[]; skipped: number } {
+export function rowsToImportRecords(
+  rows: string[][],
+  type: string,
+  fields?: readonly TypeFieldDef[]
+): { records: ImportRecord[]; skipped: number } {
   const records: ImportRecord[] = []
   let skipped = 0
   if (rows.length === 0) {
@@ -172,6 +210,7 @@ export function rowsToImportRecords(rows: string[][], type: string): { records: 
   }
 
   const headers = rows[0]
+  const fieldTypes = new Map((fields ?? []).map((field) => [field.name, field.type]))
   for (let rowIndex = 1; rowIndex < rows.length; rowIndex++) {
     const row = rows[rowIndex]
     if (row.every((cell) => cell === '')) {
@@ -185,7 +224,7 @@ export function rowsToImportRecords(rows: string[][], type: string): { records: 
       if (!header || col >= row.length) {
         continue
       }
-      item[header] = decodeCsvCell(row[col])
+      item[header] = coerceCellValue(decodeCsvCell(row[col]), fieldTypes.get(header))
     }
 
     const rawId = item['id']
@@ -287,7 +326,8 @@ export async function importCsvFile(
     text = text.slice(1)
   }
 
-  const parsed = rowsToImportRecords(parseCsvText(text), resolvedType)
+  // 传 schema 字段：数字类字段（spinbox/double_spin）按声明还原为 number
+  const parsed = rowsToImportRecords(parseCsvText(text), resolvedType, def?.formFields)
   const { imported, updated } = await service.importRecords(parsed.records)
 
   const byType: Record<string, number> = {}

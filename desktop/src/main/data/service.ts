@@ -123,10 +123,10 @@ export class DataService implements UndoRecorderPort {
    */
   batchUpdate(input: BatchUpdateInput): Promise<BatchUpdateSummary> {
     return this.enqueueWrite(() => {
-    const summary: BatchUpdateSummary = { affected: 0, skipped: 0, missing: 0 }
-    const now = new Date().toISOString()
-    const children: UndoEntry[] = []
-    for (const id of input.ids) {
+      const summary: BatchUpdateSummary = { affected: 0, skipped: 0, missing: 0 }
+      const now = new Date().toISOString()
+      const children: UndoEntry[] = []
+      for (const id of input.ids) {
         const existing = this.repo.findItem(id)
         if (!existing || existing.type !== input.type) {
           summary.missing++
@@ -223,6 +223,10 @@ export class DataService implements UndoRecorderPort {
   /**
    * 批量导入（旧数据迁移用）：整批走一次写队列，保持"唯一写者"语义。
    * 已存在的 id 更新其数据并保留原 createdAt。
+   *
+   * ⚠️ `createdAt: now` 只对**新插入**生效：冲突时保留原 created_at 是
+   * `SqliteItemsRepository.upsertItem` 的 `ON CONFLICT ... SET type,data,updated_at`
+   * **刻意不更新 created_at** 保证的（两处共同构成契约，改任一侧前请先读另一侧）。
    */
   importRecords(records: ImportRecord[]): Promise<{ imported: number; updated: number }> {
     return this.enqueueWrite(() => {

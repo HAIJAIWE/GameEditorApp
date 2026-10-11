@@ -16,7 +16,7 @@ import {
 } from '../../src/main/data/csvIO'
 import { DataService } from '../../src/main/data/service'
 import { SqliteItemsRepository } from '../../src/main/data/sqliteRepo'
-import type { DataTypeDef, ItemRecord } from '../../src/shared/types'
+import type { DataTypeDef, ItemRecord, TypeFieldDef } from '../../src/shared/types'
 
 /**
  * CSV 导入/导出验证：纯函数逐条覆盖 + 「真实 SQLite + 真文件系统」往返。
@@ -25,7 +25,14 @@ import type { DataTypeDef, ItemRecord } from '../../src/shared/types'
  */
 
 const TYPES: DataTypeDef[] = [
-  { id: 'role', name: '角色', pluralKey: 'roles', color: '#888888', formFields: [] },
+  {
+    id: 'role',
+    name: '角色',
+    pluralKey: 'roles',
+    color: '#888888',
+    // 数字类字段：用于验证 CSV 往返的类型还原（见文件尾「数字字段保型」用例）
+    formFields: [{ name: 'hp', label: '生命', type: 'spinbox', editable: true }]
+  },
   { id: 'skill', name: '技能', pluralKey: 'skills', color: '#888888', formFields: [] }
 ]
 
@@ -254,6 +261,37 @@ describe('rowsToImportRecords', () => {
     expect(records[0].data['attrs']).toEqual({ atk: 9 })
   })
 
+  it('数字类字段（spinbox/double_spin）按 schema 还原为 number，其余字段保持字符串', () => {
+    const fields: TypeFieldDef[] = [
+      { name: 'hp', label: '生命', type: 'spinbox', editable: true },
+      { name: 'rate', label: '系数', type: 'double_spin', editable: true }
+    ]
+    const { records } = rowsToImportRecords(
+      [
+        ['id', 'hp', 'rate', 'desc'],
+        ['r1', '100', '1.5', '说明文字']
+      ],
+      'role',
+      fields
+    )
+    expect(records[0].data['hp']).toBe(100)
+    expect(records[0].data['rate']).toBe(1.5)
+    expect(records[0].data['desc']).toBe('说明文字')
+  })
+
+  it('数字类字段值非法/为空时保持原字符串（不产 NaN、不丢数据）', () => {
+    const fields: TypeFieldDef[] = [{ name: 'hp', label: '生命', type: 'spinbox', editable: true }]
+    const bad = rowsToImportRecords([['id', 'hp'], ['r1', '很多']], 'role', fields)
+    expect(bad.records[0].data['hp']).toBe('很多')
+    const blank = rowsToImportRecords([['id', 'hp'], ['r2', '']], 'role', fields)
+    expect(blank.records[0].data['hp']).toBe('')
+  })
+
+  it('未提供 schema 字段（未知类型文件）→ 一律保持字符串（无从判断类型）', () => {
+    const { records } = rowsToImportRecords([['id', 'hp'], ['r1', '100']], 'role')
+    expect(records[0].data['hp']).toBe('100')
+  })
+
   it('空行列表 → 无记录', () => {
     const { records, skipped } = rowsToImportRecords([], 'role')
     expect(records).toEqual([])
@@ -362,5 +400,21 @@ describe('exportCsvFiles + importCsvFile 真实往返', () => {
     expect(record.data['id']).toBe('r1')
     // 首列表头键名不应带 BOM
     expect(Object.keys(record.data)).not.toContain('\uFEFFid')
+  })
+
+  it('往返保型：spinbox 字段导出再从 CSV 导入仍是 number（修复前退化为字符串）', async () => {
+    const { root, service } = makeService()
+    await service.importRecords([
+      { type: 'role', id: 'r1', data: { id: 'r1', name: '战士', hp: 120 } }
+    ])
+
+    await exportCsvFiles(root, service, TYPES)
+    // 导出侧确实是文本形式（CSV 的天性）
+    expect(readFileSync(join(root, 'roles.csv'), 'utf-8')).toContain('120')
+    await importCsvFile(join(root, 'roles.csv'), service, TYPES)
+
+    const stored = service.listAllItems().find((item) => item.id === 'r1')
+    expect(typeof stored?.data['hp']).toBe('number')
+    expect(stored?.data['hp']).toBe(120)
   })
 })

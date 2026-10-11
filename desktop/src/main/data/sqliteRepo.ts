@@ -49,6 +49,11 @@ export class SqliteItemsRepository implements ItemsRepository {
       .run(record.id, record.type, JSON.stringify(record.data), record.createdAt, record.updatedAt)
   }
 
+  /**
+   * ⚠️ 冲突时**刻意不更新 `created_at`**（SET 列表里没有它）——这是「导入已存在 id 时
+   * 保留原创建时间」的落点（见 `DataService.importRecords` 的注释）。
+   * 改这条 SQL 前请先读那边的契约说明，否则会静默改掉导入语义。
+   */
   upsertItem(record: ItemRecord): void {
     this.db
       .prepare(
