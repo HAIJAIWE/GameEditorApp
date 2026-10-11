@@ -71,7 +71,7 @@ export function createCeshuSkill(deps: CeshuSkillDeps): SkillProtocol {
   }
 
   function scopeLabel(scope: GddScope): string {
-    return scope === 'lite' ? '基础' : '工业级'
+    return scope === 'lite' ? '标准版' : '专业版'
   }
 
   /** 统一兜住 manager 抛出的中文错误（如「策划书不存在，可能已被删除」） */
@@ -262,7 +262,7 @@ export function createCeshuSkill(deps: CeshuSkillDeps): SkillProtocol {
         scope: {
           type: 'string',
           enum: ['full', 'lite'],
-          description: '章节档位（create 时使用）: full=工业级 18 章, lite=基础 9 章',
+          description: '章节档位（create 时使用）: full=专业版 18 章, lite=标准版 9 章',
           default: DEFAULT_SCOPE
         },
         meta: { type: 'object', description: '项目元信息对象（create 时使用，写入 meta 章）' },

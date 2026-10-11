@@ -483,7 +483,7 @@ export default function CeshuView({
           {doc.version_label}
           {doc.is_active ? ' ★ 激活' : ' · 未激活'}
         </span>
-        <span className="item-meta">档位：{scope === 'lite' ? '轻量（9 章）' : '工业级（18 章）'}</span>
+        <span className="item-meta">档位：{scope === 'lite' ? '标准版（9 章）' : '专业版（18 章）'}</span>
         <span className="item-meta" data-testid="ceshu-total-progress">
           总进度 {Math.round((progress.total ?? 0) * 100)}%
         </span>
@@ -875,7 +875,7 @@ export default function CeshuView({
                 )
               })}
               {scope === 'lite' && (
-                <div className="chapter-nav-hint">轻量档仅含基础 9 章；在「项目元信息」中可切换为工业级 18 章</div>
+                <div className="chapter-nav-hint">标准版仅含基础 9 章；在「文档信息」中可切换为专业版 18 章</div>
               )}
             </div>
 
