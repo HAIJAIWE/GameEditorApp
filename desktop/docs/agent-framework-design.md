@@ -820,8 +820,34 @@ cp D:/tmp/<file>.fixed <file>     # 4. 恢复
 `.sort()` 无比较器的全在字符串数组上；循环内的 `filter/find` 都作用在小集合上（无真实 O(N×M)，
 唯一同型的是 `excelIO` 的 types×records，量级可忽略）。
 
-**唯一遗留**：`shared/dataRef.ts` 的引用解析 O(N×M)（`buildRefOverview` 对每个 ref 全表 `filter`）
-——该文件当时为**主理人在途 dirty**，按铁律未碰；待其干净或点名后落地（改法：建一次 `type→items` 索引）。
+**原唯一遗留已落地**：`shared/dataRef.ts` 的引用解析 O(N×M) 已于 `edcc030` 修复
+（`buildRefOverview` 建一次 `type→items` 索引 + `resolveRefValue` 加可选索引参数，配等价性护栏）。
+
+### 7.7 剩余覆盖面巡检结论（2026-10-11 二次巡检）
+
+| 覆盖面 | 结论 |
+|---|---|
+| `main/engineExport` · `imageGen` · `library` · `backup` · `attr` · `schema` · `llm` · `settings` · `main` 根级 | **良好**；唯一缺口是 `index.ts` 启动链无 `.catch`（已修 `b97e0fd`） |
+| **渲染层 `renderer/src`** | 资源管理**全干净**：`addEventListener`/`removeEventListener` 在 6 个文件里**全部 1:1 配对**；`.then`/`.catch` **逐文件 1:1**；两处 `setTimeout` 均有清理；无 `dangerouslySetInnerHTML`；`Math.random` 0 处 |
+| `main/ceshu/**` | **整体在途（13 文件 dirty）⇒ 未动**；只读抽查 `storage.ts`（id 白名单 `^[A-Za-z0-9_-]+$` 防穿越 + 原子写）与 `ipc/ceshuIpc.ts` 交付面 |
+
+**已核实为「可接受、不修」的项（避免下次重复讨论）**
+
+1. **React `key={index}`（5 处）**：`AttrTableEditor` / `AttrPanelEditor` 的行列表**输入全为受控**
+   （`value=` + `onChange`）且 `AttrRow` 无天然 id ⇒ 无经典「值错位」风险；强加 id 会动数据模型（过度开发）。
+   `AttrSystemPanel` / `BatchEditPanel` 的错误列表与 `MenuBar` 菜单为静态列表。
+2. **`images:readByPath` 接受任意绝对路径的图片**：受扩展名白名单限制，且对应 PyQt `LazyImageLabel`
+   的等价能力——属**已知取舍**（非缺陷）。
+3. **`will-navigate` 放行任意 `file://`**：渲染层为 `sandbox:true` + `contextIsolation:true`，
+   `file://` 页面拿不到 Node 能力 ⇒ 低危；若需收紧，改为「仅放行本应用 `index.html` 的 file URL」。
+4. **store 启动期 `readFileSync`**：小 JSON 亚毫秒级、启动期用户不可见 ⇒ **不值得改**。
+5. **`extractAllRefs` 每字段 `new RegExp`**：单次构造微秒级 ⇒ 不改为共享实例
+   （现写法刻意避免全局正则 `lastIndex` 串味，更安全）。
+
+**🔎 唯一新观察（未修，需先脱 dirty）**：`ceshu:delete` **不要求 `confirm` 标志**，
+而同类破坏性通道 `images:deleteImages` 要求 `req.confirm === true`。UI 侧应已有确认框，
+此处属**防御纵深不一致**；因涉及 `shared/schemas` + 渲染层调用点（可能 dirty），
+待 `main/ceshu/**` 收工后一并处理更稳（**不抢在别人改同一批文件时动手**）。
 
 ---
 
