@@ -20,7 +20,7 @@
  *    计划驱动执行（`_plan` / `_execute_plan`）——分别属 A1-3（会话与记忆）与 A1-5（业务接线）。
  */
 
-import { isSkillInteraction, type SkillExecutionContext, type SkillInteraction } from './protocol'
+import { fixParams, isSkillInteraction, type SkillExecutionContext, type SkillInteraction } from './protocol'
 import { buildAssistantMessage, buildToolMessage, fallbackAnswer, formatToolResult, terminationDetail, type BrainLlmReply, type BrainLlmTransport, type BrainMessage, type BrainToolRunner } from './brainMessages'
 export * from './brainMessages'
 import type { LlmUsage } from '../llmConfig'
@@ -377,7 +377,9 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
       break
     }
 
-    let executedAny = false
+    // 「能解析」而非「已执行」：用户拒绝 / 审批超时都不算「工具不可用」，
+    // 应当继续循环把 [STOP] 结果回灌给 LLM，让它改提案（见下方 F3 注释）。
+    let resolvedAny = false
     for (const call of reply.toolCalls) {
       const resolved = runner.resolve(call.name)
       if (resolved === null) {
@@ -388,16 +390,32 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
         continue
       }
 
-      const action = typeof call.arguments.action === 'string' ? call.arguments.action : ''
+      // 能解析即成立（即使用户随后拒绝，也要让 LLM 看到 [STOP] 并可改提案）
+      resolvedAny = true
+
+      // ⚠️ 审批判定与一次性令牌必须用**与 dispatcher 同口径**的 action：
+      // dispatcher 执行前会 `fixParams`（action 别名归一 + 缺失推断），若这里用原始 action，
+      // 模型输出别名时（`system.code` 的 `run`/`exec`/`执行` → 归一为 `execute`），
+      // 用户即使批准，令牌仍会被 dispatcher 的 `confirmed.action === action` 比对拒绝。
+      const normalizedAction = fixParams(resolved, call.arguments).action
+      const action = typeof normalizedAction === 'string' ? normalizedAction : ''
       if (runner.needsConfirmation(resolved, action)) {
         const requestId = newRequestId()
         emit({ type: 'approval_required', requestId, tool: resolved, action, params: call.arguments })
-        const approved = requestApproval
-          ? await withAnswerTimeout(
+        let approved = false
+        if (requestApproval) {
+          try {
+            approved = await withAnswerTimeout(
               Promise.resolve(requestApproval({ requestId, tool: resolved, action, params: call.arguments })),
               false
             )
-          : false
+          } catch {
+            // 审批通道异常（通道断开 / 实现抛错）一律按「未批准」处理——与本循环
+            // 「无确认即拒绝」同一取向。不能让它冒泡：否则整轮 run 会变成 reject
+            // （IPC 报错），而 transport 与 interaction 两条同类路径均已等价保护。
+            approved = false
+          }
+        }
         if (approved !== true) {
           const text = `[STOP] 用户未确认危险操作: ${resolved}`
           results.push(text)
@@ -428,11 +446,11 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
       results.push(text)
       emit({ type: 'step_done', tool: resolved, result: text, success })
       messages.push(buildToolMessage(call.id, resolved, text))
-      executedAny = true
     }
 
-    if (!executedAny && reply.toolCalls.length > 0) {
-      // 全部工具均无法解析 → 退出循环，避免无意义空转
+    if (!resolvedAny && reply.toolCalls.length > 0) {
+      // 全部工具均**无法解析** → 退出循环，避免无意义空转。
+      // （「全部被用户拒绝」属正常流程：已回灌 [STOP]，继续循环让 LLM 改提案。）
       stopReason = 'unresolvable_tools'
       break
     }

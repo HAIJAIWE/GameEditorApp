@@ -17,7 +17,7 @@ import {
   type BrainLlmTransport,
   type BrainToolRunner
 } from '../../src/shared/agent/brain'
-import type { SkillResult } from '../../src/shared/agent/protocol'
+import { RISK_LEVEL, fixParams, resolveRiskLevel, type SkillResult } from '../../src/shared/agent/protocol'
 
 /* ---- 测试替身 ---- */
 
@@ -267,7 +267,7 @@ describe('runBrainLoop：分支与兜底', () => {
     expect(result.text).toBe('未知工具: 不存在的工具')
   })
 
-  it('危险操作无审批通道 → 一律拒绝执行并回灌 [STOP]', async () => {
+  it('危险操作无审批通道 → 一律拒绝执行并回灌 [STOP]；拒绝后继续循环（不误判为不可解析）', async () => {
     const transport = scripted([toolCall('c1', 'system.shell', { action: 'exec' }), FINAL])
     const runner = makeRunner({ dangerous: () => true })
     const result = await runBrainLoop({ input: 'x', systemPrompts: [], transport, runner })
@@ -278,10 +278,12 @@ describe('runBrainLoop：分支与兜底', () => {
       type: 'approval_required',
       requestId: expect.any(String),
       tool: 'system.shell',
-      action: 'exec',
+      // 与 dispatcher 同口径：别名 `exec` 已归一为 `execute`（否则用户批准了也过不了令牌比对）
+      action: 'execute',
       params: { action: 'exec' }
     })
     expect(runner.executed).toHaveLength(0)
+    // 拒绝 ≠ 工具不可用：继续循环把 [STOP] 交给 LLM（下一轮拿到 FINAL），而非直接终止整轮
     expect(types(result.events)).toEqual([
       'step_start',
       'turn_stats',
@@ -289,6 +291,9 @@ describe('runBrainLoop：分支与兜底', () => {
       'step_start',
       'approval_required',
       'step_done',
+      'step_start',
+      'turn_stats',
+      'stream_done',
       'done'
     ])
     expect(result.events[5]).toEqual({
@@ -297,6 +302,8 @@ describe('runBrainLoop：分支与兜底', () => {
       result: '[STOP] 用户未确认危险操作: system.shell',
       success: false
     })
+    expect(result.stopReason).toBe('final')
+    expect(result.text).toBe('这是最终答复')
   })
 
   it('危险操作获批 → 执行并写入一次性确认令牌', async () => {
@@ -316,9 +323,10 @@ describe('runBrainLoop：分支与兜底', () => {
       }
     })
 
-    expect(approvals).toEqual([expect.stringMatching(/^approval_\d+:system\.shell\/exec$/u)])
+    // 令牌与判定均用归一化后的 action（`exec` → `execute`），与 dispatcher 的比对口径一致
+    expect(approvals).toEqual([expect.stringMatching(/^approval_\d+:system\.shell\/execute$/u)])
     expect(runner.executed).toEqual([{ tool: 'system.shell', params: { action: 'exec' } }])
-    expect(context).toMatchObject({ dangerConfirmed: { tool: 'system.shell', action: 'exec' } })
+    expect(context).toMatchObject({ dangerConfirmed: { tool: 'system.shell', action: 'execute' } })
     expect(result.events.some((event) => event.type === 'step_done' && event.success)).toBe(true)
   })
 
@@ -857,5 +865,93 @@ describe('runBrainLoop：M0.5 终止闸', () => {
     const result = await runBrainLoop({ input: 'x', systemPrompts: [], transport, runner: makeRunner() })
     expect(result.stopReason).toBe('unresolvable_tools')
     expect(result.events.some((event) => event.type === 'terminated')).toBe(false)
+  })
+})
+
+/* ---- 审查修复回归（F1/F2 令牌与判定口径、F3 拒绝后继续、F4 审批通道异常） ---- */
+
+describe('runBrainLoop：审查修复回归', () => {
+  /**
+   * 模拟 dispatcher 的真实语义：执行前 `fixParams` 归一 action，
+   * 再用**归一化 action** 与一次性令牌比对，匹配才执行并就地置空。
+   */
+  function makeDispatcherLikeRunner(): {
+    runner: BrainToolRunner
+    seen: Array<{ action: string; token?: string }>
+  } {
+    const seen: Array<{ action: string; token?: string }> = []
+    const runner: BrainToolRunner = {
+      resolve: (name) => name,
+      needsConfirmation: (tool, action) => resolveRiskLevel(tool, action) >= RISK_LEVEL.SYSTEM,
+      execute: async (tool, params, ctx) => {
+        const fixed = fixParams(tool, params)
+        const action = typeof fixed.action === 'string' ? fixed.action : ''
+        const token = ctx.dangerConfirmed
+        seen.push({ action, token: token === null || token === undefined ? undefined : token.action })
+        if (token === null || token === undefined || token.action !== action) {
+          return { success: false, message: '', error: `高危操作需用户确认: ${tool}/${action}` }
+        }
+        ctx.dangerConfirmed = null
+        return { success: true, message: '沙箱执行成功' }
+      }
+    }
+    return { runner, seen }
+  }
+
+  it('F1+F2：模型输出别名 action（执行 → execute）时，判定与令牌均用归一值，批准后能真正执行', async () => {
+    const { runner, seen } = makeDispatcherLikeRunner()
+    const gateActions: string[] = []
+    const gate: BrainToolRunner = {
+      ...runner,
+      needsConfirmation: (tool, action) => {
+        gateActions.push(action)
+        return resolveRiskLevel(tool, action) >= RISK_LEVEL.SYSTEM
+      }
+    }
+    const transport = scripted([toolCall('c1', 'system.code', { action: '执行', code: 'return 1' }), FINAL])
+    const result = await runBrainLoop({
+      input: 'x',
+      systemPrompts: [],
+      transport,
+      runner: gate,
+      requestApproval: () => true
+    })
+
+    // 修复前：gate 收到 '执行'、令牌写成 '执行' ⇒ 执行时与归一值 'execute' 比对失败（批准了仍被拒）
+    expect(gateActions).toEqual(['execute'])
+    expect(seen).toEqual([{ action: 'execute', token: 'execute' }])
+    expect(result.events.some((event) => event.type === 'step_done' && event.success)).toBe(true)
+  })
+
+  it('F3：全部被用户拒绝 → 不停机，继续把 [STOP] 交给模型（stopReason 不再误报 unresolvable_tools）', async () => {
+    const transport = scripted([toolCall('c1', 'system.shell', { action: 'execute' }), FINAL])
+    const runner = makeRunner({ dangerous: () => true })
+    const result = await runBrainLoop({ input: 'x', systemPrompts: [], transport, runner })
+
+    expect(transport.calls).toHaveLength(2)
+    expect(result.stopReason).toBe('final')
+    expect(result.text).toBe('这是最终答复')
+  })
+
+  it('F4：审批通道抛错 → 按未批准处理，整轮不 reject', async () => {
+    const transport = scripted([toolCall('c1', 'system.shell', { action: 'execute' }), FINAL])
+    const runner = makeRunner({ dangerous: () => true })
+    const result = await runBrainLoop({
+      input: 'x',
+      systemPrompts: [],
+      transport,
+      runner,
+      requestApproval: () => {
+        throw new Error('审批通道断了')
+      }
+    })
+
+    expect(result.completed).toBe(true)
+    expect(runner.executed).toHaveLength(0)
+    expect(
+      result.events.some(
+        (event) => event.type === 'step_done' && event.result === '[STOP] 用户未确认危险操作: system.shell'
+      )
+    ).toBe(true)
   })
 })
