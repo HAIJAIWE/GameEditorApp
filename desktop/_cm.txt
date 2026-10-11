@@ -1,47 +1,19 @@
-test(e2e)+fix(ipc): e2e 同步新章节模型；ceshu:delete 补契约层删除确认
+docs: 把 Python 时代的 docs/wiki/ 归档为 docs/archive/wiki-python-era/
 
-## 1. e2e 同步「文档信息 + 16 章」模型（旧 18 章断言整体失效）
+代码质量评估（见 `desktop/docs/code-quality-assessment.md` §7）发现的**误导风险最高项**：
 
-32 处旧章号 / 章节名断言按映射表改写（**脚本单次扫描替换**，避免「第二章→第一章」这类
-链式二次覆盖）。典型：项目元信息→文档信息、第十二章·战斗系统设计→第五章、第二章·产品愿景→
-第一章、第十八章·可访问性与本地化→第十六章。
+`docs/wiki/` 7 篇整体是 PyQt6 / Python ≥3.14 / pytest / ruff+mypy / PyInstaller 时代的
+架构说明（02-modules.md 含 125 处 .py/PyQt 引用、03-key-classes.md 58 处），而
+`docs/architecture.md` 是准确的 Electron 44 + React 19 + TypeScript 版——
+**两套架构文档结论相反**，且 `docs/wiki/` 全目录没有任何「已过期 / 已归档 / DEPRECATED」
+标记（`grep "已过期\|已废弃\|DEPRECATED\|历史归档" docs/wiki/ docs/archive/` → 0 命中）。
 
-数量断言 18 → 17（章节数变了）：`chapter-tab` / `diff-chapter` / `wordstats-row`。
-⚠️ `preset-market` 里两处 `toHaveCount(18)` **是预设数量不是章节数**（面板文案就是
-「共 18 个工业级预设」）⇒ 未动。差点一起改掉。
+处理：
+- 先查证外部引用：除 `CHANGELOG.md` 的历史记述外**无任何活引用**（无代码/脚本/配置引用
+  `docs/wiki`）⇒ 可安全移动。
+- `docs/wiki/` → `docs/archive/wiki-python-era/`（archive 目录本就是历史归档语义，
+  目录名自带时代标记）。
+- 7 篇全部在标题下插入统一警告块，指向权威架构文档 `docs/architecture.md` 与
+  分层契约 `desktop/src/shared/README.md`。
 
-其余需要人工判断的几处：
-- `ceshu-export`：lite 档末章由「资源规划」变成「音频设计」，导出序号 9 → 10
-  （导出序号 = 全量位置，含文档信息段），口径对齐 `tests/unit/ceshuExport.test.ts`。
-- `ceshu-migration`：迁移目标已由 `characters` 变为 `story`（`worldview → story.npc_list`），
-  原断言 `doc.characters.npc_list` 在新模型下会取到 undefined ⇒ 这是**真失效**，已改为
-  `doc.story.npc_list`（与 unit 侧一致）。
-- `ceshu.spec` 预置 fixture 的 `characters` → `story`。
-- 注释里的裸章号（编辑第五章（战斗）、第四章（游戏系统）、切到第一章（愿景）…）同步。
-
-⚠️ **未能验证的部分**：e2e 本地跑不了（留 CI）。且「进度 0% → 50%」「总字数 47 字」
-「8%」这类**语义**断言随章节模型变化可能仍需人工校准 —— 本次只做了标签/数量层面的同步，
-未改这些语义期望值。
-
-## 2. ceshu:delete 补契约层删除确认
-
-此前 `ceshu:delete` 复用 `ceshuGetInputSchema`，而它的 `confirmed` 是**云端超预算**标志
-（v0.6 M5），与删除无关 ⇒ 删除操作在主进程侧**零守卫**。
-
-渲染层 `CeshuHomePanel` 本来就有「删除「X」？此操作不可撤销」+ 确认/取消的 UX 二次确认；
-这次补的是**契约层**，照 `data:clearAll` 的既有范式做：
-- `schemasData` 新增 `ceshuDeleteInputSchema = { id, confirm: boolean }`（confirm 必填）
-- `ipc.ts` 的 `ceshu:delete` req 改用 `CeshuDeleteInput`
-- handler：`if (req.confirm !== true) throw new Error('删除策划书需要确认')`
-- `CeshuHomePanel` 调用点传 `confirm: true`
-
-负向探针：把调用点改回 `{ id }` ⇒ 立刻 `TS2345: '{ id: string; }' 不能赋给
-'{ id: string; confirm: boolean; }'`（已验证后恢复）。⇒ 将来任何新调用点（agent skill /
-CLI / 测试）漏传都会在**编译期**被拦下，而不是等到误删发生。
-
-## 附带
-`shared/ipc.ts` 与 `CeshuHomePanel.tsx` 里一并带上了此前在途的「旧路径 → `shared/ceschu/`」
-机械修正（同 `eab6e55` 那批）—— 不带上则 HEAD 编译不过。
-
-验收：tsc node 5 / web 6（= 基线，零新增）；改动文件 eslint 0 问题；
-vitest 2011 绿 / 1 红（唯一红线仍是在途未提交的 `agentQualityGate`，与本次无关）。
+不改任何代码。

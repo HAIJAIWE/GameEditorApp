@@ -1,5 +1,13 @@
 # 02 — 模块职责
 
+> ⚠️ **本目录是 Python / PyQt6 时代的历史归档，已不适用于当前代码库。**
+>
+> 当前技术栈为 **Electron 44 + React 19 + TypeScript**（`desktop/` 四层架构）。
+> 权威架构说明见 [`docs/architecture.md`](../../architecture.md)；
+> 分层契约见 [`desktop/src/shared/README.md`](../../../desktop/src/shared/README.md)。
+> 本目录内容仅作历史参考，请勿据此理解现状。
+
+
 > 本文按目录逐层说明每个模块的职责边界、内部文件组成与对外接口。新增功能时先查此表确定放置位置。
 
 ---

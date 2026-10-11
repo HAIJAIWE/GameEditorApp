@@ -1,5 +1,13 @@
 # Code Wiki — 墨白可视化编辑 (MB-KSHBJQ)
 
+> ⚠️ **本目录是 Python / PyQt6 时代的历史归档，已不适用于当前代码库。**
+>
+> 当前技术栈为 **Electron 44 + React 19 + TypeScript**（`desktop/` 四层架构）。
+> 权威架构说明见 [`docs/architecture.md`](../../architecture.md)；
+> 分层契约见 [`desktop/src/shared/README.md`](../../../desktop/src/shared/README.md)。
+> 本目录内容仅作历史参考，请勿据此理解现状。
+
+
 > **项目代码知识库（Code Wiki）完整版**。本文件由 Wiki 各分册合并而成，系统性讲解项目架构、模块职责、关键类/函数、依赖关系与运行方式。
 >
 > 技术栈：Python 3.14+ · PyQt6 · SQLite/JSON · OpenAI 兼容接口 · pytest

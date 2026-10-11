@@ -1,5 +1,13 @@
 # 04 — 依赖关系
 
+> ⚠️ **本目录是 Python / PyQt6 时代的历史归档，已不适用于当前代码库。**
+>
+> 当前技术栈为 **Electron 44 + React 19 + TypeScript**（`desktop/` 四层架构）。
+> 权威架构说明见 [`docs/architecture.md`](../../architecture.md)；
+> 分层契约见 [`desktop/src/shared/README.md`](../../../desktop/src/shared/README.md)。
+> 本目录内容仅作历史参考，请勿据此理解现状。
+
+
 > 本文包含两部分：① 第三方依赖（pip 包）及用途；② 项目内部模块间的依赖关系与数据依赖。
 
 ---

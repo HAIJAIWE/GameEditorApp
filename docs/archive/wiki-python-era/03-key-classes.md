@@ -1,5 +1,13 @@
 # 03 — 关键类与函数说明
 
+> ⚠️ **本目录是 Python / PyQt6 时代的历史归档，已不适用于当前代码库。**
+>
+> 当前技术栈为 **Electron 44 + React 19 + TypeScript**（`desktop/` 四层架构）。
+> 权威架构说明见 [`docs/architecture.md`](../../architecture.md)；
+> 分层契约见 [`desktop/src/shared/README.md`](../../../desktop/src/shared/README.md)。
+> 本目录内容仅作历史参考，请勿据此理解现状。
+
+
 > 本文收录项目中最核心的类与函数，按系统分组，说明其职责、关键方法与使用场景。二次开发时优先查阅本节。
 
 ---

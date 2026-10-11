@@ -1,5 +1,13 @@
 # 01 — 架构总览
 
+> ⚠️ **本目录是 Python / PyQt6 时代的历史归档，已不适用于当前代码库。**
+>
+> 当前技术栈为 **Electron 44 + React 19 + TypeScript**（`desktop/` 四层架构）。
+> 权威架构说明见 [`docs/architecture.md`](../../architecture.md)；
+> 分层契约见 [`desktop/src/shared/README.md`](../../../desktop/src/shared/README.md)。
+> 本目录内容仅作历史参考，请勿据此理解现状。
+
+
 > 本文说明项目整体架构、分层模型、启动流程与核心数据流。理解本页后即可把握"这个项目是怎么组织的、加新功能该放哪里"。
 
 ## 1. 技术选型
