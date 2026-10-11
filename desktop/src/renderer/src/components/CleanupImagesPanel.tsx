@@ -8,6 +8,7 @@ import {
   summarizeScan
 } from '../../../shared/cleanupImages'
 import type { UnusedImageScan } from '../../../shared/cleanupImages'
+import { toErrorMessage } from '../../../shared/util/errors'
 
 /**
  * 清理未使用图片面板（对齐 Python `src/features/advanced.py:373-431` 的
@@ -79,10 +80,6 @@ type ScanState =
   | { status: 'ready'; scan: UnusedImageScan; dir: string }
   | { status: 'error'; message: string }
   | { status: 'unwired' }
-
-function toErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
-}
 
 export default function CleanupImagesPanel() {
   const [state, setState] = useState<ScanState>({ status: 'loading' })

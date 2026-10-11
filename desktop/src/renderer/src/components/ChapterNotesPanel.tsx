@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 
 import { CHAPTER_KEYS, CHAPTER_LABELS, type ChapterKey } from '../../../shared/ceschu/ceshuConstants'
 import { countNotesByChapter, filterNotes, notePreview, type CeshuNote } from '../../../shared/ceschu/ceshuNotes'
+import { toErrorMessage } from '../../../shared/util/errors'
 
 /**
  * 章节笔记面板（对应 Python ChapterNotesDialog）：
@@ -14,10 +15,6 @@ import { countNotesByChapter, filterNotes, notePreview, type CeshuNote } from '.
 interface ChapterNotesPanelProps {
   ceshuId: string
   onClose: () => void
-}
-
-function toErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
 }
 
 export default function ChapterNotesPanel({ ceshuId, onClose }: ChapterNotesPanelProps) {

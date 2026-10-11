@@ -7,6 +7,7 @@ import {
   summarizeCatalog,
   type ToolCatalog
 } from '../../../shared/agentEditor'
+import { toErrorMessage } from '../../../shared/util/errors'
 
 /**
  * 智能体编辑器（对齐 Python `src/ui/ai_bridge.py:93` `open_agent_editor` 的入口 +
@@ -44,10 +45,6 @@ type LoadState =
   | { status: 'loading' }
   | { status: 'error'; message: string }
   | { status: 'ready'; catalog: ToolCatalog }
-
-function toErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
-}
 
 export default function AgentEditorPanel() {
   const [state, setState] = useState<LoadState>({ status: 'loading' })

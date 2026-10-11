@@ -11,6 +11,7 @@ import type { DataTypeDef, ItemRecord } from '../../../shared/types'
 
 import ItemForm from './ItemForm'
 import LucideIcon from './LucideIcon'
+import { toErrorMessage } from '../../../shared/util/errors'
 
 interface DataEditorTabProps {
   /** 目标数据类型 id（对应策划书 enabled_editors[].data_type） */
@@ -53,10 +54,6 @@ interface RowMenuState {
 const CONTEXT_MENU_WIDTH = 104
 const CONTEXT_MENU_HEIGHT = 122
 const CONTEXT_MENU_MARGIN = 8
-
-function toErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
-}
 
 /**
  * 单数据类型编辑器（内嵌于策划书右侧预览面板的一个标签页）。

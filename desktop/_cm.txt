@@ -1,19 +1,25 @@
-docs: 把 Python 时代的 docs/wiki/ 归档为 docs/archive/wiki-python-era/
+refactor(renderer): toErrorMessage 收敛到 shared/util/errors.ts（21 份副本 → 1 份）
 
-代码质量评估（见 `desktop/docs/code-quality-assessment.md` §7）发现的**误导风险最高项**：
+代码质量评估（`desktop/docs/code-quality-assessment.md` §4）发现的重复代码之最：
 
-`docs/wiki/` 7 篇整体是 PyQt6 / Python ≥3.14 / pytest / ruff+mypy / PyInstaller 时代的
-架构说明（02-modules.md 含 125 处 .py/PyQt 引用、03-key-classes.md 58 处），而
-`docs/architecture.md` 是准确的 Electron 44 + React 19 + TypeScript 版——
-**两套架构文档结论相反**，且 `docs/wiki/` 全目录没有任何「已过期 / 已归档 / DEPRECATED」
-标记（`grep "已过期\|已废弃\|DEPRECATED\|历史归档" docs/wiki/ docs/archive/` → 0 命中）。
+`toErrorMessage` 在渲染层被**复制了 21 份**——19 个组件各一份私有副本（如
+`CeshuHomePanel.tsx:42`、`DigitalPanel.tsx:76`、`AiFullGeneratePanel.tsx:583`…），
+外加 `appUtils.ts` 与 `ceshuViewUtils.ts` 两份 export 版。而 `shared/util/` 里
+根本没有 error 相关工具。
 
-处理：
-- 先查证外部引用：除 `CHANGELOG.md` 的历史记述外**无任何活引用**（无代码/脚本/配置引用
-  `docs/wiki`）⇒ 可安全移动。
-- `docs/wiki/` → `docs/archive/wiki-python-era/`（archive 目录本就是历史归档语义，
-  目录名自带时代标记）。
-- 7 篇全部在标题下插入统一警告块，指向权威架构文档 `docs/architecture.md` 与
-  分层契约 `desktop/src/shared/README.md`。
+**收敛前先做了等价性取证**：逐份比对 21 处实现，**全部完全相同**
+`return error instanceof Error ? error.message : String(error)` ⇒ 本次收敛**零行为变化**。
 
-不改任何代码。
+做法照 `shared/README.md` §6 的标准动作：
+- 新增 `src/shared/util/errors.ts` 实现一次（符合 §2 Q5 的 util 判据：删掉业务名词后
+  函数名仍成立；不 import 任何 domain ⇒ 不触发 lint 规则 2）。
+- 19 个组件：删私有副本，改为 `import { toErrorMessage } from '…/shared/util/errors'`
+  （相对层级按目录深度自动推导，`components/digital/` 下为 4 级）。
+- `appUtils.ts` / `ceshuViewUtils.ts`：改为 `export { toErrorMessage } from '…'`
+  ⇒ `App.tsx`、`CeshuView.tsx` 的既有 import 语句**零改动**。
+
+收益：错误文案口径有了单一事实源。将来要把 IPC 的 `IpcResult` / 带 `code` 的业务错误
+也纳入展示时，改 1 处而不是 21 处。
+
+验收：tsc node 5 / web 6（= 基线，零新增）；改动文件 eslint 0 问题；
+vitest 2011 绿 / 1 红（唯一红线仍是在途未提交的 `agentQualityGate`，与本次无关）。

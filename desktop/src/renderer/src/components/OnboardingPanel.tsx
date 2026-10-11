@@ -16,6 +16,7 @@ import {
   type OnboardingState
 } from '../../../shared/onboarding'
 import type { DataTypeDef, ItemRecord } from '../../../shared/types'
+import { toErrorMessage } from '../../../shared/util/errors'
 
 /**
  * 快速入门面板（对齐 Python `ui/widgets/home_widget.py` 的引导式主页 `HomeWidget`）。
@@ -45,10 +46,6 @@ interface OnboardingPanelProps {
   types: DataTypeDef[]
   onAction: (actionId: string, dataType: string) => void
   onClose: () => void
-}
-
-function toErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
 }
 
 export default function OnboardingPanel({ types, onAction, onClose }: OnboardingPanelProps) {

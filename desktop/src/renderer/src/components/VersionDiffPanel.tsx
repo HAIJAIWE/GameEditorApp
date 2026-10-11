@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-import type { CeshuSummary } from '../../../shared/ceshuConstants'
+import type { CeshuSummary } from '../../../shared/ceschu/ceshuConstants'
 import {
   DIFF_DISPLAY,
   buildVersionDiffMarkdown,
@@ -10,8 +10,9 @@ import {
   type CeshuChapterDiff,
   type CeshuVersionDiff,
   type CeshuVersionFieldDiff
-} from '../../../shared/ceshuDiff'
-import { formatLocalTimestamp } from '../../../shared/ceshuModel'
+} from '../../../shared/ceschu/ceshuDiff'
+import { formatLocalTimestamp } from '../../../shared/ceschu/ceshuModel'
+import { toErrorMessage } from '../../../shared/util/errors'
 
 /**
  * 版本对比面板（对应 Python VersionDiffDialog）：
@@ -23,10 +24,6 @@ import { formatLocalTimestamp } from '../../../shared/ceshuModel'
 interface VersionDiffPanelProps {
   ceshuId: string
   onClose: () => void
-}
-
-function toErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
 }
 
 function versionLabelOf(summary: CeshuSummary): string {

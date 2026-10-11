@@ -10,6 +10,7 @@ import {
 
 import HomeAiEntryCard from './ceshu/HomeAiEntryCard'
 import LucideIcon from './LucideIcon'
+import { toErrorMessage } from '../../../shared/util/errors'
 
 /**
  * 策划书首页（对应 Python `ui/ceshu/home_view.py` + `home_card.py`）：
@@ -38,10 +39,6 @@ interface CeshuHomePanelProps {
 
 /** 卡片上的内联编辑/确认动作 */
 type CardAction = { kind: 'rename' | 'derive' | 'delete'; id: string }
-
-function toErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
-}
 
 function clampPercent(value: number): number {
   if (!Number.isFinite(value)) return 0

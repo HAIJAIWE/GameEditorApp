@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
-import type { CeshuWordStatsReport } from '../../../shared/ceshuWordStats'
+import type { CeshuWordStatsReport } from '../../../shared/ceschu/ceshuWordStats'
+import { toErrorMessage } from '../../../shared/util/errors'
 
 /**
  * 字数统计面板（对应 Python WordStatsDialog）：
@@ -12,10 +13,6 @@ import type { CeshuWordStatsReport } from '../../../shared/ceshuWordStats'
 interface WordStatsPanelProps {
   ceshuId: string
   onClose: () => void
-}
-
-function toErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
 }
 
 export default function WordStatsPanel({ ceshuId, onClose }: WordStatsPanelProps) {

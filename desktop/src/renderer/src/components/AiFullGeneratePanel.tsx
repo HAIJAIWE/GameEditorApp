@@ -20,6 +20,7 @@ import {
 import { getGddScope, isPlainObject } from '../../../shared/ceschu/ceshuModel'
 import { evaluateBudget, taskBudget } from '../../../shared/agent/budget'
 import type { LlmJudgeVerdict } from '../../../shared/agent/qualityGate'
+import { toErrorMessage } from '../../../shared/util/errors'
 
 /**
  * AI 一键生成完整策划书（对应 Python N10 AIFullGenerateDialog）：
@@ -578,8 +579,4 @@ function withoutKey<T>(record: Partial<Record<ChapterKey, T>>, key: ChapterKey):
 
 function readText(value: unknown): string {
   return typeof value === 'string' ? value : ''
-}
-
-function toErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
 }

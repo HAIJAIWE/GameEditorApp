@@ -1,8 +1,6 @@
 import type { CeshuChangeItem } from '../../../shared/ceschu/ceshuDiff'
 
-export function toErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
-}
+export { toErrorMessage } from '../../../shared/util/errors'
 
 /** 变更明细按章节分组（保持出现顺序） */
 export function groupByChapter(changes: CeshuChangeItem[]): Array<[string, CeshuChangeItem[]]> {

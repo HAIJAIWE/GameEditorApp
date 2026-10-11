@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 
 import { buildGameDataPreview } from '../../../shared/gameDataPreview'
 import type { DataTypeDef, ItemRecord } from '../../../shared/types'
+import { toErrorMessage } from '../../../shared/util/errors'
 
 /**
  * 游戏数据预览面板（对齐 Python `src/features/engine_export.py::show_game_data_preview`，
@@ -17,10 +18,6 @@ import type { DataTypeDef, ItemRecord } from '../../../shared/types'
  * - 键序按字典序稳定输出、空桶不出现（PyQt 是 dict 插入序 + 一堆空数组）。
  */
 type PreviewState = { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready'; text: string; bucketCount: number; itemCount: number; totalChars: number }
-
-function toErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
-}
 
 export default function GameDataPreviewPanel() {
   const [state, setState] = useState<PreviewState>({ status: 'loading' })

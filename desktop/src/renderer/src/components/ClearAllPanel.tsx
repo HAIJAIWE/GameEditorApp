@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { toErrorMessage } from '../../../shared/util/errors'
 
 /**
  * 「清空所有数据」确认面板（对齐 Python `ui/main_window.py::clear_all_data`，
@@ -28,10 +29,6 @@ interface ClearAllPanelProps {
 }
 
 type CountState = { status: 'loading' } | { status: 'ready'; total: number } | { status: 'error'; message: string }
-
-function toErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
-}
 
 export default function ClearAllPanel({ onCleared }: ClearAllPanelProps) {
   const [count, setCount] = useState<CountState>({ status: 'loading' })

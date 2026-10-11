@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 
-import { SYSTEM_LABELS, type CeshuDocument } from '../../../shared/ceshuConstants'
+import { SYSTEM_LABELS, type CeshuDocument } from '../../../shared/ceschu/ceshuConstants'
 import {
   HYBRID_GAMEPLAY_PRESETS,
   PRESET_KEYS,
@@ -9,7 +9,8 @@ import {
   formatRecommendedSystems,
   formatSecondaryModules,
   styleBadgeColor
-} from '../../../shared/ceshuPresets'
+} from '../../../shared/ceschu/ceshuPresets'
+import { toErrorMessage } from '../../../shared/util/errors'
 
 /**
  * 混合玩法预设市场（对应 Python ui/ceshu/preset_market_dialog.py）：
@@ -21,10 +22,6 @@ interface PresetMarketPanelProps {
   ceshuId: string
   onApplied: (doc: CeshuDocument, enabledCount: number, presetLabel: string) => void
   onClose: () => void
-}
-
-function toErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
 }
 
 export default function PresetMarketPanel({ ceshuId, onApplied, onClose }: PresetMarketPanelProps) {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-import type { CeshuDocument } from '../../../shared/ceshuConstants'
+import type { CeshuDocument } from '../../../shared/ceschu/ceshuConstants'
 import {
   ALL_CATEGORIES,
   STATUS_META,
@@ -8,8 +8,9 @@ import {
   getChecklistItemsByCategory,
   type ChecklistReport,
   type ChecklistStatus
-} from '../../../shared/ceshuChecklist'
-import { formatLocalTimestamp } from '../../../shared/ceshuModel'
+} from '../../../shared/ceschu/ceshuChecklist'
+import { formatLocalTimestamp } from '../../../shared/ceschu/ceshuModel'
+import { toErrorMessage } from '../../../shared/util/errors'
 
 /**
  * GDD 完备性检查清单面板（对应 Python ChecklistDialog）：
@@ -25,10 +26,6 @@ interface ChecklistPanelProps {
   /** 一键修复后回填更新后的文档与填充字段数（供上层刷新进度/列表） */
   onFilled: (doc: CeshuDocument, filled: number) => void
   onClose: () => void
-}
-
-function toErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
 }
 
 /** 就绪度着色：已就绪绿 / ≥50 琥珀 / 其余红（与 Python ChecklistDialog 一致） */

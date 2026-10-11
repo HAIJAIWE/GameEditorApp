@@ -1,21 +1,22 @@
 import { useEffect, useState } from 'react'
 
-import { CHAPTER_KEYS, CHAPTER_LABELS, type CeshuDocument, type ChapterKey } from '../../../shared/ceshuConstants'
+import { CHAPTER_KEYS, CHAPTER_LABELS, type CeshuDocument, type ChapterKey } from '../../../shared/ceschu/ceshuConstants'
 import {
   TEMPLATE_NAME_REQUIRED_ERROR,
   filterCustomTemplates,
   isValidCustomTemplateName,
   parseTemplateTagsInput,
   type CeshuCustomTemplate
-} from '../../../shared/ceshuCustomTemplates'
-import { isPlainObject } from '../../../shared/ceshuModel'
+} from '../../../shared/ceschu/ceshuCustomTemplates'
+import { isPlainObject } from '../../../shared/ceschu/ceshuModel'
 import {
   listChapterTemplates,
   mergeTemplateByMode,
   searchChapterTemplates,
   templateChapterLabel,
   type ChapterTemplate
-} from '../../../shared/ceshuTemplates'
+} from '../../../shared/ceschu/ceshuTemplates'
+import { toErrorMessage } from '../../../shared/util/errors'
 
 /**
  * GDD 模板编辑器面板（对应 Python TemplateEditorDialog）：
@@ -50,10 +51,6 @@ interface EditorEntry {
   customId: string
   /** 来源游戏名（内置为空串） */
   sourceGame: string
-}
-
-function toErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
 }
 
 function stringifyData(data: unknown): string {

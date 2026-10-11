@@ -7,11 +7,12 @@ import {
   DATA_GEN_ERROR_NO_TYPE,
   summarizeCandidateItem,
   type CeshuDataGenResult
-} from '../../../shared/ceshuDataGen'
+} from '../../../shared/ceschu/ceshuDataGen'
 import { LLM_BULK_COUNT_THRESHOLD, isBulkLlmCall } from '../../../shared/agent/protocol'
 import { evaluateBudget, taskBudget } from '../../../shared/agent/budget'
 import type { DataQualityVerdict } from '../../../shared/agent/qualityGate'
 import type { DataTypeDef } from '../../../shared/types'
+import { toErrorMessage } from '../../../shared/util/errors'
 
 /**
  * AI 数据生成面板（对应 Python AIDataGenerateDialog）：
@@ -26,10 +27,6 @@ interface AiDataGenPanelProps {
   /** 打开时预选的数据类型 id（由条目表单的「AI 生成」传入；不传则默认全选，与 Python 一致） */
   initialTypeId?: string
   onClose: () => void
-}
-
-function toErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
 }
 
 export default function AiDataGenPanel({ ceshuId, initialTypeId, onClose }: AiDataGenPanelProps) {

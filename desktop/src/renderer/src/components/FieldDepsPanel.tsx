@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
 
-import { CHAPTER_LABELS, type ChapterKey } from '../../../shared/ceshuConstants'
+import { CHAPTER_LABELS, type ChapterKey } from '../../../shared/ceschu/ceshuConstants'
 import {
   DEP_TYPE_LABELS,
   STATUS_META as DEP_STATUS_META,
   type CeshuFieldDepsReport,
   type FieldDependencyType,
   type FieldDependencyStatus
-} from '../../../shared/ceshuFieldDeps'
+} from '../../../shared/ceschu/ceshuFieldDeps'
+import { toErrorMessage } from '../../../shared/util/errors'
 
 /**
  * 依赖检查面板（对应 Python FieldDependencyGraphDialog + SystemDependencyGraphDialog 的数据部分）：
@@ -22,10 +23,6 @@ interface FieldDepsPanelProps {
 }
 
 type View = 'field' | 'system'
-
-function toErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
-}
 
 function chapterLabel(key: string): string {
   return CHAPTER_LABELS[key as ChapterKey] ?? key

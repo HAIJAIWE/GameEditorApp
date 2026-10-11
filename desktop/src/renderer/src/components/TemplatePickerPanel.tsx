@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-import { CHAPTER_KEYS, CHAPTER_LABELS, type ChapterKey } from '../../../shared/ceshuConstants'
+import { CHAPTER_KEYS, CHAPTER_LABELS, type ChapterKey } from '../../../shared/ceschu/ceshuConstants'
 import {
   isValidCustomTemplateName,
   parseTemplateTagsInput,
@@ -8,7 +8,7 @@ import {
   filterCustomTemplates,
   customTemplateToChapterTemplate,
   type CeshuCustomTemplate
-} from '../../../shared/ceshuCustomTemplates'
+} from '../../../shared/ceschu/ceshuCustomTemplates'
 import {
   TEMPLATE_APPLY_MODES,
   TEMPLATE_APPLY_MODE_LABELS,
@@ -18,7 +18,8 @@ import {
   templateChapterLabel,
   type ChapterTemplate,
   type TemplateApplyMode
-} from '../../../shared/ceshuTemplates'
+} from '../../../shared/ceschu/ceshuTemplates'
+import { toErrorMessage } from '../../../shared/util/errors'
 
 /**
  * 章节模板库面板（对应 Python TemplatePickerDialog + CustomTemplateManager 的选择端）：
@@ -49,10 +50,6 @@ interface TemplateEntry {
   chapterKey: string
   template: ChapterTemplate
   customId: string
-}
-
-function toErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
 }
 
 export default function TemplatePickerPanel({

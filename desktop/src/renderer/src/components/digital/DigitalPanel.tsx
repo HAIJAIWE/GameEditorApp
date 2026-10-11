@@ -23,6 +23,7 @@ import {
   summarizeToolTasks,
   type DigitalPanelState
 } from '../../../../shared/agent/panel'
+import { toErrorMessage } from '../../../../shared/util/errors'
 
 /**
  * 数字员工面板（A1-4）：对话气泡 + 流式文本 + 可折叠步骤 + 任务列表 + 危险操作审批模态。
@@ -71,10 +72,6 @@ function reducer(state: DigitalPanelState, action: Action): DigitalPanelState {
     default:
       return state
   }
-}
-
-function toErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
 }
 
 const STATUS_LABELS: Record<DigitalPanelState['status'], string> = {

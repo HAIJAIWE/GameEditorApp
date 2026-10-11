@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-import type { CeshuSummary } from '../../../shared/ceshuConstants'
+import type { CeshuSummary } from '../../../shared/ceschu/ceshuConstants'
 import {
   TIMELINE_COLORS,
   TIMELINE_LEGEND,
@@ -9,7 +9,8 @@ import {
   buildTimelineDetail,
   buildTimelineLayout,
   defaultTimelineSelectionId
-} from '../../../shared/ceshuTimeline'
+} from '../../../shared/ceschu/ceshuTimeline'
+import { toErrorMessage } from '../../../shared/util/errors'
 
 /**
  * 版本时间线面板（对应 Python VersionTimelineDialog）：
@@ -25,10 +26,6 @@ interface VersionTimelinePanelProps {
   currentId: string
   onSelect: (id: string) => void
   onClose: () => void
-}
-
-function toErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
 }
 
 /** 箭头头部三角形（与 Python _make_arrow 的 head_size=8 一致） */
