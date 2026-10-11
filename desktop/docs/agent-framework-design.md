@@ -741,6 +741,41 @@ data/libraries/<库>/.workspace/
 
 ---
 
+### 7.5 共享层「定义层/逻辑层」拆分模式（2026-10-11 收口复盘）
+
+**背景**：路径 A 第 3 步「点名后小步改」在 `shared/` 层实测跑了一整轮（ceshu 全系 + gameStyle/llmConfig + schemas/protocol/brain + typeSchema），现收口，沉淀可复用的拆分套路与两处必踩的坑。
+
+**模式本身（已验证 7+ 次，单一套路）**
+- **定义层**（常量 / 类型 / 数据表 / schema）整体迁入 `<x>Data.ts`；原文件仅留「纯逻辑求值 / 读写」函数 + `import { 被引用的符号 } from './<x>Data'` + `export * from './<x>Data'` 再导出。
+- 依赖单向：**逻辑层 → 定义层**，原文件经桶再导出 ⇒ **外部 import 站点零改动**。
+- 数据块一律用**脚本按行区间原样搬运**（Python `D:/tmp/split_*.py`，`collapse_blanks` 收尾），勿手工重排。
+
+**传输契约抽取（brain.ts 专用变体）**：消息模型类型 + 构建/归一化辅助函数迁入 `<x>Messages.ts`，保留主循环与高层类型——逻辑文件不适合「纯定义层」套路，只剥最干净的传输契约层。
+
+**🟢 两条铁律级坑（均被 tsc 当场抓住，已复现 2+ 次）**
+1. **`export *` 不把符号带进本模块局部作用域**——它只对「外部消费者」生效，是本文件的「对外窗口」，不是「内部 import」。拆完只在原文件写 `import {A,B} from data` + `export *`，本文件函数体里引用的 `A`/`B` 会报 TS2304（连带隐式 any）。⇒ **被函数体 / 接口体引用的符号必须逐个显式 import**；拆前先把该文件「定义层符号」全 grep 出来对照，别凭印象挑。
+2. **原文件里未 export 的私有 `const` 不迁**——迁了就得 import，再经 `export *` 反向导出 ⇒ **悄悄扩大公共 API**。⇒ 判定标准：**原本未 export ⇒ 不迁**（除非体积大到必须挪；`llmConfig` 的 4 个 `GUIDE_*` 即有意留私有）。
+
+**收益盘点（实测 wc -l，关键：防止后续重复做低效动作）**
+
+| 文件 | 拆分前 → 现在 | 净减 | 评价 |
+|---|---|---|---|
+| gameStyle.ts | 590 → 219 | 371 | 有效（定义层） |
+| llmConfig.ts | 829 → 469 | 360 | 有效（定义层） |
+| ceshuAi.ts | 702 → 534 | 168 | 有效 |
+| schemas.ts | 713 → 9(逻辑) + 714(定义) | — | 纯定义层，风险最低 |
+| protocol.ts | 586 → 471 | 115 | 仅剥数据表 |
+| brain.ts | 571 → 452 | 119 | 仅剥传输契约 |
+| typeSchema.ts | 365 → 19 + 355(定义) | — | 纯定义层 |
+| AttrSystemPanel / CeshuView / App | — | 13 / 14 / 12 | **抽了个寂寞（过度开发陷阱）** |
+
+**🔴 收口结论**：`shared/` 下所有 700+ 行大文件（gameStyle/llmConfig/schemas/protocol/brain/typeSchema + ceshu 全系）清拆已到天花板。再往下只剩：
+- 渲染层 JSX 大件（SettingsPanel 497 / FieldControl 468 / TemplateEditorPanel 599【用户 dirty】/ AiFullGeneratePanel 585【用户 dirty】）——体积来自内联 JSX 与闭包，**抽纯函数/叶子子组件已走到尽头**，强行拆只会造大 prop 包；
+- 更小的混合共享文件（attrSystem 462 / attrPanel 462 / agentEditor 367 / keywordTemplates 358）——均函数密集，拆了也留一坨逻辑，收益一般。
+⇒ 后续若再动结构，**必须主理人先点名 scope**（长期铁律），不主动盲拆。
+
+---
+
 ## 8. 设计决策（DD）
 
 格式：**问题 → 证据 → 决策 → 处置（复用/重做/不做）→ 适用档位 → 复盘条件**
