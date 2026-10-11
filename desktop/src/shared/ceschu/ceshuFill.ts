@@ -51,12 +51,12 @@ export function autoFillRequiredFields(doc: CeshuDocument): AutoFillResult {
   }
 
   // 第三章 worldview
-  if (isFalsy(next.worldview.architecture)) {
-    next.worldview.architecture = '世界观架构待补充：建议包含时空背景、势力格局、核心冲突'
+  if (isFalsy(next.story.architecture)) {
+    next.story.architecture = '世界观架构待补充：建议包含时空背景、势力格局、核心冲突'
     filled += 1
   }
-  if (isFalsy(next.worldview.main_plot)) {
-    next.worldview.main_plot = '主线剧情待补充：建议设定开端-发展-高潮-结局四幕结构'
+  if (isFalsy(next.story.main_plot)) {
+    next.story.main_plot = '主线剧情待补充：建议设定开端-发展-高潮-结局四幕结构'
     filled += 1
   }
 
@@ -121,12 +121,12 @@ export function autoFillRequiredFields(doc: CeshuDocument): AutoFillResult {
   }
 
   // 第十一章 characters
-  if (isFalsy(next.characters.protagonist)) {
-    next.characters.protagonist = '主角设定待补充：背景、性格、外观、能力'
+  if (isFalsy(next.story.protagonist)) {
+    next.story.protagonist = '主角设定待补充：背景、性格、外观、能力'
     filled += 1
   }
-  if (isFalsy(next.characters.main_npc_count)) {
-    next.characters.main_npc_count = 5
+  if (isFalsy(next.story.main_npc_count)) {
+    next.story.main_npc_count = 5
     filled += 1
   }
 

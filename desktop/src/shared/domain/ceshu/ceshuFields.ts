@@ -57,10 +57,33 @@ export const CESHU_CHAPTER_FIELDS: Record<ChapterKey, CeshuFieldDef[]> = {
     f('differentiation', '差异化优势', 'textarea'),
     f('business_model', '商业模式', 'textarea')
   ],
-  worldview: [
+  // 原 worldview + characters 两章合并为 story（字段取并集）
+  story: [
     f('architecture', '世界观架构', 'textarea'),
     f('geography', '地理设定', 'textarea'),
-    f('main_plot', '主线剧情', 'textarea')
+    f('main_plot', '主线剧情', 'textarea'),
+    f('protagonist', '主角设定', 'textarea'),
+    f('main_npc_count', '主要 NPC 数量', 'number', { from: 0, to: 9999 }),
+    f('npc_list', 'NPC 列表', 'pipeList', {
+      columns: [
+        { key: 'name', label: '名称' },
+        { key: 'role', label: '角色' },
+        { key: 'location', label: '位置' },
+        { key: 'personality', label: '性格' },
+        { key: 'quest_hook', label: '任务钩子' }
+      ]
+    }),
+    f('antagonists', '反派设计', 'stringList', { placeholder: '每行一个' }),
+    f('boss_design', 'Boss 设计', 'pipeList', {
+      columns: [
+        { key: 'name', label: '名称' },
+        { key: 'mechanics', label: '机制' },
+        { key: 'phases', label: '阶段' },
+        { key: 'rewards', label: '奖励' }
+      ]
+    }),
+    f('companion_system', '同伴系统', 'textarea'),
+    f('character_arcs', '角色成长弧线', 'stringList', { placeholder: '每行一个' })
   ],
   gameplay: [
     f('core_loop', '核心循环', 'textarea', { placeholder: '如: 探索→战斗→获取→养成→更强探索' }),
@@ -108,30 +131,6 @@ export const CESHU_CHAPTER_FIELDS: Record<ChapterKey, CeshuFieldDef[]> = {
     f('market_positioning', '市场定位', 'textarea'),
     f('entry_barriers', '进入壁垒', 'textarea'),
     f('market_trends', '市场趋势', 'stringList', { placeholder: '每行一个' })
-  ],
-  characters: [
-    f('protagonist', '主角设定', 'textarea'),
-    f('main_npc_count', '主要 NPC 数量', 'number', { from: 0, to: 9999 }),
-    f('npc_list', 'NPC 列表', 'pipeList', {
-      columns: [
-        { key: 'name', label: '名称' },
-        { key: 'role', label: '角色' },
-        { key: 'location', label: '位置' },
-        { key: 'personality', label: '性格' },
-        { key: 'quest_hook', label: '任务钩子' }
-      ]
-    }),
-    f('antagonists', '反派设计', 'stringList', { placeholder: '每行一个' }),
-    f('boss_design', 'Boss 设计', 'pipeList', {
-      columns: [
-        { key: 'name', label: '名称' },
-        { key: 'mechanics', label: '机制' },
-        { key: 'phases', label: '阶段' },
-        { key: 'rewards', label: '奖励' }
-      ]
-    }),
-    f('companion_system', '同伴系统', 'textarea'),
-    f('character_arcs', '角色成长弧线', 'stringList', { placeholder: '每行一个' })
   ],
   combat: [
     f('combat_mode', '战斗模式', 'combo', {

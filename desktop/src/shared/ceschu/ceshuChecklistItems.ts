@@ -178,7 +178,7 @@ function designItems(): ChecklistItem[] {
       description: '世界观架构、主线剧情、势力格局等设定完整',
       required: true,
       auto_check: 'check_worldview',
-      chapter_key: 'worldview'
+      chapter_key: 'story'
     },
     {
       id: 'GD-02',
@@ -187,7 +187,7 @@ function designItems(): ChecklistItem[] {
       description: '主角与主要 NPC 设定（背景/性格/外观/能力）',
       required: true,
       auto_check: 'check_characters_main_npc',
-      chapter_key: 'characters'
+      chapter_key: 'story'
     },
     {
       id: 'GD-03',
@@ -680,8 +680,8 @@ function checkGameplayCoreLoop(doc: CeshuDocument): AutoCheckResult {
 }
 
 function checkWorldview(doc: CeshuDocument): AutoCheckResult {
-  const architecture = field(doc, 'worldview', 'architecture')
-  const plot = field(doc, 'worldview', 'main_plot')
+  const architecture = field(doc, 'story', 'architecture')
+  const plot = field(doc, 'story', 'main_plot')
   if (!hasValue(architecture) && !hasValue(plot)) return [STATUS_FAIL, '世界观架构与主线剧情均未填写']
   if (!hasValue(architecture)) return [STATUS_WARNING, '世界观架构未填写']
   if (!hasValue(plot)) return [STATUS_WARNING, '主线剧情未填写']
@@ -689,9 +689,9 @@ function checkWorldview(doc: CeshuDocument): AutoCheckResult {
 }
 
 function checkCharactersMainNpc(doc: CeshuDocument): AutoCheckResult {
-  const protagonist = field(doc, 'characters', 'protagonist')
-  const npcCount = readCount(field(doc, 'characters', 'main_npc_count'))
-  const npcList = field(doc, 'characters', 'npc_list')
+  const protagonist = field(doc, 'story', 'protagonist')
+  const npcCount = readCount(field(doc, 'story', 'main_npc_count'))
+  const npcList = field(doc, 'story', 'npc_list')
   if (!hasValue(protagonist)) return [STATUS_FAIL, '主角设定未填写']
   if (!hasValue(npcCount) || npcCount <= 0) return [STATUS_WARNING, '主要 NPC 数量未设定']
   if (!hasValue(npcList)) return [STATUS_WARNING, 'NPC 列表为空']

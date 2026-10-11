@@ -19,7 +19,7 @@ import { createDefaultChapters } from '../domain/ceshu/ceshuDefaults'
 /** v5.0 相对 v4.0 新增的 9 章（顺序与 Python `from_dict` 缺章检测一致） */
 export const V5_NEW_CHAPTER_KEYS = [
   'market_analysis',
-  'characters',
+  'story',
   'combat',
   'economy',
   'monetization',
@@ -76,12 +76,17 @@ export function migrateV4ToV5(raw: Record<string, unknown>): Record<string, unkn
   const data: Record<string, unknown> = { ...raw }
 
   // 1) 新 9 章缺失时补默认值
+  const storyDefaults = isPlainObject(defaults.story) ? defaults.story : {}
+  const worldviewSource = isPlainObject(data.worldview) ? data.worldview : {}
+  const charactersSource = isPlainObject(data.characters) ? data.characters : {}
+  data.story = { ...storyDefaults, ...worldviewSource, ...charactersSource, ...(isPlainObject(data.story) ? data.story : {}) }
+
   for (const key of V5_NEW_CHAPTER_KEYS) {
     if (!isPlainObject(data[key])) data[key] = defaults[key]
   }
 
   const marketAnalysis = data.market_analysis as Record<string, unknown>
-  const characters = data.characters as Record<string, unknown>
+  const story = isPlainObject(data.story) ? data.story : {}
   const combat = data.combat as Record<string, unknown>
   const economy = data.economy as Record<string, unknown>
   const monetization = data.monetization as Record<string, unknown>
@@ -106,11 +111,11 @@ export function migrateV4ToV5(raw: Record<string, unknown>): Record<string, unkn
     monetization.payment_model = vision.business_model
   }
 
-  // 3) worldview.character_network → characters.npc_list
+  // 3) worldview.character_network → story.npc_list
   const worldview = isPlainObject(data.worldview) ? data.worldview : {}
-  if (pyTruthy(worldview.character_network) && !pyTruthy(characters.npc_list)) {
+  if (pyTruthy(worldview.character_network) && !pyTruthy(story.npc_list)) {
     const network = worldview.character_network
-    if (Array.isArray(network)) characters.npc_list = network
+    if (Array.isArray(network)) story.npc_list = network
   }
 
   // 4) systems.battle.config → combat

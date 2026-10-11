@@ -263,8 +263,7 @@ export function buildChapterOrder(includeMarket: boolean, includeRisk: boolean):
   const order: ChapterKey[] = ['meta', 'vision']
   if (includeMarket) order.push('market_analysis')
   order.push(
-    'worldview',
-    'characters',
+    'story',
     'gameplay',
     'combat',
     'systems',

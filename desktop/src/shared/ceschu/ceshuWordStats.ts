@@ -13,7 +13,8 @@ import { countWordsInChapter } from './ceshuScorer'
 export const WORD_STATS_BENCHMARK: Record<ChapterKey, [number, number, number]> = {
   meta: [50, 300, 150],
   vision: [200, 800, 400],
-  worldview: [500, 1500, 800],
+  // 原 worldview + characters 两章合并为 story（基准值相加）
+  story: [1000, 3000, 1600],
   gameplay: [300, 1000, 500],
   systems: [200, 800, 400],
   numeric: [300, 1000, 500],
@@ -21,7 +22,6 @@ export const WORD_STATS_BENCHMARK: Record<ChapterKey, [number, number, number]> 
   tech: [300, 1000, 500],
   resources: [200, 800, 400],
   market_analysis: [400, 1200, 700],
-  characters: [500, 1500, 800],
   combat: [400, 1200, 700],
   economy: [400, 1200, 700],
   monetization: [300, 1000, 600],

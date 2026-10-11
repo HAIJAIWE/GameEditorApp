@@ -48,14 +48,25 @@ export function createDefaultChapters(): Record<ChapterKey, ChapterData> {
       differentiation: '',
       business_model: ''
     },
-    worldview: {
+    // 原 worldview + characters 两章合并为 story（字段取并集）
+    story: {
       architecture: '',
       history_eras: [],
       factions: [],
       geography: '',
       main_plot: '',
       branch_endings: [],
-      character_network: []
+      character_network: [],
+      protagonist: '',
+      main_npc_count: 0,
+      npc_list: [],
+      antagonists: [],
+      boss_design: [],
+      enemy_types: [],
+      companion_system: '',
+      character_arcs: [],
+      voice_cast: [],
+      character_relationships: []
     },
     gameplay: {
       core_loop: '',
@@ -113,18 +124,6 @@ export function createDefaultChapters(): Record<ChapterKey, ChapterData> {
       entry_barriers: '',
       market_trends: [],
       kpi_forecast: {}
-    },
-    characters: {
-      protagonist: '',
-      main_npc_count: 0,
-      npc_list: [],
-      antagonists: [],
-      boss_design: [],
-      enemy_types: [],
-      companion_system: '',
-      character_arcs: [],
-      voice_cast: [],
-      character_relationships: []
     },
     combat: {
       combat_mode: '',

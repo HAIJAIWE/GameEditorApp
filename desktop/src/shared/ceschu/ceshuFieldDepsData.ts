@@ -132,7 +132,7 @@ export const FIELD_DEPENDENCIES: readonly FieldDependency[] = [
     check_rule: 'check_language_list_consistency'
   },
   {
-    source_chapter: 'worldview',
+    source_chapter: 'story',
     source_field: 'factions',
     target_chapter: 'systems',
     target_field: 'social.config.faction_system',
@@ -143,7 +143,7 @@ export const FIELD_DEPENDENCIES: readonly FieldDependency[] = [
 
   // 派生依赖（derived）
   {
-    source_chapter: 'characters',
+    source_chapter: 'story',
     source_field: 'main_npc_count',
     target_chapter: 'systems',
     target_field: 'character.config.class_count',
@@ -181,7 +181,7 @@ export const FIELD_DEPENDENCIES: readonly FieldDependency[] = [
   {
     source_chapter: 'art',
     source_field: 'character_design',
-    target_chapter: 'characters',
+    target_chapter: 'story',
     target_field: 'protagonist',
     dependency_type: DEP_TYPE_DERIVED,
     description: '美术角色设计应由角色设定派生',
@@ -235,7 +235,7 @@ export const FIELD_DEPENDENCIES: readonly FieldDependency[] = [
     check_rule: null
   },
   {
-    source_chapter: 'characters',
+    source_chapter: 'story',
     source_field: 'boss_design',
     target_chapter: 'combat',
     target_field: 'boss_mechanics',

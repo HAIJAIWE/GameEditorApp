@@ -64,7 +64,7 @@ export function validateCeshu(doc: CeshuDocument): string[] {
   }
 
   // 4. worldview.factions 与 social.faction_system 应协同
-  const factions = nonEmptyArray(doc.worldview.factions)
+  const factions = nonEmptyArray(doc.story.factions)
   const factionSystem = readText(systemConfig(doc, 'social')['faction_system'])
   if (factions && factionSystem === 'none') {
     errors.push("一致性冲突：第三章 worldview.factions 已设定阵营，但 systems.social.config.faction_system='none'")
@@ -112,8 +112,8 @@ export function validateCeshu(doc: CeshuDocument): string[] {
   }
 
   // 9. characters.main_npc_count 与 characters.npc_list 数量应一致
-  const npcCount = doc.characters.main_npc_count
-  const npcList = nonEmptyArray(doc.characters.npc_list)
+  const npcCount = doc.story.main_npc_count
+  const npcList = nonEmptyArray(doc.story.npc_list)
   if (typeof npcCount === 'number' && npcCount !== 0 && npcList && Math.abs(npcCount - npcList.length) > Math.max(2, Math.trunc(npcCount * 0.2))) {
     errors.push(`一致性警告：第十一章 characters.main_npc_count=${npcCount} 与 npc_list 实际数量=${npcList.length} 差异较大，请核对`)
   }

@@ -108,7 +108,7 @@ function writeNumericSheet(workbook: ExcelJS.Workbook, doc: CeshuDocument): void
 /* ---- Sheet 4：角色 ---- */
 
 function writeCharactersSheet(workbook: ExcelJS.Workbook, doc: CeshuDocument): void {
-  const characters = chapterOf(doc, 'characters')
+  const characters = chapterOf(doc, 'story')
   const rows: CellValue[][] = []
   const npcList = Array.isArray(characters['npc_list']) ? characters['npc_list'] : []
   npcList.forEach((npc, index) => {
@@ -253,7 +253,7 @@ function coerceNumeric(value: unknown): CellValue {
   return value
 }
 
-function chapterOf(doc: CeshuDocument, key: 'numeric' | 'characters' | 'mvp' | 'risk_handling' | 'market_analysis'): ChapterData {
+function chapterOf(doc: CeshuDocument, key: 'numeric' | 'story' | 'mvp' | 'risk_handling' | 'market_analysis'): ChapterData {
   const data = doc[key]
   return isPlainObject(data) ? data : {}
 }
