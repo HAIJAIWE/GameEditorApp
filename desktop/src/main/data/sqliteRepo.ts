@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3'
 
+import { safeJsonParse } from '../../shared/safeJson'
 import type { ItemRecord } from '../../shared/types'
 import type { ItemsRepository } from './repository'
 
@@ -73,7 +74,8 @@ export class SqliteItemsRepository implements ItemsRepository {
     return {
       id: row.id,
       type: row.type,
-      data: JSON.parse(row.data) as Record<string, unknown>,
+      // 容错：行数据损坏时返回空对象，不让单条坏记录把整个列表读崩
+      data: safeJsonParse(row.data, {}) as Record<string, unknown>,
       createdAt: row.created_at,
       updatedAt: row.updated_at
     }
