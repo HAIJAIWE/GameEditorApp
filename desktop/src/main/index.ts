@@ -189,6 +189,12 @@ app.whenReady().then(async () => {
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
+}).catch((error) => {
+  // 启动链路（旧数据搬迁 / 建库 / 建窗）任一环节抛错，此前会变成「无窗口 + 无提示」的**静默失败**。
+  // 这里落日志（userData/logs，initLogger 是回调首行 ⇒ 之后失败必已可落盘）并优雅退出，
+  // 让用户与排障至少有据可查，而不是看着一个什么都没发生的进程。
+  log.error('[Startup] 应用启动失败', error instanceof Error ? error : String(error))
+  app.quit()
 })
 
 app.on('window-all-closed', () => {
