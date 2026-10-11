@@ -17,7 +17,7 @@ describe('策划书校验：必填字段（匹平 Python validate_ceshu）', () 
   it('空文档：必填字段逐项报错（35 条，budget 默认 {} 不算空），无依赖错误', () => {
     const errors = validateCeshu(makeDoc())
     expect(errors).toHaveLength(35)
-    expect(hasError(errors, "项目元信息：字段 'game_name' 为必填项")).toBe(true)
+    expect(hasError(errors, "文档信息：字段 'game_name' 为必填项")).toBe(true)
     expect(hasError(errors, "第十六章·可访问性与本地化：字段 'accessibility_features' 为必填项")).toBe(true)
     // Python 语义：空字典 {} 不算空（第九章 budget 默认 {}，故不报错）
     expect(hasError(errors, "第九章·资源规划：字段 'budget' 为必填项")).toBe(false)
@@ -38,8 +38,8 @@ describe('策划书校验：必填字段（匹平 Python validate_ceshu）', () 
     doc.meta.positioning = '定位'
     doc.meta.tags = []
     const errors = validateCeshu(doc)
-    expect(hasError(errors, "项目元信息：字段 'tags' 为必填项")).toBe(true)
-    expect(hasError(errors, "项目元信息：字段 'game_name' 为必填项")).toBe(false)
+    expect(hasError(errors, "文档信息：字段 'tags' 为必填项")).toBe(true)
+    expect(hasError(errors, "文档信息：字段 'game_name' 为必填项")).toBe(false)
   })
 })
 

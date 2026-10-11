@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { createDefaultCeshu, normalizeCeshu } from '../../src/shared/ceshuModel'
+import { createDefaultCeshu, normalizeCeshu } from '../../src/shared/ceschu/ceshuModel'
 import {
   V5_NEW_CHAPTER_KEYS,
   migrateV4ToV5,
   needsV4Migration
-} from '../../src/shared/ceshuMigration'
+} from '../../src/shared/ceschu/ceshuMigration'
 
 /** 一份典型的 v4.0（9 章）旧策划书 */
 function makeV4Raw(): Record<string, unknown> {
@@ -111,8 +111,8 @@ describe('migrateV4ToV5：全部派生规则', () => {
     expect((migrated.monetization as Record<string, unknown>).payment_model).toBe('买断制')
   })
 
-  it('worldview.character_network → characters.npc_list', () => {
-    expect((migrated.characters as Record<string, unknown>).npc_list).toEqual([{ name: '张三' }])
+  it('worldview.character_network → story.npc_list', () => {
+    expect((migrated.story as Record<string, unknown>).npc_list).toEqual([{ name: '张三' }])
   })
 
   it('systems.battle.config → combat（damage_formula / turn_mode→combat_mode / combat_pace）', () => {
@@ -178,7 +178,7 @@ describe('migrateV4ToV5：守卫与 Python 真值语义', () => {
     const migrated = migrateV4ToV5(raw)
     expect((migrated.market_analysis as Record<string, unknown>).competitors).toEqual([])
     expect((migrated.monetization as Record<string, unknown>).payment_model).toBe('')
-    expect((migrated.characters as Record<string, unknown>).npc_list).toEqual([])
+    expect((migrated.story as Record<string, unknown>).npc_list).toEqual([])
     expect((migrated.mvp as Record<string, unknown>).milestones).toEqual([])
   })
 

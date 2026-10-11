@@ -7,8 +7,8 @@ import { describe, expect, it } from 'vitest'
 import { exportCeshuDocument } from '../../src/main/ceshu/export/exporter'
 import { renderCeshuHtml } from '../../src/main/ceshu/export/html'
 import { renderCeshuMarkdown } from '../../src/main/ceshu/export/markdown'
-import type { CeshuDocument } from '../../src/shared/ceshuConstants'
-import { createDefaultCeshu } from '../../src/shared/ceshuModel'
+import type { CeshuDocument } from '../../src/shared/ceschu/ceshuConstants'
+import { createDefaultCeshu } from '../../src/shared/ceschu/ceshuModel'
 
 function makeDoc(scope: 'full' | 'lite' = 'full'): CeshuDocument {
   const doc = createDefaultCeshu({ scope, name: '测试游戏' })
@@ -32,10 +32,10 @@ describe('策划书导出：Markdown', () => {
 
     expect(markdown.startsWith('# 测试游戏')).toBe(true)
     expect(markdown).toContain('> 版本: v1.0 | 类型: RPG')
-    expect(markdown).toContain('1. [第一章·项目元信息](#ch1)')
-    expect(markdown).toContain('18. [第十八章·可访问性与本地化](#ch18)')
+    expect(markdown).toContain('1. [文档信息](#ch1)')
+    expect(markdown).toContain('17. [第十六章·可访问性与本地化](#ch17)')
     expect(markdown).toContain('<a id="ch12"></a>')
-    expect(markdown).toContain('## 12. 第十二章·战斗系统设计')
+    expect(markdown).toContain('## 6. 第五章·战斗系统设计')
     expect(markdown).toContain('**damage_formula**: 伤害 = 攻击 - 防御')
     expect(markdown).toContain('**tags**: - 剧情向')
     expect(markdown).toContain('| battle | ✅ 启用 | battle | 战斗 |')
@@ -51,7 +51,7 @@ describe('策划书导出：Markdown', () => {
 
   it('lite 档只导出基础 9 章（序号仍为全局章号）', () => {
     const markdown = renderCeshuMarkdown(makeDoc('lite'))
-    expect(markdown).toContain('9. [第九章·资源规划](#ch9)')
+    expect(markdown).toContain('10. [第九章·音频设计](#ch10)')
     expect(markdown).not.toContain('第十章·市场分析')
     expect(markdown).not.toContain('第十八章·可访问性与本地化')
   })
@@ -67,7 +67,7 @@ describe('策划书导出：HTML', () => {
     expect(html).toContain('<title>测试游戏</title>')
     expect(html).toContain('含 &lt;b&gt;标签&lt;/b&gt; 的定位')
     expect(html).not.toContain('含 <b>标签</b> 的定位')
-    expect(html).toContain('<h2 id="ch12">12. 第十二章·战斗系统设计</h2>')
+    expect(html).toContain('<h2 id="ch6">6. 第五章·战斗系统设计</h2>')
     expect(html).toContain('<td>battle</td><td>✅ 启用</td>')
     expect(html).toContain('附录：章节完成度')
     expect(html).toContain('@media print')

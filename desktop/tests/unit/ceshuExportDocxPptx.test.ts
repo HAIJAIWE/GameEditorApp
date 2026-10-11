@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest'
 
 import { renderCeshuDocx } from '../../src/main/ceshu/export/docx'
 import { renderCeshuPptx } from '../../src/main/ceshu/export/pptx'
-import type { CeshuDocument, GddScope } from '../../src/shared/ceshuConstants'
-import { createDefaultCeshu } from '../../src/shared/ceshuModel'
+import type { CeshuDocument, GddScope } from '../../src/shared/ceschu/ceshuConstants'
+import { createDefaultCeshu } from '../../src/shared/ceschu/ceshuModel'
 
 /**
  * 策划书 docx / pptx 渲染器单测：以 JSZip 解包回读 XML，断言关键结构与字段均已落地。
@@ -30,7 +30,7 @@ describe('策划书 docx 渲染器', () => {
     const xml = (await zip.file('word/document.xml')?.async('string')) ?? ''
 
     expect(xml).toContain('测试游戏')
-    expect(xml).toContain('第十二章·战斗系统设计')
+    expect(xml).toContain('第五章·战斗系统设计')
     expect(xml).toContain('伤害 = 攻击 - 防御')
     expect(xml).toContain('系统')
     expect(xml).toContain('已启用系统配置详情')
@@ -50,7 +50,7 @@ describe('策划书 docx 渲染器', () => {
 })
 
 describe('策划书 pptx 渲染器', () => {
-  it('full 档：封面 + 18 章 + 完成度共 20 页，含游戏名与章节标题', async () => {
+  it('full 档：封面 + 17 章 + 完成度共 19 页，含游戏名与章节标题', async () => {
     const buffer = await renderCeshuPptx(createFixture('full'))
     expect(Buffer.isBuffer(buffer)).toBe(true)
 
@@ -58,10 +58,10 @@ describe('策划书 pptx 渲染器', () => {
     expect(zip.file('[Content_Types].xml')).toBeTruthy()
 
     const slideNames = Object.keys(zip.files).filter((name) => /^ppt\/slides\/slide\d+\.xml$/.test(name))
-    expect(slideNames).toHaveLength(20)
+    expect(slideNames).toHaveLength(19)
 
     const slides = await Promise.all(slideNames.map((name) => zip.file(name)!.async('string')))
     expect(slides.some((xml) => xml.includes('测试游戏'))).toBe(true)
-    expect(slides.some((xml) => xml.includes('第十二章·战斗系统设计'))).toBe(true)
+    expect(slides.some((xml) => xml.includes('第五章·战斗系统设计'))).toBe(true)
   })
 })

@@ -15,15 +15,15 @@ import {
   mergeTemplateToChapter,
   searchChapterTemplates,
   templateChapterLabel
-} from '../../src/shared/ceshuTemplates'
+} from '../../src/shared/ceschu/ceshuTemplates'
 
 describe('ceshuTemplates 内置模板库', () => {
-  it('数据池：18 章 / 34 个模板，每章数量与 Python 一致', () => {
+  it('数据池：17 章 / 34 个模板，每章数量与 Python 一致', () => {
     expect(countChapterTemplates()).toBe(34)
     expect(chapterTemplateSummary()).toEqual({
       meta: 3,
       vision: 3,
-      worldview: 3,
+      story: 4,
       gameplay: 3,
       systems: 1,
       numeric: 2,
@@ -31,7 +31,6 @@ describe('ceshuTemplates 内置模板库', () => {
       tech: 2,
       resources: 1,
       market_analysis: 2,
-      characters: 1,
       combat: 2,
       economy: 1,
       monetization: 2,
@@ -40,7 +39,7 @@ describe('ceshuTemplates 内置模板库', () => {
       audio: 2,
       accessibility: 1
     })
-    expect(Object.keys(chapterTemplateSummary())).toHaveLength(18)
+    expect(Object.keys(chapterTemplateSummary())).toHaveLength(17)
   })
 
   it('按章取模板：meta 3 个且顺序固定；未知章节返回空数组', () => {
@@ -77,7 +76,7 @@ describe('ceshuTemplates 内置模板库', () => {
     expect(getChapterTemplateByName('meta', '科幻射击样板')?.description).toBe('近未来科幻 TPS 射击游戏项目元信息')
     expect(getChapterTemplateByName('meta', '不存在的模板')).toBeNull()
     expect(getChapterTemplateByName('不存在的章节', '科幻射击样板')).toBeNull()
-    expect(templateChapterLabel('meta')).toBe('第一章·项目元信息')
+    expect(templateChapterLabel('meta')).toBe('文档信息')
     expect(templateChapterLabel('unknown_key')).toBe('unknown_key')
   })
 })

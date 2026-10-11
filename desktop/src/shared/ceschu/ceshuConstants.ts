@@ -48,7 +48,7 @@ export const CHAPTER_KEYS: readonly ChapterKey[] = [META_CHAPTER_KEY, ...NUMBERE
 
 /** 章节中文名（`CHAPTER_LABELS` 与章号由它 + 数组位置派生） */
 export const CHAPTER_NAMES: Record<ChapterKey, string> = {
-  meta: '项目元信息',
+  meta: '文档信息',
   vision: '产品愿景',
   story: '世界观与角色',
   gameplay: '核心玩法',

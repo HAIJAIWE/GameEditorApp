@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { CHAPTER_KEYS, type CeshuDocument } from '../../src/shared/ceshuConstants'
-import { createDefaultCeshu } from '../../src/shared/ceshuModel'
+import { CHAPTER_KEYS, type CeshuDocument } from '../../src/shared/ceschu/ceshuConstants'
+import { createDefaultCeshu } from '../../src/shared/ceschu/ceshuModel'
 import {
   CHAPTER_WORD_BENCHMARK,
   INDUSTRY_BENCHMARKS,
@@ -9,7 +9,7 @@ import {
   countWordsInChapter,
   gradeLabel,
   scoreCeshu
-} from '../../src/shared/ceshuScorer'
+} from '../../src/shared/ceschu/ceshuScorer'
 
 /**
  * 空文档：以 createDefaultCeshu 为骨架，将 18 章全部清空。
@@ -25,19 +25,19 @@ function emptyDoc(): CeshuDocument {
 }
 
 describe('N4 评分引擎：三维度（匹平 Python ceshu_scorer）', () => {
-  it('空文档：结构/质量/市场均为 0，等级 D，18 章明细，全部不及格', () => {
+  it('空文档：结构/质量/市场均为 0，等级 D，17 章明细，全部不及格', () => {
     const report = scoreCeshu(emptyDoc())
     expect(report.structure_score).toBe(0)
     expect(report.content_quality_score).toBe(0)
     expect(report.market_potential_score).toBe(0)
     expect(report.total_score).toBe(0)
     expect(report.grade).toBe('D')
-    expect(report.chapter_scores).toHaveLength(18)
+    expect(report.chapter_scores).toHaveLength(17)
     expect(report.pass_status).toEqual({ structure: false, quality: false, market: false, total: false })
-    expect(report.suggestions.some((s) => s.includes('有 18 章完全未填写'))).toBe(true)
+    expect(report.suggestions.some((s) => s.includes('有 17 章完全未填写'))).toBe(true)
   })
 
-  it('仅填 meta 四必填：meta 章 79、结构/总分 2.3、systems 章 20', () => {
+  it('仅填 meta 四必填：meta 章 79、结构/总分 2.4、systems 章 20', () => {
     const doc = emptyDoc()
     doc.meta = { game_name: '测试游戏', game_type: 'RPG', positioning: '一句话定位', tags: ['标签'] }
     const report = scoreCeshu(doc)
@@ -50,8 +50,8 @@ describe('N4 评分引擎：三维度（匹平 Python ceshu_scorer）', () => {
     expect(meta?.has_required).toBe(true)
     expect(systems?.score).toBe(20) // 无必填字段 → 必填分 100；完成度与字数 0
 
-    expect(report.structure_score).toBe(2.3)
-    expect(report.total_score).toBe(2.3)
+    expect(report.structure_score).toBe(2.4)
+    expect(report.total_score).toBe(2.4)
   })
 
   it('市场潜力：市场分析 7 + 商业模式 10 + MVP 10 + 差异化 1 = 28（kpi_forecast 为空对象不得分）', () => {

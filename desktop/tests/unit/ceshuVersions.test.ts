@@ -6,8 +6,8 @@ import { describe, expect, it } from 'vitest'
 
 import { CeshuManager } from '../../src/main/ceshu/manager'
 import { CeshuStorage } from '../../src/main/ceshu/storage'
-import { buildChangelogEntry, computeCeshuDiff, nextVersionLabel } from '../../src/shared/ceshuDiff'
-import { createDefaultCeshu } from '../../src/shared/ceshuModel'
+import { buildChangelogEntry, computeCeshuDiff, nextVersionLabel } from '../../src/shared/ceschu/ceshuDiff'
+import { createDefaultCeshu } from '../../src/shared/ceschu/ceshuModel'
 
 function makeDir(): string {
   return mkdtempSync(join(tmpdir(), 'mb-ceshu-versions-'))
@@ -108,7 +108,7 @@ describe('版本链：版本 diff（匹平 Python compute_version_diff）', () =
     const entry = buildChangelogEntry(base, next, 'v1.1', '2026-10-01 10:00:00')
     expect(entry.version).toBe('v1.1')
     expect(entry.changes[0]?.description).toBe('新增字段 game_name：测试名')
-    expect(entry.changes[0]?.chapter).toBe('第一章·项目元信息')
+    expect(entry.changes[0]?.chapter).toBe('文档信息')
 
     const removedBase = structuredClone(base)
     removedBase.combat.damage_formula = '旧公式'

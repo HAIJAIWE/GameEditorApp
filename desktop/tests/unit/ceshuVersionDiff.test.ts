@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest'
 
-import type { CeshuDocument } from '../../src/shared/ceshuConstants'
+import type { CeshuDocument } from '../../src/shared/ceschu/ceshuConstants'
 import {
   buildVersionDiff,
   buildVersionDiffMarkdown,
   chapterTotalChanges,
   formatDiffValue,
   versionDiffTotalChanges
-} from '../../src/shared/ceshuDiff'
-import { createDefaultCeshu } from '../../src/shared/ceshuModel'
+} from '../../src/shared/ceschu/ceshuDiff'
+import { createDefaultCeshu } from '../../src/shared/ceschu/ceshuModel'
 
 function makeDoc(name = 'A'): CeshuDocument {
   return createDefaultCeshu({ scope: 'full', name })
@@ -29,10 +29,10 @@ function fieldOf(doc: CeshuDocument, other: CeshuDocument, chapter: string, labe
 }
 
 describe('版本对比：章节级 Diff（匹平 Python compute_version_diff）', () => {
-  it('同一文档对比：18 章全无变更，未变字段数等于各章未变数之和', () => {
+  it('同一文档对比：17 章全无变更，未变字段数等于各章未变数之和', () => {
     const doc = makeDoc()
     const diff = buildVersionDiff(doc, doc)
-    expect(diff.chapter_diffs).toHaveLength(18)
+    expect(diff.chapter_diffs).toHaveLength(17)
     expect(diff.total_added).toBe(0)
     expect(diff.total_removed).toBe(0)
     expect(diff.total_modified).toBe(0)
@@ -90,7 +90,7 @@ describe('版本对比：章节级 Diff（匹平 Python compute_version_diff）'
     const a = makeDoc()
     const b = structuredClone(a)
     b.meta.game_name = 'B'
-    const { chapter } = chapterOf(a, b, 'worldview')
+    const { chapter } = chapterOf(a, b, 'story')
     expect(chapterTotalChanges(chapter)).toBe(0)
     expect(chapter.field_diffs).toHaveLength(0)
     expect(chapter.unchanged_count).toBeGreaterThan(0)
@@ -151,8 +151,8 @@ describe('版本对比：字段值格式化与 Markdown 报告', () => {
     expect(markdown).toContain('| game_name | A | B | ✎ 修改 |')
     expect(markdown).toContain('| design_vision |  | a\\|b c | ✚ 新增 |')
     // 未触及章节输出「— 未变」
-    expect(markdown).toContain('### 第三章·世界观 — 未变')
-    expect(markdown).toContain('### 第一章·项目元信息')
+    expect(markdown).toContain('### 第二章·世界观与角色 — 未变')
+    expect(markdown).toContain('### 文档信息')
     expect(markdown).toContain('新增 0 | 删除 0 | 修改 1 | 未变')
   })
 })

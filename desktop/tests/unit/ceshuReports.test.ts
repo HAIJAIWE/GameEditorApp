@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
-import type { CeshuChangelog } from '../../src/shared/ceshuDiff'
+import type { CeshuChangelog } from '../../src/shared/ceschu/ceshuDiff'
 import {
   buildChangelogHtml,
   buildChangelogMarkdown,
   buildChangelogText,
   buildValidationReportMarkdown,
   categorizeValidationError
-} from '../../src/shared/ceshuReports'
+} from '../../src/shared/ceschu/ceshuReports'
 
 describe('categorizeValidationError（对齐 Python validation_dialog._categorize）', () => {
   it('按关键字归类，判定顺序为 dep > conflict > warning > required', () => {
@@ -66,8 +66,8 @@ describe('buildValidationReportMarkdown（对齐 Python _build_markdown）', () 
 
   it('章节完成度状态阈值与 Python 一致（>=80 ✓ / >=50 ⚠ / 否则 ✗）', () => {
     const md = buildValidationReportMarkdown('G', 'v1.0', 't', [], { meta: 0.8, systems: 0.5, total: 0.6 })
-    expect(md).toContain('| 第一章·项目元信息 | 80% | ✓ |')
-    expect(md).toContain('| 第五章·游戏系统设计 | 50% | ⚠ |')
+    expect(md).toContain('| 文档信息 | 80% | ✓ |')
+    expect(md).toContain('| 第四章·游戏系统设计 | 50% | ⚠ |')
   })
 })
 

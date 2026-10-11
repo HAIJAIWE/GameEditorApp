@@ -53,7 +53,7 @@ describe('字数统计：基准表（匹平 Python CHAPTER_WORD_BENCHMARK）', (
     const report = buildWordStatsReport(makeDoc())
     expect(report.rows).toHaveLength(17)
     expect(report.rows.map((r) => r.chapter_key)).toEqual([...CHAPTER_KEYS])
-    expect(report.rows[0].chapter_label).toBe('项目元信息')
+    expect(report.rows[0].chapter_label).toBe('文档信息')
     expect(report.rows[16].chapter_label).toBe('第十六章·可访问性与本地化')
   })
 })

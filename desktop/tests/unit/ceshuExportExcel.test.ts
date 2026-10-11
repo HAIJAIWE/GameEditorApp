@@ -97,7 +97,7 @@ describe('策划书导出：Excel（匹平 Python ceshu_excel_exporter）', () =
     expect(width).toBeLessThanOrEqual(60)
   })
 
-  it('概览：项目元信息 + 17 章完成度（数值落表为数字）', () => {
+  it('概览：文档信息 + 17 章完成度（数值落表为数字）', () => {
     const workbook = buildExcelWorkbook(makeDoc())
     const overview = sheetOf(workbook, '概览')
     expect(rowValues(overview, 2)).toEqual(['游戏名称', '表格游戏'])
@@ -107,7 +107,7 @@ describe('策划书导出：Excel（匹平 Python ceshu_excel_exporter）', () =
     // 总完成度 + 18 章（第 10 行总完成度，其后 17 行章节）
     expect(overview.getRow(10).getCell(1).value).toBe('总完成度')
     expect(typeof overview.getRow(10).getCell(2).value).toBe('number')
-    expect(overview.getRow(11).getCell(1).value).toBe('项目元信息')
+    expect(overview.getRow(11).getCell(1).value).toBe('文档信息')
     expect(overview.getRow(27).getCell(1).value).toBe('第十六章·可访问性与本地化')
     expect(overview.rowCount).toBe(27)
   })

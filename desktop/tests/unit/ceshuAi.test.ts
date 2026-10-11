@@ -29,7 +29,7 @@ describe('AI 结构化审阅（匹平 Python _ai_review + AIReviewDialog）', ()
     doc.meta.player_count = 0
     doc.vision.core_fantasy = 'x'.repeat(80)
     const summary = buildReviewSummary(doc)
-    expect(summary).toContain('【项目元信息】')
+    expect(summary).toContain('【文档信息】')
     expect(summary).toContain('game_name: 测试游戏')
     expect(summary).not.toContain('player_count') // 0 视为未填（Python 真值语义）
     expect(summary).toContain(`core_fantasy: ${'x'.repeat(60)}`)
