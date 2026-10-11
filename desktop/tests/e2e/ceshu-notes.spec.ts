@@ -132,10 +132,10 @@ test('章节笔记：IPC 增删改查 + 磁盘落盘 + UI 面板全链路', asyn
     await window.getByTestId('notes-filter').selectOption('meta')
     await expect(window.getByTestId('notes-item')).toHaveCount(1)
     await expect(window.getByTestId('notes-item').first()).toContainText('(×1)')
-    await expect(window.getByTestId('notes-chapter')).toContainText('第一章·项目元信息')
+    await expect(window.getByTestId('notes-chapter')).toContainText('文档信息')
 
     await window.getByTestId('notes-add').click()
-    await expect(window.getByTestId('notes-notice')).toContainText('第一章·项目元信息')
+    await expect(window.getByTestId('notes-notice')).toContainText('文档信息')
     await expect(window.getByTestId('notes-panel')).toContainText('共 3 条')
     await expect(window.getByTestId('notes-item')).toHaveCount(2)
 

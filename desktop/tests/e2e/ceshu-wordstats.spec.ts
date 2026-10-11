@@ -92,8 +92,8 @@ test('字数统计：IPC 精确数字 + 面板表格与总览', async () => {
     expect(probe.totalTarget).toBe(9200)
     expect(probe.overallPercent).toBe(0)
     expect(probe.overallLevel).toBe('low')
-    expect(probe.firstLabel).toBe('第一章·项目元信息')
-    expect(probe.lastLabel).toBe('第十八章·可访问性与本地化')
+    expect(probe.firstLabel).toBe('文档信息')
+    expect(probe.lastLabel).toBe('第十六章·可访问性与本地化')
 
     // UI 侧：文档经 IPC 旁路创建 → 重载首页列表 → 打开唯一卡片 → 面板总览 + 18 行章节表
     await window.reload()
@@ -105,11 +105,11 @@ test('字数统计：IPC 精确数字 + 面板表格与总览', async () => {
     await expect(window.getByTestId('wordstats-panel')).toBeVisible()
     await expect(window.getByTestId('wordstats-overview')).toContainText('总字数：47 字')
     await expect(window.getByTestId('wordstats-overview')).toContainText('整体完成度：0%')
-    await expect(window.getByTestId('wordstats-row')).toHaveCount(18)
+    await expect(window.getByTestId('wordstats-row')).toHaveCount(17)
     await expect(window.getByTestId('wordstats-words').first()).toHaveText('12')
     await expect(window.getByTestId('wordstats-percent').first()).toHaveText('8%')
     await expect(window.getByTestId('wordstats-advice').first()).toContainText('🟠 字数偏少（建议至少 50 字）')
-    await expect(window.getByTestId('wordstats-row').nth(1)).toContainText('第二章·产品愿景')
+    await expect(window.getByTestId('wordstats-row').nth(1)).toContainText('第一章·产品愿景')
     await expect(window.getByTestId('wordstats-row').nth(1)).toContainText('🔴 章节为空，建议尽快填写')
 
     await window.getByTestId('wordstats-close').click()

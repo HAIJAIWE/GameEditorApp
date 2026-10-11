@@ -17,6 +17,7 @@ import type {
   CeshuChooseExportFileInput,
   ReportFileDialogInput,
   CeshuCreateInput,
+  CeshuDeleteInput,
   CeshuDeriveInput,
   CeshuDiffExportInput,
   CeshuDiffInput,
@@ -83,20 +84,20 @@ import type {
   ItemRecord,
   TypeFieldDef
 } from './types'
-import type { CeshuDocument, CeshuExportResult, CeshuSummary } from './ceshuConstants'
+import type { CeshuDocument, CeshuExportResult, CeshuSummary } from './ceschu/ceshuConstants'
 import type { BrainEvent } from './agent/brain'
 import type { AgentRunStats } from './agent/observability'
 import type { DraftSummary, SessionInfo } from './agent/session'
 import type { JsonObjectSchema, SkillResult } from './agent/protocol'
-import type { CeshuChangelog, CeshuVersionDiff } from './ceshuDiff'
-import type { CeshuScoreReport } from './ceshuScorer'
-import type { ChecklistReport } from './ceshuChecklist'
-import type { CeshuNote } from './ceshuNotes'
-import type { CeshuCustomTemplate } from './ceshuCustomTemplates'
-import type { CeshuWordStatsReport } from './ceshuWordStats'
-import type { CeshuFieldDepsReport } from './ceshuFieldDeps'
-import type { CeshuAiGenerateResult, CeshuAiGenerateFieldResult, CeshuAiReviewResult } from './ceshuAi'
-import type { CeshuDataGenResult } from './ceshuDataGen'
+import type { CeshuChangelog, CeshuVersionDiff } from './ceschu/ceshuDiff'
+import type { CeshuScoreReport } from './ceschu/ceshuScorer'
+import type { ChecklistReport } from './ceschu/ceshuChecklist'
+import type { CeshuNote } from './ceschu/ceshuNotes'
+import type { CeshuCustomTemplate } from './ceschu/ceshuCustomTemplates'
+import type { CeshuWordStatsReport } from './ceschu/ceshuWordStats'
+import type { CeshuFieldDepsReport } from './ceschu/ceshuFieldDeps'
+import type { CeshuAiGenerateResult, CeshuAiGenerateFieldResult, CeshuAiReviewResult } from './ceschu/ceshuAi'
+import type { CeshuDataGenResult } from './ceschu/ceshuDataGen'
 import type { ReferenceReport } from './references'
 import type { FieldIdSuggestResult } from './fieldIdAi'
 import type { AttrSystem } from './attrSystem'
@@ -279,7 +280,7 @@ export interface IpcContract {
   'library:remove': { req: LibraryNameInput; res: { switchedTo: string | null } }
   'library:switch': { req: LibraryNameInput; res: { ok: boolean } }
   'ceshu:rename': { req: CeshuRenameInput; res: CeshuDocument }
-  'ceshu:delete': { req: { id: string }; res: { deleted: boolean } }
+  'ceshu:delete': { req: CeshuDeleteInput; res: { deleted: boolean } }
   'ceshu:duplicate': { req: { id: string }; res: CeshuDocument }
   'ceshu:setActive': { req: { id: string }; res: CeshuDocument }
   'ceshu:changelog': { req: { id: string }; res: CeshuChangelog }

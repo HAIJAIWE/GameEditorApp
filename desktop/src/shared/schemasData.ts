@@ -356,6 +356,21 @@ export const ceshuGetInputSchema = z.object({
   confirmed: z.boolean().optional()
 })
 
+/**
+ * 删除策划书：`confirm` 是**必填的显式确认标志**（与 `clearAllInputSchema` 同一约定）。
+ *
+ * 渲染层 `CeshuHomePanel` 的「确认删除」二次确认框是 **UX 层**防护；这里是**契约层**防护
+ * ——主进程只接受 `confirm: true`，将来任何新调用点（agent skill / CLI / 测试）都绕不过。
+ * 此前本通道复用 `ceshuGetInputSchema`，而它的 `confirmed` 是**云端超预算**标志、与删除无关
+ * ⇒ 等于删除操作在主进程侧零守卫。
+ */
+export const ceshuDeleteInputSchema = z.object({
+  id: z.string().min(1),
+  confirm: z.boolean()
+})
+
+export type CeshuDeleteInput = z.infer<typeof ceshuDeleteInputSchema>
+
 /** 引擎代码导出（E2）：选择导出文件路径（`engine` 决定默认扩展名与过滤器标题） */
 export const engineExportFileDialogInputSchema = z.object({
   defaultName: z.string().min(1).max(120),

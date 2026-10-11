@@ -128,7 +128,7 @@ test('依赖检查：IPC 精确结构 + 字段/系统双视图面板', async () 
     await expect(window.getByTestId('fielddeps-row')).toHaveCount(20)
     await expect(window.getByTestId('fielddeps-row-status').first()).toContainText('✅ 通过')
     // 依赖表首行是 Python 依赖表首条：combat.combat_mode ↔ systems.battle.config.turn_mode
-    await expect(window.getByTestId('fielddeps-row').first()).toContainText('第十二章·战斗系统设计')
+    await expect(window.getByTestId('fielddeps-row').first()).toContainText('第五章·战斗系统设计')
 
     await window.getByTestId('fielddeps-view-system').click()
     await expect(window.getByTestId('fielddeps-system-summary')).toContainText('系统依赖缺失 1 项')

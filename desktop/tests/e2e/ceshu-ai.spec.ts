@@ -45,7 +45,7 @@ test('AI 生成：按钮存在；未配置 AI 服务时给出可执行的中文�
     await expect(window.getByTestId('chapter-form-error')).not.toContainText('ollama serve')
 
     // 切换章节后表单重建，AI 按钮仍在
-    await window.getByTestId('chapter-tab').filter({ hasText: '第十二章·战斗系统设计' }).click()
+    await window.getByTestId('chapter-tab').filter({ hasText: '第五章·战斗系统设计' }).click()
     await expect(window.getByTestId('ai-fill-empty')).toBeVisible()
     await window.getByTestId('ai-fill-empty').click()
     await expect(window.getByTestId('chapter-form-error')).toContainText('尚未配置 AI 服务')

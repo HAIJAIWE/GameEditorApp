@@ -18,7 +18,7 @@ import { createDataItem, dataRows, openCeshuFromHome, openDataEditor, seedCeshu 
 test('数据条目数量上限：超限先确认 —— 取消不创建，继续才创建', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-count-limit-e2e-'))
   const title = 'E2E 数量上限'
-  // 第五章「技能」系统写上限 2（`skill_count` 是 dataCountConstraint 的第二个候选字段）
+  // 第四章「技能」系统写上限 2（`skill_count` 是 dataCountConstraint 的第二个候选字段）
   seedCeshu(userDataDir, {
     title,
     systems: [{ key: 'skill', label: '技能', dataType: 'skill', config: { skill_count: 2 } }]

@@ -11,7 +11,7 @@ interface MigratedDoc {
   combat: { damage_formula: string; combat_mode: string; combat_pace: string }
   market_analysis: { competitors: Array<{ name: string }> }
   monetization: { payment_model: string; pricing_tiers: string[]; vip_system: string; season_pass: string }
-  characters: { npc_list: unknown }
+  story: { npc_list: unknown }
   economy: { currency_types: Array<{ name: string }>; source_sink: string }
   audio: { sfx_list: unknown }
   risk_handling: { risk_matrix: unknown; contingency_plan: string }
@@ -97,8 +97,8 @@ test('迁移工具：v4.0 旧策划书加载时自动迁移到 v5.0 并派生新
     // 派生：vision → market_analysis / monetization（business_model 优先于 payment_system）
     expect(doc.market_analysis.competitors[0].name).toBe('竞品甲')
     expect(doc.monetization.payment_model).toBe('买断制')
-    // 派生：worldview → characters
-    expect(doc.characters.npc_list).toEqual([{ name: '张三' }])
+    // 派生：worldview → story（原 characters 已并入 story）
+    expect(doc.story.npc_list).toEqual([{ name: '张三' }])
     // 派生：systems.economy.config → economy / monetization
     expect(doc.economy.currency_types[0].name).toBe('金币')
     expect(doc.economy.source_sink).toBe('任务奖励')

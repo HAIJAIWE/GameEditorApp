@@ -162,21 +162,21 @@ test('版本对比：派生改字段 → 精确 Diff 计数 + 面板断言 + 导
     await expect(window.getByTestId('diff-stats')).toContainText('✚ 新增 1')
     await expect(window.getByTestId('diff-stats')).toContainText('✎ 修改 1')
     await expect(window.getByTestId('diff-stats')).toContainText('变更率')
-    await expect(window.getByTestId('diff-chapter')).toHaveCount(18)
+    await expect(window.getByTestId('diff-chapter')).toHaveCount(17)
     await expect(window.getByTestId('diff-chapter').first()).toContainText('1 处变更')
 
-    // 默认选中第一个有变更的章节（第一章 meta）：1 个字段 game_name
+    // 默认选中第一个有变更的章节（文档信息 meta）：1 个字段 game_name
     await expect(window.getByTestId('diff-field')).toHaveCount(1)
     await expect(window.getByTestId('diff-field').first()).toContainText('game_name')
     await expect(window.getByTestId('diff-field').first()).toContainText('差异B')
     await expect(window.getByTestId('diff-field').first()).toContainText('✎ 修改')
 
     await window.getByTestId('diff-field').first().click()
-    await expect(window.getByTestId('diff-detail')).toContainText('第一章·项目元信息 · game_name')
+    await expect(window.getByTestId('diff-detail')).toContainText('文档信息 · game_name')
     await expect(window.getByTestId('diff-detail')).toContainText('差异A')
     await expect(window.getByTestId('diff-detail')).toContainText('差异B')
 
-    // 切到第二章（愿景）：design_vision 新增
+    // 切到第一章（愿景）：design_vision 新增
     await window.getByTestId('diff-chapter').nth(1).click()
     await expect(window.getByTestId('diff-field')).toHaveCount(1)
     await expect(window.getByTestId('diff-field').first()).toContainText('design_vision')

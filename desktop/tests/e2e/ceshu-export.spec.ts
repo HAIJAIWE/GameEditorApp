@@ -73,11 +73,12 @@ test('策划书导出：Markdown/HTML/docx/pptx/PDF/Excel 全链路落盘', asyn
     expect(summaries.every((item) => item.bytes > 0)).toBe(true)
     expect(summaries.map((item) => item.format)).toEqual(['markdown', 'html', 'docx', 'pptx', 'pdf', 'excel'])
 
-    // Markdown：lite 档（9 章）与内容
+    // Markdown：lite 档（文档信息 + 9 章）与内容
     const markdown = readFileSync(join(outDir, 'markdown.md'), 'utf-8')
     expect(markdown).toContain('# E2E 导出游戏')
-    expect(markdown).toContain('9. [第九章·资源规划](#ch9)')
-    expect(markdown).not.toContain('第十章·市场分析')
+    // lite 档末章是音频设计（导出序号 = 全量位置，故为 10 而非 9）；技术规格是第十章，lite 不含
+    expect(markdown).toContain('10. [第九章·音频设计](#ch10)')
+    expect(markdown).not.toContain('第十章·技术规格')
 
     // HTML：自包含
     const html = readFileSync(join(outDir, 'html.html'), 'utf-8')

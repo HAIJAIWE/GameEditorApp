@@ -7,6 +7,7 @@ import {
   ceshuConfirmSystemsInputSchema,
   ceshuCreateInputSchema,
   ceshuDataGenInputSchema,
+  ceshuDeleteInputSchema,
   ceshuDeriveInputSchema,
   ceshuDiffExportInputSchema,
   ceshuDiffInputSchema,
@@ -128,7 +129,10 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
     return dataSync.syncBoth(doc, req.id, '')
   })
   handle('ceshu:rename', ceshuRenameInputSchema, (req) => ceshuManager.rename(req.id, req.name))
-  handle('ceshu:delete', ceshuGetInputSchema, async (req) => {
+  handle('ceshu:delete', ceshuDeleteInputSchema, async (req) => {
+    // 契约层防误删（与 `data:clearAll` 同一约定）：渲染层的「确认删除」二次确认框是 UX 防护，
+    // 这里是主进程侧守卫——`confirm` 必填且必须为 true，任何调用点都绕不过。
+    if (req.confirm !== true) throw new Error('删除策划书需要确认')
     const deleted = await ceshuManager.remove(req.id)
     // 被删除的文档若正是数据同步的当前上下文，清空以免后续同步指向已不存在的文档
     if (deleted) dataSync.clearCurrentCeshu()

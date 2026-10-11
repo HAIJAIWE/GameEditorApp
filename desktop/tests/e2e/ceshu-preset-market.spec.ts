@@ -157,7 +157,7 @@ test('竞品象限图：vision 章渲染散点 + 空数据仅网格', async () =
 
     // 有数据：2 个散点 + 名称 + 轴标签
     await window.getByTestId('home-card').filter({ hasText: '竞品图E2E' }).getByTestId('home-card-open').click()
-    await window.getByTestId('chapter-tab').filter({ hasText: '第二章·产品愿景' }).click()
+    await window.getByTestId('chapter-tab').filter({ hasText: '第一章·产品愿景' }).click()
     await expect(window.getByTestId('competitive-chart')).toBeVisible()
     await expect(window.getByTestId('competitor-point')).toHaveCount(2)
     await expect(window.getByTestId('competitive-chart')).toContainText('竞品甲')
@@ -168,7 +168,7 @@ test('竞品象限图：vision 章渲染散点 + 空数据仅网格', async () =
     // 空数据：仍渲染网格，无散点（新 IA 切换策划书需先返回首页再打开另一卡片）
     await window.getByTestId('ceshu-back').click()
     await window.getByTestId('home-card').filter({ hasText: '竞品图空E2E' }).getByTestId('home-card-open').click()
-    await window.getByTestId('chapter-tab').filter({ hasText: '第二章·产品愿景' }).click()
+    await window.getByTestId('chapter-tab').filter({ hasText: '第一章·产品愿景' }).click()
     await expect(window.getByTestId('competitive-chart')).toBeVisible()
     await expect(window.getByTestId('competitor-point')).toHaveCount(0)
   } finally {

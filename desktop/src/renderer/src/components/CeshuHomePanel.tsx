@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react'
 
-import type { CeshuSummary } from '../../../shared/ceshuConstants'
+import type { CeshuSummary } from '../../../shared/ceschu/ceshuConstants'
 import {
   RECENT_LIMIT,
   buildCeshuCards,
   filterCeshuCards,
   pickRecentCeshu
-} from '../../../shared/ceshuHome'
+} from '../../../shared/ceschu/ceshuHome'
 
 import HomeAiEntryCard from './ceshu/HomeAiEntryCard'
 import LucideIcon from './LucideIcon'
@@ -132,7 +132,8 @@ export default function CeshuHomePanel({
 
   const handleDelete = (id: string): void =>
     void run(async () => {
-      const result = await window.mbApi.ceshu.remove({ id })
+      // `confirm` 是契约层要求的显式确认（此处必然来自用户点了「确认删除」）
+      const result = await window.mbApi.ceshu.remove({ id, confirm: true })
       if (!result.deleted) throw new Error('策划书不存在，可能已被删除')
       onDeleted(id)
       return '已删除策划书'

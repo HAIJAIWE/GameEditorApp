@@ -69,12 +69,12 @@ test('模板编辑器：列表筛选 → 新建/保存 → 编辑更新 → 应�
     await expect(window.getByTestId('template-editor-panel')).toBeVisible()
     await expect(window.getByTestId('editor-item')).toHaveCount(3)
     await expect(window.getByTestId('editor-count')).toHaveText('3 个模板')
-    await expect(window.getByTestId('editor-item').nth(0)).toContainText('[内置] 仙侠 RPG 项目样板  (第一章·项目元信息)')
+    await expect(window.getByTestId('editor-item').nth(0)).toContainText('[内置] 仙侠 RPG 项目样板  (文档信息)')
     await expect(window.getByTestId('editor-delete')).toBeDisabled()
 
     // 新建：清空 + 从当前章节预填（名称自动生成）
     await window.getByTestId('editor-new').click()
-    await expect(window.getByTestId('editor-name')).toHaveValue('第一章·项目元信息 模板')
+    await expect(window.getByTestId('editor-name')).toHaveValue('文档信息 模板')
     await expect(window.getByTestId('editor-data')).toHaveValue(/"game_name": "模板编辑器E2E"/)
 
     // 编辑并保存为自定义模板
@@ -86,7 +86,7 @@ test('模板编辑器：列表筛选 → 新建/保存 → 编辑更新 → 应�
     await expect(window.getByTestId('editor-notice')).toContainText('模板「E2E 编辑器模板」已保存。')
     await expect(window.getByTestId('editor-item')).toHaveCount(4)
     // 自定义在前、内置在后（与 Python _refresh_list 顺序一致）
-    await expect(window.getByTestId('editor-item').nth(0)).toContainText('[自定义] E2E 编辑器模板  (第一章·项目元信息)')
+    await expect(window.getByTestId('editor-item').nth(0)).toContainText('[自定义] E2E 编辑器模板  (文档信息)')
     await expect(window.getByTestId('editor-item').nth(0)).toContainText('编辑器 · E2E')
     await expect(window.getByTestId('editor-delete')).toBeEnabled()
 
@@ -118,7 +118,7 @@ test('模板编辑器：列表筛选 → 新建/保存 → 编辑更新 → 应�
     await window.getByTestId('editor-chapter').selectOption('meta')
     await window.getByTestId('editor-data').fill('{\n  "positioning": "编辑器应用定位"\n}')
     await window.getByTestId('editor-apply-current').click()
-    await expect(window.getByTestId('editor-notice')).toContainText('模板数据已应用到「第一章·项目元信息」（已写入文档）')
+    await expect(window.getByTestId('editor-notice')).toContainText('模板数据已应用到「文档信息」（已写入文档）')
     await expect.poll(() => readMeta(window, ceshuId)).toMatchObject({
       positioning: '编辑器应用定位',
       game_name: '模板编辑器E2E'

@@ -82,7 +82,7 @@ test('自定义模板：另存为模板（章节/全局）→ 来源筛选 → �
     await expect(window.getByTestId('template-notice')).toContainText('已保存为自定义模板「我的元信息模板」')
     await expect(window.getByTestId('template-item')).toHaveCount(4)
     await expect(window.getByTestId('template-item').nth(3)).toContainText('自定义')
-    await expect(window.getByTestId('template-item').nth(3)).toContainText('[第一章·项目元信息] 我的元信息模板')
+    await expect(window.getByTestId('template-item').nth(3)).toContainText('[文档信息] 我的元信息模板')
     await expect(window.getByTestId('template-item').nth(3)).toContainText('测试 · 元信息')
 
     // 磁盘回读：<userData>/ceshu_templates/meta.json

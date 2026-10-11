@@ -50,12 +50,12 @@ test('章节模板库：筛选/预览/三模式应用/保存落盘/无数据模�
     await expect(window.getByTestId('template-panel')).toBeVisible()
     await expect(window.getByTestId('template-item')).toHaveCount(3)
     await expect(window.getByTestId('template-count')).toHaveText('3 个模板')
-    await expect(window.getByTestId('template-item').nth(0)).toContainText('[第一章·项目元信息] 仙侠 RPG 项目样板')
+    await expect(window.getByTestId('template-item').nth(0)).toContainText('[文档信息] 仙侠 RPG 项目样板')
     await expect(window.getByTestId('template-item').nth(0)).toContainText('仙侠 · RPG · 国产 · 双平台')
 
     // 预览：标题 + 描述 + 标签 + 内容树
     await window.getByTestId('template-item').nth(0).click()
-    await expect(window.getByTestId('template-preview-title')).toContainText('[第一章·项目元信息] 仙侠 RPG 项目样板')
+    await expect(window.getByTestId('template-preview-title')).toContainText('[文档信息] 仙侠 RPG 项目样板')
     await expect(window.getByTestId('template-preview')).toContainText('国产仙侠题材 RPG 项目元信息，含 PC + 移动双平台定位')
     await expect(window.getByTestId('template-preview-rows')).toContainText('game_name: 云海仙踪')
     await expect(window.getByTestId('template-preview-rows')).toContainText('platform:')
@@ -79,7 +79,7 @@ test('章节模板库：筛选/预览/三模式应用/保存落盘/无数据模�
     await window.getByTestId('template-apply').click()
     await expect(window.getByTestId('template-confirm')).toBeVisible()
     await expect(window.getByTestId('template-confirm-text')).toContainText(
-      '将应用模板「仙侠 RPG 项目样板」到「第一章·项目元信息」'
+      '将应用模板「仙侠 RPG 项目样板」到「文档信息」'
     )
     await window.getByTestId('template-apply-cancel').click()
     await expect(window.getByTestId('template-confirm')).toHaveCount(0)
@@ -127,7 +127,7 @@ test('章节模板库：筛选/预览/三模式应用/保存落盘/无数据模�
     })
 
     // 系统章：唯一内置模板无数据 → 展示 note 且应用按钮禁用
-    await window.getByTestId('chapter-tab').filter({ hasText: '第五章·游戏系统设计' }).click()
+    await window.getByTestId('chapter-tab').filter({ hasText: '第四章·游戏系统设计' }).click()
     await window.getByTestId('template-picker-open').click()
     await expect(window.getByTestId('template-item')).toHaveCount(1)
     await window.getByTestId('template-item').nth(0).click()
