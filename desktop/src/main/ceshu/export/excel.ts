@@ -1,8 +1,8 @@
 import ExcelJS from 'exceljs'
 
-import { CHAPTER_KEYS, CHAPTER_LABELS, type CeshuDocument, type ChapterData } from '../../../shared/ceshuConstants'
-import { computeChapterProgress, isPlainObject } from '../../../shared/ceshuModel'
-import { validateCeshu } from '../../../shared/ceshuValidation'
+import { CHAPTER_KEYS, CHAPTER_LABELS, type CeshuDocument, type ChapterData } from '../../../shared/ceschu/ceshuConstants'
+import { computeChapterProgress, isPlainObject } from '../../../shared/ceschu/ceshuModel'
+import { validateCeshu } from '../../../shared/ceschu/ceshuValidation'
 
 import { classifySystems, formatFieldValue } from './common'
 
