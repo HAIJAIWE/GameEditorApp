@@ -43,7 +43,7 @@ export function validateCeshu(doc: CeshuDocument): string[] {
   const battleTurnMode = readText(battleConfig['turn_mode'])
   if (combatMode && battleTurnMode && combatMode !== battleTurnMode) {
     errors.push(
-      `一致性冲突：第十二章 combat.combat_mode='${combatMode}' 与 第五章 systems.battle.config.turn_mode='${battleTurnMode}' 不一致`
+      `一致性冲突：第五章 combat.combat_mode='${combatMode}' 与 第四章 systems.battle.config.turn_mode='${battleTurnMode}' 不一致`
     )
   }
 
@@ -52,7 +52,7 @@ export function validateCeshu(doc: CeshuDocument): string[] {
   const economyPayment = readText(economyConfig['payment_system'])
   if (paymentModel && economyPayment && paymentModel !== economyPayment) {
     errors.push(
-      `一致性冲突：第十四章 monetization.payment_model='${paymentModel}' 与 第五章 systems.economy.config.payment_system='${economyPayment}' 不一致`
+      `一致性冲突：第十四章 monetization.payment_model='${paymentModel}' 与 第四章 systems.economy.config.payment_system='${economyPayment}' 不一致`
     )
   }
 
@@ -67,7 +67,7 @@ export function validateCeshu(doc: CeshuDocument): string[] {
   const factions = nonEmptyArray(doc.story.factions)
   const factionSystem = readText(systemConfig(doc, 'social')['faction_system'])
   if (factions && factionSystem === 'none') {
-    errors.push("一致性冲突：第三章 worldview.factions 已设定阵营，但 systems.social.config.faction_system='none'")
+    errors.push("一致性冲突：第二章 story.factions 已设定阵营，但 systems.social.config.faction_system='none'")
   }
 
   // 5. art.art_style 与 audio.music_style 风格应协同（像素风 ↔ 交响乐提示）

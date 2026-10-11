@@ -79,8 +79,8 @@ describe('策划书存储与 CeshuManager（W3 第一切片）', () => {
     const doc = storage.load('aabbccdd')
 
     expect(doc.ceshu_id).toBe('aabbccdd')
-    expect((doc.characters as Record<string, unknown>).npc_list).toEqual([])
-    expect(doc.worldview.main_plot).toBe('')
+    expect((doc.story as Record<string, unknown>).npc_list).toEqual([])
+    expect(doc.story.main_plot).toBe('')
     expect(doc.enabled_editors).toHaveLength(1)
 
     const manager = new CeshuManager(storage)

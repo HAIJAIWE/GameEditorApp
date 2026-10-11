@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import type { CeshuDocument } from '../../src/shared/ceshuConstants'
+import type { CeshuDocument } from '../../src/shared/ceschu/ceshuConstants'
 import {
   ALL_CATEGORIES,
   CATEGORY_DESIGN,
@@ -18,8 +18,8 @@ import {
   getChecklistItemsByCategory,
   runChecklist,
   type ChecklistReport
-} from '../../src/shared/ceshuChecklist'
-import { createDefaultCeshu } from '../../src/shared/ceshuModel'
+} from '../../src/shared/ceschu/ceshuChecklist'
+import { createDefaultCeshu } from '../../src/shared/ceschu/ceshuModel'
 
 function makeDoc(name = '清单测试'): CeshuDocument {
   return createDefaultCeshu({ scope: 'full', name })
@@ -123,11 +123,11 @@ describe('GDD 检查清单：默认文档结果（精确数字）', () => {
     doc.meta.platform = ['PC', '移动']
     doc.meta.positioning = '定位'
     doc.meta.tags = ['rpg']
-    doc.worldview.architecture = '架构'
-    doc.worldview.main_plot = '主线'
-    doc.characters.protagonist = '主角'
-    doc.characters.main_npc_count = 3
-    doc.characters.npc_list = [{ name: 'NPC1' }]
+    doc.story.architecture = '架构'
+    doc.story.main_plot = '主线'
+    doc.story.protagonist = '主角'
+    doc.story.main_npc_count = 3
+    doc.story.npc_list = [{ name: 'NPC1' }]
     doc.market_analysis.kpi_forecast = { dau: 1000 }
     doc.resources.budget = { total: '100万' }
     doc.risk_handling.risk_matrix = [{ risk: '进度' }]

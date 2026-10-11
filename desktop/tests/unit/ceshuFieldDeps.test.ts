@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { CHAPTER_KEYS, isChapterKey, type CeshuDocument, type ChapterKey } from '../../src/shared/ceshuConstants'
-import { createDefaultCeshu } from '../../src/shared/ceshuModel'
+import { CHAPTER_KEYS, isChapterKey, type CeshuDocument, type ChapterKey } from '../../src/shared/ceschu/ceshuConstants'
+import { createDefaultCeshu } from '../../src/shared/ceschu/ceshuModel'
 import {
   DEP_TYPE_CONSISTENCY,
   DEP_TYPE_DERIVED,
@@ -22,7 +22,7 @@ import {
   valuesConsistent,
   type FieldDependency,
   type FieldDependencyStatus
-} from '../../src/shared/ceshuFieldDeps'
+} from '../../src/shared/ceschu/ceshuFieldDeps'
 
 function makeDoc(scope: 'full' | 'lite' = 'full'): CeshuDocument {
   return createDefaultCeshu({ scope })
@@ -82,14 +82,14 @@ describe('字段依赖：规则表（匹平 Python field_dependencies.py）', ()
     }
   })
 
-  it('getDependenciesForChapter 覆盖 18 章相关依赖数', () => {
+  it('getDependenciesForChapter 覆盖 17 章相关依赖数', () => {
     expect(getDependenciesForChapter('combat')).toHaveLength(4)
     expect(getDependenciesForChapter('systems')).toHaveLength(6)
     expect(getDependenciesForChapter('market_analysis')).toHaveLength(4)
     expect(getDependenciesForChapter('art')).toHaveLength(3)
     expect(getDependenciesForChapter('meta')).toHaveLength(1)
     expect(getDependenciesForChapter('numeric')).toHaveLength(1)
-    // 全部 18 章均至少参与一条依赖
+    // 全部 17 章均至少参与一条依赖
     for (const chapter of CHAPTER_KEYS) {
       expect(getDependenciesForChapter(chapter).length).toBeGreaterThan(0)
     }
@@ -99,7 +99,7 @@ describe('字段依赖：规则表（匹平 Python field_dependencies.py）', ()
     expect(getDependenciesForField('combat', 'combat_mode')).toHaveLength(2)
     expect(getDependenciesForField('systems', 'battle.config.turn_mode')).toHaveLength(1)
     expect(getDependenciesForField('art', 'art_style')).toHaveLength(2)
-    expect(getDependenciesForField('characters', 'protagonist')).toHaveLength(1)
+    expect(getDependenciesForField('story', 'protagonist')).toHaveLength(1)
     expect(getDependenciesForField('meta', 'positioning')).toHaveLength(1)
     expect(getDependenciesForField('meta', 'not_exists')).toHaveLength(0)
   })
@@ -140,7 +140,7 @@ describe('字段依赖：消息与空值/相等语义', () => {
     expect(results.filter((item) => item.status === STATUS_WARNING)).toHaveLength(0)
     expect(results.filter((item) => item.status === STATUS_VIOLATION)).toHaveLength(0)
 
-    const npcDep = depBySource('characters', 'main_npc_count')
+    const npcDep = depBySource('story', 'main_npc_count')
     const npc = resultOf(makeDoc(), npcDep)
     expect(npc.status).toBe(STATUS_OK)
     expect(npc.message).toBe('两侧字段均未填写，暂无冲突')
@@ -222,42 +222,42 @@ describe('字段依赖：消息与空值/相等语义', () => {
     doc.combat.combat_mode = 'turn_based'
     setChapterField(doc, 'systems', 'battle.config.turn_mode', 'realtime')
     const summary = getChapterViolationSummary(doc)
-    expect(Object.keys(summary)).toHaveLength(18)
+    expect(Object.keys(summary)).toHaveLength(17)
     expect(summary.combat).toBe(STATUS_VIOLATION)
     expect(summary.systems).toBe(STATUS_VIOLATION)
     expect(Object.values(summary).filter((value) => value === STATUS_VIOLATION)).toHaveLength(2)
 
     const clean = getChapterViolationSummary(makeDoc())
-    expect(Object.keys(clean)).toHaveLength(18)
+    expect(Object.keys(clean)).toHaveLength(17)
     expect(Object.values(clean).every((value) => value === STATUS_OK)).toBe(true)
   })
 })
 
 describe('字段依赖图：结构精确数字（匹平 Python _layered_layout 数据部分）', () => {
-  it('章节邻接表：18 节点 / 19 条去重边', () => {
+  it('章节邻接表：17 节点 / 19 条去重边', () => {
     const adjacency = buildChapterDependencyAdjacency()
-    expect(Object.keys(adjacency)).toHaveLength(18)
+    expect(Object.keys(adjacency)).toHaveLength(17)
     const edges = Object.values(adjacency).reduce((sum, targets) => sum + targets.length, 0)
-    expect(edges).toBe(19)
+    expect(edges).toBe(18)
     expect(adjacency.systems).toEqual([])
     expect(adjacency.monetization).toEqual(['systems'])
-    expect(adjacency.characters).toEqual(['systems', 'combat'])
+    expect(adjacency.story).toEqual(['systems', 'combat'])
     expect(adjacency.market_analysis).toEqual(['accessibility', 'monetization'])
   })
 
-  it('buildFieldDependencyGraph（无模型）：18 节点 / 19 边 / 10 层 [1,4,3,1,2,1,1,2,1,2]', () => {
+  it('buildFieldDependencyGraph（无模型）：17 节点 / 18 边 / 10 层 [1,3,3,1,2,1,1,2,1,2]', () => {
     const graph = buildFieldDependencyGraph()
-    expect(graph.nodes).toHaveLength(18)
-    expect(graph.edges).toHaveLength(19)
+    expect(graph.nodes).toHaveLength(17)
+    expect(graph.edges).toHaveLength(18)
     expect(graph.layers).toHaveLength(10)
-    expect(graph.layers.map((layer) => layer.length)).toEqual([1, 4, 3, 1, 2, 1, 1, 2, 1, 2])
+    expect(graph.layers.map((layer) => layer.length)).toEqual([1, 3, 3, 1, 2, 1, 1, 2, 1, 2])
     expect(graph.layers[0]).toEqual(['systems'])
-    expect(graph.layers[1]).toEqual(['combat', 'economy', 'monetization', 'worldview'])
-    expect(graph.layers[2]).toEqual(['characters', 'gameplay', 'numeric'])
+    expect(graph.layers[1]).toEqual(['combat', 'economy', 'monetization'])
+    expect(graph.layers[2]).toEqual(['gameplay', 'numeric', 'story'])
     expect(graph.layers[9]).toEqual(['meta', 'vision'])
     // 无模型时节点状态统一为 ok，且节点按层级顺序铺开
     expect(graph.nodes[0]).toMatchObject({ chapter: 'systems', level: 0, status: STATUS_OK })
-    expect(graph.nodes[0].label).toBe('第五章·游戏系统设计')
+    expect(graph.nodes[0].label).toBe('第四章·游戏系统设计')
     // 边去重：无重复 (source,target)
     const pairs = new Set(graph.edges.map((edge) => `${edge.source_chapter}->${edge.target_chapter}`))
     expect(pairs.size).toBe(graph.edges.length)
@@ -268,8 +268,8 @@ describe('字段依赖图：结构精确数字（匹平 Python _layered_layout �
     const findEdge = (source: string, target: string) =>
       graph.edges.find((edge) => edge.source_chapter === source && edge.target_chapter === target)
     expect(findEdge('combat', 'systems')?.dependency_type).toBe(DEP_TYPE_CONSISTENCY)
-    expect(findEdge('characters', 'systems')?.dependency_type).toBe(DEP_TYPE_DERIVED)
-    expect(findEdge('characters', 'combat')?.dependency_type).toBe(DEP_TYPE_REFERENCE)
+    expect(findEdge('story', 'systems')?.dependency_type).toBe(DEP_TYPE_CONSISTENCY)
+    expect(findEdge('story', 'combat')?.dependency_type).toBe(DEP_TYPE_REFERENCE)
     expect(findEdge('tech', 'art')?.dependency_type).toBe(DEP_TYPE_REFERENCE)
     expect(findEdge('resources', 'mvp')?.dependency_type).toBe(DEP_TYPE_REFERENCE)
     expect(findEdge('market_analysis', 'accessibility')?.dependency_type).toBe(DEP_TYPE_REFERENCE)
@@ -277,8 +277,8 @@ describe('字段依赖图：结构精确数字（匹平 Python _layered_layout �
 
   it('默认文档：字段依赖图节点状态全为 ok', () => {
     const graph = buildFieldDependencyGraph(makeDoc())
-    expect(graph.nodes).toHaveLength(18)
-    expect(graph.edges).toHaveLength(19)
+    expect(graph.nodes).toHaveLength(17)
+    expect(graph.edges).toHaveLength(18)
     expect(graph.nodes.every((node) => node.status === STATUS_OK)).toBe(true)
   })
 })

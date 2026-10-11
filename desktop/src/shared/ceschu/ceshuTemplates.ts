@@ -1,4 +1,4 @@
-import { CHAPTER_LABELS, type ChapterKey } from './ceshuConstants'
+import { CHAPTER_LABELS, isChapterKey, type ChapterKey } from './ceshuConstants'
 import { isPlainObject } from './ceshuModel'
 import { CHAPTER_TEMPLATES } from '../domain/ceshu/ceshuTemplateData'
 
@@ -52,7 +52,7 @@ export interface ChapterTemplateHit {
 
 /** 取指定章节的模板列表（章节不存在返回空数组，不抛异常） */
 export function listChapterTemplates(chapterKey: string): ChapterTemplate[] {
-  return CHAPTER_TEMPLATES[chapterKey] ?? []
+  return isChapterKey(chapterKey) ? CHAPTER_TEMPLATES[chapterKey] : []
 }
 
 /**

@@ -7,9 +7,9 @@ import { describe, expect, it } from 'vitest'
 
 import { buildExcelWorkbook, renderCeshuExcel } from '../../src/main/ceshu/export/excel'
 import { exportCeshuDocument } from '../../src/main/ceshu/export/exporter'
-import type { CeshuDocument } from '../../src/shared/ceshuConstants'
-import { autoFillRequiredFields } from '../../src/shared/ceshuFill'
-import { createDefaultCeshu } from '../../src/shared/ceshuModel'
+import type { CeshuDocument } from '../../src/shared/ceschu/ceshuConstants'
+import { autoFillRequiredFields } from '../../src/shared/ceschu/ceshuFill'
+import { createDefaultCeshu } from '../../src/shared/ceschu/ceshuModel'
 
 /** 与 Python ceshu_excel_exporter 的 8 个 Sheet 顺序一致 */
 const SHEET_NAMES = ['概览', '系统配置', '数值表', '角色', '里程碑', '风险', '竞品', '校验报告']
@@ -23,8 +23,8 @@ function makeDoc(): CeshuDocument {
   doc.numeric.ratio = '1.5'
   doc.numeric.core_formulas = '伤害 = 攻击 - 防御'
   // 角色
-  doc.characters.protagonist = '主角艾拉'
-  doc.characters.npc_list = [
+  doc.story.protagonist = '主角艾拉'
+  doc.story.npc_list = [
     { name: '艾拉', role: '法师', location: '塔', personality: '冷静', quest_hook: '找药' },
     { name: '波比', role: '战士' }
   ]
@@ -58,7 +58,7 @@ function makeCleanDoc(): CeshuDocument {
   // 对齐一致性检查：战斗模式与 battle.config.turn_mode、两份风险矩阵、NPC 数量与列表
   doc.combat.combat_mode = 'turn_based'
   doc.risk_handling.risk_matrix = doc.resources.risk_matrix
-  doc.characters.main_npc_count = (doc.characters.npc_list as unknown[]).length
+  doc.story.main_npc_count = (doc.story.npc_list as unknown[]).length
   return doc
 }
 
@@ -97,19 +97,19 @@ describe('策划书导出：Excel（匹平 Python ceshu_excel_exporter）', () =
     expect(width).toBeLessThanOrEqual(60)
   })
 
-  it('概览：项目元信息 + 18 章完成度（数值落表为数字）', () => {
+  it('概览：项目元信息 + 17 章完成度（数值落表为数字）', () => {
     const workbook = buildExcelWorkbook(makeDoc())
     const overview = sheetOf(workbook, '概览')
     expect(rowValues(overview, 2)).toEqual(['游戏名称', '表格游戏'])
     expect(rowValues(overview, 3)).toEqual(['游戏类型', 'RPG'])
     expect(rowValues(overview, 4)).toEqual(['版本标签', 'v1.0'])
     expect(rowValues(overview, 9)).toEqual(['模块类型', ''])
-    // 总完成度 + 18 章（第 10 行总完成度，其后 18 行章节）
+    // 总完成度 + 18 章（第 10 行总完成度，其后 17 行章节）
     expect(overview.getRow(10).getCell(1).value).toBe('总完成度')
     expect(typeof overview.getRow(10).getCell(2).value).toBe('number')
-    expect(overview.getRow(11).getCell(1).value).toBe('第一章·项目元信息')
-    expect(overview.getRow(28).getCell(1).value).toBe('第十八章·可访问性与本地化')
-    expect(overview.rowCount).toBe(28)
+    expect(overview.getRow(11).getCell(1).value).toBe('项目元信息')
+    expect(overview.getRow(27).getCell(1).value).toBe('第十六章·可访问性与本地化')
+    expect(overview.rowCount).toBe(27)
   })
 
   it('系统配置：系统 Key/名称/状态 + config 字段并集', () => {

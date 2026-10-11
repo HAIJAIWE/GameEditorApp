@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import type { CeshuDocument } from '../../src/shared/ceshuConstants'
-import { autoFillRequiredFields } from '../../src/shared/ceshuFill'
-import { createDefaultCeshu } from '../../src/shared/ceshuModel'
-import { runChecklist } from '../../src/shared/ceshuChecklist'
+import type { CeshuDocument } from '../../src/shared/ceschu/ceshuConstants'
+import { autoFillRequiredFields } from '../../src/shared/ceschu/ceshuFill'
+import { createDefaultCeshu } from '../../src/shared/ceschu/ceshuModel'
+import { runChecklist } from '../../src/shared/ceschu/ceshuChecklist'
 
 function makeDoc(name = '填充测试'): CeshuDocument {
   return createDefaultCeshu({ scope: 'full', name })
@@ -24,14 +24,14 @@ describe('策划书自动填充（匹平 Python auto_fill_required_fields）', (
     const { doc: filled } = autoFillRequiredFields(makeDoc())
     expect(filled.meta.tags).toEqual(['rpg', '原创', '策划中'])
     expect(filled.vision.design_vision).toContain('打造一款具有差异化体验的RPG游戏')
-    expect(filled.worldview.architecture).toContain('世界观架构待补充')
+    expect(filled.story.architecture).toContain('世界观架构待补充')
     expect(filled.gameplay.game_modes).toEqual(['主线剧情', '自由探索'])
     expect(filled.numeric.balance_principles).toBe('平衡原则：早期易上手、中期有深度、后期有目标')
     expect(filled.art.art_style).toBe('RPG 通用美术风格')
     expect(filled.tech.milestones).toEqual(['原型期', 'Alpha', 'Beta', '上线'])
     expect(filled.resources.budget).toEqual({ total: '', art: '', dev: '', marketing: '' })
     expect(filled.market_analysis.competitors).toEqual([{ name: '待补充竞品', type: '同类型' }])
-    expect(filled.characters.main_npc_count).toBe(5)
+    expect(filled.story.main_npc_count).toBe(5)
     expect(filled.combat.combat_mode).toBe('回合制') // game_type 缺省 RPG
     expect(filled.economy.currency_types).toEqual([{ name: '金币', source: '任务/掉落', sink: '商店购买' }])
     expect(filled.monetization.payment_model).toBe('f2p')

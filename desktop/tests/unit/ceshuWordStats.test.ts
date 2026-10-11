@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import type { CeshuDocument, ChapterKey } from '../../src/shared/ceshuConstants'
-import { CHAPTER_KEYS } from '../../src/shared/ceshuConstants'
-import { createDefaultCeshu } from '../../src/shared/ceshuModel'
-import { WORD_STATS_BENCHMARK, buildWordStatsReport, type CeshuWordStatRow } from '../../src/shared/ceshuWordStats'
+import type { CeshuDocument, ChapterKey } from '../../src/shared/ceschu/ceshuConstants'
+import { CHAPTER_KEYS } from '../../src/shared/ceschu/ceshuConstants'
+import { createDefaultCeshu } from '../../src/shared/ceschu/ceshuModel'
+import { WORD_STATS_BENCHMARK, buildWordStatsReport, type CeshuWordStatRow } from '../../src/shared/ceschu/ceshuWordStats'
 
 function makeDoc(name = '字数测试'): CeshuDocument {
   return createDefaultCeshu({ scope: 'full', name })
@@ -26,11 +26,11 @@ function docWith(chapters: Partial<Record<ChapterKey, Record<string, unknown>>>)
 }
 
 describe('字数统计：基准表（匹平 Python CHAPTER_WORD_BENCHMARK）', () => {
-  it('18 章基准 (min, max, mid) 精确锁定', () => {
+  it('17 章基准 (min, max, mid) 精确锁定', () => {
     expect(WORD_STATS_BENCHMARK).toEqual({
       meta: [50, 300, 150],
       vision: [200, 800, 400],
-      worldview: [500, 1500, 800],
+      story: [1000, 3000, 1600],
       gameplay: [300, 1000, 500],
       systems: [200, 800, 400],
       numeric: [300, 1000, 500],
@@ -38,7 +38,6 @@ describe('字数统计：基准表（匹平 Python CHAPTER_WORD_BENCHMARK）', (
       tech: [300, 1000, 500],
       resources: [200, 800, 400],
       market_analysis: [400, 1200, 700],
-      characters: [500, 1500, 800],
       combat: [400, 1200, 700],
       economy: [400, 1200, 700],
       monetization: [300, 1000, 600],
@@ -47,15 +46,15 @@ describe('字数统计：基准表（匹平 Python CHAPTER_WORD_BENCHMARK）', (
       audio: [200, 800, 400],
       accessibility: [100, 500, 250]
     })
-    expect(Object.keys(WORD_STATS_BENCHMARK)).toHaveLength(18)
+    expect(Object.keys(WORD_STATS_BENCHMARK)).toHaveLength(17)
   })
 
-  it('行序为 CHAPTER_KEYS 全 18 章，标签取自 CHAPTER_LABELS', () => {
+  it('行序为 CHAPTER_KEYS 全 17 章，标签取自 CHAPTER_LABELS', () => {
     const report = buildWordStatsReport(makeDoc())
-    expect(report.rows).toHaveLength(18)
+    expect(report.rows).toHaveLength(17)
     expect(report.rows.map((r) => r.chapter_key)).toEqual([...CHAPTER_KEYS])
-    expect(report.rows[0].chapter_label).toBe('第一章·项目元信息')
-    expect(report.rows[17].chapter_label).toBe('第十八章·可访问性与本地化')
+    expect(report.rows[0].chapter_label).toBe('项目元信息')
+    expect(report.rows[16].chapter_label).toBe('第十六章·可访问性与本地化')
   })
 })
 
@@ -76,7 +75,7 @@ describe('字数统计：默认文档结果（精确数字）', () => {
       advice: '🔴 章节为空，建议尽快填写',
       advice_color: '#e57373'
     })
-    expect(rowOf(doc, 'worldview')).toMatchObject({ words: 0, percent: 0, advice: '🔴 章节为空，建议尽快填写' })
+    expect(rowOf(doc, 'story')).toMatchObject({ words: 0, percent: 0, advice: '🔴 章节为空，建议尽快填写' })
     expect(rowOf(doc, 'systems')).toMatchObject({
       words: 35,
       percent: 8,
@@ -141,7 +140,7 @@ describe('字数统计：建议阈值四分支与完成度上限', () => {
 
 describe('字数统计：整体完成度上限与分级', () => {
   it('overall_percent 上限 100，且 >=80 为 hi', () => {
-    const doc = docWith({ worldview: { x: '文'.repeat(10000) } })
+    const doc = docWith({ story: { x: '文'.repeat(10000) } })
     const report = buildWordStatsReport(doc)
     expect(report.total_words).toBe(10048)
     expect(report.overall_percent).toBe(100)

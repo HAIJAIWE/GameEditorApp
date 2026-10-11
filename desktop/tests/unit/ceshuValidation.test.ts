@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
-import type { CeshuDocument } from '../../src/shared/ceshuConstants'
-import { createDefaultCeshu } from '../../src/shared/ceshuModel'
-import { validateCeshu } from '../../src/shared/ceshuValidation'
+import type { CeshuDocument } from '../../src/shared/ceschu/ceshuConstants'
+import { createDefaultCeshu } from '../../src/shared/ceschu/ceshuModel'
+import { validateCeshu } from '../../src/shared/ceschu/ceshuValidation'
 
 function makeDoc(scope: 'full' | 'lite' = 'full'): CeshuDocument {
   return createDefaultCeshu({ scope })
@@ -17,16 +17,16 @@ describe('策划书校验：必填字段（匹平 Python validate_ceshu）', () 
   it('空文档：必填字段逐项报错（35 条，budget 默认 {} 不算空），无依赖错误', () => {
     const errors = validateCeshu(makeDoc())
     expect(errors).toHaveLength(35)
-    expect(hasError(errors, "第一章·项目元信息：字段 'game_name' 为必填项")).toBe(true)
-    expect(hasError(errors, "第十八章·可访问性与本地化：字段 'accessibility_features' 为必填项")).toBe(true)
+    expect(hasError(errors, "项目元信息：字段 'game_name' 为必填项")).toBe(true)
+    expect(hasError(errors, "第十六章·可访问性与本地化：字段 'accessibility_features' 为必填项")).toBe(true)
     // Python 语义：空字典 {} 不算空（第九章 budget 默认 {}，故不报错）
     expect(hasError(errors, "第九章·资源规划：字段 'budget' 为必填项")).toBe(false)
     expect(hasError(errors, '依赖缺失')).toBe(false)
   })
 
-  it('lite 档只校验基础 9 章（17 条）', () => {
+  it('lite 档只校验基础 9 章（22 条）', () => {
     const errors = validateCeshu(makeDoc('lite'))
-    expect(errors).toHaveLength(17)
+    expect(errors).toHaveLength(22)
     expect(hasError(errors, '第十章')).toBe(false)
     expect(hasError(errors, '第十八章')).toBe(false)
   })
@@ -38,8 +38,8 @@ describe('策划书校验：必填字段（匹平 Python validate_ceshu）', () 
     doc.meta.positioning = '定位'
     doc.meta.tags = []
     const errors = validateCeshu(doc)
-    expect(hasError(errors, "第一章·项目元信息：字段 'tags' 为必填项")).toBe(true)
-    expect(hasError(errors, "第一章·项目元信息：字段 'game_name' 为必填项")).toBe(false)
+    expect(hasError(errors, "项目元信息：字段 'tags' 为必填项")).toBe(true)
+    expect(hasError(errors, "项目元信息：字段 'game_name' 为必填项")).toBe(false)
   })
 })
 
@@ -48,7 +48,7 @@ describe('策划书校验：章节间一致性（11 项中的关键项）', () =
     const doc = makeDoc()
     doc.combat.combat_mode = 'turn_based'
     ;(doc.systems.battle as { config: Record<string, unknown> }).config.turn_mode = 'realtime'
-    expect(hasError(validateCeshu(doc), "一致性冲突：第十二章 combat.combat_mode='turn_based'")).toBe(true)
+    expect(hasError(validateCeshu(doc), "一致性冲突：第五章 combat.combat_mode='turn_based'")).toBe(true)
 
     doc.combat.combat_mode = 'realtime'
     expect(hasError(validateCeshu(doc), '一致性冲突：第十二章')).toBe(false)
@@ -73,9 +73,9 @@ describe('策划书校验：章节间一致性（11 项中的关键项）', () =
 
   it('已设定阵营但 faction_system=none 时冲突', () => {
     const doc = makeDoc()
-    doc.worldview.factions = ['联盟']
+    doc.story.factions = ['联盟']
     ;(doc.systems.social as { config: Record<string, unknown> }).config.faction_system = 'none'
-    expect(hasError(validateCeshu(doc), 'worldview.factions 已设定阵营')).toBe(true)
+    expect(hasError(validateCeshu(doc), 'story.factions 已设定阵营')).toBe(true)
   })
 
   it('像素风美术 + 交响乐音乐警告；其他组合不报', () => {
@@ -110,11 +110,11 @@ describe('策划书校验：章节间一致性（11 项中的关键项）', () =
 
   it('NPC 数量与实际列表差异过大时警告（阈值 max(2, 20%)）', () => {
     const doc = makeDoc()
-    doc.characters.main_npc_count = 10
-    doc.characters.npc_list = [{ name: 'A' }, { name: 'B' }, { name: 'C' }]
+    doc.story.main_npc_count = 10
+    doc.story.npc_list = [{ name: 'A' }, { name: 'B' }, { name: 'C' }]
     expect(hasError(validateCeshu(doc), 'npc_list 实际数量=3')).toBe(true)
 
-    doc.characters.main_npc_count = 4
+    doc.story.main_npc_count = 4
     expect(hasError(validateCeshu(doc), 'npc_list 实际数量')).toBe(false)
   })
 

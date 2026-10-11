@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { CHAPTER_KEYS, type CeshuDocument } from '../../src/shared/ceshuConstants'
+import { CHAPTER_KEYS, type CeshuDocument } from '../../src/shared/ceschu/ceshuConstants'
 import {
   computeChapterProgress,
   computeEnabledEditors,
@@ -12,7 +12,7 @@ import {
   normalizeCeshu,
   resolveDocGameStyle,
   withChapter
-} from '../../src/shared/ceshuModel'
+} from '../../src/shared/ceschu/ceshuModel'
 
 describe('策划书模型（W3 第一切片）', () => {
   it('createDefaultCeshu：18 章 + 13 系统默认关闭 + 档位写入 meta.gdd_scope', () => {
@@ -57,11 +57,11 @@ describe('策划书模型（W3 第一切片）', () => {
 
     expect(doc.ceshu_id).toBe('9669a8b0')
     // 缺失章节自动补默认值
-    expect(doc.worldview.architecture).toBe('')
+    expect(doc.story.architecture).toBe('')
     // 存在的章节整体采用旧数据（含旧字段）
     expect((doc.combat as Record<string, unknown>).enemy_design).toEqual([])
     expect(doc.combat.combat_mode).toBe('turn_based')
-    expect(doc.characters.protagonist).toEqual({})
+    expect(doc.story.protagonist).toEqual({})
     // 未知顶层键保留
     expect((doc as unknown as Record<string, unknown>).custom_future_key).toEqual({ foo: 1 })
     expect(doc.enabled_editors).toHaveLength(1)
@@ -94,22 +94,22 @@ describe('策划书模型（W3 第一切片）', () => {
     // 空数组与 0 都视为未填
     doc.meta.tags = ['剧情向']
     expect(computeChapterProgress(doc).meta).toBe(1)
-    expect(computeChapterProgress(doc).characters).toBe(0)
-    doc.characters.main_npc_count = 0
-    expect(computeChapterProgress(doc).characters).toBe(0)
-    doc.characters.protagonist = '主角设定'
-    expect(computeChapterProgress(doc).characters).toBe(0.5)
+    expect(computeChapterProgress(doc).story).toBe(0)
+    doc.story.main_npc_count = 0
+    expect(computeChapterProgress(doc).story).toBe(0)
+    doc.story.protagonist = '主角设定'
+    expect(computeChapterProgress(doc).story).toBe(0.25)
 
     // systems：启用 2/13
     ;(doc.systems.battle as Record<string, unknown>).enabled = true
     ;(doc.systems.skill as Record<string, unknown>).enabled = true
     expect(computeChapterProgress(doc).systems).toBe(0.15)
 
-    // lite 档只统计基础 9 章
+    // lite 档 = 文档信息段 + 核心 9 章
     doc.meta.gdd_scope = 'lite'
     const lite = computeChapterProgress(doc)
-    expect(Object.keys(lite)).toHaveLength(9 + 1)
-    expect(lite.combat).toBeUndefined()
+    expect(Object.keys(lite)).toHaveLength(10 + 1)
+    expect(lite.market_analysis).toBeUndefined()
     expect(lite.total).toBeTypeOf('number')
   })
 
