@@ -31,8 +31,8 @@ import {
   type FieldDependency,
   type FieldDependencyStatus,
   type FieldDependencyType
-} from './domain/ceshu/ceshuFieldDepsData'
-export * from './domain/ceshu/ceshuFieldDepsData'
+} from './ceshuFieldDepsData'
+export * from './ceshuFieldDepsData'
 
 
 /** 单条依赖的检查结果（对应 Python check_field_dependencies 的 dict 项） */

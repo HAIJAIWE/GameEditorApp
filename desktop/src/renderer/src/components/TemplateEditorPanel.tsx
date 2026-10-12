@@ -15,7 +15,7 @@ import {
   searchChapterTemplates,
   templateChapterLabel,
   type ChapterTemplate
-} from '../../../shared/domain/ceshu/ceshuTemplates'
+} from '../../../shared/ceshuTemplates'
 import { toErrorMessage } from '../../../shared/util/errors'
 
 /**

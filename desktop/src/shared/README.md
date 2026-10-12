@@ -87,10 +87,12 @@
 
 | # | 规则 | 作用范围（`files`） | 禁止的 import | 当前是否有文件被约束 |
 |---|---|---|---|---|
-| 1 | 域间隔离（4 个域各一条） | `src/shared/domain/<域>/**/*.ts` | `**/domain/<其它域>/**` 及相对上跳形式 | ✅ `domain/ceshu/`（13 .ts + 模板数据目录）+ `domain/attr/`（6 个）；`domain/type` 尚无文件 |
+| 1 | 域间隔离（4 个域各一条） | `src/shared/domain/<域>/**/*.ts` | `**/domain/<其它域>/**` 及相对上跳形式 | ✅ `domain/ceshu/`（5 个）+ `domain/attr/`（6 个）；`domain/type` 尚无文件 |
 | 2 | util 纯净 | `src/shared/util/**/*.ts` | `**/domain/**` | ✅ 32 个文件 |
 | 3 | config 纯净 | `src/shared/config/**/*.ts` | `**/domain/**` | ✅ 14 个文件 |
 | 4 | main 走契约 | `src/main/**` | `**/shared/domain/**` | ✅ 全部 `src/main/**`（2a 批后 main 对 domain 的 import 归零） |
+| 5 | agent skills 禁反向依赖编排层 | `src/main/agent/skills/**/*.ts` | 编排层/运行时 5 文件（agent-framework-design.md §7.2） | ✅ 全部 skills 文件 |
+| 6 | contract 根禁 import 业务域 | `src/shared/*.ts` | `./domain/**`（+ `**/domain/**` 兜底） | ✅ 全部 39 个根文件（2h 批零豁免达标） |
 
 ### 3.1 关于「预挂规则」的重要说明（避免假守卫）
 
@@ -108,7 +110,7 @@
 **不检查目录是否存在于磁盘**。所以规则是「已上膛、等待目标」，而非「永不报警」。
 
 > ⚠️ **但请注意一个真实盲区**：规则只约束**已归区**的文件。
-> `src/shared/` 根目录下**定案留根的 31 个平铺文件**（`ceshuModel.ts`、`attrSystem.ts`、
+> `src/shared/` 根目录下**定案留根的 39 个平铺文件**（`ceshuModel.ts`、`attrSystem.ts`、
 > `typeSchema.ts` 等，清单与留根理由见 §4.1）**不受域间隔离规则约束**——
 > 它们在 `domain/` 目录之外，不会匹配任何 `files` 范围。
 > 这意味着「ceshu 根文件不能 import attr 域文件」目前**靠 code review 保证**
@@ -122,8 +124,9 @@
 （`ceshuDataGen → config/llmConfig`，type-only）。口径统一为：
 
 > **contract 根可以 import util/config 的纯函数与纯类型**（无 domain 依赖、无状态），
-> 这是 rule 4 倒逼 + 垫片模式（§6）的自然延伸；**禁止**根文件 import `domain/**`
-> （无先例，lint 虽未直接禁，一旦出现应先按 §4.1 争论归属）。
+> 这是 rule 4 倒逼 + 垫片模式（§6）的自然延伸；**禁止根文件 import `domain/**`——
+> 已由规则 6 机器校验**（2h 批 `refactor(lint): 新增规则 6 并执法`：该规则上膛当天即抓到
+> 2a 批漏网的 12 处根→domain 逆天依赖，数据层 27 文件随之提回根，零豁免）。
 
 ### 3.2 复算命令（改规则后请用来自证规则真的生效）
 
@@ -162,11 +165,11 @@ for(const [n,fp,code] of [
 
 ## 4. 现状与迁移状态
 
-分区目录是**渐进建立**的。2026-10-12 归区批次（2a–2g + docs，commit `cd78e02`…`807965d`）后的状态：
+分区目录是**渐进建立**的。2026-10-12 归区批次（2a–2h + docs，commit `cd78e02`…规则 6 执法批）后的状态：
 
 | 分区 | 已归入 | 仍在根目录平铺（定案留根，原因见 §4.1） |
 |---|---|---|
-| `domain/ceshu/` | 13 个 `.ts` + `ceshuTemplateData/` 目录：`ceshuAiData` `ceshuChecklistItems` `ceshuCompetitiveChart` `ceshuFieldDepsData` `ceshuFields` `ceshuOptionLabels` `ceshuReports` `ceshuScorerData` `ceshuTemplates` `ceshuTimeline` `dataRef` `gameDataPreview` + `ceshuTemplateData`（.ts + 目录） | ceshu 模型与域逻辑 18 个（main 依赖倒逼留根，见 §4.1） |
+| `domain/ceshu/` | 5 个（纯 renderer 向）：`ceshuCompetitiveChart` `ceshuReports` `ceshuTimeline` `dataRef` `gameDataPreview` | ceshu 26 个（逻辑 18 + 数据 7 + 模板数据聚合器 1，main 依赖倒逼留根，见 §4.1）+ `ceshuTemplateData/`（18 分片目录） |
 | `domain/attr/` | 6 个：`attrEngine`（求值引擎）`attrList` `attrPanel` `attrPreview` `attributeChart` `equipPreview` | `attrSystem`（模型 + 拓扑排序，main 依赖留根） |
 | `domain/type/` | —（暂无） | `typeSchema` `typeSchemaData` `typeSchemaFile` `typeTemplates`（元模型契约，定案留根） |
 | `agent/` | 15 个（含 2g 迁入的 `agentEditor`；有意保持平铺，见 §5） | — |
@@ -179,14 +182,16 @@ for(const [n,fp,code] of [
 
 ### 4.1 contract 根存量说明（为什么 ceshu/attr 的大头留根）
 
-根目录现存 31 个平铺文件中，**19 个是 rule 4 倒逼的既成事实**而非疏漏：
+根目录现存 39 个平铺文件中，**27 个是 rule 4 倒逼的既成事实**而非疏漏：
 
-- **ceshu 模型与域逻辑 18 个**：`main/ceshu/`（manager / notesStore / templateStore）与
-  `main/ipc/ceshuIpc.ts` 直接消费这些纯函数（存储序列化 / 校验 / prompt 组装 / 确定性
-  检查评分）。rule 4 禁止 main import `domain/**`，而 api.ts 门面只覆盖 IPC 能力、
-  不覆盖 store 内部实现细节 ⇒ 这批「main 编排 + renderer 展示」共享的确定性逻辑留在
-  contract 根（2a 批 `2a23a98` 将 12 个从 domain/ceshu 提回根，与 `ea27884` 迁入的
-  ceshuModel 模型六件套同构）。
+- **ceshu 26 个**（逻辑 18 + 数据 7 + 模板数据聚合器 1）：`main/ceshu/`（manager /
+  notesStore / templateStore）与 `main/ipc/ceshuIpc.ts` 直接消费这些纯函数
+  （存储序列化 / 校验 / prompt 组装 / 确定性检查评分）。rule 4 禁止 main import
+  `domain/**`，而 api.ts 门面只覆盖 IPC 能力、不覆盖 store 内部实现细节 ⇒ 这批
+  「main 编排 + renderer 展示」共享的确定性逻辑留在 contract 根（2a 批 `2a23a98`
+  将 12 个从 domain/ceshu 提回根，与 `ea27884` 迁入的 ceshuModel 模型六件套同构；
+  2h 批规则 6 执法时补提 8 个数据层文件——2a 漏了「逻辑层的数据依赖」——
+  + ceshuTemplateData/ 18 分片）。
   判据口径：**main 需要 + 无 UI 状态 + 可序列化 ⇒ contract 根业务前缀文件**。
 - **`attrSystem`**：同理（main 的 attrSystemStore / attrSystemJsonFile /
   attrGameConfigExport 依赖模型与拓扑排序），求值引擎已按域纯度下沉 domain/attr/。

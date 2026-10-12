@@ -15,7 +15,7 @@ import {
   mergeTemplateToChapter,
   searchChapterTemplates,
   templateChapterLabel
-} from '../../src/shared/domain/ceshu/ceshuTemplates'
+} from '../../src/shared/ceshuTemplates'
 
 describe('ceshuTemplates 内置模板库', () => {
   it('数据池：17 章 / 34 个模板，每章数量与 Python 一致', () => {

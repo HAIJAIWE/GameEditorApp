@@ -27,8 +27,8 @@ import {
   type CeshuChapterScore,
   type CeshuIndustryBenchmark,
   type CeshuScoreReport
-} from './domain/ceshu/ceshuScorerData'
-export * from './domain/ceshu/ceshuScorerData'
+} from './ceshuScorerData'
+export * from './ceshuScorerData'
 
 /** Python 真值语义：null/undefined/''/0/false/空数组/空对象 → false */
 function pyTruthy(value: unknown): boolean {

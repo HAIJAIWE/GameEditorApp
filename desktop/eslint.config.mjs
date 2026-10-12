@@ -201,5 +201,37 @@ export default tseslint.config(
         }
       ]
     }
+  },
+  // 规则 6：contract 根（shared/*.ts 直接子文件）禁止 import 任何业务域
+  // —— 把 README §1.1「contract 不 import shared 内部」的 domain 半边变成机器校验
+  //
+  // 背景：rule 4 只管 main；contract 根的 31 个定案留根文件（README §4.1，ceshu* 18 +
+  // attrSystem + type* 4 + 契约设施 5 + 3 个应用级）此前「不得 import domain/**」仅靠
+  // code review。归区落地后补上机器守卫——若未来有人把域逻辑 import 进根文件，lint 直接红。
+  //
+  // ⚠️ 粒度：只禁 `domain/**`，**不禁 util/config**——根文件引用 util/config 的纯函数与
+  // 纯类型是 README §3.1.1 立过口径的既成事实（十余处先例：ceshuModel → config/gameStyle、
+  // attrSystem → util/guards 等），一并禁会直接打断构建。
+  //
+  // ⚠️ 锚定：pattern 匹配原始字符串且 minimatch 默认不匹配点开头的段，根文件的形态是
+  // `./domain/<域>/x`，必须显式写 `./domain/**`（`**/domain/**` 兜底防 `../domain` 变体）。
+  {
+    files: ['src/shared/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['./domain/**', '**/domain/**'],
+              message:
+                'shared/ 根目录（contract 层）禁止 import 业务域（domain/**）。' +
+                '确需域能力时：main 依赖的纯函数按 README §4.1 判据留在根目录或下沉 util/，' +
+                '不要从根文件反向拉域实现。'
+            }
+          ]
+        }
+      ]
+    }
   }
 )

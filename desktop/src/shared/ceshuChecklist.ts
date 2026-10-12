@@ -17,7 +17,7 @@ import {
   type ChecklistResult,
   type ChecklistReport,
   type ChecklistStatus
-} from './domain/ceshu/ceshuChecklistItems'
+} from './ceshuChecklistItems'
 
 export function runChecklist(doc: CeshuDocument): ChecklistReport {
   const items = getChecklistItems()
@@ -140,5 +140,5 @@ export {
   AUTO_CHECK_REGISTRY,
   getChecklistItems,
   getChecklistItemsByCategory
-} from './domain/ceshu/ceshuChecklistItems'
-export type { ChecklistItem, ChecklistResult, ChecklistReport, ChecklistStatus } from './domain/ceshu/ceshuChecklistItems'
+} from './ceshuChecklistItems'
+export type { ChecklistItem, ChecklistResult, ChecklistReport, ChecklistStatus } from './ceshuChecklistItems'

@@ -3,9 +3,9 @@
  * 评估逻辑（runChecklist）与 Markdown 报告（buildChecklistMarkdown）见同目录 ceshuChecklist.ts。
  * 本文件为「定义 + 数据」层；ceshuChecklist.ts 为「编排」层，二者单向依赖（后者 import 前者）。
  */
-import { checkSystemDependencies, type CeshuDocument, type ChapterKey } from '../../ceshuConstants'
-import { isPlainObject } from '../../ceshuModel'
-import { readText } from '../../util/readText'
+import { checkSystemDependencies, type CeshuDocument, type ChapterKey } from './ceshuConstants'
+import { isPlainObject } from './ceshuModel'
+import { readText } from './util/readText'
 
 /**
  * GDD 完备性检查清单（自 Python core/ceshu/ceshu_checklist.py 匹平迁移）。

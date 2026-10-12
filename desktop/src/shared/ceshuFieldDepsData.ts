@@ -1,4 +1,4 @@
-import type { ChapterKey } from '../../ceshuConstants'
+import type { ChapterKey } from './ceshuConstants'
 
 /**
  * 字段依赖定义层（与 ceshuFieldDeps.ts 的求值逻辑分离）：

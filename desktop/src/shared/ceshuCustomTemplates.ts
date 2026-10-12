@@ -1,5 +1,5 @@
 import { isPlainObject } from './ceshuModel'
-import type { ChapterTemplate } from './domain/ceshu/ceshuTemplates'
+import type { ChapterTemplate } from './ceshuTemplates'
 
 /**
  * 自定义模板纯逻辑（自 Python `core/ceshu/custom_template_manager.py` 匹平迁移）。

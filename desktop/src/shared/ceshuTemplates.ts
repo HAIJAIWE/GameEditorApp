@@ -1,5 +1,5 @@
-import { CHAPTER_LABELS, isChapterKey, type ChapterKey } from '../../ceshuConstants'
-import { isPlainObject } from '../../ceshuModel'
+import { CHAPTER_LABELS, isChapterKey, type ChapterKey } from './ceshuConstants'
+import { isPlainObject } from './ceshuModel'
 import { CHAPTER_TEMPLATES } from './ceshuTemplateData'
 
 /**

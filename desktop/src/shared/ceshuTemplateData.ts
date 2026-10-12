@@ -10,7 +10,7 @@
  * 收紧后：任何章节增删/改名而漏配模板都会被 tsc 直接拦下。
  */
 import type { ChapterTemplate } from './ceshuTemplates'
-import type { ChapterKey } from '../../ceshuConstants'
+import type { ChapterKey } from './ceshuConstants'
 import { metaTemplates } from './ceshuTemplateData/meta'
 import { visionTemplates } from './ceshuTemplateData/vision'
 import { worldviewTemplates } from './ceshuTemplateData/worldview'

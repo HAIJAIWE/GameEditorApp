@@ -18,7 +18,7 @@ import {
   templateChapterLabel,
   type ChapterTemplate,
   type TemplateApplyMode
-} from '../../../shared/domain/ceshu/ceshuTemplates'
+} from '../../../shared/ceshuTemplates'
 import { toErrorMessage } from '../../../shared/util/errors'
 
 /**

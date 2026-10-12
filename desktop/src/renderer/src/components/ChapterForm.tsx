@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { CHAPTER_LABELS, type CeshuFieldDef, type ChapterData, type ChapterKey } from '../../../shared/ceshuConstants'
 import type { CeshuAiGenerateResult } from '../../../shared/ceshuAi'
 import { isPlainObject } from '../../../shared/ceshuModel'
-import { CESHU_CHAPTER_FIELDS } from '../../../shared/domain/ceshu/ceshuFields'
+import { CESHU_CHAPTER_FIELDS } from '../../../shared/ceshuFields'
 
 import {
   TEMPLATE_APPLY_MODE_SHORT_LABELS,
@@ -11,7 +11,7 @@ import {
   mergeTemplateByMode,
   type ChapterTemplate,
   type TemplateApplyMode
-} from '../../../shared/domain/ceshu/ceshuTemplates'
+} from '../../../shared/ceshuTemplates'
 
 import { CeshuFieldControl, fieldValueToInput, inputToFieldValue, type FieldInput } from './CeshuFieldControl'
 import CompetitiveChart from './CompetitiveChart'
