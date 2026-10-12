@@ -84,6 +84,7 @@
 ### 其他
 
 - **无 prettier**（`node_modules/prettier` 不存在），且 eslint 不管缩进
+  （2026-10-12 量测：实际代码缩进漂移为 0，故未引入，见 P1#9）
   ⇒ 缩进漂移可以长期不可见地存在。
 - 命名主体是统一的：函数 camelCase、组件 PascalCase、常量 SCREAMING_SNAKE、
   定义层拆分用 `*Data.ts` 后缀（`ceshuScorerData` / `gameStyleData` / `schemasData`）。
@@ -204,7 +205,7 @@ runtime 15 / dev 19，全部在用；有 `lint` / `typecheck` / `test` / `test:e
 
 | 维度 | 为什么无法评估 | 需要补充什么 |
 |---|---|---|
-| **测试覆盖率** | ✅ **已补基线（P1#4，`a03f43f`）**：Statements 94.02% / Branches 83.88% / Functions 96.24% / Lines 95.62%（全量 2012 用例、仅 1 例已知 in-flight 失败 `agentQualityGate`）。分层 `shared` 95.8% > `main` 91.0% ≫ `renderer` ≈0%（node 套件不覆盖 React UI）。薄弱点：`main/ceshu/export/pdf.ts` 0%、`main/agent/brainService.ts` 48%、`main/ceshu/export/common.ts` 62% 语句覆盖；分支覆盖整体偏弱 | 后续：暂不设门禁；针对 `renderer` 补组件/e2e 测试（P1#7）、给 `brainService`/`export/common` 补分支用例 |
+| **测试覆盖率** | ✅ **已补基线（P1#4，`a03f43f`；2026-10-12 归区后重测刷新）**：Statements 94.04% / Branches 83.86% / Functions 96.40% / Lines 95.65%（全量 2012 用例、仅 1 例已知 in-flight 失败 `agentQualityGate`）。分层实测：`shared` 125 文件 Stmts **95.82%** / Funcs 98.98% > `main` 57 文件 Stmts **90.98%** / Funcs 92.74% ≫ `renderer` **仅 1 文件**被 node 套件覆盖（≈0%，React UI 无 jsdom 设施）。薄弱点：`main/ceshu/export/pdf.ts` 0%、`main/agent/brainService.ts` 48%、`main/ceshu/export/common.ts` 62% 语句覆盖；分支覆盖整体偏弱 | 后续：暂不设门禁；针对 `renderer` 补组件/e2e 测试（P1#7）、给 `brainService`/`export/common` 补分支用例 |
 | **运行时性能** | 无任何基准/压测/profiling 数据 | 大库（数千条数据）下的列表渲染、导入导出耗时基线 |
 | **e2e 真实性** | 本地跑不了（留 CI），本会话刚修的 32 处断言未经验证 | 一次 CI 全量 e2e 结果 |
 | **UI / 视觉质量** | 无截图比对或视觉回归 | 若需要，补 render-harness 或视觉快照 |
@@ -226,7 +227,7 @@ runtime 15 / dev 19，全部在用；有 `lint` / `typecheck` / `test` / `test:e
 
 | # | 事项 | 说明 |
 |---|---|---|
-| 4 | **补覆盖率基线** | ✅ **已完成（`a03f43f`）**：Statements 94.02% / Branches 83.88% / Functions 96.24%；分层 `shared` 95.8% > `main` 91.0% ≫ `renderer` ≈0%；暂不设门禁，薄弱点 `pdf.ts` 0% / `brainService.ts` 48% / `export/common.ts` 62% |
+| 4 | **补覆盖率基线** | ✅ **已完成（`a03f43f`）**，归区后重测：Statements 94.04% / Branches 83.86% / Functions 96.40% / Lines 95.65%；分层 `shared` 95.82% > `main` 90.98% ≫ `renderer` 仅 1 文件；暂不设门禁，薄弱点 `pdf.ts` 0% / `brainService.ts` 48% / `export/common.ts` 62% |
 | 5 | **推进 shared 归区** | ✅ **已完成（2a–2g，`cd78e02`…`741f2f1`）**：分批迁移 + 每批四门验证（tsc 5/6、eslint 0、vitest 2010/1）。根目录平铺 **61 → 28 个**，其中 17 个为 rule 4 倒逼的定案留根（README §4.1）。规则 1/3 从「预挂/不存在」变为对 domain/ceshu(14) + domain/attr(6) + config(14) + util(32) 真实生效；2a 批顺带清掉 cd78e02 遗留的 12 条 rule 4 违规（main 对 domain/ceshu 的 import 归零）；2e 批解掉 references/relationGraph 对 ceshuModel 的最后依赖 |
 | 6 | **收敛 `readText` / `isPlainObject` / `defaultStorage` 的多处定义** | ✅ **已完成（`2195481`）**：16 处私有副本全收敛——`isPlainObject`(5) → 既有 `shared/util/guards.ts`；`readText`(7) → 新增 `shared/util/readText.ts`；`defaultStorage`(4) → `settingsStore.ts` 增设 canonical（紧邻 `defaultSettingsStorage()`）。均字节一致、纯机械替换，vitest 2011/1 基线不变 |
 | 7 | **让 e2e 至少能本地 smoke** | 或明确「只跑核心 2-3 条」。当前完全不可本地验证，是 32 处断言过期长期不被发现的直接原因 |
@@ -236,5 +237,5 @@ runtime 15 / dev 19，全部在用；有 `lint` / `typecheck` / `test` / `test:e
 | # | 事项 | 说明 |
 |---|---|---|
 | 8 | **给 shared 层减重** | ◐ **随 #5 基本达成（2a–2h 批）**：domain/ceshu（5 个纯 renderer 向）+ domain/attr（6 个）已立，util/config 完成归区；根目录剩余 39 个中 27 个为 rule 4 倒逼（main store/ipc 直接消费的确定性逻辑）——除非把 main store 重构成走 api.ts 门面（更大工程，见 README §4.1 判据），否则这部分是架构约束而非欠账 |
-| 9 | **引入 prettier（或至少让 eslint 管缩进）** | 当前缩进漂移无机器把关 |
+| 9 | **引入 prettier（或至少让 eslint 管缩进）** | ✅ **量测后判定无需引入（2026-10-12，`probe-indent-drift.mjs`）**：扫描 `src/` 下 285 个 .ts/.tsx——**tab 缩进 0 个文件**、**行尾 CRLF/LF 混用 0 个文件**、奇数空格缩进 4 文件 9 行且逐行核验**全部是块注释正文与 1 行 SQL 模板字符串内的合法对齐**（非代码缩进）⇒ 实际代码缩进漂移为 0。为 0 处漂移引入 prettier 会制造全仓 reformat 大 diff（且与 chronic dirt 混杂难审），收益远小于成本。**决策：关闭本项，维持现状** |
 | 10 | **性能基线** | 大库场景的列表/导入导出耗时基线，作为后续重构的对照 |
