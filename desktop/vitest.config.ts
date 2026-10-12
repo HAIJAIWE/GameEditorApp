@@ -36,6 +36,30 @@ export default defineConfig({
      * 只放宽 hook，**用例级 testTimeout 保持默认**（真挂死的用例仍能快速暴露）；
      * 个别故意跑满沙箱预算的用例自带用例级超时（见 tests/unit/jsSandbox.test.ts）。
      */
-    hookTimeout: 30000
+    hookTimeout: 30000,
+
+    /**
+     * 覆盖率基线（P1#4）：先出一次全量数字，暂不设门禁。
+     * 用 v8 provider（随 vitest 5 安装 `@vitest/coverage-v8`），reporter 同时给
+     * 终端文本 + JSON（供脚本聚合）+ HTML（供人工下钻）。
+     * 先不写 thresholds——门禁要在看到真实分布后再定，避免误杀。
+     */
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html', 'text-summary'],
+      reportsDirectory: './coverage',
+      reportOnFailure: true,
+      // 只统计应用源码，排除测试、配置、构建产物与第三方
+      exclude: [
+        'tests/**',
+        '**/*.test.ts',
+        '**/*.test.tsx',
+        '**/*.config.ts',
+        '**/*.d.ts',
+        'out/**',
+        'coverage/**',
+        'node_modules/**'
+      ]
+    }
   }
 })
