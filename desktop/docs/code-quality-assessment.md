@@ -238,4 +238,4 @@ runtime 15 / dev 19，全部在用；有 `lint` / `typecheck` / `test` / `test:e
 |---|---|---|
 | 8 | **给 shared 层减重** | ◐ **随 #5 基本达成（2a–2h 批）**：domain/ceshu（5 个纯 renderer 向）+ domain/attr（6 个）已立，util/config 完成归区；根目录剩余 39 个中 27 个为 rule 4 倒逼（main store/ipc 直接消费的确定性逻辑）——除非把 main store 重构成走 api.ts 门面（更大工程，见 README §4.1 判据），否则这部分是架构约束而非欠账 |
 | 9 | **引入 prettier（或至少让 eslint 管缩进）** | ✅ **量测后判定无需引入（2026-10-12，`probe-indent-drift.mjs`）**：扫描 `src/` 下 285 个 .ts/.tsx——**tab 缩进 0 个文件**、**行尾 CRLF/LF 混用 0 个文件**、奇数空格缩进 4 文件 9 行且逐行核验**全部是块注释正文与 1 行 SQL 模板字符串内的合法对齐**（非代码缩进）⇒ 实际代码缩进漂移为 0。为 0 处漂移引入 prettier 会制造全仓 reformat 大 diff（且与 chronic dirt 混杂难审），收益远小于成本。**决策：关闭本项，维持现状** |
-| 10 | **性能基线** | 大库场景的列表/导入导出耗时基线，作为后续重构的对照 |
+| 10 | **性能基线** | ◐ **shared 纯逻辑基线已立（2026-10-12）**：`tests/unit/perfLargeLibrary.test.ts`（**默认跳过，仅 `MB_PERF=1` 执行**——vitest 5.0.3 不导出 `bench`，不为它引入新依赖；退化为 `performance.now` + 宽松上界）。规模 **5000 条 ItemRecord × 20 轮**，Windows 本机实测：列表过滤 20.4ms、全字段搜索 26.5ms、数值统计 2.9ms、属性计算 0.4ms、拓扑排序 0.1ms（阈值取实测 10 倍，只拦数量级退化）。**未覆盖**：导入导出（main 层 fs + SQLite，需单独 harness）；renderer 渲染耗时（无 DOM 设施，见 P1#7） |
