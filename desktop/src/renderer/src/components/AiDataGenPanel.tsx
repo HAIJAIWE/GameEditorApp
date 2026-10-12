@@ -7,7 +7,7 @@ import {
   DATA_GEN_ERROR_NO_TYPE,
   summarizeCandidateItem,
   type CeshuDataGenResult
-} from '../../../shared/domain/ceshu/ceshuDataGen'
+} from '../../../shared/ceshuDataGen'
 import { LLM_BULK_COUNT_THRESHOLD, isBulkLlmCall } from '../../../shared/agent/protocol'
 import { evaluateBudget, taskBudget } from '../../../shared/agent/budget'
 import type { DataQualityVerdict } from '../../../shared/types'

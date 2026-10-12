@@ -5,7 +5,7 @@ import {
   REVIEW_DIMENSION_KEYS,
   REVIEW_DIMENSION_LABELS,
   type CeshuAiReviewResult
-} from '../../../shared/domain/ceshu/ceshuAi'
+} from '../../../shared/ceshuAi'
 import { formatLocalTimestamp } from '../../../shared/ceshuModel'
 
 /**

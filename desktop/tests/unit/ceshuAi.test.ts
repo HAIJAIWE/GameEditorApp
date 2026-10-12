@@ -17,7 +17,7 @@ import {
   normalizeFullGenerateInput,
   parseReviewResponse,
   type CeshuAiReviewResult
-} from '../../src/shared/domain/ceshu/ceshuAi'
+} from '../../src/shared/ceshuAi'
 import { parseLlmJson } from '../../src/shared/util/parseLlmJson'
 import { CHAPTER_KEYS } from '../../src/shared/ceshuConstants'
 import { createDefaultCeshu } from '../../src/shared/ceshuModel'

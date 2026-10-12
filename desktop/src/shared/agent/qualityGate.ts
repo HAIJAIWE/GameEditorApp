@@ -1,7 +1,7 @@
 import { isChapterKey, type ChapterData, type CeshuDocument } from '../ceshuConstants'
 import { withChapter } from '../ceshuModel'
 import { categorizeValidationError } from '../domain/ceshu/ceshuReports'
-import { scoreCeshu } from '../domain/ceshu/ceshuScorer'
+import { scoreCeshu } from '../ceshuScorer'
 import { validateCeshu } from '../ceshuValidation'
 import { findCountConstraint, exceedsCountConstraint } from '../util/dataCountConstraint'
 import { assessBalance, mean, numericFieldNames, stdev } from '../dataStats'

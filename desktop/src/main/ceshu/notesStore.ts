@@ -10,7 +10,7 @@ import {
   serializeNotesFile,
   updateNoteIn,
   type CeshuNote
-} from '../../shared/domain/ceshu/ceshuNotes'
+} from '../../shared/ceshuNotes'
 
 /**
  * 章节笔记存储：每份策划书一个 JSON 文件（<dir>/<ceshuId>.json，结构 {"notes": [...]}），

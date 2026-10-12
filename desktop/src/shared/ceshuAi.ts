@@ -8,13 +8,13 @@ import {
   type ChapterData,
   type ChapterKey,
   type GddScope
-} from '../../ceshuConstants'
-import type { LlmUsage } from '../../llmConfig'
-import { CESHU_CHAPTER_FIELDS } from './ceshuFields'
-import type { QualityGateVerdict } from '../../types'
-import { isPlainObject } from '../../ceshuModel'
-import { readText } from '../../util/readText'
-import { parseLlmJson } from '../../util/parseLlmJson'
+} from './ceshuConstants'
+import type { LlmUsage } from './llmConfig'
+import { CESHU_CHAPTER_FIELDS } from './domain/ceshu/ceshuFields'
+import type { QualityGateVerdict } from './types'
+import { isPlainObject } from './ceshuModel'
+import { readText } from './util/readText'
+import { parseLlmJson } from './util/parseLlmJson'
 import {
   CHAPTER_AGENT_MAP,
   AGENT_DISPLAY,
@@ -27,8 +27,8 @@ import {
   CHAPTER_GENERATION_HINTS,
   REVIEW_DIMENSION_KEYS,
   REVIEW_DIMENSION_LABELS
-} from './ceshuAiData'
-export * from './ceshuAiData'
+} from './domain/ceshu/ceshuAiData'
+export * from './domain/ceshu/ceshuAiData'
 
 /**
  * 策划书 AI 生成纯逻辑（自 Python core/agent/skills 的 ceshu_skill_generate / ceshu_agent_router

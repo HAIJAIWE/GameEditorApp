@@ -7,7 +7,7 @@ import {
   isValidCustomTemplateName,
   parseTemplateTagsInput,
   type CeshuCustomTemplate
-} from '../../../shared/domain/ceshu/ceshuCustomTemplates'
+} from '../../../shared/ceshuCustomTemplates'
 import { isPlainObject } from '../../../shared/ceshuModel'
 import {
   listChapterTemplates,

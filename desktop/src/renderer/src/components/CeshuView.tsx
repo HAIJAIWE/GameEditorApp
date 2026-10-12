@@ -24,8 +24,8 @@ import {
   buildChangelogText,
   buildValidationReportMarkdown
 } from '../../../shared/domain/ceshu/ceshuReports'
-import { buildScoreReportMarkdown, gradeLabel, type CeshuScoreReport } from '../../../shared/domain/ceshu/ceshuScorer'
-import type { CeshuAiGenerateResult } from '../../../shared/domain/ceshu/ceshuAi'
+import { buildScoreReportMarkdown, gradeLabel, type CeshuScoreReport } from '../../../shared/ceshuScorer'
+import type { CeshuAiGenerateResult } from '../../../shared/ceshuAi'
 import type { DataTypeDef } from '../../../shared/types'
 
 import AiDataGenPanel from './AiDataGenPanel'

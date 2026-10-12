@@ -1,6 +1,6 @@
-import type { CeshuDocument } from '../../ceshuConstants'
-import { isFilledValue } from '../../ceshuModel'
-import { readText } from '../../util/readText'
+import type { CeshuDocument } from './ceshuConstants'
+import { isFilledValue } from './ceshuModel'
+import { readText } from './util/readText'
 
 /**
  * 策划书必填字段自动填充（自 Python core/ceshu/ceshu_fill.py 匹平迁移）。

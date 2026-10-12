@@ -1,9 +1,9 @@
 import type { CeshuDocument, CeshuSummary, ChapterData, ChapterKey, GddScope } from '../../shared/ceshuConstants'
 import { buildChangelogEntry, compareVersionLabels, nextVersionLabel, type CeshuChangelog } from '../../shared/ceshuDiff'
-import { autoFillRequiredFields } from '../../shared/domain/ceshu/ceshuFill'
-import { buildDuplicateName } from '../../shared/domain/ceshu/ceshuHome'
+import { autoFillRequiredFields } from '../../shared/ceshuFill'
+import { buildDuplicateName } from '../../shared/ceshuHome'
 import { computeChapterProgress, computeEnabledEditors, createCeshuId, createDefaultCeshu, formatLocalTimestamp, getGddScope, withChapter } from '../../shared/ceshuModel'
-import { buildPresetApplication } from '../../shared/domain/ceshu/ceshuPresets'
+import { buildPresetApplication } from '../../shared/ceshuPresets'
 import { CeshuStorage } from './storage'
 
 /**

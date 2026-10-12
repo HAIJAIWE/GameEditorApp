@@ -6,8 +6,8 @@ import {
   type CeshuDocument,
   type ChapterData,
   type ChapterKey
-} from '../../ceshuConstants'
-import { isFilledValue, isPlainObject } from '../../ceshuModel'
+} from './ceshuConstants'
+import { isFilledValue, isPlainObject } from './ceshuModel'
 
 /**
  * 字段级依赖规则 + 依赖图结构（纯逻辑，无 IO / DOM / React）。
@@ -31,8 +31,8 @@ import {
   type FieldDependency,
   type FieldDependencyStatus,
   type FieldDependencyType
-} from './ceshuFieldDepsData'
-export * from './ceshuFieldDepsData'
+} from './domain/ceshu/ceshuFieldDepsData'
+export * from './domain/ceshu/ceshuFieldDepsData'
 
 
 /** 单条依赖的检查结果（对应 Python check_field_dependencies 的 dict 项） */

@@ -1,6 +1,6 @@
-import { CHAPTER_KEYS, CHAPTER_LABELS, CHAPTER_REQUIRED_FIELDS, type CeshuDocument } from '../../ceshuConstants'
-import { computeChapterProgress, isPlainObject } from '../../ceshuModel'
-import { validateCeshu } from '../../ceshuValidation'
+import { CHAPTER_KEYS, CHAPTER_LABELS, CHAPTER_REQUIRED_FIELDS, type CeshuDocument } from './ceshuConstants'
+import { computeChapterProgress, isPlainObject } from './ceshuModel'
+import { validateCeshu } from './ceshuValidation'
 
 /**
  * N4: 工业级 GDD 评分引擎（自 Python core/ceshu/ceshu_scorer.py 匹平迁移）。
@@ -27,8 +27,8 @@ import {
   type CeshuChapterScore,
   type CeshuIndustryBenchmark,
   type CeshuScoreReport
-} from './ceshuScorerData'
-export * from './ceshuScorerData'
+} from './domain/ceshu/ceshuScorerData'
+export * from './domain/ceshu/ceshuScorerData'
 
 /** Python 真值语义：null/undefined/''/0/false/空数组/空对象 → false */
 function pyTruthy(value: unknown): boolean {

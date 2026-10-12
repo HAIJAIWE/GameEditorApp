@@ -1,0 +1,27 @@
+refactor(shared): ceshu 域逻辑中 main 依赖部分提回 contract 根（rule 4 改道收尾）
+
+cd78e02 将 21 个 ceshu 域逻辑文件沉入 domain/ceshu/ 后，main 侧 4 个文件
+（manager / notesStore / templateStore / ceshuIpc）共 12 处 import 被指向
+shared/domain/ceshu/**，触发 rule 4（main 禁 import 业务域）12 条 lint 违规——
+2b/2c 只完成了 ceshu 模型 6 件套的 main 改道，域逻辑半一直欠账（eslint 门
+被挡，本批提交前处于非零态）。
+
+按用户裁定的「拆域合规，main 改道」收尾。这 12 个文件（ceshuFill / ceshuHome /
+ceshuPresets / ceshuNotes / ceshuCustomTemplates / ceshuAi / ceshuDataGen /
+ceshuChecklist / ceshuFieldDeps / ceshuSystemConfirm / ceshuScorer /
+ceshuWordStats）经消费方取证为「main 编排 + renderer 展示」共享的确定性逻辑，
+且内部依赖链互相牵引（如 buildChapterPrompt 拽 agentForChapter /
+getStyleGlossary，拆符号会拽出大串附属符号、文件破碎），与已提根的
+ceshuModel / ceshuConstants / ceshuValidation / ceshuMigration / ceshuDiff /
+ceshuDefaults 六件套同构，故整文件提回 contract 根。
+
+domain/ceshu/ 保留 11 个 renderer 向文件（ceshuAiData / ceshuChecklistItems /
+ceshuCompetitiveChart / ceshuFieldDepsData / ceshuFields / ceshuOptionLabels /
+ceshuReports / ceshuScorerData / ceshuTemplates / ceshuTimeline +
+ceshuTemplateData/），rule 1 域间隔离继续生效。
+
+- 12 文件 domain/ceshu/ → shared/ 根；全仓 91 处 import 改道
+  （main 4 / shared 3 / renderer 15 / tests 14）
+- main 对 shared/domain/** 的 import 归零
+- 验证：tsc NODE 5 / WEB 6（存量基线不变）、eslint 0（12 条违规清除）、
+  vitest 全量（2011+ 过 / 1 已知红 agentQualityGate WIP）

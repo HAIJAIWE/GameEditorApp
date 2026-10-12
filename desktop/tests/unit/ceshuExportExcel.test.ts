@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest'
 import { buildExcelWorkbook, renderCeshuExcel } from '../../src/main/ceshu/export/excel'
 import { exportCeshuDocument } from '../../src/main/ceshu/export/exporter'
 import type { CeshuDocument } from '../../src/shared/ceshuConstants'
-import { autoFillRequiredFields } from '../../src/shared/domain/ceshu/ceshuFill'
+import { autoFillRequiredFields } from '../../src/shared/ceshuFill'
 import { createDefaultCeshu } from '../../src/shared/ceshuModel'
 
 /** 与 Python ceshu_excel_exporter 的 8 个 Sheet 顺序一致 */

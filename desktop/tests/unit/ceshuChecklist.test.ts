@@ -18,7 +18,7 @@ import {
   getChecklistItemsByCategory,
   runChecklist,
   type ChecklistReport
-} from '../../src/shared/domain/ceshu/ceshuChecklist'
+} from '../../src/shared/ceshuChecklist'
 import { createDefaultCeshu } from '../../src/shared/ceshuModel'
 
 function makeDoc(name = '清单测试'): CeshuDocument {

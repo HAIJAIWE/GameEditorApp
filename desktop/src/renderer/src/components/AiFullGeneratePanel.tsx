@@ -16,7 +16,7 @@ import {
   FULL_GEN_STYLES,
   buildFullGeneratePlan,
   type FullGeneratePlan
-} from '../../../shared/domain/ceshu/ceshuAi'
+} from '../../../shared/ceshuAi'
 import { getGddScope, isPlainObject } from '../../../shared/ceshuModel'
 import { evaluateBudget, taskBudget } from '../../../shared/agent/budget'
 import type { LlmJudgeVerdict } from '../../../shared/types'

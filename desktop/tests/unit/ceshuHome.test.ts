@@ -15,7 +15,7 @@ import {
   ceshuVersionBadge,
   filterCeshuCards,
   pickRecentCeshu
-} from '../../src/shared/domain/ceshu/ceshuHome'
+} from '../../src/shared/ceshuHome'
 
 function summary(overrides: Partial<CeshuSummary> = {}): CeshuSummary {
   return {

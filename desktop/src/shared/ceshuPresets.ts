@@ -5,8 +5,8 @@
  * 注意：本模块为纯函数，不改动传入的策划书文档。
  */
 
-import { SYSTEM_LABELS, type CeshuDocument, type ChapterData } from '../../ceshuConstants'
-import { isPlainObject } from '../../ceshuModel'
+import { SYSTEM_LABELS, type CeshuDocument, type ChapterData } from './ceshuConstants'
+import { isPlainObject } from './ceshuModel'
 
 export interface HybridGameplayPreset {
   label: string

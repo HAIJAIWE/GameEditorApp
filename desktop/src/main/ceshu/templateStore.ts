@@ -14,7 +14,7 @@ import {
   type CeshuCustomTemplate,
   type CustomTemplateDraft,
   type CustomTemplateUpdate
-} from '../../shared/domain/ceshu/ceshuCustomTemplates'
+} from '../../shared/ceshuCustomTemplates'
 import { formatLocalTimestamp } from '../../shared/ceshuModel'
 
 /**

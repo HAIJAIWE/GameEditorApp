@@ -6,7 +6,7 @@ import {
   buildCeshuCards,
   filterCeshuCards,
   pickRecentCeshu
-} from '../../../shared/domain/ceshu/ceshuHome'
+} from '../../../shared/ceshuHome'
 
 import HomeAiEntryCard from './ceshu/HomeAiEntryCard'
 import LucideIcon from './LucideIcon'

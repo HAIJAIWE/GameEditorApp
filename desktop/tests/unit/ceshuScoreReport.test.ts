@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { buildScoreReportMarkdown, type CeshuScoreReport } from '../../src/shared/domain/ceshu/ceshuScorer'
+import { buildScoreReportMarkdown, type CeshuScoreReport } from '../../src/shared/ceshuScorer'
 
 /**
  * `buildScoreReportMarkdown` 单测：逐节对齐 Python `score_report_dialog._build_markdown`。

@@ -1,5 +1,5 @@
-import { attrListToRows, rowsToAttrList, type AttrRow } from '../../../shared/attrList'
-import { attrPanelToRows, defaultAttrPanelRows, rowsToAttrPanel, type AttrPanelRow } from '../../../shared/attrPanel'
+import { attrListToRows, rowsToAttrList, type AttrRow } from '../../../shared/domain/attr/attrList'
+import { attrPanelToRows, defaultAttrPanelRows, rowsToAttrPanel, type AttrPanelRow } from '../../../shared/domain/attr/attrPanel'
 import { canParseAsDropTable, normalizeDropEntries, serializeDropEntries, type DropEntry } from '../../../shared/util/dropTable'
 import { canParseAsRefTable, normalizeRefEntries, serializeRefEntries, type ReferenceEntry } from '../../../shared/util/refTable'
 import type { ItemRecord, TypeFieldDef } from '../../../shared/types'
