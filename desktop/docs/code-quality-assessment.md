@@ -222,7 +222,7 @@ runtime 15 / dev 19，全部在用；有 `lint` / `typecheck` / `test` / `test:e
 |---|---|---|
 | 4 | **补覆盖率基线** | ✅ **已完成（`a03f43f`）**：Statements 94.02% / Branches 83.88% / Functions 96.24%；分层 `shared` 95.8% > `main` 91.0% ≫ `renderer` ≈0%；暂不设门禁，薄弱点 `pdf.ts` 0% / `brainService.ts` 48% / `export/common.ts` 62% |
 | 5 | **推进 shared 归区** | 按 `shared/README.md` §4 的优先级：先迁「被其它域 import 的」（如 `ceshuModel` / `ceshuConstants`），让 lint 真正接管。当前 61 个平铺文件全靠 code review |
-| 6 | **收敛 `readText` / `isPlainObject` / `defaultStorage` 的多处定义** | 同 P0#2 的下沉套路，逐个确认是 re-export 还是真重复 |
+| 6 | **收敛 `readText` / `isPlainObject` / `defaultStorage` 的多处定义** | ✅ **已完成（`2195481`）**：16 处私有副本全收敛——`isPlainObject`(5) → 既有 `shared/util/guards.ts`；`readText`(7) → 新增 `shared/util/readText.ts`；`defaultStorage`(4) → `settingsStore.ts` 增设 canonical（紧邻 `defaultSettingsStorage()`）。均字节一致、纯机械替换，vitest 2011/1 基线不变 |
 | 7 | **让 e2e 至少能本地 smoke** | 或明确「只跑核心 2-3 条」。当前完全不可本地验证，是 32 处断言过期长期不被发现的直接原因 |
 
 ### P2 · 长期重构
