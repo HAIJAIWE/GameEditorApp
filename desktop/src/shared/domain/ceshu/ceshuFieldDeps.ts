@@ -6,8 +6,8 @@ import {
   type CeshuDocument,
   type ChapterData,
   type ChapterKey
-} from '../ceshuConstants'
-import { isFilledValue, isPlainObject } from '../ceshuModel'
+} from '../../ceshuConstants'
+import { isFilledValue, isPlainObject } from '../../ceshuModel'
 
 /**
  * 字段级依赖规则 + 依赖图结构（纯逻辑，无 IO / DOM / React）。

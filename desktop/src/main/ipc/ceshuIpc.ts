@@ -41,7 +41,7 @@ import {
   filterGeneratedFields,
   mergeChapterDraft,
   parseReviewResponse
-} from '../../shared/ceshu/ceshuAi'
+} from '../../shared/domain/ceshu/ceshuAi'
 import { parseLlmJson } from '../../shared/util/parseLlmJson'
 import {
   DATA_GEN_ERROR_EMPTY,
@@ -52,15 +52,15 @@ import {
   clampDataGenCount,
   normalizeDataGenCandidates,
   resolveSelectedDataTypes
-} from '../../shared/ceshu/ceshuDataGen'
-import { runChecklist } from '../../shared/ceshu/ceshuChecklist'
+} from '../../shared/domain/ceshu/ceshuDataGen'
+import { runChecklist } from '../../shared/domain/ceshu/ceshuChecklist'
 import { buildVersionDiff } from '../../shared/ceshuDiff'
-import { buildFieldDepsReport } from '../../shared/ceshu/ceshuFieldDeps'
+import { buildFieldDepsReport } from '../../shared/domain/ceshu/ceshuFieldDeps'
 import { computeChapterProgress } from '../../shared/ceshuModel'
-import { buildSystemConfirmResult } from '../../shared/ceshu/ceshuSystemConfirm'
-import { scoreCeshu } from '../../shared/ceshu/ceshuScorer'
+import { buildSystemConfirmResult } from '../../shared/domain/ceshu/ceshuSystemConfirm'
+import { scoreCeshu } from '../../shared/domain/ceshu/ceshuScorer'
 import { validateCeshu } from '../../shared/ceshuValidation'
-import { buildWordStatsReport } from '../../shared/ceshu/ceshuWordStats'
+import { buildWordStatsReport } from '../../shared/domain/ceshu/ceshuWordStats'
 import { exportCeshuDocument } from '../ceshu/export/exporter'
 import { exportTextReportFile } from '../ceshu/reportExport'
 

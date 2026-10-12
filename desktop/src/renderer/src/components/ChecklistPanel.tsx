@@ -8,7 +8,7 @@ import {
   getChecklistItemsByCategory,
   type ChecklistReport,
   type ChecklistStatus
-} from '../../../shared/ceshu/ceshuChecklist'
+} from '../../../shared/domain/ceshu/ceshuChecklist'
 import { formatLocalTimestamp } from '../../../shared/ceshuModel'
 import { toErrorMessage } from '../../../shared/util/errors'
 

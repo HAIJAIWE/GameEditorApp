@@ -9,7 +9,7 @@ import {
   countWordsInChapter,
   gradeLabel,
   scoreCeshu
-} from '../../src/shared/ceshu/ceshuScorer'
+} from '../../src/shared/domain/ceshu/ceshuScorer'
 
 /**
  * 空文档：以 createDefaultCeshu 为骨架，将 18 章全部清空。

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { createDefaultCeshu } from '../../src/shared/ceshuModel'
-import { formatFieldsPreview, buildSystemConfirmResult, systemDisplayName } from '../../src/shared/ceshu/ceshuSystemConfirm'
+import { formatFieldsPreview, buildSystemConfirmResult, systemDisplayName } from '../../src/shared/domain/ceshu/ceshuSystemConfirm'
 import { SYSTEM_CONFIG_SCHEMA } from '../../src/shared/systemConfigSchema'
 import type { SystemEntry } from '../../src/shared/ceshuConstants'
 

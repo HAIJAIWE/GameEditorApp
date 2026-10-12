@@ -16,10 +16,10 @@ import {
   FULL_GEN_STYLES,
   buildFullGeneratePlan,
   type FullGeneratePlan
-} from '../../../shared/ceshu/ceshuAi'
+} from '../../../shared/domain/ceshu/ceshuAi'
 import { getGddScope, isPlainObject } from '../../../shared/ceshuModel'
 import { evaluateBudget, taskBudget } from '../../../shared/agent/budget'
-import type { LlmJudgeVerdict } from '../../../shared/agent/qualityGate'
+import type { LlmJudgeVerdict } from '../../../shared/types'
 import { toErrorMessage } from '../../../shared/util/errors'
 import { readText } from '../../../shared/util/readText'
 

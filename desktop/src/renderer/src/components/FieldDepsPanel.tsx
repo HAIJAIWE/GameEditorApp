@@ -7,7 +7,7 @@ import {
   type CeshuFieldDepsReport,
   type FieldDependencyType,
   type FieldDependencyStatus
-} from '../../../shared/ceshu/ceshuFieldDeps'
+} from '../../../shared/domain/ceshu/ceshuFieldDeps'
 import { toErrorMessage } from '../../../shared/util/errors'
 
 /**

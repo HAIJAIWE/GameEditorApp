@@ -2,7 +2,7 @@
  * GDD 完备性检查清单：评估逻辑（runChecklist）与 Markdown 报告（buildChecklistMarkdown）。
  * 常量 / 类型 / 条目定义 / 自动检查函数见同目录 ceshuChecklistItems.ts。
  */
-import type { CeshuDocument } from '../ceshuConstants'
+import type { CeshuDocument } from '../../ceshuConstants'
 import {
   ALL_CATEGORIES,
   AUTO_CHECK_REGISTRY,

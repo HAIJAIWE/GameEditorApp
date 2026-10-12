@@ -4,7 +4,7 @@ import type { CeshuDocument } from '../../src/shared/ceshuConstants'
 import { createDefaultCeshu } from '../../src/shared/ceshuModel'
 import { validateCeshu } from '../../src/shared/ceshuValidation'
 import { applyJudge, evaluateChapterDraft } from '../../src/shared/agent/qualityGate'
-import type { LlmJudgeVerdict } from '../../src/shared/agent/qualityGate'
+import type { LlmJudgeVerdict } from '../../src/shared/types'
 
 /**
  * 策划书 AI 产出的**确定性评分门**（v0.5 DD-19）。

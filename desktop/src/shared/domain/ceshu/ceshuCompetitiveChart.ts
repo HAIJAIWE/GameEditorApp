@@ -1,4 +1,4 @@
-import { isPlainObject } from '../util/guards'
+import { isPlainObject } from '../../util/guards'
 /**
  * 竞品象限图纯逻辑（自 Python `ui/ceshu/competitive_chart.py` 匹平迁移）：
  * - 画布尺寸/留白常量与网格步长（Python _draw 中 w/h/margin 与 range(0,101,25)）

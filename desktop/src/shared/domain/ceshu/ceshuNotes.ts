@@ -1,4 +1,4 @@
-import { isPlainObject } from '../ceshuModel'
+import { isPlainObject } from '../../ceshuModel'
 
 /**
  * 章节笔记纯逻辑（自 Python ui/ceshu/chapter_notes.py 的 ChapterNotesManager 匹平迁移）。

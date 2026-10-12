@@ -1,6 +1,6 @@
 import { LlmClient, type LlmCallOptions } from '../llm/client'
 import { parseLlmJson } from '../../shared/util/parseLlmJson'
-import type { LlmJudgeVerdict } from '../../shared/agent/qualityGate'
+import type { LlmJudgeVerdict } from '../../shared/types'
 
 /**
  * LLM-as-Judge 的**异步评审层**（DD-19 剩余项，章节侧专用）。

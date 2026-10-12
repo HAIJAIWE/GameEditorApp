@@ -15,7 +15,7 @@ import {
   timelineProgressPercent,
   timelineTimeText,
   timelineUpdatedFull
-} from '../../src/shared/ceshu/ceshuTimeline'
+} from '../../src/shared/domain/ceshu/ceshuTimeline'
 
 function summary(overrides: Partial<CeshuSummary> = {}): CeshuSummary {
   return {

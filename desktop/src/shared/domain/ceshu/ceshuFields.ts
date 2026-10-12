@@ -1,5 +1,5 @@
 import type { ChapterKey, CeshuFieldDef } from '../../ceshuConstants'
-import * as OPT from '../../ceshu/ceshuOptionLabels'
+import * as OPT from './ceshuOptionLabels'
 
 /** 文档信息段 + 16 章表单字段描述（标签取自 Python chapter_forms/_base.py 与 _industrial.py） */
 

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { CeshuDocument, ChapterKey } from '../../src/shared/ceshuConstants'
 import { CHAPTER_KEYS } from '../../src/shared/ceshuConstants'
 import { createDefaultCeshu } from '../../src/shared/ceshuModel'
-import { WORD_STATS_BENCHMARK, buildWordStatsReport, type CeshuWordStatRow } from '../../src/shared/ceshu/ceshuWordStats'
+import { WORD_STATS_BENCHMARK, buildWordStatsReport, type CeshuWordStatRow } from '../../src/shared/domain/ceshu/ceshuWordStats'
 
 function makeDoc(name = '字数测试'): CeshuDocument {
   return createDefaultCeshu({ scope: 'full', name })

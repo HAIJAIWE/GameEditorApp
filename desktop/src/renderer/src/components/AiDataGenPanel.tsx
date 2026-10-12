@@ -7,10 +7,10 @@ import {
   DATA_GEN_ERROR_NO_TYPE,
   summarizeCandidateItem,
   type CeshuDataGenResult
-} from '../../../shared/ceshu/ceshuDataGen'
+} from '../../../shared/domain/ceshu/ceshuDataGen'
 import { LLM_BULK_COUNT_THRESHOLD, isBulkLlmCall } from '../../../shared/agent/protocol'
 import { evaluateBudget, taskBudget } from '../../../shared/agent/budget'
-import type { DataQualityVerdict } from '../../../shared/agent/qualityGate'
+import type { DataQualityVerdict } from '../../../shared/types'
 import type { DataTypeDef } from '../../../shared/types'
 import { toErrorMessage } from '../../../shared/util/errors'
 

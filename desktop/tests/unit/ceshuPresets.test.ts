@@ -12,7 +12,7 @@ import {
   formatRecommendedSystems,
   formatSecondaryModules,
   styleBadgeColor
-} from '../../src/shared/ceshu/ceshuPresets'
+} from '../../src/shared/domain/ceshu/ceshuPresets'
 
 type SystemMap = Record<string, { enabled: boolean }>
 

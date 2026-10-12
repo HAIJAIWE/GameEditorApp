@@ -7,7 +7,7 @@ import {
   buildChangelogText,
   buildValidationReportMarkdown,
   categorizeValidationError
-} from '../../src/shared/ceshu/ceshuReports'
+} from '../../src/shared/domain/ceshu/ceshuReports'
 
 describe('categorizeValidationError（对齐 Python validation_dialog._categorize）', () => {
   it('按关键字归类，判定顺序为 dep > conflict > warning > required', () => {

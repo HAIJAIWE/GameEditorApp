@@ -1,11 +1,18 @@
 import { isChapterKey, type ChapterData, type CeshuDocument } from '../ceshuConstants'
 import { withChapter } from '../ceshuModel'
-import { categorizeValidationError } from '../ceshu/ceshuReports'
-import { scoreCeshu } from '../ceshu/ceshuScorer'
+import { categorizeValidationError } from '../domain/ceshu/ceshuReports'
+import { scoreCeshu } from '../domain/ceshu/ceshuScorer'
 import { validateCeshu } from '../ceshuValidation'
 import { findCountConstraint, exceedsCountConstraint } from '../util/dataCountConstraint'
 import { assessBalance, mean, numericFieldNames, stdev } from '../dataStats'
-import type { DataTypeDef } from '../types'
+import type {
+  DataBalanceRow,
+  DataQualityIssue,
+  DataQualityVerdict,
+  DataTypeDef,
+  LlmJudgeVerdict,
+  QualityGateVerdict
+} from '../types'
 
 /**
  * AI 产出的**确定性质量门**（v0.5 DD-19）—— 策划书半边 + 数据半边。
@@ -30,38 +37,6 @@ import type { DataTypeDef } from '../types'
  *
  * 本模块是纯函数，不落盘、不调 LLM，可被 Node 端单测直接覆盖。
  */
-
-export interface QualityGateVerdict {
-  /** 被评估的章节 */
-  chapter: string
-  /** 生成前的校验错误数 */
-  beforeErrors: number
-  /** 应用生成结果后的校验错误数 */
-  afterErrors: number
-  /** 错误数变化（**负数 = 变好**） */
-  errorDelta: number
-  /** 应用后仍存在的**阻断性**问题（必填缺失 / 一致性冲突）；软警告不算 */
-  blocking: string[]
-  /** 生成前总分 */
-  beforeScore: number
-  /** 生成后总分 */
-  afterScore: number
-  /** 分数变化（正数 = 变好） */
-  scoreDelta: number
-  gradeBefore: string
-  gradeAfter: string
-  /** 是否确有净改善（错误减少 **或** 分数提高） */
-  improved: boolean
-  /** 一句话结论，供 UI 直接展示 */
-  summary: string
-  /**
-   * LLM-as-Judge 的**辅助**结论（DD-19 剩余项，章节侧专用）。
-   * 确定性门为主、judge 为辅：`toxicity` 命中只往 `summary` 追加合规提示，
-   * **不推翻** `blocking` / `scoreDelta`。异步计算后再由 `applyJudge` 合并进来，
-   * 故确定性 `evaluateChapterDraft` 产出的 verdict 此字段为 `null`。
-   */
-  judge: LlmJudgeVerdict | null
-}
 
 /**
  * 阻断性判定：只有 `required`（必填项缺失）与 `conflict`（一致性冲突）算阻断。
@@ -133,47 +108,6 @@ export function evaluateChapterDraft(
 }
 
 /* ---- 数据侧的确定性门（v0.5 DD-19 的数据半边） ---- */
-
-/** 单个「类型 × 数值字段」的平衡性评估 */
-export interface DataBalanceRow {
-  /** 复数键 */
-  type: string
-  typeName: string
-  /** 字段名 */
-  field: string
-  /** 字段显示名（去掉表单标签的冒号后缀，与 `dataStats` 一致） */
-  label: string
-  /** 参与统计的有效数值条数 */
-  count: number
-  avg: number
-  std: number
-  /** 平衡性判定（阈值 0.3，与 `dataStats::assessBalance` 同源） */
-  verdict: 'good' | 'needs_adjust'
-}
-
-export interface DataQualityIssue {
-  /** 复数键 */
-  type: string
-  typeName: string
-  /** `count_limit` = 数量约束超限（**硬约束**）；`balance` = 离散度偏高（**建议**） */
-  kind: 'count_limit' | 'balance'
-  message: string
-}
-
-export interface DataQualityVerdict {
-  /** 本次候选总条数 */
-  total: number
-  /** 逐复数键的候选条数 */
-  counts: Record<string, number>
-  /** 需要人工注意的问题（数量约束在前，平衡性在后） */
-  issues: DataQualityIssue[]
-  /** 逐「类型 × 数值字段」的平衡性（无论好坏都列出，供 UI 展示） */
-  balance: DataBalanceRow[]
-  /** 是否存在问题（数量约束超限或离散度偏高） */
-  hasIssues: boolean
-  /** 一句话结论，供 UI 直接展示 */
-  summary: string
-}
 
 /** 从候选条目里取出某字段的有效数值（无法解析的跳过，与 `dataStats::toFiniteNumber` 同口径） */
 function numericValues(items: readonly Record<string, unknown>[], field: string): number[] {
@@ -286,37 +220,6 @@ export function evaluateDataCandidates(
   }
 
   return { total, counts, issues, balance, hasIssues, summary }
-}
-
-/* ---- LLM-as-Judge 的辅助维度（DD-19 剩余项，章节侧专用） ---- */
-
-/**
- * LLM-as-Judge 的辅助结论。
- *
- * ## 定位：确定性门为主，judge 为辅
- * 本项目的策划书/数据已有 7,114 行确定性纯逻辑在生产跑（`ceshuValidation` /
- * `ceshuScorer` / `dataStats` / `dataCountConstraint`），它们给出的
- * `blocking` / `errorDelta` / `scoreDelta` **是客观可机器判定**的质量结论。
- * LLM judge 只补机器判不了的维度：
- * - `toxicity`：合规红线（暴力/涉政/色情等），确定性门看不到；
- * - `readability` / `creativity`：文字质量与创意，机器打分无能为力；
- * - `score`：judge 综合分（0-100），**仅供参考**，不与确定性 `afterScore` 混用。
- *
- * 权重远低于确定性门：`toxicity === 'flagged'` 也**不推翻** `blocking` /
- * `scoreDelta`，只由 `applyJudge` 往 `summary` 追加一条合规提示，
- * 把"是否发布"的最终裁决权留在人手里。
- */
-export interface LlmJudgeVerdict {
-  /** 合规性：safe = 未命中红线；flagged = 命中需人工复核 */
-  toxicity: 'safe' | 'flagged'
-  /** 可读性（0-10） */
-  readability: number
-  /** 创意性（0-10） */
-  creativity: number
-  /** judge 综合分（0-100），仅供参考 */
-  score: number
-  /** judge 评语，UI 直接展示 */
-  comment: string
 }
 
 /**

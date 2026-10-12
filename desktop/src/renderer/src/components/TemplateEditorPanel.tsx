@@ -7,7 +7,7 @@ import {
   isValidCustomTemplateName,
   parseTemplateTagsInput,
   type CeshuCustomTemplate
-} from '../../../shared/ceshu/ceshuCustomTemplates'
+} from '../../../shared/domain/ceshu/ceshuCustomTemplates'
 import { isPlainObject } from '../../../shared/ceshuModel'
 import {
   listChapterTemplates,
@@ -15,7 +15,7 @@ import {
   searchChapterTemplates,
   templateChapterLabel,
   type ChapterTemplate
-} from '../../../shared/ceshu/ceshuTemplates'
+} from '../../../shared/domain/ceshu/ceshuTemplates'
 import { toErrorMessage } from '../../../shared/util/errors'
 
 /**

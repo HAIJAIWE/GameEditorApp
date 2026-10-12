@@ -9,7 +9,7 @@
  * 只有用户新建策划书取模板时才表现为「story 章没有范例」——静默降级。
  * 收紧后：任何章节增删/改名而漏配模板都会被 tsc 直接拦下。
  */
-import type { ChapterTemplate } from '../../ceshu/ceshuTemplates'
+import type { ChapterTemplate } from './ceshuTemplates'
 import type { ChapterKey } from '../../ceshuConstants'
 import { metaTemplates } from './ceshuTemplateData/meta'
 import { visionTemplates } from './ceshuTemplateData/vision'

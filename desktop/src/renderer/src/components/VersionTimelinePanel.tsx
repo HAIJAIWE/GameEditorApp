@@ -9,7 +9,7 @@ import {
   buildTimelineDetail,
   buildTimelineLayout,
   defaultTimelineSelectionId
-} from '../../../shared/ceshu/ceshuTimeline'
+} from '../../../shared/domain/ceshu/ceshuTimeline'
 import { toErrorMessage } from '../../../shared/util/errors'
 
 /**

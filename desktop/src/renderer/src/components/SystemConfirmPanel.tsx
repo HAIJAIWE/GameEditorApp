@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   formatFieldsPreview,
   type SystemConfirmCustom
-} from '../../../shared/ceshu/ceshuSystemConfirm'
+} from '../../../shared/domain/ceshu/ceshuSystemConfirm'
 import {
   type CeshuDocument,
   type SystemEntry

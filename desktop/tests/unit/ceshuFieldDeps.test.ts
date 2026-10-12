@@ -22,7 +22,7 @@ import {
   valuesConsistent,
   type FieldDependency,
   type FieldDependencyStatus
-} from '../../src/shared/ceshu/ceshuFieldDeps'
+} from '../../src/shared/domain/ceshu/ceshuFieldDeps'
 
 function makeDoc(scope: 'full' | 'lite' = 'full'): CeshuDocument {
   return createDefaultCeshu({ scope })

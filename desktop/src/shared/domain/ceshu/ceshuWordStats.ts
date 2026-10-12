@@ -6,7 +6,7 @@
  * 与 ceshuScorer.ts 的 CHAPTER_WORD_BENCHMARK（scorer 专用、数值不同）互不影响。
  */
 
-import { CHAPTER_KEYS, CHAPTER_LABELS, type CeshuDocument, type ChapterKey } from '../ceshuConstants'
+import { CHAPTER_KEYS, CHAPTER_LABELS, type CeshuDocument, type ChapterKey } from '../../ceshuConstants'
 import { countWordsInChapter } from './ceshuScorer'
 
 /** 工业级 GDD 章节字数参考标准：(下限, 上限, 期望中位)，与 Python CHAPTER_WORD_BENCHMARK 一致 */

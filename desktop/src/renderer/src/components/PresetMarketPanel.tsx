@@ -9,7 +9,7 @@ import {
   formatRecommendedSystems,
   formatSecondaryModules,
   styleBadgeColor
-} from '../../../shared/ceshu/ceshuPresets'
+} from '../../../shared/domain/ceshu/ceshuPresets'
 import { toErrorMessage } from '../../../shared/util/errors'
 
 /**

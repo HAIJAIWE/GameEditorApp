@@ -1,4 +1,4 @@
-import type { ChapterTemplate } from '../../../ceshu/ceshuTemplates'
+import type { ChapterTemplate } from '../ceshuTemplates'
 
 export const economyTemplates: ChapterTemplate[] = [
     {

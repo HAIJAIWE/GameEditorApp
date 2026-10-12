@@ -8,7 +8,7 @@ import {
   filterCustomTemplates,
   customTemplateToChapterTemplate,
   type CeshuCustomTemplate
-} from '../../../shared/ceshu/ceshuCustomTemplates'
+} from '../../../shared/domain/ceshu/ceshuCustomTemplates'
 import {
   TEMPLATE_APPLY_MODES,
   TEMPLATE_APPLY_MODE_LABELS,
@@ -18,7 +18,7 @@ import {
   templateChapterLabel,
   type ChapterTemplate,
   type TemplateApplyMode
-} from '../../../shared/ceshu/ceshuTemplates'
+} from '../../../shared/domain/ceshu/ceshuTemplates'
 import { toErrorMessage } from '../../../shared/util/errors'
 
 /**
