@@ -235,6 +235,6 @@ runtime 15 / dev 19，全部在用；有 `lint` / `typecheck` / `test` / `test:e
 
 | # | 事项 | 说明 |
 |---|---|---|
-| 8 | **给 shared 层减重** | 45% 的占比说明业务逻辑未真正下沉到 `domain/`。与 #5 是同一件事的终态 |
+| 8 | **给 shared 层减重** | ◐ **随 #5 基本达成（2a–2h 批）**：domain/ceshu（5 个纯 renderer 向）+ domain/attr（6 个）已立，util/config 完成归区；根目录剩余 39 个中 27 个为 rule 4 倒逼（main store/ipc 直接消费的确定性逻辑）——除非把 main store 重构成走 api.ts 门面（更大工程，见 README §4.1 判据），否则这部分是架构约束而非欠账 |
 | 9 | **引入 prettier（或至少让 eslint 管缩进）** | 当前缩进漂移无机器把关 |
 | 10 | **性能基线** | 大库场景的列表/导入导出耗时基线，作为后续重构的对照 |
