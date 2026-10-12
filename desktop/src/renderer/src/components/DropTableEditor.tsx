@@ -7,7 +7,7 @@ import {
   dropSourceTypeId,
   normalizeDropRange,
   type DropEntry
-} from '../../../shared/dropTable'
+} from '../../../shared/util/dropTable'
 
 /**
  * 掉落表字段编辑器（droptable 字段，对应 Python `ui/widgets/drop_table.py` 的 DropTableWidget）。

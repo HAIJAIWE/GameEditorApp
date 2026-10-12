@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3'
 
-import { safeJsonParse } from '../../shared/safeJson'
+import { safeJsonParse } from '../../shared/util/safeJson'
 import type { ItemRecord } from '../../shared/types'
 import type { ItemsRepository } from './repository'
 

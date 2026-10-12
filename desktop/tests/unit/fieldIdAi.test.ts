@@ -5,7 +5,7 @@ import {
   buildFieldIdPrompt,
   parseFieldIdCandidates
 } from '../../src/shared/fieldIdAi'
-import { validateFieldId } from '../../src/shared/fieldId'
+import { validateFieldId } from '../../src/shared/util/fieldId'
 
 describe('fieldIdAi：提示词构建', () => {
   const built = buildFieldIdPrompt('斗能', ['id', 'name', 'job'], { typeName: '角色', fieldType: 'spinbox' })

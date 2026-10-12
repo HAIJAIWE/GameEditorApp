@@ -1,5 +1,5 @@
 import { parseLlmJson } from './ceshu/ceshuAi'
-import { uniquifyFieldId, validateFieldId, type FieldIdSuggestion } from './fieldId'
+import { uniquifyFieldId, validateFieldId, type FieldIdSuggestion } from './util/fieldId'
 
 /**
  * 字段 ID 的 **AI 候选**（术语表未收录时的第二级兜底）。

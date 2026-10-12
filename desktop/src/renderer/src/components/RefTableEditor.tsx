@@ -7,7 +7,7 @@ import {
   refTypeDisplayName,
   resolveRefTypeId,
   type ReferenceEntry
-} from '../../../shared/refTable'
+} from '../../../shared/util/refTable'
 import type { DataTypeDef } from '../../../shared/types'
 
 /**

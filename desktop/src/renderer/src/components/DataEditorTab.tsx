@@ -4,7 +4,7 @@ import {
   buildCountConstraintMessage,
   exceedsCountConstraint,
   type CountConstraint
-} from '../../../shared/dataCountConstraint'
+} from '../../../shared/util/dataCountConstraint'
 import { filterItemRecords, withRenamedName } from '../../../shared/dataTableOps'
 import { showToast } from '../../../shared/toast'
 import type { DataTypeDef, ItemRecord } from '../../../shared/types'

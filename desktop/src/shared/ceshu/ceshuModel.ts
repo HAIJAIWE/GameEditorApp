@@ -12,7 +12,7 @@ import {
   type GddScope
 } from './ceshuConstants'
 import { createDefaultChapters } from '../domain/ceshu/ceshuDefaults'
-import { getStyle, inferStyleFromText } from '../gameStyle'
+import { getStyle, inferStyleFromText } from '../config/gameStyle'
 import { migrateV4ToV5, needsV4Migration } from './ceshuMigration'
 import { formatLocalTimestamp } from '../util/datetime'
 import { isPlainObject } from '../util/guards'

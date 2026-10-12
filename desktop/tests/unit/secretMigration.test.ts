@@ -5,9 +5,9 @@ import {
   readLegacyImageGenApiKey,
   stripLegacyImageGenApiKey
 } from '../../src/shared/secretMigration'
-import { IMAGE_GEN_CONFIG_KEY } from '../../src/shared/imageGenConfig'
+import { IMAGE_GEN_CONFIG_KEY } from '../../src/shared/config/imageGenConfig'
 import { SECRET_NAMES } from '../../src/shared/secretNames'
-import type { StorageLike } from '../../src/shared/settingsStore'
+import type { StorageLike } from '../../src/shared/config/settingsStore'
 
 /** 内存版 StorageLike（Node 下无 localStorage） */
 function fakeStorage(initial: Record<string, string> = {}): StorageLike & { data: Map<string, string> } {

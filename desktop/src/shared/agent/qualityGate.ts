@@ -3,7 +3,7 @@ import { withChapter } from '../ceshu/ceshuModel'
 import { categorizeValidationError } from '../ceshu/ceshuReports'
 import { scoreCeshu } from '../ceshu/ceshuScorer'
 import { validateCeshu } from '../ceshu/ceshuValidation'
-import { findCountConstraint, exceedsCountConstraint } from '../dataCountConstraint'
+import { findCountConstraint, exceedsCountConstraint } from '../util/dataCountConstraint'
 import { assessBalance, mean, numericFieldNames, stdev } from '../dataStats'
 import type { DataTypeDef } from '../types'
 
@@ -197,7 +197,7 @@ function fieldLabel(typeDef: DataTypeDef, field: string): string {
  * 与策划书半边同源的思路：**用域内已有的确定性检查代替 LLM 自评**。
  * 这里复用两个已在生产里跑着的纯逻辑：
  * - **数量约束（P5，硬）**：`dataCountConstraint::findCountConstraint` + `exceedsCountConstraint`
- *   —— 策划书第五章的系统 config 声明了上限时，「现有 + 本次」超上限就是**可机器判定的问题**。
+ *   —— 策划书第四章的系统 config 声明了上限时，「现有 + 本次」超上限就是**可机器判定的问题**。
  * - **平衡性（建议）**：`dataStats::assessBalance`（std/avg > 0.3 判定 `needs_adjust`）
  *   —— 候选数值的离散度，是"值不值得导入"的客观参考。
  *
@@ -208,7 +208,7 @@ export function evaluateDataCandidates(
   candidates: Record<string, Array<Record<string, unknown>>>,
   options: {
     types?: readonly DataTypeDef[]
-    /** 策划书第五章 `systems` 章节数据（数量约束的来源） */
+    /** 策划书第四章 `systems` 章节数据（数量约束的来源） */
     systems?: unknown
     existingCounts?: Record<string, number>
   } = {}

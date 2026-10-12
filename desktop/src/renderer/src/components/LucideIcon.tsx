@@ -1,4 +1,4 @@
-import { LUCIDE_ICON_ALIASES, LUCIDE_ICON_PATHS, type LucideIconName } from '../../../shared/lucideIcons'
+import { LUCIDE_ICON_ALIASES, LUCIDE_ICON_PATHS, type LucideIconName } from '../../../shared/util/lucideIcons'
 
 export interface LucideIconProps {
   /** 图标名（可为别名，如 `chevron-down` / `save`） */

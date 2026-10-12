@@ -8,7 +8,7 @@ import {
   type BatchOpKind,
   type AdjustMode
 } from '../../../shared/dataTableOps'
-import { loadConfirmDelete } from '../../../shared/settingsPreferences'
+import { loadConfirmDelete } from '../../../shared/config/settingsPreferences'
 import type { DataTypeDef } from '../../../shared/types'
 
 /**

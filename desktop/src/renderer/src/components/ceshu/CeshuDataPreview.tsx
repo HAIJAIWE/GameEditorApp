@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 
 import { CHAPTER_LABELS } from '../../../../shared/ceshu/ceshuConstants'
 import type { CeshuChapters, EnabledEditor } from '../../../../shared/ceshu/ceshuConstants'
-import { findCountConstraint } from '../../../../shared/dataCountConstraint'
+import { findCountConstraint } from '../../../../shared/util/dataCountConstraint'
 import type { DataTypeDef } from '../../../../shared/types'
 
 import DataEditorTab from '../DataEditorTab'

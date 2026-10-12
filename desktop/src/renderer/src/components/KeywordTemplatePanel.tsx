@@ -12,7 +12,7 @@ import {
   withTemplateText
 } from '../../../shared/keywordTemplates'
 import type { KeywordTemplates, KeywordTemplateType } from '../../../shared/keywordTemplates'
-import { readSetting, writeSetting } from '../../../shared/settingsStore'
+import { readSetting, writeSetting } from '../../../shared/config/settingsStore'
 
 /**
  * 关键词模板配置面板（对齐 Python `src/features/advanced.py:206-306`

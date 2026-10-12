@@ -7,13 +7,13 @@ import {
   type DiffLeaf,
   type ItemDiffType,
   type LibraryDiffGroup
-} from '../../../shared/itemDiff'
+} from '../../../shared/util/itemDiff'
 import {
   SETTINGS_KEYS,
   readJsonSetting,
   removeSetting,
   writeJsonSetting
-} from '../../../shared/settingsStore'
+} from '../../../shared/config/settingsStore'
 import type { ItemRecord } from '../../../shared/types'
 
 /**

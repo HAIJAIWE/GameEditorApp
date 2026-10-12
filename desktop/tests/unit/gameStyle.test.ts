@@ -15,8 +15,8 @@ import {
   resolveFieldLabel,
   resolveLabel,
   saveGameStyle
-} from '../../src/shared/gameStyle'
-import type { StorageLike } from '../../src/shared/visibleTypes'
+} from '../../src/shared/config/gameStyle'
+import type { StorageLike } from '../../src/shared/config/visibleTypes'
 
 /** 内存假 storage，绝不碰真实 localStorage */
 class FakeStorage implements StorageLike {

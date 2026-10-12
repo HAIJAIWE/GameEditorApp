@@ -5,8 +5,8 @@ import {
   IMAGE_GEN_CONFIG_KEY,
   loadImageGenConfig,
   saveImageGenConfig
-} from '../../src/shared/imageGenConfig'
-import type { StorageLike, StoredImageGenConfig } from '../../src/shared/imageGenConfig'
+} from '../../src/shared/config/imageGenConfig'
+import type { StorageLike, StoredImageGenConfig } from '../../src/shared/config/imageGenConfig'
 
 /** 内存版 StorageLike（Node 下无 localStorage） */
 function fakeStorage(initial: Record<string, string> = {}): StorageLike & { data: Map<string, string> } {

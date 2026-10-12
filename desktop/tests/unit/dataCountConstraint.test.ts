@@ -6,7 +6,7 @@ import {
   exceedsCountConstraint,
   findCountConstraint,
   resolveCountLimit
-} from '../../src/shared/dataCountConstraint'
+} from '../../src/shared/util/dataCountConstraint'
 
 /**
  * 数量约束纯逻辑 —— 对照 PyQt `ui/data_tab.py::DataEditorTab._check_count_constraint`

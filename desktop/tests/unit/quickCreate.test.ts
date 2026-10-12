@@ -7,7 +7,7 @@ import {
   listQuickCreateTemplates,
   listQuickCreateTypes,
   quickCreateTypeLabel
-} from '../../src/shared/quickCreate'
+} from '../../src/shared/util/quickCreate'
 
 describe('quickCreate：模板数据完整性（对齐 Python TEMPLATE_DEFS）', () => {
   it('12 个数据类型', () => {

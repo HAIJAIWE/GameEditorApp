@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
-import { suggestFieldIds, type FieldIdSuggestion, type SuggestFieldIdResult } from '../../../shared/fieldId'
-import { chineseToPinyin, suggestPinyinFieldId } from '../../../shared/pinyinFieldId'
+import { suggestFieldIds, type FieldIdSuggestion, type SuggestFieldIdResult } from '../../../shared/util/fieldId'
+import { chineseToPinyin, suggestPinyinFieldId } from '../../../shared/util/pinyinFieldId'
 import {
   FIELD_ID_AI_ERROR_EMPTY_LABEL,
   FIELD_ID_AI_ERROR_NO_CANDIDATE

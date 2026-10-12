@@ -1,4 +1,4 @@
-import { isPlainObject } from './util/guards'
+import { isPlainObject } from './guards'
 
 /**
  * 数据条目「数量约束」纯逻辑 —— 对齐 PyQt `ui/data_tab.py::DataEditorTab._check_count_constraint`。

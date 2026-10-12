@@ -32,7 +32,7 @@ import {
   saveTheme,
   THEME_OPTIONS,
   type ThemeMode
-} from '../../../shared/settingsPreferences'
+} from '../../../shared/config/settingsPreferences'
 
 /**
  * 设置面板（对齐 Python `ui/dialogs/settings_dialog.py`，菜单入口 `设置 → 打开设置...`）。

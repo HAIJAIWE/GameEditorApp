@@ -15,7 +15,7 @@ import {
   withStepCompleted
 } from '../../src/shared/onboarding'
 import type { OnboardingState } from '../../src/shared/onboarding'
-import type { StorageLike } from '../../src/shared/settingsStore'
+import type { StorageLike } from '../../src/shared/config/settingsStore'
 
 /** 内存假 storage，绝不碰真实 localStorage（与 visibleTypes.test.ts 同款注入模式） */
 class FakeStorage implements StorageLike {

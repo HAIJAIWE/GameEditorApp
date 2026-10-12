@@ -5,7 +5,7 @@ import {
   suggestFieldIds,
   uniquifyFieldId,
   validateFieldId
-} from '../../src/shared/fieldId'
+} from '../../src/shared/util/fieldId'
 import { GAME_TERMS } from '../../src/shared/glossaryTerms'
 
 describe('fieldId：术语表保真（由脚本从 Python AST 提取）', () => {

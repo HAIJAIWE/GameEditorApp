@@ -1,4 +1,4 @@
-import { isPlainObject } from './util/guards'
+import { isPlainObject } from './guards'
 /**
  * 掉落表纯逻辑（匹平 Python src/ui/widgets/drop_table.py 的 DropTableWidget + DropSelectDialog）。
  *

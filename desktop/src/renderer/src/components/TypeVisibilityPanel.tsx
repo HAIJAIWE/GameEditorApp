@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
 import type { DataTypeDef } from '../../../shared/types'
-import { resolveVisibilityResult } from '../../../shared/visibleTypes'
+import { resolveVisibilityResult } from '../../../shared/config/visibleTypes'
 
 /**
  * 显示类型选择面板 —— 迁移自 Python `ui/dialogs/type_visibility_dialog.py`

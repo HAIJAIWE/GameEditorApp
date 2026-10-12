@@ -21,8 +21,8 @@ import {
   THEME_OPTIONS,
   UI_FONT_SCALE_VAR,
   type ThemeMode
-} from '../../src/shared/settingsPreferences'
-import { SETTINGS_KEYS, type StorageLike } from '../../src/shared/settingsStore'
+} from '../../src/shared/config/settingsPreferences'
+import { SETTINGS_KEYS, type StorageLike } from '../../src/shared/config/settingsStore'
 
 /**
  * 设置偏好（字号 / 主题 / 删除时确认）的纯逻辑单测。

@@ -27,7 +27,7 @@ import {
   type StoredLlmConfig
 } from '../../src/shared/llmConfig'
 import { SECRET_NAMES } from '../../src/shared/secretNames'
-import type { StorageLike } from '../../src/shared/settingsStore'
+import type { StorageLike } from '../../src/shared/config/settingsStore'
 
 /** 内存版 StorageLike（测试不碰真 localStorage）；`dump` 必须是 getter 才是实时快照 */
 function memStorage(initial: Record<string, string> = {}): StorageLike & { dump: Record<string, string> } {

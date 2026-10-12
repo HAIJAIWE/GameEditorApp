@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 
-import type { ImageGenConfig } from '../../../shared/imageGen'
-import { loadImageGenConfig, saveImageGenConfig } from '../../../shared/imageGenConfig'
-import type { StoredImageGenConfig, StoredProvider } from '../../../shared/imageGenConfig'
+import type { ImageGenConfig } from '../../../shared/config/imageGen'
+import { loadImageGenConfig, saveImageGenConfig } from '../../../shared/config/imageGenConfig'
+import type { StoredImageGenConfig, StoredProvider } from '../../../shared/config/imageGenConfig'
 import { SECRET_NAMES } from '../../../shared/secretNames'
 import { migrateLegacyApiKey, readLegacyImageGenApiKey } from '../../../shared/secretMigration'
 

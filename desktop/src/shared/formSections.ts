@@ -1,4 +1,4 @@
-import { resolveFieldLabel } from './gameStyle'
+import { resolveFieldLabel } from './config/gameStyle'
 import type { FieldType, TypeFieldDef } from './types'
 
 /**

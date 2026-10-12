@@ -6,10 +6,10 @@ import {
   buildDescPrompt,
   buildImageTagsPrompt
 } from '../../../shared/fieldAiAssist'
-import type { ImageGenConfig } from '../../../shared/imageGen'
-import { loadImageGenConfig } from '../../../shared/imageGenConfig'
+import type { ImageGenConfig } from '../../../shared/config/imageGen'
+import { loadImageGenConfig } from '../../../shared/config/imageGenConfig'
 import { SECRET_NAMES } from '../../../shared/secretNames'
-import { resolveFieldLabel } from '../../../shared/gameStyle'
+import { resolveFieldLabel } from '../../../shared/config/gameStyle'
 import type { AttrSystem } from '../../../shared/attrSystem'
 import type { DataTypeDef, ItemRecord, TypeFieldDef } from '../../../shared/types'
 
