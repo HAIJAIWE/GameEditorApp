@@ -2769,7 +2769,10 @@ button.ref-row:hover {
   align-items: center;
   gap: 4px;
   flex: 1;
-  min-width: 0;
+  /* min-width 必须为正：flex-basis 0 在窄容器（如数字员工面板展开挤压数据编辑器）下
+     会把本列压到 ~2px，公式输入框与 ƒx 按钮溢出列框、被「结果」列盖住 ⇒ ƒx 不可点
+     （attr-formula-builder e2e 实测抓到）。设 min-width 让 flex-wrap 换行而非塌缩。 */
+  min-width: 150px;
 }
 
 .attr-panel-builder-toggle {

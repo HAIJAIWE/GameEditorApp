@@ -13,8 +13,8 @@ import { createDataItem, openCeshuFromHome, openDataEditor, seedCeshu } from './
  * 1. 打开编辑器必须回填原公式真实系数（Python 实测传 `=智力*5` 会显示 `=力量*2+敏捷*1`，点确定即覆盖原公式）；
  * 2. 不可回填的公式必须给出警告且不改动原文（不静默覆盖）。
  *
- * 注：本沙箱 Electron 起不来（`Process failed to launch!`，既有 E2E 同样失败，属环境限制），
- * 本用例按既有模式写就、待 CI 实跑。
+ * 注：2026-10-12 起 e2e 已可在本地实跑（`launchApp` 补 GPU/sandbox 安全参数 + 去
+ * `ELECTRON_RUN_AS_NODE` 泄漏，见 code-quality-assessment.md P1#7），本用例本地全绿。
  */
 test('系数公式编辑器：回填原公式 → 改系数联动 → 应用落盘 → 不可回填时警告且不覆盖', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-formula-builder-e2e-'))
@@ -104,9 +104,27 @@ test('系数公式编辑器：回填原公式 → 改系数联动 → 应用落�
     // 恢复为可回填的公式后保存
     await window.getByTestId('field-attr_list-formula-4').fill('=力量*20+敏捷*5+体质*20')
     await window.getByTestId('item-editor').getByRole('button', { name: '保存' }).click()
-    await expect(window.locator('.notice-banner')).toContainText('已保存')
 
-    // 落盘校验：存储里 HP 行即编辑器产出的式子
+    // 落盘校验：存储里 HP 行即编辑器产出的式子。
+    // ⚠️ 原断言曾等 `.notice-banner` 出现「已保存」，但 `notice` 状态现只服务
+    // 撤销/重做/清空/无类型提示（见 App.tsx 的 setNotice 调用点），保存反馈已不走它
+    // ⇒ 改以「存储真的落盘」为保存成功判据，并用 poll 消除保存 IPC 的竞态。
+    await expect
+      .poll(async () => {
+        const roles = await window.evaluate(async () => {
+          const api = (
+            globalThis as unknown as {
+              mbApi: { data: { listItems: (req: { type: string }) => Promise<unknown> } }
+            }
+          ).mbApi
+          return api.data.listItems({ type: 'role' })
+        })
+        const stored = (roles as Array<{ data: Record<string, unknown> }>)[0]
+        const attrList = stored?.data['attr_list'] as Array<Record<string, unknown>>
+        return attrList?.find((row) => row['name'] === 'HP')?.['formula']
+      })
+      .toBe('=力量*20+敏捷*5+体质*20')
+
     const roles = await window.evaluate(async () => {
       const api = (
         globalThis as unknown as {
