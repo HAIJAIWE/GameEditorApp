@@ -10,8 +10,8 @@ import {
   serializeKeywordTemplates,
   templateTextFor,
   withTemplateText
-} from '../../../shared/keywordTemplates'
-import type { KeywordTemplates, KeywordTemplateType } from '../../../shared/keywordTemplates'
+} from '../../../shared/config/keywordTemplates'
+import type { KeywordTemplates, KeywordTemplateType } from '../../../shared/config/keywordTemplates'
 import { readSetting, writeSetting } from '../../../shared/config/settingsStore'
 
 /**

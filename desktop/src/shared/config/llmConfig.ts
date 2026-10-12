@@ -4,7 +4,7 @@ import {
   readSetting,
   writeJsonSetting,
   type StorageLike
-} from './config/settingsStore'
+} from './settingsStore'
 import {
   FALLBACK_LLM_PROVIDER,
   LLM_PROVIDER_PRESETS,
@@ -39,8 +39,8 @@ import {
   type LlmTier,
   type LlmSetupState,
   type LlmSetupGuide
-} from './config/llmConfigData'
-export * from './config/llmConfigData'
+} from './llmConfigData'
+export * from './llmConfigData'
 
 /**
  * LLM 服务商配置（对齐 Python `src/ui/dialogs/api_config.py` 的「基础设置」页 +

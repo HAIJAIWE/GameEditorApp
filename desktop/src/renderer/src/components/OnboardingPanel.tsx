@@ -14,7 +14,7 @@ import {
   withDismissed,
   withStepCompleted,
   type OnboardingState
-} from '../../../shared/onboarding'
+} from '../../../shared/config/onboarding'
 import type { DataTypeDef, ItemRecord } from '../../../shared/types'
 import { toErrorMessage } from '../../../shared/util/errors'
 

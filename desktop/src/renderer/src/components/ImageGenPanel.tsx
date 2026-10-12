@@ -3,8 +3,8 @@ import { useCallback, useEffect, useState } from 'react'
 import type { ImageGenConfig } from '../../../shared/config/imageGen'
 import { loadImageGenConfig, saveImageGenConfig } from '../../../shared/config/imageGenConfig'
 import type { StoredImageGenConfig, StoredProvider } from '../../../shared/config/imageGenConfig'
-import { SECRET_NAMES } from '../../../shared/secretNames'
-import { migrateLegacyApiKey, readLegacyImageGenApiKey } from '../../../shared/secretMigration'
+import { SECRET_NAMES } from '../../../shared/config/secretNames'
+import { migrateLegacyApiKey, readLegacyImageGenApiKey } from '../../../shared/config/secretMigration'
 
 /**
  * AI 生图面板（对应 Python `features/_ai_image.py` 的 UI 层）。

@@ -4,7 +4,7 @@ import { AgentBrainService } from '../../src/main/agent/brainService'
 import { SkillDispatcher } from '../../src/main/agent/dispatcher'
 import type { BrainLlmRequest, BrainLlmTransport } from '../../src/shared/agent/brain'
 import type { SkillProtocol } from '../../src/shared/agent/protocol'
-import { DEFAULT_LLM_CONFIG, type StoredLlmConfig } from '../../src/shared/llmConfig'
+import { DEFAULT_LLM_CONFIG, type StoredLlmConfig } from '../../src/shared/config/llmConfig'
 
 /**
  * M3 档位路由的**装配层**集成测试（brainService）。

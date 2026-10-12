@@ -23,7 +23,7 @@
 import { fixParams, isSkillInteraction, type SkillExecutionContext, type SkillInteraction } from './protocol'
 import { buildAssistantMessage, buildToolMessage, fallbackAnswer, formatToolResult, terminationDetail, type BrainLlmReply, type BrainLlmTransport, type BrainMessage, type BrainToolRunner } from './brainMessages'
 export * from './brainMessages'
-import type { LlmUsage } from '../llmConfig'
+import type { LlmUsage } from '../config/llmConfig'
 import {
   accumulateTurn,
   type AgentRunStats,

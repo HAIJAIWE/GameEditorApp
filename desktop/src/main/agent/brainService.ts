@@ -34,7 +34,7 @@ import {
   type SkillExecutionContext
 } from '../../shared/agent/protocol'
 import { buildToolFace } from '../../shared/agent/toolGroups'
-import type { StoredLlmConfig } from '../../shared/llmConfig'
+import type { StoredLlmConfig } from '../../shared/config/llmConfig'
 import type { AgentMemoryStore } from './memoryStore'
 import type { PreferenceStore } from './preferenceStore'
 import type { SkillDispatcher } from './dispatcher'

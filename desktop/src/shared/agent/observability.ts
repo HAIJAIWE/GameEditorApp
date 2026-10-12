@@ -12,7 +12,7 @@
  * 循环单测不必为观测写桩，观测单测也不必拉起整个循环。
  */
 
-import type { LlmUsage } from '../llmConfig'
+import type { LlmUsage } from '../config/llmConfig'
 
 /**
  * 档位（M1 记录值）。

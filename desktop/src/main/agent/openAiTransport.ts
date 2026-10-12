@@ -27,7 +27,7 @@
  *   若把 `toJsonSchema()` 的内层对象直接透传，OpenAI 兼容端点会回
  *   `400 InvalidParameter: input.tools.0.type must be one of ['function']`（线上实测）。
  */
-import { LLM_MESSAGES, type LlmUsage } from '../../shared/llmConfig'
+import { LLM_MESSAGES, type LlmUsage } from '../../shared/config/llmConfig'
 import {
   parseToolArguments,
   type BrainLlmReply,

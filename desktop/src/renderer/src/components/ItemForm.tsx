@@ -8,7 +8,7 @@ import {
 } from '../../../shared/util/fieldAiAssist'
 import type { ImageGenConfig } from '../../../shared/config/imageGen'
 import { loadImageGenConfig } from '../../../shared/config/imageGenConfig'
-import { SECRET_NAMES } from '../../../shared/secretNames'
+import { SECRET_NAMES } from '../../../shared/config/secretNames'
 import { resolveFieldLabel } from '../../../shared/config/gameStyle'
 import type { AttrSystem } from '../../../shared/attrSystem'
 import type { DataTypeDef, ItemRecord, TypeFieldDef } from '../../../shared/types'

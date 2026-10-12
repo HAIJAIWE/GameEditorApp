@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { OllamaChatTransport } from '../../src/main/agent/ollamaTransport'
-import { LLM_DEFAULT_NUM_CTX } from '../../src/shared/llmConfig'
+import { LLM_DEFAULT_NUM_CTX } from '../../src/shared/config/llmConfig'
 
 /**
  * M1 观测：Ollama 传输层的 token 用量回报。

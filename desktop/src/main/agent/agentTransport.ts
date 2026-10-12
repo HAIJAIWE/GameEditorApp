@@ -18,7 +18,7 @@ import {
   resolveLlmBaseUrl,
   resolveLlmTier,
   type StoredLlmConfig
-} from '../../shared/llmConfig'
+} from '../../shared/config/llmConfig'
 import type { AgentRunTier } from '../../shared/agent/observability'
 import type { BrainLlmTransport } from '../../shared/agent/brain'
 import { OllamaChatTransport } from './ollamaTransport'

@@ -16,8 +16,8 @@ import {
   type LlmProvider,
   type LlmSetupGuide,
   type StoredLlmConfig
-} from '../../../shared/llmConfig'
-import { SECRET_NAMES } from '../../../shared/secretNames'
+} from '../../../shared/config/llmConfig'
+import { SECRET_NAMES } from '../../../shared/config/secretNames'
 import {
   applyFontSize,
   applyTheme,

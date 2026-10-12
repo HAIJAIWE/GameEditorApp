@@ -4,7 +4,7 @@
  */
 
 import type { SkillExecutionContext, SkillResult } from './protocol'
-import type { LlmUsage } from '../llmConfig'
+import type { LlmUsage } from '../config/llmConfig'
 
 /* ---- 消息与传输层 ---- */
 

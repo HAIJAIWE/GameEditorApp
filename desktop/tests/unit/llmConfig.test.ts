@@ -25,8 +25,8 @@ import {
   saveLlmConfig,
   validateLlmConfig,
   type StoredLlmConfig
-} from '../../src/shared/llmConfig'
-import { SECRET_NAMES } from '../../src/shared/secretNames'
+} from '../../src/shared/config/llmConfig'
+import { SECRET_NAMES } from '../../src/shared/config/secretNames'
 import type { StorageLike } from '../../src/shared/config/settingsStore'
 
 /** 内存版 StorageLike（测试不碰真 localStorage）；`dump` 必须是 getter 才是实时快照 */

@@ -10,7 +10,7 @@ import {
   type LlmProvider,
   type LlmUsage,
   type StoredLlmConfig
-} from '../../shared/llmConfig'
+} from '../../shared/config/llmConfig'
 
 /**
  * LLM 客户端。

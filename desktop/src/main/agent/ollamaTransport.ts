@@ -22,7 +22,7 @@
  * `LLM_DEFAULT_NUM_CTX`（16384）覆盖 Ollama 的 4096 默认，让多轮工具任务不被 4K 窗口截断。
  */
 
-import { LLM_DEFAULT_NUM_CTX, LLM_MESSAGES, type LlmUsage } from '../../shared/llmConfig'
+import { LLM_DEFAULT_NUM_CTX, LLM_MESSAGES, type LlmUsage } from '../../shared/config/llmConfig'
 import {
   parseToolArguments,
   type BrainLlmReply,

@@ -4,9 +4,9 @@ import {
   migrateLegacyApiKey,
   readLegacyImageGenApiKey,
   stripLegacyImageGenApiKey
-} from '../../src/shared/secretMigration'
+} from '../../src/shared/config/secretMigration'
 import { IMAGE_GEN_CONFIG_KEY } from '../../src/shared/config/imageGenConfig'
-import { SECRET_NAMES } from '../../src/shared/secretNames'
+import { SECRET_NAMES } from '../../src/shared/config/secretNames'
 import type { StorageLike } from '../../src/shared/config/settingsStore'
 
 /** 内存版 StorageLike（Node 下无 localStorage） */

@@ -18,7 +18,7 @@
  * 使半损坏的状态也能安全恢复，而不是整块丢弃。
  */
 
-import { readJsonSetting, removeSetting, writeJsonSetting, type StorageLike } from './config/settingsStore'
+import { readJsonSetting, removeSetting, writeJsonSetting, type StorageLike } from './settingsStore'
 
 /** 单张引导步骤卡 */
 export interface OnboardingStep {
