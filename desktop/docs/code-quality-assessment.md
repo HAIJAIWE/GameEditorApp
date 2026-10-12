@@ -48,6 +48,12 @@
 
 ### 缺口（执行只落地了一部分）
 
+> **2026-10-12 更新（归区批次 2a–2g，`cd78e02`…`741f2f1`）**：本节原描述的「61 个平铺 +
+> 无 lint 覆盖」已大幅缓解——根目录平铺 61 → 28 个（17 个定案留根，理由见
+> `shared/README.md` §4.1）；`domain/`（ceshu 14 + attr 6）、`config/`（14）、`util/`（32）
+> 均已有真实文件，规则 1/3 实际生效；`shared` 层占比随迁入分区下降。
+> 下文为当时的取证记录，保留作历史对照。
+
 - **分层只归区了 3 个文件，61 个仍在根目录平铺**。
   `src/shared/README.md:110-115` 自己承认这个盲区：
 
@@ -221,7 +227,7 @@ runtime 15 / dev 19，全部在用；有 `lint` / `typecheck` / `test` / `test:e
 | # | 事项 | 说明 |
 |---|---|---|
 | 4 | **补覆盖率基线** | ✅ **已完成（`a03f43f`）**：Statements 94.02% / Branches 83.88% / Functions 96.24%；分层 `shared` 95.8% > `main` 91.0% ≫ `renderer` ≈0%；暂不设门禁，薄弱点 `pdf.ts` 0% / `brainService.ts` 48% / `export/common.ts` 62% |
-| 5 | **推进 shared 归区** | 按 `shared/README.md` §4 的优先级：先迁「被其它域 import 的」（如 `ceshuModel` / `ceshuConstants`），让 lint 真正接管。当前 61 个平铺文件全靠 code review |
+| 5 | **推进 shared 归区** | ✅ **已完成（2a–2g，`cd78e02`…`741f2f1`）**：分批迁移 + 每批四门验证（tsc 5/6、eslint 0、vitest 2010/1）。根目录平铺 **61 → 28 个**，其中 17 个为 rule 4 倒逼的定案留根（README §4.1）。规则 1/3 从「预挂/不存在」变为对 domain/ceshu(14) + domain/attr(6) + config(14) + util(32) 真实生效；2a 批顺带清掉 cd78e02 遗留的 12 条 rule 4 违规（main 对 domain/ceshu 的 import 归零）；2e 批解掉 references/relationGraph 对 ceshuModel 的最后依赖 |
 | 6 | **收敛 `readText` / `isPlainObject` / `defaultStorage` 的多处定义** | ✅ **已完成（`2195481`）**：16 处私有副本全收敛——`isPlainObject`(5) → 既有 `shared/util/guards.ts`；`readText`(7) → 新增 `shared/util/readText.ts`；`defaultStorage`(4) → `settingsStore.ts` 增设 canonical（紧邻 `defaultSettingsStorage()`）。均字节一致、纯机械替换，vitest 2011/1 基线不变 |
 | 7 | **让 e2e 至少能本地 smoke** | 或明确「只跑核心 2-3 条」。当前完全不可本地验证，是 32 处断言过期长期不被发现的直接原因 |
 
