@@ -8,11 +8,11 @@ import {
   type ChapterData,
   type ChapterKey,
   type GddScope
-} from './ceshuConstants'
+} from '../ceshuConstants'
 import type { LlmUsage } from '../llmConfig'
 import { CESHU_CHAPTER_FIELDS } from '../domain/ceshu/ceshuFields'
 import type { QualityGateVerdict } from '../agent/qualityGate'
-import { isPlainObject } from './ceshuModel'
+import { isPlainObject } from '../ceshuModel'
 import { readText } from '../util/readText'
 import { parseLlmJson } from '../util/parseLlmJson'
 import {

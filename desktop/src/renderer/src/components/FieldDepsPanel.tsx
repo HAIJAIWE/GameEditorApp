@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-import { CHAPTER_LABELS, type ChapterKey } from '../../../shared/ceshu/ceshuConstants'
+import { CHAPTER_LABELS, type ChapterKey } from '../../../shared/ceshuConstants'
 import {
   DEP_TYPE_LABELS,
   STATUS_META as DEP_STATUS_META,

@@ -24,7 +24,7 @@ import {
   type CeshuExportFormat,
   type ChapterKey,
   type GddScope
-} from '../../../shared/ceshu/ceshuConstants'
+} from '../../../shared/ceshuConstants'
 import type { SkillExecutionContext, SkillProtocol, SkillResult } from '../../../shared/agent/protocol'
 import type { CeshuManager } from '../../ceshu/manager'
 

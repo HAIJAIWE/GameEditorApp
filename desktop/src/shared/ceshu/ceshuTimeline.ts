@@ -1,4 +1,4 @@
-import type { CeshuSummary } from './ceshuConstants'
+import type { CeshuSummary } from '../ceshuConstants'
 
 /**
  * 版本时间线纯逻辑（自 Python `ui/ceshu/version_timeline_dialog.py` 匹平迁移）：

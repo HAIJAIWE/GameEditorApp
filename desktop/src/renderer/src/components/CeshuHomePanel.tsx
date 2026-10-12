@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 
-import type { CeshuSummary } from '../../../shared/ceshu/ceshuConstants'
+import type { CeshuSummary } from '../../../shared/ceshuConstants'
 import {
   RECENT_LIMIT,
   buildCeshuCards,

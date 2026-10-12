@@ -6,8 +6,8 @@ import {
   type ChapterData,
   type ChapterKey,
   type GddScope
-} from '../../../shared/ceshu/ceshuConstants'
-import { isPlainObject } from '../../../shared/ceshu/ceshuModel'
+} from '../../../shared/ceshuConstants'
+import { isPlainObject } from '../../../shared/ceshuModel'
 
 /**
  * 导出器公用工具（自 Python ceshu_export_common.py 匹平迁移）。

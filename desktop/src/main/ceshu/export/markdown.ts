@@ -1,6 +1,6 @@
-import { CHAPTER_LABELS, type CeshuDocument } from '../../../shared/ceshu/ceshuConstants'
-import { formatLocalTimestamp, getGddScope } from '../../../shared/ceshu/ceshuModel'
-import { validateCeshu } from '../../../shared/ceshu/ceshuValidation'
+import { CHAPTER_LABELS, type CeshuDocument } from '../../../shared/ceshuConstants'
+import { formatLocalTimestamp, getGddScope } from '../../../shared/ceshuModel'
+import { validateCeshu } from '../../../shared/ceshuValidation'
 
 import {
   EMPTY_PLACEHOLDER,

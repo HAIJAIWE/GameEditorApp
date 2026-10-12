@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-import { CHAPTER_KEYS, CHAPTER_LABELS, type CeshuDocument, type ChapterKey } from '../../../shared/ceshu/ceshuConstants'
+import { CHAPTER_KEYS, CHAPTER_LABELS, type CeshuDocument, type ChapterKey } from '../../../shared/ceshuConstants'
 import {
   TEMPLATE_NAME_REQUIRED_ERROR,
   filterCustomTemplates,
@@ -8,7 +8,7 @@ import {
   parseTemplateTagsInput,
   type CeshuCustomTemplate
 } from '../../../shared/ceshu/ceshuCustomTemplates'
-import { isPlainObject } from '../../../shared/ceshu/ceshuModel'
+import { isPlainObject } from '../../../shared/ceshuModel'
 import {
   listChapterTemplates,
   mergeTemplateByMode,

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { CHAPTER_KEYS, type CeshuDocument } from '../../src/shared/ceshu/ceshuConstants'
-import { createDefaultCeshu } from '../../src/shared/ceshu/ceshuModel'
+import { CHAPTER_KEYS, type CeshuDocument } from '../../src/shared/ceshuConstants'
+import { createDefaultCeshu } from '../../src/shared/ceshuModel'
 import {
   CHAPTER_WORD_BENCHMARK,
   INDUSTRY_BENCHMARKS,

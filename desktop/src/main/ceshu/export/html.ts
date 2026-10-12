@@ -1,5 +1,5 @@
-import { CHAPTER_LABELS, type CeshuDocument } from '../../../shared/ceshu/ceshuConstants'
-import { computeChapterProgress, formatLocalTimestamp, getGddScope } from '../../../shared/ceshu/ceshuModel'
+import { CHAPTER_LABELS, type CeshuDocument } from '../../../shared/ceshuConstants'
+import { computeChapterProgress, formatLocalTimestamp, getGddScope } from '../../../shared/ceshuModel'
 
 import {
   EMPTY_PLACEHOLDER,

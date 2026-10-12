@@ -8,7 +8,7 @@ import {
 } from './ceshuConstants'
 import { normalizeValue } from './ceshuDiff'
 import { getGddScope, isEmptyRequiredValue, isPlainObject } from './ceshuModel'
-import { readText } from '../util/readText'
+import { readText } from './util/readText'
 
 /**
  * 策划书数据完整性校验（自 Python ceshu_validation.py 匹平迁移）。

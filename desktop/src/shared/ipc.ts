@@ -84,12 +84,12 @@ import type {
   ItemRecord,
   TypeFieldDef
 } from './types'
-import type { CeshuDocument, CeshuExportResult, CeshuSummary } from './ceshu/ceshuConstants'
+import type { CeshuDocument, CeshuExportResult, CeshuSummary } from './ceshuConstants'
 import type { BrainEvent } from './agent/brain'
 import type { AgentRunStats } from './agent/observability'
 import type { DraftSummary, SessionInfo } from './agent/session'
 import type { JsonObjectSchema, SkillResult } from './agent/protocol'
-import type { CeshuChangelog, CeshuVersionDiff } from './ceshu/ceshuDiff'
+import type { CeshuChangelog, CeshuVersionDiff } from './ceshuDiff'
 import type { CeshuScoreReport } from './ceshu/ceshuScorer'
 import type { ChecklistReport } from './ceshu/ceshuChecklist'
 import type { CeshuNote } from './ceshu/ceshuNotes'

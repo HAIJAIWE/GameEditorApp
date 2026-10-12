@@ -1,5 +1,5 @@
-import { CHAPTER_KEYS, CHAPTER_LABELS } from './ceshuConstants'
-import type { CeshuChangelog } from './ceshuDiff'
+import { CHAPTER_KEYS, CHAPTER_LABELS } from '../ceshuConstants'
+import type { CeshuChangelog } from '../ceshuDiff'
 
 /**
  * 策划书报告渲染纯逻辑（渲染层生成文本 → 主进程原子写盘）。

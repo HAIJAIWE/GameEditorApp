@@ -1,6 +1,6 @@
 import type { DataQualityVerdict } from '../agent/qualityGate'
-import { isPlainObject } from './ceshuModel'
-import type { CeshuDocument } from './ceshuConstants'
+import { isPlainObject } from '../ceshuModel'
+import type { CeshuDocument } from '../ceshuConstants'
 import type { DataTypeDef } from '../types'
 import type { LlmUsage } from '../llmConfig'
 

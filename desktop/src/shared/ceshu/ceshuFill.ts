@@ -1,5 +1,5 @@
-import type { CeshuDocument } from './ceshuConstants'
-import { isFilledValue } from './ceshuModel'
+import type { CeshuDocument } from '../ceshuConstants'
+import { isFilledValue } from '../ceshuModel'
 import { readText } from '../util/readText'
 
 /**

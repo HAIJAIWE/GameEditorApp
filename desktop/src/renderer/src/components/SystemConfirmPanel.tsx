@@ -7,7 +7,7 @@ import {
 import {
   type CeshuDocument,
   type SystemEntry
-} from '../../../shared/ceshu/ceshuConstants'
+} from '../../../shared/ceshuConstants'
 import { SYSTEM_CONFIG_SCHEMA } from '../../../shared/systemConfigSchema'
 
 interface SystemConfirmPanelProps {

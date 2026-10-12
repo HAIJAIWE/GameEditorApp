@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import type { CeshuDocument } from '../../src/shared/ceshu/ceshuConstants'
+import type { CeshuDocument } from '../../src/shared/ceshuConstants'
 import {
   ALL_CATEGORIES,
   CATEGORY_DESIGN,
@@ -19,7 +19,7 @@ import {
   runChecklist,
   type ChecklistReport
 } from '../../src/shared/ceshu/ceshuChecklist'
-import { createDefaultCeshu } from '../../src/shared/ceshu/ceshuModel'
+import { createDefaultCeshu } from '../../src/shared/ceshuModel'
 
 function makeDoc(name = '清单测试'): CeshuDocument {
   return createDefaultCeshu({ scope: 'full', name })

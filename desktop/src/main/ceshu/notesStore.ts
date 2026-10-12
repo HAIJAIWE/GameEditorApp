@@ -1,7 +1,7 @@
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { formatLocalTimestamp } from '../../shared/ceshu/ceshuModel'
+import { formatLocalTimestamp } from '../../shared/ceshuModel'
 import {
   createNote,
   deleteNoteIn,

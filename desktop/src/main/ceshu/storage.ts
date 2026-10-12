@@ -1,8 +1,8 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import type { CeshuDocument } from '../../shared/ceshu/ceshuConstants'
-import { normalizeCeshu } from '../../shared/ceshu/ceshuModel'
+import type { CeshuDocument } from '../../shared/ceshuConstants'
+import { normalizeCeshu } from '../../shared/ceshuModel'
 
 /**
  * 策划书存储：每份策划书一个独立 JSON 文件（与 Python 版 data/libraries/<库>/ceshu/<id>.json 格式兼容）。

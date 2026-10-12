@@ -9,7 +9,7 @@
  *    `meta.get("game_name", "未命名")`，键存在但为空串时会产出「 (副本)」这种空名怪值。
  */
 
-import type { CeshuSummary } from './ceshuConstants'
+import type { CeshuSummary } from '../ceshuConstants'
 
 /** 策划书状态标签（对齐 Python `CeshuCard.STATUS_LABELS`） */
 export const CESHU_STATUS_LABELS: Record<string, string> = {

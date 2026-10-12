@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 
-import { SYSTEM_LABELS, type CeshuDocument } from '../../../shared/ceshu/ceshuConstants'
+import { SYSTEM_LABELS, type CeshuDocument } from '../../../shared/ceshuConstants'
 import {
   HYBRID_GAMEPLAY_PRESETS,
   PRESET_KEYS,

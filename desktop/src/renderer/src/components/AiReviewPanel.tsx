@@ -6,7 +6,7 @@ import {
   REVIEW_DIMENSION_LABELS,
   type CeshuAiReviewResult
 } from '../../../shared/ceshu/ceshuAi'
-import { formatLocalTimestamp } from '../../../shared/ceshu/ceshuModel'
+import { formatLocalTimestamp } from '../../../shared/ceshuModel'
 
 /**
  * AI 智能审阅面板（对应 Python AIReviewDialog）：

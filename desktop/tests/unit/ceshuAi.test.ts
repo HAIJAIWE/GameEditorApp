@@ -19,8 +19,8 @@ import {
   type CeshuAiReviewResult
 } from '../../src/shared/ceshu/ceshuAi'
 import { parseLlmJson } from '../../src/shared/util/parseLlmJson'
-import { CHAPTER_KEYS } from '../../src/shared/ceshu/ceshuConstants'
-import { createDefaultCeshu } from '../../src/shared/ceshu/ceshuModel'
+import { CHAPTER_KEYS } from '../../src/shared/ceshuConstants'
+import { createDefaultCeshu } from '../../src/shared/ceshuModel'
 
 describe('AI 结构化审阅（匹平 Python _ai_review + AIReviewDialog）', () => {
   it('章节摘要：仅标量真值、【标签】+ key: value、每值截断 60 字', () => {

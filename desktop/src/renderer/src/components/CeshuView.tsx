@@ -9,15 +9,15 @@ import {
   type CeshuExportFormat,
   type ChapterData,
   type ChapterKey
-} from '../../../shared/ceshu/ceshuConstants'
+} from '../../../shared/ceshuConstants'
 import {
   computeChapterProgress,
   computeEnabledEditors,
   formatLocalTimestamp,
   getGddScope,
   resolveDocGameStyle
-} from '../../../shared/ceshu/ceshuModel'
-import type { CeshuChangelog } from '../../../shared/ceshu/ceshuDiff'
+} from '../../../shared/ceshuModel'
+import type { CeshuChangelog } from '../../../shared/ceshuDiff'
 import {
   buildChangelogHtml,
   buildChangelogMarkdown,

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 
-import type { CeshuSummary } from '../../shared/ceshu/ceshuConstants'
+import type { CeshuSummary } from '../../shared/ceshuConstants'
 import { loadGameStyle, normalizeGameStyleId, saveGameStyle } from '../../shared/config/gameStyle'
 import type { AppInfo, DataTypeDef } from '../../shared/types'
 import { applyTheme, loadTheme, saveTheme, type ThemeMode } from '../../shared/config/theme'

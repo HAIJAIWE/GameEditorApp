@@ -1,4 +1,4 @@
-import type { SystemConfigFieldDef } from './ceshu/ceshuConstants'
+import type { SystemConfigFieldDef } from './ceshuConstants'
 import * as OPT from './ceshu/ceshuOptionLabels'
 
 /**

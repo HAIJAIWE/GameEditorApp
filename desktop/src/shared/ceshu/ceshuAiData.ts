@@ -5,7 +5,7 @@
  * 纯数据 / 常量，无求值逻辑；逻辑层 ceshuAi.ts 导入此处常量并 re-export 公共 API。
  */
 
-import type { ChapterKey } from './ceshuConstants'
+import type { ChapterKey } from '../ceshuConstants'
 
 /* ---- 子智能体路由（匹平 Python AgentRouter，文档信息 + 16 章完整映射） ---- */
 

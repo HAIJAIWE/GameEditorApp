@@ -6,7 +6,7 @@ import {
   type CeshuDocument,
   type CeshuExportFormat,
   type CeshuExportResult
-} from '../../../shared/ceshu/ceshuConstants'
+} from '../../../shared/ceshuConstants'
 
 import { renderCeshuDocx } from './docx'
 import { renderCeshuExcel } from './excel'

@@ -1,8 +1,8 @@
 import { useState } from 'react'
 
-import { CHAPTER_LABELS, type CeshuFieldDef, type ChapterData, type ChapterKey } from '../../../shared/ceshu/ceshuConstants'
+import { CHAPTER_LABELS, type CeshuFieldDef, type ChapterData, type ChapterKey } from '../../../shared/ceshuConstants'
 import type { CeshuAiGenerateResult } from '../../../shared/ceshu/ceshuAi'
-import { isPlainObject } from '../../../shared/ceshu/ceshuModel'
+import { isPlainObject } from '../../../shared/ceshuModel'
 import { CESHU_CHAPTER_FIELDS } from '../../../shared/domain/ceshu/ceshuFields'
 
 import {

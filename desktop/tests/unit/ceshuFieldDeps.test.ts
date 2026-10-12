@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { CHAPTER_KEYS, isChapterKey, type CeshuDocument, type ChapterKey } from '../../src/shared/ceshu/ceshuConstants'
-import { createDefaultCeshu } from '../../src/shared/ceshu/ceshuModel'
+import { CHAPTER_KEYS, isChapterKey, type CeshuDocument, type ChapterKey } from '../../src/shared/ceshuConstants'
+import { createDefaultCeshu } from '../../src/shared/ceshuModel'
 import {
   DEP_TYPE_CONSISTENCY,
   DEP_TYPE_DERIVED,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { createDefaultCeshu } from '../../src/shared/ceshu/ceshuModel'
+import { createDefaultCeshu } from '../../src/shared/ceshuModel'
 import {
   HYBRID_GAMEPLAY_PRESETS,
   PRESET_KEYS,

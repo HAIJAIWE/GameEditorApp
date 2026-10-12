@@ -1,4 +1,4 @@
-import { isPlainObject } from './ceshu/ceshuModel'
+import { isPlainObject } from './ceshuModel'
 import type { DataTypeDef, ItemRecord } from './types'
 
 /**
