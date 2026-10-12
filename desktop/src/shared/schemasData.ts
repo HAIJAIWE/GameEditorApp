@@ -6,7 +6,7 @@
 import { z } from 'zod'
 
 import { ATTR_TYPES } from './attrSystem'
-import { CESHU_EXPORT_FORMATS } from './ceschu/ceshuConstants'
+import { CESHU_EXPORT_FORMATS } from './ceshu/ceshuConstants'
 import { ADJUST_MODES, BATCH_OP_KINDS } from './dataTableOps'
 import { FIELD_TYPES } from './typeSchemaFile'
 import type { FieldType } from './types'

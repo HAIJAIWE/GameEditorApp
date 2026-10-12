@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { createDefaultCeshu, normalizeCeshu } from '../../src/shared/ceschu/ceshuModel'
+import { createDefaultCeshu, normalizeCeshu } from '../../src/shared/ceshu/ceshuModel'
 import {
   V5_NEW_CHAPTER_KEYS,
   migrateV4ToV5,
   needsV4Migration
-} from '../../src/shared/ceschu/ceshuMigration'
+} from '../../src/shared/ceshu/ceshuMigration'
 
 /** 一份典型的 v4.0（9 章）旧策划书 */
 function makeV4Raw(): Record<string, unknown> {

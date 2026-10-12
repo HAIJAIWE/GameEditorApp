@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-import type { CeshuDocument } from '../../../shared/ceschu/ceshuConstants'
+import type { CeshuDocument } from '../../../shared/ceshu/ceshuConstants'
 import {
   ALL_CATEGORIES,
   STATUS_META,
@@ -8,8 +8,8 @@ import {
   getChecklistItemsByCategory,
   type ChecklistReport,
   type ChecklistStatus
-} from '../../../shared/ceschu/ceshuChecklist'
-import { formatLocalTimestamp } from '../../../shared/ceschu/ceshuModel'
+} from '../../../shared/ceshu/ceshuChecklist'
+import { formatLocalTimestamp } from '../../../shared/ceshu/ceshuModel'
 import { toErrorMessage } from '../../../shared/util/errors'
 
 /**

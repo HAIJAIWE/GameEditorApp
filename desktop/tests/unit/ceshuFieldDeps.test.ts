@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { CHAPTER_KEYS, isChapterKey, type CeshuDocument, type ChapterKey } from '../../src/shared/ceschu/ceshuConstants'
-import { createDefaultCeshu } from '../../src/shared/ceschu/ceshuModel'
+import { CHAPTER_KEYS, isChapterKey, type CeshuDocument, type ChapterKey } from '../../src/shared/ceshu/ceshuConstants'
+import { createDefaultCeshu } from '../../src/shared/ceshu/ceshuModel'
 import {
   DEP_TYPE_CONSISTENCY,
   DEP_TYPE_DERIVED,
@@ -22,7 +22,7 @@ import {
   valuesConsistent,
   type FieldDependency,
   type FieldDependencyStatus
-} from '../../src/shared/ceschu/ceshuFieldDeps'
+} from '../../src/shared/ceshu/ceshuFieldDeps'
 
 function makeDoc(scope: 'full' | 'lite' = 'full'): CeshuDocument {
   return createDefaultCeshu({ scope })

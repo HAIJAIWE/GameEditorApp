@@ -30,7 +30,7 @@ import {
   templatesSaveInputSchema,
   templatesUpdateInputSchema
 } from '../../shared/schemas'
-import { isChapterKey, type SystemEntry } from '../../shared/ceschu/ceshuConstants'
+import { isChapterKey, type SystemEntry } from '../../shared/ceshu/ceshuConstants'
 import { llmConfirmReason } from '../../shared/agent/protocol'
 import { estimateTokens } from '../../shared/agent/budget'
 import { applyJudge, evaluateChapterDraft, evaluateDataCandidates } from '../../shared/agent/qualityGate'
@@ -42,7 +42,7 @@ import {
   mergeChapterDraft,
   parseLlmJson,
   parseReviewResponse
-} from '../../shared/ceschu/ceshuAi'
+} from '../../shared/ceshu/ceshuAi'
 import {
   DATA_GEN_ERROR_EMPTY,
   DATA_GEN_ERROR_NO_TYPE,
@@ -52,15 +52,15 @@ import {
   clampDataGenCount,
   normalizeDataGenCandidates,
   resolveSelectedDataTypes
-} from '../../shared/ceschu/ceshuDataGen'
-import { runChecklist } from '../../shared/ceschu/ceshuChecklist'
-import { buildVersionDiff } from '../../shared/ceschu/ceshuDiff'
-import { buildFieldDepsReport } from '../../shared/ceschu/ceshuFieldDeps'
-import { computeChapterProgress } from '../../shared/ceschu/ceshuModel'
-import { buildSystemConfirmResult } from '../../shared/ceschu/ceshuSystemConfirm'
-import { scoreCeshu } from '../../shared/ceschu/ceshuScorer'
-import { validateCeshu } from '../../shared/ceschu/ceshuValidation'
-import { buildWordStatsReport } from '../../shared/ceschu/ceshuWordStats'
+} from '../../shared/ceshu/ceshuDataGen'
+import { runChecklist } from '../../shared/ceshu/ceshuChecklist'
+import { buildVersionDiff } from '../../shared/ceshu/ceshuDiff'
+import { buildFieldDepsReport } from '../../shared/ceshu/ceshuFieldDeps'
+import { computeChapterProgress } from '../../shared/ceshu/ceshuModel'
+import { buildSystemConfirmResult } from '../../shared/ceshu/ceshuSystemConfirm'
+import { scoreCeshu } from '../../shared/ceshu/ceshuScorer'
+import { validateCeshu } from '../../shared/ceshu/ceshuValidation'
+import { buildWordStatsReport } from '../../shared/ceshu/ceshuWordStats'
 import { exportCeshuDocument } from '../ceshu/export/exporter'
 import { exportTextReportFile } from '../ceshu/reportExport'
 

@@ -7,7 +7,7 @@ import {
   engineExportFileDialogInputSchema,
   templateJsonDialogInputSchema
 } from '../../shared/schemas'
-import { CESHU_FORMAT_EXTENSIONS, CESHU_FORMAT_LABELS } from '../../shared/ceschu/ceshuConstants'
+import { CESHU_FORMAT_EXTENSIONS, CESHU_FORMAT_LABELS } from '../../shared/ceshu/ceshuConstants'
 import { buildImagePreviewDataUrl } from '../../shared/imagePreview'
 import { log } from '../../shared/logger'
 import { ENGINE_EXTENSIONS as ENGINE_KIND_EXTENSIONS, ENGINE_LABELS as ENGINE_KIND_LABELS } from '../engineExport/engines'

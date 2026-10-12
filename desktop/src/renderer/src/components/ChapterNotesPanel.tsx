@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
-import { CHAPTER_KEYS, CHAPTER_LABELS, type ChapterKey } from '../../../shared/ceschu/ceshuConstants'
-import { countNotesByChapter, filterNotes, notePreview, type CeshuNote } from '../../../shared/ceschu/ceshuNotes'
+import { CHAPTER_KEYS, CHAPTER_LABELS, type ChapterKey } from '../../../shared/ceshu/ceshuConstants'
+import { countNotesByChapter, filterNotes, notePreview, type CeshuNote } from '../../../shared/ceshu/ceshuNotes'
 import { toErrorMessage } from '../../../shared/util/errors'
 
 /**

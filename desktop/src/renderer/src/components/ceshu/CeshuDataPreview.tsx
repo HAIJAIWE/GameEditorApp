@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
-import { CHAPTER_LABELS } from '../../../../shared/ceschu/ceshuConstants'
-import type { CeshuChapters, EnabledEditor } from '../../../../shared/ceschu/ceshuConstants'
+import { CHAPTER_LABELS } from '../../../../shared/ceshu/ceshuConstants'
+import type { CeshuChapters, EnabledEditor } from '../../../../shared/ceshu/ceshuConstants'
 import { findCountConstraint } from '../../../../shared/dataCountConstraint'
 import type { DataTypeDef } from '../../../../shared/types'
 

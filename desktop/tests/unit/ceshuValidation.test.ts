@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
-import { chapterOrdinalCn, type CeshuDocument } from '../../src/shared/ceschu/ceshuConstants'
-import { createDefaultCeshu } from '../../src/shared/ceschu/ceshuModel'
-import { validateCeshu } from '../../src/shared/ceschu/ceshuValidation'
+import { chapterOrdinalCn, type CeshuDocument } from '../../src/shared/ceshu/ceshuConstants'
+import { createDefaultCeshu } from '../../src/shared/ceshu/ceshuModel'
+import { validateCeshu } from '../../src/shared/ceshu/ceshuValidation'
 
 function makeDoc(scope: 'full' | 'lite' = 'full'): CeshuDocument {
   return createDefaultCeshu({ scope })

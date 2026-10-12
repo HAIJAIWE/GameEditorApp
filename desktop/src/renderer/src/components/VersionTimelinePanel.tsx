@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-import type { CeshuSummary } from '../../../shared/ceschu/ceshuConstants'
+import type { CeshuSummary } from '../../../shared/ceshu/ceshuConstants'
 import {
   TIMELINE_COLORS,
   TIMELINE_LEGEND,
@@ -9,7 +9,7 @@ import {
   buildTimelineDetail,
   buildTimelineLayout,
   defaultTimelineSelectionId
-} from '../../../shared/ceschu/ceshuTimeline'
+} from '../../../shared/ceshu/ceshuTimeline'
 import { toErrorMessage } from '../../../shared/util/errors'
 
 /**

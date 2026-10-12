@@ -14,7 +14,7 @@ import {
   partDisplayName,
   visibleChapterKeys,
   type ChapterKey
-} from '../../src/shared/ceschu/ceshuConstants'
+} from '../../src/shared/ceshu/ceshuConstants'
 
 /**
  * 策划书结构守卫（单一事实源 = `CHAPTER_PARTS`）。

@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
 
-import { CHAPTER_LABELS, type ChapterKey } from '../../../shared/ceschu/ceshuConstants'
+import { CHAPTER_LABELS, type ChapterKey } from '../../../shared/ceshu/ceshuConstants'
 import {
   DEP_TYPE_LABELS,
   STATUS_META as DEP_STATUS_META,
   type CeshuFieldDepsReport,
   type FieldDependencyType,
   type FieldDependencyStatus
-} from '../../../shared/ceschu/ceshuFieldDeps'
+} from '../../../shared/ceshu/ceshuFieldDeps'
 import { toErrorMessage } from '../../../shared/util/errors'
 
 /**

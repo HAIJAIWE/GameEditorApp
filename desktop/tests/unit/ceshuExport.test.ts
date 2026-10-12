@@ -7,8 +7,8 @@ import { describe, expect, it } from 'vitest'
 import { exportCeshuDocument } from '../../src/main/ceshu/export/exporter'
 import { renderCeshuHtml } from '../../src/main/ceshu/export/html'
 import { renderCeshuMarkdown } from '../../src/main/ceshu/export/markdown'
-import type { CeshuDocument } from '../../src/shared/ceschu/ceshuConstants'
-import { createDefaultCeshu } from '../../src/shared/ceschu/ceshuModel'
+import type { CeshuDocument } from '../../src/shared/ceshu/ceshuConstants'
+import { createDefaultCeshu } from '../../src/shared/ceshu/ceshuModel'
 
 function makeDoc(scope: 'full' | 'lite' = 'full'): CeshuDocument {
   const doc = createDefaultCeshu({ scope, name: '测试游戏' })

@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react'
 
-import type { CeshuSummary } from '../../../shared/ceschu/ceshuConstants'
+import type { CeshuSummary } from '../../../shared/ceshu/ceshuConstants'
 import {
   RECENT_LIMIT,
   buildCeshuCards,
   filterCeshuCards,
   pickRecentCeshu
-} from '../../../shared/ceschu/ceshuHome'
+} from '../../../shared/ceshu/ceshuHome'
 
 import HomeAiEntryCard from './ceshu/HomeAiEntryCard'
 import LucideIcon from './LucideIcon'

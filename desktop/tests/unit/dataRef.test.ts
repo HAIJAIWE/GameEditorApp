@@ -8,7 +8,7 @@ import {
   REF_NOT_FOUND_TEXT,
   resolveRefValue
 } from '../../src/shared/dataRef'
-import { CHAPTER_KEYS, type CeshuChapters } from '../../src/shared/ceschu/ceshuConstants'
+import { CHAPTER_KEYS, type CeshuChapters } from '../../src/shared/ceshu/ceshuConstants'
 import type { DataTypeDef, ItemRecord } from '../../src/shared/types'
 
 /**

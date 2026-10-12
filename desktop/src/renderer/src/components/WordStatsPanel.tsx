@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-import type { CeshuWordStatsReport } from '../../../shared/ceschu/ceshuWordStats'
+import type { CeshuWordStatsReport } from '../../../shared/ceshu/ceshuWordStats'
 import { toErrorMessage } from '../../../shared/util/errors'
 
 /**

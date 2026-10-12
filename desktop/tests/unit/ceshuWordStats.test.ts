@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import type { CeshuDocument, ChapterKey } from '../../src/shared/ceschu/ceshuConstants'
-import { CHAPTER_KEYS } from '../../src/shared/ceschu/ceshuConstants'
-import { createDefaultCeshu } from '../../src/shared/ceschu/ceshuModel'
-import { WORD_STATS_BENCHMARK, buildWordStatsReport, type CeshuWordStatRow } from '../../src/shared/ceschu/ceshuWordStats'
+import type { CeshuDocument, ChapterKey } from '../../src/shared/ceshu/ceshuConstants'
+import { CHAPTER_KEYS } from '../../src/shared/ceshu/ceshuConstants'
+import { createDefaultCeshu } from '../../src/shared/ceshu/ceshuModel'
+import { WORD_STATS_BENCHMARK, buildWordStatsReport, type CeshuWordStatRow } from '../../src/shared/ceshu/ceshuWordStats'
 
 function makeDoc(name = '字数测试'): CeshuDocument {
   return createDefaultCeshu({ scope: 'full', name })

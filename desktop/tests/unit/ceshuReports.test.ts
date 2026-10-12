@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
-import type { CeshuChangelog } from '../../src/shared/ceschu/ceshuDiff'
+import type { CeshuChangelog } from '../../src/shared/ceshu/ceshuDiff'
 import {
   buildChangelogHtml,
   buildChangelogMarkdown,
   buildChangelogText,
   buildValidationReportMarkdown,
   categorizeValidationError
-} from '../../src/shared/ceschu/ceshuReports'
+} from '../../src/shared/ceshu/ceshuReports'
 
 describe('categorizeValidationError（对齐 Python validation_dialog._categorize）', () => {
   it('按关键字归类，判定顺序为 dep > conflict > warning > required', () => {

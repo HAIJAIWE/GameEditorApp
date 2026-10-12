@@ -1,5 +1,5 @@
-import type { SystemConfigFieldDef } from './ceschu/ceshuConstants'
-import * as OPT from './ceschu/ceshuOptionLabels'
+import type { SystemConfigFieldDef } from './ceshu/ceshuConstants'
+import * as OPT from './ceshu/ceshuOptionLabels'
 
 /**
  * 13 个游戏系统的标准 config 字段定义（自 Python ceshu_constants.py SYSTEM_CONFIG_SCHEMA 匹平迁移）。

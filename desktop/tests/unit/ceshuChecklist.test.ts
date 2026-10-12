@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import type { CeshuDocument } from '../../src/shared/ceschu/ceshuConstants'
+import type { CeshuDocument } from '../../src/shared/ceshu/ceshuConstants'
 import {
   ALL_CATEGORIES,
   CATEGORY_DESIGN,
@@ -18,8 +18,8 @@ import {
   getChecklistItemsByCategory,
   runChecklist,
   type ChecklistReport
-} from '../../src/shared/ceschu/ceshuChecklist'
-import { createDefaultCeshu } from '../../src/shared/ceschu/ceshuModel'
+} from '../../src/shared/ceshu/ceshuChecklist'
+import { createDefaultCeshu } from '../../src/shared/ceshu/ceshuModel'
 
 function makeDoc(name = '清单测试'): CeshuDocument {
   return createDefaultCeshu({ scope: 'full', name })

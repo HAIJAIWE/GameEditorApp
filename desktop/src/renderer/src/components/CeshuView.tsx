@@ -9,23 +9,23 @@ import {
   type CeshuExportFormat,
   type ChapterData,
   type ChapterKey
-} from '../../../shared/ceschu/ceshuConstants'
+} from '../../../shared/ceshu/ceshuConstants'
 import {
   computeChapterProgress,
   computeEnabledEditors,
   formatLocalTimestamp,
   getGddScope,
   resolveDocGameStyle
-} from '../../../shared/ceschu/ceshuModel'
-import type { CeshuChangelog } from '../../../shared/ceschu/ceshuDiff'
+} from '../../../shared/ceshu/ceshuModel'
+import type { CeshuChangelog } from '../../../shared/ceshu/ceshuDiff'
 import {
   buildChangelogHtml,
   buildChangelogMarkdown,
   buildChangelogText,
   buildValidationReportMarkdown
-} from '../../../shared/ceschu/ceshuReports'
-import { buildScoreReportMarkdown, gradeLabel, type CeshuScoreReport } from '../../../shared/ceschu/ceshuScorer'
-import type { CeshuAiGenerateResult } from '../../../shared/ceschu/ceshuAi'
+} from '../../../shared/ceshu/ceshuReports'
+import { buildScoreReportMarkdown, gradeLabel, type CeshuScoreReport } from '../../../shared/ceshu/ceshuScorer'
+import type { CeshuAiGenerateResult } from '../../../shared/ceshu/ceshuAi'
 import type { DataTypeDef } from '../../../shared/types'
 
 import AiDataGenPanel from './AiDataGenPanel'

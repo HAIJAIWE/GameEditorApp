@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { CHAPTER_KEYS, type CeshuDocument } from '../../src/shared/ceschu/ceshuConstants'
-import { createDefaultCeshu } from '../../src/shared/ceschu/ceshuModel'
+import { CHAPTER_KEYS, type CeshuDocument } from '../../src/shared/ceshu/ceshuConstants'
+import { createDefaultCeshu } from '../../src/shared/ceshu/ceshuModel'
 import {
   CHAPTER_WORD_BENCHMARK,
   INDUSTRY_BENCHMARKS,
@@ -9,7 +9,7 @@ import {
   countWordsInChapter,
   gradeLabel,
   scoreCeshu
-} from '../../src/shared/ceschu/ceshuScorer'
+} from '../../src/shared/ceshu/ceshuScorer'
 
 /**
  * 空文档：以 createDefaultCeshu 为骨架，将 18 章全部清空。

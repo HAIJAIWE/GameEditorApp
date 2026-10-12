@@ -1,4 +1,4 @@
-import { CHAPTER_KEYS, type CeshuChapters } from './ceschu/ceshuConstants'
+import { CHAPTER_KEYS, type CeshuChapters } from './ceshu/ceshuConstants'
 import type { DataTypeDef, ItemRecord } from './types'
 
 /**
