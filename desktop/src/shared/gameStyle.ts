@@ -29,7 +29,7 @@
  */
 
 import type { StorageLike } from './settingsStore'
-import { defaultSettingsStorage } from './settingsStore'
+import { defaultStorage } from './settingsStore'
 
 import {
   GAME_STYLES,
@@ -40,9 +40,6 @@ import {
 export * from './gameStyleData'
 
 /** 取默认 storage（复用 `settingsStore` 的单一真源；Node / 主进程下可能不存在 → null） */
-function defaultStorage(): StorageLike | null {
-  return defaultSettingsStorage()
-}
 
 /** 按 id 取风格；不存在返回 undefined */
 export function getStyle(id: string): GameStyleDef | undefined {

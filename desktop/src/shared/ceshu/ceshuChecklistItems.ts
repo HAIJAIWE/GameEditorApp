@@ -5,6 +5,7 @@
  */
 import { checkSystemDependencies, type CeshuDocument, type ChapterKey } from './ceshuConstants'
 import { isPlainObject } from './ceshuModel'
+import { readText } from '../util/readText'
 
 /**
  * GDD 完备性检查清单（自 Python core/ceshu/ceshu_checklist.py 匹平迁移）。
@@ -596,10 +597,6 @@ function hasValue(value: unknown): boolean {
   if (isPlainObject(value)) return Object.keys(value).length > 0
   if (typeof value === 'number') return value !== 0
   return Boolean(value)
-}
-
-function readText(value: unknown): string {
-  return typeof value === 'string' ? value : ''
 }
 
 function readCount(value: unknown): number {

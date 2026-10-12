@@ -56,6 +56,14 @@ export function defaultSettingsStorage(): StorageLike | null {
 }
 
 /**
+ * 取默认 storage 的便捷封装（与 `defaultSettingsStorage()` 完全等价）。
+ * 收敛自 4 处业务域内重复的本地 `defaultStorage()` 包装（实现均为 `return defaultSettingsStorage()`）。
+ */
+export function defaultStorage(): StorageLike | null {
+  return defaultSettingsStorage()
+}
+
+/**
  * 读一个设置项（返回**原始字符串**）。
  * @returns 键不存在或 storage 不可用时为 `null`
  */

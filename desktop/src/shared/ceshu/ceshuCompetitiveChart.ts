@@ -1,3 +1,4 @@
+import { isPlainObject } from '../util/guards'
 /**
  * 竞品象限图纯逻辑（自 Python `ui/ceshu/competitive_chart.py` 匹平迁移）：
  * - 画布尺寸/留白常量与网格步长（Python _draw 中 w/h/margin 与 range(0,101,25)）
@@ -72,11 +73,6 @@ export function chartGridPositions(): { xs: number[]; ys: number[] } {
     xs: CHART_GRID_STEPS.map((i) => CHART_MARGIN + (CHART_WIDTH - CHART_MARGIN - 20) * i / 100),
     ys: CHART_GRID_STEPS.map((i) => CHART_HEIGHT - CHART_MARGIN - (CHART_HEIGHT - CHART_MARGIN - 20) * i / 100)
   }
-}
-
-/** 普通对象判断（对应 Python isinstance(comp, dict)） */
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 /**

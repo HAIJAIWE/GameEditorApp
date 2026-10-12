@@ -1,3 +1,4 @@
+import { isPlainObject } from './util/guards'
 /**
  * 掉落表纯逻辑（匹平 Python src/ui/widgets/drop_table.py 的 DropTableWidget + DropSelectDialog）。
  *
@@ -61,10 +62,6 @@ export function dropSourceTypeId(fieldName: string): string {
  */
 export function dropSourceLabel(fieldName: string): string {
   return fieldName === 'equip_drops' ? '装备' : '道具'
-}
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 /**

@@ -8,6 +8,7 @@ import {
 } from './ceshuConstants'
 import { normalizeValue } from './ceshuDiff'
 import { getGddScope, isEmptyRequiredValue, isPlainObject } from './ceshuModel'
+import { readText } from '../util/readText'
 
 /**
  * 策划书数据完整性校验（自 Python ceshu_validation.py 匹平迁移）。
@@ -152,10 +153,6 @@ function systemConfig(doc: CeshuDocument, systemId: string): Record<string, unkn
   const entry = doc.systems[systemId]
   if (!isPlainObject(entry) || !isPlainObject(entry.config)) return {}
   return entry.config
-}
-
-function readText(value: unknown): string {
-  return typeof value === 'string' ? value : ''
 }
 
 function nonEmptyArray(value: unknown): unknown[] | null {

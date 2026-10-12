@@ -15,6 +15,7 @@
  */
 
 import { createDefaultChapters } from '../domain/ceshu/ceshuDefaults'
+import { isPlainObject } from '../util/guards'
 
 /** v5.0 相对 v4.0 新增的 9 章（顺序与 Python `from_dict` 缺章检测一致） */
 export const V5_NEW_CHAPTER_KEYS = [
@@ -28,10 +29,6 @@ export const V5_NEW_CHAPTER_KEYS = [
   'audio',
   'accessibility'
 ] as const
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
 
 /** Python 真值语义：null/undefined/''/0/false/空数组/空对象 → false */
 function pyTruthy(value: unknown): boolean {

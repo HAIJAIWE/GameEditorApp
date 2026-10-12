@@ -1,4 +1,5 @@
 import type { ItemRecord } from './types'
+import { isPlainObject } from './util/guards'
 
 /**
  * 通用递归 JSON diff 引擎（迁移自 Python `src/common/data_diff.py`，
@@ -39,10 +40,6 @@ export interface DiffLeaf {
   diffType: ItemDiffType
   oldValue?: unknown
   newValue?: unknown
-}
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 /**

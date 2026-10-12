@@ -16,6 +16,7 @@
  */
 
 import type { DataTypeDef } from './types'
+import { isPlainObject } from './util/guards'
 
 export interface ReferenceEntry {
   /** 被引用条目 id（新写入一律带 id；兼容旧数据可缺省） */
@@ -41,9 +42,6 @@ export const REF_TYPE_LABELS: Record<string, string> = {
 }
 
 /** 判定 plain object（不引入外部依赖；数组与 null 排除） */
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
 
 /**
  * 夹紧触发等级：非有限数（NaN/Infinity/-Infinity）→ 0；

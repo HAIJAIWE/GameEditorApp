@@ -20,7 +20,7 @@
  */
 
 import type { StorageLike } from './settingsStore'
-import { defaultSettingsStorage } from './settingsStore'
+import { defaultStorage } from './settingsStore'
 
 export type { StorageLike }
 
@@ -42,10 +42,6 @@ export const DEFAULT_IMAGE_GEN_CONFIG: StoredImageGenConfig = {
 }
 
 const PROVIDERS: readonly StoredProvider[] = ['openai', 'qwen', 'doubao', 'generic']
-
-function defaultStorage(): StorageLike | null {
-  return defaultSettingsStorage()
-}
 
 function isProvider(value: unknown): value is StoredProvider {
   return typeof value === 'string' && (PROVIDERS as readonly string[]).includes(value)

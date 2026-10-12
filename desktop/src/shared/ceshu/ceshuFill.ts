@@ -1,5 +1,6 @@
 import type { CeshuDocument } from './ceshuConstants'
 import { isFilledValue } from './ceshuModel'
+import { readText } from '../util/readText'
 
 /**
  * 策划书必填字段自动填充（自 Python core/ceshu/ceshu_fill.py 匹平迁移）。
@@ -10,10 +11,6 @@ import { isFilledValue } from './ceshuModel'
 export interface AutoFillResult {
   doc: CeshuDocument
   filled: number
-}
-
-function readText(value: unknown): string {
-  return typeof value === 'string' ? value : ''
 }
 
 /** Python 真值取反：'' / 0 / false / null / 空数组 / 空对象 均为「未填」 */

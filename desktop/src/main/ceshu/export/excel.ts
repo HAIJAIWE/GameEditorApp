@@ -5,6 +5,7 @@ import { computeChapterProgress, isPlainObject } from '../../../shared/ceshu/ces
 import { validateCeshu } from '../../../shared/ceshu/ceshuValidation'
 
 import { classifySystems, formatFieldValue } from './common'
+import { readText } from '../../../shared/util/readText'
 
 /**
  * Excel 导出（自 Python core/ceshu/ceshu_excel_exporter.py 匹平迁移，改用 exceljs）。
@@ -263,6 +264,3 @@ function readConfig(data: ChapterData): Record<string, unknown> {
   return isPlainObject(config) ? config : {}
 }
 
-function readText(value: unknown): string {
-  return typeof value === 'string' ? value : ''
-}

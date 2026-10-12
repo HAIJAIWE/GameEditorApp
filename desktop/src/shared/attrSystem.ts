@@ -1,5 +1,6 @@
 // `isPlainObject` 来自 `shared/util/`（纯工具层），不引入 attr → ceshu 的跨业务域依赖。
 import { isPlainObject } from './util/guards'
+import { readText } from './util/readText'
 
 /**
  * RPG 属性系统核心（自 Python core/attr_system.py + common/graph.py 匹平迁移）：
@@ -447,10 +448,6 @@ export function parseAttrSystemFile(raw: unknown): { system: AttrSystem; warning
 
 function formatNumber(value: number): string {
   return String(value)
-}
-
-function readText(value: unknown): string {
-  return typeof value === 'string' ? value : ''
 }
 
 function readNumber(value: unknown, fallback: number, label: string, warnings: string[]): number {

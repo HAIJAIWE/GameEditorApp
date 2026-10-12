@@ -13,6 +13,7 @@ import type { LlmUsage } from '../llmConfig'
 import { CESHU_CHAPTER_FIELDS } from '../domain/ceshu/ceshuFields'
 import type { QualityGateVerdict } from '../agent/qualityGate'
 import { isPlainObject } from './ceshuModel'
+import { readText } from '../util/readText'
 import {
   CHAPTER_AGENT_MAP,
   AGENT_DISPLAY,
@@ -48,7 +49,6 @@ export function agentForChapter(chapter: ChapterKey): ChapterAgent {
     agentPrompt: CHAPTER_AGENT_PROMPTS[chapter] ?? '请协助完善当前章节内容。'
   }
 }
-
 
 export function getStyleGlossary(style: string): string {
   if (!style) return ''
@@ -220,10 +220,6 @@ function isTruthyValue(value: unknown): boolean {
   return true
 }
 
-function readText(value: unknown): string {
-  return typeof value === 'string' ? value : ''
-}
-
 /* ---- 全量生成（一键生成完整策划书，匹平 Python ai_full_generate_dialog + ceshu_skill_prompt） ---- */
 
 /** 风格中文标签 → style key（对应 Python _map_style_to_key） */
@@ -339,7 +335,6 @@ export function buildFullGeneratePlan(
   }
 }
 
-
 /**
  * 每章定制提示词（对应 Python _build_chapter_prompts）：由全量生成流程逐章追加到默认提示之后。
  */
@@ -390,7 +385,6 @@ function buildUserInputLines(input: FullGenerateInput): string[] {
 }
 
 /* ---- AI 结构化审阅（N6，对应 Python CeshuSkill._ai_review + AIReviewDialog） ---- */
-
 
 export interface CeshuReviewDimension {
   key: string

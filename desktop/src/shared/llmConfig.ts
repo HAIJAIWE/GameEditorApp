@@ -1,5 +1,5 @@
 import {
-  defaultSettingsStorage,
+  defaultStorage,
   readJsonSetting,
   readSetting,
   writeJsonSetting,
@@ -73,10 +73,6 @@ export * from './llmConfigData'
  * - 选中的 model 允许为空 ⇒ 交给 `llm/client.ts` 运行时探测（PyQt 也允许手填）。
  * - base_url 允许为空 ⇒ 回落该服务商的预设地址（PyQt 是选服务商就自动填）。
  */
-
-function defaultStorage(): StorageLike | null {
-  return defaultSettingsStorage()
-}
 
 export function isLlmProvider(value: unknown): value is LlmProvider {
   return typeof value === 'string' && (LLM_PROVIDER_ORDER as readonly string[]).includes(value)
