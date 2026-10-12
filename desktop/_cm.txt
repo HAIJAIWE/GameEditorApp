@@ -1,19 +1,18 @@
-refactor(shared): misc 平铺第二批——5 个设置类文件迁入 config/（归区 2f）
+refactor(shared): misc 平铺第三批——agentEditor 入 agent/，两个 ceshu 向文件入 domain/ceshu/（归区 2g）
 
-按 README Q3 判据（读写用户设置/偏好）迁移：
-- llmConfig（LLM 服务商配置）——与既迁的 config/llmConfigData.ts（定义层）会合，
-  落实 shared 层「定义层/逻辑层」拆分模式的最后一环
-- onboarding（快速入门引导逻辑，读 settingsStore 的新手状态）
-- keywordTemplates（关键词模板库，KEYWORD_TEMPLATES_SETTING_KEY 持久化）
-- secretMigration + secretNames（旧版 localStorage 明文 Key → safeStorage
-  一次性迁移及其 secret 名清单；import config/imageGenConfig + settingsStore，
-  若迁 util 会违反 util 纯净规则——util 禁 import config，故入 config）
+- agentEditor（智能体编辑器纯逻辑，import agent/protocol）→ shared/agent/，
+  落实 README §5「agent 家族平铺在 agent/」的既有决策（与 brain/protocol/
+  session/prompts 等同目录，消费方与 main/agent/ 一一对应）
+- gameDataPreview + dataRef（「策划书游戏数据预览」/ 数据引用引擎，
+  经消费方取证仅 renderer 面板 + tests 使用、无 main 依赖）→
+  domain/ceshu/，rule 4 不触发；dataRef 对 ceshuConstants（CHAPTER_KEYS）
+  的依赖符合同域引用
 
-config 纯净规则（禁 import domain）对 5 个文件全部成立。
-ceshuDataGen 新增 1 处 contract 根 → config 的 type-only 依赖
-（LlmUsage），与 ceshuAi 同款先例及根→util 十余处既成事实同模式
-（README §3.1 将补记该边界：根可引 util/config 的纯函数与类型）。
-
-- 5 文件 → shared/config/；全仓 44 处 import 改道（shared 2 / tests 若干）
+- 3 文件迁移；全仓 11 处 import 改道（renderer 3 / tests 3 / 迁移文件自身 5）
 - 验证：tsc NODE 5 / WEB 6（存量基线）、eslint 0、vitest 2010 过 /
   1 已知红（agentQualityGate WIP）
+
+至此 misc 平铺批次（2e/2f/2g）全部完成：util +15、config +5、
+agent +1、domain/ceshu +2，根目录平铺从 54 个降至 28 个
+（ceshu 模型与域逻辑 16 + attrSystem + type* 4 + 契约基础设施 5 +
+  aiSeedPrompt/formSections/glossaryTerms 3）。

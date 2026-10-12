@@ -1,5 +1,5 @@
-import { CHAPTER_KEYS, type CeshuChapters } from './ceshuConstants'
-import type { DataTypeDef, ItemRecord } from './types'
+import { CHAPTER_KEYS, type CeshuChapters } from '../../ceshuConstants'
+import type { DataTypeDef, ItemRecord } from '../../types'
 
 /**
  * 数据引用引擎（对齐 Python `src/common/data_ref.py`）。

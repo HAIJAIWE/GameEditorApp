@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { buildGameDataPreview } from '../../src/shared/gameDataPreview'
+import { buildGameDataPreview } from '../../src/shared/domain/ceshu/gameDataPreview'
 import type { DataTypeDef, ItemRecord } from '../../src/shared/types'
 
 /**

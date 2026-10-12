@@ -7,7 +7,7 @@ import {
   parseDataRefs,
   REF_NOT_FOUND_TEXT,
   resolveRefValue
-} from '../../src/shared/dataRef'
+} from '../../src/shared/domain/ceshu/dataRef'
 import { CHAPTER_KEYS, type CeshuChapters } from '../../src/shared/ceshuConstants'
 import type { DataTypeDef, ItemRecord } from '../../src/shared/types'
 

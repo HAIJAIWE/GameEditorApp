@@ -18,7 +18,7 @@ import {
   toolNamespace,
   toolShortName,
   type ToolListEntry
-} from '../../src/shared/agentEditor'
+} from '../../src/shared/agent/agentEditor'
 
 /** 构造一份最小可用的参数 schema */
 function schema(

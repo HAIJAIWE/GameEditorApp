@@ -1,5 +1,5 @@
-import { bucketize } from './util/dataBuckets'
-import type { DataTypeDef, ItemRecord } from './types'
+import { bucketize } from '../../util/dataBuckets'
+import type { DataTypeDef, ItemRecord } from '../../types'
 
 /**
  * 策划书「游戏数据预览」—— 把全库数据摊成 JSON 文本（对齐 Python

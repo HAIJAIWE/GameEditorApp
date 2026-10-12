@@ -6,7 +6,7 @@ import {
   formatRefValue,
   REF_NOT_FOUND_TEXT,
   type RefOverview
-} from '../../../../shared/dataRef'
+} from '../../../../shared/domain/ceshu/dataRef'
 import type { DataTypeDef, ItemRecord } from '../../../../shared/types'
 
 /**

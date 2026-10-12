@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 
-import { buildGameDataPreview } from '../../../shared/gameDataPreview'
+import { buildGameDataPreview } from '../../../shared/domain/ceshu/gameDataPreview'
 import type { DataTypeDef, ItemRecord } from '../../../shared/types'
 import { toErrorMessage } from '../../../shared/util/errors'
 
