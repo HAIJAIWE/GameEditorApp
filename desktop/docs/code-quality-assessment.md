@@ -141,8 +141,10 @@ src/renderer/src/components/AiFullGeneratePanel.tsx:583
 
 ### 缺口
 
-- **没有覆盖率工具**：`@vitest/coverage-v8` 未安装，`vitest.config.ts` 无 `coverage` 段，
-  package.json 无 coverage 脚本 ⇒ **覆盖率完全不可度量**，见 §8。
+- **覆盖率基线已补（P1#4，`a03f43f`）**：已装 `@vitest/coverage-v8` 并加 `coverage` 配置与
+  `test:coverage` 脚本，首次基线见 §8。**结论**：逻辑层覆盖高（`shared` 95.8% / `main` 91.0% st），
+  但 **React/renderer UI 层在 node 套件下几乎零覆盖**（呼应 §8 e2e 本地跑不了的缺口），
+  且 **分支覆盖率偏弱**（整体 83.9%、`main` 76%）。
 - **e2e 本地跑不了（留 CI）**，反馈链路过长：本会话实测 `tests/e2e/ceshu-*.spec.ts` 有
   **32 处**断言停留在旧章节模型（含 1 处会取到 `undefined` 的真失效），
   在章节模型重构后长期无人察觉——因为本地根本不会红。
@@ -196,7 +198,7 @@ runtime 15 / dev 19，全部在用；有 `lint` / `typecheck` / `test` / `test:e
 
 | 维度 | 为什么无法评估 | 需要补充什么 |
 |---|---|---|
-| **测试覆盖率** | `@vitest/coverage-v8` 未安装、无 coverage 配置与脚本 | 装上覆盖率工具跑一次基线；或明确「本项目不做覆盖率门禁」 |
+| **测试覆盖率** | ✅ **已补基线（P1#4，`a03f43f`）**：Statements 94.02% / Branches 83.88% / Functions 96.24% / Lines 95.62%（全量 2012 用例、仅 1 例已知 in-flight 失败 `agentQualityGate`）。分层 `shared` 95.8% > `main` 91.0% ≫ `renderer` ≈0%（node 套件不覆盖 React UI）。薄弱点：`main/ceshu/export/pdf.ts` 0%、`main/agent/brainService.ts` 48%、`main/ceshu/export/common.ts` 62% 语句覆盖；分支覆盖整体偏弱 | 后续：暂不设门禁；针对 `renderer` 补组件/e2e 测试（P1#7）、给 `brainService`/`export/common` 补分支用例 |
 | **运行时性能** | 无任何基准/压测/profiling 数据 | 大库（数千条数据）下的列表渲染、导入导出耗时基线 |
 | **e2e 真实性** | 本地跑不了（留 CI），本会话刚修的 32 处断言未经验证 | 一次 CI 全量 e2e 结果 |
 | **UI / 视觉质量** | 无截图比对或视觉回归 | 若需要，补 render-harness 或视觉快照 |
@@ -218,7 +220,7 @@ runtime 15 / dev 19，全部在用；有 `lint` / `typecheck` / `test` / `test:e
 
 | # | 事项 | 说明 |
 |---|---|---|
-| 4 | **补覆盖率基线** | 装 `@vitest/coverage-v8` + `coverage` 配置 + `test:coverage` 脚本；先出一次数字，再决定要不要设门禁 |
+| 4 | **补覆盖率基线** | ✅ **已完成（`a03f43f`）**：Statements 94.02% / Branches 83.88% / Functions 96.24%；分层 `shared` 95.8% > `main` 91.0% ≫ `renderer` ≈0%；暂不设门禁，薄弱点 `pdf.ts` 0% / `brainService.ts` 48% / `export/common.ts` 62% |
 | 5 | **推进 shared 归区** | 按 `shared/README.md` §4 的优先级：先迁「被其它域 import 的」（如 `ceshuModel` / `ceshuConstants`），让 lint 真正接管。当前 61 个平铺文件全靠 code review |
 | 6 | **收敛 `readText` / `isPlainObject` / `defaultStorage` 的多处定义** | 同 P0#2 的下沉套路，逐个确认是 re-export 还是真重复 |
 | 7 | **让 e2e 至少能本地 smoke** | 或明确「只跑核心 2-3 条」。当前完全不可本地验证，是 32 处断言过期长期不被发现的直接原因 |
