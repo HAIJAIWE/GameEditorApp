@@ -1,8 +1,8 @@
 import { useState } from 'react'
 
-import { CHAPTER_LABELS, type CeshuFieldDef, type ChapterData, type ChapterKey } from '../../../shared/ceshuConstants'
-import type { CeshuAiGenerateResult } from '../../../shared/ceshuAi'
-import { isPlainObject } from '../../../shared/ceshuModel'
+import { CHAPTER_LABELS, type CeshuFieldDef, type ChapterData, type ChapterKey } from '../../../shared/ceshu/ceshuConstants'
+import type { CeshuAiGenerateResult } from '../../../shared/ceshu/ceshuAi'
+import { isPlainObject } from '../../../shared/ceshu/ceshuModel'
 import { CESHU_CHAPTER_FIELDS } from '../../../shared/domain/ceshu/ceshuFields'
 
 import {
@@ -11,7 +11,7 @@ import {
   mergeTemplateByMode,
   type ChapterTemplate,
   type TemplateApplyMode
-} from '../../../shared/ceshuTemplates'
+} from '../../../shared/ceshu/ceshuTemplates'
 
 import { CeshuFieldControl, fieldValueToInput, inputToFieldValue, type FieldInput } from './CeshuFieldControl'
 import CompetitiveChart from './CompetitiveChart'

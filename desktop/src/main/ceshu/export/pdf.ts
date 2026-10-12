@@ -1,6 +1,6 @@
 import { BrowserWindow } from 'electron'
 
-import type { CeshuDocument } from '../../../shared/ceshuConstants'
+import type { CeshuDocument } from '../../../shared/ceshu/ceshuConstants'
 
 import { renderCeshuHtml } from './html'
 

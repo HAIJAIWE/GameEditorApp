@@ -1,4 +1,4 @@
-import type { CeshuColumnDef, CeshuFieldDef } from '../../../shared/ceshuConstants'
+import type { CeshuColumnDef, CeshuFieldDef } from '../../../shared/ceshu/ceshuConstants'
 
 /**
  * 策划书通用字段控件：由字段 schema（kind）驱动渲染，

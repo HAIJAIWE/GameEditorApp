@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import type { CeshuSummary } from '../../src/shared/ceshuConstants'
+import type { CeshuSummary } from '../../src/shared/ceshu/ceshuConstants'
 import {
   TIMELINE_COLORS,
   TIMELINE_LEGEND,
@@ -15,7 +15,7 @@ import {
   timelineProgressPercent,
   timelineTimeText,
   timelineUpdatedFull
-} from '../../src/shared/ceshuTimeline'
+} from '../../src/shared/ceshu/ceshuTimeline'
 
 function summary(overrides: Partial<CeshuSummary> = {}): CeshuSummary {
   return {

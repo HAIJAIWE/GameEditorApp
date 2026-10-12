@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import { createDefaultCeshu } from '../../src/shared/ceshuModel'
-import { formatFieldsPreview, buildSystemConfirmResult, systemDisplayName } from '../../src/shared/ceshuSystemConfirm'
+import { createDefaultCeshu } from '../../src/shared/ceshu/ceshuModel'
+import { formatFieldsPreview, buildSystemConfirmResult, systemDisplayName } from '../../src/shared/ceshu/ceshuSystemConfirm'
 import { SYSTEM_CONFIG_SCHEMA } from '../../src/shared/systemConfigSchema'
-import type { SystemEntry } from '../../src/shared/ceshuConstants'
+import type { SystemEntry } from '../../src/shared/ceshu/ceshuConstants'
 
 describe('ceshuSystemConfirm 字段预览', () => {
   it('battle 系统：预览含前 8 个字段；超过 8 个追加「... 共 N 个字段」', () => {

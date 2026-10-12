@@ -12,7 +12,7 @@ import {
   normalizeCompetitors,
   projectX,
   projectY
-} from '../../src/shared/ceshuCompetitiveChart'
+} from '../../src/shared/ceshu/ceshuCompetitiveChart'
 
 describe('ceshuCompetitiveChart 常量', () => {
   it('画布尺寸与留白：340/260/50', () => {

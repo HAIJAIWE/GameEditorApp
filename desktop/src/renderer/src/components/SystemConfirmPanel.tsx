@@ -3,11 +3,11 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   formatFieldsPreview,
   type SystemConfirmCustom
-} from '../../../shared/ceshuSystemConfirm'
+} from '../../../shared/ceshu/ceshuSystemConfirm'
 import {
   type CeshuDocument,
   type SystemEntry
-} from '../../../shared/ceshuConstants'
+} from '../../../shared/ceshu/ceshuConstants'
 import { SYSTEM_CONFIG_SCHEMA } from '../../../shared/systemConfigSchema'
 
 interface SystemConfirmPanelProps {

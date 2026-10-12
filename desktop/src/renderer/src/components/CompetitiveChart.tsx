@@ -6,7 +6,7 @@ import {
   CHART_Y_LABEL,
   chartGridPositions,
   normalizeCompetitors
-} from '../../../shared/ceshuCompetitiveChart'
+} from '../../../shared/ceshu/ceshuCompetitiveChart'
 
 /**
  * 竞品象限图（对应 Python ui/ceshu/competitive_chart.py）：

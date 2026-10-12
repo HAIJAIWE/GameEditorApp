@@ -16,7 +16,7 @@ import {
   normalizeDataGenCandidates,
   resolveSelectedDataTypes,
   summarizeCandidateItem
-} from '../../src/shared/ceshuDataGen'
+} from '../../src/shared/ceshu/ceshuDataGen'
 
 const roleDef = BUILTIN_DATA_TYPES.find((type) => type.id === 'role')
 const skillDef = BUILTIN_DATA_TYPES.find((type) => type.id === 'skill')

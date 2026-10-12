@@ -6,8 +6,8 @@ import {
   type CeshuDocument,
   type ChapterData,
   type ChapterKey
-} from '../../../shared/ceshuConstants'
-import { computeChapterProgress, formatLocalTimestamp, getGddScope, isPlainObject } from '../../../shared/ceshuModel'
+} from '../../../shared/ceshu/ceshuConstants'
+import { computeChapterProgress, formatLocalTimestamp, getGddScope, isPlainObject } from '../../../shared/ceshu/ceshuModel'
 import {
   EMPTY_PLACEHOLDER,
   chapterHeading,
