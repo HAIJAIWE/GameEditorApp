@@ -1,16 +1,12 @@
-docs(shared): 归区批次收尾——README 分区现状重写 + 评估文档 P1#5 关闭
+docs(shared): 修正 README 分区计数（按实测磁盘状态复核）
 
-README（src/shared/README.md）：
-- §3 lint 规则表更新为真实约束面（domain/ceshu 14 + domain/attr 6、
-  config 14、util 32；main 对 domain import 归零）
-- §3.1 盲区说明改为「28 个定案留根文件」口径，新增 §3.1.1：
-  contract 根引用 util/config 纯函数/纯类型的边界（十余处既成先例的
-  统一口径，2f 新增 ceshuDataGen→config/llmConfig type-only 同款）
-- §4 现状表按 2a–2g 后现实重写；新增 §4.1「contract 根存量说明」——
-  17 个留根文件的判据（main 需要 + 无 UI 状态 + 可序列化）与批次映射
-- §5 agent 家族文件数 8 → 14（agentEditor 2g 迁入）
-- §6 补 rule 4 反例（main→domain/ceshu/ceshuFill ⇒ 提回根）
+807965d 的 README 更新里的计数有误（口头汇报同款错误），按 ls 实测修正：
+- 根目录平铺 28 → 31 个（§3.1 盲区段、§4.1 两处）
+- ceshu* 根文件 16 → 18 个（§4 表、§4.1）
+- rule 4 倒逼留根 17 → 19 个（§4.1）
+- agent/ 14 → 15 个（§4 表、§5）
+- domain/ceshu 表述精确为「13 .ts + ceshuTemplateData/ 目录」（§3 表、§4 表）
+- §4.1 中「2b 的模型六件套」指代不清，改为 ea27884（ceshuModel 六件套实际批次）
 
-评估文档（docs/code-quality-assessment.md）：
-- P1#5 标记完成（61 → 28 个平铺、四门验证、12 条 rule 4 违规清除）
-- §缺口段加 2026-10-12 更新头，原取证保留作历史对照
+修正后各区计数自洽：31（根）= 19（rule 4 倒逼）+ 4（type*）+ 5（契约基础设施）
++ 3（aiSeedPrompt/formSections/glossaryTerms）。
