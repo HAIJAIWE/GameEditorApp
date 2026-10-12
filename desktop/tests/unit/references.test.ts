@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { buildReferenceReport, parseReferenceTokens, referenceFieldsOf } from '../../src/shared/references'
+import { buildReferenceReport, parseReferenceTokens, referenceFieldsOf } from '../../src/shared/util/references'
 import { BUILTIN_DATA_TYPES } from '../../src/shared/typeSchema'
 import type { DataTypeDef, ItemRecord } from '../../src/shared/types'
 

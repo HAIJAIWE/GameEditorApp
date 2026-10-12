@@ -6,7 +6,7 @@ import {
   SEARCH_FIELD_OPTIONS,
   searchItems,
   truncateMatch
-} from '../../../shared/advancedSearch'
+} from '../../../shared/util/advancedSearch'
 import type { DataTypeDef, ItemRecord } from '../../../shared/types'
 
 /**

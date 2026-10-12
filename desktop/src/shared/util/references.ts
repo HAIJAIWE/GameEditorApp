@@ -1,5 +1,5 @@
-import { isPlainObject } from './ceshuModel'
-import type { DataTypeDef, ItemRecord } from './types'
+import { isPlainObject } from './guards'
+import type { DataTypeDef, ItemRecord } from '../types'
 
 /**
  * 引用关系纯逻辑（自 Python ui/dialogs/reference_panel.py 与 ui/widgets/relation_graph.py 合并迁移）：

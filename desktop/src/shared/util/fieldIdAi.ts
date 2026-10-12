@@ -1,5 +1,5 @@
-import { parseLlmJson } from './util/parseLlmJson'
-import { uniquifyFieldId, validateFieldId, type FieldIdSuggestion } from './util/fieldId'
+import { parseLlmJson } from './parseLlmJson'
+import { uniquifyFieldId, validateFieldId, type FieldIdSuggestion } from './fieldId'
 
 /**
  * 字段 ID 的 **AI 候选**（术语表未收录时的第二级兜底）。

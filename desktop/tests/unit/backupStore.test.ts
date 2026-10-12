@@ -8,7 +8,7 @@ import {
   formatBackupStamp,
   isValidBackupName,
   parseBackupCreatedAt
-} from '../../src/shared/backup'
+} from '../../src/shared/util/backup'
 import {
   createBackupFile,
   deleteBackupFile,

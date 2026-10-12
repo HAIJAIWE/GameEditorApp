@@ -8,7 +8,7 @@ import {
   numericFieldNames,
   stdev,
   summarizeNumeric
-} from '../../src/shared/dataStats'
+} from '../../src/shared/util/dataStats'
 import type { DataTypeDef, ItemRecord } from '../../src/shared/types'
 
 function item(type: string, data: Record<string, unknown>): ItemRecord {

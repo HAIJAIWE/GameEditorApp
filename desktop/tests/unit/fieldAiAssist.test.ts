@@ -9,7 +9,7 @@ import {
   DESC_CONTEXT_EXCLUDED_FIELDS,
   IMAGE_TAGS_MAX,
   mergeImageTagsResult
-} from '../../src/shared/fieldAiAssist'
+} from '../../src/shared/util/fieldAiAssist'
 
 describe('desc 生成：上下文组装', () => {
   it('首行永远是数据类型，随后是各字段「键：值」', () => {

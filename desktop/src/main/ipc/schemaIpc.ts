@@ -6,7 +6,7 @@ import {
   fieldIdSuggestInputSchema
 } from '../../shared/schemas'
 import { TYPE_TEMPLATE_NAMES } from '../../shared/typeTemplates'
-import { buildFieldIdPrompt, parseFieldIdCandidates } from '../../shared/fieldIdAi'
+import { buildFieldIdPrompt, parseFieldIdCandidates } from '../../shared/util/fieldIdAi'
 
 export function registerSchemaIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm: LlmShared): void {
   const { typeSchemaStore, fieldTemplates, llmClient } = deps

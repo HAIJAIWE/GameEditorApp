@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-import { buildAutoImageInfo, autoFillLabel, mergeImageTagsResult } from '../../../shared/fieldAiAssist'
+import { buildAutoImageInfo, autoFillLabel, mergeImageTagsResult } from '../../../shared/util/fieldAiAssist'
 import type { ItemRecord, TypeFieldDef } from '../../../shared/types'
 import LazyImage from './LazyImage'
 import { itemNameOf } from './itemFormUtils'
@@ -354,7 +354,7 @@ export function FieldControl({
      *
      * **「自动填充」不调 AI**：PyQt 的 `_on_auto_generate_image_info` 是纯字符串模板
      * （`f'{name}的图片描述'` / `f'{name},图片,游戏'`），按钮名里的「生成」容易误读成 AI。
-     * TS 侧文案明确叫「自动填充」，语义与 PyQt 一致但不骗人（详见 shared/fieldAiAssist.ts）。
+     * TS 侧文案明确叫「自动填充」，语义与 PyQt 一致但不骗人（详见 shared/util/fieldAiAssist.ts）。
      */
     case 'image_tags': {
       const current = Array.isArray(value) ? value.map((part) => String(part)).join(', ') : String(value ?? '')

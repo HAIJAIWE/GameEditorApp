@@ -13,7 +13,7 @@ import {
   exportDirInputSchema,
   importDataFileInputSchema
 } from '../../shared/schemas'
-import { buildReferenceReport } from '../../shared/references'
+import { buildReferenceReport } from '../../shared/util/references'
 import { importLegacyDataFile } from '../data/legacyImport'
 import { exportLegacyDataFile } from '../data/legacyExport'
 import { exportCsvFiles, importCsvFile } from '../data/csvIO'

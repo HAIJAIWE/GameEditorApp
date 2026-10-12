@@ -1,4 +1,4 @@
-import { bucketize } from '../../shared/dataBuckets'
+import { bucketize } from '../../shared/util/dataBuckets'
 
 /**
  * 目标引擎（不含 `lua`——Lua 渲染器在 `./lua.ts`，本文件处理另外四个）。
@@ -37,7 +37,7 @@ const COCOS_KEYS = ['skills', 'roles', 'monsters', 'equips', 'items', 'talents',
 const TEMPLATE_KEYS = ['skills', 'roles', 'monsters', 'equips', 'items'] as const
 
 /**
- * 数据分桶：实现已上移到 `shared/dataBuckets.ts`（「游戏数据预览」面板也要用同一份口径），
+ * 数据分桶：实现已上移到 `shared/util/dataBuckets.ts`（「游戏数据预览」面板也要用同一份口径），
  * 这里转出去以保持本模块既有的导出面不变。
  */
 export { bucketize }

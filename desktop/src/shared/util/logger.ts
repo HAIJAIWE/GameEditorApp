@@ -11,7 +11,7 @@
  * 待 LLM 上下文注入需求出现时，再在 main 侧补环形缓冲 + `app:recentLogs` 读取通道。
  */
 
-import type { AppLogInput } from './types'
+import type { AppLogInput } from '../types'
 
 export type { AppLogInput }
 

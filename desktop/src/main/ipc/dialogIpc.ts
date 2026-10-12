@@ -8,8 +8,8 @@ import {
   templateJsonDialogInputSchema
 } from '../../shared/schemas'
 import { CESHU_FORMAT_EXTENSIONS, CESHU_FORMAT_LABELS } from '../../shared/ceshuConstants'
-import { buildImagePreviewDataUrl } from '../../shared/imagePreview'
-import { log } from '../../shared/logger'
+import { buildImagePreviewDataUrl } from '../../shared/util/imagePreview'
+import { log } from '../../shared/util/logger'
 import { ENGINE_EXTENSIONS as ENGINE_KIND_EXTENSIONS, ENGINE_LABELS as ENGINE_KIND_LABELS } from '../engineExport/engines'
 
 export function registerDialogIpc(_deps: IpcHandlerDeps, handle: IpcRegistrar): void {

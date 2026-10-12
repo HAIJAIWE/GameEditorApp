@@ -6,8 +6,8 @@ import {
   diffUnusedImages,
   previewUnused,
   summarizeScan
-} from '../../../shared/cleanupImages'
-import type { UnusedImageScan } from '../../../shared/cleanupImages'
+} from '../../../shared/util/cleanupImages'
+import type { UnusedImageScan } from '../../../shared/util/cleanupImages'
 import { toErrorMessage } from '../../../shared/util/errors'
 
 /**

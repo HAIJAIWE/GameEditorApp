@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 
-import type { BackupEntry, RestoreOutcome } from '../../../shared/backup'
+import type { BackupEntry, RestoreOutcome } from '../../../shared/util/backup'
 
 /**
  * 数据备份面板（对应 Python `ui/dialogs/backup_manager.py`）。

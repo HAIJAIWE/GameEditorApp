@@ -9,7 +9,7 @@ import {
   IMAGE_PLACEHOLDER_TEXT,
   isLoadableImagePath,
   subscribeImageCache
-} from '../../../shared/imageCache'
+} from '../../../shared/util/imageCache'
 
 /**
  * 延迟加载的图片控件（对齐 Python `src/ui/components/image_loader.py:251` `LazyImageLabel`）。

@@ -20,7 +20,7 @@
  * - 不做备份轮转/上限（Python 对话框路径也没有；`auto_backup.py` 的 20 份上限属死代码，不迁）。
  */
 
-import { buildBackupName, type BackupEntry, type RestoreOutcome } from '../../shared/backup'
+import { buildBackupName, type BackupEntry, type RestoreOutcome } from '../../shared/util/backup'
 import type { DataTypeDef } from '../../shared/types'
 import { parseLegacyData } from '../data/legacyImport'
 import { buildLegacyPayload } from '../data/legacyExport'

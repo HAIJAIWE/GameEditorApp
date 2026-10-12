@@ -23,7 +23,7 @@
  * （Python 用的是复数 `roles`/`skills`，那是旧版平铺存储的键）。
  */
 
-import type { DataTypeDef, ItemRecord } from './types'
+import type { DataTypeDef, ItemRecord } from '../types'
 
 /** 平衡性判定阈值：标准差 < 均值 × 0.3 视为「良好」（对齐 Python `_analyze_skills`） */
 export const BALANCE_STD_RATIO = 0.3

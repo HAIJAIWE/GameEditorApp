@@ -25,7 +25,7 @@ import {
   previewUnused,
   resolveImagePath,
   summarizeScan
-} from '../../src/shared/cleanupImages'
+} from '../../src/shared/util/cleanupImages'
 import type { ItemRecord } from '../../src/shared/types'
 
 /* ================= 关键词模板：与 Python 真源的一致性 ================= */

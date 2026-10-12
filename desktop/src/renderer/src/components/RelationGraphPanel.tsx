@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
-import { UNKNOWN_TYPE_COLOR, buildRelationRows, buildSubjectDetailLine, itemDisplayName } from '../../../shared/relationGraph'
+import { UNKNOWN_TYPE_COLOR, buildRelationRows, buildSubjectDetailLine, itemDisplayName } from '../../../shared/util/relationGraph'
 import type { DataTypeDef, ItemRecord } from '../../../shared/types'
 
 /**
@@ -8,7 +8,7 @@ import type { DataTypeDef, ItemRecord } from '../../../shared/types'
  * 经 `ui/main_window.py::_show_relation_graph` 由「工具 → 关系图」菜单打开）。
  *
  * 与 PyQt 一致的三段式：类型选择器 + 主体选择器 → 主体信息卡 → 关联数据表（5 列，双击行跳转）。
- * 行构建逻辑在 `shared/relationGraph.ts`（纯逻辑，已单测）。
+ * 行构建逻辑在 `shared/util/relationGraph.ts`（纯逻辑，已单测）。
  *
  * ## 与 PyQt 的**有意差异**
  * - PyQt 构造时接受 `initial_type/initial_id`（由数据表双击 / AI 工具带入）。TS 没有「数据表页」，

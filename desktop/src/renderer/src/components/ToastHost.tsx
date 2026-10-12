@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react'
 
-import { dismissToast, getToasts, subscribeToasts } from '../../../shared/toast'
+import { dismissToast, getToasts, subscribeToasts } from '../../../shared/util/toast'
 
 /**
  * Toast 宿主组件（对齐 Python `src/ui/components/toast.py` 的 `Toast`）。

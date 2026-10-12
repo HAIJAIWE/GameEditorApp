@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
-import { countByType, type TypeCountRow } from '../../../shared/dataStats'
+import { countByType, type TypeCountRow } from '../../../shared/util/dataStats'
 import {
   ONBOARDING_STEPS,
   QUICK_ACTIONS,
@@ -28,7 +28,7 @@ import { toErrorMessage } from '../../../shared/util/errors'
  *   未完成的卡带「开始」按钮 → 标记完成并派发 `onAction(step.id)`）。
  *   5 步全部完成后延迟 ~500ms 自动折叠卡片（对齐 Python `QTimer.singleShot(500, self._collapse_cards)`）。
  * - **快捷操作卡** `QUICK_ACTIONS`：`STEPS_PER_ROW` 列的 6 张可点卡 → `onAction(id, dataType ?? '')`。
- * - **数据概览卡**：`STATS_PER_ROW` 列的按类型计数卡（`shared/dataStats.ts::countByType`），
+ * - **数据概览卡**：`STATS_PER_ROW` 列的按类型计数卡（`shared/util/dataStats.ts::countByType`），
  *   计数用类型色，取自 `window.mbApi.data.listAll()`。
  *
  * ## 有意不迁（宁缺勿错）

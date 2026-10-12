@@ -6,9 +6,9 @@ import {
   diffUnusedImages,
   imagePathKey,
   IMAGE_EXTENSIONS
-} from '../../shared/cleanupImages'
-import { isSupportedImageFile, buildImagePreviewDataUrl } from '../../shared/imagePreview'
-import { log } from '../../shared/logger'
+} from '../../shared/util/cleanupImages'
+import { isSupportedImageFile, buildImagePreviewDataUrl } from '../../shared/util/imagePreview'
+import { log } from '../../shared/util/logger'
 import type { IpcHandlerDeps, IpcRegistrar } from '../ipc'
 import { deleteImagesInputSchema, imageReadByPathInputSchema } from '../../shared/schemas'
 

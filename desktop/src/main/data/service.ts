@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 
-import { applyBatchOp } from '../../shared/dataTableOps'
+import { applyBatchOp } from '../../shared/util/dataTableOps'
 import type { BatchUpdateInput, CreateItemInput } from '../../shared/schemas'
 import type { BatchUpdateSummary, DeleteManySummary, ItemRecord } from '../../shared/types'
 import type { UndoEntry } from '../../shared/util/undoStack'

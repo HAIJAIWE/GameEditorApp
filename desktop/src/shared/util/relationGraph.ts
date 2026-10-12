@@ -1,13 +1,13 @@
-import { isPlainObject } from './ceshuModel'
+import { isPlainObject } from './guards'
 import { parseReferenceTokens, referenceFieldsOf } from './references'
-import type { DataTypeDef, ItemRecord } from './types'
+import type { DataTypeDef, ItemRecord } from '../types'
 
 /**
  * 「关系图」面板纯逻辑（迁移自 Python `ui/widgets/relation_graph.py::RelationTablePanel`）：
  * 给定一个「主体」条目，列出它经由引用字段指向的关联数据
  * （来源字段 / 关联名称 / 类型 / ID / 描述），供表格式总览 + 双击跳转。
  *
- * 与 Python 的**有意差异**（同 `shared/references.ts` 头部声明，此处不另立一套真源）：
+ * 与 Python 的**有意差异**（同 `shared/util/references.ts` 头部声明，此处不另立一套真源）：
  * - 引用字段来源走 `referenceFieldsOf`（schema `refType` 字段 + 文本引用补充表），
  *   不再使用 Python `relation_graph.REFERENCE_FIELDS` 那份与 `reference_panel` 互相不一致的硬编码表。
  * - 类型中文名 / 颜色取自 schema（`DataTypeDef.name` / `.color`），不再另存

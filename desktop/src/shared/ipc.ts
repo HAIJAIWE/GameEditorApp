@@ -98,10 +98,10 @@ import type { CeshuWordStatsReport } from './ceshuWordStats'
 import type { CeshuFieldDepsReport } from './ceshuFieldDeps'
 import type { CeshuAiGenerateResult, CeshuAiGenerateFieldResult, CeshuAiReviewResult } from './ceshuAi'
 import type { CeshuDataGenResult } from './ceshuDataGen'
-import type { ReferenceReport } from './references'
-import type { FieldIdSuggestResult } from './fieldIdAi'
+import type { ReferenceReport } from './util/references'
+import type { FieldIdSuggestResult } from './util/fieldIdAi'
 import type { AttrSystem } from './attrSystem'
-import type { BackupEntry, RestoreOutcome } from './backup'
+import type { BackupEntry, RestoreOutcome } from './util/backup'
 
 /**
  * IPC 契约：通道 → 请求/响应类型。

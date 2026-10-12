@@ -5,7 +5,7 @@ import {
   buildDescContext,
   buildDescPrompt,
   buildImageTagsPrompt
-} from '../../../shared/fieldAiAssist'
+} from '../../../shared/util/fieldAiAssist'
 import type { ImageGenConfig } from '../../../shared/config/imageGen'
 import { loadImageGenConfig } from '../../../shared/config/imageGenConfig'
 import { SECRET_NAMES } from '../../../shared/secretNames'
@@ -190,7 +190,7 @@ export default function ItemForm({
 
   /* ---- 字段级 AI 辅助（对齐 PyQt `dynamic_form.py` 的四个回调） ----
      能力实现在这里、控件只管按钮与忙态 —— 这样上下文（整份表单草稿）只有一份真源。
-     提示词组装在 `shared/fieldAiAssist.ts`（纯函数、可单测），此处只负责发 IPC 与取回结果。 */
+     提示词组装在 `shared/util/fieldAiAssist.ts`（纯函数、可单测），此处只负责发 IPC 与取回结果。 */
 
   /** 当前草稿里的条目名（PyQt `data.get('name', '')`） */
   const currentItemName = (): string => {

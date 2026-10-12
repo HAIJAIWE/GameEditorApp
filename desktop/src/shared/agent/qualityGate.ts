@@ -4,7 +4,7 @@ import { categorizeValidationError } from '../domain/ceshu/ceshuReports'
 import { scoreCeshu } from '../ceshuScorer'
 import { validateCeshu } from '../ceshuValidation'
 import { findCountConstraint, exceedsCountConstraint } from '../util/dataCountConstraint'
-import { assessBalance, mean, numericFieldNames, stdev } from '../dataStats'
+import { assessBalance, mean, numericFieldNames, stdev } from '../util/dataStats'
 import type {
   DataBalanceRow,
   DataQualityIssue,

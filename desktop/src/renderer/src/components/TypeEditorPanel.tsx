@@ -5,7 +5,7 @@ import { chineseToPinyin, suggestPinyinFieldId } from '../../../shared/util/piny
 import {
   FIELD_ID_AI_ERROR_EMPTY_LABEL,
   FIELD_ID_AI_ERROR_NO_CANDIDATE
-} from '../../../shared/fieldIdAi'
+} from '../../../shared/util/fieldIdAi'
 import { FIELD_TYPE_LABELS, FIELD_TYPES, validateTypeSchema } from '../../../shared/typeSchemaFile'
 import { TYPE_TEMPLATE_NAMES, TYPE_TEMPLATES, buildNewTypeDraft } from '../../../shared/typeTemplates'
 import type { DataTypeDef, FieldType, TypeFieldDef } from '../../../shared/types'

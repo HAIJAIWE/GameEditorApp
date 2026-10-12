@@ -1,4 +1,4 @@
-import { log } from '../../shared/logger'
+import { log } from '../../shared/util/logger'
 import type { LogLevel } from '../../shared/types'
 import type { IpcHandlerDeps, IpcRegistrar } from '../ipc'
 import { appLogInputSchema, windowModeInputSchema } from '../../shared/schemas'

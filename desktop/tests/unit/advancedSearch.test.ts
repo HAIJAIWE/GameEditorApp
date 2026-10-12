@@ -7,7 +7,7 @@ import {
   resolveSearchValue,
   searchItems,
   truncateMatch
-} from '../../src/shared/advancedSearch'
+} from '../../src/shared/util/advancedSearch'
 import type { ItemRecord } from '../../src/shared/types'
 
 function item(type: string, id: string, data: Record<string, unknown>): ItemRecord {

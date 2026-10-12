@@ -11,7 +11,7 @@ import {
   normalizeDuration,
   showToast,
   subscribeToasts
-} from '../../src/shared/toast'
+} from '../../src/shared/util/toast'
 
 describe('normalizeDuration：时长夹紧', () => {
   it('默认 3000（对齐 PyQt duration=3000）', () => {

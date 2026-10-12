@@ -1,7 +1,7 @@
 import { mkdir, readFile, readdir, rename, stat, unlink, writeFile } from 'node:fs/promises'
 import { join, resolve, sep } from 'node:path'
 
-import { isValidBackupName, parseBackupCreatedAt, type BackupEntry } from '../../shared/backup'
+import { isValidBackupName, parseBackupCreatedAt, type BackupEntry } from '../../shared/util/backup'
 
 /**
  * 备份存储层：纯文件系统逻辑（不依赖 electron）。

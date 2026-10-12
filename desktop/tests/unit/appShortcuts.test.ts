@@ -3,13 +3,13 @@ import { resolve } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { APP_SHORTCUTS } from '../../src/shared/shortcuts'
+import { APP_SHORTCUTS } from '../../src/shared/util/shortcuts'
 
 /**
  * 快捷键清单与**实际注册**的一致性守护测试。
  *
  * ## 为什么必须有这个测试
- * `src/shared/shortcuts.ts` 是一份**手写清单**，而真正的注册在
+ * `src/shared/util/shortcuts.ts` 是一份**手写清单**，而真正的注册在
  * `src/renderer/src/App.tsx` 的 keydown handler 里。两处各写各的，迟早漂移：
  * - 有人加了新快捷键但忘了更新面板 → 面板漏了一个键（用户按了没反应也不知道去哪看）；
  * - 有人把面板里的键抄成 PyQt 的 35 条 → 32 个「按了没反应」的键被当承诺做广告。
@@ -23,7 +23,7 @@ import { APP_SHORTCUTS } from '../../src/shared/shortcuts'
  *
  * ⚠️ 匹配依赖 `App.tsx` keydown handler 的写法：若有人重写那个 handler（例如换成
  * `Ctrl+Alt+Z`），本测试会红 —— **那是正确行为**：那时必须同步更新
- * `shared/shortcuts.ts` 的清单（否则面板内容会与真实注册不一致）。
+ * `shared/util/shortcuts.ts` 的清单（否则面板内容会与真实注册不一致）。
  */
 
 /** 读取 `App.tsx` 源码（相对 cwd，vitest 在 `desktop/` 下运行） */
@@ -69,7 +69,7 @@ const REQUIRED_REGISTRATION_SNIPPETS: Record<string, readonly string[]> = {
   'Ctrl+Y': ["(key === 'z' && event.shiftKey) || key === 'y'", 'void performRedo()']
 }
 
-describe('快捷键清单（shared/shortcuts.ts）', () => {
+describe('快捷键清单（shared/util/shortcuts.ts）', () => {
   it('每条都在 App.tsx 里找到对应的实际注册', () => {
     const handler = extractShortcutHandler(readAppSource())
     for (const shortcut of APP_SHORTCUTS) {
@@ -100,7 +100,7 @@ describe('快捷键清单（shared/shortcuts.ts）', () => {
     const unlisted = [...new Set(judged)].filter((letter) => !listedLetters.has(letter))
     expect(
       unlisted,
-      `App.tsx 的 keydown handler 判定了这些键，但 shared/shortcuts.ts 清单里没有：${unlisted.join('、')}。` +
+      `App.tsx 的 keydown handler 判定了这些键，但 shared/util/shortcuts.ts 清单里没有：${unlisted.join('、')}。` +
         '请把它补进清单，否则用户在「快捷键参考」里看不到这个键。'
     ).toEqual([])
   })

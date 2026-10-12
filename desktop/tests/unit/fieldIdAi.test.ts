@@ -4,7 +4,7 @@ import {
   FIELD_ID_AI_MAX_CANDIDATES,
   buildFieldIdPrompt,
   parseFieldIdCandidates
-} from '../../src/shared/fieldIdAi'
+} from '../../src/shared/util/fieldIdAi'
 import { validateFieldId } from '../../src/shared/util/fieldId'
 
 describe('fieldIdAi：提示词构建', () => {

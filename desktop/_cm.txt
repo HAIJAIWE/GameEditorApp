@@ -1,23 +1,21 @@
-refactor(shared): attr 域归区——求值引擎沉 domain/attr/，五个域文件迁入
+refactor(shared): misc 平铺第一批——15 个零业务语义文件迁入 util/（归区 2e）
 
-attrSystem.ts 拆分（归区第二批 2d）：
-- 模型 + 拓扑排序留 contract 根：ATTR_TYPES / AttrFormula / AttrDefinition /
-  AttrSystem / 默认系统 / 公式文本互转 / validateAttrSystem / buildAttrGameConfig /
-  AttrSystemFile 序列化解析 / topoSortAttributes + TopoResult。留根理由：
-  main 的 attrSystemStore / attrSystemJsonFile / attrGameConfigExport 依赖它们
-  （README rule 4：main 不碰 domain/**），与 ceshu 模型六件套同构。
-- 求值引擎新建 domain/attr/attrEngine.ts：evaluateFormula / calculateAttributes +
-  AttrCalculation（含 min/max 截断、环依赖语义的域逻辑），import contract 根
-  （domain → contract，README §1.1 允许方向）。
+按 README Q5 判据（删业务名词后函数名仍成立）逐文件取证后迁移：
+- 通用数据操作：advancedSearch / dataStats / dataTableOps / dataBuckets
+- 图片家族：imageCache / imagePreview / cleanupImages
+- 提示词组装（数据编辑器通用，无业务名词）：fieldAiAssist / fieldIdAi
+- 基础设施：logger / toast / shortcuts / backup
+- 引用关系：references / relationGraph —— 先解掉对 ceshuModel 的
+  isPlainObject 依赖（改引 util/guards，README §6 反例同款操作）再迁入，
+  二者仅剩对 contract 根（types）的依赖，纯净合规
 
-五个 attr 域文件迁入 domain/attr/：attrList / attrPanel / attrPreview /
-attributeChart / equipPreview（README §4 表中 domain/attr 行的存量全部落地）。
-equipPreview 经消费方取证仅 renderer + tests 使用（main 不碰），迁入不触发 rule 4；
-attrPanel / attributeChart 零 import 自包含。
+util 纯净规则（禁 import domain）对 15 个文件全部成立；references 被
+main/ipc/dataIpc.ts 消费（buildReferenceReport），迁 util 后 main 引用合法
+（rule 4 只禁 domain，不禁 util）。
 
-- 消费方改道：renderer 6 组件 + tests 8 文件；AttrSystemPanel 的
-  calculateAttributes 改引 attrEngine；attrList/attrPreview/equipPreview 的
-  import 拆为「引擎 ← ./attrEngine + 模型类型 ← ../../attrSystem」
-- rule 1 域间隔离从 code review 升级为机器校验（domain/attr/ 建立即上膛）
-- 验证：tsc NODE 5 / WEB 6（存量基线）、eslint 0、vitest 2010 过 / 1 已知红
-  （agentQualityGate WIP）、attrSystem.test 16 过（拆分后双来源 import 正确）
+- 15 文件 → shared/util/；全仓 68 处 import 改道（main 13 / shared 5 /
+  renderer 12 / tests 19 等）
+- 顺手修 9 处注释路径漂移（本次迁移把 shared/X.ts 的文档引用改为
+  shared/util/X.ts；docs/ 历史审计文档按 chronic dirt 纪律不动）
+- 验证：tsc NODE 5 / WEB 6（存量基线）、eslint 0、vitest 2010 过 /
+  1 已知红（agentQualityGate WIP）

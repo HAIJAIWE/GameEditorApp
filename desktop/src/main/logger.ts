@@ -3,7 +3,7 @@
  *
  * 提供：轮转文件日志（单文件上限 + 保留 N 个备份）、按级别回显控制台。
  * 与 Python 版对齐的刻意取舍：
- * - 不实现「环形缓冲供 LLM 注入」——TS 侧无消费者（见 shared/logger.ts 顶部说明）。
+ * - 不实现「环形缓冲供 LLM 注入」——TS 侧无消费者（见 shared/util/logger.ts 顶部说明）。
  * - 单例/全局态：用 `setLogSink` 把写入函数注入 shared/logger，渲染层与主进程共用同一入口。
  *
  * 纯函数（formatLogLine / needsRotate / rotateLogFile）与文件 IO 分离，便于单测。
@@ -13,7 +13,7 @@ import { existsSync, mkdirSync, renameSync, statSync, appendFileSync, unlinkSync
 import { join } from 'node:path'
 
 import type { AppLogInput, LogLevel } from '../shared/types'
-import { setLogSink } from '../shared/logger'
+import { setLogSink } from '../shared/util/logger'
 
 const LOGGER_NAME = 'GameEditorApp'
 
