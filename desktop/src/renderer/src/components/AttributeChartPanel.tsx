@@ -6,7 +6,7 @@ import {
   buildAttributeChart,
   formatChartValue,
   truncateName
-} from '../../../shared/attributeChart'
+} from '../../../shared/domain/attr/attributeChart'
 import type { DataTypeDef, ItemRecord } from '../../../shared/types'
 
 /**

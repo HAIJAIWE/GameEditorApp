@@ -1,4 +1,5 @@
-import { calculateAttributes, type AttrFormula, type AttrSystem } from './attrSystem'
+import { calculateAttributes } from './attrEngine'
+import type { AttrFormula, AttrSystem } from '../../attrSystem'
 
 /**
  * 实时属性预览（对应 Python LivePreviewWidget，属性系统编辑器第三视图）：

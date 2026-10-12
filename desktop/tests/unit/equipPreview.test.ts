@@ -6,7 +6,7 @@ import {
   EQUIP_SLOTS,
   equipRecordToItem,
   formatPreviewNumber
-} from '../../src/shared/equipPreview'
+} from '../../src/shared/domain/attr/equipPreview'
 import { createDefaultAttrSystem, defaultBaseValues, type AttrDefinition, type AttrSystem } from '../../src/shared/attrSystem'
 
 const system = createDefaultAttrSystem()

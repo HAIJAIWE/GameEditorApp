@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 
-import { buildAttrPreview, type AttrRow } from '../../../shared/attrList'
+import { buildAttrPreview, type AttrRow } from '../../../shared/domain/attr/attrList'
 import type { AttrSystem } from '../../../shared/attrSystem'
 
 /**

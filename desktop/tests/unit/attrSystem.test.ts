@@ -1,11 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
+import { calculateAttributes, evaluateFormula } from '../../src/shared/domain/attr/attrEngine'
 import {
   buildAttrGameConfig,
-  calculateAttributes,
   createDefaultAttrSystem,
   defaultBaseValues,
-  evaluateFormula,
   formulaToDisplay,
   formulaToText,
   parseAttrSystemFile,

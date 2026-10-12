@@ -6,10 +6,14 @@ import { readText } from './util/readText'
  * RPG 属性系统核心（自 Python core/attr_system.py + common/graph.py 匹平迁移）：
  * - 模型：属性 = { 类型(base/derived/combat)、分类、显示名、最小/上限、默认值、系数公式 }
  * - 公式：与 Python Formula 一致采用「系数 + 常数项」结构；JSON 以旧版文本形式互转（= 力量*10 + 体质*20）
- * - 计算：拓扑排序（Kahn）逐条求值、未定义依赖按 0、系数 0 跳过、min/max 截断；环依赖返回成员而非抛裸异常
+ * - 拓扑排序：Kahn 算法（对应 Python common/graph.py）；环依赖返回成员而非抛裸异常
  * - 文件：<userData>/attr_system.json，与 Python 同构（顶层为「属性名 → 定义」的平铺对象、snake_case 键）
  * 有意改进（相对 Python 的缺陷）：公式解析失败返回 null（Python 静默当 0/崩溃）；环依赖返回成员供 UI 提示；
  * 上限 max_value 序列化保留（Python 的 Formula.max_value 不落盘，往返后丢失战斗属性上限）。
+ *
+ * 归区说明（2026-10-12）：模型 + 拓扑排序留 contract 根——main 进程的 validateAttrSystem /
+ * buildAttrGameConfig / AttrSystemStore 依赖它们（README rule 4：main 不碰 domain/**）；
+ * 属性求值引擎（evaluateFormula / calculateAttributes）在 domain/attr/attrEngine.ts。
  */
 
 export const ATTR_TYPES = ['base', 'derived', 'combat'] as const
@@ -182,18 +186,7 @@ export function formulaToDisplay(formula: AttrFormula): string {
   return parts.length === 0 ? '0' : parts.join(' + ')
 }
 
-/* ---- 求值与拓扑计算 ---- */
-
-/** 系数求值（对应 Python Formula.evaluate：未定义依赖按 0、系数 0 跳过） */
-export function evaluateFormula(formula: AttrFormula, context: Record<string, number>): number {
-  let value = formula.baseValue
-  for (const [name, coeff] of Object.entries(formula.coefficients)) {
-    if (coeff === 0) continue
-    value += coeff * (context[name] ?? 0)
-  }
-  return value
-}
-
+/* ---- 拓扑排序（Kahn 图算法；属性求值引擎在 domain/attr/attrEngine.ts） ---- */
 export interface TopoResult {
   order: string[]
   /** 环依赖成员（非 null 时 order 不完整） */
@@ -235,35 +228,6 @@ export function topoSortAttributes(system: AttrSystem): TopoResult {
     return { order, cycle: names.filter((name) => !sorted.has(name)) }
   }
   return { order, cycle: null }
-}
-
-export interface AttrCalculation {
-  /** 基础属性输入 + 逐条计算的派生/战斗属性 */
-  values: Record<string, number>
-  /** 环依赖成员（非 null 时计算不完整） */
-  cycle: string[] | null
-}
-
-/**
- * 计算全部属性（对应 Python AttributeSystem.calculate_all）：
- * 入参 base_values 中的属性直接采用；其余按拓扑序计算并做 min/max 截断。
- */
-export function calculateAttributes(system: AttrSystem, baseValues: Record<string, number>): AttrCalculation {
-  const topo = topoSortAttributes(system)
-  if (topo.cycle) {
-    return { values: { ...baseValues }, cycle: topo.cycle }
-  }
-  const values: Record<string, number> = { ...baseValues }
-  for (const name of topo.order) {
-    if (name in baseValues) continue
-    const attr = system.attributes[name]
-    if (!attr) continue
-    let value = evaluateFormula(attr.formula, values)
-    if (Number.isFinite(attr.minValue)) value = Math.max(value, attr.minValue)
-    if (attr.maxValue !== null && Number.isFinite(attr.maxValue)) value = Math.min(value, attr.maxValue)
-    values[name] = value
-  }
-  return { values, cycle: null }
 }
 
 /* ---- 领域校验（保存前共用） ---- */

@@ -8,7 +8,7 @@ import {
   evaluateAttrPanel,
   rowsToAttrPanel,
   type AttrPanelRow
-} from '../../src/shared/attrPanel'
+} from '../../src/shared/domain/attr/attrPanel'
 
 function row(name: string, formula: string, category = '基础'): AttrPanelRow {
   return { name, category, formula }

@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { AttrSystemStore } from '../../src/main/attr/attrSystemStore'
-import { calculateAttributes } from '../../src/shared/attrSystem'
+import { calculateAttributes } from '../../src/shared/domain/attr/attrEngine'
 
 describe('AttrSystemStore（attr_system.json 唯一写者）', () => {
   it('无文件时以内置默认集为种子；保存后落盘并可重新加载（公式与上限均保留）', () => {

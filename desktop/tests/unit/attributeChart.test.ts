@@ -8,7 +8,7 @@ import {
   formatChartValue,
   truncateName,
   type ChartDatum
-} from '../../src/shared/attributeChart'
+} from '../../src/shared/domain/attr/attributeChart'
 
 /** 造一条带 id/name/字段值的条目 */
 const row = (id: string, name: unknown, extra: Record<string, unknown> = {}): Record<string, unknown> => ({

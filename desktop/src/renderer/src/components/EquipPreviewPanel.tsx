@@ -7,7 +7,7 @@ import {
   equipRecordToItem,
   formatPreviewNumber,
   type EquipPreviewItem
-} from '../../../shared/equipPreview'
+} from '../../../shared/domain/attr/equipPreview'
 import type { AttrSystem } from '../../../shared/attrSystem'
 
 /**

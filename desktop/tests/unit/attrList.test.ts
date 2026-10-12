@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { attrListToRows, buildAttrPreview, rowsToAttrList } from '../../src/shared/attrList'
+import { attrListToRows, buildAttrPreview, rowsToAttrList } from '../../src/shared/domain/attr/attrList'
 import { createDefaultAttrSystem, type AttrDefinition, type AttrSystem } from '../../src/shared/attrSystem'
 
 describe('属性列表编辑行 ↔ 存储转换', () => {

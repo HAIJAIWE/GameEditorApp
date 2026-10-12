@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { baseAttrNames, computeLivePreview, derivedAndCombatNames } from '../../src/shared/attrPreview'
+import { baseAttrNames, computeLivePreview, derivedAndCombatNames } from '../../src/shared/domain/attr/attrPreview'
 import { createDefaultAttrSystem, type AttrDefinition, type AttrSystem } from '../../src/shared/attrSystem'
 
 const system = createDefaultAttrSystem()

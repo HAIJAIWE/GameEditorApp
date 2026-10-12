@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 
-import { baseAttrNames, computeLivePreview, derivedAndCombatNames } from '../../../shared/attrPreview'
+import { baseAttrNames, computeLivePreview, derivedAndCombatNames } from '../../../shared/domain/attr/attrPreview'
 import type { AttrSystem } from '../../../shared/attrSystem'
 
 /**

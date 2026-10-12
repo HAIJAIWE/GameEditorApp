@@ -3,7 +3,6 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   ATTR_TYPES,
   ATTR_TYPE_LABELS,
-  calculateAttributes,
   createDefaultAttrSystem,
   defaultBaseValues,
   formulaToText,
@@ -13,6 +12,7 @@ import {
   type AttrSystem,
   type AttrType
 } from '../../../shared/attrSystem'
+import { calculateAttributes } from '../../../shared/domain/attr/attrEngine'
 
 import AttrLivePreview from './AttrLivePreview'
 import EquipPreviewPanel from './EquipPreviewPanel'

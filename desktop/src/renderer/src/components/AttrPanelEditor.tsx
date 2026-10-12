@@ -6,7 +6,7 @@ import {
   ATTR_PANEL_TEMPLATES,
   evaluateAttrPanel,
   type AttrPanelRow
-} from '../../../shared/attrPanel'
+} from '../../../shared/domain/attr/attrPanel'
 import AttrFormulaBuilder from './AttrFormulaBuilder'
 
 /**

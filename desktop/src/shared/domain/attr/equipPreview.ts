@@ -1,4 +1,5 @@
-import { calculateAttributes, type AttrSystem } from './attrSystem'
+import { calculateAttributes } from './attrEngine'
+import type { AttrSystem } from '../../attrSystem'
 
 /**
  * 装备/Buff 预览（对应 Python EquipmentPreviewWidget + InspectorPanel）：

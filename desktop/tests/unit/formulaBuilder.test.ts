@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { evaluateAttrPanel, type AttrPanelRow } from '../../src/shared/attrPanel'
+import { evaluateAttrPanel, type AttrPanelRow } from '../../src/shared/domain/attr/attrPanel'
 import {
   BASE_ATTR_EFFECTS,
   DEFAULT_BASE_ATTRS,
