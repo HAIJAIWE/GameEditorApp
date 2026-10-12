@@ -1,5 +1,5 @@
 import { LlmClient, type LlmCallOptions } from '../llm/client'
-import { parseLlmJson } from '../../shared/ceshu/ceshuAi'
+import { parseLlmJson } from '../../shared/util/parseLlmJson'
 import type { LlmJudgeVerdict } from '../../shared/agent/qualityGate'
 
 /**

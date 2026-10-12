@@ -1,4 +1,4 @@
-import { parseLlmJson } from './ceshu/ceshuAi'
+import { parseLlmJson } from './util/parseLlmJson'
 import { uniquifyFieldId, validateFieldId, type FieldIdSuggestion } from './util/fieldId'
 
 /**

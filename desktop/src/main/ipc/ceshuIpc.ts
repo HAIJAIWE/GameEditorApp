@@ -40,9 +40,9 @@ import {
   buildReviewPrompts,
   filterGeneratedFields,
   mergeChapterDraft,
-  parseLlmJson,
   parseReviewResponse
 } from '../../shared/ceshu/ceshuAi'
+import { parseLlmJson } from '../../shared/util/parseLlmJson'
 import {
   DATA_GEN_ERROR_EMPTY,
   DATA_GEN_ERROR_NO_TYPE,

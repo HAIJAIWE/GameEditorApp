@@ -15,10 +15,10 @@ import {
   mapTypeLabelToKey,
   mergeChapterDraft,
   normalizeFullGenerateInput,
-  parseLlmJson,
   parseReviewResponse,
   type CeshuAiReviewResult
 } from '../../src/shared/ceshu/ceshuAi'
+import { parseLlmJson } from '../../src/shared/util/parseLlmJson'
 import { CHAPTER_KEYS } from '../../src/shared/ceshu/ceshuConstants'
 import { createDefaultCeshu } from '../../src/shared/ceshu/ceshuModel'
 

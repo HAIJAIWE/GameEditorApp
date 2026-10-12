@@ -14,6 +14,7 @@ import { CESHU_CHAPTER_FIELDS } from '../domain/ceshu/ceshuFields'
 import type { QualityGateVerdict } from '../agent/qualityGate'
 import { isPlainObject } from './ceshuModel'
 import { readText } from '../util/readText'
+import { parseLlmJson } from '../util/parseLlmJson'
 import {
   CHAPTER_AGENT_MAP,
   AGENT_DISPLAY,
@@ -153,29 +154,6 @@ export interface CeshuAiGenerateResult {
 }
 
 /**
- * 解析 LLM 返回的 JSON（匹平 Python _parse_llm_json 容错）：
- * 去 markdown 代码块围栏 → 截取首尾大括号 → 解析失败再去尾逗号重试；失败返回 {}。
- */
-export function parseLlmJson(content: string): Record<string, unknown> {
-  if (!content) return {}
-  let text = content.trim()
-  if (text.startsWith('```')) {
-    const lines = text.split('\n')
-    if (lines[0]?.startsWith('```')) lines.shift()
-    if (lines.length > 0 && lines[lines.length - 1]?.startsWith('```')) lines.pop()
-    text = lines.join('\n')
-  }
-  const start = text.indexOf('{')
-  const end = text.lastIndexOf('}')
-  if (start >= 0 && end > start) text = text.slice(start, end + 1)
-
-  const parsed = tryParseObject(text)
-  if (parsed) return parsed
-  const cleaned = text.replace(/,\s*}/g, '}').replace(/,\s*]/g, ']')
-  return tryParseObject(cleaned) ?? {}
-}
-
-/**
  * 清洗生成字段：仅保留该章表单字段 / 既有数据键（含点路径父键），丢弃 null 与未知键。
  * 说明：空字符串与空数组被丢弃（避免 AI 空值清空用户已填内容，与 Python 直接整章覆盖略有差异）。
  */
@@ -198,15 +176,6 @@ export function filterGeneratedFields(
     if (allowed.has(key) || heads.has(key)) result[key] = value
   }
   return result
-}
-
-function tryParseObject(text: string): Record<string, unknown> | null {
-  try {
-    const parsed: unknown = JSON.parse(text)
-    return isPlainObject(parsed) ? parsed : null
-  } catch {
-    return null
-  }
 }
 
 /** Python 真值语义（''/0/false/空数组/空对象 为假） */
