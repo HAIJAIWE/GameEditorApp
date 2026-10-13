@@ -63,6 +63,11 @@ interface ItemFormProps {
    * 复制本身由本组件走既有 `data:createItem` 完成；未提供时回退 `onSaved` 触发列表刷新。
    */
   onDuplicated?: (created: ItemRecord) => void
+  /**
+   * 删除当前条目（父级 DataEditorTab 执行 deleteItem + 列表刷新 + 选中清空）。
+   * 对应 PyQt `data_tab` 底部操作栏的「删除」钮；未提供则不渲染该按钮。
+   */
+  onDelete?: () => void
 }
 
 
@@ -75,7 +80,8 @@ export default function ItemForm({
   onEditType,
   onShowReferences,
   onAiGenerate,
-  onDuplicated
+  onDuplicated,
+  onDelete
 }: ItemFormProps) {
   const [draft, setDraft] = useState<Record<string, unknown>>(() => buildInitialDraft(item.data, fields, item.type))
   const [saving, setSaving] = useState(false)
@@ -435,6 +441,18 @@ export default function ItemForm({
         <button type="button" className="btn primary" disabled={saving} onClick={() => void handleSave()}>
           保存
         </button>
+        {onDelete !== undefined && (
+          <button
+            type="button"
+            className="btn danger"
+            data-testid="item-form-delete"
+            disabled={saving}
+            onClick={onDelete}
+          >
+            <LucideIcon name="trash" size={14} />
+            删除
+          </button>
+        )}
         <button
           type="button"
           className="btn"
@@ -458,7 +476,7 @@ export default function ItemForm({
         {/*
           「更多 ▸」收纳低频项（对应 PyQt data_tab 的 more_btn 菜单）。
           每一项仅在父级确实传入了回调时才渲染，保证菜单里不存在点了没反应的死控件。
-          新建 / 删除按既有约定留在左栏（DataEditorTab），此处不再重复。
+          注：删除已从行内图标移至本操作栏（对齐 PyQt 底部「删除」钮，见 onDelete prop）；新建仍留在左栏。
         */}
         {(onEditType !== undefined || onShowReferences !== undefined) && (
           <div className="toolbar-more" ref={moreRef}>

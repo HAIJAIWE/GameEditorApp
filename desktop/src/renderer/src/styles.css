@@ -641,30 +641,36 @@ body {
 }
 
 /*
- * 窄列下的条目行 —— 修复「点行中心 = 误删」（实测证据，不是推测）：
- * 预览面板里 `.list-column` 固定 200px，`.list` 左右各 20px 内边距 ⇒ 行只有 **160px**；
- * 默认布局下删除钮占 **74.7px（整行 47%）**，名称被挤到 **18.7px**（文本「技能 1」需 40px，已截断），
- * 且实测 `document.elementFromPoint(行的几何中心)` 命中 **`ceshu-data-delete`** ——
- * 用户（以及任何按行中心点击的自动化）想选中条目却会直接删除。
- * 修法：① 删除钮在窄列收成图标（文本包进 `.btn-label`，按钮与 testid 均保留，
- * `smoke.spec.ts:84` 的 `getByTestId('ceshu-data-delete').click()` 照旧可用）；
- * ② 8 位短 id 让位（`title` 与右侧表单仍可读到）；③ 名称设最小宽度兜底。
- * 效果（实测）：行中心落回「名称」，删除钮退回右缘（详见 preview/measure-row.mjs 报告）。
+ * 内嵌数据编辑器的条目行 —— 对齐 PyQt `virtual_list.VirtualListItemDelegate`：
+ * 扁平单行、无卡片描边/圆角、行间无间距、选中=高亮填充。
+ * 行内容是密集单行文本 `ID | 名称 | 关键字段`（见 DataEditorTab.buildListRowText）；
+ * 删除入口在右键菜单 + 表单底部操作栏（对齐 PyQt），行内不再放删除图标，
+ * 也就没有「点行中心=误删」的问题——原为行内删除钮/短 id 而写的窄列 mitigations 已随之移除。
  */
-.ceshu-preview .item-row .item-meta {
-  display: none;
-}
-
-.ceshu-preview .item-row .btn.danger {
+.ceshu-preview .list {
+  gap: 0;
+  /* 收紧左右内边距：给密集单行文本（ID|名称|字段）腾出窄列里的可用宽度 */
   padding: 4px 6px;
 }
 
-.ceshu-preview .item-row .btn-label {
-  display: none;
+.ceshu-preview .item-row {
+  gap: 0;
+  min-height: 34px;
+  padding: 6px 8px;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
 }
 
-.ceshu-preview .item-row .item-name {
-  min-width: 64px;
+.ceshu-preview .item-row:last-child {
+  border-bottom: none;
+}
+
+.ceshu-preview .item-row.selected {
+  background: var(--accent-bg);
+  color: var(--accent);
+  border-bottom-color: var(--accent);
 }
 
 /* 右键菜单：相对视口的浮层（定位由行内 style 的 clientX/clientY 给出） */

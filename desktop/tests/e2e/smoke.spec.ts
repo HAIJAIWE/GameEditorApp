@@ -81,7 +81,9 @@ test('启动应用并完成「新增 → 编辑 → 删除 → 导入 → 导出
     await createDataItem(window)
     await expect(window.getByTestId('ceshu-data-item-row')).toHaveCount(2)
 
-    await window.getByTestId('ceshu-data-item-row').first().getByTestId('ceshu-data-delete').click()
+    // 删除入口已从行内图标移至表单底部操作栏（对齐 PyQt）：先选中首行，再点「删除」
+    await window.getByTestId('ceshu-data-item-row').first().click()
+    await window.getByTestId('item-form-delete').click()
     await expect(window.getByTestId('ceshu-data-item-row')).toHaveCount(1)
 
     // 旧数据导入：渲染层 IPC → 主进程 → 真实 SQLite upsert

@@ -7,7 +7,7 @@ import {
 } from '../../../shared/util/dataCountConstraint'
 import { filterItemRecords, withRenamedName } from '../../../shared/util/dataTableOps'
 import { showToast } from '../../../shared/util/toast'
-import type { DataTypeDef, ItemRecord } from '../../../shared/types'
+import type { DataTypeDef, ItemRecord, TypeFieldDef } from '../../../shared/types'
 
 import ItemForm from './ItemForm'
 import LucideIcon from './LucideIcon'
@@ -56,15 +56,46 @@ const CONTEXT_MENU_HEIGHT = 122
 const CONTEXT_MENU_MARGIN = 8
 
 /**
+ * 列表行长文本字段跳过集 —— 与 PyQt `data_tab._get_item_display_text` 完全一致：
+ * 这些是长文本 / 富结构字段，拼进行内单行只会刷屏，故只显示「ID | 名称 | 关键字段」。
+ */
+const LIST_TEXT_SKIP_FIELDS: ReadonlySet<string> = new Set([
+  'id', 'name', 'desc', 'description', 'content',
+  'image', 'image_desc', 'image_tags', 'template',
+  'tags', 'condition', 'event', 'reward', 'options'
+])
+
+/**
+ * 构造列表行单行文本，对齐 PyQt `data_tab._get_item_display_text`：
+ * `ID | 名称 | 关键字段1 | 关键字段2`（跳过长文本字段，最多拼 4 段）。
+ * 与 PyQt 的唯一偏差：id 取前 8 位。PyQt 数据是短 id（参考截图 ID:0/1/2），
+ * 而 TS 用 `randomUUID()`（36 位）——全量 id 会撑爆窄列；完整 id 仍可从行 title 与右侧表单读取。
+ */
+function buildListRowText(item: ItemRecord, fields: readonly TypeFieldDef[]): string {
+  const parts = [`ID:${item.id.slice(0, 8)}`, String(item.data.name ?? item.id)]
+  for (const field of fields) {
+    if (LIST_TEXT_SKIP_FIELDS.has(field.name)) continue
+    const value = item.data[field.name]
+    if (value !== undefined && value !== null && value !== '') {
+      parts.push(String(value))
+      if (parts.length >= 4) break
+    }
+  }
+  return parts.join(' | ')
+}
+
+/**
  * 单数据类型编辑器（内嵌于策划书右侧预览面板的一个标签页）。
  *
- * 对齐 PyQt `ui/data_tab.py::DataEditorTab`：左侧条目列表（搜索 / 新建 / 删除 / 右键菜单 / F2 重命名） +
- * 右侧条目表单。完全自包含，不依赖 App 状态——只消费传入的 `type` 与 `types`。
+ * 对齐 PyQt `ui/data_tab.py::DataEditorTab`：左侧条目列表（搜索 / 新建 / 右键菜单 / F2 重命名） +
+ * 右侧条目表单。行文本为密集单行 `ID | 名称 | 关键字段`（移植 PyQt `_get_item_display_text`）；
+ * 删除入口在右键菜单 + 表单底部操作栏（对齐 PyQt，行内不放删除图标）。完全自包含，
+ * 不依赖 App 状态——只消费传入的 `type` 与 `types`。
  *
  * 与 PyQt 的两处**刻意**差异（已记入 `docs/migration-audit.md`）：
  * - 重命名用行内输入框，而不是 PyQt 的 `QInputDialog` 模态框（Electron 渲染层没有 `window.prompt`）。
  * - 列表上**不**绑定 Delete 键：PyQt 的 Delete 会先弹「确定要删除这个项目吗？」再删，
- *   而本组件现有的删除按钮是**无确认直删**，贸然加退格键会变成「一键误删」。
+ *   而删除入口（右键菜单 / 表单底部）仍是**无确认直删**，贸然加退格键会变成「一键误删」。
  */
 export default function DataEditorTab({
   type,
@@ -353,7 +384,7 @@ export default function DataEditorTab({
                   key={item.id}
                   className={`item-row${item.id === selectedId ? ' selected' : ''}`}
                   data-testid="ceshu-data-item-row"
-                  title={`${String(item.data.name ?? item.id)} | ${item.id}`}
+                  title={`${buildListRowText(item, fields)}  ·  ${item.id}`}
                   onClick={() => setSelectedId(item.id)}
                   onContextMenu={(event) => {
                     event.preventDefault()
@@ -388,25 +419,8 @@ export default function DataEditorTab({
                       onBlur={() => void commitRename()}
                     />
                   ) : (
-                    <span className="item-name">{String(item.data.name ?? item.id)}</span>
+                    <span className="item-name">{buildListRowText(item, fields)}</span>
                   )}
-                  {/* 短 id 在窄列里让位给名称（见 styles.css 的 .ceshu-preview .item-row 规则）；
-                      完整的 id 仍可从行的 title 与右侧条目表单读到 */}
-                  <span className="item-meta">{item.id.slice(0, 8)}</span>
-                  <button
-                    type="button"
-                    className="btn danger"
-                    data-testid="ceshu-data-delete"
-                    title="删除"
-                    aria-label="删除"
-                    onClick={(event) => {
-                      event.stopPropagation()
-                      void handleDelete(item.id)
-                    }}
-                  >
-                    <LucideIcon name="trash" size={12} />
-                    <span className="btn-label">删除</span>
-                  </button>
                 </div>
               ))
             )}
@@ -421,6 +435,9 @@ export default function DataEditorTab({
             types={types}
             gameStyle={gameStyle}
             onSaved={handleSaved}
+            onDelete={() => {
+              if (selectedItem !== null) void handleDelete(selectedItem.id)
+            }}
             onEditType={onEditType}
             onShowReferences={onShowReferences}
             onAiGenerate={onAiGenerate}
