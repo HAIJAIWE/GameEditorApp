@@ -905,6 +905,23 @@ body {
   opacity: 0.6;
 }
 
+/* E62：字段行内联「AI 帮我填」按钮（与表单控件并排） */
+.field-with-ai {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.field-with-ai > .ceshu-field {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.field-with-ai > .ai-field-btn {
+  flex: 0 0 auto;
+  margin-top: 4px;
+}
+
 /* 两列网格里的行更窄，标签列相应收窄 */
 .form-grid .form-row > .form-label {
   flex: 0 0 88px;

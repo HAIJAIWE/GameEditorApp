@@ -110,6 +110,8 @@ export default function SettingsPanel() {
   const [setupGuide, setSetupGuide] = useState<LlmSetupGuide>(() => llmSetupGuide(loadLlmConfig(), hasStoredLlmConfig()))
   /** 「一键启用保密模式」的本地探测是否在途（用于禁用按钮，防重复点击） */
   const [llmProbing, setLlmProbing] = useState(false)
+  /** 「测试连接」是否在途（禁用按钮，防重复点击） */
+  const [llmTesting, setLlmTesting] = useState(false)
 
   const llmPreset = LLM_PROVIDER_PRESETS[effectiveProvider(llm)]
 
@@ -196,6 +198,21 @@ export default function SettingsPanel() {
       setLlmNotice(`已保存配置，但无法连接本地 Ollama：${reason}，请确认已启动（ollama serve）`)
     } finally {
       setLlmProbing(false)
+    }
+  }
+
+  /** 「测试连接」（E63，对齐 Python `api_config.py`）：探活当前已配置镜像，结果直接展示在 llmNotice */
+  const handleTestConnection = async (): Promise<void> => {
+    setLlmNotice(null)
+    setLlmTesting(true)
+    try {
+      const res = await window.mbApi.llm.testConnection()
+      setLlmNotice(`${res.ok ? '连接成功' : '连接失败'}：${res.message}`)
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err)
+      setLlmNotice(`测试连接异常：${reason}`)
+    } finally {
+      setLlmTesting(false)
     }
   }
 
@@ -470,6 +487,20 @@ export default function SettingsPanel() {
                 value={llm.maxTokens}
                 onChange={(e) => commitLlm({ ...llm, maxTokens: Number(e.target.value) })}
               />
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-field">
+              <button
+                type="button"
+                className="btn"
+                data-testid="llm-test-connection"
+                disabled={llmTesting}
+                onClick={() => void handleTestConnection()}
+              >
+                {llmTesting ? '测试中…' : '测试连接'}
+              </button>
             </div>
           </div>
 

@@ -152,13 +152,31 @@ export type ImageReadByPathInput = z.infer<typeof imageReadByPathInputSchema>
  * LLM 非敏感配置（对齐 Python `api_config.py` 的 `save_config` 前半段字段）。
  * **刻意不含 apiKey** —— Key 走 safeStorage（见 `shared/secretNames.ts` 的 `llmApiKey`）。
  */
+/**
+ * LLM 非敏感配置（对齐 `StoredLlmConfig` 全 17 字段）。
+ *
+ * ⚠️ 铁律（见 `llmConfigData.ts:240`）：本 schema 必须**镜像 `StoredLlmConfig` 的全部字段**。
+ * zod `object()` 默认剥掉未知键，只改 `StoredLlmConfig` 不改这里 ⇒ 主进程静默丢字段
+ * （表现为「设置存了但没用」）。历史上 `confidential` 已踩过此坑。
+ * 各字段取值上下限与 `llmConfigData.ts` 的同名常量保持一致（此处用字面量，与文件既有写法统一）。
+ */
 export const llmConfigSchema = z.object({
   enabled: z.boolean(),
-  provider: z.enum(['ollama', 'openai', 'doubao', 'qwen', 'claude', 'deepseek']),
+  provider: z.enum(['ollama', 'openai', 'doubao', 'qwen', 'claude', 'deepseek', 'custom']),
   model: z.string().max(200),
   baseUrl: z.string().max(500),
   temperature: z.number().min(0).max(2),
   maxTokens: z.number().int().min(1).max(32000),
+  topP: z.number().min(0).max(1),
+  numCtx: z.number().int().min(512).max(128000),
+  repeatPenalty: z.number().min(1).max(2),
+  topK: z.number().int().min(0).max(100),
+  seed: z.number().int().min(-1).max(2147483647),
+  mirostatMode: z.number().int().min(0).max(2),
+  mirostatTau: z.number().min(0).max(10),
+  mirostatEta: z.number().min(0).max(1),
+  stopWords: z.string().max(2000),
+  numGpu: z.number().int().min(-1).max(200),
   confidential: z.boolean()
 })
 
@@ -168,6 +186,9 @@ export const llmConfigureInputSchema = z.object({
 })
 
 export const llmStatusInputSchema = z.object({})
+
+/** 测试连接（E63）：无入参，主进程按当前配置镜像探活 */
+export const llmTestConnectionInputSchema = z.object({})
 
 export type LlmConfigureInput = z.infer<typeof llmConfigureInputSchema>
 
@@ -504,6 +525,15 @@ export const ceshuAiGenerateInputSchema = z.object({
    */
   confirmed: z.boolean().optional()
 })
+
+/** 按字段 AI 生成（E62，对齐 Python `ai_field_button.py`）：单字段定向生成，非整章 */
+export const ceshuAiGenerateFieldInputSchema = z.object({
+  id: z.string().min(1),
+  chapter: z.string().min(1),
+  field: z.string().min(1)
+})
+
+export type CeshuAiGenerateFieldInput = z.infer<typeof ceshuAiGenerateFieldInputSchema>
 
 /** AI 生成候选游戏数据（数值/系统章作为设定 → 候选 → 人工导入） */
 export const ceshuDataGenInputSchema = z.object({

@@ -178,6 +178,35 @@ describe('AI 生成：整章提示词组装（匹平 Python _ai_fill_chapter）'
   })
 })
 
+describe('AI 生成：单字段定向生成（E62 onlyFields，匹平 Python _AIFillFieldWorker）', () => {
+  it('onlyFields 收窄：fields 精确等于传入的字段列表（不取全章键）', () => {
+    const doc = createDefaultCeshu({ scope: 'full', name: '测试游戏' })
+    const built = buildChapterPrompt(doc, 'meta', { onlyFields: ['game_name'] })
+    expect(built.fields).toEqual(['game_name'])
+  })
+
+  it('onlyFields 优先于 onlyEmpty：同时传 onlyEmpty 时仍以 onlyFields 为准', () => {
+    const doc = createDefaultCeshu({ scope: 'full', name: '测试游戏' })
+    doc.meta.game_name = '已填游戏名'
+    const built = buildChapterPrompt(doc, 'meta', { onlyEmpty: true, onlyFields: ['positioning'] })
+    expect(built.fields).toEqual(['positioning'])
+  })
+
+  it('onlyFields 时 system 走单字段分支（含「仅生成下面列出的字段」，不含「完整内容」）', () => {
+    const doc = createDefaultCeshu({ scope: 'full', name: '测试游戏' })
+    const built = buildChapterPrompt(doc, 'meta', { onlyFields: ['game_name'] })
+    expect(built.system).toContain('仅生成下面列出的字段')
+    expect(built.system).not.toContain('完整内容')
+  })
+
+  it('onlyFields 时 prompt 导语为「生成以下单个字段」（区别于整章导语）', () => {
+    const doc = createDefaultCeshu({ scope: 'full', name: '测试游戏' })
+    const built = buildChapterPrompt(doc, 'meta', { onlyFields: ['game_name'] })
+    expect(built.prompt).toContain('生成以下单个字段')
+    expect(built.prompt).not.toContain('整章生成内容')
+  })
+})
+
 describe('AI 生成：LLM 输出容错解析（匹平 Python _parse_llm_json）', () => {
   it('去除 markdown 围栏并截取 JSON 边界', () => {
     expect(parseLlmJson('```json\n{"a": 1}\n```')).toEqual({ a: 1 })

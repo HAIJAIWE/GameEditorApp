@@ -1,5 +1,5 @@
 import type { IpcHandlerDeps, IpcRegistrar, LlmShared } from '../ipc'
-import { llmConfigureInputSchema, llmStatusInputSchema, llmGenerateInputSchema } from '../../shared/schemas'
+import { llmConfigureInputSchema, llmStatusInputSchema, llmGenerateInputSchema, llmTestConnectionInputSchema } from '../../shared/schemas'
 
 export function registerLlmIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm: LlmShared): void {
   const { llmClient } = deps
@@ -11,4 +11,8 @@ export function registerLlmIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm: 
   handle('llm:generate', llmGenerateInputSchema, async (req) =>
     llmClient.generate(req.system, req.prompt, await llm.llmCallOptions())
   )
+  handle('llm:testConnection', llmTestConnectionInputSchema, async () => {
+    const callOpts = await llm.llmCallOptions()
+    return llmClient.testConnection(callOpts)
+  })
 }

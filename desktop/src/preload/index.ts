@@ -104,7 +104,8 @@ const api: MbApi = {
      */
     configure: (req: IpcContract['llm:configure']['req']) => invoke('llm:configure', req),
     /** 探测当前配置下的服务可用性（供设置面板显示状态） */
-    status: () => invoke('llm:status', {})
+    status: () => invoke('llm:status', {}),
+    testConnection: () => invoke('llm:testConnection', {})
   },
   /**
    * 图片库扫描 / 清理（破坏性）。
@@ -153,6 +154,7 @@ const api: MbApi = {
     aiGenerateChapter: (req) => invoke('ceshu:aiGenerateChapter', req),
     aiReview: (req) => invoke('ceshu:aiReview', req),
     aiGenerateData: (req) => invoke('ceshu:aiGenerateData', req),
+    aiGenerateField: (req) => invoke('ceshu:aiGenerateField', req),
     exportReviewReport: (req) => invoke('ceshu:exportReviewReport', req),
     checklist: (req) => invoke('ceshu:checklist', req),
     autoFill: (req) => invoke('ceshu:autoFill', req),

@@ -9,7 +9,6 @@ import type {
   BackupRestoreInput,
   BatchUpdateInput,
   CeshuAiGenerateInput,
-  CeshuAiGenerateFieldInput,
   CeshuApplyPresetInput,
   CeshuConfirmSystemsInput,
   CeshuSyncDataInput,
@@ -50,7 +49,6 @@ import type {
   LlmGenerateInput,
   ImageReadByPathInput,
   LlmConfigureInput,
-  LlmTestConnectionInput,
   AgentDraftSaveInput,
   AgentFeedbackInput,
   AgentInteractionResponseInput,
@@ -84,7 +82,7 @@ import type {
   ItemRecord,
   TypeFieldDef
 } from './types'
-import type { CeshuDocument, CeshuExportResult, CeshuSummary } from './ceshuConstants'
+import type { ChapterKey, CeshuDocument, CeshuExportResult, CeshuSummary } from './ceshuConstants'
 import type { BrainEvent } from './agent/brain'
 import type { AgentRunStats } from './agent/observability'
 import type { DraftSummary, SessionInfo } from './agent/session'
@@ -96,7 +94,7 @@ import type { CeshuNote } from './ceshuNotes'
 import type { CeshuCustomTemplate } from './ceshuCustomTemplates'
 import type { CeshuWordStatsReport } from './ceshuWordStats'
 import type { CeshuFieldDepsReport } from './ceshuFieldDeps'
-import type { CeshuAiGenerateResult, CeshuAiGenerateFieldResult, CeshuAiReviewResult } from './ceshuAi'
+import type { CeshuAiGenerateResult, CeshuAiReviewResult } from './ceshuAi'
 import type { CeshuDataGenResult } from './ceshuDataGen'
 import type { ReferenceReport } from './util/references'
 import type { FieldIdSuggestResult } from './util/fieldIdAi'
@@ -203,7 +201,10 @@ export interface IpcContract {
   /** 渲染层推 LLM 非敏感配置镜像（主进程读不到 localStorage）；API Key 不在其中 */
   'llm:configure': { req: LlmConfigureInput; res: { ok: boolean } }
   /** 测试连通性（E63）：返回可直接展示的中文结果，**失败也算成功返回**（不抛） */
-  'llm:testConnection': { req: LlmTestConnectionInput; res: { ok: boolean; message: string } }
+  /** 测试连通性（E63，对齐 Python `api_config.py` 的「测试连接」）：探活当前已配置镜像
+   *  （经 `llm:configure` 推过来），返回可直接展示的中文结果，**失败也算成功返回**（不抛）。
+   *  req 为空：探活目标即当前已配置镜像，无需入参。 */
+  'llm:testConnection': { req: Record<string, never>; res: { ok: boolean; message: string } }
   'llm:status': {
     req: Record<string, never>
     res: { available: boolean; models: string[]; message: string; provider?: string; model?: string }
@@ -287,8 +288,9 @@ export interface IpcContract {
   'ceshu:validate': { req: { id: string }; res: string[] }
   'ceshu:score': { req: { id: string }; res: CeshuScoreReport }
   'ceshu:aiGenerateChapter': { req: CeshuAiGenerateInput; res: CeshuAiGenerateResult }
-  /** 按字段 AI 填充（E62）：单字段定向生成，非整章 */
-  'ceshu:aiGenerateField': { req: CeshuAiGenerateFieldInput; res: CeshuAiGenerateFieldResult }
+  /** 按字段 AI 填充（E62，对齐 Python `ai_field_button.py` 的 `_add_row(…, ai_path)` + `_AIFillFieldWorker`）：
+   *  单字段定向生成（非整章），提示词走 `buildChapterPrompt` 的 `onlyFields` 分支；res 复用整章生成结果形状。 */
+  'ceshu:aiGenerateField': { req: { id: string; chapter: ChapterKey; field: string }; res: CeshuAiGenerateResult }
   'ceshu:aiReview': { req: { id: string; confirmed?: boolean }; res: CeshuAiReviewResult }
   'ceshu:aiGenerateData': { req: CeshuDataGenInput; res: CeshuDataGenResult }
   'ceshu:exportReviewReport': { req: CeshuReviewExportInput; res: { filePath: string } }

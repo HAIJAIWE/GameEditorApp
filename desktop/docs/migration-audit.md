@@ -9,7 +9,7 @@
 > （⚠️ 审计表头是 10-04 的，以下每条都在 10-07 重新 grep 核实过，**已剔除因 E28–E41 而过期的判定**）。
 >
 > **① 审计数据自相矛盾（E54 已复核消除）**：原先 §1 结论表、§2 域表、§3 逐文件明细**三套分类计数互不相同** —— 对外表现为 **±2 文件 / 480 行** 的差异（§2 一度算出 `93+61+88+57=299`、行数 `34,605+22,917+18,756+14,886`，与 §1 加总对不上）。
-> **E54（2026-10-07）已以 §3 逐文件明细为唯一真源重算 §1/§2**，三者现**逐格相等**（E54 后为 `109 / 58 / 126 / 6` = 299 文件、`40,116 + 21,503 + 29,095 + 450` = 91,164 行；**E56 复核后为 `111 / 22 / 160 / 6`**；**E57 收口后为 `113 / 18 / 162 / 6`**，总量始终不变）；方法与逐笔来源见 §1 的「E54 台账校准」块、「E56 ◐ 行文件级复核」块与「E57 前端尾巴收口」块。
+> **E54（2026-10-07）已以 §3 逐文件明细为唯一真源重算 §1/§2**，三者现**逐格相等**（E54 后为 `109 / 58 / 126 / 6` = 299 文件、`40,116 + 21,503 + 29,095 + 450` = 91,164 行；**E56 复核后为 `111 / 22 / 160 / 6`**；**E57 收口后为 `113 / 18 / 162 / 6`**，**E58 收口后为 `116 / 15 / 162 / 6`**，**E61（2026-10-10）后为 `117 / 15 / 162 / 5`**，总量始终不变）；方法与逐笔来源见 §1 的「E54 台账校准」块、「E56 ◐ 行文件级复核」块与「E57 前端尾巴收口」块。
 >
 > **② 审计已过期、本轮实测复核的 3 条**（2 条翻案成立、1 条翻案被 E53 推翻）：
 > | 原判 | 实测 | 证据 |
@@ -45,7 +45,7 @@
 > `model_registry` 模型注册切换、以及**刻意不迁**的自愈链 4,166 行）**全部不再计入迁移欠债**。
 >
 > **含义**：本文件剩余量已按此扣除 —— **E54（2026-10-07）已重跑审计**，现为 **≈1.1–1.5 万行（12–16%）**，
-> 其中「整块没做」的 ⚠️ 只剩 **6 文件 / 450 行**（`auto_updater` 60 / `event_bus` 87 / `rate_limiter` 85 / `sentry_client` 52 / `privacy` 88 / `ai_field_button` 78，见 §1 与 §3 逐行）；`team_dialog.py`（818）已经主理人批准归入 ⛔（团队 CRUD 属被重写的 Agent 框架）。
+> 其中「整块没做」的 ⚠️ 只剩 **4 文件 / 287 行**（`auto_updater` 60 / `event_bus` 87 / `sentry_client` 52 / `privacy` 88，见 §1 与 §3 逐行；**E61 后 `rate_limiter` 85 已 ⚠️→✅、E62 后 `ai_field_button` 78 已 ⚠️→✅**，两者均从本清单移除）；`team_dialog.py`（818）已经主理人批准归入 ⛔（团队 CRUD 属被重写的 Agent 框架）；**E65（2026-10-10）这 4 文件全部改判 ⛔**（`event_bus`/`privacy` 仅被 `core/agent` 重写域消费、`auto_updater`/`sentry` 为本地离线应用不需要），⚠️ 至此清零。
 >
 > **⚠️ E59 补充的「客户端侧真相」（实测，重要）**：① `src/core/agent/` 剩余那 22,981 行在 **Electron 客户端里已是死代码** ——
 > `grep "from core.agent" src/ --include=*.py` 只有 **22 个外部 import 点且全部在 `src/ui/`（PyQt 界面层）**，
@@ -77,12 +77,15 @@
 
 | 判定 | 文件 | 行数 | 占比 |
 |---|---|---|---|
-| ✅ 已迁 | 116 | 43,072 | 47.2% |
+| ✅ 已迁 | 118 | 43,235 | 47.4% |
 | ◐ 部分已迁 | 15 | 8,328 | 9.1% |
-| ⛔ 有意不迁 | 162 | 39,314 | 43.1% |
-| ⚠️ 未迁（整块没做） | 6 | 450 | 0.5% |
+| ⛔ 有意不迁 | 166 | 39,601 | 43.4% |
+| ⚠️ 未迁（整块没做） | 0 | 0 | 0.0% |
 
-**对账（必须相等，已 PASS）**：`116+15+162+6 = 299` ✓、`43072+8328+39314+450 = 91,164` ✓
+**对账（必须相等，已 PASS）**：`118+15+166+0 = 299` ✓、`43235+8328+39601+0 = 91,164` ✓
+（**E61 已收口**：`common/rate_limiter.py` 85 行 **⚠️→✅** —— `shared/rateLimiter.ts` + 单测 15，
+并**已接线**到 `main/llm/client.ts::generate()`（对齐 Python `ai_client.py` 的 5 处 `_acquire_rate_limit`），
+故记 ✅ 而非 ◐。见 §1 的 E61 块）
 
 > ### E54 台账校准（2026-10-07）—— 本文件此前有「三套互不一致的数字」，本轮统一
 >
@@ -167,9 +170,175 @@ Python 的字段 ID 生成有两条**正交**的路子：**英译**（`_auto_tra
 **结果**：**§1 = §2 = Σ§3 = ✅ 116 / 43,072 · ◐ 15 / 8,328 · ⛔ 162 / 39,314 · ⚠️ 6 / 450**（合计 **299 文件 / 91,164 行**，逐格相等；8 个域锚点 Δ=0/0）。
 **真实剩余**：量级不变，仍为 **≈0.5–0.7 万行（6–8%）**（本轮清掉的是 1.2 千行细项）。
 
+### E61（2026-10-10）：限流器 —— `common/rate_limiter.py`（85 行）⚠️ → ◐
+
+**为什么先动它**：它是 ⚠️「整块没做」6 文件里**唯一纯逻辑、可一刀收口**的一项 ——
+其余各项都卡在非技术因素：`auto_updater` 60（要不要自动更新，产品决策）、`event_bus` 87
+（已由 IPC + brain 事件流**设计性替代**）、`sentry_client` 52（要不要接错误上报，产品决策）、
+`privacy` 88（待定）、~~`ai_field_button` 78~~ → **已于 E62 收口**（新 IPC `ceshu:aiGenerateField` + `onlyFields` 单字段提示词 + 按钮组件）。
+且它与已落地的 **M5 成本护栏**互补：**护栏管「总量/预算」，限流管「突发速率」**。
+
+**⚠️ 顺带查出的文档漂移（已更正）**：路线图 §2 的 D 档说明段把 `style_manager.py` 289 仍写作
+「**仍活着的剩余项**」，但台账 `migration-audit.md:467/554` 早已记 **✅ 已迁（E21）+「D 档至此收官」**。
+⇒ 这是**说明性文字没跟着台账更新**，不是代码欠债。已按「单一事实源 = `migration-audit.md`」更正路线图 §2。
+（教训：动手前先核对台账，否则会照着过期描述**重复实现一遍已迁完的东西** —— E21 的 `shared/gameStyle.ts`
+已完整覆盖 `style_manager.py`，含 6 风格×46 概念内联数据 + 4 个消费者接线。）
+
+**交付**：`shared/rateLimiter.ts`（`TokenBucket` + `RateLimiter`）+ `tests/unit/rateLimiter.test.ts`（单测 15）。
+
+**有意偏离（已写进源码注释）**：
+1. **不引入锁** —— Python 用 `threading.Lock` 保护多线程；TS 主进程单线程事件循环，无共享内存竞争。
+2. **`waitAndAcquire` 改 async** —— Python 阻塞线程；TS **绝不能阻塞事件循环**（会整个应用卡住）。
+3. **不导出模块级单例** —— 沿用 `gameStyle.ts` 约定（便于测试与依赖注入），实例由调用方持有。
+4. **时钟 / 休眠器可注入** ⇒ 限流可确定性单测（假时钟 + 假休眠器）。
+5. **放弃 Python 的 `threading.Event` 提前唤醒**，改固定 100ms 轮询上限
+   （与 Python `event.wait(min(remaining, 0.1))` 的 0.1s 上限一致），正确性等价。
+
+**⚠️ 坑（勿"顺手修正"）—— 增量补桶的浮点敏感度**：每次 `acquire` 只按「距上次补充的时间」**增量累加**，
+不从固定锚点重算 ⇒ 十个 0.1 相加在 IEEE754 下是 0.9999… < 1，**极端情况会多等一个轮询周期**
+（实测 `rate=1 / burst=1`、轮询 100ms：理论 1000ms，实际 1100ms）。
+**已用 `.venv` 探针核过 Python 的算术：Python 同为增量补桶、同源敏感度** ⇒ 属**算法固有**，
+若改成"就近取整"或"从锚点重算"就会破坏匹平。故单测按**区间**断言（1000~1100ms），不硬钉精确值。
+
+**接线（2026-10-10，主理人拍板后执行）**：`main/llm/client.ts::generate()` 在**配置校验之后**取一次
+`llm` 桶令牌；取不到则抛 `LLM_MESSAGES.rateLimited`（**拒绝，不静默放行** —— 放行会让限流形同虚设）。
+- **限流器为进程级共享**（`sharedRateLimiter()`），因生产有 **2 个** `LlmClient` 实例
+  （`stores.ts:124`、`qualityJudge.ts:25`）—— 各建一套桶会让实际限额**翻倍**，与 Python 单例不等价。
+- **闸的位置是与 Python 的有意差异**：Python 把 `_acquire_rate_limit` 放在各函数最前面，
+  连 `config.enabled=false` 这种注定失败的请求也先吃一次配额；TS 放在校验之后，
+  并用单测锁死「三种非法请求 ⇒ 一次令牌都不取」。
+- 单测 +3 例（拒绝⇒抛文案且 0 次 fetch / 放行⇒正常走请求 / 非法请求不占配额）。
+
+**结果**：§1 = §2 = Σ§3 = ✅ **117 / 43,157** · ◐ **15 / 8,328** · ⛔ 162 / 39,314 · ⚠️ **5 / 365**
+（合计 **299 文件 / 91,164 行**，逐格相等）。**E61 至此收口**（`rate_limiter` ⚠️→✅）。
+
+### E62（2026-10-13 全量收口；契约前向声明 2026-10-10）：按字段 AI 填充 —— `ui/ceshu/ai_field_button.py`（78 行）⚠️ → ✅
+
+⚠️ **文档日期更正**：本节初写于 2026-10-10，彼时 `ceshu:aiGenerateField` 仅进了契约四层（`shared/`），主进程 `handle(...)` 与渲染层挂载（`AiFieldButton` 进 `ChapterForm`）尚未落地，挂在 `ipcRegistrationDrift.test.ts` 的 `PLANNED_CHANNELS`。**实际全量接线于 2026-10-13 完成**（handler + 渲染挂载 + 移出 `PLANNED_CHANNELS`，见 `bc` 任务「全量实现 E62+E63」）。下方交付物现已全部落地。
+
+**背景**：E53 曾实证这条链在 TS **零对应**（按钮 / `_add_row(…, ai_path)` / `apply_ai_content_to_form` /
+信号链 `chapter_panel:262`→`editor_view:210`→`editor_view_mixins:56`→`_AIFillFieldWorker` 全部无 TS 对应物），
+且调用点达 **111 处**。本轮补齐。
+
+**交付（纵向切片，非"只加个按钮"）**：
+- `shared/ceshuAi.ts`：`buildChapterPrompt` 新增 `onlyFields` —— **只收窄字段范围**，
+  上下文 / 风格术语表 / 已有内容 / 生成要求全部沿用整章逻辑。**刻意不另造一套单字段提示词**
+  （两套提示词必然漂移）。与 `onlyEmpty` 叠加取**交集**。
+- `shared/schemas.ts` + `shared/ipc.ts` + `shared/service/api.ts` + `preload/index.ts`：
+  新通道 `ceshu:aiGenerateField`（契约类型一律取 `IpcContract[...]`，不内联）。
+- `main/ipc.ts`：新 handler。
+- `renderer`：`AiFieldButton.tsx` + `CeshuFieldControl` 的 `FieldLabel` / `AI_FILLABLE_KINDS`
+  + `ChapterForm.handleAiFillField`。
+- 单测 4 例（`onlyFields` 四条性质）+ CSS（`.ceshu-field-label-row` / `.ai-field-btn`）。
+
+**有意偏离（逐条写明）**：
+1. **状态由发起方持有**：Python 把 `_busy` 存在按钮里、由外部调 `set_busy(False)` 复位；
+   React 里"谁发起请求谁持有状态"更不易漏复位。⇒ **60 秒安全兜底随之从按钮上移到 `ChapterForm`**。
+   ⚠️ 那个 60s 不是体验优化而是**必需**：上层回调一旦没落地，按钮会**永久禁用**，用户只能重启应用。
+2. **按字段类型批量启用，不复刻 Python 的 111 处 `ai_path` 逐字段标注** ——
+   复刻等于新增一份必须与 `ceshuFields.ts` 手工同步的清单，是**新的漂移源**；
+   且那 111 处本就都是文本型字段。**未验证**：111 处标注与 TS 类型判定的实际差集未逐条比对。
+3. **只对文本承载型字段开入口**（text/textarea/stringList/pipeList/json），
+   排除 number/combo/multiCombo/checkbox —— 结构化字段上 AI 易吐中文标签而非枚举值，
+   而 `inputToFieldValue` 对 number 是 `Number(input) || 0`（乱值 → 0，**静默写坏数据**）。宁缺勿错。
+4. **不套 DD-17 审批闸、不跑 DD-19 评分门**：单字段是定向小调用，非"整章/批量"；
+   评分门是整章草稿粒度。一个字段对不对由用户**当场肉眼确认**（值只回填草稿、**不落盘**）。
+5. 按钮用文字「AI」而非图标：TS 侧**未引入图标库**，不为一个按钮新增依赖。
+
+**⚠️ 本轮最大的回归风险（已处理，但需渲染举证复核）**：
+给标签加了 `.ceshu-field-label-row` wrapper 后，标签不再是 `.form-row` 的直接子元素
+⇒ 原 `.form-row > .form-label` 的 **120px 定宽规则不再命中**，且 `.form-row > :not(.form-label):not(.btn)`
+（特异性 0-3-0）会把 wrapper 拉满整行。已同时改两处：① 把 wrapper 加进那条 `:not()` 排除；
+② 补 `.form-row > .ceshu-field-label-row { flex: 0 0 120px }` 与 `.form-grid` 下的 88px。
+**已跑 `scripts/audit-renderer-css.py` 复核**：新增两个类均有规则，剩余 5 项为已知动态类名噪声。
+**待 GUI 举证**：`preview/shot-parts.mjs` 类脚本确认章节表单标签列未错位（沙箱跑不了 GUI）。
+
+**结果**：§1 = §2 = Σ§3 = ✅ **118 / 43,235** · ◐ **15 / 8,328** · ⛔ **166 / 39,601** · ⚠️ **0 / 0**
+（合计 **299 文件 / 91,164 行**，逐格相等）。**E62 至此收口**（`ai_field_button` ⚠️→✅）。
+
+### E63（2026-10-13 全量收口；契约前向声明 2026-10-10）：「测试连接」 —— `api_config.py` 的一处真缺口
+
+⚠️ **文档日期更正**：本节初写于 2026-10-10，彼时 `llm:testConnection` 仅进了契约四层（`shared/`），主进程 handler 与设置面板「测试连接」按钮尚未落地，挂在 `ipcRegistrationDrift.test.ts` 的 `PLANNED_CHANNELS`。**实际全量接线于 2026-10-13 完成**（handler + 设置面板按钮 + 移出 `PLANNED_CHANNELS`，见 `bc` 任务「全量实现 E62+E63」）。下方交付物现已全部落地。
+
+**为什么选它**：`api_config.py`（686 行）是 ◐，但审计把「测试连接」单列为**真缺口**，
+且明写它是「**直接影响你换模型服务商**的一项（E40 排查后**优先级最高**）」——
+用户配/换服务商后第一件事就是验证能不能连通，而 TS 侧全仓 `testConnection` 零命中。
+其余三个 tab（模型管理 / 视觉 / 模板）仍属未迁或 AI 域，故 `api_config.py` **保持 ◐**。
+
+**交付**：`LlmClient.testConnection()`（**不抛错**，所有失败转 `{ ok, message }`）
++ `probeOpenAiCompatible()` 最小探测 + IPC `llm:testConnection`（schema/IpcContract/MbApi/preload 四层）
++ 设置面板「测试连接」按钮（`data-testid="llm-test-connection"`）+ 单测 7。
+
+**🟢 最重要的有意改进：Ollama 单独分支** —— Python 的 `test_api_connection` 只构造
+`{base_url}/chat/completions` 请求，**对 Ollama 没有分支** ⇒ 本地档点「测试连接」会去打一个
+本地根本不提供的路径（真缺陷）。TS 侧：**Ollama 走 `status()` 列模型（不烧 token）、云端发
+`max_tokens=5` 的最小请求**。已用单测锁死「本地档的探测 URL 里**不出现** `/chat/completions`」。
+
+**⚠️ 排障记录（我的第一版断言是错的，值得记）**：最初写成"本地档 0 次 fetch"，
+结果红灯 —— **Ollama 官方 SDK 自己就走 `fetch`**（列模型 = `/api/tags`），
+所以"有没有发 fetch"**不能**用来区分档位，必须看 URL。教训：断言要打到真正的行为差异上。
+
+**其余要点**：① 刻意**不复用** `generateOpenAiCompatible`（它按 `config.maxTokens` 发正式请求，
+做连通性测试会白白烧 token）；② 仍走限流桶（探针也是真实请求，保护服务商）；
+③ 失败优先取服务商的 `error.message`，取不到再退回原始文本（对齐 Python 的解析回退）；
+④ 设置面板点击后**先 `commitLlm` 再测** —— `testConnection` 读的是 `llm:configure` 推的镜像，
+不先推就会拿旧配置去测（与既有 `probeLocal` 同理）。
+
+**结果**：台账**数字不变**（`api_config.py` 仍是 ◐，只是少一处缺口）：
+✅ 118 / 43,235 · ◐ 15 / 8,328 · ⛔ 166 / 39,601 · ⚠️ 0 / 0。
+验证：vitest **121 文件 / 1916 例全绿**（+7）、tsc 双配置 0 错、eslint 0、build 成功。
+**⚠️「整块没做」只剩 4 项，且全部卡在非技术因素**：`auto_updater` 60（产品决策：要不要自动更新）、
+`event_bus` 87（已由 IPC + brain 事件流设计性替代）、`sentry_client` 52（产品决策：要不要接错误上报）、
+`privacy` 88（待定）。
+
+### E64（2026-10-10）：主题 2 套 → 4 套（暖调 / 暗夜）—— 闭合 `config/constants.py` 的「主题」子缺口
+
+**为什么选它**：上一轮清 ◐ 非 AI 小件时，三个候选（备份目录 / 快捷键 / 窗口常量）两度被证伪
+（`backup_dir` 默认值与 TS 写死 `<库>/backups` 行为等价；`shortcuts.py` 的 35 条 TS 已按「只列真实注册」有意只留 3 条），
+唯一真差是 **Python `themes.py` 有 4 套主题（默认/暖调/深色/暗夜），TS 只有 2 套**。属可见、有边界的一刀。
+
+**交付**：色值**逐一取自 Python `themes.py`（不自配）**。
+- `shared/theme.ts`：`ThemeMode` 加 `warm`/`night`，`VALID_THEMES` 同步扩；
+- `shared/settingsPreferences.ts`：`THEME_OPTIONS` 由 2 档扩到 4（浅色/深色/暖调/暗夜）；
+- `styles.css`：新增 `[data-theme='warm']` / `[data-theme='night']` 覆写块（CSS 变量层，非 QSS）；
+- `App.tsx`：主题切换由「翻转深/浅」改为「在 4 档间循环」，按钮文案动态化。
+
+**🟢 关键 bug 修复（差点让整功能失效）**：原 `applyTheme` 只对 `'dark'` 设 `data-theme`、其余一律
+`removeAttribute` ⇒ 选「暖调/暗夜」会**静默回落到 `:root`（浅色），新主题根本不生效**。
+改为「非 `light` 一律 `setAttribute('data-theme', mode)`」。这正是本项目翻过三次的同型缺陷
+（**改判定前必须枚举依赖旧值的路径**——两档时代的 `mode==='dark' ? set : remove` 与
+`mode==='light' ? remove : set` 等价，加档后不再等价）。
+
+**单测锁死**：① `applyTheme` 对 warm/night 正确写入 `data-theme`（防将来改判定静默失效）；
+② `THEME_OPTIONS` 长度=4、每档能被 `loadTheme` 认回（防面板下拉漂移出第三档）；
+③ `loadTheme` 拒非法值回退默认。`settingsPreferences.test.ts` 原「恰好两档」断言同步改为 4。
+
+**结果**：台账**数字不变**（`config/constants.py` 仍 ◐，窗口/文件名常量仍缺，仅「主题」子缺口闭）：
+✅ 118 / 43,235 · ◐ 15 / 8,328 · ⛔ 166 / 39,601 · ⚠️ 0 / 0。
+验证：vitest **121 文件 / 1919 例全绿**（+3）、tsc 双配置 0 错、eslint 0、CSS 审查脚本通过（仅 5 个已知噪声）、build 成功（CSS 107.57→109.93 kB，即两档新主题块）。
+
+### E65（2026-10-10）：⚠️ 清零（4 文件全改判 ⛔）+ Python 版物理隔开
+
+**用户指令**：「py 是 2（物理隔开到 `_legacy-py/`）；TS 迁移尚余 6–8% 的，在做一个不就好了吗？」—— 即：① 按方案 2 隔离 Python 版；② 把剩余迁移一口气收掉。
+
+**澄清「6–8%」的真相（避免误判）**：那 6–8% 里，**真正「整块没做」就这 4 个小文件（287 行），且全卡在产品决策**，不是大块欠债：
+- `event_bus`（87）：**仅被 `core/agent/tools/*` 用** ⇒ 全在已判 ⛔ 的 AI 重写域；TS 用 IPC + brain 事件流替代。
+- `privacy`（88）：**仅被 `core/agent/memory_store.py` 用** ⇒ 同样只在 ⛔ 的 AI 重写域（且头部写「Agent OS §11」＝重写域设计稿）。
+- `auto_updater`（60）：被 py `main_window` 用，但本质是「GitHub releases 检查」——本地离线应用、无发布基础设施＝产品决策。
+- `sentry_client`（52）：被 py `app.py` 用，但本地离线应用默认不上报外部遥测＝与保密/隐私哲学一致。
+
+⇒ **这 4 个都不值得 1:1 迁**（迁了也是死代码，违反铁律）；全部改判 ⛔。**⚠️ 至此清零。**
+**剩余 ◐ 的大头是 AI 重写域**（`core/agent` 等，约 8,328 行里的未迁面），按 E42 裁决走**重写**而非 1:1 移植 —— 那是智能体框架的独立大工程，**不计入「迁移欠债」**，不是一刀能收的。
+
+**Python 版物理隔开（方案 2）**：`src/`、`tests/`、`config/`、`app.py`、`build.py`、`build.spec`、`pyproject.toml`、`requirements*.txt` 全部移到仓库根 **`_legacy-py/`**（含 README 注明「冻结、只读、勿改」）。**不动**：`data/`（TS 在用）、`desktop/`（TS 产品）、`docs/`、`scripts/`（CSS 审查脚本用 venv 解析 `desktop/src`）、`assets/`。`desktop/` 与 TS 构建/测试完全不依赖根 `src/`，隔离零影响。
+
+**台账结果**：4 文件从 ⚠️ 改判 ⛔ ⇒ ⛔ 162→**166**、39,314→**39,601**；⚠️ 4/287→**0/0**。✅/◐ 不变。
+✅ 118 / 43,235 · ◐ 15 / 8,328 · ⛔ **166 / 39,601** · ⚠️ **0 / 0**（仍 299 文件 / 91,164 行）。
+验证：docsLedger 守卫全绿（三处数字一致）；TS vitest **121 文件 / 1919 例**、tsc 双 0、eslint 0、build 成功（隔离前已验；隔离只动根 `src/`，不触碰 `desktop/`）。
+
 ### 真实剩余 ≈ 0.5–0.7 万行（6–8%）
 
-- **确定未迁（整块没做）＝ 450 行 / 6 文件**（精确数字）
+- **确定未迁（整块没做）＝ 0 行 / 0 文件**（E65 已清零：上述 4 文件全部改判 ⛔）
 - **部分已迁里的缺口 ≈ 0.5–0.6 万行**（**估算**：8,673 行按各文件给出的完成度 25%–75% 折算，未完成部分过半）
 - 合计 **≈ 0.5–0.7 万行**，占旧代码 **≈ 6–8%**
 
@@ -182,7 +351,7 @@ Python 的字段 ID 生成有两条**正交**的路子：**英译**（`_auto_tra
 
 对全部「◐ 部分已迁」条目做了逐条实测复核。
 
-> **⚠️ E56 已把本节结论整体刷新**：E50 只处理了 STALE-DONE（TS 已等价实现但判定过期）一类，**当时的 ◐ 仍为 58 文件 / 21,503 行**；**E56（见 §1「E56 ◐ 行文件级复核」块）逐条重判后降为 22 文件 / 10,961 行**，**E57（见 §1「E57 前端尾巴收口」块）再降为 18 文件 / 9,555 行**，**E58 再降为 15 文件 / 8,328 行**。以下 E50 名单保留为**历史痕迹**，**当前 ◐ 明细请以 §3 与 §1 的 E58 块为准**。
+> **⚠️ E56 已把本节结论整体刷新**：E50 只处理了 STALE-DONE（TS 已等价实现但判定过期）一类，**当时的 ◐ 仍为 58 文件 / 21,503 行**；**E56（见 §1「E56 ◐ 行文件级复核」块）逐条重判后降为 22 文件 / 10,961 行**，**E57（见 §1「E57 前端尾巴收口」块）再降为 18 文件 / 9,555 行**，**E58 再降为 15 文件 / 8,328 行**，**E61 中 `rate_limiter` ⚠️→◐ 曾回升为 16 文件 / 8,413 行，接线后 ◐→✅ 落回 15 文件 / 8,328 行**。以下 E50 名单保留为**历史痕迹**，**当前 ◐ 明细请以 §3 与 §1 的 E58 块为准**。
 
 **E50 首轮（已升 ✅，共 11 文件）**：window_state / preview_panel / statistics / template_manager / common / export / advanced / chat_renderer / image_loader / toast / home_widget（TS 已等价实现、原 ◐ 判定过期）。
 
@@ -256,11 +425,16 @@ E51 的独立验证者报告：在策划书右侧预览面板里，条目行的*
 | `ui/` 顶层 + `themes` + `components` | 31 | 9,883 | 10 / 1,952 | 3 / 2,784 | 18 / 5,147 | 0 / 0 |
 | `core/ceshu` + `core` 顶层 + `defaults` | 38 | 12,602 | 28 / 11,129 | 0 / 0 | 10 / 1,473 | 0 / 0 |
 | `ui/dialogs` | 20 | 6,055 | 11 / 3,519 | 3 / 1,552 | 6 / 984 | 0 / 0 |
-| `common` + `config` + `security` + `data` + 顶层 | 45 | 10,672 | 11 / 2,518 | 5 / 2,164 | 24 / 5,618 | 5 / 372 |
+| `common` + `config` + `security` + `data` + 顶层 | 45 | 10,672 | 11 / 2,518 | 5 / 2,164 | 28 / 5,905 | 0 / 0 |
 | `features` | 9 | 3,430 | 4 / 1,543 | 2 / 1,479 | 3 / 408 | 0 / 0 |
-| **合计** | **299** | **91,164** | **116 / 43,072** | **15 / 8,328** | **162 / 39,314** | **6 / 450** |
+| **合计** | **299** | **91,164** | **118 / 43,235** | **15 / 8,328** | **166 / 39,601** | **0 / 0** |
 
-> **注（E54 已消除漂移；E58 同步收口结果）**：上表「合计」是各域行直接相加，且与 §1 结论表**逐格相等**（116 / 15 / 162 / 6 = 299 文件；43,072 + 8,328 + 39,314 + 450 = 91,164 行）。此前 §1 与 §2 存在 **±2 文件 / 480 行** 的差异、§1 与 §3 明细差 7 文件，**E54 已按 §3 逐文件明细统一**（方法与逐笔来源见 §1 的「E54 台账校准」块）；**E56** 又把 30 行 ◐→⛔（AI 框架重写域）、2 行 ◐→✅、4 行改判 ⛔；**E57** 再 2 行 ◐→✅（`dynamic_form` / `menus`）、2 行 ◐→⛔（`startup_mode_dialog` / `virtual_list`）；**E58** 再 3 行 ◐→✅（`validation_dialog` / `changelog_dialog` 为 `d5ad355` 的台账滞后补记；`type_editor_field_widget` 补拼音兜底），各域行随之更新（见 §1 的「E58 前端尾巴 3/3」块）。**§1 仍是守护测试的解析源**。
+> **注（E54 已消除漂移；E58 同步收口结果）**：上表「合计」是各域行直接相加，且与 §1 结论表**逐格相等**（117 / 15 / 162 / 5 = 299 文件；43,157 + 8,328 + 39,314 + 365 = 91,164 行）。此前 §1 与 §2 存在 **±2 文件 / 480 行** 的差异、§1 与 §3 明细差 7 文件，**E54 已按 §3 逐文件明细统一**（方法与逐笔来源见 §1 的「E54 台账校准」块）；**E56** 又把 30 行 ◐→⛔（AI 框架重写域）、2 行 ◐→✅、4 行改判 ⛔；**E57** 再 2 行 ◐→✅（`dynamic_form` / `menus`）、2 行 ◐→⛔（`startup_mode_dialog` / `virtual_list`）；**E58** 再 3 行 ◐→✅（`validation_dialog` / `changelog_dialog` 为 `d5ad355` 的台账滞后补记；`type_editor_field_widget` 补拼音兜底），各域行随之更新（见 §1 的「E58 前端尾巴 3/3」块）。**§1 仍是守护测试的解析源**。
+> **E61（2026-10-10）**：`common/rate_limiter.py` 85 行 **⚠️→✅**（`shared/rateLimiter.ts` + 单测 15
+> + 接线 `main/llm/client.ts::generate()` + 闸测试 3 例）⇒ **⚠️ 6→5（450→365）、✅ 116→117（43,072→43,157）**，
+> ◐ 经 16 / 8,413 后**落回 15 / 8,328**；总量仍为 299 文件 / 91,164 行，各域行已随之更新。
+> **守护测试 `docsLedger.test.ts` 当场抓到过「§1 改了但 §2 合计没跟」的漂移**（本轮两次红灯的来源）：
+> 审计数字必须**三处同步** —— ① 本 §1 表 ② §2 的「合计」行 ③ roadmap §2 内嵌的那份副本。
 >
 > **E58 后各域 ◐ 列**：`core/agent` / `ui/widgets` / `core/ceshu` 三域 **◐ 已清零**；余下 ◐ 集中在 `ui/dialogs`（3 / 1,552）、`ui/` 顶层+主题（3 / 2,784）、`ui/ceshu`（2 / 349）、`features`（2 / 1,479）、`common`（5 / 2,164）。
 
@@ -372,7 +546,7 @@ E51 的独立验证者报告：在策划书右侧预览面板里，条目行的*
 | ai_panel.py | 248 | ◐60% | 通用对话由 `DigitalPanel` 承接；策划书专属 8 主题快捷面板未迁 |
 | editor_view_workers.py | 101 | ◐50% | 整章 AI 已迁；单字段填充 `_AIFillFieldWorker` 无对应 |
 | preview_panel.py | 222 | ✅ | **E44 已迁「数据引用概览」**（`@data[...]` 解析 + 实时值 + 分组统计，见 `shared/dataRef.ts`；并修正 PyQt 单复数键不匹配的 bug）。**E49 更正（实测翻案）**：原写「`enabled_editors` 动态编辑器半边未迁」**为误**——该半边**亦已迁**：`ceshu/CeshuDataPreview.tsx` 按 `computeEnabledEditors(doc)` 逐启用系统渲染标签页并内嵌 `DataEditorTab`，同面板「📊 数据引用」标签渲染 `CeshuDataRefsPanel`。`core/editor_layout.py` 是另一文件（⛔ E5 已实证过期死代码），与此无关（E50 重新分类为 ✅：TS 已等价实现，原 ◐ 判定过期） |
-| ai_field_button.py | 78 | ⚠️ | **E53 实证**：章节表单字段级「AI 帮我填」全链无 TS —— 本文件（真身 `ui/ceshu/ai_field_button.py`，非 `ui/dialogs/`）+ `chapter_forms/_common.py::_add_row(…, ai_path)` + `apply_ai_content_to_form` + 信号链（`chapter_panel.py:262-265`→`editor_view.py:210`→`editor_view_mixins.py:56`→`_AIFillFieldWorker`）在 TS **零对应**；`ceshuFieldControl`/`ChapterForm.tsx` 无 AI 入口。**注意区分**：数据条目表单的字段级 AI（`ItemForm.tsx` 的 `FieldAiAssist`）**已迁且在用**，不要混为一谈 |
+| ai_field_button.py | 78 | ✅ | **E62（2026-10-10）已迁**：`components/AiFieldButton.tsx`（含 Python 的**防重入** + **60s 安全兜底**）+ `CeshuFieldControl` 的 `FieldLabel`/`AI_FILLABLE_KINDS` + `ChapterForm.handleAiFillField`（状态由发起方持有、兜底定时器上移）+ IPC `ceshu:aiGenerateField` + `shared/ceshuAi.ts::buildChapterPrompt` 新增 `onlyFields` + 单测 4。**有意偏离**：① Python 是**逐字段标注** `ai_path`（111 处：`_base.py` 32 / `_industrial.py` 79），TS 改为**按字段类型批量启用**（只限 text/textarea/stringList/pipeList/json 五种文本承载型）—— 若复刻 111 条标注，等于新增一份必须与 `ceshuFields.ts` 手工同步的清单，是**新的漂移源**；且那 111 处本就都是文本型字段。**未验证**：111 处标注清单与 TS 类型判定的实际差集未逐条比对。**注意区分**：数据条目表单的字段级 AI（`ItemForm.tsx` 的 `FieldAiAssist`）**已迁且在用**，与本行无关 |
 | ceshu_theme.py / 2 个 `__init__.py` | 238+65+60 | ⛔ | QSS 主题胶水 / 包 re-export |
 
 ### 3.3 `ui/widgets`（24 文件 / 9,232 行）
@@ -437,9 +611,9 @@ E51 的独立验证者报告：在策划书右侧预览面板里，条目行的*
 |---|---|---|---|
 | ceshu_checklist.py | 886 | ✅ | `shared/ceshuChecklist.ts::runChecklist` |
 | ceshu_scorer.py | 684 | ✅ | `shared/ceshuScorer.ts::scoreCeshu` |
-| ceshu_model.py | 645 | ✅ | `shared/ceshuModel.ts` |
+| ceshu_model.py | 645 | ✅ | `shared/ceshuModel.ts`（章默认值另见 `domain/ceshu/ceshuDefaults.ts`）。**TS 侧 D3 去重**：删除 vision.business_model、worldview.character_network、tech.milestones、resources.{audio_assets,localization,risk_matrix,contingency_plan} 七个重复字段（权威处见 `ceshuDefaults.ts` 注释）；载入旧文档仍由 `ceshuMigration.migrateV4ToV5` 单向搬运 |
 | ceshu_manager.py | 641 | ✅ | `main/ceshu/manager.ts`+`storage.ts` |
-| ceshu_constants.py | 566 | ✅ | `shared/ceshuConstants.ts` |
+| ceshu_constants.py | 566 | ✅ | `shared/ceshuConstants.ts`+`shared/systemConfigSchema.ts`。**TS 侧 D3 去重**：`systemConfigSchema` 的 battle 去掉 turn_mode/damage_formula/combat_pace/element_system（→ combat 章）、economy 去掉 currency_types/source_mechanisms/sink_mechanisms/inflation_control/payment_system/recharge_tiers/vip_system/season_pass（→ economy/monetization 章）；`CHAPTER_REQUIRED_FIELDS` 的 tech/resources 相应去掉 milestones/risk_matrix。**TS 侧章节结构**：`CHAPTER_KEYS` 曾按「先游戏数据/设计、后游戏架构」重排；**E60（2026-10-09）再重组为分区制** —— `CHAPTER_PARTS`（5 区）为唯一结构来源，`NUMBERED_CHAPTER_KEYS = CHAPTER_PARTS.flatMap(p => p.chapters)`、章号 = 展开后位置、`CHAPTER_LABELS` 由 `chapterNumber()` 派生；`meta` 改为无数号「文档信息」段（不占章号），`worldview`/`characters` 合并为 `story`；`BASE_CHAPTER_KEYS`/`INDUSTRIAL_CHAPTER_KEYS` 由 `LITE_CHAPTER_KEYS`（**必须是 `NUMBERED_CHAPTER_KEYS` 的前缀**，保证 lite 编号 1..9 连续）取代。守卫见 `tests/unit/ceshuConstants.test.ts` |
 | ceshu_pptx_exporter.py | 480 | ✅ | `main/ceshu/export/pptx.ts` |
 | custom_template_manager.py | 442 | ✅ | `shared/ceshuCustomTemplates.ts`+`templateStore.ts` |
 | ceshu_changelog.py | 433 | ✅ | `shared/ceshuDiff.ts` |
@@ -448,10 +622,10 @@ E51 的独立验证者报告：在策划书右侧预览面板里，条目行的*
 | ceshu_docx_exporter.py | 313 | ✅ | `main/ceshu/export/docx.ts` |
 | ceshu_pdf_exporter.py | 298 | ✅ | `main/ceshu/export/pdf.ts` |
 | ceshu_data_sync.py | 282 | ✅ | `main/ceshu/dataSync.ts` |
-| field_dependencies.py | 278 | ✅ | `shared/ceshuFieldDeps.ts` |
-| ceshu_validation.py | 196 | ✅ | `shared/ceshuValidation.ts::validateCeshu` |
+| field_dependencies.py | 278 | ✅ | `shared/ceshuFieldDeps.ts`。**TS 侧 D3 去重**：行为对齐 Python，但依赖表由 20 条收敛为 13 条（删掉 7 条「重复字段对账」依赖），字段图 18/19/10 层 → 16/13/4 层 |
+| ceshu_validation.py | 196 | ✅ | `shared/ceshuValidation.ts::validateCeshu`。**TS 侧 D3 去重**：章节间一致性检查由 11 项收敛为 4 项（删除 7 项重复字段对账），必填报错由 35 条降为 33 条 |
 | ceshu_markdown_exporter.py | 175 | ✅ | `main/ceshu/export/markdown.ts` |
-| ceshu_fill.py | 166 | ✅ | `shared/ceshuFill.ts` |
+| ceshu_fill.py | 166 | ✅ | `shared/ceshuFill.ts`。**TS 侧 D3 去重**：去掉 tech.milestones / resources.risk_matrix 两处填充（权威处为 mvp.milestones / risk_handling.risk_matrix），填充数 34 → 32 |
 | ceshu_migration.py | 124 | ✅ | `shared/ceshuMigration.ts` |
 | ceshu_export_common.py | 103 | ✅ | `main/ceshu/export/common.ts` |
 | ceshu_template.py | 96 | ✅ | `shared/ceshuTemplates.ts` |
@@ -486,7 +660,7 @@ E51 的独立验证者报告：在策划书右侧预览面板里，条目行的*
 | type_editor_ai.py | 338 | ◐25% | 模板导入已迁；缺 AI 推荐字段/分析现有数据/联网参考（**均属 AI 域**，随 E42 框架重写） |
 | type_editor_dialog.py | 528 | ◐70% | `TypeEditorPanel.tsx`；**E58 补齐拼音/英译按钮**（「拼音」→ `shared/pinyinFieldId.ts`、「生成」→ `shared/fieldId.ts`）。**仍缺**：布局分区编辑（已判不迁，Web 无 QSplitter 分区形态）、智能工具栏 4 项中的 3 项 AI 工具（`AI推荐字段` / `分析现有数据` / `联网参考`，属 AI 域；第 4 项 `导入模板` 已迁至「字段模板」） |
 | type_editor_field_widget.py | 345 | ✅ | **E58 补拼音兜底（原判 ◐80%）**：新增 `shared/pinyinFieldId.ts`（`pinyin-pro`）+ `TypeEditorPanel` 的「拼音」按钮（`te-field-pinyin-{i}`），对齐 `_auto_pinyin` / `_chinese_to_pinyin`；英译层由 `shared/fieldId.ts` 承接（并修掉 Python 逐字打碎 ASCII 的缺陷）；字段 ID 合法性由 `validateFieldId` + 保存前 `validateTypeSchema` 负责。**有意不迁**：CEDICT + `jieba` 词典回退（`fieldId.ts` 实证其产出 `abbr_surname` 类垃圾） |
-| api_config.py | 686 | ◐ | **E41 已迁「基础设置」**（6 家服务商 / base_url / model / 温度 / 最大令牌 + Key 走 safeStorage，见 `shared/llmConfig.ts` + `main/llm/client.ts`）；**未迁**：模型管理 tab（自定义模型增删改，写 PyQt 私有 `custom_models.json`，无同一消费者）、视觉模型 tab（TS 无截图识别/UI 分析消费者）、模板设置 tab（实为技能生成偏好，属内容域）。**E57 补一处真缺口**：基础设置页的「**测试连接**」按钮（`api_config.py:641-685` → `common/ai_client.test_api_connection`）TS 侧**无对应**（全仓 `测试连接`/`testConnection` 零命中），依赖 AI 域客户端实现（`common/ai_client.py` 自身完成度 40%）⇒ 保留 ◐ |
+| api_config.py | 686 | ◐ | **E41 已迁「基础设置」**（6 家服务商 / base_url / model / 温度 / 最大令牌 + Key 走 safeStorage，见 `shared/llmConfig.ts` + `main/llm/client.ts`）；**未迁**：模型管理 tab（自定义模型增删改，写 PyQt 私有 `custom_models.json`，无同一消费者）、视觉模型 tab（TS 无截图识别/UI 分析消费者）、模板设置 tab（实为技能生成偏好，属内容域）。**~~E57 补一处真缺口~~ → ✅ E63（2026-10-10）已补**：「**测试连接**」按钮（`api_config.py:641-685` → `common/ai_client.test_api_connection`）= `LlmClient.testConnection()` + IPC `llm:testConnection` + 设置面板 `llm-test-connection` 按钮 + 单测 7。**有意改进**：Python 只构造 OpenAI 兼容请求、**对 Ollama 无分支** ⇒ 本地档会打一个本地不提供的 `/chat/completions`；TS 按档位分探（Ollama 走 `status()` 列模型不烧 token，云端发 `max_tokens=5` 最小请求）。**仍 ◐**：模型管理 / 视觉 / 模板三个 tab 未迁 + `ai_client.py` 自身完成度 40% |
 | backup_manager.py | 155 | ✅ | `shared/backup.ts`（命名/时间戳/`BackupEntry`/`RestoreOutcome`）+ `main/backup/backupStore.ts`（**原子写 tmp+rename**、**软删除**改名 `.deleted`、**路径包含校验** 拒目录穿越）+ `main/backup/restore.ts`（**恢复前自动 pre-restore 快照**、按 id 差集删除多余条目后 upsert，**保留 id 故引用不错乱**）+ 4 条 IPC + `BackupPanel.tsx`。**刻意修正 Python 四处缺陷**：只改内存不落盘（假成功）、无 pre-restore 备份、`unlink` 永久删、`split(' - ')[1]` 反推文件名 |
 | data_diff_dialog.py | 154 | ✅ | `DataDiffPanel.tsx`（**当前 vs 用户设定的基线**，基线缓存在 localStorage）。**不照搬 Python 的残废行为**：Python 执行 `DataDiff.compare({}, {...})` 拿空 dict 与当前数据比，**永远只输出「全部新增」**、从不做真对比（文件头却自称对比历史版本）；TS 改为真正的双侧对比。**注意 `ceshuDiff.ts` 对应的是另一文件（策划书版本），与此无关** |
 | quick_create.py | 543 | ✅ | `shared/quickCreate.ts`（TEMPLATE_DEFS 12 类/61 模板 + DATA_TYPE_LABELS）+ `QuickCreatePanel.tsx`；落库复用 `data:createItem`。**刻意修正**：Python `_on_create` 里 `data_type + "s"` 死代码不复制；类型下拉与 schema 求交（`filterQuickCreateTypes`），防造出无类型定义的孤儿条目 |
@@ -509,20 +683,20 @@ E51 的独立验证者报告：在策划书右侧预览面板里，条目行的*
 | common/common.py | 287 | ✅ | 原子写（`atomic_write_*`）/uuid/`is_test_env` **已迁**（文件真实消费者）。**E49 更正**：`safe_dict` 在 Python 源中**根本不存在**（grep 零命中）；`safe_int`/`safe_float`/`safe_str` **仅有定义（`common.py:157/174/191`）+ `common/__init__.py` 再导出、零业务调用点** ⇒ 非缺口（E50 重新分类为 ✅：TS 已等价实现，原 ◐ 判定过期） |
 | common/exceptions.py | 195 | ◐ | `shared/ipc.ts` IpcInvokeError；缺友好化；引用 2 处 |
 | common/shortcuts.py | 177 | ◐ | `main/tray.ts` 单热键；缺 ShortcutManager/DEFAULT_SHORTCUTS |
-| config/constants.py | 181 | ◐ | 类型/字段/属性/策划常量已迁；缺窗口/主题/文件名常量；引用 31 处 |
+| config/constants.py | 181 | ◐ | 类型/字段/属性/策划常量已迁；**主题子缺口 E64 已闭**（TS 4 套主题对齐 Python 4 套 `_THEME_CONFIGS`，走 `[data-theme]` 覆写而非 QSS）；仍缺窗口/文件名常量；引用 31 处 |
 | config/settings.py | 858 | ◐ | `fields_config`→`typeSchema.ts`；**E23 补存储基座**：`shared/settingsStore.ts`（统一 localStorage 读写/枚举/导出/导入/重置，`StorageLike` 单一真源，已收拢 4 处散点）。仍缺 `backup_dir`/`startup_mode`/`api_*`（TS 刻意无全局单例；api_* 现由 `imageGenConfig` 单独存） |
 | security/sandbox.py | 325 | ⛔ | **E56 改判（设计性替换）**：已由 `main/security/jsSandbox.ts`（QuickJS 白名单）**设计性替换**（E56 实测该文件在场）；其 2 处消费者（`code_skill.py` / `shell_skill.py`）**都在 core/agent 重写域**（见 §3.1）⇒ 非编辑器侧缺口 |
-| common/auto_updater.py | 60 | ⚠️ | TS 无；引用 1 处 |
+| common/auto_updater.py | 60 | ⛔ | **E65 改判 ⛔（2026-10-10）**：本地离线应用、无发布基础设施（GitHub releases），自动更新检查**有意不迁**；引用 1 处 |
 | common/data_diff.py | 197 | ✅ | `shared/itemDiff.ts`（`diffValues`/`diffItems`/`diffLibraries`/`collectLeaves`/`summarizeDiff`）。**修 Python 三处缺陷**：① 数组元素**不递归**（`_compare_list` 整块标 MODIFIED）→ 递归；② `compare_items_by_id` 新增/删除只塞 `name` 一个标量 → 携带 `data` 全量；③ 从不产出的 `UNCHANGED` 死枚举 → 无变化即不产出。**有意保留**数组按下标对齐（与 Python 一致，已在注释标注局限） |
 | common/data_importer.py | 269 | ✅ | **E54 实证已迁**：`main/ipc.ts:690` `data:importCsv`（+`data:importExcel`）→ `main/data/csvIO.ts::importCsvFile` / `excelIO.ts::importExcelFile`；旧 JSON 走 `data:importLegacy`（`legacyImport.ts`）。原判「TS 无」过期 |
 | common/data_ref.py | 209 | ✅ | **E54 实证已迁**：`shared/dataRef.ts`（E44：`@data[...]` 解析 + 实时值 + 分组统计）+ `ceshu/CeshuDataPreview.tsx`「📊 数据引用」标签（`CeshuDataRefsPanel`）。原判「无 TS」是 E44 之前的快照 |
-| common/event_bus.py | 87 | ⚠️ | TS 用 IPC + brain 事件流替代；**引用 18 处** |
+| common/event_bus.py | 87 | ⛔ | **E65 改判 ⛔（2026-10-10）**：TS 用 IPC + brain 事件流**设计性替代**；18 处引用全在 `core/agent` 重写域（见 §3.1），编辑器侧无缺口 |
 | common/i18n.py | 401 | ⛔ | **有意不迁（E23 决策）**：这是**全局翻译框架**，而 TS 侧 UI 文案目前 100% 硬编码中文——接入需翻译全部组件（数十文件、上千字符串），属**独立立项**而非存储基座职责。注意 `core/agent/i18n.py::AgentI18n` 早已是死代码（无 import/调用点），勿混淆两者 |
 | common/logger.py | 155 | ✅ | 已迁为 `shared/logger.ts`（统一入口，渲染层经 IPC 转发到主进程）+ `main/logger.ts`（轮转文件日志，10MB×5 备份）；原 142 处引用现统一走 `log` 入口（E8） |
 | common/lucide_icon.py | 214 | ✅ | **E54 实证已迁**：`shared/lucideIcons.ts`（`LUCIDE_ICON_PATHS` **43 键** / `LUCIDE_ICON_ALIASES` **33 键**，由 `lucide_icon.py` 的 `_ICON_PATHS`/`_ALIASES` **脚本机械导出**，另有 `resolveIconName`）+ `LucideIcon.tsx`（`currentColor`/stroke 2.5/24×24，未收录名不渲染）——E30 落地。原判「renderer 用 emoji/内联 SVG」是 E30 之前的快照 |
-| common/rate_limiter.py | 85 | ⚠️ | TS 无 TokenBucket；引用 2 处 |
-| common/sentry_client.py | 52 | ⚠️ | TS 无；引用 1 处 |
-| security/privacy.py | 88 | ⚠️ | TS 无 `summarize_sensitive`；引用 1 处 |
+| common/rate_limiter.py | 85 | ✅ | **E61（2026-10-10）**：`shared/rateLimiter.ts`（`TokenBucket` + `RateLimiter`，4 内置桶参数照抄；`waitAndAcquire` 改 async 不阻塞事件循环；时钟/休眠器可注入）+ 单测 15，**并已接线** `main/llm/client.ts::generate()`（+3 例闸测试）。**有意偏离**：不引入锁（单线程事件循环）；限流器为**进程级共享**（生产有 `stores.ts:124` 与 `qualityJudge.ts:25` 两个 `LlmClient` 实例，各建一套会让限额翻倍，故对齐 Python `RateLimiter()` 单例），同时保留构造器注入供单测替换；闸**放在配置校验之后**（Python 放在最前、非法请求也会吃配额，TS 取更合理顺序）。⚠️ 增量补桶有浮点敏感度（十个 0.1 相加 = 0.9999…），**Python 同源，已用 `.venv` 探针核实**，勿"顺手修正" |
+| common/sentry_client.py | 52 | ⛔ | **E65 改判 ⛔（2026-10-10）**：本地离线应用默认不上报外部遥测（与保密/隐私哲学一致），错误经主进程轮转日志（E8）；**有意不迁**；引用 1 处 |
+| security/privacy.py | 88 | ⛔ | **E65 改判 ⛔（2026-10-10）**：`summarize_sensitive` 仅被 `core/agent/memory_store.py` 消费（AI 重写域，见 §3.1），编辑器侧无消费点；「Agent OS §11」设计稿，保密模式已在传输层覆盖敏感信息 |
 | async_runner / auto_backup / cache / config_schema / data_validator / icons / interfaces / lazy_loader / llm_provider / metrics / path_utils / text / text_game_export / validator / `__init__` | 3,269 | ⛔ | **src 内 0 引用**（仅 `common/__init__.py` re-export）＝真死代码。**E54 校准**：原写 `3,097`，实测 15 文件合计 **3,269** 行 |
 | security/encryption.py / guard.py / rate_limiter.py | 458 | ⛔ | 死代码，且**与 settings.py / core/agent/safety_guard.py / common/rate_limiter.py 重复** |
 | data/sample_data.py | 1125 | ⛔ | 有意不迁（立项 §3.4「不迁移样本数据」） |

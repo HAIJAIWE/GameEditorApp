@@ -71,6 +71,8 @@ export interface ChapterPromptOptions {
   styleOverride?: string
   /** 追加到默认提示之后的定制提示（全量生成的【章节】/【用户输入】/【生成要求】块） */
   extraPrompt?: string
+  /** 单字段定向生成（E62）：只生成指定字段列表，忽略 onlyEmpty */
+  onlyFields?: string[]
 }
 
 export function buildChapterPrompt(
@@ -79,10 +81,16 @@ export function buildChapterPrompt(
   options: ChapterPromptOptions = {}
 ): ChapterPromptResult {
   const onlyEmpty = options.onlyEmpty === true
+  const onlyFields = options.onlyFields
   const agent = agentForChapter(chapter)
   const chapterData = doc[chapter]
   const allKeys = Object.keys(chapterData)
-  const fields = onlyEmpty ? allKeys.filter((key) => !isTruthyValue(chapterData[key])) : allKeys
+  const fields =
+    onlyFields && onlyFields.length > 0
+      ? onlyFields
+      : onlyEmpty
+        ? allKeys.filter((key) => !isTruthyValue(chapterData[key]))
+        : allKeys
   const fieldList = fields.join(', ')
 
   // 已有非空内容（仅字符串/数字，对应 Python isinstance(v, (str, int, float)) 过滤）
@@ -113,12 +121,19 @@ export function buildChapterPrompt(
   }
   const contextText = contextLines.length > 0 ? contextLines.join('\n') : '(无上下文)'
 
-  const system = onlyEmpty
-    ? `你是${agent.displayName}，正在协助编写游戏策划书的${chapter}章节。请仅补全下面列出的空字段。输出格式为 JSON，键为字段名，值为生成内容。只输出 JSON，不要加任何解释或 markdown 标记。`
-    : `你是${agent.displayName}，正在协助编写游戏策划书的${chapter}章节。请生成该章节的完整内容，包括所有字段。输出格式为 JSON，键为字段名，值为生成内容（字符串或简单结构）。只输出 JSON，不要加任何解释或 markdown 标记。`
+  const system =
+    onlyFields && onlyFields.length > 0
+      ? `你是${agent.displayName}，正在协助编写游戏策划书的${chapter}章节。请仅生成下面列出的字段。输出格式为 JSON，键为字段名，值为生成内容。只输出 JSON，不要加任何解释或 markdown 标记。`
+      : onlyEmpty
+        ? `你是${agent.displayName}，正在协助编写游戏策划书的${chapter}章节。请仅补全下面列出的空字段。输出格式为 JSON，键为字段名，值为生成内容。只输出 JSON，不要加任何解释或 markdown 标记。`
+        : `你是${agent.displayName}，正在协助编写游戏策划书的${chapter}章节。请生成该章节的完整内容，包括所有字段。输出格式为 JSON，键为字段名，值为生成内容（字符串或简单结构）。只输出 JSON，不要加任何解释或 markdown 标记。`
 
+  const promptLead =
+    onlyFields && onlyFields.length > 0
+      ? `请为策划书「${chapter}」章节生成以下单个字段。\n`
+      : `请为策划书「${chapter}」整章生成内容。\n`
   let prompt =
-    `请为策划书「${chapter}」整章生成内容。\n` +
+    promptLead +
     `章节提示: ${agent.agentPrompt}\n\n` +
     `上下文信息:\n${contextText}\n\n` +
     `该章节需要填充的字段列表:\n${fieldList}\n\n`

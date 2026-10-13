@@ -204,6 +204,15 @@ export default function CeshuView({
     [ceshuId]
   )
 
+  /** AI 生成单个字段（E62）：走 IPC 调本地模型，返回清洗后的字段供表单回填 */
+  const handleAiGenerateField = useCallback(
+    async (chapter: ChapterKey, field: string): Promise<CeshuAiGenerateResult> => {
+      if (!ceshuId) throw new Error('未选择策划书')
+      return window.mbApi.ceshu.aiGenerateField({ id: ceshuId, chapter, field })
+    },
+    [ceshuId]
+  )
+
   if (!ceshuId) {
     return (
       <div className="ceshu-view">
@@ -888,6 +897,7 @@ export default function CeshuView({
                 gameName={gameName}
                 onSave={handleSave}
                 onAiGenerate={handleAiGenerate}
+                onAiGenerateField={handleAiGenerateField}
               />
             </div>
 

@@ -1,6 +1,7 @@
 import type { IpcHandlerDeps, IpcRegistrar, LlmShared } from '../ipc'
 import {
   ceshuAiGenerateInputSchema,
+  ceshuAiGenerateFieldInputSchema,
   ceshuApplyPresetInputSchema,
   ceshuChangelogExportInputSchema,
   ceshuChecklistExportInputSchema,
@@ -30,7 +31,8 @@ import {
   templatesSaveInputSchema,
   templatesUpdateInputSchema
 } from '../../shared/schemas'
-import { isChapterKey, type SystemEntry } from '../../shared/ceshuConstants'
+import { CHAPTER_LABELS, isChapterKey, type SystemEntry } from '../../shared/ceshuConstants'
+import { CESHU_CHAPTER_FIELDS } from '../../shared/ceshuFields'
 import { llmConfirmReason } from '../../shared/agent/protocol'
 import { estimateTokens } from '../../shared/agent/budget'
 import { applyJudge, evaluateChapterDraft, evaluateDataCandidates } from '../../shared/agent/qualityGate'
@@ -190,6 +192,33 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
       // v0.6 M5：成本护栏的观测数据
       usage: usage ?? null
     }
+  })
+  handle('ceshu:aiGenerateField', ceshuAiGenerateFieldInputSchema, async (req) => {
+    const chapter = req.chapter
+    if (!isChapterKey(chapter)) {
+      throw new Error(`未知章节：${chapter}`)
+    }
+    const base = ceshuManager.get(req.id)
+    // 校验字段属于该章表单（含既有扩展字段），避免把任意字符串喂给 LLM 当字段名
+    const allowedFields = new Set<string>([
+      ...(CESHU_CHAPTER_FIELDS[chapter] ?? []).map((field) => field.key),
+      ...Object.keys(base[chapter])
+    ])
+    if (!allowedFields.has(req.field)) {
+      throw new Error(`字段「${req.field}」不在「${CHAPTER_LABELS[chapter]}」章表单中`)
+    }
+    // 单字段定向生成（E62）：只让 LLM 生成这一个字段，提示词走 buildChapterPrompt 的 onlyFields 分支
+    const built = buildChapterPrompt(base, chapter, { onlyFields: [req.field] })
+    const callOpts = await llm.llmCallOptions()
+    const { model, content, usage } = await llmClient.generate(built.system, built.prompt, callOpts)
+    const parsed = parseLlmJson(content)
+    const raw = parsed[req.field]
+    const fields =
+      raw === undefined || raw === null || raw === '' || (Array.isArray(raw) && raw.length === 0)
+        ? {}
+        : { [req.field]: raw }
+    // 单字段回填无需整章质量门；usage 透传成本观测数据
+    return { model, fields, rawText: content, usage: usage ?? null }
   })
   handle('ceshu:aiGenerateData', ceshuDataGenInputSchema, async (req) => {
     const doc = ceshuManager.get(req.id)

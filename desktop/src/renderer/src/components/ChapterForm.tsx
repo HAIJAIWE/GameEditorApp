@@ -14,6 +14,7 @@ import {
 } from '../../../shared/ceshuTemplates'
 
 import { CeshuFieldControl, fieldValueToInput, inputToFieldValue, type FieldInput } from './CeshuFieldControl'
+import { AiFieldButton } from './AiFieldButton'
 import CompetitiveChart from './CompetitiveChart'
 import SystemsEditor from './SystemsEditor'
 import TemplatePickerPanel from './TemplatePickerPanel'
@@ -27,19 +28,26 @@ interface ChapterFormProps {
   onSave: (chapter: ChapterKey, data: ChapterData) => Promise<void>
   /** AI 生成本章（onlyEmpty=true 时仅补全空字段）；由上层走 IPC 调本地模型 */
   onAiGenerate: (chapter: ChapterKey, onlyEmpty: boolean) => Promise<CeshuAiGenerateResult>
+  /** AI 生成单个字段（E62）；由上层走 IPC 调本地模型，返回清洗后的字段供回填 */
+  onAiGenerateField: (chapter: ChapterKey, field: string) => Promise<CeshuAiGenerateResult>
 }
 
 /**
  * 章节表单：由 CESHU_CHAPTER_FIELDS 驱动渲染；保存时在原始章节数据上合并字段值，
  * 未在 schema 中出现的扩展/未知字段原样保留（与旧数据兼容）。
  */
-export default function ChapterForm({ chapter, data, busy, gameName, onSave, onAiGenerate }: ChapterFormProps) {
+/** 单字段 AI 生成的 60 秒安全兜底（对齐 Python QTimer.singleShot）：IPC 挂住时强制解除 busy，避免按钮永久禁用 */
+const AI_FIELD_SAFETY_MS = 60_000
+
+export default function ChapterForm({ chapter, data, busy, gameName, onSave, onAiGenerate, onAiGenerateField }: ChapterFormProps) {
   const fields = CESHU_CHAPTER_FIELDS[chapter] ?? []
   const [inputs, setInputs] = useState<Record<string, FieldInput>>(() => buildInputs(fields, data))
   const [systemsDraft, setSystemsDraft] = useState<ChapterData>(() => structuredClone(data))
   const [formError, setFormError] = useState<string | null>(null)
   const [formNotice, setFormNotice] = useState<string | null>(null)
   const [aiBusy, setAiBusy] = useState(false)
+  /** 当前正在 AI 生成的字段 key（null 表示空闲），用于驱动 AiFieldButton 的 busy 态 */
+  const [fieldBusy, setFieldBusy] = useState<string | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
   /** 应用模板后的章节草稿（含模板带来的扩展字段）；为 null 时以 data 为准 */
   const [draftData, setDraftData] = useState<ChapterData | null>(null)
@@ -125,6 +133,39 @@ export default function ChapterForm({ chapter, data, busy, gameName, onSave, onA
     }
   }
 
+  /** AI 生成单个字段（E62）：结果按字段 schema 转为编辑值填入该字段，由用户检查后手动保存。
+   *  60 秒安全兜底（对齐 Python QTimer.singleShot）：IPC 挂住时强制解除 busy，避免按钮永久禁用。 */
+  const handleAiFillField = async (fieldKey: string): Promise<void> => {
+    setFormError(null)
+    setFormNotice(null)
+    setFieldBusy(fieldKey)
+    const safety = setTimeout(() => {
+      setFieldBusy((current) => (current === fieldKey ? null : current))
+    }, AI_FIELD_SAFETY_MS)
+    try {
+      const result = await onAiGenerateField(chapter, fieldKey)
+      const def = fields.find((field) => field.key === fieldKey)
+      const raw = result.fields[fieldKey]
+      if (
+        def === undefined ||
+        raw === undefined ||
+        raw === null ||
+        raw === '' ||
+        (Array.isArray(raw) && raw.length === 0)
+      ) {
+        setFormError(`AI 未返回「${def?.label ?? fieldKey}」的可应用内容（请检查本地模型输出）`)
+        return
+      }
+      setInputs((prev) => ({ ...prev, [fieldKey]: fieldValueToInput(def, raw) }))
+      setFormNotice(`AI 已生成「${def.label}」${result.model ? `（模型 ${result.model}）` : ''}，请检查后点「保存本章」`)
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : String(error))
+    } finally {
+      clearTimeout(safety)
+      setFieldBusy((current) => (current === fieldKey ? null : current))
+    }
+  }
+
   return (
     <div className="chapter-form" data-testid="chapter-form">
       <div className="chapter-form-title">
@@ -179,12 +220,18 @@ export default function ChapterForm({ chapter, data, busy, gameName, onSave, onA
         <SystemsEditor systems={systemsDraft} onChange={setSystemsDraft} />
       ) : (
         fields.map((field) => (
-          <CeshuFieldControl
-            key={field.key}
-            field={field}
-            value={inputs[field.key] ?? ''}
-            onChange={(next) => setInputs((prev) => ({ ...prev, [field.key]: next }))}
-          />
+          <div className="field-with-ai" key={field.key}>
+            <CeshuFieldControl
+              field={field}
+              value={inputs[field.key] ?? ''}
+              onChange={(next) => setInputs((prev) => ({ ...prev, [field.key]: next }))}
+            />
+            <AiFieldButton
+              busy={fieldBusy === field.key}
+              fieldLabel={field.label}
+              onFill={() => void handleAiFillField(field.key)}
+            />
+          </div>
         ))
       )}
 

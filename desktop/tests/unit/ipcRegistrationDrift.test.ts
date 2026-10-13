@@ -30,10 +30,12 @@ const ipcDir = join(desktopRoot, 'src/main/ipc')
  * 已进契约、但**尚未接线**的通道（前向声明）。
  * 每一条都要有明确理由；**接线后请从这里移除**（下方用例会提示）。
  */
-const PLANNED_CHANNELS: readonly string[] = [
-  'ceshu:aiGenerateField', // 「AI 生成字段」功能（AiFieldButton 在途），主进程实现待接线
-  'llm:testConnection' // 设置面板「测试连接」，主进程实现待接线
-]
+/**
+ * 已进契约、但**尚未接线**的通道（前向声明）。
+ * 每一条都要有明确理由；**接线后请从这里移除**（下方用例会提示）。
+ * E62（ceshu:aiGenerateField）与 E63（llm:testConnection）已于 2026-10-13 全量接线，故此处清空。
+ */
+const PLANNED_CHANNELS: readonly string[] = []
 
 /** IpcContract 的键：`src/shared/ipc.ts` 里 2 空格缩进的带引号字面量 */
 function contractChannels(): string[] {

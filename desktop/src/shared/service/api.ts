@@ -136,6 +136,8 @@ export interface MbApi {
     configure(req: IpcContract['llm:configure']['req']): Promise<IpcContract['llm:configure']['res']>
     /** 探测当前配置下的服务可用性（设置面板状态提示用） */
     status(): Promise<IpcContract['llm:status']['res']>
+    /** 测试当前配置下的服务连通性（设置面板「测试连接」按钮） */
+    testConnection(): Promise<IpcContract['llm:testConnection']['res']>
   },
   /** 图片库扫描 / 清理（`deleteImages` 是破坏性操作，`confirm` 必填true） */
   images: {
@@ -196,6 +198,10 @@ export interface MbApi {
     aiGenerateData(
       req: IpcContract['ceshu:aiGenerateData']['req']
     ): Promise<IpcContract['ceshu:aiGenerateData']['res']>
+    /** 按字段 AI 填充（E62）：单字段定向生成，返回清洗后的字段供表单回填 */
+    aiGenerateField(
+      req: IpcContract['ceshu:aiGenerateField']['req']
+    ): Promise<IpcContract['ceshu:aiGenerateField']['res']>
     exportReviewReport(
       req: IpcContract['ceshu:exportReviewReport']['req']
     ): Promise<IpcContract['ceshu:exportReviewReport']['res']>

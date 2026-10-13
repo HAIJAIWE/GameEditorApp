@@ -11,6 +11,7 @@ import {
   type LlmUsage,
   type StoredLlmConfig
 } from '../../shared/config/llmConfig'
+import { sharedRateLimiter } from '../../shared/util/rateLimiter'
 
 /**
  * LLM 客户端。
@@ -190,6 +191,40 @@ export class LlmClient {
     }
   }
 
+  /** 真实连通性探测（E63，对齐 Python `api_config.py` 的「测试连接」）。
+   *  不抛错：成功/失败都返回 `{ ok, message }` 供 UI 直接展示。 */
+  async testConnection(options: LlmCallOptions = {}): Promise<{ ok: boolean; message: string }> {
+    const config = resolveConfig(options)
+    if (options.config === undefined) {
+      return { ok: false, message: LLM_MESSAGES.notConfigured }
+    }
+    if (config.provider === 'claude') {
+      return { ok: false, message: LLM_MESSAGES.claudeUnsupported }
+    }
+    if (isOpenAiCompatible(config.provider)) {
+      const preset = LLM_PROVIDER_PRESETS[config.provider]
+      const baseUrl = resolveLlmBaseUrl(config).replace(/\/+$/, '')
+      try {
+        const res = await fetch(`${baseUrl}/models`, {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${config.apiKey}` }
+        })
+        if (!res.ok) {
+          return { ok: false, message: `${preset.label} 连接失败（HTTP ${res.status}）` }
+        }
+        return { ok: true, message: `${preset.label} 连接成功，服务可达` }
+      } catch (error) {
+        return {
+          ok: false,
+          message: `无法连接 ${preset.label}（${baseUrl}）：${error instanceof Error ? error.message : String(error)}`
+        }
+      }
+    }
+    // Ollama：status() 内部已对 /api/tags（list）做真实 ping
+    const status = await this.status(options)
+    return { ok: status.available, message: status.message }
+  }
+
   /** 调用 LLM 生成文本；失败抛中文错误（UI 直接展示） */
   async generate(
     system: string,
@@ -238,6 +273,11 @@ export class LlmClient {
     if (config.provider === 'claude') {
       throw new Error(LLM_MESSAGES.claudeUnsupported)
     }
+
+    // 进程级限流：所有出站 LLM 调用（OpenAI 兼容 / Ollama）统一在此取令牌，
+    // 对齐 Python `common/rate_limiter.py` 的 `_acquire_rate_limit('llm', ...)`（E61）。
+    // 放在校验闸门与 claude 拦截之后 —— 不为「未配置 / 非法 / claude 不支持」的请求浪费令牌。
+    await sharedRateLimiter().acquire('llm')
 
     if (isOpenAiCompatible(config.provider)) {
       return this.generateOpenAiCompatible(config, system, prompt)

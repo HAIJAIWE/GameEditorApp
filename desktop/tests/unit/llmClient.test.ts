@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { LlmClient } from '../../src/main/llm/client'
 import {
@@ -131,5 +131,139 @@ describe('LlmClient：未配置闸所依赖的跨层前提', () => {
     // 而一旦不推（镜像保持 null），本层立刻回到正确的 fail-closed 行为：
     const client = new LlmClient()
     await expect(client.generate('s', 'p')).rejects.toThrow(/尚未配置 AI 服务/)
+  })
+})
+
+/*
+ * E63：LlmClient.testConnection（真实连通性探测，对齐 Python api_config.py 的「测试连接」）。
+ * 设计铁律：**不抛错**——所有成功/失败都转成 `{ ok, message }` 供 UI 直接展示。
+ * 下面按「未配置 / claude / OpenAI 可达 / OpenAI HTTP 失败 / OpenAI 网络异常 / Ollama 可用 / Ollama 不可用」
+ * 七个分支锁死行为，防止哪天有人把「探测」写成「发正式请求」或「抛错」。
+ */
+describe('LlmClient.testConnection（E63：真实连通性探测，不抛错）', () => {
+  it('未传 config ⇒ 返回未配置提示（且不发生任何网络请求）', async () => {
+    const originalFetch = globalThis.fetch
+    let fetchCalls = 0
+    globalThis.fetch = (async () => {
+      fetchCalls += 1
+      throw new Error('不应发出的请求')
+    }) as unknown as typeof fetch
+    try {
+      const client = new LlmClient()
+      const res = await client.testConnection()
+      expect(res.ok).toBe(false)
+      expect(res.message).toContain(LLM_MESSAGES.notConfigured)
+      expect(fetchCalls).toBe(0)
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
+  it('claude 服务商 ⇒ 返回「暂未接入」，不发请求', async () => {
+    const originalFetch = globalThis.fetch
+    let fetchCalls = 0
+    globalThis.fetch = (async () => {
+      fetchCalls += 1
+      throw new Error('不应发出的请求')
+    }) as unknown as typeof fetch
+    try {
+      const client = new LlmClient()
+      const res = await client.testConnection({
+        config: { ...DEFAULT_LLM_CONFIG, enabled: true, provider: 'claude' },
+        apiKey: 'x'
+      })
+      expect(res.ok).toBe(false)
+      expect(res.message).toContain('暂未接入')
+      expect(fetchCalls).toBe(0)
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
+  it('OpenAI 兼容（DeepSeek）可达 ⇒ ok:true 且文案含「连接成功」', async () => {
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = (async () => ({ ok: true, status: 200 })) as unknown as typeof fetch
+    try {
+      const client = new LlmClient()
+      const res = await client.testConnection({
+        config: { ...DEFAULT_LLM_CONFIG, enabled: true, provider: 'deepseek', baseUrl: 'http://fake.test/v1' }, apiKey: 'sk-test'
+      })
+      expect(res.ok).toBe(true)
+      expect(res.message).toContain('连接成功')
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
+  it('OpenAI 兼容（DeepSeek）HTTP 失败 ⇒ ok:false 且文案含状态码', async () => {
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = (async () => ({ ok: false, status: 401 })) as unknown as typeof fetch
+    try {
+      const client = new LlmClient()
+      const res = await client.testConnection({
+        config: { ...DEFAULT_LLM_CONFIG, enabled: true, provider: 'deepseek', baseUrl: 'http://fake.test/v1' }, apiKey: 'sk-test'
+      })
+      expect(res.ok).toBe(false)
+      expect(res.message).toContain('连接失败')
+      expect(res.message).toContain('HTTP 401')
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
+  it('OpenAI 兼容（DeepSeek）网络异常 ⇒ ok:false 且文案含「无法连接」', async () => {
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = (async () => {
+      throw new Error('ECONNREFUSED')
+    }) as unknown as typeof fetch
+    try {
+      const client = new LlmClient()
+      const res = await client.testConnection({
+        config: { ...DEFAULT_LLM_CONFIG, enabled: true, provider: 'deepseek', baseUrl: 'http://fake.test/v1' }, apiKey: 'sk-test'
+      })
+      expect(res.ok).toBe(false)
+      expect(res.message).toContain('无法连接')
+      expect(res.message).toContain('ECONNREFUSED')
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
+  it('Ollama 可用（status 探测成功）⇒ ok:true 且文案取 status.message', async () => {
+    const client = new LlmClient()
+    const spy = vi.spyOn(client, 'status').mockResolvedValue({
+      available: true,
+      models: ['qwen3:8b'],
+      message: '本地模型 1 个',
+      provider: 'ollama'
+    })
+    try {
+      const res = await client.testConnection({
+        config: { ...DEFAULT_LLM_CONFIG, enabled: true, provider: 'ollama', baseUrl: 'http://127.0.0.1:11434' }
+      })
+      expect(res.ok).toBe(true)
+      expect(res.message).toBe('本地模型 1 个')
+    } finally {
+      spy.mockRestore()
+    }
+  })
+
+  it('Ollama 不可用（status 探测失败）⇒ ok:false 且文案取 status.message', async () => {
+    const client = new LlmClient()
+    const spy = vi.spyOn(client, 'status').mockResolvedValue({
+      available: false,
+      models: [],
+      message: 'Ollama 未运行（ollama serve）',
+      provider: 'ollama'
+    })
+    try {
+      const res = await client.testConnection({
+        config: { ...DEFAULT_LLM_CONFIG, enabled: true, provider: 'ollama', baseUrl: 'http://127.0.0.1:11434' }
+      })
+      expect(res.ok).toBe(false)
+      expect(res.message).toBe('Ollama 未运行（ollama serve）')
+    } finally {
+      spy.mockRestore()
+    }
   })
 })
