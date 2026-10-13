@@ -88,6 +88,8 @@ export default function CeshuDataPreview({
   const [activeKey, setActiveKey] = useState<string | null>(null)
   /** 「📊 数据引用」标签是否选中（与系统标签互斥） */
   const [showRefs, setShowRefs] = useState(false)
+  /** 数据编辑器展开态（覆盖整窗；null/未启用系统时无从展开） */
+  const [expanded, setExpanded] = useState(false)
 
   // 跳转优先：命中的启用编辑器覆盖当前 activeKey；否则按 activeKey 选，最后回退第一个。
   const jumpEditor = jumpTarget ? enabledEditors.find((editor) => editor.data_type === jumpTarget.type) : undefined
@@ -105,6 +107,18 @@ export default function CeshuDataPreview({
       onJumpHandled?.()
     }
   }, [jumpTarget, enabledEditors, onJumpMissed, onJumpHandled])
+
+  // 展开态 Esc 收起；列表右键菜单开着时让 DataEditorTab 自己先处理（避免一次 Esc 连关两层）
+  useEffect(() => {
+    if (!expanded) return
+    const onKey = (event: KeyboardEvent): void => {
+      if (event.key !== 'Escape') return
+      if (document.querySelector('[data-testid="ceshu-data-menu"]') !== null) return
+      setExpanded(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [expanded])
 
   /** 命中跳转时，向 DataEditorTab 下发定位参数（用 nonce 参与 key 以支持重复跳转同一类型重挂载） */
   const jumping = jumpEditor !== undefined && activeEditor?.key === jumpEditor.key
@@ -141,6 +155,17 @@ export default function CeshuDataPreview({
         >
           📊 数据引用
         </button>
+        {activeEditor !== null && !showRefs && (
+          <button
+            type="button"
+            data-testid="ceshu-preview-expand"
+            className="ceshu-preview-tab"
+            title="展开为整窗数据编辑器（对齐 PyQt 全窗口数据编辑 tab）"
+            onClick={() => setExpanded(true)}
+          >
+            ⛶ 展开
+          </button>
+        )}
       </div>
 
       <div className="ceshu-preview-body">
@@ -175,6 +200,40 @@ export default function CeshuDataPreview({
           />
         ) : null}
       </div>
+
+      {/*
+        展开态：整窗覆盖层里再挂一个 DataEditorTab（组件自包含：只依赖 type/types 与回调，
+        实例间无共享状态），对齐 PyQt「每个数据类型一个整窗 tab」的观感；收起即销毁。
+      */}
+      {expanded && activeEditor !== null && (
+        <div className="ceshu-data-overlay" data-testid="ceshu-data-overlay">
+          <div className="ceshu-data-overlay-head">
+            <span className="ceshu-data-overlay-title">{activeEditor.name} · 数据编辑器</span>
+            <span className="item-meta">整窗展开态 · Esc 收起</span>
+            <button
+              type="button"
+              className="btn"
+              data-testid="ceshu-data-overlay-close"
+              onClick={() => setExpanded(false)}
+            >
+              收起
+            </button>
+          </div>
+          <div className="ceshu-data-overlay-body">
+            <DataEditorTab
+              key={`overlay:${activeEditor.data_type}:${dataEpoch ?? ''}`}
+              type={activeEditor.data_type}
+              types={types}
+              gameStyle={gameStyle}
+              onDataChanged={onDataChanged}
+              onEditType={onEditType}
+              onShowReferences={onShowReferences}
+              onAiGenerate={onAiGenerate}
+              countConstraint={findCountConstraint(chapters?.systems, activeEditor.data_type)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }

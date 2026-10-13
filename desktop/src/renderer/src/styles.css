@@ -870,6 +870,44 @@ body {
 }
 
 /*
+ * 条目表单（数据编辑器右侧字段表单）的标签列 —— **忠实**复刻 QFormLayout，取代上面的 120px 近似：
+ * 标签列宽 = 全表最宽标签（`max-content`），同时保留「所有行的字段起始 x 对齐」。
+ * 上面 flex 方案固定 120px 是「每行独立 flex 拿不到全表最宽标签」的妥协；而实测 PyQt 参考
+ * 的标签列只有 ~57px（skill 类型最长标签「图片描述:」）—— 在窄列里 120px 白白吃掉四成宽度
+ * （1184 窗口下控件只剩 135px）。改 grid + `display: contents`：行容器不再生成盒子，
+ * 标签与控件直接成为网格项 ⇒ 列宽由网格统一计算，正是 QFormLayout 的语义。
+ *
+ * ⚠️ 只作用于条目表单（`item-editor`）：`.form-row` 被约 30 个面板共用，全站改会大面积回归。
+ */
+[data-testid='item-editor'] .editor-body {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: start;
+  gap: 10px; /* QFormLayout.setSpacing(10) */
+}
+
+[data-testid='item-editor'] .editor-body > .form-row {
+  display: contents;
+}
+
+/* 行内错误条独占整行（不是「标签 + 控件」两列） */
+[data-testid='item-editor'] .editor-body > .form-error {
+  grid-column: 1 / -1;
+}
+
+/* 标签：脱离 flex 定宽，由网格列宽决定；不折行（QFormLayout rowWrapPolicy=DontWrapRows） */
+[data-testid='item-editor'] .editor-body .form-label {
+  flex: none;
+  max-width: none;
+  white-space: nowrap;
+}
+
+/* 行内裸按钮（少数字段行）不要被网格拉满列宽 */
+[data-testid='item-editor'] .editor-body > .form-row > .btn {
+  justify-self: start;
+}
+
+/*
  * 「AI 帮我填」小按钮 —— 对齐 Python `AIFieldButton` 的 26px 圆形按钮。
  * Python 用 Lucide 的 bot 图标；TS 侧**未引入图标库** ⇒ 用文字「AI」，避免为此新增依赖。
  * 配色一律走主题令牌，深色档自动跟随。
@@ -4482,6 +4520,50 @@ button.ref-row:hover {
   min-height: 0;
   border-left: 1px solid var(--border);
   background: var(--bg-panel);
+}
+
+/*
+ * 数据编辑器「展开」态：覆盖整窗（对齐 PyQt 全窗口数据编辑器 tab）。
+ * 参考实测：整窗下表单区约占窗宽 78%（列表 ~190 + 表单 ~840@1080 窗）；
+ * 而内嵌预览 44% 再切 200px 列表后，表单只剩 311px（1184 窗）——拉宽窗口也吃不到红利。
+ * 只在用户点「展开」时出现，收起即回内嵌，不动外壳导航。
+ */
+.ceshu-data-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60; /* 低于右键菜单(70) 与 toast，高于普通面板 */
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-panel);
+}
+
+.ceshu-data-overlay-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.ceshu-data-overlay-title {
+  font-weight: 600;
+}
+
+.ceshu-data-overlay-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.ceshu-data-overlay .data-editor-tab-main {
+  flex: 1;
+  min-height: 0;
+}
+
+/* 展开态列表列放宽到 240px（对齐 PyQt setSizes([240, 720]) 的左列；内嵌态仍 200px） */
+.ceshu-data-overlay .list-column {
+  flex: 0 0 240px;
+  min-width: 0;
 }
 
 .ceshu-preview-tabs {
