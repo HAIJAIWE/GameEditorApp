@@ -8,7 +8,6 @@ import {
   pickRecentCeshu
 } from '../../../shared/ceshuHome'
 
-import HomeAiEntryCard from './ceshu/HomeAiEntryCard'
 import LucideIcon from './LucideIcon'
 import { toErrorMessage } from '../../../shared/util/errors'
 
@@ -30,11 +29,6 @@ interface CeshuHomePanelProps {
   onChanged: () => void
   /** 某份策划书被删除（上层据此清掉已失效的选中态） */
   onDeleted: (id: string) => void
-  /**
-   * AI 入口卡发送：上层负责组装引导前缀并投递给右侧 AI 面板
-   * （对齐 PyQt `home_view.py::_on_ai_send`）。
-   */
-  onSendToAi?: (text: string) => void
 }
 
 /** 卡片上的内联编辑/确认动作 */
@@ -50,8 +44,7 @@ export default function CeshuHomePanel({
   activeId,
   onOpen,
   onChanged,
-  onDeleted,
-  onSendToAi
+  onDeleted
 }: CeshuHomePanelProps) {
   const [keyword, setKeyword] = useState('')
   const [action, setAction] = useState<CardAction | null>(null)
@@ -168,9 +161,6 @@ export default function CeshuHomePanel({
           </button>
         </div>
       </div>
-
-      {/* AI 入口卡（对齐 PyQt `home_view.py:103-137`）：紧贴标题行下方，是首页最醒目的入口 */}
-      {onSendToAi !== undefined && <HomeAiEntryCard onSend={onSendToAi} disabled={busy} />}
 
       <div className="item-meta">
         共 {summaries.length} 份策划书 · 点击卡片打开编辑

@@ -4,7 +4,6 @@ import type { CeshuSummary } from '../../shared/ceshuConstants'
 import { loadGameStyle, normalizeGameStyleId, saveGameStyle } from '../../shared/config/gameStyle'
 import type { AppInfo, DataTypeDef } from '../../shared/types'
 import { applyTheme, loadTheme, saveTheme, type ThemeMode } from '../../shared/config/theme'
-import { buildAiSeedPrompt } from '../../shared/aiSeedPrompt'
 import type { EngineExportInput } from '../../shared/schemas'
 
 import AdvancedSearchPanel from './components/AdvancedSearchPanel'
@@ -149,12 +148,6 @@ export default function App() {
    * 菜单入口保持默认（null → 第一个类型）；每次从菜单打开都会清掉，避免上次的选择粘住。
    */
   const [quickCreateTarget, setQuickCreateTarget] = useState<string | null>(null)
-  /**
-   * 待投递给右侧 AI 面板的一条播种消息（由策划书首页的 AI 入口卡触发）。
-   * App 只负责「组装引导前缀 + 递增 nonce」，真正的发送由 `DigitalPanel` 消费 `seed` 完成
-   * （对齐 PyQt `home_view.py::_on_ai_send`：把 guided_text 塞进 digital_panel 输入框并发送）。
-   */
-  const [aiSeed, setAiSeed] = useState<{ text: string; nonce: number } | null>(null)
   /** 跳转定位目标（含递增 nonce 以支持重复跳转同一类型）；命中启用编辑器时在策划书预览面板定位条目 */
   const [jumpTarget, setJumpTarget] = useState<PreviewJumpTarget | null>(null)
   /**
@@ -447,16 +440,6 @@ export default function App() {
 
   /** 跳转已处理（预览面板点击标签页 / 未命中被驳回）：清空 jumpTarget，避免重复触发 */
   const handleJumpHandled = (): void => setJumpTarget(null)
-
-  /**
-   * 首页 AI 入口卡发送：把用户输入包成引导前缀后投给右侧 AI 面板。
-   * 空白输入返回 `null` → 直接忽略（对齐 Python `if not text: return`）。
-   */
-  const handleSendToAi = (text: string): void => {
-    const prompt = buildAiSeedPrompt(text)
-    if (prompt === null) return
-    setAiSeed((prev) => ({ text: prompt, nonce: (prev?.nonce ?? 0) + 1 }))
-  }
 
   /** 条目表单「更多 ▸ → 编辑当前类型字段结构」：打开字段结构编辑器并预选该类型 */
   const handleEditType = (typeId: string): void => {
@@ -792,7 +775,6 @@ export default function App() {
                   onDeleted={(deletedId) => {
                     setActiveCeshuId((current) => (current === deletedId ? null : current))
                   }}
-                  onSendToAi={handleSendToAi}
                 />
               ) : (
                 <CeshuView
@@ -813,7 +795,7 @@ export default function App() {
               )}
             </div>
             <aside className="ai-dock" data-testid="ai-dock">
-              <DigitalPanel seed={aiSeed} />
+              <DigitalPanel />
             </aside>
           </div>
 
