@@ -56,9 +56,27 @@ test('条目属性列表：增删行 → 计算预览 → 保存 → 重启后�
     await window.getByTestId('field-attr_list-remove-2').click()
     await expect(window.getByTestId('field-attr_list-calc-unknown')).toBeHidden()
 
-    // 保存：表单按保存结果重渲染，行值与预览保持
+    // 保存：落盘校验（保存反馈走 toast，App 级 notice 不服务数据保存——
+    // 见 attr-formula-builder.spec.ts 的踩坑记录；poll 消除保存 IPC 竞态）。
+    // 注：本条断言 2026-10-13 前是 `.notice-banner` + 「已保存」，属既有失败（该 banner 从不出现），
+    // 拉平条目表单时一并按既有模式修正。
     await window.getByTestId('item-editor').getByRole('button', { name: '保存' }).click()
-    await expect(window.locator('.notice-banner')).toContainText('已保存')
+    await expect
+      .poll(async () => {
+        const jobs = await window.evaluate(async () => {
+          const api = (
+            globalThis as unknown as {
+              mbApi: { data: { listItems: (req: { type: string }) => Promise<unknown> } }
+            }
+          ).mbApi
+          return api.data.listItems({ type: 'job' })
+        })
+        const stored = (jobs as Array<{ data: Record<string, unknown> }>)[0]
+        const attrList = stored?.data['attr_list'] as Array<{ name: string; value: number }> | undefined
+        return attrList?.map((row) => `${row.name}=${row.value}`).join(',') ?? ''
+      })
+      .toBe('力量=20,体质=10')
+    // 表单按保存结果重渲染，行值与预览保持
     await expect(window.getByTestId('field-attr_list-name-0')).toHaveValue('力量')
     await expect(window.getByTestId('field-attr_list-value-1')).toHaveValue('10')
     await expect(window.getByTestId('field-attr_list-calc-HP')).toHaveText('400')

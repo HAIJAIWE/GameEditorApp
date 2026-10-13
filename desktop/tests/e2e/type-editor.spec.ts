@@ -44,13 +44,27 @@ test('字段结构：新增字段 → 保存 → 数据表表单联动 → 重�
     await window.getByTestId('te-close').click()
     await expect(window.getByTestId('type-editor-panel')).toBeHidden()
 
-    // 表单联动：切到职业类型，新增条目 → 表单出现新字段，填写并保存
+    // 表单联动：切到职业类型，新增条目 → 表单出现新字段，填写并保存。
+    // 落盘校验代替原 `.notice-banner` 可见性断言（保存反馈走 toast、不走 App 级 notice，
+    // 该断言为既有失败；见 attr-formula-builder.spec.ts 踩坑记录）
     await openDataEditor(window, '职业')
     await createDataItem(window)
     await expect(window.getByTestId('field-test_field')).toBeVisible()
     await window.getByTestId('field-test_field').fill('hello')
     await window.getByTestId('item-editor').getByRole('button', { name: '保存' }).click()
-    await expect(window.locator('.notice-banner')).toBeVisible()
+    await expect
+      .poll(async () => {
+        const jobs = await window.evaluate(async () => {
+          const api = (
+            globalThis as unknown as {
+              mbApi: { data: { listItems: (req: { type: string }) => Promise<unknown> } }
+            }
+          ).mbApi
+          return api.data.listItems({ type: 'job' })
+        })
+        return (jobs as Array<{ data: Record<string, unknown> }>)[0]?.data['test_field']
+      })
+      .toBe('hello')
   } finally {
     await app.close()
   }

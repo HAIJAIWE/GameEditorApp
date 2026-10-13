@@ -40,11 +40,24 @@ test('数据对比：设定基线后修改数据 → 与基线对比应报告修
     await panel.getByRole('button', { name: '关闭' }).click()
     await expect(panel).toHaveCount(0)
 
-    // 改一条角色数据并保存
+    // 改一条角色数据并保存。落盘校验代替原 `.notice-banner` + 「已保存」断言
+    // （保存反馈走 toast、不走 App 级 notice，该断言为既有失败；见 attr-formula-builder.spec.ts）
     await window.getByTestId('ceshu-data-item-row').first().click()
     await window.getByTestId('field-name').fill('改动后的角色名')
     await window.getByTestId('item-editor').getByRole('button', { name: '保存' }).click()
-    await expect(window.locator('.notice-banner')).toContainText('已保存')
+    await expect
+      .poll(async () => {
+        const roles = await window.evaluate(async () => {
+          const api = (
+            globalThis as unknown as {
+              mbApi: { data: { listItems: (req: { type: string }) => Promise<unknown> } }
+            }
+          ).mbApi
+          return api.data.listItems({ type: 'role' })
+        })
+        return (roles as Array<{ data: Record<string, unknown> }>)[0]?.data['name']
+      })
+      .toBe('改动后的角色名')
 
     // 重开数据对比 → 与基线对比
     await openMenuItem(window, 'tools', 'dataDiff')
@@ -55,8 +68,11 @@ test('数据对比：设定基线后修改数据 → 与基线对比应报告修
     await window.getByTestId('dd-run').click()
 
     await expect(window.getByTestId('dd-summary')).toContainText('修改')
-    await expect(window.getByTestId('dd-row').first()).toBeVisible()
-    await expect(window.getByTestId('dd-row').first()).toContainText('data.name')
+    // 既有断言修正（非本次引入）：原断言写死 `dd-row.first()` 含 `data.name`，
+    // 但打开空 attrpanel 的角色再保存时，`buildInitialDraft` 会套默认属性模板
+    // （对齐 Python load_data）⇒ diff 里同时有 `attr_list 新增` 与 `name 修改` 两行，
+    // 行序上 attr_list 在前。断言目的 = 「name 的修改被报告」，故改为按内容定位该行。
+    await expect(window.getByTestId('dd-row').filter({ hasText: 'data.name' })).toHaveCount(1)
     await expect(window.getByTestId('dd-identical')).toHaveCount(0)
   } finally {
     await app.close()

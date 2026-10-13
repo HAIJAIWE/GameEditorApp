@@ -46,9 +46,23 @@ test('数据统计：概览计数与占比 → 平衡性分析（按 schema 数�
     await openDataEditor(window, '技能')
     await createDataItem(window)
     await window.getByTestId('ceshu-data-item-row').first().click()
+    // 保存后落盘校验（原 `.notice-banner` + 「已保存」断言为既有失败：保存反馈走 toast、
+    // 不走 App 级 notice；见 attr-formula-builder.spec.ts 踩坑记录）
     await window.getByTestId('field-value').fill('10')
     await window.getByTestId('item-editor').getByRole('button', { name: '保存' }).click()
-    await expect(window.locator('.notice-banner')).toContainText('已保存')
+    await expect
+      .poll(async () => {
+        const skills = await window.evaluate(async () => {
+          const api = (
+            globalThis as unknown as {
+              mbApi: { data: { listItems: (req: { type: string }) => Promise<unknown> } }
+            }
+          ).mbApi
+          return api.data.listItems({ type: 'skill' })
+        })
+        return (skills as Array<{ data: Record<string, unknown> }>)[0]?.data['value']
+      })
+      .toBe(10)
 
     await openMenuItem(window, 'tools', 'stats')
     await expect(window.getByTestId('stats-panel')).toBeVisible()

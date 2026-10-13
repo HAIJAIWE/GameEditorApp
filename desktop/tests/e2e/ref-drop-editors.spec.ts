@@ -115,8 +115,10 @@ test('引用表 / 掉落表编辑器：选库添加 + 数值编辑 + 保存持�
     await window.getByTestId('ceshu-data-item-row').filter({ hasText: 'E2E角色甲' }).click()
     await expect(window.getByTestId('reftable-skills-name-0')).toContainText('E2E技能火球')
 
-    // 5) 删除选中 → 保存 → 落盘为空数组
-    await window.getByTestId('reftable-skills-row-0').click()
+    // 5) 删除选中 → 保存 → 落盘为空数组。
+    // 点名称单元格而非行中心：行中心在窄面板里落在「等级」输入框上（该输入 onclick stopPropagation，
+    // 不会触发行选中）——这是既有失败（2026-10-13 基线实跑复现），点名称列才是真实用户行为。
+    await window.getByTestId('reftable-skills-name-0').click()
     await window.getByTestId('reftable-skills-remove').click()
     await expect(window.getByTestId('reftable-skills-empty')).toBeVisible()
     await window.getByTestId('item-editor').getByRole('button', { name: '保存' }).click()

@@ -107,8 +107,8 @@ src/shared/
 │
 ├── config/          settingsStore.ts · visibleTypes.ts · gameStyle.ts · imageGenConfig.ts (4/1019)
 ├── service/         api.ts · logger.ts · backup.ts · imageGen.ts                       (4/ 522)
-└── util/            advancedSearch · dataStats · dataTableOps · dropTable · fieldId   (11/1986)
-                    formulaBuilder · glossaryTerms · itemDiff · quickCreate · refTable · formSections
+└── util/            advancedSearch · dataStats · dataTableOps · dropTable · fieldId   (10/1707)
+                    formulaBuilder · glossaryTerms · itemDiff · quickCreate · refTable
 ```
 
 ### 2.1 `shared/agent/` 的处置：**保留原样，不改名**

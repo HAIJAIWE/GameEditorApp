@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
-import { buildFormLayout, fieldLabelFor, isComplexFieldType } from '../../../shared/formSections'
 import {
   buildDescContext,
   buildDescPrompt,
@@ -16,7 +15,6 @@ import type { DataTypeDef, ItemRecord, TypeFieldDef } from '../../../shared/type
 import AttrPanelEditor from './AttrPanelEditor'
 import AttrTableEditor from './AttrTableEditor'
 import DropTableEditor from './DropTableEditor'
-import FormSectionCard from './FormSectionCard'
 import LucideIcon from './LucideIcon'
 import RefTableEditor from './RefTableEditor'
 
@@ -146,9 +144,6 @@ export default function ItemForm({
   const jsonFields = new Set(
     fields.filter((field) => usesJsonEditor(field, item.data[field.name])).map((field) => field.name)
   )
-
-  /** 条目编辑器分区布局（分区/折叠/双列；未归组字段走兜底，一个都不丢） */
-  const layout = useMemo(() => buildFormLayout(item.type, fields), [item.type, fields])
 
   const setValue = (name: string, value: unknown): void => {
     setDraft((current) => ({ ...current, [name]: value }))
@@ -315,7 +310,7 @@ export default function ItemForm({
     }
   }
 
-  /** 单个字段的编辑控件（不含标签；标签由分区分发处负责） */
+  /** 单个字段的编辑控件（不含标签；标签由字段行渲染处负责） */
   const renderFieldControl = (field: TypeFieldDef): React.ReactElement => {
     if (field.type === 'attrtable') {
       return (
@@ -373,7 +368,20 @@ export default function ItemForm({
     )
   }
 
-  /** 普通字段行（标签 + 控件） */
+  /**
+   * 字段行（标签 + 控件）—— 扁平表单的**唯一**行形态。
+   *
+   * 对齐 PyQt `ui/widgets/dynamic_form.py::_build_form`：`QFormLayout` 按 schema 顺序
+   * `addRow(QLabel(字段label), 控件)`，一行一个字段，无分区、无折叠、无双列。
+   * TS 早期照抄的是**更新版** Python 的 `FIELD_GROUPS` 分区卡片（折叠/双列/attribute_panel
+   * 专属区），而用户明确满意的是旧版扁平一列（截图实证：标签左、控件右、一列看全）
+   * ⇒ 2026-10-13 拉平。分区/双列/STAT_LABELS 相关代码（`formSections.ts` /
+   * `FormSectionCard.tsx` / `.form-grid`）随本次改动整体删除，不留死代码。
+   *
+   * 标签口径：字段自身 label 经 `resolveFieldLabel` 术语替换（E21 游戏风格）；
+   * **不再**套 `STAT_LABELS`（📊数值/⏱️CD 等 emoji 前缀）——那是 grid 分区时代的产物，
+   * 旧版扁平表单与用户截图里都是原始标签（「基础数值:」「冷却:」）。
+   */
   const renderFieldRow = (field: TypeFieldDef, label: string): React.ReactElement => (
     <div className="form-row" key={field.name}>
       <label className="form-label" htmlFor={`field-${field.name}`}>
@@ -394,44 +402,10 @@ export default function ItemForm({
 
       <div className="editor-body">
         {localError && <div className="form-error">{localError}</div>}
-        {layout.sections.map((section, index) => (
-          <FormSectionCard
-            key={`${section.title}-${index}`}
-            title={section.title}
-            icon={section.icon}
-            collapsed={section.collapsed}
-            testId={`form-section-${index}`}
-          >
-            {section.panelField !== null ? (
-              (() => {
-                const panel = fields.find((field) => field.name === section.panelField)
-                return panel ? renderFieldControl(panel) : null
-              })()
-            ) : section.layout === 'grid' ? (
-              <div className="form-grid" data-testid={`form-section-${index}-grid`}>
-                {section.fields.map((field) => renderFieldRow(field, fieldLabelFor(field, 'grid', gameStyle)))}
-              </div>
-            ) : (
-              section.fields.map((field) => renderFieldRow(field, fieldLabelFor(field, 'form', gameStyle)))
-            )}
-          </FormSectionCard>
-        ))}
-        {layout.ungrouped.map((field) =>
-          isComplexFieldType(field.type) ? (
-            // 兜底：复杂控件单独成区（对应 Python P0-2），避免与普通字段混排
-            <FormSectionCard
-              key={field.name}
-              title={resolveFieldLabel(field.label, gameStyle)}
-              icon="📋"
-              collapsed={false}
-              testId={`form-section-ungrouped-${field.name}`}
-            >
-              {renderFieldControl(field)}
-            </FormSectionCard>
-          ) : (
-            renderFieldRow(field, fieldLabelFor(field, 'form', gameStyle))
-          )
-        )}
+        {/* 扁平一列：schema 顺序逐字段平铺（对齐 PyQt dynamic_form.py 的 QFormLayout）。
+            复杂控件（attrpanel/attrtable/multiselect/droptable）与普通字段同构成行，
+            不再单独包分区——编辑器内部自带工具条/表头，标签行只提供「属性列表:」这类字段名。 */}
+        {fields.map((field) => renderFieldRow(field, resolveFieldLabel(field.label, gameStyle)))}
       </div>
 
       <div className="editor-actions">

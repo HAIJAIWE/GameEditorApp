@@ -807,7 +807,6 @@ body {
   border-top: 1px solid var(--border);
 }
 
-/* 双列网格分区（Python `layout: 'grid'`，一行两个字段） */
 /*
  * 表单行 —— 对齐 PyQt 章节/条目表单的 `QFormLayout`（`chapter_forms/_common.py::_add_row`）：
  * **标签在左、字段在右**，不是上下堆叠。实测 QFormLayout 默认
@@ -863,11 +862,6 @@ body {
 .form-row > .ceshu-field-label-row {
   flex: 0 0 120px;
   max-width: 45%;
-}
-
-/* 两列网格里的行更窄，标签列相应收窄（与 `.form-grid .form-row > .form-label` 对齐） */
-.form-grid .form-row > .ceshu-field-label-row {
-  flex: 0 0 88px;
 }
 
 .ceshu-field-label-row > .form-label {
@@ -926,18 +920,6 @@ body {
 .field-with-ai > .ai-field-btn {
   flex: 0 0 auto;
   margin-top: 4px;
-}
-
-/* 两列网格里的行更窄，标签列相应收窄 */
-.form-grid .form-row > .form-label {
-  flex: 0 0 88px;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px 12px;
-  align-items: start;
 }
 
 .form-label {

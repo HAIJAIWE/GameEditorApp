@@ -42,11 +42,18 @@ test('批量操作（自选作用范围）：按类型批量改值 → 数值增
     await createDataItem(window)
     await expect(window.getByTestId('ceshu-data-item-row')).toHaveCount(3)
 
-    // 首条改名为唯一中文名（避免与随机 UUID 撞词）
+    // 首条改名为唯一中文名（避免与随机 UUID 撞词）。
+    // 落盘校验代替原 `.notice-banner` + 「已保存」断言（保存反馈走 toast、不走 App 级 notice，
+    // 该断言为既有失败；见 attr-formula-builder.spec.ts 踩坑记录）
     await window.getByTestId('ceshu-data-item-row').first().click()
     await window.getByTestId('field-name').fill('艾尔文')
     await window.getByTestId('item-editor').getByRole('button', { name: '保存' }).click()
-    await expect(window.locator('.notice-banner')).toContainText('已保存')
+    await expect
+      .poll(async () => {
+        const roles = await readItems(window, 'role')
+        return roles[0]?.data['name']
+      })
+      .toBe('艾尔文')
 
     // 打开批量面板（工具菜单）：默认作用类型 = 首个 schema 类型 role，提示该类型全部条目数
     await openMenuItem(window, 'tools', 'batchEdit')

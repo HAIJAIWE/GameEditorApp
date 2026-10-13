@@ -66,9 +66,25 @@ test('角色属性面板：默认模板 → 模板切换/改值联动 → 快速
     await window.getByTestId('field-attr_list-remove-18').click()
     await expect(window.getByTestId('field-attr_list-name-18')).toHaveCount(0)
 
-    // 保存 → 表单按保存结果重渲染
+    // 保存 → 落盘校验（保存反馈走 toast，不走 App 级 notice——同 attr-formula-builder 踩坑记录；
+    // 原 `.notice-banner` + 「已保存」断言为既有失败，2026-10-13 拉平条目表单时一并修正）
     await window.getByTestId('item-editor').getByRole('button', { name: '保存' }).click()
-    await expect(window.locator('.notice-banner')).toContainText('已保存')
+    await expect
+      .poll(async () => {
+        const roles = await window.evaluate(async () => {
+          const api = (
+            globalThis as unknown as {
+              mbApi: { data: { listItems: (req: { type: string }) => Promise<unknown> } }
+            }
+          ).mbApi
+          return api.data.listItems({ type: 'role' })
+        })
+        const stored = (roles as Array<{ data: Record<string, unknown> }>)[0]
+        const attrList = stored?.data['attr_list'] as Array<Record<string, unknown>> | undefined
+        return attrList !== undefined && attrList.length === 18 && attrList[0]?.['formula'] === '15'
+      })
+      .toBe(true)
+    // 表单按保存结果重渲染
     await expect(window.getByTestId('field-attr_list-formula-0')).toHaveValue('15')
     await expect(window.getByTestId('field-attr_list-result-4')).toHaveText('275.0')
 
