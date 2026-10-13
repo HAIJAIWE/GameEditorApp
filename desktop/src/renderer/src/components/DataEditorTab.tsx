@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import {
   buildCountConstraintMessage,
@@ -89,6 +89,8 @@ export default function DataEditorTab({
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameDraft, setRenameDraft] = useState('')
   const [menu, setMenu] = useState<RowMenuState | null>(null)
+  /** 条目列表容器（选中项滚入可视区用） */
+  const listRef = useRef<HTMLDivElement | null>(null)
 
   const typeDef = types.find((def) => def.id === type) ?? null
   const typeName = typeDef?.name ?? type
@@ -135,6 +137,14 @@ export default function DataEditorTab({
     const timer = setTimeout(() => setDebouncedQuery(query), 150)
     return () => clearTimeout(timer)
   }, [query])
+
+  // 选中条目滚入可视区（block:'nearest' 不打动手动滚动位置）：列表按创建顺序升序后，
+  // 新建的条目沉在列表底部——不自动滚动的话条目一多（20+），新建完根本看不见新条目
+  // （对齐 PyQt setCurrentItem 的「选中即滚到位」行为）
+  useEffect(() => {
+    if (selectedId === null) return
+    listRef.current?.querySelector('.item-row.selected')?.scrollIntoView({ block: 'nearest' })
+  }, [selectedId])
 
   // 右键菜单开着时，点击别处 / 失焦 / Esc 关闭（事件监听里的 setState 不属于「渲染期副作用」）
   useEffect(() => {
@@ -318,6 +328,7 @@ export default function DataEditorTab({
 
           <div
             className="list"
+            ref={listRef}
             // F2 重命名：焦点在列表上时才响应（对齐 PyQt 把 F2 绑在 list widget 的 WidgetShortcut）
             tabIndex={0}
             data-testid="ceshu-data-list"

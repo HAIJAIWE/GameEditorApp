@@ -23,8 +23,14 @@ export class SqliteItemsRepository implements ItemsRepository {
   }
 
   listItems(type: string): ItemRecord[] {
+    // 按创建顺序**升序**（新条目沉底，对齐 PyQt 列表的插入序展示——PyQt data_tab 是
+    // list_widget 按 items 数组顺序 addItem，新建即追加到末尾）。
+    // rowid 兜底：同一秒内批量创建/导入的条目 created_at 相同，用插入序保证稳定不抖动。
+    // 此前误写 DESC「最新在前」，用户实测反馈「顺序搞反了，新建的应该在底部」——2026-10-13 修正。
     const rows = this.db
-      .prepare('SELECT id, type, data, created_at, updated_at FROM items WHERE type = ? ORDER BY created_at DESC')
+      .prepare(
+        'SELECT id, type, data, created_at, updated_at FROM items WHERE type = ? ORDER BY created_at ASC, rowid ASC'
+      )
       .all(type) as ItemRow[]
     return rows.map((row) => this.rowToRecord(row))
   }

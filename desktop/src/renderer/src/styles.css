@@ -4651,31 +4651,23 @@ button.ref-row:hover {
   min-height: 0;
 }
 
-/* 预览面板较窄（~475px）：内嵌数据编辑器改为「表单在上占满整宽、条目列表沉底」两段。
-   此前照 PyQt `data_tab.py:78-91` 做成 QSplitter 左右两栏（列表固定 200px + 表单），
-   实测表单只剩 ~270px：标签列（120px）之外控件仅 ~120px，字段普遍显示不全
-   （用户反馈「字段显示的不全」）；列表也又窄又小（200px 宽、一屏 3 条）。
-   改为纵向两段后：表单吃满整宽（控件 ~340px，字段完整显示），列表整宽横铺并加高。
-   这是与 PyQt 的**刻意**布局偏离（PyQt 主窗口宽，左右两栏放得下；内嵌窄面板放不下）。 */
+/* 预览面板较窄（380px）：内嵌「列表 | 表单」**仍与 PyQt 一致保持左右两栏** ——
+   PyQt `data_tab.py:78-91` 的 DataEditorTab 就是 QSplitter 左右两栏
+   （left_panel.setMinimumWidth(200) + setSizes([240, 720])），内嵌时并未改成上下堆叠。
+   但必须**放开顶层那套定宽下限**：`.editor` 的 400px 定宽 + `.list-column` 的 220px 下限
+   塞进 380px 会横向溢出 241px（表单约 60% 在屏外）。放开后改为「表单列收缩」而非溢出。 */
 .ceshu-preview .data-editor-tab-main {
-  /* DOM 顺序是「列表在前、表单在后」；column-reverse 把列表压到底部、表单顶到上方 */
-  flex-direction: column-reverse;
+  flex-direction: row;
 }
 
 .ceshu-preview .list-column {
-  /* 沉底列表：占满整宽、高度随内容（上限由 .list 管），与上方表单用分隔线隔开 */
-  flex: 0 0 auto;
+  /* 对齐 PyQt 左列最小宽度 200px；380px 容器下给表单留 ≈180px */
+  flex: 0 0 200px;
   min-width: 0;
-  min-height: 0;
-  border-top: 1px solid var(--border);
 }
 
-.ceshu-preview .list-column .list {
-  /* 仍限高：表单永远是主工作区，条目多时列表内部滚动 */
-  max-height: 224px;
-}
-
-/* 170px 下限在窄列里必然溢出（搜索框还要与「新建」等按钮同行） */
+/* 列表**不限高**：跟随预览面板全高滚动（此前误设 max-height: 240px，
+   二十多条目只能看到一小截，用户反馈「列表小了」——2026-10-13 移除） */
 .ceshu-preview .search-input {
   min-width: 0;
   max-width: none;
@@ -4685,18 +4677,8 @@ button.ref-row:hover {
   width: auto;
   flex: 1 1 0;
   min-width: 0;
-  min-height: 0;
-  border-left: none; /* 纵向布局后，表单与列表的分隔线由 .list-column 的 border-top 承担 */
+  border-left: 1px solid var(--border);
   border-top: none;
-}
-
-/* 未选中条目的空态占满表单区（否则 column-reverse 下缩成一行贴顶） */
-.ceshu-preview .data-editor-tab-main > .empty {
-  display: flex;
-  flex: 1 1 0;
-  align-items: center;
-  justify-content: center;
-  min-height: 0;
 }
 
 /* 预览面板**常驻**：三栏各自保底宽度，窗口过窄则内容区横向滚动，
