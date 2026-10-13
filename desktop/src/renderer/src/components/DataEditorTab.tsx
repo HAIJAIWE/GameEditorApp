@@ -97,7 +97,8 @@ function buildListRowText(item: ItemRecord, fields: readonly TypeFieldDef[]): st
  * 与 PyQt 的两处**刻意**差异（已记入 `docs/migration-audit.md`）：
  * - 重命名用行内输入框，而不是 PyQt 的 `QInputDialog` 模态框（Electron 渲染层没有 `window.prompt`）。
  * - 列表上**不**绑定 Delete 键：PyQt 的 Delete 会先弹「确定要删除这个项目吗？」再删，
- *   而删除入口（右键菜单 / 表单底部）仍是**无确认直删**，贸然加退格键会变成「一键误删」。
+ *   贸然加退格键会变成「一键误删」。但删除**入口**（右键菜单 / 表单底部「删除」钮）会先弹
+ *   内联二次确认条（对齐 PyQt `_on_delete_clicked` 的确认框），确认后才真正落盘。
  */
 export default function DataEditorTab({
   type,
@@ -122,6 +123,8 @@ export default function DataEditorTab({
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameDraft, setRenameDraft] = useState('')
   const [menu, setMenu] = useState<RowMenuState | null>(null)
+  /** 待确认删除的条目（null = 不显示删除确认条） */
+  const [deleteTarget, setDeleteTarget] = useState<ItemRecord | null>(null)
   /** 条目列表容器（选中项滚入可视区用） */
   const listRef = useRef<HTMLDivElement | null>(null)
 
@@ -226,16 +229,27 @@ export default function DataEditorTab({
     await doCreate()
   }
 
-  /** 删除：若删的是当前选中项则清空选择，随后重载 */
-  const handleDelete = async (id: string): Promise<void> => {
+  /** 请求删除：弹出二次确认（对齐 PyQt `_on_delete_clicked` 确认框——删除前先确认，避免误删） */
+  const requestDelete = (id: string): void => {
+    const target = items.find((entry) => entry.id === id) ?? null
+    if (target === null) return
+    setDeleteTarget(target)
+  }
+
+  /** 二次确认后的真实落盘删除（原 handleDelete 逻辑） */
+  const confirmDelete = async (): Promise<void> => {
+    const target = deleteTarget
+    if (target === null) return
     try {
-      await window.mbApi.data.deleteItem({ id })
-      if (selectedId === id) setSelectedId(null)
+      await window.mbApi.data.deleteItem({ id: target.id })
+      if (selectedId === target.id) setSelectedId(null)
+      setDeleteTarget(null)
       await reload()
       onDataChanged?.()
-      // 对齐 PyQt data_tab.py:526 的「删除成功」toast（原先这里删完**没有任何反馈**）
+      // 对齐 PyQt data_tab.py 的「删除成功」toast（原先这里删完**没有任何反馈**）
       showToast('已删除', { kind: 'success' })
     } catch (err) {
+      setDeleteTarget(null)
       setError(toErrorMessage(err))
     }
   }
@@ -328,6 +342,30 @@ export default function DataEditorTab({
             className="btn"
             data-testid="ceshu-data-count-cancel"
             onClick={() => setCountWarning(null)}
+          >
+            取消
+          </button>
+        </div>
+      )}
+
+      {deleteTarget !== null && (
+        <div className="count-warning" data-testid="ceshu-data-delete-confirm">
+          <span className="count-warning-text">
+            确定删除「{String(deleteTarget.data.name ?? deleteTarget.id)}」？此操作不可撤销
+          </span>
+          <button
+            type="button"
+            className="btn danger"
+            data-testid="ceshu-data-delete-confirm-yes"
+            onClick={() => void confirmDelete()}
+          >
+            删除
+          </button>
+          <button
+            type="button"
+            className="btn"
+            data-testid="ceshu-data-delete-confirm-no"
+            onClick={() => setDeleteTarget(null)}
           >
             取消
           </button>
@@ -438,7 +476,7 @@ export default function DataEditorTab({
             gameStyle={gameStyle}
             onSaved={handleSaved}
             onDelete={() => {
-              if (selectedItem !== null) void handleDelete(selectedItem.id)
+              if (selectedItem !== null) requestDelete(selectedItem.id)
             }}
             onEditType={onEditType}
             onShowReferences={onShowReferences}
@@ -494,7 +532,7 @@ export default function DataEditorTab({
             data-testid="ceshu-data-menu-delete"
             onClick={() => {
               setMenu(null)
-              void handleDelete(menu.id)
+              requestDelete(menu.id)
             }}
           >
             删除
