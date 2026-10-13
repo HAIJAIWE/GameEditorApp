@@ -10,7 +10,7 @@ import type { DataService, ImportRecord } from './service'
  * 兼容 Python 版数据文件格式 —— 顶层为 { 复数键: [条目, ...] }（如 { "roles": [...], "skills": [...] }）。
  * - 复数键映射为单数类型 id（roles → role）
  * - 未收录的键：数据保留入库（type 用原键名），并在汇总中报告
- * - 条目缺 id 时生成 UUID 并回写进条目
+ * - 条目缺 id 时生成 UUID 并回写进条目；数值型 id（PyQt 文件的 `"id": 0`）转字符串保留
  * - 剥离内部元数据字段 _base_type（镜像 Python 版 _clean_metadata_fields）
  */
 
@@ -45,7 +45,12 @@ export function parseLegacyData(raw: unknown, types: DataTypeDef[]): ParsedLegac
       delete item['_base_type']
 
       const rawId = item['id']
-      const id: string = typeof rawId === 'string' && rawId !== '' ? rawId : randomUUID()
+      // PyQt 数据文件里 id 常为数值（`"id": 0`）——数值同属有效 id，统一转字符串存储；
+      // 仅缺失/空串才生成 UUID 回写
+      const id: string =
+        (typeof rawId === 'string' && rawId !== '') || typeof rawId === 'number'
+          ? String(rawId)
+          : randomUUID()
       if (id !== rawId) {
         item['id'] = id
       }

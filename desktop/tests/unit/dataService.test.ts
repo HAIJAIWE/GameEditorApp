@@ -56,7 +56,8 @@ describe('DataService', () => {
 
     const list = service.listItems('skill')
     expect(list).toHaveLength(1)
-    expect(list[0]?.data).toEqual({ name: '火球术' })
+    // 新建即种子化业务短 id（PyQt generate_id：首个为 0）
+    expect(list[0]?.data).toEqual({ name: '火球术', id: '0' })
   })
 
   it('并发写入经串行队列后全部落库、无丢失', async () => {
@@ -95,13 +96,36 @@ describe('DataService', () => {
     expect(service.listItems('skill').find((item) => item.id === 'S1')?.createdAt).toBe(createdAt)
   })
 
-  it('更新条目：data.id 强制与记录 id 一致，原 createdAt 保留', async () => {
+  it('新建条目：data.id 分配该类型短序号（0 起步、max+1），调用方自带 id 时保留', async () => {
+    const service = createService()
+    const first = await service.createItem({ type: 'skill', data: { name: '火球术' } })
+    const second = await service.createItem({ type: 'skill', data: { name: '冰霜箭' } })
+    const otherType = await service.createItem({ type: 'monster', data: { name: '史莱姆' } })
+
+    expect(first.data['id']).toBe('0')
+    expect(second.data['id']).toBe('1')
+    // 每类型独立计数
+    expect(otherType.data['id']).toBe('0')
+    // 记录 id 仍是 uuid（内部键，不外显）
+    expect(first.id).not.toBe('0')
+
+    // 旧数据导入/AI 生成自带 id 时原样保留，不重新分配
+    const imported = await service.createItem({ type: 'skill', data: { id: 'SKILL000', name: '烈焰风暴' } })
+    expect(imported.data['id']).toBe('SKILL000')
+    // 此后新建接 max+1（数值 id 才参与 max）
+    const after = await service.createItem({ type: 'skill', data: { name: '后续' } })
+    expect(after.data['id']).toBe('2')
+  })
+
+  it('更新条目：data.id 为业务短 id 原样写回（不再强制对齐记录 id），原 createdAt 保留', async () => {
     const service = createService()
     const created = await service.createItem({ type: 'skill', data: { name: '旧名' } })
+    expect(created.data['id']).toBe('0')
 
-    const updated = await service.updateItem(created.id, { id: 'HACKED', name: '新名' })
+    const updated = await service.updateItem(created.id, { name: '新名' })
     expect(updated.data['name']).toBe('新名')
-    expect(updated.data['id']).toBe(created.id)
+    expect(updated.data['id']).toBe('0')
+    expect(updated.id).toBe(created.id)
     expect(updated.createdAt).toBe(created.createdAt)
     expect(service.listItems('skill')[0]?.data['name']).toBe('新名')
   })
@@ -111,7 +135,41 @@ describe('DataService', () => {
     await expect(service.updateItem('NOT_EXIST', {})).rejects.toThrow('数据不存在')
   })
 
-  it('批量字段操作：全部写入、createdAt 保留、data.id 不变', async () => {
+  it('更新条目：存量缺 id（未迁移 legacy 条目）时现场补发短序号', async () => {
+    const repo = new InMemoryItemsRepository()
+    const service = new DataService(repo)
+    const now = '2026-10-13T00:00:00.000Z'
+    repo.insertItem({ id: 'legacy-key', type: 'skill', data: { name: '旧数据' }, createdAt: now, updatedAt: now })
+
+    const updated = await service.updateItem('legacy-key', { name: '新名' })
+    expect(updated.data['id']).toBe('0')
+    expect(updated.data['name']).toBe('新名')
+  })
+
+  it('导入往返：按业务 id 命中存量条目原地更新（保留原记录 id 与 createdAt），不翻倍', async () => {
+    const service = createService()
+    const a = await service.createItem({ type: 'skill', data: { name: '火球术' } })
+    const b = await service.createItem({ type: 'skill', data: { name: '冰霜箭' } })
+    expect(a.data['id']).toBe('0')
+    expect(b.data['id']).toBe('1')
+    const createdAtA = a.createdAt
+
+    // 模拟「导出（id 列 = 业务短 id）→ 改内容 → 再导入」：文件里的 id 是短号，不是记录 uuid
+    const summary = await service.importRecords([
+      { type: 'skill', id: '0', data: { id: '0', name: '火球术改' } },
+      { type: 'skill', id: '1', data: { id: '1', name: '冰霜箭' } }
+    ])
+    expect(summary).toEqual({ imported: 0, updated: 2 })
+
+    const list = service.listItems('skill')
+    expect(list).toHaveLength(2)
+    // 原记录 id 保留（引用/撤销不错位），内容更新，createdAt 不刷新
+    expect(list.find((item) => item.id === a.id)?.data['name']).toBe('火球术改')
+    expect(list.find((item) => item.id === a.id)?.createdAt).toBe(createdAtA)
+    expect(list.find((item) => item.id === b.id)?.data['name']).toBe('冰霜箭')
+  })
+
+  it('批量字段操作：全部写入、createdAt 保留、data.id 短序号不变', async () => {
     const service = createService()
     const a = await service.createItem({ type: 'skill', data: { name: 'A' } })
     const b = await service.createItem({ type: 'skill', data: { name: 'B' } })
@@ -126,7 +184,7 @@ describe('DataService', () => {
     const list = service.listItems('skill')
     expect(list.map((item) => item.data['category'])).toEqual(['攻击', '攻击'])
     expect(list.find((item) => item.id === a.id)?.createdAt).toBe(a.createdAt)
-    expect(list.find((item) => item.id === a.id)?.data['id']).toBe(a.id)
+    expect(list.find((item) => item.id === a.id)?.data['id']).toBe('0')
   })
 
   it('批量数值增减：非数值跳过、缺字段按 0 处理、类型不符计入 missing', async () => {

@@ -9,6 +9,7 @@ import type { ImageGenConfig } from '../../../shared/config/imageGen'
 import { loadImageGenConfig } from '../../../shared/config/imageGenConfig'
 import { SECRET_NAMES } from '../../../shared/config/secretNames'
 import { resolveFieldLabel } from '../../../shared/config/gameStyle'
+import { displayItemId } from '../../../shared/util/itemId'
 import type { AttrSystem } from '../../../shared/attrSystem'
 import type { DataTypeDef, ItemRecord, TypeFieldDef } from '../../../shared/types'
 
@@ -275,7 +276,7 @@ export default function ItemForm({
   const handleSave = async (): Promise<void> => {
     setLocalError(null)
     try {
-      const payload = buildPayload(draft, fields, item.id, jsonFields)
+      const payload = buildPayload(draft, fields, jsonFields)
       setSaving(true)
       const updated = await window.mbApi.data.updateItem({ id: item.id, data: payload })
       onSaved(updated)
@@ -288,13 +289,13 @@ export default function ItemForm({
 
   /**
    * 复制当前条目为独立副本（对应 PyQt `data_tab._on_copy_clicked`）：
-   * 沿用当前表单内容 + 新 id（主进程 `createItem` 生成，对应 Python `generate_id`）。
-   * 副本不带原 id——`DataService.updateItem` 会在下次保存时把 data.id 与记录 id 对齐。
+   * 沿用当前表单内容 + 新短 id（主进程 `createItem` 种子化，对应 Python `generate_id`）。
+   * 副本不带原 id（`delete payload.id`）⇒ 落库时分配该类型下一个序号。
    */
   const handleDuplicate = async (): Promise<void> => {
     setLocalError(null)
     try {
-      const payload = buildPayload(draft, fields, item.id, jsonFields)
+      const payload = buildPayload(draft, fields, jsonFields)
       delete payload.id
       setSaving(true)
       const created = await window.mbApi.data.createItem({ type: item.type, data: payload })
@@ -396,7 +397,7 @@ export default function ItemForm({
       <div className="editor-header">
         <div className="editor-title">
           {String(item.data.name ?? item.id)}
-          <small>{item.id}</small>
+          <small>{displayItemId(item)}</small>
         </div>
       </div>
 

@@ -6,6 +6,7 @@ import {
   type CountConstraint
 } from '../../../shared/util/dataCountConstraint'
 import { filterItemRecords, withRenamedName } from '../../../shared/util/dataTableOps'
+import { displayItemId } from '../../../shared/util/itemId'
 import { showToast } from '../../../shared/util/toast'
 import type { DataTypeDef, ItemRecord, TypeFieldDef } from '../../../shared/types'
 
@@ -68,11 +69,12 @@ const LIST_TEXT_SKIP_FIELDS: ReadonlySet<string> = new Set([
 /**
  * 构造列表行单行文本，对齐 PyQt `data_tab._get_item_display_text`：
  * `ID | 名称 | 关键字段1 | 关键字段2`（跳过长文本字段，最多拼 4 段）。
- * 与 PyQt 的唯一偏差：id 取前 8 位。PyQt 数据是短 id（参考截图 ID:0/1/2），
- * 而 TS 用 `randomUUID()`（36 位）——全量 id 会撑爆窄列；完整 id 仍可从行 title 与右侧表单读取。
+ * ID 取业务短 id `data.id`（PyQt `generate_id` 语义：每类型 0 起步短序号；
+ * 2026-10-13 去掉了此前的「记录 uuid 前 8 位」外显——用户反馈「Id不对」），
+ * 极端脏数据（data.id 缺失）才回退记录 id。完整记录 id 仍在行 title 悬停可见。
  */
 function buildListRowText(item: ItemRecord, fields: readonly TypeFieldDef[]): string {
-  const parts = [`ID:${item.id.slice(0, 8)}`, String(item.data.name ?? item.id)]
+  const parts = [`ID:${displayItemId(item)}`, String(item.data.name ?? item.id)]
   for (const field of fields) {
     if (LIST_TEXT_SKIP_FIELDS.has(field.name)) continue
     const value = item.data[field.name]

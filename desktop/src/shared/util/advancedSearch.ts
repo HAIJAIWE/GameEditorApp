@@ -41,7 +41,8 @@ export interface AdvancedSearchParams {
 
 /** 取条目在某字段上的可搜索文本（非字符串一律转空串，不参与匹配） */
 export function resolveSearchValue(item: ItemRecord, field: string): string {
-  // id：记录 id 是权威来源（data.id 虽与之同步，但以 item.id 为准）
+  // id：以记录 id（uuid，内部权威键）为准；data.id 是外显的业务短序号，
+  // 两者自 2026-10-13 起解耦（data.id 不再强制对齐记录 id），但都能定位条目
   if (field === 'id') return item.id
   const value = item.data[field]
   if (typeof value === 'string') return value

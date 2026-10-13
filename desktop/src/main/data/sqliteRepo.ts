@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3'
 
+import { planShortIdBackfill } from '../../shared/util/itemId'
 import { safeJsonParse } from '../../shared/util/safeJson'
 import type { ItemRecord } from '../../shared/types'
 import type { ItemsRepository } from './repository'
@@ -107,6 +108,55 @@ export class SqliteItemsRepository implements ItemsRepository {
         CREATE INDEX IF NOT EXISTS idx_items_type ON items(type);
         PRAGMA user_version = 1;
       `)
+    }
+    if (version < 2) {
+      this.backfillShortItemIds()
+      this.db.pragma('user_version = 2')
+    }
+  }
+
+  /**
+   * user_version 2（2026-10-13）：回填条目业务短 id `data.id`。
+   *
+   * 背景：TS 迁移期把 `data.id` 强制对齐记录 uuid（36 位），列表/表单外显
+   * `ID:1a2b3c4d`，与 PyQt 参考（`ID:0 | 火球术 | 攻击`，`generate_id` 短序号）
+   * 相反——用户反馈「Id不对」，其真实库 40 条 data.id 全缺失。现按 PyQt 语义
+   * 回填：每类型独立、created_at 升序（rowid 兜底同秒）、从现有数值 id 的
+   * max+1 起分配。**只补缺失/空/uuid 形态**，用户自设的非数值 id 不动。
+   * 幂等：回填后所有条目均有合法短 id，再跑返回空规划。
+   */
+  private backfillShortItemIds(): void {
+    const rows = this.db
+      .prepare('SELECT id, type, data, created_at FROM items ORDER BY type, created_at ASC, rowid ASC')
+      .all() as ItemRow[]
+
+    const byType = new Map<string, ItemRecord[]>()
+    for (const row of rows) {
+      const group = byType.get(row.type)
+      if (group) {
+        group.push(this.rowToRecord(row))
+      } else {
+        byType.set(row.type, [this.rowToRecord(row)])
+      }
+    }
+
+    const update = this.db.prepare('UPDATE items SET data = ? WHERE id = ?')
+    const applyAssignments = this.db.transaction(
+      (assignments: Array<{ id: string; data: Record<string, unknown> }>) => {
+        for (const assignment of assignments) {
+          update.run(JSON.stringify(assignment.data), assignment.id)
+        }
+      }
+    )
+
+    for (const group of byType.values()) {
+      const plan = planShortIdBackfill(group)
+      if (plan.size === 0) continue
+      applyAssignments(
+        group
+          .filter((item) => plan.has(item.id))
+          .map((item) => ({ id: item.id, data: { ...item.data, id: plan.get(item.id) } }))
+      )
     }
   }
 }

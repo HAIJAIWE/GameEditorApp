@@ -91,6 +91,17 @@ describe('旧版 JSON 导入', () => {
     expect(() => parseLegacyData(null, BUILTIN_DATA_TYPES)).toThrow()
   })
 
+  it('解析：数值型 id（PyQt 文件的 "id": 0）转字符串保留，不补 UUID', () => {
+    const parsed = parseLegacyData(
+      { roles: [{ id: 0, name: '零号' }, { id: 12, name: '十二号' }] },
+      BUILTIN_DATA_TYPES
+    )
+    expect(parsed.records).toHaveLength(2)
+    expect(parsed.records[0]?.id).toBe('0')
+    expect(parsed.records[0]?.data['id']).toBe('0')
+    expect(parsed.records[1]?.id).toBe('12')
+  })
+
   it('导入文件：汇总统计正确，重复导入幂等（全为更新）', async () => {
     const filePath = writeFixture('default.json', {
       skills: [

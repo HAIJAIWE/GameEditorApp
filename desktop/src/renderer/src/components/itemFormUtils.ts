@@ -58,7 +58,6 @@ export function buildInitialDraft(
 export function buildPayload(
   draft: Record<string, unknown>,
   fields: TypeFieldDef[],
-  id: string,
   jsonFields: Set<string>
 ): Record<string, unknown> {
   // 以完整 draft 为底，保留 schema 未收录的扩展字段（导入数据可能携带）
@@ -68,10 +67,6 @@ export function buildPayload(
     const name = field.name
     const raw = draft[name]
 
-    if (name === 'id') {
-      payload.id = id
-      continue
-    }
     if (field.type === 'attrtable') {
       payload[name] = rowsToAttrList(asAttrRows(raw), field.label)
       continue

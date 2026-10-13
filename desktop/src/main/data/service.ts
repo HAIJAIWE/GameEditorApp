@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 
 import { applyBatchOp } from '../../shared/util/dataTableOps'
+import { isMissingId, needsShortId, nextItemId } from '../../shared/util/itemId'
 import type { BatchUpdateInput, CreateItemInput } from '../../shared/schemas'
 import type { BatchUpdateSummary, DeleteManySummary, ItemRecord } from '../../shared/types'
 import type { UndoEntry } from '../../shared/util/undoStack'
@@ -46,13 +47,23 @@ export class DataService implements UndoRecorderPort {
     return this.repo.listAllItems()
   }
 
+  /**
+   * 新建条目。记录 id 用 uuid（内部键：引用/撤销/IPC 定位），
+   * `data.id` 分配该类型下一个短序号（对齐 PyQt `data_manager.generate_id`：
+   * 现有数值 id 的 max+1，0 起步）——列表/表单外显的是这个短 id。
+   * 调用方自带 id（旧数据导入/AI 生成）时原样保留，不覆盖。
+   */
   createItem(input: CreateItemInput): Promise<ItemRecord> {
     return this.enqueueWrite(() => {
       const now = new Date().toISOString()
+      const data: Record<string, unknown> = { ...input.data }
+      if (needsShortId({ data })) {
+        data.id = nextItemId(this.repo.listItems(input.type))
+      }
       const record: ItemRecord = {
         id: randomUUID(),
         type: input.type,
-        data: input.data,
+        data,
         createdAt: now,
         updatedAt: now
       }
@@ -89,16 +100,27 @@ export class DataService implements UndoRecorderPort {
     })
   }
 
-  /** 更新条目业务数据：id 不可变（data.id 强制与记录 id 一致），updatedAt 刷新 */
+  /**
+   * 更新条目业务数据。记录 id 不可变（按 id 定位）。
+   * `data.id` 是业务短 id，**不再**强制对齐记录 id（2026-10-13 去对齐：对齐会把
+   * 36 位 uuid 外显成 ID，与 PyQt `ID:0` 语义相反）。入参缺 id 时沿用存量
+   * （防部分更新丢 id）；存量也没有（未迁移的 legacy 条目）则现场补发下一个短序号。
+   */
   updateItem(id: string, data: Record<string, unknown>): Promise<ItemRecord> {
     return this.enqueueWrite(() => {
       const existing = this.repo.findItem(id)
       if (!existing) {
         throw new Error('数据不存在，可能已被删除')
       }
+      const nextData: Record<string, unknown> = { ...data }
+      if (needsShortId({ data: nextData })) {
+        nextData.id = needsShortId(existing)
+          ? nextItemId(this.repo.listItems(existing.type))
+          : existing.data['id']
+      }
       const next: ItemRecord = {
         ...existing,
-        data: { ...data, id },
+        data: nextData,
         updatedAt: new Date().toISOString()
       }
       this.repo.upsertItem(next)
@@ -137,7 +159,11 @@ export class DataService implements UndoRecorderPort {
           summary.skipped++
           continue
         }
-        const next: ItemRecord = { ...existing, data: { ...nextData, id }, updatedAt: now }
+        // 批量同样守短 id 不变量：存量缺失（未迁移 legacy）现场补发
+        if (needsShortId({ data: nextData })) {
+          nextData.id = nextItemId(this.repo.listItems(existing.type))
+        }
+        const next: ItemRecord = { ...existing, data: { ...nextData }, updatedAt: now }
         this.repo.upsertItem(next)
         summary.affected++
         children.push({
@@ -221,8 +247,17 @@ export class DataService implements UndoRecorderPort {
   }
 
   /**
-   * 批量导入（旧数据迁移用）：整批走一次写队列，保持"唯一写者"语义。
-   * 已存在的 id 更新其数据并保留原 createdAt。
+   * 批量导入（旧版 JSON/CSV/Excel 共用）：整批走一次写队列，保持「唯一写者」语义。
+   *
+   * 两条 id（2026-10-13 解耦后）：
+   * - 记录 id（uuid）= 内部键；导入侧提供的 `record.id`（文件 id 列）只在**新建**时用作键；
+   * - `data.id` = 业务短 id（列表/表单外显）。来源带了合法 id 则保留，缺失/uuid 形态
+   *   则分配该类型下一个短序号（与 createItem 同一规则）——任何来源入库都外显短 id。
+   *
+   * **更新定位按业务 id**：同类型下 `data.id` 命中存量条目 ⇒ 原地更新该条（保留其原
+   * 记录 id 与 createdAt）；未命中才按 `record.id` 新建。若按 `record.id` 定位，文件里的
+   * 短 id 永远撞不上 uuid 记录键，「导出（id 列 = 业务短 id）→ 再导入」会把全库翻倍
+   * （data-io e2e 锁死的往返 upsert 语义）。
    *
    * ⚠️ `createdAt: now` 只对**新插入**生效：冲突时保留原 created_at 是
    * `SqliteItemsRepository.upsertItem` 的 `ON CONFLICT ... SET type,data,updated_at`
@@ -234,11 +269,21 @@ export class DataService implements UndoRecorderPort {
       let updated = 0
       for (const record of records) {
         const now = new Date().toISOString()
-        const existed = this.repo.exists(record.id)
+        const data: Record<string, unknown> = { ...record.data }
+        if (needsShortId({ data })) {
+          data.id = nextItemId(this.repo.listItems(record.type))
+        }
+        // 业务 id 命中存量 ⇒ 原地更新（保留原记录 id）；否则按导入侧键新建
+        const businessId = String(data.id)
+        const matched = this.repo
+          .listItems(record.type)
+          .find((item) => !isMissingId(item.data['id']) && String(item.data['id']) === businessId)
+        const targetId = matched?.id ?? record.id
+        const existed = this.repo.exists(targetId)
         this.repo.upsertItem({
-          id: record.id,
+          id: targetId,
           type: record.type,
-          data: record.data,
+          data,
           createdAt: now,
           updatedAt: now
         })

@@ -367,7 +367,7 @@ describe('importExcelFile：工作表名映射与容错', () => {
     expect(target.listAllItems().map((record) => record.type).sort()).toEqual(['role', 'skill'])
   })
 
-  it('缺少 id 列的行会生成 UUID 并回写进数据', async () => {
+  it('缺少 id 列的行：记录 id 生成 UUID（内部键），data.id 分配短序号（外显）', async () => {
     const { dir } = makeEnv()
     const workbook = new ExcelJS.Workbook()
     const sheet = workbook.addWorksheet('角色')
@@ -382,7 +382,7 @@ describe('importExcelFile：工作表名映射与容错', () => {
     const stored = target.listAllItems()[0]!
     expect(typeof stored.id).toBe('string')
     expect(stored.id.length).toBeGreaterThan(0)
-    expect(stored.data['id']).toBe(stored.id)
+    expect(stored.data['id']).toBe('0')
     expect(stored.data['name']).toBe('无名英雄')
   })
 
