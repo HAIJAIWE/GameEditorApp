@@ -272,6 +272,46 @@ test('数字员工面板：运行中点「停止」→ 打断在途调用、给�
   }
 })
 
+test('数字员工面板：等待危险确认时点「停止」→ 立刻中止，不必等 120s 交互超时', async () => {
+  /*
+   * 这条钉的是一个用户可感知的洞：取消只 abort 了 fetch，而「等用户点批准」不走 fetch。
+   * 改前在「等待确认」态点停止**毫无反应** —— 得等 `DEFAULT_INTERACTION_TIMEOUT_MS`
+   * （120 秒）到点后，下一轮开头的取消闸才发现。故这里的 4s 超时就是断言本体。
+   */
+  const stub = await startOllamaChatStub({
+    toolName: 'system.code',
+    toolArgs: { action: 'execute', code: 'return 40 + 2' },
+    finalChunks: ['不应到达']
+  })
+  const userDataDir = mkdtempSync(join(tmpdir(), 'mb-agent-cancel-approval-e2e-'))
+  const app = await launchApp(userDataDir, { MB_OLLAMA_HOST: stub.host, MB_OLLAMA_MODEL: 'stub:latest' })
+
+  try {
+    const window = await app.firstWindow()
+    await waitReady(window)
+
+    await window.getByTestId('digital-input').fill('帮我算 40+2')
+    await window.getByTestId('digital-send').click()
+    // 先到「等待确认」：说明循环正卡在答复 promise 上
+    await expect(window.getByTestId('digital-approval')).toBeVisible({ timeout: 15_000 })
+    await expect(window.getByTestId('digital-status')).toHaveText('等待确认')
+
+    await expect(window.getByTestId('digital-stop')).toBeVisible()
+    await window.getByTestId('digital-stop').click()
+
+    await expect(window.getByTestId('digital-terminated')).toContainText('已按要求停止', { timeout: 4000 })
+    await expect(window.getByTestId('digital-status')).toHaveText('已完成', { timeout: 4000 })
+    // 确认框收起，且代码**没有**被执行（取消 ≠ 隐式放行）
+    await expect(window.getByTestId('digital-approval')).toHaveCount(0)
+    const steps = (await window.getByTestId('digital-step').allInnerTexts()).join('\n')
+    expect(steps).not.toContain('执行成功')
+    expect(steps).toContain('[STOP]')
+  } finally {
+    await app.close()
+    await stub.close()
+  }
+})
+
 /** 危险操作确认（A1-4 遗留项）：SYSTEM 级技能必须经用户批准才执行 */
 async function runDangerousRound(decision: 'approve' | 'reject'): Promise<{
   approvalVisible: boolean

@@ -1026,6 +1026,114 @@ describe('runBrainLoop：用户取消（AbortSignal）', () => {
   })
 })
 
+/* ---- 取消：打断「等待用户答复」（改前要等 120s 交互超时） ---- */
+
+describe('runBrainLoop：取消能打断等待答复', () => {
+  /** 永不答复的通道（模拟用户既不点批准也不点拒绝，而是点了「停止」） */
+  const neverAnswers = <T,>(): Promise<T> => new Promise<T>(() => undefined)
+
+  it('等待危险确认时取消 → 立刻中止（不是等 120s 交互超时），危险操作不执行', async () => {
+    const controller = new AbortController()
+    const runner = makeRunner({ dangerous: () => true })
+    const transport = scripted([toolCall('c1', 'system.code', { action: 'execute', code: 'return 1' }), FINAL])
+
+    const result = await runBrainLoop({
+      input: 'x',
+      systemPrompts: [],
+      transport,
+      runner,
+      signal: controller.signal,
+      // 显式给足交互超时：本用例证明的是「取消生效」，而不是被超时兜住
+      interactionTimeoutMs: 60_000,
+      requestApproval: () => {
+        setTimeout(() => controller.abort(), 5)
+        return neverAnswers<boolean>()
+      }
+    })
+
+    expect(result.stopReason).toBe('cancelled')
+    expect(result.completed).toBe(true)
+    // 未批准 ⇒ 绝不执行（取消不等于放行）
+    expect(runner.executed).toHaveLength(0)
+    expect(result.events.find((event) => event.type === 'terminated')?.reason).toBe('cancelled')
+    expect(result.events.some((event) => event.type === 'error')).toBe(false)
+  })
+
+  it('等待提问回答时取消 → 立刻中止，答复位记 [STOP]（不做隐式作答）', async () => {
+    const controller = new AbortController()
+    const runner = makeRunner({
+      result: {
+        success: true,
+        message: '',
+        interaction: { kind: 'question', prompt: '要生成哪些数据类型？' }
+      }
+    })
+    const transport = scripted([toolCall('c1', 'system.game_data'), FINAL])
+
+    const result = await runBrainLoop({
+      input: 'x',
+      systemPrompts: [],
+      transport,
+      runner,
+      signal: controller.signal,
+      interactionTimeoutMs: 60_000,
+      requestInteraction: () => {
+        setTimeout(() => controller.abort(), 5)
+        return neverAnswers<{ answer?: string }>()
+      }
+    })
+
+    expect(result.stopReason).toBe('cancelled')
+    expect(result.completed).toBe(true)
+    const toolText = result.messages.find((message) => message.role === 'tool')?.content ?? ''
+    expect(toolText).toContain('[STOP]')
+    expect(toolText).not.toContain('用户回答')
+  })
+
+  it('批量执行中取消 → 剩余工具不执行，且每个 tool_call 都有配对 tool 消息（协议合法）', async () => {
+    const controller = new AbortController()
+    const runner = makeRunner({ dangerous: () => true })
+    const transport: BrainLlmTransport = {
+      complete: async () => ({
+        content: '',
+        toolCalls: [
+          { id: 'c1', name: 'system.code', arguments: { action: 'execute', code: 'return 1' } },
+          { id: 'c2', name: 'system.code', arguments: { action: 'execute', code: 'return 2' } },
+          { id: 'c3', name: 'system.code', arguments: { action: 'execute', code: 'return 3' } }
+        ],
+        finishReason: 'tool_calls'
+      })
+    }
+
+    const result = await runBrainLoop({
+      input: 'x',
+      systemPrompts: [],
+      transport,
+      runner,
+      signal: controller.signal,
+      interactionTimeoutMs: 60_000,
+      requestApproval: () => {
+        // 第一个工具等确认时用户点了「停止」
+        setTimeout(() => controller.abort(), 5)
+        return neverAnswers<boolean>()
+      }
+    })
+
+    expect(result.stopReason).toBe('cancelled')
+    expect(runner.executed).toHaveLength(0)
+    const assistant = result.messages.find((message) => message.role === 'assistant' && message.tool_calls)
+    const toolMessages = result.messages.filter((message) => message.role === 'tool')
+    expect(assistant?.tool_calls?.map((call) => call.id)).toEqual(['c1', 'c2', 'c3'])
+    expect(toolMessages.map((message) => message.tool_call_id)).toEqual(['c1', 'c2', 'c3'])
+    // 第一个走「未确认」文案，后两个走「本批剩余未执行」
+    expect(toolMessages[0]?.content).toContain('[STOP]')
+    expect(toolMessages[1]?.content).toContain('本批剩余工具未执行')
+    expect(toolMessages[2]?.content).toContain('本批剩余工具未执行')
+    // 不得再多跑一轮（取消后不再花 LLM 调用）
+    expect(result.stats.turns).toBe(1)
+  })
+})
+
 /* ---- 审查修复回归（F1/F2 令牌与判定口径、F3 拒绝后继续、F4 审批通道异常） ---- */
 
 describe('runBrainLoop：审查修复回归', () => {

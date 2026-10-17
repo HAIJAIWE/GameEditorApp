@@ -460,3 +460,60 @@ smoke / type-field-id-ai，**与本次重构无关**（同法在 `30d88b6` 上�
 - e2e 1 条（`agent-digital-panel.spec.ts`）：桩延迟 **5s**、断言限时 **4s** —— 只有真 abort 才可能通过；
   同时断言状态落「已完成」而非「出错」、停止按钮随运行结束收起。
 
+## 9. 第四轮：继续排雷（「发现了就解决」）
+
+取消能力落地后按同一思路继续找「看着实现了、实际有洞」的地方，又挖出三个，全部是**没有测试就会一直静默**的那种。
+
+### 9.1 取消打不断「等待用户答复」（用户可感知）
+
+- **现象**：`等待确认` 状态下点「停止」，什么都不会发生——面板要卡到交互超时（`DEFAULT_INTERACTION_TIMEOUT_MS` = **120 秒**）之后才收尾。
+- **根因**：`controller.signal` 只能 abort `fetch`。危险确认与提问走的是 `requestApproval` / `requestInteraction` 返回的 **promise**，不经过 fetch，也就没有任何人监听 abort。循环仍 block 在那条 promise 上，下一轮开头的取消闸根本没机会执行。
+- **修法**：让答复也参与竞速 —— `withAnswerTimeout` 从「超时兜底」升级为「超时 **或** 取消兜底」，abort 时立即按「未答复」回落（**不做隐式放行**，危险操作按未批准处理）。
+  另外把工具批的 `for…of` 改成带下标循环：批内被取消时，**为剩余 `tool_call` 逐个补 `[STOP]` tool 消息**，否则 `assistant.tool_calls ⟷ tool` 不对应（同工具上限闸的协议约束）。
+- **测试**：3 条单测（等确认中取消 / 等回答中取消 / 批量中取消后协议仍合法）+ 1 条 e2e（面板上点停止，4s 内收到 `terminated`）。
+
+### 9.2 `pumpLines` 提前退出不断流（云端继续计费）
+
+`onLine` 抛错时（如上游返回 `error` 字段）`finally` 只做了 `releaseLock()`：锁摘了，**连接还在**，服务端会继续把剩下的 SSE 推完 —— 我们早已不要这段输出，但云端仍在生成、仍在计费。
+改为退出时 `await reader.cancel()`（已读完是 no-op；已 errored 的流会 reject，吞掉），再释放锁。新增 `tests/unit/agentStream.test.ts` 10 例把行泵契约钉住（尾行不丢 / 跨 chunk 拼行 / CRLF 容忍 / 多字节切分 / **异常时 cancel 底层流** / HTTP 错误归一等）。
+
+### 9.3 云端请求没有超时 —— `LLM_REQUEST_TIMEOUT_MS` 是死代码
+
+这是 `maxAllowedRisk` 的**同型缺陷**（本项目已出现三次）：常量写得很像策略，但全仓零引用。
+
+- `llmConfigData.ts` 说「超时后主进程抛中文『请求超时』错误，UI 直接展示」「这里给云端 fetch 挂 AbortController」——**那个 AbortController 从来没写过**。`fetch` 默认无限等待，服务端不回包时单发 AI（章节生成 / 数据生成 / 审校）永久转圈，用户只能重启应用。
+- 修的时候没有直接把 30s 套上去：生成请求是 `stream: false`，等的是**完整生成**（默认 `maxTokens = 1000`，慢档上游 10 tok/s 就要 100 秒），套 30s 会把**正常但不快**的生成误判成超时。故按用途拆两个上限：
+  - `LLM_REQUEST_TIMEOUT_MS = 30_000` → 轻量探活（`GET /models` 连接测试），快失败才有用；
+  - `LLM_GENERATE_TIMEOUT_MS = 180_000` → 单次生成，失败兜底而非性能目标。
+- 超时与「连不上」**分开报**：前者「请求超时（N 秒未返回）：已中断，请重试」，后者仍是「无法连接」。`AbortSignal.timeout()` 抛的是 `TimeoutError` 而不是 `AbortError`，判定要分别写。
+- **测试**：`llmClient.test.ts` 新增 4 例 —— signal 真的挂上去了（信号缺失时数值写多少都没用）、超时文案、连接失败文案、探活用另一个上限。
+
+### 9.4 顺手挖到的测试地基问题：套件会「丢文件」而摘要仍说 passed
+
+起因是收尾时全量 vitest 偶发 1 条失败。原以为是 flaky 用例，连跑几轮后发现**用例总数在 1936–2046 之间漂**——不是哪条用例不稳，而是**有的测试文件整份没跑、还不计入统计**。
+
+- **根因**：vitest 默认 `isolate: true` ⇒ 每个测试文件起一个进程（本仓 **134 个**）。本机有实时防护（火绒），进程创建被逐个扫描，启动握手超过 vitest 硬编码的 `START_TIMEOUT = 6e4`（**无配置项**），报 `Failed to start forks worker … Timeout waiting for worker to respond`，该文件从此消失。
+- **实测对照**（同一台机器、同一份代码）：
+
+  | 配置 | 结果 |
+  | --- | --- |
+  | 默认（每文件一进程） | 连跑 8 轮 **7 轮丢文件**：1936–2046 漂移、`Errors 9`、wall 最高 81s |
+  | `--maxWorkers=6`（仍隔离） | 3 轮仍 1 轮丢文件（wall 81s）⇒ **只降并发不够** |
+  | **`isolate:false` + `maxWorkers:4`** | **6/6 全量 2046、exit 0、wall 7–8s** |
+  | `isolate:false` + `maxWorkers:1`（最坏共享） | 2/2 全量 2046、wall 21s ⇒ 关隔离未引入状态泄漏 |
+
+- **修法**：`vitest.config.ts` 改 `isolate: false` + `maxWorkers: 4`（目标是**少进程**，不是满并发），并把结论写进注释。排查顺序依赖问题时 `npm test -- --isolate` 可临时恢复隔离。
+- **更重要的教训**：这个失败**退出码非 0**（CI 能兜住），但终端摘要照样打印「N passed」——**只看 `tail` 就会把它当成全绿**。核对口径是括号里的总数：`Test Files … (134)` / `Tests … (2046)`，数字少了就是丢文件。本次我自己就被骗过一次。
+
+### 9.5 验证与遗留
+
+`tsc` node+web 0 / `eslint` 0 / `vitest` **2041 passed·5 skipped（2046）**，`isolate:false` 下连跑 6 轮全部满额（+17 例）。
+
+遗留（明确不做，理由是收益不足或有产品判断成分）：
+
+- 单发 AI 只有超时兜底，**没有「停止」按钮**。要做需把 `agent:cancel` 的取消表下沉成通用「任务取消注册表」并为三处面板加入口，属独立特性。
+- 本地 Ollama 的单发路径仍不受超时约束（沿用 `llmConfigData` 的既定说明：由 SDK 自理）。
+
+
+
+

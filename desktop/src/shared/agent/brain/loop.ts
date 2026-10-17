@@ -52,6 +52,8 @@ import { isAbortError } from '../abort'
  *  6. 用户取消（`options.signal`）→ 与计数闸同款优雅中止（`cancelled`，`completed: true`）。
  *     ⚠️ 墙钟与取消都会 **abort 在途 HTTP 请求**，而不只是「下一轮再说」——
  *     改前 `wallClockMs` 只在轮次间检查，单次调用挂住时循环无法脱身。
+ *     ⚠️ 取消还要能打断**等待用户答复**（危险确认 / 提问）：那条 promise 不经过 fetch，
+ *     不参与竞速就要等交互超时（120s）才生效，面板上的「停止」在这两分钟里形同无效。
  */
 export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainRunResult> {
   const { input, systemPrompts, transport, runner, requestApproval, requestInteraction, onEvent } = options
@@ -64,22 +66,6 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
   let requestSeq = 0
   const newRequestId = options.newRequestId ?? ((): string => `approval_${++requestSeq}`)
   const interactionTimeoutMs = options.interactionTimeoutMs ?? DEFAULT_INTERACTION_TIMEOUT_MS
-
-  /** 等待答复的超时保护：超时按「未答复」回落，避免无人值守时永久挂住 */
-  const withAnswerTimeout = async <T>(task: Promise<T>, fallback: T): Promise<T> => {
-    if (interactionTimeoutMs <= 0) return task
-    let timer: ReturnType<typeof setTimeout> | undefined
-    try {
-      return await Promise.race([
-        task,
-        new Promise<T>((resolve) => {
-          timer = setTimeout(() => resolve(fallback), interactionTimeoutMs)
-        })
-      ])
-    } finally {
-      if (timer !== undefined) clearTimeout(timer)
-    }
-  }
   const tools = options.tools ?? []
 
   const events: BrainEvent[] = []
@@ -121,6 +107,44 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
   }
   /** 剩余墙钟预算（毫秒）；≤0 表示不限制 */
   const remainingBudget = (): number => (wallClockMs > 0 ? wallClockMs - (Date.now() - startedAt) : 0)
+
+  /**
+   * 等待用户答复（危险确认 / 提问）的保护：**超时与取消都按「未答复」回落**。
+   *
+   * ⚠️ 取消必须也参与竞速。`controller.signal` 只能 abort `fetch`，管不到「等用户点批准」
+   * 这条 promise —— 改前用户在「等待确认」态点「停止」是**无效**的：循环仍 block 在答复上，
+   * 要等 `DEFAULT_INTERACTION_TIMEOUT_MS`（120 秒）到点后，下一轮开头的取消闸才会发现。
+   * 面板在这两分钟里一直显示「等待确认」，而那个「停止」按钮按了没反应。
+   *
+   * 回落语义与既有取向一致：**不做隐式放行**（危险操作按未批准处理）。
+   */
+  const withAnswerTimeout = async <T>(task: Promise<T>, fallback: T): Promise<T> => {
+    const signal = controller.signal
+    if (signal.aborted) return fallback
+    let timer: ReturnType<typeof setTimeout> | undefined
+    let onAbort: (() => void) | undefined
+    const racers: Array<Promise<T>> = [
+      task,
+      new Promise<T>((resolve) => {
+        onAbort = () => resolve(fallback)
+        signal.addEventListener('abort', onAbort, { once: true })
+      })
+    ]
+    // 超时 0/负数 = 不设超时（但取消仍然生效）
+    if (interactionTimeoutMs > 0) {
+      racers.push(
+        new Promise<T>((resolve) => {
+          timer = setTimeout(() => resolve(fallback), interactionTimeoutMs)
+        })
+      )
+    }
+    try {
+      return await Promise.race(racers)
+    } finally {
+      if (timer !== undefined) clearTimeout(timer)
+      if (onAbort !== undefined) signal.removeEventListener('abort', onAbort)
+    }
+  }
 
   /**
    * 处理技能提出的交互请求：
@@ -318,7 +342,26 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
     // 「能解析」而非「已执行」：用户拒绝 / 审批超时都不算「工具不可用」，
     // 应当继续循环把 [STOP] 结果回灌给 LLM，让它改提案（见下方 F3 注释）。
     let resolvedAny = false
-    for (const call of reply.toolCalls) {
+    let abortedDuringBatch = false
+    for (let index = 0; index < reply.toolCalls.length; index += 1) {
+      const call = reply.toolCalls[index]
+      if (call === undefined) break
+      /*
+       * 取消（可能在**本批内**发生）：用户不只会在「模型思考」时点停止，也会在
+       * 「等待确认 / 等待回答」时点 —— 那一步的等待已被 `withAnswerTimeout` 的 abort 竞速打断，
+       * 回到这里就必须停手。剩余工具不再执行，但**必须逐个补齐 tool 消息**：
+       * `assistant.tool_calls` 与 tool 结果一一对应是会话协议硬要求（同工具上限闸）。
+       */
+      if (controller.signal.aborted) {
+        const stopText = '[STOP] 已按要求停止，本批剩余工具未执行'
+        for (const rest of reply.toolCalls.slice(index)) {
+          results.push(stopText)
+          emit({ type: 'step_done', tool: rest.name, result: stopText, success: false })
+          messages.push(buildToolMessage(rest.id, rest.name, stopText))
+        }
+        abortedDuringBatch = true
+        break
+      }
       const resolved = runner.resolve(call.name)
       if (resolved === null) {
         const text = `未知工具: ${call.name}`
@@ -396,6 +439,12 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
       results.push(text)
       emit({ type: 'step_done', tool: resolved, result: text, success })
       messages.push(buildToolMessage(call.id, resolved, text))
+    }
+
+    // 本批因取消而中止 → 立刻收敛，不再进入下一轮（也不会再花一次 LLM 调用）
+    if (abortedDuringBatch) {
+      stopReason = wallClockTripped ? 'wall_clock' : 'cancelled'
+      break
     }
 
     if (!resolvedAny && reply.toolCalls.length > 0) {

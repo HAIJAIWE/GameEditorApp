@@ -5,6 +5,8 @@ import {
   effectiveProvider,
   LLM_MESSAGES,
   LLM_PROVIDER_PRESETS,
+  LLM_GENERATE_TIMEOUT_MS,
+  LLM_REQUEST_TIMEOUT_MS,
   resolveLlmBaseUrl,
   validateLlmConfig,
   type LlmProvider,
@@ -133,6 +135,15 @@ function isOpenAiCompatible(provider: LlmProvider): boolean {
   return provider !== 'ollama' && provider !== 'claude'
 }
 
+/**
+ * `AbortSignal.timeout()` 触发的拒绝叫 `TimeoutError`，**不是** `AbortError`
+ * （后者是主动 abort）。两者要分开：超时要提示「已中断、可重试」，
+ * 主动取消则应当原样上抛给调用方处理。
+ */
+function isTimeoutError(error: unknown): boolean {
+  return error instanceof Error && error.name === 'TimeoutError'
+}
+
 export class LlmClient {
   /** 探测服务与模型可用性（不抛错，供状态提示用） */
   async status(options: LlmCallOptions = {}): Promise<LlmStatus> {
@@ -207,13 +218,22 @@ export class LlmClient {
       try {
         const res = await fetch(`${baseUrl}/models`, {
           method: 'GET',
-          headers: { Authorization: `Bearer ${config.apiKey}` }
+          headers: { Authorization: `Bearer ${config.apiKey}` },
+          // 探活等的是模型列表：快失败才有用（与生成用的 LLM_GENERATE_TIMEOUT_MS 分开）
+          signal: AbortSignal.timeout(LLM_REQUEST_TIMEOUT_MS)
         })
         if (!res.ok) {
           return { ok: false, message: `${preset.label} 连接失败（HTTP ${res.status}）` }
         }
         return { ok: true, message: `${preset.label} 连接成功，服务可达` }
       } catch (error) {
+        // 探活超时单独说清楚：让用户知道是「服务端没在 30 秒内应答」，而不是地址写错
+        if (isTimeoutError(error)) {
+          return {
+            ok: false,
+            message: `${preset.label} 连接超时（${Math.round(LLM_REQUEST_TIMEOUT_MS / 1000)} 秒未响应）：请检查网络或改用其他服务商`
+          }
+        }
         return {
           ok: false,
           message: `无法连接 ${preset.label}（${baseUrl}）：${error instanceof Error ? error.message : String(error)}`
@@ -339,6 +359,19 @@ export class LlmClient {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${config.apiKey}`
         },
+        /*
+         * 单次生成超时（`LLM_GENERATE_TIMEOUT_MS`，180s）。
+         *
+         * ⚠️ 这里曾**完全没有超时**：`llmConfigData.ts` 早就写着「超时后主进程抛中文
+         * 『请求超时』错误，UI 直接展示」「这里给云端 fetch 挂 AbortController」，
+         * 但那个常量全仓零引用 —— `fetch` 默认无限等待，服务端不回包时面板永久转圈，
+         * 用户只能重启应用（这些单发调用既没有 signal 也没有停止入口）。
+         * 与 `SkillDispatcher.maxAllowedRisk` 同型：**看着像策略，实际零守卫**。
+         *
+         * 为什么不用 30s 的探活值：本请求 `stream: false`，等的是完整生成，
+         * 默认 `maxTokens = 1000`，慢档上游要 100 秒量级 ⇒ 30s 会误杀正常生成。
+         */
+        signal: AbortSignal.timeout(LLM_GENERATE_TIMEOUT_MS),
         body: JSON.stringify({
           model: config.model,
           messages: [
@@ -351,6 +384,14 @@ export class LlmClient {
         })
       })
     } catch (error) {
+      // 超时 ≠ 连不上：前者要告诉用户「已中断、可重试」，后者才该提示检查地址/网络
+      if (isTimeoutError(error)) {
+        throw new Error(
+          `${preset.label} 请求超时（${Math.round(LLM_GENERATE_TIMEOUT_MS / 1000)} 秒未返回）：已中断本次请求，` +
+            '请重试；若持续超时请检查网络或改用更快的模型',
+          { cause: error }
+        )
+      }
       throw new Error(`无法连接 ${preset.label}（${url}）：${error instanceof Error ? error.message : String(error)}`, {
         cause: error
       })

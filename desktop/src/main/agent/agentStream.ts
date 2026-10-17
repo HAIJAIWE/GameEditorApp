@@ -12,6 +12,8 @@
  * - **尾行不丢**：流末尾若无换行符，剩余缓冲区仍会回调一次（对齐逐行实现的收尾调用）。
  * - **`\r\n` 容忍**：切行保留 `\r`，由各传输层的 `trim()` 吸收（两档服务端都实测出现过 CRLF）。
  * - **异常不吞**：`onLine` 抛出会立即中断读取并向上冒泡（传输层据此把 `error` 字段转成中文错误）。
+ * - **提前退出即断流**：退出时 `finally` 会 `cancel()` 底层流（不只是 `releaseLock()`）——
+ *   只解锁的话云端仍在生成、仍在计费，而我们早已不要这段输出。
  */
 
 /** 逐行读取响应体；读完（或抛错）后必定释放 reader 锁 */
@@ -38,6 +40,13 @@ export async function pumpLines(
     buffer += decoder.decode()
     if (buffer !== '') onLine(buffer)
   } finally {
+    /*
+     * 提前退出（`onLine` 抛错）时**必须显式 cancel**，不能只 `releaseLock()`：
+     * 释放锁只是把 reader 摘下来，底层连接仍在被服务端推数据 —— 云端 SSE 意味着
+     * 它还在生成、还在计费，而我们早就不要了。
+     * 已读完的流上 `cancel()` 是 no-op；已 errored 的流会返回 rejected promise，故吞掉。
+     */
+    await reader.cancel().catch(() => undefined)
     reader.releaseLock()
   }
 }

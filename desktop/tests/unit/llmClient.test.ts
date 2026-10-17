@@ -267,3 +267,97 @@ describe('LlmClient.testConnection（E63：真实连通性探测，不抛错）'
     }
   })
 })
+
+/*
+ * 云端请求超时（`LLM_REQUEST_TIMEOUT_MS`）。
+ *
+ * 这个常量在 `llmConfigData.ts` 里写着「超时后主进程抛中文『请求超时』错误，UI 直接展示」，
+ * 但**长期零引用** —— `fetch` 默认无限等待，服务端不回包时面板永久转圈。
+ * 与 `SkillDispatcher.maxAllowedRisk` 同型的「看着像策略、实际零守卫」。
+ * 这里锁两件事：signal 真的挂上去了 + 超时被翻译成可重试的中文错误（不是「连不上」）。
+ */
+describe('LlmClient.generate：云端请求挂超时信号', () => {
+  const cloudConfig: StoredLlmConfig = {
+    ...DEFAULT_LLM_CONFIG,
+    enabled: true,
+    provider: 'deepseek',
+    baseUrl: 'http://fake.test/v1',
+    model: 'deepseek-v4-pro'
+  }
+
+  it('fetch 收到 AbortSignal（信号缺失 = 永久等待，无论常量写多少秒）', async () => {
+    const originalFetch = globalThis.fetch
+    let received: RequestInit | undefined
+    globalThis.fetch = (async (_url: string, init: RequestInit) => {
+      received = init
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ choices: [{ message: { content: '好的' } }] })
+      }
+    }) as unknown as typeof fetch
+    try {
+      const client = new LlmClient()
+      const out = await client.generate('sys', 'user', { config: cloudConfig, apiKey: 'sk-test' })
+      expect(out.content).toBe('好的')
+      expect(received?.signal).toBeInstanceOf(AbortSignal)
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
+  it('超时被翻译成「请求超时（180 秒未返回）」而不是「无法连接」', async () => {
+    const originalFetch = globalThis.fetch
+    const timeout = new Error('The operation was aborted due to timeout')
+    timeout.name = 'TimeoutError'
+    globalThis.fetch = (async () => {
+      throw timeout
+    }) as unknown as typeof fetch
+    try {
+      const client = new LlmClient()
+      const error = await client.generate('sys', 'user', { config: cloudConfig, apiKey: 'sk-test' }).catch(
+        (failure: unknown) => failure
+      )
+      expect(error).toBeInstanceOf(Error)
+      expect((error as Error).message).toContain('请求超时（180 秒未返回）')
+      expect((error as Error).message).toContain('请重试')
+      // 两类错误不许合并：超时不是「连不上」，否则用户会去查网络/地址
+      expect((error as Error).message).not.toContain('无法连接')
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
+  it('真正的连接失败仍报「无法连接」（两类错误不许合并）', async () => {
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = (async () => {
+      throw new Error('ECONNREFUSED')
+    }) as unknown as typeof fetch
+    try {
+      const client = new LlmClient()
+      await expect(client.generate('sys', 'user', { config: cloudConfig, apiKey: 'sk-test' })).rejects.toThrow(
+        /无法连接/
+      )
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
+  it('探活用的是 30s 的另一个上限（快失败），且错误不抛而是返回 ok:false', async () => {
+    const originalFetch = globalThis.fetch
+    const timeout = new Error('timeout')
+    timeout.name = 'TimeoutError'
+    globalThis.fetch = (async () => {
+      throw timeout
+    }) as unknown as typeof fetch
+    try {
+      const client = new LlmClient()
+      const res = await client.testConnection({ config: cloudConfig, apiKey: 'sk-test' })
+      expect(res.ok).toBe(false)
+      expect(res.message).toContain('连接超时（30 秒未响应）')
+      expect(res.message).not.toContain('无法连接')
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+})

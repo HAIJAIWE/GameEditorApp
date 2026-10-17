@@ -10,20 +10,34 @@ export default defineConfig({
      * 跨运行持久化「模块转换结果」缓存（默认关闭）。
      *
      * 本仓库单次运行要转换的模块图很大（实测冷跑聚合 transform ≈ 78s，占
-     * vitest 自报耗时的 39%），且**每次运行都全量重来**。vitest 按 CPU 数并发
-     * fork（20 核机上约 19 路同时跑），转换开销把宿主占满后，新 worker 连启动握手
-     * 都会超时，表现为：
-     *   `[vitest-pool]: Failed to start forks worker … Timeout waiting for worker to respond`
-     * 此时**整个测试文件静默不执行**（实测一次：windowState + fieldTemplateStore
-     * 两个文件未跑，测试数 1344 → 1305，退出码非 0 但无任何用例失败信息）。
-     *
-     * 该失败在 vitest 里**没有可配的超时旋钮**（只有 hookTimeout/teardownTimeout），
-     * 唯一杠杆是降低并发——但实测收敛并发（maxForks: 8）在 40 路 CPU 争用下并未
-     * 复现该失败，即**无证据有效**，且 wall 由 46s 升到 79s（+72%）。故改用 vitest
-     * 自身推荐的转换缓存：直接缩短 worker 启动路径，不动并发度。
-     * 缓存落在 `node_modules/.vitest-cache`（随依赖重装自然失效，无需 .gitignore）。
+     * vitest 自报耗时的 39%），且**每次运行都全量重来**。缓存落在
+     * `node_modules/.vitest-cache`（随依赖重装自然失效，无需 .gitignore）。
      */
     fsModuleCache: true,
+
+    /**
+     * 🔴 **不隔离 + 限定 4 个 worker（2026-10-18 实测换来的）**。
+     *
+     * 原本用默认配置：`isolate: true` ⇒ **每个测试文件起一个进程**（本仓 134 个）。
+     * 在装有实时防护的本机（火绒）上，进程创建被逐个扫描，启动握手会超过 vitest
+     * **硬编码的 60 秒** `START_TIMEOUT`（`dist/chunks/index-*.js` 里 `START_TIMEOUT = 6e4`，
+     * **无配置项**，`poolOptions.*.startTimeout` 在 v5 已不存在），于是报
+     * `[vitest-pool]: Failed to start forks worker … Timeout waiting for worker to respond`，
+     * 而**那个文件整份不执行、且不计入统计**：
+     *
+     * | 配置 | 实测 |
+     * | --- | --- |
+     * | 默认（每文件一进程） | 连跑 8 轮有 **7 轮**丢文件：测试数 1936–2046 漂移，`Errors 9`，wall 最高 81s |
+     * | `--maxWorkers=6`（仍隔离） | 3 轮里仍有 1 轮丢文件（wall 81s）——**只降并发不够** |
+     * | **`isolate:false` + `maxWorkers:4`** | **6/6 全量 2046、exit 0、wall 7–8s** |
+     * | `isolate:false` + `maxWorkers:1`（最坏共享） | 2/2 全量 2046、wall 21s —— 证明关隔离未引入状态泄漏 |
+     *
+     * ⚠️ 该失败**退出码非 0**（CI 能兜住），但终端摘要仍打印「N passed」——
+     * **只看摘要会误判为全绿**。核对方式：`Test Files … (134)` + `Tests … (2046)`，数字少了就是丢文件。
+     * 排查顺序依赖问题时可用 `npm test -- --isolate` 临时恢复隔离。
+     */
+    isolate: false,
+    maxWorkers: 4,
 
     /**
      * hook 上限放宽（默认 10000ms 对本仓库偏紧）。
