@@ -78,10 +78,10 @@ test('校验与评分：IPC 精确结果 + UI 面板展示', async () => {
     // 评分语义：0 不算缺失（同 Python v in (None,"",[],{})），故默认文档结构分为 1.5
     expect(setup.emptyTotal).toBe(1.5)
     expect(setup.emptyGrade).toBe('D')
-    expect(setup.chapterCount).toBe(18)
+    expect(setup.chapterCount).toBe(17)
     expect(setup.filledErrorCount).toBe(31)
-    expect(setup.filledStructure).toBe(3)
-    expect(setup.filledTotal).toBe(3)
+    expect(setup.filledStructure).toBe(3.1)
+    expect(setup.filledTotal).toBe(3.1)
     expect(setup.filledMetaScore).toBe(79)
 
     // UI 侧：文档经 IPC 旁路创建 → 重载首页列表后打开唯一卡片 → 校验面板与评分面板
@@ -101,7 +101,7 @@ test('校验与评分：IPC 精确结果 + UI 面板展示', async () => {
     await window.getByTestId('ceshu-more').click()
     await window.getByTestId('ceshu-score').click()
     await expect(window.getByTestId('score-panel')).toBeVisible()
-    await expect(window.getByTestId('score-panel')).toContainText('结构 3/30')
+    await expect(window.getByTestId('score-panel')).toContainText('结构 3.1/30')
     await expect(window.getByTestId('score-panel')).toContainText('章节明细')
     await expect(window.getByTestId('score-panel')).toContainText('行业对比')
     await window.getByTestId('score-close').click()

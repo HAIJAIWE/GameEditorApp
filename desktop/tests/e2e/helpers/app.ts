@@ -2,6 +2,9 @@ import { join } from 'node:path'
 
 import { _electron as electron, expect, type Page } from '@playwright/test'
 
+import { INITIAL_LIBRARY_NAME } from '../../../src/main/library/store'
+import { localStubLlmConfig } from './llmConfig'
+
 /**
  * E2E 共享启动器：把原先复制粘贴在 51 个规格里的内联 Electron 启动代码收敛到一处。
  *
@@ -42,4 +45,41 @@ export async function waitReady(window: Page): Promise<void> {
     window.getByTestId('ceshu-home-panel'),
     '策划书首页未就绪（新 IA 默认落 ceshu-home-panel）——Electron 可能未进入默认首页，或首页组件未渲染'
   ).toBeVisible()
+}
+
+/**
+ * 库作用域下的数据目录 —— e2e 断言落盘位置时的**唯一正确前缀**。
+ *
+ * ⚠️ A2-1 引入「库」之后，全部 store 都挂在 `<userData>/libraries/<库名>/` 下
+ * （见 `main/library/manager.ts::activeDir()` 与 `stores.ts::buildStores(libDir)`），
+ * **不再**是 `<userData>/<store>`。历史上有 7 个 spec 仍按旧布局拼路径，
+ * 结果把「落盘成功」误判成「没落盘」（报 `ENOENT: ... ceshu/<id>.json`）——
+ * 这种误判比测试直接失败更糟：它会让人去修一个并不存在的持久化 bug。
+ *
+ * 库名从 `INITIAL_LIBRARY_NAME` 派生，避免第二处硬编码「初始库」。
+ */
+export function libraryDir(userDataDir: string, library: string = INITIAL_LIBRARY_NAME): string {
+  return join(userDataDir, 'libraries', library)
+}
+
+/**
+ * 把 LLM 配置播种为「本地档 + 指定 Ollama 地址」，然后 reload 让主进程收到镜像。
+ *
+ * ⚠️ 为什么必须播种：`LlmClient`（创作面 51 个调用点）读的是**设置面板的 `StoredLlmConfig`**
+ * （渲染层 localStorage `mb.llmConfig`，由 `llmBootstrap.pushLlmConfigMirror()` 推给主进程），
+ * 而 `DEFAULT_LLM_CONFIG.provider` 是 `deepseek`、`model` 刻意留空 ⇒ 新 userData 一定是
+ * `unconfigured` 档。历史上有用例只设 `MB_OLLAMA_HOST` 就期待走本地 Ollama，
+ * 于是永远拿到「尚未配置 AI 服务」，把「未配置」误当成「本地不可达」。
+ *
+ * 只写必要字段即可：`loadLlmConfig` 会逐字段与 `DEFAULT_LLM_CONFIG` 合并。
+ */
+export async function seedLocalLlmConfig(window: Page, host: string, model = 'stub:latest'): Promise<void> {
+  await window.evaluate(
+    ({ config }) => {
+      localStorage.setItem('mb.llmConfig', JSON.stringify(config))
+    },
+    { config: localStubLlmConfig(host, model) }
+  )
+  await window.reload()
+  await waitReady(window)
 }

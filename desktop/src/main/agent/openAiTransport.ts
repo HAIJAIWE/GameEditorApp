@@ -41,7 +41,7 @@ import {
   type BrainLlmTransport,
   type BrainToolCall
 } from '../../shared/agent/brain'
-import { assertHttpOk, pumpLines } from './agentStream'
+import { assertHttpOk, isAbortError, pumpLines } from './agentStream'
 
 export interface OpenAiChatTransportOptions {
   /** 接口地址（`https://api.deepseek.com/v1` 形态；**不含** `/chat/completions`） */
@@ -117,9 +117,12 @@ export class OpenAiChatTransport implements BrainLlmTransport {
           'Content-Type': 'application/json',
           ...(apiKey.trim() !== '' ? { Authorization: `Bearer ${apiKey}` } : {})
         },
-        body
+        body,
+        ...(request.signal !== undefined ? { signal: request.signal } : {})
       })
     } catch (error) {
+      // 取消必须原样抛出（否则循环会把「用户停止」当成云端故障）
+      if (isAbortError(error)) throw error
       throw new Error(`云端 AI 调用失败：${error instanceof Error ? error.message : String(error)}`, {
         cause: error
       })

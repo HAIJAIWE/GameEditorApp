@@ -46,6 +46,14 @@ export interface BrainLlmRequest {
   tools: unknown[]
   /** 流式增量回调（对齐 Python `on_chunk`） */
   onChunk?: (text: string) => void
+  /**
+   * 取消信号（可选中止）。
+   *
+   * 传输层必须把它透传给 `fetch(..., { signal })`，**并且不得把 `AbortError` 包装成业务错误**——
+   * 否则循环无法区分「用户点了停止」与「网络真的失败」，会把取消误报成 `transport_error`。
+   * 见 `main/agent/agentStream.ts::isAbortError` 与两个传输层的 `catch` 分支。
+   */
+  signal?: AbortSignal
 }
 
 /** LLM 传输层：A1-2 实现为 Ollama `/api/chat`；单测注入脚本化桩 */
@@ -113,11 +121,14 @@ export function formatToolResult(result: SkillResult): string {
   return `执行失败: ${result.error !== undefined && result.error !== '' ? result.error : '未知'}`
 }
 
-/** 三道计数闸的中文提示文案（面板「诚实显示」用；与闸判定同源，避免两处口径漂移） */
+/** 三道计数闸 + 用户取消的中文提示文案（面板「诚实显示」用；与闸判定同源，避免两处口径漂移） */
 export function terminationDetail(
-  reason: 'max_turns' | 'max_tool_calls' | 'wall_clock',
+  reason: 'max_turns' | 'max_tool_calls' | 'wall_clock' | 'cancelled',
   limits: { maxTurns: number; maxToolCalls: number; wallClockMs: number }
 ): string {
+  if (reason === 'cancelled') {
+    return '已按要求停止，以下是已完成的部分结果'
+  }
   if (reason === 'max_tool_calls') {
     return `已达工具调用上限（${limits.maxToolCalls} 次），以下是已完成的部分结果`
   }

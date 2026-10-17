@@ -437,7 +437,17 @@ export const agentInteractionResponseInputSchema = z
 
 /** Agent Brain：跑一轮对话循环（输入用户消息，返回事件流与最终文本） */
 export const agentChatInputSchema = z.object({
-  input: z.string().min(1).max(4000)
+  input: z.string().min(1).max(4000),
+  /**
+   * 本轮运行 id（可选）：渲染层生成，用于把 `agent:cancel` 精确投递给**这一轮**。
+   * 不传时主进程按「该窗口当前活跃运行」兜底（单面板 UI 足够，多窗口也不会串）。
+   */
+  runId: z.string().min(1).max(64).optional()
+})
+
+/** Agent 取消：按 runId 精确停止；缺省停止该窗口当前活跃的一轮 */
+export const agentCancelInputSchema = z.object({
+  runId: z.string().min(1).max(64).optional()
 })
 
 /** Agent 技能调度：执行工具（tool 为技能 id 或可模糊解析的别名） */
@@ -724,6 +734,7 @@ export type AgentDraftSaveInput = z.infer<typeof agentDraftSaveInputSchema>
 export type AgentDraftLoadInput = z.infer<typeof agentDraftLoadInputSchema>
 export type AgentFeedbackInput = z.infer<typeof agentFeedbackInputSchema>
 export type AgentChatInput = z.infer<typeof agentChatInputSchema>
+export type AgentCancelInput = z.infer<typeof agentCancelInputSchema>
 export type AgentApprovalResponseInput = z.infer<typeof agentApprovalResponseInputSchema>
 export type AgentInteractionResponseInput = z.infer<typeof agentInteractionResponseInputSchema>
 export type EngineExportFileDialogInput = z.infer<typeof engineExportFileDialogInputSchema>

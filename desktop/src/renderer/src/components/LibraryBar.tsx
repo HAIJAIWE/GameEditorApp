@@ -19,8 +19,20 @@ interface LibraryEntryShape {
   isInitial: boolean
 }
 
+/**
+ * `library:list` 的返回：条目 + **当前活跃库**。
+ *
+ * `active` 不能靠渲染层推断。切换库时主进程广播 `library:changed`，App 收到后整页重载，
+ * 组件内状态全丢；此时若只拿到条目数组，唯一能给的答案就是「第一个」——库条会显示初始库，
+ * 而数据来自刚切过去的库，并且再选初始库会被 `name === active` 判成无变化、切不回去。
+ */
+interface LibraryListResult {
+  libraries: LibraryEntryShape[]
+  active: string
+}
+
 interface LibraryApi {
-  list: () => Promise<LibraryEntryShape[]>
+  list: () => Promise<LibraryListResult>
   create: (req: { name: string; description?: string }) => Promise<LibraryEntryShape>
   rename: (req: { from: string; to: string }) => Promise<{ ok: boolean }>
   remove: (req: { name: string }) => Promise<{ switchedTo: string | null }>
@@ -44,9 +56,9 @@ export default function LibraryBar() {
 
   const refresh = useCallback(async (): Promise<void> => {
     try {
-      const list = await api.list()
-      setLibraries(list)
-      setActive((current) => (list.some((item) => item.name === current) ? current : (list[0]?.name ?? '')))
+      const snapshot = await api.list()
+      setLibraries(snapshot.libraries)
+      setActive(snapshot.active)
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : String(failure))
     }
@@ -57,10 +69,10 @@ export default function LibraryBar() {
     let cancelled = false
     api
       .list()
-      .then((list) => {
+      .then((snapshot) => {
         if (cancelled) return
-        setLibraries(list)
-        setActive((current) => (list.some((item) => item.name === current) ? current : (list[0]?.name ?? '')))
+        setLibraries(snapshot.libraries)
+        setActive(snapshot.active)
       })
       .catch((failure: unknown) => {
         if (!cancelled) setError(failure instanceof Error ? failure.message : String(failure))
@@ -90,6 +102,9 @@ export default function LibraryBar() {
     } catch (failure) {
       // 主进程返回的中文错误直接展示
       setError(failure instanceof Error ? failure.message : String(failure))
+      // 失败时以主进程为准回滚：handleSwitch 是乐观更新，若切换被拒而 active 不回滚，
+      // 下拉会停在「并不活跃」的库上，用户再点它又因 `name === active` 判成无变化 ⇒ 卡住
+      await refresh()
     } finally {
       setBusy(false)
     }

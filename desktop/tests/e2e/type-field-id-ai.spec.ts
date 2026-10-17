@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { expect, test } from '@playwright/test'
-import { launchApp, waitReady } from './helpers/app'
+import { launchApp, seedLocalLlmConfig, waitReady } from './helpers/app'
 
 /**
  * 字段 ID 的 **AI 候选**（术语表未收录时的第二级兜底）。
@@ -92,6 +92,9 @@ test('AI 候选：未收录词由 AI 给候选，点选后才写入字段名（�
   try {
     const window = await app.firstWindow()
     await waitReady(window)
+    // 必须把设置面板的配置播成「本地档 + 桩地址」：`LlmClient` 只读 localStorage 里的配置，
+    // 仅设 MB_OLLAMA_HOST 会让应用停在 unconfigured 档、根本不发请求（见 seedLocalLlmConfig 注释）
+    await seedLocalLlmConfig(window, stub.host)
     // 新 IA 无侧栏入口：工具菜单 → 字段结构编辑器
     await window.getByTestId('menu-title-tools').click()
     await window.getByTestId('menuitem-tools-fieldEditor').click()
@@ -142,6 +145,9 @@ test('AI 候选：本地 Ollama 不可用时给中文错误提示，不静默失
   try {
     const window = await app.firstWindow()
     await waitReady(window)
+    // 同前：只有把配置播成本地档且指向死端口，才真正走到「本地 Ollama 不可用」这条路径。
+    // 旧写法只设 MB_OLLAMA_HOST，命中的其实是「尚未配置 AI 服务」——两件事，被混为一谈了。
+    await seedLocalLlmConfig(window, 'http://127.0.0.1:1')
     // 新 IA 无侧栏入口：工具菜单 → 字段结构编辑器
     await window.getByTestId('menu-title-tools').click()
     await window.getByTestId('menuitem-tools-fieldEditor').click()

@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { expect, test } from '@playwright/test'
-import { launchApp, waitReady } from './helpers/app'
+import { launchApp, libraryDir, waitReady } from './helpers/app'
 
 test('预设市场：18 卡片 + 搜索筛选 + 应用预设（启用推荐系统 / 回填 game_type / 落盘）', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-ceshu-preset-e2e-'))
@@ -94,7 +94,7 @@ test('预设市场：18 卡片 + 搜索筛选 + 应用预设（启用推荐系�
     ])
 
     // 磁盘回读：直接读策划书 JSON，确认 systems/meta 已原子落盘
-    const onDisk = JSON.parse(readFileSync(join(userDataDir, 'ceshu', `${createdId}.json`), 'utf-8')) as {
+    const onDisk = JSON.parse(readFileSync(join(libraryDir(userDataDir), 'ceshu', `${createdId}.json`), 'utf-8')) as {
       systems: Record<string, { enabled: boolean }>
       meta: Record<string, unknown>
     }

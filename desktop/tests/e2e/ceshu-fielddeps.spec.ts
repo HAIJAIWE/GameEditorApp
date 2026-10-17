@@ -96,13 +96,15 @@ test('依赖检查：IPC 精确结构 + 字段/系统双视图面板', async () 
       } satisfies FieldDepsProbe
     })) as FieldDepsProbe
 
-    // 默认文档：20 条依赖全部通过；字段图 18 节点 / 19 边 / 10 层；系统图 13 节点 / 17 边 / 4 层
+    // 默认文档：20 条依赖全部通过；字段图 17 节点 / 18 边 / 10 层；系统图 13 节点 / 17 边 / 4 层
+    // 数字与 `tests/unit/ceshuFieldDeps.test.ts` 的基准同源（17/18/10）——章节模型从 18 章
+    // 收敛为「文档信息 + 16 编号章」后，字段图少了一个节点、一条边（旧值 18/19 已过期）。
     expect(probe.depCount).toBe(20)
     expect(probe.okCount).toBe(20)
     expect(probe.warningCount).toBe(0)
     expect(probe.violationCount).toBe(0)
-    expect(probe.fieldNodes).toBe(18)
-    expect(probe.fieldEdges).toBe(19)
+    expect(probe.fieldNodes).toBe(17)
+    expect(probe.fieldEdges).toBe(18)
     expect(probe.fieldLayers).toBe(10)
     expect(probe.systemNodes).toBe(13)
     expect(probe.systemEdges).toBe(17)

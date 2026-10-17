@@ -120,6 +120,7 @@ export class AgentBrainService {
       ...(options.requestInteraction ? { requestInteraction: options.requestInteraction } : {}),
       ...(options.newRequestId ? { newRequestId: options.newRequestId } : {}),
       ...(options.onEvent ? { onEvent: options.onEvent } : {}),
+      ...(options.signal ? { signal: options.signal } : {}),
       context
     })
 

@@ -81,7 +81,7 @@ test('字数统计：IPC 精确数字 + 面板表格与总览', async () => {
     })) as WordStatsProbe
 
     // 与单测同一口径（游戏名「字数E2E」= 2 中文字 + 1 英文词 → meta 12 字，全域 47 字 / 目标 9200）
-    expect(probe.rowCount).toBe(18)
+    expect(probe.rowCount).toBe(17)
     expect(probe.metaWords).toBe(12)
     expect(probe.metaPercent).toBe(8)
     expect(probe.metaAdvice).toBe('🟠 字数偏少（建议至少 50 字）')
@@ -95,7 +95,7 @@ test('字数统计：IPC 精确数字 + 面板表格与总览', async () => {
     expect(probe.firstLabel).toBe('文档信息')
     expect(probe.lastLabel).toBe('第十六章·可访问性与本地化')
 
-    // UI 侧：文档经 IPC 旁路创建 → 重载首页列表 → 打开唯一卡片 → 面板总览 + 18 行章节表
+    // UI 侧：文档经 IPC 旁路创建 → 重载首页列表 → 打开唯一卡片 → 面板总览 + 17 行章节表（文档信息 + 16 编号章）
     await window.reload()
     await waitReady(window)
     await window.getByTestId('home-card').first().getByTestId('home-card-open').click()

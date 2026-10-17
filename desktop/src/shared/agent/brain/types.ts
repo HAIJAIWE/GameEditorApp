@@ -23,6 +23,7 @@ export type BrainStopReason =
   | 'max_turns'
   | 'max_tool_calls'
   | 'wall_clock'
+  | 'cancelled'
   | 'no_tools'
   | 'unresolvable_tools'
   | 'transport_error'
@@ -62,7 +63,7 @@ export type BrainEvent =
   /** M0.5 终止闸（DD-5）：命中三道计数闸之一时发；`detail` 供面板「诚实显示」本次为何中止 */
   | {
       type: 'terminated'
-      reason: 'max_turns' | 'max_tool_calls' | 'wall_clock'
+      reason: 'max_turns' | 'max_tool_calls' | 'wall_clock' | 'cancelled'
       detail: string
     }
   | { type: 'error'; message: string }
@@ -133,6 +134,18 @@ export interface RunBrainLoopOptions {
   context?: SkillExecutionContext
   /** 事件实时回调（A1-4 面板流式渲染用；事件同样会收集进返回值） */
   onEvent?: (event: BrainEvent) => void
+  /**
+   * 外部取消信号（用户点「停止」/ 窗口关闭时由调用方 abort）。
+   *
+   * 语义：**优雅中止** —— 与三道计数闸同款，返回 `completed: true` + 已完成的部分产出
+   * （`stopReason: 'cancelled'`），而不是 reject。区别在于「谁叫停」：计数闸是预算耗尽，
+   * 取消是用户明确要求。
+   *
+   * 实现上循环会自建一个内部 `AbortController` 并把它传给传输层，外部信号只做**转发**：
+   * 这样「墙钟超时」也能真正中断一次挂死的 HTTP 调用（改前 `wallClockMs` 只是轮次间的软检查，
+   * 单次调用卡住时循环无法脱身，与「三道硬闸」的说法不符）。
+   */
+  signal?: AbortSignal
 }
 
 export interface BrainRunResult {

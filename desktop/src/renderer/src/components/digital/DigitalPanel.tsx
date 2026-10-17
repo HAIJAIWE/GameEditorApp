@@ -33,7 +33,9 @@ import { toErrorMessage } from '../../../../shared/util/errors'
  */
 
 interface ChatApi {
-  chat: (req: { input: string }) => Promise<{ text: string }>
+  chat: (req: { input: string; runId?: string }) => Promise<{ text: string }>
+  /** 取消本轮（用户点「停止」）；`cancelled: false` = 没有匹配的运行，不是错误 */
+  cancel: (req: { runId?: string }) => Promise<{ cancelled: boolean }>
   respondApproval: (req: { requestId: string; approved: boolean }) => Promise<{ ok: boolean }>
   respondInteraction: (req: {
     requestId: string
@@ -122,6 +124,8 @@ export default function DigitalPanel({ seed }: { seed?: { text: string; nonce: n
   const [notice, setNotice] = useState<string | null>(null)
   const clearMenuRef = useRef<HTMLDivElement | null>(null)
   const draftMenuRef = useRef<HTMLDivElement | null>(null)
+  /** 当前进行中那一轮的 runId（「停止」按钮据此精确取消） */
+  const activeRunId = useRef<string | null>(null)
 
   const api = useMemo(() => (window.mbApi as unknown as { agent: ChatApi }).agent, [])
   const tasks = useMemo(() => summarizeToolTasks(state.steps), [state.steps])
@@ -171,12 +175,34 @@ export default function DigitalPanel({ seed }: { seed?: { text: string; nonce: n
       setLocalError(null)
       setInput('')
       dispatch({ kind: 'submit', text })
-      void api.chat({ input: text }).catch((error: unknown) => {
-        setLocalError(toErrorMessage(error))
-      })
+      // 本轮 runId：取消时据此精确定位（主进程也按窗口兜底，双保险）
+      const runId = `run_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
+      activeRunId.current = runId
+      void api
+        .chat({ input: text, runId })
+        .catch((error: unknown) => {
+          setLocalError(toErrorMessage(error))
+        })
+        .finally(() => {
+          if (activeRunId.current === runId) activeRunId.current = null
+        })
     },
     [running, api]
   )
+
+  /** 用户点「停止」：让循环优雅中止并保留已产出的部分结果 */
+  const handleStop = (): void => {
+    const runId = activeRunId.current
+    setLocalError(null)
+    void api
+      .cancel(runId === null ? {} : { runId })
+      .then((result) => {
+        if (!result.cancelled) setNotice('本轮已结束，无需停止')
+      })
+      .catch((error: unknown) => {
+        setLocalError(toErrorMessage(error))
+      })
+  }
 
   const handleSend = (): void => submitText(input)
 
@@ -698,6 +724,12 @@ export default function DigitalPanel({ seed }: { seed?: { text: string; nonce: n
         >
           发送
         </button>
+        {/* 运行中才出现：取消是「优雅中止」，已产出的部分结果会保留并如实提示 */}
+        {running && (
+          <button type="button" className="btn" data-testid="digital-stop" onClick={handleStop}>
+            停止
+          </button>
+        )}
       </div>
     </div>
   )

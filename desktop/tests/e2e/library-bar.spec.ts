@@ -2,7 +2,7 @@ import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import { launchApp, waitReady } from './helpers/app'
 
 /**
@@ -16,6 +16,26 @@ interface LibraryApi {
     createItem: (req: { type: string; data: Record<string, unknown> }) => Promise<{ id: string }>
     listItems: (req: { type: string }) => Promise<unknown[]>
   }
+}
+
+/**
+ * 切库 = 主进程广播 `library:changed` → App 整页 `location.reload()`（`App.tsx`）。
+ *
+ * 两件事必须一起做，否则测不到真东西：
+ *  1. **先登记 load 事件再触发切换**。`library-active` 读的是组件里的乐观值，
+ *     重载前就已经变成目标库 ⇒ 只断言文本「立刻通过」，接着 `page.evaluate` 会撞上
+ *     `Execution context was destroyed`（导航中）；而没有重载这一环时，文本断言
+ *     也无法证明活跃库指针真的落了盘。
+ *  2. 重载后重新 `waitReady`：新档案里 UI 才刚挂载，`mbApi` 虽在 preload 就位，
+ *     但库条数据要等一次 `library:list`。
+ */
+async function switchLibrary(window: Page, name: string): Promise<void> {
+  const reloaded = window.waitForEvent('load', { timeout: 15_000 })
+  await window.getByTestId('library-select').selectOption(name)
+  await reloaded
+  await waitReady(window)
+  // 重载后的活跃库完全来自主进程（`library:list` 的 active 字段），不是乐观值
+  await expect(window.getByTestId('library-active')).toHaveText(name)
 }
 
 function makeUserDataDir(tag: string): string {
@@ -54,8 +74,7 @@ test('库条：新建库 → 切换 → 数据互相隔离 → 切回原库数�
     await expect(window.getByTestId('library-active')).toHaveText('初始库')
 
     // 切到项目 A → 整页重载 → 数据为空（库间隔离）
-    await window.getByTestId('library-select').selectOption('项目 A')
-    await expect(window.getByTestId('library-active')).toHaveText('项目 A', { timeout: 15_000 })
+    await switchLibrary(window, '项目 A')
     const inProjectA = (await window.evaluate(async () => {
       const api = (globalThis as unknown as { mbApi: LibraryApi }).mbApi
       return api.data.listItems({ type: 'role' })
@@ -69,8 +88,7 @@ test('库条：新建库 → 切换 → 数据互相隔离 → 切回原库数�
     })
 
     // 切回初始库 → 数据仍是原来那条
-    await window.getByTestId('library-select').selectOption('初始库')
-    await expect(window.getByTestId('library-active')).toHaveText('初始库', { timeout: 15_000 })
+    await switchLibrary(window, '初始库')
     const backToInitial = (await window.evaluate(async () => {
       const api = (globalThis as unknown as { mbApi: LibraryApi }).mbApi
       return api.data.listItems({ type: 'role' })
@@ -91,8 +109,7 @@ test('库条：重启后保持上次的活跃库', async () => {
     await window.getByTestId('library-create').click()
     await window.getByTestId('library-name-input').fill('重启库')
     await window.getByTestId('library-name-submit').click()
-    await window.getByTestId('library-select').selectOption('重启库')
-    await expect(window.getByTestId('library-active')).toHaveText('重启库', { timeout: 15_000 })
+    await switchLibrary(window, '重启库')
   } finally {
     await first.close()
   }

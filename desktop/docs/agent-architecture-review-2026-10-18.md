@@ -89,6 +89,7 @@
 | **上下文工程（reset/compact）**        | 只有 `num_ctx` + 提示词预算门；无 reset/compact                                        | ⚠️ 缺失          | Anthropic 2026 主张 reset 优于 compact；本地档 context rot 是真风险                                                    |
 | **统一运行时 / 单一入口**                | **两套 AI 编排栈**（§1.2）                                                          | ❌ 结构性不一致       | 主流框架（LangGraph/Mastra/smolagents）均提供**一个运行时**，chat 与 task 生成都走它（task 用 workflow 子图，但仍复用 harness）           |
 
+
 **致命缺陷清单（真正影响正确性/可维护性的，只有 2 条）：**
 
 1. **F7 `unconfigured` 静默回落** —— 直接违反已落地的产品意志（M0）。
@@ -178,8 +179,8 @@
 └────────────────────────────────────────────────────────────────┘
 ```
 
-
 **依赖不变量（保持现有，补一条）**：
+
 1. `shared/agent` 不 import `main`/`electron`（已有）。
 2. `skills/**` 不反向 import 编排层（已有，建议加 ESLint 规则固化）。
 3. **【新增】`ipc.ts` 的 AI 处理函数不得再 inline 实现审批/预算/观测**，必须过 `runTask` 共享服务（防止 F1 漂移）。
@@ -188,12 +189,12 @@
 
 ## 5. 分阶段重构路线图（最小改动优先）
 
-| 阶段 | 目标 | 改动 | 优先级 | 规模/风险 |
-|---|---|---|---|---|
-| **P0 收口语义回归** | F7 静默回落 + F2 读 MEMORY.md | `agentTransport`/`brainService` 引导分支；`memoryStore.loadLongTerm` 注入 | 🔴 必须 | ~80 行，零回归已有档位 |
-| **P1 harness 共享 + 域 grounding** | F1 抽 `runTask` 共用预算/观测 + F8 域块进循环 + F6 工具结果截断 | 新增 `runTask.ts`；`ipc.ts` 三处改走 `runTask`；`prompts.ts` 域块 | 🟠 建议 | ~400 行，需守卫测试锁「两路径口径一致」 |
-| **P2 循环健壮性** | F5 上下文重置 + F4 评估钩子 + F10 per-tool 重试预算 + F9 云端流式 | `brain.ts` 加 reset/evaluator/重试计数；`openAiTransport` 流式 | 🟠 建议 | ~300 行，本地档收益最大 |
-| **P3 演进（可选）** | F3 记忆升级（embedding+重排+learnings）· F11 观测闭环 · 云端 planner/sub-agent | 按数据决定是否做 | ⚪ 可选 | 视评估而定 |
+| 阶段                              | 目标                                                               | 改动                                                                 | 优先级   | 规模/风险                  |
+| ------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------ | ----- | ---------------------- |
+| **P0 收口语义回归**                   | F7 静默回落 + F2 读 MEMORY.md                                         | `agentTransport`/`brainService` 引导分支；`memoryStore.loadLongTerm` 注入 | 🔴 必须 | ~80 行，零回归已有档位          |
+| **P1 harness 共享 + 域 grounding** | F1 抽 `runTask` 共用预算/观测 + F8 域块进循环 + F6 工具结果截断                    | 新增 `runTask.ts`；`ipc.ts` 三处改走 `runTask`；`prompts.ts` 域块            | 🟠 建议 | ~400 行，需守卫测试锁「两路径口径一致」 |
+| **P2 循环健壮性**                    | F5 上下文重置 + F4 评估钩子 + F10 per-tool 重试预算 + F9 云端流式                 | `brain.ts` 加 reset/evaluator/重试计数；`openAiTransport` 流式             | 🟠 建议 | ~300 行，本地档收益最大         |
+| **P3 演进（可选）**                   | F3 记忆升级（embedding+重排+learnings）· F11 观测闭环 · 云端 planner/sub-agent | 按数据决定是否做                                                           | ⚪ 可选  | 视评估而定                  |
 
 **建议执行顺序的理由**：P0 是唯一「违反已落地产品意志」的硬伤，零风险先收；P1 把最大的技术债（双栈 + harness 漂移）用最小改动焊死，并顺手补上「域 grounding」这个质量收益最高的项；P2 解决本地档跑不动/炸上下文的功能性致命点；P3 等 P0–P2 在真机（Ollama 跑起来 + 云端实测）拿到数据后再定，避免盲调（呼应设计文档 M1「先有数据再调优」）。
 
@@ -215,21 +216,23 @@
 
 按「最小改动、不推倒重来」原则全部实现；**F1/F3/F7 已于本轮补齐为完整版**（不再是留口）。已通过 `tsc --noEmit`（node + web 双工程零错误）、`eslint`（零错误）、`vitest`（**2015 例全绿 / 5 skipped**）。
 
-| 项 | 落地内容 | 文件 | 备注 |
-|---|---|---|---|
-| **F7** | `resolveAgentTier` 三态如实透传（`unconfigured` 不再伪装 `local`）；渲染层在未配置档显示可执行引导（「去设置配云端 / 保持本地保密模式」） | `agentTransport.ts` + `DigitalPanel.tsx` | 传输层对 `unconfigured` 仍走原生本地 Ollama（聊天面本就以本地为原生档），只做**诚实标注 + 行内引导**，不做「无配置即报错」的破坏性改法 |
-| **F2** | 循环读取 `MEMORY.md` 长期记忆 + `learnings.jsonl` 沉淀知识，作为 `## 长期记忆`/`## 沉淀知识` 块注入 | `memoryStore.ts` + `brainService.ts` | 此前循环完全没读 MEMORY.md，现已接入 |
-| **F8** | 域 grounding 块（GDD 章节结构）常驻注入 `extraBlocks`（不计入 30 行核心区） | `brainService.ts` | 放在 main 层以遵守 `shared/agent` 领域无关铁律；库级类型 schema/术语表注入需库上下文，留后续 |
-| **F6** | `clipToolResult` 工具结果尺寸闸（本地 1500 / 云端 4000 字，超限截断） | `brain.ts` | |
-| **F5** | `maybeResetContext` 上下文重置（DD-8）：历史超阈值压缩为交接摘要续跑 | `brain.ts` | 模板摘要、不额外调 LLM |
-| **F4** | `evaluator` 钩子进循环；云端档挂 `defaultDialogueEvaluator`（空产出判定），结论进 `BrainRunResult.verdict` | `brain.ts` + `brainService.ts` | 不阻断生成 |
-| **F10** | per-tool 连续失败预算（`failCount`，≥3 次强制换方案） | `brain.ts` | 全局上限保留 |
-| **F9** | 云端传输层 SSE 流式（`stream:true` + 逐 `data:` 行解析 + tool_calls 按 index 合并 + `onChunk` 逐字） | `openAiTransport.ts` | 与本地 Ollama 流式 UX 对齐；无 body 时降级读 JSON |
-| **F1** | `runTask.ts::runSingleShotTask` **完整单发任务 harness**（预算确认 → 计时 → `AgentRunStats` 观测累计）；ceshu 三处 handler 全部改走它 | `runTask.ts` + `ceshuIpc.ts` | 与 `runBrainLoop`（多轮）分工；两者共用 `confirmAgentBudget` + `AgentRunStats`，成本口径/观测形状单一真源。工具循环仍留在 `brainService`（不做无收益的大合并） |
-| **F3** | **可插拔真实 embedding**：`embedding.ts` 走 Ollama `/api/embeddings`（`MB_MEMORY_EMBED_MODEL` opt-in）；`embedding.json` 索引版本校验（换模型自动重建）；provider 失败优雅跳过；叠加近因重排 + learnings 萃取 | `embedding.ts`（新）+ `memoryStore.ts` + `stores.ts` | 默认仍为确定性哈希（无 embedding 模型也可用）；真实模型仅显式配置时启用，失败不阻塞主流程；不会把异维度向量混入同一索引 |
-| **F11** | `sessionStore.recordRunStats` 落盘运行统计；`brainService` 云端超预算记 metric（DD-5b 真降级起点） | `sessionStore.ts` + `brainService.ts` | 观测闭环地基，真降级待补 |
+| 项       | 落地内容                                                                                                                                                                 | 文件                                                | 备注                                                                                                                 |
+| ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| **F7**  | `resolveAgentTier` 三态如实透传（`unconfigured` 不再伪装 `local`）；渲染层在未配置档显示可执行引导（「去设置配云端 / 保持本地保密模式」）                                                                          | `agentTransport.ts` + `DigitalPanel.tsx`          | 传输层对 `unconfigured` 仍走原生本地 Ollama（聊天面本就以本地为原生档），只做**诚实标注 + 行内引导**，不做「无配置即报错」的破坏性改法                                 |
+| **F2**  | 循环读取 `MEMORY.md` 长期记忆 + `learnings.jsonl` 沉淀知识，作为 `## 长期记忆`/`## 沉淀知识` 块注入                                                                                            | `memoryStore.ts` + `brainService.ts`              | 此前循环完全没读 MEMORY.md，现已接入                                                                                            |
+| **F8**  | 域 grounding 块（GDD 章节结构）常驻注入 `extraBlocks`（不计入 30 行核心区）                                                                                                               | `brainService.ts`                                 | 放在 main 层以遵守 `shared/agent` 领域无关铁律；库级类型 schema/术语表注入需库上下文，留后续                                                      |
+| **F6**  | `clipToolResult` 工具结果尺寸闸（本地 1500 / 云端 4000 字，超限截断）                                                                                                                   | `brain.ts`                                        |                                                                                                                    |
+| **F5**  | `maybeResetContext` 上下文重置（DD-8）：历史超阈值压缩为交接摘要续跑                                                                                                                       | `brain.ts`                                        | 模板摘要、不额外调 LLM                                                                                                      |
+| **F4**  | `evaluator` 钩子进循环；云端档挂 `defaultDialogueEvaluator`（空产出判定），结论进 `BrainRunResult.verdict`                                                                                | `brain.ts` + `brainService.ts`                    | 不阻断生成                                                                                                              |
+| **F10** | per-tool 连续失败预算（`failCount`，≥3 次强制换方案）                                                                                                                               | `brain.ts`                                        | 全局上限保留                                                                                                             |
+| **F9**  | 云端传输层 SSE 流式（`stream:true` + 逐 `data:` 行解析 + tool_calls 按 index 合并 + `onChunk` 逐字）                                                                                   | `openAiTransport.ts`                              | 与本地 Ollama 流式 UX 对齐；无 body 时降级读 JSON                                                                               |
+| **F1**  | `runTask.ts::runSingleShotTask` **完整单发任务 harness**（预算确认 → 计时 → `AgentRunStats` 观测累计）；ceshu 三处 handler 全部改走它                                                          | `runTask.ts` + `ceshuIpc.ts`                      | 与 `runBrainLoop`（多轮）分工；两者共用 `confirmAgentBudget` + `AgentRunStats`，成本口径/观测形状单一真源。工具循环仍留在 `brainService`（不做无收益的大合并） |
+| **F3**  | **可插拔真实 embedding**：`embedding.ts` 走 Ollama `/api/embeddings`（`MB_MEMORY_EMBED_MODEL` opt-in）；`embedding.json` 索引版本校验（换模型自动重建）；provider 失败优雅跳过；叠加近因重排 + learnings 萃取 | `embedding.ts`（新）+ `memoryStore.ts` + `stores.ts` | 默认仍为确定性哈希（无 embedding 模型也可用）；真实模型仅显式配置时启用，失败不阻塞主流程；不会把异维度向量混入同一索引                                                  |
+| **F11** | `sessionStore.recordRunStats` 落盘运行统计；`brainService` 云端超预算记 metric（DD-5b 真降级起点）                                                                                       | `sessionStore.ts` + `brainService.ts`             | 观测闭环地基，真降级待补                                                                                                       |
+
 
 **验证命令**
+
 ```
 tsc --noEmit -p tsconfig.node.json --composite false   # 零错误
 tsc --noEmit -p tsconfig.web.json  --composite false   # 零错误（含 DigitalPanel 改动）
@@ -238,6 +241,7 @@ vitest run tests/unit tests/integration                # 2015 passed / 5 skipped
 ```
 
 **仍待（非阻塞，需真机/产品决策）**
+
 - e2e 需在 `npm run build` 后真机跑（Ollama + 云端 Key），本次未跑 e2e（与项目惯例一致：e2e 本地可跑但需先 build）。**F9 云端流式与 F7 面板提示建议在真机各补一条 e2e。**
 - F7 当前是「行内提示 + 档位标签」；若产品要「未配置直接弹引导 / 一键开保密模式」，需再加面板按钮（后端契约已就绪）。
 - 云端 planner / sub-agent 仍是演进项（DD-13 云端候选），按路线图 P3 评估。
@@ -247,24 +251,25 @@ vitest run tests/unit tests/integration                # 2015 passed / 5 skipped
 
 ## 7. 编排核心重构（第二轮，按确认范围）
 
-第一轮是「最小改动补齐缺口」，结果是单文件膨胀：`brain.ts` 555 行、`brainService.ts` 约 340 行，
-两者都同时承担「定义 / 求值 / 编排 / 副作用」四类职责。第二轮按主理人确认的范围**重写编排核心**，
+第一轮是「最小改动补齐缺口」，结果是单文件膨胀：`brain.ts` 555 行、`brainService.ts` 约 340 行，  
+两者都同时承担「定义 / 求值 / 编排 / 副作用」四类职责。第二轮按主理人确认的范围**重写编排核心**，  
 目标是**职责分离 + 消除重复**，不改公共 API、不改行为。
 
 ### 7.1 范围裁定（写清楚「没动什么」，避免被当成偷工减料）
 
-| 区域 | 处理 | 理由 |
-|---|---|---|
-| `shared/agent/brain/` | **重写为包**（4 文件） | 555 行单文件；类型与求值逻辑混居 |
-| `main/agent/agentService/` | **重写为包**（5 文件） | 编排 + 副作用 + 提示词装配混居 |
-| `main/agent/ollamaTransport.ts` / `openAiTransport.ts` | **重写**（共用行泵） | 两份流解析拷贝已出现实质漂移 |
-| `main/agent/agentStream.ts` | **新增** | 行泵 + HTTP 错误归一 |
-| `main/agent/dispatcher.ts` | **只修一处** | 结构无需重写（见 7.4） |
-| `main/agent/skills/**`（1104 行） | **不动** | 架构问题不在技能实现内部 |
-| 纯数据表（`protocolData` / `ceshuConstants` 等） | **不动** | 无逻辑 |
-| `shared/schemas.ts` / `ipc.ts` / `service/api.ts` / `preload` | **不动** | 四层 IPC 契约不在本范围内 |
+| 区域                                                            | 处理             | 理由                 |
+| ------------------------------------------------------------- | -------------- | ------------------ |
+| `shared/agent/brain/`                                         | **重写为包**（4 文件） | 555 行单文件；类型与求值逻辑混居 |
+| `main/agent/agentService/`                                    | **重写为包**（5 文件） | 编排 + 副作用 + 提示词装配混居 |
+| `main/agent/ollamaTransport.ts` / `openAiTransport.ts`        | **重写**（共用行泵）   | 两份流解析拷贝已出现实质漂移     |
+| `main/agent/agentStream.ts`                                   | **新增**         | 行泵 + HTTP 错误归一     |
+| `main/agent/dispatcher.ts`                                    | **只修一处**       | 结构无需重写（见 7.4）      |
+| `main/agent/skills/**`（1104 行）                                | **不动**         | 架构问题不在技能实现内部       |
+| 纯数据表（`protocolData` / `ceshuConstants` 等）                     | **不动**         | 无逻辑                |
+| `shared/schemas.ts` / `ipc.ts` / `service/api.ts` / `preload` | **不动**         | 四层 IPC 契约不在本范围内    |
 
 安全锚点（动手前建立，零成本回滚）：
+
 ```
 git tag agent-pre-rewrite-2026-10-18 HEAD    # = 30d88b6
 cp -r 备份                                   # D:/tmp/agent-rewrite-backup-2026-10-18/
@@ -272,53 +277,54 @@ cp -r 备份                                   # D:/tmp/agent-rewrite-backup-202
 
 ### 7.2 `shared/agent/brain/`：定义层 / 逻辑层分离
 
-| 文件 | 职责 | 关键约束 |
-|---|---|---|
-| `types.ts` | 全部事件 / 选项 / 结果类型 + 4 个默认常量 | **零求值逻辑**，改类型不牵动流程 |
-| `context.ts` | `safeRunEvaluator` / `clipToolResult` / `maybeResetContext` | 纯函数，可独立测 |
-| `loop.ts` | `runBrainLoop` | 只管流程，不碰提示词/记忆/落盘 |
-| `index.ts` | barrel | 公共 API 不变 |
-| `brain.ts` | 一行 `export * from './brain/index'` | 既有 import 站点零改动 |
+| 文件           | 职责                                                          | 关键约束               |
+| ------------ | ----------------------------------------------------------- | ------------------ |
+| `types.ts`   | 全部事件 / 选项 / 结果类型 + 4 个默认常量                                  | **零求值逻辑**，改类型不牵动流程 |
+| `context.ts` | `safeRunEvaluator` / `clipToolResult` / `maybeResetContext` | 纯函数，可独立测           |
+| `loop.ts`    | `runBrainLoop`                                              | 只管流程，不碰提示词/记忆/落盘   |
+| `index.ts`   | barrel                                                      | 公共 API 不变          |
+| `brain.ts`   | 一行 `export * from './brain/index'`                          | 既有 import 站点零改动    |
 
-⚠️ 重演过的坑：`export *` **不会**把符号带进本模块局部作用域 —— 被 `loop.ts` 函数体引用的
-类型必须逐个显式 import（否则 TS2304 + 连带隐式 any）。同理，原文件里未 `export` 的私有
+⚠️ 重演过的坑：`export *` **不会**把符号带进本模块局部作用域 —— 被 `loop.ts` 函数体引用的  
+类型必须逐个显式 import（否则 TS2304 + 连带隐式 any）。同理，原文件里未 `export` 的私有  
 `const` **不迁**（迁了就得 import 再反向导出，等于悄悄扩大公共 API）。
 
 ### 7.3 `main/agent/agentService/`：编排 / 副作用分离
 
-| 文件 | 职责 |
-|---|---|
-| `types.ts` | `AgentChatOptions` / `AgentBrainServiceDeps` |
-| `domainContext.ts` | `buildDomainContextBlock`（章节结构 grounding）+ `defaultDialogueEvaluator` |
-| `memory.ts` | `buildMemoryBlock`（相关记忆 / 长期记忆 / 沉淀知识三块拼装） |
-| `service.ts` | `createDispatcherToolRunner` + `AgentBrainService.chat()`（档位 → 传输层 → 工具面 → 提示词 → 循环 → 落盘 → 回写） |
-| `index.ts` | barrel；`brainService.ts` 退化为一行再导出 |
+| 文件                 | 职责                                                                                             |
+| ------------------ | ---------------------------------------------------------------------------------------------- |
+| `types.ts`         | `AgentChatOptions` / `AgentBrainServiceDeps`                                                   |
+| `domainContext.ts` | `buildDomainContextBlock`（章节结构 grounding）+ `defaultDialogueEvaluator`                          |
+| `memory.ts`        | `buildMemoryBlock`（相关记忆 / 长期记忆 / 沉淀知识三块拼装）                                                     |
+| `service.ts`       | `createDispatcherToolRunner` + `AgentBrainService.chat()`（档位 → 传输层 → 工具面 → 提示词 → 循环 → 落盘 → 回写） |
+| `index.ts`         | barrel；`brainService.ts` 退化为一行再导出                                                              |
 
-调用顺序与改前逐行一致；**唯一新增的转换点**仍是 `toFunctionCallingTools`（线格式外层包装），
+调用顺序与改前逐行一致；**唯一新增的转换点**仍是 `toFunctionCallingTools`（线格式外层包装），  
 未分裂成第二处 —— 这是历史上踩过云 400 / 本地静默的雷区。
 
 ### 7.4 `dispatcher.ts`：为什么只改一处
 
-结构（注册表 / 模糊解析 / 确认门 / 结构化错误）经查是合理的，**重写只会增加风险**。
+结构（注册表 / 模糊解析 / 确认门 / 结构化错误）经查是合理的，**重写只会增加风险**。  
 真实缺陷只有一个：
 
 > `maxAllowedRisk` 字段存了、`riskCeiling` getter 也暴露了，但 `execute()` **从不读取**。
 
-这是典型「形似安全策略、实则零守卫」——删掉那行不会有任何测试报红。修法不是删字段，而是
-让它真正生效：`execute()` 改走 `protocol.checkPermission`（显式禁止 → 硬上限 → 危险确认三段），
+这是典型「形似安全策略、实则零守卫」——删掉那行不会有任何测试报红。修法不是删字段，而是  
+让它真正生效：`execute()` 改走 `protocol.checkPermission`（显式禁止 → 硬上限 → 危险确认三段），  
 同时补 3 条守卫测试钉住它。
 
-⚠️ 缺省值必须是 `RISK_LEVEL.SYSTEM`（不设上限），**不能**用 `protocol.ts` 的
-`DEFAULT_MAX_ALLOWED_RISK`（`FILE_SYSTEM`）：后者会让 `system.code` 这类 SYSTEM 级操作
-**即便用户点过确认也无法执行** —— 那是行为破坏，不是加强安全。硬上限（配置式禁止）与
+⚠️ 缺省值必须是 `RISK_LEVEL.SYSTEM`（不设上限），**不能**用 `protocol.ts` 的  
+`DEFAULT_MAX_ALLOWED_RISK`（`FILE_SYSTEM`）：后者会让 `system.code` 这类 SYSTEM 级操作  
+**即便用户点过确认也无法执行** —— 那是行为破坏，不是加强安全。硬上限（配置式禁止）与  
 确认门（交互式放行）是两个维度，不能互相替代。
 
 ### 7.5 传输层：消除「复制出来的漂移」
 
-改前两层各写一遍 `getReader → TextDecoder → 缓冲切 \n`，约 50 行 ×2，**且已漂移**：
+改前两层各写一遍 `getReader → TextDecoder → 缓冲切 \n`，约 50 行 ×2，**且已漂移**：  
 云端那份有 `finally { reader.releaseLock() }`，本地那份没有（抛错时锁不释放）。
 
 现抽出 `agentStream.ts`：
+
 - `pumpLines(body, onLine)`：只切行，不解释内容；尾行不丢；`finally` 保证释放；
 - `assertHttpOk(response, label)`：两档一致的状态码 + 响应体摘要（截 200 字，保留 `param`/`code` 定位信息）。
 
@@ -334,24 +340,24 @@ vitest run tests/unit tests/integration                # 2018 passed / 5 skipped
 npm run build                                          # 成功（out/main 590.61 kB）
 ```
 
-分模块验证节奏（每模块先绿再进下一个）：`brain/` 57 例 → `agentService/` 57 例 →
+分模块验证节奏（每模块先绿再进下一个）：`brain/` 57 例 → `agentService/` 57 例 →  
 传输层 62 例 → 调度器 86 例（含新增 3 条）→ 全量 2018 例。
 
 ### 7.7 e2e 实测：修好 agent 组，暴露整包既有红灯
 
 `out/` 构建完成后跑了 e2e（`npm run build` 是前提，e2e 打的是产物不是源码）。
 
-**agent 组：3 条 spec 全绿（9 例）**，但过程中先红了 4 例，全部是**用例本身陈旧/竞态**，
+**agent 组：3 条 spec 全绿（9 例）**，但过程中先红了 4 例，全部是**用例本身陈旧/竞态**，  
 不是重构引入 —— 用 `git worktree` 在重构前提交（`30d88b6`）上原样复跑，报错完全一致：
 
-| 用例 | 陈旧点 | 修法 |
-|---|---|---|
-| `agent-execute-tool` / `agent-brain-chat` 的工具面断言 | 写死 2 个技能，实际注册表已增至 5（`system.code` / `tool.ask_user` / `tool.rollback_ai_changes`） | 更新为当前 5 个，并**保留写死**（注册表变化应在 e2e 层可见） |
-| `agent-digital-panel` 的 `思考中…` / `digital-streaming` | 桩服务零延迟 ⇒ 整轮在 React 提交一帧前跑完，瞬态态永远来不及渲染 | 桩服务加 `delayMs`：首轮延迟 600ms，终稿分片间隔 600ms 写出 |
-| `agent-digital-panel` 的 `digital-step` 计数 | 断言 3 条，实际事件流是 4 条（两次 LLM 调用各一条 `llm_think`） | 改为 4 并**显式断言顺序**（think → 并行1工具 → tool → think） |
+| 用例                                                   | 陈旧点                                                                               | 修法                                             |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------- | ---------------------------------------------- |
+| `agent-execute-tool` / `agent-brain-chat` 的工具面断言     | 写死 2 个技能，实际注册表已增至 5（`system.code` / `tool.ask_user` / `tool.rollback_ai_changes`） | 更新为当前 5 个，并**保留写死**（注册表变化应在 e2e 层可见）           |
+| `agent-digital-panel` 的 `思考中…` / `digital-streaming` | 桩服务零延迟 ⇒ 整轮在 React 提交一帧前跑完，瞬态态永远来不及渲染                                             | 桩服务加 `delayMs`：首轮延迟 600ms，终稿分片间隔 600ms 写出      |
+| `agent-digital-panel` 的 `digital-step` 计数            | 断言 3 条，实际事件流是 4 条（两次 LLM 调用各一条 `llm_think`）                                       | 改为 4 并**显式断言顺序**（think → 并行1工具 → tool → think） |
 
-**整包 e2e：54 passed / 18 failed / 2 skipped。** 18 条红全部集中在 ceshu / library-bar /
-smoke / type-field-id-ai，**与本次重构无关**（同法在 `30d88b6` 上复跑 smoke + library-bar 三条，
+**整包 e2e：54 passed / 18 failed / 2 skipped。** 18 条红全部集中在 ceshu / library-bar /  
+smoke / type-field-id-ai，**与本次重构无关**（同法在 `30d88b6` 上复跑 smoke + library-bar 三条，  
 失败与报错一字不差）。这是一笔**独立的技术债**，不应记在本次重构账上，但也不该继续无视：
 
 - `library-bar` 两条：切库后标题仍为「初始库」、重启不恢复上次库 ⇒ 库切换/持久化疑似真 bug。
@@ -359,17 +365,98 @@ smoke / type-field-id-ai，**与本次重构无关**（同法在 `30d88b6` 上�
 - `type-field-id-ai`：期望「未配置 AI 服务」文案含 `Ollama`，实际文案已改为指向「设置 → AI 模型服务」。
 - 其余 `ceshu-*`：待逐条归类（多为断言随 UI 演进过期）。
 
-> 建议单开一轮「e2e 债清理」，先分类（真 bug / 断言过期 / 环境依赖），再决定修哪边。
+> 建议单开一轮「e2e 债清理」，先分类（真 bug / 断言过期 / 环境依赖），再决定修哪边。  
 > **不要再让 e2e 长期红着** —— 红灯常态化等于没有 e2e，本次就是靠它先被误认为「重构引入回归」。
+
+> **补充（第三轮）**：这 18 条已全部清零，其中 1 条是真 bug（不是断言过期）。  
+> 逐条分类与根因见 **§8.1**，真 bug 的修法见 **§8.2**。
 
 ### 7.8 仍存在的已知缺口（不粉饰）
 
-- 🔴 **循环没有取消能力**。`wallClockMs` 是**轮次间**的软检查：单次 LLM 调用若挂住
-  （本地 Ollama 卡死 / 云端不回包），循环无法中断，与「三道计数闸为硬闸」的说法不完全相符。
-  补法需三层同改：`BrainLlmRequest.signal` → 传输层 `fetch(…, { signal })` → `AgentChatOptions`
-  透传 + IPC 取消通道 + 渲染层停止按钮。**本轮未做**（属功能新增，不该混进结构重构）。
-- 🟠 `fuzzyMatch` 仍是子串启发式：极短名（如 `a`）会命中一大片，取「键最长」兜住。
+- ~~🔴 **循环没有取消能力**~~ → **已在 §7.9 关闭**（保留此行只为留痕：这个坑真实存在过，  
+  不是笔误）。原状：`wallClockMs` 是**轮次间**的软检查，单次 LLM 调用若挂住  
+  （本地 Ollama 卡死 / 云端不回包），循环无法中断，与「三道计数闸为硬闸」的说法不符。
+- 🟠 `fuzzyMatch` 仍是子串启发式：极短名（如 `a`）会命中一大片，取「键最长」兜住。  
   属已知取舍，改它需要真正的中文分词，收益不足。
-- 🟠 `runBrainLoop` 的工具结果截断阈值（本地 1500 / 云端 4000）是经验值，未按模型
+- 🟠 `runBrainLoop` 的工具结果截断阈值（本地 1500 / 云端 4000）是经验值，未按模型  
   `num_ctx` 动态推导。
+
+## 8. 第三轮：e2e 债清零 + 补取消能力
+
+用户在这轮的原话是「把他们解决了」——指上表里两笔挂在账上的东西：**18 条既有红灯**与**取消能力缺失**。  
+一句「它们是既有问题、不是本次引入」并不算解决，所以这轮把它们当交付物做掉。
+
+### 8.1 e2e 债：18 条 → 0
+
+先分类再修（分类错了就会去改没问题的实现）。四类，比例大致 1:7:9:2：
+
+| 类别             | 条数    | 代表                                                                                                  | 修法                                                                |
+| -------------- | ----- | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| **真 bug**      | 1     | `library-bar` ×2：切库后库条显示「初始库」                                                                        | 改**实现**（见 8.2），不是改断言                                              |
+| **路径过期**       | 7 spec | `ceshu*.spec` 仍按 `<userData>/ceshu/` 拼路径 ⇒ `ENOENT` 被当成「没落盘」                                          | 统一用 `helpers/app.ts::libraryDir()`（`<userData>/libraries/<初始库>/`） |
+| **断言过期**       | 9     | 章节数 18→17（`meta` 不算章）、结构分 3→3.1、`ai-*` 两段式成本确认、删除改为两段式确认、`ai-review` 文案改「尚未配置 AI 服务」              | 断言改为**当前契约**，并保留写死（契约变化应在 e2e 层可见）                                |
+| **用例竞态**       | 3     | `思考中…` 零延迟桩不可观测；`library-active` 乐观更新抢在重载前；datagen「取消全选」跑在异步类型列表之前                                  | 桩加 `delayMs`；先登记 `load` 事件再切库；等勾选框可见再操作 / 断言 `input:checked` 数量 |
+
+两条值得单独记住的：
+
+1. **`library-active` 有乐观更新** ⇒ 断言文本会在整页重载**之前**通过，紧接着的 `page.evaluate` 就撞上
+   `Execution context was destroyed`。而且这种「乐观值通过」根本没验证活跃库指针是否落盘 —— 修法是
+   **先登记 `waitForEvent('load')` 再触发切换**，不是把超时调大。
+2. **异步列表 + 默认全选** ⇒ 「取消全选」若跑在列表加载前会静默失效（本轮就多出 `monsters:1`）。
+   守卫是操作后断言 `input:checked` 的**数量**，而不是只断言最终文案。
+
+### 8.2 一个真 bug：`library:list` 拿不到活跃库
+
+- **现象**：切到「项目 A」后库条仍显示「初始库」，但数据其实是项目 A 的；再选「初始库」毫无反应。
+- **根因**：切换库 → 主进程广播 `library:changed` → `App.tsx` **整页 `location.reload()`**（组件状态全丢）。
+  重挂载后 `LibraryBar` 只能拿 `library:list` 的**条目数组**，于是退化成「取 `list[0]`」。
+  而 `list[0]` 恒为初始库（注册表按创建顺序存），且 `handleSwitch` 里 `name === active` 会把
+  「切回初始库」判成无变化 ⇒ 用户被卡在「显示 A、数据是 B」的状态里。
+- **修法**：契约层 `library:list` 的 `res` 由 `LibraryEntry[]` 改为 `{ libraries, active }`，
+  活跃库指针**与列表同包下发**；渲染层不再猜。顺带在 `run()` 的失败分支补一次 `refresh()`，
+  让乐观更新的下拉不会停在一个「并不活跃」的库上（否则同样会踩 `name === active` 的死角）。
+- **影响面**：`library:list` 全仓只有 `LibraryBar` 一个消费方（已 grep 取证），故改 `res` 形状风险为零；
+  `preload` / `shared/service/api.ts` 走 `IpcContract` 泛型，无需改动。
+
+### 8.3 取消能力（`cancelled` 成为第四种 stopReason）
+
+改前：`wallClockMs` 只在**轮次之间**检查，单次 LLM 调用一挂住，循环就永远出不来（用户看到永久转圈）。
+
+设计要点（**一层都不能省**，缺任何一层功能都是空壳）：
+
+| 层            | 改动                                                                                                                 | 为什么必须                                                                        |
+| ------------ | ------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
+| `shared`     | `BrainLlmRequest.signal?: AbortSignal`；`BrainStopReason` 增 `'cancelled'`；`RunBrainLoopOptions.signal`                     | 决策层要能表达「这是取消」，否则只能报 `transport_error` 把用户主动停止显示成故障                          |
+| `shared`     | 循环内**内部 controller**（外部 signal 只转发）+ 墙钟定时器 abort 在途请求                                                              | 一个 controller 同时服务取消与墙钟；改动前墙钟打不穿在途调用                                              |
+| 传输层         | 两个 transport 都 `fetch(…, { signal })`，且 `catch` 里 `if (isAbortError(error)) throw error`（不包装成「本地未启动」）               | 包装后循环分不清「取消」与「真失败」，会丢掉已产出的部分结果                                              |
+| IPC 四层       | `agent:cancel`（`schemasData` → `ipc.ts` → `api.ts` → `preload`），主进程 `activeRuns: Map<runId, AbortController>` + `activeBySender` | 取消是**主进程**的能力：渲染层只能发意图。`runId` 可选，缺省按 sender 找当前运行（兼容不传 runId 的调用方）           |
+| 渲染层         | `digital-stop`（仅 `running` 时出现）；`submitText` 生成本轮 `runId`                                                          | 没有入口的能力等于没有                                                                 |
+
+循环里有**两道**取消闸，各自的产物不同：
+
+1. **轮次开始前**：`stopReason='cancelled'` 后 `break`（一次 LLM 都不再调）。
+2. **工具批开跑前**：为每个 `tool_call` 补一条 `[STOP]` tool 消息再 `break`。
+   ⚠️ 与工具上限闸同理 —— `assistant.tool_calls` 与 tool 结果必须一一对应，否则后续会话续跑直接协议错。
+
+`cancelled` 与三道计数闸同款：`completed: true` + `terminated` 事件 + 取已产出的部分结果，
+**不是** `error` 事件、**不是** reject。
+
+### 8.4 验证
+
+| 闸门                                  | 结果                                                                              |
+| ----------------------------------- | ------------------------------------------------------------------------------- |
+| `tsc -p tsconfig.node.json`         | 0                                                                               |
+| `tsc -p tsconfig.web.json`          | 0                                                                               |
+| `eslint .`                          | 0（过程中修掉一处 `no-useless-assignment`：`wallClockTripped` 初值无用，声明移进循环体）           |
+| `vitest run tests/unit tests/integration` | **2024 passed / 5 skipped**（132 文件），较上轮 +6                                       |
+| `npm run build`                     | 成功                                                                              |
+| 整包 e2e                              | **73 passed / 2 skipped / 0 failed**（75 例）                                      |
+
+新增测试（都打**行为差异**，不是打文案）：
+
+- 单测 6 条（`agentBrain.test.ts`）：`isAbortError` 两种真实形态 · 进循环前已取消（0 次 LLM 调用）·
+  在途取消报 `cancelled` 而非 `transport_error` · 回包后未跑工具时补 `[STOP]` 且 tool 消息一一对应 ·
+  **墙钟打断在途调用**（改前这条会永久挂住，是真正钉住修复点的那条）· 正常完成不受 signal 影响。
+- e2e 1 条（`agent-digital-panel.spec.ts`）：桩延迟 **5s**、断言限时 **4s** —— 只有真 abort 才可能通过；
+  同时断言状态落「已完成」而非「出错」、停止按钮随运行结束收起。
 

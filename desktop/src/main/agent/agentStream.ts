@@ -54,3 +54,9 @@ export async function assertHttpOk(response: Response, label: string): Promise<v
   const trimmed = detail.trim().replace(/\s+/g, ' ')
   throw new Error(trimmed === '' ? `${label}（HTTP ${response.status}）` : `${label}（HTTP ${response.status}）：${trimmed.slice(0, 200)}`)
 }
+
+/**
+ * 是否是「取消」导致的异常 —— 实现下沉在 `shared/agent/abort.ts`（循环层也要用，禁止反向 import）。
+ * 这里 re-export 保持传输层的既有 import 站点不变。
+ */
+export { isAbortError } from '../../shared/agent/abort'

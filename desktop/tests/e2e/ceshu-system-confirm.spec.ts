@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { expect, test } from '@playwright/test'
-import { launchApp, waitReady } from './helpers/app'
+import { launchApp, libraryDir, waitReady } from './helpers/app'
 
 /**
  * W32 系统依赖确认 + 数据同步 端到端验收。
@@ -83,7 +83,13 @@ test('系统确认：勾选启用 + 自定义系统 + 确认落盘 + 双向同�
     // 勾选两个内置系统
     await window.getByTestId(`sys-check-${keyA}`).click()
     await window.getByTestId(`sys-check-${keyB}`).click()
-    // 展开 keyA 的字段架构预览（验证 formatFieldsPreview 渲染）
+    // 勾选即自动展开字段架构（`handleToggle` 在 value=true 时 setExpanded），故此处应直接可见。
+    // ⚠️ 不要在这之后再点一次 `sys-toggle-`：那是**收起**——旧断言正是多点了一次，
+    // 把刚自动展开的预览又收了起来，然后期待它可见（永久红灯）。
+    await expect(window.getByTestId(`sys-fields-${keyA}`)).toBeVisible()
+    // 折叠/展开双向各验一次，钉住 toggle 语义
+    await window.getByTestId(`sys-toggle-${keyA}`).click()
+    await expect(window.getByTestId(`sys-fields-${keyA}`)).toHaveCount(0)
     await window.getByTestId(`sys-toggle-${keyA}`).click()
     await expect(window.getByTestId(`sys-fields-${keyA}`)).toBeVisible()
 
@@ -153,7 +159,7 @@ test('系统确认：勾选启用 + 自定义系统 + 确认落盘 + 双向同�
 
     // 磁盘回读：确认 systems 已原子落盘
     const onDisk = JSON.parse(
-      readFileSync(join(userDataDir, 'ceshu', `${createdId}.json`), 'utf-8')
+      readFileSync(join(libraryDir(userDataDir), 'ceshu', `${createdId}.json`), 'utf-8')
     ) as { systems: Record<string, { enabled: boolean; config?: Record<string, unknown> }> }
     expect(onDisk.systems[keyA]?.enabled).toBe(true)
     expect(onDisk.systems[customName]?.enabled).toBe(true)

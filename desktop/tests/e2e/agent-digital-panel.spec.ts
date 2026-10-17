@@ -17,6 +17,8 @@ import { launchApp, waitReady } from './helpers/app'
 
 interface OllamaChatStub {
   host: string
+  /** 已收到的 `/api/chat` 请求数：取消类用例靠它确认「请求真的在途」而非空转 */
+  hits: () => number
   close: () => Promise<void>
 }
 
@@ -54,9 +56,14 @@ async function startOllamaChatStub(options: StubOptions = {}): Promise<OllamaCha
         call += 1
         const isFirst = call === 1
         const paced = options.delayMs !== undefined && options.delayMs > 0
+        // 客户端可能已被取消（`fetch` abort 掉 socket）：此时再写会抛 ERR_STREAM_DESTROYED，
+        // 而异常发生在 setTimeout 里不会被用例捕获，会直接带崩 worker
+        const dead = (): boolean => res.destroyed || res.writableEnded
+        res.on('error', () => undefined)
 
         // 首轮：一次性回 tool_call（可延迟，给面板留出渲染 `思考中…` 的时间窗）
         const emitToolCall = (): void => {
+          if (dead()) return
           res.writeHead(200, { 'Content-Type': 'application/x-ndjson' })
           res.end(
             lines([
@@ -77,6 +84,7 @@ async function startOllamaChatStub(options: StubOptions = {}): Promise<OllamaCha
         // 为什么必须分片：`digital-streaming` 区域在终稿落地后即清空，
         // 零延迟时「流式文本可见」与「已完成」之间没有可观测窗口。
         const emitFinal = (): void => {
+          if (dead()) return
           res.writeHead(200, { 'Content-Type': 'application/x-ndjson' })
           if (!paced) {
             res.end(
@@ -89,6 +97,7 @@ async function startOllamaChatStub(options: StubOptions = {}): Promise<OllamaCha
           }
           let index = 0
           const step = (): void => {
+            if (dead()) return
             if (index < finalChunks.length) {
               res.write(lines([{ message: { role: 'assistant', content: finalChunks[index] }, done: false }]))
               index += 1
@@ -118,6 +127,7 @@ async function startOllamaChatStub(options: StubOptions = {}): Promise<OllamaCha
   const port = typeof address === 'object' && address ? address.port : 0
   return {
     host: `http://127.0.0.1:${port}`,
+    hits: () => call,
     close: () => new Promise<void>((resolve) => server.close(() => resolve()))
   }
 }
@@ -220,6 +230,44 @@ test('数字员工面板：上一轮会话落盘后，重新启动可看到「�
       await second.close()
     }
   } finally {
+    await stub.close()
+  }
+})
+
+test('数字员工面板：运行中点「停止」→ 打断在途调用、给出诚实提示、不报成故障', async () => {
+  /*
+   * 首轮响应压后 5s：给「思考中…」留出稳定窗口，也保证点停止时请求**确实在途**
+   * （改前 `wallClockMs` 只在轮次间检查，这种挂住的单次调用根本出不来）。
+   */
+  const stub = await startOllamaChatStub({ delayMs: 5000 })
+  const userDataDir = mkdtempSync(join(tmpdir(), 'mb-agent-cancel-e2e-'))
+  const app = await launchApp(userDataDir, { MB_OLLAMA_HOST: stub.host, MB_OLLAMA_MODEL: 'stub:latest' })
+
+  try {
+    const window = await app.firstWindow()
+    await waitReady(window)
+
+    await window.getByTestId('digital-input').fill('看看有哪些数据类型')
+    await window.getByTestId('digital-send').click()
+    await expect(window.getByTestId('digital-status')).toHaveText('思考中…')
+
+    // 先确认桩已收到请求：否则「停止」会扑空成 cancelled:false，用例就成了空转
+    await expect.poll(() => stub.hits(), { timeout: 10_000 }).toBeGreaterThan(0)
+    await expect(window.getByTestId('digital-stop')).toBeVisible()
+    await window.getByTestId('digital-stop').click()
+
+    /*
+     * 用**短于桩延迟**的超时断 terminated：这才能证明是「abort 打断了在途请求」，
+     * 而不是等桩在 5s 后正常回包。若取消链路断了，这里会超时失败。
+     */
+    await expect(window.getByTestId('digital-terminated')).toContainText('已按要求停止', { timeout: 4000 })
+    // 取消不是故障：状态落「已完成」而不是「出错」
+    await expect(window.getByTestId('digital-status')).toHaveText('已完成', { timeout: 4000 })
+    await expect(window.getByTestId('digital-status')).not.toHaveText('出错')
+    // 运行中才有的「停止」按钮随之收起
+    await expect(window.getByTestId('digital-stop')).toHaveCount(0)
+  } finally {
+    await app.close()
     await stub.close()
   }
 })

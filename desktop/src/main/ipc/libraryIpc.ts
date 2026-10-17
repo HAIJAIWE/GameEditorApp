@@ -4,7 +4,11 @@ import { libraryCreateInputSchema, libraryRenameInputSchema, libraryNameInputSch
 export function registerLibraryIpc(deps: IpcHandlerDeps, handle: IpcRegistrar): void {
   const { libraryManager, onSwitchLibrary } = deps
   // 库管理（A2-1）：切换由 onSwitchLibrary 负责重建 store 并广播 library:changed
-  handle('library:list', undefined, () => libraryManager.list())
+  // 活跃库指针随列表一起返回：渲染层切换后会整页重载，拿不到组件内状态
+  handle('library:list', undefined, () => ({
+    libraries: libraryManager.list(),
+    active: libraryManager.active()
+  }))
   handle('library:create', libraryCreateInputSchema, (req) =>
     libraryManager.create(req.name, req.description ?? '')
   )

@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { expect, test } from '@playwright/test'
-import { launchApp, waitReady } from './helpers/app'
+import { launchApp, libraryDir, waitReady } from './helpers/app'
 
 /** 策划书首页卡片视图的 IPC 形状（仅本用例用到的部分） */
 interface HomeApi {
@@ -88,13 +88,17 @@ test('策划书首页：卡片渲染 + 搜索 + 最近打开 + 重命名/复制/
     await expect(window.getByTestId('home-notice')).toContainText('已重命名为「重命名后甲」')
     await expect(window.getByTestId('home-card').filter({ hasText: '重命名后甲' })).toHaveCount(1)
 
-    // 复制：新增一张「 (副本)」卡片
+    // 复制：新增独立副本 —— 复制后**直接打开副本**（与「新建空白」一致：操作完就进编辑页），
+    // 因此不能期待停留在首页看到 `home-notice`（旧断言正是据此写的，已随该交互永久红灯）。
     await window
       .getByTestId('home-card')
       .filter({ hasText: '重命名后甲' })
       .getByTestId('home-card-copy')
       .click()
-    await expect(window.getByTestId('home-notice')).toContainText('已复制为「重命名后甲 (副本)」')
+    // 进入副本编辑页 → 返回首页复核卡片数
+    await expect(window.getByTestId('ceshu-back')).toBeVisible()
+    await window.getByTestId('ceshu-back').click()
+    await waitReady(window)
     await expect(window.getByTestId('home-card')).toHaveCount(4)
     await expect(window.getByTestId('home-card').filter({ hasText: '重命名后甲 (副本)' })).toHaveCount(1)
 
@@ -105,12 +109,12 @@ test('策划书首页：卡片渲染 + 搜索 + 最近打开 + 重命名/复制/
     await cardB2.getByTestId('home-delete-confirm').click()
     await expect(window.getByTestId('home-notice')).toContainText('已删除策划书')
     await expect(window.getByTestId('home-card')).toHaveCount(3)
-    expect(existsSync(join(userDataDir, 'ceshu', `${idB}.json`))).toBe(false)
+    expect(existsSync(join(libraryDir(userDataDir), 'ceshu', `${idB}.json`))).toBe(false)
     // 未删除的仍在
-    expect(existsSync(join(userDataDir, 'ceshu', `${idA}.json`))).toBe(true)
-    expect(existsSync(join(userDataDir, 'ceshu', `${idC}.json`))).toBe(true)
+    expect(existsSync(join(libraryDir(userDataDir), 'ceshu', `${idA}.json`))).toBe(true)
+    expect(existsSync(join(libraryDir(userDataDir), 'ceshu', `${idC}.json`))).toBe(true)
     // 目录内无残留临时文件
-    expect(readdirSync(join(userDataDir, 'ceshu')).filter((file) => file.endsWith('.tmp'))).toHaveLength(0)
+    expect(readdirSync(join(libraryDir(userDataDir), 'ceshu')).filter((file) => file.endsWith('.tmp'))).toHaveLength(0)
 
     // IPC 复核：列表为 3 份（甲 + 副本 + 丙）
     const list = (await window.evaluate(async () => {

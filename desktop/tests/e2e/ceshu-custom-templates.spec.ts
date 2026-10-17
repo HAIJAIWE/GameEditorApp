@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { type Page, expect, test } from '@playwright/test'
-import { launchApp, waitReady } from './helpers/app'
+import { launchApp, libraryDir, waitReady } from './helpers/app'
 
 interface StoredTemplate {
   id: string
@@ -19,7 +19,7 @@ interface StoredTemplate {
 
 /** 读取模板分类文件（磁盘回读核对） */
 function readCategoryFile(userDataDir: string, category: string): StoredTemplate[] {
-  const path = join(userDataDir, 'ceshu_templates', `${category}.json`)
+  const path = join(libraryDir(userDataDir), 'ceshu_templates', `${category}.json`)
   if (!existsSync(path)) return []
   const raw = JSON.parse(readFileSync(path, 'utf-8')) as { templates: StoredTemplate[] }
   return raw.templates

@@ -43,6 +43,7 @@ import type {
   ReferencesInput,
   CeshuRenameInput,
   AgentChatInput,
+  AgentCancelInput,
   AgentExecuteToolInput,
   AgentDraftLoadInput,
   DeleteImagesInput,
@@ -253,6 +254,11 @@ export interface IpcContract {
     req: AgentChatInput
     res: { text: string; events: BrainEvent[]; completed: boolean; stats: AgentRunStats }
   }
+  /**
+   * 取消本轮运行（用户点「停止」）。
+   * `cancelled: false` = 没有匹配的运行（已结束 / runId 不对）——不是错误，面板无需提示。
+   */
+  'agent:cancel': { req: AgentCancelInput; res: { cancelled: boolean } }
   'agent:approvalResponse': { req: { requestId: string; approved: boolean }; res: { ok: boolean } }
   'agent:interactionResponse': { req: AgentInteractionResponseInput; res: { ok: boolean } }
   'agent:sessionInfo': { req: undefined; res: SessionInfo }
@@ -269,9 +275,17 @@ export interface IpcContract {
 
   // 库管理（A2-1）。库条目结构以 `main/library/store.ts` 的 `LibraryEntry` 为准，
   // 这里按线格式内联声明，避免 shared 反向依赖 main。
+  //
+  // `active` 必须与列表**同包**下发：切换库会让主进程广播 `library:changed`，渲染层收到后
+  // 整页重载（App.tsx），组件内状态全部丢失。若只回条目数组，重载后只能猜「哪个是活跃库」
+  // （早期实现退化成了 `list[0]`）⇒ 库条显示初始库、数据却来自新库，且再点初始库
+  // 会被 `name === active` 判成无变化、切不回去（A2-2 回归，见 library-bar.spec）。
   'library:list': {
     req: undefined
-    res: Array<{ name: string; createdAt: string; description: string; isInitial: boolean }>
+    res: {
+      libraries: Array<{ name: string; createdAt: string; description: string; isInitial: boolean }>
+      active: string
+    }
   }
   'library:create': {
     req: LibraryCreateInput

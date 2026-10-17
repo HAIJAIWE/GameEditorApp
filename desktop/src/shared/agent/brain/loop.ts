@@ -37,6 +37,7 @@ import {
   type RunBrainLoopOptions
 } from './types'
 import { clipToolResult, maybeResetContext, safeRunEvaluator } from './context'
+import { isAbortError } from '../abort'
 
 /**
  * 运行 Brain 循环：推理 → 决策 → 执行 → 反思（最多 `maxTurns` 轮，另受三道计数闸约束）。
@@ -47,7 +48,10 @@ import { clipToolResult, maybeResetContext, safeRunEvaluator } from './context'
  *  3. 工具全部无法解析 → 退出循环（`unresolvable_tools`）；
  *  4. LLM 传输失败 → 发 error 事件后中断（`completed: false`，`transport_error`）；
  *  5. 三道计数闸（DD-5）任一命中 → **带部分产出 finalize**（`completed: true`）并发 `terminated` 事件：
- *     轮数用尽（`max_turns`）/ 工具调用累计超限（`max_tool_calls`）/ 墙钟超时（`wall_clock`）。
+ *     轮数用尽（`max_turns`）/ 工具调用累计超限（`max_tool_calls`）/ 墙钟超时（`wall_clock`）；
+ *  6. 用户取消（`options.signal`）→ 与计数闸同款优雅中止（`cancelled`，`completed: true`）。
+ *     ⚠️ 墙钟与取消都会 **abort 在途 HTTP 请求**，而不只是「下一轮再说」——
+ *     改前 `wallClockMs` 只在轮次间检查，单次调用挂住时循环无法脱身。
  */
 export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainRunResult> {
   const { input, systemPrompts, transport, runner, requestApproval, requestInteraction, onEvent } = options
@@ -98,6 +102,25 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
   const startedAt = Date.now()
   let toolCallCount = 0
   let stopReason: BrainStopReason = 'max_turns'
+
+  /*
+   * 取消 / 墙钟共用一个**内部** controller，外部 signal 只做转发。
+   *
+   * 为什么不让调用方直接传 controller：墙钟超时也必须能中断「一次挂住的 HTTP 调用」。
+   * 改前 `wallClockMs` 只在轮次之间检查 —— 单次 LLM 调用卡死时循环无法脱身，
+   * 这与「三道计数闸是硬闸」的说法不符（用户看到的是永久转圈）。
+   *
+   * 生命周期：每次 `runBrainLoop` 新建一个，随本轮结束丢弃；`once` 监听不摘除
+   * （IPC 侧每轮都传新 signal，不会累积）。
+   */
+  const controller = new AbortController()
+  const externalSignal = options.signal
+  if (externalSignal !== undefined) {
+    if (externalSignal.aborted) controller.abort()
+    else externalSignal.addEventListener('abort', () => controller.abort(), { once: true })
+  }
+  /** 剩余墙钟预算（毫秒）；≤0 表示不限制 */
+  const remainingBudget = (): number => (wallClockMs > 0 ? wallClockMs - (Date.now() - startedAt) : 0)
 
   /**
    * 处理技能提出的交互请求：
@@ -166,8 +189,13 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
   }
 
   for (let iteration = 0; iteration < maxTurns; iteration++) {
+    // 用户取消：契约上与计数闸同款 —— 优雅中止并返回部分产出（不是 reject / 不是 error）
+    if (externalSignal?.aborted === true || controller.signal.aborted) {
+      stopReason = 'cancelled'
+      break
+    }
     // 墙钟闸：在再花一次 LLM 调用之前检查（单个工具很慢时也能止住）
-    if (wallClockMs > 0 && Date.now() - startedAt > wallClockMs) {
+    if (wallClockMs > 0 && remainingBudget() < 0) {
       stopReason = 'wall_clock'
       break
     }
@@ -177,13 +205,35 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
 
     let reply: BrainLlmReply
     const turnStartedAt = Date.now()
+    /*
+     * 把剩余预算挂成定时器：到点 abort 在途请求 ⇒ 真正打断挂死的 HTTP 调用。
+     * 这正是改前缺失的一环 —— `wallClockMs` 只在轮次间检查，单次调用卡住就永远出不来。
+     *
+     * `wallClockTripped` 只在**本轮**有意义（用于区分 `wall_clock` 与 `cancelled`），
+     * 故声明在循环体内、每轮重置；声明在循环外会让初值成为无用赋值（eslint no-useless-assignment）。
+     */
+    let wallClockTripped = false
+    const budget = remainingBudget()
+    const budgetTimer =
+      budget > 0
+        ? setTimeout(() => {
+            wallClockTripped = true
+            controller.abort()
+          }, budget)
+        : undefined
     try {
       reply = await transport.complete({
         messages: [...messages],
         tools,
+        signal: controller.signal,
         onChunk: (text) => emit({ type: 'stream_chunk', text })
       })
     } catch (error) {
+      // 取消 / 墙钟：走 finalize（带部分产出），不能报成 transport_error
+      if (isAbortError(error) || controller.signal.aborted) {
+        stopReason = wallClockTripped ? 'wall_clock' : 'cancelled'
+        break
+      }
       emit({ type: 'error', message: error instanceof Error ? error.message : String(error) })
       return {
         text: fallbackAnswer(results),
@@ -194,6 +244,8 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
         stopReason: 'transport_error',
         verdict: null
       }
+    } finally {
+      if (budgetTimer !== undefined) clearTimeout(budgetTimer)
     }
 
     // M1 观测：本论消耗点（token 用量来自响应；本地档 Ollama 经传输层取 prompt_eval_count/eval_count）
@@ -231,6 +283,22 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
     }
 
     emit({ type: 'step_start', order: iteration, tool: `并行${reply.toolCalls.length}工具` })
+
+    /*
+     * 取消闸（在批次开跑前）：用户可能在 LLM 思考期间点了停止，此时不应再执行工具。
+     * ⚠️ 与工具调用上限闸同样，必须为每个 tool_call 补一条 [STOP] tool 消息 ——
+     * assistant.tool_calls 与 tool 结果必须一一对应，否则后续会话续跑会直接报协议错。
+     */
+    if (controller.signal.aborted) {
+      const text = '[STOP] 已按要求停止，本批工具未执行'
+      for (const call of reply.toolCalls) {
+        results.push(text)
+        emit({ type: 'step_done', tool: call.name, result: text, success: false })
+        messages.push(buildToolMessage(call.id, call.name, text))
+      }
+      stopReason = wallClockTripped ? 'wall_clock' : 'cancelled'
+      break
+    }
 
     // 工具调用闸（DD-5）：累计（含本批）超上限 ⇒ 不再执行本批，直接 finalize。
     // ⚠️ 仍为每个 tool_call 补一条 [STOP] tool 消息：保持「assistant.tool_calls ⟷ tool 结果」一一对应
@@ -338,8 +406,13 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
     }
   }
 
-  // 三道终止闸命中 → 如实告知（面板据此「诚实显示」本次为部分结果）
-  if (stopReason === 'max_turns' || stopReason === 'max_tool_calls' || stopReason === 'wall_clock') {
+  // 终止闸命中 → 如实告知（面板据此「诚实显示」本次为部分结果）
+  if (
+    stopReason === 'max_turns' ||
+    stopReason === 'max_tool_calls' ||
+    stopReason === 'wall_clock' ||
+    stopReason === 'cancelled'
+  ) {
     emit({
       type: 'terminated',
       reason: stopReason,

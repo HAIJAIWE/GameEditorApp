@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { expect, test } from '@playwright/test'
-import { launchApp, waitReady } from './helpers/app'
+import { launchApp, libraryDir, waitReady } from './helpers/app'
 
 interface NoteRecord {
   id: string
@@ -112,7 +112,7 @@ test('章节笔记：IPC 增删改查 + 磁盘落盘 + UI 面板全链路', asyn
     expect(probe.remainingCount).toBe(2)
 
     // 磁盘：每份策划书一个 {"notes": [...]} 文件（Python 兼容结构）
-    const raw = JSON.parse(readFileSync(join(userDataDir, 'ceshu_notes', `${probe.ceshuId}.json`), 'utf-8')) as {
+    const raw = JSON.parse(readFileSync(join(libraryDir(userDataDir), 'ceshu_notes', `${probe.ceshuId}.json`), 'utf-8')) as {
       notes: NoteRecord[]
     }
     expect(raw.notes).toHaveLength(2)

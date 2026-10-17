@@ -18,6 +18,7 @@ import {
   type BrainToolRunner
 } from '../../src/shared/agent/brain'
 import { RISK_LEVEL, fixParams, resolveRiskLevel, type SkillResult } from '../../src/shared/agent/protocol'
+import { isAbortError } from '../../src/shared/agent/abort'
 
 /* ---- 测试替身 ---- */
 
@@ -864,6 +865,163 @@ describe('runBrainLoop：M0.5 终止闸', () => {
     const transport = scripted([toolCall('c1', '不存在的工具')])
     const result = await runBrainLoop({ input: 'x', systemPrompts: [], transport, runner: makeRunner() })
     expect(result.stopReason).toBe('unresolvable_tools')
+    expect(result.events.some((event) => event.type === 'terminated')).toBe(false)
+  })
+})
+
+/* ---- 用户取消（AbortSignal） ---- */
+
+/**
+ * 造一个 fetch / undici 风格的取消错误。
+ * `isAbortError` 同时认 `name==='AbortError'`（浏览器 / undici）与 `code==='ABORT_ERR'`（Node）。
+ */
+function abortError(): Error {
+  const error = new Error('The operation was aborted')
+  error.name = 'AbortError'
+  return error
+}
+
+/**
+ * 永不自行完成的传输层：只服从 `request.signal` 的 abort。
+ *
+ * 这就是改前循环打不穿的那类场景（本地 Ollama 卡死 / 云端不回包）：
+ * `wallClockMs` 只在**轮次间**检查，单次调用一旦挂住就永远出不来。
+ */
+function hangingTransport(onRequest?: (request: BrainLlmRequest) => void): BrainLlmTransport {
+  return {
+    complete: async (request) => {
+      const signal = request.signal
+      if (signal === undefined) {
+        // signal 没透传到传输层，取消能力就是空壳 —— 在断言点直接炸掉，别让它静默通过
+        throw new Error('传输层未拿到 request.signal，取消能力失效')
+      }
+      onRequest?.(request)
+      await new Promise<void>((_resolve, reject) => {
+        signal.addEventListener('abort', () => reject(abortError()), { once: true })
+      })
+      return FINAL // 永不抵达
+    }
+  }
+}
+
+describe('runBrainLoop：用户取消（AbortSignal）', () => {
+  it('isAbortError：认 name=AbortError 与 code=ABORT_ERR，普通错误与字符串不算', () => {
+    expect(isAbortError(abortError())).toBe(true)
+    expect(isAbortError(Object.assign(new Error('aborted'), { code: 'ABORT_ERR' }))).toBe(true)
+    expect(isAbortError(new Error('ECONNRESET'))).toBe(false)
+    expect(isAbortError('AbortError')).toBe(false)
+    expect(isAbortError(undefined)).toBe(false)
+  })
+
+  it('进循环前已取消 → 一次 LLM 都不调，仍按「部分产出」finalize', async () => {
+    const controller = new AbortController()
+    controller.abort()
+    const transport = scripted([FINAL])
+    const result = await runBrainLoop({
+      input: 'x',
+      systemPrompts: [],
+      transport,
+      runner: makeRunner(),
+      signal: controller.signal
+    })
+
+    expect(transport.calls).toHaveLength(0)
+    expect(result.stopReason).toBe('cancelled')
+    // 关键：取消**不是**故障 —— completed 为真，且不发 error 事件
+    expect(result.completed).toBe(true)
+    expect(result.events.some((event) => event.type === 'error')).toBe(false)
+    expect(result.events.find((event) => event.type === 'terminated')).toEqual({
+      type: 'terminated',
+      reason: 'cancelled',
+      detail: expect.stringContaining('已按要求停止')
+    })
+  })
+
+  it('请求在途时取消 → 打断挂住的调用，report 为 cancelled 而不是 transport_error', async () => {
+    const controller = new AbortController()
+    // 请求已发出、模型还没回包时用户点了「停止」
+    const transport = hangingTransport(() => {
+      setTimeout(() => controller.abort(), 5)
+    })
+    const result = await runBrainLoop({
+      input: 'x',
+      systemPrompts: [],
+      transport,
+      runner: makeRunner(),
+      signal: controller.signal
+    })
+
+    expect(result.stopReason).toBe('cancelled')
+    expect(result.completed).toBe(true)
+    // 取消被误判成故障的话这里会冒出 error 事件 + completed=false + 兜底文案
+    expect(result.events.some((event) => event.type === 'error')).toBe(false)
+    expect(result.events.find((event) => event.type === 'terminated')?.reason).toBe('cancelled')
+  })
+
+  it('模型已回包但工具未跑时取消 → 本批不执行，且每个 tool_call 补 [STOP]（会话协议仍合法）', async () => {
+    const controller = new AbortController()
+    const transport: BrainLlmTransport = {
+      complete: async () => {
+        // 取消正好落在「回包之后、工具开跑之前」的缝隙里
+        controller.abort()
+        return {
+          content: '',
+          toolCalls: [
+            { id: 'c1', name: 'system.game_data', arguments: { action: 'list' } },
+            { id: 'c2', name: 'system.ceshu', arguments: { action: 'list' } }
+          ],
+          finishReason: 'tool_calls'
+        }
+      }
+    }
+    const runner = makeRunner()
+    const result = await runBrainLoop({
+      input: 'x',
+      systemPrompts: [],
+      transport,
+      runner,
+      signal: controller.signal
+    })
+
+    expect(runner.executed).toHaveLength(0)
+    expect(result.stopReason).toBe('cancelled')
+    expect(result.completed).toBe(true)
+    const assistant = result.messages.find((message) => message.role === 'assistant' && message.tool_calls)
+    const toolMessages = result.messages.filter((message) => message.role === 'tool')
+    expect(assistant?.tool_calls?.map((call) => call.id)).toEqual(['c1', 'c2'])
+    expect(toolMessages.map((message) => message.tool_call_id)).toEqual(['c1', 'c2'])
+    expect(toolMessages.every((message) => message.content.includes('[STOP]'))).toBe(true)
+  })
+
+  it('墙钟闸能打断在途调用（改前只查轮次间 ⇒ 这条会永久挂住）', async () => {
+    // 传输层永不自行完成，唯一出路是循环挂的预算定时器 abort 它
+    const result = await runBrainLoop({
+      input: 'x',
+      systemPrompts: [],
+      transport: hangingTransport(),
+      runner: makeRunner(),
+      // 120ms：留足余量，保证预算定时器是在**调用在途**时炸的，
+      // 而不是被「轮次前预检」抓到（后者证明不了能打断在途调用）
+      wallClockMs: 120
+    })
+
+    expect(result.stopReason).toBe('wall_clock')
+    expect(result.completed).toBe(true)
+    expect(result.stats.turns).toBe(0) // 一轮都没走完
+    expect(result.events.find((event) => event.type === 'terminated')?.reason).toBe('wall_clock')
+  })
+
+  it('正常完成时不带 terminated / 不受 signal 影响', async () => {
+    const controller = new AbortController() // 永不 abort
+    const result = await runBrainLoop({
+      input: 'x',
+      systemPrompts: [],
+      transport: scripted([FINAL]),
+      runner: makeRunner(),
+      signal: controller.signal
+    })
+    expect(result.stopReason).toBe('final')
+    expect(result.text).toBe('这是最终答复')
     expect(result.events.some((event) => event.type === 'terminated')).toBe(false)
   })
 })

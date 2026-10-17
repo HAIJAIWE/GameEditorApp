@@ -41,6 +41,11 @@ export interface AgentChatOptions {
   requestInteraction?: BrainInteractionResponder
   /** 审批请求 id 生成器（与 broker 配对） */
   newRequestId?: () => string
+  /**
+   * 外部取消信号（IPC 侧由 `agent:cancel` 触发）。
+   * 循环据此优雅中止并返回部分产出（`stopReason: 'cancelled'`），不是 reject。
+   */
+  signal?: AbortSignal
 }
 
 export interface AgentBrainServiceDeps {

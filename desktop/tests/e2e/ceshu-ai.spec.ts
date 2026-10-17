@@ -76,8 +76,11 @@ test('AI 一键生成：未配置时首章失败即中断并给出错误汇总�
     await expect(window.getByTestId('ai-full-error')).toContainText('简要描述')
 
     // 填写描述后开始生成：未配置 ⇒ 首章（meta）失败即中断
+    // ⚠️ 面板是**两段式**：首次点「开始生成」只是进入成本确认（`confirming`），
+    // 必须再点 `ai-full-confirm-yes` 才真正跑。旧用例只点了 start，故一直停在 pending。
     await window.getByTestId('ai-full-desc').fill('一款仙侠题材的开放世界 RPG，玩家扮演修真者探索三界。')
     await window.getByTestId('ai-full-start').click()
+    await window.getByTestId('ai-full-confirm-yes').click()
     await expect(window.getByTestId('ai-full-status-meta')).toContainText('失败', { timeout: 30_000 })
     await expect(window.getByTestId('ai-full-status-meta')).toContainText('尚未配置 AI 服务')
     await expect(window.getByTestId('ai-full-summary')).toContainText('生成中断')

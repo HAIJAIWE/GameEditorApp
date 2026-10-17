@@ -28,9 +28,12 @@ test('AI 审阅：面板结构（5 维度）与离线中文错误路径', async 
     }
     await expect(window.getByTestId('ai-review-export')).toBeDisabled()
 
-    // 离线：AI 调用失败 → 中文可操作错误（含 Ollama 指引），导出仍禁用
+    // 离线：AI 调用失败 → 中文可操作错误 + 导出仍禁用
+    // ⚠️ 文案已从「Ollama 未启动」统一为「尚未配置 AI 服务」（见 llmConfigData 的
+    // GUIDE_NEVER_CONFIGURED_*）：未配置时给的是**去哪配**的指引，比点名 Ollama 更可操作。
+    // 断言打在稳定前缀上，避免再被整句文案改动打红。
     await window.getByTestId('ai-review-start').click()
-    await expect(window.getByTestId('ai-review-error')).toContainText('Ollama', { timeout: 30_000 })
+    await expect(window.getByTestId('ai-review-error')).toContainText('尚未配置 AI 服务', { timeout: 30_000 })
     await expect(window.getByTestId('ai-review-export')).toBeDisabled()
 
     // 关闭回到章节表单

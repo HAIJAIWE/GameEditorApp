@@ -3,11 +3,11 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { expect, test } from '@playwright/test'
-import { launchApp, waitReady } from './helpers/app'
+import { launchApp, libraryDir, waitReady } from './helpers/app'
 
 test('策划书：读取旧版文件 → 新建 → 编辑保存章节 → 磁盘落盘（Python 兼容格式）', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-ceshu-e2e-'))
-  const ceshuDir = join(userDataDir, 'ceshu')
+  const ceshuDir = join(libraryDir(userDataDir), 'ceshu')
   mkdirSync(ceshuDir, { recursive: true })
 
   // 旧版 Python 格式样本：章节字段与当前默认不同、缺章节、含未知顶层键

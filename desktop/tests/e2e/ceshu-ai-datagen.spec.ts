@@ -5,6 +5,7 @@ import { join } from 'node:path'
 
 import { expect, test } from '@playwright/test'
 import { launchApp, waitReady } from './helpers/app'
+import { confidentialLocalLlmConfig } from './helpers/llmConfig'
 
 interface OllamaStub {
   host: string
@@ -173,25 +174,23 @@ test('AI 生成数据（桩服务）：提示词组装 → 候选预览 → 勾�
      *
      * `confidential: true` 走 DD-0b 保密模式（强制本地、无视 baseUrl），
      * 与「处理未发布设计稿要保密」的产品底线一致，也让本用例天然不碰任何云端地址。
-     * 字段集与 `shared/schemas.ts::llmConfigSchema` 一一对应（zod 会剥掉未知键，多写无效）。
+     * 配置字段以 `helpers/llmConfig.ts` 的夹具为底 —— 18 个字段由 `DEFAULT_LLM_CONFIG`
+     * 自动补齐，不再手抄（手抄版曾因新增采样参数而静默失效）。
      */
-    await window.evaluate(async () => {
+    await window.evaluate(async (config) => {
       const api = (globalThis as unknown as { mbApi: { llm: { configure: (req: unknown) => Promise<unknown> } } })
         .mbApi
-      await api.llm.configure({
-        config: {
-          enabled: true,
-          provider: 'ollama',
-          model: 'stub:latest',
-          baseUrl: '',
-          temperature: 0.7,
-          maxTokens: 1000,
-          confidential: true
-        }
-      })
-    })
+      await api.llm.configure({ config })
+    }, confidentialLocalLlmConfig())
 
-    // 只勾选「角色 / 技能」（其余取消），每类 2 条 + 补充要求
+    /*
+     * 只勾选「角色 / 技能」（其余取消），每类 2 条 + 补充要求。
+     *
+     * ⚠️ 必须先等勾选框出现：类型列表是 `schema.list()` 异步拉的，拉回那一刻 effect 会把
+     * **全部类型**设为默认勾选（见 `AiDataGenPanel` 的 `setCheckedTypeIds(loaded.map(...))`）。
+     * 抢在它之前跑「取消全选」会作用在空列表上 ⇒ 怪物仍然勾着，候选里就多出 monsters。
+     */
+    await expect(window.getByTestId('datagen-type').first()).toBeVisible()
     const typeCount = await window.getByTestId('datagen-type').count()
     for (let index = 0; index < typeCount; index += 1) {
       await window.getByTestId('datagen-type').nth(index).uncheck()
@@ -200,6 +199,8 @@ test('AI 生成数据（桩服务）：提示词组装 → 候选预览 → 勾�
       window.getByTestId('datagen-types').locator('label').filter({ hasText: label }).locator('input')
     await typeCheckbox('角色').check()
     await typeCheckbox('技能').check()
+    // 勾选态收敛成「只剩两个」才允许生成 —— 这条断言就是上面那个竞态的守卫
+    await expect(window.getByTestId('datagen-types').locator('input:checked')).toHaveCount(2)
     await window.getByTestId('datagen-count').fill('2')
     await window.getByTestId('datagen-instruction').fill('E2E 补充要求')
     await window.getByTestId('datagen-generate').click()
@@ -260,10 +261,15 @@ test('AI 生成数据（桩服务）：提示词组装 → 候选预览 → 勾�
       monsters: Array<{ id: string; data: Record<string, unknown> }>
     }
     expect(stored.roles).toHaveLength(1)
-    expect(stored.roles[0]?.data).toEqual({ name: '云海剑客', job: '战士', level: 1 })
+    // `data.id` 是**业务短 id**（`DataService.createItem` 在缺 id 时按类型分配下一个序号，
+    // 见 `needsShortId` / `nextItemId`）—— 这是刻意的「任何来源入库都外显短 id」策略，
+    // 与 `record.id`（uuid 主键）是两回事。旧断言没把 `id` 算进去，属该策略上线前的遗留。
+    expect(stored.roles[0]?.data).toEqual({ name: '云海剑客', job: '战士', level: 1, id: '0' })
+    // LLM 给的 id 必须被丢弃并重新分配（不是直接沿用 'ai-1'）
     expect(stored.roles[0]?.id).not.toBe('ai-1')
+    expect(stored.roles[0]?.data.id).toBe('0')
     expect(stored.skills).toHaveLength(1)
-    expect(stored.skills[0]?.data).toEqual({ name: '御剑术', cooldown: 8, desc: '剑气纵横' })
+    expect(stored.skills[0]?.data).toEqual({ name: '御剑术', cooldown: 8, desc: '剑气纵横', id: '0' })
     expect(stored.monsters).toHaveLength(0)
 
     await window.getByTestId('datagen-close').click()

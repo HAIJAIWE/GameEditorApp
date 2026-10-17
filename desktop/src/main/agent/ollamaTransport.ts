@@ -35,7 +35,7 @@ import {
   type BrainLlmTransport,
   type BrainToolCall
 } from '../../shared/agent/brain'
-import { assertHttpOk, pumpLines } from './agentStream'
+import { assertHttpOk, isAbortError, pumpLines } from './agentStream'
 
 const DEFAULT_HOST = 'http://127.0.0.1:11434'
 
@@ -101,9 +101,12 @@ export class OllamaChatTransport implements BrainLlmTransport {
       response = await fetch(`${this.resolveHost()}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body
+        body,
+        ...(request.signal !== undefined ? { signal: request.signal } : {})
       })
     } catch (error) {
+      // ⚠️ 取消必须原样抛出：包装成「本地未启动」会把用户点「停止」显示成故障
+      if (isAbortError(error)) throw error
       // 与 `main/llm/client.ts` 的 Ollama 分支共用同一常量 ⇒ 两处「本地未启动」文案永不漂移
       throw new Error(LLM_MESSAGES.ollamaNotRunning(this.resolveHost()), { cause: error })
     }

@@ -11,6 +11,8 @@ export interface MbApi {
     listTools(): Promise<IpcContract['agent:listTools']['res']>
     executeTool(req: IpcContract['agent:executeTool']['req']): Promise<IpcContract['agent:executeTool']['res']>
     chat(req: IpcContract['agent:chat']['req']): Promise<IpcContract['agent:chat']['res']>
+    /** 取消本轮运行（用户点「停止」）；没有匹配运行时返回 `{ cancelled: false }` */
+    cancel(req: IpcContract['agent:cancel']['req']): Promise<IpcContract['agent:cancel']['res']>
     respondApproval(
       req: IpcContract['agent:approvalResponse']['req']
     ): Promise<IpcContract['agent:approvalResponse']['res']>
