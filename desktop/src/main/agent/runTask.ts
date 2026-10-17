@@ -14,6 +14,7 @@
 import { llmConfirmReason } from '../../shared/agent/protocol'
 import type { LlmTaskType } from '../../shared/agent/budget'
 import type { LlmUsage } from '../../shared/config/llmConfig'
+import { taskRegistry } from '../task/taskRegistry'
 import {
   accumulateTurn,
   emptyAgentRunStats,
@@ -70,8 +71,17 @@ export interface SingleShotTaskSpec<T> {
   count?: number
   /** 渲染层是否已带 `confirmed: true` 重发 */
   confirmed?: boolean
-  /** 真正执行 LLM 调用的闭包（由调用方提供，harness 不关心 prompt 细节） */
-  run: () => Promise<SingleShotRunOutput<T>>
+  /**
+   * 取消归属（`event.sender.id`）。给了就**由本 harness 负责登记/注销**，
+   * 面板的「停止」按钮经 `task:cancel` 即可中断这次生成。
+   *
+   * 放在 harness 而不是每个 handler 里各写一遍 try/finally：三处创作面 AI
+   * （章节 / 数据 / 审校）共用本函数，取消的生命周期也只该有一份实现
+   * —— 这正是 `runSingleShotTask` 当初为「预算 / 观测」建立的存在理由。
+   */
+  senderId?: number
+  /** 真正执行 LLM 调用的闭包（由调用方提供，harness 不关心 prompt 细节）。收到取消信号 */
+  run: (signal: AbortSignal | undefined) => Promise<SingleShotRunOutput<T>>
 }
 
 export interface SingleShotTaskResult<T> extends SingleShotRunOutput<T> {
@@ -99,7 +109,14 @@ export async function runSingleShotTask<T>(spec: SingleShotTaskSpec<T>): Promise
     throw new Error(reason)
   }
   const startedAt = Date.now()
-  const output = await spec.run()
+  // 取消归属：登记后由 panel 的「停止」经 `task:cancel` 打断；`finally` 保证注销
+  const ticket = spec.senderId !== undefined ? taskRegistry().begin(spec.senderId) : undefined
+  let output: SingleShotRunOutput<T>
+  try {
+    output = await spec.run(ticket?.signal)
+  } finally {
+    if (ticket !== undefined) taskRegistry().end(ticket.taskId, ticket.signal)
+  }
   const latencyMs = Date.now() - startedAt
   const tier: AgentRunTier = spec.isCloud ? 'cloud' : 'local'
   const stats = accumulateTurn(

@@ -98,7 +98,7 @@ describe('assertHttpOk', () => {
   })
 })
 
-describe('isAbortError（re-export 自 shared/agent/abort）', () => {
+describe('isAbortError（re-export 自 shared/abort）', () => {
   it('认 name=AbortError 与 code=ABORT_ERR 两种真实形态', () => {
     const byName = new Error('aborted')
     byName.name = 'AbortError'

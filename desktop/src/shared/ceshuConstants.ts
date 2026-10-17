@@ -121,8 +121,6 @@ export const LITE_CHAPTER_KEYS: readonly NumberedChapterKey[] = NUMBERED_CHAPTER
 
 /** @deprecated 请用 `META_CHAPTER_KEY` + `LITE_CHAPTER_KEYS`；保留仅为兼容既有调用点 */
 export const BASE_CHAPTER_KEYS: readonly ChapterKey[] = [META_CHAPTER_KEY, ...LITE_CHAPTER_KEYS]
-/** @deprecated 请用 `NUMBERED_CHAPTER_KEYS.slice(LITE_CHAPTER_KEYS.length)` */
-export const INDUSTRIAL_CHAPTER_KEYS: readonly ChapterKey[] = NUMBERED_CHAPTER_KEYS.slice(LITE_CHAPTER_KEYS.length)
 
 export const GDD_SCOPE_FULL = 'full'
 export const GDD_SCOPE_LITE = 'lite'

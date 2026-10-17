@@ -511,8 +511,71 @@ smoke / type-field-id-ai，**与本次重构无关**（同法在 `30d88b6` 上�
 
 遗留（明确不做，理由是收益不足或有产品判断成分）：
 
-- 单发 AI 只有超时兜底，**没有「停止」按钮**。要做需把 `agent:cancel` 的取消表下沉成通用「任务取消注册表」并为三处面板加入口，属独立特性。
-- 本地 Ollama 的单发路径仍不受超时约束（沿用 `llmConfigData` 的既定说明：由 SDK 自理）。
+- ~~单发 AI 只有超时兜底，**没有「停止」按钮**~~ → **已在 §10 重写落地**。
+- ~~本地 Ollama 的单发路径仍不受超时约束~~ → **已在 §10 关闭**（生成改走 `fetch`）。
+
+## 10. 第五轮：把「取消」从 agent 专属重写成通用能力
+
+上一轮留下的两笔（单发 AI 无停止入口、本地单发无超时）不是补个按钮就能了事：取消被写成了
+**对话循环的私有设施**（`agentIpc` 里两张 Map + 一条 `agent:cancel`）。单发 AI 想用，只能再抄一遍
+—— 而这正是本项目反复踩的「复制出来的漂移」。故按用户要求**重写**这一层。
+
+### 10.1 新的分层
+
+| 层 | 位置 | 职责 |
+| --- | --- | --- |
+| 取消表 | `main/task/taskRegistry.ts` | `begin/end/cancel`；**两个索引**：按 id 精确命中、按 `senderId` 兜底（面板只有一个停止按钮的语义） |
+| 通道 | `task:cancel`（取代 `agent:cancel`） | 全应用**一条**取消通道；对话循环与单发生成共用 |
+| 单发生命周期 | `runSingleShotTask({ senderId })` | 三处创作面 AI（章节/数据/审校）共用同一 harness，登记/注销只写一遍 |
+| 请求层 | `LlmClient.generate({ signal })` | 与内置生成超时 `AbortSignal.any` 叠加；超时/取消/**连不上**三种错误分开报 |
+| 渲染层 | `hooks/useStopIntent.ts` | 记录「我刚点了停止」的本地意图；不靠错误文案识别 |
+
+顺带把 `shared/agent/abort.ts` 移到 `shared/abort.ts`：单发生成也要用 `isAbortError`，
+名字里带 `agent` 会让 `main/llm` 看起来在跨模块依赖 agent。
+
+### 10.2 三个「旧洞」一并修掉
+
+1. **`agent:cancel` 不校验归属**：`activeRuns.get(runId)` 只看 id，注释却写着「多窗口也不会串」。
+   任一窗口拿到同一个 id 就能取消别人的任务。新表的 `byId` 记录 `senderId`，id 路径与兜底路径
+   都要求同一窗口。
+2. **本地 Ollama 根本不能被取消**：`ollama` SDK 的 `generate`/`list` 都不收 `AbortSignal`，
+   等于本地档「点了停止没反应」。生成与探活一并改为 `fetch`（`/api/generate`、`/api/tags`），
+   与云端共享同一套信号、超时、错误归一；连不上时的文案复用 `LLM_MESSAGES.ollamaNotRunning`。
+3. **`stopWords` 只存不发**：配置里有这个字段、归一化也做了 `slice` 上限，但请求体从来没有它
+   —— 文档写着「发送时按行拆分」却没人拆。现在云端 `stop` / 本地 `options.stop` 都按行下发，
+   空行丢弃，未配置时不带该键。
+
+另外删掉三个零引用常量（`LLM_TIMEOUT_MS_MIN/MAX` 被两档超时取代、`INDUSTRIAL_CHAPTER_KEYS`
+是「工业级」旧档位的遗留、`FIELD_ID_AI_ERROR_UNPARSABLE` 描述了一个刻意不做的区分）。
+
+### 10.3 面板行为（改前 → 改后）
+
+| 面板 | 改前 | 改后 |
+| --- | --- | --- |
+| 数字员工 `digital-stop` | 走 `agent.cancel` | 走 `task.cancel`（同一张表） |
+| AI 审阅 `ai-review-stop` | **没有**，只能等 180s 超时 | 新增；停止后显示「已停止本次审阅」，不报红 |
+| 数据生成 `datagen-stop` | **没有** | 新增；提示「已停止本次生成（未产生候选数据）」 |
+| 一键生成 `ai-full-stop` | 只置 `stopRef`，**当前这一章会跑完**（最长到超时），按钮像没反应 | 同时 `task.cancel` ⇒ 在途那一章立刻中断，该章状态还原为未生成、不计入失败 |
+
+「停止」不等于失败：面板用 `useStopIntent` 记录意图，失败分支先问一句「是不是我刚点的停止」，
+是就展示中性提示。**刻意不靠错误文案识别** —— 同一个错误也可能来自上层取消整批，
+一律吞掉会把真错误静默掉。
+
+### 10.4 验证
+
+- 单测：`taskRegistry.test.ts` 9 例（含**归属校验**与 `end` 身份比对）、`llmClient` 新增 6 例
+  （本地 fetch/signal、取消文案、超时文案、服务没起、停止词两档下发），全量 **2056 passed · 5 skipped**。
+- e2e：`ceshu-ai-datagen` 新增 1 例 —— 桩延迟 **5s**、断言限时 **4s**，只有真 abort 才可能通过；
+  同时断言不出现错误条、停止按钮收起。整包 **75 passed · 2 skipped · 0 failed**。
+- `tsc` node+web 0 / `eslint` 0 / `npm run build` 成功。
+
+### 10.5 明确没做
+
+- `runLlmJudge`（章节生成后的辅助评分）不单独接取消：它跟在正文之后、通常几秒，
+  且中途停止会留下「有正文没评分」的半态。要做得把 judge 一并放进 harness。
+- `schema:suggestFieldIds` / `llm:generate` 未接取消：调用很短且没有对应面板入口。
+- 取消只到「中断在途请求」为止；已经落盘的产物不回滚（与既有语义一致：AI 只产候选，落盘由人决定）。
+
 
 
 

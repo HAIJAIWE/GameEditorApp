@@ -24,7 +24,6 @@ import { uniquifyFieldId, validateFieldId, type FieldIdSuggestion } from './fiel
  */
 
 export const FIELD_ID_AI_ERROR_EMPTY_LABEL = '请先填写中文显示名，再让 AI 生成字段 ID。'
-export const FIELD_ID_AI_ERROR_UNPARSABLE = 'AI 返回内容无法解析为字段 ID 候选，请重试。'
 export const FIELD_ID_AI_ERROR_NO_CANDIDATE = 'AI 未给出可用的字段 ID 候选，请重试或手动填写。'
 
 /** 最多保留几个 AI 候选（够选就行，避免刷屏） */

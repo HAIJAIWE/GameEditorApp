@@ -13,6 +13,9 @@ async function invoke<C extends IpcChannel>(channel: C, req: IpcContract[C]['req
 }
 
 const api: MbApi = {
+  task: {
+    cancel: (req) => invoke('task:cancel', req)
+  },
   app: {
     info: () => invoke('app:info', undefined),
     log: (req) => invoke('app:log', req),
@@ -31,7 +34,6 @@ const api: MbApi = {
     listTools: () => invoke('agent:listTools', undefined),
     executeTool: (req) => invoke('agent:executeTool', req),
     chat: (req) => invoke('agent:chat', req),
-    cancel: (req) => invoke('agent:cancel', req),
     respondApproval: (req) => invoke('agent:approvalResponse', req),
     respondInteraction: (req) => invoke('agent:interactionResponse', req),
     sessionInfo: () => invoke('agent:sessionInfo', undefined),

@@ -10,6 +10,7 @@ import {
 } from '../../../shared/ceshuDataGen'
 import { LLM_BULK_COUNT_THRESHOLD, isBulkLlmCall } from '../../../shared/agent/protocol'
 import { evaluateBudget, taskBudget } from '../../../shared/agent/budget'
+import { useStopIntent } from '../hooks/useStopIntent'
 import type { DataQualityVerdict } from '../../../shared/types'
 import type { DataTypeDef } from '../../../shared/types'
 import { toErrorMessage } from '../../../shared/util/errors'
@@ -30,6 +31,7 @@ interface AiDataGenPanelProps {
 }
 
 export default function AiDataGenPanel({ ceshuId, initialTypeId, onClose }: AiDataGenPanelProps) {
+  const stopIntent = useStopIntent()
   const [types, setTypes] = useState<DataTypeDef[]>([])
   const [checkedTypeIds, setCheckedTypeIds] = useState<string[]>([])
   const [count, setCount] = useState(DATA_GEN_DEFAULT_COUNT)
@@ -120,9 +122,15 @@ export default function AiDataGenPanel({ ceshuId, initialTypeId, onClose }: AiDa
       setResult(null)
       setCheckedItems({})
       setQuality(null)
+      // 用户点了停止 ⇒ 预期结果，按提示展示；不是故障
+      if (stopIntent.wasStopped()) {
+        setNotice('已停止本次生成（未产生候选数据，可重新生成）')
+        return
+      }
       setError(toErrorMessage(err))
     } finally {
       setBusy(false)
+      stopIntent.settle()
     }
   }
 
@@ -290,6 +298,11 @@ export default function AiDataGenPanel({ ceshuId, initialTypeId, onClose }: AiDa
         >
           {busy ? '生成中…' : '生成候选'}
         </button>
+        {busy && (
+          <button type="button" className="btn" data-testid="datagen-stop" onClick={stopIntent.markStop}>
+            停止
+          </button>
+        )}
         {confirming && (
           <div className="form-row" data-testid="datagen-confirm">
             <span className="form-label">

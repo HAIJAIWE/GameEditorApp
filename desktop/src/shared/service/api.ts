@@ -2,6 +2,13 @@ import type { IpcContract } from '../ipc'
 
 /** 暴露给渲染层的 window.mbApi 接口（preload 实现、渲染层声明共用） */
 export interface MbApi {
+  /**
+   * 通用「取消长任务」。对话循环与单发 AI 生成共用一条通道：
+   * 面板只需在看得到「进行中」时提供停止按钮，不必自己管理 taskId。
+   */
+  task: {
+    cancel(req: IpcContract['task:cancel']['req']): Promise<IpcContract['task:cancel']['res']>
+  }
   app: {
     info(): Promise<IpcContract['app:info']['res']>
     log(req: IpcContract['app:log']['req']): Promise<IpcContract['app:log']['res']>
@@ -11,8 +18,6 @@ export interface MbApi {
     listTools(): Promise<IpcContract['agent:listTools']['res']>
     executeTool(req: IpcContract['agent:executeTool']['req']): Promise<IpcContract['agent:executeTool']['res']>
     chat(req: IpcContract['agent:chat']['req']): Promise<IpcContract['agent:chat']['res']>
-    /** 取消本轮运行（用户点「停止」）；没有匹配运行时返回 `{ cancelled: false }` */
-    cancel(req: IpcContract['agent:cancel']['req']): Promise<IpcContract['agent:cancel']['res']>
     respondApproval(
       req: IpcContract['agent:approvalResponse']['req']
     ): Promise<IpcContract['agent:approvalResponse']['res']>

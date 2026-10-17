@@ -11,6 +11,7 @@ import { registerSettingsIpc } from './ipc/settingsIpc'
 import { registerImagesIpc } from './ipc/imagesIpc'
 import { registerLlmIpc } from './ipc/llmIpc'
 import { registerAgentIpc } from './ipc/agentIpc'
+import { registerTaskIpc } from './ipc/taskIpc'
 import { registerLibraryIpc } from './ipc/libraryIpc'
 import { registerSchemaIpc } from './ipc/schemaIpc'
 import { registerAttrIpc } from './ipc/attrIpc'
@@ -99,6 +100,7 @@ export function registerIpcHandlers(deps: IpcHandlerDeps): void {
   registerImagesIpc(deps, handle)
   registerLlmIpc(deps, handle, llm)
   registerAgentIpc(deps, handle, llm)
+  registerTaskIpc(deps, handle)
   registerLibraryIpc(deps, handle)
   registerSchemaIpc(deps, handle, llm)
   registerAttrIpc(deps, handle)

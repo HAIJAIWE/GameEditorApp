@@ -37,7 +37,7 @@ import {
   type RunBrainLoopOptions
 } from './types'
 import { clipToolResult, maybeResetContext, safeRunEvaluator } from './context'
-import { isAbortError } from '../abort'
+import { isAbortError } from '../../abort'
 
 /**
  * 运行 Brain 循环：推理 → 决策 → 执行 → 反思（最多 `maxTurns` 轮，另受三道计数闸约束）。

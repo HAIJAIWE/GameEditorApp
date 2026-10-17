@@ -145,7 +145,7 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
   handle('ceshu:changelog', ceshuGetInputSchema, (req) => ceshuManager.changelog(req.id))
   handle('ceshu:validate', ceshuGetInputSchema, (req) => validateCeshu(ceshuManager.get(req.id)))
   handle('ceshu:score', ceshuGetInputSchema, (req) => scoreCeshu(ceshuManager.get(req.id)))
-  handle('ceshu:aiGenerateChapter', ceshuAiGenerateInputSchema, async (req) => {
+  handle('ceshu:aiGenerateChapter', ceshuAiGenerateInputSchema, async (req, event) => {
     if (!isChapterKey(req.chapter)) {
       throw new Error(`未知章节：${req.chapter}`)
     }
@@ -174,8 +174,13 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
       taskType: req.fullGenerate !== undefined ? 'full' : 'chapter',
       bulk: req.fullGenerate !== undefined,
       confirmed: req.confirmed === true,
-      run: async () => {
-        const { model, content, usage } = await llmClient.generate(built.system, built.prompt, callOpts)
+      // 可取消：面板点「停止」→ `task:cancel` → 中断在途 fetch（harness 负责登记/注销）
+      senderId: event.sender.id,
+      run: async (signal) => {
+        const { model, content, usage } = await llmClient.generate(built.system, built.prompt, {
+          ...callOpts,
+          ...(signal !== undefined ? { signal } : {})
+        })
         return { value: content, model, usage }
       }
     })
@@ -223,7 +228,7 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
     // 单字段回填无需整章质量门；usage 透传成本观测数据
     return { model, fields, rawText: content, usage: usage ?? null }
   })
-  handle('ceshu:aiGenerateData', ceshuDataGenInputSchema, async (req) => {
+  handle('ceshu:aiGenerateData', ceshuDataGenInputSchema, async (req, event) => {
     const doc = ceshuManager.get(req.id)
     const types = typeSchemaStore.getTypes()
     const selected = resolveSelectedDataTypes(types, req.dataTypes)
@@ -242,8 +247,12 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
       taskType: 'datagen',
       count,
       confirmed: req.confirmed === true,
-      run: async () => {
-        const { model, content, usage } = await llmClient.generate(built.system, built.prompt, callOpts)
+      senderId: event.sender.id,
+      run: async (signal) => {
+        const { model, content, usage } = await llmClient.generate(built.system, built.prompt, {
+          ...callOpts,
+          ...(signal !== undefined ? { signal } : {})
+        })
         return { value: content, model, usage }
       }
     })
@@ -277,7 +286,7 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
       usage: task.usage ?? null
     }
   })
-  handle('ceshu:aiReview', ceshuGetInputSchema, async (req) => {
+  handle('ceshu:aiReview', ceshuGetInputSchema, async (req, event) => {
     const doc = ceshuManager.get(req.id)
     const progress = computeChapterProgress(doc)
     const validationErrors = validateCeshu(doc)
@@ -294,8 +303,12 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
       estimatedTokens: estimated,
       taskType: 'review',
       confirmed: req.confirmed === true,
-      run: async () => {
-        const { model, content, usage } = await llmClient.generate(built.system, built.prompt, callOpts)
+      senderId: event.sender.id,
+      run: async (signal) => {
+        const { model, content, usage } = await llmClient.generate(built.system, built.prompt, {
+          ...callOpts,
+          ...(signal !== undefined ? { signal } : {})
+        })
         return { value: content, model, usage }
       }
     })

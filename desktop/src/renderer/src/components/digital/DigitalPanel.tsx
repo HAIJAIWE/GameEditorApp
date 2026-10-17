@@ -34,8 +34,6 @@ import { toErrorMessage } from '../../../../shared/util/errors'
 
 interface ChatApi {
   chat: (req: { input: string; runId?: string }) => Promise<{ text: string }>
-  /** 取消本轮（用户点「停止」）；`cancelled: false` = 没有匹配的运行，不是错误 */
-  cancel: (req: { runId?: string }) => Promise<{ cancelled: boolean }>
   respondApproval: (req: { requestId: string; approved: boolean }) => Promise<{ ok: boolean }>
   respondInteraction: (req: {
     requestId: string
@@ -194,8 +192,9 @@ export default function DigitalPanel({ seed }: { seed?: { text: string; nonce: n
   const handleStop = (): void => {
     const runId = activeRunId.current
     setLocalError(null)
-    void api
-      .cancel(runId === null ? {} : { runId })
+    // 走通用取消通道（对话循环与单发 AI 共用一条，见 `main/task/taskRegistry.ts`）
+    void window.mbApi.task
+      .cancel(runId === null ? {} : { taskId: runId })
       .then((result) => {
         if (!result.cancelled) setNotice('本轮已结束，无需停止')
       })

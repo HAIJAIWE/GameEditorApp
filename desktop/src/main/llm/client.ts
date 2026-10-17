@@ -1,5 +1,3 @@
-import { Ollama } from 'ollama'
-
 import {
   DEFAULT_LLM_CONFIG,
   effectiveProvider,
@@ -8,11 +6,13 @@ import {
   LLM_GENERATE_TIMEOUT_MS,
   LLM_REQUEST_TIMEOUT_MS,
   resolveLlmBaseUrl,
+  TASK_CANCELLED_MESSAGE,
   validateLlmConfig,
   type LlmProvider,
   type LlmUsage,
   type StoredLlmConfig
 } from '../../shared/config/llmConfig'
+import { isAbortError } from '../../shared/abort'
 import { sharedRateLimiter } from '../../shared/util/rateLimiter'
 
 /**
@@ -128,6 +128,14 @@ export interface LlmCallOptions {
   config?: StoredLlmConfig
   /** 主进程从 safeStorage 解密出的 Key；缺省空串 */
   apiKey?: string
+  /**
+   * 调用方取消信号（来自 `task:cancel` 的登记表）。
+   *
+   * 与内置的生成超时**叠加**（`AbortSignal.any`）：任一方触发都会中断在途请求。
+   * 两者语义不同 —— 超时是失败兜底（`TimeoutError`，报「请求超时，可重试」），
+   * 取消是用户意图（`AbortError`，报 `TASK_CANCELLED_MESSAGE`，面板按「已停止」展示）。
+   */
+  signal?: AbortSignal
 }
 
 /** 某 provider 是否走 OpenAI 兼容协议 */
@@ -142,6 +150,37 @@ function isOpenAiCompatible(provider: LlmProvider): boolean {
  */
 function isTimeoutError(error: unknown): boolean {
   return error instanceof Error && error.name === 'TimeoutError'
+}
+
+/**
+ * 把「调用方取消信号」与「内置生成超时」合成一个信号。
+ * 任一方触发都会中断在途请求；二者的错误类型不同（`AbortError` / `TimeoutError`），
+ * 由各分支的 catch 分开翻译。
+ */
+function withDeadline(caller: AbortSignal | undefined): AbortSignal {
+  const deadline = AbortSignal.timeout(LLM_GENERATE_TIMEOUT_MS)
+  return caller === undefined ? deadline : AbortSignal.any([deadline, caller])
+}
+
+/** 超时错误（失败兜底语义） */
+function timeoutError(label: string): Error {
+  return new Error(
+    `${label} 请求超时（${Math.round(LLM_GENERATE_TIMEOUT_MS / 1000)} 秒未返回）：已中断本次请求，` +
+      '请重试；若持续超时请检查网络或改用更快的模型'
+  )
+}
+
+/** 用户配置的停止词（换行分隔）→ 各服务商接受的字符串数组 */
+function stopSequences(config: LlmRuntimeConfig): string[] {
+  return config.stopWords
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line !== '')
+}
+
+/** 用户主动取消（不是故障：面板按「已停止」展示，不该弹错误） */
+function cancelledError(cause: unknown): Error {
+  return new Error(TASK_CANCELLED_MESSAGE, { cause })
 }
 
 export class LlmClient {
@@ -174,9 +213,19 @@ export class LlmClient {
     // Ollama：探测逻辑与迁移前一致；中文文案统一取自 `LLM_MESSAGES`（唯一落点，防漂移）
     const host = toOllamaHost(config.baseUrl)
     try {
-      const client = new Ollama({ host })
-      const list = await client.list()
-      const models = list.models.map((model) => model.name).sort()
+      /*
+       * 改前这里用 `ollama` SDK 的 `client.list()`。换成 `fetch` 的理由有两个：
+       * ① SDK 不接受 `AbortSignal`，探活/生成都**没有任何超时**（设置面板会一直转圈）；
+       * ② 生成分支也一并换成 `fetch` 后，本文件不再依赖 SDK，HTTP 语义只有一套。
+       * 端点与 SDK 等价：`GET /api/tags` → `{ models: [{ name }] }`。
+       */
+      const res = await fetch(`${host}/api/tags`, { signal: AbortSignal.timeout(LLM_REQUEST_TIMEOUT_MS) })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const payload = (await res.json()) as { models?: Array<{ name?: string }> }
+      const models = (payload.models ?? [])
+        .map((item) => item.name ?? '')
+        .filter((name) => name !== '')
+        .sort()
       if (models.length === 0) {
         return {
           available: false,
@@ -299,8 +348,11 @@ export class LlmClient {
     // 放在校验闸门与 claude 拦截之后 —— 不为「未配置 / 非法 / claude 不支持」的请求浪费令牌。
     await sharedRateLimiter().acquire('llm')
 
+    // 取消信号与内置生成超时叠加：任一方触发都中断在途请求（二者错误语义不同，见 catch）
+    const signal = withDeadline(options.signal)
+
     if (isOpenAiCompatible(config.provider)) {
-      return this.generateOpenAiCompatible(config, system, prompt)
+      return this.generateOpenAiCompatible(config, system, prompt, signal)
     }
 
     const status = await this.status(options)
@@ -311,30 +363,78 @@ export class LlmClient {
     // 无 `?? ''` 兜底：`status.available === true` 蕴含 `models.length > 0`（见 status 的两个分支），
     // 所以 `status.models[0]` 一定存在；`noUncheckedIndexedAccess` 未开，类型就是 `string`。
     const model = preferred !== '' ? preferred : status.models[0]
+    return this.generateOllama(config, model, system, prompt, signal)
+  }
+
+  /**
+   * 本地 Ollama 生成（`POST /api/generate`，非流式）。
+   *
+   * 改前用 `ollama` SDK：它不接受 `AbortSignal` ⇒ 本地档既没有超时、也无法被「停止」打断，
+   * 与云端行为不对称（用户点了停止只有云端会停）。换成 `fetch` 后两条路径共享同一套
+   * 取消 / 超时 / 错误归一逻辑。
+   */
+  private async generateOllama(
+    config: LlmRuntimeConfig,
+    model: string,
+    system: string,
+    prompt: string,
+    signal: AbortSignal
+  ): Promise<{ model: string; content: string; usage?: LlmUsage }> {
+    const host = toOllamaHost(config.baseUrl)
+    const stop = stopSequences(config)
+    let response: Response
     try {
-      const client = new Ollama({ host: toOllamaHost(config.baseUrl) })
-      const response = await client.generate({
-        model,
-        system,
-        prompt,
-        options: { temperature: config.temperature }
+      response = await fetch(`${host}/api/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model,
+          system,
+          prompt,
+          stream: false,
+          options: {
+            temperature: config.temperature,
+            // 停止词（改前只存不发，设置里的这一项等于没接线）
+            ...(stop.length > 0 ? { stop } : {})
+          }
+        }),
+        signal
       })
-      // Ollama 在 generate 响应上带 token 计数（`prompt_eval_count` / `eval_count`），
-      // 但 SDK 的 TS 类型未暴露 ⇒ 取下钻后的字段（v0.6 M5）。
-      const counts = response as unknown as { prompt_eval_count?: number; eval_count?: number }
-      const promptTokens = counts.prompt_eval_count ?? 0
-      const completionTokens = counts.eval_count ?? 0
-      return {
-        model,
-        content: response.response ?? '',
-        usage:
-          promptTokens > 0 || completionTokens > 0
-            ? { promptTokens, completionTokens, totalTokens: promptTokens + completionTokens }
-            : undefined
-      }
     } catch (error) {
-      const detail = error instanceof Error ? error.message : String(error)
-      throw new Error(`AI 调用失败：${detail.slice(0, 120)}`, { cause: error })
+      if (isTimeoutError(error)) throw timeoutError('本地 Ollama')
+      if (isAbortError(error)) throw cancelledError(error)
+      // 连不上 = 本地服务没起；与 `agentTransport` 共用同一文案常量，两处不漂移
+      throw new Error(LLM_MESSAGES.ollamaNotRunning(host), { cause: error })
+    }
+
+    if (!response.ok) {
+      const detail = await response.text().catch(() => '')
+      const trimmed = detail.trim().replace(/\s+/g, ' ')
+      throw new Error(
+        trimmed === ''
+          ? `AI 调用失败（HTTP ${response.status}）`
+          : `AI 调用失败（HTTP ${response.status}）：${trimmed.slice(0, 120)}`
+      )
+    }
+
+    const payload = (await response.json()) as {
+      response?: string
+      prompt_eval_count?: number
+      eval_count?: number
+    }
+    const content = payload.response ?? ''
+    if (content === '') {
+      throw new Error('本地模型返回了空内容（可能模型名不正确或上下文被截断）')
+    }
+    const promptTokens = payload.prompt_eval_count ?? 0
+    const completionTokens = payload.eval_count ?? 0
+    return {
+      model,
+      content,
+      usage:
+        promptTokens > 0 || completionTokens > 0
+          ? { promptTokens, completionTokens, totalTokens: promptTokens + completionTokens }
+          : undefined
     }
   }
 
@@ -342,7 +442,8 @@ export class LlmClient {
   private async generateOpenAiCompatible(
     config: LlmRuntimeConfig,
     system: string,
-    prompt: string
+    prompt: string,
+    signal: AbortSignal
   ): Promise<{ model: string; content: string; usage?: LlmUsage }> {
     const preset = LLM_PROVIDER_PRESETS[config.provider]
     if (config.model.trim() === '') {
@@ -350,6 +451,7 @@ export class LlmClient {
     }
     const baseUrl = resolveLlmBaseUrl(config).replace(/\/+$/, '')
     const url = `${baseUrl}/chat/completions`
+    const stop = stopSequences(config)
 
     let response: Response
     try {
@@ -360,18 +462,10 @@ export class LlmClient {
           Authorization: `Bearer ${config.apiKey}`
         },
         /*
-         * 单次生成超时（`LLM_GENERATE_TIMEOUT_MS`，180s）。
-         *
-         * ⚠️ 这里曾**完全没有超时**：`llmConfigData.ts` 早就写着「超时后主进程抛中文
-         * 『请求超时』错误，UI 直接展示」「这里给云端 fetch 挂 AbortController」，
-         * 但那个常量全仓零引用 —— `fetch` 默认无限等待，服务端不回包时面板永久转圈，
-         * 用户只能重启应用（这些单发调用既没有 signal 也没有停止入口）。
-         * 与 `SkillDispatcher.maxAllowedRisk` 同型：**看着像策略，实际零守卫**。
-         *
-         * 为什么不用 30s 的探活值：本请求 `stream: false`，等的是完整生成，
-         * 默认 `maxTokens = 1000`，慢档上游要 100 秒量级 ⇒ 30s 会误杀正常生成。
+         * 取消（`task:cancel`）与生成超时叠加后的信号。二者的错误语义不同，见下方 catch：
+         * 超时是失败兜底，取消是用户意图 —— 混成一句话会让「我点了停止」显示成故障。
          */
-        signal: AbortSignal.timeout(LLM_GENERATE_TIMEOUT_MS),
+        signal,
         body: JSON.stringify({
           model: config.model,
           messages: [
@@ -380,18 +474,15 @@ export class LlmClient {
           ],
           temperature: config.temperature,
           max_tokens: config.maxTokens,
-          stream: false
+          stream: false,
+          // 停止词（改前只存不发，设置里这一项等于没接线）
+          ...(stop.length > 0 ? { stop } : {})
         })
       })
     } catch (error) {
-      // 超时 ≠ 连不上：前者要告诉用户「已中断、可重试」，后者才该提示检查地址/网络
-      if (isTimeoutError(error)) {
-        throw new Error(
-          `${preset.label} 请求超时（${Math.round(LLM_GENERATE_TIMEOUT_MS / 1000)} 秒未返回）：已中断本次请求，` +
-            '请重试；若持续超时请检查网络或改用更快的模型',
-          { cause: error }
-        )
-      }
+      // 超时 ≠ 连不上 ≠ 用户取消：三者文案必须分开，否则用户会去查网络或以为出了故障
+      if (isTimeoutError(error)) throw timeoutError(preset.label)
+      if (isAbortError(error)) throw cancelledError(error)
       throw new Error(`无法连接 ${preset.label}（${url}）：${error instanceof Error ? error.message : String(error)}`, {
         cause: error
       })

@@ -6,6 +6,7 @@ import {
   hasStoredLlmConfig,
   LLM_MESSAGES,
   loadLlmConfig,
+  TASK_CANCELLED_MESSAGE,
   type StoredLlmConfig
 } from '../../src/shared/config/llmConfig'
 import type { StorageLike } from '../../src/shared/config/settingsStore'
@@ -358,6 +359,168 @@ describe('LlmClient.generate：云端请求挂超时信号', () => {
       expect(res.message).not.toContain('无法连接')
     } finally {
       globalThis.fetch = originalFetch
+    }
+  })
+})
+
+/*
+ * 本地 Ollama：改前走 `ollama` SDK（`client.generate` / `client.list`），而该 SDK
+ * 不接受 `AbortSignal` ⇒ 本地档既没有超时、也无法被「停止」打断，与云端行为不对称。
+ * 换 `fetch` 后两条路径共享同一套取消/超时/错误归一。
+ */
+describe('LlmClient：本地 Ollama 走 fetch（可取消）', () => {
+  const localConfig: StoredLlmConfig = {
+    ...DEFAULT_LLM_CONFIG,
+    enabled: true,
+    provider: 'ollama',
+    baseUrl: 'http://127.0.0.1:11434',
+    model: 'qwen3:8b'
+  }
+
+  const jsonOk = (body: unknown): Response =>
+    ({ ok: true, status: 200, json: async () => body }) as unknown as Response
+
+  /** 装一个假 fetch：`/api/tags` 给模型列表，`/api/generate` 交给调用方决定 */
+  function stubOllama(onGenerate: (init: RequestInit) => Promise<Response>): {
+    calls: string[]
+    restore: () => void
+  } {
+    const original = globalThis.fetch
+    const calls: string[] = []
+    globalThis.fetch = (async (url: string, init: RequestInit) => {
+      calls.push(String(url))
+      if (String(url).endsWith('/api/tags')) return jsonOk({ models: [{ name: 'qwen3:8b' }] })
+      return onGenerate(init)
+    }) as unknown as typeof fetch
+    return { calls, restore: () => (globalThis.fetch = original) }
+  }
+
+  it('打 /api/generate 且挂 AbortSignal，解析正文与 token 计数', async () => {
+    let seen: RequestInit | undefined
+    const stub = stubOllama(async (init) => {
+      seen = init
+      return jsonOk({ response: '写好了', prompt_eval_count: 10, eval_count: 20 })
+    })
+    try {
+      const client = new LlmClient()
+      const out = await client.generate('sys', 'user', { config: localConfig })
+      expect(out.content).toBe('写好了')
+      expect(out.model).toBe('qwen3:8b')
+      expect(out.usage).toEqual({ promptTokens: 10, completionTokens: 20, totalTokens: 30 })
+      expect(stub.calls.some((url) => url.endsWith('/api/generate'))).toBe(true)
+      // 关键：信号真的挂上去了 —— 否则「停止」对本地档无效（改前就是如此）
+      expect(seen?.signal).toBeInstanceOf(AbortSignal)
+    } finally {
+      stub.restore()
+    }
+  })
+
+  it('调用方取消 → 抛「已取消本次生成」，不是「AI 调用失败」', async () => {
+    const abort = new Error('aborted')
+    abort.name = 'AbortError'
+    const stub = stubOllama(async () => {
+      throw abort
+    })
+    try {
+      const client = new LlmClient()
+      const error = await client.generate('sys', 'user', { config: localConfig }).catch((e: unknown) => e)
+      expect((error as Error).message).toBe(TASK_CANCELLED_MESSAGE)
+      expect((error as Error).message).not.toContain('AI 调用失败')
+    } finally {
+      stub.restore()
+    }
+  })
+
+  it('超时同样被区分（不是取消、也不是连不上）', async () => {
+    const timeout = new Error('timeout')
+    timeout.name = 'TimeoutError'
+    const stub = stubOllama(async () => {
+      throw timeout
+    })
+    try {
+      const client = new LlmClient()
+      const error = await client.generate('sys', 'user', { config: localConfig }).catch((e: unknown) => e)
+      expect((error as Error).message).toContain('请求超时（180 秒未返回）')
+    } finally {
+      stub.restore()
+    }
+  })
+
+  it('本地服务没起（/api/tags 失败）→ 复用「未运行」文案，且不去打生成接口', async () => {
+    const original = globalThis.fetch
+    const calls: string[] = []
+    globalThis.fetch = (async (url: string) => {
+      calls.push(String(url))
+      throw new Error('ECONNREFUSED')
+    }) as unknown as typeof fetch
+    try {
+      const client = new LlmClient()
+      await expect(client.generate('sys', 'user', { config: localConfig })).rejects.toThrow(
+        /未检测到本地 Ollama 服务/
+      )
+      expect(calls.some((url) => url.endsWith('/api/generate'))).toBe(false)
+    } finally {
+      globalThis.fetch = original
+    }
+  })
+})
+
+/*
+ * 停止词：`stopWords` 字段一直存在（schema / 设置归一都有），但改前**只存不发** ——
+ * 文档写着「发送时按行拆分」，请求体里却从来没有它。这里把两端都钉住。
+ */
+describe('LlmClient：停止词随请求下发（改前只存不发）', () => {
+  it('云端：换行分隔 → stop 数组（空行/空白行被丢掉）', async () => {
+    const originalFetch = globalThis.fetch
+    let body: Record<string, unknown> = {}
+    globalThis.fetch = (async (_url: string, init: RequestInit) => {
+      body = JSON.parse(String(init.body)) as Record<string, unknown>
+      return { ok: true, status: 200, json: async () => ({ choices: [{ message: { content: 'ok' } }] }) }
+    }) as unknown as typeof fetch
+    try {
+      const client = new LlmClient()
+      await client.generate('sys', 'user', {
+        config: {
+          ...DEFAULT_LLM_CONFIG,
+          enabled: true,
+          provider: 'deepseek',
+          baseUrl: 'http://fake.test/v1',
+          model: 'deepseek-v4-pro',
+          stopWords: 'END\n###\n   \nDONE'
+        },
+        apiKey: 'sk-test'
+      })
+      expect(body['stop']).toEqual(['END', '###', 'DONE'])
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
+  it('本地：同样下发到 options.stop；没有配置时不带这个键', async () => {
+    const original = globalThis.fetch
+    let body: { options?: { stop?: string[] } } = {}
+    globalThis.fetch = (async (url: string, init: RequestInit) => {
+      if (String(url).endsWith('/api/tags')) {
+        return { ok: true, status: 200, json: async () => ({ models: [{ name: 'qwen3:8b' }] }) }
+      }
+      body = JSON.parse(String(init.body)) as { options?: { stop?: string[] } }
+      return { ok: true, status: 200, json: async () => ({ response: 'ok' }) }
+    }) as unknown as typeof fetch
+    const localConfig: StoredLlmConfig = {
+      ...DEFAULT_LLM_CONFIG,
+      enabled: true,
+      provider: 'ollama',
+      baseUrl: 'http://127.0.0.1:11434',
+      model: 'qwen3:8b'
+    }
+    try {
+      const client = new LlmClient()
+      await client.generate('s', 'u', { config: { ...localConfig, stopWords: 'END' } })
+      expect(body.options?.stop).toEqual(['END'])
+      await client.generate('s', 'u', { config: localConfig })
+      expect(body.options).not.toHaveProperty('stop')
+    } finally {
+      globalThis.fetch = original
     }
   })
 })

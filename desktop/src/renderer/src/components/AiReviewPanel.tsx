@@ -7,6 +7,7 @@ import {
   type CeshuAiReviewResult
 } from '../../../shared/ceshuAi'
 import { formatLocalTimestamp } from '../../../shared/ceshuModel'
+import { useStopIntent } from '../hooks/useStopIntent'
 
 /**
  * AI 智能审阅面板（对应 Python AIReviewDialog）：
@@ -35,18 +36,29 @@ export default function AiReviewPanel({ ceshuId, gameName, onClose }: AiReviewPa
   const [result, setResult] = useState<CeshuAiReviewResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const [stopped, setStopped] = useState(false)
+  const stopIntent = useStopIntent()
 
   const handleStart = async (): Promise<void> => {
     setStatus('running')
     setError(null)
     setNotice(null)
+    setStopped(false)
     try {
       const reviewed = await window.mbApi.ceshu.aiReview({ id: ceshuId })
       setResult(reviewed)
       setStatus('done')
     } catch (err) {
+      // 用户点了停止 ⇒ 这是预期结果，不是故障（不弹红色错误、不把状态记成 failed）
+      if (stopIntent.wasStopped()) {
+        setStopped(true)
+        setStatus('idle')
+        return
+      }
       setError(err instanceof Error ? err.message : String(err))
       setStatus('failed')
+    } finally {
+      stopIntent.settle()
     }
   }
 
@@ -82,6 +94,11 @@ export default function AiReviewPanel({ ceshuId, gameName, onClose }: AiReviewPa
           >
             {status === 'running' ? '审阅中…' : '开始 AI 审阅'}
           </button>
+          {status === 'running' && (
+            <button type="button" className="btn" data-testid="ai-review-stop" onClick={stopIntent.markStop}>
+              停止
+            </button>
+          )}
           <button
             type="button"
             className="btn"
@@ -108,6 +125,11 @@ export default function AiReviewPanel({ ceshuId, gameName, onClose }: AiReviewPa
       {status === 'done' && (
         <div className="changelog-entry" data-testid="ai-review-status">
           ✅ 审阅完成
+        </div>
+      )}
+      {stopped && (
+        <div className="notice-banner inline" data-testid="ai-review-stopped">
+          已停止本次审阅（未产生结果，可重新开始）
         </div>
       )}
       {status === 'failed' && (

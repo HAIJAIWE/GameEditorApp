@@ -133,6 +133,11 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
         setErrors((prev) => withoutKey(prev, chapter))
         succeeded++
       } catch (error) {
+        // 用户点了停止 ⇒ 这一章是被主动中断的，不是失败：状态还原、不计入 failed
+        if (stopRef.current) {
+          setStatuses((prev) => ({ ...prev, [chapter]: 'idle' }))
+          break
+        }
         const message = toErrorMessage(error)
         setStatuses((prev) => ({ ...prev, [chapter]: 'failed' }))
         setErrors((prev) => ({ ...prev, [chapter]: message }))
@@ -452,6 +457,9 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
             data-testid="ai-full-stop"
             onClick={() => {
               stopRef.current = true
+              // 只置标志位的话，当前这一章会一直跑到返回（最长到生成超时），按钮看着像没反应。
+              // 同时中断在途请求，循环下一轮即 break。
+              void window.mbApi.task.cancel({})
             }}
           >
             停止

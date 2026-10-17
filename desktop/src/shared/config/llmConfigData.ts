@@ -210,11 +210,12 @@ export const LLM_REQUEST_TIMEOUT_MS = 30_000
 export const LLM_GENERATE_TIMEOUT_MS = 180_000
 
 /**
- * 单次请求超时（毫秒）。云端调用是唯一真正需要它的地方——
- * 本地 Ollama 由 SDK 自行管理；这里给云端 fetch 挂 AbortController。
+ * 用户主动取消生成时的错误文案（`task:cancel` → abort → 这里）。
+ *
+ * 语义上**不是故障**：面板据此把状态显示成「已停止」而不是弹红色错误。
+ * 放在 shared 是让主进程（抛）与渲染层（识别）用同一份字符串，避免文案漂移。
  */
-export const LLM_TIMEOUT_MS_MIN = 5_000
-export const LLM_TIMEOUT_MS_MAX = 600_000
+export const TASK_CANCELLED_MESSAGE = '已取消本次生成'
 
 /**
  * 本地模型（Ollama / 本地 OpenAI 兼容端点）高级采样参数上下限。

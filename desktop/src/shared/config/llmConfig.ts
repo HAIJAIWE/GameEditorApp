@@ -33,6 +33,7 @@ import {
   LLM_MIROSTAT_ETA_MAX,
   LLM_NUM_GPU_MIN,
   LLM_NUM_GPU_MAX,
+  LLM_STOP_WORDS_MAX,
   LLM_MESSAGES,
   type LlmProvider,
   type StoredLlmConfig,
@@ -221,7 +222,8 @@ export function sanitizeLlmConfig(config: StoredLlmConfig): StoredLlmConfig {
       LLM_MIROSTAT_ETA_MAX,
       DEFAULT_LLM_CONFIG.mirostatEta
     ),
-    stopWords: asString(config.stopWords),
+    // 停止词是「换行分隔」的字符串；截断到上限，避免异常输入把请求体撑爆
+    stopWords: asString(config.stopWords).slice(0, LLM_STOP_WORDS_MAX),
     numGpu: clampNumber(config.numGpu, LLM_NUM_GPU_MIN, LLM_NUM_GPU_MAX, DEFAULT_LLM_CONFIG.numGpu),
     confidential: asBool(config.confidential, DEFAULT_LLM_CONFIG.confidential)
   }

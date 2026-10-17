@@ -18,7 +18,7 @@ import {
   type BrainToolRunner
 } from '../../src/shared/agent/brain'
 import { RISK_LEVEL, fixParams, resolveRiskLevel, type SkillResult } from '../../src/shared/agent/protocol'
-import { isAbortError } from '../../src/shared/agent/abort'
+import { isAbortError } from '../../src/shared/abort'
 
 /* ---- 测试替身 ---- */
 

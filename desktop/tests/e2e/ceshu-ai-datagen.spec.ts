@@ -15,7 +15,7 @@ interface OllamaStub {
 }
 
 /** 启动一个最小 Ollama 桩服务：/api/tags 返回一个模型，/api/generate 返回固定 JSON 文本 */
-async function startOllamaStub(responseText: string): Promise<OllamaStub> {
+async function startOllamaStub(responseText: string, options: { delayMs?: number } = {}): Promise<OllamaStub> {
   const prompts: string[] = []
   const server = createServer((req, res) => {
     if (req.method === 'GET' && req.url === '/api/tags') {
@@ -42,23 +42,34 @@ async function startOllamaStub(responseText: string): Promise<OllamaStub> {
           prompt = ''
         }
         prompts.push(prompt)
-        res.writeHead(200, { 'Content-Type': 'application/json' })
-        res.end(
-          JSON.stringify({
-            model: 'stub:latest',
-            created_at: '2026-01-01T00:00:00Z',
-            response: responseText,
-            done: true,
-            done_reason: 'stop',
-            context: [],
-            total_duration: 1,
-            load_duration: 1,
-            prompt_eval_count: 1,
-            prompt_eval_duration: 1,
-            eval_count: 1,
-            eval_duration: 1
-          })
-        )
+        /*
+         * `delayMs` 用来让「生成中」这一瞬间可观测（取消用例必须赶在响应之前点停止）。
+         * 客户端可能已 abort：此时 res 已 destroy，写会抛 ERR_STREAM_DESTROYED，
+         * 而异常发生在 setTimeout 里不会归到用例上，会直接带崩 worker。
+         */
+        const respond = (): void => {
+          if (res.destroyed || res.writableEnded) return
+          res.writeHead(200, { 'Content-Type': 'application/json' })
+          res.end(
+            JSON.stringify({
+              model: 'stub:latest',
+              created_at: '2026-01-01T00:00:00Z',
+              response: responseText,
+              done: true,
+              done_reason: 'stop',
+              context: [],
+              total_duration: 1,
+              load_duration: 1,
+              prompt_eval_count: 1,
+              prompt_eval_duration: 1,
+              eval_count: 1,
+              eval_duration: 1
+            })
+          )
+        }
+        const delay = options.delayMs ?? 0
+        if (delay > 0) setTimeout(respond, delay)
+        else respond()
       })
       return
     }
@@ -274,6 +285,56 @@ test('AI 生成数据（桩服务）：提示词组装 → 候选预览 → 勾�
 
     await window.getByTestId('datagen-close').click()
     await expect(window.getByTestId('datagen-panel')).toHaveCount(0)
+  } finally {
+    await app.close()
+    await stub.close()
+  }
+})
+/*
+ * 取消：单发 AI 生成改前**没有停止入口**（只有 180s 超时兜底），用户只能干等或重启。
+ * 这条验证整条链路：面板按钮 → `task:cancel` → 通用取消表 → abort 在途 fetch，
+ * 且「用户主动停止」不算故障（给提示、不报红）。
+ */
+test('AI 生成数据（桩服务）：生成中点「停止」→ 中断在途请求，给「已停止」提示而不是报错', async () => {
+  // 响应压后 5s：保证点停止时请求确实在途
+  const stub = await startOllamaStub('{"roles":[{"name":"不该出现"}]}', { delayMs: 5000 })
+  const userDataDir = mkdtempSync(join(tmpdir(), 'mb-ceshu-datagen-cancel-'))
+  const app = await launchApp(userDataDir, { MB_OLLAMA_HOST: stub.host })
+
+  try {
+    const window = await app.firstWindow()
+    await waitReady(window)
+
+    await window.evaluate(async () => {
+      const api = (
+        globalThis as unknown as {
+          mbApi: { ceshu: { create: (req: { name: string; scope: string }) => Promise<{ ceshu_id: string }> } }
+        }
+      ).mbApi
+      await api.ceshu.create({ name: '取消生成E2E', scope: 'full' })
+    })
+    await window.reload()
+    await waitReady(window)
+    await window.getByTestId('home-card').filter({ hasText: '取消生成E2E' }).getByTestId('home-card-open').click()
+    await window.getByTestId('ceshu-ai-datagen').click()
+    await window.evaluate(async (config) => {
+      const api = (globalThis as unknown as { mbApi: { llm: { configure: (req: unknown) => Promise<unknown> } } })
+        .mbApi
+      await api.llm.configure({ config })
+    }, confidentialLocalLlmConfig())
+
+    await window.getByTestId('datagen-count').fill('2')
+    await window.getByTestId('datagen-generate').click()
+
+    // 停止按钮只在生成中出现；它出现即说明请求已发出
+    await expect(window.getByTestId('datagen-stop')).toBeVisible({ timeout: 15_000 })
+    await window.getByTestId('datagen-stop').click()
+
+    // 4s << 桩的 5s：只有真 abort 才可能在这个时限内看到提示
+    await expect(window.getByTestId('datagen-notice')).toContainText('已停止本次生成', { timeout: 4000 })
+    await expect(window.getByTestId('datagen-stop')).toHaveCount(0)
+    // 取消不是故障：不该出现错误条
+    await expect(window.getByTestId('datagen-error')).toHaveCount(0)
   } finally {
     await app.close()
     await stub.close()

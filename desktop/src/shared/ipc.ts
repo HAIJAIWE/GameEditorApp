@@ -43,7 +43,7 @@ import type {
   ReferencesInput,
   CeshuRenameInput,
   AgentChatInput,
-  AgentCancelInput,
+  TaskCancelInput,
   AgentExecuteToolInput,
   AgentDraftLoadInput,
   DeleteImagesInput,
@@ -255,10 +255,14 @@ export interface IpcContract {
     res: { text: string; events: BrainEvent[]; completed: boolean; stats: AgentRunStats }
   }
   /**
-   * 取消本轮运行（用户点「停止」）。
-   * `cancelled: false` = 没有匹配的运行（已结束 / runId 不对）——不是错误，面板无需提示。
+   * 取消该窗口正在跑的长任务（对话循环、章节/数据/审校等单发 AI 生成）。
+   * `taskId` 缺省 ⇒ 取消「该窗口当前活跃的一笔」；`cancelled: false` =
+   * 没有匹配的任务（已结束 / id 不对 / 不属于该窗口）——不是错误，面板无需提示。
+   *
+   * 为什么是**一条**通道而不是每类任务各一条：取消是同一套语义（登记 → abort → 注销），
+   * 分散成多条只会各自漂移。实现见 `main/task/taskRegistry.ts`。
    */
-  'agent:cancel': { req: AgentCancelInput; res: { cancelled: boolean } }
+  'task:cancel': { req: TaskCancelInput; res: { cancelled: boolean } }
   'agent:approvalResponse': { req: { requestId: string; approved: boolean }; res: { ok: boolean } }
   'agent:interactionResponse': { req: AgentInteractionResponseInput; res: { ok: boolean } }
   'agent:sessionInfo': { req: undefined; res: SessionInfo }
