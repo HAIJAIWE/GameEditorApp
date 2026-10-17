@@ -16,6 +16,7 @@ import { OperationLogStore } from './agent/operationLogStore'
 import { createRecordingToolRunner } from './agent/operationRecorder'
 import { createRollbackSkill } from './agent/skills/rollbackSkill'
 import { AgentMemoryStore } from './agent/memoryStore'
+import { createOllamaEmbeddingProvider } from './agent/embedding'
 import { createPersonalizationStores } from './agent/preferenceStore'
 import type { FeedbackStore, PreferenceStore } from './agent/preferenceStore'
 import { AgentSessionStore } from './agent/sessionStore'
@@ -113,7 +114,8 @@ export function buildStores(libDir: string): AppStores {
     agentBrain: new AgentBrainService({
       dispatcher,
       sessionStore,
-      memoryStore: new AgentMemoryStore(agentDir),
+      // F3：显式配置 MB_MEMORY_EMBED_MODEL 时走真实 embedding；否则回落到确定性哈希
+      memoryStore: new AgentMemoryStore(agentDir, { embedder: createOllamaEmbeddingProvider() }),
       preferences: personalization.preferences,
       runner
     }),

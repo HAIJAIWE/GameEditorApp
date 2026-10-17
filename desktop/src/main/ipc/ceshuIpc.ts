@@ -33,7 +33,7 @@ import {
 } from '../../shared/schemas'
 import { CHAPTER_LABELS, isChapterKey, type SystemEntry } from '../../shared/ceshuConstants'
 import { CESHU_CHAPTER_FIELDS } from '../../shared/ceshuFields'
-import { llmConfirmReason } from '../../shared/agent/protocol'
+import { runSingleShotTask } from '../agent/runTask'
 import { estimateTokens } from '../../shared/agent/budget'
 import { applyJudge, evaluateChapterDraft, evaluateDataCandidates } from '../../shared/agent/qualityGate'
 import { runLlmJudge } from '../agent/qualityJudge'
@@ -167,16 +167,19 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
     const callOpts = await llm.llmCallOptions()
     const isCloud = llm.isCloudCall(callOpts)
     const estimated = estimateTokens(built.system + built.prompt)
-    const confirmReason = llmConfirmReason({
-      bulk: req.fullGenerate !== undefined,
-      taskType: req.fullGenerate !== undefined ? 'full' : 'chapter',
+    // F1 完整 harness：预算确认 + 计时 + 观测累计统一走 runSingleShotTask
+    const task = await runSingleShotTask({
+      isCloud,
       estimatedTokens: estimated,
-      isCloud
+      taskType: req.fullGenerate !== undefined ? 'full' : 'chapter',
+      bulk: req.fullGenerate !== undefined,
+      confirmed: req.confirmed === true,
+      run: async () => {
+        const { model, content, usage } = await llmClient.generate(built.system, built.prompt, callOpts)
+        return { value: content, model, usage }
+      }
     })
-    if (confirmReason !== null && req.confirmed !== true) {
-      throw new Error(confirmReason)
-    }
-    const { model, content, usage } = await llmClient.generate(built.system, built.prompt, callOpts)
+    const content = task.value
     const parsed = parseLlmJson(content)
     const fields = filterGeneratedFields(doc, req.chapter, parsed)
     // v0.5 DD-19：产出过确定性评分门（validateCeshu + scoreCeshu），供 UI 展示"生成有没有变好"
@@ -185,12 +188,12 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
     // 失败降级为 null（applyJudge 原样返回确定性 verdict，绝不阻断正文生成）
     const judge = await runLlmJudge(callOpts, req.chapter, fields)
     return {
-      model,
+      model: task.model ?? '',
       fields,
       rawText: content,
       quality: applyJudge(deterministic, judge),
       // v0.6 M5：成本护栏的观测数据
-      usage: usage ?? null
+      usage: task.usage ?? null
     }
   })
   handle('ceshu:aiGenerateField', ceshuAiGenerateFieldInputSchema, async (req) => {
@@ -233,16 +236,18 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
     const callOpts = await llm.llmCallOptions()
     const isCloud = llm.isCloudCall(callOpts)
     const estimated = estimateTokens(built.system + built.prompt)
-    const confirmReason = llmConfirmReason({
-      count,
-      taskType: 'datagen',
+    const task = await runSingleShotTask({
+      isCloud,
       estimatedTokens: estimated,
-      isCloud
+      taskType: 'datagen',
+      count,
+      confirmed: req.confirmed === true,
+      run: async () => {
+        const { model, content, usage } = await llmClient.generate(built.system, built.prompt, callOpts)
+        return { value: content, model, usage }
+      }
     })
-    if (confirmReason !== null && req.confirmed !== true) {
-      throw new Error(confirmReason)
-    }
-    const { model, content, usage } = await llmClient.generate(built.system, built.prompt, callOpts)
+    const content = task.value
     const parsed = parseLlmJson(content)
     if (Object.keys(parsed).length === 0) {
       throw new Error(DATA_GEN_ERROR_UNPARSABLE)
@@ -258,7 +263,7 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
       existingCounts[item.type] = (existingCounts[item.type] ?? 0) + 1
     }
     return {
-      model,
+      model: task.model ?? '',
       candidates: normalized.candidates,
       generatedCounts: normalized.generatedCounts,
       total: normalized.total,
@@ -269,7 +274,7 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
         existingCounts
       }),
       // v0.6 M5：成本护栏的观测数据
-      usage: usage ?? null
+      usage: task.usage ?? null
     }
   })
   handle('ceshu:aiReview', ceshuGetInputSchema, async (req) => {
@@ -284,18 +289,23 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
     const callOpts = await llm.llmCallOptions()
     const isCloud = llm.isCloudCall(callOpts)
     const estimated = estimateTokens(built.system + built.prompt)
-    const confirmReason = llmConfirmReason({ taskType: 'review', estimatedTokens: estimated, isCloud })
-    if (confirmReason !== null && req.confirmed !== true) {
-      throw new Error(confirmReason)
-    }
-    const { model, content, usage } = await llmClient.generate(built.system, built.prompt, callOpts)
+    const task = await runSingleShotTask({
+      isCloud,
+      estimatedTokens: estimated,
+      taskType: 'review',
+      confirmed: req.confirmed === true,
+      run: async () => {
+        const { model, content, usage } = await llmClient.generate(built.system, built.prompt, callOpts)
+        return { value: content, model, usage }
+      }
+    })
     return {
-      model,
-      ...parseReviewResponse(content),
+      model: task.model ?? '',
+      ...parseReviewResponse(task.value),
       progressTotal: progress.total ?? 0,
       validationCount: validationErrors.length,
       // v0.6 M5：成本护栏的观测数据
-      usage: usage ?? null
+      usage: task.usage ?? null
     }
   })
   handle('ceshu:exportReviewReport', ceshuReviewExportInputSchema, (req) =>

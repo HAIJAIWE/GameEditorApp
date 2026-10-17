@@ -88,13 +88,15 @@ describe('AgentBrainService：M3 档位路由装配', () => {
     expect(text).toContain('### 策划书创作')
   })
 
-  it('未配置 → tier=local，提示词按本地口径（只使用清单内工具）', async () => {
+  // F7（2026-10-18）：未配置档如实记为 `unconfigured`（不再伪装 local）；
+  // 工具面仍按最保守的本地预算处理（`faceLimitFor`），故提示词口径保持本地。
+  it('未配置 → tier=unconfigured（工具面按本地预算），提示词按本地口径（只使用清单内工具）', async () => {
     const { transport, requests } = capturingTransport()
     const service = new AgentBrainService({ dispatcher: makeDispatcher(), transport })
 
     const result = await service.chat('你好')
 
-    expect(result.stats.tier).toBe('local')
+    expect(result.stats.tier).toBe('unconfigured')
     const text = systemText(requests[0] as BrainLlmRequest)
     expect(text).toContain('本地档工具面')
     expect(text).toContain('只使用这份清单')

@@ -90,7 +90,12 @@ const TIER_LABELS: Record<AgentRunTier, string> = {
   unconfigured: '⚙ 未配置'
 }
 
-export default function DigitalPanel() {
+/**
+ * @param seed 首页 AI 入口卡「投喂」用的引导文案。非空时以 `nonce` 作为一次性触发哨兵：
+ * nonce 变化即把 `text` 投入对话（复用 `submitText`），避免受控组件每帧重复提交。
+ * 自包含面板不接受持续受控状态，故用 nonce 而非「seed 是否存在」判定是否该发。
+ */
+export default function DigitalPanel({ seed }: { seed?: { text: string; nonce: number } | null }) {
   const [state, dispatch] = useReducer(reducer, initialDigitalPanelState)
   const [input, setInput] = useState('')
   const [stepsOpen, setStepsOpen] = useState(true)
@@ -174,6 +179,16 @@ export default function DigitalPanel() {
   )
 
   const handleSend = (): void => submitText(input)
+
+  // 首页 AI 入口卡「投喂」：seed.nonce 变化时（且非首次挂载的 null）自动把引导文案投入对话。
+  // 用 ref 记上次处理的 nonce，保证幂等 —— submitText 自身也会在 running 时忽略，双重保险。
+  const lastSeedNonce = useRef<number | null>(null)
+  useEffect(() => {
+    if (seed == null) return
+    if (seed.nonce === lastSeedNonce.current) return
+    lastSeedNonce.current = seed.nonce
+    submitText(seed.text)
+  }, [seed, submitText])
 
   const handleApproval = (approved: boolean): void => {
     const approval = state.approval
@@ -497,6 +512,16 @@ export default function DigitalPanel() {
             {TIER_LABELS[state.runStats.tier]} · {state.runStats.turns} 轮 · {state.runStats.totalTokens}{' '}
             token · {state.runStats.latencyMs} ms
             {state.runStats.toolCalls > 0 ? ` · ${state.runStats.toolCalls} 次工具` : ''}
+          </span>
+        </div>
+      )}
+
+      {/* F7 未配置引导：档位诚实化为 unconfigured 后，明确告知当前走本地 + 给出配置路径 */}
+      {state.runStats.tier === 'unconfigured' && (
+        <div className="digital-run-stats" data-testid="digital-tier-hint" role="status">
+          <span className="home-section-label">提示</span>
+          <span className="item-meta">
+            未配置云端模型，当前走本地 Ollama。到「设置 → AI 模型服务」选择服务商并填 Key，或保持本地（保密模式）。
           </span>
         </div>
       )}

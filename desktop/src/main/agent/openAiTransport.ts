@@ -1,5 +1,5 @@
 /**
- * 云端 OpenAI 兼容传输层（M3 档位路由）：带 `tools` 的 Function Calling。
+ * 云端 OpenAI 兼容传输层（M3 档位路由）：带 `tools` 的 Function Calling + SSE 流式增量。
  *
  * ## 为什么现在才有
  * 数字员工对话面（`agent:chat`）此前是**第三条本地专属链路**——传输层硬编码 `OllamaChatTransport`，
@@ -18,15 +18,21 @@
  * 两者共用同一批配置解析函数，避免「同一个 provider 两处拼出不同 URL」。
  *
  * ## ⚠️ 边界（诚实标注）
- * - **非流式**：本层一次返回完整响应（Brain 循环本就按「一轮答复」粒度消费，工具调用不需要逐字流）。
- *   逐字流式（`onChunk`）本次以「整段一次性回调」实现，面板仍可见最终文本，但**不是**逐 token。
+ * - **流式（F9）**：本层以 `stream:true` + SSE 解析实现逐 token 回调 `onChunk`，面板可见逐字输出；
+ *   本地档 Ollama 早已流式，现云端档对齐，两档 UX 一致。
  * - **Claude 不在此层**：Anthropic Messages API 与 OpenAI 协议不兼容（`client.ts` 既有结论），
  *   由 `resolveAgentTransport` 在同一处拦截并给出中文指引。
  * - **`request.tools` 原样下发**：本层**不补** Function Calling 外层包装 —— 进来时已是
  *   `[{type:'function', function:{…}}]`（`brainService` 经 `toFunctionCallingTools` 转好）。
  *   若把 `toJsonSchema()` 的内层对象直接透传，OpenAI 兼容端点会回
  *   `400 InvalidParameter: input.tools.0.type must be one of ['function']`（线上实测）。
+ *
+ * ## 重构说明（本文件唯一实质变更）
+ * 行泵下沉到 `agentStream.pumpLines`，与 Ollama NDJSON 共用一份实现（含 `finally { releaseLock() }`
+ * 与末尾残片 flush）。SSE 语义留在本层：`data:` 前缀、`[DONE]` 终止符、`tool_calls` 按 `index` 合并。
+ * 改前两层的行泵是各自拷贝，已出现「一份有锁释放、一份没有」的漂移。
  */
+
 import { LLM_MESSAGES, type LlmUsage } from '../../shared/config/llmConfig'
 import {
   parseToolArguments,
@@ -35,6 +41,7 @@ import {
   type BrainLlmTransport,
   type BrainToolCall
 } from '../../shared/agent/brain'
+import { assertHttpOk, pumpLines } from './agentStream'
 
 export interface OpenAiChatTransportOptions {
   /** 接口地址（`https://api.deepseek.com/v1` 形态；**不含** `/chat/completions`） */
@@ -45,16 +52,17 @@ export interface OpenAiChatTransportOptions {
   temperature?: number
 }
 
-interface OpenAiChatResponse {
+interface OpenAiStreamChunk {
   choices?: Array<{
-    message?: {
+    delta?: {
       content?: string | null
       tool_calls?: Array<{
+        index?: number
         id?: string
         function?: { name?: string; arguments?: unknown }
       }>
     }
-    finish_reason?: string
+    finish_reason?: string | null
   }>
   usage?: {
     prompt_tokens?: number
@@ -67,6 +75,15 @@ interface OpenAiChatResponse {
 /** 拼接 OpenAI 兼容端点（容忍 baseUrl 尾部斜杠；不重复追加 /v1） */
 export function buildChatCompletionsUrl(baseUrl: string): string {
   return `${baseUrl.trim().replace(/\/+$/, '')}/chat/completions`
+}
+
+/** 把单个 chunk 的 usage 映射为 `LlmUsage`（缺字段回落零值） */
+function mapUsage(usage: OpenAiStreamChunk['usage']): LlmUsage | undefined {
+  if (usage === undefined) return undefined
+  const promptTokens = usage.prompt_tokens ?? 0
+  const completionTokens = usage.completion_tokens ?? 0
+  const totalTokens = usage.total_tokens ?? promptTokens + completionTokens
+  return { promptTokens, completionTokens, totalTokens }
 }
 
 export class OpenAiChatTransport implements BrainLlmTransport {
@@ -86,7 +103,9 @@ export class OpenAiChatTransport implements BrainLlmTransport {
       model,
       messages: request.messages,
       ...(request.tools.length > 0 ? { tools: request.tools } : {}),
-      stream: false,
+      stream: true,
+      // 请求服务端在末段 chunk 回传 usage（多数 OpenAI 兼容支持；不支持则观测记零值）
+      stream_options: { include_usage: true },
       temperature: this.options.temperature ?? 0.7
     })
 
@@ -106,16 +125,101 @@ export class OpenAiChatTransport implements BrainLlmTransport {
       })
     }
 
-    if (!response.ok) {
-      const detail = await response.text().catch(() => '')
-      throw new Error(`云端 AI 调用失败（HTTP ${response.status}）：${detail.slice(0, 200)}`)
+    await assertHttpOk(response, '云端 AI 调用失败')
+
+    // 无流式 body（极少数环境 / 测试桩）⇒ 降级为一次性读 JSON
+    const stream: ReadableStream<Uint8Array> | null | undefined = response.body
+    if (stream === null || stream === undefined) {
+      return this.completeFromJson(response, model, request)
     }
 
-    const payload = (await response.json().catch(() => ({}))) as OpenAiChatResponse
+    // SSE 流式解析：逐 `data:` 行累加 content（onChunk）与 tool_calls（按 index 合并）
+    let content = ''
+    let finishReason: string = 'stop'
+    let usage: LlmUsage | undefined
+    const toolCallSlots: Array<{ id: string; name: string; arguments: string }> = []
+
+    const handleLine = (line: string): void => {
+      const trimmed = line.trim()
+      if (trimmed === '' || !trimmed.startsWith('data:')) return
+      const data = trimmed.slice(5).trim()
+      if (data === '[DONE]') return
+      let chunk: OpenAiStreamChunk
+      try {
+        chunk = JSON.parse(data) as OpenAiStreamChunk
+      } catch {
+        return // 跳过畸形行，不中断整轮
+      }
+      if (chunk.error?.message !== undefined && chunk.error.message !== '') {
+        throw new Error(`云端 AI 调用失败：${chunk.error.message.slice(0, 200)}`)
+      }
+      if (chunk.usage !== undefined) usage = mapUsage(chunk.usage)
+      const choice = chunk.choices?.[0]
+      if (choice === undefined) return
+      const delta = choice.delta
+      if (typeof delta?.content === 'string' && delta.content !== '') {
+        content += delta.content
+        request.onChunk?.(delta.content)
+      }
+      if (delta?.tool_calls !== undefined) {
+        for (const tc of delta.tool_calls) {
+          const slotIndex = tc.index ?? toolCallSlots.length
+          if (toolCallSlots[slotIndex] === undefined) {
+            toolCallSlots[slotIndex] = { id: '', name: '', arguments: '' }
+          }
+          const slot = toolCallSlots[slotIndex]
+          if (typeof tc.id === 'string' && tc.id !== '') slot.id = tc.id
+          if (typeof tc.function?.name === 'string') slot.name += tc.function.name
+          if (tc.function?.arguments !== undefined) {
+            slot.arguments +=
+              typeof tc.function.arguments === 'string' ? tc.function.arguments : JSON.stringify(tc.function.arguments)
+          }
+        }
+      }
+      if (typeof choice.finish_reason === 'string' && choice.finish_reason !== '') {
+        finishReason = choice.finish_reason
+      }
+    }
+
+    await pumpLines(stream, handleLine)
+
+    const toolCalls: BrainToolCall[] = toolCallSlots
+      .filter((slot): slot is { id: string; name: string; arguments: string } => slot !== undefined)
+      .map((slot, index) => ({
+        id: slot.id !== '' ? slot.id : `call_${index + 1}`,
+        name: slot.name,
+        arguments: parseToolArguments(slot.arguments)
+      }))
+
+    return {
+      content,
+      toolCalls,
+      finishReason: toolCalls.length > 0 && finishReason === 'stop' ? 'tool_calls' : finishReason,
+      model,
+      usage
+    }
+  }
+
+  /** 非流式降级路径：一次性读 JSON（`response.body` 缺失时的兜底，语义与流式守恒） */
+  private async completeFromJson(
+    response: Response,
+    model: string,
+    request: BrainLlmRequest
+  ): Promise<BrainLlmReply> {
+    const payload = (await response.json().catch(() => ({}))) as {
+      choices?: Array<{
+        message?: {
+          content?: string
+          tool_calls?: Array<{ id?: string; function?: { name?: string; arguments?: unknown } }>
+        }
+        finish_reason?: string
+      }>
+      usage?: OpenAiStreamChunk['usage']
+      error?: { message?: string }
+    }
     if (payload.error?.message !== undefined && payload.error.message !== '') {
       throw new Error(`云端 AI 调用失败：${payload.error.message.slice(0, 200)}`)
     }
-
     const choice = payload.choices?.[0]
     const message = choice?.message ?? {}
     const content = typeof message.content === 'string' ? message.content : ''
@@ -124,29 +228,14 @@ export class OpenAiChatTransport implements BrainLlmTransport {
       name: raw.function?.name ?? '',
       arguments: parseToolArguments(raw.function?.arguments)
     }))
-
-    // 非流式：整段文本一次性回调（面板仍能显示文本；不做逐 token，见文件头边界说明）
     if (content !== '') request.onChunk?.(content)
-
-    const usage: LlmUsage | undefined =
-      payload.usage !== undefined
-        ? {
-            promptTokens: payload.usage.prompt_tokens ?? 0,
-            completionTokens: payload.usage.completion_tokens ?? 0,
-            totalTokens:
-              payload.usage.total_tokens ??
-              (payload.usage.prompt_tokens ?? 0) + (payload.usage.completion_tokens ?? 0)
-          }
-        : undefined
-
     const finishReason =
       typeof choice?.finish_reason === 'string' && choice.finish_reason !== ''
         ? choice.finish_reason
         : toolCalls.length > 0
           ? 'tool_calls'
           : 'stop'
-
-    return { content, toolCalls, finishReason, model, usage }
+    return { content, toolCalls, finishReason, model, usage: mapUsage(payload.usage) }
   }
 }
 

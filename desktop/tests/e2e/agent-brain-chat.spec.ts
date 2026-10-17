@@ -187,7 +187,14 @@ test('Agent Brain 循环：桩服务返回工具调用 → 执行工具 → 流�
     // 桩服务侧核对：第一轮带 tools 与系统提示词；第二轮回灌了 tool 结果
     expect(stub.bodies).toHaveLength(2)
     const first = stub.bodies[0]
-    expect(first?.tools.map((tool) => tool.function.name).sort()).toEqual(['system.ceshu', 'system.game_data'])
+    // 工具面清单**有意写死**（见 agent-execute-tool.spec.ts 同款注释）：注册表变化必须在 e2e 层可见
+    expect(first?.tools.map((tool) => tool.function.name).sort()).toEqual([
+      'system.ceshu',
+      'system.code',
+      'system.game_data',
+      'tool.ask_user',
+      'tool.rollback_ai_changes'
+    ])
     // 线格式守卫：桩服务收到的每个工具都必须带 `type:'function'` 外层（缺了 Ollama 会静默拿到无名工具）
     expect(first?.tools.every((tool) => tool.type === 'function')).toBe(true)
     expect(first?.messages[0]?.role).toBe('system')

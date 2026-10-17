@@ -215,3 +215,43 @@ describe('SkillDispatcher：供提示词与面板使用的元数据', () => {
     expect(dispatcher.toolCatalog()).not.toContain('action')
   })
 })
+
+/**
+ * 风险**硬上限**（`maxAllowedRisk`）守卫。
+ *
+ * 为什么必须锁：改前该字段存了却从不读取（`riskCeiling` getter 也零调用点）——
+ * 形似安全策略、实则零守卫，删掉那行都不会有测试报红。这三条用例把「它真的在拦」钉住。
+ * 同时钉住缺省值：缺省必须是 `SYSTEM`（不设上限），否则 `system.code` 这类
+ * 已经过用户确认的操作会被默认配置**永久锁死**（那是行为破坏，不是加强安全）。
+ */
+describe('SkillDispatcher：风险硬上限（maxAllowedRisk）', () => {
+  it('默认不设上限：SYSTEM 级工具带确认令牌可执行', async () => {
+    const dispatcher = new SkillDispatcher()
+    dispatcher.register(makeSkill({ id: 'system.code' }))
+    const ctx = { dangerConfirmed: { tool: 'system.code', action: 'execute' } }
+
+    expect(dispatcher.riskCeiling).toBe(RISK_LEVEL.SYSTEM)
+    const result = await dispatcher.execute('system.code', { action: 'execute' }, ctx)
+    expect(result.success).toBe(true)
+  })
+
+  it('收紧到 FILE_SYSTEM：SYSTEM 级工具即便带确认令牌也被拒（硬上限优先于确认门）', async () => {
+    const dispatcher = new SkillDispatcher({ maxAllowedRisk: RISK_LEVEL.FILE_SYSTEM })
+    dispatcher.register(makeSkill({ id: 'system.code' }))
+    const ctx = { dangerConfirmed: { tool: 'system.code', action: 'execute' } }
+
+    const result = await dispatcher.execute('system.code', { action: 'execute' }, ctx)
+    expect(result.success).toBe(false)
+    expect(result.error).toContain('超出风险上限')
+    // 被硬上限拦下时不消费令牌（同一令牌仍可用于其它放行路径，语义不串味）
+    expect(ctx.dangerConfirmed).not.toBeNull()
+  })
+
+  it('收紧到 FILE_SYSTEM 仍放行 DATA_WRITE 级工具（不是一刀切全禁）', async () => {
+    const dispatcher = new SkillDispatcher({ maxAllowedRisk: RISK_LEVEL.FILE_SYSTEM })
+    dispatcher.register(makeSkill({ id: 'system.game_data' }))
+
+    const result = await dispatcher.execute('system.game_data', { action: 'create' })
+    expect(result.success).toBe(true)
+  })
+})

@@ -96,7 +96,8 @@ describe('OpenAiChatTransport：请求与响应契约', () => {
       tools?: Array<{ type?: string; function?: { name?: string } }>
     }
     expect(body.model).toBe('deepseek-chat')
-    expect(body.stream).toBe(false)
+    // F9（2026-10-18）：云端档改为 SSE 流式，与本地 Ollama 的逐字 UX 对齐
+    expect(body.stream).toBe(true)
     // 线格式透传守卫：传输层**不再包装**，进来什么样出去什么样。
     // （进线前已由 brainService 套好 `{type:'function', function:{…}}`；此处摊平即被端点回 400）
     expect(body.tools).toHaveLength(1)
@@ -165,8 +166,10 @@ describe('M3 档位解析与传输层选择', () => {
     globalThis.fetch = originalFetch
   })
 
-  it('resolveAgentTier：未配置/保密/ollama → local；云端服务商 → cloud', () => {
-    expect(resolveAgentTier(undefined)).toBe('local')
+  // F7（2026-10-18）：未配置档不再伪装成 `local`，而是如实透传 `unconfigured`
+  // （M0「不静默回落」要求观测层能区分「故意选本地」与「根本没配置」）。
+  it('resolveAgentTier：未配置 → unconfigured；保密/ollama → local；云端服务商 → cloud', () => {
+    expect(resolveAgentTier(undefined)).toBe('unconfigured')
     expect(resolveAgentTier(cloudConfig({ confidential: true }))).toBe('local')
     expect(resolveAgentTier(cloudConfig({ provider: 'ollama' }))).toBe('local')
     expect(resolveAgentTier(cloudConfig())).toBe('cloud')

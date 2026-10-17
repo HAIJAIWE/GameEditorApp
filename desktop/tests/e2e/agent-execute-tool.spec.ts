@@ -39,12 +39,20 @@ test('Agent 技能调度：listTools + 只读技能执行 + 结构化错误', as
     const window = await app.firstWindow()
     await waitReady(window)
 
-    // 1) listTools：两个内置技能 + 提示词描述
+    // 1) listTools：内置技能清单 + 提示词描述
+    // ⚠️ 这里是**有意写死**的清单守卫：新增/删除技能必须同步改此处，让「工具面变化」在 e2e 层显式可见。
+    // （历史教训：断言曾停留在只有 2 个技能的年代，后续补了 code / ask_user / rollback 后一直红灯无人察。）
     const meta = (await window.evaluate(async () => {
       const api = (globalThis as unknown as { mbApi: AgentApi }).mbApi
       return api.agent.listTools()
     })) as { description: string; tools: Array<{ name: string }> }
-    expect(meta.tools.map((tool) => tool.name).sort()).toEqual(['system.ceshu', 'system.game_data'])
+    expect(meta.tools.map((tool) => tool.name).sort()).toEqual([
+      'system.ceshu',
+      'system.code',
+      'system.game_data',
+      'tool.ask_user',
+      'tool.rollback_ai_changes'
+    ])
     expect(meta.description).toContain('- system.game_data:')
     expect(meta.description).toContain('- system.ceshu:')
     expect(meta.description).toContain('*action:')

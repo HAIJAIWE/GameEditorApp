@@ -26,6 +26,13 @@ interface StubOptions {
   toolArgs?: Record<string, unknown>
   /** 第二轮流式终稿分片 */
   finalChunks?: string[]
+  /**
+   * 首次响应前的人为延迟（毫秒）。**不是**为了模拟慢模型，而是为了消除断言竞态：
+   * 本机桩服务零延迟时，整轮「思考 → 工具 → 终稿」可在 React 提交一帧之前跑完，
+   * 面板的 `思考中…` 瞬态态永远来不及渲染 —— Playwright 只能看到已完成的终态。
+   * 实测：重构前后（HEAD 30d88b6）均稳定失败于此，属用例自身的竞态，与实现无关。
+   */
+  delayMs?: number
 }
 
 /** 第 1 次请求返回 tool_call，第 2 次返回流式终稿 */
@@ -45,8 +52,12 @@ async function startOllamaChatStub(options: StubOptions = {}): Promise<OllamaCha
       req.on('data', () => undefined)
       req.on('end', () => {
         call += 1
-        res.writeHead(200, { 'Content-Type': 'application/x-ndjson' })
-        if (call === 1) {
+        const isFirst = call === 1
+        const paced = options.delayMs !== undefined && options.delayMs > 0
+
+        // 首轮：一次性回 tool_call（可延迟，给面板留出渲染 `思考中…` 的时间窗）
+        const emitToolCall = (): void => {
+          res.writeHead(200, { 'Content-Type': 'application/x-ndjson' })
           res.end(
             lines([
               {
@@ -60,14 +71,42 @@ async function startOllamaChatStub(options: StubOptions = {}): Promise<OllamaCha
               { message: { role: 'assistant', content: '' }, done: true, done_reason: 'stop' }
             ])
           )
+        }
+
+        // 次轮：终稿。`paced` 时**逐片写出并留间隔**，否则一次性写完。
+        // 为什么必须分片：`digital-streaming` 区域在终稿落地后即清空，
+        // 零延迟时「流式文本可见」与「已完成」之间没有可观测窗口。
+        const emitFinal = (): void => {
+          res.writeHead(200, { 'Content-Type': 'application/x-ndjson' })
+          if (!paced) {
+            res.end(
+              lines([
+                ...finalChunks.map((text) => ({ message: { role: 'assistant', content: text }, done: false })),
+                { message: { role: 'assistant', content: '' }, done: true, done_reason: 'stop' }
+              ])
+            )
+            return
+          }
+          let index = 0
+          const step = (): void => {
+            if (index < finalChunks.length) {
+              res.write(lines([{ message: { role: 'assistant', content: finalChunks[index] }, done: false }]))
+              index += 1
+              setTimeout(step, 600)
+              return
+            }
+            res.write(lines([{ message: { role: 'assistant', content: '' }, done: true, done_reason: 'stop' }]))
+            res.end()
+          }
+          step()
+        }
+
+        const emit = (): void => (isFirst ? emitToolCall() : emitFinal())
+        if (isFirst && paced) {
+          setTimeout(emit, options.delayMs)
           return
         }
-        res.end(
-          lines([
-            ...finalChunks.map((text) => ({ message: { role: 'assistant', content: text }, done: false })),
-            { message: { role: 'assistant', content: '' }, done: true, done_reason: 'stop' }
-          ])
-        )
+        emit()
       })
       return
     }
@@ -84,7 +123,8 @@ async function startOllamaChatStub(options: StubOptions = {}): Promise<OllamaCha
 }
 
 test('数字员工面板：桩服务驱动一轮「思考 → 工具 → 结果」并渲染步骤与任务', async () => {
-  const stub = await startOllamaChatStub()
+  // delayMs 让 `思考中…` 瞬态态可观测（否则零延迟桩会在首帧前跑完整轮，断言必竞态）
+  const stub = await startOllamaChatStub({ delayMs: 600 })
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-agent-panel-e2e-'))
   const app = await launchApp(userDataDir, { MB_OLLAMA_HOST: stub.host, MB_OLLAMA_MODEL: 'stub:latest' })
 
@@ -115,19 +155,23 @@ test('数字员工面板：桩服务驱动一轮「思考 → 工具 → 结果�
     await expect(window.getByTestId('digital-streaming')).toHaveCount(0)
     await expect(window.getByTestId('digital-status')).toHaveText('已完成')
 
-    // 执行步骤：思考轮 + 工具批 + 工具执行
-    await expect(window.getByTestId('digital-step')).toHaveCount(3)
-    await expect(window.getByTestId('digital-step').first()).toContainText('llm_think')
+    // 执行步骤：每来一个 step_start / step_done 事件就追加一条（见 `shared/agent/panel.ts`）。
+    // 本轮为「两次 LLM 调用 + 一次工具执行」⇒ think(0) → 并行1工具(0) → system.game_data → think(1) = 4 条。
+    // ⚠️ 旧值写的是 3（只有一次 llm_think 的年代），属陈旧断言；此处按事件流实际形状修正，
+    // 并额外断言**顺序**，避免以后再把「多一轮思考」当成单纯的数字变化糊过去。
+    await expect(window.getByTestId('digital-step')).toHaveCount(4)
+    await expect(window.getByTestId('digital-step').nth(0)).toContainText('llm_think')
     await expect(window.getByTestId('digital-step').nth(1)).toContainText('并行1工具')
     const toolStep = window.getByTestId('digital-step').nth(2)
     await expect(toolStep).toContainText('system.game_data')
     await expect(toolStep).toContainText('可用数据类型（')
+    await expect(window.getByTestId('digital-step').nth(3)).toContainText('llm_think')
 
     // 折叠步骤
     await window.getByTestId('digital-steps-toggle').click()
     await expect(window.getByTestId('digital-step')).toHaveCount(0)
     await window.getByTestId('digital-steps-toggle').click()
-    await expect(window.getByTestId('digital-step')).toHaveCount(3)
+    await expect(window.getByTestId('digital-step')).toHaveCount(4)
 
     // 任务列表由工具步骤派生
     await expect(window.getByTestId('digital-task')).toHaveCount(1)

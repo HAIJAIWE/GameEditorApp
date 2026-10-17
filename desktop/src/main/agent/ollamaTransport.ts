@@ -20,6 +20,11 @@
  * 之所以在错误文案里明说这一点，是为了不给用户「设置没生效」的错觉（那才是真误导）。
  * 接档位路由属 M3；但 **`num_ctx` 已在 M0.5 落地**——本层即本地档，显式下发
  * `LLM_DEFAULT_NUM_CTX`（16384）覆盖 Ollama 的 4096 默认，让多轮工具任务不被 4K 窗口截断。
+ *
+ * ## 重构说明（本文件唯一实质变更）
+ * 行泵（`getReader` / 解码 / 切 `\n` / `releaseLock`）下沉到 `agentStream.pumpLines`，
+ * 与云端 SSE 共用一份实现 —— 改前两份拷贝里**本地这份缺 `finally { releaseLock() }`**。
+ * 解析规则本身逐行保持：`error` 字段抛中文错误、`tool_calls` 按到达顺序追加、末 chunk 取 token 计数。
  */
 
 import { LLM_DEFAULT_NUM_CTX, LLM_MESSAGES, type LlmUsage } from '../../shared/config/llmConfig'
@@ -30,6 +35,7 @@ import {
   type BrainLlmTransport,
   type BrainToolCall
 } from '../../shared/agent/brain'
+import { assertHttpOk, pumpLines } from './agentStream'
 
 const DEFAULT_HOST = 'http://127.0.0.1:11434'
 
@@ -102,14 +108,12 @@ export class OllamaChatTransport implements BrainLlmTransport {
       throw new Error(LLM_MESSAGES.ollamaNotRunning(this.resolveHost()), { cause: error })
     }
 
-    if (!response.ok || response.body === null) {
-      const detail = await response.text().catch(() => '')
-      throw new Error(`AI 调用失败（HTTP ${response.status}）：${detail.slice(0, 120)}`)
+    await assertHttpOk(response, 'AI 调用失败')
+    const stream: ReadableStream<Uint8Array> | null | undefined = response.body
+    if (stream === null || stream === undefined) {
+      throw new Error('AI 调用失败：本地 Ollama 未返回流式响应体')
     }
 
-    const reader = response.body.getReader()
-    const decoder = new TextDecoder()
-    let buffer = ''
     let content = ''
     const toolCalls: BrainToolCall[] = []
     let finishReason = 'stop'
@@ -151,18 +155,7 @@ export class OllamaChatTransport implements BrainLlmTransport {
       }
     }
 
-    for (;;) {
-      const { done, value } = await reader.read()
-      if (done) break
-      buffer += decoder.decode(value, { stream: true })
-      let index = buffer.indexOf('\n')
-      while (index >= 0) {
-        handleLine(buffer.slice(0, index))
-        buffer = buffer.slice(index + 1)
-        index = buffer.indexOf('\n')
-      }
-    }
-    handleLine(buffer)
+    await pumpLines(stream, handleLine)
 
     // M1 观测：token 用量（本地档 Ollama 从最终 chunk 的 prompt_eval_count/eval_count 取）
     const usage: LlmUsage | undefined =

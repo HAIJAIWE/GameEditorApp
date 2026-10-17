@@ -26,9 +26,11 @@ import {
   type SessionInfo,
   type SessionSnapshot
 } from '../../shared/agent/session'
+import type { AgentRunStats } from '../../shared/agent/observability'
 
 const SESSION_FILE = 'active_session.json'
 const METRICS_FILE = 'metrics.jsonl'
+const RUNSTATS_FILE = 'runstats.jsonl'
 const DRAFTS_DIR = 'drafts'
 
 export class AgentSessionStore {
@@ -102,6 +104,18 @@ export class AgentSessionStore {
       mkdirSync(this.dir, { recursive: true })
       const entry = { type, timestamp: Math.floor(Date.now() / 1000), ...payload }
       appendFileSync(join(this.dir, METRICS_FILE), `${JSON.stringify(entry)}\n`, 'utf-8')
+    })
+  }
+
+  /**
+   * 落盘一次 `chat()` 的运行统计（F11 观测闭环）：累计 token / 轮数 / 工具数 / 档位 / 成本。
+   * 供后续「跨会话成本汇总 / 超预算自动降级（DD-5b 真降级）」消费；写入串行队列，失败不阻塞。
+   */
+  recordRunStats(stats: AgentRunStats): Promise<void> {
+    return this.enqueue(() => {
+      mkdirSync(this.dir, { recursive: true })
+      const entry = { type: 'run_stats', timestamp: Math.floor(Date.now() / 1000), ...stats }
+      appendFileSync(join(this.dir, RUNSTATS_FILE), `${JSON.stringify(entry)}\n`, 'utf-8')
     })
   }
 

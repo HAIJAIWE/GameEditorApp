@@ -6,7 +6,7 @@
  * |---|---|---|
  * | `cloud` | `OpenAiChatTransport` | 走设置面板选定的云端服务商（OpenAI 兼容端点） |
  * | `local` | `OllamaChatTransport` | 本机 Ollama（`num_ctx` 由配置下发，DD-1） |
- * | `unconfigured` | `OllamaChatTransport` | 无配置可路由 ⇒ 回本对话面的**原生本地**传输层（M0 的「不静默回落」闸门针对的是策划书/数据域的 51 个云端调用点；本对话面本就以本地为原生档，见 `ollamaTransport.ts` 头注） |
+ * | `unconfigured` | `OllamaChatTransport` | 未配置任何模型 ⇒ 回本对话面**原生本地**传输层（本地是聊天面原生档）；档位 honest 记为 `unconfigured`（不再假装成已选定的 `local`），使观测/面板能提示「未配置，去设置选云端或开启保密模式」 |
  *
  * ## 为什么 `claude` 单列
  * Anthropic Messages API 与 OpenAI 协议不兼容（`client.ts` 既有结论）。此处**不**把它偷偷
@@ -31,9 +31,16 @@ export function failingTransport(error: Error): BrainLlmTransport {
   }
 }
 
-/** 数字员工对话面**实际生效**的档位（与传输层一一对应，不含 `unconfigured`——它归到 `local` 传输层） */
+/**
+ * 数字员工对话面**实际生效**的档位（与传输层一一对应）。
+ * 三态如实透传：`cloud` / `local` / `unconfigured`。
+ * ⚠️ 不再把 `unconfigured` 伪装成 `local`——M0「不静默回落」的产品意志要求观测层能区分
+ * 「用户故意选了本地」与「根本没配置」（后者应提示去设置 / 开保密模式）。传输层对
+ * `unconfigured` 仍走原生本地 Ollama（聊天面本就以本地为原生档），只是**档位标签**诚实化。
+ */
 export function resolveAgentTier(config: StoredLlmConfig | undefined): AgentRunTier {
-  return resolveLlmTier(config) === 'cloud' ? 'cloud' : 'local'
+  const tier = resolveLlmTier(config)
+  return tier === 'cloud' ? 'cloud' : tier === 'unconfigured' ? 'unconfigured' : 'local'
 }
 
 /**

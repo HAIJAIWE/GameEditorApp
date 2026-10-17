@@ -18,11 +18,11 @@
 
 import {
   RISK_LEVEL,
+  checkPermission,
   fixParams,
   getToolCatalogLine,
   getToolDescription,
   normalizeSkillResult,
-  resolveRiskLevel,
   toJsonSchema,
   type RiskLevel,
   type SkillExecutionContext,
@@ -104,8 +104,20 @@ export class SkillDispatcher {
   private fuzzyIndex = new Map<string, string>()
   private readonly maxAllowedRisk: RiskLevel
 
+  /**
+   * @param options.maxAllowedRisk 风险**硬上限**（配置式禁止，超过即拒绝、连确认都不能放行）。
+   *
+   * ⚠️ 缺省 `SYSTEM`（= 最高档，即不设上限），与「危险确认门」分工不同，不可互相替代：
+   *  - 硬上限 = 部署方**一刀切禁止**某类操作（如纯云端会话禁掉 `system.code`）；
+   *  - 确认门 = **交互式放行**，用户在当轮明确点过同意。
+   * 默认不设上限是因为本项目所有 SYSTEM 级操作（`system.code` 等）本就由确认门把关；
+   * 若在这里默认 `FILE_SYSTEM`（`protocol.ts` 的 `DEFAULT_MAX_ALLOWED_RISK`），
+   * 会让 `system.code` **即便用户确认也无法执行** —— 那是行为破坏，不是加强安全。
+   *
+   * 改前该字段存了却从不读取（`riskCeiling` getter 也无调用点）：形似安全策略、实则零守卫。
+   */
   constructor(options: { maxAllowedRisk?: RiskLevel } = {}) {
-    this.maxAllowedRisk = options.maxAllowedRisk ?? RISK_LEVEL.FILE_SYSTEM
+    this.maxAllowedRisk = options.maxAllowedRisk ?? RISK_LEVEL.SYSTEM
   }
 
   register(skill: SkillProtocol): boolean {
@@ -226,8 +238,18 @@ export class SkillDispatcher {
     const fixed = fixParams(resolved, params)
     const action = typeof fixed.action === 'string' ? fixed.action : ''
 
-    // 危险操作确认门（对齐 Python `_check_dangerous`：risk >= SYSTEM 需二次确认）
-    if (resolveRiskLevel(resolved, action) >= RISK_LEVEL.SYSTEM) {
+    // 权限判定统一走 `protocol.checkPermission`（显式禁止 → 硬上限 → 危险确认 三段）。
+    // 改前这里是 `resolveRiskLevel(...) >= RISK_LEVEL.SYSTEM` 的手写判定 + 一个从不读取的
+    // `maxAllowedRisk` 字段 ⇒ 「限制工具/动作」这一整档能力在调度器层不可达。
+    const check = checkPermission(resolved, action, { maxAllowedRisk: this.maxAllowedRisk })
+    if (!check.allowed) {
+      return {
+        success: false,
+        error: `超出风险上限（${resolved}/${action}，等级 ${check.risk}）`,
+        message: ''
+      }
+    }
+    if (check.needsConfirmation) {
       const confirmed = ctx.dangerConfirmed
       if (confirmed !== null && confirmed !== undefined && confirmed.tool === resolved && confirmed.action === action) {
         ctx.dangerConfirmed = null
