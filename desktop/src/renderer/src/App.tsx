@@ -4,7 +4,6 @@ import type { CeshuSummary } from '../../shared/ceshuConstants'
 import { loadGameStyle, normalizeGameStyleId, saveGameStyle } from '../../shared/config/gameStyle'
 import type { AppInfo, DataTypeDef } from '../../shared/types'
 import { applyTheme, loadTheme, saveTheme, type ThemeMode } from '../../shared/config/theme'
-import type { EngineExportInput } from '../../shared/schemas'
 
 import AdvancedSearchPanel from './components/AdvancedSearchPanel'
 import AboutPanel from './components/AboutPanel'
@@ -33,7 +32,8 @@ import SettingsPanel from './components/SettingsPanel'
 import StatisticsPanel from './components/StatisticsPanel'
 import ToastHost from './components/ToastHost'
 import TypeEditorPanel from './components/TypeEditorPanel'
-import { formatImportSummary, toErrorMessage } from './appUtils'
+import { useDataTransfer, useUndoRedo } from './hooks/useAppActions'
+import { toErrorMessage } from './appUtils'
 
 /**
  * 顶层「面板浮层」的键：这些能力原先挂在下线前的「数据表视图」工具栏上，
@@ -101,13 +101,8 @@ export default function App() {
   const [types, setTypes] = useState<DataTypeDef[]>([])
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
-  /** 撤销/重做状态（菜单项 disabled 与 tooltip 标签用） */
-  const [undoUi, setUndoUi] = useState<{ canUndo: boolean; canRedo: boolean; nextUndo: string | null; nextRedo: string | null }>({
-    canUndo: false,
-    canRedo: false,
-    nextUndo: null,
-    nextRedo: null
-  })
+  /** 撤销/重做（状态 + 三个动作）：内聚单元，见 hooks/useAppActions */
+  const { undoUi, refreshUndo, performUndo, performRedo } = useUndoRedo(setNotice, setError)
   /** 主区内当前打开的浮层面板（null = 未打开，渲染策划书首页/编辑器） */
   const [panel, setPanel] = useState<OverlayPanel | null>(null)
   /** 主题（深/浅）：持久化在 localStorage，随会话保留；启动时由 main.tsx 预应用以避免闪屏 */
@@ -160,50 +155,6 @@ export default function App() {
   /** 浮层面板需要「一个类型」作为载体时使用的兜底：schema 里第一个类型 */
   const firstType = types[0]?.id ?? null
 
-  /** 刷新增撤/重做状态（数据变更后调用，保证菜单项 disabled 与标签正确） */
-  const refreshUndo = useCallback((): void => {
-    void window.mbApi.data
-      .undoState()
-      .then(setUndoUi)
-      .catch(() => undefined)
-  }, [])
-
-  /** 撤销：执行后刷新状态与按钮，并用 notice 反馈（对齐 AI 回滚风格） */
-  const performUndo = useCallback(async (): Promise<void> => {
-    try {
-      const result = await window.mbApi.data.undo()
-      const state = await window.mbApi.data.undoState()
-      setUndoUi(state)
-      const parts: string[] = []
-      if (result.applied > 0) parts.push(`已撤销 ${result.applied} 项`)
-      else if (result.failed.length === 0 && result.skipped.length === 0) parts.push('没有可撤销的操作')
-      if (result.failed.length > 0) parts.push(`${result.failed.length} 项失败：${result.failed.map((f) => f.name).join('、')}`)
-      if (result.skipped.length > 0)
-        parts.push(`${result.skipped.length} 项跳过：${result.skipped.map((s) => `${s.name}（${s.reason}）`).join('、')}`)
-      setNotice(parts.join('。') || '已撤销')
-    } catch (err) {
-      setError(toErrorMessage(err))
-    }
-  }, [])
-
-  /** 重做：对称于撤销 */
-  const performRedo = useCallback(async (): Promise<void> => {
-    try {
-      const result = await window.mbApi.data.redo()
-      const state = await window.mbApi.data.undoState()
-      setUndoUi(state)
-      const parts: string[] = []
-      if (result.applied > 0) parts.push(`已重做 ${result.applied} 项`)
-      else if (result.failed.length === 0 && result.skipped.length === 0) parts.push('没有可重做的操作')
-      if (result.failed.length > 0) parts.push(`${result.failed.length} 项失败：${result.failed.map((f) => f.name).join('、')}`)
-      if (result.skipped.length > 0)
-        parts.push(`${result.skipped.length} 项跳过：${result.skipped.map((s) => `${s.name}（${s.reason}）`).join('、')}`)
-      setNotice(parts.join('。') || '已重做')
-    } catch (err) {
-      setError(toErrorMessage(err))
-    }
-  }, [])
-
   /** 策划书列表刷新；无选中项时自动选中第一份 */
   const reloadCeshuList = useCallback(async (): Promise<void> => {
     try {
@@ -213,11 +164,6 @@ export default function App() {
     } catch (err) {
       setError(toErrorMessage(err))
     }
-  }, [])
-
-  // 初始化撤销/重做状态（启动时填充菜单项 disabled 与标签）
-  useEffect(() => {
-    void window.mbApi.data.undoState().then(setUndoUi).catch(() => undefined)
   }, [])
 
   // 应用主题：状态变化即同步到 <html> 的 data-theme（挂载时本 effect 也会执行一次）
@@ -483,116 +429,12 @@ export default function App() {
     refreshUndo()
   }
 
-  const handleImportLegacy = async (): Promise<void> => {
-    try {
-      setError(null)
-      setNotice(null)
-      const chosen = await window.mbApi.dialog.chooseJsonFile()
-      if (!chosen.path) return
-      const summary = await window.mbApi.data.importLegacy({ path: chosen.path })
-      setNotice(formatImportSummary(summary))
-      refreshUndo()
-    } catch (err) {
-      setError(toErrorMessage(err))
-    }
-  }
-
-  const handleExportLegacy = async (): Promise<void> => {
-    try {
-      setError(null)
-      setNotice(null)
-      const chosen = await window.mbApi.dialog.chooseSaveJsonFile()
-      if (!chosen.path) return
-      const summary = await window.mbApi.data.exportLegacy({ path: chosen.path })
-      setNotice(`已导出 ${summary.totalItems} 条数据：${summary.filePath}`)
-    } catch (err) {
-      setError(toErrorMessage(err))
-    }
-  }
-
-  const handleImportCsv = async (): Promise<void> => {
-    try {
-      setError(null)
-      setNotice(null)
-      const chosen = await window.mbApi.dialog.chooseCsvFile()
-      if (!chosen.path) return
-      const summary = await window.mbApi.data.importCsv({ path: chosen.path })
-      setNotice(formatImportSummary(summary))
-      refreshUndo()
-    } catch (err) {
-      setError(toErrorMessage(err))
-    }
-  }
-
-  const handleExportCsv = async (): Promise<void> => {
-    try {
-      setError(null)
-      setNotice(null)
-      const chosen = await window.mbApi.dialog.chooseExportDir()
-      if (!chosen.path) return
-      const summary = await window.mbApi.data.exportCsv({ dir: chosen.path })
-      setNotice(`已导出 ${summary.files.length} 个 CSV 文件（共 ${summary.totalItems} 条）到 ${summary.dir}`)
-    } catch (err) {
-      setError(toErrorMessage(err))
-    }
-  }
-
-  const handleImportExcel = async (): Promise<void> => {
-    try {
-      setError(null)
-      setNotice(null)
-      const chosen = await window.mbApi.dialog.chooseExcelFile()
-      if (!chosen.path) return
-      const summary = await window.mbApi.data.importExcel({ path: chosen.path })
-      setNotice(formatImportSummary(summary))
-      refreshUndo()
-    } catch (err) {
-      setError(toErrorMessage(err))
-    }
-  }
-
-  const handleExportExcel = async (): Promise<void> => {
-    try {
-      setError(null)
-      setNotice(null)
-      const chosen = await window.mbApi.dialog.chooseExportDir()
-      if (!chosen.path) return
-      const summary = await window.mbApi.data.exportExcel({ dir: chosen.path })
-      setNotice(`已导出 ${summary.totalItems} 条数据：${summary.filePath}`)
-    } catch (err) {
-      setError(toErrorMessage(err))
-    }
-  }
-
-  /**
-   * 引擎数据导出：菜单「导出 → 导出为 XX 格式」按目标引擎各走各的渲染器与扩展名
-   * （对齐 PyQt `features/engine_export.py` 的四个独立导出器）。
-   * 此前四个菜单项全都硬编码 `engine: 'lua'`，点「导出为 Unity 格式」拿到的是 `.lua`。
-   */
-  const handleEngineExport = async (engine: EngineExportInput['engine']): Promise<void> => {
-    try {
-      const api = window.mbApi as unknown as {
-        dialog: {
-          chooseEngineExportFile: (req: {
-            defaultName: string
-            engine: EngineExportInput['engine']
-          }) => Promise<{ path: string | null }>
-        }
-        engine: {
-          exportData: (req: {
-            engine: EngineExportInput['engine']
-            path: string
-          }) => Promise<{ filePath: string; engine: string; bytes: number }>
-        }
-      }
-      const picked = await api.dialog.chooseEngineExportFile({ defaultName: 'GameData', engine })
-      if (picked.path === null) return
-      const result = await api.engine.exportData({ engine, path: picked.path })
-      setNotice(`已导出 ${result.filePath}（${result.bytes} 字节）`)
-    } catch (err) {
-      setError(toErrorMessage(err))
-    }
-  }
+  /** 数据导入 / 导出（JSON / CSV / Excel / 引擎格式）：内聚单元，见 hooks/useAppActions */
+  const { importJson, exportJson, importCsv, exportCsv, importExcel, exportExcel, engineExport } = useDataTransfer(
+    setNotice,
+    setError,
+    refreshUndo
+  )
 
   /** 退出：关闭渲染进程窗口（Electron 主窗口关闭即退出） */
   const handleQuit = (): void => {
@@ -693,10 +535,10 @@ export default function App() {
         canUndo={undoUi.canUndo}
         canRedo={undoUi.canRedo}
         actions={{
-          importJson: handleImportLegacy,
+          importJson,
           /*
            * 「打开」/「保存」/「批量导入」/「批量导出」四项与 `importJson`/`exportJson`
-           * **共用同一对 handler**（`App.tsx:385-410` 已完整实现）。
+           * **共用同一对 handler**（`hooks/useAppActions.ts::useDataTransfer` 已完整实现）。
            * 语义澄清：这里的「打开/保存」是**整个数据仓库的 JSON 文件 I/O**
            * （PyQt `main_window.py:710-753`），**不是**编辑器里章节级的「保存本章」。
            * 不抽包装层：抽了只是给同一个函数换两个名字，不产生行为差异（铁律：不过度开发）。
@@ -705,17 +547,17 @@ export default function App() {
            * PyQt「打开」是整库替换 + 记忆 `current_file`，「批量导入」会重生成 id；
            * 而 `importLegacy` 是按 id upsert 的合并、每次都问路径。补齐需新增 IPC，不在本轮范围。
            */
-          open: handleImportLegacy,
-          save: handleExportLegacy,
-          batchImport: handleImportLegacy,
-          batchExport: handleExportLegacy,
-          importCsv: handleImportCsv,
-          importExcel: handleImportExcel,
-          exportJson: handleExportLegacy,
-          exportCsv: handleExportCsv,
-          exportExcel: handleExportExcel,
+          open: importJson,
+          save: exportJson,
+          batchImport: importJson,
+          batchExport: exportJson,
+          importCsv,
+          importExcel,
+          exportJson,
+          exportCsv,
+          exportExcel,
           batchEdit: () => openPanel('batch'),
-          engineExport: (engine) => void handleEngineExport(engine),
+          engineExport: (engine) => void engineExport(engine),
           backup: () => openPanel('backup'),
           undo: () => void performUndo(),
           redo: () => void performRedo(),

@@ -24,7 +24,7 @@ import {
   buildChangelogText,
   buildValidationReportMarkdown
 } from '../../../shared/domain/ceshu/ceshuReports'
-import { buildScoreReportMarkdown, gradeLabel, type CeshuScoreReport } from '../../../shared/ceshuScorer'
+import { buildScoreReportMarkdown, type CeshuScoreReport } from '../../../shared/ceshuScorer'
 import type { CeshuAiGenerateResult } from '../../../shared/ceshuAi'
 import type { DataTypeDef } from '../../../shared/types'
 
@@ -35,6 +35,7 @@ import ChapterForm from './ChapterForm'
 import ChapterNotesPanel from './ChapterNotesPanel'
 import CeshuDataPreview, { type PreviewJumpTarget } from './ceshu/CeshuDataPreview'
 import CeshuDataRefsPanel from './ceshu/CeshuDataRefsPanel'
+import { ChangelogPanel, ScorePanel, ValidatePanel } from './ceshu/CeshuReportPanels'
 import ChecklistPanel from './ChecklistPanel'
 import FieldDepsPanel from './FieldDepsPanel'
 import LucideIcon from './LucideIcon'
@@ -44,7 +45,7 @@ import TemplateEditorPanel from './TemplateEditorPanel'
 import VersionDiffPanel from './VersionDiffPanel'
 import VersionTimelinePanel from './VersionTimelinePanel'
 import WordStatsPanel from './WordStatsPanel'
-import { groupByChapter, toErrorMessage } from './ceshuViewUtils'
+import { toErrorMessage } from './ceshuViewUtils'
 
 interface CeshuViewProps {
   ceshuId: string | null
@@ -674,184 +675,19 @@ export default function CeshuView({
         ) : panel === 'fieldDeps' ? (
           <FieldDepsPanel key={doc.ceshu_id} ceshuId={doc.ceshu_id} onClose={() => setPanel(null)} />
         ) : panel === 'changelog' && changelog ? (
-          <div className="changelog-panel" data-testid="changelog-panel">
-            <div className="changelog-header">
-              <span className="chapter-form-title">变更记录（{changelog.entries.length} 次版本变更）</span>
-              <div className="editor-actions">
-                <button
-                  type="button"
-                  className="btn"
-                  data-testid="changelog-export-md"
-                  disabled={changelog.entries.length === 0}
-                  onClick={() => void handleExportChangelog('md')}
-                >
-                  导出 Markdown
-                </button>
-                <button
-                  type="button"
-                  className="btn"
-                  data-testid="changelog-export-html"
-                  disabled={changelog.entries.length === 0}
-                  onClick={() => void handleExportChangelog('html')}
-                >
-                  导出 HTML
-                </button>
-                <button
-                  type="button"
-                  className="btn"
-                  data-testid="changelog-export-text"
-                  disabled={changelog.entries.length === 0}
-                  onClick={() => void handleExportChangelog('text')}
-                >
-                  导出 Text
-                </button>
-                <button type="button" className="btn" data-testid="changelog-close" onClick={() => setPanel(null)}>
-                  关闭
-                </button>
-              </div>
-            </div>
-            {changelog.entries.length === 0 ? (
-              <div className="empty">暂无变更记录（版本链只有一份文档时无对比对象）</div>
-            ) : (
-              changelog.entries.map((entry) => (
-                <div className="changelog-entry" key={`${entry.version}:${entry.date}`}>
-                  <div className="changelog-entry-title">
-                    {entry.version} — {entry.summary}
-                  </div>
-                  <div className="item-meta">{entry.date}</div>
-                  {groupByChapter(entry.changes).map(([chapter, changes]) => (
-                    <div className="changelog-chapter" key={chapter}>
-                      <div className="form-label">{chapter}</div>
-                      {changes.map((change, index) => (
-                        <div key={`${change.field}:${index}`} className={`changelog-line ${change.type}`}>
-                          {change.description}
-                        </div>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              ))
-            )}
-          </div>
+          <ChangelogPanel
+            changelog={changelog}
+            onExport={(format) => void handleExportChangelog(format)}
+            onClose={() => setPanel(null)}
+          />
         ) : panel === 'validate' ? (
-          <div className="changelog-panel" data-testid="validate-panel">
-            <div className="changelog-header">
-              <span className="chapter-form-title">
-                数据校验{validateErrors.length > 0 ? `（${validateErrors.length} 个问题）` : ''}
-              </span>
-              <div className="editor-actions">
-                <button
-                  type="button"
-                  className="btn"
-                  data-testid="validate-export"
-                  onClick={() => void handleExportValidation()}
-                >
-                  导出校验报告
-                </button>
-                <button type="button" className="btn" data-testid="validate-close" onClick={() => setPanel(null)}>
-                  关闭
-                </button>
-              </div>
-            </div>
-            {validateErrors.length === 0 ? (
-              <div className="empty">✅ 所有校验通过，未发现错误</div>
-            ) : (
-              <div className="changelog-entry">
-                {validateErrors.map((item, index) => (
-                  <div key={`${index}:${item}`} className="validate-line">
-                    {index + 1}. {item}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <ValidatePanel
+            validateErrors={validateErrors}
+            onExport={() => void handleExportValidation()}
+            onClose={() => setPanel(null)}
+          />
         ) : panel === 'score' ? (
-          <div className="changelog-panel" data-testid="score-panel">
-            <div className="changelog-header">
-              <span className="chapter-form-title">质量评分</span>
-              <div className="editor-actions">
-                <button
-                  type="button"
-                  className="btn"
-                  data-testid="score-export"
-                  disabled={!score}
-                  onClick={() => void handleExportScore()}
-                >
-                  导出评分报告
-                </button>
-                <button type="button" className="btn" data-testid="score-close" onClick={() => setPanel(null)}>
-                  关闭
-                </button>
-              </div>
-            </div>
-            {!score ? (
-              <div className="empty">正在评分…</div>
-            ) : (
-              <>
-                <div className="changelog-entry">
-                  <div className="score-total">
-                    <span className="score-total-value">{score.total_score}</span>
-                    <span className="score-total-grade">
-                      {score.grade} · {gradeLabel(score.grade)}
-                    </span>
-                  </div>
-                  <div className="score-dimensions">
-                    <span>
-                      结构 {score.structure_score}/30 {score.pass_status.structure ? '✅' : '⚠️'}
-                    </span>
-                    <span>
-                      质量 {score.content_quality_score}/40 {score.pass_status.quality ? '✅' : '⚠️'}
-                    </span>
-                    <span>
-                      市场 {score.market_potential_score}/30 {score.pass_status.market ? '✅' : '⚠️'}
-                    </span>
-                  </div>
-                  <div className="item-meta">
-                    行业对比（{score.industry_benchmark.label}）：总分 {score.total_score} vs 行业均值{' '}
-                    {score.industry_benchmark.total_avg}（{score.industry_benchmark.vs_total >= 0 ? '+' : ''}
-                    {score.industry_benchmark.vs_total}）
-                  </div>
-                </div>
-
-                <div className="changelog-entry">
-                  <div className="form-label">改进建议</div>
-                  {score.suggestions.map((suggestion, index) => (
-                    <div key={`${index}:${suggestion}`} className="score-suggestion">
-                      {suggestion}
-                    </div>
-                  ))}
-                </div>
-
-                <div className="changelog-entry">
-                  <div className="form-label">章节明细（按得分升序，优先补强弱项）</div>
-                  <table className="score-table">
-                    <thead>
-                      <tr>
-                        <th>章节</th>
-                        <th>得分</th>
-                        <th>字数</th>
-                        <th>完成度</th>
-                        <th>缺失必填</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {[...score.chapter_scores]
-                        .sort((a, b) => a.score - b.score)
-                        .map((chapter) => (
-                          <tr key={chapter.chapter_key}>
-                            <td>{chapter.chapter_label}</td>
-                            <td>{chapter.score}</td>
-                            <td>{chapter.word_count}</td>
-                            <td>{Math.round(chapter.completion * 100)}%</td>
-                            <td>{chapter.missing_required.length > 0 ? chapter.missing_required.join('、') : '—'}</td>
-                          </tr>
-                        ))}
-                    </tbody>
-                  </table>
-                </div>
-              </>
-            )}
-          </div>
+          <ScorePanel score={score} onExport={() => void handleExportScore()} onClose={() => setPanel(null)} />
         ) : (
           <div className="ceshu-pane-row">
             <div className="chapter-nav">
