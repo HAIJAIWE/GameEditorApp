@@ -265,7 +265,11 @@
       fieldDeps: async () => ({ issues: [] })
     },
     library: {
-      list: async () => [{ name: '初始库', createdAt: '', description: '', isInitial: true }],
+      // 契约：library:list 返回 { libraries, active }（切库后重挂载据此恢复当前库）
+      list: async () => ({
+        libraries: [{ name: '初始库', createdAt: '', description: '', isInitial: true }],
+        active: '初始库'
+      }),
       create: async (req) => ({ name: req.name, createdAt: '', description: '', isInitial: false }),
       rename: ok, remove: async () => ({ switchedTo: null }), switch: ok, onChanged: noopSub
     }
