@@ -27,8 +27,31 @@ export async function launchApp(userDataDir: string, extraEnv: Record<string, st
   return electron.launch({
     args: ['.', ...ELECTRON_SAFE_ARGS],
     cwd: join(__dirname, '..', '..', '..'),
-    env: { ...process.env, MB_USER_DATA_DIR: userDataDir, ...extraEnv }
+    env: { ...inheritedEnv(), MB_USER_DATA_DIR: userDataDir, ...extraEnv }
   })
+}
+
+/**
+ * 从父进程环境里剔掉会让 Electron **退化或被劫持**的两个变量。
+ *
+ * ## 为什么必须剔（2026-10-19 实测）
+ * 在 Electron 宿主 IDE 里跑 e2e（VS Code / Cursor / WorkBuddy 等）时，父进程环境常带：
+ * - `ELECTRON_RUN_AS_NODE=1` —— Electron 会**退化成纯 Node 进程**，不启动 Chromium、
+ *   不开调试端口。Playwright 连不上，报的却是 `Error: Process failed to launch!`，
+ *   **完全看不出根因**（实测 `electron.exe --version` 只打印 Node 的版本号即可确诊）。
+ * - `NODE_OPTIONS=--require=<某个 shim>` —— 该 shim 会被注入到被测应用的**主进程**里，
+ *   属于把测试宿主的运行时钩子带进了被测对象，行为不可控。
+ *
+ * ## 为什么改在这里而不是让每个人记命令
+ * 全部 55 个规格都经本函数启动（原先是 51 份内联复制，已收敛）。修在这里 = 一次生效、
+ * 跨平台（`env -u` 是 bash 专属写法，Windows 的 cmd 跑 npm script 时不可用），
+ * 也不需要每个人知道这个坑。确需保留某个变量时，用 `extraEnv` 显式加回来即可（它后展开）。
+ */
+function inheritedEnv(): NodeJS.ProcessEnv {
+  const env = { ...process.env }
+  delete env['ELECTRON_RUN_AS_NODE']
+  delete env['NODE_OPTIONS']
+  return env
 }
 
 /**

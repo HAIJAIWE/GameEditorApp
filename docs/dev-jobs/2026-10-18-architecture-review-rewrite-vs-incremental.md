@@ -370,8 +370,8 @@ grep -rn "mbApi.ceshu.versions" src/renderer
 |---|---|---|---|---|
 | 锚点 | ✅ | tag `with-side-reports`（@`89ba8cd`） | — | 回滚：`git checkout with-side-reports -- desktop/` |
 | Wave 0 | ✅ | `356ce2b` | 21 文件 / +21 −3,636 | tsc×2 · eslint · vitest 2013/5 · build |
-| Wave 1 | ✅ | 见下 | 见下 | tsc×2 · eslint · vitest 2028/5 · build；**e2e 本环境不可用** |
-| Wave 2 | ✅ | 见下 | 10 文件 / 见下 | typecheck×3 · eslint · vitest 2042/5 · build；**e2e 本环境不可用** |
+| Wave 1 | ✅ | 见下 | 见下 | tsc×2 · eslint · vitest 2028/5 · build；e2e 三条 AI 规格 6/6 |
+| Wave 2 | ✅ | 见下 | 10 文件 / 见下 | typecheck×3 · eslint · vitest 2042/5 · build；**e2e 整包 73/2** |
 | Wave 3 | ⬜ 未开始（须 W2 之后） | — | — | — |
 
 ### Wave 1 实做与文档原计划的偏差
@@ -388,9 +388,13 @@ grep -rn "mbApi.ceshu.versions" src/renderer
    15 条，钉住四路通道的现有行为（短路、确认门、usage 透传、取消穿透、数据错误路径）。
    重构后这 15 条**一字未改**全绿 —— 期间它抓到了一处真实差异（短路分支多出 `usage: null` 键），
    已按「改代码不改测试」的原则修正。
-5. **e2e 未执行**：本会话 Electron 进程起不来（`Process failed to launch!`），
-   连完全无关的 `advanced-search.spec.ts` 同样失败 ⇒ 环境限制，非本次改动。
-   原计划的「e2e 整包 + Ollama 桩全链路」复验**留待有图形会话的环境补跑**。
+5. **e2e 曾一度报「不可用」，后已查明并修复**：报错是 `Process failed to launch!`，
+   连无关规格同样失败。根因不是代码 —— 宿主 IDE 给子进程注入了 `ELECTRON_RUN_AS_NODE=1`，
+   Electron 退化成纯 Node 进程（确诊方法：`electron.exe --version` 只打印 Node 版本号）。
+   修复落在共享启动器 `tests/e2e/helpers/app.ts::launchApp`（启动前剔除
+   `ELECTRON_RUN_AS_NODE` / `NODE_OPTIONS`），55 个规格一次生效、且跨平台
+   （`env -u` 是 bash 专属写法，Windows 的 npm script 用不了）。
+   复验：三条 AI 规格 6/6 通过（含「生成中点停止」的取消链路）。
 
 ### Wave 2 实做
 
@@ -406,7 +410,10 @@ grep -rn "mbApi.ceshu.versions" src/renderer
    esbuild 读不到 `jsx: react-jsx`，否则 `.tsx` 报 `React is not defined`。
 4. 测试文件 2 个 / 14 条：`ceshuView.behavior.test.tsx`（加载、错误条、空状态、更多菜单、
    补全入口、面板开关）、`menuBar.behavior.test.tsx`（展开/收起、Escape、动作派发、撤销置灰）。
-5. **测出一个真实缺陷并修掉**：`CeshuView` 在 `get` 失败时只 `setError`，但渲染层在
+5. **e2e 整包复验通过**：73 通过 / 2 跳过 / 0 失败（与文档基线一致；2 条跳过是
+   「功能已移除」的历史规格，非本次引入）。这一轮同时验证了 W0 删规格、W1 改 AI 编排、
+   W2 改错误路径都没有破坏既有行为契约。
+6. **测出一个真实缺陷并修掉**：`CeshuView` 在 `get` 失败时只 `setError`，但渲染层在
    `!doc` 时提前 return 到「正在加载策划书…」—— 错误条在主界面里，永远到不了。
    用户会永久停在加载态，既无原因也无返回。已改为：`doc` 为空且有 error 时渲染错误条 + 返回按钮。
    （顺带修掉该文件里因 W0 而失真的注释：它还写着「补全空白字段没有入口、能力在 ChecklistPanel」。）
