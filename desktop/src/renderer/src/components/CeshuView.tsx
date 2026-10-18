@@ -252,6 +252,35 @@ export default function CeshuView({
   const gameName = typeof doc.meta.game_name === 'string' && doc.meta.game_name ? doc.meta.game_name : '未命名策划书'
   const gameType = typeof doc.meta.game_type === 'string' && doc.meta.game_type ? doc.meta.game_type : '未知'
 
+  /**
+   * 标准「忙碌动作」模板：清错 → 置忙 → 执行 → 失败转中文错误 → 解忙。
+   *
+   * 本组件 12 处 `try/catch` 动作**并非逐字同构**，实测 5 种形态，只有 S1 用本函数：
+   * - **S1**：`derive` / `setActive` / `showChangelog` / `validate` / `score`
+   * - **S2** 保留显式：`save` / `autoFill` —— `busy` 在 try 外，**成功时**才 `setError(null)`
+   * - **S3** 保留显式：三个导出报告 —— 不占 `busy`，套进来会凭空让按钮变灰
+   * - **S4** 保留显式：`handleExport` —— 选完文件才置忙，不在系统对话框期间灰界面
+   * - **S5** 保留显式：两个 AI 单发生成 —— 不捕获，直接 throw 给表单
+   *
+   * 收益不在行数（本函数含注释是净增），而在 **`finally` 不会再被漏写** ——
+   * 漏写的后果是按钮永久变灰且无任何提示。故 S2–S5 刻意保持显式，别「顺手」并进来。
+   */
+  const runBusy = async (
+    action: () => Promise<void>,
+    options: { clearNotice?: boolean } = {}
+  ): Promise<void> => {
+    setError(null)
+    if (options.clearNotice === true) setNotice(null)
+    setBusy(true)
+    try {
+      await action()
+    } catch (err) {
+      setError(toErrorMessage(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
   /** 导出当前策划书：选择保存路径 → 主进程按格式渲染并原子写盘 */
   const handleExport = async (): Promise<void> => {
     try {
@@ -271,83 +300,57 @@ export default function CeshuView({
 
   /** 派生新版本：复制当前版本内容，版本号自动递增，默认未激活 */
   const handleDerive = async (): Promise<void> => {
-    try {
-      setError(null)
-      setNotice(null)
-      setBusy(true)
-      const created = await window.mbApi.ceshu.derive({ id: doc.ceshu_id, note: deriveNote })
-      setDeriveOpen(false)
-      setDeriveNote('')
-      setNotice(`已派生新版本 ${created.version_label}（默认未激活，可点「设为激活」）`)
-      onChanged()
-      onSelect(created.ceshu_id)
-    } catch (err) {
-      setError(toErrorMessage(err))
-    } finally {
-      setBusy(false)
-    }
+    await runBusy(
+      async () => {
+        const created = await window.mbApi.ceshu.derive({ id: doc.ceshu_id, note: deriveNote })
+        setDeriveOpen(false)
+        setDeriveNote('')
+        setNotice(`已派生新版本 ${created.version_label}（默认未激活，可点「设为激活」）`)
+        onChanged()
+        onSelect(created.ceshu_id)
+      },
+      { clearNotice: true }
+    )
   }
 
   /** 将当前文档设为激活版本（同链其他版本自动取消激活） */
   const handleSetActive = async (): Promise<void> => {
-    try {
-      setError(null)
-      setNotice(null)
-      setBusy(true)
-      const updated = await window.mbApi.ceshu.setActive({ id: doc.ceshu_id })
-      setDoc(updated)
-      setNotice(`已激活版本：${updated.version_label}`)
-      onChanged()
-    } catch (err) {
-      setError(toErrorMessage(err))
-    } finally {
-      setBusy(false)
-    }
+    await runBusy(
+      async () => {
+        const updated = await window.mbApi.ceshu.setActive({ id: doc.ceshu_id })
+        setDoc(updated)
+        setNotice(`已激活版本：${updated.version_label}`)
+        onChanged()
+      },
+      { clearNotice: true }
+    )
   }
 
   /** 查看版本链变更记录（同链版本按时间逐对 diff） */
   const handleShowChangelog = async (): Promise<void> => {
-    try {
-      setError(null)
-      setBusy(true)
+    await runBusy(async () => {
       const log = await window.mbApi.ceshu.changelog({ id: doc.ceshu_id })
       setChangelog(log)
       setPanel('changelog')
-    } catch (err) {
-      setError(toErrorMessage(err))
-    } finally {
-      setBusy(false)
-    }
+    })
   }
 
   /** 数据校验：必填字段 + 章节间一致性检查 */
   const handleValidate = async (): Promise<void> => {
-    try {
-      setError(null)
-      setBusy(true)
+    await runBusy(async () => {
       const errors = await window.mbApi.ceshu.validate({ id: doc.ceshu_id })
       setValidateErrors(errors)
       setPanel('validate')
-    } catch (err) {
-      setError(toErrorMessage(err))
-    } finally {
-      setBusy(false)
-    }
+    })
   }
 
   /** 质量评分：结构 30 + 质量 40 + 市场 30（含章节明细与改进建议） */
   const handleScore = async (): Promise<void> => {
-    try {
-      setError(null)
-      setBusy(true)
+    await runBusy(async () => {
       const report = await window.mbApi.ceshu.score({ id: doc.ceshu_id })
       setScore(report)
       setPanel('score')
-    } catch (err) {
-      setError(toErrorMessage(err))
-    } finally {
-      setBusy(false)
-    }
+    })
   }
 
   /** 导出评分报告：渲染层生成 Markdown → 主进程原子写盘（对齐 Python score_report_dialog._on_export_md） */

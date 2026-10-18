@@ -10,11 +10,11 @@
 
 1. **两个文件比文档记录的更小**：`CeshuView` 780 行（文档写 926，W0 删面板后已缩）、
    `App` 681 行（文档写 838）。行数不是主要矛盾。
-2. **真正的阻塞点不是「组件太大」，是 12 份重复的 `busy + error` 模板**：
-   `CeshuView` 里有 12 个 `setError(null)`、12 个 `setError(toErrorMessage(err))`、
-   8 组 `setBusy(true)/setBusy(false)`，全部是同一个
-   `try { 清错 → 置忙 → await → 成功态 } catch { 设错 } finally { 解忙 }` 的复制。
-   不先收敛它，**拆成几个文件都得各自接 3 个 setter**，拆了等于没拆。
+2. **~~真正的阻塞点不是「组件太大」，是 12 份重复的 `busy + error` 模板~~ —— 本条已被
+   实测推翻（2026-10-19 补正）**：12 处 `try/catch` **共享同一个 catch 尾巴，但前置与收尾
+   有 5 种形态**，真正逐字同构的只有 5 处（见 §5）。按 S1 抽象后**净行数是 +8**
+   （注释 30 行 > 去重省下的 21 行）。⇒ **「拆之前必须先收敛模板」这个论断不成立**，
+   收敛它带来的收益是「`finally` 不再被漏写」，不是行数，也不足以支撑后续拆分。
 3. **`doc` 是唯一真正的跨面板共享数据**（57 读 / 9 写），但 9 个写入点**全部在 handler 内**，
    没有一处散落在 JSX 里 ⇒ 可以整体收进一个 hook。
 4. **13 个策划书面板 + 21 个浮层彼此零交叉引用**：每个面板只吃 `doc` 的切片和自己的数据。
@@ -131,31 +131,30 @@ L426 / L433 / L448 / L461 / L468（五个 `onApplied` 回调）—— **全在 h
 
 ---
 
-## 5. 重复模板：真正的债
+## 5. 重复模板：实测分类（**推翻初版结论**）
 
-`CeshuView` 的 20 个 handler 里，12 个是逐字同构的：
+初版本文写「12 份逐字同构」，**这是错的**。逐行核对后是 5 种形态：
 
-```ts
-try {
-  setError(null)
-  setBusy(true)
-  const result = await window.mbApi.ceshu.xxx(...)
-  setPanel('...')          // 或 setXxx(result)
-} catch (err) {
-  setError(toErrorMessage(err))
-} finally {
-  setBusy(false)
-}
-```
+| 形态 | handler | 前置 | 收尾 | 能否共用 |
+|---|---|---|---|---|
+| **S1** | derive / setActive / showChangelog / validate / score | `setError(null)` + `setBusy(true)` 在 try 内 | `finally setBusy(false)` | ✅ 5 处，已抽 `runBusy` |
+| **S2** | save / autoFill | `setBusy(true)` 在 try **外** | 成功时 `setError(null)` | ❌ 清错时机相反 |
+| **S3** | exportScore / exportValidation / exportChangelog | `setError(null)` + `setNotice(null)` | **无 busy、无 finally** | ❌ 套进来会凭空让按钮变灰 |
+| **S4** | export | 清错清提示 → 选文件 → **才** `setBusy(true)` | `finally` | ❌ 刻意不在系统对话框期间灰界面 |
+| **S5** | aiGenerate / aiGenerateField | 无 try | 直接 throw 给表单 | ❌ 不捕获 |
 
-计数证据：`setError(null)` ×12、`setError(toErrorMessage(err))` ×12、`setBusy(true)` ×8、
-`setBusy(false)` ×8。抽样核对 `handleShowChangelog`(L309) 与 `handleValidate`(L324) 逐行同构。
+实测计数：`setError(null)` ×12、`setError(toErrorMessage)` ×12、`setBusy(true/false)` ×8 对 ——
+**「共享 catch 尾巴」是真的，「逐字同构」是假的**。
 
-**为什么这是拆分的前置**：这 12 处是 `error`/`busy` 被写 25/17 次的来源。
-若不收敛，任何「把 handler 搬到别处」的拆分，都要把 `setError`/`setBusy` 当参数传过去 ——
-拆完得到的是「4 个文件各自接收 3 个 setter」，耦合没降，只是摊开了。
+### 落地结果（S1 抽象后）
 
----
+- 5 处 handler 从各 ~14 行降到 ~7 行（代码净 −21 行）；
+- `runBusy` 含注释 +29 行 ⇒ **文件净 +8 行**；
+- 真正的收益：`finally` 不会再被漏写（漏写 = 按钮永久变灰且无任何提示）。
+
+⇒ **结论修正**：这一步值得做，但它是「防一类 bug」，不是「减行数」，更**不足以**成为
+后续拆分的理由。原先「不收敛模板就拆 = 各自接 3 个 setter」的说法随之失效 ——
+因为本来就只有 5 处能收敛，剩下 7 处拆分后仍会各带自己的 try/catch。
 
 ## 6. 由数据推出的接缝（含耦合度）
 
@@ -169,13 +168,18 @@ try {
 
 **顺序依赖**：A → B → C；D 可独立并行；E 最后（它写的是 `info`/`types`，会被 D 消费）。
 
+> ⚠️ **A 完成后需重新评估 B/C 是否值得做**：A 的实测收益远低于初版预期（净 +8 行，
+> 且只覆盖 5/12 处）。原计划把 A 当作「拆分前置」的前提已不成立 ——
+> 剩余 7 处形态各异的 try/catch 不会因为 A 而变整齐。继续 B/C 前应先确认：
+> **拆开之后，`doc` 与 3 个 UI 状态真的会更清楚吗，还是只是换了个地方写？**
+
 ---
 
 ## 7. 推荐做法与验证
 
 | 步 | 动作 | 验证方式 | 预期收益（按当前行数推算） |
 |---|---|---|---|
-| 1 | 抽 `useUiFeedback`（接缝 A） | 现有 14 条 DOM 测试（错误条/提示条断言已覆盖）+ 73 e2e | 12 处模板归一，CeshuView −约 50–60 行 |
+| 1 | ✅ **已完成**：`runBusy`（S1 五处归一） | DOM 14 条 + e2e 整包 73/2/0 | 代码 −21 行 / 含注释净 **+8 行**；防 `finally` 漏写 |
 | 2 | 抽 `useCeshuDocument`（接缝 B） | 同上 + 加载失败路径已有测试 | 加载 effect（30 行）+ 5 个 `onApplied` 写回迁出，CeshuView −约 100 行 |
 | 3 | 抽 `CeshuPanelHost`（接缝 C） | e2e 面板开关全量（版本对比/时间线/笔记/模板…） | render 区约 310 行迁出，主组件余约 300 行 |
 | 4 | 抽 `AppPanelHost`（接缝 D），**先只搬 11 个零依赖面板** | e2e 对应面板 + 新增 DOM 测试 | `renderPanel` 226 行迁出，App 余约 450 行，且零行为风险 |
