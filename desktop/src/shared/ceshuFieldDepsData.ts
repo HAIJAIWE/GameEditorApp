@@ -1,4 +1,4 @@
-import type { ChapterKey } from './ceshuConstants'
+import { type ChapterKey, STATUS_WARNING, WARNING_STATUS_META } from './ceshuConstants'
 
 /**
  * 字段依赖定义层（与 ceshuFieldDeps.ts 的求值逻辑分离）：
@@ -17,8 +17,10 @@ export type FieldDependencyType =
 
 /* ---- 检查状态 ---- */
 export const STATUS_OK = 'ok'
-export const STATUS_WARNING = 'warning'
 export const STATUS_VIOLATION = 'violation'
+
+// STATUS_WARNING 已抽到 ceshuConstants（与检查清单域共用单一事实源）；此处仅再导出供 ceshuFieldDeps.ts 消费
+export { STATUS_WARNING }
 export type FieldDependencyStatus =
   | typeof STATUS_OK
   | typeof STATUS_WARNING
@@ -44,7 +46,7 @@ export const DEP_TYPE_LABELS: Record<FieldDependencyType, string> = {
 /** 状态展示元信息（图标/颜色/标签，供面板与图节点着色） */
 export const STATUS_META: Record<FieldDependencyStatus, { icon: string; color: string; label: string }> = {
   [STATUS_OK]: { icon: '✅', color: '#22C55E', label: '通过' },
-  [STATUS_WARNING]: { icon: '⚠️', color: '#F59E0B', label: '警告' },
+  [STATUS_WARNING]: WARNING_STATUS_META,
   [STATUS_VIOLATION]: { icon: '❌', color: '#EF4444', label: '冲突' }
 }
 

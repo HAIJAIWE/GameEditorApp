@@ -332,3 +332,20 @@ export interface CeshuExportResult {
   format: CeshuExportFormat
   bytes: number
 }
+
+/* ---- 状态常量（检查清单 ChecklistStatus 与字段依赖 FieldDependencyStatus 共用的 warning 状态与展示元） ---- */
+
+/**
+ * 警告状态字面量。
+ * 检查清单（`ceshuChecklistItems.ts` 的 `ChecklistStatus`）与字段依赖（`ceshuFieldDepsData.ts` 的
+ * `FieldDependencyStatus`）原本各自 `export const STATUS_WARNING = 'warning'`，语义一致、应单一事实源 ⇒ 抽到此处。
+ * 注意：两域的 `STATUS_META` 键集不同（清单 5 态 / 依赖 3 态，见各自文件），故 `STATUS_META` 不合并，仅共享 warning 这一枚。
+ */
+export const STATUS_WARNING = 'warning'
+
+/** 警告状态展示元信息（图标/颜色/标签），检查清单与字段依赖的 `STATUS_META` 共用同一份，避免两处各自维护漂移 */
+export const WARNING_STATUS_META: { icon: string; color: string; label: string } = {
+  icon: '⚠️',
+  color: '#F59E0B',
+  label: '警告'
+}

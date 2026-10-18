@@ -3,7 +3,7 @@
  * 评估逻辑（runChecklist）与 Markdown 报告（buildChecklistMarkdown）见同目录 ceshuChecklist.ts。
  * 本文件为「定义 + 数据」层；ceshuChecklist.ts 为「编排」层，二者单向依赖（后者 import 前者）。
  */
-import { checkSystemDependencies, type CeshuDocument, type ChapterKey } from './ceshuConstants'
+import { checkSystemDependencies, STATUS_WARNING, WARNING_STATUS_META, type CeshuDocument, type ChapterKey } from './ceshuConstants'
 import { isPlainObject } from './ceshuModel'
 import { readText } from './util/readText'
 
@@ -35,9 +35,11 @@ export const ALL_CATEGORIES: readonly string[] = [
 
 export const STATUS_PASS = 'pass'
 export const STATUS_FAIL = 'fail'
-export const STATUS_WARNING = 'warning'
 export const STATUS_MANUAL = 'manual'
 export const STATUS_NA = 'not_applicable'
+
+// STATUS_WARNING 已抽到 ceshuConstants（与字段依赖域共用单一事实源）；此处仅再导出供 ceshuChecklist.ts 消费
+export { STATUS_WARNING }
 
 export type ChecklistStatus =
   | typeof STATUS_PASS
@@ -50,7 +52,7 @@ export type ChecklistStatus =
 export const STATUS_META: Record<ChecklistStatus, { icon: string; color: string; label: string }> = {
   [STATUS_PASS]: { icon: '✅', color: '#22C55E', label: '通过' },
   [STATUS_FAIL]: { icon: '❌', color: '#EF4444', label: '失败' },
-  [STATUS_WARNING]: { icon: '⚠️', color: '#F59E0B', label: '警告' },
+  [STATUS_WARNING]: WARNING_STATUS_META,
   [STATUS_MANUAL]: { icon: '👤', color: '#6B7280', label: '人工核查' },
   [STATUS_NA]: { icon: '➖', color: '#9CA3AF', label: '不适用' }
 }
