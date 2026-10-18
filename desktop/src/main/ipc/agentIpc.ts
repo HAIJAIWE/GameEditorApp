@@ -10,7 +10,7 @@ import {
 } from '../../shared/schemas'
 import { DEFAULT_INTERACTION_TIMEOUT_MS } from '../../shared/agent/brain'
 import type { AgentInteractionAnswer } from '../agent/approvalBroker'
-import { taskRegistry } from '../task/taskRegistry'
+import { withTask } from '../task/taskRegistry'
 
 export function registerAgentIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm: LlmShared): void {
   const { agentDispatcher, agentBrain, approvalBroker, agentSessionStore, agentFeedback } = deps
@@ -34,32 +34,32 @@ export function registerAgentIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
     /*
      * 本轮运行的取消句柄来自**通用**任务表（`task:cancel`）——
      * 对话循环与单发 AI 生成共用一套登记/注销，渲染层只面对一个取消通道。
+     * `withTask` 负责 begin/end 配对（含 `end` 的 signal 身份比对），此处不再手写 try/finally。
      */
-    const ticket = taskRegistry().begin(event.sender.id, req.runId)
-    try {
-      return await agentBrain.chat(req.input, {
-        ...(llmCall.config !== undefined ? { config: llmCall.config } : {}),
-        ...(llmCall.apiKey !== undefined ? { apiKey: llmCall.apiKey } : {}),
-        signal: ticket.signal,
-        onEvent: (payload) => {
-          event.sender.send('agent:event', payload)
-        },
-        newRequestId: () => {
-          const requestId = approvalBroker.nextId()
-          // 与 Brain 的 `withAnswerTimeout` 用同一超时常量：到期双方都按「未答复」处理，
-          // broker 侧顺带清理登记（否则该 promise 会滞留在 pending 里）
-          preRegistered.set(requestId, approvalBroker.registerWith(requestId, DEFAULT_INTERACTION_TIMEOUT_MS))
-          return requestId
-        },
-        // 危险确认：只有明确 approved 才放行
-        requestApproval: async (request) => (await take(request.requestId)).approved === true,
-        // 技能交互（确认/提问）：原样把答复交给 Brain 处理
-        requestInteraction: (request) => take(request.requestId)
-      })
-    } finally {
-      // 传 signal 做身份比对：同一 window 连发时，旧任务的 finally 不会注销新任务
-      taskRegistry().end(ticket.taskId, ticket.signal)
-    }
+    return withTask(
+      event.sender.id,
+      (signal) =>
+        agentBrain.chat(req.input, {
+          ...(llmCall.config !== undefined ? { config: llmCall.config } : {}),
+          ...(llmCall.apiKey !== undefined ? { apiKey: llmCall.apiKey } : {}),
+          signal,
+          onEvent: (payload) => {
+            event.sender.send('agent:event', payload)
+          },
+          newRequestId: () => {
+            const requestId = approvalBroker.nextId()
+            // 与 Brain 的 `withAnswerTimeout` 用同一超时常量：到期双方都按「未答复」处理，
+            // broker 侧顺带清理登记（否则该 promise 会滞留在 pending 里）
+            preRegistered.set(requestId, approvalBroker.registerWith(requestId, DEFAULT_INTERACTION_TIMEOUT_MS))
+            return requestId
+          },
+          // 危险确认：只有明确 approved 才放行
+          requestApproval: async (request) => (await take(request.requestId)).approved === true,
+          // 技能交互（确认/提问）：原样把答复交给 Brain 处理
+          requestInteraction: (request) => take(request.requestId)
+        }),
+      req.runId
+    )
   })
   handle('agent:approvalResponse', agentApprovalResponseInputSchema, (req) => ({
     ok: approvalBroker.resolve(req.requestId, { approved: req.approved })

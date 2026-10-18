@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { TaskRegistry, taskRegistry } from '../../src/main/task/taskRegistry'
+import { TaskRegistry, taskRegistry, withTask } from '../../src/main/task/taskRegistry'
 import { runSingleShotTask } from '../../src/main/agent/runTask'
 
 /*
@@ -83,6 +83,77 @@ describe('TaskRegistry', () => {
     } finally {
       a.end(ticket.taskId, ticket.signal)
     }
+  })
+})
+
+describe('withTask：登记/注销配对不能靠调用点自觉', () => {
+  it('正常返回后自动注销（不留陈旧记录）', async () => {
+    const registry = taskRegistry()
+    const value = await withTask(101, async (signal) => {
+      expect(signal.aborted).toBe(false)
+      expect(registry.size).toBe(1)
+      return 'done'
+    })
+    expect(value).toBe('done')
+    expect(registry.size).toBe(0)
+  })
+
+  it('抛错时同样注销 —— 否则「取消已结束的任务」会命中陈旧 controller', async () => {
+    const registry = taskRegistry()
+    await expect(
+      withTask(102, async () => {
+        throw new Error('boom')
+      })
+    ).rejects.toThrow('boom')
+    expect(registry.size).toBe(0)
+  })
+
+  it('运行中可被取消：signal 立刻 aborted，且 body 能看到', async () => {
+    const registry = taskRegistry()
+    await withTask(103, async (signal) => {
+      expect(registry.cancel(103)).toBe(true)
+      expect(signal.aborted).toBe(true)
+    })
+  })
+
+  it('沿用渲染层指定的 taskId（日志/对账口径一致）', async () => {
+    await withTask(
+      104,
+      async () => {
+        // 用指定 id 取消得到 true ⇒ 说明登记用的就是它
+        expect(taskRegistry().cancel(104, 'run_zz')).toBe(true)
+      },
+      'run_zz'
+    )
+  })
+
+  it('同一窗口连发：旧任务收尾不会注销新任务（这是手写 try/finally 最易漏的那条）', async () => {
+    const registry = taskRegistry()
+    let releaseFirst: (() => void) | undefined
+    let releaseSecond: (() => void) | undefined
+    const firstGate = new Promise<void>((resolve) => (releaseFirst = resolve))
+    const secondGate = new Promise<void>((resolve) => (releaseSecond = resolve))
+
+    const first = withTask(105, async () => {
+      await firstGate
+      return 'first'
+    })
+    // 第一个还挂着时，同窗口再起一个（bySender 指向第二个）
+    const second = withTask(105, async (signal) => {
+      await secondGate
+      return signal.aborted ? 'aborted' : 'second'
+    })
+
+    // 先让第一个收尾：它的 end 用 signal 比对，必须**不**注销第二个
+    releaseFirst?.()
+    await first
+    expect(registry.size).toBe(1)
+
+    // 第二个仍在跑 ⇒ 兜底取消能命中它
+    expect(registry.cancel(105)).toBe(true)
+    releaseSecond?.()
+    expect(await second).toBe('aborted')
+    expect(registry.size).toBe(0)
   })
 })
 

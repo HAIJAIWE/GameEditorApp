@@ -11,7 +11,7 @@ export function registerImageGenIpc(deps: IpcHandlerDeps, handle: IpcRegistrar):
   //
   // API Key 的取值纪律：渲染层**不持有**明文（`req.config.apiKey` 传空串即可），
   // 真实 Key 由主进程从系统钥匙串解密后**在本地覆盖进 config**。
-  handle('image:generate', imageGenInputSchema, async (req) => {
+  handle('image:generate', imageGenInputSchema, async (req): Promise<{ ok: true; url: string; path: string } | { ok: false; error: string }> => {
     const stored = await secretStore.get(SECRET_NAMES.imageGenApiKey)
     if (!stored.ok) {
       return { ok: false, error: `${stored.error}；请先在生图面板把 API Key 保存到系统钥匙串` }

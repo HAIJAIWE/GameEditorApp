@@ -95,11 +95,23 @@ export function taskRegistry(): TaskRegistry {
 
 /**
  * 语法糖：登记 → 执行 → **必定**注销。
- * 给「一段代码整块可取消」的场景用；单发 AI 三处 handler 走的是
- * `runSingleShotTask({ senderId })`（harness 内部用同一套，避免每个 handler 各写一遍 try/finally）。
+ *
+ * 给「一整块代码可取消」的场景用：对话循环（`agentIpc`）直接包住 `agentBrain.chat`，
+ * 单发 AI 则走 `runSingleShotTask({ senderId })`（它内部同样只用本表的 begin/end，
+ * 只是还要顺带做预算确认与观测累计）。
+ *
+ * ⚠️ 为什么值得抽：手写 `begin` + `try/finally { end }` 时，最容易漏的是
+ * 「`end` 忘了传 signal」—— 那会让同一窗口连发时，旧任务的收尾注销掉新任务，
+ * 表现为「点了停止没反应」。把配对收进一个函数，调用点就没有漏传的机会。
+ *
+ * @param taskId 渲染层指定的 id（可选，缺省由表生成）
  */
-export async function withTask<T>(senderId: number, body: (signal: AbortSignal) => Promise<T>): Promise<T> {
-  const ticket = taskRegistry().begin(senderId)
+export async function withTask<T>(
+  senderId: number,
+  body: (signal: AbortSignal) => Promise<T>,
+  taskId?: string
+): Promise<T> {
+  const ticket = taskRegistry().begin(senderId, taskId)
   try {
     return await body(ticket.signal)
   } finally {

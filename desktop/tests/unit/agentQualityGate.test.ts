@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import type { CeshuDocument } from '../../src/shared/ceshuConstants'
+import { CHAPTER_LABELS, type CeshuDocument } from '../../src/shared/ceshuConstants'
 import { createDefaultCeshu } from '../../src/shared/ceshuModel'
 import { validateCeshu } from '../../src/shared/ceshuValidation'
 import { applyJudge, evaluateChapterDraft } from '../../src/shared/agent/qualityGate'
@@ -17,9 +17,15 @@ function makeDoc(): CeshuDocument {
   return createDefaultCeshu({ scope: 'full' })
 }
 
-/** 从校验错误里反推第一章（meta）缺的第一个必填字段名 —— 不硬编码字段名，避免与 schema 漂移 */
+/**
+ * 从校验错误里反推 meta（文档信息段）缺的第一个必填字段名 —— 不硬编码字段名，避免与 schema 漂移。
+ * 注意：meta 章节标签为 `CHAPTER_LABELS.meta`（「文档信息」），**不带「第N章·」前缀**
+ * （编号章才带，见 ceshuConstants 注释）；早期版本 meta 被当作「第一章」已随章号重排废弃，
+ * 故此处按 meta 标签前缀定位，而非旧的「第一章」字眼。
+ */
 function firstMissingMetaField(doc: CeshuDocument): string | null {
-  const error = validateCeshu(doc).find((item) => item.includes('第一章') && item.includes('必填项'))
+  const prefix = `${CHAPTER_LABELS.meta}：`
+  const error = validateCeshu(doc).find((item) => item.startsWith(prefix) && item.includes('必填项'))
   if (error === undefined) return null
   const matched = /字段 '([^']+)' 为必填项/.exec(error)
   return matched?.[1] ?? null
