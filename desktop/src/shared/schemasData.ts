@@ -583,12 +583,6 @@ export const ceshuReviewExportInputSchema = z.object({
   content: z.string().min(1)
 })
 
-/** 完备性检查报告导出（同上：渲染层生成 Markdown，主进程原子写盘） */
-export const ceshuChecklistExportInputSchema = z.object({
-  path: z.string().min(1),
-  content: z.string().min(1)
-})
-
 /** 版本对比：两个不同版本 id */
 export const ceshuDiffInputSchema = z.object({
   id: z.string().min(1),
@@ -769,7 +763,6 @@ export type CeshuSyncDataInput = z.infer<typeof ceshuSyncDataInputSchema>
 export type CeshuAiGenerateInput = z.infer<typeof ceshuAiGenerateInputSchema>
 export type CeshuDataGenInput = z.infer<typeof ceshuDataGenInputSchema>
 export type CeshuReviewExportInput = z.infer<typeof ceshuReviewExportInputSchema>
-export type CeshuChecklistExportInput = z.infer<typeof ceshuChecklistExportInputSchema>
 export type CeshuDiffInput = z.infer<typeof ceshuDiffInputSchema>
 export type CeshuDiffExportInput = z.infer<typeof ceshuDiffExportInputSchema>
 export type CeshuScoreExportInput = z.infer<typeof ceshuScoreExportInputSchema>

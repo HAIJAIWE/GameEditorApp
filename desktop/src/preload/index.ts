@@ -159,9 +159,7 @@ const api: MbApi = {
     aiGenerateData: (req) => invoke('ceshu:aiGenerateData', req),
     aiGenerateField: (req) => invoke('ceshu:aiGenerateField', req),
     exportReviewReport: (req) => invoke('ceshu:exportReviewReport', req),
-    checklist: (req) => invoke('ceshu:checklist', req),
     autoFill: (req) => invoke('ceshu:autoFill', req),
-    exportChecklistReport: (req) => invoke('ceshu:exportChecklistReport', req),
     diff: (req) => invoke('ceshu:diff', req),
     exportDiffReport: (req) => invoke('ceshu:exportDiffReport', req),
     exportScoreReport: (req) => invoke('ceshu:exportScoreReport', req),
@@ -180,9 +178,7 @@ const api: MbApi = {
       update: (req) => invoke('ceshu:templates:update', req),
       exportAll: (req) => invoke('ceshu:templates:export', req),
       importAll: (req) => invoke('ceshu:templates:import', req)
-    },
-    wordStats: (req) => invoke('ceshu:wordStats', req),
-    fieldDeps: (req) => invoke('ceshu:fieldDeps', req)
+    }
   },
 
   library: {

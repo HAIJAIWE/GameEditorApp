@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest'
 import type { CeshuDocument } from '../../src/shared/ceshuConstants'
 import { autoFillRequiredFields } from '../../src/shared/ceshuFill'
 import { createDefaultCeshu } from '../../src/shared/ceshuModel'
-import { runChecklist } from '../../src/shared/ceshuChecklist'
 
 function makeDoc(name = '填充测试'): CeshuDocument {
   return createDefaultCeshu({ scope: 'full', name })
@@ -54,21 +53,6 @@ describe('策划书自动填充（匹平 Python auto_fill_required_fields）', (
     expect(filled.art.art_style).toBe('FPS 通用美术风格')
     expect(filled.meta.tags).toEqual(['fps', '原创', '策划中'])
     expect(filled.meta.positioning).toBe('已有定位')
-  })
-
-  it('填充后检查清单就绪度提升：通过 24 / 失败 9 / 警告 4，就绪度 64.9', () => {
-    const { doc: filled } = autoFillRequiredFields(makeDoc())
-    const report = runChecklist(filled)
-    expect(report.passed).toBe(24)
-    expect(report.failed).toBe(9)
-    expect(report.warnings).toBe(4)
-    expect(report.manual).toBe(13)
-    expect(report.readiness_score).toBe(64.9)
-    // 自动填充不覆盖 game_type/platform/systems 等非必填补丁项，故仍未就绪
-    expect(report.is_production_ready).toBe(false)
-    // 未填的仍是：游戏类型/平台/系统启用/技术栈/性能目标/MVP 里程碑/成功标准/市场规模/KPI
-    const failedIds = report.results.filter((item) => item.status === 'fail').map((item) => item.item_id)
-    expect(failedIds.sort()).toEqual(['GD-05', 'MK-03', 'MK-08', 'PB-02', 'PB-03', 'TC-02', 'TC-03', 'TC-06', 'TC-07'].sort())
   })
 
   it('幂等：已填充文档再次填充为 0', () => {

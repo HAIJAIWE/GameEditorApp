@@ -4,7 +4,6 @@ import {
   ceshuAiGenerateFieldInputSchema,
   ceshuApplyPresetInputSchema,
   ceshuChangelogExportInputSchema,
-  ceshuChecklistExportInputSchema,
   ceshuConfirmSystemsInputSchema,
   ceshuCreateInputSchema,
   ceshuDataGenInputSchema,
@@ -55,14 +54,11 @@ import {
   normalizeDataGenCandidates,
   resolveSelectedDataTypes
 } from '../../shared/ceshuDataGen'
-import { runChecklist } from '../../shared/ceshuChecklist'
 import { buildVersionDiff } from '../../shared/ceshuDiff'
-import { buildFieldDepsReport } from '../../shared/ceshuFieldDeps'
 import { computeChapterProgress } from '../../shared/ceshuModel'
 import { buildSystemConfirmResult } from '../../shared/ceshuSystemConfirm'
 import { scoreCeshu } from '../../shared/ceshuScorer'
 import { validateCeshu } from '../../shared/ceshuValidation'
-import { buildWordStatsReport } from '../../shared/ceshuWordStats'
 import { exportCeshuDocument } from '../ceshu/export/exporter'
 import { exportTextReportFile } from '../ceshu/reportExport'
 
@@ -337,11 +333,7 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
   handle('ceshu:exportReviewReport', ceshuReviewExportInputSchema, (req) =>
     exportTextReportFile(req.path, req.content, '审阅报告')
   )
-  handle('ceshu:checklist', ceshuGetInputSchema, (req) => runChecklist(ceshuManager.get(req.id)))
   handle('ceshu:autoFill', ceshuGetInputSchema, (req) => ceshuManager.autoFill(req.id))
-  handle('ceshu:exportChecklistReport', ceshuChecklistExportInputSchema, (req) =>
-    exportTextReportFile(req.path, req.content, '检查报告')
-  )
   handle('ceshu:diff', ceshuDiffInputSchema, (req) => {
     if (req.id === req.otherId) {
       throw new Error('请选择两个不同的版本')
@@ -396,6 +388,4 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
   handle('ceshu:templates:import', templatesImportInputSchema, (req) =>
     ceshuTemplateStore.importFrom(req.path, req.overwrite)
   )
-  handle('ceshu:wordStats', ceshuGetInputSchema, (req) => buildWordStatsReport(ceshuManager.get(req.id)))
-  handle('ceshu:fieldDeps', ceshuGetInputSchema, (req) => buildFieldDepsReport(ceshuManager.get(req.id)))
 }

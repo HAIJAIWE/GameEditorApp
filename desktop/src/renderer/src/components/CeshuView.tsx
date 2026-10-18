@@ -36,15 +36,12 @@ import ChapterNotesPanel from './ChapterNotesPanel'
 import CeshuDataPreview, { type PreviewJumpTarget } from './ceshu/CeshuDataPreview'
 import CeshuDataRefsPanel from './ceshu/CeshuDataRefsPanel'
 import { ChangelogPanel, ScorePanel, ValidatePanel } from './ceshu/CeshuReportPanels'
-import ChecklistPanel from './ChecklistPanel'
-import FieldDepsPanel from './FieldDepsPanel'
 import LucideIcon from './LucideIcon'
 import PresetMarketPanel from './PresetMarketPanel'
 import SystemConfirmPanel from './SystemConfirmPanel'
 import TemplateEditorPanel from './TemplateEditorPanel'
 import VersionDiffPanel from './VersionDiffPanel'
 import VersionTimelinePanel from './VersionTimelinePanel'
-import WordStatsPanel from './WordStatsPanel'
 import { toErrorMessage } from './ceshuViewUtils'
 
 interface CeshuViewProps {
@@ -107,11 +104,8 @@ export default function CeshuView({
     | 'score'
     | 'aiFull'
     | 'aiReview'
-    | 'checklist'
     | 'diff'
     | 'notes'
-    | 'wordStats'
-    | 'fieldDeps'
     | 'timeline'
     | 'templateEditor'
     | 'aiDataGen'
@@ -422,10 +416,25 @@ export default function CeshuView({
     onChanged()
   }
 
-  /** 一键修复应用完成：更新当前文档，有实际填充时刷新侧边栏进度 */
-  const handleChecklistFilled = (updated: CeshuDocument, filled: number): void => {
-    setDoc(updated)
-    if (filled > 0) onChanged()
+  /**
+   * 补全空白字段：原「完备性清单」面板的「一键修复」入口。
+   * 清单/字数/依赖三项旁路报告已移除（见架构评估 W0），但**补全能力保留**，
+   * 否则 `ceshu:autoFill` 会变成没有 UI 入口的死通道。
+   */
+  const handleAutoFill = async (): Promise<void> => {
+    if (!ceshuId) return
+    setBusy(true)
+    try {
+      const result = await window.mbApi.ceshu.autoFill({ id: ceshuId })
+      setDoc(result.doc)
+      setNotice(result.filled > 0 ? `已补全 ${result.filled} 个空白字段` : '没有需要补全的空白字段')
+      if (result.filled > 0) onChanged()
+      setError(null)
+    } catch (err) {
+      setError(toErrorMessage(err))
+    } finally {
+      setBusy(false)
+    }
   }
 
   /** 预设市场应用完成：systems/meta 已在主进程写盘，更新文档并刷新侧边栏 */
@@ -462,12 +471,10 @@ export default function CeshuView({
     ],
     [
       { testid: 'ceshu-score', label: '评分', run: () => void handleScore() },
-      { testid: 'ceshu-wordstats', label: '字数统计', run: () => setPanel('wordStats') },
+      { testid: 'ceshu-autofill', label: '补全空白字段', run: () => void handleAutoFill() },
       { testid: 'ceshu-diff', label: '版本对比', run: () => setPanel('diff') },
       { testid: 'ceshu-timeline', label: '版本时间线', run: () => setPanel('timeline') },
-      { testid: 'ceshu-checklist', label: '清单', run: () => setPanel('checklist') },
       { testid: 'ceshu-changelog', label: '变更记录', run: () => void handleShowChangelog() },
-      { testid: 'ceshu-fielddeps', label: '依赖检查', run: () => setPanel('fieldDeps') },
       { testid: 'ceshu-datarefs', label: '数据引用', run: () => setPanel('dataRefs') }
     ],
     // 「确认游戏系统」**不在菜单里**：PyQt 无此菜单项，改为打开策划书时自动弹窗
@@ -617,14 +624,6 @@ export default function CeshuView({
             onApplied={handleAiApplied}
             onClose={() => setPanel(null)}
           />
-        ) : panel === 'checklist' ? (
-          <ChecklistPanel
-            key={doc.ceshu_id}
-            ceshuId={doc.ceshu_id}
-            gameName={gameName}
-            onFilled={handleChecklistFilled}
-            onClose={() => setPanel(null)}
-          />
         ) : panel === 'diff' ? (
           <VersionDiffPanel key={doc.ceshu_id} ceshuId={doc.ceshu_id} onClose={() => setPanel(null)} />
         ) : panel === 'timeline' ? (
@@ -668,12 +667,8 @@ export default function CeshuView({
           />
         ) : panel === 'notes' ? (
           <ChapterNotesPanel key={doc.ceshu_id} ceshuId={doc.ceshu_id} onClose={() => setPanel(null)} />
-        ) : panel === 'wordStats' ? (
-          <WordStatsPanel key={doc.ceshu_id} ceshuId={doc.ceshu_id} onClose={() => setPanel(null)} />
         ) : panel === 'dataRefs' ? (
           <CeshuDataRefsPanel key={doc.ceshu_id} chapters={doc} types={types} />
-        ) : panel === 'fieldDeps' ? (
-          <FieldDepsPanel key={doc.ceshu_id} ceshuId={doc.ceshu_id} onClose={() => setPanel(null)} />
         ) : panel === 'changelog' && changelog ? (
           <ChangelogPanel
             changelog={changelog}

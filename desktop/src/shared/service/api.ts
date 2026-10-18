@@ -212,11 +212,7 @@ export interface MbApi {
     exportReviewReport(
       req: IpcContract['ceshu:exportReviewReport']['req']
     ): Promise<IpcContract['ceshu:exportReviewReport']['res']>
-    checklist(req: IpcContract['ceshu:checklist']['req']): Promise<IpcContract['ceshu:checklist']['res']>
     autoFill(req: IpcContract['ceshu:autoFill']['req']): Promise<IpcContract['ceshu:autoFill']['res']>
-    exportChecklistReport(
-      req: IpcContract['ceshu:exportChecklistReport']['req']
-    ): Promise<IpcContract['ceshu:exportChecklistReport']['res']>
     diff(req: IpcContract['ceshu:diff']['req']): Promise<IpcContract['ceshu:diff']['res']>
     exportDiffReport(
       req: IpcContract['ceshu:exportDiffReport']['req']
@@ -248,7 +244,5 @@ export interface MbApi {
         req: IpcContract['ceshu:templates:import']['req']
       ): Promise<IpcContract['ceshu:templates:import']['res']>
     }
-    wordStats(req: IpcContract['ceshu:wordStats']['req']): Promise<IpcContract['ceshu:wordStats']['res']>
-    fieldDeps(req: IpcContract['ceshu:fieldDeps']['req']): Promise<IpcContract['ceshu:fieldDeps']['res']>
   }
 }

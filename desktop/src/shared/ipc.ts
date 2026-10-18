@@ -12,7 +12,6 @@ import type {
   CeshuApplyPresetInput,
   CeshuConfirmSystemsInput,
   CeshuSyncDataInput,
-  CeshuChecklistExportInput,
   CeshuChooseExportFileInput,
   ReportFileDialogInput,
   CeshuCreateInput,
@@ -91,11 +90,8 @@ import type { DraftSummary, SessionInfo } from './agent/session'
 import type { JsonObjectSchema, SkillResult } from './agent/protocol'
 import type { CeshuChangelog, CeshuVersionDiff } from './ceshuDiff'
 import type { CeshuScoreReport } from './ceshuScorer'
-import type { ChecklistReport } from './ceshuChecklist'
 import type { CeshuNote } from './ceshuNotes'
 import type { CeshuCustomTemplate } from './ceshuCustomTemplates'
-import type { CeshuWordStatsReport } from './ceshuWordStats'
-import type { CeshuFieldDepsReport } from './ceshuFieldDeps'
 import type { CeshuAiGenerateResult, CeshuAiReviewResult } from './ceshuAi'
 import type { CeshuDataGenResult } from './ceshuDataGen'
 import type { ReferenceReport } from './util/references'
@@ -314,9 +310,7 @@ export interface IpcContract {
   'ceshu:aiReview': { req: { id: string; confirmed?: boolean }; res: CeshuAiReviewResult }
   'ceshu:aiGenerateData': { req: CeshuDataGenInput; res: CeshuDataGenResult }
   'ceshu:exportReviewReport': { req: CeshuReviewExportInput; res: { filePath: string } }
-  'ceshu:checklist': { req: { id: string }; res: ChecklistReport }
   'ceshu:autoFill': { req: { id: string }; res: { doc: CeshuDocument; filled: number } }
-  'ceshu:exportChecklistReport': { req: CeshuChecklistExportInput; res: { filePath: string } }
   'ceshu:diff': { req: CeshuDiffInput; res: CeshuVersionDiff }
   'ceshu:exportDiffReport': { req: CeshuDiffExportInput; res: { filePath: string } }
   'ceshu:exportScoreReport': { req: CeshuScoreExportInput; res: { filePath: string } }
@@ -333,8 +327,6 @@ export interface IpcContract {
   'ceshu:templates:export': { req: TemplatesExportInput; res: { filePath: string; count: number } }
   'ceshu:templates:import': { req: TemplatesImportInput; res: { imported: number; skipped: number } }
   'dialog:chooseTemplateJsonFile': { req: TemplateJsonDialogInput; res: { path: string | null } }
-  'ceshu:wordStats': { req: { id: string }; res: CeshuWordStatsReport }
-  'ceshu:fieldDeps': { req: { id: string }; res: CeshuFieldDepsReport }
   'dialog:chooseCeshuExportFile': { req: CeshuChooseExportFileInput; res: { path: string | null } }
   'dialog:chooseReportFile': { req: ReportFileDialogInput; res: { path: string | null } }
 
