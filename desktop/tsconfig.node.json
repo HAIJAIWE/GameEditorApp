@@ -26,5 +26,13 @@
     "src/preload/**/*",
     "src/shared/**/*",
     "tests/**/*"
-  ]
+  ],
+  /**
+   * DOM 组件测试（jsdom）单独用 `tsconfig.test-dom.json` 检查。
+   *
+   * 为什么不直接给本配置加 `DOM` 到 lib：那等于允许主进程代码在**类型层面**使用
+   * `document` / `window` 等浏览器 API —— 主进程没有 DOM，这类代码运行时才炸，
+   * 而且 eslint 的 `no-undef` 对 TS 关闭，抓不到。宁多一个 tsconfig，不开这个洞。
+   */
+  "exclude": ["tests/unit/dom/**"]
 }

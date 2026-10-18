@@ -1,9 +1,22 @@
 import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
+  /**
+   * JSX 走自动运行时（`react/jsx-runtime`）。
+   *
+   * 根 `tsconfig.json` 是纯 references 文件（没有 compilerOptions），esbuild 读不到
+   * `jsx: react-jsx`，会回落到 classic 转换 —— 于是 `.tsx` 测试报 `React is not defined`。
+   * 这里显式声明，避免把 `jsx` 配置塞进根 tsconfig 影响构建链。
+   */
+  esbuild: { jsx: 'automatic' },
   test: {
     // 单元测试 + 集成测试（集成 = 真实存储/文件系统，仍可在 Node 下跑，无需 Electron）
-    include: ['tests/unit/**/*.test.ts', 'tests/integration/**/*.test.ts'],
+    // `.tsx` = DOM 组件测试（jsdom 环境，文件头用 `@vitest-environment jsdom` 指定）
+    include: [
+      'tests/unit/**/*.test.ts',
+      'tests/unit/**/*.test.tsx',
+      'tests/integration/**/*.test.ts'
+    ],
     environment: 'node',
 
     /**

@@ -218,6 +218,25 @@ export default function CeshuView({
 
   // 切换策划书时旧文档仍在 state 中，id 不匹配则视为加载中
   if (!doc || doc.ceshu_id !== ceshuId) {
+    /*
+     * 加载失败必须**在这里**给出口：`error` 的横幅渲染在下方主界面里，而主界面
+     * 要求 `doc` 已就位 —— 于是 `get` 抛错时旧实现会永久停在「正在加载策划书…」，
+     * 用户既看不到原因也点不到返回（W2 组件测试发现的实际缺陷）。
+     * 只在 `doc` 为空时展示错误：`doc` 存在但 id 不匹配是「切换文档」的瞬态，
+     * 此时残留的旧错误会误导用户。
+     */
+    if (doc === null && error !== null) {
+      return (
+        <div className="ceshu-view">
+          <div className="error-banner" data-testid="ceshu-load-error">
+            {error}
+          </div>
+          <button type="button" className="btn" data-testid="ceshu-load-error-back" onClick={onBack}>
+            返回
+          </button>
+        </div>
+      )
+    }
     return (
       <div className="ceshu-view">
         <div className="empty">正在加载策划书…</div>
@@ -454,10 +473,13 @@ export default function CeshuView({
   /**
    * 「更多 ▸」菜单分组。骨架对齐 PyQt `editor_view.py:160-187` 的 `_more_menu` 顺序与分隔。
    *
-   * **与 PyQt 菜单仍有差异（E30 审计确认，非笔误）**：PyQt 另有「档位切换（轻量 9 章 ↔ 工业级 18 章）、
-   * 补全空白字段、更多模板、导出 AI 报告」四项，TS 侧**没有对应入口**（不是按钮失效，是真没有）。
-   * 其中「补全空白字段」的能力其实**已实现**（`ChecklistPanel` 的自动填充 + 清单面板入口），
-   * 只是没有挂进这个菜单 —— 属**待收口**而非「无能力」，注释勿再写成「无能力」。
+   * **与 PyQt 菜单仍有差异（E30 审计确认，非笔误）**：PyQt 另有「档位切换（轻量 9 章 ↔
+   * 工业级 18 章）、更多模板、导出 AI 报告」三项，TS 侧**没有对应入口**（不是按钮失效，是真没有）。
+   *
+   * 「补全空白字段」已于 W0 收口：它原先只挂在 `ChecklistPanel` 的「一键修复」上，
+   * 该面板随字数 / 清单 / 字段依赖三项旁路报告一并移除后，能力改由本菜单承载
+   * （见下方 `ceshu-autofill`），否则 `ceshu:autoFill` 会变成没有 UI 入口的死通道。
+   *
    * 每项 testid 保持与改造前平铺按钮**逐一同名**，既有 E2E 只需补一步展开即可继续命中。
    */
   const moreMenuGroups: { testid: string; label: string; run: () => void }[][] = [
