@@ -881,7 +881,14 @@ body {
  */
 [data-testid='item-editor'] .editor-body {
   display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
+  /*
+   * 控件列设上限（而不是 `1fr` 吃到饱）：
+   * `.ceshu-preview .editor` 是 `width:auto; flex:1 1 0`，编辑器宽度**跟着窗口弹性变**；
+   * 窗口一宽，控件就跟着拉成一条长横线 —— 反馈「太宽了不紧」。
+   * 收在 360px：单行文本、数值、图片框、多行描述都够用，行与行之间不再被拉散。
+   * 标签列仍是 `max-content`（保持 QFormLayout 的「按全表最宽标签对齐」语义不变）。
+   */
+  grid-template-columns: max-content minmax(0, var(--item-form-control-max, 360px));
   align-items: start;
   gap: 10px; /* QFormLayout.setSpacing(10) */
 }
