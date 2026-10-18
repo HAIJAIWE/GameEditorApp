@@ -372,7 +372,7 @@ grep -rn "mbApi.ceshu.versions" src/renderer
 | Wave 0 | ✅ | `356ce2b` | 21 文件 / +21 −3,636 | tsc×2 · eslint · vitest 2013/5 · build |
 | Wave 1 | ✅ | 见下 | 见下 | tsc×2 · eslint · vitest 2028/5 · build；e2e 三条 AI 规格 6/6 |
 | Wave 2 | ✅ | 见下 | 10 文件 / 见下 | typecheck×3 · eslint · vitest 2042/5 · build；**e2e 整包 73/2** |
-| Wave 3 | ⬜ 未开始（须 W2 之后） | — | — | — |
+| Wave 3 | 🟡 分析完成，未动代码 | — | — | 依据见 `2026-10-19-ceshuview-app-split-analysis.md` |
 
 ### Wave 1 实做与文档原计划的偏差
 
