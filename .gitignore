@@ -97,3 +97,9 @@ perf/
 
 # electron-vite 构建残留（转译出的临时 .mjs 配置，未跟踪但会污染 git status）
 desktop/electron.vite.config.*.mjs
+
+# 本地运行产物：错位生成的嵌套库目录（如 cwd 不对时落出的 GameEditorApp/…/libraries）
+GameEditorApp/
+# spike 试跑输出（docx/pptx 样例），仅本地验证用
+spikes/out/
+

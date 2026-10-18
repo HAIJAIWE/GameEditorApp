@@ -20,7 +20,7 @@
 - **唯一经得起推敲的真实残留差异**：PyQt 删除按钮有二次确认（`_on_delete_clicked` 先弹确认框），TS 是无确认直删（此前为规避 Delete 键一键误删做的刻意选择，但按钮级确认本身不冲突，且属安全增强）。
 - **本次续做**：给删除入口（右键菜单 + 表单操作栏「删除」）加二次确认，对齐 PyQt，沿用既有内联确认条样式（`count-warning`）。
 - 验证门：tsc 双配置 0 / eslint 0 / build 过 / e2e `ceshu-data-delete-confirm` 新 + `ceshu-data-maximize` 回归 全绿。
-- 提交：（待填）
+- 提交：30d88b6
 
 ### 2026-10-14（早）· 几何复刻（提交 82bc073）
 - 标签列改 grid（`[data-testid='item-editor'] .editor-body` 作用域内 `grid-template-columns: max-content minmax(0,1fr)` + `.form-row{display:contents}`），标签列 118→51px。

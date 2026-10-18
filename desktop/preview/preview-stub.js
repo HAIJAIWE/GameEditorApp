@@ -10,10 +10,13 @@
  * agent.listTools 返回真实 5 个已注册技能）。
  */
 (function installMbApiStub() {
+  // 与 shared/ceshuConstants.ts 的 CHAPTER_KEYS 同构（文档信息 + 16 章，5 个区展开）
   const CHAPTER_KEYS = [
-    'meta', 'vision', 'worldview', 'gameplay', 'systems', 'numeric', 'art', 'tech', 'resources',
-    'market_analysis', 'characters', 'combat', 'economy', 'monetization', 'mvp', 'risk_handling',
-    'audio', 'accessibility'
+    'meta', 'vision', 'story', 'gameplay',
+    'systems', 'combat', 'economy', 'numeric',
+    'art', 'audio',
+    'tech',
+    'resources', 'mvp', 'risk_handling', 'market_analysis', 'monetization', 'accessibility'
   ]
   const DOC = {
     version: '5', ceshu_id: 'abc12345', created_at: '2026-01-01T00:00:00.000Z',

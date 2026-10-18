@@ -27,7 +27,7 @@
 | W21       | 章节笔记（独立 JSON CRUD）                                                                                 | `chapter_notes.py`                                                                                                                 | `shared/ceshuNotes.ts`、`main/ceshu/notesStore.ts`、`components/ChapterNotesPanel.tsx`                                                                                                                                                                                                                                               |
 | W22       | 属性系统 JSON 导入/导出                                                                                    | `attr_system_editor.py`                                                                                                            | `main/attr/attrSystemJsonFile.ts`                                                                                                                                                                                                                                                                                                  |
 | W23       | 字数统计（18 章完成度 + 写作建议 + 面板）                                                                          | `ui/ceshu/word_stats_dialog.py`                                                                                                    | `shared/ceshuWordStats.ts`、`components/WordStatsPanel.tsx`                                                                                                                                                                                                                                                                         |
-| W24       | 字段/系统依赖检查（20 条依赖 + 两张依赖图 + 双视图面板）                                                                  | `field_dependencies.py`、`field_dependency_graph.py`、`system_dependency_graph.py`                                                   | `shared/ceshuFieldDeps.ts`（单测 40）、`components/FieldDepsPanel.tsx`、E2E                                                                                                                                                                                                                                                              |
+| W24       | 字段/系统依赖检查（**13 条依赖** + 两张依赖图 + 双视图面板）                                                                  | `field_dependencies.py`、`field_dependency_graph.py`、`system_dependency_graph.py`                                                   | `shared/ceshuFieldDeps.ts`（单测 40）、`components/FieldDepsPanel.tsx`、E2E。**TS 侧 D3 去重**：Python 20 条中 7 条是「重复字段对账」（combat_mode↔battle.config.turn_mode、payment_model↔…payment_system、pricing_tiers↔…recharge_tiers、currency_types↔…、risk_matrix↔resources、milestones↔tech、language_list↔resources.localization），重复字段已在 TS 收敛为单一权威存放处 ⇒ 这 7 条依赖删除，字段图随之 18 节点/19 边/10 层 → **16 节点/13 边/4 层**（economy、risk_handling 不再有字段级依赖） |
 | W25       | Excel 导出（8 Sheet 工作簿，导出格式补满 6 种）                                                                   | `ceshu_excel_exporter.py`                                                                                                          | `main/ceshu/export/excel.ts`（exceljs ^4.4.0；预演见 `spikes/excel-spike.mjs`）                                                                                                                                                                                                                                                          |
 | W26       | 版本时间线（横向 SVG 时间线 + 节点详情 + 切换版本；复用 `ceshu:versions`）                                                | `ui/ceshu/version_timeline_dialog.py`                                                                                              | `shared/ceshuTimeline.ts`（单测 12）、`components/VersionTimelinePanel.tsx`、E2E                                                                                                                                                                                                                                                         |
 | W27       | 章节模板库第一刀（18 章 34 个内置模板 + 搜索/预览 + 三应用模式 + 回填章节草稿）                                                   | `data/chapter_templates_data.py`、`ui/ceshu/chapter_templates.py`、`ui/ceshu/template_picker_dialog.py`                              | `shared/ceshuTemplateData.ts`（机械转换）、`shared/ceshuTemplates.ts`（单测 14）、`components/TemplatePickerPanel.tsx`、ChapterForm 集成、E2E                                                                                                                                                                                                      |
@@ -36,7 +36,7 @@
 | W30       | AI 生成数据表（策划书设定 → 候选 → 人工勾选 → 导入数据表）                                                                | `core/agent/skills/ceshu_skill_generate.py::_ai_generate_data`、`ui/ceshu/ai_data_generate_dialog.py`                               | `shared/ceshuDataGen.ts`（类型/条数/背景/提示词/归一化，单测 14）、IPC `ceshu:aiGenerateData`、`components/AiDataGenPanel.tsx`、E2E（含 **Ollama 桩服务**全链路）                                                                                                                                                                                               |
 | W31       | 混合玩法预设市场 + 竞品象限图（18 预设卡片/搜索/一键应用；vision 章散点图）                                                      | `core/ceshu/ceshu_constants.py::HYBRID_GAMEPLAY_PRESETS`、`ui/ceshu/preset_market_dialog.py` 300、`ui/ceshu/competitive_chart.py` 80 | `shared/ceshuPresets.ts`（18 预设逐字搬运 + 搜索 + 应用语义，单测 14）、`shared/ceshuCompetitiveChart.ts`（几何/归一化，单测 12）、IPC `ceshu:applyPreset`（manager 一次写 systems+meta）、`components/PresetMarketPanel.tsx`、`components/CompetitiveChart.tsx`（vision 章内嵌）、E2E（应用落盘 + 散点渲染 2 条）                                                                      |
 | W32       | 系统依赖确认 + 数据同步（AI 生成策划书后确认启用系统 / 增删自定义系统 / 写回 systems 章；双向同步注册启用系统的 data_type 类型 + 回填 actual_count） | `system_confirm_dialog.py` 242 + `ceshu_data_sync.py` 248                                                                          | `shared/ceshuSystemConfirm.ts`（字段预览 / 确认结果纯逻辑，单测 10）、`main/ceshu/dataSync.ts`（`CeshuDataSync` 双向同步协调器，单测 11）、IPC `ceshu:confirmSystems` / `ceshu:syncData`、`components/SystemConfirmPanel.tsx`（勾选 / 字段架构预览 / 自定义系统）、E2E `ceshu-system-confirm.spec.ts`（确认落盘 + 双向同步注册类型）                                                            |
-| W33       | 迁移工具（v4.0 旧策划书加载时自动迁移到 v5.0：补新 9 章默认值 + 从旧章节派生新章节字段 + 版本升级）                                        | `ceshu_migration.py` 124（原注「111」为口径差异）                                                                                             | `shared/ceshuMigration.ts`（`needsV4Migration` + `migrateV4ToV5` 纯函数，单测 21）、接入 `ceshuModel.normalizeCeshu` 加载路径、E2E `ceshu-migration.spec.ts`（磁盘预置 v4 → 加载验证派生）                                                                                                                                                                     |
+| W33       | 迁移工具（v4.0 旧策划书加载时自动迁移到 v5.0：补新 9 章默认值 + 从旧章节派生新章节字段 + 版本升级；**E60 后 v5 结构 = 5 区 / 16 章 + 无数号「文档信息」段，`worldview`+`characters` 并入 `story`「世界观与角色」**）                                        | `ceshu_migration.py` 124（原注「111」为口径差异）                                                                                             | `shared/ceshuMigration.ts`（`needsV4Migration` + `migrateV4ToV5` 纯函数，单测 21）、接入 `ceshuModel.normalizeCeshu` 加载路径、E2E `ceshu-migration.spec.ts`（磁盘预置 v4 → 加载验证派生）                                                                                                                                                                     |
 | W34       | 策划书首页卡片视图（卡片网格：名称/类型/状态/版本徽章/日期/进度 + 搜索 + 最近打开 + 新建（空白/从已有复制）+ 卡片操作：重命名/复制/派生/删除）                  | `home_view.py` 513 + `home_card.py` 161（原注 452/136 为口径差异）                                                                          | `shared/ceshuHome.ts`（状态标签/卡片视图模型/搜索/最近/复制命名，单测 11）、`CeshuSummary` 增 `gameType`/`status`、`CeshuManager` 增 `rename`/`remove`/`duplicate` + `CeshuStorage.remove`（单测 7）、IPC `ceshu:rename`/`ceshu:delete`/`ceshu:duplicate`、`components/CeshuHomePanel.tsx`、E2E `ceshu-home-cards.spec.ts`                                           |
 | **A1-1**  | Agent 技能协议 + 调度器内核（注册表 / 名称解析 / 危险操作确认门 / 结构化错误；数据表读写 + 策划书只读技能）                                   | `core/agent/skill_protocol.py` 107、`dispatcher.py` 585、`security/acl.py` 141、`skills/{game_data,ceshu}_skill.py`                   | `shared/agent/protocol.ts`（协议 + 风险策略 + 参数修正，单测 18）、`main/agent/dispatcher.ts`（注册表 + 模糊解析 + 危险确认门，单测 15）、`main/agent/skills/{gameDataSkill,ceshuSkill}.ts`（单测 13）、IPC `agent:listTools`/`agent:executeTool`、E2E `agent-execute-tool.spec.ts`；**顺带修复 W32 `CeshuDataSync` 用复数键查数据的真 bug**（详见 [`a-tier-plan.md`](./a-tier-plan.md) §6） |
 | **A1-2**  | Agent Brain 循环 + 事件流 + LLM 工具调用（step/stream/done/error 事件、tool_calls 协议、危险操作审批点、提示词骨架）             | `core/agent/brain_llm.py` 474、`brain_prompt.py` 294、`brain_subagent.py`（fallback）                                                  | `shared/agent/brain.ts`（事件流 + `runBrainLoop`，注入传输层/工具执行器故可纯单测 19）、`shared/agent/prompts.ts`（骨架）、`main/agent/ollamaTransport.ts`（`/api/chat` NDJSON 流式 + tool_calls）、`main/agent/brainService.ts`（调度器适配）、IPC `agent:chat`、E2E `agent-brain-chat.spec.ts`（**Ollama 桩服务两轮**：工具调用 → 流式终稿）                                              |
@@ -55,12 +55,15 @@
 >
 > | 判定 | 文件 | 行数 | 占比 |
 > |---|---|---|---|
-> | ✅ 已迁 | 116 | 43,072 | 47.2% |
+> | ✅ 已迁 | 118 | 43,235 | 47.4% |
 > | ◐ 部分已迁 | 15 | 8,328 | 9.1% |
-> | ⛔ 有意不迁（决策，非欠债） | 162 | 39,314 | 43.1% |
-> | ⚠️ **未迁（整块没做）** | **6** | **450** | **0.5%** |
+> | ⛔ 有意不迁（决策，非欠债） | 166 | 39,601 | 43.4% |
+> | ⚠️ **未迁（整块没做）** | **0** | **0** | **0.0%** |
 >
-> 对账 PASS：`116+15+162+6 = 299` 文件、`43072+8328+39314+450 = 91,164` 行。（**E54 校准 + E56 / E57 / E58 收口**：审计的 §1 = §2 = Σ§3 已**逐格相等**，此前三套数字互相不一致的历史见 audit §1「E54 台账校准」块；E56 的 ◐ 文件级复核见 audit §1「E56 ◐ 行文件级复核」块，E57 的前端尾巴收口见 audit §1「E57 前端尾巴收口」块，E58 的台账滞后修复 + 拼音兜底见 audit §1「E58 前端尾巴 3/3」块。）
+> 对账 PASS：`118+15+162+4 = 299` 文件、`43235+8328+39314+287 = 91,164` 行。（**E54 校准 + E56 / E57 / E58 收口 + E61**：审计的 §1 = §2 = Σ§3 已**逐格相等**，此前三套数字互相不一致的历史见 audit §1「E54 台账校准」块；E56 的 ◐ 文件级复核见 audit §1「E56 ◐ 行文件级复核」块，E57 的前端尾巴收口见 audit §1「E57 前端尾巴收口」块，E58 的台账滞后修复 + 拼音兜底见 audit §1「E58 前端尾巴 3/3」块；**E61（2026-10-10）** `common/rate_limiter.py` 85 行 ⚠️→◐ —— 模块已迁 `shared/rateLimiter.ts` + 单测 15，**TS 消费者未接线**故记 ◐，见 audit §1 的「E61」块。）
+>
+> ⚠️ **E61 的教训**：改了 audit §1 的表之后，必须同步 **① audit §2 的「合计」行 ② 本文件 §2 内嵌的这份副本** ——
+> 三处任一不同步，`docsLedger.test.ts` 立刻红（本轮就是这样被抓到的两次红灯）。
 >
 > **结论：真实剩余 ≈ 0.5–0.7 万行（6–8%）** —— 而不是早前口头估算的「3.5–4.5k 行（4–5%）」。那句估算**口径过窄**（把 `ui/widgets`/`ui/dialogs`/`features` 三个混合态域当成了基本迁完）且未做文件级核实，**已被本审计推翻**。（E56 落实了「AI 框架重写域不计迁移欠债」的口径，把 30 个 AI 域 ◐ 文件归 ⛔；E57 又把前端尾巴里 2 个 ◐ 升 ✅、2 个改判 ⛔；E58 补记 2 个被 `d5ad355` 漏记的 ◐→✅ 并补拼音兜底，故剩余量再降。）
 > 三个最意外的数字：**① `core/agent`（最大域 24,670 行）只有 1,689 行是完整已迁**（A 档做的是核心闭环，不是整个 Agent 引擎）；**② `ui/` 顶层+主题 9,883 行里仅 1,952 行完整已迁**；**③ `features` 9 文件完整已迁为 4 个（1,543 行）**（E58 更新为最新 §1/§2 数字）。
@@ -109,13 +112,23 @@
 
 ### D 档（属性/数值域剩余）
 
-`core/extended_formulas.py` **456 行 —— 实证死代码，已列「有意不迁」**（见 E4）、`core/game_templates.py` **326 行 —— 实证死代码**（仅 `core/__init__.py` re-export）、`core/editor_layout.py` **208 行 —— 实证「能写、没人读、且已过期」的配置，已列「有意不迁」**（见 E5）、`core/style_manager.py` **289 行（活的，被 dynamic_form 用）**、`core/cedict.py` **72 行 —— 评估后「有意不迁」**（见 E6：实测会产出垃圾 ID、且该层几乎必然空转）、引擎代码导出（`ui/dialogs/engine_export.py` Unity/Unreal/Cocos）。**已交付**：`operation_log.py`（会话级回滚，E3）、`ui/widgets/formula_builder.py` 486（系数公式编辑器，E4）、`ui/widgets/dynamic_form.py::FIELD_GROUPS`（条目编辑器分区，E5）、`ui/dialogs/type_editor_field_widget.py` 的字段 ID 生成（E6）。
+`core/extended_formulas.py` **456 行 —— 实证死代码，已列「有意不迁」**（见 E4）、`core/game_templates.py` **326 行 —— 实证死代码**（仅 `core/__init__.py` re-export）、`core/editor_layout.py` **208 行 —— 实证「能写、没人读、且已过期」的配置，已列「有意不迁」**（见 E5）、`core/style_manager.py` **289 行 —— ✅ 已迁（E21：`shared/gameStyle.ts`，台账 `migration-audit.md:467/554` 记「D 档至此收官」）**、`core/cedict.py` **72 行 —— 评估后「有意不迁」**（见 E6：实测会产出垃圾 ID、且该层几乎必然空转）、引擎代码导出（`ui/dialogs/engine_export.py` Unity/Unreal/Cocos）。**已交付**：`operation_log.py`（会话级回滚，E3）、`ui/widgets/formula_builder.py` 486（系数公式编辑器，E4）、`ui/widgets/dynamic_form.py::FIELD_GROUPS`（条目编辑器分区，E5）、`ui/dialogs/type_editor_field_widget.py` 的字段 ID 生成（E6）。
 
 > ✅ **D 档「引擎代码导出」已交付首刀（见 §1 台账 E1，提交 `b7a2b9f`）**：只做 **Lua**，且只做「全量数据 → 单个 Lua 数据模块」。  
 > **与 Python 参考版的有意偏离**：Python 支持 Unity/Unreal/Godot/Cocos 骨架，**反而没有 Lua**——本刀补的是它缺的那条主路径，其余引擎按 P1/P2 待排。  
 > **已补 E2**：渲染层 UI 入口（数据视图工具条按钮 + 原生保存对话框）已就绪，界面上可点了。  
 > **未做**：Godot/Cocos、Unity/Unreal 数据填充；产物未经真实 Lua 解析器校验（本机无 `lua`/`luac`）；保存对话框与按钮点击属 Electron-only，本沙箱无法验证。  
-> D 档**仍活着的**剩余项：`style_manager.py` 289（游戏风格术语替换）。**已判死代码/不迁**：`extended_formulas` 456、`game_templates` 326、`editor_layout` 208、`cedict` 72（详见 E4/E5/E6）。C 档（菜单快捷键/窗口状态/主题/设置/i18n）仍待排。
+> ✅ **D 档已收官**（E61 台账核对后更正）：`style_manager.py` 289 已于 **E21** 迁为 `shared/gameStyle.ts`
+> （`GAME_STYLES` 内联 6 风格×46 概念 + `CONCEPT_ALIASES` 23 条 + `resolveLabel`/`resolveFieldLabel`/
+> `inferStyleFromText`/`buildReplacementPairs`，单测 `gameStyle.test.ts`，消费者接线 `App.tsx`/
+> `ItemForm.tsx`/`CeshuDataPreview`/`DataEditorTab`）；`extended_formulas` 456、`game_templates` 326、
+> `editor_layout` 208、`cedict` 72 四项已判死代码/不迁（详见 E4/E5/E6）。
+>
+> ⚠️ **本段此前把 `style_manager.py` 仍写作「仍活着的剩余项」是过期描述**（与 `migration-audit.md:467/554`
+> 的 ✅ 判定直接矛盾），2026-10-10 已更正 —— **单一事实源以 `migration-audit.md` 为准**，本文件 §2 只是说明性文字。
+> 教训：动手前先核对台账，否则会照着过期描述把**已迁完的东西重复实现一遍**。
+>
+> C 档（菜单快捷键/窗口状态/主题/设置/i18n）仍待排。
 
 > ✅ **D 档「会话级回滚」（`core/operation_log.py` 154 行）已完整交付**：**E3-1** 核心（`8ff0b0d`：`buildRollbackPlan` 纯函数 + 内存环形日志 5000/批清 500 + `executeRollbackPlan` 单步失败不中断，单测 11）+ **E3-2** 接线（`7478c43`：`operationRecorder` 包在 runner 上记录 + `tool.rollback_ai_changes` 技能复用 confirm 交互，单测 15）。
 > **语义澄清（勿按名字臆测）**：这不是通用撤销，而是 **AI 会话级安全网**——Python 原实现只记 AI 会话内的数据变更（`if not conv_id: return`），不记手动编辑。
@@ -610,7 +623,7 @@
 > `core/agent` 域剩余 **33 文件 / 8,419 行「⚠️未迁」全部不再计入迁移欠债**（记忆向量检索 883 行、
 > `learner` 学习闭环 543 行、`intent` 意图解析 718 行、`mcp` 客户端 391 行、团队 CRUD 818 行、
 > `model_registry` 186 行、自愈链 4,166 行〔本就刻意不迁〕）。
-> **⇒ 剩余量口径变更**：「≈2.4–2.8 万行 / 26–31%」**应扣除 core/agent 未迁部分** ⇒ 编辑器侧真实剩余 ≈ **1.4–1.7 万行**。**E54（2026-10-07）已重跑审计并落地该扣除**，降为 **≈1.0–1.4 万行（11–15%）**；**E56（2026-10-07）进一步把 AI 域 30 个 ◐ 文件归入 ⛔**，降为 **≈0.5–0.8 万行（6–9%）**；**E57（2026-10-07）前端尾巴收口**（2 个 ◐ 升 ✅、2 个改判 ⛔）、**E58（2026-10-07）**（2 个 ◐ 补记为 ✅ + 拼音兜底，1 个 ◐ 升 ✅），现为 **≈0.5–0.7 万行（6–8%）**（⛔ 已含 `core/agent` 的 22,981 行全部 + 团队 CRUD 818 行 + `startup_mode`/`virtual_list` 等设计性替换；⚠️ 仅剩 6 文件 / 450 行）。
+> **⇒ 剩余量口径变更**：「≈2.4–2.8 万行 / 26–31%」**应扣除 core/agent 未迁部分** ⇒ 编辑器侧真实剩余 ≈ **1.4–1.7 万行**。**E54（2026-10-07）已重跑审计并落地该扣除**，降为 **≈1.0–1.4 万行（11–15%）**；**E56（2026-10-07）进一步把 AI 域 30 个 ◐ 文件归入 ⛔**，降为 **≈0.5–0.8 万行（6–9%）**；**E57（2026-10-07）前端尾巴收口**（2 个 ◐ 升 ✅、2 个改判 ⛔）、**E58（2026-10-07）**（2 个 ◐ 补记为 ✅ + 拼音兜底，1 个 ◐ 升 ✅），现为 **≈0.5–0.7 万行（6–8%）**（⛔ 已含 `core/agent` 的 22,981 行全部 + 团队 CRUD 818 行 + `startup_mode`/`virtual_list` 等设计性替换；⚠️ 已清零（E65 改判 4 文件→⛔）；E61 后 `rate_limiter` 85 行 ⚠️→✅、E62 后 `ai_field_button` 78 行 ⚠️→✅）。
 > **🔑 必须区分两类 AI 能力（否则重写会误伤在用功能）**：
 > - **要重写**：Agent 框架本身（brain / dispatcher / skills / 记忆 / 意图那套自主决策循环）。
 > - **必须保留**：**LLM 调用能力** —— 被 **4 个非 Agent 功能**真实消费且**不依赖框架**：
@@ -673,6 +686,25 @@
 > **运行期举证（`preview/verify-e58.mjs`，14/14 通过、页面错误 0）**：复用 E57 桩链、端口 5201，6 组用例（未收录词「斗能」→ 拼音层 `dou_neng` 且规则层如实报未收录；`攻击力` 两层对照；展开不覆盖、点选才写入；`$$$` 如实报错；新建类型「卡牌」→ `ka_pai`、手改后不再覆盖；既有类型改中文名 ID 保持 `role`）。回归 `verify-e51` 41/41、`verify-e57` 46/46 仍绿。
 > **验证**：`docsLedger.test.ts` 全绿（守卫期望值同步 E58，并用已知坏版本验过有效性）；双端 tsc 0 / eslint 0 / vitest **118 文件 1788 测试全绿**（+1 文件 +11 用例：`tests/unit/pinyinFieldId.test.ts`）/ `electron-vite build` 成功（renderer 2.65MB）。`REQUIRED_ROADMAP_MARKERS` 增 `'E58（2026-10-07）'`。新增 E2E `tests/e2e/type-field-id-pinyin.spec.ts`（本沙箱无 Electron，按既有模式写就待 CI）。
 
+> ✅ **E60（2026-10-09）：策划书章节结构按业界 GDD 惯例重组（分区制：5 区 / 16 章 / 文档信息段）。**
+> **动因（主理人原话）**：「策划书是这么写的吗？我感觉好乱」——既有结构是**迁移期**产物：9 章 → 16 章两轮加章后，序号与分区脱节，且 `worldview`（世界观）与 `characters`（角色）两章内容高度耦合却各占一章。主理人裁决：**「分区制重组（推荐）」+「重挑 lite 章节（推荐）」**。
+> **结构变更**：① **5 个区**（`CHAPTER_PARTS`）——一、产品定义（产品愿景/世界观与角色/核心玩法）· 二、游戏系统（游戏系统设计/战斗系统设计/经济系统设计/数值设计）· 三、表现设计（美术/音频）· 四、技术方案（技术规格）· 五、制作与发行（资源规划/MVP 规划/风险控制/市场分析/商业化设计/可访问性与本地化）；② **章号 = 区展开后的位置**（`NUMBERED_CHAPTER_KEYS = CHAPTER_PARTS.flatMap(p => p.chapters)`），由单一来源派生，不再手写；③ **`meta` 从「第一章·项目元信息」改为无数号的「文档信息」段**（锚点 `ch0`，不占章号）；④ **`worldview` + `characters` 合并为 `story`「世界观与角色」**（键不重叠，顺序拼接安全；旧数据由 `ceshuMigration.migrateV4ToV5` 单向搬运、读旧不覆写、幂等）。
+> **连带修正的三类缺陷（都不是测试发现的）**：
+> 1. **lite 目录「像缺页」**：lite 原按 `BASE_CHAPTER_KEYS` 取章，重组后编号不连续（1,2,3,4,5,6,11,13,14）。改为 **`LITE_CHAPTER_KEYS` 必须是 `NUMBERED_CHAPTER_KEYS` 的前缀**（核心设计 9 章，编号必为 1..9 连续），并以 `ceshuConstants.test.ts` 锁定。
+> 2. **lite 全量生成漏掉 `meta`**：`buildFullGeneratePlan` 原按 `LITE_CHAPTER_KEYS` 过滤 ⇒ `meta` 被滤掉 ⇒ 必填字段 `positioning` 在 lite 档永远无法由 AI 补齐。改为按 `visibleChapterKeys(scope)` 过滤（lite = 文档信息 + 9 章）。**这是真行为 bug，不是测试适配**。
+> 3. **源码硬编码章节标签漂移**：数据编辑器空态引导文案写着「第五章·游戏系统设计」（`systems` 重组后已是**第四章**）。typecheck / eslint / vitest 全绿——**因为没有任何断言读它**，实测是渲染截图才看出来的。⇒ 文案改从 `CHAPTER_LABELS.systems` 派生，并新增守卫 `tests/unit/ceshuChapterLabelDrift.test.ts`（扫描 `src/**/*.{ts,tsx}` 里所有「第N章·<已知章节名>」写法，数字必须与 `CHAPTER_LABELS` 一致；带**自证用例**喂进历史缺陷确认会报；带 `guard-allow-stale-label` 逃生口供迁移注释引用旧章号）。
+> **UI**：章节导航改为**按区分组**（区标题为不可交互的分组标签 `.chapter-nav-part-label`，`preview/shot-parts.mjs` 断言它非按钮）；章节表单标题加分区面包屑（「二、游戏系统 第五章·战斗系统设计」）。**顺带修一个中文排版缺陷**：窄列下章节名逐字竖排（「第\n五\n章…」）——中文可任意断行，加 `white-space: nowrap` + 外层 `flex-wrap`（AI 按钮换行而非裁切），并把「标题单行 + 按钮不被裁」写成运行期断言。
+> **导出**：4 个导出器（MD/HTML/DOCX/PPTX/Excel）加**分区标题**，章节降为子级（`##`/`h2.part` + `###`/`h3`）；PPTX full 档 **24 页**（封面 + 5 分区分隔页 + 17 章 + 完成度）、Markdown 目录 `1. [第一章·产品愿景](#ch1)` … `16.` + `- [文档信息](#ch0)`。
+> **结果**：`CHAPTER_KEYS = ['meta', ...16 章]`（17 项）；lite = 文档信息 + 核心设计 9 章（空文档校验 22 条必填缺失）、full = 33 条。
+> **运行期举证**：`preview/shot-parts.mjs`（**10/10**，端口 5196：导航 17 项 / 首项为无数号「文档信息」/ 5 个区标题顺序 + 归属 / 区标题非交互 / 面包屑 / 章节名单行 / AI 按钮不裁切 + 两张截图）、`preview/shot-labels.mjs` **7/7**（按新标签逐章打开）、`preview/shot-dedup.mjs` **25/25**、`preview/verify-e59.mjs` **37/37**（T4 文案现为「连续调用 17 次」）。
+> **验证**：`docsLedger.test.ts` 全绿（守卫期望值同步 E60）；双端 tsc 0 / eslint 0 / vitest **122 文件 1892 测试全绿**（+3 文件：`ceshuConstants.test.ts` 10 例、`ceshuChapterLabelDrift.test.ts` 5 例，及此前累计）/ `electron-vite build` 成功。`REQUIRED_ROADMAP_MARKERS` 增 `'E60（2026-10-09）'`。
+
+> ✅ **E65（2026-10-10）：⚠️ 清零（4 文件全改判 ⛔）+ Python 版物理隔开到 `_legacy-py/`。**
+> **动因（主理人原话）**：「py 是 2（物理隔开）；TS 迁移尚余 6–8% 的，在做一个不就好了吗？」⇒ ① 按方案 2 隔离 Python 版；② 把剩余迁移收掉。
+> **澄清**：那 6–8% 里**真正「整块没做」就 4 个小文件（287 行）且全卡产品决策**——`event_bus`/`privacy` 仅被 `core/agent` 重写域消费（E42 已判 ⛔），`auto_updater`/`sentry_client` 为本地离线应用不需要（GitHub releases / 外部遥测）。**全部改判 ⛔，⚠️ 清零**。剩余 ◐ 大头是 AI 重写域（`core/agent` 等），走重写而非 1:1 移植，不计入迁移欠债。
+> **隔离**：`src/`、`tests/`、`config/`、`app.py`、`build.py`、`build.spec`、`pyproject.toml`、`requirements*.txt` 移到仓库根 `_legacy-py/`（含 README 注明冻结只读）；`data/`、`desktop/`、`docs/`、`scripts/`、`assets/` 不动。TS 构建/测试不依赖根 `src/`，隔离零影响。
+> **台账**：⛔ 162→**166**、39,314→**39,601**；⚠️ 4/287→**0/0**。✅ 118 / 43,235 · ◐ 15 / 8,328 · ⛔ **166 / 39,601** · ⚠️ **0 / 0**（299 文件 / 91,164 行）。`REQUIRED_ROADMAP_MARKERS` 增 `'E65（2026-10-10）'`。
+
 ## 3. 每片执行流程（固定顺序）
 
 1. **调研**：读 Python 源码，锁定语义与缺陷，写成「调研结论」（含精确数字）。
@@ -707,7 +739,8 @@ node_modules\.bin\playwright test          ← 必须 dangerouslyDisableSandbox=
 - 空值语义有三套，按场景选：进度用 `isFilledValue`（`{}` 视为未填）、校验用 `isEmptyRequiredValue`（`{}` 不视为空）、清单用 `hasValue`（字符串 strip）。
 - 存储写入：串行写队列（唯一写者）+「临时文件 + rename」原子写；每份文档一个 JSON 文件。
 - 离线 LLM 测试：`MB_OLLAMA_HOST: 'http://127.0.0.1:1'`，错误文案须含 `Ollama` 与 `ollama serve`。
-- 章节中文标签为「第一章·项目元信息」格式，测试断言按真实文案。
+- 章节中文标签格式为「第N章·<章节名>」（如「第五章·战斗系统设计」），**`meta` 是无数号的「文档信息」**；测试断言按真实文案。章号**一律从 `CHAPTER_LABELS`/`chapterNumber()` 派生**，源码里不得硬编码（守卫：`tests/unit/ceshuChapterLabelDrift.test.ts`）。
+- **中文可在任意字间断行** ⇒ 窄列里的中文标题会逐字竖排（实测「第\n五\n章…」）。带中文的标题必须显式 `white-space: nowrap`，空间不足时用 `flex-wrap` 换行或 `text-overflow: ellipsis` 裁掉**辅助**文字（如分区面包屑），不能靠默认折行。typecheck/eslint/vitest 都抓不到，只能靠渲染截图或 `preview/shot-parts.mjs` 这类量行数的断言。
 - **E2E 跑的是 `out/` 产物**：改渲染层后必须先 `electron-vite build` 再 `playwright test`，否则新按钮/面板在 E2E 中不可见（症状为定位器 30s 超时）。
 - 单行 `<input>` 会丢弃换行（浏览器 value 净化，与 QLineEdit 同行为）：`append` 模式拼接的文本在输入框里显示为连写，但草稿数据仍含 `\n` → UI 断言用正则、落盘断言用精确值。
 - **LLM 相关 E2E 可用「Ollama 桩服务」打通全链路**：`node:http` 监听随机端口，`GET /api/tags` 返回 `{models:[{name:'stub:latest',...}]}`、`POST /api/generate` 返回 `{response: "<目标 JSON 字符串>", done:true,...}`，通过 `MB_OLLAMA_HOST` 注入；还能把收到的 `prompt` 收集起来断言提示词组装（见 `tests/e2e/ceshu-ai-datagen.spec.ts`）。

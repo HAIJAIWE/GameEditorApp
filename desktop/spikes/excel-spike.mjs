@@ -29,13 +29,14 @@ const HEADER_STYLE = {
   fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: HEADER_FILL } },
 }
 
-// 本项目真实章节标签（取自 ceshu_model.CHAPTER_LABELS），这里挑用若干作为 sheet 名
+// 本项目真实章节标签（取自 ceshuConstants.CHAPTER_LABELS），这里挑用若干作为 sheet 名
+// ⚠️ 章号 = 5 个区展开后的位置；`meta`（文档信息）不占章号。
 const CHAPTER_LABELS = {
-  meta: '第一章·项目元信息',
-  systems: '第五章·游戏系统设计',
-  characters: '第十一章·角色设计',
-  mvp: '第十五章·MVP 规划',
-  accessibility: '第十八章·可访问性与本地化',
+  meta: '文档信息',
+  systems: '第四章·游戏系统设计',
+  story: '第二章·世界观与角色',
+  mvp: '第十二章·MVP 规划',
+  accessibility: '第十六章·可访问性与本地化',
 }
 
 /** 尝试把字符串数值转 int/float，失败原样返回（对齐 _coerce_numeric） */
@@ -118,7 +119,7 @@ const progressRows = Object.values(CHAPTER_LABELS).map((label, i) => [
 ])
 addChapterSheet(wb, '概览', ['项目', '值'], [...metaRows, ...progressRows])
 
-// Sheet 2：第一章·项目元信息（键值）
+// Sheet 2：文档信息（键值，不占章号）
 addChapterSheet(
   wb,
   CHAPTER_LABELS.meta,
@@ -131,7 +132,7 @@ addChapterSheet(
   ],
 )
 
-// Sheet 3：第五章·游戏系统设计（对齐「系统配置」表）
+// Sheet 3：第四章·游戏系统设计（对齐「系统配置」表）
 addChapterSheet(
   wb,
   CHAPTER_LABELS.systems,
@@ -143,10 +144,10 @@ addChapterSheet(
   ],
 )
 
-// Sheet 4：第十一章·角色设计（对齐「角色」表）
+// Sheet 4：第二章·世界观与角色（对齐「角色」表）
 addChapterSheet(
   wb,
-  CHAPTER_LABELS.characters,
+  CHAPTER_LABELS.story,
   ['序号', '名称', '角色类型', '位置', '性格', '任务钩子'],
   [
     [coerceNumeric('1'), '艾拉', '主角', '初始营地', '冷静坚毅', '夺回家园'],
@@ -154,7 +155,7 @@ addChapterSheet(
   ],
 )
 
-// Sheet 5：第十五章·MVP 规划（对齐「里程碑」表）
+// Sheet 5：第十二章·MVP 规划（对齐「里程碑」表）
 addChapterSheet(
   wb,
   CHAPTER_LABELS.mvp,
@@ -165,7 +166,7 @@ addChapterSheet(
   ],
 )
 
-// Sheet 6：第十八章·可访问性与本地化
+// Sheet 6：第十六章·可访问性与本地化
 addChapterSheet(
   wb,
   CHAPTER_LABELS.accessibility,
@@ -204,7 +205,7 @@ const expectedSheets = [
   '概览',
   CHAPTER_LABELS.meta,
   CHAPTER_LABELS.systems,
-  CHAPTER_LABELS.characters,
+  CHAPTER_LABELS.story,
   CHAPTER_LABELS.mvp,
   CHAPTER_LABELS.accessibility,
 ]
@@ -248,7 +249,7 @@ assert(
 )
 assert(sys.getColumn(1).width === 8, `系统 列宽(A=系统Key→8) 实际=${sys.getColumn(1).width}`)
 
-const chars = readBack.getWorksheet(CHAPTER_LABELS.characters)
+const chars = readBack.getWorksheet(CHAPTER_LABELS.story)
 assert(chars.getCell('B2').value === '艾拉', `角色!B2 期望=艾拉 实际=${chars.getCell('B2').value}`)
 assert(chars.getCell('A2').value === 1, `角色!A2(序号) 期望=1(number) 实际=${chars.getCell('A2').value} (${typeof chars.getCell('A2').value})`)
 

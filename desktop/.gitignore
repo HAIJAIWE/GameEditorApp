@@ -10,3 +10,8 @@ test-results/
 *.db-shm
 *.tsbuildinfo
 .DS_Store
+
+# 临时/调试脚本：一次性截图与表单探针（非产品代码，不进版本库）
+.tmp-*
+preview/shot-*.mjs
+preview/probe-*.mjs

@@ -61,7 +61,9 @@ const SEL = {
   settingsOpen: '[data-testid="menuitem-settings-open"]',
   settingsPanel: '[data-testid="settings-panel"]',
   llmProvider: '[data-testid="llm-provider"]',
-  llmConfidential: '[data-testid="llm-confidential"] input',
+  // v2.3 起保密档改由「模型来源」分段切换承载（本地 = confidential true）；旧 llm-confidential 复选框已移除
+  llmModeCloud: '[data-testid="llm-mode-cloud"]',
+  llmModeLocal: '[data-testid="llm-mode-local"]',
   llmConfidentialNotice: '[data-testid="llm-confidential-notice"]',
   llmBaseUrlEffective: '[data-testid="llm-base-url-effective"]',
   llmApiKey: '[data-testid="llm-api-key"]'
@@ -275,8 +277,8 @@ try {
     await page.screenshot({ path: join(SHOTS, 'e59-t8-import-confirm.png') })
   })
 
-  // ============ T9 保密模式（v0.9 M6 / DD-0b）：显式开关 = 强制本地 + 明确告知 ============
-  // 先把服务商选成云端（deepseek），再开保密 ⇒ 必须「无视服务商、强制本地 Ollama」。
+  // ============ T9 保密模式（v0.9 M6 / DD-0b；v2.3 起由「模型来源」分段切换承载） ============
+  // 先把服务商选成云端（deepseek），再切到「本地」档 ⇒ 必须「无视服务商、强制本地 Ollama」。
   await runCase('T9', async (page) => {
     await page.click(SEL.settingsMenu)
     await page.waitForSelector(SEL.settingsOpen, { timeout: 5000 })
@@ -287,36 +289,39 @@ try {
     // 先切到云端服务商，并确认 API Key 行出现（证明确实处于云端档）
     await page.selectOption(SEL.llmProvider, 'deepseek')
     check('T9 先选云端服务商 ⇒ API Key 行出现（确实在云端档）', (await page.locator(SEL.llmApiKey).count()) === 1)
-    check('T9 保密开关默认关闭（显式档位，非默认开启）', !(await page.locator(SEL.llmConfidential).isChecked()))
+    check(
+      'T9 默认处于云端档（显式档位，非默认开启保密）',
+      (await page.locator(SEL.llmModeCloud).getAttribute('aria-selected')) === 'true'
+    )
     check('T9 保密未开 ⇒ 无「数据不出本机」提示', (await page.locator(SEL.llmConfidentialNotice).count()) === 0)
 
-    // 开保密 ⇒ 服务商被强制本地、select 禁用、API Key 行消失、出现告知
-    await page.locator(SEL.llmConfidential).check()
+    // 切到本地档（= 保密）⇒ 服务商下拉消失、API Key 行消失、出现告知
+    await page.click(SEL.llmModeLocal)
     await page.waitForSelector(SEL.llmConfidentialNotice, { timeout: 5000 })
     const noticeText = await page.locator(SEL.llmConfidentialNotice).textContent()
-    check('T9 开启保密 ⇒ 出现「数据不出本机」明确告知', String(noticeText).includes('数据不出本机'), String(noticeText).trim())
     check(
-      'T9 开启保密 ⇒ 无视已选云端服务商，强制回落本地 Ollama',
-      (await page.locator(SEL.llmProvider).inputValue()) === 'ollama',
-      `provider=${await page.locator(SEL.llmProvider).inputValue()}`
+      'T9 切到本地档 ⇒ 出现「数据不出本机」明确告知',
+      String(noticeText).includes('本机') && String(noticeText).includes('云端'),
+      String(noticeText).trim()
     )
-    check('T9 开启保密 ⇒ 服务商下拉被禁用（不能偷偷改回云端）', await page.locator(SEL.llmProvider).isDisabled())
-    check('T9 开启保密 ⇒ 云端才需要的 API Key 行消失', (await page.locator(SEL.llmApiKey).count()) === 0)
+    check('T9 切到本地档 ⇒ 服务商下拉消失（不能偷偷改回云端）', (await page.locator(SEL.llmProvider).count()) === 0)
+    check('T9 切到本地档 ⇒ 云端才需要的 API Key 行消失', (await page.locator(SEL.llmApiKey).count()) === 0)
     // 回归：保密模式必须**忽略云端 baseUrl**（否则本地 Ollama 会被指向 api.deepseek.com）
     const effText = await page.locator(SEL.llmBaseUrlEffective).textContent()
     check(
-      'T9 开启保密 ⇒ 「实际生效」接口地址回落本地 Ollama（不指向云端域名）',
+      'T9 切到本地档 ⇒ 「实际生效」接口地址回落本地 Ollama（不指向云端域名）',
       String(effText).includes('localhost:11434') && !String(effText).includes('deepseek'),
       String(effText).trim()
     )
     await page.screenshot({ path: join(SHOTS, 'e59-t9-confidential.png') })
 
-    // 关掉 ⇒ 恢复云端档（存的服务商没被保密模式改写）
-    await page.locator(SEL.llmConfidential).uncheck()
+    // 切回云端 ⇒ 恢复云端档（存的服务商没被保密模式改写）
+    await page.click(SEL.llmModeCloud)
     await page.waitForFunction((sel) => document.querySelectorAll(sel).length === 0, SEL.llmConfidentialNotice, { timeout: 5000 })
-    check('T9 关闭保密 ⇒ 告知消失', true)
+    check('T9 切回云端 ⇒ 告知消失', true)
+    await page.waitForSelector(SEL.llmProvider, { timeout: 5000 })
     check(
-      'T9 关闭保密 ⇒ 恢复原先选的服务商（保密模式不改写用户配置）',
+      'T9 切回云端 ⇒ 恢复原先选的服务商（保密模式不改写用户配置）',
       (await page.locator(SEL.llmProvider).inputValue()) === 'deepseek',
       `provider=${await page.locator(SEL.llmProvider).inputValue()}`
     )
