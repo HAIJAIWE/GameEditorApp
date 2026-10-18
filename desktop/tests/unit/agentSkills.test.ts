@@ -540,7 +540,7 @@ describe('system.ceshu 技能（A1-5 写操作）', () => {
     expect(result.message).toContain('markdown，128 字节')
   })
 
-  it('export：显式路径与格式优先；非法格式回落默认', async () => {
+  it('export：路径被沙箱在导出目录内（越界拒绝且不触发导出）；显式相对路径与格式优先；非法格式回落默认', async () => {
     const seen: string[] = []
     const skill = createCeshuSkill({
       ceshuManager: makeCeshuManager(docs),
@@ -551,10 +551,24 @@ describe('system.ceshu 技能（A1-5 写操作）', () => {
       }
     })
 
-    await skill.execute({ action: 'export', ceshu_id: 'c1', format: 'excel', path: 'D:/out/书' }, {})
+    // 越界绝对路径 → 拒绝，且绝不调用导出管道（守卫必须真的拦住，而非仅提示）
+    const escape = await skill.execute({ action: 'export', ceshu_id: 'c1', path: 'D:/out/书' }, {})
+    expect(escape.success).toBe(false)
+    expect(escape.error).toContain('导出路径必须位于库的导出目录内')
+    expect(seen).toHaveLength(0)
+
+    // `..` 越界 → 同样拒绝
+    const traversal = await skill.execute({ action: 'export', ceshu_id: 'c1', path: '../out/书' }, {})
+    expect(traversal.success).toBe(false)
+    expect(traversal.error).toContain('导出路径必须位于库的导出目录内')
+    expect(seen).toHaveLength(0)
+
+    // 导出目录内的相对子路径 → 放行
+    await skill.execute({ action: 'export', ceshu_id: 'c1', format: 'excel', path: 'sub/书' }, {})
+    // 非法格式 + 无路径 → 回落 markdown + 默认导出目录
     await skill.execute({ action: 'export', ceshu_id: 'c1', format: '不存在的格式' }, {})
     const normalized = seen.map((entry) => entry.replace(/\\/gu, '/'))
-    expect(normalized[0]).toBe('excel|D:/out/书')
+    expect(normalized[0]).toBe('excel|D:/exports/sub/书')
     expect(normalized[1]?.startsWith('markdown|D:/exports/')).toBe(true)
   })
 })

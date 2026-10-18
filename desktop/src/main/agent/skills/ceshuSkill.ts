@@ -12,7 +12,7 @@
  *    需要一层「应用」语义，故同样留到后续立项。
  */
 
-import { join } from 'node:path'
+import { isAbsolute, join, relative, resolve, sep } from 'node:path'
 
 import {
   CESHU_EXPORT_FORMATS,
@@ -51,6 +51,21 @@ export interface CeshuSkillDeps {
 function safeFileName(name: string): string {
   const cleaned = name.replace(/[\\/:*?"<>|]/gu, '_').trim()
   return cleaned === '' ? '策划书' : cleaned.slice(0, 60)
+}
+
+/**
+ * 把 Agent 传入的导出路径收拢到 `exportDir` 内（路径沙箱）：
+ * - 相对路径 → 相对 `exportDir` 解析（允许子目录）；
+ * - 绝对路径 / `..` 越界 / 指向目录本身 → 返回 `null`，由调用方拒绝。
+ * 返回解析后的绝对路径（扩展名仍由导出管道补全）。
+ */
+function resolveExportTarget(exportDir: string, rawPath: string): string | null {
+  const base = resolve(exportDir)
+  const candidate = resolve(base, rawPath)
+  const rel = relative(base, candidate)
+  // `rel === ''`（正好是目录本身）也拒绝：补扩展名后会落到目录的兄弟位置，等于越界。
+  const escapes = rel === '' || rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel)
+  return escapes ? null : candidate
 }
 
 export function createCeshuSkill(deps: CeshuSkillDeps): SkillProtocol {
@@ -212,8 +227,14 @@ export function createCeshuSkill(deps: CeshuSkillDeps): SkillProtocol {
       // 不指定扩展名——导出管道会按格式补全
       const target =
         rawPath !== ''
-          ? rawPath
+          ? resolveExportTarget(exportDir, rawPath)
           : join(exportDir, `${safeFileName(gameNameOf(doc))}-${Date.now().toString(36)}`)
+      if (target === null) {
+        // 硬闸：Agent 只能写库内的 exports 目录。导出管道是 `mkdirSync + writeFileSync + renameSync`，
+        // 放行任意路径 = 可覆盖磁盘上任意文件（文件系统级破坏），且 `system.ceshu` 风险档为 DATA_WRITE
+        // （不会触发确认门）⇒ 必须在此按路径沙箱拒绝，不能依赖模型自觉或下游校验。
+        return fail(`导出路径必须位于库的导出目录内（${resolve(exportDir)}）；收到: ${rawPath}`)
+      }
 
       const result = await exportDocument(doc, format, target)
       return {
@@ -280,7 +301,7 @@ export function createCeshuSkill(deps: CeshuSkillDeps): SkillProtocol {
           description: '导出格式（export 时使用）',
           default: DEFAULT_EXPORT_FORMAT
         },
-        path: { type: 'string', description: '导出目标路径（export 时可选；缺省落到默认导出目录）' }
+        path: { type: 'string', description: '导出目标路径（export 时可选；相对路径相对库导出目录解析，绝对路径或越界会被拒绝；缺省落到默认导出目录）' }
       },
       required: ['action']
     },
