@@ -394,6 +394,9 @@ export class LlmClient {
           stream: false,
           options: {
             temperature: config.temperature,
+            // 最大令牌：云端走 `max_tokens`、本地走 Ollama 的 `num_predict`
+            // （改前只存不发，本地档会忽略「最大令牌」滑块设置）
+            num_predict: config.maxTokens,
             // 停止词（改前只存不发，设置里的这一项等于没接线）
             ...(stop.length > 0 ? { stop } : {})
           }

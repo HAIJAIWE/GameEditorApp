@@ -415,6 +415,21 @@ describe('LlmClient：本地 Ollama 走 fetch（可取消）', () => {
     }
   })
 
+  it('本地：maxTokens 随请求下发为 options.num_predict（设置面板「最大令牌」对本地档生效）', async () => {
+    let body: { options?: { num_predict?: number } } = {}
+    const stub = stubOllama(async (init) => {
+      body = JSON.parse(String(init.body)) as typeof body
+      return jsonOk({ response: 'ok' })
+    })
+    try {
+      const client = new LlmClient()
+      await client.generate('sys', 'user', { config: { ...localConfig, maxTokens: 512 } })
+      expect(body.options?.num_predict).toBe(512)
+    } finally {
+      stub.restore()
+    }
+  })
+
   it('调用方取消 → 抛「已取消本次生成」，不是「AI 调用失败」', async () => {
     const abort = new Error('aborted')
     abort.name = 'AbortError'
