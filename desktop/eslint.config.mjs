@@ -202,6 +202,40 @@ export default tseslint.config(
       ]
     }
   },
+  // 规则 7：`main/ai/`（单发 AI 编排层）不得依赖业务域的实现目录
+  // —— 把 `docs/dev-jobs/2026-10-18-architecture-review-…` Wave 1 的分层意图变成机器守卫
+  //
+  // 分层：handler(ipc) → ai(编排) → shared(纯逻辑) + agent/runTask(底层 harness)
+  // ai/ 只该认识「提示词进、结构化结果出」。若它 import `main/ceshu/**` 或 `main/data/**`，
+  // 就会退化成「第二个 handler」：既难单测（要构造 CeshuManager / DataService），
+  // 也让「新增一路 AI 通道」重新变成复制粘贴。领域细节一律由调用方经参数注入
+  // （例：数据生成的既有条目计数走 `existingCounts` 回调，见 `ipc/ceshuIpc.ts`）。
+  //
+  // ⚠️ 覆盖警告：同规则 5，flat config 同名规则**整体覆盖**，本条会盖掉规则 4 对
+  // ai/ 文件的配置，故必须重复声明 `**/shared/domain/**`。
+  {
+    files: ['src/main/ai/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/shared/domain/**'],
+              message:
+                'src/main/ 禁止直接 import 业务域（shared/domain/**）；请通过 shared/api.ts 契约门面调用。'
+            },
+            {
+              group: ['**/ceshu/**', '**/data/**'],
+              message:
+                'main/ai/ 是单发 AI 编排层，禁止 import 业务域实现（main/ceshu/** · main/data/**）。' +
+                '领域数据请由调用方（ipc handler）作为参数注入，见 ai/tasks/ceshu.ts 顶部说明。'
+            }
+          ]
+        }
+      ]
+    }
+  },
   // 规则 6：contract 根（shared/*.ts 直接子文件）禁止 import 任何业务域
   // —— 把 README §1.1「contract 不 import shared 内部」的 domain 半边变成机器校验
   //

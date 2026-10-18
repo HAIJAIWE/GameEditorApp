@@ -361,3 +361,33 @@ grep -n "validateCeshu\|scoreCeshu" src/main/ceshu/manager.ts
 # 死通道
 grep -rn "mbApi.ceshu.versions" src/renderer
 ```
+
+---
+
+## 12. 执行状态（滚动更新）
+
+| 波次 | 状态 | 提交 | 净变化 | 复验 |
+|---|---|---|---|---|
+| 锚点 | ✅ | tag `with-side-reports`（@`89ba8cd`） | — | 回滚：`git checkout with-side-reports -- desktop/` |
+| Wave 0 | ✅ | `356ce2b` | 21 文件 / +21 −3,636 | tsc×2 · eslint · vitest 2013/5 · build |
+| Wave 1 | ✅ | 见下 | 见下 | tsc×2 · eslint · vitest 2028/5 · build；**e2e 本环境不可用** |
+| Wave 2 | ⬜ 未开始 | — | — | — |
+| Wave 3 | ⬜ 未开始（须 W2 之后） | — | — | — |
+
+### Wave 1 实做与文档原计划的偏差
+
+1. **`runSingleShotTask` 早已存在**（`main/agent/runTask.ts`），文档把它当成待建的东西。
+   实际缺的不是 harness，而是**四路通道里有一路（单字段）整段绕过了它** ——
+   无预算门、无取消、无观测。这才是「双编排栈」的具体病灶。
+2. 因此新增的 `main/ai/runner.ts` 定位为**「单发任务的唯一入口」**而非「harness 实现」：
+   内部仍调 `runSingleShotTask`，对外收敛 `callOpts → isCloud → estimate → 生成 → 加工 → 观测` 这段前导。
+3. `runSingleShotTask` 增一个可选字段 `skipBudgetConfirm`（默认 false）。
+   **只有单字段通道用它**：该通道入参没有 `confirmed`，渲染层没有确认回路，
+   若照样触发预算门，超大文档下会抛出一个用户无法确认的错误 ⇒ 行为回退。
+4. **先写特征测试再重构**（文档未要求，本次补上）：`tests/unit/ceshuAiChannels.test.ts`
+   15 条，钉住四路通道的现有行为（短路、确认门、usage 透传、取消穿透、数据错误路径）。
+   重构后这 15 条**一字未改**全绿 —— 期间它抓到了一处真实差异（短路分支多出 `usage: null` 键），
+   已按「改代码不改测试」的原则修正。
+5. **e2e 未执行**：本会话 Electron 进程起不来（`Process failed to launch!`），
+   连完全无关的 `advanced-search.spec.ts` 同样失败 ⇒ 环境限制，非本次改动。
+   原计划的「e2e 整包 + Ollama 桩全链路」复验**留待有图形会话的环境补跑**。

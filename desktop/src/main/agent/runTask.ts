@@ -72,6 +72,15 @@ export interface SingleShotTaskSpec<T> {
   /** 渲染层是否已带 `confirmed: true` 重发 */
   confirmed?: boolean
   /**
+   * 跳过预算确认门（仅用于**最小粒度**任务）。
+   *
+   * 目前唯一使用者是策划书单字段生成：它复用整章提示词，体量不比整章大，
+   * 但渲染层**没有**为它准备确认回路（`ceshu:aiGenerateField` 的入参里没有 `confirmed`）。
+   * 若在此处照样触发确认门，超大文档下会抛出一个用户无法确认的错误 ⇒ 行为回退。
+   * 故该通道只借用本 harness 的**取消 + 计时 + 观测**，不引入新的确认门。
+   */
+  skipBudgetConfirm?: boolean
+  /**
    * 取消归属（`event.sender.id`）。给了就**由本 harness 负责登记/注销**，
    * 面板的「停止」按钮经 `task:cancel` 即可中断这次生成。
    *
@@ -105,7 +114,7 @@ export async function runSingleShotTask<T>(spec: SingleShotTaskSpec<T>): Promise
     ...(spec.bulk !== undefined ? { bulk: spec.bulk } : {}),
     ...(spec.count !== undefined ? { count: spec.count } : {})
   })
-  if (reason !== null && spec.confirmed !== true) {
+  if (reason !== null && spec.confirmed !== true && spec.skipBudgetConfirm !== true) {
     throw new Error(reason)
   }
   const startedAt = Date.now()

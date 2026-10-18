@@ -32,30 +32,8 @@ import {
 } from '../../shared/schemas'
 import { CHAPTER_LABELS, isChapterKey, type ChapterKey, type SystemEntry } from '../../shared/ceshuConstants'
 import { CESHU_CHAPTER_FIELDS } from '../../shared/ceshuFields'
-import { runSingleShotTask } from '../agent/runTask'
-import { estimateTokens } from '../../shared/agent/budget'
-import { applyJudge, evaluateChapterDraft, evaluateDataCandidates } from '../../shared/agent/qualityGate'
-import { runLlmJudge } from '../agent/qualityJudge'
-import {
-  buildChapterPrompt,
-  buildReviewPrompts,
-  filterGeneratedFields,
-  mergeChapterDraft,
-  parseReviewResponse
-} from '../../shared/ceshuAi'
-import { parseLlmJson } from '../../shared/util/parseLlmJson'
-import {
-  DATA_GEN_ERROR_EMPTY,
-  DATA_GEN_ERROR_NO_TYPE,
-  DATA_GEN_ERROR_UNPARSABLE,
-  buildDataGenPrompt,
-  buildDataGenSummaryMessage,
-  clampDataGenCount,
-  normalizeDataGenCandidates,
-  resolveSelectedDataTypes
-} from '../../shared/ceshuDataGen'
+import { generateChapterTask, generateDataTask, generateFieldTask, reviewTask } from '../ai/tasks/ceshu'
 import { buildVersionDiff } from '../../shared/ceshuDiff'
-import { computeChapterProgress } from '../../shared/ceshuModel'
 import { buildSystemConfirmResult } from '../../shared/ceshuSystemConfirm'
 import { scoreCeshu } from '../../shared/ceshuScorer'
 import { validateCeshu } from '../../shared/ceshuValidation'
@@ -145,72 +123,26 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
     if (!isChapterKey(req.chapter)) {
       throw new Error(`未知章节：${req.chapter}`)
     }
-    // 闭包内用捕获的 const：`req.chapter` 的类型收窄不会带进 async 闭包（req 可变）
+    // 显式收窄成 const：属性访问的类型收窄不跨入异步调用
     const chapter: ChapterKey = req.chapter
-    const base = ceshuManager.get(req.id)
-    const draft = req.fullGenerate?.draft ?? {}
-    // 一键生成：draft（已生成章节 + meta 种子）仅作为提示词上下文合并，不写盘
-    const doc = Object.keys(draft).length > 0 ? mergeChapterDraft(base, draft) : base
-    const built = buildChapterPrompt(doc, req.chapter, {
-      onlyEmpty: req.onlyEmpty,
-      styleOverride: req.fullGenerate?.styleKey,
-      extraPrompt: req.fullGenerate?.extraPrompt
-    })
-    if (req.onlyEmpty && built.fields.length === 0) {
-      // 无空字段：不调用 LLM，直接返回空结果（UI 提示「无需补全」）
-      return { model: '', fields: {}, rawText: '' }
-    }
-    // v0.5 DD-17 + v0.6 M5：整篇 / 一键生成属「大范围云端调用」，需渲染层带 `confirmed: true` 重发；
-    // 云端档若预估超预算也需先确认（降级 = 提示拆分，而非静默烧钱）
-    const callOpts = await llm.llmCallOptions()
-    const isCloud = llm.isCloudCall(callOpts)
-    const estimated = estimateTokens(built.system + built.prompt)
-    // F1 完整 harness：预算确认 + 计时 + 观测累计统一走 runSingleShotTask
-    const task = await runSingleShotTask({
-      isCloud,
-      estimatedTokens: estimated,
-      taskType: req.fullGenerate !== undefined ? 'full' : 'chapter',
-      bulk: req.fullGenerate !== undefined,
-      confirmed: req.confirmed === true,
-      // 可取消：面板点「停止」→ `task:cancel` → 中断在途 fetch（harness 负责登记/注销）
-      senderId: event.sender.id,
-      // 判官评审在闭包内、**与正文共用同一张取消表**（此前它在 harness 之外独立跑，
-      // 既不可取消、又会把「点停止」当成「judge 恰好失败」降级成成功）。见下方注释。
-      run: async (signal) => {
-        const { model, content, usage } = await llmClient.generate(built.system, built.prompt, {
-          ...callOpts,
-          ...(signal !== undefined ? { signal } : {})
-        })
-        const parsed = parseLlmJson(content)
-        const fields = filterGeneratedFields(doc, chapter, parsed)
-        // v0.5 DD-19：确定性评分门（validateCeshu + scoreCeshu），供 UI 展示"生成有没有变好"
-        const deterministic = evaluateChapterDraft(base, chapter, fields)
-        // v1.0 DD-19 剩余项：确定性门为主、judge 为辅；judge 走同源 callOpts + 同一 signal
-        // （自动遵守保密），失败降级为 null（applyJudge 原样返回确定性 verdict，绝不阻断正文生成），
-        // 但**取消会向上抛** —— 让整次生成如实报「已停止」，而不是白跑完判官还报成功。
-        const judge = await runLlmJudge(callOpts, chapter, fields, signal)
-        return {
-          value: {
-            model,
-            content,
-            fields,
-            quality: applyJudge(deterministic, judge)
-          },
-          model,
-          usage
-        }
+    // 编排（提示词 / 预算门 / 取消 / 质量门 / 判官）全部在 `main/ai/tasks/ceshu`，
+    // 此处只负责取文档与转交渲染层入参，见该文件顶部说明。
+    return generateChapterTask(
+      { llm, client: llmClient },
+      {
+        base: ceshuManager.get(req.id),
+        draft: req.fullGenerate?.draft ?? {},
+        chapter,
+        onlyEmpty: req.onlyEmpty,
+        styleKey: req.fullGenerate?.styleKey,
+        extraPrompt: req.fullGenerate?.extraPrompt,
+        fullGenerate: req.fullGenerate !== undefined,
+        confirmed: req.confirmed === true,
+        senderId: event.sender.id
       }
-    })
-    return {
-      model: task.value.model,
-      fields: task.value.fields,
-      rawText: task.value.content,
-      quality: task.value.quality,
-      // v0.6 M5：成本护栏的观测数据
-      usage: task.usage ?? null
-    }
+    )
   })
-  handle('ceshu:aiGenerateField', ceshuAiGenerateFieldInputSchema, async (req) => {
+  handle('ceshu:aiGenerateField', ceshuAiGenerateFieldInputSchema, async (req, event) => {
     const chapter = req.chapter
     if (!isChapterKey(chapter)) {
       throw new Error(`未知章节：${chapter}`)
@@ -224,112 +156,45 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
     if (!allowedFields.has(req.field)) {
       throw new Error(`字段「${req.field}」不在「${CHAPTER_LABELS[chapter]}」章表单中`)
     }
-    // 单字段定向生成（E62）：只让 LLM 生成这一个字段，提示词走 buildChapterPrompt 的 onlyFields 分支
-    const built = buildChapterPrompt(base, chapter, { onlyFields: [req.field] })
-    const callOpts = await llm.llmCallOptions()
-    const { model, content, usage } = await llmClient.generate(built.system, built.prompt, callOpts)
-    const parsed = parseLlmJson(content)
-    const raw = parsed[req.field]
-    const fields =
-      raw === undefined || raw === null || raw === '' || (Array.isArray(raw) && raw.length === 0)
-        ? {}
-        : { [req.field]: raw }
-    // 单字段回填无需整章质量门；usage 透传成本观测数据
-    return { model, fields, rawText: content, usage: usage ?? null }
+    return generateFieldTask(
+      { llm, client: llmClient },
+      { base, chapter, field: req.field, senderId: event.sender.id }
+    )
   })
   handle('ceshu:aiGenerateData', ceshuDataGenInputSchema, async (req, event) => {
     const doc = ceshuManager.get(req.id)
-    const types = typeSchemaStore.getTypes()
-    const selected = resolveSelectedDataTypes(types, req.dataTypes)
-    if (selected.length === 0) {
-      throw new Error(DATA_GEN_ERROR_NO_TYPE)
-    }
-    // v0.5 DD-17 + v0.6 M5：批量生成超过阈值 / 云端档超预算，都需渲染层带 `confirmed: true` 重发
-    const count = clampDataGenCount(req.count)
-    const built = buildDataGenPrompt(doc, types, selected, count, req.instruction.trim())
-    const callOpts = await llm.llmCallOptions()
-    const isCloud = llm.isCloudCall(callOpts)
-    const estimated = estimateTokens(built.system + built.prompt)
-    const task = await runSingleShotTask({
-      isCloud,
-      estimatedTokens: estimated,
-      taskType: 'datagen',
-      count,
-      confirmed: req.confirmed === true,
-      senderId: event.sender.id,
-      run: async (signal) => {
-        const { model, content, usage } = await llmClient.generate(built.system, built.prompt, {
-          ...callOpts,
-          ...(signal !== undefined ? { signal } : {})
-        })
-        return { value: content, model, usage }
+    return generateDataTask(
+      { llm, client: llmClient },
+      {
+        doc,
+        types: typeSchemaStore.getTypes(),
+        dataTypes: req.dataTypes,
+        count: req.count,
+        instruction: req.instruction,
+        confirmed: req.confirmed === true,
+        senderId: event.sender.id,
+        // 既有条目计数在 ai/ 层不可直接取（禁止 import main/data/**），由此处注入
+        existingCounts: async () => {
+          const counts: Record<string, number> = {}
+          for (const item of await dataService.listAllItems()) {
+            // `items.type` 存的是**单数**类型 id（见 roadmap「数据表键口径」）
+            counts[item.type] = (counts[item.type] ?? 0) + 1
+          }
+          return counts
+        }
       }
-    })
-    const content = task.value
-    const parsed = parseLlmJson(content)
-    if (Object.keys(parsed).length === 0) {
-      throw new Error(DATA_GEN_ERROR_UNPARSABLE)
-    }
-    const normalized = normalizeDataGenCandidates(parsed, selected, new Set(types.map((type) => type.pluralKey)))
-    if (normalized.total === 0) {
-      throw new Error(DATA_GEN_ERROR_EMPTY)
-    }
-    // v0.5 DD-19（数据半边）：候选过确定性质量门 —— 数量约束（P5，硬）+ 平衡性（建议）。
-    // `items.type` 存的是**单数**类型 id（见 roadmap「数据表键口径」），故 existingCounts 以它为键。
-    const existingCounts: Record<string, number> = {}
-    for (const item of await dataService.listAllItems()) {
-      existingCounts[item.type] = (existingCounts[item.type] ?? 0) + 1
-    }
-    return {
-      model: task.model ?? '',
-      candidates: normalized.candidates,
-      generatedCounts: normalized.generatedCounts,
-      total: normalized.total,
-      summary: buildDataGenSummaryMessage(normalized.generatedCounts),
-      quality: evaluateDataCandidates(normalized.candidates, {
-        types,
-        systems: doc.systems,
-        existingCounts
-      }),
-      // v0.6 M5：成本护栏的观测数据
-      usage: task.usage ?? null
-    }
+    )
   })
-  handle('ceshu:aiReview', ceshuGetInputSchema, async (req, event) => {
-    const doc = ceshuManager.get(req.id)
-    const progress = computeChapterProgress(doc)
-    const validationErrors = validateCeshu(doc)
-    const built = buildReviewPrompts(doc, {
-      progressTotal: progress.total ?? 0,
-      validationCount: validationErrors.length
-    })
-    // v0.6 M5：云端档超预算需先确认（审阅整篇也可能很长）
-    const callOpts = await llm.llmCallOptions()
-    const isCloud = llm.isCloudCall(callOpts)
-    const estimated = estimateTokens(built.system + built.prompt)
-    const task = await runSingleShotTask({
-      isCloud,
-      estimatedTokens: estimated,
-      taskType: 'review',
-      confirmed: req.confirmed === true,
-      senderId: event.sender.id,
-      run: async (signal) => {
-        const { model, content, usage } = await llmClient.generate(built.system, built.prompt, {
-          ...callOpts,
-          ...(signal !== undefined ? { signal } : {})
-        })
-        return { value: content, model, usage }
+  handle('ceshu:aiReview', ceshuGetInputSchema, async (req, event) =>
+    reviewTask(
+      { llm, client: llmClient },
+      {
+        doc: ceshuManager.get(req.id),
+        confirmed: req.confirmed === true,
+        senderId: event.sender.id
       }
-    })
-    return {
-      model: task.model ?? '',
-      ...parseReviewResponse(task.value),
-      progressTotal: progress.total ?? 0,
-      validationCount: validationErrors.length,
-      // v0.6 M5：成本护栏的观测数据
-      usage: task.usage ?? null
-    }
-  })
+    )
+  )
   handle('ceshu:exportReviewReport', ceshuReviewExportInputSchema, (req) =>
     exportTextReportFile(req.path, req.content, '审阅报告')
   )
