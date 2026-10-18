@@ -144,3 +144,55 @@
    但新增测试若引入模块级可变状态，需自行清理；排查顺序依赖时用 `npm test -- --isolate`。
 3. **e2e 仍有偶发时序抖动**（本次 `attr-formula-builder` 出现过一次，单跑 2/2 通过）。
    属既有问题，未在本作业范围内处理。
+
+## 7. 破坏性操作守卫矩阵（「零守卫」专项 · 已清零）
+
+按铁律「危险操作必须有契约层守卫，UX 二次确认框不算」逐个核对全部破坏性/覆盖类通道。
+
+### 7.1 IPC 层
+
+| 通道 | 破坏面 | 守卫 | 状态 |
+|---|---|---|---|
+| `data:clearAll` | 清空全部数据 | schema `confirm` + handler throw | ✅ |
+| `ceshu:delete` | 删策划书 | schema `confirm` + handler throw | ✅ |
+| `backup:restore` | 整库回滚 | schema `confirm` + handler throw | ✅ |
+| `backup:delete` | 删备份 | schema `confirm` + handler throw | ✅ |
+| `images:deleteImages` | 删图片 | schema `confirm` + handler throw | ✅ |
+| `library:remove` | 删整库（rmSync 递归） | 本轮新增 schema `confirm` + handler throw | ✅ 本轮修 |
+| `data:importLegacy`/`importCsv`/`importExcel` | 导入 | upsert 合并语义（`importRecords` 返回 imported/updated）；用户经文件对话框 | ✅ 非破坏 |
+| `attrSystem:importJson` | 导入属性系统 | **只读解析**，返回 `{system,warnings}` 给编辑器预览；落盘另走 `attrSystem:save` | ✅ 非破坏 |
+| `ceshu:applyPreset` | 应用预设 | `buildPresetApplication` 深拷贝后**仅**置 `enabled=true` / 填空 `game_type` | ✅ 合并 |
+| `ceshu:templates:import` | 导入模板 | `overwrite` 默认 `false`（同 id 跳过），显式 opt-in | ✅ 安全默认 |
+| `schema:save` | 保存字段结构 | 校验 + 原子写；**只改类型定义、不删数据条目** | ✅ 非破坏 |
+| `library:rename` | 重命名 | 拒绝同名库 / 已存在目标目录 | ✅ 防覆盖 |
+| `data:deleteItem`/`deleteMany` | 删条目 | 撤销栈（可 Ctrl+Z） | ✅ 可恢复 |
+| `settings:deleteSecret` | 删密钥 | 可重新填 | ✅ 低危 |
+| `schema:deleteFieldTemplate` | 删自定义模板 | 小且可重建 | ✅ 低危 |
+
+### 7.2 Agent 技能层
+
+| 技能 / 动作 | 风险档 | 守卫 | 状态 |
+|---|---|---|---|
+| `system.code` execute | SYSTEM | 调度器 `dangerConfirmed` 可信令牌 | ✅ |
+| `system.game_data` delete | DATA_WRITE | 技能内 `params.confirm` → confirm 交互 | ✅ |
+| `system.ceshu` delete | DATA_WRITE | 技能内 `params.confirm` → confirm 交互 | ✅ |
+| `tool.rollback_ai_changes` | 未登记 → 默认 DATA_WRITE | 技能内 `params.confirm` → confirm 交互 | ✅ |
+| `tool.ask_user` | READ_ONLY | — | ✅ |
+| `system.ceshu` export | DATA_WRITE | **本轮新增路径沙箱** `resolveExportTarget` | ✅ 本轮修 |
+| `system.ceshu` create/update | DATA_WRITE | 正常写（非删除） | ✅ |
+| `system.game_data` batch_create/batch_update | 未登记 → 默认 DATA_WRITE | 正常写（有撤销） | ✅ |
+
+### 7.3 已知设计级弱点（记录，本轮未改）
+
+1. `delete`/`rollback` 的确认依赖**模型可见的** `params.confirm`（`fixParams` 还把 `confirmed`/`sure` 别名映射过去）
+   ⇒ 理论上模型自带 `confirm:true` 可跳过询问。彻底修需改成 `ctx.dangerConfirmed` 式**可信令牌**（波及 `brain/loop.ts` + 多技能），另立。
+2. `system.ceshu` 在 `TOOL_RISK_MAP` 是扁平 `DATA_WRITE`，未反映 `export` 的文件系统能力；
+   改 per-action map 仅「诚实化」，默认上限（SYSTEM）下无行为差异，价值低。
+
+### 7.4 静默吞异常扫描
+
+空 `catch` / `catch → return null|false` 共 8 处（`backupStore.exists`、`logger`、`tray`、`memoryStore`×3、`sessionStore`）
+全为「可选资源探测」（文件不存在 = 正常），**非关键写路径**，无「失败伪装成功」缺陷。
+
+**结论：破坏性面已全部有守卫；两处真缺陷（`library:remove`、`system.ceshu export`）均已修并补守卫测试。**
+
