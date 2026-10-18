@@ -238,6 +238,11 @@ export class SkillDispatcher {
     const fixed = fixParams(resolved, params)
     const action = typeof fixed.action === 'string' ? fixed.action : ''
 
+    // 信任边界：模型**永远不能自带 confirm**。`fixParams` 会把 confirmed/sure 别名归一成 confirm，
+    // 若放任，模型只要在参数里写 `confirm:true` 就能跳过 delete/rollback 的用户询问。
+    // 唯一可信来源是 Brain 在用户批准后写入 `ctx.dangerConfirmed` 的一次性令牌。
+    delete fixed.confirm
+
     // 权限判定统一走 `protocol.checkPermission`（显式禁止 → 硬上限 → 危险确认 三段）。
     // 改前这里是 `resolveRiskLevel(...) >= RISK_LEVEL.SYSTEM` 的手写判定 + 一个从不读取的
     // `maxAllowedRisk` 字段 ⇒ 「限制工具/动作」这一整档能力在调度器层不可达。
@@ -249,13 +254,19 @@ export class SkillDispatcher {
         message: ''
       }
     }
+    const token = ctx.dangerConfirmed
+    const tokenMatches = token !== null && token !== undefined && token.tool === resolved && token.action === action
     if (check.needsConfirmation) {
-      const confirmed = ctx.dangerConfirmed
-      if (confirmed !== null && confirmed !== undefined && confirmed.tool === resolved && confirmed.action === action) {
-        ctx.dangerConfirmed = null
-      } else {
+      // SYSTEM 档：没有可信令牌一律拒绝（连确认都不能放行）。
+      if (!tokenMatches) {
         return { success: false, error: `高危操作需用户确认: ${resolved}/${action}`, message: '' }
       }
+      ctx.dangerConfirmed = null
+    } else if (tokenMatches) {
+      // DATA_WRITE 档的技能内部确认（delete / rollback）：用户已在 Brain 侧批准，
+      // 用可信令牌把 confirm 注入给技能——**不**信任模型参数里的 confirm。
+      ctx.dangerConfirmed = null
+      fixed.confirm = true
     }
 
     try {

@@ -172,7 +172,11 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
         return { text: `[STOP] 用户未确认该操作: ${toolId}`, success: false }
       }
       try {
-        const retried = await runner.execute(toolId, { ...params, confirm: true }, context)
+        // 用**可信令牌**而非模型可见的 params.confirm：dispatcher 会丢弃模型自带的 confirm，
+        // 只认 ctx.dangerConfirmed（用户在 Brain 侧批准后写入）。这样模型即使写 confirm:true
+        // 也跳不过询问。令牌由 dispatcher 消费（置 null）；finally 兜底不残留。
+        context.dangerConfirmed = { tool: toolId, action }
+        const retried = await runner.execute(toolId, params, context)
         if (retried.interaction !== undefined) {
           return { text: `[STOP] 确认后该操作仍要求再次确认: ${toolId}`, success: false }
         }
@@ -182,6 +186,8 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
           text: `执行失败: ${error instanceof Error ? error.message : String(error)}`,
           success: false
         }
+      } finally {
+        context.dangerConfirmed = null
       }
     }
 

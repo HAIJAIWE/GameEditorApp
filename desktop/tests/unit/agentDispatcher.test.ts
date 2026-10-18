@@ -255,3 +255,67 @@ describe('SkillDispatcher：风险硬上限（maxAllowedRisk）', () => {
     expect(result.success).toBe(true)
   })
 })
+
+/**
+ * 信任边界：confirm 只认 `ctx.dangerConfirmed` 可信令牌，**不认模型参数**。
+ * 改前 delete/rollback 靠 `params.confirm`，而 `fixParams` 还会把 confirmed/sure 归一成 confirm
+ * ⇒ 模型只要在参数里写 `confirm:true` 就能跳过用户询问。这三条用例钉住「它真的在拦」。
+ */
+describe('SkillDispatcher：confirm 只认可信令牌（不认模型参数）', () => {
+  /** 只有收到 confirm:true 才删除的 DATA_WRITE 技能 */
+  function makeDeleteSkill(onDelete: () => void): SkillProtocol {
+    return makeSkill({
+      id: 'system.game_data',
+      execute: (params) => {
+        if (params.confirm !== true) {
+          return {
+            success: false,
+            message: '',
+            error: '[WARN] 确认删除？',
+            interaction: { kind: 'confirm', prompt: '确认删除？' }
+          }
+        }
+        onDelete()
+        return { success: true, message: '已删除' }
+      }
+    })
+  }
+
+  it('模型自带 confirm/confirmed/sure 均被丢弃 → 仍返回 confirm 交互，绝不执行删除', async () => {
+    const dispatcher = new SkillDispatcher()
+    let deleted = false
+    dispatcher.register(makeDeleteSkill(() => { deleted = true }))
+
+    for (const extra of [{ confirm: true }, { confirmed: true }, { sure: true }]) {
+      const result = await dispatcher.execute('system.game_data', { action: 'delete', ...extra }, {})
+      expect(result.success).toBe(false)
+      expect(result.interaction).toEqual({ kind: 'confirm', prompt: '确认删除？' })
+      expect(deleted).toBe(false)
+    }
+  })
+
+  it('可信令牌匹配 → 注入 confirm 并消费令牌，技能真正执行', async () => {
+    const dispatcher = new SkillDispatcher()
+    let deleted = false
+    dispatcher.register(makeDeleteSkill(() => { deleted = true }))
+    const ctx = { dangerConfirmed: { tool: 'system.game_data', action: 'delete' } }
+
+    const result = await dispatcher.execute('system.game_data', { action: 'delete' }, ctx)
+    expect(result.success).toBe(true)
+    expect(deleted).toBe(true)
+    expect(ctx.dangerConfirmed).toBeNull()
+  })
+
+  it('令牌工具/动作不匹配 → 不注入、不消费，仍返回 confirm 交互', async () => {
+    const dispatcher = new SkillDispatcher()
+    let deleted = false
+    dispatcher.register(makeDeleteSkill(() => { deleted = true }))
+    const ctx = { dangerConfirmed: { tool: 'system.game_data', action: 'update' } }
+
+    const result = await dispatcher.execute('system.game_data', { action: 'delete' }, ctx)
+    expect(result.success).toBe(false)
+    expect(result.interaction).toBeDefined()
+    expect(deleted).toBe(false)
+    expect(ctx.dangerConfirmed).not.toBeNull()
+  })
+})

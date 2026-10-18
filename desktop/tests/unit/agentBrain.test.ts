@@ -418,18 +418,25 @@ describe('runBrainLoop：分支与兜底', () => {
 
 interface InteractionRunner extends BrainToolRunner {
   calls: Array<Record<string, unknown>>
+  /** 每次 execute 收到的可信令牌（首调 null，批准后重执行为 {tool,action}） */
+  tokens: Array<unknown>
 }
 
-/** 首次返回 confirm 交互、带 confirm:true 时成功删除的 runner */
+/** 首次返回 confirm 交互、凭**可信令牌**（ctx.dangerConfirmed）成功删除的 runner */
 function makeConfirmRunner(): InteractionRunner {
   const calls: Array<Record<string, unknown>> = []
+  const tokens: Array<unknown> = []
   return {
     calls,
+    tokens,
     resolve: (name) => name,
     needsConfirmation: () => false,
-    execute: async (_tool, params) => {
+    execute: async (_tool, params, ctx) => {
       calls.push({ ...params })
-      if (params.confirm !== true) {
+      tokens.push(ctx.dangerConfirmed ?? null)
+      const approved =
+        ctx.dangerConfirmed?.tool === 'system.game_data' && ctx.dangerConfirmed?.action === 'delete'
+      if (!approved) {
         const prompt = '确认删除角色【法师】？此操作不可撤销。'
         return {
           success: false,
@@ -438,13 +445,14 @@ function makeConfirmRunner(): InteractionRunner {
           interaction: { kind: 'confirm', prompt }
         }
       }
+      ctx.dangerConfirmed = null
       return { success: true, message: '已删除角色【法师】' }
     }
   }
 }
 
 describe('runBrainLoop：技能交互（确认 / 提问）', () => {
-  it('confirm：批准后带 confirm:true 重执行，结果回灌', async () => {
+  it('confirm：批准后凭可信令牌重执行，结果回灌', async () => {
     const runner = makeConfirmRunner()
     const transport = scripted([toolCall('c1', 'system.game_data', { action: 'delete', name: '法师' }), FINAL])
     const result = await runBrainLoop({
@@ -455,10 +463,13 @@ describe('runBrainLoop：技能交互（确认 / 提问）', () => {
       requestInteraction: () => ({ approved: true })
     })
 
+    // 两次调用的参数都不含 confirm——确认不再靠模型可见参数传递
     expect(runner.calls).toEqual([
       { action: 'delete', name: '法师' },
-      { action: 'delete', name: '法师', confirm: true }
+      { action: 'delete', name: '法师' }
     ])
+    // 首调无可信令牌 → 返回确认交互；批准后重执行携带可信令牌
+    expect(runner.tokens).toEqual([null, { tool: 'system.game_data', action: 'delete' }])
     const required = result.events.find((event) => event.type === 'interaction_required')
     expect(required).toEqual({
       type: 'interaction_required',
