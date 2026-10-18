@@ -57,6 +57,7 @@ import type {
   FieldIdSuggestInput,
   LibraryCreateInput,
   LibraryNameInput,
+  LibraryRemoveInput,
   LibraryRenameInput,
   SchemaSaveInput,
   CeshuDataGenInput,
@@ -296,7 +297,8 @@ export interface IpcContract {
     res: { name: string; createdAt: string; description: string; isInitial: boolean }
   }
   'library:rename': { req: LibraryRenameInput; res: { ok: boolean } }
-  'library:remove': { req: LibraryNameInput; res: { switchedTo: string | null } }
+  // 破坏性：req.confirm 必须为 true，主进程再校验一次（整库删除不走撤销）
+  'library:remove': { req: LibraryRemoveInput; res: { switchedTo: string | null } }
   'library:switch': { req: LibraryNameInput; res: { ok: boolean } }
   'ceshu:rename': { req: CeshuRenameInput; res: CeshuDocument }
   'ceshu:delete': { req: CeshuDeleteInput; res: { deleted: boolean } }

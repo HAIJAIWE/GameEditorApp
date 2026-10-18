@@ -138,3 +138,38 @@ test('库条：非法库名被主进程拒绝并展示中文错误', async () =>
     await app.close()
   }
 })
+
+test('库条：删除整库需二次确认——取消不删、确认才真删', async () => {
+  const userDataDir = makeUserDataDir('remove')
+  const app = await launch(userDataDir)
+  try {
+    const window = await app.firstWindow()
+    await waitReady(window)
+
+    // 新建一个非初始库（不自动切换），再切过去才有可删对象
+    await window.getByTestId('library-create').click()
+    await window.getByTestId('library-name-input').fill('待删库')
+    await window.getByTestId('library-name-submit').click()
+    await expect(window.getByTestId('library-select').locator('option', { hasText: '待删库' })).toHaveCount(1)
+    // 切到待删库（切库触发整页重载，helper 内部已处理）
+    await switchLibrary(window, '待删库')
+
+    // 点「删除」只亮确认闸，**不直接删**（整库删除不可撤销，必须显式确认）
+    await expect(window.getByTestId('library-remove-confirm')).toHaveCount(0)
+    await window.getByTestId('library-remove').click()
+    await expect(window.getByTestId('library-remove-confirm')).toBeVisible()
+
+    // 取消 ⇒ 库还在
+    await window.getByTestId('library-remove-confirm-no').click()
+    await expect(window.getByTestId('library-remove-confirm')).toHaveCount(0)
+    await expect(window.getByTestId('library-select')).toHaveValue('待删库')
+
+    // 再次删除并确认 ⇒ 真删（活跃库回落到初始库）
+    await window.getByTestId('library-remove').click()
+    await window.getByTestId('library-remove-confirm-yes').click()
+    await expect(window.getByTestId('library-active')).toHaveText('初始库', { timeout: 15_000 })
+    await expect(window.getByTestId('library-select')).not.toHaveValue('待删库')
+  } finally {
+    await app.close()
+  }
+})

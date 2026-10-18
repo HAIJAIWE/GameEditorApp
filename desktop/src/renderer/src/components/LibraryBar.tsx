@@ -35,7 +35,8 @@ interface LibraryApi {
   list: () => Promise<LibraryListResult>
   create: (req: { name: string; description?: string }) => Promise<LibraryEntryShape>
   rename: (req: { from: string; to: string }) => Promise<{ ok: boolean }>
-  remove: (req: { name: string }) => Promise<{ switchedTo: string | null }>
+  // 破坏性：契约层要求 confirm 必填（主进程再挡一次），这里必须显式传 true
+  remove: (req: { name: string; confirm: boolean }) => Promise<{ switchedTo: string | null }>
   switch: (req: { name: string }) => Promise<{ ok: boolean }>
 }
 
@@ -51,6 +52,11 @@ export default function LibraryBar() {
   const [draft, setDraft] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  /**
+   * 删除整库的二次确认闸（对齐 `ClearAllPanel` 的 `confirming` 口径）。
+   * 整库删除**不走撤销**（撤销只覆盖数据条目），所以必须先明确确认再发 confirm:true。
+   */
+  const [confirmingRemove, setConfirmingRemove] = useState(false)
 
   const api = useMemo(() => (window.mbApi as unknown as { library: LibraryApi }).library, [])
 
@@ -131,7 +137,23 @@ export default function LibraryBar() {
 
   const handleRemove = (): void => {
     if (current === undefined || current.isInitial) return
-    void run(() => api.remove({ name: current.name }))
+    // 破坏性且不可撤销 ⇒ 两步：先亮确认闸，用户确认后才带 confirm:true 发 IPC
+    setConfirmingRemove(true)
+  }
+
+  const confirmRemove = (): void => {
+    if (current === undefined || current.isInitial) {
+      setConfirmingRemove(false)
+      return
+    }
+    void run(async () => {
+      await api.remove({ name: current.name, confirm: true })
+      setConfirmingRemove(false)
+    })
+  }
+
+  const cancelRemove = (): void => {
+    setConfirmingRemove(false)
   }
 
   return (
@@ -190,6 +212,31 @@ export default function LibraryBar() {
           删除
         </button>
       </div>
+
+      {/* 整库删除二次确认：删除会抹掉该库全部策划书/数据/图片，且**不进撤销栈** */}
+      {confirmingRemove && current !== undefined && (
+        <div className="library-bar-edit" data-testid="library-remove-confirm">
+          <span className="form-label">确认删除库「{current.name}」？其全部策划书 / 数据 / 图片将被永久删除，且不可撤销。</span>
+          <button
+            type="button"
+            className="btn slim danger"
+            data-testid="library-remove-confirm-yes"
+            disabled={busy}
+            onClick={confirmRemove}
+          >
+            确认删除
+          </button>
+          <button
+            type="button"
+            className="btn slim"
+            data-testid="library-remove-confirm-no"
+            disabled={busy}
+            onClick={cancelRemove}
+          >
+            取消
+          </button>
+        </div>
+      )}
 
       {mode !== null && (
         <div className="library-bar-edit">
