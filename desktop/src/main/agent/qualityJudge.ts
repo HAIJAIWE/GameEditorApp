@@ -1,5 +1,6 @@
 import { LlmClient, type LlmCallOptions } from '../llm/client'
 import { parseLlmJson } from '../../shared/util/parseLlmJson'
+import { isAbortError } from '../../shared/abort'
 import type { LlmJudgeVerdict } from '../../shared/types'
 
 /**
@@ -17,9 +18,12 @@ import type { LlmJudgeVerdict } from '../../shared/types'
  * 强制本地 Ollama —— 即保密模式下 judge 也**物理不触云端**，无需本模块额外判断。
  * 若本地无模型导致调用失败，被下方 try/catch 降级为 `null`，不阻断正文生成。
  *
- * ## 降级铁律
- * judge 是**辅助**，**绝不允许**因自身失败（网络/解析/超时）拖垮或阻断正文生成。
- * 任何异常一律返回 `null`，由 `applyJudge` 原样返回确定性 verdict。
+ * ## 降级铁律（与取消的例外）
+ * judge 是**辅助**，**绝不允许**因自身业务失败（网络/解析/超时）拖垮或阻断正文生成：
+ * 这类异常一律返回 `null`，由 `applyJudge` 原样返回确定性 verdict。
+ * **唯一例外是「取消」**：用户点「停止」导致的 `AbortError` 会**继续向上抛**，
+ * 让整次单发生成如实报「已停止」——否则正文已白跑、面板却显示成功（判官这步
+ * 最长可占满 180s 超时窗口，不抛等于让停止按钮失灵）。
  */
 
 const judgeClient = new LlmClient()
@@ -79,19 +83,29 @@ function normalizeJudge(raw: unknown): LlmJudgeVerdict | null {
  * @param callOpts 与正文生成同源的 LLM 调用配置（自动遵守保密约束）
  * @param chapter 章节 key（仅作评审上下文）
  * @param fields AI 生成的章节字段（judge 的评审对象）
- * @returns 规整后的 verdict；任何失败（未配置/网络/解析）一律返回 `null`
+ * @param signal 取消信号（由单发 harness 传入，与正文生成共用同一张取消表）。给了就**可被「停止」打断**。
+ * @returns 规整后的 verdict；任何**业务**失败（未配置/网络/解析）一律返回 `null`
+ * @throws 取消（`AbortError`）时**向上抛**，不吞——见下方「取消 ≠ 失败」说明。
  */
 export async function runLlmJudge(
   callOpts: LlmCallOptions,
   chapter: string,
-  fields: Record<string, unknown>
+  fields: Record<string, unknown>,
+  signal?: AbortSignal
 ): Promise<LlmJudgeVerdict | null> {
   try {
     if (callOpts.config === undefined) return null
-    const { content } = await judgeClient.generate(JUDGE_SYSTEM, buildJudgePrompt(chapter, fields), callOpts)
+    const { content } = await judgeClient.generate(JUDGE_SYSTEM, buildJudgePrompt(chapter, fields), {
+      ...callOpts,
+      ...(signal !== undefined ? { signal } : {})
+    })
     return normalizeJudge(parseLlmJson(content))
-  } catch {
-    // 辅助维度失败降级：绝不阻断正文生成
+  } catch (error) {
+    // 取消 ≠ 失败：judge 被「停止」打断时**必须**把 AbortError 继续抛给 harness，
+    // 否则整次生成会被当成「成功、judge 恰好失败」降级为 null —— 用户点了停止却看到成功，
+    // 且正文已经白跑（判官这步最长可占 180s 超时窗口）。
+    // 其余一切异常（未配置/网络/解析）仍按降级铁律返回 null，绝不阻断正文生成。
+    if (isAbortError(error)) throw error
     return null
   }
 }

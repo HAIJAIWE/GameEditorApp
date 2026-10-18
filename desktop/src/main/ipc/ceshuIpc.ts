@@ -31,7 +31,7 @@ import {
   templatesSaveInputSchema,
   templatesUpdateInputSchema
 } from '../../shared/schemas'
-import { CHAPTER_LABELS, isChapterKey, type SystemEntry } from '../../shared/ceshuConstants'
+import { CHAPTER_LABELS, isChapterKey, type ChapterKey, type SystemEntry } from '../../shared/ceshuConstants'
 import { CESHU_CHAPTER_FIELDS } from '../../shared/ceshuFields'
 import { runSingleShotTask } from '../agent/runTask'
 import { estimateTokens } from '../../shared/agent/budget'
@@ -149,6 +149,8 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
     if (!isChapterKey(req.chapter)) {
       throw new Error(`未知章节：${req.chapter}`)
     }
+    // 闭包内用捕获的 const：`req.chapter` 的类型收窄不会带进 async 闭包（req 可变）
+    const chapter: ChapterKey = req.chapter
     const base = ceshuManager.get(req.id)
     const draft = req.fullGenerate?.draft ?? {}
     // 一键生成：draft（已生成章节 + meta 种子）仅作为提示词上下文合并，不写盘
@@ -176,27 +178,38 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
       confirmed: req.confirmed === true,
       // 可取消：面板点「停止」→ `task:cancel` → 中断在途 fetch（harness 负责登记/注销）
       senderId: event.sender.id,
+      // 判官评审在闭包内、**与正文共用同一张取消表**（此前它在 harness 之外独立跑，
+      // 既不可取消、又会把「点停止」当成「judge 恰好失败」降级成成功）。见下方注释。
       run: async (signal) => {
         const { model, content, usage } = await llmClient.generate(built.system, built.prompt, {
           ...callOpts,
           ...(signal !== undefined ? { signal } : {})
         })
-        return { value: content, model, usage }
+        const parsed = parseLlmJson(content)
+        const fields = filterGeneratedFields(doc, chapter, parsed)
+        // v0.5 DD-19：确定性评分门（validateCeshu + scoreCeshu），供 UI 展示"生成有没有变好"
+        const deterministic = evaluateChapterDraft(base, chapter, fields)
+        // v1.0 DD-19 剩余项：确定性门为主、judge 为辅；judge 走同源 callOpts + 同一 signal
+        // （自动遵守保密），失败降级为 null（applyJudge 原样返回确定性 verdict，绝不阻断正文生成），
+        // 但**取消会向上抛** —— 让整次生成如实报「已停止」，而不是白跑完判官还报成功。
+        const judge = await runLlmJudge(callOpts, chapter, fields, signal)
+        return {
+          value: {
+            model,
+            content,
+            fields,
+            quality: applyJudge(deterministic, judge)
+          },
+          model,
+          usage
+        }
       }
     })
-    const content = task.value
-    const parsed = parseLlmJson(content)
-    const fields = filterGeneratedFields(doc, req.chapter, parsed)
-    // v0.5 DD-19：产出过确定性评分门（validateCeshu + scoreCeshu），供 UI 展示"生成有没有变好"
-    const deterministic = evaluateChapterDraft(base, req.chapter, fields)
-    // v1.0 DD-19 剩余项：确定性门为主、judge 为辅；judge 走同源 callOpts 自动遵守保密，
-    // 失败降级为 null（applyJudge 原样返回确定性 verdict，绝不阻断正文生成）
-    const judge = await runLlmJudge(callOpts, req.chapter, fields)
     return {
-      model: task.model ?? '',
-      fields,
-      rawText: content,
-      quality: applyJudge(deterministic, judge),
+      model: task.value.model,
+      fields: task.value.fields,
+      rawText: task.value.content,
+      quality: task.value.quality,
       // v0.6 M5：成本护栏的观测数据
       usage: task.usage ?? null
     }
