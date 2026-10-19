@@ -404,6 +404,24 @@ export default function ItemForm({
       <div className="editor-body">
         {localError && <div className="form-error">{localError}</div>}
         {/*
+          字段偏少时的引导：分区数量由**字段**决定，用户看到「只有一个分区」时
+          很容易以为编辑器坏了，而不知道字段可以在「字段结构编辑器」里整体换模板。
+          放在**顶部**（不是表单末尾）：末尾会被操作栏截断，而这条提示恰恰是
+          用来解释「为什么表单这么空」的，必须一进来就看到。
+          只在字段 < 5 时出现（内置类型 15+ 字段不会看到）。
+        */}
+        {fields.length < 5 && onEditType !== undefined && (
+          <div className="form-hint-row" data-testid="item-form-few-fields">
+            <span>
+              这个类型只有 {fields.length} 个字段，所以只有 {formLayout.sections.length} 个分区。
+              不同玩法需要的字段不同，可在「字段结构编辑器」里套用模板（RPG角色 / 卡牌TCG / 策略SLG单位 等）。
+            </span>
+            <button type="button" className="btn slim" onClick={() => onEditType(item.type)}>
+              配置字段
+            </button>
+          </div>
+        )}
+        {/*
           折叠分区（2026-10-19 恢复，源自 Python FIELD_GROUPS；双列网格版式刻意未恢复）。
           分区内仍是「标签左、控件右」的扁平行 —— 拉平期确立的行形态原样保留，
           变的只是「行被归到哪个可折叠分组里」。复杂控件（属性面板/属性表/引用表）
@@ -414,6 +432,11 @@ export default function ItemForm({
             {section.fields.map((field) => renderFieldRow(field, resolveFieldLabel(field.label, gameStyle)))}
           </FormSectionCard>
         ))}
+        {/*
+          字段偏少时的引导：分区数量由**字段**决定，用户看到「只有一个分区」时
+          很容易以为编辑器坏了，而不知道字段可以在「字段结构编辑器」里整体换模板。
+          只在字段 < 5 时出现（内置类型 15+ 字段不会看到），且提供直达入口。
+        */}
       </div>
 
       <div className="editor-actions">

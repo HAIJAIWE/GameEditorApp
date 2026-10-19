@@ -939,6 +939,31 @@ body {
 }
 
 /*
+ * 字段偏少时的引导条：虚线边、次要文字，明确是「提示」而不是表单字段。
+ *
+ * 竖排（文字在上、按钮在下）而不是横排：条目编辑器默认只有 ~270px 宽，
+ * 横排会把文字挤成一条窄柱并**被 flex 压扁截断**（实测只显示到第二行中间）。
+ * `flex: none` 是必须的 —— `.editor-body` 是纵向 flex，子项默认允许收缩。
+ */
+.form-hint-row {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
+  line-height: 1.5;
+}
+
+.form-hint-row > span {
+  min-width: 0;
+}
+
+/*
  * 「AI 帮我填」小按钮 —— 对齐 Python `AIFieldButton` 的 26px 圆形按钮。
  * Python 用 Lucide 的 bot 图标；TS 侧**未引入图标库** ⇒ 用文字「AI」，避免为此新增依赖。
  * 配色一律走主题令牌，深色档自动跟随。

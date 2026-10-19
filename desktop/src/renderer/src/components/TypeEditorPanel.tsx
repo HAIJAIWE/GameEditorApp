@@ -469,7 +469,8 @@ export default function TypeEditorPanel({ types, initialTypeId, onSaved, onClose
                   <optgroup label="内置模板">
                     {TYPE_TEMPLATE_NAMES.map((name) => (
                       <option key={name} value={name}>
-                        {name}
+                        {/* 带字段数：光看名字不知道会得到多少字段，也就无法判断是否值得替换 */}
+                        {name}（{TYPE_TEMPLATES[name]?.length ?? 0} 字段）
                       </option>
                     ))}
                   </optgroup>
