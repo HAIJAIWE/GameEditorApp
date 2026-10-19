@@ -1,6 +1,7 @@
 import { BrowserWindow, dialog, type OpenDialogOptions, type SaveDialogOptions } from 'electron'
 import { readFileSync } from 'node:fs'
 import type { IpcHandlerDeps, IpcRegistrar } from '../ipc'
+import { importImageIntoLibrary } from '../imageImport'
 import {
   ceshuChooseExportFileInputSchema,
   reportFileDialogInputSchema,
@@ -12,7 +13,7 @@ import { buildImagePreviewDataUrl } from '../../shared/util/imagePreview'
 import { log } from '../../shared/util/logger'
 import { ENGINE_EXTENSIONS as ENGINE_KIND_EXTENSIONS, ENGINE_LABELS as ENGINE_KIND_LABELS } from '../engineExport/engines'
 
-export function registerDialogIpc(_deps: IpcHandlerDeps, handle: IpcRegistrar): void {
+export function registerDialogIpc(deps: IpcHandlerDeps, handle: IpcRegistrar): void {
   // 游戏数据 CSV / Excel 的文件/目录选择（导出与导入共用；取消返回 null）
   handle('dialog:chooseExportDir', undefined, async () => {
     const focused = BrowserWindow.getFocusedWindow()
@@ -44,6 +45,11 @@ export function registerDialogIpc(_deps: IpcHandlerDeps, handle: IpcRegistrar): 
     return { path: result.canceled || result.filePaths.length === 0 ? null : result.filePaths[0] ?? null }
   })
   // 选一张本地图片（数据编辑器「图片」字段）
+  //
+  // ⚠️ 返回的是**库相对路径**（`images/xxx.png`），不是用户选中的原路径：
+  // 选中后立即把文件复制进 `<活跃库>/images/`，字段跟着库走 —— 工程搬家/备份/发给
+  // 别人时图不丢。改之前存的是用户机器上的绝对路径，图片文件其实还在桌面/下载目录，
+  // 而 `<库>/images/` 这套设施（图片库面板、未用清理）从来没有人往里放过图。
   handle('dialog:chooseImageFile', undefined, async () => {
     const focused = BrowserWindow.getFocusedWindow()
     const options: OpenDialogOptions = {
@@ -56,7 +62,15 @@ export function registerDialogIpc(_deps: IpcHandlerDeps, handle: IpcRegistrar): 
     if (path === null) return { path: null, dataUrl: '', bytes: 0 }
     try {
       const buffer = readFileSync(path)
-      return { path, bytes: buffer.byteLength, dataUrl: buildImagePreviewDataUrl(path, buffer.byteLength, buffer.toString('base64')) }
+      const dataUrl = buildImagePreviewDataUrl(path, buffer.byteLength, buffer.toString('base64'))
+      const imported = importImageIntoLibrary(path, deps.libraryManager.activeDir())
+      if (!imported.ok) {
+        // 入库失败不静默退回原路径 —— 那会把"图在库外"的老问题重新引进来
+        log.warn('图片入库失败，放弃本次选择', { path, error: imported.error })
+        return { path: null, dataUrl: '', bytes: 0, error: imported.error }
+      }
+      // 预览 dataUrl 仍按原文件算（库里那份内容相同），省得再读一次盘
+      return { path: imported.relativePath, bytes: imported.bytes, dataUrl }
     } catch (error) {
       log.warn('读取图片失败', { path, error: error instanceof Error ? error.message : String(error) })
       return { path, dataUrl: '', bytes: 0 }

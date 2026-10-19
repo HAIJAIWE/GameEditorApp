@@ -226,7 +226,7 @@ export default function ItemForm({
    */
   const generateImageFor = async (fieldLabel: string): Promise<string> => {
     const api = window.mbApi as unknown as {
-      dialog: { chooseImageSaveDir: () => Promise<{ path: string | null }> }
+      images: { libraryDir: () => Promise<{ dir: string }> }
       settings: { hasSecret: (req: { name: string }) => Promise<{ has: boolean }> }
       image: {
         generate: (req: unknown) => Promise<{ ok: true; path: string } | { ok: false; error: string }>
@@ -244,11 +244,15 @@ export default function ItemForm({
       model: stored.model.trim() === '' ? undefined : stored.model.trim(),
       baseUrl: stored.baseUrl.trim() === '' ? undefined : stored.baseUrl.trim()
     }
-    const picked = await api.dialog.chooseImageSaveDir()
-    if (picked.path === null) throw new Error('已取消：未选择保存目录')
+    /*
+     * 保存目录固定取**库图片目录**（`images:libraryDir`，不存在则创建）。
+     * 原先让用户自选目录，图就散落在各处、和库脱钩 —— 工程一搬家/备份，图全丢，
+     * 而未用清理也扫不到它们。进库后字段存的是库相对路径，整套设施才接得上。
+     */
+    const { dir } = await api.images.libraryDir()
     const subject = currentItemName()
     const prompt = subject === '' ? `为${fieldLabel}生成一张配图` : `为「${subject}」生成一张配图（${fieldLabel}）`
-    const result = await api.image.generate({ config, prompt, saveDir: picked.path })
+    const result = await api.image.generate({ config, prompt, saveDir: dir })
     if (!result.ok) throw new Error(result.error)
     return `配图已保存：${result.path}`
   }

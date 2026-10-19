@@ -182,6 +182,7 @@ export interface IpcContract {
    * `dir` 一并返回：渲染层要靠它把相对路径解析成可显示的完整路径。
    * 目录取 `<活跃库目录>/images` —— 切库时天然跟随，不需要渲染层传路径。
    */
+  'images:libraryDir': { req: undefined; res: { dir: string } }
   'images:listLibraryImages': { req: undefined; res: { dir: string; files: string[] } }
   /**
    * 按已保存路径读取图片为 data URL。
