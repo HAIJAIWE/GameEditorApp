@@ -247,17 +247,37 @@ export function FieldControl({
             )}
           </button>
           <div className="image-field-foot">
-            <span className="image-field-tip">{hasImage ? '点击方框可更换' : '点击「+」选择图片'}</span>
-            <input
-              id={testId}
-              type="text"
-              className="image-field-path"
-              data-testid={testId}
-              placeholder="尚未选择图片"
-              value={current}
-              readOnly
-              title={current || undefined}
-            />
+            {hasImage ? (
+              <>
+                <span className="image-field-tip">点击方框可更换</span>
+                <input
+                  id={testId}
+                  type="text"
+                  className="image-field-path"
+                  data-testid={testId}
+                  value={current}
+                  readOnly
+                  title={current}
+                />
+              </>
+            ) : (
+              /*
+               * 空态只留一行提示：原先「点击「+」选择图片」+ 输入框占位「尚未选择图片」
+               * 是两句话讲同一件事，纯噪音。输入框本身仍要存在（label 的 htmlFor 指向它），
+               * 故保留为不可见的值载体。
+               */
+              <>
+                <span className="image-field-tip">点击「+」选择图片</span>
+                <input
+                  id={testId}
+                  type="text"
+                  className="image-field-path sr-only"
+                  data-testid={testId}
+                  value={current}
+                  readOnly
+                />
+              </>
+            )}
           </div>
         </div>
       )

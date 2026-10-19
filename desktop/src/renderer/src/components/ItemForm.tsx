@@ -396,7 +396,8 @@ export default function ItemForm({
       <div className="editor-header">
         <div className="editor-title">
           {String(item.data.name ?? item.id)}
-          <small>{displayItemId(item)}</small>
+          {/* 裸 id（如「0」）单看没有意义，加 `#` 前缀标明这是标识符而不是数值字段 */}
+          <small>#{displayItemId(item)}</small>
         </div>
       </div>
 

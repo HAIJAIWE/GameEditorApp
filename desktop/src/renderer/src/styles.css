@@ -928,6 +928,17 @@ body {
 }
 
 /*
+ * 只读字段（ID 等系统字段）：视觉上要和可编辑字段区分开。
+ * 原先只读 input 与普通 input 长得一模一样，用户会先去点它、发现打不了字才意识到不可编辑。
+ * 用弱化底色 + 次要文字色，一眼看出「这是系统给的」。
+ */
+[data-testid='item-editor'] .form-section-body input[readonly]:not(.image-field-path) {
+  background: var(--bg);
+  color: var(--text-muted);
+  cursor: default;
+}
+
+/*
  * 「AI 帮我填」小按钮 —— 对齐 Python `AIFieldButton` 的 26px 圆形按钮。
  * Python 用 Lucide 的 bot 图标；TS 侧**未引入图标库** ⇒ 用文字「AI」，避免为此新增依赖。
  * 配色一律走主题令牌，深色档自动跟随。
