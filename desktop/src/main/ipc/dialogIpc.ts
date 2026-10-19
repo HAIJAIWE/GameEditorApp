@@ -131,7 +131,8 @@ export function registerDialogIpc(deps: IpcHandlerDeps, handle: IpcRegistrar): v
     const label = req.engine === 'lua' ? 'Lua 数据模块' : `${ENGINE_KIND_LABELS[req.engine]} 数据`
     const options: SaveDialogOptions = {
       title: `导出为 ${label} 格式`,
-      defaultPath: `${req.defaultName}${extension}`,
+      // 记得上次导出路径就回填它（直接落在游戏文件上，一键确认）；否则回落默认名。
+      defaultPath: req.defaultPath ?? `${req.defaultName ?? 'GameData'}${extension}`,
       filters: [{ name: label, extensions: [extension.replace('.', '')] }]
     }
     const focused = BrowserWindow.getFocusedWindow()

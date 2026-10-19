@@ -11,6 +11,8 @@ export interface EngineExportNoticeInput {
   bytes: number
   copiedImages?: number
   missingImages?: readonly string[]
+  /** 覆盖前备份的上一版路径（首次导出为 undefined） */
+  backupPath?: string
 }
 
 export function engineExportNotice(result: EngineExportNoticeInput): string {
@@ -18,8 +20,13 @@ export function engineExportNotice(result: EngineExportNoticeInput): string {
   const copied = result.copiedImages ?? 0
   const missing = result.missingImages ?? []
 
-  if (copied === 0 && missing.length === 0) return base
-  if (copied > 0 && missing.length === 0) return `${base}；图片已一起导出（${copied} 张）`
-  if (copied === 0) return `${base}；⚠️ ${missing.length} 张引用的图片没找到，未随导出`
-  return `${base}；已导出 ${copied} 张图片，⚠️ 另有 ${missing.length} 张没找到`
+  let tail = ''
+  if (copied > 0 && missing.length === 0) tail = `；图片已一起导出（${copied} 张）`
+  else if (copied === 0 && missing.length > 0) tail = `；⚠️ ${missing.length} 张引用的图片没找到，未随导出`
+  else if (copied > 0 && missing.length > 0) tail = `；已导出 ${copied} 张图片，⚠️ 另有 ${missing.length} 张没找到`
+
+  // 覆盖前备份：导出目标是游戏活文件，留一份上一版供回滚（AI 生成可能出错）。
+  if (result.backupPath !== undefined) tail += '；已备份上一版供回滚'
+
+  return `${base}${tail}`
 }

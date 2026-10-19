@@ -31,4 +31,14 @@ describe('engineExportNotice', () => {
     expect(text).toContain('已导出 2 张图片')
     expect(text).toContain('另有 2 张没找到')
   })
+
+  it('覆盖前已备份：提示里告知可回滚（导出目标是游戏活文件）', () => {
+    const text = engineExportNotice({ ...base, backupPath: 'D:/out/GameData.lua.bak' })
+    expect(text).toContain('已备份上一版供回滚')
+  })
+
+  it('首次导出无备份：不提回滚', () => {
+    const text = engineExportNotice({ ...base, backupPath: undefined })
+    expect(text).not.toContain('回滚')
+  })
 })

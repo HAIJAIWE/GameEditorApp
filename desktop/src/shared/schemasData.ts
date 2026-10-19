@@ -397,10 +397,14 @@ export const ceshuDeleteInputSchema = z.object({
 
 export type CeshuDeleteInput = z.infer<typeof ceshuDeleteInputSchema>
 
-/** 引擎代码导出（E2）：选择导出文件路径（`engine` 决定默认扩展名与过滤器标题） */
+/** 引擎代码导出（E2）：选择导出文件路径（`engine` 决定默认扩展名与过滤器标题）。
+ * - `defaultName`：无记忆路径时的默认文件名（可选，记忆路径存在时冗余）。
+ * - `defaultPath`：上次导出路径（按引擎记忆，回填到 SaveDialog，免得每次重选游戏文件）。
+ *   二者皆可缺省——都缺时回落到 `GameData`。 */
 export const engineExportFileDialogInputSchema = z.object({
-  defaultName: z.string().min(1).max(120),
-  engine: engineTargetSchema.default('lua')
+  defaultName: z.string().min(1).max(120).optional(),
+  engine: engineTargetSchema.default('lua'),
+  defaultPath: z.string().min(1).max(4096).optional()
 })
 
 /** 库管理（A2-1）：新建库 */

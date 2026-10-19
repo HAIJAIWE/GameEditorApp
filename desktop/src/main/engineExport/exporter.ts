@@ -1,4 +1,4 @@
-import { mkdirSync, renameSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, renameSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 
 import type { DataTypeDef, ItemRecord } from '../../shared/types'
@@ -24,6 +24,8 @@ export interface EngineExportResult {
   filePath: string
   engine: EngineTarget
   bytes: number
+  /** 覆盖前备份的上一版路径；首次导出（目标不存在）时为 undefined */
+  backupPath?: string
 }
 
 /** 目标引擎是否受支持（IPC 侧另有 zod 枚举兜底，这里给主进程内部调用方一个判据） */
@@ -32,9 +34,11 @@ export function isEngineTarget(value: string): value is EngineTarget {
 }
 
 /**
- * 引擎数据导出：按引擎渲染 → 临时文件 + rename 原子写盘 → 返回结果。
+ * 引擎数据导出：按引擎渲染 → 覆盖前备份上一版 → 临时文件 + rename 原子写盘 → 返回结果。
  * - 渲染为纯函数（返回 string），落盘与扩展名兜底集中在此
  * - 原子写：先写 `<filePath>.tmp` 再 rename，成功后不残留临时文件
+ * - 覆盖前备份：导出目标是游戏活文件、AI 生成可能出错，先 `copyFileSync` 到
+ *   `<filePath>.bak` 留一份可回滚；首次导出（目标不存在）不备份
  * - `bytes === Buffer.byteLength(content)`（UTF-8 字节数）
  *
  * 五个目标各走各的渲染器（`lua` 独立模块，其余四个在 `./engines`）。
@@ -56,6 +60,13 @@ export async function exportEngineData(
       ? renderLuaGameData(records, types)
       : ENGINE_RENDERERS[options.engine](bucketize(records, types))
 
+  // 覆盖前备份上一版：目标已存在才备份（首次导出无旧版可留）。
+  let backupPath: string | undefined
+  if (existsSync(filePath)) {
+    backupPath = `${filePath}.bak`
+    copyFileSync(filePath, backupPath)
+  }
+
   mkdirSync(dirname(filePath), { recursive: true })
   const tmpPath = `${filePath}.tmp`
   try {
@@ -67,7 +78,7 @@ export async function exportEngineData(
     })
   }
 
-  return { filePath, engine: options.engine, bytes: Buffer.byteLength(content, 'utf-8') }
+  return { filePath, engine: options.engine, bytes: Buffer.byteLength(content, 'utf-8'), backupPath }
 }
 
 /** 目标路径缺少正确扩展名时补上（对话框已带默认扩展名，此处兜底） */

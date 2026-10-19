@@ -4,6 +4,25 @@ import { formatImportSummary, toErrorMessage } from '../appUtils'
 import type { EngineExportInput } from '../../../shared/schemas'
 import { engineExportNotice } from '../../../shared/util/engineExportNotice'
 
+/** 按引擎维度记住上次导出路径（localStorage），下次导出直接回填到游戏文件上，免得每次重选 */
+const ENGINE_EXPORT_LAST_PATH_PREFIX = 'mb.engineExport.lastPath.'
+
+function readLastEngineExportPath(engine: string): string | null {
+  try {
+    return localStorage.getItem(`${ENGINE_EXPORT_LAST_PATH_PREFIX}${engine}`)
+  } catch {
+    return null
+  }
+}
+
+function writeLastEngineExportPath(engine: string, path: string): void {
+  try {
+    localStorage.setItem(`${ENGINE_EXPORT_LAST_PATH_PREFIX}${engine}`, path)
+  } catch {
+    // localStorage 不可用（隐私模式等）时静默跳过，不影响导出本身
+  }
+}
+
 /**
  * 撤销 / 重做（对齐 PyQt `main_window` 的 undo/redo 动作 + 菜单项 disabled/标签）。
  *
@@ -210,8 +229,9 @@ export function useDataTransfer(
       const api = window.mbApi as unknown as {
         dialog: {
           chooseEngineExportFile: (req: {
-            defaultName: string
+            defaultName?: string
             engine: EngineExportInput['engine']
+            defaultPath?: string
           }) => Promise<{ path: string | null }>
         }
         engine: {
@@ -224,12 +244,18 @@ export function useDataTransfer(
             bytes: number
             copiedImages?: number
             missingImages?: string[]
+            backupPath?: string
           }>
         }
       }
-      const picked = await api.dialog.chooseEngineExportFile({ defaultName: 'GameData', engine })
+      // 记得上次导出路径就回填（直接落在游戏文件上，一键确认）；否则用默认名。
+      const lastPath = readLastEngineExportPath(engine)
+      const picked = await api.dialog.chooseEngineExportFile(
+        lastPath ? { engine, defaultPath: lastPath } : { engine, defaultName: 'GameData' }
+      )
       if (picked.path === null) return
       const result = await api.engine.exportData({ engine, path: picked.path })
+      writeLastEngineExportPath(engine, result.filePath)
       setNotice(engineExportNotice(result))
     } catch (err) {
       setError(toErrorMessage(err))
