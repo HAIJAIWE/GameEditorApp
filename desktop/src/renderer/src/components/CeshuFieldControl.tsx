@@ -1,9 +1,60 @@
+import { useEffect, useRef } from 'react'
+
 import type { CeshuColumnDef, CeshuFieldDef } from '../../../shared/ceshuConstants'
 
 /**
  * 策划书通用字段控件：由字段 schema（kind）驱动渲染，
  * 并提供「数据值 ↔ 控件编辑值」双向转换（stringList / pipeList / json 等复杂类型在此收敛）。
  */
+
+/**
+ * 多行字段的自动增高上限（px）。
+ * 超过后回到内滚动 —— 无上限的话，一段几千字的 AI 生成内容会把整页拉成一条长带，
+ * 反而更难扫读（要找下一个字段得滚很久）。
+ */
+const AUTO_GROW_MAX = 480
+
+/**
+ * 自动增高的多行输入。
+ *
+ * ## 为什么需要
+ * `.form-textarea` 是固定 `min-height: 72px`，AI 生成的长段落只能在小框里**内滚动** ——
+ * 而本项目的实际工作流是「AI 生成 → 人扫一遍」，读长文时在小框里滚是最反人类的。
+ * 这里按 `scrollHeight` 撑到内容高度，到 `AUTO_GROW_MAX` 才封顶。
+ *
+ * ⚠️ jsdom 不实现 `scrollHeight`（恒为 0），故读到 0 时直接跳过，避免把高度设成 0
+ * 而让组件测试里的布局断言失真。
+ */
+function AutoGrowTextarea(props: {
+  id: string
+  value: string
+  placeholder?: string
+  onChange: (next: string) => void
+}) {
+  const ref = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    const el = ref.current
+    if (el === null) return
+    const next = el.scrollHeight
+    if (next <= 0) return
+    el.style.height = 'auto'
+    el.style.height = `${Math.min(next, AUTO_GROW_MAX)}px`
+    el.style.overflowY = next > AUTO_GROW_MAX ? 'auto' : 'hidden'
+  }, [props.value])
+
+  return (
+    <textarea
+      ref={ref}
+      id={props.id}
+      data-testid={props.id}
+      className="form-textarea"
+      value={props.value}
+      placeholder={props.placeholder}
+      onChange={(event) => props.onChange(event.target.value)}
+    />
+  )
+}
 
 export type FieldInput = string | number | boolean | string[]
 
@@ -91,13 +142,11 @@ export function CeshuFieldControl({ field, value, onChange, testId }: FieldContr
         <label className="form-label" htmlFor={id}>
           {field.label}
         </label>
-        <textarea
+        <AutoGrowTextarea
           id={id}
-          data-testid={id}
-          className="form-textarea"
           value={String(value)}
           placeholder={placeholder}
-          onChange={(event) => onChange(event.target.value)}
+          onChange={(next) => onChange(next)}
         />
       </div>
     )

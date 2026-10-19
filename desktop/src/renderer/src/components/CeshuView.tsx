@@ -124,14 +124,16 @@ export default function CeshuView({
   const [moreOpen, setMoreOpen] = useState(false)
   /**
    * 数据栏是否展开（左栏 + 中间 = 工作区，右栏 = 智能体）。
-   * 默认展开（对齐 PyQt 的 55:45 分栏），但可收起 —— 写正文时数据栏通常是空的，
-   * 却占着 44% 宽度。偏好存 localStorage：这是「工作姿势」，不该每次重开都重设。
+   *
+   * **默认收起**：本项目的实际工作流是「AI 生成 → 人扫一遍」，审阅时数据栏通常是空的，
+   * 却把正文挤到每行十来个字（实测开栏时表单 345px、收起后 820px）。
+   * 需要对照数据时一键展开；状态存 localStorage，记住用户的姿势。
    */
   const [previewOpen, setPreviewOpen] = useState<boolean>(() => {
     try {
-      return localStorage.getItem(PREVIEW_OPEN_KEY) !== '0'
+      return localStorage.getItem(PREVIEW_OPEN_KEY) === '1'
     } catch {
-      return true // 隐私模式/存储被禁：退回默认展开
+      return false // 隐私模式/存储被禁：按默认（收起）
     }
   })
 

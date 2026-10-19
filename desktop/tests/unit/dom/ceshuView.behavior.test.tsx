@@ -137,27 +137,26 @@ describe('CeshuView：工作区 / 智能体分区', () => {
    * 数据栏属于工作区（写文档时要对照数据），但它不该常驻 —— 收起后章节表单
    * 应当吃掉整段宽度。默认展开（对齐 PyQt 55:45），偏好存 localStorage。
    */
-  it('默认展开数据栏', async () => {
+  it('默认收起数据栏（审阅正文时把宽度留给工作区）', async () => {
     api = installMbApi({ doc: makeDoc() })
     const rendered = await mount()
 
-    expect(rendered.query('[data-testid="ceshu-preview"]')).not.toBeNull()
-    expect(rendered.byTestId('ceshu-preview-toggle').textContent).toContain('收起数据')
+    expect(rendered.query('[data-testid="ceshu-preview"]')).toBeNull()
+    expect(rendered.byTestId('ceshu-preview-toggle').textContent).toContain('数据栏')
   })
 
-  it('点开关后数据栏移除、按钮改文案（把宽度让给章节表单）', async () => {
+  it('点开关后数据栏出现、按钮改文案（收起的是数据栏，不是整个工作区）', async () => {
     api = installMbApi({ doc: makeDoc() })
     const rendered = await mount()
 
     await rendered.click(rendered.byTestId('ceshu-preview-toggle'))
 
-    expect(rendered.query('[data-testid="ceshu-preview"]')).toBeNull()
-    expect(rendered.byTestId('ceshu-preview-toggle').textContent).toContain('数据栏')
-    // 章节表单仍在（收起的是数据栏，不是整个工作区）
+    expect(rendered.query('[data-testid="ceshu-preview"]')).not.toBeNull()
+    expect(rendered.byTestId('ceshu-preview-toggle').textContent).toContain('收起数据')
     expect(rendered.query('[data-testid="chapter-form"]')).not.toBeNull()
   })
 
-  it('再次点击恢复展开', async () => {
+  it('再次点击恢复收起', async () => {
     api = installMbApi({ doc: makeDoc() })
     const rendered = await mount()
     const toggle = (): HTMLElement => rendered.byTestId('ceshu-preview-toggle')
@@ -165,6 +164,6 @@ describe('CeshuView：工作区 / 智能体分区', () => {
     await rendered.click(toggle())
     await rendered.click(toggle())
 
-    expect(rendered.query('[data-testid="ceshu-preview"]')).not.toBeNull()
+    expect(rendered.query('[data-testid="ceshu-preview"]')).toBeNull()
   })
 })

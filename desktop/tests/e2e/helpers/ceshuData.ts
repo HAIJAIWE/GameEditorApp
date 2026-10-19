@@ -143,6 +143,20 @@ export async function openCeshuFromHome(window: Page, title: string): Promise<vo
  * 标签文字 = 播种时的 `label`。
  */
 export async function openDataEditor(window: Page, label: string): Promise<void> {
+  /*
+   * 数据栏**默认收起**（工作流以「AI 生成 → 人扫一遍」为主，审阅时数据栏只是噪音）。
+   * 需要数据编辑器时先把它展开 —— 收敛在这一处，避免每个规格各写一遍。
+   *
+   * ⚠️ 全量跑时出现过偶发失败：上一步刚关闭浮层，工具栏按钮可能还没就位就查了
+   * `aria-pressed`，于是「以为已展开」而跳过点击。改成先等按钮可见、点完再等面板出现，
+   * 每一步都有确定的前置条件，不依赖「点完大概就绪了」。
+   */
+  const toggle = window.getByTestId('ceshu-preview-toggle')
+  await expect(toggle).toBeVisible()
+  if ((await toggle.getAttribute('aria-pressed')) === 'false') {
+    await toggle.click()
+    await expect(window.getByTestId('ceshu-preview')).toBeVisible()
+  }
   const tab = previewTab(window, label)
   await expect(tab, `预览面板未出现系统「${label}」的数据编辑器标签（该系统是否已启用？）`).toBeVisible()
   await tab.click()
