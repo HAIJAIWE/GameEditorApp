@@ -13,6 +13,10 @@ export interface EngineExportNoticeInput {
   missingImages?: readonly string[]
   /** 覆盖前备份的上一版路径（首次导出为 undefined） */
   backupPath?: string
+  /** 热更新清单路径（游戏侧 watcher 监听它即可运行时重载） */
+  manifestPath?: string
+  /** 热更新清单里的单调版本号 */
+  version?: number
 }
 
 export function engineExportNotice(result: EngineExportNoticeInput): string {
@@ -27,6 +31,8 @@ export function engineExportNotice(result: EngineExportNoticeInput): string {
 
   // 覆盖前备份：导出目标是游戏活文件，留一份上一版供回滚（AI 生成可能出错）。
   if (result.backupPath !== undefined) tail += '；已备份上一版供回滚'
+  // 热更新清单：游戏侧监听它即可运行时重载，不必重启。
+  if (result.manifestPath !== undefined) tail += `；已写热更新清单 v${result.version ?? 0}（游戏可监听）`
 
   return `${base}${tail}`
 }

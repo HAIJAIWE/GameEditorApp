@@ -41,4 +41,11 @@ describe('engineExportNotice', () => {
     const text = engineExportNotice({ ...base, backupPath: undefined })
     expect(text).not.toContain('回滚')
   })
+
+  it('写了热更新清单：提示里带版本号并提示游戏可监听', () => {
+    const text = engineExportNotice({ ...base, manifestPath: 'D:/out/GameData.lua.hotreload.json', version: 3 })
+    expect(text).toContain('热更新清单')
+    expect(text).toContain('v3')
+    expect(text).toContain('游戏可监听')
+  })
 })

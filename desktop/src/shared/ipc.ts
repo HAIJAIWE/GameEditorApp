@@ -219,7 +219,7 @@ export interface IpcContract {
   'settings:deleteSecret': { req: SecretNameInput; res: { ok: boolean; error?: string } }
   // 引擎数据导出：lua + unity/unreal/godot/cocos2d（对齐 PyQt `features/engine_export.py`）。
   // 渲染/落盘在 main/engineExport（lua 在 ./lua，其余四个在 ./engines），取数由 handler 注入。
-  'engine:exportData': { req: EngineExportInput; res: { filePath: string; engine: string; bytes: number; backupPath?: string } }
+  'engine:exportData': { req: EngineExportInput; res: { filePath: string; engine: string; bytes: number; backupPath?: string; manifestPath?: string; version?: number } }
   'dialog:chooseJsonFile': { req: undefined; res: { path: string | null } }
   'dialog:chooseSaveJsonFile': { req: undefined; res: { path: string | null } }
   'ceshu:list': { req: undefined; res: CeshuSummary[] }

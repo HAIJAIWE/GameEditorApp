@@ -245,6 +245,8 @@ export function useDataTransfer(
             copiedImages?: number
             missingImages?: string[]
             backupPath?: string
+            manifestPath?: string
+            version?: number
           }>
         }
       }
