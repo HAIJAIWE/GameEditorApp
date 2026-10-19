@@ -57,6 +57,14 @@ export default function TypeEditorPanel({ types, initialTypeId, onSaved, onClose
   const [notice, setNotice] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [resetToken, setResetToken] = useState(0)
+  /**
+   * 待确认的模板替换：模板里有字段名不在当前类型中时，先问一句再换。
+   *
+   * 为什么需要：应用模板**不删数据**（`schema:save` 只写 type_schema.json，条目的
+   * `data` 原样保留），但旧字段名一旦不在 schema 里就**不再显示** —— 用户会以为
+   * 「22 条角色的描述全没了」。这是静默失联，比报错更糟。
+   */
+  const [pendingTemplate, setPendingTemplate] = useState<{ name: string; fields: TypeFieldDef[] } | null>(null)
   /** 当前展开「字段 ID 候选」的行及状态（同一时刻只开一个） */
   const [idSuggest, setIdSuggest] = useState<IdSuggestState | null>(null)
   /** 用户自定义字段模板名（内置模板在 `TYPE_TEMPLATES` 常量里，自定义需读盘） */
@@ -260,9 +268,7 @@ export default function TypeEditorPanel({ types, initialTypeId, onSaved, onClose
     // 内置模板在 shared 常量里直接取；自定义模板需向主进程要完整字段定义
     const builtin = TYPE_TEMPLATES[templateName]
     if (builtin) {
-      updateType({ formFields: structuredClone(builtin) })
-      bumpReset()
-      setNotice(`已应用模板「${templateName}」（尚未保存）`)
+      requestTemplateReplace(templateName, structuredClone(builtin))
       return
     }
     try {
@@ -271,12 +277,34 @@ export default function TypeEditorPanel({ types, initialTypeId, onSaved, onClose
         setErrors([`模板「${templateName}」不存在`])
         return
       }
-      updateType({ formFields: fields })
-      bumpReset()
-      setNotice(`已应用模板「${templateName}」（尚未保存）`)
+      requestTemplateReplace(templateName, fields)
     } catch (error) {
       setErrors([error instanceof Error ? error.message : String(error)])
     }
+  }
+
+  /**
+   * 替换前先判断「会不会让已有数据失联」：
+   * 当前字段名不在新模板里的那些，条目里已填的值会保留在文件中但不再显示。
+   * 有失联风险就进确认态，否则直接替换。
+   */
+  const requestTemplateReplace = (name: string, fields: TypeFieldDef[]): void => {
+    if (!current) return
+    const nextNames = new Set(fields.map((field) => field.name))
+    const orphaned = current.formFields.filter((field) => !nextNames.has(field.name))
+    if (orphaned.length > 0) {
+      setPendingTemplate({ name, fields })
+      setErrors([])
+      return
+    }
+    commitTemplateReplace(name, fields)
+  }
+
+  const commitTemplateReplace = (name: string, fields: TypeFieldDef[]): void => {
+    updateType({ formFields: fields })
+    bumpReset()
+    setPendingTemplate(null)
+    setNotice(`已应用模板「${name}」（尚未保存）`)
   }
 
   /** 把当前类型的字段存为自定义模板（存完整定义，非 Python 那样只存标签） */
@@ -496,6 +524,40 @@ export default function TypeEditorPanel({ types, initialTypeId, onSaved, onClose
                   添加字段
                 </button>
               </div>
+              {/*
+                替换确认：列出会被「藏起来」的字段（数据仍在文件里，只是界面上不再显示）。
+                这不是删数据，但用户视角等同于数据消失，所以必须先讲清楚再动手。
+              */}
+              {pendingTemplate !== null && current && (
+                <div className="form-hint-row" data-testid="te-template-confirm">
+                  <span>
+                    模板「{pendingTemplate.name}」不含当前类型的{' '}
+                    {current.formFields
+                      .filter((field) => !new Set(pendingTemplate.fields.map((next) => next.name)).has(field.name))
+                      .map((field) => field.label.replace(/:?\s*$/, ''))
+                      .join('、')}
+                    {' '}字段。这些字段已填的数据**仍保存在文件里**，但界面上不再显示，也无法再编辑。
+                  </span>
+                  <div className="form-hint-actions">
+                    <button
+                      type="button"
+                      className="btn danger"
+                      data-testid="te-template-confirm-apply"
+                      onClick={() => commitTemplateReplace(pendingTemplate.name, pendingTemplate.fields)}
+                    >
+                      确认替换
+                    </button>
+                    <button
+                      type="button"
+                      className="btn"
+                      data-testid="te-template-confirm-cancel"
+                      onClick={() => setPendingTemplate(null)}
+                    >
+                      取消
+                    </button>
+                  </div>
+                </div>
+              )}
               <div className="ai-gen-row">
                 <input
                   className="form-input"

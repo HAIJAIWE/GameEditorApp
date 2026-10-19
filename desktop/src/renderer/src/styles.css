@@ -963,6 +963,11 @@ body {
   min-width: 0;
 }
 
+.form-hint-actions {
+  display: flex;
+  gap: 8px;
+}
+
 /*
  * 「AI 帮我填」小按钮 —— 对齐 Python `AIFieldButton` 的 26px 圆形按钮。
  * Python 用 Lucide 的 bot 图标；TS 侧**未引入图标库** ⇒ 用文字「AI」，避免为此新增依赖。
