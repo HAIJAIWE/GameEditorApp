@@ -871,29 +871,42 @@ body {
 
 /*
  * 条目表单（数据编辑器右侧字段表单）的标签列 —— **忠实**复刻 QFormLayout，取代上面的 120px 近似：
- * 标签列宽 = 全表最宽标签（`max-content`），同时保留「所有行的字段起始 x 对齐」。
+ * 标签列宽 = 分区内最宽标签（`max-content`），同时保留「分区内所有行的字段起始 x 对齐」。
  * 上面 flex 方案固定 120px 是「每行独立 flex 拿不到全表最宽标签」的妥协；而实测 PyQt 参考
  * 的标签列只有 ~57px（skill 类型最长标签「图片描述:」）—— 在窄列里 120px 白白吃掉四成宽度
  * （1184 窗口下控件只剩 135px）。改 grid + `display: contents`：行容器不再生成盒子，
  * 标签与控件直接成为网格项 ⇒ 列宽由网格统一计算，正是 QFormLayout 的语义。
  *
  * ⚠️ 只作用于条目表单（`item-editor`）：`.form-row` 被约 30 个面板共用，全站改会大面积回归。
+ *
+ * ⚠️ 网格挂在 **`.form-section-body`** 而不是 `.editor-body`：2026-10-19 恢复折叠分区后，
+ * 字段行都在分区卡里。挂在分区上还有一个好处 —— 标签列按**分区内**最宽标签对齐，
+ * 不会因为别处有个超长标签把整个表单的标签列都撑宽。
+ *
+ * ⚠️ 控件列上限**只在内嵌态生效**：`.ceshu-preview .editor` 是 `width:auto; flex:1 1 0`，
+ * 宽度跟着窗口弹性变，窗口一宽控件就拉成一条长横线（用户反馈「太宽了不紧」）⇒ 收在 360px。
+ * 但「整窗展开」（`ceshu-data-overlay`）这个功能的存在意义就是**吃宽**（PyQt 参考里表单占
+ * 窗宽 78%），那里必须放开到 `1fr` —— 否则把该功能直接废掉（`ceshu-data-maximize.spec.ts`
+ * 断言整窗态 formW > 700 且控件起始线唯一）。
  */
-[data-testid='item-editor'] .editor-body {
+[data-testid='item-editor'] .form-section-body {
   display: grid;
-  /*
-   * 控件列设上限（而不是 `1fr` 吃到饱）：
-   * `.ceshu-preview .editor` 是 `width:auto; flex:1 1 0`，编辑器宽度**跟着窗口弹性变**；
-   * 窗口一宽，控件就跟着拉成一条长横线 —— 反馈「太宽了不紧」。
-   * 收在 360px：单行文本、数值、图片框、多行描述都够用，行与行之间不再被拉散。
-   * 标签列仍是 `max-content`（保持 QFormLayout 的「按全表最宽标签对齐」语义不变）。
-   */
   grid-template-columns: max-content minmax(0, var(--item-form-control-max, 360px));
   align-items: start;
   gap: 10px; /* QFormLayout.setSpacing(10) */
 }
 
-[data-testid='item-editor'] .editor-body > .form-row {
+/* 整窗展开态：放开控件列上限（这一作用域里宽度是收益，不是噪音） */
+[data-testid='ceshu-data-overlay'] .form-section-body {
+  --item-form-control-max: 1fr;
+}
+
+/* 分区之间留间距（分区卡片自身有边框/圆角，不能靠 grid gap） */
+[data-testid='item-editor'] .editor-body > .form-section {
+  margin-bottom: 10px;
+}
+
+[data-testid='item-editor'] .form-section-body > .form-row {
   display: contents;
 }
 
@@ -903,14 +916,14 @@ body {
 }
 
 /* 标签：脱离 flex 定宽，由网格列宽决定；不折行（QFormLayout rowWrapPolicy=DontWrapRows） */
-[data-testid='item-editor'] .editor-body .form-label {
+[data-testid='item-editor'] .form-section-body .form-label {
   flex: none;
   max-width: none;
   white-space: nowrap;
 }
 
 /* 行内裸按钮（少数字段行）不要被网格拉满列宽 */
-[data-testid='item-editor'] .editor-body > .form-row > .btn {
+[data-testid='item-editor'] .form-section-body > .form-row > .btn {
   justify-self: start;
 }
 
@@ -1011,7 +1024,11 @@ body {
   tab-size: 2;
 }
 
-/* 图片字段：只读路径框 + 选择按钮一行，缩略图在下（对齐 PyQt 的三件套布局） */
+/*
+ * 图片字段：**点选式方框**（对齐通行的「头像上传」交互）。
+ * 空态 = 虚线方框 + 居中「+」；有图 = 预览，方框本身即「点击更换」热区。
+ * 路径退化为 11px 提示行（有排查价值，但不再占主视觉与整行宽度）。
+ */
 .image-field {
   display: flex;
   flex-direction: column;
@@ -1019,24 +1036,77 @@ body {
   min-width: 0;
 }
 
-.image-field-row {
+.image-picker {
   display: flex;
-  gap: 6px;
-  min-width: 0;
-}
-
-.image-field-row .form-input {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.image-field-preview {
-  align-self: flex-start;
-  max-width: 100%;
-  max-height: 160px;
-  border: 1px solid var(--border);
+  align-items: center;
+  justify-content: center;
+  width: 120px;
+  height: 120px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px dashed var(--border);
   border-radius: var(--radius);
   background: var(--bg);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.image-picker:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.image-picker:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.image-picker.has-image {
+  border-style: solid;
+}
+
+.image-picker-plus {
+  font-size: 30px;
+  line-height: 1;
+  font-weight: 300;
+}
+
+.image-picker-hint {
+  font-size: 11px;
+}
+
+.image-picker-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.image-field-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.image-field-tip {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.image-field-path {
+  width: 100%;
+  min-width: 0;
+  padding: 3px 6px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+}
+
+.image-field-path:hover {
+  border-color: var(--border);
 }
 
 /* LazyImage（图片字段预览，对齐 PyQt LazyImageLabel 的「无图片 / 加载中... / 到位」三态） */

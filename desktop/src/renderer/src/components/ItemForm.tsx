@@ -11,11 +11,13 @@ import { SECRET_NAMES } from '../../../shared/config/secretNames'
 import { resolveFieldLabel } from '../../../shared/config/gameStyle'
 import { displayItemId } from '../../../shared/util/itemId'
 import type { AttrSystem } from '../../../shared/attrSystem'
+import { buildFormLayout } from '../../../shared/formSections'
 import type { DataTypeDef, ItemRecord, TypeFieldDef } from '../../../shared/types'
 
 import AttrPanelEditor from './AttrPanelEditor'
 import AttrTableEditor from './AttrTableEditor'
 import DropTableEditor from './DropTableEditor'
+import FormSectionCard from './FormSectionCard'
 import LucideIcon from './LucideIcon'
 import RefTableEditor from './RefTableEditor'
 
@@ -370,19 +372,16 @@ export default function ItemForm({
   }
 
   /**
-   * 字段行（标签 + 控件）—— 扁平表单的**唯一**行形态。
+   * 字段行（标签 + 控件）—— 分区间与兜底路径的**唯一**行形态。
    *
-   * 对齐 PyQt `ui/widgets/dynamic_form.py::_build_form`：`QFormLayout` 按 schema 顺序
-   * `addRow(QLabel(字段label), 控件)`，一行一个字段，无分区、无折叠、无双列。
-   * TS 早期照抄的是**更新版** Python 的 `FIELD_GROUPS` 分区卡片（折叠/双列/attribute_panel
-   * 专属区），而用户明确满意的是旧版扁平一列（截图实证：标签左、控件右、一列看全）
-   * ⇒ 2026-10-13 拉平。分区/双列/STAT_LABELS 相关代码（`formSections.ts` /
-   * `FormSectionCard.tsx` / `.form-grid`）随本次改动整体删除，不留死代码。
+   * 行本身对齐 PyQt `ui/widgets/dynamic_form.py::_build_form` 的 `QFormLayout`：
+   * 一行一个字段、标签左控件右。2026-10-13 曾把分区整体拉平（当时用户满意扁平一列），
+   * 2026-10-19 又对照分区版截图要求恢复 ⇒ 现在**行形态不变，只把行归进可折叠分区**。
    *
    * 标签口径：字段自身 label 经 `resolveFieldLabel` 术语替换（E21 游戏风格）；
-   * **不再**套 `STAT_LABELS`（📊数值/⏱️CD 等 emoji 前缀）——那是 grid 分区时代的产物，
-   * 旧版扁平表单与用户截图里都是原始标签（「基础数值:」「冷却:」）。
+   * **不套** 旧 grid 时代的 `STAT_LABELS` emoji 前缀（📊数值/⏱️CD）—— 目标截图里就是原始标签。
    */
+  const formLayout = useMemo(() => buildFormLayout(item.type, fields), [item.type, fields])
   const renderFieldRow = (field: TypeFieldDef, label: string): React.ReactElement => (
     <div className="form-row" key={field.name}>
       <label className="form-label" htmlFor={`field-${field.name}`}>
@@ -403,10 +402,17 @@ export default function ItemForm({
 
       <div className="editor-body">
         {localError && <div className="form-error">{localError}</div>}
-        {/* 扁平一列：schema 顺序逐字段平铺（对齐 PyQt dynamic_form.py 的 QFormLayout）。
-            复杂控件（attrpanel/attrtable/multiselect/droptable）与普通字段同构成行，
-            不再单独包分区——编辑器内部自带工具条/表头，标签行只提供「属性列表:」这类字段名。 */}
-        {fields.map((field) => renderFieldRow(field, resolveFieldLabel(field.label, gameStyle)))}
+        {/*
+          折叠分区（2026-10-19 恢复，源自 Python FIELD_GROUPS；双列网格版式刻意未恢复）。
+          分区内仍是「标签左、控件右」的扁平行 —— 拉平期确立的行形态原样保留，
+          变的只是「行被归到哪个可折叠分组里」。复杂控件（属性面板/属性表/引用表）
+          在 Python 侧本就该单独成区，这里由 buildFormLayout 兜底保证。
+         */}
+        {formLayout.sections.map((section) => (
+          <FormSectionCard key={section.title} title={section.title} icon={section.icon} defaultCollapsed={section.collapsed}>
+            {section.fields.map((field) => renderFieldRow(field, resolveFieldLabel(field.label, gameStyle)))}
+          </FormSectionCard>
+        ))}
       </div>
 
       <div className="editor-actions">

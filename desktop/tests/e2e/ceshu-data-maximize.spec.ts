@@ -26,8 +26,14 @@ test('数据编辑器：展开为整窗 → 字段表单显著变宽；标签列
         const form = document.querySelector(`${sel} [data-testid="item-editor"]`)
         const labels = [...document.querySelectorAll(`${sel} .editor-body .form-row .form-label`)]
         // 只取每行的**直接**控件（`.form-row > [data-testid^="field-"]`）：
-        // 复杂字段（desc/image/image_tags/ref-drop）内部还有嵌套的 field-*，算进去会误判
-        const controls = [...document.querySelectorAll(`${sel} .editor-body > .form-row > [data-testid^="field-"]`)]
+        // 复杂字段（desc/image/image_tags/ref-drop）内部还有嵌套的 field-*，算进去会误判。
+        // ⚠️ 2026-10-19 起字段行在**分区卡**里（折叠分区回归），故选择器多一层
+        // `[data-testid="form-section-body"]`；控件起始线按分区各自对齐（分区内 QFormLayout 语义）。
+        const controls = [
+          ...document.querySelectorAll(
+            `${sel} [data-testid="form-section-body"] > .form-row > [data-testid^="field-"]`
+          )
+        ]
         const lefts = new Set(controls.map((el) => Math.round(el.getBoundingClientRect().left)))
         return {
           present: root !== null && form !== null,

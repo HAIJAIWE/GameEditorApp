@@ -196,56 +196,69 @@ export function FieldControl({
       )
     }
     /*
-     * `image`：**只读路径框 + 「选择图片」按钮 + 实时预览**
-     * （对齐 PyQt `dynamic_form.py::_create_image_widget` 的三件套：只读 QLineEdit +
-     * 选择按钮 + `LazyImageLabel` 预览）。TS 原先落到 `default` 分支是**可编辑**单行框 ——
-     * 路径得手打、且看不到图对不对。
+     * `image`：**点选式方框** —— 空态是虚线框 + 居中「+」，点一下选图；
+     * 有图则显示预览，方框本身就是「点击更换」的热区。
      *
-     * 预览图用主进程回传的 `data:` URL，但**不再依赖本会话刚选过的 `picked`**：
-     * 直接用字段值（已保存的绝对路径）经 `images:readByPath` 回读 —— 这样打开已保存图片
-     * 的条目也能看到图（对齐 PyQt `load_image(str(value))`）。渲染层直接引用 `C://...`
-     * 会被 `webSecurity` 拦，故一律走主进程读文件转 data URL。
+     * ## 为什么从「三件套」改成点选式
+     * PyQt 原版是「只读路径框 + 选择按钮 + 预览」三件套挤成一行：既看不出哪里能点，
+     * 又在已经很挤的表单列里吃掉一整行宽度。这里改成通行的「头像上传」交互 ——
+     * 空态一个虚线方框中间一个 `+`，所见即所得、点击区域就是预览区域。
+     *
+     * 保留 `id` / `data-testid` 与只读路径框（缩小为 11px 提示行）：路径本身有排查价值
+     * （「图片文件不存在」时要能看出指向哪），但不再占据主视觉。
+     *
+     * 预览仍走 `LazyImage`：按字段值（已保存的绝对路径）经主进程 `images:readByPath`
+     * 回读 data URL，**打开已保存图片的条目也能看到图**（对齐 PyQt `load_image`）。
+     * 渲染层直接引用 `C://...` 会被 `webSecurity` 拦，故一律走主进程转 data URL。
      */
     case 'image': {
       const current = value === null || value === undefined ? '' : String(value)
+      const hasImage = current !== ''
+      const pick = (): void => {
+        setPicking(true)
+        void window.mbApi.dialog
+          .chooseImageFile()
+          .then((pickedFile) => {
+            if (pickedFile.path === null) return
+            onChange(pickedFile.path)
+          })
+          .catch(() => undefined) // 取消/读失败都不打断表单
+          .finally(() => setPicking(false))
+      }
       return (
         <div className="image-field" data-testid={`${testId}-wrap`}>
-          <div className="image-field-row">
+          <button
+            type="button"
+            className={`image-picker${hasImage ? ' has-image' : ''}`}
+            data-testid={`${testId}-pick`}
+            disabled={picking || !field.editable}
+            onClick={pick}
+            title={hasImage ? '点击更换图片' : '点击选择图片'}
+            aria-label={hasImage ? '更换图片' : '选择图片'}
+          >
+            {picking ? (
+              <span className="image-picker-hint">读取中…</span>
+            ) : hasImage ? (
+              <LazyImage path={current} width={120} height={120} alt="图片预览" className="image-picker-img" />
+            ) : (
+              <span className="image-picker-plus" aria-hidden="true">
+                +
+              </span>
+            )}
+          </button>
+          <div className="image-field-foot">
+            <span className="image-field-tip">{hasImage ? '点击方框可更换' : '点击「+」选择图片'}</span>
             <input
               id={testId}
               type="text"
-              className="form-input"
+              className="image-field-path"
               data-testid={testId}
               placeholder="尚未选择图片"
               value={current}
               readOnly
+              title={current || undefined}
             />
-            <button
-              type="button"
-              className="btn slim"
-              data-testid={`${testId}-pick`}
-              disabled={picking || !field.editable}
-              onClick={() => {
-                setPicking(true)
-                void window.mbApi.dialog
-                  .chooseImageFile()
-                  .then((pickedFile) => {
-                    if (pickedFile.path === null) return
-                    onChange(pickedFile.path)
-                  })
-                  .catch(() => undefined) // 取消/读失败都不打断表单
-                  .finally(() => setPicking(false))
-              }}
-            >
-              选择图片
-            </button>
           </div>
-          {/*
-           * 预览改成 <LazyImage>：按「已保存的绝对路径」经主进程 `images:readByPath`
-           * 回读 data URL。这样**打开已保存图片路径的条目**也能看到图（修复原 TS 只在
-           * 刚选过才显示、打开已保存条目看不到图的问题，对齐 PyQt `load_image(str(value))`）。
-           */}
-          <LazyImage path={current} width={120} height={120} alt="图片预览" />
         </div>
       )
     }
