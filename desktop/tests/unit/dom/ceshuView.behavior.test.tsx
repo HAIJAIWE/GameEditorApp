@@ -26,6 +26,12 @@ afterEach(async () => {
   view = null
   api?.restore()
   api = null
+  /*
+   * 组件会把「数据栏展开状态」写进 localStorage（这是有意的产品行为）。
+   * 但 jsdom 的 localStorage 在同一个测试文件内**跨用例共享** —— 不清理的话，
+   * 上一个用例留下的「收起」会让下一个用例的默认态错乱（实测：两条用例互相污染）。
+   */
+  localStorage.clear()
 })
 
 /** 造一份「已确认系统」的文档：避开打开时自动弹「确认游戏系统」的干扰 */
@@ -122,5 +128,43 @@ describe('CeshuView：「更多」菜单', () => {
     expect(api.calls).toContain('ceshu.versions')
     // 面板打开后「更多」菜单应收起，避免遮挡
     expect(rendered.query('[data-testid="ceshu-more-menu"]')).toBeNull()
+  })
+})
+
+describe('CeshuView：工作区 / 智能体分区', () => {
+  /*
+   * 布局心智：**左栏 + 中间 = 工作区，右栏 = 智能体**。
+   * 数据栏属于工作区（写文档时要对照数据），但它不该常驻 —— 收起后章节表单
+   * 应当吃掉整段宽度。默认展开（对齐 PyQt 55:45），偏好存 localStorage。
+   */
+  it('默认展开数据栏', async () => {
+    api = installMbApi({ doc: makeDoc() })
+    const rendered = await mount()
+
+    expect(rendered.query('[data-testid="ceshu-preview"]')).not.toBeNull()
+    expect(rendered.byTestId('ceshu-preview-toggle').textContent).toContain('收起数据')
+  })
+
+  it('点开关后数据栏移除、按钮改文案（把宽度让给章节表单）', async () => {
+    api = installMbApi({ doc: makeDoc() })
+    const rendered = await mount()
+
+    await rendered.click(rendered.byTestId('ceshu-preview-toggle'))
+
+    expect(rendered.query('[data-testid="ceshu-preview"]')).toBeNull()
+    expect(rendered.byTestId('ceshu-preview-toggle').textContent).toContain('数据栏')
+    // 章节表单仍在（收起的是数据栏，不是整个工作区）
+    expect(rendered.query('[data-testid="chapter-form"]')).not.toBeNull()
+  })
+
+  it('再次点击恢复展开', async () => {
+    api = installMbApi({ doc: makeDoc() })
+    const rendered = await mount()
+    const toggle = (): HTMLElement => rendered.byTestId('ceshu-preview-toggle')
+
+    await rendered.click(toggle())
+    await rendered.click(toggle())
+
+    expect(rendered.query('[data-testid="ceshu-preview"]')).not.toBeNull()
   })
 })

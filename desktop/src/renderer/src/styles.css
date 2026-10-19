@@ -838,6 +838,17 @@ body {
   gap: 10px;
 }
 
+/*
+ * `.field-with-ai` 是「字段行 + AI 按钮」的 flex 行，而字段行是它的**直接子元素**。
+ * 缺这条时字段行是 `flex: 0 1 auto`（收缩到内容宽，实测 232px），
+ * 网格的 `1fr` 也就无从展开 —— 表现为「中间栏 820px 宽，输入框还是 174px」。
+ * 必须让它吃掉除 AI 按钮外的全部宽度。
+ */
+.chapter-form .field-with-ai > .form-row {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .chapter-form .form-row > .form-label,
 .chapter-form .form-row > .ceshu-field-label-row {
   max-width: none;

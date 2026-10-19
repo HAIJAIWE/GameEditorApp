@@ -44,6 +44,9 @@ import VersionDiffPanel from './VersionDiffPanel'
 import VersionTimelinePanel from './VersionTimelinePanel'
 import { toErrorMessage } from './ceshuViewUtils'
 
+/** 数据栏展开状态的 localStorage 键（`'0'` = 收起，其它/缺失 = 展开） */
+const PREVIEW_OPEN_KEY = 'mb.ceshu.previewOpen'
+
 interface CeshuViewProps {
   ceshuId: string | null
   onChanged: () => void
@@ -119,6 +122,30 @@ export default function CeshuView({
   const [score, setScore] = useState<CeshuScoreReport | null>(null)
   /** 「更多 ▸」下拉展开状态（对齐 PyQt `editor_view.py:154` 的 `_btn_more` 菜单） */
   const [moreOpen, setMoreOpen] = useState(false)
+  /**
+   * 数据栏是否展开（左栏 + 中间 = 工作区，右栏 = 智能体）。
+   * 默认展开（对齐 PyQt 的 55:45 分栏），但可收起 —— 写正文时数据栏通常是空的，
+   * 却占着 44% 宽度。偏好存 localStorage：这是「工作姿势」，不该每次重开都重设。
+   */
+  const [previewOpen, setPreviewOpen] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(PREVIEW_OPEN_KEY) !== '0'
+    } catch {
+      return true // 隐私模式/存储被禁：退回默认展开
+    }
+  })
+
+  const togglePreview = (): void => {
+    setPreviewOpen((open) => {
+      const next = !open
+      try {
+        localStorage.setItem(PREVIEW_OPEN_KEY, next ? '1' : '0')
+      } catch {
+        // 存储不可用不影响本次会话内的开关
+      }
+      return next
+    })
+  }
   /** 「AI 生成数据」的预选类型（由条目表单的「AI 生成」按钮指定；null = 面板默认全选） */
   const [aiGenTarget, setAiGenTarget] = useState<string | null>(null)
   const moreRef = useRef<HTMLDivElement>(null)
@@ -537,6 +564,22 @@ export default function CeshuView({
         <button type="button" className="btn accent-outline" data-testid="ceshu-validate" disabled={busy} onClick={() => void handleValidate()}>
           校验
         </button>
+        {/*
+          数据栏开关。布局心智：**左栏 + 中间 = 工作区，右栏 = 智能体**。
+          数据预览属于工作区的一部分（写文档时要对照数据），但它不该和智能体并排抢宽度 ——
+          写正文时把它收起来，表单立刻拿回 44% 的宽度。
+          状态持久化：这是「工作姿势」偏好，每次重开都要重新点会很烦。
+        */}
+        <button
+          type="button"
+          className="btn"
+          data-testid="ceshu-preview-toggle"
+          aria-pressed={previewOpen}
+          title={previewOpen ? '收起数据栏，让章节表单占满工作区' : '展开数据栏（对照角色/技能等数据）'}
+          onClick={togglePreview}
+        >
+          {previewOpen ? '收起数据' : '数据栏'}
+        </button>
         <button type="button" className="btn accent-outline" data-testid="ceshu-ai-full" disabled={busy} onClick={() => setPanel('aiFull')}>
           AI 一键生成
         </button>
@@ -757,7 +800,16 @@ export default function CeshuView({
               />
             </div>
 
-            <CeshuDataPreview
+            {/*
+              数据栏属于**工作区**（左栏 + 中间），不是和右侧智能体并列的第四栏。
+              收起时章节表单吃掉整段宽度；`jumpTarget` 有值时必须展开 ——
+              否则「跳到引用」这类动作会静默失效（用户点了没反应）。
+
+              ⚠️ 用 `!= null` 而不是 `!== null`：`jumpTarget` 是可选 prop，
+              未传时是 `undefined`，而 `undefined !== null` 为真 ⇒ 数据栏会永远展开、
+              开关形同虚设（组件测试抓到的）。
+            */}
+            {(previewOpen || jumpTarget != null) && <CeshuDataPreview
               enabledEditors={enabledEditors}
               types={types}
               chapters={doc}
@@ -774,7 +826,7 @@ export default function CeshuView({
               }}
               onJumpHandled={onJumpHandled}
               onJumpMissed={onJumpMissed}
-            />
+            />}
           </div>
         )}
       </div>

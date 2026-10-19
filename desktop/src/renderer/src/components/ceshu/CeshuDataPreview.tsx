@@ -126,7 +126,7 @@ export default function CeshuDataPreview({
   const initialSelectedId = jumping ? jumpTarget?.itemId : undefined
 
   return (
-    <div className="ceshu-preview">
+    <div className="ceshu-preview" data-testid="ceshu-preview">
       <div className="ceshu-preview-tabs">
         {enabledEditors.map((editor) => (
           <button
