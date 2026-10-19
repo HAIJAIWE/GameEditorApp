@@ -172,9 +172,14 @@ export default function AiDataGenPanel({ ceshuId, initialTypeId, onClose }: AiDa
     try {
       let imported = 0
       const failures: string[] = []
+      /*
+       * 整批共用一个时间戳：这批导入对用户来说是「一次 AI 生成」，逐条 new Date()
+       * 只会让时间戳相差几毫秒，没有信息量。
+       */
+      const aiGeneratedAt = new Date().toISOString()
       for (const row of rows) {
         try {
-          await window.mbApi.data.createItem({ type: row.type, data: row.data })
+          await window.mbApi.data.createItem({ type: row.type, data: row.data, aiGeneratedAt })
           imported += 1
         } catch (err) {
           failures.push(`${String(row.data['name'] ?? '未命名')}: ${toErrorMessage(err)}`)

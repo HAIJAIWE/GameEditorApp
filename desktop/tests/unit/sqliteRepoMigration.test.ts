@@ -81,7 +81,8 @@ describe('SqliteItemsRepository 数据迁移（user_version 2：短 id 回填）
     const versionDb = new Database(dbPath, { readonly: true })
     const version = versionDb.pragma('user_version', { simple: true }) as number
     versionDb.close()
-    expect(version).toBe(2)
+    // 2026-10-20 起短 id 回填之后还会跑 v3（ai_generated_at 加列），故终值是 3
+    expect(version).toBe(3)
     repo.close()
   }, SQLITE_IO_TIMEOUT)
 

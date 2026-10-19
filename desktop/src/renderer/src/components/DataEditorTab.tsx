@@ -459,7 +459,21 @@ export default function DataEditorTab({
                       onBlur={() => void commitRename()}
                     />
                   ) : (
-                    <span className="item-name">{buildListRowText(item, fields)}</span>
+                    <>
+                      <span className="item-name">{buildListRowText(item, fields)}</span>
+                      {/*
+                        「AI 生成、待核对」点：与章节导航的圆点同一语义。
+                        人在右侧表单点「保存」即消失（`updateItem` 会清掉标记）。
+                        放在文本后面而不是覆盖在行首 —— 行首是条目名，不能被挤。
+                      */}
+                      {item.aiGeneratedAt !== undefined && (
+                        <span
+                          className="item-row-ai"
+                          title="AI 生成，待核对（保存该条目即消除）"
+                          data-testid={`item-ai-${item.id}`}
+                        />
+                      )}
+                    </>
                   )}
                 </div>
               ))

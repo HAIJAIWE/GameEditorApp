@@ -6,6 +6,13 @@ export interface ItemRecord {
   data: Record<string, unknown>
   createdAt: string
   updatedAt: string
+  /**
+   * AI 生成、**待人工核对**的时间戳（ISO）；`undefined` = 人工创建或已核对。
+   *
+   * 存在 SQLite 的独立列（不是 `data` 里）—— 塞 `data` 会漏进条目表单、CSV/Excel/Lua 导出。
+   * 人在条目表单点「保存」即清空该列（= 核对过了）。
+   */
+  aiGeneratedAt?: string
 }
 
 export interface AppInfo {

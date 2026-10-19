@@ -13,6 +13,7 @@ import type {
   CeshuConfirmSystemsInput,
   CeshuSyncDataInput,
   CeshuChooseExportFileInput,
+  CreateItemInput,
   ReportFileDialogInput,
   CeshuCreateInput,
   CeshuDeleteInput,
@@ -130,7 +131,7 @@ export interface IpcContract {
   'data:listItems': { req: { type: string }; res: ItemRecord[] }
   /** 全量条目（跨类型；统计面板等需要全局视角的消费者用） */
   'data:listAll': { req: undefined; res: ItemRecord[] }
-  'data:createItem': { req: { type: string; data: Record<string, unknown> }; res: ItemRecord }
+  'data:createItem': { req: CreateItemInput; res: ItemRecord }
   'data:updateItem': { req: { id: string; data: Record<string, unknown> }; res: ItemRecord }
   'data:deleteItem': { req: { id: string }; res: { deleted: boolean } }
   'data:batchUpdate': { req: BatchUpdateInput; res: BatchUpdateSummary }

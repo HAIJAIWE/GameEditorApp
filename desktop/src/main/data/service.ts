@@ -65,7 +65,8 @@ export class DataService implements UndoRecorderPort {
         type: input.type,
         data,
         createdAt: now,
-        updatedAt: now
+        updatedAt: now,
+        aiGeneratedAt: input.aiGeneratedAt
       }
       this.repo.insertItem(record)
       this.undoRecorder?.record({
@@ -121,7 +122,10 @@ export class DataService implements UndoRecorderPort {
       const next: ItemRecord = {
         ...existing,
         data: nextData,
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
+        // 保存即「核对过了」：清掉待核对标记。无标记时置 undefined 也走同一条路径，
+        // 不额外判断 —— 少一个分支就少一处漏改。
+        aiGeneratedAt: undefined
       }
       this.repo.upsertItem(next)
       this.undoRecorder?.record({

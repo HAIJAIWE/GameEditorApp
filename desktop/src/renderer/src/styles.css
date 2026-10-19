@@ -667,6 +667,20 @@ body {
   border-bottom: none;
 }
 
+/*
+ * 「AI 生成、待核对」圆点（数据列表行内）。
+ * `.ceshu-preview .item-row` 的 `gap: 0` 会让后面的元素贴紧文本，故这里自带左间距。
+ * 与章节导航的 `.chapter-tab-ai` 同尺寸同色，两处视觉语言一致。
+ */
+.ceshu-preview .item-row-ai {
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
 .ceshu-preview .item-row.selected {
   background: var(--accent-bg);
   color: var(--accent);

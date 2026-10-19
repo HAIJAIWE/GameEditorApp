@@ -11,6 +11,8 @@ interface ItemRow {
   data: string
   created_at: string
   updated_at: string
+  /** 「AI 生成、待核对」时间戳；NULL = 人工创建或已核对（迁移 v3 新增列，旧库读出来是 NULL） */
+  ai_generated_at: string | null
 }
 
 /** 基于 SQLite 的存储实现（WAL 模式；句柄仅被 DataService 持有） */
@@ -30,7 +32,7 @@ export class SqliteItemsRepository implements ItemsRepository {
     // 此前误写 DESC「最新在前」，用户实测反馈「顺序搞反了，新建的应该在底部」——2026-10-13 修正。
     const rows = this.db
       .prepare(
-        'SELECT id, type, data, created_at, updated_at FROM items WHERE type = ? ORDER BY created_at ASC, rowid ASC'
+        'SELECT id, type, data, created_at, updated_at, ai_generated_at FROM items WHERE type = ? ORDER BY created_at ASC, rowid ASC'
       )
       .all(type) as ItemRow[]
     return rows.map((row) => this.rowToRecord(row))
@@ -38,22 +40,31 @@ export class SqliteItemsRepository implements ItemsRepository {
 
   findItem(id: string): ItemRecord | undefined {
     const row = this.db
-      .prepare('SELECT id, type, data, created_at, updated_at FROM items WHERE id = ?')
+      .prepare('SELECT id, type, data, created_at, updated_at, ai_generated_at FROM items WHERE id = ?')
       .get(id) as ItemRow | undefined
     return row ? this.rowToRecord(row) : undefined
   }
 
   listAllItems(): ItemRecord[] {
     const rows = this.db
-      .prepare('SELECT id, type, data, created_at, updated_at FROM items ORDER BY type, created_at ASC')
+      .prepare('SELECT id, type, data, created_at, updated_at, ai_generated_at FROM items ORDER BY type, created_at ASC')
       .all() as ItemRow[]
     return rows.map((row) => this.rowToRecord(row))
   }
 
   insertItem(record: ItemRecord): void {
     this.db
-      .prepare('INSERT INTO items (id, type, data, created_at, updated_at) VALUES (?, ?, ?, ?, ?)')
-      .run(record.id, record.type, JSON.stringify(record.data), record.createdAt, record.updatedAt)
+      .prepare(
+        'INSERT INTO items (id, type, data, created_at, updated_at, ai_generated_at) VALUES (?, ?, ?, ?, ?, ?)'
+      )
+      .run(
+        record.id,
+        record.type,
+        JSON.stringify(record.data),
+        record.createdAt,
+        record.updatedAt,
+        record.aiGeneratedAt ?? null
+      )
   }
 
   /**
@@ -64,10 +75,21 @@ export class SqliteItemsRepository implements ItemsRepository {
   upsertItem(record: ItemRecord): void {
     this.db
       .prepare(
-        `INSERT INTO items (id, type, data, created_at, updated_at) VALUES (?, ?, ?, ?, ?)
+        `INSERT INTO items (id, type, data, created_at, updated_at, ai_generated_at) VALUES (?, ?, ?, ?, ?, ?)
          ON CONFLICT(id) DO UPDATE SET type = excluded.type, data = excluded.data, updated_at = excluded.updated_at`
       )
-      .run(record.id, record.type, JSON.stringify(record.data), record.createdAt, record.updatedAt)
+      /*
+       * 冲突分支**刻意不带 ai_generated_at**：与 `created_at` 同理，导入已存在条目时
+       * 保留原标记状态 —— 导入是数据搬运，不该把「待核对」洗掉，也不该凭空打上。
+       */
+      .run(
+        record.id,
+        record.type,
+        JSON.stringify(record.data),
+        record.createdAt,
+        record.updatedAt,
+        record.aiGeneratedAt ?? null
+      )
   }
 
   exists(id: string): boolean {
@@ -89,7 +111,8 @@ export class SqliteItemsRepository implements ItemsRepository {
       // 容错：行数据损坏时返回空对象，不让单条坏记录把整个列表读崩
       data: safeJsonParse(row.data, {}) as Record<string, unknown>,
       createdAt: row.created_at,
-      updatedAt: row.updated_at
+      updatedAt: row.updated_at,
+      aiGeneratedAt: row.ai_generated_at ?? undefined
     }
   }
 
@@ -113,6 +136,23 @@ export class SqliteItemsRepository implements ItemsRepository {
       this.backfillShortItemIds()
       this.db.pragma('user_version = 2')
     }
+    if (version < 3) {
+      this.addAiGeneratedColumn()
+      this.db.pragma('user_version = 3')
+    }
+  }
+
+  /**
+   * user_version 3：给条目加「AI 生成、待核对」时间戳列。
+   *
+   * 为什么用独立列而不是塞进 `data` JSON：塞进去会漏进条目表单（多出一个字段）、
+   * 也会被 CSV/Excel/Lua 导出带出去。列是**元数据**，与 `created_at`/`updated_at` 同性质。
+   *
+   * `ADD COLUMN` 幂等由 `user_version` 保证（只跑一次）；旧库加列后该列为 NULL，
+   * 读出来即 `undefined`（人工条目），不需要回填。
+   */
+  private addAiGeneratedColumn(): void {
+    this.db.exec('ALTER TABLE items ADD COLUMN ai_generated_at TEXT')
   }
 
   /**

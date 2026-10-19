@@ -215,3 +215,36 @@ describe('DataService', () => {
     expect(service.listItems('skill')).toHaveLength(0)
   })
 })
+describe('DataService：AI 生成「待核对」标记', () => {
+  it('createItem 带 aiGeneratedAt 时落库，人工创建则没有', async () => {
+    const service = createService()
+    const now = '2026-10-20T01:00:00.000Z'
+
+    const aiOne = await service.createItem({ type: 'battle', data: { name: 'AI 建的' }, aiGeneratedAt: now })
+    const manual = await service.createItem({ type: 'battle', data: { name: '人建的' } })
+
+    expect(aiOne.aiGeneratedAt).toBe(now)
+    expect(manual.aiGeneratedAt).toBeUndefined()
+  })
+
+  it('保存即「核对过了」：updateItem 清掉标记', async () => {
+    const service = createService()
+    const now = '2026-10-20T01:00:00.000Z'
+    const created = await service.createItem({ type: 'battle', data: { name: 'AI 建的' }, aiGeneratedAt: now })
+
+    const updated = await service.updateItem(created.id, { name: 'AI 建的（人改过了）' })
+
+    expect(updated.aiGeneratedAt).toBeUndefined()
+    // 数据本身照常更新
+    expect(updated.data['name']).toBe('AI 建的（人改过了）')
+  })
+
+  it('人工条目保存后不会凭空多出标记', async () => {
+    const service = createService()
+    const manual = await service.createItem({ type: 'battle', data: { name: '人建的' } })
+
+    const updated = await service.updateItem(manual.id, { name: '人建的（改名）' })
+
+    expect(updated.aiGeneratedAt).toBeUndefined()
+  })
+})

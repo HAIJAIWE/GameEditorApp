@@ -17,7 +17,12 @@ export const listItemsInputSchema = z.object({
 
 export const createItemInputSchema = z.object({
   type: z.string().min(1),
-  data: z.record(z.string(), z.unknown()).default({})
+  data: z.record(z.string(), z.unknown()).default({}),
+  /**
+   * 创建即标记为「AI 生成、待核对」。AI 数据生成面板导入时传，
+   * 人工新建不传（`undefined` = 人工创建的条目，列表上不带待核对点）。
+   */
+  aiGeneratedAt: z.string().min(1).optional()
 })
 
 export const deleteItemInputSchema = z.object({
