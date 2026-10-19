@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 
 import { formatImportSummary, toErrorMessage } from '../appUtils'
 import type { EngineExportInput } from '../../../shared/schemas'
+import { engineExportNotice } from '../../../shared/util/engineExportNotice'
 
 /**
  * 撤销 / 重做（对齐 PyQt `main_window` 的 undo/redo 动作 + 菜单项 disabled/标签）。
@@ -217,13 +218,19 @@ export function useDataTransfer(
           exportData: (req: {
             engine: EngineExportInput['engine']
             path: string
-          }) => Promise<{ filePath: string; engine: string; bytes: number }>
+          }) => Promise<{
+            filePath: string
+            engine: string
+            bytes: number
+            copiedImages?: number
+            missingImages?: string[]
+          }>
         }
       }
       const picked = await api.dialog.chooseEngineExportFile({ defaultName: 'GameData', engine })
       if (picked.path === null) return
       const result = await api.engine.exportData({ engine, path: picked.path })
-      setNotice(`已导出 ${result.filePath}（${result.bytes} 字节）`)
+      setNotice(engineExportNotice(result))
     } catch (err) {
       setError(toErrorMessage(err))
     }

@@ -183,7 +183,7 @@ export interface IpcContract {
    * 目录取 `<活跃库目录>/images` —— 切库时天然跟随，不需要渲染层传路径。
    */
   'images:libraryDir': { req: undefined; res: { dir: string } }
-  'images:listLibraryImages': { req: undefined; res: { dir: string; files: string[] } }
+  'images:listLibraryImages': { req: undefined; res: { dir: string; libraryDir: string; files: string[] } }
   /**
    * 按已保存路径读取图片为 data URL。
    * ⚠️ 主进程只允许读**当前库 images 目录内**的文件，越界一律拒绝（安全硬约束）。

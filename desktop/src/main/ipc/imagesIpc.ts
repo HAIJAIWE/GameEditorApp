@@ -62,7 +62,12 @@ export function registerImagesIpc(deps: IpcHandlerDeps, handle: IpcRegistrar): v
 
   handle('images:listLibraryImages', undefined, async () => {
     const dir = join(libraryManager.activeDir(), 'images')
-    return { dir, files: await listAllImagePaths(dir) }
+    /*
+     * 连带回传**库根目录**：调用方（未用清理面板）解析字段里的相对图片路径
+     * 要用它当基准。字段值 `images/xxx.png` 是相对库根的，拿 `dir` 当基准会拼出
+     * `<库>/images/images/xxx.png`，把"已引用"误判成"未引用"（→ 误删）。
+     */
+    return { dir, libraryDir: libraryManager.activeDir(), files: await listAllImagePaths(dir) }
   })
 
   /**
@@ -122,7 +127,13 @@ export function registerImagesIpc(deps: IpcHandlerDeps, handle: IpcRegistrar): v
     const wanted = new Set(req.paths)
 
     const records = await dataService.listAllItems()
-    const referencedKeys = collectReferencedImagePaths(records, dir).map((p) => imagePathKey(p))
+    /*
+     * ⚠️ base 传**库根目录**，不是 images 目录。
+     * 字段值 `images/xxx.png` 是相对库根的；若传 images 目录，`resolveImagePath` 会拼出
+     * `<库>/images/images/xxx.png` —— 文件不存在 ⇒ 引用判定为"未被引用" ⇒
+     * 未用清理会把用户正在用的图**删掉**。（2026-10-20 图片入库改存相对路径时抓到。）
+     */
+    const referencedKeys = collectReferencedImagePaths(records, libraryManager.activeDir()).map((p) => imagePathKey(p))
     const scan = diffUnusedImages(await listAllImagePaths(dir), referencedKeys)
     const deletable = new Set(scan.unused.filter((full) => wanted.has(full)))
 

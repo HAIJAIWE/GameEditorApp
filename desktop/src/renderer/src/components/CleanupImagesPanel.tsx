@@ -43,7 +43,7 @@ import { toErrorMessage } from '../../../shared/util/errors'
  *
  * ```ts
  * window.mbApi.images = {
- *   listLibraryImages(): Promise<{ dir: string; files: string[] }>   // 见报告里的 IPC 定义
+ *   listLibraryImages(): Promise<{ dir: string; libraryDir: string; files: string[] }>
  *   deleteImages(req: { paths: string[]; confirm: boolean }): Promise<{ deleted: number; failed: string[] }>
  * }
  * ```
@@ -53,7 +53,7 @@ import { toErrorMessage } from '../../../shared/util/errors'
 
 interface ImagesApi {
   /** 列出图片目录下的全部图片文件（主进程 rglob 7 种扩展名）；`dir` 为实际扫描的目录 */
-  listLibraryImages(): Promise<{ dir: string; files: string[] }>
+  listLibraryImages(): Promise<{ dir: string; libraryDir: string; files: string[] }>
   /** 物理删除给定路径的图片；`confirm` 必须为 true（主进程再校验一次） */
   deleteImages(req: { paths: string[]; confirm: boolean }): Promise<{ deleted: number; failed: string[] }>
 }
@@ -102,7 +102,12 @@ export default function CleanupImagesPanel() {
     }
     // 引用侧来自既有 `data:listAll`（无需新通道）；文件侧来自新增的 `images:listLibraryImages`
     const [listing, records] = await Promise.all([api.listLibraryImages(), window.mbApi.data.listAll()])
-    const referencedKeys = collectReferencedImagePaths(records, listing.dir)
+    /*
+     * ⚠️ 用 `listing.libraryDir`（库根）而不是 `listing.dir`（images 目录）当基准：
+     * 字段里的 `images/xxx.png` 是相对库根的。用错基准会让"已引用"被判成"未引用"，
+     * 用户一清理就把正在用的图删了。
+     */
+    const referencedKeys = collectReferencedImagePaths(records, listing.libraryDir)
     return { status: 'ready', scan: diffUnusedImages(listing.files, referencedKeys), dir: listing.dir }
   }, [])
 
