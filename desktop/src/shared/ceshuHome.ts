@@ -50,8 +50,16 @@ export function ceshuTypeLabel(gameType: string): string {
 }
 
 /** 更新时间显示：超过 16 字符截断（对齐 Python `updated[:16]`） */
+/**
+ * 更新时间显示：超过 16 字符截断（对齐 Python `updated[:16]`）。
+ *
+ * 另把 ISO 的 `T` 归一成空格：本应用自己写盘用 `YYYY-MM-DD HH:mm:ss`（空格分隔），
+ * 但**导入/外部来源**可能是 ISO（`2026-01-01T00:00:00`），直接截断会露出一个
+ * 突兀的 `T`（预览桩实测）。归一化后两种来源显示一致，也不影响已有格式。
+ */
 export function ceshuUpdatedDisplay(updatedAt: string): string {
-  return updatedAt.length > UPDATED_DISPLAY_MAX ? updatedAt.slice(0, UPDATED_DISPLAY_MAX) : updatedAt
+  const normalized = updatedAt.replace('T', ' ')
+  return normalized.length > UPDATED_DISPLAY_MAX ? normalized.slice(0, UPDATED_DISPLAY_MAX) : normalized
 }
 
 /**

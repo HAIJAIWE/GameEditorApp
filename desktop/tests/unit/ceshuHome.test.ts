@@ -61,6 +61,9 @@ describe('ceshuHome 文案与徽章（对齐 Python home_card）', () => {
     expect(ceshuUpdatedDisplay('2026-10-04 12:30:45')).toBe('2026-10-04 12:30')
     expect(ceshuUpdatedDisplay('2026-10-04 12:30')).toBe('2026-10-04 12:30')
     expect(ceshuUpdatedDisplay('')).toBe('')
+    // ISO 来源（导入/外部）不应露出 `T`
+    expect(ceshuUpdatedDisplay('2026-01-01T00:00:00')).toBe('2026-01-01 00:00')
+    expect(ceshuUpdatedDisplay('2026-01-01T00:00:00.000Z')).toBe('2026-01-01 00:00')
   })
 
   it('版本徽章：主子后缀 + 活跃星标；无版本号时不显示', () => {

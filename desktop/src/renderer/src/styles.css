@@ -821,6 +821,29 @@ body {
   gap: 10px;
 }
 
+/*
+ * 策划书章节表单：标签列从「固定 120px」改为 `max-content`。
+ *
+ * 章节表单所在的中间列本来就只有约 250px（260 导航 + 44% 数据预览之后），
+ * 而 120px 的固定标签列在这里等于吃掉近一半 —— 实测「设计理念」「主要用户」这类
+ * 4 字标签只占 ~60px，剩下 60px 白白浪费，多行输入框被压到 130px 宽。
+ *
+ * 改 grid + `max-content` 与条目编辑器同一套 QFormLayout 语义（列宽 = 本区最宽标签），
+ * 只作用于 `.chapter-form`：`.form-row` 被约 30 个面板共用，不能全站改。
+ */
+.chapter-form .form-row {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+}
+
+.chapter-form .form-row > .form-label,
+.chapter-form .form-row > .ceshu-field-label-row {
+  max-width: none;
+  white-space: nowrap;
+}
+
 .form-row > .form-label {
   /* QFormLayout 的标签列：等宽、左对齐、不参与拉伸 */
   flex: 0 0 120px;
@@ -1309,6 +1332,11 @@ body {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  /*
+   * 260px 是实测下限：收到 240 时「第二章·世界观与角色」会折成两行
+   * （省下的 20px 不足以补偿折行带来的可读性损失）。要再窄必须先给章节名
+   * 加 ellipsis，那等于牺牲信息，不做。
+   */
   width: 260px;
   flex-shrink: 0;
   overflow: auto;
@@ -1377,8 +1405,9 @@ body {
   position: relative;
   flex: 0 0 60px;
   width: 60px;
-  height: 6px;
-  border-radius: 3px;
+  /* 6px 在浅色轨道上几乎读不出「有没有进度」；8px 仍属迷你条，但三色档能一眼分辨 */
+  height: 8px;
+  border-radius: 4px;
   background: var(--border);
   overflow: hidden;
 }
@@ -1386,7 +1415,7 @@ body {
 .chapter-progress-fill {
   display: block;
   height: 100%;
-  border-radius: 3px;
+  border-radius: 4px;
   background: var(--progress-low);
 }
 
