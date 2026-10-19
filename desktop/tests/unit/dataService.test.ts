@@ -239,6 +239,29 @@ describe('DataService：AI 生成「待核对」标记', () => {
     expect(updated.data['name']).toBe('AI 建的（人改过了）')
   })
 
+  it('批量改值也算核对过：清掉被改条目的标记', async () => {
+    const service = createService()
+    const now = '2026-10-20T01:00:00.000Z'
+    const a = await service.createItem({ type: 'battle', data: { name: 'AI-a', level: '1' }, aiGeneratedAt: now })
+    const b = await service.createItem({ type: 'battle', data: { name: 'AI-b', level: '1' }, aiGeneratedAt: now })
+
+    // 批量操作的 kind 是 'set_value'（BATCH_OP_KINDS），不是直觉上的 'set'
+    const summary = await service.batchUpdate({
+      type: 'battle',
+      ids: [a.id, b.id],
+      // ⚠️ BatchOp 的类型把 zod 的默认值也算必填（`separator/mode/adjust`）——
+      // 走 IPC 时有 zod 兜底解析，直调 service 必须显式给全。
+      op: { kind: 'set_value', field: 'level', value: '9', separator: ',', mode: 'add', adjust: 0 }
+    })
+
+    expect(summary.affected).toBe(2)
+    const list = service.listItems('battle')
+    for (const item of list) {
+      expect(item.data['level']).toBe('9')
+      expect(item.aiGeneratedAt, `条目 ${item.id} 的待核对标记应被清掉`).toBeUndefined()
+    }
+  })
+
   it('人工条目保存后不会凭空多出标记', async () => {
     const service = createService()
     const manual = await service.createItem({ type: 'battle', data: { name: '人建的' } })

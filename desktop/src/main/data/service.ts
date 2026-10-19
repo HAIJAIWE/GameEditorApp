@@ -167,7 +167,14 @@ export class DataService implements UndoRecorderPort {
         if (needsShortId({ data: nextData })) {
           nextData.id = nextItemId(this.repo.listItems(existing.type))
         }
-        const next: ItemRecord = { ...existing, data: { ...nextData }, updatedAt: now }
+        const next: ItemRecord = {
+          ...existing,
+          data: { ...nextData },
+          updatedAt: now,
+          // 批量改值是人对选中条目的 deliberate 操作，算「核对过了」—— 清掉待核对标记。
+          // 与 `updateItem` 同口径；漏了这里会让被批量改过的条目一直挂着点。
+          aiGeneratedAt: undefined
+        }
         this.repo.upsertItem(next)
         summary.affected++
         children.push({
