@@ -25,6 +25,7 @@ import {
   buildValidationReportMarkdown
 } from '../../../shared/domain/ceshu/ceshuReports'
 import { buildScoreReportMarkdown, type CeshuScoreReport } from '../../../shared/ceshuScorer'
+import { clearAiGenerated, markAiGenerated, readAiGenerated } from '../../../shared/ceshuAiMark'
 import type { CeshuAiGenerateResult } from '../../../shared/ceshuAi'
 import type { DataTypeDef } from '../../../shared/types'
 
@@ -200,25 +201,6 @@ export default function CeshuView({
     }
   }, [ceshuId, onGameStyleChange])
 
-  const handleSave = useCallback(
-    async (chapter: ChapterKey, data: ChapterData): Promise<void> => {
-      if (!ceshuId) return
-      setBusy(true)
-      try {
-        const updated = await window.mbApi.ceshu.saveChapter({ id: ceshuId, chapter, data })
-        setDoc(updated)
-        setNotice(`已保存：${CHAPTER_LABELS[chapter]}`)
-        setError(null)
-        onChanged()
-      } catch (err) {
-        setError(toErrorMessage(err))
-      } finally {
-        setBusy(false)
-      }
-    },
-    [ceshuId, onChanged]
-  )
-
   /** AI 生成本章：走 IPC 调本地模型（ollama），返回清洗后的字段供表单填入草稿 */
   const handleAiGenerate = useCallback(
     async (chapter: ChapterKey, onlyEmpty: boolean): Promise<CeshuAiGenerateResult> => {
@@ -235,6 +217,32 @@ export default function CeshuView({
       return window.mbApi.ceshu.aiGenerateField({ id: ceshuId, chapter, field })
     },
     [ceshuId]
+  )
+
+  /** 保存章节：同时清除该章的「待核对」标记（人已经动过这一章了） */
+  const handleSave = useCallback(
+    async (chapter: ChapterKey, data: ChapterData): Promise<void> => {
+      if (!ceshuId) return
+      setBusy(true)
+      try {
+        const updated = await window.mbApi.ceshu.saveChapter({ id: ceshuId, chapter, data })
+        setDoc(updated)
+        setNotice(`已保存：${CHAPTER_LABELS[chapter]}`)
+        setError(null)
+        // 顺带清掉「待核对」点：人工保存过 = 核对过了。无标记时 clearAiGenerated 返回原 meta，
+        // 不会触发额外写盘。
+        const cleared = clearAiGenerated(updated.meta, chapter)
+        if (cleared !== updated.meta) {
+          setDoc(await window.mbApi.ceshu.saveChapter({ id: ceshuId, chapter: 'meta', data: cleared }))
+        }
+        onChanged()
+      } catch (err) {
+        setError(toErrorMessage(err))
+      } finally {
+        setBusy(false)
+      }
+    },
+    [ceshuId, onChanged]
   )
 
   if (!ceshuId) {
@@ -273,6 +281,8 @@ export default function CeshuView({
     )
   }
 
+  /** 「AI 生成、待核对」的章节集合 —— 章节列表据此画小圆点 */
+  const aiMarks = readAiGenerated(doc.meta)
   const scope = getGddScope(doc)
   const visible = visibleChapterKeys(scope)
   const progress = computeChapterProgress(doc)
@@ -454,10 +464,31 @@ export default function CeshuView({
   }
 
   /** AI 一键生成应用完成：更新当前文档并刷新列表 */
-  const handleAiApplied = (updated: CeshuDocument, appliedChapters: number): void => {
+  /**
+   * AI 一键生成应用完成：把这几章标成「待核对」，并跳到第一章开始扫读。
+   *
+   * 标记写进 `meta.ai_generated`（见 `shared/ceshuAiMark.ts`）。人点「保存本章」
+   * 或「已核对」即清除该章标记 —— 这正是「AI 生成 → 人扫一遍」工作流的进度。
+   */
+  const handleAiApplied = async (updated: CeshuDocument, chapters: readonly ChapterKey[]): Promise<void> => {
     setDoc(updated)
-    setNotice(`AI 生成内容已保存：${appliedChapters} 章`)
+    const names = chapters.map((chapter) => CHAPTER_LABELS[chapter]).join('、')
+    setNotice(`AI 生成内容已保存：${chapters.length} 章（${names}）。已标记为待核对，逐章看过即可。`)
     onChanged()
+
+    // 标记要落盘：只用组件内 state 的话，重开应用就丢了，那「待核对」就没意义
+    if (ceshuId !== null && chapters.length > 0) {
+      try {
+        const marked = markAiGenerated(updated.meta, chapters, new Date().toISOString())
+        const saved = await window.mbApi.ceshu.saveChapter({ id: ceshuId, chapter: 'meta', data: marked })
+        setDoc(saved)
+        // 跳到第一处变化：省得用户自己在 16 章里找
+        setActiveChapter(chapters[0])
+      } catch (err) {
+        // 标记失败不该让用户以为生成失败了 —— 内容已经写进去了
+        setError(toErrorMessage(err))
+      }
+    }
   }
 
   /** 模板编辑器「应用到该章节」完成：更新当前文档并刷新列表（进度可能变化） */
@@ -769,6 +800,13 @@ export default function CeshuView({
                     onClick={() => setActiveChapter(key)}
                   >
                     <span className="chapter-tab-label">{CHAPTER_LABELS[key]}</span>
+                    {/*
+                      「待核对」圆点：AI 刚生成、人还没看过。点了「保存本章」即消失。
+                      视觉上不用文字 —— 16 章里多出的两个字会比圆点更吵。
+                    */}
+                    {aiMarks[key] !== undefined && (
+                      <span className="chapter-tab-ai" title="AI 生成，待核对" data-testid={`chapter-ai-${key}`} />
+                    )}
                     <span
                       className="chapter-progress"
                       title={`完成度 ${pct}%`}

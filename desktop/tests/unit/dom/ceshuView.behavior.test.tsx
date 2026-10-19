@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import CeshuView from '../../../src/renderer/src/components/CeshuView'
 import { createDefaultCeshu } from '../../../src/shared/ceshuModel'
 import { installMbApi, renderDom, type ApiStub, type RenderResult } from './render'
+import type { CeshuDocument } from '../../../src/shared/ceshuConstants'
 
 /**
  * `CeshuView` 的**行为级**测试（W2）。
@@ -165,5 +166,70 @@ describe('CeshuView：工作区 / 智能体分区', () => {
     await rendered.click(toggle())
 
     expect(rendered.query('[data-testid="ceshu-preview"]')).toBeNull()
+  })
+})
+
+describe('CeshuView：AI 生成「待核对」标记', () => {
+  /*
+   * 工作流是「AI 生成 → 人扫一遍」。标记写在 meta.ai_generated，
+   * 章节列表据此画圆点；人点「保存本章」即清除该章标记。
+   * 锁三件事：标记能读出、圆点会渲染、保存后清掉。
+   */
+  const withMark = (chapters: string[]): CeshuDocument => {
+    const doc = makeDoc()
+    doc.meta.ai_generated = Object.fromEntries(chapters.map((key) => [key, '2026-10-20T00:00:00.000Z']))
+    return doc
+  }
+
+  it('meta 有标记的章节渲染圆点', async () => {
+    api = installMbApi({ doc: withMark(['vision']) })
+    const rendered = await mount()
+
+    // 直接断言圆点的存在性与"仅此一章"：章节导航里多一个点是最容易悄悄丢失的
+    const dots = rendered.queryAll('.chapter-tab-ai')
+    expect(dots).toHaveLength(1)
+    expect(rendered.byTestId('chapter-ai-vision')).toBeTruthy()
+  })
+
+  it('没有标记时不渲染任何圆点', async () => {
+    api = installMbApi({ doc: makeDoc() })
+    const rendered = await mount()
+
+    expect(rendered.queryAll('.chapter-tab-ai')).toHaveLength(0)
+  })
+
+  it('保存某章后清除该章标记（写回 meta）', async () => {
+    const doc = withMark(['vision', 'combat'])
+    /*
+     * 桩的 saveChapter 默认**原样返回同一个文档**，那样即使逻辑正确也看不出圆点消失。
+     * 这里改成真正回显：存 meta 时返回替换过 meta 的文档 —— 模拟主进程的真实行为。
+     */
+    api = installMbApi({
+      doc,
+      overrides: {
+        'ceshu.saveChapter': (req: unknown) => {
+          const r = req as { chapter?: string; data?: unknown }
+          return r.chapter === 'meta' ? { ...doc, meta: r.data } : doc
+        }
+      }
+    })
+    const rendered = await mount()
+
+    // 切到「产品愿景」——默认落在「文档信息」，那章没有标记，会被 clearAiGenerated 短路掉
+    const visionTab = rendered
+      .queryAll('[data-testid="chapter-tab"]')
+      .find((tab) => tab.textContent?.includes('产品愿景'))
+    expect(visionTab).toBeTruthy()
+    await rendered.click(visionTab as HTMLElement)
+
+    const saveBtn = [...rendered.container.querySelectorAll('button')].find(
+      (node) => node.textContent?.trim() === '保存本章'
+    )
+    expect(saveBtn).toBeTruthy()
+    await rendered.click(saveBtn as HTMLElement)
+
+    expect(rendered.query('[data-testid="chapter-ai-vision"]')).toBeNull()
+    // 只清当前章，另一章的标记还在
+    expect(rendered.queryAll('.chapter-tab-ai')).toHaveLength(1)
   })
 })

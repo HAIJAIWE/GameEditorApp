@@ -1390,6 +1390,19 @@ body {
   cursor: pointer;
 }
 
+/*
+ * 「AI 生成、待核对」圆点 —— 章节名与进度条之间。
+ * 用点不用文字：16 章里每章多两个字会比圆点更吵；鼠标悬停有 title 说明。
+ * 颜色取 accent（与当前章的左侧高亮同色系），让它比进度条更醒眼一点。
+ */
+.chapter-tab-ai {
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
 .chapter-tab:hover {
   background: var(--accent-light);
   color: var(--text);

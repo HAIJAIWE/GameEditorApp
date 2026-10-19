@@ -41,7 +41,11 @@ const STATUS_LABELS: Record<ChapterStatus, string> = {
 interface AiFullGeneratePanelProps {
   ceshuId: string
   doc: CeshuDocument
-  onApplied: (updated: CeshuDocument, appliedChapters: number) => void
+  /**
+   * 应用完成。`chapters` 是**实际写入的章节 key 列表**（不只是数量）——
+   * 宿主要据此把这几章标成「AI 生成、待核对」，用户才好扫读。
+   */
+  onApplied: (updated: CeshuDocument, chapters: readonly ChapterKey[]) => void
   onClose: () => void
 }
 
@@ -225,7 +229,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
       setResults({})
       setStatuses({})
       setSummary(`已应用并保存 ${chapters.length} 章到当前策划书。`)
-      onApplied(updated, chapters.length)
+      onApplied(updated, chapters)
     } catch (error) {
       setPanelError(toErrorMessage(error))
     } finally {
