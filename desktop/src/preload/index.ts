@@ -77,7 +77,8 @@ const api: MbApi = {
     exportCsv: (req) => invoke('data:exportCsv', req),
     importCsv: (req) => invoke('data:importCsv', req),
     exportExcel: (req) => invoke('data:exportExcel', req),
-    importExcel: (req) => invoke('data:importExcel', req)
+    importExcel: (req) => invoke('data:importExcel', req),
+    exportSnapshot: (req) => invoke('data:exportSnapshot', req)
   },
   engine: {
     exportData: (req) => invoke('engine:exportData', req)
@@ -125,6 +126,7 @@ const api: MbApi = {
   dialog: {
     chooseJsonFile: () => invoke('dialog:chooseJsonFile', undefined),
     chooseEngineExportFile: (req) => invoke('dialog:chooseEngineExportFile', req),
+    chooseDataSnapshotFile: (req) => invoke('dialog:chooseDataSnapshotFile', req),
     chooseSaveJsonFile: () => invoke('dialog:chooseSaveJsonFile', undefined),
     chooseExportDir: () => invoke('dialog:chooseExportDir', undefined),
     chooseCsvFile: () => invoke('dialog:chooseCsvFile', undefined),

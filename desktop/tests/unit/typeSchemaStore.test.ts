@@ -36,6 +36,30 @@ describe('TypeSchemaStore（type_schema.json 唯一写者）', () => {
     expect(reloaded.getTypes()[0]?.formFields.at(-1)?.name).toBe('test_field')
   })
 
+  it('自定义分区 sections：保存后落盘、重新加载仍在（端到端）', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'mb-schema-'))
+    const filePath = join(dir, 'type_schema.json')
+    const store = new TypeSchemaStore(filePath)
+
+    const types = store.getTypes()
+    const role = types.find((def) => def.id === 'role')
+    if (!role) throw new Error('内置 role 类型缺失')
+    role.sections = [
+      { title: '基础信息', icon: '📌', fields: ['id', 'name'] },
+      { title: '职业 & 种族', icon: '⚔️', fields: ['job', 'race'] }
+    ]
+    const saved = store.saveTypes(types)
+    expect(saved.find((def) => def.id === 'role')?.sections).toEqual(role.sections)
+
+    const raw = JSON.parse(readFileSync(filePath, 'utf-8')) as {
+      data_types: Array<{ id: string; sections?: Array<{ title: string; fields: string[] }> }>
+    }
+    expect(raw.data_types.find((t) => t.id === 'role')?.sections?.[1]?.title).toBe('职业 & 种族')
+
+    const reloaded = new TypeSchemaStore(filePath)
+    expect(reloaded.getTypes().find((def) => def.id === 'role')?.sections).toEqual(role.sections)
+  })
+
   it('保存校验失败：抛中文错误且不落盘', () => {
     const dir = mkdtempSync(join(tmpdir(), 'mb-schema-'))
     const filePath = join(dir, 'type_schema.json')

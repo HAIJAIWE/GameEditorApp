@@ -1,5 +1,5 @@
 import { BUILTIN_DATA_TYPES } from './typeSchema'
-import type { DataTypeDef, FieldType, TypeFieldDef } from './types'
+import type { DataTypeDef, FieldType, TypeFieldDef, TypeSectionDef } from './types'
 
 /**
  * 数据类型 schema 的文件格式与校验（跨进程共用）。
@@ -49,12 +49,21 @@ interface TypeSchemaFileField {
   ref_type?: string
 }
 
+interface TypeSchemaFileSection {
+  title: string
+  icon: string
+  collapsed?: boolean
+  fields: string[]
+}
+
 interface TypeSchemaFileType {
   id: string
   name: string
   plural_key: string
   color: string
   form_fields: TypeSchemaFileField[]
+  /** 可选的自定义分区（Python 侧忽略未知键，故与旧文件互通） */
+  sections?: TypeSchemaFileSection[]
 }
 
 export interface TypeSchemaFile {
@@ -66,25 +75,43 @@ export interface TypeSchemaFile {
 export function serializeTypeSchema(types: DataTypeDef[], version = DEFAULT_TYPE_SCHEMA_VERSION): TypeSchemaFile {
   return {
     version,
-    data_types: types.map((def) => ({
-      id: def.id,
-      name: def.name,
-      plural_key: def.pluralKey,
-      color: def.color,
-      form_fields: def.formFields.map((field) => {
-        const serialized: TypeSchemaFileField = {
-          name: field.name,
-          label: field.label,
-          type: field.type,
-          editable: field.editable
+    data_types: types.map((def) => {
+      const serializedType: TypeSchemaFileType = {
+        id: def.id,
+        name: def.name,
+        plural_key: def.pluralKey,
+        color: def.color,
+        form_fields: def.formFields.map((field) => {
+          const serialized: TypeSchemaFileField = {
+            name: field.name,
+            label: field.label,
+            type: field.type,
+            editable: field.editable
+          }
+          if (field.values !== undefined) serialized.values = [...field.values]
+          if (field.from !== undefined) serialized.from_ = field.from
+          if (field.to !== undefined) serialized.to = field.to
+          if (field.refType !== undefined && field.refType !== '') serialized.ref_type = field.refType
+          return serialized
+        })
+      }
+      // 只有确实定义了分区才写该键：内置类型没有 sections，落盘结构与旧版逐字节一致。
+      // 同时**剪除已删除字段的引用**、丢弃剪完变空的分区 —— 字段被删后分区引用会悬空，
+      // 留着只会让文件越积越脏（渲染本来就跳过，剪掉不影响显示）。
+      if (def.sections !== undefined && def.sections.length > 0) {
+        const fieldNames = new Set(def.formFields.map((field) => field.name))
+        const pruned: TypeSchemaFileSection[] = []
+        for (const section of def.sections) {
+          const fields = section.fields.filter((name) => fieldNames.has(name))
+          if (fields.length === 0) continue
+          const serializedSection: TypeSchemaFileSection = { title: section.title, icon: section.icon, fields }
+          if (section.collapsed !== undefined) serializedSection.collapsed = section.collapsed
+          pruned.push(serializedSection)
         }
-        if (field.values !== undefined) serialized.values = [...field.values]
-        if (field.from !== undefined) serialized.from_ = field.from
-        if (field.to !== undefined) serialized.to = field.to
-        if (field.refType !== undefined && field.refType !== '') serialized.ref_type = field.refType
-        return serialized
-      })
-    }))
+        if (pruned.length > 0) serializedType.sections = pruned
+      }
+      return serializedType
+    })
   }
 }
 
@@ -118,13 +145,38 @@ function parseType(raw: unknown, index: number): DataTypeDef {
   if (!Array.isArray(rawFields) || rawFields.length === 0) {
     throw new Error(`类型「${name}」缺少 form_fields 数组`)
   }
-  return {
+  const def: DataTypeDef = {
     id,
     name,
     pluralKey: readString(record.plural_key) || `${id}s`,
     color: readString(record.color) || '#607D8B',
     formFields: rawFields.map((field, fieldIndex) => parseField(field, name, fieldIndex))
   }
+  const sections = parseSections(record.sections)
+  if (sections.length > 0) def.sections = sections
+  return def
+}
+
+/**
+ * 解析可选的分区定义。结构不合法的条目**丢弃而非抛错**：
+ * 分区只是排版辅助，不该因为一个坏分区让整份 schema（乃至整个应用）打不开。
+ */
+function parseSections(raw: unknown): TypeSectionDef[] {
+  if (!Array.isArray(raw)) return []
+  const sections: TypeSectionDef[] = []
+  for (const item of raw) {
+    if (typeof item !== 'object' || item === null || Array.isArray(item)) continue
+    const record = item as Record<string, unknown>
+    const title = readString(record.title)
+    const fields = Array.isArray(record.fields)
+      ? record.fields.filter((name): name is string => typeof name === 'string' && name !== '')
+      : []
+    if (!title || fields.length === 0) continue
+    const section: TypeSectionDef = { title, icon: readString(record.icon) || '📌', fields }
+    if (typeof record.collapsed === 'boolean') section.collapsed = record.collapsed
+    sections.push(section)
+  }
+  return sections
 }
 
 function parseField(raw: unknown, typeName: string, index: number): TypeFieldDef {
@@ -250,6 +302,30 @@ export function validateTypeSchema(types: DataTypeDef[]): string[] {
         errors.push(`类型「${label}」的字段「${fieldLabel}」引用了不存在的类型「${field.refType}」`)
       }
     })
+    // 可选分区：校验标题/字段存在性/不重复归组（允许有未归组字段，它们会并入第一个分区）
+    if (def.sections !== undefined && def.sections.length > 0) {
+      const allFieldNames = new Set(def.formFields.map((field) => field.name))
+      const groupedNames = new Set<string>()
+      def.sections.forEach((section, index) => {
+        const sectionLabel = section.title || `第 ${index + 1} 个分区`
+        if (!section.title.trim()) {
+          errors.push(`类型「${label}」的${sectionLabel}标题不能为空`)
+        }
+        if (section.fields.length === 0) {
+          errors.push(`类型「${label}」的分区「${sectionLabel}」至少需要一个字段`)
+        }
+        for (const name of section.fields) {
+          // 引用已删除的字段**不算错**：渲染时跳过、保存时由 serializeTypeSchema 剪除。
+          // 若这里报错，用户「套用模板后删掉一个字段」就会卡在无法保存（且没有编辑分区的 UI）。
+          if (!allFieldNames.has(name)) continue
+          if (groupedNames.has(name)) {
+            errors.push(`类型「${label}」的字段「${name}」被归入多个分区`)
+          } else {
+            groupedNames.add(name)
+          }
+        }
+      })
+    }
   }
   return errors
 }

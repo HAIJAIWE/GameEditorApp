@@ -29,6 +29,8 @@ export interface MenuActions {
   batchEdit: () => void
   /** 引擎数据导出：按目标引擎走各自的渲染器与扩展名（对齐 PyQt `features/engine_export.py`） */
   engineExport: (engine: EngineTarget) => void
+  /** 数据快照导出（审查件）：json = 确定性可 diff 的全量数据；csv = 单表宽表。format 经菜单项 arg 传入 */
+  exportSnapshot: (format: 'json' | 'csv') => void
   /**
    * 「打开」/「保存」—— 整个数据仓库的 JSON 文件 I/O
    * （对齐 PyQt `main_window.py:710` 的 `open_file` / `:730` 的 `save_file`）。
@@ -154,6 +156,9 @@ export default function MenuBar({ canUndo, canRedo, actions }: MenuBarProps) {
     if (item.action === 'engineExport') {
       // 四个引擎菜单项共用一个 action，用 arg 传目标引擎（缺省 lua 兼容旧调用）
       actions.engineExport((item.arg ?? 'lua') as EngineTarget)
+    } else if (item.action === 'exportSnapshot') {
+      // 两个快照菜单项共用一个 action，用 arg 传格式（缺省 json）
+      actions.exportSnapshot((item.arg ?? 'json') as 'json' | 'csv')
     } else {
       ;(actions[item.action] as () => void)()
     }
@@ -194,6 +199,9 @@ export default function MenuBar({ canUndo, canRedo, actions }: MenuBarProps) {
           { type: 'action', label: '导出为 Unreal 格式', action: 'engineExport', arg: 'unreal', testid: 'menuitem-file-exportUnreal' },
           { type: 'action', label: '导出为 Godot 格式', action: 'engineExport', arg: 'godot', testid: 'menuitem-file-exportGodot' },
           { type: 'action', label: '导出为 Cocos2d 格式', action: 'engineExport', arg: 'cocos2d', testid: 'menuitem-file-exportCocos' },
+          { type: 'separator' },
+          { type: 'action', label: '导出数据快照 (JSON)', action: 'exportSnapshot', arg: 'json', testid: 'menuitem-file-exportSnapshotJson' },
+          { type: 'action', label: '导出数据快照 (CSV)', action: 'exportSnapshot', arg: 'csv', testid: 'menuitem-file-exportSnapshotCsv' },
           { type: 'separator' },
           { type: 'action', label: '游戏数据预览', action: 'gameDataPreview', testid: 'menuitem-file-gameDataPreview' }
         ]

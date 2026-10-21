@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { dataTypeDefSchema } from '../../src/shared/schemasData'
 import { BUILTIN_DATA_TYPES } from '../../src/shared/typeSchema'
 import { parseTypeSchemaFile, serializeTypeSchema, validateTypeSchema } from '../../src/shared/typeSchemaFile'
 import { TYPE_TEMPLATES, buildNewTypeDraft } from '../../src/shared/typeTemplates'
@@ -140,5 +141,103 @@ describe('字段模板（照抄 Python TYPE_TEMPLATES）', () => {
     expect(buildNewTypeDraft(['new_type', 'new_type_2']).pluralKey).toBe('new_type_3s')
     const draft = buildNewTypeDraft(['role'])
     expect(draft.formFields.map((f) => f.name)).toEqual(['id', 'name'])
+  })
+})
+
+describe('可选分区 sections（落盘 / 解析 / 校验）', () => {
+  const withSections: DataTypeDef = {
+    id: 'unit',
+    name: '单位',
+    pluralKey: 'units',
+    color: '#123456',
+    formFields: [
+      { name: 'id', label: 'ID:', type: 'entry', editable: false },
+      { name: 'name', label: '名称:', type: 'entry', editable: true },
+      { name: 'hp', label: '生命:', type: 'spinbox', editable: true }
+    ],
+    sections: [
+      { title: '基础信息', icon: '📌', fields: ['id', 'name'] },
+      { title: '战斗属性', icon: '⚔️', fields: ['hp'] }
+    ]
+  }
+
+  it('序列化：sections 按 snake_case 兼容结构写出', () => {
+    const file = serializeTypeSchema([withSections])
+    expect(file.data_types[0]?.sections).toEqual([
+      { title: '基础信息', icon: '📌', fields: ['id', 'name'] },
+      { title: '战斗属性', icon: '⚔️', fields: ['hp'] }
+    ])
+  })
+
+  it('无 sections 的类型不写该键（旧文件结构逐字节不变）', () => {
+    const file = serializeTypeSchema([{ ...withSections, sections: undefined }])
+    expect('sections' in (file.data_types[0] ?? {})).toBe(false)
+  })
+
+  it('解析往返：sections 原样恢复', () => {
+    const parsed = parseTypeSchemaFile(serializeTypeSchema([withSections]))
+    expect(parsed.types).toEqual([withSections])
+  })
+
+  it('解析容错：坏分区被丢弃而非抛错（空标题 / 空字段）', () => {
+    const parsed = parseTypeSchemaFile({
+      data_types: [
+        {
+          id: 'a',
+          name: 'A',
+          plural_key: 'as',
+          color: '#ffffff',
+          form_fields: [
+            { name: 'id', label: 'ID', type: 'entry', editable: false },
+            { name: 'x', label: 'X', type: 'entry', editable: true }
+          ],
+          sections: [
+            { title: '', icon: '📌', fields: ['id'] },
+            { title: '空', icon: '📌', fields: [] },
+            { title: '好', icon: '📌', fields: ['id', 'x'] }
+          ]
+        }
+      ]
+    })
+    expect(parsed.types[0]?.sections?.map((s) => s.title)).toEqual(['好'])
+  })
+
+  it('校验：重复归组 / 空标题 报中文错误；引用已删除字段不报错', () => {
+    const bad: DataTypeDef = {
+      ...withSections,
+      sections: [
+        { title: '基础信息', icon: '📌', fields: ['id', 'ghost'] },
+        { title: '战斗属性', icon: '⚔️', fields: ['hp', 'id'] },
+        { title: '', icon: '📌', fields: ['name'] }
+      ]
+    }
+    const messages = validateTypeSchema([bad]).join('\n')
+    expect(messages).toContain('被归入多个分区')
+    expect(messages).toContain('标题不能为空')
+    // ghost 是已删除字段：渲染跳过、保存剪除，**不应**阻断保存（否则删字段后无法保存）
+    expect(messages).not.toContain('ghost')
+  })
+
+  it('校验：合法 sections 通过', () => {
+    expect(validateTypeSchema([withSections])).toEqual([])
+  })
+
+  it('序列化时剪除已删除字段的引用；分区剪空则整段丢弃', () => {
+    const pruned: DataTypeDef = {
+      ...withSections,
+      sections: [
+        { title: '基础信息', icon: '📌', fields: ['id', 'name', 'ghost'] },
+        { title: '空分区', icon: '⚙️', fields: ['also_ghost'] }
+      ]
+    }
+    const file = serializeTypeSchema([pruned])
+    expect(file.data_types[0]?.sections).toEqual([{ title: '基础信息', icon: '📌', fields: ['id', 'name'] }])
+  })
+
+  it('IPC 校验（dataTypeDefSchema）保留 sections，不被 zod 剥掉', () => {
+    // 关键回归：zod 默认 strip 未声明键，dataTypeDefSchema 漏声明 sections 会让
+    // schema:save 静默丢分区 —— 这条测试直接锁住该契约。
+    const parsed = dataTypeDefSchema.parse(withSections)
+    expect(parsed.sections).toEqual(withSections.sections)
   })
 })

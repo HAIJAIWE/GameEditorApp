@@ -171,3 +171,48 @@ describe('isComplexFieldType', () => {
     }
   })
 })
+
+describe('自定义分区（类型自带 sections，优先级最高）', () => {
+  const fields = [field('id'), field('name'), field('hp', 'spinbox'), field('atk', 'spinbox'), field('desc', 'desc')]
+
+  it('压过内置 FORM_GROUPS（role 也按自定义分区渲染）', () => {
+    const layout = buildFormLayout('role', fields, [
+      { title: '基础信息', icon: '📌', fields: ['id', 'name'] },
+      { title: '战斗属性', icon: '⚔️', fields: ['hp', 'atk'] },
+      { title: '描述', icon: '📝', fields: ['desc'] }
+    ])
+    expect(layout.sections.map((s) => [s.title, s.fields.map((f) => f.name)])).toEqual([
+      ['基础信息', ['id', 'name']],
+      ['战斗属性', ['hp', 'atk']],
+      ['描述', ['desc']]
+    ])
+  })
+
+  it('不存在的字段被跳过，渲染不出内容的分区被丢弃', () => {
+    const layout = buildFormLayout('custom', fields, [
+      { title: '基础信息', icon: '📌', fields: ['id', 'name', 'hp', 'atk', 'desc', 'nope'] },
+      { title: '空分区', icon: '⚙️', fields: ['also_nope'] }
+    ])
+    // 全字段已覆盖 ⇒ 无 leftovers 干扰；`nope` 被跳过、`空分区` 被丢弃
+    expect(layout.sections.map((s) => s.title)).toEqual(['基础信息'])
+    expect(layout.sections[0].fields.map((f) => f.name)).toEqual(['id', 'name', 'hp', 'atk', 'desc'])
+  })
+
+  it('未归组字段并入第一个分区（不丢字段）', () => {
+    const layout = buildFormLayout('custom', fields, [{ title: '基础信息', icon: '📌', fields: ['id', 'name'] }])
+    expect(layout.sections).toHaveLength(1)
+    expect(layout.sections[0].fields.map((f) => f.name)).toEqual(['id', 'name', 'hp', 'atk', 'desc'])
+  })
+
+  it('collapsed 透传，缺省不折叠', () => {
+    const layout = buildFormLayout('custom', fields, [
+      { title: '折叠区', icon: '📌', collapsed: true, fields: ['id', 'name'] }
+    ])
+    expect(layout.sections[0].collapsed).toBe(true)
+  })
+
+  it('空数组等价于未提供（回落内置/兜底）', () => {
+    const layout = buildFormLayout('battle', [field('id'), field('name')], [])
+    expect(layout.sections.map((s) => s.title)).toEqual(['基础信息'])
+  })
+})

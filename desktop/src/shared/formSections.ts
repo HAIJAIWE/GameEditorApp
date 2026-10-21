@@ -1,4 +1,4 @@
-import type { FieldType, TypeFieldDef } from './types'
+import type { FieldType, TypeFieldDef, TypeSectionDef } from './types'
 
 /**
  * 条目编辑器的**分区定义与构建**（折叠分区布局）。
@@ -188,10 +188,20 @@ export function isComplexFieldType(type: FieldType): boolean {
  *   得先记得去点「描述 & 图片」。10-13 拉平那版用户满意「一列看全、不用展开分区」，
  *   正是这个原因。折叠能力保留（点头部即可），但默认不给用户藏字段。
  */
-export function buildFormLayout(typeId: string, fields: readonly TypeFieldDef[]): FormLayout {
-  const defs = FORM_GROUPS[typeId]
-  if (defs === undefined) return buildFallbackLayout(fields)
+/** 分区定义的公共形状：内置表用 `attributePanel` 绑定，自定义分区直接列字段名 */
+type SectionLikeDef = {
+  title: string
+  icon: string
+  collapsed?: boolean
+  attributePanel?: boolean
+  fields?: readonly string[]
+}
 
+/** 把一组分区定义解析成实际分区：跳过 schema 里不存在的字段，丢弃渲染不出内容的分区 */
+function buildFromDefs(
+  defs: readonly SectionLikeDef[],
+  fields: readonly TypeFieldDef[]
+): { sections: FormSection[]; grouped: Set<string> } {
   const byName = new Map(fields.map((field) => [field.name, field]))
   const grouped = new Set<string>()
   const sections: FormSection[] = []
@@ -223,7 +233,26 @@ export function buildFormLayout(typeId: string, fields: readonly TypeFieldDef[])
     })
   }
 
-  const leftovers = fields.filter((field) => !grouped.has(field.name))
+  return { sections, grouped }
+}
+
+/**
+ * 构建分区布局。
+ *
+ * 优先级：**类型自带的自定义分区（`sections`）> 内置 `FORM_GROUPS` > 语义兜底**。
+ * 自定义分区必须压过内置表 —— 否则「套用模板后按建议分区渲染」会被旧的内置分组盖掉。
+ */
+export function buildFormLayout(
+  typeId: string,
+  fields: readonly TypeFieldDef[],
+  sections?: readonly TypeSectionDef[]
+): FormLayout {
+  const defs: readonly SectionLikeDef[] | undefined =
+    sections !== undefined && sections.length > 0 ? sections : FORM_GROUPS[typeId]
+  if (defs === undefined) return buildFallbackLayout(fields)
+
+  const built = buildFromDefs(defs, fields)
+  const leftovers = fields.filter((field) => !built.grouped.has(field.name))
 
   /*
    * 未归组字段并入第一个分区（Python 原版渲染在分区外，观感割裂）。
@@ -231,19 +260,19 @@ export function buildFormLayout(typeId: string, fields: readonly TypeFieldDef[])
    * 若一个分区都没产出（极端情况：类型只定义了不存在的字段名），补一个基础信息分区。
    */
   if (leftovers.length > 0) {
-    if (sections.length === 0) {
-      sections.push({
+    if (built.sections.length === 0) {
+      built.sections.push({
         title: FALLBACK_SECTION.title,
         icon: FALLBACK_SECTION.icon,
         collapsed: false,
         fields: [...leftovers]
       })
     } else {
-      sections[0] = { ...sections[0], fields: [...sections[0].fields, ...leftovers] }
+      built.sections[0] = { ...built.sections[0], fields: [...built.sections[0].fields, ...leftovers] }
     }
   }
 
-  return { sections }
+  return { sections: built.sections }
 }
 
 /**

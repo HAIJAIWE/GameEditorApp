@@ -217,8 +217,40 @@ export const engineTargetSchema = z.enum(['lua', 'unity', 'unreal', 'godot', 'co
 
 export const engineExportInputSchema = z.object({
   engine: engineTargetSchema,
-  path: z.string().min(1)
+  path: z.string().min(1),
+  /**
+   * 「缺失图片即阻断」：开启时，引用到的库内图片若有缺失，导出前直接抛错、不落盘
+   * （避免导出一个「数据在、图缺几张」的半成品，AI 覆盖游戏活文件时尤其危险）。
+   * 默认关：保持旧行为（拷得到的拷、找不到的记 missing 不阻断）。
+   */
+  blockOnMissingImages: z.boolean().default(false)
 })
+
+/* ---- 数据快照导出（给人 / 给 git 审核，不是给游戏运行吃） ---- */
+
+/** 快照格式：json = 确定性可 diff 的全量数据；csv = 单表宽表（每行一条） */
+export const dataSnapshotFormatSchema = z.enum(['json', 'csv'])
+
+/**
+ * 数据快照导出：把 SQLite 全量数据 + 类型 schema 渲染成**确定性可 git diff** 的 JSON/CSV，
+ * 让策划改动能在 PR 里逐行审核（SQLite 真相源本身不可读、blob diff 噪声大）。
+ * 与 `engine:exportData`（给游戏运行态的产物）不同：本通道是**审查件**。
+ */
+export const dataSnapshotInputSchema = z.object({
+  /** 目标路径（含扩展名；缺省时按 format 兜底补 .json/.csv） */
+  path: z.string().min(1),
+  format: dataSnapshotFormatSchema.default('json')
+})
+
+export const dataSnapshotFileDialogInputSchema = z.object({
+  defaultName: z.string().min(1).max(120).optional(),
+  format: dataSnapshotFormatSchema.default('json'),
+  defaultPath: z.string().min(1).max(4096).optional()
+})
+
+export type DataSnapshotFormat = z.infer<typeof dataSnapshotFormatSchema>
+export type DataSnapshotInput = z.infer<typeof dataSnapshotInputSchema>
+export type DataSnapshotFileDialogInput = z.infer<typeof dataSnapshotFileDialogInputSchema>
 
 /* ---- 数据表批量操作 ---- */
 
@@ -276,12 +308,26 @@ export const typeFieldDefSchema = z.object({
   refType: z.string().max(64).optional()
 })
 
+/** 类型自定义分区（可选；见 shared/types.ts 的 TypeSectionDef） */
+export const typeSectionDefSchema = z.object({
+  title: z.string().min(1).max(100),
+  icon: z.string().max(16),
+  collapsed: z.boolean().optional(),
+  fields: z.array(z.string().min(1).max(64)).max(300)
+})
+
 export const dataTypeDefSchema = z.object({
   id: z.string().min(1).max(64),
   name: z.string().min(1).max(200),
   pluralKey: z.string().min(1).max(64),
   color: z.string().max(40),
-  formFields: z.array(typeFieldDefSchema).min(1).max(300)
+  formFields: z.array(typeFieldDefSchema).min(1).max(300),
+  /**
+   * 可选分区（模板/用户定义）。
+   * ⚠️ **必须显式声明**：zod 默认会剥掉未声明的键 —— 漏了它，
+   * `schema:save` 会在校验阶段静默丢掉 `sections`，分区设置永远存不下来。
+   */
+  sections: z.array(typeSectionDefSchema).max(50).optional()
 })
 
 export const schemaSaveInputSchema = z.object({

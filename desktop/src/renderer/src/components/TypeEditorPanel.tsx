@@ -7,8 +7,13 @@ import {
   FIELD_ID_AI_ERROR_NO_CANDIDATE
 } from '../../../shared/util/fieldIdAi'
 import { FIELD_TYPE_LABELS, FIELD_TYPES, validateTypeSchema } from '../../../shared/typeSchemaFile'
-import { TYPE_TEMPLATE_NAMES, TYPE_TEMPLATES, buildNewTypeDraft } from '../../../shared/typeTemplates'
-import type { DataTypeDef, FieldType, TypeFieldDef } from '../../../shared/types'
+import {
+  TYPE_TEMPLATE_NAMES,
+  TYPE_TEMPLATE_SECTIONS,
+  TYPE_TEMPLATES,
+  buildNewTypeDraft
+} from '../../../shared/typeTemplates'
+import type { DataTypeDef, FieldType, TypeFieldDef, TypeSectionDef } from '../../../shared/types'
 
 import { refOptions, parseOptionalNumber } from './typeEditorUtils'
 import FieldIdSuggest from './FieldIdSuggest'
@@ -90,6 +95,8 @@ export default function TypeEditorPanel({ types, initialTypeId, onSaved, onClose
   }, [])
 
   const isBuiltinTemplate = TYPE_TEMPLATE_NAMES.includes(templateName)
+  /** 当前下拉选中的内置模板的建议分区（自定义模板无此数据 ⇒ null） */
+  const templateSections = TYPE_TEMPLATE_SECTIONS[templateName] ?? null
 
   const baseIds = useMemo(() => new Set(types.map((def) => def.id)), [types])
   const current = draft.find((def) => def.id === selectedId) ?? null
@@ -301,10 +308,19 @@ export default function TypeEditorPanel({ types, initialTypeId, onSaved, onClose
   }
 
   const commitTemplateReplace = (name: string, fields: TypeFieldDef[]): void => {
-    updateType({ formFields: fields })
+    /*
+     * 套用内置模板时把「建议分区」一并写进类型 —— 这一步让它**真正生效**：
+     * 保存后条目表单会按这些分区渲染，而不是回落到内置 FORM_GROUPS / 语义兜底。
+     * 自定义模板没有建议数据 ⇒ 清空旧分区，避免残留指向已删除字段的分组。
+     */
+    const suggestion = TYPE_TEMPLATE_SECTIONS[name]
+    const sections: TypeSectionDef[] | undefined = suggestion
+      ? suggestion.map((section) => ({ title: section.title, icon: section.icon, fields: [...section.fields] }))
+      : undefined
+    updateType({ formFields: fields, sections })
     bumpReset()
     setPendingTemplate(null)
-    setNotice(`已应用模板「${name}」（尚未保存）`)
+    setNotice(`已应用模板「${name}」${suggestion ? '并填入建议分区' : ''}（尚未保存）`)
   }
 
   /** 把当前类型的字段存为自定义模板（存完整定义，非 Python 那样只存标签） */
@@ -524,6 +540,22 @@ export default function TypeEditorPanel({ types, initialTypeId, onSaved, onClose
                   添加字段
                 </button>
               </div>
+              {/*
+                建议分区：套用模板后字段会变长，尤其 hp/atk/def 这类战斗数值很容易被并进「基础信息」。
+                这里预览模板建议的分组；**应用模板时会把它们写进类型的 `sections`**，
+                保存后条目表单即按此分区渲染（优先级高于内置 FORM_GROUPS）。
+              */}
+              {templateSections !== null && (
+                <div className="form-hint-row" data-testid="te-template-sections">
+                  <span>
+                    建议分区：
+                    {templateSections
+                      .map((section) => `${section.icon} ${section.title}（${section.fields.join(' / ')}）`)
+                      .join(' ｜ ')}
+                    <span className="item-meta"> （应用模板后条目表单将按此分区渲染）</span>
+                  </span>
+                </div>
+              )}
               {/*
                 替换确认：列出会被「藏起来」的字段（数据仍在文件里，只是界面上不再显示）。
                 这不是删数据，但用户视角等同于数据消失，所以必须先讲清楚再动手。

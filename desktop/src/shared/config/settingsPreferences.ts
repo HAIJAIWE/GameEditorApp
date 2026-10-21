@@ -182,7 +182,44 @@ export function saveConfirmDelete(enabled: boolean, storage: StorageLike | null 
 }
 
 /* ==========================================================================
- * 四、应用到 DOM
+ * 四、引擎导出「图片缺失即阻断」
+ * ========================================================================== */
+
+/**
+ * 默认**关闭**。
+ *
+ * 这是「更严格」的一档：开启后，导出前若发现引用的库内图片缺失，直接抛错、不落盘
+ * （避免导出一个「数据在、图缺几张」的半成品，AI 覆盖游戏活文件时尤其危险）。
+ * 默认关闭是为了**保持旧行为**——拷得到的拷、找不到的记 missing、不阻断，
+ * 不惊动既有自动化/工作流（某些条目本就引用库外绝对路径的图，开启会被误伤）。
+ * 需要强一致性的人去设置里打开即可。
+ */
+export const DEFAULT_BLOCK_EXPORT_MISSING_IMAGES = false
+
+const BLOCK_EXPORT_TRUE = 'true'
+const BLOCK_EXPORT_FALSE = 'false'
+
+/**
+ * 读「图片缺失即阻断」开关。只接受 `'true'` / `'false'` 字面量。
+ * @returns 键缺失 / 值非法 / storage 不可用时回落 `DEFAULT_BLOCK_EXPORT_MISSING_IMAGES`（= 关闭）
+ */
+export function loadBlockExportMissingImages(storage: StorageLike | null = defaultSettingsStorage()): boolean {
+  const raw = readSetting(SETTINGS_KEYS.blockExportMissingImages, storage)
+  if (raw === BLOCK_EXPORT_TRUE) return true
+  if (raw === BLOCK_EXPORT_FALSE) return false
+  return DEFAULT_BLOCK_EXPORT_MISSING_IMAGES
+}
+
+/**
+ * 写「图片缺失即阻断」开关（显式写 `'true'`/`'false'`，不靠「键不存在」表达默认值）。
+ * @returns 是否写入成功（storage 不可用 → false）
+ */
+export function saveBlockExportMissingImages(enabled: boolean, storage: StorageLike | null = defaultSettingsStorage()): boolean {
+  return writeSetting(SETTINGS_KEYS.blockExportMissingImages, enabled ? BLOCK_EXPORT_TRUE : BLOCK_EXPORT_FALSE, storage)
+}
+
+/* ==========================================================================
+ * 五、应用到 DOM
  * ========================================================================== */
 
 /**

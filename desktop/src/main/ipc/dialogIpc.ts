@@ -6,7 +6,8 @@ import {
   ceshuChooseExportFileInputSchema,
   reportFileDialogInputSchema,
   engineExportFileDialogInputSchema,
-  templateJsonDialogInputSchema
+  templateJsonDialogInputSchema,
+  dataSnapshotFileDialogInputSchema
 } from '../../shared/schemas'
 import { CESHU_FORMAT_EXTENSIONS, CESHU_FORMAT_LABELS } from '../../shared/ceshuConstants'
 import { buildImagePreviewDataUrl } from '../../shared/util/imagePreview'
@@ -134,6 +135,19 @@ export function registerDialogIpc(deps: IpcHandlerDeps, handle: IpcRegistrar): v
       // 记得上次导出路径就回填它（直接落在游戏文件上，一键确认）；否则回落默认名。
       defaultPath: req.defaultPath ?? `${req.defaultName ?? 'GameData'}${extension}`,
       filters: [{ name: label, extensions: [extension.replace('.', '')] }]
+    }
+    const focused = BrowserWindow.getFocusedWindow()
+    const result = focused ? await dialog.showSaveDialog(focused, options) : await dialog.showSaveDialog(options)
+    return { path: result.canceled || !result.filePath ? null : result.filePath }
+  })
+  handle('dialog:chooseDataSnapshotFile', dataSnapshotFileDialogInputSchema, async (req) => {
+    const extension = req.format === 'csv' ? '.csv' : '.json'
+    const label = req.format === 'csv' ? '数据快照 (CSV)' : '数据快照 (JSON)'
+    const options: SaveDialogOptions = {
+      title: `导出${label}`,
+      // 记得上次导出路径就回填（快照通常固定落仓库里某处，便于 git 跟踪）；否则回落默认名。
+      defaultPath: req.defaultPath ?? `${req.defaultName ?? 'GameData.snapshot'}${extension}`,
+      filters: [{ name: label, extensions: [extension.slice(1)] }]
     }
     const focused = BrowserWindow.getFocusedWindow()
     const result = focused ? await dialog.showSaveDialog(focused, options) : await dialog.showSaveDialog(options)

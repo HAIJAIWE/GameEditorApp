@@ -11,13 +11,15 @@ import {
   importLegacyInputSchema,
   exportLegacyInputSchema,
   exportDirInputSchema,
-  importDataFileInputSchema
+  importDataFileInputSchema,
+  dataSnapshotInputSchema
 } from '../../shared/schemas'
 import { buildReferenceReport } from '../../shared/util/references'
 import { importLegacyDataFile } from '../data/legacyImport'
 import { exportLegacyDataFile } from '../data/legacyExport'
 import { exportCsvFiles, importCsvFile } from '../data/csvIO'
 import { exportExcelFile, importExcelFile } from '../data/excelIO'
+import { type DataSnapshotResult, exportDataSnapshot } from '../data/snapshotExport'
 
 export function registerDataIpc(deps: IpcHandlerDeps, handle: IpcRegistrar): void {
   const { dataService, undoRecorder, dataSync, typeSchemaStore } = deps
@@ -94,4 +96,6 @@ export function registerDataIpc(deps: IpcHandlerDeps, handle: IpcRegistrar): voi
     await dataSync.onDataChanged()
     return summary
   })
+  // 数据快照导出（审查件，不是给游戏运行吃）：取全量数据 + 类型 schema，渲染成确定性可 diff 的 JSON/CSV
+  handle('data:exportSnapshot', dataSnapshotInputSchema, (req): DataSnapshotResult => exportDataSnapshot(dataService.listAllItems(), typeSchemaStore.getTypes(), { format: req.format, targetPath: req.path }))
 }

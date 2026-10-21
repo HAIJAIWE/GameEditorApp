@@ -430,11 +430,8 @@ export default function App() {
   }
 
   /** 数据导入 / 导出（JSON / CSV / Excel / 引擎格式）：内聚单元，见 hooks/useAppActions */
-  const { importJson, exportJson, importCsv, exportCsv, importExcel, exportExcel, engineExport } = useDataTransfer(
-    setNotice,
-    setError,
-    refreshUndo
-  )
+  const { importJson, exportJson, importCsv, exportCsv, importExcel, exportExcel, engineExport, exportSnapshot } =
+    useDataTransfer(setNotice, setError, refreshUndo)
 
   /** 退出：关闭渲染进程窗口（Electron 主窗口关闭即退出） */
   const handleQuit = (): void => {
@@ -558,6 +555,7 @@ export default function App() {
           exportExcel,
           batchEdit: () => openPanel('batch'),
           engineExport: (engine) => void engineExport(engine),
+          exportSnapshot: (format) => void exportSnapshot(format),
           backup: () => openPanel('backup'),
           undo: () => void performUndo(),
           redo: () => void performRedo(),

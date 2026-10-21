@@ -54,6 +54,8 @@ import type {
   AgentFeedbackInput,
   AgentInteractionResponseInput,
   EngineExportFileDialogInput,
+  DataSnapshotInput,
+  DataSnapshotFileDialogInput,
   FieldIdSuggestInput,
   LibraryCreateInput,
   LibraryNameInput,
@@ -220,6 +222,13 @@ export interface IpcContract {
   // 引擎数据导出：lua + unity/unreal/godot/cocos2d（对齐 PyQt `features/engine_export.py`）。
   // 渲染/落盘在 main/engineExport（lua 在 ./lua，其余四个在 ./engines），取数由 handler 注入。
   'engine:exportData': { req: EngineExportInput; res: { filePath: string; engine: string; bytes: number; backupPath?: string; manifestPath?: string; version?: number } }
+  // 数据快照导出：把 SQLite 全量数据 + 类型 schema 渲染成**确定性可 git diff** 的 JSON/CSV，
+  // 让策划改动能在 PR 里逐行审核（与 engine:exportData 给游戏运行态产物的定位不同，本通道是审查件）。
+  'data:exportSnapshot': {
+    req: DataSnapshotInput
+    res: { filePath: string; format: string; bytes: number; itemCount: number; typeCount: number }
+  }
+  'dialog:chooseDataSnapshotFile': { req: DataSnapshotFileDialogInput; res: { path: string | null } }
   'dialog:chooseJsonFile': { req: undefined; res: { path: string | null } }
   'dialog:chooseSaveJsonFile': { req: undefined; res: { path: string | null } }
   'ceshu:list': { req: undefined; res: CeshuSummary[] }

@@ -22,11 +22,13 @@ import {
   applyFontSize,
   applyTheme,
   DEFAULT_FONT_SIZE,
+  loadBlockExportMissingImages,
   loadConfirmDelete,
   loadFontSize,
   loadTheme,
   MAX_FONT_SIZE,
   MIN_FONT_SIZE,
+  saveBlockExportMissingImages,
   saveConfirmDelete,
   saveFontSize,
   saveTheme,
@@ -73,6 +75,7 @@ export default function SettingsPanel() {
   const [fontSize, setFontSize] = useState<number>(() => loadFontSize())
   const [theme, setTheme] = useState<ThemeMode>(() => loadTheme())
   const [confirmDelete, setConfirmDelete] = useState<boolean>(() => loadConfirmDelete())
+  const [blockExportMissing, setBlockExportMissing] = useState<boolean>(() => loadBlockExportMissingImages())
   const [draft, setDraft] = useState<FontSizeDraft>({ editing: false })
 
   /* ---- 字号：失焦或回车才提交 ---- */
@@ -94,6 +97,11 @@ export default function SettingsPanel() {
   const handleConfirmDeleteChange = (next: boolean): void => {
     setConfirmDelete(next)
     saveConfirmDelete(next)
+  }
+
+  const handleBlockExportMissingChange = (next: boolean): void => {
+    setBlockExportMissing(next)
+    saveBlockExportMissingImages(next)
   }
 
   /* ---- LLM 服务商配置（对齐 Python `ui/dialogs/api_config.py` 基础设置页） ---- */
@@ -301,6 +309,30 @@ export default function SettingsPanel() {
             ) : (
               <div className="danger-hint" data-testid="settings-confirm-delete-danger">
                 已关闭：批量删除将<b>直接执行且不再二次确认</b>，点错无法撤回。
+              </div>
+            )}
+
+            {/* 导出时图片缺失则阻断：默认关闭（保持旧行为）；开启后缺图直接报错不落盘 */}
+            <div className="form-row">
+              <span className="form-label">导出阻断</span>
+              <label className="ai-gen-check" htmlFor="settings-block-export-missing">
+                <input
+                  id="settings-block-export-missing"
+                  type="checkbox"
+                  data-testid="settings-block-export-missing"
+                  checked={blockExportMissing}
+                  onChange={(event) => handleBlockExportMissingChange(event.target.checked)}
+                />
+                导出时图片缺失则阻断
+              </label>
+            </div>
+            {blockExportMissing ? (
+              <div className="item-meta" data-testid="settings-block-export-missing-hint">
+                已开启：导出引擎数据前若发现引用的库内图片缺失，会直接报错、不写文件，避免导出错漏的半成品。
+              </div>
+            ) : (
+              <div className="item-meta" data-testid="settings-block-export-missing-off">
+                已关闭：拷得到的图片照常带出，找不到的只告警不阻断（保持旧行为）。
               </div>
             )}
           </div>

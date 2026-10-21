@@ -69,6 +69,18 @@ export interface TypeFieldDef {
   refType?: string
 }
 
+/** 类型自定义分区定义（可选；存在时条目表单优先按它分组，见 shared/formSections.ts） */
+export interface TypeSectionDef {
+  /** 分区标题（如「基础信息」「战斗属性」） */
+  title: string
+  /** 分区图标（emoji） */
+  icon: string
+  /** 默认是否折叠；缺省不折叠 */
+  collapsed?: boolean
+  /** 归入该分区的字段名（按此顺序渲染；schema 里不存在的字段跳过） */
+  fields: string[]
+}
+
 export interface DataTypeDef {
   /** 单数键：新架构内部与存储使用 */
   id: string
@@ -78,6 +90,12 @@ export interface DataTypeDef {
   pluralKey: string
   color: string
   formFields: TypeFieldDef[]
+  /**
+   * 可选的自定义分区（标题/图标/字段归属）。存在时 `buildFormLayout` **优先采用**，
+   * 使条目表单按模板/用户定义的分区渲染；缺省则回落到内置 `FORM_GROUPS` 或语义兜底。
+   * 落盘进 `type_schema.json` 的 `sections` 键（snake_case；Python 侧忽略未知键，兼容）。
+   */
+  sections?: TypeSectionDef[]
 }
 
 /** 批量字段操作结果（affected=已写入，skipped=非数值跳过，missing=不存在或类型不符） */

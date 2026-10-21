@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import { formatImportSummary, toErrorMessage } from '../appUtils'
-import type { EngineExportInput } from '../../../shared/schemas'
+import type { DataSnapshotFormat, EngineExportInput } from '../../../shared/schemas'
 import { engineExportNotice } from '../../../shared/util/engineExportNotice'
+import { loadBlockExportMissingImages } from '../../../shared/config/settingsPreferences'
 
 /** 按引擎维度记住上次导出路径（localStorage），下次导出直接回填到游戏文件上，免得每次重选 */
 const ENGINE_EXPORT_LAST_PATH_PREFIX = 'mb.engineExport.lastPath.'
@@ -131,6 +132,8 @@ export interface UseDataTransfer {
   exportExcel: () => Promise<void>
   /** 引擎数据导出：菜单「导出 → 导出为 XX 格式」按目标引擎各走各的渲染器与扩展名 */
   engineExport: (engine: EngineExportInput['engine']) => Promise<void>
+  /** 数据快照导出（审查件）：JSON = 确定性可 diff 的全量数据；CSV = 单表宽表 */
+  exportSnapshot: (format: DataSnapshotFormat) => Promise<void>
 }
 
 export function useDataTransfer(
@@ -238,6 +241,7 @@ export function useDataTransfer(
           exportData: (req: {
             engine: EngineExportInput['engine']
             path: string
+            blockOnMissingImages: boolean
           }) => Promise<{
             filePath: string
             engine: string
@@ -256,7 +260,11 @@ export function useDataTransfer(
         lastPath ? { engine, defaultPath: lastPath } : { engine, defaultName: 'GameData' }
       )
       if (picked.path === null) return
-      const result = await api.engine.exportData({ engine, path: picked.path })
+      const result = await api.engine.exportData({
+        engine,
+        path: picked.path,
+        blockOnMissingImages: loadBlockExportMissingImages()
+      })
       writeLastEngineExportPath(engine, result.filePath)
       setNotice(engineExportNotice(result))
     } catch (err) {
@@ -264,5 +272,29 @@ export function useDataTransfer(
     }
   }
 
-  return { importJson, exportJson, importCsv, exportCsv, importExcel, exportExcel, engineExport }
+  /**
+   * 数据快照导出（给人 / 给 git 审）：把全量数据渲染成确定性 JSON 或单表 CSV，
+   * 策划可在 PR 里逐行 review 每次改了哪些属性/掉落（SQLite 真相源本身 diff 不了）。
+   * 与 `engineExport`（给游戏运行态的产物）定位不同，这里是审查件。
+   */
+  const exportSnapshot = async (format: DataSnapshotFormat): Promise<void> => {
+    try {
+      setError(null)
+      setNotice(null)
+      const picked = await window.mbApi.dialog.chooseDataSnapshotFile({
+        format,
+        defaultName: 'GameData.snapshot'
+      })
+      if (picked.path === null) return
+      const result = await window.mbApi.data.exportSnapshot({ path: picked.path, format })
+      const label = format === 'csv' ? 'CSV' : 'JSON'
+      setNotice(
+        `已导出数据快照（${label}）：${result.filePath}（${result.itemCount} 条数据 / ${result.typeCount} 种类型 / ${result.bytes} 字节）`
+      )
+    } catch (err) {
+      setError(toErrorMessage(err))
+    }
+  }
+
+  return { importJson, exportJson, importCsv, exportCsv, importExcel, exportExcel, engineExport, exportSnapshot }
 }

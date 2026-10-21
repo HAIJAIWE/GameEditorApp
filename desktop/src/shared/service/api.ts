@@ -106,6 +106,10 @@ export interface MbApi {
     importCsv(req: IpcContract['data:importCsv']['req']): Promise<IpcContract['data:importCsv']['res']>
     exportExcel(req: IpcContract['data:exportExcel']['req']): Promise<IpcContract['data:exportExcel']['res']>
     importExcel(req: IpcContract['data:importExcel']['req']): Promise<IpcContract['data:importExcel']['res']>
+    /** 数据快照导出（确定性 JSON / 单表 CSV，供 git/PR 审核；与引擎运行态导出定位不同） */
+    exportSnapshot(
+      req: IpcContract['data:exportSnapshot']['req']
+    ): Promise<IpcContract['data:exportSnapshot']['res']>
   }
   image: {
     generate(req: IpcContract['image:generate']['req']): Promise<IpcContract['image:generate']['res']>
@@ -158,6 +162,9 @@ export interface MbApi {
     chooseEngineExportFile(
       req: IpcContract['dialog:chooseEngineExportFile']['req']
     ): Promise<IpcContract['dialog:chooseEngineExportFile']['res']>
+    chooseDataSnapshotFile(
+      req: IpcContract['dialog:chooseDataSnapshotFile']['req']
+    ): Promise<IpcContract['dialog:chooseDataSnapshotFile']['res']>
     chooseSaveJsonFile(): Promise<IpcContract['dialog:chooseSaveJsonFile']['res']>
     chooseExportDir(): Promise<IpcContract['dialog:chooseExportDir']['res']>
     chooseCsvFile(): Promise<IpcContract['dialog:chooseCsvFile']['res']>

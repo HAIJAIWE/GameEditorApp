@@ -385,7 +385,16 @@ export default function ItemForm({
    * 标签口径：字段自身 label 经 `resolveFieldLabel` 术语替换（E21 游戏风格）；
    * **不套** 旧 grid 时代的 `STAT_LABELS` emoji 前缀（📊数值/⏱️CD）—— 目标截图里就是原始标签。
    */
-  const formLayout = useMemo(() => buildFormLayout(item.type, fields), [item.type, fields])
+  // 类型自带的「自定义分区」（模板/用户定义）优先于内置 FORM_GROUPS；
+  // 从 `types` 里按 id 取当前类型的 sections，取不到则 undefined（回落内置/兜底）。
+  const typeSections = useMemo(
+    () => types.find((def) => def.id === item.type)?.sections,
+    [types, item.type]
+  )
+  const formLayout = useMemo(
+    () => buildFormLayout(item.type, fields, typeSections),
+    [item.type, fields, typeSections]
+  )
   const renderFieldRow = (field: TypeFieldDef, label: string): React.ReactElement => (
     <div className="form-row" key={field.name}>
       <label className="form-label" htmlFor={`field-${field.name}`}>

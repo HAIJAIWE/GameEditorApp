@@ -251,7 +251,12 @@ export const SETTINGS_KEYS = {
   /** LLM 服务商配置（不含 apiKey，Key 走 safeStorage，见 shared/llmConfig.ts） */
   llmConfig: 'mb.llmConfig',
   /** 「快速入门」引导区状态（折叠/关闭/完成度，见 shared/onboarding.ts） */
-  onboarding: 'mb.onboarding'
+  onboarding: 'mb.onboarding',
+  /**
+   * 引擎导出「图片缺失即阻断」开关（见 shared/config/settingsPreferences.ts）。
+   * 开启时，导出前若发现引用的库内图片缺失，直接抛错、不落盘（防半成品导出）。
+   */
+  blockExportMissingImages: 'mb.blockExportMissingImages'
 } as const
 
 export type SettingsKey = (typeof SETTINGS_KEYS)[keyof typeof SETTINGS_KEYS]

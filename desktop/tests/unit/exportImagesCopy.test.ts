@@ -4,7 +4,7 @@ import { join } from 'node:path'
 
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { copyImagesForExport } from '../../src/main/exportImagesCopy'
+import { copyImagesForExport, detectMissingImages } from '../../src/main/exportImagesCopy'
 import type { ItemRecord } from '../../src/shared/types'
 
 /**
@@ -121,5 +121,72 @@ describe('copyImagesForExport', () => {
     expect(result.copied).toBe(2)
     expect(readFileSync(join(exportDir, 'images', 'a.png'), 'utf8')).toBe('A')
     expect(readFileSync(join(exportDir, 'images', 'b.png'), 'utf8')).toBe('B')
+  })
+})
+
+describe('detectMissingImages', () => {
+  it('引用的图片都在盘上：返回空', () => {
+    const root = makeDir()
+    const libDir = join(root, 'lib')
+    mkdirSync(join(libDir, 'images'), { recursive: true })
+    writeFileSync(join(libDir, 'images', 'hero.png'), 'A')
+
+    expect(detectMissingImages([record('r1', { image: 'images/hero.png' })], libDir)).toEqual([])
+  })
+
+  it('引用了但文件不在盘上：返回该相对路径', () => {
+    const root = makeDir()
+    const libDir = join(root, 'lib')
+    mkdirSync(join(libDir, 'images'), { recursive: true })
+
+    expect(detectMissingImages([record('r1', { image: 'images/ghost.png' })], libDir)).toEqual([
+      'images/ghost.png'
+    ])
+  })
+
+  it('多张图里只有缺的那几张入列', () => {
+    const root = makeDir()
+    const libDir = join(root, 'lib')
+    const imagesDir = join(libDir, 'images')
+    mkdirSync(imagesDir, { recursive: true })
+    writeFileSync(join(imagesDir, 'a.png'), 'A')
+
+    const result = detectMissingImages(
+      [record('r1', { image: 'images/a.png' }), record('r2', { icon: 'images/b.png' })],
+      libDir
+    )
+    expect(result).toEqual(['images/b.png'])
+  })
+})
+
+describe('路径基准必须是库根目录（双段 images/images bug 回归）', () => {
+  it('传库根目录能找到图，传 images 目录则全盘落空', () => {
+    const root = makeDir()
+    const libDir = join(root, 'lib')
+    mkdirSync(join(libDir, 'images'), { recursive: true })
+    writeFileSync(join(libDir, 'images', 'hero.png'), 'A')
+
+    // 正确口径：传库根 → 找到
+    expect(detectMissingImages([record('r1', { image: 'images/hero.png' })], libDir)).toEqual([])
+    // 历史错误口径：传 <库>/images → planExportImages 再叠一层 images，
+    // 变成 images/images/hero.png（不存在）→ 把「引用得到」误判成「引用不到」
+    // 调用方（engineIpc）必须传库根，这个断言锁住契约。
+    expect(detectMissingImages([record('r1', { image: 'images/hero.png' })], join(libDir, 'images'))).toEqual([
+      'images/hero.png'
+    ])
+
+    const exportDir = join(root, 'out')
+    mkdirSync(exportDir, { recursive: true })
+    const exportFile = join(exportDir, 'GameData.lua')
+
+    // copyImagesForExport 同样要求库根：传库根 → 拷贝成功
+    expect(copyImagesForExport([record('r1', { image: 'images/hero.png' })], libDir, exportFile)).toEqual({
+      copied: 1,
+      missing: []
+    })
+    // 传错 → 拷贝 0 张、缺失列满
+    expect(
+      copyImagesForExport([record('r1', { image: 'images/hero.png' })], join(libDir, 'images'), join(root, 'out2', 'GameData.lua'))
+    ).toEqual({ copied: 0, missing: ['images/hero.png'] })
   })
 })
