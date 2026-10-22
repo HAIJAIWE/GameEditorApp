@@ -1066,6 +1066,11 @@ export default function CeshuView({
             validateErrors={validateErrors}
             onExport={() => void handleExportValidation()}
             onClose={() => setPanel(null)}
+            onJumpChapter={(chapter) => {
+              // 跳转即回到表单视图：留着校验面板会挡住刚切过去的章节表单
+              setActiveChapter(chapter)
+              setPanel(null)
+            }}
           />
         ) : panel === 'score' ? (
           <ScorePanel score={score} onExport={() => void handleExportScore()} onClose={() => setPanel(null)} />

@@ -2034,6 +2034,23 @@ body {
   color: #b8860b;
 }
 
+/* 可跳转的问题行：用 button 承载，但视觉上仍是一行文本 */
+.validate-line-link {
+  display: block;
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+.validate-line-link:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
 .score-total {
   display: flex;
   align-items: baseline;

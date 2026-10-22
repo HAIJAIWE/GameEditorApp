@@ -1,3 +1,4 @@
+import type { ChapterKey } from '../../../../shared/ceshuConstants'
 import type { CeshuChangelog } from '../../../../shared/ceshuDiff'
 import { gradeLabel, type CeshuScoreReport } from '../../../../shared/ceshuScorer'
 import {
@@ -5,6 +6,7 @@ import {
   groupValidationMessages,
   summarizeValidation
 } from '../../../../shared/ceshuValidationGroups'
+import { resolveValidationChapter } from '../../../../shared/ceshuValidationJump'
 import { groupByChapter } from '../ceshuViewUtils'
 
 /**
@@ -16,6 +18,8 @@ import { groupByChapter } from '../ceshuViewUtils'
  *
  * ⚠️ className / data-testid / disabled 判定全部**原样保留** —— 有既有 E2E 直接命中
  * （`ceshu.spec.ts` 等）。改这些等于改测试契约，不是本次重构范围。
+ * 例外：`ValidatePanel` 的可跳转问题行是 `<button data-testid="validate-jump">`，
+ * 与纯文本行的 `validate-item` 靠共同的 `data-validate-item` 属性统一计数。
  */
 
 /** 变更记录（同链版本按时间逐对 diff）；导出格式 MD / HTML / Text */
@@ -95,11 +99,17 @@ export function ChangelogPanel({
 export function ValidatePanel({
   validateErrors,
   onExport,
-  onClose
+  onClose,
+  onJumpChapter
 }: {
   validateErrors: string[]
   onExport: () => void
   onClose: () => void
+  /**
+   * 点击「能定位到章节」的问题行时回调章节 key（由宿主负责切章 + 关面板）。
+   * 可选：不传则所有问题行退化为纯文本，保持只读语义。
+   */
+  onJumpChapter?: (chapter: ChapterKey) => void
 }) {
   const groups = groupValidationMessages(validateErrors)
   const summary = summarizeValidation(validateErrors)
@@ -135,11 +145,35 @@ export function ValidatePanel({
                 {group.severity === 'error' ? '⛔' : '⚠'} {VALIDATION_SEVERITY_LABELS[group.severity]} · {group.label}（
                 {group.items.length}）
               </div>
-              {group.items.map((item, index) => (
-                <div key={`${index}:${item.message}`} className="validate-line" data-testid="validate-item">
-                  · {item.message}
-                </div>
-              ))}
+              {group.items.map((item, index) => {
+                // 能定位到章节才做成按钮：定位不到的行没有可跳目标，点了只会误导
+                const chapter = onJumpChapter ? resolveValidationChapter(item.message) : null
+                if (chapter !== null && onJumpChapter !== undefined) {
+                  return (
+                    <button
+                      key={`${index}:${item.message}`}
+                      type="button"
+                      className="validate-line validate-line-link"
+                      data-testid="validate-jump"
+                      data-chapter={chapter}
+                      data-validate-item="true"
+                      onClick={() => onJumpChapter(chapter)}
+                    >
+                      · {item.message}
+                    </button>
+                  )
+                }
+                return (
+                  <div
+                    key={`${index}:${item.message}`}
+                    className="validate-line"
+                    data-testid="validate-item"
+                    data-validate-item="true"
+                  >
+                    · {item.message}
+                  </div>
+                )
+              })}
             </div>
           ))}
         </div>

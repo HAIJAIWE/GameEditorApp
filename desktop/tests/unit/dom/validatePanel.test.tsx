@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { ValidatePanel } from '../../../src/renderer/src/components/ceshu/CeshuReportPanels'
+import { CHAPTER_LABELS, type ChapterKey } from '../../../src/shared/ceshuConstants'
 import { renderDom, type RenderResult } from './render'
 
 let view: RenderResult | null = null
@@ -11,9 +12,17 @@ afterEach(async () => {
   view = null
 })
 
-async function mount(messages: string[]): Promise<RenderResult> {
+async function mount(
+  messages: string[],
+  onJumpChapter?: (chapter: ChapterKey) => void
+): Promise<RenderResult> {
   view = await renderDom(
-    <ValidatePanel validateErrors={messages} onExport={() => {}} onClose={() => {}} />
+    <ValidatePanel
+      validateErrors={messages}
+      onExport={() => {}}
+      onClose={() => {}}
+      onJumpChapter={onJumpChapter}
+    />
   )
   return view
 }
@@ -52,6 +61,42 @@ describe('ValidatePanel：校验结果分组展示', () => {
     ])
     const groups = rendered.queryAll('[data-testid="validate-group"]')
     expect(groups).toHaveLength(1)
-    expect(rendered.queryAll('[data-testid="validate-item"]')).toHaveLength(3)
+    // 可跳转行是 <button data-testid="validate-jump">，与纯文本行的 testid 不同，
+    // 故统一按两类共有的 data-validate-item 计数（未传 onJumpChapter 时实际全是纯文本行）
+    expect(rendered.queryAll('[data-validate-item]')).toHaveLength(3)
+  })
+
+  it('点击可跳转的问题行：回调收到对应章节 key', async () => {
+    const jumps: ChapterKey[] = []
+    const rendered = await mount(
+      [
+        `${CHAPTER_LABELS.vision}：字段 'design_vision' 为必填项`,
+        "文档信息：字段 'game_name' 为必填项"
+      ],
+      (chapter) => jumps.push(chapter)
+    )
+
+    const links = rendered.queryAll('[data-testid="validate-jump"]')
+    expect(links).toHaveLength(2)
+    expect(links.map((link) => link.getAttribute('data-chapter'))).toEqual(['vision', 'meta'])
+
+    await rendered.click(links[0]!)
+    await rendered.click(links[1]!)
+    expect(jumps).toEqual(['vision', 'meta'])
+    // 文本保持原文不变
+    expect(links[0]!.textContent).toContain('design_vision')
+  })
+
+  it('定位不到章节的消息不可点击', async () => {
+    const rendered = await mount(['某个未知问题'], () => {})
+    expect(rendered.queryAll('[data-testid="validate-jump"]')).toHaveLength(0)
+    expect(rendered.queryAll('[data-validate-item]')).toHaveLength(1)
+    expect(rendered.byTestId('validate-item')).toBeTruthy()
+  })
+
+  it('不传 onJumpChapter 时全部不可点击', async () => {
+    const rendered = await mount([`${CHAPTER_LABELS.vision}：字段 'design_vision' 为必填项`])
+    expect(rendered.queryAll('[data-testid="validate-jump"]')).toHaveLength(0)
+    expect(rendered.queryAll('[data-validate-item]')).toHaveLength(1)
   })
 })
