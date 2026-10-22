@@ -43,7 +43,8 @@ export function createDefaultChapters(): Record<ChapterKey, ChapterData> {
     },
     vision: {
       design_vision: '',
-      user_personas: { primary: '', secondary: '', potential: '' },
+      // potential 是匹平迁移的残留键：schema 无此字段、无任何代码引用，2026-10-23 清理
+      user_personas: { primary: '', secondary: '' },
       competitive_analysis: [],
       differentiation: '',
       business_model: ''
