@@ -1,6 +1,7 @@
 import { CHAPTER_REQUIRED_FIELDS, type ChapterKey, type CeshuFieldDef } from './ceshuConstants'
 import * as OPT from './ceshuOptionLabels'
 import { FIELD_HINTS } from './ceshuFieldHints'
+import { FIELD_SPLITS } from './ceshuFieldSplits'
 
 /** 文档信息段 + 16 章表单字段描述（标签取自 Python chapter_forms/_base.py 与 _industrial.py） */
 
@@ -356,11 +357,44 @@ const RAW_CHAPTER_FIELDS: Record<ChapterKey, CeshuFieldDef[]> = {
   ]
 }
 
-/** 合并后的字段表：定义 + 按章契约（hints 缺省的章原样返回） */
+/**
+ * 应用结构拆分：为清单里的 textarea 字段插入配套的「要点列表 / 补充」字段（位置在本体之后）。
+ *
+ * 三条防线都在这里收敛，配合 `ceshuFieldSplits.test.ts` 守卫测试：
+ * 1. 只拆非必填字段（必填拆分会改变校验语义）；
+ * 2. 已手工拆过的不重复插（`xxx_points` 已存在即跳过，如 damage_formula）；
+ * 3. 配套字段带通用契约兜底——章特定的分工契约由 hints 层覆盖。
+ */
+function applySplits(chapter: ChapterKey, fields: CeshuFieldDef[]): CeshuFieldDef[] {
+  const splits = FIELD_SPLITS[chapter]
+  if (splits === undefined || splits.length === 0) return fields
+  const required = new Set(CHAPTER_REQUIRED_FIELDS[chapter])
+  const result: CeshuFieldDef[] = []
+  for (const field of fields) {
+    result.push(field)
+    if (!splits.includes(field.key)) continue
+    if (field.kind !== 'textarea' || required.has(field.key)) continue
+    if (fields.some((item) => item.key === `${field.key}_points`)) continue
+    result.push(
+      {
+        key: `${field.key}_points`,
+        label: `${field.label}·要点`,
+        kind: 'stringList',
+        placeholder: '每行一条要点',
+        aiHint: '3-6 条，每行一条可核对的要点',
+        reviewHint: '条目是否具体可核对；与本体的概述是否重复'
+      },
+      { key: `${field.key}_notes`, label: `${field.label}·补充`, kind: 'textarea', aiHint: '要点之外的补充说明，可留空' }
+    )
+  }
+  return result
+}
+
+/** 合并后的字段表：定义 → 结构拆分 → 按章契约（hints 缺省的章/字段原样返回） */
 export const CESHU_CHAPTER_FIELDS: Record<ChapterKey, CeshuFieldDef[]> = Object.fromEntries(
   (Object.keys(RAW_CHAPTER_FIELDS) as ChapterKey[]).map((chapter) => {
     const hints = FIELD_HINTS[chapter]
-    const fields = RAW_CHAPTER_FIELDS[chapter]
+    const fields = applySplits(chapter, RAW_CHAPTER_FIELDS[chapter])
     return [chapter, hints === undefined ? fields : fields.map((field) => ({ ...field, ...hints[field.key] }))]
   })
 ) as Record<ChapterKey, CeshuFieldDef[]>

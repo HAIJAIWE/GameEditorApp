@@ -5,6 +5,9 @@ import type { ChapterFieldHints } from './types'
  *
  * 本章要点：AI 起草风险易堆「沟通不畅」「进度延误」这类不可应对的套话，
  * 契约强制每条风险落到具体场景、可判定的概率影响、有责任人的应对，防止假大空。
+ *
+ * P1 结构拆分：risk_monitoring / crisis_management 拆为「本体 + 要点 + 补充」
+ * 三件套——本体留总体机制，可执行规则与具体安排进要点字段逐条核对。
  */
 export const RISK_HANDLING_FIELD_HINTS: ChapterFieldHints = {
   risk_matrix: {
@@ -36,11 +39,27 @@ export const RISK_HANDLING_FIELD_HINTS: ChapterFieldHints = {
     reviewHint: '是否关联到具体里程碑；延期影响是否可量化'
   },
   risk_monitoring: {
-    aiHint: '说明风险复审频率、责任角色与升级阈值；给出风险台账的维护与更新方式',
+    aiHint: '一段概述：风险监控的总体机制；频率/阈值/台账等具体规则走「要点」逐条列',
     reviewHint: '复审频率是否明确；升级阈值是否可判定；是否有责任角色'
   },
+  risk_monitoring_points: {
+    aiHint: '3-6 条：每条一个可执行规则（复审频率/责任角色/升级阈值/台账更新）',
+    reviewHint: '每条是否有责任角色与时限；升级阈值是否可判定；规则能否直接执行'
+  },
+  risk_monitoring_notes: {
+    aiHint: '要点之外的补充说明：历史风险案例或监控工具选型，可留空',
+    reviewHint: '补充是否与要点重复；案例是否注明来源'
+  },
   crisis_management: {
-    aiHint: '写出线上事故分级、响应流程与对外口径；含决策链、回滚手段与复盘要求',
+    aiHint: '一段概述：危机管理的总体原则；分级/流程/口径等具体安排走「要点」逐条列',
     reviewHint: '事故分级是否可判定；响应流程是否有决策链；是否含回滚与复盘'
+  },
+  crisis_management_points: {
+    aiHint: '3-6 条：每条一个具体安排（事故分级/响应步骤/决策人/对外口径）',
+    reviewHint: '每条是否可判定可执行；分级标准是否明确；是否含决策链与回滚'
+  },
+  crisis_management_notes: {
+    aiHint: '要点之外的补充说明：历史事故复盘结论或公关资源储备，可留空',
+    reviewHint: '补充是否与要点重复；复盘结论是否写清'
   }
 }

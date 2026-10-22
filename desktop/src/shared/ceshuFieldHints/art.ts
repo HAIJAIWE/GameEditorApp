@@ -5,6 +5,9 @@ import type { ChapterFieldHints } from './types'
  *
  * 本章要点：美术章 AI 最大风险是堆「精致」「好看」这类不可验收的形容词；
  * 契约把风格拆成可核对的结构（比例/色值/字体名/特效类型），并要求与音频章风格联动。
+ *
+ * P1 结构拆分：typography / vfx 拆为「本体 + 要点 + 补充」三件套——
+ * 本体留整体风格定位，可验收的字体名与特效类型进要点字段逐条核对。
  */
 export const ART_FIELD_HINTS: ChapterFieldHints = {
   art_style: {
@@ -16,11 +19,27 @@ export const ART_FIELD_HINTS: ChapterFieldHints = {
     reviewHint: '是否覆盖主/辅/强调/背景四类；每类是否给色名或色值；有无使用场景或比例说明'
   },
   typography: {
-    aiHint: '产出字体排版方案：标题/正文/UI 三类用途各自的字体名 + 选用理由（风格匹配、可读性、授权）',
+    aiHint: '一段概述：字体排版的整体风格与选型原则；各场景字体与授权情况走「要点」逐条列',
     reviewHint: '是否按标题/正文/UI 分场景给具体字体名；是否提及授权风险；理由是否与 art_style 匹配'
   },
+  typography_points: {
+    aiHint: '3-6 条：每条一个用途场景（标题/正文/UI）+ 具体字体名 + 授权情况',
+    reviewHint: '是否按场景给到具体字体名；是否提及授权；理由是否与 art_style 匹配'
+  },
+  typography_notes: {
+    aiHint: '要点之外的补充说明：备用字体或本地化字形兼容问题，可留空',
+    reviewHint: '补充是否与要点重复；字形兼容问题是否写清'
+  },
   vfx: {
-    aiHint: '产出特效风格描述：主要特效类型清单 + 每类视觉语言（粒子/光效/材质）+ 触发场景示例',
+    aiHint: '一段概述：特效的整体风格定位；各特效类型与视觉语言走「要点」逐条列',
     reviewHint: '是否列出特效类型清单；每类是否有视觉语言描述；是否与整体美术风格一致'
+  },
+  vfx_points: {
+    aiHint: '3-6 条：每条一类特效 + 视觉语言（粒子/光效/材质）+ 触发场景',
+    reviewHint: '每类是否有视觉语言与触发场景；是否与整体美术风格一致；有无「炫酷」这类空话'
+  },
+  vfx_notes: {
+    aiHint: '要点之外的补充说明：性能预算或特效管线工具，可留空',
+    reviewHint: '补充是否与要点重复；性能预算是否给出量级'
   }
 }
