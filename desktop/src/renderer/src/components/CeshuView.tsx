@@ -34,6 +34,12 @@ import { migrationSplitTitle, pendingSplitCount, planCeshuMigration } from '../.
 import { REVIEW_QUEUE_KEY_HINT, resolveReviewQueueKey } from '../reviewQueueKeys'
 import { buildCeshuBundle } from '../../../shared/ceshuBundle'
 import {
+  applyCeshuPatch,
+  parseCeshuPatch,
+  previewPatchValue,
+  type CeshuPatchParseResult
+} from '../../../shared/ceshuImportPatch'
+import {
   BUNDLE_CONSUME_TASK_LABELS,
   BUNDLE_CONSUME_USAGE,
   buildBundleConsumePrompt,
@@ -136,6 +142,10 @@ export default function CeshuView({
   const [consumeTask, setConsumeTask] = useState<BundleConsumeTask>('draft')
   /** 审阅队列键盘光标（第几条待审）；打开队列时归零，列表变化时渲染期夹取，不写 effect */
   const [reviewCursor, setReviewCursor] = useState(0)
+  /** 导入 AI 结果：浮层开关、粘贴原文、解析结果（null = 尚未解析） */
+  const [importOpen, setImportOpen] = useState(false)
+  const [importRaw, setImportRaw] = useState('')
+  const [importResult, setImportResult] = useState<CeshuPatchParseResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -711,6 +721,50 @@ export default function CeshuView({
     }
   }
 
+  /** 解析粘贴的 AI 结果（只读预览，不写盘） */
+  const handleParseImport = (): void => {
+    setImportResult(parseCeshuPatch(importRaw, doc))
+  }
+
+  /**
+   * 应用导入补丁：按章写盘（只写有变化的字段），再一次性把涉及字段标为 AI 草稿。
+   * 走既有 saveChapter 通道，不新增 IPC——导入与手工保存共用同一条写入路径。
+   */
+  const handleApplyImport = async (): Promise<void> => {
+    if (!ceshuId || importResult === null) return
+    const changed = importResult.items.filter((item) => item.changed)
+    if (changed.length === 0) return
+    await runBusy(
+      async () => {
+        const { doc: next, chapters, applied } = applyCeshuPatch(doc, changed)
+        let latest = doc
+        for (const chapter of chapters) {
+          latest = await window.mbApi.ceshu.saveChapter({ id: ceshuId, chapter, data: next[chapter] })
+        }
+        // 导入内容一律视为 AI 草稿待审（与站内 AI 生成同口径）
+        const now = new Date().toISOString()
+        let meta = latest.meta
+        for (const chapter of chapters) {
+          const updates: Record<string, FieldReviewStatus> = {}
+          for (const item of changed) {
+            if (item.chapter === chapter) updates[item.fieldKey] = 'ai_draft'
+          }
+          if (Object.keys(updates).length > 0) meta = setFieldStatuses(meta, chapter, updates, now)
+        }
+        if (meta !== latest.meta) {
+          latest = await window.mbApi.ceshu.saveChapter({ id: ceshuId, chapter: 'meta', data: meta })
+        }
+        setDoc(latest)
+        setImportOpen(false)
+        setImportRaw('')
+        setImportResult(null)
+        setNotice(`已导入 ${applied} 个字段（标记为 AI 草稿，待审）`)
+        onChanged()
+      },
+      { clearNotice: true }
+    )
+  }
+
   /** 预设市场应用完成：systems/meta 已在主进程写盘，更新文档并刷新侧边栏 */
   const handlePresetApplied = (updated: CeshuDocument, enabledCount: number, presetLabel: string): void => {
     setDoc(updated)
@@ -754,7 +808,8 @@ export default function CeshuView({
       { testid: 'ceshu-changelog', label: '变更记录', run: () => void handleShowChangelog() },
       { testid: 'ceshu-datarefs', label: '数据引用', run: () => setPanel('dataRefs') },
       { testid: 'ceshu-migration-preview', label: '迁移预览（只读）', run: () => setMigrationOpen(true) },
-      { testid: 'ceshu-consume-prompt', label: 'AI 消费提示词', run: () => setConsumeOpen(true) }
+      { testid: 'ceshu-consume-prompt', label: 'AI 消费提示词', run: () => setConsumeOpen(true) },
+      { testid: 'ceshu-import-patch', label: '导入 AI 结果', run: () => setImportOpen(true) }
     ],
     // 「确认游戏系统」**不在菜单里**：PyQt 无此菜单项，改为打开策划书时自动弹窗
     // （见上方加载回调；条件 = 未确认过 且 已有启用系统）
@@ -1123,6 +1178,79 @@ export default function CeshuView({
                         </div>
                       ))}
                     </div>
+                  )}
+                </div>
+              </div>
+            )}
+            {/* 导入 AI 结果：把外部 AI 的增量 JSON 粘回来，预览后按章写盘 */}
+            {importOpen && (
+              <div className="review-overlay" data-testid="import-overlay" onClick={() => setImportOpen(false)}>
+                <div className="review-panel" data-testid="import-panel" onClick={(event) => event.stopPropagation()}>
+                  <div className="review-panel-header">
+                    <span>导入 AI 结果</span>
+                    <button
+                      type="button"
+                      className="btn primary slim"
+                      data-testid="import-apply"
+                      disabled={busy || importResult === null || importResult.items.filter((item) => item.changed).length === 0}
+                      onClick={() => void handleApplyImport()}
+                    >
+                      应用（{importResult === null ? 0 : importResult.items.filter((item) => item.changed).length}）
+                    </button>
+                    <button type="button" className="btn slim" onClick={() => setImportOpen(false)}>
+                      关闭
+                    </button>
+                  </div>
+                  <div className="item-meta">
+                    粘贴外部 AI 返回的字段增量（形如 {'{"章节": {"字段": 值}}'}，允许带 markdown 代码块）。
+                    空值不会覆盖已有内容；应用后这些字段标为「AI 草稿」待审。
+                  </div>
+                  <textarea
+                    className="form-textarea"
+                    data-testid="import-raw"
+                    rows={8}
+                    placeholder='{"meta": {"positioning": "一句话定位"}}'
+                    value={importRaw}
+                    onChange={(event) => {
+                      setImportRaw(event.target.value)
+                      setImportResult(null)
+                    }}
+                  />
+                  <div className="field-action-strip-actions">
+                    <button type="button" className="btn slim" data-testid="import-parse" disabled={busy} onClick={handleParseImport}>
+                      解析预览
+                    </button>
+                  </div>
+                  {importResult !== null && (
+                    <>
+                      {importResult.errors.length > 0 && (
+                        <div className="form-error" data-testid="import-errors">
+                          {importResult.errors.map((message, index) => (
+                            <div key={index}>{message}</div>
+                          ))}
+                        </div>
+                      )}
+                      {importResult.items.length > 0 && (
+                        <div className="review-list">
+                          {importResult.items.map((item) => (
+                            <div
+                              className="review-row"
+                              key={`${item.chapter}:${item.fieldKey}`}
+                              data-testid="import-item"
+                              data-changed={item.changed ? 'true' : 'false'}
+                            >
+                              <span className="review-chapter">{CHAPTER_LABELS[item.chapter]}</span>
+                              <span className="review-field">{item.fieldLabel}</span>
+                              <span className="item-meta">
+                                {item.changed
+                                  ? `${previewPatchValue(item.previous, 30)} → ${previewPatchValue(item.value, 30)}`
+                                  : '（无变化）'}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </div>

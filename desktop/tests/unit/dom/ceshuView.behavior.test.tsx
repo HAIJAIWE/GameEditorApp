@@ -365,6 +365,59 @@ describe('CeshuView：全局审阅队列', () => {
   })
 })
 
+describe('CeshuView：导入 AI 结果', () => {
+  /** 受控 textarea 的输入模拟：绕过 React 的 value 缓存，走原生 setter + input 事件 */
+  async function typeInto(textarea: HTMLTextAreaElement, text: string): Promise<void> {
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set
+    await act(async () => {
+      setter?.call(textarea, text)
+      textarea.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+  }
+
+  it('粘贴 → 解析预览 → 应用：按章写盘并标记 AI 草稿', async () => {
+    const doc = makeDoc()
+    doc.meta.positioning = '旧定位'
+    api = installMbApi({
+      doc,
+      overrides: {
+        'ceshu.saveChapter': (req: unknown) => {
+          const r = req as { chapter: string; data: unknown }
+          return r.chapter === 'meta' ? { ...doc, meta: r.data } : { ...doc, [r.chapter]: r.data }
+        }
+      }
+    })
+    const rendered = await mount()
+
+    await rendered.click(rendered.byTestId('ceshu-more'))
+    await rendered.click(rendered.byTestId('ceshu-import-patch'))
+    await typeInto(rendered.byTestId('import-raw') as HTMLTextAreaElement, '{"meta": {"positioning": "新定位"}}')
+    await rendered.flush()
+
+    await rendered.click(rendered.byTestId('import-parse'))
+    expect(rendered.queryAll('[data-testid="import-item"]')).toHaveLength(1)
+    expect(rendered.byTestId('import-item').getAttribute('data-changed')).toBe('true')
+
+    await rendered.click(rendered.byTestId('import-apply'))
+    expect(api.calls).toContain('ceshu.saveChapter')
+    expect(rendered.text()).toContain('已导入 1 个字段')
+  })
+
+  it('未知字段：解析报错、应用按钮不可用', async () => {
+    api = installMbApi({ doc: makeDoc() })
+    const rendered = await mount()
+
+    await rendered.click(rendered.byTestId('ceshu-more'))
+    await rendered.click(rendered.byTestId('ceshu-import-patch'))
+    await typeInto(rendered.byTestId('import-raw') as HTMLTextAreaElement, '{"meta": {"nope": "x"}}')
+    await rendered.flush()
+
+    await rendered.click(rendered.byTestId('import-parse'))
+    expect(rendered.byTestId('import-errors').textContent).toContain('没有字段「nope」')
+    expect((rendered.byTestId('import-apply') as HTMLButtonElement).disabled).toBe(true)
+  })
+})
+
 describe('CeshuView：迁移预览（只读）', () => {
   it('「更多」菜单可打开迁移预览，列出拆分项', async () => {
     const doc = makeDoc()
