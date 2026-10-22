@@ -1950,6 +1950,25 @@ body {
   line-height: 1.7;
 }
 
+/* 校验分组：必须修复 / 建议检查（组标题带严重度色） */
+.validate-group {
+  margin-bottom: 10px;
+}
+
+.validate-group-title {
+  margin-bottom: 2px;
+  font-weight: 600;
+  font-size: calc(12px * var(--ui-font-scale));
+}
+
+.validate-group.error .validate-group-title {
+  color: var(--danger, #c0392b);
+}
+
+.validate-group.warning .validate-group-title {
+  color: #b8860b;
+}
+
 .score-total {
   display: flex;
   align-items: baseline;

@@ -1,5 +1,10 @@
 import type { CeshuChangelog } from '../../../../shared/ceshuDiff'
 import { gradeLabel, type CeshuScoreReport } from '../../../../shared/ceshuScorer'
+import {
+  VALIDATION_SEVERITY_LABELS,
+  groupValidationMessages,
+  summarizeValidation
+} from '../../../../shared/ceshuValidationGroups'
 import { groupByChapter } from '../ceshuViewUtils'
 
 /**
@@ -86,7 +91,7 @@ export function ChangelogPanel({
   )
 }
 
-/** 数据校验：必填字段 + 章节间一致性检查的问题清单 */
+/** 数据校验：按「必须修复 / 建议检查」分组展示（必填、格式、冲突、依赖、不一致、重复、术语） */
 export function ValidatePanel({
   validateErrors,
   onExport,
@@ -96,11 +101,14 @@ export function ValidatePanel({
   onExport: () => void
   onClose: () => void
 }) {
+  const groups = groupValidationMessages(validateErrors)
+  const summary = summarizeValidation(validateErrors)
   return (
     <div className="changelog-panel" data-testid="validate-panel">
       <div className="changelog-header">
         <span className="chapter-form-title">
-          数据校验{validateErrors.length > 0 ? `（${validateErrors.length} 个问题）` : ''}
+          {/* 标题保留「个问题」字样：既有 e2e（ceshu-validate-score.spec.ts）以此断言面板已出结果 */}
+          数据校验{validateErrors.length > 0 ? `（${validateErrors.length} 个问题：${summary}）` : ''}
         </span>
         <div className="editor-actions">
           <button type="button" className="btn" data-testid="validate-export" onClick={onExport}>
@@ -115,9 +123,23 @@ export function ValidatePanel({
         <div className="empty">✅ 所有校验通过，未发现错误</div>
       ) : (
         <div className="changelog-entry">
-          {validateErrors.map((item, index) => (
-            <div key={`${index}:${item}`} className="validate-line">
-              {index + 1}. {item}
+          {groups.map((group) => (
+            <div
+              key={`${group.severity}:${group.kind}`}
+              className={`validate-group ${group.severity}`}
+              data-testid="validate-group"
+              data-severity={group.severity}
+              data-kind={group.kind}
+            >
+              <div className="validate-group-title">
+                {group.severity === 'error' ? '⛔' : '⚠'} {VALIDATION_SEVERITY_LABELS[group.severity]} · {group.label}（
+                {group.items.length}）
+              </div>
+              {group.items.map((item, index) => (
+                <div key={`${index}:${item.message}`} className="validate-line" data-testid="validate-item">
+                  · {item.message}
+                </div>
+              ))}
             </div>
           ))}
         </div>
