@@ -98,6 +98,32 @@ describe('策划书导出：HTML', () => {
     expect(html).toContain('附录：章节完成度')
     expect(html).toContain('@media print')
   })
+
+  it('审核进度附录：全文档汇总 + 只列待审章，且排在完成度附录之前', () => {
+    const doc = makeDoc()
+    const at = '2026-10-23T10:00:00.000Z'
+    doc.meta = setFieldStatuses(doc.meta, 'meta', { positioning: 'ai_draft' }, at)
+    // 状态表统一挂在 meta.field_status 上（按章节分组），不是挂在章节对象上
+    doc.meta = setFieldStatuses(doc.meta, 'combat', { damage_formula: 'ai_draft', skill_system: 'approved' }, at)
+
+    const html = renderCeshuHtml(doc)
+
+    expect(html).toContain('附录：审核进度')
+    expect(html).toContain('全文档：2 待审 · 1 已批准')
+    // 章名走 CHAPTER_LABELS，避免章号调整时测试假失败
+    expect(html).toContain(`${CHAPTER_LABELS.meta}：1 待审`)
+    expect(html).toContain(`${CHAPTER_LABELS.combat}：1 待审`)
+    // 没有待审的章不出现
+    expect(html).not.toContain(`${CHAPTER_LABELS.vision}：`)
+    // HTML 里唯一的既有附录是「章节完成度」，审核进度应排在它之前
+    expect(html.indexOf('附录：审核进度')).toBeLessThan(html.indexOf('附录：章节完成度'))
+  })
+
+  it('审核进度附录：无 field_status 时仍输出，写「无审核记录」', () => {
+    const html = renderCeshuHtml(makeDoc())
+    expect(html).toContain('附录：审核进度')
+    expect(html).toContain('全文档：无审核记录')
+  })
 })
 
 describe('策划书导出：管道', () => {

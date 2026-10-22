@@ -1,4 +1,7 @@
-import { CHAPTER_LABELS, type CeshuDocument } from '../../../shared/ceshuConstants'
+import { CHAPTER_KEYS, CHAPTER_LABELS, type CeshuDocument } from '../../../shared/ceshuConstants'
+import { fieldStatusOf } from '../../../shared/ceshuFieldStatus'
+import { countFieldStatuses, formatFieldStatusSummary } from '../../../shared/ceshuFieldStatusStats'
+import { CESHU_CHAPTER_FIELDS } from '../../../shared/ceshuFields'
 import { computeChapterProgress, formatLocalTimestamp, getGddScope } from '../../../shared/ceshuModel'
 
 import {
@@ -29,6 +32,7 @@ export function renderCeshuHtml(doc: CeshuDocument): string {
   for (const entry of entries) {
     body.push(renderChapter(doc, entry))
   }
+  body.push(renderReviewProgress(doc))
   body.push(renderProgressReport(doc, entries))
 
   return [
@@ -121,6 +125,38 @@ function renderSystems(data: Record<string, unknown> | undefined): string {
     .join('\n')
 
   return `${table}\n${enabled.length > 0 ? `<h3 class="detail-title">已启用系统配置详情</h3>${details}` : ''}`
+}
+
+/**
+ * 附录：审核进度。
+ *
+ * 为什么要有：HTML 是发给同事「人读」的那一轨，收件人无法从正文分辨哪些字段
+ * 还是 AI 草稿。与 Markdown / Excel 概览共用同一套统计口径，避免三种出口对
+ * 「还剩多少待审」给出不同答案。列在附录里而不逐字段标注，是为了不动章节渲染。
+ *
+ * 为什么零记录也输出：区块随内容浮动，两次导出之间会整段多/少，diff 看起来像
+ * 有人删了附录；固定输出一行「无审核记录」更可 diff。
+ */
+function renderReviewProgress(doc: CeshuDocument): string {
+  const total = { ai_draft: 0, human_edited: 0, approved: 0 }
+  const pending: string[] = []
+  for (const chapter of CHAPTER_KEYS) {
+    const counts = countFieldStatuses(fieldStatusOf(doc.meta, chapter), CESHU_CHAPTER_FIELDS[chapter] ?? [])
+    total.ai_draft += counts.ai_draft
+    total.human_edited += counts.human_edited
+    total.approved += counts.approved
+    // 只列还有待审的章：已批准/人改的章不需要催人，列出来只会稀释注意力
+    if (counts.ai_draft > 0) {
+      pending.push(`<li>${escapeHtml(CHAPTER_LABELS[chapter])}：${counts.ai_draft} 待审</li>`)
+    }
+  }
+  const summary = formatFieldStatusSummary(total)
+  return [
+    '<section class="chapter appendix">',
+    '<h2>附录：审核进度</h2>',
+    `<ul class="status-list"><li>全文档：${escapeHtml(summary || '无审核记录')}</li>${pending.join('')}</ul>`,
+    '</section>'
+  ].join('\n')
 }
 
 function renderProgressReport(doc: CeshuDocument, entries: VisibleChapterEntry[]): string {
