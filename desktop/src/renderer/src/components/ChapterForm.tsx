@@ -152,19 +152,24 @@ export default function ChapterForm({
     }
   }
 
-  /** 摘要点击：滚到首个待审字段并短暂高亮，省掉人工往下翻找 */
-  const jumpToFirstPending = (): void => {
-    if (firstPendingField === null) return
-    const el = fieldBlockRefs.current[firstPendingField]
+  /** 滚动到指定字段块并短暂高亮；连点先清旧定时器，卸载时由 effect 清理 */
+  const focusFieldBlock = (fieldKey: string): void => {
+    const el = fieldBlockRefs.current[fieldKey]
     // jsdom 未实现 scrollIntoView：可选调用，测试环境不抛错
     el?.scrollIntoView?.({ block: 'center', behavior: 'smooth' })
-    setFlashField(firstPendingField)
-    // 连点摘要时先清旧定时器，否则旧回调会把新高亮提前抹掉
+    setFlashField(fieldKey)
+    // 连点时先清旧定时器，否则旧回调会把新高亮提前抹掉
     if (flashTimerRef.current !== null) window.clearTimeout(flashTimerRef.current)
     flashTimerRef.current = window.setTimeout(() => {
       flashTimerRef.current = null
       setFlashField(null)
     }, 1200)
+  }
+
+  /** 摘要点击：滚到首个待审字段并短暂高亮，省掉人工往下翻找 */
+  const jumpToFirstPending = (): void => {
+    if (firstPendingField === null) return
+    focusFieldBlock(firstPendingField)
   }
 
   /** 应用模板：按模式合并到当前草稿并回填表单（不落盘，仍需点「保存本章」） */
@@ -455,7 +460,13 @@ export default function ChapterForm({
                       type="button"
                       className="btn slim"
                       data-testid="field-accept"
-                      onClick={() => void onFieldStatus(chapter, { [field.key]: 'approved' })}
+                      onClick={() => {
+                        // 必须先算下一个：onFieldStatus 之后本章状态会把当前字段从 ai_draft 移走，
+                        // 而 fieldStatus 这个 prop 的刷新是异步的，顺序写反就会拿旧值算错
+                        const next = nextPendingFieldKey(fields, fieldStatus, field.key)
+                        void onFieldStatus(chapter, { [field.key]: 'approved' })
+                        if (next !== null) focusFieldBlock(next)
+                      }}
                     >
                       接受
                     </button>
@@ -525,4 +536,28 @@ function sameInput(a: FieldInput | undefined, b: FieldInput | undefined): boolea
   if (a === b) return true
   if (a === undefined || b === undefined) return false
   return JSON.stringify(a) === JSON.stringify(b)
+}
+
+/** 在字段定义顺序里，找 currentKey 之后第一个 ai_draft 字段；没有则回绕到之前第一个；都没有返回 null */
+export function nextPendingFieldKey(
+  fields: readonly CeshuFieldDef[],
+  fieldStatus: ChapterFieldStatus | undefined,
+  currentKey: string
+): string | null {
+  const isPending = (key: string): boolean => fieldStatus?.[key]?.status === 'ai_draft'
+  const index = fields.findIndex((field) => field.key === currentKey)
+  // 当前字段不在 schema 里时 index 为 -1：此时按「整章向后找」处理，避免直接判空
+  const from = index === -1 ? 0 : index + 1
+  // 先向后：连续审阅时人往下走是主路径，回绕只作为收尾兜底
+  for (let i = from; i < fields.length; i++) {
+    const key = fields[i].key
+    if (isPending(key)) return key
+  }
+  // 向后没有了再回绕到前面（含当前字段之前的所有字段）
+  const end = index === -1 ? fields.length : index
+  for (let i = 0; i < end; i++) {
+    const key = fields[i].key
+    if (isPending(key)) return key
+  }
+  return null
 }

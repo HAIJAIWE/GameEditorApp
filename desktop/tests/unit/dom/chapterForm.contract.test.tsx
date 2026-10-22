@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest'
 
-import ChapterForm from '../../../src/renderer/src/components/ChapterForm'
+import ChapterForm, { nextPendingFieldKey } from '../../../src/renderer/src/components/ChapterForm'
+import { CESHU_CHAPTER_FIELDS } from '../../../src/shared/ceshuFields'
 import { createDefaultCeshu } from '../../../src/shared/ceshuModel'
 import {
   requestFieldAction,
@@ -153,6 +154,85 @@ describe('ChapterForm：本章字段状态摘要', () => {
     const summary = view!.byTestId('field-status-summary')
     expect(summary.tagName).not.toBe('BUTTON')
     expect(summary.textContent).toBe('1 已批准')
+  })
+})
+
+describe('ChapterForm：接受后自动跳到下一个待审字段', () => {
+  const metaFields = CESHU_CHAPTER_FIELDS.meta
+
+  it('nextPendingFieldKey：向后优先、无则向前回绕、单个或无待审返回 null', () => {
+    // 向后找到：positioning 之后还有 tags 待审
+    expect(
+      nextPendingFieldKey(
+        metaFields,
+        {
+          positioning: { status: 'ai_draft', at: '2024-01-01' },
+          tags: { status: 'ai_draft', at: '2024-01-01' }
+        },
+        'positioning'
+      )
+    ).toBe('tags')
+    // 向后没有 → 回绕到前面
+    expect(
+      nextPendingFieldKey(metaFields, { positioning: { status: 'ai_draft', at: '2024-01-01' } }, 'tags')
+    ).toBe('positioning')
+    // 只有一个待审且就是当前字段 → null（不能原地打转）
+    expect(
+      nextPendingFieldKey(metaFields, { positioning: { status: 'ai_draft', at: '2024-01-01' } }, 'positioning')
+    ).toBeNull()
+    // 无任何待审 → null
+    expect(nextPendingFieldKey(metaFields, undefined, 'positioning')).toBeNull()
+    expect(nextPendingFieldKey(metaFields, {}, 'positioning')).toBeNull()
+  })
+
+  it('点「接受」后高亮下一个待审字段（不是刚接受的那个）', async () => {
+    api = installMbApi()
+    const doc = createDefaultCeshu({ scope: 'full', name: '测试游戏' })
+    view = await renderDom(
+      <ChapterForm
+        chapter="meta"
+        data={doc.meta}
+        busy={false}
+        gameName=""
+        onSave={async () => undefined}
+        onAiGenerate={async () => ({ model: '', fields: {}, rawText: '' })}
+        onAiGenerateField={async () => ({ model: '', fields: {}, rawText: '' })}
+        fieldStatus={{
+          positioning: { status: 'ai_draft', at: '2024-01-01' },
+          tags: { status: 'ai_draft', at: '2024-01-01' }
+        }}
+        onFieldStatus={async () => undefined}
+      />
+    )
+    // 页面上有两个「接受」，第一个属于 positioning
+    const accepts = view!.queryAll('[data-testid="field-accept"]')
+    expect(accepts.length).toBe(2)
+    await view!.click(accepts[0])
+
+    const flashed = view!.queryAll('[data-flash="true"]')
+    expect(flashed.length).toBe(1)
+    expect(flashed[0].querySelector('[data-testid="ceshu-field-tags"]')).not.toBeNull()
+    expect(flashed[0].querySelector('[data-testid="ceshu-field-positioning"]')).toBeNull()
+  })
+
+  it('只有一个待审字段时点「接受」不高亮任何字段', async () => {
+    api = installMbApi()
+    const doc = createDefaultCeshu({ scope: 'full', name: '测试游戏' })
+    view = await renderDom(
+      <ChapterForm
+        chapter="meta"
+        data={doc.meta}
+        busy={false}
+        gameName=""
+        onSave={async () => undefined}
+        onAiGenerate={async () => ({ model: '', fields: {}, rawText: '' })}
+        onAiGenerateField={async () => ({ model: '', fields: {}, rawText: '' })}
+        fieldStatus={{ positioning: { status: 'ai_draft', at: '2024-01-01' } }}
+        onFieldStatus={async () => undefined}
+      />
+    )
+    await view!.click(view!.byTestId('field-accept'))
+    expect(view!.queryAll('[data-flash="true"]').length).toBe(0)
   })
 })
 
