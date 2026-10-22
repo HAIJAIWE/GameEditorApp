@@ -18,25 +18,36 @@
 interface AiFieldButtonProps {
   /** 是否正在生成（禁用 + 提示文案切换） */
   busy: boolean
-  /** 点击回调；busy 时不会被调用（防重入由本组件保证） */
+  /** 点击回调；busy / disabled 时不会被调用（防重入由本组件保证） */
   onFill: () => void
   /** 所属字段名，用于无障碍标签与悬浮提示 */
   fieldLabel: string
+  /** 该字段是否禁止 AI 起草（「人定」字段）；禁用时点击无效 */
+  disabled?: boolean
+  /** 禁用时的悬浮说明 */
+  disabledHint?: string
 }
 
-export function AiFieldButton({ busy, onFill, fieldLabel }: AiFieldButtonProps) {
+export function AiFieldButton({ busy, onFill, fieldLabel, disabled = false, disabledHint }: AiFieldButtonProps) {
+  const blocked = busy || disabled
+  const title = busy
+    ? 'AI生成中，请稍候...'
+    : disabled
+      ? (disabledHint ?? '该字段不可由 AI 起草')
+      : `AI帮我填：${fieldLabel}`
   return (
     <button
       type="button"
       className={`ai-field-btn${busy ? ' busy' : ''}`}
       data-testid="ai-field-btn"
       data-busy={busy ? 'true' : 'false'}
-      disabled={busy}
+      data-disabled={disabled ? 'true' : 'false'}
+      disabled={blocked}
       // 中文文案与 Python 保持一致（"AI帮我填" / "AI生成中，请稍候..."）
-      title={busy ? 'AI生成中，请稍候...' : `AI帮我填：${fieldLabel}`}
-      aria-label={busy ? 'AI生成中，请稍候' : `AI 帮我填：${fieldLabel}`}
+      title={title}
+      aria-label={title}
       onClick={() => {
-        if (busy) return // 防重入
+        if (blocked) return // 防重入 / 人定字段不交给 AI
         onFill()
       }}
     >

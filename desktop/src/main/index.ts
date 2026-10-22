@@ -1,6 +1,6 @@
 import { join } from 'node:path'
 
-import { app, BrowserWindow, shell, type Tray } from 'electron'
+import { app, BrowserWindow, screen, shell, type Tray } from 'electron'
 
 import { log } from '../shared/util/logger'
 import type { DataService } from './data/service'
@@ -12,7 +12,7 @@ import { INITIAL_LIBRARY_NAME } from './library/store'
 import { buildStores, type AppStores } from './stores'
 import { getSecretStore } from './settings/secretStoreInstance'
 import { disposeTray, registerShortcuts, setupTray, unregisterShortcuts } from './tray'
-import { DEFAULT_WINDOW_STATE, readWindowState, writeWindowState } from './windowState'
+import { DEFAULT_WINDOW_STATE, fitBoundsToDisplays, readWindowState, writeWindowState } from './windowState'
 
 /** 最后停留的界面模式（data/ceshu/digital），由渲染层经 `app:setWindowMode` 上报，仅用于窗口状态落盘 */
 let lastWindowMode = DEFAULT_WINDOW_STATE.lastMode
@@ -39,10 +39,63 @@ let stores: AppStores | null = null
 let dataService: DataService | null = null
 let appTray: Tray | null = null
 
+/**
+ * 关窗行为：真实用户「关窗 = 收进托盘常驻」，托盘里的「退出」才真退。
+ *
+ * E2E / 便携模式（`MB_USER_DATA_DIR`）保持**关窗即退** —— 否则 Playwright 的
+ * `app.close()` 会被常驻逻辑挂住，整套 e2e 的 teardown 都会超时。
+ */
+const residentClose = process.env['MB_USER_DATA_DIR'] === undefined
+
+/** 是否正在真正退出（托盘「退出」/ 系统关机）：为 true 时才放行 close */
+let isQuitting = false
+
+/** 首次收进托盘时提示一次，避免用户以为程序被关掉了 */
+let trayHintShown = false
+function showTrayHintOnce(): void {
+  if (trayHintShown || appTray === null) return
+  trayHintShown = true
+  try {
+    appTray.displayBalloon({
+      title: '墨白可视化编辑仍在后台运行',
+      content: '点击托盘图标可恢复窗口；托盘菜单里的「退出」才会真正退出。'
+    })
+  } catch {
+    // 平台不支持 balloon（或托盘已销毁）时静默忽略
+  }
+}
+
+/*
+ * 单实例锁：同一 userData 只允许一个实例。
+ *
+ * 为什么必须：两个实例会同时读写同一份 SQLite（`libraries/<库>/data.db`）与
+ * `type_schema.json`，后写覆盖前写 —— 这是会丢数据的架构级风险，不是 UI 小毛病。
+ *
+ * 必须在 `MB_USER_DATA_DIR` 覆盖之后调用：锁按 userData 路径区分，E2E 每个用例
+ * 用独立临时目录、且 playwright `workers: 1` 串行，互不影响。
+ */
+const hasSingleInstanceLock = app.requestSingleInstanceLock()
+if (!hasSingleInstanceLock) {
+  app.quit()
+}
+
+/** 第二个实例被拒绝时，把已有窗口唤到前台（而不是让用户以为「点了没反应」） */
+app.on('second-instance', () => {
+  if (mainWindow === null || mainWindow.isDestroyed()) return
+  if (mainWindow.isMinimized()) mainWindow.restore()
+  mainWindow.show()
+  mainWindow.focus()
+})
+
 function createWindow(): void {
   // 恢复上次窗口几何（无状态文件时用默认；坏数据已由 normalizeWindowState 逐字段兜底）
   const saved = readWindowState(app.getPath('userData'))
-  const bounds = saved ?? DEFAULT_WINDOW_STATE
+  // 旧坐标可能落在已拔掉的副屏上（窗口「打开了但看不见」）⇒ 用当前显示器校正到可见位置。
+  const bounds = fitBoundsToDisplays(
+    saved ?? DEFAULT_WINDOW_STATE,
+    screen.getAllDisplays().map((display) => display.workArea),
+    screen.getPrimaryDisplay().workArea
+  )
   mainWindow = new BrowserWindow({
     x: bounds.x,
     y: bounds.y,
@@ -97,12 +150,18 @@ function createWindow(): void {
   }
   mainWindow.on('resize', schedulePersist)
   mainWindow.on('move', schedulePersist)
-  mainWindow.on('close', () => {
+  mainWindow.on('close', (event) => {
     if (persistTimer !== null) {
       clearTimeout(persistTimer)
       persistTimer = null
     }
     persistWindowState()
+    // 常驻模式：关窗只是收进托盘（窗口不销毁），托盘「退出」经 before-quit 放行。
+    if (residentClose && !isQuitting) {
+      event.preventDefault()
+      mainWindow?.hide()
+      showTrayHintOnce()
+    }
   })
 
   // 安全基线：拒绝应用内开新窗口（https 外链交给系统浏览器），拒绝导航到应用外地址
@@ -154,6 +213,8 @@ function activateLibrary(libraryManager: LibraryManager): void {
 }
 
 app.whenReady().then(async () => {
+  // 没拿到锁的实例已在上方 `app.quit()`；这里再兜一层，避免竞态下仍去建库/建窗。
+  if (!hasSingleInstanceLock) return
   const userDataDir = app.getPath('userData')
   // 日志先行：主进程日志落盘到 userData/logs，渲染层经 IPC 转发到此
   initLogger(join(userDataDir, 'logs'))
@@ -195,6 +256,11 @@ app.whenReady().then(async () => {
   // 让用户与排障至少有据可查，而不是看着一个什么都没发生的进程。
   log.error('[Startup] 应用启动失败', error instanceof Error ? error : String(error))
   app.quit()
+})
+
+/** 真正退出（托盘「退出」/ 系统关机）时放行 close —— 常驻模式下否则窗口关不掉 */
+app.on('before-quit', () => {
+  isQuitting = true
 })
 
 app.on('window-all-closed', () => {

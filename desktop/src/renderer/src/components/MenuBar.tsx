@@ -31,6 +31,12 @@ export interface MenuActions {
   engineExport: (engine: EngineTarget) => void
   /** 数据快照导出（审查件）：json = 确定性可 diff 的全量数据；csv = 单表宽表。format 经菜单项 arg 传入 */
   exportSnapshot: (format: 'json' | 'csv') => void
+  /** 视图菜单：缩放 / 重载 / 开发者工具（主进程对聚焦窗口执行） */
+  zoomIn: () => void
+  zoomOut: () => void
+  zoomReset: () => void
+  reload: () => void
+  toggleDevTools: () => void
   /**
    * 「打开」/「保存」—— 整个数据仓库的 JSON 文件 I/O
    * （对齐 PyQt `main_window.py:710` 的 `open_file` / `:730` 的 `save_file`）。
@@ -252,6 +258,14 @@ export default function MenuBar({ canUndo, canRedo, actions }: MenuBarProps) {
       { type: 'action', label: '清理未使用图片', action: 'cleanupUnusedImages', testid: 'menuitem-tools-cleanupUnusedImages' },
       { type: 'action', label: '关键词模板配置', action: 'keywordTemplates', testid: 'menuitem-tools-keywordTemplates' }
     ],
+    [
+      { type: 'action', label: '放大', action: 'zoomIn', testid: 'menuitem-view-zoomIn' },
+      { type: 'action', label: '缩小', action: 'zoomOut', testid: 'menuitem-view-zoomOut' },
+      { type: 'action', label: '重置缩放', action: 'zoomReset', testid: 'menuitem-view-zoomReset' },
+      { type: 'separator' },
+      { type: 'action', label: '重新加载', action: 'reload', testid: 'menuitem-view-reload' },
+      { type: 'action', label: '开发者工具', action: 'toggleDevTools', testid: 'menuitem-view-devtools' }
+    ],
     [{ type: 'action', label: '打开设置...', action: 'settings', testid: 'menuitem-settings-open' }],
     [
       { type: 'action', label: '快速入门', action: 'onboarding', testid: 'menuitem-help-onboarding' },
@@ -352,7 +366,14 @@ export default function MenuBar({ canUndo, canRedo, actions }: MenuBarProps) {
   )
 }
 
-const MENU_TITLES = ['文件', '编辑', '工具', '设置', '帮助']
+const MENU_TITLES = ['文件', '编辑', '工具', '视图', '设置', '帮助']
 
 /** 菜单标题的稳定测试锚点：与 MENU_TITLES **同序**按 idx 取用（不做中文转写） */
-const MENU_TITLE_TESTIDS = ['menu-title-file', 'menu-title-edit', 'menu-title-tools', 'menu-title-settings', 'menu-title-help']
+const MENU_TITLE_TESTIDS = [
+  'menu-title-file',
+  'menu-title-edit',
+  'menu-title-tools',
+  'menu-title-view',
+  'menu-title-settings',
+  'menu-title-help'
+]

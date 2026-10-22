@@ -1,4 +1,4 @@
-import type { ChapterKey, CeshuFieldDef } from './ceshuConstants'
+import { CHAPTER_REQUIRED_FIELDS, type ChapterKey, type CeshuFieldDef } from './ceshuConstants'
 import * as OPT from './ceshuOptionLabels'
 
 /** 文档信息段 + 16 章表单字段描述（标签取自 Python chapter_forms/_base.py 与 _industrial.py） */
@@ -7,10 +7,35 @@ function f(key: string, label: string, kind: CeshuFieldDef['kind'], extra: Parti
   return { key, label, kind, ...extra }
 }
 
+/** 字段的协作契约（解析后的结果，供 UI 标记与单字段生成提示词使用） */
+export interface ResolvedFieldMeta {
+  required: boolean
+  aiDraftable: boolean
+  aiHint: string
+  reviewHint: string
+}
+
+/**
+ * 解析字段契约：
+ * - `required` 缺省从 `CHAPTER_REQUIRED_FIELDS` 派生（避免两处维护同一份必填信息）；
+ * - `aiDraftable` 缺省 true（AI 可起草），人定字段显式设 false；
+ * - `aiHint` / `reviewHint` 缺省空串。
+ */
+export function resolveFieldMeta(chapter: ChapterKey, field: CeshuFieldDef): ResolvedFieldMeta {
+  const requiredKeys = CHAPTER_REQUIRED_FIELDS[chapter] ?? []
+  return {
+    required: field.required ?? requiredKeys.includes(field.key),
+    aiDraftable: field.aiDraftable ?? true,
+    aiHint: field.aiHint ?? '',
+    reviewHint: field.reviewHint ?? ''
+  }
+}
+
 export const CESHU_CHAPTER_FIELDS: Record<ChapterKey, CeshuFieldDef[]> = {
   meta: [
-    f('game_name', '游戏名称', 'text'),
+    f('game_name', '游戏名称', 'text', { aiDraftable: false, reviewHint: '确认名称是否最终确定' }),
     f('game_type', '游戏类型', 'combo', {
+      aiDraftable: false,
       values: [
         'RPG',
         'MMORPG',
@@ -36,39 +61,67 @@ export const CESHU_CHAPTER_FIELDS: Record<ChapterKey, CeshuFieldDef[]> = {
         '休闲益智'
       ]
     }),
-    f('platform', '平台', 'multiCombo', { values: ['PC', '移动端', '主机'] }),
-    f('positioning', '一句话定位', 'text', { placeholder: '一句话描述你的游戏' }),
+    f('platform', '平台', 'multiCombo', { values: ['PC', '移动端', '主机'], aiDraftable: false }),
+    f('positioning', '一句话定位', 'text', {
+      placeholder: '一句话描述你的游戏',
+      aiHint: '一句话说清「给谁玩、玩什么、和谁不一样」',
+      reviewHint: '是否一句话能讲清，且不与竞品同质'
+    }),
     f('tags', '特色标签', 'stringList', {
       separator: 'comma',
-      placeholder: '用逗号分隔，如: 剧情向,开放世界,多人联机'
+      placeholder: '用逗号分隔，如: 剧情向,开放世界,多人联机',
+      aiHint: '3-5 个具体标签，避免「好玩」「有趣」这类空泛词'
     }),
     f('status', '文档状态', 'combo', {
+      aiDraftable: false,
       values: ['draft', 'in_progress', 'review', 'final'],
       optionLabels: OPT.DOC_STATUS_LABELS
     }),
     f('confidentiality', '保密级别', 'combo', {
+      aiDraftable: false,
       values: ['internal', 'confidential', 'strictly_confidential', 'public'],
       optionLabels: OPT.CONFIDENTIALITY_LABELS
     }),
     f('gdd_scope', '策划档位', 'combo', {
+      aiDraftable: false,
       values: ['lite', 'full'],
       optionLabels: OPT.GDD_SCOPE_LABELS
     })
   ],
   vision: [
-    f('design_vision', '设计愿景', 'textarea', { placeholder: '阐述设计理念和愿景' }),
-    f('user_personas.primary', '主要用户', 'textarea'),
-    f('user_personas.secondary', '次要用户', 'textarea'),
-    f('differentiation', '差异化优势', 'textarea'),
-    f('business_model', '商业模式', 'textarea')
+    f('design_vision', '设计愿景', 'textarea', {
+      placeholder: '阐述设计理念和愿景',
+      aiHint: '先一句愿景，再给三条支撑理由',
+      reviewHint: '是否具体、可判断，而不是口号'
+    }),
+    f('user_personas.primary', '主要用户', 'textarea', { aiHint: '年龄 / 使用场景 / 核心痛点，各一句' }),
+    f('user_personas.secondary', '次要用户', 'textarea', { aiHint: '与主要用户的具体差异，不要复述' }),
+    f('differentiation', '差异化优势', 'textarea', {
+      aiHint: '与 2-3 个竞品的具体差异，给出可验证的例子',
+      reviewHint: '是否说得出「玩家凭什么选你」'
+    }),
+    f('business_model', '商业模式', 'textarea', { aiDraftable: false })
   ],
   // 原 worldview + characters 两章合并为 story（字段取并集）
   story: [
-    f('architecture', '世界观架构', 'textarea'),
-    f('geography', '地理设定', 'textarea'),
-    f('main_plot', '主线剧情', 'textarea'),
-    f('protagonist', '主角设定', 'textarea'),
-    f('main_npc_count', '主要 NPC 数量', 'number', { from: 0, to: 9999 }),
+    f('architecture', '世界观架构', 'textarea', {
+      aiHint: '一句话世界观 + 3-5 条设定要点（每条一句）',
+      reviewHint: '设定之间是否自洽、有无互相矛盾'
+    }),
+    f('architecture_points', '世界观架构·要点', 'stringList', {
+      placeholder: '每行一条设定要点',
+      aiHint: '3-5 条设定要点，每条一句，便于逐条审阅'
+    }),
+    f('architecture_notes', '世界观架构·补充', 'textarea', { aiHint: '要点之外的补充说明，可留空' }),
+    f('geography', '地理设定', 'textarea', { aiHint: '3-5 个关键地点，各一句，说清「在哪、有什么用」' }),
+    f('main_plot', '主线剧情', 'textarea', { aiHint: '主线分 3 幕，每幕一句：起因 / 转折 / 结局' }),
+    f('main_plot_points', '主线剧情·节拍', 'stringList', {
+      placeholder: '每行一个情节点',
+      aiHint: '3-5 个情节点，每行一个，按顺序'
+    }),
+    f('main_plot_notes', '主线剧情·补充', 'textarea', { aiHint: '节拍之外的补充说明，可留空' }),
+    f('protagonist', '主角设定', 'textarea', { aiHint: '身份 / 目标 / 缺陷，各一句' }),
+    f('main_npc_count', '主要 NPC 数量', 'number', { from: 0, to: 9999, aiDraftable: false }),
     f('npc_list', 'NPC 列表', 'pipeList', {
       columns: [
         { key: 'name', label: '名称' },
@@ -76,7 +129,8 @@ export const CESHU_CHAPTER_FIELDS: Record<ChapterKey, CeshuFieldDef[]> = {
         { key: 'location', label: '位置' },
         { key: 'personality', label: '性格' },
         { key: 'quest_hook', label: '任务钩子' }
-      ]
+      ],
+      aiHint: '每个 NPC 一行：名称/角色/位置/性格/任务钩子'
     }),
     f('antagonists', '反派设计', 'stringList', { placeholder: '每行一个' }),
     f('boss_design', 'Boss 设计', 'pipeList', {
@@ -92,12 +146,22 @@ export const CESHU_CHAPTER_FIELDS: Record<ChapterKey, CeshuFieldDef[]> = {
   ],
   gameplay: [
     f('core_loop', '核心循环', 'textarea', { placeholder: '如: 探索→战斗→获取→养成→更强探索' }),
+    f('core_loop_points', '核心循环·步骤', 'stringList', {
+      placeholder: '每行一个步骤',
+      aiHint: '3-6 个步骤，按顺序每行一个'
+    }),
+    f('core_loop_notes', '核心循环·补充', 'textarea', { aiHint: '循环之外的补充说明，可留空' }),
     f('game_modes', '游戏模式', 'stringList', { placeholder: '每行一个' }),
     f('first_30_min', '新手体验(前30分钟)', 'textarea')
   ],
   systems: [],
   numeric: [
     f('core_formulas', '核心公式', 'textarea', { placeholder: '核心数值公式，每行一个' }),
+    f('core_formulas_points', '核心公式·列表', 'stringList', {
+      placeholder: '每行一个公式',
+      aiHint: '每行一个公式，格式统一'
+    }),
+    f('core_formulas_notes', '核心公式·补充', 'textarea', { aiHint: '公式之外的说明，可留空' }),
     f('balance_principles', '平衡原则', 'textarea'),
     f('economic_model', '经济模型', 'textarea')
   ],
@@ -144,6 +208,11 @@ export const CESHU_CHAPTER_FIELDS: Record<ChapterKey, CeshuFieldDef[]> = {
       optionLabels: OPT.COMBAT_MODE_LABELS
     }),
     f('damage_formula', '伤害公式', 'textarea'),
+    f('damage_formula_points', '伤害公式·要点', 'stringList', {
+      placeholder: '每行一条公式或步骤',
+      aiHint: '每条公式或步骤一行，便于机器解析'
+    }),
+    f('damage_formula_notes', '伤害公式·补充', 'textarea', { aiHint: '公式之外的推导或说明，可留空' }),
     f('skill_system', '技能系统', 'textarea'),
     f('buff_debuff', 'Buff/Debuff', 'textarea'),
     f('element_system', '元素系统', 'textarea'),

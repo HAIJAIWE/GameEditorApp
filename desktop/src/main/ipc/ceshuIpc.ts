@@ -13,6 +13,7 @@ import {
   ceshuDiffInputSchema,
   ceshuExportInputSchema,
   ceshuGetInputSchema,
+  ceshuMigrateFieldSplitsInputSchema,
   ceshuRenameInputSchema,
   ceshuReviewExportInputSchema,
   ceshuSaveChapterInputSchema,
@@ -199,6 +200,8 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
     exportTextReportFile(req.path, req.content, '审阅报告')
   )
   handle('ceshu:autoFill', ceshuGetInputSchema, (req) => ceshuManager.autoFill(req.id))
+  // 字段拆分迁移（幂等、非破坏）：大 textarea → 要点列表 + 补充说明，原文保留
+  handle('ceshu:migrateFieldSplits', ceshuMigrateFieldSplitsInputSchema, (req) => ceshuManager.migrateFieldSplits(req.id))
   handle('ceshu:diff', ceshuDiffInputSchema, (req) => {
     if (req.id === req.otherId) {
       throw new Error('请选择两个不同的版本')

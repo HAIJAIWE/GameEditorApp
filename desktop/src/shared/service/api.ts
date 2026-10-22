@@ -13,6 +13,8 @@ export interface MbApi {
     info(): Promise<IpcContract['app:info']['res']>
     log(req: IpcContract['app:log']['req']): Promise<IpcContract['app:log']['res']>
     setWindowMode(req: IpcContract['app:setWindowMode']['req']): Promise<IpcContract['app:setWindowMode']['res']>
+    /** 视图菜单动作：放大/缩小/重置缩放、重新加载、开发者工具 */
+    viewAction(req: IpcContract['app:viewAction']['req']): Promise<IpcContract['app:viewAction']['res']>
   }
   agent: {
     listTools(): Promise<IpcContract['agent:listTools']['res']>
@@ -220,6 +222,10 @@ export interface MbApi {
       req: IpcContract['ceshu:exportReviewReport']['req']
     ): Promise<IpcContract['ceshu:exportReviewReport']['res']>
     autoFill(req: IpcContract['ceshu:autoFill']['req']): Promise<IpcContract['ceshu:autoFill']['res']>
+    /** 字段拆分迁移（幂等、非破坏）：大 textarea → 要点列表 + 补充说明，原文保留 */
+    migrateFieldSplits(
+      req: IpcContract['ceshu:migrateFieldSplits']['req']
+    ): Promise<IpcContract['ceshu:migrateFieldSplits']['res']>
     diff(req: IpcContract['ceshu:diff']['req']): Promise<IpcContract['ceshu:diff']['res']>
     exportDiffReport(
       req: IpcContract['ceshu:exportDiffReport']['req']

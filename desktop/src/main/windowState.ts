@@ -103,6 +103,56 @@ export function normalizeWindowState(value: unknown): WindowState {
   }
 }
 
+/** 显示器工作区矩形（`Electron.Display.workArea` 的纯数据投影，便于单测） */
+export interface Rect {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+/** 窗口至少要有这么大的可见区域，才算「落在该屏幕上」（避免只贴住边缘就判定可见） */
+const MIN_VISIBLE_WIDTH = 120
+const MIN_VISIBLE_HEIGHT = 80
+
+function overlapsEnough(state: WindowState, area: Rect): boolean {
+  const overlapX = Math.min(state.x + state.width, area.x + area.width) - Math.max(state.x, area.x)
+  const overlapY = Math.min(state.y + state.height, area.y + area.height) - Math.max(state.y, area.y)
+  return overlapX >= MIN_VISIBLE_WIDTH && overlapY >= MIN_VISIBLE_HEIGHT
+}
+
+/**
+ * 确保恢复的窗口落在某块显示器上。
+ *
+ * 典型故障：上次在副屏关闭，拔掉副屏后旧坐标落在屏幕外 ⇒ 窗口**打开了但看不见**
+ * （用户只会觉得「程序没起来」）。`normalizeWindowState` 的 ±10000 范围校验挡不住
+ * 这种情况——它不知道当前到底有哪些屏幕。
+ *
+ * 规则：
+ * - 与任一 `workArea` 有足够重叠（≥120×80）→ 原样保留（含左上副屏的负坐标）；
+ * - 否则回退到主屏**居中**，尺寸收敛到主屏工作区内（避免小屏上超出）。
+ *
+ * 纯函数（显示器数据由调用方从 Electron `screen` 取），便于单测。
+ */
+export function fitBoundsToDisplays(
+  state: WindowState,
+  workAreas: readonly Rect[],
+  primary: Rect
+): WindowState {
+  if (workAreas.some((area) => overlapsEnough(state, area))) {
+    return state
+  }
+  const width = Math.min(state.width, primary.width)
+  const height = Math.min(state.height, primary.height)
+  return {
+    ...state,
+    width,
+    height,
+    x: Math.round(primary.x + (primary.width - width) / 2),
+    y: Math.round(primary.y + (primary.height - height) / 2)
+  }
+}
+
 /** 状态文件绝对路径 */
 export function windowStatePath(userDataDir: string): string {
   return join(userDataDir, WINDOW_STATE_FILENAME)

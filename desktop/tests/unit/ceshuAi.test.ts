@@ -150,6 +150,10 @@ describe('AI 生成：整章提示词组装（匹平 Python _ai_fill_chapter）'
     expect(built.prompt).toContain('游戏名称: 测试游戏')
     expect(built.prompt).toContain('该章节需要填充的字段列表:')
     expect(built.prompt).toContain('必须为字段列表中的每个字段都生成内容')
+    // 写作规范：AI 可解析（列表统一 `- `）+ 人可读（先结论、短句、具体化）
+    expect(built.prompt).toContain('写作规范')
+    expect(built.prompt).toContain('单句尽量不超过 40 字')
+    expect(built.prompt).toContain('列表统一用「- 」开头')
   })
 
   it('补全模式：仅空字段；已有非空内容作为保留参考；风格术语进入上下文', () => {
@@ -166,6 +170,7 @@ describe('AI 生成：整章提示词组装（匹平 Python _ai_fill_chapter）'
     expect(built.prompt).toContain('- game_name: 测试游戏')
     expect(built.prompt).toContain('风格术语表:')
     expect(built.prompt).toContain('渡劫')
+    expect(built.prompt).toContain('写作规范')
   })
 
   it('补全模式：无空字段时字段列表为空（上层不再调用 LLM）', () => {

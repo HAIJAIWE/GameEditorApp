@@ -3,6 +3,7 @@ import { buildChangelogEntry, compareVersionLabels, nextVersionLabel, type Ceshu
 import { autoFillRequiredFields } from '../../shared/ceshuFill'
 import { buildDuplicateName } from '../../shared/ceshuHome'
 import { computeChapterProgress, computeEnabledEditors, createCeshuId, createDefaultCeshu, formatLocalTimestamp, getGddScope, withChapter } from '../../shared/ceshuModel'
+import { migrateCeshuFieldSplits } from '../../shared/ceshuMigrationPlan'
 import { buildPresetApplication } from '../../shared/ceshuPresets'
 import { CeshuStorage } from './storage'
 
@@ -105,6 +106,26 @@ export class CeshuManager {
         this.storage.save(filledDoc)
       }
       return { doc: filledDoc, filled }
+    })
+  }
+
+  /**
+   * 字段拆分迁移（幂等、非破坏）：把大 textarea 拆成 `*_points` + `*_notes`，
+   * **原文保留**（确认新字段无误后可手动清空，也留了回滚余地）。
+   * 无可迁移字段时不写盘，原样返回。
+   */
+  migrateFieldSplits(
+    id: string
+  ): Promise<{ doc: CeshuDocument; migrated: Array<{ chapter: ChapterKey; fieldKey: string; points: number }> }> {
+    return this.enqueueWrite(() => {
+      const doc = this.storage.load(id)
+      const { doc: next, migrated } = migrateCeshuFieldSplits(doc)
+      if (migrated.length > 0) {
+        next.updated_at = formatLocalTimestamp()
+        next.enabled_editors = computeEnabledEditors(next)
+        this.storage.save(next)
+      }
+      return { doc: next, migrated }
     })
   }
 

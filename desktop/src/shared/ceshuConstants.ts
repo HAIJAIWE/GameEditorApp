@@ -241,6 +241,21 @@ export interface CeshuFieldDef {
   /** stringList 分隔符（默认按行） */
   separator?: 'newline' | 'comma'
   placeholder?: string
+  /* ---- 人机协作契约（见 ceshuFields.resolveFieldMeta） ---- */
+  /**
+   * 是否必填（没填就无法开工）。缺省时由 `CHAPTER_REQUIRED_FIELDS` 派生，
+   * 避免两处维护同一份「必填」信息。
+   */
+  required?: boolean
+  /**
+   * 是否允许 AI 起草。缺省 `true`；预算、商业决策、团队规模这类**人定**字段显式设 `false`，
+   * 单字段生成时会把它们排除，避免 AI 越权替人做决定。
+   */
+  aiDraftable?: boolean
+  /** 该字段 AI 应产出什么（一句话，直接喂给单字段生成提示词） */
+  aiHint?: string
+  /** 人审这个字段时看什么（一句话，显示在字段旁，供审核者快速判断） */
+  reviewHint?: string
 }
 
 /** 游戏系统 config 字段（无 key，键即字段名，与 Python SYSTEM_CONFIG_SCHEMA 对应） */

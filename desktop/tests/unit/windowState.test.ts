@@ -8,6 +8,7 @@ import {
   DEFAULT_WINDOW_STATE,
   WINDOW_STATE_FILENAME,
   WINDOW_STATE_VERSION,
+  fitBoundsToDisplays,
   normalizeWindowState,
   readWindowState,
   windowStatePath,
@@ -171,5 +172,56 @@ describe('writeWindowState：原子写与往返', () => {
     writeWindowState(dir, { ...DEFAULT_WINDOW_STATE, width: 1000 })
     writeWindowState(dir, { ...DEFAULT_WINDOW_STATE, width: 1400 })
     expect(readWindowState(dir)?.width).toBe(1400)
+  })
+})
+
+describe('fitBoundsToDisplays：窗口可见性校正', () => {
+  const primary = { x: 0, y: 0, width: 1920, height: 1080 }
+
+  it('落在主屏内 → 原样保留', () => {
+    const state = { ...DEFAULT_WINDOW_STATE, x: 100, y: 50 }
+    expect(fitBoundsToDisplays(state, [primary], primary)).toEqual(state)
+  })
+
+  it('落在左侧副屏（负坐标）→ 保留（多显示器左上布局）', () => {
+    const left = { x: -1920, y: 0, width: 1920, height: 1080 }
+    const state = { ...DEFAULT_WINDOW_STATE, x: -1800, y: 100 }
+    expect(fitBoundsToDisplays(state, [primary, left], primary)).toEqual(state)
+  })
+
+  it('副屏拔掉后旧坐标在屏幕外 → 回退主屏居中', () => {
+    const state = { ...DEFAULT_WINDOW_STATE, x: 3000, y: 200 }
+    const fitted = fitBoundsToDisplays(state, [primary], primary)
+    expect(fitted.width).toBe(state.width)
+    expect(fitted.height).toBe(state.height)
+    expect(fitted.x).toBe(Math.round((1920 - state.width) / 2))
+    expect(fitted.y).toBe(Math.round((1080 - state.height) / 2))
+  })
+
+  it('跨屏大窗口但可见 → 保留尺寸（不误伤跨显示器布局）', () => {
+    const state = { ...DEFAULT_WINDOW_STATE, x: 0, y: 0, width: 3840, height: 1080 }
+    expect(fitBoundsToDisplays(state, [primary], primary)).toEqual(state)
+  })
+
+  it('不可见且超出主屏 → 尺寸收敛到主屏并居中', () => {
+    const state = { ...DEFAULT_WINDOW_STATE, x: 5000, y: 5000, width: 3000, height: 2000 }
+    const fitted = fitBoundsToDisplays(state, [primary], primary)
+    expect(fitted.width).toBe(1920)
+    expect(fitted.height).toBe(1080)
+    expect(fitted.x).toBe(0)
+    expect(fitted.y).toBe(0)
+  })
+
+  it('只贴住边缘（重叠不足 120×80）→ 视为不可见，回退居中', () => {
+    const state = { ...DEFAULT_WINDOW_STATE, x: 1900, y: 50 }
+    const fitted = fitBoundsToDisplays(state, [primary], primary)
+    expect(fitted.x).toBe(Math.round((1920 - state.width) / 2))
+  })
+
+  it('校正不丢失 maximized / lastMode', () => {
+    const state = { ...DEFAULT_WINDOW_STATE, x: 3000, y: 200, maximized: true, lastMode: 'ceshu' }
+    const fitted = fitBoundsToDisplays(state, [primary], primary)
+    expect(fitted.maximized).toBe(true)
+    expect(fitted.lastMode).toBe('ceshu')
   })
 })

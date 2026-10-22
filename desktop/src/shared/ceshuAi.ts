@@ -10,7 +10,7 @@ import {
   type GddScope
 } from './ceshuConstants'
 import type { LlmUsage } from './config/llmConfig'
-import { CESHU_CHAPTER_FIELDS } from './ceshuFields'
+import { CESHU_CHAPTER_FIELDS, resolveFieldMeta } from './ceshuFields'
 import type { QualityGateVerdict } from './types'
 import { isPlainObject } from './ceshuModel'
 import { readText } from './util/readText'
@@ -137,6 +137,27 @@ export function buildChapterPrompt(
     `章节提示: ${agent.agentPrompt}\n\n` +
     `上下文信息:\n${contextText}\n\n` +
     `该章节需要填充的字段列表:\n${fieldList}\n\n`
+  /*
+   * 单字段生成（协作粒度）：把该字段的 `aiHint`（AI 该产出什么）与 `reviewHint`
+   * （人审看什么）一并喂给模型 —— 让生成目标和人审标准在同一处对齐，避免
+   * 「AI 写了一堆、人不知道该看哪」。整章生成不加，避免提示词膨胀。
+   */
+  if (onlyFields && onlyFields.length > 0) {
+    const defs = CESHU_CHAPTER_FIELDS[chapter] ?? []
+    const hintLines: string[] = []
+    for (const key of onlyFields) {
+      const def = defs.find((field) => field.key === key)
+      if (def === undefined) continue
+      const meta = resolveFieldMeta(chapter, def)
+      const parts: string[] = []
+      if (meta.aiHint) parts.push(`AI 目标: ${meta.aiHint}`)
+      if (meta.reviewHint) parts.push(`人审要点: ${meta.reviewHint}`)
+      if (parts.length > 0) hintLines.push(`- ${def.label}：${parts.join('；')}`)
+    }
+    if (hintLines.length > 0) {
+      prompt += `字段写作要求:\n${hintLines.join('\n')}\n\n`
+    }
+  }
   if (existingContent) {
     prompt += `已有非空内容（请保留并补充其他字段）:\n${existingContent}\n\n`
   }

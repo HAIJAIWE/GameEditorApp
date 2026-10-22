@@ -26,6 +26,9 @@ import {
 } from '../../../shared/domain/ceshu/ceshuReports'
 import { buildScoreReportMarkdown, type CeshuScoreReport } from '../../../shared/ceshuScorer'
 import { clearAiGenerated, markAiGenerated, readAiGenerated } from '../../../shared/ceshuAiMark'
+import { fieldStatusOf, setFieldStatuses, type FieldReviewStatus } from '../../../shared/ceshuFieldStatus'
+import { CESHU_CHAPTER_FIELDS } from '../../../shared/ceshuFields'
+import { migrationSplitTitle, pendingSplitCount, planCeshuMigration } from '../../../shared/ceshuMigrationPlan'
 import type { CeshuAiGenerateResult } from '../../../shared/ceshuAi'
 import type { DataTypeDef } from '../../../shared/types'
 
@@ -96,6 +99,10 @@ export default function CeshuView({
 }: CeshuViewProps) {
   const [doc, setDoc] = useState<CeshuDocument | null>(null)
   const [activeChapter, setActiveChapter] = useState<ChapterKey>('meta')
+  /** 全局审阅队列（跨章列出 AI 草稿字段）是否展开 */
+  const [reviewOpen, setReviewOpen] = useState(false)
+  /** 迁移预览（只读）浮层是否展开 */
+  const [migrationOpen, setMigrationOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -221,7 +228,11 @@ export default function CeshuView({
 
   /** 保存章节：同时清除该章的「待核对」标记（人已经动过这一章了） */
   const handleSave = useCallback(
-    async (chapter: ChapterKey, data: ChapterData): Promise<void> => {
+    async (
+      chapter: ChapterKey,
+      data: ChapterData,
+      statusUpdates?: Record<string, FieldReviewStatus>
+    ): Promise<void> => {
       if (!ceshuId) return
       setBusy(true)
       try {
@@ -229,11 +240,18 @@ export default function CeshuView({
         setDoc(updated)
         setNotice(`已保存：${CHAPTER_LABELS[chapter]}`)
         setError(null)
-        // 顺带清掉「待核对」点：人工保存过 = 核对过了。无标记时 clearAiGenerated 返回原 meta，
-        // 不会触发额外写盘。
-        const cleared = clearAiGenerated(updated.meta, chapter)
-        if (cleared !== updated.meta) {
-          setDoc(await window.mbApi.ceshu.saveChapter({ id: ceshuId, chapter: 'meta', data: cleared }))
+        /*
+         * 一次 meta 写盘同时完成两件事：
+         * 1) 清掉「按章待核对」点（人工保存过 = 核对过了）；
+         * 2) 结算「字段级状态」（AI 草稿未改→已批准、人改过→human_edited）。
+         * 任一没变化就不写盘（clearAiGenerated 无标记时返回原对象）。
+         */
+        let nextMeta = clearAiGenerated(updated.meta, chapter)
+        if (statusUpdates !== undefined && Object.keys(statusUpdates).length > 0) {
+          nextMeta = setFieldStatuses(nextMeta, chapter, statusUpdates, new Date().toISOString())
+        }
+        if (nextMeta !== updated.meta) {
+          setDoc(await window.mbApi.ceshu.saveChapter({ id: ceshuId, chapter: 'meta', data: nextMeta }))
         }
         onChanged()
       } catch (err) {
@@ -243,6 +261,17 @@ export default function CeshuView({
       }
     },
     [ceshuId, onChanged]
+  )
+
+  /** 字段级状态写入（「接受」/ AI 草稿标记）：单独走一次 meta 保存 */
+  const handleFieldStatus = useCallback(
+    async (chapter: ChapterKey, updates: Record<string, FieldReviewStatus>): Promise<void> => {
+      if (!ceshuId || doc === null) return
+      const nextMeta = setFieldStatuses(doc.meta, chapter, updates, new Date().toISOString())
+      if (nextMeta === doc.meta) return
+      setDoc(await window.mbApi.ceshu.saveChapter({ id: ceshuId, chapter: 'meta', data: nextMeta }))
+    },
+    [ceshuId, doc]
   )
 
   if (!ceshuId) {
@@ -285,6 +314,42 @@ export default function CeshuView({
   const aiMarks = readAiGenerated(doc.meta)
   const scope = getGddScope(doc)
   const visible = visibleChapterKeys(scope)
+  /**
+   * 全局待审字段（跨章）：AI 草稿、尚未接受。
+   * 按 `visible` 章节顺序 + 字段定义顺序排列，便于「一条队列」往下扫。
+   */
+  const pendingReviewFields: Array<{ chapter: ChapterKey; fieldKey: string; fieldLabel: string }> = []
+  for (const chapter of visible) {
+    const statuses = fieldStatusOf(doc.meta, chapter)
+    for (const field of CESHU_CHAPTER_FIELDS[chapter] ?? []) {
+      if (statuses[field.key]?.status === 'ai_draft') {
+        pendingReviewFields.push({ chapter, fieldKey: field.key, fieldLabel: field.label })
+      }
+    }
+  }
+
+  /** 一键接受所有待审字段：按章合并后一次 meta 写盘 */
+  const handleApproveAllPending = async (): Promise<void> => {
+    if (!ceshuId || pendingReviewFields.length === 0) return
+    const now = new Date().toISOString()
+    let meta = doc.meta
+    for (const chapter of visible) {
+      const statuses = fieldStatusOf(doc.meta, chapter)
+      const updates: Record<string, FieldReviewStatus> = {}
+      for (const field of CESHU_CHAPTER_FIELDS[chapter] ?? []) {
+        if (statuses[field.key]?.status === 'ai_draft') updates[field.key] = 'approved'
+      }
+      if (Object.keys(updates).length > 0) {
+        meta = setFieldStatuses(meta, chapter, updates, now)
+      }
+    }
+    if (meta !== doc.meta) {
+      setDoc(await window.mbApi.ceshu.saveChapter({ id: ceshuId, chapter: 'meta', data: meta }))
+    }
+  }
+
+  /** 迁移预览（只读）：大 textarea 会怎么拆 / 哪些字段语义重叠 */
+  const migrationPlan = planCeshuMigration(doc)
   const progress = computeChapterProgress(doc)
   /** 由第四章游戏系统派生的启用编辑器（内嵌数据预览面板据此渲染标签页） */
   const enabledEditors = computeEnabledEditors(doc)
@@ -519,6 +584,34 @@ export default function CeshuView({
     }
   }
 
+  /** 执行字段拆分迁移：幂等、非破坏（原文保留），迁完刷新文档。
+   *  注意：这是**普通函数**而不是 useCallback —— 它位于 `if (!doc) return` 之后，
+   *  在那里调 hook 会违反 Rules of Hooks（与 handleAutoFill 同一处理）。 */
+  const handleRunMigration = async (): Promise<void> => {
+    if (!ceshuId) return
+    setBusy(true)
+    try {
+      const result = await window.mbApi.ceshu.migrateFieldSplits({ id: ceshuId })
+      setDoc(result.doc)
+      setError(null)
+      if (result.migrated.length > 0) {
+        const names = result.migrated
+          .map((item) => `${CHAPTER_LABELS[item.chapter]}·${item.fieldKey}`)
+          .join('、')
+        setNotice(
+          `已迁移 ${result.migrated.length} 个字段（${names}）。原文已保留，确认新字段无误后可清空旧字段。`
+        )
+        onChanged()
+      } else {
+        setNotice('没有需要迁移的字段')
+      }
+    } catch (err) {
+      setError(toErrorMessage(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
   /** 预设市场应用完成：systems/meta 已在主进程写盘，更新文档并刷新侧边栏 */
   const handlePresetApplied = (updated: CeshuDocument, enabledCount: number, presetLabel: string): void => {
     setDoc(updated)
@@ -560,7 +653,8 @@ export default function CeshuView({
       { testid: 'ceshu-diff', label: '版本对比', run: () => setPanel('diff') },
       { testid: 'ceshu-timeline', label: '版本时间线', run: () => setPanel('timeline') },
       { testid: 'ceshu-changelog', label: '变更记录', run: () => void handleShowChangelog() },
-      { testid: 'ceshu-datarefs', label: '数据引用', run: () => setPanel('dataRefs') }
+      { testid: 'ceshu-datarefs', label: '数据引用', run: () => setPanel('dataRefs') },
+      { testid: 'ceshu-migration-preview', label: '迁移预览（只读）', run: () => setMigrationOpen(true) }
     ],
     // 「确认游戏系统」**不在菜单里**：PyQt 无此菜单项，改为打开策划书时自动弹窗
     // （见上方加载回调；条件 = 未确认过 且 已有启用系统）
@@ -596,6 +690,18 @@ export default function CeshuView({
         )}
         <button type="button" className="btn accent-outline" data-testid="ceshu-validate" disabled={busy} onClick={() => void handleValidate()}>
           校验
+        </button>
+        {/* 全局审阅入口：跨章列出 AI 草稿字段，逐条接受 / 跳转 */}
+        <button
+          type="button"
+          className={`btn${pendingReviewFields.length > 0 ? ' accent-outline' : ''}`}
+          data-testid="ceshu-review-toggle"
+          aria-pressed={reviewOpen}
+          disabled={busy}
+          title="跨章列出 AI 草稿字段，逐条接受"
+          onClick={() => setReviewOpen((open) => !open)}
+        >
+          待审 {pendingReviewFields.length}
         </button>
         {/*
           数据栏开关。布局心智：**左栏 + 中间 = 工作区，右栏 = 智能体**。
@@ -785,7 +891,122 @@ export default function CeshuView({
         ) : panel === 'score' ? (
           <ScorePanel score={score} onExport={() => void handleExportScore()} onClose={() => setPanel(null)} />
         ) : (
-          <div className="ceshu-pane-row">
+          <>
+            {/* 全局审阅队列（浮层）：跨章列出 ai_draft 字段，逐条接受 / 跳转 */}
+            {reviewOpen && (
+              <div className="review-overlay" data-testid="review-overlay" onClick={() => setReviewOpen(false)}>
+                <div className="review-panel" data-testid="review-panel" onClick={(event) => event.stopPropagation()}>
+                  <div className="review-panel-header">
+                    <span>待审字段：{pendingReviewFields.length} 个</span>
+                    <button
+                      type="button"
+                      className="btn primary slim"
+                      data-testid="review-accept-all"
+                      disabled={pendingReviewFields.length === 0}
+                      onClick={() => void handleApproveAllPending()}
+                    >
+                      全部接受
+                    </button>
+                    <button type="button" className="btn slim" onClick={() => setReviewOpen(false)}>
+                      关闭
+                    </button>
+                  </div>
+                  {pendingReviewFields.length === 0 ? (
+                    <div className="item-meta">没有待审字段。AI 生成后会出现在这里。</div>
+                  ) : (
+                    <div className="review-list">
+                      {pendingReviewFields.map((item) => (
+                        <div className="review-row" key={`${item.chapter}:${item.fieldKey}`} data-testid="review-row">
+                          <span className="review-chapter">{CHAPTER_LABELS[item.chapter]}</span>
+                          <span className="review-field">{item.fieldLabel}</span>
+                          <button
+                            type="button"
+                            className="btn slim"
+                            data-testid="review-goto"
+                            onClick={() => {
+                              setActiveChapter(item.chapter)
+                              setReviewOpen(false)
+                            }}
+                          >
+                            查看
+                          </button>
+                          <button
+                            type="button"
+                            className="btn slim primary"
+                            data-testid="review-accept"
+                            onClick={() => void handleFieldStatus(item.chapter, { [item.fieldKey]: 'approved' })}
+                          >
+                            接受
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            {/* 迁移预览（只读）：只展示「会怎么拆 / 哪些重叠」，不改文档 */}
+            {migrationOpen && (
+              <div className="review-overlay" data-testid="migration-overlay" onClick={() => setMigrationOpen(false)}>
+                <div className="review-panel" data-testid="migration-panel" onClick={(event) => event.stopPropagation()}>
+                  <div className="review-panel-header">
+                    <span>迁移预览</span>
+                    <button
+                      type="button"
+                      className="btn primary slim"
+                      data-testid="migration-run"
+                      disabled={busy || pendingSplitCount(doc) === 0}
+                      onClick={() => void handleRunMigration()}
+                    >
+                      执行迁移（{pendingSplitCount(doc)}）
+                    </button>
+                    <button type="button" className="btn slim" onClick={() => setMigrationOpen(false)}>
+                      关闭
+                    </button>
+                  </div>
+                  <div className="item-meta">
+                    迁移**幂等且非破坏**：把大段文本拆成「要点 + 补充」，原文保留，确认无误后可手动清空旧字段。
+                  </div>
+                  {migrationPlan.splits.length === 0 && migrationPlan.overlaps.length === 0 ? (
+                    <div className="item-meta">没有需要迁移的字段。</div>
+                  ) : (
+                    <div className="review-list">
+                      {migrationPlan.splits.map((item) => (
+                        <div
+                          className="migration-item"
+                          key={`split:${item.chapter}:${item.fieldKey}`}
+                          data-testid="migration-split"
+                        >
+                          <div className="migration-title">{migrationSplitTitle(item)}</div>
+                          <div className="item-meta">
+                            拆成：要点列表（{item.points.length} 条）+ 补充说明
+                          </div>
+                          <ul className="migration-points">
+                            {item.points.map((point, index) => (
+                              <li key={index}>{point}</li>
+                            ))}
+                          </ul>
+                          {item.notes !== '' && (
+                            <div className="item-meta">
+                              补充：{item.notes.slice(0, 120)}
+                              {item.notes.length > 120 ? '…' : ''}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                      {migrationPlan.overlaps.map((item) => (
+                        <div className="migration-item" key={`overlap:${item.chapter}`} data-testid="migration-overlap">
+                          <div className="migration-title">{CHAPTER_LABELS[item.chapter]} · 重叠字段</div>
+                          <div className="item-meta">{item.fieldLabels.join(' / ')}</div>
+                          <div className="item-meta">{item.note}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            <div className="ceshu-pane-row">
             <div className="chapter-nav">
               {visible.map((key) => {
                 const pct = Math.round((progress[key] ?? 0) * 100)
@@ -837,6 +1058,8 @@ export default function CeshuView({
                 onSave={handleSave}
                 onAiGenerate={handleAiGenerate}
                 onAiGenerateField={handleAiGenerateField}
+                fieldStatus={fieldStatusOf(doc.meta, activeChapter)}
+                onFieldStatus={handleFieldStatus}
               />
             </div>
 
@@ -868,6 +1091,7 @@ export default function CeshuView({
               onJumpMissed={onJumpMissed}
             />}
           </div>
+          </>
         )}
       </div>
     </div>

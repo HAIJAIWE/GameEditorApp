@@ -366,6 +366,15 @@ export const windowModeInputSchema = z.object({
 })
 export type WindowModeInput = z.infer<typeof windowModeInputSchema>
 
+/** 视图菜单动作（缩放 / 重载 / 开发者工具）：主进程对**聚焦窗口**的 webContents 执行 */
+export const appViewActionSchema = z.enum(['zoomIn', 'zoomOut', 'zoomReset', 'reload', 'toggleDevTools'])
+
+export const appViewActionInputSchema = z.object({
+  action: appViewActionSchema
+})
+
+export type AppViewActionInput = z.infer<typeof appViewActionInputSchema>
+
 /* ---- 属性系统 ---- */
 
 export const attrFormulaSchema = z.object({
@@ -427,6 +436,13 @@ export const ceshuGetInputSchema = z.object({
   /** 云端档超预算确认标志（v0.6 M5，同 `ceshuAiGenerateInputSchema.confirmed`） */
   confirmed: z.boolean().optional()
 })
+
+/** 字段拆分迁移（幂等、非破坏）：只需要策划书 id */
+export const ceshuMigrateFieldSplitsInputSchema = z.object({
+  id: z.string().min(1)
+})
+
+export type CeshuMigrateFieldSplitsInput = z.infer<typeof ceshuMigrateFieldSplitsInputSchema>
 
 /**
  * 删除策划书：`confirm` 是**必填的显式确认标志**（与 `clearAllInputSchema` 同一约定）。

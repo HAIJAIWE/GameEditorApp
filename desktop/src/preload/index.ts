@@ -19,7 +19,8 @@ const api: MbApi = {
   app: {
     info: () => invoke('app:info', undefined),
     log: (req) => invoke('app:log', req),
-    setWindowMode: (req) => invoke('app:setWindowMode', req)
+    setWindowMode: (req) => invoke('app:setWindowMode', req),
+    viewAction: (req) => invoke('app:viewAction', req)
   },
   schema: {
     list: () => invoke('schema:list', undefined),
@@ -162,6 +163,7 @@ const api: MbApi = {
     aiGenerateField: (req) => invoke('ceshu:aiGenerateField', req),
     exportReviewReport: (req) => invoke('ceshu:exportReviewReport', req),
     autoFill: (req) => invoke('ceshu:autoFill', req),
+    migrateFieldSplits: (req) => invoke('ceshu:migrateFieldSplits', req),
     diff: (req) => invoke('ceshu:diff', req),
     exportDiffReport: (req) => invoke('ceshu:exportDiffReport', req),
     exportScoreReport: (req) => invoke('ceshu:exportScoreReport', req),

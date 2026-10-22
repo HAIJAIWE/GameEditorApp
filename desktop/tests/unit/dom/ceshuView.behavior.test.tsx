@@ -233,3 +233,97 @@ describe('CeshuView：AI 生成「待核对」标记', () => {
     expect(rendered.queryAll('.chapter-tab-ai')).toHaveLength(1)
   })
 })
+
+describe('CeshuView：全局审阅队列', () => {
+  const withDraft = (): CeshuDocument => {
+    const doc = makeDoc()
+    doc.meta.field_status = {
+      meta: { positioning: { status: 'ai_draft', at: '2026-10-20T00:00:00.000Z' } }
+    }
+    return doc
+  }
+
+  it('头部显示待审数量，点开浮层列出待审字段', async () => {
+    api = installMbApi({ doc: withDraft() })
+    const rendered = await mount()
+
+    const toggle = rendered.byTestId('ceshu-review-toggle')
+    expect(toggle.textContent).toContain('待审 1')
+
+    await rendered.click(toggle)
+    expect(rendered.query('[data-testid="review-panel"]')).not.toBeNull()
+    expect(rendered.queryAll('[data-testid="review-row"]')).toHaveLength(1)
+    expect(rendered.text()).toContain('一句话定位')
+  })
+
+  it('点「接受」把该字段写成 approved，待审数归零', async () => {
+    const doc = withDraft()
+    api = installMbApi({
+      doc,
+      overrides: {
+        'ceshu.saveChapter': (req: unknown) => {
+          const r = req as { chapter?: string; data?: unknown }
+          return r.chapter === 'meta' ? { ...doc, meta: r.data } : doc
+        }
+      }
+    })
+    const rendered = await mount()
+
+    await rendered.click(rendered.byTestId('ceshu-review-toggle'))
+    await rendered.click(rendered.byTestId('review-accept'))
+
+    expect(api.calls).toContain('ceshu.saveChapter')
+    expect(rendered.byTestId('ceshu-review-toggle').textContent).toContain('待审 0')
+  })
+})
+
+describe('CeshuView：迁移预览（只读）', () => {
+  it('「更多」菜单可打开迁移预览，列出拆分项', async () => {
+    const doc = makeDoc()
+    doc.story.architecture = '一句话世界观\n- 设定一\n- 设定二'
+    api = installMbApi({ doc })
+    const rendered = await mount()
+
+    await rendered.click(rendered.byTestId('ceshu-more'))
+    await rendered.click(rendered.byTestId('ceshu-migration-preview'))
+
+    expect(rendered.query('[data-testid="migration-panel"]')).not.toBeNull()
+    expect(rendered.queryAll('[data-testid="migration-split"]').length).toBeGreaterThan(0)
+    expect(rendered.text()).toContain('世界观架构')
+    // 打开预览本身不应写盘
+    expect(api.calls).not.toContain('ceshu.saveChapter')
+  })
+
+  it('点「执行迁移」调用 IPC，回填新字段后待迁数归零', async () => {
+    const doc = makeDoc()
+    const original = '一句话世界观\n- 设定一\n- 设定二'
+    doc.story.architecture = original
+    api = installMbApi({
+      doc,
+      overrides: {
+        'ceshu.migrateFieldSplits': () => ({
+          doc: {
+            ...doc,
+            story: {
+              ...doc.story,
+              architecture: original,
+              architecture_points: ['一句话世界观', '设定一', '设定二'],
+              architecture_notes: ''
+            }
+          },
+          migrated: [{ chapter: 'story', fieldKey: 'architecture', points: 3 }]
+        })
+      }
+    })
+    const rendered = await mount()
+
+    await rendered.click(rendered.byTestId('ceshu-more'))
+    await rendered.click(rendered.byTestId('ceshu-migration-preview'))
+    expect(rendered.byTestId('migration-run').textContent).toContain('执行迁移（1）')
+
+    await rendered.click(rendered.byTestId('migration-run'))
+
+    expect(api.calls).toContain('ceshu.migrateFieldSplits')
+    expect(rendered.byTestId('migration-run').textContent).toContain('执行迁移（0）')
+  })
+})

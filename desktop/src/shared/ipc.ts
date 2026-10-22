@@ -16,6 +16,7 @@ import type {
   CreateItemInput,
   ReportFileDialogInput,
   CeshuCreateInput,
+  CeshuMigrateFieldSplitsInput,
   CeshuDeleteInput,
   CeshuDeriveInput,
   CeshuDiffExportInput,
@@ -72,7 +73,8 @@ import type {
   TemplatesListInput,
   TemplatesSaveInput,
   TemplatesUpdateInput,
-  WindowModeInput
+  WindowModeInput,
+  AppViewActionInput
 } from './schemas'
 import type {
   AppInfo,
@@ -112,6 +114,8 @@ export interface IpcContract {
   'app:log': { req: AppLogInput; res: undefined }
   /** 渲染层上报最后停留的界面模式（迁移 ui/window_state.py 的 last_tab_index） */
   'app:setWindowMode': { req: WindowModeInput; res: undefined }
+  /** 视图菜单动作（放大/缩小/重置缩放/重新加载/开发者工具）：对聚焦窗口执行 */
+  'app:viewAction': { req: AppViewActionInput; res: undefined }
   'schema:list': { req: undefined; res: DataTypeDef[] }
   'schema:save': { req: SchemaSaveInput; res: DataTypeDef[] }
   /** 字段 ID 的 AI 候选（术语表未收录时由用户显式点击触发） */
@@ -322,6 +326,11 @@ export interface IpcContract {
   'ceshu:aiGenerateData': { req: CeshuDataGenInput; res: CeshuDataGenResult }
   'ceshu:exportReviewReport': { req: CeshuReviewExportInput; res: { filePath: string } }
   'ceshu:autoFill': { req: { id: string }; res: { doc: CeshuDocument; filled: number } }
+  /** 字段拆分迁移（幂等、非破坏）：把大 textarea 拆成 *_points + *_notes，原文保留可回滚 */
+  'ceshu:migrateFieldSplits': {
+    req: CeshuMigrateFieldSplitsInput
+    res: { doc: CeshuDocument; migrated: Array<{ chapter: ChapterKey; fieldKey: string; points: number }> }
+  }
   'ceshu:diff': { req: CeshuDiffInput; res: CeshuVersionDiff }
   'ceshu:exportDiffReport': { req: CeshuDiffExportInput; res: { filePath: string } }
   'ceshu:exportScoreReport': { req: CeshuScoreExportInput; res: { filePath: string } }

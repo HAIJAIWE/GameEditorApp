@@ -487,15 +487,28 @@ body {
   flex-direction: column;
   /* 对齐 PyQt `layout_builder.py:145-149`：QSplitter stretch 3:1、初始 **75:25**、
      右栏 `setMinimumWidth(300)`、**无上限**（P3-12 已移除 520 硬上限）。
-     此前是定宽 320px —— 1280 窗下碰巧与 25% 一致，宽屏（1920）则 PyQt 480px vs TS 320px。 */
+     实际宽度由 App 的 `style.width` 控制（拖拽后落 localStorage）；这里给默认值兜底。 */
   width: 25%;
   min-width: 300px;
   /* 不设 max-width：与 PyQt「自由拖动、无上限」一致 */
-  flex-shrink: 1;
+  flex: 0 0 auto;
   border-left: 1px solid var(--border);
   background: var(--bg-panel);
   overflow: hidden;
-  resize: horizontal;
+}
+
+/* 右栏与主区之间的拖拽分隔条（替代原先 CSS resize 的右下角小把手） */
+.ai-dock-resizer {
+  flex: 0 0 4px;
+  width: 4px;
+  cursor: col-resize;
+  background: transparent;
+  transition: background 120ms ease;
+}
+
+.ai-dock-resizer:hover,
+.ai-dock-resizer:active {
+  background: var(--border);
 }
 
 /* 数字员工停靠栏常驻右侧，无「专注对话」全屏模式（对齐 PyQt：AI 面板恒为右栏） */
@@ -1067,6 +1080,138 @@ body {
 .field-with-ai > .ai-field-btn {
   flex: 0 0 auto;
   margin-top: 4px;
+}
+
+/* 字段块：控件行 + 协作契约行（必填 / 人定 / 人审要点） */
+.field-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field-contract {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-left: 2px;
+}
+
+.field-badge {
+  display: inline-block;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: calc(12px * var(--ui-font-scale));
+  line-height: 17px;
+  color: var(--text-muted);
+}
+
+.field-badge.required {
+  color: #d85a30;
+  border-color: #d85a30;
+}
+
+.field-badge.human {
+  color: var(--text-secondary);
+}
+
+/* 字段级审核状态：AI 草稿（待审）/ 人改 / 已批准 */
+.field-badge.ai-draft {
+  color: #b8860b;
+  border-color: #b8860b;
+}
+
+.field-badge.human-edited {
+  color: #185fa5;
+  border-color: #185fa5;
+}
+
+.field-badge.approved {
+  color: var(--text-muted);
+  border-color: var(--border);
+}
+
+/* ---- 全局审阅队列（浮层） ---- */
+.review-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 72px;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.review-panel {
+  width: min(720px, 92vw);
+  max-height: 70vh;
+  overflow: auto;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-panel);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+}
+
+.review-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.review-panel-header > span:first-child {
+  margin-right: auto;
+  font-weight: 500;
+}
+
+.review-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.review-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.review-chapter {
+  min-width: 150px;
+  color: var(--text-muted);
+  font-size: calc(12px * var(--ui-font-scale));
+}
+
+.review-field {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* 迁移预览条目 */
+.migration-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.migration-title {
+  font-weight: 500;
+}
+
+.migration-points {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--text-secondary);
+  font-size: calc(12px * var(--ui-font-scale));
 }
 
 .form-label {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react'
 
 import type { CeshuSummary } from '../../shared/ceshuConstants'
 import { loadGameStyle, normalizeGameStyleId, saveGameStyle } from '../../shared/config/gameStyle'
@@ -34,6 +34,7 @@ import ToastHost from './components/ToastHost'
 import TypeEditorPanel from './components/TypeEditorPanel'
 import { useDataTransfer, useUndoRedo } from './hooks/useAppActions'
 import { toErrorMessage } from './appUtils'
+import { clampDockWidth, defaultDockWidth, loadAiDockWidth, saveAiDockWidth } from './dockWidth'
 
 /**
  * 顶层「面板浮层」的键：这些能力原先挂在下线前的「数据表视图」工具栏上，
@@ -108,6 +109,61 @@ export default function App() {
   /** 主题（深/浅）：持久化在 localStorage，随会话保留；启动时由 main.tsx 预应用以避免闪屏 */
   const [theme, setTheme] = useState<ThemeMode>(() => loadTheme())
 
+  /*
+   * AI 停靠栏宽度（可拖拽）：持久化在 localStorage，启动按当前视口重新 clamp。
+   * 用 ref 存「拖拽起点 / 最新宽度」，避免每帧重建监听器、也避免 mouseup 时读到旧值。
+   */
+  const [aiDockWidth, setAiDockWidth] = useState<number>(() => loadAiDockWidth(window.innerWidth))
+  const aiDockWidthRef = useRef(aiDockWidth)
+  const dockDragRef = useRef<{ startX: number; startWidth: number } | null>(null)
+
+  useEffect(() => {
+    aiDockWidthRef.current = aiDockWidth
+  }, [aiDockWidth])
+
+  // 窗口缩放时把右栏宽度重新夹回合法区间（避免小窗下主区被挤没）
+  useEffect(() => {
+    const onResize = (): void => setAiDockWidth((width) => clampDockWidth(width, window.innerWidth))
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+
+  // 拖拽：mousemove 只更新宽度，mouseup 才落盘（减少 localStorage 写）
+  useEffect(() => {
+    const onMove = (event: MouseEvent): void => {
+      const drag = dockDragRef.current
+      if (drag === null) return
+      const desired = drag.startWidth - (event.clientX - drag.startX)
+      setAiDockWidth(clampDockWidth(desired, window.innerWidth))
+    }
+    const onUp = (): void => {
+      if (dockDragRef.current === null) return
+      dockDragRef.current = null
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+      saveAiDockWidth(aiDockWidthRef.current)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+    return () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+  }, [])
+
+  const startDockResize = (event: ReactMouseEvent): void => {
+    event.preventDefault()
+    dockDragRef.current = { startX: event.clientX, startWidth: aiDockWidthRef.current }
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+  }
+
+  const resetDockWidth = (): void => {
+    const next = defaultDockWidth(window.innerWidth)
+    setAiDockWidth(next)
+    saveAiDockWidth(next)
+  }
+
   // 活跃库切换（A2-2）：主进程已重建全部 store，渲染层直接整页重载——
   // 这样所有视图（策划书/属性系统/数字员工）都从新库重新拉取，无需逐处写刷新逻辑。
   useEffect(() => {
@@ -117,6 +173,24 @@ export default function App() {
     return library.onChanged(() => {
       window.location.reload()
     })
+  }, [])
+
+  // 窗口标题随活跃库变化（Electron 会把 document.title 同步到窗口标题栏）。
+  // 切换库时 App 会整页重载，本 effect 随之重跑，无需额外订阅。
+  useEffect(() => {
+    let cancelled = false
+    window.mbApi.library
+      .list()
+      .then((snapshot) => {
+        if (cancelled) return
+        document.title = snapshot.active ? `${snapshot.active} · 墨白可视化编辑` : '墨白可视化编辑'
+      })
+      .catch(() => {
+        // 标题只是锦上添花，读取失败保持默认
+      })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const [ceshuList, setCeshuList] = useState<CeshuSummary[]>([])
@@ -556,6 +630,11 @@ export default function App() {
           batchEdit: () => openPanel('batch'),
           engineExport: (engine) => void engineExport(engine),
           exportSnapshot: (format) => void exportSnapshot(format),
+          zoomIn: () => void window.mbApi.app.viewAction({ action: 'zoomIn' }),
+          zoomOut: () => void window.mbApi.app.viewAction({ action: 'zoomOut' }),
+          zoomReset: () => void window.mbApi.app.viewAction({ action: 'zoomReset' }),
+          reload: () => void window.mbApi.app.viewAction({ action: 'reload' }),
+          toggleDevTools: () => void window.mbApi.app.viewAction({ action: 'toggleDevTools' }),
           backup: () => openPanel('backup'),
           undo: () => void performUndo(),
           redo: () => void performRedo(),
@@ -634,7 +713,18 @@ export default function App() {
                 />
               )}
             </div>
-            <aside className="ai-dock" data-testid="ai-dock">
+            {/* 右栏拖拽分隔条：拖动改宽，双击复位到 25% */}
+            <div
+              className="ai-dock-resizer"
+              role="separator"
+              aria-orientation="vertical"
+              aria-label="调整 AI 停靠栏宽度"
+              title="拖拽调整宽度，双击复位"
+              data-testid="ai-dock-resizer"
+              onMouseDown={startDockResize}
+              onDoubleClick={resetDockWidth}
+            />
+            <aside className="ai-dock" style={{ width: aiDockWidth }} data-testid="ai-dock">
               <DigitalPanel />
             </aside>
           </div>
