@@ -4,6 +4,7 @@ import {
   CESHU_EXPORT_FORMATS,
   CESHU_FORMAT_LABELS,
   CHAPTER_LABELS,
+  isChapterKey,
   visibleChapterKeys,
   type CeshuDocument,
   type CeshuExportFormat,
@@ -1335,20 +1336,54 @@ export default function CeshuView({
                         这是审阅结果：共 {issueResult.issues.length} 条问题，逐条修改即可（本面板不自动改文档）
                       </div>
                       <div className="review-list" data-testid="import-issues">
-                        {issueResult.issues.map((issue, index) => (
-                          <div
-                            className="review-row"
-                            key={index}
-                            data-testid="import-issue"
-                            data-severity={issue.severity}
-                          >
-                            <span className="review-chapter">{issue.chapter}</span>
-                            <span className="review-field">{issue.field}</span>
-                            <span className="item-meta">
-                              [{issue.severity}] {issue.message} —— 建议：{issue.suggestion}
-                            </span>
-                          </div>
-                        ))}
+                        {issueResult.issues.map((issue, index) => {
+                          /*
+                           * 只有合法章节 key 才可定位：外部 AI 写错章节时保留原文（不猜），
+                           * 并退回不可点的 div —— 点了没反应的按钮比不可点更让人困惑。
+                           */
+                          const chapter = isChapterKey(issue.chapter) ? issue.chapter : null
+                          const rowBody = (
+                            <>
+                              <span className="review-chapter">
+                                {chapter === null ? issue.chapter : CHAPTER_LABELS[chapter]}
+                              </span>
+                              <span className="review-field">{issue.field}</span>
+                              <span className="item-meta">
+                                [{issue.severity}] {issue.message} —— 建议：{issue.suggestion}
+                              </span>
+                            </>
+                          )
+                          if (chapter === null) {
+                            return (
+                              <div
+                                className="review-row"
+                                key={index}
+                                data-testid="import-issue"
+                                data-severity={issue.severity}
+                              >
+                                {rowBody}
+                              </div>
+                            )
+                          }
+                          return (
+                            <button
+                              type="button"
+                              className="review-row review-row-link"
+                              key={index}
+                              data-testid="import-issue"
+                              data-severity={issue.severity}
+                              data-chapter={chapter}
+                              onClick={() => {
+                                // 一键定位：切到该章并关掉浮层，用户落地即可改这个字段
+                                setActiveChapter(chapter)
+                                setImportOpen(false)
+                                setPanel(null)
+                              }}
+                            >
+                              {rowBody}
+                            </button>
+                          )
+                        })}
                       </div>
                     </>
                   )}

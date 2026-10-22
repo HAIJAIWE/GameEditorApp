@@ -6,6 +6,7 @@ import CeshuView from '../../../src/renderer/src/components/CeshuView'
 import { createDefaultCeshu } from '../../../src/shared/ceshuModel'
 import { installMbApi, pressKey, renderDom, type ApiStub, type RenderResult } from './render'
 import type { CeshuDocument } from '../../../src/shared/ceshuConstants'
+import { CHAPTER_LABELS } from '../../../src/shared/ceshuConstants'
 
 /**
  * `CeshuView` 的**行为级**测试（W2）。
@@ -574,6 +575,60 @@ describe('CeshuView：导入 AI 结果', () => {
     // 审阅结果走清单展示，旧的「不能直接应用」引导不应再出现
     expect(rendered.text()).not.toContain('不能直接应用')
     expect(rendered.queryAll('[data-testid="import-errors"]')).toHaveLength(0)
+  })
+
+  /** 打开导入浮层并解析一段 issues JSON（三条用例共用同一套前置动作） */
+  async function parseIssues(rendered: RenderResult, raw: string): Promise<void> {
+    await rendered.click(rendered.byTestId('ceshu-more'))
+    await rendered.click(rendered.byTestId('ceshu-import-patch'))
+    await typeInto(rendered.byTestId('import-raw') as HTMLTextAreaElement, raw)
+    await rendered.flush()
+    await rendered.click(rendered.byTestId('import-parse'))
+  }
+
+  it('问题条目可定位：整行是按钮、章节显示中文名，点了切章并关浮层', async () => {
+    api = installMbApi({ doc: makeDoc() })
+    const rendered = await mount()
+
+    await parseIssues(
+      rendered,
+      '{"issues":[{"chapter":"combat","field":"damage_formula","severity":"high","message":"公式不可计算","suggestion":"补上变量定义"}]}'
+    )
+
+    const row = rendered.byTestId('import-issue')
+    // 可点才做成按钮：整行可点，不必去小图标上瞄准
+    expect(row.tagName).toBe('BUTTON')
+    expect(row.getAttribute('data-chapter')).toBe('combat')
+    // 显示中文章名（与左侧章节导航同一套标签），而不是裸 key
+    expect(row.textContent).toContain(CHAPTER_LABELS.combat)
+    expect(row.textContent).not.toContain('combat')
+
+    await rendered.click(row)
+
+    expect(rendered.query('[data-testid="import-panel"]')).toBeNull()
+    const activeTab = rendered
+      .queryAll('[data-testid="chapter-tab"]')
+      .find((tab) => tab.classList.contains('active'))
+    expect(activeTab?.textContent).toContain(CHAPTER_LABELS.combat)
+  })
+
+  it('章节 key 非法时该行不可点（保留原文，不做点了没反应的按钮）', async () => {
+    api = installMbApi({ doc: makeDoc() })
+    const rendered = await mount()
+
+    await parseIssues(
+      rendered,
+      '{"issues":[{"chapter":"unknown_ch","field":"damage_formula","severity":"low","message":"章节写错了","suggestion":"改成 combat"}]}'
+    )
+
+    const row = rendered.byTestId('import-issue')
+    expect(row.tagName).toBe('DIV')
+    expect(row.getAttribute('data-chapter')).toBeNull()
+    expect(row.textContent).toContain('unknown_ch')
+
+    // 点了也不该跳章/关浮层
+    await rendered.click(row)
+    expect(rendered.query('[data-testid="import-panel"]')).not.toBeNull()
   })
 })
 

@@ -2051,6 +2051,21 @@ body {
   text-decoration: underline;
 }
 
+/* 导入问题条目：可定位时整行是按钮，hover 提示可点 */
+.review-row-link {
+  width: 100%;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.review-row-link:hover {
+  border-color: var(--accent);
+}
+
 .score-total {
   display: flex;
   align-items: baseline;
