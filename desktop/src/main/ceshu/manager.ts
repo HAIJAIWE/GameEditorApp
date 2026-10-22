@@ -1,5 +1,6 @@
 import type { CeshuDocument, CeshuSummary, ChapterData, ChapterKey, GddScope } from '../../shared/ceshuConstants'
 import { buildChangelogEntry, compareVersionLabels, nextVersionLabel, type CeshuChangelog } from '../../shared/ceshuDiff'
+import { countDocPendingFields } from '../../shared/ceshuFieldStatusStats'
 import { autoFillRequiredFields } from '../../shared/ceshuFill'
 import { buildDuplicateName } from '../../shared/ceshuHome'
 import { computeChapterProgress, computeEnabledEditors, createCeshuId, createDefaultCeshu, formatLocalTimestamp, getGddScope, withChapter } from '../../shared/ceshuModel'
@@ -245,7 +246,9 @@ export class CeshuManager {
       createdAt: doc.created_at,
       versionNote: doc.version_note,
       gameType: typeof gameType === 'string' ? gameType : '',
-      status: typeof status === 'string' && status !== '' ? status : 'draft'
+      status: typeof status === 'string' && status !== '' ? status : 'draft',
+      // 首页卡片用：不打开文档也能看出「还有多少 AI 草稿没审」
+      pendingCount: countDocPendingFields(doc)
     }
   }
 

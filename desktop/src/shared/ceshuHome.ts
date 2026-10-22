@@ -99,6 +99,8 @@ export interface CeshuCardView {
   updatedDisplay: string
   /** 进度百分比 0~100（截断） */
   progressPercent: number
+  /** 待审字段数（0 = 没有待审；卡片据此显示「待审 N」徽标） */
+  pendingCount: number
   isMain: boolean
   isActive: boolean
   /** 搜索键：标题小写（搜索不区分大小写） */
@@ -117,6 +119,7 @@ export function buildCeshuCard(summary: CeshuSummary): CeshuCardView {
     versionBadge: ceshuVersionBadge(summary),
     updatedDisplay: ceshuUpdatedDisplay(summary.updatedAt),
     progressPercent: ceshuProgressPercent(summary.progress),
+    pendingCount: summary.pendingCount,
     isMain: summary.parentId === '',
     isActive: summary.isActive,
     searchKey: title.toLowerCase()

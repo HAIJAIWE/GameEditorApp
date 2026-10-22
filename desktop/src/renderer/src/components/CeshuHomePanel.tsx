@@ -273,6 +273,9 @@ export default function CeshuHomePanel({
                   <span className="home-card-progress" data-testid="home-card-progress">
                     <span className="home-card-progress-fill" style={{ width: `${clampPercent(card.progressPercent)}%` }} />
                   </span>
+                  {card.pendingCount > 0 && (
+                    <span className="item-meta" data-testid="home-card-pending">待审 {card.pendingCount}</span>
+                  )}
                 </button>
 
                 <div className="home-card-actions">

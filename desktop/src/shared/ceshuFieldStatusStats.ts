@@ -1,5 +1,6 @@
-import type { CeshuFieldDef } from './ceshuConstants'
-import type { ChapterFieldStatus, FieldReviewStatus } from './ceshuFieldStatus'
+import { CHAPTER_KEYS, type CeshuDocument, type CeshuFieldDef } from './ceshuConstants'
+import { CESHU_CHAPTER_FIELDS } from './ceshuFields'
+import { fieldStatusOf, type ChapterFieldStatus, type FieldReviewStatus } from './ceshuFieldStatus'
 
 /**
  * 本章字段审核状态的汇总（顶部一行摘要用）。
@@ -51,4 +52,24 @@ export function formatFieldStatusSummary(counts: FieldStatusCounts): string {
   return SUMMARY_ORDER.filter((status) => counts[status] > 0)
     .map((status) => `${counts[status]} ${STATUS_SUMMARY_LABELS[status]}`)
     .join(' · ')
+}
+
+/**
+ * 全文档待审字段数（只统计各章 schema 内字段）。
+ *
+ * 为什么放在这里而不是 manager：首页卡片要在**不打开文档**的情况下知道
+ * 「这份还有 N 个 AI 草稿没审」，这个数只能从 `doc.meta.field_status` 现算。
+ * 口径与章节摘要（`countFieldStatuses`）严格一致 —— 同一份数据在两处显示
+ * 不同数字是最难解释的 bug，故复用同一函数、同一 schema 来源。
+ *
+ * 遍历 `CHAPTER_KEYS` 而不是状态表的键：状态表可能残留已删除章节/字段，
+ * 而那些在表单里根本看不到，不该算进「待审」。
+ */
+export function countDocPendingFields(doc: CeshuDocument): number {
+  let total = 0
+  for (const chapter of CHAPTER_KEYS) {
+    const counts = countFieldStatuses(fieldStatusOf(doc.meta, chapter), CESHU_CHAPTER_FIELDS[chapter] ?? [])
+    total += counts.ai_draft
+  }
+  return total
 }

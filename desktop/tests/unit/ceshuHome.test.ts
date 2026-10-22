@@ -25,6 +25,7 @@ function summary(overrides: Partial<CeshuSummary> = {}): CeshuSummary {
     versionLabel: 'v1.0',
     updatedAt: '2026-10-04 12:30:45',
     progress: 0.25,
+    pendingCount: 0,
     parentId: '',
     isActive: true,
     createdAt: '2026-10-01 09:00:00',
@@ -96,6 +97,7 @@ describe('ceshuHome 卡片视图模型', () => {
       versionBadge: 'v1.0 (主) ★',
       updatedDisplay: '2026-10-04 12:30',
       progressPercent: 50,
+      pendingCount: 0,
       isMain: true,
       isActive: true,
       searchKey: '未命名'

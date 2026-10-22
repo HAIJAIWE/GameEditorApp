@@ -98,3 +98,30 @@ describe('CeshuManager.duplicate（对齐 Python duplicate_ceshu）', () => {
     expect(copy.meta.game_name).toBe('未命名 (副本)')
   })
 })
+
+describe('CeshuManager.list：摘要带待审字段数', () => {
+  it('pendingCount 反映 meta.field_status 里的 ai_draft 数量', async () => {
+    const { manager } = makeManager()
+    const created = await manager.create({ scope: 'full', name: '待审测试' })
+    // 摘要的待审数只能从文档现算 ⇒ 必须先落盘再 list（manager 每次读最新文件）
+    await manager.saveChapter(created.ceshu_id, 'meta', {
+      ...created.meta,
+      field_status: {
+        meta: {
+          positioning: { status: 'ai_draft', at: '2026-01-01 00:00:00' },
+          tags: { status: 'approved', at: '2026-01-01 00:00:00' }
+        },
+        vision: { design_vision: { status: 'ai_draft', at: '2026-01-01 00:00:00' } }
+      }
+    })
+
+    const summary = manager.list()[0]
+    expect(summary?.pendingCount).toBe(2)
+  })
+
+  it('没有 field_status 的文档 pendingCount 为 0', async () => {
+    const { manager } = makeManager()
+    await manager.create({ scope: 'lite' })
+    expect(manager.list()[0]?.pendingCount).toBe(0)
+  })
+})

@@ -316,6 +316,14 @@ export interface CeshuSummary {
   gameType: string
   /** 文档状态（meta.status，首页卡片状态徽章用；缺省 "draft"） */
   status: string
+  /**
+   * 待审字段数（ai_draft 数量；0 表示没有待审）。
+   *
+   * 必填而不是可选：摘要的唯一生产者是 `CeshuManager.toSummary`，把它做成必填
+   * 才能让「卡片显示待审数」这件事没有默认值可赖——少算一处就会在类型检查时报错，
+   * 而不是悄悄显示成 0（「0 待审」和「没统计」在界面上看起来一样，最难排查）。
+   */
+  pendingCount: number
 }
 
 /* ---- 导出 ---- */

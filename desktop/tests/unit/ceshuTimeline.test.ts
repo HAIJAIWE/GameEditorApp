@@ -25,6 +25,7 @@ function summary(overrides: Partial<CeshuSummary> = {}): CeshuSummary {
     versionLabel: 'v1.0',
     updatedAt: '2026-10-02 10:30:45',
     progress: 0.25,
+    pendingCount: 0,
     parentId: '',
     isActive: false,
     createdAt: '2026-10-01 09:00:00',
