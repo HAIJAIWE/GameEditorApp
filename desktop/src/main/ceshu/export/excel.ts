@@ -6,6 +6,11 @@ import { fieldStatusOf } from '../../../shared/ceshuFieldStatus'
 import { countFieldStatuses, formatFieldStatusSummary } from '../../../shared/ceshuFieldStatusStats'
 import { computeChapterProgress, isPlainObject } from '../../../shared/ceshuModel'
 import { validateCeshu } from '../../../shared/ceshuValidation'
+import {
+  groupValidationMessages,
+  VALIDATION_SEVERITY_LABELS,
+  type ValidationSeverity
+} from '../../../shared/ceshuValidationGroups'
 
 import { classifySystems, formatFieldValue } from './common'
 import { readText } from '../../../shared/util/readText'
@@ -228,18 +233,36 @@ function writeCompetitorsSheet(workbook: ExcelJS.Workbook, doc: CeshuDocument): 
 
 /* ---- Sheet 8：校验报告 ---- */
 
+/** 严重度图标（⛔/⚠ 均为单码位字符，不带变体选择符，Excel 各版本渲染一致） */
+const VALIDATION_SEVERITY_ICONS: Record<ValidationSeverity, string> = {
+  error: '⛔',
+  warning: '⚠'
+}
+
 function writeValidationSheet(workbook: ExcelJS.Workbook, doc: CeshuDocument): void {
-  let errors: string[]
+  let messages: string[]
   try {
-    errors = validateCeshu(doc)
+    messages = validateCeshu(doc)
   } catch (error) {
-    errors = [`校验过程异常: ${error instanceof Error ? error.message : String(error)}`]
+    messages = [`校验过程异常: ${error instanceof Error ? error.message : String(error)}`]
   }
+  /*
+   * 按严重度分组而不是平铺：这份 xlsx 常被转发给不看应用的人，
+   * 平铺时「必填没写」会被夹在「术语不统一」之间，读者得逐行判断哪条要紧。
+   * 分组后 error 组天然排在前（顺序由 groupValidationMessages 保证），先给结论再给细节。
+   * 通过提示语仍放在「问题」列（前两列留空），既不伪造严重度/类别，也保留原文案。
+   */
   const rows: CellValue[][] =
-    errors.length === 0
-      ? [[1, '✅ 所有校验通过，未发现错误']]
-      : errors.map((message, index) => [index + 1, message])
-  writeSheet(workbook, '校验报告', ['序号', '问题描述'], rows)
+    messages.length === 0
+      ? [['', '', '✅ 所有校验通过，未发现错误']]
+      : groupValidationMessages(messages).flatMap((group) =>
+          group.items.map((item) => [
+            `${VALIDATION_SEVERITY_ICONS[group.severity]} ${VALIDATION_SEVERITY_LABELS[group.severity]}`,
+            group.label,
+            item.message
+          ])
+        )
+  writeSheet(workbook, '校验报告', ['严重度', '类别', '问题'], rows)
 }
 
 /* ---- 公共写入 ---- */

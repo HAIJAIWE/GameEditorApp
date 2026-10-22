@@ -196,13 +196,43 @@ describe('策划书导出：Excel（匹平 Python ceshu_excel_exporter）', () =
     expect(rowValues(competitors, 2)).toEqual([1, '竞品A', 'RPG', '画面', '玩法', '10%'])
   })
 
-  it('校验报告：有错误逐条列出，全部通过时输出通过提示', () => {
+  it('校验报告：有错误按严重度分组，全部通过时输出通过提示', () => {
     const withErrors = sheetOf(buildExcelWorkbook(makeDoc()), '校验报告')
-    expect(String(withErrors.getRow(2).getCell(2).value)).toContain('为必填项')
+    expect(rowValues(withErrors, 1)).toEqual(['严重度', '类别', '问题'])
+    expect(String(withErrors.getRow(2).getCell(1).value)).toContain('必须修复')
+    expect(withErrors.getRow(2).getCell(2).value).toBe('必填缺失')
+    expect(String(withErrors.getRow(2).getCell(3).value)).toContain('为必填项')
 
     const clean = sheetOf(buildExcelWorkbook(makeCleanDoc()), '校验报告')
     expect(clean.rowCount).toBe(2)
-    expect(rowValues(clean, 2)).toEqual([1, '✅ 所有校验通过，未发现错误'])
+    // 无问题时仍是一行提示，只是按三列结构落在「问题」列（前两列留空，不伪造严重度）
+    expect(rowValues(clean, 2)).toEqual(['', '', '✅ 所有校验通过，未发现错误'])
+  })
+
+  it('校验报告：必须修复组排在建议检查之前，每条都带具体问题', () => {
+    const doc = makeDoc()
+    // 术语不一致：combat 里两次「生命值」、numeric 里两次「血量」（同属 hp 的两种叫法）
+    doc.combat.balance_strategy = '生命值越高容错越高。生命值上限由装备决定。'
+    doc.numeric.balance_principles = '血量随等级增长。血量不足时补防。'
+    const sheet = sheetOf(buildExcelWorkbook(doc), '校验报告')
+
+    expect(rowValues(sheet, 1)).toEqual(['严重度', '类别', '问题'])
+
+    const rows: string[][] = []
+    for (let index = 2; index <= sheet.rowCount; index++) {
+      rows.push(rowValues(sheet, index).map((value) => String(value ?? '')))
+    }
+    // makeDoc 未填必填字段：error 组必定存在，且分组保证它排在最前
+    expect(rows[0]?.[0]).toContain('必须修复')
+    // 术语不一致落在「建议检查」，确认 warning 组也真的落表了
+    expect(rows.some((row) => row[0]?.includes('建议检查'))).toBe(true)
+    expect(rows.some((row) => row[1] === '术语不一致')).toBe(true)
+    // 问题列全非空：空了说明分组时把文案丢了，报告就失去意义
+    for (const row of rows) expect(row[2]).not.toBe('')
+    // 所有必须修复行都在第一条建议检查之前
+    const firstWarning = rows.findIndex((row) => row[0]?.includes('建议检查'))
+    const lastError = rows.map((row) => row[0]?.includes('必须修复') === true).lastIndexOf(true)
+    expect(lastError).toBeLessThan(firstWarning)
   })
 
   it('导出管道：xlsx 落盘（zip 魔数 PK）、原子写无 tmp 残留，且可被 exceljs 回读', async () => {
