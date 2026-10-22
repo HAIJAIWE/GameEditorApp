@@ -4,17 +4,24 @@ import {
   chapterOrdinalCn,
   checkSystemDependencies,
   visibleChapterKeys,
+  type ChapterData,
   type CeshuDocument
 } from './ceshuConstants'
 import { normalizeValue } from './ceshuDiff'
 import { detectFieldOverlaps, fieldOverlapMessage } from './ceshuOverlap'
 import { detectTerminologyConflicts, terminologyConflictMessages } from './ceshuTerminology'
+import {
+  analyzeTextQuality,
+  contentQualityIssuesWith,
+  ANALYSIS_MIN_CHARS as QUALITY_MIN_CHARS
+} from './ceshuContentQuality'
+import { CESHU_CHAPTER_FIELDS } from './ceshuFields'
 import { getGddScope, isEmptyRequiredValue, isPlainObject } from './ceshuModel'
 import { readText } from './util/readText'
 
 /**
  * 策划书数据完整性校验（自 Python ceshu_validation.py 匹平迁移）。
- * 校验范围：必填字段非空 + 11 项章节间一致性检查 + 内容重复检测 + 术语一致性；返回错误/警告文案列表（空数组=全部通过）。
+ * 校验范围：必填字段非空 + 11 项章节间一致性检查 + 内容重复检测 + 术语一致性 + 内容质量提示；返回错误/警告文案列表（空数组=全部通过）。
  */
 export function validateCeshu(doc: CeshuDocument): string[] {
   const errors: string[] = []
@@ -157,7 +164,41 @@ export function validateCeshu(doc: CeshuDocument): string[] {
     errors.push(message)
   }
 
+  /*
+   * 14. 内容质量（「写对」代理指标）：机器可判定的空话/长句/列表结构/数字具体性。
+   *
+   * 为什么单独一项：此前的「内容质量」评分只看**字数是否落在基准区间**，
+   * 等于奖励「写满」；本项补上「写对」的机器信号，与评分互补（不替代）。
+   * 只查 schema 内的自由文本字段，且字段已按 kind 关掉不适用的检查
+   * （数组型字段本身就是结构化列表，要求 `- ` 前缀是误报）。
+   */
+  for (const key of visibleChapterKeys(getGddScope(doc))) {
+    const label = CHAPTER_LABELS[key]
+    const data = doc[key]
+    if (!isPlainObject(data)) continue
+    for (const field of CESHU_CHAPTER_FIELDS[key] ?? []) {
+      const raw = readQualityText(data, field.key)
+      if (raw === null) continue // 非字符串 / 太短：没有分析价值
+      const issues = contentQualityIssuesWith(analyzeTextQuality(raw), {
+        chapterLabel: label,
+        fieldName: field.label
+      }, { checkListStructure: field.kind === 'textarea' || field.kind === 'text' })
+      for (const message of issues) errors.push(message)
+    }
+  }
+
   return errors
+}
+
+/** 内容质量检查的入参文本：只取长度达标的字符串（点路径支持；其余形态不参与） */
+function readQualityText(data: ChapterData, path: string): string | null {
+  let node: unknown = data
+  for (const part of path.split('.')) {
+    if (!isPlainObject(node)) return null
+    node = node[part]
+  }
+  if (typeof node !== 'string') return null
+  return node.length >= QUALITY_MIN_CHARS ? node : null
 }
 
 /** 读取系统 config（缺省为空对象） */

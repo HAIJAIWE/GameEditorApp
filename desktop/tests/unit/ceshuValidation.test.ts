@@ -138,3 +138,34 @@ describe('策划书校验：章节间一致性（11 项中的关键项）', () =
     expect(hasError(validateCeshu(doc), '依赖缺失')).toBe(false)
   })
 })
+describe('策划书校验：内容质量提示（「写对」代理指标）', () => {
+  /** 造一段「又长又空」的文本：空话密度 + 无数字 + 多行无列表结构 */
+  const fluff = [
+    '我们致力于打造丰富多样的游戏体验，深度融合多种玩法，为玩家带来极致体验。',
+    '整体内容非常丰富多彩，融合了全方位创新性与高品质的制作水准，整体体验良好流畅。',
+    '这样多样化的设计让游戏体验极丰富多样，深度融合各类元素，形成沉浸式体验。'
+  ].join('\n')
+
+  it('空话密度超标 → 报「内容质量提示」', () => {
+    const doc = makeDoc()
+    doc.vision.design_vision = fluff
+    expect(validateCeshu(doc).some((item) => item.includes('内容质量提示') && item.includes('空话套话'))).toBe(true)
+  })
+
+  it('短文本/正常内容不误报', () => {
+    const doc = makeDoc()
+    doc.vision.design_vision = '做一款能让人沉浸的开放世界。'
+    expect(validateCeshu(doc).some((item) => item.includes('内容质量提示'))).toBe(false)
+  })
+
+  it('结构化列表字段（stringList/pipeList）不要求「- 」列表结构', () => {
+    const doc = makeDoc()
+    // npc_list 是 pipeList：值是对象数组，本就不该有「- 」前缀
+    doc.story.npc_list = [
+      { name: '甲', role: '导师', location: '村庄', personality: '温和', quest_hook: '引导任务' },
+      { name: '乙', role: '商人', location: '集市', personality: '精明', quest_hook: '交易任务' },
+      { name: '丙', role: '卫兵', location: '城门', personality: '严肃', quest_hook: '警戒任务' }
+    ]
+    expect(validateCeshu(doc).some((item) => item.includes('NPC 列表') && item.includes('列表结构'))).toBe(false)
+  })
+})
