@@ -56,6 +56,7 @@ import ChapterNotesPanel from './ChapterNotesPanel'
 import CeshuDataPreview, { type PreviewJumpTarget } from './ceshu/CeshuDataPreview'
 import CeshuDataRefsPanel from './ceshu/CeshuDataRefsPanel'
 import { ChangelogPanel, ScorePanel, ValidatePanel } from './ceshu/CeshuReportPanels'
+import { groupReviewQueue } from './ceshu/reviewQueueGroups'
 import { previewFieldValue, readFieldValue } from './ceshu/reviewPreview'
 import LucideIcon from './LucideIcon'
 import PresetMarketPanel from './PresetMarketPanel'
@@ -143,6 +144,12 @@ export default function CeshuView({
   const [consumeTask, setConsumeTask] = useState<BundleConsumeTask>('draft')
   /** 审阅队列键盘光标（第几条待审）；打开队列时归零，列表变化时渲染期夹取，不写 effect */
   const [reviewCursor, setReviewCursor] = useState(0)
+  /**
+   * 审阅队列里被折叠的章节。用**数组**而不是 Set：Set 是可变对象，setState 传同一实例
+   * 会被 React 判为无变化而不重渲染；数组每次增删都产生新引用，语义也更直白。
+   * 默认空数组 = 全部展开（扫队列时先看全貌）。
+   */
+  const [collapsedChapters, setCollapsedChapters] = useState<ChapterKey[]>([])
   /** 导入 AI 结果：浮层开关、粘贴原文、解析结果（null = 尚未解析） */
   const [importOpen, setImportOpen] = useState(false)
   const [importRaw, setImportRaw] = useState('')
@@ -430,6 +437,18 @@ export default function CeshuView({
   const pendingReviewFields = collectPendingReviewFields(doc)
   /** 键盘光标（渲染期夹取）：列表变短（接受后）不越界，免用 effect 纠正状态 */
   const reviewCursorSafe = Math.min(reviewCursor, Math.max(0, pendingReviewFields.length - 1))
+  /*
+   * 分组只影响渲染，不影响光标：组内仍带扁平下标，`data-current` 与 j/k 一律按扁平序。
+   * 普通 const 而非 useMemo —— 待审字段通常个位数，且本组件 hook 顺序敏感，
+   * 多挂一个 hook 得不偿失（位置也必须在 `if (!ceshuId)` 早退之后）。
+   */
+  const reviewGroups = groupReviewQueue(pendingReviewFields)
+  /** 折叠/展开某章：只动 UI 可见性，不碰 reviewCursor（折叠组里的光标行只是不渲染） */
+  const toggleGroup = (chapter: ChapterKey): void => {
+    setCollapsedChapters((chapters) =>
+      chapters.includes(chapter) ? chapters.filter((key) => key !== chapter) : [...chapters, chapter]
+    )
+  }
 
   /** 一键接受所有待审字段：按章合并后一次 meta 写盘 */
   const handleApproveAllPending = async (): Promise<void> => {
@@ -1075,40 +1094,62 @@ export default function CeshuView({
                     <div className="item-meta">没有待审字段。AI 生成后会出现在这里。</div>
                   ) : (
                     <div className="review-list">
-                      {pendingReviewFields.map((item, index) => (
-                        <div
-                          className={`review-row${index === reviewCursorSafe ? ' current' : ''}`}
-                          key={`${item.chapter}:${item.fieldKey}`}
-                          data-testid="review-row"
-                          data-current={index === reviewCursorSafe ? 'true' : 'false'}
-                        >
-                          <span className="review-chapter">{CHAPTER_LABELS[item.chapter]}</span>
-                          <span className="review-field">{item.fieldLabel}</span>
-                          {/* 内联预览：审核人不必点「查看」跳章，先扫一眼 AI 写了什么 */}
-                          <span className="review-preview" data-testid="review-preview">
-                            {previewFieldValue(readFieldValue(doc[item.chapter], item.fieldKey))}
-                          </span>
-                          <button
-                            type="button"
-                            className="btn slim"
-                            data-testid="review-goto"
-                            onClick={() => {
-                              setActiveChapter(item.chapter)
-                              setReviewOpen(false)
-                            }}
+                      {reviewGroups.map((group) => {
+                        const collapsed = collapsedChapters.includes(group.chapter)
+                        return (
+                          <div
+                            className="review-group"
+                            key={`group:${group.chapter}:${group.startIndex}`}
+                            data-testid="review-group"
+                            data-chapter={group.chapter}
                           >
-                            查看
-                          </button>
-                          <button
-                            type="button"
-                            className="btn slim primary"
-                            data-testid="review-accept"
-                            onClick={() => void handleFieldStatus(item.chapter, { [item.fieldKey]: 'approved' })}
-                          >
-                            接受
-                          </button>
-                        </div>
-                      ))}
+                            <button
+                              type="button"
+                              className="review-group-head"
+                              data-testid="review-group-head"
+                              onClick={() => toggleGroup(group.chapter)}
+                            >
+                              {CHAPTER_LABELS[group.chapter]}（{group.items.length}）
+                              <span className="review-group-caret">{collapsed ? '▸' : '▾'}</span>
+                            </button>
+                            {!collapsed &&
+                              group.items.map(({ item, flatIndex }) => (
+                                <div
+                                  className={`review-row${flatIndex === reviewCursorSafe ? ' current' : ''}`}
+                                  key={`${item.chapter}:${item.fieldKey}`}
+                                  data-testid="review-row"
+                                  data-current={flatIndex === reviewCursorSafe ? 'true' : 'false'}
+                                >
+                                  <span className="review-chapter">{CHAPTER_LABELS[item.chapter]}</span>
+                                  <span className="review-field">{item.fieldLabel}</span>
+                                  {/* 内联预览：审核人不必点「查看」跳章，先扫一眼 AI 写了什么 */}
+                                  <span className="review-preview" data-testid="review-preview">
+                                    {previewFieldValue(readFieldValue(doc[item.chapter], item.fieldKey))}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    className="btn slim"
+                                    data-testid="review-goto"
+                                    onClick={() => {
+                                      setActiveChapter(item.chapter)
+                                      setReviewOpen(false)
+                                    }}
+                                  >
+                                    查看
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="btn slim primary"
+                                    data-testid="review-accept"
+                                    onClick={() => void handleFieldStatus(item.chapter, { [item.fieldKey]: 'approved' })}
+                                  >
+                                    接受
+                                  </button>
+                                </div>
+                              ))}
+                          </div>
+                        )
+                      })}
                     </div>
                   )}
                   {pendingReviewFields.length > 0 && (

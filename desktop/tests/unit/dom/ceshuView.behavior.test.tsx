@@ -374,6 +374,62 @@ describe('CeshuView：全局审阅队列', () => {
     await rendered.click(rendered.byTestId('ceshu-review-toggle'))
     expect(rendered.byTestId('review-key-hint').textContent).toContain('Esc 关闭')
   })
+
+  /** 两章共三条待审（meta 两条 + story 一条）：组头条数与折叠后的行数都能验出来 */
+  const withGroupedDrafts = (): CeshuDocument => {
+    const doc = makeDoc()
+    doc.meta.field_status = {
+      meta: {
+        positioning: { status: 'ai_draft', at: '2026-10-20T00:00:00.000Z' },
+        game_name: { status: 'ai_draft', at: '2026-10-20T00:00:00.000Z' }
+      },
+      story: { main_plot: { status: 'ai_draft', at: '2026-10-20T00:00:00.000Z' } }
+    }
+    return doc
+  }
+
+  it('队列按章节分组：组头显示章节名与条数', async () => {
+    api = installMbApi({ doc: withGroupedDrafts() })
+    const rendered = await mount()
+
+    await rendered.click(rendered.byTestId('ceshu-review-toggle'))
+
+    const groups = rendered.queryAll('[data-testid="review-group"]')
+    expect(groups).toHaveLength(2)
+    expect(groups.map((group) => group.getAttribute('data-chapter'))).toEqual(['meta', 'story'])
+
+    const heads = rendered.queryAll('[data-testid="review-group-head"]')
+    expect(heads[0]?.textContent).toContain('文档信息')
+    expect(heads[0]?.textContent).toContain('（2）')
+    expect(heads[1]?.textContent).toContain('世界观与角色')
+    expect(heads[1]?.textContent).toContain('（1）')
+  })
+
+  it('点组头折叠该组行，其他组不受影响', async () => {
+    api = installMbApi({ doc: withGroupedDrafts() })
+    const rendered = await mount()
+    await rendered.click(rendered.byTestId('ceshu-review-toggle'))
+    expect(rendered.queryAll('[data-testid="review-row"]')).toHaveLength(3)
+
+    await rendered.click(rendered.queryAll('[data-testid="review-group-head"]')[0] as HTMLElement)
+
+    const groups = rendered.queryAll('[data-testid="review-group"]')
+    expect(groups[0]?.querySelectorAll('[data-testid="review-row"]')).toHaveLength(0)
+    expect(groups[1]?.querySelectorAll('[data-testid="review-row"]')).toHaveLength(1)
+    expect(rendered.queryAll('[data-testid="review-row"]')).toHaveLength(1)
+  })
+
+  it('键盘回归：分组后 j 仍按扁平序移动光标', async () => {
+    api = installMbApi({ doc: withGroupedDrafts() })
+    const rendered = await mount()
+    await rendered.click(rendered.byTestId('ceshu-review-toggle'))
+
+    await pressKey('j')
+
+    const rows = rendered.queryAll('[data-testid="review-row"]')
+    expect(rows[1]?.getAttribute('data-current')).toBe('true')
+    expect(rows[0]?.getAttribute('data-current')).toBe('false')
+  })
 })
 
 describe('CeshuView：导入 AI 结果', () => {

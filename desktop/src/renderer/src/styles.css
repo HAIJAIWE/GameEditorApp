@@ -1089,6 +1089,17 @@ body {
   gap: 4px;
 }
 
+/*
+ * 「跳到首个待审字段」的短暂高亮：点章内状态摘要后，目标字段块描边 1.2 秒。
+ * 用 box-shadow 而不是 outline —— 不改变布局尺寸，避免高亮时页面轻微跳动。
+ */
+.field-block-flash,
+.field-block[data-flash='true'] {
+  border-radius: 4px;
+  box-shadow: 0 0 0 2px var(--accent);
+  transition: box-shadow 0.2s ease;
+}
+
 .field-contract {
   display: flex;
   align-items: center;
@@ -1198,6 +1209,34 @@ body {
 .review-key-hint {
   margin-top: 8px;
   text-align: center;
+}
+
+/* 审阅队列按章节分组：组头可折叠，让 17 章的待审一眼看出「这堆是哪一章的」 */
+.review-group {
+  margin-bottom: 8px;
+}
+
+.review-group-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 4px 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: calc(12px * var(--ui-font-scale));
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+
+.review-group-head:hover {
+  color: var(--text-primary);
+}
+
+.review-group-caret {
+  margin-left: auto;
 }
 
 .review-chapter {
@@ -1687,6 +1726,22 @@ body {
   min-width: 0;
   font-size: calc(13px * var(--ui-font-scale) * 15/13);
   font-weight: 600;
+}
+
+/* 章内状态摘要：有待审时可点击跳转，做成「看起来能点」的链接按钮（不抢按钮组的视觉重量） */
+.chapter-form-title .btn-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  cursor: pointer;
+  text-decoration: underline dotted;
+}
+
+.chapter-form-title .btn-link:hover {
+  text-decoration-style: solid;
 }
 
 .chapter-form-ai {
