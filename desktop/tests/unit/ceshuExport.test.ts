@@ -7,7 +7,8 @@ import { describe, expect, it } from 'vitest'
 import { exportCeshuDocument } from '../../src/main/ceshu/export/exporter'
 import { renderCeshuHtml } from '../../src/main/ceshu/export/html'
 import { renderCeshuMarkdown } from '../../src/main/ceshu/export/markdown'
-import type { CeshuDocument } from '../../src/shared/ceshuConstants'
+import { CHAPTER_LABELS, type CeshuDocument } from '../../src/shared/ceshuConstants'
+import { setFieldStatuses } from '../../src/shared/ceshuFieldStatus'
 import { createDefaultCeshu } from '../../src/shared/ceshuModel'
 
 function makeDoc(scope: 'full' | 'lite' = 'full'): CeshuDocument {
@@ -54,6 +55,31 @@ describe('策划书导出：Markdown', () => {
     expect(markdown).toContain('10. [第九章·音频设计](#ch10)')
     expect(markdown).not.toContain('第十章·市场分析')
     expect(markdown).not.toContain('第十八章·可访问性与本地化')
+  })
+
+  it('审核进度附录：全文档汇总 + 只列待审章，且排在校验报告之前', () => {
+    const doc = makeDoc()
+    const at = '2026-10-23T10:00:00.000Z'
+    doc.meta = setFieldStatuses(doc.meta, 'meta', { positioning: 'ai_draft' }, at)
+    // 状态表统一挂在 meta.field_status 上（按章节分组），不是挂在章节对象上
+    doc.meta = setFieldStatuses(doc.meta, 'combat', { damage_formula: 'ai_draft', skill_system: 'approved' }, at)
+
+    const markdown = renderCeshuMarkdown(doc)
+
+    expect(markdown).toContain('## 附录：审核进度')
+    expect(markdown).toContain('- 全文档：2 待审 · 1 已批准')
+    // 章名走 CHAPTER_LABELS，避免章号调整时测试假失败
+    expect(markdown).toContain(`- ${CHAPTER_LABELS.meta}：1 待审`)
+    expect(markdown).toContain(`- ${CHAPTER_LABELS.combat}：1 待审`)
+    // 没有待审的章不出现
+    expect(markdown).not.toContain(`- ${CHAPTER_LABELS.vision}：`)
+    expect(markdown.indexOf('附录：审核进度')).toBeLessThan(markdown.indexOf('附录：数据校验报告'))
+  })
+
+  it('审核进度附录：无 field_status 时仍输出，写「无审核记录」', () => {
+    const markdown = renderCeshuMarkdown(makeDoc())
+    expect(markdown).toContain('## 附录：审核进度')
+    expect(markdown).toContain('- 全文档：无审核记录')
   })
 })
 

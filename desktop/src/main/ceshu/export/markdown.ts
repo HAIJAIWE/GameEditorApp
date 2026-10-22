@@ -1,4 +1,7 @@
-import { CHAPTER_LABELS, type CeshuDocument } from '../../../shared/ceshuConstants'
+import { CHAPTER_KEYS, CHAPTER_LABELS, type CeshuDocument } from '../../../shared/ceshuConstants'
+import { fieldStatusOf } from '../../../shared/ceshuFieldStatus'
+import { countFieldStatuses, formatFieldStatusSummary } from '../../../shared/ceshuFieldStatusStats'
+import { CESHU_CHAPTER_FIELDS } from '../../../shared/ceshuFields'
 import { formatLocalTimestamp, getGddScope } from '../../../shared/ceshuModel'
 import { validateCeshu } from '../../../shared/ceshuValidation'
 
@@ -27,6 +30,7 @@ export function renderCeshuMarkdown(doc: CeshuDocument): string {
   for (const entry of visibleChapterEntries(getGddScope(doc))) {
     blocks.push(renderChapter(doc, entry))
   }
+  blocks.push(renderReviewProgress(doc))
   blocks.push(renderValidationReport(doc))
   return blocks.join(MD_SEPARATOR) + '\n'
 }
@@ -110,6 +114,36 @@ function renderSystemsTable(data: Record<string, unknown> | undefined): string[]
     }
   }
   return lines
+}
+
+/**
+ * 附录：审核进度。
+ *
+ * 为什么要有：这份 Markdown 是发给同事「人读」的那一轨，收件人无法从正文里
+ * 分辨哪些字段还是 AI 草稿、没人看过。列在附录里（而不是逐字段标注）是为了
+ * 不改动章节渲染，也让 diff 稳定。
+ *
+ * 为什么零记录也输出：附录存在与否若随内容浮动，每次导出都会多/少一整段，
+ * 在 Git 里看起来像「有人删了附录」。固定输出一行「无审核记录」更可 diff。
+ */
+function renderReviewProgress(doc: CeshuDocument): string {
+  const lines = ['## 附录：审核进度', '']
+  const total = { ai_draft: 0, human_edited: 0, approved: 0 }
+  const pendingChapters: string[] = []
+  for (const chapter of CHAPTER_KEYS) {
+    const counts = countFieldStatuses(fieldStatusOf(doc.meta, chapter), CESHU_CHAPTER_FIELDS[chapter] ?? [])
+    total.ai_draft += counts.ai_draft
+    total.human_edited += counts.human_edited
+    total.approved += counts.approved
+    // 只列还有待审的章：已批准/人改的章不需要催人，列出来只会稀释注意力
+    if (counts.ai_draft > 0) {
+      pendingChapters.push(`${MD_BULLET}${CHAPTER_LABELS[chapter]}：${counts.ai_draft} 待审`)
+    }
+  }
+  const summary = formatFieldStatusSummary(total)
+  lines.push(`${MD_BULLET}全文档：${summary || '无审核记录'}`)
+  lines.push(...pendingChapters)
+  return lines.join('\n')
 }
 
 /** 附录：数据校验报告（对应 Python _render_validation_report） */
