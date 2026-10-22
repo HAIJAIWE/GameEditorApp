@@ -56,6 +56,7 @@ import ChapterNotesPanel from './ChapterNotesPanel'
 import CeshuDataPreview, { type PreviewJumpTarget } from './ceshu/CeshuDataPreview'
 import CeshuDataRefsPanel from './ceshu/CeshuDataRefsPanel'
 import { ChangelogPanel, ScorePanel, ValidatePanel } from './ceshu/CeshuReportPanels'
+import { previewFieldValue, readFieldValue } from './ceshu/reviewPreview'
 import LucideIcon from './LucideIcon'
 import PresetMarketPanel from './PresetMarketPanel'
 import SystemConfirmPanel from './SystemConfirmPanel'
@@ -1083,6 +1084,10 @@ export default function CeshuView({
                         >
                           <span className="review-chapter">{CHAPTER_LABELS[item.chapter]}</span>
                           <span className="review-field">{item.fieldLabel}</span>
+                          {/* 内联预览：审核人不必点「查看」跳章，先扫一眼 AI 写了什么 */}
+                          <span className="review-preview" data-testid="review-preview">
+                            {previewFieldValue(readFieldValue(doc[item.chapter], item.fieldKey))}
+                          </span>
                           <button
                             type="button"
                             className="btn slim"

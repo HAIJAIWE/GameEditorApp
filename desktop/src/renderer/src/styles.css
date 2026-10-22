@@ -1211,6 +1211,16 @@ body {
   min-width: 0;
 }
 
+.review-preview {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+  font-size: calc(12px * var(--ui-font-scale));
+}
+
 /* 迁移预览条目 */
 .migration-item {
   display: flex;

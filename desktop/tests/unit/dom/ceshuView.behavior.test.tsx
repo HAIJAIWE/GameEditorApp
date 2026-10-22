@@ -267,6 +267,17 @@ describe('CeshuView：全局审阅队列', () => {
     expect(rendered.text()).toContain('一句话定位')
   })
 
+  it('每行内联预览字段内容，不必先点「查看」跳章', async () => {
+    const doc = withDraft()
+    doc.meta.positioning = '一句话定位内容'
+    api = installMbApi({ doc })
+    const rendered = await mount()
+
+    await rendered.click(rendered.byTestId('ceshu-review-toggle'))
+
+    expect(rendered.byTestId('review-preview').textContent).toContain('一句话定位内容')
+  })
+
   it('点「接受」把该字段写成 approved，待审数归零', async () => {
     const doc = withDraft()
     api = installMbApi({
