@@ -1189,6 +1189,17 @@ body {
   border-radius: 8px;
 }
 
+/* 键盘光标所在行（审阅队列快捷键的视觉反馈） */
+.review-row.current {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.review-key-hint {
+  margin-top: 8px;
+  text-align: center;
+}
+
 .review-chapter {
   min-width: 150px;
   color: var(--text-muted);

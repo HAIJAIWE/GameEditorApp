@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest'
+import { act } from 'react'
 
 import CeshuView from '../../../src/renderer/src/components/CeshuView'
 import { createDefaultCeshu } from '../../../src/shared/ceshuModel'
-import { installMbApi, renderDom, type ApiStub, type RenderResult } from './render'
+import { installMbApi, pressKey, renderDom, type ApiStub, type RenderResult } from './render'
 import type { CeshuDocument } from '../../../src/shared/ceshuConstants'
 
 /**
@@ -243,6 +244,16 @@ describe('CeshuView：全局审阅队列', () => {
     return doc
   }
 
+  /** 两条待审（meta + story 各一）：用于验证光标移动与逐条接受 */
+  const withTwoDrafts = (): CeshuDocument => {
+    const doc = makeDoc()
+    doc.meta.field_status = {
+      meta: { positioning: { status: 'ai_draft', at: '2026-10-20T00:00:00.000Z' } },
+      story: { main_plot: { status: 'ai_draft', at: '2026-10-20T00:00:00.000Z' } }
+    }
+    return doc
+  }
+
   it('头部显示待审数量，点开浮层列出待审字段', async () => {
     api = installMbApi({ doc: withDraft() })
     const rendered = await mount()
@@ -274,6 +285,83 @@ describe('CeshuView：全局审阅队列', () => {
 
     expect(api.calls).toContain('ceshu.saveChapter')
     expect(rendered.byTestId('ceshu-review-toggle').textContent).toContain('待审 0')
+  })
+
+  it('键盘：j/k 移动光标，当前行高亮', async () => {
+    api = installMbApi({ doc: withTwoDrafts() })
+    const rendered = await mount()
+
+    await rendered.click(rendered.byTestId('ceshu-review-toggle'))
+    const rows = rendered.queryAll('[data-testid="review-row"]')
+    expect(rows).toHaveLength(2)
+    expect(rows[0]?.getAttribute('data-current')).toBe('true')
+
+    await pressKey('j')
+    expect(rendered.queryAll('[data-testid="review-row"]')[1]?.getAttribute('data-current')).toBe('true')
+    expect(rendered.queryAll('[data-testid="review-row"]')[0]?.getAttribute('data-current')).toBe('false')
+
+    // 到头不回弹越界；k 回到第一条
+    await pressKey('j')
+    expect(rendered.queryAll('[data-testid="review-row"]')[1]?.getAttribute('data-current')).toBe('true')
+    await pressKey('k')
+    expect(rendered.queryAll('[data-testid="review-row"]')[0]?.getAttribute('data-current')).toBe('true')
+  })
+
+  it('键盘：a 接受当前行（保存一次 meta），Esc 关闭浮层', async () => {
+    const doc = withTwoDrafts()
+    api = installMbApi({
+      doc,
+      overrides: {
+        'ceshu.saveChapter': (req: unknown) => {
+          const r = req as { chapter?: string; data?: unknown }
+          return r.chapter === 'meta' ? { ...doc, meta: r.data } : doc
+        }
+      }
+    })
+    const rendered = await mount()
+
+    await rendered.click(rendered.byTestId('ceshu-review-toggle'))
+    await pressKey('j') // 光标移到第二条
+    await pressKey('a') // 接受第二条
+
+    expect(api.calls).toContain('ceshu.saveChapter')
+    expect(rendered.byTestId('ceshu-review-toggle').textContent).toContain('待审 1')
+
+    await pressKey('Escape')
+    expect(rendered.query('[data-testid="review-panel"]')).toBeNull()
+  })
+
+  it('键盘：焦点在输入框内不拦截（打字优先）', async () => {
+    const doc = withDraft()
+    api = installMbApi({
+      doc,
+      overrides: {
+        'ceshu.saveChapter': (req: unknown) => {
+          const r = req as { chapter?: string; data?: unknown }
+          return r.chapter === 'meta' ? { ...doc, meta: r.data } : doc
+        }
+      }
+    })
+    const rendered = await mount()
+    await rendered.click(rendered.byTestId('ceshu-review-toggle'))
+
+    // 在表单输入框里按 a：不应触发「接受」
+    const input = rendered.byTestId('ceshu-field-game_name')
+    await act(async () => {
+      input.focus()
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', bubbles: true }))
+    })
+    await rendered.flush()
+
+    expect(api.calls).not.toContain('ceshu.saveChapter')
+    expect(rendered.query('[data-testid="review-panel"]')).not.toBeNull()
+  })
+
+  it('快捷键提示条在队列非空时出现', async () => {
+    api = installMbApi({ doc: withDraft() })
+    const rendered = await mount()
+    await rendered.click(rendered.byTestId('ceshu-review-toggle'))
+    expect(rendered.byTestId('review-key-hint').textContent).toContain('Esc 关闭')
   })
 })
 

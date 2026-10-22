@@ -31,6 +31,7 @@ import type { FieldAction } from '../../../shared/ceshuFieldAction'
 import { clearFieldRequest } from '../ceshuFieldFocus'
 import { CESHU_CHAPTER_FIELDS } from '../../../shared/ceshuFields'
 import { migrationSplitTitle, pendingSplitCount, planCeshuMigration } from '../../../shared/ceshuMigrationPlan'
+import { REVIEW_QUEUE_KEY_HINT, resolveReviewQueueKey } from '../reviewQueueKeys'
 import { buildCeshuBundle } from '../../../shared/ceshuBundle'
 import {
   BUNDLE_CONSUME_TASK_LABELS,
@@ -59,6 +60,24 @@ import { toErrorMessage } from './ceshuViewUtils'
 
 /** 数据栏展开状态的 localStorage 键（`'0'` = 收起，其它/缺失 = 展开） */
 const PREVIEW_OPEN_KEY = 'mb.ceshu.previewOpen'
+
+/** 全局待审字段（跨章）：AI 草稿、尚未接受。按档位可见章节顺序 + 字段定义顺序排列 */
+function collectPendingReviewFields(doc: CeshuDocument): Array<{
+  chapter: ChapterKey
+  fieldKey: string
+  fieldLabel: string
+}> {
+  const pending: Array<{ chapter: ChapterKey; fieldKey: string; fieldLabel: string }> = []
+  for (const chapter of visibleChapterKeys(getGddScope(doc))) {
+    const statuses = fieldStatusOf(doc.meta, chapter)
+    for (const field of CESHU_CHAPTER_FIELDS[chapter] ?? []) {
+      if (statuses[field.key]?.status === 'ai_draft') {
+        pending.push({ chapter, fieldKey: field.key, fieldLabel: field.label })
+      }
+    }
+  }
+  return pending
+}
 
 interface CeshuViewProps {
   ceshuId: string | null
@@ -115,6 +134,8 @@ export default function CeshuView({
   /** AI 消费提示词浮层是否展开，以及当前任务（draft=按契约起草 / review=审阅找问题） */
   const [consumeOpen, setConsumeOpen] = useState(false)
   const [consumeTask, setConsumeTask] = useState<BundleConsumeTask>('draft')
+  /** 审阅队列键盘光标（第几条待审）；打开队列时归零，列表变化时渲染期夹取，不写 effect */
+  const [reviewCursor, setReviewCursor] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -288,6 +309,62 @@ export default function CeshuView({
   )
 
   /*
+   * 审阅队列快捷键（浮层打开时生效）：j/k 上下、a 接受、v 查看跳转、Esc 关闭。
+   * 放在早退之前：effect 必须无条件执行。待审列表在 effect 内现算（doc 可能为 null），
+   * 与渲染期同一函数出口，保证两处看到同一条队列。监听器属「订阅外部系统、回调里
+   * setState」的合规模式；可编辑焦点与组合键由 resolveReviewQueueKey 放行。
+   */
+  useEffect(() => {
+    if (!reviewOpen || doc === null) return undefined
+    const pending = collectPendingReviewFields(doc)
+    const onKeyDown = (event: KeyboardEvent): void => {
+      const target = event.target
+      const editable =
+        target instanceof HTMLElement &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.isContentEditable)
+      const action = resolveReviewQueueKey({
+        key: event.key,
+        ctrlKey: event.ctrlKey,
+        metaKey: event.metaKey,
+        altKey: event.altKey,
+        editable,
+        queueLength: pending.length
+      })
+      if (action === null) return
+      event.preventDefault()
+      if (action === 'close') {
+        setReviewOpen(false)
+        return
+      }
+      if (pending.length === 0) return
+      if (action === 'next') {
+        setReviewCursor((cursor) => Math.min(cursor + 1, pending.length - 1))
+        return
+      }
+      if (action === 'prev') {
+        setReviewCursor((cursor) => Math.max(cursor - 1, 0))
+        return
+      }
+      const current = pending[Math.min(reviewCursor, pending.length - 1)]
+      if (current === undefined) return
+      if (action === 'accept') {
+        void handleFieldStatus(current.chapter, { [current.fieldKey]: 'approved' })
+        return
+      }
+      // goto：跳到该字段所在章并收起队列
+      setActiveChapter(current.chapter)
+      setReviewOpen(false)
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [reviewOpen, doc, reviewCursor, handleFieldStatus])
+
+  /*
    * 切章兜底：停靠栏可能刚发起针对旧章字段的局部重生成请求，而新章的表单不会消费它
    * （请求按 chapter 匹配）。这里直接丢弃，避免请求烂在桥里、下次聚焦同章字段时被误执行。
    */
@@ -339,15 +416,9 @@ export default function CeshuView({
    * 全局待审字段（跨章）：AI 草稿、尚未接受。
    * 按 `visible` 章节顺序 + 字段定义顺序排列，便于「一条队列」往下扫。
    */
-  const pendingReviewFields: Array<{ chapter: ChapterKey; fieldKey: string; fieldLabel: string }> = []
-  for (const chapter of visible) {
-    const statuses = fieldStatusOf(doc.meta, chapter)
-    for (const field of CESHU_CHAPTER_FIELDS[chapter] ?? []) {
-      if (statuses[field.key]?.status === 'ai_draft') {
-        pendingReviewFields.push({ chapter, fieldKey: field.key, fieldLabel: field.label })
-      }
-    }
-  }
+  const pendingReviewFields = collectPendingReviewFields(doc)
+  /** 键盘光标（渲染期夹取）：列表变短（接受后）不越界，免用 effect 纠正状态 */
+  const reviewCursorSafe = Math.min(reviewCursor, Math.max(0, pendingReviewFields.length - 1))
 
   /** 一键接受所有待审字段：按章合并后一次 meta 写盘 */
   const handleApproveAllPending = async (): Promise<void> => {
@@ -728,7 +799,11 @@ export default function CeshuView({
           aria-pressed={reviewOpen}
           disabled={busy}
           title="跨章列出 AI 草稿字段，逐条接受"
-          onClick={() => setReviewOpen((open) => !open)}
+          onClick={() => {
+            // 打开队列时键盘光标归零（从第一条开始扫）；关闭不动光标
+            if (!reviewOpen) setReviewCursor(0)
+            setReviewOpen((open) => !open)
+          }}
         >
           待审 {pendingReviewFields.length}
         </button>
@@ -944,8 +1019,13 @@ export default function CeshuView({
                     <div className="item-meta">没有待审字段。AI 生成后会出现在这里。</div>
                   ) : (
                     <div className="review-list">
-                      {pendingReviewFields.map((item) => (
-                        <div className="review-row" key={`${item.chapter}:${item.fieldKey}`} data-testid="review-row">
+                      {pendingReviewFields.map((item, index) => (
+                        <div
+                          className={`review-row${index === reviewCursorSafe ? ' current' : ''}`}
+                          key={`${item.chapter}:${item.fieldKey}`}
+                          data-testid="review-row"
+                          data-current={index === reviewCursorSafe ? 'true' : 'false'}
+                        >
                           <span className="review-chapter">{CHAPTER_LABELS[item.chapter]}</span>
                           <span className="review-field">{item.fieldLabel}</span>
                           <button
@@ -969,6 +1049,11 @@ export default function CeshuView({
                           </button>
                         </div>
                       ))}
+                    </div>
+                  )}
+                  {pendingReviewFields.length > 0 && (
+                    <div className="review-key-hint item-meta" data-testid="review-key-hint">
+                      {REVIEW_QUEUE_KEY_HINT}
                     </div>
                   )}
                 </div>
