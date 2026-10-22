@@ -4,6 +4,8 @@
  * 纯数据 / 常量，无求值逻辑；逻辑层 ceshuScorer.ts 导入此处常量并 re-export 公共 API。
  */
 
+import type { ChapterKey } from './ceshuConstants'
+
 export interface CeshuChapterScore {
   chapter_key: string
   chapter_label: string
@@ -42,11 +44,20 @@ export interface CeshuScoreReport {
   pass_status: { structure: boolean; quality: boolean; market: boolean; total: boolean }
 }
 
-/** 字数基准（来自 word_stats_dialog，与 Python CHAPTER_WORD_BENCHMARK 一致）：(min, max, mid) */
-export const CHAPTER_WORD_BENCHMARK: Record<string, [number, number, number]> = {
+/**
+ * 字数基准（来自 word_stats_dialog，与 Python CHAPTER_WORD_BENCHMARK 一致）：(min, max, mid)
+ *
+ * **按 ChapterKey 收口**（不是 `Record<string, …>`）：2026-10-23 体检发现 `worldview` /
+ * `characters` 两章合并为 `story` 后，基准表仍留死条目、**却没有 story**——
+ * 评分引擎 `CHAPTER_WORD_BENCHMARK[key] ?? [0,0,0]` 于是对最大的章按 0 基准算
+ * 「字数达标 30%」，等于白丢 30% 质量分。改成按 ChapterKey 索引后，
+ * 新增/合并章节漏配基准会**在编译期**报错，不再静默走默认值。
+ */
+export const CHAPTER_WORD_BENCHMARK: Record<ChapterKey, [number, number, number]> = {
   meta: [50, 300, 150],
   vision: [200, 800, 400],
-  worldview: [500, 1500, 800],
+  // story = 原 worldview(500-1500) + characters(400-1200) 合并，取并集上界
+  story: [500, 1500, 800],
   gameplay: [500, 1500, 800],
   systems: [300, 1000, 500],
   numeric: [400, 1200, 600],
@@ -54,7 +65,6 @@ export const CHAPTER_WORD_BENCHMARK: Record<string, [number, number, number]> = 
   tech: [400, 1200, 600],
   resources: [300, 1000, 500],
   market_analysis: [400, 1200, 600],
-  characters: [400, 1200, 600],
   combat: [400, 1200, 600],
   economy: [400, 1200, 600],
   monetization: [300, 1000, 500],

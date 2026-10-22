@@ -118,7 +118,9 @@ function scoreChapters(doc: CeshuDocument): CeshuChapterScore[] {
 
     const chapterData = doc[key] as Record<string, unknown>
     const wordCount = countWordsInChapter(chapterData)
-    const benchmark = CHAPTER_WORD_BENCHMARK[key] ?? [0, 0, 0]
+    // 基准表按 ChapterKey 收口：漏配章节会在编译期报错，故此处不再需要
+    // `?? [0,0,0]` 兜底——那个兜底曾把「合并后漏配的 story 章」静默按 0 基准算分
+    const benchmark = CHAPTER_WORD_BENCHMARK[key]
 
     // 必填字段检查（与校验模块不同：空对象 {} 也视为缺失）
     const required = CHAPTER_REQUIRED_FIELDS[key] ?? []

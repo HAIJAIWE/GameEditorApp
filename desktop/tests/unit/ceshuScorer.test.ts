@@ -102,4 +102,33 @@ describe('N4 评分引擎：导出常量锁定', () => {
     expect(PASS_THRESHOLDS).toEqual({ structure: 18, quality: 24, market: 18, total: 60 })
     expect(INDUSTRY_BENCHMARKS.default.top_games).toEqual([])
   })
+
+  /*
+   * 回归守卫：2026-10-23 体检发现 worldview/characters 合并为 story 后，
+   * 基准表留死条目、没有 story —— 评分对最大的章按 [0,0,0] 算「字数达标」。
+   * 基准表现已按 ChapterKey 收口（漏配编译期报错），再用本测试兜底防人为删条目。
+   */
+  it('每个章节都有字数基准（story 不再是 [0,0,0]）', () => {
+    for (const key of CHAPTER_KEYS) {
+      const benchmark = CHAPTER_WORD_BENCHMARK[key]
+      expect(benchmark, `章节 ${key} 缺少字数基准`).toBeDefined()
+      expect(benchmark[0]).toBeGreaterThan(0)
+      expect(benchmark[1]).toBeGreaterThan(benchmark[0])
+    }
+    expect(CHAPTER_WORD_BENCHMARK.story).toEqual([500, 1500, 800])
+    // 死条目已清除（合并前的章名不应再作为键出现）
+    expect(Object.keys(CHAPTER_WORD_BENCHMARK)).not.toContain('worldview')
+    expect(Object.keys(CHAPTER_WORD_BENCHMARK)).not.toContain('characters')
+    expect(Object.keys(CHAPTER_WORD_BENCHMARK)).toHaveLength(CHAPTER_KEYS.length)
+  })
+
+  it('story 章字数落在基准内时拿到字数分（不再因 [0,0,0] 白丢）', () => {
+    const doc = emptyDoc()
+    doc.story = { architecture: '世'.repeat(600), main_plot: '剧'.repeat(400) }
+    const chapter = scoreCeshu(doc).chapter_scores.find((item) => item.chapter_key === 'story')
+    expect(chapter?.benchmark_word).toEqual([500, 1500, 800])
+    expect(chapter?.word_count).toBeGreaterThanOrEqual(500)
+    // 字数达标这一项不再恒为 0：明细里不应出现「字数不足」类备注
+    expect(chapter?.notes.join(' ')).not.toContain('字数')
+  })
 })
