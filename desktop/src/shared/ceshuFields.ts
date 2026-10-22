@@ -1,5 +1,6 @@
 import { CHAPTER_REQUIRED_FIELDS, type ChapterKey, type CeshuFieldDef } from './ceshuConstants'
 import * as OPT from './ceshuOptionLabels'
+import { FIELD_HINTS } from './ceshuFieldHints'
 
 /** 文档信息段 + 16 章表单字段描述（标签取自 Python chapter_forms/_base.py 与 _industrial.py） */
 
@@ -31,7 +32,13 @@ export function resolveFieldMeta(chapter: ChapterKey, field: CeshuFieldDef): Res
   }
 }
 
-export const CESHU_CHAPTER_FIELDS: Record<ChapterKey, CeshuFieldDef[]> = {
+/**
+ * 字段定义（结构层）与协作契约（数据层）分离：
+ * 上面这份 RAW 只描述「有哪些字段、什么类型」；契约（aiHint/reviewHint/aiDraftable）
+ * 按章放在 `ceshuFieldHints/` 下，导出时在此合并——合并后 RAW 里显式写的
+ * 契约仍然优先（meta/vision/story 三章早期写在定义里的契约不受影响）。
+ */
+const RAW_CHAPTER_FIELDS: Record<ChapterKey, CeshuFieldDef[]> = {
   meta: [
     f('game_name', '游戏名称', 'text', { aiDraftable: false, reviewHint: '确认名称是否最终确定' }),
     f('game_type', '游戏类型', 'combo', {
@@ -348,3 +355,12 @@ export const CESHU_CHAPTER_FIELDS: Record<ChapterKey, CeshuFieldDef[]> = {
     f('compliance_notes', '合规备注', 'textarea')
   ]
 }
+
+/** 合并后的字段表：定义 + 按章契约（hints 缺省的章原样返回） */
+export const CESHU_CHAPTER_FIELDS: Record<ChapterKey, CeshuFieldDef[]> = Object.fromEntries(
+  (Object.keys(RAW_CHAPTER_FIELDS) as ChapterKey[]).map((chapter) => {
+    const hints = FIELD_HINTS[chapter]
+    const fields = RAW_CHAPTER_FIELDS[chapter]
+    return [chapter, hints === undefined ? fields : fields.map((field) => ({ ...field, ...hints[field.key] }))]
+  })
+) as Record<ChapterKey, CeshuFieldDef[]>
