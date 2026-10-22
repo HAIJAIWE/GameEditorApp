@@ -35,8 +35,10 @@ import { REVIEW_QUEUE_KEY_HINT, resolveReviewQueueKey } from '../reviewQueueKeys
 import { buildCeshuBundle } from '../../../shared/ceshuBundle'
 import {
   applyCeshuPatch,
+  parseCeshuIssues,
   parseCeshuPatch,
   previewPatchValue,
+  type CeshuIssueParseResult,
   type CeshuPatchParseResult
 } from '../../../shared/ceshuImportPatch'
 import {
@@ -155,6 +157,8 @@ export default function CeshuView({
   const [importOpen, setImportOpen] = useState(false)
   const [importRaw, setImportRaw] = useState('')
   const [importResult, setImportResult] = useState<CeshuPatchParseResult | null>(null)
+  /** 审阅结果（issues 清单，只读）：与 importResult 互斥，避免把问题清单当补丁应用 */
+  const [issueResult, setIssueResult] = useState<CeshuIssueParseResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -751,6 +755,15 @@ export default function CeshuView({
 
   /** 解析粘贴的 AI 结果（只读预览，不写盘） */
   const handleParseImport = (): void => {
+    // 先试审阅结果：外部 AI 的「审阅」任务返回 issues 清单，能展示但不能应用；
+    // 只有一条都没解析出来时才回落到字段增量，两种结果互斥（清空另一方）
+    const parsedIssues = parseCeshuIssues(importRaw)
+    if (parsedIssues.issues.length > 0) {
+      setIssueResult(parsedIssues)
+      setImportResult(null)
+      return
+    }
+    setIssueResult(null)
     setImportResult(parseCeshuPatch(importRaw, doc))
   }
 
@@ -1277,6 +1290,7 @@ export default function CeshuView({
                     onChange={(event) => {
                       setImportRaw(event.target.value)
                       setImportResult(null)
+                      setIssueResult(null)
                     }}
                   />
                   <div className="field-action-strip-actions">
@@ -1313,6 +1327,29 @@ export default function CeshuView({
                           ))}
                         </div>
                       )}
+                    </>
+                  )}
+                  {issueResult !== null && (
+                    <>
+                      <div className="item-meta">
+                        这是审阅结果：共 {issueResult.issues.length} 条问题，逐条修改即可（本面板不自动改文档）
+                      </div>
+                      <div className="review-list" data-testid="import-issues">
+                        {issueResult.issues.map((issue, index) => (
+                          <div
+                            className="review-row"
+                            key={index}
+                            data-testid="import-issue"
+                            data-severity={issue.severity}
+                          >
+                            <span className="review-chapter">{issue.chapter}</span>
+                            <span className="review-field">{issue.field}</span>
+                            <span className="item-meta">
+                              [{issue.severity}] {issue.message} —— 建议：{issue.suggestion}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </>
                   )}
                 </div>

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   applyCeshuPatch,
+  parseCeshuIssues,
   parseCeshuPatch,
   previewPatchValue
 } from '../../src/shared/ceshuImportPatch'
@@ -78,6 +79,56 @@ describe('parseCeshuPatch：解析外部 AI 的增量 JSON', () => {
   it('空内容 / 非 JSON → 中文错误', () => {
     expect(parseCeshuPatch('   ', makeDoc()).errors[0]).toContain('内容为空')
     expect(parseCeshuPatch('这不是 JSON', makeDoc()).errors[0]).toContain('无法解析')
+  })
+})
+
+describe('parseCeshuIssues：解析审阅问题清单（只读）', () => {
+  it('合法清单：字段齐全，error 为 null', () => {
+    const result = parseCeshuIssues(
+      '{"issues":[{"chapter":"meta","field":"positioning","severity":"high","message":"定位过于笼统","suggestion":"补一句目标用户与核心玩法"}]}'
+    )
+    expect(result.error).toBeNull()
+    expect(result.issues).toEqual([
+      {
+        chapter: 'meta',
+        field: 'positioning',
+        severity: 'high',
+        message: '定位过于笼统',
+        suggestion: '补一句目标用户与核心玩法'
+      }
+    ])
+  })
+
+  it('severity 归一化：只保留 high/medium/low，其他值降为 medium；缺省字段补空串', () => {
+    const result = parseCeshuIssues(
+      '{"issues":[{"message":"甲","severity":"CRITICAL"},{"message":"乙","severity":"high"},{"message":"丙"}]}'
+    )
+    expect(result.issues.map((issue) => issue.severity)).toEqual(['medium', 'high', 'medium'])
+    expect(result.issues[0]).toMatchObject({ chapter: '', field: '', suggestion: '' })
+  })
+
+  it('非对象元素 / 缺 message 的条目跳过，不污染清单', () => {
+    const result = parseCeshuIssues('{"issues":["字符串", 42, null, {"message":"  "},{"message":"有效"}]}')
+    expect(result.error).toBeNull()
+    expect(result.issues).toHaveLength(1)
+    expect(result.issues[0]?.message).toBe('有效')
+  })
+
+  it('不是审阅结果（缺 issues 数组）→ 中文错误', () => {
+    expect(parseCeshuIssues('{"meta":{"positioning":"x"}}').error).toBe('这不是审阅结果：缺少 issues 数组')
+    expect(parseCeshuIssues('{"issues":"x"}').error).toBe('这不是审阅结果：缺少 issues 数组')
+  })
+
+  it('容错：markdown 代码块与尾逗号', () => {
+    const result = parseCeshuIssues('```json\n{"issues":[{"message":"甲","severity":"low",},],}\n```')
+    expect(result.error).toBeNull()
+    expect(result.issues).toHaveLength(1)
+    expect(result.issues[0]).toMatchObject({ message: '甲', severity: 'low' })
+  })
+
+  it('空内容 / 非 JSON → 中文错误', () => {
+    expect(parseCeshuIssues('   ').error).toContain('内容为空')
+    expect(parseCeshuIssues('这不是 JSON').error).toContain('无法解析')
   })
 })
 

@@ -130,6 +130,72 @@ export function parseCeshuPatch(raw: string, doc: CeshuDocument): CeshuPatchPars
   return { items, errors }
 }
 
+export interface CeshuIssueItem {
+  /** 章节 key（原文，可能非法，故为 string） */
+  chapter: string
+  field: string
+  /** high / medium / low（原文，未归一化） */
+  severity: string
+  message: string
+  suggestion: string
+}
+
+export interface CeshuIssueParseResult {
+  issues: CeshuIssueItem[]
+  /** 解析失败时的中文说明 */
+  error: string | null
+}
+
+/** 取字符串字段（非字符串一律当缺省，避免 AI 把对象塞进来把 UI 撑坏） */
+function readIssueText(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : ''
+}
+
+/** severity 只认三档；未知值降为 medium（宁可按中危提示，也不让清单丢项） */
+function normalizeSeverity(value: string): string {
+  const lowered = value.trim().toLowerCase()
+  return lowered === 'high' || lowered === 'medium' || lowered === 'low' ? lowered : 'medium'
+}
+
+/**
+ * 解析「审阅」任务返回的问题清单（`{"issues":[...]}`）。
+ *
+ * 与 `parseCeshuPatch` 的分工：那边只认可应用的字段增量，这边只读展示——
+ * 审阅结果不是补丁，硬应用会覆盖文档，所以解析成清单交给 UI 呈现，
+ * 由人逐条决定怎么改（本函数不碰文档，纯函数）。
+ */
+export function parseCeshuIssues(raw: string): CeshuIssueParseResult {
+  const issues: CeshuIssueItem[] = []
+  const trimmed = raw.trim()
+  if (trimmed === '') return { issues, error: '内容为空：请粘贴 AI 返回的审阅结果 JSON' }
+
+  const parsed = parseLlmJson(trimmed)
+  if (Object.keys(parsed).length === 0) {
+    return { issues, error: '无法解析为 JSON：请确认粘贴的是 {"issues": [...]} 形式的审阅结果' }
+  }
+
+  const rawIssues = parsed['issues']
+  if (!Array.isArray(rawIssues)) {
+    return { issues, error: '这不是审阅结果：缺少 issues 数组' }
+  }
+
+  for (const entry of rawIssues) {
+    // 元素不是对象、或没有 message 的条目没有展示价值：跳过而不是报错，避免一条脏数据毁掉整份清单
+    if (!isPlainObject(entry)) continue
+    const message = readIssueText(entry['message'])
+    if (message === '') continue
+    issues.push({
+      chapter: readIssueText(entry['chapter']),
+      field: readIssueText(entry['field']),
+      severity: normalizeSeverity(readIssueText(entry['severity'])),
+      message,
+      suggestion: readIssueText(entry['suggestion'])
+    })
+  }
+
+  return { issues, error: null }
+}
+
 export interface ApplyPatchResult {
   doc: CeshuDocument
   /** 实际写入的章节（按文档顺序） */

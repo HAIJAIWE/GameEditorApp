@@ -552,6 +552,29 @@ describe('CeshuView：导入 AI 结果', () => {
     expect(rendered.byTestId('import-errors').textContent).toContain('没有字段「nope」')
     expect((rendered.byTestId('import-apply') as HTMLButtonElement).disabled).toBe(true)
   })
+
+  it('粘贴审阅结果：展示问题清单（只读），应用按钮禁用且不再报「不能直接应用」', async () => {
+    api = installMbApi({ doc: makeDoc() })
+    const rendered = await mount()
+
+    await rendered.click(rendered.byTestId('ceshu-more'))
+    await rendered.click(rendered.byTestId('ceshu-import-patch'))
+    await typeInto(
+      rendered.byTestId('import-raw') as HTMLTextAreaElement,
+      '{"issues":[{"chapter":"meta","field":"positioning","severity":"high","message":"定位过于笼统","suggestion":"补一句目标用户与核心玩法"},{"chapter":"story","field":"main_plot","severity":"low","message":"主线缺转折","suggestion":"加一个中段反转"}]}'
+    )
+    await rendered.flush()
+
+    await rendered.click(rendered.byTestId('import-parse'))
+
+    expect(rendered.byTestId('import-issues')).toBeTruthy()
+    expect(rendered.queryAll('[data-testid="import-issue"]')).toHaveLength(2)
+    expect(rendered.queryAll('[data-testid="import-issue"]')[0]?.getAttribute('data-severity')).toBe('high')
+    expect((rendered.byTestId('import-apply') as HTMLButtonElement).disabled).toBe(true)
+    // 审阅结果走清单展示，旧的「不能直接应用」引导不应再出现
+    expect(rendered.text()).not.toContain('不能直接应用')
+    expect(rendered.queryAll('[data-testid="import-errors"]')).toHaveLength(0)
+  })
 })
 
 describe('CeshuView：迁移预览（只读）', () => {
