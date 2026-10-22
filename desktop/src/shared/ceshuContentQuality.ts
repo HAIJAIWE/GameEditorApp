@@ -33,18 +33,33 @@ export const CLICHE_PHRASES: readonly string[] = [
 export const CLICHE_COUNT_THRESHOLD = 3
 /** 空话密度告警阈值（占句子比例） */
 export const CLICHE_RATE_THRESHOLD = 0.2
-/** 超长句字数界限 */
-export const LONG_SENTENCE_CHARS = 40
-/** 超长句比例告警阈值 */
-export const LONG_SENTENCE_RATE_THRESHOLD = 0.3
-/** 列表结构率告警阈值（仅对多行字段） */
+/**
+ * 超长句字数界限。
+ *
+ * 2026-10-23 用 docs/ 下 161 段人类真实写作校准：40 字线对人类技术/策划
+ * 写作误报严重（长句率均值 0.375、P90 达 1.0，81% 的段落被标记）。
+ * 中文一句话 50 字以上才公认算长句，故从 40 放宽到 50。
+ */
+export const LONG_SENTENCE_CHARS = 50
+/**
+ * 超长句比例告警阈值。
+ * 同轮校准：人类写作均值 0.375，0.3 的阈值会把正常写作普遍标记——
+ * 提示疲劳比漏报更糟（人会学会忽略所有提示）。放宽到 0.5：
+ * 只抓「一半以上句子都超长」的极端情况。
+ */
+export const LONG_SENTENCE_RATE_THRESHOLD = 0.5
+/** 列表结构率告警阈值（仅作 signal 消费方参考；字段级不再据此报问题，见 contentQualityIssues 内注释） */
 export const LIST_RATE_THRESHOLD = 0.3
-/** 参与列表判定的最少非空行数 */
+/** 列表结构率有意义的最少非空行数（同上，仅参考） */
 export const LIST_MIN_LINES = 3
 /** 含数字句子比例告警阈值 */
 export const NUMERIC_RATE_THRESHOLD = 0.15
-/** 参与数字判定的最少字数 */
-export const NUMERIC_MIN_CHARS = 120
+/**
+ * 参与数字判定的最少字数。
+ * 2026-10-23 校准：120 字时人类写作误报约 9%，放宽到 200——
+ * 短描述（如设计理念）没有数字完全正常，只有长文才谈得上「要可验证」。
+ */
+export const NUMERIC_MIN_CHARS = 200
 /** 值得分析的最少字数（比数字判定更宽：短字段没有分析价值，但不该被数字门槛挡掉） */
 export const ANALYSIS_MIN_CHARS = 60
 
@@ -189,32 +204,21 @@ export function contentQualityIssues(
     issues.push(`内容质量提示：${target} 长句偏多（>${LONG_SENTENCE_CHARS} 字占 ${pct}%），建议拆短`)
   }
 
-  // 列表结构只对多行内容有意义：单行字段（如一句话定位）不适用列表化要求
-  if (signal.lineCount >= LIST_MIN_LINES && signal.listRate < LIST_RATE_THRESHOLD) {
-    issues.push(`内容质量提示：${target} 多行内容未用「${LIST_PREFIX}」列表结构，不利机器解析与扫读`)
-  }
+  /*
+   * 列表结构率**不进字段级问题输出**（2026-10-23 校准决策）：
+   * 用 docs/ 下 161 段人类真实写作验证，要求「多行文本用 '- '前缀」会把
+   * 正常散文普遍标记（写作指南 109 段误报 60+ 条）。且该要求与三件套拆分
+   * 设计自相矛盾——本体字段的契约就是「一段概述」，可核对的条目本该在
+   * points 字段（它本身就是 stringList，天然结构化）。
+   * signal.listRate 仍保留在信号里，供 UI 展示或将来的章级汇总消费。
+   */
 
-  // 短文本不强制塞数字（如名称、标签），仅长文本要求可验证性
+  // 短文本不强制塞数字（如名称、标签），仅长文本要求可验证性。
+  // 门槛 200 字同为校准结果：120 字时人类技术/策划写作误报约 9%，
+  // 「一段设计理念没数字」在策划语境里完全正常。
   if (signal.numericRate < NUMERIC_RATE_THRESHOLD && signal.charCount > NUMERIC_MIN_CHARS) {
     issues.push(`内容质量提示：${target} 缺少可验证的数字或实例`)
   }
 
   return issues
-}
-
-/**
- * 带选项的问题提示（校验链集成用）。
- *
- * `checkListStructure: false` 用于**已经是结构化列表的字段**（stringList/pipeList：
- * 值本身是数组，拼成多行也没有 `- ` 前缀）——对它们要求「列表结构」是误报，
- * 故由调用方按字段 kind 关掉这项检查。
- */
-export function contentQualityIssuesWith(
-  signal: ContentQualitySignal,
-  context: { chapterLabel: string; fieldName?: string },
-  options: { checkListStructure?: boolean } = {}
-): string[] {
-  const all = contentQualityIssues(signal, context)
-  if (options.checkListStructure !== false) return all
-  return all.filter((message) => !message.includes('列表结构'))
 }

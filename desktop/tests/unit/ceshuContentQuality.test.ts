@@ -14,12 +14,12 @@ import {
  * 句子拼接统一用「。」；中文标点同样计入 charCount（text.length 原样长度）。
  */
 
-/** 40 字整（边界内，不算长句） */
-const SENTENCE_40 = '一二三四五六七八九十'.repeat(4)
-/** 41 字整（边界外，算长句） */
-const SENTENCE_41 = `${SENTENCE_40}一`
+/** 50 字整（边界内，不算长句；2026-10-23 由 40 放宽，见 LONG_SENTENCE_CHARS 注释） */
+const SENTENCE_50 = '一二三四五六七八九十'.repeat(5)
+/** 51 字整（边界外，算长句） */
+const SENTENCE_51 = `${SENTENCE_50}一`
 
-/** 构造「k 句 × 8 字无数字句 + 1 句 3 字」的纯文本，用于数字具体性边界 */
+/** 构造「k 句 × 8 字无数字句 + 1 句 3 字」的纯文本（charCount = 9k+3），用于数字具体性边界 */
 function plainText(sentenceCount: number): string {
   const sentences = Array.from({ length: sentenceCount }, () => '一二三四五六七八')
   sentences.push('附加句')
@@ -140,73 +140,75 @@ describe('空话套话判定：少量不报、密度超标才报', () => {
   })
 })
 
-describe('超长句判定：40 字边界', () => {
-  it('40 字整不算长句；41 字整算长句（1/3 > 0.3 报）', () => {
-    const shortOnly = analyzeTextQuality(`${SENTENCE_40}。${SENTENCE_40}。短`)
+describe('超长句判定：50 字边界（2026-10-23 由 40 放宽，校准依据见 LONG_SENTENCE_CHARS）', () => {
+  it('50 字整不算长句；51 字整算长句（2 长 / 3 句 > 0.5 才报）', () => {
+    const shortOnly = analyzeTextQuality(`${SENTENCE_50}。${SENTENCE_50}。短`)
     expect(shortOnly.sentenceCount).toBe(3)
     expect(shortOnly.longSentenceRate).toBe(0)
     expect(contentQualityIssues(shortOnly, { chapterLabel: '第一章·产品愿景' })).toEqual([])
 
-    const withLong = analyzeTextQuality(`${SENTENCE_40}。${SENTENCE_41}。短句结尾`)
-    expect(withLong.sentenceCount).toBe(3)
-    expect(withLong.longSentenceRate).toBeCloseTo(1 / 3, 10)
-    expect(contentQualityIssues(withLong, { chapterLabel: '第一章·产品愿景' })).toEqual([
-      `内容质量提示：第一章·产品愿景 长句偏多（>${LONG_SENTENCE_CHARS} 字占 33%），建议拆短`
+    // 1 长 / 3 句 = 0.33：旧阈值 0.3 会报，新阈值 0.5 不报（人类写作均值就有 0.375）
+    const oneLong = analyzeTextQuality(`${SENTENCE_50}。${SENTENCE_51}。短句结尾`)
+    expect(oneLong.longSentenceRate).toBeCloseTo(1 / 3, 10)
+    expect(contentQualityIssues(oneLong, { chapterLabel: '第一章·产品愿景' })).toEqual([])
+
+    // 2 长 / 3 句 ≈ 0.67：过半句子都超长才报
+    const mostlyLong = analyzeTextQuality(`${SENTENCE_51}。${SENTENCE_51}。短句结尾`)
+    expect(mostlyLong.longSentenceRate).toBeCloseTo(2 / 3, 10)
+    expect(contentQualityIssues(mostlyLong, { chapterLabel: '第一章·产品愿景' })).toEqual([
+      `内容质量提示：第一章·产品愿景 长句偏多（>${LONG_SENTENCE_CHARS} 字占 67%），建议拆短`
     ])
   })
 
   it('长句率边界：1 长 / 4 句 = 0.25 不报', () => {
-    const signal = analyzeTextQuality(`${SENTENCE_41}。短一。短二。短三`)
+    const signal = analyzeTextQuality(`${SENTENCE_51}。短一。短二。短三`)
     expect(signal.longSentenceRate).toBeCloseTo(0.25, 10)
     expect(contentQualityIssues(signal, { chapterLabel: '第一章·产品愿景' })).toEqual([])
   })
 })
 
-describe('列表结构率判定：仅多行参与', () => {
-  it('2 行不判定（lineCount < 3），即使无列表行', () => {
+describe('列表结构率：signal 仍计算，但不再产出字段级问题（2026-10-23 校准决策）', () => {
+  it('2 行也完整计算（lineCount < 3 只是旧判据门槛，signal 不设限）', () => {
     const signal = analyzeTextQuality('第一行内容\n第二行内容')
     expect(signal.lineCount).toBe(2)
     expect(signal.listRate).toBe(0)
     expect(contentQualityIssues(signal, { chapterLabel: '第一章·产品愿景' })).toEqual([])
   })
 
-  it('「- 」行占比计算正确；3 行 2 列表（0.67 ≥ 0.3）不报', () => {
+  it('「- 」行占比计算正确', () => {
     const signal = analyzeTextQuality('系统说明\n- 战斗系统\n- 成长系统')
     expect(signal.lineCount).toBe(3)
     expect(signal.listRate).toBeCloseTo(2 / 3, 10)
-    expect(contentQualityIssues(signal, { chapterLabel: '第一章·产品愿景' })).toEqual([])
   })
 
-  it('4 行 1 列表（0.25 < 0.3）报', () => {
+  it('多行散文（无「- 」前缀）不再被报——本体字段的契约就是一段概述', () => {
     const signal = analyzeTextQuality('总体概述一段\n战斗系统说明\n成长系统说明\n- 社交系统')
     expect(signal.lineCount).toBe(4)
     expect(signal.listRate).toBeCloseTo(0.25, 10)
-    expect(contentQualityIssues(signal, { chapterLabel: '第一章·产品愿景', fieldName: 'systems' })).toEqual([
-      '内容质量提示：第一章·产品愿景 systems 多行内容未用「- 」列表结构，不利机器解析与扫读'
-    ])
+    expect(contentQualityIssues(signal, { chapterLabel: '第一章·产品愿景', fieldName: 'systems' })).toEqual([])
   })
 })
 
-describe('数字具体性判定', () => {
+describe('数字具体性判定（门槛 200 字，2026-10-23 由 120 放宽）', () => {
   it('含数字句识别正确（2/4 = 0.5）', () => {
     const signal = analyzeTextQuality('共 3 关。场景宏大。时长 2 小时。音乐悠扬')
     expect(signal.numericRate).toBeCloseTo(0.5, 10)
   })
 
-  it('长文本（>120 字）无数字才报', () => {
-    const signal = analyzeTextQuality(plainText(14))
-    expect(signal.charCount).toBe(129)
+  it('长文本（>200 字）无数字才报', () => {
+    const signal = analyzeTextQuality(plainText(23))
+    expect(signal.charCount).toBe(210)
     expect(signal.numericRate).toBe(0)
     expect(contentQualityIssues(signal, { chapterLabel: '第二章·核心玩法' })).toEqual([
       '内容质量提示：第二章·核心玩法 缺少可验证的数字或实例'
     ])
   })
 
-  it('短文本（≤120 字）无数字不报；120 字整为边界不报', () => {
-    const boundary = analyzeTextQuality(plainText(13))
-    expect(boundary.charCount).toBe(120)
-    expect(boundary.numericRate).toBe(0)
-    expect(contentQualityIssues(boundary, { chapterLabel: '第二章·核心玩法' })).toEqual([])
+  it('192 字（≤200）无数字不报：一段设计理念没有数字完全正常', () => {
+    const signal = analyzeTextQuality(plainText(21))
+    expect(signal.charCount).toBe(192)
+    expect(signal.numericRate).toBe(0)
+    expect(contentQualityIssues(signal, { chapterLabel: '第二章·核心玩法' })).toEqual([])
   })
 })
 
@@ -227,12 +229,12 @@ describe('analyzeChapterQuality：章级汇总', () => {
     expect(signal.numericRate).toBe(0)
   })
 
-  it('比率按字数加权平均（41×1 + 41×0）/ 82 = 0.5', () => {
+  it('比率按字数加权平均（51×1 + 51×0）/ 102 = 0.5', () => {
     const signal = analyzeChapterQuality({
-      a: '甲'.repeat(41),
-      b: `${'乙'.repeat(20)}。${'丙'.repeat(20)}`
+      a: '甲'.repeat(51),
+      b: `${'乙'.repeat(25)}。${'丙'.repeat(25)}`
     })
-    expect(signal.charCount).toBe(82)
+    expect(signal.charCount).toBe(102)
     expect(signal.sentenceCount).toBe(3)
     expect(signal.longSentenceRate).toBeCloseTo(0.5, 10)
   })
@@ -240,7 +242,7 @@ describe('analyzeChapterQuality：章级汇总', () => {
   it('cliches 跨段并集去重；长文本无数字时报数字问题（章级省略字段名）', () => {
     const signal = analyzeChapterQuality({
       vision: '画面精美，操作流畅，体验爽快，整体高品质，内容丰富',
-      detail: plainText(14)
+      detail: plainText(23)
     })
     expect(signal.cliches).toEqual(['精美', '流畅', '爽快', '高品质'])
     const issues = contentQualityIssues(signal, { chapterLabel: '第一章·产品愿景' })
@@ -279,13 +281,12 @@ describe('contentQualityIssues：文案格式', () => {
 
   it('所有条目前缀统一为「内容质量提示：」', () => {
     const signal = analyzeChapterQuality({
-      a: '甲'.repeat(41),
+      a: '甲'.repeat(51),
       b: '总体概述一段\n战斗系统说明\n成长系统说明\n- 社交系统',
-      c: plainText(14)
+      c: plainText(23)
     })
-    // 长句被短段稀释后 41/194≈0.21 未超标，最终只剩列表结构与数字两条
+    // 长句被短段稀释后 51/245≈0.21 未超标；列表判据已按校准移除；最终只剩数字一条
     expect(contentQualityIssues(signal, { chapterLabel: '第三章·战斗系统', fieldName: 'combat' })).toEqual([
-      '内容质量提示：第三章·战斗系统 combat 多行内容未用「- 」列表结构，不利机器解析与扫读',
       '内容质量提示：第三章·战斗系统 combat 缺少可验证的数字或实例'
     ])
   })

@@ -12,7 +12,7 @@ import { detectFieldOverlaps, fieldOverlapMessage } from './ceshuOverlap'
 import { detectTerminologyConflicts, terminologyConflictMessages } from './ceshuTerminology'
 import {
   analyzeTextQuality,
-  contentQualityIssuesWith,
+  contentQualityIssues,
   ANALYSIS_MIN_CHARS as QUALITY_MIN_CHARS
 } from './ceshuContentQuality'
 import { CESHU_CHAPTER_FIELDS } from './ceshuFields'
@@ -165,12 +165,12 @@ export function validateCeshu(doc: CeshuDocument): string[] {
   }
 
   /*
-   * 14. 内容质量（「写对」代理指标）：机器可判定的空话/长句/列表结构/数字具体性。
+   * 14. 内容质量（「写对」代理指标）：机器可判定的空话/长句/数字具体性。
    *
    * 为什么单独一项：此前的「内容质量」评分只看**字数是否落在基准区间**，
    * 等于奖励「写满」；本项补上「写对」的机器信号，与评分互补（不替代）。
-   * 只查 schema 内的自由文本字段，且字段已按 kind 关掉不适用的检查
-   * （数组型字段本身就是结构化列表，要求 `- ` 前缀是误报）。
+   * 只查 schema 内的自由文本字段，且只输出经过人类写作基线校准的判据
+   * （2026-10-23 用 docs/ 161 段真实写作校准，见 ceshuContentQuality 内注释）。
    */
   for (const key of visibleChapterKeys(getGddScope(doc))) {
     const label = CHAPTER_LABELS[key]
@@ -179,10 +179,10 @@ export function validateCeshu(doc: CeshuDocument): string[] {
     for (const field of CESHU_CHAPTER_FIELDS[key] ?? []) {
       const raw = readQualityText(data, field.key)
       if (raw === null) continue // 非字符串 / 太短：没有分析价值
-      const issues = contentQualityIssuesWith(analyzeTextQuality(raw), {
+      const issues = contentQualityIssues(analyzeTextQuality(raw), {
         chapterLabel: label,
         fieldName: field.label
-      }, { checkListStructure: field.kind === 'textarea' || field.kind === 'text' })
+      })
       for (const message of issues) errors.push(message)
     }
   }
