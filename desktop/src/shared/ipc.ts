@@ -89,6 +89,7 @@ import type {
   TypeFieldDef
 } from './types'
 import type { ChapterKey, CeshuDocument, CeshuExportResult, CeshuSummary } from './ceshuConstants'
+import type { FieldAction } from './ceshuFieldAction'
 import type { BrainEvent } from './agent/brain'
 import type { AgentRunStats } from './agent/observability'
 import type { DraftSummary, SessionInfo } from './agent/session'
@@ -321,7 +322,10 @@ export interface IpcContract {
   'ceshu:aiGenerateChapter': { req: CeshuAiGenerateInput; res: CeshuAiGenerateResult }
   /** 按字段 AI 填充（E62，对齐 Python `ai_field_button.py` 的 `_add_row(…, ai_path)` + `_AIFillFieldWorker`）：
    *  单字段定向生成（非整章），提示词走 `buildChapterPrompt` 的 `onlyFields` 分支；res 复用整章生成结果形状。 */
-  'ceshu:aiGenerateField': { req: { id: string; chapter: ChapterKey; field: string }; res: CeshuAiGenerateResult }
+  'ceshu:aiGenerateField': {
+    req: { id: string; chapter: ChapterKey; field: string; action?: FieldAction }
+    res: CeshuAiGenerateResult
+  }
   'ceshu:aiReview': { req: { id: string; confirmed?: boolean }; res: CeshuAiReviewResult }
   'ceshu:aiGenerateData': { req: CeshuDataGenInput; res: CeshuDataGenResult }
   'ceshu:exportReviewReport': { req: CeshuReviewExportInput; res: { filePath: string } }

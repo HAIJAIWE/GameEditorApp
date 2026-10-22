@@ -1122,6 +1122,13 @@ body {
   border-color: #b8860b;
 }
 
+/* 迁移预览里的「已重复 N%」徽标（与 AI 草稿同用警示色） */
+.field-badge.duplicate {
+  margin-left: 6px;
+  color: #b8860b;
+  border-color: #b8860b;
+}
+
 .field-badge.human-edited {
   color: #185fa5;
   border-color: #185fa5;
@@ -4324,6 +4331,48 @@ button.ref-row:hover {
   height: 100%;
   padding: 12px 16px;
   overflow: hidden;
+}
+
+/*
+ * 停靠栏「当前字段」动作条（人机协作·右半环）。
+ * 位于数字员工面板头部之下：无选中字段时是一行引导文案；有字段时是
+ * 「章节 · 字段 + 状态徽标 + 四个局部重生成按钮」的紧凑卡片。
+ */
+.field-action-strip {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+}
+
+.field-action-strip.empty {
+  border-style: dashed;
+  background: transparent;
+}
+
+.field-action-strip-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.field-action-strip-name {
+  font-size: calc(12px * var(--ui-font-scale));
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.field-action-strip-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .digital-messages {

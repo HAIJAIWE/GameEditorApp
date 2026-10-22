@@ -91,14 +91,14 @@ export const CESHU_CHAPTER_FIELDS: Record<ChapterKey, CeshuFieldDef[]> = {
   vision: [
     f('design_vision', '设计愿景', 'textarea', {
       placeholder: '阐述设计理念和愿景',
-      aiHint: '先一句愿景，再给三条支撑理由',
-      reviewHint: '是否具体、可判断，而不是口号'
+      aiHint: '先一句愿景（要做成什么样的游戏），再给三条支撑理由；不要写与竞品的对比',
+      reviewHint: '是否具体、可判断，而不是口号；与「差异化优势」不重复'
     }),
     f('user_personas.primary', '主要用户', 'textarea', { aiHint: '年龄 / 使用场景 / 核心痛点，各一句' }),
     f('user_personas.secondary', '次要用户', 'textarea', { aiHint: '与主要用户的具体差异，不要复述' }),
     f('differentiation', '差异化优势', 'textarea', {
-      aiHint: '与 2-3 个竞品的具体差异，给出可验证的例子',
-      reviewHint: '是否说得出「玩家凭什么选你」'
+      aiHint: '与 2-3 个竞品的具体差异，给出可验证的例子；不要复述设计愿景',
+      reviewHint: '是否说得出「玩家凭什么选你」；与「设计愿景」不重复'
     }),
     f('business_model', '商业模式', 'textarea', { aiDraftable: false })
   ],
@@ -156,7 +156,11 @@ export const CESHU_CHAPTER_FIELDS: Record<ChapterKey, CeshuFieldDef[]> = {
   ],
   systems: [],
   numeric: [
-    f('core_formulas', '核心公式', 'textarea', { placeholder: '核心数值公式，每行一个' }),
+    f('core_formulas', '核心公式', 'textarea', {
+      placeholder: '核心数值公式，每行一个',
+      aiHint: '每行一个核心数值公式；伤害公式属战斗章，此处不要重复',
+      reviewHint: '公式是否自洽；是否与战斗章「伤害公式」重复'
+    }),
     f('core_formulas_points', '核心公式·列表', 'stringList', {
       placeholder: '每行一个公式',
       aiHint: '每行一个公式，格式统一'
@@ -207,7 +211,10 @@ export const CESHU_CHAPTER_FIELDS: Record<ChapterKey, CeshuFieldDef[]> = {
       values: ['turn_based', 'realtime', 'semi_realtime', 'auto_battle', 'atb', 'ctb', 'srpg_grid'],
       optionLabels: OPT.COMBAT_MODE_LABELS
     }),
-    f('damage_formula', '伤害公式', 'textarea'),
+    f('damage_formula', '伤害公式', 'textarea', {
+      aiHint: '伤害计算公式：写清攻击/防御/暴击等变量的关系',
+      reviewHint: '公式是否可计算；数值章「核心公式」是否重复本条'
+    }),
     f('damage_formula_points', '伤害公式·要点', 'stringList', {
       placeholder: '每行一条公式或步骤',
       aiHint: '每条公式或步骤一行，便于机器解析'

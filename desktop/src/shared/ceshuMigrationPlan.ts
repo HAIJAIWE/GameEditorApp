@@ -1,6 +1,7 @@
 import { CHAPTER_LABELS, type CeshuDocument, type ChapterKey } from './ceshuConstants'
 import { CESHU_CHAPTER_FIELDS } from './ceshuFields'
 import { isPlainObject } from './ceshuModel'
+import { detectTextDuplication, OVERLAP_PAIRS } from './ceshuOverlap'
 
 /**
  * 策划书字段迁移**预览**（只读，不写盘）。
@@ -28,6 +29,10 @@ export interface MigrationOverlap {
   fieldKeys: string[]
   fieldLabels: string[]
   note: string
+  /** 该组当前是否已构成内容重复（与校验链同源判定，供预览显示「已重复 N%」） */
+  duplicated: boolean
+  /** 重复度 0~1（未检出时也有值，仅 duplicated=true 时展示） */
+  similarity: number
 }
 
 export interface MigrationPlan {
@@ -126,11 +131,30 @@ export function planCeshuMigration(doc: CeshuDocument): MigrationPlan {
     if (!isPlainObject(chapterData)) continue
     const present = spec.fieldKeys.filter((key) => readText(chapterData[key]).trim() !== '')
     if (present.length === 0) continue
+    // 真实重复度：找与 spec 对应的跨章字段组（可能含其他章的对应字段），按组判定
+    const pair = OVERLAP_PAIRS.find((candidate) =>
+      spec.fieldKeys.every((key) => candidate.fields.some((field) => field.key === key))
+    )
+    let duplicated = false
+    let similarity = 0
+    if (pair !== undefined) {
+      const texts = pair.fields.map((field) => {
+        const data: unknown = doc[field.chapter]
+        return isPlainObject(data) ? readText(data[field.key]) : ''
+      })
+      if (texts.every((text) => text.trim() !== '')) {
+        const verdict = detectTextDuplication(texts[0] ?? '', texts[1] ?? '')
+        duplicated = verdict.duplicated
+        similarity = verdict.similarity
+      }
+    }
     overlaps.push({
       chapter: spec.chapter,
       fieldKeys: present,
       fieldLabels: present.map((key) => fieldLabel(spec.chapter, key)),
-      note: spec.note
+      note: spec.note,
+      duplicated,
+      similarity
     })
   }
 

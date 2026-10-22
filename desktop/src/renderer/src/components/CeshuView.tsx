@@ -27,6 +27,8 @@ import {
 import { buildScoreReportMarkdown, type CeshuScoreReport } from '../../../shared/ceshuScorer'
 import { clearAiGenerated, markAiGenerated, readAiGenerated } from '../../../shared/ceshuAiMark'
 import { fieldStatusOf, setFieldStatuses, type FieldReviewStatus } from '../../../shared/ceshuFieldStatus'
+import type { FieldAction } from '../../../shared/ceshuFieldAction'
+import { clearFieldRequest } from '../ceshuFieldFocus'
 import { CESHU_CHAPTER_FIELDS } from '../../../shared/ceshuFields'
 import { migrationSplitTitle, pendingSplitCount, planCeshuMigration } from '../../../shared/ceshuMigrationPlan'
 import type { CeshuAiGenerateResult } from '../../../shared/ceshuAi'
@@ -217,11 +219,12 @@ export default function CeshuView({
     [ceshuId]
   )
 
-  /** AI 生成单个字段（E62）：走 IPC 调本地模型，返回清洗后的字段供表单回填 */
+  /** AI 生成单个字段（E62）：走 IPC 调本地模型，返回清洗后的字段供表单回填。
+   *  `action` 为局部重生成动作（停靠栏快捷操作），透传给主进程注入提示词 */
   const handleAiGenerateField = useCallback(
-    async (chapter: ChapterKey, field: string): Promise<CeshuAiGenerateResult> => {
+    async (chapter: ChapterKey, field: string, action?: FieldAction): Promise<CeshuAiGenerateResult> => {
       if (!ceshuId) throw new Error('未选择策划书')
-      return window.mbApi.ceshu.aiGenerateField({ id: ceshuId, chapter, field })
+      return window.mbApi.ceshu.aiGenerateField({ id: ceshuId, chapter, field, action })
     },
     [ceshuId]
   )
@@ -273,6 +276,14 @@ export default function CeshuView({
     },
     [ceshuId, doc]
   )
+
+  /*
+   * 切章兜底：停靠栏可能刚发起针对旧章字段的局部重生成请求，而新章的表单不会消费它
+   * （请求按 chapter 匹配）。这里直接丢弃，避免请求烂在桥里、下次聚焦同章字段时被误执行。
+   */
+  useEffect(() => {
+    clearFieldRequest()
+  }, [activeChapter])
 
   if (!ceshuId) {
     return (
@@ -394,7 +405,12 @@ export default function CeshuView({
       if (!chosen.path) return
       setBusy(true)
       const result = await window.mbApi.ceshu.export({ id: doc.ceshu_id, format: exportFormat, path: chosen.path })
-      setNotice(`已导出（${CESHU_FORMAT_LABELS[result.format]}）：${result.filePath}`)
+      if (result.files !== undefined && result.files.length > 1) {
+        // 双轨：一次导出多份产物，逐条列出路径
+        setNotice(`已导出${result.files.length} 份产物：${result.files.map((file) => file.path).join(' + ')}`)
+      } else {
+        setNotice(`已导出（${CESHU_FORMAT_LABELS[result.format]}）：${result.filePath}`)
+      }
     } catch (err) {
       setError(toErrorMessage(err))
     } finally {
@@ -996,7 +1012,14 @@ export default function CeshuView({
                       ))}
                       {migrationPlan.overlaps.map((item) => (
                         <div className="migration-item" key={`overlap:${item.chapter}`} data-testid="migration-overlap">
-                          <div className="migration-title">{CHAPTER_LABELS[item.chapter]} · 重叠字段</div>
+                          <div className="migration-title">
+                            {CHAPTER_LABELS[item.chapter]} · 重叠字段
+                            {item.duplicated && (
+                              <span className="field-badge duplicate" data-testid="migration-overlap-duplicated">
+                                已重复 {Math.round(item.similarity * 100)}%
+                              </span>
+                            )}
+                          </div>
                           <div className="item-meta">{item.fieldLabels.join(' / ')}</div>
                           <div className="item-meta">{item.note}</div>
                         </div>

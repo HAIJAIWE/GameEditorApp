@@ -159,7 +159,13 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
     }
     return generateFieldTask(
       { llm, client: llmClient },
-      { base, chapter, field: req.field, senderId: event.sender.id }
+      {
+        base,
+        chapter,
+        field: req.field,
+        ...(req.action !== undefined ? { action: req.action } : {}),
+        senderId: event.sender.id
+      }
     )
   })
   handle('ceshu:aiGenerateData', ceshuDataGenInputSchema, async (req, event) => {

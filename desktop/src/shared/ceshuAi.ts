@@ -28,6 +28,7 @@ import {
   REVIEW_DIMENSION_KEYS,
   REVIEW_DIMENSION_LABELS
 } from './ceshuAiData'
+import { buildFieldActionInstruction, type FieldAction } from './ceshuFieldAction'
 export * from './ceshuAiData'
 
 /**
@@ -73,6 +74,11 @@ export interface ChapterPromptOptions {
   extraPrompt?: string
   /** 单字段定向生成（E62）：只生成指定字段列表，忽略 onlyEmpty */
   onlyFields?: string[]
+  /**
+   * 局部重生成动作（改写/展开/精简/通俗化）：仅在 `onlyFields` 单字段生成时注入
+   * 任务指令，让模型按人的诉求重写该字段，而不是重新起草。
+   */
+  action?: FieldAction
 }
 
 export function buildChapterPrompt(
@@ -157,6 +163,14 @@ export function buildChapterPrompt(
     if (hintLines.length > 0) {
       prompt += `字段写作要求:\n${hintLines.join('\n')}\n\n`
     }
+  }
+  /*
+   * 局部重生成动作（停靠栏快捷操作）：任务指令放在写作要求之后、已有内容之前 ——
+   * 先告诉模型「这次要干什么」，再给它原材料。无动作时整段不出现（提示词零膨胀）。
+   */
+  const actionInstruction = buildFieldActionInstruction(options.action)
+  if (actionInstruction !== '') {
+    prompt += `${actionInstruction}\n\n`
   }
   if (existingContent) {
     prompt += `已有非空内容（请保留并补充其他字段）:\n${existingContent}\n\n`

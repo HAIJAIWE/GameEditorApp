@@ -17,6 +17,7 @@
 
 import type { DataTypeDef, QualityGateVerdict } from '../../../shared/types'
 import type { ChapterData, ChapterKey, CeshuDocument } from '../../../shared/ceshuConstants'
+import type { FieldAction } from '../../../shared/ceshuFieldAction'
 import type { LlmUsage } from '../../../shared/config/llmConfig'
 import {
   buildChapterPrompt,
@@ -135,6 +136,8 @@ export interface GenerateFieldInput {
   base: CeshuDocument
   chapter: ChapterKey
   field: string
+  /** 局部重生成动作（改写/展开/精简/通俗化）；缺省 = 重新起草 */
+  action?: FieldAction
   senderId?: number
 }
 
@@ -142,7 +145,10 @@ export async function generateFieldTask(
   ports: CeshuAiPorts,
   input: GenerateFieldInput
 ): Promise<{ model: string; fields: Record<string, unknown>; rawText: string; usage: LlmUsage | null }> {
-  const built = buildChapterPrompt(input.base, input.chapter, { onlyFields: [input.field] })
+  const built = buildChapterPrompt(input.base, input.chapter, {
+    onlyFields: [input.field],
+    ...(input.action !== undefined ? { action: input.action } : {})
+  })
 
   const task = await runAiTask(ports, {
     system: built.system,

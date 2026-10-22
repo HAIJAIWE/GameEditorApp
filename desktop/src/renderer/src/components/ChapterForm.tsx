@@ -1,10 +1,18 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { CHAPTER_LABELS, type CeshuFieldDef, type ChapterData, type ChapterKey } from '../../../shared/ceshuConstants'
 import type { CeshuAiGenerateResult } from '../../../shared/ceshuAi'
+import { FIELD_ACTION_LABELS, type FieldAction } from '../../../shared/ceshuFieldAction'
 import { isPlainObject } from '../../../shared/ceshuModel'
 import { CESHU_CHAPTER_FIELDS, resolveFieldMeta } from '../../../shared/ceshuFields'
 import type { ChapterFieldStatus, FieldReviewStatus } from '../../../shared/ceshuFieldStatus'
+import {
+  clearActiveCeshuField,
+  consumeFieldRequest,
+  setActiveCeshuField,
+  setCeshuFieldBusy,
+  subscribeFieldRequest
+} from '../ceshuFieldFocus'
 
 import {
   TEMPLATE_APPLY_MODE_SHORT_LABELS,
@@ -41,8 +49,9 @@ interface ChapterFormProps {
   onFieldStatus?: (chapter: ChapterKey, updates: Record<string, FieldReviewStatus>) => Promise<void>
   /** AI 生成本章（onlyEmpty=true 时仅补全空字段）；由上层走 IPC 调本地模型 */
   onAiGenerate: (chapter: ChapterKey, onlyEmpty: boolean) => Promise<CeshuAiGenerateResult>
-  /** AI 生成单个字段（E62）；由上层走 IPC 调本地模型，返回清洗后的字段供回填 */
-  onAiGenerateField: (chapter: ChapterKey, field: string) => Promise<CeshuAiGenerateResult>
+  /** AI 生成单个字段（E62）；由上层走 IPC 调本地模型，返回清洗后的字段供回填。
+   *  `action` 为局部重生成动作（停靠栏快捷操作发起），见 `ceshuFieldAction.ts` */
+  onAiGenerateField: (chapter: ChapterKey, field: string, action?: FieldAction) => Promise<CeshuAiGenerateResult>
 }
 
 /**
@@ -63,7 +72,9 @@ export default function ChapterForm({
   fieldStatus,
   onFieldStatus
 }: ChapterFormProps) {
-  const fields = CESHU_CHAPTER_FIELDS[chapter] ?? []
+  /** 本章字段定义（useMemo：`CESHU_CHAPTER_FIELDS[chapter]` 每次渲染都是新数组，
+   *  不进 memo 会让下游 useCallback 的依赖每渲染都变，告警 + 回调失效） */
+  const fields = useMemo(() => CESHU_CHAPTER_FIELDS[chapter] ?? [], [chapter])
   /** 本章待审（AI 草稿）字段数：用于顶部审阅提示 */
   const pendingCount = fields.filter((field) => fieldStatus?.[field.key]?.status === 'ai_draft').length
   const [inputs, setInputs] = useState<Record<string, FieldInput>>(() => buildInputs(fields, data))
@@ -202,45 +213,81 @@ export default function ChapterForm({
     }
   }
 
-  /** AI 生成单个字段（E62）：结果按字段 schema 转为编辑值填入该字段，由用户检查后手动保存。
-   *  60 秒安全兜底（对齐 Python QTimer.singleShot）：IPC 挂住时强制解除 busy，避免按钮永久禁用。 */
-  const handleAiFillField = async (fieldKey: string): Promise<void> => {
-    setFormError(null)
-    setFormNotice(null)
-    setFieldBusy(fieldKey)
-    const safety = setTimeout(() => {
-      setFieldBusy((current) => (current === fieldKey ? null : current))
-    }, AI_FIELD_SAFETY_MS)
-    try {
-      const result = await onAiGenerateField(chapter, fieldKey)
-      const def = fields.find((field) => field.key === fieldKey)
-      const raw = result.fields[fieldKey]
-      if (
-        def === undefined ||
-        raw === undefined ||
-        raw === null ||
-        raw === '' ||
-        (Array.isArray(raw) && raw.length === 0)
-      ) {
-        setFormError(`AI 未返回「${def?.label ?? fieldKey}」的可应用内容（请检查本地模型输出）`)
-        return
-      }
-      setInputs((prev) => ({ ...prev, [fieldKey]: fieldValueToInput(def, raw) }))
-      if (onFieldStatus !== undefined) {
-        try {
-          await onFieldStatus(chapter, { [fieldKey]: 'ai_draft' })
-        } catch {
-          /* 状态是辅助信息，失败不影响回填 */
+  /**
+   * AI 生成单个字段（E62）：结果按字段 schema 转为编辑值填入该字段，由用户检查后手动保存。
+   * `action` 为局部重生成动作（停靠栏快捷操作）：改写/展开/精简/通俗化，注入提示词让模型
+   * 按人的诉求重写，而不是重新起草。60 秒安全兜底（对齐 Python QTimer.singleShot）：
+   * IPC 挂住时强制解除 busy，避免按钮永久禁用。
+   */
+  const handleAiFillField = useCallback(
+    async (fieldKey: string, action?: FieldAction): Promise<void> => {
+      setFormError(null)
+      setFormNotice(null)
+      setFieldBusy(fieldKey)
+      setCeshuFieldBusy(true)
+      const safety = setTimeout(() => {
+        setFieldBusy((current) => (current === fieldKey ? null : current))
+        setCeshuFieldBusy(false)
+      }, AI_FIELD_SAFETY_MS)
+      try {
+        const result = await onAiGenerateField(chapter, fieldKey, action)
+        const def = fields.find((field) => field.key === fieldKey)
+        const raw = result.fields[fieldKey]
+        if (
+          def === undefined ||
+          raw === undefined ||
+          raw === null ||
+          raw === '' ||
+          (Array.isArray(raw) && raw.length === 0)
+        ) {
+          setFormError(`AI 未返回「${def?.label ?? fieldKey}」的可应用内容（请检查本地模型输出）`)
+          return
         }
+        setInputs((prev) => ({ ...prev, [fieldKey]: fieldValueToInput(def, raw) }))
+        if (onFieldStatus !== undefined) {
+          try {
+            await onFieldStatus(chapter, { [fieldKey]: 'ai_draft' })
+          } catch {
+            /* 状态是辅助信息，失败不影响回填 */
+          }
+        }
+        const actionLabel = action !== undefined ? FIELD_ACTION_LABELS[action] : 'AI'
+        setFormNotice(
+          `AI 已${actionLabel}「${def.label}」${result.model ? `（模型 ${result.model}）` : ''}，请检查后点「保存本章」`
+        )
+      } catch (error) {
+        setFormError(error instanceof Error ? error.message : String(error))
+      } finally {
+        clearTimeout(safety)
+        setFieldBusy((current) => (current === fieldKey ? null : current))
+        setCeshuFieldBusy(false)
       }
-      setFormNotice(`AI 已生成「${def.label}」${result.model ? `（模型 ${result.model}）` : ''}，请检查后点「保存本章」`)
-    } catch (error) {
-      setFormError(error instanceof Error ? error.message : String(error))
-    } finally {
-      clearTimeout(safety)
-      setFieldBusy((current) => (current === fieldKey ? null : current))
-    }
-  }
+    },
+    [chapter, fields, onAiGenerateField, onFieldStatus]
+  )
+
+  /*
+   * 人机协作·右半环：停靠栏对「当前字段」的局部重生成请求。
+   * 走**存储订阅**而非 effect 派生：请求由停靠栏点击（外部事件）产生，
+   * 在订阅回调里执行生成，避免 effect 体内同步 setState 的级联渲染。
+   * `fillFieldRef` 保证回调里用的是最新闭包（handleAiFillField 依赖 fields 会变）。
+   */
+  const fillFieldRef = useRef(handleAiFillField)
+  useEffect(() => {
+    fillFieldRef.current = handleAiFillField
+  }, [handleAiFillField])
+  useEffect(
+    () =>
+      subscribeFieldRequest((request) => {
+        if (request.chapter !== chapter) return // 不匹配本章：留给 CeshuView 切章时清理
+        consumeFieldRequest()
+        void fillFieldRef.current(request.key, request.action)
+      }),
+    [chapter]
+  )
+
+  // 表单卸载（切章 / 离开策划书）：清理当前字段，停靠栏动作条回到空态
+  useEffect(() => clearActiveCeshuField, [])
 
   return (
     <div className="chapter-form" data-testid="chapter-form">
@@ -311,7 +358,20 @@ export default function ChapterForm({
           const meta = resolveFieldMeta(chapter, field)
           const status = fieldStatus?.[field.key]?.status
           return (
-            <div className="field-block" key={field.key}>
+            <div
+              className="field-block"
+              key={field.key}
+              /* 焦点进入字段内任意控件即「选中该字段」：上报给停靠栏动作条。
+                 focus 事件不冒泡但 capture 阶段能收到，故用 onFocusCapture 包一层 */
+              onFocusCapture={() =>
+                setActiveCeshuField({
+                  chapter,
+                  key: field.key,
+                  label: field.label,
+                  ...(status !== undefined ? { status } : {})
+                })
+              }
+            >
               <div className="field-with-ai">
                 <CeshuFieldControl
                   field={field}

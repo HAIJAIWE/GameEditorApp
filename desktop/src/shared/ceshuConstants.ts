@@ -320,7 +320,7 @@ export interface CeshuSummary {
 
 /* ---- 导出 ---- */
 
-export const CESHU_EXPORT_FORMATS = ['markdown', 'html', 'docx', 'pptx', 'pdf', 'excel'] as const
+export const CESHU_EXPORT_FORMATS = ['markdown', 'html', 'docx', 'pptx', 'pdf', 'excel', 'bundle'] as const
 export type CeshuExportFormat = (typeof CESHU_EXPORT_FORMATS)[number]
 
 export const CESHU_FORMAT_LABELS: Record<CeshuExportFormat, string> = {
@@ -329,7 +329,8 @@ export const CESHU_FORMAT_LABELS: Record<CeshuExportFormat, string> = {
   docx: 'Word 文档（docx）',
   pptx: 'PowerPoint 演示（pptx）',
   pdf: 'PDF 文档',
-  excel: 'Excel 表格（xlsx）'
+  excel: 'Excel 表格（xlsx）',
+  bundle: '双轨：Markdown + JSON'
 }
 
 export const CESHU_FORMAT_EXTENSIONS: Record<CeshuExportFormat, string> = {
@@ -338,14 +339,19 @@ export const CESHU_FORMAT_EXTENSIONS: Record<CeshuExportFormat, string> = {
   docx: '.docx',
   pptx: '.pptx',
   pdf: '.pdf',
-  excel: '.xlsx'
+  excel: '.xlsx',
+  /** 双轨的主产物是人读的 Markdown；机读 JSON 与它同主文件名（.json） */
+  bundle: '.md'
 }
 
 /** 导出结果 */
 export interface CeshuExportResult {
+  /** 主产物路径（双轨时为 Markdown） */
   filePath: string
   format: CeshuExportFormat
   bytes: number
+  /** 双轨导出的全部产物（[Markdown, JSON]）；单文件格式缺省 */
+  files?: Array<{ path: string; bytes: number }>
 }
 
 /* ---- 状态常量（检查清单 ChecklistStatus 与字段依赖 FieldDependencyStatus 共用的 warning 状态与展示元） ---- */

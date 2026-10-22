@@ -7,6 +7,7 @@ import { z } from 'zod'
 
 import { ATTR_TYPES } from './attrSystem'
 import { CESHU_EXPORT_FORMATS } from './ceshuConstants'
+import { FIELD_ACTIONS } from './ceshuFieldAction'
 import { ADJUST_MODES, BATCH_OP_KINDS } from './util/dataTableOps'
 import { FIELD_TYPES } from './typeSchemaFile'
 import type { FieldType } from './types'
@@ -629,11 +630,13 @@ export const ceshuAiGenerateInputSchema = z.object({
   confirmed: z.boolean().optional()
 })
 
-/** 按字段 AI 生成（E62，对齐 Python `ai_field_button.py`）：单字段定向生成，非整章 */
+/** 按字段 AI 生成（E62，对齐 Python `ai_field_button.py`）：单字段定向生成，非整章。
+ *  `action` 为局部重生成动作（停靠栏快捷操作），缺省 = 重新起草该字段 */
 export const ceshuAiGenerateFieldInputSchema = z.object({
   id: z.string().min(1),
   chapter: z.string().min(1),
-  field: z.string().min(1)
+  field: z.string().min(1),
+  action: z.enum([...FIELD_ACTIONS]).optional()
 })
 
 export type CeshuAiGenerateFieldInput = z.infer<typeof ceshuAiGenerateFieldInputSchema>

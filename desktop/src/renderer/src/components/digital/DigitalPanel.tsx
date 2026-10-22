@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'r
 import { defaultDraftName, type DraftSummary } from '../../../../shared/agent/session'
 
 import ChatMarkdown from './ChatMarkdown'
+import FieldActionStrip from './FieldActionStrip'
 
 import LucideIcon from '../LucideIcon'
 
@@ -492,6 +493,9 @@ export default function DigitalPanel({ seed }: { seed?: { text: string; nonce: n
           </button>
         </div>
       )}
+
+      {/* 人机协作·右半环：当前选中字段的局部重生成动作条（策划书场景；无选中字段时显示引导） */}
+      <FieldActionStrip />
 
       <div className="digital-messages" ref={scrollRef} data-testid="digital-messages">
         {state.messages

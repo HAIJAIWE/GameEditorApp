@@ -50,6 +50,26 @@ describe('planCeshuMigration：迁移预览', () => {
     const overlap = plan.overlaps.find((item) => item.chapter === 'vision')
     expect(overlap?.fieldLabels).toContain('设计愿景')
     expect(overlap?.note).toContain('差异化')
+    // 「愿景」与「差异」只是占位短文本，不构成内容重复 ⇒ 不出「已重复」徽标
+    expect(overlap?.duplicated).toBe(false)
+  })
+
+  it('重叠组真的写重时标记 duplicated（预览与校验链同源）', () => {
+    const doc = createDefaultCeshu({ scope: 'full', name: '测试' })
+    doc.vision.design_vision = '做一个让玩家沉浸的开放世界，重点是自由探索与 NPC 关系'
+    doc.vision.differentiation = '做一个让玩家沉浸的开放世界，重点是自由探索与 NPC 关系'
+    doc.numeric.core_formulas = '伤害 = 攻击力 × 2 - 防御力'
+    doc.combat.damage_formula = '最终伤害 = 攻击力 × 2 - 防御力，暴击时翻倍'
+
+    const plan = planCeshuMigration(doc)
+    const vision = plan.overlaps.find((item) => item.chapter === 'vision')
+    expect(vision?.duplicated).toBe(true)
+    expect(vision?.similarity).toBe(1)
+
+    // 跨章组：spec 只列 numeric.core_formulas，但判定拉到 combat.damage_formula 一起比
+    const numeric = plan.overlaps.find((item) => item.chapter === 'numeric')
+    expect(numeric?.duplicated).toBe(true)
+    expect(numeric?.fieldLabels).toEqual(['核心公式'])
   })
 })
 

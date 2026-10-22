@@ -210,6 +210,30 @@ describe('AI 生成：单字段定向生成（E62 onlyFields，匹平 Python _AI
     expect(built.prompt).toContain('生成以下单个字段')
     expect(built.prompt).not.toContain('整章生成内容')
   })
+
+  it('action 注入任务指令：四个动作各有针对性措辞；无动作时提示词零膨胀', () => {
+    const doc = createDefaultCeshu({ scope: 'full', name: '测试游戏' })
+    const rewrite = buildChapterPrompt(doc, 'story', { onlyFields: ['main_plot'], action: 'rewrite' })
+    expect(rewrite.prompt).toContain('【本次任务：改写】')
+    expect(rewrite.prompt).toContain('不要新增或删除要点')
+
+    const expand = buildChapterPrompt(doc, 'story', { onlyFields: ['main_plot'], action: 'expand' })
+    expect(expand.prompt).toContain('【本次任务：展开】')
+    expect(expand.prompt).toContain('补充具体的细节')
+
+    const condense = buildChapterPrompt(doc, 'story', { onlyFields: ['main_plot'], action: 'condense' })
+    expect(condense.prompt).toContain('【本次任务：精简】')
+    expect(condense.prompt).toContain('压缩到原来的一半')
+
+    const explain = buildChapterPrompt(doc, 'story', { onlyFields: ['main_plot'], action: 'explain' })
+    expect(explain.prompt).toContain('【本次任务：通俗化】')
+    expect(explain.prompt).toContain('白话解释')
+
+    // 无 action：任何任务指令块都不出现（整章 / 补全 / 单字段三条路径都不该有）
+    for (const options of [{}, { onlyEmpty: true }, { onlyFields: ['main_plot'] }]) {
+      expect(buildChapterPrompt(doc, 'story', options).prompt).not.toContain('【本次任务')
+    }
+  })
 })
 
 describe('AI 生成：LLM 输出容错解析（匹平 Python _parse_llm_json）', () => {

@@ -7,12 +7,13 @@ import {
   type CeshuDocument
 } from './ceshuConstants'
 import { normalizeValue } from './ceshuDiff'
+import { detectFieldOverlaps, fieldOverlapMessage } from './ceshuOverlap'
 import { getGddScope, isEmptyRequiredValue, isPlainObject } from './ceshuModel'
 import { readText } from './util/readText'
 
 /**
  * 策划书数据完整性校验（自 Python ceshu_validation.py 匹平迁移）。
- * 校验范围：必填字段非空 + 11 项章节间一致性检查；返回错误/警告文案列表（空数组=全部通过）。
+ * 校验范围：必填字段非空 + 11 项章节间一致性检查 + 字段内容重复检测；返回错误/警告文案列表（空数组=全部通过）。
  */
 export function validateCeshu(doc: CeshuDocument): string[] {
   const errors: string[] = []
@@ -143,6 +144,11 @@ export function validateCeshu(doc: CeshuDocument): string[] {
     .map(([key]) => key)
   for (const item of checkSystemDependencies(enabledSystems)) {
     errors.push(`依赖缺失：第${chapterOrdinalCn('systems')}章 systems.${item.system} 已启用，但其依赖系统 [${item.missing.join('、')}] 未启用`)
+  }
+
+  // 12. 字段内容重复检测：语义重叠的字段组被 AI 各写一遍时给出警告（附分工建议）
+  for (const overlap of detectFieldOverlaps(doc)) {
+    errors.push(fieldOverlapMessage(overlap))
   }
 
   return errors
