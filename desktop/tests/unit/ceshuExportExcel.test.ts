@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest'
 
 import { buildExcelWorkbook, renderCeshuExcel } from '../../src/main/ceshu/export/excel'
 import { exportCeshuDocument } from '../../src/main/ceshu/export/exporter'
-import type { CeshuDocument } from '../../src/shared/ceshuConstants'
+import { CHAPTER_LABELS, type CeshuDocument } from '../../src/shared/ceshuConstants'
 import { autoFillRequiredFields } from '../../src/shared/ceshuFill'
 import { createDefaultCeshu } from '../../src/shared/ceshuModel'
 
@@ -76,6 +76,15 @@ function rowValues(sheet: ExcelJS.Worksheet, rowNumber: number): ExcelJS.CellVal
   return values
 }
 
+/** 概览 Sheet 的「项目 → 值」映射，便于按标签断言（不必记住行号） */
+function overviewMap(sheet: ExcelJS.Worksheet): Map<string, ExcelJS.CellValue> {
+  const map = new Map<string, ExcelJS.CellValue>()
+  for (let index = 2; index <= sheet.rowCount; index++) {
+    map.set(String(sheet.getRow(index).getCell(1).value), sheet.getRow(index).getCell(2).value)
+  }
+  return map
+}
+
 describe('策划书导出：Excel（匹平 Python ceshu_excel_exporter）', () => {
   it('8 个 Sheet 顺序与中文名，标题行样式/冻结首行/列宽', () => {
     const workbook = buildExcelWorkbook(makeDoc())
@@ -109,7 +118,38 @@ describe('策划书导出：Excel（匹平 Python ceshu_excel_exporter）', () =
     expect(typeof overview.getRow(10).getCell(2).value).toBe('number')
     expect(overview.getRow(11).getCell(1).value).toBe('文档信息')
     expect(overview.getRow(27).getCell(1).value).toBe('第十六章·可访问性与本地化')
-    expect(overview.rowCount).toBe(27)
+    // 27 行 + 末尾的「审核进度」行（该文档无 field_status，只有汇总行）
+    expect(overview.rowCount).toBe(28)
+  })
+
+  it('概览：审核进度汇总全文档，且只列出还有待审字段的章节', () => {
+    const doc = makeDoc()
+    const at = '2026-01-01T00:00:00.000Z'
+    doc.meta.field_status = {
+      meta: { positioning: { status: 'ai_draft', at } },
+      combat: {
+        damage_formula: { status: 'ai_draft', at },
+        skill_system: { status: 'approved', at }
+      }
+    }
+    const map = overviewMap(sheetOf(buildExcelWorkbook(doc), '概览'))
+
+    // 汇总文案来自 formatFieldStatusSummary：数字在前、标签在后，全零栏不出现
+    expect(map.get('审核进度')).toBe('2 待审 · 1 已批准')
+    // 章名用 CHAPTER_LABELS 拼，章号随章节顺序变化时不至于测试跟着改
+    expect(map.get(`待审字段（${CHAPTER_LABELS.combat}）`)).toBe(1)
+    expect(map.get(`待审字段（${CHAPTER_LABELS.meta}）`)).toBe(1)
+    // 完全没有状态记录的章节不该出现在待审清单里
+    expect(map.has(`待审字段（${CHAPTER_LABELS.vision}）`)).toBe(false)
+    // 正好两章有待审：多一行就说明过滤条件失效
+    const pendingRows = [...map.keys()].filter((key) => key.startsWith('待审字段（'))
+    expect(pendingRows).toHaveLength(2)
+  })
+
+  it('概览：完全没有 field_status 时审核进度为「无审核记录」且无章节行', () => {
+    const map = overviewMap(sheetOf(buildExcelWorkbook(makeDoc()), '概览'))
+    expect(map.get('审核进度')).toBe('无审核记录')
+    expect([...map.keys()].some((key) => key.startsWith('待审字段（'))).toBe(false)
   })
 
   it('系统配置：系统 Key/名称/状态 + config 字段并集', () => {

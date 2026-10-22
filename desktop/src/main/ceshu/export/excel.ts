@@ -1,6 +1,9 @@
 import ExcelJS from 'exceljs'
 
 import { CHAPTER_KEYS, CHAPTER_LABELS, type CeshuDocument, type ChapterData } from '../../../shared/ceshuConstants'
+import { CESHU_CHAPTER_FIELDS } from '../../../shared/ceshuFields'
+import { fieldStatusOf } from '../../../shared/ceshuFieldStatus'
+import { countFieldStatuses, formatFieldStatusSummary } from '../../../shared/ceshuFieldStatusStats'
 import { computeChapterProgress, isPlainObject } from '../../../shared/ceshuModel'
 import { validateCeshu } from '../../../shared/ceshuValidation'
 
@@ -61,6 +64,31 @@ function writeOverviewSheet(workbook: ExcelJS.Workbook, doc: CeshuDocument): voi
   for (const key of CHAPTER_KEYS) {
     rows.push([CHAPTER_LABELS[key], coerceNumeric(`${progress[key] ?? 0}`)])
   }
+
+  /*
+   * 审核进度：Excel 常被转发给同事看，收件人没有应用可查状态，
+   * 所以把「审到哪了」直接写进概览 —— 否则对方只能靠猜。
+   * 口径与界面上方摘要一致（都走 countFieldStatuses，只统计 schema 内字段），
+   * 避免出现「表里说 3 个待审、应用里只有 2 个徽标」。
+   */
+  const perChapter = CHAPTER_KEYS.map((chapter) => ({
+    chapter,
+    counts: countFieldStatuses(fieldStatusOf(doc.meta, chapter), CESHU_CHAPTER_FIELDS[chapter] ?? [])
+  }))
+  const totals = { ai_draft: 0, human_edited: 0, approved: 0 }
+  for (const { counts } of perChapter) {
+    totals.ai_draft += counts.ai_draft
+    totals.human_edited += counts.human_edited
+    totals.approved += counts.approved
+  }
+  // 三态全零说明这份文档从没走过审核流程，写空串会让人以为是导出出错
+  const hasRecord = totals.ai_draft + totals.human_edited + totals.approved > 0
+  rows.push(['审核进度', hasRecord ? formatFieldStatusSummary(totals) : '无审核记录'])
+  // 只列还有待审的章节：审核者只关心「哪几章还没审」，已审完的章节列出来纯属噪音
+  for (const { chapter, counts } of perChapter) {
+    if (counts.ai_draft > 0) rows.push([`待审字段（${CHAPTER_LABELS[chapter]}）`, counts.ai_draft])
+  }
+
   writeSheet(workbook, '概览', ['项目', '值'], rows)
 }
 
