@@ -56,6 +56,7 @@ import ChapterNotesPanel from './ChapterNotesPanel'
 import CeshuDataPreview, { type PreviewJumpTarget } from './ceshu/CeshuDataPreview'
 import CeshuDataRefsPanel from './ceshu/CeshuDataRefsPanel'
 import { ChangelogPanel, ScorePanel, ValidatePanel } from './ceshu/CeshuReportPanels'
+import { cursorAfterAccept } from './ceshu/reviewQueueAdvance'
 import { groupReviewQueue } from './ceshu/reviewQueueGroups'
 import { previewFieldValue, readFieldValue } from './ceshu/reviewPreview'
 import LucideIcon from './LucideIcon'
@@ -366,9 +367,16 @@ export default function CeshuView({
         setReviewCursor((cursor) => Math.max(cursor - 1, 0))
         return
       }
-      const current = pending[Math.min(reviewCursor, pending.length - 1)]
+      /*
+       * 光标在**扁平列表**里的实际下标：渲染期已夹取过一次，但 effect 闭包里可能持有
+       * 上一轮的 reviewCursor，这里再夹一次，避免 pending 刚变短时取到 undefined。
+       */
+      const cursorIndex = Math.min(reviewCursor, pending.length - 1)
+      const current = pending[cursorIndex]
       if (current === undefined) return
       if (action === 'accept') {
+        // 先算后写：状态写入后 pending 会变短，届时再算就晚了
+        setReviewCursor(cursorAfterAccept(cursorIndex, pending.length - 1))
         void handleFieldStatus(current.chapter, { [current.fieldKey]: 'approved' })
         return
       }
@@ -1146,7 +1154,11 @@ export default function CeshuView({
                                     type="button"
                                     className="btn slim primary"
                                     data-testid="review-accept"
-                                    onClick={() => void handleFieldStatus(item.chapter, { [item.fieldKey]: 'approved' })}
+                                    onClick={() => {
+                                      // 先算后写：状态写入后 pendingReviewFields 会变短，届时再算就晚了
+                                      setReviewCursor(cursorAfterAccept(flatIndex, pendingReviewFields.length - 1))
+                                      void handleFieldStatus(item.chapter, { [item.fieldKey]: 'approved' })
+                                    }}
                                   >
                                     接受
                                   </button>

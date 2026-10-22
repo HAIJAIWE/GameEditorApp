@@ -342,6 +342,75 @@ describe('CeshuView：全局审阅队列', () => {
     expect(rendered.query('[data-testid="review-panel"]')).toBeNull()
   })
 
+  it('点第一行「接受」后光标自动落到剩余那条，连续审阅不必再按 j', async () => {
+    const doc = withTwoDrafts()
+    api = installMbApi({
+      doc,
+      overrides: {
+        'ceshu.saveChapter': (req: unknown) => {
+          const r = req as { chapter?: string; data?: unknown }
+          return r.chapter === 'meta' ? { ...doc, meta: r.data } : doc
+        }
+      }
+    })
+    const rendered = await mount()
+
+    await rendered.click(rendered.byTestId('ceshu-review-toggle'))
+    await rendered.click(rendered.queryAll('[data-testid="review-accept"]')[0] as HTMLElement)
+
+    expect(rendered.byTestId('ceshu-review-toggle').textContent).toContain('待审 1')
+    const rows = rendered.queryAll('[data-testid="review-row"]')
+    expect(rows).toHaveLength(1)
+    // 光标不能停在原地空等：剩下的那条要立刻成为当前行
+    expect(rows[0]?.getAttribute('data-current')).toBe('true')
+  })
+
+  it('键盘：a 接受后光标同样前进到下一条', async () => {
+    const doc = withTwoDrafts()
+    api = installMbApi({
+      doc,
+      overrides: {
+        'ceshu.saveChapter': (req: unknown) => {
+          const r = req as { chapter?: string; data?: unknown }
+          return r.chapter === 'meta' ? { ...doc, meta: r.data } : doc
+        }
+      }
+    })
+    const rendered = await mount()
+
+    await rendered.click(rendered.byTestId('ceshu-review-toggle'))
+    await pressKey('a') // 光标在第一条（meta），接受后应落到 story 那条
+
+    expect(rendered.byTestId('ceshu-review-toggle').textContent).toContain('待审 1')
+    const rows = rendered.queryAll('[data-testid="review-row"]')
+    expect(rows).toHaveLength(1)
+    expect(rows[0]?.getAttribute('data-current')).toBe('true')
+  })
+
+  it('点末行「接受」后光标退到新的末行（不让光标悬在已消失的下标上）', async () => {
+    const doc = withGroupedDrafts()
+    api = installMbApi({
+      doc,
+      overrides: {
+        // 状态写在 meta.field_status 里，故所有章节的接受都走 'meta' 这一路
+        'ceshu.saveChapter': (req: unknown) => {
+          const r = req as { chapter?: string; data?: unknown }
+          return r.chapter === 'meta' ? { ...doc, meta: r.data } : doc
+        }
+      }
+    })
+    const rendered = await mount()
+
+    await rendered.click(rendered.byTestId('ceshu-review-toggle'))
+    const accepts = rendered.queryAll('[data-testid="review-accept"]')
+    expect(accepts).toHaveLength(3)
+    await rendered.click(accepts[2] as HTMLElement) // 接受末行（光标仍在首行）
+
+    const rows = rendered.queryAll('[data-testid="review-row"]')
+    expect(rows).toHaveLength(2)
+    expect(rows[1]?.getAttribute('data-current')).toBe('true')
+  })
+
   it('键盘：焦点在输入框内不拦截（打字优先）', async () => {
     const doc = withDraft()
     api = installMbApi({
