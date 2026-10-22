@@ -107,6 +107,53 @@ describe('ChapterForm：本章字段状态摘要', () => {
     await mount()
     expect(view!.queryAll('[data-testid="field-status-summary"]').length).toBe(0)
   })
+
+  it('有 AI 草稿时摘要可点击：定位到首个待审字段并高亮', async () => {
+    api = installMbApi()
+    const doc = createDefaultCeshu({ scope: 'full', name: '测试游戏' })
+    view = await renderDom(
+      <ChapterForm
+        chapter="meta"
+        data={doc.meta}
+        busy={false}
+        gameName=""
+        onSave={async () => undefined}
+        onAiGenerate={async () => ({ model: '', fields: {}, rawText: '' })}
+        onAiGenerateField={async () => ({ model: '', fields: {}, rawText: '' })}
+        fieldStatus={{ positioning: { status: 'ai_draft', at: '2024-01-01' } }}
+      />
+    )
+    const summary = view!.byTestId('field-status-summary')
+    // 有入口时是可点的按钮，文本仍是摘要本身（既有断言依赖 textContent）
+    expect(summary.tagName).toBe('BUTTON')
+    expect(summary.textContent).toBe('1 待审')
+
+    await view!.click(summary)
+
+    const flashed = view!.queryAll('[data-flash="true"]')
+    expect(flashed.length).toBe(1)
+    expect(flashed[0].querySelector('[data-testid="ceshu-field-positioning"]')).not.toBeNull()
+  })
+
+  it('只有已批准状态时摘要仍是无跳转的纯文本', async () => {
+    api = installMbApi()
+    const doc = createDefaultCeshu({ scope: 'full', name: '测试游戏' })
+    view = await renderDom(
+      <ChapterForm
+        chapter="meta"
+        data={doc.meta}
+        busy={false}
+        gameName=""
+        onSave={async () => undefined}
+        onAiGenerate={async () => ({ model: '', fields: {}, rawText: '' })}
+        onAiGenerateField={async () => ({ model: '', fields: {}, rawText: '' })}
+        fieldStatus={{ tags: { status: 'approved', at: '2024-01-01' } }}
+      />
+    )
+    const summary = view!.byTestId('field-status-summary')
+    expect(summary.tagName).not.toBe('BUTTON')
+    expect(summary.textContent).toBe('1 已批准')
+  })
 })
 
 describe('ChapterForm：字段级局部重生成（停靠栏桥）', () => {

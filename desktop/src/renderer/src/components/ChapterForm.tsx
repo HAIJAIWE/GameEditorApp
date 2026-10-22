@@ -80,6 +80,8 @@ export default function ChapterForm({
   const pendingCount = fields.filter((field) => fieldStatus?.[field.key]?.status === 'ai_draft').length
   /** 顶部「本章字段状态」摘要（普通 const：本组件 hook 顺序敏感，纯计算不引入 useMemo） */
   const statusSummary = formatFieldStatusSummary(countFieldStatuses(fieldStatus, fields))
+  /** 首个待审（AI 草稿）字段：顶部摘要的点击入口就指向它（普通 const，理由同上） */
+  const firstPendingField = fields.find((field) => fieldStatus?.[field.key]?.status === 'ai_draft')?.key ?? null
   const [inputs, setInputs] = useState<Record<string, FieldInput>>(() => buildInputs(fields, data))
   const [systemsDraft, setSystemsDraft] = useState<ChapterData>(() => structuredClone(data))
   const [formError, setFormError] = useState<string | null>(null)
@@ -90,6 +92,12 @@ export default function ChapterForm({
   const [pickerOpen, setPickerOpen] = useState(false)
   /** 应用模板后的章节草稿（含模板带来的扩展字段）；为 null 时以 data 为准 */
   const [draftData, setDraftData] = useState<ChapterData | null>(null)
+  /** 字段块的 DOM 表：摘要点击后要按 key 找到对应块才能滚动过去 */
+  const fieldBlockRefs = useRef<Record<string, HTMLDivElement | null>>({})
+  /** 刚跳转到的字段 key：短暂高亮，帮人从长表单里定位（定时自动清除） */
+  const [flashField, setFlashField] = useState<string | null>(null)
+  /** 高亮定时器 id：卸载时清掉，避免对已卸载组件调用 setState 的告警 */
+  const flashTimerRef = useRef<number | null>(null)
 
   /** 汇总当前表单数据：systems 用系统草稿，其余在 data（或模板草稿）上按 schema 覆盖字段 */
   const collectChapterData = (): ChapterData => {
@@ -142,6 +150,21 @@ export default function ChapterForm({
     if (Object.keys(updates).length > 0) {
       await onFieldStatus(chapter, updates)
     }
+  }
+
+  /** 摘要点击：滚到首个待审字段并短暂高亮，省掉人工往下翻找 */
+  const jumpToFirstPending = (): void => {
+    if (firstPendingField === null) return
+    const el = fieldBlockRefs.current[firstPendingField]
+    // jsdom 未实现 scrollIntoView：可选调用，测试环境不抛错
+    el?.scrollIntoView?.({ block: 'center', behavior: 'smooth' })
+    setFlashField(firstPendingField)
+    // 连点摘要时先清旧定时器，否则旧回调会把新高亮提前抹掉
+    if (flashTimerRef.current !== null) window.clearTimeout(flashTimerRef.current)
+    flashTimerRef.current = window.setTimeout(() => {
+      flashTimerRef.current = null
+      setFlashField(null)
+    }, 1200)
   }
 
   /** 应用模板：按模式合并到当前草稿并回填表单（不落盘，仍需点「保存本章」） */
@@ -292,6 +315,14 @@ export default function ChapterForm({
   // 表单卸载（切章 / 离开策划书）：清理当前字段，停靠栏动作条回到空态
   useEffect(() => clearActiveCeshuField, [])
 
+  // 卸载时清掉高亮定时器：切章后即便回调触发也只会 setState 到已卸载组件
+  useEffect(
+    () => () => {
+      if (flashTimerRef.current !== null) window.clearTimeout(flashTimerRef.current)
+    },
+    []
+  )
+
   return (
     <div className="chapter-form" data-testid="chapter-form">
       <div className="chapter-form-title">
@@ -300,9 +331,16 @@ export default function ChapterForm({
         {statusSummary !== '' && (
           <>
             本章：
-            <span className="item-meta" data-testid="field-status-summary">
-              {statusSummary}
-            </span>
+            {firstPendingField !== null ? (
+              /* 有 AI 草稿时摘要即入口：点一下直接到第一个待审字段 */
+              <button type="button" className="btn-link" data-testid="field-status-summary" onClick={jumpToFirstPending}>
+                {statusSummary}
+              </button>
+            ) : (
+              <span className="item-meta" data-testid="field-status-summary">
+                {statusSummary}
+              </span>
+            )}
           </>
         )}
         <span className="chapter-form-ai">
@@ -371,8 +409,13 @@ export default function ChapterForm({
           const status = fieldStatus?.[field.key]?.status
           return (
             <div
-              className="field-block"
+              className={`field-block${flashField === field.key ? ' field-block-flash' : ''}`}
               key={field.key}
+              ref={(el) => {
+                fieldBlockRefs.current[field.key] = el
+              }}
+              /* 跳转高亮的钩子：样式由 CSS 侧按 [data-flash="true"] 或 .field-block-flash 补 */
+              data-flash={flashField === field.key ? 'true' : 'false'}
               /* 焦点进入字段内任意控件即「选中该字段」：上报给停靠栏动作条。
                  focus 事件不冒泡但 capture 阶段能收到，故用 onFocusCapture 包一层 */
               onFocusCapture={() =>
