@@ -95,7 +95,7 @@ describe('策划书 docx 渲染器', () => {
 })
 
 describe('策划书 pptx 渲染器', () => {
-  it('full 档：封面 + 17 章 + 审核进度 + 完成度共 20 页，含游戏名与章节标题', async () => {
+  it('full 档：封面 + 24 章 + 审核进度 + 完成度共 27 页，含游戏名与章节标题（P2 后 +7 章页）', async () => {
     const buffer = await renderCeshuPptx(createFixture('full'))
     expect(Buffer.isBuffer(buffer)).toBe(true)
 
@@ -103,7 +103,7 @@ describe('策划书 pptx 渲染器', () => {
     expect(zip.file('[Content_Types].xml')).toBeTruthy()
 
     const slides = await readSlideXmls(buffer)
-    expect(slides).toHaveLength(20)
+    expect(slides).toHaveLength(27)
     expect(slides.some((xml) => xml.includes('测试游戏'))).toBe(true)
     expect(slides.some((xml) => xml.includes('第五章·战斗系统设计'))).toBe(true)
   })

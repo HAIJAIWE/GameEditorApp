@@ -71,7 +71,15 @@ export const CHAPTER_WORD_BENCHMARK: Record<ChapterKey, [number, number, number]
   mvp: [300, 1000, 500],
   risk_handling: [300, 1000, 500],
   audio: [200, 800, 400],
-  accessibility: [200, 800, 400]
+  accessibility: [200, 800, 400],
+  // P2 扩展设计 7 章（2026-10-23）：区间按章性质估，待真实内容回填后校准
+  uiux: [300, 1000, 500],
+  level_design: [300, 1000, 500],
+  live_ops: [300, 1000, 500],
+  analytics: [300, 1000, 500],
+  qa: [300, 1000, 500],
+  publishing: [300, 1000, 500],
+  performance: [300, 1000, 500]
 }
 
 /** 同行业基准（按游戏类型），含 default 键（与 Python INDUSTRY_BENCHMARKS 一致） */

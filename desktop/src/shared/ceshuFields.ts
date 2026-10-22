@@ -1,6 +1,7 @@
 import { CHAPTER_REQUIRED_FIELDS, type ChapterKey, type CeshuFieldDef } from './ceshuConstants'
 import * as OPT from './ceshuOptionLabels'
 import { FIELD_HINTS } from './ceshuFieldHints'
+import { NEW_CHAPTER_FIELDS } from './ceshuChapterFields'
 import { FIELD_SPLITS } from './ceshuFieldSplits'
 
 /** 文档信息段 + 16 章表单字段描述（标签取自 Python chapter_forms/_base.py 与 _industrial.py） */
@@ -35,11 +36,13 @@ export function resolveFieldMeta(chapter: ChapterKey, field: CeshuFieldDef): Res
 
 /**
  * 字段定义（结构层）与协作契约（数据层）分离：
- * 上面这份 RAW 只描述「有哪些字段、什么类型」；契约（aiHint/reviewHint/aiDraftable）
- * 按章放在 `ceshuFieldHints/` 下，导出时在此合并——合并后 RAW 里显式写的
+ * 下面这份 BASE 只描述「原有 16 章有哪些字段、什么类型」；契约（aiHint/reviewHint/aiDraftable）
+ * 按章放在 `ceshuFieldHints/` 下，导出时在此合并——合并后 BASE 里显式写的
  * 契约仍然优先（meta/vision/story 三章早期写在定义里的契约不受影响）。
+ * P2 的扩展设计 7 章在 `ceshuChapterFields/` 按章分文件存放（见该目录注释），
+ * 同样在导出时合并——纯数据改动按章分文件，支持并行编辑。
  */
-const RAW_CHAPTER_FIELDS: Record<ChapterKey, CeshuFieldDef[]> = {
+const BASE_CHAPTER_FIELDS: Partial<Record<ChapterKey, CeshuFieldDef[]>> = {
   meta: [
     f('game_name', '游戏名称', 'text', { aiDraftable: false, reviewHint: '确认名称是否最终确定' }),
     f('game_type', '游戏类型', 'combo', {
@@ -389,6 +392,9 @@ function applySplits(chapter: ChapterKey, fields: CeshuFieldDef[]): CeshuFieldDe
   }
   return result
 }
+
+/** 原始字段表 = 原有 16 章 + P2 扩展设计 7 章（后者按章分文件，见 ceshuChapterFields/） */
+const RAW_CHAPTER_FIELDS = { ...BASE_CHAPTER_FIELDS, ...NEW_CHAPTER_FIELDS } as Record<ChapterKey, CeshuFieldDef[]>
 
 /** 合并后的字段表：定义 → 结构拆分 → 按章契约（hints 缺省的章/字段原样返回） */
 export const CESHU_CHAPTER_FIELDS: Record<ChapterKey, CeshuFieldDef[]> = Object.fromEntries(

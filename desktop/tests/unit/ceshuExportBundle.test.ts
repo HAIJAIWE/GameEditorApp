@@ -49,9 +49,9 @@ describe('双轨导出·机读轨 JSON 渲染', () => {
       positioning: '一句话定位',
       tags: ['剧情向', '开放世界']
     })
-    expect(bundle.chapters).toHaveLength(17)
+    expect(bundle.chapters).toHaveLength(24) // P2 后 meta + 23 编号章
     expect(bundle.chapters[0]).toMatchObject({ key: 'meta', label: '文档信息', index: 1 })
-    expect(bundle.chapters.at(-1)).toMatchObject({ index: 17 })
+    expect(bundle.chapters.at(-1)).toMatchObject({ index: 24 })
     expect(bundle.validation.errorCount).toBe(bundle.validation.errors.length)
     // 2 空格缩进 + 结尾换行（Git diff 友好）
     expect(json).toContain('\n  "schema": "mobai-ceshu-bundle/1"')

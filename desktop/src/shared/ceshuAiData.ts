@@ -26,7 +26,15 @@ export const CHAPTER_AGENT_MAP: Record<ChapterKey, string> = {
   mvp: 'code_assistant',
   risk_handling: '通用策划助手',
   audio: '通用策划助手',
-  accessibility: '通用策划助手'
+  accessibility: '通用策划助手',
+  // P2 扩展设计 7 章（2026-10-23）：均走通用策划助手（与 vision/gameplay 等大多数章一致）
+  uiux: '通用策划助手',
+  level_design: '通用策划助手',
+  live_ops: '通用策划助手',
+  analytics: '通用策划助手',
+  qa: '通用策划助手',
+  publishing: '通用策划助手',
+  performance: '通用策划助手'
 }
 
 export const AGENT_DISPLAY: Record<string, string> = {
@@ -53,7 +61,15 @@ export const CHAPTER_AGENT_PROMPTS: Record<ChapterKey, string> = {
   mvp: '请规划 MVP 范围、里程碑和验收标准，确保核心玩法可验证。',
   risk_handling: '请识别技术/市场/团队/进度风险，制定应对和监控策略。',
   audio: '请设计音乐风格、音效清单和音频技术规格。',
-  accessibility: '请规划多语言支持、无障碍特性和分级认证。'
+  accessibility: '请规划多语言支持、无障碍特性和分级认证。',
+  // P2 扩展设计 7 章（2026-10-23）
+  uiux: '请分析界面布局与交互流程，指出信息架构与操作路径上的问题。',
+  level_design: '请分析关卡节奏与内容消耗曲线，提出关卡模板与难度曲线建议。',
+  live_ops: '请分析运营活动节奏，提出活动排期与留存提升方案。',
+  analytics: '请分析数据埋点与指标体系，指出关键漏斗上缺失的埋点。',
+  qa: '请分析测试策略，提出用例覆盖范围与风险优先级建议。',
+  publishing: '请分析上线发行计划，指出渠道与合规风险。',
+  performance: '请分析性能预算与适配策略，指出指标缺口。'
 }
 
 /* ---- 风格术语表（匹平 Python _STYLE_GLOSSARIES） ---- */
@@ -224,7 +240,15 @@ export const CHAPTER_GENERATION_HINTS: Record<ChapterKey, string> = {
   risk_handling: '请生成风险控制：风险矩阵、应急预案、技术风险、市场风险、团队风险、法律风险、进度风险、监控机制。',
   mvp: '请生成MVP规划：MVP范围、时间线、核心特性、暂缓特性、原型特性、里程碑、成功标准、团队规模、预算估算。',
   resources: '请生成资源规划：美术资产、音频资产、本地化、外包、预算、风险矩阵、应急预案、IP、附录。',
-  accessibility: '请生成可访问性与本地化：支持语言列表、本地化策略、文化适配、无障碍特性、字幕设计、色盲支持、分级认证。'
+  accessibility: '请生成可访问性与本地化：支持语言列表、本地化策略、文化适配、无障碍特性、字幕设计、色盲支持、分级认证。',
+  // P2 扩展设计 7 章（2026-10-23）
+  uiux: '请生成 UI/UX 交互设计：设计原则、信息架构、核心界面流程、关键界面说明、交互反馈规范、可用性标准。',
+  level_design: '请生成关卡与内容设计：关卡设计原则、难度曲线、关卡模板、首关体验、内容量估算、编辑器需求。',
+  live_ops: '请生成运营与活动：运营目标、活动体系、活动日历、留存与拉回手段、社区运营、版本运营节奏。',
+  analytics: '请生成数据埋点与指标：指标体系、关键漏斗、埋点清单、数据看板、异常监控、分析工具。',
+  qa: '请生成测试与质量保障：测试策略、用例范围、自动化方案、体验验收标准、缺陷管理、测试环境。',
+  publishing: '请生成上线与发行：发行计划、渠道策略、合规要求、市场宣传、软启动方案、上线检查单。',
+  performance: '请生成性能与适配：性能预算、目标机型、内存与包体、网络适配、发热与耗电、兼容测试矩阵。'
 }
 
 /* ---- 审阅维度枚举（固定规范顺序；Python 用 set 遍历、顺序不稳定，已修正） ---- */

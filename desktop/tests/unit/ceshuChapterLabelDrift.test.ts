@@ -70,13 +70,15 @@ function scanForDrift(file: string, text: string, expected: Map<string, string>)
 describe('硬编码章节标签守卫（分区重组后防回归）', () => {
   const expected = buildExpectedOrdinals()
 
-  it('反查表自身健全：16 章全部可从 CHAPTER_LABELS 解析出章号，且 meta 不参与', () => {
-    expect(expected.size).toBe(16)
+  it('反查表自身健全：全部编号章（P2 后 23 章）均可从 CHAPTER_LABELS 解析出章号，且 meta 不参与', () => {
+    expect(expected.size).toBe(23)
     expect(expected.get('产品愿景')).toBe('一')
     expect(expected.get('世界观与角色')).toBe('二')
     expect(expected.get('游戏系统设计')).toBe('四')
     expect(expected.get('战斗系统设计')).toBe('五')
     expect(expected.get('可访问性与本地化')).toBe('十六')
+    expect(expected.get('UI/UX 交互设计')).toBe('十七')
+    expect(expected.get('性能与适配')).toBe('二十三')
     expect(expected.has('文档信息')).toBe(false)
   })
 

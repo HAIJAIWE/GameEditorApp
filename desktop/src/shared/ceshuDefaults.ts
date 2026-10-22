@@ -1,5 +1,6 @@
 import { SYSTEM_LABELS, type ChapterData, type ChapterKey } from './ceshuConstants'
 import { SYSTEM_CONFIG_SCHEMA } from './systemConfigSchema'
+import { NEW_CHAPTER_DEFAULTS } from './ceshuChapterFields'
 
 /** 文档信息 + 16 章默认数据（自 Python ceshu_model.py _default_* 匹平迁移）；每次调用返回全新对象，避免共享可变引用 */
 
@@ -29,7 +30,7 @@ function createDefaultSystems(): Record<string, unknown> {
 }
 
 export function createDefaultChapters(): Record<ChapterKey, ChapterData> {
-  return {
+  const base = {
     meta: {
       game_name: '',
       game_type: '',
@@ -216,4 +217,6 @@ export function createDefaultChapters(): Record<ChapterKey, ChapterData> {
       compliance_notes: ''
     }
   }
+  // P2 扩展设计 7 章的默认数据按章分文件存放（见 ceshuChapterFields/），此处合并
+  return { ...base, ...NEW_CHAPTER_DEFAULTS }
 }

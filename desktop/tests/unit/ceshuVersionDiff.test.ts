@@ -29,10 +29,10 @@ function fieldOf(doc: CeshuDocument, other: CeshuDocument, chapter: string, labe
 }
 
 describe('版本对比：章节级 Diff（匹平 Python compute_version_diff）', () => {
-  it('同一文档对比：17 章全无变更，未变字段数等于各章未变数之和', () => {
+  it('同一文档对比：24 章全无变更，未变字段数等于各章未变数之和（P2 后 17→24）', () => {
     const doc = makeDoc()
     const diff = buildVersionDiff(doc, doc)
-    expect(diff.chapter_diffs).toHaveLength(17)
+    expect(diff.chapter_diffs).toHaveLength(24)
     expect(diff.total_added).toBe(0)
     expect(diff.total_removed).toBe(0)
     expect(diff.total_modified).toBe(0)

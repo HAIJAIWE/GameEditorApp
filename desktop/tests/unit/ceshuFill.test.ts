@@ -9,10 +9,10 @@ function makeDoc(name = '填充测试'): CeshuDocument {
 }
 
 describe('策划书自动填充（匹平 Python auto_fill_required_fields）', () => {
-  it('默认文档填充 34 个空必填字段，且不修改原文档', () => {
+  it('默认文档填充 48 个空必填字段，且不修改原文档（P2 后 +14）', () => {
     const doc = makeDoc()
     const { doc: filled, filled: count } = autoFillRequiredFields(doc)
-    expect(count).toBe(34)
+    expect(count).toBe(48) // P2 扩展设计 7 章各 2 个必填
     // 原文档保持为空（纯函数，返回新对象）
     expect(doc.meta.positioning).toBe('')
     expect(doc.meta.tags).toEqual([])

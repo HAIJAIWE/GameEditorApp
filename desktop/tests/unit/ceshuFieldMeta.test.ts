@@ -63,7 +63,9 @@ describe('单字段生成提示词：带上字段契约', () => {
  */
 describe('字段契约覆盖率守卫（P0 补契约后不回落）', () => {
   it('每个章至少有一个带 aiHint 的字段，且全库覆盖率 ≥ 70%', () => {
-    const chapters = CHAPTER_KEYS.filter((key) => key !== 'systems') // systems 是动态配置
+    // systems 是动态配置；P2 扩展设计 7 章在字段定义交付前 fields 为空——
+    // 「没有字段的章」无所谓契约，跳过（字段填充后自动纳入本守卫）
+    const chapters = CHAPTER_KEYS.filter((key) => key !== 'systems' && (CESHU_CHAPTER_FIELDS[key] ?? []).length > 0)
     const missingChapters: string[] = []
     let withHint = 0
     let total = 0

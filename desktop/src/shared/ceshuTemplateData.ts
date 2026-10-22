@@ -48,5 +48,14 @@ export const CHAPTER_TEMPLATES: Record<ChapterKey, ChapterTemplate[]> = {
   risk_handling: riskHandlingTemplates,
   monetization: monetizationTemplates,
   mvp: mvpTemplates,
-  accessibility: accessibilityTemplates
+  accessibility: accessibilityTemplates,
+  // P2 扩展设计 7 章（2026-10-23）：暂无预制模板，先给空数组占位
+  // （模板是「一键填充示例内容」的便利数据，不影响字段与校验）
+  uiux: [],
+  level_design: [],
+  live_ops: [],
+  analytics: [],
+  qa: [],
+  publishing: [],
+  performance: []
 }

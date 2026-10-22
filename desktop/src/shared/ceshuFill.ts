@@ -197,5 +197,64 @@ export function autoFillRequiredFields(doc: CeshuDocument): AutoFillResult {
     filled += 1
   }
 
+  // P2 扩展设计 7 章（2026-10-23）：与既有章同一套「待补充」占位口径，
+  // 让人在一键填充后立刻看出「这章还没写」，而不是留空被校验报缺失
+  if (isFalsy(next.uiux.information_architecture)) {
+    next.uiux.information_architecture = '界面层级待补充：建议按「主界面-功能页-弹层」三级结构描述导航'
+    filled += 1
+  }
+  if (isFalsy(next.uiux.core_flows)) {
+    next.uiux.core_flows = ['核心流程待补充：建议按「名称|步骤|出口」每行一个']
+    filled += 1
+  }
+  if (isFalsy(next.level_design.level_templates)) {
+    next.level_design.level_templates = ['关卡模板待补充：建议按「结构+适用阶段」每行一个']
+    filled += 1
+  }
+  if (isFalsy(next.level_design.first_levels)) {
+    next.level_design.first_levels = '首关体验待补充：建议描述前三个关卡如何教授核心操作'
+    filled += 1
+  }
+  if (isFalsy(next.live_ops.ops_goals)) {
+    next.live_ops.ops_goals = '运营目标待补充：建议给出「指标+目标值+时间窗」'
+    filled += 1
+  }
+  if (isFalsy(next.live_ops.activity_system)) {
+    next.live_ops.activity_system = '活动体系待补充：建议按「活动类型×玩法×奖励」建立框架'
+    filled += 1
+  }
+  if (isFalsy(next.analytics.metric_system)) {
+    next.analytics.metric_system = ['指标体系待补充：建议按「指标名|定义|口径|目标值」每行一个']
+    filled += 1
+  }
+  if (isFalsy(next.analytics.event_tracking)) {
+    next.analytics.event_tracking = ['埋点清单待补充：建议按「事件名|触发时机|参数」每行一个']
+    filled += 1
+  }
+  if (isFalsy(next.qa.test_strategy)) {
+    next.qa.test_strategy = '测试策略待补充：建议按功能/兼容/性能/体验分层'
+    filled += 1
+  }
+  if (isFalsy(next.qa.test_cases)) {
+    next.qa.test_cases = ['用例范围待补充：建议按「模块|用例数|优先级」每行一个']
+    filled += 1
+  }
+  if (isFalsy(next.publishing.publish_plan)) {
+    next.publishing.publish_plan = '发行计划待补充：建议划分预热/软启动/首发/长线四阶段'
+    filled += 1
+  }
+  if (isFalsy(next.publishing.channel_strategy)) {
+    next.publishing.channel_strategy = ['渠道策略待补充：建议按「渠道|素材要求|分成|预期量级」每行一个']
+    filled += 1
+  }
+  if (isFalsy(next.performance.performance_budget)) {
+    next.performance.performance_budget = ['性能预算待补充：建议按「指标|目标值|测量方法」每行一个']
+    filled += 1
+  }
+  if (isFalsy(next.performance.target_devices)) {
+    next.performance.target_devices = ['目标机型待补充：按高/中/低档位分，给系列不给具体型号']
+    filled += 1
+  }
+
   return { doc: next, filled }
 }

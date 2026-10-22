@@ -106,20 +106,20 @@ describe('策划书导出：Excel（匹平 Python ceshu_excel_exporter）', () =
     expect(width).toBeLessThanOrEqual(60)
   })
 
-  it('概览：文档信息 + 17 章完成度（数值落表为数字）', () => {
+  it('概览：文档信息 + 24 章完成度（数值落表为数字）（P2 后 17→24）', () => {
     const workbook = buildExcelWorkbook(makeDoc())
     const overview = sheetOf(workbook, '概览')
     expect(rowValues(overview, 2)).toEqual(['游戏名称', '表格游戏'])
     expect(rowValues(overview, 3)).toEqual(['游戏类型', 'RPG'])
     expect(rowValues(overview, 4)).toEqual(['版本标签', 'v1.0'])
     expect(rowValues(overview, 9)).toEqual(['模块类型', ''])
-    // 总完成度 + 18 章（第 10 行总完成度，其后 17 行章节）
+    // 总完成度 + 25 章（第 10 行总完成度，其后 24 行章节）
     expect(overview.getRow(10).getCell(1).value).toBe('总完成度')
     expect(typeof overview.getRow(10).getCell(2).value).toBe('number')
     expect(overview.getRow(11).getCell(1).value).toBe('文档信息')
     expect(overview.getRow(27).getCell(1).value).toBe('第十六章·可访问性与本地化')
-    // 27 行 + 末尾的「审核进度」行（该文档无 field_status，只有汇总行）
-    expect(overview.rowCount).toBe(28)
+    // 34 行 + 末尾的「审核进度」行（该文档无 field_status，只有汇总行）
+    expect(overview.rowCount).toBe(35)
   })
 
   it('概览：审核进度汇总全文档，且只列出还有待审字段的章节', () => {

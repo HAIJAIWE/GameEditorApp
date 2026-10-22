@@ -122,7 +122,14 @@ export function computeChapterProgress(doc: CeshuDocument): Record<string, numbe
     }
     const required = CHAPTER_REQUIRED_FIELDS[key]
     if (required.length === 0) {
-      progress[key] = 0.5
+      /*
+       * 无必填字段的章按「未开始」计（P2：2026-10-23 由 0.5 改为 0）。
+       * 既有数据里这条分支本是死分支——唯一 required 为空的 systems 被上面的
+       * 特殊路径截走；P2 新增 7 章在字段定义交付前 required 均为空，0.5 会让
+       * 每份新文档自带 3.5% 的假进度、结构分虚高（空文档 3.3 而非 0）。
+       * 0 的语义也符合直觉：没有必填可衡量的章 = 没有任何已开始的内容。
+       */
+      progress[key] = 0
       continue
     }
     const data = doc[key]

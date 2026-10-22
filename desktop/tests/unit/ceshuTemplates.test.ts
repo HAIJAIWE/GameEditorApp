@@ -18,7 +18,7 @@ import {
 } from '../../src/shared/ceshuTemplates'
 
 describe('ceshuTemplates 内置模板库', () => {
-  it('数据池：17 章 / 34 个模板，每章数量与 Python 一致', () => {
+  it('数据池：24 章 / 34 个模板，既有章数量与 Python 一致（P2 新章暂无模板）', () => {
     expect(countChapterTemplates()).toBe(34)
     expect(chapterTemplateSummary()).toEqual({
       meta: 3,
@@ -37,9 +37,17 @@ describe('ceshuTemplates 内置模板库', () => {
       mvp: 1,
       risk_handling: 1,
       audio: 2,
-      accessibility: 1
+      accessibility: 1,
+      // P2 扩展设计 7 章：暂无预制模板（模板是便利数据，不影响字段与校验）
+      uiux: 0,
+      level_design: 0,
+      live_ops: 0,
+      analytics: 0,
+      qa: 0,
+      publishing: 0,
+      performance: 0
     })
-    expect(Object.keys(chapterTemplateSummary())).toHaveLength(17)
+    expect(Object.keys(chapterTemplateSummary())).toHaveLength(24)
   })
 
   it('按章取模板：meta 3 个且顺序固定；未知章节返回空数组', () => {

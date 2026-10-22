@@ -27,6 +27,17 @@ export const CHAPTER_PARTS = [
     key: 'production',
     label: '制作与商业',
     chapters: ['tech', 'resources', 'market_analysis', 'risk_handling', 'mvp', 'monetization', 'accessibility']
+  },
+  {
+    /*
+     * 扩展设计（P2：2026-10-23 补齐标准 GDD 缺的 7 个模块）。
+     * 刻意追加在末尾而非按逻辑插入：章号由分区表位置派生，插中间会让后续
+     * 所有章号平移、lite 档（前 9 章）范围变动，旧文档里「见第 N 章」的
+     * 引用全部错位。追加在末尾则既有 16 章编号与 lite 范围零变动。
+     */
+    key: 'expansion',
+    label: '扩展设计',
+    chapters: ['uiux', 'level_design', 'live_ops', 'analytics', 'qa', 'publishing', 'performance']
   }
 ] as const
 
@@ -65,13 +76,21 @@ export const CHAPTER_NAMES: Record<ChapterKey, string> = {
   risk_handling: '风险控制',
   monetization: '商业化设计',
   mvp: 'MVP 规划',
-  accessibility: '可访问性与本地化'
+  accessibility: '可访问性与本地化',
+  uiux: 'UI/UX 交互设计',
+  level_design: '关卡与内容设计',
+  live_ops: '运营与活动',
+  analytics: '数据埋点与指标',
+  qa: '测试与质量保障',
+  publishing: '上线与发行',
+  performance: '性能与适配'
 }
 
 /** 中文数字（章号 / 分区序号共用） */
 const CN_NUMERALS = [
   '一', '二', '三', '四', '五', '六', '七', '八', '九', '十',
-  '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十'
+  '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十',
+  '二十一', '二十二', '二十三'
 ] as const
 
 /** 章号：文档信息段为 0，编号章从 1 起（按 `NUMBERED_CHAPTER_KEYS` 位置派生） */
@@ -160,7 +179,15 @@ export const CHAPTER_REQUIRED_FIELDS: Record<ChapterKey, string[]> = {
   risk_handling: ['risk_matrix', 'contingency_plan'],
   monetization: ['payment_model', 'pricing_tiers'],
   mvp: ['mvp_scope', 'mvp_timeline'],
-  accessibility: ['language_list', 'accessibility_features']
+  accessibility: ['language_list', 'accessibility_features'],
+  // P2 扩展设计 7 章：必填字段由章字段设计方建议（每章 2 个，避开三件套配套键）
+  uiux: ['information_architecture', 'core_flows'],
+  level_design: ['level_templates', 'first_levels'],
+  live_ops: ['ops_goals', 'activity_system'],
+  analytics: ['metric_system', 'event_tracking'],
+  qa: ['test_strategy', 'test_cases'],
+  publishing: ['publish_plan', 'channel_strategy'],
+  performance: ['performance_budget', 'target_devices']
 }
 
 /** 游戏系统中文名称映射（与 Python SYSTEM_LABELS 一致） */
