@@ -39,6 +39,17 @@ export function validateCeshu(doc: CeshuDocument): string[] {
     }
     for (const field of required) {
       if (isEmptyRequiredValue(data[field])) {
+        /*
+         * 人定必填字段（aiDraftable=false：引擎选型、NPC 数量这类决策项）单独措辞。
+         * 2026-10-23 复刻演练发现：它们被报成「为必填项」的硬错误，但 AI 按契约
+         * 永远不生成它们 ⇒ 这条错误无法通过生成消除，只能手填，却混在必填缺失里
+         * 一起催人。改为「由人确定，尚未填写」——同样醒目，但归入建议检查分组。
+         */
+        const fieldDef = (CESHU_CHAPTER_FIELDS[key] ?? []).find((item) => item.key === field)
+        if (fieldDef !== undefined && fieldDef.aiDraftable === false) {
+          errors.push(`${label}：字段 '${field}' 由人确定，尚未填写（AI 不起草，需人工决断）`)
+          continue
+        }
         errors.push(`${label}：字段 '${field}' 为必填项`)
       }
     }
@@ -67,11 +78,23 @@ export function validateCeshu(doc: CeshuDocument): string[] {
     )
   }
 
-  // 3. risk_handling.risk_matrix 与 resources.risk_matrix 应同步
-  const riskHandling = nonEmptyArray(doc.risk_handling.risk_matrix)
-  const resourcesRisk = nonEmptyArray(doc.resources.risk_matrix)
-  if (riskHandling && resourcesRisk && normalizeValue(riskHandling) !== normalizeValue(resourcesRisk)) {
-    errors.push('一致性警告：risk_handling.risk_matrix 与 resources.risk_matrix 内容不一致，建议统一')
+  /*
+   * 3. resources 的 TOP 风险应出现在 risk_handling 矩阵里。
+   * P1 已把两边契约划界（resources=资源视角 TOP 概要、risk_handling=完整五列矩阵），
+   * 内容必然不同 ⇒ 2026-10-23 复刻演练暴露旧的「逐字不同就报不一致」已过时
+   * （三份不同游戏的产出全部误报）。新语义：概要列出的每条风险，详细矩阵里
+   * 必须能找到对应——概要不是详情的子集才是真问题。
+   */
+  const riskHandlingText = JSON.stringify(doc.risk_handling.risk_matrix ?? [])
+  const missingTopRisks: string[] = []
+  for (const entry of Array.isArray(doc.resources.risk_matrix) ? doc.resources.risk_matrix : []) {
+    const name = topRiskName(entry)
+    if (name !== '' && !riskHandlingText.includes(name)) missingTopRisks.push(name)
+  }
+  if (missingTopRisks.length > 0) {
+    errors.push(
+      `一致性警告：资源规划列出的 TOP 风险未出现在第十三章矩阵：${missingTopRisks.join('、')}，建议补充或改由十三章统一维护`
+    )
   }
 
   // 4. worldview.factions 与 social.faction_system 应协同
@@ -210,6 +233,23 @@ function systemConfig(doc: CeshuDocument, systemId: string): Record<string, unkn
 
 function nonEmptyArray(value: unknown): unknown[] | null {
   return Array.isArray(value) && value.length > 0 ? value : null
+}
+
+/**
+ * 取风险条目的「风险名」用于跨章包含检查：
+ * - 字符串（pipeList/stringList）：取 `|` 或 `：` 前的第一段（列分隔或「名：描述」）
+ * - 对象：取 risk / name 字段
+ * 取不到返回空串（调用方跳过）。
+ */
+function topRiskName(entry: unknown): string {
+  if (typeof entry === 'string') {
+    return entry.split('|')[0]?.split('：')[0]?.trim() ?? ''
+  }
+  if (isPlainObject(entry)) {
+    const risk = entry.risk ?? entry.name
+    return typeof risk === 'string' ? risk.trim() : ''
+  }
+  return ''
 }
 
 /** 提取货币名称：dict 取 name，字符串原样（对应 Python 名称提取规则） */

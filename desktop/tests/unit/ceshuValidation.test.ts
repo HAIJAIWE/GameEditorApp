@@ -17,11 +17,23 @@ describe('策划书校验：必填字段（匹平 Python validate_ceshu）', () 
   it('空文档：必填字段逐项报错（49 条，budget 默认 {} 不算空），无依赖错误', () => {
     const errors = validateCeshu(makeDoc())
     expect(errors).toHaveLength(49) // P2 后 24 章 47 必填 + 2 条依赖类（与旧口径的差集即新增 14 条）
-    expect(hasError(errors, "文档信息：字段 'game_name' 为必填项")).toBe(true)
+    // game_name 是人定字段（名称须人决）：2026-10-23 起单独措辞，见下方专门用例
+    expect(hasError(errors, "文档信息：字段 'game_name' 由人确定，尚未填写")).toBe(true)
     expect(hasError(errors, "第十六章·可访问性与本地化：字段 'accessibility_features' 为必填项")).toBe(true)
     // Python 语义：空字典 {} 不算空（第九章 budget 默认 {}，故不报错）
     expect(hasError(errors, "第九章·资源规划：字段 'budget' 为必填项")).toBe(false)
     expect(hasError(errors, '依赖缺失')).toBe(false)
+  })
+
+  it('人定必填字段（AI 不起草）缺失时报「由人确定」而非硬错误', () => {
+    // 复刻演练发现：engine / main_npc_count 这类「人定 + 必填」字段被报成为
+    // 必填项，但 AI 按契约永远不生成它们 ⇒ 错误无法通过生成消除、只能手填，
+    // 却混在必填缺失里一起催人。故单独措辞（分组上落「其他（建议检查）」）。
+    const doc = makeDoc()
+    const errors = validateCeshu(doc)
+    expect(hasError(errors, "第十章·技术规格：字段 'engine' 由人确定，尚未填写")).toBe(true)
+    expect(hasError(errors, "第二章·世界观与角色：字段 'main_npc_count' 由人确定，尚未填写")).toBe(true)
+    expect(hasError(errors, "第十章·技术规格：字段 'engine' 为必填项")).toBe(false)
   })
 
   it('lite 档只校验基础 9 章（22 条）', () => {
@@ -61,14 +73,14 @@ describe('策划书校验：章节间一致性（11 项中的关键项）', () =
     expect(hasError(validateCeshu(doc), `一致性冲突：第${chapterOrdinalCn('monetization')}章 monetization.payment_model='f2p'`)).toBe(true)
   })
 
-  it('两份风险矩阵内容不一致时警告，内容一致不报', () => {
+  it('两份风险矩阵：资源 TOP 风险未出现在十三章矩阵时警告，出现则不报', () => {
     const doc = makeDoc()
     doc.risk_handling.risk_matrix = ['进度风险']
     doc.resources.risk_matrix = ['技术风险']
-    expect(hasError(validateCeshu(doc), 'risk_handling.risk_matrix 与 resources.risk_matrix')).toBe(true)
+    expect(hasError(validateCeshu(doc), 'TOP 风险未出现在第十三章矩阵：技术风险')).toBe(true)
 
     doc.resources.risk_matrix = ['进度风险']
-    expect(hasError(validateCeshu(doc), 'risk_handling.risk_matrix 与 resources.risk_matrix')).toBe(false)
+    expect(hasError(validateCeshu(doc), 'TOP 风险未出现在')).toBe(false)
   })
 
   it('已设定阵营但 faction_system=none 时冲突', () => {
