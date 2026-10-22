@@ -11,11 +11,15 @@ import {
 } from 'docx'
 
 import {
+  CHAPTER_KEYS,
   CHAPTER_LABELS,
   SYSTEM_LABELS,
   type CeshuDocument,
   type ChapterData
 } from '../../../shared/ceshuConstants'
+import { fieldStatusOf } from '../../../shared/ceshuFieldStatus'
+import { countFieldStatuses, formatFieldStatusSummary } from '../../../shared/ceshuFieldStatusStats'
+import { CESHU_CHAPTER_FIELDS } from '../../../shared/ceshuFields'
 import { computeChapterProgress, formatLocalTimestamp, getGddScope, isPlainObject } from '../../../shared/ceshuModel'
 import {
   EMPTY_PLACEHOLDER,
@@ -125,6 +129,36 @@ function enabledSystemDetails(data: ChapterData): Paragraph[] {
   return blocks
 }
 
+/**
+ * 附录：审核进度。
+ *
+ * 为什么要有：docx 是发给同事「人读」的出口，收件人无法从正文分辨哪些字段
+ * 还是 AI 草稿。口径与 Markdown/HTML 的 `renderReviewProgress` 严格一致
+ * （同用 `countFieldStatuses` + `formatFieldStatusSummary`），避免同一份文档
+ * 在不同格式里报出不同数字。
+ *
+ * 为什么零记录也输出「无审核记录」：附录若随内容整段消失，收件人会以为
+ * 导出漏了东西；固定一行占位更可解释。
+ */
+function renderReviewProgress(doc: CeshuDocument): Paragraph[] {
+  const blocks: Paragraph[] = [headingParagraph('附录：审核进度', HeadingLevel.HEADING_2)]
+  const total = { ai_draft: 0, human_edited: 0, approved: 0 }
+  const pendingChapters: string[] = []
+  for (const chapter of CHAPTER_KEYS) {
+    const counts = countFieldStatuses(fieldStatusOf(doc.meta, chapter), CESHU_CHAPTER_FIELDS[chapter] ?? [])
+    total.ai_draft += counts.ai_draft
+    total.human_edited += counts.human_edited
+    total.approved += counts.approved
+    // 只列还有待审的章：已批准/人改的章不需要催人，列出来只会稀释注意力
+    if (counts.ai_draft > 0) {
+      pendingChapters.push(`${CHAPTER_LABELS[chapter]}：${counts.ai_draft} 待审`)
+    }
+  }
+  blocks.push(bodyParagraph(`全文档：${formatFieldStatusSummary(total) || '无审核记录'}`))
+  for (const line of pendingChapters) blocks.push(bodyParagraph(line))
+  return blocks
+}
+
 /** docx 渲染器：返回文档 Buffer（写盘由上层 exporter 负责） */
 export async function renderCeshuDocx(doc: CeshuDocument): Promise<Buffer> {
   const meta = doc.meta
@@ -157,6 +191,9 @@ export async function renderCeshuDocx(doc: CeshuDocument): Promise<Buffer> {
     }
     for (const [name, value] of fields) children.push(...fieldParagraphs(name, value))
   }
+
+  // 附录：审核进度（放在完成度之前，与 Markdown 的附录顺序一致）
+  children.push(...renderReviewProgress(doc))
 
   // 附录：章节完成度
   const progress = computeChapterProgress(doc)

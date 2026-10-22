@@ -1,12 +1,16 @@
 import PptxGenJS from 'pptxgenjs'
 
 import {
+  CHAPTER_KEYS,
   CHAPTER_LABELS,
   SYSTEM_LABELS,
   type CeshuDocument,
   type ChapterData,
   type ChapterKey
 } from '../../../shared/ceshuConstants'
+import { fieldStatusOf } from '../../../shared/ceshuFieldStatus'
+import { countFieldStatuses, formatFieldStatusSummary } from '../../../shared/ceshuFieldStatusStats'
+import { CESHU_CHAPTER_FIELDS } from '../../../shared/ceshuFields'
 import { computeChapterProgress, formatLocalTimestamp, getGddScope, isPlainObject } from '../../../shared/ceshuModel'
 import {
   EMPTY_PLACEHOLDER,
@@ -106,6 +110,32 @@ function systemsConfigSummary(data: ChapterData): string {
   return lines.join('\n')
 }
 
+/**
+ * 附录页：审核进度文案。
+ *
+ * 为什么要有：pptx 常被拿去汇报，听众看不到哪些内容是 AI 草稿；一页汇总
+ * 比逐字段标注更适合幻灯片。口径与 Markdown/HTML/docx 完全一致
+ * （同用 `countFieldStatuses` + `formatFieldStatusSummary`）。
+ *
+ * 为什么零记录也保留这一页：演示稿的页序固定，附录页忽有忽无会让人以为
+ * 漏导出了；固定一行「无审核记录」更好解释。
+ */
+function reviewProgressLines(doc: CeshuDocument): string[] {
+  const total = { ai_draft: 0, human_edited: 0, approved: 0 }
+  const pendingChapters: string[] = []
+  for (const chapter of CHAPTER_KEYS) {
+    const counts = countFieldStatuses(fieldStatusOf(doc.meta, chapter), CESHU_CHAPTER_FIELDS[chapter] ?? [])
+    total.ai_draft += counts.ai_draft
+    total.human_edited += counts.human_edited
+    total.approved += counts.approved
+    // 只列还有待审的章：已批准/人改的章不需要催人
+    if (counts.ai_draft > 0) {
+      pendingChapters.push(`${CHAPTER_LABELS[chapter]}：${counts.ai_draft} 待审`)
+    }
+  }
+  return [`全文档：${formatFieldStatusSummary(total) || '无审核记录'}`, ...pendingChapters]
+}
+
 /** pptx 渲染器：返回幻灯片文件 Buffer（写盘由上层 exporter 负责） */
 export async function renderCeshuPptx(doc: CeshuDocument): Promise<Buffer> {
   const pptx = new PptxGenJS()
@@ -199,6 +229,31 @@ export async function renderCeshuPptx(doc: CeshuDocument): Promise<Buffer> {
       fit: 'shrink'
     })
   }
+
+  // 附录页：审核进度（放在完成度页之前，与 Markdown 的附录顺序一致）
+  const reviewSlide = pptx.addSlide()
+  reviewSlide.background = { color: COLORS.bg }
+  reviewSlide.addText('附录：审核进度', {
+    x: 0.5,
+    y: 0.35,
+    w: 12.3,
+    h: 0.8,
+    fontSize: 26,
+    bold: true,
+    color: COLORS.accent,
+    fontFace: FONT
+  })
+  reviewSlide.addText(reviewProgressLines(doc).join('\n'), {
+    x: 0.5,
+    y: 1.3,
+    w: 12.3,
+    h: 5.8,
+    fontSize: 14,
+    color: COLORS.body,
+    fontFace: FONT,
+    valign: 'top',
+    fit: 'shrink'
+  })
 
   // 末页：章节完成度
   const progress = computeChapterProgress(doc)

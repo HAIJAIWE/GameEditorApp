@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import { renderCeshuDocx } from '../../src/main/ceshu/export/docx'
 import { renderCeshuPptx } from '../../src/main/ceshu/export/pptx'
-import type { CeshuDocument, GddScope } from '../../src/shared/ceshuConstants'
+import { CHAPTER_LABELS, type CeshuDocument, type GddScope } from '../../src/shared/ceshuConstants'
 import { createDefaultCeshu } from '../../src/shared/ceshuModel'
 
 /**
@@ -23,11 +23,39 @@ function createFixture(scope: GddScope): CeshuDocument {
   return doc
 }
 
+/**
+ * 打上字段审核状态：meta 1 条待审、combat 1 条待审 + 1 条已批准。
+ * 用 schema 内真实字段 key，避免统计函数把「扩展键」过滤掉后数字对不上。
+ */
+function withFieldStatus(doc: CeshuDocument): CeshuDocument {
+  const at = '2026-10-23T10:00:00.000Z'
+  doc.meta.field_status = {
+    meta: { positioning: { status: 'ai_draft', at } },
+    combat: {
+      combat_mode: { status: 'ai_draft', at },
+      damage_formula: { status: 'approved', at }
+    }
+  }
+  return doc
+}
+
+/** 解包 docx 主文档 XML */
+async function readDocxXml(buffer: Buffer): Promise<string> {
+  const zip = await JSZip.loadAsync(buffer)
+  return (await zip.file('word/document.xml')?.async('string')) ?? ''
+}
+
+/** 解包 pptx 并返回各页 XML */
+async function readSlideXmls(buffer: Buffer): Promise<string[]> {
+  const zip = await JSZip.loadAsync(buffer)
+  const names = Object.keys(zip.files).filter((name) => /^ppt\/slides\/slide\d+\.xml$/.test(name))
+  return Promise.all(names.map((name) => zip.file(name)!.async('string')))
+}
+
 describe('策划书 docx 渲染器', () => {
   it('full 档：含游戏名、章节标题、字段值与系统表，中文字体为微软雅黑', async () => {
     const buffer = await renderCeshuDocx(createFixture('full'))
-    const zip = await JSZip.loadAsync(buffer)
-    const xml = (await zip.file('word/document.xml')?.async('string')) ?? ''
+    const xml = await readDocxXml(buffer)
 
     expect(xml).toContain('测试游戏')
     expect(xml).toContain('第五章·战斗系统设计')
@@ -41,27 +69,57 @@ describe('策划书 docx 渲染器', () => {
 
   it('lite 档：不导出工业级章节（无第十八章）', async () => {
     const buffer = await renderCeshuDocx(createFixture('lite'))
-    const zip = await JSZip.loadAsync(buffer)
-    const xml = (await zip.file('word/document.xml')?.async('string')) ?? ''
+    const xml = await readDocxXml(buffer)
 
     expect(xml).toContain('测试游戏')
     expect(xml).not.toContain('第十八章')
   })
+
+  it('审核进度：全文档汇总 + 仅列待审章节（口径同 Markdown）', async () => {
+    const buffer = await renderCeshuDocx(withFieldStatus(createFixture('full')))
+    const xml = await readDocxXml(buffer)
+
+    expect(xml).toContain('审核进度')
+    expect(xml).toContain('全文档：2 待审 · 1 已批准')
+    // 用常量拼期望值：章节重排后章号会漂移，硬编码「第五章」会让用例误报
+    expect(xml).toContain(`${CHAPTER_LABELS.combat}：1 待审`)
+  })
+
+  it('审核进度：无 field_status 时写「无审核记录」', async () => {
+    const buffer = await renderCeshuDocx(createFixture('full'))
+    const xml = await readDocxXml(buffer)
+
+    expect(xml).toContain('审核进度')
+    expect(xml).toContain('全文档：无审核记录')
+  })
 })
 
 describe('策划书 pptx 渲染器', () => {
-  it('full 档：封面 + 17 章 + 完成度共 19 页，含游戏名与章节标题', async () => {
+  it('full 档：封面 + 17 章 + 审核进度 + 完成度共 20 页，含游戏名与章节标题', async () => {
     const buffer = await renderCeshuPptx(createFixture('full'))
     expect(Buffer.isBuffer(buffer)).toBe(true)
 
     const zip = await JSZip.loadAsync(buffer)
     expect(zip.file('[Content_Types].xml')).toBeTruthy()
 
-    const slideNames = Object.keys(zip.files).filter((name) => /^ppt\/slides\/slide\d+\.xml$/.test(name))
-    expect(slideNames).toHaveLength(19)
-
-    const slides = await Promise.all(slideNames.map((name) => zip.file(name)!.async('string')))
+    const slides = await readSlideXmls(buffer)
+    expect(slides).toHaveLength(20)
     expect(slides.some((xml) => xml.includes('测试游戏'))).toBe(true)
     expect(slides.some((xml) => xml.includes('第五章·战斗系统设计'))).toBe(true)
+  })
+
+  it('审核进度：全文档汇总 + 仅列待审章节（口径同 Markdown）', async () => {
+    const slides = await readSlideXmls(await renderCeshuPptx(withFieldStatus(createFixture('full'))))
+
+    expect(slides.some((xml) => xml.includes('审核进度'))).toBe(true)
+    expect(slides.some((xml) => xml.includes('全文档：2 待审 · 1 已批准'))).toBe(true)
+    expect(slides.some((xml) => xml.includes(`${CHAPTER_LABELS.combat}：1 待审`))).toBe(true)
+  })
+
+  it('审核进度：无 field_status 时写「无审核记录」', async () => {
+    const slides = await readSlideXmls(await renderCeshuPptx(createFixture('full')))
+
+    expect(slides.some((xml) => xml.includes('审核进度'))).toBe(true)
+    expect(slides.some((xml) => xml.includes('全文档：无审核记录'))).toBe(true)
   })
 })
