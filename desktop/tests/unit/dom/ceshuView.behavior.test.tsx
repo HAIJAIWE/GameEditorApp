@@ -327,3 +327,34 @@ describe('CeshuView：迁移预览（只读）', () => {
     expect(rendered.byTestId('migration-run').textContent).toContain('执行迁移（0）')
   })
 })
+
+describe('CeshuView：AI 消费提示词（双轨 JSON 配套）', () => {
+  it('「更多」菜单打开面板：默认 draft 任务，提示词含契约与空缺字段', async () => {
+    api = installMbApi({ doc: makeDoc() })
+    const rendered = await mount()
+
+    await rendered.click(rendered.byTestId('ceshu-more'))
+    await rendered.click(rendered.byTestId('ceshu-consume-prompt'))
+
+    const prompt = rendered.byTestId('consume-prompt') as HTMLTextAreaElement
+    expect(prompt.value).toContain('mobai-ceshu-bundle/1')
+    expect(prompt.value).toContain('aiDraftable=false')
+    expect(prompt.value).toContain('一句话定位（positioning）')
+    // 打开面板不写盘
+    expect(api.calls).not.toContain('ceshu.saveChapter')
+  })
+
+  it('切到 review 任务：提示词换成审阅版（issues 输出格式）', async () => {
+    api = installMbApi({ doc: makeDoc() })
+    const rendered = await mount()
+
+    await rendered.click(rendered.byTestId('ceshu-more'))
+    await rendered.click(rendered.byTestId('ceshu-consume-prompt'))
+    await rendered.click(rendered.byTestId('consume-task-review'))
+
+    const prompt = rendered.byTestId('consume-prompt') as HTMLTextAreaElement
+    expect(prompt.value).toContain('审阅')
+    expect(prompt.value).toContain('"issues"')
+    expect(prompt.value).not.toContain('本次要补全的空缺字段')
+  })
+})

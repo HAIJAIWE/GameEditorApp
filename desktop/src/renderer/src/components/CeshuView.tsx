@@ -31,6 +31,13 @@ import type { FieldAction } from '../../../shared/ceshuFieldAction'
 import { clearFieldRequest } from '../ceshuFieldFocus'
 import { CESHU_CHAPTER_FIELDS } from '../../../shared/ceshuFields'
 import { migrationSplitTitle, pendingSplitCount, planCeshuMigration } from '../../../shared/ceshuMigrationPlan'
+import { buildCeshuBundle } from '../../../shared/ceshuBundle'
+import {
+  BUNDLE_CONSUME_TASK_LABELS,
+  BUNDLE_CONSUME_USAGE,
+  buildBundleConsumePrompt,
+  type BundleConsumeTask
+} from '../../../shared/ceshuBundlePrompt'
 import type { CeshuAiGenerateResult } from '../../../shared/ceshuAi'
 import type { DataTypeDef } from '../../../shared/types'
 
@@ -105,6 +112,9 @@ export default function CeshuView({
   const [reviewOpen, setReviewOpen] = useState(false)
   /** 迁移预览（只读）浮层是否展开 */
   const [migrationOpen, setMigrationOpen] = useState(false)
+  /** AI 消费提示词浮层是否展开，以及当前任务（draft=按契约起草 / review=审阅找问题） */
+  const [consumeOpen, setConsumeOpen] = useState(false)
+  const [consumeTask, setConsumeTask] = useState<BundleConsumeTask>('draft')
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -361,6 +371,8 @@ export default function CeshuView({
 
   /** 迁移预览（只读）：大 textarea 会怎么拆 / 哪些字段语义重叠 */
   const migrationPlan = planCeshuMigration(doc)
+  /** AI 消费提示词（双轨 JSON 的配套）：按任务生成可粘贴给外部 AI 的提示词 */
+  const consumePrompt = buildBundleConsumePrompt(buildCeshuBundle(doc), consumeTask)
   const progress = computeChapterProgress(doc)
   /** 由第四章游戏系统派生的启用编辑器（内嵌数据预览面板据此渲染标签页） */
   const enabledEditors = computeEnabledEditors(doc)
@@ -670,7 +682,8 @@ export default function CeshuView({
       { testid: 'ceshu-timeline', label: '版本时间线', run: () => setPanel('timeline') },
       { testid: 'ceshu-changelog', label: '变更记录', run: () => void handleShowChangelog() },
       { testid: 'ceshu-datarefs', label: '数据引用', run: () => setPanel('dataRefs') },
-      { testid: 'ceshu-migration-preview', label: '迁移预览（只读）', run: () => setMigrationOpen(true) }
+      { testid: 'ceshu-migration-preview', label: '迁移预览（只读）', run: () => setMigrationOpen(true) },
+      { testid: 'ceshu-consume-prompt', label: 'AI 消费提示词', run: () => setConsumeOpen(true) }
     ],
     // 「确认游戏系统」**不在菜单里**：PyQt 无此菜单项，改为打开策划书时自动弹窗
     // （见上方加载回调；条件 = 未确认过 且 已有启用系统）
@@ -1026,6 +1039,41 @@ export default function CeshuView({
                       ))}
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+            {/* AI 消费提示词：双轨 JSON 的配套——生成可粘贴给任意外部 AI 的提示词 */}
+            {consumeOpen && (
+              <div className="review-overlay" data-testid="consume-overlay" onClick={() => setConsumeOpen(false)}>
+                <div className="review-panel" data-testid="consume-panel" onClick={(event) => event.stopPropagation()}>
+                  <div className="review-panel-header">
+                    <span>AI 消费提示词</span>
+                    <button type="button" className="btn slim" onClick={() => setConsumeOpen(false)}>
+                      关闭
+                    </button>
+                  </div>
+                  <div className="item-meta">{BUNDLE_CONSUME_USAGE}</div>
+                  <div className="field-action-strip-actions">
+                    {(['draft', 'review'] as const).map((task) => (
+                      <button
+                        key={task}
+                        type="button"
+                        className={`btn slim${consumeTask === task ? ' accent-outline' : ''}`}
+                        data-testid={`consume-task-${task}`}
+                        onClick={() => setConsumeTask(task)}
+                      >
+                        {BUNDLE_CONSUME_TASK_LABELS[task]}
+                      </button>
+                    ))}
+                  </div>
+                  <textarea
+                    className="form-textarea"
+                    data-testid="consume-prompt"
+                    readOnly
+                    rows={16}
+                    value={consumePrompt}
+                    onFocus={(event) => event.currentTarget.select()}
+                  />
                 </div>
               </div>
             )}
