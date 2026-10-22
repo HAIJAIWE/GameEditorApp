@@ -78,4 +78,43 @@ describe('buildBundleConsumePrompt：机读轨消费提示词', () => {
     const prompt = buildBundleConsumePrompt(bundle, 'draft')
     expect(prompt).not.toContain('game_name')
   })
+
+  it('reviewPending 任务：只列 ai_draft 字段并带人审要点，不评价已批准字段', () => {
+    const bundle = makeBundle()
+    bundle.chapters = bundle.chapters.map((chapter) => ({
+      ...chapter,
+      fields: chapter.fields.map((field) => {
+        if (field.key === 'positioning') return { ...field, status: 'ai_draft' }
+        if (field.key === 'skill_system') return { ...field, status: 'ai_draft' }
+        if (field.key === 'combat_mode') return { ...field, status: 'approved' }
+        return field
+      })
+    }))
+    const prompt = buildBundleConsumePrompt(bundle, 'reviewPending')
+
+    // 任务语义：范围锁在待审字段，且任务词表同步
+    expect(BUNDLE_CONSUME_TASK_LABELS.reviewPending).toBe('只审待审字段')
+    expect(prompt).toContain('只审待审字段')
+    // 两个待审字段都点名（章节 label · 字段 label（key））
+    expect(prompt).toContain('文档信息 · 一句话定位（positioning）')
+    expect(prompt).toContain('第五章·战斗系统设计 · 技能系统（skill_system）')
+    // 有 reviewHint 的字段把「人审要点」带进提示词，无 reviewHint 的字段不硬凑
+    expect(prompt).toContain('是否一句话能讲清，且不与竞品同质')
+    expect(prompt).not.toContain('人审要点：undefined')
+    // 输出格式与 review 一致（issues 结构）
+    expect(prompt).toContain('"issues"')
+    expect(prompt).toContain('severity')
+    expect(prompt).toContain('写作规范')
+    // 已批准字段不进清单（标签不得出现在提示词里）
+    expect(prompt).not.toContain('战斗模式')
+  })
+
+  it('reviewPending 任务：没有待审字段时明确收口为 {"issues": []}', () => {
+    const prompt = buildBundleConsumePrompt(makeBundle(), 'reviewPending')
+
+    expect(prompt).toContain('当前没有待审字段')
+    expect(prompt).toContain('{"issues": []}')
+    // 没有待审字段时不应再点名任何字段
+    expect(prompt).not.toContain('伤害公式（damage_formula）')
+  })
 })

@@ -11,18 +11,21 @@ import { isEmptyRequiredValue } from './ceshuModel'
  * + 输出格式 + 写作规范」组装成一段可直接粘贴的提示词：JSON 跟在提示词后面一起发，
  * AI 就能按契约起草或审阅，并返回**可回填的增量 JSON**。
  *
- * ## 两种任务
+ * ## 三种任务
  * - `draft`：按契约补全空缺字段（返回 `{章: {字段: 值}}` 增量）；
- * - `review`：审阅内容找矛盾/重复/不可执行（返回 issues 列表）。
+ * - `review`：审阅全文找矛盾/重复/不可执行（返回 issues 列表）；
+ * - `reviewPending`：只审 `status=ai_draft` 的字段（返回 issues 列表）。
+ *   全文审又慢又容易发散，而人最常问的是「AI 刚写的这几段有没有问题」。
  *
  * 纯函数：输入 bundle，输出字符串；不碰文件与网络。
  */
 
-export type BundleConsumeTask = 'draft' | 'review'
+export type BundleConsumeTask = 'draft' | 'review' | 'reviewPending'
 
 export const BUNDLE_CONSUME_TASK_LABELS: Record<BundleConsumeTask, string> = {
   draft: '按契约起草空缺字段',
-  review: '审阅全文找问题'
+  review: '审阅全文找问题',
+  reviewPending: '只审待审字段'
 }
 
 /** 契约语义说明（外部 AI 的「字段字典」；措辞保持稳定，测试锚点） */
@@ -101,6 +104,54 @@ function buildReviewPrompt(bundle: CeshuBundle): string {
   ].join('\n')
 }
 
+/** 生成「只审待审字段」提示词（范围限定 status=ai_draft，避免全文审发散） */
+function buildReviewPendingPrompt(bundle: CeshuBundle): string {
+  const pending = collectPendingFields(bundle)
+  // 没有待审字段时不留空清单：外部 AI 容易自作主张去审别的字段，所以要显式收口
+  const pendingLines =
+    pending.length > 0
+      ? pending
+          .map((item) =>
+            item.reviewHint !== ''
+              ? `- ${item.where}\n  - 人审要点：${item.reviewHint}`
+              : `- ${item.where}`
+          )
+          .join('\n')
+      : '（当前没有待审字段）'
+  const emptyNotice =
+    pending.length > 0
+      ? []
+      : [
+          '当前没有待审字段（JSON 里没有任何 status=ai_draft 的字段）。请直接返回 {"issues": []}，不要审阅其他字段。',
+          ''
+        ]
+  return [
+    '你是资深游戏策划审阅专家。本次只审待审字段（status=ai_draft），不要评价已批准字段。',
+    '',
+    CONTRACT_LEGEND,
+    '',
+    '待审字段清单（逐条对照「人审要点」检查）：',
+    pendingLines,
+    '',
+    ...emptyNotice,
+    '审阅重点：',
+    '1. 人审要点：该字段是否达到清单里写明的检查点；',
+    '2. 不可执行：只有口号没有具体规则/数字/例子，落地时无法照做；',
+    '3. 自相矛盾：与已批准内容或其他章节冲突（只指出冲突，不评价已批准字段本身）。',
+    '',
+    '输出要求：',
+    '1. 只输出 JSON，不要任何解释、不要 markdown 代码块；',
+    '2. 格式：{"issues": [{"chapter": "章节key", "field": "字段key", "severity": "high|medium|low", "message": "问题是什么", "suggestion": "怎么改"}]}；',
+    '3. chapter/field 只能用上面清单里出现的键：chapter 用该章在 JSON 里的 key，field 用清单括号内的 key；',
+    '4. 没有问题就输出 {"issues": []}，不要为了凑数编造；',
+    '5. message/suggestion 用中文，具体到可执行，不写空话；建议本身也要符合下面的写作规范。',
+    '',
+    CESHU_WRITING_STANDARD,
+    '',
+    `以下是策划书结构化数据（schema: ${bundle.schema}），请只审阅上述待审字段：`
+  ].join('\n')
+}
+
 /** 收集空的必填/契约字段（draft 任务的聚焦清单） */
 function collectEmptyFields(bundle: CeshuBundle): Array<{ where: string; hint: string }> {
   const items: Array<{ where: string; hint: string }> = []
@@ -127,9 +178,36 @@ function collectDraftFields(bundle: CeshuBundle): string[] {
   return items
 }
 
+/** 收集待审字段及其人审要点（reviewPending 任务的聚焦清单） */
+function collectPendingFields(bundle: CeshuBundle): Array<{ where: string; reviewHint: string }> {
+  const items: Array<{ where: string; reviewHint: string }> = []
+  for (const chapter of bundle.chapters) {
+    for (const field of chapter.fields) {
+      if (field.status !== 'ai_draft') continue
+      items.push({
+        where: `${chapter.label} · ${field.label}（${field.key}）`,
+        reviewHint: field.reviewHint ?? ''
+      })
+    }
+  }
+  return items
+}
+
 /** 生成消费提示词（纯函数；bundle 来自 `buildCeshuBundle` 或解析导出 JSON） */
 export function buildBundleConsumePrompt(bundle: CeshuBundle, task: BundleConsumeTask): string {
-  return task === 'draft' ? buildDraftPrompt(bundle) : buildReviewPrompt(bundle)
+  switch (task) {
+    case 'draft':
+      return buildDraftPrompt(bundle)
+    case 'review':
+      return buildReviewPrompt(bundle)
+    case 'reviewPending':
+      return buildReviewPendingPrompt(bundle)
+    default: {
+      // 类型已穷尽；兜底防止旧版 UI 状态传进脏值，而不是静默走错分支
+      const unreachable: never = task
+      return unreachable
+    }
+  }
 }
 
 /** 使用说明（面板展示；说明「提示词 + JSON 一起发」的用法） */

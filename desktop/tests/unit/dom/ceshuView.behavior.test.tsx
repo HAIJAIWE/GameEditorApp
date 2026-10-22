@@ -634,4 +634,22 @@ describe('CeshuView：AI 消费提示词（双轨 JSON 配套）', () => {
     expect(prompt.value).toContain('"issues"')
     expect(prompt.value).not.toContain('本次要补全的空缺字段')
   })
+
+  it('第三种任务「只审待审字段」可切换：提示词收窄到 ai_draft', async () => {
+    const doc = makeDoc()
+    doc.meta.field_status = {
+      meta: { positioning: { status: 'ai_draft', at: '2026-10-20T00:00:00.000Z' } }
+    }
+    api = installMbApi({ doc })
+    const rendered = await mount()
+
+    await rendered.click(rendered.byTestId('ceshu-more'))
+    await rendered.click(rendered.byTestId('ceshu-consume-prompt'))
+    await rendered.click(rendered.byTestId('consume-task-reviewPending'))
+
+    const prompt = rendered.byTestId('consume-prompt') as HTMLTextAreaElement
+    expect(prompt.value).toContain('只审待审字段')
+    expect(prompt.value).toContain('一句话定位（positioning）')
+    expect(prompt.value).toContain('"issues"')
+  })
 })

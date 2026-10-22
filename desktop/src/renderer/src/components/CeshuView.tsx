@@ -1330,7 +1330,7 @@ export default function CeshuView({
                   </div>
                   <div className="item-meta">{BUNDLE_CONSUME_USAGE}</div>
                   <div className="field-action-strip-actions">
-                    {(['draft', 'review'] as const).map((task) => (
+                    {(['draft', 'reviewPending', 'review'] as const).map((task) => (
                       <button
                         key={task}
                         type="button"
