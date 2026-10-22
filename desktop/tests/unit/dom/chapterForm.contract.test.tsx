@@ -80,6 +80,35 @@ describe('ChapterForm：字段协作契约可见', () => {
   })
 })
 
+describe('ChapterForm：本章字段状态摘要', () => {
+  it('标题行显示非零状态摘要（只计 schema 内字段）', async () => {
+    api = installMbApi()
+    const doc = createDefaultCeshu({ scope: 'full', name: '测试游戏' })
+    view = await renderDom(
+      <ChapterForm
+        chapter="meta"
+        data={doc.meta}
+        busy={false}
+        gameName=""
+        onSave={async () => undefined}
+        onAiGenerate={async () => ({ model: '', fields: {}, rawText: '' })}
+        onAiGenerateField={async () => ({ model: '', fields: {}, rawText: '' })}
+        fieldStatus={{
+          positioning: { status: 'ai_draft', at: '2024-01-01' },
+          tags: { status: 'approved', at: '2024-01-01' }
+        }}
+      />
+    )
+    // meta 章其余字段（game_name / game_type）无状态，不参与计数
+    expect(view!.byTestId('field-status-summary').textContent).toBe('1 待审 · 1 已批准')
+  })
+
+  it('不传 fieldStatus 时不渲染摘要', async () => {
+    await mount()
+    expect(view!.queryAll('[data-testid="field-status-summary"]').length).toBe(0)
+  })
+})
+
 describe('ChapterForm：字段级局部重生成（停靠栏桥）', () => {
   it('字段聚焦 → 上报当前字段到桥（停靠栏动作条的数据源）', async () => {
     api = installMbApi()

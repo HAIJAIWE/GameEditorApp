@@ -6,6 +6,7 @@ import { FIELD_ACTION_LABELS, type FieldAction } from '../../../shared/ceshuFiel
 import { isPlainObject } from '../../../shared/ceshuModel'
 import { CESHU_CHAPTER_FIELDS, resolveFieldMeta } from '../../../shared/ceshuFields'
 import type { ChapterFieldStatus, FieldReviewStatus } from '../../../shared/ceshuFieldStatus'
+import { countFieldStatuses, formatFieldStatusSummary } from '../../../shared/ceshuFieldStatusStats'
 import {
   clearActiveCeshuField,
   consumeFieldRequest,
@@ -77,6 +78,8 @@ export default function ChapterForm({
   const fields = useMemo(() => CESHU_CHAPTER_FIELDS[chapter] ?? [], [chapter])
   /** 本章待审（AI 草稿）字段数：用于顶部审阅提示 */
   const pendingCount = fields.filter((field) => fieldStatus?.[field.key]?.status === 'ai_draft').length
+  /** 顶部「本章字段状态」摘要（普通 const：本组件 hook 顺序敏感，纯计算不引入 useMemo） */
+  const statusSummary = formatFieldStatusSummary(countFieldStatuses(fieldStatus, fields))
   const [inputs, setInputs] = useState<Record<string, FieldInput>>(() => buildInputs(fields, data))
   const [systemsDraft, setSystemsDraft] = useState<ChapterData>(() => structuredClone(data))
   const [formError, setFormError] = useState<string | null>(null)
@@ -293,6 +296,15 @@ export default function ChapterForm({
     <div className="chapter-form" data-testid="chapter-form">
       <div className="chapter-form-title">
         <span>{CHAPTER_LABELS[chapter]}</span>
+        {/* 审核进展一眼可见：不必逐字段往下翻徽标（全零时 statusSummary 为空串，不渲染） */}
+        {statusSummary !== '' && (
+          <>
+            本章：
+            <span className="item-meta" data-testid="field-status-summary">
+              {statusSummary}
+            </span>
+          </>
+        )}
         <span className="chapter-form-ai">
           {aiBusy && <span className="item-meta">AI 生成中…</span>}
           {chapter !== 'systems' && (
