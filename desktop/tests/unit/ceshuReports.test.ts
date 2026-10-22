@@ -69,6 +69,30 @@ describe('buildValidationReportMarkdown（对齐 Python _build_markdown）', () 
     expect(md).toContain('| 文档信息 | 80% | ✓ |')
     expect(md).toContain('| 第四章·游戏系统设计 | 50% | ⚠ |')
   })
+
+  it('问题概览：按严重度汇总分组条数，且不干扰既有段落', () => {
+    const errors = [
+      "元信息：字段 'game_name' 为必填项",
+      '一致性冲突：combat.combat_mode 不一致',
+      '术语不一致：「生命值」/「血量」指同一概念（hp）'
+    ]
+    const md = buildValidationReportMarkdown('墨白', 'v1.2', 't', errors, progress)
+    expect(md).toContain('## 问题概览')
+    expect(md).toContain('⛔ 必须修复：2 个（必填缺失 1 / 跨章冲突 1）')
+    expect(md).toContain('⚠ 建议检查：1 个（术语不一致 1）')
+    // 概览插在元信息块之后、摘要之前（首行与五分类清单保持原样）
+    const lines = md.split('\n')
+    expect(lines[0]).toBe('# 工业级 GDD 校验报告')
+    const overviewAt = lines.indexOf('## 问题概览')
+    expect(overviewAt).toBeGreaterThan(lines.indexOf('**总进度**: 75%  '))
+    expect(overviewAt).toBeLessThan(lines.indexOf('## 摘要'))
+    expect(md).toContain('### 🔴 必填字段缺失 (1)')
+  })
+
+  it('无错误时不出现「问题概览」', () => {
+    const md = buildValidationReportMarkdown('G', 'v1.0', 't', [], progress)
+    expect(md).not.toContain('## 问题概览')
+  })
 })
 
 describe('变更日志三格式（对齐 Python Changelog.to_{markdown,text,html}）', () => {

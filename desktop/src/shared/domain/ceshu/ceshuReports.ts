@@ -1,5 +1,7 @@
 import { CHAPTER_KEYS, CHAPTER_LABELS } from '../../ceshuConstants'
 import type { CeshuChangelog } from '../../ceshuDiff'
+import { groupValidationMessages, VALIDATION_SEVERITY_LABELS } from '../../ceshuValidationGroups'
+import type { ValidationSeverity } from '../../ceshuValidationGroups'
 
 /**
  * 策划书报告渲染纯逻辑（渲染层生成文本 → 主进程原子写盘）。
@@ -77,6 +79,28 @@ export function buildValidationReportMarkdown(
   lines.push(`**完整性评分**: **${score}/100** (${grade})  `)
   lines.push(`**总进度**: ${totalPct}%  `)
   lines.push('')
+
+  // 问题概览：报告开头先回答「必须先修什么、有多少」，避免读者在五分类清单里自己数。
+  // 分组复用面板同一套规则（groupValidationMessages），但只是**新增摘要段**，
+  // 下方与 Python `_build_markdown` 对齐的五分类输出保持不变（历史契约）。
+  if (errors.length > 0) {
+    const groups = groupValidationMessages(errors)
+    lines.push('## 问题概览')
+    lines.push('')
+    const severityRows: Array<{ severity: ValidationSeverity; icon: string }> = [
+      { severity: 'error', icon: '⛔' },
+      { severity: 'warning', icon: '⚠' }
+    ]
+    for (const { severity, icon } of severityRows) {
+      const scoped = groups.filter((group) => group.severity === severity)
+      const total = scoped.reduce((sum, group) => sum + group.items.length, 0)
+      // 该严重度为 0 时整行省略，避免出现「必须修复：0 个」这类噪音
+      if (total === 0) continue
+      const detail = scoped.map((group) => `${group.label} ${group.items.length}`).join(' / ')
+      lines.push(`- ${icon} ${VALIDATION_SEVERITY_LABELS[severity]}：${total} 个（${detail}）`)
+    }
+    lines.push('')
+  }
 
   // 摘要
   lines.push('## 摘要')
