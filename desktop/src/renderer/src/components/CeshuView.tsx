@@ -43,6 +43,7 @@ import {
   type CeshuPatchParseResult
 } from '../../../shared/ceshuImportPatch'
 import {
+  BUNDLE_CONSUME_TASKS,
   BUNDLE_CONSUME_TASK_LABELS,
   BUNDLE_CONSUME_USAGE,
   buildBundleConsumePrompt,
@@ -1402,7 +1403,7 @@ export default function CeshuView({
                   </div>
                   <div className="item-meta">{BUNDLE_CONSUME_USAGE}</div>
                   <div className="field-action-strip-actions">
-                    {(['draft', 'reviewPending', 'review'] as const).map((task) => (
+                    {BUNDLE_CONSUME_TASKS.map((task) => (
                       <button
                         key={task}
                         type="button"

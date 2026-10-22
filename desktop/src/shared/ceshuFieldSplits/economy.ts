@@ -10,5 +10,6 @@ export const ECONOMY_FIELD_SPLITS: ChapterFieldSplits = [
   'production_chain',
   'market_design',
   'inflation_control',
-  'economic_goals'
+  'economic_goals',
+  'seasonal_adjustment'
 ]

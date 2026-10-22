@@ -6,4 +6,4 @@ import type { ChapterFieldSplits } from './types'
  * 拆 2 个开放式 textarea 为「本体 + xxx_points + xxx_notes」三件套：
  * 本体留整体风格，可验收的字体名/特效类型进要点字段逐条核对。
  */
-export const ART_FIELD_SPLITS: ChapterFieldSplits = ['typography', 'vfx']
+export const ART_FIELD_SPLITS: ChapterFieldSplits = ['typography', 'vfx', 'ui_design_language', 'multi_resolution']

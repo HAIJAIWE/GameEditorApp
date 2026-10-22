@@ -7,4 +7,4 @@ import type { ChapterFieldSplits } from './types'
  * 本体留架构总体形态，关键模块与通信方式进要点字段逐条列。
  * team_structure 是人定字段（AI 不起草），按约定不拆。
  */
-export const TECH_FIELD_SPLITS: ChapterFieldSplits = ['core_architecture']
+export const TECH_FIELD_SPLITS: ChapterFieldSplits = ['core_architecture', 'performance_targets', 'qa_plan']

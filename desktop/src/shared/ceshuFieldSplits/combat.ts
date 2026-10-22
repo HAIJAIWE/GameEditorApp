@@ -14,5 +14,6 @@ export const COMBAT_FIELD_SPLITS: ChapterFieldSplits = [
   'pvp_design',
   'pve_design',
   'boss_mechanics',
-  'balance_strategy'
+  'balance_strategy',
+  'combat_progression'
 ]

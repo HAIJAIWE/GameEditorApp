@@ -8,4 +8,4 @@ import type { ChapterFieldSplits } from './types'
  * 其余单体 textarea（compliance 人定不拆、marketing_rhythm 体量适中）
  * 暂无拆分必要。
  */
-export const PUBLISHING_FIELD_SPLITS: ChapterFieldSplits = []
+export const PUBLISHING_FIELD_SPLITS: ChapterFieldSplits = ['marketing_rhythm']

@@ -1,6 +1,7 @@
 import { CHAPTER_KEYS, CHAPTER_LABELS, CHAPTER_REQUIRED_FIELDS, type CeshuDocument } from './ceshuConstants'
 import { computeChapterProgress, isPlainObject } from './ceshuModel'
 import { validateCeshu } from './ceshuValidation'
+import { classifyValidationMessage } from './ceshuValidationGroups'
 
 /**
  * N4: 工业级 GDD 评分引擎（自 Python core/ceshu/ceshu_scorer.py 匹平迁移）。
@@ -216,10 +217,28 @@ function calcQualityScore(chapterScores: CeshuChapterScore[], doc: CeshuDocument
     errors = []
   }
 
-  const consistencyPenalty = Math.min(CONSISTENCY_PENALTY_MAX, errors.length * CONSISTENCY_PENALTY_PER_ERROR)
+  const consistencyPenalty = Math.min(
+    CONSISTENCY_PENALTY_MAX,
+    hardErrorCount(errors) * CONSISTENCY_PENALTY_PER_ERROR
+  )
   let qualityScore = round1((avgChapterScore / 100) * QUALITY_FULL_SCORE - consistencyPenalty)
   qualityScore = Math.max(0, Math.min(QUALITY_FULL_SCORE, qualityScore))
   return { score: qualityScore, errors }
+}
+
+/**
+ * 只数「硬错误」——2026-10-23 复刻演练（完整案例 289 字段）暴露：
+ * 此前 validateCeshu 的**全部输出**（含「人定字段待填」状态提示、「内容质量提示」
+ * 长句/空话风格建议、「一致性警告」级提醒）都按条扣质量分，满额惩罚 15/40。
+ * 后果：一份填满 275 字段的完整策划书，仅因 7 条提示就被砍 15 分质量分
+ * （章均分 89.9，质量分却只有 21）——评分在惩罚「有提示」而不是「有错误」。
+ *
+ * 口径与校验面板同一套分类（classifyValidationMessage，severity==='error'：
+ * 必填缺失/格式异常/一致性冲突/依赖缺失）；提示级（人定待填/质量提示/
+ * 一致性警告/重复/术语）仍全量展示在报告里，只是不扣分。
+ */
+function hardErrorCount(messages: readonly string[]): number {
+  return messages.filter((message) => classifyValidationMessage(message).severity === 'error').length
 }
 
 /** 按规则表为单个市场章节评分（非 dict 返回 0；字段 falsy 不计分；最小长度不达标不计分） */

@@ -24,7 +24,7 @@
 
 import { readFileSync, writeFileSync } from 'node:fs'
 
-import { buildBundleConsumePrompt } from '../src/shared/ceshuBundlePrompt'
+import { buildBundleConsumePrompt, BUNDLE_CONSUME_TASK_LABELS, type BundleConsumeTask } from '../src/shared/ceshuBundlePrompt'
 import { buildCeshuBundle } from '../src/shared/ceshuBundle'
 import { applyCeshuPatch, parseCeshuPatch } from '../src/shared/ceshuImportPatch'
 import { createDefaultCeshu } from '../src/shared/ceshuModel'
@@ -61,12 +61,13 @@ function buildDoc(type: string, name: string): CeshuDocument {
 function runPrompt(flags: Record<string, string>): void {
   const type = flags.type ?? 'rpg'
   const name = flags.name ?? '未命名项目'
+  const task = (flags.task ?? 'draft') as BundleConsumeTask
   const doc = buildDoc(type, name)
-  const prompt = buildBundleConsumePrompt(buildCeshuBundle(doc), 'draft')
+  const prompt = buildBundleConsumePrompt(buildCeshuBundle(doc), task)
   const out = flags.out ?? `/tmp/ceshu-rehearsal-${type}.prompt.txt`
   writeFileSync(out, prompt, 'utf8')
   console.log(`提示词已写入 ${out}（${prompt.length} 字符）`)
-  console.log(`游戏类型: ${doc.meta.game_type} | 风格: ${doc.style} | 文档: ${name}`)
+  console.log(`游戏类型: ${doc.meta.game_type} | 风格: ${doc.style} | 文档: ${name} | 任务: ${BUNDLE_CONSUME_TASK_LABELS[task]}`)
   console.log('把它交给任何外部 AI（或人），按契约产出 {章: {字段: 值}} JSON，然后进入 apply 阶段。')
 }
 

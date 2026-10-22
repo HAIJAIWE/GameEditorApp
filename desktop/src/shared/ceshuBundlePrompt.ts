@@ -20,13 +20,17 @@ import { isEmptyRequiredValue } from './ceshuModel'
  * 纯函数：输入 bundle，输出字符串；不碰文件与网络。
  */
 
-export type BundleConsumeTask = 'draft' | 'review' | 'reviewPending'
+export type BundleConsumeTask = 'draft' | 'draftAll' | 'review' | 'reviewPending'
 
 export const BUNDLE_CONSUME_TASK_LABELS: Record<BundleConsumeTask, string> = {
   draft: '按契约起草空缺字段',
+  draftAll: '全字段起草（含可选）',
   review: '审阅全文找问题',
   reviewPending: '只审待审字段'
 }
+
+/** 任务顺序（面板按钮与 rehearsal 脚本共用：由窄到宽） */
+export const BUNDLE_CONSUME_TASKS: readonly BundleConsumeTask[] = ['draft', 'draftAll', 'reviewPending', 'review']
 
 /** 契约语义说明（外部 AI 的「字段字典」；措辞保持稳定，测试锚点） */
 const CONTRACT_LEGEND = [
@@ -59,6 +63,36 @@ function buildDraftPrompt(bundle: CeshuBundle): string {
     '3. 值类型遵循字段 kind：字符串/数组/数字/对象，与 JSON 里该字段现有值的类型一致；',
     '4. aiDraftable=false 的字段一律不输出；',
     '5. 不要重复 JSON 里已有非空内容，只补空缺与明显不足处。',
+    '',
+    CESHU_WRITING_STANDARD,
+    '',
+    `以下是策划书结构化数据（schema: ${bundle.schema}），请基于它工作：`
+  ].join('\n')
+}
+
+/**
+ * 生成「全字段起草」提示词（draftAll：2026-10-23 复刻演练需要「看完整效果」时加）。
+ * 与 draft 的差别只有两点：清单收**全部**空缺字段（不限必填）；明确要求可选字段
+ * 也按契约写、但宁精勿滥（可选长文不凑字数——「写对」优先于「写满」）。
+ */
+function buildDraftAllPrompt(bundle: CeshuBundle): string {
+  const pending = collectEmptyFields(bundle, false)
+  const pendingLines = pending.map((item) => `- ${item.where}：${item.hint}`).join('\n')
+  return [
+    '你是游戏策划助手。请根据我随后提供的策划书结构化数据（JSON），按字段契约补全内容。',
+    '',
+    CONTRACT_LEGEND,
+    '',
+    '本次要补全的空缺字段（含必填与可选，全部都要给）：',
+    pendingLines,
+    '',
+    '输出要求：',
+    '1. 只输出 JSON，不要任何解释、不要 markdown 代码块；',
+    '2. 输出「增量」：形如 {"章节key": {"字段key": 值}}，只包含你生成/改写的字段；',
+    '3. 值类型遵循字段 kind：字符串/数组/数字/对象，与 JSON 里该字段现有值的类型一致；',
+    '4. aiDraftable=false 的字段一律不输出；',
+    '5. 不要重复 JSON 里已有非空内容，只补空缺与明显不足处；',
+    '6. 可选字段同样按契约写，但宁精勿滥：写不出实质内容就给最短的合格答案，不要为填满而注水。',
     '',
     CESHU_WRITING_STANDARD,
     '',
@@ -152,12 +186,12 @@ function buildReviewPendingPrompt(bundle: CeshuBundle): string {
   ].join('\n')
 }
 
-/** 收集空的必填/契约字段（draft 任务的聚焦清单） */
-function collectEmptyFields(bundle: CeshuBundle): Array<{ where: string; hint: string }> {
+/** 收集空的字段（draft 任务的聚焦清单；requiredOnly=false 时收全部空缺，供 draftAll 用） */
+function collectEmptyFields(bundle: CeshuBundle, requiredOnly = true): Array<{ where: string; hint: string }> {
   const items: Array<{ where: string; hint: string }> = []
   for (const chapter of bundle.chapters) {
     for (const field of chapter.fields) {
-      if (field.required !== true) continue
+      if (requiredOnly && field.required !== true) continue
       if (field.aiDraftable === false) continue // 人定字段不交给外部 AI
       if (!isEmptyRequiredValue(field.value)) continue
       const hint = field.aiHint !== undefined && field.aiHint !== '' ? field.aiHint : field.reviewHint ?? ''
@@ -198,6 +232,8 @@ export function buildBundleConsumePrompt(bundle: CeshuBundle, task: BundleConsum
   switch (task) {
     case 'draft':
       return buildDraftPrompt(bundle)
+    case 'draftAll':
+      return buildDraftAllPrompt(bundle)
     case 'review':
       return buildReviewPrompt(bundle)
     case 'reviewPending':

@@ -16,6 +16,7 @@ import { NUMERIC_FIELD_SPLITS } from './numeric'
 import { PERFORMANCE_FIELD_SPLITS } from './performance'
 import { PUBLISHING_FIELD_SPLITS } from './publishing'
 import { QA_FIELD_SPLITS } from './qa'
+import { RESOURCES_FIELD_SPLITS } from './resources'
 import { RISK_HANDLING_FIELD_SPLITS } from './riskHandling'
 import { STORY_FIELD_SPLITS } from './story'
 import { TECH_FIELD_SPLITS } from './tech'
@@ -37,6 +38,7 @@ export const FIELD_SPLITS: Partial<Record<ChapterKey, ChapterFieldSplits>> = {
   art: ART_FIELD_SPLITS,
   audio: AUDIO_FIELD_SPLITS,
   tech: TECH_FIELD_SPLITS,
+  resources: RESOURCES_FIELD_SPLITS,
   risk_handling: RISK_HANDLING_FIELD_SPLITS,
   mvp: MVP_FIELD_SPLITS,
   monetization: MONETIZATION_FIELD_SPLITS,

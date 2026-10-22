@@ -8,4 +8,4 @@ import type { ChapterFieldSplits } from './types'
  * 拆分配置只用于「单体 textarea 让机制自动生成配套字段」的场景，
  * 已手工拆过的再进清单只会重复插入，故不填。
  */
-export const LEVEL_DESIGN_FIELD_SPLITS: ChapterFieldSplits = []
+export const LEVEL_DESIGN_FIELD_SPLITS: ChapterFieldSplits = ['level_principles']

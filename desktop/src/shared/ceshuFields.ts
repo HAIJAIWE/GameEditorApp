@@ -97,7 +97,9 @@ const BASE_CHAPTER_FIELDS: Partial<Record<ChapterKey, CeshuFieldDef[]>> = {
       aiDraftable: false,
       values: ['lite', 'full'],
       optionLabels: OPT.GDD_SCOPE_LABELS
-    })
+    }),
+    f('version', '版本号', 'text', { aiDraftable: false, reviewHint: '与 version_label 区分：这是数据结构版本' }),
+    f('date', '日期', 'text', { aiDraftable: false }),
   ],
   vision: [
     f('design_vision', '设计愿景', 'textarea', {
@@ -111,7 +113,8 @@ const BASE_CHAPTER_FIELDS: Partial<Record<ChapterKey, CeshuFieldDef[]>> = {
       aiHint: '与 2-3 个竞品的具体差异，给出可验证的例子；不要复述设计愿景',
       reviewHint: '是否说得出「玩家凭什么选你」；与「设计愿景」不重复'
     }),
-    f('business_model', '商业模式', 'textarea', { aiDraftable: false })
+    f('business_model', '商业模式', 'textarea', { aiDraftable: false }),
+    f('competitive_analysis', '竞品对比要点', 'stringList'),
   ],
   // 原 worldview + characters 两章合并为 story（字段取并集）
   story: [
@@ -153,7 +156,14 @@ const BASE_CHAPTER_FIELDS: Partial<Record<ChapterKey, CeshuFieldDef[]>> = {
       ]
     }),
     f('companion_system', '同伴系统', 'textarea'),
-    f('character_arcs', '角色成长弧线', 'stringList', { placeholder: '每行一个' })
+    f('character_arcs', '角色成长弧线', 'stringList', { placeholder: '每行一个' }),
+    f('history_eras', '历史纪元', 'pipeList', { placeholder: '纪元|事件' }),
+    f('factions', '阵营', 'pipeList', { placeholder: '名称|立场|现状' }),
+    f('branch_endings', '分支结局', 'pipeList', { placeholder: '结局名|达成条件' }),
+    f('character_network', '角色关系网', 'pipeList', { placeholder: '角色A-角色B|关系|张力' }),
+    f('enemy_types', '敌人类型', 'pipeList', { placeholder: '类型|等级|行为|作用' }),
+    f('voice_cast', '配音阵容', 'pipeList', { placeholder: '角色|语言|声线|范围' }),
+    f('character_relationships', '角色关系', 'stringList'),
   ],
   gameplay: [
     f('core_loop', '核心循环', 'textarea', { placeholder: '如: 探索→战斗→获取→养成→更强探索' }),
@@ -163,7 +173,10 @@ const BASE_CHAPTER_FIELDS: Partial<Record<ChapterKey, CeshuFieldDef[]>> = {
     }),
     f('core_loop_notes', '核心循环·补充', 'textarea', { aiHint: '循环之外的补充说明，可留空' }),
     f('game_modes', '游戏模式', 'stringList', { placeholder: '每行一个' }),
-    f('first_30_min', '新手体验(前30分钟)', 'textarea')
+    f('first_30_min', '新手体验(前30分钟)', 'textarea'),
+    f('control_scheme', '操作方案', 'text'),
+    f('win_lose_conditions', '胜负条件', 'textarea'),
+    f('tutorial_design', '新手引导设计', 'textarea'),
   ],
   systems: [],
   numeric: [
@@ -178,13 +191,20 @@ const BASE_CHAPTER_FIELDS: Partial<Record<ChapterKey, CeshuFieldDef[]>> = {
     }),
     f('core_formulas_notes', '核心公式·补充', 'textarea', { aiHint: '公式之外的说明，可留空' }),
     f('balance_principles', '平衡原则', 'textarea'),
-    f('economic_model', '经济模型', 'textarea')
+    f('economic_model', '经济模型', 'textarea'),
+    f('growth_curves', '成长曲线', 'pipeList', { placeholder: '对象|曲线形状|参数' }),
+    f('drop_tables', '掉落公式', 'pipeList', { placeholder: '物品|来源|公式' }),
   ],
   art: [
     f('art_style', '美术风格', 'textarea'),
     f('color_system', '色彩体系', 'textarea'),
     f('typography', '字体排版', 'textarea'),
-    f('vfx', '特效风格', 'textarea')
+    f('vfx', '特效风格', 'textarea'),
+    f('character_design', '角色设计要点', 'stringList'),
+    f('environment_design', '场景设计要点', 'stringList'),
+    f('ui_design_language', 'UI 设计语言', 'textarea'),
+    f('animation', '动画规格', 'stringList'),
+    f('multi_resolution', '多分辨率适配', 'textarea'),
   ],
   tech: [
     f('engine', '引擎/框架', 'combo', {
@@ -193,12 +213,21 @@ const BASE_CHAPTER_FIELDS: Partial<Record<ChapterKey, CeshuFieldDef[]>> = {
     }),
     f('core_architecture', '核心架构', 'textarea'),
     f('milestones', '开发里程碑', 'pipeList', { columns: [{ key: 'phase', label: '阶段' }] }),
-    f('team_structure', '团队分工', 'textarea')
+    f('team_structure', '团队分工', 'textarea'),
+    f('third_party_deps', '第三方依赖', 'pipeList', { placeholder: '名称|用途|授权' }),
+    f('performance_targets', '性能目标', 'textarea'),
+    f('qa_plan', 'QA 计划', 'textarea'),
   ],
   resources: [
     f('budget.summary', '预算概算', 'text'),
     f('risk_matrix', '风险评估', 'stringList', { placeholder: '每行一条风险' }),
-    f('ip', '知识产权', 'text')
+    f('ip', '知识产权', 'text'),
+    f('art_assets', '美术资源清单', 'pipeList', { placeholder: '类别|数量|规格' }),
+    f('audio_assets', '音频资源清单', 'pipeList', { placeholder: '类别|数量|说明' }),
+    f('localization', '本地化资源', 'pipeList', { placeholder: '语言|阶段|文本量' }),
+    f('outsourcing', '外包计划', 'pipeList', { placeholder: '事项|方式|预算' }),
+    f('contingency_plan', '应急预案', 'textarea'),
+    f('appendix', '附录', 'textarea'),
   ],
   market_analysis: [
     f('target_market', '目标市场', 'textarea'),
@@ -242,7 +271,8 @@ const BASE_CHAPTER_FIELDS: Partial<Record<ChapterKey, CeshuFieldDef[]>> = {
     f('pvp_design', 'PVP 设计', 'textarea'),
     f('pve_design', 'PVE 设计', 'textarea'),
     f('boss_mechanics', 'Boss 战机制', 'textarea'),
-    f('balance_strategy', '平衡策略', 'textarea')
+    f('balance_strategy', '平衡策略', 'textarea'),
+    f('combat_progression', '战斗成长', 'textarea'),
   ],
   economy: [
     f('currency_types', '货币类型', 'pipeList', {
@@ -258,7 +288,9 @@ const BASE_CHAPTER_FIELDS: Partial<Record<ChapterKey, CeshuFieldDef[]>> = {
     f('production_chain', '生产链', 'textarea'),
     f('market_design', '交易市场', 'textarea'),
     f('inflation_control', '通胀控制', 'textarea'),
-    f('economic_goals', '经济目标', 'textarea')
+    f('economic_goals', '经济目标', 'textarea'),
+    f('metrics_tracking', '经济监控指标', 'pipeList', { placeholder: '指标|口径|告警阈值' }),
+    f('seasonal_adjustment', '赛季调整', 'textarea'),
   ],
   monetization: [
     f('payment_model', '付费模式', 'combo', {
@@ -280,7 +312,8 @@ const BASE_CHAPTER_FIELDS: Partial<Record<ChapterKey, CeshuFieldDef[]>> = {
     f('vip_system', 'VIP 系统', 'textarea'),
     f('whale_strategy', '大 R 策略', 'textarea'),
     f('f2p_experience', '免费玩家体验', 'textarea'),
-    f('arpu_target', 'ARPU 目标', 'textarea')
+    f('arpu_target', 'ARPU 目标', 'textarea'),
+    f('limited_offers', '限时优惠', 'pipeList', { placeholder: '名称|条件|有效期' }),
   ],
   mvp: [
     f('mvp_scope', 'MVP 范围', 'textarea'),
@@ -298,7 +331,10 @@ const BASE_CHAPTER_FIELDS: Partial<Record<ChapterKey, CeshuFieldDef[]>> = {
     f('success_criteria', '成功标准', 'textarea'),
     f('team_size', '团队规模', 'number', { from: 0, to: 999 }),
     f('budget_estimate', '预算估算', 'textarea'),
-    f('playtest_plan', '试玩测试', 'textarea')
+    f('playtest_plan', '试玩测试', 'textarea'),
+    f('prototype_features', '原型特性', 'pipeList', { placeholder: '特性|周期' }),
+    f('risk_assessment', '风险评估', 'stringList'),
+    f('prototype_plan', '原型计划', 'textarea'),
   ],
   risk_handling: [
     f('risk_matrix', '风险矩阵', 'pipeList', {
@@ -317,7 +353,8 @@ const BASE_CHAPTER_FIELDS: Partial<Record<ChapterKey, CeshuFieldDef[]>> = {
     f('legal_risks', '法律风险', 'stringList', { placeholder: '每行一个' }),
     f('schedule_risks', '进度风险', 'stringList', { placeholder: '每行一个' }),
     f('risk_monitoring', '风险监控', 'textarea'),
-    f('crisis_management', '危机管理', 'textarea')
+    f('crisis_management', '危机管理', 'textarea'),
+    f('escalation_path', '升级路径', 'pipeList', { placeholder: '层级|决策人|时限' }),
   ],
   audio: [
     f('music_style', '音乐风格', 'textarea'),
@@ -344,7 +381,8 @@ const BASE_CHAPTER_FIELDS: Partial<Record<ChapterKey, CeshuFieldDef[]>> = {
     }),
     f('dynamic_audio', '动态音频', 'textarea'),
     f('audio_localization', '音频本地化', 'textarea'),
-    f('audio_budget', '音频预算', 'textarea')
+    f('audio_budget', '音频预算', 'textarea'),
+    f('audio_milestones', '音频里程碑', 'pipeList', { placeholder: '时间|交付物' }),
   ],
   accessibility: [
     f('language_list', '支持语言', 'stringList', { placeholder: '每行一个，如: 简体中文、English' }),
