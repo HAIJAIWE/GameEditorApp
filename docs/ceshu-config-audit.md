@@ -150,15 +150,15 @@
 
 `REQUIREMENTS_FULL` 要求「字符串字段生成 50-300 字」；评分引擎「内容质量 40 分」主要看字数是否落在基准区间。**这套激励在系统性奖励「写满」**——与「简单易懂」直接冲突，也解释了为什么 AI 产出容易又长又空。
 
-### 🟠 P1-1 重叠字段（已处理 2 组，还剩 3 组）
+### 🟠 P1-1 重叠字段（3 组全部处理，2026-10-23）
 
 | 组 | 状态 |
 |---|---|
 | vision.design_vision ↔ differentiation | ✅ 契约已划界 + 重复检测已上线 |
 | numeric.core_formulas ↔ combat.damage_formula | ✅ 同上 |
-| **resources.risk_matrix ↔ risk_handling.risk_matrix** | ❌ 未处理（重名重叠，校验里有一条「内容不一致」警告在兜） |
-| **vision.user_personas.potential ↔ secondary** | ❌ 潜在用户在默认数据有键、schema 无字段 |
-| **numeric.economic_model ↔ economy 全章** | ❌ 经济模型在两个章各写一遍 |
+| resources.risk_matrix ↔ risk_handling.risk_matrix | ✅ 契约改「资源视角 TOP 3-5 条概要」，完整五列矩阵归第十三章 |
+| vision.user_personas.potential ↔ secondary | ✅ 默认数据里的 `potential` 残留键已删（schema 无此字段、无代码引用） |
+| numeric.economic_model ↔ economy 全章 | ✅ 拆分后本体只留数值模型概述，公式/参数走要点清单；契约写明「机制设计归经济章，此处只写数值侧」 |
 
 ### 🟠 P1-2 人定字段未标记（8/122 标了人定，明显漏标）
 
@@ -177,19 +177,32 @@ UI/UX 交互设计、关卡/内容设计、运营与活动、数据埋点与指�
 | # | 动作 | 状态 |
 |---|---|---|
 | 1 | 修 `story` 字数基准缺失；清掉 `worldview`/`characters` 死条目 | ✅ 基准表改按 `ChapterKey` 收口（漏配编译期报错），补 `story: [500,1500,800]`，删死条目；加「每章都有基准」回归测试 |
-| 2 | 给 10 个零契约章补 aiHint + reviewHint | ✅ **覆盖率 19% → 80%（aiHint）、6% → 75%（reviewHint）**；契约数据按章拆到 `src/shared/ceshuFieldHints/`（12 章文件并行编写），`ceshuFields.ts` 只在导出时合并；人定字段 8 → 18 |
-| 3 | 质量门加「写对」代理指标 | ✅ 新模块 `shared/ceshuContentQuality.ts`（空话密度 / 长句率 / 列表结构率 / 数字具体性），接进 `validateCeshu` 第 14 项（字段级定位，数组型字段自动跳过列表结构检查） |
+| 2 | 给 10 个零契约章补 aiHint + reviewHint | ✅ **覆盖率 19% → 80%（aiHint）、6% → 75%（reviewHint）**；契约数据按章拆到 `src/shared/ceshuFieldHints/`（14 章文件并行编写），`ceshuFields.ts` 只在导出时合并；人定字段 8 → 18 |
+| 3 | 质量门加「写对」代理指标 | ✅ 新模块 `shared/ceshuContentQuality.ts`（空话密度 / 长句率 / 数字具体性），接进 `validateCeshu` 第 14 项（字段级定位）；列表结构判据经校准后移出字段级输出（见 P1-3） |
 | 4 | 高危字段加「禁编造」提示词 | ✅ 新增 `CESHU_NO_FABRICATION` 全局约束进整章/补全/单字段三条提示词路径；`competitors`/`market_size`/`target_market` 三个高危字段的 aiHint 另带字段级禁编造要求 |
 
 覆盖率守卫测试已落地：每章至少一个 aiHint、全库 ≥70%、高危字段必须含「待确认」、人定字段必须 `aiDraftable:false` 且不带 aiHint。
 
-### P1（把「审不动」变成「审得动」）—— 待办
+### P1（把「审不动」变成「审得动」）—— ✅ 已完成（2026-10-23）
 
-| # | 动作 | 工作量 |
+| # | 动作 | 状态 |
 |---|---|---|
-| 5 | 拆解第二批 textarea（combat 6 个、economy 3 个、art 4 个、market 3 个、accessibility 5 个…），沿用 `xxx_points + xxx_notes` 模式 + 既有迁移器 | 1 天 |
-| 6 | 处理剩余 3 组重叠（risk_matrix 二义、economic_model 归位、potential 补字段） | 2 小时 |
-| 7 | 补标人定字段 | ✅ 已在 P0-2 完成（8 → 18 个，含 mvp/monetization/tech/resources/audio 的预算与决策字段） |
+| 5 | 拆解第二批 textarea，沿用 `xxx_points + xxx_notes` 模式 | ✅ **39 个字段拆分**（combat 8 / economy 4 / monetization 5 / accessibility 6 / audio 3 / market_analysis 4 / mvp 2 / story 2 / risk_handling 2 / tech 1 / art 2 / numeric 1 / gameplay 1），字段表 122 → 200；拆分配置按章拆到 `src/shared/ceshuFieldSplits/`（数据驱动，`ceshuFields.ts` 导出时自动插入配套字段并带通用契约兜底）；**守卫测试锁定**：不拆必填 / 非 textarea / 点路径 / `_notes` / 人定字段 |
+| 6 | 处理剩余 3 组重叠 | ✅ 见 P1-1 表；`user_personas.potential` 从默认数据删除（schema 无此字段、无代码引用） |
+| 7 | 补标人定字段 | ✅ 已在 P0-2 完成（8 → 18 个） |
+
+### P1-3 「写对」指标按人类写作基线校准（2026-10-23）
+
+指标上线后用 docs/ 下 **161 段人类真实写作**回测，初版阈值（长句 40 字 / 0.3、数字门槛 120、字段级列表结构要求）把 **81.4%** 的正常段落标记——提示疲劳比漏报更糟（人会学会忽略所有提示，真问题也被淹没）。按数据修正：
+
+| 判据 | 初版 | 校准后 | 依据 |
+|---|---|---|---|
+| 超长句 | >40 字且占比 >30% | >50 字且占比 >50% | 人类写作长句率均值 0.278、P90 1.0；中文 50 字以上才公认算长句 |
+| 数字具体性 | >120 字无数字 | >200 字无数字 | 「一段设计理念没数字」在策划语境完全正常 |
+| 列表结构 | 字段级要求「- 」前缀 | **移出字段级输出**（signal 保留） | 要求散文列表化与三件套设计自相矛盾——本体契约就是「一段概述」，可核对条目在 points 字段（天然 stringList） |
+| 空话套话 | 12 词表 | 不变 | 人类文档**零误伤**，阈值设计正确 |
+
+误报率 **81.4% → 19.9%**；剩余触发经人工核对均为「整段一句超长」这类真问题。校准结论已固化为 `tests/unit/ceshuContentQualityBaseline.test.ts`（人类样本不触发 + 空话样本必触发 + 阈值常量锁定），**将来调严阈值必须先重做校准实验**。
 
 ### P2（结构补全，建议在 P0/P1 之后）
 
@@ -201,7 +214,7 @@ UI/UX 交互设计、关卡/内容设计、运营与活动、数据埋点与指�
 
 ## 5. 一句话回答今天的问题
 
-> **初始配置「像一份 GDD 目录」，但它从来没有被「生成一遍→审一遍→改一遍」验证过；19% 的 AI 契约覆盖率和「字数当质量」的评分方向，意味着现在的 AI 产出大概率「写满了但没写对」。** 先做 P0-1/P0-2/P0-4（合计半天、零风险），再谈补模块。
+> **初始配置「像一份 GDD 目录」，但它从来没有被「生成一遍→审一遍→改一遍」验证过。** 2026-10-23 已完成 P0 全部四项 + P1 全部三项：契约覆盖率 19%→80%、「写对」指标进校验链并按人类写作基线校准（误报 81.4%→19.9%）、39 个 textarea 拆成可逐条核对的三件套、三组重叠字段划清归属。剩下 P2（补 7 个标准 GDD 模块）与**唯一还没做的那件事**：配一个模型跑一次真生成，用产出事实做最终验收。
 
 ---
 
