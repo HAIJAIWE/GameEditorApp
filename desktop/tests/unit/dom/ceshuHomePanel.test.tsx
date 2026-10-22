@@ -73,3 +73,46 @@ describe('CeshuHomePanel：卡片待审徽标', () => {
     expect(badges[0]?.textContent).toBe('待审 2')
   })
 })
+
+describe('CeshuHomePanel：「只看待审」筛选', () => {
+  it('点开关后只剩有待审的卡，再点一次恢复全部', async () => {
+    const rendered = await renderPanel([
+      summary({ id: 'a', pendingCount: 2 }),
+      summary({ id: 'b', pendingCount: 0 }),
+      summary({ id: 'c', pendingCount: 1 })
+    ])
+    expect(rendered.queryAll('[data-testid="home-card"]')).toHaveLength(3)
+
+    const toggle = rendered.byTestId('home-pending-filter')
+    await rendered.click(toggle)
+    expect(toggle.getAttribute('aria-pressed')).toBe('true')
+    const kept = rendered.queryAll('[data-testid="home-card"]')
+    expect(kept).toHaveLength(2)
+    expect(kept.map((card) => card.getAttribute('data-ceshu-id'))).toEqual(['a', 'c'])
+
+    await rendered.click(toggle)
+    expect(toggle.getAttribute('aria-pressed')).toBe('false')
+    expect(rendered.queryAll('[data-testid="home-card"]')).toHaveLength(3)
+  })
+
+  it('全部没有待审时显示专属空态，且不影响原有「暂无策划书」分支', async () => {
+    const rendered = await renderPanel([
+      summary({ id: 'a', pendingCount: 0 }),
+      summary({ id: 'b', pendingCount: 0 })
+    ])
+    expect(rendered.query('[data-testid="home-pending-empty"]')).toBeNull()
+
+    await rendered.click(rendered.byTestId('home-pending-filter'))
+    expect(rendered.byTestId('home-pending-empty').textContent).toBe('没有待审的策划书')
+    expect(rendered.queryAll('[data-testid="home-card"]')).toHaveLength(0)
+    // 有卡片、只是全无待审：走专属空态，不误报成「未找到匹配」
+    expect(rendered.query('[data-testid="home-empty"]')).toBeNull()
+  })
+
+  it('原本就没有任何策划书时仍走原有空态', async () => {
+    const rendered = await renderPanel([])
+    await rendered.click(rendered.byTestId('home-pending-filter'))
+    expect(rendered.byTestId('home-empty').textContent).toContain('暂无策划书')
+    expect(rendered.query('[data-testid="home-pending-empty"]')).toBeNull()
+  })
+})

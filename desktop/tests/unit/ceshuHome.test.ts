@@ -14,6 +14,7 @@ import {
   ceshuUpdatedDisplay,
   ceshuVersionBadge,
   filterCeshuCards,
+  filterPendingCards,
   pickRecentCeshu
 } from '../../src/shared/ceshuHome'
 
@@ -147,6 +148,31 @@ describe('ceshuHome 搜索与最近打开', () => {
     expect(RECENT_LIMIT).toBe(5)
     // 不改动入参顺序
     expect(list.map((s) => s.id)).toEqual(['old', 'new', 'mid'])
+  })
+})
+
+describe('ceshuHome 只看待审', () => {
+  const cards = buildCeshuCards([
+    summary({ id: 'a', pendingCount: 2 }),
+    summary({ id: 'b', pendingCount: 0 }),
+    summary({ id: 'c', pendingCount: 1 })
+  ])
+
+  it('filterPendingCards：关闭时原样返回（同一引用），不复制数组', () => {
+    const same = filterPendingCards(cards, false)
+    expect(same).toBe(cards)
+    expect(same.map((c) => c.id)).toEqual(['a', 'b', 'c'])
+  })
+
+  it('filterPendingCards：开启时只保留 pendingCount > 0', () => {
+    expect(filterPendingCards(cards, true).map((c) => c.id)).toEqual(['a', 'c'])
+    // 不改动入参
+    expect(cards.map((c) => c.id)).toEqual(['a', 'b', 'c'])
+  })
+
+  it('filterPendingCards：全为 0 时返回空数组', () => {
+    const none = buildCeshuCards([summary({ id: 'x' }), summary({ id: 'y' })])
+    expect(filterPendingCards(none, true)).toEqual([])
   })
 })
 

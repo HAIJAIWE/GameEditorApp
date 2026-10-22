@@ -5,6 +5,7 @@ import {
   RECENT_LIMIT,
   buildCeshuCards,
   filterCeshuCards,
+  filterPendingCards,
   pickRecentCeshu
 } from '../../../shared/ceshuHome'
 
@@ -47,6 +48,8 @@ export default function CeshuHomePanel({
   onDeleted
 }: CeshuHomePanelProps) {
   const [keyword, setKeyword] = useState('')
+  /** 只看有待审的策划书（纯展示层过滤，不影响搜索逻辑） */
+  const [pendingOnly, setPendingOnly] = useState(false)
   const [action, setAction] = useState<CardAction | null>(null)
   const [actionText, setActionText] = useState('')
   const [copyPickerOpen, setCopyPickerOpen] = useState(false)
@@ -56,7 +59,17 @@ export default function CeshuHomePanel({
   const [notice, setNotice] = useState<string | null>(null)
 
   const cards = useMemo(() => buildCeshuCards(summaries), [summaries])
-  const visibleCards = useMemo(() => filterCeshuCards(cards, keyword), [cards, keyword])
+  // 搜索过滤在前、待审过滤在后：先缩小到用户搜的范围，再看里面哪些还有待审
+  const visibleCards = useMemo(
+    () => filterPendingCards(filterCeshuCards(cards, keyword), pendingOnly),
+    [cards, keyword, pendingOnly]
+  )
+  /**
+   * 「只看待审」专属空态：列表本身有内容、只是没有待审项。
+   * 带关键词时不走这里——那种情况该提示「未找到匹配」，否则会把「搜不到」误报成「没有待审」。
+   */
+  const pendingEmpty =
+    pendingOnly && keyword.trim() === '' && visibleCards.length === 0 && summaries.length > 0
   const recents = useMemo(() => pickRecentCeshu(summaries, RECENT_LIMIT), [summaries])
 
   const beginAction = (next: CardAction, initialText = ''): void => {
@@ -206,13 +219,28 @@ export default function CeshuHomePanel({
         </div>
       )}
 
-      <input
-        className="form-input home-search"
-        data-testid="home-search"
-        placeholder="🔍 搜索策划书..."
-        value={keyword}
-        onChange={(event) => setKeyword(event.target.value)}
-      />
+      {/* 搜索 + 「只看待审」同一行：两者共同决定「看到哪些卡」 */}
+      <div className="home-filter-row">
+        <input
+          className="form-input home-search"
+          data-testid="home-search"
+          placeholder="🔍 搜索策划书..."
+          value={keyword}
+          onChange={(event) => setKeyword(event.target.value)}
+        />
+
+        {/* 紧跟搜索框：两者共同决定「看到哪些卡」。不新增样式类，复用既有 slim / accent-outline */}
+        <button
+          type="button"
+          className={`btn slim${pendingOnly ? ' accent-outline' : ''}`}
+          data-testid="home-pending-filter"
+          aria-pressed={pendingOnly}
+          title="只显示还有 AI 草稿待审的策划书"
+          onClick={() => setPendingOnly((value) => !value)}
+        >
+          只看待审
+        </button>
+      </div>
 
       {recents.length > 0 && (
         <div className="home-recent" data-testid="home-recent">
@@ -233,7 +261,11 @@ export default function CeshuHomePanel({
 
       <span className="home-section-label">全部策划书</span>
 
-      {visibleCards.length === 0 ? (
+      {pendingEmpty ? (
+        <div className="empty" data-testid="home-pending-empty">
+          没有待审的策划书
+        </div>
+      ) : visibleCards.length === 0 ? (
         <div className="empty" data-testid="home-empty">
           {summaries.length === 0
             ? '暂无策划书，点击右上角「+ 空白策划书」开始吧'

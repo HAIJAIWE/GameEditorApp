@@ -138,6 +138,17 @@ export function filterCeshuCards(cards: CeshuCardView[], keyword: string): Ceshu
   return cards.filter((card) => card.searchKey.includes(needle))
 }
 
+/**
+ * 只保留有待审的卡片（pendingCount > 0）；enabled=false 时原样返回。
+ *
+ * 首页「只看待审」开关用：版本一多，靠肉眼扫「待审 N」徽标成本太高。
+ * 关闭时返回**同一个引用**，让调用方 useMemo 的依赖语义与改动前完全一致。
+ */
+export function filterPendingCards(cards: CeshuCardView[], enabled: boolean): CeshuCardView[] {
+  if (!enabled) return cards
+  return cards.filter((card) => card.pendingCount > 0)
+}
+
 /** 最近打开：按 updatedAt 倒序取前 count 条（对齐 Python `get_recent_ceshus`） */
 export function pickRecentCeshu(summaries: CeshuSummary[], count: number = RECENT_LIMIT): CeshuSummary[] {
   return [...summaries]
