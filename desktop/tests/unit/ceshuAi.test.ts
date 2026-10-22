@@ -412,3 +412,20 @@ describe('AI 全量生成：提示词补充参数与草稿合并', () => {
     expect(mapTypeLabelToKey('未知')).toBe('')
   })
 })
+describe('AI 生成：禁编造约束（2026-10-23 体检后新增）', () => {
+  it('整章与补全提示词都带禁编造段，且要点齐全', () => {
+    const doc = createDefaultCeshu({ scope: 'full', name: '测试游戏' })
+    for (const options of [{}, { onlyEmpty: true }]) {
+      const prompt = buildChapterPrompt(doc, 'market_analysis', options).prompt
+      expect(prompt).toContain('禁编造（硬约束）')
+      expect(prompt).toContain('竞品名、已上线游戏、引擎、IP、公司名必须是真实存在的')
+      expect(prompt).toContain('「待确认」')
+    }
+  })
+
+  it('单字段生成也带禁编造（外部 AI 提示词同源）', () => {
+    const doc = createDefaultCeshu({ scope: 'full', name: '测试游戏' })
+    const prompt = buildChapterPrompt(doc, 'market_analysis', { onlyFields: ['competitors'] }).prompt
+    expect(prompt).toContain('禁编造（硬约束）')
+  })
+})
