@@ -176,10 +176,103 @@ export function renderStateMachineSvg(rows: readonly string[]): string | null {
 }
 
 /** 从文档取两张图（无数据返回 null）；供 HTML 导出注入 */
-export function renderDocDiagrams(doc: CeshuDocument): { coreLoop: string | null; stateMachine: string | null } {
+export function renderDocDiagrams(doc: CeshuDocument): {
+  coreLoop: string | null
+  stateMachine: string | null
+  growthChart: string | null
+} {
   const gameplay = doc.gameplay
   return {
     coreLoop: renderCoreLoopSvg(toRows(gameplay.core_loop_points)),
-    stateMachine: renderStateMachineSvg(toRows(gameplay.state_machine))
+    stateMachine: renderStateMachineSvg(toRows(gameplay.state_machine)),
+    growthChart: renderGrowthChartSvg(toRows(doc.numeric.growth_curves))
   }
+}
+
+/**
+ * 成长曲线图（对数坐标）——对标豆包交付物的 curve.svg。
+ *
+ * 数据源：`numeric.growth_curves`（对象|曲线形状|参数）。指数型要求参数写成
+ * 「基数,成长」（也接受 `10×1.28` / `10*1.28`），据此算 value(n)=基数×成长^(n-1)，
+ * n=1..40。**参数解析不出就不画**——图是增强，不是校验依赖（写不清由 aiHint 兜）。
+ *
+ * 为什么用对数坐标：成长曲线跨度常达 6 个数量级，线性坐标下前 20 层会压成一条线。
+ */
+export function renderGrowthChartSvg(rows: readonly string[]): string | null {
+  const series: Array<{ name: string; base: number; growth: number }> = []
+  for (const row of rows) {
+    if (typeof row !== 'string') continue
+    const columns = row.split('|').map((column) => column.trim())
+    const name = columns[0] ?? ''
+    const shape = columns[1] ?? ''
+    const param = columns[2] ?? ''
+    if (name === '' || !/指数|exponential/i.test(shape)) continue
+    const match = /(-?\d+(?:\.\d+)?)\s*[,，×x*]\s*(\d+(?:\.\d+)?)/.exec(param)
+    if (match === null) continue
+    const base = Number(match[1])
+    const growth = Number(match[2])
+    if (!Number.isFinite(base) || !Number.isFinite(growth) || base <= 0 || growth <= 0) continue
+    if (series.length >= 3) break
+    series.push({ name, base, growth })
+  }
+  if (series.length === 0) return null
+
+  const LAYERS = 40
+  const width = WIDTH
+  const height = 330
+  const padding = { left: 56, right: 16, top: 46, bottom: 40 }
+  const plotW = width - padding.left - padding.right
+  const plotH = height - padding.top - padding.bottom
+  const colors = ['#3f6fd8', '#e08a2e', '#5aa469']
+
+  // y 轴：log10，从 10^0 到 10^ceil(maxExponent)
+  let maxExp = 1
+  for (const item of series) {
+    const maxValue = item.base * Math.pow(item.growth, LAYERS - 1)
+    maxExp = Math.max(maxExp, Math.ceil(Math.log10(maxValue)))
+  }
+  const yOf = (value: number): number => {
+    const exp = Math.log10(Math.max(value, 1))
+    return padding.top + plotH - (exp / maxExp) * plotH
+  }
+  const xOf = (n: number): number => padding.left + ((n - 1) / (LAYERS - 1)) * plotW
+
+  const parts: string[] = []
+  parts.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" role="img" aria-label="成长曲线图">`)
+  parts.push(`<text x="${width / 2}" y="24" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="15" font-weight="600" fill="#1f2430">成长曲线（对数坐标）</text>`)
+
+  // 网格与 y 轴刻度（10^0..10^maxExp）
+  for (let exp = 0; exp <= maxExp; exp += 1) {
+    const y = padding.top + plotH - (exp / maxExp) * plotH
+    parts.push(`<line x1="${padding.left}" y1="${y}" x2="${width - padding.right}" y2="${y}" stroke="#e3e8f2" stroke-width="1"/>`)
+    const label = exp === 0 ? '1' : `10^${exp}`
+    parts.push(`<text x="${padding.left - 8}" y="${y + 4}" text-anchor="end" font-family="Microsoft YaHei, sans-serif" font-size="10.5" fill="#6b7590">${label}</text>`)
+  }
+  // x 轴刻度（层 1 / 10 / 20 / 30 / 40）
+  for (const n of [1, 10, 20, 30, 40]) {
+    const x = xOf(n)
+    parts.push(`<text x="${x}" y="${height - padding.bottom + 18}" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="10.5" fill="#6b7590">${n}</text>`)
+  }
+  parts.push(`<text x="${padding.left + plotW / 2}" y="${height - 6}" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="10.5" fill="#6b7590">层数</text>`)
+
+  // 曲线
+  series.forEach((item, index) => {
+    const points: string[] = []
+    for (let n = 1; n <= LAYERS; n += 1) {
+      points.push(`${xOf(n).toFixed(1)},${yOf(item.base * Math.pow(item.growth, n - 1)).toFixed(1)}`)
+    }
+    parts.push(`<polyline points="${points.join(' ')}" fill="none" stroke="${colors[index]}" stroke-width="1.8"/>`)
+  })
+
+  // 图例
+  series.forEach((item, index) => {
+    const x = padding.left + index * 170
+    parts.push(`<line x1="${x}" y1="${padding.top - 14}" x2="${x + 18}" y2="${padding.top - 14}" stroke="${colors[index]}" stroke-width="2.4"/>`)
+    parts.push(
+      `<text x="${x + 24}" y="${padding.top - 10}" font-family="Microsoft YaHei, sans-serif" font-size="11" fill="#3d4a6b">${esc(`${item.name} ${item.base}×${item.growth}^(n-1)`)}</text>`
+    )
+  })
+
+  parts.push('</svg>')
+  return parts.join('\n')
 }

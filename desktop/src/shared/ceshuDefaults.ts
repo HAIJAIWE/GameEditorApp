@@ -217,6 +217,17 @@ export function createDefaultChapters(): Record<ChapterKey, ChapterData> {
       compliance_notes: ''
     }
   }
-  // P2 扩展设计 7 章的默认数据按章分文件存放（见 ceshuChapterFields/），此处合并
-  return { ...base, ...NEW_CHAPTER_DEFAULTS }
+  /*
+   * P2 扩展设计 7 章的默认数据按章分文件存放（见 ceshuChapterFields/），此处合并。
+   *
+   * ⚠️ 必须**深拷贝**：`{ ...base, ...NEW_CHAPTER_DEFAULTS }` 只做浅拷贝，
+   * 各章的默认对象（qa/analytics/...）会在所有新文档间共享——任何一处就地修改
+   * （测试里 `doc.qa.test_case_list = rows`、未来的迁移脚本）都会污染后续所有
+   * 文档的默认值。2026-10-24 由「空清单静默」用例被前序用例污染而暴露。
+   */
+  const cloned: Partial<Record<ChapterKey, ChapterData>> = {}
+  for (const [key, value] of Object.entries(NEW_CHAPTER_DEFAULTS)) {
+    cloned[key as ChapterKey] = structuredClone(value)
+  }
+  return { ...base, ...cloned } as unknown as Record<ChapterKey, ChapterData>
 }

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   renderCoreLoopSvg,
   renderDocDiagrams,
+  renderGrowthChartSvg,
   renderStateMachineSvg
 } from '../../src/main/ceshu/export/diagrams'
 import { createDefaultCeshu } from '../../src/shared/ceshuModel'
@@ -81,15 +82,45 @@ describe('renderStateMachineSvg：状态机图', () => {
 describe('renderDocDiagrams：从文档取图', () => {
   it('空文档 → 两张都 null', () => {
     const doc = createDefaultCeshu({ scope: 'full' })
-    expect(renderDocDiagrams(doc)).toEqual({ coreLoop: null, stateMachine: null })
+    expect(renderDocDiagrams(doc)).toEqual({ coreLoop: null, stateMachine: null, growthChart: null })
   })
 
-  it('填了核心循环与状态机 → 两张都出', () => {
+  it('填了核心循环、状态机与成长曲线 → 三张都出', () => {
     const doc = createDefaultCeshu({ scope: 'full' })
     doc.gameplay.core_loop_points = ['算', '派', '等', '判']
     doc.gameplay.state_machine = ['空闲|点击升级|扣资源|建造中', '建造中|完成|等级+1|空闲']
-    const { coreLoop, stateMachine } = renderDocDiagrams(doc)
+    doc.numeric.growth_curves = ['怪物HP|指数|10,1.28']
+    const { coreLoop, stateMachine, growthChart } = renderDocDiagrams(doc)
     expect(coreLoop).not.toBeNull()
     expect(stateMachine).not.toBeNull()
+    expect(growthChart).not.toBeNull()
+  })
+})
+
+describe('renderGrowthChartSvg：成长曲线图', () => {
+  it('指数型行 → 画图；含基数/成长与图例', () => {
+    const svg = renderGrowthChartSvg(['怪物HP|指数|10,1.28', '金币|指数|4,1.22'])
+    expect(svg).not.toBeNull()
+    expect(svg).toContain('成长曲线（对数坐标）')
+    expect(svg).toContain('怪物HP 10×1.28^(n-1)')
+    expect(svg).toContain('金币 4×1.22^(n-1)')
+    expect(svg).toContain('<polyline')
+  })
+
+  it('接受 ×/* 分隔写法', () => {
+    expect(renderGrowthChartSvg(['A|指数|10×1.28'])).not.toBeNull()
+    expect(renderGrowthChartSvg(['A|指数|10*1.28'])).not.toBeNull()
+  })
+
+  it('非指数型 / 参数不可解析 → 不画（返回 null）', () => {
+    expect(renderGrowthChartSvg(['A|线性|10,1.28'])).toBeNull()
+    expect(renderGrowthChartSvg(['A|指数|缓慢增长'])).toBeNull()
+    expect(renderGrowthChartSvg([])).toBeNull()
+  })
+
+  it('最多三条曲线（超出忽略）', () => {
+    const svg = renderGrowthChartSvg(['A|指数|1,1.2', 'B|指数|2,1.3', 'C|指数|3,1.4', 'D|指数|4,1.5']) as string
+    expect(svg).toContain('C 3×1.4')
+    expect(svg).not.toContain('D 4×1.5')
   })
 })

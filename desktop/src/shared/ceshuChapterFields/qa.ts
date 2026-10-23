@@ -54,6 +54,41 @@ export const QA_CHAPTER: ChapterDefinition = {
         { key: 'result', label: '结果' },
         { key: 'evidence', label: '证据' }
       ]
+    },
+    /*
+     * 用例清单（对标豆包 design-contract 的 `tests` 键，2026-10-24）。
+     *
+     * 与 `test_cases`（模块|用例数|优先级）的分工：那是**工作量估算**，本字段是
+     * **可执行用例**——每条有前置、操作、期望与状态。类型限定为
+     * 正常/边界/恢复/滥用 四类（对应豆包的 normal/boundary/recovery/abuse），
+     * 校验会检查类型与状态是否合法、失败用例是否被无视。
+     */
+    {
+      key: 'test_case_list',
+      label: '用例清单（可执行）',
+      kind: 'pipeList',
+      columns: [
+        { key: 'case', label: '用例' },
+        { key: 'type', label: '类型' },
+        { key: 'precondition', label: '前置' },
+        { key: 'action', label: '操作' },
+        { key: 'expected', label: '期望' },
+        { key: 'status', label: '状态' }
+      ]
+    },
+    /*
+     * 验收旅程（对标豆包的 prototype.journeys）：标准/恢复/滥用三条路径，
+     * 每条给步骤与期望——人按它走一遍，或由验收器按它跑一遍。
+     */
+    {
+      key: 'acceptance_journeys',
+      label: '验收旅程',
+      kind: 'pipeList',
+      columns: [
+        { key: 'journey', label: '旅程' },
+        { key: 'steps', label: '步骤' },
+        { key: 'expected', label: '期望' }
+      ]
     }
   ],
   defaults: {
@@ -64,6 +99,8 @@ export const QA_CHAPTER: ChapterDefinition = {
     acceptance_criteria: [],
     defect_management: [],
     test_env: '',
-    prototype_acceptance: []
+    prototype_acceptance: [],
+    test_case_list: [],
+    acceptance_journeys: []
   }
 }

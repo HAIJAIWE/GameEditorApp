@@ -18,6 +18,7 @@ import {
 import { CESHU_CHAPTER_FIELDS } from './ceshuFields'
 import { getGddScope, isEmptyRequiredValue, isPlainObject } from './ceshuModel'
 import { checkDesignClaims, checkNumericAssertions } from './ceshuNumericAssert'
+import { checkLedger, checkTestCaseList } from './ceshuEvidence'
 import { readText } from './util/readText'
 
 /**
@@ -231,6 +232,20 @@ export function validateCeshu(doc: CeshuDocument): string[] {
    * 变成可判定的：强度=计算的主张，其证据必须是**复算通过**的断言名。
    */
   for (const message of checkDesignClaims(doc)) {
+    errors.push(message)
+  }
+
+  /*
+   * 17. 用例清单检查（qa.test_case_list）：类型/状态合法、失败用例不被无视、用例可执行。
+   * 18. 经济账本对账（economy.ledger）：初始 + 逐笔交易 = 期末期望，机器求和比对。
+   *
+   * 两项都是 2026-10-24 对标豆包 tests / ledgers 键后新增——把 QA 从「工作量估算」
+   * 升级为「可执行用例」，把经济闭环从「文字描述」升级为「可对账的账本」。
+   */
+  for (const message of checkTestCaseList(doc)) {
+    errors.push(message)
+  }
+  for (const message of checkLedger(doc)) {
     errors.push(message)
   }
 

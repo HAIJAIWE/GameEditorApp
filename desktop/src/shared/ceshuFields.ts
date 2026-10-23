@@ -210,7 +210,12 @@ const BASE_CHAPTER_FIELDS: Partial<Record<ChapterKey, CeshuFieldDef[]>> = {
     f('core_formulas_notes', '核心公式·补充', 'textarea', { aiHint: '公式之外的说明，可留空' }),
     f('balance_principles', '平衡原则', 'textarea'),
     f('economic_model', '经济模型', 'textarea'),
-    f('growth_curves', '成长曲线', 'pipeList', { placeholder: '对象|曲线形状|参数' }),
+    f('growth_curves', '成长曲线', 'pipeList', {
+      placeholder: '对象|曲线形状|参数',
+      aiHint:
+        '每行一个对象：曲线形状写「指数/线性/对数」；指数型参数写「基数,成长」（如 10,1.28）——导出时据此画对数坐标曲线图；参数写不清就不画图，不影响校验',
+      reviewHint: '基数/成长是否与数值参数表一致；形状是否符合设计意图'
+    }),
     f('drop_tables', '掉落公式', 'pipeList', { placeholder: '物品|来源|公式' }),
     f('numeric_parameters', '数值参数表', 'pipeList', {
       placeholder: '参数|当前值|合法范围|调高影响|调低影响',
@@ -331,6 +336,12 @@ const BASE_CHAPTER_FIELDS: Partial<Record<ChapterKey, CeshuFieldDef[]>> = {
     f('market_design', '交易市场', 'textarea'),
     f('inflation_control', '通胀控制', 'textarea'),
     f('economic_goals', '经济目标', 'textarea'),
+    f('ledger', '经济账本（逐笔对账）', 'pipeList', {
+      placeholder: '账本|初始|交易|期末期望|允许为负',
+      aiHint:
+        '用一笔**具体交易**验证经济闭环：初始值 + 逐笔交易（逗号分隔，如 4,4,-5）= 期末期望；机器会逐笔求和与期末期望对账，不符即报错。交易必须是玩家真实会经历的那几笔（如首局两次击杀 → 首次升级）',
+      reviewHint: '交易顺序是否与新手路径一致；期末期望是否与正文数字一致；允许为负是否有明确理由'
+    }),
     f('metrics_tracking', '经济监控指标', 'pipeList', { placeholder: '指标|口径|告警阈值' }),
     f('seasonal_adjustment', '赛季调整', 'textarea'),
   ],

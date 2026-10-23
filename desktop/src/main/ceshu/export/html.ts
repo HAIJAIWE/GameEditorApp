@@ -72,11 +72,12 @@ function renderHeader(doc: CeshuDocument, gameName: string, today: string): stri
  * 无数据时整段不渲染（不输出空图或占位）。
  */
 function renderDiagrams(doc: CeshuDocument): string {
-  const { coreLoop, stateMachine } = renderDocDiagrams(doc)
-  if (coreLoop === null && stateMachine === null) return ''
+  const { coreLoop, stateMachine, growthChart } = renderDocDiagrams(doc)
+  if (coreLoop === null && stateMachine === null && growthChart === null) return ''
   const parts: string[] = ['<section class="diagrams">', '<h2>图示</h2>']
   if (coreLoop !== null) parts.push(`<figure class="diagram">${coreLoop}</figure>`)
   if (stateMachine !== null) parts.push(`<figure class="diagram">${stateMachine}</figure>`)
+  if (growthChart !== null) parts.push(`<figure class="diagram">${growthChart}</figure>`)
   parts.push('</section>')
   return parts.join('\n')
 }

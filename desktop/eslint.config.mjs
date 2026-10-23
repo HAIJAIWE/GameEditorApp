@@ -52,8 +52,8 @@ export default tseslint.config(
     }
   },
   {
-    // Demo 验收器：Node 驱动 + page.evaluate 里的浏览器上下文代码（document 等）
-    files: ['scripts/demoAcceptance.mjs'],
+    // 浏览器驱动脚本（Demo 验收 / SVG 转图）：Node 驱动 + page.evaluate 里的浏览器上下文
+    files: ['scripts/demoAcceptance.mjs', 'scripts/svgToImage.mjs'],
     languageOptions: {
       globals: { ...globals.node, ...globals.browser, WebSocket: 'readonly' }
     }
