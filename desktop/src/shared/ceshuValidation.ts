@@ -17,7 +17,7 @@ import {
 } from './ceshuContentQuality'
 import { CESHU_CHAPTER_FIELDS } from './ceshuFields'
 import { getGddScope, isEmptyRequiredValue, isPlainObject } from './ceshuModel'
-import { checkNumericAssertions } from './ceshuNumericAssert'
+import { checkDesignClaims, checkNumericAssertions } from './ceshuNumericAssert'
 import { readText } from './util/readText'
 
 /**
@@ -220,6 +220,17 @@ export function validateCeshu(doc: CeshuDocument): string[] {
    * 禁用 eval；只认白名单函数与四则运算）。
    */
   for (const message of checkNumericAssertions(doc)) {
+    errors.push(message)
+  }
+
+  /*
+   * 16. 设计主张的证据核对（numeric.design_claims）：claim → 断言 的绑定必须成立。
+   *
+   * 2026-10-24 对标豆包 `claims` 键后新增。断言通过 ≠ 文档里的主张都成立——
+   * 主张可能没挂任何断言，或挂了个复算不过的断言。本项把「每条主张的证据」
+   * 变成可判定的：强度=计算的主张，其证据必须是**复算通过**的断言名。
+   */
+  for (const message of checkDesignClaims(doc)) {
     errors.push(message)
   }
 

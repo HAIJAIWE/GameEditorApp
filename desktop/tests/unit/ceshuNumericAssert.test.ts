@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  checkDesignClaims,
   checkNumericAssertions,
   evaluateExpression,
   extractIdentifiers,
@@ -222,5 +223,64 @@ describe('validateCeshu 集成：断言检查进入校验链', () => {
     )
     const messages = validateCeshu(doc)
     expect(messages.filter((message) => message.includes('数值断言'))).toEqual([])
+  })
+})
+
+describe('checkDesignClaims：claim → 证据核对', () => {
+  const parameters = ['星火步长|10|5-50|稀|密', '星火加成|1.25|1.05-2|强|弱']
+  const assertions = [
+    '首转生恰得3星火|floor((35-1)/星火步长)|3|0|==3',
+    '三星火加成|星火加成^3|1.95|0.01|between 1.5-2.5'
+  ]
+
+  function docWithClaims(claims: string[], assertionRows = assertions): CeshuDocument {
+    const doc = createDefaultCeshu({ scope: 'full' })
+    doc.numeric.numeric_parameters = parameters
+    doc.numeric.numeric_assertions = assertionRows
+    doc.numeric.design_claims = claims
+    return doc
+  }
+
+  it('计算类主张挂到通过的断言 → 无消息', () => {
+    expect(checkDesignClaims(docWithClaims(['首转生恰得3星火|计算|首转生恰得3星火']))).toEqual([])
+  })
+
+  it('证据断言不存在 → 一致性冲突（无法复算）', () => {
+    const messages = checkDesignClaims(docWithClaims(['某个主张|计算|不存在的断言']))
+    expect(messages).toHaveLength(1)
+    expect(messages[0]).toContain('一致性冲突')
+    expect(messages[0]).toContain('不在数值断言表中')
+  })
+
+  it('证据断言复算不过 → 一致性冲突（主张不成立）', () => {
+    const bad = ['首转生恰得3星火|floor((35-1)/星火步长)|9|0|==3']
+    const messages = checkDesignClaims(docWithClaims(['首转生恰得3星火|计算|首转生恰得3星火'], bad))
+    expect(messages).toHaveLength(1)
+    expect(messages[0]).toContain('主张不成立')
+  })
+
+  it('实测/假设类主张：证据非空即通过，空证据告警', () => {
+    expect(checkDesignClaims(docWithClaims(['30 秒内理解核心循环|实测|Demo 首关计时'])).length).toBe(0)
+    expect(checkDesignClaims(docWithClaims(['次留 35%|假设|首测验证']))).toHaveLength(0)
+    const empty = checkDesignClaims(docWithClaims(['没有证据的主张|假设|']))
+    expect(empty).toHaveLength(1)
+    expect(empty[0]).toContain('一致性警告')
+    expect(empty[0]).toContain('没有证据')
+  })
+
+  it('强度无法识别 → 一致性警告', () => {
+    const messages = checkDesignClaims(docWithClaims(['某主张|感觉|断言A']))
+    expect(messages).toHaveLength(1)
+    expect(messages[0]).toContain('无法识别')
+  })
+
+  it('无 claims 字段 → 静默', () => {
+    const doc = createDefaultCeshu({ scope: 'full' })
+    expect(checkDesignClaims(doc)).toEqual([])
+  })
+
+  it('英文强度也认（calculated / tested / assumed）', () => {
+    expect(checkDesignClaims(docWithClaims(['主张A|calculated|首转生恰得3星火'])).length).toBe(0)
+    expect(checkDesignClaims(docWithClaims(['主张B|tested|试玩'])).length).toBe(0)
   })
 })

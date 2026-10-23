@@ -364,14 +364,32 @@ function formatNumber(value: number): string {
  * 参数表行格式：`参数|当前值|合法范围|调高影响|调低影响`。
  */
 export function checkNumericAssertions(doc: CeshuDocument): string[] {
-  const messages: string[] = []
+  return evaluateAssertions(doc).flatMap((result) => result.messages)
+}
+
+/** 单条断言的复算结论（claim→证据 核对要用「是否通过」，不能只看消息列表） */
+export interface AssertionResult {
+  statement: string
+  /**
+   * pass = 复算值与声明一致且通过接受条件；
+   * fail = 复算不符或验收不通过；
+   * skip = 依赖的参数无数值（待确认），未复算；
+   * error = 表达式无法解析（含引用未登记参数）。
+   */
+  status: 'pass' | 'fail' | 'skip' | 'error'
+  messages: string[]
+}
+
+/** 逐条复算断言，返回结构化结论（checkNumericAssertions 与 checkDesignClaims 共用） */
+export function evaluateAssertions(doc: CeshuDocument): AssertionResult[] {
   const parameterRows = toRows(doc.numeric.numeric_parameters)
   const assertionRows = toRows(doc.numeric.numeric_assertions)
-  if (assertionRows.length === 0) return messages
+  if (assertionRows.length === 0) return []
 
   const label = CHAPTER_LABELS.numeric
   const params = parseNumericParameters(parameterRows)
   const knownNames = parseParameterNames(parameterRows)
+  const results: AssertionResult[] = []
 
   for (const row of assertionRows) {
     if (typeof row !== 'string' || row.trim() === '') continue
@@ -384,16 +402,25 @@ export function checkNumericAssertions(doc: CeshuDocument): string[] {
     // 预检：依赖的参数「有名无数」（如当前值是「待确认」）→ 跳过并如实告知（warning 级）
     const valueless = extractIdentifiers(expression).filter((name) => knownNames.has(name) && !params.has(name))
     if (valueless.length > 0) {
-      messages.push(`复算跳过：${label} 数值断言「${tag}」依赖的参数 ${valueless.join('、')} 无数值（待确认），跳过复算`)
+      results.push({
+        statement,
+        status: 'skip',
+        messages: [`复算跳过：${label} 数值断言「${tag}」依赖的参数 ${valueless.join('、')} 无数值（待确认），跳过复算`]
+      })
       continue
     }
 
     const evaluated = evaluateExpression(expression, params)
     if (!evaluated.ok) {
-      messages.push(`格式异常：${label} 数值断言「${tag}」无法复算（${evaluated.error}）：${expression}`)
+      results.push({
+        statement,
+        status: 'error',
+        messages: [`格式异常：${label} 数值断言「${tag}」无法复算（${evaluated.error}）：${expression}`]
+      })
       continue
     }
     const value = evaluated.value
+    const messages: string[] = []
 
     // 与文中声明值比对（尊重容差）
     const declared = parseParameterValue(columns[2] ?? '')
@@ -412,6 +439,75 @@ export function checkNumericAssertions(doc: CeshuDocument): string[] {
         `一致性冲突：${label} 数值断言「${tag}」未通过验收条件：计算得 ${formatNumber(value)}，要求 ${acceptanceRaw}`
       )
     }
+
+    results.push({ statement, status: messages.length === 0 ? 'pass' : 'fail', messages })
+  }
+
+  return results
+}
+
+/**
+ * 设计主张的证据核对（`numeric.design_claims`，行格式 `主张|强度|证据`）。
+ *
+ * ## 解决什么问题（2026-10-24 对标豆包 `claims` 键后新增）
+ * 文档里最贵的一句话是「首转生恰得 2 微光」这类**主张**——它决定了整份设计
+ * 是否成立。标杆做法是给每条主张标「强度」并挂到证据上（calculated → 断言 id）。
+ * 我们此前只有断言、没有「主张」层：断言通过≠文档里的主张都成立（可能主张
+ * 没挂任何断言，或者挂了个复算不过的断言）。
+ *
+ * ## 判定规则
+ * - 强度=计算：证据必须是**数值断言表中存在的断言名**，且该断言复算通过；
+ *   断言不存在 → 一致性冲突（无法复算）；断言未通过 → 一致性冲突（主张不成立）；
+ *   断言无法解析/跳过 → 格式异常/复算跳过；
+ * - 强度=实测/假设：无法机器验证，证据非空即通过（空 → 一致性警告）；
+ * - 强度缺失或无法识别 → 一致性警告（提醒规范写法）。
+ */
+export function checkDesignClaims(doc: CeshuDocument): string[] {
+  const claimRows = toRows(doc.numeric.design_claims)
+  if (claimRows.length === 0) return []
+
+  const label = CHAPTER_LABELS.numeric
+  const byStatement = new Map(evaluateAssertions(doc).map((result) => [result.statement, result]))
+  const messages: string[] = []
+
+  for (const row of claimRows) {
+    if (typeof row !== 'string' || row.trim() === '') continue
+    const columns = row.split('|').map((column) => column.trim())
+    const claim = columns[0] ?? ''
+    if (claim === '') continue
+    const strengthRaw = columns[1] ?? ''
+    const strength = strengthRaw.toLowerCase()
+    const evidence = columns[2] ?? ''
+
+    if (evidence === '') {
+      messages.push(`一致性警告：${label} 设计主张「${claim}」没有证据，请补证据或标注为假设`)
+      continue
+    }
+
+    if (strength === '计算' || strength === 'calculated' || strength === '复算') {
+      const hit = byStatement.get(evidence)
+      if (hit === undefined) {
+        messages.push(
+          `一致性冲突：${label} 设计主张「${claim}」标注为计算，但证据「${evidence}」不在数值断言表中（无法复算）`
+        )
+        continue
+      }
+      if (hit.status === 'fail') {
+        messages.push(`一致性冲突：${label} 设计主张「${claim}」的证据断言「${evidence}」未通过复算，主张不成立`)
+      } else if (hit.status === 'error') {
+        messages.push(`格式异常：${label} 设计主张「${claim}」的证据断言「${evidence}」无法解析，主张无法验证`)
+      } else if (hit.status === 'skip') {
+        messages.push(`复算跳过：${label} 设计主张「${claim}」的证据断言「${evidence}」依赖无数值参数，主张未验证`)
+      }
+      continue
+    }
+
+    if (strength === '实测' || strength === 'tested' || strength === '假设' || strength === 'assumed') {
+      // 无法机器验证的强度：证据非空即通过（上面已判空）
+      continue
+    }
+
+    messages.push(`一致性警告：${label} 设计主张「${claim}」的强度「${strengthRaw}」无法识别（应为 计算/实测/假设）`)
   }
 
   return messages

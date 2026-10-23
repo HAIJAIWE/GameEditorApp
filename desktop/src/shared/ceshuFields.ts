@@ -224,6 +224,12 @@ const BASE_CHAPTER_FIELDS: Partial<Record<ChapterKey, CeshuFieldDef[]>> = {
         '把「设计目标」写成可复算的断言：表达式用参数名（如 floor((层-1)/微光步长)），给期望值、容差与接受条件（==2 / ≥0 / between 9.5-10.6）；3-5 条，至少一条覆盖边界',
       reviewHint: '断言是否能在不改代码的情况下手算复现；期望值与正文数值是否一致'
     }),
+    f('design_claims', '设计主张（claim→证据）', 'pipeList', {
+      placeholder: '主张|强度|证据',
+      aiHint:
+        '每条设计主张一行：强度写「计算」时证据必须填**数值断言表里的断言名**（机器会复算并核对）；强度写「实测」时证据填验证方式（如 Demo 验收项）；强度写「假设」时证据填验证计划；无法给出证据的主张不要写',
+      reviewHint: '每条主张是否挂了证据；「计算」类主张的证据是否真能支撑它；有没有该标「假设」却标成「计算」的'
+    }),
   ],
   art: [
     f('art_style', '美术风格', 'textarea'),
@@ -246,6 +252,12 @@ const BASE_CHAPTER_FIELDS: Partial<Record<ChapterKey, CeshuFieldDef[]>> = {
     f('team_structure', '团队分工', 'textarea'),
     f('third_party_deps', '第三方依赖', 'pipeList', { placeholder: '名称|用途|授权' }),
     f('performance_targets', '性能目标', 'textarea'),
+    f('production_risks', '生产风险（检测与兜底）', 'pipeList', {
+      placeholder: '风险|触发条件|检测方法|兜底方案|负责人',
+      aiHint:
+        '工程/生产视角的风险（性能、存档、数据一致性、依赖、外包），每条给「怎么发现」与「发现后怎么办」；概率与影响在风险控制章的矩阵里写，此处不重复；3-5 条',
+      reviewHint: '检测方法是否可执行（有指标/工具）；兜底方案是否真的能降级而不是「加强监控」'
+    }),
     f('qa_plan', 'QA 计划', 'textarea'),
   ],
   resources: [
