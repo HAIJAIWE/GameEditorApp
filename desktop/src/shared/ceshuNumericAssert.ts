@@ -440,34 +440,37 @@ export function evaluateAssertions(doc: CeshuDocument): AssertionResult[] {
 }
 
 /**
- * 设计主张的证据核对（`numeric.design_claims`，行格式 `主张|强度|证据`）。
- *
- * ## 解决什么问题（2026-10-24 对标豆包 `claims` 键后新增）
- * 文档里最贵的一句话是「首转生恰得 2 微光」这类**主张**——它决定了整份设计
- * 是否成立。标杆做法是给每条主张标「强度」并挂到证据上（calculated → 断言 id）。
- * 我们此前只有断言、没有「主张」层：断言通过≠文档里的主张都成立（可能主张
- * 没挂任何断言，或者挂了个复算不过的断言）。
- *
- * ## 判定规则
- * - 强度=计算：证据必须是**数值断言表中存在的断言名**，且该断言复算通过；
- *   断言不存在 → 一致性冲突（无法复算）；断言未通过 → 一致性冲突（主张不成立）；
- *   断言无法解析/跳过 → 格式异常/复算跳过；
- * - 强度=实测/假设：无法机器验证，证据非空即通过（空 → 一致性警告）；
- * - 强度缺失或无法识别 → 一致性警告（提醒规范写法）。
+ * 设计主张的证据核对（`numeric.design_claims`）依赖两样预计算产物：数值断言
+ * 复算结论（`evaluateAssertions`）与 QA 原型验收映射。为避免校验链路重复复算，
+ * 二者都收口到校验上下文——本函数抽取其中的原型验收映射，供主张核对复用。
+ * 判定规则见 `checkDesignClaims`。
  */
-export function checkDesignClaims(doc: CeshuDocument): string[] {
-  const claimRows = toRows(doc.numeric.design_claims)
-  if (claimRows.length === 0) return []
-
-  const label = CHAPTER_LABELS.numeric
-  const byStatement = new Map(evaluateAssertions(doc).map((result) => [result.statement, result]))
-  // 实测类主张的证据源：QA 章「原型验收记录」（检查项 → 结果）
+/** QA 章「原型验收记录」（检查项 → 结果）映射，供实测类主张核对（也供校验上下文复用，避免重复构建） */
+export function buildPrototypeResults(doc: CeshuDocument): Map<string, string> {
   const prototypeResults = new Map<string, string>()
   for (const row of toRows(doc.qa.prototype_acceptance)) {
     const columns = splitRow(row)
     const check = columns[0] ?? ''
     if (check !== '') prototypeResults.set(check, columns[1] ?? '')
   }
+  return prototypeResults
+}
+
+/**
+ * 设计主张证据核对（`numeric.design_claims`，行格式 `主张|强度|证据`）。
+ * 基于**预计算**的断言结论与原型验收映射，避免校验链路重复复算 evaluateAssertions。
+ * 判定规则见下方 checkDesignClaims 注释。
+ */
+export function checkDesignClaimsWith(
+  doc: CeshuDocument,
+  assertionResults: AssertionResult[],
+  prototypeResults: Map<string, string>
+): string[] {
+  const claimRows = toRows(doc.numeric.design_claims)
+  if (claimRows.length === 0) return []
+
+  const label = CHAPTER_LABELS.numeric
+  const byStatement = new Map(assertionResults.map((result) => [result.statement, result]))
   const messages: string[] = []
 
   for (const row of claimRows) {
@@ -537,4 +540,18 @@ export function checkDesignClaims(doc: CeshuDocument): string[] {
   }
 
   return messages
+}
+
+/**
+ * 设计主张证据核对（文档直接产出时的公共入口；内部复算一次 evaluateAssertions）。
+ *
+ * ## 判定规则
+ * - 强度=计算：证据必须是**数值断言表中存在的断言名**，且该断言复算通过；
+ *   断言不存在 → 一致性冲突（无法复算）；断言未通过 → 一致性冲突（主张不成立）；
+ *   断言无法解析/跳过 → 格式异常/复算跳过；
+ * - 强度=实测/假设：无法机器验证，证据非空即通过（空 → 一致性警告）；
+ * - 强度缺失或无法识别 → 一致性警告（提醒规范写法）。
+ */
+export function checkDesignClaims(doc: CeshuDocument): string[] {
+  return checkDesignClaimsWith(doc, evaluateAssertions(doc), buildPrototypeResults(doc))
 }

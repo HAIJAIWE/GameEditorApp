@@ -70,37 +70,22 @@ export function column(row: string, index: number): string  // 取第 N 列（�
 
 ---
 
-## 档 3：`ceshuValidation` 改为 CHECKS 注册表  ⚠️ 中风险（消息文案不可变）
+## 档 3：`ceshuValidation` 改为 CHECKS 注册表  ⚠️ 中风险（消息文案不可变）  ✅ 已实施（2026-10-24）
 
 ### 现状
 `ceshuValidation.ts` 308 行，18 项检查是平铺顺序块（必填 → 一致性 1~11 → 重叠 → 术语 → 质量 → 数值断言 → 设计主张 → 用例 → 账本）。每加一项就往里塞一个 `for` 循环。两大问题：
 1. **可读性 / 可测性**：单测只能整体跑 `validateCeshu` 后按 fragment 匹配消息；单项无法独立测。
-2. **重复计算**：`checkNumericAssertions`（→ `evaluateAssertions`）与 `checkDesignClaims`（内部又 `evaluateAssertions(doc)`）对同一 doc 各算一遍断言（见 `ceshuNumericAssert.ts:470`）。
+2. **重复计算**：`checkNumericAssertions`（→ `evaluateAssertions`）与 `checkDesignClaims`（内部又 `evaluateAssertions(doc)`）对同一 doc 各算一遍断言。
 
-### 方案
-1. 定义上下文与检查接口：
-   ```ts
-   interface CeshuCheckContext {
-     doc: CeshuDocument
-     params: Map<string, number>        // 参数表（只算一次）
-     assertionResults: AssertionResult[] // evaluateAssertions(doc) 只算一次
-     prototypeResults: Map<string, string>
-   }
-   interface CeshuCheck { id: string; severity: 'error' | 'warning'; scope?: 'lite' | 'full'; run(ctx): string[] }
-   ```
-2. 把 18 项逐个抽成 `CESHU_CHECKS: CeshuCheck[]`（必填 / 11 一致性 / 重叠 / 术语 / 质量 / 数值断言 / 设计主张 / 用例 / 账本）。
-3. `validateCeshu` 退化为：构造一次 `ctx` → `flatMap(check => check.run(ctx))` → 串联 `lite/full` scope 过滤。
-4. 复用 `ctx.assertionResults` 与 `ctx.prototypeResults`，消除 `evaluateAssertions` 重复计算（`checkDesignClaims` 改为吃 `ctx`）。
-
-### 风险与对策
-- **消息文案必须逐字节不变**：现有单测按 fragment 匹配（如「为必填项」「一致性冲突」）。抽取时禁止改写任何拼接字符串；改完用全量单测兜底。
-- 必填检查的「人定字段特殊措辞」（第 44~56 行那段注释逻辑）原样搬进对应 check，不得简化。
-- 建议小步：先抽「纯读取型」检查（一致性 1~11、重叠、术语、质量），再抽依赖 `ctx` 的数值/主张/用例/账本。
+### 实施结果（实际落地形态）
+- 抽出 `CeshuCheckContext { doc, assertionResults, prototypeResults }` 与 `CeshuCheck { id, run(ctx) }` 接口；`validateCeshu` 退化为「建一次 ctx → `CESHU_CHECKS.flatMap(check => check.run(ctx))`」。
+- `CESHU_CHECKS` 按**逻辑分组**为 7 项（非 18 个微条目，避免不必要的代码膨胀、降低转录风险）：`requiredFields` / `crossChapterConsistency`(原 1~13) / `contentQuality` / `numericAssertions` / `designClaims` / `testCaseList` / `ledger`。顺序与重构前逐字节一致（消息总数 full=49、lite=22 的精确计数测试即守卫）。
+- **去重**：`buildCheckContext` 只算一次 `evaluateAssertions(doc)` 与 `buildPrototypeResults(doc)`，并新增导出的 `checkDesignClaimsWith(doc, assertionResults, prototypeResults)` 与 `buildPrototypeResults(doc)`；`numericAssertions` / `designClaims` 两项检查复用 ctx 里的预计算结论。公共入口 `checkDesignClaims(doc)` / `checkNumericAssertions(doc)` 保留为「内部复算一次」的薄包装，现有单测不受影响。
+- 消息文案**零变化**（原 18 块 body 逐字节搬入各 `run`，只把 `doc` 换成 `ctx.doc`）。
 
 ### 验收
-- 全量单测绿（消息 fragment 全中）；
-- 新增 `tests/unit/ceshuChecks.registry.test.ts`：断言 `CESHU_CHECKS` 包含 18 项、每项 `run` 对构造样例产出预期消息；
-- `validateCeshu` 与改造前对同一样本输出完全一致（可加一条快照测试）。
+- 全量 2555 过 / 5 跳（2546+档1 的 4+本档 5）；tsc 三套 0 错；eslint 0。
+- 新增 `tests/unit/ceshuValidation.checks.test.ts`：断言 `CESHU_CHECKS` id 列表稳定、每项可独立 `run`、逐项长度之和 == `validateCeshu` 总长（无重复无遗漏）、`validateCeshu` 只复算一次 `evaluateAssertions`、单查 `designClaims` 可独立产出预期消息。
 
 ---
 

@@ -17,7 +17,12 @@ import {
 } from './ceshuContentQuality'
 import { CESHU_CHAPTER_FIELDS } from './ceshuFields'
 import { getGddScope, isEmptyRequiredValue, isPlainObject } from './ceshuModel'
-import { checkDesignClaims, checkNumericAssertions } from './ceshuNumericAssert'
+import {
+  buildPrototypeResults,
+  checkDesignClaimsWith,
+  evaluateAssertions,
+  type AssertionResult
+} from './ceshuNumericAssert'
 import { checkLedger, checkTestCaseList } from './ceshuEvidence'
 import { column } from './ceshuPipeRows'
 import { readText } from './util/readText'
@@ -25,8 +30,59 @@ import { readText } from './util/readText'
 /**
  * 策划书数据完整性校验（自 Python ceshu_validation.py 匹平迁移）。
  * 校验范围：必填字段非空 + 11 项章节间一致性检查 + 内容重复检测 + 术语一致性 + 内容质量提示；返回错误/警告文案列表（空数组=全部通过）。
+ *
+ * ## 2026-10-24 重构为 CHECKS 注册表（改造档3）
+ * 原 308 行平铺的「for 循环塞检查」改为 `CESHU_CHECKS` 注册表：每项 `{ id, run(ctx) }`
+ * 独立、可单测、可单独开关。校验上下文（文档 + 已复算的断言结论 + 原型验收映射）
+ * 只构建一次，消除 `checkDesignClaims` 与 `checkNumericAssertions` 各自重算
+ * `evaluateAssertions` 的重复计算。消息文案与重构前逐字节一致（由 ceshuValidation
+ * 现有单测 + ceshuValidation.checks 守卫）。
  */
+
+/** 校验上下文：整份文档只构建一次，供所有检查共享 */
+export interface CeshuCheckContext {
+  doc: CeshuDocument
+  /** `evaluateAssertions(doc)` 的结论（数值断言复算，只算一次） */
+  assertionResults: AssertionResult[]
+  /** QA 原型验收（检查项 → 结果）映射，供实测类主张核对 */
+  prototypeResults: Map<string, string>
+}
+
+/** 单条校验：给定上下文，返回该检查产出的消息（可能多条，也可能为空） */
+export interface CeshuCheck {
+  id: string
+  run(ctx: CeshuCheckContext): string[]
+}
+
+/** 构建校验上下文（只算一次 evaluateAssertions，避免重复复算） */
+export function buildCheckContext(doc: CeshuDocument): CeshuCheckContext {
+  return {
+    doc,
+    assertionResults: evaluateAssertions(doc),
+    prototypeResults: buildPrototypeResults(doc)
+  }
+}
+
 export function validateCeshu(doc: CeshuDocument): string[] {
+  const context = buildCheckContext(doc)
+  return CESHU_CHECKS.flatMap((check) => check.run(context))
+}
+
+/** 校验注册表（顺序即消息产出顺序，与重构前一致；新增检查 = 追加一项） */
+export const CESHU_CHECKS: CeshuCheck[] = [
+  { id: 'requiredFields', run: checkRequiredFields },
+  { id: 'crossChapterConsistency', run: checkCrossChapterConsistency },
+  { id: 'contentQuality', run: checkContentQuality },
+  { id: 'numericAssertions', run: checkNumericAssertionsMessages },
+  { id: 'designClaims', run: checkDesignClaimsMessages },
+  { id: 'testCaseList', run: (ctx) => checkTestCaseList(ctx.doc) },
+  { id: 'ledger', run: (ctx) => checkLedger(ctx.doc) }
+]
+
+// ---------- 各检查实现（body 与重构前逐字节一致） ----------
+
+function checkRequiredFields(ctx: CeshuCheckContext): string[] {
+  const { doc } = ctx
   const errors: string[] = []
 
   // 基础必填字段检查（按档位可见章节：lite 只校验基础 9 章）
@@ -58,7 +114,12 @@ export function validateCeshu(doc: CeshuDocument): string[] {
     }
   }
 
-  // === 章节间一致性检查 ===
+  return errors
+}
+
+function checkCrossChapterConsistency(ctx: CeshuCheckContext): string[] {
+  const { doc } = ctx
+  const errors: string[] = []
 
   const battleConfig = systemConfig(doc, 'battle')
   const economyConfig = systemConfig(doc, 'economy')
@@ -190,6 +251,13 @@ export function validateCeshu(doc: CeshuDocument): string[] {
     errors.push(message)
   }
 
+  return errors
+}
+
+function checkContentQuality(ctx: CeshuCheckContext): string[] {
+  const { doc } = ctx
+  const errors: string[] = []
+
   /*
    * 14. 内容质量（「写对」代理指标）：机器可判定的空话/长句/数字具体性。
    *
@@ -213,45 +281,20 @@ export function validateCeshu(doc: CeshuDocument): string[] {
     }
   }
 
-  /*
-   * 15. 数值断言复算（numeric.numeric_assertions）：把设计目标从「文档」升级为「可复算」。
-   *
-   * 2026-10-24 对标豆包《微光之塔》后新增。此前「首转生恰得 3 星火」这类主张写归写，
-   * 算错没人知道；现在逐条代入参数表求值，与文中声明值（尊重容差）比对、按接受条件
-   * 判定，不符即报「一致性冲突」。安全求值器见 ceshuNumericAssert（AI 产出不可信，
-   * 禁用 eval；只认白名单函数与四则运算）。
-   */
-  for (const message of checkNumericAssertions(doc)) {
-    errors.push(message)
-  }
-
-  /*
-   * 16. 设计主张的证据核对（numeric.design_claims）：claim → 断言 的绑定必须成立。
-   *
-   * 2026-10-24 对标豆包 `claims` 键后新增。断言通过 ≠ 文档里的主张都成立——
-   * 主张可能没挂任何断言，或挂了个复算不过的断言。本项把「每条主张的证据」
-   * 变成可判定的：强度=计算的主张，其证据必须是**复算通过**的断言名。
-   */
-  for (const message of checkDesignClaims(doc)) {
-    errors.push(message)
-  }
-
-  /*
-   * 17. 用例清单检查（qa.test_case_list）：类型/状态合法、失败用例不被无视、用例可执行。
-   * 18. 经济账本对账（economy.ledger）：初始 + 逐笔交易 = 期末期望，机器求和比对。
-   *
-   * 两项都是 2026-10-24 对标豆包 tests / ledgers 键后新增——把 QA 从「工作量估算」
-   * 升级为「可执行用例」，把经济闭环从「文字描述」升级为「可对账的账本」。
-   */
-  for (const message of checkTestCaseList(doc)) {
-    errors.push(message)
-  }
-  for (const message of checkLedger(doc)) {
-    errors.push(message)
-  }
-
   return errors
 }
+
+function checkNumericAssertionsMessages(ctx: CeshuCheckContext): string[] {
+  // 15. 数值断言复算：复用校验上下文里已复算的结论（只算一次，不重复 evaluateAssertions）
+  return ctx.assertionResults.flatMap((result) => result.messages)
+}
+
+function checkDesignClaimsMessages(ctx: CeshuCheckContext): string[] {
+  // 16. 设计主张证据核对：基于预计算的断言结论与原型验收映射（见 ceshuNumericAssert.checkDesignClaimsWith）
+  return checkDesignClaimsWith(ctx.doc, ctx.assertionResults, ctx.prototypeResults)
+}
+
+// ---------- 检查用模块级辅助 ----------
 
 /** 内容质量检查的入参文本：只取长度达标的字符串（点路径支持；其余形态不参与） */
 function readQualityText(data: ChapterData, path: string): string | null {
