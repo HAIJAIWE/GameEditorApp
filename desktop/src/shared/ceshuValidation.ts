@@ -19,6 +19,7 @@ import { CESHU_CHAPTER_FIELDS } from './ceshuFields'
 import { getGddScope, isEmptyRequiredValue, isPlainObject } from './ceshuModel'
 import { checkDesignClaims, checkNumericAssertions } from './ceshuNumericAssert'
 import { checkLedger, checkTestCaseList } from './ceshuEvidence'
+import { column } from './ceshuPipeRows'
 import { readText } from './util/readText'
 
 /**
@@ -282,7 +283,7 @@ function nonEmptyArray(value: unknown): unknown[] | null {
  */
 function topRiskName(entry: unknown): string {
   if (typeof entry === 'string') {
-    return entry.split('|')[0]?.split('：')[0]?.trim() ?? ''
+    return column(entry, 0).split('：')[0]?.trim() ?? ''
   }
   if (isPlainObject(entry)) {
     const risk = entry.risk ?? entry.name

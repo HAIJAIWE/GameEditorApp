@@ -1,4 +1,5 @@
 import { CHAPTER_LABELS, type CeshuDocument } from './ceshuConstants'
+import { EPSILON, column, splitRow, toRows } from './ceshuPipeRows'
 
 /**
  * 数值断言执行器 —— 把 `numeric.numeric_assertions` 从「文档字段」升级为「可复算检查」。
@@ -41,9 +42,6 @@ const ALLOWED_FUNCTIONS: ReadonlyMap<string, { arity: number | 'variadic'; fn: (
   ['pow', { arity: 2, fn: Math.pow }]
 ])
 
-/** 有限数比较的 epsilon（浮点误差容差，如 0.1+0.2） */
-const EPSILON = 1e-9
-
 // ---------- 参数表解析 ----------
 
 /**
@@ -63,7 +61,7 @@ export function parseNumericParameters(rows: readonly unknown[]): Map<string, nu
   const params = new Map<string, number>()
   for (const row of rows) {
     if (typeof row !== 'string') continue
-    const columns = row.split('|').map((column) => column.trim())
+    const columns = splitRow(row)
     const name = columns[0] ?? ''
     if (name === '') continue
     const value = parseParameterValue(columns[1] ?? '')
@@ -77,7 +75,7 @@ export function parseParameterNames(rows: readonly unknown[]): Set<string> {
   const names = new Set<string>()
   for (const row of rows) {
     if (typeof row !== 'string') continue
-    const name = (row.split('|')[0] ?? '').trim()
+    const name = column(row, 0)
     if (name !== '') names.add(name)
   }
   return names
@@ -348,10 +346,6 @@ function acceptanceHolds(acceptance: Acceptance, value: number): boolean {
 
 // ---------- 主检查 ----------
 
-function toRows(value: unknown): unknown[] {
-  return Array.isArray(value) ? value : []
-}
-
 /** 数值展示：抹掉浮点尾差（4.499999999 → 4.5），保留可读精度 */
 function formatNumber(value: number): string {
   return String(Math.round(value * 1e6) / 1e6)
@@ -392,8 +386,7 @@ export function evaluateAssertions(doc: CeshuDocument): AssertionResult[] {
   const results: AssertionResult[] = []
 
   for (const row of assertionRows) {
-    if (typeof row !== 'string' || row.trim() === '') continue
-    const columns = row.split('|').map((column) => column.trim())
+    const columns = splitRow(row)
     const statement = columns[0] ?? ''
     const expression = columns[1] ?? ''
     const tag = statement === '' ? expression : statement
@@ -471,16 +464,14 @@ export function checkDesignClaims(doc: CeshuDocument): string[] {
   // 实测类主张的证据源：QA 章「原型验收记录」（检查项 → 结果）
   const prototypeResults = new Map<string, string>()
   for (const row of toRows(doc.qa.prototype_acceptance)) {
-    if (typeof row !== 'string') continue
-    const columns = row.split('|').map((column) => column.trim())
+    const columns = splitRow(row)
     const check = columns[0] ?? ''
     if (check !== '') prototypeResults.set(check, columns[1] ?? '')
   }
   const messages: string[] = []
 
   for (const row of claimRows) {
-    if (typeof row !== 'string' || row.trim() === '') continue
-    const columns = row.split('|').map((column) => column.trim())
+    const columns = splitRow(row)
     const claim = columns[0] ?? ''
     if (claim === '') continue
     const strengthRaw = columns[1] ?? ''

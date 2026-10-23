@@ -1,4 +1,5 @@
 import type { CeshuDocument } from './ceshuConstants'
+import { column, toRows } from './ceshuPipeRows'
 import { readText } from './util/readText'
 
 /**
@@ -18,16 +19,6 @@ import { readText } from './util/readText'
  *    并把「验收旅程」做成调试面板里的自检清单。
  */
 
-/** 从 pipeList 行里取第 N 列（越界返回空串） */
-function column(row: string, index: number): string {
-  const parts = row.split('|')
-  return (parts[index] ?? '').trim()
-}
-
-function rowsOf(value: unknown): string[] {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string' && item.trim() !== '') : []
-}
-
 export interface DemoPromptResult {
   system: string
   prompt: string
@@ -38,12 +29,12 @@ export function buildDemoPrompt(doc: CeshuDocument): DemoPromptResult {
   const gameName = readText(doc.meta.game_name) || '未命名游戏'
   const gameType = readText(doc.meta.game_type) || '未指定'
   const positioning = readText(doc.meta.positioning) || ''
-  const loopPoints = rowsOf(doc.gameplay.core_loop_points)
-  const stateMachine = rowsOf(doc.gameplay.state_machine)
-  const parameters = rowsOf(doc.numeric.numeric_parameters)
-  const ledger = rowsOf(doc.economy.ledger)
-  const journeys = rowsOf(doc.qa.acceptance_journeys)
-  const cases = rowsOf(doc.qa.test_case_list)
+  const loopPoints = toRows(doc.gameplay.core_loop_points)
+  const stateMachine = toRows(doc.gameplay.state_machine)
+  const parameters = toRows(doc.numeric.numeric_parameters)
+  const ledger = toRows(doc.economy.ledger)
+  const journeys = toRows(doc.qa.acceptance_journeys)
+  const cases = toRows(doc.qa.test_case_list)
 
   const lines: string[] = []
   lines.push(`为《${gameName}》（${gameType}）写一个**单文件可玩 HTML Demo**。`)

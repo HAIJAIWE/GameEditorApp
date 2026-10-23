@@ -1,4 +1,5 @@
 import { CHAPTER_LABELS, type CeshuDocument } from './ceshuConstants'
+import { EPSILON, splitRow, toRows } from './ceshuPipeRows'
 
 /**
  * 证据层检查（用例清单 + 经济账本）——2026-10-24 对标豆包 tests / ledgers 两键。
@@ -13,8 +14,6 @@ import { CHAPTER_LABELS, type CeshuDocument } from './ceshuConstants'
  * - 格式异常（error）：账本/用例行无法解析（数字缺失、列数不足）；
  * - 一致性警告（warning）：类型/状态非法、失败用例被无视、用例缺关键列。
  */
-
-const EPSILON = 1e-9
 
 /** 用例类型白名单（对齐豆包 normal/boundary/recovery/abuse） */
 const CASE_TYPES = new Map<string, string>([
@@ -37,14 +36,6 @@ const CASE_STATUS = new Map<string, string>([
   ['passed', '通过'],
   ['failed', '失败']
 ])
-
-function toRows(value: unknown): string[] {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
-}
-
-function splitRow(row: string): string[] {
-  return row.split('|').map((column) => column.trim())
-}
 
 /**
  * 用例清单检查（`qa.test_case_list`，行格式：用例|类型|前置|操作|期望|状态）。
