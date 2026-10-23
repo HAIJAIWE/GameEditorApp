@@ -59,6 +59,25 @@ export function getStyleGlossary(style: string): string {
 
 /* ---- 整章提示词组装（匹平 Python _ai_fill_chapter） ---- */
 
+/**
+ * 整章生成的字段清单 = **字段表（schema，权威）∪ 文档数据键**（点路径键取首段）。
+ *
+ * ⚠️ 不能只用 `Object.keys(chapterData)`：doc 数据来自 defaults，**可选字段与
+ * 拆分字段（xxx_points/notes）没有默认值条目** ⇒ 不进数据键 ⇒ 整章生成时模型
+ * 根本看不到这些字段——而 UI 是按字段表渲染的（2026-10-24 导入 5 个新字段时
+ * 发现：design_pillars 等在应用内整章生成中全部缺席）。字段表是唯一真源，
+ * 生成清单必须以它为准；解析侧 `filterGeneratedFields` 早已是同一套并集逻辑，
+ * 此处对齐。点路径取首段（user_personas.primary → user_personas）与数据键的
+ * 嵌套对象形态对齐。
+ */
+function chapterGenerationKeys(chapter: ChapterKey, chapterData: Record<string, unknown>): string[] {
+  const merged: string[] = (CESHU_CHAPTER_FIELDS[chapter] ?? []).map((field) => field.key.split('.')[0])
+  for (const key of Object.keys(chapterData)) {
+    if (!merged.includes(key)) merged.push(key)
+  }
+  return merged
+}
+
 export interface ChapterPromptResult {
   system: string
   prompt: string
@@ -90,7 +109,7 @@ export function buildChapterPrompt(
   const onlyFields = options.onlyFields
   const agent = agentForChapter(chapter)
   const chapterData = doc[chapter]
-  const allKeys = Object.keys(chapterData)
+  const allKeys = chapterGenerationKeys(chapter, chapterData)
   const fields =
     onlyFields && onlyFields.length > 0
       ? onlyFields

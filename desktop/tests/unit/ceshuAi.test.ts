@@ -20,6 +20,7 @@ import {
 } from '../../src/shared/ceshuAi'
 import { parseLlmJson } from '../../src/shared/util/parseLlmJson'
 import { CHAPTER_KEYS } from '../../src/shared/ceshuConstants'
+import { CESHU_CHAPTER_FIELDS } from '../../src/shared/ceshuFields'
 import { createDefaultCeshu } from '../../src/shared/ceshuModel'
 
 describe('AI 结构化审阅（匹平 Python _ai_review + AIReviewDialog）', () => {
@@ -143,7 +144,19 @@ describe('AI 生成：整章提示词组装（匹平 Python _ai_fill_chapter）'
     const doc = createDefaultCeshu({ scope: 'full', name: '测试游戏' })
     const built = buildChapterPrompt(doc, 'meta')
 
-    expect(built.fields).toEqual(Object.keys(doc.meta))
+    // 字段清单 = 字段表 ∪ 数据键（schema 权威；顺序以字段表为准）
+    expect(built.fields).toEqual([
+      'game_name',
+      'game_type',
+      'platform',
+      'positioning',
+      'tags',
+      'status',
+      'confidentiality',
+      'gdd_scope',
+      'version',
+      'date'
+    ])
     expect(built.fields).toContain('game_name')
     expect(built.system).toContain('通用策划助手')
     expect(built.system).toContain('只输出 JSON')
@@ -154,6 +167,16 @@ describe('AI 生成：整章提示词组装（匹平 Python _ai_fill_chapter）'
     expect(built.prompt).toContain('写作规范')
     expect(built.prompt).toContain('单句尽量不超过 40 字')
     expect(built.prompt).toContain('列表统一用「- 」开头')
+  })
+
+  it('整章模式：无默认值的字段（可选/拆分/新导入）也进字段清单——模型看得见才生成', () => {
+    const doc = createDefaultCeshu({ scope: 'full', name: '测试游戏' })
+    // numeric 的数据键只有 6 个，字段表有 9+（含 numeric_parameters/numeric_assertions）
+    expect(Object.keys(doc.numeric)).not.toContain('numeric_parameters')
+    const built = buildChapterPrompt(doc, 'numeric')
+    expect(built.fields).toContain('numeric_parameters')
+    expect(built.fields).toContain('numeric_assertions')
+    expect(built.prompt).toContain('numeric_parameters')
   })
 
   it('补全模式：仅空字段；已有非空内容作为保留参考；风格术语进入上下文', () => {
@@ -176,8 +199,10 @@ describe('AI 生成：整章提示词组装（匹平 Python _ai_fill_chapter）'
   it('补全模式：无空字段时字段列表为空（上层不再调用 LLM）', () => {
     const doc = createDefaultCeshu({ scope: 'full' })
     const combat = doc.combat
-    for (const key of Object.keys(combat)) {
-      combat[key] = '已填内容'
+    // 填满**字段表全部字段**（不只是数据键）才算真的无空缺
+    for (const field of CESHU_CHAPTER_FIELDS.combat ?? []) {
+      const head = field.key.split('.')[0]
+      combat[head] = '已填内容'
     }
     expect(buildChapterPrompt(doc, 'combat', { onlyEmpty: true }).fields).toEqual([])
   })
