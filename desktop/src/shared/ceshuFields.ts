@@ -115,6 +115,18 @@ const BASE_CHAPTER_FIELDS: Partial<Record<ChapterKey, CeshuFieldDef[]>> = {
     }),
     f('business_model', '商业模式', 'textarea', { aiDraftable: false }),
     f('competitive_analysis', '竞品对比要点', 'stringList'),
+    f('design_pillars', '设计支柱', 'pipeList', {
+      placeholder: '支柱|裁决|反例（明确不做）',
+      aiHint:
+        '每条支柱给「裁决」（坚持什么，最好有数字或规则支撑）+「反例」（因此明确不做什么功能）；3-4 条，反例必须是具体功能而不是态度',
+      reviewHint: '支柱是否可判断（有数字/规则支撑）；反例是否真实砍掉了功能，而非正确的废话'
+    }),
+    f('design_assumptions', '关键假设', 'pipeList', {
+      placeholder: '假设|影响|验证方法与调参阈值',
+      aiHint:
+        '登记「没验证过的设计判断」：影响程度、怎么验证、验证不通过时调什么参数（如「首转生集中在 40+ 层则下调微光步长」）；没有不确定的判断就留空',
+      reviewHint: '假设是否可被证伪；验证方法是否能在 Demo/试玩里执行；调参阈值是否具体'
+    }),
   ],
   // 原 worldview + characters 两章合并为 story（字段取并集）
   story: [
@@ -177,6 +189,12 @@ const BASE_CHAPTER_FIELDS: Partial<Record<ChapterKey, CeshuFieldDef[]>> = {
     f('control_scheme', '操作方案', 'text'),
     f('win_lose_conditions', '胜负条件', 'textarea'),
     f('tutorial_design', '新手引导设计', 'textarea'),
+    f('state_machine', '核心状态机', 'pipeList', {
+      placeholder: '状态|触发事件|结算效果|新状态',
+      aiHint:
+        '只描述核心循环涉及的状态与转移；每行一次转移，结算效果写清「什么被重置、什么被保留」；怀疑重复结算的地方写明「每次只结算一次」',
+      reviewHint: '转移是否覆盖异常路径（资源不足/误触/刷新重进）；重置与保留的边界是否明确'
+    }),
   ],
   systems: [],
   numeric: [
@@ -194,6 +212,18 @@ const BASE_CHAPTER_FIELDS: Partial<Record<ChapterKey, CeshuFieldDef[]>> = {
     f('economic_model', '经济模型', 'textarea'),
     f('growth_curves', '成长曲线', 'pipeList', { placeholder: '对象|曲线形状|参数' }),
     f('drop_tables', '掉落公式', 'pipeList', { placeholder: '物品|来源|公式' }),
+    f('numeric_parameters', '数值参数表', 'pipeList', {
+      placeholder: '参数|当前值|合法范围|调高影响|调低影响',
+      aiHint:
+        '每个可调参数一行；标注「设计初值」还是「复算值」；合法范围给区间；影响写「调高/调低后玩法怎么变」（可观察的变化），不写「影响较大」这类空话',
+      reviewHint: '参数是否与公式一致；范围是否有依据；影响是否可观察'
+    }),
+    f('numeric_assertions', '数值断言', 'pipeList', {
+      placeholder: '断言|表达式|期望值|容差|接受条件',
+      aiHint:
+        '把「设计目标」写成可复算的断言：表达式用参数名（如 floor((层-1)/微光步长)），给期望值、容差与接受条件（==2 / ≥0 / between 9.5-10.6）；3-5 条，至少一条覆盖边界',
+      reviewHint: '断言是否能在不改代码的情况下手算复现；期望值与正文数值是否一致'
+    }),
   ],
   art: [
     f('art_style', '美术风格', 'textarea'),
