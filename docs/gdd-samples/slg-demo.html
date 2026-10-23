@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>列王纷争录 · Demo（ruleset: lwfsl-v1）</title>
+<style>
+  :root{
+    --bg:#0f1218; --panel:#171c26; --panel2:#1f2634; --line:#2b3446;
+    --text:#e8ecf5; --dim:#8b94a8; --gold:#e0b34e; --red:#d95c5c; --green:#4caf7d; --blue:#5b8def;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:13px/1.6 "Microsoft YaHei","PingFang SC",sans-serif}
+  header{display:flex;align-items:center;gap:14px;padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--line)}
+  header h1{font-size:15px;margin:0;letter-spacing:1px}
+  .badge{font-size:11px;color:var(--gold);border:1px solid var(--gold);border-radius:10px;padding:1px 8px}
+  .res{display:flex;gap:14px;margin-left:auto;font-size:12.5px}
+  .res b{color:var(--gold);font-weight:600}
+  main{display:grid;grid-template-columns:300px 1fr 280px;gap:12px;padding:12px;max-width:1280px;margin:0 auto}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+  .panel h2{font-size:12.5px;color:var(--dim);margin:0 0 8px;font-weight:600;letter-spacing:1px}
+  .row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px dashed var(--line);font-size:12.5px}
+  .row:last-child{border-bottom:none}
+  .row .name{flex:1}
+  .row .lv{color:var(--blue);font-size:11.5px}
+  .row .cost{color:var(--dim);font-size:11px}
+  button{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer}
+  button:hover:not(:disabled){border-color:var(--blue);color:var(--blue)}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  button.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+  .card{border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:10px;background:var(--panel2)}
+  .card h3{margin:0 0 4px;font-size:13px}
+  .card .meta{color:var(--dim);font-size:11.5px;line-height:1.7}
+  .card .ops{margin-top:8px;display:flex;gap:8px;align-items:center}
+  .card.owned{border-color:var(--green)}
+  .log{height:220px;overflow:auto;font-size:11.5px;color:var(--dim);line-height:1.8}
+  .log b{color:var(--text);font-weight:500}
+  .journey label{display:block;font-size:11.5px;color:var(--dim);margin:4px 0}
+  .journey input{margin-right:6px}
+  .debug{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+  .timer{color:var(--gold);font-size:11.5px}
+  footer{padding:8px 16px 20px;color:#5d6678;font-size:11px;text-align:center}
+  .win{color:var(--gold);font-weight:700}
+</style>
+</head>
+<body>
+<header>
+  <h1>列王纷争录</h1>
+  <span class="badge" id="speedBadge">演示加速 ×20</span>
+  <div class="res">
+    <span>粮 <b id="rFood">0</b></span><span>木 <b id="rWood">0</b></span>
+    <span>石 <b id="rStone">0</b></span><span>铁 <b id="rIron">0</b></span>
+    <span>兵 <b id="rTroops">0</b></span>
+  </div>
+</header>
+<main>
+  <section class="panel">
+    <h2>城池建筑</h2>
+    <div id="buildings"></div>
+    <div class="timer" id="queueInfo">建造队列空闲</div>
+  </section>
+
+  <section class="panel">
+    <h2>世界地图（资源点）</h2>
+    <div id="points"></div>
+    <div class="card" id="marchCard" style="display:none">
+      <h3>行军中的部队</h3>
+      <div class="meta" id="marchInfo"></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>兵营与战报</h2>
+    <div class="row"><span class="name">步兵</span><span class="lv" id="troopCount">0</span>
+      <button id="btnTrain" onclick="train()">征兵 100（粮500 铁200）</button>
+    </div>
+    <div class="log" id="log"></div>
+    <h2 style="margin-top:10px">验收旅程（自检）</h2>
+    <div class="journey" id="journeys"></div>
+    <h2 style="margin-top:10px">调试</h2>
+    <div class="debug">
+      <button onclick="setSpeed(1)">×1</button>
+      <button onclick="setSpeed(20)">×20</button>
+      <button onclick="setSpeed(60)">×60</button>
+      <button onclick="addRes()">加资源</button>
+      <button onclick="resetGame()">重置</button>
+    </div>
+  </section>
+</main>
+<footer>ruleset: lwfsl-v1 · 数值来自策划书《列王纷争录》第五章参数表与第六章账本 · 存档自动写入本机浏览器</footer>
+
+<script>
+/* ================= RULES：唯一真值（逐项来自策划书数值参数表） ================= */
+const RULES = {
+  baseHp: 10, growthHp: 1.28,          // 参考：怪物曲线（本 Demo 用资源点守军代替）
+  mainBaseSec: 30, mainGrowth: 1.45,   // 主城升级基数/成长
+  fieldBase: 300, fieldGrowth: 1.18,   // 资源田每小时产出
+  infantryAtk: 10,                     // 步兵基础攻击
+  defenseConst: 800,                   // 防御减伤常数
+  marchSecPerCell: 180,                // 行军 3 分钟/格
+  trainCost: { food: 500, iron: 200 }, // 每 100 兵消耗
+  trainBatch: 100
+};
+/* 资源点：等级/守军/防御/每小时产出/距离（格）/产出资源 */
+const POINTS = [
+  { id: 'p5',  level: 5,  guard: 300,  def: 200,  yield: 500,  cells: 1, res: 'food'  },
+  { id: 'p8',  level: 8,  guard: 900,  def: 500,  yield: 900,  cells: 2, res: 'stone' },
+  { id: 'p12', level: 12, guard: 2400, def: 1200, yield: 1600, cells: 3, res: 'iron'  }
+];
+const BUILDINGS = [
+  { id: 'keep',   name: '主城',   base: 30, growth: 1.45, cost: { wood: 200, stone: 150 } },
+  { id: 'farm',   name: '农田',   base: 12, growth: 1.30, cost: { wood: 80 } },
+  { id: 'lumber', name: '伐木场', base: 12, growth: 1.30, cost: { wood: 60, stone: 40 } },
+  { id: 'quarry', name: '采石场', base: 12, growth: 1.30, cost: { wood: 80, stone: 60 } },
+  { id: 'mine',   name: '铁矿场', base: 12, growth: 1.30, cost: { wood: 100, stone: 80 } },
+  { id: 'barrack',name: '兵营',   base: 12, growth: 1.30, cost: { wood: 120, stone: 100 } }
+];
+
+/* ================= 状态 ================= */
+const SAVE_KEY = 'lwfsl-demo-v1';
+let S = freshState();
+function freshState() {
+  const levels = {};
+  BUILDINGS.forEach(b => { levels[b.id] = 1; });
+  return {
+    res: { food: 8000, wood: 8000, stone: 8000, iron: 8000 },
+    levels,
+    queue: null,            // { id, level, endsAt }
+    troops: 0,
+    owned: {},              // pointId -> true
+    march: null,            // { pointId, troops, arriveAt }
+    speed: 20,
+    won: false,
+    log: []
+  };
+}
+function load() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (raw) {
+      const saved = JSON.parse(raw);
+      S = Object.assign(freshState(), saved);
+      S.log = saved.log || [];
+    }
+  } catch (e) { /* 存档损坏按新局 */ }
+}
+function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
+
+/* ================= 产出与计时 ================= */
+function fieldYield(bid) {
+  const lv = S.levels[bid] || 1;
+  return RULES.fieldBase * Math.pow(RULES.fieldGrowth, lv - 1); // 每小时
+}
+function ownedYield() {
+  let total = 0;
+  POINTS.forEach(p => { if (S.owned[p.id]) total += p.yield; });
+  return total;
+}
+function tick() {
+  const perSec = 1 / 3600;
+  S.res.food  += (fieldYield('farm')   + (S.owned.p5 ? POINTS[0].yield : 0)) * perSec * S.speed;
+  S.res.wood  += fieldYield('lumber') * perSec * S.speed;
+  S.res.stone += (fieldYield('quarry') + (S.owned.p8 ? POINTS[1].yield : 0)) * perSec * S.speed;
+  S.res.iron  += (fieldYield('mine')   + (S.owned.p12 ? POINTS[2].yield : 0)) * perSec * S.speed;
+
+  // 建造完成
+  if (S.queue && Date.now() >= S.queue.endsAt) {
+    const b = BUILDINGS.find(x => x.id === S.queue.id);
+    S.levels[S.queue.id] = S.queue.level;
+    addLog(`<b>${b.name}</b> 升到 Lv${S.queue.level}`);
+    S.queue = null;
+  }
+  // 行军到达 → 战斗结算
+  if (S.march && Date.now() >= S.march.arriveAt) {
+    resolveBattle();
+  }
+  save();
+  render();
+}
+
+/* ================= 操作 ================= */
+function upgradeCost(b, level) {
+  const mult = Math.pow(b.growth, level - 1);
+  const cost = {};
+  for (const [k, v] of Object.entries(b.cost)) cost[k] = Math.ceil(v * mult);
+  return cost;
+}
+function upgradeDuration(b, level) {
+  return (b.base * Math.pow(b.growth, level - 1)) / S.speed * 1000;
+}
+function canPay(cost) { return Object.entries(cost).every(([k, v]) => (S.res[k] || 0) >= v); }
+function pay(cost) { for (const [k, v] of Object.entries(cost)) S.res[k] -= v; }
+
+function upgrade(bid) {
+  if (S.queue) { addLog('建造队列被占用，先等当前建造完成'); return; }
+  const b = BUILDINGS.find(x => x.id === bid);
+  const next = (S.levels[bid] || 1) + 1;
+  const cost = upgradeCost(b, next);
+  if (!canPay(cost)) { addLog(`资源不足：需要 ${fmtCost(cost)}`); return; }
+  pay(cost);
+  S.queue = { id: bid, level: next, endsAt: Date.now() + upgradeDuration(b, next) };
+  addLog(`开始升级 <b>${b.name}</b> → Lv${next}（${(upgradeDuration(b, next) / 1000).toFixed(1)}s）`);
+  save(); render();
+}
+
+function train() {
+  const c = RULES.trainCost;
+  if (S.res.food < c.food || S.res.iron < c.iron) { addLog('粮或铁不足，无法征兵'); return; }
+  S.res.food -= c.food; S.res.iron -= c.iron;
+  S.troops += RULES.trainBatch;
+  addLog(`征兵 <b>${RULES.trainBatch}</b> 步兵（-粮${c.food} -铁${c.iron}）`);
+  save(); render();
+}
+
+function march(pointId) {
+  if (S.march) { addLog('已有部队在行军'); return; }
+  if (S.troops <= 0) { addLog('没有可出征的兵力，先征兵'); return; }
+  const p = POINTS.find(x => x.id === pointId);
+  if (S.owned[p.id]) { addLog('该资源点已被占领'); return; }
+  const seconds = (RULES.marchSecPerCell * p.cells) / S.speed;
+  S.march = { pointId, troops: S.troops, arriveAt: Date.now() + seconds * 1000 };
+  S.troops = 0;
+  addLog(`出征 Lv${p.level} 资源点：行军 ${seconds.toFixed(1)}s（${p.cells} 格）`);
+  save(); render();
+}
+
+/* 战力与预估：出征前把「要多少兵、会死多少」算给玩家看（文档走读要求） */
+function myPowerOf(troops, def) {
+  return troops * RULES.infantryAtk * (1 - def / (def + RULES.defenseConst));
+}
+function neededTroops(p) {
+  const per = RULES.infantryAtk * (1 - p.def / (p.def + RULES.defenseConst));
+  return Math.ceil((p.guard * RULES.infantryAtk) / per);
+}
+function estimate(p) {
+  const need = neededTroops(p);
+  if (S.troops < need) return { ok: false, need, text: `守军过强（需 ≥${need} 兵，当前 ${S.troops}）` };
+  const ratio = (p.guard * RULES.infantryAtk) / Math.max(1, myPowerOf(S.troops, p.def));
+  return { ok: true, need, text: `预估战损 ${Math.round(ratio * 0.6 * 100)}%（可胜）` };
+}
+
+/* 战斗：我方战力 = 兵力×攻击×(1-守方防御/(防御+常数))；守方战力 = 守军×攻击 */
+function resolveBattle() {
+  const p = POINTS.find(x => x.id === S.march.pointId);
+  const troops = S.march.troops;
+  const myPower = troops * RULES.infantryAtk * (1 - p.def / (p.def + RULES.defenseConst));
+  const defPower = p.guard * RULES.infantryAtk;
+  const ratio = defPower / Math.max(1, myPower);
+  S.march = null;
+  if (ratio < 1) {
+    const loss = Math.floor(troops * ratio * 0.6);
+    S.troops += Math.max(0, troops - loss);
+    S.owned[p.id] = true;
+    addLog(`<b>占领 Lv${p.level} 资源点</b>！伤兵 ${loss}，存活 ${troops - loss}，产出 +${p.yield}/h`);
+    if (POINTS.every(x => S.owned[x.id]) && !S.won) {
+      S.won = true;
+      addLog('<span class="win">★ 全部资源点已占领 —— 核心循环验证完成</span>');
+    }
+  } else {
+    const loss = Math.floor(troops * 0.9);
+    S.troops += Math.max(0, troops - loss);
+    addLog(`<b>战败</b>：守军过强（战力比 ${ratio.toFixed(2)}），损失 ${loss} 兵退回`);
+  }
+  save();
+}
+
+function setSpeed(v) { S.speed = v; document.getElementById('speedBadge').textContent = `演示加速 ×${v}`; addLog(`演示加速 ×${v}`); save(); render(); }
+function addRes() { S.res.food += 5000; S.res.wood += 5000; S.res.stone += 5000; S.res.iron += 5000; addLog('调试：资源 +5000'); save(); render(); }
+function resetGame() { S = freshState(); addLog('已重置为新局'); save(); render(); }
+
+function addLog(html) {
+  S.log.unshift(`<div>[${new Date().toLocaleTimeString()}] ${html}</div>`);
+  if (S.log.length > 60) S.log.pop();
+}
+
+/* ================= 渲染 ================= */
+function fmt(n) { return Math.floor(n).toLocaleString('zh-CN'); }
+function fmtCost(cost) { return Object.entries(cost).map(([k, v]) => `${({food:'粮',wood:'木',stone:'石',iron:'铁'})[k]}${v}`).join(' '); }
+
+function render() {
+  document.getElementById('rFood').textContent = fmt(S.res.food);
+  document.getElementById('rWood').textContent = fmt(S.res.wood);
+  document.getElementById('rStone').textContent = fmt(S.res.stone);
+  document.getElementById('rIron').textContent = fmt(S.res.iron);
+  document.getElementById('rTroops').textContent = fmt(S.troops);
+  document.getElementById('troopCount').textContent = fmt(S.troops);
+  document.getElementById('speedBadge').textContent = `演示加速 ×${S.speed}`;
+
+  // 建筑
+  const box = document.getElementById('buildings');
+  box.innerHTML = BUILDINGS.map(b => {
+    const lv = S.levels[b.id] || 1;
+    const next = lv + 1;
+    const cost = upgradeCost(b, next);
+    const dur = upgradeDuration(b, next) / 1000;
+    const busy = S.queue && S.queue.id === b.id;
+    return `<div class="row">
+      <span class="name">${b.name}</span><span class="lv">Lv${lv}</span>
+      <button onclick="upgrade('${b.id}')" ${S.queue || !canPay(cost) ? 'disabled' : ''}>升级</button>
+      <div class="cost">${busy ? `建造中 ${dur.toFixed(1)}s` : `${fmtCost(cost)} · ${dur.toFixed(1)}s`}</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('queueInfo').textContent = S.queue
+    ? `建造队列占用中（剩余 ${Math.max(0, ((S.queue.endsAt - Date.now()) / 1000)).toFixed(1)}s）`
+    : '建造队列空闲';
+
+  // 资源点
+  document.getElementById('points').innerHTML = POINTS.map(p => {
+    const owned = S.owned[p.id];
+    const resName = ({ food: '粮', stone: '石', iron: '铁' })[p.res];
+    return `<div class="card ${owned ? 'owned' : ''}">
+      <h3>Lv${p.level} 资源点 ${owned ? '<span style="color:var(--green)">已占领</span>' : ''}</h3>
+      <div class="meta">守军 ${fmt(p.guard)} · 防御 ${fmt(p.def)} · 产出 ${p.yield}/h（${resName}） · 距离 ${p.cells} 格 · 行军 ${(RULES.marchSecPerCell * p.cells / S.speed).toFixed(1)}s</div>
+      <div class="meta" style="color:${estimate(p).ok ? 'var(--green)' : 'var(--red)'}">${estimate(p).text}</div>
+      <div class="ops"><button class="primary" onclick="march('${p.id}')" ${owned || S.march || !estimate(p).ok ? 'disabled' : ''}>出征</button></div>
+    </div>`;
+  }).join('');
+
+  // 行军
+  const mc = document.getElementById('marchCard');
+  if (S.march) {
+    mc.style.display = 'block';
+    const p = POINTS.find(x => x.id === S.march.pointId);
+    document.getElementById('marchInfo').innerHTML =
+      `目标 Lv${p.level} · 兵力 ${fmt(S.march.troops)} · 剩余 ${Math.max(0, ((S.march.arriveAt - Date.now()) / 1000)).toFixed(1)}s`;
+  } else {
+    mc.style.display = 'none';
+  }
+
+  document.getElementById('log').innerHTML = S.log.join('');
+  document.getElementById('btnTrain').disabled = S.res.food < RULES.trainCost.food || S.res.iron < RULES.trainCost.iron;
+}
+
+/* 验收旅程自检清单（来自策划书 QA 章） */
+const JOURNEYS = [
+  '标准路径：升农田 → 征兵 → 出征 Lv5 资源点 → 占领后产出增加',
+  '恢复路径：刷新页面，资源/等级/兵力/已占点保持',
+  '滥用路径：建造中再点升级被拒；无兵力出征被拒；战败退回伤兵'
+];
+document.getElementById('journeys').innerHTML = JOURNEYS
+  .map((t, i) => `<label><input type="checkbox" id="jw${i}"> ${t}</label>`).join('');
+
+/* ================= 启动 ================= */
+load();
+addLog('Demo 启动（ruleset lwfsl-v1）');
+render();
+setInterval(tick, 1000);
+</script>
+</body>
+</html>

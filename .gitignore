@@ -35,6 +35,9 @@ ENV/
 *.swo
 *~
 
+# WorkBuddy AI local memory / project logs (never commit)
+.workbuddy-ai/
+
 # Project specific
 logs/
 日志/
