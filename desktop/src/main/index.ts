@@ -111,7 +111,11 @@ function createWindow(): void {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: true
+      sandbox: true,
+      // 中间窗口「浏览器」页签需要 <webview> 加载外部页面（预览 Demo / 查资料）。
+      // webview 是独立 guest 进程：nodeIntegration 默认关、与渲染层上下文隔离，
+      // 不因本标志获得 Node 能力；加载什么由用户在面板里输入，与主窗口同权。
+      webviewTag: true
     }
   })
 

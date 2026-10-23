@@ -857,3 +857,14 @@ export type TemplateJsonDialogInput = z.infer<typeof templateJsonDialogInputSche
 export type BackupCreateInput = z.infer<typeof backupCreateInputSchema>
 export type BackupRestoreInput = z.infer<typeof backupRestoreInputSchema>
 export type BackupDeleteInput = z.infer<typeof backupDeleteInputSchema>
+/** 代码面板：列目录（path 为绝对路径，空串由主进程回落默认根） */
+export const fsListDirInputSchema = z.object({
+  path: z.string()
+})
+export type FsListDirInput = z.infer<typeof fsListDirInputSchema>
+
+/** 代码面板：读文本文件（主进程做大小/二进制双重闸） */
+export const fsReadFileInputSchema = z.object({
+  path: z.string().min(1)
+})
+export type FsReadFileInput = z.infer<typeof fsReadFileInputSchema>

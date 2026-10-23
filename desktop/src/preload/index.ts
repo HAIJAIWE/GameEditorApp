@@ -99,6 +99,15 @@ const api: MbApi = {
     restore: (req) => invoke('backup:restore', req),
     remove: (req) => invoke('backup:delete', req)
   },
+  /*
+   * 代码面板（中间窗口「代码编辑」页签）：只读查看。
+   * 主进程侧有三道闸（条目数/文件大小/二进制），失败都走 reason 不抛异常。
+   */
+  fs: {
+    listDir: (req: { path: string }) => invoke('fs:listDir', req),
+    readFile: (req: { path: string }) => invoke('fs:readFile', req),
+    appRoot: () => invoke('fs:appRoot', undefined)
+  },
   llm: {
     /** 单次文本生成（字段级 AI 按钮）；失败由主进程抛中文错误 */
     generate: (req: { system: string; prompt: string }) => invoke('llm:generate', req),

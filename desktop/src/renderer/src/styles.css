@@ -5964,3 +5964,325 @@ button.ref-row:hover {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
+
+/* ============================================================================
+ * 中间窗口页签（编辑器 / 代码编辑 / 浏览器）——2026-10-24 新增
+ * 页签条贴在主区顶部；三个 pane 常驻挂载、hidden 切换（编辑器带着草稿状态，
+ * 切走再切回不能丢）。代码/浏览器面板样式见各自区块。
+ * ==========================================================================*/
+
+.middle-tabs {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-panel);
+  flex: 0 0 auto;
+}
+
+.middle-tab {
+  padding: 8px 16px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.middle-tab:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.middle-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}
+
+.middle-tab-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+}
+
+/* hidden 属性要能压过 display:flex（类选择器优先级高于 UA 的 [hidden] 规则） */
+.middle-tab-pane {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.middle-tab-pane[hidden] {
+  display: none;
+}
+
+/* ---- 代码面板（只读查看器） ---- */
+
+.code-panel {
+  display: grid;
+  grid-template-columns: minmax(200px, 280px) 1fr;
+  grid-template-rows: 1fr auto;
+  flex: 1;
+  min-height: 0;
+  font-size: 13px;
+}
+
+.code-tree {
+  grid-row: 1 / span 2;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+  background: var(--bg-panel);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.code-tree-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.code-tree-title {
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.code-pathbar {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.code-path-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 12px;
+}
+
+.code-tree-body {
+  flex: 1;
+  overflow: auto;
+  padding: 4px 0;
+}
+
+.code-tree-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 3px 8px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.code-tree-row:hover {
+  background: var(--bg-hover);
+}
+
+.code-tree-row.active {
+  background: var(--accent-soft, rgba(0, 122, 204, 0.15));
+  color: var(--accent);
+}
+
+.code-tree-row.dir .code-tree-name {
+  font-weight: 600;
+}
+
+.code-tree-icon {
+  width: 12px;
+  flex: 0 0 auto;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.code-tree-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.code-tree-size {
+  flex: 0 0 auto;
+  color: var(--text-tertiary, var(--text-secondary));
+  font-size: 11px;
+}
+
+.code-tree-hint {
+  padding: 8px 12px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.code-tree-hint.indent {
+  padding-left: 24px;
+}
+
+.code-tree-hint.error {
+  color: var(--danger, #d13438);
+}
+
+.code-view {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.code-view-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-panel);
+}
+
+.code-view-path {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.code-view-meta {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.code-view-badge {
+  margin-left: auto;
+  padding: 1px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.code-view-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: 1;
+  color: var(--text-secondary);
+}
+
+.code-view-empty-sub {
+  font-size: 12px;
+  color: var(--text-tertiary, var(--text-secondary));
+}
+
+.code-view-empty.error {
+  color: var(--danger, #d13438);
+}
+
+.code-content {
+  flex: 1;
+  margin: 0;
+  padding: 12px 16px;
+  overflow: auto;
+  font-family: var(--font-mono, Consolas, monospace);
+  font-size: 12.5px;
+  line-height: 1.6;
+  white-space: pre;
+  tab-size: 2;
+}
+
+.tok-comment { color: var(--text-tertiary, #6a9955); font-style: italic; }
+.tok-string { color: #ce9178; }
+.tok-number { color: #b5cea8; }
+.tok-keyword { color: #569cd6; font-weight: 600; }
+
+.code-breadcrumb {
+  grid-column: 2;
+  padding: 2px 12px;
+  border-top: 1px solid var(--border);
+  color: var(--text-tertiary, var(--text-secondary));
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---- 浏览器面板 ---- */
+
+.browser-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.browser-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-panel);
+  flex: 0 0 auto;
+}
+
+.browser-url {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 12.5px;
+}
+
+.browser-view {
+  flex: 1;
+  min-height: 0;
+  border: none;
+}
+
+.browser-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex: 1;
+  color: var(--text-secondary);
+}
+
+.browser-empty-sub {
+  font-size: 12px;
+  text-align: center;
+  line-height: 1.8;
+  color: var(--text-tertiary, var(--text-secondary));
+}
+
+.browser-status {
+  padding: 3px 12px;
+  border-top: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 11.5px;
+  flex: 0 0 auto;
+}

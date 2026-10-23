@@ -74,7 +74,9 @@ import type {
   TemplatesSaveInput,
   TemplatesUpdateInput,
   WindowModeInput,
-  AppViewActionInput
+  AppViewActionInput,
+  FsListDirInput,
+  FsReadFileInput
 } from './schemas'
 import type {
   AppInfo,
@@ -364,6 +366,47 @@ export interface IpcContract {
   'backup:restore': { req: BackupRestoreInput; res: RestoreOutcome }
   /** 删除备份（软删除，改名为 .deleted 而非物理删除） */
   'backup:delete': { req: BackupDeleteInput; res: { deleted: boolean } }
+
+  /*
+   * 代码面板（中间窗口「代码编辑」页签）：列目录 + 读文本文件。
+   *
+   * 安全边界（与 settings:setSecret 的「明文不出主进程」同一思路的反向应用）：
+   * 这是**用户本机、用户主动点开**的文件查看器，读什么由用户自己决定——但要防
+   * 三类意外：① 超大文件撑爆渲染层（512KB 闸 + truncated 标记）；② 二进制文件
+   * 被当文本渲染成乱码（首 8KB 探 NUL，命中返回 reason 不返回内容）；
+   * ③ node_modules 噪音（列目录上限 500 条 + 渲染层扩展名白名单双保险）。
+   * 刻意**不做写入**：只读查看器不碰用户文件，编辑是后续独立议题。
+   */
+  /** 列目录：目录在前、名称排序；entries 上限 500 条（truncated 标记） */
+  'fs:listDir': { req: FsListDirInput; res: FsDirListing }
+  /** 读文本文件：超限/二进制返回 reason（content 为空串），不抛异常 */
+  'fs:readFile': { req: FsReadFileInput; res: FsFileContent }
+  /** 代码面板默认根目录（dev 下为仓库根，生产为 app 所在目录的父目录） */
+  'fs:appRoot': { req: undefined; res: { root: string } }
+}
+
+/** 目录条目（代码面板用：名称 + 是否目录 + 字节数） */
+export interface FsDirEntry {
+  name: string
+  isDir: boolean
+  /** 文件字节数；目录为 0 */
+  size: number
+}
+
+/** fs:listDir 结果：绝对路径 + 条目（截断时 truncated=true，entries 为前 500 条） */
+export interface FsDirListing {
+  path: string
+  entries: FsDirEntry[]
+  truncated: boolean
+}
+
+/** fs:readFile 结果：超限/二进制时 content 为空串、reason 说明原因 */
+export interface FsFileContent {
+  path: string
+  content: string
+  bytes: number
+  truncated: boolean
+  reason: string | null
 }
 
 /** 撤销/重做结果（对齐 AI 回滚风格：成功数 + 失败 + 跳过，绝不假装「全部成功」） */

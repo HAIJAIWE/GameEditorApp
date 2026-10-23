@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type MouseEvent as ReactMouse
 
 import type { CeshuSummary } from '../../shared/ceshuConstants'
 import { loadGameStyle, normalizeGameStyleId, saveGameStyle } from '../../shared/config/gameStyle'
+import { loadMiddleTab, MIDDLE_TABS, saveMiddleTab, type MiddleTab } from '../../shared/config/middleTab'
 import type { AppInfo, DataTypeDef } from '../../shared/types'
 import { applyTheme, loadTheme, saveTheme, type ThemeMode } from '../../shared/config/theme'
 
@@ -13,7 +14,9 @@ import BatchEditPanel from './components/BatchEditPanel'
 import CeshuHomePanel from './components/CeshuHomePanel'
 import ClearAllPanel from './components/ClearAllPanel'
 import GameDataPreviewPanel from './components/GameDataPreviewPanel'
+import BrowserPanel from './components/BrowserPanel'
 import CeshuView from './components/CeshuView'
+import CodePanel from './components/CodePanel'
 import { type PreviewJumpTarget } from './components/ceshu/CeshuDataPreview'
 import DataDiffPanel from './components/DataDiffPanel'
 import DigitalPanel from './components/digital/DigitalPanel'
@@ -106,6 +109,16 @@ export default function App() {
   const { undoUi, refreshUndo, performUndo, performRedo } = useUndoRedo(setNotice, setError)
   /** 主区内当前打开的浮层面板（null = 未打开，渲染策划书首页/编辑器） */
   const [panel, setPanel] = useState<OverlayPanel | null>(null)
+  /** 中间窗口页签（编辑器/代码编辑/浏览器）：持久化在 localStorage，重启保留 */
+  const [middleTab, setMiddleTab] = useState<MiddleTab>(() => loadMiddleTab())
+  /** 已访问过的页签（代码/浏览器首访才挂载面板；编辑器默认已在） */
+  const [visitedTabs, setVisitedTabs] = useState<ReadonlySet<MiddleTab>>(() => new Set([loadMiddleTab()]))
+  /** 切页签：记 visited + 持久化。常驻挂载的编辑器不重载，切回不丢草稿状态 */
+  const switchMiddleTab = useCallback((tab: MiddleTab): void => {
+    setMiddleTab(tab)
+    saveMiddleTab(tab)
+    setVisitedTabs((prev) => (prev.has(tab) ? prev : new Set([...prev, tab])))
+  }, [])
   /** 主题（深/浅）：持久化在 localStorage，随会话保留；启动时由 main.tsx 预应用以避免闪屏 */
   const [theme, setTheme] = useState<ThemeMode>(() => loadTheme())
 
@@ -685,32 +698,70 @@ export default function App() {
                   </div>
                   <div className="panel-overlay-body">{renderPanel()}</div>
                 </div>
-              ) : ceshuHomeVisible ? (
-                <CeshuHomePanel
-                  summaries={ceshuList}
-                  activeId={activeCeshuId}
-                  onOpen={handleOpenCeshu}
-                  onChanged={() => void reloadCeshuList()}
-                  onDeleted={(deletedId) => {
-                    setActiveCeshuId((current) => (current === deletedId ? null : current))
-                  }}
-                />
               ) : (
-                <CeshuView
-                  ceshuId={activeCeshuId}
-                  onChanged={() => void reloadCeshuList()}
-                  onSelect={handleOpenCeshu}
-                  onGameStyleChange={handleGameStyleChange}
-                  types={types}
-                  gameStyle={gameStyle}
-                  onBack={() => setCeshuHomeVisible(true)}
-                  jumpTarget={jumpTarget}
-                  dataEpoch={dataEpoch}
-                  onEditType={handleEditType}
-                  onShowReferences={handleShowReferences}
-                  onJumpHandled={handleJumpHandled}
-                  onJumpMissed={handleJumpMissed}
-                />
+                <>
+                  {/*
+                   * 中间窗口页签条（编辑器 / 代码编辑 / 浏览器）。
+                   * 三个 pane 全部常驻挂载、用 hidden 切换：编辑器带着策疏草稿状态，
+                   * 切走再切回不能丢；代码/浏览器首访才挂（visitedTabs），避免启动成本。
+                   */}
+                  <nav className="middle-tabs" data-testid="middle-tabs" aria-label="中间窗口页签">
+                    {MIDDLE_TABS.map((tab) => (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        className={`middle-tab${middleTab === tab.id ? ' active' : ''}`}
+                        title={tab.title}
+                        aria-current={middleTab === tab.id}
+                        data-testid={`middle-tab-${tab.id}`}
+                        onClick={() => switchMiddleTab(tab.id)}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                  </nav>
+                  <div className="middle-tab-body">
+                    <div className="middle-tab-pane" hidden={middleTab !== 'editor'}>
+                      {ceshuHomeVisible ? (
+                        <CeshuHomePanel
+                          summaries={ceshuList}
+                          activeId={activeCeshuId}
+                          onOpen={handleOpenCeshu}
+                          onChanged={() => void reloadCeshuList()}
+                          onDeleted={(deletedId) => {
+                            setActiveCeshuId((current) => (current === deletedId ? null : current))
+                          }}
+                        />
+                      ) : (
+                        <CeshuView
+                          ceshuId={activeCeshuId}
+                          onChanged={() => void reloadCeshuList()}
+                          onSelect={handleOpenCeshu}
+                          onGameStyleChange={handleGameStyleChange}
+                          types={types}
+                          gameStyle={gameStyle}
+                          onBack={() => setCeshuHomeVisible(true)}
+                          jumpTarget={jumpTarget}
+                          dataEpoch={dataEpoch}
+                          onEditType={handleEditType}
+                          onShowReferences={handleShowReferences}
+                          onJumpHandled={handleJumpHandled}
+                          onJumpMissed={handleJumpMissed}
+                        />
+                      )}
+                    </div>
+                    {visitedTabs.has('code') && (
+                      <div className="middle-tab-pane" hidden={middleTab !== 'code'}>
+                        <CodePanel />
+                      </div>
+                    )}
+                    {visitedTabs.has('browser') && (
+                      <div className="middle-tab-pane" hidden={middleTab !== 'browser'}>
+                        <BrowserPanel />
+                      </div>
+                    )}
+                  </div>
+                </>
               )}
             </div>
             {/* 右栏拖拽分隔条：拖动改宽，双击复位到 25% */}

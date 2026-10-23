@@ -142,6 +142,12 @@ export interface MbApi {
     restore(req: IpcContract['backup:restore']['req']): Promise<IpcContract['backup:restore']['res']>
     remove(req: IpcContract['backup:delete']['req']): Promise<IpcContract['backup:delete']['res']>
   }
+  /** 代码面板（只读）：列目录 + 读文本文件 + 默认根目录 */
+  fs: {
+    listDir(req: IpcContract['fs:listDir']['req']): Promise<IpcContract['fs:listDir']['res']>
+    readFile(req: IpcContract['fs:readFile']['req']): Promise<IpcContract['fs:readFile']['res']>
+    appRoot(): Promise<IpcContract['fs:appRoot']['res']>
+  }
   llm: {
     /** 单次文本生成（数据编辑器字段级 AI 按钮） */
     generate(req: IpcContract['llm:generate']['req']): Promise<IpcContract['llm:generate']['res']>
