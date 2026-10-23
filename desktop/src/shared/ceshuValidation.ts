@@ -17,6 +17,7 @@ import {
 } from './ceshuContentQuality'
 import { CESHU_CHAPTER_FIELDS } from './ceshuFields'
 import { getGddScope, isEmptyRequiredValue, isPlainObject } from './ceshuModel'
+import { checkNumericAssertions } from './ceshuNumericAssert'
 import { readText } from './util/readText'
 
 /**
@@ -208,6 +209,18 @@ export function validateCeshu(doc: CeshuDocument): string[] {
       })
       for (const message of issues) errors.push(message)
     }
+  }
+
+  /*
+   * 15. 数值断言复算（numeric.numeric_assertions）：把设计目标从「文档」升级为「可复算」。
+   *
+   * 2026-10-24 对标豆包《微光之塔》后新增。此前「首转生恰得 3 星火」这类主张写归写，
+   * 算错没人知道；现在逐条代入参数表求值，与文中声明值（尊重容差）比对、按接受条件
+   * 判定，不符即报「一致性冲突」。安全求值器见 ceshuNumericAssert（AI 产出不可信，
+   * 禁用 eval；只认白名单函数与四则运算）。
+   */
+  for (const message of checkNumericAssertions(doc)) {
+    errors.push(message)
   }
 
   return errors
