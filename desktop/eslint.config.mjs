@@ -52,6 +52,13 @@ export default tseslint.config(
     }
   },
   {
+    // Demo 验收器：Node 驱动 + page.evaluate 里的浏览器上下文代码（document 等）
+    files: ['scripts/demoAcceptance.mjs'],
+    languageOptions: {
+      globals: { ...globals.node, ...globals.browser, WebSocket: 'readonly' }
+    }
+  },
+  {
     files: ['src/renderer/**/*.{ts,tsx}'],
     languageOptions: {
       globals: globals.browser
