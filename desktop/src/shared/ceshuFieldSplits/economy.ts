@@ -1,15 +1,8 @@
-import type { ChapterFieldSplits } from './types'
+import { ECONOMY_SCHEMA } from '../ceshuSchema/economy'
 
 /**
- * 第六章·经济系统设计的结构拆分清单（P1，2026-10-23）。
+ * 第六章·经济系统设计的结构拆分清单（档 4 合并兼容层，2026-10-24）。
  *
- * 拆 4 个开放式 textarea 为「本体 + xxx_points + xxx_notes」三件套；
- * currency_types / drop_tables 已是结构化字段，不拆。
+ * 真实数据已迁入 `ceshuSchema/economy.ts`，此处仅做 re-export。全部章节迁完后删除。
  */
-export const ECONOMY_FIELD_SPLITS: ChapterFieldSplits = [
-  'production_chain',
-  'market_design',
-  'inflation_control',
-  'economic_goals',
-  'seasonal_adjustment'
-]
+export const ECONOMY_FIELD_SPLITS = ECONOMY_SCHEMA.splits

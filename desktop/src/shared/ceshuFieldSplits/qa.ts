@@ -1,10 +1,4 @@
-import type { ChapterFieldSplits } from './types'
+/** 档 4 合并兼容层（2026-10-24）：真实拆分清单已迁入 ceshuSchema/qa.ts，此处仅 re-export。 */
+import { QA_SCHEMA } from '../ceshuSchema/qa'
 
-/**
- * 第二十一章·测试与质量保障的结构拆分清单（P2，2026-10-23）。
- *
- * 本章的三件套（test_strategy → test_strategy_points / test_strategy_notes）
- * 已在 `ceshuChapterFields/qa.ts` 字段定义里直接手工拆好，此处留空，
- * 不交给导出时的自动拆分（避免重复插入）。
- */
-export const QA_FIELD_SPLITS: ChapterFieldSplits = []
+export const QA_FIELD_SPLITS = QA_SCHEMA.splits

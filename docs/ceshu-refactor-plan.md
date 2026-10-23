@@ -93,7 +93,7 @@ export function column(row: string, index: number): string  // 取第 N 列（�
 
 ### 现状（实测）
 字段元数据被拆进 4 套平行目录 + 1 个大文件，keying 一致（章节 + 字段名）但形态各异：
-- `ceshuFields.ts`（496 行）：BASE 16 章字段表 + **唯一 merge point**（import `FIELD_HINTS` / `NEW_CHAPTER_FIELDS` / `FIELD_SPLITS` 并在此合并）
+- `ceshuFields.ts`（现 128 行）：BASE 17 章字段表（meta + 16 编号章；economy 在其中内联）+ **唯一 merge point**（import `FIELD_HINTS` / `NEW_CHAPTER_FIELDS` / `FIELD_SPLITS` 并在此合并）
 - `ceshuChapterFields/`（9 文件 / 491 行）：P2 扩展 7 章（`index.ts` 聚合为 `NEW_CHAPTER_FIELDS`）+ 类型
 - `ceshuFieldHints/`（23 文件 / 1280 行）：`Record<field,{aiHint,reviewHint}>`
 - `ceshuFieldSplits/`（24 文件 / 325 行）：`string[]`（三件套拆分清单）
@@ -118,9 +118,22 @@ export function column(row: string, index: number): string  // 取第 N 列（�
 4. 全部迁完后，可选：让 `ceshuFields.ts` 直接从 `ceshuSchema/*` 取数，删除兼容层。
 
 ### 风险与对策
-- 被 2546 单测间接依赖（字段数、契约、hint 都在测里断言）→ 每步全量单测 + 加一条 `assert CESHU_CHAPTER_FIELDS 字段总数 === N` 的守卫测试，防漏迁。
-- 三件套拆分语义（`ceshuFieldSplits`）与字段定义耦合，合并时要保证 `split: true` 派生出的 `_points` / `_notes` 字段数量与现有一致。
+- 被 2555+ 单测间接依赖（字段数、契约、hint 都在测里断言）→ 每步全量单测 + 加一条结构守卫测试（`tests/unit/ceshuSchema.guard.test.ts`）：断言全表字段总数 === 334、每章字段数、每章拆分数均为迁移前基线，并对试点章（economy）做合并后字段数组的**深度相等**断言。防漏迁 / 错迁 / 重复迁。
+- 三件套拆分语义（`ceshuFieldSplits`）与字段定义耦合，合并时要保证拆分派生的 `_points` / `_notes` 字段数量与现有一致 → 由 `ceshuFieldSplits.test.ts` 的「被拆字段必有配套要点/补充且带契约」守卫兜底。
 - 用 re-export 兜底层把「行为变更风险」压到零；真正的文件删除放在最后一轮。
+
+### 实施进度（全量完成，2026-10-24）✅
+
+**落地形态**（试点验证后全量推广，零行为变更）：沿用试点思路——`CeshuFieldDef` 本就带 `aiHint`/`reviewHint`/`aiDraftable`，旧架构只是把它们放另一文件再合并；合并 = 把契约**内联回 field def**、把 `_points`/`_notes` 拆分契约放进 `splitHints`，由 `toFieldHints(schema)` 派生 hint map。真正单源，改一个字段只碰一个文件。
+
+- 新目录 `ceshuSchema/`：24 章全部落地（`types.ts` + `economy.ts` 手工试点 + 其余 23 章由代码生成脚本从合并产物反推，保证与现状逐字节一致）。每章导出 `<NAME>_FIELDS`（字段定义 + 内联契约）、可选 `<NAME>_SPLIT_HINTS`、`<NAME>_SCHEMA`。
+- `ceshuFieldHints/*`（23 文件）、`ceshuFieldSplits/*`（24 文件）全部改为从 schema 派生（re-export 兜底，`ceshuFields.ts` 合并点零改动）；`ceshuChapterFields/*`（P2 7 章）改为 `import <NAME>_FIELDS` + 保留 `defaults`（字段单源，默认数据暂留原处，后续批次迁入）。
+- `ceshuFields.ts`：删除 `f` 助手与 `import * as OPT`（OPT 的 optionLabels 已内联进 schema 字段）；`BASE_CHAPTER_FIELDS` 由 17 段内联 `f(...)` 块缩减为 17 条 schema 引用。
+- 守卫测试 `ceshuSchema.guard.test.ts`：总字段数 334、25 章字段数、24 章拆分数、economy 合并数组深度相等——全量迁移后仍通过，证明零行为变更。
+
+**验证**：全量单测 2559 通过 / 5 跳过、三套 `tsc` 0 错、eslint 0（`--fix` 时修正了生成文件里 4 处带空格的 `optionLabels` key 漏加引号的语法错误：`tech.ts` 的 `Unreal Engine`、`audio.ts` 的 `CRI ADX` / `Unity Audio` / `Unreal Audio`）。
+
+**剩余（下一轮）**：`defaults` / `templates` 仍分别住在 `ceshuDefaults` / `ceshuTemplateData`，按原方案并入 schema；并入后删除 re-export 兜底与旧目录，让 `ceshuFields.ts` 直接消费 `ceshuSchema/*`。
 
 ### 验收
 - 全量单测绿；`CESHU_CHAPTER_FIELDS` 字段总数、各章 required 集合与改造前一致（守卫测试）；

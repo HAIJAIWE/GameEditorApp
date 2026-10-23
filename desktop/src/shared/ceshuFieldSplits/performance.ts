@@ -1,10 +1,4 @@
-import type { ChapterFieldSplits } from './types'
+/** 档 4 合并兼容层（2026-10-24）：真实拆分清单已迁入 ceshuSchema/performance.ts，此处仅 re-export。 */
+import { PERFORMANCE_SCHEMA } from '../ceshuSchema/performance'
 
-/**
- * 第二十三章·性能与适配的结构拆分清单（P2，2026-10-23）。
- *
- * 留空：memory_package 的「本体 + 要点 + 补充」三件套已在
- * ceshuChapterFields/performance.ts 直接定义，无需机制自动插入。
- * network_adaptation / thermal_power 为单体 textarea，暂无拆分必要。
- */
-export const PERFORMANCE_FIELD_SPLITS: ChapterFieldSplits = ['network_adaptation', 'thermal_power']
+export const PERFORMANCE_FIELD_SPLITS = PERFORMANCE_SCHEMA.splits

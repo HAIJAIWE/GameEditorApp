@@ -1,40 +1,5 @@
-import type { ChapterFieldHints } from './types'
+/** 档 4 合并兼容层（2026-10-24）：真实契约已内联进 ceshuSchema/analytics.ts，此处仅 re-export。 */
+import { ANALYTICS_SCHEMA } from '../ceshuSchema/analytics'
+import { toFieldHints } from '../ceshuSchema/types'
 
-/**
- * 第二十章·数据埋点与指标的字段契约（P2，2026-10-23）。
- *
- * 与字段设计的对应关系见 `ceshuChapterFields/analytics.ts` 文件头：
- * 指标四列、埋点三列与漏斗三件套分工，在这里落成「AI 产出物 + 人审检查点」。
- * 涉及外部平台/工具名（埋点平台、看板平台、告警渠道）的字段，一律要求
- * 「名称必须真实存在，不确定标『待确认』」，防 AI 编造不存在的产品。
- */
-export const ANALYTICS_FIELD_HINTS: ChapterFieldHints = {
-  metric_system: {
-    aiHint: '8-12 个指标，每行一个，按指标名/定义/统计口径/目标值四列填写；口径写清统计窗口与去重规则',
-    reviewHint: '每个指标是否都有目标值；口径是否可复现；是否与运营章 ops_goals 对得上'
-  },
-  key_funnels: {
-    aiHint: '一段概述：注册→新手→核心行为→付费的链路与每级目标转化率；各级定义走「环节」字段',
-    reviewHint: '本体是否给出全链路；环节是否覆盖注册到付费、级间是否衔接无断点'
-  },
-  key_funnels_points: {
-    aiHint: '4-6 个环节：每行一个，含进入条件、流出条件与目标转化率',
-    reviewHint: '环节是否可逐条核对；每级是否都有目标转化率；事件是否与埋点清单对得上'
-  },
-  key_funnels_notes: {
-    aiHint: '分渠道、分版本的漏斗差异等补充说明，可留空',
-    reviewHint: '是否只放补充信息，没有把环节又抄一遍'
-  },
-  event_tracking: {
-    aiHint: '每行一个事件，按事件名/触发时机/关键参数三列填写；命名统一小写下划线；涉及埋点平台时名称必须真实存在，不确定标『待确认』',
-    reviewHint: '事件名是否全局唯一不撞车；参数是否含分析所需维度；平台名是否真实或已标待确认'
-  },
-  dashboards: {
-    aiHint: '每行一个看板，按看板名/使用角色/核心指标/刷新频率四列填写；涉及分析平台时名称必须真实存在，不确定标『待确认』',
-    reviewHint: '看板是否按角色分层；核心指标是否来自指标体系；平台名是否真实或已标待确认'
-  },
-  alert_monitoring: {
-    aiHint: '每行一个监控项，按监控项/告警阈值/通知方式/响应动作四列填写；告警渠道名称必须真实存在，不确定标『待确认』',
-    reviewHint: '阈值是否可计算；是否指定通知对象；崩溃、掉率类高危项是否覆盖'
-  }
-}
+export const ANALYTICS_FIELD_HINTS = toFieldHints(ANALYTICS_SCHEMA)

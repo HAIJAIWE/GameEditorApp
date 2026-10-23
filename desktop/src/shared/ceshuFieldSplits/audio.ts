@@ -1,9 +1,4 @@
-import type { ChapterFieldSplits } from './types'
+/** 档 4 合并兼容层（2026-10-24）：真实拆分清单已迁入 ceshuSchema/audio.ts，此处仅 re-export。 */
+import { AUDIO_SCHEMA } from '../ceshuSchema/audio'
 
-/**
- * 第九章·音频设计的结构拆分清单（P1，2026-10-23）。
- *
- * 拆 3 个开放式 textarea：配音设计、动态音频、音频本地化。
- * 音频预算（audio_budget）是人定字段，不拆。
- */
-export const AUDIO_FIELD_SPLITS: ChapterFieldSplits = ['voice_acting', 'dynamic_audio', 'audio_localization']
+export const AUDIO_FIELD_SPLITS = AUDIO_SCHEMA.splits

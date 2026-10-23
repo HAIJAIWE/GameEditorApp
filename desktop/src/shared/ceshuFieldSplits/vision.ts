@@ -1,7 +1,4 @@
-import type { ChapterFieldSplits } from './types'
+/** 档 4 合并兼容层（2026-10-24）：真实拆分清单已迁入 ceshuSchema/vision.ts，此处仅 re-export。 */
+import { VISION_SCHEMA } from '../ceshuSchema/vision'
 
-/**
- * 第一章·产品愿景的结构拆分清单（P1，2026-10-23）。
- * 占位文件——内容由子代理并行填充，约定见 types.ts 文件头。
- */
-export const VISION_FIELD_SPLITS: ChapterFieldSplits = []
+export const VISION_FIELD_SPLITS = VISION_SCHEMA.splits

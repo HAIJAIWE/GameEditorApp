@@ -1,35 +1,5 @@
-import type { ChapterFieldHints } from './types'
+/** 档 4 合并兼容层（2026-10-24）：真实契约已内联进 ceshuSchema/gameplay.ts，此处仅 re-export。 */
+import { GAMEPLAY_SCHEMA } from '../ceshuSchema/gameplay'
+import { toFieldHints } from '../ceshuSchema/types'
 
-/**
- * 第三章·核心玩法的字段契约（P0 补契约，2026-10-23）。
- *
- * 本章要点：核心循环是整份策划的心脏。此前只有「核心循环·步骤」带契约、
- * 描述本体没有——AI 于是自由发挥写一段环不上的话。本文件把闭环结构、
- * 禁空话、以及与步骤清单的分工写进契约。
- *
- * `core_loop_points` / `core_loop_notes` 的契约已在字段定义中，此处不重复。
- */
-export const GAMEPLAY_FIELD_HINTS: ChapterFieldHints = {
-  core_loop: {
-    aiHint:
-      '闭环叙事：做什么→得到什么→为何想继续；须首尾成环，每步写具体行为，禁「体验内容」空话；步骤归「核心循环·步骤」，勿重复',
-    reviewHint: '能否闭环；每一步是否具体可玩；与「核心循环·步骤」是否重复'
-  },
-  game_modes: {
-    aiHint: '2-4 个模式，每个一行：名称 + 一句话玩法差异',
-    reviewHint: '是否为 2-4 个模式；每行是否「名称+一句差异」；差异句能否区分模式而非套话'
-  },
-  first_30_min: {
-    aiHint:
-      '一段概述：前 30 分钟的设计目标与节奏安排；按 0-2/2-10/10-30 分段的具体动作与反馈条目走「要点」字段，勿在本体罗列',
-    reviewHint: '是否覆盖 0-2/2-10/10-30 三段；每段是否有具体动作与反馈；是否出现首个目标/高潮点'
-  },
-  first_30_min_points: {
-    aiHint: '按 0-2/2-10/10-30 分钟分段，每段一行：玩家动作 + 即时反馈 + 本段目标',
-    reviewHint: '三段是否齐全；每行是否有「动作+反馈+目标」三要素；反馈是否即时可感知'
-  },
-  first_30_min_notes: {
-    aiHint: '新手引导的补充说明（如容错设计、跳过条件），可留空',
-    reviewHint: '是否与「要点」的时间线段落重复'
-  }
-}
+export const GAMEPLAY_FIELD_HINTS = toFieldHints(GAMEPLAY_SCHEMA)

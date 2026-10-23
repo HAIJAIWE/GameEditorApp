@@ -1,29 +1,5 @@
-import type { ChapterFieldHints } from './types'
+/** 档 4 合并兼容层（2026-10-24）：真实契约已内联进 ceshuSchema/numeric.ts，此处仅 re-export。 */
+import { NUMERIC_SCHEMA } from '../ceshuSchema/numeric'
+import { toFieldHints } from '../ceshuSchema/types'
 
-/**
- * 第七章·数值设计 的字段契约（P0 补契约，2026-10-23）。
- *
- * 本章要点：数值章的内容**必须可计算**——AI 最容易在这里写出
- * 「引用未定义变量」的公式。契约要求每个公式的变量在本章或战斗章有定义。
- */
-export const NUMERIC_FIELD_HINTS: ChapterFieldHints = {
-  balance_principles: {
-    aiHint: '3-5 条平衡原则，每条一句：原则 + 量化表现（如「单次战斗时长 3-5 分钟」）',
-    reviewHint: '原则是否可验证；与核心公式、战斗章数值是否自洽'
-  },
-  economic_model: {
-    // P1 拆分后本体只留模型概述；公式/参数定义走「要点」字段逐条可核对。
-    // 与经济章的分工：机制设计（货币类型/产出回收/交易市场）归经济章，
-    // 此处只写**数值侧的参数与公式**——两边都不重复写机制描述。
-    aiHint: '一段概述：货币流转的数值模型与设计意图；公式与参数条目走「要点」字段，勿罗列',
-    reviewHint: '变量是否都有定义；是否只写数值模型而未重复经济章的机制设计'
-  },
-  economic_model_points: {
-    aiHint: '3-6 条：每条一个公式或参数定义（含变量含义与取值范围），引用须在本章或战斗章有定义',
-    reviewHint: '公式是否可计算；变量是否都有定义；与战斗章/经济章是否重复'
-  },
-  economic_model_notes: {
-    aiHint: '公式推导过程或敏感性说明，可留空',
-    reviewHint: '是否与「要点」里的公式重复；推导是否有依据'
-  }
-}
+export const NUMERIC_FIELD_HINTS = toFieldHints(NUMERIC_SCHEMA)
