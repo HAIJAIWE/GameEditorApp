@@ -325,3 +325,20 @@ UI/UX 交互设计、关卡/内容设计、运营与活动、数据埋点与指�
 - 评分依据：`ceshuScorer.ts`（结构 30 + 质量 40 + 市场 30）、`ceshuScorerData.ts` 的 `CHAPTER_WORD_BENCHMARK`
 - 质量门：`shared/agent/qualityGate.ts::evaluateChapterDraft`（重跑 validateCeshu + scoreCeshu 比 before/after）
 - 库内实证：`%APPDATA%/墨白可视化编辑/libraries/初始库/ceshu/` 下 4 份文档（均无生成内容）
+
+---
+
+## 6. 收尾：从「能审」到「能玩」——Demo 生成器补齐最后拼图（2026-10-24）
+
+本会话主线是「把策划文档产出能力追平豆包」。豆包最关键的差异不是文案，而是**直接生成能玩的 HTML**。此前已补齐：原型验收字段、用例清单、经济账本对账、成长曲线图、SVG 转图、Demo 验收器（生成→验收→证据→主张核对闭环）。最后一块：
+
+**Demo 生成器**（`src/shared/ceshuDemoPrompt.ts` + `scripts/generateDemo.ts`）：
+- `buildDemoPrompt(doc)` 从策划文档抽取 **核心循环点 / 状态机 / 数值参数 / 账本 / 用例 / 验收旅程**，组装**硬约束** prompt：单文件 HTML、`RULES` 常量 = 数值参数、实时 tick、localStorage 存档、调试面板、≥100 字且 ≥3 个交互元素
+- `generateDemo.ts` 用 CDP 驱动运行中的 app，走 `window.mbApi.llm.generate` 调 LLM 网关生成 → 抽取 `<!doctype html>` 整段 → 落盘 → 可选 `--acceptance` 回写 `qa.prototype_acceptance`
+- 单测 `tests/unit/ceshuDemoPrompt.test.ts`（4 条，覆盖抽取与约束）
+
+**实证**：因 LLM 网关当时 502，先以角色扮演产出样例 `docs/gdd-samples/slg-demo.html`（SLG《列王纷争录》可玩 Demo：RULES=主基地 30/成长 1.45、步兵攻击 10、防御常数 800、每格行军 180s；3 资源点、建筑升级、练兵/升级/出征、带预估战损的战斗、localStorage 存档）。验收 5/5（加载/无异常/内容渲染 731 字 18 交互/交互/稳定性），真实回放：升级→练兵→出征→战斗→占点→刷新存档存活，全部通过。修复 `defenseConst` 笔误、补「预估战损」展示。
+
+**最终态势**：契约覆盖 19%→93%、写对指标校准、禁编造、24 章三件套拆分、数值断言执行器、claim→证据核对、生产风险、原型验收、用例清单、账本对账、成长曲线、SVG 图、Demo 验收、Demo 生成——豆包可见能力已全部吸收并对齐到本项目可机器验证的管道。剩余两项豆包能力未强求对齐：轻量/完整模板切换（本项目用一份契约）、分支/图例式流程图（本项目用线性转移表）。
+
+验证：全量 **2546 过/5 跳**；tsc 三套 0 错；eslint 0。
