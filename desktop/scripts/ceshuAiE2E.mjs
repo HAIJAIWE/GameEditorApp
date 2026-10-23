@@ -64,7 +64,7 @@ ws.onopen = async () => {
     const created = JSON.parse(
       await evaluate(`(async () => JSON.stringify(await window.mbApi.ceshu.create({ name: ${JSON.stringify(DOC_NAME)} })))()`)
     )
-    const docId = created.id
+    const docId = created.ceshu_id
     console.log(`新建策划书: ${DOC_NAME} (id=${docId})`)
 
     const rows = []
