@@ -45,6 +45,13 @@ export default tseslint.config(
     }
   },
   {
+    // ESM 脚本（Node 22+；WebSocket 是全局的，CDP 驱动脚本要用）
+    files: ['scripts/**/*.mjs'],
+    languageOptions: {
+      globals: { ...globals.node, WebSocket: 'readonly' }
+    }
+  },
+  {
     files: ['src/renderer/**/*.{ts,tsx}'],
     languageOptions: {
       globals: globals.browser
