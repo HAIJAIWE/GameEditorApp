@@ -17,6 +17,7 @@ import GameDataPreviewPanel from './components/GameDataPreviewPanel'
 import BrowserPanel from './components/BrowserPanel'
 import CeshuView from './components/CeshuView'
 import CodePanel from './components/CodePanel'
+import DataEditorPanel from './components/DataEditorPanel'
 import { type PreviewJumpTarget } from './components/ceshu/CeshuDataPreview'
 import DataDiffPanel from './components/DataDiffPanel'
 import DigitalPanel from './components/digital/DigitalPanel'
@@ -750,6 +751,16 @@ export default function App() {
                         />
                       )}
                     </div>
+                    {visitedTabs.has('data') && (
+                      <div className="middle-tab-pane" hidden={middleTab !== 'data'}>
+                        <DataEditorPanel
+                          types={types}
+                          gameStyle={gameStyle}
+                          onEditType={handleEditType}
+                          onShowReferences={handleShowReferences}
+                        />
+                      </div>
+                    )}
                     {visitedTabs.has('code') && (
                       <div className="middle-tab-pane" hidden={middleTab !== 'code'}>
                         <CodePanel />

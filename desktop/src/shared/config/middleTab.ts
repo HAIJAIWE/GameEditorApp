@@ -8,7 +8,7 @@ import { defaultSettingsStorage, readSetting, writeSetting, type StorageLike } f
  * 少加一处状态逻辑少一分回归面。
  */
 
-export type MiddleTab = 'editor' | 'code' | 'browser'
+export type MiddleTab = 'editor' | 'data' | 'code' | 'browser'
 
 export interface MiddleTabDef {
   id: MiddleTab
@@ -20,7 +20,8 @@ export interface MiddleTabDef {
 
 /** 页签定义与顺序（单一真源，App 的页签条与快捷键提示都从这里取） */
 export const MIDDLE_TABS: ReadonlyArray<MiddleTabDef> = [
-  { id: 'editor', label: '编辑器', title: '游戏数据与策划书编辑器' },
+  { id: 'editor', label: '策划书', title: '策划书编辑器（游戏设计文档：24 章 / AI 生成 / 校验评分）' },
+  { id: 'data', label: '数据编辑', title: '数据编辑器（角色/怪物/技能等纯数据，直连 SQLite）' },
   { id: 'code', label: '代码编辑', title: '代码查看（只读）' },
   { id: 'browser', label: '浏览器', title: '内置浏览器（预览 Demo / 查资料）' }
 ]
