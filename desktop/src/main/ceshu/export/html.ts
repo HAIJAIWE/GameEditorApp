@@ -3,6 +3,7 @@ import { fieldStatusOf } from '../../../shared/ceshuFieldStatus'
 import { countFieldStatuses, formatFieldStatusSummary } from '../../../shared/ceshuFieldStatusStats'
 import { CESHU_CHAPTER_FIELDS } from '../../../shared/ceshuFields'
 import { computeChapterProgress, formatLocalTimestamp, getGddScope } from '../../../shared/ceshuModel'
+import { renderDocDiagrams } from './diagrams'
 
 import {
   EMPTY_PLACEHOLDER,
@@ -29,6 +30,7 @@ export function renderCeshuHtml(doc: CeshuDocument): string {
   const body: string[] = []
   body.push(renderHeader(doc, gameName, today))
   body.push(renderToc(entries))
+  body.push(renderDiagrams(doc))
   for (const entry of entries) {
     body.push(renderChapter(doc, entry))
   }
@@ -61,6 +63,22 @@ function renderHeader(doc: CeshuDocument, gameName: string, today: string): stri
     `<p class="meta">定位: ${escapeHtml(positioning)}</p>`,
     '</header>'
   ].join('\n')
+}
+
+/**
+ * 图示区（对标豆包交付物的 gameflow.svg）：核心循环 + 核心状态机，内联 SVG。
+ *
+ * 放在目录之后、正文之前：读者先看图建立整体印象，再逐章读细节。
+ * 无数据时整段不渲染（不输出空图或占位）。
+ */
+function renderDiagrams(doc: CeshuDocument): string {
+  const { coreLoop, stateMachine } = renderDocDiagrams(doc)
+  if (coreLoop === null && stateMachine === null) return ''
+  const parts: string[] = ['<section class="diagrams">', '<h2>图示</h2>']
+  if (coreLoop !== null) parts.push(`<figure class="diagram">${coreLoop}</figure>`)
+  if (stateMachine !== null) parts.push(`<figure class="diagram">${stateMachine}</figure>`)
+  parts.push('</section>')
+  return parts.join('\n')
 }
 
 function renderToc(entries: VisibleChapterEntry[]): string {
@@ -194,6 +212,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 const STYLES = `
   :root { color-scheme: light; }
+  /* 图示区（核心循环 / 状态机）：白底卡片 + 可横向滚动，打印时按块避免截断 */
+  .diagrams { margin: 24px 0 8px; }
+  .diagrams h2 { font-size: 17px; margin: 0 0 12px; }
+  .diagram { margin: 0 0 18px; padding: 12px; border: 1px solid #e3e8f2; border-radius: 8px; background: #fbfcfe; overflow-x: auto; page-break-inside: avoid; }
+  .diagram svg { display: block; max-width: 100%; height: auto; }
   body {
     max-width: 820px;
     margin: 0 auto;

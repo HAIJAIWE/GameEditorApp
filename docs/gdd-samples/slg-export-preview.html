@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>列王纷争录</title>
+<style>
+  :root { color-scheme: light; }
+  /* 图示区（核心循环 / 状态机）：白底卡片 + 可横向滚动，打印时按块避免截断 */
+  .diagrams { margin: 24px 0 8px; }
+  .diagrams h2 { font-size: 17px; margin: 0 0 12px; }
+  .diagram { margin: 0 0 18px; padding: 12px; border: 1px solid #e3e8f2; border-radius: 8px; background: #fbfcfe; overflow-x: auto; page-break-inside: avoid; }
+  .diagram svg { display: block; max-width: 100%; height: auto; }
+  body {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 32px 28px 64px;
+    color: #1f2937;
+    font: 14px/1.75 "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+    background: #ffffff;
+  }
+  .doc-header h1 { font-size: 26px; margin: 0 0 8px; }
+  .meta { color: #6b7280; margin: 2px 0; }
+  nav.toc { margin: 24px 0; padding: 12px 18px; border: 1px solid #e5e7eb; border-radius: 8px; background: #f9fafb; }
+  nav.toc h2 { font-size: 16px; margin: 0 0 8px; }
+  nav.toc ol { margin: 0; padding-left: 22px; }
+  nav.toc a { color: #0f766e; text-decoration: none; }
+  section.chapter { margin: 28px 0; page-break-inside: auto; }
+  h2 { font-size: 19px; border-bottom: 2px solid #e5e7eb; padding-bottom: 6px; margin: 28px 0 12px; }
+  h3 { font-size: 15px; margin: 16px 0 6px; }
+  .field { margin: 10px 0; }
+  .field-label { font-weight: 600; color: #374151; }
+  pre.field-value {
+    margin: 4px 0 0;
+    padding: 8px 10px;
+    background: #f9fafb;
+    border-left: 3px solid #0f766e;
+    border-radius: 4px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font: 13px/1.7 "Microsoft YaHei", "PingFang SC", monospace;
+  }
+  table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+  th, td { border: 1px solid #d1d5db; padding: 6px 10px; font-size: 13px; text-align: left; }
+  th { background: #f3f4f6; }
+  .empty { color: #9ca3af; }
+  .detail-title { margin-top: 20px; }
+  @media print {
+    body { padding: 0; max-width: none; }
+    section.chapter { page-break-inside: auto; }
+    h2 { page-break-after: avoid; }
+  }
+</style>
+</head>
+<body>
+<header class="doc-header">
+<h1>列王纷争录</h1>
+<p class="meta">版本: v1.0 | 类型: SLG | 日期: 2026-10-24</p>
+<p class="meta">定位: 给爱算计的联盟战争玩家的写实军事 SLG：用资源调配与行军时机代替手速，体验一纸盟约扭转战局——与《率土之滨》的差异是把战争迷雾做成可交易的情报商品。</p>
+</header>
+<nav class="toc"><h2>目录</h2><ol><li><a href="#ch1">1. 文档信息</a></li><li><a href="#ch2">2. 第一章·产品愿景</a></li><li><a href="#ch3">3. 第二章·世界观与角色</a></li><li><a href="#ch4">4. 第三章·核心玩法</a></li><li><a href="#ch5">5. 第四章·游戏系统设计</a></li><li><a href="#ch6">6. 第五章·战斗系统设计</a></li><li><a href="#ch7">7. 第六章·经济系统设计</a></li><li><a href="#ch8">8. 第七章·数值设计</a></li><li><a href="#ch9">9. 第八章·美术设计</a></li><li><a href="#ch10">10. 第九章·音频设计</a></li><li><a href="#ch11">11. 第十章·技术规格</a></li><li><a href="#ch12">12. 第十一章·资源规划</a></li><li><a href="#ch13">13. 第十二章·市场分析</a></li><li><a href="#ch14">14. 第十三章·风险控制</a></li><li><a href="#ch15">15. 第十四章·MVP 规划</a></li><li><a href="#ch16">16. 第十五章·商业化设计</a></li><li><a href="#ch17">17. 第十六章·可访问性与本地化</a></li><li><a href="#ch18">18. 第十七章·UI/UX 交互设计</a></li><li><a href="#ch19">19. 第十八章·关卡与内容设计</a></li><li><a href="#ch20">20. 第十九章·运营与活动</a></li><li><a href="#ch21">21. 第二十章·数据埋点与指标</a></li><li><a href="#ch22">22. 第二十一章·测试与质量保障</a></li><li><a href="#ch23">23. 第二十二章·上线与发行</a></li><li><a href="#ch24">24. 第二十三章·性能与适配</a></li></ol></nav>
+<section class="diagrams">
+<h2>图示</h2>
+<figure class="diagram"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 180" width="760" height="180" role="img" aria-label="核心循环图">
+<defs><marker id="loopArrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#5b7bd5"/></marker></defs>
+<text x="380" y="26" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="15" font-weight="600" fill="#1f2430">核心循环</text>
+<rect x="20" y="48" width="128" height="54" rx="8" fill="#eef3ff" stroke="#5b7bd5" stroke-width="1.2"/>
+<text x="84" y="80" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#1f2430">算：升级与出征成本</text>
+<line x1="148" y1="75" x2="164" y2="75" stroke="#5b7bd5" stroke-width="1.4" marker-end="url(#loopArrow)"/>
+<rect x="168" y="48" width="128" height="54" rx="8" fill="#eef3ff" stroke="#5b7bd5" stroke-width="1.2"/>
+<text x="232" y="72" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#1f2430">派：部队出发（行</text>
+<text x="232" y="88" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#1f2430">军时间明码标价）</text>
+<line x1="296" y1="75" x2="312" y2="75" stroke="#5b7bd5" stroke-width="1.4" marker-end="url(#loopArrow)"/>
+<rect x="316" y="48" width="128" height="54" rx="8" fill="#eef3ff" stroke="#5b7bd5" stroke-width="1.2"/>
+<text x="380" y="80" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#1f2430">等：行军与建造的真实时间</text>
+<line x1="444" y1="75" x2="460" y2="75" stroke="#5b7bd5" stroke-width="1.4" marker-end="url(#loopArrow)"/>
+<rect x="464" y="48" width="128" height="54" rx="8" fill="#eef3ff" stroke="#5b7bd5" stroke-width="1.2"/>
+<text x="528" y="72" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#1f2430">判：战报取舍（伤</text>
+<text x="528" y="88" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#1f2430">兵/缴获/情报）</text>
+<line x1="592" y1="75" x2="608" y2="75" stroke="#5b7bd5" stroke-width="1.4" marker-end="url(#loopArrow)"/>
+<rect x="612" y="48" width="128" height="54" rx="8" fill="#eef3ff" stroke="#5b7bd5" stroke-width="1.2"/>
+<text x="676" y="80" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#1f2430">谈：联盟分赃与情报交易</text>
+<path d="M 676 102 C 676 148, 84 148, 84 104" fill="none" stroke="#8aa0d8" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#loopArrow)"/>
+<text x="380" y="164" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="11" fill="#6b7590">回到起点</text>
+</svg></figure>
+<figure class="diagram"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 430" width="760" height="430" role="img" aria-label="核心状态机图">
+<defs><marker id="smArrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#5b7bd5"/></marker></defs>
+<text x="380" y="24" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="15" font-weight="600" fill="#1f2430">核心状态机</text>
+<rect x="24" y="50" width="150" height="40" rx="6" fill="#f5f7fc" stroke="#9aa7c7" stroke-width="1.2"/>
+<text x="99" y="74" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" font-weight="600" fill="#1f2430">空闲</text>
+<rect x="586" y="50" width="150" height="40" rx="6" fill="#eef3ff" stroke="#5b7bd5" stroke-width="1.2"/>
+<text x="661" y="74" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" font-weight="600" fill="#1f2430">空闲</text>
+<line x1="174" y1="70" x2="582" y2="70" stroke="#5b7bd5" stroke-width="1.4" marker-end="url(#smArrow)"/>
+<text x="378" y="63" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="11.5" fill="#3d4a6b">建造/出征队列均空</text>
+<text x="378" y="87" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="10.5" fill="#6b7590">无状态变化</text>
+<rect x="24" y="124" width="150" height="40" rx="6" fill="#f5f7fc" stroke="#9aa7c7" stroke-width="1.2"/>
+<text x="99" y="148" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" font-weight="600" fill="#1f2430">建造中</text>
+<rect x="586" y="124" width="150" height="40" rx="6" fill="#eef3ff" stroke="#5b7bd5" stroke-width="1.2"/>
+<text x="661" y="148" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" font-weight="600" fill="#1f2430">建造中</text>
+<line x1="174" y1="144" x2="582" y2="144" stroke="#5b7bd5" stroke-width="1.4" marker-end="url(#smArrow)"/>
+<text x="378" y="137" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="11.5" fill="#3d4a6b">点击升级且资源足够</text>
+<text x="378" y="161" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="10.5" fill="#6b7590">扣资源，队列占用，倒计时开始；时间到才生效，…</text>
+<rect x="24" y="198" width="150" height="40" rx="6" fill="#f5f7fc" stroke="#9aa7c7" stroke-width="1.2"/>
+<text x="99" y="222" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" font-weight="600" fill="#1f2430">行军中</text>
+<rect x="586" y="198" width="150" height="40" rx="6" fill="#eef3ff" stroke="#5b7bd5" stroke-width="1.2"/>
+<text x="661" y="222" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" font-weight="600" fill="#1f2430">行军中</text>
+<line x1="174" y1="218" x2="582" y2="218" stroke="#5b7bd5" stroke-width="1.4" marker-end="url(#smArrow)"/>
+<text x="378" y="211" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="11.5" fill="#3d4a6b">出征确认</text>
+<text x="378" y="235" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="10.5" fill="#6b7590">扣粮草，部队离城，按 3 分钟/格推进；到达后…</text>
+<rect x="24" y="272" width="150" height="40" rx="6" fill="#f5f7fc" stroke="#9aa7c7" stroke-width="1.2"/>
+<text x="99" y="296" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" font-weight="600" fill="#1f2430">交战中</text>
+<rect x="586" y="272" width="150" height="40" rx="6" fill="#eef3ff" stroke="#5b7bd5" stroke-width="1.2"/>
+<text x="661" y="296" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" font-weight="600" fill="#1f2430">空闲</text>
+<line x1="174" y1="292" x2="582" y2="292" stroke="#5b7bd5" stroke-width="1.4" marker-end="url(#smArrow)"/>
+<text x="378" y="285" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="11.5" fill="#3d4a6b">部队抵达目标格</text>
+<text x="378" y="309" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="10.5" fill="#6b7590">按兵种克制与兵力结算伤害，胜方占领、败方退…</text>
+<rect x="24" y="346" width="150" height="40" rx="6" fill="#f5f7fc" stroke="#9aa7c7" stroke-width="1.2"/>
+<text x="99" y="370" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" font-weight="600" fill="#1f2430">被攻击</text>
+<rect x="586" y="346" width="150" height="40" rx="6" fill="#eef3ff" stroke="#5b7bd5" stroke-width="1.2"/>
+<text x="661" y="370" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" font-weight="600" fill="#1f2430">空闲</text>
+<line x1="174" y1="366" x2="582" y2="366" stroke="#5b7bd5" stroke-width="1.4" marker-end="url(#smArrow)"/>
+<text x="378" y="359" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="11.5" fill="#3d4a6b">敌军抵达我方领地</text>
+<text x="378" y="383" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="10.5" fill="#6b7590">守军自动迎战，战报记录伤兵；被占领则失去该…</text>
+</svg></figure>
+</section>
+<section class="chapter"><h2 id="ch1">1. 文档信息</h2>
+<div class="field"><div class="field-label">game_name</div><pre class="field-value">列王纷争录</pre></div>
+<div class="field"><div class="field-label">game_type</div><pre class="field-value">SLG</pre></div>
+<div class="field"><div class="field-label">positioning</div><pre class="field-value">给爱算计的联盟战争玩家的写实军事 SLG：用资源调配与行军时机代替手速，体验一纸盟约扭转战局——与《率土之滨》的差异是把战争迷雾做成可交易的情报商品。</pre></div>
+<div class="field"><div class="field-label">tags</div><pre class="field-value">- 写实军事
+- 联盟战争
+- 大地图领土
+- 情报交易
+- 无体力限流</pre></div>
+<div class="field"><div class="field-label">platform</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">version</div><pre class="field-value">0.1.0</pre></div>
+<div class="field"><div class="field-label">date</div><pre class="field-value">2026-10-24</pre></div>
+<div class="field"><div class="field-label">confidentiality</div><pre class="field-value">internal</pre></div>
+<div class="field"><div class="field-label">status</div><pre class="field-value">draft</pre></div>
+<div class="field"><div class="field-label">gdd_scope</div><pre class="field-value">full</pre></div></section>
+<section class="chapter"><h2 id="ch2">2. 第一章·产品愿景</h2>
+<div class="field"><div class="field-label">design_vision</div><pre class="field-value">做一款让「调度」比「手速」更重要的军事 SLG：战场自动进行，胜负在出发前的算盘上。支撑理由一，行军时间明码标价，玩家能预判每一次出征的代价；理由二，情报是商品，斥候快照可定价出售，联盟内形成信息经济；理由三，无体力系统，用行军时间天然限流，避免扫荡疲劳。</pre></div>
+<div class="field"><div class="field-label">differentiation</div><pre class="field-value">与《率土之滨》：它靠卡池与武将深度，我们靠情报交易与行军时机，斥候快照可标价卖给盟友，形成信息差博弈。与《万国觉醒》：它用体力限制出征频次，我们取消体力、用最短 3 分钟/格的行军时间限流，让「等待」成为战术资源。与《三国志·战略版》：它强调同盟管理与铺路，我们把铺路简化为州关隘争夺，降低操作门槛但保留领土博弈。</pre></div>
+<div class="field"><div class="field-label">user_personas</div><pre class="field-value">primary: —
+secondary: —</pre></div>
+<div class="field"><div class="field-label">competitive_analysis</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">business_model</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">design_pillars</div><pre class="field-value">- 时间是硬通货|主城每级升级时间公开可算（30×1.45^(L-1) 秒），加速道具只能买时间不能买胜利|不做隐藏 CD、不做付费秒 CD 还不告诉要多久
+- 调度即操作|战斗自动进行，玩家决策全在战前：谁出征、带多少、何时到|不做手动放技能、不做闪避操作
+- 情报是商品|迷雾中的敌军动向由斥候生成，可出售给盟友，价格随战况浮动|不做全局透视、不做付费开全图
+- 限流防爆|无体力系统，用行军时间（最短 3 分钟/格）天然限制同时战线|不做无限体力扫荡、不做自动连续作战</pre></div>
+<div class="field"><div class="field-label">design_assumptions</div><pre class="field-value">- 首局真人约 5-10 分钟撞墙（层 35-40）|高|Demo 试玩统计首转生在线时长：&lt;4 分钟上调成本倍率，&gt;15 分钟下调
+- 攻城平均参与率 60%|高|观察联盟战报名率：&lt;40% 则集结时间从 30 分钟降至 20 分钟
+- 情报交易占联盟邮件量 20%|中|统计斥候快照成交率：&lt;5% 则迷雾半径从 2 格收紧到 1.5 格制造饥渴</pre></div></section>
+<section class="chapter"><h2 id="ch3">3. 第二章·世界观与角色</h2>
+<div class="field"><div class="field-label">architecture</div><pre class="field-value">一句话世界观：旧王朝崩塌后的「铁与盐」时代，七座关隘控制着唯一的水源与盐路，各方势力在废墟上重建秩序。要点一，地图以州为单元，每州一座首府关隘，关隘即命脉；要点二，势力以「家族」为单位，联盟是家族间的契约，可背弃但有信誉代价；要点三，资源只有四种：粮食、木材、石料、铁矿，全部产自领地；要点四，时间即距离，任何跨州行动都要行军时间；要点五，斥候是唯一的信息来源，情报因此成为硬通货。</pre></div>
+<div class="field"><div class="field-label">main_plot</div><pre class="field-value">起因：旧王朝末代领主暴亡，七座关隘的守将各自称王，盐路断绝，各州陷入抢水抢盐的混战。转折：玩家所在的边陲小家族发现关隘地下藏有旧王朝的军械库，引来三大势力的围剿，被迫在「交出军械换和平」与「死守引来决战」之间抉择。结局：无论选择哪条路，都将重划七关归属——交出者成为附庸但保留血脉，死守者若胜则立新约、若败则家族覆灭。</pre></div>
+<div class="field"><div class="field-label">protagonist</div><pre class="field-value">身份：边陲小家族的年轻家主，继承一座 3 级主城与一队残兵。目标：在三大势力的夹缝中守住家族封地，最终重开关隘盐路。缺陷：缺乏威信，联盟中的老牌家族不愿听命，初期必须用实利换忠诚。</pre></div>
+<div class="field"><div class="field-label">main_npc_count</div><pre class="field-value">0</pre></div>
+<div class="field"><div class="field-label">history_eras</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">factions</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">geography</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">branch_endings</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">character_network</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">npc_list</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">antagonists</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">boss_design</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">enemy_types</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">companion_system</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">character_arcs</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">voice_cast</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">character_relationships</div><pre class="field-value">—</pre></div></section>
+<section class="chapter"><h2 id="ch4">4. 第三章·核心玩法</h2>
+<div class="field"><div class="field-label">core_loop</div><pre class="field-value">算（升级与出征成本）→ 派（部队出发，行军时间明码标价）→ 等（行军与建造的真实时间）→ 判（战报取舍：伤兵、缴获、情报）→ 谈（联盟分赃与情报交易）→ 回到算：更强的资源点与更高的主城等级带来新的算计。</pre></div>
+<div class="field"><div class="field-label">game_modes</div><pre class="field-value">- 王座争夺（赛季主玩法）：1200 人同服争夺七关，赛季末按关隘归属结算
+- 家族远征（PvE）：攻打系统城池获取资源与图纸
+- 情报市场（交易玩法）：斥候快照自由定价，联盟内成交抽成 20%</pre></div>
+<div class="field"><div class="field-label">control_scheme</div><pre class="field-value">鼠标点击为主：点建筑升级、点地图格出征、拖拽编队；移动端同布局触屏操作，双击地图缩放。</pre></div>
+<div class="field"><div class="field-label">first_30_min</div><pre class="field-value">第 1 分钟：引导只做一件事——把步兵营升到 3 级，界面明确显示「需要 4 分 30 秒，可用 100 钻石立即完成」，玩家第一次读到时间明码标价。第 8 分钟：资源满仓提示，建第二块农田时发现建造队列被占用，第一次真实取舍：等 90 秒还是花钻石。第 20 分钟：斥候回报邻格 5 级资源点、守军 300，出征界面显示行军 6 分钟、预估战损 12%-18%，第一次为「现在打还是等大部队」动脑。第 28 分钟：打赢资源点开始每小时产出，第一次睡后收入，长线钩子挂上。</pre></div>
+<div class="field"><div class="field-label">win_lose_conditions</div><pre class="field-value">赛季内：控制 4 座以上关隘的联盟获胜；家族被攻破主城且无联盟庇护则出局（封地清零，可重开）。单场战斗：兵力先耗尽方败。</pre></div>
+<div class="field"><div class="field-label">tutorial_design</div><pre class="field-value">三分钟引导只教三件事：升级一座建筑、派一次斥候、打赢一个 1 级资源点；其余系统（联盟/情报市场/关隘）在玩家首次触达时用一句话卡片提示，不做强制教学。</pre></div>
+<div class="field"><div class="field-label">state_machine</div><pre class="field-value">- 空闲|建造/出征队列均空|无状态变化|空闲
+- 建造中|点击升级且资源足够|扣资源，队列占用，倒计时开始；时间到才生效，可花钻石加速|建造中
+- 行军中|出征确认|扣粮草，部队离城，按 3 分钟/格推进；到达后自动结算战斗|行军中
+- 交战中|部队抵达目标格|按兵种克制与兵力结算伤害，胜方占领、败方退回；每次抵达只结算一次|空闲
+- 被攻击|敌军抵达我方领地|守军自动迎战，战报记录伤兵；被占领则失去该格产出|空闲</pre></div>
+<div class="field"><div class="field-label">core_loop_points</div><pre class="field-value">- 算：升级与出征成本
+- 派：部队出发（行军时间明码标价）
+- 等：行军与建造的真实时间
+- 判：战报取舍（伤兵/缴获/情报）
+- 谈：联盟分赃与情报交易</pre></div></section>
+<section class="chapter"><h2 id="ch5">5. 第四章·游戏系统设计</h2>
+<table><thead><tr><th>系统</th><th>状态</th><th>数据类型</th><th>名称</th></tr></thead><tbody><tr><td>battle</td><td>⬜ 未启用</td><td>battle</td><td>战斗</td></tr><tr><td>character</td><td>⬜ 未启用</td><td>character</td><td>角色</td></tr><tr><td>skill</td><td>⬜ 未启用</td><td>skill</td><td>技能</td></tr><tr><td>equipment</td><td>⬜ 未启用</td><td>equipment</td><td>装备</td></tr><tr><td>item</td><td>⬜ 未启用</td><td>item</td><td>物品</td></tr><tr><td>quest</td><td>⬜ 未启用</td><td>quest</td><td>任务</td></tr><tr><td>social</td><td>⬜ 未启用</td><td>social</td><td>社交</td></tr><tr><td>economy</td><td>⬜ 未启用</td><td>economy</td><td>经济</td></tr><tr><td>growth</td><td>⬜ 未启用</td><td>growth</td><td>成长</td></tr><tr><td>customization</td><td>⬜ 未启用</td><td>customization</td><td>自定义外观</td></tr><tr><td>content</td><td>⬜ 未启用</td><td>content</td><td>关卡内容</td></tr><tr><td>gacha</td><td>⬜ 未启用</td><td>gacha</td><td>抽卡系统</td></tr><tr><td>competitive</td><td>⬜ 未启用</td><td>competitive</td><td>排位竞技</td></tr></tbody></table>
+</section>
+<section class="chapter"><h2 id="ch6">6. 第五章·战斗系统设计</h2>
+<div class="field"><div class="field-label">combat_mode</div><pre class="field-value">自动回合制（战斗自动结算，玩家只在战前决策编队与目标）。理由：本作核心是调度而非操作，自动结算与行军时间、兵种克制自洽；手动技能会引入手速优势，违背「调度即操作」支柱。</pre></div>
+<div class="field"><div class="field-label">damage_formula</div><pre class="field-value">伤害 = 攻击方兵力 × 兵种攻击力 × 防御方减伤系数 × 克制系数；减伤系数 = 1 − 防御/(防御+800)；克制系数：克制方 1.25、被克方 0.8、同兵种 1.0；混合编队按兵力占比加权。</pre></div>
+<div class="field"><div class="field-label">skill_system</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">buff_debuff</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">element_system</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">combat_pace</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">team_formation</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">pvp_design</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">pve_design</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">boss_mechanics</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">combat_progression</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">balance_strategy</div><pre class="field-value">—</pre></div></section>
+<section class="chapter"><h2 id="ch7">7. 第六章·经济系统设计</h2>
+<div class="field"><div class="field-label">currency_types</div><pre class="field-value">- 粮食|农田产出、资源点占领|征兵、行军消耗|1:1 与木材互换
+- 木材|伐木场产出|建筑升级|1:1 与粮食互换
+- 石料|采石场产出|高级建筑升级|2:1 换木材
+- 铁矿|铁矿场产出|兵种训练与装备|3:1 换石料
+- 钻石|充值、赛季奖励|加速建造与行军|不参与资源兑换</pre></div>
+<div class="field"><div class="field-label">source_sink</div><pre class="field-value">产出途径：农田/伐木场/采石场/铁矿场（每块地每小时 300-1200 单位，随等级）、资源点占领（每小时 500-2000）、赛季奖励（一次性 5000-20000）。回收途径：建筑升级（单次 200-50000）、征兵（每 100 兵消耗 500 粮 200 铁）、行军消耗（每格每 100 兵 50 粮）、装备强化（单次 1000-8000 石料）。</pre></div>
+<div class="field"><div class="field-label">drop_tables</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">production_chain</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">market_design</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">inflation_control</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">economic_goals</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">metrics_tracking</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">seasonal_adjustment</div><pre class="field-value">—</pre></div></section>
+<section class="chapter"><h2 id="ch8">8. 第七章·数值设计</h2>
+<div class="field"><div class="field-label">core_formulas</div><pre class="field-value">建筑升级耗时 = 30 × 1.45^(等级-1) 秒；资源田每小时产出 = 300 × 1.18^(等级-1)；兵种伤害 = 兵力 × 攻击力 × (1 − 防御/(防御+800)) × 克制系数；行军时间 = 3 分钟 × 格数 ÷ 行军速度系数。</pre></div>
+<div class="field"><div class="field-label">balance_principles</div><pre class="field-value">原则一：主城每级升级时间公开可算，10 级落在 10-20 分钟，玩家能规划下线时间。原则二：克制闭环无支配兵种，纯兵种必有天敌，混编收益上限 36%。原则三：资源产出增速 1.18/级 低于建筑消耗增速 1.45/级，资源永远稀缺，逼玩家争夺资源点。原则四：单场战斗时长 1-3 分钟，一场 50v50 集结攻城从发起到结算不超过 45 分钟。</pre></div>
+<div class="field"><div class="field-label">growth_curves</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">drop_tables</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">economic_model</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">numeric_parameters</div><pre class="field-value">- 主城升级基数|30|10-120|前期更慢|新手流失
+- 主城升级成长|1.45|1.2-1.8|后期更肝|长线压缩
+- 步兵基础攻击|10|5-30|前期推图快|新手挫败
+- 克制伤害系数|1.25|1.1-1.5|混编收益大|兵种趋同
+- 被克伤害系数|0.8|0.6-0.95|纯兵种惩罚重|克制无感
+- 防御减伤常数|800|400-2000|防御装备值钱|攻击碾压
+- 行军基础速度|0.5|0.2-2|战场更焦灼|限流失效
+- 集结时间|30|15-60|战术铺垫期长|遭遇战更频繁
+- 州资源加成|15|5-30|领土欲望强|联盟战动机弱
+- 过境税|5|0-15|地盘即收益|自由行军</pre></div>
+<div class="field"><div class="field-label">numeric_assertions</div><pre class="field-value">- 克制闭环无支配兵种|克制伤害系数/被克伤害系数|1.5625|0.01|between 1.3-2.0
+- 主城10级升级耗时在10-20分钟|主城升级基数*主城升级成长^9/60|14.2|0.5|between 10-20
+- 混编相对纯兵种增益上限|(克制伤害系数-被克伤害系数)/克制伤害系数|0.36|0.01|between 0.2-0.5
+- 25级升级超40小时|主城升级基数*主城升级成长^24/3600|62.2|1|&gt;=40</pre></div>
+<div class="field"><div class="field-label">design_claims</div><pre class="field-value">- 纯兵种必有天敌，克制闭环无支配兵种|计算|克制闭环无支配兵种
+- 主城 10 级升级耗时落在 10-20 分钟，玩家能规划下线时间|计算|主城10级升级耗时在10-20分钟
+- 混编收益上限 36%，不足以抹平兵种克制|计算|混编相对纯兵种增益上限
+- 25 级单次升级超 40 小时，长线 gate 成立|计算|25级升级超40小时
+- 首局真人 5-10 分钟撞墙|实测|首测 Demo 计时（待执行）
+- 攻城平均参与率 60%|假设|首测观察联盟战报名率，低于 40% 则下调集结时间</pre></div></section>
+<section class="chapter"><h2 id="ch9">9. 第八章·美术设计</h2>
+<div class="field"><div class="field-label">art_style</div><pre class="field-value">写实军事风，2.5D 斜俯视角，参考《全面战争》系列的地图质感：地形用低饱和土黄与墨绿分层，建筑用石材与木构的写实贴图，UI 用羊皮纸底纹配铁灰色描边。验收标准：任意截图能一眼看出「这是冷兵器时代的军事地图」，无奇幻光效。</pre></div>
+<div class="field"><div class="field-label">color_system</div><pre class="field-value">主色：铁灰 #4A4E54（建筑与 UI 边框，占比 40%）；辅助色：土黄 #B99A5B（地形与羊皮纸，占比 30%）；强调色：朱红 #A63A2E（敌情与警告，占比 15%）；背景色：深墨绿 #2E3B2F（林地与阴影，占比 15%）。</pre></div>
+<div class="field"><div class="field-label">character_design</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">environment_design</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">ui_design_language</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">typography</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">vfx</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">animation</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">multi_resolution</div><pre class="field-value">—</pre></div></section>
+<section class="chapter"><h2 id="ch10">10. 第九章·音频设计</h2>
+<div class="field"><div class="field-label">music_style</div><pre class="field-value">史诗管弦为主，低音弦乐铺底 + 军鼓节奏，情绪基调「压抑的备战感」；与写实军事视觉协调，不用电子音色。</pre></div>
+<div class="field"><div class="field-label">sfx_count</div><pre class="field-value">120 个：UI 点击与提示 20、建筑升级与完成 15、行军与马蹄 20、战斗打击与兵种音效 40、资源采集 10、联盟与情报提示 15（按 6 类场景×每类 15-40 估算）</pre></div>
+<div class="field"><div class="field-label">soundtrack_list</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">sfx_list</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">voice_acting</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">audio_engine</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">dynamic_audio</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">audio_localization</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">audio_budget</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">audio_milestones</div><pre class="field-value">—</pre></div></section>
+<section class="chapter"><h2 id="ch11">11. 第十章·技术规格</h2>
+<div class="field"><div class="field-label">engine</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">milestones</div><pre class="field-value">- 阶段一 玩法原型（0-8 周）：可玩单服 100 人，交付物为建造/出征/战斗闭环可跑
+- 阶段二 垂直切片（9-20 周）：1200 人同服大地图 + 斥候迷雾 + 联盟基础功能
+- 阶段三 内容填充（21-32 周）：七关赛季、情报市场、数值调优
+- 阶段四 上线准备（33-40 周）：压力测试、支付接入、渠道包体</pre></div>
+<div class="field"><div class="field-label">core_architecture</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">third_party_deps</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">performance_targets</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">team_structure</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">qa_plan</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">production_risks</div><pre class="field-value">- 同服 1200 人时的帧率与主线程占用|压测单服在线≥1200 且战斗结算密集|压测面板记录帧率与单帧结算耗时|降到 800 人分服，战斗结算降频至 30Hz|技术负责人
+- 存档一致性（双端登录/断线重连）|弱网断线重连、两端同时登录|存档校验脚本比对本地 last_saved 与服务器快照|回滚最近有效存档，禁止双端同时操作|服务端负责人
+- 关隘战奖励重复发放|集结期间重复提交或断线重连|结算日志按战报 id 去重核对|按战报 id 幂等，重复请求返回上次结果|服务端负责人
+- 第三方 SDK 合规（支付/推送）|渠道包接入前|SDK 清单审查 + 隐私政策比对|降级为自有支付/站内信，该渠道包延期|发行负责人</pre></div></section>
+<section class="chapter"><h2 id="ch12">12. 第十一章·资源规划</h2>
+<div class="field"><div class="field-label">budget</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">risk_matrix</div><pre class="field-value">- 服务器成本随同服人数超预期（概率高/影响高）→ 采用分服缩容与冷热分层架构
+- 写实美术产能不足（概率中/影响高）→ 外包地形与建筑贴图，角色用共用模型
+- 联盟战平衡失控（概率中/影响高）→ 赛季制 + 关隘收益可调参数
+- 数值膨胀导致后期无墙（概率中/影响中）→ 1.45/1.18 增速差 + 断言复算守护</pre></div>
+<div class="field"><div class="field-label">art_assets</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">audio_assets</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">localization</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">outsourcing</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">contingency_plan</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">ip</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">appendix</div><pre class="field-value">—</pre></div></section>
+<section class="chapter"><h2 id="ch13">13. 第十二章·市场分析</h2>
+<div class="field"><div class="field-label">target_market</div><pre class="field-value">地域：中国大陆为主，东南亚次之（历史军事题材接受度高）；平台：iOS + Android 双端，微信小游戏版做引流；品类：写实军事 SLG（4X 战争策略）。</pre></div>
+<div class="field"><div class="field-label">competitors</div><pre class="field-value">- 率土之滨|写实军事 SLG|同盟管理深度、赛季制成熟|新手门槛高、操作繁琐|待确认
+- 万国觉醒|写实 SLG + 英雄养成|全球化运营、英雄抽卡收入高|体力系统限制体验|待确认
+- 三国志·战略版|三国题材 SLG|IP 认知度高、铺路玩法|题材受限、付费压力大|待确认</pre></div>
+<div class="field"><div class="field-label">market_size</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">user_demographics</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">market_positioning</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">entry_barriers</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">market_trends</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">kpi_forecast</div><pre class="field-value">—</pre></div></section>
+<section class="chapter"><h2 id="ch14">14. 第十三章·风险控制</h2>
+<div class="field"><div class="field-label">risk_matrix</div><pre class="field-value">- 服务器成本超支|高|高|分服缩容 + 云资源弹性|技术负责人
+- 联盟战平衡失控|中|高|赛季制 + 参数可调 + 断言复算|数值策划
+- 写实美术产能不足|中|高|外包 + 共用模型|美术负责人
+- 上线首月买量成本过高|中|中|先做小规模测试服验证留存|发行负责人
+- 政策合规（版号/防沉迷）|低|高|提前 6 个月申报，内置防沉迷|法务</pre></div>
+<div class="field"><div class="field-label">contingency_plan</div><pre class="field-value">触发条件一：首测次留低于 25% → 降级方案为前 30 分钟增加保底资源点体验，止损线为连续两周无回升则砍掉情报市场模块。触发条件二：同服在线超预算 30% → 降级为动态分服，止损线为单服 800 人。触发条件三：版号未按期下发 → 降级为海外先行，止损线为延期 3 个月。启动权：前两项由制作人启动，第三项由发行负责人启动。</pre></div>
+<div class="field"><div class="field-label">technical_risks</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">market_risks</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">team_risks</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">legal_risks</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">schedule_risks</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">risk_monitoring</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">escalation_path</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">crisis_management</div><pre class="field-value">—</pre></div></section>
+<section class="chapter"><h2 id="ch15">15. 第十四章·MVP 规划</h2>
+<div class="field"><div class="field-label">mvp_scope</div><pre class="field-value">必含：主城/资源田/兵营建造与队列、四资源生产、步骑弓三兵种克制、出征与行军、迷雾与斥候、州关隘攻城、联盟（创建/互助/税收）。明确不做：英雄卡牌、装备强化、竞技场、跨服战场、自动铺路。每项最小必要的理由：建造/资源/战斗构成核心循环；迷雾与斥候是差异化卖点必须验证；关隘与联盟是长线留存的关键。</pre></div>
+<div class="field"><div class="field-label">mvp_timeline</div><pre class="field-value">2026-11 至 2027-01：玩法原型（单服 100 人可跑建造-出征-战斗闭环）；2027-02 至 2027-05：垂直切片（1200 人同服 + 迷雾 + 联盟）；2027-06 至 2027-08：内容填充与调优（七关赛季 + 情报市场 + 数值复算）；2027-09 至 2027-10：上线准备（压测 + 支付 + 渠道包）。</pre></div>
+<div class="field"><div class="field-label">core_features</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">cut_features</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">prototype_features</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">milestones</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">success_criteria</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">team_size</div><pre class="field-value">0</pre></div>
+<div class="field"><div class="field-label">budget_estimate</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">risk_assessment</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">prototype_plan</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">playtest_plan</div><pre class="field-value">—</pre></div></section>
+<section class="chapter"><h2 id="ch16">16. 第十五章·商业化设计</h2>
+<div class="field"><div class="field-label">payment_model</div><pre class="field-value">内购为主（钻石 + 赛季通行证），不接广告。理由：SLG 玩家付费意愿集中在加速与养成，广告会破坏「时间明码标价」的定价体系；通行证提供赛季目标感，与关隘争夺节奏对齐。</pre></div>
+<div class="field"><div class="field-label">pricing_tiers</div><pre class="field-value">- ¥6 首充（钻石 60 + 建造加速 1 小时）
+- ¥30 月卡（每日钻石 30 + 资源加成 10%）
+- ¥68 赛季通行证（赛季任务 + 外观 + 加速道具）
+- ¥198 大额钻石包（钻石 2200）
+- ¥648 顶级钻石包（钻石 8000 + 限定主城外观）</pre></div>
+<div class="field"><div class="field-label">iap_design</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">ad_strategy</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">subscription_design</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">season_pass</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">vip_system</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">limited_offers</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">whale_strategy</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">f2p_experience</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">revenue_forecast</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">arpu_target</div><pre class="field-value">—</pre></div></section>
+<section class="chapter"><h2 id="ch17">17. 第十六章·可访问性与本地化</h2>
+<div class="field"><div class="field-label">language_list</div><pre class="field-value">- 简体中文（首发，中国大陆）
+- 繁体中文（首发，中国港澳台地区）
+- 英语（后续版本，东南亚与欧美）
+- 泰语（后续版本，东南亚）</pre></div>
+<div class="field"><div class="field-label">accessibility_features</div><pre class="field-value">- 字号缩放（设置 → 显示 → 界面缩放，三档）
+- 色盲模式（设置 → 显示 → 色盲辅助，红绿色弱配色）
+- 长按代替连点（设置 → 操作 → 长按连续升级）
+- 战报文字化（战报页 → 文字摘要，供读屏使用）</pre></div>
+<div class="field"><div class="field-label">localization_strategy</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">cultural_adaptation</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">subtitle_design</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">color_blind_support</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">motor_accessibility</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">cognitive_accessibility</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">rating_certification</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">compliance_notes</div><pre class="field-value">—</pre></div></section>
+<section class="chapter"><h2 id="ch18">18. 第十七章·UI/UX 交互设计</h2>
+<div class="field"><div class="field-label">information_architecture</div><pre class="field-value">主界面分三层：世界地图（默认）→ 城池视图（点主城进入）→ 系统面板（联盟/情报/任务从底部导航进入）。主导航为底部四入口：地图 / 城池 / 联盟 / 更多；关隘攻城入口挂在地图长按菜单。</pre></div>
+<div class="field"><div class="field-label">core_flows</div><pre class="field-value">- 出征|选目标格 → 选编队 → 预览行军时间与战损 → 确认出征|返回地图，部队进入行军状态
+- 建造|点建筑 → 选升级 → 看耗时与资源 → 确认|返回城池视图，队列显示倒计时
+- 情报交易|点斥候快照 → 定价 → 发到联盟频道 → 盟友购买|返回地图，卖方收 80% 收益</pre></div>
+<div class="field"><div class="field-label">design_principles</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">design_principles_points</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">design_principles_notes</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">key_screens</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">feedback_rules</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">usability_standards</div><pre class="field-value">—</pre></div></section>
+<section class="chapter"><h2 id="ch19">19. 第十八章·关卡与内容设计</h2>
+<div class="field"><div class="field-label">level_templates</div><pre class="field-value">资源点（1-10 级）：守军随等级递增，占领后每小时产出，适用前期发育；州关隘（赛季目标）：多层守军 + 攻城集结，适用联盟战中后期；系统城池（PvE 副本）：固定守军配置，掉落图纸，适用中期养成。参考《率土之滨》的关隘设计，具体守军数值待确认。</pre></div>
+<div class="field"><div class="field-label">first_levels</div><pre class="field-value">第一关 新手资源点：教学点「出征与行军时间」，引入斥候侦察机制；第二关 邻格 2 级资源点：教学点「战损预估」，引入编队克制；第三关 小型系统城池：教学点「联盟集结」，引入多人协同攻城。</pre></div>
+<div class="field"><div class="field-label">level_principles</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">difficulty_curve</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">difficulty_curve_points</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">difficulty_curve_notes</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">content_estimate</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">editor_needs</div><pre class="field-value">—</pre></div></section>
+<section class="chapter"><h2 id="ch20">20. 第十九章·运营与活动</h2>
+<div class="field"><div class="field-label">ops_goals</div><pre class="field-value">- 首月次留 ≥ 35%（时间窗：上线后 30 天）
+- 赛季参与率 ≥ 60%（时间窗：每赛季末统计）
+- 付费率 3%-5%（时间窗：上线后 90 天）
+- 联盟日均活跃 ≥ 50%（时间窗：持续）</pre></div>
+<div class="field"><div class="field-label">activity_system</div><pre class="field-value">活动体系以「赛季」为骨架：赛季内分关隘争夺期（前 6 周）与结算期（第 7 周），活动类型覆盖资源争夺（限时双倍产出）、联盟竞赛（关隘首占奖励）、情报竞猜（预测战局赢钻石）；设计原则是所有活动都必须强化「调度与情报」而非纯肝度，具体活动条目走要点字段。</pre></div>
+<div class="field"><div class="field-label">activity_system_points</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">activity_system_notes</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">activity_calendar</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">retention_measures</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">version_cadence</div><pre class="field-value">—</pre></div></section>
+<section class="chapter"><h2 id="ch21">21. 第二十章·数据埋点与指标</h2>
+<div class="field"><div class="field-label">metric_system</div><pre class="field-value">- 次留|次日回访玩家占比|按自然日去重，回访以登录为准|≥35%
+- 7 留|第 7 日回访占比|按注册日分组，去重|≥15%
+- 首转生时长|新玩家首次转生耗时|注册起算，单位分钟|5-10 分钟
+- 付费率|付费玩家/活跃玩家|自然月去重|3%-5%
+- ARPPU|付费玩家平均付费|自然月，含首充|≥¥80
+- 联盟参与率|加入联盟玩家占比|日活口径|≥60%
+- 情报成交率|快照成交/发布|日口径|≥20%
+- 行军频次|人均每日出征次数|日活口径，去重|8-15 次</pre></div>
+<div class="field"><div class="field-label">event_tracking</div><pre class="field-value">- build_start|点击确认升级|building_id, level, cost, duration_s
+- march_start|确认出征|target_x, target_y, troops, eta_s
+- battle_result|战斗结算|win, loss_troops, loot, target_type
+- scout_snapshot|生成斥候快照|target_x, target_y, expire_at
+- intel_trade|快照成交|snapshot_id, price, buyer_id
+- prestige|转生确认|layer, shards_gained
+- offline_claim|离线收益领取|offline_s, gain, capped</pre></div>
+<div class="field"><div class="field-label">key_funnels</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">key_funnels_points</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">key_funnels_notes</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">dashboards</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">alert_monitoring</div><pre class="field-value">—</pre></div></section>
+<section class="chapter"><h2 id="ch22">22. 第二十一章·测试与质量保障</h2>
+<div class="field"><div class="field-label">test_strategy</div><pre class="field-value">分层测试：功能层覆盖建造/出征/战斗/联盟主流程；兼容层覆盖主流机型与分辨率；性能层测 1200 人同服的服务器承载与客户端帧率；体验层由真人试玩验证 30 分钟留存曲线。自动化边界：数值公式与断言用脚本复算（CI 跑），UI 主流程用端到端用例，平衡性与手感不做自动化。</pre></div>
+<div class="field"><div class="field-label">test_cases</div><pre class="field-value">- 核心玩法|45|P0
+- 战斗系统|30|P0
+- 经济系统|25|P0
+- 联盟与领土|20|P1
+- UI 与交互|25|P1
+- 支付与商业化|15|P0
+- 性能与压测|10|P1</pre></div>
+<div class="field"><div class="field-label">test_strategy_points</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">test_strategy_notes</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">acceptance_criteria</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">defect_management</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">test_env</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">prototype_acceptance</div><pre class="field-value">—</pre></div></section>
+<section class="chapter"><h2 id="ch23">23. 第二十二章·上线与发行</h2>
+<div class="field"><div class="field-label">publish_plan</div><pre class="field-value">发行节奏分三阶段：小规模测试服（1000 人，验证留存与付费意愿）→ 删档内测（1 万人，验证联盟战与服务器承载）→ 正式上线（首月买量 + 赛季开启）。里程碑条目走要点字段。</pre></div>
+<div class="field"><div class="field-label">channel_strategy</div><pre class="field-value">- App Store|需提供隐私清单与年龄分级|30% 分成|待确认
+- TapTap|需提供真实截图与试玩视频|待确认|待确认
+- 华为应用市场|需软著与版号|50% 分成（联运）|待确认
+- 小米应用商店|需版号与实名认证|50% 分成（联运）|待确认</pre></div>
+<div class="field"><div class="field-label">publish_plan_points</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">publish_plan_notes</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">compliance</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">marketing_rhythm</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">soft_launch</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">soft_launch_points</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">soft_launch_notes</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">launch_checklist</div><pre class="field-value">—</pre></div></section>
+<section class="chapter"><h2 id="ch24">24. 第二十三章·性能与适配</h2>
+<div class="field"><div class="field-label">performance_budget</div><pre class="field-value">- 帧率|60 FPS（低端机 30 FPS）|客户端内置帧率面板采样 10 秒
+- 内存|≤1.2GB（低端机）|Android Profiler 峰值
+- 包体|≤200MB（首包）|渠道包体检测
+- 加载时长|冷启动 ≤8 秒|录屏计时
+- 同服承载|1200 人|压测工具模拟在线</pre></div>
+<div class="field"><div class="field-label">target_devices</div><pre class="field-value">高档：iPhone 15 系列、骁龙 8 Gen3 机型；中档：iPhone 12 系列、骁龙 778G 机型；低档：骁龙 665 / 天玑 700 机型（仅 30 FPS）。具体型号待确认。</pre></div>
+<div class="field"><div class="field-label">memory_package</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">memory_package_points</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">memory_package_notes</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">network_adaptation</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">thermal_power</div><pre class="field-value">—</pre></div>
+<div class="field"><div class="field-label">compat_matrix</div><pre class="field-value">—</pre></div></section>
+<section class="chapter appendix">
+<h2>附录：审核进度</h2>
+<ul class="status-list"><li>全文档：无审核记录</li></ul>
+</section>
+<section class="chapter appendix">
+<h2>附录：章节完成度</h2>
+<table><thead><tr><th>章节</th><th>进度</th></tr></thead><tbody><tr><td>文档信息</td><td>100%</td></tr><tr><td>第一章·产品愿景</td><td>100%</td></tr><tr><td>第二章·世界观与角色</td><td>75%</td></tr><tr><td>第三章·核心玩法</td><td>100%</td></tr><tr><td>第四章·游戏系统设计</td><td>0%</td></tr><tr><td>第五章·战斗系统设计</td><td>100%</td></tr><tr><td>第六章·经济系统设计</td><td>100%</td></tr><tr><td>第七章·数值设计</td><td>100%</td></tr><tr><td>第八章·美术设计</td><td>100%</td></tr><tr><td>第九章·音频设计</td><td>100%</td></tr><tr><td>第十章·技术规格</td><td>50%</td></tr><tr><td>第十一章·资源规划</td><td>50%</td></tr><tr><td>第十二章·市场分析</td><td>100%</td></tr><tr><td>第十三章·风险控制</td><td>100%</td></tr><tr><td>第十四章·MVP 规划</td><td>100%</td></tr><tr><td>第十五章·商业化设计</td><td>100%</td></tr><tr><td>第十六章·可访问性与本地化</td><td>100%</td></tr><tr><td>第十七章·UI/UX 交互设计</td><td>100%</td></tr><tr><td>第十八章·关卡与内容设计</td><td>100%</td></tr><tr><td>第十九章·运营与活动</td><td>100%</td></tr><tr><td>第二十章·数据埋点与指标</td><td>100%</td></tr><tr><td>第二十一章·测试与质量保障</td><td>100%</td></tr><tr><td>第二十二章·上线与发行</td><td>100%</td></tr><tr><td>第二十三章·性能与适配</td><td>100%</td></tr><tr><td><strong>总进度</strong></td><td><strong>91%</strong></td></tr></tbody></table>
+</section>
+</body>
+</html>

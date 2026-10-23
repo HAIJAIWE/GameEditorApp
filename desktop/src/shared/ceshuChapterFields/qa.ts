@@ -36,7 +36,25 @@ export const QA_CHAPTER: ChapterDefinition = {
         { key: 'fix_sla', label: '修复时限' }
       ]
     },
-    { key: 'test_env', label: '测试环境', kind: 'textarea', placeholder: '机型/系统/网络环境与设备采购预算' }
+    { key: 'test_env', label: '测试环境', kind: 'textarea', placeholder: '机型/系统/网络环境与设备采购预算' },
+    /*
+     * 原型验收（对标豆包 design-contract 的 `prototype` 键，2026-10-24 新增）。
+     *
+     * 为什么单独一列：测试策略与用例范围是「打算怎么测」，原型验收是「已经测过
+     * 什么、证据在哪」——两者语义不同，混在一起会让「验收结论」被计划淹没。
+     * 数值章「设计主张」里强度=实测的条目，证据必须能对上本表**通过**的检查项
+     * （checkDesignClaims 会核对），这样「实测」两个字才不是空口。
+     */
+    {
+      key: 'prototype_acceptance',
+      label: '原型验收记录',
+      kind: 'pipeList',
+      columns: [
+        { key: 'check', label: '检查项' },
+        { key: 'result', label: '结果' },
+        { key: 'evidence', label: '证据' }
+      ]
+    }
   ],
   defaults: {
     test_strategy: '',
@@ -45,6 +63,7 @@ export const QA_CHAPTER: ChapterDefinition = {
     test_cases: [],
     acceptance_criteria: [],
     defect_management: [],
-    test_env: ''
+    test_env: '',
+    prototype_acceptance: []
   }
 }

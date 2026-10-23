@@ -259,8 +259,27 @@ describe('checkDesignClaims：claim → 证据核对', () => {
     expect(messages[0]).toContain('主张不成立')
   })
 
-  it('实测/假设类主张：证据非空即通过，空证据告警', () => {
-    expect(checkDesignClaims(docWithClaims(['30 秒内理解核心循环|实测|Demo 首关计时'])).length).toBe(0)
+  it('实测类主张：证据必须对上原型验收中「通过」的检查项', () => {
+    // 未登记 → 警告（不是冲突：原型未执行的文档合法）
+    const unregistered = checkDesignClaims(docWithClaims(['30 秒内理解核心循环|实测|Demo 首关计时']))
+    expect(unregistered).toHaveLength(1)
+    expect(unregistered[0]).toContain('一致性警告')
+    expect(unregistered[0]).toContain('未在原型验收记录中登记')
+
+    // 登记且通过 → 无消息
+    const doc = docWithClaims(['30 秒内理解核心循环|实测|Demo 首关计时'])
+    doc.qa.prototype_acceptance = ['Demo 首关计时|通过|平均 28 秒完成首单']
+    expect(checkDesignClaims(doc)).toHaveLength(0)
+
+    // 登记但未通过 → 警告
+    const failed = docWithClaims(['30 秒内理解核心循环|实测|Demo 首关计时'])
+    failed.qa.prototype_acceptance = ['Demo 首关计时|未通过|平均 95 秒']
+    const failedMessages = checkDesignClaims(failed)
+    expect(failedMessages).toHaveLength(1)
+    expect(failedMessages[0]).toContain('未通过')
+  })
+
+  it('假设类主张：证据非空即通过，空证据告警', () => {
     expect(checkDesignClaims(docWithClaims(['次留 35%|假设|首测验证']))).toHaveLength(0)
     const empty = checkDesignClaims(docWithClaims(['没有证据的主张|假设|']))
     expect(empty).toHaveLength(1)
@@ -281,6 +300,9 @@ describe('checkDesignClaims：claim → 证据核对', () => {
 
   it('英文强度也认（calculated / tested / assumed）', () => {
     expect(checkDesignClaims(docWithClaims(['主张A|calculated|首转生恰得3星火'])).length).toBe(0)
-    expect(checkDesignClaims(docWithClaims(['主张B|tested|试玩'])).length).toBe(0)
+    expect(checkDesignClaims(docWithClaims(['主张B|assumed|试玩验证']))).toHaveLength(0)
+    const tested = docWithClaims(['主张C|tested|Demo 检查'])
+    tested.qa.prototype_acceptance = ['Demo 检查|passed|截图']
+    expect(checkDesignClaims(tested)).toHaveLength(0)
   })
 })

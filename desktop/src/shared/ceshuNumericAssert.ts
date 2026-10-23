@@ -468,6 +468,14 @@ export function checkDesignClaims(doc: CeshuDocument): string[] {
 
   const label = CHAPTER_LABELS.numeric
   const byStatement = new Map(evaluateAssertions(doc).map((result) => [result.statement, result]))
+  // 实测类主张的证据源：QA 章「原型验收记录」（检查项 → 结果）
+  const prototypeResults = new Map<string, string>()
+  for (const row of toRows(doc.qa.prototype_acceptance)) {
+    if (typeof row !== 'string') continue
+    const columns = row.split('|').map((column) => column.trim())
+    const check = columns[0] ?? ''
+    if (check !== '') prototypeResults.set(check, columns[1] ?? '')
+  }
   const messages: string[] = []
 
   for (const row of claimRows) {
@@ -502,8 +510,35 @@ export function checkDesignClaims(doc: CeshuDocument): string[] {
       continue
     }
 
-    if (strength === '实测' || strength === 'tested' || strength === '假设' || strength === 'assumed') {
-      // 无法机器验证的强度：证据非空即通过（上面已判空）
+    if (strength === '实测' || strength === 'tested') {
+      /*
+       * 实测类：证据必须对上「原型验收记录」里**结果为通过**的检查项——
+       * 否则「实测」两个字只是空口。未登记/未通过都按一致性警告处理（不是
+       * 冲突）：原型尚未执行的文档是合法状态，警告只提醒「别把计划写成实测」。
+       */
+      const result = prototypeResults.get(evidence)
+      if (result === undefined) {
+        messages.push(
+          `一致性警告：${label} 设计主张「${claim}」标注为实测，但证据「${evidence}」未在原型验收记录中登记`
+        )
+      } else {
+        /*
+         * 结果判定要防「未通过含通过」：先排除否定词（未/不/失败/fail），
+         * 再看是否含「通过/pass」。「部分通过」这类模糊写法会被否定词规则放过，
+         * 按通过处理——验收表的措辞规范交给 reviewHint 管，校验不做过度猜测。
+         */
+        const passed = !/未|不|失败|fail/i.test(result) && /通过|pass/i.test(result)
+        if (!passed) {
+          messages.push(
+            `一致性警告：${label} 设计主张「${claim}」标注为实测，但原型验收「${evidence}」结果为「${result}」，未通过`
+          )
+        }
+      }
+      continue
+    }
+
+    if (strength === '假设' || strength === 'assumed') {
+      // 假设类：无法机器验证，证据非空即通过（上面已判空）
       continue
     }
 
