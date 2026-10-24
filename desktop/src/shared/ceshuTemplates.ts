@@ -1,14 +1,20 @@
 import { CHAPTER_LABELS, isChapterKey, type ChapterKey } from './ceshuConstants'
 import { isPlainObject } from './ceshuModel'
-import { CHAPTER_TEMPLATES } from './ceshuTemplateData'
+// 档 4：模板数据本体已随 templates 收进 ceshuSchema/<章>.ts，此处从 CHAPTER_SCHEMAS 聚合。
+import { CHAPTER_SCHEMAS } from './ceshuSchema'
 
 /**
  * 章节模板库纯逻辑（自 Python `ui/ceshu/chapter_templates.py` + `template_picker_dialog.py` 匹平迁移）：
  * - 内置模板查询：按章列表 / 跨章搜索 / 按名取用 / 每章数量统计
  * - 合并策略三模式：仅填充空字段（`merge_template_to_chapter`）/ 覆盖 / 追加（`_merge_data`）
  * - 模板预览树（`_render_data_html` 的结构等价表达，渲染层负责样式）
- * 数据本体见 `shared/ceshuTemplateData.ts`（由 Python 数据池机械转换）。
+ * 数据本体见各章 schema 的 `templates`（由 Python 数据池机械转换，已并入 ceshuSchema/<章>.ts）。
  */
+
+/** 章节模板池：每章模板来自对应 schema 的 `templates`（story 已合并 worldview+characters，P2 七章为 []）。 */
+export const CHAPTER_TEMPLATES: Record<ChapterKey, ChapterTemplate[]> = Object.fromEntries(
+  (Object.keys(CHAPTER_SCHEMAS) as ChapterKey[]).map((ch) => [ch, CHAPTER_SCHEMAS[ch].templates ?? []])
+) as Record<ChapterKey, ChapterTemplate[]>
 
 export interface ChapterTemplate {
   /** 模板名称（展示与搜索匹配） */

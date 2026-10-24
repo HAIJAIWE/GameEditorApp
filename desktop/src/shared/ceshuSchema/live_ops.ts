@@ -2,11 +2,11 @@
  * 章节 `live_ops` 的按章 schema（档 4 合并，2026-10-24）。
  *
  * 字段定义 / 契约（aiHint/reviewHint/aiDraftable 已内联）/ 三件套拆分清单
- * 全部收进单文件；旧 ceshuFieldHints/ceshuFieldSplits 仅做 re-export 兜底。
- * 改一个字段只碰这一处。
+ * 全部收进单文件（字段 / 契约 / 拆分 / 默认 / 模板），改一个字段只碰这一处。
  */
+import type { ChapterTemplate } from '../ceshuTemplates'
 import type { ChapterSchema } from './types'
-import type { CeshuFieldDef } from '../ceshuConstants'
+import type { CeshuFieldDef, ChapterData } from '../ceshuConstants'
 
 export const LIVE_OPS_FIELDS: CeshuFieldDef[] = [
   {
@@ -97,8 +97,22 @@ export const LIVE_OPS_FIELDS: CeshuFieldDef[] = [
   }
 ]
 
+export const LIVE_OPS_DEFAULTS: ChapterData = {
+  ops_goals: '',
+  activity_system: '',
+  activity_system_points: [],
+  activity_system_notes: '',
+  activity_calendar: [],
+  retention_measures: [],
+  version_cadence: []
+}
+
+export const LIVE_OPS_TEMPLATES: ChapterTemplate[] = []
+
 export const LIVE_OPS_SCHEMA: ChapterSchema = {
   fields: LIVE_OPS_FIELDS,
   splits: [],
-  splitHints: undefined
+  splitHints: undefined,
+  defaults: LIVE_OPS_DEFAULTS,
+  templates: LIVE_OPS_TEMPLATES
 }

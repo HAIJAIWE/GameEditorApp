@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { CESHU_CHAPTER_FIELDS } from '../../src/shared/ceshuFields'
-import { FIELD_SPLITS } from '../../src/shared/ceshuFieldSplits'
+import { FIELD_SPLITS } from '../../src/shared/ceshuSchema'
 import { CHAPTER_KEYS } from '../../src/shared/ceshuConstants'
 
 /**

@@ -1,3 +1,5 @@
+import type { ChapterTemplate } from '../ceshuTemplates'
+import type { ChapterData } from '../ceshuConstants'
 import type { ChapterSchema } from './types'
 import { f } from './types'
 
@@ -7,7 +9,7 @@ import { f } from './types'
  * 原数据来自三处，现收进单文件：
  * - 字段定义：`ceshuFields.ts` 的 `BASE_CHAPTER_FIELDS.economy`（内联）
  * - 契约：`cesuFieldHints/economy.ts` 的 `ECONOMY_FIELD_HINTS`
- * - 拆分：`ceshuFieldSplits/economy.ts` 的 `ECONOMY_FIELD_SPLITS`
+ * - 拆分：见本文件 `ECONOMY_SCHEMA.splits`（三件套清单）
  *
  * `toFieldHints(ECONOMY_SCHEMA)` 派生出的契约表与旧 `ECONOMY_FIELD_HINTS` 等价
  * （仅把原本内联在 def 上的 ledger 契约也并入 map，合并时幂等、最终字段零变化）。
@@ -101,8 +103,84 @@ export const ECONOMY_SPLIT_HINTS: ChapterSchema['splitHints'] = {
   }
 }
 
+export const ECONOMY_DEFAULTS: ChapterData = {
+  currency_types: [],
+  source_sink: '',
+  drop_tables: [],
+  production_chain: '',
+  market_design: '',
+  inflation_control: '',
+  economic_goals: '',
+  metrics_tracking: [],
+  seasonal_adjustment: ''
+}
+
+export const ECONOMY_TEMPLATES: ChapterTemplate[] = [
+  {
+    name: 'F2P 三货币体系',
+    description: 'F2P 游戏标准三货币经济体系',
+    tags: [
+      'F2P',
+      '货币',
+      '经济'
+    ],
+    data: {
+      currency_types: [
+        {
+          name: '金币',
+          source: '任务/副本/卖出',
+          sink: '强化/消耗品',
+          exchange_rate: '不可兑换'
+        },
+        {
+          name: '钻石',
+          source: '充值/活动',
+          sink: '抽卡/外观',
+          exchange_rate: '1元=10钻石'
+        },
+        {
+          name: '友情点',
+          source: '好友互动',
+          sink: '友情抽卡',
+          exchange_rate: '不可兑换'
+        }
+      ],
+      source_sink: '产出：主线 40% + 副本 30% + 任务 20% + 活动 10%；回收：强化 50% + 消耗品 30% + 外观 20%',
+      drop_tables: [
+        {
+          item: '金币袋(小)',
+          rate: '50%',
+          value: '100'
+        },
+        {
+          item: '金币袋(大)',
+          rate: '5%',
+          value: '1000'
+        },
+        {
+          item: '钻石',
+          rate: '1%',
+          value: '10'
+        }
+      ],
+      production_chain: '材料 → 装备 → 强化 → 高级装备（多级合成链）',
+      market_design: '玩家交易行（限制可交易物品）+ 拍卖行（稀有物品）',
+      inflation_control: '1) 等级锁定金币产出上限\n2) 强化失败回收金币\n3) 限时活动大额回收',
+      economic_goals: '免费玩家：可获取全部内容；付费玩家：加速进度；运营：ARPU 8元',
+      metrics_tracking: [
+        '金币产出/回收比',
+        '钻石消耗率',
+        '留存与付费相关性'
+      ],
+      seasonal_adjustment: '新赛季引入新消耗品（外观/通行证），回收上季囤积'
+    }
+  }
+]
+
 export const ECONOMY_SCHEMA: ChapterSchema = {
   fields: ECONOMY_FIELDS,
   splits: ['production_chain', 'market_design', 'inflation_control', 'economic_goals', 'seasonal_adjustment'],
-  splitHints: ECONOMY_SPLIT_HINTS
+  splitHints: ECONOMY_SPLIT_HINTS,
+  defaults: ECONOMY_DEFAULTS,
+  templates: ECONOMY_TEMPLATES
 }

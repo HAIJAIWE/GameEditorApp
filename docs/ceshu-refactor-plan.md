@@ -133,11 +133,17 @@ export function column(row: string, index: number): string  // 取第 N 列（�
 
 **验证**：全量单测 2559 通过 / 5 跳过、三套 `tsc` 0 错、eslint 0（`--fix` 时修正了生成文件里 4 处带空格的 `optionLabels` key 漏加引号的语法错误：`tech.ts` 的 `Unreal Engine`、`audio.ts` 的 `CRI ADX` / `Unity Audio` / `Unreal Audio`）。
 
-**剩余（下一轮）**：`defaults` / `templates` 仍分别住在 `ceshuDefaults` / `ceshuTemplateData`，按原方案并入 schema；并入后删除 re-export 兜底与旧目录，让 `ceshuFields.ts` 直接消费 `ceshuSchema/*`。
+**收尾（同日完成，2026-10-24）✅**：`defaults` / `templates` 已由生成脚本从运行态 `createDefaultChapters()` / `CHAPTER_TEMPLATES` 提取并注入 24 个 schema（`<NAME>_SCHEMA.defaults/templates` + 新增 `<NAME>_DEFAULTS` / `<NAME>_TEMPLATES` 导出；story 模板池为 worldview+characters 合并态、P2 七章 `[]`）。随后：
+- 新增 `ceshuSchema/index.ts`：`CHAPTER_SCHEMAS: Record<ChapterKey, ChapterSchema>` 唯一聚合入口 + `FIELD_SPLITS` 再导出（由各 `schema.splits` 派生，覆盖全部 24 章）；
+- 类型收口：`FieldHint` / `ChapterFieldHints` / `ChapterFieldSplits` 移入 `ceshuSchema/types.ts`（`ExpansionChapterKey` / `ChapterDefinition` 随旧目录消亡，不再保留）；
+- 三个消费方改为直接消费 `CHAPTER_SCHEMAS`：`ceshuFields.ts`（schema 取字段 → applySplits → `toFieldHints` 叠加契约）、`ceshuDefaults.ts`（遍历克隆 `schema.defaults` + meta.date/version / systems 动态覆盖）、`ceshuTemplates.ts`（从 schema 构建 `CHAPTER_TEMPLATES`）；
+- 删除 4 个旧目录与聚合器：`ceshuFieldHints/`（23）、`ceshuFieldSplits/`（24）、`ceshuChapterFields/`（9）、`ceshuTemplateData/`（18）+ `ceshuTemplateData.ts`。
+
+**行为零变更的实证**：改写 `ceshuFields.ts` 前用临时脚本逐字段对比「旧合并产物」与「schema 派生产物」的解析契约（required / aiDraftable / aiHint / reviewHint）——初版漏叠加 `splitHints` 时抓到 82 处 `_points`/`_notes` 契约回退为通用兜底，改用 `toFieldHints(schema)` 叠加后 0 差异；全量单测 2559 通过 / 5 跳过、三套 `tsc` 0 错、eslint 0。
 
 ### 验收
 - 全量单测绿；`CESHU_CHAPTER_FIELDS` 字段总数、各章 required 集合与改造前一致（守卫测试）；
-- `grep -rn "ceshuFieldHints\|ceshuFieldSplits\|ceshuChapterFields\|ceshuTemplateData" desktop/src/shared` 仅出现在 `ceshuSchema` 的 re-export 兜底里；
+- `grep -rn "ceshuFieldHints\|ceshuFieldSplits\|ceshuChapterFields\|ceshuTemplateData" desktop/src` 无任何 import（旧目录已物理删除，仅文档与历史注释提及）；
 - 新增 / 修改一个字段只需改 `ceshuSchema/<章>.ts` 一处（达成核心目标）。
 
 ---

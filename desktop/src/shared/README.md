@@ -169,7 +169,7 @@ for(const [n,fp,code] of [
 
 | 分区 | 已归入 | 仍在根目录平铺（定案留根，原因见 §4.1） |
 |---|---|---|
-| `domain/ceshu/` | 5 个（纯 renderer 向）：`ceshuCompetitiveChart` `ceshuReports` `ceshuTimeline` `dataRef` `gameDataPreview` | ceshu 26 个（逻辑 18 + 数据 7 + 模板数据聚合器 1，main 依赖倒逼留根，见 §4.1）+ `ceshuTemplateData/`（18 分片目录） |
+| `domain/ceshu/` | 5 个（纯 renderer 向）：`ceshuCompetitiveChart` `ceshuReports` `ceshuTimeline` `dataRef` `gameDataPreview` | ceshu 25 个（逻辑 18 + 数据 7，main 依赖倒逼留根，见 §4.1）+ `ceshuSchema/`（26 文件目录：24 章 schema + types + index，档 4 合并产物） |
 | `domain/attr/` | 6 个：`attrEngine`（求值引擎）`attrList` `attrPanel` `attrPreview` `attributeChart` `equipPreview` | `attrSystem`（模型 + 拓扑排序，main 依赖留根） |
 | `domain/type/` | —（暂无） | `typeSchema` `typeSchemaData` `typeSchemaFile` `typeTemplates`（元模型契约，定案留根） |
 | `agent/` | 15 个（含 2g 迁入的 `agentEditor`；有意保持平铺，见 §5） | — |
@@ -184,14 +184,16 @@ for(const [n,fp,code] of [
 
 根目录现存 39 个平铺文件中，**27 个是 rule 4 倒逼的既成事实**而非疏漏：
 
-- **ceshu 26 个**（逻辑 18 + 数据 7 + 模板数据聚合器 1）：`main/ceshu/`（manager /
+- **ceshu 25 个**（逻辑 18 + 数据 7；原模板数据聚合器 1 已随档 4 合并删除）：`main/ceshu/`（manager /
   notesStore / templateStore）与 `main/ipc/ceshuIpc.ts` 直接消费这些纯函数
   （存储序列化 / 校验 / prompt 组装 / 确定性检查评分）。rule 4 禁止 main import
   `domain/**`，而 api.ts 门面只覆盖 IPC 能力、不覆盖 store 内部实现细节 ⇒ 这批
   「main 编排 + renderer 展示」共享的确定性逻辑留在 contract 根（2a 批 `2a23a98`
   将 12 个从 domain/ceshu 提回根，与 `ea27884` 迁入的 ceshuModel 模型六件套同构；
-  2h 批规则 6 执法时补提 8 个数据层文件——2a 漏了「逻辑层的数据依赖」——
-  + ceshuTemplateData/ 18 分片）。
+  2h 批规则 6 执法时补提 8 个数据层文件——2a 漏了「逻辑层的数据依赖」。2026-10-24
+  档 4 把字段/契约/拆分/默认/模板全部收进 `ceshuSchema/<章>.ts`，`ceshuTemplateData`
+  （+18 分片）、`ceshuFieldHints`、`ceshuFieldSplits`、`ceshuChapterFields`
+  四个旧分片目录随之删除）。
   判据口径：**main 需要 + 无 UI 状态 + 可序列化 ⇒ contract 根业务前缀文件**。
 - **`attrSystem`**：同理（main 的 attrSystemStore / attrSystemJsonFile /
   attrGameConfigExport 依赖模型与拓扑排序），求值引擎已按域纯度下沉 domain/attr/。

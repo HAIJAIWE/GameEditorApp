@@ -1,19 +1,43 @@
 import type { CeshuFieldDef, ChapterData } from '../ceshuConstants'
 import type { ChapterTemplate } from '../ceshuTemplates'
-import type { FieldHint, ChapterFieldHints } from '../ceshuFieldHints/types'
+
+/**
+ * 档 4 合并产物的类型定义（2026-10-24）。
+ *
+ * 旧架构里「同一章」的元数据散在 4 处——
+ * `ceshuFields`（字段）/ `ceshuFieldHints`（人机协作契约）/ `ceshuFieldSplits`（三件套拆分）/
+ * `ceshuDefaults` + `ceshuTemplateData`（默认与模板），各自还带一个 `types.ts`。
+ * 档 4 把同章全部元数据收进 `ceshuSchema/<章>.ts`，相关类型也在此处收口为唯一来源：
+ *
+ * - `FieldHint` / `ChapterFieldHints`：字段契约（原 ceshuFieldHints/types.ts）；
+ * - `ChapterFieldSplits`：三件套拆分清单类型（原 ceshuFieldSplits/types.ts）；
+ * - `ExpansionChapterKey` / `ChapterDefinition`：P2 扩展设计 7 章的精确联合与单章定义
+ *   （原 ceshuChapterFields/types.ts）。
+ */
+
+/** 单字段契约：AI 生成目标 / 人审要点 / 是否人定 */
+export interface FieldHint {
+  /** 这个字段 AI 该产出什么（一句话，直接进提示词） */
+  aiHint?: string
+  /** 人审时看什么（一句话，显示在字段旁） */
+  reviewHint?: string
+  /** false = 该字段由人确定，不交给 AI 起草（预算/团队/商业决策类） */
+  aiDraftable?: boolean
+}
+
+/** 单章的字段契约表（键为字段 key，含点路径） */
+export type ChapterFieldHints = Record<string, FieldHint>
+
+/** 单章的结构拆分清单：要拆成「本体 + 要点 + 补充」三件套的字段 key */
+export type ChapterFieldSplits = readonly string[]
 
 /**
  * 档 4 合并产物：按章聚合的策划书 schema。
  *
- * 旧架构里「同一章」的元数据散在 4 处——
- * `ceshuFields`（字段）/ `ceshuFieldHints`（人机协作契约）/ `ceshuFieldSplits`（三件套拆分）/
- * `ceshuDefaults` + `ceshuTemplateData`（默认与模板）。
- * 这里把同章全部元数据收进一个文件，改一个字段只碰这一处。
- *
  * - 字段契约（aiHint / reviewHint / aiDraftable）直接内联到 field def 上；
  * - 三件套拆分产物（`${key}_points` / `${key}_notes`）的契约放进 `splitHints`，
- *   由 `toFieldHints` 派生（只有真正写了自定义契约的字段才填）。
- * - `defaults` / `templates` 在后续批次从 `ceshuDefaults` / `ceshuTemplateData` 迁入。
+ *   由 `toFieldHints` 派生（只有真正写了自定义契约的字段才填）；
+ * - `defaults` / `templates` 已从 `ceshuDefaults` / `ceshuTemplateData` 迁入（见各章 schema 文件）。
  */
 export interface SplitFieldHints {
   points?: FieldHint
