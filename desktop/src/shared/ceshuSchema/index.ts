@@ -35,24 +35,30 @@ import { QA_SCHEMA } from './qa'
 import { PUBLISHING_SCHEMA } from './publishing'
 import { PERFORMANCE_SCHEMA } from './performance'
 
-/** 全部 24 章 schema 的汇总（按章查字段 / 契约 / 拆分 / 默认 / 模板的唯一入口） */
+/**
+ * 全部 24 章 schema 的汇总（按章查字段 / 契约 / 拆分 / 默认 / 模板的唯一入口）。
+ *
+ * 键序 = `CHAPTER_PARTS` 文档章序（章节顺序的唯一事实源）：所有从本表 `Object.keys`
+ * 派生的产物（`createDefaultChapters` / `CHAPTER_TEMPLATES` / `FIELD_SPLITS`）因此
+ * 统一为文档章序，不再复刻旧 `ceshuDefaults` / `ceshuTemplateData` 两处互不一致的手写序。
+ */
 export const CHAPTER_SCHEMAS: Record<ChapterKey, ChapterSchema> = {
   meta: META_SCHEMA,
   vision: VISION_SCHEMA,
   story: STORY_SCHEMA,
   gameplay: GAMEPLAY_SCHEMA,
   systems: SYSTEMS_SCHEMA,
+  combat: COMBAT_SCHEMA,
+  economy: ECONOMY_SCHEMA,
   numeric: NUMERIC_SCHEMA,
   art: ART_SCHEMA,
   audio: AUDIO_SCHEMA,
   tech: TECH_SCHEMA,
   resources: RESOURCES_SCHEMA,
   market_analysis: MARKET_ANALYSIS_SCHEMA,
-  combat: COMBAT_SCHEMA,
-  economy: ECONOMY_SCHEMA,
-  monetization: MONETIZATION_SCHEMA,
-  mvp: MVP_SCHEMA,
   risk_handling: RISK_HANDLING_SCHEMA,
+  mvp: MVP_SCHEMA,
+  monetization: MONETIZATION_SCHEMA,
   accessibility: ACCESSIBILITY_SCHEMA,
   uiux: UIUX_SCHEMA,
   level_design: LEVEL_DESIGN_SCHEMA,
