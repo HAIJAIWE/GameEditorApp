@@ -1,4 +1,5 @@
 import { CHAPTER_LABELS, type CeshuDocument } from './ceshuConstants'
+import { normalizeAcceptanceResult } from './ceshuEvidence'
 import { EPSILON, column, splitRow, toRows } from './ceshuPipeRows'
 
 /**
@@ -507,26 +508,37 @@ export function checkDesignClaimsWith(
     if (strength === '实测' || strength === 'tested') {
       /*
        * 实测类：证据必须对上「原型验收记录」里**结果为通过**的检查项——
-       * 否则「实测」两个字只是空口。未登记/未通过都按一致性警告处理（不是
-       * 冲突）：原型尚未执行的文档是合法状态，警告只提醒「别把计划写成实测」。
+       * 否则「实测」两个字只是空口。结果列是受控枚举（通过/未通过/部分通过），
+       * 归一判定见 ceshuEvidence.normalizeAcceptanceResult（2026-10-24 起取代
+       * 此处的否定词正则启发式——旧启发式会把「部分通过」误当通过放过）。
+       * 未登记/未通过/部分通过/尚未执行都按一致性警告处理（不是冲突）：
+       * 原型尚未执行的文档是合法状态，警告只提醒「别把计划写成实测」。
        */
       const result = prototypeResults.get(evidence)
       if (result === undefined) {
         messages.push(
           `一致性警告：${label} 设计主张「${claim}」标注为实测，但证据「${evidence}」未在原型验收记录中登记`
         )
+        continue
+      }
+      const status = normalizeAcceptanceResult(result)
+      if (status === 'pass') continue
+      if (status === 'fail') {
+        messages.push(
+          `一致性警告：${label} 设计主张「${claim}」标注为实测，但原型验收「${evidence}」结果为「${result}」，未通过`
+        )
+      } else if (status === 'partial') {
+        messages.push(
+          `一致性警告：${label} 设计主张「${claim}」标注为实测，但原型验收「${evidence}」结果为「${result}」，仅部分成立，主张未完全验证`
+        )
+      } else if (status === 'pending') {
+        messages.push(
+          `一致性警告：${label} 设计主张「${claim}」标注为实测，但原型验收「${evidence}」尚未执行（结果：${result}），主张未验证`
+        )
       } else {
-        /*
-         * 结果判定要防「未通过含通过」：先排除否定词（未/不/失败/fail），
-         * 再看是否含「通过/pass」。「部分通过」这类模糊写法会被否定词规则放过，
-         * 按通过处理——验收表的措辞规范交给 reviewHint 管，校验不做过度猜测。
-         */
-        const passed = !/未|不|失败|fail/i.test(result) && /通过|pass/i.test(result)
-        if (!passed) {
-          messages.push(
-            `一致性警告：${label} 设计主张「${claim}」标注为实测，但原型验收「${evidence}」结果为「${result}」，未通过`
-          )
-        }
+        messages.push(
+          `一致性警告：${label} 设计主张「${claim}」标注为实测，但原型验收「${evidence}」结果为「${result}」，无法识别（结果列应为：通过/未通过/部分通过）`
+        )
       }
       continue
     }

@@ -279,6 +279,33 @@ describe('checkDesignClaims：claim → 证据核对', () => {
     expect(failedMessages[0]).toContain('未通过')
   })
 
+  it('实测类主张：「部分通过」不再被当作通过放过（2026-10-24 受控枚举收敛）', () => {
+    const doc = docWithClaims(['30 秒内理解核心循环|实测|Demo 首关计时'])
+    doc.qa.prototype_acceptance = ['Demo 首关计时|部分通过|12 人试玩 8 人达标']
+    const messages = checkDesignClaims(doc)
+    expect(messages).toHaveLength(1)
+    expect(messages[0]).toContain('一致性警告')
+    expect(messages[0]).toContain('部分通过')
+    expect(messages[0]).toContain('主张未完全验证')
+  })
+
+  it('实测类主张：结果为「待确认」（原型尚未执行）→ 未验证警告', () => {
+    const doc = docWithClaims(['30 秒内理解核心循环|实测|Demo 首关计时'])
+    doc.qa.prototype_acceptance = ['Demo 首关计时|待确认|排期下周']
+    const messages = checkDesignClaims(doc)
+    expect(messages).toHaveLength(1)
+    expect(messages[0]).toContain('尚未执行')
+  })
+
+  it('实测类主张：结果列写法无法识别 → 提醒受控三值', () => {
+    const doc = docWithClaims(['30 秒内理解核心循环|实测|Demo 首关计时'])
+    doc.qa.prototype_acceptance = ['Demo 首关计时|搞定|28 秒']
+    const messages = checkDesignClaims(doc)
+    expect(messages).toHaveLength(1)
+    expect(messages[0]).toContain('无法识别')
+    expect(messages[0]).toContain('通过/未通过/部分通过')
+  })
+
   it('假设类主张：证据非空即通过，空证据告警', () => {
     expect(checkDesignClaims(docWithClaims(['次留 35%|假设|首测验证']))).toHaveLength(0)
     const empty = checkDesignClaims(docWithClaims(['没有证据的主张|假设|']))

@@ -168,7 +168,7 @@ export const GAMEPLAY_SCHEMA: ChapterSchema = {
   splits: [
   'first_30_min'
 ],
-  splitHints: GAMEPLAY_SPLIT_HINTS,
+  splitHints: GAMEPLAY_SPLIT_HINTS,
   defaults: GAMEPLAY_DEFAULTS,
   templates: GAMEPLAY_TEMPLATES
 }

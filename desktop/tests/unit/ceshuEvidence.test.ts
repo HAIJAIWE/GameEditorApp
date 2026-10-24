@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { checkLedger, checkTestCaseList } from '../../src/shared/ceshuEvidence'
+import { checkLedger, checkPrototypeAcceptanceResults, checkTestCaseList, normalizeAcceptanceResult } from '../../src/shared/ceshuEvidence'
 import { createDefaultCeshu } from '../../src/shared/ceshuModel'
 import { validateCeshu } from '../../src/shared/ceshuValidation'
 
@@ -105,5 +105,69 @@ describe('validateCeshu 集成：用例与账本进入校验链', () => {
     const messages = validateCeshu(doc)
     expect(messages.some((m) => m.includes('用例「某用例」'))).toBe(true)
     expect(messages.some((m) => m.includes('账本「首局」'))).toBe(true)
+  })
+})
+
+describe('normalizeAcceptanceResult：验收结果列受控枚举归一（2026-10-24 收敛）', () => {
+  it('受控三值 + 英文等价 + 合法中间态', () => {
+    expect(normalizeAcceptanceResult('通过')).toBe('pass')
+    expect(normalizeAcceptanceResult('pass')).toBe('pass')
+    expect(normalizeAcceptanceResult('passed')).toBe('pass')
+    expect(normalizeAcceptanceResult('未通过')).toBe('fail')
+    expect(normalizeAcceptanceResult('失败')).toBe('fail')
+    expect(normalizeAcceptanceResult('failed')).toBe('fail')
+    expect(normalizeAcceptanceResult('部分通过')).toBe('partial')
+    expect(normalizeAcceptanceResult('partial')).toBe('partial')
+    expect(normalizeAcceptanceResult('待确认')).toBe('pending')
+    expect(normalizeAcceptanceResult('pending')).toBe('pending')
+  })
+
+  it('旧自由文本兜底：模糊含通过不放水（fail/partial），其余 invalid', () => {
+    expect(normalizeAcceptanceResult('未通过（手速不够）')).toBe('fail')
+    expect(normalizeAcceptanceResult('基本通过')).toBe('partial')
+    expect(normalizeAcceptanceResult('已完成')).toBe('invalid')
+    expect(normalizeAcceptanceResult('感觉不错')).toBe('invalid')
+    expect(normalizeAcceptanceResult('')).toBe('invalid')
+  })
+})
+
+describe('checkPrototypeAcceptanceResults：原型验收结果列受控枚举', () => {
+  function docWithAcceptance(rows: string[]) {
+    const doc = createDefaultCeshu({ scope: 'full' })
+    doc.qa.prototype_acceptance = rows
+    return doc
+  }
+
+  it('受控三值与合法中间态 → 无消息', () => {
+    const doc = docWithAcceptance([
+      'Demo 首关计时|通过|平均 28 秒完成首单',
+      'Boss 战压力测试|未通过|平均 95 秒',
+      '手感到位|部分通过|12 人试玩 8 人认可',
+      '全流程压测|待确认|排期下周'
+    ])
+    expect(checkPrototypeAcceptanceResults(doc)).toEqual([])
+  })
+
+  it('英文等价 → 无消息', () => {
+    expect(checkPrototypeAcceptanceResults(docWithAcceptance(['Demo 检查|passed|截图']))).toEqual([])
+  })
+
+  it('无法识别的写法 → 一致性警告', () => {
+    const messages = checkPrototypeAcceptanceResults(docWithAcceptance(['首关计时|搞定|28 秒']))
+    expect(messages).toHaveLength(1)
+    expect(messages[0]).toContain('一致性警告')
+    expect(messages[0]).toContain('无法识别')
+    expect(messages[0]).toContain('通过/未通过/部分通过')
+  })
+
+  it('空表/缺结果列 → 静默', () => {
+    expect(checkPrototypeAcceptanceResults(createDefaultCeshu({ scope: 'full' }))).toEqual([])
+    expect(checkPrototypeAcceptanceResults(docWithAcceptance(['只有检查项|']))).toEqual([])
+  })
+
+  it('validateCeshu 集成：非法结果列进入校验链', () => {
+    const doc = createDefaultCeshu({ scope: 'full' })
+    doc.qa.prototype_acceptance = ['首关计时|搞定|28 秒']
+    expect(validateCeshu(doc).some((m) => m.includes('原型验收「首关计时」'))).toBe(true)
   })
 })

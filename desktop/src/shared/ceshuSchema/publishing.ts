@@ -119,7 +119,7 @@ export const PUBLISHING_SCHEMA: ChapterSchema = {
   splits: [
   'marketing_rhythm'
 ],
-  splitHints: undefined,
+  splitHints: undefined,
   defaults: PUBLISHING_DEFAULTS,
   templates: PUBLISHING_TEMPLATES
 }

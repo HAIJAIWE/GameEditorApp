@@ -146,7 +146,7 @@ export const ANALYTICS_TEMPLATES: ChapterTemplate[] = []
 export const ANALYTICS_SCHEMA: ChapterSchema = {
   fields: ANALYTICS_FIELDS,
   splits: [],
-  splitHints: undefined,
+  splitHints: undefined,
   defaults: ANALYTICS_DEFAULTS,
   templates: ANALYTICS_TEMPLATES
 }

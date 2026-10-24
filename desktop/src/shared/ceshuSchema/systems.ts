@@ -263,7 +263,7 @@ export const SYSTEMS_TEMPLATES: ChapterTemplate[] = [
 export const SYSTEMS_SCHEMA: ChapterSchema = {
   fields: SYSTEMS_FIELDS,
   splits: [],
-  splitHints: undefined,
+  splitHints: undefined,
   defaults: SYSTEMS_DEFAULTS,
   templates: SYSTEMS_TEMPLATES
 }

@@ -112,7 +112,9 @@ export const QA_FIELDS: CeshuFieldDef[] = [
         key: 'evidence',
         label: '证据'
       }
-    ]
+    ],
+    aiHint: '每行一条验收记录：检查项|结果|证据。结果列只填「通过 / 未通过 / 部分通过」三选一；证据写可复核的数值或现象（如「平均 28 秒完成首单」）',
+    reviewHint: '结果列是否为三选一受控值（其他写法会被校验判为无法识别）；未通过/部分通过是否有证据与跟进计划'
   },
   {
     key: 'test_case_list',
@@ -184,7 +186,7 @@ export const QA_TEMPLATES: ChapterTemplate[] = []
 export const QA_SCHEMA: ChapterSchema = {
   fields: QA_FIELDS,
   splits: [],
-  splitHints: undefined,
+  splitHints: undefined,
   defaults: QA_DEFAULTS,
   templates: QA_TEMPLATES
 }

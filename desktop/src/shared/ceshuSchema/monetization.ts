@@ -299,7 +299,7 @@ export const MONETIZATION_SCHEMA: ChapterSchema = {
   'vip_system',
   'f2p_experience'
 ],
-  splitHints: MONETIZATION_SPLIT_HINTS,
+  splitHints: MONETIZATION_SPLIT_HINTS,
   defaults: MONETIZATION_DEFAULTS,
   templates: MONETIZATION_TEMPLATES
 }

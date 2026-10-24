@@ -150,4 +150,4 @@ export function column(row: string, index: number): string  // 取第 N 列（�
 
 ## 附：不在本次范围（观察项）
 - **提示词散落**：`ceshuAi` / `ceshuBundlePrompt` / `ceshuDataGen` / `ceshuDemoPrompt` 各自持有提示词。Demo 提示词单独放合理；其余是否集中优先级低，可后续单列。
-- **`checkDesignClaims` 的「未通过含通过」否定词启发式**（`ceshuNumericAssert.ts:530`）：脆弱但已注释说明。根治需把 `qa.prototype_acceptance` 的结果列改成受控枚举（通过/未通过/部分通过），属 schema 层改动，并入档 4 或单独评估。
+- ~~**`checkDesignClaims` 的「未通过含通过」否定词启发式**~~（✅ 已根治，2026-10-24）：`qa.prototype_acceptance` 的结果列收敛为受控枚举「通过 / 未通过 / 部分通过」——`ceshuEvidence.normalizeAcceptanceResult` 白名单归一（受控三值 + 英文等价 + 「待确认」合法中间态；旧自由文本兜底归一，模糊写法一律**不判通过**），`checkDesignClaimsWith` 实测分支改用归一结果判定（`部分通过` 不再被旧启发式放过、`待确认` 报「尚未执行」而非「未通过」）；另注册 `prototypeAcceptance` 校验项，即使没有设计主张也独立提醒无法识别的写法。qa 字段补 aiHint/reviewHint 契约。附带修复：24 个 schema 文件 `splitHints:` 行的 `\r,` 行中控制字符污染（生成器在 CRLF 文件上插逗号位置所致）。

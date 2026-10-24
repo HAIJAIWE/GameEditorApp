@@ -180,7 +180,7 @@ export const ECONOMY_TEMPLATES: ChapterTemplate[] = [
 export const ECONOMY_SCHEMA: ChapterSchema = {
   fields: ECONOMY_FIELDS,
   splits: ['production_chain', 'market_design', 'inflation_control', 'economic_goals', 'seasonal_adjustment'],
-  splitHints: ECONOMY_SPLIT_HINTS,
+  splitHints: ECONOMY_SPLIT_HINTS,
   defaults: ECONOMY_DEFAULTS,
   templates: ECONOMY_TEMPLATES
 }

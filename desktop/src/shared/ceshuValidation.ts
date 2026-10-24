@@ -23,7 +23,7 @@ import {
   evaluateAssertions,
   type AssertionResult
 } from './ceshuNumericAssert'
-import { checkLedger, checkTestCaseList } from './ceshuEvidence'
+import { checkLedger, checkPrototypeAcceptanceResults, checkTestCaseList } from './ceshuEvidence'
 import { column } from './ceshuPipeRows'
 import { readText } from './util/readText'
 
@@ -75,6 +75,7 @@ export const CESHU_CHECKS: CeshuCheck[] = [
   { id: 'contentQuality', run: checkContentQuality },
   { id: 'numericAssertions', run: checkNumericAssertionsMessages },
   { id: 'designClaims', run: checkDesignClaimsMessages },
+  { id: 'prototypeAcceptance', run: checkPrototypeAcceptanceMessages },
   { id: 'testCaseList', run: (ctx) => checkTestCaseList(ctx.doc) },
   { id: 'ledger', run: (ctx) => checkLedger(ctx.doc) }
 ]
@@ -292,6 +293,11 @@ function checkNumericAssertionsMessages(ctx: CeshuCheckContext): string[] {
 function checkDesignClaimsMessages(ctx: CeshuCheckContext): string[] {
   // 16. 设计主张证据核对：基于预计算的断言结论与原型验收映射（见 ceshuNumericAssert.checkDesignClaimsWith）
   return checkDesignClaimsWith(ctx.doc, ctx.assertionResults, ctx.prototypeResults)
+}
+
+function checkPrototypeAcceptanceMessages(ctx: CeshuCheckContext): string[] {
+  // 17. 原型验收结果列受控枚举（2026-10-24 收敛）：无法识别的写法独立提醒，防模糊措辞糊弄「实测」核对
+  return checkPrototypeAcceptanceResults(ctx.doc)
 }
 
 // ---------- 检查用模块级辅助 ----------

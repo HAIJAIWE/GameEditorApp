@@ -150,3 +150,74 @@ export function checkLedger(doc: CeshuDocument): string[] {
   }
   return messages
 }
+
+/** 原型验收「结果」列受控枚举（对齐设计主张「实测」核对的三选一判定） */
+export type AcceptanceResultStatus = 'pass' | 'fail' | 'partial' | 'pending'
+
+/** 结果列白名单：受控三值 + 英文等价 + 合法中间态「待确认」（键小写比较） */
+const ACCEPTANCE_RESULTS = new Map<string, AcceptanceResultStatus>([
+  ['通过', 'pass'],
+  ['未通过', 'fail'],
+  ['失败', 'fail'],
+  ['部分通过', 'partial'],
+  ['pass', 'pass'],
+  ['passed', 'pass'],
+  ['fail', 'fail'],
+  ['failed', 'fail'],
+  ['partial', 'partial'],
+  ['partially passed', 'partial'],
+  ['待确认', 'pending'],
+  ['未执行', 'pending'],
+  ['pending', 'pending']
+])
+
+/** 兜底归一：旧自由文本里含「通过」的模糊写法**不判通过**——宁可警告，不可放水 */
+function fallbackAcceptanceStatus(value: string): AcceptanceResultStatus | 'invalid' {
+  if (!/通过|pass/i.test(value)) return 'invalid'
+  return /未|不|失败|fail/i.test(value) ? 'fail' : 'partial'
+}
+
+/**
+ * 「原型验收记录」结果列归一（2026-10-24 收敛为受控枚举，取代
+ * `checkDesignClaimsWith` 旧的「否定词 + 通过词」正则启发式——旧启发式会把
+ * 「部分通过」这类模糊写法误当通过放过）。
+ *
+ * 兼容旧数据：受控三值、英文等价、合法中间态精确匹配；历史自由文本走兜底
+ * 归一（含通过词且有否定词 → fail；只含通过词 → partial；其余 → invalid）。
+ * 返回 'invalid' 表示无法识别，调用方按校验文案提醒三选一写法。
+ */
+export function normalizeAcceptanceResult(raw: string): AcceptanceResultStatus | 'invalid' {
+  const value = raw.trim().toLowerCase()
+  if (value === '') return 'invalid'
+  const whitelisted = ACCEPTANCE_RESULTS.get(value)
+  if (whitelisted !== undefined) return whitelisted
+  return fallbackAcceptanceStatus(value)
+}
+
+/**
+ * 原型验收结果列检查（`qa.prototype_acceptance`，行格式：检查项|结果|证据）。
+ *
+ * 2026-10-24 起结果列收敛为受控枚举（通过/未通过/部分通过）：设计主张的
+ * 「实测」核对依赖这列判定，模糊措辞（如「已完成」「基本通过」）会糊弄核对，
+ * 所以即使没有设计主张也独立校验——无法识别的写法按一致性警告如实提醒。
+ */
+export function checkPrototypeAcceptanceResults(doc: CeshuDocument): string[] {
+  const rows = toRows(doc.qa.prototype_acceptance)
+  if (rows.length === 0) return []
+  const label = CHAPTER_LABELS.qa
+  const messages: string[] = []
+
+  for (const row of rows) {
+    if (row.trim() === '') continue
+    const columns = splitRow(row)
+    const check = columns[0] ?? ''
+    const result = (columns[1] ?? '').trim()
+    if (check === '' || result === '') continue
+    if (normalizeAcceptanceResult(result) === 'invalid') {
+      messages.push(
+        `一致性警告：${label} 原型验收「${check}」的结果「${result}」无法识别（结果列应为：通过/未通过/部分通过）`
+      )
+    }
+  }
+  return messages
+}

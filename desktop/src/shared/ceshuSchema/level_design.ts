@@ -103,7 +103,7 @@ export const LEVEL_DESIGN_SCHEMA: ChapterSchema = {
   splits: [
   'level_principles'
 ],
-  splitHints: undefined,
+  splitHints: undefined,
   defaults: LEVEL_DESIGN_DEFAULTS,
   templates: LEVEL_DESIGN_TEMPLATES
 }

@@ -170,7 +170,7 @@ export const ART_SCHEMA: ChapterSchema = {
   'ui_design_language',
   'multi_resolution'
 ],
-  splitHints: ART_SPLIT_HINTS,
+  splitHints: ART_SPLIT_HINTS,
   defaults: ART_DEFAULTS,
   templates: ART_TEMPLATES
 }

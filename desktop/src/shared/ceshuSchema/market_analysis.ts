@@ -259,7 +259,7 @@ export const MARKET_ANALYSIS_SCHEMA: ChapterSchema = {
   'market_positioning',
   'entry_barriers'
 ],
-  splitHints: MARKET_ANALYSIS_SPLIT_HINTS,
+  splitHints: MARKET_ANALYSIS_SPLIT_HINTS,
   defaults: MARKET_ANALYSIS_DEFAULTS,
   templates: MARKET_ANALYSIS_TEMPLATES
 }

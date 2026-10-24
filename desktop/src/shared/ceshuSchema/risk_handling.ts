@@ -242,7 +242,7 @@ export const RISK_HANDLING_SCHEMA: ChapterSchema = {
   'risk_monitoring',
   'crisis_management'
 ],
-  splitHints: RISK_HANDLING_SPLIT_HINTS,
+  splitHints: RISK_HANDLING_SPLIT_HINTS,
   defaults: RISK_HANDLING_DEFAULTS,
   templates: RISK_HANDLING_TEMPLATES
 }

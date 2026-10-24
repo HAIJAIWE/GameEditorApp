@@ -111,7 +111,7 @@ export const UIUX_TEMPLATES: ChapterTemplate[] = []
 export const UIUX_SCHEMA: ChapterSchema = {
   fields: UIUX_FIELDS,
   splits: [],
-  splitHints: undefined,
+  splitHints: undefined,
   defaults: UIUX_DEFAULTS,
   templates: UIUX_TEMPLATES
 }

@@ -100,7 +100,7 @@ export const PERFORMANCE_SCHEMA: ChapterSchema = {
   'network_adaptation',
   'thermal_power'
 ],
-  splitHints: undefined,
+  splitHints: undefined,
   defaults: PERFORMANCE_DEFAULTS,
   templates: PERFORMANCE_TEMPLATES
 }

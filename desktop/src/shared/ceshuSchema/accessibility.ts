@@ -213,7 +213,7 @@ export const ACCESSIBILITY_SCHEMA: ChapterSchema = {
   'motor_accessibility',
   'cognitive_accessibility'
 ],
-  splitHints: ACCESSIBILITY_SPLIT_HINTS,
+  splitHints: ACCESSIBILITY_SPLIT_HINTS,
   defaults: ACCESSIBILITY_DEFAULTS,
   templates: ACCESSIBILITY_TEMPLATES
 }

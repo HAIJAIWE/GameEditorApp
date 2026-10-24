@@ -112,7 +112,7 @@ export const LIVE_OPS_TEMPLATES: ChapterTemplate[] = []
 export const LIVE_OPS_SCHEMA: ChapterSchema = {
   fields: LIVE_OPS_FIELDS,
   splits: [],
-  splitHints: undefined,
+  splitHints: undefined,
   defaults: LIVE_OPS_DEFAULTS,
   templates: LIVE_OPS_TEMPLATES
 }

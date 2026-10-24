@@ -296,7 +296,7 @@ export const COMBAT_SCHEMA: ChapterSchema = {
   'balance_strategy',
   'combat_progression'
 ],
-  splitHints: COMBAT_SPLIT_HINTS,
+  splitHints: COMBAT_SPLIT_HINTS,
   defaults: COMBAT_DEFAULTS,
   templates: COMBAT_TEMPLATES
 }

@@ -234,7 +234,7 @@ export const META_TEMPLATES: ChapterTemplate[] = [
 export const META_SCHEMA: ChapterSchema = {
   fields: META_FIELDS,
   splits: [],
-  splitHints: undefined,
+  splitHints: undefined,
   defaults: META_DEFAULTS,
   templates: META_TEMPLATES
 }

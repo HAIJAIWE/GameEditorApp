@@ -22,6 +22,7 @@ const EXPECTED_IDS = [
   'contentQuality',
   'numericAssertions',
   'designClaims',
+  'prototypeAcceptance',
   'testCaseList',
   'ledger'
 ]

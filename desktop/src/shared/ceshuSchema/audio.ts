@@ -259,7 +259,7 @@ export const AUDIO_SCHEMA: ChapterSchema = {
   'dynamic_audio',
   'audio_localization'
 ],
-  splitHints: AUDIO_SPLIT_HINTS,
+  splitHints: AUDIO_SPLIT_HINTS,
   defaults: AUDIO_DEFAULTS,
   templates: AUDIO_TEMPLATES
 }

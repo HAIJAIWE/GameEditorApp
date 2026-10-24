@@ -187,7 +187,7 @@ export const RESOURCES_SCHEMA: ChapterSchema = {
   'contingency_plan',
   'appendix'
 ],
-  splitHints: undefined,
+  splitHints: undefined,
   defaults: RESOURCES_DEFAULTS,
   templates: RESOURCES_TEMPLATES
 }

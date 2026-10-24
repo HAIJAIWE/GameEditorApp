@@ -195,7 +195,7 @@ export const NUMERIC_SCHEMA: ChapterSchema = {
   splits: [
   'economic_model'
 ],
-  splitHints: NUMERIC_SPLIT_HINTS,
+  splitHints: NUMERIC_SPLIT_HINTS,
   defaults: NUMERIC_DEFAULTS,
   templates: NUMERIC_TEMPLATES
 }

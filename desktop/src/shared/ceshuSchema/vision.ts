@@ -139,7 +139,7 @@ export const VISION_TEMPLATES: ChapterTemplate[] = [
 export const VISION_SCHEMA: ChapterSchema = {
   fields: VISION_FIELDS,
   splits: [],
-  splitHints: undefined,
+  splitHints: undefined,
   defaults: VISION_DEFAULTS,
   templates: VISION_TEMPLATES
 }

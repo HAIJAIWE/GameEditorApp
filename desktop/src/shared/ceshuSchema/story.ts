@@ -530,7 +530,7 @@ export const STORY_SCHEMA: ChapterSchema = {
   'geography',
   'companion_system'
 ],
-  splitHints: STORY_SPLIT_HINTS,
+  splitHints: STORY_SPLIT_HINTS,
   defaults: STORY_DEFAULTS,
   templates: STORY_TEMPLATES
 }

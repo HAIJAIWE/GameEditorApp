@@ -218,7 +218,7 @@ export const MVP_SCHEMA: ChapterSchema = {
   'playtest_plan',
   'prototype_plan'
 ],
-  splitHints: MVP_SPLIT_HINTS,
+  splitHints: MVP_SPLIT_HINTS,
   defaults: MVP_DEFAULTS,
   templates: MVP_TEMPLATES
 }

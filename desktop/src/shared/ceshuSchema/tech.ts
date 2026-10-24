@@ -208,7 +208,7 @@ export const TECH_SCHEMA: ChapterSchema = {
   'performance_targets',
   'qa_plan'
 ],
-  splitHints: TECH_SPLIT_HINTS,
+  splitHints: TECH_SPLIT_HINTS,
   defaults: TECH_DEFAULTS,
   templates: TECH_TEMPLATES
 }
