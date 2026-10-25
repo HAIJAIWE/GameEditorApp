@@ -3,6 +3,16 @@
  * 子智能体路由表、风格术语表、整章/全量生成提示词片段、全量生成表单枚举、
  * 风格/类型标签映射、章节生成提示、审阅维度枚举。
  * 纯数据 / 常量，无求值逻辑；逻辑层 ceshuAi.ts 导入此处常量并 re-export 公共 API。
+ *
+ * ---- 提示词登记表（改文案前先看这里，确认「唯一来源」在哪） ----
+ * 本文件是**提示词文本的唯一来源**：写作规范、禁编造条款、章节生成提示、
+ * 审阅维度枚举都在这里；逻辑层只做组装，不得再写一份同类文案。
+ *   · 章节起草 / 全量生成 / 审阅      → ceshuAi.ts（buildChapterPrompt / buildChapterPrompts / buildReviewPrompts）
+ *   · 机读包消费（draft / review）    → ceshuBundlePrompt.ts（buildBundleConsumePrompt）
+ *   · 数据表批量生成（角色/技能等）   → ceshuDataGen.ts（buildDataGenPrompt）
+ *   · 文档 → 可玩 Demo（单文件 HTML） → ceshuDemoPrompt.ts（buildDemoPrompt，形态不同，刻意独立）
+ * 审阅维度的 key/label 同时被 UI（AiReviewPanel）与提示词消费，故必须从
+ * REVIEW_DIMENSION_KEYS / REVIEW_DIMENSION_LABELS 派生，禁止在提示词里手写。
  */
 
 import type { ChapterKey } from './ceshuConstants'

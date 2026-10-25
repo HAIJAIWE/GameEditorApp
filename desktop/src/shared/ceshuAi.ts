@@ -474,16 +474,22 @@ export function buildReviewPrompts(
   doc: CeshuDocument,
   input: { progressTotal: number; validationCount: number }
 ): { system: string; prompt: string } {
+  /*
+   * 维度样例从 REVIEW_DIMENSION_KEYS / LABELS 派生：新增或改名一个维度只改
+   * ceshuAiData 一处，提示词自动跟上——避免「常量表 + 手写 JSON」双处维护。
+   */
+  const dimensionLines = REVIEW_DIMENSION_KEYS.map(
+    (key, index) =>
+      `    {"key":"${key}","label":"${REVIEW_DIMENSION_LABELS[key]}","score":1-10,"feedback":"详细反馈"}${
+        index === REVIEW_DIMENSION_KEYS.length - 1 ? '' : ','
+      }`
+  )
   const system = [
     '你是资深游戏策划审阅专家。请对策划书进行结构化审阅，输出严格 JSON。',
     'JSON 格式如下：',
     '{',
     '  "dimensions": [',
-    '    {"key":"completeness","label":"内容完整性","score":1-10,"feedback":"详细反馈"},',
-    '    {"key":"consistency","label":"逻辑一致性","score":1-10,"feedback":"详细反馈"},',
-    '    {"key":"market","label":"市场可行性","score":1-10,"feedback":"详细反馈"},',
-    '    {"key":"technical","label":"技术可行性","score":1-10,"feedback":"详细反馈"},',
-    '    {"key":"creativity","label":"创意度","score":1-10,"feedback":"详细反馈"}',
+    ...dimensionLines,
     '  ],',
     '  "overall":"总体评价 100-200 字",',
     '  "suggestions":["改进建议1","改进建议2","改进建议3"]',
@@ -492,7 +498,7 @@ export function buildReviewPrompts(
   ].join('\n')
 
   const prompt =
-    `请对以下策划书进行 5 维度结构化审阅：\n\n${buildReviewSummary(doc)}\n\n` +
+    `请对以下策划书进行 ${REVIEW_DIMENSION_KEYS.length} 维度结构化审阅：\n\n${buildReviewSummary(doc)}\n\n` +
     `完成进度: ${Math.round(input.progressTotal * 100)}%\n` +
     `内置校验问题数: ${input.validationCount}\n` +
     `风格: ${doc.style || '未指定'}, 模块类型: ${doc.module_type || '未指定'}\n\n` +

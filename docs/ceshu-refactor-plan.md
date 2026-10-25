@@ -148,6 +148,6 @@ export function column(row: string, index: number): string  // 取第 N 列（�
 
 ---
 
-## 附：不在本次范围（观察项）
-- **提示词散落**：`ceshuAi` / `ceshuBundlePrompt` / `ceshuDataGen` / `ceshuDemoPrompt` 各自持有提示词。Demo 提示词单独放合理；其余是否集中优先级低，可后续单列。
+## 附：观察项（两条均已收编）
+- ~~**提示词散落**~~（✅ 已收编，2026-10-24）：调研结论是**文本本身早已单源**——`ceshuAiData.ts` 是写作规范 / 禁编造条款 / 章节生成提示 / 审阅维度枚举的唯一来源，`ceshuBundlePrompt`（机读包消费）与 `ceshuDataGen`（数据表生成）都从它取；各模块只持有自己任务的**组装模板**，属正常分层。因此没有做形式主义搬家，只修真正的重复与可发现性：① `buildReviewPrompts` 的维度 JSON 样例改为从 `REVIEW_DIMENSION_KEYS` / `REVIEW_DIMENSION_LABELS` **派生**（此前常量表 + 手写 JSON 双处维护，加一个维度会漏改提示词），维度数文案也去写死；② `ceshuAiData.ts` 文件头升级为**提示词登记表**——列明四个提示词入口模块各自负责什么、Demo 提示词为何刻意独立，改文案前先在此确认单一来源。守卫 `tests/unit/ceshuPrompts.registry.test.ts`（维度数量/顺序/文案同源、`ceshuAi.ts` 不得手写维度标签、消费式提示词必须复用单一规范）。行为零变更：`system` 提示词与改动前**逐字节一致**（临时脚本对比旧字面量），全量 2573 过 / 5 跳。
 - ~~**`checkDesignClaims` 的「未通过含通过」否定词启发式**~~（✅ 已根治，2026-10-24）：`qa.prototype_acceptance` 的结果列收敛为受控枚举「通过 / 未通过 / 部分通过」——`ceshuEvidence.normalizeAcceptanceResult` 白名单归一（受控三值 + 英文等价 + 「待确认」合法中间态；旧自由文本兜底归一，模糊写法一律**不判通过**），`checkDesignClaimsWith` 实测分支改用归一结果判定（`部分通过` 不再被旧启发式放过、`待确认` 报「尚未执行」而非「未通过」）；另注册 `prototypeAcceptance` 校验项，即使没有设计主张也独立提醒无法识别的写法。qa 字段补 aiHint/reviewHint 契约。附带修复：24 个 schema 文件 `splitHints:` 行的 `\r,` 行中控制字符污染（生成器在 CRLF 文件上插逗号位置所致）。
