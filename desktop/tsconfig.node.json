@@ -20,6 +20,7 @@
   },
   "include": [
     "electron.vite.config.ts",
+    "vite.renderer.config.ts",
     "vitest.config.ts",
     "playwright.config.ts",
     "scripts/**/*",

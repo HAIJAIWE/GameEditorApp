@@ -90,6 +90,22 @@ $E node_modules/vitest/vitest.mjs run
 
 > 说明：`unset NODE_OPTIONS` 是必须的——本仓的安全删除垫片会拦截 `rmSync`/`emptyDir`。e2e 在 CI 用 `xvfb-run` 跑无头 Electron；本机直接 `npm run test:e2e` 即可。
 
+### 开发模式起不来时（可选 workaround）
+
+`npm run dev` 在部分 Windows + 显卡驱动组合上会在 vite 依赖预优化阶段拉起 Electron，导致 GPU 进程 100% 访问冲突崩溃（根因未定位到 Electron 层）。此时可改用「渲染层与 Electron 分开启动」：
+
+```bash
+# 终端 1：只起渲染层 dev 服务器
+cd desktop && npx vite --config vite.renderer.config.ts
+
+# 终端 2：等上面打出 ready 后，手动起 Electron 指向它
+cd desktop && env -u ELECTRON_RUN_AS_NODE -u NODE_OPTIONS \
+  ELECTRON_RENDERER_URL=http://localhost:5173 NODE_ENV_ELECTRON_VITE=development \
+  node_modules/.bin/electron . --disable-gpu --no-sandbox
+```
+
+两个坑：① 宿主若设了 `ELECTRON_RUN_AS_NODE=1`，Electron 会退化成「用 node 跑主进程」，必须先 `env -u` 清掉；② 应用有单例锁，第二个实例会秒退——排查问题前先确认没有残留进程。该配置只是复用 `electron.vite.config.ts` 的 renderer 段，**不是官方开发入口**，日常开发仍用 `npm run dev`。
+
 ## CI / CD
 
 - **`.github/workflows/desktop-ci.yml`** — 验证流水线。push/PR 改动 `desktop/**` 时自动运行 `lint` → `typecheck` → `test` → `test:e2e`。
