@@ -96,7 +96,85 @@ export const LEVEL_DESIGN_DEFAULTS: ChapterData = {
   editor_needs: []
 }
 
-export const LEVEL_DESIGN_TEMPLATES: ChapterTemplate[] = []
+/**
+ * 内置模板（2026-10-26 补 P2 章节的「填满样例」）：
+ * 难度曲线、内容量估算这类字段最容易写成「渐进式提升难度」的废话，
+ * 这里给两份带具体层数 / 关卡数 / 时长的样例。
+ */
+export const LEVEL_DESIGN_TEMPLATES: ChapterTemplate[] = [
+  {
+    name: 'Roguelike 层进关卡',
+    description: '单局 10-12 层、每层 4-6 分钟，难度靠节点组合而非数值堆叠',
+    tags: ['Roguelike', '关卡结构', '难度曲线', '节点'],
+    data: {
+      level_principles: '地图即关卡：每层 3-5 个节点，节点类型决定节奏；难度靠组合与资源压力，不靠数值堆叠。',
+      difficulty_curve: '前 3 层教学期，4-6 层建立压力，7 层后每层一次高峰、每 3 层给一个喘息层。',
+      difficulty_curve_points: [
+        '1-3 层：只出普通战斗与休息，教学出牌与升级',
+        '4-6 层：加入精英节点，考验构筑成型速度',
+        '7-9 层：Boss 前压力峰值，药水与金币紧张',
+        '10 层后：每 3 层插一个商店/事件层，避免连续高压'
+      ],
+      difficulty_curve_notes: '曲线依据：单局 25-35 分钟、每层 4-6 分钟；与数值章「每层一次升级机会」的成长线对齐。',
+      level_templates: [
+        '单线三节点：战斗→战斗→休息，用于教学层',
+        '分叉双线：左线精英（高风险高奖励）、右线普通（稳妥）',
+        'Boss 层：前置一个商店节点，允许最后一搏调整构筑'
+      ],
+      first_levels: [
+        '第 1 层：只教出牌与费用（纯普通战斗，敌人 2 只）',
+        '第 2 层：教升级选牌（战斗 → 奖励三选一）',
+        '第 3 层：教遗物（首个遗物节点，效果写清触发时机）'
+      ],
+      content_estimate: [
+        { stage: '教学层', count: '3', minutes: '4', basis: '单场 3 回合 × 约 80 秒' },
+        { stage: '中段', count: '6', minutes: '5', basis: '精英战平均 5 回合' },
+        { stage: '终段', count: '3', minutes: '7', basis: 'Boss 战 8-10 回合' }
+      ],
+      editor_needs: [
+        '节点表：类型 / 难度系数 / 掉落表，支撑分叉图配置',
+        '敌人编队：按层数区间取权重，支持同层随机',
+        '奖励池：按节点类型过滤，支持三选一去重'
+      ]
+    }
+  },
+  {
+    name: 'SLG 大地图领土',
+    description: '地图即关卡：出生州到首府四级强度，含关隘与集结攻坚',
+    tags: ['SLG', '大地图', '领土', '难度梯度'],
+    data: {
+      level_principles: '地图即关卡：难度由邻接关系与资源密度决定，不设独立关卡实例；守军强度随离出生点距离递增。',
+      difficulty_curve: '出生州资源密度高、竞争低；每向外扩一州守军强度 +20%、资源产出 +15%。',
+      difficulty_curve_points: [
+        '出生州（1 格）：守军 ≤300，资源产出基准 1.0',
+        '相邻州（2-3 格）：守军 500-800，产出 1.15',
+        '关隘：一次性攻坚，决定州归属，需 30 分钟集结',
+        '首府：守军 2000+，需联盟协同，占领后开启税收'
+      ],
+      difficulty_curve_notes: '与数值章兵种克制系数联动：1.25/0.8 的克制差意味着纯兵种必被针对，混编是唯一稳定解。',
+      level_templates: [
+        '资源点争夺：单点守军 + 每小时产出计时器',
+        '关隘攻坚：30 分钟集结窗口 + 守军两波次',
+        '州府占领：破门 → 驻防 → 开启税收三阶段'
+      ],
+      first_levels: [
+        '第 1 格：教出征（守军 100，行军 3 分钟）',
+        '第 2 格：教资源产出（占领后每小时 +800）',
+        '第 3 格：教侦查（迷雾中有敌军，斥候可点亮）'
+      ],
+      content_estimate: [
+        { stage: '出生州', count: '9', minutes: '10', basis: '每格一次占领战 + 行军时间' },
+        { stage: '相邻州', count: '12', minutes: '15', basis: '含侦查与集结等待' },
+        { stage: '首府', count: '3', minutes: '45', basis: '集结 30 分钟 + 攻城 15 分钟' }
+      ],
+      editor_needs: [
+        '地图格子表：坐标 / 州归属 / 守军配置',
+        '产出表：格子类型 → 每小时产出与上限',
+        '行军规则：距离 → 时间（最短 3 分钟/格）'
+      ]
+    }
+  }
+]
 
 export const LEVEL_DESIGN_SCHEMA: ChapterSchema = {
   fields: LEVEL_DESIGN_FIELDS,

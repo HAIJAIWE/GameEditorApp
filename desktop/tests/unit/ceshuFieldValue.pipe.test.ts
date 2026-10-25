@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { fieldValueToInput, inputToFieldValue } from '../../src/renderer/src/components/CeshuFieldControl'
 import { CESHU_CHAPTER_FIELDS } from '../../src/shared/ceshuFields'
-import type { CeshuFieldDef } from '../../src/shared/ceshuConstants'
+import type { CeshuFieldDef, ChapterKey } from '../../src/shared/ceshuConstants'
 
 /**
  * pipeList 的「数据值 ↔ 控件值」往返（2026-10-26 修数据丢失后立的守卫）。
@@ -16,7 +16,7 @@ import type { CeshuFieldDef } from '../../src/shared/ceshuConstants'
  * 含账本与数值断言这类校验管道依赖的字段）。
  */
 
-function fieldOf(chapter: 'economy' | 'qa' | 'resources' | 'tech', key: string): CeshuFieldDef {
+function fieldOf(chapter: ChapterKey, key: string): CeshuFieldDef {
   const field = (CESHU_CHAPTER_FIELDS[chapter] ?? []).find((item) => item.key === key)
   if (field === undefined) throw new Error(`字段不存在：${chapter}.${key}`)
   return field

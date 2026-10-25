@@ -45,12 +45,13 @@ export const TECH_FIELDS: CeshuFieldDef[] = [
     key: 'milestones',
     label: '开发里程碑',
     kind: 'pipeList',
-    columns: [
-      {
-        key: 'phase',
-        label: '阶段'
-      }
-    ],
+    /*
+     * 2026-10-26 去掉只声明了 `phase` 一列的 columns：契约要求「阶段 + 可验证交付物 +
+     * 时间区间」三件事，单列定义既表达不全，又会让老数据（name/date/deliverables 形态）
+     * 在保存时被重新解释成错位的列。改回与同章其它 pipeList 一致的「占位符描述列」形态，
+     * 存储即字符串行（与 ceshuPipeRows 的读取口径一致）。
+     */
+    placeholder: '阶段|交付物|时间区间',
     aiHint: '产出开发里程碑清单，每行一阶段：阶段名 + 可验证交付物 + 时间区间；交付物须可验证，时间给区间不给精确到日的承诺',
     reviewHint: '每行是否有可验证交付物；时间是否为区间而非精确日期；阶段是否覆盖原型→垂直切片→量产→上线'
   },
@@ -150,26 +151,10 @@ export const TECH_TEMPLATES: ChapterTemplate[] = [
       ],
       performance_targets: 'PC：2K 60fps；主机：4K 30fps / 1440p 60fps；移动端：1080p 30fps',
       milestones: [
-        {
-          name: '原型 Demo',
-          date: 'T+3M',
-          deliverables: '核心战斗 + 1 关卡'
-        },
-        {
-          name: 'Alpha',
-          date: 'T+9M',
-          deliverables: '全部系统 + 5 关卡'
-        },
-        {
-          name: 'Beta',
-          date: 'T+15M',
-          deliverables: '全部内容 + 联机'
-        },
-        {
-          name: '正式上线',
-          date: 'T+18M',
-          deliverables: '全平台发布'
-        }
+        '原型 Demo|核心战斗 + 1 关卡|T+3M',
+        'Alpha|全部系统 + 5 关卡|T+9M',
+        'Beta|全部内容 + 联机|T+15M',
+        '正式上线|全平台发布|T+18M'
       ],
       team_structure: '程序 15 / 美术 25 / 策划 10 / QA 5 / 运营 3，总 58 人',
       qa_plan: '单元测试（核心系统）+ 自动化冒烟测试 + 每日构建 + 性能基线监控'
@@ -194,26 +179,10 @@ export const TECH_TEMPLATES: ChapterTemplate[] = [
       ],
       performance_targets: '中端机型：720p 30fps；高端机型：1080p 60fps；包体 < 500MB',
       milestones: [
-        {
-          name: '原型',
-          date: 'T+2M',
-          deliverables: '核心循环 Demo'
-        },
-        {
-          name: 'Alpha',
-          date: 'T+6M',
-          deliverables: '全部系统 + 10 关卡'
-        },
-        {
-          name: 'Beta',
-          date: 'T+10M',
-          deliverables: '全内容 + 软启动'
-        },
-        {
-          name: '上线',
-          date: 'T+12M',
-          deliverables: '全平台发布'
-        }
+        '原型|核心循环 Demo|T+2M',
+        'Alpha|全部系统 + 10 关卡|T+6M',
+        'Beta|全内容 + 软启动|T+10M',
+        '上线|全平台发布|T+12M'
       ],
       team_structure: '程序 8 / 美术 12 / 策划 6 / QA 3，总 29 人',
       qa_plan: '自动化 UI 测试 + 真机云测（50+ 机型）+ 性能分析报告'

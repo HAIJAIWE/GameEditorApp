@@ -16,10 +16,12 @@ import {
   searchChapterTemplates,
   templateChapterLabel
 } from '../../src/shared/ceshuTemplates'
+import { CHAPTER_KEYS } from '../../src/shared/ceshuConstants'
+import { CESHU_CHAPTER_FIELDS } from '../../src/shared/ceshuFields'
 
 describe('ceshuTemplates 内置模板库', () => {
-  it('数据池：24 章 / 34 个模板，既有章数量与 Python 一致（P2 新章暂无模板）', () => {
-    expect(countChapterTemplates()).toBe(34)
+  it('数据池：24 章 / 38 个模板（P2 的 uiux、level_design 2026-10-26 补了填满样例）', () => {
+    expect(countChapterTemplates()).toBe(38)
     expect(chapterTemplateSummary()).toEqual({
       meta: 3,
       vision: 3,
@@ -38,9 +40,9 @@ describe('ceshuTemplates 内置模板库', () => {
       risk_handling: 1,
       audio: 2,
       accessibility: 1,
-      // P2 扩展设计 7 章：暂无预制模板（模板是便利数据，不影响字段与校验）
-      uiux: 0,
-      level_design: 0,
+      // P2 扩展设计 7 章：uiux / level_design 已有填满样例，其余 5 章仍待补
+      uiux: 2,
+      level_design: 2,
       live_ops: 0,
       analytics: 0,
       qa: 0,
@@ -62,7 +64,7 @@ describe('ceshuTemplates 内置模板库', () => {
   })
 
   it('跨章搜索：关键词命中 name/description/tags，空关键词返回全部', () => {
-    expect(searchChapterTemplates('')).toHaveLength(34)
+    expect(searchChapterTemplates('')).toHaveLength(38)
     expect(searchChapterTemplates('仙侠')).toHaveLength(8)
     expect(searchChapterTemplates('RPG')).toHaveLength(7)
     expect(searchChapterTemplates('放置')).toHaveLength(1)
@@ -211,5 +213,95 @@ describe('ceshuTemplates 预览树', () => {
     expect(rows.filter((row) => row.kind === 'group').map((row) => row.text)).toEqual(['growth_curves:', 'drop_tables:'])
     expect(rows.map((row) => row.path)).toContain('economic_model')
     expect(rows.map((row) => row.path)).toContain('balance_principles')
+  })
+})
+
+/**
+ * 模板数据守卫（2026-10-26）：模板是「填满的样例」，一旦键名或形态不对，
+ * 用户点「应用模板」后拿到的是一堆无效字段——而且不会报错，只会静默写进章节。
+ *
+ * 下面这份清单是**已知的历史漂移**（Python 版字段名，合并迁移时模板没跟着改）。
+ * 它们仍会被应用、仍会写进章节数据，但表单不渲染这些键，等于白写。
+ * 处置原则：新模板一律不允许再出现野键（守卫会红）；老模板待人工校正后从清单里删。
+ */
+const KNOWN_LEGACY_DRIFT: ReadonlySet<string> = new Set([
+  'audio.music_tracks',
+  'audio.sfx_design',
+  'audio.voice_count',
+  'audio.adaptive_music',
+  'audio.localization_audio',
+  'accessibility.colorblind_support',
+  'accessibility.difficulty_options',
+  'accessibility.input_customization',
+  'accessibility.motion_reduction',
+  'accessibility.text_to_speech',
+  'accessibility.regional_compliance',
+  'market_analysis.kpi_forecast',
+  'monetization.revenue_forecast'
+])
+
+/**
+ * 白名单（非债务）：`vision.user_personas` 在字段表里是点路径
+ * `user_personas.primary` / `.secondary`，模板用嵌套对象写入，经 `setByPath`
+ * 落到同一位置——数据形态等价，只是键名写法不同。
+ */
+const NESTED_EQUIVALENT_KEYS: ReadonlySet<string> = new Set(['vision.user_personas'])
+
+describe('内置模板数据与字段定义对齐', () => {
+  it('data 的键都在该章字段表里（已知历史漂移除外）', () => {
+    const problems: string[] = []
+    for (const chapter of CHAPTER_KEYS) {
+      const known = new Set((CESHU_CHAPTER_FIELDS[chapter] ?? []).map((field) => field.key))
+      for (const template of listChapterTemplates(chapter)) {
+        for (const key of Object.keys(template.data)) {
+          if (known.has(key)) continue
+          if (NESTED_EQUIVALENT_KEYS.has(`${chapter}.${key}`)) continue
+          if (KNOWN_LEGACY_DRIFT.has(`${chapter}.${key}`)) continue
+          problems.push(`${chapter} / ${template.name}：未知字段 ${key}`)
+        }
+      }
+    }
+    expect(problems, '模板里出现了字段表中不存在的键（新模板不允许）').toEqual([])
+  })
+
+  it('历史漂移清单不留僵尸条目（修好一个就从清单删掉）', () => {
+    const actual = new Set<string>()
+    for (const chapter of CHAPTER_KEYS) {
+      const known = new Set((CESHU_CHAPTER_FIELDS[chapter] ?? []).map((field) => field.key))
+      for (const template of listChapterTemplates(chapter)) {
+        for (const key of Object.keys(template.data)) {
+          if (!known.has(key)) actual.add(`${chapter}.${key}`)
+        }
+      }
+    }
+    const stale = [...KNOWN_LEGACY_DRIFT].filter((item) => !actual.has(item))
+    expect(stale, '这些键已不再是野键，请从 KNOWN_LEGACY_DRIFT 移除').toEqual([])
+  })
+
+  it('有列定义的 pipeList 必须存「带齐各列的对象」', () => {
+    const problems: string[] = []
+    for (const chapter of CHAPTER_KEYS) {
+      const byKey = new Map((CESHU_CHAPTER_FIELDS[chapter] ?? []).map((field) => [field.key, field]))
+      for (const template of listChapterTemplates(chapter)) {
+        for (const [key, value] of Object.entries(template.data)) {
+          const field = byKey.get(key)
+          if (field?.kind !== 'pipeList') continue
+          const columns = field.columns ?? []
+          if (columns.length === 0) continue
+          for (const [index, row] of (Array.isArray(value) ? value : []).entries()) {
+            if (row === null || typeof row !== 'object') {
+              problems.push(`${chapter}.${key} 第 ${index + 1} 行应为对象（该字段有列定义）`)
+              continue
+            }
+            for (const column of columns) {
+              if (!(column.key in (row as Record<string, unknown>))) {
+                problems.push(`${chapter}.${key} 第 ${index + 1} 行缺列 ${column.key}`)
+              }
+            }
+          }
+        }
+      }
+    }
+    expect(problems).toEqual([])
   })
 })

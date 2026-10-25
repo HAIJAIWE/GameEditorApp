@@ -233,7 +233,7 @@ export const RISK_HANDLING_TEMPLATES: ChapterTemplate[] = [
           mitigation: '内容合规 + 预审'
         }
       ],
-      monitoring: '1) 每周风险评审会\n2) 关键指标看板\n3) 月度风险报告'
+      risk_monitoring: '1) 每周风险评审会\n2) 关键指标看板\n3) 月度风险报告'
     }
   }
 ]
