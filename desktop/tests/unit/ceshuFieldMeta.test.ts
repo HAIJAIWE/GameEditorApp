@@ -103,6 +103,22 @@ describe('字段契约覆盖率守卫（P0 补契约后不回落）', () => {
     expect(missing, '这些字段 AI 可起草却没有生成目标（aiHint）').toEqual([])
   })
 
+  /**
+   * 人审侧的不变式（2026-10-26）：每个字段都要有 reviewHint——包括人定字段。
+   * 人定字段虽然 AI 不起草，但填的人同样需要知道「填完该自查什么」；
+   * 缺 reviewHint 的字段在评审队列里等于没有检查点。
+   */
+  it('每个字段都有 reviewHint（人审要点 100%，含人定字段）', () => {
+    const missing: string[] = []
+    for (const chapter of CHAPTER_KEYS) {
+      if (chapter === 'systems') continue
+      for (const field of CESHU_CHAPTER_FIELDS[chapter] ?? []) {
+        if (resolveFieldMeta(chapter, field).reviewHint === '') missing.push(`${chapter}.${field.key}`)
+      }
+    }
+    expect(missing, '这些字段没有人审要点（reviewHint）').toEqual([])
+  })
+
   it('P0 点名的高危字段必须有禁编造约束', () => {
     const highRisk: Array<[ChapterKey, string]> = [
       ['market_analysis', 'competitors'],

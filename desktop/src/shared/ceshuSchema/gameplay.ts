@@ -22,13 +22,15 @@ export const GAMEPLAY_FIELDS: CeshuFieldDef[] = [
     label: '核心循环·步骤',
     kind: 'stringList',
     placeholder: '每行一个步骤',
-    aiHint: '3-6 个步骤，按顺序每行一个'
+    aiHint: '3-6 个步骤，按顺序每行一个',
+    reviewHint: '步骤是否可玩（动词开头，不是「体验内容」）；是否首尾成环；与本体是否重复'
   },
   {
     key: 'core_loop_notes',
     label: '核心循环·补充',
     kind: 'textarea',
-    aiHint: '循环之外的补充说明，可留空'
+    aiHint: '循环之外的补充说明，可留空',
+    reviewHint: '是否只放补充信息、没有把步骤又抄一遍；该留空时是否确实留空'
   },
   {
     key: 'game_modes',

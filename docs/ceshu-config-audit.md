@@ -158,9 +158,9 @@
 > cd desktop && npx tsx scripts/ceshuCoverage.ts
 > ```
 >
-> 口径与守卫测试一致（`CHAPTER_KEYS` 去 systems、hint 经 `resolveFieldMeta` 含 schema 层叠加、分母含拆分产物）。2026-10-26 实测：全字段 **313/334 = 94%**；按 **AI 可起草字段**算 **313/313 = 100%**（人定字段本就不该有 aiHint，算进分母会稀释真实缺口）；reviewHint **297/334 = 89%**。
+> 口径与守卫测试一致（`CHAPTER_KEYS` 去 systems、hint 经 `resolveFieldMeta` 含 schema 层叠加、分母含拆分产物）。2026-10-26 实测：全字段 **313/334 = 94%**；按 **AI 可起草字段**算 **313/313 = 100%**（人定字段本就不该有 aiHint，算进分母会稀释真实缺口）；reviewHint **334/334 = 100%**。
 >
-> 其中 37 个可起草字段（resources 6 / story 7 / art 5 / mvp 3 / gameplay 3 / tech 3 等，多为 pipeList 结构化字段）是 2026-10-26 一次性补齐的，同时补了它们的 reviewHint；并加了不变式守卫「**AI 可起草 ⇔ 有 aiHint**」（`ceshuFieldMeta.test.ts`），比原来的「全库 ≥70%」更强。
+> 补齐过程（2026-10-26）：先一次补了 37 个可起草字段的 aiHint + reviewHint（resources 6 / story 7 / art 5 / mvp 3 / gameplay 3 / tech 3 等，多为 pipeList 结构化字段），再把 reviewHint 推到全覆盖——其中「补充」类拆分产物的 reviewHint 来自 `applySplits` 的**通用兜底**（改一处覆盖全部，不必逐字段写），人定字段也补了「填完该自查什么」。两条不变式守卫钉死：**AI 可起草 ⇔ 有 aiHint**、**每个字段都有 reviewHint**（`ceshuFieldMeta.test.ts`），比原来的「全库 ≥70%」强得多。
 
 ### 🔴 P0-3 「字数」被当成质量指标，方向错了 · ✅ 已根治（2026-10-26）
 

@@ -44,7 +44,8 @@ export const META_FIELDS: CeshuFieldDef[] = [
       '放置',
       '派对',
       '休闲益智'
-    ]
+    ],
+    reviewHint: '类型是否与核心玩法一致（不是题材分类）；是否与平台、目标用户对得上'
   },
   {
     key: 'platform',
@@ -55,7 +56,8 @@ export const META_FIELDS: CeshuFieldDef[] = [
       '移动端',
       '主机'
     ],
-    aiDraftable: false
+    aiDraftable: false,
+    reviewHint: '是否与团队实际能力、操作方案一致；多平台是否真的都能兼顾'
   },
   {
     key: 'positioning',
@@ -71,7 +73,8 @@ export const META_FIELDS: CeshuFieldDef[] = [
     kind: 'stringList',
     separator: 'comma',
     placeholder: '用逗号分隔，如: 剧情向,开放世界,多人联机',
-    aiHint: '3-5 个具体标签，避免「好玩」「有趣」这类空泛词'
+    aiHint: '3-5 个具体标签，避免「好玩」「有趣」这类空泛词',
+    reviewHint: '标签是否具体到能用于商店分类与搜索；是否与玩法/题材一致；有无互相重复的同义标签'
   },
   {
     key: 'status',
@@ -89,7 +92,8 @@ export const META_FIELDS: CeshuFieldDef[] = [
       in_progress: '进行中',
       review: '评审中',
       final: '定稿'
-    }
+    },
+    reviewHint: '状态是否与实际进度相符（评审中却还有大量空缺就该退回草稿）'
   },
   {
     key: 'confidentiality',
@@ -107,7 +111,8 @@ export const META_FIELDS: CeshuFieldDef[] = [
       confidential: '保密',
       strictly_confidential: '严格保密',
       public: '公开'
-    }
+    },
+    reviewHint: '是否与分享对象匹配（对外演示用公开/内部，涉未公开玩法用保密）'
   },
   {
     key: 'gdd_scope',
@@ -121,7 +126,8 @@ export const META_FIELDS: CeshuFieldDef[] = [
     optionLabels: {
       lite: '标准版（文档信息 + 9 章）',
       full: '专业版（文档信息 + 16 章）'
-    }
+    },
+    reviewHint: '档位是否与项目阶段匹配（立项期用标准版，进入研发再切专业版）'
   },
   {
     key: 'version',
@@ -134,7 +140,8 @@ export const META_FIELDS: CeshuFieldDef[] = [
     key: 'date',
     label: '日期',
     kind: 'text',
-    aiDraftable: false
+    aiDraftable: false,
+    reviewHint: '是否为最近一次实质修改的日期（对外发出前记得更新）'
   }
 ]
 

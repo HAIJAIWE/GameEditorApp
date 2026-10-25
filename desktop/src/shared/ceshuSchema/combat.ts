@@ -46,13 +46,15 @@ export const COMBAT_FIELDS: CeshuFieldDef[] = [
     label: '伤害公式·要点',
     kind: 'stringList',
     placeholder: '每行一条公式或步骤',
-    aiHint: '每条公式或步骤一行，便于机器解析'
+    aiHint: '每条公式或步骤一行，便于机器解析',
+    reviewHint: '每行是否是可计算的表达式；变量是否都有定义；与本体描述是否一致'
   },
   {
     key: 'damage_formula_notes',
     label: '伤害公式·补充',
     kind: 'textarea',
-    aiHint: '公式之外的推导或说明，可留空'
+    aiHint: '公式之外的推导或说明，可留空',
+    reviewHint: '是否只放补充信息、没有把公式又抄一遍；该留空时是否确实留空'
   },
   {
     key: 'skill_system',

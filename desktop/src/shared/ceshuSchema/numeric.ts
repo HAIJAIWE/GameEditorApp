@@ -22,13 +22,15 @@ export const NUMERIC_FIELDS: CeshuFieldDef[] = [
     label: '核心公式·列表',
     kind: 'stringList',
     placeholder: '每行一个公式',
-    aiHint: '每行一个公式，格式统一'
+    aiHint: '每行一个公式，格式统一',
+    reviewHint: '每行是否可直接代入计算；变量符号是否与伤害公式、成长公式一致'
   },
   {
     key: 'core_formulas_notes',
     label: '核心公式·补充',
     kind: 'textarea',
-    aiHint: '公式之外的说明，可留空'
+    aiHint: '公式之外的说明，可留空',
+    reviewHint: '是否只放补充信息、没有把公式又抄一遍；该留空时是否确实留空'
   },
   {
     key: 'balance_principles',

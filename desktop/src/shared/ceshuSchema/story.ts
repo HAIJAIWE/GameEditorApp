@@ -21,13 +21,15 @@ export const STORY_FIELDS: CeshuFieldDef[] = [
     label: '世界观架构·要点',
     kind: 'stringList',
     placeholder: '每行一条设定要点',
-    aiHint: '3-5 条设定要点，每条一句，便于逐条审阅'
+    aiHint: '3-5 条设定要点，每条一句，便于逐条审阅',
+    reviewHint: '每条是否只讲一个设定；要点是否覆盖本体提到但未展开的部分'
   },
   {
     key: 'architecture_notes',
     label: '世界观架构·补充',
     kind: 'textarea',
-    aiHint: '要点之外的补充说明，可留空'
+    aiHint: '要点之外的补充说明，可留空',
+    reviewHint: '是否只放补充信息、没有把要点又抄一遍；该留空时是否确实留空'
   },
   {
     key: 'geography',
@@ -40,26 +42,30 @@ export const STORY_FIELDS: CeshuFieldDef[] = [
     key: 'main_plot',
     label: '主线剧情',
     kind: 'textarea',
-    aiHint: '主线分 3 幕，每幕一句：起因 / 转折 / 结局'
+    aiHint: '主线分 3 幕，每幕一句：起因 / 转折 / 结局',
+    reviewHint: '三幕是否各有明确事件；主角目标是否随幕推进；与分支结局是否对得上'
   },
   {
     key: 'main_plot_points',
     label: '主线剧情·节拍',
     kind: 'stringList',
     placeholder: '每行一个情节点',
-    aiHint: '3-5 个情节点，每行一个，按顺序'
+    aiHint: '3-5 个情节点，每行一个，按顺序',
+    reviewHint: '情节点是否按时间递增；每个点是否改变了局势；是否与三幕概述重复'
   },
   {
     key: 'main_plot_notes',
     label: '主线剧情·补充',
     kind: 'textarea',
-    aiHint: '节拍之外的补充说明，可留空'
+    aiHint: '节拍之外的补充说明，可留空',
+    reviewHint: '是否只放补充信息、没有把要点又抄一遍；该留空时是否确实留空'
   },
   {
     key: 'protagonist',
     label: '主角设定',
     kind: 'textarea',
-    aiHint: '身份 / 目标 / 缺陷，各一句'
+    aiHint: '身份 / 目标 / 缺陷，各一句',
+    reviewHint: '缺陷是否真的会制造障碍（不是装饰）；目标是否与主线一致；是否与角色关系网对得上'
   },
   {
     key: 'main_npc_count',
@@ -67,7 +73,8 @@ export const STORY_FIELDS: CeshuFieldDef[] = [
     kind: 'number',
     from: 0,
     to: 9999,
-    aiDraftable: false
+    aiDraftable: false,
+    reviewHint: '数量是否与 NPC 列表实际条数一致；是否与资源产能匹配（多了做不完）'
   },
   {
     key: 'npc_list',
@@ -95,7 +102,8 @@ export const STORY_FIELDS: CeshuFieldDef[] = [
         label: '任务钩子'
       }
     ],
-    aiHint: '每个 NPC 一行：名称/角色/位置/性格/任务钩子'
+    aiHint: '每个 NPC 一行：名称/角色/位置/性格/任务钩子',
+    reviewHint: '每个 NPC 是否有明确的剧情或功能作用（无用的删掉）；位置是否与地理设定一致；数量是否与「主要 NPC 数量」对得上'
   },
   {
     key: 'antagonists',

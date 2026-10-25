@@ -59,7 +59,18 @@ function applySplits(chapter: ChapterKey, fields: CeshuFieldDef[]): CeshuFieldDe
         aiHint: '3-6 条，每行一条可核对的要点',
         reviewHint: '条目是否具体可核对；与本体的概述是否重复'
       },
-      { key: `${field.key}_notes`, label: `${field.label}·补充`, kind: 'textarea', aiHint: '要点之外的补充说明，可留空' }
+      /*
+       * 「补充」字段的契约兜底（2026-10-26 补 reviewHint）：
+       * 此前只给了 aiHint，人审侧没有检查点——而这类字段最容易变成
+       * 「把要点又抄一遍」。章特定分工由 schema 的 splitHints 覆盖。
+       */
+      {
+        key: `${field.key}_notes`,
+        label: `${field.label}·补充`,
+        kind: 'textarea',
+        aiHint: '要点之外的补充说明，可留空',
+        reviewHint: '是否只放补充信息、没有把要点又抄一遍；该留空时是否确实留空'
+      }
     )
   }
   return result

@@ -21,13 +21,15 @@ export const VISION_FIELDS: CeshuFieldDef[] = [
     key: 'user_personas.primary',
     label: '主要用户',
     kind: 'textarea',
-    aiHint: '年龄 / 使用场景 / 核心痛点，各一句'
+    aiHint: '年龄 / 使用场景 / 核心痛点，各一句',
+    reviewHint: '痛点是否具体到场景（不是「想放松」）；是否与游戏类型、平台对得上；能否据此判断一个功能要不要做'
   },
   {
     key: 'user_personas.secondary',
     label: '次要用户',
     kind: 'textarea',
-    aiHint: '与主要用户的具体差异，不要复述'
+    aiHint: '与主要用户的具体差异，不要复述',
+    reviewHint: '差异是否具体（不是「也有年轻人」）；是否说明为何值得一并服务；是否与主要用户画像重叠'
   },
   {
     key: 'differentiation',
@@ -40,7 +42,8 @@ export const VISION_FIELDS: CeshuFieldDef[] = [
     key: 'business_model',
     label: '商业模式',
     kind: 'textarea',
-    aiDraftable: false
+    aiDraftable: false,
+    reviewHint: '是商业决策而非玩法描述：谁付钱、为什么付、与付费模式章是否一致'
   },
   {
     key: 'competitive_analysis',
