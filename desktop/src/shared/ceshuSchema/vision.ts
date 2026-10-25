@@ -45,7 +45,9 @@ export const VISION_FIELDS: CeshuFieldDef[] = [
   {
     key: 'competitive_analysis',
     label: '竞品对比要点',
-    kind: 'stringList'
+    kind: 'stringList',
+    aiHint: '3-5 条竞品对比结论，每条一句话点出「与谁比、差在哪或强在哪」；完整竞品清单（名称/类型/数据/差异）在第十一章，此处只写对比要点',
+    reviewHint: '是否点明对比对象与具体维度（不是「玩法更丰富」这类空话）；是否与第十一章竞品表自洽；是否落到可执行的差异方向'
   },
   {
     key: 'design_pillars',

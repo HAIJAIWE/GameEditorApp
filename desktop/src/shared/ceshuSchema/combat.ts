@@ -132,7 +132,9 @@ export const COMBAT_FIELDS: CeshuFieldDef[] = [
   {
     key: 'combat_progression',
     label: '战斗成长',
-    kind: 'textarea'
+    kind: 'textarea',
+    aiHint: '战斗侧成长曲线：角色战力随等级/装备/技能的变化节点，给 3-5 个关键等级的战力区间与新增战斗手段；具体公式在第八章',
+    reviewHint: '成长节点是否能被关卡内容体验到；是否出现某阶段没有新手段；是否与数值章公式同一套符号'
   }
 ]
 

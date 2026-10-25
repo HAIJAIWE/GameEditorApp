@@ -35,35 +35,47 @@ export const RESOURCES_FIELDS: CeshuFieldDef[] = [
     key: 'art_assets',
     label: '美术资源清单',
     kind: 'pipeList',
-    placeholder: '类别|数量|规格'
+    placeholder: '类别|数量|规格',
+    aiHint: '4-6 行美术资源估算，每行「类别（角色/场景/UI/特效）|数量|规格（分辨率/面数/是否含动画）」；数量要与内容量对得上',
+    reviewHint: '数量能否被内容量支撑（不多不少）；规格是否统一；是否标了外包/自制的分配'
   },
   {
     key: 'audio_assets',
     label: '音频资源清单',
     kind: 'pipeList',
-    placeholder: '类别|数量|说明'
+    placeholder: '类别|数量|说明',
+    aiHint: '4-6 行音频资源估算，每行「类别（BGM/音效/配音/环境音）|数量|说明（时长或触发场景）」',
+    reviewHint: '数量是否与音频设计章一致；是否写了版权音乐的处理方式；是否估算到混音工时'
   },
   {
     key: 'localization',
     label: '本地化资源',
     kind: 'pipeList',
-    placeholder: '语言|阶段|文本量'
+    placeholder: '语言|阶段|文本量',
+    aiHint: '首发与后续语言，每行「语言|本地化阶段（首发/上线后 3 个月）|文本量（约多少字或占比）」；首发语言要收敛',
+    reviewHint: '是否与第十六章语言列表一致；文本量是否含 UI 与剧情两部分；是否算了字体与排版成本'
   },
   {
     key: 'outsourcing',
     label: '外包计划',
     kind: 'pipeList',
-    placeholder: '事项|方式|预算'
+    placeholder: '事项|方式|预算',
+    aiHint: '3-5 项外包，每行「事项（美术/音频/本地化/QA）|方式（整包/按件/驻场）|预算区间」；预算给区间，不给假精确数字',
+    reviewHint: '预算区间是否与总预算自洽；是否写清验收标准与交付节奏；核心玩法是否被外包（风险）'
   },
   {
     key: 'contingency_plan',
     label: '应急预案',
-    kind: 'textarea'
+    kind: 'textarea',
+    aiHint: '资源侧应急预案：关键人员流失、外包延期、预算超支三种情形，各写触发条件与替代方案；风险矩阵与止损线在第十三章，此处不重复',
+    reviewHint: '是否针对资源而非玩法风险；每条是否有可执行的替代方案；是否与第十三章预案冲突'
   },
   {
     key: 'appendix',
     label: '附录',
-    kind: 'textarea'
+    kind: 'textarea',
+    aiHint: '附录放什么：术语表、参考作品与出处、版本变更记录、待确认清单；只列结构与要点，不复制正文',
+    reviewHint: '是否与正文重复；待确认项是否汇总了全文的「待确认」；是否有版本与日期'
   }
 ]
 

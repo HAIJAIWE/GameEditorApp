@@ -145,7 +145,10 @@ export const QA_FIELDS: CeshuFieldDef[] = [
         key: 'status',
         label: '状态'
       }
-    ]
+    ],
+    aiHint:
+      '5-8 条可执行用例，每行「用例|类型（功能/边界/异常/性能）|前置|操作|期望|状态（待执行）」；期望必须可判定，状态只填待执行/通过/失败',
+    reviewHint: '期望是否可判定（不能写「正常」）；是否覆盖边界与异常；是否与验收旅程对得上'
   },
   {
     key: 'acceptance_journeys',
@@ -164,7 +167,10 @@ export const QA_FIELDS: CeshuFieldDef[] = [
         key: 'expected',
         label: '期望'
       }
-    ]
+    ],
+    aiHint:
+      '3-5 条验收旅程，每行「旅程名|步骤（用 > 串联关键节点）|期望结果」；至少覆盖首次进入、核心循环、失败路径各一条',
+    reviewHint: '步骤是否可复现；是否覆盖首次体验与失败路径；期望是否与产品目标一致'
   }
 ]
 

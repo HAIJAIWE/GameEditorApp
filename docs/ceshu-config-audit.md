@@ -158,7 +158,9 @@
 > cd desktop && npx tsx scripts/ceshuCoverage.ts
 > ```
 >
-> 口径与守卫测试一致（`CHAPTER_KEYS` 去 systems、hint 经 `resolveFieldMeta` 含 schema 层叠加、分母含拆分产物）。2026-10-26 实测：全字段 **276/334 = 83%**；按 **AI 可起草字段**算 **276/313 = 88%**（人定字段本就不该有 aiHint，算进分母会稀释真实缺口）；reviewHint **260/334 = 78%**。仍缺 aiHint 的 37 个可起草字段集中在 `resources`(6) / `story`(7) / `art`(5)，且多为 pipeList 结构化字段。
+> 口径与守卫测试一致（`CHAPTER_KEYS` 去 systems、hint 经 `resolveFieldMeta` 含 schema 层叠加、分母含拆分产物）。2026-10-26 实测：全字段 **313/334 = 94%**；按 **AI 可起草字段**算 **313/313 = 100%**（人定字段本就不该有 aiHint，算进分母会稀释真实缺口）；reviewHint **297/334 = 89%**。
+>
+> 其中 37 个可起草字段（resources 6 / story 7 / art 5 / mvp 3 / gameplay 3 / tech 3 等，多为 pipeList 结构化字段）是 2026-10-26 一次性补齐的，同时补了它们的 reviewHint；并加了不变式守卫「**AI 可起草 ⇔ 有 aiHint**」（`ceshuFieldMeta.test.ts`），比原来的「全库 ≥70%」更强。
 
 ### 🔴 P0-3 「字数」被当成质量指标，方向错了 · ✅ 已根治（2026-10-26）
 

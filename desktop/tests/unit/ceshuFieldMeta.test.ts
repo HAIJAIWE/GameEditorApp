@@ -85,6 +85,24 @@ describe('字段契约覆盖率守卫（P0 补契约后不回落）', () => {
     expect(withHint / total).toBeGreaterThanOrEqual(0.7)
   })
 
+  /**
+   * 2026-10-26 补齐 37 个可起草字段后立的不变式（比 70% 阈值更强）：
+   * 「AI 可起草」与「有生成目标」必须等价——可起草却没有 aiHint，
+   * 等于让模型对着字段名自由发挥，契约就名存实亡。
+   * 人定字段（aiDraftable:false）不参与：它们本就不该有 aiHint。
+   */
+  it('每个 AI 可起草字段都必须有 aiHint（可起草 ⇔ 有生成目标）', () => {
+    const missing: string[] = []
+    for (const chapter of CHAPTER_KEYS) {
+      if (chapter === 'systems') continue
+      for (const field of CESHU_CHAPTER_FIELDS[chapter] ?? []) {
+        const meta = resolveFieldMeta(chapter, field)
+        if (meta.aiDraftable && meta.aiHint === '') missing.push(`${chapter}.${field.key}`)
+      }
+    }
+    expect(missing, '这些字段 AI 可起草却没有生成目标（aiHint）').toEqual([])
+  })
+
   it('P0 点名的高危字段必须有禁编造约束', () => {
     const highRisk: Array<[ChapterKey, string]> = [
       ['market_analysis', 'competitors'],

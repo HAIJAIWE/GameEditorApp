@@ -40,27 +40,37 @@ export const ART_FIELDS: CeshuFieldDef[] = [
   {
     key: 'character_design',
     label: '角色设计要点',
-    kind: 'stringList'
+    kind: 'stringList',
+    aiHint: '3-5 条角色设计要点：造型/配色/辨识度/与世界观的一致性；只写可执行的约束（如「主角剪影在 64px 下仍可辨」）',
+    reviewHint: '是否可执行（不是「要好看」）；主角与敌人是否易区分；是否与本章美术风格字段一致'
   },
   {
     key: 'environment_design',
     label: '场景设计要点',
-    kind: 'stringList'
+    kind: 'stringList',
+    aiHint: '3-5 条场景设计要点：区域划分/光照氛围/可交互元素密度/性能约束（同屏面数或贴图规格）',
+    reviewHint: '是否给出可量化的性能约束；场景是否服务玩法（不只是背景板）；是否与关卡模板对应'
   },
   {
     key: 'ui_design_language',
     label: 'UI 设计语言',
-    kind: 'textarea'
+    kind: 'textarea',
+    aiHint: 'UI 设计语言：风格基调、主色/辅色（给色值或色相范围）、字体层级、圆角/描边等可复用规则，3-5 条能直接落到组件上的约束',
+    reviewHint: '是否给的是可复用规则而不是形容词；是否考虑对比度与无障碍；是否与交互设计（第十八章）一致'
   },
   {
     key: 'animation',
     label: '动画规格',
-    kind: 'stringList'
+    kind: 'stringList',
+    aiHint: '3-5 条动画规格：角色动作套数、帧数或时长、是否骨骼动画、受击/死亡/技能的特效衔接要求',
+    reviewHint: '规格是否能被美术直接执行（帧数/时长）；动作数量是否与战斗手段匹配；是否考虑移动端性能'
   },
   {
     key: 'multi_resolution',
     label: '多分辨率适配',
-    kind: 'textarea'
+    kind: 'textarea',
+    aiHint: '目标分辨率与适配策略：基准分辨率、UI 锚点与缩放规则、超宽/窄屏处理、安全区；给 2-3 档典型分辨率下的表现',
+    reviewHint: '是否覆盖超宽屏与刘海屏；UI 是否会遮住关键操作区；是否与目标机型（第十四章）一致'
   }
 ]
 

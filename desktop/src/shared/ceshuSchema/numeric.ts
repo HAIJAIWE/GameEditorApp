@@ -56,7 +56,9 @@ export const NUMERIC_FIELDS: CeshuFieldDef[] = [
     key: 'drop_tables',
     label: '掉落公式',
     kind: 'pipeList',
-    placeholder: '物品|来源|公式'
+    placeholder: '物品|来源|公式',
+    aiHint: '3-6 条掉落配置，每行「物品|来源（怪物/宝箱/活动）|掉落公式（概率或权重）」；概率含保底机制，符号与核心公式同一套',
+    reviewHint: '概率是否说得通（含保底）；是否给出期望产出（每 N 次一件）；是否与核心公式符号一致'
   },
   {
     key: 'numeric_parameters',

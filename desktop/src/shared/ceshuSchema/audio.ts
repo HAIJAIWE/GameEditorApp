@@ -126,7 +126,9 @@ export const AUDIO_FIELDS: CeshuFieldDef[] = [
     key: 'audio_milestones',
     label: '音频里程碑',
     kind: 'pipeList',
-    placeholder: '时间|交付物'
+    placeholder: '时间|交付物',
+    aiHint: '3-5 个音频交付节点，每行「时间（相对里程碑，如 Alpha 前 2 周）|交付物（BGM 套数/音效数量/配音批次）」',
+    reviewHint: '时间是否与 MVP 里程碑对齐；交付物是否可验收（数量/时长）；是否给混音与迭代留了时间'
   }
 ]
 

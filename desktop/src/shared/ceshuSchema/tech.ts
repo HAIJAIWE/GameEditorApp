@@ -65,12 +65,16 @@ export const TECH_FIELDS: CeshuFieldDef[] = [
     key: 'third_party_deps',
     label: '第三方依赖',
     kind: 'pipeList',
-    placeholder: '名称|用途|授权'
+    placeholder: '名称|用途|授权',
+    aiHint: '实际要引入的第三方库/SDK/中间件，每行「名称|用途|授权（MIT/商业/需署名）」；不确定的写「待确认」，不要编造版本号',
+    reviewHint: '授权是否兼容商业发行（GPL 类要标注）；是否与引擎自带能力重复；名称是否真实存在'
   },
   {
     key: 'performance_targets',
     label: '性能目标',
-    kind: 'textarea'
+    kind: 'textarea',
+    aiHint: '分平台的性能目标：帧率、加载时长、内存/包体上限、发热与耗电约束；低端/中端/高端三档都给具体数字',
+    reviewHint: '数字是否可测（有口径）；是否与性能预算章（第二十四章）重复或冲突；低端档是否现实'
   },
   {
     key: 'production_risks',
@@ -83,7 +87,9 @@ export const TECH_FIELDS: CeshuFieldDef[] = [
   {
     key: 'qa_plan',
     label: 'QA 计划',
-    kind: 'textarea'
+    kind: 'textarea',
+    aiHint: '技术侧 QA 计划：测什么（功能/性能/兼容/崩溃）、怎么测（自动化/手工/灰度）、何时测（里程碑节点）、谁负责',
+    reviewHint: '是否与第二十一章测试章分工清楚（此处偏技术验证，不重复用例清单）；是否有回归策略与上线前冒烟清单'
   }
 ]
 

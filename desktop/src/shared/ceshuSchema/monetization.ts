@@ -120,7 +120,9 @@ export const MONETIZATION_FIELDS: CeshuFieldDef[] = [
     key: 'limited_offers',
     label: '限时优惠',
     kind: 'pipeList',
-    placeholder: '名称|条件|有效期'
+    placeholder: '名称|条件|有效期',
+    aiHint: '2-4 个限时优惠，每行「名称|参与条件|有效期（时长或触发场景）」；避免纯折扣式付费压力',
+    reviewHint: '是否有诱导性过强的时间压力；条件对免费玩家是否公平；是否与定价档位、付费模型自洽'
   }
 ]
 

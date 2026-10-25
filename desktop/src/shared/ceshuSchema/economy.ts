@@ -56,8 +56,17 @@ export const ECONOMY_FIELDS = [
       '用一笔**具体交易**验证经济闭环：初始值 + 逐笔交易（逗号分隔，如 4,4,-5）= 期末期望；机器会逐笔求和与期末期望对账，不符即报错。交易必须是玩家真实会经历的那几笔（如首局两次击杀 → 首次升级）',
     reviewHint: '交易顺序是否与新手路径一致；期末期望是否与正文数字一致；允许为负是否有明确理由'
   }),
-  f('metrics_tracking', '经济监控指标', 'pipeList', { placeholder: '指标|口径|告警阈值' }),
-  f('seasonal_adjustment', '赛季调整', 'textarea')
+  f('metrics_tracking', '经济监控指标', 'pipeList', {
+    placeholder: '指标|口径|告警阈值',
+    aiHint:
+      '3-5 个经济监控指标，每行「指标（如通胀率/人均货币存量）|口径（怎么算）|告警阈值」；阈值要具体到数字并能触发人工干预',
+    reviewHint: '口径是否能用埋点算出来；阈值是否具体到数字；是否与第十七章指标体系重复'
+  }),
+  f('seasonal_adjustment', '赛季调整', 'textarea', {
+    aiHint:
+      '赛季/版本切换时的经济调整：新增什么产出与回收、上季资源如何处理（继承/折价/清空）、如何防囤积套利',
+    reviewHint: '是否处理了老玩家囤积；是否会让新玩家吃亏；是否与货币类型、兑换率自洽'
+  })
 ]
 
 export const ECONOMY_SPLIT_HINTS: ChapterSchema['splitHints'] = {

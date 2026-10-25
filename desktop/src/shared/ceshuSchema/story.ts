@@ -149,42 +149,56 @@ export const STORY_FIELDS: CeshuFieldDef[] = [
     key: 'history_eras',
     label: '历史纪元',
     kind: 'pipeList',
-    placeholder: '纪元|事件'
+    placeholder: '纪元|事件',
+    aiHint: '3-5 个纪元，每行「纪元名|该纪元发生的核心事件与它如何塑造当下世界」；事件要能解释当前冲突的由来',
+    reviewHint: '纪元顺序是否与主线时间线自洽；每个纪元是否都有「改变世界格局」的事件；有没有只为凑数的纪元'
   },
   {
     key: 'factions',
     label: '阵营',
     kind: 'pipeList',
-    placeholder: '名称|立场|现状'
+    placeholder: '名称|立场|现状',
+    aiHint: '3-5 个主要阵营，每行「名称|立场（与主角/彼此的关系）|当前势力现状」；至少一方与玩家目标正面冲突',
+    reviewHint: '立场是否互斥形成张力；现状是否可被玩家行为改变；是否与角色关系网、敌人类型对得上'
   },
   {
     key: 'branch_endings',
     label: '分支结局',
     kind: 'pipeList',
-    placeholder: '结局名|达成条件'
+    placeholder: '结局名|达成条件',
+    aiHint: '2-4 个结局，每行「结局名|可机器判定的达成条件」（如「集齐 3 枚印记且未杀死 X」）；条件必须落在游戏内可观测的变量上',
+    reviewHint: '达成条件是否可判定（不能是「玩家做出选择」这类模糊说法）；是否覆盖好/坏/隐藏结局；是否与胜负条件冲突'
   },
   {
     key: 'character_network',
     label: '角色关系网',
     kind: 'pipeList',
-    placeholder: '角色A-角色B|关系|张力'
+    placeholder: '角色A-角色B|关系|张力',
+    aiHint: '4-6 条关键人物关系，每行「角色A-角色B|关系（血缘/契约/敌对/师徒）|张力（当前冲突或未说破的秘密）」；只写推动剧情的关系',
+    reviewHint: '是否只列关系不写张力；是否与阵营、角色设定矛盾；是否存在没人推动的孤立角色'
   },
   {
     key: 'enemy_types',
     label: '敌人类型',
     kind: 'pipeList',
-    placeholder: '类型|等级|行为|作用'
+    placeholder: '类型|等级|行为|作用',
+    aiHint: '4-6 类敌人，每行「类型|等级区间|行为模式（追击/伏击/远程）|在关卡中的作用（消耗/教学/压迫）」；数值细节留给第八章',
+    reviewHint: '行为模式是否在战斗系统能力范围内；每类是否有明确作用（不只是换皮）；等级区间是否覆盖前期到后期'
   },
   {
     key: 'voice_cast',
     label: '配音阵容',
     kind: 'pipeList',
-    placeholder: '角色|语言|声线|范围'
+    placeholder: '角色|语言|声线|范围',
+    aiHint: '需要配音的角色，每行「角色|语言|声线特征|配音范围（全剧情/关键台词/战斗喊声）」；无配音计划就写「暂不配音，仅音效」',
+    reviewHint: '范围是否与预算工期匹配；主角与关键 NPC 是否被漏掉；多语言是否与第十六章语言列表一致'
   },
   {
     key: 'character_relationships',
     label: '角色关系',
-    kind: 'stringList'
+    kind: 'stringList',
+    aiHint: '2-4 条主角视角的关系描述（与谁、什么关系、随剧情如何变化）；结构化关系网在「角色关系网」字段，此处只写会演变的关系',
+    reviewHint: '是否与关系网重复；是否写出「初始 → 结局」的变化；是否服务于主角动机'
   }
 ]
 

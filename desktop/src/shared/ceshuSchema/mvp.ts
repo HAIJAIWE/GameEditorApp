@@ -98,17 +98,23 @@ export const MVP_FIELDS: CeshuFieldDef[] = [
     key: 'prototype_features',
     label: '原型特性',
     kind: 'pipeList',
-    placeholder: '特性|周期'
+    placeholder: '特性|周期',
+    aiHint: '3-5 个原型必做特性，每行「特性|周期（人日或周）」；只保留验证核心循环所需的最小集',
+    reviewHint: '是否混入了完整版特性；周期加总是否落在原型总周期内；每个特性是否对应一个要验证的假设'
   },
   {
     key: 'risk_assessment',
     label: '风险评估',
-    kind: 'stringList'
+    kind: 'stringList',
+    aiHint: '3-5 条 MVP 特有风险（范围膨胀/技术验证失败/周期不足），每条写「风险 + 早期信号 + 应对」',
+    reviewHint: '是否与第十三章风险矩阵重复；是否有可观测的早期信号；是否给出砍范围的具体顺序'
   },
   {
     key: 'prototype_plan',
     label: '原型计划',
-    kind: 'textarea'
+    kind: 'textarea',
+    aiHint: '原型计划：验证哪些假设、用什么最小实现、谁来做、几周完成、成功与失败判据；判据必须可观测',
+    reviewHint: '是否有明确判据（不是「感觉可行」）；是否安排了对真实玩家的可玩验证；失败后的决策是否写明'
   }
 ]
 

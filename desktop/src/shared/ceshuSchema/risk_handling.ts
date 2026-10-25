@@ -103,7 +103,9 @@ export const RISK_HANDLING_FIELDS: CeshuFieldDef[] = [
     key: 'escalation_path',
     label: '升级路径',
     kind: 'pipeList',
-    placeholder: '层级|决策人|时限'
+    placeholder: '层级|决策人|时限',
+    aiHint: '3-4 级升级路径，每行「层级（一线/主策/制作人/发行）|决策人角色|时限（多少小时内响应）」；最高层要能拍板砍范围',
+    reviewHint: '时限是否可执行；决策人是否写到角色而非具体姓名；最高层是否有权变更范围与排期'
   }
 ]
 

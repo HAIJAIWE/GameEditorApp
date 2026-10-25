@@ -48,17 +48,23 @@ export const GAMEPLAY_FIELDS: CeshuFieldDef[] = [
   {
     key: 'control_scheme',
     label: '操作方案',
-    kind: 'text'
+    kind: 'text',
+    aiHint: '一套操作方案：平台与输入方式 + 核心操作映射（移动/攻击/技能/交互）+ 键位或手势；多平台时写清差异',
+    reviewHint: '是否覆盖全部核心操作；键位是否冲突；是否与目标平台（文档信息 platform）一致'
   },
   {
     key: 'win_lose_conditions',
     label: '胜负条件',
-    kind: 'textarea'
+    kind: 'textarea',
+    aiHint: '写清胜利条件（达成什么即胜）与失败条件（什么情况即败），各 1-3 条且可机器判定；单局与整体战役两个层级都要有',
+    reviewHint: '条件是否可判定；是否存在「不可能输」的漏洞；是否与分支结局的达成条件冲突'
   },
   {
     key: 'tutorial_design',
     label: '新手引导设计',
-    kind: 'textarea'
+    kind: 'textarea',
+    aiHint: '新手引导：分几步、每步教什么机制、用什么场景承载、多久完成；给出「首次进入 3 分钟内理解核心循环」这类可验证目标',
+    reviewHint: '是否只教操作不教目标；是否可跳过/重看；是否与首关设计（第十九章）重复或冲突'
   },
   {
     key: 'state_machine',
