@@ -5,6 +5,7 @@ import type { CeshuAiGenerateResult } from '../../../shared/ceshuAi'
 import { FIELD_ACTION_LABELS, type FieldAction } from '../../../shared/ceshuFieldAction'
 import { isPlainObject } from '../../../shared/ceshuModel'
 import { CESHU_CHAPTER_FIELDS, resolveFieldMeta } from '../../../shared/ceshuFields'
+import { isMachineDataField } from '../../../shared/ceshuStages'
 import type { ChapterFieldStatus, FieldReviewStatus } from '../../../shared/ceshuFieldStatus'
 import { countFieldStatuses, formatFieldStatusSummary } from '../../../shared/ceshuFieldStatusStats'
 import {
@@ -76,6 +77,22 @@ export default function ChapterForm({
   /** 本章字段定义（useMemo：`CESHU_CHAPTER_FIELDS[chapter]` 每次渲染都是新数组，
    *  不进 memo 会让下游 useCallback 的依赖每渲染都变，告警 + 回调失效） */
   const fields = useMemo(() => CESHU_CHAPTER_FIELDS[chapter] ?? [], [chapter])
+  /**
+   * 字段分两段渲染（2026-10-26，反向验证后）：
+   * 「验收 / 机读数据」类字段（对账账本、数值断言、证据核对、用例清单…）存在价值是
+   * 让机器能判，不是让人写散文。混在正文里会让人以为立项就得写一份经济账本，
+   * 所以排到末尾单独成组，并说明「不计入完成度」（完成度只统计必填字段，
+   * 这些字段都不是必填，天然不影响）。
+   */
+  const { bodyFields, machineFields } = useMemo(() => {
+    const body: CeshuFieldDef[] = []
+    const machine: CeshuFieldDef[] = []
+    for (const field of fields) {
+      if (isMachineDataField(chapter, field.key)) machine.push(field)
+      else body.push(field)
+    }
+    return { bodyFields: body, machineFields: machine }
+  }, [fields, chapter])
   /** 本章待审（AI 草稿）字段数：用于顶部审阅提示 */
   const pendingCount = fields.filter((field) => fieldStatus?.[field.key]?.status === 'ai_draft').length
   /** 顶部「本章字段状态」摘要（普通 const：本组件 hook 顺序敏感，纯计算不引入 useMemo） */
@@ -328,6 +345,79 @@ export default function ChapterForm({
     []
   )
 
+  /**
+   * 单个字段块（控件 + AI 按钮 + 契约徽标）。
+   * 抽成函数是为了让「正文 / 验收机读数据」两段能各自 map 一次，
+   * 而不必把整块 JSX 写两遍（分组头渲染在两次 map 之间）。
+   */
+  const renderFieldBlock = (field: CeshuFieldDef) => {
+    const meta = resolveFieldMeta(chapter, field)
+    const status = fieldStatus?.[field.key]?.status
+    return (
+      <div
+        className={`field-block${flashField === field.key ? ' field-block-flash' : ''}`}
+        key={field.key}
+        ref={(el) => {
+          fieldBlockRefs.current[field.key] = el
+        }}
+        /* 跳转高亮的钩子：样式由 CSS 侧按 [data-flash="true"] 或 .field-block-flash 补 */
+        data-flash={flashField === field.key ? 'true' : 'false'}
+        /* 焦点进入字段内任意控件即「选中该字段」：上报给停靠栏动作条。
+           focus 事件不冒泡但 capture 阶段能收到，故用 onFocusCapture 包一层 */
+        onFocusCapture={() =>
+          setActiveCeshuField({
+            chapter,
+            key: field.key,
+            label: field.label,
+            ...(status !== undefined ? { status } : {})
+          })
+        }
+      >
+        <div className="field-with-ai">
+          <CeshuFieldControl
+            field={field}
+            value={inputs[field.key] ?? ''}
+            onChange={(next) => setInputs((prev) => ({ ...prev, [field.key]: next }))}
+          />
+          <AiFieldButton
+            busy={fieldBusy === field.key}
+            fieldLabel={field.label}
+            disabled={!meta.aiDraftable}
+            disabledHint="该字段由人确定，不交给 AI 起草"
+            onFill={() => void handleAiFillField(field.key)}
+          />
+        </div>
+        {/* 协作契约：必填 / 人定 / 人审要点 —— 只在有信息时出现，不打扰默认字段 */}
+        {(meta.required || !meta.aiDraftable || meta.reviewHint !== '' || status !== undefined) && (
+          <div className="field-contract" data-testid="field-contract">
+            {status === 'ai_draft' && <span className="field-badge ai-draft">AI 草稿</span>}
+            {status === 'human_edited' && <span className="field-badge human-edited">人改</span>}
+            {status === 'approved' && <span className="field-badge approved">已批准</span>}
+            {meta.required && <span className="field-badge required">必填</span>}
+            {!meta.aiDraftable && <span className="field-badge human">人定</span>}
+            {meta.reviewHint !== '' && <span className="item-meta">{meta.reviewHint}</span>}
+            {status === 'ai_draft' && onFieldStatus !== undefined && (
+              <button
+                type="button"
+                className="btn slim"
+                data-testid="field-accept"
+                onClick={() => {
+                  // 必须先算下一个：onFieldStatus 之后本章状态会把当前字段从 ai_draft 移走，
+                  // 而 fieldStatus 这个 prop 的刷新是异步的，顺序写反就会拿旧值算错
+                  const next = nextPendingFieldKey(fields, fieldStatus, field.key)
+                  void onFieldStatus(chapter, { [field.key]: 'approved' })
+                  if (next !== null) focusFieldBlock(next)
+                }}
+              >
+                接受
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div className="chapter-form" data-testid="chapter-form">
       <div className="chapter-form-title">
@@ -409,73 +499,18 @@ export default function ChapterForm({
       ) : chapter === 'systems' ? (
         <SystemsEditor systems={systemsDraft} onChange={setSystemsDraft} />
       ) : (
-        fields.map((field) => {
-          const meta = resolveFieldMeta(chapter, field)
-          const status = fieldStatus?.[field.key]?.status
-          return (
-            <div
-              className={`field-block${flashField === field.key ? ' field-block-flash' : ''}`}
-              key={field.key}
-              ref={(el) => {
-                fieldBlockRefs.current[field.key] = el
-              }}
-              /* 跳转高亮的钩子：样式由 CSS 侧按 [data-flash="true"] 或 .field-block-flash 补 */
-              data-flash={flashField === field.key ? 'true' : 'false'}
-              /* 焦点进入字段内任意控件即「选中该字段」：上报给停靠栏动作条。
-                 focus 事件不冒泡但 capture 阶段能收到，故用 onFocusCapture 包一层 */
-              onFocusCapture={() =>
-                setActiveCeshuField({
-                  chapter,
-                  key: field.key,
-                  label: field.label,
-                  ...(status !== undefined ? { status } : {})
-                })
-              }
-            >
-              <div className="field-with-ai">
-                <CeshuFieldControl
-                  field={field}
-                  value={inputs[field.key] ?? ''}
-                  onChange={(next) => setInputs((prev) => ({ ...prev, [field.key]: next }))}
-                />
-                <AiFieldButton
-                  busy={fieldBusy === field.key}
-                  fieldLabel={field.label}
-                  disabled={!meta.aiDraftable}
-                  disabledHint="该字段由人确定，不交给 AI 起草"
-                  onFill={() => void handleAiFillField(field.key)}
-                />
+        <>
+          {bodyFields.map(renderFieldBlock)}
+          {machineFields.length > 0 && (
+            <div className="field-group-head" data-testid="machine-data-group">
+              <div className="field-group-title">验收 / 机读数据</div>
+              <div className="field-group-hint">
+                这些字段是给机器判的（对账、断言、证据核对），不计入完成度；立项阶段可以先留空。
               </div>
-              {/* 协作契约：必填 / 人定 / 人审要点 —— 只在有信息时出现，不打扰默认字段 */}
-              {(meta.required || !meta.aiDraftable || meta.reviewHint !== '' || status !== undefined) && (
-                <div className="field-contract" data-testid="field-contract">
-                  {status === 'ai_draft' && <span className="field-badge ai-draft">AI 草稿</span>}
-                  {status === 'human_edited' && <span className="field-badge human-edited">人改</span>}
-                  {status === 'approved' && <span className="field-badge approved">已批准</span>}
-                  {meta.required && <span className="field-badge required">必填</span>}
-                  {!meta.aiDraftable && <span className="field-badge human">人定</span>}
-                  {meta.reviewHint !== '' && <span className="item-meta">{meta.reviewHint}</span>}
-                  {status === 'ai_draft' && onFieldStatus !== undefined && (
-                    <button
-                      type="button"
-                      className="btn slim"
-                      data-testid="field-accept"
-                      onClick={() => {
-                        // 必须先算下一个：onFieldStatus 之后本章状态会把当前字段从 ai_draft 移走，
-                        // 而 fieldStatus 这个 prop 的刷新是异步的，顺序写反就会拿旧值算错
-                        const next = nextPendingFieldKey(fields, fieldStatus, field.key)
-                        void onFieldStatus(chapter, { [field.key]: 'approved' })
-                        if (next !== null) focusFieldBlock(next)
-                      }}
-                    >
-                      接受
-                    </button>
-                  )}
-                </div>
-              )}
             </div>
-          )
-        })
+          )}
+          {machineFields.map(renderFieldBlock)}
+        </>
       )}
 
       {/* 第二章：竞品象限图（对应 Python ChapterPanel 在 vision 章附加 CompetitiveChart） */}

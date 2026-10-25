@@ -1090,6 +1090,34 @@ body {
 }
 
 /*
+ * 「验收 / 机读数据」分组头（2026-10-26）：
+ * 对账账本、数值断言、证据核对、用例清单这类字段是给机器判的，
+ * 排到正文末尾单独成组，避免让人以为立项就得写账本。
+ */
+.field-group-head {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.field-group-title {
+  color: var(--text-muted);
+  font-size: calc(12px * var(--ui-font-scale));
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.field-group-hint {
+  color: var(--text-muted);
+  font-size: calc(11px * var(--ui-font-scale));
+  line-height: 1.5;
+  opacity: 0.85;
+}
+
+/*
  * 「跳到首个待审字段」的短暂高亮：点章内状态摘要后，目标字段块描边 1.2 秒。
  * 用 box-shadow 而不是 outline —— 不改变布局尺寸，避免高亮时页面轻微跳动。
  */
