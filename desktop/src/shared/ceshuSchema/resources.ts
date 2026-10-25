@@ -18,7 +18,7 @@ export const RESOURCES_FIELDS: CeshuFieldDef[] = [
   },
   {
     key: 'risk_matrix',
-    label: '风险评估',
+    label: '资源风险（TOP 摘要）',
     kind: 'stringList',
     placeholder: '每行一条风险',
     aiHint: '资源视角的 TOP 3-5 条风险概要，每行：风险 + 概率/影响 + 应对方向；完整矩阵与负责人分派在第十三章，此处勿展开',
@@ -65,7 +65,7 @@ export const RESOURCES_FIELDS: CeshuFieldDef[] = [
   },
   {
     key: 'contingency_plan',
-    label: '应急预案',
+    label: '资源应急预案',
     kind: 'textarea',
     aiHint: '资源侧应急预案：关键人员流失、外包延期、预算超支三种情形，各写触发条件与替代方案；风险矩阵与止损线在第十三章，此处不重复',
     reviewHint: '是否针对资源而非玩法风险；每条是否有可执行的替代方案；是否与第十三章预案冲突'

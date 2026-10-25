@@ -96,25 +96,27 @@
 
 ---
 
-## 5. 跨章同名字段（合并 / 划界候选）
+## 5. 跨章同名字段（结论：不改名，只澄清标签）
 
-| 字段 key | 出现在 | 判断 |
-|---|---|---|
-| `drop_tables` | 经济章（掉落表，stringList） / 数值章（掉落公式，pipeList） | **真重复**，建议保留数值章（公式），经济章改为引用或删 |
-| `contingency_plan` | 资源章（资源侧应急） / 风险章（风险预案） | 语义重叠，hints 已划界；建议资源章改名 `resource_contingency` |
-| `risk_matrix` | 资源章（TOP 3-5 摘要） / 风险章（完整矩阵） | 摘要 vs 全量，可接受，但同名易混；建议资源章改名 `resource_risks` |
-| `milestones` | 技术章（开发里程碑） / MVP 章（里程碑） | 语义重叠，建议 MVP 章保留（时间线），技术章改 `tech_milestones` |
+| 字段 key | 出现在 | 实际关系 | 处置 |
+|---|---|---|---|
+| `drop_tables` | 经济章（掉落表，stringList） / 数值章（掉落公式，pipeList） | 语义重复 | 待定（见下） |
+| `risk_matrix` | 资源章（TOP 3-5 摘要，**必填**） / 风险章（完整矩阵） | **不是重复**：资源章的摘要会被 `ceshuFill` 一键填充复制到十三章，`ceshuMigration` 也做同样迁移 | ✅ 标签改为「资源风险（TOP 摘要）」 |
+| `contingency_plan` | 资源章（资源侧应急） / 风险章（风险预案） | 同上，摘要 vs 全量 | ✅ 标签改为「资源应急预案」 |
+| `milestones` | 技术章（开发里程碑） / MVP 章（里程碑） | 语义重叠但标签已可区分；`tech.milestones` 有 4 份文档在用 | ⏸ 不动（改名会孤立已有数据） |
 
-> 注：字段在不同章是独立命名空间，同名不会覆盖数据；这里说的是**语义混淆**——人和 AI 都会问「这两个到底写哪个」。
+> ⚠️ **原建议作废**：初版报告写的是「改 key 名划界」。查引用后发现 `resources.risk_matrix` 是**必填字段**，且被一键填充与数据迁移两条链路引用——改 key 会静默断掉它们。字段在不同章本就是独立命名空间，同名不会覆盖数据，问题只是**人读起来容易混**，所以只改标签（label），key 一律不动。
+>
+> 唯一还站得住的合并候选是 `economy.drop_tables`（掉落表）与 `numeric.drop_tables`（掉落公式）：概念重复，且两者在所有文档里都是空的。但删除字段要同步 defaults/templates/字段数基线，收益有限，先记为待办。
 
 ---
 
 ## 6. 建议动作（按性价比）
 
-1. **阶段分层（不动 schema）**：`concept`（立项，7 章：meta/vision/gameplay/combat/economy/numeric/mvp）→ `production`（+9：story/systems/art/audio/tech/monetization/uiux/level_design/qa）→ `release`（+8：resources/market_analysis/risk_handling/accessibility/live_ops/analytics/publishing/performance）。默认只展开当前阶段，其余折叠为「后续阶段」。
-2. **B 桶字段移出正文**：验收/机读数据单独一区，不计入「文档完成度」。
-3. **C 桶 5 章默认折叠**：不删、不催填，到 release 阶段再解锁。
-4. **补 1 个字段** `tech.data_tables`（反向缺口）。
-5. **合并/改名 4 组同名**：`economy.drop_tables` 与 `numeric.drop_tables` 二选一，其余三组改名划界。
+1. **阶段分层（不动 schema）**：`concept`（立项，7 章：meta/vision/gameplay/combat/economy/numeric/mvp）→ `production`（+9：story/systems/art/audio/tech/monetization/uiux/level_design/qa）→ `release`（+8：resources/market_analysis/risk_handling/accessibility/live_ops/analytics/publishing/performance）。默认只展开当前阶段，其余折叠为「后续阶段」。**✅ 已落地 `ceshuStages.ts` + 章节导航阶段筛选**
+2. **B 桶字段移出正文**：验收/机读数据单独一区，不计入「文档完成度」。**✅ 已落地 `ChapterForm` 分组**（完成度本来就只统计必填，而这 7 个字段都不是必填）
+3. **C 桶 5 章默认折叠**：不删、不催填，到 release 阶段再解锁。**✅ 由阶段筛选承载**
+4. **补 1 个字段** `tech.data_tables`（反向缺口）。**✅ 已落地，字段总数 334 → 335**
+5. **同名字段**：只改标签不改 key（见 §5）。**✅ 资源章两处标签已澄清**
 
 完成 1–3 之后，「打开就 334 个框」变成「打开 7 章 40 个框」，剩下的按阶段长出来——这才是让填写率从 13% 往上走的前提。
