@@ -1,4 +1,5 @@
 import { CHAPTER_KEYS, CHAPTER_LABELS, CHAPTER_REQUIRED_FIELDS, type CeshuDocument } from './ceshuConstants'
+import { analyzeChapterQuality, contentQualityFactor } from './ceshuContentQuality'
 import { computeChapterProgress, isPlainObject } from './ceshuModel'
 import { validateCeshu } from './ceshuValidation'
 import { classifyValidationMessage } from './ceshuValidationGroups'
@@ -133,7 +134,7 @@ function scoreChapters(doc: CeshuDocument): CeshuChapterScore[] {
     }
     const hasRequired = missing.length === 0
 
-    // 单章评分：完成度 50% + 字数达标 30% + 必填字段 20%
+    // 单章评分：完成度 50% + 字数达标 30%（×内容质量系数）+ 必填字段 20%
     const completionScore = Math.min(100, pctVal)
     let wordScore = 100
     if (benchmark[2] > 0) {
@@ -150,11 +151,24 @@ function scoreChapters(doc: CeshuDocument): CeshuChapterScore[] {
       }
     }
     const requiredScore = hasRequired ? 100 : Math.max(0, 100 - 30 * missing.length)
-    const chScore = completionScore * WEIGHT_COMPLETION + wordScore * WEIGHT_WORD_COUNT + requiredScore * WEIGHT_REQUIRED
+    /*
+     * 字数分要乘「内容质量系数」（2026-10-26，根治 P0-3「字数被当成质量指标」）：
+     * 此前字数落在基准区间就拿满 30 分，等于系统性奖励「写满」——空话套话、
+     * 长篇无数字的注水内容与扎实内容同分。现在改用与校验面板**同阈值**的信号
+     * 折算系数（空话 0.8 / 长句 0.9 / 长文无数字 0.9，下限 0.5），
+     * 让「写满但空」拿不到满分。空章节系数为 1（字数分本就 0，不该二次惩罚）。
+     */
+    const quality = contentQualityFactor(analyzeChapterQuality(chapterData))
+    const effectiveWordScore = wordScore * quality.factor
+    const chScore =
+      completionScore * WEIGHT_COMPLETION + effectiveWordScore * WEIGHT_WORD_COUNT + requiredScore * WEIGHT_REQUIRED
 
     const notes: string[] = []
     if (pctVal < 50) notes.push(`完成度仅 ${pctVal}%，需补充内容`)
     if (wordCount < benchmark[0] && benchmark[0] > 0) notes.push(`字数 ${wordCount} < 最低标准 ${benchmark[0]}`)
+    if (quality.reasons.length > 0) {
+      notes.push(`内容质量系数 ${quality.factor}：${quality.reasons.join('；')}`)
+    }
     if (missing.length > 0) notes.push(`缺失必填字段: ${missing.join(', ')}`)
 
     chapterScores.push({
@@ -298,8 +312,22 @@ function buildSuggestions(params: {
   if (lowWordChapters.length > 0) {
     suggestions.push(`📝 ${lowWordChapters.length} 章字数低于最低标准，建议扩充内容`)
   }
+  /*
+   * 「写满但空」单独给建议：这类章字数已达标，却因空话/长句/无数字被质量系数扣分——
+   * 如果不点名，用户只会看到「字数够了为什么分还低」。
+   */
+  const hollowChapters = chapterScores.filter((c) =>
+    c.notes.some((note) => note.startsWith('内容质量系数'))
+  )
+  if (hollowChapters.length > 0) {
+    const labels = hollowChapters.slice(0, 3).map((c) => c.chapter_label)
+    const more = hollowChapters.length > labels.length ? ' 等' : ''
+    suggestions.push(
+      `✍️ ${hollowChapters.length} 章内容偏空（${labels.join('、')}${more}）：字数达标但空话/长句/缺数字，建议改成具体描述与可验证数字`
+    )
+  }
   if (structureScore < 20) suggestions.push('🏗️ 结构完整度偏低，建议优先补全必填字段')
-  if (qualityScore < 25) suggestions.push('✍️ 内容质量偏低，建议参考「字数」按钮的写作建议')
+  if (qualityScore < 25) suggestions.push('✍️ 内容质量偏低，建议按「校验」面板里的内容质量提示逐条修改')
   if (marketScore < 20) suggestions.push('📈 市场潜力偏低，建议完善市场分析、商业模式、MVP 规划三章')
 
   if (suggestions.length === 0) suggestions.push('✅ 各维度表现良好，已达到工业级标准！')

@@ -131,4 +131,32 @@ describe('N4 评分引擎：导出常量锁定', () => {
     // 字数达标这一项不再恒为 0：明细里不应出现「字数不足」类备注
     expect(chapter?.notes.join(' ')).not.toContain('字数')
   })
+
+  /*
+   * P0-3 根治（2026-10-26）：字数达标不再等于质量达标。
+   * 改造前两章同分——只要字数进基准区间就拿满 30 分，等于奖励「写满」。
+   */
+  it('同样字数下，「写满但空」的章得分低于具体内容', () => {
+    const hollow = emptyDoc()
+    hollow.story = { architecture: '体验丰富多样。深度融合玩法。带来极致体验。'.repeat(40) }
+    const solid = emptyDoc()
+    solid.story = { architecture: '首关 90 秒，平均死亡 2.3 次。Boss 血量 1200。'.repeat(40) }
+
+    const hollowChapter = scoreCeshu(hollow).chapter_scores.find((item) => item.chapter_key === 'story')
+    const solidChapter = scoreCeshu(solid).chapter_scores.find((item) => item.chapter_key === 'story')
+
+    // 前提：两章字数都过基准线，差距只来自内容质量，不是字数
+    expect(hollowChapter?.word_count).toBeGreaterThanOrEqual(500)
+    expect(solidChapter?.word_count).toBeGreaterThanOrEqual(500)
+    expect(hollowChapter!.score).toBeLessThan(solidChapter!.score)
+    expect(hollowChapter?.notes.join(' ')).toContain('内容质量系数')
+    expect(solidChapter?.notes.join(' ')).not.toContain('内容质量系数')
+  })
+
+  it('报告建议点名「内容偏空」的章（字数够了但分低要能解释）', () => {
+    const doc = emptyDoc()
+    doc.story = { architecture: '体验丰富多样。深度融合玩法。带来极致体验。'.repeat(30) }
+    const report = scoreCeshu(doc)
+    expect(report.suggestions.some((s) => s.includes('内容偏空'))).toBe(true)
+  })
 })

@@ -4,8 +4,13 @@ import {
   CLICHE_COUNT_THRESHOLD,
   CLICHE_RATE_THRESHOLD,
   LONG_SENTENCE_CHARS,
+  QUALITY_FACTOR_CLICHE,
+  QUALITY_FACTOR_FLOOR,
+  QUALITY_FACTOR_LONG_SENTENCE,
+  QUALITY_FACTOR_NO_NUMERIC,
   analyzeChapterQuality,
   analyzeTextQuality,
+  contentQualityFactor,
   contentQualityIssues
 } from '../../src/shared/ceshuContentQuality'
 
@@ -289,5 +294,65 @@ describe('contentQualityIssues：文案格式', () => {
     expect(contentQualityIssues(signal, { chapterLabel: '第三章·战斗系统', fieldName: 'combat' })).toEqual([
       '内容质量提示：第三章·战斗系统 combat 缺少可验证的数字或实例'
     ])
+  })
+})
+
+/**
+ * 评分侧系数（2026-10-26，根治「字数被当成质量指标」）：
+ * 与 contentQualityIssues 同阈值——校验报什么，评分就扣什么。
+ */
+describe('contentQualityFactor：内容质量系数', () => {
+  it('空章节返回 1 且无理由（没有内容不是「内容差」，字数分本来就是 0）', () => {
+    expect(contentQualityFactor(analyzeChapterQuality({}))).toEqual({ factor: 1, reasons: [] })
+    expect(contentQualityFactor(analyzeChapterQuality({ a: '' }))).toEqual({ factor: 1, reasons: [] })
+  })
+
+  it('具体内容（有数字、无空话、短句）不扣分', () => {
+    const signal = analyzeChapterQuality({
+      a: '首关 90 秒内完成，玩家平均死亡 2.3 次。'.repeat(4) + 'Boss 血量 1200，弱点在背部。'
+    })
+    expect(contentQualityFactor(signal)).toEqual({ factor: 1, reasons: [] })
+  })
+
+  it('空话套话超标：只扣空话一项', () => {
+    const text = '体验丰富多样。深度融合玩法。带来极致体验。'
+    const result = contentQualityFactor(analyzeTextQuality(text))
+    expect(result.factor).toBe(QUALITY_FACTOR_CLICHE)
+    expect(result.reasons[0]).toContain('空话套话 3 处')
+  })
+
+  it('长文却没有数字：扣可验证性一项', () => {
+    // 23 句 × 8 字 + 1 句 3 字 = 187 字，需要 > NUMERIC_MIN_CHARS(200)，加到 26 句
+    const text = plainText(26)
+    const signal = analyzeTextQuality(text)
+    expect(signal.charCount).toBeGreaterThan(200)
+    expect(signal.numericRate).toBe(0)
+    expect(contentQualityFactor(signal)).toEqual({
+      factor: QUALITY_FACTOR_NO_NUMERIC,
+      reasons: ['长篇但缺少可验证的数字或实例']
+    })
+  })
+
+  it('短文本不因「没数字」被扣（设计理念本来就不该塞数字）', () => {
+    expect(contentQualityFactor(analyzeTextQuality('核心体验是紧张的地牢探索。')).factor).toBe(1)
+  })
+
+  it('多项叠加是乘性而非取最严，且不低于下限', () => {
+    /*
+     * 空话 3 处 + 长句占多数 + 长文无数字：0.8 × 0.9 × 0.9 = 0.648 → 0.65。
+     * 长句必须**过半**才触发（阈值 0.5）：7 长 / (3 空话 + 7 长 + 3 短) = 0.538。
+     */
+    const cliches = '体验丰富多样。深度融合玩法。带来极致体验。'
+    const longSentences = `${SENTENCE_51}。`.repeat(7)
+    const shortSentences = '一二三四五六七八。'.repeat(3)
+    const signal = analyzeTextQuality(`${cliches}${longSentences}${shortSentences}`)
+    expect(signal.longSentenceRate).toBeGreaterThan(0.5)
+    expect(signal.charCount).toBeGreaterThan(200)
+    expect(signal.numericRate).toBe(0)
+
+    const result = contentQualityFactor(signal)
+    expect(result.factor).toBeCloseTo(QUALITY_FACTOR_CLICHE * QUALITY_FACTOR_LONG_SENTENCE * QUALITY_FACTOR_NO_NUMERIC, 2)
+    expect(result.reasons).toHaveLength(3)
+    expect(result.factor).toBeGreaterThanOrEqual(QUALITY_FACTOR_FLOOR)
   })
 })
