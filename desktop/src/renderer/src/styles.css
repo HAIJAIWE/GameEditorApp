@@ -1583,6 +1583,41 @@ body {
 }
 
 /*
+ * 阶段筛选行（2026-10-26）—— 立项阶段只需 7 章，24 章全铺开是劝退主因
+ * （库内 10 份文档填写率 1%–13%，见 docs/ceshu-field-necessity.md）。
+ * 默认「全部」= 原行为；选了阶段只筛章节列表，不隐藏任何数据。
+ */
+.chapter-stage-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.chapter-stage-btn {
+  flex: 1 1 auto;
+  min-width: 40px;
+  padding: 3px 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-panel);
+  color: var(--text-muted);
+  font-size: calc(11px * var(--ui-font-scale));
+  cursor: pointer;
+}
+
+.chapter-stage-btn:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.chapter-stage-btn.active {
+  background: var(--accent-light);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/*
  * 分区浮标题 —— 扁平化后已不再渲染（语义块模型：侧边栏为扁平块列表，无「区」分组标题）。
  * 保留样式以备将来可选的「分组视图」开关，但当前运行期不产生该元素。
  */

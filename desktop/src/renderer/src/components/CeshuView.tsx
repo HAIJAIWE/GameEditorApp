@@ -20,6 +20,12 @@ import {
 } from '../../../shared/ceshuModel'
 import type { CeshuChangelog } from '../../../shared/ceshuDiff'
 import {
+  CESHU_STAGE_LABELS,
+  CESHU_STAGE_ORDER,
+  isChapterVisibleInStage,
+  type CeshuStage
+} from '../../../shared/ceshuStages'
+import {
   buildChangelogHtml,
   buildChangelogMarkdown,
   buildChangelogText,
@@ -140,6 +146,13 @@ export default function CeshuView({
 }: CeshuViewProps) {
   const [doc, setDoc] = useState<CeshuDocument | null>(null)
   const [activeChapter, setActiveChapter] = useState<ChapterKey>('meta')
+  /**
+   * 阶段筛选（2026-10-26，反向验证后的入口分层）：
+   * 默认 'all' 保持原行为——真实使用里立项阶段只看 7 章就够，
+   * 但发行阶段的章不能真藏起来（校验跳转、评审队列都可能指向它们）。
+   * 当前章永远参与渲染，避免「筛掉自己」导致右侧面板空白。
+   */
+  const [stageFilter, setStageFilter] = useState<CeshuStage | 'all'>('all')
   /** 全局审阅队列（跨章列出 AI 草稿字段）是否展开 */
   const [reviewOpen, setReviewOpen] = useState(false)
   /** 迁移预览（只读）浮层是否展开 */
@@ -444,6 +457,14 @@ export default function CeshuView({
   const aiMarks = readAiGenerated(doc.meta)
   const scope = getGddScope(doc)
   const visible = visibleChapterKeys(scope)
+  /**
+   * 阶段筛选后的章节列表：`all` 为原行为；选了阶段则只留「截至该阶段」的章，
+   * 但**始终保留当前章**——否则从校验报告/评审队列跳过来时右侧会空白。
+   */
+  const visibleByStage =
+    stageFilter === 'all'
+      ? visible
+      : visible.filter((key) => isChapterVisibleInStage(key, stageFilter) || key === activeChapter)
   /**
    * 全局待审字段（跨章）：AI 草稿、尚未接受。
    * 按 `visible` 章节顺序 + 字段定义顺序排列，便于「一条队列」往下扫。
@@ -1428,7 +1449,34 @@ export default function CeshuView({
             )}
             <div className="ceshu-pane-row">
             <div className="chapter-nav">
-              {visible.map((key) => {
+              {/*
+                阶段筛选（默认「全部」= 原行为）。用途：立项阶段只需要 7 章，
+                24 章全铺开是劝退主因（库内文档填写率 1%–13%，见
+                docs/ceshu-field-necessity.md）。这里只做筛选，不隐藏数据。
+              */}
+              <div className="chapter-stage-filter" role="group" aria-label="按阶段筛选章节">
+                <button
+                  type="button"
+                  data-testid="stage-filter-all"
+                  className={`chapter-stage-btn${stageFilter === 'all' ? ' active' : ''}`}
+                  onClick={() => setStageFilter('all')}
+                >
+                  全部
+                </button>
+                {CESHU_STAGE_ORDER.map((stage) => (
+                  <button
+                    key={stage}
+                    type="button"
+                    data-testid={`stage-filter-${stage}`}
+                    className={`chapter-stage-btn${stageFilter === stage ? ' active' : ''}`}
+                    title={`只看「${CESHU_STAGE_LABELS[stage]}」阶段及更早的章节`}
+                    onClick={() => setStageFilter(stage)}
+                  >
+                    {CESHU_STAGE_LABELS[stage]}
+                  </button>
+                ))}
+              </div>
+              {visibleByStage.map((key) => {
                 const pct = Math.round((progress[key] ?? 0) * 100)
                 // 完成度三色阈值与 PyQt `chapter_panel.py::set_progress` 一致（<50 / 50-79 / >=80）
                 const level = pct >= 80 ? 'hi' : pct >= 50 ? 'mid' : 'low'
