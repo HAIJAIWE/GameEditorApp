@@ -100,17 +100,28 @@ export function inputToFieldValue(field: CeshuFieldDef, input: FieldInput): unkn
     case 'pipeList': {
       const text = String(input).trim()
       if (!text) return []
-      return text
+      const lines = text
         .split('\n')
-        .filter((line) => line.trim() !== '')
-        .map((line) => {
-          const parts = line.split('|').map((part) => part.trim())
-          const row: Record<string, string> = {}
-          for (const [index, column] of (field.columns ?? []).entries()) {
-            row[column.key] = parts[index] ?? ''
-          }
-          return row
-        })
+        .map((line) => line.trim())
+        .filter((line) => line !== '')
+      const columns = field.columns ?? []
+      /*
+       * 无列定义的 pipeList 按**字符串行**存（2026-10-26 修数据丢失）。
+       *
+       * 历史背景：这类字段用 `placeholder: '类别|数量|规格'` 描述列，但没声明 columns。
+       * 此前无论有没有 columns 都按列拆成对象，于是无列字段的每一行都得到 `{}`——
+       * 打开再保存一次，账本 / 数值断言 / 第三方依赖等 27 个字段的内容就被清空。
+       * 而管道工具（ceshuPipeRows.toRows）本来就是按字符串行读取的，字符串才是正确形态。
+       */
+      if (columns.length === 0) return lines
+      return lines.map((line) => {
+        const parts = line.split('|').map((part) => part.trim())
+        const row: Record<string, string> = {}
+        for (const [index, column] of columns.entries()) {
+          row[column.key] = parts[index] ?? ''
+        }
+        return row
+      })
     }
     case 'json': {
       const text = String(input).trim()
@@ -280,7 +291,12 @@ function joinPipeList(raw: unknown, columns: CeshuColumnDef[]): string {
       if (typeof item === 'string') return item
       if (item !== null && typeof item === 'object') {
         const obj = item as Record<string, unknown>
-        return columns.map((column) => (obj[column.key] === null || obj[column.key] === undefined ? '' : String(obj[column.key]))).join(' | ')
+        /*
+         * 无列定义时按对象自身的值顺序拼接：老模板 / 老数据可能以对象形态存在
+         * （如 `{ type: '角色', count: 50 }`），此前会拼成空串，一保存就丢。
+         */
+        const values = columns.length > 0 ? columns.map((column) => obj[column.key]) : Object.values(obj)
+        return values.map((value) => (value === null || value === undefined ? '' : String(value))).join(' | ')
       }
       return String(item)
     })
