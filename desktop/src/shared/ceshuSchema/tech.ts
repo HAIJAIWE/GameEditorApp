@@ -90,6 +90,19 @@ export const TECH_FIELDS: CeshuFieldDef[] = [
     kind: 'textarea',
     aiHint: '技术侧 QA 计划：测什么（功能/性能/兼容/崩溃）、怎么测（自动化/手工/灰度）、何时测（里程碑节点）、谁负责',
     reviewHint: '是否与第二十一章测试章分工清楚（此处偏技术验证，不重复用例清单）；是否有回归策略与上线前冒烟清单'
+  },
+  /*
+   * 2026-10-26 反向验证补的字段：真实 5 页 GDD 的最后一节是「数据编辑对接」——
+   * 「本设计需要哪些数据表」。我们原来没有对应字段，而这个产品的本体就是数据编辑器，
+   * 策划书写完却无法告诉编辑器要建哪些表，等于断在最后一公里。
+   */
+  {
+    key: 'data_tables',
+    label: '所需数据表',
+    kind: 'pipeList',
+    placeholder: '表名|用途|关键字段',
+    aiHint: '本设计需要编辑器提供哪些数据表：每行「表名|用途|关键字段（逗号分隔）」；只列这份策划真正会用到的表，3-6 行',
+    reviewHint: '表名是否与编辑器现有类型对得上（对不上要说明新建）；关键字段是否够支撑核心玩法；有没有建了却没人用的表'
   }
 ]
 
@@ -113,7 +126,8 @@ export const TECH_DEFAULTS: ChapterData = {
   performance_targets: '',
   milestones: [],
   team_structure: '',
-  qa_plan: ''
+  qa_plan: '',
+  data_tables: []
 }
 
 export const TECH_TEMPLATES: ChapterTemplate[] = [

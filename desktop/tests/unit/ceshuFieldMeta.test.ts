@@ -119,6 +119,20 @@ describe('字段契约覆盖率守卫（P0 补契约后不回落）', () => {
     expect(missing, '这些字段没有人审要点（reviewHint）').toEqual([])
   })
 
+  /**
+   * 反向缺口守卫（2026-10-26，见 docs/ceshu-field-necessity.md）：
+   * 真实 5 页 GDD 的最后一节是「数据编辑对接（本设计需要哪些数据表）」，
+   * 而本产品的本体就是数据编辑器。这个字段曾被漏掉，补上后钉住防删。
+   */
+  it('技术规格章保留「所需数据表」字段（真实 GDD 的数据编辑对接）', () => {
+    const field = CESHU_CHAPTER_FIELDS.tech.find((item) => item.key === 'data_tables')
+    expect(field, 'tech.data_tables 缺失——策划书无法告诉编辑器要建哪些表').toBeDefined()
+    const meta = resolveFieldMeta('tech', field!)
+    expect(meta.aiHint).not.toBe('')
+    expect(meta.reviewHint).not.toBe('')
+    expect(meta.required).toBe(false)
+  })
+
   it('P0 点名的高危字段必须有禁编造约束', () => {
     const highRisk: Array<[ChapterKey, string]> = [
       ['market_analysis', 'competitors'],

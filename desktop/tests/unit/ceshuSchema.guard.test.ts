@@ -12,13 +12,17 @@ import { CHAPTER_KEYS } from '../../src/shared/ceshuConstants'
  * 任一字段被漏迁、错迁、重复迁，这里都会红。
  */
 
-/** 迁移前（2026-10-24）捕获的全表字段总数基线 */
-const BASELINE_TOTAL_FIELDS = 334
+/**
+ * 迁移前（2026-10-24）捕获的全表字段总数基线。
+ * 2026-10-26 有意 +1：反向验证发现真实 GDD 的「数据编辑对接」无对应字段，
+ * 补 `tech.data_tables`（334 → 335）。此后仍按此基线防意外漂移。
+ */
+const BASELINE_TOTAL_FIELDS = 335
 
-/** 迁移前捕获的每章字段数基线（key 顺序无关，用于深度比较） */
+/** 迁移前捕获的每章字段数基线（key 顺序无关，用于深度比较；tech 2026-10-26 有意 14 → 15） */
 const BASELINE_PER_CHAPTER: Record<string, number> = {
   meta: 10, vision: 8, story: 25, gameplay: 11, systems: 0, combat: 32, economy: 20, numeric: 12,
-  art: 17, audio: 16, tech: 14, resources: 13, market_analysis: 15, risk_handling: 14, mvp: 18,
+  art: 17, audio: 16, tech: 15, resources: 13, market_analysis: 15, risk_handling: 14, mvp: 18,
   monetization: 21, accessibility: 22, uiux: 8, level_design: 10, live_ops: 7, analytics: 7,
   qa: 10, publishing: 12, performance: 12
 }
