@@ -188,17 +188,15 @@ export const ACCESSIBILITY_TEMPLATES: ChapterTemplate[] = [
         '震动反馈'
       ],
       subtitle_design: '对话字幕：底部居中 + 说话人标识；音效字幕：右侧标注音效类型',
-      colorblind_support: '提供 3 种色盲模式，关键信息不依赖颜色区分',
-      input_customization: '全键位可重映射；支持手柄/键鼠/触屏',
-      difficulty_options: '故事/普通/困难/极难 4 档；可单独调整战斗/解谜难度',
-      motion_reduction: '可关闭镜头摇晃 + 闪烁特效 + 动态模糊',
-      text_to_speech: '菜单支持语音朗读（系统 TTS）',
-      regional_compliance: [
+      color_blind_support: '提供 3 种色盲模式（红绿/蓝黄/全色盲），关键信息不依赖颜色区分。',
+      motor_accessibility: '全键位可重映射；支持手柄 / 键鼠 / 触屏；单指可完成核心操作。',
+      cognitive_accessibility: '可关闭镜头摇晃、闪烁特效与动态模糊；难度分 4 档且战斗/解谜可分别调整。',
+      compliance_notes: [
         '中国大陆：版号 + 内容合规',
         '欧盟：GDPR 数据合规',
         '日本：CERO 分级',
         '美国：ESRB 分级'
-      ]
+      ].join('\n')
     }
   }
 ]

@@ -190,32 +190,21 @@ export const AUDIO_TEMPLATES: ChapterTemplate[] = [
     data: {
       music_style: '国风 + 现代管弦编曲；古琴、箫、二胡为主，配合弦乐与合成器',
       sfx_count: 500,
-      music_tracks: [
-        {
-          scene: '主菜单',
-          style: '古琴独奏',
-          duration: '3min'
-        },
-        {
-          scene: '战斗',
-          style: '快速鼓点 + 琵琶',
-          duration: '2min'
-        },
-        {
-          scene: '剧情',
-          style: '箫 + 弦乐',
-          duration: '5min'
-        }
+      soundtrack_list: [
+        { scene: '主菜单', duration: '3 min', mood: '古琴独奏，克制', composer: '待确认' },
+        { scene: '战斗', duration: '2 min', mood: '快速鼓点 + 琵琶', composer: '待确认' },
+        { scene: '剧情', duration: '5 min', mood: '箫 + 弦乐，留白', composer: '待确认' }
       ],
-      voice_count: 1000,
+      sfx_list: [
+        { category: 'UI', count: 80, description: '点击/确认/报错，统一短促木质音色' },
+        { category: '战斗', count: 220, description: '剑招参考真实剑鸣；法术结合自然元素（雷、火、水）' },
+        { category: '环境', count: 120, description: '山林风声、水流、鸟鸣，按场景循环' },
+        { category: '剧情提示', count: 80, description: '任务完成/获得道具/危险预警' }
+      ],
+      voice_acting: '配音总量约 1000 句：主角全剧情配音，主要 NPC 关键台词，其余用文字气泡。',
       audio_engine: 'Wwise',
-      adaptive_music: '战斗音乐根据战斗强度动态切换层（探索/接触/激战）',
-      sfx_design: '剑招音效参考真实剑鸣；法术音效结合自然元素（雷、火、水）',
-      localization_audio: [
-        'zh-CN 配音',
-        'ja 配音',
-        'en 字幕'
-      ]
+      dynamic_audio: '战斗音乐根据战斗强度动态切换层（探索/接触/激战）。',
+      audio_localization: '首发 zh-CN 配音；ja 配音二期；en 仅字幕。'
     }
   },
   {
@@ -229,27 +218,20 @@ export const AUDIO_TEMPLATES: ChapterTemplate[] = [
     data: {
       music_style: '合成器电子 + 工业噪音；营造赛博朋克冷峻氛围',
       sfx_count: 800,
-      music_tracks: [
-        {
-          scene: '都市',
-          style: 'Synthwave',
-          duration: '4min'
-        },
-        {
-          scene: '战斗',
-          style: 'Industrial',
-          duration: '3min'
-        }
+      soundtrack_list: [
+        { scene: '都市', duration: '4 min', mood: 'Synthwave，冷峻', composer: '待确认' },
+        { scene: '战斗', duration: '3 min', mood: 'Industrial，压迫', composer: '待确认' }
       ],
-      voice_count: 1500,
+      sfx_list: [
+        { category: '枪械', count: 260, description: '参考真实武器录音，按口径分层' },
+        { category: 'UI', count: 120, description: '故障音 + 数字音，强化赛博质感' },
+        { category: '环境', count: 220, description: '都市底噪、通风管、雨声，分区循环' },
+        { category: '技能与特效', count: 200, description: '电子充能、过载、故障干扰' }
+      ],
+      voice_acting: '配音总量约 1500 句：三名主角全剧情配音，反派关键场次，其余文字。',
       audio_engine: 'Wwise',
-      adaptive_music: '根据地区切换音轨层（穹顶/都市/废弃区）',
-      sfx_design: '枪械音效参考真实武器；UI 音效采用故障音 + 数字音',
-      localization_audio: [
-        'en 配音',
-        'ja 配音',
-        'zh-CN 配音'
-      ]
+      dynamic_audio: '根据地区切换音轨层（穹顶/都市/废弃区），进入战斗时叠加打击层。',
+      audio_localization: '首发 en 配音；ja 配音同步；zh-CN 配音二期。'
     }
   }
 ]

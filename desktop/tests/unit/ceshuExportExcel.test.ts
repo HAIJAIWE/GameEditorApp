@@ -54,7 +54,7 @@ function makeCleanDoc(): CeshuDocument {
   doc.mvp.milestones = doc.tech.milestones
   doc.mvp.success_criteria = '次日留存 30%'
   doc.market_analysis.market_size = '10 亿人民币'
-  doc.market_analysis.kpi_forecast = { dau: 1000 }
+  doc.market_analysis.kpi_forecast = ['DAU|1000|上线 3 个月']
   // 对齐一致性检查：战斗模式与 battle.config.turn_mode、两份风险矩阵、NPC 数量与列表
   doc.combat.combat_mode = 'turn_based'
   doc.risk_handling.risk_matrix = doc.resources.risk_matrix

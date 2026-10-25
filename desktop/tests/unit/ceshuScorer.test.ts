@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { CHAPTER_KEYS, type CeshuDocument } from '../../src/shared/ceshuConstants'
+import { CHAPTER_KEYS, type CeshuDocument, type ChapterKey } from '../../src/shared/ceshuConstants'
+import { CESHU_CHAPTER_FIELDS } from '../../src/shared/ceshuFields'
 import { createDefaultCeshu } from '../../src/shared/ceshuModel'
 import {
   CHAPTER_WORD_BENCHMARK,
   INDUSTRY_BENCHMARKS,
+  MARKET_SCORE_RULES,
   PASS_THRESHOLDS,
   countWordsInChapter,
   gradeLabel,
@@ -54,7 +56,7 @@ describe('N4 评分引擎：三维度（匹平 Python ceshu_scorer）', () => {
     expect(report.total_score).toBe(1.7)
   })
 
-  it('市场潜力：市场分析 7 + 商业模式 10 + MVP 10 + 差异化 1 = 28（kpi_forecast 为空对象不得分）', () => {
+  it('市场潜力：市场分析 7（kpi_forecast 未填）+ 商业模式 10 + MVP 10 + 差异化 1 = 28', () => {
     const doc = emptyDoc()
     doc.meta = { game_name: '测试游戏', game_type: 'RPG', positioning: '一句话定位', tags: ['标签'] }
     doc.market_analysis = { target_market: '国内', market_size: '百亿', competitors: [{ name: 'A' }, { name: 'B' }] }
@@ -64,6 +66,34 @@ describe('N4 评分引擎：三维度（匹平 Python ceshu_scorer）', () => {
 
     const report = scoreCeshu(doc)
     expect(report.market_potential_score).toBe(28)
+  })
+
+  /*
+   * 2026-10-26 回归：`kpi_forecast` 曾被默认值 / 模板 / 评分规则三处引用却没有字段定义，
+   * 市场分析章的满分因此只有 7（其它两章各 10）。补回字段后应能打满 10。
+   */
+  it('补齐 kpi_forecast 后市场分析可拿满 10 分', () => {
+    const doc = emptyDoc()
+    doc.market_analysis = {
+      target_market: '国内',
+      market_size: '百亿',
+      competitors: [{ name: 'A' }, { name: 'B' }],
+      kpi_forecast: ['DAU|20 万|上线 3 个月']
+    }
+    const report = scoreCeshu(doc)
+    // 市场分析四项齐活 = 10 分（未设差异化，故无 +1）
+    expect(report.market_potential_score).toBe(10)
+  })
+
+  it('评分规则引用的字段必须真实存在（防「规则指向不存在字段」再发生）', () => {
+    const missing: string[] = []
+    for (const [chapter, rules] of Object.entries(MARKET_SCORE_RULES)) {
+      const known = new Set((CESHU_CHAPTER_FIELDS[chapter as ChapterKey] ?? []).map((field) => field.key))
+      for (const [field] of rules) {
+        if (!known.has(field)) missing.push(`${chapter}.${field}`)
+      }
+    }
+    expect(missing, 'MARKET_SCORE_RULES 指向了不存在的字段').toEqual([])
   })
 })
 

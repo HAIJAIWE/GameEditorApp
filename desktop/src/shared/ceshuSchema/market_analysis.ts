@@ -80,6 +80,23 @@ export const MARKET_ANALYSIS_FIELDS: CeshuFieldDef[] = [
     placeholder: '每行一个',
     aiHint: '每行一个趋势并注明驱动因素；引用报告须标来源与年份',
     reviewHint: '是否注明来源或驱动因素；是否与定位一致；引用年份是否过期'
+  },
+  /*
+   * 2026-10-26 补回：`kpi_forecast` 一直被三处引用却没有字段定义——
+   * 默认值里有它（`{}`）、内置模板写了它、评分规则 `MARKET_SCORE_RULES` 也按它给 3 分。
+   * 后果是市场潜力满分只有 7（其它两章各 10），且应用模板时这段内容无处落地。
+   *
+   * 与第二十章「数据埋点」的分工：这里是**业务目标的预测值**（上线后要打到多少），
+   * 埋点章写的是**指标口径与采集方式**。不要互相抄。
+   */
+  {
+    key: 'kpi_forecast',
+    label: 'KPI 预测',
+    kind: 'pipeList',
+    placeholder: '指标|目标值|达成周期',
+    aiHint:
+      '3-6 个上线后要看的业务 KPI，每行「指标|目标值|达成周期」（如 DAU|20 万|上线 3 个月）；目标值须有依据（对标竞品或历史数据），无依据标「待确认」；埋点口径在第二十章，此处不写',
+    reviewHint: '指标是否可统计；目标值是否有依据；周期是否具体；与市场规模、竞品数据是否自洽'
   }
 ]
 
@@ -134,7 +151,7 @@ export const MARKET_ANALYSIS_DEFAULTS: ChapterData = {
   market_positioning: '',
   entry_barriers: '',
   market_trends: [],
-  kpi_forecast: {}
+  kpi_forecast: []
 }
 
 export const MARKET_ANALYSIS_TEMPLATES: ChapterTemplate[] = [
@@ -189,14 +206,14 @@ export const MARKET_ANALYSIS_TEMPLATES: ChapterTemplate[] = [
           direction: '需调整'
         }
       ],
-      kpi_forecast: {
-        dau: '20万',
-        mau: '100万',
-        retention_d1: '45%',
-        retention_d7: '20%',
-        arpu: '8元',
-        ltv: '120元'
-      }
+      kpi_forecast: [
+        'DAU|20 万|上线 3 个月',
+        'MAU|100 万|上线 6 个月',
+        '次日留存|45%|上线即达',
+        '7 日留存|20%|上线即达',
+        'ARPU|8 元|上线 6 个月',
+        'LTV|120 元|上线 12 个月'
+      ]
     }
   },
   {

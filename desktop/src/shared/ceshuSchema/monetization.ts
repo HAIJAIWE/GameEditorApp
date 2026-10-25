@@ -123,6 +123,20 @@ export const MONETIZATION_FIELDS: CeshuFieldDef[] = [
     placeholder: '名称|条件|有效期',
     aiHint: '2-4 个限时优惠，每行「名称|参与条件|有效期（时长或触发场景）」；避免纯折扣式付费压力',
     reviewHint: '是否有诱导性过强的时间压力；条件对免费玩家是否公平；是否与定价档位、付费模型自洽'
+  },
+  /*
+   * 2026-10-26 补回：`revenue_forecast` 与 `kpi_forecast` 同一类问题——默认值里有它（`{}`）、
+   * 两个内置模板都写了它，但字段表里没有定义，应用模板后这段内容无处落地。
+   * 商业化章确实需要「流水预测」，故补成字段而不是删数据。
+   */
+  {
+    key: 'revenue_forecast',
+    label: '流水预测',
+    kind: 'pipeList',
+    placeholder: '周期|流水目标|测算依据',
+    aiHint:
+      '2-4 行流水目标，每行「周期（首月/首年）|流水目标|测算依据」（如 首月|500 万|10 万套 × 50 元客单）；依据须可追溯，无依据标「待确认」，不要给假精确数字',
+    reviewHint: '测算依据是否可追溯；目标与 ARPU、付费率是否自洽；是否注明为估算而非承诺'
   }
 ]
 
@@ -190,7 +204,7 @@ export const MONETIZATION_DEFAULTS: ChapterData = {
   limited_offers: '',
   whale_strategy: '',
   f2p_experience: '',
-  revenue_forecast: {},
+  revenue_forecast: [],
   arpu_target: ''
 }
 
@@ -240,12 +254,11 @@ export const MONETIZATION_TEMPLATES: ChapterTemplate[] = [
       limited_offers: '节日限定外观 + 周年庆礼包 + 联动礼包',
       whale_strategy: '648 档位礼包 + 限定收集品 + 排行榜荣誉',
       f2p_experience: '免费玩家可获取全部核心内容；付费仅加速 + 外观；无 P2W',
-      revenue_forecast: {
-        '首月': '500万',
-        '首年': '3000万',
-        arpu: '8元'
-      },
-      arpu_target: '8元/月'
+      revenue_forecast: [
+        '首月|500 万|月卡 30 元档转化 3% + 战令 68 元档 2 万份',
+        '首年|3000 万|首月 500 万后按 8% 月复合增长'
+      ],
+      arpu_target: '8 元/月'
     }
   },
   {
@@ -283,11 +296,11 @@ export const MONETIZATION_TEMPLATES: ChapterTemplate[] = [
       limited_offers: '周年庆折扣 + 联动礼包',
       whale_strategy: '典藏版 + 实体周边',
       f2p_experience: '无免费体验，提供试玩 Demo',
-      revenue_forecast: {
-        '首月': '2000万（10万套）',
-        '首年': '5000万'
-      },
-      arpu_target: '198元（首购）+ 100元（DLC）'
+      revenue_forecast: [
+        '首月|2000 万|10 万套 × 198 元首购',
+        '首年|5000 万|首购 + DLC 转化 25%'
+      ],
+      arpu_target: '198 元（首购）+ 100 元（DLC）'
     }
   }
 ]

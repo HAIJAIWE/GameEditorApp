@@ -220,26 +220,11 @@ describe('ceshuTemplates 预览树', () => {
  * 模板数据守卫（2026-10-26）：模板是「填满的样例」，一旦键名或形态不对，
  * 用户点「应用模板」后拿到的是一堆无效字段——而且不会报错，只会静默写进章节。
  *
- * 下面这份清单是**已知的历史漂移**（Python 版字段名，合并迁移时模板没跟着改）。
- * 它们仍会被应用、仍会写进章节数据，但表单不渲染这些键，等于白写。
- * 处置原则：新模板一律不允许再出现野键（守卫会红）；老模板待人工校正后从清单里删。
+ * 首次加上这条守卫时抓到 13 个 Python 时代的野键（audio 5 个、accessibility 6 个、
+ * kpi_forecast、revenue_forecast），现已全部校正：能对应到现有字段的改键，
+ * 概念确实缺失的（KPI 预测 / 流水预测）补成字段。故此处**不再保留白名单**——
+ * 任何野键都应直接失败。
  */
-const KNOWN_LEGACY_DRIFT: ReadonlySet<string> = new Set([
-  'audio.music_tracks',
-  'audio.sfx_design',
-  'audio.voice_count',
-  'audio.adaptive_music',
-  'audio.localization_audio',
-  'accessibility.colorblind_support',
-  'accessibility.difficulty_options',
-  'accessibility.input_customization',
-  'accessibility.motion_reduction',
-  'accessibility.text_to_speech',
-  'accessibility.regional_compliance',
-  'market_analysis.kpi_forecast',
-  'monetization.revenue_forecast'
-])
-
 /**
  * 白名单（非债务）：`vision.user_personas` 在字段表里是点路径
  * `user_personas.primary` / `.secondary`，模板用嵌套对象写入，经 `setByPath`
@@ -256,26 +241,11 @@ describe('内置模板数据与字段定义对齐', () => {
         for (const key of Object.keys(template.data)) {
           if (known.has(key)) continue
           if (NESTED_EQUIVALENT_KEYS.has(`${chapter}.${key}`)) continue
-          if (KNOWN_LEGACY_DRIFT.has(`${chapter}.${key}`)) continue
           problems.push(`${chapter} / ${template.name}：未知字段 ${key}`)
         }
       }
     }
-    expect(problems, '模板里出现了字段表中不存在的键（新模板不允许）').toEqual([])
-  })
-
-  it('历史漂移清单不留僵尸条目（修好一个就从清单删掉）', () => {
-    const actual = new Set<string>()
-    for (const chapter of CHAPTER_KEYS) {
-      const known = new Set((CESHU_CHAPTER_FIELDS[chapter] ?? []).map((field) => field.key))
-      for (const template of listChapterTemplates(chapter)) {
-        for (const key of Object.keys(template.data)) {
-          if (!known.has(key)) actual.add(`${chapter}.${key}`)
-        }
-      }
-    }
-    const stale = [...KNOWN_LEGACY_DRIFT].filter((item) => !actual.has(item))
-    expect(stale, '这些键已不再是野键，请从 KNOWN_LEGACY_DRIFT 移除').toEqual([])
+    expect(problems, '模板里出现了字段表中不存在的键').toEqual([])
   })
 
   it('有列定义的 pipeList 必须存「带齐各列的对象」', () => {
