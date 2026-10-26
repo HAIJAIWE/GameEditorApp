@@ -14,7 +14,7 @@
  *
  * ## 与 `domain/ceshu/ceshuReports.ts::categorizeValidationError` 的分工
  * 后者是**导出的 Markdown 报告**用的五分类（required/conflict/warning/dep/other），
- * 刻意与 Python `validation_dialog._categorize` 逐字对齐（有测试锁定）；
+ * 刻意与 旧版 `validation_dialog._categorize` 逐字对齐（有测试锁定）；
  * 本模块服务**应用内面板**，分类更细（多出 格式异常/内容重复/术语不一致），
  * 两者不合并：一个求历史一致，一个求人看起来省力。
  */

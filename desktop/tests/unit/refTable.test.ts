@@ -25,7 +25,7 @@ describe('refTable：常量与 REF_TYPE_LABELS', () => {
     expect(REF_LEVEL_MAX).toBe(999)
   })
 
-  it('REF_TYPE_LABELS 对齐 Python 的 7 项复数键映射', () => {
+  it('REF_TYPE_LABELS 对齐 旧版 的 7 项复数键映射', () => {
     expect(REF_TYPE_LABELS).toEqual({
       skills: '技能',
       talents: '天赋',

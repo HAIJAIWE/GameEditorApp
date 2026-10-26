@@ -8,7 +8,7 @@ function makeDoc(name = '填充测试'): CeshuDocument {
   return createDefaultCeshu({ scope: 'full', name })
 }
 
-describe('策划书自动填充（匹平 Python auto_fill_required_fields）', () => {
+describe('策划书自动填充（匹平 旧版 auto_fill_required_fields）', () => {
   it('默认文档填充 48 个空必填字段，且不修改原文档（P2 后 +14）', () => {
     const doc = makeDoc()
     const { doc: filled, filled: count } = autoFillRequiredFields(doc)
@@ -19,7 +19,7 @@ describe('策划书自动填充（匹平 Python auto_fill_required_fields）', (
     expect(filled.meta.positioning).toBe('填充测试 - RPG 类型项目')
   })
 
-  it('填充值逐项对照 Python 规则', () => {
+  it('填充值逐项对照 旧版 规则', () => {
     const { doc: filled } = autoFillRequiredFields(makeDoc())
     expect(filled.meta.tags).toEqual(['rpg', '原创', '策划中'])
     expect(filled.vision.design_vision).toContain('打造一款具有差异化体验的RPG游戏')

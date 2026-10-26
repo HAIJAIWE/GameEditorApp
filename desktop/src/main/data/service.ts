@@ -49,7 +49,7 @@ export class DataService implements UndoRecorderPort {
 
   /**
    * 新建条目。记录 id 用 uuid（内部键：引用/撤销/IPC 定位），
-   * `data.id` 分配该类型下一个短序号（对齐 PyQt `data_manager.generate_id`：
+   * `data.id` 分配该类型下一个短序号（对齐 旧版 `data_manager.generate_id`：
    * 现有数值 id 的 max+1，0 起步）——列表/表单外显的是这个短 id。
    * 调用方自带 id（旧数据导入/AI 生成）时原样保留，不覆盖。
    */
@@ -104,7 +104,7 @@ export class DataService implements UndoRecorderPort {
   /**
    * 更新条目业务数据。记录 id 不可变（按 id 定位）。
    * `data.id` 是业务短 id，**不再**强制对齐记录 id（2026-10-13 去对齐：对齐会把
-   * 36 位 uuid 外显成 ID，与 PyQt `ID:0` 语义相反）。入参缺 id 时沿用存量
+   * 36 位 uuid 外显成 ID，与 旧版 `ID:0` 语义相反）。入参缺 id 时沿用存量
    * （防部分更新丢 id）；存量也没有（未迁移的 legacy 条目）则现场补发下一个短序号。
    */
   updateItem(id: string, data: Record<string, unknown>): Promise<ItemRecord> {
@@ -142,9 +142,9 @@ export class DataService implements UndoRecorderPort {
   }
 
   /**
-   * 批量字段操作（匹平 Python BatchEditDialog._on_apply）：整批走一次写队列任务。
+   * 批量字段操作（匹平 旧版 BatchEditDialog._on_apply）：整批走一次写队列任务。
    * 逐条读取最新数据 → 用共享纯函数计算新值 → 写回；
-   * - adjust_number 遇非数值：skipped 计数（与 Python continue 一致，不阻断整批）
+   * - adjust_number 遇非数值：skipped 计数（与 旧版 continue 一致，不阻断整批）
    * - id 不存在或类型不符：missing 计数
    */
   batchUpdate(input: BatchUpdateInput): Promise<BatchUpdateSummary> {
@@ -203,7 +203,7 @@ export class DataService implements UndoRecorderPort {
     })
   }
 
-  /** 批量删除：整批走一次写队列任务（与 Python delete_selected 一致，无级联） */
+  /** 批量删除：整批走一次写队列任务（与 旧版 delete_selected 一致，无级联） */
   deleteMany(ids: string[]): Promise<DeleteManySummary> {
     return this.enqueueWrite(() => {
       const summary: DeleteManySummary = { deleted: 0, missing: 0 }
@@ -242,11 +242,11 @@ export class DataService implements UndoRecorderPort {
   }
 
   /**
-   * 清空所有数据（对齐 PyQt `data_manager.clear_all`，菜单入口 `编辑 → 清空所有数据`）。
+   * 清空所有数据（对齐 旧版 `data_manager.clear_all`，菜单入口 `编辑 → 清空所有数据`）。
    *
    * 实现要点：**刻意走 `listAllItems()` + `deleteMany(ids)` 的统一路径**，
    * 而不是直接 `DELETE FROM items` —— 后者绕过撤销记录器，用户按下「撤销 (Ctrl+Z)」
-   * 却发现数据回不来（PyQt 侧的 `clear_all` 也是走 manager 的统一删除路径，故同样可撤销）。
+   * 却发现数据回不来（旧版 侧的 `clear_all` 也是走 manager 的统一删除路径，故同样可撤销）。
    *
    * 规模：`deleteMany` 逐条删（本仓数据量级下 O(N) 可接受），且整批只落**一条**
    * `deleteMany` 撤销条目（children 逐条），撤销栈不会被清空操作刷爆。

@@ -50,7 +50,7 @@ describe('自定义模板存储（W28）', () => {
     expect(store.list('vision')).toEqual([])
   })
 
-  it('章节为空 → global.json；按章节筛选与「全部」语义与 Python list_templates 一致', async () => {
+  it('章节为空 → global.json；按章节筛选与「全部」语义与 旧版 list_templates 一致', async () => {
     const dir = makeDir()
     const store = new CeshuTemplateStore(dir)
 

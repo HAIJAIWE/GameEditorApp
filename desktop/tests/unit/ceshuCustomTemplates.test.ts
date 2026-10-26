@@ -39,7 +39,7 @@ function template(overrides: Partial<CeshuCustomTemplate> = {}): CeshuCustomTemp
 }
 
 describe('ceshuCustomTemplates 新建与归一化', () => {
-  it('id 为 12 位十六进制（对应 Python uuid4().hex[:12]）', () => {
+  it('id 为 12 位十六进制（对应 旧版 uuid4().hex[:12]）', () => {
     const created = createCustomTemplate({ name: 'x' }, '2026-10-03 10:00:00')
     expect(created.id).toMatch(/^[0-9a-f]{12}$/)
   })
@@ -182,7 +182,7 @@ describe('ceshuCustomTemplates 查询与适配', () => {
   })
 })
 
-describe('ceshuCustomTemplates 编辑（对应 Python update_template）', () => {
+describe('ceshuCustomTemplates 编辑（对应 旧版 update_template）', () => {
   it('仅更新传入字段，其余保持；updated_at 刷新', () => {
     const target = template({ name: '旧名', description: '旧描述', tags: ['旧'], data: { a: 1 }, source_game: '旧来源' })
     const updated = applyCustomTemplateUpdate(target, { name: '  新名  ', tags: [' 新 ', ''] }, '2026-10-03 20:00:00')
@@ -201,7 +201,7 @@ describe('ceshuCustomTemplates 编辑（对应 Python update_template）', () =>
     expect(target.name).toBe('旧名')
   })
 
-  it('名称传入但去空白为空 → null（Python update_template 返回 False）', () => {
+  it('名称传入但去空白为空 → null（旧版 update_template 返回 False）', () => {
     expect(applyCustomTemplateUpdate(template(), { name: '   ' }, 'now')).toBeNull()
     expect(applyCustomTemplateUpdate(template(), { name: '' }, 'now')).toBeNull()
     // 不传 name 则不受影响
@@ -218,7 +218,7 @@ describe('ceshuCustomTemplates 编辑（对应 Python update_template）', () =>
   })
 })
 
-describe('ceshuCustomTemplates 导出（对应 Python export_templates）', () => {
+describe('ceshuCustomTemplates 导出（对应 旧版 export_templates）', () => {
   it('按分类名排序展平，每项附 _category，meta 计数正确', () => {
     const payload = buildTemplateExportFile(
       {
@@ -245,7 +245,7 @@ describe('ceshuCustomTemplates 导出（对应 Python export_templates）', () =
   })
 })
 
-describe('ceshuCustomTemplates 导入（对应 Python import_templates）', () => {
+describe('ceshuCustomTemplates 导入（对应 旧版 import_templates）', () => {
   it('支持 {"templates": [...]} 与裸数组；缺 id 生成、名称兜底、时间兜底', () => {
     const fromObject = parseTemplatesImportFile(
       { templates: [{ name: '  有名字  ' }, { name: '' }, 5] },
@@ -265,7 +265,7 @@ describe('ceshuCustomTemplates 导入（对应 Python import_templates）', () =
     expect(fromArray.templates[0]).toMatchObject({ id: 'fixed1', created_at: '2026-01-01 00:00:00', updated_at: 'now' })
   })
 
-  it('根结构不可用时返回空（Python 返回 0）', () => {
+  it('根结构不可用时返回空（旧版 返回 0）', () => {
     expect(parseTemplatesImportFile(null, 'now')).toEqual({ templates: [], skipped: 0 })
     expect(parseTemplatesImportFile({ templates: 'x' }, 'now')).toEqual({ templates: [], skipped: 0 })
     expect(parseTemplatesImportFile('raw', 'now')).toEqual({ templates: [], skipped: 0 })

@@ -49,7 +49,7 @@ export interface IpcHandlerDeps {
   /** 切换活跃库（由 `main/index.ts` 负责重建 store 与广播） */
   onSwitchLibrary: (name: string) => Promise<void>
   getAppInfo: () => import('../shared/types').AppInfo
-  /** 渲染层上报最后停留的界面模式，供 window-state.json 落盘（迁移 ui/window_state.py 的 last_tab_index） */
+  /** 渲染层上报最后停留的界面模式，供 window-state.json 落盘（迁移 ui/window_state 的 last_tab_index） */
   setWindowMode: (mode: string) => void
 }
 

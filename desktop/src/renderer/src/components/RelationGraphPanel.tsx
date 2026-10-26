@@ -4,17 +4,17 @@ import { UNKNOWN_TYPE_COLOR, buildRelationRows, buildSubjectDetailLine, itemDisp
 import type { DataTypeDef, ItemRecord } from '../../../shared/types'
 
 /**
- * 关系图面板（迁移自 Python `ui/widgets/relation_graph.py::RelationTablePanel`，
- * 经 `ui/main_window.py::_show_relation_graph` 由「工具 → 关系图」菜单打开）。
+ * 关系图面板（迁移自 旧版 `ui/widgets/relation_graph::RelationTablePanel`，
+ * 经 `ui/main_window::_show_relation_graph` 由「工具 → 关系图」菜单打开）。
  *
- * 与 PyQt 一致的三段式：类型选择器 + 主体选择器 → 主体信息卡 → 关联数据表（5 列，双击行跳转）。
+ * 与 旧版 一致的三段式：类型选择器 + 主体选择器 → 主体信息卡 → 关联数据表（5 列，双击行跳转）。
  * 行构建逻辑在 `shared/util/relationGraph.ts`（纯逻辑，已单测）。
  *
- * ## 与 PyQt 的**有意差异**
- * - PyQt 构造时接受 `initial_type/initial_id`（由数据表双击 / AI 工具带入）。TS 没有「数据表页」，
+ * ## 与 旧版 的**有意差异**
+ * - 旧版 构造时接受 `initial_type/initial_id`（由数据表双击 / AI 工具带入）。TS 没有「数据表页」，
  *   其两个调用点分别属于已下线的旧 IA 与 AI 域（E42 框架重写，不在本轮）→ 面板只保留菜单入口，
  *   不做无人调用的初始化参数（宁缺勿错）。
- * - PyQt 的「刷新」按钮只是重跑本地内存读取；TS 重跑一次 `data.listAll()`（数据在同进程外）。
+ * - 旧版 的「刷新」按钮只是重跑本地内存读取；TS 重跑一次 `data.listAll()`（数据在同进程外）。
  */
 
 interface RelationGraphPanelProps {

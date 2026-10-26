@@ -1,8 +1,8 @@
 /**
  * `system.code` 内置技能（A1-5）：在 QuickJS WASM 沙箱里执行不可信 JS。
  *
- * 对应 Python `core/agent/skills/code_skill.py`，但**实现整体替换**（见 `docs/a-tier-plan.md` §2.2/§2.4）：
- * Python 是 `subprocess.run([sys.executable, script])` + 正则黑名单（可绕），
+ * 对应 旧版 `core/agent/skills/code_skill`，但**实现整体替换**（见 `docs/a-tier-plan.md` §2.2/§2.4）：
+ * 旧版 是 `subprocess.run([sys.executable, script])` + 正则黑名单（可绕），
  * TS 侧用已预演的 `runInSandbox`——WASM 沙箱、默认零宿主能力（无 require/process/fs/网络）、
  * 带 CPU 超时与内存上限。
  *

@@ -50,7 +50,7 @@ function makeV4Raw(): Record<string, unknown> {
   }
 }
 
-describe('needsV4Migration（对齐 Python from_dict 的缺章检测）', () => {
+describe('needsV4Migration（对齐 旧版 from_dict 的缺章检测）', () => {
   it('version=4.0 → 需要迁移', () => {
     expect(needsV4Migration({ version: '4.0' })).toBe(true)
   })
@@ -107,7 +107,7 @@ describe('migrateV4ToV5：全部派生规则', () => {
     ])
   })
 
-  it('vision.business_model 优先于 systems.economy.payment_system 写入 monetization.payment_model（顺序对齐 Python）', () => {
+  it('vision.business_model 优先于 systems.economy.payment_system 写入 monetization.payment_model（顺序对齐 旧版）', () => {
     expect((migrated.monetization as Record<string, unknown>).payment_model).toBe('买断制')
   })
 
@@ -158,7 +158,7 @@ describe('migrateV4ToV5：全部派生规则', () => {
   })
 })
 
-describe('migrateV4ToV5：守卫与 Python 真值语义', () => {
+describe('migrateV4ToV5：守卫与 旧版 真值语义', () => {
   it('目标已填时不覆写', () => {
     const raw = makeV4Raw()
     raw.combat = { damage_formula: '既有公式' }
@@ -168,7 +168,7 @@ describe('migrateV4ToV5：守卫与 Python 真值语义', () => {
     expect((migrated.market_analysis as Record<string, unknown>).competitors).toEqual([{ name: '已有竞品' }])
   })
 
-  it('空数组 / 空串按 Python 真值为假 → 不产生派生', () => {
+  it('空数组 / 空串按 旧版 真值为假 → 不产生派生', () => {
     const raw: Record<string, unknown> = {
       version: '4.0',
       vision: { competitive_analysis: [], business_model: '' },

@@ -124,7 +124,7 @@ describe('loadVisibleTypes（注入假 storage）', () => {
     expect(loadVisibleTypes(storage)).toBeNull()
   })
 
-  it("'[]' → []（修复 Python「全不选重启失效」）", () => {
+  it("'[]' → []（修复 旧版「全不选重启失效」）", () => {
     const storage = new FakeStorage()
     storage.setItem(VISIBLE_TYPES_STORAGE_KEY, '[]')
     expect(loadVisibleTypes(storage)).toEqual([])

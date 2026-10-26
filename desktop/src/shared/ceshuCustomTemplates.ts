@@ -2,15 +2,15 @@ import { isPlainObject } from './ceshuModel'
 import type { ChapterTemplate } from './ceshuTemplates'
 
 /**
- * 自定义模板纯逻辑（自 Python `core/ceshu/custom_template_manager.py` 匹平迁移）。
- * 存储布局与 Python 一致：`<root>/custom_templates/<category>.json`，category = 章节键或 `global`，
+ * 自定义模板纯逻辑（自 旧版 `core/ceshu/custom_template_manager` 匹平迁移）。
+ * 存储布局与 旧版 一致：`<root>/custom_templates/<category>.json`，category = 章节键或 `global`，
  * 每个文件结构为 `{"templates": [...]}`；本条模块只做数据类型与数组级操作，磁盘读写在主进程 templateStore。
  */
 
 /** 全局分类（不绑定具体章节的模板） */
 export const CUSTOM_TEMPLATE_GLOBAL_CATEGORY = 'global'
 
-/** 名称必填错误文案（对应 Python `save_template` 的 ValueError） */
+/** 名称必填错误文案（对应 旧版 `save_template` 的 ValueError） */
 export const TEMPLATE_NAME_REQUIRED_ERROR = '模板名称不能为空'
 
 export interface CeshuCustomTemplate {
@@ -28,12 +28,12 @@ export interface CeshuCustomTemplate {
   source_game: string
 }
 
-/** 分类文件结构（与 Python 一致：{"templates": [...]}） */
+/** 分类文件结构（与 旧版 一致：{"templates": [...]}） */
 export interface CustomTemplateFile {
   templates: CeshuCustomTemplate[]
 }
 
-/** 新建模板的输入（对应 Python save_template 参数） */
+/** 新建模板的输入（对应 旧版 save_template 参数） */
 export interface CustomTemplateDraft {
   name: string
   description?: string
@@ -44,25 +44,25 @@ export interface CustomTemplateDraft {
   sourceGame?: string
 }
 
-/** 模板 id：12 位十六进制（对应 Python uuid4().hex[:12]） */
+/** 模板 id：12 位十六进制（对应 旧版 uuid4().hex[:12]） */
 export function createCustomTemplateId(): string {
   return globalThis.crypto.randomUUID().replace(/-/g, '').slice(0, 12)
 }
 
-/** 名称是否有效（去空白后非空；对应 Python 的 name.strip() 校验） */
+/** 名称是否有效（去空白后非空；对应 旧版 的 name.strip() 校验） */
 export function isValidCustomTemplateName(name: string): boolean {
   return Boolean(name && name.trim())
 }
 
-/** 分类归一化：空 → global（对应 Python `category or GLOBAL_CATEGORY`） */
+/** 分类归一化：空 → global（对应 旧版 `category or GLOBAL_CATEGORY`） */
 export function normalizeTemplateCategory(chapterKey: string): string {
   return chapterKey || CUSTOM_TEMPLATE_GLOBAL_CATEGORY
 }
 
 /**
- * 分类名净化（对应 Python `_category_path` 的路径穿越防护）：
+ * 分类名净化（对应 旧版 `_category_path` 的路径穿越防护）：
  * 仅保留字母/数字/下划线/连字符，结果为空则回退 global。
- * 有意偏离：Python 用 `str.isalnum()`（中文等 Unicode 字母也算合法），此处限定 ASCII（本项目章节键均为 ASCII）。
+ * 有意偏离：旧版 用 `str.isalnum()`（中文等 Unicode 字母也算合法），此处限定 ASCII（本项目章节键均为 ASCII）。
  */
 export function safeTemplateCategory(chapterKey: string): string {
   const safe = [...normalizeTemplateCategory(chapterKey)]
@@ -71,7 +71,7 @@ export function safeTemplateCategory(chapterKey: string): string {
   return safe || CUSTOM_TEMPLATE_GLOBAL_CATEGORY
 }
 
-/** 新建模板（名称非法时抛错；字段归一化与 Python 一致） */
+/** 新建模板（名称非法时抛错；字段归一化与 旧版 一致） */
 export function createCustomTemplate(draft: CustomTemplateDraft, now: string): CeshuCustomTemplate {
   if (!isValidCustomTemplateName(draft.name)) {
     throw new Error(TEMPLATE_NAME_REQUIRED_ERROR)
@@ -89,7 +89,7 @@ export function createCustomTemplate(draft: CustomTemplateDraft, now: string): C
   }
 }
 
-/** 标签归一化：去空白、去空项（对应 Python `[t.strip() for t in tags if t and t.strip()]`） */
+/** 标签归一化：去空白、去空项（对应 旧版 `[t.strip() for t in tags if t and t.strip()]`） */
 export function normalizeTemplateTags(tags: string[] | undefined): string[] {
   return (tags ?? []).map((tag) => tag.trim()).filter((tag) => tag.length > 0)
 }
@@ -99,12 +99,12 @@ export function parseTemplateTagsInput(text: string): string[] {
   return normalizeTemplateTags(text.split(/[,，、\n]/))
 }
 
-/** 按创建时间升序（时间戳为本地固定格式，字符串序即时间序；Python 同样按 created_at 排序） */
+/** 按创建时间升序（时间戳为本地固定格式，字符串序即时间序；旧版 同样按 created_at 排序） */
 export function sortCustomTemplates(templates: CeshuCustomTemplate[]): CeshuCustomTemplate[] {
   return [...templates].sort((a, b) => a.created_at.localeCompare(b.created_at))
 }
 
-/** 按章节筛选：指定章节取该章模板；为空取全部（含 global）——与 Python `list_templates` 一致 */
+/** 按章节筛选：指定章节取该章模板；为空取全部（含 global）——与 旧版 `list_templates` 一致 */
 export function filterCustomTemplates(
   templates: CeshuCustomTemplate[],
   chapterKey: string | undefined
@@ -141,9 +141,9 @@ export function customTemplateToChapterTemplate(template: CeshuCustomTemplate): 
 }
 
 /**
- * 解析分类文件（容错，对应 Python `_load_category`）：
+ * 解析分类文件（容错，对应 旧版 `_load_category`）：
  * 非对象或 templates 非数组 → 空列表；逐条归一化，缺少有效 id 的条目丢弃
- * （有意偏离：Python 原样保留无 id 条目，但那类模板无法被查询/删除）。
+ * （有意偏离：旧版 原样保留无 id 条目，但那类模板无法被查询/删除）。
  */
 export function parseTemplateCategoryFile(raw: unknown): CeshuCustomTemplate[] {
   const list = isPlainObject(raw) && Array.isArray(raw.templates) ? raw.templates : []
@@ -173,14 +173,14 @@ export function normalizeCustomTemplate(raw: unknown): CeshuCustomTemplate | nul
   }
 }
 
-/** 序列化为磁盘结构（与 Python indent=2 / ensure_ascii=False 等价，落盘用 JSON.stringify(…, null, 2)） */
+/** 序列化为磁盘结构（与 旧版 indent=2 / ensure_ascii=False 等价，落盘用 JSON.stringify(…, null, 2)） */
 export function serializeTemplateCategoryFile(templates: CeshuCustomTemplate[]): CustomTemplateFile {
   return { templates: sortCustomTemplates(templates) }
 }
 
-/* ---- 编辑（对应 Python update_template） ---- */
+/* ---- 编辑（对应 旧版 update_template） ---- */
 
-/** 可更新字段（仅传入的键会被改动，对应 Python **fields） */
+/** 可更新字段（仅传入的键会被改动，对应 旧版 **fields） */
 export interface CustomTemplateUpdate {
   name?: string
   description?: string
@@ -191,7 +191,7 @@ export interface CustomTemplateUpdate {
 }
 
 /**
- * 应用字段更新（对应 Python `update_template` 的字段归一化）：
+ * 应用字段更新（对应 旧版 `update_template` 的字段归一化）：
  * name 传入且去空白为空 → 返回 null（调用方按「更新失败」处理）；其余字段仅在传入时更新；updated_at 刷新。
  * 说明：章节（chapter_key）变化后的**分类文件迁移**由存储层负责。
  */
@@ -213,18 +213,18 @@ export function applyCustomTemplateUpdate(
   }
 }
 
-/* ---- 导出（对应 Python export_templates） ---- */
+/* ---- 导出（对应 旧版 export_templates） ---- */
 
 /** 导出条目：模板字段 + `_category` 归属分类 */
 export type CustomTemplateExportEntry = CeshuCustomTemplate & { _category: string }
 
-/** 导出文件结构（对应 Python `{_export_meta, templates}`） */
+/** 导出文件结构（对应 旧版 `{_export_meta, templates}`） */
 export interface CustomTemplateExportFile {
   _export_meta: { export_time: string; template_count: number }
   templates: CustomTemplateExportEntry[]
 }
 
-/** 构造导出载荷：按分类名排序展平，每项附 `_category`（对应 Python `sorted(all_cats.items())`） */
+/** 构造导出载荷：按分类名排序展平，每项附 `_category`（对应 旧版 `sorted(all_cats.items())`） */
 export function buildTemplateExportFile(
   categories: Record<string, CeshuCustomTemplate[]>,
   exportTime: string
@@ -241,7 +241,7 @@ export function buildTemplateExportFile(
   }
 }
 
-/* ---- 导入（对应 Python import_templates） ---- */
+/* ---- 导入（对应 旧版 import_templates） ---- */
 
 /** 单条导入归一化：缺 id 生成新 id；名称空 → 「未命名模板」；updated_at = 导入时间 */
 export function normalizeImportedTemplate(raw: unknown, now: string): CeshuCustomTemplate | null {
@@ -261,7 +261,7 @@ export function normalizeImportedTemplate(raw: unknown, now: string): CeshuCusto
 }
 
 /**
- * 解析导入文件（对应 Python `import_templates` 的读取部分）：
+ * 解析导入文件（对应 旧版 `import_templates` 的读取部分）：
  * 支持 `{"templates": [...]}` 与裸数组；返回归一化列表与结构上被丢弃的条目数。
  * 说明：同 id 是否覆盖由存储层判定（需要已知现有模板）。
  */

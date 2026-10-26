@@ -15,7 +15,7 @@ function record(id: string, data: Record<string, unknown>): ItemRecord {
 
 const UUID = '195370b2-92be-484c-a06f-64ba1de68300'
 
-describe('itemId 工具（PyQt generate_id 语义）', () => {
+describe('itemId 工具（旧版 generate_id 语义）', () => {
   it('isUuidLikeId 只认标准 UUID 形态', () => {
     expect(isUuidLikeId(UUID)).toBe(true)
     expect(isUuidLikeId('0')).toBe(false)
@@ -43,7 +43,7 @@ describe('itemId 工具（PyQt generate_id 语义）', () => {
     expect(nextItemId([])).toBe('0')
     expect(nextItemId([{ data: {} }, { data: { id: '2' } }])).toBe('3')
     expect(nextItemId([{ data: { id: 'boss-01' } }, { data: { id: '5' } }])).toBe('6')
-    // 断档取 max+1（与 PyQt 计数器一致）：0/2 并存 → 下一个是 3
+    // 断档取 max+1（与 旧版 计数器一致）：0/2 并存 → 下一个是 3
     expect(nextItemId([{ data: { id: '0' } }, { data: { id: '2' } }])).toBe('3')
     expect(nextItemId([{ data: { id: -1 } }])).toBe('0')
   })

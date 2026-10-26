@@ -2,7 +2,7 @@
 
 > 切片：把编辑器里编辑好的游戏数据表（角色/技能/怪物/装备等，存 SQLite，带类型 schema）导出为**游戏引擎可直接使用的代码或配置文件**。
 > 形态：**增量**（新增为主，不改现有存储路径与业务路径）。规模：**≤10 个源文件**的一刀。
-> 事实依据：`src/ui/dialogs/engine_export.py`（旧版参考）、`desktop/src/main/ceshu/export/{exporter,excel}.ts`、`desktop/src/main/data/legacyExport.ts`、`desktop/src/shared/types.ts`、`desktop/src/main/schema/store.ts`。
+> 事实依据：`src/ui/dialogs/engine_export`（旧版参考）、`desktop/src/main/ceshu/export/{exporter,excel}.ts`、`desktop/src/main/data/legacyExport.ts`、`desktop/src/shared/types.ts`、`desktop/src/main/schema/store.ts`。
 
 ---
 
@@ -31,7 +31,7 @@
 | **P0** | 导出落盘（原子写 temp→rename，缺扩展名补 `.lua`） | Lua | `.lua` 文件 + `{ filePath, engine, bytes }` 结果 | vitest 写临时目录断言文件内容与返回值 |
 | **P0** | IPC 契约 + 主进程 handler + 输入校验（zod） | 通用 | 新通道 `engine:exportData` | tsc 通过 + schema 单测（非法输入返回中文错误） |
 | **P1** | 字段按键序稳定输出（先 schema 字段序、后额外键） | Lua | — | vitest 断言两次渲染结果完全一致 |
-| **P1** | Unity 类型骨架导出（`ScriptableObject` + `[Serializable]` 类） | Unity | 单个 `.cs` 文件（仅类定义，与 Python 同构） | vitest 断言含类名/字段 |
+| **P1** | Unity 类型骨架导出（`ScriptableObject` + `[Serializable]` 类） | Unity | 单个 `.cs` 文件（仅类定义，与 旧版 同构） | vitest 断言含类名/字段 |
 | **P1** | Unreal 类型骨架导出（`USTRUCT` + `UPROPERTY`） | Unreal | 单个 `.h` 头文件 | vitest 断言含 `USTRUCT`/字段 |
 | **P1** | 渲染层导出入口（菜单/按钮接到新 IPC） | 通用 | UI 触发文件对话框 + 导出 | 手工/集成（本机无 E2E） |
 | **P2** | 导出选项：是否含注释、命名空间/模块名 | Lua | 同上，内容可裁剪/包裹 | vitest 开关断言 |
@@ -146,7 +146,7 @@ return GameData
 ## 7. 明确不做（本刀）
 
 - **不做** Godot / Cocos 导出（P2，先验证 Lua 主路径，避免多引擎半成品）。理由：一刀内深度不足，主路径优先。
-- **不做** Unity / Unreal 的**数据填充**（Python 版仅生成类型骨架、不填数据；本刀不复制这种「看似可用实则空壳」的产物，留待 P1 明确形态）。理由：避免误导策划把空骨架当交付。
+- **不做** Unity / Unreal 的**数据填充**（早期版本仅生成类型骨架、不填数据；本刀不复制这种「看似可用实则空壳」的产物，留待 P1 明确形态）。理由：避免误导策划把空骨架当交付。
 - **不修改** `main/library/**`、数据表增删改逻辑、`type_schema.json` 存储（仅**读取** `DataService.listAllItems()` 与 `TypeSchemaStore.getTypes()`）。理由：本切片为增量，禁止触碰现有存储/业务路径。
 - **不做** 画面级 UI 打磨与 E2E（本机沙箱无法启动 Electron）。理由：验收靠纯函数 vitest 闭环；UI 入口在 P1 接既有导出位置。
 - **不做** 引擎侧运行时验证（不在游戏里实跑）。理由：超出编辑器边界。

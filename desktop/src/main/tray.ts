@@ -1,7 +1,7 @@
 /**
  * 托盘与全局热键（A1-5）：Electron `Tray` + `globalShortcut`。
  *
- * 对应 Python 的 `ui/digital_employee.py` / `ui/digital_panel_tasks.py` 里「常驻入口」的语义，
+ * 对应 旧版 的 `ui/digital_employee` / `ui/digital_panel_tasks` 里「常驻入口」的语义，
  * 但实现换成 Electron 原生能力。
  *
  * 设计：**全部操作防御式包装并返回是否成功**——托盘/热键在无桌面会话、被其它应用占用、

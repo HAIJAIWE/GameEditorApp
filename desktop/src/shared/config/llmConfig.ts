@@ -44,18 +44,18 @@ import {
 export * from './llmConfigData'
 
 /**
- * LLM 服务商配置（对齐 Python `src/ui/dialogs/api_config.py` 的「基础设置」页 +
+ * LLM 服务商配置（对齐 旧版 `src/ui/dialogs/api_config` 的「基础设置」页 +
  * `MODEL_PRESETS`）。
  *
  * ## 范围（有意收窄，只做真正被消费的部分）
  *
- * PyQt 那个对话框 686 行 / 4 个 tab，本轮**只迁「基础设置」**，因为只有它有真实消费者：
+ * 旧版 那个对话框 686 行 / 4 个 tab，本轮**只迁「基础设置」**，因为只有它有真实消费者：
  * - ✅ **服务商 / API Key / 接口地址 / 模型 / 温度 / 最大令牌** ——
- *   `features/ai.py:43`（`get_config()` 后判 `config.enabled`、读 model/temperature）、
- *   `core/agent/intent.py:434`、`core/agent/skills/code_skill.py:270`、
- *   `ceshu_skill_generate.py:25` 都真读这些字段。
- * - ❌ **不迁「模型管理」tab 的自定义模型增删改**（`api_config.py:249-286` + `:478-547`）：
- *   它写的是 PyQt 自己的 `custom_models.json`（`_load_custom_models`/`_save_custom_models`），
+ *   `features/ai:43`（`get_config()` 后判 `config.enabled`、读 model/temperature）、
+ *   `core/agent/intent:434`、`core/agent/skills/code_skill:270`、
+ *   `ceshu_skill_generate:25` 都真读这些字段。
+ * - ❌ **不迁「模型管理」tab 的自定义模型增删改**（`api_config:249-286` + `:478-547`）：
+ *   它写的是 旧版 自己的 `custom_models.json`（`_load_custom_models`/`_save_custom_models`），
  *   而 TS 侧的模型清单**来自 Ollama 运行时**（`llm/client.ts:33` `client.list()`），
  *   没有同一个消费者 ⇒ 照搬就是「能存但没人读」的假控件。
  * - ❌ **不迁「视觉模型」tab**：TS 侧无视觉模型消费者（无截图识别/UI 分析链路）。
@@ -68,11 +68,11 @@ export * from './llmConfigData'
  * 的 `llmApiKey`）。理由与 `imageGenConfig.ts` 完全相同：localStorage 对渲染层全部
  * JS 可读，明文存 Key 等于把它交给任何注入的脚本。
  *
- * ## 与 PyQt 的差异
- * PyQt 的 `MODEL_PRESETS`（`api_config.py:35`）硬编码 6 家服务商的模型清单与 base_url。
+ * ## 与 旧版 的差异
+ * 旧版 的 `MODEL_PRESETS`（`api_config:35`）硬编码 6 家服务商的模型清单与 base_url。
  * 这里照抄那份清单（它是**真实可用的默认值**，不是臆测），但：
- * - 选中的 model 允许为空 ⇒ 交给 `llm/client.ts` 运行时探测（PyQt 也允许手填）。
- * - base_url 允许为空 ⇒ 回落该服务商的预设地址（PyQt 是选服务商就自动填）。
+ * - 选中的 model 允许为空 ⇒ 交给 `llm/client.ts` 运行时探测（旧版 也允许手填）。
+ * - base_url 允许为空 ⇒ 回落该服务商的预设地址（旧版 是选服务商就自动填）。
  */
 
 export function isLlmProvider(value: unknown): value is LlmProvider {
@@ -248,7 +248,7 @@ export function isCloudProvider(config: StoredLlmConfig): boolean {
   return !config.confidential && config.provider !== 'ollama'
 }
 
-/** 生效的接口地址：用户填了用用户的，否则用服务商预设（对齐 PyQt 选服务商即自动填） */
+/** 生效的接口地址：用户填了用用户的，否则用服务商预设（对齐 旧版 选服务商即自动填） */
 export function resolveLlmBaseUrl(config: StoredLlmConfig): string {
   const trimmed = config.baseUrl.trim()
   const provider = effectiveProvider(config)
@@ -261,7 +261,7 @@ export function resolveLlmBaseUrl(config: StoredLlmConfig): string {
 
 /**
  * 校验配置是否可用。返回中文原因（可直接展示），`null` 表示通过。
- * 规则对齐 PyQt `test_connection`（`api_config.py:643-650`）：非 Ollama 必须有 Key。
+ * 规则对齐 旧版 `test_connection`（`api_config:643-650`）：非 Ollama 必须有 Key。
  */
 export function validateLlmConfig(config: StoredLlmConfig): string | null {
   if (!config.enabled) return LLM_MESSAGES.disabled

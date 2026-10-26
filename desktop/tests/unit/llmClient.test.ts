@@ -136,7 +136,7 @@ describe('LlmClient：未配置闸所依赖的跨层前提', () => {
 })
 
 /*
- * E63：LlmClient.testConnection（真实连通性探测，对齐 Python api_config.py 的「测试连接」）。
+ * E63：LlmClient.testConnection（真实连通性探测，对齐 旧版 api_config 的「测试连接」）。
  * 设计铁律：**不抛错**——所有成功/失败都转成 `{ ok, message }` 供 UI 直接展示。
  * 下面按「未配置 / claude / OpenAI 可达 / OpenAI HTTP 失败 / OpenAI 网络异常 / Ollama 可用 / Ollama 不可用」
  * 七个分支锁死行为，防止哪天有人把「探测」写成「发正式请求」或「抛错」。

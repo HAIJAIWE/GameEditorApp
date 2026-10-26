@@ -9,11 +9,11 @@ import {
 } from '../../src/shared/util/dataCountConstraint'
 
 /**
- * 数量约束纯逻辑 —— 对照 PyQt `ui/data_tab.py::DataEditorTab._check_count_constraint`
+ * 数量约束纯逻辑 —— 对照 旧版 `ui/data_tab::DataEditorTab._check_count_constraint`
  * 的逐条分支写用例（字段优先级 / 值类型容忍 / 非法值跳过 / 无上限即不约束 / 超限判定 / 提示文案）。
  */
 describe('数量约束：上限字段优先级', () => {
-  it('字段顺序与 Python 字面量一致：count → <type>_count → max_count → total_count', () => {
+  it('字段顺序与 旧版 字面量一致：count → <type>_count → max_count → total_count', () => {
     expect(countLimitFieldNames('skill')).toEqual(['count', 'skill_count', 'max_count', 'total_count'])
   })
 
@@ -30,20 +30,20 @@ describe('数量约束：上限字段优先级', () => {
     expect(resolveCountLimit({ count: 'abc', max_count: 2 }, 'skill')).toBe(2)
   })
 
-  it('浮点被跳过并继续试下一个字段；布尔不算数字（**刻意偏离** Python 的 `int(True) == 1`）', () => {
+  it('浮点被跳过并继续试下一个字段；布尔不算数字（**刻意偏离** 旧版 的 `int(True) == 1`）', () => {
     expect(resolveCountLimit({ count: 2.5, skill_count: 8 }, 'skill')).toBe(8)
-    // Python 里 `isinstance(True, (int, str))` 为真、`int(True) == 1` ⇒ 会得到上限 1；
+    // 旧版 里 `isinstance(True, (int, str))` 为真、`int(True) == 1` ⇒ 会得到上限 1；
     // TS 显式跳过（上限字段出现布尔本身就是数据错误）。实测对照见 migration-audit 的 E51 偏离小节。
     expect(resolveCountLimit({ count: true }, 'skill')).toBeNull()
   })
 
-  it('字符串只认十进制字面量：下划线分隔 / 全角数字被拒绝（**刻意偏离** Python 宽松的 `int()`）', () => {
-    // Python: int('1_0') == 10、int('１２') == 12；这里一律跳过
+  it('字符串只认十进制字面量：下划线分隔 / 全角数字被拒绝（**刻意偏离** 旧版 宽松的 `int()`）', () => {
+    // 旧版: int('1_0') == 10、int('１２') == 12；这里一律跳过
     expect(resolveCountLimit({ count: '1_0', max_count: 4 }, 'skill')).toBe(4)
     expect(resolveCountLimit({ count: '１２' }, 'skill')).toBeNull()
   })
 
-  it('JS 无法区分 3 与 3.0：整值数字按生效处理（Python 把 3.0 当 float 跳过，语言层不可复现）', () => {
+  it('JS 无法区分 3 与 3.0：整值数字按生效处理（旧版 把 3.0 当 float 跳过，语言层不可复现）', () => {
     expect(resolveCountLimit({ count: 3 }, 'skill')).toBe(3)
     expect(resolveCountLimit({ count: JSON.parse('{"count":3.0}').count }, 'skill')).toBe(3)
   })
@@ -91,7 +91,7 @@ describe('数量约束：定位约束系统', () => {
     ).toBeNull()
   })
 
-  it('系统缺 data_type 时回退到 key（与 computeEnabledEditors 的解析口径一致，刻意偏离 Python 的严格判断）', () => {
+  it('系统缺 data_type 时回退到 key（与 computeEnabledEditors 的解析口径一致，刻意偏离 旧版 的严格判断）', () => {
     expect(findCountConstraint({ skill: { name: '技能', config: { count: 2 } } }, 'skill')).toEqual({
       key: 'skill',
       name: '技能',
@@ -112,7 +112,7 @@ describe('数量约束：定位约束系统', () => {
 describe('数量约束：超限判定与提示文案', () => {
   const constraint = { key: 'skills', name: '技能系统', limit: 3 }
 
-  it('未达上限放行、恰好等于上限即拦下（Python：`current < limit` 才放行）', () => {
+  it('未达上限放行、恰好等于上限即拦下（旧版：`current < limit` 才放行）', () => {
     expect(exceedsCountConstraint(0, constraint)).toBe(false)
     expect(exceedsCountConstraint(2, constraint)).toBe(false)
     expect(exceedsCountConstraint(3, constraint)).toBe(true)

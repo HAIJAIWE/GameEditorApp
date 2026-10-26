@@ -1,5 +1,5 @@
 /**
- * 系统确认纯逻辑（自 Python `ui/ceshu/system_confirm_dialog.py` 匹平迁移）。
+ * 系统确认纯逻辑（自 旧版 `ui/ceshu/system_confirm_dialog` 匹平迁移）。
  * 把「AI 生成策划书后弹出确认」对话框里的可测试逻辑抽成纯函数：
  *  - `formatFieldsPreview`：把某个系统的标准字段架构渲染成可读预览文本
  *  - `buildSystemConfirmResult`：根据最终勾选 + 自定义系统，产出新的 systems 映射
@@ -9,15 +9,15 @@
 import { SYSTEM_CONFIG_SCHEMA } from './systemConfigSchema'
 import { SYSTEM_LABELS, type SystemEntry } from './ceshuConstants'
 
-/** 字段预览最多展示的字段数（与 Python `_format_fields_preview` 的 `parts[:8]` 一致） */
+/** 字段预览最多展示的字段数（与 旧版 `_format_fields_preview` 的 `parts[:8]` 一致） */
 export const FIELDS_PREVIEW_LIMIT = 8
 
 /**
- * 渲染某系统的标准字段架构预览（对齐 Python `_format_fields_preview`）。
+ * 渲染某系统的标准字段架构预览（对齐 旧版 `_format_fields_preview`）。
  * 仅当该系统在 SYSTEM_CONFIG_SCHEMA 中有定义时才产生预览；未定义的自定义系统返回空串。
  *
  * 字段行格式：`• {fname}（{label}, {kind}）{= current_val}`；超过 8 个追加「... 共 N 个字段」。
- * `current_val` 取自 config[fname]（Python 的 `config.get(fname, "")`），空值不展示。
+ * `current_val` 取自 config[fname]（旧版 的 `config.get(fname, "")`），空值不展示。
  */
 export function formatFieldsPreview(sysKey: string, config: Record<string, unknown> = {}): string {
   const fields = SYSTEM_CONFIG_SCHEMA[sysKey]
@@ -62,12 +62,12 @@ function asSystemEntry(value: unknown, fallbackKey: string): SystemEntry {
 }
 
 /**
- * 根据最终勾选 + 自定义系统，产出新的 systems 映射（对齐 Python `SystemConfirmDialog._on_confirm`）。
+ * 根据最终勾选 + 自定义系统，产出新的 systems 映射（对齐 旧版 `SystemConfirmDialog._on_confirm`）。
  *
  * 规则：
  *  - 既有系统：enabled 由 enabledKeys 决定（未勾选置 false，已勾选置 true），name/config 保留；
  *  - 自定义系统（customSystems）：若已存在则置 enabled=true 并写入 name；若不存在则新增
- *    `{ enabled: true, name, config: { note: '自定义系统' } }`（对齐 Python `add_system` + 写 name）；
+ *    `{ enabled: true, name, config: { note: '自定义系统' } }`（对齐 旧版 `add_system` + 写 name）；
  *  - 返回 enabledKeys 为结果中实际启用的全部系统键（含自定义）。
  */
 export function buildSystemConfirmResult(

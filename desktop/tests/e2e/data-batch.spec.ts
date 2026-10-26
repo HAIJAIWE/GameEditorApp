@@ -74,7 +74,7 @@ test('批量操作（自选作用范围）：按类型批量改值 → 数值增
     expect(renamed).toHaveLength(3)
     expect(renamed.every((item) => item.data['name'] === '批量改名')).toBe(true)
 
-    // 数值增减作用于文本字段：全部跳过并给出计数（与 Python continue 语义一致）
+    // 数值增减作用于文本字段：全部跳过并给出计数（与 旧版 continue 语义一致）
     await openMenuItem(window, 'tools', 'batchEdit')
     await window.getByTestId('batch-op').selectOption('adjust_number')
     await window.getByTestId('batch-field').selectOption('name')

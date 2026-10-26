@@ -19,21 +19,21 @@ import type { DataTypeDef, ItemRecord } from '../../../shared/types'
 import { toErrorMessage } from '../../../shared/util/errors'
 
 /**
- * 快速入门面板（对齐 Python `ui/widgets/home_widget.py` 的引导式主页 `HomeWidget`）。
+ * 快速入门面板（对齐 旧版 `ui/widgets/home_widget` 的引导式主页 `HomeWidget`）。
  * 菜单入口：**帮助 → 快速入门**（`MenuBar.tsx`）。
  *
  * ## 迁了什么
  * - **引导区** `OnboardingGuide`：标题行「🚀 快速入门」+ 折叠（▼/▶）+ 进度「N/5 已完成」+
  *   关闭（✕）；`STEPS_PER_ROW` 列的步骤卡（24px 圆形序号徽章，完成显 ✓，未完成显下标；
  *   未完成的卡带「开始」按钮 → 标记完成并派发 `onAction(step.id)`）。
- *   5 步全部完成后延迟 ~500ms 自动折叠卡片（对齐 Python `QTimer.singleShot(500, self._collapse_cards)`）。
+ *   5 步全部完成后延迟 ~500ms 自动折叠卡片（对齐 旧版 `QTimer.singleShot(500, self._collapse_cards)`）。
  * - **快捷操作卡** `QUICK_ACTIONS`：`STEPS_PER_ROW` 列的 6 张可点卡 → `onAction(id, dataType ?? '')`。
  * - **数据概览卡**：`STATS_PER_ROW` 列的按类型计数卡（`shared/util/dataStats.ts::countByType`），
  *   计数用类型色，取自 `window.mbApi.data.listAll()`。
  *
  * ## 有意不迁（宁缺勿错）
  * - 数据概览头的「⚙ 管理显示类型」按钮：它唯一的消费者 `TypeVisibilityPanel` 在 TS 已随侧栏
- *   刻意下线（见 `App.tsx` 注释），PyQt 亦无等价物 —— 概览区改为路由到既有「游戏数据统计」。
+ *   刻意下线（见 `App.tsx` 注释），旧版 亦无等价物 —— 概览区改为路由到既有「游戏数据统计」。
  * - 不按 `visible_types` 过滤（TS 未接线）。
  *
  * ## 状态持久化
@@ -77,7 +77,7 @@ export default function OnboardingPanel({ types, onAction, onClose }: Onboarding
 
   const allDone = isAllComplete(state)
 
-  // 5 步全部完成 → 延迟 500ms 自动折叠卡片（对齐 Python `QTimer.singleShot`）；卸载时清理定时器
+  // 5 步全部完成 → 延迟 500ms 自动折叠卡片（对齐 旧版 `QTimer.singleShot`）；卸载时清理定时器
   useEffect(() => {
     if (!allDone || state.collapsed) return undefined
     autoCollapseTimer.current = setTimeout(() => {

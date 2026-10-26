@@ -7,15 +7,15 @@ import { SECRET_NAMES } from '../../../shared/config/secretNames'
 import { migrateLegacyApiKey, readLegacyImageGenApiKey } from '../../../shared/config/secretMigration'
 
 /**
- * AI 生图面板（对应 Python `features/_ai_image.py` 的 UI 层）。
+ * AI 生图面板（对应 旧版 `features/_ai_image` 的 UI 层）。
  *
- * Python 侧该文件的 UI 入口（`dynamic_form._on_ai_image`）本身是**死桩**（只弹「需配置
+ * 旧版 侧该文件的 UI 入口（`dynamic_form._on_ai_image`）本身是**死桩**（只弹「需配置
  * API Key」提示、从不真正调用），这里按其**设计意图**（`show_ai_image_dialog`：
  * 填描述 → 调 `generate_ai_image` → 下载落盘）做一个真正可用的实现。
  *
  * ## API Key 的存放（相对 E22 的安全性修复）
- * E22 把 apiKey 明文存进了 localStorage（`mb.imageGenConfig`），那是相对 Python
- * `config/settings.py`（Fernet 加密）的**明确退步**。现在：
+ * E22 把 apiKey 明文存进了 localStorage（`mb.imageGenConfig`），那是相对 旧版
+ * `config/settings`（Fernet 加密）的**明确退步**。现在：
  * - 明文只存在于「用户输入 → IPC → 主进程 `safeStorage` 加密落盘」这一瞬间，
  *   保存成功后**立即清空输入框**；
  * - 面板只通过 `hasSecret` 知道「配没配过」，**没有任何途径读回明文**
@@ -25,8 +25,8 @@ import { migrateLegacyApiKey, readLegacyImageGenApiKey } from '../../../shared/c
  * - 挂载时做一次性兼容迁移：把 E22 时期遗留的明文搬进钥匙串并从 localStorage 删除
  *   （`shared/secretMigration.ts`，读完即删）。
  *
- * 与 Python 的其他差异：
- * - 落盘目录由用户经原生对话框选择（Python 是从 `assets_dir` 推导）。
+ * 与 旧版 的其他差异：
+ * - 落盘目录由用户经原生对话框选择（旧版 是从 `assets_dir` 推导）。
  */
 
 const PROVIDER_LABELS: Readonly<Record<StoredProvider, string>> = {

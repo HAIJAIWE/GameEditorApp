@@ -1,16 +1,16 @@
 /**
- * 快速创建模板（迁移自 Python `ui/dialogs/quick_create.py` 的 `TEMPLATE_DEFS` / `DATA_TYPE_LABELS`）。
+ * 快速创建模板（迁移自 旧版 `ui/dialogs/quick_create` 的 `TEMPLATE_DEFS` / `DATA_TYPE_LABELS`）。
  *
  * ## 为什么是纯数据 + 纯函数，且不需要新 IPC
  * 模板是**静态常量**（无主进程状态），渲染层像其它 `shared/*` 常量一样直接 import 即可；
  * 真正落库走**已有的** `data:createItem`（id 由 `DataService.createItem` 用 `randomUUID()` 生成），
  * 所以本模块不引入新通道 —— 避免为静态数据造一条 IPC。
  *
- * ## 与 Python 的一处**刻意差异**（不是漏迁）
- * Python `QuickCreateDialog._on_create` 里有段死代码：
+ * ## 与 旧版 的一处**刻意差异**（不是漏迁）
+ * 旧版 `QuickCreateDialog._on_create` 里有段死代码：
  * `plural = self.data_manager.config.get_type_schema(); data_type + "s"` —— 拼接结果被丢弃、
  * 后面的 `for` 循环 `break` 也没任何作用。本移植**不复制这个 bug**，落库只做
- * 「生成 id + 拷贝 defaults」，语义与 Python 实际行为一致。
+ * 「生成 id + 拷贝 defaults」，语义与 旧版 实际行为一致。
  *
  * ## 类型键口径
  * 键是**单数** `DataTypeDef.id`（`role`/`skill`/`monster`…），与 `items.type` 存法一致；
@@ -242,7 +242,7 @@ export function quickCreateTypeLabel(type: string): string {
  *
  * **为什么必须求交**：`DataService.createItem` **不校验 type**，若拿一个 schema 里没有的类型
  * 去创建，会落进一条「无类型定义」的孤儿条目（列表与表单都认不出来）。
- * Python 原实现就是从 `get_type_schema()` 取类型（只列存在的），这里把该约束显式化。
+ * 旧版 原实现就是从 `get_type_schema()` 取类型（只列存在的），这里把该约束显式化。
  */
 export function filterQuickCreateTypes(availableTypeIds: readonly string[]): string[] {
   const available = new Set(availableTypeIds)

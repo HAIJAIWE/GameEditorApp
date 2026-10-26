@@ -3,16 +3,16 @@ import { parseReferenceTokens, referenceFieldsOf } from './references'
 import type { DataTypeDef, ItemRecord } from '../types'
 
 /**
- * 「关系图」面板纯逻辑（迁移自 Python `ui/widgets/relation_graph.py::RelationTablePanel`）：
+ * 「关系图」面板纯逻辑（迁移自 旧版 `ui/widgets/relation_graph::RelationTablePanel`）：
  * 给定一个「主体」条目，列出它经由引用字段指向的关联数据
  * （来源字段 / 关联名称 / 类型 / ID / 描述），供表格式总览 + 双击跳转。
  *
- * 与 Python 的**有意差异**（同 `shared/util/references.ts` 头部声明，此处不另立一套真源）：
+ * 与 旧版 的**有意差异**（同 `shared/util/references.ts` 头部声明，此处不另立一套真源）：
  * - 引用字段来源走 `referenceFieldsOf`（schema `refType` 字段 + 文本引用补充表），
- *   不再使用 Python `relation_graph.REFERENCE_FIELDS` 那份与 `reference_panel` 互相不一致的硬编码表。
+ *   不再使用 旧版 `relation_graph.REFERENCE_FIELDS` 那份与 `reference_panel` 互相不一致的硬编码表。
  * - 类型中文名 / 颜色取自 schema（`DataTypeDef.name` / `.color`），不再另存
- *   `DATA_TYPE_LABELS` / `TYPE_COLORS` 两张常量表（两者在 Python 里只覆盖 12 个内置类型）。
- * - 主体信息摘要行跳过「空数组」字段（Python 对空列表会追加一条 `字段: ` 的空壳条目，属噪声）。
+ *   `DATA_TYPE_LABELS` / `TYPE_COLORS` 两张常量表（两者在 旧版 里只覆盖 12 个内置类型）。
+ * - 主体信息摘要行跳过「空数组」字段（旧版 对空列表会追加一条 `字段: ` 的空壳条目，属噪声）。
  */
 
 export interface RelationRow {
@@ -32,7 +32,7 @@ export interface RelationRow {
   color: string
 }
 
-/** 未解析 / 未知类型的兜底色（对齐 Python `TYPE_COLORS.get(..., "#64748B")` 的缺省值） */
+/** 未解析 / 未知类型的兜底色（对齐 旧版 `TYPE_COLORS.get(..., "#64748B")` 的缺省值） */
 export const UNKNOWN_TYPE_COLOR = '#64748B'
 
 /**
@@ -42,7 +42,7 @@ export const UNKNOWN_TYPE_COLOR = '#64748B'
  * @param items  全量条目（跨类型；用于按 id 解析 token）
  * @param subject 主体条目
  *
- * 对齐 Python `_show_subject`：逐引用字段取 token；token 解析不到时仍出一行
+ * 对齐 旧版 `_show_subject`：逐引用字段取 token；token 解析不到时仍出一行
  * （名称=tokn 原文，类型/ID/描述列留空，等宽占位由渲染层补「-」）。
  */
 export function buildRelationRows(types: DataTypeDef[], items: ItemRecord[], subject: ItemRecord): RelationRow[] {
@@ -81,7 +81,7 @@ export function buildRelationRows(types: DataTypeDef[], items: ItemRecord[], sub
 }
 
 /**
- * 主体信息摘要行（对齐 Python `_show_subject` 的 `" | ".join(details[:8])`）：
+ * 主体信息摘要行（对齐 旧版 `_show_subject` 的 `" | ".join(details[:8])`）：
  * 跳过 id / name，列表展开为 `a, b(name2)`，字符串/数字直接 `键: 值`，取前 8 段。
  */
 export function buildSubjectDetailLine(subject: ItemRecord): string {

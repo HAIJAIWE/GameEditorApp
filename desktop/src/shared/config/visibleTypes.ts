@@ -1,13 +1,13 @@
 /**
- * 侧栏「显示哪些数据类型」偏好 —— 迁移自 Python
- * `ui/dialogs/type_visibility_dialog.py`（选择对话框）+ `settings.py` 的 `visible_types` 落盘。
+ * 侧栏「显示哪些数据类型」偏好 —— 迁移自 旧版
+ * `ui/dialogs/type_visibility_dialog`（选择对话框）+ `settings` 的 `visible_types` 落盘。
  *
- * 语义（与 Python 对齐）：
+ * 语义（与 旧版 对齐）：
  * - `null` = 全部显示（默认；键不存在即此意）
  * - `[]`   = 全不显示（显式空列表）
  * - 数组   = 仅这些 id 显示
  *
- * **刻意修复 Python 的 bug**：`settings.py` 加载时写的是
+ * **刻意修复 旧版 的 bug**：`settings` 加载时写的是
  * `if isinstance(vt, list) and vt:` —— 空列表 `[]` 是 falsy，
  * 导致「全不选」在重启后被当成「未设置」而失效。
  * 本模块用「键是否存在」而非「值是否 truthy」区分，`[]` 会被完整保留。

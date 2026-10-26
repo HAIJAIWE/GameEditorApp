@@ -4,7 +4,7 @@
 
 **现役版本是 TypeScript + Electron 重写版**，源码位于 [`desktop/`](./desktop)，设计文档在 [`desktop/docs/`](./desktop/docs)。
 
-> 历史说明：本仓库曾有一个 PyQt6 + Python 版本（含 25 技能智能体、ReAct、多代理辩论等），已于 **2026-10-10** 整体退场并移除。其全量源码可从 git tag **`python-final`** 取回，仅作考古参考；其架构文档留存在根 [`docs/`](./docs) 并标注为「已移除的 Python 版」。
+> 历史说明：本仓库曾有一个基于 Qt 的旧版桌面实现（含 25 技能智能体、ReAct、多代理辩论等），已于 **2026-10-10** 整体退场并移除。其源码可从历史 git tag 取回，仅作考古参考；其架构文档留存在根 [`docs/`](./docs) 并标注为「已移除的旧版」。
 
 ## 技术栈
 
@@ -55,7 +55,7 @@ GameEditorApp/
 │   ├── tests/               # 单元 / 集成 / e2e
 │   ├── out/                 # 构建产物（gitignore）
 │   └── package.json
-├── docs/                    # 历史文档（描述已移除的 Python 版，仅供参考）
+├── docs/                    # 历史文档（描述已移除的旧版，仅供参考）
 ├── assets/                  # 图标等资源
 ├── data/                    # 用户本地数据（gitignore，不入库）
 └── scripts/                 # 工程脚本（如渲染层 CSS 审计 audit-renderer-css.mjs）
@@ -109,7 +109,7 @@ cd desktop && env -u ELECTRON_RUN_AS_NODE -u NODE_OPTIONS \
 ## CI / CD
 
 - **`.github/workflows/desktop-ci.yml`** — 验证流水线。push/PR 改动 `desktop/**` 时自动运行 `lint` → `typecheck` → `test` → `test:e2e`。
-- **`.github/workflows/release-desktop.yml`** — 出包流水线（替代已被移除的 Python 版 `release.yml`）。打 `desktop-v*` tag 并推送会跨平台（Windows / macOS / Linux）构建安装包并发布为 GitHub Release 草稿；也可手动 `workflow_dispatch` 仅出产物。
+- **`.github/workflows/release-desktop.yml`** — 出包流水线（替代已被移除的旧版 `release.yml`）。打 `desktop-v*` tag 并推送会跨平台（Windows / macOS / Linux）构建安装包并发布为 GitHub Release 草稿；也可手动 `workflow_dispatch` 仅出产物。
 
 ## AI 智能体
 
@@ -118,7 +118,7 @@ TS 版内置一个**分层 LLM 架构**的 AI 智能体：本地档（Ollama，4
 ## 文档
 
 - **现役（TS 版）**：[`desktop/docs/`](./desktop/docs) — agent 框架设计、TS 迁移审计、shared 分层设计、PRD 等。
-- **历史（Python 版，已移除）**：[`docs/`](./docs) — 顶部均标注「已移除的 Python 版」，仅作考古参考。
+- **历史（旧版，已移除）**：[`docs/`](./docs) — 顶部均标注「已移除的旧版」，仅作考古参考。
 
 ## 许可证
 

@@ -6,7 +6,7 @@ import { expect, test } from '@playwright/test'
 import { launchApp, waitReady } from './helpers/app'
 
 /**
- * AI 生图面板（迁移 `features/_ai_image.py` 的 UI 能力）。
+ * AI 生图面板（迁移 `features/_ai_image` 的 UI 能力）。
  *
  * 覆盖**不需要真实云 API** 的链路：面板打开、字段渲染、前置校验（缺 Key / 缺目录 / 缺描述）、
  * API Key 存进系统钥匙串（`safeStorage`，跨重载仍在）、**localStorage 里不再有明文**。

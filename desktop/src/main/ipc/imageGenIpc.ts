@@ -7,7 +7,7 @@ import { saveImageFromUrl } from '../imageGen/save'
 
 export function registerImageGenIpc(deps: IpcHandlerDeps, handle: IpcRegistrar): void {
   const { secretStore } = deps
-  // AI 生图（features/_ai_image.py 能力缺口补齐）：生成 + 落盘到指定目录
+  // AI 生图（features/_ai_image 能力缺口补齐）：生成 + 落盘到指定目录
   //
   // API Key 的取值纪律：渲染层**不持有**明文（`req.config.apiKey` 传空串即可），
   // 真实 Key 由主进程从系统钥匙串解密后**在本地覆盖进 config**。

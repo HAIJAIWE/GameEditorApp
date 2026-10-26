@@ -8,7 +8,7 @@ import type { ItemRecord } from '../../src/shared/types'
 /**
  * 「清空所有数据」（`data:clearAll` → `DataService.clearAll`）的行为守护。
  *
- * 对齐 PyQt `data_manager.clear_all`：**走 manager 的统一删除路径**，
+ * 对齐 旧版 `data_manager.clear_all`：**走 manager 的统一删除路径**，
  * 因此用户能撤销。本测试锁三件事：
  * 1. 清空后 `listAllItems()` 为空（跨全部类型，不只是某一个）；
  * 2. 走的是 `deleteMany` 路径 —— 撤销栈里有一条 `deleteMany` 整批条目，

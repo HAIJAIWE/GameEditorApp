@@ -155,7 +155,7 @@ describe('ceshuDataSync data → systems 进度回填', () => {
     const result = await dataSync.syncDataProgressToCeshu(currentModel, 'cid', '', false)
     const systemKeys = Object.keys(currentModel.systems)
     expect(systemKeys.length).toBeGreaterThan(0)
-    // 对齐 Python：data→systems 方向不按 enabled 过滤，所有系统都回填
+    // 对齐 旧版：data→systems 方向不按 enabled 过滤，所有系统都回填
     expect(Object.keys(result).sort()).toEqual([...systemKeys].sort())
     for (const key of systemKeys) {
       expect(result[key]).toBe(0)

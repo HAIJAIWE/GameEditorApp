@@ -1,14 +1,14 @@
 /**
- * v4.0（9 章）→ v5.0（文档信息 + 16 章）策划书数据迁移（自 Python `core/ceshu/ceshu_migration.py` 匹平迁移）。
+ * v4.0（9 章）→ v5.0（文档信息 + 16 章）策划书数据迁移（自 旧版 `core/ceshu/ceshu_migration` 匹平迁移）。
  *
- * 由 `normalizeCeshu` 在检测到 `version === "4.0"` 或缺失任一新增章节时调用（对齐 Python
+ * 由 `normalizeCeshu` 在检测到 `version === "4.0"` 或缺失任一新增章节时调用（对齐 旧版
  * `CeshuModel.from_dict` 的懒加载迁移）：把散落在旧章节中的相关字段抽取到新章节，缺失字段
  * 取默认值，最后把版本号升级为 "5.0"。
  *
- * 语义要点（与 Python 逐条对齐）：
+ * 语义要点（与 旧版 逐条对齐）：
  *  - 旧 9 章原始数据保持不变（向后兼容），只读取不覆写；
  *  - 所有派生均带「目标为空才填」守卫，故重复执行幂等；
- *  - 真值判断一律用 Python `bool()` 语义（空数组/空对象为假），不可用 JS 原生真值。
+ *  - 真值判断一律用 旧版 `bool()` 语义（空数组/空对象为假），不可用 JS 原生真值。
  *
  * 注意：本模块刻意本地定义 `isPlainObject` / `pyTruthy`，以避免与 `ceshuModel` 形成循环导入
  * （`ceshuModel` → `ceshuMigration` → `ceshuModel`）；`ceshuCompetitiveChart.ts` 亦为同样处理。
@@ -17,7 +17,7 @@
 import { createDefaultChapters } from './ceshuDefaults'
 import { isPlainObject } from './util/guards'
 
-/** v5.0 相对 v4.0 新增的 9 章（顺序与 Python `from_dict` 缺章检测一致） */
+/** v5.0 相对 v4.0 新增的 9 章（顺序与 旧版 `from_dict` 缺章检测一致） */
 export const V5_NEW_CHAPTER_KEYS = [
   'market_analysis',
   'story',
@@ -30,7 +30,7 @@ export const V5_NEW_CHAPTER_KEYS = [
   'accessibility'
 ] as const
 
-/** Python 真值语义：null/undefined/''/0/false/空数组/空对象 → false */
+/** 旧版 真值语义：null/undefined/''/0/false/空数组/空对象 → false */
 function pyTruthy(value: unknown): boolean {
   if (value === null || value === undefined) return false
   if (typeof value === 'boolean') return value
@@ -41,7 +41,7 @@ function pyTruthy(value: unknown): boolean {
   return true
 }
 
-/** 逗号分隔字符串 → 去空白后的非空项（对齐 Python `[x.strip() for x in s.split(',') if x.strip()]`） */
+/** 逗号分隔字符串 → 去空白后的非空项（对齐 旧版 `[x.strip() for x in s.split(',') if x.strip()]`） */
 function splitCommaList(raw: string): string[] {
   return raw
     .split(',')
@@ -50,7 +50,7 @@ function splitCommaList(raw: string): string[] {
 }
 
 /**
- * 是否需要 v4.0 → v5.0 迁移（对齐 Python `CeshuModel.from_dict` 的 `needs_migration` 判定）：
+ * 是否需要 v4.0 → v5.0 迁移（对齐 旧版 `CeshuModel.from_dict` 的 `needs_migration` 判定）：
  * `version === "4.0"` 或任一新增章节缺失。
  */
 export function needsV4Migration(raw: Record<string, unknown>): boolean {
@@ -61,12 +61,12 @@ export function needsV4Migration(raw: Record<string, unknown>): boolean {
 /**
  * 把 v4.0（9 章）数据迁移到 v5.0（文档信息 + 16 章）结构。
  *
- * 策略（对齐 Python `migrate_v4_to_v5`）：
- *  - 新 9 章缺失时补默认值（Python `setdefault`）；
+ * 策略（对齐 旧版 `migrate_v4_to_v5`）：
+ *  - 新 9 章缺失时补默认值（旧版 `setdefault`）；
  *  - 从旧章节派生新章节字段（仅在目标为空时填充）；
  *  - `version` 升级为 "5.0"。
  *
- * 注：与 Python `dict(data)` 一致，仅对顶层做浅拷贝——已存在的新章节对象会就地修改。
+ * 注：与 旧版 `dict(data)` 一致，仅对顶层做浅拷贝——已存在的新章节对象会就地修改。
  */
 export function migrateV4ToV5(raw: Record<string, unknown>): Record<string, unknown> {
   const defaults = createDefaultChapters()

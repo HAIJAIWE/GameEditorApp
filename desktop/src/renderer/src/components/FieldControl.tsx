@@ -11,22 +11,22 @@ interface FieldControlProps {
   jsonMode: boolean
   onChange: (value: unknown) => void
   /**
-   * `template` 字段被选中/输入时回调（PyQt `dynamic_form.py::_on_template_changed`）。
+   * `template` 字段被选中/输入时回调（旧版 `dynamic_form::_on_template_changed`）。
    * 用来把模板文本联动写进同类型的 `desc` 字段 —— 语义由调用方决定，这里只负责传出来。
    */
   onTemplatePicked?: (templateText: string) => void
   /**
-   * 字段级 AI 辅助所需的上下文（PyQt `dynamic_form.py::_create_desc_widget` 等
+   * 字段级 AI 辅助所需的上下文（旧版 `dynamic_form::_create_desc_widget` 等
    * 靠 `self.get_data()` / `self.widgets` 拿同表单的其它值）。
    * TS 侧由 ItemForm 显式传入 —— **不引全局单例**，组件自己不知道整份表单长什么样。
    */
   aiAssist?: FieldAiAssist
   /** 当前表单里 `image` 字段的值（图片类按钮需要路径才能分析/生图） */
   imagePath?: string
-  /** 当前条目的名称（「自动填充」模板要它，对齐 PyQt `_on_auto_generate_image_info` 的 `data.get('name')`） */
+  /** 当前条目的名称（「自动填充」模板要它，对齐 旧版 `_on_auto_generate_image_info` 的 `data.get('name')`） */
   itemName?: string
   /**
-   * `dialog` 字段可选的对话条目（对齐 PyQt `dynamic_form.py::_on_select_dialog`：
+   * `dialog` 字段可选的对话条目（对齐 旧版 `dynamic_form::_on_select_dialog`：
    * 从 `data['dialogs']` 里选一条，写回其 **id**，列表显示 `id — name`）。
    * 由 ItemForm 懒加载后传入；缺省空数组时控件禁用并给出提示。
    */
@@ -34,15 +34,15 @@ interface FieldControlProps {
 }
 
 export interface FieldAiAssist {
-  /** 生成 desc（对齐 PyQt `_on_ai_generate` → `features.generate_desc_only`） */
+  /** 生成 desc（对齐 旧版 `_on_ai_generate` → `features.generate_desc_only`） */
   generateDesc: (fieldLabel: string, currentText: string) => Promise<string>
   /**
-   * 为某个字段生成配图（对齐 PyQt `_on_ai_image`）。
-   * PyQt 只是 `QMessageBox.information("需要配置API密钥")` 的**占位桩**；
+   * 为某个字段生成配图（对齐 旧版 `_on_ai_image`）。
+   * 旧版 只是 `QMessageBox.information("需要配置API密钥")` 的**占位桩**；
    * TS 侧接真实的 `image:generate`（项目已有该通道）—— 详见 ItemForm 里的说明。
    */
   generateImage: (prompt: string) => Promise<string>
-  /** 现有图片路径存在时，让模型提取标签（对齐 PyQt `_on_ai_analyze_image`） */
+  /** 现有图片路径存在时，让模型提取标签（对齐 旧版 `_on_ai_analyze_image`） */
   analyzeImageTags: (imagePath: string) => Promise<string>
 }
 
@@ -136,7 +136,7 @@ export function FieldControl({
       )
     }
     /*
-     * `template`：**可编辑**的模板框（对齐 PyQt `dynamic_form.py::_create_template_widget`
+     * `template`：**可编辑**的模板框（对齐 旧版 `dynamic_form::_create_template_widget`
      * 的 `combo.setEditable(True)`）。TS 原用不可编辑 `<select>`，用户既不能从预置模板里
      * 微调，也没法手写自己的模板 —— 而模板本身就是「描述的骨架」，必须能改。
      * 用 `<input list>` 实现原生可编辑下拉：既能选也能填，零依赖。
@@ -157,7 +157,7 @@ export function FieldControl({
             readOnly={!field.editable}
             onChange={(event) => {
               onChange(event.target.value)
-              // PyQt：模板文本变化即联动写入 desc（清空不算，避免误清描述）
+              // 旧版：模板文本变化即联动写入 desc（清空不算，避免误清描述）
               if (event.target.value !== '') onTemplatePicked?.(event.target.value)
             }}
           />
@@ -170,7 +170,7 @@ export function FieldControl({
       )
     }
     /*
-     * `tags`：PyQt `dynamic_form.py` 的 tags 分支是 QLineEdit + placeholder
+     * `tags`：旧版 `dynamic_form` 的 tags 分支是 QLineEdit + placeholder
      * 「多个标签用逗号分隔」，值按**原始字符串**存。TS 侧刻意存**字符串数组**
      * （`buildPayload` 按 `/[,，]/` 拆分后过滤空串）。
      *
@@ -200,7 +200,7 @@ export function FieldControl({
      * 有图则显示预览，方框本身就是「点击更换」的热区。
      *
      * ## 为什么从「三件套」改成点选式
-     * PyQt 原版是「只读路径框 + 选择按钮 + 预览」三件套挤成一行：既看不出哪里能点，
+     * 旧版 原版是「只读路径框 + 选择按钮 + 预览」三件套挤成一行：既看不出哪里能点，
      * 又在已经很挤的表单列里吃掉一整行宽度。这里改成通行的「头像上传」交互 ——
      * 空态一个虚线方框中间一个 `+`，所见即所得、点击区域就是预览区域。
      *
@@ -208,7 +208,7 @@ export function FieldControl({
      * （「图片文件不存在」时要能看出指向哪），但不再占据主视觉。
      *
      * 预览仍走 `LazyImage`：按字段值（已保存的绝对路径）经主进程 `images:readByPath`
-     * 回读 data URL，**打开已保存图片的条目也能看到图**（对齐 PyQt `load_image`）。
+     * 回读 data URL，**打开已保存图片的条目也能看到图**（对齐 旧版 `load_image`）。
      * 渲染层直接引用 `C://...` 会被 `webSecurity` 拦，故一律走主进程转 data URL。
      */
     case 'image': {
@@ -283,7 +283,7 @@ export function FieldControl({
       )
     }
     /*
-     * `image_desc`：PyQt 是 QTextEdit 且 `setMaximumHeight(60)`（多行但比 desc 矮）。
+     * `image_desc`：旧版 是 QTextEdit 且 `setMaximumHeight(60)`（多行但比 desc 矮）。
      * TS 原先落到 `default` 单行输入框 —— 字段名带「描述」却是单行，长描述没法看全。
      */
     case 'image_desc':
@@ -314,9 +314,9 @@ export function FieldControl({
       )
     /*
      * `desc` / `content` / `achievement_desc`：文本域 + 两个 AI 按钮
-     * （对齐 PyQt `dynamic_form.py::_create_desc_widget`：QTextEdit(120px) + 「AI生成」「AI生图」两枚）。
+     * （对齐 旧版 `dynamic_form::_create_desc_widget`：QTextEdit(120px) + 「AI生成」「AI生图」两枚）。
      *
-     * 「AI生图」与 PyQt **刻意不同**：PyQt 的 `_on_ai_image` 只是一句
+     * 「AI生图」与 旧版 **刻意不同**：旧版 的 `_on_ai_image` 只是一句
      * `QMessageBox.information("AI图片生成功能需要配置API密钥")` 的**占位桩**（零能力）。
      * TS 侧接真实的 `image:generate`（项目已有该通道，且主进程会用钥匙串里的 Key 覆盖空串），
      * 否则这枚按钮就是「点了只弹一句你还没配 API」的装饰 —— 与项目「不放点了没反应的按钮」铁律冲突。
@@ -383,11 +383,11 @@ export function FieldControl({
     }
     /*
      * `image_tags`：单行标签框 + 「自动填充」「AI分析」
-     * （对齐 PyQt `dynamic_form.py::_create_image_tags_widget` 的两枚按钮）。
+     * （对齐 旧版 `dynamic_form::_create_image_tags_widget` 的两枚按钮）。
      *
-     * **「自动填充」不调 AI**：PyQt 的 `_on_auto_generate_image_info` 是纯字符串模板
+     * **「自动填充」不调 AI**：旧版 的 `_on_auto_generate_image_info` 是纯字符串模板
      * （`f'{name}的图片描述'` / `f'{name},图片,游戏'`），按钮名里的「生成」容易误读成 AI。
-     * TS 侧文案明确叫「自动填充」，语义与 PyQt 一致但不骗人（详见 shared/util/fieldAiAssist.ts）。
+     * TS 侧文案明确叫「自动填充」，语义与 旧版 一致但不骗人（详见 shared/util/fieldAiAssist.ts）。
      */
     case 'image_tags': {
       const current = Array.isArray(value) ? value.map((part) => String(part)).join(', ') : String(value ?? '')
@@ -447,7 +447,7 @@ export function FieldControl({
     }
     /*
      * `dialog`：**只读展示当前 id + 下拉选择一条对话**
-     * （对齐 PyQt `dynamic_form.py::_create_dialog_widget` + `_on_select_dialog`：
+     * （对齐 旧版 `dynamic_form::_create_dialog_widget` + `_on_select_dialog`：
      * 只读 QLineEdit + 「选择对话」按钮 → 列出 `dialogs` 的 `id — name`，选中后写回其 **id**）。
      * TS 原先落到 `default` 分支是**可编辑**单行框 —— id 得手打、也没有候选可挑。
      */
@@ -468,7 +468,7 @@ export function FieldControl({
             onChange={(event) => onChange(event.target.value)}
           >
             <option value="">（未选择）</option>
-            {/* 值指向已被删除的对话时保留原值可见（不静默清空），与 Python 的只读框行为一致 */}
+            {/* 值指向已被删除的对话时保留原值可见（不静默清空），与 旧版 的只读框行为一致 */}
             {current !== '' && !known && <option value={current}>{current}（已失效）</option>}
             {dialogOptions.map((entry) => (
               <option key={entry.id} value={entry.id}>

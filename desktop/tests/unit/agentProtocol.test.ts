@@ -21,8 +21,8 @@ import {
   type SkillProtocol
 } from '../../src/shared/agent/protocol'
 
-describe('agent 协议：风险等级与权限（对齐 Python security/acl.py）', () => {
-  it('风险等级数值与 Python RiskLevel 一致', () => {
+describe('agent 协议：风险等级与权限（对齐 旧版 security/acl）', () => {
+  it('风险等级数值与 旧版 RiskLevel 一致', () => {
     expect(RISK_LEVEL.READ_ONLY).toBe(0)
     expect(RISK_LEVEL.DATA_WRITE).toBe(1)
     expect(RISK_LEVEL.FILE_SYSTEM).toBe(2)
@@ -82,7 +82,7 @@ describe('agent 协议：风险等级与权限（对齐 Python security/acl.py�
     expect(listStillOk.allowed).toBe(true)
   })
 
-  it('TOOL_RISK_MAP 覆盖 Python 表中的关键工具', () => {
+  it('TOOL_RISK_MAP 覆盖 旧版 表中的关键工具', () => {
     for (const toolId of [
       'system.game_data',
       'system.file_ops',
@@ -101,7 +101,7 @@ describe('agent 协议：风险等级与权限（对齐 Python security/acl.py�
   })
 })
 
-describe('agent 协议：结果归一化（去掉 Python 的内部 _raw）', () => {
+describe('agent 协议：结果归一化（去掉 旧版 的内部 _raw）', () => {
   it('标准结果原样保留，且不产出 _raw', () => {
     const result = normalizeSkillResult({ success: false, message: '', error: '出错了' })
     expect(result).toEqual({ success: false, message: '', error: '出错了' })
@@ -109,7 +109,7 @@ describe('agent 协议：结果归一化（去掉 Python 的内部 _raw）', () 
   })
 
   it('缺 success/message 的对象补默认值', () => {
-    // 回退 message 走 JS 字符串化（数组是 '1,2'；Python 的 str() 会给 '[1, 2]'，此处按 JS 语义）
+    // 回退 message 走 JS 字符串化（数组是 '1,2'；旧版 的 str() 会给 '[1, 2]'，此处按 JS 语义）
     expect(normalizeSkillResult({ data: [1, 2] })).toEqual({ success: true, message: '1,2', data: [1, 2] })
     expect(normalizeSkillResult({ message: '只有消息' })).toEqual({
       success: true,
@@ -142,7 +142,7 @@ describe('agent 协议：结果归一化（去掉 Python 的内部 _raw）', () 
   })
 })
 
-describe('agent 协议：参数修正（对齐 Python _fix_params + normalize_params）', () => {
+describe('agent 协议：参数修正（对齐 旧版 _fix_params + normalize_params）', () => {
   it('ACTION_ALIASES 含中英文别名', () => {
     expect(ACTION_ALIASES.create_item).toBe('create')
     expect(ACTION_ALIASES['新增']).toBe('create')

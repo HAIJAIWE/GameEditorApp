@@ -7,9 +7,9 @@
  * 内联为常量而非运行时读盘（与 `ceshuPresets`/`glossaryTerms` 等既有迁移一致，不引入 fs 依赖），
  * 内容已与 JSON 逐字段核对。替换/推断等求值语义见逻辑层 gameStyle.ts。
  *
- * 仅含 Python `GameStyle` dataclass 的 6 个字段：JSON 里的 color_palette / data_defs_example
- * 在 Python `load_styles` 中不被读取，故不进 GameStyleDef（否则 buildReplacementPairs
- * 会把颜色键值当成术语，产生 Python 不存在的替换对）。
+ * 仅含 旧版 `GameStyle` dataclass 的 6 个字段：JSON 里的 color_palette / data_defs_example
+ * 在 旧版 `load_styles` 中不被读取，故不进 GameStyleDef（否则 buildReplacementPairs
+ * 会把颜色键值当成术语，产生 旧版 不存在的替换对）。
  */
 
 export interface GameStyleDef {
@@ -24,7 +24,7 @@ export interface GameStyleDef {
 /**
  * 照抄 game_styles.json 的 6 个风格，顺序一致：
  * xianxia, scifi, fantasy, wuxia, modern, pixel。
- * 仅含 Python dataclass 的 6 个字段（不含 color_palette / data_defs_example）。
+ * 仅含 旧版 dataclass 的 6 个字段（不含 color_palette / data_defs_example）。
  */
 export const GAME_STYLES: readonly GameStyleDef[] = [
   {
@@ -361,7 +361,7 @@ export const GAME_STYLES: readonly GameStyleDef[] = [
 
 /**
  * 概念别名 —— 字段标签中常用的简写形式，映射到 game_styles.json 的概念 key。
- * 这些简写会被当作额外的源术语参与替换。顺序与内容照抄 Python `_CONCEPT_ALIASES`。
+ * 这些简写会被当作额外的源术语参与替换。顺序与内容照抄 旧版 `_CONCEPT_ALIASES`。
  */
 export const CONCEPT_ALIASES: Readonly<Record<string, readonly string[]>> = {
   hp: ['生命', '生命值', '血量', '体力'],

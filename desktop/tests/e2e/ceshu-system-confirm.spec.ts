@@ -49,7 +49,7 @@ test('系统确认：勾选启用 + 自定义系统 + 确认落盘 + 双向同�
     const keyC = allKeys.find((k) => k !== keyA && k !== keyB)!
     const customName = 'tower_defense'
 
-    // 对齐 PyQt `ceshu_controller.py:66-71`：确认对话框**没有菜单入口**，
+    // 对齐 旧版 `ceshu_controller:66-71`：确认对话框**没有菜单入口**，
     // 条件是「打开策划书时未确认过系统 且 已有启用系统」→ 自动弹出。
     // 新文档的 systems 全为 disabled，故先旁路启用一个（keyD），让自动弹窗条件成立。
     const keyD = allKeys.find((k) => k !== keyA && k !== keyB && k !== keyC)!
@@ -102,7 +102,7 @@ test('系统确认：勾选启用 + 自定义系统 + 确认落盘 + 双向同�
     await window.getByTestId('sys-confirm').click()
     await expect(window.getByTestId('system-confirm-panel')).toContainText('已确认游戏系统')
 
-    // 确认已写 `meta.system_confirmed` → 重新打开**不再**自动弹（对齐 PyQt 的一次性语义）
+    // 确认已写 `meta.system_confirmed` → 重新打开**不再**自动弹（对齐 旧版 的一次性语义）
     await window.reload()
     await waitReady(window)
     await window.getByTestId('home-card').filter({ hasText: 'W32系统确认E2E' }).getByTestId('home-card-open').click()

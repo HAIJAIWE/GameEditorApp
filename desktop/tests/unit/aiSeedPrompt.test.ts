@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { buildAiSeedPrompt } from '../../src/shared/aiSeedPrompt'
 
-/** 逐字对齐 Python `ui/ceshu/home_view.py::_on_ai_send` 的 `guided_text` 括号引导段 */
+/** 逐字对齐 旧版 `ui/ceshu/home_view::_on_ai_send` 的 `guided_text` 括号引导段 */
 const GUIDE =
   '（请以资深游戏主策划身份和我多轮对话：先问 3-5 个关键问题，' +
   '包括核心玩法、世界观、主要游戏系统、规模、付费模式等，' +

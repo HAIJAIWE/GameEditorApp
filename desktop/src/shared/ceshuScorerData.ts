@@ -45,7 +45,7 @@ export interface CeshuScoreReport {
 }
 
 /**
- * 字数基准（来自 word_stats_dialog，与 Python CHAPTER_WORD_BENCHMARK 一致）：(min, max, mid)
+ * 字数基准（来自 word_stats_dialog，与 旧版 CHAPTER_WORD_BENCHMARK 一致）：(min, max, mid)
  *
  * **按 ChapterKey 收口**（不是 `Record<string, …>`）：2026-10-23 体检发现 `worldview` /
  * `characters` 两章合并为 `story` 后，基准表仍留死条目、**却没有 story**——
@@ -82,7 +82,7 @@ export const CHAPTER_WORD_BENCHMARK: Record<ChapterKey, [number, number, number]
   performance: [300, 1000, 500]
 }
 
-/** 同行业基准（按游戏类型），含 default 键（与 Python INDUSTRY_BENCHMARKS 一致） */
+/** 同行业基准（按游戏类型），含 default 键（与 旧版 INDUSTRY_BENCHMARKS 一致） */
 export const INDUSTRY_BENCHMARKS: Record<string, Omit<CeshuIndustryBenchmark, 'game_type' | 'vs_structure' | 'vs_quality' | 'vs_market' | 'vs_total'>> = {
   RPG: { label: 'RPG / ARPG', structure_avg: 25, quality_avg: 30, market_avg: 22, total_avg: 77, top_games: ['原神', '古剑奇谭', '鬼谷八荒'] },
   MMORPG: { label: 'MMORPG', structure_avg: 26, quality_avg: 32, market_avg: 23, total_avg: 81, top_games: ['魔兽世界', '最终幻想 14', '剑网 3'] },
@@ -95,10 +95,10 @@ export const INDUSTRY_BENCHMARKS: Record<string, Omit<CeshuIndustryBenchmark, 'g
   default: { label: '通用基准', structure_avg: 23, quality_avg: 28, market_avg: 20, total_avg: 71, top_games: [] }
 }
 
-/** 及格阈值（60% 视为及格，与 Python PASS_THRESHOLDS 一致） */
+/** 及格阈值（60% 视为及格，与 旧版 PASS_THRESHOLDS 一致） */
 export const PASS_THRESHOLDS = { structure: 18, quality: 24, market: 18, total: 60 }
 
-// 评分权重与满分常量（与 Python 一致）
+// 评分权重与满分常量（与 旧版 一致）
 export const WEIGHT_COMPLETION = 0.5
 export const WEIGHT_WORD_COUNT = 0.3
 export const WEIGHT_REQUIRED = 0.2
@@ -110,7 +110,7 @@ export const CONSISTENCY_PENALTY_PER_ERROR = 2
 export const CONSISTENCY_PENALTY_MAX = 15
 export const MARKET_FULL_SCORE = 30
 
-/** 市场潜力评分规则表：章节 -> [字段名, 分值, 最小长度或 null]（与 Python MARKET_SCORE_RULES 一致） */
+/** 市场潜力评分规则表：章节 -> [字段名, 分值, 最小长度或 null]（与 旧版 MARKET_SCORE_RULES 一致） */
 export const MARKET_SCORE_RULES: Record<string, Array<[string, number, number | null]>> = {
   market_analysis: [
     ['target_market', 2, null],
@@ -132,6 +132,6 @@ export const MARKET_SCORE_RULES: Record<string, Array<[string, number, number | 
   ]
 }
 
-// 预编译正则：避免每次统计字数时重复编译（与 Python 模块级预编译一致）
+// 预编译正则：避免每次统计字数时重复编译（与 旧版 模块级预编译一致）
 export const RE_CHINESE_CHARS = /[\u4e00-\u9fff]/g
 export const RE_ENGLISH_WORDS = /[a-zA-Z0-9]+/g

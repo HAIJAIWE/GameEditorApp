@@ -1,5 +1,5 @@
 /**
- * Agent 记忆的确定性文本嵌入（自 Python `core/agent/memory_embedder.py` 的
+ * Agent 记忆的确定性文本嵌入（自 旧版 `core/agent/memory_embedder` 的
  * n-gram 哈希思路重写，A1-3）。
  *
  * 为什么不用真嵌入模型：与 `docs/a-tier-plan.md` §2.5 的选型一致——**本地无服务端依赖**、

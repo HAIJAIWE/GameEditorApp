@@ -3,7 +3,7 @@
  *
  * Brain 循环里审批是**同步等待语义**（`await requestApproval(...)`），而跨进程是异步消息，
  * 故这里用「按 requestId 登记 promise + 兑现」把两者接起来。
- * 与 Python `FrontendSnapshot.confirm_dangerous` 的阻塞式对话框语义等价，
+ * 与 旧版 `FrontendSnapshot.confirm_dangerous` 的阻塞式对话框语义等价，
  * 但**不做任何隐式放行**：窗口关闭 / 未知 id / 未回传 一律视为未批准。
  *
  * id 由本模块统一发（`nextId`），避免多次并发会话都从 `approval_1` 开始而冲突。

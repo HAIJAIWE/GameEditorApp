@@ -10,7 +10,7 @@ import {
 
 /**
  * 属性系统存储（本模块内唯一写者）。
- * - 文件：<userData>/attr_system.json（与 Python 版 <库目录>/attr_system.json 同构）
+ * - 文件：<userData>/attr_system.json（与 早期版本 <库目录>/attr_system.json 同构）
  * - 缺省文件时以内置默认属性系统为种子（仅在用户保存后落盘）
  * - 保存前做领域校验（依赖存在性 / 环依赖 / min≤max / 数值合法性），原子写：临时文件 + rename
  */

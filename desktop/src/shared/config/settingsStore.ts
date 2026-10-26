@@ -1,5 +1,5 @@
 /**
- * settingsStore —— 统一设置存储基座（迁移 Python `config/settings.py` 的存储职责）。
+ * settingsStore —— 统一设置存储基座（迁移 旧版 `config/settings` 的存储职责）。
  *
  * ## 为什么有这个模块
  * 迁移到 E22 时，应用里已有 **4 处各自为政的 localStorage 写法**，无统一抽象：
@@ -21,7 +21,7 @@
  * - 导出 / 导入 / 重置：`exportSettings()` / `importSettings()` / `resetAllSettings()`
  *
  * ## 有意不迁（避免过度开发）
- * - **不做 i18n**：Python `common/i18n.py`（401 行）是全局翻译框架，而 TS 侧 UI 文案
+ * - **不做 i18n**：旧版 `common/i18n`（401 行）是全局翻译框架，而 TS 侧 UI 文案
  *   目前 100% 硬编码中文。接入 i18n 需翻译全部组件文案（数十个文件、上千字符串），
  *   属**独立立项**，不是存储基座的职责。
  * - **不做窗口几何状态**：Electron 侧窗口尺寸/位置由 `main/windowState.ts` 覆盖（原子写
@@ -30,7 +30,7 @@
  *   的 `readSetting` / `writeSetting`——存储真源仍在此，只是逻辑独立成模块。
  *
  * ## 存储位置
- * 沿用既有做法落 **localStorage**（键前缀 `mb.`），而非 Python 的 `config.json`——
+ * 沿用既有做法落 **localStorage**（键前缀 `mb.`），而非 旧版 的 `config.json`——
  * 本仓 DataService 已在 localStorage/用户目录体系内，渲染层读设置无需 IPC。
  */
 
@@ -244,7 +244,7 @@ export const SETTINGS_KEYS = {
   fontSize: 'mb.fontSize',
   confirmDelete: 'mb.confirmDelete',
   /**
-   * AI 关键词模板（5 类可编辑，对齐 Python `features/advanced.py:206-306`）。
+   * AI 关键词模板（5 类可编辑，对齐 旧版 `features/advanced:206-306`）。
    * 不登记到这里的话，`exportSettings` / `resetAllSettings` 不会覆盖它。
    */
   keywordTemplates: 'mb.keywordTemplates',

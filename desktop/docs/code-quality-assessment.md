@@ -189,9 +189,9 @@ runtime 15 / dev 19，全部在用；有 `lint` / `typecheck` / `test` / `test:e
 | 文档 | 实际描述的技术栈 | 状态 |
 |---|---|---|
 | `docs/architecture.md` | Electron 44 + React 19 + TypeScript | ✅ 准确 |
-| **`docs/wiki/01-architecture.md`** | **PyQt6 + Python ≥3.14 + pytest + ruff/mypy + PyInstaller** | ❌ **完全过期** |
+| **`docs/wiki/01-architecture.md`** | **旧版6 + 旧版 ≥3.14 + pytest + ruff/mypy + PyInstaller** | ❌ **完全过期** |
 
-`docs/wiki/` 共 7 篇，整体是 Python 时代产物（`02-modules.md` 含 **125 处** `.py`/PyQt 引用、
+`docs/wiki/` 共 7 篇，整体是 旧版 时代产物（`02-modules.md` 含 **125 处** ``/旧版 引用、
 `03-key-classes.md` 58 处），且**全目录没有任何「已过期 / 已归档 / DEPRECATED」标记**
 （`grep "已过期\|已废弃\|DEPRECATED\|历史归档" docs/wiki/ docs/archive/` → 0 命中）。
 
@@ -219,7 +219,7 @@ runtime 15 / dev 19，全部在用；有 `lint` / `typecheck` / `test` / `test:e
 
 | # | 事项 | 位置 | 说明 |
 |---|---|---|---|
-| 1 | **给 `docs/wiki/` 加过期警告或移入 `docs/archive/`** | `docs/wiki/`（7 篇） | ✅ **已完成**：整目录移入 `docs/archive/wiki-python-era/`，每篇加 Python/PyQt6 时代归档警告块，指向 `docs/architecture.md` 与 `shared/README.md` |
+| 1 | **给 `docs/wiki/` 加过期警告或移入 `docs/archive/`** | `docs/wiki/`（7 篇） | ✅ **已完成**：整目录移入 `docs/archive/旧版 wiki（已删除）/`，每篇加 旧版/旧版6 时代归档警告块，指向 `docs/architecture.md` 与 `shared/README.md` |
 | 2 | **消除 `toErrorMessage` 的 21 份副本** | 19 个组件 + `appUtils.ts` + `ceshuViewUtils.ts` | ✅ **已完成**：收敛到 `src/shared/util/errors.ts`（`c76804c`），原位置 re-export 保持兼容 |
 | 3 | **`ceschu` → `ceshu` 目录改名** | `src/shared/ceshu/`，165 处 import | ✅ **已完成**：物理目录改名 + 全仓 215 处机械替换（`a70779e`），git 检测为 25× R100；`tsc`/`vitest ceshu`/`eslint` 全绿，消除路径误判 |
 

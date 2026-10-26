@@ -3,9 +3,9 @@ import { isFilledValue } from './ceshuModel'
 import { readText } from './util/readText'
 
 /**
- * 策划书必填字段自动填充（自 Python core/ceshu/ceshu_fill.py 匹平迁移）。
+ * 策划书必填字段自动填充（自 旧版 core/ceshu/ceshu_fill 匹平迁移）。
  * 纯规则推导（不调用 LLM）：按既有上下文（game_name / game_type）生成合理占位值，避免空白校验失败。
- * 与 Python 就地变异不同：本函数返回新文档对象 + 实际填充字段数，便于主进程经写队列整文档落盘。
+ * 与 旧版 就地变异不同：本函数返回新文档对象 + 实际填充字段数，便于主进程经写队列整文档落盘。
  */
 
 export interface AutoFillResult {
@@ -13,7 +13,7 @@ export interface AutoFillResult {
   filled: number
 }
 
-/** Python 真值取反：'' / 0 / false / null / 空数组 / 空对象 均为「未填」 */
+/** 旧版 真值取反：'' / 0 / false / null / 空数组 / 空对象 均为「未填」 */
 function isFalsy(value: unknown): boolean {
   return !isFilledValue(value)
 }

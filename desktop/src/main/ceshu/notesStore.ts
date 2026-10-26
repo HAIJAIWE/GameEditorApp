@@ -14,9 +14,9 @@ import {
 
 /**
  * 章节笔记存储：每份策划书一个 JSON 文件（<dir>/<ceshuId>.json，结构 {"notes": [...]}），
- * 与 Python 版 data/libraries/<库>/ceshu_notes/<id>.json 同构。
+ * 与 早期版本 data/libraries/<库>/ceshu_notes/<id>.json 同构。
  * 写操作经串行队列 + 「临时文件 + rename」原子替换（唯一写者）。
- * 相对 Python 的改进：损坏文件抛中文错误，而非静默返回空列表（避免后续写入覆盖丢笔记）。
+ * 相对 旧版 的改进：损坏文件抛中文错误，而非静默返回空列表（避免后续写入覆盖丢笔记）。
  */
 export class CeshuNotesStore {
   private writeChain: Promise<unknown> = Promise.resolve()

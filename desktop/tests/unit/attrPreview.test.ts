@@ -18,7 +18,7 @@ function attr(name: string, coefficients: Record<string, number>): AttrDefinitio
   }
 }
 
-describe('实时预览计算（对应 Python LivePreviewWidget）', () => {
+describe('实时预览计算（对应 旧版 LivePreviewWidget）', () => {
   it('缺省基础值使用属性默认值；默认集 HP = 350，过程文本含基础段与公式', () => {
     const preview = computeLivePreview(system, { baseValues: {}, equipBonuses: {}, buffBonuses: {} })
     expect(preview.cycle).toBeNull()
@@ -51,7 +51,7 @@ describe('实时预览计算（对应 Python LivePreviewWidget）', () => {
     expect(preview.processLines).not.toContain('─── Buff加成 ───')
   })
 
-  it('非整数基础值精确展示（Buff 25% → 12.5，修复 Python int() 截断显示）', () => {
+  it('非整数基础值精确展示（Buff 25% → 12.5，修复 旧版 int() 截断显示）', () => {
     const preview = computeLivePreview(system, { baseValues: {}, equipBonuses: {}, buffBonuses: { 力量: 25 } })
     expect(preview.baseValues['力量']).toBeCloseTo(12.5)
     expect(preview.processLines).toContain('  力量 = 12.5')

@@ -41,8 +41,8 @@ interface ItemFormProps {
   types: readonly DataTypeDef[]
   /**
    * 当前活跃的游戏风格 id（`game_styles.json` 的 id，如 `xianxia`）。
-   * 用于按风格替换字段标签术语（对应 Python `style_manager.resolve_field_label`）；
-   * `''` = 不启用，标签原样显示（与 Python 无活跃风格时等价）。
+   * 用于按风格替换字段标签术语（对应 旧版 `style_manager.resolve_field_label`）；
+   * `''` = 不启用，标签原样显示（与 旧版 无活跃风格时等价）。
    */
   gameStyle?: string
   onSaved: (updated: ItemRecord) => void
@@ -66,7 +66,7 @@ interface ItemFormProps {
   onDuplicated?: (created: ItemRecord) => void
   /**
    * 删除当前条目（父级 DataEditorTab 执行 deleteItem + 列表刷新 + 选中清空）。
-   * 对应 PyQt `data_tab` 底部操作栏的「删除」钮；未提供则不渲染该按钮。
+   * 对应 旧版 `data_tab` 底部操作栏的「删除」钮；未提供则不渲染该按钮。
    */
   onDelete?: () => void
 }
@@ -113,7 +113,7 @@ export default function ItemForm({
     }
   }, [hasAttrTable])
 
-  // `dialog` 字段候选懒加载（对齐 PyQt `_on_select_dialog` 读 `data['dialogs']`）
+  // `dialog` 字段候选懒加载（对齐 旧版 `_on_select_dialog` 读 `data['dialogs']`）
   useEffect(() => {
     if (!hasDialogField) return undefined
     let cancelled = false
@@ -154,25 +154,25 @@ export default function ItemForm({
 
   /**
    * 模板联动：把选中的模板文本写进同类型的 `desc` 字段
-   * （对齐 PyQt `dynamic_form.py::_on_template_changed` —— 它也是写进名为 `desc` 的 QTextEdit）。
+   * （对齐 旧版 `dynamic_form::_on_template_changed` —— 它也是写进名为 `desc` 的 QTextEdit）。
    *
-   * 两处刻意的收敛（都与 PyQt 不同，理由写明）：
+   * 两处刻意的收敛（都与 旧版 不同，理由写明）：
    * - 只在**存在可编辑的 `desc` 字段**时才写；没有就只更新 template 本身，不凭空造字段。
-   * - PyQt 的 `_apply_desc_template` 实际是 `return template_text`（**没有做 `{职业}` 占位符替换**，
+   * - 旧版 的 `_apply_desc_template` 实际是 `return template_text`（**没有做 `{职业}` 占位符替换**，
    *   是留给子类实现的钩子）。TS 侧同样**不猜占位符语义**，只做原文写入 —— 免得替换错了
    *   悄悄改掉用户的数据。
    */
   /**
    * 字段级 AI 的系统提示词。
    *
-   * PyQt 的 `generate_desc_only` 把角色说明**内联在 user prompt 里**（`prompt = f"""【角色】…"""`），
+   * 旧版 的 `generate_desc_only` 把角色说明**内联在 user prompt 里**（`prompt = f"""【角色】…"""`），
    * `system_prompt` 参数留空。TS 侧刻意拆成 system + prompt 两段：
    * 本地 ollama 的 system 段参与「格式遵循」，拆开后角色约束更稳；
-   * **user prompt 的正文逐字照抄 PyQt**（见 `buildDescPrompt`），两边的提示词不打架。
+   * **user prompt 的正文逐字照抄 旧版**（见 `buildDescPrompt`），两边的提示词不打架。
    */
   const SYSTEM_PROMPT_TEXT = '你是一位游戏文案创作专家，擅长用精炼、有感染力的中文写出令人印象深刻的游戏描述。'
 
-  /** 当前条目所属类型的中文名（PyQt 直接传 `data_type`，那是英文 id；TS 侧用中文名更像给人看的上下文） */
+  /** 当前条目所属类型的中文名（旧版 直接传 `data_type`，那是英文 id；TS 侧用中文名更像给人看的上下文） */
   const typeLabel = types.find((definition) => definition.id === item.type)?.name ?? item.type
 
   /** 当前草稿里 `image` 字段的路径（图片类 AI 按钮需要它才能分析） */
@@ -192,11 +192,11 @@ export default function ItemForm({
     setLocalError(null)
   }
 
-  /* ---- 字段级 AI 辅助（对齐 PyQt `dynamic_form.py` 的四个回调） ----
+  /* ---- 字段级 AI 辅助（对齐 旧版 `dynamic_form` 的四个回调） ----
      能力实现在这里、控件只管按钮与忙态 —— 这样上下文（整份表单草稿）只有一份真源。
      提示词组装在 `shared/util/fieldAiAssist.ts`（纯函数、可单测），此处只负责发 IPC 与取回结果。 */
 
-  /** 当前草稿里的条目名（PyQt `data.get('name', '')`） */
+  /** 当前草稿里的条目名（旧版 `data.get('name', '')`） */
   const currentItemName = (): string => {
     const value = draft['name']
     return typeof value === 'string' ? value : ''
@@ -213,14 +213,14 @@ export default function ItemForm({
     const reply = await api.llm.generate({ system: SYSTEM_PROMPT_TEXT, prompt })
     const text = reply.content.trim()
     if (text === '') throw new Error('AI 未返回内容，请重试或检查本地模型')
-    // 已有内容时追加而不是覆盖：用户手写的前半段不该被一键抹掉（PyQt 是直接 setPlainText 覆盖）
+    // 已有内容时追加而不是覆盖：用户手写的前半段不该被一键抹掉（旧版 是直接 setPlainText 覆盖）
     return currentText === '' ? text : `${currentText}\n${text}`
   }
 
   /**
    * 「AI生图」：走项目既有的 `image:generate` 通道。
    *
-   * 与 PyQt 的**本质差异**：PyQt `_on_ai_image` 只弹一句「需要配置API密钥」，是零能力桩；
+   * 与 旧版 的**本质差异**：旧版 `_on_ai_image` 只弹一句「需要配置API密钥」，是零能力桩；
    * TS 侧是真的去生图。这里必须先落盘路径 —— `image:generate` 要求 `saveDir`，
    * 未选过目录时弹原生目录选择框（复用 `dialog:chooseImageSaveDir`）。
    */
@@ -257,7 +257,7 @@ export default function ItemForm({
     return `配图已保存：${result.path}`
   }
 
-  /** 「AI分析」：把图片路径交给模型提取标签（对齐 PyQt `_on_ai_analyze_image`） */
+  /** 「AI分析」：把图片路径交给模型提取标签（对齐 旧版 `_on_ai_analyze_image`） */
   const analyzeImageTagsFor = async (imagePath: string): Promise<string> => {
     const api = window.mbApi as unknown as {
       llm: { generate: (req: { system: string; prompt: string }) => Promise<{ content: string }> }
@@ -294,8 +294,8 @@ export default function ItemForm({
   }
 
   /**
-   * 复制当前条目为独立副本（对应 PyQt `data_tab._on_copy_clicked`）：
-   * 沿用当前表单内容 + 新短 id（主进程 `createItem` 种子化，对应 Python `generate_id`）。
+   * 复制当前条目为独立副本（对应 旧版 `data_tab._on_copy_clicked`）：
+   * 沿用当前表单内容 + 新短 id（主进程 `createItem` 种子化，对应 旧版 `generate_id`）。
    * 副本不带原 id（`delete payload.id`）⇒ 落库时分配该类型下一个序号。
    */
   const handleDuplicate = async (): Promise<void> => {
@@ -378,7 +378,7 @@ export default function ItemForm({
   /**
    * 字段行（标签 + 控件）—— 分区间与兜底路径的**唯一**行形态。
    *
-   * 行本身对齐 PyQt `ui/widgets/dynamic_form.py::_build_form` 的 `QFormLayout`：
+   * 行本身对齐 旧版 `ui/widgets/dynamic_form::_build_form` 的 `QFormLayout`：
    * 一行一个字段、标签左控件右。2026-10-13 曾把分区整体拉平（当时用户满意扁平一列），
    * 2026-10-19 又对照分区版截图要求恢复 ⇒ 现在**行形态不变，只把行归进可折叠分区**。
    *
@@ -435,10 +435,10 @@ export default function ItemForm({
           </div>
         )}
         {/*
-          折叠分区（2026-10-19 恢复，源自 Python FIELD_GROUPS；双列网格版式刻意未恢复）。
+          折叠分区（2026-10-19 恢复，源自 旧版 FIELD_GROUPS；双列网格版式刻意未恢复）。
           分区内仍是「标签左、控件右」的扁平行 —— 拉平期确立的行形态原样保留，
           变的只是「行被归到哪个可折叠分组里」。复杂控件（属性面板/属性表/引用表）
-          在 Python 侧本就该单独成区，这里由 buildFormLayout 兜底保证。
+          在 旧版 侧本就该单独成区，这里由 buildFormLayout 兜底保证。
          */}
         {formLayout.sections.map((section) => (
           <FormSectionCard key={section.title} title={section.title} icon={section.icon} defaultCollapsed={section.collapsed}>
@@ -492,9 +492,9 @@ export default function ItemForm({
           </button>
         )}
         {/*
-          「更多 ▸」收纳低频项（对应 PyQt data_tab 的 more_btn 菜单）。
+          「更多 ▸」收纳低频项（对应 旧版 data_tab 的 more_btn 菜单）。
           每一项仅在父级确实传入了回调时才渲染，保证菜单里不存在点了没反应的死控件。
-          注：删除已从行内图标移至本操作栏（对齐 PyQt 底部「删除」钮，见 onDelete prop）；新建仍留在左栏。
+          注：删除已从行内图标移至本操作栏（对齐 旧版 底部「删除」钮，见 onDelete prop）；新建仍留在左栏。
         */}
         {(onEditType !== undefined || onShowReferences !== undefined) && (
           <div className="toolbar-more" ref={moreRef}>

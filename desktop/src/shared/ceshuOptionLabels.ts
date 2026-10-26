@@ -1,7 +1,7 @@
 /**
  * combo / multiCombo 选项的**中文别名表**（定义层，仅供 `systemConfigSchema` 与 `ceshuFields` 引用）。
  *
- * 起因（Python 侧缺陷）：下拉只给英文枚举码，渲染层 `optionLabels?.[option] ?? option`
+ * 起因（旧版 侧缺陷）：下拉只给英文枚举码，渲染层 `optionLabels?.[option] ?? option`
  * ⇒ 界面裸显示 turn_based / arena / behavior_tree / f2p_p2w 这类内部码。
  *
  * 两条硬约束（由 `tests/unit/ceshuOptionLabels.test.ts` 锁死）：

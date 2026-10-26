@@ -11,11 +11,11 @@ import {
 import type { AttrSystem } from '../../../shared/attrSystem'
 
 /**
- * 装备预览视图（对应 Python EquipmentPreviewWidget，属性系统编辑器第四视图）：
+ * 装备预览视图（对应 旧版 EquipmentPreviewWidget，属性系统编辑器第四视图）：
  * - 左侧：装备/Buff 数据列表（来自数据表，挂载时加载）；点击装备放入其「部位」槽，点击 Buff 加入激活列表（可重复）
  * - 右侧：基础值输入（默认值，避免与实时预览跨视图耦合）、装备槽（可卸下）、已激活 Buff（可移除）
  * - 底部：属性对比（全部属性「基础 → 最终」与差值，正绿负红）
- * 偏差记录：Python 用拖拽（TS 用点击，可测且避免 DnD 脆弱性）；Python Buff 卡片不参与计算（TS 参与）
+ * 偏差记录：旧版 用拖拽（TS 用点击，可测且避免 DnD 脆弱性）；旧版 Buff 卡片不参与计算（TS 参与）
  */
 
 interface EquipPreviewPanelProps {

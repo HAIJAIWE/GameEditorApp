@@ -37,7 +37,7 @@ class FakeStorage implements StorageLike {
   }
 }
 
-// 以下期望值均由运行 Python `src/core/style_manager.py` 实测得到。
+// 以下期望值均由运行 旧版 `src/core/style_manager` 实测得到。
 
 describe('数据完整性', () => {
   it('恰好 6 个风格，顺序为 xianxia→scifi→fantasy→wuxia→modern→pixel', () => {
@@ -82,7 +82,7 @@ describe('数据完整性', () => {
     }
   })
 
-  it('CONCEPT_ALIASES 恰好 23 个概念，顺序与 Python 一字不差', () => {
+  it('CONCEPT_ALIASES 恰好 23 个概念，顺序与 旧版 一字不差', () => {
     expect(Object.keys(CONCEPT_ALIASES)).toEqual([
       'hp',
       'mp',
@@ -196,7 +196,7 @@ describe('buildCrossStyleMap', () => {
 })
 
 describe('buildReplacementPairs', () => {
-  it('各风格替换对数量与 Python 一致', () => {
+  it('各风格替换对数量与 旧版 一致', () => {
     expect(buildReplacementPairs('xianxia').length).toBe(184)
     expect(buildReplacementPairs('scifi').length).toBe(161)
     expect(buildReplacementPairs('fantasy').length).toBe(147)
@@ -275,7 +275,7 @@ describe('resolveLabel', () => {
     expect(resolveLabel('法力加成%', 'scifi')).toBe('能量加成%')
   })
 
-  it('替换是「全部替换」（Python str.replace 语义）', () => {
+  it('替换是「全部替换」（旧版 str.replace 语义）', () => {
     expect(resolveLabel('生命生命', 'xianxia')).toBe('气血气血')
   })
 
@@ -283,8 +283,8 @@ describe('resolveLabel', () => {
     expect(resolveLabel('生命值加成生命', 'xianxia')).toBe('气血加成气血')
   })
 
-  it('钉死 Python 的连锁副作用：fantasy 下 内力 → 生命值值', () => {
-    // 先 (内力→生命值)，随后等长的 (生命→生命值) 再次命中，与 Python 完全一致
+  it('钉死 旧版 的连锁副作用：fantasy 下 内力 → 生命值值', () => {
+    // 先 (内力→生命值)，随后等长的 (生命→生命值) 再次命中，与 旧版 完全一致
     expect(resolveLabel('内力', 'fantasy')).toBe('生命值值')
   })
 

@@ -26,7 +26,7 @@ export class SqliteItemsRepository implements ItemsRepository {
   }
 
   listItems(type: string): ItemRecord[] {
-    // 按创建顺序**升序**（新条目沉底，对齐 PyQt 列表的插入序展示——PyQt data_tab 是
+    // 按创建顺序**升序**（新条目沉底，对齐 旧版 列表的插入序展示——旧版 data_tab 是
     // list_widget 按 items 数组顺序 addItem，新建即追加到末尾）。
     // rowid 兜底：同一秒内批量创建/导入的条目 created_at 相同，用插入序保证稳定不抖动。
     // 此前误写 DESC「最新在前」，用户实测反馈「顺序搞反了，新建的应该在底部」——2026-10-13 修正。
@@ -159,8 +159,8 @@ export class SqliteItemsRepository implements ItemsRepository {
    * user_version 2（2026-10-13）：回填条目业务短 id `data.id`。
    *
    * 背景：TS 迁移期把 `data.id` 强制对齐记录 uuid（36 位），列表/表单外显
-   * `ID:1a2b3c4d`，与 PyQt 参考（`ID:0 | 火球术 | 攻击`，`generate_id` 短序号）
-   * 相反——用户反馈「Id不对」，其真实库 40 条 data.id 全缺失。现按 PyQt 语义
+   * `ID:1a2b3c4d`，与 旧版 参考（`ID:0 | 火球术 | 攻击`，`generate_id` 短序号）
+   * 相反——用户反馈「Id不对」，其真实库 40 条 data.id 全缺失。现按 旧版 语义
    * 回填：每类型独立、created_at 升序（rowid 兜底同秒）、从现有数值 id 的
    * max+1 起分配。**只补缺失/空/uuid 形态**，用户自设的非数值 id 不动。
    * 幂等：回填后所有条目均有合法短 id，再跑返回空规划。

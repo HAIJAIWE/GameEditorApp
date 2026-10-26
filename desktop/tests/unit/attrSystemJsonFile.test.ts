@@ -12,7 +12,7 @@ function makeDir(): string {
 }
 
 describe('属性系统 JSON 导入 / 导出（W22）', () => {
-  it('导出：Python 同构平铺结构（formula 为公式文本）、原子写、无 tmp 残留', async () => {
+  it('导出：旧版 同构平铺结构（formula 为公式文本）、原子写、无 tmp 残留', async () => {
     const dir = makeDir()
     const filePath = join(dir, 'attr_system.json')
     await exportAttrSystemJsonFile(filePath, createDefaultAttrSystem())

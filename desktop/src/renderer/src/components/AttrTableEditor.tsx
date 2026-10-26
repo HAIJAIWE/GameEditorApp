@@ -4,11 +4,11 @@ import { buildAttrPreview, type AttrRow } from '../../../shared/domain/attr/attr
 import type { AttrSystem } from '../../../shared/attrSystem'
 
 /**
- * 条目级属性列表编辑器（attrtable 字段，对应 Python AttrTableWidget）：
+ * 条目级属性列表编辑器（attrtable 字段，对应 旧版 AttrTableWidget）：
  * - 行为「属性名称 + 数值」，名称可自由输入或从属性系统下拉建议（datalist）
  * - 添加 / 删除行；空名称行保存时忽略（由 ItemForm 的 payload 转换处理）
  * - 计算预览：以列表行作为输入按属性系统拓扑计算全部属性（输入/计算来源标记），
- *   明确改进 Python：角色/怪物的行序自算改为拓扑序 + 环依赖提示 + 未收录名称提示
+ *   明确改进 旧版：角色/怪物的行序自算改为拓扑序 + 环依赖提示 + 未收录名称提示
  */
 
 interface AttrTableEditorProps {

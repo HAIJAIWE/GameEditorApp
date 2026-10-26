@@ -282,7 +282,7 @@ UI/UX 交互设计、关卡/内容设计、运营与活动、数据埋点与指�
 
 ## 4.6 对标豆包《微光之塔》GDD：导入 5 个字段（2026-10-24）
 
-用户拿来一份外部标杆：豆包产出的《微光之塔》(Shimmer Tower) 放置爬塔 GDD 全套产物（GDD 207 行 + design-contract.json 433 行机器可读契约 + numerical_validation.py 165 行数值复算脚本 + 561 行可玩 HTML Demo + 飞书 draft.xml）。逐篇研读后提炼出它做得好、我们模板缺的模式，**首批导入 5 个字段**（全部 pipeList、可选、带完整 aiHint/reviewHint，不动必填集与 splits）：
+用户拿来一份外部标杆：豆包产出的《微光之塔》(Shimmer Tower) 放置爬塔 GDD 全套产物（GDD 207 行 + design-contract.json 433 行机器可读契约 + numerical_validation 165 行数值复算脚本 + 561 行可玩 HTML Demo + 飞书 draft.xml）。逐篇研读后提炼出它做得好、我们模板缺的模式，**首批导入 5 个字段**（全部 pipeList、可选、带完整 aiHint/reviewHint，不动必填集与 splits）：
 
 | 新字段 | 章 | 导入的模式 | 契约要点 |
 |---|---|---|---|
@@ -292,7 +292,7 @@ UI/UX 交互设计、关卡/内容设计、运营与活动、数据埋点与指�
 | `numeric_parameters` | 数值设计 | 参数表（参数\|当前值\|合法范围\|调高影响\|调低影响） | 区分设计初值/复算值；影响必须可观察，禁「影响较大」空话 |
 | `numeric_assertions` | 数值设计 | 机器可验证断言（表达式\|期望值\|容差\|接受条件） | 设计目标写成可手算复现的断言，至少一条覆盖边界 |
 
-**还识别出但未导入的**（留作后续选项）：① 每条机制六件套（目的/权威规则/公式/边界/反馈/**验收**）——我们的 _notes 可承担，暂不加字段；② 原型验证证据章（claim→evidence 表）——ch21 测试章用途不同；③ Demo 与 GDD 同源 ruleset_id 纪律——meta 已有 version；④ **断言执行器**（照抄 numerical_validation.py 的思路，把 numeric_assertions 从「文档」升级为「可复算」——这是最有价值的后续）。
+**还识别出但未导入的**（留作后续选项）：① 每条机制六件套（目的/权威规则/公式/边界/反馈/**验收**）——我们的 _notes 可承担，暂不加字段；② 原型验证证据章（claim→evidence 表）——ch21 测试章用途不同；③ Demo 与 GDD 同源 ruleset_id 纪律——meta 已有 version；④ **断言执行器**（照抄 numerical_validation 的思路，把 numeric_assertions 从「文档」升级为「可复算」——这是最有价值的后续）。
 
 验证：tsc 0 错；契约守卫 + splits 守卫 + bundle 测试 22 过；全量 2454 过/5 跳（与基线一致）；`draftAll` bundle 确认 5 条契约全部进入提示词；eslint 0。
 
@@ -300,7 +300,7 @@ UI/UX 交互设计、关卡/内容设计、运营与活动、数据埋点与指�
 
 ## 4.7 数值断言执行器：把「文档字段」升级为「可复算检查」（2026-10-24）
 
-4.6 导入的 `numeric_assertions` 当时只是文档字段；本次补上执行器（对标豆包 `numerical_validation.py` 的思路），**设计主张第一次被机器复算**。
+4.6 导入的 `numeric_assertions` 当时只是文档字段；本次补上执行器（对标豆包 `numerical_validation` 的思路），**设计主张第一次被机器复算**。
 
 **新增 `src/shared/ceshuNumericAssert.ts`，挂进 `validateCeshu`（第 15 项）**：
 

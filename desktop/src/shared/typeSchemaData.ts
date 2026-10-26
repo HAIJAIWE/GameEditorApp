@@ -1,5 +1,5 @@
 /**
- * 12 种内置数据类型定义（自 Python 版 core/defaults/rpg_schema.py v2.4 匹平迁移）。
+ * 12 种内置数据类型定义（自 早期版本 core/defaults/rpg_schema v2.4 匹平迁移）。
  * 本文件是「内置默认 schema」；运行期实际使用的主进程 TypeSchemaStore 可加载用户编辑后的
  * type_schema.json（缺省即以此为准），相关纯函数均按传入的 types 列表工作。
  * - id：单数键（新架构内部与存储使用）

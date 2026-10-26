@@ -1,10 +1,10 @@
 /**
- * 引用表共享逻辑（迁移自 Python `ui/widgets/multi_select.py` 的 RefTableWidget / RefSelectDialog）。
+ * 引用表共享逻辑（迁移自 旧版 `ui/widgets/multi_select` 的 RefTableWidget / RefSelectDialog）。
  *
  * 语义：某类型的「引用列表」字段（如角色的技能列表、天赋列表），
  * 存储格式 `[{ "id": "skills_1", "level": 5 }]` —— 仅存被引用条目 id 与触发等级，不冗余其它字段。
  *
- * ## 口径（与 Python 对齐）
+ * ## 口径（与 旧版 对齐）
  * - `load_data` 兼容三种历史写法：
  *   - dict 带 `id`    → `{ id, level }`（若同时带非空 `name` 也保留，便于显示，但 **id 为准**）
  *   - dict 带 `name`  → `{ name, level }`（无 id 的降级）
@@ -30,7 +30,7 @@ export interface ReferenceEntry {
 export const REF_LEVEL_MIN = 0
 export const REF_LEVEL_MAX = 999
 
-/** Python REF_TYPE_LABELS（复数键 → 中文），仅在 types 解析不到时兜底 */
+/** 旧版 REF_TYPE_LABELS（复数键 → 中文），仅在 types 解析不到时兜底 */
 export const REF_TYPE_LABELS: Record<string, string> = {
   skills: '技能',
   talents: '天赋',

@@ -98,7 +98,7 @@ describe('diffValues：数组按下标对齐', () => {
     ])
   })
 
-  it('数组内嵌对象递归（修复 Python 缺陷 C，不再整块标 MODIFIED）', () => {
+  it('数组内嵌对象递归（修复 旧版 缺陷 C，不再整块标 MODIFIED）', () => {
     const diffs = diffValues([{ a: 1 }], [{ a: 2 }], 'items')
     expect(diffs).toEqual([
       {

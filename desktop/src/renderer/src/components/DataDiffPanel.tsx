@@ -19,8 +19,8 @@ import type { ItemRecord } from '../../../shared/types'
 /**
  * 数据对比面板（当前数据 vs 用户手动设定的基线）。
  *
- * 与 Python 原对话框的关系：
- * - Python 的 `data_diff_dialog.py` 执行 `DataDiff.compare({}, {...})`，拿空 dict 与
+ * 与 旧版 原对话框的关系：
+ * - 旧版 的 `data_diff_dialog` 执行 `DataDiff.compare({}, {...})`，拿空 dict 与
  *   当前数据比，永远只输出「全部新增」，且 TS 侧没有备份/历史存储（那是另一切片）。
  * - 本面板改为「用户手动设基线 → 与基线对比」，基线缓存在 localStorage，
  *   真正做双侧 diff（引擎见 `shared/itemDiff.ts`）。

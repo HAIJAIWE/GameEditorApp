@@ -12,14 +12,14 @@ import { loadConfirmDelete } from '../../../shared/config/settingsPreferences'
 import type { DataTypeDef } from '../../../shared/types'
 
 /**
- * 批量操作面板（对应 Python `ui/dialogs/batch_edit.py::BatchEditDialog`）。
+ * 批量操作面板（对应 旧版 `ui/dialogs/batch_edit::BatchEditDialog`）。
  *
  * 设置字段值 / 追加字段值（文本）/ 数值增减（加·乘·设）/ 添加标签 / 删除选中项。
  *
- * **作用范围（自选）**：对齐 PyQt——批量修改数据从菜单直接打开，由面板**自己选范围**
+ * **作用范围（自选）**：对齐 旧版——批量修改数据从菜单直接打开，由面板**自己选范围**
  * （选类型 → 作用于该类型全部条目），不依赖任何外部勾选。当宿主传入非空 `selectedIds`
  * 时才以传入选中为范围；否则顶部提供类型下拉，以该类型全部条目为范围。
- * 删除需二次确认（Python 为弹窗确认）；应用/删除走 IPC 批量写入（单次写队列任务）。
+ * 删除需二次确认（旧版 为弹窗确认）；应用/删除走 IPC 批量写入（单次写队列任务）。
  */
 
 type OpChoice = BatchOpKind | 'delete_selected'
@@ -54,7 +54,7 @@ export default function BatchEditPanel({
   const [scopeIds, setScopeIds] = useState<string[]>([])
 
   const scopeDef = types.find((def) => def.id === scopeType) ?? typeDef
-  // 字段选项与 Python _populate_fields 一致（列出全部字段）；id 为系统字段，排除以避免破坏条目身份
+  // 字段选项与 旧版 _populate_fields 一致（列出全部字段）；id 为系统字段，排除以避免破坏条目身份
   const fieldOptions = (scopeDef?.formFields ?? []).filter((field) => field.name !== 'id')
 
   const [op, setOp] = useState<OpChoice>('set_value')
@@ -68,7 +68,7 @@ export default function BatchEditPanel({
   const [busy, setBusy] = useState(false)
 
   /**
-   * 「删除时确认」偏好（Python `settings_dialog.py:239` 的 QCheckBox，本面板是其真实消费者）。
+   * 「删除时确认」偏好（旧版 `settings_dialog:239` 的 QCheckBox，本面板是其真实消费者）。
    * 惰性初值：面板挂载时读一次即可 —— 设置面板与批量面板是互斥浮层，用户不可能同时改偏好。
    * 关闭时删除**直接执行不确认**（破坏性，故默认开启，见 `settingsPreferences` 的说明）。
    */
@@ -133,7 +133,7 @@ export default function BatchEditPanel({
   const handleApply = async (): Promise<void> => {
     setErrors([])
     if (op === 'delete_selected') return
-    // 与 Python _on_apply 的告警条件一致：追加/标签要求内容非空；其余要求选中字段
+    // 与 旧版 _on_apply 的告警条件一致：追加/标签要求内容非空；其余要求选中字段
     if (effectiveField === '') {
       setErrors(['请选择字段'])
       return
@@ -440,7 +440,7 @@ export default function BatchEditPanel({
   )
 }
 
-/** 调整量规整为整数并夹取到 Python QSpinBox 范围（-99999 ~ 99999） */
+/** 调整量规整为整数并夹取到 旧版 QSpinBox 范围（-99999 ~ 99999） */
 function clampInt(raw: string): number {
   const value = Number(raw)
   if (!Number.isFinite(value)) return 0

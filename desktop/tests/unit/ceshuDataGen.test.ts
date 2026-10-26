@@ -51,7 +51,7 @@ describe('ceshuDataGen 类型与条数解析', () => {
     expect(clampDataGenCount(7)).toBe(7)
   })
 
-  it('错误文案与 Python 一致', () => {
+  it('错误文案与 旧版 一致', () => {
     expect(DATA_GEN_ERROR_NO_TYPE).toBe('请至少选择一种数据类型（如角色、技能、怪物）。')
     expect(DATA_GEN_ERROR_UNPARSABLE).toBe('AI 返回内容无法解析为 JSON，请重试或减少生成数量。')
     expect(DATA_GEN_ERROR_EMPTY).toBe('AI 未返回任何有效数据条目，请补充数值章设定或调整要求后重试。')
@@ -126,7 +126,7 @@ describe('ceshuDataGen 策划书上下文与提示词', () => {
     expect(lines[1]).toBe('- ghost（键: ghost）：字段参考默认数据表')
   })
 
-  it('提示词：system 与 user 逐句对应 Python', () => {
+  it('提示词：system 与 user 逐句对应 旧版', () => {
     const doc = {
       meta: { game_name: '云海仙踪', game_type: '', positioning: '' },
       numeric: { core_formulas: '伤害=攻击-防御' },
@@ -210,7 +210,7 @@ describe('ceshuDataGen 候选归一化与摘要', () => {
   })
 
   it('摘要：name + 前 3 个标量字段；遇 name 键即停；缺失 name 用「未命名」', () => {
-    // Python 原实现遇 name 键即 break：name 通常排在第一，故摘要大多只有名字（忠实保留该行为）
+    // 旧版 原实现遇 name 键即 break：name 通常排在第一，故摘要大多只有名字（忠实保留该行为）
     expect(summarizeCandidateItem({ name: '剑客', desc: 'D', level: 1, hp: 100, mp: 50 })).toBe('剑客')
     expect(summarizeCandidateItem({ name: '剑客', desc: 'D' })).toBe('剑客')
     // name 不在首位时，会先累积前面的标量字段再中断

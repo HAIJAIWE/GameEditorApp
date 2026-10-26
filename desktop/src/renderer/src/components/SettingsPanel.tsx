@@ -37,11 +37,11 @@ import {
 } from '../../../shared/config/settingsPreferences'
 
 /**
- * 设置面板（对齐 Python `ui/dialogs/settings_dialog.py`，菜单入口 `设置 → 打开设置...`）。
+ * 设置面板（对齐 旧版 `ui/dialogs/settings_dialog`，菜单入口 `设置 → 打开设置...`）。
  *
- * Python 是 4 页签（通用 / AI / 编辑器 / 工具）的 QDialog。TS 侧做**四项**：
+ * 旧版 是 4 页签（通用 / AI / 编辑器 / 工具）的 QDialog。TS 侧做**四项**：
  * 字体大小 / 主题 / 删除时确认（前三项，`shared/settingsPreferences.ts`）+ 
- * **AI 模型服务**（E41 新增，`shared/llmConfig.ts`，对齐 `ui/dialogs/api_config.py` 基础设置页）。
+ * **AI 模型服务**（E41 新增，`shared/llmConfig.ts`，对齐 `ui/dialogs/api_config` 基础设置页）。
  * 仍**刻意不做**：语言下拉（无 i18n 框架）、自动保存（TS 侧无此功能）、
  * 界面布局（IA 已重写为无侧栏单栈）、工具页开关（未核实消费者）、
  * 视觉模型页（TS 侧无视觉模型消费者）、技能生成模板偏好（属策划内容域，职责错位）。
@@ -104,7 +104,7 @@ export default function SettingsPanel() {
     saveBlockExportMissingImages(next)
   }
 
-  /* ---- LLM 服务商配置（对齐 Python `ui/dialogs/api_config.py` 基础设置页） ---- */
+  /* ---- LLM 服务商配置（对齐 旧版 `ui/dialogs/api_config` 基础设置页） ---- */
   const [llm, setLlm] = useState<StoredLlmConfig>(() => loadLlmConfig())
   const [llmKeyDraft, setLlmKeyDraft] = useState('')
   const [llmNotice, setLlmNotice] = useState<string | null>(null)
@@ -144,7 +144,7 @@ export default function SettingsPanel() {
       .catch(() => setLlmNotice('已保存到本地，但推送给主进程失败，AI 调用可能仍用旧配置'))
   }
 
-  /** 切服务商：带出该服务商的预设地址与首个模型（对齐 PyQt `on_provider_changed`） */
+  /** 切服务商：带出该服务商的预设地址与首个模型（对齐 旧版 `on_provider_changed`） */
   const handleProviderChange = (next: LlmProvider): void => {
     const preset = LLM_PROVIDER_PRESETS[next]
     commitLlm({
@@ -209,7 +209,7 @@ export default function SettingsPanel() {
     }
   }
 
-  /** 「测试连接」（E63，对齐 Python `api_config.py`）：探活当前已配置镜像，结果直接展示在 llmNotice */
+  /** 「测试连接」（E63，对齐 旧版 `api_config`）：探活当前已配置镜像，结果直接展示在 llmNotice */
   const handleTestConnection = async (): Promise<void> => {
     setLlmNotice(null)
     setLlmTesting(true)
@@ -258,10 +258,10 @@ export default function SettingsPanel() {
             </div>
             <div className="item-meta" data-testid="settings-theme-current">
               当前：{theme === 'dark' ? '深色' : '浅色'}
-              （本版仅深/浅两档，不含 Python 的 10 套 QSS 主题）
+              （本版仅深/浅两档，不含 旧版 的 10 套 QSS 主题）
             </div>
 
-            {/* 字体大小：立即生效（优于 PyQt 的「需重启」，故如实说明而非照抄） */}
+            {/* 字体大小：立即生效（优于 旧版 的「需重启」，故如实说明而非照抄） */}
             <div className="form-row">
               <label className="form-label" htmlFor="settings-font-size">
                 字体大小
@@ -285,7 +285,7 @@ export default function SettingsPanel() {
             </div>
             <div className="item-meta" data-testid="settings-font-size-hint">
               范围 {MIN_FONT_SIZE}–{MAX_FONT_SIZE}px，默认 {DEFAULT_FONT_SIZE}px。
-              <b>立即生效</b>（改的是全站 CSS 缩放系数，无需重启）—— Python 侧受 Qt 限制才需重启。
+              <b>立即生效</b>（改的是全站 CSS 缩放系数，无需重启）—— 旧版 侧受 Qt 限制才需重启。
             </div>
 
             {/* 删除时确认：默认开启；关闭后删除直接执行，必须如实告知破坏性 */}
@@ -338,7 +338,7 @@ export default function SettingsPanel() {
           </div>
         </div>
 
-        {/* ---- LLM 服务商配置（对齐 Python `api_config.py` 基础设置页） ---- */}
+        {/* ---- LLM 服务商配置（对齐 旧版 `api_config` 基础设置页） ---- */}
         <div className="form-section" data-testid="settings-llm">
           <strong>AI 模型服务</strong>
 

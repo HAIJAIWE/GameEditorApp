@@ -1,29 +1,29 @@
 /**
  * 智能体编辑器 —— 纯逻辑层（零 React / 零 Electron，Node 下可单测）。
  *
- * ## 范围判定（读 Python 真源 `src/ui/widgets/team_dialog.py` 后得出）
+ * ## 范围判定（读 旧版 真源 `src/ui/widgets/team_dialog` 后得出）
  *
- * PyQt 的 TeamDialog 是 818 行的「双栏对话框」，但**两半在 TS 侧的数据支撑完全不同**：
+ * 旧版 的 TeamDialog 是 818 行的「双栏对话框」，但**两半在 TS 侧的数据支撑完全不同**：
  *
- * ### 判定为「不做」（PyQt 侧结构存在，TS 侧无真源 / 无消费者 → 做了就是假控件）
+ * ### 判定为「不做」（旧版 侧结构存在，TS 侧无真源 / 无消费者 → 做了就是假控件）
  *
- * | PyQt 位置 | 功能 | 不做的依据 |
+ * | 旧版 位置 | 功能 | 不做的依据 |
  * | --- | --- | --- |
- * | `team_dialog.py:80-105, 669-770` | 团队列表 CRUD（新建/删除/保存/选中） | 依赖 `AgentManager.create_team/update_team/delete_team`（`core/agent/agents/agent_manager.py:233-253`），TS 侧**无** `Team` 类型、**无** teams.json、**无**任何 IPC 通道；`grep -rn "team\|Team" desktop/src/` 在 agent 域零命中。存哪儿都定不下来 |
- * | `team_dialog.py:178-237` | 成员勾选列表 | 数据源是 `AgentManager.list_default_agents()`（`agent_manager.py:173`），TS 侧**无** `DEFAULT_AGENTS`；且 `:717` 的默认勾选集合 `{"data_operator","planner","analyst"}` 是 PyQt 侧硬编码字面量，照搬即造假数据 |
- * | `team_dialog.py:243-273` | 「编辑提示词」 | 写入 `Team.custom_prompts`（`agent_manager.py:58`），TS 侧无 Team 容器；`AgentBrainService.chat()`（`main/agent/brainService.ts:111`）只读 `PreferenceStore`，不读团队提示词 → 改了没人消费 |
- * | `team_dialog.py:279-355` | 「配置工具」（成员级工具覆盖） | 写入 `Team.member_tools`（`agent_manager.py:59`），同上无消费者。**注意**：本模块只做「工具风险可见」，不做「按成员裁剪工具」——后者是团队概念，前者是调度器事实 |
- * | `team_dialog.py:460-663` | 「管理智能体定义」（自定义 agent 增删改） | 依赖 `register_agent`/`unregister_agent`（`agent_manager.py:205-225`）写 agents.json；TS 侧自定义 agent **无消费者**——`brainService.ts:120` 恒用 `buildSystemPrompts` 的单一身份，不按 agent 分派 |
- * | `team_dialog.py:772-781` | 「使用此团队」/「切换到个人模式」 | 依赖 `set_current_team`（`agent_manager.py:256`）；TS 侧无「当前团队」状态，Brain 也不读 → 点了没有任何可观测变化 |
- * | `team_dialog.py:812-818` | 底栏「当前: 团队模式 / 个人模式」 | 同上，`is_team_mode()`（`agent_manager.py:268`）无对应状态 |
+ * | `team_dialog:80-105, 669-770` | 团队列表 CRUD（新建/删除/保存/选中） | 依赖 `AgentManager.create_team/update_team/delete_team`（`core/agent/agents/agent_manager:233-253`），TS 侧**无** `Team` 类型、**无** teams.json、**无**任何 IPC 通道；`grep -rn "team\|Team" desktop/src/` 在 agent 域零命中。存哪儿都定不下来 |
+ * | `team_dialog:178-237` | 成员勾选列表 | 数据源是 `AgentManager.list_default_agents()`（`agent_manager:173`），TS 侧**无** `DEFAULT_AGENTS`；且 `:717` 的默认勾选集合 `{"data_operator","planner","analyst"}` 是 旧版 侧硬编码字面量，照搬即造假数据 |
+ * | `team_dialog:243-273` | 「编辑提示词」 | 写入 `Team.custom_prompts`（`agent_manager:58`），TS 侧无 Team 容器；`AgentBrainService.chat()`（`main/agent/brainService.ts:111`）只读 `PreferenceStore`，不读团队提示词 → 改了没人消费 |
+ * | `team_dialog:279-355` | 「配置工具」（成员级工具覆盖） | 写入 `Team.member_tools`（`agent_manager:59`），同上无消费者。**注意**：本模块只做「工具风险可见」，不做「按成员裁剪工具」——后者是团队概念，前者是调度器事实 |
+ * | `team_dialog:460-663` | 「管理智能体定义」（自定义 agent 增删改） | 依赖 `register_agent`/`unregister_agent`（`agent_manager:205-225`）写 agents.json；TS 侧自定义 agent **无消费者**——`brainService.ts:120` 恒用 `buildSystemPrompts` 的单一身份，不按 agent 分派 |
+ * | `team_dialog:772-781` | 「使用此团队」/「切换到个人模式」 | 依赖 `set_current_team`（`agent_manager:256`）；TS 侧无「当前团队」状态，Brain 也不读 → 点了没有任何可观测变化 |
+ * | `team_dialog:812-818` | 底栏「当前: 团队模式 / 个人模式」 | 同上，`is_team_mode()`（`agent_manager:268`）无对应状态 |
  *
  * ### 判定为「做」（TS 侧有真实数据 **且** 有真实消费者）
  *
- * | PyQt 位置 | 功能 | TS 侧真源 |
+ * | 旧版 位置 | 功能 | TS 侧真源 |
  * | --- | --- | --- |
- * | `team_dialog.py:358-421` `_collect_all_tools` | 汇总所有可用工具 | IPC `agent:listTools`（`main/ipc.ts:260`）→ `SkillDispatcher.toolsJsonSchema()`（`main/agent/dispatcher.ts:148`），返回**真实已注册**技能的 id/描述/参数 schema |
- * | `team_dialog.py:362-395` 系统工具分类 | 工具按分类列出 | 同一份 IPC 数据 + `shared/agent/protocol.ts:30` 的 `TOOL_RISK_MAP` 真实风险表。**不移植** `:369-389` 的 `desc_map`——那是 PyQt 侧硬编码字面量，且与 TS 实际工具集不符（它列了 `system.git`/`system.shell` 等 TS 未注册的工具）；TS 侧描述一律取 `skill.description` 真实值 |
- * | `team_dialog.py:279-292` 的**风险语义**（本面板改造版） | 哪些工具危险、会不会弹审批 | `resolveRiskLevel`（`protocol.ts:88`）+ `RISK_LEVEL`。这是**调度器实际执行的判定**：`dispatcher.ts:212` 用同一函数在 `risk >= SYSTEM` 时要求 `dangerConfirmed` |
+ * | `team_dialog:358-421` `_collect_all_tools` | 汇总所有可用工具 | IPC `agent:listTools`（`main/ipc.ts:260`）→ `SkillDispatcher.toolsJsonSchema()`（`main/agent/dispatcher.ts:148`），返回**真实已注册**技能的 id/描述/参数 schema |
+ * | `team_dialog:362-395` 系统工具分类 | 工具按分类列出 | 同一份 IPC 数据 + `shared/agent/protocol.ts:30` 的 `TOOL_RISK_MAP` 真实风险表。**不移植** `:369-389` 的 `desc_map`——那是 旧版 侧硬编码字面量，且与 TS 实际工具集不符（它列了 `system.git`/`system.shell` 等 TS 未注册的工具）；TS 侧描述一律取 `skill.description` 真实值 |
+ * | `team_dialog:279-292` 的**风险语义**（本面板改造版） | 哪些工具危险、会不会弹审批 | `resolveRiskLevel`（`protocol.ts:88`）+ `RISK_LEVEL`。这是**调度器实际执行的判定**：`dispatcher.ts:212` 用同一函数在 `risk >= SYSTEM` 时要求 `dangerConfirmed` |
  *
  * ## 一条重要的「不做」：工具准入上限
  *
@@ -74,7 +74,7 @@ export function needsConfirmation(risk: RiskLevel): boolean {
 /** 工具 id 的命名空间（`system.*` / `tool.*` / 其他） */
 export type ToolNamespace = 'system' | 'tool' | 'other'
 
-/** 命名空间 → 中文分类名（`team_dialog.py:393` 的「系统工具」是 Python 侧的自造分类名） */
+/** 命名空间 → 中文分类名（`team_dialog:393` 的「系统工具」是 旧版 侧的自造分类名） */
 export const NAMESPACE_LABELS: Readonly<Record<ToolNamespace, string>> = {
   system: '系统工具',
   tool: '交互工具',

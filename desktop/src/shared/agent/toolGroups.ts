@@ -28,7 +28,7 @@ import type { AgentRunTier } from './observability'
 
 /**
  * 场景分组 id。设计文档 §344 裁定：本项目面向的**真实场景只有三个**——
- * **策划书创作 / 数据编辑 / 系统与协作**，故分组按这三者切，**不照搬 Python 的 12 个 `system.*` 槽位**
+ * **策划书创作 / 数据编辑 / 系统与协作**，故分组按这三者切，**不照搬 旧版 的 12 个 `system.*` 槽位**
  * （那会把「一个场景打散到多个槽位」，反而增加模型的选择成本）。
  */
 export type ToolGroupId = 'ceshu' | 'data' | 'system'

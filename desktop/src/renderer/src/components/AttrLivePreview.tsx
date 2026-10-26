@@ -4,11 +4,11 @@ import { baseAttrNames, computeLivePreview, derivedAndCombatNames } from '../../
 import type { AttrSystem } from '../../../shared/attrSystem'
 
 /**
- * 实时预览视图（对应 Python LivePreviewWidget）：
- * - 基础属性数值输入（数字输入替代 Python 滑块：无上限属性滑块会退化为 0..99999，数字输入更实用）
+ * 实时预览视图（对应 旧版 LivePreviewWidget）：
+ * - 基础属性数值输入（数字输入替代 旧版 滑块：无上限属性滑块会退化为 0..99999，数字输入更实用）
  * - 装备固定加成（+X）与 Buff 百分比加成（+%，先装备后百分比）作用于基础属性
  * - 结果显示派生/战斗属性（战斗高亮），计算过程按段展示；「重置数值」恢复默认值与零加成
- * 说明：本视图是临时模拟（不写入草稿）；切换视图会重置模拟值。Python 的「等级」控件无实际计算，未迁移。
+ * 说明：本视图是临时模拟（不写入草稿）；切换视图会重置模拟值。旧版 的「等级」控件无实际计算，未迁移。
  */
 
 interface AttrLivePreviewProps {
@@ -166,7 +166,7 @@ export default function AttrLivePreview({ system }: AttrLivePreviewProps) {
   )
 }
 
-/** 结果展示：整数省略小数，否则 1 位（对应 Python 的 int 判断显示） */
+/** 结果展示：整数省略小数，否则 1 位（对应 旧版 的 int 判断显示） */
 function formatResult(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(1)
 }

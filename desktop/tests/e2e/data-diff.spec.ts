@@ -70,7 +70,7 @@ test('数据对比：设定基线后修改数据 → 与基线对比应报告修
     await expect(window.getByTestId('dd-summary')).toContainText('修改')
     // 既有断言修正（非本次引入）：原断言写死 `dd-row.first()` 含 `data.name`，
     // 但打开空 attrpanel 的角色再保存时，`buildInitialDraft` 会套默认属性模板
-    // （对齐 Python load_data）⇒ diff 里同时有 `attr_list 新增` 与 `name 修改` 两行，
+    // （对齐 旧版 load_data）⇒ diff 里同时有 `attr_list 新增` 与 `name 修改` 两行，
     // 行序上 attr_list 在前。断言目的 = 「name 的修改被报告」，故改为按内容定位该行。
     await expect(window.getByTestId('dd-row').filter({ hasText: 'data.name' })).toHaveCount(1)
     await expect(window.getByTestId('dd-identical')).toHaveCount(0)

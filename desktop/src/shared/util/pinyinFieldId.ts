@@ -3,17 +3,17 @@ import { pinyin } from 'pinyin-pro'
 import { uniquifyFieldId, type SuggestFieldIdResult } from './fieldId'
 
 /**
- * 中文 → 拼音字段 ID（对齐 Python `ui/dialogs/type_editor_field_widget.py::_chinese_to_pinyin`）。
+ * 中文 → 拼音字段 ID（对齐 旧版 `ui/dialogs/type_editor_field_widget::_chinese_to_pinyin`）。
  *
  * ## 为什么单独一个模块
- * 字段 ID 生成在 Python 里有**两条独立的路子**，各有自己的按钮：
+ * 字段 ID 生成在 旧版 里有**两条独立的路子**，各有自己的按钮：
  * - **英译**（`_auto_translate` → `_translate_game_terms`）：走术语表，`攻击力 → atk`。
- *   TS 侧已由 `shared/fieldId.ts::suggestFieldIds` 承接（且修掉了 Python 把 ASCII 逐字打碎的缺陷）。
+ *   TS 侧已由 `shared/fieldId.ts::suggestFieldIds` 承接（且修掉了 旧版 把 ASCII 逐字打碎的缺陷）。
  * - **拼音**（`_auto_pinyin` → `_chinese_to_pinyin`）：走 `pypinyin`，`攻击力 → gong_ji_li`，
  *   **支持任意汉字**（不必在术语表里）。本模块就是补这一条。
  * 两条路都只做「给候选」，不自动覆盖用户已填内容（TS 沿用 `fieldId.ts` 的「只提案不写入」约定）。
  *
- * ## 与 Python 的一致性
+ * ## 与 旧版 的一致性
  * `pypinyin.lazy_pinyin(text, style=Style.NORMAL)` → 用 `_` 拼接 → 去除 `[^a-zA-Z0-9_]` →
  * 折叠连续 `_` → 去首尾 `_` → 转小写。本模块用 `pinyin-pro`（`toneType:'none'` 去声调、
  * `nonZh:'consecutive'` 让**连续 ASCII 保持成段**，与 `lazy_pinyin` 对非汉字的行为一致）复现同一口径：
@@ -21,13 +21,13 @@ import { uniquifyFieldId, type SuggestFieldIdResult } from './fieldId'
  * | 输入 | 本模块输出 | 说明 |
  * |---|---|---|
  * | `攻击力` | `gong_ji_li` | 逐字取拼音，`_` 连接 |
- * | `斗能` | `dou_neng` | **术语表未收录也能转**（Python 这里会落 CEDICT 产出 `abbr_surname` 垃圾） |
+ * | `斗能` | `dou_neng` | **术语表未收录也能转**（旧版 这里会落 CEDICT 产出 `abbr_surname` 垃圾） |
  * | `hp_max` | `hp_max` | 本就合法的 ID 原样通过（不逐字打碎） |
- * | `HP上限` | `hp_shang_xian` | 与 Python `lazy_pinyin` 同（ASCII 段 + 拼音段） |
+ * | `HP上限` | `hp_shang_xian` | 与 旧版 `lazy_pinyin` 同（ASCII 段 + 拼音段） |
  * | `生命值%` | `sheng_ming_zhi` | `%` 被清洗掉 |
  *
  * ## 为何不接 CEDICT
- * Python 的**英译**在术语表未命中时会回退到 CEDICT 词典 + `jieba` 分词，实测会产出
+ * 旧版 的**英译**在术语表未命中时会回退到 CEDICT 词典 + `jieba` 分词，实测会产出
  * `abbr_surname` / `canada_surname` 这类**看起来像答案的垃圾**。TS 的 `fieldId.ts` 已明确
  * 不接词典、未收录时如实提示；拼音是另一条正交的补救路径（音节确定、可预期），故只补拼音。
  */

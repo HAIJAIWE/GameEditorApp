@@ -24,7 +24,7 @@ function attr(name: string, coefficients: Record<string, number>): AttrDefinitio
   }
 }
 
-describe('装备/Buff 记录映射（对应 Python _equip_dict_to_data_item / _buff_dict_to_data_item）', () => {
+describe('装备/Buff 记录映射（对应 旧版 _equip_dict_to_data_item / _buff_dict_to_data_item）', () => {
   it('装备：base_attrs + extra_attrs 平铺为固定加成；part 与 rarity||rare 映射；零值剔除', () => {
     const item = equipRecordToItem({
       id: 'E1',
@@ -62,7 +62,7 @@ describe('装备/Buff 记录映射（对应 Python _equip_dict_to_data_item / _b
     expect(item.percentageBonuses).toEqual({ 物攻: 15 })
   })
 
-  it('Buff：value + effect_type 映射单项；未知类别不加成（修 Python 默认「力量」缺陷）', () => {
+  it('Buff：value + effect_type 映射单项；未知类别不加成（修 旧版 默认「力量」缺陷）', () => {
     expect(buffRecordToItem({ id: 'B1', name: '祝福', type: '增益', effect_type: '属性提升', value: 20 }).bonuses).toEqual({
       力量: 20
     })
@@ -74,13 +74,13 @@ describe('装备/Buff 记录映射（对应 Python _equip_dict_to_data_item / _b
     )
   })
 
-  it('槽位常量与装备 schema 部位一致（9 个，修 Python 7 槽含「饰品」缺护腿/项链/披风）', () => {
+  it('槽位常量与装备 schema 部位一致（9 个，修 旧版 7 槽含「饰品」缺护腿/项链/披风）', () => {
     expect(EQUIP_SLOTS).toEqual(['武器', '头盔', '胸甲', '护腿', '靴子', '手套', '戒指', '项链', '披风'])
   })
 })
 
 describe('装备对比计算（基础 → 装备 + Buff → 最终）', () => {
-  it('固定加成先加、百分比后乘；Buff 参与计算（修 Python 缺陷：Buff 卡片不参与）', () => {
+  it('固定加成先加、百分比后乘；Buff 参与计算（修 旧版 缺陷：Buff 卡片不参与）', () => {
     const equip = equipRecordToItem({ id: 'E1', name: '剑', part: '武器', base_attrs: { 力量: 10 } })
     const buff = buffRecordToItem({ id: 'B1', name: '祝福', effect_type: '属性提升', value: 20 })
     const { rows } = computeEquipComparison(system, defaultBaseValues(system), [equip], [buff])

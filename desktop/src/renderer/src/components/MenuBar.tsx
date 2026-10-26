@@ -8,14 +8,14 @@ import LucideIcon from './LucideIcon'
 type EngineTarget = EngineExportInput['engine']
 
 /**
- * 顶部菜单栏（对齐 PyQt `ui/menus.py` 的 MENU_CONFIG + `ui/main_window.py` 的角部件）。
+ * 顶部菜单栏（对齐 旧版 `ui/menus` 的 MENU_CONFIG + `ui/main_window` 的角部件）。
  *
  * 设计取舍：
- * - 菜单栏是整个应用**唯一的能力入口**（对齐 PyQt：无侧栏，能力全在菜单里）。
+ * - 菜单栏是整个应用**唯一的能力入口**（对齐 旧版：无侧栏，能力全在菜单里）。
  * - **全部菜单项均已接线**（E37 起分批清理 `notImplemented` 占位，E57 收掉最后两项 → 见
  *   `menuTree` 里「内容关联」位置的注释）。菜单里**不存在**「点了只报尚未实现」的占位项，
  *   故 `notImplemented` 这个动作与对应的占位机制已一并移除 —— 今后新能力要么接线、要么不进菜单。
- * - 菜单栏**右侧角部件**（对齐 PyQt `menuBar().setCornerWidget`）承载库选择与
+ * - 菜单栏**右侧角部件**（对齐 旧版 `menuBar().setCornerWidget`）承载库选择与
  *   「设置 / 智能体 / AI」三个强调按钮；库条（`library-bar`）自侧栏迁入此处并保持可见。
  */
 
@@ -27,7 +27,7 @@ export interface MenuActions {
   exportCsv: () => void
   exportExcel: () => void
   batchEdit: () => void
-  /** 引擎数据导出：按目标引擎走各自的渲染器与扩展名（对齐 PyQt `features/engine_export.py`） */
+  /** 引擎数据导出：按目标引擎走各自的渲染器与扩展名（对齐 旧版 `features/engine_export`） */
   engineExport: (engine: EngineTarget) => void
   /** 数据快照导出（审查件）：json = 确定性可 diff 的全量数据；csv = 单表宽表。format 经菜单项 arg 传入 */
   exportSnapshot: (format: 'json' | 'csv') => void
@@ -39,26 +39,26 @@ export interface MenuActions {
   toggleDevTools: () => void
   /**
    * 「打开」/「保存」—— 整个数据仓库的 JSON 文件 I/O
-   * （对齐 PyQt `main_window.py:710` 的 `open_file` / `:730` 的 `save_file`）。
+   * （对齐 旧版 `main_window:710` 的 `open_file` / `:730` 的 `save_file`）。
    *
-   * ⚠️ **与 PyQt 的已知语义差异**（勿改文案掩盖）：
-   * - PyQt `打开` 是**整库替换**（`data_manager.py:382` 直接 `self.data = temp_data`）并记录
+   * ⚠️ **与 旧版 的已知语义差异**（勿改文案掩盖）：
+   * - 旧版 `打开` 是**整库替换**（`data_manager:382` 直接 `self.data = temp_data`）并记录
    *   `current_file`；TS 的 `importLegacy` 是**按 id upsert 的合并**，不删除既有条目。
-   * - PyQt `保存` 复用 `current_file`（第二次起不再问路径）；TS 每次都弹另存为对话框。
+   * - 旧版 `保存` 复用 `current_file`（第二次起不再问路径）；TS 每次都弹另存为对话框。
    * 补齐需新增 IPC（整库替换 + current_file 记忆），不在本轮「零新能力」范围内。
    */
   open: () => void
   /** 「保存」，与 `open` 成对，共用 `handleExportLegacy`（差异同上） */
   save: () => void
   /**
-   * 「导入 → 批量导入」（PyQt `features/export.py:168` 的 `batch_import`：
+   * 「导入 → 批量导入」（旧版 `features/export:168` 的 `batch_import`：
    * 读 JSON 后**为每条重新生成 id** 再追加）。
    * ⚠️ TS 的 `importLegacy` 保留原 id（缺失才生成 UUID），重复导入同一文件是**幂等更新**
-   * 而非「每次追加一份新副本」——与 PyQt 有行为差异，详见上方 `open` 的说明。
+   * 而非「每次追加一份新副本」——与 旧版 有行为差异，详见上方 `open` 的说明。
    */
   batchImport: () => void
   /**
-   * 「导出 → 批量导出」（PyQt `features/export.py:206`：与 `export_json` **共用同一个函数**
+   * 「导出 → 批量导出」（旧版 `features/export:206`：与 `export_json` **共用同一个函数**
    * `_export_data_as_json`，仅对话框标题/成功文案不同）→ 故与 `exportJson` 同实现是精确对齐。
    */
   batchExport: () => void
@@ -67,14 +67,14 @@ export interface MenuActions {
   redo: () => void
   quickCreate: () => void
   references: () => void
-  /** 「工具 → 关系图」：表格式总览某条数据的关联数据（对齐 PyQt `relation_graph.py::RelationTablePanel`） */
+  /** 「工具 → 关系图」：表格式总览某条数据的关联数据（对齐 旧版 `relation_graph::RelationTablePanel`） */
   relationGraph: () => void
   dataDiff: () => void
   stats: () => void
   attrSystem: () => void
-  /** 游戏数据预览（对齐 PyQt `menus.py:69`「导出 → 游戏数据预览」） */
+  /** 游戏数据预览（对齐 旧版 `menus:69`「导出 → 游戏数据预览」） */
   gameDataPreview: () => void
-  /** 字段结构编辑器（TS 独有入口：该面板无 PyQt 菜单项） */
+  /** 字段结构编辑器（TS 独有入口：该面板无 旧版 菜单项） */
   fieldEditor: () => void
   /** 高级搜索（TS 独有入口） */
   advancedSearch: () => void
@@ -83,9 +83,9 @@ export interface MenuActions {
   imageGen: () => void
   /** 角部件「设置」按钮 **与** 菜单「设置 → 打开设置...」共用的动作（打开设置面板） */
   settings: () => void
-  /** 清理未使用图片（迁移 `features/advanced.py::cleanup_unused_images`，破坏性） */
+  /** 清理未使用图片（迁移 `features/advanced::cleanup_unused_images`，破坏性） */
   cleanupUnusedImages: () => void
-  /** AI 关键词模板配置（PyQt 只在设置面板工具页有，`menus.py` 零引用） */
+  /** AI 关键词模板配置（旧版 只在设置面板工具页有，`menus` 零引用） */
   keywordTemplates: () => void
   /** 角部件「智能体」按钮（打开智能体编辑器） */
   agentEditor: () => void
@@ -97,7 +97,7 @@ export interface MenuActions {
   shortcuts: () => void
   /** 「帮助 → 关于墨白编辑器」 */
   about: () => void
-  /** 「帮助 → 快速入门」：打开引导式主页浮层（对齐 PyQt `HomeWidget`） */
+  /** 「帮助 → 快速入门」：打开引导式主页浮层（对齐 旧版 `HomeWidget`） */
   onboarding: () => void
   quit: () => void
 }
@@ -244,8 +244,8 @@ export default function MenuBar({ canUndo, canRedo, actions }: MenuBarProps) {
       },
       /*
        * 原「内容关联」子菜单两项（内容关联管理 / 关联可视化）**已删除**（E57）。
-       * 依据：PyQt `features/advanced.py:30-45` 两个 handler **函数体完全相同**，都是
-       * `ReferencePanel(dm, "", "", mw)`（**空 type / 空 id**），而 `reference_panel.py::_find_item()`
+       * 依据：旧版 `features/advanced:30-45` 两个 handler **函数体完全相同**，都是
+       * `ReferencePanel(dm, "", "", mw)`（**空 type / 空 id**），而 `reference_panel::_find_item()`
        * 对空 type 必然返回 `None` ⇒ 该对话框**任何情况下只渲染「未找到该数据」**，是死入口。
        * 其能力面已由两条真实入口覆盖：`references`（「数据关联预览」，按目标看引用）+
        * `relationGraph`（「关系图」，按类型/主体浏览关联）。**不保留占位项**（点了报「尚未实现」= 假控件）。
@@ -335,7 +335,7 @@ export default function MenuBar({ canUndo, canRedo, actions }: MenuBarProps) {
         </div>
       ))}
 
-      {/* 右侧角部件（对齐 PyQt `menuBar().setCornerWidget`）：库标签 + 库条 + 设置/智能体/AI */}
+      {/* 右侧角部件（对齐 旧版 `menuBar().setCornerWidget`）：库标签 + 库条 + 设置/智能体/AI */}
       <div className="menubar-right">
         <span className="menubar-label">当前库:</span>
         <LibraryBar />

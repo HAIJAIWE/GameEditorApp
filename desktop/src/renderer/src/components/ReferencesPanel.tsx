@@ -4,7 +4,7 @@ import type { ReferenceReport } from '../../../shared/util/references'
 import type { DataTypeDef } from '../../../shared/types'
 
 /**
- * 引用关系面板（对应 Python ReferencePanel 三页签）：
+ * 引用关系面板（对应 旧版 ReferencePanel 三页签）：
  * 被谁引用（全库反向扫描）/ 引用了谁（按 id 精确解析，悬空 token 显示原文）/ 相似数据（同类型字段重合度）。
  * 行可点击跳转到目标条目（复用主列表的类型切换 + 选中逻辑）。
  */

@@ -28,7 +28,7 @@ function fieldOf(doc: CeshuDocument, other: CeshuDocument, chapter: string, labe
   return found
 }
 
-describe('版本对比：章节级 Diff（匹平 Python compute_version_diff）', () => {
+describe('版本对比：章节级 Diff（匹平 旧版 compute_version_diff）', () => {
   it('同一文档对比：24 章全无变更，未变字段数等于各章未变数之和（P2 后 17→24）', () => {
     const doc = makeDoc()
     const diff = buildVersionDiff(doc, doc)
@@ -72,7 +72,7 @@ describe('版本对比：章节级 Diff（匹平 Python compute_version_diff）'
     })
   })
 
-  it('空值 → 有值算新增，有值 → 空值算删除（Python 空值语义）', () => {
+  it('空值 → 有值算新增，有值 → 空值算删除（旧版 空值语义）', () => {
     const a = makeDoc()
     const b = structuredClone(a)
     b.vision.design_vision = '新增的愿景文案'
@@ -100,7 +100,7 @@ describe('版本对比：章节级 Diff（匹平 Python compute_version_diff）'
     const a = makeDoc()
     const b = structuredClone(a)
     ;(b.systems.battle as { enabled: boolean }).enabled = true
-    // key 存在且 enabled=false → true：Python 判为 modified（不同于进度语义）
+    // key 存在且 enabled=false → true：旧版 判为 modified（不同于进度语义）
     const enabled = fieldOf(a, b, 'systems', 'battle (enabled)')
     expect(enabled).toMatchObject({
       field_path: 'systems.battle.enabled',

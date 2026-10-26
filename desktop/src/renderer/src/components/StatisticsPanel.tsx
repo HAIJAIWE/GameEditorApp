@@ -11,14 +11,14 @@ import {
 import type { DataTypeDef, ItemRecord } from '../../../shared/types'
 
 /**
- * 数据统计 + 平衡性分析面板（对应 Python `ui/dialogs/statistics.py` 的
+ * 数据统计 + 平衡性分析面板（对应 旧版 `ui/dialogs/statistics` 的
  * `StatisticsDialog` + `BalanceAnalysisDialog`）。
  *
- * **刻意差异（有实证）**：Python 的角色/怪物分析读扁平字段 `hp`/`atk`/`def`，
+ * **刻意差异（有实证）**：旧版 的角色/怪物分析读扁平字段 `hp`/`atk`/`def`，
  * 但 TS schema 里这些类型**没有**该字段（属性在 `attr_list` 里）→ 直译会变死代码。
  * 故本面板按 schema 的 `spinbox` 字段**自动发现**数值字段，换 schema 也成立。
  *
- * **不迁**：Python 的「📈 图表」页是 matplotlib 占位符，这里用 CSS 柱条真实渲染分布，
+ * **不迁**：旧版 的「📈 图表」页是 matplotlib 占位符，这里用 CSS 柱条真实渲染分布，
  * 不复制占位符。
  */
 

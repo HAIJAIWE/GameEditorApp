@@ -40,7 +40,7 @@ describe('审阅提示词与维度枚举同源', () => {
       expect(system).toContain(`{"key":"${key}","label":"${REVIEW_DIMENSION_LABELS[key]}"`)
     }
 
-    // 顺序同源：与规范顺序一致（Python set 遍历顺序不稳，曾因此错乱）
+    // 顺序同源：与规范顺序一致（旧版 set 遍历顺序不稳，曾因此错乱）
     const positions = REVIEW_DIMENSION_KEYS.map((key) => system.indexOf(`"key":"${key}"`))
     expect(positions.every((position) => position >= 0)).toBe(true)
     expect([...positions].sort((a, b) => a - b)).toEqual(positions)

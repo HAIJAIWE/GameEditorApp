@@ -26,7 +26,7 @@ describe('SkillRegistry', () => {
     expect(registry.get('system.a')?.id).toBe('system.a')
     expect(registry.list().map((skill) => skill.id)).toEqual(['system.a', 'system.b'])
 
-    // 空 id 拒绝注册（对齐 Python register_skill 返回 False）
+    // 空 id 拒绝注册（对齐 旧版 register_skill 返回 False）
     expect(registry.register(makeSkill({ id: '' }))).toBe(false)
     expect(registry.count).toBe(2)
 
@@ -39,7 +39,7 @@ describe('SkillRegistry', () => {
   })
 })
 
-describe('SkillDispatcher：名称解析（对齐 Python fuzzy_match）', () => {
+describe('SkillDispatcher：名称解析（对齐 旧版 fuzzy_match）', () => {
   function makeDispatcher(): SkillDispatcher {
     const dispatcher = new SkillDispatcher()
     dispatcher.register(makeSkill({ id: 'system.game_data', description: '游戏数据增删改查操作' }))
@@ -122,7 +122,7 @@ describe('SkillDispatcher：执行与结构化错误', () => {
   })
 })
 
-describe('SkillDispatcher：危险操作确认门（对齐 Python _check_dangerous）', () => {
+describe('SkillDispatcher：危险操作确认门（对齐 旧版 _check_dangerous）', () => {
   function makeShellDispatcher(): SkillDispatcher {
     const dispatcher = new SkillDispatcher()
     dispatcher.register(

@@ -1,9 +1,9 @@
 /**
- * Agent 会话持久化（自 Python `core/agent/brain_session.py` 的会话存取匹平迁移，A1-3）。
+ * Agent 会话持久化（自 旧版 `core/agent/brain_session` 的会话存取匹平迁移，A1-3）。
  *
  * 与项目既有存储纪律一致：**唯一写者串行队列 + 临时文件 rename 原子写**；
  * 读取分两档——`readActive()` 严格（损坏抛中文错误，便于排障），
- * `tryRestore()` 容错（任何异常都视为「无会话」，对齐 Python `_try_restore_session`）。
+ * `tryRestore()` 容错（任何异常都视为「无会话」，对齐 旧版 `_try_restore_session`）。
  *
  * 路径约定：由调用方注入目录（`main/index.ts` 传 `userData/agent`）。
  * **A2-1 引入多库后只需改注入点**，本模块不感知库结构。
@@ -72,7 +72,7 @@ export class AgentSessionStore {
     return raw
   }
 
-  /** 容错读取（对齐 Python `_try_restore_session`）：任何异常都视为无会话，不抛错 */
+  /** 容错读取（对齐 旧版 `_try_restore_session`）：任何异常都视为无会话，不抛错 */
   tryRestore(): SessionSnapshot | null {
     try {
       const snapshot = this.readActive()
@@ -98,7 +98,7 @@ export class AgentSessionStore {
     })
   }
 
-  /** 追加一条部署/会话指标（对齐 Python `_record_deploy_metric` 的 metrics.jsonl） */
+  /** 追加一条部署/会话指标（对齐 旧版 `_record_deploy_metric` 的 metrics.jsonl） */
   recordMetric(type: string, payload: Record<string, unknown> = {}): Promise<void> {
     return this.enqueue(() => {
       mkdirSync(this.dir, { recursive: true })
@@ -120,7 +120,7 @@ export class AgentSessionStore {
   }
 
   /**
-   * 保存当前会话为草稿（对齐 Python `ui/digital_panel_workspace.py::_save_draft`）。
+   * 保存当前会话为草稿（对齐 旧版 `ui/digital_panel_workspace::_save_draft`）。
    *
    * **从磁盘上的活跃会话快照取数据**，不从渲染层传消息 ——
    * 少一次跨进程传输，也避免「渲染层 state 与落盘不一致时存出旧草稿」。
@@ -148,7 +148,7 @@ export class AgentSessionStore {
   }
 
   /**
-   * 列出最近草稿（对齐 Python `_list_drafts`：最多 `DRAFT_LIST_LIMIT` 条、按时间倒序）。
+   * 列出最近草稿（对齐 旧版 `_list_drafts`：最多 `DRAFT_LIST_LIMIT` 条、按时间倒序）。
    * 单个草稿损坏时**跳过**而不是整体失败 —— 草稿是辅助功能，不该因为一个坏文件就用不了。
    */
   listDrafts(): DraftSummary[] {

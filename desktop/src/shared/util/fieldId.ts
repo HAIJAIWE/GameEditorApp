@@ -4,14 +4,14 @@ import { GAME_TERMS } from '../glossaryTerms'
  * 字段 ID 建议（中文显示名 → 英文字段 ID）。
  *
  * ## 这是什么问题
- * 类型编辑器有两条硬规则（对齐 Python）：**显示名可以中文**，**字段 ID 必须英文/下划线**。
+ * 类型编辑器有两条硬规则（对齐 旧版）：**显示名可以中文**，**字段 ID 必须英文/下划线**。
  * 而 ID 是**契约**——它会被导出到 Lua、被存档引用，**一旦落盘不可变**。
  * 所以本模块只做「把中文显示名转成候选 ID」，不做任何自动写入；选哪个由人决定。
  *
- * ## 修掉的 Python 缺陷（均经实跑取证，见 `tests/unit/fieldId.test.ts`）
- * Python 实测 `FieldEditorWidget._translate_game_terms` 的输出：
+ * ## 修掉的 旧版 缺陷（均经实跑取证，见 `tests/unit/fieldId.test.ts`）
+ * 旧版 实测 `FieldEditorWidget._translate_game_terms` 的输出：
  *
- * | 输入 | Python 实际输出 | 本模块输出 |
+ * | 输入 | 旧版 实际输出 | 本模块输出 |
  * |---|---|---|
  * | `HP上限` | `h_p_max` | `hp_max` |
  * | `HP` | `h_p` | `hp` |
@@ -19,15 +19,15 @@ import { GAME_TERMS } from '../glossaryTerms'
  * | `ATK加成` | `a_t_k_canada_surname` | `atk_bonus` |
  * | `斗能` | `abbr_surname` | 明确报「未收录」 |
  *
- * 1. **ASCII 被逐字打碎**：Python 的 ASCII 分支每读一个字符就 `append` 一次，最后用 `_` 拼接，
+ * 1. **ASCII 被逐字打碎**：旧版 的 ASCII 分支每读一个字符就 `append` 一次，最后用 `_` 拼接，
  *    于是 `HP` → `h_p`、连 `hp_max` 这种**已经合法的 ID** 都被打成 `h_p_m_a_x`。
  *    本模块把**连续**字母数字累积成**一个** token。
- * 2. **未收录的中文段被交给词典，产出垃圾**：`斗能 → abbr_surname`（正是 Python 文档自己举的示例词）、
+ * 2. **未收录的中文段被交给词典，产出垃圾**：`斗能 → abbr_surname`（正是 旧版 文档自己举的示例词）、
  *    `ATK加成 → ...canada_surname`。本模块**不接词典**，未收录的段落原样记进 `skipped` 并如实告知，
  *    **绝不产出看起来像答案的垃圾**。
  *
  * ## 有意不迁
- * - **CEDICT 词典**（`core/cedict.py`）：实测 3.8MB 下载 / 11MB 落盘、同步阻塞 UI 线程、失败静默；
+ * - **CEDICT 词典**（`core/cedict`）：实测 3.8MB 下载 / 11MB 落盘、同步阻塞 UI 线程、失败静默；
  *   且它唯一能答的「通用词」早已被术语表覆盖，唯一会落到它的「自造词」它又查不到，
  *   更糟的是会产出 `abbr_surname` 这类垃圾。→ 不迁。术语表未收录时如实提示，未来可接 AI 候选。
  * - **`pypinyin` 拼音兜底**：**已迁**（E58）。TS 侧由 `shared/pinyinFieldId.ts`（依赖 `pinyin-pro`）承接，
@@ -38,12 +38,12 @@ import { GAME_TERMS } from '../glossaryTerms'
  *   强行加一张黑名单会与之**不一致**，更会误伤 `class`/`level`/`order` 这类常用游戏字段名。
  *
  * ## 已知缺口（故意不补）
- * `物防`/`物攻`/`魔防` 不在术语表内（Python 同样缺），本模块会如实报「未收录」。
+ * `物防`/`物攻`/`魔防` 不在术语表内（旧版 同样缺），本模块会如实报「未收录」。
  * 补的前提是**先定命名**（`phys_def`? `pdef`? `physical_def`?）——代码库里没有先例，凭空补就是发明。
  */
 
 /**
- * TS 侧补充术语：Python `GAME_TERMS_CN` 缺失、但**代码库自身已确立**的命名。
+ * TS 侧补充术语：旧版 `GAME_TERMS_CN` 缺失、但**代码库自身已确立**的命名。
  * 每一条都必须有据可依，不得凭个人偏好添加。
  * - `加成 → bonus`：依据 `src/shared/typeSchema.ts:62-65` 自身的字段名
  *   `hp_bonus` / `mp_bonus` / `atk_bonus` / `def_bonus`（标签为「生命加成%」等），
@@ -53,15 +53,15 @@ export const GAME_TERMS_SUPPLEMENT: Readonly<Record<string, string>> = {
   加成: 'bonus'
 }
 
-/** 生效术语表：Python 提取（`glossaryTerms.ts`）+ TS 补充 */
+/** 生效术语表：旧版 提取（`glossaryTerms.ts`）+ TS 补充 */
 const TERMS: Readonly<Record<string, string>> = { ...GAME_TERMS, ...GAME_TERMS_SUPPLEMENT }
 
-/** 术语键按长度降序（最长优先匹配，与 Python `_term_keys` 同序） */
+/** 术语键按长度降序（最长优先匹配，与 旧版 `_term_keys` 同序） */
 const TERM_KEYS: readonly string[] = Object.keys(TERMS).sort((a, b) => b.length - a.length)
 
 const CJK = /[\u4e00-\u9fff]/
 const ASCII_ALNUM = /[a-zA-Z0-9]/
-/** 合法字段 ID：字母或下划线开头，其后仅字母/数字/下划线（对齐 Python `_validate_field_id`） */
+/** 合法字段 ID：字母或下划线开头，其后仅字母/数字/下划线（对齐 旧版 `_validate_field_id`） */
 const VALID_ID = /^[a-zA-Z_][a-zA-Z0-9_]*$/
 
 export type SuggestionSource = 'term' | 'literal' | 'ai' | 'pinyin'
@@ -107,7 +107,7 @@ function tokenize(label: string): { tokens: string[]; skipped: string[]; usedTer
 
     const head = remaining[0] as string
 
-    // 2) 连续 ASCII 字母数字累积为【一个】token（修 Python 逐字打碎的缺陷）
+    // 2) 连续 ASCII 字母数字累积为【一个】token（修 旧版 逐字打碎的缺陷）
     if (ASCII_ALNUM.test(head)) {
       let end = 0
       while (end < remaining.length && ASCII_ALNUM.test(remaining[end] as string)) end += 1
@@ -128,7 +128,7 @@ function tokenize(label: string): { tokens: string[]; skipped: string[]; usedTer
       continue
     }
 
-    // 4) 其它字符（%、空格、括号等）直接丢弃（与 Python 一致：`生命值%` → `hp`）
+    // 4) 其它字符（%、空格、括号等）直接丢弃（与 旧版 一致：`生命值%` → `hp`）
     remaining = remaining.slice(1)
   }
 

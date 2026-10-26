@@ -361,8 +361,8 @@ export default function DigitalPanel({ seed }: { seed?: { text: string; nonce: n
             {STATUS_LABELS[state.status]}
           </span>
 
-          {/* 「新建对话」（对齐 PyQt `digital_panel_ui.py:132-147` 的清空按钮 + `_show_clear_menu`）。
-              PyQt 菜单有「新建对话 / 清空当前对话 / 删除全部聊天记录」三项，但它的历史是**按对话分文件**的；
+          {/* 「新建对话」（对齐 旧版 `digital_panel_ui:132-147` 的清空按钮 + `_show_clear_menu`）。
+              旧版 菜单有「新建对话 / 清空当前对话 / 删除全部聊天记录」三项，但它的历史是**按对话分文件**的；
               TS 只有**一份**活跃会话（`agent/sessionStore.ts` 的 `active_session.json`），
               三项在 TS 语义上完全等价 —— 宁缺勿错，只给一项，不摆三个点下去一样的按钮。 */}
           <div className="toolbar-more" ref={clearMenuRef}>
@@ -397,7 +397,7 @@ export default function DigitalPanel({ seed }: { seed?: { text: string; nonce: n
             )}
           </div>
 
-          {/* 草稿管理（对齐 PyQt `digital_panel_ui.py:149-159` + `digital_panel_workspace.py:156-179`）：
+          {/* 草稿管理（对齐 旧版 `digital_panel_ui:149-159` + `digital_panel_workspace:156-179`）：
               保存当前对话为草稿 / 从最近草稿恢复（上限 5 条）。 */}
           <div className="toolbar-more" ref={draftMenuRef}>
             <button
@@ -595,7 +595,7 @@ export default function DigitalPanel({ seed }: { seed?: { text: string; nonce: n
               </button>
             </div>
           ) : isMultiQuestion(state.interaction.interaction) ? (
-            /* 多问题（对齐 Python questions 数组）：逐题作答后一次性提交 */
+            /* 多问题（对齐 旧版 questions 数组）：逐题作答后一次性提交 */
             <div className="digital-multi-form" data-testid="digital-multi-form">
               {(state.interaction.interaction.questions ?? []).map((question, index) => (
                 <div

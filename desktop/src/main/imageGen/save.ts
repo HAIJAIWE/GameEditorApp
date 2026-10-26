@@ -7,14 +7,14 @@ import { pipeline } from 'node:stream/promises'
 /**
  * 图像落盘（下载 + 原子写）。
  *
- * 移植自 Python `features/_ai_image.py` 的 `_download_and_save_image_sync` /
+ * 移植自 旧版 `features/_ai_image` 的 `_download_and_save_image_sync` /
  * `download_and_save_image`（用 requests 下载图片 URL 并保存到 assets 目录）。
  *
- * 与 Python 的差异：
- * - Python 用 `requests.get` 同步下载；TS 用 `fetch` + stream → pipeline 落盘（避免整图进内存）；
- * - Python 直接写目标文件；这里用 **tmp + rename 原子写**，与本仓 `data/csvIO.ts` 一致，
+ * 与 旧版 的差异：
+ * - 旧版 用 `requests.get` 同步下载；TS 用 `fetch` + stream → pipeline 落盘（避免整图进内存）；
+ * - 旧版 直接写目标文件；这里用 **tmp + rename 原子写**，与本仓 `data/csvIO.ts` 一致，
  *   避免下载中断留下半截文件；
- * - Python 无扩展名白名单；这里只接受常见图片扩展名（由 URL 推断），其余回落 `.png`。
+ * - 旧版 无扩展名白名单；这里只接受常见图片扩展名（由 URL 推断），其余回落 `.png`。
  */
 
 export type SaveImageOutcome = { ok: true; path: string } | { ok: false; error: string }

@@ -7,8 +7,8 @@ import { launchApp, waitReady } from './helpers/app'
 import { createDataItem, dataRows, openCeshuFromHome, openDataEditor, seedCeshu } from './helpers/ceshuData'
 
 /**
- * E51 新增能力的端到端契约网（对齐 PyQt `ui/data_tab.py::_check_count_constraint` /
- * `_on_rename_item` 与 `ui/components/virtual_list.py::_show_context_menu`）。
+ * E51 新增能力的端到端契约网（对齐 旧版 `ui/data_tab::_check_count_constraint` /
+ * `_on_rename_item` 与 `ui/components/virtual_list::_show_context_menu`）。
  *
  * 注意：本 spec 无法在本机沙箱执行（Electron `Process failed to launch!`，环境限制），
  * 期望值来自 `desktop/preview/verify-e51.mjs` 在**真实 Chromium** 里跑通的同一组断言，
@@ -81,7 +81,7 @@ test('条目右键菜单四项 + 重命名（去空白提交 / 空白名视为�
     await expect(rows).toHaveCount(1)
     await expect(rows.first()).toContainText('技能 1')
 
-    // 右键 → 菜单四项，顺序同 Python virtual_list.py:217-231
+    // 右键 → 菜单四项，顺序同 旧版 virtual_list:217-231
     await rows.first().click({ button: 'right' })
     const menu = window.getByTestId('ceshu-data-menu')
     await expect(menu).toBeVisible()
@@ -100,7 +100,7 @@ test('条目右键菜单四项 + 重命名（去空白提交 / 空白名视为�
     await expect(input).toBeHidden()
     await expect(rows.first()).toContainText('改后的技能名')
 
-    // F2 进入重命名；空白名回车 = 取消（对齐 Python `if ok and new_name.strip()`）
+    // F2 进入重命名；空白名回车 = 取消（对齐 旧版 `if ok and new_name.strip()`）
     await window.getByTestId('ceshu-data-list').focus()
     await window.keyboard.press('F2')
     await expect(input).toBeVisible()

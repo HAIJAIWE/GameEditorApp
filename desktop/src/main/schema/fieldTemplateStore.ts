@@ -6,16 +6,16 @@ import type { TypeFieldDef } from '../../shared/types'
 /**
  * 用户自定义**字段模板**存储（本模块内唯一写者）。
  *
- * ## 为什么存「完整字段定义」而不是 Python 那样只存标签
- * Python `TemplateManagerDialog.save_current_as_template` 只写
+ * ## 为什么存「完整字段定义」而不是 旧版 那样只存标签
+ * 旧版 `TemplateManagerDialog.save_current_as_template` 只写
  * `template_data["fields"][type][field["name"]] = field["label"]`，
  * `apply_template` 也**只覆盖 label** —— 字段类型 / 可选值 / 数值范围 / 是否可编辑
- * **全部丢失**，是个残废语义（实证见 `src/config/settings.py:780-786`）。
+ * **全部丢失**，是个残废语义（实证见 `src/config/settings:780-786`）。
  * 本移植**刻意不复制该缺陷**：模板存完整 `TypeFieldDef[]`，应用即整体还原。
  *
  * ## 存储形态
  * 单文件 `<库>/field_templates.json`：`{ [模板名]: TypeFieldDef[] }`。
- * 与 Python「每个模板一个 .json 文件」不同 —— 单文件天然免疫模板名里的路径分隔符问题，
+ * 与 旧版「每个模板一个 .json 文件」不同 —— 单文件天然免疫模板名里的路径分隔符问题，
  * 也便于整体导入导出。
  */
 

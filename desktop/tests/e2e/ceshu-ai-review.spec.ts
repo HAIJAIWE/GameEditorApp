@@ -17,7 +17,7 @@ test('AI 审阅：面板结构（5 维度）与离线中文错误路径', async 
     // 新建空白策划书 → 自动进入编辑器
     await window.getByTestId('home-new-blank').click()
 
-    // 「ceshu-ai-review」已收进工具栏「更多 ▸」下拉（对齐 PyQt），需先展开再点
+    // 「ceshu-ai-review」已收进工具栏「更多 ▸」下拉（对齐 旧版），需先展开再点
     await window.getByTestId('ceshu-more').click()
     await window.getByTestId('ceshu-ai-review').click()
     await expect(window.getByTestId('ai-review-panel')).toBeVisible()

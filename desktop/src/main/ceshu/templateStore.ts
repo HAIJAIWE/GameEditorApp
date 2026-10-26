@@ -19,9 +19,9 @@ import { formatLocalTimestamp } from '../../shared/ceshuModel'
 
 /**
  * 自定义模板存储：每个分类一个 JSON 文件（<dir>/<category>.json，结构 {"templates": [...]}），
- * 与 Python 版 data/custom_templates/<category>.json 同构。
+ * 与 早期版本 data/custom_templates/<category>.json 同构。
  * 写操作经串行队列 + 「临时文件 + rename」原子替换（唯一写者）。
- * 相对 Python 的改进：损坏文件抛中文错误（含文件名），而非静默当作空列表（避免后续写入覆盖丢模板）。
+ * 相对 旧版 的改进：损坏文件抛中文错误（含文件名），而非静默当作空列表（避免后续写入覆盖丢模板）。
  */
 export class CeshuTemplateStore {
   private writeChain: Promise<unknown> = Promise.resolve()
@@ -59,7 +59,7 @@ export class CeshuTemplateStore {
   }
 
   /**
-   * 更新模板（对应 Python `update_template`）：
+   * 更新模板（对应 旧版 `update_template`）：
    * 跨分类查找 → 字段归一化（名称传入但为空视为失败）→ 章节变化时迁移分类文件。
    */
   update(templateId: string, fields: CustomTemplateUpdate): Promise<{ updated: boolean }> {
@@ -87,7 +87,7 @@ export class CeshuTemplateStore {
     })
   }
 
-  /** 导出全部自定义模板为 JSON（对应 Python `export_templates`；非 .json 后缀自动补全） */
+  /** 导出全部自定义模板为 JSON（对应 旧版 `export_templates`；非 .json 后缀自动补全） */
   exportAll(outputPath: string): Promise<{ filePath: string; count: number }> {
     return this.enqueueWrite(() => {
       const payload = buildTemplateExportFile(this.readAll(), formatLocalTimestamp())
@@ -99,7 +99,7 @@ export class CeshuTemplateStore {
   }
 
   /**
-   * 从 JSON 导入模板（对应 Python `import_templates`）：
+   * 从 JSON 导入模板（对应 旧版 `import_templates`）：
    * 支持 `{"templates": [...]}` 与裸数组；同 id 已存在时默认跳过（overwrite=true 先删除再写入）。
    */
   importFrom(inputPath: string, overwrite = false): Promise<{ imported: number; skipped: number }> {
@@ -141,7 +141,7 @@ export class CeshuTemplateStore {
         imported += 1
       }
 
-      // 覆盖模式先落盘被摘除的分类，再逐分类追加（对应 Python 先 delete 后 append）
+      // 覆盖模式先落盘被摘除的分类，再逐分类追加（对应 旧版 先 delete 后 append）
       if (overwrite) {
         for (const [category, list] of Object.entries(all)) {
           this.writeCategory(category, list)
@@ -155,7 +155,7 @@ export class CeshuTemplateStore {
     })
   }
 
-  /** 展平所有分类（分类顺序按文件名排序，与 Python `sorted(glob("*.json"))` 一致） */
+  /** 展平所有分类（分类顺序按文件名排序，与 旧版 `sorted(glob("*.json"))` 一致） */
   private flatten(): CeshuCustomTemplate[] {
     return Object.values(this.readAll()).flat()
   }

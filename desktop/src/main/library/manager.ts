@@ -1,13 +1,13 @@
 /**
  * 库服务（A2-1）：库列表 / 创建 / 重命名 / 删除 / 切换 + 目录解析。
  *
- * 规则对齐 Python `library_manager.py`：**初始库禁删**、**至少保留一个库**、
+ * 规则对齐 旧版 `library_manager`：**初始库禁删**、**至少保留一个库**、
  * 重命名同步搬目录；活跃库指针持久化在 `libraries.json`。
  *
- * 有意偏离（比 Python 更严格的地方，都在注释里写明）：
- *  - Python 把 `LibraryManager` 做成可变全局单例、各 store 自己算路径（双源）；
+ * 有意偏离（比 旧版 更严格的地方，都在注释里写明）：
+ *  - 旧版 把 `LibraryManager` 做成可变全局单例、各 store 自己算路径（双源）；
  *    TS 侧**路径只由本服务产出**，store 不持路径 → 无全局态。
- *  - 删除**活跃库**时先自动切到初始库再删（Python 无此分支）；不隐式删掉用户当前所在库。
+ *  - 删除**活跃库**时先自动切到初始库再删（旧版 无此分支）；不隐式删掉用户当前所在库。
  */
 
 import { existsSync, mkdirSync, renameSync, rmSync } from 'node:fs'

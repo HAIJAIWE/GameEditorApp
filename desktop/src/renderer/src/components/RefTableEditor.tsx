@@ -11,15 +11,15 @@ import {
 import type { DataTypeDef } from '../../../shared/types'
 
 /**
- * 引用表字段编辑器（multiselect 字段，对应 Python `ui/widgets/multi_select.py` 的 RefTableWidget）。
+ * 引用表字段编辑器（multiselect 字段，对应 旧版 `ui/widgets/multi_select` 的 RefTableWidget）。
  *
  * - 表格两列：名称（由 id 解析，只读）+ 触发等级（0~999，可编辑）
  * - 「+ 添加{类型}」→ 内联选库面板（搜索 + 选择 + 设等级）；「- 删除选中」按当前选中行删除
  * - 存储 `[{id, level}]`（兼容旧数据的 `{name, level}` / 纯字符串），由 shared/refTable.ts 负责归一化与序列化
  *
- * 相对 Python 的有意改进：
- * - Python 用独立模态 QDialog 选条目；TS 改为**内联面板**（少一层模态、更易测试）
- * - Python 的 `_get_name_by_id` 用 `pluralKey` 查 `data_manager.data`；TS 用单数 type id 经 DataService 查（键口径修正）
+ * 相对 旧版 的有意改进：
+ * - 旧版 用独立模态 QDialog 选条目；TS 改为**内联面板**（少一层模态、更易测试）
+ * - 旧版 的 `_get_name_by_id` 用 `pluralKey` 查 `data_manager.data`；TS 用单数 type id 经 DataService 查（键口径修正）
  */
 
 interface RefTableEditorProps {

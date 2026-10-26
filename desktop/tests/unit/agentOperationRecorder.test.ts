@@ -49,7 +49,7 @@ describe('locateItem：定位目标（歧义不猜）', () => {
 })
 
 describe('createRecordingToolRunner：会话内数据变更的记录', () => {
-  it('无 sessionId → 不记录（对齐 Python「非会话上下文不记录」）', async () => {
+  it('无 sessionId → 不记录（对齐 旧版「非会话上下文不记录」）', async () => {
     const { operationLog, runner } = makeRecorder({ success: true, message: '', data: ROLE })
     await runner.execute('system.game_data', { action: 'create' }, {})
     expect(operationLog.count()).toBe(0)

@@ -17,7 +17,7 @@
 
 import type { ChapterKey } from './ceshuConstants'
 
-/* ---- 子智能体路由（匹平 Python AgentRouter，文档信息 + 16 章完整映射） ---- */
+/* ---- 子智能体路由（匹平 旧版 AgentRouter，文档信息 + 16 章完整映射） ---- */
 
 export const CHAPTER_AGENT_MAP: Record<ChapterKey, string> = {
   meta: '通用策划助手',
@@ -82,7 +82,7 @@ export const CHAPTER_AGENT_PROMPTS: Record<ChapterKey, string> = {
   performance: '请分析性能预算与适配策略，指出指标缺口。'
 }
 
-/* ---- 风格术语表（匹平 Python _STYLE_GLOSSARIES） ---- */
+/* ---- 风格术语表（匹平 旧版 _STYLE_GLOSSARIES） ---- */
 
 export const STYLE_GLOSSARIES: Record<string, string> = {
   xianxia:
@@ -99,7 +99,7 @@ export const STYLE_GLOSSARIES: Record<string, string> = {
     'HP=生命值, 体力=Stamina, 经验=经验值\n装备=武器/护甲/配件, 货币=游戏币/真实货币\n等级=军衔/段位, 技能=主动/被动技能'
 }
 
-/* ---- 整章提示词片段（匹平 Python _ai_fill_chapter） ---- */
+/* ---- 整章提示词片段（匹平 旧版 _ai_fill_chapter） ---- */
 
 /**
  * 策划书写作规范：同时服务于「AI 可解析」与「人可读、简单易懂」。
@@ -179,7 +179,7 @@ export const REQUIREMENTS_FULL = [
   CESHU_WRITING_STANDARD
 ].join('\n')
 
-/* ---- 全量生成表单枚举（匹平 Python ai_full_generate_dialog） ---- */
+/* ---- 全量生成表单枚举（匹平 旧版 ai_full_generate_dialog） ---- */
 
 export const FULL_GEN_GAME_TYPES = [
   'RPG',
@@ -243,7 +243,7 @@ export const TYPE_LABEL_TO_KEY: Record<string, string> = {
   策略: 'strategy'
 }
 
-/* ---- 章节生成提示（照抄 Python chapter_hint，供全量生成逐章追加提示） ---- */
+/* ---- 章节生成提示（照抄 旧版 chapter_hint，供全量生成逐章追加提示） ---- */
 
 export const CHAPTER_GENERATION_HINTS: Record<ChapterKey, string> = {
   meta: '请生成项目元信息：游戏名称、类型、市场定位（一句话）、标签列表（3-5个）。',
@@ -273,7 +273,7 @@ export const CHAPTER_GENERATION_HINTS: Record<ChapterKey, string> = {
   performance: '请生成性能与适配：性能预算、目标机型、内存与包体、网络适配、发热与耗电、兼容测试矩阵。'
 }
 
-/* ---- 审阅维度枚举（固定规范顺序；Python 用 set 遍历、顺序不稳定，已修正） ---- */
+/* ---- 审阅维度枚举（固定规范顺序；旧版 用 set 遍历、顺序不稳定，已修正） ---- */
 
 export const REVIEW_DIMENSION_KEYS = ['completeness', 'consistency', 'market', 'technical', 'creativity'] as const
 export type ReviewDimensionKey = (typeof REVIEW_DIMENSION_KEYS)[number]

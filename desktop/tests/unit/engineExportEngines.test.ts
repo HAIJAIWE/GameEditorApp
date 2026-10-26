@@ -23,8 +23,8 @@ import type { DataTypeDef, ItemRecord } from '../../src/shared/types'
  * **全都调同一个导出器**，而 `EngineTarget` 只有 `'lua'` —— 四个都吐 `.lua`。
  * 本测试锁死「四个目标各出自己的产物」，防止再退化。
  *
- * PyQt 真源：`src/features/engine_export.py`（四个独立导出器）+
- * `src/ui/dialogs/engine_export.py`（`_generate_*_export` 产物内容 + 追加的扩展名）。
+ * 旧版 真源：`src/features/engine_export`（四个独立导出器）+
+ * `src/ui/dialogs/engine_export`（`_generate_*_export` 产物内容 + 追加的扩展名）。
  */
 
 const TYPES: DataTypeDef[] = [
@@ -71,7 +71,7 @@ describe('引擎导出：目标枚举与扩展名', () => {
     expect(engineExportInputSchema.safeParse({ engine: 'unreal5', path: 'x' }).success).toBe(false)
   })
 
-  it('扩展名与 PyQt 一致：.cs / .h / .gd / .json', () => {
+  it('扩展名与 旧版 一致：.cs / .h / .gd / .json', () => {
     expect(ENGINE_EXTENSIONS).toEqual({ unity: '.cs', unreal: '.h', godot: '.gd', cocos2d: '.json' })
   })
 
@@ -86,7 +86,7 @@ describe('引擎导出：目标枚举与扩展名', () => {
   })
 })
 
-describe('引擎导出：分桶（对齐 Python data_manager.data 的 dict 语义）', () => {
+describe('引擎导出：分桶（对齐 旧版 data_manager.data 的 dict 语义）', () => {
   it('按 pluralKey 归桶，未收录类型回退 type 原文（不丢数据）', () => {
     const buckets = bucketize([...RECORDS, record('x1', 'unknown_type', { name: '神秘' })], TYPES)
     expect([...buckets.keys()].sort()).toEqual(['roles', 'skills', 'unknown_type'])
@@ -105,17 +105,17 @@ describe('引擎导出：Unity C#（对齐 _generate_unity_export）', () => {
     expect(cs).toContain('public class GameData : ScriptableObject')
     expect(cs).toContain('public List<SkillData> skills = new List<SkillData>();')
     expect(cs).toContain('public List<RoleData> roles = new List<RoleData>();')
-    // monsters/equips/items 无数据 → 不生成（与 PyQt 的 if data.get(...) 一致）
+    // monsters/equips/items 无数据 → 不生成（与 旧版 的 if data.get(...) 一致）
     expect(cs).not.toContain('public List<MonsterData> monsters')
   })
 
-  it('补上 PyQt 漏定义的 TalentRef 类（否则生成的 .cs 编译不过）', () => {
+  it('补上 旧版 漏定义的 TalentRef 类（否则生成的 .cs 编译不过）', () => {
     const cs = renderUnityCs(buckets)
     expect(cs).toContain('public List<TalentRef> talents;')
     expect(cs).toContain('public class TalentRef {')
   })
 
-  it('带「实际数据」块（PyQt 文案承诺但实现没给，这里补上）', () => {
+  it('带「实际数据」块（旧版 文案承诺但实现没给，这里补上）', () => {
     const cs = renderUnityCs(buckets)
     expect(cs).toContain('// === 实际数据（JSON，键为 schema 的 pluralKey） ===')
     // 每行前缀是 `// ` + 该行原有的 JSON 缩进（顶层键在 JSON 里缩进 2 空格 → 共 3 空格）
@@ -143,7 +143,7 @@ describe('引擎导出：Unreal C++ 头（对齐 _generate_unreal_export）', ()
     }
   })
 
-  it('Unreal 字段名是 PascalCase（对齐 PyQt 的 SkillID/MaxHP 风格）', () => {
+  it('Unreal 字段名是 PascalCase（对齐 旧版 的 SkillID/MaxHP 风格）', () => {
     const header = renderUnrealHeader(buckets)
     expect(header).toContain('FString Id;')
     expect(header).toContain('int32 Damage = 0;')
@@ -171,7 +171,7 @@ describe('引擎导出：Godot GDScript（对齐 _generate_godot_export）', () 
 })
 
 describe('引擎导出：Cocos2d JSON（对齐 export_file 的 cocos2d 分支）', () => {
-  it('七个规范键恒存在（无数据时为空数组），且 schema 一致时与 PyQt 同形', () => {
+  it('七个规范键恒存在（无数据时为空数组），且 schema 一致时与 旧版 同形', () => {
     const parsed = JSON.parse(renderCocosJson(bucketize(RECORDS, TYPES)))
     expect(Object.keys(parsed).slice(0, 7)).toEqual([
       'skills',
@@ -186,7 +186,7 @@ describe('引擎导出：Cocos2d JSON（对齐 export_file 的 cocos2d 分支）
     expect(parsed.monsters).toEqual([])
   })
 
-  it('额外桶**不静默丢弃**（PyQt 只写死 7 个键会丢数据，这里补在后面）', () => {
+  it('额外桶**不静默丢弃**（旧版 只写死 7 个键会丢数据，这里补在后面）', () => {
     const parsed = JSON.parse(renderCocosJson(bucketize([...RECORDS, record('p1', 'pet', { name: '小鸡' })], TYPES)))
     expect(parsed.pets).toEqual([{ name: '小鸡' }])
   })

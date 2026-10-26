@@ -2,29 +2,29 @@ import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync 
 import { dirname, join } from 'node:path'
 
 /**
- * 窗口状态持久化（迁移 Python `ui/window_state.py::WindowStateManager` 的
+ * 窗口状态持久化（迁移 旧版 `ui/window_state::WindowStateManager` 的
  * `save_ui_state` / `restore_ui_state` 几何部分）。
  *
  * ## 迁了什么 / 没迁什么（逐字段对照，勿按名字臆测）
- * Python `save_ui_state` 落盘的字段：
+ * 旧版 `save_ui_state` 落盘的字段：
  *
- * | Python 字段 | TS 处理 | 原因 |
+ * | 旧版 字段 | TS 处理 | 原因 |
  * |---|---|---|
  * | `window_x/y/w/h`        | ✅ 迁 | Electron `BrowserWindow.getBounds/setBounds` |
  * | `is_maximized`          | ✅ 迁 | `isMaximized()` / `maximize()` |
  * | `last_tab_index`        | ✅ 迁 | TS 有模式态（data/ceshu/digital），记最后模式 |
- * | `theme`                 | ⛔ 不迁 | TS 无多主题（见审计 E24：`themes.py` 1,097 行 86% 是 Qt QSS，判定不迁） |
- * | `layout_mode`           | ⛔ 不迁 | Python 硬编码 `"three_column"`，**常量无信息** |
+ * | `theme`                 | ⛔ 不迁 | TS 无多主题（见审计 E24：`themes` 1,097 行 86% 是 Qt QSS，判定不迁） |
+ * | `layout_mode`           | ⛔ 不迁 | 旧版 硬编码 `"three_column"`，**常量无信息** |
  * | `splitter_ratio`        | ⛔ 不迁 | TS 侧栏是 CSS Grid，**无 QSplitter 等价物**，无处存 |
- * | `auto_save_enabled/interval` | ⛔ 不迁 | Python 特有语义；TS 的自动保存是**条目级即时落库**（`DataService`），无此机制 |
+ * | `auto_save_enabled/interval` | ⛔ 不迁 | 旧版 特有语义；TS 的自动保存是**条目级即时落库**（`DataService`），无此机制 |
  *
  * `has_unsaved_changes` / `compute_data_hash` / `check_data_changed` **不迁**：
- * 读源码确认 Python 用 `data_manager._data_version` 与 `_saved_version` 比对判脏，
+ * 读源码确认 旧版 用 `data_manager._data_version` 与 `_saved_version` 比对判脏，
  * 而 TS 侧每次保存都直接落 SQLite（`main/data/service.ts` 串行写队列），
  * **不存在内存脏状态**，这套机制在 TS 是无源之水。
  *
  * 有意偏离：
- * - Python 直接 `write_text`；这里用**原子写**（tmp + rename），与本仓其它落盘一致。
+ * - 旧版 直接 `write_text`；这里用**原子写**（tmp + rename），与本仓其它落盘一致。
  * - 恢复时**校验尺寸合法性**（下界 480×360），避免坏文件把窗口缩成不可用大小。
  */
 
@@ -44,7 +44,7 @@ export const WINDOW_STATE_VERSION = 1
 
 export const WINDOW_STATE_FILENAME = 'window-state.json'
 
-/** 默认几何（对齐 Python restore 的默认值：1200×800，位置 100/50） */
+/** 默认几何（对齐 旧版 restore 的默认值：1200×800，位置 100/50） */
 export const DEFAULT_WINDOW_STATE: WindowState = {
   x: 100,
   y: 50,
@@ -160,7 +160,7 @@ export function windowStatePath(userDataDir: string): string {
 
 /**
  * 读状态；文件不存在/JSON 损坏 → 返回 null（调用方用默认几何创建窗口）。
- * 与 Python `if not self._state_file.exists(): return` 的语义一致。
+ * 与 旧版 `if not self._state_file.exists(): return` 的语义一致。
  */
 export function readWindowState(userDataDir: string): WindowState | null {
   const file = windowStatePath(userDataDir)
@@ -171,7 +171,7 @@ export function readWindowState(userDataDir: string): WindowState | null {
     const parsed: unknown = JSON.parse(readFileSync(file, 'utf-8'))
     return normalizeWindowState(parsed)
   } catch {
-    // 损坏 → 当作没有状态（Python 是记 warning 后用默认值，等价）
+    // 损坏 → 当作没有状态（旧版 是记 warning 后用默认值，等价）
     return null
   }
 }

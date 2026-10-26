@@ -10,19 +10,19 @@ import {
 import type { DataTypeDef, ItemRecord } from '../../../../shared/types'
 
 /**
- * 数据引用概览面板（对应 Python `src/ui/ceshu/preview_panel.py:102` `_refresh_refs`）。
+ * 数据引用概览面板（对应 旧版 `src/ui/ceshu/preview_panel:102` `_refresh_refs`）。
  *
  * ## 作用
  * 策划书正文里写 `@data[role.atk]` 时，这里列出**全部引用及其当前真实值**，
  * 有效数/总数一目了然；点某条能跳到对应数据表（`onJump`）。
  * 价值：数值改动后能立刻看到引用处的真实数值，不用来回切页核对。
  *
- * ## 与 PyQt 的差异（均已在 shared/dataRef.ts 注明）
- * - **TS 能真正解析出值**：Python `data_ref.py:89` 用单数 `type_key` 直查按复数键建的
- *   `data_manager.data` ⇒ `@data[role.atk]` 在 PyQt 里恒为「未找到」。TS 侧已修正。
- * - **不搬 `enabled_editors` 动态编辑器那半边**（`preview_panel.py:141` `refresh()`）：
+ * ## 与 旧版 的差异（均已在 shared/dataRef.ts 注明）
+ * - **TS 能真正解析出值**：旧版 `data_ref:89` 用单数 `type_key` 直查按复数键建的
+ *   `data_manager.data` ⇒ `@data[role.atk]` 在 旧版 里恒为「未找到」。TS 侧已修正。
+ * - **不搬 `enabled_editors` 动态编辑器那半边**（`preview_panel:141` `refresh()`）：
  *   那是「按启用系统动态渲染真实编辑器」，与本面板的「引用概览」是两件事，
- *   且 TS 侧编辑器布局另有实现（`core/editor_layout.py` 208 行仍缺，另案处理）。
+ *   且 TS 侧编辑器布局另有实现（`core/editor_layout` 208 行仍缺，另案处理）。
  *   只做引用概览 ⇒ 范围清晰、消费者明确。
  *
  * ## 组件约定
@@ -36,7 +36,7 @@ interface CeshuDataRefsPanelProps {
 
 /**
  * ## 刻意不做「点击跳转数据表」
- * PyQt `render_refs_to_html`（`data_ref.py:138`）把引用渲染成 `data-ref://` 链接、
+ * 旧版 `render_refs_to_html`（`data_ref:138`）把引用渲染成 `data-ref://` 链接、
  * 点击可跳表。TS 侧**没有这条导航通道**：`CeshuView` 自己不持有跳转处理器，
  * 它是**接收**宿主（`App.tsx:159`）传来的 `jumpTarget`。
  * 而同层的 `FieldDepsPanel` 同样没有跳转能力 ⇒ 凭空加一个按钮就是

@@ -12,8 +12,8 @@ import {
 /**
  * 本地图片预览纯逻辑。
  *
- * 动机：PyQt 的「图片」字段是「只读路径框 + 选择按钮 + 实时预览」
- * （`src/ui/widgets/dynamic_form.py::_create_image_widget`），TS 原先只有一个可编辑单行框。
+ * 动机：旧版 的「图片」字段是「只读路径框 + 选择按钮 + 实时预览」
+ * （`src/ui/widgets/dynamic_form::_create_image_widget`），TS 原先只有一个可编辑单行框。
  * 预览必须由主进程回传 `data:` URL（渲染层直接引用 `C:\...` 会被 `webSecurity` 拦），
  * 本模块管「什么文件能预览 / 预览多大」。
  */
@@ -28,7 +28,7 @@ describe('图片预览：扩展名与 MIME', () => {
     expect(fileExtensionOf('.gitignore')).toBe('')
   })
 
-  it('imageMimeOf 覆盖 PyQt 的白名单 png/jpg/jpeg/bmp/gif', () => {
+  it('imageMimeOf 覆盖 旧版 的白名单 png/jpg/jpeg/bmp/gif', () => {
     expect(imageMimeOf('a.png')).toBe('image/png')
     expect(imageMimeOf('a.jpg')).toBe('image/jpeg')
     expect(imageMimeOf('a.jpeg')).toBe('image/jpeg')

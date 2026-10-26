@@ -28,7 +28,7 @@ interface CeshuDataPreviewProps {
   /**
    * 数据纪元（`CeshuView` 透传；App 在「清空所有数据」成功后递增）。
    * 并入 `DataEditorTab` 的 key → 强制重挂载 → 重新 `listItems`，
-   * 避免条目页签继续列着已被清空的条目（对齐 PyQt `clear_all_data` 的 `_refresh_all_tabs()`）。
+   * 避免条目页签继续列着已被清空的条目（对齐 旧版 `clear_all_data` 的 `_refresh_all_tabs()`）。
    */
   dataEpoch?: number
   /** 空状态「去勾选游戏系统」按钮回调（跳到第四章） */
@@ -50,7 +50,7 @@ interface CeshuDataPreviewProps {
 }
 
 /**
- * 空状态引导文案（对齐 PyQt preview_panel.py:55-63；配合 CSS white-space: pre-line 渲染换行）。
+ * 空状态引导文案（对齐 旧版 preview_panel:55-63；配合 CSS white-space: pre-line 渲染换行）。
  * 章号**一律引用 `CHAPTER_LABELS`**：此处曾硬编码 systems 的旧章号（分区重组前它是第五章、
  * 现为第四章），而 typecheck / eslint / vitest 全绿也抓不到——没有任何断言读它，只能靠截图发现
  * ⇒ 现由 `ceshuChapterLabelDrift.test.ts` 守卫。
@@ -61,12 +61,12 @@ const EMPTY_HINT =
   '勾选要做的系统后，对应的数据编辑器就会出现在这里。'
 
 /**
- * 策划书内嵌数据预览面板（对齐 PyQt `ui/ceshu/preview_panel.py::EditorPreviewPanel`）。
+ * 策划书内嵌数据预览面板（对齐 旧版 `ui/ceshu/preview_panel::EditorPreviewPanel`）。
  *
  * 顶部标签行：每个启用的游戏系统一个标签（标签文字 = 系统显示名，指向其 data_type 数据编辑器），
  * 末尾固定一个「📊 数据引用」标签；无启用系统时显示空状态引导。
  *
- * 跳转联动（对齐 PyQt `main_window._goto_data_design` / `preview_panel.focus_first_editor`）：
+ * 跳转联动（对齐 旧版 `main_window._goto_data_design` / `preview_panel.focus_first_editor`）：
  * 当宿主传入 `jumpTarget` 且其类型命中某个启用编辑器时，优先选中该编辑器的标签页，
  * 并把条目 id / nonce 透传给 DataEditorTab 完成定位；未命中则回调 `onJumpMissed` 交由宿主提示。
  */
@@ -160,7 +160,7 @@ export default function CeshuDataPreview({
             type="button"
             data-testid="ceshu-preview-expand"
             className="ceshu-preview-tab"
-            title="展开为整窗数据编辑器（对齐 PyQt 全窗口数据编辑 tab）"
+            title="展开为整窗数据编辑器（对齐 旧版 全窗口数据编辑 tab）"
             onClick={() => setExpanded(true)}
           >
             ⛶ 展开
@@ -203,7 +203,7 @@ export default function CeshuDataPreview({
 
       {/*
         展开态：整窗覆盖层里再挂一个 DataEditorTab（组件自包含：只依赖 type/types 与回调，
-        实例间无共享状态），对齐 PyQt「每个数据类型一个整窗 tab」的观感；收起即销毁。
+        实例间无共享状态），对齐 旧版「每个数据类型一个整窗 tab」的观感；收起即销毁。
       */}
       {expanded && activeEditor !== null && (
         <div className="ceshu-data-overlay" data-testid="ceshu-data-overlay">

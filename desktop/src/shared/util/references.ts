@@ -2,11 +2,11 @@ import { isPlainObject } from './guards'
 import type { DataTypeDef, ItemRecord } from '../types'
 
 /**
- * 引用关系纯逻辑（自 Python ui/dialogs/reference_panel.py 与 ui/widgets/relation_graph.py 合并迁移）：
- * - 引用了谁 / 被谁引用：按 id 精确解析（Python 为全局 id 表查找；不照抄其「名称子串」判定缺陷）
+ * 引用关系纯逻辑（自 旧版 ui/dialogs/reference_panel 与 ui/widgets/relation_graph 合并迁移）：
+ * - 引用了谁 / 被谁引用：按 id 精确解析（旧版 为全局 id 表查找；不照抄其「名称子串」判定缺陷）
  * - 相似数据：同类型字段重合度（共有键 ≥2，相似度 = 共有 / 并集，取前 20）
  * - 引用字段来源：schema 的 refType 字段（自动覆盖用户新增的多选引用）+ 下方文本引用字段补充表
- *   （Python 有两份互相不一致的硬编码字段表，此处合并为唯一权威来源，并以 TS schema 实际字段名为准）
+ *   （旧版 有两份互相不一致的硬编码字段表，此处合并为唯一权威来源，并以 TS schema 实际字段名为准）
  */
 
 /** 文本引用字段补充表（值为 id / id 列表 / 逗号等分隔文本；无 refType 标注的跨条目指针） */
@@ -51,7 +51,7 @@ export interface SimilarItem {
   itemName: string
   /** 相似度百分比（0~100，向下取整） */
   similarity: number
-  /** 共有字段名（最多 5 个，与 Python 一致） */
+  /** 共有字段名（最多 5 个，与 旧版 一致） */
   commonFields: string[]
 }
 
@@ -75,7 +75,7 @@ export function referenceFieldsOf(types: DataTypeDef[], typeId: string): Referen
 }
 
 /**
- * token 归一化（对应 Python _parse_tokens）：
+ * token 归一化（对应 旧版 _parse_tokens）：
  * 字符串按 、，,; 分隔；数组逐元素取（对象取 id）；对象取 id；null/数字等其余类型返回空。
  */
 export function parseReferenceTokens(value: unknown): string[] {
@@ -168,7 +168,7 @@ function itemName(item: ItemRecord): string {
   return typeof name === 'string' && name !== '' ? name : item.id
 }
 
-/** 非 id 且值非空的字段名（Python 相似度用 truthy 判定） */
+/** 非 id 且值非空的字段名（旧版 相似度用 truthy 判定） */
 function filledKeys(data: Record<string, unknown> | undefined): string[] {
   if (!data) return []
   return Object.entries(data)
@@ -176,7 +176,7 @@ function filledKeys(data: Record<string, unknown> | undefined): string[] {
     .map(([key]) => key)
 }
 
-/** Python 真值语义（''/0/false/空数组/空对象 为假） */
+/** 旧版 真值语义（''/0/false/空数组/空对象 为假） */
 function isTruthyValue(value: unknown): boolean {
   if (value === null || value === undefined) return false
   if (typeof value === 'string') return value !== ''

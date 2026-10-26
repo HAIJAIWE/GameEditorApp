@@ -13,14 +13,14 @@ function hasError(errors: string[], fragment: string): boolean {
   return errors.some((error) => error.includes(fragment))
 }
 
-describe('策划书校验：必填字段（匹平 Python validate_ceshu）', () => {
+describe('策划书校验：必填字段（匹平 旧版 validate_ceshu）', () => {
   it('空文档：必填字段逐项报错（49 条，budget 默认 {} 不算空），无依赖错误', () => {
     const errors = validateCeshu(makeDoc())
     expect(errors).toHaveLength(49) // P2 后 24 章 47 必填 + 2 条依赖类（与旧口径的差集即新增 14 条）
     // game_name 是人定字段（名称须人决）：2026-10-23 起单独措辞，见下方专门用例
     expect(hasError(errors, "文档信息：字段 'game_name' 由人确定，尚未填写")).toBe(true)
     expect(hasError(errors, "第十六章·可访问性与本地化：字段 'accessibility_features' 为必填项")).toBe(true)
-    // Python 语义：空字典 {} 不算空（第九章 budget 默认 {}，故不报错）
+    // 旧版 语义：空字典 {} 不算空（第九章 budget 默认 {}，故不报错）
     expect(hasError(errors, "第九章·资源规划：字段 'budget' 为必填项")).toBe(false)
     expect(hasError(errors, '依赖缺失')).toBe(false)
   })

@@ -1,15 +1,15 @@
 import type { CeshuSummary } from '../../ceshuConstants'
 
 /**
- * 版本时间线纯逻辑（自 Python `ui/ceshu/version_timeline_dialog.py` 匹平迁移）：
- * - 节点尺寸/配色常量（Python _NODE_W/_NODE_H/_NODE_GAP/_NODE_Y + 颜色表）
+ * 版本时间线纯逻辑（自 旧版 `ui/ceshu/version_timeline_dialog` 匹平迁移）：
+ * - 节点尺寸/配色常量（旧版 _NODE_W/_NODE_H/_NODE_GAP/_NODE_Y + 颜色表）
  * - 节点文案：标题（主策划前缀 ★、激活后缀 ★）、时间（截断 16 字符）、名称（超 18 字截断）
- * - 横向布局：节点坐标 + 父→子箭头 + 场景尺寸（Python _draw_timeline）
- * - 默认选中策略（优先激活版本）与详情文案（Python _select_node）
+ * - 横向布局：节点坐标 + 父→子箭头 + 场景尺寸（旧版 _draw_timeline）
+ * - 默认选中策略（优先激活版本）与详情文案（旧版 _select_node）
  * 渲染层只负责把布局画成 SVG，不重复业务判断。
  */
 
-/* ---- 节点尺寸（对应 Python 常量） ---- */
+/* ---- 节点尺寸（对应 旧版 常量） ---- */
 
 export const TIMELINE_NODE_WIDTH = 180
 export const TIMELINE_NODE_HEIGHT = 80
@@ -22,7 +22,7 @@ export const TIMELINE_PADDING = 20
 export const TIMELINE_MIN_SCENE_WIDTH = 880
 export const TIMELINE_SCENE_HEIGHT = 240
 
-/** 配色（与 Python _COLOR_* 一致） */
+/** 配色（与 旧版 _COLOR_* 一致） */
 export const TIMELINE_COLORS = {
   /** 激活版本 — 绿 */
   active: '#22C55E',
@@ -38,7 +38,7 @@ export const TIMELINE_COLORS = {
   selected: '#F59E0B'
 } as const
 
-/** 图例（顺序与 Python _build_legend 一致） */
+/** 图例（顺序与 旧版 _build_legend 一致） */
 export const TIMELINE_LEGEND: ReadonlyArray<{ color: string; label: string }> = [
   { color: TIMELINE_COLORS.active, label: '激活版本' },
   { color: TIMELINE_COLORS.main, label: '主策划' },
@@ -48,7 +48,7 @@ export const TIMELINE_LEGEND: ReadonlyArray<{ color: string; label: string }> = 
 
 export type TimelineNodeKind = 'active' | 'main' | 'sub'
 
-/** 节点填充/边框色（对应 Python 节点的颜色策略：激活 > 主策划 > 子版本） */
+/** 节点填充/边框色（对应 旧版 节点的颜色策略：激活 > 主策划 > 子版本） */
 export const TIMELINE_KIND_COLORS: Record<TimelineNodeKind, { fill: string; border: string }> = {
   active: { fill: TIMELINE_COLORS.active, border: TIMELINE_COLORS.activeBorder },
   main: { fill: TIMELINE_COLORS.main, border: TIMELINE_COLORS.mainBorder },
@@ -58,7 +58,7 @@ export const TIMELINE_KIND_COLORS: Record<TimelineNodeKind, { fill: string; bord
 export interface TimelineNode {
   id: string
   versionLabel: string
-  /** 节点标题（主策划前缀 ★、激活后缀 ★，对应 Python 节点的 vlabel） */
+  /** 节点标题（主策划前缀 ★、激活后缀 ★，对应 旧版 节点的 vlabel） */
   label: string
   kind: TimelineNodeKind
   fill: string
@@ -73,7 +73,7 @@ export interface TimelineNode {
   gameName: string
   /** 版本说明（详情面板用） */
   versionNote: string
-  /** 总进度百分比整数（Python int(float(progress) * 100)） */
+  /** 总进度百分比整数（旧版 int(float(progress) * 100)） */
   progressPercent: number
   x: number
   y: number
@@ -113,7 +113,7 @@ export function classifyTimelineNode(version: Pick<CeshuSummary, 'isActive' | 'p
   return version.parentId ? 'sub' : 'main'
 }
 
-/** 节点标题：激活加后缀「 ★」，主策划加前缀「★ 」（对应 Python _VersionNodeItem 的 vlabel 拼装） */
+/** 节点标题：激活加后缀「 ★」，主策划加前缀「★ 」（对应 旧版 _VersionNodeItem 的 vlabel 拼装） */
 export function timelineNodeLabel(version: Pick<CeshuSummary, 'versionLabel' | 'isActive' | 'parentId'>): string {
   let label = version.versionLabel || 'v?'
   if (version.isActive) label += ' ★'
@@ -139,12 +139,12 @@ export function timelineNameText(name: string): string {
   return value.length > 18 ? `${value.slice(0, 17)}…` : value
 }
 
-/** 进度百分比整数（非有限数按 0，对应 Python try/except） */
+/** 进度百分比整数（非有限数按 0，对应 旧版 try/except） */
 export function timelineProgressPercent(progress: number): number {
   return Number.isFinite(progress) ? Math.trunc(progress * 100) : 0
 }
 
-/** 横向时间线布局（对应 Python _draw_timeline：主轴 + 节点 + 父→子箭头） */
+/** 横向时间线布局（对应 旧版 _draw_timeline：主轴 + 节点 + 父→子箭头） */
 export function buildTimelineLayout(versions: CeshuSummary[]): TimelineLayout {
   const count = versions.length
   const totalWidth = count * TIMELINE_NODE_WIDTH + Math.max(count - 1, 0) * TIMELINE_NODE_GAP
@@ -194,13 +194,13 @@ export function buildTimelineLayout(versions: CeshuSummary[]): TimelineLayout {
   }
 }
 
-/** 默认选中节点：优先激活版本，否则回退当前版本（对应 Python _draw_timeline 的 default_id 逻辑） */
+/** 默认选中节点：优先激活版本，否则回退当前版本（对应 旧版 _draw_timeline 的 default_id 逻辑） */
 export function defaultTimelineSelectionId(versions: CeshuSummary[], currentId: string): string {
   const active = versions.find((version) => version.isActive)
   return active?.id ?? currentId
 }
 
-/** 节点详情（对应 Python _select_node 写入详情面板的文案） */
+/** 节点详情（对应 旧版 _select_node 写入详情面板的文案） */
 export function buildTimelineDetail(node: TimelineNode): TimelineDetail {
   return {
     title: `版本详情：${node.versionLabel || 'v?'}${node.kind === 'active' ? '（激活版本）' : ''}`,

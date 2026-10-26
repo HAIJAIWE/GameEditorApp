@@ -1,6 +1,6 @@
 name: release-desktop
 
-# 替代已移除的 Python 版 release.yml（PyInstaller）。
+# 替代已移除的 早期版本 release.yml（PyInstaller）。
 # 现役产品是 desktop/ 下的 TypeScript + Electron 版，用 electron-builder 出跨平台安装包。
 #
 # 触发方式：

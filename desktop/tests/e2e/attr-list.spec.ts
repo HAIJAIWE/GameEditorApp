@@ -81,7 +81,7 @@ test('条目属性列表：增删行 → 计算预览 → 保存 → 重启后�
     await expect(window.getByTestId('field-attr_list-value-1')).toHaveValue('10')
     await expect(window.getByTestId('field-attr_list-calc-HP')).toHaveText('400')
 
-    // 存储形态与 Python 一致：[{name, value}]（数值为数字）
+    // 存储形态与 旧版 一致：[{name, value}]（数值为数字）
     const jobs = await window.evaluate(async () => {
       const api = (
         globalThis as unknown as {

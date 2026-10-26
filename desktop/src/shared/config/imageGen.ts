@@ -3,11 +3,11 @@
  *
  * 图像生成（文生图）纯逻辑层。
  *
- * 本模块从 Python 源 `src/common/ai_client.py` 的 `generate_image(config, prompt)`
+ * 本模块从 旧版 源 `src/common/ai_client` 的 `generate_image(config, prompt)`
  * 移植而来，仅保留可单测的纯函数部分（配置解析、请求构造、响应解析）。
  * 实际的 HTTP 请求 / 限流 / 持久化由主代理的 IPC 接线负责。
  *
- * 严格对齐 Python 行为：
+ * 严格对齐 旧版 行为：
  * - 前置校验：未启用 / 未设置 API Key
  * - image 维度覆盖优先（model / apiKey / baseUrl）
  * - 各 provider 的请求体形状与响应解析路径
@@ -38,7 +38,7 @@ export type ImageGenPrecheck =
   | { ok: false; error: string }
 
 /**
- * 前置校验：对齐 Python 的 `!config.enabled` 与 `!config.api_key` 检查。
+ * 前置校验：对齐 旧版 的 `!config.enabled` 与 `!config.api_key` 检查。
  * api_key 取 image 维度覆盖优先（与 resolveImageConfig 一致）。
  */
 export function checkImageConfig(config: ImageGenConfig): ImageGenPrecheck {
@@ -54,7 +54,7 @@ export function checkImageConfig(config: ImageGenConfig): ImageGenPrecheck {
 
 /**
  * 解析最终生效的 provider / apiKey / baseUrl / model。
- * 对齐 Python 的 `_resolve_model_overrides(config, "image")`：
+ * 对齐 旧版 的 `_resolve_model_overrides(config, "image")`：
  * image 维度覆盖优先于配置顶层字段。
  */
 export function resolveImageConfig(config: ImageGenConfig): {

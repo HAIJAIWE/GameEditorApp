@@ -116,4 +116,4 @@ desktop/
 ├── tests/e2e/          # Playwright 端到端（构建后跑真实 Electron 窗口）
 └── 门禁：tsc --noEmit + eslint + vitest + playwright 四道
 ```
-> 注：Python 时代的 `tests/{unit,integration,e2e}` + `conftest.py` 已随 Python 版删除；现测试基座为 **vitest + Playwright**。
+> 注：旧版 时代的 `tests/{unit,integration,e2e}` + `conftest` 已随 早期版本删除；现测试基座为 **vitest + Playwright**。

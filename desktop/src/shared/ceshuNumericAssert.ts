@@ -8,7 +8,7 @@ import { EPSILON, column, splitRow, toRows } from './ceshuPipeRows'
  * ## 解决什么问题（2026-10-24 对标豆包《微光之塔》后的改造）
  * 此前数值章只有公式与原则的**自由文本**：「首转生恰得 3 星光」写归写，算错没人知道。
  * 标杆的做法是把设计目标写成契约里的 `numerical_assertions`（表达式 + 期望值 + 容差 +
- * 接受条件），并由 `numerical_validation.py` **真的复算**。本模块补上这一环：
+ * 接受条件），并由 `numerical_validation` **真的复算**。本模块补上这一环：
  * 校验时逐条代入参数表求值，与文中声明值比对、按接受条件判定，不符即报错。
  *
  * ## 安全边界（为什么不能用 eval）

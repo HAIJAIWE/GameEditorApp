@@ -1,11 +1,11 @@
 /**
- * 数字员工面板的视图模型归约（自 Python `ui/digital_panel_*` 的交互语义提炼，A1-4）。
+ * 数字员工面板的视图模型归约（自 旧版 `ui/digital_panel_*` 的交互语义提炼，A1-4）。
  *
  * 面板不直接消费原始事件流，而是消费本模块把 `BrainEvent[]` 归约出的**纯状态**：
  * 对话气泡、流式文本、可折叠步骤、任务列表、待审批请求、整体状态。
  * 这样组件只做渲染，行为可在 Node 环境完整单测。
  *
- * 有意偏离 Python：Python 的面板状态是 PyQt widget 树 + `digital_panel_state.py` 的类型桩，
+ * 有意偏离 旧版：旧版 的面板状态是 旧版 widget 树 + `digital_panel_state` 的类型桩，
  * 无法脱离 GUI 测试；TS 侧把「事件 → 状态」提成纯函数（`reduceBrainEvent`），
  * 组件退化为 `useReducer` 的薄壳。
  */

@@ -10,9 +10,9 @@ import { formatLocalTimestamp } from '../../../shared/ceshuModel'
 import { useStopIntent } from '../hooks/useStopIntent'
 
 /**
- * AI 智能审阅面板（对应 Python AIReviewDialog）：
+ * AI 智能审阅面板（对应 旧版 AIReviewDialog）：
  * - 5 维度评分条（≥8 绿 / ≥5 蓝 / ≥3 琥珀 / 其余红）+ 每维反馈 + 总体评价 + Top 3 建议
- * - 解析失败时展示原始回复（Python 仅提示「解析失败」，TS 保留原文便于排查）
+ * - 解析失败时展示原始回复（旧版 仅提示「解析失败」，TS 保留原文便于排查）
  * - 导出 Markdown 审阅报告（渲染层生成文本 → 主进程原子写盘）
  */
 

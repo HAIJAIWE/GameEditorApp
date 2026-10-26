@@ -7,7 +7,7 @@ import { uniquifyFieldId, validateFieldId, type FieldIdSuggestion } from './fiel
  * ## 为什么需要它
  * `fieldId.ts` 的规则层只覆盖术语表内与标签里已有的英文 —— 而真正落到第二级的恰恰是**自造词**
  * （如「斗能」），这类词的正确答案 AI 能给（`combat_energy`），词典反而查不到。
- * 实测 Python 用 CEDICT 词典处理这个词得到的是 `abbr_surname` 这种垃圾。
+ * 实测 旧版 用 CEDICT 词典处理这个词得到的是 `abbr_surname` 这种垃圾。
  *
  * ## 架构约束（沿用既有先例，不新开通路）
  * UI 触发的 AI 生成在本项目**已有三处先例**（`main/ipc.ts:370/382/407` 的

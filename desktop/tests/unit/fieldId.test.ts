@@ -8,8 +8,8 @@ import {
 } from '../../src/shared/util/fieldId'
 import { GAME_TERMS } from '../../src/shared/glossaryTerms'
 
-describe('fieldId：术语表保真（由脚本从 Python AST 提取）', () => {
-  it('条数与 Python 一致（143 条）', () => {
+describe('fieldId：术语表保真（由脚本从 旧版 AST 提取）', () => {
+  it('条数与 旧版 一致（143 条）', () => {
     expect(Object.keys(GAME_TERMS)).toHaveLength(143)
   })
 
@@ -32,12 +32,12 @@ describe('fieldId：术语表保真（由脚本从 Python AST 提取）', () => 
   })
 })
 
-describe('fieldId：与 Python 实测输出逐条对照（回归锁）', () => {
+describe('fieldId：与 旧版 实测输出逐条对照（回归锁）', () => {
   /**
    * 左列是 `FieldEditorWidget._translate_game_terms` 的**实跑输出**（offscreen 起真控件取证），
    * 右列是本模块结果。差异处即本模块修的缺陷，注释里写明根因。
    */
-  it('术语表命中路径：与 Python 完全一致', () => {
+  it('术语表命中路径：与 旧版 完全一致', () => {
     expect(suggestFieldIds('攻击力').suggestions[0]?.id).toBe('atk') // same
     expect(suggestFieldIds('暴击率').suggestions[0]?.id).toBe('crit_rate') // same
     expect(suggestFieldIds('冷却时间').suggestions[0]?.id).toBe('cooldown') // same
@@ -47,8 +47,8 @@ describe('fieldId：与 Python 实测输出逐条对照（回归锁）', () => {
     expect(suggestFieldIds('速度上限').suggestions[0]?.id).toBe('speed_max') // same
   })
 
-  it('缺陷 1：ASCII 不再被逐字打碎（Python 每字母单独成 token，最后用 _ 拼）', () => {
-    // Python 实测：'HP上限' → 'h_p_max'、'HP' → 'h_p'、即便本是合法 ID 的 'hp_max' → 'h_p_m_a_x'
+  it('缺陷 1：ASCII 不再被逐字打碎（旧版 每字母单独成 token，最后用 _ 拼）', () => {
+    // 旧版 实测：'HP上限' → 'h_p_max'、'HP' → 'h_p'、即便本是合法 ID 的 'hp_max' → 'h_p_m_a_x'
     expect(suggestFieldIds('HP上限').suggestions[0]?.id).toBe('hp_max')
     expect(suggestFieldIds('HP').suggestions[0]?.id).toBe('hp')
     expect(suggestFieldIds('hp_max').suggestions[0]?.id).toBe('hp_max')
@@ -57,7 +57,7 @@ describe('fieldId：与 Python 实测输出逐条对照（回归锁）', () => {
   })
 
   it('缺陷 2：未收录中文不再交给词典产出垃圾，而是如实报告', () => {
-    // Python 实测：'斗能' → 'abbr_surname'（正是 Python 文档自己举的示例词！）
+    // 旧版 实测：'斗能' → 'abbr_surname'（正是 旧版 文档自己举的示例词！）
     const douNeng = suggestFieldIds('斗能')
     expect(douNeng.suggestions).toEqual([])
     expect(douNeng.error).toContain('斗能')
@@ -72,9 +72,9 @@ describe('fieldId：与 Python 实测输出逐条对照（回归锁）', () => {
   })
 
   it('缺陷 2 续：部分未收录时给出「可用但不完整」的候选并标明缺失片段', () => {
-    // Python 实测：'攻击力加成' → 'atk_canada_surname'；本模块给 'atk_bonus'（加成已在补充表）
+    // 旧版 实测：'攻击力加成' → 'atk_canada_surname'；本模块给 'atk_bonus'（加成已在补充表）
     expect(suggestFieldIds('攻击力加成').suggestions[0]?.id).toBe('atk_bonus')
-    // Python 实测：'ATK加成' → 'a_t_k_canada_surname'；本模块 'atk_bonus'
+    // 旧版 实测：'ATK加成' → 'a_t_k_canada_surname'；本模块 'atk_bonus'
     expect(suggestFieldIds('ATK加成').suggestions[0]?.id).toBe('atk_bonus')
 
     // 真正未收录的词：候选仍给出，但必须**明确列出缺失片段**（不静默丢弃）
@@ -84,7 +84,7 @@ describe('fieldId：与 Python 实测输出逐条对照（回归锁）', () => {
   })
 
   it('已知缺口（故意不补）：物防/物攻/魔防 无代码库先例 → 如实报未收录', () => {
-    // Python 实测：'物防' → 'protect'（词典给的通用词义，游戏里应是防御类 ID）
+    // 旧版 实测：'物防' → 'protect'（词典给的通用词义，游戏里应是防御类 ID）
     for (const label of ['物防', '物攻', '魔防']) {
       const result = suggestFieldIds(label)
       expect(result.suggestions, `${label} 不应给出候选`).toEqual([])

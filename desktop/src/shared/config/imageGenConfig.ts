@@ -9,7 +9,7 @@
  *
  * ## 这里**刻意没有 apiKey**（安全硬约束）
  * E22 曾把生图 API Key 明文写进本键的 `apiKey` 字段，而 localStorage 对渲染层全部 JS、
- * XSS、用户 DevTools 一律可读 —— 相对 Python 侧 `config/settings.py`（Fernet 加密）
+ * XSS、用户 DevTools 一律可读 —— 相对 旧版 侧 `config/settings`（Fernet 加密）
  * 是一次明确的安全性退步。现在：
  * - Key 由主进程用 Electron `safeStorage` 加密落盘（`userData/secrets.enc`）；
  * - 渲染层**永不持有明文**，只问「配没配过」（`settings:hasSecret`）；

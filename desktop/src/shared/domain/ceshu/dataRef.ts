@@ -2,22 +2,22 @@ import { CHAPTER_KEYS, type CeshuChapters } from '../../ceshuConstants'
 import type { DataTypeDef, ItemRecord } from '../../types'
 
 /**
- * 数据引用引擎（对齐 Python `src/common/data_ref.py`）。
+ * 数据引用引擎（对齐 旧版 `src/common/data_ref`）。
  *
  * 引用语法：`@data[type_key.field]` 或 `@data[type_key.item_id.field]`
  * 例：`角色基础攻击力为 @data[role.atk]`，`@data[skill.fireball.damage]`
  *
- * ## 🔧 一处刻意修正 PyQt 的真 bug（不是照抄）
+ * ## 🔧 一处刻意修正 旧版 的真 bug（不是照抄）
  *
- * Python `data_ref.py:89` 是 `items = raw.get(type_key, [])`，而 `type_key` 来自
- * 引用文本里的**单数**片段（`@data[role.atk]` ⇒ `role`）；但 `core/data_manager.py:56-59`
+ * 旧版 `data_ref:89` 是 `items = raw.get(type_key, [])`，而 `type_key` 来自
+ * 引用文本里的**单数**片段（`@data[role.atk]` ⇒ `role`）；但 `core/data_manager:56-59`
  * 的 `self.data` 是按 **`schema.plural_keys`（复数 `roles`/`monsters`）**建的。
- * ⇒ **两边对不上，`@data[role.atk]` 在 PyQt 里永远解析不到值**，
+ * ⇒ **两边对不上，`@data[role.atk]` 在 旧版 里永远解析不到值**，
  * `preview_panel` 只会显示「(未找到)」。这是真 bug，不是设计。
  *
  * 本实现**修正**为：先按单数 `id` 找类型（用 TS 侧 `items.type` 的真实口径），
  * 找不到再按 `pluralKey` 找（兼容复数写法 `@data[roles.atk]`）。
- * `resolveRefValue` 因此在 TS 侧是**能真解析出值**的，优于 Python。
+ * `resolveRefValue` 因此在 TS 侧是**能真解析出值**的，优于 旧版。
  *
  * ## 键口径（易错，与 `dataStats.ts` / `attributeChart.ts` 同一约定）
  * - `items.type` 存**单数** `DataTypeDef.id`（`role`）
@@ -25,13 +25,13 @@ import type { DataTypeDef, ItemRecord } from '../../types'
  * - 条目业务字段在 **`item.data`** 下（不是顶层）
  */
 
-/** 一个数据引用的完整信息（对齐 Python `DataRef` NamedTuple） */
+/** 一个数据引用的完整信息（对齐 旧版 `DataRef` NamedTuple） */
 export interface DataRef {
   /** 原始文本，如 `@data[role.atk]` */
   raw: string
   /** 数据类型键（单数 `id`，如 `role`） */
   typeKey: string
-  /** 条目 id；`''` 表示「取该类型第一条」（对齐 Python） */
+  /** 条目 id；`''` 表示「取该类型第一条」（对齐 旧版） */
   itemId: string
   /** 字段名，如 `atk` */
   field: string
@@ -40,9 +40,9 @@ export interface DataRef {
 }
 
 /**
- * 引用正则（逐字对齐 Python `REF_PATTERN`）：
+ * 引用正则（逐字对齐 旧版 `REF_PATTERN`）：
  * `@data[` + 标识符 + **至少一个** `.标识符` + `]`。
- * 注意末尾的 `+` —— 意味着 `@data[role]`（单段）**不匹配**（PyQt 同）。
+ * 注意末尾的 `+` —— 意味着 `@data[role]`（单段）**不匹配**（旧版 同）。
  */
 const REF_PATTERN = /@data\[([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)+)\]/g
 
@@ -50,7 +50,7 @@ const REF_PATTERN = /@data\[([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)+
  * 从一段文本里解析所有数据引用（对齐 `parse_data_refs`）。
  *
  * 只支持 2 段（`type.field`）与 3 段（`type.item.field`）；
- * 4 段及以上**跳过**（对齐 Python `else: continue`）。
+ * 4 段及以上**跳过**（对齐 旧版 `else: continue`）。
  */
 export function parseDataRefs(text: string): DataRef[] {
   const refs: DataRef[] = []
@@ -67,14 +67,14 @@ export function parseDataRefs(text: string): DataRef[] {
       const [typeKey, itemId, field] = parts as [string, string, string]
       refs.push({ raw: match[0], typeKey, itemId, field, fullPath })
     }
-    // 4 段及以上：跳过（对齐 Python）
+    // 4 段及以上：跳过（对齐 旧版）
     match = re.exec(text)
   }
   return refs
 }
 
 /**
- * 类型键归一：单数 id 优先，其次复数 pluralKey（修正 PyQt 的单复数不匹配）。
+ * 类型键归一：单数 id 优先，其次复数 pluralKey（修正 旧版 的单复数不匹配）。
  *
  * ## 为什么对 `id` / `pluralKey` 都做空值保护
  * `DataTypeDef` 声明上两者都是必填，但**运行时数据不一定完整**：
@@ -115,7 +115,7 @@ export function resolveRefValue(
   const rows = rowsByType !== undefined ? (rowsByType.get(target) ?? []) : items.filter((item) => item.type === target)
   if (rows.length === 0) return null
 
-  // itemId 为空 ⇒ 取第一条（对齐 Python `items[0]`）
+  // itemId 为空 ⇒ 取第一条（对齐 旧版 `items[0]`）
   const row = ref.itemId === '' ? rows[0] : rows.find((r) => r.id === ref.itemId)
   if (row === undefined) return null
 
@@ -127,19 +127,19 @@ export function resolveRefValue(
 
 /** 一条引用 + 其解析结果（用于概览展示） */
 export interface ResolvedRef extends DataRef {
-  /** 解析到的值；`null` = 未找到（对齐 Python 的 `Optional[Any]`） */
+  /** 解析到的值；`null` = 未找到（对齐 旧版 的 `Optional[Any]`） */
   value: unknown
   /** 该值是否存在（区分「值为 null/空」与「没找到」） */
   found: boolean
 }
 
-/** 未找到时展示的占位（对齐 Python `✗ ... (未找到)`） */
+/** 未找到时展示的占位（对齐 旧版 `✗ ... (未找到)`） */
 export const REF_NOT_FOUND_TEXT = '未找到'
 
-/** 值的展示上限（对齐 Python `str(value)[:60]`） */
+/** 值的展示上限（对齐 旧版 `str(value)[:60]`） */
 const VALUE_DISPLAY_MAX = 60
 
-/** 把任意值转成展示文本（对齐 Python `str(value)[:60]`，null ⇒ ''） */
+/** 把任意值转成展示文本（对齐 旧版 `str(value)[:60]`，null ⇒ ''） */
 export function formatRefValue(value: unknown): string {
   if (value === null || value === undefined) return ''
   const text = typeof value === 'string' ? value : String(value)
@@ -150,7 +150,7 @@ export function formatRefValue(value: unknown): string {
  * 从整本策划书里提取所有引用（对齐 `extract_all_refs`）。
  *
  * 遍历 `CHAPTER_KEYS` 每章的字段值：字符串直接解析、嵌套字典**只下探一层**、
- * 列表**只取字符串元素**（逐条对齐 Python 的三层 else-if，不递归）。
+ * 列表**只取字符串元素**（逐条对齐 旧版 的三层 else-if，不递归）。
  * 按 `fullPath` **去重**（保持首次出现顺序）。
  */
 export function extractAllRefs(chapters: CeshuChapters | null): DataRef[] {
@@ -186,7 +186,7 @@ export function extractAllRefs(chapters: CeshuChapters | null): DataRef[] {
   return all
 }
 
-/** 按 typeKey 分组的引用（对齐 Python 的 `defaultdict` 分组，P7 便于阅读） */
+/** 按 typeKey 分组的引用（对齐 旧版 的 `defaultdict` 分组，P7 便于阅读） */
 export interface RefGroup {
   typeKey: string
   refs: ResolvedRef[]
@@ -196,7 +196,7 @@ export interface RefOverview {
   groups: RefGroup[]
   /** 引用总数 */
   total: number
-  /** 能解析出值 的个数（对齐 Python `has_value`） */
+  /** 能解析出值 的个数（对齐 旧版 `has_value`） */
   resolved: number
 }
 
@@ -224,7 +224,7 @@ export function buildRefOverview(
 
   for (const ref of refs) {
     const value = resolveRefValue(items, types, ref, rowsByType)
-    // Python 是 `if value is not None` ⇒ null/undefined 都算「未找到」
+    // 旧版 是 `if value is not None` ⇒ null/undefined 都算「未找到」
     const found = value !== null && value !== undefined
     if (found) resolved += 1
     const bucket = map.get(ref.typeKey)

@@ -9,50 +9,50 @@
 
 | 原则 | 状态 | 实现文件 |
 |------|:----:|---------|
-| 单一职责 | ✅ | `agents/agent_manager.py` — 5 Agent + tools 隔离 |
-| 边界优先 | ✅ | `agents/agent_manager.py` — SOUL 硬边界 + "绝对不能" |
-| 闭环进化 | ✅ | `brain.py` end_session → `learner.py` → LEARNINGS |
-| 协议优于实现 | ✅ | `dispatcher.py` + `mcp.py` — MCP 协议集成 |
-| 记忆是杠杆 | ✅ | `memory.py` — 短期/长期/情节三层 + 预热 |
-| 编排优于集成 | ✅ | `brain.py` process → planner.plan → agent_manager |
+| 单一职责 | ✅ | `agents/agent_manager` — 5 Agent + tools 隔离 |
+| 边界优先 | ✅ | `agents/agent_manager` — SOUL 硬边界 + "绝对不能" |
+| 闭环进化 | ✅ | `brain` end_session → `learner` → LEARNINGS |
+| 协议优于实现 | ✅ | `dispatcher` + `mcp` — MCP 协议集成 |
+| 记忆是杠杆 | ✅ | `memory` — 短期/长期/情节三层 + 预热 |
+| 编排优于集成 | ✅ | `brain` process → planner.plan → agent_manager |
 
 ## 第二部分：五大核心闭环
 
 | 闭环 | 状态 | 实现 |
 |------|:----:|------|
-| ① 感知-执行 | ✅ | `brain.py` _agent_loop ReAct while循环 + _replan_step |
-| ② 记忆-检索 | ✅ | `memory.py` save/get_short/long_term + get_recent_learnings |
-| ③ 反思-进化 | ✅ | `brain.py` _reflect_on_failures + `evaluation/` LLM-Judge |
-| ④ 工具-协议 | ✅ | `dispatcher.py` register/execute + `mcp.py` + 16 Skills |
-| ⑤ 协作-编排 | ✅ | `agents/agent_manager.py` 5 Agent + delegate + TaskTicket |
+| ① 感知-执行 | ✅ | `brain` _agent_loop ReAct while循环 + _replan_step |
+| ② 记忆-检索 | ✅ | `memory` save/get_short/long_term + get_recent_learnings |
+| ③ 反思-进化 | ✅ | `brain` _reflect_on_failures + `evaluation/` LLM-Judge |
+| ④ 工具-协议 | ✅ | `dispatcher` register/execute + `mcp` + 16 Skills |
+| ⑤ 协作-编排 | ✅ | `agents/agent_manager` 5 Agent + delegate + TaskTicket |
 
 ## 第三部分：分层架构 (11/11)
 
 | 层 | 状态 | 文件 |
 |----|:----:|------|
-| 用户界面层 | ✅ | `ui/` PyQt6 MainWindow + DigitalPanel + DataTab |
-| 编排层 | ✅ | `brain.py` process + end_session + planner.plan |
-| 身份管理 | ✅ | `agents/agent_manager.py` SOUL 硬边界 + `workspace.py` identity.md |
-| 规划执行 | ✅ | `intent.py` Planner + `brain.py` _agent_loop |
-| 记忆管理 | ✅ | `memory.py` 三层存储 + LEARNINGS |
-| 工具注册 | ✅ | `dispatcher.py` + `skill_protocol.py` + `mcp.py` |
-| 反思进化 | ✅ | `brain.py` + `learner.py` + `evaluation/auto_evaluator.py` |
-| 协作+安全 | ✅ | `agents/collaboration.py` + `dispatcher.py` ACL + `security/` |
-| 评估对齐 | ✅ | `evaluation/auto_evaluator.py` LLM-as-Judge |
-| 部署运维 | ✅ | `deployment/` + `scheduler.py` |
-| 基础设施 | ✅ | `common/ai_client.py` + `common/logger.py` + `config/` |
+| 用户界面层 | ✅ | `ui/` 旧版6 MainWindow + DigitalPanel + DataTab |
+| 编排层 | ✅ | `brain` process + end_session + planner.plan |
+| 身份管理 | ✅ | `agents/agent_manager` SOUL 硬边界 + `workspace` identity.md |
+| 规划执行 | ✅ | `intent` Planner + `brain` _agent_loop |
+| 记忆管理 | ✅ | `memory` 三层存储 + LEARNINGS |
+| 工具注册 | ✅ | `dispatcher` + `skill_protocol` + `mcp` |
+| 反思进化 | ✅ | `brain` + `learner` + `evaluation/auto_evaluator` |
+| 协作+安全 | ✅ | `agents/collaboration` + `dispatcher` ACL + `security/` |
+| 评估对齐 | ✅ | `evaluation/auto_evaluator` LLM-as-Judge |
+| 部署运维 | ✅ | `deployment/` + `scheduler` |
+| 基础设施 | ✅ | `common/ai_client` + `common/logger` + `config/` |
 
 ## 第四部分：7核心模块
 
 | 模块 | 接口 | 状态 |
 |------|------|:----:|
-| IdentityManager | load_identity(id) → SystemPrompt | ✅ `agents/identity_manager.py` |
-| Planner | plan(task, ctx) → Plan(JSON) | ✅ `intent.py` Planner |
-| Executor | execute_step + ReAct while | ✅ `brain.py` _agent_loop |
-| MemoryManager | store/retrieve 三层 | ✅ `memory.py` |
-| ToolRegistry | register/execute/get_tools | ✅ `dispatcher.py` |
-| ReflectionLoop | schedule/analyze → LEARNINGS | ✅ `brain.py` + `learner.py` |
-| Orchestrator | run(input, session) → Response | ✅ `brain.py` process |
+| IdentityManager | load_identity(id) → SystemPrompt | ✅ `agents/identity_manager` |
+| Planner | plan(task, ctx) → Plan(JSON) | ✅ `intent` Planner |
+| Executor | execute_step + ReAct while | ✅ `brain` _agent_loop |
+| MemoryManager | store/retrieve 三层 | ✅ `memory` |
+| ToolRegistry | register/execute/get_tools | ✅ `dispatcher` |
+| ReflectionLoop | schedule/analyze → LEARNINGS | ✅ `brain` + `learner` |
+| Orchestrator | run(input, session) → Response | ✅ `brain` process |
 
 ## 第五部分：子智能体规范 (6/6)
 
@@ -60,9 +60,9 @@
 |------|:----:|------|
 | SOUL.md 5要素 | ✅ | 5 Agent system_prompt 内含核心身份/职责/边界/风格/输出 |
 | config.yaml | ✅ | boss/ + workers/*/config.yaml |
-| agent.py | ✅ | boss/agent.py + 4 workers/*/agent.py |
-| skills/ 专属工具 | ✅ | agent_manager.py 4套工具集隔离 |
-| TaskTicket | ✅ | `agents/agent_manager.py` @dataclass 7字段 |
+| agent | ✅ | boss/agent + 4 workers/*/agent |
+| skills/ 专属工具 | ✅ | agent_manager 4套工具集隔离 |
+| TaskTicket | ✅ | `agents/agent_manager` @dataclass 7字段 |
 | 独立目录 | ✅ | agents/boss/ + agents/workers/{4 experts}/ |
 
 ## 第六部分：项目目录结构
@@ -76,13 +76,13 @@ agent_os/                     →  src/core/agent/
 ├── diagnostics/              ✅ 15 诊断模块
 ├── workflow/                 ✅ workflow_engine, scheduler
 ├── memory/                   ✅ workspace/memory/ + LEARNINGS.jsonl
-├── mcp/                      ✅ mcp.py
-├── security/                 ✅ acl.py + sandbox.py + safety_guard.py + code_sandbox.py
+├── mcp/                      ✅ mcp
+├── security/                 ✅ acl + sandbox + safety_guard + code_sandbox
 ├── multimodal/               ✅ skills/ (image_gen, vision, speech, tts)
-├── evaluation/               ✅ auto_evaluator.py
+├── evaluation/               ✅ auto_evaluator
 ├── deployment/               ✅ 目录就绪
 ├── infrastructure/           → src/common/ (ai_client, logger, path_utils...)
-└── main.py                   → src/app.py
+└── main                   → src/app
 ```
 
 ## 第七部分：实施路线图 (三阶段全部 ✅)
@@ -112,8 +112,8 @@ agent_os/                     →  src/core/agent/
 | 模式 | 状态 | 文件 |
 |------|:----:|------|
 | 顺序接力 | ✅ | TaskTicket + delegate_to_agent |
-| 并行竞标 | ✅ | `agents/collaboration.py` parallel_bidding |
-| 辩论共识 | ✅ | `agents/collaboration.py` debate_consensus |
+| 并行竞标 | ✅ | `agents/collaboration` parallel_bidding |
+| 辩论共识 | ✅ | `agents/collaboration` debate_consensus |
 
 ## 第十一部分：安全与治理 (3/3) ✅
 
@@ -121,7 +121,7 @@ agent_os/                     →  src/core/agent/
 |------|:----:|
 | LangChain 集成 | ⚪ 预留接口，未实际对接 |
 | AutoGen 集成 | ⚪ 预留接口 |
-| MCP Server 暴露 | ✅ mcp.py 已实现 |
+| MCP Server 暴露 | ✅ mcp 已实现 |
 | 神经符号智能体 | ⚪ 前沿方向 |
 | 自主技能发现 | ⚪ 前沿方向 |
 | 隐私本地智能体 | ⚪ 前沿方向 |

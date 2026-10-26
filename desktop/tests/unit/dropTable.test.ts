@@ -87,7 +87,7 @@ describe('dropTable：normalizeDropRange', () => {
     expect(normalizeDropRange(10, 10)).toEqual({ min: 10, max: 10 })
   })
 
-  it('min > max 时把 max 抬到 min（对应 Python _on_count_min_changed）', () => {
+  it('min > max 时把 max 抬到 min（对应 旧版 _on_count_min_changed）', () => {
     expect(normalizeDropRange(10, 3)).toEqual({ min: 10, max: 10 })
   })
 
@@ -119,7 +119,7 @@ describe('dropTable：dropSourceTypeId / dropSourceLabel', () => {
     expect(dropSourceLabel('item_drops')).toBe('道具')
   })
 
-  it('title_drops 落到 item / 道具（照搬 Python 既有瑕疵）', () => {
+  it('title_drops 落到 item / 道具（照搬 旧版 既有瑕疵）', () => {
     expect(dropSourceTypeId('title_drops')).toBe('item')
     expect(dropSourceLabel('title_drops')).toBe('道具')
   })

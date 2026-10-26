@@ -9,7 +9,7 @@ import {
   quickCreateTypeLabel
 } from '../../src/shared/util/quickCreate'
 
-describe('quickCreate：模板数据完整性（对齐 Python TEMPLATE_DEFS）', () => {
+describe('quickCreate：模板数据完整性（对齐 旧版 TEMPLATE_DEFS）', () => {
   it('12 个数据类型', () => {
     expect(listQuickCreateTypes()).toHaveLength(12)
     expect(listQuickCreateTypes()).toEqual([

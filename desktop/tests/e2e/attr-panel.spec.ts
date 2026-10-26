@@ -88,7 +88,7 @@ test('角色属性面板：默认模板 → 模板切换/改值联动 → 快速
     await expect(window.getByTestId('field-attr_list-formula-0')).toHaveValue('15')
     await expect(window.getByTestId('field-attr_list-result-4')).toHaveText('275.0')
 
-    // 存储形态与 Python 一致：[{name, category, formula}]；长度 18（模板 17 + 经验值），战力已删除
+    // 存储形态与 旧版 一致：[{name, category, formula}]；长度 18（模板 17 + 经验值），战力已删除
     const roles = await window.evaluate(async () => {
       const api = (
         globalThis as unknown as {

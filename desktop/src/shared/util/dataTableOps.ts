@@ -1,18 +1,18 @@
 import type { ItemRecord } from '../types'
 
 /**
- * 数据表操作纯逻辑（匹平 Python ui/components/virtual_list.py 的 ListModel.set_filter
- * 与 ui/dialogs/batch_edit.py 的批量操作）：列表搜索过滤 + 批量字段操作。
+ * 数据表操作纯逻辑（匹平 旧版 ui/components/virtual_list 的 ListModel.set_filter
+ * 与 ui/dialogs/batch_edit 的批量操作）：列表搜索过滤 + 批量字段操作。
  * 渲染层用于即时过滤/预览，主进程用于批量写入前的逐条计算（同一份语义）。
  */
 
 /* ---- 列表搜索过滤 ---- */
 
-/** 搜索字段：与 Python ListModel 一致（仅取字符串值参与匹配） */
+/** 搜索字段：与 旧版 ListModel 一致（仅取字符串值参与匹配） */
 export const ITEM_SEARCH_FIELDS = ['name', 'desc', 'id'] as const
 
 /**
- * 搜索过滤（对应 Python ListModel.set_filter）：
+ * 搜索过滤（对应 旧版 ListModel.set_filter）：
  * 小写、空格拆分为多个关键词、全部命中（AND）即保留；仅 name/desc/id 的字符串值参与匹配。
  */
 export function filterItemRecords(items: ItemRecord[], query: string): ItemRecord[] {
@@ -33,8 +33,8 @@ export function filterItemRecords(items: ItemRecord[], query: string): ItemRecor
 /* ---- 条目重命名 ---- */
 
 /**
- * 条目重命名（对应 Python `ui/data_tab.py::_on_rename_item`）：
- * 新名称去首尾空白后写入 `name`；空白名称视为取消（Python `if ok and new_name.strip()`），返回 null。
+ * 条目重命名（对应 旧版 `ui/data_tab::_on_rename_item`）：
+ * 新名称去首尾空白后写入 `name`；空白名称视为取消（旧版 `if ok and new_name.strip()`），返回 null。
  * 不修改入参，返回新的 data 对象。
  */
 export function withRenamedName(data: Record<string, unknown>, rawName: string): Record<string, unknown> | null {
@@ -79,9 +79,9 @@ export interface BatchOp {
 }
 
 /**
- * 对单条数据应用批量操作（对应 Python _on_apply 各分支；不修改入参）。
- * 返回新的 data 对象；adjust_number 遇到非数值时返回 null（该条跳过，与 Python continue 一致）。
- * 说明：对象/数组值的文本化用 JSON.stringify（Python 为 str() 输出），仅影响对结构字段做文本追加的极端用法。
+ * 对单条数据应用批量操作（对应 旧版 _on_apply 各分支；不修改入参）。
+ * 返回新的 data 对象；adjust_number 遇到非数值时返回 null（该条跳过，与 旧版 continue 一致）。
+ * 说明：对象/数组值的文本化用 JSON.stringify（旧版 为 str() 输出），仅影响对结构字段做文本追加的极端用法。
  */
 export function applyBatchOp(data: Record<string, unknown>, op: BatchOp): Record<string, unknown> | null {
   switch (op.kind) {
@@ -106,20 +106,20 @@ export function applyBatchOp(data: Record<string, unknown>, op: BatchOp): Record
       const adjust = op.adjust ?? 0
       let next: number
       if (op.mode === 'multiply') {
-        // 乘 0 视为无效，保留原值（与 Python `old * adj if adj != 0 else old` 一致）
+        // 乘 0 视为无效，保留原值（与 旧版 `old * adj if adj != 0 else old` 一致）
         next = adjust !== 0 ? old * adjust : old
       } else if (op.mode === 'set') {
         next = adjust
       } else {
         next = old + adjust
       }
-      // 与 Python str(int(v)) if v == int(v) else str(v) 等效：JS 数字无 4.0 与 4 之分
+      // 与 旧版 str(int(v)) if v == int(v) else str(v) 等效：JS 数字无 4.0 与 4 之分
       return { ...data, [op.field]: String(next) }
     }
   }
 }
 
-/** 值的文本化（对应 Python str()；缺失视为空串） */
+/** 值的文本化（对应 旧版 str()；缺失视为空串） */
 function valueToText(value: unknown): string {
   if (value === null || value === undefined) return ''
   if (typeof value === 'boolean') return value ? 'True' : 'False'

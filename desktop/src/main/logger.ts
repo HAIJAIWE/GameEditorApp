@@ -1,8 +1,8 @@
 /**
- * 主进程日志实现（对应 Python `common/logger.py` 的 AppLogger 文件写入部分）。
+ * 主进程日志实现（对应 旧版 `common/logger` 的 AppLogger 文件写入部分）。
  *
  * 提供：轮转文件日志（单文件上限 + 保留 N 个备份）、按级别回显控制台。
- * 与 Python 版对齐的刻意取舍：
+ * 与 早期版本对齐的刻意取舍：
  * - 不实现「环形缓冲供 LLM 注入」——TS 侧无消费者（见 shared/util/logger.ts 顶部说明）。
  * - 单例/全局态：用 `setLogSink` 把写入函数注入 shared/logger，渲染层与主进程共用同一入口。
  *
@@ -58,7 +58,7 @@ function timestamp(d: Date = new Date()): string {
   )
 }
 
-/** 将一条日志格式化为单行文本（与 Python Formatter 对齐） */
+/** 将一条日志格式化为单行文本（与 旧版 Formatter 对齐） */
 export function formatLogLine(entry: AppLogInput, time: Date = new Date()): string {
   const metaPart = entry.meta !== undefined ? ` | meta: ${serializeMeta(entry.meta)}` : ''
   return `${timestamp(time)} - ${LOGGER_NAME} - ${LEVEL_NAME[entry.level]} - ${entry.message}${metaPart}`

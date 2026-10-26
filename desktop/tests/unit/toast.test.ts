@@ -14,7 +14,7 @@ import {
 } from '../../src/shared/util/toast'
 
 describe('normalizeDuration：时长夹紧', () => {
-  it('默认 3000（对齐 PyQt duration=3000）', () => {
+  it('默认 3000（对齐 旧版 duration=3000）', () => {
     expect(DEFAULT_TOAST_DURATION).toBe(3000)
   })
 
@@ -51,7 +51,7 @@ describe('showToast：弹出与队列', () => {
     expect(getToasts()[0]).toMatchObject({ text: '保存成功', kind: 'default', duration: 3000 })
   })
 
-  it('kind 支持 success / error（对齐 PyQt 三套样式）', () => {
+  it('kind 支持 success / error（对齐 旧版 三套样式）', () => {
     showToast('删除成功', { kind: 'success' })
     showToast('删除失败', { kind: 'error' })
     expect(getToasts().map((t) => t.kind)).toEqual(['success', 'error'])
@@ -77,7 +77,7 @@ describe('showToast：弹出与队列', () => {
     expect(getToasts()).toHaveLength(0)
   })
 
-  it('多条并存（PyQt 是单实例覆盖，TS 刻意支持并存）', () => {
+  it('多条并存（旧版 是单实例覆盖，TS 刻意支持并存）', () => {
     showToast('一')
     showToast('二')
     expect(getToasts().map((t) => t.text)).toEqual(['一', '二'])

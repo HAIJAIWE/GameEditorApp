@@ -9,7 +9,7 @@ import {
   categorizeValidationError
 } from '../../src/shared/domain/ceshu/ceshuReports'
 
-describe('categorizeValidationError（对齐 Python validation_dialog._categorize）', () => {
+describe('categorizeValidationError（对齐 旧版 validation_dialog._categorize）', () => {
   it('按关键字归类，判定顺序为 dep > conflict > warning > required', () => {
     expect(categorizeValidationError('依赖缺失：第五章 systems.battle 已启用')).toBe('dep')
     expect(categorizeValidationError('一致性冲突：combat.combat_mode 不一致')).toBe('conflict')
@@ -19,7 +19,7 @@ describe('categorizeValidationError（对齐 Python validation_dialog._categoriz
   })
 })
 
-describe('buildValidationReportMarkdown（对齐 Python _build_markdown）', () => {
+describe('buildValidationReportMarkdown（对齐 旧版 _build_markdown）', () => {
   const progress: Record<string, number> = { meta: 1, systems: 0.5, total: 0.75 }
 
   it('评分 = max(0, 100 - 错误数*3)，并按分类计数', () => {
@@ -64,7 +64,7 @@ describe('buildValidationReportMarkdown（对齐 Python _build_markdown）', () 
     expect(ok).toContain('策划书已达工业级 GDD 完整性标准，可进入开发评审阶段。')
   })
 
-  it('章节完成度状态阈值与 Python 一致（>=80 ✓ / >=50 ⚠ / 否则 ✗）', () => {
+  it('章节完成度状态阈值与 旧版 一致（>=80 ✓ / >=50 ⚠ / 否则 ✗）', () => {
     const md = buildValidationReportMarkdown('G', 'v1.0', 't', [], { meta: 0.8, systems: 0.5, total: 0.6 })
     expect(md).toContain('| 文档信息 | 80% | ✓ |')
     expect(md).toContain('| 第四章·游戏系统设计 | 50% | ⚠ |')
@@ -95,7 +95,7 @@ describe('buildValidationReportMarkdown（对齐 Python _build_markdown）', () 
   })
 })
 
-describe('变更日志三格式（对齐 Python Changelog.to_{markdown,text,html}）', () => {
+describe('变更日志三格式（对齐 旧版 Changelog.to_{markdown,text,html}）', () => {
   const log: CeshuChangelog = {
     entries: [
       {

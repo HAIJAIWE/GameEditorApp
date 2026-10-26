@@ -1,19 +1,19 @@
 /**
- * 图片预览缓存（对齐 Python `src/ui/components/image_loader.py`）。
+ * 图片预览缓存（对齐 旧版 `src/ui/components/image_loader`）。
  *
  * ## 范围：只迁 `LazyImageLabel` 那条真实路径
  * 那个文件里有两个类，**别照着名字迁错**：
- * - `LazyImageLoader`（:55）：线程池 + LRU 缓存管理器。它在 PyQt 里**只在退出时**
- *   被 `main_window.py:894` 调 `shutdown_all()`，本身不是 UI。
- * - **`LazyImageLabel`（:251）才是真正在用的**：被 `ui/widgets/dynamic_form.py:581`
+ * - `LazyImageLoader`（:55）：线程池 + LRU 缓存管理器。它在 旧版 里**只在退出时**
+ *   被 `main_window:894` 调 `shutdown_all()`，本身不是 UI。
+ * - **`LazyImageLabel`（:251）才是真正在用的**：被 `ui/widgets/dynamic_form:581`
  *   实例化为**数据表单里图片字段的预览控件**（:593 / :747 `load_image(...)`）。
  * ⇒ 本模块迁的是 `LazyImageLabel` 对外表现出的行为 + 其背后 LRU 缓存的**纯逻辑**。
  *
- * ## 与 PyQt 的差异（刻意，有依据）
- * - **不做位图重采样**：Python 用 PIL `thumbnail(..., LANCZOS)` 真缩小，因为 Qt 显示大图吃内存。
+ * ## 与 旧版 的差异（刻意，有依据）
+ * - **不做位图重采样**：旧版 用 PIL `thumbnail(..., LANCZOS)` 真缩小，因为 Qt 显示大图吃内存。
  *   浏览器/Electron 里 `<img>` 由渲染引擎解码，用 CSS 限显示尺寸即可；
  *   JS 没有 PIL，硬做要引入 canvas 重编码 = 过度开发。
- * - **缓存键含目标尺寸**：Python 的 `self.cache` 只以 `file_path` 为键，换尺寸会拿到错误大小的图。
+ * - **缓存键含目标尺寸**：旧版 的 `self.cache` 只以 `file_path` 为键，换尺寸会拿到错误大小的图。
  *   本实现把尺寸并进键（一处小修正）。
  *
  * ## 为什么用「订阅 + 快照」而不是 useEffect 里 setState
@@ -32,19 +32,19 @@ export interface CachedImageEntry {
   reason: string | null
 }
 
-/** 缓存条数上限（对齐 Python `MAX_CACHE_SIZE = 50`） */
+/** 缓存条数上限（对齐 旧版 `MAX_CACHE_SIZE = 50`） */
 export const IMAGE_CACHE_MAX_SIZE = 50
 
-/** 缓存字节上限 100MB（对齐 Python `MAX_CACHE_BYTES`） */
+/** 缓存字节上限 100MB（对齐 旧版 `MAX_CACHE_BYTES`） */
 export const IMAGE_CACHE_MAX_BYTES = 100 * 1024 * 1024
 
-/** 占位文本（对齐 Python `placeholder_text="无图片"`） */
+/** 占位文本（对齐 旧版 `placeholder_text="无图片"`） */
 export const IMAGE_PLACEHOLDER_TEXT = '无图片'
 
-/** 加载中文本（对齐 Python `setText("加载中...")`） */
+/** 加载中文本（对齐 旧版 `setText("加载中...")`） */
 export const IMAGE_LOADING_TEXT = '加载中…'
 
-/** 组装缓存键：路径 + 目标尺寸（修正 Python 只按路径作键） */
+/** 组装缓存键：路径 + 目标尺寸（修正 旧版 只按路径作键） */
 export function buildCacheKey(path: string, width: number, height: number): string {
   return `${path}@${width}x${height}`
 }
@@ -58,7 +58,7 @@ export function isLoadableImagePath(path: string | null | undefined): boolean {
   return path.trim() !== ''
 }
 
-/** 估算解码后占用：RGBA = w * h * 4（对齐 Python `_add_to_cache`） */
+/** 估算解码后占用：RGBA = w * h * 4（对齐 旧版 `_add_to_cache`） */
 export function estimateImageBytes(width: number, height: number): number {
   if (!Number.isFinite(width) || !Number.isFinite(height)) return 0
   const w = Math.max(0, Math.floor(width))
@@ -79,7 +79,7 @@ export interface ImageCacheEntry {
 /**
  * 模块级 LRU 缓存（可直接单测）。
  *
- * 淘汰规则逐条对齐 Python `_add_to_cache`：
+ * 淘汰规则逐条对齐 旧版 `_add_to_cache`：
  * 1. 已存在则先移除旧记录（并扣回字节数），保证重新插入后处于「最近使用」位置；
  * 2. 按**字节上限**淘汰最久未用；
  * 3. 再按**条数上限**兜底淘汰；

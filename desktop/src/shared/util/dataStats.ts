@@ -1,8 +1,8 @@
 /**
- * 数据统计与平衡性分析（迁移自 Python `ui/dialogs/statistics.py`，374 行）。
+ * 数据统计与平衡性分析（迁移自 旧版 `ui/dialogs/statistics`，374 行）。
  *
- * ## 与 Python 的一处**重要差异**（有实证，不是偷懒）
- * Python `_analyze_roles` / `_analyze_monsters` 读的是扁平字段 `hp` / `atk` / `def`。
+ * ## 与 旧版 的一处**重要差异**（有实证，不是偷懒）
+ * 旧版 `_analyze_roles` / `_analyze_monsters` 读的是扁平字段 `hp` / `atk` / `def`。
  * 但 TS 的默认 schema 里 **`role` 与 `monster` 都没有这些字段** —— 属性存在
  * `attr_list`（`attrpanel` 字段）里（`typeSchema.ts` 可查：role 只有 job/race/faction/…；
  * monster 只有 level/type/category/…）。**直译会得到永远只输出「总数 N」的死代码。**
@@ -14,18 +14,18 @@
  * 这样换 schema 后仍成立，不会因硬编码字段名失效而「静默变空」。
  *
  * ## 明确不迁
- * Python 的「📈 图表」标签页是 **matplotlib 占位符**（`_update_chart_overview` 只输出
+ * 旧版 的「📈 图表」标签页是 **matplotlib 占位符**（`_update_chart_overview` 只输出
  * 「完整的图表生成需要 matplotlib」+ ASCII 柱条）。TS 侧用 **CSS 柱条**真实渲染分布，
  * 不复制占位符。
  *
  * ## 键口径
  * 用**单数** `DataTypeDef.id`（`role`/`skill`），与 `items.type` 一致
- * （Python 用的是复数 `roles`/`skills`，那是旧版平铺存储的键）。
+ * （旧版 用的是复数 `roles`/`skills`，那是旧版平铺存储的键）。
  */
 
 import type { DataTypeDef, ItemRecord } from '../types'
 
-/** 平衡性判定阈值：标准差 < 均值 × 0.3 视为「良好」（对齐 Python `_analyze_skills`） */
+/** 平衡性判定阈值：标准差 < 均值 × 0.3 视为「良好」（对齐 旧版 `_analyze_skills`） */
 export const BALANCE_STD_RATIO = 0.3
 
 /** 均值；空数组返回 0（调用方按 count 判断是否展示） */
@@ -35,8 +35,8 @@ export function mean(values: readonly number[]): number {
 }
 
 /**
- * 样本标准差（对齐 Python `statistics.stdev`，分母 n-1）；
- * 样本数 < 2 时返回 0（Python 在此分支也是取 0，见 `_analyze_skills` 的三元表达式）。
+ * 样本标准差（对齐 旧版 `statistics.stdev`，分母 n-1）；
+ * 样本数 < 2 时返回 0（旧版 在此分支也是取 0，见 `_analyze_skills` 的三元表达式）。
  */
 export function stdev(values: readonly number[]): number {
   if (values.length < 2) return 0
@@ -101,9 +101,9 @@ export function numericFieldNames(typeDef: DataTypeDef | null): string[] {
 /** 单个数值字段的统计摘要 */
 export interface NumericSummary {
   field: string
-  /** 字段显示名（去掉 Python/TS 里表单标签的冒号后缀） */
+  /** 字段显示名（去掉 旧版/TS 里表单标签的冒号后缀） */
   label: string
-  /** 有效数值条数（无法解析为数字的条目被跳过，对齐 Python 的 try/except） */
+  /** 有效数值条数（无法解析为数字的条目被跳过，对齐 旧版 的 try/except） */
   count: number
   avg: number
   min: number
@@ -111,7 +111,7 @@ export interface NumericSummary {
   std: number
 }
 
-/** 把任意 data 值转成有限数字；无法转换返回 null（对齐 Python `float()` + try/except） */
+/** 把任意 data 值转成有限数字；无法转换返回 null（对齐 旧版 `float()` + try/except） */
 function toFiniteNumber(value: unknown): number | null {
   if (typeof value === 'number') return Number.isFinite(value) ? value : null
   if (typeof value === 'string') {
@@ -125,7 +125,7 @@ function toFiniteNumber(value: unknown): number | null {
 
 /**
  * 统计某类型某数值字段。字段全为空/无法解析时返回 null（调用方据此显示「无有效数值数据」，
- * 对齐 Python 的「没有有效的技能数值数据」）。
+ * 对齐 旧版 的「没有有效的技能数值数据」）。
  */
 export function summarizeNumeric(
   items: readonly ItemRecord[],

@@ -5,11 +5,11 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import ChatMarkdown from '../../src/renderer/src/components/digital/ChatMarkdown'
 
 /**
- * 覆盖 Python `chat_renderer.render_markdown` 的核心能力：
+ * 覆盖 旧版 `chat_renderer.render_markdown` 的核心能力：
  * 粗体/斜体、围栏代码高亮、GFM 表格、空文本、单换行转 <br>。
  * 组件用 `React.createElement` 渲染（vitest `environment: node`、纯 .test.ts，无 JSX 设施）。
  */
-describe('ChatMarkdown：对齐 Python chat_renderer.render_markdown', () => {
+describe('ChatMarkdown：对齐 旧版 chat_renderer.render_markdown', () => {
   it('粗体 / 斜体 → <strong> / <em>', () => {
     const html = renderToStaticMarkup(createElement(ChatMarkdown, { text: '**重要** 与 *强调*' }))
     expect(html).toContain('<strong>重要</strong>')

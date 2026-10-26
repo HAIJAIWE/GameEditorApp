@@ -131,7 +131,7 @@ test('属性系统 JSON 导入导出：往返一致性 + 异常文件警告 + �
     expect(probe.corruptError).toContain('损坏')
     expect(probe.missingError).toContain('读取属性系统文件失败')
 
-    // 磁盘结构：Python 同构平铺对象 + 中文不转义
+    // 磁盘结构：旧版 同构平铺对象 + 中文不转义
     const text = readFileSync(exportPath, 'utf-8')
     const raw = JSON.parse(text) as Record<string, { formula: string }>
     expect(Object.keys(raw)).toHaveLength(17)

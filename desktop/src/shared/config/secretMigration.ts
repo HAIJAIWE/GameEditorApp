@@ -3,8 +3,8 @@
  *
  * ## 要解决的退步
  * E22（TS 迁移期）把生图 API Key 明文写进了 `mb.imageGenConfig` 的 `apiKey` 字段。
- * localStorage 对渲染层全部 JS、XSS、用户 DevTools 一律可读，而 Python 侧
- * `config/settings.py` 是 **Fernet 加密**存的（密钥在 `~/.mb_kshbjq/.fernet_key`）。
+ * localStorage 对渲染层全部 JS、XSS、用户 DevTools 一律可读，而 旧版 侧
+ * `config/settings` 是 **Fernet 加密**存的（密钥在 `~/.mb_kshbjq/.fernet_key`）。
  * 也就是说迁移当时引入了一次**明确的安全性退步**。本模块把这份明文收回钥匙串。
  *
  * ## 为什么是「读完即删」，失败也删

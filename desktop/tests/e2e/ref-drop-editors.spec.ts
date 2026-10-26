@@ -143,7 +143,7 @@ test('引用表 / 掉落表编辑器：选库添加 + 数值编辑 + 保存持�
     await window.getByTestId('item-editor').getByRole('button', { name: '保存' }).click()
     await expect(window.getByTestId('ceshu-data-item-row').filter({ hasText: 'E2E怪物甲' })).toBeVisible()
 
-    // 落盘：仅 name + rate + count_min + count_max（与 Python 数据格式一致）
+    // 落盘：仅 name + rate + count_min + count_max（与 旧版 数据格式一致）
     expect(await readField('monster', 'E2E怪物甲', 'equip_drops')).toEqual([
       { name: 'E2E装备铁剑', rate: 20, count_min: 2, count_max: 3 }
     ])

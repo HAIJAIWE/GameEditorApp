@@ -5,12 +5,12 @@ import { join } from 'node:path'
 import { expect, test } from '@playwright/test'
 import { launchApp, libraryDir, waitReady } from './helpers/app'
 
-test('策划书：读取旧版文件 → 新建 → 编辑保存章节 → 磁盘落盘（Python 兼容格式）', async () => {
+test('策划书：读取旧版文件 → 新建 → 编辑保存章节 → 磁盘落盘（旧版 兼容格式）', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-ceshu-e2e-'))
   const ceshuDir = join(libraryDir(userDataDir), 'ceshu')
   mkdirSync(ceshuDir, { recursive: true })
 
-  // 旧版 Python 格式样本：章节字段与当前默认不同、缺章节、含未知顶层键
+  // 旧版 旧版 格式样本：章节字段与当前默认不同、缺章节、含未知顶层键
   writeFileSync(
     join(ceshuDir, '1a2b3c4d.json'),
     JSON.stringify({
@@ -69,7 +69,7 @@ test('策划书：读取旧版文件 → 新建 → 编辑保存章节 → 磁�
     await window.getByTestId('chapter-save').click()
     await expect(window.getByText('已保存：第四章·游戏系统设计')).toBeVisible()
 
-    // 磁盘落盘校验：新文件为 Python 兼容格式
+    // 磁盘落盘校验：新文件为 旧版 兼容格式
     const files = readdirSync(ceshuDir).filter((file) => file.endsWith('.json'))
     expect(files).toHaveLength(2)
     const savedPath = files.map((file) => join(ceshuDir, file)).find((path) => {

@@ -2,7 +2,7 @@ import type { SystemConfigFieldDef } from './ceshuConstants'
 import * as OPT from './ceshuOptionLabels'
 
 /**
- * 13 个游戏系统的标准 config 字段定义（自 Python ceshu_constants.py SYSTEM_CONFIG_SCHEMA 匹平迁移）。
+ * 13 个游戏系统的标准 config 字段定义（自 旧版 ceshu_constants SYSTEM_CONFIG_SCHEMA 匹平迁移）。
  * 字段类型映射：entry→text / textarea→textarea / combobox→combo / spinbox→number(from,to) / checkbox→checkbox
  */
 
@@ -20,7 +20,7 @@ function checkbox(label: string): SystemConfigFieldDef {
 
 /**
  * 下拉字段。**`optionLabels` 为必填**（不是可选）：渲染层按 `optionLabels[option] ?? option` 取文案，
- * 漏配 ⇒ 界面裸显示 `turn_based` / `f2p_p2w` 这类内部枚举码（Python 侧真实缺陷，
+ * 漏配 ⇒ 界面裸显示 `turn_based` / `f2p_p2w` 这类内部枚举码（旧版 侧真实缺陷，
  * 由 `tests/unit/ceshuOptionLabels.test.ts` 守卫；这里用必填参数把它升级成编译期约束）。
  */
 function combo(label: string, values: string[], optionLabels: Record<string, string>): SystemConfigFieldDef {

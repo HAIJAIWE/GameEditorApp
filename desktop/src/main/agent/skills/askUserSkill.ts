@@ -1,14 +1,14 @@
 /**
- * `tool.ask_user` 内置技能（对应 Python `core/agent/skills/ask_user_skill.py`）：
+ * `tool.ask_user` 内置技能（对应 旧版 `core/agent/skills/ask_user_skill`）：
  * 参数/选项/方案不确定时向用户提问，避免 LLM 瞎猜。
  *
- * 与 Python 的区别：Python 走 `threading.Event` + 回调注册表的**阻塞式**弹窗
+ * 与 旧版 的区别：旧版 走 `threading.Event` + 回调注册表的**阻塞式**弹窗
  * （`REQUIRES_MAIN_THREAD = True`）；TS 侧不阻塞线程——技能只声明 `interaction`，
  * 由 Brain 循环暂停并等渲染层回传答复，答复再作为工具结果回灌给 LLM。
  *
  * 两种用法：
  *  - 单问题：`question` + `options?: string[]`
- *  - 多问题（对齐 Python）：`questions: [{ question|prompt, options?, multiSelect? }]`
+ *  - 多问题（对齐 旧版）：`questions: [{ question|prompt, options?, multiSelect? }]`
  */
 
 import type {
@@ -21,7 +21,7 @@ import type {
 
 const ACTIONS = ['ask'] as const
 
-/** 归一化候选项：接受字符串或 `{label, description}`（Python 侧两种调用点都存在） */
+/** 归一化候选项：接受字符串或 `{label, description}`（旧版 侧两种调用点都存在） */
 export function normalizeOptions(raw: unknown): SkillInteractionOption[] {
   if (!Array.isArray(raw)) return []
   const options: SkillInteractionOption[] = []
@@ -42,7 +42,7 @@ export function normalizeOptions(raw: unknown): SkillInteractionOption[] {
   return options
 }
 
-/** 归一化单个问题：`prompt` 与 Python 的 `question` 键都接受 */
+/** 归一化单个问题：`prompt` 与 旧版 的 `question` 键都接受 */
 function normalizeQuestion(raw: unknown): SkillInteractionQuestion | null {
   if (raw === null || typeof raw !== 'object') return null
   const record = raw as Record<string, unknown>
@@ -68,7 +68,7 @@ const OPTION_HINT =
 
 export function createAskUserSkill(): SkillProtocol {
   function ask(params: Record<string, unknown>): SkillResult {
-    // 多问题形态（对齐 Python questions 数组）
+    // 多问题形态（对齐 旧版 questions 数组）
     const rawQuestions = params.questions
     if (Array.isArray(rawQuestions) && rawQuestions.length > 0) {
       const questions = rawQuestions

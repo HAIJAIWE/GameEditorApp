@@ -26,7 +26,7 @@ describe('ceshuCompetitiveChart 常量', () => {
     expect(MAX_COMPETITORS).toBe(5)
   })
 
-  it('配色 5 项，顺序照抄 Python fallback', () => {
+  it('配色 5 项，顺序照抄 旧版 fallback', () => {
     expect(COMPETITOR_COLORS).toHaveLength(5)
     expect(COMPETITOR_COLORS[0]).toBe('#534AB7')
     expect(COMPETITOR_COLORS[3]).toBe('#0EA5E9')

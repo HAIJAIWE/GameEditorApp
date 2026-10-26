@@ -5,17 +5,17 @@ import type { DataTypeDef, ItemRecord } from '../../../shared/types'
 import { toErrorMessage } from '../../../shared/util/errors'
 
 /**
- * 游戏数据预览面板（对齐 Python `src/features/engine_export.py::show_game_data_preview`，
- * 菜单入口 `ui/menus.py:69`「文件 → 导出 → 游戏数据预览」）。
+ * 游戏数据预览面板（对齐 旧版 `src/features/engine_export::show_game_data_preview`，
+ * 菜单入口 `ui/menus:69`「文件 → 导出 → 游戏数据预览」）。
  *
- * PyQt 是一段「把 `data_manager.data` 整个 `json.dumps` 出来放进只读 QTextEdit」的代码；
+ * 旧版 是一段「把 `data_manager.data` 整个 `json.dumps` 出来放进只读 QTextEdit」的代码；
  * TS 侧改成：主进程出数据（`data.listAll` 已在数据编辑器里用过，同一份来源），
  * 渲染层用 `buildGameDataPreview` 摊成 JSON 文本塞进 `<pre>`。
  *
- * **与 PyQt 的差异（都写明理由）**：
+ * **与 旧版 的差异（都写明理由）**：
  * - 不做 50000 字符截断（那是 Qt 单控件的现实约束，`<pre>` 扛得住；截断会让用户看不到全貌），
  *   改为在标题里显示规模（类型数 / 条目数 / 字符数），超长时也明确告知「已渲染全量」。
- * - 键序按字典序稳定输出、空桶不出现（PyQt 是 dict 插入序 + 一堆空数组）。
+ * - 键序按字典序稳定输出、空桶不出现（旧版 是 dict 插入序 + 一堆空数组）。
  */
 type PreviewState = { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready'; text: string; bucketCount: number; itemCount: number; totalChars: number }
 

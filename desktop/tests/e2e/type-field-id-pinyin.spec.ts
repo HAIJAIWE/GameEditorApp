@@ -6,11 +6,11 @@ import { expect, test } from '@playwright/test'
 import { launchApp, waitReady } from './helpers/app'
 
 /**
- * 字段 ID · 拼音层（中文 → 拼音兜底，对齐 Python `_auto_pinyin` / `_chinese_to_pinyin`）。
+ * 字段 ID · 拼音层（中文 → 拼音兜底，对齐 旧版 `_auto_pinyin` / `_chinese_to_pinyin`）。
  *
  * 与 `type-field-id.spec.ts`（术语表层）**正交**，本用例锁四件事：
  * 1. 术语表**未收录**的词（`斗能`）也能出确定拼音候选 `dou_neng` —— 这正是拼音层存在的理由
- *    （术语层会如实报「未收录」，Python 则会把未收录词丢给 CEDICT 产出 `abbr_surname` 垃圾）；
+ *    （术语层会如实报「未收录」，旧版 则会把未收录词丢给 CEDICT 产出 `abbr_surname` 垃圾）；
  * 2. 两层可**同时在场**且互不遮蔽：`攻击力` → 术语层 `atk`、拼音层 `gong_ji_li`；
  * 3. 候选仍需**点选**才写入（沿用「只提案不写入」，展开候选不覆盖字段名）；
  * 4. 新建类型的类型 ID 随中文名自动填拼音，**用户手改 ID 后不再覆盖**，既有类型 ID 永不被改。

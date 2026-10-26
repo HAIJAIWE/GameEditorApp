@@ -77,7 +77,7 @@ export function registerAgentIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
     return { messages: snapshot?.messages ?? [] }
   })
   handle('agent:sessionClear', undefined, async () => ({ cleared: await agentSessionStore.clear() }))
-  // 草稿管理（对齐 PyQt 数字员工面板的草稿保存/恢复/列表）
+  // 草稿管理（对齐 旧版 数字员工面板的草稿保存/恢复/列表）
   handle('agent:draftSave', agentDraftSaveInputSchema, (req) => agentSessionStore.saveDraft(req.name))
   handle('agent:draftList', undefined, () => agentSessionStore.listDrafts())
   handle('agent:draftLoad', agentDraftLoadInputSchema, (req) => {

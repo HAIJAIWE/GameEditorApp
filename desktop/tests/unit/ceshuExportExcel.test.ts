@@ -11,7 +11,7 @@ import { CHAPTER_LABELS, type CeshuDocument } from '../../src/shared/ceshuConsta
 import { autoFillRequiredFields } from '../../src/shared/ceshuFill'
 import { createDefaultCeshu } from '../../src/shared/ceshuModel'
 
-/** 与 Python ceshu_excel_exporter 的 8 个 Sheet 顺序一致 */
+/** 与 旧版 ceshu_excel_exporter 的 8 个 Sheet 顺序一致 */
 const SHEET_NAMES = ['概览', '系统配置', '数值表', '角色', '里程碑', '风险', '竞品', '校验报告']
 
 function makeDoc(): CeshuDocument {
@@ -85,7 +85,7 @@ function overviewMap(sheet: ExcelJS.Worksheet): Map<string, ExcelJS.CellValue> {
   return map
 }
 
-describe('策划书导出：Excel（匹平 Python ceshu_excel_exporter）', () => {
+describe('策划书导出：Excel（匹平 旧版 ceshu_excel_exporter）', () => {
   it('8 个 Sheet 顺序与中文名，标题行样式/冻结首行/列宽', () => {
     const workbook = buildExcelWorkbook(makeDoc())
     expect(workbook.worksheets.map((sheet) => sheet.name)).toEqual(SHEET_NAMES)

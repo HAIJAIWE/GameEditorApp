@@ -11,7 +11,7 @@ import type { LlmUsage } from '../config/llmConfig'
 export interface BrainToolCall {
   id: string
   name: string
-  /** 已解析的参数（解析失败为空对象，对齐 Python `json.loads` 失败回落 {}） */
+  /** 已解析的参数（解析失败为空对象，对齐 旧版 `json.loads` 失败回落 {}） */
   arguments: Record<string, unknown>
 }
 
@@ -27,7 +27,7 @@ export interface BrainMessage {
 export interface BrainLlmReply {
   content: string
   toolCalls: BrainToolCall[]
-  /** 对齐 Python `finish_reason`（缺省 stop） */
+  /** 对齐 旧版 `finish_reason`（缺省 stop） */
   finishReason: string
   /** 实际调用的模型（M1 观测：Ollama 传输层回报；脚本化桩可留空） */
   model?: string
@@ -44,7 +44,7 @@ export interface BrainLlmRequest {
    * 转换在 `brainService.chat()` 一处完成（`toFunctionCallingTools`）——见该函数注释里的两个后果。
    */
   tools: unknown[]
-  /** 流式增量回调（对齐 Python `on_chunk`） */
+  /** 流式增量回调（对齐 旧版 `on_chunk`） */
   onChunk?: (text: string) => void
   /**
    * 取消信号（可选中止）。
@@ -70,10 +70,10 @@ export interface BrainToolRunner {
   execute(toolName: string, params: Record<string, unknown>, ctx: SkillExecutionContext): Promise<SkillResult>
 }
 
-/** 无法继续时的兜底答复（对齐 Python `_fallback_answer`） */
+/** 无法继续时的兜底答复（对齐 旧版 `_fallback_answer`） */
 export const FALLBACK_ANSWER = '抱歉，暂时无法处理这个请求。'
 
-/** 工具调用参数解析：容忍 JSON 字符串或已是对象；失败回落 {}（对齐 Python `json.loads` 失败分支） */
+/** 工具调用参数解析：容忍 JSON 字符串或已是对象；失败回落 {}（对齐 旧版 `json.loads` 失败分支） */
 export function parseToolArguments(raw: unknown): Record<string, unknown> {
   if (raw !== null && typeof raw === 'object' && !Array.isArray(raw)) {
     return raw as Record<string, unknown>
@@ -107,7 +107,7 @@ export function buildToolMessage(toolCallId: string, toolName: string, content: 
   return { role: 'tool', tool_call_id: toolCallId, name: toolName, content }
 }
 
-/** 兜底答复：取首个非空结果（对齐 Python `_fallback_answer`） */
+/** 兜底答复：取首个非空结果（对齐 旧版 `_fallback_answer`） */
 export function fallbackAnswer(results: string[]): string {
   for (const result of results) {
     if (result.trim() !== '') return result.trim()
@@ -115,7 +115,7 @@ export function fallbackAnswer(results: string[]): string {
   return FALLBACK_ANSWER
 }
 
-/** 把技能执行结果折叠成回灌给 LLM 的一行文本（对齐 Python `_execute_and_reflect` 的取值） */
+/** 把技能执行结果折叠成回灌给 LLM 的一行文本（对齐 旧版 `_execute_and_reflect` 的取值） */
 export function formatToolResult(result: SkillResult): string {
   if (result.success) return result.message
   return `执行失败: ${result.error !== undefined && result.error !== '' ? result.error : '未知'}`

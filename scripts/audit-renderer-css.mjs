@@ -5,7 +5,7 @@
  * 背景：系统确认面板「裸奔成纯文本」的根因就是组件写了 .system-card 等类，
  * 而 styles.css 里一个规则都没有。这类缺陷必须机械排查，靠肉眼看不出来。
  *
- * 📌 2026-10-10：由 `scripts/audit-renderer-css.py` **逐行等值移植**（Python 版已随旧技术线移除）。
+ * 📌 2026-10-10：由 `scripts/audit-renderer-css` **逐行等值移植**（早期版本已随旧技术线移除）。
  *    输出与旧版逐字一致（已用同一份工作树比对通过）。用法：
  *        node scripts/audit-renderer-css.mjs          # 需在仓库根执行
  *        NODE_OPTIONS= env -u ELECTRON_RUN_AS_NODE ./desktop/node_modules/electron/dist/electron.exe \

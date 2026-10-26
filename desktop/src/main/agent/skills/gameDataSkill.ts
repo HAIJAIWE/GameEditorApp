@@ -1,5 +1,5 @@
 /**
- * `system.game_data` 内置技能（对应 Python `core/agent/skills/game_data_skill.py` 的最小集）。
+ * `system.game_data` 内置技能（对应 旧版 `core/agent/skills/game_data_skill` 的最小集）。
  *
  * 已实现：`list_types` / `list` / `query` / `create` / `update` / `delete`，
  * 以及 **M2.5 复合批量动作 `batch_create` / `batch_update`**（DD-15）：
@@ -7,10 +7,10 @@
  * 「把这 3 个角色的 hp 设为 100」1 次调用改完（内部按 names/keyword 解析 id 后走 `batchUpdate`）。
  *
  * **仍未移植**（属 A1-5 业务接线范畴）：`switch_tab` / `switch_library` / `load_library`
- * —— 它们都依赖 PyQt 主窗口或库管理器。
+ * —— 它们都依赖 旧版 主窗口或库管理器。
  *
- * 文案约定：与 Python 能对齐的（`缺少 data_type 参数`、`找不到名称「x」对应的条目…`）逐字对齐；
- * Python 里依赖 `dm.data` 字典形态的消息（如 `可用类型: <复数键>`）在本侧按 TS 类型表重写。
+ * 文案约定：与 旧版 能对齐的（`缺少 data_type 参数`、`找不到名称「x」对应的条目…`）逐字对齐；
+ * 旧版 里依赖 `dm.data` 字典形态的消息（如 `可用类型: <复数键>`）在本侧按 TS 类型表重写。
  */
 
 import type { SkillExecutionContext, SkillProtocol, SkillResult } from '../../../shared/agent/protocol'
@@ -219,8 +219,8 @@ export function createGameDataSkill(deps: {
   }
 
   /**
-   * 删除条目：**破坏性动作，未带 `confirm: true` 时返回 confirm 交互**（对齐 Python
-   * `game_data_skill.py:413` 的 `needs_confirm`，但 TS 侧该标志真的有消费者——Brain 会暂停询问，
+   * 删除条目：**破坏性动作，未带 `confirm: true` 时返回 confirm 交互**（对齐 旧版
+   * `game_data_skill:413` 的 `needs_confirm`，但 TS 侧该标志真的有消费者——Brain 会暂停询问，
    * 批准后带 `confirm: true` 重执行）。
    */
   function deleteItem(params: Record<string, unknown>): SkillResult | Promise<SkillResult> {

@@ -12,7 +12,7 @@ import {
 
 /**
  * 数据类型 schema 存储（本模块内唯一写者）。
- * - 文件：<userData>/type_schema.json（与 Python 版 <库目录>/type_schema.json 同构）
+ * - 文件：<userData>/type_schema.json（与 早期版本 <库目录>/type_schema.json 同构）
  * - 缺省文件时以内置 12 类型为种子（仅在用户保存后落盘）
  * - 保存前做领域校验（id 格式/唯一、id 首字段、refType 存在性等），原子写：临时文件 + rename
  */

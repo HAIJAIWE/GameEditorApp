@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { BUILTIN_DATA_TYPES, getTypeById, getTypeByLegacyKey } from '../../src/shared/typeSchema'
 
-/** 迁移锁定：各类型字段数与 Python 版 rpg_schema.py v2.4 一致（role/monster 增补 attrpanel 字段除外 +2） */
+/** 迁移锁定：各类型字段数与 早期版本 rpg_schema v2.4 一致（role/monster 增补 attrpanel 字段除外 +2） */
 const EXPECTED_FIELD_COUNTS: Record<string, number> = {
   role: 17,
   job: 24,

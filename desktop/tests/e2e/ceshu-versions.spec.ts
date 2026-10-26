@@ -104,7 +104,7 @@ test('版本链：派生 → 编辑子版本 → 变更记录 → 激活切换�
     await expect(window.getByTestId('ceshu-set-active')).toBeVisible()
 
     // 变更记录面板
-    // 「ceshu-changelog」已收进工具栏「更多 ▸」下拉（对齐 PyQt），需先展开再点
+    // 「ceshu-changelog」已收进工具栏「更多 ▸」下拉（对齐 旧版），需先展开再点
     await window.getByTestId('ceshu-more').click()
     await window.getByTestId('ceshu-changelog').click()
     await expect(window.getByTestId('changelog-panel')).toBeVisible()
@@ -114,7 +114,7 @@ test('版本链：派生 → 编辑子版本 → 变更记录 → 激活切换�
     await expect(window.getByTestId('changelog-panel')).toHaveCount(0)
 
     // 从 v1.0 派生 v1.2（版本号按链上已有编号递增），派生后自动切到新版本
-    // 「ceshu-derive」已收进工具栏「更多 ▸」下拉（对齐 PyQt），需先展开再点
+    // 「ceshu-derive」已收进工具栏「更多 ▸」下拉（对齐 旧版），需先展开再点
     await window.getByTestId('ceshu-more').click()
     await window.getByTestId('ceshu-derive').click()
     await window.getByTestId('derive-note').fill('E2E 派生')

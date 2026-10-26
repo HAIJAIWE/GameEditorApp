@@ -13,7 +13,7 @@ import { isPlainObject } from './ceshuModel'
  * 本模块只提供**纯函数**（读/写/清标记），持久化交给调用方（`meta` 的一个额外键：
  * 文档 JSON 的 `meta.ai_generated = { <章节key>: <ISO时间> }`）。
  * 与已有的 `meta.system_confirmed` 同一套路子 —— 那份 JSON 是 TS 独占的格式，
- * 不存在 Python 兼容问题。
+ * 不存在 旧版 兼容问题。
  */
 
 /** `meta` 里存标记的键名 */

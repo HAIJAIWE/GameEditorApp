@@ -17,7 +17,7 @@ import {
 type SystemMap = Record<string, { enabled: boolean }>
 
 describe('ceshuPresets 预设数据', () => {
-  it('共 18 个预设，首项 xianxia_rpg、末项 cyberpunk_moba，顺序与 Python 一致', () => {
+  it('共 18 个预设，首项 xianxia_rpg、末项 cyberpunk_moba，顺序与 旧版 一致', () => {
     expect(PRESET_KEYS).toHaveLength(18)
     expect(PRESET_KEYS[0]).toBe('xianxia_rpg')
     expect(PRESET_KEYS[17]).toBe('cyberpunk_moba')
@@ -86,7 +86,7 @@ describe('ceshuPresets 徽章与文案', () => {
     expect(formatModuleBadge('open_world')).toBe('OPEN_WORLD')
   })
 
-  it('推荐系统文案：始终取前 6 项，超过 6 项追加「 等 N 项」（照抄 Python rec_systems[:6]）', () => {
+  it('推荐系统文案：始终取前 6 项，超过 6 项追加「 等 N 项」（照抄 旧版 rec_systems[:6]）', () => {
     expect(formatRecommendedSystems(HYBRID_GAMEPLAY_PRESETS.xianxia_rpg)).toBe(
       '角色、战斗、技能、装备、成长、任务 等 9 项'
     )

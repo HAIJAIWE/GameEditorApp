@@ -28,10 +28,10 @@ import {
 } from '../../src/shared/util/cleanupImages'
 import type { ItemRecord } from '../../src/shared/types'
 
-/* ================= 关键词模板：与 Python 真源的一致性 ================= */
+/* ================= 关键词模板：与 旧版 真源的一致性 ================= */
 
-describe('keywordTemplates：类型选项对齐 advanced.py:235', () => {
-  it('恰好 5 项，顺序与 PyQt 的 addItems 一致', () => {
+describe('keywordTemplates：类型选项对齐 advanced:235', () => {
+  it('恰好 5 项，顺序与 旧版 的 addItems 一致', () => {
     expect(KEYWORD_TEMPLATE_TYPE_OPTIONS.map((option) => option.value)).toEqual([
       'skill',
       'role',
@@ -57,8 +57,8 @@ describe('keywordTemplates：类型选项对齐 advanced.py:235', () => {
   })
 })
 
-describe('keywordTemplates：默认模板对齐 settings.py:311-523', () => {
-  it('默认表有 10 类（比面板可编辑的 5 类多，PyQt 里另5 类是死数据）', () => {
+describe('keywordTemplates：默认模板对齐 settings:311-523', () => {
+  it('默认表有 10 类（比面板可编辑的 5 类多，旧版 里另5 类是死数据）', () => {
     expect(Object.keys(DEFAULT_KEYWORD_TEMPLATES).sort()).toEqual([
       'achievement',
       'dialog',
@@ -88,7 +88,7 @@ describe('keywordTemplates：默认模板对齐 settings.py:311-523', () => {
     expect(skill.trimEnd().endsWith('语言风格：生动、有画面感，符合游戏设定。')).toBe(true)
   })
 
-  it('achievement 是最短的一条（3 个数据字段），与 Python 一致', () => {
+  it('achievement 是最短的一条（3 个数据字段），与 旧版 一致', () => {
     const lengths = Object.entries(DEFAULT_KEYWORD_TEMPLATES).map(([kind, text]) => [kind, text.length] as const)
     const shortest = lengths.reduce((min, cur) => (cur[1] < min[1] ? cur : min))
     expect(shortest[0]).toBe('achievement')
@@ -194,7 +194,7 @@ function item(type: string, id: string, data: Record<string, unknown>): ItemReco
   return { id, type, data: { ...data, id }, createdAt: '', updatedAt: '' }
 }
 
-describe('cleanupImages：常量对齐 advanced.py:398/402', () => {
+describe('cleanupImages：常量对齐 advanced:398/402', () => {
   it('引用字段白名单 4 项，顺序一致', () => {
     expect([...IMAGE_REFERENCE_FIELDS]).toEqual(['image', 'icon', 'avatar', 'img'])
   })
@@ -243,7 +243,7 @@ describe('cleanupImages：路径解析与比较键', () => {
     expect(resolveImagePath('/lib//images///a.png', '')).toBe('/lib/images/a.png')
   })
 
-  it('比较键大小写不敏感（复刻 PyQt WindowsPath 语义）', () => {
+  it('比较键大小写不敏感（复刻 旧版 WindowsPath 语义）', () => {
     expect(imagePathKey('C:/Lib/A.PNG')).toBe(imagePathKey('c:/lib/a.png'))
   })
 
@@ -291,7 +291,7 @@ describe('cleanupImages：collectReferencedImagePaths', () => {
     expect(collectReferencedImagePaths(dup, '/lib')).toHaveLength(1)
   })
 
-  it('额外字段（如 desc）里的图片路径不算引用（口径与 PyQt 一致）', () => {
+  it('额外字段（如 desc）里的图片路径不算引用（口径与 旧版 一致）', () => {
     expect(collectReferencedImagePaths([item('skill', 'a', { desc: 'images/x.png' })], '/lib')).toEqual([])
   })
 

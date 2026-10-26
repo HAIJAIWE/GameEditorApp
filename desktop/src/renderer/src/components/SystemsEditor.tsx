@@ -18,7 +18,7 @@ interface SystemEntryValue {
 
 /**
  * 游戏系统编辑器（第四章）：逐系统启用开关 + 标准 config 字段表单。
- * config 控件由 SYSTEM_CONFIG_SCHEMA（自 Python 匹平迁移）驱动。
+ * config 控件由 SYSTEM_CONFIG_SCHEMA（自 旧版 匹平迁移）驱动。
  */
 export default function SystemsEditor({ systems, onChange }: SystemsEditorProps) {
   const standardKeys = Object.keys(SYSTEM_CONFIG_SCHEMA)
@@ -74,7 +74,7 @@ export default function SystemsEditor({ systems, onChange }: SystemsEditorProps)
   )
 }
 
-/** 归一化系统条目：容忍旧数据缺 name/config，保留未知键（对齐 Python set_system 行为） */
+/** 归一化系统条目：容忍旧数据缺 name/config，保留未知键（对齐 旧版 set_system 行为） */
 function normalizeEntry(raw: unknown, key: string): SystemEntryValue {
   const source = isPlainObject(raw) ? raw : {}
   const name = typeof source.name === 'string' && source.name ? source.name : (SYSTEM_LABELS[key] ?? key)

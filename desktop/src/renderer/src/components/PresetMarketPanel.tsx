@@ -13,7 +13,7 @@ import {
 import { toErrorMessage } from '../../../shared/util/errors'
 
 /**
- * 混合玩法预设市场（对应 Python ui/ceshu/preset_market_dialog.py）：
+ * 混合玩法预设市场（对应 旧版 ui/ceshu/preset_market_dialog）：
  * 卡片式展示 18 个工业级预设，支持搜索（名称/风格/模块类型/特色/键）与一键应用。
  * 应用语义：启用推荐系统（已启用的不关闭）+ 空 game_type 时写入预设模块类型，由主进程一次写盘。
  */

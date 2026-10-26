@@ -46,7 +46,7 @@ test('高级搜索：跨类型 + 按字段检索 + 结果跳转', async () => {
     await expect(window.getByTestId('adv-search-row')).toHaveCount(2)
     await expect(window.getByTestId('adv-search-row').first()).toContainText('角色')
 
-    // 限定类型为技能 → 同样的词无结果（验证 Python 的单类型语义仍可复现）
+    // 限定类型为技能 → 同样的词无结果（验证 旧版 的单类型语义仍可复现）
     await window.getByTestId('adv-search-type').selectOption('skill')
     await expect(window.getByTestId('adv-search-count')).toContainText('命中 0 条')
     await expect(window.getByTestId('adv-search-empty')).toBeVisible()

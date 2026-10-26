@@ -5,9 +5,9 @@ import { isValidBackupName, parseBackupCreatedAt, type BackupEntry } from '../..
 
 /**
  * 备份存储层：纯文件系统逻辑（不依赖 electron）。
- * 对应 Python src/ui/dialogs/backup_manager.py + src/features/backup.py 的落盘部分。
+ * 对应 旧版 src/ui/dialogs/backup_manager + src/features/backup 的落盘部分。
  *
- * 相对 Python 的改进（安全优先）：
+ * 相对 旧版 的改进（安全优先）：
  * - 原子写：先写 `${target}.tmp` 再 rename 替换，崩溃/中断不会留下半截 JSON；
  * - 软删除：rename 为 `${name}.deleted`（撞名则 `.2`/`.3`…），绝不 unlink；
  * - 路径校验：先过 `isValidBackupName`，再断言 resolve 结果未越出 root；

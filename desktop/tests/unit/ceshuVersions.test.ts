@@ -21,7 +21,7 @@ function changed(diffs: ReturnType<typeof computeCeshuDiff>): ReturnType<typeof 
   return diffs.filter((diff) => diff.diffType !== 'unchanged')
 }
 
-describe('版本链：版本号递增（匹平 Python _next_version_label）', () => {
+describe('版本链：版本号递增（匹平 旧版 _next_version_label）', () => {
   it('v1.0 → v1.1；已有 v1.1 时 → v1.2', () => {
     expect(nextVersionLabel('v1.0', [])).toBe('v1.1')
     expect(nextVersionLabel('v1.0', ['v1.0', 'v1.1'])).toBe('v1.2')
@@ -33,7 +33,7 @@ describe('版本链：版本号递增（匹平 Python _next_version_label）', (
   })
 })
 
-describe('版本链：版本 diff（匹平 Python compute_version_diff）', () => {
+describe('版本链：版本 diff（匹平 旧版 compute_version_diff）', () => {
   it('空值语义：旧值为空视为新增，新值为空视为删除', () => {
     const base = createDefaultCeshu({ scope: 'full' })
     const withName = structuredClone(base)
@@ -58,7 +58,7 @@ describe('版本链：版本 diff（匹平 Python compute_version_diff）', () =
     previous.meta.game_name = 'B'
     expect(changed(computeCeshuDiff(previous, next))[0]?.diffType).toBe('modified')
 
-    // 简单字典（值均为标量）整体作为叶节点（与 Python _is_leaf_value 一致）
+    // 简单字典（值均为标量）整体作为叶节点（与 旧版 _is_leaf_value 一致）
     const leafChanged = structuredClone(base)
     ;(leafChanged.vision.user_personas as Record<string, unknown>).primary = '核心玩家'
     expect(changed(computeCeshuDiff(base, leafChanged))).toEqual([
@@ -79,7 +79,7 @@ describe('版本链：版本 diff（匹平 Python compute_version_diff）', () =
     tagsChanged.meta.tags = ['剧情向']
     expect(changed(computeCeshuDiff(base, tagsChanged))[0]?.field).toBe('tags')
 
-    // 仅改 config（enabled 不变）→ 无变更（与 Python _diff_systems 一致）
+    // 仅改 config（enabled 不变）→ 无变更（与 旧版 _diff_systems 一致）
     const configOnly = structuredClone(base)
     ;(configOnly.systems.battle as { config: Record<string, unknown> }).config.turn_mode = 'turn_based'
     expect(changed(computeCeshuDiff(base, configOnly))).toHaveLength(0)

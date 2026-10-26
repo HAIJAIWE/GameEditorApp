@@ -10,16 +10,16 @@ import {
 import { toErrorMessage } from '../../../shared/util/errors'
 
 /**
- * 智能体编辑器（对齐 Python `src/ui/ai_bridge.py:93` `open_agent_editor` 的入口 +
- * `src/ui/widgets/team_dialog.py` 的「工具汇总」这一块）。
+ * 智能体编辑器（对齐 旧版 `src/ui/ai_bridge:93` `open_agent_editor` 的入口 +
+ * `src/ui/widgets/team_dialog` 的「工具汇总」这一块）。
  *
  * ## 为什么只做工具清单，不做「团队 & 智能体管理」
  *
- * PyQt 的 TeamDialog 有两半，TS 侧的数据支撑完全不同。逐条判定见
- * `shared/agentEditor.ts` 顶部的范围判定表（那里列了 `team_dialog.py` 的行号依据）。要点：
+ * 旧版 的 TeamDialog 有两半，TS 侧的数据支撑完全不同。逐条判定见
+ * `shared/agentEditor.ts` 顶部的范围判定表（那里列了 `team_dialog` 的行号依据）。要点：
  *
  * - **不做团队 CRUD / 成员勾选 / 成员级提示词与工具覆盖 / 自定义智能体增删改 / 团队模式切换**
- *   —— 它们全部依赖 `core/agent/agents/agent_manager.py` 的 `AgentManager`
+ *   —— 它们全部依赖 `core/agent/agents/agent_manager` 的 `AgentManager`
  *   （`Team` 类型 + `teams.json` + `DEFAULT_AGENTS`）。TS 侧**这些一个都没有**，
  *   且 `AgentBrainService.chat()` 不读任何团队状态，改了没有消费者。
  *   做成能点能存但没人读的界面 = 假控件，比不做严重得多。
@@ -29,9 +29,9 @@ import { toErrorMessage } from '../../../shared/util/errors'
  *   与调度器执行时用的 `resolveRiskLevel`（`dispatcher.ts:212`）**同源**，
  *   所以面板说的「需二次确认」就是运行时真实会发生的事。
  *
- * ## 与 PyQt 的差异
+ * ## 与 旧版 的差异
  *
- * - 不移植 `team_dialog.py:369-389` 的 `desc_map`：那是 Python 侧硬编码的工具描述表，
+ * - 不移植 `team_dialog:369-389` 的 `desc_map`：那是 旧版 侧硬编码的工具描述表，
  *   且列了 `system.git` / `system.shell` 等 TS 侧**未注册**的工具。描述一律取 `skill.description`。
  * - 不显示「某工具被禁止执行」：`checkPermission` 的 `allowed: false` 分支在
  *   `dispatcher.execute` 里**根本没被调用**，显示它等于报告一个运行时不存在的事实。
@@ -177,7 +177,7 @@ export default function AgentEditorPanel() {
 
       <div className="notice-banner" data-testid="agent-editor-scope-note">
         本面板只展示调度器<strong>当前真实注册</strong>的工具与风险等级。
-        Python 侧的「团队 & 智能体管理」（团队增删改、成员勾选、成员级提示词与工具覆盖、自定义智能体、
+        旧版 侧的「团队 & 智能体管理」（团队增删改、成员勾选、成员级提示词与工具覆盖、自定义智能体、
         团队/个人模式切换）在 TS 侧尚无数据层与消费者，故未移植——详见
         <code> src/shared/agentEditor.ts </code>顶部的范围判定表。
       </div>

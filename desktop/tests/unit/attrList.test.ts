@@ -42,7 +42,7 @@ describe('属性列表编辑行 ↔ 存储转换', () => {
   })
 })
 
-describe('属性列表计算预览（拓扑序，替代 Python 行序自算）', () => {
+describe('属性列表计算预览（拓扑序，替代 旧版 行序自算）', () => {
   const system = createDefaultAttrSystem()
 
   it('列表行作为输入，其余属性按 0 输入计算', () => {

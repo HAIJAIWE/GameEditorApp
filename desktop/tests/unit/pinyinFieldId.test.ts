@@ -5,11 +5,11 @@ import { chineseToPinyin, suggestPinyinFieldId } from '../../src/shared/util/pin
 /**
  * 拼音兜底：中文 → 拼音字段 ID。
  *
- * 对照基准是 Python `ui/dialogs/type_editor_field_widget.py::_chinese_to_pinyin`
+ * 对照基准是 旧版 `ui/dialogs/type_editor_field_widget::_chinese_to_pinyin`
  * （`pypinyin.lazy_pinyin` → `_` 连接 → 清洗 `[^a-zA-Z0-9_]` → 折叠 `_` → 去首尾 → 小写）。
- * 本模块用 `pinyin-pro` 复现同一口径，故左列即「Python 会产出什么」。
+ * 本模块用 `pinyin-pro` 复现同一口径，故左列即「旧版 会产出什么」。
  */
-describe('chineseToPinyin：与 Python _chinese_to_pinyin 同口径', () => {
+describe('chineseToPinyin：与 旧版 _chinese_to_pinyin 同口径', () => {
   it('纯汉字逐字取拼音并用下划线连接', () => {
     expect(chineseToPinyin('攻击力')).toBe('gong_ji_li')
     expect(chineseToPinyin('斗能')).toBe('dou_neng')

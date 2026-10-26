@@ -171,7 +171,7 @@ export const DEFAULT_MAX_TOOL_CALLS = 8
 export const DEFAULT_WALL_CLOCK_MS = 120_000
 
 /**
- * 等待用户答复（危险确认 / 技能交互）的默认超时（毫秒，对齐 Python `ask_user` 的 `timeout=120`）。
+ * 等待用户答复（危险确认 / 技能交互）的默认超时（毫秒，对齐 旧版 `ask_user` 的 `timeout=120`）。
  * 超时按「未确认/未答复」处理——无人值守时不会永久挂住循环。设为 0 或负数表示不超时。
  */
 export const DEFAULT_INTERACTION_TIMEOUT_MS = 120_000

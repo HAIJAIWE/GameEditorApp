@@ -2,20 +2,20 @@ import { useCallback, useEffect, useState } from 'react'
 import { toErrorMessage } from '../../../shared/util/errors'
 
 /**
- * 「清空所有数据」确认面板（对齐 Python `ui/main_window.py::clear_all_data`，
+ * 「清空所有数据」确认面板（对齐 旧版 `ui/main_window::clear_all_data`，
  * 菜单入口 `编辑 → 清空所有数据`）。
  *
- * PyQt 用模态 `QMessageBox.question(..., Yes | No)` 问一句「确定要清空所有数据吗？」，
+ * 旧版 用模态 `QMessageBox.question(..., Yes | No)` 问一句「确定要清空所有数据吗？」，
  * 确认后 `data_manager.clear_all()` + 刷新全部页签 + toast「数据已清空」。
  *
- * ## 与 PyQt 的差异（都是**加了护栏 / 说得更清楚**，不是漏做）
- * - **显示条数**：PyQt 只问「确定吗」，用户不知道自己在删多少。TS 侧先 `data.listAll()`
+ * ## 与 旧版 的差异（都是**加了护栏 / 说得更清楚**，不是漏做）
+ * - **显示条数**：旧版 只问「确定吗」，用户不知道自己在删多少。TS 侧先 `data.listAll()`
  *   读出总数，确认区写明「将删除 N 条数据」。
  * - **明确不可撤销的风险**：文案点明「**正在编辑的条目表单里未保存的修改会一并丢失**」。
  *   TS 的条目表单草稿只存在于 React state（未点保存即只在内存里），
  *   清空后那些 id 已不存在，保存必然失败 —— 与其让用户撞上「数据不存在」报错，
  *   不如在按下确认前就说清楚。
- * - **可撤销**：与 PyQt 一致走 `data:deleteMany` 的统一路径，主进程会落一条
+ * - **可撤销**：与 旧版 一致走 `data:deleteMany` 的统一路径，主进程会落一条
  *   `deleteMany` 撤销记录，用户按 `Ctrl+Z` 可整批找回（面板上如实告知）。
  *
  * 交互沿用项目既有做法：**内联两按钮确认态**（同 `BatchEditPanel` 的删除确认、
@@ -24,7 +24,7 @@ import { toErrorMessage } from '../../../shared/util/errors'
  */
 
 interface ClearAllPanelProps {
-  /** 清空完成回调：宿主需刷新增撤状态与各视图（对齐 PyQt 的 `_refresh_all_tabs()`） */
+  /** 清空完成回调：宿主需刷新增撤状态与各视图（对齐 旧版 的 `_refresh_all_tabs()`） */
   onCleared: (deleted: number) => void
 }
 

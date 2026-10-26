@@ -11,26 +11,26 @@ import type { UnusedImageScan } from '../../../shared/util/cleanupImages'
 import { toErrorMessage } from '../../../shared/util/errors'
 
 /**
- * 清理未使用图片面板（对齐 Python `src/features/advanced.py:373-431` 的
- * `cleanup_unused_images`，入口 `menus.py:110`「工具 → 清理未使用图片」
- * 与 `settings_dialog.py:428`）。
+ * 清理未使用图片面板（对齐 旧版 `src/features/advanced:373-431` 的
+ * `cleanup_unused_images`，入口 `menus:110`「工具 → 清理未使用图片」
+ * 与 `settings_dialog:428`）。
  *
- * ## PyQt 做了什么（逐行读过 `advanced.py:373-431`）
+ * ## 旧版 做了什么（逐行读过 `advanced:373-431`）
  * 1. 遍历全库数据，收集字段名 ∈ {`image`,`icon`,`avatar`,`img`} 且值为非空字符串的路径；
  * 2. `data_dir.rglob('*' + ext)` 扫出 7 种图片扩展名；
  * 3. 做差集得「未使用」；为空则弹一句「未发现未使用的图片」；
  * 4. `QMessageBox.question(Yes|No)` 问一次「是否删除」（附「操作不可恢复，建议先备份」）；
  * 5. 逐个 `unlink()`，失败只记 warning，最后如实报「已删除 N/M 张」。
  *
- * ## 与 PyQt 的差异（**都是加护栏 / 说得更清楚**，不是漏做）
- * - **先扫描、先展示清单，再让用户确认**：PyQt 只报一个数字（`发现 N 张`）就问Yes/No，
+ * ## 与 旧版 的差异（**都是加护栏 / 说得更清楚**，不是漏做）
+ * - **先扫描、先展示清单，再让用户确认**：旧版 只报一个数字（`发现 N 张`）就问Yes/No，
  *   用户根本不知道要删的是哪些文件。TS 侧把**完整路径清单**摆出来（>50 条折叠），
  *   确认语里带上数量，确认区点明「**删除文件不可撤销**」。
  * - **不可撤销的后果写明**：与 `ClearAllPanel` 不同，数据删除走撤销栈能 Ctrl+Z 找回，
  *   而**文件删除进不了撤销栈**（主进程只unlink），所以这里必须说清「先备份」。
- * - **删除结果绝不假装全成功**：沿用 PyQt 的 `已删除 N/M 张` 口径，
- *   并把失败条目逐条列出（PyQt 只写进日志，用户看不到）。
- * - **悬空引用如实告知**：数据里引用了但目录里不存在的图片，会算进 PyQt 的
+ * - **删除结果绝不假装全成功**：沿用 旧版 的 `已删除 N/M 张` 口径，
+ *   并把失败条目逐条列出（旧版 只写进日志，用户看不到）。
+ * - **悬空引用如实告知**：数据里引用了但目录里不存在的图片，会算进 旧版 的
  *   `len(referenced)`（虚高）。TS 侧单列为 `danglingRefCount` 显示，不混进「已引用」数。
  *
  * 交互形态沿用项目既有做法：**内联两按钮确认态**（同 `ClearAllPanel` /
@@ -149,7 +149,7 @@ export default function CleanupImagesPanel() {
     api
       .deleteImages({ paths: targets, confirm: true })
       .then((res) => {
-        // 与 PyQt 同一口径：如实报「成功数/总数」，失败条目逐条列出（PyQt 只写进日志）
+        // 与 旧版 同一口径：如实报「成功数/总数」，失败条目逐条列出（旧版 只写进日志）
         setResult(`已删除 ${res.deleted}/${targets.length} 张未使用的图片。`)
         setFailures(res.failed)
         setConfirming(false)

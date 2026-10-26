@@ -1,12 +1,12 @@
 /**
- * 条目级属性面板（role/monster 的 attrpanel 字段，对应 Python AttributePanelWidget）：
- * - 存储形态与 Python 一致：[{ name, category, formula }]；formula 为 "=力量*10+体质*20" 或纯数字文本，
+ * 条目级属性面板（role/monster 的 attrpanel 字段，对应 旧版 AttributePanelWidget）：
+ * - 存储形态与 旧版 一致：[{ name, category, formula }]；formula 为 "=力量*10+体质*20" 或纯数字文本，
  *   结果列不落盘；行内未知键（导入数据可能携带）原样保留
- * - 模板照抄 Python ATTR_TEMPLATES（role 7 套 / monster 4 套）；数据缺失或过滤后为空时套用第一套（新手/小怪）
- * - 明确改进 Python 的两趟行序自算：改为行间依赖拓扑排序求值（前向引用可算）；环依赖/未定义名称/
- *   非法公式/除零给出中文错误（Python 静默按 0）；重名取最后一行（与 Python results 覆盖语义一致）
- * - 公式语义与 Python 一致：'=' 开头为算术表达式（属性名按原文替换后做 + - * / // % ** 与括号求值），
- *   否则按纯数字解析；每行结果 round 到 1 位小数并参与下游行计算（复刻 Python 的舍入传播）
+ * - 模板照抄 旧版 ATTR_TEMPLATES（role 7 套 / monster 4 套）；数据缺失或过滤后为空时套用第一套（新手/小怪）
+ * - 明确改进 旧版 的两趟行序自算：改为行间依赖拓扑排序求值（前向引用可算）；环依赖/未定义名称/
+ *   非法公式/除零给出中文错误（旧版 静默按 0）；重名取最后一行（与 旧版 results 覆盖语义一致）
+ * - 公式语义与 旧版 一致：'=' 开头为算术表达式（属性名按原文替换后做 + - * / // % ** 与括号求值），
+ *   否则按纯数字解析；每行结果 round 到 1 位小数并参与下游行计算（复刻 旧版 的舍入传播）
  */
 
 /** 编辑行：三个字段均为文本；其余键（导入数据可能携带）原样保留 */
@@ -19,15 +19,15 @@ export interface AttrPanelRow {
 
 export type AttrPanelTemplateRow = Pick<AttrPanelRow, 'name' | 'category' | 'formula'>
 
-/* ---- 模板（照抄 Python AttributePanelWidget.ATTR_TEMPLATES） ---- */
+/* ---- 模板（照抄 旧版 AttributePanelWidget.ATTR_TEMPLATES） ---- */
 
 function templateRow(name: string, category: string, formula: string): AttrPanelTemplateRow {
   return { name, category, formula }
 }
 
 /**
- * 生成一套 17 行模板：基础 4（入参）+ 派生 7（固定公式）+ 战斗 6（入参，暴击/命中/闪避照抄 Python 保留 1 位小数）
- * Python 源中 11 套模板的派生公式完全一致，仅基础值与战斗值不同，故以参数化生成减少转写误差。
+ * 生成一套 17 行模板：基础 4（入参）+ 派生 7（固定公式）+ 战斗 6（入参，暴击/命中/闪避照抄 旧版 保留 1 位小数）
+ * 旧版 源中 11 套模板的派生公式完全一致，仅基础值与战斗值不同，故以参数化生成减少转写误差。
  */
 function buildTemplate(
   base: [number, number, number, number],
@@ -56,7 +56,7 @@ function buildTemplate(
   ]
 }
 
-/** 属性面板模板：类型 id → 模板名 → 行列表（模板名与数值均照抄 Python） */
+/** 属性面板模板：类型 id → 模板名 → 行列表（模板名与数值均照抄 旧版） */
 export const ATTR_PANEL_TEMPLATES: Record<string, Record<string, AttrPanelTemplateRow[]>> = {
   role: {
     新手: buildTemplate([5, 5, 5, 5], [8.0, 154.0, 88.0, 6.0, 6, 3]),
@@ -82,7 +82,7 @@ export function defaultAttrPanelRows(typeId: string): AttrPanelRow[] {
   return first ? first.map((row) => ({ ...row })) : []
 }
 
-/* ---- 快速添加与类别建议（对应 Python ALL_ATTR_NAMES + _on_quick_add 预置） ---- */
+/* ---- 快速添加与类别建议（对应 旧版 ALL_ATTR_NAMES + _on_quick_add 预置） ---- */
 
 export const ATTR_PANEL_CATEGORY_SUGGESTIONS = ['基础', '派生', '战斗', '奖励', '自定义']
 
@@ -91,7 +91,7 @@ const DERIVED_ATTR_NAMES = ['HP', 'MP', '物攻', '物防', '魔攻', '魔防', 
 const COMBAT_ATTR_NAMES = ['暴击率', '暴击伤害', '命中率', '闪避率', '回血/回合', '回蓝/回合']
 const REWARD_ATTR_NAMES = ['经验值', '金钱倍率', '掉落稀有倍率']
 
-/** 快速添加候选：名称 + 类别 + 公式（基础属性公式为 "0"，其余为 "=0"，与 Python 一致） */
+/** 快速添加候选：名称 + 类别 + 公式（基础属性公式为 "0"，其余为 "=0"，与 旧版 一致） */
 export const ATTR_PANEL_QUICK_ADD: AttrPanelTemplateRow[] = [
   ...BASE_ATTR_NAMES.map((name) => templateRow(name, '基础', '0')),
   ...DERIVED_ATTR_NAMES.map((name) => templateRow(name, '派生', '=0')),
@@ -101,7 +101,7 @@ export const ATTR_PANEL_QUICK_ADD: AttrPanelTemplateRow[] = [
 
 /* ---- 编辑行 ↔ 存储转换 ---- */
 
-/** 存储值 → 编辑行（对应 Python load_data：非对象与空名称行过滤、缺省类别/公式补齐） */
+/** 存储值 → 编辑行（对应 旧版 load_data：非对象与空名称行过滤、缺省类别/公式补齐） */
 export function attrPanelToRows(value: unknown): AttrPanelRow[] {
   if (!Array.isArray(value)) return []
   const rows: AttrPanelRow[] = []
@@ -118,7 +118,7 @@ export function attrPanelToRows(value: unknown): AttrPanelRow[] {
 }
 
 /**
- * 编辑行 → 存储数组（对应 Python get_data/_on_cell_changed）：
+ * 编辑行 → 存储数组（对应 旧版 get_data/_on_cell_changed）：
  * 空名称行忽略、名称/类别/公式去空白、类别空 → "自定义"、公式空 → "0"；行内未知键保留。
  */
 export function rowsToAttrPanel(rows: AttrPanelRow[]): Record<string, unknown>[] {
@@ -142,7 +142,7 @@ export interface AttrPanelEvaluation {
   errors: Array<string | null>
 }
 
-/** 标识符字符（ASCII 字母数字下划线 + CJK）：属性名替换的边界判断，与 Python \b 语义对齐 */
+/** 标识符字符（ASCII 字母数字下划线 + CJK）：属性名替换的边界判断，与 旧版 \b 语义对齐 */
 const IDENTIFIER_CHAR = /[0-9A-Za-z_\u3400-\u9fff]/
 const LEFTOVER_IDENTIFIER = /[A-Za-z_\u3400-\u9fff][0-9A-Za-z_\u3400-\u9fff]*/
 const NUMBER_LITERAL = /^(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?/
@@ -151,7 +151,7 @@ export function evaluateAttrPanel(rows: AttrPanelRow[]): AttrPanelEvaluation {
   const errors: Array<string | null> = rows.map(() => null)
   const values: number[] = rows.map(() => 0)
 
-  // 规范行：名称 → 行号（重名取最后一行，与 Python results 覆盖语义一致）
+  // 规范行：名称 → 行号（重名取最后一行，与 旧版 results 覆盖语义一致）
   const canonical = new Map<string, number>()
   rows.forEach((row, index) => {
     const name = String(row.name ?? '').trim()
@@ -288,7 +288,7 @@ function substituteNames(
   return { text, matched }
 }
 
-/** 结果舍入到 1 位小数（复刻 Python round(x, 1)；银行家舍入差异可忽略） */
+/** 结果舍入到 1 位小数（复刻 旧版 round(x, 1)；银行家舍入差异可忽略） */
 function roundTo1(value: number): number {
   return Math.round(value * 10) / 10
 }
@@ -349,7 +349,7 @@ class ArithmeticParser {
     return this.parsePower()
   }
 
-  /** power := atom ('**' factor)*（右结合，指数可为一元表达式，与 Python 优先级一致） */
+  /** power := atom ('**' factor)*（右结合，指数可为一元表达式，与 旧版 优先级一致） */
   private parsePower(): number {
     const base = this.parseAtom()
     this.skipSpaces()

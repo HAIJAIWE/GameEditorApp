@@ -30,7 +30,7 @@ describe('windowState：路径与常量', () => {
     expect(windowStatePath('/data')).toBe(join('/data', WINDOW_STATE_FILENAME))
   })
 
-  it('默认几何对齐 Python restore 默认（1200×800 @ 100/50）', () => {
+  it('默认几何对齐 旧版 restore 默认（1200×800 @ 100/50）', () => {
     expect(DEFAULT_WINDOW_STATE).toEqual({
       x: 100,
       y: 50,

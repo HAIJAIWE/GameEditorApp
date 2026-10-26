@@ -1,6 +1,6 @@
 /**
- * 混合玩法预设市场纯逻辑（自 Python `core/ceshu/ceshu_constants.py::HYBRID_GAMEPLAY_PRESETS`
- * 与 `ui/ceshu/preset_market_dialog.py` 匹平迁移）：18 个「风格 + 主模块 + 副模块 + 推荐系统」预设、
+ * 混合玩法预设市场纯逻辑（自 旧版 `core/ceshu/ceshu_constants::HYBRID_GAMEPLAY_PRESETS`
+ * 与 `ui/ceshu/preset_market_dialog` 匹平迁移）：18 个「风格 + 主模块 + 副模块 + 推荐系统」预设、
  * 关键字筛选、风格徽章配色与「应用预设」（启用推荐系统 + 回填 meta.game_type）语义。
  * 注意：本模块为纯函数，不改动传入的策划书文档。
  */
@@ -17,7 +17,7 @@ export interface HybridGameplayPreset {
   highlight: string
 }
 
-/** 18 个预设，key 与顺序与 Python HYBRID_GAMEPLAY_PRESETS 完全一致 */
+/** 18 个预设，key 与顺序与 旧版 HYBRID_GAMEPLAY_PRESETS 完全一致 */
 export const HYBRID_GAMEPLAY_PRESETS: Record<string, HybridGameplayPreset> = {
   xianxia_rpg: {
     label: '仙侠 RPG',
@@ -173,7 +173,7 @@ export const HYBRID_GAMEPLAY_PRESETS: Record<string, HybridGameplayPreset> = {
 
 export const PRESET_KEYS: string[] = Object.keys(HYBRID_GAMEPLAY_PRESETS)
 
-/** 风格徽章底色（照抄 Python preset_market_dialog.py::_STYLE_BADGE_COLORS 10 项） */
+/** 风格徽章底色（照抄 旧版 preset_market_dialog::_STYLE_BADGE_COLORS 10 项） */
 export const PRESET_STYLE_BADGE_COLORS: Record<string, string> = {
   xianxia: '#9c27b0', // 紫
   wuxia: '#795548', // 棕
@@ -219,11 +219,11 @@ export function formatModuleBadge(moduleType: string): string {
   return moduleType.toUpperCase()
 }
 
-/** 卡片上最多展示的推荐系统个数（对应 Python `rec_systems[:6]`） */
+/** 卡片上最多展示的推荐系统个数（对应 旧版 `rec_systems[:6]`） */
 const RECOMMENDED_SYSTEMS_SHOWN = 6
 
 /**
- * 推荐系统文案（对应 Python：
+ * 推荐系统文案（对应 旧版：
  * `sys_names = [SYSTEM_LABELS.get(s, s) for s in rec_systems[:6]]`，
  * `if len(rec_systems) > 6: sys_text += f" 等 {len(rec_systems)} 项"`）：
  * 始终最多展示前 6 项（中文名用「、」连接），超过 6 项时追加「 等 N 项」（N=总数）。

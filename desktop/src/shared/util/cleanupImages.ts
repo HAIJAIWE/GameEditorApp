@@ -1,29 +1,29 @@
 /**
- * 清理未使用图片的**扫描逻辑**（迁移 Python `src/features/advanced.py:373-431`
+ * 清理未使用图片的**扫描逻辑**（迁移 旧版 `src/features/advanced:373-431`
  * 的 `cleanup_unused_images` 扫描段），**纯逻辑层，零 React / 零 fs / 零 IPC**。
  *
- * ## 与 PyQt 的对应关系
+ * ## 与 旧版 的对应关系
  *
- * | Python | 本模块 |
+ * | 旧版 | 本模块 |
  * |---|---|
- * | `advanced.py:398` 字段白名单 `('image','icon','avatar','img')` | `IMAGE_REFERENCE_FIELDS` |
- * | `advanced.py:397` `for field, val in item.items()` | `collectReferencedImagePaths()` |
- * | `advanced.py:399` `referenced.add(Path(val).resolve())` | `resolveImagePath()` + 规范化键 |
- * | `advanced.py:402` `img_exts = {...}` | `IMAGE_EXTENSIONS` |
- * | `advanced.py:405-406` `data_dir.rglob(f'*{ext}')` | ⬅ **主进程职责**（本模块拿不到 fs） |
- * | `advanced.py:408` `unused = all_images - referenced` | `diffUnusedImages()` |
- * | `advanced.py:425-430` `img.unlink()` | ⬅ **主进程职责**（本模块不删任何东西） |
+ * | `advanced:398` 字段白名单 `('image','icon','avatar','img')` | `IMAGE_REFERENCE_FIELDS` |
+ * | `advanced:397` `for field, val in item.items()` | `collectReferencedImagePaths()` |
+ * | `advanced:399` `referenced.add(Path(val).resolve())` | `resolveImagePath()` + 规范化键 |
+ * | `advanced:402` `img_exts = {...}` | `IMAGE_EXTENSIONS` |
+ * | `advanced:405-406` `data_dir.rglob(f'*{ext}')` | ⬅ **主进程职责**（本模块拿不到 fs） |
+ * | `advanced:408` `unused = all_images - referenced` | `diffUnusedImages()` |
+ * | `advanced:425-430` `img.unlink()` | ⬅ **主进程职责**（本模块不删任何东西） |
  *
  * ## 本模块**只算不删**
  * 删文件是不可逆的物理操作，必须留在主进程（Node 有 fs，渲染层没有）。
  * 本模块负责把「哪些文件没被引用」这个判断做成**可单测的纯函数**，
  * 面板拿它把清单摆给用户看，主进程拿它做删除前的最后一道校验。
  *
- * ## 一处**有意偏离**PyQt：路径比较大小写不敏感
+ * ## 一处**有意偏离**旧版：路径比较大小写不敏感
  *
- * PyQt 用 `Path(val).resolve()` 得到 `WindowsPath`，而 `WindowsPath.__eq__`
+ * 旧版 用 `Path(val).resolve()` 得到 `WindowsPath`，而 `WindowsPath.__eq__`
  * 是**大小写不敏感**的（`PureWindowsPath("C:/A.PNG") == PureWindowsPath("c:/a.png")` 为真），
- * 所以 PyQt 在 Windows 上本来就是大小写不敏感比较。渲染层拿不到 `path.resolve()`，
+ * 所以 旧版 在 Windows 上本来就是大小写不敏感比较。渲染层拿不到 `path.resolve()`，
  * 本模块用「规范化 + 转小写做比较键」复现同一语义（`imagePathKey`）。
  *
  * 方向性说明：判为「已引用」→ 不删；判为「未引用」→ 进删除清单。
@@ -34,10 +34,10 @@
 
 import type { ItemRecord } from '../types'
 
-/** 视为「图片引用」的字段名（严格照抄 `advanced.py:398` 的四项，顺序一致） */
+/** 视为「图片引用」的字段名（严格照抄 `advanced:398` 的四项，顺序一致） */
 export const IMAGE_REFERENCE_FIELDS = ['image', 'icon', 'avatar', 'img'] as const
 
-/** 扫描图片时的扩展名白名单（小写含点，照抄 `advanced.py:402` 的 7 项，顺序一致） */
+/** 扫描图片时的扩展名白名单（小写含点，照抄 `advanced:402` 的 7 项，顺序一致） */
 export const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp', '.svg'] as const
 
 /** 是否是白名单内的图片扩展名（用于校验主进程交回的目录清单） */
@@ -103,7 +103,7 @@ export function resolveImagePath(value: string, baseDir: string): string {
 
 /**
  * 路径的比较键：规范化后转小写。
- * 复现 PyQt 在 Windows 上 `WindowsPath` 大小写不敏感比较的语义（见文件头说明）。
+ * 复现 旧版 在 Windows 上 `WindowsPath` 大小写不敏感比较的语义（见文件头说明）。
  */
 export function imagePathKey(path: string): string {
   return path.toLowerCase()
@@ -112,8 +112,8 @@ export function imagePathKey(path: string): string {
 /**
  * 扫描条目数据，收集**被引用**的图片路径（规范化、去重）。
  *
- * 口径严格对齐 `advanced.py:391-399`：
- * - 遍历**全部类型**的全部条目（PyQt 遍历 `raw` 的每个复数键）；
+ * 口径严格对齐 `advanced:391-399`：
+ * - 遍历**全部类型**的全部条目（旧版 遍历 `raw` 的每个复数键）；
  * - 只看 `image`/`icon`/`avatar`/`img` 四个字段；
  * - 值必须是**非空字符串**（`isinstance(val, str) and val.strip()`）——
  * 数字、null、数组、嵌套对象里的图片路径一概不算引用。
@@ -185,7 +185,7 @@ export function diffUnusedImages(candidates: readonly string[], referencedKeys: 
 }
 
 /**
- * 一行式摘要，给面板顶部显示（对齐 `advanced.py:415-417` 的三行数字，
+ * 一行式摘要，给面板顶部显示（对齐 `advanced:415-417` 的三行数字，
  * 但压成一句，避免面板头部被数字撑开）。
  */
 export function summarizeScan(scan: UnusedImageScan): string {

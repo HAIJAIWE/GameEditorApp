@@ -32,7 +32,7 @@ import { buildFieldActionInstruction, type FieldAction } from './ceshuFieldActio
 export * from './ceshuAiData'
 
 /**
- * 策划书 AI 生成纯逻辑（自 Python core/agent/skills 的 ceshu_skill_generate / ceshu_agent_router
+ * 策划书 AI 生成纯逻辑（自 旧版 core/agent/skills 的 ceshu_skill_generate / ceshu_agent_router
  * / ceshu_style_helpers 匹平迁移）：子智能体路由、风格术语表、整章提示词组装、LLM 输出容错解析。
  */
 
@@ -57,7 +57,7 @@ export function getStyleGlossary(style: string): string {
   return STYLE_GLOSSARIES[style] ?? ''
 }
 
-/* ---- 整章提示词组装（匹平 Python _ai_fill_chapter） ---- */
+/* ---- 整章提示词组装（匹平 旧版 _ai_fill_chapter） ---- */
 
 /**
  * 整章生成的字段清单 = **字段表（schema，权威）∪ 文档数据键**（点路径键取首段）。
@@ -118,7 +118,7 @@ export function buildChapterPrompt(
         : allKeys
   const fieldList = fields.join(', ')
 
-  // 已有非空内容（仅字符串/数字，对应 Python isinstance(v, (str, int, float)) 过滤）
+  // 已有非空内容（仅字符串/数字，对应 旧版 isinstance(v, (str, int, float)) 过滤）
   const existingContent = allKeys
     .filter((key) => {
       const value = chapterData[key]
@@ -224,7 +224,7 @@ export interface CeshuAiGenerateResult {
 
 /**
  * 清洗生成字段：仅保留该章表单字段 / 既有数据键（含点路径父键），丢弃 null 与未知键。
- * 说明：空字符串与空数组被丢弃（避免 AI 空值清空用户已填内容，与 Python 直接整章覆盖略有差异）。
+ * 说明：空字符串与空数组被丢弃（避免 AI 空值清空用户已填内容，与 旧版 直接整章覆盖略有差异）。
  */
 export function filterGeneratedFields(
   doc: CeshuDocument,
@@ -247,7 +247,7 @@ export function filterGeneratedFields(
   return result
 }
 
-/** Python 真值语义（''/0/false/空数组/空对象 为假） */
+/** 旧版 真值语义（''/0/false/空数组/空对象 为假） */
 function isTruthyValue(value: unknown): boolean {
   if (value === null || value === undefined) return false
   if (typeof value === 'string') return value !== ''
@@ -258,14 +258,14 @@ function isTruthyValue(value: unknown): boolean {
   return true
 }
 
-/* ---- 全量生成（一键生成完整策划书，匹平 Python ai_full_generate_dialog + ceshu_skill_prompt） ---- */
+/* ---- 全量生成（一键生成完整策划书，匹平 旧版 ai_full_generate_dialog + ceshu_skill_prompt） ---- */
 
-/** 风格中文标签 → style key（对应 Python _map_style_to_key） */
+/** 风格中文标签 → style key（对应 旧版 _map_style_to_key） */
 export function mapStyleLabelToKey(label: string): string {
   return STYLE_LABEL_TO_KEY[label.trim()] ?? ''
 }
 
-/** 游戏类型中文标签 → module_type key（对应 Python _map_type_to_key） */
+/** 游戏类型中文标签 → module_type key（对应 旧版 _map_type_to_key） */
 export function mapTypeLabelToKey(label: string): string {
   return TYPE_LABEL_TO_KEY[label.trim()] ?? ''
 }
@@ -281,7 +281,7 @@ export interface FullGenerateFormInput {
   businessModel: string
 }
 
-/** 归一化后的全量生成输入（对应 Python _normalize_user_input） */
+/** 归一化后的全量生成输入（对应 旧版 _normalize_user_input） */
 export interface FullGenerateInput {
   gameName: string
   gameType: string
@@ -292,7 +292,7 @@ export interface FullGenerateInput {
   businessModel: string
 }
 
-/** 文档信息 + 16 章生成顺序（对应 Python _build_chapter_order：market 在 vision 后、risk 在 tech 后） */
+/** 文档信息 + 16 章生成顺序（对应 旧版 _build_chapter_order：market 在 vision 后、risk 在 tech 后） */
 export function buildChapterOrder(includeMarket: boolean, includeRisk: boolean): ChapterKey[] {
   const order: ChapterKey[] = ['meta', 'vision']
   if (includeMarket) order.push('market_analysis')
@@ -313,7 +313,7 @@ export function buildChapterOrder(includeMarket: boolean, includeRisk: boolean):
   return order
 }
 
-/** meta 章节种子（对应 Python _build_meta_seed；风格以中文标签写入 tags） */
+/** meta 章节种子（对应 旧版 _build_meta_seed；风格以中文标签写入 tags） */
 export function buildMetaSeed(input: FullGenerateInput): ChapterData {
   return {
     game_name: input.gameName,
@@ -336,7 +336,7 @@ export interface FullGeneratePlan {
   typeKey: string
 }
 
-/** 归一化全量生成输入（对应 Python _normalize_user_input：空白清理 + 逗号拆分） */
+/** 归一化全量生成输入（对应 旧版 _normalize_user_input：空白清理 + 逗号拆分） */
 export function normalizeFullGenerateInput(raw: FullGenerateFormInput): FullGenerateInput {
   return {
     gameName: raw.gameName.trim(),
@@ -350,8 +350,8 @@ export function normalizeFullGenerateInput(raw: FullGenerateFormInput): FullGene
 }
 
 /**
- * 组装全量生成计划（对应 Python _ai_generate_full）：章节顺序 + 每章定制提示词 + meta 种子。
- * 轻量档（lite）按基础 9 章裁剪（与 Python 对话框按 BASE_CHAPTER_KEYS 过滤一致）。
+ * 组装全量生成计划（对应 旧版 _ai_generate_full）：章节顺序 + 每章定制提示词 + meta 种子。
+ * 轻量档（lite）按基础 9 章裁剪（与 旧版 对话框按 BASE_CHAPTER_KEYS 过滤一致）。
  */
 export function buildFullGeneratePlan(
   raw: FullGenerateFormInput,
@@ -374,7 +374,7 @@ export function buildFullGeneratePlan(
 }
 
 /**
- * 每章定制提示词（对应 Python _build_chapter_prompts）：由全量生成流程逐章追加到默认提示之后。
+ * 每章定制提示词（对应 旧版 _build_chapter_prompts）：由全量生成流程逐章追加到默认提示之后。
  */
 export function buildChapterPrompts(
   input: FullGenerateInput,
@@ -422,7 +422,7 @@ function buildUserInputLines(input: FullGenerateInput): string[] {
   return lines
 }
 
-/* ---- AI 结构化审阅（N6，对应 Python CeshuSkill._ai_review + AIReviewDialog） ---- */
+/* ---- AI 结构化审阅（N6，对应 旧版 CeshuSkill._ai_review + AIReviewDialog） ---- */
 
 export interface CeshuReviewDimension {
   key: string
@@ -451,7 +451,7 @@ export interface CeshuAiReviewResult extends CeshuReviewPayload {
   usage?: LlmUsage | null
 }
 
-/** 章节填充摘要（照抄 Python：仅标量真值、每值截断 60 字、【章节标签】+ key: value） */
+/** 章节填充摘要（照抄 旧版：仅标量真值、每值截断 60 字、【章节标签】+ key: value） */
 export function buildReviewSummary(doc: CeshuDocument): string {
   const parts: string[] = []
   for (const key of CHAPTER_KEYS) {
@@ -469,7 +469,7 @@ export function buildReviewSummary(doc: CeshuDocument): string {
   return parts.length > 0 ? parts.join('\n') : '(策划书内容为空)'
 }
 
-/** 审阅提示词（照抄 Python system/user 文案；要求严格 JSON 输出） */
+/** 审阅提示词（照抄 旧版 system/user 文案；要求严格 JSON 输出） */
 export function buildReviewPrompts(
   doc: CeshuDocument,
   input: { progressTotal: number; validationCount: number }
@@ -542,7 +542,7 @@ export function parseReviewResponse(content: string): CeshuReviewPayload {
   return { dimensions, overall, suggestions, rawText: content, parsed: true }
 }
 
-/** 审阅报告 Markdown（照抄 Python AIReviewDialog._build_markdown） */
+/** 审阅报告 Markdown（照抄 旧版 AIReviewDialog._build_markdown） */
 export function buildReviewMarkdown(
   gameName: string,
   reviewedAt: string,

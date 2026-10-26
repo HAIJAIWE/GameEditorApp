@@ -1,12 +1,12 @@
 /**
- * 统一日志入口（对应 Python `common/logger.py` 的对外 API）。
+ * 统一日志入口（对应 旧版 `common/logger` 的对外 API）。
  *
- * 设计要点（与 Python 版对齐，但按 Electron 双进程重新落地）：
+ * 设计要点（与 早期版本对齐，但按 Electron 双进程重新落地）：
  * - 主进程（Node）：日志经 `setLogSink` 注册的 sink 写入文件 + 回显控制台。
  * - 渲染层（浏览器）：经 `window.mbApi.app.log` 转发到主进程，**绝不**在渲染层直接写文件。
  * - 早期启动（sink 尚未注册）或转发失败时降级到 `console`，保证不丢日志、不抛错。
  *
- * 范围说明（刻意不做）：Python 版的「环形缓冲供 LLM 注入上下文」在 TS 侧**当前无消费者**
+ * 范围说明（刻意不做）：早期版本的「环形缓冲供 LLM 注入上下文」在 TS 侧**当前无消费者**
  * （agent/brain 的上下文来自 memory，不来自日志），按「无消费者不预建」的原则暂不实现；
  * 待 LLM 上下文注入需求出现时，再在 main 侧补环形缓冲 + `app:recentLogs` 读取通道。
  */

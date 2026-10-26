@@ -79,7 +79,7 @@ export type CeshuDocumentBase = { version, ceshu_id, created_at, updated_at,
 - `validate(doc)`（委托 `shared/ceshuValidation`）/ `score(doc)`（委托 `shared/ceshuScorer`）/ `autoFill(id)`
 
 ### 3.2 CeshuStorage（`main/ceshu/storage.ts`）
-每份策划书一个独立 JSON 文件（`<库>/ceshu/<id>.json`，与 Python 版格式兼容）。原子写入（写临时文件再 rename）。切库随库隔离。
+每份策划书一个独立 JSON 文件（`<库>/ceshu/<id>.json`，与 早期版本格式兼容）。原子写入（写临时文件再 rename）。切库随库隔离。
 
 ### 3.3 导出（`main/ceshu/export/*`）
 - `exporter.ts`：`exportCeshuDocument(doc, format, path)` 统一入口，dispatch 到六个渲染器。

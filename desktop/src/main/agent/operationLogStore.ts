@@ -1,10 +1,10 @@
 /**
- * 操作日志的内存存储（对齐 Python `OperationLog` 的 `_operations` / `_MAX_OPERATIONS`）。
+ * 操作日志的内存存储（对齐 旧版 `OperationLog` 的 `_operations` / `_MAX_OPERATIONS`）。
  *
  * **内存态、不落盘**：日志只服务于「本次运行内回滚刚发生的 AI 改动」，
  * 跨重启保留反而危险（数据可能已被手动改动，拿旧快照回滚会覆盖用户的手工结果）。
  *
- * 只保留上限内的条目、超限淘汰最旧的一批（Python 同为 5000 / 批次 500）。
+ * 只保留上限内的条目、超限淘汰最旧的一批（旧版 同为 5000 / 批次 500）。
  * 单进程单线程（主进程），故无锁；写入按到达顺序追加。
  */
 
@@ -52,7 +52,7 @@ export class OperationLogStore {
     return before - this.operations.length
   }
 
-  /** 清空全部（对齐 Python `clear()`） */
+  /** 清空全部（对齐 旧版 `clear()`） */
   clear(): void {
     this.operations = []
   }
@@ -67,7 +67,7 @@ export interface RollbackPort {
 }
 
 /**
- * 执行回滚计划：逐步应用，**单步失败不中断整体**（Python 同为收集 errors 后继续），
+ * 执行回滚计划：逐步应用，**单步失败不中断整体**（旧版 同为收集 errors 后继续），
  * 最终回报「成功数 / 失败原因 / 跳过项」——不做「回滚成功」的假象。
  */
 export async function executeRollbackPlan(plan: RollbackPlan, port: RollbackPort): Promise<RollbackOutcome> {

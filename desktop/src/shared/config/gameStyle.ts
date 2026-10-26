@@ -1,5 +1,5 @@
 /**
- * 游戏风格术语管理器 —— 移植自 Python `src/core/style_manager.py`。
+ * 游戏风格术语管理器 —— 移植自 旧版 `src/core/style_manager`。
  *
  * 数据来源 `data/templates/game_styles.json`（6 个风格 / 每个 46 个概念键，**6 风格键集完全一致**），
  * 按概念把标签里的任意风格术语 / 常见简写替换为目标风格的对应术语。
@@ -8,23 +8,23 @@
  * **数据是内联常量而非运行时读盘**（与 `ceshuPresets`/`glossaryTerms` 等既有迁移一致）：
  * 这样渲染层与主进程都能直接用，且不引入 fs 依赖。内联内容已与 JSON 逐字段核对一致。
  *
- * 与 Python 的语义对齐要点：
+ * 与 旧版 的语义对齐要点：
  * - 只迁移 `GameStyle` dataclass 的 6 个字段。JSON 里的 `color_palette` /
- *   `data_defs_example` 在 Python `load_styles` 中**不被读取**，因此这里也不进
+ *   `data_defs_example` 在 旧版 `load_styles` 中**不被读取**，因此这里也不进
  *   `GameStyleDef`——否则 `buildReplacementPairs` 会把颜色键值当成术语，产生
- *   Python 不存在的替换对。
+ *   旧版 不存在的替换对。
  * - `_CONCEPT_ALIASES` 顺序与内容一字不差照抄。
- * - `resolveLabel` 中的替换是 **全部替换**：Python `str.replace` 会替换所有
+ * - `resolveLabel` 中的替换是 **全部替换**：旧版 `str.replace` 会替换所有
  *   出现位置，故这里用 `split(source).join(target)`（而非 `String.replace`，
- *   后者只替换第一处），以匹配 Python 行为。
+ *   后者只替换第一处），以匹配 旧版 行为。
  *
- * 有意偏离（Python → TS）：
- * - Python `StyleManager` 是单例，内部持有可变状态 `_active_style`。TS 端
+ * 有意偏离（旧版 → TS）：
+ * - 旧版 `StyleManager` 是单例，内部持有可变状态 `_active_style`。TS 端
  *   **不保留任何模块级可变状态**（便于测试与 React 状态管理），活跃风格由调用方
  *   （React state）持有，因此所有需要风格的函数都把 `styleId` 作为必填参数。
  *   不做 fs / IPC / React 依赖，也不导出单例。
  * - `loadGameStyle` / `saveGameStyle` 采用 `settingsStore.ts` 的 `StorageLike` + 可选注入模式
- *   （Node 下无 localStorage 时静默处理）。Python 的活跃风格**不持久化**（进程内单例，重启即丢）；
+ *   （Node 下无 localStorage 时静默处理）。旧版 的活跃风格**不持久化**（进程内单例，重启即丢）；
  *   此处落 localStorage 属有意增强，避免重载后标签"莫名"变回原始术语。
  */
 
@@ -62,7 +62,7 @@ export function getTerminology(styleId: string): Record<string, string> {
 /**
  * 构建跨风格术语映射表：{concept: {styleId: term}}。
  *
- * 插入顺序与 Python 一致：外层按 GAME_STYLES 顺序遍历，内层按每个风格的
+ * 插入顺序与 旧版 一致：外层按 GAME_STYLES 顺序遍历，内层按每个风格的
  * terminology 键顺序；concept 首次出现时按首次出现的顺序插入。
  */
 export function buildCrossStyleMap(): Record<string, Record<string, string>> {
@@ -83,7 +83,7 @@ export function buildCrossStyleMap(): Record<string, Record<string, string>> {
  *
  * 两部分：① 跨风格术语（cross_map）；② 概念别名简写。
  * 最后按源术语长度降序**稳定**排序（JS `sort` 稳定，等长保持插入顺序，
- * 与 Python `list.sort(key=...)` 一致）。targetId 未知 / 为空 → []。
+ * 与 旧版 `list.sort(key=...)` 一致）。targetId 未知 / 为空 → []。
  */
 export function buildReplacementPairs(targetId: string): Array<[string, string]> {
   const target = getStyle(targetId)
@@ -124,7 +124,7 @@ export function buildReplacementPairs(targetId: string): Array<[string, string]>
  * 例：目标=仙侠 "生命加成%" → "气血加成%"，"法力加成%" → "灵力加成%"；
  *     目标=科幻 "生命加成%" → "HP加成%"，"法力加成%" → "能量加成%"。
  *
- * 注意：替换为**全部替换**（Python `str.replace` 语义），故用 split/join。
+ * 注意：替换为**全部替换**（旧版 `str.replace` 语义），故用 split/join。
  */
 export function resolveLabel(label: string, styleId: string): string {
   if (!label || !styleId) return label
@@ -136,7 +136,7 @@ export function resolveLabel(label: string, styleId: string): string {
   let result = label
   for (const [source, replacement] of replacements) {
     if (result.includes(source)) {
-      // Python str.replace 替换所有出现位置（非 String.replace 的首个）
+      // 旧版 str.replace 替换所有出现位置（非 String.replace 的首个）
       result = result.split(source).join(replacement)
     }
   }
@@ -177,7 +177,7 @@ export function inferStyleFromText(text: string): string {
     for (const term of Object.values(style.terminology)) {
       if (term && text.includes(term)) score += 1
     }
-    // 严格 > ：平分时保留先出现的风格（对齐 Python max 取首个最大 key）
+    // 严格 > ：平分时保留先出现的风格（对齐 旧版 max 取首个最大 key）
     if (score > bestScore) {
       bestScore = score
       bestId = style.id

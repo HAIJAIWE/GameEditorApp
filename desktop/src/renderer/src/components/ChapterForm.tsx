@@ -60,7 +60,7 @@ interface ChapterFormProps {
  * 章节表单：由 CESHU_CHAPTER_FIELDS 驱动渲染；保存时在原始章节数据上合并字段值，
  * 未在 schema 中出现的扩展/未知字段原样保留（与旧数据兼容）。
  */
-/** 单字段 AI 生成的 60 秒安全兜底（对齐 Python QTimer.singleShot）：IPC 挂住时强制解除 busy，避免按钮永久禁用 */
+/** 单字段 AI 生成的 60 秒安全兜底（对齐 旧版 QTimer.singleShot）：IPC 挂住时强制解除 busy，避免按钮永久禁用 */
 const AI_FIELD_SAFETY_MS = 60_000
 
 export default function ChapterForm({
@@ -264,7 +264,7 @@ export default function ChapterForm({
   /**
    * AI 生成单个字段（E62）：结果按字段 schema 转为编辑值填入该字段，由用户检查后手动保存。
    * `action` 为局部重生成动作（停靠栏快捷操作）：改写/展开/精简/通俗化，注入提示词让模型
-   * 按人的诉求重写，而不是重新起草。60 秒安全兜底（对齐 Python QTimer.singleShot）：
+   * 按人的诉求重写，而不是重新起草。60 秒安全兜底（对齐 旧版 QTimer.singleShot）：
    * IPC 挂住时强制解除 busy，避免按钮永久禁用。
    */
   const handleAiFillField = useCallback(
@@ -513,7 +513,7 @@ export default function ChapterForm({
         </>
       )}
 
-      {/* 第二章：竞品象限图（对应 Python ChapterPanel 在 vision 章附加 CompetitiveChart） */}
+      {/* 第二章：竞品象限图（对应 旧版 ChapterPanel 在 vision 章附加 CompetitiveChart） */}
       {chapter === 'vision' && !pickerOpen && (
         <div className="competitive-chart-block">
           <span className="form-label">竞品象限图（横轴=创新度，纵轴=完成度）</span>

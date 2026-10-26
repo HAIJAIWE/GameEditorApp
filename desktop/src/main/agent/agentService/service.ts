@@ -84,7 +84,7 @@ export class AgentBrainService {
     if (memoryBlock !== null) extraBlocks.push(memoryBlock)
     // F8 域 grounding：章节结构常驻注入（不计入 30 行核心区，DD-6）
     extraBlocks.push(buildDomainContextBlock())
-    // 个性化片段：偏好来自历史反馈，冷启动为空时不注入（与 Python Learner 一致）
+    // 个性化片段：偏好来自历史反馈，冷启动为空时不注入（与 旧版 Learner 一致）
     if (this.deps.preferences) {
       const prefBlock = buildPersonalizedContext(this.deps.preferences.getAll())
       if (prefBlock !== '') extraBlocks.push(prefBlock)

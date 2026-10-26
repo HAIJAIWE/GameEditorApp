@@ -22,7 +22,7 @@ describe('TypeSchemaStore（type_schema.json 唯一写者）', () => {
     const saved = store.saveTypes(edited)
     expect(saved[0]?.formFields.some((f) => f.name === 'test_field')).toBe(true)
 
-    // 落盘为 Python 兼容结构（snake_case + form_fields + id 首字段）
+    // 落盘为 旧版 兼容结构（snake_case + form_fields + id 首字段）
     const raw = JSON.parse(readFileSync(filePath, 'utf-8')) as {
       version: string
       data_types: Array<{ name: string; form_fields: Array<{ name: string }> }>

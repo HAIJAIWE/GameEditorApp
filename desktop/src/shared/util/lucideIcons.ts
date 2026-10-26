@@ -2,20 +2,20 @@
  * lucideIcons —— Lucide 图标 path 数据（内嵌，零依赖，MIT）
  *
  * 来源：Lucide Icons https://lucide.dev （MIT License）
- * **1:1 移植自 Python `src/common/lucide_icon.py` 的 `_ICON_PATHS` / `_ALIASES`**
+ * **1:1 移植自 旧版 `src/common/lucide_icon` 的 `_ICON_PATHS` / `_ALIASES`**
  * （43 个 path 键 + 33 个别名），两端图标逐键一致，不引前端图标库。
  *
- * Python 侧 `get_icon()` 的渲染参数（实测）：24x24 viewBox、`stroke-width 2.5`、
+ * 旧版 侧 `get_icon()` 的渲染参数（实测）：24x24 viewBox、`stroke-width 2.5`、
  * linecap/linejoin = round、无填充。React 侧见 `renderer/components/LucideIcon.tsx`。
  *
- * 为什么内嵌而非装 `lucide-react`：Python 本来就是内嵌 path 字典；本仓库只用到
- * 其中十余个图标，为十几个图标引整个库不划算，且内嵌能保证与 PyQt 逐一对应。
+ * 为什么内嵌而非装 `lucide-react`：旧版 本来就是内嵌 path 字典；本仓库只用到
+ * 其中十余个图标，为十几个图标引整个库不划算，且内嵌能保证与 旧版 逐一对应。
  */
 
 /** 单个图标 = 若干条 SVG path 的 `d`（24x24 viewBox 坐标系） */
 export type LucideIconPaths = readonly string[]
 
-/** 图标 path 真源：键与 Python `_ICON_PATHS` 逐键一致 */
+/** 图标 path 真源：键与 旧版 `_ICON_PATHS` 逐键一致 */
 const ICON_PATHS = {
   'alert-triangle': ['m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3', 'M12 9v4', 'M12 17h.01'],
   'arrow-down': ['M12 5v14', 'm19 12-7 7-7-7'],
@@ -62,7 +62,7 @@ const ICON_PATHS = {
   'zap': ['M13 2 3 14h9l-1 8 10-12h-9l1-8z'],
 } as const
 
-/** 友好名 → path 名（与 Python `_ALIASES` 逐键一致；`chevron-*`/`save` 等都走别名） */
+/** 友好名 → path 名（与 旧版 `_ALIASES` 逐键一致；`chevron-*`/`save` 等都走别名） */
 const ICON_ALIASES = {
   'home': 'house',
   'document': 'file-text',
@@ -108,7 +108,7 @@ export type LucideIconName = keyof typeof ICON_PATHS | keyof typeof ICON_ALIASES
 
 /**
  * 把图标名（可能是别名）解析为真实 path 键。
- * @returns 未收录时返回 `null`（Python 侧同场景是打印 MISSING 并返回空 QIcon，等价于不渲染）
+ * @returns 未收录时返回 `null`（旧版 侧同场景是打印 MISSING 并返回空 QIcon，等价于不渲染）
  */
 export function resolveIconName(name: string): keyof typeof ICON_PATHS | null {
   const real = (LUCIDE_ICON_ALIASES as Record<string, string>)[name] ?? name

@@ -37,7 +37,7 @@ export function buildInitialDraft(
     if (field.type === 'attrtable') {
       draft[field.name] = attrListToRows(value)
     } else if (field.type === 'attrpanel') {
-      // 对应 Python load_data：无有效数据时套用该类型的默认模板（role=新手 / monster=小怪）
+      // 对应 旧版 load_data：无有效数据时套用该类型的默认模板（role=新手 / monster=小怪）
       const rows = attrPanelToRows(value)
       draft[field.name] = rows.length > 0 ? rows : defaultAttrPanelRows(typeId)
     } else if (usesJsonEditor(field, value)) {

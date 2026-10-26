@@ -1,16 +1,16 @@
 # 策划书（GDD）系统 · 特性总览
 
 > 📌 现役产品的 策划书（Ceshu）模块能力清单与实现说明。
-> 设计源自 Python 版的工业级 GDD v5 框架，已在 `desktop/` 以 TypeScript 完整重实现（结构、档位、系统、评分、AI、导出一一对应）。
+> 设计源自 早期版本的工业级 GDD v5 框架，已在 `desktop/` 以 TypeScript 完整重实现（结构、档位、系统、评分、AI、导出一一对应）。
 > 适用模块：`desktop/src/shared/ceshu*` + `desktop/src/main/ceshu/*` + `desktop/src/renderer/src/components/{CeshuHomePanel,CeshuView,...}`
 
 ## 一、能力盘点（先明确哪些是强项）
 
 一屏之内同时具备：结构化策划书编辑（分区 + 章节 + 字段级校验 + AI 单章/整章/一键生成）、13 游戏系统配置与硬依赖、可视化数据编辑（列表 + schema 驱动动态表单 + 参考策划/AI 生成/关联）、AI 工作区（数字员工）、多库切换、自动保存/撤销重做。
 
-### 与 Python 版的能力对照（重实现后）
+### 与 早期版本的能力对照（重实现后）
 
-| 能力 | Python v5 | TS 版 | 备注 |
+| 能力 | 旧版 v5 | TS 版 | 备注 |
 |---|---|---|---|
 | 章节结构 | 18 章（含 worldview / characters 两章） | **16 编号章 + meta**（worldview 与 characters 合并为「世界观与角色」） | 5 分区，章号自动派生 |
 | 档位 | lite / full | lite（核心 9 章）/ full（16 章） | 同 |
@@ -30,7 +30,7 @@
 见 [`ceshu-user-guide.md`](./ceshu-user-guide.md) 的「章节结构」与 [`ceshuConstants.ts`](../../desktop/src/shared/ceshuConstants.ts)。顺序由 `CHAPTER_PARTS` 单点派生，重排不会漏改编号。
 
 ### 2. 游戏系统配置（13 个 + 硬依赖）
-`SYSTEM_LABELS` / `SYSTEM_DEPENDENCIES` 与 Python 版一致；启用系统时校验硬依赖（`checkSystemDependencies`），确认后写入 `meta.system_confirmed` 并触发 `CeshuDataSync.syncSystemsToData` 把系统映射为游戏数据类型。
+`SYSTEM_LABELS` / `SYSTEM_DEPENDENCIES` 与 早期版本一致；启用系统时校验硬依赖（`checkSystemDependencies`），确认后写入 `meta.system_confirmed` 并触发 `CeshuDataSync.syncSystemsToData` 把系统映射为游戏数据类型。
 
 ### 3. 评分与完备性
 - `scoreCeshu`：三维（结构 30 + 质量 40 + 市场 30 = 100），S/A/B/C/D 五级 + 各章明细 + 改进建议。
@@ -63,12 +63,12 @@
 
 ## 三、技术实现要点
 - 纯逻辑（`shared/ceshu*`）与主进程 IO（`main/ceshu/*`）分离，纯逻辑无 Electron 依赖、可独立单测。
-- 持久化：每份策划书一个 JSON 文件 `<库>/ceshu/<id>.json`，与 Python 版格式兼容；`ceshuMigration.ts` 负责旧版（v4→v5）数据归一。
+- 持久化：每份策划书一个 JSON 文件 `<库>/ceshu/<id>.json`，与 早期版本格式兼容；`ceshuMigration.ts` 负责旧版（v4→v5）数据归一。
 - 同步：`CeshuDataSync` 双向——systems → 数据类型结构；数据条目数 → `systems[key].config.actual_count`。
 - 全链路经 typed IPC（`mbApi.ceshu.*` ↔ `ceshu:*`），入口 zod 校验、结果统一包裹。
 
 ## 四、已知限制（诚实边界）
-- 章节草稿级保存：刻意不做「整文档 Ctrl+S 保存」（保存是章节级草稿），避免与 Python 行为混淆。
+- 章节草稿级保存：刻意不做「整文档 Ctrl+S 保存」（保存是章节级草稿），避免与 旧版 行为混淆。
 - 云端调用成本：整章/完整/审阅/大量数据生成属大范围调用，需用户确认并受 token 预算闸约束。
 - AI 生成质量依赖所配置模型与档位（本地 Ollama 4B 类与云端 DeepSeek 档能力差异显著）。
 

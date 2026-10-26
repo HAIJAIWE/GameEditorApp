@@ -1,7 +1,7 @@
 import { isPlainObject } from './ceshuModel'
 
 /**
- * 章节笔记纯逻辑（自 Python ui/ceshu/chapter_notes.py 的 ChapterNotesManager 匹平迁移）。
+ * 章节笔记纯逻辑（自 旧版 ui/ceshu/chapter_notes 的 ChapterNotesManager 匹平迁移）。
  * 每份策划书共用一份笔记文件（{"notes": [...]}）；本条模块只做数据类型与数组级 CRUD，磁盘读写在主进程 notesStore。
  */
 
@@ -17,12 +17,12 @@ export interface CeshuNote {
   author: string
 }
 
-/** 笔记文件结构（与 Python 一致：{"notes": [...]}） */
+/** 笔记文件结构（与 旧版 一致：{"notes": [...]}） */
 export interface CeshuNotesFile {
   notes: CeshuNote[]
 }
 
-/** 笔记 id：12 位十六进制（对应 Python uuid4().hex[:12]） */
+/** 笔记 id：12 位十六进制（对应 旧版 uuid4().hex[:12]） */
 export function createNoteId(): string {
   return globalThis.crypto.randomUUID().replace(/-/g, '').slice(0, 12)
 }
@@ -47,7 +47,7 @@ export function createNote(
   }
 }
 
-/** 按创建时间升序（时间戳为本地固定格式，字符串序即时间序；Python 同样按 created_at 排序） */
+/** 按创建时间升序（时间戳为本地固定格式，字符串序即时间序；旧版 同样按 created_at 排序） */
 export function sortNotes(notes: CeshuNote[]): CeshuNote[] {
   return [...notes].sort((a, b) => a.created_at.localeCompare(b.created_at))
 }
@@ -67,7 +67,7 @@ export function countNotesByChapter(notes: CeshuNote[]): Record<string, number> 
   return result
 }
 
-/** 列表项预览：去首尾空白 + 换行折叠为空格，超长截断补省略号（对应 Python _refresh_list） */
+/** 列表项预览：去首尾空白 + 换行折叠为空格，超长截断补省略号（对应 旧版 _refresh_list） */
 export function notePreview(content: string, maxLength = 30): string {
   const text = content.trim().replace(/\n/g, ' ')
   return text.length > maxLength ? `${text.slice(0, maxLength)}…` : text
@@ -95,7 +95,7 @@ export function updateNoteIn(
   return next
 }
 
-/** 删除笔记，返回新数组；noteId 不存在返回 null（对应 Python delete_note 的 False） */
+/** 删除笔记，返回新数组；noteId 不存在返回 null（对应 旧版 delete_note 的 False） */
 export function deleteNoteIn(notes: CeshuNote[], noteId: string): CeshuNote[] | null {
   const next = notes.filter((note) => note.id !== noteId)
   return next.length === notes.length ? null : next
@@ -115,7 +115,7 @@ export function parseNotesFile(raw: unknown): CeshuNote[] {
   return notes
 }
 
-/** 序列化为磁盘结构（与 Python indent=2 / ensure_ascii=False 等价，落盘用 JSON.stringify(…, null, 2)） */
+/** 序列化为磁盘结构（与 旧版 indent=2 / ensure_ascii=False 等价，落盘用 JSON.stringify(…, null, 2)） */
 export function serializeNotesFile(notes: CeshuNote[]): CeshuNotesFile {
   return { notes: sortNotes(notes) }
 }

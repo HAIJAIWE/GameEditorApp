@@ -1,15 +1,15 @@
 /**
- * 操作日志与**会话级回滚**（D 档 `core/operation_log.py` 的 TS 迁移）。
+ * 操作日志与**会话级回滚**（D 档 `core/operation_log` 的 TS 迁移）。
  *
  * 语义澄清（读源码后确认，勿按名字臆测）：它**不是通用撤销**，而是 **AI 会话级安全网**——
- * Python 原实现 `if not conv_id: return`，即**只记录 AI 驱动会话中的数据变更，不记手动编辑**；
+ * 旧版 原实现 `if not conv_id: return`，即**只记录 AI 驱动会话中的数据变更，不记手动编辑**；
  * 随后可按会话把该次对话造成的所有数据改动**整段反向执行**，恢复到对话之前的状态。
  *
- * TS 与 Python 的两处必要差异：
- *  1. Python 用 `threading.local()` 存 conv_id；TS 是单线程异步、无 thread-local 语义
+ * TS 与 旧版 的两处必要差异：
+ *  1. 旧版 用 `threading.local()` 存 conv_id；TS 是单线程异步、无 thread-local 语义
  *     （await 交错会让「线程局部」失效）。故改为**显式上下文传递**（`SkillExecutionContext.sessionId`），
  *     全项目不使用全局可变态。
- *  2. Python 把日志与回滚都塞在 `OperationLog` 一个类里；TS 拆开——**回落计划是纯函数**
+ *  2. 旧版 把日志与回滚都塞在 `OperationLog` 一个类里；TS 拆开——**回落计划是纯函数**
  *     （本文件，可完整单测），存储与执行在 `main/agent/operationLogStore.ts`。
  */
 
@@ -89,7 +89,7 @@ export function buildRollbackPlan(records: readonly OperationRecord[]): Rollback
   return { steps, skipped }
 }
 
-/** 回滚结果（对齐 Python 的 `(count, errors)`，但错误带条目名便于定位） */
+/** 回滚结果（对齐 旧版 的 `(count, errors)`，但错误带条目名便于定位） */
 export interface RollbackOutcome {
   /** 成功回滚的条目数 */
   count: number

@@ -25,7 +25,7 @@ interface ImportProbe {
 }
 
 /**
- * E19/E20 回归：游戏数据 CSV / Excel 导入导出（迁移 features/export.py）。
+ * E19/E20 回归：游戏数据 CSV / Excel 导入导出（迁移 features/export）。
  *
  * 原生文件对话框无法由 Playwright 驱动 → 直接调 action IPC 并传显式路径（与 attr-system-json.spec 同法），
  * 断言「落盘文件结构（BOM/表头/文件名）」+「导入 upsert 语义」+「菜单入口」。

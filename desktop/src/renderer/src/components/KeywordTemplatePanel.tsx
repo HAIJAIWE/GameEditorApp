@@ -15,21 +15,21 @@ import type { KeywordTemplates, KeywordTemplateType } from '../../../shared/conf
 import { readSetting, writeSetting } from '../../../shared/config/settingsStore'
 
 /**
- * 关键词模板配置面板（对齐 Python `src/features/advanced.py:206-306`
- * 的 `show_keyword_template_config`，入口 PyQt 在「设置 → 工具与高级配置 →
- * 关键词模板配置」，`settings_dialog.py:427`）。
+ * 关键词模板配置面板（对齐 旧版 `src/features/advanced:206-306`
+ * 的 `show_keyword_template_config`，入口 旧版 在「设置 → 工具与高级配置 →
+ * 关键词模板配置」，`settings_dialog:427`）。
  *
- * PyQt 侧结构：类型下拉（5 项）+ 模板编辑框 + 「💾 保存」「🔄 重置默认」「关闭」。
+ * 旧版 侧结构：类型下拉（5 项）+ 模板编辑框 + 「💾 保存」「🔄 重置默认」「关闭」。
  *
- * ## 三处与 PyQt 的差异（都是「补齐PyQt 的缺口」或「如实告知」，不是漏做）
+ * ## 三处与 旧版 的差异（都是「补齐旧版 的缺口」或「如实告知」，不是漏做）
  *
- * 1. **保存真的落盘**。PyQt 的 `save_template()` 只写内存
- *    （`advanced.py:272-273` 的注释自己写着「可以后续添加保存到文件的功能」，
+ * 1. **保存真的落盘**。旧版 的 `save_template()` 只写内存
+ *    （`advanced:272-273` 的注释自己写着「可以后续添加保存到文件的功能」，
  *    且全仓 grep 下来`KEYWORD_TEMPLATES_FILENAME` 从无写入点、模板也无读取方）。
  *    TS 侧落 localStorage（`mb.keywordTemplates`），否则关掉窗口就丢。
- * 2. **重置默认仍需再点保存**（与 PyQt 一致：`reset_template()` 只 `setPlainText`）。
+ * 2. **重置默认仍需再点保存**（与 旧版 一致：`reset_template()` 只 `setPlainText`）。
  *    面板在按钮下方与提示行都写明了这一点，不让用户以为已经还原。
- * 3. **标注「已修改」**：PyQt 没有未保存提示，切类型时编辑框内容直接被覆盖。
+ * 3. **标注「已修改」**：旧版 没有未保存提示，切类型时编辑框内容直接被覆盖。
  *    TS 侧切类型同样覆盖（保持一致，不加二次确认弹窗），
  *    但会在类型标签与按钮行显示「未保存」，让用户知道当前是草稿。
  *
@@ -54,7 +54,7 @@ function loadSavedTemplates(): KeywordTemplates {
 export default function KeywordTemplatePanel() {
   const [templates, setTemplates] = useState<KeywordTemplates>(loadSavedTemplates)
   const [activeType, setActiveType] = useState<KeywordTemplateType>(KEYWORD_TEMPLATE_TYPE_OPTIONS[0].value)
-  /** 编辑框内容与「已保存值」分离：切类型时丢弃草稿的行为对齐 PyQt（直接换文本） */
+  /** 编辑框内容与「已保存值」分离：切类型时丢弃草稿的行为对齐 旧版（直接换文本） */
   const [draft, setDraft] = useState<string>(() => defaultTemplateFor(KEYWORD_TEMPLATE_TYPE_OPTIONS[0].value))
   const [status, setStatus] = useState<TemplateStatus>({ kind: 'idle' })
 
@@ -67,7 +67,7 @@ export default function KeywordTemplatePanel() {
   const handleTypeChange = useCallback(
     (next: KeywordTemplateType): void => {
       setActiveType(next)
-      // 对齐 PyQt 的 load_template()：切类型即从已保存值（缺省回落默认）载入
+      // 对齐 旧版 的 load_template()：切类型即从已保存值（缺省回落默认）载入
       setDraft(templateTextFor(templates, next))
       setStatus({ kind: 'idle' })
     },
@@ -85,7 +85,7 @@ export default function KeywordTemplatePanel() {
   }, [activeType, draft, templates])
 
   const handleReset = useCallback((): void => {
-    // PyQt 的 reset_template() 只回填编辑框、不落盘；这里保持同一语义
+    // 旧版 的 reset_template() 只回填编辑框、不落盘；这里保持同一语义
     setDraft(defaultTemplateFor(activeType))
     setStatus({ kind: 'reset', type: activeType })
   }, [activeType])

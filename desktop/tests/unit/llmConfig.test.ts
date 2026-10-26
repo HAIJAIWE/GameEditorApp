@@ -42,14 +42,14 @@ function memStorage(initial: Record<string, string> = {}): StorageLike & { dump:
   }
 }
 
-describe('LLM_PROVIDER_PRESETS：baseUrl 对齐 Python api_config.py:35-100，模型清单按现网校正', () => {
+describe('LLM_PROVIDER_PRESETS：baseUrl 对齐 旧版 api_config:35-100，模型清单按现网校正', () => {
   it('7 个服务商齐全，且顺序是产品决策「云端在前、ollama 末位、custom 收尾」（DD-0）', () => {
-    // ⚠️ 顺序**不是**「对齐 PyQt MODEL_PRESETS 声明顺序」，那是 M0 之前的状态。
+    // ⚠️ 顺序**不是**「对齐 旧版 MODEL_PRESETS 声明顺序」，那是 M0 之前的状态。
     // 现为产品裁定的云端优先（勿以「迁移保真」为由改回，见 shared/llmConfig.ts 的注释）。
     expect([...LLM_PROVIDER_ORDER]).toEqual(['deepseek', 'openai', 'doubao', 'qwen', 'claude', 'ollama', 'custom'])
   })
 
-  it('各服务商的 baseUrl 与模型清单对齐 Python 真源', () => {
+  it('各服务商的 baseUrl 与模型清单对齐 旧版 真源', () => {
     expect(LLM_PROVIDER_PRESETS.ollama.baseUrl).toBe('http://localhost:11434/v1')
     expect(LLM_PROVIDER_PRESETS.openai.baseUrl).toBe('https://api.openai.com/v1')
     expect(LLM_PROVIDER_PRESETS.doubao.baseUrl).toBe('https://ark.cn-beijing.volces.com/api/v3')
@@ -93,14 +93,14 @@ describe('LLM_PROVIDER_PRESETS：baseUrl 对齐 Python api_config.py:35-100，�
     expect(LLM_PROVIDER_PRESETS.qwen.models[0]).toContain('max')
   })
 
-  it('只有 Ollama 不需要 API Key（对齐 PyQt test_connection 的判断）', () => {
+  it('只有 Ollama 不需要 API Key（对齐 旧版 test_connection 的判断）', () => {
     expect(LLM_PROVIDER_PRESETS.ollama.requiresApiKey).toBe(false)
     for (const p of LLM_PROVIDER_ORDER.filter((x) => x !== 'ollama')) {
       expect(LLM_PROVIDER_PRESETS[p].requiresApiKey).toBe(true)
     }
   })
 
-  it('温度/令牌上下限对齐 PyQt 的 spinbox range', () => {
+  it('温度/令牌上下限对齐 旧版 的 spinbox range', () => {
     expect(LLM_TEMPERATURE_MIN).toBe(0)
     expect(LLM_TEMPERATURE_MAX).toBe(2)
     expect(LLM_MAX_TOKENS_MAX).toBe(32000)

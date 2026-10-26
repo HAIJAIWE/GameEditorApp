@@ -30,14 +30,14 @@ describe('dataStats：均值与样本标准差', () => {
     expect(mean([1, 2, 3, 4])).toBe(2.5)
   })
 
-  it('stdev 是样本标准差（分母 n-1，对齐 Python statistics.stdev）', () => {
-    // Python statistics.stdev([2,4,4,4,5,5,7,9]) ≈ 2.13809
+  it('stdev 是样本标准差（分母 n-1，对齐 旧版 statistics.stdev）', () => {
+    // 旧版 statistics.stdev([2,4,4,4,5,5,7,9]) ≈ 2.13809
     expect(stdev([2, 4, 4, 4, 5, 5, 7, 9])).toBeCloseTo(2.13809, 4)
     // 与总体标准差（分母 n）区分开：同样数据的 pstdev ≈ 2.0
     expect(stdev([2, 4, 4, 4, 5, 5, 7, 9])).not.toBeCloseTo(2.0, 2)
   })
 
-  it('stdev 样本数 < 2 返回 0（对齐 Python 的三元分支）', () => {
+  it('stdev 样本数 < 2 返回 0（对齐 旧版 的三元分支）', () => {
     expect(stdev([])).toBe(0)
     expect(stdev([5])).toBe(0)
   })
@@ -47,7 +47,7 @@ describe('dataStats：均值与样本标准差', () => {
   })
 })
 
-describe('dataStats：平衡性判定（阈值 0.3，对齐 Python）', () => {
+describe('dataStats：平衡性判定（阈值 0.3，对齐 旧版）', () => {
   it('标准差 < 均值×0.3 → good', () => {
     expect(assessBalance(1, 10)).toBe('good') // 1 < 3
     expect(BALANCE_STD_RATIO).toBe(0.3)
@@ -116,7 +116,7 @@ describe('dataStats：数值字段发现与统计', () => {
     expect(summary?.std).toBeCloseTo(10, 5)
   })
 
-  it('字符串数字也认（表单可能存字符串）；空串/非数字跳过（对齐 Python try/except）', () => {
+  it('字符串数字也认（表单可能存字符串）；空串/非数字跳过（对齐 旧版 try/except）', () => {
     const summary = summarizeNumeric(
       [item('skill', { value: '10' }), item('skill', { value: '' }), item('skill', { value: 'abc' }), item('skill', {})],
       'value'

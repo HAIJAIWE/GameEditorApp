@@ -7,10 +7,10 @@ import { launchApp, waitReady } from './helpers/app'
 import { createDataItem, openCeshuFromHome, openDataEditor, seedCeshu } from './helpers/ceshuData'
 
 /**
- * 系数公式编辑器（对应 Python `FormulaBuilderDialog`）。
+ * 系数公式编辑器（对应 旧版 `FormulaBuilderDialog`）。
  *
- * 本用例的核心价值是**把 Python 的两个缺陷做成端到端回归锁**：
- * 1. 打开编辑器必须回填原公式真实系数（Python 实测传 `=智力*5` 会显示 `=力量*2+敏捷*1`，点确定即覆盖原公式）；
+ * 本用例的核心价值是**把 旧版 的两个缺陷做成端到端回归锁**：
+ * 1. 打开编辑器必须回填原公式真实系数（旧版 实测传 `=智力*5` 会显示 `=力量*2+敏捷*1`，点确定即覆盖原公式）；
  * 2. 不可回填的公式必须给出警告且不改动原文（不静默覆盖）。
  *
  * 注：2026-10-12 起 e2e 已可在本地实跑（`launchApp` 补 GPU/sandbox 安全参数 + 去
@@ -51,7 +51,7 @@ test('系数公式编辑器：回填原公式 → 改系数联动 → 应用落�
     await expect(window.getByTestId('field-attr_list-formula-builder-4-coeff-3')).toHaveValue('20')
     // 无可回填内容时才显示警告；此处应无警告
     await expect(window.getByTestId('field-attr_list-formula-builder-4-warning')).toHaveCount(0)
-    // 预览按属性列表顺序归一（与 Python 一致）
+    // 预览按属性列表顺序归一（与 旧版 一致）
     await expect(window.getByTestId('field-attr_list-formula-builder-4-preview')).toHaveText(
       '=力量*10+敏捷*5+体质*20'
     )

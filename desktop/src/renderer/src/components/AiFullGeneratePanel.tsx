@@ -24,7 +24,7 @@ import { toErrorMessage } from '../../../shared/util/errors'
 import { readText } from '../../../shared/util/readText'
 
 /**
- * AI 一键生成完整策划书（对应 Python N10 AIFullGenerateDialog）：
+ * AI 一键生成完整策划书（对应 旧版 N10 AIFullGenerateDialog）：
  * 填写简要描述 → 按章节依赖顺序逐章调用本地模型 → 逐章进度 → 应用并保存 / 重试失败章节。
  * 生成期间不写盘；点「全部应用并保存」才逐章 saveChapter 写入当前策划书。
  */
@@ -573,7 +573,7 @@ function buildDraftPayload(
   return draft
 }
 
-/** systems 章合并：逐系统浅合并（保留既有 enabled/name/config），与 Python _apply_chapter_to_model 一致 */
+/** systems 章合并：逐系统浅合并（保留既有 enabled/name/config），与 旧版 _apply_chapter_to_model 一致 */
 function mergeSystems(current: ChapterData, generated: ChapterData): ChapterData {
   const merged: ChapterData = { ...current }
   for (const [key, value] of Object.entries(generated)) {

@@ -125,7 +125,7 @@ function createWindow(): void {
 
   mainWindow.once('ready-to-show', () => mainWindow?.show())
 
-  // 窗口状态持久化（迁移 ui/window_state.py）：resize/move 防抖 500ms 落盘，关闭时强制落一次。
+  // 窗口状态持久化（迁移 ui/window_state）：resize/move 防抖 500ms 落盘，关闭时强制落一次。
   // 用 getNormalBounds() 而非 getBounds()：最大化/最小化时 getBounds 会被系统改写，
   // 存它会导致「取消最大化后窗口恢复成全屏尺寸」。
   let persistTimer: NodeJS.Timeout | null = null

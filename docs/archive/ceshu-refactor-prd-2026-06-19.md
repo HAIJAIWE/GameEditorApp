@@ -22,7 +22,7 @@
 | 项目 | 值 |
 |------|-----|
 | 语言 | 中文 |
-| 技术栈 | Python 3 + PyQt6 |
+| 技术栈 | 旧版 3 + 旧版6 |
 | 项目名称 | `ceshu_refactor` |
 | 原始需求 | 将"策划方案"模块升级为专业九章 GDD 的"策划书"系统 |
 
@@ -135,7 +135,7 @@
 
 | ID | 需求 | 优先级 | 依赖 |
 |----|------|--------|------|
-| R7.1 | 提供数据迁移脚本 `migrate_planning_to_ceshu.py`，放在 `scripts/` 目录下 | P0 | R2.1 |
+| R7.1 | 提供数据迁移脚本 `migrate_planning_to_ceshu`，放在 `scripts/` 目录下 | P0 | R2.1 |
 | R7.2 | 迁移映射：`game_concept` → `meta.游戏概述` + `vision`、`worldview` → `worldview`、`gameplay` → `gameplay`、`systems` → `systems`、`numeric` → `numeric`、`art_style` → `art`、`story` → `worldview.主线剧情`、`notes` → `resources.附录` | P0 | R7.1 |
 | R7.3 | 迁移时新增字段置默认值，version 记录 `"migrated_from_v3"` | P0 | R7.1 |
 | R7.4 | 迁移完成后输出报告（成功/跳过/失败的策划书数量） | P0 | R7.1 |
@@ -351,6 +351,6 @@ R5.1(AI常驻) → R5.2(上下文加载) → R5.3(智能体切换) → R5.4(AI�
 2. **核心循环图编辑**：第四章 gameplay 的"核心循环图"是使用内置流程图编辑器还是以上传图片+文字描述替代？
 3. **编辑器预览粒度**：右上角编辑器预览是只展示"已启用编辑器列表 + 字段概要"，还是加载真实数据做完整预览？
 4. **AI 对话历史**：AI 面板的对话历史是否需要持久化（与策划书绑定存储到 ceshu.json），还是仅保留会话期内？
-5. **旧 UI 组件**：`src/ui/planning/` 目录下的 `dialogs.py`、`widgets.py`、`templates.py` 中哪些功能需要保留并迁移到新 ceshu UI？还是全部重写？
+5. **旧 UI 组件**：`src/ui/planning/` 目录下的 `dialogs`、`widgets`、`templates` 中哪些功能需要保留并迁移到新 ceshu UI？还是全部重写？
 6. **模板迁移策略**：38 种模板的九章内容如何生成——人工逐项填写、AI 批量生成、还是复用现有模板数据做智能映射？
 7. **多库支持**：现有代码支持多库（`data/libraries/<库名>/planning/`），改名后这个多库结构是否保持？

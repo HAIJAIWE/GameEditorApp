@@ -1,12 +1,12 @@
 /**
- * settingsPreferences —— 设置面板的**通用偏好**（对齐 Python `ui/dialogs/settings_dialog.py`）。
+ * settingsPreferences —— 设置面板的**通用偏好**（对齐 旧版 `ui/dialogs/settings_dialog`）。
  *
  * ## 本模块只管三项（其余**刻意不做**，逐条依据见文件末尾的表格）
- * | 偏好 | Python 出处 | TS 落点 |
+ * | 偏好 | 旧版 出处 | TS 落点 |
  * |---|---|---|
- * | 字体大小 | `settings_dialog.py:398-403`（QSpinBox 8~48，默认 13） | `mb.fontSize` + CSS 变量 `--ui-font-scale` |
- * | 主题 | `settings_dialog.py:218-221`（主题下拉） | **复用 `theme.ts`**，本模块只做再导出 |
- * | 删除时确认 | `settings_dialog.py:239-241`（QCheckBox） | `mb.confirmDelete`，消费者 `BatchEditPanel` |
+ * | 字体大小 | `settings_dialog:398-403`（QSpinBox 8~48，默认 13） | `mb.fontSize` + CSS 变量 `--ui-font-scale` |
+ * | 主题 | `settings_dialog:218-221`（主题下拉） | **复用 `theme.ts`**，本模块只做再导出 |
+ * | 删除时确认 | `settings_dialog:239-241`（QCheckBox） | `mb.confirmDelete`，消费者 `BatchEditPanel` |
  *
  * ## 为什么独立成模块（而不是塞进 `settingsStore.ts`）
  * `settingsStore.ts` 是**通用存储层**（键值 / JSON / 列举 / 导入导出），不认识任何
@@ -31,10 +31,10 @@ import type { ThemeMode } from './theme'
  * 一、字体大小
  * ========================================================================== */
 
-/** 字号基准（px）：对齐 Python `settings_dialog.py:401` 的 `setValue(13)` */
+/** 字号基准（px）：对齐 旧版 `settings_dialog:401` 的 `setValue(13)` */
 export const DEFAULT_FONT_SIZE = 13
 
-/** 字号下限（px）：对齐 `settings_dialog.py:400` 的 `setRange(8, 48)` 下界 */
+/** 字号下限（px）：对齐 `settings_dialog:400` 的 `setRange(8, 48)` 下界 */
 export const MIN_FONT_SIZE = 10
 
 /** 字号上限（px）：对齐 `setRange(8, 48)` 上界 */
@@ -148,7 +148,7 @@ export const THEME_OPTIONS: ReadonlyArray<{ value: ThemeMode; label: string }> =
  * 「删除时确认」默认值：**开启**。
  *
  * 关闭后删除**直接执行不确认**（破坏性操作），默认必须是安全的那一档。
- * Python 侧 `settings_dialog.py:239` 的 QCheckBox 未显式 `setChecked(True)` 而依赖
+ * 旧版 侧 `settings_dialog:239` 的 QCheckBox 未显式 `setChecked(True)` 而依赖
  * Qt 默认值 —— 这里不依赖隐式默认，显式写明。
  */
 export const DEFAULT_CONFIRM_DELETE = true
@@ -244,8 +244,8 @@ interface DomLike {
 /**
  * 应用字号到 DOM —— **立即生效**（CSS 变量改一个值即整站跟随）。
  *
- * 与 PyQt 的差异（如实告知，不照抄）：Python 只能提示「字体大小需要重启应用后生效」
- * （`settings_dialog.py:406`，Qt 必须重建 QApplication 字体）。
+ * 与 旧版 的差异（如实告知，不照抄）：旧版 只能提示「字体大小需要重启应用后生效」
+ * （`settings_dialog:406`，Qt 必须重建 QApplication 字体）。
  * TS 侧改的是 CSS 自定义属性，浏览器**当场重算**，无需重启 —— 面板里也如实写「立即生效」。
  */
 export function applyFontSize(px: unknown): void {
@@ -261,14 +261,14 @@ export function applyFontSize(px: unknown): void {
 }
 
 /* ==========================================================================
- * 附：PyQt 设置页里 TS 侧**刻意不做**的那几项（依据，勿当漏做）
+ * 附：旧版 设置页里 TS 侧**刻意不做**的那几项（依据，勿当漏做）
  * --------------------------------------------------------------------------
- * | PyQt 项 | 为什么不迁 |
+ * | 旧版 项 | 为什么不迁 |
  * |---|---|
- * | 语言下拉（`settings_dialog.py:212-217`） | TS 无 i18n 框架，全站文案硬编码中文。选了也不生效 = 假控件 |
+ * | 语言下拉（`settings_dialog:212-217`） | TS 无 i18n 框架，全站文案硬编码中文。选了也不生效 = 假控件 |
  * | 10 套 QSS 主题（`:218-223`） | TS 刻意只有 light/dark（`theme.ts:16-25` 记录了「合适尺寸」取舍）。恢复 10 套是过度开发 |
  * | 自动保存开关+ 间隔（`:226-236`） | TS 无自动保存；且策划书侧刻意不做整文档保存（见 roadmap E30 诚实边界②） |
- * | 界面布局下拉（`:393-396`） | PyQt 这页**只有一个选项** `three_column`，而 TS 顶层 IA 已按 E28 重写为「无侧栏 + 中央单栈」⇒ 布局已不是三栏，配下拉是纯装饰 |
- * | 三类 API Key（`:247-292`） | `settings:` 通道刻意**只有 has/set/delete、没有 get**（渲染层永远拿不到明文，相对 Python Fernet 的安全性保持）；扩到三类要动主进程加密存储 = 敏感面，另开一轮 |
+ * | 界面布局下拉（`:393-396`） | 旧版 这页**只有一个选项** `three_column`，而 TS 顶层 IA 已按 E28 重写为「无侧栏 + 中央单栈」⇒ 布局已不是三栏，配下拉是纯装饰 |
+ * | 三类 API Key（`:247-292`） | `settings:` 通道刻意**只有 has/set/delete、没有 get**（渲染层永远拿不到明文，相对 旧版 Fernet 的安全性保持）；扩到三类要动主进程加密存储 = 敏感面，另开一轮 |
  * | 工具页 6 个按钮（`:423-440`） | 主理人未核实真实消费者，按「宁缺勿错」不做 |
  * ========================================================================== */

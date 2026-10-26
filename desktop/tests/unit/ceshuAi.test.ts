@@ -23,7 +23,7 @@ import { CHAPTER_KEYS } from '../../src/shared/ceshuConstants'
 import { CESHU_CHAPTER_FIELDS } from '../../src/shared/ceshuFields'
 import { createDefaultCeshu } from '../../src/shared/ceshuModel'
 
-describe('AI 结构化审阅（匹平 Python _ai_review + AIReviewDialog）', () => {
+describe('AI 结构化审阅（匹平 旧版 _ai_review + AIReviewDialog）', () => {
   it('章节摘要：仅标量真值、【标签】+ key: value、每值截断 60 字', () => {
     const doc = createDefaultCeshu({ scope: 'full' })
     doc.meta.game_name = '测试游戏'
@@ -32,7 +32,7 @@ describe('AI 结构化审阅（匹平 Python _ai_review + AIReviewDialog）', ()
     const summary = buildReviewSummary(doc)
     expect(summary).toContain('【文档信息】')
     expect(summary).toContain('game_name: 测试游戏')
-    expect(summary).not.toContain('player_count') // 0 视为未填（Python 真值语义）
+    expect(summary).not.toContain('player_count') // 0 视为未填（旧版 真值语义）
     expect(summary).toContain(`core_fantasy: ${'x'.repeat(60)}`)
     expect(summary).not.toContain('x'.repeat(61))
   })
@@ -116,7 +116,7 @@ describe('AI 结构化审阅（匹平 Python _ai_review + AIReviewDialog）', ()
   })
 })
 
-describe('AI 生成：子智能体路由与风格术语（匹平 Python AgentRouter / _STYLE_GLOSSARIES）', () => {
+describe('AI 生成：子智能体路由与风格术语（匹平 旧版 AgentRouter / _STYLE_GLOSSARIES）', () => {
   it('17 章均有路由与展示名；关键映射与章节提示语正确', () => {
     for (const chapter of CHAPTER_KEYS) {
       const agent = agentForChapter(chapter)
@@ -139,7 +139,7 @@ describe('AI 生成：子智能体路由与风格术语（匹平 Python AgentRou
   })
 })
 
-describe('AI 生成：整章提示词组装（匹平 Python _ai_fill_chapter）', () => {
+describe('AI 生成：整章提示词组装（匹平 旧版 _ai_fill_chapter）', () => {
   it('整章模式：字段列表含全部键、含上下文与 JSON 输出要求', () => {
     const doc = createDefaultCeshu({ scope: 'full', name: '测试游戏' })
     const built = buildChapterPrompt(doc, 'meta')
@@ -208,7 +208,7 @@ describe('AI 生成：整章提示词组装（匹平 Python _ai_fill_chapter）'
   })
 })
 
-describe('AI 生成：单字段定向生成（E62 onlyFields，匹平 Python _AIFillFieldWorker）', () => {
+describe('AI 生成：单字段定向生成（E62 onlyFields，匹平 旧版 _AIFillFieldWorker）', () => {
   it('onlyFields 收窄：fields 精确等于传入的字段列表（不取全章键）', () => {
     const doc = createDefaultCeshu({ scope: 'full', name: '测试游戏' })
     const built = buildChapterPrompt(doc, 'meta', { onlyFields: ['game_name'] })
@@ -261,7 +261,7 @@ describe('AI 生成：单字段定向生成（E62 onlyFields，匹平 Python _AI
   })
 })
 
-describe('AI 生成：LLM 输出容错解析（匹平 Python _parse_llm_json）', () => {
+describe('AI 生成：LLM 输出容错解析（匹平 旧版 _parse_llm_json）', () => {
   it('去除 markdown 围栏并截取 JSON 边界', () => {
     expect(parseLlmJson('```json\n{"a": 1}\n```')).toEqual({ a: 1 })
     expect(parseLlmJson('好的，结果如下：{"game_name": "星海"} 以上。')).toEqual({ game_name: '星海' })
@@ -302,8 +302,8 @@ describe('AI 生成：字段清洗', () => {
   })
 })
 
-describe('AI 全量生成：章节顺序与生成要求（匹平 Python _build_chapter_order / chapter_hint）', () => {
-  it('含市场/风险为 17 章，顺序与 Python 一致', () => {
+describe('AI 全量生成：章节顺序与生成要求（匹平 旧版 _build_chapter_order / chapter_hint）', () => {
+  it('含市场/风险为 17 章，顺序与 旧版 一致', () => {
     expect(buildChapterOrder(true, true)).toEqual([
       'meta',
       'vision',
@@ -345,7 +345,7 @@ describe('AI 全量生成：章节顺序与生成要求（匹平 Python _build_c
   })
 })
 
-describe('AI 全量生成：计划组装（匹平 Python _ai_generate_full / _build_chapter_prompts / _build_meta_seed）', () => {
+describe('AI 全量生成：计划组装（匹平 旧版 _ai_generate_full / _build_chapter_prompts / _build_meta_seed）', () => {
   const form = {
     gameName: '星河战记',
     gameType: 'RPG',

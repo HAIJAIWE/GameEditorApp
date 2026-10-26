@@ -15,7 +15,7 @@ import { formatLocalTimestamp } from '../../../shared/ceshuModel'
 import { toErrorMessage } from '../../../shared/util/errors'
 
 /**
- * 版本对比面板（对应 Python VersionDiffDialog）：
+ * 版本对比面板（对应 旧版 VersionDiffDialog）：
  * - 选择同版本链下的两个版本 →「开始对比」
  * - 章节级 Diff：左列章节（N 处变更 / 未变），右列字段表（字段 / 旧值 / 新值 / 类型）
  * - 点击字段查看完整旧新值详情 + 导出 Markdown 对比报告
@@ -52,7 +52,7 @@ export default function VersionDiffPanel({ ceshuId, onClose }: VersionDiffPanelP
       .then((loaded) => {
         if (cancelled) return
         setVersions(loaded)
-        // 默认：旧版本=链首、新版本=链尾（与 Python 一致）
+        // 默认：旧版本=链首、新版本=链尾（与 旧版 一致）
         if (loaded.length >= 2) {
           setOldId(loaded[0]?.id ?? '')
           setNewId(loaded[loaded.length - 1]?.id ?? '')

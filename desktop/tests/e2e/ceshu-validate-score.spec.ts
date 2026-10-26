@@ -25,7 +25,7 @@ test('校验与评分：IPC 精确结果 + UI 面板展示', async () => {
     const window = await app.firstWindow()
     await waitReady(window)
 
-    // IPC 侧：空文档校验/评分 → 填 meta 后再次校验/评分（数字与 Python 公式一致）
+    // IPC 侧：空文档校验/评分 → 填 meta 后再次校验/评分（数字与 旧版 公式一致）
     const setup = (await window.evaluate(async () => {
       const api = (
         globalThis as unknown as {
@@ -75,7 +75,7 @@ test('校验与评分：IPC 精确结果 + UI 面板展示', async () => {
     // 新建时已填 game_name，故必填错误为 35 - 1 = 34 条
     expect(setup.emptyErrorCount).toBe(34)
     expect(setup.firstError).toContain('为必填项')
-    // 评分语义：0 不算缺失（同 Python v in (None,"",[],{})），故默认文档结构分为 1.5
+    // 评分语义：0 不算缺失（同 旧版 v in (None,"",[],{})），故默认文档结构分为 1.5
     expect(setup.emptyTotal).toBe(1.5)
     expect(setup.emptyGrade).toBe('D')
     expect(setup.chapterCount).toBe(17)
@@ -97,7 +97,7 @@ test('校验与评分：IPC 精确结果 + UI 面板展示', async () => {
     await window.getByTestId('validate-close').click()
     await expect(window.getByTestId('validate-panel')).toHaveCount(0)
 
-    // 「ceshu-score」已收进工具栏「更多 ▸」下拉（对齐 PyQt），需先展开再点
+    // 「ceshu-score」已收进工具栏「更多 ▸」下拉（对齐 旧版），需先展开再点
     await window.getByTestId('ceshu-more').click()
     await window.getByTestId('ceshu-score').click()
     await expect(window.getByTestId('score-panel')).toBeVisible()

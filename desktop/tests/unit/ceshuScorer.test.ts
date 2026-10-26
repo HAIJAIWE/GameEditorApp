@@ -26,7 +26,7 @@ function emptyDoc(): CeshuDocument {
   return doc
 }
 
-describe('N4 评分引擎：三维度（匹平 Python ceshu_scorer）', () => {
+describe('N4 评分引擎：三维度（匹平 旧版 ceshu_scorer）', () => {
   it('空文档：结构/质量/市场均为 0，等级 D，24 章明细，全部不及格（P2 后 17→24）', () => {
     const report = scoreCeshu(emptyDoc())
     expect(report.structure_score).toBe(0)

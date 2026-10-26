@@ -7,7 +7,7 @@ import type { DataTypeDef, ItemRecord } from '../../shared/types'
 import { bucketize, ENGINE_EXTENSIONS as KIND_EXTENSIONS, ENGINE_RENDERERS, type EngineKind } from './engines'
 import { renderLuaGameData } from './lua'
 
-/** 支持的目标引擎：`lua` + 四个对齐 PyQt `features/engine_export.py` 的引擎 */
+/** 支持的目标引擎：`lua` + 四个对齐 旧版 `features/engine_export` 的引擎 */
 export type EngineTarget = 'lua' | EngineKind
 
 /** 引擎 → 产物扩展名（`.lua` 之外四个来自 `./engines`） */

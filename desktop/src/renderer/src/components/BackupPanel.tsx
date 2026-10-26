@@ -3,13 +3,13 @@ import { useCallback, useEffect, useState } from 'react'
 import type { BackupEntry, RestoreOutcome } from '../../../shared/util/backup'
 
 /**
- * 数据备份面板（对应 Python `ui/dialogs/backup_manager.py`）。
+ * 数据备份面板（对应 旧版 `ui/dialogs/backup_manager`）。
  *
- * 与 Python 的差异（都是**加了护栏**，不是漏做）：
- * - 恢复/删除在**渲染层内联确认一次**，主进程再校验 `confirm: true`（Python 只有一个弹窗，可被绕过）；
- * - 恢复会先自动生成 `pre-restore` 快照（Python 对话框路径没有，恢复错文件即不可回退）；
- * - 删除是**软删除**（改名为 `.deleted`），不是 Python 的物理 `unlink`；
- * - 显示创建时间与大小，且文件名直接给出（Python 从「时间戳 - 文件名」显示文本反推，文件名含分隔符会解析错）。
+ * 与 旧版 的差异（都是**加了护栏**，不是漏做）：
+ * - 恢复/删除在**渲染层内联确认一次**，主进程再校验 `confirm: true`（旧版 只有一个弹窗，可被绕过）；
+ * - 恢复会先自动生成 `pre-restore` 快照（旧版 对话框路径没有，恢复错文件即不可回退）；
+ * - 删除是**软删除**（改名为 `.deleted`），不是 旧版 的物理 `unlink`；
+ * - 显示创建时间与大小，且文件名直接给出（旧版 从「时间戳 - 文件名」显示文本反推，文件名含分隔符会解析错）。
  */
 
 interface BackupPanelProps {

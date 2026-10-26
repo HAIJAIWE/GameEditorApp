@@ -9,7 +9,7 @@ import {
 } from '../../../shared/domain/ceshu/ceshuCompetitiveChart'
 
 /**
- * 竞品象限图（对应 Python ui/ceshu/competitive_chart.py）：
+ * 竞品象限图（对应 旧版 ui/ceshu/competitive_chart）：
  * 横轴=创新度、纵轴=完成度（0-100），最多 5 个竞品散点。
  * 数据来源为 vision 章的 legacy 字段 competitive_analysis（只读可视化，不可编辑）。
  */

@@ -68,7 +68,7 @@ function throwingStorage(): StorageLike {
  * ① 缺失键 → 回落默认
  * ========================================================================== */
 describe('settingsPreferences：① 键缺失回落默认', () => {
-  it('字号键缺失 → DEFAULT_FONT_SIZE(=13，对齐 PyQt setValue(13))', () => {
+  it('字号键缺失 → DEFAULT_FONT_SIZE(=13，对齐 旧版 setValue(13))', () => {
     expect(loadFontSize(memStorage())).toBe(DEFAULT_FONT_SIZE)
     expect(DEFAULT_FONT_SIZE).toBe(13)
   })
@@ -89,8 +89,8 @@ describe('settingsPreferences：① 键缺失回落默认', () => {
  * ② 非法值 → clamp 或回落默认，**绝不照单全收**
  * ========================================================================== */
 describe('settingsPreferences：② 非法字号被规整', () => {
-  it('范围与 PyQt setRange(8, 48) 一致', () => {
-    // 锁定这个决策，防止后人「对齐 PyQt」时改回去：Electron 窄栏撑不住 3.69 倍字号
+  it('范围与 旧版 setRange(8, 48) 一致', () => {
+    // 锁定这个决策，防止后人「对齐 旧版」时改回去：Electron 窄栏撑不住 3.69 倍字号
     expect(MIN_FONT_SIZE).toBe(10)
     expect(MAX_FONT_SIZE).toBe(21)
   })

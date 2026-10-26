@@ -3,12 +3,12 @@ import type { DataTypeDef, FieldType, TypeFieldDef, TypeSectionDef } from './typ
 
 /**
  * 数据类型 schema 的文件格式与校验（跨进程共用）。
- * 磁盘格式与 Python 版 <库目录>/type_schema.json 同构（snake_case），便于存量 schema 互通：
+ * 磁盘格式与 早期版本 <库目录>/type_schema.json 同构（snake_case），便于存量 schema 互通：
  *   { "version": "2.4", "data_types": [{ id, name, plural_key, color, form_fields: [...] }] }
  * 字段键：name/label/type/editable/values/from_/to/ref_type（TS 内部用 camelCase from/to/refType）。
  */
 
-/** 字段类型中文标签（与 Python config/constants.py FIELD_TYPE_MAP 一致 + attrtable + attrpanel） */
+/** 字段类型中文标签（与 旧版 config/constants FIELD_TYPE_MAP 一致 + attrtable + attrpanel） */
 export const FIELD_TYPE_LABELS: Record<FieldType, string> = {
   entry: '文本输入',
   combobox: '下拉选择',
@@ -62,7 +62,7 @@ interface TypeSchemaFileType {
   plural_key: string
   color: string
   form_fields: TypeSchemaFileField[]
-  /** 可选的自定义分区（Python 侧忽略未知键，故与旧文件互通） */
+  /** 可选的自定义分区（旧版 侧忽略未知键，故与旧文件互通） */
   sections?: TypeSchemaFileSection[]
 }
 
@@ -71,7 +71,7 @@ export interface TypeSchemaFile {
   data_types: TypeSchemaFileType[]
 }
 
-/** 序列化为 Python 兼容的 type_schema.json 结构（camelCase → snake_case） */
+/** 序列化为 旧版 兼容的 type_schema.json 结构（camelCase → snake_case） */
 export function serializeTypeSchema(types: DataTypeDef[], version = DEFAULT_TYPE_SCHEMA_VERSION): TypeSchemaFile {
   return {
     version,
@@ -191,10 +191,10 @@ function parseField(raw: unknown, typeName: string, index: number): TypeFieldDef
   }
   if (!isFieldType(type)) {
     /*
-     * **刻意降级而非抛错**（对齐 Python `field_config.py` 的 `else: QLineEdit()` 兜底）。
+     * **刻意降级而非抛错**（对齐 旧版 `field_config` 的 `else: QLineEdit()` 兜底）。
      *
-     * 为什么必须这样：字段结构文件存在 `<库目录>/type_schema.json`，**与 Python 版同构**
-     * （`main/stores.ts` 用 `join(libDir, 'type_schema.json')`）。PyQt 支持而 TS 尚未收录的
+     * 为什么必须这样：字段结构文件存在 `<库目录>/type_schema.json`，**与 早期版本同构**
+     * （`main/stores.ts` 用 `join(libDir, 'type_schema.json')`）。旧版 支持而 TS 尚未收录的
      * 控件类型（已核实：`ref` 引用表、`textarea`）会让旧库文件带着未知 type —— 若这里 throw，
      * `TypeSchemaStore.load()` 会把异常一路抛到 `schema:list`，结果是**整个应用打不开**，
      * 用户的数据（旧策划书/条目）全部访问不到。为一个「控件没收录」把整个应用锁死不划算。

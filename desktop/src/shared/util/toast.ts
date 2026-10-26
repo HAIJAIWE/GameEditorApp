@@ -1,8 +1,8 @@
 /**
- * Toast 非阻塞通知的**纯逻辑**（对齐 Python `src/ui/components/toast.py`）。
+ * Toast 非阻塞通知的**纯逻辑**（对齐 旧版 `src/ui/components/toast`）。
  *
  * ## 为什么要有它
- * Python 侧 `data_tab.py` 有 **9 处**真实调用（`_show_toast`）：保存成功 / 删除成功 /
+ * 旧版 侧 `data_tab` 有 **9 处**真实调用（`_show_toast`）：保存成功 / 删除成功 /
  * AI 生成内容已添加 / 已选择模板 / 已选择参考策划案 …… 属于高频、非阻塞反馈。
  * TS 侧目前只有 `App.tsx:109` 一个全局 `notice-banner`：
  * - **不会自动消失**（要等下一次操作才被覆盖），
@@ -10,14 +10,14 @@
  * - 且**只能显示一条**（后一条直接覆盖前一条，前一条的语义就丢了）。
  * ⇒ 补齐 Toast：浮层、自动淡出、可多条并存。
  *
- * ## 与 PyQt 的差异（刻意）
- * - **可多条并存**：PyQt 的 `Toast` 是**单个实例**，`show_message` 会覆盖上一条文本；
+ * ## 与 旧版 的差异（刻意）
+ * - **可多条并存**：旧版 的 `Toast` 是**单个实例**，`show_message` 会覆盖上一条文本；
  *   本实现用队列存多条（上限 `MAX_VISIBLE`），旧的自然消失。
  *   理由：TS 侧一次操作常连发多条反馈（如「已保存」+「已同步」），覆盖会丢信息。
- * - **淡出用 CSS transition 而非逐帧 opacity**：PyQt `_fade_out` 是 `QTimer` 每
+ * - **淡出用 CSS transition 而非逐帧 opacity**：旧版 `_fade_out` 是 `QTimer` 每
  *   `duration/2` 毫秒减 0.2 透明度（5 步走完）。TS 用 CSS 类名切换，不需要
  *   定时器逐帧改样式（也更省）。
- * - **kind 三态**：`default` / `success` / `error`（对齐 PyQt 的 default/success/error
+ * - **kind 三态**：`default` / `success` / `error`（对齐 旧版 的 default/success/error
  *   三套 QSS，背景色分别取 `bg` / `accent` / `danger`）。
  *
  * ## 订阅器为什么不用 React Context
@@ -28,7 +28,7 @@
  * 避免自己写 effect 同步 setState（react-hooks v7 的 `set-state-in-effect` 是 error）。
  */
 
-/** Toast 类型（对齐 PyQt 的三套样式） */
+/** Toast 类型（对齐 旧版 的三套样式） */
 export type ToastKind = 'default' | 'success' | 'error'
 
 /** 单条 Toast */
@@ -36,11 +36,11 @@ export interface ToastItem {
   id: number
   text: string
   kind: ToastKind
-  /** 自动消失的毫秒数（对齐 PyQt `duration=3000`） */
+  /** 自动消失的毫秒数（对齐 旧版 `duration=3000`） */
   duration: number
 }
 
-/** 默认显示时长（对齐 PyQt 默认值 3000ms） */
+/** 默认显示时长（对齐 旧版 默认值 3000ms） */
 export const DEFAULT_TOAST_DURATION = 3000
 
 /** 同屏最多显示几条（超出时丢弃**最旧的**，保证最新反馈一定可见） */

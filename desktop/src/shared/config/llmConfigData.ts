@@ -14,7 +14,7 @@
  * 不同步会造成「前端看着已生效、主进程收到的 config 里没有该字段」的静默丢失）。
  */
 
-/** 已登记的服务商 key（对齐 `api_config.py:35` `MODEL_PRESETS` 的 6 个键） */
+/** 已登记的服务商 key（对齐 `api_config:35` `MODEL_PRESETS` 的 6 个键） */
 /**
  * 服务商。`custom` = **任意 OpenAI 兼容端点**（自建网关 / 中转 / 第三方聚合等）：
  * 走与 OpenAI 相同的 `POST {baseUrl}/chat/completions`，接口地址与模型名都由用户自填，
@@ -39,23 +39,23 @@ export type LlmProvider = 'ollama' | 'openai' | 'doubao' | 'qwen' | 'claude' | '
 export const FALLBACK_LLM_PROVIDER: LlmProvider = 'ollama'
 
 export interface LlmProviderPreset {
-  /** 服务商展示名（与 PyQt 菜单文案一致） */
+  /** 服务商展示名（与 旧版 菜单文案一致） */
   label: string
   /** 默认接口地址（空串表示「由用户填写」） */
   baseUrl: string
-  /** 预置模型清单（对齐 PyQt 的 `models`） */
+  /** 预置模型清单（对齐 旧版 的 `models`） */
   models: readonly string[]
   /**
-   * 是否需要 API Key。Ollama 是本地服务不需要（对齐 PyQt `test_connection`：
+   * 是否需要 API Key。Ollama 是本地服务不需要（对齐 旧版 `test_connection`：
    * `if provider != "Ollama" and not api_key: 警告`）。
    */
   requiresApiKey: boolean
 }
 
 /**
- * 服务商预设（逐条对齐 Python `api_config.py:35-100` 的 `MODEL_PRESETS`）。
+ * 服务商预设（逐条对齐 旧版 `api_config:35-100` 的 `MODEL_PRESETS`）。
  *
- * 注：key 用小写英文（`ollama`/`openai`/...）而不用 PyQt 的中文标签
+ * 注：key 用小写英文（`ollama`/`openai`/...）而不用 旧版 的中文标签
  * （`"Ollama"`/`"OpenAI"`/`"豆包"`/...）—— **因为 label 要显示给用户、key 是持久化契约**，
  * 两者混用（拿中文当存储值）会在改文案时静默丢用户配置。
  */
@@ -151,12 +151,12 @@ export const LLM_PROVIDER_PRESETS: Readonly<Record<LlmProvider, LlmProviderPrese
  * ## ⚠️ 这是产品决策（DD-0「云端优先」），**不是**迁移保真，勿改回
  *
  * 曾经的顺序是 `['ollama','openai','doubao','qwen','claude','deepseek']`，理由是
- * 「对齐 Python `api_config.py:35` `MODEL_PRESETS.keys()` 的声明顺序」。
+ * 「对齐 旧版 `api_config:35` `MODEL_PRESETS.keys()` 的声明顺序」。
  * M0 已按产品裁定**云端在前、`ollama` 落到末位**：本项目处理**未发布**的设计稿，
  * 本地 Ollama 的真实价值是**保密**（数据不出本机），不是「免费降级」——
  * 所以它是并列的第二档，不是打头的第一档。
  *
- * **后人请勿以「对齐迁移保真」为由改回**：那份 Python 顺序是 PyQt 时代的产物，
+ * **后人请勿以「对齐迁移保真」为由改回**：那份 旧版 顺序是 旧版 时代的产物，
  * 与本产品的档位优先级无关（决策记录见 `docs/agent-framework-design.md` 的 D1）。
  *
  * ## 注意它**只决定下拉框的视觉顺序**
@@ -173,11 +173,11 @@ export const LLM_PROVIDER_ORDER: readonly LlmProvider[] = [
   'custom'
 ]
 
-/** 温度上下限（对齐 PyQt `temp_spin.setRange(0.0, 2.0)` / `setSingleStep(0.1)`） */
+/** 温度上下限（对齐 旧版 `temp_spin.setRange(0.0, 2.0)` / `setSingleStep(0.1)`） */
 export const LLM_TEMPERATURE_MIN = 0
 export const LLM_TEMPERATURE_MAX = 2
 
-/** 最大令牌上下限（对齐 PyQt `max_tokens_spin.setRange(1, 32000)`） */
+/** 最大令牌上下限（对齐 旧版 `max_tokens_spin.setRange(1, 32000)`） */
 export const LLM_MAX_TOKENS_MIN = 1
 export const LLM_MAX_TOKENS_MAX = 32000
 
@@ -267,7 +267,7 @@ export const LLM_STOP_WORDS_MAX = 2000
  * 因此 M0 的全部改动都靠**新增导出 + 引用替换**完成，**零 interface 字段新增**。
  */
 export interface StoredLlmConfig {
-  /** 是否启用 LLM（对齐 PyQt `config.enabled`；为 false 时 AI 入口应提示先启用） */
+  /** 是否启用 LLM（对齐 旧版 `config.enabled`；为 false 时 AI 入口应提示先启用） */
   enabled: boolean
   provider: LlmProvider
   model: string
@@ -383,9 +383,9 @@ export const LLM_MESSAGES = {
   ollamaNotRunning: (host: string) =>
     `未检测到本地 Ollama 服务。请先在命令行执行 ollama serve 启动（地址 ${host}），或确认该地址与设置中的接口地址一致。`,
   /**
-   * 触发限流（E61）。对齐 Python `common/ai_client.py` 的三处文案
+   * 触发限流（E61）。对齐 旧版 `common/ai_client` 的三处文案
    * （"请求过于频繁，请稍后再试" / "流式请求过于频繁…" / "视觉请求过于频繁…"）。
-   * Python 触发限流时**拒绝请求**，不是静默放行 —— 静默放行使限流形同虚设，故 TS 同样抛错。
+   * 旧版 触发限流时**拒绝请求**，不是静默放行 —— 静默放行使限流形同虚设，故 TS 同样抛错。
    */
   rateLimited: 'AI 请求过于频繁，已触发限流保护。请稍候几秒后重试。'
 } as const

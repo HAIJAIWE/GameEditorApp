@@ -19,13 +19,13 @@ import {
 import { toErrorMessage } from '../../../shared/util/errors'
 
 /**
- * GDD 模板编辑器面板（对应 Python TemplateEditorDialog）：
+ * GDD 模板编辑器面板（对应 旧版 TemplateEditorDialog）：
  * - 左：模板列表（自定义 + 内置；筛选 = 全部章节 / 仅自定义 / 仅内置 / 各章节 + 关键词搜索）
  * - 右：模板编辑器（名称 / 章节 / 描述 / 标签 / 来源 / 数据 JSON）+「从当前章节加载」「应用到该章节」
  * - 底：新建 / 保存 / 删除 / 导出 / 导入（可勾选覆盖同 ID）/ 关闭
- * 有意偏离 Python：① 「保存模板」不再同时把数据写入章节（Python 借同一个信号做了两件事）；
+ * 有意偏离 旧版：① 「保存模板」不再同时把数据写入章节（旧版 借同一个信号做了两件事）；
  * ② 「应用到该章节」直接落盘（经 ceshu:saveChapter），不做内存态等待人工保存；
- * ③ 选中内置模板时「保存」可用，等价于「另存为自定义模板」（Python 该分支存在但按钮被禁用，不可达）。
+ * ③ 选中内置模板时「保存」可用，等价于「另存为自定义模板」（旧版 该分支存在但按钮被禁用，不可达）。
  */
 
 interface TemplateEditorPanelProps {
@@ -42,7 +42,7 @@ type TemplateSource = 'custom' | 'builtin'
 interface EditorEntry {
   key: string
   source: TemplateSource
-  /** 列表展示文案（`[自定义] 名称  (章节)` / `[内置] 名称  (章节)`，与 Python 一致） */
+  /** 列表展示文案（`[自定义] 名称  (章节)` / `[内置] 名称  (章节)`，与 旧版 一致） */
   label: string
   template: ChapterTemplate
   /** 模板自身所属章节（全局为 ''） */
@@ -103,7 +103,7 @@ export default function TemplateEditorPanel({
     }
   }, [])
 
-  // 列表构建（与 Python _refresh_list 的筛选与顺序一致：自定义在前、内置在后）
+  // 列表构建（与 旧版 _refresh_list 的筛选与顺序一致：自定义在前、内置在后）
   const showCustom = filter !== '__builtin__'
   const showBuiltin = filter !== '__custom__'
   const chapterFilter = filter && filter !== '__custom__' && filter !== '__builtin__' ? filter : ''
@@ -153,7 +153,7 @@ export default function TemplateEditorPanel({
 
   const selectedEntry = entries.find((entry) => entry.key === selectedKey) ?? null
 
-  /** 选中模板 → 填充编辑器（对应 Python _on_template_selected） */
+  /** 选中模板 → 填充编辑器（对应 旧版 _on_template_selected） */
   const handleSelect = (entry: EditorEntry): void => {
     setSelectedKey(entry.key)
     setSelectedSource(entry.source)
@@ -167,7 +167,7 @@ export default function TemplateEditorPanel({
     setDeleting(false)
   }
 
-  /** 从当前章节加载（对应 Python _on_load_current） */
+  /** 从当前章节加载（对应 旧版 _on_load_current） */
   const handleLoadCurrent = (): void => {
     const target = chapterKey || currentChapter
     const data = doc[target as ChapterKey]
@@ -177,7 +177,7 @@ export default function TemplateEditorPanel({
     }
   }
 
-  /** 应用到该章节：按覆盖语义合并后直接写盘（对应 Python _on_apply_current） */
+  /** 应用到该章节：按覆盖语义合并后直接写盘（对应 旧版 _on_apply_current） */
   const handleApplyCurrent = async (): Promise<void> => {
     setError(null)
     setNotice(null)
@@ -201,7 +201,7 @@ export default function TemplateEditorPanel({
     }
   }
 
-  /** 新建：清空编辑器并从当前章节预填（对应 Python _on_new） */
+  /** 新建：清空编辑器并从当前章节预填（对应 旧版 _on_new） */
   const handleNew = (): void => {
     setSelectedKey('')
     setSelectedSource('custom')
@@ -223,7 +223,7 @@ export default function TemplateEditorPanel({
     setName(`${templateChapterLabel(target)} 模板`)
   }
 
-  /** 保存：选中自定义 → 更新；否则（含内置「另存为」）→ 新建（对应 Python _on_save） */
+  /** 保存：选中自定义 → 更新；否则（含内置「另存为」）→ 新建（对应 旧版 _on_save） */
   const handleSave = async (): Promise<void> => {
     setError(null)
     setNotice(null)
@@ -274,7 +274,7 @@ export default function TemplateEditorPanel({
     }
   }
 
-  /** 删除当前自定义模板（对应 Python _on_delete） */
+  /** 删除当前自定义模板（对应 旧版 _on_delete） */
   const handleDelete = async (): Promise<void> => {
     setError(null)
     setNotice(null)
@@ -301,7 +301,7 @@ export default function TemplateEditorPanel({
     }
   }
 
-  /** 导出全部自定义模板（对应 Python _on_export） */
+  /** 导出全部自定义模板（对应 旧版 _on_export） */
   const handleExport = async (): Promise<void> => {
     setError(null)
     setNotice(null)
@@ -321,7 +321,7 @@ export default function TemplateEditorPanel({
     }
   }
 
-  /** 导入模板（对应 Python _on_import；可选覆盖同 ID） */
+  /** 导入模板（对应 旧版 _on_import；可选覆盖同 ID） */
   const handleImport = async (): Promise<void> => {
     setError(null)
     setNotice(null)
@@ -339,7 +339,7 @@ export default function TemplateEditorPanel({
     }
   }
 
-  /** 解析数据 JSON；失败时设置错误并返回 null（对应 Python 的 JSON 校验） */
+  /** 解析数据 JSON；失败时设置错误并返回 null（对应 旧版 的 JSON 校验） */
   const parseDataText = (): Record<string, unknown> | null => {
     const text = dataText.trim()
     if (!text) return {}

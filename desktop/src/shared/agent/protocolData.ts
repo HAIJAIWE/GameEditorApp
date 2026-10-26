@@ -3,9 +3,9 @@
  * 由 `protocol.ts` 再导出，外部 `import { ... } from './protocol'` 站点保持不变。
  */
 
-/* ---- 风险等级与权限（对齐 security/acl.py） ---- */
+/* ---- 风险等级与权限（对齐 security/acl） ---- */
 
-/** 风险等级（数值越大越高危；对齐 Python `RiskLevel` IntEnum） */
+/** 风险等级（数值越大越高危；对齐 旧版 `RiskLevel` IntEnum） */
 export const RISK_LEVEL = {
   READ_ONLY: 0,
   DATA_WRITE: 1,
@@ -16,7 +16,7 @@ export const RISK_LEVEL = {
 
 export type RiskLevel = (typeof RISK_LEVEL)[keyof typeof RISK_LEVEL]
 
-/** 工具 → 风险等级（或 工具 → {action: 风险}）；对齐 Python `TOOL_RISK_MAP` */
+/** 工具 → 风险等级（或 工具 → {action: 风险}）；对齐 旧版 `TOOL_RISK_MAP` */
 export const TOOL_RISK_MAP: Record<string, RiskLevel | Record<string, RiskLevel>> = {
   'system.game_data': {
     query: RISK_LEVEL.READ_ONLY,
@@ -68,16 +68,16 @@ export const TOOL_RISK_MAP: Record<string, RiskLevel | Record<string, RiskLevel>
   'tool.ask_user': RISK_LEVEL.READ_ONLY
 }
 
-/** 未在表中登记的工具默认风险（对齐 Python `TOOL_RISK_MAP.get(tool, DATA_WRITE)`） */
+/** 未在表中登记的工具默认风险（对齐 旧版 `TOOL_RISK_MAP.get(tool, DATA_WRITE)`） */
 export const DEFAULT_TOOL_RISK: RiskLevel = RISK_LEVEL.DATA_WRITE
 
-/** 全局允许的最大风险（对齐 Python `_max_allowed_risk = FILE_SYSTEM`） */
+/** 全局允许的最大风险（对齐 旧版 `_max_allowed_risk = FILE_SYSTEM`） */
 export const DEFAULT_MAX_ALLOWED_RISK: RiskLevel = RISK_LEVEL.FILE_SYSTEM
 
 /** 批量生成的条目数阈值（`ceshuDataGenInputSchema.count` 上限 20 的一半） */
 export const LLM_BULK_COUNT_THRESHOLD = 10
 
-/** action 别名表（对齐 Python `normalize_params` 的 ALIASES，含中文） */
+/** action 别名表（对齐 旧版 `normalize_params` 的 ALIASES，含中文） */
 export const ACTION_ALIASES: Record<string, string> = {
   add: 'create',
   add_item: 'create',

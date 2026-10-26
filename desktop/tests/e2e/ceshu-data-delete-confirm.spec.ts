@@ -7,7 +7,7 @@ import { launchApp, waitReady } from './helpers/app'
 import { createDataItem, openCeshuFromHome, openDataEditor, seedCeshu } from './helpers/ceshuData'
 
 /**
- * 删除二次确认（对齐 PyQt `_on_delete_clicked` 的确认框）。
+ * 删除二次确认（对齐 旧版 `_on_delete_clicked` 的确认框）。
  *
  * 背景：删除入口（表单底部「删除」/ 右键菜单「删除」）原本是**无确认直删**；
  * 现改为先弹内联确认条，确认后才落盘——避免误删。本规格锁两条路径 + 取消不删。

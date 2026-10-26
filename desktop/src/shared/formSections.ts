@@ -4,7 +4,7 @@ import type { FieldType, TypeFieldDef, TypeSectionDef } from './types'
  * 条目编辑器的**分区定义与构建**（折叠分区布局）。
  *
  * ## 历史与本次回归
- * 分区体系最初于 2026-10-04 从 Python `dynamic_form.py::FIELD_GROUPS` 迁移，
+ * 分区体系最初于 2026-10-04 从 旧版 `dynamic_form::FIELD_GROUPS` 迁移，
  * 2026-10-13 按用户要求**整体拉平**（`formSections.ts` / `FormSectionCard.tsx` 及配套测试删除）。
  * 2026-10-19 用户对照分区版截图再次要求恢复，故本模块重写回来。
  *
@@ -12,9 +12,9 @@ import type { FieldType, TypeFieldDef, TypeSectionDef } from './types'
  * - **不收双列网格**（旧版 `layout: 'grid'`）：numeric 分区排两列、标签带
  *   `❤️ HP` / `⏱️ CD` 这类 emoji 前缀。用户给的目标截图里是单列 + 原始标签，
  *   且 10-13 拉平时的理由（「一列看全、不用展开分区」）仍然成立 ⇒ 不恢复。
- * - **不收「更新版 Python」那套 `editor_layouts.json` 配置**（`dbfe391` 已实证它是
+ * - **不收「更新版 旧版」那套 `editor_layouts.json` 配置**（`dbfe391` 已实证它是
  *   「能写、没人读、且已过期」的配置，条目编辑器从不读它）。
- * - 分区内字段顺序按**分区定义**排（照抄 Python `_build_form`：分区内按分组定义顺序，
+ * - 分区内字段顺序按**分区定义**排（照抄 旧版 `_build_form`：分区内按分组定义顺序，
  *   schema 里不存在的字段跳过）。
  *
  * ## 兜底规则（对用户自建类型很重要）
@@ -36,7 +36,7 @@ export interface FormSectionDef {
 }
 
 /**
- * 内置 7 类型的分区定义（照抄 Python `FIELD_GROUPS` 的**分组**，去掉 grid 版式）。
+ * 内置 7 类型的分区定义（照抄 旧版 `FIELD_GROUPS` 的**分组**，去掉 grid 版式）。
  * 折叠默认值：仅第一个分区展开，其余折叠 —— 与用户给的目标截图一致。
  */
 export const FORM_GROUPS: Readonly<Record<string, readonly FormSectionDef[]>> = {
@@ -181,7 +181,7 @@ export function isComplexFieldType(type: FieldType): boolean {
  *   `attributePanel: true` 的分区绑定该类型第一个 `attrpanel` 字段；
  *   渲染不出内容的分区不产出（不留空折叠卡片）。
  * - **未归组字段并入第一个分区**（追加在其字段之后，按 schema 顺序）。
- *   Python 原版让它们渲染在分区**外面**（`talent` 的 owner/level/rarity 等一直如此），
+ *   旧版 原版让它们渲染在分区**外面**（`talent` 的 owner/level/rarity 等一直如此），
  *   结果是「一半字段在卡片里、一半散在卡片外」，观感割裂 ⇒ 这里刻意改变。
  * - **折叠默认值：全部分区默认展开**（`collapsed` 恒为 false）。
  *   目标截图里是「只展开第一个」，但那种默认态会让字段**看不见** —— 用户打开条目想改描述，
@@ -255,7 +255,7 @@ export function buildFormLayout(
   const leftovers = fields.filter((field) => !built.grouped.has(field.name))
 
   /*
-   * 未归组字段并入第一个分区（Python 原版渲染在分区外，观感割裂）。
+   * 未归组字段并入第一个分区（旧版 原版渲染在分区外，观感割裂）。
    * 追加顺序 = schema 顺序（`leftovers` 本身就是按 fields 顺序过滤出来的）。
    * 若一个分区都没产出（极端情况：类型只定义了不存在的字段名），补一个基础信息分区。
    */

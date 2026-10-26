@@ -201,7 +201,7 @@ for(const [n,fp,code] of [
 - **`ipc` `schemas` `schemasData` `types` `systemConfigSchema`**：契约基础设施（Q1）。
 - **`aiSeedPrompt` `glossaryTerms`**：应用级引导 / 业务术语数据表——留根理由见各文件头注释，
   后续如出现域归属争议再议。（`formSections` 曾在此列：条目表单分区布局，2026-10-13 随表单
-  拉平为 PyQt 旧版扁平 `QFormLayout` 而删除，标签术语替换直连 `config/gameStyle.ts`。）
+  拉平为 旧版 旧版扁平 `QFormLayout` 而删除，标签术语替换直连 `config/gameStyle.ts`。）
 
 ---
 

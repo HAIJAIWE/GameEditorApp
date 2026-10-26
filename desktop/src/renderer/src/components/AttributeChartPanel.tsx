@@ -10,11 +10,11 @@ import {
 import type { DataTypeDef, ItemRecord } from '../../../shared/types'
 
 /**
- * 属性分布图表面板（对应 Python `src/features/advanced.py:48` `show_attribute_charts`）。
+ * 属性分布图表面板（对应 旧版 `src/features/advanced:48` `show_attribute_charts`）。
  *
- * ## 为什么下拉是「按 schema 自动发现」而不是照抄 PyQt 的写死列表
+ * ## 为什么下拉是「按 schema 自动发现」而不是照抄 旧版 的写死列表
  *
- * PyQt `advanced.py:77,82` 把类型映射（技能/角色/怪物/装备/道具 → plural key）和
+ * 旧版 `advanced:77,82` 把类型映射（技能/角色/怪物/装备/道具 → plural key）和
  * 属性名（`value`/`hp`/`mp`/`atk`/`def`/`level`）**全部硬编码**。但 TS schema 里这些类型
  * 并没有这些字段 —— 数值在 `attr_list` 里（见 `StatisticsPanel.tsx` 顶部同一处说明）。
  * 照抄的结果是：用户点开只能看到「❌ 没有找到可用的 hp 数据！」——

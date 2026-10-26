@@ -1,19 +1,19 @@
 /**
- * 策划书 ↔ 游戏数据 双向同步协调器（自 Python `core/ceshu/ceshu_data_sync.py` v5.0 匹平迁移）。
+ * 策划书 ↔ 游戏数据 双向同步协调器（自 旧版 `core/ceshu/ceshu_data_sync` v5.0 匹平迁移）。
  *
  * 迁移要点：
- *  - Python 用全局 EventBus（data_changed / ceshu_changed / library_switched）；TS 侧无全局事件总线，
+ *  - 旧版 用全局 EventBus（data_changed / ceshu_changed / library_switched）；TS 侧无全局事件总线，
  *    改为在相关 IPC 处理里显式调用 `onDataChanged` / `onCeshuChanged`（见 main/ipc.ts）。
- *  - Python 的「确保 default.json 有复数键数组」在 TS 的 SQLite 数据层是隐式的（按 type 查表，无行即空），
+ *  - 旧版 的「确保 default.json 有复数键数组」在 TS 的 SQLite 数据层是隐式的（按 type 查表，无行即空），
  *    故 `_ensure_data_keys` 仅产出复数键清单（保证 typeSchemaStore 已含该类型即可），不做数据写入。
  *  - 其余语义（systems→data 注册类型、data→systems 回填 actual_count、_syncing 防循环）逐条对齐。
  *
- * 设计原则（与 Python 一致）：
+ * 设计原则（与 旧版 一致）：
  *  - 策划书优先：systems 配置不被数据覆盖，但可创建空白数据结构（此处为空白类型）；
  *  - 不自动创建具体数据条目（避免污染用户数据）；
  *  - 失败不抛异常，仅记录日志（同步是辅助功能，不应阻塞主流程）。
  *
- * 注：`library` 参数保留以对齐 Python 签名与未来多库支持；TS 各 store 已按 userData 路径隔离，
+ * 注：`library` 参数保留以对齐 旧版 签名与未来多库支持；TS 各 store 已按 userData 路径隔离，
  * 当前实现不依赖该参数（以 `_` 前缀标记未使用）。
  */
 
@@ -46,7 +46,7 @@ interface EnabledType {
   pluralKey: string
 }
 
-/** 新建类型的默认配色（对齐 Python TypeDef(color="#4CAF50")） */
+/** 新建类型的默认配色（对齐 旧版 TypeDef(color="#4CAF50")） */
 const DEFAULT_NEW_TYPE_COLOR = '#4CAF50'
 
 export class CeshuDataSync {
@@ -144,7 +144,7 @@ export class CeshuDataSync {
     return { toData, toCeshu }
   }
 
-  /** 数据变更回调（替代 Python data_changed 事件）：回填进度到当前策划书 */
+  /** 数据变更回调（替代 旧版 data_changed 事件）：回填进度到当前策划书 */
   async onDataChanged(): Promise<void> {
     if (this.syncing) return
     if (!this.currentCeshuId) return
@@ -156,7 +156,7 @@ export class CeshuDataSync {
     }
   }
 
-  /** 策划书变更回调（替代 Python ceshu_changed 事件）：确保数据结构存在 */
+  /** 策划书变更回调（替代 旧版 ceshu_changed 事件）：确保数据结构存在 */
   onCeshuChanged(ceshuId: string, library = ''): void {
     if (this.syncing) return
     try {

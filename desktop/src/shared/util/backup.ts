@@ -1,8 +1,8 @@
 /**
  * 数据备份纯逻辑（跨进程共用：主进程存储层用，渲染层展示用）。
- * 对应 Python src/ui/dialogs/backup_manager.py + src/features/backup.py。
+ * 对应 旧版 src/ui/dialogs/backup_manager + src/features/backup。
  *
- * 相对 Python 的改进：
+ * 相对 旧版 的改进：
  * - 备份名可带可选 label（[A-Za-z0-9_-]{1,40}），避免同秒创建互相覆盖；
  * - 时间戳解析与命名独立成纯函数，不再用 `text.split(' - ')[1]` 从显示文本反推文件名；
  * - 列表项直接携带文件名与 ISO 时间，无需渲染层再拼/拆字符串。

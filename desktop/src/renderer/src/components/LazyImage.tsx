@@ -12,22 +12,22 @@ import {
 } from '../../../shared/util/imageCache'
 
 /**
- * 延迟加载的图片控件（对齐 Python `src/ui/components/image_loader.py:251` `LazyImageLabel`）。
+ * 延迟加载的图片控件（对齐 旧版 `src/ui/components/image_loader:251` `LazyImageLabel`）。
  *
  * ## 为什么需要它
- * PyQt 的 `LazyImageLabel` 是**按已保存路径**加载并回显预览的：
+ * 旧版 的 `LazyImageLabel` 是**按已保存路径**加载并回显预览的：
  * 空路径显示「无图片」，加载中显示「加载中...」，到位后上屏。
- * `dynamic_form.py:747` 打开条目时直接 `load_image(str(value))` —— 即按数据里存的
- * **绝对路径**回读（PyQt 原生进程无网页安全模型，`os.path.exists` + PIL 直接开）。
+ * `dynamic_form:747` 打开条目时直接 `load_image(str(value))` —— 即按数据里存的
+ * **绝对路径**回读（旧版 原生进程无网页安全模型，`os.path.exists` + PIL 直接开）。
  *
  * TS 侧原先只在**本会话刚选择过**图片时才有预览（`picked.path === current`），
- * 于是**打开一条已保存图片路径的条目时看不到任何图** —— 与 PyQt 行为不符，是真缺口。
+ * 于是**打开一条已保存图片路径的条目时看不到任何图** —— 与 旧版 行为不符，是真缺口。
  * 本组件改为：拿到字段值（绝对路径）就经主进程 `images:readByPath` 回读 data URL。
  *
- * ## 与 PyQt 的差异（刻意，有依据）
- * - **不做位图重采样**：Python 用 PIL 真缩小（Qt 吃内存）；浏览器 `<img>` 由引擎解码，
+ * ## 与 旧版 的差异（刻意，有依据）
+ * - **不做位图重采样**：旧版 用 PIL 真缩小（Qt 吃内存）；浏览器 `<img>` 由引擎解码，
  *   CSS 限尺寸即可，JS 无 PIL，硬做要引入 canvas 重编码 = 过度开发。
- * - **缓存键含目标尺寸**（修正 Python 只按路径作键的隐患）。
+ * - **缓存键含目标尺寸**（修正 旧版 只按路径作键的隐患）。
  * - **用 data URL 而非本地路径**：渲染层直接引用 `C://...` 会被 `webSecurity` 拦。
  *
  * ## 为什么用「订阅 + 快照」而不是 useEffect 里 setState
@@ -87,7 +87,7 @@ export default function LazyImage({
     )
   }
 
-  // 未到位 ⇒ 骨架（对齐 PyQt 的「加载中...」）
+  // 未到位 ⇒ 骨架（对齐 旧版 的「加载中...」）
   if (hit === undefined) {
     return (
       <div className="image-lazy image-lazy-loading" data-testid="image-lazy-loading">

@@ -30,7 +30,7 @@ function attr(name: string, patch: Partial<AttrDefinition> = {}): AttrDefinition
   }
 }
 
-describe('默认属性系统（匹平 Python _build_default_system）', () => {
+describe('默认属性系统（匹平 旧版 _build_default_system）', () => {
   const system = createDefaultAttrSystem()
 
   it('基础 4 + 派生 7 + 战斗 6；基础默认值 10；战斗属性带上限', () => {
@@ -50,7 +50,7 @@ describe('默认属性系统（匹平 Python _build_default_system）', () => {
     expect(defaultBaseValues(system)).toEqual({ 力量: 10, 智力: 10, 敏捷: 10, 体质: 10 })
   })
 
-  it('默认基础值计算结果与 Python 公式一致', () => {
+  it('默认基础值计算结果与 旧版 公式一致', () => {
     const calculation = calculateAttributes(system, defaultBaseValues(system))
     expect(calculation.cycle).toBeNull()
     const values = calculation.values
@@ -165,7 +165,7 @@ describe('领域校验', () => {
   })
 })
 
-describe('文件序列化 / 解析（Python attr_system.json 同构）', () => {
+describe('文件序列化 / 解析（旧版 attr_system.json 同构）', () => {
   const system = createDefaultAttrSystem()
 
   it('序列化为平铺 snake_case 结构，往返一致且保留上限', () => {
@@ -221,7 +221,7 @@ describe('文件序列化 / 解析（Python attr_system.json 同构）', () => {
   })
 })
 
-describe('游戏配置导出（匹平 Python _build_game_config）', () => {
+describe('游戏配置导出（匹平 旧版 _build_game_config）', () => {
   it('默认集：基础属性列表 + 派生/战斗 linear 公式 + 计算顺序 + 约束', () => {
     const config = buildAttrGameConfig(createDefaultAttrSystem())
     expect(config.version).toBe('1.0')
@@ -269,7 +269,7 @@ describe('游戏配置导出（匹平 Python _build_game_config）', () => {
     })
   })
 
-  it('环依赖：计算顺序为空数组（对应 Python 抛错回退）', () => {
+  it('环依赖：计算顺序为空数组（对应 旧版 抛错回退）', () => {
     const system: AttrSystem = {
       attributes: {
         A: attr('A', { formula: { coefficients: { B: 1 }, baseValue: 0 } }),

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { buildScoreReportMarkdown, type CeshuScoreReport } from '../../src/shared/ceshuScorer'
 
 /**
- * `buildScoreReportMarkdown` 单测：逐节对齐 Python `score_report_dialog._build_markdown`。
+ * `buildScoreReportMarkdown` 单测：逐节对齐 旧版 `score_report_dialog._build_markdown`。
  *
  * ⚠️ 夹具必须是**真实的 `CeshuScoreReport` 形状**（嵌套 chapter_scores / industry_benchmark /
  * pass_status），不能喂展平对象 —— 类型断言在编译期就会拦截，但这里显式标注类型以锁死契约。
@@ -58,7 +58,7 @@ function makeReport(overrides: Partial<CeshuScoreReport> = {}): CeshuScoreReport
   }
 }
 
-describe('评分报告 Markdown（匹平 Python score_report_dialog._build_markdown）', () => {
+describe('评分报告 Markdown（匹平 旧版 score_report_dialog._build_markdown）', () => {
   it('标题 + meta + 总评 + 章节表 + 建议 + 行业对比逐行对齐', () => {
     const md = buildScoreReportMarkdown('测试游戏', 'RPG', makeReport(), '2026-10-07 12:00:00')
 

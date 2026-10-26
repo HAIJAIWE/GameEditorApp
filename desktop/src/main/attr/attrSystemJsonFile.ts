@@ -3,10 +3,10 @@ import { readFile, rename, writeFile } from 'node:fs/promises'
 import { parseAttrSystemFile, serializeAttrSystem, type AttrSystem } from '../../shared/attrSystem'
 
 /**
- * 属性系统 JSON 导入 / 导出（对应 Python AttrSystemEditor 的「导出JSON」/「导入JSON」）：
- * - 导出：与 Python `AttributeSystem.to_dict()` 同构的平铺对象（属性名 → 定义，formula 为公式文本），
- *   indent=2 + 中文不转义；原子写（临时文件 + rename）。Python 导出前不校验，这里同样不校验。
- * - 导入：读文件 → 解析；结构与公式异常以 warnings 上报并尽力保留数据（Python 直接 from_dict，异常即失败）。
+ * 属性系统 JSON 导入 / 导出（对应 旧版 AttrSystemEditor 的「导出JSON」/「导入JSON」）：
+ * - 导出：与 旧版 `AttributeSystem.to_dict()` 同构的平铺对象（属性名 → 定义，formula 为公式文本），
+ *   indent=2 + 中文不转义；原子写（临时文件 + rename）。旧版 导出前不校验，这里同样不校验。
+ * - 导入：读文件 → 解析；结构与公式异常以 warnings 上报并尽力保留数据（旧版 直接 from_dict，异常即失败）。
  */
 
 export async function exportAttrSystemJsonFile(

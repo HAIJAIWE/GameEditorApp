@@ -8,7 +8,7 @@
  * 为消除该跨域边而迁至此处。`ceshuModel` 保留 re-export 以兼容既有 40+ 处调用方。
  */
 
-/** 本地时间字符串（与 Python 版 ceshu_model 一致：YYYY-MM-DD HH:mm:ss，非 ISO） */
+/** 本地时间字符串（与 早期版本 ceshu_model 一致：YYYY-MM-DD HH:mm:ss，非 ISO） */
 export function formatLocalTimestamp(date: Date = new Date()): string {
   const pad = (n: number): string => String(n).padStart(2, '0')
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`

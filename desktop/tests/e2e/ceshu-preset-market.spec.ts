@@ -27,7 +27,7 @@ test('预设市场：18 卡片 + 搜索筛选 + 应用预设（启用推荐系�
     await window.reload()
     await waitReady(window)
     await window.getByTestId('home-card').filter({ hasText: '预设市场E2E' }).getByTestId('home-card-open').click()
-    // 「ceshu-preset-market」已收进工具栏「更多 ▸」下拉（对齐 PyQt），需先展开再点
+    // 「ceshu-preset-market」已收进工具栏「更多 ▸」下拉（对齐 旧版），需先展开再点
     await window.getByTestId('ceshu-more').click()
     await window.getByTestId('ceshu-preset-market').click()
 

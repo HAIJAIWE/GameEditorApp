@@ -29,7 +29,7 @@ export async function buildMemoryBlock(
     }
     return blocks.length > 0 ? blocks.join('\n\n') : null
   } catch {
-    // 记忆检索失败不阻塞主流程（对齐 Python「记忆是辅助功能」的取向）
+    // 记忆检索失败不阻塞主流程（对齐 旧版「记忆是辅助功能」的取向）
     return null
   }
 }

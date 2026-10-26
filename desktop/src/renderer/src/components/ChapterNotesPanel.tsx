@@ -5,10 +5,10 @@ import { countNotesByChapter, filterNotes, notePreview, type CeshuNote } from '.
 import { toErrorMessage } from '../../../shared/util/errors'
 
 /**
- * 章节笔记面板（对应 Python ChapterNotesDialog）：
+ * 章节笔记面板（对应 旧版 ChapterNotesDialog）：
  * - 左侧：章节筛选（全部 + 16 章）+ 笔记列表（含该章数量徽标与 30 字预览）+ 新建笔记
  * - 右侧：章节（只读）+ 作者 + 正文编辑器 + 保存 / 删除（二次确认）
- * 说明：Python 编辑区的章节下拉在保存时被忽略（quirk），TS 改为只读展示；
+ * 说明：旧版 编辑区的章节下拉在保存时被忽略（quirk），TS 改为只读展示；
  * 新建笔记的归属章节取自左侧筛选（未筛选时用列表首个章节）。
  */
 

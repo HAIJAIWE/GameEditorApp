@@ -1,9 +1,5 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
+# 原生库
 *.so
-.Python
 build/
 develop-eggs/
 dist/
@@ -20,12 +16,6 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
-
-# Virtual Environment
-venv/
-env/
-ENV/
-.venv
 
 # IDE
 .vscode/
@@ -66,25 +56,16 @@ repair_learning.db
 .build_deps/
 
 # Temporary scripts
-_check*.py
-_debug*.py
-_fix*.py
-_patch*.py
-_polish*.py
-_gen_json.py
 _schemas.json
 
 # Test runtime artifacts (eval reports, coverage, etc.)
 .coverage
 htmlcov/
-.pytest_cache/
 
 # Trae IDE metadata (historical refactor specs, not project docs)
 .trae/
 
 # 根目录临时文件与备份目录（重构验证过程产物，仅限根目录）
-# 注意: 不写 `_*.py`! 会误伤 src/features/_ai_dialog.py 等合法模块
-/_*.py
 /_*.json
 /_*.txt
 /_stubs/

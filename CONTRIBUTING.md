@@ -1,12 +1,12 @@
 # 贡献指南（TS + Electron 版）
 
-感谢你考虑为墨白可视化编辑器贡献代码。本仓库的现役产品是 `desktop/` 下的 **TypeScript + Electron** 版本（Python 版已于 2026-10-10 移除）。
+感谢你考虑为墨白可视化编辑器贡献代码。本仓库的现役产品是 `desktop/` 下的 **TypeScript + Electron** 版本（早期版本已于 2026-10-10 移除）。
 
 ## 开发环境
 
 1. 克隆仓库
 2. 进入桌面端目录：`cd desktop`
-3. 安装依赖：`npm install`（会下载 Electron 二进制并编译 `better-sqlite3` 原生模块，需要本机 Python 与 C++ 构建工具）
+3. 安装依赖：`npm install`（会下载 Electron 二进制并编译 `better-sqlite3` 原生模块，需要本机 旧版 与 C++ 构建工具）
 4. 启动开发：`npm run dev`
 
 > 推荐 Node 22（与 CI 一致）。

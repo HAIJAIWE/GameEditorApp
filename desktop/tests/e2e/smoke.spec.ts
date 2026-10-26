@@ -81,8 +81,8 @@ test('启动应用并完成「新增 → 编辑 → 删除 → 导入 → 导出
     await createDataItem(window)
     await expect(window.getByTestId('ceshu-data-item-row')).toHaveCount(2)
 
-    // 删除入口已从行内图标移至表单底部操作栏（对齐 PyQt）：先选中首行，再点「删除」
-    // ⚠️ 删除是**两段式**（对齐 PyQt 确认框）：点了「删除」只弹出内联确认条，
+    // 删除入口已从行内图标移至表单底部操作栏（对齐 旧版）：先选中首行，再点「删除」
+    // ⚠️ 删除是**两段式**（对齐 旧版 确认框）：点了「删除」只弹出内联确认条，
     // 必须再点 `ceshu-data-delete-confirm-yes` 才真正移除。旧用例只点了第一下。
     await window.getByTestId('ceshu-data-item-row').first().click()
     await window.getByTestId('item-form-delete').click()

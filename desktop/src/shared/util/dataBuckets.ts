@@ -4,7 +4,7 @@ import type { DataTypeDef, ItemRecord } from '../types'
 /**
  * 数据按 schema 的 `pluralKey` 归桶。
  *
- * 与 Python 的 `data_manager.data`（`dict[str, list[dict]]`，键是复数类型名）语义对齐 ——
+ * 与 旧版 的 `data_manager.data`（`dict[str, list[dict]]`，键是复数类型名）语义对齐 ——
  * 两处消费者共用本函数，避免各写一份口径不同的：
  * - `main/engineExport/engines.ts`：四个引擎导出的输入分桶
  * - 策划书「游戏数据预览」面板：把全库数据摊成 JSON 树

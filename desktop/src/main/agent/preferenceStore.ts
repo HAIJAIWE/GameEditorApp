@@ -5,7 +5,7 @@
  * 这类**确定性键值**，不进向量库。消费点在 `brainService.ts` —— 把偏好注入系统提示词。
  *
  * 生产者接缝是 `agent:feedback` IPC（见 main/ipc.ts）：UI 评分时调用，提取偏好写入
- * `PreferenceStore`。未收到反馈前偏好为空（与 Python Learner 冷启动一致的空语义）。
+ * `PreferenceStore`。未收到反馈前偏好为空（与 旧版 Learner 冷启动一致的空语义）。
  */
 
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
@@ -99,7 +99,7 @@ export class FeedbackStore {
 
   /**
    * 记录一条反馈。rating ≥ 4 且 comment 非空时，提炼偏好写入偏好库。
-   * 负评（≤2）仅留存记录供后续分析，不提炼（对齐 Python `Learner.record_feedback` 的取舍）。
+   * 负评（≤2）仅留存记录供后续分析，不提炼（对齐 旧版 `Learner.record_feedback` 的取舍）。
    */
   record(rating: number, comment: string): void {
     const record: FeedbackRecord = {

@@ -1,32 +1,32 @@
 /**
- * 关键词模板配置（迁移 Python `src/features/advanced.py:206-306` 的
+ * 关键词模板配置（迁移 旧版 `src/features/advanced:206-306` 的
  * `show_keyword_template_config`），**纯逻辑层，零 React / 零 fs / 零 IPC**。
  *
  * ## 真源与本模块的对应关系
  *
- * | Python | 本模块 |
+ * | 旧版 | 本模块 |
  * |---|---|
- * | `config/settings.py:311-523` `_get_default_keyword_templates()` | `DEFAULT_KEYWORD_TEMPLATES`（10 项，逐字照抄） |
- * | `advanced.py:235` `data_type_combo.addItems([...])` | `KEYWORD_TEMPLATE_TYPE_OPTIONS`（5 项，面板可见的类型） |
- * | `advanced.py:273` `config.keyword_templates[data_type] = template_text` | `withTemplateText()` +面板「保存」 |
- * | `advanced.py:279-281` `reset_template()` 读默认 | `defaultTemplateFor()` + 面板「重置默认」 |
+ * | `config/settings:311-523` `_get_default_keyword_templates()` | `DEFAULT_KEYWORD_TEMPLATES`（10 项，逐字照抄） |
+ * | `advanced:235` `data_type_combo.addItems([...])` | `KEYWORD_TEMPLATE_TYPE_OPTIONS`（5 项，面板可见的类型） |
+ * | `advanced:273` `config.keyword_templates[data_type] = template_text` | `withTemplateText()` +面板「保存」 |
+ * | `advanced:279-281` `reset_template()` 读默认 | `defaultTemplateFor()` + 面板「重置默认」 |
  *
- * ## 三个**已核实**的 PyQt 事实（不是转述，是逐行读过源码的结论）
+ * ## 三个**已核实**的 旧版 事实（不是转述，是逐行读过源码的结论）
  *
  * 1. **默认模板有 10 类，但对话框只暴露 5 类**。
  *    `_get_default_keyword_templates()` 返回 skill/role/monster/equip/talent/item/
- *    task/dialog/story/achievement共 **10** 个键；而 `advanced.py:235` 的下拉框只加了
+ *    task/dialog/story/achievement共 **10** 个键；而 `advanced:235` 的下拉框只加了
  *    `["skill", "role", "monster", "equip", "item"]` **5** 项。
  *    → 本模块**两份都如实保留**：默认表10 项（重置的真相来源）、
- *      `KEYWORD_TEMPLATE_TYPE_OPTIONS` 5 项（面板下拉，对齐 PyQt UI）。
- *      其余 5 类在 PyQt 里就是**不可编辑的死数据**，这里也不给它们造入口。
- * 2. **PyQt 的「保存」只改内存，不落盘**。`advanced.py:272-273` 的注释自己都写了
+ *      `KEYWORD_TEMPLATE_TYPE_OPTIONS` 5 项（面板下拉，对齐 旧版 UI）。
+ *      其余 5 类在 旧版 里就是**不可编辑的死数据**，这里也不给它们造入口。
+ * 2. **旧版 的「保存」只改内存，不落盘**。`advanced:272-273` 的注释自己都写了
  *    「（可以后续添加保存到文件的功能）」——全仓 grep `keyword_templates` 只有
- *    `settings.py:185`（内存初始化）与 `advanced.py:273`（内存赋值），
- *    `KEYWORD_TEMPLATES_FILENAME`（`constants.py:132`）**被定义了却从无任何写入点**，
- *    且**没有任何读取方**（模板在 PyQt 里是只写不读的）。
+ *    `settings:185`（内存初始化）与 `advanced:273`（内存赋值），
+ *    `KEYWORD_TEMPLATES_FILENAME`（`constants:132`）**被定义了却从无任何写入点**，
+ *    且**没有任何读取方**（模板在 旧版 里是只写不读的）。
  *    → TS侧改为**真的落 localStorage**（`mb.keywordTemplates`），这是**修正**不是抄错。
- * 3. **PyQt 的「重置默认」只回填文本框、不保存**，用户还得再点一次「保存」才生效。
+ * 3. **旧版 的「重置默认」只回填文本框、不保存**，用户还得再点一次「保存」才生效。
  *    → 本模块保留这个语义（`defaultTemplateFor()` 是纯取值，不写状态），
  *      面板上如实写明「重置后需点保存才生效」，避免用户以为已经还原了。
  *
@@ -37,7 +37,7 @@
  * 这样纯逻辑能在 Node 下直接单测，也避免 shared 反向依赖具体存储实现。
  */
 
-/** 面板可编辑的数据类型（严格对齐 `advanced.py:235` 的 5 项，顺序一致） */
+/** 面板可编辑的数据类型（严格对齐 `advanced:235` 的 5 项，顺序一致） */
 export const KEYWORD_TEMPLATE_TYPE_OPTIONS = [
   { value: 'skill', label: '技能' },
   { value: 'role', label: '角色' },
@@ -67,10 +67,10 @@ export type KeywordTemplates = Partial<Record<KeywordTemplateKind, string>>
 export const KEYWORD_TEMPLATES_SETTING_KEY = 'mb.keywordTemplates'
 
 /**
- * 默认关键词模板 —— 逐字照抄 `config/settings.py:314-522`
+ * 默认关键词模板 —— 逐字照抄 `config/settings:314-522`
  * 的 `_get_default_keyword_templates()` 返回值（10 类）。
  *
- * 变量名（`{name}` / `{hp}` / `{tags}` …）与 JSON 字段名对齐，是 Python 侧的既有约定，
+ * 变量名（`{name}` / `{hp}` / `{tags}` …）与 JSON 字段名对齐，是 旧版 侧的既有约定，
  * 本模块**原样保留**（不做变量名校验，也不重命名）。
  *
  * ⚠️ 这些字符串是**提示词正文**，会被直接送进大模型上下文；改动会改变 AI 生成结果，
@@ -346,7 +346,7 @@ export function templateTextFor(templates: KeywordTemplates, type: string): stri
 
 /**
  * 返回「把某类型的模板改成text 后的新表」（**纯函数，不改入参**）。
- * 对齐 `advanced.py:273` 的 `config.keyword_templates[data_type] = template_text`。
+ * 对齐 `advanced:273` 的 `config.keyword_templates[data_type] = template_text`。
  */
 export function withTemplateText(templates: KeywordTemplates, type: string, text: string): KeywordTemplates {
   return { ...templates, [type]: text }

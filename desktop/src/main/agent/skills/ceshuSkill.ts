@@ -1,5 +1,5 @@
 /**
- * `system.ceshu` 内置技能（对应 Python `core/agent/skills/ceshu_skill.py` 的子集）。
+ * `system.ceshu` 内置技能（对应 旧版 `core/agent/skills/ceshu_skill` 的子集）。
  *
  * A1-1 只做只读（`list` / `get`）；**A1-5 补齐写操作**（`create` / `update`），
  * 把已有的策划书能力接进统一协议。
@@ -183,7 +183,7 @@ export function createCeshuSkill(deps: CeshuSkillDeps): SkillProtocol {
 
   /**
    * 删除策划书：与 `system.game_data.delete` 同一取向——**未带 `confirm: true` 时返回 confirm 交互**，
-   * 由 Brain 暂停询问；批准后带 `confirm: true` 重执行。（Python 的 `needs_confirm` 无消费者，属死路。）
+   * 由 Brain 暂停询问；批准后带 `confirm: true` 重执行。（旧版 的 `needs_confirm` 无消费者，属死路。）
    */
   function deleteCeshu(params: Record<string, unknown>): Promise<SkillResult> {
     return guard(async () => {

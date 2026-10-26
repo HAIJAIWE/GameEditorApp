@@ -2,8 +2,8 @@
  * 本地图片预览（数据编辑器「图片」字段用）。
  *
  * ## 为什么需要这一层
- * PyQt 的图片字段是「只读路径框 + 选择按钮 + `LazyImageLabel` 实时预览」
- * （`src/ui/widgets/dynamic_form.py::_create_image_widget`）。TS 侧不能直接照抄
+ * 旧版 的图片字段是「只读路径框 + 选择按钮 + `LazyImageLabel` 实时预览」
+ * （`src/ui/widgets/dynamic_form::_create_image_widget`）。TS 侧不能直接照抄
  * `<img src="C:\...\a.png">`：渲染层在 Electron 里是独立来源，直接引用本地文件路径
  * 会被 `webSecurity` 拦掉（打包后渲染层走自定义协议，更不可能读到任意本地路径）。
  *
@@ -14,7 +14,7 @@
 /** 预览体积上限：超过就不给 data URL，只显示路径（IPC 传输 + 渲染内存都要有界） */
 export const IMAGE_PREVIEW_MAX_BYTES = 8 * 1024 * 1024
 
-/** 扩展名 → MIME（对齐 PyQt 的 `*.png *.jpg *.jpeg *.bmp *.gif` 白名单） */
+/** 扩展名 → MIME（对齐 旧版 的 `*.png *.jpg *.jpeg *.bmp *.gif` 白名单） */
 const MIME_BY_EXTENSION: Readonly<Record<string, string>> = {
   png: 'image/png',
   jpg: 'image/jpeg',

@@ -8,8 +8,8 @@ import { launchApp, waitReady } from './helpers/app'
 /**
  * 字段 ID 生成（中文显示名 → 英文字段 ID）。
  *
- * 核心是把这个**已实证的 Python 缺陷**做成端到端回归锁：
- * Python 的 `_translate_game_terms` 把 ASCII 逐字拆开，实测 `HP上限` → `h_p_max`、`HP` → `h_p`，
+ * 核心是把这个**已实证的 旧版 缺陷**做成端到端回归锁：
+ * 旧版 的 `_translate_game_terms` 把 ASCII 逐字拆开，实测 `HP上限` → `h_p_max`、`HP` → `h_p`，
  * 连本身就是合法 ID 的 `hp_max` 都被打成 `h_p_m_a_x`。本用例断言产出的是 `hp_max`。
  *
  * 注：本沙箱 Electron 起不来（`Process failed to launch!`，既有 E2E 同样失败，属环境限制），
@@ -41,7 +41,7 @@ test('字段 ID 生成：术语表命中 / 未收录如实提示 / 重名加后�
     await lastLabel.fill('HP上限')
     await lastGenerate.click()
     await expect(lastApply).toHaveText('hp_max')
-    // 回归锁：Python 产出的是 'h_p_max'
+    // 回归锁：旧版 产出的是 'h_p_max'
     await expect(lastApply).not.toHaveText('h_p_max')
     // 未命中提示不应出现（两个词都在术语表内）
     await expect(window.locator('[data-testid^="te-id-suggest-skipped-"]')).toHaveCount(0)
@@ -52,7 +52,7 @@ test('字段 ID 生成：术语表命中 / 未收录如实提示 / 重名加后�
     await window.getByTestId('te-add-field').click()
     await lastLabel.fill('斗能')
     await lastGenerate.click()
-    // Python 实测这里会产出词典垃圾 'abbr_surname'
+    // 旧版 实测这里会产出词典垃圾 'abbr_surname'
     await expect(window.locator('[data-testid^="te-id-suggest-error-"]').last()).toContainText('未收录')
     // 未收录时不给候选（此时上一个面板已因「应用」关闭，故候选按钮应为 0）
     await expect(window.locator('[data-testid^="te-id-suggest-apply-"]')).toHaveCount(0)

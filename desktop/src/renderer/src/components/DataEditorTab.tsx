@@ -35,7 +35,7 @@ interface DataEditorTabProps {
   onAiGenerate?: (typeId: string) => void
   /**
    * 策划书给出的该类数据数量上限（由宿主用 `findCountConstraint(chapters.systems, type)` 解析）。
-   * 非空且当前条目数已达上限时，「新建」先给出确认（对齐 PyQt `data_tab._check_count_constraint`）。
+   * 非空且当前条目数已达上限时，「新建」先给出确认（对齐 旧版 `data_tab._check_count_constraint`）。
    */
   countConstraint?: CountConstraint | null
 }
@@ -57,7 +57,7 @@ const CONTEXT_MENU_HEIGHT = 122
 const CONTEXT_MENU_MARGIN = 8
 
 /**
- * 列表行长文本字段跳过集 —— 与 PyQt `data_tab._get_item_display_text` 完全一致：
+ * 列表行长文本字段跳过集 —— 与 旧版 `data_tab._get_item_display_text` 完全一致：
  * 这些是长文本 / 富结构字段，拼进行内单行只会刷屏，故只显示「ID | 名称 | 关键字段」。
  */
 const LIST_TEXT_SKIP_FIELDS: ReadonlySet<string> = new Set([
@@ -67,9 +67,9 @@ const LIST_TEXT_SKIP_FIELDS: ReadonlySet<string> = new Set([
 ])
 
 /**
- * 构造列表行单行文本，对齐 PyQt `data_tab._get_item_display_text`：
+ * 构造列表行单行文本，对齐 旧版 `data_tab._get_item_display_text`：
  * `ID | 名称 | 关键字段1 | 关键字段2`（跳过长文本字段，最多拼 4 段）。
- * ID 取业务短 id `data.id`（PyQt `generate_id` 语义：每类型 0 起步短序号；
+ * ID 取业务短 id `data.id`（旧版 `generate_id` 语义：每类型 0 起步短序号；
  * 2026-10-13 去掉了此前的「记录 uuid 前 8 位」外显——用户反馈「Id不对」），
  * 极端脏数据（data.id 缺失）才回退记录 id。完整记录 id 仍在行 title 悬停可见。
  */
@@ -89,16 +89,16 @@ function buildListRowText(item: ItemRecord, fields: readonly TypeFieldDef[]): st
 /**
  * 单数据类型编辑器（内嵌于策划书右侧预览面板的一个标签页）。
  *
- * 对齐 PyQt `ui/data_tab.py::DataEditorTab`：左侧条目列表（搜索 / 新建 / 右键菜单 / F2 重命名） +
- * 右侧条目表单。行文本为密集单行 `ID | 名称 | 关键字段`（移植 PyQt `_get_item_display_text`）；
- * 删除入口在右键菜单 + 表单底部操作栏（对齐 PyQt，行内不放删除图标）。完全自包含，
+ * 对齐 旧版 `ui/data_tab::DataEditorTab`：左侧条目列表（搜索 / 新建 / 右键菜单 / F2 重命名） +
+ * 右侧条目表单。行文本为密集单行 `ID | 名称 | 关键字段`（移植 旧版 `_get_item_display_text`）；
+ * 删除入口在右键菜单 + 表单底部操作栏（对齐 旧版，行内不放删除图标）。完全自包含，
  * 不依赖 App 状态——只消费传入的 `type` 与 `types`。
  *
- * 与 PyQt 的两处**刻意**差异（已记入 `docs/migration-audit.md`）：
- * - 重命名用行内输入框，而不是 PyQt 的 `QInputDialog` 模态框（Electron 渲染层没有 `window.prompt`）。
- * - 列表上**不**绑定 Delete 键：PyQt 的 Delete 会先弹「确定要删除这个项目吗？」再删，
+ * 与 旧版 的两处**刻意**差异（已记入 `docs/migration-audit.md`）：
+ * - 重命名用行内输入框，而不是 旧版 的 `QInputDialog` 模态框（Electron 渲染层没有 `window.prompt`）。
+ * - 列表上**不**绑定 Delete 键：旧版 的 Delete 会先弹「确定要删除这个项目吗？」再删，
  *   贸然加退格键会变成「一键误删」。但删除**入口**（右键菜单 / 表单底部「删除」钮）会先弹
- *   内联二次确认条（对齐 PyQt `_on_delete_clicked` 的确认框），确认后才真正落盘。
+ *   内联二次确认条（对齐 旧版 `_on_delete_clicked` 的确认框），确认后才真正落盘。
  */
 export default function DataEditorTab({
   type,
@@ -176,7 +176,7 @@ export default function DataEditorTab({
 
   // 选中条目滚入可视区（block:'nearest' 不打动手动滚动位置）：列表按创建顺序升序后，
   // 新建的条目沉在列表底部——不自动滚动的话条目一多（20+），新建完根本看不见新条目
-  // （对齐 PyQt setCurrentItem 的「选中即滚到位」行为）
+  // （对齐 旧版 setCurrentItem 的「选中即滚到位」行为）
   useEffect(() => {
     if (selectedId === null) return
     listRef.current?.querySelector('.item-row.selected')?.scrollIntoView({ block: 'nearest' })
@@ -216,7 +216,7 @@ export default function DataEditorTab({
 
   /**
    * 新建：命名 `${类型名} ${序号}`，创建后重载并选中新条目（对应 App.handleCreate）。
-   * 策划书给该类数据设了数量上限且已满时，先弹行内确认（对齐 PyQt `_check_count_constraint`，
+   * 策划书给该类数据设了数量上限且已满时，先弹行内确认（对齐 旧版 `_check_count_constraint`，
    * 默认取消；无策划书上下文 / 上限非法 / 未超限都直接创建）。
    */
   const handleCreate = async (): Promise<void> => {
@@ -229,7 +229,7 @@ export default function DataEditorTab({
     await doCreate()
   }
 
-  /** 请求删除：弹出二次确认（对齐 PyQt `_on_delete_clicked` 确认框——删除前先确认，避免误删） */
+  /** 请求删除：弹出二次确认（对齐 旧版 `_on_delete_clicked` 确认框——删除前先确认，避免误删） */
   const requestDelete = (id: string): void => {
     const target = items.find((entry) => entry.id === id) ?? null
     if (target === null) return
@@ -246,7 +246,7 @@ export default function DataEditorTab({
       setDeleteTarget(null)
       await reload()
       onDataChanged?.()
-      // 对齐 PyQt data_tab.py 的「删除成功」toast（原先这里删完**没有任何反馈**）
+      // 对齐 旧版 data_tab 的「删除成功」toast（原先这里删完**没有任何反馈**）
       showToast('已删除', { kind: 'success' })
     } catch (err) {
       setDeleteTarget(null)
@@ -254,7 +254,7 @@ export default function DataEditorTab({
     }
   }
 
-  /** 复制条目为独立副本（对齐 PyQt `_on_context_menu` → `_on_copy_clicked`：以列表项为准，副本不带原 id） */
+  /** 复制条目为独立副本（对齐 旧版 `_on_context_menu` → `_on_copy_clicked`：以列表项为准，副本不带原 id） */
   const handleDuplicate = async (id: string): Promise<void> => {
     const item = items.find((entry) => entry.id === id)
     if (!item) return
@@ -271,7 +271,7 @@ export default function DataEditorTab({
     }
   }
 
-  /** 进入行内重命名（对齐 PyQt F2 / 右键「重命名」：先选中该条目，再以原名预填） */
+  /** 进入行内重命名（对齐 旧版 F2 / 右键「重命名」：先选中该条目，再以原名预填） */
   const startRename = (id: string): void => {
     const item = items.find((entry) => entry.id === id)
     if (!item) return
@@ -281,7 +281,7 @@ export default function DataEditorTab({
     setRenamingId(id)
   }
 
-  /** 提交重命名：空白名视为取消（对齐 PyQt `if ok and new_name.strip()`）；落盘后重载列表并选中 */
+  /** 提交重命名：空白名视为取消（对齐 旧版 `if ok and new_name.strip()`）；落盘后重载列表并选中 */
   const commitRename = async (): Promise<void> => {
     const id = renamingId
     setRenamingId(null)
@@ -310,7 +310,7 @@ export default function DataEditorTab({
   }
 
   /**
-   * 表单复制完成：重载列表并**选中副本**（对齐 PyQt `data_tab._on_copy_clicked` 复制后定位新条目）。
+   * 表单复制完成：重载列表并**选中副本**（对齐 旧版 `data_tab._on_copy_clicked` 复制后定位新条目）。
    * ItemForm 已自行完成 createItem 落盘，这里只负责列表同步与选中。
    */
   const handleDuplicated = async (created: ItemRecord): Promise<void> => {
@@ -400,7 +400,7 @@ export default function DataEditorTab({
           <div
             className="list"
             ref={listRef}
-            // F2 重命名：焦点在列表上时才响应（对齐 PyQt 把 F2 绑在 list widget 的 WidgetShortcut）
+            // F2 重命名：焦点在列表上时才响应（对齐 旧版 把 F2 绑在 list widget 的 WidgetShortcut）
             tabIndex={0}
             data-testid="ceshu-data-list"
             onKeyDown={(event) => {
@@ -443,7 +443,7 @@ export default function DataEditorTab({
                       className="form-input rename-input"
                       data-testid="ceshu-data-rename-input"
                       value={renameDraft}
-                      // 行内重命名必须立刻可输入（对齐 PyQt QInputDialog 的模态抢焦点）
+                      // 行内重命名必须立刻可输入（对齐 旧版 QInputDialog 的模态抢焦点）
                       autoFocus
                       onClick={(event) => event.stopPropagation()}
                       onChange={(event) => setRenameDraft(event.target.value)}
@@ -509,7 +509,7 @@ export default function DataEditorTab({
           style={{ left: menu.x, top: menu.y }}
           onContextMenu={(event) => event.preventDefault()}
         >
-          {/* 菜单项与 PyQt `virtual_list.py:217-231` 一致：重命名 / 编辑 / 复制 / 删除 */}
+          {/* 菜单项与 旧版 `virtual_list:217-231` 一致：重命名 / 编辑 / 复制 / 删除 */}
           <button
             type="button"
             className="btn slim"

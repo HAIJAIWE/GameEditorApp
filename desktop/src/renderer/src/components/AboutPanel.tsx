@@ -1,7 +1,7 @@
 /**
- * 关于面板（对齐 Python `ui/main_window.py::_show_about`，菜单入口 `帮助 → 关于墨白编辑器`）。
+ * 关于面板（对齐 旧版 `ui/main_window::_show_about`，菜单入口 `帮助 → 关于墨白编辑器`）。
  *
- * PyQt 是一段 `QMessageBox.about` 的静态 HTML（标题 / 版本 / 定位 / 两行小字）。
+ * 旧版 是一段 `QMessageBox.about` 的静态 HTML（标题 / 版本 / 定位 / 两行小字）。
  * TS 侧沿用同样的文案与层次，但**版本号取真实 `app:info`**（由 `App.tsx` 传入），
  * 不硬编码 —— 硬编码的版本号必然随发布漂移。
  *
@@ -25,7 +25,7 @@ export default function AboutPanel({ version }: AboutPanelProps) {
       </div>
 
       <div className="editor-body">
-        {/* PyQt 用 <hr> 分隔正文与落款；此处用两个 changelog-entry 分块，视觉层次等价 */}
+        {/* 旧版 用 <hr> 分隔正文与落款；此处用两个 changelog-entry 分块，视觉层次等价 */}
         <div className="changelog-entry">
           <div>面向游戏开发者的数据配置与策划工具平台</div>
         </div>

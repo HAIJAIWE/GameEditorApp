@@ -251,7 +251,7 @@ export class LlmClient {
     }
   }
 
-  /** 真实连通性探测（E63，对齐 Python `api_config.py` 的「测试连接」）。
+  /** 真实连通性探测（E63，对齐 旧版 `api_config` 的「测试连接」）。
    *  不抛错：成功/失败都返回 `{ ok, message }` 供 UI 直接展示。 */
   async testConnection(options: LlmCallOptions = {}): Promise<{ ok: boolean; message: string }> {
     const config = resolveConfig(options)
@@ -344,7 +344,7 @@ export class LlmClient {
     }
 
     // 进程级限流：所有出站 LLM 调用（OpenAI 兼容 / Ollama）统一在此取令牌，
-    // 对齐 Python `common/rate_limiter.py` 的 `_acquire_rate_limit('llm', ...)`（E61）。
+    // 对齐 旧版 `common/rate_limiter` 的 `_acquire_rate_limit('llm', ...)`（E61）。
     // 放在校验闸门与 claude 拦截之后 —— 不为「未配置 / 非法 / claude 不支持」的请求浪费令牌。
     await sharedRateLimiter().acquire('llm')
 

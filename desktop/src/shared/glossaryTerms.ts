@@ -1,10 +1,10 @@
 /**
  * 游戏术语表（中文术语 → 英文字段 ID 片段）。
  *
- * 来源：Python 版 `ui\dialogs\type_editor_field_widget.py::FieldEditorWidget.GAME_TERMS_CN`（143 条），
- * 当初由 `scripts/extract_glossary.py` 以 AST 提取生成（一次生成、零转写误差）。
+ * 来源：早期版本 `ui\dialogs\type_editor_field_widget::FieldEditorWidget.GAME_TERMS_CN`（143 条），
+ * 当初由 `scripts/extract_glossary` 以 AST 提取生成（一次生成、零转写误差）。
  *
- * 📌 **2026-10-10 起 Python 版已整体移除**（commit `363f4a7`），生成脚本随 `src/` 一并退场
+ * 📌 **2026-10-10 起 早期版本已整体移除**（commit `363f4a7`），生成脚本随 `src/` 一并退场
  * ⇒ **本文件自此是唯一真源、不再可重新生成**。
  * ⇒ 需要增删术语时**直接改本文件**（原「请勿手改」的约束随之失效）。
  */

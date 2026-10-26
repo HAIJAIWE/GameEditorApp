@@ -9,12 +9,12 @@ import {
 import type { DataTypeDef } from '../../../shared/types'
 
 /**
- * 快速创建面板（对应 Python `ui/dialogs/quick_create.py::QuickCreateDialog`）：
+ * 快速创建面板（对应 旧版 `ui/dialogs/quick_create::QuickCreateDialog`）：
  * 选数据类型 → 卡片网格选模板 → 「创建」把模板 defaults 作为初始字段值新建条目。
  *
- * 与 Python 的**刻意差异**（不复制 bug）：Python `_on_create` 里
+ * 与 旧版 的**刻意差异**（不复制 bug）：旧版 `_on_create` 里
  * `plural = get_type_schema(); data_type + "s"` 那段拼接结果被丢弃、循环 `break` 也无效，
- * 属死代码，本实现不复制；id 由主进程 `DataService.createItem` 生成（Python 是 `generate_id`）。
+ * 属死代码，本实现不复制；id 由主进程 `DataService.createItem` 生成（旧版 是 `generate_id`）。
  *
  * 模板是静态数据（`shared/quickCreate.ts`），故**不新增 IPC**；落库复用既有 `data:createItem`。
  */
@@ -29,7 +29,7 @@ interface QuickCreatePanelProps {
 }
 
 export default function QuickCreatePanel({ type, types, onCreated, onClose }: QuickCreatePanelProps) {
-  // 只列 schema 里存在且有模板的类型（对齐 Python 从 get_type_schema() 取类型）
+  // 只列 schema 里存在且有模板的类型（对齐 旧版 从 get_type_schema() 取类型）
   const selectableTypes = filterQuickCreateTypes(types.map((def) => def.id))
   const [activeType, setActiveType] = useState(() =>
     selectableTypes.includes(type) ? type : (selectableTypes[0] ?? '')

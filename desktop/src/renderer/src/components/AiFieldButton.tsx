@@ -1,16 +1,16 @@
 /**
- * 表单旁的「AI 帮我填」按钮（迁移自 Python `ui/ceshu/ai_field_button.py::AIFieldButton`，78 行）。
+ * 表单旁的「AI 帮我填」按钮（迁移自 旧版 `ui/ceshu/ai_field_button::AIFieldButton`，78 行）。
  *
- * ## 对齐 Python 的两个行为（都是防呆，不是装饰）
- * 1. **防重入**：busy 时点击直接忽略（`Python: if self._busy: return`），
+ * ## 对齐 旧版 的两个行为（都是防呆，不是装饰）
+ * 1. **防重入**：busy 时点击直接忽略（`旧版: if self._busy: return`），
  *    否则连点会并发发出多次 LLM 请求（每次都烧 token）。
- * 2. **60 秒安全兜底**：Python 用 `QTimer.singleShot(60_000)` 在到点时强制解除 busy。
+ * 2. **60 秒安全兜底**：旧版 用 `QTimer.singleShot(60_000)` 在到点时强制解除 busy。
  *    ⚠️ 这不是"优化"而是**必需**：若上层回调因异常未落地（IPC 挂住 / 抛错没接住），
  *    按钮会**永久禁用**，用户除了重启应用别无他法。
  *
- * ## 有意偏离（Python → TS）
+ * ## 有意偏离（旧版 → TS）
  * - 状态**由父组件持有**（`busy` 是 prop），本组件是纯展示件。
- *   Python 把 `_busy` 存在按钮自己身上、由外部调用 `set_busy(False)` 复位；
+ *   旧版 把 `_busy` 存在按钮自己身上、由外部调用 `set_busy(False)` 复位；
  *   React 里"谁发起请求谁持有状态"更不容易漏复位（对齐 `gameStyle.ts` 的无模块级可变状态约定）。
  *   ⇒ 60 秒兜底随之**上移到发起方**（`ChapterForm`），见那里的 `AI_FIELD_SAFETY_MS`。
  * - 尺寸/配色交给 CSS（`.ai-field-btn`），不内联样式（对齐项目既有做法）。
@@ -43,7 +43,7 @@ export function AiFieldButton({ busy, onFill, fieldLabel, disabled = false, disa
       data-busy={busy ? 'true' : 'false'}
       data-disabled={disabled ? 'true' : 'false'}
       disabled={blocked}
-      // 中文文案与 Python 保持一致（"AI帮我填" / "AI生成中，请稍候..."）
+      // 中文文案与 旧版 保持一致（"AI帮我填" / "AI生成中，请稍候..."）
       title={title}
       aria-label={title}
       onClick={() => {

@@ -11,11 +11,11 @@ import { describe, expect, it } from 'vitest'
  * 1) ollama 客户端接口形态（服务未启动时为可预期的连接错误，不阻塞本地开发）；
  * 2) 本地向量检索闭环：确定性轻量嵌入 → vectra 索引 → 查询 → 落盘重载。
  *
- * 嵌入函数为 Python 版纯哈希 n-gram 嵌入器的 TS 预览实现（无外部依赖、无需服务端），
+ * 嵌入函数为 早期版本纯哈希 n-gram 嵌入器的 TS 预览实现（无外部依赖、无需服务端），
  * 替代 chromadb 的选型依据见预演报告。
  */
 
-/** 32 维确定性字符 n-gram 哈希嵌入（预览版，等价迁移自 Python memory_embedder） */
+/** 32 维确定性字符 n-gram 哈希嵌入（预览版，等价迁移自 旧版 memory_embedder） */
 function embedText(text: string, dims = 32): number[] {
   const vector = new Array<number>(dims).fill(0)
   const normalized = text.toLowerCase()

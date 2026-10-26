@@ -12,12 +12,12 @@ import {
 } from '../../src/shared/util/rateLimiter'
 
 /**
- * 令牌桶限流器测试（移植自 Python `common/rate_limiter.py`）。
+ * 令牌桶限流器测试（移植自 旧版 `common/rate_limiter`）。
  *
  * 用**假时钟 + 假休眠器**做确定性断言：休眠器每次被调用就把时钟往前推，
  * 这样 `waitAndAcquire` 的轮询循环可预测、不依赖真实计时。
  *
- * 重点锁死两个**极易写错**的 Python 语义（写错了不红、但行为悄悄变）：
+ * 重点锁死两个**极易写错**的 旧版 语义（写错了不红、但行为悄悄变）：
  *  1. `available()` 只读、不改内部状态（写回会让反复读取白嫖令牌）；
  *  2. `waitAndAcquire` 先判 deadline 再取令牌 ⇒ `timeout=0` 时有令牌也返回 false。
  */
@@ -49,7 +49,7 @@ function setup(options: { rate?: number; burst?: number } = {}) {
   return { clock, sleeper, bucket }
 }
 
-describe('令牌桶：基础语义（对齐 Python TokenBucket）', () => {
+describe('令牌桶：基础语义（对齐 旧版 TokenBucket）', () => {
   it('初始令牌 = burst（满桶起步，不是 0）', () => {
     const { bucket } = setup({ rate: 1, burst: 5 })
     expect(bucket.available()).toBe(5)
@@ -95,14 +95,14 @@ describe('令牌桶：基础语义（对齐 Python TokenBucket）', () => {
     expect(bucket.acquire(1)).toBe(false)
   })
 
-  it('tokens=0 的请求恒为 true（对齐 Python `self._tokens >= 0`）', () => {
+  it('tokens=0 的请求恒为 true（对齐 旧版 `self._tokens >= 0`）', () => {
     const { bucket } = setup({ rate: 1, burst: 1 })
     bucket.acquire(1) // 抽干
     expect(bucket.acquire(0)).toBe(true)
   })
 })
 
-describe('令牌桶：waitAndAcquire（异步等待，对齐 Python 阻塞版）', () => {
+describe('令牌桶：waitAndAcquire（异步等待，对齐 旧版 阻塞版）', () => {
   it('令牌不足时轮询等待，补够后成功返回', async () => {
     const { clock, sleeper, bucket } = setup({ rate: 1, burst: 1 })
     bucket.acquire(1) // 抽干
@@ -113,7 +113,7 @@ describe('令牌桶：waitAndAcquire（异步等待，对齐 Python 阻塞版）
     // 每秒补 1 个、每次轮询 100ms ⇒ 理论上第 10 次（1000ms）拿到令牌。
     // ⚠️ 但增量补桶是浮点累加：本假时钟按整数 100ms 步进 ⇒ 每次补桶增量恒为 0.1，
     // 十个 0.1 相加是 0.9999… < 1，会多走一轮（实测 1100ms）。
-    // Python 同为增量补桶（已用 .venv 探针核过），属算法固有 ⇒ 按区间断言，不硬钉 1000。
+    // 旧版 同为增量补桶（已用 .venv 探针核过），属算法固有 ⇒ 按区间断言，不硬钉 1000。
     expect(clock.t).toBeGreaterThanOrEqual(1000)
     expect(clock.t).toBeLessThanOrEqual(1100)
     expect(sleeper.calls.length).toBeGreaterThanOrEqual(10)
@@ -133,7 +133,7 @@ describe('令牌桶：waitAndAcquire（异步等待，对齐 Python 阻塞版）
     expect(sleeper.calls).toEqual([100, 50])
   })
 
-  it('🟢 timeout=0 时即使桶里有令牌也返回 false（对齐 Python `while now < deadline`）', async () => {
+  it('🟢 timeout=0 时即使桶里有令牌也返回 false（对齐 旧版 `while now < deadline`）', async () => {
     const { sleeper, bucket } = setup({ rate: 1, burst: 5 })
     expect(bucket.available()).toBe(5) // 令牌充足
 
@@ -151,8 +151,8 @@ describe('令牌桶：waitAndAcquire（异步等待，对齐 Python 阻塞版）
   })
 })
 
-describe('RateLimiter 多桶管理器（对齐 Python RateLimiter）', () => {
-  it('内置 4 个桶的参数与 Python 一致', () => {
+describe('RateLimiter 多桶管理器（对齐 旧版 RateLimiter）', () => {
+  it('内置 4 个桶的参数与 旧版 一致', () => {
     expect(DEFAULT_BUCKET_LIMITS).toEqual({
       llm: { rate: 3, burst: 5 },
       stream: { rate: 5, burst: 8 },
@@ -185,7 +185,7 @@ describe('RateLimiter 多桶管理器（对齐 Python RateLimiter）', () => {
     expect(bucket.available()).toBe(FALLBACK_RATE)
   })
 
-  it('getBucket 对同一名字返回同一个桶实例（与 Python dict 语义一致）', () => {
+  it('getBucket 对同一名字返回同一个桶实例（与 旧版 dict 语义一致）', () => {
     const limiter = new RateLimiter(new FakeClock())
     expect(limiter.getBucket('llm')).toBe(limiter.getBucket('llm'))
   })

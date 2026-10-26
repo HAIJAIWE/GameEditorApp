@@ -4,11 +4,11 @@ import { isPlainObject } from './ceshuModel'
 import { CHAPTER_SCHEMAS } from './ceshuSchema'
 
 /**
- * 章节模板库纯逻辑（自 Python `ui/ceshu/chapter_templates.py` + `template_picker_dialog.py` 匹平迁移）：
+ * 章节模板库纯逻辑（自 旧版 `ui/ceshu/chapter_templates` + `template_picker_dialog` 匹平迁移）：
  * - 内置模板查询：按章列表 / 跨章搜索 / 按名取用 / 每章数量统计
  * - 合并策略三模式：仅填充空字段（`merge_template_to_chapter`）/ 覆盖 / 追加（`_merge_data`）
  * - 模板预览树（`_render_data_html` 的结构等价表达，渲染层负责样式）
- * 数据本体见各章 schema 的 `templates`（由 Python 数据池机械转换，已并入 ceshuSchema/<章>.ts）。
+ * 数据本体见各章 schema 的 `templates`（由 旧版 数据池机械转换，已并入 ceshuSchema/<章>.ts）。
  */
 
 /** 章节模板池：每章模板来自对应 schema 的 `templates`（story 已合并 worldview+characters，P2 七章为 []）。 */
@@ -31,7 +31,7 @@ export interface ChapterTemplate {
 
 export type TemplateApplyMode = 'fillEmpty' | 'overwrite' | 'append'
 
-/** 应用模式顺序与文案（与 Python ApplyMode + 下拉项文案一致） */
+/** 应用模式顺序与文案（与 旧版 ApplyMode + 下拉项文案一致） */
 export const TEMPLATE_APPLY_MODES: TemplateApplyMode[] = ['fillEmpty', 'overwrite', 'append']
 
 export const TEMPLATE_APPLY_MODE_LABELS: Record<TemplateApplyMode, string> = {
@@ -47,7 +47,7 @@ export const TEMPLATE_APPLY_MODE_SHORT_LABELS: Record<TemplateApplyMode, string>
   append: '追加到字段末尾'
 }
 
-/** 无数据模板的兜底提示（对应 Python `tpl.get("note", "此章节无模板数据")`） */
+/** 无数据模板的兜底提示（对应 旧版 `tpl.get("note", "此章节无模板数据")`） */
 export const TEMPLATE_NO_DATA_HINT = '(此章节无模板数据)'
 
 /** 跨章搜索结果项（保留章节归属，供列表展示） */
@@ -85,7 +85,7 @@ export function chapterTemplateMatches(template: ChapterTemplate, lowerKeyword: 
 }
 
 /**
- * 按章节 + 关键词筛选（对应 Python `_load_templates`）：
+ * 按章节 + 关键词筛选（对应 旧版 `_load_templates`）：
  * 指定章节且无关键词 → 直接取该章列表；否则先全局搜索再按章节过滤。
  */
 export function filterChapterTemplates(chapterKey: string, keyword: string): ChapterTemplateHit[] {
@@ -116,13 +116,13 @@ export function countChapterTemplates(): number {
   return Object.values(CHAPTER_TEMPLATES).reduce((sum, templates) => sum + templates.length, 0)
 }
 
-/** 章节中文标签（未知键原样返回，对应 Python CHAPTER_LABELS.get(key, key)） */
+/** 章节中文标签（未知键原样返回，对应 旧版 CHAPTER_LABELS.get(key, key)） */
 export function templateChapterLabel(chapterKey: string): string {
   return CHAPTER_LABELS[chapterKey as ChapterKey] ?? chapterKey
 }
 
 /**
- * 字段是否视为「空」（对应 Python `_is_empty_field`，即 `value in (None, "", [], {})`）：
+ * 字段是否视为「空」（对应 旧版 `_is_empty_field`，即 `value in (None, "", [], {})`）：
  * 数值 0 与布尔 false 是有效值，**不**视为空。
  */
 export function isTemplateEmptyField(value: unknown): boolean {
@@ -133,7 +133,7 @@ export function isTemplateEmptyField(value: unknown): boolean {
 }
 
 /**
- * 把模板数据合并到章节数据（对应 Python `merge_template_to_chapter`）：
+ * 把模板数据合并到章节数据（对应 旧版 `merge_template_to_chapter`）：
  * overwrite=true 直接覆盖同名字段；false 仅填充空字段。返回新对象，不改原数据。
  */
 export function mergeTemplateToChapter(
@@ -152,7 +152,7 @@ export function mergeTemplateToChapter(
 }
 
 /**
- * 按应用模式合并（对应 Python `TemplatePickerDialog._merge_data`）：
+ * 按应用模式合并（对应 旧版 `TemplatePickerDialog._merge_data`）：
  * - overwrite：模板字段优先，保留现有非模板字段
  * - append：文本字段追加（换行分隔）；现有为空则直接填入；非文本字段保留现有
  * - fillEmpty：仅填充空字段
@@ -207,7 +207,7 @@ export interface TemplatePreviewRow {
   path: string
 }
 
-/** 模板数据的层级预览行（对应 Python `_render_data_html` 的遍历顺序与结构） */
+/** 模板数据的层级预览行（对应 旧版 `_render_data_html` 的遍历顺序与结构） */
 export function buildTemplatePreview(data: unknown): TemplatePreviewRow[] {
   const rows: TemplatePreviewRow[] = []
   appendTemplatePreview(rows, data, 0, '')

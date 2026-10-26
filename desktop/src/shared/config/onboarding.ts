@@ -1,19 +1,19 @@
 /**
- * 快速入门（引导式主页）纯逻辑 —— 迁移自 Python `ui/widgets/home_widget.py`（604 行）。
+ * 快速入门（引导式主页）纯逻辑 —— 迁移自 旧版 `ui/widgets/home_widget`（604 行）。
  *
  * ## 为什么单独成模块（零 React / 零 fs，可 Node 单测）
- * Python 的 `HomeWidget` 把「5 步引导 + 6 张快捷操作卡 + 数据概览卡」写死在一个 QWidget 里，
+ * 旧版 的 `HomeWidget` 把「5 步引导 + 6 张快捷操作卡 + 数据概览卡」写死在一个 QWidget 里，
  * 引导完成度存一份 JSON 配置文件。TS 侧把**常量 + 状态读写 + 派生量**抽到 `shared/`，
  * 渲染组件（`OnboardingPanel.tsx`）只负责画卡片与派发动作 —— 这样引导逻辑能被单测覆盖。
  *
- * ## 与 Python 的一致性
- * - `ONBOARDING_STEPS` / `QUICK_ACTIONS` 逐项照搬 Python 常量（含 emoji、顺序、id、data_type）。
- * - 持久化三个键 `{collapsed, dismissed, completed}` 对齐 Python `_load_state` / `_save_state`，
+ * ## 与 旧版 的一致性
+ * - `ONBOARDING_STEPS` / `QUICK_ACTIONS` 逐项照搬 旧版 常量（含 emoji、顺序、id、data_type）。
+ * - 持久化三个键 `{collapsed, dismissed, completed}` 对齐 旧版 `_load_state` / `_save_state`，
  *   此处经 `shared/settingsStore`（键 `mb.onboarding`）落 localStorage。
- * - `STEPS_PER_ROW` / `STATS_PER_ROW` 与 Python 同名常量一致。
+ * - `STEPS_PER_ROW` / `STATS_PER_ROW` 与 旧版 同名常量一致。
  *
- * ## 与 Python 的一处**有意差异**（更稳，不改语义）
- * Python `_load_state` 遇到坏 JSON 只记 warning 后整体回退默认；此处用 `readJsonSetting`
+ * ## 与 旧版 的一处**有意差异**（更稳，不改语义）
+ * 旧版 `_load_state` 遇到坏 JSON 只记 warning 后整体回退默认；此处用 `readJsonSetting`
  * 兜底后**逐字段校验**（布尔强制、`completed` 过滤到合法下标、去重、升序），
  * 使半损坏的状态也能安全恢复，而不是整块丢弃。
  */
@@ -38,7 +38,7 @@ export interface QuickAction {
   readonly dataType: string | null
 }
 
-/** 引导区持久化状态（对齐 Python `_load_state` 的三个键） */
+/** 引导区持久化状态（对齐 旧版 `_load_state` 的三个键） */
 export interface OnboardingState {
   /** 卡片区是否折叠（仅折叠卡片，标题行始终可见） */
   collapsed: boolean
@@ -48,7 +48,7 @@ export interface OnboardingState {
   completed: number[]
 }
 
-/** 5 步引导（id / emoji / 标题 / 说明逐项对齐 Python `ONBOARDING_STEPS`） */
+/** 5 步引导（id / emoji / 标题 / 说明逐项对齐 旧版 `ONBOARDING_STEPS`） */
 export const ONBOARDING_STEPS: readonly OnboardingStep[] = [
   { id: 'onboarding_library', icon: '📁', title: '创建游戏库', desc: '管理你的游戏项目，每个库独立配置数据结构和类型' },
   { id: 'onboarding_types', icon: '📋', title: '定义数据类型', desc: '配置角色、技能、装备等数据类型的字段结构' },
@@ -57,7 +57,7 @@ export const ONBOARDING_STEPS: readonly OnboardingStep[] = [
   { id: 'onboarding_ai', icon: '🤖', title: 'AI 辅助', desc: '使用 AI 生成数据、分析数值平衡' }
 ]
 
-/** 6 张快捷操作卡（id / label / icon / desc / dataType 逐项对齐 Python `QUICK_ACTIONS`） */
+/** 6 张快捷操作卡（id / label / icon / desc / dataType 逐项对齐 旧版 `QUICK_ACTIONS`） */
 export const QUICK_ACTIONS: readonly QuickAction[] = [
   { id: 'create_role', label: '创建角色', icon: '⚔️', desc: '设计一个新的游戏角色', dataType: 'role' },
   { id: 'create_monster', label: '创建怪物', icon: '👹', desc: '设计一个新的敌人', dataType: 'monster' },
@@ -70,10 +70,10 @@ export const QUICK_ACTIONS: readonly QuickAction[] = [
 /** 渲染层设置键（登记在 `settingsStore.SETTINGS_KEYS` 里，纳入导出/重置可预期） */
 export const ONBOARDING_STORAGE_KEY = 'mb.onboarding'
 
-/** 引导卡片每行数量（对齐 Python `STEPS_PER_ROW`） */
+/** 引导卡片每行数量（对齐 旧版 `STEPS_PER_ROW`） */
 export const STEPS_PER_ROW = 3
 
-/** 数据概览卡每行数量（对齐 Python `STATS_PER_ROW`） */
+/** 数据概览卡每行数量（对齐 旧版 `STATS_PER_ROW`） */
 export const STATS_PER_ROW = 4
 
 /** 默认（未开始）状态 */
@@ -125,7 +125,7 @@ function completedCount(state: OnboardingState): number {
   return normalizeCompleted(state.completed).length
 }
 
-/** 进度文案，如 `"2/5 已完成"`（对齐 Python `f"{completed_count}/{total} 已完成"`） */
+/** 进度文案，如 `"2/5 已完成"`（对齐 旧版 `f"{completed_count}/{total} 已完成"`） */
 export function progressLabel(state: OnboardingState): string {
   return `${completedCount(state)}/${ONBOARDING_STEPS.length} 已完成`
 }

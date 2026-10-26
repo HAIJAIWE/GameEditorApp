@@ -2,11 +2,11 @@
  * 敏感配置（API Key）存储层 —— 用 Electron `safeStorage` 加密，落到 userData。
  *
  * ## 为什么需要它（这是一次安全性退步的修复）
- * Python `config/settings.py` 用 **Fernet 加密**存 3 个 API Key（密钥在
+ * 旧版 `config/settings` 用 **Fernet 加密**存 3 个 API Key（密钥在
  * `~/.mb_kshbjq/.fernet_key`）。TS 侧迁移时 E22 把生图的 apiKey 直接放进了
  * **localStorage 明文**（`mb.imageGenConfig`）——localStorage 任何读得到
  * `window.localStorage` 的代码（含渲染层全部 JS、XSS、用户 DevTools）都能拿到。
- * 那是**相对 Python 的明确退步**，本模块修掉它。
+ * 那是**相对 旧版 的明确退步**，本模块修掉它。
  *
  * ## 正确姿势：渲染层永远拿不到明文
  * 渲染层是 `sandbox: true` + `contextIsolation: true`，**无法访问 safeStorage**

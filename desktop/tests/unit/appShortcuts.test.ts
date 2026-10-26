@@ -12,7 +12,7 @@ import { APP_SHORTCUTS } from '../../src/shared/util/shortcuts'
  * `src/shared/util/shortcuts.ts` 是一份**手写清单**，而真正的注册在
  * `src/renderer/src/App.tsx` 的 keydown handler 里。两处各写各的，迟早漂移：
  * - 有人加了新快捷键但忘了更新面板 → 面板漏了一个键（用户按了没反应也不知道去哪看）；
- * - 有人把面板里的键抄成 PyQt 的 35 条 → 32 个「按了没反应」的键被当承诺做广告。
+ * - 有人把面板里的键抄成 旧版 的 35 条 → 32 个「按了没反应」的键被当承诺做广告。
  *
  * 本测试做**双向**校验（读源码文本的轻量一致性检查，不做 AST 解析——
  *  `App.tsx` 的 handler 结构简单，文本匹配足够且不会因格式变动而脆）：
@@ -105,9 +105,9 @@ describe('快捷键清单（shared/util/shortcuts.ts）', () => {
     ).toEqual([])
   })
 
-  it('不含 PyQt 独有、TS 未注册的键（不得照抄 shortcuts.py 的 35 条）', () => {
+  it('不含 旧版 独有、TS 未注册的键（不得照抄 shortcuts 的 35 条）', () => {
     const keys = APP_SHORTCUTS.map((s) => s.keys)
-    // 逐个点名 PyQt DEFAULT_SHORTCUTS 里最容易被误抄、且 TS 侧确无实现的键
+    // 逐个点名 旧版 DEFAULT_SHORTCUTS 里最容易被误抄、且 TS 侧确无实现的键
     const pyOnlyKeys = [
       'Ctrl+S', // 整文档保存（TS 刻意不做）
       'Ctrl+O', // 打开文件（TS 的「打开」走菜单，无全局键）
@@ -147,7 +147,7 @@ describe('快捷键清单（shared/util/shortcuts.ts）', () => {
     }
   })
 
-  it('不含 Escape（属交互键「关闭浮层」，不是命令键，PyQt 表里也没有）', () => {
+  it('不含 Escape（属交互键「关闭浮层」，不是命令键，旧版 表里也没有）', () => {
     expect(APP_SHORTCUTS.map((s) => s.keys)).not.toContain('Escape')
   })
 

@@ -2,19 +2,19 @@ import type { ItemRecord } from '../types'
 import { isPlainObject } from './guards'
 
 /**
- * 通用递归 JSON diff 引擎（迁移自 Python `src/common/data_diff.py`，
- * 唯一消费者是 `src/ui/dialogs/data_diff_dialog.py`）。
+ * 通用递归 JSON diff 引擎（迁移自 旧版 `src/common/data_diff`，
+ * 唯一消费者是 `src/ui/dialogs/data_diff_dialog`）。
  *
- * **刻意偏离 Python 之处（修 bug，不照抄）**：
- * 1. Python 的对话框执行 `DataDiff.compare({}, {...})` —— 拿空 dict 与当前数据比，
+ * **刻意偏离 旧版 之处（修 bug，不照抄）**：
+ * 1. 旧版 的对话框执行 `DataDiff.compare({}, {...})` —— 拿空 dict 与当前数据比，
  *    永远只输出「全部新增」。本引擎不做这种假对比，而是真正双侧比较。
- * 2. Python 的 `_compare_list` 对 list 元素**不递归**，只要下标位置相等就整块
+ * 2. 旧版 的 `_compare_list` 对 list 元素**不递归**，只要下标位置相等就整块
  *    标成 MODIFIED（缺陷 C）。本引擎对数组元素中的对象/数组继续递归。
- * 3. Python 的 `compare_items_by_id` 新增/删除条目时只塞 `name` 一个标量
+ * 3. 旧版 的 `compare_items_by_id` 新增/删除条目时只塞 `name` 一个标量
  *    （缺陷 D）。本引擎携带该条目的 `data` 全量。
- * 4. Python 有一个从不产出的 `UNCHANGED` 死枚举，不复刻——无变化即不产出条目。
+ * 4. 旧版 有一个从不产出的 `UNCHANGED` 死枚举，不复刻——无变化即不产出条目。
  *
- * 已知局限：数组按**下标**对齐（与 Python 一致），插入/删除会连带后续元素错位。
+ * 已知局限：数组按**下标**对齐（与 旧版 一致），插入/删除会连带后续元素错位。
  */
 
 export type ItemDiffType = 'added' | 'removed' | 'modified'
@@ -68,7 +68,7 @@ function diffObjects(
   path: string
 ): DiffEntry[] {
   const entries: DiffEntry[] = []
-  // key 并集 + 排序遍历，保证输出稳定（对齐 Python 的 sorted(all_keys)）
+  // key 并集 + 排序遍历，保证输出稳定（对齐 旧版 的 sorted(all_keys)）
   const keys = Array.from(new Set([...Object.keys(oldObj), ...Object.keys(newObj)])).sort()
 
   for (const key of keys) {

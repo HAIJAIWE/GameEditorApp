@@ -52,17 +52,17 @@
 > - **v1.2 → v1.3**（本次会话）：落地 **M2 提示词瘦身（G7 + DD-6）**。
 >   **DD-6（提示词预算门）**：`shared/agent/prompts.ts` 新增 `PROMPT_CORE_MAX_LINES = 30`（**两档同源闸**：本地=硬闸 / 云端=目标）+ 纯函数 `countPromptLines`/`checkPromptBudget`（**返回结果不抛异常**，供断言与观测）；核心区（身份 + 规则，不含工具目录/记忆）实测 ≤30 行。
 >   **G7（渐进披露）**：`shared/agent/protocol.ts` 新增 `getToolCatalogLine`（`- {id}: {摘要}`，折叠空白、超长截断到 `TOOL_CATALOG_SUMMARY_MAX_CHARS=60`）；`SkillDispatcher` 新增 `toolCatalog()`（每工具一行）；`brainService` 的 `## 可用工具` 由**逐参数全量 dump** 改为**紧凑目录**——参数改由 function-calling 的 `tools` JSON Schema 随请求下发，文本里重复既冗余又触发本地 4B 的「提示词冗长税」（§4.1 实测 1：>30 行 ⇒ 完全不用工具）。全量多行版 `toolsDescription()` **保留**（`agent:listTools` 的 UI 编辑器在用）。
->   ⚠️ **口径纠正（重要）**：路线图原文写「`identity.md` ≤30 行断言；`CAPABILITIES.md` 改渐进披露」，但**实测 TS 侧根本不读这两个工作区文件**——身份是 `prompts.ts::DEFAULT_IDENTITY` 内置常量（persona/identity 文件读取属 A1-3/A1-5 未移植项），能力面来自运行时 `SkillDispatcher`（已注册 5 个工具），而 `data/libraries/default/.workspace/memory/capabilities/CAPABILITIES.md` 是 **Python 时代 35 条扁平清单**（其中绝大多数在 TS 侧不存在）**且无消费者**。⇒ 按「拒绝死代码」铁律，M2 **不编辑该 `.md`**，而是把 G7/DD-6 落在**真实提示词路径**（`prompts.ts` + `protocol.ts` + `dispatcher.ts`）上。工作区文件的接通（让 identity.md 成为可编辑的身份载体）作为独立项留待后续。
+>   ⚠️ **口径纠正（重要）**：路线图原文写「`identity.md` ≤30 行断言；`CAPABILITIES.md` 改渐进披露」，但**实测 TS 侧根本不读这两个工作区文件**——身份是 `prompts.ts::DEFAULT_IDENTITY` 内置常量（persona/identity 文件读取属 A1-3/A1-5 未移植项），能力面来自运行时 `SkillDispatcher`（已注册 5 个工具），而 `data/libraries/default/.workspace/memory/capabilities/CAPABILITIES.md` 是 **旧版 时代 35 条扁平清单**（其中绝大多数在 TS 侧不存在）**且无消费者**。⇒ 按「拒绝死代码」铁律，M2 **不编辑该 `.md`**，而是把 G7/DD-6 落在**真实提示词路径**（`prompts.ts` + `protocol.ts` + `dispatcher.ts`）上。工作区文件的接通（让 identity.md 成为可编辑的身份载体）作为独立项留待后续。
 >   ⚠️ **范围判定**：M2 只做**提示词文本瘦身 + 预算门**；工具面的**分组/按档位限量**属 M3（DD-3）。M2 出口第 3 条「8 类典型请求工具调用成功率 ≥80%」是**活模型评测**（本沙箱跑不了模型）⇒ 本版以**确定性等价物**落地：8 类典型请求 → 期望工具 id 的覆盖断言（防过度瘦身丢工具），真·成功率留 e2e/手测。
 >   ⇒ 单测：新增 `agentPrompts.test.ts`（10 例：预算门 / 核心 ≤30 行 / 目录单行不含参数 / 8 类覆盖）；`agentProtocol.test.ts` +1（`getToolCatalogLine`）、`agentDispatcher.test.ts` +1（`toolCatalog` 与全量版分工）。vitest 全量 **126 文件 / 1961 用例 passed**（原 125/1949 + 1 文件 + 12 例）；tsc 0（node+web）+ eslint 0 + CSS 审计（仅 5 处已知模板噪声）+ `npm run build` 通过（CSS 110.48 kB，本版无 CSS 改动）。
 > - **v1.3 → v1.4**（本次会话）：落地 **M2.5 步数预算（DD-15）**。核心是**把模型的 N 次单条调用压成 1 次**（smolagents：CodeAgent 比「工具调用字典」少 30% 步数 ⇒ 本地省上下文、云端省钱）。
 >   **协议层"批量动作"语义 + 复合动作**：`main/agent/skills/gameDataSkill.ts` 新增两个动作——**`batch_create`**（一次调用建多条，`items` 数组，重名跳过）与 **`batch_update`**（按 `names` 精确 / `keyword` 子串选中 N 条后批量改字段；`mode` ∈ set/add/multiply/append，数值走 `adjust_number`、文本走 `set_value`）。两者复用既有 `DataService` 基元（`createItem` / 整批一次写队列的 `batchUpdate`），**不新增工具**（保持工具面 5 个，尊重 G2）——DD-15 处置原文即「协议层批量动作语义 + 复合工具」，本版落在**批量动作**上。
->   ⚠️ **数值类型语义**：`batch_update` 复用 `shared/dataTableOps::applyBatchOp`，其数值写回为**文本**（与 Python `str(int(v))` 及 UI 批量编辑面板一致）——**应与单条 `update` 的类型保真区分**，是既有语义不是本次引入。
+>   ⚠️ **数值类型语义**：`batch_update` 复用 `shared/dataTableOps::applyBatchOp`，其数值写回为**文本**（与 旧版 `str(int(v))` 及 UI 批量编辑面板一致）——**应与单条 `update` 的类型保真区分**，是既有语义不是本次引入。
 >   ⚠️ **范围判定**：DD-20 的「**重命名类型 → 全库引用同步**」跨域复合工具**本版未做**——`TypeSchemaStore` 无 rename、`dataRef` 仅是解析器，做它需要「schema 改名 + items.type 迁移 + 全部策划书 `@data[...]` 重写」的多库事务，属独立决策。M2.5 出口「步数下降 ≥20%」是**活模型度量**（沙箱无模型）⇒ 以**确定性机制断言**替代：一次 `skill.execute` 完成 N 条（库里真的多出/改动 N 行）。
 >   ⚠️ **本次会话遇到文档静默回退（同型第二次）**：M2 提交（`8064f26`）后，工作树 `agent-framework-design.md` 被**外部覆写**回 v1.2 快照且**行尾被弄坏**（`>` 空行被吞并与上一行拼接）；同会话的 M2 源文件与 HEAD 一致、未受影响。已按铁律备份 `/tmp/doc_corrupted_1611.md` 并 `git checkout HEAD --` 还原（v1.3，731 行）后再做增量。**git 是防回退的保险绳**，此处再次生效。
 >   ⇒ 单测：`agentSkills.test.ts` +5（`batch_create` 多建/重名跳过/参数错；`batch_update` names 选中 / keyword+add / 无选择器·无匹配·缺 field），并把 `makeDataService` 补 `batchUpdate`（内存版走真 `applyBatchOp`）。vitest 全量 **126 文件 / 1966 用例 passed**（+5）；tsc 0（node+web）+ eslint 0 + CSS 审计（仅 5 处已知模板噪声）+ `npm run build` 通过。
 > - **v1.4 → v1.5**（本次会话）：落地 **M3 工具面与路由（G2 + DD-3/DD-4）**——路线图**最后一期**。
->   **DD-3（协议层分组 + 按档位限量）**：新增纯模块 `shared/agent/toolGroups.ts`——按**三个真实场景**分组（数据编辑 / 策划书创作 / 系统与协作，不照搬 Python 的 12 个 `system.*` 槽位）、`TOOL_GROUP_MAP`（工具 id → 分组，**必须覆盖全部已注册工具**，有守卫测试）、`TOOL_FACE_LIMITS`（本地 ≤8 / 云端 ≤15）、`buildToolFace(skills, tier, explicitIds?)`（按档位裁剪 + 分组目录 + `truncated` 标记）。目录文本每工具**一行摘要**（复用 M2 的 `getToolCatalogLine`），参数仍由 function-calling schema 下发。
+>   **DD-3（协议层分组 + 按档位限量）**：新增纯模块 `shared/agent/toolGroups.ts`——按**三个真实场景**分组（数据编辑 / 策划书创作 / 系统与协作，不照搬 旧版 的 12 个 `system.*` 槽位）、`TOOL_GROUP_MAP`（工具 id → 分组，**必须覆盖全部已注册工具**，有守卫测试）、`TOOL_FACE_LIMITS`（本地 ≤8 / 云端 ≤15）、`buildToolFace(skills, tier, explicitIds?)`（按档位裁剪 + 分组目录 + `truncated` 标记）。目录文本每工具**一行摘要**（复用 M2 的 `getToolCatalogLine`），参数仍由 function-calling schema 下发。
 >   **DD-4（路由归谁）**：`resolveRoutingPolicy(tier)`——本地=`explicit`（用户显式选，4B 无软路由能力）、云端=`soft`（允许模型在暴露面内自动挑选，**显式选择 `explicitTools` 非空时压过软路由**）；抬头文案随策略变（"只使用这份清单" / "可自动挑选"），让模型知道自己有无选择自由度。
 >   **档位路由（M1/M0.5 头注里的「接档位路由属 M3」）**：`main/agent/agentTransport.ts` 按 `resolveLlmTier(config)` 选传输层——`cloud` ⇒ 新增的 **`main/agent/openAiTransport.ts`**（OpenAI 兼容 `/chat/completions` **带 `tools`**、解析 `tool_calls`/`usage`），`local`/`unconfigured` ⇒ 既有 `OllamaChatTransport`；**claude 档单列**（Anthropic Messages API 与 OpenAI 协议不兼容，返回「调用即抛可读中文」的传输层，而非偷偷当兼容端点打）。`brain.ts` 的 `runBrainLoop` 增 `tier` 选项（替换两处硬编码 `'local'`，`turn_stats.tier`/`stats.tier` 从此是**真档位**）；`brainService.chat()` 按本次配置解析档位，一次装配「传输层 + 工具面 + 循环档位」；IPC `agent:chat` 把 `llmConfigMirror` + `secretStore` 现取的 Key 传下去；面板「本次消耗」行加档位标识（☁ 云端 / 🖥 本地）。
 >   ⚠️ **口径纠正（诚实标注）**：(1) 设计文档 §7 架构图原写「新增 `shared/agent/tier.ts`」，实际档位路由落在 `main/agent/agentTransport.ts`（**shared 不得 import main 的传输层**，路由天然属 main 层；shared 侧只新增纯策略 `toolGroups.ts`）；(2) 本项目**当前只注册 5 个工具**（`system.game_data`/`system.ceshu`/`system.code`/`tool.rollback_ai_changes`/`tool.ask_user`），故 ≤8/≤15 两道上限**恒满足**、生产不触发截断分支——本模块的真实价值是**把「必须分组、必须有档位上限」变成有守卫的约束**（工具数一旦增长即生效）＋**按档位给出口径**；(3) 出口第 4 条「成功率 ≥80%」同 M2 属**活模型评测**（沙箱无模型）⇒ 以确定性断言替代（分组覆盖守卫 / 档位→传输层映射 / 档位→工具面口径）；(4) 云端档传输层本版**非流式**（一次返回完整响应，`onChunk` 整段一次性回调）；(5) 面板的**工具勾选 UI**（消费 `explicitTools`）为后续 UI 项，协议与装配已就绪。
@@ -121,8 +121,8 @@
 | 编排 | `brain.process()` → `intent.Planner.plan()` → `agent_manager`；TaskTicket 7 字段 + `delegate_to_agent` |
 | 协作三模式 | 顺序接力 / **并行竞标 `parallel_bidding`** / **辩论共识 `debate_consensus`** |
 | 记忆 | 三层（短期/长期/情节）+ `LEARNINGS.jsonl` + 容量上限 |
-| 反思 | `brain._reflect_on_failures` + `evaluation/auto_evaluator.py` **LLM-as-Judge** |
-| 工具 | `dispatcher.register/execute` + `skill_protocol` + `mcp.py`（MCP server 已实现）+ **16 激活技能** |
+| 反思 | `brain._reflect_on_failures` + `evaluation/auto_evaluator` **LLM-as-Judge** |
+| 工具 | `dispatcher.register/execute` + `skill_protocol` + `mcp`（MCP server 已实现）+ **16 激活技能** |
 | 防护 | `_DEFAULT_MAX_ITERATIONS = 5`、每轮 SOUL 硬边界、`_replan_step` 动态修正、`_sliding_window_compress` |
 | 未接 | LangChain / AutoGen「预留接口，未实际对接」 |
 
@@ -134,7 +134,7 @@
 - A1-3 会话与记忆（`sessionStore.ts` / `memoryStore.ts`）✅
 - A1-4 审批通道端到端（含「拒绝路径断言沙箱没有被执行」）✅
 - A1-5 业务技能 + 托盘/全局热键（`main/tray.ts`）✅ —— **A1 全部收官**
-- **`system.code` 用 QuickJS WASM 沙箱「整体替换」** Python 的 `subprocess + 正则黑名单`（后者可绕）`[实测]`
+- **`system.code` 用 QuickJS WASM 沙箱「整体替换」** 旧版 的 `subprocess + 正则黑名单`（后者可绕）`[实测]`
 - 有意不移植并写明理由：`system.ceshu` 的 delete/export/import（UI 已有入口，再暴露会重复且更难确认）
 
 **⇒ 所以 E42「停止 1:1 迁移」的真正含义不是"要设计一个新框架"，而是"别再往 22,981 行上投入"**。
@@ -153,7 +153,7 @@
 | 事实 | 证据 | 含义 |
 |---|---|---|
 | **6 家服务商全部真通** | `main/llm/client.ts`：Ollama 走原生 `/api/generate`（`ollama` SDK）；`openai`/`doubao`/`qwen`/`deepseek` 走 OpenAI 兼容 `POST {baseUrl}/chat/completions`；`claude` 走 `x-api-key` + `anthropic-version` + content 数组 | **云端优先不需要新建传输层**，只需改默认与加策略 |
-| 但**下拉顺序本地优先** | `shared/llmConfig.ts:109-116` `LLM_PROVIDER_ORDER = ['ollama','openai','doubao','qwen','claude','deepseek']` | 该顺序是**对齐 Python `api_config.py:35 MODEL_PRESETS` 的声明顺序**（迁移保真），**不是产品决策** |
+| 但**下拉顺序本地优先** | `shared/llmConfig.ts:109-116` `LLM_PROVIDER_ORDER = ['ollama','openai','doubao','qwen','claude','deepseek']` | 该顺序是**对齐 旧版 `api_config:35 MODEL_PRESETS` 的声明顺序**（迁移保真），**不是产品决策** |
 | **未配置时静默回落本地** | `client.ts:43-44`「当前生效的服务商（未配置时回落 ollama）」 | 云端优先下这是**错的默认** |
 | 错误提示写死本地 | `client.ts:144` `请先执行 ollama pull（如 ollama pull qwen3:8b）` | 云端优先下这是**误导性文案** |
 | 项目里**没有任何**「云端优先」的既定记录 | `grep -rn "云端\|远程\|云优先" desktop/docs/ docs/ README.md CHANGELOG.md` → 仅 4 条命中且全属别的语境（E22 生图 / E2E 未实跑云端 / desc 生成偏差 / 「无远程网页」） | 本地优先是**迁移保真的副产品**，需按产品意志纠正 |
@@ -194,13 +194,13 @@
 | 2026 共识 | 我们有没有 | 判定 |
 |---|---|---|
 | 五可组合模式（chaining/routing/parallelization/**orchestrator-workers**/**evaluator-optimizer**）`[一手]` | ReAct while 循环 + planner | ✅ 已有 |
-| **planner / generator / evaluator 三角色分离** `[一手]` | planner=`intent.Planner`、generator=`brain._agent_loop`、evaluator=`evaluation/auto_evaluator.py` | ✅ 已有 |
-| **评估器独立上下文**（Outcomes 报告 docx +8.4% / pptx +10.1%）`[二手]` | `auto_evaluator.py` 存在，**但是否独立上下文未核** | ⚠️ **待核** |
+| **planner / generator / evaluator 三角色分离** `[一手]` | planner=`intent.Planner`、generator=`brain._agent_loop`、evaluator=`evaluation/auto_evaluator` | ✅ 已有 |
+| **评估器独立上下文**（Outcomes 报告 docx +8.4% / pptx +10.1%）`[二手]` | `auto_evaluator` 存在，**但是否独立上下文未核** | ⚠️ **待核** |
 | **Deep Agents 四件套**：todo / 虚拟文件系统 / sub-agent 独立上下文 / 上下文管理中间件 `[一手]` | `todo_skill` ✅、`workspace/*.md` ✅、TaskTicket ✅、`_sliding_window_compress` ✅ | ✅ 大部分已有 |
 | **Skills 渐进披露**（`SKILL.md` 枢纽、description 是触发条件、gotchas 最高信号）`[二手]` | `CAPABILITIES.md` 是**扁平清单**（35 条 name/desc/tags），非渐进披露 | ⚠️ **形态落后** |
 | **context engineering**：context rot、just-in-time、**2026 代删 80% 提示词反而更强** `[一手]` | `_sliding_window_compress` 做压缩 | ⚠️ **手段可能选错**（见 §5） |
 | 工具设计：少而精、工具名加前缀、高信号返回、错误信息要引导 `[一手]` | `protocol.ts` 有 `TOOL_RISK_MAP` 风险分级 ✅；工具数 ❌ | ⚠️ **数量失控** |
-| MCP（垂直连工具）`[二手]` | `mcp.py` 已实现 server | ✅ 已有 |
+| MCP（垂直连工具）`[二手]` | `mcp` 已实现 server | ✅ 已有 |
 | 共享状态层、无 agent 私有状态 `[二手]` | `sessionStore` + `operationLog` 已是单一真源 | ✅ 已有 |
 | 逐 agent 埋 token / 延迟 / 成功率 `[二手]` | `operationLogStore` 记录操作，**未见 token/延迟成本** | ⚠️ **缺** |
 | **协调死锁防护**（timeout / turn limit / tie-breaker）`[二手]` | `_DEFAULT_MAX_ITERATIONS = 5` | ✅ 已有 turn limit |
@@ -216,18 +216,18 @@
 
 | 事实 | 出处 | 对我们的意义 |
 |---|---|---|
-| **agent 逻辑只写 ~1,000 行**（`agents.py`），"We kept abstractions to their minimal shape **above raw code**" | README | 印证「薄 harness」路线；**1,000 行**是我们净新增预算的参照上限 |
-| **`CodeAgent`（把动作写成 Python 代码）比「让 LLM 输出工具调用字典」少用 30% 步数**（= 少 30% LLM 调用），且高难 benchmark 表现更好 | README | **本轮拿到的最有价值新数据**：在 4B + 4K 下，**步数 = token = 上下文预算**，省 30% 步数是命门级收益 |
-| `LocalPythonExecutor` **不是安全沙箱**——"applies some restrictions but **can be bypassed and must not be used as a security boundary**" | README Security | 印证我们「用 QuickJS 而非 Python 黑名单」的历史决定是对的 |
+| **agent 逻辑只写 ~1,000 行**（`agents`），"We kept abstractions to their minimal shape **above raw code**" | README | 印证「薄 harness」路线；**1,000 行**是我们净新增预算的参照上限 |
+| **`CodeAgent`（把动作写成 旧版 代码）比「让 LLM 输出工具调用字典」少用 30% 步数**（= 少 30% LLM 调用），且高难 benchmark 表现更好 | README | **本轮拿到的最有价值新数据**：在 4B + 4K 下，**步数 = token = 上下文预算**，省 30% 步数是命门级收益 |
+| `Local旧版Executor` **不是安全沙箱**——"applies some restrictions but **can be bypassed and must not be used as a security boundary**" | README Security | 印证我们「用 QuickJS 而非 旧版 黑名单」的历史决定是对的 |
 | 沙箱支持 E2B / Blaxel / Modal / **Docker**；模型支持本地 `transformers`、**`ollama`**、LiteLLM 100+ | README | 本地模型一等公民，不是二等公民 |
 | "**why use a framework at all?**" 正面回答：代码 agent 需要在 **system prompt / parser / execution 三处保持一致格式**，这个复杂度非平凡；但鼓励"只取需要的部分" | README | 给出「引 vs 自建」的判据：**只有当框架替你省掉一段非平凡的一致性维护时才引** |
 
-> ⚠️ 我们**不能直接用 CodeAgent**（它需要 Python 执行器做沙箱，而我们的沙箱是 **QuickJS WASM**，`system.code` 已就位），
+> ⚠️ 我们**不能直接用 CodeAgent**（它需要 旧版 执行器做沙箱，而我们的沙箱是 **QuickJS WASM**，`system.code` 已就位），
 > 但可以借它的**思想**：**一次动作里串联多个工具**（其示例一次 action 循环搜索 3 个站点），而不是每个工具一次 LLM 往返。
 
 **② Deep Agents（`deepagents` + `deepagentsjs`）—— 姿态与我们最像**
 
-- **有官方 TypeScript 版**（`npm install deepagents`，**且提供 `deepagents/browser` 入口**「no Node-only exports」）——这是我上轮只知 Python 版的漏项。
+- **有官方 TypeScript 版**（`npm install deepagents`，**且提供 `deepagents/browser` 入口**「no Node-only exports」）——这是我上轮只知 早期版本的漏项。
 - 4 件套：`write_todos` / filesystem 六工具 / `task`（sub-agent 独立上下文）/ 上下文管理中间件。
 - **依赖是 peer dependencies**：`@langchain/core` + `@langchain/langgraph` + `@langchain/langgraph-checkpoint` + `@langchain/langgraph-sdk` + `langchain` + `langsmith` —— **6 个包**才能装起来。
 - **安全立场（重要背书）**："Deep Agents follows a **'trust the LLM'** model. The agent can do anything its tools allow. **Enforce boundaries at the tool/sandbox level, not by expecting the model to self-police.**"
@@ -252,7 +252,7 @@
 
 - 极简模块化：**Single-purpose / Reusable / Composable / Predictable**；建在 Instructor + Pydantic 上。
 - **Agent = System Prompt + Input Schema + Output Schema + History + Context Providers**（五件套，职责极清晰）。
-- **"All logic and control flows are written in Python"** —— 明确反对**框架接管控制流**。
+- **"All logic and control flows are written in 旧版"** —— 明确反对**框架接管控制流**。
 - **Context Providers = "Inject dynamic context into the agent's system prompt at runtime"** —— 这正是我们"按会话注入 ≤8 个工具"的现成说法。
 - 文档工程做得极好：`llms.txt` / `llms-full.txt` / Context7 索引 / Agent Skills。
 
@@ -260,7 +260,7 @@
 
 - 排名最高的一批里，**最大 star 属于一个已冻结的项目**：`microsoft/autogen` **58,025 star，frozen**（Microsoft 已把 AutoGen + Semantic Kernel 合入 Agent Framework，并劝用户别再基于它新建项目）。
 - vendor SDK（OpenAI / Anthropic / Google / AWS / Microsoft）**集体只有约一年历史**。
-- 结论：**star 衡量的是注意力，不是架构**；选型要读源码与安全立场（本轮最有力的信号是 Deep Agents 那句 "trust the LLM + 边界设在工具层" 与 smolagents 那句 "LocalPythonExecutor 不是安全边界"）。
+- 结论：**star 衡量的是注意力，不是架构**；选型要读源码与安全立场（本轮最有力的信号是 Deep Agents 那句 "trust the LLM + 边界设在工具层" 与 smolagents 那句 "Local旧版Executor 不是安全边界"）。
 
 **⑥ 跨框架的「五个轮子」框架** `[二手]`
 所有 agent 运行时都在解同样 5 个问题：**记忆在哪 / 工具在哪执行 / 怎么学"做法"而不是"调能力" / 谁批准危险动作 / 人怎么把消息送进循环**。
@@ -321,7 +321,7 @@
 | **G10 本地档模型档位偏低**（4B） | 本地 | 🟠 中高 | `[二手]` ≤4B 工具调用不建议生产；7–8B 黄金区间 |
 
 **不需要动的**（已验证到位，且**与档位无关**）：审批闸与风险分级、事件流 reducer、会话/记忆落盘、
-QuickJS 沙箱（**已整体替换掉可绕的黑名单**，且 smolagents README 亦证其 `LocalPythonExecutor` 同样不是安全边界）、
+QuickJS 沙箱（**已整体替换掉可绕的黑名单**，且 smolagents README 亦证其 `Local旧版Executor` 同样不是安全边界）、
 SOUL 硬边界、turn limit、MCP、`shared/` 分层契约、**6 家服务商的真实传输实现**、
 **以及域内那 7,114 行确定性纯逻辑**（`validateCeshu` / `scoreCeshu` / `assessBalance` / `dataCountConstraint` / `dataRef` / `ceshuFieldDeps` —— 见 §5.5，它们不是"缺口"，是**没被用起来的现成资产**）。
 
@@ -374,8 +374,8 @@ SOUL 硬边界、turn limit、MCP、`shared/` 分层契约、**6 家服务商的
 
 **⑤ 35 个技能清单 ≠ 域能力清单**
 
-- **现象**：`CAPABILITIES.md` 的 35 条是**Python 时代的能力盘点**，其中大量在 TS 侧根本不存在（`system.shell` / `system.tts` / `system.speech_input` / `system.browser` / `tool.web_fetch`…）。
-- **优化方向**：M2/M3 收敛工具面时**按域重组**，而不是按 Python 技能表逐条删。面向本项目只有三个真实场景：**策划书创作 / 数据编辑 / 系统设计**。
+- **现象**：`CAPABILITIES.md` 的 35 条是**旧版 时代的能力盘点**，其中大量在 TS 侧根本不存在（`system.shell` / `system.tts` / `system.speech_input` / `system.browser` / `tool.web_fetch`…）。
+- **优化方向**：M2/M3 收敛工具面时**按域重组**，而不是按 旧版 技能表逐条删。面向本项目只有三个真实场景：**策划书创作 / 数据编辑 / 系统设计**。
 
 **⑥ 数据侧 agent 只会 CRUD，浪费了本域最大的价值**
 
@@ -389,7 +389,7 @@ SOUL 硬边界、turn limit、MCP、`shared/` 分层契约、**6 家服务商的
 
 **⑧ 评估器这一条我 v0.4 问错了问题**
 
-- v0.4 写的是"核实 `auto_evaluator.py` 是否独立上下文"——那是 **Python 侧**的事，TS 侧根本没这个文件。
+- v0.4 写的是"核实 `auto_evaluator` 是否独立上下文"——那是 **旧版 侧**的事，TS 侧根本没这个文件。
 - **真问题是**：TS 侧已经有 4 个纯函数门（`validate` / `score` / `wordStats` / `checklist`）+ 2 个数据侧门（`assessBalance` / `dataCountConstraint`）⇒ **评估器应以确定性检查为主、LLM judge 为辅**，而不是反过来。
 
 ### 5.5.3 对设计的修正（v0.5 新增/修订）
@@ -400,8 +400,8 @@ SOUL 硬边界、turn limit、MCP、`shared/` 分层契约、**6 家服务商的
 | **DD-18** | 缺域词汇/域契约 | §5.5.2② | **域 context provider**：常驻注入「类型 schema + `CHAPTER_KEYS` + 143 条术语表 + 当前系统开关」——这是本项目 grounding 的第一手段 | 新增（具体化 DD-16） | 两档 | — |
 | **DD-19** ⭐**✅ 已实现（v1.0 收口）** | 产出无法机器验证 | §5.5.2③⑧ | **策划书半边**（`evaluateChapterDraft`，已接 `aiGenerateChapter.quality`）；**数据半边**（v0.6 补完）：`evaluateDataCandidates` 复用 `dataCountConstraint`（数量约束，硬）+ `dataStats::assessBalance`（离散度，建议），接进 `ceshu:aiGenerateData.quality`，并在 `AiDataGenPanel` 渲染结论块（`is-count`/`is-balance` 分色）。**两个面都过确定性门**。**导入前二次确认已在 v0.8 接**（质量门 `hasIssues` ⇒ 导入前内联二次确认）。**LLM judge 权重已在 v1.0 接**（章节侧 `applyJudge` + `runLlmJudge`，辅助维度，不覆盖确定性门；见 §5.5.8） | 新增 | **两档** | M5 成本护栏依赖本门的"是否违反约束"判定 |
 | **DD-20** | 策划书⇄数据双向依赖无表达 | §5.5.2④⑥ | **跨域一致性工具**作为一等工具（重命名类型→全库引用同步、删系统→停用数据表、字段改名→迁移引用…）；同时是 DD-15 复合工具的最佳用例 | 新增 | 两档 | — |
-| **DD-21** | 35 个技能清单 ≠ 域能力清单 | §5.5.2⑤ | 工具面**按三个真实场景重组**（策划书创作 / 数据编辑 / 系统设计），替代按 Python 技能表删减 | 新增 | 两档 | — |
-| **修订 DD-9** | 评估器问错了问题 | §5.5.2⑧ | 先核实的不再是 Python 的 `auto_evaluator.py`（TS 侧没这文件），而是**「确定性门是否已接进产出路径」** | 修订 | 两档 | — |
+| **DD-21** | 35 个技能清单 ≠ 域能力清单 | §5.5.2⑤ | 工具面**按三个真实场景重组**（策划书创作 / 数据编辑 / 系统设计），替代按 旧版 技能表删减 | 新增 | 两档 | — |
+| **修订 DD-9** | 评估器问错了问题 | §5.5.2⑧ | 先核实的不再是 旧版 的 `auto_evaluator`（TS 侧没这文件），而是**「确定性门是否已接进产出路径」** | 修订 | 两档 | — |
 | **修订 §9** | 路线图优先级 | — | M4 从"核实评估器上下文"改为 **"接确定性评分门 + 产出契约"**（DD-19），优先级上调到 M2 之后 | 修订 | — | — |
 
 > **一句话总结这一节**：v0.1~v0.4 把这个项目当成"一个要加固的通用 agent 框架"，
@@ -501,7 +501,7 @@ SOUL 硬边界、turn limit、MCP、`shared/` 分层契约、**6 家服务商的
 | `shared/llmConfig.ts`（改，G1 真根） | 新增具名常量 **`LLM_DEFAULT_NUM_CTX = 16_384`**；`DEFAULT_LLM_CONFIG.numCtx` 由 `4096` 改为引用该常量。**这是 G1 的真根**：此前默认 4096 = Ollama 官方默认，等于"没改"；本地 4B 的 4K 上下文会频繁截断会话。⚠️ **枚举依赖旧值的路径后确认单点**：`llmConfig.ts` 是唯一定义处；zod schema `numCtx` **无 `.default()`**（缺键即回落 `DEFAULT_LLM_CONFIG.numCtx`）；`loadLlmConfig`/`sanitizeLlmConfig` 以常量做钳制回退；`SettingsPanel` 从配置读；无测试断言旧值 |
 | `main/agent/ollamaTransport.ts`（改，G1 下发） | `OllamaChatTransportOptions` 增 `numCtx?`；请求体 options 显式下发 `num_ctx: this.options.numCtx ?? LLM_DEFAULT_NUM_CTX`。**本地档专用**——云端 OpenAI 兼容端点不发本地推理参数（`client.ts` 已有此分流）。头注更正为"接档位路由属 M3；但 `num_ctx` 已在 M0.5 落地" |
 | `shared/agent/brain.ts`（改，G4，本版最大改动） | 新增 `BrainStopReason = 'final' \| 'max_turns' \| 'max_tool_calls' \| 'wall_clock' \| 'no_tools' \| 'unresolvable_tools' \| 'transport_error'`；`BrainRunResult` 增 `stopReason`；`BrainEvent` 增 `terminated` 变体。**语义修正**：原 `maxIterations`（默认 8）明确为 **`maxTurns`（默认 6）**，并新增 **`maxToolCalls`（默认 8）/ `wallClockMs`（默认 120s）**（≤0 = 不限）；纯函数 `terminationDetail(reason, limits)` 产出中文提示。三道闸命中 → **带部分产出 finalize**（`completed:true` + 已生成文本），并非丢弃 |
-| ⚠️ 协议合法性（有意偏离 Python） | `maxToolCalls` 闸**放在** `messages.push(buildAssistantMessage(reply))` 与 `step_start` 之后：被跳过的这批 tool_call **仍逐个补 `[STOP]` tool 消息**再 `break`，避免出现"assistant 带 tool_calls 却无 tool 结果"的**非法序列**（会破坏会话续接）。单测以 `toolIds === ['c1','c2']` 锁死。G4 语义：**"提示词说别重试"无用，计数闸才有效** |
+| ⚠️ 协议合法性（有意偏离 旧版） | `maxToolCalls` 闸**放在** `messages.push(buildAssistantMessage(reply))` 与 `step_start` 之后：被跳过的这批 tool_call **仍逐个补 `[STOP]` tool 消息**再 `break`，避免出现"assistant 带 tool_calls 却无 tool 结果"的**非法序列**（会破坏会话续接）。单测以 `toolIds === ['c1','c2']` 锁死。G4 语义：**"提示词说别重试"无用，计数闸才有效** |
 | `main/agent/brainService.ts`（改） | 依赖项 `maxIterations?`→`maxTurns?`，新增 `maxToolCalls?`/`wallClockMs?`；调用处用条件展开透传（`undefined` 时不覆盖默认） |
 | `shared/agent/panel.ts`（改） | `DigitalPanelState` 增 `terminated: string \| null`（init `null`，`submitUserMessage`/`hydrateFromSession` 均重置）；`reduceBrainEvent` 新增 `terminated` case |
 | `renderer/DigitalPanel.tsx` + `styles.css` | 终止提示行（`digital-terminated`：`⏹ <detail>`，仅非 null 显示）；补 `.digital-terminated` CSS（否则类是写了但无规则 ⇒ 裸文本） |
@@ -519,7 +519,7 @@ SOUL 硬边界、turn limit、MCP、`shared/` 分层契约、**6 家服务商的
 | `main/agent/dispatcher.ts`（改） | 新增 **`toolCatalog()`**：每工具一行 `getToolCatalogLine`。与全量 `toolsDescription()`（逐参数）**分工并存**——后者供 `agent:listTools` 的 UI 编辑器，前者供提示词注入 |
 | `main/agent/brainService.ts`（改） | `## 可用工具` 段改喂 `dispatcher.toolCatalog()`（渐进披露）；`tools: dispatcher.toolsJsonSchema()` **不变**——参数完整 schema 仍随 function-calling 请求下发，故文本里删掉参数 dump 不丢信息 |
 | 测试 | 新增 `agentPrompts.test.ts`（10 例：`PROMPT_CORE_MAX_LINES===30` / `countPromptLines` 忽略空行 / `checkPromptBudget` 结果与自定义上限 / **核心区 ≤30 行** / `buildSystemPrompts` 三段拼接与空目录不注入 / 自定义身份覆盖 / `getToolCatalogLine` 折叠与截断 / `toolCatalog()` 每工具一行且无参数行 / **8 类典型请求覆盖**）；`agentProtocol.test.ts` +1、`agentDispatcher.test.ts` +1。vitest 全量 **126 文件 / 1961 用例 passed**；tsc 0（node+web）+ eslint 0 + CSS 审计仅已知噪声 + `npm run build` 通过（CSS 110.48 kB） |
-| ⚠️ 口径纠正 | 路线图原判据「`identity.md` ≤30 行断言；`CAPABILITIES.md` 改渐进披露」与实际不符：**TS 侧不读这两个工作区文件**（身份=内置 `DEFAULT_IDENTITY`；能力面=运行时 `SkillDispatcher` 的已注册工具）。`CAPABILITIES.md` 是 Python 时代 35 条扁平清单**且无消费者** ⇒ 按「拒绝死代码」，**不编辑**，改把 G7/DD-6 落在真实提示词路径 |
+| ⚠️ 口径纠正 | 路线图原判据「`identity.md` ≤30 行断言；`CAPABILITIES.md` 改渐进披露」与实际不符：**TS 侧不读这两个工作区文件**（身份=内置 `DEFAULT_IDENTITY`；能力面=运行时 `SkillDispatcher` 的已注册工具）。`CAPABILITIES.md` 是 旧版 时代 35 条扁平清单**且无消费者** ⇒ 按「拒绝死代码」，**不编辑**，改把 G7/DD-6 落在真实提示词路径 |
 | 范围判定 | 只做**文本瘦身 + 预算门**；工具面的**分组/档位限量**属 M3（DD-3）。出口第 3 条「≥80% 成功率」是**活模型评测**（本沙箱无模型）⇒ 以**确定性覆盖断言**（8 类请求 → 期望工具 id 都在目录里）替代，真成功率留 e2e/手测 |
 
 > **为什么 M2 紧跟 M0.5**：M1 给了数据、M0.5 让本地档"撑得住"，M2 才处理"**读得完**"——§4.1 实测 1 表明 4B 在 >30 行提示词下**完全不用工具**。本版把 `## 可用工具` 从"逐参数 dump"改成"每工具一行"，参数改由 function-calling schema 承载，一举去掉了文本里的冗余（也即全项目最大的一段易膨胀文本）。
@@ -530,7 +530,7 @@ SOUL 硬边界、turn limit、MCP、`shared/` 分层契约、**6 家服务商的
 |---|---|
 | `main/agent/skills/gameDataSkill.ts`（改，本版主体） | 新增两个**复合批量动作**（DD-15「协议层批量动作语义」）：**`batch_create`**（`items` 数组一次建多条；每条可取 `name`，缺省 `{类型名}{序号}`；**重名跳过**并在消息里列出）与 **`batch_update`**（按 `names` 精确 或 `keyword` 子串选中 N 条后批量改字段）。`ACTIONS` 由 6→8，schema 增 `items`/`names`/`mode` 三参并更新 `action` 说明 |
 | 复用既有基元（**不新增工具**） | `batch_create` → `dataService.createItem` 循环；`batch_update` → `dataService.batchUpdate({type, ids, op})`（**整批一次写队列 + 一条撤销记录**）。`buildBatchOp` 把 `field/value/mode` 折成 `Required<BatchOp>`：数值 → `adjust_number`（`set` 用 `mode:'set'`），文本 → `set_value`，`append` → `append_value`。**保持工具面 5 个**（尊重 G2：4B 在 35 工具下"多工具只挑第一个"） |
-| ⚠️ 数值类型语义 | `applyBatchOp` 把数值写回为**文本**（`String(next)`，与 Python `str(int(v))` 及 UI `BatchEditPanel` 一致）⇒ `batch_update` 后的字段值是字符串，与单条 `update`（保原类型）**不同**。这是既有语义，未改动（改它会波及 UI + Python parity） |
+| ⚠️ 数值类型语义 | `applyBatchOp` 把数值写回为**文本**（`String(next)`，与 旧版 `str(int(v))` 及 UI `BatchEditPanel` 一致）⇒ `batch_update` 后的字段值是字符串，与单条 `update`（保原类型）**不同**。这是既有语义，未改动（改它会波及 UI + 旧版 parity） |
 | 测试 | `agentSkills.test.ts` +5：`batch_create`（一次建 2 条·跳过 1 条重名 · 缺 data_type/未知类型/items 非法）；`batch_update`（names 选中数值 set · keyword 选中 + add 增减 · 无选择器/无匹配/缺 field）。`makeDataService` 内存版补 `batchUpdate`（走真 `applyBatchOp`，保证与生产同语义）。vitest 全量 **126 文件 / 1966 用例 passed**；tsc 0 + eslint 0 + CSS 审计仅已知噪声 + build 通过 |
 | ⚠️ 范围判定 | ① **DD-20 跨域复合工具**（重命名类型 → 全库引用同步）**未做**：需 schema 改名 + `items.type` 迁移 + 全部策划书 `@data[...]` 重写的事务化，属独立决策（`TypeSchemaStore` 无 rename、`dataRef` 仅解析器）。② 出口「步数下降 ≥20%」是**活模型度量**（沙箱无模型）⇒ 以「**一次 `skill.execute` 完成 N 条**」的机制断言替代 |
 
@@ -576,17 +576,17 @@ SOUL 硬边界、turn limit、MCP、`shared/` 分层契约、**6 家服务商的
 | 候选 | 判定 | 理由 |
 |---|---|---|
 | **Claude Agent SDK** | 否决 | 每轮 **~35,000 input tokens**（其余框架 1,288–1,432 的 **25 倍**）、8.5s、299MB，**不支持换模型厂商** `[二手]` ⇒ 与"云端可换模型 + 本地可换模型"的双档设计直接冲突 |
-| **LangGraph(.js)** | 否决 | 最成熟的状态图/checkpoint/HITL，但为**服务端编排**设计、Python 为主；且 `sessionStore` + `operationLog` 已覆盖其核心诉求 |
+| **LangGraph(.js)** | 否决 | 最成熟的状态图/checkpoint/HITL，但为**服务端编排**设计、旧版 为主；且 `sessionStore` + `operationLog` 已覆盖其核心诉求 |
 | **Mastra** | 否决 | TS 生态最大，suspend/resume 与 Observational Memory 值得读；**但双许可证**（`ee/` 是 Enterprise source-available 非开源）+ 自带 Studio + 为部署成服务设计 ⇒ 进程内客户端收益面窄 |
-| **Deep Agents（Python）** | 否决 | 建在 LangGraph 上，**需 6 个 peer deps** 才能装 |
+| **Deep Agents（旧版）** | 否决 | 建在 LangGraph 上，**需 6 个 peer deps** 才能装 |
 | **Deep Agents JS（`deepagentsjs`）** | **否决** | **有官方 TS 版 + `deepagents/browser` 入口**（我 v0.2 漏了这项）⇒ 但：① 6 个 peer deps 仍要装；② **4 件套我们已自备 3.5 件**（`todo_skill`、`workspace/` 文件系统、TaskTicket），唯一缺的「大结果落盘 + 路径引用」= **DD-7，自写约 200 行**；③ 它的 `task` sub-agent **在本地档不可用**（§4.1 实测 2）⇒ **引它只为省 200 行，不值** |
-| **smolagents** | 否决（**但必读**） | 不可（Python）；**本项目最有价值的一份参照**：agent 逻辑只写 **~1,000 行**，且给出「CodeAgent 比工具调用字典**少 30% 步数**」的硬数据（§3.5①） |
+| **smolagents** | 否决（**但必读**） | 不可（旧版）；**本项目最有价值的一份参照**：agent 逻辑只写 **~1,000 行**，且给出「CodeAgent 比工具调用字典**少 30% 步数**」的硬数据（§3.5①） |
 | **Letta** | 否决（**长期参照**） | 形态最接近（桌面 app + 本地 server + TS SDK），但它是**完整记忆服务器产品**；我们只需借它「agent 是 **stateful 系统**而非无状态循环」这一理念——这条路我们 `.workspace/` 已在走 |
 | **Vercel AI SDK 7** | 备选 | 最轻（15 包/53MB）、provider-agnostic。但"你拥有这个 loop"——状态仍在自己手里，**不省事，只多一层** |
 | **自建薄 harness** | **采纳** | Anthropic 一手即持此立场：**「Framework abstraction is an anti-pattern」**。引 vs 自建的判据（借 smolagents 原话）：**只有当框架替你省掉一段非平凡的一致性维护（system prompt / parser / execution 三处格式）时才引**——而本项目需要的 4 件套已自备 3.5 件 |
 
 > **两条要改的口径**：
-> ① `[纠正 v0.1]` 本项目**已有"预演资产"**——`a-tier-plan.md §2.4` 记载 **QuickJS WASM 沙箱已在 A1-5 落地并整体替换 Python 黑名单**。所以不是"从零自建"，而是**在已收官的 A1 上定向加固**。
+> ① `[纠正 v0.1]` 本项目**已有"预演资产"**——`a-tier-plan.md §2.4` 记载 **QuickJS WASM 沙箱已在 A1-5 落地并整体替换 旧版 黑名单**。所以不是"从零自建"，而是**在已收官的 A1 上定向加固**。
 > ② `[纠正 v0.3]` 原先"框架注入开销在 **4K 预算**下是实质成本"这条论证**只对本地档成立**；云端档的真实理由是**成本与可控性**（能精确约束每轮花多少、能随时换模型），这与框架抽象成本是**两笔不同的账**。
 
 ---
@@ -635,12 +635,12 @@ data/libraries/<库>/.workspace/
   identity.md    SOUL 5 要素硬边界（✅ 已有；⚠️ TS 侧**暂未读取**，身份仍内置 `DEFAULT_IDENTITY`）
   persona.md     小墨人格（✅；同上，暂未读取）
   memory/MEMORY.md  长期记忆/用户偏好（✅ 活着）
-  memory/capabilities/CAPABILITIES.md  ⚠️ 35 条扁平清单（Python 时代，**无 TS 消费者**）→ M2 改为在真实提示词路径做渐进披露（G7）
+  memory/capabilities/CAPABILITIES.md  ⚠️ 35 条扁平清单（旧版 时代，**无 TS 消费者**）→ M2 改为在真实提示词路径做渐进披露（G7）
   memory/LEARNINGS.jsonl  反思经验（✅）
   ⬆ v0.4：保密模式下此处即「数据不出本机」的物理边界
 ```
 
-> ⚠️ **v1.3 口径纠正**：上图 `identity.md`/`persona.md`/`CAPABILITIES.md` 是 **Python 时代的工作区资产**，**当前 TS 侧无任何代码读取它们**——TS 的身份是 `prompts.ts::DEFAULT_IDENTITY` 内置常量，能力面来自运行时 `SkillDispatcher`（已注册 5 个工具）。因此 **M2 的 G7/DD-6 落在真实提示词路径**（`prompts.ts` + `protocol.ts` + `dispatcher.ts`），**不编辑**这两个 `.md`（避免死代码）。若要真正使用工作区文件（把 identity.md 变成可编辑的身份载体），需补一个工作区读取层——**独立项，留待后续**（可能与 A1-3/A1-5 的 persona 读取一并做）。
+> ⚠️ **v1.3 口径纠正**：上图 `identity.md`/`persona.md`/`CAPABILITIES.md` 是 **旧版 时代的工作区资产**，**当前 TS 侧无任何代码读取它们**——TS 的身份是 `prompts.ts::DEFAULT_IDENTITY` 内置常量，能力面来自运行时 `SkillDispatcher`（已注册 5 个工具）。因此 **M2 的 G7/DD-6 落在真实提示词路径**（`prompts.ts` + `protocol.ts` + `dispatcher.ts`），**不编辑**这两个 `.md`（避免死代码）。若要真正使用工作区文件（把 identity.md 变成可编辑的身份载体），需补一个工作区读取层——**独立项，留待后续**（可能与 A1-3/A1-5 的 persona 读取一并做）。
 
 ### 7.1 与 `shared/` 分层契约的对齐 `[实测·读 shared/README.md]`
 
@@ -748,7 +748,7 @@ data/libraries/<库>/.workspace/
 **模式本身（已验证 7+ 次，单一套路）**
 - **定义层**（常量 / 类型 / 数据表 / schema）整体迁入 `<x>Data.ts`；原文件仅留「纯逻辑求值 / 读写」函数 + `import { 被引用的符号 } from './<x>Data'` + `export * from './<x>Data'` 再导出。
 - 依赖单向：**逻辑层 → 定义层**，原文件经桶再导出 ⇒ **外部 import 站点零改动**。
-- 数据块一律用**脚本按行区间原样搬运**（Python `D:/tmp/split_*.py`，`collapse_blanks` 收尾），勿手工重排。
+- 数据块一律用**脚本按行区间原样搬运**（旧版 `D:/tmp/split_*`，`collapse_blanks` 收尾），勿手工重排。
 
 **传输契约抽取（brain.ts 专用变体）**：消息模型类型 + 构建/归一化辅助函数迁入 `<x>Messages.ts`，保留主循环与高层类型——逻辑文件不适合「纯定义层」套路，只剥最干净的传输契约层。
 
@@ -836,7 +836,7 @@ cp D:/tmp/<file>.fixed <file>     # 4. 恢复
 1. **React `key={index}`（5 处）**：`AttrTableEditor` / `AttrPanelEditor` 的行列表**输入全为受控**
    （`value=` + `onChange`）且 `AttrRow` 无天然 id ⇒ 无经典「值错位」风险；强加 id 会动数据模型（过度开发）。
    `AttrSystemPanel` / `BatchEditPanel` 的错误列表与 `MenuBar` 菜单为静态列表。
-2. **`images:readByPath` 接受任意绝对路径的图片**：受扩展名白名单限制，且对应 PyQt `LazyImageLabel`
+2. **`images:readByPath` 接受任意绝对路径的图片**：受扩展名白名单限制，且对应 旧版 `LazyImageLabel`
    的等价能力——属**已知取舍**（非缺陷）。
 3. **`will-navigate` 放行任意 `file://`**：渲染层为 `sandbox:true` + `contextIsolation:true`，
    `file://` 页面拿不到 Node 能力 ⇒ 低危；若需收紧，改为「仅放行本应用 `index.html` 的 file URL」。
@@ -861,19 +861,19 @@ cp D:/tmp/<file>.fixed <file>     # 4. 恢复
 | **DD-0b** ⭐**✅ 已实现（v0.9）** | **保密模式** | G9 `[推断]` | 新增**显式档位**：🔒 保密模式 = 强制本地 + 明确告知"数据不出本机"；与云端档在 UI 上**并列**而非隐藏在设置深处 | ✅ 已实现（`confidential` flag + `effectiveProvider()` 强制 ollama + `SettingsPanel` `llm-confidential` 开关；章节级/字段级粒度**未做**，见 §2.3） | 本地 | 章节级/字段级粒度（需 per-call tier） |
 | **DD-1** | 上下文预算 | G1 | **仅本地档**：传输层显式下发 `num_ctx`（默认 16384，可调）。云端档不适用 | 重做（传输层字段） | **本地** | 无 |
 | **DD-2** ◐**部分落地（v1.6）** | 本地档模型 | G10 | **仅本地档**：默认提到 **`qwen3:8b`**（`llmConfig.ts:68` 已有预置，5.2GB 装得下 8GB 卡），保留 4B 为低配回退；设置里显式警告"溢出到系统 RAM 会大幅变慢"。**云端档不涉及** | ◐ 已落地「`ollama.models[0]` → `qwen3:8b`」（补记 v1.6）；**未做**「设置里显式警告」 | **本地** | 无 |
-| **DD-3** ⭐**✅ 已实现（v1.5）** | 工具面 | G2 | **协议层 12 个 `system.*` 槽位改为按场景分组**：本地档每次会话暴露 **≤8 个**；云端档可放宽到 **≤15 个**（上限更高但仍分组懒加载，不一次性注入） | ✅ 已实现（`shared/agent/toolGroups.ts`：三场景分组 + `TOOL_FACE_LIMITS` + `buildToolFace`；按项目现实裁为**三个真实场景**而非 Python 的 12 槽位，见 §5.5.13） | **两档（上限不同）** | 云端实测工具挑选准确率显著优于本地档时可再放宽 |
+| **DD-3** ⭐**✅ 已实现（v1.5）** | 工具面 | G2 | **协议层 12 个 `system.*` 槽位改为按场景分组**：本地档每次会话暴露 **≤8 个**；云端档可放宽到 **≤15 个**（上限更高但仍分组懒加载，不一次性注入） | ✅ 已实现（`shared/agent/toolGroups.ts`：三场景分组 + `TOOL_FACE_LIMITS` + `buildToolFace`；按项目现实裁为**三个真实场景**而非 旧版 的 12 槽位，见 §5.5.13） | **两档（上限不同）** | 云端实测工具挑选准确率显著优于本地档时可再放宽 |
 | **DD-4** ⭐**✅ 已实现（v1.5）** | 路由归谁 | 4.1 实测 2 | **本地档**：技能由**用户显式选定**，不做模型软路由。**云端档**：**可试模型软路由**（前沿模型有能力做），但**必须保留显式选择作为兜底与可解释性手段** | ✅ 已实现（`resolveRoutingPolicy`：local=explicit / cloud=soft；`explicitTools` 非空压过软路由；抬头文案随策略变） | **两档（策略不同）** | 云端实测软路由成功率 ≥90% 则默认开 |
 | **DD-5** | 终止 | G4 + 4.1 实测 3 | 三道计数硬闸 `maxToolCalls`(8) / `maxTurns`(6) / `wallClockMs`(120s)，任一触发即**带部分产出 finalize**；**提示词里不写"出错就停"**。云端档的 `maxTurns` 可放宽（步数不再受上下文限制，但受成本限制 ⇒ 见 DD-5b） | 新增（`budget.ts`） | **两档（阈值不同）** | 无 |
 | **DD-5b** ⭐**✅ 已实现（护栏级）** | **成本护栏** | G5 `[二手]` token 解释 80% 方差 | **仅云端档**：每任务 **token 预算**（按任务分档：快问快答 / 批量生成 / 整章重写）；**超预算降级**（收缩可见工具 → 缩短上下文 → 明确告知"已降级"）而非静默烧钱 | 新增（`budget.ts`：预算条 + 超限前二次确认；**真降级待补**） | **云端** | 真降级（DD-3/DD-8）落地后复盘 |
 | **DD-6** | 提示词预算 | 4.1 实测 1 + 一手 | **两档都做，但理由不同**：本地档是**硬闸**（4B 读不完长提示词，≤30 行，构建期断言）；云端档是**优化项**（新模型有判断力、旧规则是过时的 casts ⇒ 同样砍到 ≤30 行，但按"精"而非"短"）。**实现共用一套断言** | 新增断言（两档同源） | **两档（本地=硬闸 / 云端=优化）** | 云端实测长提示词无质量损失则云端档放宽 |
 | **DD-7** | 大结果 | 2.1 just-in-time | 工具返回 >2KB 落盘到 `<库>/.workspace/agent/run/<runId>/`，上下文只留**相对路径 + 摘要 + 行数**，可按路径取回 | 新增 | **两档** | 无 |
 | **DD-8** | 压缩策略 | G6 | 从 `_sliding_window_compress`（Py 侧）改为 **context reset**：到达阈值时**带结构化交接摘要开新轮**（约束显式重述，防 goal drift）。**云端档因上下文宽裕，可只在超长任务时触发** | 新增（替代压缩） | **两档（阈值不同）** | 无 |
-| **DD-9** | 评估器 | G8 + `[二手]` Outcomes | 先**核实** `auto_evaluator.py` 是否独立上下文；若否，改为独立调用。**云端档更值得开**（可真开独立调用，Outcomes 报 +8.4%/+10.1%）；本地档成本高、默认关 | 核实 + 可能重做 | **两档（默认不同）** | 用户反馈"AI 结果需反复手修"则**云端档默认开** |
+| **DD-9** | 评估器 | G8 + `[二手]` Outcomes | 先**核实** `auto_evaluator` 是否独立上下文；若否，改为独立调用。**云端档更值得开**（可真开独立调用，Outcomes 报 +8.4%/+10.1%）；本地档成本高、默认关 | 核实 + 可能重做 | **两档（默认不同）** | 用户反馈"AI 结果需反复手修"则**云端档默认开** |
 | **DD-10** | 观测 | G3 + `[二手]` token 解释 80% 方差 | 复用 `operationLog`，**每轮追加**：档位、模型、输入/输出 token、耗时、工具调用序列、各闸计数、审批决定；面板加"本次消耗/预算/已用轮次"一行 | 新增（扩展已有 store） | **两档** | 无 |
 | **DD-11** | 审批闸 | A1-4/A1-5 已验证 | **完全复用**（`approvalBroker` + `TOOL_RISK_MAP` + 拒绝路径断言沙箱未执行）；不新造。Deep Agents 的安全立场亦为"边界设在工具层" | **复用** | **两档** | 无 |
-| **DD-12** | 沙箱 | `a-tier-plan §2.4` 已落地 | **完全复用** QuickJS WASM（零宿主能力 + CPU 超时 + 内存上限 + 参数夹取上限）；**不复刻** Python 黑名单 | **复用** | **两档** | 无 |
+| **DD-12** | 沙箱 | `a-tier-plan §2.4` 已落地 | **完全复用** QuickJS WASM（零宿主能力 + CPU 超时 + 内存上限 + 参数夹取上限）；**不复刻** 旧版 黑名单 | **复用** | **两档** | 无 |
 | **DD-13** | 多 agent | 4.1 实测 2（本地）/ 4.2（云端） | **分档**：**本地档不恢复** 5 Agent / 并行竞标 / 辩论共识 / 动态 sub-agent；**云端档把「评估器 + 只读复核 agent」列为候选**（不是 5 Agent 那种并列专家），待 M4 评估器验证后再定 | **本地=不做 / 云端=候选** | **两档（判定相反）** | 云端档实测 critic-refiner 模式有净收益则开 |
-| **DD-14** | 协议 | 2.8 | 工具层按 MCP 的 schema 纪律（统一命名、清晰描述、声明式权限）；**不做 A2A** | 复用已有 `mcp.py` 思路 | **两档** | 要接外部 agent 时 |
+| **DD-14** | 协议 | 2.8 | 工具层按 MCP 的 schema 纪律（统一命名、清晰描述、声明式权限）；**不做 A2A** | 复用已有 `mcp` 思路 | **两档** | 要接外部 agent 时 |
 | **DD-15** | 步数预算 | `[GitHub]` smolagents：**CodeAgent 比「工具调用字典」少 30% 步数** | **每个动作允许串联多个工具调用**；对高频组合**提供复合工具**（如 `batchUpdateItems`）。**两档都重要但理由不同**：本地档=上下文命门；**云端档=直接省钱** | 新增（协议层"批量动作"语义 + 复合工具） | **两档** | 无 |
 | **DD-16** | 上下文注入 | `[GitHub]` atomic-agents 的 Context Providers | 用同一机制实现 DD-3/DD-4：把「本次会话可见的工具（按档位限量）+ 相关记忆片段 + 数据概览」做成**运行时注入的 context provider**，不静态拼进提示词 | 新增（对齐已验证范式） | **两档** | 无 |
 
@@ -900,22 +900,22 @@ M0.5 只影响本地档，可与 M0 并行。
 
 ---
 
-## 10. Python `core/agent` 22,981 行的处置 `[实测]`
+## 10. 旧版 `core/agent` 22,981 行的处置 `[实测]`
 
-**它现在是什么**：22 个外部 `import` 点，**全部来自 `src/ui/`（PyQt 界面层）**
-（`ai_bridge.py` / `digital_employee.py` / `digital_panel_tasks.py` / `digital_panel_ui.py` / `ceshu/*`）。
-而 PyQt 界面正被 Electron 逐片取代（E28 已重写顶层 IA、E57 完成前端尾巴）
+**它现在是什么**：22 个外部 `import` 点，**全部来自 `src/ui/`（旧版 界面层）**
+（`ai_bridge` / `digital_employee` / `digital_panel_tasks` / `digital_panel_ui` / `ceshu/*`）。
+而 旧版 界面正被 Electron 逐片取代（E28 已重写顶层 IA、E57 完成前端尾巴）
 ⇒ **在 Electron 客户端里，这 22,981 行是纯死代码。**
 
 **三个选项**（需裁决）：
 
 | 选项 | 说明 | 代价 |
 |---|---|---|
-| **保留（现状）** | 作为 Python 侧的权威参考与审计基线（`migration-audit.md` 的 299 文件 / 91,164 行是迁移基线，删了会破坏对账） | 仓库体积、维护心智负担 |
+| **保留（现状）** | 作为 旧版 侧的权威参考与审计基线（`migration-audit.md` 的 299 文件 / 91,164 行是迁移基线，删了会破坏对账） | 仓库体积、维护心智负担 |
 | **归档** | 移到 `src/_retired_agent/`，在 `docs/archive/` 留一份说明，保持 git 历史 | 需要同步改审计的域文件数（97 → 0），牵连 docsLedger 守卫 |
 | **删除** | 彻底移除 | 同上，且**丢失"原实现"参照**——对后续复核不利 |
 
-**我的建议**：**先不动**。理由：① 它现在零运行时成本（客户端根本不加载 Python）；
+**我的建议**：**先不动**。理由：① 它现在零运行时成本（客户端根本不加载 旧版）；
 ② 删它会动审计基线（299 文件 / 91,164 行）并牵连守卫，性价比极低；
 ③ 真正该做的是**在文档里标明"这 22,981 行在客户端里是死代码"**，避免后人误以为还需迁移。
 ——这一条已在本节记录，**并建议回写进 `migration-audit.md` 的 E42 横幅**。
@@ -930,7 +930,7 @@ M0.5 只影响本地档，可与 M0 并行。
 | **不恢复 5 Agent / 并行竞标 / 辩论共识 / 动态 sub-agent** | DD-13；**仅本地档**成立（4B 实测 + 协调税）。云端档只把「评估器 + 只读复核 agent」列为候选，**不是 5 Agent 那种并列专家** |
 | **不做模型软路由** | DD-4；**仅本地档**成立（4B 实测失效）。云端档可试，但**必须保留用户显式选择作为兜底** |
 | 不重写向量检索（`memory_vector` 271 + `memory_search` 231 行） | "能用就行"规模，且与"无 embedding 模型"现状匹配；DD-7 的文件检索已覆盖大部分 |
-| 不做语音 / 视觉 | `speech_service.py` / `vision_capture.py` 属独立能力线 |
+| 不做语音 / 视觉 | `speech_service` / `vision_capture` 属独立能力线 |
 | 不把 `diagnostics/`（3,796 行）纳入 | 是**代码修复/自愈工具链**，与游戏设计数据编辑器是两个产品，要单独立项 |
 | 不动 `shared/` 分层既有决策 | §7.1；`shared/agent/` 保留原样有 91% 测试直接 import 的取证支撑 |
 | **不做 A2A**（agent 间网络协议） | DD-14；单机进程内通信用不上 |
@@ -951,9 +951,9 @@ M0.5 只影响本地档，可与 M0 并行。
 
 | # | 决策 | 我的推荐 |
 |---|---|---|
-| **D1** ✅**已落地（v0.10）** | `LLM_PROVIDER_ORDER` 当前是**对齐 Python `MODEL_PRESETS` 声明顺序**（ollama 第一）。云端优先要改这个顺序，**属于"产品决策覆盖迁移保真"** —— 改吗？ | **改**，并在代码注释里记明「产品决策覆盖 Python 声明顺序」，避免后人误改回去 —— 已落码：ORDER 云端在前 + `DEFAULT_LLM_CONFIG.provider='deepseek'` |
+| **D1** ✅**已落地（v0.10）** | `LLM_PROVIDER_ORDER` 当前是**对齐 旧版 `MODEL_PRESETS` 声明顺序**（ollama 第一）。云端优先要改这个顺序，**属于"产品决策覆盖迁移保真"** —— 改吗？ | **改**，并在代码注释里记明「产品决策覆盖 旧版 声明顺序」，避免后人误改回去 —— 已落码：ORDER 云端在前 + `DEFAULT_LLM_CONFIG.provider='deepseek'` |
 | **D2** ✅**已落地（v0.10）** | 未配置时**静默回落 ollama** 改成什么？ | **不再静默回落**。改为：弹引导（选云端服务商 / 或一键启用保密模式）。理由：静默回落会让人以为在用云端、实际数据没出去，或反之 —— 已落码：默认云端 + 独立 `FALLBACK_LLM_PROVIDER='ollama'`（回落只落最保守档） |
-| **D3** | Python `core/agent` 22,981 行的处置（§10）？ | **先不动 + 回写文档标注死代码**。删它会破坏审计基线，性价比极低。 |
+| **D3** | 旧版 `core/agent` 22,981 行的处置（§10）？ | **先不动 + 回写文档标注死代码**。删它会破坏审计基线，性价比极低。 |
 | **D4** | 工具面按档位限量（DD-3）：本地 ≤8 / 云端 ≤15，这个上限对吗？ | 可先都设 **≤10** 跑一轮实测再分档；**上限本身要能用观测数据调**（M1 的产出正好用来定它） |
 | **D5** | 起步范围 | **M0 + M1 先行**。M0 是语义修正（云端优先落码），M1 给数据；没有 M1 的数据，M2/M3 的调优是盲调 |
 
@@ -978,7 +978,7 @@ M0.5 只影响本地档，可与 M0 并行。
 | 写了与本项目无关的 **NPC `agent_os`** 对照章节 | 用户没提该项目。**本项目 `grep 9573\|agent_os src/` 零命中**，两者无技术关联 |
 | 把「LLM-as-Judge / Skills / MCP / turn limit / 压缩」当成 2026 新发现 | 我们**蓝图里全都有**（A1 第三/四/五部分），2026 只是给了新证据 |
 | 完全无视 `shared-layering-design.md` 的分层契约 | 新增模块必须落在 `shared/agent/`（保留原样不改名），且 `main` 禁直接碰 `domain/**` |
-| 以为 Python 22,981 行是"待迁移欠债" | 实测 22 个 import 点**全在 PyQt UI** ⇒ 客户端里是**死代码**，与"重写框架"无关 |
+| 以为 旧版 22,981 行是"待迁移欠债" | 实测 22 个 import 点**全在 旧版 UI** ⇒ 客户端里是**死代码**，与"重写框架"无关 |
 | 漏掉 `a-tier-plan.md` 里**已有的预演资产**（QuickJS 沙箱已整体替换黑名单） | 是"在已收官的 A1 上加固"，不是"从零自建"，净新增因此更小 |
 
 ## 附录 B：证据索引
@@ -990,21 +990,21 @@ M0.5 只影响本地档，可与 M0 并行。
 - `desktop/docs/shared-layering-design.md` §0/§1.3/§2.1 + `src/shared/README.md` 五分区与依赖方向表
 - `src/main/agent/ollamaTransport.ts:19,61-62`（默认 host、`stream:true`+tools）
 - `grep "num_ctx\|num_predict" src/` → 零命中；`grep "9573\|agent_os" src/` → 零命中
-- `grep "from core.agent" src/ --include=*.py` → 22 点，**全在 `src/ui/`**
+- `grep "from core.agent" src/ --include=*` → 22 点，**全在 `src/ui/`**
 - `src/shared/agent/protocol.ts:31-63` → 12 个 `system.*` 工具槽位 + `TOOL_RISK_MAP`
-- `src/core/agent/brain_prompt.py:105-126` → `plan_ctx`/`learn_ctx` 拼装
+- `src/core/agent/brain_prompt:105-126` → `plan_ctx`/`learn_ctx` 拼装
 - TS 侧 agent 资产：`main/agent/` 14 文件 2,033 行、`shared/agent/` 8 文件 1,564 行、digital UI 796 行、`main/llm/client.ts` 259 行
 - `docs/migration-audit.md` §1（✅116/43,072 · ◐15/8,328 · ⛔162/39,314 · ⚠️6/450 = 299 / 91,164）
 
 **外部一手**：Anthropic《building effective agents》（五模式 +「Framework abstraction is an anti-pattern」+ 工具设计是首要失败模式）、《Effective context engineering》、《Writing tools for agents》、《Effective harnesses for long-running agents》、2026 harness 文章（context anxiety / **reset 优于 compact** / generator-evaluator）、Claude Managed Agents 公测（**Outcomes：独立上下文评分器，docx +8.4% / pptx +10.1%**）、LangChain Deep Agents 文档（四件套 / `interrupt_on` / 支持 Ollama）
 
 **GitHub 实证（2026-10-07 直接抓仓库，非二手博客）`[GitHub]`**
-- `huggingface/smolagents` README —— agent 逻辑 **~1,000 行**；**CodeAgent 比「输出工具调用字典」少 30% 步数**；`LocalPythonExecutor` **不是安全沙箱**（可绕、不得作安全边界）；沙箱支持 E2B/Blaxel/Modal/Docker；支持本地 `transformers` / `ollama` / LiteLLM 100+；正面回答「为什么要框架」（system prompt / parser / execution 三处格式一致性）
+- `huggingface/smolagents` README —— agent 逻辑 **~1,000 行**；**CodeAgent 比「输出工具调用字典」少 30% 步数**；`Local旧版Executor` **不是安全沙箱**（可绕、不得作安全边界）；沙箱支持 E2B/Blaxel/Modal/Docker；支持本地 `transformers` / `ollama` / LiteLLM 100+；正面回答「为什么要框架」（system prompt / parser / execution 三处格式一致性）
 - `langchain-ai/deepagents` README —— 4 件套；**model-agnostic 含 Ollama/vLLM/llama.cpp**；**安全立场「trust the LLM，边界设在工具/沙箱层，不指望模型自我审查」**；"Inspired by Claude Code"
 - `langchain-ai/deepagentsjs`（**TS 版，645 commits，2026-10-05 仍在更**）—— `npm install deepagents` + **`deepagents/browser` 入口（无 Node-only 导出）**；**6 个 peer deps**（`@langchain/core`/`langgraph`/`langgraph-checkpoint`/`langgraph-sdk`/`langchain`/`langsmith`）；`createDeepAgent` 返回 compiled LangGraph
 - `letta-ai/letta` README —— **"Platform for stateful agents: AI with advanced memory"**（f.k.a. MemGPT）；主流源码迁至 **`letta-ai/letta-code`**，npm **`@letta-ai/letta-code`**；**有 Windows/macOS/Linux 桌面 app** + 本地 `letta server` + **TypeScript Agent SDK**；旧 V1 server 已 archive
 - `mastra-ai/mastra` README —— 40+ providers；**graph-based workflows**（`.then()/.branch()/.parallel()`）；**suspend & resume**（storage 记状态、可无限期暂停）；**Observational Memory**；MCP 双向；evals + observability；本地 Studio；**双许可证：核心 Apache-2.0，`ee/` 为 Enterprise source-available**
-- `BrainBlend-AI/atomic-agents`（仓库现址 `Eigenwise/atomic-agents`）README —— 极简模块化（Single-purpose/Reusable/Composable/Predictable）；**Agent = System Prompt + Input Schema + Output Schema + History + Context Providers**；**"All logic and control flows are written in Python"**（反对框架接管控制流）；Context Providers = 运行时注入系统提示；经 Instructor 支持 Ollama / 任何 OpenAI-compatible；文档工程有 `llms.txt`/`llms-full.txt`/Context7
+- `BrainBlend-AI/atomic-agents`（仓库现址 `Eigenwise/atomic-agents`）README —— 极简模块化（Single-purpose/Reusable/Composable/Predictable）；**Agent = System Prompt + Input Schema + Output Schema + History + Context Providers**；**"All logic and control flows are written in 旧版"**（反对框架接管控制流）；Context Providers = 运行时注入系统提示；经 Instructor 支持 Ollama / 任何 OpenAI-compatible；文档工程有 `llms.txt`/`llms-full.txt`/Context7
 - GitHub star 快照 `[二手]` —— `microsoft/autogen` **58,025 但 frozen**（Microsoft 已并入 Agent Framework 并劝用户别再基于它新建）；`langchain` 136,707 / `crewAI` 51,380 / `agno` 40,118 / `langgraph` 32,027 / `smolagents` 27,302 / `vercel/ai` 24,220 / `mastra` 23,871 / `letta` 22,707 / `pydantic-ai` 17,055 / `claude-agent-sdk-python` 6,860；TS 阵营还有 `n8n` 187,791 / `cline` 61,755 / `flowise` 52,810
 - 「五个轮子」横向评测 `[二手]`（2026-06）：记忆 / 沙箱 / skills-vs-MCP / 工具治理 / 传输；**只有 Letta 解了记忆，只有 smolagents 解了沙箱**
 
@@ -1013,5 +1013,5 @@ M0.5 只影响本地档，可与 M0 并行。
 **未能实测（诚实边界）**
 - 本机 **Ollama 当前未运行**（`curl 127.0.0.1:11434` 连接被拒）⇒ `num_ctx` 实际生效值、
   4B 真实工具调用成功率、8B 升级后的延迟/显存，**本文档全部未在本机跑过**
-- `auto_evaluator.py` 是否真在独立上下文，**本轮未核**（DD-9 的第一动作就是核这个）
+- `auto_evaluator` 是否真在独立上下文，**本轮未核**（DD-9 的第一动作就是核这个）
 - 51 个 E2E 至今未在真机跑过
