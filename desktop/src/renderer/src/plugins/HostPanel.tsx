@@ -1,16 +1,17 @@
-import { useMemo, useSyncExternalStore, type ComponentType } from 'react'
+import { useCallback, useMemo, useSyncExternalStore, type ComponentType } from 'react'
 
 import type { PluginHost } from '../../../shared/plugin/host'
 import { getReactBinding, renderUiNode, uiOf, type PanelBindingProps } from './reactBindings'
 
 /** 模块级稳定组件：把按 panel id 查到的宿主侧 React 绑定渲染出来。
  *  组件作为 prop 传入，避免在渲染期赋值组件变量触发 react-hooks/static-components。 */
-function BoundPanel({ component: Bound, onClose, params }: {
+function BoundPanel({ component: Bound, onClose, close, params }: {
   component: ComponentType<PanelBindingProps>
   onClose: () => void
+  close: () => void
   params: unknown
 }) {
-  return <Bound onClose={onClose} params={params} />
+  return <Bound onClose={onClose} close={close} params={params} />
 }
 
 /**
@@ -33,9 +34,17 @@ export function HostPanel({ host, panelId, onClose }: {
   // 快照即宿主保存的同一引用：换参数→身份变化触发重渲染；未换→身份稳定，不抖动
   const params = useSyncExternalStore(subscribe, () => host.panelParams(panelId))
 
+  /** 关闭并清掉本面板参数（一次性大对象参数用这个收尾，别留在宿主里） */
+  const close = useCallback(() => {
+    host.setPanelParams(panelId, undefined)
+    onClose()
+  }, [host, panelId, onClose])
+
   const panel = host.panels().find((capability) => capability.id === panelId)
   if (panel === undefined) return null
   const Bound = getReactBinding(panel.id)
-  if (Bound !== undefined) return <BoundPanel component={Bound} onClose={onClose} params={params} />
+  if (Bound !== undefined) {
+    return <BoundPanel component={Bound} onClose={onClose} close={close} params={params} />
+  }
   return renderUiNode(uiOf(panel), () => undefined)
 }

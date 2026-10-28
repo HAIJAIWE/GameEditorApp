@@ -2,6 +2,7 @@ import { PluginHost } from '../../../shared/plugin/host'
 import { defineCeshuPlugin } from './ceshuPlugin'
 import { defineDataPanelsPlugin } from './dataPanelsPlugin'
 import { defineDemoPlugin } from './demoPlugin'
+import { defineEntryPanelsPlugin } from './entryPanelsPlugin'
 import { defineMaintenancePanelsPlugin } from './maintenancePanelsPlugin'
 import { defineReferencesPlugin } from './referencesPlugin'
 import { defineShortcutsPlugin } from './shortcutsPlugin'
@@ -30,6 +31,7 @@ export function registerBuiltinPlugins(): void {
   pluginHost.register(defineUtilityPanelsPlugin(pluginHost))
   pluginHost.register(defineDataPanelsPlugin(pluginHost))
   pluginHost.register(defineMaintenancePanelsPlugin(pluginHost))
+  pluginHost.register(defineEntryPanelsPlugin(pluginHost))
 }
 
 registerBuiltinPlugins()

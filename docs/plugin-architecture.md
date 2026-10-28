@@ -1,6 +1,6 @@
 # 插件架构与深层插件化迁移设计
 
-> 状态：进行中（B 方案，Slice 6/8 完成，13 个面板已迁）。最后更新 2026-10-28。
+> 状态：进行中（B 方案，Slice 7/8 完成，17 个面板已迁）。最后更新 2026-10-28。
 > 本文是插件系统的权威设计文档，也是「深层插件化」跨会话的交接文档。
 > 相关代码：`desktop/src/shared/plugin/`、`desktop/src/renderer/src/plugins/`。
 
@@ -40,6 +40,7 @@ renderer/src/plugins/
   utilityPanelsPlugin.tsx  Slice 4：不依赖 App 状态的面板 bundle（8 个 panel 能力，见 §6 bundle 形态）
   dataPanelsPlugin.tsx     Slice 5：只依赖 types + handleJump 的面板 bundle（appContext 自供给）
   maintenancePanelsPlugin.tsx  Slice 6：依赖动作的面板 bundle（backup / clearAll）
+  entryPanelsPlugin.tsx    Slice 7：带打开参数的面板 bundle（typeEditor / quickCreate / batch / importPreview）
 ```
 
 ### 2.1 契约（`types.ts`）
@@ -97,7 +98,7 @@ App.renderPanel()
 | Slice 4 | 不依赖 App 状态的面板批迁（8 个，`utility-panels` bundle：5 零 props + 3 仅 onClose） | ✅ 完成 |
 | Slice 5 | 只依赖 `types + handleJump` 的面板（高级搜索 / 关系图 / 属性图表，`data-panels` bundle） | ✅ 完成 |
 | Slice 6 | 依赖动作的面板（备份 refreshUndo / 清空 handleDataCleared）→ `maintenance-panels` bundle；`onboarding` 的 action 分发改归 Slice 8 | ✅ 完成 |
-| Slice 7 | 带打开参数的面板（类型编辑器 / 快速创建 / 批量编辑 / 导入预览） | ⬜ 待做 |
+| Slice 7 | 带打开参数的面板（类型编辑器 / 快速创建 / 批量编辑 / 导入预览）→ `entry-panels` bundle；App 里 4 份专用 state 全部删除 | ✅ 完成 |
 | Slice 8 | `MenuBar` ~40 个菜单动作 → `command` 能力，App 不再持有动作清单 | ⬜ 待做 |
 
 ---
@@ -112,7 +113,8 @@ interface AppContextValue {
   setTypes: (next: DataTypeDef[]) => void                     // 字段结构编辑器保存回写
   handleJump: (type: string, itemId: string, name: string) => void  // 条目跳转
   refreshUndo: () => void                                     // 撤销栈刷新（备份恢复后）
-  handleDataCleared: (deleted: number) => void                // 整库清空后的收尾（Slice 6 新增）
+  handleDataCleared: (deleted: number) => void                // 整库清空后的收尾（Slice 6）
+  afterMutation: (notice: string) => void                     // 数据被改过的通用收尾：提示 + 刷撤销栈（Slice 7）
 }
 ```
 
@@ -169,9 +171,16 @@ registerReactBinding('statistics.panel', ({ onClose }) => <StatisticsPanel onClo
 
 ```ts
 host.openPanel(id, params?)      // 打开 + 写参数（省略 params = 沿用上次预置）
-host.setPanelParams(id, params)  // 只预置参数、不打开（「先定位、后打开」）
+host.setPanelParams(id, params)  // 只预置参数、不打开；传 undefined 即清除
 host.panelParams(id): unknown    // 读参数；未预置为 undefined
 ```
+
+绑定拿到的两个关闭入口（`PanelBindingProps`）：
+
+| prop | 行为 | 用在 |
+|---|---|---|
+| `onClose()` | 只关浮层，**参数留在宿主** | 参数可复用（引用面板：关掉后从菜单重开仍指向同一条） |
+| `close()` | 清掉本面板参数 + 关浮层 | 参数是**一次性大对象**（导入预览的整份预览数据），用完必须清，否则一直挂在宿主内存 |
 
 三条纪律：
 
@@ -235,10 +244,10 @@ function ReferencesPanelBound({ onClose, params }: PanelBindingProps) {
 | `clearAll` | ClearAllPanel | `handleDataCleared` | 中 | ✅ |
 | `onboarding` | OnboardingPanel | `types` + `handleOnboardingAction` | 中 | ⬜（归 Slice 8：action 分发改 command） |
 | `references` | ReferencesPanel | 打开参数（目标条目）+ `types` + `handleJump` | 高 | ✅ |
-| `typeEditor` | TypeEditorPanel | `typeEditorTarget` 参数 + `types` + `setTypes` | 高 | ⬜ |
-| `quickCreate` | QuickCreatePanel | `quickCreateTarget` 参数 + `types` | 高 | ⬜ |
-| `batch` | BatchEditPanel | `firstType` 参数 + `types` | 高 | ⬜ |
-| `importPreview` | ImportPreviewPanel | `previewId` / `preview` 参数 + `types` | 高 | ⬜ |
+| `typeEditor` | TypeEditorPanel | `typeEditorTarget` 参数 + `types` + `setTypes` | 高 | ✅ |
+| `quickCreate` | QuickCreatePanel | `quickCreateTarget` 参数 + `types` | 高 | ✅ |
+| `batch` | BatchEditPanel | `firstType` 参数 + `types` | 高 | ✅ |
+| `importPreview` | ImportPreviewPanel | `previewId` / `preview` 参数 + `types` | 高 | ✅ |
 | `plugins` | PluginsPanel | `host` | 已插件管理面 | — |
 
 > 注：`onClose` 是通用契约，不计入「依赖」。
@@ -269,7 +278,8 @@ manifest（`utility-panels` 8 个面板、`data-panels` 3 个面板），这是 
    }
    ```
 2. **注册**到 `plugins/builtins.ts::registerBuiltinPlugins()`。
-3. **面板消费共享状态**：用 `useAppContext()`，不要新增 App props。
+3. **面板消费共享状态**：用 `useAppContext()`，不要新增 App props。数据被改过后的收尾用
+   `afterMutation(message)`（提示 + 刷撤销栈），关面板自己调 `onClose()`/`close()`。
 4. **需要打开参数的面板**：不要新增 App state，走 `host.openPanel(id, params)`；绑定里断言参数形状（见 §5）。
 5. **App 侧改渲染**：对应 `case` 改 `<HostPanel host={pluginHost} panelId="xxx.panel" onClose={() => setPanel(null)} />`，删除直接 import。
 6. **加 DOM 测试**（`tests/unit/dom/xxxPlugin.test.tsx`）：证明经宿主渲染 + 数据自供给（带参数的还要证明换参数会刷新）。
@@ -289,8 +299,14 @@ manifest（`utility-panels` 8 个面板、`data-panels` 3 个面板），这是 
 7. **`panelParams` 必须返回宿主保存的同一引用**：`useSyncExternalStore` 拿它当快照，
    每次新建对象会触发「快照不稳定」的无限重渲染。
 8. **`openPanel(id)` 省略参数 = 沿用**，不是清空；要清空显式 `setPanelParams(id, undefined)`。
-9. **词汇纪律**：策划书=章（阅读序）；交接包=卷 + 编号文档（开发序）。插件化文档不混用。
-10. **四道闸**（在 `desktop/`）：
+9. **`onClose` 与 `close` 别混**：`onClose` 保留参数（可复用上下文），`close` 清参数（一次性大对象）。
+   参数是整份预览/大数组的面板必须用 `close`，否则宿主内存里一直挂着。
+10. **菜单入口要显式清参**：`openPanel(kind)` 对 `typeEditor`/`quickCreate`/`batch` 会先
+    `setPanelParams(id, undefined)`，否则「上次从条目表单打开时选中的类型」会粘住下一次菜单打开。
+11. **绑定里用 hook 必须写具名函数组件**：内联箭头 `({onClose}) => { useAppContext() … }` 会被
+    `react-hooks/rules-of-hooks` 判为「hook 不在组件内」。
+12. **词汇纪律**：策划书=章（阅读序）；交接包=卷 + 编号文档（开发序）。插件化文档不混用。
+13. **四道闸**（在 `desktop/`）：
    - `npx vitest run`
    - `npx tsc --noEmit -p tsconfig.node.json --composite false`（+ `tsconfig.web.json` + `tsconfig.test-dom.json`）
    - `npx eslint <改动文件>`（或 `src tests/unit/dom`）
@@ -298,30 +314,32 @@ manifest（`utility-panels` 8 个面板、`data-panels` 3 个面板），这是 
 
 ---
 
-## 9. 下一步（Slice 7 / 8）
+## 9. 下一步（只剩 Slice 8）
 
-**现状**：三件使能件（宿主渲染 / 共享状态 / 打开参数）已齐，**13 个面板已迁**（Slice 1–6）。
-App 的 `renderPanel()` 里「组件直连」只剩 5 个：`onboarding` / `typeEditor` / `quickCreate` /
-`batch` / `importPreview`。
+**现状**：三件使能件（宿主渲染 / 共享状态 / 打开参数）已齐，**17 个面板已迁**（Slice 1–7）。
+App 的 `renderPanel()` 里「组件直连」只剩 3 个：`onboarding`（`OnboardingPanel`）、
+`about`（要 `AppInfo.version`）、`plugins`（插件管理面本身）。
 
-**Slice 6 收尾说明**：`backup` / `clearAll` 已迁（`maintenance-panels` bundle），
-`handleDataCleared` 已进 appContext。`onboarding` **刻意不迁**——它的 `handleOnboardingAction`
-是「8 个 action → 导航」的分发，本质属于 command 而不是共享状态；现在塞进 context 只是把耦合换个地方，
-留给 Slice 8 一并处理。同理，`clearAll` 的 `handleDataCleared` 与 `backup` 的 `refreshUndo`
-语义相近但**没有合并**：前者要重置整套视图（数据没了），后者只刷撤销可用性，合并会掩盖差异。
-
-**Slice 7 — 带打开参数的面板（4 个，下一步）**：`typeEditor`（`initialTypeId`）/ `quickCreate`（目标类型）/
-`batch`（`firstType`）/ `importPreview`（`previewId` + `preview`）。通路已由 Slice 3 打通，
-这 4 个是「照抄 referencesPlugin 的写法」，但要额外注意：
-- `importPreview` 的参数含**整份预览数据**（不是小对象），断言时校验 `previewId` 与 `preview` 同源，避免错配；
-- 这 4 个面板的 App state 同时被别处读（如 `openPanel` 的 `firstType` 守卫），删 state 前先确认没有第二消费者。
+**Slice 7 的做法与两个取舍**：
+- 4 份 App state（`typeEditorTarget` / `quickCreateTarget` / `importPreview` / `firstType` 的兜底）
+  全部删除，改成宿主参数；菜单入口在 `openPanel(kind)` 里显式清参，保住「菜单 = 默认类型」的语义。
+- 三处「数据改过」的同形回调（快速创建 / 批量编辑 / 导入应用）合并成 context 的 `afterMutation`，
+  App 里两个重复函数直接删掉。
+- 新增 `close()`（清参 + 关面板），专给「参数是整份预览数据」的导入预览用。
 
 **Slice 8 — 菜单动作 → command（~40 个）**：`MenuBar` 的 `actions` 对象整块交给插件自供给，
 App 不再持有动作清单。这是最大一片，建议先把「纯导航类」（打开某面板）批量转成 command，
 再处理「有副作用的」（导入/导出/清空）。`onboarding` 的 8 个 action 在这里一并转成 command
 （届时 `OnboardingPanel` 只发 command id，不再需要 `handleOnboardingAction` 回调）。
 
-**验收**：`renderPanel()` 的 switch 只剩 `default`；`MenuBar` 的 actions 由 `host.commands()` 生成；四道闸绿。
+**验收**：`renderPanel()` 的 switch 只剩 `default`（`about` / `plugins` 也各自成插件）；
+`MenuBar` 的 actions 由 `host.commands()` 生成；四道闸绿。
+**Slice 7 — 带打开参数的面板（4 个，下一步）**：`typeEditor`（`initialTypeId`）/ `quickCreate`（目标类型）/
+`batch`（`firstType`）/ `importPreview`（`previewId` + `preview`）。通路已由 Slice 3 打通，
+这 4 个是「照抄 referencesPlugin 的写法」，但要额外注意：
+- `importPreview` 的参数含**整份预览数据**（不是小对象），断言时校验 `previewId` 与 `preview` 同源，避免错配；
+- 这 4 个面板的 App state 同时被别处读（如 `openPanel` 的 `firstType` 守卫），删 state 前先确认没有第二消费者。
+
 
 ---
 
@@ -357,6 +375,14 @@ Slice 4（8 个不依赖 App 状态的面板）：
 - `renderer/src/plugins/builtins.ts`（注册）
 - `renderer/src/App.tsx`（8 个 case → HostPanel，删 8 个直接 import）
 - `tests/unit/dom/utilityPanelsPlugin.test.tsx`（3 条：能力清单 / testid 保留 / 禁用后不再渲染）
+
+Slice 7（4 个带打开参数的面板）：
+- `renderer/src/plugins/entryPanelsPlugin.tsx`（新增；`entry-panels` bundle，4 面板 + 3 命令）
+- `renderer/src/plugins/reactBindings.tsx` / `HostPanel.tsx`（`PanelBindingProps` 加 `close`；HostPanel 实现「清参 + 关」）
+- `renderer/src/plugins/appContext.tsx`（加 `afterMutation`）
+- `renderer/src/components/PluginsPanel.tsx`（预览面板同步新 prop）
+- `renderer/src/App.tsx`（删 3 份 state + 2 个同形回调；`openPanel` 菜单入口清参；4 个 case → HostPanel）
+- `tests/unit/dom/entryPanelsPlugin.test.tsx`（5 条：能力清单 / 预选类型 / 无参回落第一个类型 / 快速创建带类型 / 导入预览参数与坏参数）
 
 Slice 6（2 个依赖动作的面板）：
 - `renderer/src/plugins/maintenancePanelsPlugin.tsx`（新增；`maintenance-panels` bundle）

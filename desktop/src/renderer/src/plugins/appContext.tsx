@@ -27,6 +27,12 @@ export interface AppContextValue {
    * 与 `refreshUndo` 的区别：`refreshUndo` 只是「刷新撤销可用性」，这个是「数据没了，整套视图要重置」。
    */
   handleDataCleared: (deleted: number) => void
+  /**
+   * 数据被改过之后的通用收尾：顶部提示 + 刷撤销栈（**不关面板**，关由绑定自己调 `onClose`/`close`）。
+   * 快速创建 / 批量编辑 / 导入应用三处的原回调体完全一致（`setNotice` + `refreshUndo`），
+   * 合并成这一个动作，避免每个面板都往 context 里塞一个同形回调。
+   */
+  afterMutation: (notice: string) => void
 }
 
 const AppContext = createContext<AppContextValue | null>(null)

@@ -2,15 +2,17 @@ import { useEffect, useState, type ComponentType } from 'react'
 
 import type { PluginHost } from '../../../shared/plugin/host'
 import type { PluginServiceCapability } from '../../../shared/plugin/types'
-import { getReactBinding, renderUiNode, uiOf } from '../plugins/reactBindings'
+import { getReactBinding, renderUiNode, uiOf, type PanelBindingProps } from '../plugins/reactBindings'
 
 /** 模块级稳定组件：把宿主侧 React 绑定（按 panel id 查到的组件）渲染出来。
  *  组件作为 prop 传入，避免在渲染期赋值组件变量触发 react-hooks/static-components。 */
-function PluginActiveRenderer({ component: Bound, onClose }: {
-  component: ComponentType<{ onClose: () => void }>
+function PluginActiveRenderer({ component: Bound, onClose, close, params }: {
+  component: ComponentType<PanelBindingProps>
   onClose: () => void
+  close: () => void
+  params: unknown
 }) {
-  return <Bound onClose={onClose} />
+  return <Bound onClose={onClose} close={close} params={params} />
 }
 
 /** 状态徽标文案（dsh 风格：启用 / 禁用 / 错误） */
@@ -146,7 +148,15 @@ export default function PluginsPanel({ host, onClose }: { host: PluginHost; onCl
       {active !== null && (
         <div className="plugin-active" data-testid="plugin-active-panel">
           {getReactBinding(active.id) !== undefined ? (
-            <PluginActiveRenderer component={getReactBinding(active.id)!} onClose={() => host.closePanel()} />
+            <PluginActiveRenderer
+              component={getReactBinding(active.id)!}
+              onClose={() => host.closePanel()}
+              close={() => {
+                host.setPanelParams(active.id, undefined)
+                host.closePanel()
+              }}
+              params={host.panelParams(active.id)}
+            />
           ) : (
             renderUiNode(uiOf(active), (actionId) => {
               const command = host.commands().find((capability) => capability.id === actionId)

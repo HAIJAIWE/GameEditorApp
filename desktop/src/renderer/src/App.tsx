@@ -3,12 +3,10 @@ import { useCallback, useEffect, useRef, useState, type MouseEvent as ReactMouse
 import type { CeshuSummary } from '../../shared/ceshuConstants'
 import { loadGameStyle, normalizeGameStyleId, saveGameStyle } from '../../shared/config/gameStyle'
 import { loadMiddleTab, MIDDLE_TABS, saveMiddleTab, type MiddleTab } from '../../shared/config/middleTab'
-import type { AppInfo, DataTypeDef, ImportPreview } from '../../shared/types'
+import type { AppInfo, DataTypeDef } from '../../shared/types'
 import { applyTheme, loadTheme, saveTheme, type ThemeMode } from '../../shared/config/theme'
 
 import AboutPanel from './components/AboutPanel'
-import BatchEditPanel from './components/BatchEditPanel'
-import ImportPreviewPanel from './components/ImportPreviewPanel'
 import CeshuHomePanel from './components/CeshuHomePanel'
 import BrowserPanel from './components/BrowserPanel'
 import CeshuView from './components/CeshuView'
@@ -17,15 +15,13 @@ import DataEditorPanel from './components/DataEditorPanel'
 import { type PreviewJumpTarget } from './components/ceshu/CeshuDataPreview'
 import DigitalPanel from './components/digital/DigitalPanel'
 import MenuBar from './components/MenuBar'
-import QuickCreatePanel from './components/QuickCreatePanel'
 import { type ReferenceTarget } from './components/ReferencesPanel'
 import PluginsPanel from './components/PluginsPanel'
 import Sidebar, { type SidebarAction, type SidebarItem } from './components/Sidebar'
 import OnboardingPanel from './components/OnboardingPanel'
 import ToastHost from './components/ToastHost'
-import TypeEditorPanel from './components/TypeEditorPanel'
 import { useDataTransfer, useUndoRedo } from './hooks/useAppActions'
-import { formatImportSummary, toErrorMessage } from './appUtils'
+import { toErrorMessage } from './appUtils'
 import { clampDockWidth, defaultDockWidth, loadAiDockWidth, saveAiDockWidth } from './dockWidth'
 import { pluginHost } from './plugins/builtins'
 import { HostPanel } from './plugins/HostPanel'
@@ -121,10 +117,10 @@ export default function App() {
   /** 主区内当前打开的浮层面板（null = 未打开，渲染策划书首页/编辑器） */
   const [panel, setPanel] = useState<OverlayPanel | null>(null)
   /**
-   * 待确认的导入预览（选完文件就有值，面板据此渲染）。
-   * 解析结果在主进程暂存，这里只留会话 id + 预览数据。
+   * 注：待确认的导入预览**不再是 App 的 state**（B 方案 Slice 7）。
+   * 解析结果在主进程暂存，会话 id + 预览数据作为「导入预览面板的打开参数」交给宿主携带
+   * （`pluginHost.openPanel('importPreview.panel', payload)`），面板用完调 `close()` 清掉。
    */
-  const [importPreview, setImportPreview] = useState<{ previewId: string; preview: ImportPreview } | null>(null)
   /** 中间窗口页签（编辑器/代码编辑/浏览器）：持久化在 localStorage，重启保留 */
   const [middleTab, setMiddleTab] = useState<MiddleTab>(() => loadMiddleTab())
   /** 已访问过的页签（代码/浏览器首访才挂载面板；编辑器默认已在） */
@@ -243,13 +239,11 @@ export default function App() {
    * 预置、`pluginHost.openPanel('references.panel', target)` 打开时替换。
    * 面板经 `HostPanel` 渲染，参数由宿主下发——App 不再为单个面板持有专用状态。
    */
-  /** 「字段结构编辑器」打开时要预选的类型；由条目表单的「更多 ▸」回填，菜单入口保持默认（第一个类型） */
-  const [typeEditorTarget, setTypeEditorTarget] = useState<string | null>(null)
   /**
-   * 「快速创建向导」的目标类型：由「快速入门」的快捷操作卡回填（点「创建角色」→ `role`）。
-   * 菜单入口保持默认（null → 第一个类型）；每次从菜单打开都会清掉，避免上次的选择粘住。
+   * 注：字段结构编辑器 / 快速创建的目标类型**也不是 App 的 state**（Slice 7）。
+   * 它们是这两个面板的打开参数，由宿主携带；菜单入口打开前显式清空参数，
+   * 于是「菜单 = 默认（第一个类型）、内部入口 = 指定类型」这套语义原样保留。
    */
-  const [quickCreateTarget, setQuickCreateTarget] = useState<string | null>(null)
   /** 跳转定位目标（含递增 nonce 以支持重复跳转同一类型）；命中启用编辑器时在策划书预览面板定位条目 */
   const [jumpTarget, setJumpTarget] = useState<PreviewJumpTarget | null>(null)
   /**
@@ -432,6 +426,10 @@ export default function App() {
       setPanel('advancedSearch')
       return
     }
+    // 菜单入口 = 默认上下文：清掉上次的内部入口留下的目标（否则「上次选的类型」会粘住）
+    if (kind === 'typeEditor') pluginHost.setPanelParams('typeEditor.panel', undefined)
+    if (kind === 'quickCreate') pluginHost.setPanelParams('quickCreate.panel', undefined)
+    if (kind === 'batch') pluginHost.setPanelParams('batch.panel', undefined)
     setPanel(kind)
   }
 
@@ -450,7 +448,8 @@ export default function App() {
       case 'create_monster':
       case 'create_skill':
       case 'create_equip':
-        setQuickCreateTarget(dataType)
+        // 目标类型作为打开参数交给宿主（Slice 7：App 不再持有 quickCreateTarget）
+        pluginHost.openPanel('quickCreate.panel', { type: dataType })
         setPanel('quickCreate')
         return
       case 'batch_create':
@@ -470,8 +469,8 @@ export default function App() {
         setNotice('在界面右上角「当前库」处可切换或新建游戏库')
         return
       case 'onboarding_types':
-        setTypeEditorTarget(null)
-        setPanel('typeEditor')
+        // 走菜单同一入口：会先清掉预选类型，回到「第一个类型」
+        openPanel('typeEditor')
         return
       case 'onboarding_data':
         if (activeCeshuId === null) {
@@ -519,9 +518,9 @@ export default function App() {
   /** 跳转已处理（预览面板点击标签页 / 未命中被驳回）：清空 jumpTarget，避免重复触发 */
   const handleJumpHandled = (): void => setJumpTarget(null)
 
-  /** 条目表单「更多 ▸ → 编辑当前类型字段结构」：打开字段结构编辑器并预选该类型 */
+  /** 条目表单「更多 ▸ → 编辑当前类型字段结构」：把该类型作为打开参数交给宿主 */
   const handleEditType = (typeId: string): void => {
-    setTypeEditorTarget(typeId)
+    pluginHost.openPanel('typeEditor.panel', { initialTypeId: typeId })
     setPanel('typeEditor')
   }
 
@@ -548,24 +547,24 @@ export default function App() {
    * 后该函数已无消费者，一并移除 —— 菜单里不再有「点了没反应」的项。
    */
 
-  /** 批量操作完成：提示结果、关闭面板并刷新增撤状态 */
-  const handleBatchApplied = (message: string): void => {
-    setNotice(message)
-    setPanel(null)
-    refreshUndo()
-  }
-
-  /** 快速创建完成：提示结果、关闭面板并刷新增撤状态 */
-  const handleQuickCreated = (message: string): void => {
-    setNotice(message)
-    setPanel(null)
-    refreshUndo()
-  }
+  /**
+   * 数据被改过之后的通用收尾：顶部提示 + 刷撤销栈。
+   * 快速创建 / 批量编辑 / 导入应用三处原本各有一个同形回调（`setNotice` + `refreshUndo`），
+   * 现合并为 context 的 `afterMutation`；关面板由面板自己调 `onClose`/`close`（Slice 7）。
+   */
+  const afterMutation = useCallback(
+    (message: string): void => {
+      setNotice(message)
+      refreshUndo()
+    },
+    [refreshUndo]
+  )
 
   /** 数据导入 / 导出（JSON / CSV / Excel / 引擎格式）：内聚单元，见 hooks/useAppActions */
   const { importJson, exportJson, importCsv, exportCsv, importExcel, exportExcel, engineExport, exportSnapshot } =
     useDataTransfer(setNotice, setError, refreshUndo, (payload) => {
-      setImportPreview(payload)
+      // 预览数据作为打开参数交给宿主（Slice 7）；面板用完调 close() 清掉
+      pluginHost.openPanel('importPreview.panel', payload)
       setPanel('importPreview')
     })
 
@@ -589,20 +588,14 @@ export default function App() {
    * 面板用 `useAppContext()` 自行取用，不再由本组件逐个以 props 下发。
    * 刻意不 memo：`handleJump` 为普通函数每次渲染新建，memo 不会命中；面板数量少，重渲染可接受。
    */
-  const appContextValue = { types, setTypes, handleJump, refreshUndo, handleDataCleared }
+  const appContextValue = { types, setTypes, handleJump, refreshUndo, handleDataCleared, afterMutation }
 
   /** 渲染当前打开的浮层面板（互斥；面板 props 里来自已下线数据态的项一律给兜底值） */
   const renderPanel = (): ReactNode => {
     switch (panel) {
       case 'typeEditor':
-        return (
-          <TypeEditorPanel
-            types={types}
-            initialTypeId={typeEditorTarget ?? undefined}
-            onSaved={(saved) => setTypes(saved)}
-            onClose={() => setPanel(null)}
-          />
-        )
+        // Slice 7：types/setTypes 走 appContext，预选类型走打开参数（entry-panels bundle）。
+        return <HostPanel host={pluginHost} panelId="typeEditor.panel" onClose={() => setPanel(null)} />
       case 'attrSystem':
         return <HostPanel host={pluginHost} panelId="attrSystem.panel" onClose={() => setPanel(null)} />
       case 'stats':
@@ -642,45 +635,12 @@ export default function App() {
       case 'onboarding':
         return <OnboardingPanel types={types} onAction={handleOnboardingAction} onClose={() => setPanel(null)} />
       case 'importPreview':
-        // 没有预览数据就没什么可确认的（正常流程不会走到这里，防手滑）
-        return importPreview === null ? null : (
-          <ImportPreviewPanel
-            previewId={importPreview.previewId}
-            preview={importPreview.preview}
-            types={types}
-            onApplied={(summary) => {
-              setNotice(formatImportSummary(summary))
-              setImportPreview(null)
-              setPanel(null)
-              refreshUndo()
-            }}
-            onCancel={() => {
-              setImportPreview(null)
-              setPanel(null)
-            }}
-          />
-        )
+        // 没有预览数据时绑定返回 null（不画空壳），无需 App 再判一次
+        return <HostPanel host={pluginHost} panelId="importPreview.panel" onClose={() => setPanel(null)} />
       case 'quickCreate':
-        return (
-          <QuickCreatePanel
-            key={`${quickCreateTarget ?? firstType ?? ''}:quick`}
-            type={quickCreateTarget ?? firstType ?? ''}
-            types={types}
-            onCreated={handleQuickCreated}
-            onClose={() => setPanel(null)}
-          />
-        )
+        return <HostPanel host={pluginHost} panelId="quickCreate.panel" onClose={() => setPanel(null)} />
       case 'batch':
-        return (
-          <BatchEditPanel
-            key={`${firstType ?? ''}:batch`}
-            type={firstType ?? ''}
-            typeDef={types.find((def) => def.id === firstType) ?? null}
-            types={types}
-            onApplied={handleBatchApplied}
-            onClose={() => setPanel(null)}
-          />
-        )
+        return <HostPanel host={pluginHost} panelId="batch.panel" onClose={() => setPanel(null)} />
       // 注：原「数据可见类型」面板（TypeVisibilityPanel）不再接线——它唯一的作用是过滤
       // 已随侧栏一并下线的类型列表，且 旧版 无对应功能。组件文件保留（迁移留痕），但不再有入口。
       case 'references':
@@ -733,22 +693,16 @@ export default function App() {
           backup: () => openPanel('backup'),
           undo: () => void performUndo(),
           redo: () => void performRedo(),
-          quickCreate: () => {
-            // 菜单入口：清掉「快速入门」快捷卡可能留下的目标类型，回到默认（第一个类型）
-            setQuickCreateTarget(null)
-            openPanel('quickCreate')
-          },
+          // 菜单入口：openPanel 会先清掉「快速入门」快捷卡留下的目标类型，回到默认（第一个类型）
+          quickCreate: () => openPanel('quickCreate'),
           references: () => openPanel('references'),
           relationGraph: () => openPanel('relationGraph'),
           gameDataPreview: () => openPanel('gameDataPreview'),
           dataDiff: () => openPanel('dataDiff'),
           stats: () => openPanel('stats'),
           attrSystem: () => openPanel('attrSystem'),
-          fieldEditor: () => {
-            // 菜单入口 = 通用字段结构编辑器，清掉条目表单可能留下的预选类型
-            setTypeEditorTarget(null)
-            openPanel('typeEditor')
-          },
+          // 菜单入口 = 通用字段结构编辑器；openPanel 会清掉条目表单留下的预选类型
+          fieldEditor: () => openPanel('typeEditor'),
           advancedSearch: () => openPanel('advancedSearch'),
           imageGen: () => openPanel('imageGen'),
           clearAll: () => openPanel('clearAll'),

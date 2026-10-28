@@ -19,6 +19,12 @@ import type { PluginPanelCapability, PluginViewCapability, UiNode } from '../../
  */
 export interface PanelBindingProps {
   onClose: () => void
+  /**
+   * 关闭并**清掉本面板的打开参数**。
+   * 与 `onClose` 的差别：`onClose` 只关浮层，参数留在宿主里（引用面板靠这点「先定位、后重开」）；
+   * 参数是**一次性大对象**的面板（如导入预览的整份预览数据）用完必须调 `close`，否则一直挂在宿主内存里。
+   */
+  close: () => void
   params?: unknown
 }
 

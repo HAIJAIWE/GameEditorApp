@@ -38,6 +38,7 @@ export function appContextValue(overrides: Partial<AppContextValue> = {}): AppCo
     handleJump: () => undefined,
     refreshUndo: () => undefined,
     handleDataCleared: () => undefined,
+    afterMutation: () => undefined,
     ...overrides
   }
 }
