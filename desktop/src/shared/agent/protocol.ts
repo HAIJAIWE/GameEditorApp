@@ -18,8 +18,26 @@ import { taskBudget, evaluateBudget, type LlmTaskType } from './budget'
 import { RISK_LEVEL, TOOL_RISK_MAP, DEFAULT_TOOL_RISK, DEFAULT_MAX_ALLOWED_RISK, ACTION_ALIASES, LLM_BULK_COUNT_THRESHOLD, type RiskLevel } from './protocolData'
 export * from './protocolData'
 
-/** 取 (工具, 操作) 的风险等级；未登记回退 DATA_WRITE */
+/**
+ * 动态工具风险（MCP 等**运行时**注册的工具）：id → 风险。
+ * 优先于静态 `TOOL_RISK_MAP`（后者是编译期常量，覆盖不到 MCP 这类动态工具）。
+ */
+const dynamicToolRisk = new Map<string, RiskLevel>()
+
+/** 运行时登记某工具的风险（MCP 工具等动态来源用）；重复调用覆盖 */
+export function setDynamicToolRisk(toolId: string, risk: RiskLevel): void {
+  dynamicToolRisk.set(toolId, risk)
+}
+
+/** 清除动态风险（工具被卸载 / 服务器断开时） */
+export function clearDynamicToolRisk(toolId: string): void {
+  dynamicToolRisk.delete(toolId)
+}
+
+/** 取 (工具, 操作) 的风险等级；动态登记优先，其次静态表，未登记回退 DATA_WRITE */
 export function resolveRiskLevel(toolId: string, action = ''): RiskLevel {
+  const dynamic = dynamicToolRisk.get(toolId)
+  if (dynamic !== undefined) return dynamic
   const entry = TOOL_RISK_MAP[toolId]
   if (entry === undefined) return DEFAULT_TOOL_RISK
   if (typeof entry === 'number') return entry

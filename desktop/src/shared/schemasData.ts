@@ -588,6 +588,11 @@ export const agentInteractionResponseInputSchema = z
   )
 
 /** Agent Brain：跑一轮对话循环（输入用户消息，返回事件流与最终文本） */
+/** MCP 配置保存：整份 JSON 文本（主进程解析 + 校验 + 写盘 + 重连） */
+export const mcpSetConfigInputSchema = z.object({
+  content: z.string().max(200_000)
+})
+
 export const agentChatInputSchema = z.object({
   input: z.string().min(1).max(4000),
   /**

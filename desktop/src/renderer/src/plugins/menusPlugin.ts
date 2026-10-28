@@ -130,7 +130,9 @@ export function defineMenusPlugin(_host: PluginHost): PluginManifest {
           item('高级搜索', 'advancedSearch.open', 'menuitem-tools-advancedSearch'),
           item('AI 生图', 'imageGen.open', 'menuitem-tools-imageGen'),
           item('清理未使用图片', 'cleanupImages.open', 'menuitem-tools-cleanupUnusedImages'),
-          item('关键词模板配置', 'keywordTemplates.open', 'menuitem-tools-keywordTemplates')
+          item('关键词模板配置', 'keywordTemplates.open', 'menuitem-tools-keywordTemplates'),
+          sep,
+          item('MCP 配置', 'mcpConfig.open', 'menuitem-tools-mcpConfig')
         ]
       },
       {

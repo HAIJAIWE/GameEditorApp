@@ -1,3 +1,5 @@
+import { readFile, writeFile } from 'node:fs/promises'
+
 import type { IpcHandlerDeps, IpcRegistrar, LlmShared } from '../ipc'
 import {
   agentApprovalResponseInputSchema,
@@ -6,8 +8,11 @@ import {
   agentExecuteToolInputSchema,
   agentFeedbackInputSchema,
   agentDraftLoadInputSchema,
-  agentDraftSaveInputSchema
+  agentDraftSaveInputSchema,
+  mcpSetConfigInputSchema
 } from '../../shared/schemas'
+import { parseMcpConfig } from '../../shared/agent/mcp/config'
+import { mcpManager } from '../agent/mcp/manager'
 import { DEFAULT_INTERACTION_TIMEOUT_MS } from '../../shared/agent/brain'
 import type { AgentInteractionAnswer } from '../agent/approvalBroker'
 import { withTask } from '../task/taskRegistry'
@@ -22,6 +27,31 @@ export function registerAgentIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
   handle('agent:executeTool', agentExecuteToolInputSchema, (req) =>
     agentDispatcher.execute(req.tool, req.params, {})
   )
+  // MCP 配置（Slice 20）：读写 userData/mcp.json + 保存后重连
+  const DEFAULT_MCP_CONFIG = '{\n  "mcpServers": {}\n}\n'
+  handle('mcp:getConfig', undefined, async () => {
+    const path = mcpManager.configPathOrNull()
+    if (path === null) return { content: DEFAULT_MCP_CONFIG }
+    try {
+      return { content: await readFile(path, 'utf8') }
+    } catch {
+      return { content: DEFAULT_MCP_CONFIG }
+    }
+  })
+  handle('mcp:setConfig', mcpSetConfigInputSchema, async (req) => {
+    const path = mcpManager.configPathOrNull()
+    if (path === null) return { ok: false, error: 'MCP 未初始化' }
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(req.content)
+    } catch {
+      return { ok: false, error: 'JSON 格式错误，未保存' }
+    }
+    const config = parseMcpConfig(parsed)
+    await writeFile(path, JSON.stringify(config, null, 2), 'utf8')
+    await mcpManager.reload(config)
+    return { ok: true, count: Object.keys(config.mcpServers).length }
+  })
   // Agent Brain 循环（A1-2/A1-4）：事件流实时推给渲染层；危险操作经审批 broker 等渲染层决定
   handle('agent:chat', agentChatInputSchema, async (req, event) => {
     const llmCall = await llm.llmCallOptions()

@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises'
 
-import { mcpToolToSkill, type McpCallTool } from '../../../shared/agent/mcp/bridge'
+import { mcpToolId, mcpToolRisk, mcpToolToSkill, type McpCallTool } from '../../../shared/agent/mcp/bridge'
+import { clearDynamicToolRisk, setDynamicToolRisk, type RiskLevel } from '../../../shared/agent/protocol'
 import { McpClient } from '../../../shared/agent/mcp/client'
 import { parseMcpConfig } from '../../../shared/agent/mcp/config'
 import type { McpConfig, McpServerConfig, McpToolInfo, McpTransport } from '../../../shared/agent/mcp/types'
@@ -27,9 +28,12 @@ function createTransport(config: McpServerConfig): McpTransport | null {
  */
 export class McpManager {
   private readonly clients = new Map<string, McpClient>()
-  private tools: McpToolInfo[] = []
+  /** 已发现的工具 + 各自的风险等级（风险在注册时写进动态风险表） */
+  private tools: Array<{ tool: McpToolInfo; risk: RiskLevel }> = []
   private dispatcher: SkillDispatcher | null = null
   private connected = false
+  /** 配置文件路径（`connectFromFile` 时记下；配置 UI 读写它） */
+  private configPath: string | null = null
 
   /** 连上配置里的全部服务器并发现工具（只连一次；重复调用无操作） */
   async connect(config: McpConfig): Promise<void> {
@@ -43,7 +47,10 @@ export class McpManager {
         await client.initialize()
         const tools = await client.listTools()
         this.clients.set(server, client)
-        this.tools.push(...tools)
+        // 按服务器配置（显式 risk）或工具名启发式，算出每个工具的风险
+        for (const tool of tools) {
+          this.tools.push({ tool, risk: mcpToolRisk(tool.name, serverConfig.risk) })
+        }
       } catch (error) {
         // 单个服务器失败不影响其他服务器与 agent 本体
         console.error(`[MCP] server "${server}" 连接失败：`, error instanceof Error ? error.message : String(error))
@@ -54,12 +61,24 @@ export class McpManager {
 
   /** 从配置文件读取并连接；文件缺失/格式错 = 不启用 MCP（静默） */
   async connectFromFile(path: string): Promise<void> {
+    this.configPath = path
     try {
       const raw: unknown = JSON.parse(await readFile(path, 'utf8'))
       await this.connect(parseMcpConfig(raw))
     } catch {
       // 没有 mcp.json 是正常情况（默认不启用）
     }
+  }
+
+  /** 配置文件路径（配置 UI 用；未初始化返回 null） */
+  configPathOrNull(): string | null {
+    return this.configPath
+  }
+
+  /** 用新配置**重连**（配置 UI 保存后调用）：先关旧连接，再按新配置连一遍 */
+  async reload(config: McpConfig): Promise<void> {
+    this.close()
+    await this.connect(config)
   }
 
   /** 绑定当前 dispatcher（库切换重建后需重新 attach），并注册已发现的工具 */
@@ -74,6 +93,7 @@ export class McpManager {
   }
 
   close(): void {
+    for (const { tool } of this.tools) clearDynamicToolRisk(mcpToolId(tool.server, tool.name))
     for (const client of this.clients.values()) client.close()
     this.clients.clear()
     this.tools = []
@@ -87,7 +107,9 @@ export class McpManager {
       if (client === undefined) throw new Error(`MCP server "${server}" 未连接`)
       return client.callTool(tool, args)
     }
-    for (const tool of this.tools) {
+    for (const { tool, risk } of this.tools) {
+      // 动态风险表：MCP 工具是运行时的，静态 TOOL_RISK_MAP 覆盖不到
+      setDynamicToolRisk(mcpToolId(tool.server, tool.name), risk)
       // 重复注册（同一 dispatcher 二次 attach）返回 false，无害
       this.dispatcher.register(mcpToolToSkill(tool, callTool))
     }

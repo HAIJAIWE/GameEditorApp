@@ -1,4 +1,10 @@
-import type { McpConfig, McpServerConfig } from './types'
+import type { McpConfig, McpRiskLevel, McpServerConfig } from './types'
+
+const RISK_VALUES: readonly McpRiskLevel[] = ['read', 'write', 'filesystem', 'network', 'system']
+
+function isMcpRiskLevel(value: unknown): value is McpRiskLevel {
+  return typeof value === 'string' && (RISK_VALUES as readonly string[]).includes(value)
+}
 
 /**
  * 解析 MCP 配置（`{ mcpServers: { name: { command, args?, env? } } }`）。
@@ -27,6 +33,7 @@ function parseServer(value: unknown): McpServerConfig | null {
     env?: unknown
     url?: unknown
     headers?: unknown
+    risk?: unknown
   }
 
   // stdio（command）与 streamable-http（url）二选一，都没有则视为无效项
@@ -40,12 +47,15 @@ function parseServer(value: unknown): McpServerConfig | null {
   const env = toStringMap(v.env)
   const headers = toStringMap(v.headers)
 
+  const risk = isMcpRiskLevel(v.risk) ? v.risk : undefined
+
   return {
     ...(command !== undefined ? { command } : {}),
     ...(args !== undefined ? { args } : {}),
     ...(env !== undefined ? { env } : {}),
     ...(url !== undefined ? { url } : {}),
-    ...(headers !== undefined ? { headers } : {})
+    ...(headers !== undefined ? { headers } : {}),
+    ...(risk !== undefined ? { risk } : {})
   }
 }
 

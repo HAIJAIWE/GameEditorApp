@@ -4,10 +4,11 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { mcpToolId, mcpToolToSkill } from '../../src/shared/agent/mcp/bridge'
+import { mcpToolId, mcpToolRisk, mcpToolToSkill } from '../../src/shared/agent/mcp/bridge'
 import { McpClient } from '../../src/shared/agent/mcp/client'
 import { parseMcpConfig } from '../../src/shared/agent/mcp/config'
 import type { McpTransport } from '../../src/shared/agent/mcp/types'
+import { RISK_LEVEL, clearDynamicToolRisk, resolveRiskLevel, setDynamicToolRisk } from '../../src/shared/agent/protocol'
 
 /* ------------------------------- 配置解析 ------------------------------- */
 
@@ -143,5 +144,42 @@ describe('McpClient', () => {
     expect(result).toEqual({ content: [{ type: 'text', text: 'ok' }], isError: false })
     const call = transport.requests.find((request) => request.method === 'tools/call')
     expect(call?.params).toEqual({ name: 'read_file', arguments: { path: '/a' } })
+  })
+})
+
+/* ------------------------------ 风险分级 ------------------------------ */
+
+describe('MCP 工具风险分级（Slice 20）', () => {
+  it('mcpToolRisk：显式配置优先于启发式', () => {
+    expect(mcpToolRisk('anything', 'system')).toBe(RISK_LEVEL.SYSTEM)
+    expect(mcpToolRisk('read_file', 'system')).toBe(RISK_LEVEL.SYSTEM)
+    expect(mcpToolRisk('shell_exec', 'read')).toBe(RISK_LEVEL.READ_ONLY)
+  })
+
+  it('mcpToolRisk：按工具名启发式', () => {
+    expect(mcpToolRisk('shell_exec')).toBe(RISK_LEVEL.SYSTEM)
+    expect(mcpToolRisk('write_file')).toBe(RISK_LEVEL.SYSTEM)
+    expect(mcpToolRisk('delete_record')).toBe(RISK_LEVEL.SYSTEM)
+    expect(mcpToolRisk('read_file')).toBe(RISK_LEVEL.READ_ONLY)
+    expect(mcpToolRisk('list_items')).toBe(RISK_LEVEL.READ_ONLY)
+    expect(mcpToolRisk('update_record')).toBe(RISK_LEVEL.DATA_WRITE)
+  })
+
+  it('动态风险表优先于静态表，可清除回退', () => {
+    setDynamicToolRisk('mcp.fs.read_file', RISK_LEVEL.SYSTEM)
+    expect(resolveRiskLevel('mcp.fs.read_file')).toBe(RISK_LEVEL.SYSTEM)
+    clearDynamicToolRisk('mcp.fs.read_file')
+    expect(resolveRiskLevel('mcp.fs.read_file')).toBe(RISK_LEVEL.DATA_WRITE) // 回退默认
+  })
+
+  it('配置解析保留 risk 字段（非法值丢弃）', () => {
+    const config = parseMcpConfig({
+      mcpServers: {
+        shell: { command: 'x', risk: 'system' },
+        bad: { command: 'y', risk: 'nope' }
+      }
+    })
+    expect(config.mcpServers.shell.risk).toBe('system')
+    expect(config.mcpServers.bad.risk).toBeUndefined()
   })
 })

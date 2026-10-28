@@ -41,6 +41,13 @@ export interface MbApi {
     onEvent(handler: (event: unknown) => void): () => void
   }
 
+  mcp: {
+    /** 读取 MCP 配置（原始 JSON 文本，供配置面板编辑） */
+    getConfig(): Promise<IpcContract['mcp:getConfig']['res']>
+    /** 保存 MCP 配置（JSON 文本）并重连 */
+    setConfig(req: IpcContract['mcp:setConfig']['req']): Promise<IpcContract['mcp:setConfig']['res']>
+  }
+
   library: {
     list(): Promise<IpcContract['library:list']['res']>
     create(req: IpcContract['library:create']['req']): Promise<IpcContract['library:create']['res']>

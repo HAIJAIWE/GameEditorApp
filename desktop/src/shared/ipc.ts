@@ -290,6 +290,13 @@ export interface IpcContract {
     req: AgentChatInput
     res: { text: string; events: BrainEvent[]; completed: boolean; stats: AgentRunStats }
   }
+  /** MCP 配置：读原始 JSON 文本（配置 UI 编辑用） */
+  'mcp:getConfig': { req: undefined; res: { content: string } }
+  /** MCP 配置：保存 JSON 文本并重连（解析失败返回 ok:false，不改文件） */
+  'mcp:setConfig': {
+    req: { content: string }
+    res: { ok: boolean; error?: string; count?: number }
+  }
   /**
    * 取消该窗口正在跑的长任务（对话循环、章节/数据/审校等单发 AI 生成）。
    * `taskId` 缺省 ⇒ 取消「该窗口当前活跃的一笔」；`cancelled: false` =

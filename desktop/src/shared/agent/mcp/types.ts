@@ -15,6 +15,9 @@ import type { JsonObjectSchema } from '../protocol'
  * - **stdio**：`command` + `args` + `env`（拉起子进程）；
  * - **streamable-http**：`url` + `headers`（远程服务器，如 context7）。
  */
+/** MCP 服务器风险档（映射到 `RISK_LEVEL`）；省略则按工具名启发式判断 */
+export type McpRiskLevel = 'read' | 'write' | 'filesystem' | 'network' | 'system'
+
 export interface McpServerConfig {
   /** stdio：启动命令（与 `url` 二选一） */
   command?: string
@@ -23,6 +26,11 @@ export interface McpServerConfig {
   /** streamable-http：服务地址（与 `command` 二选一） */
   url?: string
   headers?: Record<string, string>
+  /**
+   * 该服务器所有工具的**风险档**（显式指定；省略则按工具名启发式）。
+   * `system` 档的工具每次调用都会要求用户二次确认（适合 shell 类）。
+   */
+  risk?: McpRiskLevel
 }
 
 /** stdio 配置（`command` 必填，供 `StdioMcpTransport` 用） */

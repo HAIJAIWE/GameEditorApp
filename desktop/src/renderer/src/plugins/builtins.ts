@@ -7,6 +7,7 @@ import { defineDataPanelsPlugin } from './dataPanelsPlugin'
 import { defineDemoPlugin } from './demoPlugin'
 import { defineEntryPanelsPlugin } from './entryPanelsPlugin'
 import { defineMaintenancePanelsPlugin } from './maintenancePanelsPlugin'
+import { defineMcpConfigPlugin } from './mcpConfigPlugin'
 import { defineMenusPlugin } from './menusPlugin'
 import { defineNavigationPlugin } from './navigationPlugin'
 import { defineOnboardingPlugin } from './onboardingPlugin'
@@ -46,6 +47,7 @@ export function registerBuiltinPlugins(): void {
   pluginHost.register(defineNavigationPlugin(pluginHost))
   pluginHost.register(defineCeshuViewsPlugin())
   pluginHost.register(defineCeshuMenusPlugin(pluginHost))
+  pluginHost.register(defineMcpConfigPlugin(pluginHost))
 }
 
 registerBuiltinPlugins()

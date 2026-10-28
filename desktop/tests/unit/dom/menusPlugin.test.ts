@@ -14,6 +14,7 @@ import { defineDataPanelsPlugin } from '../../../src/renderer/src/plugins/dataPa
 import { defineDemoPlugin } from '../../../src/renderer/src/plugins/demoPlugin'
 import { defineEntryPanelsPlugin } from '../../../src/renderer/src/plugins/entryPanelsPlugin'
 import { defineMaintenancePanelsPlugin } from '../../../src/renderer/src/plugins/maintenancePanelsPlugin'
+import { defineMcpConfigPlugin } from '../../../src/renderer/src/plugins/mcpConfigPlugin'
 import { defineMenusPlugin } from '../../../src/renderer/src/plugins/menusPlugin'
 import { defineOnboardingPlugin } from '../../../src/renderer/src/plugins/onboardingPlugin'
 import { defineReferencesPlugin } from '../../../src/renderer/src/plugins/referencesPlugin'
@@ -38,6 +39,7 @@ function fullHost(): PluginHost {
   host.register(defineOnboardingPlugin(host))
   host.register(defineAppActionsPlugin(host))
   host.register(defineMenusPlugin(host))
+  host.register(defineMcpConfigPlugin(host))
   return host
 }
 

@@ -53,6 +53,10 @@ const api: MbApi = {
       }
     }
   },
+  mcp: {
+    getConfig: () => invoke('mcp:getConfig', undefined),
+    setConfig: (req) => invoke('mcp:setConfig', req)
+  },
   attrSystem: {
     get: () => invoke('attrSystem:get', undefined),
     save: (req) => invoke('attrSystem:save', req),
