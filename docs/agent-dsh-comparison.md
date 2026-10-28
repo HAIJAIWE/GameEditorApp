@@ -173,6 +173,8 @@ dsh 用 **cordis** 做插件组合，profile 是 YAML 补丁层（`bundles` + `c
 
 > 每一片都要过四道闸 + e2e；A/B 是「数字员工」体验的分水岭，建议先做。
 
+> **已落地（Slice 25，2026-10-28）**：tier-aware 参数——云端档 `maxTurns 12 / wallClock 300s / 并行默认开·并发 10 / 工具面 24`；本地档 `6 / 120s / 关·4 / 8`。`loop.ts` 提前算 `tier`，`agentService` 不再显式兜底 `maxTurns`（否则盖掉档位默认）。
+
 ---
 
 ## 6. 来源（可复查）
