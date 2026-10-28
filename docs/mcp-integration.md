@@ -61,6 +61,7 @@ MCP server ──stdio JSON-RPC──▶ McpClient ──tools/list──▶ Mcp
 }
 ```
 
+- 顶层 `"maxTools": N` 可调高**工具面上限**（默认本地 8 / 云端 15；MCP 工具多了才需要，否则会被截断）。
 - **stdio**（`command`）与 **http**（`url`）二选一，按配置自动选传输层。
 - 没有这个文件 = **不启用 MCP**（静默，不影响 agent 本体）。
 - 单个服务器起不来 = 只跳过它，其他服务器与 agent 不受影响。
@@ -84,7 +85,7 @@ MCP server ──stdio JSON-RPC──▶ McpClient ──tools/list──▶ Mcp
 - 单测：`mcp.test.ts` 13 条（配置/桥/客户端/风险分级）
 
 **未做（后续）**
-- **工具面限量**：MCP 工具计入本地 8 / 云端 15 的上限，接多了会被截断（可调 `TOOL_FACE_LIMITS`）
+- ~~**工具面限量**~~ → **已可配置**（Slice 21）：MCP 配置顶层 `"maxTools": N` 调高上限（默认 8/15，`setMaxToolsOverride`）
 - ~~**SubAgent 通道 / 并行执行**~~ → **已做**（Slice 19，opt-in）：`parallelToolCalls` + `tool.spawn_subagent`，见 [`agent-parallel-subagent.md`](./agent-parallel-subagent.md)
 
 ## 6. 验证
