@@ -3,6 +3,9 @@ import type { PluginManifest } from '../../../shared/plugin/types'
 import AiDataGenPanel from '../components/AiDataGenPanel'
 import AiFullGeneratePanel from '../components/AiFullGeneratePanel'
 import AiReviewPanel from '../components/AiReviewPanel'
+import CeshuMachineDataPanel from '../components/CeshuMachineDataPanel'
+import CeshuPrototypePanel from '../components/CeshuPrototypePanel'
+import CeshuTasksPanel from '../components/CeshuTasksPanel'
 import ChapterNotesPanel from '../components/ChapterNotesPanel'
 import CeshuDataRefsPanel from '../components/ceshu/CeshuDataRefsPanel'
 import { ChangelogPanel, ReadinessPanel, ValidatePanel } from '../components/ceshu/CeshuReportPanels'
@@ -23,6 +26,7 @@ import TemplateEditorPanel from '../components/TemplateEditorPanel'
 import VersionDiffPanel from '../components/VersionDiffPanel'
 import VersionTimelinePanel from '../components/VersionTimelinePanel'
 import {
+  CESHU_ARTIFACT_MOUNT,
   CESHU_CHAPTERNAV_MOUNT,
   CESHU_CONTENT_MOUNT,
   CESHU_TOOLBAR_MOUNT,
@@ -110,6 +114,20 @@ export function defineCeshuViewsPlugin(): PluginManifest {
   function ModulePickerOverlayBound({ onClose }: PanelBindingProps) {
     const { doc, onToggleModule } = useCeshuView()
     return <ModulePickerOverlay doc={doc} onToggle={onToggleModule} onClose={onClose} />
+  }
+
+  /* ---------------- 产出物页签挂载点（ceshu.artifact） ---------------- */
+  function PrototypePanelBound() {
+    const { doc, onDocUpdated } = useCeshuView()
+    return <CeshuPrototypePanel doc={doc} onDocUpdated={onDocUpdated} />
+  }
+  function MachineDataPanelBound() {
+    const { doc, onTypesChanged, onGenerateData } = useCeshuView()
+    return <CeshuMachineDataPanel doc={doc} onTypesChanged={onTypesChanged} onGenerateData={onGenerateData} />
+  }
+  function TasksPanelBound() {
+    const { doc, onDocUpdated } = useCeshuView()
+    return <CeshuTasksPanel doc={doc} onDocUpdated={onDocUpdated} />
   }
 
   /* ---------------- 内容槽挂载点（ceshu.content） ---------------- */
@@ -248,6 +266,9 @@ export function defineCeshuViewsPlugin(): PluginManifest {
   registerReactBinding('import.view', ImportOverlayBound)
   registerReactBinding('derive.view', DeriveOverlayBound)
   registerReactBinding('modulePicker.view', ModulePickerOverlayBound)
+  registerReactBinding('prototype.view', PrototypePanelBound)
+  registerReactBinding('data.view', MachineDataPanelBound)
+  registerReactBinding('tasks.view', TasksPanelBound)
   registerReactBinding('diff.view', DiffPanelBound)
   registerReactBinding('timeline.view', TimelinePanelBound)
   registerReactBinding('changelog.view', ChangelogPanelBound)
@@ -284,6 +305,10 @@ export function defineCeshuViewsPlugin(): PluginManifest {
       // 内联弹层 / 气泡挂载点（保持原有定位）
       { kind: 'view', id: 'derive.view', label: '派生新版本', mount: CESHU_TOOLBAR_MOUNT, order: 10, ui: { type: 'text', text: '派生新版本' } },
       { kind: 'view', id: 'modulePicker.view', label: '系统模块', mount: CESHU_CHAPTERNAV_MOUNT, order: 10, ui: { type: 'text', text: '系统模块' } },
+      // 产出物页签挂载点
+      { kind: 'view', id: 'prototype.view', label: '原型预览', mount: CESHU_ARTIFACT_MOUNT, order: 10, ui: { type: 'text', text: '原型预览' } },
+      { kind: 'view', id: 'data.view', label: '数据/机读', mount: CESHU_ARTIFACT_MOUNT, order: 20, ui: { type: 'text', text: '数据/机读' } },
+      { kind: 'view', id: 'tasks.view', label: '岗位任务', mount: CESHU_ARTIFACT_MOUNT, order: 30, ui: { type: 'text', text: '岗位任务' } },
       // 内容槽挂载点（替换编辑器内容区）
       { kind: 'view', id: 'diff.view', label: '版本对比', mount: CESHU_CONTENT_MOUNT, order: 10, ui: { type: 'text', text: '版本对比' } },
       { kind: 'view', id: 'timeline.view', label: '版本时间线', mount: CESHU_CONTENT_MOUNT, order: 20, ui: { type: 'text', text: '版本时间线' } },

@@ -22,6 +22,8 @@ export const CESHU_CONTENT_MOUNT = 'ceshu.content'
 export const CESHU_TOOLBAR_MOUNT = 'ceshu.toolbar'
 /** 章节列表旁的内联气泡（系统模块勾选）挂载点 */
 export const CESHU_CHAPTERNAV_MOUNT = 'ceshu.chapterNav'
+/** 左栏「产出物」页签（原型/数据/任务）的内容挂载点 */
+export const CESHU_ARTIFACT_MOUNT = 'ceshu.artifact'
 
 export interface CeshuViewContextValue {
   /** 当前文档（活对象，随编辑更新） */
@@ -54,6 +56,12 @@ export interface CeshuViewContextValue {
   onDerive: (note: string) => void
   /** 勾选/取消系统模块（章节列表旁气泡） */
   onToggleModule: (module: ChapterKey, enabled: boolean) => void
+  /** 产出物面板回传改后的文档（原型 / 岗位任务） */
+  onDocUpdated: (next: CeshuDocument) => void
+  /** 数据面板新建/改动类型（刷新宿主类型列表） */
+  onTypesChanged: (types: DataTypeDef[]) => void
+  /** 数据面板「AI 生成缺失数据」：带上目标打开 AI 数据生成视图 */
+  onGenerateData: (target: { typeId: string | null; count?: number; instruction?: string }) => void
 
   /** 子面板把「应用后」的文档回传给编辑器（AI 生成 / 模板 / 预设 / 系统确认） */
   onAiApplied: (updated: CeshuDocument, chapters: readonly ChapterKey[]) => void

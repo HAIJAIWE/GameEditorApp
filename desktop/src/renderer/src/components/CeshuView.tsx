@@ -46,10 +46,7 @@ import type { DataTypeDef } from '../../../shared/types'
 
 import ChapterForm from './ChapterForm'
 import CeshuOverview from './CeshuOverview'
-import CeshuPrototypePanel from './CeshuPrototypePanel'
 import CeshuAgentPanel from './CeshuAgentPanel'
-import CeshuTasksPanel from './CeshuTasksPanel'
-import CeshuMachineDataPanel from './CeshuMachineDataPanel'
 import CeshuDataPreview, { type PreviewJumpTarget } from './ceshu/CeshuDataPreview'
 import { collectPendingReviewFields } from './ceshu/reviewQueueData'
 import LucideIcon from './LucideIcon'
@@ -57,6 +54,7 @@ import { ViewMount } from '../plugins/ViewMount'
 import { MenuMount } from '../plugins/MenuMount'
 import { setCeshuEditorBridge } from '../plugins/ceshuEditorBridge'
 import {
+  CESHU_ARTIFACT_MOUNT,
   CESHU_CHAPTERNAV_MOUNT,
   CESHU_CONTENT_MOUNT,
   CESHU_TOOLBAR_MOUNT,
@@ -144,8 +142,7 @@ export default function CeshuView({
   const [stageFilter, setStageFilter] = useState<CeshuStage | 'all'>('concept')
   /** 一页总览（2026 对齐）：把当前阶段压成一页只读摘要；默认仍是逐章编辑 */
   const [viewMode, setViewMode] = useState<'edit' | 'overview'>('edit')
-  /** 左栏产出物：设计文档 / 原型 / 数据 / 任务 */
-  const [artifact, setArtifact] = useState<ArtifactKey>('doc')
+  /* 左栏产出物页签（Slice 17）：'doc'=章节表单本体（内联）；原型/数据/任务 → ceshu.artifact 挂载点上的视图。 */
   /*
    * 编辑器内视图（Slice 11–14）全部迁到插件 `view` 能力，挂在两个挂载点上由 `<ViewMount>` 渲染：
    * - `ceshu.overlay`：浮层（路线/体检/影响面/迁移/消费提示词/审阅队列/导入）；
@@ -332,6 +329,16 @@ export default function CeshuView({
     subscribeHost,
     () => host.activeView(CESHU_CONTENT_MOUNT)?.id ?? null
   )
+  /**
+   * 产出物页签（Slice 17）：'doc' 无对应视图（章节表单本体），其余 3 个是 `ceshu.artifact` 上的视图。
+   * 页签高亮与内容都从「当前激活的产出物视图」派生，不再单独持 state（避免双源不同步）。
+   */
+  const artifactViewId = useSyncExternalStore(
+    subscribeHost,
+    () => host.activeView(CESHU_ARTIFACT_MOUNT)?.id ?? null
+  )
+  const activeArtifact: ArtifactKey =
+    artifactViewId === null ? 'doc' : (artifactViewId.slice(0, -'.view'.length) as ArtifactKey)
 
   /**
    * 卸载时关闭编辑器内视图（Slice 11/12）：视图状态存在宿主里，不会随组件卸载自动清。
@@ -861,6 +868,12 @@ export default function CeshuView({
     onApplyImport,
     onDerive,
     onToggleModule: handleToggleModule,
+    onDocUpdated: (next) => {
+      setDoc(next)
+      onChanged()
+    },
+    onTypesChanged: onTypesChanged ?? (() => undefined),
+    onGenerateData: (target) => openEditorView('aiDataGen.view', target),
     onAiApplied: handleAiApplied,
     onTemplateApplied: handleTemplateApplied,
     onPresetApplied: handlePresetApplied,
@@ -1001,14 +1014,17 @@ export default function CeshuView({
                     key={item.key}
                     type="button"
                     data-testid={`artifact-${item.key}`}
-                    className={`artifact-btn${artifact === item.key ? ' active' : ''}`}
-                    onClick={() => setArtifact(item.key)}
+                    className={`artifact-btn${activeArtifact === item.key ? ' active' : ''}`}
+                    onClick={() => {
+                      if (item.key === 'doc') host.closeView(CESHU_ARTIFACT_MOUNT)
+                      else openEditorView(`${item.key}.view`)
+                    }}
                   >
                     {item.label}
                   </button>
                 ))}
               </div>
-              {artifact === 'doc' ? (
+              {activeArtifact === 'doc' ? (
                 <>
               {/*
                 阶段筛选（默认「全部」= 原行为）。用途：立项阶段只需要 7 章，
@@ -1104,41 +1120,14 @@ export default function CeshuView({
                 </>
               ) : (
                 <div className="chapter-nav-hint" data-testid="artifact-nav-hint">
-                  「{ARTIFACTS.find((item) => item.key === artifact)?.label}」的目录将在这里
+                  「{ARTIFACTS.find((item) => item.key === activeArtifact)?.label}」的目录将在这里
                 </div>
               )}
             </div>
 
             <div className="chapter-body">
-              {artifact === 'prototype' ? (
-                <CeshuPrototypePanel
-                  doc={doc}
-                  onDocUpdated={(next) => {
-                    setDoc(next)
-                    onChanged()
-                  }}
-                />
-              ) : artifact === 'data' ? (
-                <CeshuMachineDataPanel
-                  doc={doc}
-                  onTypesChanged={onTypesChanged}
-                  onGenerateData={(target) => openEditorView('aiDataGen.view', target)}
-                />
-              ) : artifact === 'tasks' ? (
-                <CeshuTasksPanel
-                  doc={doc}
-                  onDocUpdated={(next) => {
-                    setDoc(next)
-                    onChanged()
-                  }}
-                />
-              ) : artifact !== 'doc' ? (
-                <div className="artifact-placeholder" data-testid={`artifact-placeholder-${artifact}`}>
-                  <div className="artifact-placeholder-title">
-                    {ARTIFACTS.find((item) => item.key === artifact)?.label}
-                  </div>
-                  <p>这里将显示「{ARTIFACTS.find((item) => item.key === artifact)?.label}」（下一步接入）。</p>
-                </div>
+              {activeArtifact !== 'doc' ? (
+                <ViewMount host={host} mount={CESHU_ARTIFACT_MOUNT} context={viewContext} />
               ) : viewMode === 'overview' ? (
                 <CeshuOverview
                   doc={doc}
