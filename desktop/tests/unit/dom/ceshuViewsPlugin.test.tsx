@@ -51,10 +51,29 @@ function makeDoc() {
 }
 
 function ctx(overrides: Partial<CeshuViewContextValue> = {}): CeshuViewContextValue {
-  return { doc: makeDoc(), types: [], onSelect: () => undefined, ...overrides }
+  return {
+    doc: makeDoc(),
+    types: [],
+    onSelect: () => undefined,
+    gameName: '测试项目',
+    currentChapter: 'meta',
+    changelog: null,
+    validateErrors: [],
+    readiness: null,
+    onAiApplied: () => undefined,
+    onTemplateApplied: () => undefined,
+    onPresetApplied: () => undefined,
+    onSystemConfirmed: () => undefined,
+    onExportChangelog: () => undefined,
+    onExportValidation: () => undefined,
+    onExportReadiness: () => undefined,
+    onJumpChapter: () => undefined,
+    onJumpField: () => undefined,
+    ...overrides
+  }
 }
 
-describe('编辑器内视图插件（Slice 11/12：view 挂载点 + 内容槽）', () => {
+describe('编辑器内视图插件（Slice 11/12/13：view 挂载点 + 内容槽）', () => {
   it('浮层挂载点声明 3 个 view，按 order 排序', () => {
     const host = hostWithPlugin()
     expect(host.views(CESHU_VIEW_MOUNT).map((v) => v.id)).toEqual([
@@ -65,17 +84,47 @@ describe('编辑器内视图插件（Slice 11/12：view 挂载点 + 内容槽）
     for (const v of host.views(CESHU_VIEW_MOUNT)) expect(v.mount).toBe(CESHU_VIEW_MOUNT)
   })
 
-  it('内容槽挂载点声明 2 个 view（版本对比 / 时间线）', () => {
+  it('内容槽挂载点声明 13 个 view（版本对比/时间线/报告/AI/预设…）', () => {
     const host = hostWithPlugin()
-    expect(host.views(CESHU_CONTENT_MOUNT).map((v) => v.id)).toEqual(['diff.view', 'timeline.view'])
+    expect(host.views(CESHU_CONTENT_MOUNT).map((v) => v.id)).toEqual([
+      'diff.view',
+      'timeline.view',
+      'changelog.view',
+      'validate.view',
+      'readiness.view',
+      'notes.view',
+      'dataRefs.view',
+      'aiReview.view',
+      'aiFull.view',
+      'aiDataGen.view',
+      'presetMarket.view',
+      'systemConfirm.view',
+      'templateEditor.view'
+    ])
     expect(host.views('other.mount')).toEqual([])
   })
 
-  it('五个 view 都有 React 绑定（否则会退化成占位文本）', () => {
+  it('16 个 view 都有 React 绑定（否则会退化成占位文本）', () => {
     hostWithPlugin()
-    for (const id of ['route.view', 'health.view', 'fieldImpact.view', 'diff.view', 'timeline.view']) {
-      expect(getReactBinding(id), id).toBeDefined()
-    }
+    const ids = [
+      'route.view',
+      'health.view',
+      'fieldImpact.view',
+      'diff.view',
+      'timeline.view',
+      'changelog.view',
+      'validate.view',
+      'readiness.view',
+      'notes.view',
+      'dataRefs.view',
+      'aiReview.view',
+      'aiFull.view',
+      'aiDataGen.view',
+      'presetMarket.view',
+      'systemConfirm.view',
+      'templateEditor.view'
+    ]
+    for (const id of ids) expect(getReactBinding(id), id).toBeDefined()
   })
 
   it('openView / closeView 按挂载点互斥，activeView 反映当前', () => {

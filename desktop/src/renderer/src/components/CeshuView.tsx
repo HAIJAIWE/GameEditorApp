@@ -63,9 +63,6 @@ import type { CeshuAiGenerateResult } from '../../../shared/ceshuAi'
 import type { PluginHost } from '../../../shared/plugin/host'
 import type { DataTypeDef } from '../../../shared/types'
 
-import AiDataGenPanel from './AiDataGenPanel'
-import AiFullGeneratePanel from './AiFullGeneratePanel'
-import AiReviewPanel from './AiReviewPanel'
 import ChapterForm from './ChapterForm'
 import CeshuModulePicker from './CeshuModulePicker'
 import CeshuOverview from './CeshuOverview'
@@ -73,19 +70,13 @@ import CeshuPrototypePanel from './CeshuPrototypePanel'
 import CeshuAgentPanel from './CeshuAgentPanel'
 import CeshuTasksPanel from './CeshuTasksPanel'
 import CeshuMachineDataPanel from './CeshuMachineDataPanel'
-import ChapterNotesPanel from './ChapterNotesPanel'
 import CeshuDataPreview, { type PreviewJumpTarget } from './ceshu/CeshuDataPreview'
-import CeshuDataRefsPanel from './ceshu/CeshuDataRefsPanel'
-import { ChangelogPanel, ReadinessPanel, ValidatePanel } from './ceshu/CeshuReportPanels'
 import { cursorAfterAccept } from './ceshu/reviewQueueAdvance'
 import { groupReviewQueue } from './ceshu/reviewQueueGroups'
 import { previewFieldValue, readFieldValue } from './ceshu/reviewPreview'
 import LucideIcon from './LucideIcon'
 import { ViewMount } from '../plugins/ViewMount'
-import { CESHU_CONTENT_MOUNT, CESHU_VIEW_MOUNT } from '../plugins/ceshuViewContext'
-import PresetMarketPanel from './PresetMarketPanel'
-import SystemConfirmPanel from './SystemConfirmPanel'
-import TemplateEditorPanel from './TemplateEditorPanel'
+import { CESHU_CONTENT_MOUNT, CESHU_VIEW_MOUNT, type CeshuViewContextValue } from '../plugins/ceshuViewContext'
 import { toErrorMessage } from './ceshuViewUtils'
 
 /** 数据栏展开状态的 localStorage 键（`'0'` = 收起，其它/缺失 = 展开） */
@@ -221,20 +212,10 @@ export default function CeshuView({
   const [exportFormat, setExportFormat] = useState<CeshuExportFormat>('markdown')
   const [deriveOpen, setDeriveOpen] = useState(false)
   const [deriveNote, setDeriveNote] = useState('')
-  const [panel, setPanel] = useState<
-    | 'changelog'
-    | 'validate'
-    | 'readiness'
-    | 'aiFull'
-    | 'aiReview'
-    | 'notes'
-    | 'templateEditor'
-    | 'aiDataGen'
-    | 'presetMarket'
-    | 'systemConfirm'
-    | 'dataRefs'
-    | null
-  >(null)
+  /*
+   * 内容型面板（Slice 12/13）：原来的 `panel` 状态 + 三元链已全部迁到插件 `view` 能力，
+   * 挂在内容槽 `ceshu.content` 上由 `<ViewMount>` 渲染（打开走 `openEditorView`，见下）。
+   */
   const [changelog, setChangelog] = useState<CeshuChangelog | null>(null)
   const [validateErrors, setValidateErrors] = useState<string[]>([])
   const [readiness, setReadiness] = useState<CeshuReadinessReport | null>(null)
@@ -273,15 +254,7 @@ export default function CeshuView({
     })
   }
   /** 「AI 生成数据」的预选目标（由条目表单 / 设计↔数据表核对的「AI 生成缺失数据」指定） */
-  interface AiGenTarget {
-    /** 预选的数据类型 id；null = 面板默认全选 */
-    typeId: string | null
-    /** 预填的每类生成数量（核对缺口传入） */
-    count?: number
-    /** 预填的补充要求（核对缺口传入，说明要补齐的表与缺口） */
-    instruction?: string
-  }
-  const [aiGenTarget, setAiGenTarget] = useState<AiGenTarget | null>(null)
+  /* AI 数据生成的「预选类型 / 数量 / 要求」不再存本组件 state：改为 openView 的打开参数。 */
   const moreRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -312,14 +285,18 @@ export default function CeshuView({
         setDoc(loaded)
         setActiveChapter('meta')
         setError(null)
-        setPanel(null)
+        host.closeView(CESHU_CONTENT_MOUNT)
         setDeriveOpen(false)
         // 对齐 旧版 `ceshu_controller:66-71`：打开策划书时，若**尚未确认过系统**且
         // 已有启用系统，则自动弹出「确认游戏系统」对话框。
         // 注意在 promise 回调里 setState —— react-hooks v7 禁止 effect 体内同步 setState。
         const alreadyConfirmed = loaded.meta?.system_confirmed === true
         if (!alreadyConfirmed && computeEnabledEditors(loaded).length > 0) {
-          setPanel('systemConfirm')
+          try {
+            host.openView('systemConfirm.view')
+          } catch {
+            /* 视图插件未启用：不自动弹，静默 */
+          }
         }
         // 打开策划书 → 回填活跃术语风格
         onGameStyleChange?.(resolveDocGameStyle(loaded))
@@ -330,7 +307,7 @@ export default function CeshuView({
     return () => {
       cancelled = true
     }
-  }, [ceshuId, onGameStyleChange])
+  }, [ceshuId, onGameStyleChange, host])
 
   /** AI 生成本章：走 IPC 调本地模型（ollama），返回清洗后的字段供表单填入草稿 */
   const handleAiGenerate = useCallback(
@@ -539,6 +516,20 @@ export default function CeshuView({
     )
   }
 
+  /**
+   * 打开编辑器内视图（Slice 11/12/13）：走宿主的 `view` 能力。
+   * 浮层挂 `ceshu.overlay`、内容面板挂 `ceshu.content`，由 capability 的 `mount` 决定。
+   * 视图插件被禁用时 `openView` 会抛错——这里吞掉并静默（入口不该崩；可在插件中心重新启用）。
+   * 放在文档守卫之后（各 handler 都要用它），且是普通函数（只在事件里执行）。
+   */
+  const openEditorView = (id: string, params?: unknown): void => {
+    try {
+      host.openView(id, params)
+    } catch {
+      /* 视图插件未启用：静默，不打断编辑器 */
+    }
+  }
+
   /** 「AI 生成、待核对」的章节集合 —— 章节列表据此画小圆点 */
   const aiMarks = readAiGenerated(doc.meta)
   const scope = getGddScope(doc)
@@ -725,7 +716,7 @@ export default function CeshuView({
     await runBusy(async () => {
       const log = await window.mbApi.ceshu.changelog({ id: doc.ceshu_id })
       setChangelog(log)
-      setPanel('changelog')
+      openEditorView('changelog.view')
     })
   }
 
@@ -734,7 +725,7 @@ export default function CeshuView({
     await runBusy(async () => {
       const errors = await window.mbApi.ceshu.validate({ id: doc.ceshu_id })
       setValidateErrors(errors)
-      setPanel('validate')
+      openEditorView('validate.view')
     })
   }
 
@@ -743,7 +734,7 @@ export default function CeshuView({
     await runBusy(async () => {
       const report = await window.mbApi.ceshu.readiness({ id: doc.ceshu_id })
       setReadiness(report)
-      setPanel('readiness')
+      openEditorView('readiness.view')
     })
   }
 
@@ -756,7 +747,7 @@ export default function CeshuView({
   const jumpToField = (chapter: ChapterKey, field: string): void => {
     setActiveChapter(chapter)
     setFieldJump({ chapter, field })
-    setPanel(null)
+    host.closeView(CESHU_CONTENT_MOUNT)
   }
 
   /** 导出完备度报告：渲染层生成 Markdown → 主进程原子写盘 */
@@ -1009,18 +1000,6 @@ export default function CeshuView({
   }
 
   /**
-   * 打开编辑器内视图（Slice 11）：走宿主的 `view` 能力，挂在 `ceshu.overlay` 上。
-   * 视图插件被禁用时 `openView` 会抛错——这里吞掉并静默（入口不该崩；可在插件中心重新启用）。
-   */
-  const openEditorView = (id: string, params?: unknown): void => {
-    try {
-      host.openView(id, params)
-    } catch {
-      /* 视图插件未启用：静默，不打断编辑器 */
-    }
-  }
-
-  /**
    * 「更多 ▸」菜单分组。骨架对齐 旧版 `editor_view:160-187` 的 `_more_menu` 顺序与分隔。
    *
    * **与 旧版 菜单仍有差异（E30 审计确认，非笔误）**：旧版 另有「档位切换（轻量 9 章 ↔
@@ -1035,11 +1014,11 @@ export default function CeshuView({
   const moreMenuGroups: { testid: string; label: string; run: () => void }[][] = [
     [
       { testid: 'ceshu-derive', label: '派生新版本', run: () => setDeriveOpen((open) => !open) },
-      { testid: 'ceshu-ai-review', label: 'AI 审阅', run: () => setPanel('aiReview') }
+      { testid: 'ceshu-ai-review', label: 'AI 审阅', run: () => openEditorView('aiReview.view') }
     ],
     [
-      { testid: 'ceshu-preset-market', label: '预设市场', run: () => setPanel('presetMarket') },
-      { testid: 'ceshu-template-editor', label: '模板编辑器', run: () => setPanel('templateEditor') }
+      { testid: 'ceshu-preset-market', label: '预设市场', run: () => openEditorView('presetMarket.view') },
+      { testid: 'ceshu-template-editor', label: '模板编辑器', run: () => openEditorView('templateEditor.view') }
     ],
     [
       { testid: 'ceshu-route', label: '开发路线', run: () => openEditorView('route.view') },
@@ -1049,7 +1028,7 @@ export default function CeshuView({
       { testid: 'ceshu-diff', label: '版本对比', run: () => openEditorView('diff.view') },
       { testid: 'ceshu-timeline', label: '版本时间线', run: () => openEditorView('timeline.view') },
       { testid: 'ceshu-changelog', label: '变更记录', run: () => void handleShowChangelog() },
-      { testid: 'ceshu-datarefs', label: '数据引用', run: () => setPanel('dataRefs') },
+      { testid: 'ceshu-datarefs', label: '数据引用', run: () => openEditorView('dataRefs.view') },
       { testid: 'ceshu-migration-preview', label: '迁移预览（只读）', run: () => setMigrationOpen(true) },
       { testid: 'ceshu-consume-prompt', label: 'AI 消费提示词', run: () => setConsumeOpen(true) },
       { testid: 'ceshu-import-patch', label: '导入 AI 结果', run: () => setImportOpen(true) },
@@ -1058,8 +1037,35 @@ export default function CeshuView({
     ],
     // 「确认游戏系统」**不在菜单里**：旧版 无此菜单项，改为打开策划书时自动弹窗
     // （见上方加载回调；条件 = 未确认过 且 已有启用系统）
-    [{ testid: 'ceshu-notes', label: '笔记', run: () => setPanel('notes') }]
+    [{ testid: 'ceshu-notes', label: '笔记', run: () => openEditorView('notes.view') }]
   ]
+
+  /**
+   * 编辑器下发给内部视图的上下文（Slice 11–13）：文档 + 类型 + 版本切换 + 报告数据 +
+   * 应用/导出/跳转动作。每次渲染重建（`doc` 会变）；只在有视图激活时才交给 Provider。
+   */
+  const viewContext: CeshuViewContextValue = {
+    doc,
+    types,
+    onSelect,
+    gameName,
+    currentChapter: activeChapter,
+    changelog,
+    validateErrors,
+    readiness,
+    onAiApplied: handleAiApplied,
+    onTemplateApplied: handleTemplateApplied,
+    onPresetApplied: handlePresetApplied,
+    onSystemConfirmed: handleSystemConfirmed,
+    onExportChangelog: handleExportChangelog,
+    onExportValidation: handleExportValidation,
+    onExportReadiness: handleExportReadiness,
+    onJumpChapter: (chapter: ChapterKey): void => {
+      setActiveChapter(chapter)
+      host.closeView(CESHU_CONTENT_MOUNT)
+    },
+    onJumpField: jumpToField
+  }
 
   return (
     <div className="ceshu-view">
@@ -1128,7 +1134,7 @@ export default function CeshuView({
         >
           {previewOpen ? '收起数据' : '数据栏'}
         </button>
-        <button type="button" className="btn accent-outline" data-testid="ceshu-ai-full" disabled={busy} onClick={() => setPanel('aiFull')}>
+        <button type="button" className="btn accent-outline" data-testid="ceshu-ai-full" disabled={busy} onClick={() => openEditorView('aiFull.view')}>
           AI 一键生成
         </button>
         <button
@@ -1137,9 +1143,8 @@ export default function CeshuView({
           data-testid="ceshu-ai-datagen"
           disabled={busy}
           onClick={() => {
-            // 工具栏入口是「全局生成」：清掉条目表单可能留下的预选类型，回到默认全选
-            setAiGenTarget(null)
-            setPanel('aiDataGen')
+            // 工具栏入口是「全局生成」：不传参数，面板默认全选
+            openEditorView('aiDataGen.view')
           }}
         >
           AI 生成数据
@@ -1226,88 +1231,12 @@ export default function CeshuView({
 
       <div className="content">
         {/*
-         * 内容槽（Slice 12）：版本对比 / 时间线激活时**替换**整个内容区（不是叠浮层）。
-         * 其余内部面板仍走下面的 `panel` 三元链（待后续切片继续迁）。
+         * 内容槽（Slice 12/13）：所有内容型面板（版本对比 / 时间线 / 变更记录 / 校验 / 完备度 /
+         * 笔记 / 数据引用 / AI 审阅 / AI 全文 / AI 数据生成 / 预设市场 / 系统确认 / 模板编辑器）
+         * 激活时**替换**整个内容区（不是叠浮层）；无激活时渲染默认编辑器内容。
          */}
         {contentViewId !== null ? (
-          <ViewMount host={host} mount={CESHU_CONTENT_MOUNT} context={{ doc, types, onSelect }} />
-        ) : panel === 'aiReview' ? (
-          <AiReviewPanel
-            key={doc.ceshu_id}
-            ceshuId={doc.ceshu_id}
-            gameName={gameName}
-            onClose={() => setPanel(null)}
-          />
-        ) : panel === 'aiFull' ? (
-          <AiFullGeneratePanel
-            key={doc.ceshu_id}
-            ceshuId={doc.ceshu_id}
-            doc={doc}
-            onApplied={handleAiApplied}
-            onClose={() => setPanel(null)}
-          />
-        ) : panel === 'aiDataGen' ? (
-          <AiDataGenPanel
-            key={doc.ceshu_id}
-            ceshuId={doc.ceshu_id}
-            initialTypeId={aiGenTarget?.typeId ?? undefined}
-            initialCount={aiGenTarget?.count}
-            initialInstruction={aiGenTarget?.instruction}
-            onClose={() => setPanel(null)}
-          />
-        ) : panel === 'presetMarket' ? (
-          <PresetMarketPanel
-            key={doc.ceshu_id}
-            ceshuId={doc.ceshu_id}
-            onApplied={handlePresetApplied}
-            onClose={() => setPanel(null)}
-          />
-        ) : panel === 'systemConfirm' ? (
-          <SystemConfirmPanel
-            key={doc.ceshu_id}
-            ceshuId={doc.ceshu_id}
-            onApplied={handleSystemConfirmed}
-            onClose={() => setPanel(null)}
-          />
-        ) : panel === 'templateEditor' ? (
-          <TemplateEditorPanel
-            key={doc.ceshu_id}
-            ceshuId={doc.ceshu_id}
-            doc={doc}
-            currentChapter={activeChapter}
-            gameName={gameName}
-            onApplied={handleTemplateApplied}
-            onClose={() => setPanel(null)}
-          />
-        ) : panel === 'notes' ? (
-          <ChapterNotesPanel key={doc.ceshu_id} ceshuId={doc.ceshu_id} onClose={() => setPanel(null)} />
-        ) : panel === 'dataRefs' ? (
-          <CeshuDataRefsPanel key={doc.ceshu_id} chapters={doc} types={types} />
-        ) : panel === 'changelog' && changelog ? (
-          <ChangelogPanel
-            changelog={changelog}
-            onExport={(format) => void handleExportChangelog(format)}
-            onClose={() => setPanel(null)}
-          />
-        ) : panel === 'validate' ? (
-          <ValidatePanel
-            validateErrors={validateErrors}
-            onExport={() => void handleExportValidation()}
-            onClose={() => setPanel(null)}
-            onJumpChapter={(chapter) => {
-              // 跳转即回到表单视图：留着校验面板会挡住刚切过去的章节表单
-              setActiveChapter(chapter)
-              setPanel(null)
-            }}
-            onJumpField={jumpToField}
-          />
-        ) : panel === 'readiness' ? (
-          <ReadinessPanel
-            readiness={readiness}
-            onExport={() => void handleExportReadiness()}
-            onClose={() => setPanel(null)}
-            onJumpField={jumpToField}
-          />
+          <ViewMount host={host} mount={CESHU_CONTENT_MOUNT} context={viewContext} />
         ) : (
           <>
             {/* 全局审阅队列（浮层）：跨章列出 ai_draft 字段，逐条接受 / 跳转 */}
@@ -1408,7 +1337,7 @@ export default function CeshuView({
              * 编辑器内视图挂载点（Slice 11）：开发路线 / 开发体检 / 字段影响面不再内联渲染，
              * 改为插件 `view` 能力，由 ViewMount 在这里渲染——**CeshuView 保持挂载**（草稿/编辑态不丢）。
              */}
-            <ViewMount host={host} mount={CESHU_VIEW_MOUNT} context={{ doc, types, onSelect }} />
+            <ViewMount host={host} mount={CESHU_VIEW_MOUNT} context={viewContext} />
             {/* 迁移预览（只读）：只展示「会怎么拆 / 哪些重叠」，不改文档 */}
             {migrationOpen && (
               <div className="review-overlay" data-testid="migration-overlay" onClick={() => setMigrationOpen(false)}>
@@ -1595,7 +1524,7 @@ export default function CeshuView({
                                 // 一键定位：切到该章并关掉浮层，用户落地即可改这个字段
                                 setActiveChapter(chapter)
                                 setImportOpen(false)
-                                setPanel(null)
+                                host.closeView(CESHU_CONTENT_MOUNT)
                               }}
                             >
                               {rowBody}
@@ -1772,10 +1701,7 @@ export default function CeshuView({
                 <CeshuMachineDataPanel
                   doc={doc}
                   onTypesChanged={onTypesChanged}
-                  onGenerateData={(target) => {
-                    setAiGenTarget(target)
-                    setPanel('aiDataGen')
-                  }}
+                  onGenerateData={(target) => openEditorView('aiDataGen.view', target)}
                 />
               ) : artifact === 'tasks' ? (
                 <CeshuTasksPanel
@@ -1840,10 +1766,7 @@ export default function CeshuView({
                 jumpTarget={jumpTarget}
                 onEditType={onEditType}
                 onShowReferences={onShowReferences}
-                onAiGenerate={(typeId) => {
-                  setAiGenTarget({ typeId })
-                  setPanel('aiDataGen')
-                }}
+                onAiGenerate={(typeId) => openEditorView('aiDataGen.view', { typeId })}
                 onJumpHandled={onJumpHandled}
                 onJumpMissed={onJumpMissed}
               />

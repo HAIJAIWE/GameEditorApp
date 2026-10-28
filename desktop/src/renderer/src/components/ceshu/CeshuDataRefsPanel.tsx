@@ -32,6 +32,11 @@ interface CeshuDataRefsPanelProps {
   /** 整本策划书的章节数据（`CeshuDocument` 本身就是 `CeshuChapters` 映射，故直接传 doc） */
   chapters: CeshuChapters | null
   types: readonly DataTypeDef[]
+  /**
+   * 关闭（Slice 13 起为**内容槽视图**：没有它就回不到编辑器内容区，是个死路）。
+   * 省略 = 不画关闭按钮（保留原「只读嵌入」用法）。
+   */
+  onClose?: () => void
 }
 
 /**
@@ -44,7 +49,7 @@ interface CeshuDataRefsPanelProps {
  * ⇒ 本面板只做**只读概览**。若日后要跳转，需新开一条
  * `panel → 宿主 setJumpTarget` 的接线（独立立项，不在本轮范围）。
  */
-export default function CeshuDataRefsPanel({ chapters, types }: CeshuDataRefsPanelProps) {
+export default function CeshuDataRefsPanel({ chapters, types, onClose }: CeshuDataRefsPanelProps) {
   const [items, setItems] = useState<ItemRecord[] | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -73,6 +78,11 @@ export default function CeshuDataRefsPanel({ chapters, types }: CeshuDataRefsPan
           数据引用概览
           <small>正文里用 @data[role.atk] 引用数据表，这里显示实时值</small>
         </div>
+        {onClose !== undefined && (
+          <button type="button" className="btn slim" data-testid="datarefs-close" onClick={onClose}>
+            关闭
+          </button>
+        )}
       </div>
 
       <div className="editor-body">

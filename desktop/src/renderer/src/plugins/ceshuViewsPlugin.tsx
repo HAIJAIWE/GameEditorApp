@@ -1,24 +1,31 @@
 import type { ChapterKey } from '../../../shared/ceshuConstants'
 import type { PluginManifest } from '../../../shared/plugin/types'
+import AiDataGenPanel from '../components/AiDataGenPanel'
+import AiFullGeneratePanel from '../components/AiFullGeneratePanel'
+import AiReviewPanel from '../components/AiReviewPanel'
+import ChapterNotesPanel from '../components/ChapterNotesPanel'
+import CeshuDataRefsPanel from '../components/ceshu/CeshuDataRefsPanel'
+import { ChangelogPanel, ReadinessPanel, ValidatePanel } from '../components/ceshu/CeshuReportPanels'
 import FieldImpactPanel from '../components/ceshu/FieldImpactPanel'
 import HealthPanel from '../components/ceshu/HealthPanel'
 import RoutePanel from '../components/ceshu/RoutePanel'
+import PresetMarketPanel from '../components/PresetMarketPanel'
+import SystemConfirmPanel from '../components/SystemConfirmPanel'
+import TemplateEditorPanel from '../components/TemplateEditorPanel'
 import VersionDiffPanel from '../components/VersionDiffPanel'
 import VersionTimelinePanel from '../components/VersionTimelinePanel'
 import { CESHU_CONTENT_MOUNT, CESHU_VIEW_MOUNT, useCeshuView } from './ceshuViewContext'
 import { registerReactBinding, type PanelBindingProps } from './reactBindings'
 
 /**
- * 编辑器内视图插件化（B 方案 Slice 11）。
+ * 编辑器内视图插件化（B 方案 Slice 11/12/13）。
  *
- * 把 CeshuView 里原先「内联渲染 + 本地布尔 state」的 3 个只读浮层搬出来，改成 `view` 能力，
- * 挂在挂载点 `ceshu.overlay`（由 `ViewMount` 在编辑器内部渲染，**编辑器不卸载**）。
+ * 两个挂载点，对应两种「打开语义」：
+ * - `ceshu.overlay`：**浮层**，叠在编辑器之上（编辑器不卸载）——路线 / 体检 / 影响面；
+ * - `ceshu.content`：**内容槽**，激活时替换编辑器内容区——版本对比 / 时间线 / 各报告面板。
  *
- * 为什么不是 `panel`：`panel` 打开会替换 App 主区、把 CeshuView 卸载 → 丢草稿/编辑态；
- * 这 3 个浮层必须叠在编辑器之上，所以只能走 `view`。
- *
- * 文档来源：`useCeshuView()`（`ViewMount` 把 CeshuView 的 `doc` 放进 context）。
- * 影响面的 chapter/field 走**打开参数**（`host.openView('fieldImpact.view', {chapter, field})`）。
+ * 文档与编辑器级能力都从 `useCeshuView()`（ViewMount 下发的上下文）取；
+ * 影响面 / AI 数据生成的 chapter/field、typeId 等走**打开参数**。
  */
 
 /** 影响面视图的打开参数 */
@@ -27,32 +34,35 @@ interface FieldImpactTarget {
   field: string
 }
 
+/** AI 数据生成视图的打开参数 */
+interface AiDataGenParams {
+  typeId?: string | null
+  count?: number
+  instruction?: string
+}
+
 export function defineCeshuViewsPlugin(): PluginManifest {
+  /* ---------------- 浮层挂载点（ceshu.overlay） ---------------- */
   function RoutePanelBound({ onClose }: PanelBindingProps) {
     const { doc } = useCeshuView()
     return <RoutePanel doc={doc} onClose={onClose} />
   }
-
   function HealthPanelBound({ onClose }: PanelBindingProps) {
     const { doc } = useCeshuView()
     return <HealthPanel doc={doc} onClose={onClose} />
   }
-
   function FieldImpactPanelBound({ params, onClose }: PanelBindingProps) {
     const { doc } = useCeshuView()
     const target = params as FieldImpactTarget | null | undefined
-    // 无参数 = 没有「改哪个字段」的上下文：不渲染（正常流程总会带参数）
     if (target === null || target === undefined) return null
     return <FieldImpactPanel doc={doc} chapter={target.chapter} field={target.field} onClose={onClose} />
   }
 
-  /** 内容槽视图：版本对比（替换 .content，非浮层；自带关闭按钮） */
+  /* ---------------- 内容槽挂载点（ceshu.content） ---------------- */
   function DiffPanelBound({ onClose }: PanelBindingProps) {
     const { doc } = useCeshuView()
     return <VersionDiffPanel key={doc.ceshu_id} ceshuId={doc.ceshu_id} onClose={onClose} />
   }
-
-  /** 内容槽视图：版本时间线（切版本走 context.onSelect） */
   function TimelinePanelBound({ onClose }: PanelBindingProps) {
     const { doc, onSelect } = useCeshuView()
     return (
@@ -65,12 +75,132 @@ export function defineCeshuViewsPlugin(): PluginManifest {
       />
     )
   }
+  function ChangelogPanelBound({ onClose }: PanelBindingProps) {
+    const { changelog, onExportChangelog } = useCeshuView()
+    if (changelog === null) return null
+    return (
+      <ChangelogPanel
+        changelog={changelog}
+        onExport={(format) => onExportChangelog(format)}
+        onClose={onClose}
+      />
+    )
+  }
+  function ValidatePanelBound({ onClose }: PanelBindingProps) {
+    const { validateErrors, onExportValidation, onJumpChapter, onJumpField } = useCeshuView()
+    return (
+      <ValidatePanel
+        validateErrors={validateErrors}
+        onExport={() => onExportValidation()}
+        onClose={onClose}
+        onJumpChapter={onJumpChapter}
+        onJumpField={onJumpField}
+      />
+    )
+  }
+  function ReadinessPanelBound({ onClose }: PanelBindingProps) {
+    const { readiness, onExportReadiness, onJumpField } = useCeshuView()
+    if (readiness === null) return null
+    return (
+      <ReadinessPanel
+        readiness={readiness}
+        onExport={() => onExportReadiness()}
+        onClose={onClose}
+        onJumpField={onJumpField}
+      />
+    )
+  }
+  function NotesPanelBound({ onClose }: PanelBindingProps) {
+    const { doc } = useCeshuView()
+    return <ChapterNotesPanel key={doc.ceshu_id} ceshuId={doc.ceshu_id} onClose={onClose} />
+  }
+  function DataRefsPanelBound({ onClose }: PanelBindingProps) {
+    const { doc, types } = useCeshuView()
+    return <CeshuDataRefsPanel key={doc.ceshu_id} chapters={doc} types={types} onClose={onClose} />
+  }
+  function AiReviewPanelBound({ onClose }: PanelBindingProps) {
+    const { doc, gameName } = useCeshuView()
+    return <AiReviewPanel key={doc.ceshu_id} ceshuId={doc.ceshu_id} gameName={gameName} onClose={onClose} />
+  }
+  function AiFullPanelBound({ onClose }: PanelBindingProps) {
+    const { doc, onAiApplied } = useCeshuView()
+    return (
+      <AiFullGeneratePanel
+        key={doc.ceshu_id}
+        ceshuId={doc.ceshu_id}
+        doc={doc}
+        onApplied={onAiApplied}
+        onClose={onClose}
+      />
+    )
+  }
+  function AiDataGenPanelBound({ params, onClose }: PanelBindingProps) {
+    const { doc } = useCeshuView()
+    const target = params as AiDataGenParams | null | undefined
+    return (
+      <AiDataGenPanel
+        key={doc.ceshu_id}
+        ceshuId={doc.ceshu_id}
+        initialTypeId={target?.typeId ?? undefined}
+        initialCount={target?.count}
+        initialInstruction={target?.instruction}
+        onClose={onClose}
+      />
+    )
+  }
+  function PresetMarketPanelBound({ onClose }: PanelBindingProps) {
+    const { doc, onPresetApplied } = useCeshuView()
+    return (
+      <PresetMarketPanel
+        key={doc.ceshu_id}
+        ceshuId={doc.ceshu_id}
+        onApplied={onPresetApplied}
+        onClose={onClose}
+      />
+    )
+  }
+  function SystemConfirmPanelBound({ onClose }: PanelBindingProps) {
+    const { doc, onSystemConfirmed } = useCeshuView()
+    return (
+      <SystemConfirmPanel
+        key={doc.ceshu_id}
+        ceshuId={doc.ceshu_id}
+        onApplied={onSystemConfirmed}
+        onClose={onClose}
+      />
+    )
+  }
+  function TemplateEditorPanelBound({ onClose }: PanelBindingProps) {
+    const { doc, currentChapter, gameName, onTemplateApplied } = useCeshuView()
+    return (
+      <TemplateEditorPanel
+        key={doc.ceshu_id}
+        ceshuId={doc.ceshu_id}
+        doc={doc}
+        currentChapter={currentChapter}
+        gameName={gameName}
+        onApplied={onTemplateApplied}
+        onClose={onClose}
+      />
+    )
+  }
 
   registerReactBinding('route.view', RoutePanelBound)
   registerReactBinding('health.view', HealthPanelBound)
   registerReactBinding('fieldImpact.view', FieldImpactPanelBound)
   registerReactBinding('diff.view', DiffPanelBound)
   registerReactBinding('timeline.view', TimelinePanelBound)
+  registerReactBinding('changelog.view', ChangelogPanelBound)
+  registerReactBinding('validate.view', ValidatePanelBound)
+  registerReactBinding('readiness.view', ReadinessPanelBound)
+  registerReactBinding('notes.view', NotesPanelBound)
+  registerReactBinding('dataRefs.view', DataRefsPanelBound)
+  registerReactBinding('aiReview.view', AiReviewPanelBound)
+  registerReactBinding('aiFull.view', AiFullPanelBound)
+  registerReactBinding('aiDataGen.view', AiDataGenPanelBound)
+  registerReactBinding('presetMarket.view', PresetMarketPanelBound)
+  registerReactBinding('systemConfirm.view', SystemConfirmPanelBound)
+  registerReactBinding('templateEditor.view', TemplateEditorPanelBound)
 
   return {
     id: 'ceshu-views',
@@ -89,7 +219,18 @@ export function defineCeshuViewsPlugin(): PluginManifest {
       { kind: 'view', id: 'fieldImpact.view', label: '字段影响面', mount: CESHU_VIEW_MOUNT, order: 30, ui: { type: 'text', text: '字段影响面' } },
       // 内容槽挂载点（替换编辑器内容区）
       { kind: 'view', id: 'diff.view', label: '版本对比', mount: CESHU_CONTENT_MOUNT, order: 10, ui: { type: 'text', text: '版本对比' } },
-      { kind: 'view', id: 'timeline.view', label: '版本时间线', mount: CESHU_CONTENT_MOUNT, order: 20, ui: { type: 'text', text: '版本时间线' } }
+      { kind: 'view', id: 'timeline.view', label: '版本时间线', mount: CESHU_CONTENT_MOUNT, order: 20, ui: { type: 'text', text: '版本时间线' } },
+      { kind: 'view', id: 'changelog.view', label: '变更记录', mount: CESHU_CONTENT_MOUNT, order: 30, ui: { type: 'text', text: '变更记录' } },
+      { kind: 'view', id: 'validate.view', label: '校验', mount: CESHU_CONTENT_MOUNT, order: 40, ui: { type: 'text', text: '校验' } },
+      { kind: 'view', id: 'readiness.view', label: '完备度', mount: CESHU_CONTENT_MOUNT, order: 50, ui: { type: 'text', text: '完备度' } },
+      { kind: 'view', id: 'notes.view', label: '笔记', mount: CESHU_CONTENT_MOUNT, order: 60, ui: { type: 'text', text: '笔记' } },
+      { kind: 'view', id: 'dataRefs.view', label: '数据引用', mount: CESHU_CONTENT_MOUNT, order: 70, ui: { type: 'text', text: '数据引用' } },
+      { kind: 'view', id: 'aiReview.view', label: 'AI 审阅', mount: CESHU_CONTENT_MOUNT, order: 80, ui: { type: 'text', text: 'AI 审阅' } },
+      { kind: 'view', id: 'aiFull.view', label: 'AI 全文生成', mount: CESHU_CONTENT_MOUNT, order: 90, ui: { type: 'text', text: 'AI 全文生成' } },
+      { kind: 'view', id: 'aiDataGen.view', label: 'AI 数据生成', mount: CESHU_CONTENT_MOUNT, order: 100, ui: { type: 'text', text: 'AI 数据生成' } },
+      { kind: 'view', id: 'presetMarket.view', label: '预设市场', mount: CESHU_CONTENT_MOUNT, order: 110, ui: { type: 'text', text: '预设市场' } },
+      { kind: 'view', id: 'systemConfirm.view', label: '系统确认', mount: CESHU_CONTENT_MOUNT, order: 120, ui: { type: 'text', text: '系统确认' } },
+      { kind: 'view', id: 'templateEditor.view', label: '模板编辑器', mount: CESHU_CONTENT_MOUNT, order: 130, ui: { type: 'text', text: '模板编辑器' } }
     ]
   }
 }
