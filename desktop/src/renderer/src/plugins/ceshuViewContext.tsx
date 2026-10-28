@@ -2,6 +2,8 @@ import { createContext, useContext, type ReactNode } from 'react'
 
 import type { CeshuDocument, ChapterKey } from '../../../shared/ceshuConstants'
 import type { CeshuChangelog } from '../../../shared/ceshuDiff'
+import type { FieldReviewStatus } from '../../../shared/ceshuFieldStatus'
+import type { CeshuPatchItem } from '../../../shared/ceshuImportPatch'
 import type { CeshuReadinessReport } from '../../../shared/ceshuReadiness'
 import type { DataTypeDef } from '../../../shared/types'
 
@@ -38,6 +40,12 @@ export interface CeshuViewContextValue {
   busy: boolean
   /** 执行字段迁移（迁移预览浮层的「执行迁移」） */
   onRunMigration: () => void
+  /** 批量接受所有待审字段（审阅队列的「全部接受」） */
+  onApproveAllPending: () => void
+  /** 标记某字段的审阅状态（审阅队列的「接受」） */
+  onFieldStatus: (chapter: ChapterKey, updates: Record<string, FieldReviewStatus>) => void
+  /** 应用导入补丁（导入浮层的「应用」）；返回是否成功 */
+  onApplyImport: (changed: CeshuPatchItem[]) => Promise<boolean>
 
   /** 子面板把「应用后」的文档回传给编辑器（AI 生成 / 模板 / 预设 / 系统确认） */
   onAiApplied: (updated: CeshuDocument, chapters: readonly ChapterKey[]) => void

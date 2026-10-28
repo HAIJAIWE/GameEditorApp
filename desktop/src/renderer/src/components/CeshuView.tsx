@@ -7,7 +7,6 @@ import {
   MODULE_CHAPTERS,
   contentChapterCount,
   enabledModuleChapters,
-  isChapterKey,
   type CeshuDocument,
   type CeshuExportFormat,
   type ChapterData,
@@ -40,16 +39,7 @@ import { fieldStatusOf, setFieldStatuses, type FieldReviewStatus } from '../../.
 import type { FieldAction } from '../../../shared/ceshuFieldAction'
 import { clearFieldRequest } from '../ceshuFieldFocus'
 import { CESHU_CHAPTER_FIELDS } from '../../../shared/ceshuFields'
-import { REVIEW_QUEUE_KEY_HINT, resolveReviewQueueKey } from '../reviewQueueKeys'
-import {
-  applyCeshuPatch,
-  parseCeshuIssues,
-  parseCeshuPatch,
-  previewPatchValue,
-  type CeshuIssueParseResult,
-  type CeshuPatchItem,
-  type CeshuPatchParseResult
-} from '../../../shared/ceshuImportPatch'
+import { applyCeshuPatch, type CeshuPatchItem } from '../../../shared/ceshuImportPatch'
 import type { CeshuAiGenerateResult } from '../../../shared/ceshuAi'
 import type { PluginHost } from '../../../shared/plugin/host'
 import type { DataTypeDef } from '../../../shared/types'
@@ -62,9 +52,7 @@ import CeshuAgentPanel from './CeshuAgentPanel'
 import CeshuTasksPanel from './CeshuTasksPanel'
 import CeshuMachineDataPanel from './CeshuMachineDataPanel'
 import CeshuDataPreview, { type PreviewJumpTarget } from './ceshu/CeshuDataPreview'
-import { cursorAfterAccept } from './ceshu/reviewQueueAdvance'
-import { groupReviewQueue } from './ceshu/reviewQueueGroups'
-import { previewFieldValue, readFieldValue } from './ceshu/reviewPreview'
+import { collectPendingReviewFields } from './ceshu/reviewQueueData'
 import LucideIcon from './LucideIcon'
 import { ViewMount } from '../plugins/ViewMount'
 import { CESHU_CONTENT_MOUNT, CESHU_VIEW_MOUNT, type CeshuViewContextValue } from '../plugins/ceshuViewContext'
@@ -72,24 +60,6 @@ import { toErrorMessage } from './ceshuViewUtils'
 
 /** 数据栏展开状态的 localStorage 键（`'0'` = 收起，其它/缺失 = 展开） */
 const PREVIEW_OPEN_KEY = 'mb.ceshu.previewOpen'
-
-/** 全局待审字段（跨章）：AI 草稿、尚未接受。按档位可见章节顺序 + 字段定义顺序排列 */
-function collectPendingReviewFields(doc: CeshuDocument): Array<{
-  chapter: ChapterKey
-  fieldKey: string
-  fieldLabel: string
-}> {
-  const pending: Array<{ chapter: ChapterKey; fieldKey: string; fieldLabel: string }> = []
-  for (const chapter of visibleChaptersForDoc(doc)) {
-    const statuses = fieldStatusOf(doc.meta, chapter)
-    for (const field of CESHU_CHAPTER_FIELDS[chapter] ?? []) {
-      if (statuses[field.key]?.status === 'ai_draft') {
-        pending.push({ chapter, fieldKey: field.key, fieldLabel: field.label })
-      }
-    }
-  }
-  return pending
-}
 
 /** 左栏「产出物」切换（2026-10-26 三栏布局：左=产出物+大纲，中=工作区，右=智能体） */
 const ARTIFACTS = [
@@ -171,31 +141,13 @@ export default function CeshuView({
   const [modulePickerOpen, setModulePickerOpen] = useState(false)
   /** 左栏产出物：设计文档 / 原型 / 数据 / 任务 */
   const [artifact, setArtifact] = useState<ArtifactKey>('doc')
-  /** 全局审阅队列（跨章列出 AI 草稿字段）是否展开 */
-  const [reviewOpen, setReviewOpen] = useState(false)
   /*
-   * 开发路线 / 开发体检 / 字段影响面（Slice 11）：不再是本组件的 state，改为插件 `view` 能力，
-   * 挂在挂载点 `ceshu.overlay` 上由 `<ViewMount>` 渲染（打开走 `host.openView`，见下方 openEditorView）。
-   * 这样它们叠在编辑器之上、**不卸载编辑器**，草稿与编辑态都保留。
+   * 编辑器内视图（Slice 11–14）全部迁到插件 `view` 能力，挂在两个挂载点上由 `<ViewMount>` 渲染：
+   * - `ceshu.overlay`：浮层（路线/体检/影响面/迁移/消费提示词/审阅队列/导入）；
+   * - `ceshu.content`：内容面板（版本对比/时间线/报告/AI/预设…）。
+   * 打开走 `openEditorView`（见下），本组件不再持这些浮层的 state 与内联 JSX。
+   * 审阅队列的光标/折叠、导入的原文/解析结果等本地 UI state 都在 EditorOverlays 组件内部。
    */
-  /*
-   * 迁移预览 / AI 消费提示词（Slice 14）：已抽成独立组件（components/ceshu/EditorOverlays），
-   * 挂在 `ceshu.overlay` 由 `<ViewMount>` 渲染——本组件不再持它们的 state 与内联 JSX。
-   */
-  /** 审阅队列键盘光标（第几条待审）；打开队列时归零，列表变化时渲染期夹取，不写 effect */
-  const [reviewCursor, setReviewCursor] = useState(0)
-  /**
-   * 审阅队列里被折叠的章节。用**数组**而不是 Set：Set 是可变对象，setState 传同一实例
-   * 会被 React 判为无变化而不重渲染；数组每次增删都产生新引用，语义也更直白。
-   * 默认空数组 = 全部展开（扫队列时先看全貌）。
-   */
-  const [collapsedChapters, setCollapsedChapters] = useState<ChapterKey[]>([])
-  /** 导入 AI 结果：浮层开关、粘贴原文、解析结果（null = 尚未解析） */
-  const [importOpen, setImportOpen] = useState(false)
-  const [importRaw, setImportRaw] = useState('')
-  const [importResult, setImportResult] = useState<CeshuPatchParseResult | null>(null)
-  /** 审阅结果（issues 清单，只读）：与 importResult 互斥，避免把问题清单当补丁应用 */
-  const [issueResult, setIssueResult] = useState<CeshuIssueParseResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -379,68 +331,7 @@ export default function CeshuView({
     [doc, handleSave]
   )
 
-  /*
-   * 审阅队列快捷键（浮层打开时生效）：j/k 上下、a 接受、v 查看跳转、Esc 关闭。
-   * 放在早退之前：effect 必须无条件执行。待审列表在 effect 内现算（doc 可能为 null），
-   * 与渲染期同一函数出口，保证两处看到同一条队列。监听器属「订阅外部系统、回调里
-   * setState」的合规模式；可编辑焦点与组合键由 resolveReviewQueueKey 放行。
-   */
-  useEffect(() => {
-    if (!reviewOpen || doc === null) return undefined
-    const pending = collectPendingReviewFields(doc)
-    const onKeyDown = (event: KeyboardEvent): void => {
-      const target = event.target
-      const editable =
-        target instanceof HTMLElement &&
-        (target.tagName === 'INPUT' ||
-          target.tagName === 'TEXTAREA' ||
-          target.tagName === 'SELECT' ||
-          target.isContentEditable)
-      const action = resolveReviewQueueKey({
-        key: event.key,
-        ctrlKey: event.ctrlKey,
-        metaKey: event.metaKey,
-        altKey: event.altKey,
-        editable,
-        queueLength: pending.length
-      })
-      if (action === null) return
-      event.preventDefault()
-      if (action === 'close') {
-        setReviewOpen(false)
-        return
-      }
-      if (pending.length === 0) return
-      if (action === 'next') {
-        setReviewCursor((cursor) => Math.min(cursor + 1, pending.length - 1))
-        return
-      }
-      if (action === 'prev') {
-        setReviewCursor((cursor) => Math.max(cursor - 1, 0))
-        return
-      }
-      /*
-       * 光标在**扁平列表**里的实际下标：渲染期已夹取过一次，但 effect 闭包里可能持有
-       * 上一轮的 reviewCursor，这里再夹一次，避免 pending 刚变短时取到 undefined。
-       */
-      const cursorIndex = Math.min(reviewCursor, pending.length - 1)
-      const current = pending[cursorIndex]
-      if (current === undefined) return
-      if (action === 'accept') {
-        // 先算后写：状态写入后 pending 会变短，届时再算就晚了
-        setReviewCursor(cursorAfterAccept(cursorIndex, pending.length - 1))
-        void handleFieldStatus(current.chapter, { [current.fieldKey]: 'approved' })
-        return
-      }
-      // goto：跳到该字段所在章并收起队列
-      setActiveChapter(current.chapter)
-      setReviewOpen(false)
-    }
-    document.addEventListener('keydown', onKeyDown)
-    return () => {
-      document.removeEventListener('keydown', onKeyDown)
-    }
-  }, [reviewOpen, doc, reviewCursor, handleFieldStatus])
+  /* 审阅队列快捷键（j/k/a/v/Esc）已随浮层迁到 EditorOverlays 的 ReviewQueueOverlay 内。 */
 
   /*
    * 切章兜底：停靠栏可能刚发起针对旧章字段的局部重生成请求，而新章的表单不会消费它
@@ -537,22 +428,7 @@ export default function CeshuView({
    * 按 `visible` 章节顺序 + 字段定义顺序排列，便于「一条队列」往下扫。
    */
   const pendingReviewFields = collectPendingReviewFields(doc)
-  /** 键盘光标（渲染期夹取）：列表变短（接受后）不越界，免用 effect 纠正状态 */
-  const reviewCursorSafe = Math.min(reviewCursor, Math.max(0, pendingReviewFields.length - 1))
-  /*
-   * 分组只影响渲染，不影响光标：组内仍带扁平下标，`data-current` 与 j/k 一律按扁平序。
-   * 普通 const 而非 useMemo —— 待审字段通常个位数，且本组件 hook 顺序敏感，
-   * 多挂一个 hook 得不偿失（位置也必须在 `if (!ceshuId)` 早退之后）。
-   */
-  const reviewGroups = groupReviewQueue(pendingReviewFields)
-  /** 折叠/展开某章：只动 UI 可见性，不碰 reviewCursor（折叠组里的光标行只是不渲染） */
-  const toggleGroup = (chapter: ChapterKey): void => {
-    setCollapsedChapters((chapters) =>
-      chapters.includes(chapter) ? chapters.filter((key) => key !== chapter) : [...chapters, chapter]
-    )
-  }
-
-  /** 一键接受所有待审字段：按章合并后一次 meta 写盘 */
+  /** 一键接受所有待审字段：按章合并后一次 meta 写盘（审阅队列浮层的「全部接受」经上下文调用） */
   const handleApproveAllPending = async (): Promise<void> => {
     if (!ceshuId || pendingReviewFields.length === 0) return
     const now = new Date().toISOString()
@@ -891,28 +767,13 @@ export default function CeshuView({
     }
   }
 
-  /** 解析粘贴的 AI 结果（只读预览，不写盘） */
-  const handleParseImport = (): void => {
-    // 先试审阅结果：外部 AI 的「审阅」任务返回 issues 清单，能展示但不能应用；
-    // 只有一条都没解析出来时才回落到字段增量，两种结果互斥（清空另一方）
-    const parsedIssues = parseCeshuIssues(importRaw)
-    if (parsedIssues.issues.length > 0) {
-      setIssueResult(parsedIssues)
-      setImportResult(null)
-      return
-    }
-    setIssueResult(null)
-    setImportResult(parseCeshuPatch(importRaw, doc))
-  }
-
   /**
-   * 应用导入补丁：按章写盘（只写有变化的字段），再一次性把涉及字段标为 AI 草稿。
-   * 走既有 saveChapter 通道，不新增 IPC——导入与手工保存共用同一条写入路径。
+   * 应用导入补丁（导入浮层调用）：按章写盘（只写有变化的字段），再一次性把涉及字段标为 AI 草稿。
+   * 走既有 saveChapter 通道，不新增 IPC——导入与手工保存共用同一条写入路径。返回是否成功。
    */
-  const handleApplyImport = async (): Promise<void> => {
-    if (!ceshuId || importResult === null) return
-    const changed = importResult.items.filter((item) => item.changed)
-    if (changed.length === 0) return
+  const onApplyImport = async (changed: CeshuPatchItem[]): Promise<boolean> => {
+    if (!ceshuId || changed.length === 0) return false
+    let ok = false
     await runBusy(
       async () => {
         const { doc: next, chapters, applied } = applyCeshuPatch(doc, changed)
@@ -934,14 +795,13 @@ export default function CeshuView({
           latest = await window.mbApi.ceshu.saveChapter({ id: ceshuId, chapter: 'meta', data: meta })
         }
         setDoc(latest)
-        setImportOpen(false)
-        setImportRaw('')
-        setImportResult(null)
         setNotice(`已导入 ${applied} 个字段（标记为 AI 草稿，待审）`)
         onChanged()
+        ok = true
       },
       { clearNotice: true }
     )
+    return ok
   }
 
   /** 智能体「改文档」应用：按章写盘 + 标记 AI 草稿（与导入补丁同一条写入路径） */
@@ -1017,7 +877,7 @@ export default function CeshuView({
       { testid: 'ceshu-datarefs', label: '数据引用', run: () => openEditorView('dataRefs.view') },
       { testid: 'ceshu-migration-preview', label: '迁移预览（只读）', run: () => openEditorView('migration.view') },
       { testid: 'ceshu-consume-prompt', label: 'AI 消费提示词', run: () => openEditorView('consume.view') },
-      { testid: 'ceshu-import-patch', label: '导入 AI 结果', run: () => setImportOpen(true) },
+      { testid: 'ceshu-import-patch', label: '导入 AI 结果', run: () => openEditorView('import.view') },
       { testid: 'ceshu-export-project', label: '导出项目文件夹', run: () => void handleExportProject() },
       { testid: 'ceshu-export-handoff', label: '导出开发交接包', run: () => void handleExportHandoff() }
     ],
@@ -1041,6 +901,9 @@ export default function CeshuView({
     readiness,
     busy,
     onRunMigration: handleRunMigration,
+    onApproveAllPending: handleApproveAllPending,
+    onFieldStatus: handleFieldStatus,
+    onApplyImport,
     onAiApplied: handleAiApplied,
     onTemplateApplied: handleTemplateApplied,
     onPresetApplied: handlePresetApplied,
@@ -1095,14 +958,9 @@ export default function CeshuView({
           type="button"
           className={`btn${pendingReviewFields.length > 0 ? ' accent-outline' : ''}`}
           data-testid="ceshu-review-toggle"
-          aria-pressed={reviewOpen}
           disabled={busy}
           title="跨章列出 AI 草稿字段，逐条接受"
-          onClick={() => {
-            // 打开队列时键盘光标归零（从第一条开始扫）；关闭不动光标
-            if (!reviewOpen) setReviewCursor(0)
-            setReviewOpen((open) => !open)
-          }}
+          onClick={() => openEditorView('review.view')}
         >
           待审 {pendingReviewFields.length}
         </button>
@@ -1227,236 +1085,11 @@ export default function CeshuView({
           <ViewMount host={host} mount={CESHU_CONTENT_MOUNT} context={viewContext} />
         ) : (
           <>
-            {/* 全局审阅队列（浮层）：跨章列出 ai_draft 字段，逐条接受 / 跳转 */}
-            {reviewOpen && (
-              <div className="review-overlay" data-testid="review-overlay" onClick={() => setReviewOpen(false)}>
-                <div className="review-panel" data-testid="review-panel" onClick={(event) => event.stopPropagation()}>
-                  <div className="review-panel-header">
-                    <span>待审字段：{pendingReviewFields.length} 个</span>
-                    <button
-                      type="button"
-                      className="btn primary slim"
-                      data-testid="review-accept-all"
-                      disabled={pendingReviewFields.length === 0}
-                      onClick={() => void handleApproveAllPending()}
-                    >
-                      全部接受
-                    </button>
-                    <button type="button" className="btn slim" onClick={() => setReviewOpen(false)}>
-                      关闭
-                    </button>
-                  </div>
-                  {pendingReviewFields.length === 0 ? (
-                    <div className="item-meta">没有待审字段。AI 生成后会出现在这里。</div>
-                  ) : (
-                    <div className="review-list">
-                      {reviewGroups.map((group) => {
-                        const collapsed = collapsedChapters.includes(group.chapter)
-                        return (
-                          <div
-                            className="review-group"
-                            key={`group:${group.chapter}:${group.startIndex}`}
-                            data-testid="review-group"
-                            data-chapter={group.chapter}
-                          >
-                            <button
-                              type="button"
-                              className="review-group-head"
-                              data-testid="review-group-head"
-                              onClick={() => toggleGroup(group.chapter)}
-                            >
-                              {CHAPTER_LABELS[group.chapter]}（{group.items.length}）
-                              <span className="review-group-caret">{collapsed ? '▸' : '▾'}</span>
-                            </button>
-                            {!collapsed &&
-                              group.items.map(({ item, flatIndex }) => (
-                                <div
-                                  className={`review-row${flatIndex === reviewCursorSafe ? ' current' : ''}`}
-                                  key={`${item.chapter}:${item.fieldKey}`}
-                                  data-testid="review-row"
-                                  data-current={flatIndex === reviewCursorSafe ? 'true' : 'false'}
-                                >
-                                  <span className="review-chapter">{CHAPTER_LABELS[item.chapter]}</span>
-                                  <span className="review-field">{item.fieldLabel}</span>
-                                  {/* 内联预览：审核人不必点「查看」跳章，先扫一眼 AI 写了什么 */}
-                                  <span className="review-preview" data-testid="review-preview">
-                                    {previewFieldValue(readFieldValue(doc[item.chapter], item.fieldKey))}
-                                  </span>
-                                  <button
-                                    type="button"
-                                    className="btn slim"
-                                    data-testid="review-goto"
-                                    onClick={() => {
-                                      // 审阅队列本来就知道是哪个字段：直接跳过去，省掉二次翻找
-                                      jumpToField(item.chapter, item.fieldKey)
-                                      setReviewOpen(false)
-                                    }}
-                                  >
-                                    查看
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="btn slim primary"
-                                    data-testid="review-accept"
-                                    onClick={() => {
-                                      // 先算后写：状态写入后 pendingReviewFields 会变短，届时再算就晚了
-                                      setReviewCursor(cursorAfterAccept(flatIndex, pendingReviewFields.length - 1))
-                                      void handleFieldStatus(item.chapter, { [item.fieldKey]: 'approved' })
-                                    }}
-                                  >
-                                    接受
-                                  </button>
-                                </div>
-                              ))}
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
-                  {pendingReviewFields.length > 0 && (
-                    <div className="review-key-hint item-meta" data-testid="review-key-hint">
-                      {REVIEW_QUEUE_KEY_HINT}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
             {/*
-             * 编辑器内视图挂载点（Slice 11）：开发路线 / 开发体检 / 字段影响面不再内联渲染，
-             * 改为插件 `view` 能力，由 ViewMount 在这里渲染——**CeshuView 保持挂载**（草稿/编辑态不丢）。
+             * 编辑器内视图挂载点（Slice 11–14）：浮层（路线/体检/影响面/迁移/消费提示词/审阅队列/导入）
+             * 不再内联渲染，改为插件 `view` 能力，由 ViewMount 在这里渲染——**CeshuView 保持挂载**。
              */}
             <ViewMount host={host} mount={CESHU_VIEW_MOUNT} context={viewContext} />
-            {/* 导入 AI 结果：把外部 AI 的增量 JSON 粘回来，预览后按章写盘 */}
-            {importOpen && (
-              <div className="review-overlay" data-testid="import-overlay" onClick={() => setImportOpen(false)}>
-                <div className="review-panel" data-testid="import-panel" onClick={(event) => event.stopPropagation()}>
-                  <div className="review-panel-header">
-                    <span>导入 AI 结果</span>
-                    <button
-                      type="button"
-                      className="btn primary slim"
-                      data-testid="import-apply"
-                      disabled={busy || importResult === null || importResult.items.filter((item) => item.changed).length === 0}
-                      onClick={() => void handleApplyImport()}
-                    >
-                      应用（{importResult === null ? 0 : importResult.items.filter((item) => item.changed).length}）
-                    </button>
-                    <button type="button" className="btn slim" onClick={() => setImportOpen(false)}>
-                      关闭
-                    </button>
-                  </div>
-                  <div className="item-meta">
-                    粘贴外部 AI 返回的字段增量（形如 {'{"章节": {"字段": 值}}'}，允许带 markdown 代码块）。
-                    空值不会覆盖已有内容；应用后这些字段标为「AI 草稿」待审。
-                  </div>
-                  <textarea
-                    className="form-textarea"
-                    data-testid="import-raw"
-                    rows={8}
-                    placeholder='{"meta": {"positioning": "一句话定位"}}'
-                    value={importRaw}
-                    onChange={(event) => {
-                      setImportRaw(event.target.value)
-                      setImportResult(null)
-                      setIssueResult(null)
-                    }}
-                  />
-                  <div className="field-action-strip-actions">
-                    <button type="button" className="btn slim" data-testid="import-parse" disabled={busy} onClick={handleParseImport}>
-                      解析预览
-                    </button>
-                  </div>
-                  {importResult !== null && (
-                    <>
-                      {importResult.errors.length > 0 && (
-                        <div className="form-error" data-testid="import-errors">
-                          {importResult.errors.map((message, index) => (
-                            <div key={index}>{message}</div>
-                          ))}
-                        </div>
-                      )}
-                      {importResult.items.length > 0 && (
-                        <div className="review-list">
-                          {importResult.items.map((item) => (
-                            <div
-                              className="review-row"
-                              key={`${item.chapter}:${item.fieldKey}`}
-                              data-testid="import-item"
-                              data-changed={item.changed ? 'true' : 'false'}
-                            >
-                              <span className="review-chapter">{CHAPTER_LABELS[item.chapter]}</span>
-                              <span className="review-field">{item.fieldLabel}</span>
-                              <span className="item-meta">
-                                {item.changed
-                                  ? `${previewPatchValue(item.previous, 30)} → ${previewPatchValue(item.value, 30)}`
-                                  : '（无变化）'}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </>
-                  )}
-                  {issueResult !== null && (
-                    <>
-                      <div className="item-meta">
-                        这是审阅结果：共 {issueResult.issues.length} 条问题，逐条修改即可（本面板不自动改文档）
-                      </div>
-                      <div className="review-list" data-testid="import-issues">
-                        {issueResult.issues.map((issue, index) => {
-                          /*
-                           * 只有合法章节 key 才可定位：外部 AI 写错章节时保留原文（不猜），
-                           * 并退回不可点的 div —— 点了没反应的按钮比不可点更让人困惑。
-                           */
-                          const chapter = isChapterKey(issue.chapter) ? issue.chapter : null
-                          const rowBody = (
-                            <>
-                              <span className="review-chapter">
-                                {chapter === null ? issue.chapter : CHAPTER_LABELS[chapter]}
-                              </span>
-                              <span className="review-field">{issue.field}</span>
-                              <span className="item-meta">
-                                [{issue.severity}] {issue.message} —— 建议：{issue.suggestion}
-                              </span>
-                            </>
-                          )
-                          if (chapter === null) {
-                            return (
-                              <div
-                                className="review-row"
-                                key={index}
-                                data-testid="import-issue"
-                                data-severity={issue.severity}
-                              >
-                                {rowBody}
-                              </div>
-                            )
-                          }
-                          return (
-                            <button
-                              type="button"
-                              className="review-row review-row-link"
-                              key={index}
-                              data-testid="import-issue"
-                              data-severity={issue.severity}
-                              data-chapter={chapter}
-                              onClick={() => {
-                                // 一键定位：切到该章并关掉浮层，用户落地即可改这个字段
-                                setActiveChapter(chapter)
-                                setImportOpen(false)
-                                host.closeView(CESHU_CONTENT_MOUNT)
-                              }}
-                            >
-                              {rowBody}
-                            </button>
-                          )
-                        })}
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
             <div className="ceshu-pane-row">
             <div className="chapter-nav">
               {/* 产出物切换：设计文档 / 原型预览 / 数据·机读 / 岗位任务 */}

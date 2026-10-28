@@ -6,7 +6,12 @@ import AiReviewPanel from '../components/AiReviewPanel'
 import ChapterNotesPanel from '../components/ChapterNotesPanel'
 import CeshuDataRefsPanel from '../components/ceshu/CeshuDataRefsPanel'
 import { ChangelogPanel, ReadinessPanel, ValidatePanel } from '../components/ceshu/CeshuReportPanels'
-import { ConsumePromptOverlay, MigrationOverlay } from '../components/ceshu/EditorOverlays'
+import {
+  ConsumePromptOverlay,
+  ImportOverlay,
+  MigrationOverlay,
+  ReviewQueueOverlay
+} from '../components/ceshu/EditorOverlays'
 import FieldImpactPanel from '../components/ceshu/FieldImpactPanel'
 import HealthPanel from '../components/ceshu/HealthPanel'
 import RoutePanel from '../components/ceshu/RoutePanel'
@@ -65,6 +70,30 @@ export function defineCeshuViewsPlugin(): PluginManifest {
   function ConsumePromptOverlayBound({ onClose }: PanelBindingProps) {
     const { doc } = useCeshuView()
     return <ConsumePromptOverlay doc={doc} onClose={onClose} />
+  }
+  function ReviewQueueOverlayBound({ onClose }: PanelBindingProps) {
+    const { doc, onFieldStatus, onApproveAllPending, onJumpField } = useCeshuView()
+    return (
+      <ReviewQueueOverlay
+        doc={doc}
+        onFieldStatus={onFieldStatus}
+        onApproveAllPending={onApproveAllPending}
+        onJumpField={onJumpField}
+        onClose={onClose}
+      />
+    )
+  }
+  function ImportOverlayBound({ onClose }: PanelBindingProps) {
+    const { doc, busy, onApplyImport, onJumpChapter } = useCeshuView()
+    return (
+      <ImportOverlay
+        doc={doc}
+        busy={busy}
+        onApplyImport={onApplyImport}
+        onJumpChapter={onJumpChapter}
+        onClose={onClose}
+      />
+    )
   }
 
   /* ---------------- 内容槽挂载点（ceshu.content） ---------------- */
@@ -199,6 +228,8 @@ export function defineCeshuViewsPlugin(): PluginManifest {
   registerReactBinding('fieldImpact.view', FieldImpactPanelBound)
   registerReactBinding('migration.view', MigrationOverlayBound)
   registerReactBinding('consume.view', ConsumePromptOverlayBound)
+  registerReactBinding('review.view', ReviewQueueOverlayBound)
+  registerReactBinding('import.view', ImportOverlayBound)
   registerReactBinding('diff.view', DiffPanelBound)
   registerReactBinding('timeline.view', TimelinePanelBound)
   registerReactBinding('changelog.view', ChangelogPanelBound)
@@ -230,6 +261,8 @@ export function defineCeshuViewsPlugin(): PluginManifest {
       { kind: 'view', id: 'fieldImpact.view', label: '字段影响面', mount: CESHU_VIEW_MOUNT, order: 30, ui: { type: 'text', text: '字段影响面' } },
       { kind: 'view', id: 'migration.view', label: '迁移预览', mount: CESHU_VIEW_MOUNT, order: 40, ui: { type: 'text', text: '迁移预览' } },
       { kind: 'view', id: 'consume.view', label: 'AI 消费提示词', mount: CESHU_VIEW_MOUNT, order: 50, ui: { type: 'text', text: 'AI 消费提示词' } },
+      { kind: 'view', id: 'review.view', label: '全局审阅队列', mount: CESHU_VIEW_MOUNT, order: 60, ui: { type: 'text', text: '全局审阅队列' } },
+      { kind: 'view', id: 'import.view', label: '导入 AI 结果', mount: CESHU_VIEW_MOUNT, order: 70, ui: { type: 'text', text: '导入 AI 结果' } },
       // 内容槽挂载点（替换编辑器内容区）
       { kind: 'view', id: 'diff.view', label: '版本对比', mount: CESHU_CONTENT_MOUNT, order: 10, ui: { type: 'text', text: '版本对比' } },
       { kind: 'view', id: 'timeline.view', label: '版本时间线', mount: CESHU_CONTENT_MOUNT, order: 20, ui: { type: 'text', text: '版本时间线' } },
