@@ -24,6 +24,34 @@ function parseCliArgs(raw: string | undefined): string[] {
   }
 }
 
+/**
+ * 构造子智能体 provider（Slice 31/33）：优先级 **远程 URL > CLI > 进程内 spawn**。
+ * 未配置任何 env ⇒ 返回空对象，循环沿用默认进程内 spawn。
+ */
+function buildSubAgentProvider(): { subAgentProvider?: SubAgentProvider } {
+  const remoteUrl = process.env.MB_SUBAGENT_REMOTE_URL?.trim()
+  if (remoteUrl !== undefined && remoteUrl !== '') {
+    const token = process.env.MB_SUBAGENT_REMOTE_TOKEN?.trim()
+    return {
+      subAgentProvider: createRemoteSubAgentProvider({
+        url: remoteUrl,
+        ...(token !== undefined && token !== '' ? { headers: { authorization: `Bearer ${token}` } } : {})
+      })
+    }
+  }
+  const cli = process.env.MB_SUBAGENT_CLI?.trim()
+  if (cli !== undefined && cli !== '') {
+    return {
+      subAgentProvider: createCliSubAgentProvider({
+        command: cli,
+        args: parseCliArgs(process.env.MB_SUBAGENT_CLI_ARGS),
+        ...(process.env.MB_SUBAGENT_CLI_INPUT === 'stdin' ? { inputMode: 'stdin' as const } : {})
+      })
+    }
+  }
+  return {}
+}
+
 import { AgentApprovalBroker } from './agent/approvalBroker'
 import { AgentBrainService, createDispatcherToolRunner } from './agent/brainService'
 import { OperationLogStore } from './agent/operationLogStore'
@@ -31,6 +59,8 @@ import { createRecordingToolRunner } from './agent/operationRecorder'
 import { createRollbackSkill } from './agent/skills/rollbackSkill'
 import { createSubAgentSkill } from './agent/skills/subAgentSkill'
 import { createCliSubAgentProvider } from './agent/subagentCli'
+import { createRemoteSubAgentProvider } from './agent/subagentRemote'
+import type { SubAgentProvider } from '../shared/agent/brain'
 import { mcpManager } from './agent/mcp/manager'
 import { AgentMemoryStore } from './agent/memoryStore'
 import { createOllamaEmbeddingProvider } from './agent/embedding'
@@ -139,17 +169,8 @@ export function buildStores(libDir: string): AppStores {
       memoryStore: new AgentMemoryStore(agentDir, { embedder: createOllamaEmbeddingProvider() }),
       preferences: personalization.preferences,
       runner,
-      // Slice 31：显式配置 MB_SUBAGENT_CLI 时，子智能体交给该 CLI（如 claude/codex）执行；
-      // 未配置则沿用循环默认的进程内 spawn。可选 MB_SUBAGENT_CLI_ARGS（JSON 数组）/ MB_SUBAGENT_CLI_INPUT=stdin。
-      ...(process.env.MB_SUBAGENT_CLI !== undefined && process.env.MB_SUBAGENT_CLI.trim() !== ''
-        ? {
-            subAgentProvider: createCliSubAgentProvider({
-              command: process.env.MB_SUBAGENT_CLI.trim(),
-              args: parseCliArgs(process.env.MB_SUBAGENT_CLI_ARGS),
-              ...(process.env.MB_SUBAGENT_CLI_INPUT === 'stdin' ? { inputMode: 'stdin' as const } : {})
-            })
-          }
-        : {}),
+      // Slice 31/33：子智能体 provider（远程 URL > CLI > 进程内 spawn，见 buildSubAgentProvider）
+      ...buildSubAgentProvider(),
       // Slice 32：沙箱策略（MB_SANDBOX_POLICY=read-only 时拒绝外部 CLI 子智能体）
       ...(process.env.MB_SANDBOX_POLICY === 'read-only' ? { sandboxPolicy: 'read-only' as const } : {})
     }),
