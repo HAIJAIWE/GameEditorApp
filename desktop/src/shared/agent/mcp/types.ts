@@ -46,6 +46,11 @@ export interface HttpServerConfig extends McpServerConfig {
 /** MCP 配置文件形态（与 Claude Desktop / dsh 的 `mcpServers` 同构） */
 export interface McpConfig {
   mcpServers: Record<string, McpServerConfig>
+  /**
+   * 工具面上限覆写（Slice 21）：MCP 工具多了可在此调高（默认按档位 8/15）。
+   * 正整数才生效；省略 = 沿用 DD-3 默认。
+   */
+  maxTools?: number
 }
 
 /** 一个 MCP 工具的元信息（`tools/list` 的结果项） */

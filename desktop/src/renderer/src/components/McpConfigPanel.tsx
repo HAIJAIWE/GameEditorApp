@@ -60,6 +60,7 @@ export default function McpConfigPanel({ onClose }: { onClose: () => void }) {
         <div className="item-meta">
           保存后会自动重连。示例：stdio 用 {'{ "command": "npx", "args": ["-y", "某个-mcp-server"] }'}；
           远程用 {'{ "url": "https://…", "headers": {…} }'}。没有服务器就留 {'{ "mcpServers": {} }'}。
+          工具多了可在顶层加 {'"maxTools": 24'} 调高工具面上限（默认本地 8 / 云端 15）。
         </div>
         <textarea
           className="form-textarea"

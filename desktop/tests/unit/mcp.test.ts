@@ -47,6 +47,13 @@ describe('parseMcpConfig', () => {
     // http 项没有 command，合法
     expect(config.mcpServers.context7.command).toBeUndefined()
   })
+
+  it('顶层 maxTools：正整数才生效', () => {
+    expect(parseMcpConfig({ mcpServers: {}, maxTools: 24 }).maxTools).toBe(24)
+    expect(parseMcpConfig({ mcpServers: {}, maxTools: 0 }).maxTools).toBeUndefined()
+    expect(parseMcpConfig({ mcpServers: {}, maxTools: -3 }).maxTools).toBeUndefined()
+    expect(parseMcpConfig({ mcpServers: {}, maxTools: 'x' }).maxTools).toBeUndefined()
+  })
 })
 
 /* ------------------------------ 工具→技能桥 ------------------------------ */

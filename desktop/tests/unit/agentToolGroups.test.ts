@@ -7,6 +7,7 @@ import {
   groupToolCatalog,
   resolveRoutingPolicy,
   resolveToolGroup,
+  setMaxToolsOverride,
   TOOL_FACE_LIMITS,
   TOOL_GROUP_LABELS,
   TOOL_GROUP_MAP,
@@ -129,6 +130,22 @@ describe('M3 buildToolFace：装配与限量', () => {
     const face = buildToolFace(skills, 'local', skills.map((skill) => skill.id))
     expect(face.exposed).toHaveLength(8)
     expect(face.truncated).toBe(true)
+  })
+
+  it('setMaxToolsOverride：覆写上限生效（MCP 工具多了可调高），null 恢复默认', () => {
+    try {
+      setMaxToolsOverride(30)
+      expect(faceLimitFor('local')).toBe(30)
+      expect(faceLimitFor('cloud')).toBe(30)
+      const face = buildToolFace(manySkills(20), 'local')
+      expect(face.exposed).toHaveLength(20) // 20 ≤ 30，不再截断
+      expect(face.truncated).toBe(false)
+    } finally {
+      setMaxToolsOverride(null)
+    }
+    // 恢复 DD-3 默认
+    expect(faceLimitFor('local')).toBe(8)
+    expect(faceLimitFor('cloud')).toBe(15)
   })
 })
 

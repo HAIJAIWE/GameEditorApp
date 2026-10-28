@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises'
 
 import { mcpToolId, mcpToolRisk, mcpToolToSkill, type McpCallTool } from '../../../shared/agent/mcp/bridge'
 import { clearDynamicToolRisk, setDynamicToolRisk, type RiskLevel } from '../../../shared/agent/protocol'
+import { setMaxToolsOverride } from '../../../shared/agent/toolGroups'
 import { McpClient } from '../../../shared/agent/mcp/client'
 import { parseMcpConfig } from '../../../shared/agent/mcp/config'
 import type { McpConfig, McpServerConfig, McpToolInfo, McpTransport } from '../../../shared/agent/mcp/types'
@@ -39,6 +40,8 @@ export class McpManager {
   async connect(config: McpConfig): Promise<void> {
     if (this.connected) return
     this.connected = true
+    // 工具面上限覆写（配置顶层 maxTools）：MCP 工具多了可调高，否则沿用 8/15
+    setMaxToolsOverride(config.maxTools ?? null)
     for (const [server, serverConfig] of Object.entries(config.mcpServers)) {
       const transport = createTransport(serverConfig)
       if (transport === null) continue
@@ -98,6 +101,7 @@ export class McpManager {
     this.clients.clear()
     this.tools = []
     this.connected = false
+    setMaxToolsOverride(null) // 恢复按档位默认上限
   }
 
   private registerAll(): void {

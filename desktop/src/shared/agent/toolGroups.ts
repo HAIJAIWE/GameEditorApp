@@ -77,8 +77,23 @@ export const TOOL_FACE_LIMITS: Readonly<Record<'local' | 'cloud', number>> = {
   cloud: 15
 }
 
-/** 取档位对应的工具面上限；`unconfigured` 无档位 ⇒ 按**最保守的本地预算**处理 */
+/**
+ * 工具面上限的**全局覆写**（Slice 21）：非 null 时覆盖按档位的默认上限。
+ *
+ * 动机：接入 MCP 后工具可能远超 8/15。用户可在 MCP 配置里写顶层 `"maxTools": N`，
+ * `McpManager` 加载配置时调 `setMaxToolsOverride(N)` —— 不必改这个模块的常量。
+ * 默认 null = 沿用 DD-3 的 8/15（本地 4B 工具过多会挑错，故默认保守）。
+ */
+let maxToolsOverride: number | null = null
+
+/** 设置/清除工具面上限覆写（正整数才生效；null/非法值 = 恢复按档位默认） */
+export function setMaxToolsOverride(value: number | null): void {
+  maxToolsOverride = value !== null && Number.isFinite(value) && value > 0 ? Math.floor(value) : null
+}
+
+/** 取档位对应的工具面上限；有全局覆写则优先，否则 8/15（`unconfigured` 按最保守的本地预算） */
 export function faceLimitFor(tier: AgentRunTier): number {
+  if (maxToolsOverride !== null) return maxToolsOverride
   return tier === 'cloud' ? TOOL_FACE_LIMITS.cloud : TOOL_FACE_LIMITS.local
 }
 

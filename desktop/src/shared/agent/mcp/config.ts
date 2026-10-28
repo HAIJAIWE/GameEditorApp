@@ -22,7 +22,13 @@ export function parseMcpConfig(raw: unknown): McpConfig {
     const cfg = parseServer(value)
     if (cfg !== null) out[name] = cfg
   }
-  return { mcpServers: out }
+  // 顶层 maxTools（可选）：正整数才生效
+  const maxToolsRaw = (raw as { maxTools?: unknown }).maxTools
+  const maxTools =
+    typeof maxToolsRaw === 'number' && Number.isFinite(maxToolsRaw) && maxToolsRaw > 0
+      ? Math.floor(maxToolsRaw)
+      : undefined
+  return { mcpServers: out, ...(maxTools !== undefined ? { maxTools } : {}) }
 }
 
 function parseServer(value: unknown): McpServerConfig | null {
