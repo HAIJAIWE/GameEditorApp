@@ -129,6 +129,7 @@ App.renderPanel()
 | Slice 14 | **4 个内联浮层抽成独立组件**（迁移 / 消费提示词 / 全局审阅队列 / 导入 AI 结果）→ `EditorOverlays.tsx`；上下文增 busy/迁移/审阅/导入动作 | ✅ 完成 |
 | Slice 15 | **2 个内联弹层/气泡插件化**（派生新版本 / 系统模块勾选）：新增内联挂载点 `ceshu.toolbar` / `ceshu.chapterNav`，`ViewMount` 放**原位置**、定位不变 | ✅ 完成（共 22 view） |
 | Slice 16 | **编辑器「更多」菜单 → `menu` 能力**：`menu` 加 `mount`，`MenuMount` 在工具栏渲染；18 项拆成命令，非视图动作走 `ceshuEditorBridge` | ✅ 完成（菜单结构也插件化） |
+| Slice 17 | **左栏产出物页签**：原型/数据/任务 → `ceshu.artifact` 挂载点的 view；页签高亮与内容从 `activeView` 派生 | ✅ 完成（25 view；「设计文档」仍为章节表单本体） |
 
 ---
 
@@ -377,9 +378,10 @@ manifest（`utility-panels` 8 个面板、`data-panels` 3 个面板），这是 
 ### 9.4 后续可选（都不阻塞当前架构）
 
 1. ~~`MenuBar` 从 `host.commands()` 生成菜单项~~ → **Slice 9 已完成**（`menu` 能力 + `MenuBar` 从 `host.menus()` 渲染）。
-2. **`CeshuView` 内部 UI**：**11 个 `panel` 变体（Slice 13）+ 4 个浮层（Slice 14）+ derive/modulePicker 两个内联弹层（Slice 15）已全部迁完**，
-   共 **22 view**（7 浮层 + 13 内容 + 2 内联挂载点）；编辑器「更多」菜单（18 项）也已是 `menu` 能力（Slice 16）。
-   仍非插件的只剩：左栏产出物 4 页签、App 主区 6 个核心视图——这些是**编辑器/产品主体结构，不是「面板/菜单」**。
+2. **`CeshuView` 内部 UI**：11 panel 变体（13）+ 4 浮层（14）+ derive/modulePicker（15）+ 编辑器菜单（16）+ 产出物页签（17）已全部迁完，
+   共 **25 view**（7 浮层 + 13 内容 + 2 内联 + 3 产出物）+ 编辑器菜单（18 项）。
+   仍非插件的只剩 **App 主区 6 个核心视图**（首页/编辑器/数据/代码/浏览器/数字员工）——**产品主体结构，不是「面板/菜单」**。
+   产出物「设计文档」页签仍是章节表单本体（内联，不做视图）。
 3. ~~`Sidebar` 数据驱动~~ → **Slice 10 已完成**（`sidebar` 能力 + `navigationPlugin`，App 的 `SIDEBAR_ITEMS` 常量删除）。
 4. **插件市场 / `source` 字段落地**：契约已留 `source`，尚未有安装流程。
 
@@ -415,6 +417,11 @@ Slice 4（8 个不依赖 App 状态的面板）：
 - `renderer/src/plugins/builtins.ts`（注册）
 - `renderer/src/App.tsx`（8 个 case → HostPanel，删 8 个直接 import）
 - `tests/unit/dom/utilityPanelsPlugin.test.tsx`（3 条：能力清单 / testid 保留 / 禁用后不再渲染）
+
+Slice 17（左栏产出物页签插件化）：
+- `renderer/src/plugins/ceshuViewContext.tsx`（新增 `CESHU_ARTIFACT_MOUNT` + `onDocUpdated` / `onTypesChanged` / `onGenerateData`）
+- `renderer/src/plugins/ceshuViewsPlugin.tsx`（+prototype/data/tasks 三个 view，共 25）
+- `renderer/src/components/CeshuView.tsx`（删 `artifact` state 与 3 个面板 import；页签/内容从 `activeView('ceshu.artifact')` 派生；`.chapter-body` 改 `activeArtifact !== 'doc' ? ViewMount : …`）
 
 Slice 16（编辑器「更多」菜单 → menu 能力）：
 - `shared/plugin/types.ts`（`PluginMenuCapability` 增 `mount?`）
