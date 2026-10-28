@@ -50,6 +50,7 @@ test('Agent 技能调度：listTools + 只读技能执行 + 结构化错误', as
       'system.ceshu',
       'system.code',
       'system.game_data',
+      'system.session_search',
       'tool.ask_user',
       'tool.rollback_ai_changes',
       'tool.spawn_subagent'

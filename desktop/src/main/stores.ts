@@ -67,6 +67,7 @@ import { AgentBrainService, createDispatcherToolRunner } from './agent/brainServ
 import { OperationLogStore } from './agent/operationLogStore'
 import { createRecordingToolRunner } from './agent/operationRecorder'
 import { createRollbackSkill } from './agent/skills/rollbackSkill'
+import { createSessionSearchSkill } from './agent/skills/sessionSearchSkill'
 import { createSubAgentSkill } from './agent/skills/subAgentSkill'
 import { createCliSubAgentProvider } from './agent/subagentCli'
 import { createRemoteSubAgentProvider } from './agent/subagentRemote'
@@ -158,6 +159,9 @@ export function buildStores(libDir: string): AppStores {
   // Agent 会话与记忆随库隔离（A2-1 起落在 <库>/agent 下）
   const agentDir = join(libDir, 'agent')
   const sessionStore = new AgentSessionStore(agentDir)
+  // #25 会话检索（对齐 dsh session-search）：给智能体的只读历史检索工具（SQLite FTS5）。
+  // 依赖 sessionStore（按库隔离），故在它之后注册；工具面按 chat 时 `dispatcher.list()` 现算，晚注册无碍。
+  dispatcher.register(createSessionSearchSkill({ sessionStore }))
   // 用户偏好 / 反馈：随库隔离，构造时即从磁盘加载；偏好注入系统提示词（见 brainService）
   const personalization = createPersonalizationStores(agentDir)
 
