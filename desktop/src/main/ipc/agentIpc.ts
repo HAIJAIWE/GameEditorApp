@@ -42,6 +42,7 @@ export function registerAgentIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
         agentBrain.chat(req.input, {
           ...(llmCall.config !== undefined ? { config: llmCall.config } : {}),
           ...(llmCall.apiKey !== undefined ? { apiKey: llmCall.apiKey } : {}),
+          ...(req.preset !== undefined ? { preset: req.preset } : {}),
           signal,
           onEvent: (payload) => {
             event.sender.send('agent:event', payload)
@@ -77,7 +78,7 @@ export function registerAgentIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
     return { messages: snapshot?.messages ?? [] }
   })
   handle('agent:sessionClear', undefined, async () => ({ cleared: await agentSessionStore.clear() }))
-  // 草稿管理（对齐 旧版 数字员工面板的草稿保存/恢复/列表）
+  // 草稿管理
   handle('agent:draftSave', agentDraftSaveInputSchema, (req) => agentSessionStore.saveDraft(req.name))
   handle('agent:draftList', undefined, () => agentSessionStore.listDrafts())
   handle('agent:draftLoad', agentDraftLoadInputSchema, (req) => {

@@ -33,6 +33,11 @@ export interface AgentChatOptions {
    * 本地档默认不做模型软路由；面板把用户勾选的技能传进来即可收窄工具面。
    */
   explicitTools?: readonly string[]
+  /**
+   * 智能体预设 id（借 dsh agent-preset 设计）。主进程据此注入角色定位 system prompt，
+   * 让本轮对话以选定视角进行。未知 id 静默忽略（不阻断对话）。
+   */
+  preset?: string
   /** 事件流实时回调（面板流式渲染） */
   onEvent?: (event: BrainEvent) => void
   /** 本次调用的危险操作审批（优先于构造时的缺省审批） */

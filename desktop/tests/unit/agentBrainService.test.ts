@@ -130,4 +130,19 @@ describe('AgentBrainService：M3 档位路由装配', () => {
     // 内层必须仍在 `function` 下（摊平即 Ollama 静默失效）
     expect(wire[0]).not.toHaveProperty('parameters')
   })
+
+  it('智能体预设（agent-preset）注入角色定位 system prompt；未知 id 静默忽略', async () => {
+    const { transport, requests } = capturingTransport()
+    const service = new AgentBrainService({ dispatcher: makeDispatcher(), transport })
+
+    await service.chat('帮我看看战斗系统', { preset: 'game_designer' })
+    const text = systemText(requests[0] as BrainLlmRequest)
+    expect(text).toContain('【智能体预设】')
+    expect(text).toContain('资深游戏系统设计师')
+
+    // 未知 preset：不注入、不报错（不污染默认通用助手行为）
+    await service.chat('随便聊聊', { preset: 'no-such-agent' })
+    const text2 = systemText(requests[1] as BrainLlmRequest)
+    expect(text2).not.toContain('【智能体预设】')
+  })
 })

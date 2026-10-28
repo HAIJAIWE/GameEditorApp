@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState, type MouseEvent as ReactMouse
 import type { CeshuSummary } from '../../shared/ceshuConstants'
 import { loadGameStyle, normalizeGameStyleId, saveGameStyle } from '../../shared/config/gameStyle'
 import { loadMiddleTab, MIDDLE_TABS, saveMiddleTab, type MiddleTab } from '../../shared/config/middleTab'
-import type { AppInfo, DataTypeDef } from '../../shared/types'
+import type { AppInfo, DataTypeDef, ImportPreview } from '../../shared/types'
 import { applyTheme, loadTheme, saveTheme, type ThemeMode } from '../../shared/config/theme'
 
 import AdvancedSearchPanel from './components/AdvancedSearchPanel'
@@ -11,6 +11,7 @@ import AboutPanel from './components/AboutPanel'
 import AttrSystemPanel from './components/AttrSystemPanel'
 import BackupPanel from './components/BackupPanel'
 import BatchEditPanel from './components/BatchEditPanel'
+import ImportPreviewPanel from './components/ImportPreviewPanel'
 import CeshuHomePanel from './components/CeshuHomePanel'
 import ClearAllPanel from './components/ClearAllPanel'
 import GameDataPreviewPanel from './components/GameDataPreviewPanel'
@@ -26,25 +27,28 @@ import MenuBar from './components/MenuBar'
 import QuickCreatePanel from './components/QuickCreatePanel'
 import ReferencesPanel, { type ReferenceTarget } from './components/ReferencesPanel'
 import RelationGraphPanel from './components/RelationGraphPanel'
-import ShortcutsPanel from './components/ShortcutsPanel'
+import PluginsPanel from './components/PluginsPanel'
+import Sidebar, { type SidebarAction, type SidebarItem } from './components/Sidebar'
 import CleanupImagesPanel from './components/CleanupImagesPanel'
 import KeywordTemplatePanel from './components/KeywordTemplatePanel'
 import AgentEditorPanel from './components/AgentEditorPanel'
 import AttributeChartPanel from './components/AttributeChartPanel'
 import OnboardingPanel from './components/OnboardingPanel'
 import SettingsPanel from './components/SettingsPanel'
-import StatisticsPanel from './components/StatisticsPanel'
 import ToastHost from './components/ToastHost'
 import TypeEditorPanel from './components/TypeEditorPanel'
 import { useDataTransfer, useUndoRedo } from './hooks/useAppActions'
-import { toErrorMessage } from './appUtils'
+import { formatImportSummary, toErrorMessage } from './appUtils'
 import { clampDockWidth, defaultDockWidth, loadAiDockWidth, saveAiDockWidth } from './dockWidth'
+import { pluginHost } from './plugins/builtins'
+import { HostPanel } from './plugins/HostPanel'
+import { AppContextProvider } from './plugins/appContext'
 
 /**
  * 顶层「面板浮层」的键：这些能力原先挂在下线前的「数据表视图」工具栏上，
- * 现统一由菜单栏唤起，主区内**同时最多只渲染一个**（互斥，对齐 PyQt 的单中央堆栈）。
+ * 现统一由菜单栏唤起，主区内**同时最多只渲染一个**。
  */
-type OverlayPanel =
+export type OverlayPanel =
   | 'typeEditor'
   | 'attrSystem'
   | 'stats'
@@ -66,6 +70,8 @@ type OverlayPanel =
   | 'agentEditor'
   | 'attributeChart'
   | 'onboarding'
+  | 'importPreview'
+  | 'plugins'
 
 /** 浮层头部标题（与菜单项一致，便于用户确认当前打开的是哪个能力） */
 const PANEL_TITLES: Record<OverlayPanel, string> = {
@@ -87,20 +93,37 @@ const PANEL_TITLES: Record<OverlayPanel, string> = {
   settings: '设置',
   cleanupImages: '清理未使用图片',
   keywordTemplates: '关键词模板配置',
-  agentEditor: '智能体可用能力',
+  agentEditor: 'AI 能力清单（工具与风险等级）',
   attributeChart: '属性分布图表',
-  onboarding: '快速入门'
+  onboarding: '快速入门',
+  importPreview: '导入预览',
+  plugins: '插件中心'
 }
 
 /**
- * 顶层外壳（Phase B：对齐 PyQt 的信息架构）。
+ * 顶层外壳。
  *
- * 设计要点（对应 PyQt `ui/layout_builder.py::_build_three_column` + `ui/main_window.py`）：
+ * 设计要点：
  * - **无左侧栏**：所有能力走顶部菜单栏；库选择与「设置 / 智能体 / AI」按钮挂在菜单栏右侧角部件。
  * - 中央是**单栈**：策划书首页 ↔ 策划书编辑器（编辑器内嵌数据预览面板且常驻），默认落在首页。
  * - 右侧 `.ai-dock` 为常驻数字员工停靠栏（单一实例）。
  * - 底部状态栏（版本 / 类型数 / 数据库路径 / 主题切换）常驻。
  */
+/**
+ * 左侧主导航栏条目（dsh Web 侧边栏风格）。
+ * home=回策划书首页；agent=聚焦右侧数字员工 dock 输入；其余=打开对应浮层面板。
+ */
+const SIDEBAR_ITEMS: SidebarItem[] = [
+  { key: 'home', label: '策划书', icon: '📘', action: { type: 'home' } },
+  { key: 'plugins', label: '插件中心', icon: '🧩', action: { type: 'panel', panel: 'plugins' } },
+  { key: 'relationGraph', label: '关系图', icon: '🕸', action: { type: 'panel', panel: 'relationGraph' } },
+  { key: 'advancedSearch', label: '高级搜索', icon: '🔍', action: { type: 'panel', panel: 'advancedSearch' } },
+  { key: 'stats', label: '统计', icon: '📊', action: { type: 'panel', panel: 'stats' } },
+  { key: 'settings', label: '设置', icon: '⚙', action: { type: 'panel', panel: 'settings' } },
+  { key: 'about', label: '关于', icon: 'ℹ', action: { type: 'panel', panel: 'about' } },
+  { key: 'agent', label: '数字员工', icon: '🤖', action: { type: 'agent' } }
+]
+
 export default function App() {
   const [info, setInfo] = useState<AppInfo | null>(null)
   const [types, setTypes] = useState<DataTypeDef[]>([])
@@ -110,6 +133,11 @@ export default function App() {
   const { undoUi, refreshUndo, performUndo, performRedo } = useUndoRedo(setNotice, setError)
   /** 主区内当前打开的浮层面板（null = 未打开，渲染策划书首页/编辑器） */
   const [panel, setPanel] = useState<OverlayPanel | null>(null)
+  /**
+   * 待确认的导入预览（选完文件就有值，面板据此渲染）。
+   * 解析结果在主进程暂存，这里只留会话 id + 预览数据。
+   */
+  const [importPreview, setImportPreview] = useState<{ previewId: string; preview: ImportPreview } | null>(null)
   /** 中间窗口页签（编辑器/代码编辑/浏览器）：持久化在 localStorage，重启保留 */
   const [middleTab, setMiddleTab] = useState<MiddleTab>(() => loadMiddleTab())
   /** 已访问过的页签（代码/浏览器首访才挂载面板；编辑器默认已在） */
@@ -209,16 +237,16 @@ export default function App() {
 
   const [ceshuList, setCeshuList] = useState<CeshuSummary[]>([])
   const [activeCeshuId, setActiveCeshuId] = useState<string | null>(null)
-  /** 策划书首页卡片视图：默认落在首页（对齐 PyQt `_center_stack.setCurrentWidget(ceshu_home)`） */
+  /** 策划书首页卡片视图：默认落在首页 */
   const [ceshuHomeVisible, setCeshuHomeVisible] = useState(true)
 
   /**
    * 活跃游戏风格 id（术语风格）。用于条目表单的字段标签术语替换
-   * （对应 Python `style_manager` 的**全局单例** `_active_style`；TS 无全局可变态，落在 App state）。
+   * 。
    *
-   * 触发方式（两条，与 Python 对齐 + 一处有意增强）：
-   * - 打开某份策划书时由 `CeshuView` 回填：优先 `doc.style`（用户显式选过），否则由 meta 文本推断（Python 行为）
-   * - 工具栏下拉手工切换（**Python 无此入口**；Python 只能靠推断，且推断不出时无从设置）
+   * 触发方式：
+   * - 打开某份策划书时由 `CeshuView` 回填：优先 `doc.style`（用户显式选过），否则由 meta 文本推断
+   * - 工具栏下拉手工切换
    * `''` = 原始术语（不替换）。
    */
   const [gameStyle, setGameStyle] = useState<string>(() => loadGameStyle())
@@ -280,7 +308,7 @@ export default function App() {
   }, [performUndo, performRedo])
 
   /**
-   * Esc 关闭当前浮层面板（对齐 PyQt 的 QDialog 默认行为：`Esc` = 取消/关闭）。
+   * Esc 关闭当前浮层面板。
    * TS 的浮层是 div 不是 QDialog，不注册这个键就关不掉 —— 属于交互缺失而非风格差异。
    * 已在输入框/下拉里按 Esc 的先由各自处理（事件冒泡到这里时浮层多半也该关，故不额外判断）。
    */
@@ -345,6 +373,29 @@ export default function App() {
     saveGameStyle(normalized)
   }, [])
 
+  /**
+   * 左侧栏导航分发：回首页 / 聚焦数字员工 dock / 打开浮层面板。
+   * 与 MenuBar 的 actions 复用同一组底层 handler（openPanel / setNotice），不另造分支。
+   */
+  const handleSidebar = (action: SidebarAction): void => {
+    if (action.type === 'home') {
+      setCeshuHomeVisible(true)
+      setPanel(null)
+      return
+    }
+    if (action.type === 'agent') {
+      const input = document.querySelector<HTMLInputElement>('[data-testid="digital-input"]')
+      if (input !== null && !input.disabled) {
+        input.scrollIntoView({ block: 'nearest' })
+        input.focus()
+        return
+      }
+      setNotice('AI 助手在右侧常驻；当前对话运行中，输入框暂不可用')
+      return
+    }
+    openPanel(action.panel)
+  }
+
   /** 切换主题：翻转深/浅并持久化（functional update 避免闭包取到旧值） */
   const toggleTheme = useCallback((): void => {
     setTheme((prev) => {
@@ -355,7 +406,7 @@ export default function App() {
   }, [])
 
   /**
-   * 「清空所有数据」完成后的刷新（对齐 PyQt `clear_all_data` 里的 `_refresh_all_tabs()`）。
+   * 「清空所有数据」完成后的刷新。
    *
    * 做三件事：
    * 1. `refreshUndo()` —— 清空落了一条 `deleteMany` 撤销记录，菜单项的 disabled/标签要跟上；
@@ -393,12 +444,12 @@ export default function App() {
   }
 
   /**
-   * 「快速入门」面板派发的动作 → App 级导航（对齐 Python `HomeWidget.action_triggered`
+   * 「快速入门」面板派发的动作 → App 级导航（对齐 旧版 `HomeWidget.action_triggered`
    * 到各主窗口 handler 的映射）。
    *
-   * 有意省略 Python 数据概览头的「⚙ 管理显示类型」：它唯一的消费者 `TypeVisibilityPanel`
-   * 在 TS 已随侧栏刻意下线（见下方 renderPanel 注释），PyQt 亦无等价物 —— 宁缺勿错。
-   * 「查看关联」对齐 PyQt `main_window.py:1200`（`view_relations` → `_show_relation_graph()`），
+   * 有意省略 旧版 数据概览头的「⚙ 管理显示类型」：它唯一的消费者 `TypeVisibilityPanel`
+   * 在 TS 已随侧栏刻意下线（见下方 renderPanel 注释），旧版 亦无等价物 —— 宁缺勿错。
+   * 「查看关联」对齐 旧版 `main_window:1200`（`view_relations` → `_show_relation_graph()`），
    * 打开**关系图**面板（自带类型/主体选择器，无需先定位目标条目）。
    */
   const handleOnboardingAction = (actionId: string, dataType: string): void => {
@@ -419,7 +470,7 @@ export default function App() {
         }
         return
       case 'view_relations':
-        // 对齐 Python `main_window.py:1200`：`view_relations` → `_show_relation_graph()`。
+        // 对齐 旧版 `main_window:1200`：`view_relations` → `_show_relation_graph()`。
         // 关系图面板自带类型/主体选择器，无需先定位目标条目（旧行为弹去高级搜索是偏差，已改正）。
         openPanel('relationGraph')
         return
@@ -436,7 +487,7 @@ export default function App() {
           setCeshuHomeVisible(true)
           setPanel(null)
         } else {
-          // 对齐 Python `_goto_data_design`：离开浮层、进入策划书编辑器的数据设计区
+          // 对齐 旧版 `_goto_data_design`：离开浮层、进入策划书编辑器的数据设计区
           setPanel(null)
           setCeshuHomeVisible(false)
         }
@@ -458,7 +509,7 @@ export default function App() {
 
   /**
    * 引用/搜索跳转：切到策划书编辑器并下发跳转目标以定位条目
-   * （对齐 PyQt `main_window._goto_data_design` / `preview_panel.focus_first_editor`）。
+   * 。
    * 同时记录 refTarget，使「数据关联预览」可以直接打开该条目的引用关系。
    */
   const handleJump = (type: string, itemId: string, name: string): void => {
@@ -499,7 +550,7 @@ export default function App() {
 
   /**
    * 注：原先这里有一个 `notImplemented(label)` 轻提示，供「点了只报尚未实现」的菜单占位项复用。
-   * E57 删掉最后两个此类占位项（PyQt 侧的「内容关联管理 / 关联可视化」实为死入口，见 `MenuBar.tsx`）
+   * E57 删掉最后两个此类占位项
    * 后该函数已无消费者，一并移除 —— 菜单里不再有「点了没反应」的项。
    */
 
@@ -519,7 +570,10 @@ export default function App() {
 
   /** 数据导入 / 导出（JSON / CSV / Excel / 引擎格式）：内聚单元，见 hooks/useAppActions */
   const { importJson, exportJson, importCsv, exportCsv, importExcel, exportExcel, engineExport, exportSnapshot } =
-    useDataTransfer(setNotice, setError, refreshUndo)
+    useDataTransfer(setNotice, setError, refreshUndo, (payload) => {
+      setImportPreview(payload)
+      setPanel('importPreview')
+    })
 
   /** 退出：关闭渲染进程窗口（Electron 主窗口关闭即退出） */
   const handleQuit = (): void => {
@@ -536,6 +590,13 @@ export default function App() {
     setCeshuHomeVisible(false)
   }
 
+  /**
+   * 面板自供给通道（B 方案 Slice 2）：把面板共用的业务状态/动作经 context 注入，
+   * 面板用 `useAppContext()` 自行取用，不再由本组件逐个以 props 下发。
+   * 刻意不 memo：`handleJump` 为普通函数每次渲染新建，memo 不会命中；面板数量少，重渲染可接受。
+   */
+  const appContextValue = { types, setTypes, handleJump, refreshUndo }
+
   /** 渲染当前打开的浮层面板（互斥；面板 props 里来自已下线数据态的项一律给兜底值） */
   const renderPanel = (): ReactNode => {
     switch (panel) {
@@ -551,7 +612,8 @@ export default function App() {
       case 'attrSystem':
         return <AttrSystemPanel onClose={() => setPanel(null)} />
       case 'stats':
-        return <StatisticsPanel types={types} onClose={() => setPanel(null)} />
+        // Slice 2：状态化面板经宿主渲染，types 由 appContext 自供给（App 不再下发）。
+        return <HostPanel host={pluginHost} panelId="statistics.panel" onClose={() => setPanel(null)} />
       case 'advancedSearch':
         return <AdvancedSearchPanel types={types} onJump={handleJump} onClose={() => setPanel(null)} />
       case 'dataDiff':
@@ -563,7 +625,8 @@ export default function App() {
       case 'gameDataPreview':
         return <GameDataPreviewPanel />
       case 'shortcuts':
-        return <ShortcutsPanel />
+        // 首切片（B 方案）：真实产品面板经 PluginHost 渲染，App 不再硬编码组件。
+        return <HostPanel host={pluginHost} panelId="shortcuts.panel" onClose={() => setPanel(null)} />
       case 'about':
         return <AboutPanel version={info?.version ?? null} />
       case 'clearAll':
@@ -580,6 +643,25 @@ export default function App() {
         return <AttributeChartPanel types={types} />
       case 'onboarding':
         return <OnboardingPanel types={types} onAction={handleOnboardingAction} onClose={() => setPanel(null)} />
+      case 'importPreview':
+        // 没有预览数据就没什么可确认的（正常流程不会走到这里，防手滑）
+        return importPreview === null ? null : (
+          <ImportPreviewPanel
+            previewId={importPreview.previewId}
+            preview={importPreview.preview}
+            types={types}
+            onApplied={(summary) => {
+              setNotice(formatImportSummary(summary))
+              setImportPreview(null)
+              setPanel(null)
+              refreshUndo()
+            }}
+            onCancel={() => {
+              setImportPreview(null)
+              setPanel(null)
+            }}
+          />
+        )
       case 'quickCreate':
         return (
           <QuickCreatePanel
@@ -602,13 +684,15 @@ export default function App() {
           />
         )
       // 注：原「数据可见类型」面板（TypeVisibilityPanel）不再接线——它唯一的作用是过滤
-      // 已随侧栏一并下线的类型列表，且 PyQt 无对应功能。组件文件保留（迁移留痕），但不再有入口。
+      // 已随侧栏一并下线的类型列表，且 旧版 无对应功能。组件文件保留（迁移留痕），但不再有入口。
       case 'references':
         return refTarget ? (
           <ReferencesPanel target={refTarget} types={types} onJump={handleJump} onClose={() => setPanel(null)} />
         ) : null
       case 'relationGraph':
         return <RelationGraphPanel types={types} onJump={handleJump} />
+      case 'plugins':
+        return <PluginsPanel host={pluginHost} onClose={() => setPanel(null)} />
       default:
         return null
     }
@@ -625,11 +709,11 @@ export default function App() {
            * 「打开」/「保存」/「批量导入」/「批量导出」四项与 `importJson`/`exportJson`
            * **共用同一对 handler**（`hooks/useAppActions.ts::useDataTransfer` 已完整实现）。
            * 语义澄清：这里的「打开/保存」是**整个数据仓库的 JSON 文件 I/O**
-           * （PyQt `main_window.py:710-753`），**不是**编辑器里章节级的「保存本章」。
+           * ，**不是**编辑器里章节级的「保存本章」。
            * 不抽包装层：抽了只是给同一个函数换两个名字，不产生行为差异（铁律：不过度开发）。
            *
-           * ⚠️ 已知的 PyQt 语义差异（详见 `MenuBar.tsx` 的 `MenuActions.open` 注释）：
-           * PyQt「打开」是整库替换 + 记忆 `current_file`，「批量导入」会重生成 id；
+           * ⚠️ 已知的 旧版 语义差异（详见 `MenuBar.tsx` 的 `MenuActions.open` 注释）：
+           * 旧版「打开」是整库替换 + 记忆 `current_file`，「批量导入」会重生成 id；
            * 而 `importLegacy` 是按 id upsert 的合并、每次都问路径。补齐需新增 IPC，不在本轮范围。
            */
           open: importJson,
@@ -676,14 +760,24 @@ export default function App() {
           settings: () => openPanel('settings'),
           cleanupUnusedImages: () => openPanel('cleanupImages'),
           keywordTemplates: () => openPanel('keywordTemplates'),
-          agentEditor: () => openPanel('agentEditor'),
           attributeChart: () => openPanel('attributeChart'),
           onboarding: () => openPanel('onboarding'),
-          aiPanel: () => setNotice('AI 助手已在右侧常驻'),
+          aiPanel: () => {
+            // AI 对话是右侧常驻 dock（无独立窗口）。按钮的职责是「把焦点送到输入框」，
+            // 而不是弹一句「已在右侧」——后者会被误读成「又开了一个 AI 会话」。
+            const input = document.querySelector<HTMLInputElement>('[data-testid="digital-input"]')
+            if (input !== null && !input.disabled) {
+              input.scrollIntoView({ block: 'nearest' })
+              input.focus()
+              return
+            }
+            setNotice('AI 助手在右侧常驻；当前对话运行中，输入框暂不可用')
+          },
           quit: handleQuit
         }}
       />
       <div className="app-body">
+        <Sidebar items={SIDEBAR_ITEMS} activePanel={panel} onNavigate={handleSidebar} />
         <div className="main">
           <div className="main-body">
             <div className="main-area">
@@ -697,7 +791,10 @@ export default function App() {
                       关闭
                     </button>
                   </div>
-                  <div className="panel-overlay-body">{renderPanel()}</div>
+                  <div className="panel-overlay-body">
+                    {/* 面板自供给通道：此子树内的面板可经 useAppContext() 取共享状态 */}
+                    <AppContextProvider value={appContextValue}>{renderPanel()}</AppContextProvider>
+                  </div>
                 </div>
               ) : (
                 <>
@@ -745,6 +842,7 @@ export default function App() {
                           jumpTarget={jumpTarget}
                           dataEpoch={dataEpoch}
                           onEditType={handleEditType}
+                          onTypesChanged={setTypes}
                           onShowReferences={handleShowReferences}
                           onJumpHandled={handleJumpHandled}
                           onJumpMissed={handleJumpMissed}
@@ -787,11 +885,11 @@ export default function App() {
               onDoubleClick={resetDockWidth}
             />
             <aside className="ai-dock" style={{ width: aiDockWidth }} data-testid="ai-dock">
-              <DigitalPanel />
+              <DigitalPanel onOpenCapabilities={() => openPanel('agentEditor')} />
             </aside>
           </div>
 
-          {/* Toast 宿主：absolute 浮层，不占布局空间（对齐 PyQt ui/components/toast.py） */}
+          {/* Toast 宿主：absolute 浮层，不占布局空间 */}
           <ToastHost />
           <footer className="statusbar">
             {info ? (
@@ -799,6 +897,15 @@ export default function App() {
                 <span>版本 {info.version}</span>
                 <span>类型 {types.length} 种</span>
                 <span>数据：SQLite（{info.dbPath}）</span>
+                <button
+                  type="button"
+                  className="btn slim"
+                  data-testid="plugins-open"
+                  title="插件中心：查看已注册插件（dsh 风格清单 + 启用/禁用）"
+                  onClick={() => setPanel('plugins')}
+                >
+                  插件
+                </button>
               </>
             ) : (
               <span>正在读取应用信息…</span>
@@ -814,8 +921,8 @@ export default function App() {
               {theme === 'dark' ? '☀️ 浅色' : '🌙 深色'}
             </button>
             {/*
-              快捷键提示（对齐 PyQt `main_window.py:566-569` 的常驻 `shortcut_label`）。
-              **只列 TS 真实注册的快捷键**：PyQt 提示含 `Ctrl+S保存`，但 TS 的「保存」是
+              快捷键提示。
+              **只列 TS 真实注册的快捷键**：旧版 提示含 `Ctrl+S保存`，但 TS 的「保存」是
               章节草稿级、刻意不做整文档保存（见 roadmap E30 的诚实边界），没有 `Ctrl+S`
               —— 照抄提示文案等于给一个按了没反应的键做广告，故省。
             */}

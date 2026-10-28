@@ -25,6 +25,7 @@ import {
   type DigitalPanelState
 } from '../../../../shared/agent/panel'
 import { toErrorMessage } from '../../../../shared/util/errors'
+import { AGENT_PRESETS, DEFAULT_PRESET_ID, presetLabel } from '../../../../shared/agent/presets'
 
 /**
  * 数字员工面板（A1-4）：对话气泡 + 流式文本 + 可折叠步骤 + 任务列表 + 危险操作审批模态。
@@ -34,7 +35,13 @@ import { toErrorMessage } from '../../../../shared/util/errors'
  */
 
 interface ChatApi {
-  chat: (req: { input: string; runId?: string }) => Promise<{ text: string }>
+  /**
+   * 发送一段对话。
+   * `preset` 为智能体预设 id（借 dsh agent-preset 设计）；主进程 `agent.chat` 当前
+   * 读取 `input`/`runId`，`preset` 为 **[PLACEHOLDER]** —— 后端消费预设做角色路由的接线待补，
+   * 渲染层先把选择带上，避免后续再改契约形状。
+   */
+  chat: (req: { input: string; runId?: string; preset?: string }) => Promise<{ text: string }>
   respondApproval: (req: { requestId: string; approved: boolean }) => Promise<{ ok: boolean }>
   respondInteraction: (req: {
     requestId: string
@@ -96,7 +103,19 @@ const TIER_LABELS: Record<AgentRunTier, string> = {
  * nonce 变化即把 `text` 投入对话（复用 `submitText`），避免受控组件每帧重复提交。
  * 自包含面板不接受持续受控状态，故用 nonce 而非「seed 是否存在」判定是否该发。
  */
-export default function DigitalPanel({ seed }: { seed?: { text: string; nonce: number } | null }) {
+export default function DigitalPanel({
+  seed,
+  onOpenCapabilities
+}: {
+  seed?: { text: string; nonce: number } | null
+  /**
+   * 打开「能力清单」（调度器真实注册的工具 + 风险等级）。
+   *
+   * 能力清单与 AI 对话同属**同一个智能体**（工具就是它能做的事），所以入口收在 dock 头部，
+   * 不再单列顶栏按钮——否则用户会以为有两个 AI。
+   */
+  onOpenCapabilities?: () => void
+}) {
   const [state, dispatch] = useReducer(reducer, initialDigitalPanelState)
   const [input, setInput] = useState('')
   const [stepsOpen, setStepsOpen] = useState(true)
@@ -121,6 +140,22 @@ export default function DigitalPanel({ seed }: { seed?: { text: string; nonce: n
   const [draftBusy, setDraftBusy] = useState(false)
   /** 轻提示（草稿保存/恢复成功后的回执，与 localError 上下呼应） */
   const [notice, setNotice] = useState<string | null>(null)
+  /** 当前智能体预设（借 dsh agent-preset 设计）；持久化在 localStorage，重启保留 */
+  const [preset, setPreset] = useState<string>(() => {
+    try {
+      return window.localStorage.getItem('mb.agent.preset') ?? DEFAULT_PRESET_ID
+    } catch {
+      return DEFAULT_PRESET_ID
+    }
+  })
+  const changePreset = (id: string): void => {
+    setPreset(id)
+    try {
+      window.localStorage.setItem('mb.agent.preset', id)
+    } catch {
+      /* 忽略：隐私模式等写入失败不打断对话 */
+    }
+  }
   const clearMenuRef = useRef<HTMLDivElement | null>(null)
   const draftMenuRef = useRef<HTMLDivElement | null>(null)
   /** 当前进行中那一轮的 runId（「停止」按钮据此精确取消） */
@@ -178,7 +213,7 @@ export default function DigitalPanel({ seed }: { seed?: { text: string; nonce: n
       const runId = `run_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
       activeRunId.current = runId
       void api
-        .chat({ input: text, runId })
+        .chat({ input: text, runId, preset })
         .catch((error: unknown) => {
           setLocalError(toErrorMessage(error))
         })
@@ -186,7 +221,7 @@ export default function DigitalPanel({ seed }: { seed?: { text: string; nonce: n
           if (activeRunId.current === runId) activeRunId.current = null
         })
     },
-    [running, api]
+    [running, api, preset]
   )
 
   /** 用户点「停止」：让循环优雅中止并保留已产出的部分结果 */
@@ -356,12 +391,26 @@ export default function DigitalPanel({ seed }: { seed?: { text: string; nonce: n
     <div className="digital-panel" data-testid="digital-panel">
       <div className="changelog-header">
         <span className="chapter-form-title">🤖 数字员工</span>
+        {/* 智能体预设选择器（借 dsh ui-agent-preset）：开聊前锁定对话视角 */}
+        <select
+          className="form-input digital-preset"
+          data-testid="digital-preset"
+          value={preset}
+          title={`智能体预设：${presetLabel(preset)}`}
+          onChange={(event) => changePreset(event.target.value)}
+        >
+          {AGENT_PRESETS.map((option) => (
+            <option key={option.id} value={option.id}>
+              {option.label}
+            </option>
+          ))}
+        </select>
         <div className="editor-actions">
           <span className="item-meta" data-testid="digital-status">
             {STATUS_LABELS[state.status]}
           </span>
 
-          {/* 「新建对话」（对齐 旧版 `digital_panel_ui:132-147` 的清空按钮 + `_show_clear_menu`）。
+          {/* 「新建对话」。
               旧版 菜单有「新建对话 / 清空当前对话 / 删除全部聊天记录」三项，但它的历史是**按对话分文件**的；
               TS 只有**一份**活跃会话（`agent/sessionStore.ts` 的 `active_session.json`），
               三项在 TS 语义上完全等价 —— 宁缺勿错，只给一项，不摆三个点下去一样的按钮。 */}
@@ -371,6 +420,7 @@ export default function DigitalPanel({ seed }: { seed?: { text: string; nonce: n
               className="btn slim"
               data-testid="digital-clear"
               title="新建对话（清空当前记录）"
+              aria-label="新建对话（清空当前记录）"
               aria-haspopup="menu"
               aria-expanded={clearMenuOpen}
               onClick={() => setClearMenuOpen((open) => !open)}
@@ -397,7 +447,7 @@ export default function DigitalPanel({ seed }: { seed?: { text: string; nonce: n
             )}
           </div>
 
-          {/* 草稿管理（对齐 旧版 `digital_panel_ui:149-159` + `digital_panel_workspace:156-179`）：
+          {/* 草稿管理：
               保存当前对话为草稿 / 从最近草稿恢复（上限 5 条）。 */}
           <div className="toolbar-more" ref={draftMenuRef}>
             <button
@@ -405,6 +455,7 @@ export default function DigitalPanel({ seed }: { seed?: { text: string; nonce: n
               className="btn slim"
               data-testid="digital-draft"
               title="草稿管理（保存 / 恢复对话）"
+              aria-label="草稿管理（保存 / 恢复对话）"
               aria-haspopup="menu"
               aria-expanded={draftMenuOpen}
               onClick={() => {
@@ -462,6 +513,18 @@ export default function DigitalPanel({ seed }: { seed?: { text: string; nonce: n
               </div>
             )}
           </div>
+          {onOpenCapabilities !== undefined && (
+            <button
+              type="button"
+              className="btn slim"
+              data-testid="digital-capabilities"
+              title="查看 AI 能力清单（工具与风险等级）"
+              aria-label="查看 AI 能力清单（工具与风险等级）"
+              onClick={onOpenCapabilities}
+            >
+              <LucideIcon name="clipboard" size={14} />
+            </button>
+          )}
         </div>
       </div>
 
@@ -595,7 +658,7 @@ export default function DigitalPanel({ seed }: { seed?: { text: string; nonce: n
               </button>
             </div>
           ) : isMultiQuestion(state.interaction.interaction) ? (
-            /* 多问题（对齐 旧版 questions 数组）：逐题作答后一次性提交 */
+            /* 多问题：逐题作答后一次性提交 */
             <div className="digital-multi-form" data-testid="digital-multi-form">
               {(state.interaction.interaction.questions ?? []).map((question, index) => (
                 <div

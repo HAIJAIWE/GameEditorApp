@@ -43,7 +43,7 @@ export const exportLegacyInputSchema = z.object({
   path: z.string().min(1)
 })
 
-/* ---- 游戏数据 CSV / Excel 导入导出（features/export.py 迁移） ---- */
+/* ---- 游戏数据 CSV / Excel 导入导出（features/export 迁移） ---- */
 
 /** 导出目录（CSV 按类型分文件 / Excel 写 game_data.xlsx） */
 export const exportDirInputSchema = z.object({
@@ -55,9 +55,20 @@ export const importDataFileInputSchema = z.object({
   path: z.string().min(1)
 })
 
-/* ---- AI 生图（features/_ai_image.py 能力缺口补齐：云图像 API 客户端） ---- */
+/** 导入预览：选好的文件 + 类型（决定用 Excel 还是 CSV 解析器） */
+export const previewImportInputSchema = z.object({
+  path: z.string().min(1),
+  kind: z.enum(['excel', 'csv'])
+})
 
-/** 生图 provider 配置（对齐 Python common/ai_client.generate_image） */
+/** 确认导入：带回预览时拿到的会话 id（解析结果在主进程暂存，不重复读文件） */
+export const applyImportInputSchema = z.object({
+  previewId: z.string().min(1)
+})
+
+/* ---- AI 生图（features/_ai_image 能力缺口补齐：云图像 API 客户端） ---- */
+
+/** 生图 provider 配置 */
 export const imageGenConfigSchema = z.object({
   enabled: z.boolean(),
   provider: z.enum(['openai', 'qwen', 'doubao', 'generic']),
@@ -116,10 +127,10 @@ export type SetSecretInput = z.infer<typeof setSecretInputSchema>
 
 /**
  * 引擎代码导出：目标引擎 + 目标路径（缺扩展名时导出侧按引擎补）。
- * 五个目标 = `lua` + 对齐 PyQt `features/engine_export.py` 的四个引擎
+ * 五个目标 = `lua` + 对齐 旧版 `features/engine_export` 的四个引擎
  * （Unity/Unreal/Godot/Cocos2d 产物分别为 `.cs` / `.h` / `.gd` / `.json`）。
  */
-/** AI 对话草稿：保存当前会话为草稿（对齐 PyQt 数字员工面板的草稿管理） */
+/** AI 对话草稿：保存当前会话为草稿 */
 export const agentDraftSaveInputSchema = z.object({
   /** 草稿名（空串会被主进程回落成 `对话草稿_MMDD_HHMM`；限长防超长文件名） */
   name: z.string().max(80)
@@ -131,7 +142,7 @@ export const agentDraftLoadInputSchema = z.object({
   path: z.string().min(1)
 })
 
-/* ---- 字段级 AI 辅助（对齐 Python `features/_ai_image.py` 的 desc 生成） ---- */
+/* ---- 字段级 AI 辅助 ---- */
 
 /** 单次文本生成的入参 */
 export const llmGenerateInputSchema = z.object({
@@ -155,7 +166,7 @@ export const imageReadByPathInputSchema = z.object({
 export type ImageReadByPathInput = z.infer<typeof imageReadByPathInputSchema>
 
 /**
- * LLM 非敏感配置（对齐 Python `api_config.py` 的 `save_config` 前半段字段）。
+ * LLM 非敏感配置。
  * **刻意不含 apiKey** —— Key 走 safeStorage（见 `shared/secretNames.ts` 的 `llmApiKey`）。
  */
 /**
@@ -198,7 +209,7 @@ export const llmTestConnectionInputSchema = z.object({})
 
 export type LlmConfigureInput = z.infer<typeof llmConfigureInputSchema>
 
-/* ---- 图片库扫描 / 清理（迁移 `features/advanced.py::cleanup_unused_images`） ---- */
+/* ---- 图片库扫描 / 清理（迁移 `features/advanced::cleanup_unused_images`） ---- */
 
 /**
  * 物理删除图片。**破坏性操作**：`confirm` 必须为 `true`。
@@ -343,7 +354,7 @@ export const fieldIdSuggestInputSchema = z.object({
   fieldType: z.string().max(32).optional()
 })
 
-/** 用户自定义字段模板：保存（新建/覆盖）。存完整字段定义，非 Python 那样只存标签 */
+/** 用户自定义字段模板：保存（新建/覆盖）。存完整字段定义，非 旧版 那样只存标签 */
 export const fieldTemplateSaveInputSchema = z.object({
   name: z.string().min(1).max(40),
   fields: z.array(typeFieldDefSchema).min(1).max(300)
@@ -402,7 +413,7 @@ export const attrSystemSaveInputSchema = z.object({
   system: attrSystemSchema
 })
 
-/** 导出游戏配置：路径 + 当前草稿系统（导出未保存的编辑，对应 Python 就地编辑后导出） */
+/** 导出游戏配置：路径 + 当前草稿系统 */
 export const attrGameConfigExportInputSchema = z.object({
   path: z.string().min(1),
   system: attrSystemSchema
@@ -432,6 +443,12 @@ export const ceshuCreateInputSchema = z.object({
   scope: z.enum(['full', 'lite']).default('full')
 })
 
+/** 复刻拆解：给参考游戏名 + 可选品类，AI 拆成「立项一页」并新建文档 */
+export const ceshuCloneDecomposeInputSchema = z.object({
+  gameName: z.string().min(1).max(200),
+  gameType: z.string().max(100).optional()
+})
+
 export const ceshuGetInputSchema = z.object({
   id: z.string().min(1),
   /** 云端档超预算确认标志（v0.6 M5，同 `ceshuAiGenerateInputSchema.confirmed`） */
@@ -441,6 +458,51 @@ export const ceshuGetInputSchema = z.object({
 /** 字段拆分迁移（幂等、非破坏）：只需要策划书 id */
 export const ceshuMigrateFieldSplitsInputSchema = z.object({
   id: z.string().min(1)
+})
+
+/** 导出项目文件夹：策划书 id + 目标目录（config.json + design/*.md + tasks/*.md） */
+export const ceshuExportProjectInputSchema = z.object({
+  id: z.string().min(1),
+  path: z.string().min(1)
+})
+
+/**
+ * 打开项目文件夹（一个游戏一个文件夹）：源目录路径。
+ * 主进程会校验 `config.json` 是否存在——不是项目文件夹就直接报错，避免误把任意目录导进来。
+ */
+export const ceshuOpenProjectInputSchema = z.object({
+  path: z.string().min(1)
+})
+
+/** 岗位任务生成：策划书 id + 可选岗位子集（缺省 = 全部岗位） */
+export const ceshuAiTasksInputSchema = z.object({
+  id: z.string().min(1),
+  roles: z.array(z.enum(['programmer', 'artist', 'tester', 'numeric', 'audio'])).optional()
+})
+
+/** 设计 ↔ 数据表核对：读某份策划书的「所需数据表」并与数据编辑器实际表比对 */
+export const ceshuCheckDataTablesInputSchema = z.object({
+  id: z.string().min(1)
+})
+
+/** 设计契约体检：读某份策划书，投影出机读契约并做一次整体体检 */
+export const ceshuCheckContractInputSchema = z.object({
+  id: z.string().min(1)
+})
+
+/** 按声明补齐数据表结构（建类型 / 加字段）：同一份入参，plan 只算不写、apply 才落盘 */
+export const ceshuScaffoldDataTablesInputSchema = z.object({
+  id: z.string().min(1)
+})
+
+/**
+ * 保存可玩原型：策划书 id + 单文件 HTML。
+ * `html` 允许空串（= 清掉已存的原型），所以不设 `.min(1)`。
+ * 上限 2MB：正常原型 30-150KB，超过基本是模型吐了重复内容。
+ */
+export const ceshuSaveDemoInputSchema = z.object({
+  id: z.string().min(1),
+  html: z.string().max(2_000_000)
 })
 
 export type CeshuMigrateFieldSplitsInput = z.infer<typeof ceshuMigrateFieldSplitsInputSchema>
@@ -532,7 +594,12 @@ export const agentChatInputSchema = z.object({
    * 本轮运行 id（可选）：渲染层生成，用于把 `task:cancel` 精确投递给**这一轮**。
    * 不传时主进程按「该窗口当前活跃任务」兜底（见 `main/task/taskRegistry.ts`）。
    */
-  runId: z.string().min(1).max(64).optional()
+  runId: z.string().min(1).max(64).optional(),
+  /**
+   * 智能体预设 id（借 dsh agent-preset 设计；来自 `shared/agent/presets.ts` 的 `AGENT_PRESETS`）。
+   * 渲染层开聊前选定；主进程据此注入角色定位 system prompt。未知 id 静默忽略。
+   */
+  preset: z.string().min(1).max(64).optional()
 })
 
 /**
@@ -556,7 +623,7 @@ export const agentFeedbackInputSchema = z.object({
   comment: z.string().max(4000).default('')
 })
 
-/** 首页卡片：重命名策划书（对齐 Python `rename_ceshu`，名称非空） */
+/** 首页卡片：重命名策划书 */
 export const ceshuRenameInputSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1).max(200)
@@ -593,7 +660,7 @@ export const ceshuApplyPresetInputSchema = z.object({
   presetKey: z.string().min(1).max(50)
 })
 
-/** 系统确认：确认/调整游戏系统（对齐 Python SystemConfirmDialog._on_confirm） */
+/** 系统确认：确认/调整游戏系统 */
 export const ceshuConfirmSystemsInputSchema = z.object({
   id: z.string().min(1),
   enabledKeys: z.array(z.string().min(1).max(64)).max(200),
@@ -603,7 +670,7 @@ export const ceshuConfirmSystemsInputSchema = z.object({
     .default([])
 })
 
-/** 数据同步：双向同步策划书 systems ↔ 游戏数据（对齐 Python CeshuDataSync.syncBoth） */
+/** 数据同步：双向同步策划书 systems ↔ 游戏数据 */
 export const ceshuSyncDataInputSchema = z.object({
   id: z.string().min(1)
 })
@@ -630,7 +697,7 @@ export const ceshuAiGenerateInputSchema = z.object({
   confirmed: z.boolean().optional()
 })
 
-/** 按字段 AI 生成（E62，对齐 Python `ai_field_button.py`）：单字段定向生成，非整章。
+/** 按字段 AI 生成：单字段定向生成，非整章。
  *  `action` 为局部重生成动作（停靠栏快捷操作），缺省 = 重新起草该字段 */
 export const ceshuAiGenerateFieldInputSchema = z.object({
   id: z.string().min(1),
@@ -669,8 +736,8 @@ export const ceshuDiffExportInputSchema = z.object({
   content: z.string().min(1)
 })
 
-/** 评分报告导出（渲染层生成 Markdown，主进程原子写盘） */
-export const ceshuScoreExportInputSchema = z.object({
+/** 完备度报告导出（渲染层生成 Markdown，主进程原子写盘） */
+export const ceshuReadinessExportInputSchema = z.object({
   path: z.string().min(1),
   content: z.string().min(1)
 })
@@ -747,7 +814,7 @@ export const templatesDeleteInputSchema = z.object({
 
 export const templatesUpdateInputSchema = z.object({
   id: z.string().min(1),
-  /** 名称传空串时由存储层判定为「更新失败」（对应 Python update_template 的 False） */
+  /** 名称传空串时由存储层判定为「更新失败」 */
   name: z.string().max(200).default(''),
   description: z.string().max(2000).default(''),
   tags: z.array(z.string().max(50)).max(50).default([]),
@@ -798,6 +865,8 @@ export type UpdateItemInput = z.infer<typeof updateItemInputSchema>
 export type ExportLegacyInput = z.infer<typeof exportLegacyInputSchema>
 export type ExportDirInput = z.infer<typeof exportDirInputSchema>
 export type ImportDataFileInput = z.infer<typeof importDataFileInputSchema>
+export type PreviewImportInput = z.infer<typeof previewImportInputSchema>
+export type ApplyImportInput = z.infer<typeof applyImportInputSchema>
 export type EngineExportInput = z.infer<typeof engineExportInputSchema>
 export type BatchOpInput = z.infer<typeof batchOpSchema>
 export type BatchUpdateInput = z.infer<typeof batchUpdateInputSchema>
@@ -814,6 +883,14 @@ export type AttrSystemJsonExportInput = z.infer<typeof attrSystemJsonExportInput
 export type AttrSystemJsonImportInput = z.infer<typeof attrSystemJsonImportInputSchema>
 export type AttrJsonDialogInput = z.infer<typeof attrJsonDialogInputSchema>
 export type CeshuCreateInput = z.infer<typeof ceshuCreateInputSchema>
+export type CeshuCloneDecomposeInput = z.infer<typeof ceshuCloneDecomposeInputSchema>
+export type CeshuExportProjectInput = z.infer<typeof ceshuExportProjectInputSchema>
+export type CeshuOpenProjectInput = z.infer<typeof ceshuOpenProjectInputSchema>
+export type CeshuAiTasksInput = z.infer<typeof ceshuAiTasksInputSchema>
+export type CeshuCheckDataTablesInput = z.infer<typeof ceshuCheckDataTablesInputSchema>
+export type CeshuCheckContractInput = z.infer<typeof ceshuCheckContractInputSchema>
+export type CeshuScaffoldDataTablesInput = z.infer<typeof ceshuScaffoldDataTablesInputSchema>
+export type CeshuSaveDemoInput = z.infer<typeof ceshuSaveDemoInputSchema>
 export type CeshuSaveChapterInput = z.infer<typeof ceshuSaveChapterInputSchema>
 export type CeshuExportInput = z.infer<typeof ceshuExportInputSchema>
 export type CeshuChooseExportFileInput = z.infer<typeof ceshuChooseExportFileInputSchema>
@@ -839,7 +916,7 @@ export type CeshuDataGenInput = z.infer<typeof ceshuDataGenInputSchema>
 export type CeshuReviewExportInput = z.infer<typeof ceshuReviewExportInputSchema>
 export type CeshuDiffInput = z.infer<typeof ceshuDiffInputSchema>
 export type CeshuDiffExportInput = z.infer<typeof ceshuDiffExportInputSchema>
-export type CeshuScoreExportInput = z.infer<typeof ceshuScoreExportInputSchema>
+export type CeshuReadinessExportInput = z.infer<typeof ceshuReadinessExportInputSchema>
 export type CeshuValidationExportInput = z.infer<typeof ceshuValidationExportInputSchema>
 export type CeshuChangelogExportInput = z.infer<typeof ceshuChangelogExportInputSchema>
 export type ReportFileDialogInput = z.infer<typeof reportFileDialogInputSchema>

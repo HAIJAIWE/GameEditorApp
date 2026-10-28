@@ -16,6 +16,7 @@ import {
   type BrainToolRunner
 } from '../../../shared/agent/brain'
 import { buildSystemPrompts } from '../../../shared/agent/prompts'
+import { presetLabel, presetPersona } from '../../../shared/agent/presets'
 import { buildPersonalizedContext } from '../../../shared/agent/personalization'
 import {
   RISK_LEVEL,
@@ -84,10 +85,18 @@ export class AgentBrainService {
     if (memoryBlock !== null) extraBlocks.push(memoryBlock)
     // F8 域 grounding：章节结构常驻注入（不计入 30 行核心区，DD-6）
     extraBlocks.push(buildDomainContextBlock())
-    // 个性化片段：偏好来自历史反馈，冷启动为空时不注入（与 旧版 Learner 一致）
+    // 个性化片段：偏好来自历史反馈，冷启动为空时不注入
     if (this.deps.preferences) {
       const prefBlock = buildPersonalizedContext(this.deps.preferences.getAll())
       if (prefBlock !== '') extraBlocks.push(prefBlock)
+    }
+    // 智能体预设（借 dsh agent-preset）：注入角色定位 system prompt，锁定本轮对话视角。
+    // 未知 preset 静默忽略——不阻断对话，也不污染默认通用助手行为。
+    if (options.preset !== undefined) {
+      const persona = presetPersona(options.preset)
+      if (persona !== null) {
+        extraBlocks.push(`【智能体预设】${presetLabel(options.preset)}：${persona}`)
+      }
     }
     const systemPrompts = buildSystemPrompts({
       // M2/G7 + M3/DD-3：注入**按场景分组、按档位限量**的紧凑能力目录（每工具一行）
