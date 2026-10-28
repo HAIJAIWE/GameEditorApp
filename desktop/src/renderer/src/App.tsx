@@ -2,14 +2,11 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type Mo
 
 import type { CeshuSummary } from '../../shared/ceshuConstants'
 import { loadGameStyle, normalizeGameStyleId, saveGameStyle } from '../../shared/config/gameStyle'
-import { loadMiddleTab, MIDDLE_TABS, saveMiddleTab, type MiddleTab } from '../../shared/config/middleTab'
 import type { AppInfo, DataTypeDef } from '../../shared/types'
 import { applyTheme, loadTheme, saveTheme, type ThemeMode } from '../../shared/config/theme'
 
 import CeshuHomePanel from './components/CeshuHomePanel'
-import BrowserPanel from './components/BrowserPanel'
 import CeshuView from './components/CeshuView'
-import CodePanel from './components/CodePanel'
 import DataEditorPanel from './components/DataEditorPanel'
 import { type PreviewJumpTarget } from './components/ceshu/CeshuDataPreview'
 import DigitalPanel from './components/digital/DigitalPanel'
@@ -26,6 +23,7 @@ import { setHostUi } from './plugins/hostBridge'
 import { setAppIoPort } from './plugins/appActionsIo'
 import { setMenuStateProvider } from './plugins/menuState'
 import { HostPanel } from './plugins/HostPanel'
+import { MainViewMount, type AppMainTab } from './plugins/MainViewMount'
 import { AppContextProvider } from './plugins/appContext'
 
 /**
@@ -91,16 +89,11 @@ export default function App() {
    * 解析结果在主进程暂存，会话 id + 预览数据作为「导入预览面板的打开参数」交给宿主携带
    * （`pluginHost.openPanel('importPreview.panel', payload)`），面板用完调 `close()` 清掉。
    */
-  /** 中间窗口页签（编辑器/代码编辑/浏览器）：持久化在 localStorage，重启保留 */
-  const [middleTab, setMiddleTab] = useState<MiddleTab>(() => loadMiddleTab())
-  /** 已访问过的页签（代码/浏览器首访才挂载面板；编辑器默认已在） */
-  const [visitedTabs, setVisitedTabs] = useState<ReadonlySet<MiddleTab>>(() => new Set([loadMiddleTab()]))
-  /** 切页签：记 visited + 持久化。常驻挂载的编辑器不重载，切回不丢草稿状态 */
-  const switchMiddleTab = useCallback((tab: MiddleTab): void => {
-    setMiddleTab(tab)
-    saveMiddleTab(tab)
-    setVisitedTabs((prev) => (prev.has(tab) ? prev : new Set([...prev, tab])))
-  }, [])
+  /*
+   * 中间窗口页签（策划书/数据/代码/浏览器）已迁到插件宿主（Slice 22）：
+   * `MainViewMount` 从 `host.mainViews()` + 本组件下发的 `appTabs` 渲染页签，
+   * 并接管「常驻挂载、hidden 切换」与首访挂载（lazy）语义。App 不再持有页签 state。
+   */
   /** 主题（深/浅）：持久化在 localStorage，随会话保留；启动时由 main.tsx 预应用以避免闪屏 */
   const [theme, setTheme] = useState<ThemeMode>(() => loadTheme())
 
@@ -557,6 +550,66 @@ export default function App() {
   }
 
   /**
+   * 主区页签（Slice 22）：编辑器/数据两个**重视图**暂以内联 `render` 下发（吃大量 App 状态与 props），
+   * 代码/浏览器两个零 prop 视图已由 `core-views` 插件的 `mainView` 能力提供。
+   * 编辑器常驻挂载（`lazy:false`，切走不丢草稿）；数据首访才挂（`lazy:true`）。
+   */
+  const appTabs: AppMainTab[] = [
+    {
+      id: 'editor',
+      label: '策划书',
+      title: '策划书编辑器（游戏设计文档：24 章 / AI 生成 / 校验评分）',
+      order: 0,
+      lazy: false,
+      render: () =>
+        ceshuHomeVisible ? (
+          <CeshuHomePanel
+            summaries={ceshuList}
+            activeId={activeCeshuId}
+            onOpen={handleOpenCeshu}
+            onChanged={() => void reloadCeshuList()}
+            onDeleted={(deletedId) => {
+              setActiveCeshuId((current) => (current === deletedId ? null : current))
+            }}
+          />
+        ) : (
+          <CeshuView
+            ceshuId={activeCeshuId}
+            onChanged={() => void reloadCeshuList()}
+            onSelect={handleOpenCeshu}
+            onGameStyleChange={handleGameStyleChange}
+            types={types}
+            gameStyle={gameStyle}
+            onBack={() => setCeshuHomeVisible(true)}
+            jumpTarget={jumpTarget}
+            dataEpoch={dataEpoch}
+            onEditType={handleEditType}
+            onTypesChanged={setTypes}
+            onShowReferences={handleShowReferences}
+            onJumpHandled={handleJumpHandled}
+            onJumpMissed={handleJumpMissed}
+            host={pluginHost}
+          />
+        )
+    },
+    {
+      id: 'data',
+      label: '数据编辑',
+      title: '数据编辑器（角色/怪物/技能等纯数据，直连 SQLite）',
+      order: 10,
+      lazy: true,
+      render: () => (
+        <DataEditorPanel
+          types={types}
+          gameStyle={gameStyle}
+          onEditType={handleEditType}
+          onShowReferences={handleShowReferences}
+        />
+      )
+    }
+  ]
+
+  /**
    * 浮层头部标题：由 `panel` 能力自带（插件声明 `title`），App 不再维护 23 项标题表。
    * 插件被禁用时能力列表里查不到，回退到 id 本身（比空白可读）。
    */
@@ -589,81 +642,9 @@ export default function App() {
                   </div>
                 </div>
               ) : (
-                <>
-                  {/*
-                   * 中间窗口页签条（编辑器 / 代码编辑 / 浏览器）。
-                   * 三个 pane 全部常驻挂载、用 hidden 切换：编辑器带着策疏草稿状态，
-                   * 切走再切回不能丢；代码/浏览器首访才挂（visitedTabs），避免启动成本。
-                   */}
-                  <nav className="middle-tabs" data-testid="middle-tabs" aria-label="中间窗口页签">
-                    {MIDDLE_TABS.map((tab) => (
-                      <button
-                        key={tab.id}
-                        type="button"
-                        className={`middle-tab${middleTab === tab.id ? ' active' : ''}`}
-                        title={tab.title}
-                        aria-current={middleTab === tab.id}
-                        data-testid={`middle-tab-${tab.id}`}
-                        onClick={() => switchMiddleTab(tab.id)}
-                      >
-                        {tab.label}
-                      </button>
-                    ))}
-                  </nav>
-                  <div className="middle-tab-body">
-                    <div className="middle-tab-pane" hidden={middleTab !== 'editor'}>
-                      {ceshuHomeVisible ? (
-                        <CeshuHomePanel
-                          summaries={ceshuList}
-                          activeId={activeCeshuId}
-                          onOpen={handleOpenCeshu}
-                          onChanged={() => void reloadCeshuList()}
-                          onDeleted={(deletedId) => {
-                            setActiveCeshuId((current) => (current === deletedId ? null : current))
-                          }}
-                        />
-                      ) : (
-                        <CeshuView
-                          ceshuId={activeCeshuId}
-                          onChanged={() => void reloadCeshuList()}
-                          onSelect={handleOpenCeshu}
-                          onGameStyleChange={handleGameStyleChange}
-                          types={types}
-                          gameStyle={gameStyle}
-                          onBack={() => setCeshuHomeVisible(true)}
-                          jumpTarget={jumpTarget}
-                          dataEpoch={dataEpoch}
-                          onEditType={handleEditType}
-                          onTypesChanged={setTypes}
-                          onShowReferences={handleShowReferences}
-                          onJumpHandled={handleJumpHandled}
-                          onJumpMissed={handleJumpMissed}
-                          host={pluginHost}
-                        />
-                      )}
-                    </div>
-                    {visitedTabs.has('data') && (
-                      <div className="middle-tab-pane" hidden={middleTab !== 'data'}>
-                        <DataEditorPanel
-                          types={types}
-                          gameStyle={gameStyle}
-                          onEditType={handleEditType}
-                          onShowReferences={handleShowReferences}
-                        />
-                      </div>
-                    )}
-                    {visitedTabs.has('code') && (
-                      <div className="middle-tab-pane" hidden={middleTab !== 'code'}>
-                        <CodePanel />
-                      </div>
-                    )}
-                    {visitedTabs.has('browser') && (
-                      <div className="middle-tab-pane" hidden={middleTab !== 'browser'}>
-                        <BrowserPanel />
-                      </div>
-                    )}
-                  </div>
-                </>
+                // 主区页签（Slice 22）：页签条 + 常驻挂载语义由 MainViewMount 接管；
+                // 代码/浏览器来自 core-views 插件的 mainView，编辑器/数据经 appTabs 内联。
+                <MainViewMount host={pluginHost} appTabs={appTabs} />
               )}
             </div>
             {/* 右栏拖拽分隔条：拖动改宽，双击复位到 25% */}

@@ -67,6 +67,8 @@ export class PluginHost {
   private readonly persistence: PluginPersistence | null
   /** 覆写表：id → 是否禁用（true=禁用）。仅记录偏离默认的项 */
   private readonly overrides: Record<string, boolean>
+  /** 变更版本号（每次 emit +1），供外部做稳定快照 */
+  private version = 0
 
   constructor(options: PluginHostOptions = {}) {
     this.persistence = options.persistence ?? null
@@ -202,6 +204,20 @@ export class PluginHost {
     return this.capabilities('view')
       .filter((view) => view.mount === mount)
       .sort((left, right) => (left.order ?? 0) - (right.order ?? 0))
+  }
+
+  /** 主区视图能力（按 `order` 升序；App 主区页签条据此渲染，Slice 22） */
+  mainViews(): Extract<PluginCapability, { kind: 'mainView' }>[] {
+    return this.capabilities('mainView').sort((left, right) => (left.order ?? 0) - (right.order ?? 0))
+  }
+
+  /**
+   * 变更版本号（单调递增）。供 `useSyncExternalStore` 作**稳定快照**：
+   * `mainViews()`/`sidebarItems()` 这类返回**新数组**的读取不能直接当快照（每次身份都变→无限重渲染），
+   * 订阅版本号、在 render 里再算列表即可。
+   */
+  getVersion(): number {
+    return this.version
   }
 
   /**
@@ -360,6 +376,7 @@ export class PluginHost {
   }
 
   private emit(): void {
+    this.version += 1
     for (const fn of this.listeners) fn()
   }
 }

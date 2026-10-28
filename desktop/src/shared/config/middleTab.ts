@@ -39,3 +39,27 @@ export function loadMiddleTab(storage: StorageLike | null = defaultSettingsStora
 export function saveMiddleTab(tab: MiddleTab, storage: StorageLike | null = defaultSettingsStorage()): void {
   writeSetting(MIDDLE_TAB_KEY, tab, storage)
 }
+
+/**
+ * 通用页签读取（Slice 22）：`MainViewMount` 的页签来自插件声明，id 是任意 string，
+ * 故不能再用上面的 `MiddleTab` 联合类型。校验集合由调用方给（合并后的有效 id），
+ * 持久值无效（插件被禁用 / 旧值）时回落到 `fallback`。
+ */
+export function loadStoredTab(
+  storageKey: string,
+  valid: ReadonlySet<string>,
+  fallback: string,
+  storage: StorageLike | null = defaultSettingsStorage()
+): string {
+  const raw = readSetting(storageKey, storage)
+  return raw !== null && valid.has(raw) ? raw : fallback
+}
+
+/** 通用页签写入（Slice 22） */
+export function saveStoredTab(
+  id: string,
+  storageKey: string,
+  storage: StorageLike | null = defaultSettingsStorage()
+): void {
+  writeSetting(storageKey, id, storage)
+}

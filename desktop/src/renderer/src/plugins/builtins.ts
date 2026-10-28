@@ -3,6 +3,7 @@ import { defineAppActionsPlugin } from './appActionsPlugin'
 import { defineCeshuMenusPlugin } from './ceshuMenusPlugin'
 import { defineCeshuPlugin } from './ceshuPlugin'
 import { defineCeshuViewsPlugin } from './ceshuViewsPlugin'
+import { defineCoreViewsPlugin } from './coreViewsPlugin'
 import { defineDataPanelsPlugin } from './dataPanelsPlugin'
 import { defineDemoPlugin } from './demoPlugin'
 import { defineEntryPanelsPlugin } from './entryPanelsPlugin'
@@ -48,6 +49,7 @@ export function registerBuiltinPlugins(): void {
   pluginHost.register(defineCeshuViewsPlugin())
   pluginHost.register(defineCeshuMenusPlugin(pluginHost))
   pluginHost.register(defineMcpConfigPlugin(pluginHost))
+  pluginHost.register(defineCoreViewsPlugin())
 }
 
 registerBuiltinPlugins()

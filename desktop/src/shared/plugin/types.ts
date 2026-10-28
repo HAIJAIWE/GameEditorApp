@@ -102,6 +102,30 @@ export interface PluginViewCapability {
 }
 
 /**
+ * 主区视图能力：App **主区本身**的页签视图（Slice 22）。
+ *
+ * 与 `view` 的区别：`view` 挂在宿主**内部**某个挂载点（如编辑器浮层），是主区里的子视图；
+ * `mainView` 就是主区——宿主用页签条在多个 mainView 之间切换，并保持
+ * 「**常驻挂载、hidden 切换**」语义：切走不卸载，草稿/滚动/选中态都不丢。
+ *
+ * 富 React 组件同 `panel`/`view` 一样经 `registerReactBinding` 外置；`ui` 只是可序列化占位，
+ * 供非 React 宿主回退渲染。
+ */
+export interface PluginMainViewCapability {
+  kind: 'mainView'
+  id: string
+  /** 页签短标签（顶部空间有限） */
+  label: string
+  /** 悬浮说明 */
+  title?: string
+  /** 页签顺序，小在前 */
+  order?: number
+  /** 首访才挂载（重视图，如代码/浏览器）；缺省 false = 常驻挂载 */
+  lazy?: boolean
+  ui: UiNode | (() => UiNode)
+}
+
+/**
  * 侧栏条目（可序列化）。宿主据此画左侧主导航，点击时：
  * - 有 `command` ⇒ 执行该 command 能力（home/agent 等导航动作都收编成 command）；
  * - 否则有 `panel` ⇒ 打开该 panel 能力，并在其激活时高亮（见下方 `isActive` 判定）。
@@ -140,6 +164,7 @@ export type PluginCapability =
   | PluginServiceCapability
   | PluginMenuCapability
   | PluginViewCapability
+  | PluginMainViewCapability
   | PluginSidebarCapability
 
 export type PluginCapabilityKind = PluginCapability['kind']

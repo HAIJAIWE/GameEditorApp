@@ -1,6 +1,11 @@
 import type { ComponentType } from 'react'
 
-import type { PluginPanelCapability, PluginViewCapability, UiNode } from '../../../shared/plugin/types'
+import type {
+  PluginMainViewCapability,
+  PluginPanelCapability,
+  PluginViewCapability,
+  UiNode
+} from '../../../shared/plugin/types'
 
 /**
  * React 绑定层（宿主相关，不进共享契约）。
@@ -39,8 +44,8 @@ export function getReactBinding(id: string): ComponentType<PanelBindingProps> | 
   return reactPluginBindings.get(id)
 }
 
-/** 取面板/视图的声明式 UI（支持惰性函数形式） */
-export function uiOf(cap: PluginPanelCapability | PluginViewCapability): UiNode {
+/** 取面板/视图/主区视图的声明式 UI（支持惰性函数形式） */
+export function uiOf(cap: PluginPanelCapability | PluginViewCapability | PluginMainViewCapability): UiNode {
   return typeof cap.ui === 'function' ? cap.ui() : cap.ui
 }
 
