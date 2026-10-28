@@ -14,6 +14,7 @@ import {
   type BrainRunResult,
   type BrainToolRunner
 } from '../../../shared/agent/brain'
+import { deriveMessagesFromTurns } from '../../../shared/agent/session'
 import { buildSystemPrompts } from '../../../shared/agent/prompts'
 import { presetLabel, presetPersona } from '../../../shared/agent/presets'
 import { buildPersonalizedContext } from '../../../shared/agent/personalization'
@@ -109,6 +110,11 @@ export class AgentBrainService {
     if (typeof context.sessionId !== 'string' || context.sessionId.trim() === '') {
       context.sessionId = this.nextSessionId()
     }
+    // Slice 34：从轮次日志恢复历史（需调用方传稳定 sessionId；无历史则为空）
+    const priorMessages =
+      options.resumeHistory === true && this.deps.sessionStore !== undefined
+        ? deriveMessagesFromTurns(this.deps.sessionStore.readTurns(context.sessionId))
+        : []
     const result = await runBrainLoop({
       input,
       systemPrompts,
@@ -127,6 +133,10 @@ export class AgentBrainService {
         : {}),
       // Slice 32：沙箱策略（read-only 会拒绝外部 CLI 子智能体）
       ...(this.deps.sandboxPolicy !== undefined ? { sandboxPolicy: this.deps.sandboxPolicy } : {}),
+      // Slice 34：从轮次日志恢复的历史（系统提示词之后、本次输入之前）
+      ...(priorMessages.length > 0
+        ? { initialMessages: priorMessages as unknown as BrainMessage[] }
+        : {}),
       // 不显式兜底：让循环按档位取默认（云端 12 / 本地 6）。显式传值会盖掉 tier-aware 默认。
       ...(this.deps.maxTurns !== undefined ? { maxTurns: this.deps.maxTurns } : {}),
       ...(this.deps.maxToolCalls !== undefined ? { maxToolCalls: this.deps.maxToolCalls } : {}),
@@ -148,6 +158,11 @@ export class AgentBrainService {
       await this.deps.sessionStore
         .recordEvents(result.events, { sessionId: context.sessionId })
         .catch(() => undefined)
+      // Slice 34：追加本轮消息增量（append-only 会话历史，供 resumeHistory 重建）
+      // 增量 = 去掉系统提示词与已恢复的历史，只留本轮新增（user 输入 + assistant/tool …）
+      const seeded = priorMessages.length
+      const delta = result.messages.slice(systemPrompts.length + seeded)
+      await this.deps.sessionStore.appendTurn(context.sessionId, delta).catch(() => undefined)
       // F1/DD-5b 护栏级：云端档超预算记一次指标（真降级待补）
       if (tier === 'cloud') {
         const est = estimateTokens(systemPrompts.join('\n') + '\n' + input)

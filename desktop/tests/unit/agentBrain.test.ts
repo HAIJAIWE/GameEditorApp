@@ -1453,6 +1453,29 @@ describe('运行中收件箱（inbox / Steer）', () => {
     ).toBe(true)
   })
 
+  it('initialMessages：历史插在系统提示词之后、本次输入之前', async () => {
+    const transport = scripted([FINAL])
+    const result = await runBrainLoop({
+      input: '新问题',
+      systemPrompts: ['SYS'],
+      transport,
+      runner: makeRunner(),
+      initialMessages: [
+        { role: 'user', content: '旧问题' },
+        { role: 'assistant', content: '旧回答' }
+      ]
+    })
+
+    const contents = result.messages.map((message) => `${message.role}:${message.content}`)
+    expect(contents).toEqual([
+      'system:SYS',
+      'user:旧问题',
+      'assistant:旧回答',
+      'user:新问题',
+      'assistant:这是最终答复'
+    ])
+  })
+
   it('onSubAgentSpawned：拿到 childId + inbox，可对运行中的子智能体插话', async () => {
     const spawned: Array<{ id: string; inbox: BrainInbox }> = []
     const runner = makeRunner({

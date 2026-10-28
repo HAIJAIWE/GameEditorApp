@@ -167,6 +167,30 @@ export function draftSummaryOf(draft: DraftFile, path: string): DraftSummary {
 }
 
 /**
+ * 从「轮次日志」派生完整会话消息（Slice 34，事件溯源）。
+ *
+ * 输入是 `appendTurn` 落盘的记录 `{ messages: Array<Record<string, unknown>> }`（按时间顺序）。
+ * 输出是拼接后的**非 system** 消息——system 提示词由每次运行重新生成，不进历史。
+ *
+ * 与 `deriveTranscript` 的区别：后者是给人看的**轨迹**；本函数重建的是**可回灌给循环的消息**。
+ */
+export function deriveMessagesFromTurns(
+  turns: readonly { messages?: unknown }[]
+): Array<Record<string, unknown>> {
+  const out: Array<Record<string, unknown>> = []
+  for (const turn of turns) {
+    if (!Array.isArray(turn.messages)) continue
+    for (const raw of turn.messages) {
+      if (raw === null || typeof raw !== 'object') continue
+      const message = raw as Record<string, unknown>
+      if (message.role === 'system') continue
+      out.push(message)
+    }
+  }
+  return out
+}
+
+/**
  * 从事件日志派生**可读轨迹**（回放用，Slice 32）。
  *
  * 输入是 `recordEvents` 落盘的 run 记录（`{ events: BrainEvent[] }`）。

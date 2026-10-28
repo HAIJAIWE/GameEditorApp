@@ -32,6 +32,7 @@ const SESSION_FILE = 'active_session.json'
 const METRICS_FILE = 'metrics.jsonl'
 const RUNSTATS_FILE = 'runstats.jsonl'
 const EVENTS_FILE = 'events.jsonl'
+const TURNS_FILE = 'turns.jsonl'
 const DRAFTS_DIR = 'drafts'
 
 export class AgentSessionStore {
@@ -146,11 +147,41 @@ export class AgentSessionStore {
   }
 
   /**
+   * 追加一轮的**消息增量**（append-only 会话历史，Slice 34）。
+   *
+   * 与 `save()` 快照的区别：快照覆盖写且只留最近 N 条；轮次日志**只追加**，
+   * 因此能跨轮重建完整历史（`deriveMessagesFromTurns`）。
+   */
+  appendTurn(sessionId: string, messages: readonly unknown[]): Promise<void> {
+    return this.enqueue(() => {
+      if (messages.length === 0) return
+      mkdirSync(this.dir, { recursive: true })
+      const timestamp = Math.floor(Date.now() / 1000)
+      const entry = { type: 'turn', timestamp, sessionId, messages }
+      appendFileSync(join(this.dir, TURNS_FILE), `${JSON.stringify(entry)}\n`, 'utf-8')
+    })
+  }
+
+  /** 轮次日志文件绝对路径 */
+  get turnsFilePath(): string {
+    return join(this.dir, TURNS_FILE)
+  }
+
+  /**
    * 读取事件日志（回放/审计，Slice 32）：按 `sessionId` 过滤；文件不存在或坏行一律跳过（不抛）。
    * 返回每条 run 记录 `{ type:'run_events', timestamp, sessionId?, events: BrainEvent[] }`。
    */
   readEvents(sessionId?: string): Array<Record<string, unknown>> {
-    const path = this.eventsFilePath
+    return this.readJsonl(this.eventsFilePath, sessionId)
+  }
+
+  /** 读取轮次日志（按 `sessionId` 过滤；坏行跳过） */
+  readTurns(sessionId?: string): Array<Record<string, unknown>> {
+    return this.readJsonl(this.turnsFilePath, sessionId)
+  }
+
+  /** 读 JSONL：文件不存在返回空，坏行跳过；可按 sessionId 过滤 */
+  private readJsonl(path: string, sessionId?: string): Array<Record<string, unknown>> {
     if (!existsSync(path)) return []
     const out: Array<Record<string, unknown>> = []
     for (const line of readFileSync(path, 'utf-8').split('\n')) {

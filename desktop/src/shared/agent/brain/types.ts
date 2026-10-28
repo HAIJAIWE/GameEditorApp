@@ -185,6 +185,11 @@ export interface RunBrainLoopOptions {
   /** 沙箱策略（缺省 `'workspace-write'`，本项目 agent 本来就要写策划书/数据） */
   sandboxPolicy?: SandboxPolicy
   /**
+   * 初始历史（Slice 34）：在系统提示词之后、本次用户输入之前插入的消息。
+   * 用于「从事件日志恢复会话」——由 `deriveMessagesFromTurns` 重建后传入。
+   */
+  initialMessages?: BrainMessage[]
+  /**
    * 子智能体启动回调：拿到 `childId` 与该子循环的 `inbox`，可后续 `push` 消息
    * （即 dsh 的 `sendMessage` 对运行中子级的「插话」）。
    */

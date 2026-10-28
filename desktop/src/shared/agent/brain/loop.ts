@@ -115,6 +115,8 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
 
   let messages: BrainMessage[] = [
     ...systemPrompts.map((content) => ({ role: 'system' as const, content })),
+    // Slice 34：从事件日志恢复的历史（系统提示词之后、本次输入之前）
+    ...(options.initialMessages ?? []),
     { role: 'user', content: input }
   ]
   const results: string[] = []

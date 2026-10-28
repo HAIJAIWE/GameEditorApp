@@ -53,6 +53,12 @@ export interface AgentChatOptions {
    * 循环据此优雅中止并返回部分产出（`stopReason: 'cancelled'`），不是 reject。
    */
   signal?: AbortSignal
+  /**
+   * 从**轮次日志**恢复历史（Slice 34）：为 true 时，用 `context.sessionId` 之前的
+   * 消息增量（`deriveMessagesFromTurns`）作为本次运行的初始历史。
+   * 需要调用方传入**稳定**的 `context.sessionId`，否则每次都是新会话、无可恢复内容。
+   */
+  resumeHistory?: boolean
 }
 
 export interface AgentBrainServiceDeps {

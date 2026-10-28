@@ -9,6 +9,7 @@ import {
   SESSION_CONTENT_LIMIT,
   SESSION_MAX_MESSAGES,
   buildSessionSnapshot,
+  deriveMessagesFromTurns,
   deriveTranscript,
   isSessionSnapshot,
   sessionInfoFromSnapshot,
@@ -210,5 +211,29 @@ describe('事件日志回放（Slice 32）', () => {
   it('readEvents 文件不存在 → 空数组（不抛）', () => {
     const store = new AgentSessionStore(makeDir())
     expect(store.readEvents('x')).toEqual([])
+  })
+})
+
+describe('轮次日志 / 事件溯源历史（Slice 34）', () => {
+  it('appendTurn + readTurns 按 sessionId 过滤', async () => {
+    const store = new AgentSessionStore(makeDir())
+    await store.appendTurn('s1', [{ role: 'user', content: 'a' }])
+    await store.appendTurn('s1', [{ role: 'assistant', content: 'b' }])
+    await store.appendTurn('s2', [{ role: 'user', content: 'x' }])
+
+    const turns = store.readTurns('s1')
+    expect(turns).toHaveLength(2)
+    expect(turns.flatMap((turn) => turn.messages as unknown[])).toHaveLength(2)
+  })
+
+  it('deriveMessagesFromTurns 拼接非 system 消息（跨轮重建）', () => {
+    const messages = deriveMessagesFromTurns([
+      { messages: [{ role: 'system', content: 'S' }, { role: 'user', content: 'a' }] },
+      { messages: [{ role: 'assistant', content: 'b' }] }
+    ])
+    expect(messages).toEqual([
+      { role: 'user', content: 'a' },
+      { role: 'assistant', content: 'b' }
+    ])
   })
 })
