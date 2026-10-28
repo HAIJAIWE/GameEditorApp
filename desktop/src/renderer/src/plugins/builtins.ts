@@ -14,6 +14,7 @@ import { defineMenusPlugin } from './menusPlugin'
 import { defineNavigationPlugin } from './navigationPlugin'
 import { defineOnboardingPlugin } from './onboardingPlugin'
 import { definePluginMarketPlugin } from './pluginMarketPlugin'
+import { defineAgentTeamPlugin } from './agentTeamPlugin'
 import { defineReferencesPlugin } from './referencesPlugin'
 import { defineShellPanelsPlugin } from './shellPanelsPlugin'
 import { defineShortcutsPlugin } from './shortcutsPlugin'
@@ -41,7 +42,8 @@ export const installedPluginStore = createLocalStorageInstalledStore()
  * 未来外部 bundle 走 `link:/file:/registry:`。
  */
 export const pluginLoader = createPluginLoader({
-  'plugin-market': () => definePluginMarketPlugin(pluginHost, pluginLoader, installedPluginStore)
+  'plugin-market': () => definePluginMarketPlugin(pluginHost, pluginLoader, installedPluginStore),
+  'agent-team': () => defineAgentTeamPlugin(pluginHost)
 })
 
 let registered = false
@@ -77,6 +79,7 @@ registerBuiltinPlugins()
  * 失败仅把对应占位标 `status:'error'`，不阻塞宿主。
  */
 void pluginHost.loadPlugin(pluginLoader, 'factory:plugin-market')
+void pluginHost.loadPlugin(pluginLoader, 'factory:agent-team')
 for (const source of installedPluginStore.load()) {
   void pluginHost.loadPlugin(pluginLoader, source)
 }

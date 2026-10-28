@@ -37,7 +37,7 @@ export const marketRegistry: PluginMarketEntry[] = [
     description: '智能体协作：展示运行中的子智能体 + 共享任务看板',
     source: 'factory:agent-team',
     tier: 'optional',
-    ready: false,
+    ready: true,
     icon: '🤝'
   },
   {
