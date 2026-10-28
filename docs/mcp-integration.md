@@ -85,7 +85,7 @@ MCP server ──stdio JSON-RPC──▶ McpClient ──tools/list──▶ Mcp
 - **MCP 配置 UI**（现在手写 `mcp.json`；未来可在「插件中心」加配置面板）
 - **风险分级**：MCP 工具目前走 `DEFAULT_TOOL_RISK`（未登记），shell 类工具**不会**自动要求二次确认；要更严可在 `TOOL_RISK_MAP` 登记或按服务器配置风险
 - **工具面限量**：MCP 工具计入本地 8 / 云端 15 的上限，接多了会被截断（可调 `TOOL_FACE_LIMITS`）
-- **SubAgent 通道 / 并行执行**（`execute_parallel`）：本次**未做**，仍按事件流顺序执行
+- ~~**SubAgent 通道 / 并行执行**~~ → **已做**（Slice 19，opt-in）：`parallelToolCalls` + `tool.spawn_subagent`，见 [`agent-parallel-subagent.md`](./agent-parallel-subagent.md)
 
 ## 6. 验证
 
