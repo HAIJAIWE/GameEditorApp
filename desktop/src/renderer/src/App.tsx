@@ -14,7 +14,6 @@ import BatchEditPanel from './components/BatchEditPanel'
 import ImportPreviewPanel from './components/ImportPreviewPanel'
 import CeshuHomePanel from './components/CeshuHomePanel'
 import ClearAllPanel from './components/ClearAllPanel'
-import GameDataPreviewPanel from './components/GameDataPreviewPanel'
 import BrowserPanel from './components/BrowserPanel'
 import CeshuView from './components/CeshuView'
 import CodePanel from './components/CodePanel'
@@ -29,12 +28,8 @@ import { type ReferenceTarget } from './components/ReferencesPanel'
 import RelationGraphPanel from './components/RelationGraphPanel'
 import PluginsPanel from './components/PluginsPanel'
 import Sidebar, { type SidebarAction, type SidebarItem } from './components/Sidebar'
-import CleanupImagesPanel from './components/CleanupImagesPanel'
-import KeywordTemplatePanel from './components/KeywordTemplatePanel'
-import AgentEditorPanel from './components/AgentEditorPanel'
 import AttributeChartPanel from './components/AttributeChartPanel'
 import OnboardingPanel from './components/OnboardingPanel'
-import SettingsPanel from './components/SettingsPanel'
 import ToastHost from './components/ToastHost'
 import TypeEditorPanel from './components/TypeEditorPanel'
 import { useDataTransfer, useUndoRedo } from './hooks/useAppActions'
@@ -630,7 +625,8 @@ export default function App() {
       case 'imageGen':
         return <ImageGenPanel onClose={() => setPanel(null)} />
       case 'gameDataPreview':
-        return <GameDataPreviewPanel />
+        // Slice 4：零依赖面板包（utility-panels bundle），经宿主渲染。
+        return <HostPanel host={pluginHost} panelId="gameDataPreview.panel" onClose={() => setPanel(null)} />
       case 'shortcuts':
         // 首切片（B 方案）：真实产品面板经 PluginHost 渲染，App 不再硬编码组件。
         return <HostPanel host={pluginHost} panelId="shortcuts.panel" onClose={() => setPanel(null)} />
@@ -639,13 +635,13 @@ export default function App() {
       case 'clearAll':
         return <ClearAllPanel onCleared={handleDataCleared} />
       case 'settings':
-        return <SettingsPanel />
+        return <HostPanel host={pluginHost} panelId="settings.panel" onClose={() => setPanel(null)} />
       case 'cleanupImages':
-        return <CleanupImagesPanel />
+        return <HostPanel host={pluginHost} panelId="cleanupImages.panel" onClose={() => setPanel(null)} />
       case 'keywordTemplates':
-        return <KeywordTemplatePanel />
+        return <HostPanel host={pluginHost} panelId="keywordTemplates.panel" onClose={() => setPanel(null)} />
       case 'agentEditor':
-        return <AgentEditorPanel />
+        return <HostPanel host={pluginHost} panelId="agentEditor.panel" onClose={() => setPanel(null)} />
       case 'attributeChart':
         return <AttributeChartPanel types={types} />
       case 'onboarding':

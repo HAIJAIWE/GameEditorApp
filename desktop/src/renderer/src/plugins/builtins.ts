@@ -4,6 +4,7 @@ import { defineDemoPlugin } from './demoPlugin'
 import { defineReferencesPlugin } from './referencesPlugin'
 import { defineShortcutsPlugin } from './shortcutsPlugin'
 import { defineStatisticsPlugin } from './statisticsPlugin'
+import { defineUtilityPanelsPlugin } from './utilityPanelsPlugin'
 
 /**
  * 宿主单例：整个渲染进程共享一个 PluginHost。
@@ -24,6 +25,7 @@ export function registerBuiltinPlugins(): void {
   pluginHost.register(defineShortcutsPlugin(pluginHost))
   pluginHost.register(defineStatisticsPlugin(pluginHost))
   pluginHost.register(defineReferencesPlugin(pluginHost))
+  pluginHost.register(defineUtilityPanelsPlugin(pluginHost))
 }
 
 registerBuiltinPlugins()

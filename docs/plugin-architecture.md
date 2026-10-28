@@ -37,6 +37,7 @@ renderer/src/plugins/
   shortcutsPlugin.tsx      Slice 1：静态面板迁移样例
   statisticsPlugin.tsx     Slice 2：状态化面板迁移样例（appContext 自供给）
   referencesPlugin.tsx     Slice 3：带打开参数的面板迁移样例（宿主携带目标条目，见 §5）
+  utilityPanelsPlugin.tsx  Slice 4：零依赖工具面板 bundle（5 个 panel 能力，见 §6 bundle 形态）
 ```
 
 ### 2.1 契约（`types.ts`）
@@ -91,7 +92,7 @@ App.renderPanel()
 | Slice 1 | 静态面板（快捷键参考）经 `HostPanel` 渲染，打通「面板经宿主渲染」通路 | ✅ 完成 |
 | Slice 2 | `appContext` store + 状态化面板（数据统计）自供给 `types`，解耦 App props | ✅ 完成 |
 | Slice 3 | `openPanel(id, params)` 承载面板打开参数；引用面板迁出 App 的 `refTarget` state | ✅ 完成 |
-| Slice 4 | 低风险无状态/仅 onClose 面板批量迁移（见 §6 清单） | ⬜ 待做 |
+| Slice 4 | 低风险无状态/仅 onClose 面板批量迁移（见 §6 清单）：**零依赖 5 个已迁**（bundle 形态），剩 `attrSystem` / `dataDiff` / `imageGen` | 🔶 进行中 |
 | Slice 5 | 依赖 `types + handleJump` 的面板（高级搜索 / 关系图 / 属性图表） | ⬜ 待做 |
 | Slice 6 | 依赖回调的面板（备份 refreshUndo / 清空 handleDataCleared / 引导 action） | ⬜ 待做 |
 | Slice 7 | 带打开参数的面板（类型编辑器 / 快速创建 / 批量编辑 / 导入预览） | ⬜ 待做 |
@@ -217,12 +218,12 @@ function ReferencesPanelBound({ onClose, params }: PanelBindingProps) {
 | `stats` | StatisticsPanel | `types` | 低 | ✅ |
 | `attrSystem` | AttrSystemPanel | `onClose` | 低 | ⬜ |
 | `dataDiff` | DataDiffPanel | `onClose` | 低 | ⬜ |
-| `settings` | SettingsPanel | 无 | 低 | ⬜ |
-| `cleanupImages` | CleanupImagesPanel | 无 | 低 | ⬜ |
-| `keywordTemplates` | KeywordTemplatePanel | 无 | 低 | ⬜ |
-| `agentEditor` | AgentEditorPanel | 无 | 低 | ⬜ |
+| `settings` | SettingsPanel | 无 | 低 | ✅ |
+| `cleanupImages` | CleanupImagesPanel | 无 | 低 | ✅ |
+| `keywordTemplates` | KeywordTemplatePanel | 无 | 低 | ✅ |
+| `agentEditor` | AgentEditorPanel | 无 | 低 | ✅ |
 | `imageGen` | ImageGenPanel | `onClose` | 低 | ⬜ |
-| `gameDataPreview` | GameDataPreviewPanel | 无 | 低 | ⬜ |
+| `gameDataPreview` | GameDataPreviewPanel | 无 | 低 | ✅ |
 | `about` | AboutPanel | `version`（AppInfo） | 中 | ⬜ |
 | `attributeChart` | AttributeChartPanel | `types` | 中 | ⬜ |
 | `relationGraph` | RelationGraphPanel | `types` + `handleJump` | 中 | ⬜ |
@@ -238,6 +239,13 @@ function ReferencesPanelBound({ onClose, params }: PanelBindingProps) {
 | `plugins` | PluginsPanel | `host` | 已插件管理面 | — |
 
 > 注：`onClose` 是通用契约，不计入「依赖」。
+
+**bundle 形态（Slice 4 采用）**：零依赖工具面板不拆成「一个面板一个插件文件」，而是打包成一个
+manifest（`utility-panels`，5 个 `panel` 能力 + 5 个 `command`），这是 dsh 的 bundle 概念——
+省掉重复样板，启用/禁用粒度对这类工具面板够用。
+
+- **用 bundle**：面板之间无独立开关需求、都不带参数、代码都只是「渲染一个零 props 组件」。
+- **仍一片一插件**：需要按面板单独启停（如 `references`）、或需要注入打开参数的。
 
 ---
 
@@ -287,22 +295,20 @@ function ReferencesPanelBound({ onClose, params }: PanelBindingProps) {
 
 ---
 
-## 9. 下一步（Slice 4 设计草案）
+## 9. 下一步（Slice 4 收尾 → Slice 5）
 
-**现状**：通路（宿主渲染 / 共享状态 / 打开参数）三件使能件已齐，剩下的是**批量搬运**。
+**现状**：通路（宿主渲染 / 共享状态 / 打开参数）三件使能件已齐；Slice 4 的**零依赖 5 个面板已迁**
+（`utility-panels` bundle：settings / cleanupImages / keywordTemplates / agentEditor / gameDataPreview）。
 
-**Slice 4 = 低风险面板批迁**（无依赖或只依赖 `onClose`）：`attrSystem` / `dataDiff` / `settings` /
-`cleanupImages` / `keywordTemplates` / `agentEditor` / `imageGen` / `gameDataPreview` 共 8 个。
-
-- 每个 = 一个 `xxxPlugin.tsx` + `builtins.ts` 一行 + App 一个 `case` 改 `HostPanel` + 一条 DOM 测试。
-- 机械重复，适合一次提交 3–4 个，逐个跑四道闸（批量搬完再一次跑，出错时定位成本高）。
-- 顺序建议按「无依赖优先」：`settings` / `cleanupImages` / `keywordTemplates` / `agentEditor` /
-  `gameDataPreview`（5 个零依赖）→ `attrSystem` / `dataDiff` / `imageGen`（仅 `onClose`）。
+**Slice 4 剩余 3 个**（只依赖 `onClose` 转发）：`attrSystem` / `dataDiff` / `imageGen`。
+- 与 bundle 不同，这三个的绑定要**转发 `onClose`**（`({ onClose }) => <Panel onClose={onClose} />`），
+  适合继续放进 `utility-panels`（它们仍无其它依赖），或按需单独成片。
+- 注意 `AttrSystemPanel` 体量大、内部有自己的数据拉取，迁移后要补一条 DOM 测试证明 testid 与关闭仍工作。
 
 **Slice 5 预告**：`advancedSearch` / `relationGraph` / `attributeChart` 只依赖 `types + handleJump`，
-可直接复用 appContext，属「纯配置迁移」，风险低于 Slice 4 的 `onClose` 转发。
+直接复用 appContext，属「纯配置迁移」，风险低于带回调的 Slice 6。
 
-**验收**：App 的 `renderPanel()` 中 `switch` 的「组件直连」分支只剩 Slice 5–7 未迁面板；四道闸绿。
+**验收**：App 的 `renderPanel()` 中「组件直连」分支只剩 Slice 5–7 未迁面板；四道闸绿。
 
 ---
 
@@ -332,3 +338,9 @@ Slice 3：
 - `renderer/src/App.tsx`（删 `refTarget` state；守卫与跳转改读宿主参数；`references` case → HostPanel）
 - `tests/unit/pluginHost.test.ts`（+3：参数同一引用 / 预置与沿用 / 变更通知）
 - `tests/unit/dom/referencesPlugin.test.tsx`（新增 4 条：参数下发 / 换参数刷新 / 坏参数不崩 / 命令沿用预置）
+
+Slice 4（第一批，零依赖 5 个）：
+- `renderer/src/plugins/utilityPanelsPlugin.tsx`（新增；bundle 形态，5 panel + 5 command）
+- `renderer/src/plugins/builtins.ts`（注册）
+- `renderer/src/App.tsx`（5 个 case → HostPanel，删 5 个直接 import）
+- `tests/unit/dom/utilityPanelsPlugin.test.tsx`（新增 3 条：能力清单 / testid 保留 / 禁用后不再渲染）
