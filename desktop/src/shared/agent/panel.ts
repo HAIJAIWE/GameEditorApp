@@ -50,6 +50,14 @@ export interface DigitalTask {
   summary: string
 }
 
+/** 子智能体条目（由 subagent_started / subagent_done 事件派生，Slice 38） */
+export interface DigitalSubagent {
+  id: string
+  task: string
+  status: 'running' | 'done' | 'failed'
+  result?: string
+}
+
 /** 技能提出的交互请求（确认破坏性动作 / 提问澄清参数） */
 export interface DigitalInteraction {
   requestId: string
@@ -61,6 +69,8 @@ export interface DigitalInteraction {
 export interface DigitalPanelState {
   messages: DigitalMessage[]
   steps: DigitalStep[]
+  /** 本轮派出的子智能体及其状态（Slice 38） */
+  subagents: DigitalSubagent[]
   /** 正在流式输出的文本（本轮） */
   streaming: string
   /** 待用户审批的危险操作；非空时 status 为 waiting_approval */
@@ -80,6 +90,7 @@ export interface DigitalPanelState {
 export const initialDigitalPanelState: DigitalPanelState = {
   messages: [],
   steps: [],
+  subagents: [],
   streaming: '',
   approval: null,
   interaction: null,
@@ -101,6 +112,7 @@ export function submitUserMessage(state: DigitalPanelState, text: string): Digit
     seq,
     messages: [...state.messages, { id: `m${seq}`, role: 'user', text }],
     steps: [],
+    subagents: [],
     streaming: '',
     approval: null,
     interaction: null,
@@ -162,6 +174,20 @@ export function reduceBrainEvent(state: DigitalPanelState, event: BrainEvent): D
             success: event.success
           }
         ]
+      }
+    case 'subagent_started':
+      return {
+        ...state,
+        subagents: [...state.subagents, { id: event.id, task: event.task, status: 'running' }]
+      }
+    case 'subagent_done':
+      return {
+        ...state,
+        subagents: state.subagents.map((sub) =>
+          sub.id === event.id
+            ? { ...sub, status: event.success ? 'done' : 'failed', result: event.text }
+            : sub
+        )
       }
     case 'turn_stats':
       return {

@@ -49,6 +49,9 @@ export type BrainEvent =
       interaction: SkillInteraction
     }
   | { type: 'step_done'; tool: string; result: string; success: boolean }
+  /** 子智能体生命周期（Slice 38）：启动 / 完成，供面板展示子任务列表 */
+  | { type: 'subagent_started'; id: string; task: string }
+  | { type: 'subagent_done'; id: string; success: boolean; text: string }
   | { type: 'done'; text: string }
   /** M1 观测：每轮 LLM 调用结束后的消耗点（与 `AgentTurnStat` 同形） */
   | {

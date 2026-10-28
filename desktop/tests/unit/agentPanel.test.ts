@@ -318,3 +318,28 @@ describe('digital panel：M0.5 终止闸提示', () => {
     expect(state.terminated).toBeNull()
   })
 })
+
+describe('digital panel：子智能体列表（Slice 38）', () => {
+  it('subagent_started/done：记录任务与状态；submit 重置', () => {
+    let state = reduceBrainEvent(initialDigitalPanelState, {
+      type: 'subagent_started',
+      id: 'sub_1',
+      task: '写简介'
+    })
+    expect(state.subagents).toEqual([{ id: 'sub_1', task: '写简介', status: 'running' }])
+
+    state = reduceBrainEvent(state, { type: 'subagent_done', id: 'sub_1', success: true, text: '结果' })
+    expect(state.subagents[0]).toMatchObject({ id: 'sub_1', status: 'done', result: '结果' })
+
+    expect(submitUserMessage(state, '再来').subagents).toEqual([])
+  })
+
+  it('未知子智能体的 done 不影响其它条目', () => {
+    const state = applyBrainEvents(initialDigitalPanelState, [
+      { type: 'subagent_started', id: 'a', task: 'A' },
+      { type: 'subagent_done', id: 'b', success: true, text: 'B' }
+    ])
+    expect(state.subagents).toHaveLength(1)
+    expect(state.subagents[0]).toMatchObject({ id: 'a', status: 'running' })
+  })
+})

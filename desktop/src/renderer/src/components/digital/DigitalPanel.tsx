@@ -7,7 +7,7 @@ import FieldActionStrip from './FieldActionStrip'
 
 import LucideIcon from '../LucideIcon'
 
-import { DigitalApproval, DigitalStepList, DigitalTaskList } from './digitalPanelViews'
+import { DigitalApproval, DigitalStepList, DigitalSubagentList, DigitalTaskList } from './digitalPanelViews'
 
 import type { BrainEvent } from '../../../../shared/agent/brain'
 import type { AgentRunTier } from '../../../../shared/agent/observability'
@@ -582,6 +582,8 @@ export default function DigitalPanel({
           <div className="empty">描述你想做的事，我会调用工具完成（例如「列出所有角色数据」）。</div>
         )}
       </div>
+
+      <DigitalSubagentList subagents={state.subagents} />
 
       {state.steps.length > 0 && (
         <div className="digital-steps" data-testid="digital-steps">

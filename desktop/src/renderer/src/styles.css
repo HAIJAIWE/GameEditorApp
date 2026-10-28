@@ -5380,6 +5380,49 @@ button.ref-row:hover {
   list-style: none;
 }
 
+/* Slice 38：子智能体列表（本轮派出的子任务） */
+.digital-subagents {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-top: 1px solid var(--border);
+  padding-top: 6px;
+}
+
+.digital-subagent-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
+}
+
+.digital-subagent {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.digital-subagent-id {
+  font-weight: 600;
+}
+
+.digital-subagent-task {
+  flex: 1;
+  min-width: 0;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.digital-subagent-result {
+  flex-basis: 100%;
+  color: var(--text-muted);
+  font-size: calc(13px * var(--ui-font-scale) * 11/13);
+  white-space: pre-wrap;
+}
+
 .digital-step-head {
   display: flex;
   align-items: baseline;

@@ -325,6 +325,7 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
         success: false
       }))
     pendingSubagents.set(childId, promise)
+    emit({ type: 'subagent_started', id: childId, task })
     // 暴露 handle 给调用方：拿到 childId + inbox 即可对运行中的子智能体「插话」
     options.onSubAgentSpawned?.(childId, childInbox)
     return { text: `started subagent ${childId}`, success: true }
@@ -350,7 +351,7 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
           : `子智能体执行失败：${outcome?.status === 'rejected' ? String(outcome.reason) : '未知错误'}`
       const success = outcome !== undefined && outcome.status === 'fulfilled' ? outcome.value.success : false
       results.push(text)
-      emit({ type: 'step_done', tool: 'subagent', result: text, success })
+      emit({ type: 'subagent_done', id: childId, success, text })
       messages.push({ role: 'user', content: `子智能体 ${childId} 完成通知：${text}` })
     }
     return true

@@ -1354,6 +1354,9 @@ describe('子智能体（Slice 19）', () => {
       (message) => message.role === 'user' && (message.content ?? '').includes('子智能体结果')
     )
     expect(notice).toBeDefined()
+    // Slice 38：子智能体生命周期事件（供面板展示）
+    expect(result.events.some((event) => event.type === 'subagent_started')).toBe(true)
+    expect(result.events.some((event) => event.type === 'subagent_done' && event.success)).toBe(true)
     expect(result.completed).toBe(true)
   })
 

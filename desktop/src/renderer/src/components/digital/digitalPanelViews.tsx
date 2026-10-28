@@ -158,6 +158,35 @@ function TurnGroup({ turn, steps }: { turn: number; steps: DigitalStep[] }) {
   )
 }
 
+/** 子智能体列表（Slice 38）：本轮派出的子任务、状态与结果摘要 */
+export function DigitalSubagentList({ subagents }: { subagents: DigitalPanelState['subagents'] }) {
+  if (subagents.length === 0) return null
+  return (
+    <div className="digital-subagents" data-testid="digital-subagents">
+      <div className="home-section-label">子智能体（{subagents.length}）</div>
+      <ul className="digital-subagent-list">
+        {subagents.map((sub) => (
+          <li
+            key={sub.id}
+            className={`digital-subagent digital-subagent-${sub.status}`}
+            data-testid="digital-subagent"
+            data-status={sub.status}
+          >
+            <span className="digital-subagent-id">{sub.id}</span>
+            <span className="digital-subagent-task">{sub.task}</span>
+            <span className="item-meta">
+              {sub.status === 'running' ? '执行中…' : sub.status === 'done' ? '✅' : '❌'}
+            </span>
+            {sub.result !== undefined && sub.result !== '' && (
+              <div className="digital-subagent-result">{sub.result}</div>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
 /** 执行步骤列表（整体折叠由父组件控制；内部按轮次分组，每轮可再折叠） */
 export function DigitalStepList({ steps }: { steps: DigitalPanelState['steps'] }) {
   // 按 order（轮次）分组：order 相同即同一轮
