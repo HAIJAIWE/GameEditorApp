@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type MouseEvent as ReactMouseEvent } from 'react'
 
 import type { CeshuSummary } from '../../shared/ceshuConstants'
 import { loadGameStyle, normalizeGameStyleId, saveGameStyle } from '../../shared/config/gameStyle'
@@ -16,7 +16,6 @@ import DigitalPanel from './components/digital/DigitalPanel'
 import MenuBar from './components/MenuBar'
 import { type ReferenceTarget } from './components/ReferencesPanel'
 import Sidebar, { type SidebarAction, type SidebarItem } from './components/Sidebar'
-import OnboardingPanel from './components/OnboardingPanel'
 import ToastHost from './components/ToastHost'
 import { useDataTransfer, useUndoRedo } from './hooks/useAppActions'
 import { toErrorMessage } from './appUtils'
@@ -26,85 +25,41 @@ import { HostPanel } from './plugins/HostPanel'
 import { AppContextProvider } from './plugins/appContext'
 
 /**
- * 顶层「面板浮层」的键：这些能力原先挂在下线前的「数据表视图」工具栏上，
- * 现统一由菜单栏唤起，主区内**同时最多只渲染一个**。
+ * 这些面板的打开参数是**一次性上下文**（「编辑哪个类型」之类）：从菜单打开时必须先清空，
+ * 否则上一次从条目表单进来时选中的类型会粘住。带参数打开（内部入口）则不清。
  */
-export type OverlayPanel =
-  | 'typeEditor'
-  | 'attrSystem'
-  | 'stats'
-  | 'advancedSearch'
-  | 'dataDiff'
-  | 'backup'
-  | 'imageGen'
-  | 'quickCreate'
-  | 'batch'
-  | 'references'
-  | 'relationGraph'
-  | 'gameDataPreview'
-  | 'shortcuts'
-  | 'about'
-  | 'clearAll'
-  | 'settings'
-  | 'cleanupImages'
-  | 'keywordTemplates'
-  | 'agentEditor'
-  | 'attributeChart'
-  | 'onboarding'
-  | 'importPreview'
-  | 'plugins'
+const CLEARS_PARAMS_ON_OPEN = new Set(['typeEditor.panel', 'quickCreate.panel', 'batch.panel'])
 
-/** 浮层头部标题（与菜单项一致，便于用户确认当前打开的是哪个能力） */
-const PANEL_TITLES: Record<OverlayPanel, string> = {
-  typeEditor: '字段结构编辑器',
-  attrSystem: '属性系统编辑器',
-  stats: '游戏数据统计',
-  advancedSearch: '高级搜索',
-  dataDiff: '数据对比',
-  backup: '备份管理',
-  imageGen: 'AI 生图',
-  quickCreate: '快速创建向导',
-  batch: '批量修改数据',
-  references: '数据关联预览',
-  relationGraph: '关系图',
-  gameDataPreview: '游戏数据预览',
-  shortcuts: '快捷键参考',
-  about: '关于墨白编辑器',
-  clearAll: '清空所有数据',
-  settings: '设置',
-  cleanupImages: '清理未使用图片',
-  keywordTemplates: '关键词模板配置',
-  agentEditor: 'AI 能力清单（工具与风险等级）',
-  attributeChart: '属性分布图表',
-  onboarding: '快速入门',
-  importPreview: '导入预览',
-  plugins: '插件中心'
-}
+/**
+ * 左侧主导航栏条目（dsh Web 侧边栏风格）。
+ * home=回策划书首页；agent=聚焦右侧数字员工 dock 输入；其余=打开对应浮层面板（**用 panel 能力 id**）。
+ */
+const SIDEBAR_ITEMS: SidebarItem[] = [
+  { key: 'home', label: '策划书', icon: '📘', action: { type: 'home' } },
+  { key: 'plugins', label: '插件中心', icon: '🧩', action: { type: 'panel', panel: 'plugins.panel' } },
+  { key: 'relationGraph', label: '关系图', icon: '🕸', action: { type: 'panel', panel: 'relationGraph.panel' } },
+  { key: 'advancedSearch', label: '高级搜索', icon: '🔍', action: { type: 'panel', panel: 'advancedSearch.panel' } },
+  { key: 'stats', label: '统计', icon: '📊', action: { type: 'panel', panel: 'statistics.panel' } },
+  { key: 'settings', label: '设置', icon: '⚙', action: { type: 'panel', panel: 'settings.panel' } },
+  { key: 'about', label: '关于', icon: 'ℹ', action: { type: 'panel', panel: 'about.panel' } },
+  { key: 'agent', label: '数字员工', icon: '🤖', action: { type: 'agent' } }
+]
 
 /**
  * 顶层外壳。
  *
+ * **B 方案 Slice 8a 后的关键变化**：浮层的清单不再由本组件持有。
+ * 以前是 `type OverlayPanel = 'stats' | …`（23 个 kind）+ 一张 23 项标题表 + 一个 23 case 的
+ * `switch`；现在浮层的身份就是 `panel` 能力的 id，标题从能力自带 `title` 读，
+ * 渲染塌缩成一个 `<HostPanel panelId={panelId}>`，`panelId` 直接订阅宿主的 `activePanel()`。
+ * ⇒ 插件命令调 `host.openPanel()` 与菜单/侧栏走的是同一条路。
+ *
  * 设计要点：
  * - **无左侧栏**：所有能力走顶部菜单栏；库选择与「设置 / 智能体 / AI」按钮挂在菜单栏右侧角部件。
  * - 中央是**单栈**：策划书首页 ↔ 策划书编辑器（编辑器内嵌数据预览面板且常驻），默认落在首页。
- * - 右侧 `.ai-dock` 为常驻数字员工停靠栏（单一实例）。
+ * - 右侧 `.ai-dock` 为常驻数字员工停靠面板（单一实例）。
  * - 底部状态栏（版本 / 类型数 / 数据库路径 / 主题切换）常驻。
  */
-/**
- * 左侧主导航栏条目（dsh Web 侧边栏风格）。
- * home=回策划书首页；agent=聚焦右侧数字员工 dock 输入；其余=打开对应浮层面板。
- */
-const SIDEBAR_ITEMS: SidebarItem[] = [
-  { key: 'home', label: '策划书', icon: '📘', action: { type: 'home' } },
-  { key: 'plugins', label: '插件中心', icon: '🧩', action: { type: 'panel', panel: 'plugins' } },
-  { key: 'relationGraph', label: '关系图', icon: '🕸', action: { type: 'panel', panel: 'relationGraph' } },
-  { key: 'advancedSearch', label: '高级搜索', icon: '🔍', action: { type: 'panel', panel: 'advancedSearch' } },
-  { key: 'stats', label: '统计', icon: '📊', action: { type: 'panel', panel: 'stats' } },
-  { key: 'settings', label: '设置', icon: '⚙', action: { type: 'panel', panel: 'settings' } },
-  { key: 'about', label: '关于', icon: 'ℹ', action: { type: 'panel', panel: 'about' } },
-  { key: 'agent', label: '数字员工', icon: '🤖', action: { type: 'agent' } }
-]
-
 export default function App() {
   const [info, setInfo] = useState<AppInfo | null>(null)
   const [types, setTypes] = useState<DataTypeDef[]>([])
@@ -112,8 +67,22 @@ export default function App() {
   const [notice, setNotice] = useState<string | null>(null)
   /** 撤销/重做（状态 + 三个动作）：内聚单元，见 hooks/useAppActions */
   const { undoUi, refreshUndo, performUndo, performRedo } = useUndoRedo(setNotice, setError)
-  /** 主区内当前打开的浮层面板（null = 未打开，渲染策划书首页/编辑器） */
-  const [panel, setPanel] = useState<OverlayPanel | null>(null)
+  /**
+   * 主区内当前打开的浮层 = **宿主的活动面板**（单一来源，Slice 8a）。
+   *
+   * 以前是本组件的一份 `useState`，于是「插件命令调 host.openPanel()」打不开浮层——
+   * 命令只改宿主，App 不知道。现在反向：宿主是真相，本组件订阅它，
+   * 菜单/侧栏/插件命令三条路走同一个开关。
+   */
+  const subscribeHost = useCallback((onChange: () => void) => pluginHost.subscribe(onChange), [])
+  const panelId = useSyncExternalStore(subscribeHost, () => pluginHost.activePanel()?.id ?? null)
+
+  /**
+   * 关闭浮层：宿主是单一来源，关也走宿主。
+   * 放在这里（而不是 openPanel 旁边）是因为 Esc 监听的 effect 在下方要用它——
+   * 晚声明会触发 react-hooks 的「访问未声明变量」检查。
+   */
+  const closePanel = (): void => pluginHost.closePanel()
   /**
    * 注：待确认的导入预览**不再是 App 的 state**（B 方案 Slice 7）。
    * 解析结果在主进程暂存，会话 id + 预览数据作为「导入预览面板的打开参数」交给宿主携带
@@ -296,14 +265,14 @@ export default function App() {
    * 已在输入框/下拉里按 Esc 的先由各自处理（事件冒泡到这里时浮层多半也该关，故不额外判断）。
    */
   useEffect(() => {
-    if (panel === null) return undefined
+    if (panelId === null) return undefined
     const onKeyDown = (event: KeyboardEvent): void => {
       if (event.key !== 'Escape') return
-      setPanel(null)
+      closePanel()
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [panel])
+  }, [panelId])
 
   useEffect(() => {
     window.mbApi.app
@@ -363,7 +332,7 @@ export default function App() {
   const handleSidebar = (action: SidebarAction): void => {
     if (action.type === 'home') {
       setCeshuHomeVisible(true)
-      setPanel(null)
+      closePanel()
       return
     }
     if (action.type === 'agent') {
@@ -402,35 +371,64 @@ export default function App() {
     (deleted: number): void => {
       setDataEpoch((prev) => prev + 1)
       setNotice(`数据已清空：删除 ${deleted} 条（可按 Ctrl+Z 撤销）`)
-      setPanel(null)
+      closePanel()
       refreshUndo()
     },
     [refreshUndo]
   )
 
   /**
-   * 打开浮层面板（菜单入口）。
-   * 需要「一个类型」才能工作的面板（快速创建 / 批量）若无可用类型则只给 notice。
-   * 「数据关联预览」无目标时不打开空面板，改为引导到「高级搜索」先完成定位（保证入口永不灰死）。
-   * 目标条目存在宿主的打开参数里（Slice 3），不再读 App state。
+   * 打开浮层（**唯一入口**）：参数是 `panel` 能力 id，如 `statistics.panel`。
+   *
+   * 守卫留在这里（而不是塞进各插件）：它们要读 App 级数据（当前 schema 有没有类型）与提示语。
+   * - 需要「一个类型」才能工作的面板（快速创建 / 批量）无类型时只提示，不开空面板；
+   * - 「数据关联预览」无目标时改引导去「高级搜索」（保证入口永不灰死）。
    */
-  const openPanel = (kind: OverlayPanel): void => {
-    if ((kind === 'quickCreate' || kind === 'batch') && firstType === null) {
+  const openPanel = (panel: string, params?: unknown): void => {
+    if ((panel === 'quickCreate.panel' || panel === 'batch.panel') && firstType === null) {
       setNotice('当前没有可用的数据类型（schema 为空），请先在「字段结构编辑器」中新增类型')
       return
     }
-    if (kind === 'references' && pluginHost.panelParams('references.panel') === undefined) {
+    if (
+      panel === 'references.panel' &&
+      params === undefined &&
+      pluginHost.panelParams('references.panel') === undefined
+    ) {
       setNotice('请先在「高级搜索」中搜索并点击一条结果完成定位，随后即可查看其引用关系')
-      setPanel('advancedSearch')
+      openPanel('advancedSearch.panel')
       return
     }
-    // 「关于」要版本号：作为打开参数下发（其余面板不需要）
-    if (kind === 'about') pluginHost.openPanel('about.panel', { version: info?.version ?? null })
-    // 菜单入口 = 默认上下文：清掉上次的内部入口留下的目标（否则「上次选的类型」会粘住）
-    if (kind === 'typeEditor') pluginHost.setPanelParams('typeEditor.panel', undefined)
-    if (kind === 'quickCreate') pluginHost.setPanelParams('quickCreate.panel', undefined)
-    if (kind === 'batch') pluginHost.setPanelParams('batch.panel', undefined)
-    setPanel(kind)
+    // 菜单入口（无参数）= 默认上下文：清掉上次内部入口留下的一次性参数，避免「上次选的类型」粘住
+    if (params === undefined && CLEARS_PARAMS_ON_OPEN.has(panel)) {
+      pluginHost.setPanelParams(panel, undefined)
+    }
+    try {
+      // 「关于」要版本号：无参打开时补上（其余面板不需要额外上下文）
+      if (panel === 'about.panel' && params === undefined) {
+        pluginHost.openPanel(panel, { version: info?.version ?? null })
+      } else {
+        pluginHost.openPanel(panel, params)
+      }
+    } catch {
+      // 插件被禁用时 host 会拒绝：给可理解的提示，而不是抛到用户脸上
+      setNotice('该面板所属插件未启用，可在「插件中心」重新启用')
+    }
+  }
+
+  /**
+   * 派发插件命令（Slice 8b）：菜单里「纯导航」类动作不再自己 `setPanel`，改调插件声明的
+   * `<x>.open` 命令——面板由插件提供，App 只负责按 id 找命令。
+   *
+   * 找不到命令 = 该插件被禁用：给可理解的提示，不抛错。
+   * 注意：需要守卫或带打开参数的 4 个（字段结构 / 快速创建 / 批量 / 引用）仍走 `openPanel`。
+   */
+  const runCommand = (commandId: string): void => {
+    const command = pluginHost.commands().find((capability) => capability.id === commandId)
+    if (command === undefined) {
+      setNotice('该命令所属插件未启用，可在「插件中心」重新启用')
+      return
+    }
+    void command.run()
   }
 
   /**
@@ -450,48 +448,47 @@ export default function App() {
       case 'create_equip':
         // 目标类型作为打开参数交给宿主（Slice 7：App 不再持有 quickCreateTarget）
         pluginHost.openPanel('quickCreate.panel', { type: dataType })
-        setPanel('quickCreate')
         return
       case 'batch_create':
         // 复用 openPanel 对「无类型」的同一 guard 与文案（不另造提示）
         if (firstType === null) {
           setNotice('当前没有可用的数据类型（schema 为空），请先在「字段结构编辑器」中新增类型')
         } else {
-          setPanel('batch')
+          openPanel('batch.panel')
         }
         return
       case 'view_relations':
         // 对齐 旧版 `main_window:1200`：`view_relations` → `_show_relation_graph()`。
         // 关系图面板自带类型/主体选择器，无需先定位目标条目（旧行为弹去高级搜索是偏差，已改正）。
-        openPanel('relationGraph')
+        openPanel('relationGraph.panel')
         return
       case 'onboarding_library':
         setNotice('在界面右上角「当前库」处可切换或新建游戏库')
         return
       case 'onboarding_types':
         // 走菜单同一入口：会先清掉预选类型，回到「第一个类型」
-        openPanel('typeEditor')
+        openPanel('typeEditor.panel')
         return
       case 'onboarding_data':
         if (activeCeshuId === null) {
           setNotice('请先打开一本策划书…')
           setCeshuHomeVisible(true)
-          setPanel(null)
+          closePanel()
         } else {
           // 对齐 旧版 `_goto_data_design`：离开浮层、进入策划书编辑器的数据设计区
-          setPanel(null)
+          closePanel()
           setCeshuHomeVisible(false)
         }
         return
       case 'onboarding_ceshu':
-        setPanel(null)
+        closePanel()
         setCeshuHomeVisible(true)
         return
       case 'onboarding_ai':
         setNotice('AI 助手在界面右侧常驻栏，直接输入即可')
         return
       case 'stats':
-        openPanel('stats')
+        openPanel('statistics.panel')
         return
       default:
         return
@@ -507,7 +504,7 @@ export default function App() {
   const handleJump = (type: string, itemId: string, name: string): void => {
     pluginHost.setPanelParams('references.panel', { type, id: itemId, name })
     setCeshuHomeVisible(false)
-    setPanel(null)
+    closePanel()
     // 跳转成功即清掉此前的引导类 notice（如「请先在「高级搜索」中…完成定位」），
     // 否则用户已定位到条目、顶部却仍挂着要求他去定位的提示。
     // 若目标未命中，预览面板随后会调 onJumpMissed 写入新的提示。
@@ -521,7 +518,6 @@ export default function App() {
   /** 条目表单「更多 ▸ → 编辑当前类型字段结构」：把该类型作为打开参数交给宿主 */
   const handleEditType = (typeId: string): void => {
     pluginHost.openPanel('typeEditor.panel', { initialTypeId: typeId })
-    setPanel('typeEditor')
   }
 
   /**
@@ -533,7 +529,6 @@ export default function App() {
    */
   const handleShowReferences = (target: ReferenceTarget): void => {
     pluginHost.openPanel('references.panel', target)
-    setPanel('references')
   }
 
   /** 跳转未命中：目标类型不在当前策划书启用的游戏系统里，给出可理解的提示 */
@@ -565,7 +560,6 @@ export default function App() {
     useDataTransfer(setNotice, setError, refreshUndo, (payload) => {
       // 预览数据作为打开参数交给宿主（Slice 7）；面板用完调 close() 清掉
       pluginHost.openPanel('importPreview.panel', payload)
-      setPanel('importPreview')
     })
 
   /** 退出：关闭渲染进程窗口（Electron 主窗口关闭即退出） */
@@ -588,74 +582,21 @@ export default function App() {
    * 面板用 `useAppContext()` 自行取用，不再由本组件逐个以 props 下发。
    * 刻意不 memo：`handleJump` 为普通函数每次渲染新建，memo 不会命中；面板数量少，重渲染可接受。
    */
-  const appContextValue = { types, setTypes, handleJump, refreshUndo, handleDataCleared, afterMutation }
-
-  /** 渲染当前打开的浮层面板（互斥；面板 props 里来自已下线数据态的项一律给兜底值） */
-  const renderPanel = (): ReactNode => {
-    switch (panel) {
-      case 'typeEditor':
-        // Slice 7：types/setTypes 走 appContext，预选类型走打开参数（entry-panels bundle）。
-        return <HostPanel host={pluginHost} panelId="typeEditor.panel" onClose={() => setPanel(null)} />
-      case 'attrSystem':
-        return <HostPanel host={pluginHost} panelId="attrSystem.panel" onClose={() => setPanel(null)} />
-      case 'stats':
-        // Slice 2：状态化面板经宿主渲染，types 由 appContext 自供给（App 不再下发）。
-        return <HostPanel host={pluginHost} panelId="statistics.panel" onClose={() => setPanel(null)} />
-      case 'advancedSearch':
-        // Slice 5：types / handleJump 由 appContext 自供给（data-panels bundle）。
-        return <HostPanel host={pluginHost} panelId="advancedSearch.panel" onClose={() => setPanel(null)} />
-      case 'dataDiff':
-        // Slice 4 第二批：只依赖 onClose，绑定负责转发（utility-panels bundle）。
-        return <HostPanel host={pluginHost} panelId="dataDiff.panel" onClose={() => setPanel(null)} />
-      case 'backup':
-        // Slice 6：动作经 appContext 自供给（maintenance-panels bundle）。
-        return <HostPanel host={pluginHost} panelId="backup.panel" onClose={() => setPanel(null)} />
-      case 'imageGen':
-        return <HostPanel host={pluginHost} panelId="imageGen.panel" onClose={() => setPanel(null)} />
-      case 'gameDataPreview':
-        // Slice 4：不依赖 App 状态的面板包（utility-panels bundle），经宿主渲染。
-        return <HostPanel host={pluginHost} panelId="gameDataPreview.panel" onClose={() => setPanel(null)} />
-      case 'shortcuts':
-        // 首切片（B 方案）：真实产品面板经 PluginHost 渲染，App 不再硬编码组件。
-        return <HostPanel host={pluginHost} panelId="shortcuts.panel" onClose={() => setPanel(null)} />
-      case 'about':
-        // Slice 8 前置：版本号作为打开参数（不为一个字符串往 context 加字段）。
-        return <HostPanel host={pluginHost} panelId="about.panel" onClose={() => setPanel(null)} />
-      case 'clearAll':
-        return <HostPanel host={pluginHost} panelId="clearAll.panel" onClose={() => setPanel(null)} />
-      case 'settings':
-        return <HostPanel host={pluginHost} panelId="settings.panel" onClose={() => setPanel(null)} />
-      case 'cleanupImages':
-        return <HostPanel host={pluginHost} panelId="cleanupImages.panel" onClose={() => setPanel(null)} />
-      case 'keywordTemplates':
-        return <HostPanel host={pluginHost} panelId="keywordTemplates.panel" onClose={() => setPanel(null)} />
-      case 'agentEditor':
-        return <HostPanel host={pluginHost} panelId="agentEditor.panel" onClose={() => setPanel(null)} />
-      case 'attributeChart':
-        return <HostPanel host={pluginHost} panelId="attributeChart.panel" onClose={() => setPanel(null)} />
-      case 'onboarding':
-        return <OnboardingPanel types={types} onAction={handleOnboardingAction} onClose={() => setPanel(null)} />
-      case 'importPreview':
-        // 没有预览数据时绑定返回 null（不画空壳），无需 App 再判一次
-        return <HostPanel host={pluginHost} panelId="importPreview.panel" onClose={() => setPanel(null)} />
-      case 'quickCreate':
-        return <HostPanel host={pluginHost} panelId="quickCreate.panel" onClose={() => setPanel(null)} />
-      case 'batch':
-        return <HostPanel host={pluginHost} panelId="batch.panel" onClose={() => setPanel(null)} />
-      // 注：原「数据可见类型」面板（TypeVisibilityPanel）不再接线——它唯一的作用是过滤
-      // 已随侧栏一并下线的类型列表，且 旧版 无对应功能。组件文件保留（迁移留痕），但不再有入口。
-      case 'references':
-        // Slice 3：面板经宿主渲染，目标条目由宿主打开参数自供给（App 不再持有 refTarget）。
-        return <HostPanel host={pluginHost} panelId="references.panel" onClose={() => setPanel(null)} />
-      case 'relationGraph':
-        return <HostPanel host={pluginHost} panelId="relationGraph.panel" onClose={() => setPanel(null)} />
-      case 'plugins':
-        // 自举：插件中心本身也是一个插件面板（host 由 defineShellPanelsPlugin 闭包捕获）。
-        return <HostPanel host={pluginHost} panelId="plugins.panel" onClose={() => setPanel(null)} />
-      default:
-        return null
-    }
+  const appContextValue = {
+    types,
+    setTypes,
+    handleJump,
+    refreshUndo,
+    handleDataCleared,
+    afterMutation,
+    handleOnboardingAction
   }
+
+  /**
+   * 浮层头部标题：由 `panel` 能力自带（插件声明 `title`），App 不再维护 23 项标题表。
+   * 插件被禁用时能力列表里查不到，回退到 id 本身（比空白可读）。
+   */
+  const panelTitle = pluginHost.panels().find((capability) => capability.id === panelId)?.title ?? panelId
 
   return (
     <div className="app">
@@ -684,7 +625,7 @@ export default function App() {
           exportJson,
           exportCsv,
           exportExcel,
-          batchEdit: () => openPanel('batch'),
+          batchEdit: () => openPanel('batch.panel'),
           engineExport: (engine) => void engineExport(engine),
           exportSnapshot: (format) => void exportSnapshot(format),
           zoomIn: () => void window.mbApi.app.viewAction({ action: 'zoomIn' }),
@@ -692,29 +633,29 @@ export default function App() {
           zoomReset: () => void window.mbApi.app.viewAction({ action: 'zoomReset' }),
           reload: () => void window.mbApi.app.viewAction({ action: 'reload' }),
           toggleDevTools: () => void window.mbApi.app.viewAction({ action: 'toggleDevTools' }),
-          backup: () => openPanel('backup'),
+          backup: () => runCommand('backup.open'),
           undo: () => void performUndo(),
           redo: () => void performRedo(),
           // 菜单入口：openPanel 会先清掉「快速入门」快捷卡留下的目标类型，回到默认（第一个类型）
-          quickCreate: () => openPanel('quickCreate'),
-          references: () => openPanel('references'),
-          relationGraph: () => openPanel('relationGraph'),
-          gameDataPreview: () => openPanel('gameDataPreview'),
-          dataDiff: () => openPanel('dataDiff'),
-          stats: () => openPanel('stats'),
-          attrSystem: () => openPanel('attrSystem'),
+          quickCreate: () => openPanel('quickCreate.panel'),
+          references: () => openPanel('references.panel'),
+          relationGraph: () => runCommand('relationGraph.open'),
+          gameDataPreview: () => runCommand('gameDataPreview.open'),
+          dataDiff: () => runCommand('dataDiff.open'),
+          stats: () => runCommand('statistics.open'),
+          attrSystem: () => runCommand('attrSystem.open'),
           // 菜单入口 = 通用字段结构编辑器；openPanel 会清掉条目表单留下的预选类型
-          fieldEditor: () => openPanel('typeEditor'),
-          advancedSearch: () => openPanel('advancedSearch'),
-          imageGen: () => openPanel('imageGen'),
-          clearAll: () => openPanel('clearAll'),
-          shortcuts: () => openPanel('shortcuts'),
-          about: () => openPanel('about'),
-          settings: () => openPanel('settings'),
-          cleanupUnusedImages: () => openPanel('cleanupImages'),
-          keywordTemplates: () => openPanel('keywordTemplates'),
-          attributeChart: () => openPanel('attributeChart'),
-          onboarding: () => openPanel('onboarding'),
+          fieldEditor: () => openPanel('typeEditor.panel'),
+          advancedSearch: () => runCommand('advancedSearch.open'),
+          imageGen: () => runCommand('imageGen.open'),
+          clearAll: () => runCommand('clearAll.open'),
+          shortcuts: () => runCommand('shortcuts.open'),
+          about: () => openPanel('about.panel'),
+          settings: () => runCommand('settings.open'),
+          cleanupUnusedImages: () => runCommand('cleanupImages.open'),
+          keywordTemplates: () => runCommand('keywordTemplates.open'),
+          attributeChart: () => runCommand('attributeChart.open'),
+          onboarding: () => runCommand('onboarding.open'),
           aiPanel: () => {
             // AI 对话是右侧常驻 dock（无独立窗口）。按钮的职责是「把焦点送到输入框」，
             // 而不是弹一句「已在右侧」——后者会被误读成「又开了一个 AI 会话」。
@@ -730,23 +671,26 @@ export default function App() {
         }}
       />
       <div className="app-body">
-        <Sidebar items={SIDEBAR_ITEMS} activePanel={panel} onNavigate={handleSidebar} />
+        <Sidebar items={SIDEBAR_ITEMS} activePanel={panelId} onNavigate={handleSidebar} />
         <div className="main">
           <div className="main-body">
             <div className="main-area">
               {error && <div className="error-banner">{error}</div>}
               {notice && <div className="notice-banner">{notice}</div>}
-              {panel !== null ? (
+              {panelId !== null ? (
                 <div className="panel-overlay">
                   <div className="panel-overlay-header">
-                    <span className="chapter-form-title">{PANEL_TITLES[panel]}</span>
-                    <button type="button" className="btn" data-testid="panel-close" onClick={() => setPanel(null)}>
+                    <span className="chapter-form-title">{panelTitle}</span>
+                    <button type="button" className="btn" data-testid="panel-close" onClick={() => closePanel()}>
                       关闭
                     </button>
                   </div>
                   <div className="panel-overlay-body">
-                    {/* 面板自供给通道：此子树内的面板可经 useAppContext() 取共享状态 */}
-                    <AppContextProvider value={appContextValue}>{renderPanel()}</AppContextProvider>
+                    {/* 面板自供给通道：此子树内的面板可经 useAppContext() 取共享状态；
+                        渲染只认 panelId —— 23 case 的 switch 已随 Slice 8a 删除 */}
+                    <AppContextProvider value={appContextValue}>
+                      <HostPanel host={pluginHost} panelId={panelId} onClose={closePanel} />
+                    </AppContextProvider>
                   </div>
                 </div>
               ) : (
@@ -838,7 +782,7 @@ export default function App() {
               onDoubleClick={resetDockWidth}
             />
             <aside className="ai-dock" style={{ width: aiDockWidth }} data-testid="ai-dock">
-              <DigitalPanel onOpenCapabilities={() => openPanel('agentEditor')} />
+              <DigitalPanel onOpenCapabilities={() => runCommand('agentEditor.open')} />
             </aside>
           </div>
 
@@ -855,7 +799,7 @@ export default function App() {
                   className="btn slim"
                   data-testid="plugins-open"
                   title="插件中心：查看已注册插件（dsh 风格清单 + 启用/禁用）"
-                  onClick={() => setPanel('plugins')}
+                  onClick={() => openPanel('plugins.panel')}
                 >
                   插件
                 </button>

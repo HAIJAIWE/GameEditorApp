@@ -1,5 +1,3 @@
-import type { OverlayPanel } from '../App'
-
 /**
  * 左侧主导航栏（dsh Web 侧边栏风格）。
  *
@@ -8,7 +6,8 @@ import type { OverlayPanel } from '../App'
  * 当前打开的浮层面板高亮对应条目（home/agent 无高亮态）。
  */
 export type SidebarAction =
-  | { type: 'panel'; panel: OverlayPanel }
+  /** 目标浮层 = `panel` 能力 id（如 `statistics.panel`），不再是一组硬编码 kind */
+  | { type: 'panel'; panel: string }
   | { type: 'home' }
   | { type: 'agent' }
 
@@ -21,7 +20,7 @@ export interface SidebarItem {
 
 export default function Sidebar({ items, activePanel, onNavigate }: {
   items: SidebarItem[]
-  activePanel: OverlayPanel | null
+  activePanel: string | null
   onNavigate: (action: SidebarAction) => void
 }) {
   return (
