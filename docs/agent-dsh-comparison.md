@@ -199,6 +199,8 @@ dsh 用 **cordis** 做插件组合，profile 是 YAML 补丁层（`bundles` + `c
 > **已落地（Slice 34，2026-10-28）**：**事件溯源历史**——`AgentSessionStore.appendTurn`（`turns.jsonl`，只追加）+ `readTurns` + `deriveMessagesFromTurns`；`RunBrainLoopOptions.initialMessages` 播种历史；`AgentChatOptions.resumeHistory` 用稳定 `sessionId` 从轮次日志恢复。
 >
 > **已落地（Slice 35，2026-10-28）**：**OS 级文件沙箱（Windows ACL）**——`windowsSandbox.ts` 用 `icacls /deny <user>:(W)` 在窗口期真·拒绝写入、`finally` 恢复。CLI provider：`read-only` + 显式 `cwd` + `MB_SANDBOX_ACL=1` ⇒ 真·OS 只读；否则拒绝运行。**诚实边界**：非容器/内核隔离。
+>
+> **已落地（Slice 36，2026-10-28）**：**ACP 子智能体 provider**——`createAcpSubAgentProvider`（ACP v1：JSON-RPC 2.0 + ndjson；`initialize`→`session/new`→`session/prompt`，累积 `session/update` 的 `agent_message_chunk`，自动应答 `session/request_permission`，`session/cancel` 取消）。`MB_SUBAGENT_ACP` 启用；优先级 **远程 > ACP > CLI > 进程内**。
 
 ---
 
