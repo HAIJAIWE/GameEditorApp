@@ -5344,6 +5344,87 @@ button.ref-row:hover {
   white-space: pre-wrap;
 }
 
+/* Slice 37：工具调用卡片（对齐 dsh ui-tool 的卡片形态） */
+.digital-step-card {
+  list-style: none;
+}
+
+/* Slice 37：轮次分组（对齐 dsh ui-chat 的轮次过程折叠） */
+.digital-turn {
+  list-style: none;
+  margin-top: 4px;
+}
+
+.digital-turn-head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  width: 100%;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: var(--text-muted);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.digital-turn-label {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.digital-turn-steps {
+  margin: 2px 0 0;
+  padding-left: 14px;
+  list-style: none;
+}
+
+.digital-step-head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  width: 100%;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.digital-step-head:hover {
+  color: var(--text);
+}
+
+.digital-step-icon {
+  flex: none;
+}
+
+.digital-step-chevron {
+  margin-left: auto;
+  color: var(--text-muted);
+}
+
+.digital-step-body {
+  padding-left: 18px;
+}
+
+.digital-step-code {
+  margin: 4px 0 0;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: rgba(127, 127, 127, 0.08);
+  color: var(--text-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: calc(13px * var(--ui-font-scale) * 11/13);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 240px;
+  overflow: auto;
+}
+
 /* M1 观测：本轮运行消耗行（轮数 / token / 耗时 / 工具次数） */
 .digital-run-stats {
   display: flex;
