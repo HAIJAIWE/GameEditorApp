@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react'
 
 import { RISK_LEVEL, resolveRiskLevel } from '../../../../shared/agent/protocol'
 import type { DigitalCommand } from '../../../../shared/agent/commands'
+import type { DigitalReference } from '../../../../shared/agent/references'
 import {
   summarizeToolTasks,
   type DigitalPanelState,
@@ -342,6 +343,41 @@ export function DigitalCommandMenu({
             /{command.id} · {command.label}
           </span>
           <span className="item-meta">{command.hint}</span>
+        </button>
+      ))}
+    </div>
+  )
+}
+
+/**
+ * `@` 引用菜单（P2）：输入以 `@` 开头且未以空格结束时出现，列出可引用的数据表；
+ * 选中后由父组件插入 `@<name> `（带空格 ⇒ 菜单自动收起）。
+ */
+export function DigitalReferenceMenu({
+  references,
+  activeIndex,
+  onPick
+}: {
+  references: DigitalReference[]
+  activeIndex: number
+  onPick: (name: string) => void
+}) {
+  if (references.length === 0) return null
+  return (
+    <div className="digital-command-menu" data-testid="digital-reference-menu" role="listbox">
+      {references.map((reference, index) => (
+        <button
+          key={reference.id}
+          type="button"
+          role="option"
+          aria-selected={index === activeIndex}
+          className={`digital-command-item${index === activeIndex ? ' active' : ''}`}
+          data-testid="digital-reference-item"
+          data-reference={reference.id}
+          onClick={() => onPick(reference.name)}
+        >
+          <span className="digital-command-label">@{reference.name}</span>
+          <span className="item-meta">{reference.id}</span>
         </button>
       ))}
     </div>

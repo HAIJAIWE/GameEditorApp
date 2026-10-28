@@ -10,11 +10,13 @@ import LucideIcon from '../LucideIcon'
 import {
   DigitalApproval,
   DigitalCommandMenu,
+  DigitalReferenceMenu,
   DigitalStepList,
   DigitalSubagentList,
   DigitalTaskList
 } from './digitalPanelViews'
 import { parseDigitalCommands, type DigitalCommand } from '../../../../shared/agent/commands'
+import { parseDigitalReferences, type DigitalReference } from '../../../../shared/agent/references'
 import { pluginHost } from '../../plugins/builtins'
 import { getToolViewBinding } from '../../plugins/toolViewBindings'
 
@@ -136,8 +138,11 @@ export default function DigitalPanel({
 }) {
   const [state, dispatch] = useReducer(reducer, initialDigitalPanelState)
   const [input, setInput] = useState('')
-  /** 斜杠命令菜单的当前高亮项（键盘上下导航；输入变化时重置为 0） */
+  /** 斜杠命令 / @ 引用菜单的当前高亮项（两者互斥，共用同一索引；输入变化时重置为 0） */
   const [commandIndex, setCommandIndex] = useState(0)
+  /** `@` 引用候选：当前游戏库的数据表类型（首次输入 `@` 时懒加载） */
+  const [dataTypes, setDataTypes] = useState<DigitalReference[]>([])
+  const dataTypesLoaded = useRef(false)
   const [stepsOpen, setStepsOpen] = useState(true)
   const [sessionHint, setSessionHint] = useState<{ messageCount: number; savedAt: string } | null>(null)
   const [interactionAnswer, setInteractionAnswer] = useState('')
@@ -229,6 +234,16 @@ export default function DigitalPanel({
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight })
   }, [state.messages.length, state.streaming])
+
+  // `@` 引用候选：首次输入 `@` 时懒加载当前库的数据表类型（失败静默，输入框仍可用）
+  useEffect(() => {
+    if (!input.startsWith('@') || dataTypesLoaded.current) return
+    dataTypesLoaded.current = true
+    void window.mbApi.schema
+      .list()
+      .then((types) => setDataTypes(types.map((type) => ({ id: type.id, name: type.name }))))
+      .catch(() => undefined)
+  }, [input])
 
   /** 提交一段文本（输入框发送与外部播种共用；空文本或正在运行则忽略） */
   const submitText = useCallback(
@@ -494,6 +509,16 @@ export default function DigitalPanel({
     setInput('')
     setCommandIndex(0)
     command.run()
+  }
+
+  // `@` 引用：与 `/` 互斥（输入不可能同时以 / 和 @ 开头）；选中后插入 `@名称 `（空格 ⇒ 菜单收起）
+  const { matches: referenceMatches } = parseDigitalReferences(dataTypes, input)
+  const referenceOpen = referenceMatches.length > 0
+  const activeReferenceIndex =
+    referenceMatches.length === 0 ? 0 : Math.min(commandIndex, referenceMatches.length - 1)
+  const pickReference = (name: string): void => {
+    setInput(`@${name} `)
+    setCommandIndex(0)
   }
 
   return (
@@ -887,13 +912,21 @@ export default function DigitalPanel({
       {commandOpen && (
         <DigitalCommandMenu commands={commandMatches} activeIndex={activeCommandIndex} onRun={runCommand} />
       )}
+      {/* @ 引用菜单（P2）：输入以 `@` 开头且未以空格结束时出现 */}
+      {referenceOpen && (
+        <DigitalReferenceMenu
+          references={referenceMatches}
+          activeIndex={activeReferenceIndex}
+          onPick={pickReference}
+        />
+      )}
 
       <div className="digital-input-row">
         <input
           ref={inputRef}
           className="form-input"
           data-testid="digital-input"
-          placeholder="和数字员工说点什么…（/ 打开命令）"
+          placeholder="和数字员工说点什么…（/ 命令，@ 引用数据表）"
           value={input}
           disabled={running}
           onChange={(event) => {
@@ -925,6 +958,30 @@ export default function DigitalPanel({
                 return
               }
             }
+            if (referenceOpen) {
+              if (event.key === 'ArrowDown') {
+                event.preventDefault()
+                setCommandIndex((index) => (index + 1) % referenceMatches.length)
+                return
+              }
+              if (event.key === 'ArrowUp') {
+                event.preventDefault()
+                setCommandIndex((index) => (index - 1 + referenceMatches.length) % referenceMatches.length)
+                return
+              }
+              if (event.key === 'Enter') {
+                event.preventDefault()
+                const reference = referenceMatches[activeReferenceIndex]
+                if (reference !== undefined) pickReference(reference.name)
+                return
+              }
+              if (event.key === 'Escape') {
+                event.preventDefault()
+                setInput('')
+                setCommandIndex(0)
+                return
+              }
+            }
             if (event.key === 'Enter') handleSend()
           }}
         />
@@ -932,7 +989,7 @@ export default function DigitalPanel({
           type="button"
           className="btn primary"
           data-testid="digital-send"
-          disabled={running || input.trim() === '' || commandOpen}
+          disabled={running || input.trim() === '' || commandOpen || referenceOpen}
           onClick={handleSend}
         >
           发送
