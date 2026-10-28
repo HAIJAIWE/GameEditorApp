@@ -78,12 +78,12 @@ MCP server ──stdio JSON-RPC──▶ McpClient ──tools/list──▶ Mcp
 - **两种传输**：stdio 子进程 + Streamable HTTP（`application/json` 与 SSE 两种响应）
 - `initialize`/`tools/list`/`tools/call`
 - 工具 → 技能桥（文本内容拼接、`isError`→`success`、异常收敛）
-- 配置解析（容错，stdio/http 二选一）+ 应用级单例 + 库级注册
-- 9 条单测（配置含 http / 桥 / 协议客户端用假传输层）
+- 配置解析（容错，stdio/http 二选一 + `risk`）+ 应用级单例 + 库级注册
+- **MCP 配置 UI**（Slice 20）：工具菜单「MCP 配置」→ `McpConfigPanel` 编辑 `mcp.json`，保存后 `mcp:setConfig` 写盘并**重连**
+- **风险分级**（Slice 20）：动态风险表 + 每服务器 `risk` 档 + 工具名启发式（shell/write/delete→SYSTEM 需二次确认；read/list→READ_ONLY）
+- 单测：`mcp.test.ts` 13 条（配置/桥/客户端/风险分级）
 
 **未做（后续）**
-- **MCP 配置 UI**（现在手写 `mcp.json`；未来可在「插件中心」加配置面板）
-- **风险分级**：MCP 工具目前走 `DEFAULT_TOOL_RISK`（未登记），shell 类工具**不会**自动要求二次确认；要更严可在 `TOOL_RISK_MAP` 登记或按服务器配置风险
 - **工具面限量**：MCP 工具计入本地 8 / 云端 15 的上限，接多了会被截断（可调 `TOOL_FACE_LIMITS`）
 - ~~**SubAgent 通道 / 并行执行**~~ → **已做**（Slice 19，opt-in）：`parallelToolCalls` + `tool.spawn_subagent`，见 [`agent-parallel-subagent.md`](./agent-parallel-subagent.md)
 
