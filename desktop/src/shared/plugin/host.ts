@@ -1,4 +1,4 @@
-import type { PluginCapability, PluginCapabilityKind, PluginManifest } from './types'
+import type { PluginCapability, PluginCapabilityKind, PluginManifest, PluginSidebarItem } from './types'
 
 /**
  * 插件宿主：管理插件的注册与生命周期（dsh 风格 install → activate → disable）。
@@ -178,6 +178,24 @@ export class PluginHost {
   /** 菜单能力（按 `order` 升序；同标题的条目由宿主合并渲染） */
   menus(): Extract<PluginCapability, { kind: 'menu' }>[] {
     return [...this.capabilities('menu')].sort((left, right) => left.order - right.order)
+  }
+
+  /**
+   * 侧栏条目（合并所有启用的 `sidebar` 能力，按 capability `order` 升序拼接；
+   * 同名 `key` 以先到者为准，后到者丢弃）。被禁用/坏插件的能力不参与。
+   */
+  sidebarItems(): PluginSidebarItem[] {
+    const ordered = [...this.capabilities('sidebar')].sort((left, right) => left.order - right.order)
+    const out: PluginSidebarItem[] = []
+    const seen = new Set<string>()
+    for (const capability of ordered) {
+      for (const item of capability.items) {
+        if (seen.has(item.key)) continue
+        seen.add(item.key)
+        out.push(item)
+      }
+    }
+    return out
   }
 
   /**

@@ -1,41 +1,35 @@
+import type { PluginSidebarItem } from '../../../shared/plugin/types'
+
 /**
  * 左侧主导航栏（dsh Web 侧边栏风格）。
  *
- * 只做导航分发，不持有任何业务状态——所有行为委托给 `onNavigate(action)`。
- * 三类动作：回首页（home）/ 聚焦数字员工 dock（agent）/ 打开浮层面板（panel）。
- * 当前打开的浮层面板高亮对应条目（home/agent 无高亮态）。
+ * **B 方案 Slice 10 后**：条目不再由本组件或 `App` 硬编码，改由插件声明的 `sidebar` 能力供给
+ * （见 `plugins/navigationPlugin.tsx`）。本组件只做纯渲染：
+ * - 接收 `items: PluginSidebarItem[]`（宿主合并后的全部侧栏条目）；
+ * - 点击某条目 → 调 `onActivate(item)`，由 `App` 统一派发（command→执行 / panel→带守卫打开）；
+ * - 当前打开的浮层若等于某条目的 `panel`，则该条目高亮（home/agent 等 command 条目无高亮态）。
+ *
+ * 这样侧栏结构随插件启停变化，且和顶部菜单走同一套「能力 id」语义。
  */
-export type SidebarAction =
-  /** 目标浮层 = `panel` 能力 id（如 `statistics.panel`），不再是一组硬编码 kind */
-  | { type: 'panel'; panel: string }
-  | { type: 'home' }
-  | { type: 'agent' }
-
-export interface SidebarItem {
-  key: string
-  label: string
-  icon: string
-  action: SidebarAction
-}
-
-export default function Sidebar({ items, activePanel, onNavigate }: {
-  items: SidebarItem[]
+export default function Sidebar({ items, activePanel, onActivate }: {
+  items: PluginSidebarItem[]
   activePanel: string | null
-  onNavigate: (action: SidebarAction) => void
+  onActivate: (item: PluginSidebarItem) => void
 }) {
   return (
     <nav className="sidebar" data-testid="sidebar" aria-label="主导航">
       {items.map((item) => {
-        const isActive = item.action.type === 'panel' && item.action.panel === activePanel
+        const isActive = item.panel !== undefined && item.panel === activePanel
+        const testid = item.testid ?? `sidebar-${item.key}`
         return (
           <button
             key={item.key}
             type="button"
             className={`sidebar-item${isActive ? ' active' : ''}`}
-            data-testid={`sidebar-${item.key}`}
+            data-testid={testid}
             title={item.label}
             aria-current={isActive ? 'page' : undefined}
-            onClick={() => onNavigate(item.action)}
+            onClick={() => onActivate(item)}
           >
             <span className="sidebar-icon" aria-hidden>{item.icon}</span>
             <span className="sidebar-label">{item.label}</span>

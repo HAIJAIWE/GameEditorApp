@@ -84,12 +84,46 @@ export interface PluginViewCapability {
   ui: UiNode | (() => UiNode)
 }
 
+/**
+ * 侧栏条目（可序列化）。宿主据此画左侧主导航，点击时：
+ * - 有 `command` ⇒ 执行该 command 能力（home/agent 等导航动作都收编成 command）；
+ * - 否则有 `panel` ⇒ 打开该 panel 能力，并在其激活时高亮（见下方 `isActive` 判定）。
+ *
+ * 与 `menu` 能力同源思路：侧栏结构由插件声明，`App` 不再持有一张硬编码条目表。
+ * `icon` 是 emoji 或图标名，宿主自行解释（CLI 可忽略）。
+ */
+export interface PluginSidebarItem {
+  /** 稳定 id：用作 E2E 锚点 `sidebar-<key>` 与「当前浮层高亮」判定 */
+  key: string
+  label: string
+  icon: string
+  /** 点击触发的 command 能力 id（如 `nav.home`）。与 `panel` 二选一 */
+  command?: string
+  /** 点击打开的 panel 能力 id（如 `statistics.panel`）。与 `command` 二选一 */
+  panel?: string
+  /** 稳定测试锚点（E2E 用）；省略回落到 `sidebar-<key>` */
+  testid?: string
+}
+
+/**
+ * 侧栏能力：往宿主左侧主导航栏提供条目（类比 dsh 的 command 注册进侧栏）。
+ * 同一插件通常只声明一个；多个插件的条目按 `order` 拼接（同名 key 以先到者为准）。
+ */
+export interface PluginSidebarCapability {
+  kind: 'sidebar'
+  id: string
+  /** 排序，小在前 */
+  order: number
+  items: PluginSidebarItem[]
+}
+
 export type PluginCapability =
   | PluginCommandCapability
   | PluginPanelCapability
   | PluginServiceCapability
   | PluginMenuCapability
   | PluginViewCapability
+  | PluginSidebarCapability
 
 export type PluginCapabilityKind = PluginCapability['kind']
 

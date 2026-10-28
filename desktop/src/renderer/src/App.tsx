@@ -15,7 +15,8 @@ import { type PreviewJumpTarget } from './components/ceshu/CeshuDataPreview'
 import DigitalPanel from './components/digital/DigitalPanel'
 import MenuBar from './components/MenuBar'
 import { type ReferenceTarget } from './components/ReferencesPanel'
-import Sidebar, { type SidebarAction, type SidebarItem } from './components/Sidebar'
+import Sidebar from './components/Sidebar'
+import type { PluginSidebarItem } from '../../shared/plugin/types'
 import ToastHost from './components/ToastHost'
 import { useUndoRedo } from './hooks/useAppActions'
 import { toErrorMessage } from './appUtils'
@@ -32,21 +33,6 @@ import { AppContextProvider } from './plugins/appContext'
  * 否则上一次从条目表单进来时选中的类型会粘住。带参数打开（内部入口）则不清。
  */
 const CLEARS_PARAMS_ON_OPEN = new Set(['typeEditor.panel', 'quickCreate.panel', 'batch.panel'])
-
-/**
- * 左侧主导航栏条目（dsh Web 侧边栏风格）。
- * home=回策划书首页；agent=聚焦右侧数字员工 dock 输入；其余=打开对应浮层面板（**用 panel 能力 id**）。
- */
-const SIDEBAR_ITEMS: SidebarItem[] = [
-  { key: 'home', label: '策划书', icon: '📘', action: { type: 'home' } },
-  { key: 'plugins', label: '插件中心', icon: '🧩', action: { type: 'panel', panel: 'plugins.panel' } },
-  { key: 'relationGraph', label: '关系图', icon: '🕸', action: { type: 'panel', panel: 'relationGraph.panel' } },
-  { key: 'advancedSearch', label: '高级搜索', icon: '🔍', action: { type: 'panel', panel: 'advancedSearch.panel' } },
-  { key: 'stats', label: '统计', icon: '📊', action: { type: 'panel', panel: 'statistics.panel' } },
-  { key: 'settings', label: '设置', icon: '⚙', action: { type: 'panel', panel: 'settings.panel' } },
-  { key: 'about', label: '关于', icon: 'ℹ', action: { type: 'panel', panel: 'about.panel' } },
-  { key: 'agent', label: '数字员工', icon: '🤖', action: { type: 'agent' } }
-]
 
 /**
  * 顶层外壳。
@@ -79,6 +65,20 @@ export default function App() {
    */
   const subscribeHost = useCallback((onChange: () => void) => pluginHost.subscribe(onChange), [])
   const panelId = useSyncExternalStore(subscribeHost, () => pluginHost.activePanel()?.id ?? null)
+  /**
+   * 左侧侧栏条目 = **宿主合并后的 sidebar 能力**（Slice 10）。
+   * 订阅用「条目签名串」当快照：插件启停导致条目增减时字符串变化触发重渲染，
+   * 真正渲染时读 `pluginHost.sidebarItems()` 最新值（与 MenuBar 取 `host.menus()` 同源）。
+   */
+  useSyncExternalStore(
+    subscribeHost,
+    () =>
+      pluginHost
+        .sidebarItems()
+        .map((item) => `${item.key}:${item.command ?? ''}:${item.panel ?? ''}`)
+        .join('|')
+  )
+  const sidebarItems = pluginHost.sidebarItems()
 
   /**
    * 关闭浮层：宿主是单一来源，关也走宿主。
@@ -329,26 +329,21 @@ export default function App() {
   }, [])
 
   /**
-   * 左侧栏导航分发：回首页 / 聚焦数字员工 dock / 打开浮层面板。
-   * 与 MenuBar 的 actions 复用同一组底层 handler（openPanel / setNotice），不另造分支。
+   * 左侧栏点击分发（Slice 10）：条目由插件声明，这里只按「能力 id」统一派发，
+   * 与 MenuBar 的 `runCommand` 同源、不另造分支：
+   * - 有 `command` ⇒ 按 id 找 command 能力执行（home/agent 等导航动作都收编成 command）；
+   * - 否则有 `panel` ⇒ 走带守卫的 `openPanel`（与菜单入口一致）。
+   * 找不到 command = 该插件被禁用，静默（侧栏条目本身已因能力缺失而不会进入列表）。
    */
-  const handleSidebar = (action: SidebarAction): void => {
-    if (action.type === 'home') {
-      setCeshuHomeVisible(true)
-      closePanel()
+  const handleSidebarItem = (item: PluginSidebarItem): void => {
+    if (item.command !== undefined) {
+      const command = pluginHost.commands().find((capability) => capability.id === item.command)
+      if (command !== undefined) void command.run()
       return
     }
-    if (action.type === 'agent') {
-      const input = document.querySelector<HTMLInputElement>('[data-testid="digital-input"]')
-      if (input !== null && !input.disabled) {
-        input.scrollIntoView({ block: 'nearest' })
-        input.focus()
-        return
-      }
-      setNotice('AI 助手在右侧常驻；当前对话运行中，输入框暂不可用')
-      return
+    if (item.panel !== undefined) {
+      openPanel(item.panel)
     }
-    openPanel(action.panel)
   }
 
   /** 切换主题：翻转深/浅并持久化（functional update 避免闭包取到旧值） */
@@ -571,7 +566,7 @@ export default function App() {
     <div className="app">
       <MenuBar host={pluginHost} />
       <div className="app-body">
-        <Sidebar items={SIDEBAR_ITEMS} activePanel={panelId} onNavigate={handleSidebar} />
+        <Sidebar items={sidebarItems} activePanel={panelId} onActivate={handleSidebarItem} />
         <div className="main">
           <div className="main-body">
             <div className="main-area">
