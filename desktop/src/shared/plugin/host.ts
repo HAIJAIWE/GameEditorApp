@@ -1,4 +1,4 @@
-import type { PluginCapability, PluginCapabilityKind, PluginManifest, PluginSidebarItem } from './types'
+import type { PluginCapability, PluginCapabilityKind, PluginLoader, PluginManifest, PluginSidebarItem, PluginSource } from './types'
 
 /**
  * 插件宿主：管理插件的注册与生命周期（dsh 风格 install → activate → disable）。
@@ -16,8 +16,8 @@ import type { PluginCapability, PluginCapabilityKind, PluginManifest, PluginSide
 /** 宿主当前版本；插件 `engines.host` 与之比对（只比主版本，避免无谓的破坏性门槛）。 */
 export const HOST_VERSION = '0.1.0'
 
-/** 插件运行时状态：启用 / 禁用 / 激活失败（坏插件） */
-export type PluginStatus = 'enabled' | 'disabled' | 'error'
+/** 插件运行时状态：启用 / 禁用 / 激活失败（坏插件）/ 加载中（经 loader 异步安装，Slice 44） */
+export type PluginStatus = 'enabled' | 'disabled' | 'error' | 'loading'
 
 /** 启用/禁用持久化接口（宿主注入；宿主无关核心不碰 IO）。 */
 export interface PluginPersistence {
@@ -112,6 +112,72 @@ export class PluginHost {
         record.error = err instanceof Error ? err.message : String(err)
         record.enabled = false
         record.activatedAt = null
+        this.emit()
+      }
+    }
+  }
+
+  /**
+   * 经加载器异步注册插件（cordis 式运行时加载，Slice 44）。
+   *
+   * 流程：`source` → 先放一个 `status:'loading'` 占位（id 暂用 source 串）→ `loader.load(source)`
+   * 拿到 manifest → 置换占位为真实记录并跑 `activate`（非致命）→ 置 enabled/error。
+   * 加载失败只把占位标 `status:'error'`，宿主不崩（与 `register` 同定力）。
+   *
+   * 用于「插件市场」按需安装外部/可选 bundle；静态内置插件仍走同步 `register`。
+   */
+  async loadPlugin(loader: PluginLoader, source: PluginSource): Promise<void> {
+    if (this.plugins.has(source)) {
+      const existing = this.plugins.get(source)
+      if (existing?.status === 'loading') return
+      throw new Error(`plugin "${source}" already registered`)
+    }
+    const placeholder: RegisteredPlugin = {
+      manifest: { id: source, name: source, version: '0.0.0', capabilities: [] },
+      enabled: false,
+      status: 'loading',
+      registeredAt: Date.now(),
+      activatedAt: null
+    }
+    this.plugins.set(source, placeholder)
+    this.emit()
+    try {
+      const manifest = await loader.load(source)
+      if (manifest.id !== source) {
+        if (this.plugins.has(manifest.id)) {
+          this.plugins.delete(source)
+          throw new Error(`plugin "${manifest.id}" already registered`)
+        }
+        this.plugins.delete(source)
+        this.plugins.set(manifest.id, { ...placeholder, manifest })
+      } else {
+        placeholder.manifest = manifest
+      }
+      const record = this.plugins.get(manifest.id)
+      if (record === undefined) return
+      const overriddenDisabled = this.overrides[manifest.id] === true
+      record.enabled = !overriddenDisabled
+      record.status = overriddenDisabled ? 'disabled' : 'enabled'
+      record.activatedAt = overriddenDisabled ? null : Date.now()
+      // 启动钩子：失败标 error，宿主不崩（dsh 风格非致命激活）
+      if (manifest.activate !== undefined) {
+        try {
+          void manifest.activate()
+        } catch (err) {
+          record.status = 'error'
+          record.error = err instanceof Error ? err.message : String(err)
+          record.enabled = false
+          record.activatedAt = null
+        }
+      }
+      this.emit()
+    } catch (err) {
+      const rec = this.plugins.get(source)
+      if (rec !== undefined) {
+        rec.status = 'error'
+        rec.error = err instanceof Error ? err.message : String(err)
+        rec.enabled = false
+        rec.activatedAt = null
         this.emit()
       }
     }

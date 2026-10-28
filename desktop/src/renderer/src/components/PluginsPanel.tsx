@@ -22,10 +22,11 @@ function PluginActiveRenderer({ component: Bound, onClose, close, params }: {
  */
 const SELF_PANEL_ID = 'plugins.panel'
 
-/** 状态徽标文案（dsh 风格：启用 / 禁用 / 错误） */
-function statusLabel(status: 'enabled' | 'disabled' | 'error'): string {
+/** 状态徽标文案（dsh 风格：启用 / 禁用 / 错误 / 加载中） */
+function statusLabel(status: 'enabled' | 'disabled' | 'error' | 'loading'): string {
   if (status === 'enabled') return '已启用'
   if (status === 'disabled') return '已禁用'
+  if (status === 'loading') return '加载中'
   return '错误'
 }
 

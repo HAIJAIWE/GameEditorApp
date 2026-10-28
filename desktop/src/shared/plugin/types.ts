@@ -227,3 +227,39 @@ export interface PluginManifest {
   activate?: () => void | Promise<void>
   capabilities: PluginCapability[]
 }
+
+/**
+ * 插件分发源（借 dsh `source` 字段语义，扩展为可解析的加载协议，Slice 44）。
+ *
+ * - `factory:<id>`：映射到已打包的工厂函数（静态构建内可用，无需外部 bundle）
+ * - `link:<path>` / `file:<abs>`：运行时动态 `import()` 本地/项目 bundle
+ * - `registry:@scope/name`：从注册中心 HTTP 拉取 manifest+bundleUrl 再动态 `import()`
+ */
+export type PluginSource = string
+
+/**
+ * 插件加载器（宿主无关接口）：把 `PluginSource` 解析为可注册的 `PluginManifest`。
+ * 实现见 `shared/plugin/loader.ts`；契约只认接口不认实现，CLI/引擎宿主可替换。
+ */
+export interface PluginLoader {
+  load(source: PluginSource): Promise<PluginManifest>
+}
+
+/** 市场元数据条目（供「插件市场」UI 消费；与 `PluginManifest` 解耦，展示层专用）。 */
+export interface PluginMarketEntry {
+  /** 与 manifest.id 对齐 */
+  id: string
+  name: string
+  version: string
+  description?: string
+  /** 分发源（market UI 据此调用 loader 安装） */
+  source: PluginSource
+  /** 分层：核心 / 可选 / 实验（借 dsh 的 tiers） */
+  tier: 'core' | 'optional' | 'experimental'
+  /** 是否已在当前构建打包（false = 即将推出 / 未就绪，UI 不提供安装） */
+  ready: boolean
+  /** 推荐位（dsh plugin-recommendations 思路） */
+  recommended?: boolean
+  /** 图标（emoji 或图标名） */
+  icon?: string
+}

@@ -1,4 +1,5 @@
 import { PluginHost } from '../../../shared/plugin/host'
+import { createPluginLoader } from '../../../shared/plugin/loader'
 import { defineAppActionsPlugin } from './appActionsPlugin'
 import { defineCeshuMenusPlugin } from './ceshuMenusPlugin'
 import { defineCeshuPlugin } from './ceshuPlugin'
@@ -12,11 +13,13 @@ import { defineMcpConfigPlugin } from './mcpConfigPlugin'
 import { defineMenusPlugin } from './menusPlugin'
 import { defineNavigationPlugin } from './navigationPlugin'
 import { defineOnboardingPlugin } from './onboardingPlugin'
+import { definePluginMarketPlugin } from './pluginMarketPlugin'
 import { defineReferencesPlugin } from './referencesPlugin'
 import { defineShellPanelsPlugin } from './shellPanelsPlugin'
 import { defineShortcutsPlugin } from './shortcutsPlugin'
 import { defineStatisticsPlugin } from './statisticsPlugin'
 import { defineUtilityPanelsPlugin } from './utilityPanelsPlugin'
+import { createLocalStorageInstalledStore } from './installedPluginStore'
 
 /**
  * 宿主单例：整个渲染进程共享一个 PluginHost。
@@ -26,6 +29,20 @@ import { defineUtilityPanelsPlugin } from './utilityPanelsPlugin'
  * 不再硬编码进 App/MenuBar/CeshuView。
  */
 export const pluginHost = new PluginHost()
+
+/**
+ * 插件市场持久化（已安装 source 清单）。浏览器端落地 localStorage，非浏览器降级为空。
+ * 重启后由 `autoLoadInstalled()` 经 loader 重新加载。
+ */
+export const installedPluginStore = createLocalStorageInstalledStore()
+
+/**
+ * cordis 式运行时加载器（Slice 44）。静态打包的可选插件走 `factory:` 映射；
+ * 未来外部 bundle 走 `link:/file:/registry:`。
+ */
+export const pluginLoader = createPluginLoader({
+  'plugin-market': () => definePluginMarketPlugin(pluginHost, pluginLoader, installedPluginStore)
+})
 
 let registered = false
 
@@ -53,3 +70,13 @@ export function registerBuiltinPlugins(): void {
 }
 
 registerBuiltinPlugins()
+
+/**
+ * 插件市场入口经 `PluginLoader` 异步加载（验证 cordis 式运行时加载路径），
+ * 同时重新加载上次通过市场安装的插件（installedPluginStore 记录的 source）。
+ * 失败仅把对应占位标 `status:'error'`，不阻塞宿主。
+ */
+void pluginHost.loadPlugin(pluginLoader, 'factory:plugin-market')
+for (const source of installedPluginStore.load()) {
+  void pluginHost.loadPlugin(pluginLoader, source)
+}
