@@ -7,7 +7,14 @@ import FieldActionStrip from './FieldActionStrip'
 
 import LucideIcon from '../LucideIcon'
 
-import { DigitalApproval, DigitalStepList, DigitalSubagentList, DigitalTaskList } from './digitalPanelViews'
+import {
+  DigitalApproval,
+  DigitalCommandMenu,
+  DigitalStepList,
+  DigitalSubagentList,
+  DigitalTaskList
+} from './digitalPanelViews'
+import { parseDigitalCommands, type DigitalCommand } from '../../../../shared/agent/commands'
 
 import type { BrainEvent } from '../../../../shared/agent/brain'
 import type { AgentRunTier } from '../../../../shared/agent/observability'
@@ -127,6 +134,8 @@ export default function DigitalPanel({
 }) {
   const [state, dispatch] = useReducer(reducer, initialDigitalPanelState)
   const [input, setInput] = useState('')
+  /** 斜杠命令菜单的当前高亮项（键盘上下导航；输入变化时重置为 0） */
+  const [commandIndex, setCommandIndex] = useState(0)
   const [stepsOpen, setStepsOpen] = useState(true)
   const [sessionHint, setSessionHint] = useState<{ messageCount: number; savedAt: string } | null>(null)
   const [interactionAnswer, setInteractionAnswer] = useState('')
@@ -421,6 +430,59 @@ export default function DigitalPanel({
         setSessionHint(null)
       })
       .catch((error: unknown) => setLocalError(toErrorMessage(error)))
+  }
+
+  /*
+   * 斜杠命令（P2）：输入框以 `/` 开头时弹出，键盘上下选择 + Enter 执行。
+   * 只放「不需要运行中也能用」的命令——运行中输入框是禁用的，放了也点不到。
+   */
+  type CommandWithRun = DigitalCommand & { run: () => void }
+  const COMMANDS: CommandWithRun[] = [
+    { id: 'new', label: '新建对话', hint: '清空当前记录，开始新对话', run: () => void handleNewChat() },
+    {
+      id: 'preset',
+      label: '切换预设',
+      hint: `当前：${presetLabel(preset)}；切到下一个`,
+      run: () => {
+        const index = AGENT_PRESETS.findIndex((option) => option.id === preset)
+        const next = AGENT_PRESETS[(index + 1) % AGENT_PRESETS.length]
+        if (next !== undefined) changePreset(next.id)
+      }
+    },
+    {
+      id: 'drafts',
+      label: '草稿管理',
+      hint: '保存 / 恢复对话草稿',
+      run: () => {
+        setDraftMenuOpen(true)
+        void loadDrafts()
+      }
+    },
+    {
+      id: 'capabilities',
+      label: '能力清单',
+      hint: '查看工具与风险等级',
+      enabled: onOpenCapabilities !== undefined,
+      run: () => onOpenCapabilities?.()
+    },
+    { id: 'clear', label: '清空输入', hint: '只清空输入框，不发送', run: () => setInput('') },
+    {
+      id: 'help',
+      label: '帮助',
+      hint: '斜杠命令与发送方式',
+      run: () => setNotice('输入 / 打开命令；直接输入文字则发送给数字员工。')
+    }
+  ]
+  const { matches: commandMatches } = parseDigitalCommands(COMMANDS, input)
+  const commandOpen = commandMatches.length > 0
+  const activeCommandIndex =
+    commandMatches.length === 0 ? 0 : Math.min(commandIndex, commandMatches.length - 1)
+  const runCommand = (id: string): void => {
+    const command = COMMANDS.find((candidate) => candidate.id === id)
+    if (command === undefined) return
+    setInput('')
+    setCommandIndex(0)
+    command.run()
   }
 
   return (
@@ -810,16 +872,48 @@ export default function DigitalPanel({
         <DigitalApproval approval={state.approval} onApprove={handleApproval} />
       )}
 
+      {/* 斜杠命令菜单（P2）：输入以 `/` 开头时出现在输入框上方 */}
+      {commandOpen && (
+        <DigitalCommandMenu commands={commandMatches} activeIndex={activeCommandIndex} onRun={runCommand} />
+      )}
+
       <div className="digital-input-row">
         <input
           ref={inputRef}
           className="form-input"
           data-testid="digital-input"
-          placeholder="和数字员工说点什么…"
+          placeholder="和数字员工说点什么…（/ 打开命令）"
           value={input}
           disabled={running}
-          onChange={(event) => setInput(event.target.value)}
+          onChange={(event) => {
+            setInput(event.target.value)
+            setCommandIndex(0)
+          }}
           onKeyDown={(event) => {
+            if (commandOpen) {
+              if (event.key === 'ArrowDown') {
+                event.preventDefault()
+                setCommandIndex((index) => (index + 1) % commandMatches.length)
+                return
+              }
+              if (event.key === 'ArrowUp') {
+                event.preventDefault()
+                setCommandIndex((index) => (index - 1 + commandMatches.length) % commandMatches.length)
+                return
+              }
+              if (event.key === 'Enter') {
+                event.preventDefault()
+                const command = commandMatches[activeCommandIndex]
+                if (command !== undefined) runCommand(command.id)
+                return
+              }
+              if (event.key === 'Escape') {
+                event.preventDefault()
+                setInput('')
+                setCommandIndex(0)
+                return
+              }
+            }
             if (event.key === 'Enter') handleSend()
           }}
         />
@@ -827,7 +921,7 @@ export default function DigitalPanel({
           type="button"
           className="btn primary"
           data-testid="digital-send"
-          disabled={running || input.trim() === ''}
+          disabled={running || input.trim() === '' || commandOpen}
           onClick={handleSend}
         >
           发送

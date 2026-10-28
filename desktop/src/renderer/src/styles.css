@@ -5580,6 +5580,44 @@ button.ref-row:hover {
   flex: 1;
 }
 
+/* 斜杠命令菜单（P2）：输入框上方浮出的命令清单 */
+.digital-command-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel-bg, var(--bg));
+  padding: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.digital-command-item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.digital-command-item:hover,
+.digital-command-item.active {
+  background: var(--hover-bg, rgba(127, 127, 127, 0.14));
+}
+
+.digital-command-label {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 /* ---- 库条（A2-2） ---- */
 
 .library-bar {

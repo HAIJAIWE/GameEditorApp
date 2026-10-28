@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react'
 
 import { RISK_LEVEL, resolveRiskLevel } from '../../../../shared/agent/protocol'
+import type { DigitalCommand } from '../../../../shared/agent/commands'
 import {
   summarizeToolTasks,
   type DigitalPanelState,
@@ -287,6 +288,43 @@ export function DigitalStepList({ steps }: { steps: DigitalPanelState['steps'] }
         <TurnGroup key={group.turn} turn={group.turn} steps={group.steps} />
       ))}
     </ol>
+  )
+}
+
+/**
+ * 斜杠命令菜单（P2）：输入框以 `/` 开头时出现；键盘上下选择 + Enter 执行，点击亦可。
+ * 纯展示组件——匹配逻辑在 `shared/agent/commands.ts`，激活索引由父组件维护。
+ */
+export function DigitalCommandMenu({
+  commands,
+  activeIndex,
+  onRun
+}: {
+  commands: DigitalCommand[]
+  activeIndex: number
+  onRun: (id: string) => void
+}) {
+  if (commands.length === 0) return null
+  return (
+    <div className="digital-command-menu" data-testid="digital-command-menu" role="listbox">
+      {commands.map((command, index) => (
+        <button
+          key={command.id}
+          type="button"
+          role="option"
+          aria-selected={index === activeIndex}
+          className={`digital-command-item${index === activeIndex ? ' active' : ''}`}
+          data-testid="digital-command-item"
+          data-command={command.id}
+          onClick={() => onRun(command.id)}
+        >
+          <span className="digital-command-label">
+            /{command.id} · {command.label}
+          </span>
+          <span className="item-meta">{command.hint}</span>
+        </button>
+      ))}
+    </div>
   )
 }
 
