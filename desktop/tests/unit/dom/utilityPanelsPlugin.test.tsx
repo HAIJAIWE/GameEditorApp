@@ -10,13 +10,16 @@ import { installMbApi, renderDom, type RenderResult } from './render'
 
 const TYPES: DataTypeDef[] = []
 
-/** bundle 形态：一个插件带 5 个 panel 能力（零依赖工具面板） */
+/** bundle 形态：一个插件带 8 个 panel 能力（不依赖 App 状态的面板） */
 const PANEL_IDS = [
   'settings.panel',
   'cleanupImages.panel',
   'keywordTemplates.panel',
   'agentEditor.panel',
-  'gameDataPreview.panel'
+  'gameDataPreview.panel',
+  'attrSystem.panel',
+  'dataDiff.panel',
+  'imageGen.panel'
 ] as const
 
 let view: RenderResult | null = null

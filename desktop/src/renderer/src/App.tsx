@@ -6,9 +6,7 @@ import { loadMiddleTab, MIDDLE_TABS, saveMiddleTab, type MiddleTab } from '../..
 import type { AppInfo, DataTypeDef, ImportPreview } from '../../shared/types'
 import { applyTheme, loadTheme, saveTheme, type ThemeMode } from '../../shared/config/theme'
 
-import AdvancedSearchPanel from './components/AdvancedSearchPanel'
 import AboutPanel from './components/AboutPanel'
-import AttrSystemPanel from './components/AttrSystemPanel'
 import BackupPanel from './components/BackupPanel'
 import BatchEditPanel from './components/BatchEditPanel'
 import ImportPreviewPanel from './components/ImportPreviewPanel'
@@ -19,16 +17,12 @@ import CeshuView from './components/CeshuView'
 import CodePanel from './components/CodePanel'
 import DataEditorPanel from './components/DataEditorPanel'
 import { type PreviewJumpTarget } from './components/ceshu/CeshuDataPreview'
-import DataDiffPanel from './components/DataDiffPanel'
 import DigitalPanel from './components/digital/DigitalPanel'
-import ImageGenPanel from './components/ImageGenPanel'
 import MenuBar from './components/MenuBar'
 import QuickCreatePanel from './components/QuickCreatePanel'
 import { type ReferenceTarget } from './components/ReferencesPanel'
-import RelationGraphPanel from './components/RelationGraphPanel'
 import PluginsPanel from './components/PluginsPanel'
 import Sidebar, { type SidebarAction, type SidebarItem } from './components/Sidebar'
-import AttributeChartPanel from './components/AttributeChartPanel'
 import OnboardingPanel from './components/OnboardingPanel'
 import ToastHost from './components/ToastHost'
 import TypeEditorPanel from './components/TypeEditorPanel'
@@ -612,20 +606,22 @@ export default function App() {
           />
         )
       case 'attrSystem':
-        return <AttrSystemPanel onClose={() => setPanel(null)} />
+        return <HostPanel host={pluginHost} panelId="attrSystem.panel" onClose={() => setPanel(null)} />
       case 'stats':
         // Slice 2：状态化面板经宿主渲染，types 由 appContext 自供给（App 不再下发）。
         return <HostPanel host={pluginHost} panelId="statistics.panel" onClose={() => setPanel(null)} />
       case 'advancedSearch':
-        return <AdvancedSearchPanel types={types} onJump={handleJump} onClose={() => setPanel(null)} />
+        // Slice 5：types / handleJump 由 appContext 自供给（data-panels bundle）。
+        return <HostPanel host={pluginHost} panelId="advancedSearch.panel" onClose={() => setPanel(null)} />
       case 'dataDiff':
-        return <DataDiffPanel onClose={() => setPanel(null)} />
+        // Slice 4 第二批：只依赖 onClose，绑定负责转发（utility-panels bundle）。
+        return <HostPanel host={pluginHost} panelId="dataDiff.panel" onClose={() => setPanel(null)} />
       case 'backup':
         return <BackupPanel onRestored={() => refreshUndo()} onClose={() => setPanel(null)} />
       case 'imageGen':
-        return <ImageGenPanel onClose={() => setPanel(null)} />
+        return <HostPanel host={pluginHost} panelId="imageGen.panel" onClose={() => setPanel(null)} />
       case 'gameDataPreview':
-        // Slice 4：零依赖面板包（utility-panels bundle），经宿主渲染。
+        // Slice 4：不依赖 App 状态的面板包（utility-panels bundle），经宿主渲染。
         return <HostPanel host={pluginHost} panelId="gameDataPreview.panel" onClose={() => setPanel(null)} />
       case 'shortcuts':
         // 首切片（B 方案）：真实产品面板经 PluginHost 渲染，App 不再硬编码组件。
@@ -643,7 +639,7 @@ export default function App() {
       case 'agentEditor':
         return <HostPanel host={pluginHost} panelId="agentEditor.panel" onClose={() => setPanel(null)} />
       case 'attributeChart':
-        return <AttributeChartPanel types={types} />
+        return <HostPanel host={pluginHost} panelId="attributeChart.panel" onClose={() => setPanel(null)} />
       case 'onboarding':
         return <OnboardingPanel types={types} onAction={handleOnboardingAction} onClose={() => setPanel(null)} />
       case 'importPreview':
@@ -692,7 +688,7 @@ export default function App() {
         // Slice 3：面板经宿主渲染，目标条目由宿主打开参数自供给（App 不再持有 refTarget）。
         return <HostPanel host={pluginHost} panelId="references.panel" onClose={() => setPanel(null)} />
       case 'relationGraph':
-        return <RelationGraphPanel types={types} onJump={handleJump} />
+        return <HostPanel host={pluginHost} panelId="relationGraph.panel" onClose={() => setPanel(null)} />
       case 'plugins':
         return <PluginsPanel host={pluginHost} onClose={() => setPanel(null)} />
       default:

@@ -1,6 +1,6 @@
 # 插件架构与深层插件化迁移设计
 
-> 状态：进行中（B 方案，Slice 3/8 完成）。最后更新 2026-10-28。
+> 状态：进行中（B 方案，Slice 5/8 完成，11 个面板已迁）。最后更新 2026-10-28。
 > 本文是插件系统的权威设计文档，也是「深层插件化」跨会话的交接文档。
 > 相关代码：`desktop/src/shared/plugin/`、`desktop/src/renderer/src/plugins/`。
 
@@ -37,7 +37,8 @@ renderer/src/plugins/
   shortcutsPlugin.tsx      Slice 1：静态面板迁移样例
   statisticsPlugin.tsx     Slice 2：状态化面板迁移样例（appContext 自供给）
   referencesPlugin.tsx     Slice 3：带打开参数的面板迁移样例（宿主携带目标条目，见 §5）
-  utilityPanelsPlugin.tsx  Slice 4：零依赖工具面板 bundle（5 个 panel 能力，见 §6 bundle 形态）
+  utilityPanelsPlugin.tsx  Slice 4：不依赖 App 状态的面板 bundle（8 个 panel 能力，见 §6 bundle 形态）
+  dataPanelsPlugin.tsx     Slice 5：只依赖 types + handleJump 的面板 bundle（appContext 自供给）
 ```
 
 ### 2.1 契约（`types.ts`）
@@ -92,8 +93,8 @@ App.renderPanel()
 | Slice 1 | 静态面板（快捷键参考）经 `HostPanel` 渲染，打通「面板经宿主渲染」通路 | ✅ 完成 |
 | Slice 2 | `appContext` store + 状态化面板（数据统计）自供给 `types`，解耦 App props | ✅ 完成 |
 | Slice 3 | `openPanel(id, params)` 承载面板打开参数；引用面板迁出 App 的 `refTarget` state | ✅ 完成 |
-| Slice 4 | 低风险无状态/仅 onClose 面板批量迁移（见 §6 清单）：**零依赖 5 个已迁**（bundle 形态），剩 `attrSystem` / `dataDiff` / `imageGen` | 🔶 进行中 |
-| Slice 5 | 依赖 `types + handleJump` 的面板（高级搜索 / 关系图 / 属性图表） | ⬜ 待做 |
+| Slice 4 | 不依赖 App 状态的面板批迁（8 个，`utility-panels` bundle：5 零 props + 3 仅 onClose） | ✅ 完成 |
+| Slice 5 | 只依赖 `types + handleJump` 的面板（高级搜索 / 关系图 / 属性图表，`data-panels` bundle） | ✅ 完成 |
 | Slice 6 | 依赖回调的面板（备份 refreshUndo / 清空 handleDataCleared / 引导 action） | ⬜ 待做 |
 | Slice 7 | 带打开参数的面板（类型编辑器 / 快速创建 / 批量编辑 / 导入预览） | ⬜ 待做 |
 | Slice 8 | `MenuBar` ~40 个菜单动作 → `command` 能力，App 不再持有动作清单 | ⬜ 待做 |
@@ -216,18 +217,18 @@ function ReferencesPanelBound({ onClose, params }: PanelBindingProps) {
 |---|---|---|---|---|
 | `shortcuts` | ShortcutsPanel | 无 | 低 | ✅ |
 | `stats` | StatisticsPanel | `types` | 低 | ✅ |
-| `attrSystem` | AttrSystemPanel | `onClose` | 低 | ⬜ |
-| `dataDiff` | DataDiffPanel | `onClose` | 低 | ⬜ |
+| `attrSystem` | AttrSystemPanel | `onClose` | 低 | ✅ |
+| `dataDiff` | DataDiffPanel | `onClose` | 低 | ✅ |
 | `settings` | SettingsPanel | 无 | 低 | ✅ |
 | `cleanupImages` | CleanupImagesPanel | 无 | 低 | ✅ |
 | `keywordTemplates` | KeywordTemplatePanel | 无 | 低 | ✅ |
 | `agentEditor` | AgentEditorPanel | 无 | 低 | ✅ |
-| `imageGen` | ImageGenPanel | `onClose` | 低 | ⬜ |
+| `imageGen` | ImageGenPanel | `onClose` | 低 | ✅ |
 | `gameDataPreview` | GameDataPreviewPanel | 无 | 低 | ✅ |
 | `about` | AboutPanel | `version`（AppInfo） | 中 | ⬜ |
-| `attributeChart` | AttributeChartPanel | `types` | 中 | ⬜ |
-| `relationGraph` | RelationGraphPanel | `types` + `handleJump` | 中 | ⬜ |
-| `advancedSearch` | AdvancedSearchPanel | `types` + `handleJump` | 中 | ⬜ |
+| `attributeChart` | AttributeChartPanel | `types` | 中 | ✅ |
+| `relationGraph` | RelationGraphPanel | `types` + `handleJump` | 中 | ✅ |
+| `advancedSearch` | AdvancedSearchPanel | `types` + `handleJump` | 中 | ✅ |
 | `backup` | BackupPanel | `refreshUndo` | 中 | ⬜ |
 | `clearAll` | ClearAllPanel | `handleDataCleared` | 中 | ⬜ |
 | `onboarding` | OnboardingPanel | `types` + `handleOnboardingAction` | 中 | ⬜ |
@@ -240,8 +241,8 @@ function ReferencesPanelBound({ onClose, params }: PanelBindingProps) {
 
 > 注：`onClose` 是通用契约，不计入「依赖」。
 
-**bundle 形态（Slice 4 采用）**：零依赖工具面板不拆成「一个面板一个插件文件」，而是打包成一个
-manifest（`utility-panels`，5 个 `panel` 能力 + 5 个 `command`），这是 dsh 的 bundle 概念——
+**bundle 形态（Slice 4/5 采用）**：同类面板不拆成「一个面板一个插件文件」，而是打包成一个
+manifest（`utility-panels` 8 个面板、`data-panels` 3 个面板），这是 dsh 的 bundle 概念——
 省掉重复样板，启用/禁用粒度对这类工具面板够用。
 
 - **用 bundle**：面板之间无独立开关需求、都不带参数、代码都只是「渲染一个零 props 组件」。
@@ -295,20 +296,35 @@ manifest（`utility-panels`，5 个 `panel` 能力 + 5 个 `command`），这是
 
 ---
 
-## 9. 下一步（Slice 4 收尾 → Slice 5）
+## 9. 下一步（Slice 6 / 7 / 8）
 
-**现状**：通路（宿主渲染 / 共享状态 / 打开参数）三件使能件已齐；Slice 4 的**零依赖 5 个面板已迁**
-（`utility-panels` bundle：settings / cleanupImages / keywordTemplates / agentEditor / gameDataPreview）。
+**现状**：三件使能件（宿主渲染 / 共享状态 / 打开参数）已齐，**11 个面板已迁**（Slice 1/2/3/4/5）。
+App 的 `renderPanel()` 里「组件直连」只剩 7 个：`backup` / `clearAll` / `onboarding` /
+`typeEditor` / `quickCreate` / `batch` / `importPreview`。
 
-**Slice 4 剩余 3 个**（只依赖 `onClose` 转发）：`attrSystem` / `dataDiff` / `imageGen`。
-- 与 bundle 不同，这三个的绑定要**转发 `onClose`**（`({ onClose }) => <Panel onClose={onClose} />`），
-  适合继续放进 `utility-panels`（它们仍无其它依赖），或按需单独成片。
-- 注意 `AttrSystemPanel` 体量大、内部有自己的数据拉取，迁移后要补一条 DOM 测试证明 testid 与关闭仍工作。
+**Slice 6 — 依赖回调的面板（3 个）**
 
-**Slice 5 预告**：`advancedSearch` / `relationGraph` / `attributeChart` 只依赖 `types + handleJump`，
-直接复用 appContext，属「纯配置迁移」，风险低于带回调的 Slice 6。
+| 面板 | 需要的动作 | 归属 |
+|---|---|---|
+| `backup` | `refreshUndo` | 已在 appContext，直接可用 |
+| `clearAll` | `handleDataCleared` | 需新增到 appContext（破坏性操作后的收尾） |
+| `onboarding` | `handleOnboardingAction`（8 个 action 的导航分发） | 需新增到 appContext，或改造成 command 派发 |
 
-**验收**：App 的 `renderPanel()` 中「组件直连」分支只剩 Slice 5–7 未迁面板；四道闸绿。
+- `clearAll` 的 `handleDataCleared` 与 `backup` 的 `refreshUndo` 语义相近（都是「数据被改过，刷新外部状态」），
+  可考虑合并成一个 `afterDataMutation()` 动作，避免 context 里堆同义项。
+- `onboarding` 的 action 分发本质是「导航」——更适合走 Slice 8 的 command，而不是塞进 context。
+
+**Slice 7 — 带打开参数的面板（4 个）**：`typeEditor`（`initialTypeId`）/ `quickCreate`（目标类型）/
+`batch`（`firstType`）/ `importPreview`（`previewId` + `preview`）。通路已由 Slice 3 打通，
+这 4 个是「照抄 referencesPlugin 的写法」，但要额外注意：
+- `importPreview` 的参数含**整份预览数据**（不是小对象），断言时校验 `previewId` 与 `preview` 同源，避免错配；
+- 这 4 个面板的 App state 同时被别处读（如 `openPanel` 的 `firstType` 守卫），删 state 前先确认没有第二消费者。
+
+**Slice 8 — 菜单动作 → command（~40 个）**：`MenuBar` 的 `actions` 对象整块交给插件自供给，
+App 不再持有动作清单。这是最大一片，建议先把「纯导航类」（打开某面板）批量转成 command，
+再处理「有副作用的」（导入/导出/清空）。
+
+**验收**：`renderPanel()` 的 switch 只剩 `default`；`MenuBar` 的 actions 由 `host.commands()` 生成；四道闸绿。
 
 ---
 
@@ -339,8 +355,14 @@ Slice 3：
 - `tests/unit/pluginHost.test.ts`（+3：参数同一引用 / 预置与沿用 / 变更通知）
 - `tests/unit/dom/referencesPlugin.test.tsx`（新增 4 条：参数下发 / 换参数刷新 / 坏参数不崩 / 命令沿用预置）
 
-Slice 4（第一批，零依赖 5 个）：
-- `renderer/src/plugins/utilityPanelsPlugin.tsx`（新增；bundle 形态，5 panel + 5 command）
+Slice 4（8 个不依赖 App 状态的面板）：
+- `renderer/src/plugins/utilityPanelsPlugin.tsx`（新增；bundle 形态，8 panel + 8 command）
 - `renderer/src/plugins/builtins.ts`（注册）
-- `renderer/src/App.tsx`（5 个 case → HostPanel，删 5 个直接 import）
-- `tests/unit/dom/utilityPanelsPlugin.test.tsx`（新增 3 条：能力清单 / testid 保留 / 禁用后不再渲染）
+- `renderer/src/App.tsx`（8 个 case → HostPanel，删 8 个直接 import）
+- `tests/unit/dom/utilityPanelsPlugin.test.tsx`（3 条：能力清单 / testid 保留 / 禁用后不再渲染）
+
+Slice 5（3 个只依赖共享状态的面板）：
+- `renderer/src/plugins/dataPanelsPlugin.tsx`（新增；`data-panels` bundle，绑定内 `useAppContext()`）
+- `renderer/src/plugins/builtins.ts`（注册）
+- `renderer/src/App.tsx`（3 个 case → HostPanel，删 3 个直接 import）
+- `tests/unit/dom/dataPanelsPlugin.test.tsx`（3 条：能力清单 / types 经 context 注入 / 无 onClose 面板可挂）
