@@ -48,6 +48,7 @@ renderer/src/plugins/
   appActionsIo.ts          Slice 8e：文件 I/O 实现（从 useDataTransfer 搬出）+ 注入式端口
   menusPlugin.ts           Slice 9：6 个 menu 能力（文件/编辑/工具/视图/设置/帮助），菜单结构由插件声明
   menuState.ts             菜单禁用态通道（disabledWhen → undo/redo 可用性，App 注入）
+  navigationPlugin.tsx     Slice 10：1 个 sidebar 能力（8 条目）+ nav.home / nav.agent 命令，侧栏结构由插件声明
 ```
 
 ### 2.1 契约（`types.ts`）
@@ -59,12 +60,14 @@ renderer/src/plugins/
 - `protected?: boolean` —— 受保护核心，不可禁用（如 ceshu）
 - `engines?: { host?: string }` —— 宿主主版本门禁
 - `activate?: () => void | Promise<void>` —— 启动钩子；**抛错非致命**（标 `status:'error'`，宿主不崩）
-- `capabilities: PluginCapability[]` —— 五类能力：
+- `capabilities: PluginCapability[]` —— 六类能力：
   - `command`：`{ id, label, run() }` 可执行动作
   - `panel`：`{ id, title, ui: UiNode | (() => UiNode) }` 可挂载视图
   - `service`：`{ id, invoke(...args) }` 供其他插件调用
   - `menu`：`{ id, menu, order, items }` 往宿主某顶层菜单塞条目（`PluginMenuItem.command` 指向命令；
     `disabledWhen` 只写**判定键**，状态由宿主注入——manifest 保持可序列化）
+  - `sidebar`：`{ id, order, items }` 往宿主左侧主导航栏塞条目（`PluginSidebarItem` 二选一：
+    `command` 执行命令 / `panel` 打开面板并高亮；`key` 作 E2E 锚点 `sidebar-<key>`）
   - `view`：声明式视图
 
 `UiNode`：`text | button | input | container`，完全可序列化，供非 React 宿主解析。
@@ -76,6 +79,8 @@ renderer/src/plugins/
 - `enable / disable`：`disable` 受保护插件抛错；**只关闭该插件自己打开的面板**（`panelOwner` 精确匹配）。
 - `capabilities(kind)`：只返回 `status==='enabled'` 插件的能力（禁用/坏插件不参与分发）。
 - `openPanel(id, params?)` / `closePanel()` / `activePanel()` / `subscribe(fn)`。
+- `menus()`：启用插件的 `menu` 能力，按 `order` 升序（同标题由 `MenuBar` 合并）。
+- `sidebarItems()`：合并启用插件的 `sidebar` 能力（按 `order` 升序拼接，`key` 去重，先到者为准）。
 - `setPanelParams(id, params)` / `panelParams(id)`：面板**打开参数**通道（Slice 3，见 §5）。
 - `PluginPersistence`：启用/禁用覆写持久化接口（宿主注入，核心不碰 IO）；**只记录被显式禁用的 id**。
 
@@ -110,6 +115,7 @@ App.renderPanel()
 | Slice 7 | 带打开参数的面板（类型编辑器 / 快速创建 / 批量编辑 / 导入预览）→ `entry-panels` bundle；App 里 4 份专用 state 全部删除 | ✅ 完成 |
 | Slice 8 | `MenuBar` 35 个菜单动作 → `command` 能力，App 不再持有动作清单 | ✅ 完成（8a 浮层塌缩 / 8b 导航 / 8c+8e 应用动作 / 8d 引导） |
 | Slice 9 | **菜单结构本身** → `menu` 能力：`MenuBar` 从 `host.menus()` 渲染，App 的 35 项 `MenuActions` 表删除 | ✅ 完成 |
+| Slice 10 | **侧栏结构本身** → `sidebar` 能力：`Sidebar` 消费 `PluginSidebarItem[]`，App 的 `SIDEBAR_ITEMS` 常量与 `handleSidebar` 三分支删除；`home`/`agent` 收编为 `nav.*` 命令 | ✅ 完成 |
 
 ---
 
@@ -360,7 +366,7 @@ manifest（`utility-panels` 8 个面板、`data-panels` 3 个面板），这是 
 1. ~~`MenuBar` 从 `host.commands()` 生成菜单项~~ → **Slice 9 已完成**（`menu` 能力 + `MenuBar` 从 `host.menus()` 渲染）。
 2. **`CeshuView` 内部面板**（报告 / 体检 / 路线 / 影响面）：不在本次范围（编辑器内视图，非浮层），
    若要插件化需要新能力类型（如 `view` 的挂载点声明）。
-3. **`Sidebar` 数据驱动**：`SIDEBAR_ITEMS` 仍是 App 的常量表，可改为插件声明的导航项。
+3. ~~`Sidebar` 数据驱动~~ → **Slice 10 已完成**（`sidebar` 能力 + `navigationPlugin`，App 的 `SIDEBAR_ITEMS` 常量删除）。
 4. **插件市场 / `source` 字段落地**：契约已留 `source`，尚未有安装流程。
 
 ## 10. 文件改动索引
@@ -395,6 +401,15 @@ Slice 4（8 个不依赖 App 状态的面板）：
 - `renderer/src/plugins/builtins.ts`（注册）
 - `renderer/src/App.tsx`（8 个 case → HostPanel，删 8 个直接 import）
 - `tests/unit/dom/utilityPanelsPlugin.test.tsx`（3 条：能力清单 / testid 保留 / 禁用后不再渲染）
+
+Slice 10（侧栏结构插件化）：
+- `shared/plugin/types.ts`（新增 `PluginSidebarCapability` / `PluginSidebarItem`，能力扩到六类）
+- `shared/plugin/host.ts`（`sidebarItems()`：仅启用插件、按 `order` 升序拼接、`key` 去重）
+- `renderer/src/plugins/navigationPlugin.tsx`（新增；1 个 sidebar 能力含 8 条目 + `nav.home` / `nav.agent` 命令）
+- `renderer/src/components/Sidebar.tsx`（重写：消费 `PluginSidebarItem[]`，删 `SidebarAction`/`SidebarItem` 类型；高亮按 `item.panel===activePanel`）
+- `renderer/src/App.tsx`（删 `SIDEBAR_ITEMS` 常量与 `handleSidebar` 三分支；改为订阅 `sidebarItems` 快照 + `handleSidebarItem` 统一派发）
+- `renderer/src/plugins/builtins.ts`（注册 navigation 插件）
+- `tests/unit/dom/navigationPlugin.test.tsx`（7 条：结构顺序 / command-panel 互斥 / 合并去重 / nav.home 关浮层 / nav.agent 聚焦 / 不可用提示 / 死链守卫）
 
 Slice 9（菜单结构插件化）：
 - `shared/plugin/types.ts`（新增 `PluginMenuCapability` / `PluginMenuItem`，能力扩到五类）
