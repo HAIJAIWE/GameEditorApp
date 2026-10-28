@@ -68,6 +68,27 @@ describe('PluginHost', () => {
     expect(host.services()).toHaveLength(0)
   })
 
+  it('toolView（keyed slot）：按 tool 精确匹配，同 tool 时 order 大者在前；禁用后不参与', () => {
+    const host = new PluginHost()
+    host.register(
+      manifest({
+        id: 'p',
+        capabilities: [
+          { kind: 'toolView', id: 'v.low', tool: 'system.x', order: 1, ui: { type: 'text', text: 'low' } },
+          { kind: 'toolView', id: 'v.high', tool: 'system.x', order: 5, ui: { type: 'text', text: 'high' } },
+          { kind: 'toolView', id: 'v.other', tool: 'system.y', ui: { type: 'text', text: 'other' } }
+        ]
+      })
+    )
+    const views = host.toolViews()
+    expect(views).toHaveLength(3)
+    // order 大者在前：同 tool 的第一个即「胜出」的那个
+    expect(views[0]?.id).toBe('v.high')
+    expect(views.map((view) => view.id)).toEqual(['v.high', 'v.low', 'v.other'])
+    host.disable('p')
+    expect(host.toolViews()).toHaveLength(0)
+  })
+
   it('openPanel 仅接受已启用的 panel（ui 声明式，宿主无关），关闭后 activePanel 为 null', () => {
     const host = new PluginHost()
     host.register(

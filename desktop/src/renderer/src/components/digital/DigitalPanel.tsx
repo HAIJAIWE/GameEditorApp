@@ -15,6 +15,8 @@ import {
   DigitalTaskList
 } from './digitalPanelViews'
 import { parseDigitalCommands, type DigitalCommand } from '../../../../shared/agent/commands'
+import { pluginHost } from '../../plugins/builtins'
+import { getToolViewBinding } from '../../plugins/toolViewBindings'
 
 import type { BrainEvent } from '../../../../shared/agent/brain'
 import type { AgentRunTier } from '../../../../shared/agent/observability'
@@ -182,6 +184,15 @@ export default function DigitalPanel({
   const api = useMemo(() => (window.mbApi as unknown as { agent: ChatApi }).agent, [])
   const tasks = useMemo(() => summarizeToolTasks(state.steps), [state.steps])
   const running = isRunning(state)
+
+  /**
+   * 工具视图 keyed slot（P2）：插件声明的 `toolView` 能力 → 渲染层绑定的 React 视图。
+   * 未命中（无插件为该工具提供视图）返回 undefined，`DigitalStepList` 回退内置 text/code/json。
+   */
+  const resolveToolViewFromPlugins = useCallback((tool: string) => {
+    const capability = pluginHost.toolViews().find((candidate) => candidate.tool === tool)
+    return capability === undefined ? undefined : getToolViewBinding(capability.id)
+  }, [])
 
   const currentInteraction = state.interaction?.interaction ?? null
   const multiAnswers = (currentInteraction?.questions ?? []).map((question, index) =>
@@ -697,7 +708,7 @@ export default function DigitalPanel({
           >
             {stepsOpen ? '收起执行步骤' : `展开执行步骤（${state.steps.length}）`}
           </button>
-          {stepsOpen && <DigitalStepList steps={state.steps} />}
+          {stepsOpen && <DigitalStepList steps={state.steps} resolveView={resolveToolViewFromPlugins} />}
         </div>
       )}
 

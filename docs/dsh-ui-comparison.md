@@ -62,9 +62,9 @@ dsh 的 UI 成熟在**两件事**：① **typed slot 组合**（父级声明扩�
 | **P1** | **子智能体面板** | `ui-subagent` | 复用我们已有的异步子智能体（`onSubAgentSpawned`/inbox）：列出子任务（状态/token/耗时）、可「继续对话」（`inbox.push`）、可 Stop | 中 | 高：后端做了没入口，等于白做。**✅ Slice 38/40：列表 + 插话 + 停止已接通（IPC `agent:subagentSend`/`Stop`）** |
 | **P1** | **后台任务面板** | `ui-jobs` | 把异步子智能体当 job：运行/已结束分组、展开输出、**两击停止** | 中 | 中高：与子智能体面板可合并 |
 | **P1** | **审批/提问卡片升级** | `ui-approval` / `ui-user-questions` | 审批卡片显示工具名/参数/风险档；提问支持多问题、选项式 | 小 | 中：现在已有，缺细节 |
-| **P2** | **输入触发（`/` 与 `@`）** | `ui-commands` / `ui-input-trigger` | `/` 触发命令（我们已有 command 系统）、`@` 引用会话/文件/技能 | 中 | 中：效率提升 |
-| **P2** | **keyed slot 机制** | `ui-slots` | 在我们的 `PluginHost` 上加一个「keyed slot」能力：业务插件可注册「某工具的视图」，与现有 panel/view/menu/sidebar 并列 | 中 | 中：让工具视图可插件化，和现有插件体系一致 |
-| **P2** | **非 React store** | `store` | 把数字员工状态从组件内 reducer 提到共享 observable（跨组件/跨面板可读） | 中 | 中：为子智能体面板/任务面板共享状态铺路 |
+| **P2** | **输入触发（`/` 与 `@`）** | `ui-commands` / `ui-input-trigger` | `/` 触发命令（我们已有 command 系统）、`@` 引用会话/文件/技能 | 中 | 中：效率提升。**✅ Slice 41：`/` 已接通**（`parseDigitalCommands` + `DigitalCommandMenu`，↑↓/Enter/Esc；命令：新建/切换预设/草稿/能力/清空/帮助）。`@` 引用仍待后端语义，暂缓 |
+| **P2** | **keyed slot 机制** | `ui-slots` | 在我们的 `PluginHost` 上加一个「keyed slot」能力：业务插件可注册「某工具的视图」，与现有 panel/view/menu/sidebar 并列 | 中 | 中：让工具视图可插件化，和现有插件体系一致。**✅ Slice 42：`toolView` 能力 + `pluginHost.toolViews()` + 渲染层 `registerToolViewBinding` 已接通**（`DigitalStepList` 按工具名解析，未命中回退内置） |
+| **P2** | **非 React store** | `store` | 把数字员工状态从组件内 reducer 提到共享 observable（跨组件/跨面板可读） | 中 | 中：为子智能体面板/任务面板共享状态铺路。**暂缓**：当前仅 `DigitalPanel` 一个消费者，提到全局 store 无实际收益、徒增跨组件同步风险；待出现第二个消费者再做 |
 | **P3** | **凭据遮挡** | `ui-secret-mask` | 发送前对用户文本里的疑似密钥打码 | 小 | 低 |
 
 > **已落地（Slice 39，2026-10-28）**：**审批卡升级**——风险徽标（`resolveRiskLevel` → 只读/写数据/文件系统/网络/系统级，按档配色）+ 参数 `<details open>` 折叠 + 「拒绝回灌 [STOP]」说明。

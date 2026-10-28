@@ -79,6 +79,9 @@ const STEP_ICONS: Record<DigitalStep['kind'], string> = {
  */
 type ToolView = (step: DigitalStep) => ReactNode
 
+/** 外部（插件 keyed slot）提供的工具视图解析器：命中则覆盖内置视图 */
+export type ToolViewResolver = (tool: string) => ToolView | undefined
+
 function textView(step: DigitalStep): ReactNode {
   return <div className="digital-step-result">{step.result ?? ''}</div>
 }
@@ -112,9 +115,11 @@ function resolveToolView(tool: string): ToolView {
 }
 
 /** 单步卡片：默认展开（结果可见），点头部折叠 */
-function ToolStepCard({ step }: { step: DigitalStep }) {
+function ToolStepCard({ step, resolveView }: { step: DigitalStep; resolveView?: ToolViewResolver }) {
   const [expanded, setExpanded] = useState(true)
   const hasBody = step.result !== undefined && step.result !== ''
+  // 插件 keyed slot 优先，其次内置按工具名分派
+  const view = resolveView?.(step.tool) ?? resolveToolView(step.tool)
   return (
     <li
       className={`digital-step digital-step-card digital-step-${step.status}`}
@@ -143,15 +148,21 @@ function ToolStepCard({ step }: { step: DigitalStep }) {
           </span>
         )}
       </button>
-      {expanded && hasBody && (
-        <div className="digital-step-body">{resolveToolView(step.tool)(step)}</div>
-      )}
+      {expanded && hasBody && <div className="digital-step-body">{view(step)}</div>}
     </li>
   )
 }
 
 /** 一轮（turn）的过程分组：对齐 dsh ui-chat 的「轮次过程折叠」 */
-function TurnGroup({ turn, steps }: { turn: number; steps: DigitalStep[] }) {
+function TurnGroup({
+  turn,
+  steps,
+  resolveView
+}: {
+  turn: number
+  steps: DigitalStep[]
+  resolveView?: ToolViewResolver
+}) {
   const [expanded, setExpanded] = useState(true)
   const failed = steps.some((step) => step.status === 'failed')
   return (
@@ -173,7 +184,7 @@ function TurnGroup({ turn, steps }: { turn: number; steps: DigitalStep[] }) {
       {expanded && (
         <ol className="digital-turn-steps">
           {steps.map((step, index) => (
-            <ToolStepCard key={`${step.order}-${step.tool}-${index}`} step={step} />
+            <ToolStepCard key={`${step.order}-${step.tool}-${index}`} step={step} resolveView={resolveView} />
           ))}
         </ol>
       )}
@@ -273,8 +284,17 @@ export function DigitalSubagentList({
   )
 }
 
-/** 执行步骤列表（整体折叠由父组件控制；内部按轮次分组，每轮可再折叠） */
-export function DigitalStepList({ steps }: { steps: DigitalPanelState['steps'] }) {
+/**
+ * 执行步骤列表（整体折叠由父组件控制；内部按轮次分组，每轮可再折叠）。
+ * `resolveView` 为插件 keyed slot 的工具视图解析器（可选；未命中回退内置）。
+ */
+export function DigitalStepList({
+  steps,
+  resolveView
+}: {
+  steps: DigitalPanelState['steps']
+  resolveView?: ToolViewResolver
+}) {
   // 按 order（轮次）分组：order 相同即同一轮
   const groups: Array<{ turn: number; steps: DigitalStep[] }> = []
   for (const step of steps) {
@@ -285,7 +305,7 @@ export function DigitalStepList({ steps }: { steps: DigitalPanelState['steps'] }
   return (
     <ol className="digital-step-list">
       {groups.map((group) => (
-        <TurnGroup key={group.turn} turn={group.turn} steps={group.steps} />
+        <TurnGroup key={group.turn} turn={group.turn} steps={group.steps} resolveView={resolveView} />
       ))}
     </ol>
   )

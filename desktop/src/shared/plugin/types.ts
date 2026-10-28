@@ -158,6 +158,26 @@ export interface PluginSidebarCapability {
   items: PluginSidebarItem[]
 }
 
+/**
+ * 工具视图能力（keyed slot，P2）：为**某个工具**提供结果渲染视图。
+ *
+ * 与 `view`/`mainView` 的区别：那些是「独立浮层/页签」；`toolView` 是「数字员工执行步骤里，
+ * 某工具的结果长什么样」的**按 key 分派**视图——即 dsh `ui-slots` 的 keyed slot 思路。
+ *
+ * `tool` 是工具 id（如 `system.game_data` / `mcp.fs.read`），精确匹配；同 tool 多个时 `order` 大者胜。
+ * 富 React 组件经渲染层 `registerToolViewBinding(id)` 外置（与 panel/view 同一套「契约宿主无关、
+ * React 绑定外置」原则）；`ui` 只是声明式回退，供非 React 宿主。
+ */
+export interface PluginToolViewCapability {
+  kind: 'toolView'
+  id: string
+  /** 绑定的工具 id（精确匹配） */
+  tool: string
+  /** 同 tool 多视图时的优先级，大者胜（缺省 0） */
+  order?: number
+  ui: UiNode | (() => UiNode)
+}
+
 export type PluginCapability =
   | PluginCommandCapability
   | PluginPanelCapability
@@ -166,6 +186,7 @@ export type PluginCapability =
   | PluginViewCapability
   | PluginMainViewCapability
   | PluginSidebarCapability
+  | PluginToolViewCapability
 
 export type PluginCapabilityKind = PluginCapability['kind']
 

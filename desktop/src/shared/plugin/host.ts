@@ -212,6 +212,14 @@ export class PluginHost {
   }
 
   /**
+   * 工具视图能力（keyed slot，P2）：按 `tool` 精确匹配；同 tool 多个时 `order` 大者在前。
+   * 数字员工面板据此把「某工具的结果」交给插件提供的视图渲染（缺省走内置 text/code/json）。
+   */
+  toolViews(): Extract<PluginCapability, { kind: 'toolView' }>[] {
+    return this.capabilities('toolView').sort((left, right) => (right.order ?? 0) - (left.order ?? 0))
+  }
+
+  /**
    * 变更版本号（单调递增）。供 `useSyncExternalStore` 作**稳定快照**：
    * `mainViews()`/`sidebarItems()` 这类返回**新数组**的读取不能直接当快照（每次身份都变→无限重渲染），
    * 订阅版本号、在 render 里再算列表即可。
