@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 
 import {
   CESHU_EXPORT_FORMATS,
@@ -82,12 +82,10 @@ import { groupReviewQueue } from './ceshu/reviewQueueGroups'
 import { previewFieldValue, readFieldValue } from './ceshu/reviewPreview'
 import LucideIcon from './LucideIcon'
 import { ViewMount } from '../plugins/ViewMount'
-import { CESHU_VIEW_MOUNT } from '../plugins/ceshuViewContext'
+import { CESHU_CONTENT_MOUNT, CESHU_VIEW_MOUNT } from '../plugins/ceshuViewContext'
 import PresetMarketPanel from './PresetMarketPanel'
 import SystemConfirmPanel from './SystemConfirmPanel'
 import TemplateEditorPanel from './TemplateEditorPanel'
-import VersionDiffPanel from './VersionDiffPanel'
-import VersionTimelinePanel from './VersionTimelinePanel'
 import { toErrorMessage } from './ceshuViewUtils'
 
 /** 数据栏展开状态的 localStorage 键（`'0'` = 收起，其它/缺失 = 展开） */
@@ -229,9 +227,7 @@ export default function CeshuView({
     | 'readiness'
     | 'aiFull'
     | 'aiReview'
-    | 'diff'
     | 'notes'
-    | 'timeline'
     | 'templateEditor'
     | 'aiDataGen'
     | 'presetMarket'
@@ -488,11 +484,24 @@ export default function CeshuView({
   }, [activeChapter])
 
   /**
-   * 卸载时关闭编辑器内视图（Slice 11）：视图状态存在宿主里，不会随组件卸载自动清。
-   * 不关的话「开路线 → 返回首页 → 再进编辑器」会看到路线浮层又冒出来。
+   * 内容槽视图（Slice 12）：版本对比 / 时间线激活时**替换** `.content`（不是叠浮层）。
+   * 订阅宿主判断「当前是否有内容视图」，有则渲染 ViewMount、无则渲染默认内容。
+   */
+  const subscribeHost = useCallback((onChange: () => void) => host.subscribe(onChange), [host])
+  const contentViewId = useSyncExternalStore(
+    subscribeHost,
+    () => host.activeView(CESHU_CONTENT_MOUNT)?.id ?? null
+  )
+
+  /**
+   * 卸载时关闭编辑器内视图（Slice 11/12）：视图状态存在宿主里，不会随组件卸载自动清。
+   * 不关的话「开视图 → 返回首页 → 再进编辑器」会看到它又冒出来。
    * `host` 是 App 传入的稳定单例，故此清理只在真正卸载时触发。
    */
-  useEffect(() => () => host.closeView(CESHU_VIEW_MOUNT), [host])
+  useEffect(() => () => {
+    host.closeView(CESHU_VIEW_MOUNT)
+    host.closeView(CESHU_CONTENT_MOUNT)
+  }, [host])
 
   if (!ceshuId) {
     return (
@@ -1037,8 +1046,8 @@ export default function CeshuView({
       { testid: 'ceshu-health', label: '开发体检', run: () => openEditorView('health.view') },
       { testid: 'ceshu-readiness', label: '完备度', run: () => void handleReadiness() },
       { testid: 'ceshu-autofill', label: '补全空白字段', run: () => void handleAutoFill() },
-      { testid: 'ceshu-diff', label: '版本对比', run: () => setPanel('diff') },
-      { testid: 'ceshu-timeline', label: '版本时间线', run: () => setPanel('timeline') },
+      { testid: 'ceshu-diff', label: '版本对比', run: () => openEditorView('diff.view') },
+      { testid: 'ceshu-timeline', label: '版本时间线', run: () => openEditorView('timeline.view') },
       { testid: 'ceshu-changelog', label: '变更记录', run: () => void handleShowChangelog() },
       { testid: 'ceshu-datarefs', label: '数据引用', run: () => setPanel('dataRefs') },
       { testid: 'ceshu-migration-preview', label: '迁移预览（只读）', run: () => setMigrationOpen(true) },
@@ -1216,7 +1225,13 @@ export default function CeshuView({
       {notice && <div className="notice-banner">{notice}</div>}
 
       <div className="content">
-        {panel === 'aiReview' ? (
+        {/*
+         * 内容槽（Slice 12）：版本对比 / 时间线激活时**替换**整个内容区（不是叠浮层）。
+         * 其余内部面板仍走下面的 `panel` 三元链（待后续切片继续迁）。
+         */}
+        {contentViewId !== null ? (
+          <ViewMount host={host} mount={CESHU_CONTENT_MOUNT} context={{ doc, types, onSelect }} />
+        ) : panel === 'aiReview' ? (
           <AiReviewPanel
             key={doc.ceshu_id}
             ceshuId={doc.ceshu_id}
@@ -1229,16 +1244,6 @@ export default function CeshuView({
             ceshuId={doc.ceshu_id}
             doc={doc}
             onApplied={handleAiApplied}
-            onClose={() => setPanel(null)}
-          />
-        ) : panel === 'diff' ? (
-          <VersionDiffPanel key={doc.ceshu_id} ceshuId={doc.ceshu_id} onClose={() => setPanel(null)} />
-        ) : panel === 'timeline' ? (
-          <VersionTimelinePanel
-            key={doc.ceshu_id}
-            ceshuId={doc.ceshu_id}
-            currentId={doc.ceshu_id}
-            onSelect={onSelect}
             onClose={() => setPanel(null)}
           />
         ) : panel === 'aiDataGen' ? (
@@ -1403,7 +1408,7 @@ export default function CeshuView({
              * 编辑器内视图挂载点（Slice 11）：开发路线 / 开发体检 / 字段影响面不再内联渲染，
              * 改为插件 `view` 能力，由 ViewMount 在这里渲染——**CeshuView 保持挂载**（草稿/编辑态不丢）。
              */}
-            <ViewMount host={host} mount={CESHU_VIEW_MOUNT} doc={doc} />
+            <ViewMount host={host} mount={CESHU_VIEW_MOUNT} context={{ doc, types, onSelect }} />
             {/* 迁移预览（只读）：只展示「会怎么拆 / 哪些重叠」，不改文档 */}
             {migrationOpen && (
               <div className="review-overlay" data-testid="migration-overlay" onClick={() => setMigrationOpen(false)}>

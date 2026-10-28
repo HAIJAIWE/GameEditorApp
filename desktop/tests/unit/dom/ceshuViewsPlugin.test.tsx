@@ -1,32 +1,40 @@
 // @vitest-environment jsdom
 /**
- * 编辑器内视图插件（B 方案 Slice 11：view 挂载点）。
+ * 编辑器内视图插件（B 方案 Slice 11/12：view 挂载点 + 内容槽）。
  *
  * 覆盖：
- * 1. 3 个 view 能力都挂在 `ceshu.overlay`、按 order 排序；
- * 2. 三个 view 都有 React 绑定（缺绑定会退化成占位文本）；
+ * 1. 浮层挂载点 3 个 view、内容槽挂载点 2 个 view，均按 order 排序；
+ * 2. 五个 view 都有 React 绑定；
  * 3. `openView` / `closeView` 按挂载点互斥；未知 view 抛错；
- * 4. `ViewMount` 真的把开发路线 / 影响面渲染出来、关掉后消失；
- * 5. 禁用插件时宿主关闭其已打开视图（不留悬挂状态）。
+ * 4. `ViewMount` 真把开发路线（浮层）/ 版本对比（内容槽）渲染出来、关掉后消失；
+ * 5. 禁用插件时宿主关闭其已打开视图。
  *
- * 放在 `tests/unit/dom/` 且用 jsdom：ViewMount 渲染 React 组件。
+ * 放在 `tests/unit/dom/` 且用 jsdom：ViewMount 渲染 React 组件；版本对比挂载即请求版本列表，
+ * 故需 `installMbApi` 桩住 `ceshu.versions`。
  */
 import { act } from 'react'
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { CESHU_VIEW_MOUNT } from '../../../src/renderer/src/plugins/ceshuViewContext'
+import {
+  CESHU_CONTENT_MOUNT,
+  CESHU_VIEW_MOUNT,
+  type CeshuViewContextValue
+} from '../../../src/renderer/src/plugins/ceshuViewContext'
 import { defineCeshuViewsPlugin } from '../../../src/renderer/src/plugins/ceshuViewsPlugin'
 import { getReactBinding } from '../../../src/renderer/src/plugins/reactBindings'
 import { ViewMount } from '../../../src/renderer/src/plugins/ViewMount'
 import { createDefaultCeshu } from '../../../src/shared/ceshuModel'
 import { PluginHost } from '../../../src/shared/plugin/host'
-import { renderDom, type RenderResult } from './render'
+import { installMbApi, renderDom, type ApiStub, type RenderResult } from './render'
 
 let view: RenderResult | null = null
+let api: ApiStub | null = null
 
 afterEach(async () => {
   await view?.cleanup()
   view = null
+  api?.restore()
+  api = null
   document.body.innerHTML = ''
 })
 
@@ -42,21 +50,30 @@ function makeDoc() {
   return doc
 }
 
-describe('编辑器内视图插件（Slice 11：view 挂载点）', () => {
-  it('声明 3 个 view 能力，都挂在 ceshu.overlay，按 order 排序', () => {
+function ctx(overrides: Partial<CeshuViewContextValue> = {}): CeshuViewContextValue {
+  return { doc: makeDoc(), types: [], onSelect: () => undefined, ...overrides }
+}
+
+describe('编辑器内视图插件（Slice 11/12：view 挂载点 + 内容槽）', () => {
+  it('浮层挂载点声明 3 个 view，按 order 排序', () => {
     const host = hostWithPlugin()
     expect(host.views(CESHU_VIEW_MOUNT).map((v) => v.id)).toEqual([
       'route.view',
       'health.view',
       'fieldImpact.view'
     ])
-    expect(host.views('other.mount')).toEqual([])
     for (const v of host.views(CESHU_VIEW_MOUNT)) expect(v.mount).toBe(CESHU_VIEW_MOUNT)
   })
 
-  it('三个 view 都有 React 绑定（否则会退化成占位文本）', () => {
+  it('内容槽挂载点声明 2 个 view（版本对比 / 时间线）', () => {
+    const host = hostWithPlugin()
+    expect(host.views(CESHU_CONTENT_MOUNT).map((v) => v.id)).toEqual(['diff.view', 'timeline.view'])
+    expect(host.views('other.mount')).toEqual([])
+  })
+
+  it('五个 view 都有 React 绑定（否则会退化成占位文本）', () => {
     hostWithPlugin()
-    for (const id of ['route.view', 'health.view', 'fieldImpact.view']) {
+    for (const id of ['route.view', 'health.view', 'fieldImpact.view', 'diff.view', 'timeline.view']) {
       expect(getReactBinding(id), id).toBeDefined()
     }
   })
@@ -81,9 +98,9 @@ describe('编辑器内视图插件（Slice 11：view 挂载点）', () => {
     expect(() => host.openView('nope.view')).toThrow()
   })
 
-  it('ViewMount 渲染当前视图：开发路线面板出现、关闭后消失', async () => {
+  it('浮层 ViewMount：开发路线出现、关闭后消失', async () => {
     const host = hostWithPlugin()
-    view = await renderDom(<ViewMount host={host} mount={CESHU_VIEW_MOUNT} doc={makeDoc()} />)
+    view = await renderDom(<ViewMount host={host} mount={CESHU_VIEW_MOUNT} context={ctx()} />)
     expect(view.query('[data-testid="route-panel"]')).toBeNull()
 
     await act(async () => {
@@ -101,13 +118,33 @@ describe('编辑器内视图插件（Slice 11：view 挂载点）', () => {
 
   it('影响面视图按打开参数定位字段', async () => {
     const host = hostWithPlugin()
-    view = await renderDom(<ViewMount host={host} mount={CESHU_VIEW_MOUNT} doc={makeDoc()} />)
+    view = await renderDom(<ViewMount host={host} mount={CESHU_VIEW_MOUNT} context={ctx()} />)
 
     await act(async () => {
       host.openView('fieldImpact.view', { chapter: 'meta', field: 'positioning' })
     })
     await view.flush()
     expect(view.query('[data-testid="field-impact-overlay"]')).not.toBeNull()
+  })
+
+  it('内容槽 ViewMount：版本对比替换内容区、关闭后消失', async () => {
+    api = installMbApi()
+    const host = hostWithPlugin()
+    view = await renderDom(<ViewMount host={host} mount={CESHU_CONTENT_MOUNT} context={ctx()} />)
+    expect(view.query('[data-testid="diff-panel"]')).toBeNull()
+
+    await act(async () => {
+      host.openView('diff.view')
+    })
+    await view.flush()
+    expect(view.query('[data-testid="diff-panel"]')).not.toBeNull()
+    expect(api.calls).toContain('ceshu.versions')
+
+    await act(async () => {
+      host.closeView(CESHU_CONTENT_MOUNT)
+    })
+    await view.flush()
+    expect(view.query('[data-testid="diff-panel"]')).toBeNull()
   })
 
   it('禁用插件时宿主关闭其已打开视图', () => {

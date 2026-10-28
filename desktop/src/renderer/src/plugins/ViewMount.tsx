@@ -1,8 +1,7 @@
 import { useCallback, useMemo, useSyncExternalStore, type ComponentType } from 'react'
 
-import type { CeshuDocument } from '../../../shared/ceshuConstants'
 import type { PluginHost } from '../../../shared/plugin/host'
-import { CeshuViewProvider } from './ceshuViewContext'
+import { CeshuViewProvider, type CeshuViewContextValue } from './ceshuViewContext'
 import { getReactBinding, renderUiNode, uiOf, type PanelBindingProps } from './reactBindings'
 
 /** 模块级稳定组件：把按 view id 查到的 React 绑定渲染出来（规避 react-hooks/static-components） */
@@ -29,10 +28,10 @@ function BoundView({ component: Bound, onClose, close, params }: {
  *
  * 关闭：`onClose` 只关视图；`close` 关视图并清掉打开参数（一次性参数用后者）。
  */
-export function ViewMount({ host, mount, doc }: {
+export function ViewMount({ host, mount, context }: {
   host: PluginHost
   mount: string
-  doc: CeshuDocument
+  context: CeshuViewContextValue
 }) {
   const subscribe = useMemo(() => (onChange: () => void) => host.subscribe(onChange), [host])
   // 当前激活视图 id：变化触发重渲染（切到另一个视图）
@@ -55,7 +54,7 @@ export function ViewMount({ host, mount, doc }: {
 
   const Bound = getReactBinding(view.id)
   return (
-    <CeshuViewProvider value={{ doc }}>
+    <CeshuViewProvider value={context}>
       {Bound !== undefined ? (
         <BoundView component={Bound} onClose={onClose} close={close} params={params} />
       ) : (
