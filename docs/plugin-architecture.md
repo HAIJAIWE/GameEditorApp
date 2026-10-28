@@ -2,7 +2,7 @@
 
 > 状态：**B 方案 Slice 1–17 全部完成**（2026-10-28）：23/23 浮层、35/35 菜单动作、12/12 引导动作、**连菜单结构与侧栏结构本身**都由插件声明；编辑器内 **25 view**（7 浮层 + 13 内容 + 2 内联 + 3 产出物）+ 编辑器菜单（18 项）全部插件化。App 不再持有面板清单 / 标题表 / 动作实现 / 菜单树 / 侧栏项。
 > 另：**Agent/MCP Slice 18–21 已完成**（MCP stdio+HTTP / 并行执行 / 子智能体 / 风险分级 / 配置 UI / 工具面上限），见 [`mcp-integration.md`](./mcp-integration.md) 与 [`agent-parallel-subagent.md`](./agent-parallel-subagent.md)。
-> 另：**主区视图插件化 Slice 22 已开工**——新增 `mainView` 能力 + `MainViewMount`，代码/浏览器两个零 prop 页签已迁出 App；编辑器 / 数据 / 右栏数字员工仍内联（重视图，吃大量 App 状态，后续片再迁）。
+> 另：**主区视图插件化 Slice 22–23**——新增 `mainView` 能力 + `MainViewMount` + 独立 `mainViewContext`；**数据 / 代码 / 浏览器**三个页签已迁出 App，编辑器 / 右栏数字员工仍内联（重视图，后续片再迁）。
 > 本文是插件系统的权威设计文档，也是「深层插件化」跨会话的交接文档。
 > 相关代码：`desktop/src/shared/plugin/`、`desktop/src/renderer/src/plugins/`。
 
@@ -55,7 +55,8 @@ renderer/src/plugins/
   ViewMount.tsx            Slice 11/12：视图挂载点渲染器（挂在 CeshuView 内部，编辑器不卸载；支持浮层与内容槽）
   ceshuViewsPlugin.tsx     Slice 11/12：5 个 view（route/health/fieldImpact 浮层 + diff/timeline 内容槽）
   MainViewMount.tsx        Slice 22：主区页签挂载器（页签条 + 常驻挂载/hidden 切换 + lazy 首访挂载）
-  coreViewsPlugin.tsx      Slice 22：主区视图插件（代码编辑 / 浏览器两个零 prop 页签）
+  coreViewsPlugin.tsx      Slice 22/23：主区视图插件（数据 / 代码 / 浏览器页签）
+  mainViewContext.tsx      Slice 23：主区视图共享状态（独立于面板 appContext，性能隔离）
 ```
 
 ### 2.1 契约（`types.ts`）
@@ -135,6 +136,7 @@ App.renderPanel()
 | Slice 16 | **编辑器「更多」菜单 → `menu` 能力**：`menu` 加 `mount`，`MenuMount` 在工具栏渲染；18 项拆成命令，非视图动作走 `ceshuEditorBridge` | ✅ 完成（菜单结构也插件化） |
 | Slice 17 | **左栏产出物页签**：原型/数据/任务 → `ceshu.artifact` 挂载点的 view；页签高亮与内容从 `activeView` 派生 | ✅ 完成（25 view；「设计文档」仍为章节表单本体） |
 | Slice 22 | **主区视图插件化（第一步）**：新增 `mainView` 能力（App 主区页签，非编辑器内子视图）+ `MainViewMount`（页签条 + 常驻挂载/hidden 切换 + lazy 首访挂载）；代码/浏览器两个零 prop 页签迁出 App | ✅ 完成（编辑器/数据/数字员工仍内联） |
+| Slice 23 | **数据页签迁 mainView** + 独立 `mainViewContext`（主区状态与面板 `appContext` 分离，性能隔离）；`MainViewMount` 增 `context`；数据绑定走 `useMainViewContext` | ✅ 完成（剩编辑器 / 数字员工） |
 
 ---
 
@@ -385,11 +387,29 @@ manifest（`utility-panels` 8 个面板、`data-panels` 3 个面板），这是 
 1. ~~`MenuBar` 从 `host.commands()` 生成菜单项~~ → **Slice 9 已完成**（`menu` 能力 + `MenuBar` 从 `host.menus()` 渲染）。
 2. **`CeshuView` 内部 UI**：11 panel 变体（13）+ 4 浮层（14）+ derive/modulePicker（15）+ 编辑器菜单（16）+ 产出物页签（17）已全部迁完，
    共 **25 view**（7 浮层 + 13 内容 + 2 内联 + 3 产出物）+ 编辑器菜单（18 项）。
-   **App 主区视图**（Slice 22 起）：代码 / 浏览器两个零 prop 页签已迁到 `mainView` 能力；
-   编辑器 / 数据 / 右栏数字员工仍内联（重视图，吃大量 App 状态与 props，后续片再迁）。
+   **App 主区视图**（Slice 22–23）：数据 / 代码 / 浏览器三个页签已迁到 `mainView` 能力
+   （数据经独立 `mainViewContext` 取状态）；编辑器 / 右栏数字员工仍内联（重视图，后续片再迁）。
    产出物「设计文档」页签仍是章节表单本体（内联，不做视图）。
 3. ~~`Sidebar` 数据驱动~~ → **Slice 10 已完成**（`sidebar` 能力 + `navigationPlugin`，App 的 `SIDEBAR_ITEMS` 常量删除）。
 4. **插件市场 / `source` 字段落地**：契约已留 `source`，尚未有安装流程。
+
+### 9.5 性能与成本（Slice 23 实测）
+
+**当前规模**：19 插件 / ~140 能力（command 76 / view 25 / panel 25 / menu 7 / service 4 / mainView 3 / sidebar 1）；
+10 个文件、约 13 处 `useSyncExternalStore` 订阅点；生产 bundle 3.31 MB（单 chunk）。
+
+**结论：插件化本身不拖慢，且有守卫测试锁住。**
+- 宿主 `capabilities(kind)` 是 O(插件×能力) 线性扫描，~140 项微秒级；`pluginHostPerf.test.ts` 用
+  200 插件×5 能力=1000 能力、1000 次遍历 <2s 兜住 O(n²) 回归。
+- `emit()` 只通知 ~13 个订阅点，且**全部用户操作驱动**（开面板/切页签/启动注册），非每帧。
+- 所有订阅都用**稳定快照**（`panelId` 字符串、`getVersion()` 数字、`useMemo` 数组），无身份抖动。
+
+**真正的成本在「状态怎么组织」，不在「插件化」**：
+| 风险 | 规避做法 |
+|---|---|
+| context 膨胀（每渲染新对象→消费者全重渲染） | 面板 `appContext` 保持克制；主区另开 `mainViewContext`（Slice 23），互不牵连 |
+| 数组每次重建（`panels()/mainViews()/…`） | 用 `getVersion()` 稳定快照；render 里再算列表 |
+| 无按需加载收益（全静态 import） | 已知取舍：bundle 不因插件化变小；要瘦身需 `source` 安装 + 动态 import（未做） |
 
 ## 10. 文件改动索引
 
