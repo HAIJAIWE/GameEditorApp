@@ -67,8 +67,9 @@ renderer/src/plugins/
   - `command`：`{ id, label, run() }` 可执行动作
   - `panel`：`{ id, title, ui: UiNode | (() => UiNode) }` 可挂载视图
   - `service`：`{ id, invoke(...args) }` 供其他插件调用
-  - `menu`：`{ id, menu, order, items }` 往宿主某顶层菜单塞条目（`PluginMenuItem.command` 指向命令；
-    `disabledWhen` 只写**判定键**，状态由宿主注入——manifest 保持可序列化）
+  - `menu`：`{ id, menu, order, mount?, items }` 往宿主某菜单塞条目（`PluginMenuItem.command` 指向命令；
+    `disabledWhen` 只写**判定键**，状态由宿主注入——manifest 保持可序列化）。
+    `mount` 省略 = App 顶栏（`'app'`）；编辑器内下拉用别的挂载点（如 `'ceshu.toolbar'`，由 `MenuMount` 渲染）
   - `sidebar`：`{ id, order, items }` 往宿主左侧主导航栏塞条目（`PluginSidebarItem` 二选一：
     `command` 执行命令 / `panel` 打开面板并高亮；`key` 作 E2E 锚点 `sidebar-<key>`）
   - `view`：`{ id, label, mount?, order?, ui }` 挂在宿主某个**挂载点**上的视图（如 `ceshu.overlay`）。
@@ -83,7 +84,7 @@ renderer/src/plugins/
 - `enable / disable`：`disable` 受保护插件抛错；**只关闭该插件自己打开的面板**（`panelOwner` 精确匹配）。
 - `capabilities(kind)`：只返回 `status==='enabled'` 插件的能力（禁用/坏插件不参与分发）。
 - `openPanel(id, params?)` / `closePanel()` / `activePanel()` / `subscribe(fn)`。
-- `menus()`：启用插件的 `menu` 能力，按 `order` 升序（同标题由 `MenuBar` 合并）。
+- `menus(mount = 'app')`：启用插件中该挂载点的 `menu` 能力，按 `order` 升序（同标题由 `MenuBar` 合并）。
 - `sidebarItems()`：合并启用插件的 `sidebar` 能力（按 `order` 升序拼接，`key` 去重，先到者为准）。
 - `views(mount)` / `openView(id, params?)` / `closeView(mount)` / `activeView(mount)` / `viewParams(id)` / `setViewParams(id, params)`：
   **视图挂载点**通道（Slice 11）。按 `mount` 分区、同挂载点互斥；`disable` 时关闭该插件拥有的已打开视图。
@@ -127,6 +128,7 @@ App.renderPanel()
 | Slice 13 | **11 个 `panel` 变体全迁内容槽**（报告 / 笔记 / 数据引用 / AI 三件 / 预设市场 / 系统确认 / 模板编辑器）；`CeshuViewContext` 扩报告数据 + 应用/导出/跳转动作；`panel` 状态与整条三元链**彻底删除** | ✅ 完成（`panel` 三元链归零） |
 | Slice 14 | **4 个内联浮层抽成独立组件**（迁移 / 消费提示词 / 全局审阅队列 / 导入 AI 结果）→ `EditorOverlays.tsx`；上下文增 busy/迁移/审阅/导入动作 | ✅ 完成 |
 | Slice 15 | **2 个内联弹层/气泡插件化**（派生新版本 / 系统模块勾选）：新增内联挂载点 `ceshu.toolbar` / `ceshu.chapterNav`，`ViewMount` 放**原位置**、定位不变 | ✅ 完成（共 22 view） |
+| Slice 16 | **编辑器「更多」菜单 → `menu` 能力**：`menu` 加 `mount`，`MenuMount` 在工具栏渲染；18 项拆成命令，非视图动作走 `ceshuEditorBridge` | ✅ 完成（菜单结构也插件化） |
 
 ---
 
@@ -376,8 +378,8 @@ manifest（`utility-panels` 8 个面板、`data-panels` 3 个面板），这是 
 
 1. ~~`MenuBar` 从 `host.commands()` 生成菜单项~~ → **Slice 9 已完成**（`menu` 能力 + `MenuBar` 从 `host.menus()` 渲染）。
 2. **`CeshuView` 内部 UI**：**11 个 `panel` 变体（Slice 13）+ 4 个浮层（Slice 14）+ derive/modulePicker 两个内联弹层（Slice 15）已全部迁完**，
-   共 **22 view**（7 浮层 + 13 内容 + 2 内联挂载点）。仍非插件的只剩：编辑器内「更多」下拉菜单（18 项，属 `menu` 形态，
-   需要 editor bridge）、左栏产出物 4 页签、App 主区 6 个核心视图——这些是**编辑器/产品主体结构，不是「面板」**。
+   共 **22 view**（7 浮层 + 13 内容 + 2 内联挂载点）；编辑器「更多」菜单（18 项）也已是 `menu` 能力（Slice 16）。
+   仍非插件的只剩：左栏产出物 4 页签、App 主区 6 个核心视图——这些是**编辑器/产品主体结构，不是「面板/菜单」**。
 3. ~~`Sidebar` 数据驱动~~ → **Slice 10 已完成**（`sidebar` 能力 + `navigationPlugin`，App 的 `SIDEBAR_ITEMS` 常量删除）。
 4. **插件市场 / `source` 字段落地**：契约已留 `source`，尚未有安装流程。
 
@@ -413,6 +415,15 @@ Slice 4（8 个不依赖 App 状态的面板）：
 - `renderer/src/plugins/builtins.ts`（注册）
 - `renderer/src/App.tsx`（8 个 case → HostPanel，删 8 个直接 import）
 - `tests/unit/dom/utilityPanelsPlugin.test.tsx`（3 条：能力清单 / testid 保留 / 禁用后不再渲染）
+
+Slice 16（编辑器「更多」菜单 → menu 能力）：
+- `shared/plugin/types.ts`（`PluginMenuCapability` 增 `mount?`）
+- `shared/plugin/host.ts`（`menus(mount = 'app')` 按挂载点过滤）
+- `renderer/src/plugins/MenuMount.tsx`（新增；把 menu 能力渲染成下拉，分隔符切组）
+- `renderer/src/plugins/ceshuEditorBridge.ts`（新增；补全/完备度/变更记录/导出等非视图动作）
+- `renderer/src/plugins/ceshuMenusPlugin.ts`（新增；18 命令 + 1 menu，挂 `ceshu.toolbar`）
+- `renderer/src/components/CeshuView.tsx`（删 `moreMenuGroups`/`moreOpen`/`moreRef`/外点 effect；工具栏改 `<MenuMount>`；渲染期注入 bridge）
+- `tests/unit/dom/ceshuMenusPlugin.test.ts`（4 条）+ 两个 CeshuView 测试补菜单插件
 
 Slice 15（派生新版本 / 系统模块勾选插件化）：
 - `renderer/src/plugins/ceshuViewContext.tsx`（新增 `CESHU_TOOLBAR_MOUNT` / `CESHU_CHAPTERNAV_MOUNT` + `onDerive` / `onToggleModule`）
