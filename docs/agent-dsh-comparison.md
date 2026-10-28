@@ -188,6 +188,8 @@ dsh 用 **cordis** 做插件组合，profile 是 YAML 补丁层（`bundles` + `c
 > **已确认（E 片基本已具备）**：系统提示词已有 `## 可用工具`（`face.catalog`，按场景分组 + 每工具一行摘要），完整 schema 走 function calling——即 dsh 的「目录 + 渐进披露」。dsh 的 markdown 技能包是另一概念，本项目暂无。
 >
 > **已落地（Slice 30，2026-10-28）**：子智能体 **provider seam**——`SubAgentProvider { id, run(SubAgentTask) }`；默认进程内 `spawn`，外部后端（CLI/远程）实现接口注入 `subAgentProvider` 即可，不改循环。
+>
+> **已落地（Slice 31，2026-10-28）**：**CLI 外部后端**——`createCliSubAgentProvider`（`shell:false`、arg/stdin、超时/取消 kill、stdout→stderr 回退）。配置 `MB_SUBAGENT_CLI=claude`（可选 `MB_SUBAGENT_CLI_ARGS` JSON 数组 / `MB_SUBAGENT_CLI_INPUT=stdin`）即把子任务交给本地 CLI 编码智能体；未配置仍用进程内 spawn。
 
 ---
 
