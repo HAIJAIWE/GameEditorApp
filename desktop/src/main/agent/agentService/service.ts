@@ -34,6 +34,7 @@ import type { SkillDispatcher } from '../dispatcher'
 import { resolveAgentTier, resolveAgentTransport } from '../agentTransport'
 import { buildDomainContextBlock, defaultDialogueEvaluator } from './domainContext'
 import { buildMemoryBlock } from './memory'
+import { isPreReviewEnabled, makePreExecReview } from './preReview'
 import type { AgentBrainServiceDeps, AgentChatOptions } from './types'
 
 /** 云端对话档的 token 预算（F1/DD-5b 护栏级，保守粗估；超预算仅记录指标，不阻断） */
@@ -139,6 +140,11 @@ export class AgentBrainService {
     })
 
     const requestApproval = options.requestApproval ?? this.deps.requestApproval
+    // #27 执行预审：本次选项 > 构造时的缺省 provider > 开关打开时用本次 transport 现场构造（LLM 判读）
+    const preExecReview =
+      options.preExecReview ??
+      this.deps.preExecReview ??
+      (isPreReviewEnabled() ? makePreExecReview(transport) : undefined)
     // E3-2：为本次对话轮次补一个会话 id，使操作记录器与回滚技能能按「这一轮」分组
     const context: SkillExecutionContext = { ...(options.context ?? {}) }
     if (typeof context.sessionId !== 'string' || context.sessionId.trim() === '') {
@@ -176,12 +182,8 @@ export class AgentBrainService {
       ...(this.deps.maxToolCalls !== undefined ? { maxToolCalls: this.deps.maxToolCalls } : {}),
       ...(this.deps.wallClockMs !== undefined ? { wallClockMs: this.deps.wallClockMs } : {}),
       ...(requestApproval ? { requestApproval } : {}),
-      // #27 执行预审：本次选项优先，否则构造时的缺省 provider（经 IPC 开关装配）
-      ...(options.preExecReview
-        ? { preExecReview: options.preExecReview }
-        : this.deps.preExecReview
-          ? { preExecReview: this.deps.preExecReview }
-          : {}),
+      // #27 执行预审：本次选项 > 缺省 provider > 开关打开时现场构造（见上方 preExecReview）
+      ...(preExecReview ? { preExecReview } : {}),
       ...(options.requestInteraction ? { requestInteraction: options.requestInteraction } : {}),
       ...(options.newRequestId ? { newRequestId: options.newRequestId } : {}),
       // Slice 40：子智能体「继续对话」——把运行中的 childId 与其 inbox / stop 登记进注册表，

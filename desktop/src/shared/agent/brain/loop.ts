@@ -655,56 +655,76 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
       const normalizedAction = fixParams(resolved, call.arguments).action
       const action = typeof normalizedAction === 'string' ? normalizedAction : ''
       if (runner.needsConfirmation(resolved, action)) {
-        // 审批策略 `never`（无头模式）：确定性拒绝，不发审批事件（对齐 dsh user-approval）。
-        if (approvalPolicy === 'never') {
-          const text = `[STOP] 审批策略为 never，已拒绝危险操作: ${resolved}`
-          results.push(text)
-          emit({ type: 'step_done', tool: resolved, result: text, success: false })
-          messages.push(buildToolMessage(call.id, resolved, text))
-          continue
-        }
-        // 执行预审（#27）：在**人工审批之前**由模型/规则先拦一道。
-        // 只收紧不放开——approve:false 直接 [STOP]，不再走人工；异常回落放行至人工。
+        // 执行预审（#27，对齐 dsh Auto）：先由模型判读；allow ⇒ 直接执行（顶替人工），
+        // deny ⇒ never 终局 / ask 转人工；预审异常 ⇒ fail-closed 硬拒绝（不执行）。
+        let autoAllowed = false
         if (preExecReview) {
           const riskLevel = resolveRiskLevel(resolved, action)
           let verdict: PreExecReviewVerdict
           try {
-            verdict = await preExecReview({ tool: resolved, action, params: call.arguments, risk: riskLevel })
-          } catch {
-            // 预审实现异常 ⇒ 回落放行至人工审批（绝不因预审故障误杀正常工具）
-            verdict = { approve: true, reason: '预审异常，回落至人工审批' }
+            verdict = await preExecReview({
+              tool: resolved,
+              action,
+              params: call.arguments,
+              risk: riskLevel,
+              signal: controller.signal
+            })
+          } catch (error) {
+            // fail-closed（对齐 dsh AUTO_REVIEW_FAILED）：判读失败即拒绝，绝不执行。
+            const detail = error instanceof Error ? error.message : String(error)
+            const text = `[STOP] 执行预审失败，已拒绝（fail-closed）: ${resolved}（${detail}）`
+            results.push(text)
+            emit({ type: 'step_done', tool: resolved, result: text, success: false })
+            messages.push(buildToolMessage(call.id, resolved, text))
+            continue
           }
-          if (verdict.approve !== true) {
+          if (verdict.approve === true) {
+            // 预审放行：跳过人工审批，直接执行（下方注入一次性令牌）。
+            autoAllowed = true
+          } else if (approvalPolicy === 'never') {
+            // 预审拒绝 + never ⇒ 终局拒绝，不询问。
             const text = `[STOP] 执行预审拒绝危险操作: ${resolved}（${verdict.reason || '未提供原因'}）`
             results.push(text)
             emit({ type: 'step_done', tool: resolved, result: text, success: false })
             messages.push(buildToolMessage(call.id, resolved, text))
             continue
           }
-        }
-        const requestId = newRequestId()
-        emit({ type: 'approval_required', requestId, tool: resolved, action, params: call.arguments })
-        let approved = false
-        if (requestApproval) {
-          try {
-            approved = await withAnswerTimeout(
-              Promise.resolve(requestApproval({ requestId, tool: resolved, action, params: call.arguments })),
-              false
-            )
-          } catch {
-            // 审批通道异常（通道断开 / 实现抛错）一律按「未批准」处理——与本循环
-            // 「无确认即拒绝」同一取向。不能让它冒泡：否则整轮 run 会变成 reject
-            // （IPC 报错），而 transport 与 interaction 两条同类路径均已等价保护。
-            approved = false
-          }
-        }
-        if (approved !== true) {
-          const text = `[STOP] 用户未确认危险操作: ${resolved}`
+          // 预审拒绝 + ask ⇒ 落到下方人工审批（人类可覆盖预审结论）。
+        } else if (approvalPolicy === 'never') {
+          // 无预审 + never：确定性拒绝（原语义）。
+          const text = `[STOP] 审批策略为 never，已拒绝危险操作: ${resolved}`
           results.push(text)
           emit({ type: 'step_done', tool: resolved, result: text, success: false })
           messages.push(buildToolMessage(call.id, resolved, text))
           continue
         }
+
+        if (!autoAllowed) {
+          const requestId = newRequestId()
+          emit({ type: 'approval_required', requestId, tool: resolved, action, params: call.arguments })
+          let approved = false
+          if (requestApproval) {
+            try {
+              approved = await withAnswerTimeout(
+                Promise.resolve(requestApproval({ requestId, tool: resolved, action, params: call.arguments })),
+                false
+              )
+            } catch {
+              // 审批通道异常（通道断开 / 实现抛错）一律按「未批准」处理——与本循环
+              // 「无确认即拒绝」同一取向。不能让它冒泡：否则整轮 run 会变成 reject
+              // （IPC 报错），而 transport 与 interaction 两条同类路径均已等价保护。
+              approved = false
+            }
+          }
+          if (approved !== true) {
+            const text = `[STOP] 用户未确认危险操作: ${resolved}`
+            results.push(text)
+            emit({ type: 'step_done', tool: resolved, result: text, success: false })
+            messages.push(buildToolMessage(call.id, resolved, text))
+            continue
+          }
+        }
+        // 人工批准或预审放行：注入一次性令牌让 dispatcher 放行 SYSTEM 档工具。
         context.dangerConfirmed = { tool: resolved, action }
       }
 

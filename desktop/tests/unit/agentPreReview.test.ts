@@ -5,25 +5,74 @@ import {
   makePreExecReview,
   setPreReviewEnabled
 } from '../../src/main/agent/agentService/preReview'
+import type { BrainLlmRequest, BrainLlmReply, BrainLlmTransport } from '../../src/shared/agent/brain'
 
-describe('preReview provider（#27 执行预审）', () => {
-  it('makePreExecReview：SYSTEM 级高危操作被预审拒绝（只收紧不放开）', async () => {
-    const review = makePreExecReview()
-    const verdict = await review({ tool: 'system.shell', action: 'execute', params: {}, risk: 4 })
-    expect(verdict.approve).toBe(false)
-    expect(verdict.reason).toContain('SYSTEM')
-  })
+/** 桩传输层：固定返回一段 content，并记录请求（便于断言 system 策略确实下发） */
+function stubTransport(content: string): BrainLlmTransport & { calls: BrainLlmRequest[] } {
+  const calls: BrainLlmRequest[] = []
+  return {
+    calls,
+    complete: async (request) => {
+      calls.push(request)
+      const reply: BrainLlmReply = { content, toolCalls: [], finishReason: 'stop' }
+      return reply
+    }
+  }
+}
 
-  it('makePreExecReview：低风险操作放行（approve:true），不拦截正常工具', async () => {
-    const review = makePreExecReview()
-    const verdict = await review({ tool: 'system.game_data', action: 'list', params: {}, risk: 0 })
+const ctx = { tool: 'system.shell', action: 'execute', params: { cmd: 'rm -rf x' }, risk: 4 }
+
+describe('preReview provider（#27 LLM 判读，dsh Auto 语义）', () => {
+  it('low + allow → approve:true（放行直接执行）', async () => {
+    const transport = stubTransport('{"risk":"low","decision":"allow"}')
+    const verdict = await makePreExecReview(transport)(ctx)
     expect(verdict.approve).toBe(true)
+    expect(verdict.risk).toBe('low')
+    // 发了固定策略（system）+ 一条待审调用（user）
+    expect(transport.calls).toHaveLength(1)
+    expect(transport.calls[0]?.messages[0]?.role).toBe('system')
+    expect(transport.calls[0]?.messages[1]?.role).toBe('user')
   })
 
-  it('makePreExecReview：未传 risk 时自行按 (tool,action) 推断', async () => {
-    const review = makePreExecReview()
-    const verdict = await review({ tool: 'system.code', action: 'execute', params: {}, risk: 0 })
-    expect(verdict.approve).toBe(false) // system.code 本就是 SYSTEM 级
+  it('high + deny（带 reason）→ approve:false 且透传原因', async () => {
+    const transport = stubTransport('{"risk":"high","decision":"deny","reason":"跨信任边界外泄密钥"}')
+    const verdict = await makePreExecReview(transport)(ctx)
+    expect(verdict.approve).toBe(false)
+    expect(verdict.risk).toBe('high')
+    expect(verdict.reason).toContain('外泄密钥')
+  })
+
+  it('medium + deny（无 reason）→ 用兜底原因', async () => {
+    const transport = stubTransport('{"risk":"medium","decision":"deny"}')
+    const verdict = await makePreExecReview(transport)(ctx)
+    expect(verdict.approve).toBe(false)
+    expect(verdict.reason).toContain('medium')
+  })
+
+  it('容忍 ```json 围栏与前后杂字', async () => {
+    const transport = stubTransport('好的：\n```json\n{"risk":"medium","decision":"allow"}\n```\n以上。')
+    const verdict = await makePreExecReview(transport)(ctx)
+    expect(verdict.approve).toBe(true)
+    expect(verdict.risk).toBe('medium')
+  })
+
+  it('非法组合 high+allow → 抛错（fail-closed）', async () => {
+    const transport = stubTransport('{"risk":"high","decision":"allow"}')
+    await expect(makePreExecReview(transport)(ctx)).rejects.toThrow()
+  })
+
+  it('非 JSON 输出 → 抛错（fail-closed）', async () => {
+    const transport = stubTransport('我觉得这个操作没问题，可以执行。')
+    await expect(makePreExecReview(transport)(ctx)).rejects.toThrow()
+  })
+
+  it('传输层抛错 → 冒泡（由循环 fail-closed 处理）', async () => {
+    const transport: BrainLlmTransport = {
+      complete: async () => {
+        throw new Error('网络挂了')
+      }
+    }
+    await expect(makePreExecReview(transport)(ctx)).rejects.toThrow('网络挂了')
   })
 
   it('开关可被 setPreReviewEnabled 翻转，并经 isPreReviewEnabled 读回', () => {

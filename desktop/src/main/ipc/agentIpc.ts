@@ -16,7 +16,7 @@ import {
 import { parseMcpConfig } from '../../shared/agent/mcp/config'
 import { mcpManager } from '../agent/mcp/manager'
 import { DEFAULT_INTERACTION_TIMEOUT_MS } from '../../shared/agent/brain'
-import { isPreReviewEnabled, makePreExecReview, setPreReviewEnabled } from '../agent/agentService/preReview'
+import { isPreReviewEnabled, setPreReviewEnabled } from '../agent/agentService/preReview'
 import type { AgentInteractionAnswer } from '../agent/approvalBroker'
 import { withTask } from '../task/taskRegistry'
 
@@ -76,8 +76,6 @@ export function registerAgentIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
               ...(llmCall.config !== undefined ? { config: llmCall.config } : {}),
               ...(llmCall.apiKey !== undefined ? { apiKey: llmCall.apiKey } : {}),
               ...(req.preset !== undefined ? { preset: req.preset } : {}),
-              // #27 执行预审：主进程开关打开时装配确定性预审 provider（渲染层经 IPC 控制）
-              ...(isPreReviewEnabled() ? { preExecReview: makePreExecReview() } : {}),
               signal,
           onEvent: (payload) => {
             event.sender.send('agent:event', payload)

@@ -82,15 +82,16 @@ export interface BrainApprovalRequest {
 export type BrainApprover = (request: BrainApprovalRequest) => Promise<boolean> | boolean
 
 /**
- * **执行预审**（#27，对齐 dsh 的执行前审查）：工具执行**前**、人工审批**之前**由模型/规则做一轮预审。
+ * **执行预审**（#27，对齐 dsh experimental auto-review 的执行前审查）：
+ * 工具执行**前**、人工审批**之前**由模型做一轮风险判读，其结论**顶替人工审批**。
  *
- * 设计铁律：**只能收紧、不能放宽**——
- * - `approve: false` ⇒ 循环确定性拒绝该工具（走 `[STOP]`），**不再**走人工审批；
- * - `approve: true` ⇒ 放行至**人工审批**（人类仍是最终闸；预审只负责「先拦一道」）。
+ * 语义（与 dsh Auto 预设一致）：
+ * - `approve: true` ⇒ **放行并直接执行**（循环注入一次性 `dangerConfirmed` 令牌，跳过人工审批）；
+ * - `approve: false` ⇒ 拒绝：`approvalPolicy === 'never'` 时**终局拒绝**（不询问）；
+ *   `'ask'` 时继续走**人工审批**（人类可覆盖预审结论）；
+ * - 预审实现**抛异常** ⇒ 循环按 **fail-closed 硬拒绝**（对齐 dsh `AUTO_REVIEW_FAILED`，不执行）。
  *
- * 之所以放在人工审批之前：无人值守 / 高吞吐场景下，模型先拦掉明显危险的调用，
- * 把「需要人判断」的流量降到最低。预审函数异常一律回落 `approve: true`（放行至人工），
- * 绝不因预审故障而误杀正常工具。
+ * 典型实现见 `main/agent/agentService/preReview.ts`（LLM 判读 + 严格 JSON）。
  */
 export interface PreExecReviewCtx {
   /** 解析后的工具 id（与 dispatcher 同口径，已归一别名） */
@@ -100,18 +101,22 @@ export interface PreExecReviewCtx {
   /** 工具参数（原始 arguments） */
   params: Record<string, unknown>
   /**
-   * 该（tool, action）的风险等级数值（`RISK_LEVEL` 体系）。
+   * 该（tool, action）的**静态**风险等级数值（`RISK_LEVEL` 体系），作为预审判读的提示。
    * 由循环用 `resolveRiskLevel` 算好传入，预审实现不必再算一遍。
    */
   risk: number
+  /** 取消信号（透传给预审里的 LLM 调用，用户点停止时能中断） */
+  signal?: AbortSignal
 }
 
 /** 执行预审结论 */
 export interface PreExecReviewVerdict {
-  /** false ⇒ 拒绝执行（确定性 [STOP]）；true ⇒ 放行至人工审批 */
+  /** true ⇒ 放行并**直接执行**（顶替人工审批）；false ⇒ 拒绝（never 终局 / ask 转人工） */
   approve: boolean
   /** 拒绝/通过的原因（回显给面板与事件流，便于审计） */
   reason: string
+  /** 预审判读的风险档位（dsh 三档；仅审计/展示，缺省不填） */
+  risk?: 'low' | 'medium' | 'high'
 }
 
 export type PreExecReviewFn = (
@@ -267,10 +272,10 @@ export interface RunBrainLoopOptions {
    */
   evaluator?: (text: string) => AgentEvalVerdict | null
   /**
-   * **执行预审**（#27）：工具执行**前**、人工审批**之前**的模型/规则预审钩子。
-   * 只收紧不放开——`{approve:false}` 直接 [STOP]，不再走人工；`{approve:true}` 放行至人工。
-   * 异常回落 `approve:true`（放行至人工，绝不因预审故障误杀正常工具）。
-   * 详见 `PreExecReviewFn` 注释。典型实现见 `main/agent/agentService/preReview.ts`。
+   * **执行预审**（#27）：工具执行**前**、人工审批**之前**的模型预审钩子（对齐 dsh Auto）。
+   * `approve:true` ⇒ 放行并直接执行（顶替人工）；`approve:false` ⇒ never 终局 / ask 转人工；
+   * 抛异常 ⇒ fail-closed 硬拒绝。详见 `PreExecReviewFn` 注释。
+   * 典型实现见 `main/agent/agentService/preReview.ts`（LLM 判读）。
    */
   preExecReview?: PreExecReviewFn
   context?: SkillExecutionContext
