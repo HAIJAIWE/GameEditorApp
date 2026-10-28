@@ -1,4 +1,18 @@
-import type { PluginCapability, PluginCapabilityKind, PluginLoader, PluginManifest, PluginSidebarItem, PluginSource } from './types'
+import type {
+  PluginCapability,
+  PluginCapabilityKind,
+  PluginLoader,
+  PluginManifest,
+  PluginSidebarItem,
+  PluginSource,
+  SlotSpec
+} from './types'
+import {
+  ROOT_SLOT_DECLARATIONS,
+  SlotRegistry,
+  type ChainOutcome,
+  type SlotEntry
+} from './slotRegistry'
 
 /**
  * 插件宿主：管理插件的注册与生命周期（dsh 风格 install → activate → disable）。
@@ -69,6 +83,10 @@ export class PluginHost {
   private readonly overrides: Record<string, boolean>
   /** 变更版本号（每次 emit +1），供外部做稳定快照 */
   private version = 0
+  /** Slot 内核（借 dsh ui-slots）：插件 slot 能力在此注册/卸载，UI 由宿主侧 SlotOutlet 消费 */
+  private readonly slotRegistry = new SlotRegistry(ROOT_SLOT_DECLARATIONS)
+  /** 每个插件的 slot disposer 列表（禁用时精确清理；一个生命周期轴） */
+  private readonly slotDisposers = new Map<string, Array<() => void>>()
 
   constructor(options: PluginHostOptions = {}) {
     this.persistence = options.persistence ?? null
@@ -101,10 +119,12 @@ export class PluginHost {
       activatedAt: overriddenDisabled ? null : Date.now()
     }
     this.plugins.set(manifest.id, record)
+    // slot 能力安装（声明即认领等校验在此发生；失败标 error、不崩宿主）
+    if (record.enabled) this.installSlotsOrMarkError(record)
     this.emit()
 
     // 启动钩子：失败标 error，宿主不崩（dsh 风格非致命激活）
-    if (manifest.activate !== undefined) {
+    if (record.status === 'enabled' && manifest.activate !== undefined) {
       try {
         void manifest.activate()
       } catch (err) {
@@ -159,8 +179,9 @@ export class PluginHost {
       record.enabled = !overriddenDisabled
       record.status = overriddenDisabled ? 'disabled' : 'enabled'
       record.activatedAt = overriddenDisabled ? null : Date.now()
+      if (record.enabled) this.installSlotsOrMarkError(record)
       // 启动钩子：失败标 error，宿主不崩（dsh 风格非致命激活）
-      if (manifest.activate !== undefined) {
+      if (record.status === 'enabled' && manifest.activate !== undefined) {
         try {
           void manifest.activate()
         } catch (err) {
@@ -192,6 +213,7 @@ export class PluginHost {
       plugin.enabled = true
       plugin.status = 'enabled'
       plugin.activatedAt = Date.now()
+      this.installSlotsOrMarkError(plugin)
       this.saveOverrides()
       this.emit()
     }
@@ -210,6 +232,7 @@ export class PluginHost {
       plugin.enabled = false
       plugin.status = 'disabled'
       plugin.activatedAt = null
+      this.uninstallSlots(id)
       const active = this.activePanel()
       if (active !== null && this.panelOwner(active.id) === id) {
         this.activePanelId = null
@@ -411,6 +434,86 @@ export class PluginHost {
     return () => {
       this.listeners.delete(fn)
     }
+  }
+
+  /* ---- Slot 内核（借 dsh ui-slots） ---- */
+
+  /** 安装某插件的全部 slot 能力；任一失败则回滚已安装的（异常向上抛，由调用方标 error）。 */
+  private installSlots(manifest: PluginManifest): void {
+    const disposers: Array<() => void> = []
+    try {
+      for (const capability of manifest.capabilities) {
+        if (capability.kind !== 'slot') continue
+        const cell = capability.entryKey ?? capability.entryId
+        disposers.push(
+          this.slotRegistry.register({
+            key: capability.key,
+            ...(capability.slotKind !== undefined ? { kind: capability.slotKind } : {}),
+            ...(capability.priority !== undefined ? { priority: capability.priority } : {}),
+            ...(capability.order !== undefined ? { order: capability.order } : {}),
+            ...(cell !== undefined ? { entryKey: cell } : {}),
+            ownerId: manifest.id,
+            payload: capability.ui,
+            ...(capability.select !== undefined ? { select: capability.select } : {}),
+            ...(capability.store !== undefined ? { store: capability.store } : {}),
+            ...(capability.children !== undefined ? { children: capability.children } : {})
+          })
+        )
+      }
+    } catch (error) {
+      for (const dispose of disposers) dispose()
+      throw error
+    }
+    this.slotDisposers.set(manifest.id, disposers)
+  }
+
+  /** 安装 slot 能力；失败标 error（非致命，与 activate 失败同定力）。 */
+  private installSlotsOrMarkError(record: RegisteredPlugin): void {
+    try {
+      this.installSlots(record.manifest)
+    } catch (err) {
+      record.status = 'error'
+      record.error = err instanceof Error ? err.message : String(err)
+      record.enabled = false
+      record.activatedAt = null
+    }
+  }
+
+  private uninstallSlots(id: string): void {
+    const disposers = this.slotDisposers.get(id)
+    if (disposers === undefined) return
+    this.slotDisposers.delete(id)
+    for (const dispose of disposers) dispose()
+  }
+
+  /** Slot 内核只读访问（高级用法/测试）。 */
+  get slots(): SlotRegistry {
+    return this.slotRegistry
+  }
+
+  /** 某 slot key 的声明规格（未声明返回 undefined）。 */
+  slotSpec(key: string): SlotSpec | undefined {
+    return this.slotRegistry.specOf(key)
+  }
+
+  /** 某 slot 的渲染读（已按 kind 投影 + 遮蔽）。 */
+  slotEntries(key: string): SlotEntry[] {
+    return this.slotRegistry.entriesOfSlot(key)
+  }
+
+  /** chain slot 选举结果（owner 为父级传入的 props）。 */
+  slotChainWinner(key: string, owner: unknown): ChainOutcome | null {
+    return this.slotRegistry.chainWinner(key, owner)
+  }
+
+  /** 某 slot key 的单调版本号（供 uSES 快照）。 */
+  slotVersion(key: string): number {
+    return this.slotRegistry.versionOf(key)
+  }
+
+  /** 订阅某 slot key 的变更（供 uSES 订阅）。 */
+  subscribeSlot(key: string, listener: () => void): () => void {
+    return this.slotRegistry.subscribeKey(key, listener)
   }
 
   private require(id: string): RegisteredPlugin {

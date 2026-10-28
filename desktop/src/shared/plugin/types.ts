@@ -178,6 +178,62 @@ export interface PluginToolViewCapability {
   ui: UiNode | (() => UiNode)
 }
 
+/* ---- Slot 内核（借 dsh ui-slots 的 typed slot 模型） ---- */
+
+/** Slot 基数：单占位 / 有序列表 / 按 key 分发 / 选择器选举。 */
+export type SlotKind = 'single' | 'list' | 'keyed' | 'chain'
+
+/** Slot 作用域：全局 / 会话绑定（MVP 仅 `root` 落地，`session` 预留）。 */
+export type SlotScope = 'root' | 'session'
+
+/** 一个 slot 的声明规格（由根或父级 slot 的 `children` 声明）。 */
+export interface SlotSpec {
+  kind: SlotKind
+  scope?: SlotScope
+}
+
+/**
+ * store seat 声明：每条注册得到**独立** store 实例（懒创建）。
+ * 动作接收当前 state 与调用参数，返回新 state（返回 `void` 表示原地修改）。
+ */
+export interface SlotStoreDecl<S = unknown> {
+  init: S | (() => S)
+  actions?: Record<string, (state: S, ...args: unknown[]) => S | void>
+}
+
+/**
+ * Slot 能力：往**已声明**的 slot 注册一个展示体（借 dsh `ctx.slots.register`）。
+ *
+ * - `key` 必须已由根声明或父级 slot 的 `children` 声明，否则注册失败（**声明即认领**）；
+ * - `children` 在注册时声明子 slot——同一 key 只能有一个 declarer；
+ * - 遮蔽：同 cell（single=自身 / keyed=同 key / list=同 id）按 `priority` 升序，最低者渲染；
+ * - 富 UI 后续经绑定扩展；此处 `ui` 为声明式 `UiNode`，非 React 宿主可回退渲染。
+ */
+export interface PluginSlotCapability {
+  kind: 'slot'
+  id: string
+  /** 目标 slot key（须已声明） */
+  key: string
+  /** 覆盖声明里的 kind（一般省略，用声明 kind） */
+  slotKind?: SlotKind
+  /** 遮蔽优先级：越小越优先（同 cell 最低者渲染） */
+  priority?: number
+  /** list 条目 id（kind=list 必填） */
+  entryId?: string
+  /** list 排序（小在前） */
+  order?: number
+  /** keyed 分派键（kind=keyed 必填） */
+  entryKey?: string
+  /** chain 选举：返回非 null/undefined 即胜出（kind=chain 必填） */
+  select?: (owner: unknown) => unknown | null | undefined
+  /** store seat（懒创建，生命周期随注册） */
+  store?: SlotStoreDecl
+  /** 声明子 slot（声明即认领） */
+  children?: Record<string, SlotSpec>
+  /** 展示体（声明式；惰性函数形式与 panel/view 一致） */
+  ui: UiNode | (() => UiNode)
+}
+
 export type PluginCapability =
   | PluginCommandCapability
   | PluginPanelCapability
@@ -187,6 +243,7 @@ export type PluginCapability =
   | PluginMainViewCapability
   | PluginSidebarCapability
   | PluginToolViewCapability
+  | PluginSlotCapability
 
 export type PluginCapabilityKind = PluginCapability['kind']
 
