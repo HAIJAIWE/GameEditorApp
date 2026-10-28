@@ -3,7 +3,9 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { act } from 'react'
 
 import CeshuView from '../../../src/renderer/src/components/CeshuView'
+import { defineCeshuViewsPlugin } from '../../../src/renderer/src/plugins/ceshuViewsPlugin'
 import { createDefaultCeshu } from '../../../src/shared/ceshuModel'
+import { PluginHost } from '../../../src/shared/plugin/host'
 import { installMbApi, pressKey, renderDom, type ApiStub, type RenderResult } from './render'
 import type { CeshuDocument } from '../../../src/shared/ceshuConstants'
 import { CHAPTER_LABELS } from '../../../src/shared/ceshuConstants'
@@ -49,6 +51,9 @@ async function mount(
   ceshuId = 'c1',
   handlers: { onBack?: () => void } = {}
 ): Promise<RenderResult> {
+  // Slice 11：CeshuView 需要宿主来挂载编辑器内视图（路线/体检/影响面）
+  const host = new PluginHost()
+  host.register(defineCeshuViewsPlugin())
   view = await renderDom(
     <CeshuView
       ceshuId={ceshuId}
@@ -56,6 +61,7 @@ async function mount(
       onSelect={() => {}}
       types={[]}
       onBack={handlers.onBack ?? (() => {})}
+      host={host}
     />
   )
   return view

@@ -76,11 +76,23 @@ export interface PluginMenuCapability {
   items: PluginMenuItem[]
 }
 
-/** 视图能力：宿主级主视图（如编辑器）。由宿主决定挂载，用 `ui` 声明式描述。 */
+/**
+ * 视图能力：挂在宿主某个**挂载点**上的视图（如编辑器内部浮层）。
+ *
+ * 与 `panel` 的关键区别：`panel` 是宿主级浮层，打开时**替换主区**（编辑器会被卸载）；
+ * `view` 挂在宿主指定的位置（如 `'ceshu.overlay'`，由编辑器在自己的 DOM 内渲染），
+ * 因此**不会卸载编辑器**——编辑器内的只读浮层（开发路线 / 体检 / 影响面）必须用 view。
+ *
+ * 宿主在 `mount` 对应的挂载点渲染当前激活的 view；未声明 `mount` 的 view 不被渲染。
+ */
 export interface PluginViewCapability {
   kind: 'view'
   id: string
   label: string
+  /** 挂载点名称（如 `'ceshu.overlay'`）；省略 = 未指定挂载点，宿主不渲染 */
+  mount?: string
+  /** 同一挂载点内的排序，小在前 */
+  order?: number
   ui: UiNode | (() => UiNode)
 }
 

@@ -2,7 +2,9 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import CeshuView from '../../../src/renderer/src/components/CeshuView'
+import { defineCeshuViewsPlugin } from '../../../src/renderer/src/plugins/ceshuViewsPlugin'
 import { createDefaultCeshu } from '../../../src/shared/ceshuModel'
+import { PluginHost } from '../../../src/shared/plugin/host'
 import { installMbApi, renderDom, type ApiStub, type RenderResult } from './render'
 
 /**
@@ -29,8 +31,18 @@ function makeDoc() {
 }
 
 async function mount(): Promise<RenderResult> {
+  // Slice 11：CeshuView 需要宿主来挂载编辑器内视图
+  const host = new PluginHost()
+  host.register(defineCeshuViewsPlugin())
   view = await renderDom(
-    <CeshuView ceshuId="c1" onChanged={() => {}} onSelect={() => {}} types={[]} onBack={() => {}} />
+    <CeshuView
+      ceshuId="c1"
+      onChanged={() => {}}
+      onSelect={() => {}}
+      types={[]}
+      onBack={() => {}}
+      host={host}
+    />
   )
   return view
 }

@@ -60,6 +60,7 @@ import {
   type BundleConsumeTask
 } from '../../../shared/ceshuBundlePrompt'
 import type { CeshuAiGenerateResult } from '../../../shared/ceshuAi'
+import type { PluginHost } from '../../../shared/plugin/host'
 import type { DataTypeDef } from '../../../shared/types'
 
 import AiDataGenPanel from './AiDataGenPanel'
@@ -75,14 +76,13 @@ import CeshuMachineDataPanel from './CeshuMachineDataPanel'
 import ChapterNotesPanel from './ChapterNotesPanel'
 import CeshuDataPreview, { type PreviewJumpTarget } from './ceshu/CeshuDataPreview'
 import CeshuDataRefsPanel from './ceshu/CeshuDataRefsPanel'
-import FieldImpactPanel from './ceshu/FieldImpactPanel'
-import HealthPanel from './ceshu/HealthPanel'
-import RoutePanel from './ceshu/RoutePanel'
 import { ChangelogPanel, ReadinessPanel, ValidatePanel } from './ceshu/CeshuReportPanels'
 import { cursorAfterAccept } from './ceshu/reviewQueueAdvance'
 import { groupReviewQueue } from './ceshu/reviewQueueGroups'
 import { previewFieldValue, readFieldValue } from './ceshu/reviewPreview'
 import LucideIcon from './LucideIcon'
+import { ViewMount } from '../plugins/ViewMount'
+import { CESHU_VIEW_MOUNT } from '../plugins/ceshuViewContext'
 import PresetMarketPanel from './PresetMarketPanel'
 import SystemConfirmPanel from './SystemConfirmPanel'
 import TemplateEditorPanel from './TemplateEditorPanel'
@@ -150,6 +150,12 @@ interface CeshuViewProps {
   onTypesChanged?: (types: DataTypeDef[]) => void
   /** 打开「数据关联预览」查看某条目引用关系（由条目表单的「更多 ▸」触发，宿主负责开面板） */
   onShowReferences?: (target: { type: string; id: string; name: string }) => void
+  /**
+   * 插件宿主（Slice 11）：编辑器内视图（开发路线 / 体检 / 影响面）改由 `view` 能力供给。
+   * 本组件用它在挂载点 `ceshu.overlay` 上 `openView` 并渲染 `<ViewMount>`。
+   * 由 App 传入（与 `HostPanel` 同一路数，避免组件直接耦合 `builtins` 单例）。
+   */
+  host: PluginHost
 }
 
 /** 策划书编辑器：章节导航（含进度）+ 章节表单 + 版本链操作 */
@@ -167,7 +173,8 @@ export default function CeshuView({
   onJumpMissed,
   onEditType,
   onTypesChanged,
-  onShowReferences
+  onShowReferences,
+  host
 }: CeshuViewProps) {
   const [doc, setDoc] = useState<CeshuDocument | null>(null)
   const [activeChapter, setActiveChapter] = useState<ChapterKey>('meta')
@@ -186,11 +193,11 @@ export default function CeshuView({
   const [artifact, setArtifact] = useState<ArtifactKey>('doc')
   /** 全局审阅队列（跨章列出 AI 草稿字段）是否展开 */
   const [reviewOpen, setReviewOpen] = useState(false)
-  /** 字段影响面面板的目标（null = 关闭）；由字段头上的「影响面」按钮打开 */
-  const [impactTarget, setImpactTarget] = useState<{ chapter: ChapterKey; field: string } | null>(null)
-  /** 开发路线面板：几波、每波能并行做什么、门禁过没过 */
-  const [routeOpen, setRouteOpen] = useState(false)
-  const [healthOpen, setHealthOpen] = useState(false)
+  /*
+   * 开发路线 / 开发体检 / 字段影响面（Slice 11）：不再是本组件的 state，改为插件 `view` 能力，
+   * 挂在挂载点 `ceshu.overlay` 上由 `<ViewMount>` 渲染（打开走 `host.openView`，见下方 openEditorView）。
+   * 这样它们叠在编辑器之上、**不卸载编辑器**，草稿与编辑态都保留。
+   */
   /** 迁移预览（只读）浮层是否展开 */
   const [migrationOpen, setMigrationOpen] = useState(false)
   /** AI 消费提示词浮层是否展开，以及当前任务（draft=按契约起草 / review=审阅找问题） */
@@ -479,6 +486,13 @@ export default function CeshuView({
   useEffect(() => {
     clearFieldRequest()
   }, [activeChapter])
+
+  /**
+   * 卸载时关闭编辑器内视图（Slice 11）：视图状态存在宿主里，不会随组件卸载自动清。
+   * 不关的话「开路线 → 返回首页 → 再进编辑器」会看到路线浮层又冒出来。
+   * `host` 是 App 传入的稳定单例，故此清理只在真正卸载时触发。
+   */
+  useEffect(() => () => host.closeView(CESHU_VIEW_MOUNT), [host])
 
   if (!ceshuId) {
     return (
@@ -986,6 +1000,18 @@ export default function CeshuView({
   }
 
   /**
+   * 打开编辑器内视图（Slice 11）：走宿主的 `view` 能力，挂在 `ceshu.overlay` 上。
+   * 视图插件被禁用时 `openView` 会抛错——这里吞掉并静默（入口不该崩；可在插件中心重新启用）。
+   */
+  const openEditorView = (id: string, params?: unknown): void => {
+    try {
+      host.openView(id, params)
+    } catch {
+      /* 视图插件未启用：静默，不打断编辑器 */
+    }
+  }
+
+  /**
    * 「更多 ▸」菜单分组。骨架对齐 旧版 `editor_view:160-187` 的 `_more_menu` 顺序与分隔。
    *
    * **与 旧版 菜单仍有差异（E30 审计确认，非笔误）**：旧版 另有「档位切换（轻量 9 章 ↔
@@ -1007,8 +1033,8 @@ export default function CeshuView({
       { testid: 'ceshu-template-editor', label: '模板编辑器', run: () => setPanel('templateEditor') }
     ],
     [
-      { testid: 'ceshu-route', label: '开发路线', run: () => setRouteOpen(true) },
-      { testid: 'ceshu-health', label: '开发体检', run: () => setHealthOpen(true) },
+      { testid: 'ceshu-route', label: '开发路线', run: () => openEditorView('route.view') },
+      { testid: 'ceshu-health', label: '开发体检', run: () => openEditorView('health.view') },
       { testid: 'ceshu-readiness', label: '完备度', run: () => void handleReadiness() },
       { testid: 'ceshu-autofill', label: '补全空白字段', run: () => void handleAutoFill() },
       { testid: 'ceshu-diff', label: '版本对比', run: () => setPanel('diff') },
@@ -1373,19 +1399,11 @@ export default function CeshuView({
                 </div>
               </div>
             )}
-            {/* 开发路线：并行波次 + 每份文档的门禁状态 */}
-            {routeOpen && <RoutePanel doc={doc} onClose={() => setRouteOpen(false)} />}
-            {/* 开发交接体检：完成度 + 门禁 + 并行 + 可开发性缺口 一张快照 */}
-            {healthOpen && <HealthPanel doc={doc} onClose={() => setHealthOpen(false)} />}
-            {/* 字段影响面：改一个字段会波及哪些文档 / 断言 / 同源字段 / 数据侧 */}
-            {impactTarget !== null && (
-              <FieldImpactPanel
-                doc={doc}
-                chapter={impactTarget.chapter}
-                field={impactTarget.field}
-                onClose={() => setImpactTarget(null)}
-              />
-            )}
+            {/*
+             * 编辑器内视图挂载点（Slice 11）：开发路线 / 开发体检 / 字段影响面不再内联渲染，
+             * 改为插件 `view` 能力，由 ViewMount 在这里渲染——**CeshuView 保持挂载**（草稿/编辑态不丢）。
+             */}
+            <ViewMount host={host} mount={CESHU_VIEW_MOUNT} doc={doc} />
             {/* 迁移预览（只读）：只展示「会怎么拆 / 哪些重叠」，不改文档 */}
             {migrationOpen && (
               <div className="review-overlay" data-testid="migration-overlay" onClick={() => setMigrationOpen(false)}>
@@ -1791,7 +1809,7 @@ export default function CeshuView({
                   focusField={fieldJump?.chapter === activeChapter ? fieldJump.field : undefined}
                   onFocusConsumed={() => setFieldJump(null)}
                   /* 「改这里会影响什么」：面板在宿主渲染，ChapterForm 只负责发信号 */
-                  onShowImpact={(chapter, field) => setImpactTarget({ chapter, field })}
+                  onShowImpact={(chapter, field) => openEditorView('fieldImpact.view', { chapter, field })}
                 />
               )}
             </div>

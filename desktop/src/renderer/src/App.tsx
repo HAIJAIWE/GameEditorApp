@@ -638,6 +638,7 @@ export default function App() {
                           onShowReferences={handleShowReferences}
                           onJumpHandled={handleJumpHandled}
                           onJumpMissed={handleJumpMissed}
+                          host={pluginHost}
                         />
                       )}
                     </div>

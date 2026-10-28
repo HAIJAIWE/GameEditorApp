@@ -56,6 +56,14 @@ export class PluginHost {
    * 契约只认 `unknown`——宿主无关核心不引入任何业务类型，类型断言留给面板绑定（渲染层）。
    */
   private readonly paramsByPanel = new Map<string, unknown>()
+  /**
+   * 视图状态（Slice 11）：挂载点 → 当前激活的 view id。
+   * 与 `activePanelId` 同构，但按**挂载点**分区——一个挂载点同时只显示一个视图
+   * （如编辑器内的路线/体检/影响面互斥），不同挂载点互不影响。
+   */
+  private readonly activeViewByMount = new Map<string, string>()
+  /** 视图打开参数：viewId → params（语义同 panelParams，只认 `unknown`） */
+  private readonly viewParamsByView = new Map<string, unknown>()
   private readonly persistence: PluginPersistence | null
   /** 覆写表：id → 是否禁用（true=禁用）。仅记录偏离默认的项 */
   private readonly overrides: Record<string, boolean>
@@ -138,6 +146,10 @@ export class PluginHost {
       if (active !== null && this.panelOwner(active.id) === id) {
         this.activePanelId = null
       }
+      // 关闭该插件拥有的已打开视图（挂载点内浮层）
+      for (const [mount, viewId] of [...this.activeViewByMount]) {
+        if (this.viewOwner(viewId) === id) this.activeViewByMount.delete(mount)
+      }
       this.saveOverrides()
       this.emit()
     }
@@ -178,6 +190,55 @@ export class PluginHost {
   /** 菜单能力（按 `order` 升序；同标题的条目由宿主合并渲染） */
   menus(): Extract<PluginCapability, { kind: 'menu' }>[] {
     return [...this.capabilities('menu')].sort((left, right) => left.order - right.order)
+  }
+
+  /** 某挂载点下启用的 view 能力（按 `order` 升序；未声明 `mount` 的不参与） */
+  views(mount: string): Extract<PluginCapability, { kind: 'view' }>[] {
+    return this.capabilities('view')
+      .filter((view) => view.mount === mount)
+      .sort((left, right) => (left.order ?? 0) - (right.order ?? 0))
+  }
+
+  /**
+   * 打开某视图（挂在其 `mount` 挂载点上；同一挂载点同时只显示一个）。
+   * 能力不存在或未声明 `mount` ⇒ 抛错（与 `openPanel` 一致，暴露误用）。
+   * 调用方（编辑器）自行 try/catch，插件被禁用时静默，不让入口崩。
+   */
+  openView(id: string, params?: unknown): void {
+    const view = this.capabilities('view').find((capability) => capability.id === id)
+    if (view === undefined || view.mount === undefined) {
+      throw new Error(`no enabled view capability "${id}" with a mount point`)
+    }
+    if (params !== undefined) this.viewParamsByView.set(id, params)
+    this.activeViewByMount.set(view.mount, id)
+    this.emit()
+  }
+
+  /** 关闭某挂载点上的视图（无则无操作） */
+  closeView(mount: string): void {
+    if (this.activeViewByMount.delete(mount)) this.emit()
+  }
+
+  /** 某挂载点当前打开的 view（无则 null） */
+  activeView(mount: string): Extract<PluginCapability, { kind: 'view' }> | null {
+    const id = this.activeViewByMount.get(mount)
+    if (id === undefined) return null
+    return this.views(mount).find((view) => view.id === id) ?? null
+  }
+
+  /**
+   * 取视图打开参数；未预置返回 `undefined`。
+   * 与 `panelParams` 一样返回宿主保存的**同一引用**，可安全作 `useSyncExternalStore` 快照。
+   */
+  viewParams(id: string): unknown {
+    return this.viewParamsByView.get(id)
+  }
+
+  /** 预置/清除视图打开参数但**不打开**（传 `undefined` 即清除） */
+  setViewParams(id: string, params: unknown): void {
+    if (params === undefined) this.viewParamsByView.delete(id)
+    else this.viewParamsByView.set(id, params)
+    this.emit()
   }
 
   /**
@@ -268,6 +329,16 @@ export class PluginHost {
     for (const plugin of this.plugins.values()) {
       for (const capability of plugin.manifest.capabilities) {
         if (capability.kind === 'panel' && capability.id === panelId) return plugin.manifest.id
+      }
+    }
+    return null
+  }
+
+  /** 某个 view 能力归属哪个插件（用于禁用时精确关闭其挂载点视图） */
+  private viewOwner(viewId: string): string | null {
+    for (const plugin of this.plugins.values()) {
+      for (const capability of plugin.manifest.capabilities) {
+        if (capability.kind === 'view' && capability.id === viewId) return plugin.manifest.id
       }
     }
     return null
