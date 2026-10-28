@@ -5,6 +5,7 @@ import { defineDataPanelsPlugin } from './dataPanelsPlugin'
 import { defineDemoPlugin } from './demoPlugin'
 import { defineEntryPanelsPlugin } from './entryPanelsPlugin'
 import { defineMaintenancePanelsPlugin } from './maintenancePanelsPlugin'
+import { defineMenusPlugin } from './menusPlugin'
 import { defineOnboardingPlugin } from './onboardingPlugin'
 import { defineReferencesPlugin } from './referencesPlugin'
 import { defineShellPanelsPlugin } from './shellPanelsPlugin'
@@ -38,6 +39,7 @@ export function registerBuiltinPlugins(): void {
   pluginHost.register(defineShellPanelsPlugin(pluginHost))
   pluginHost.register(defineOnboardingPlugin(pluginHost))
   pluginHost.register(defineAppActionsPlugin(pluginHost))
+  pluginHost.register(defineMenusPlugin(pluginHost))
 }
 
 registerBuiltinPlugins()

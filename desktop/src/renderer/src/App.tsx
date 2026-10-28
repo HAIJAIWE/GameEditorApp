@@ -23,6 +23,7 @@ import { clampDockWidth, defaultDockWidth, loadAiDockWidth, saveAiDockWidth } fr
 import { pluginHost } from './plugins/builtins'
 import { setHostUi } from './plugins/hostBridge'
 import { setAppIoPort } from './plugins/appActionsIo'
+import { setMenuStateProvider } from './plugins/menuState'
 import { HostPanel } from './plugins/HostPanel'
 import { AppContextProvider } from './plugins/appContext'
 
@@ -449,6 +450,15 @@ export default function App() {
   }, [openPanel, activeCeshuId])
   useEffect(() => () => setHostUi(null), [])
 
+  /**
+   * 菜单禁用态：`undo/redo` 的可用性由这里注入（菜单插件只声明 `disabledWhen: 'undo'`）。
+   * 契约保持可序列化——manifest 里不出现任何运行时状态。
+   */
+  useEffect(() => {
+    setMenuStateProvider(() => ({ undo: undoUi.canUndo, redo: undoUi.canRedo }))
+    return () => setMenuStateProvider(null)
+  }, [undoUi.canUndo, undoUi.canRedo])
+
   /*
    * 注：原 `handleOnboardingAction`（12 个引导 action 的导航分发）已随 Slice 8d 删除——
    * 它变成了 `onboardingPlugin` 里的 `nav.*` command，App 不再持有这段分发逻辑。
@@ -559,70 +569,7 @@ export default function App() {
 
   return (
     <div className="app">
-      <MenuBar
-        canUndo={undoUi.canUndo}
-        canRedo={undoUi.canRedo}
-        actions={{
-          /*
-           * 「打开/保存/批量导入/批量导出」历史上**共用同一对 handler**（导入 JSON / 导出 JSON）。
-           * Slice 8e 后它们由 `app-actions` 插件的 `app.io.*` 命令提供，映射关系保持不变：
-           *   open → app.io.open（导入 JSON）、save → app.io.save（导出 JSON）
-           *   batchImport → app.io.batchImport、batchExport → app.io.batchExport（同一对实现）
-           * 语义澄清：这里的「打开/保存」是**整个数据仓库的 JSON 文件 I/O**，
-           * **不是**编辑器里章节级的「保存本章」。
-           *
-           * ⚠️ 已知的 旧版 语义差异（详见 `MenuBar.tsx` 的 `MenuActions.open` 注释）：
-           * 旧版「打开」是整库替换 + 记忆 `current_file`，「批量导入」会重生成 id；
-           * 而 `importLegacy` 是按 id upsert 的合并、每次都问路径。补齐需新增 IPC，不在本轮范围。
-           */
-          // 文件 I/O 8 项：由 `app-actions` 插件提供（实现见 plugins/appActionsIo.ts）
-          importJson: () => runCommand('app.io.open'),
-          open: () => runCommand('app.io.open'),
-          save: () => runCommand('app.io.save'),
-          batchImport: () => runCommand('app.io.batchImport'),
-          batchExport: () => runCommand('app.io.batchExport'),
-          importCsv: () => runCommand('app.io.importCsv'),
-          importExcel: () => runCommand('app.io.importExcel'),
-          exportJson: () => runCommand('app.io.save'),
-          exportCsv: () => runCommand('app.io.exportCsv'),
-          exportExcel: () => runCommand('app.io.exportExcel'),
-          batchEdit: () => openPanel('batch.panel'),
-          // 引擎/快照导出：一个目标一条命令（`run()` 不带参数 ⇒ 目标烘进命令 id）
-          engineExport: (engine) => runCommand(`app.io.engineExport.${engine}`),
-          exportSnapshot: (format) => runCommand(`app.io.snapshot.${format}`),
-          // 窗口/焦点/退出 7 项：由 `app-actions` 插件提供（App 不再持有这些动作）
-          zoomIn: () => runCommand('app.zoomIn'),
-          zoomOut: () => runCommand('app.zoomOut'),
-          zoomReset: () => runCommand('app.zoomReset'),
-          reload: () => runCommand('app.reload'),
-          toggleDevTools: () => runCommand('app.toggleDevTools'),
-          backup: () => runCommand('backup.open'),
-          undo: () => runCommand('app.undo'),
-          redo: () => runCommand('app.redo'),
-          // 菜单入口：openPanel 会先清掉「快速入门」快捷卡留下的目标类型，回到默认（第一个类型）
-          quickCreate: () => openPanel('quickCreate.panel'),
-          references: () => openPanel('references.panel'),
-          relationGraph: () => runCommand('relationGraph.open'),
-          gameDataPreview: () => runCommand('gameDataPreview.open'),
-          dataDiff: () => runCommand('dataDiff.open'),
-          stats: () => runCommand('statistics.open'),
-          attrSystem: () => runCommand('attrSystem.open'),
-          // 菜单入口 = 通用字段结构编辑器；openPanel 会清掉条目表单留下的预选类型
-          fieldEditor: () => openPanel('typeEditor.panel'),
-          advancedSearch: () => runCommand('advancedSearch.open'),
-          imageGen: () => runCommand('imageGen.open'),
-          clearAll: () => runCommand('clearAll.open'),
-          shortcuts: () => runCommand('shortcuts.open'),
-          about: () => openPanel('about.panel'),
-          settings: () => runCommand('settings.open'),
-          cleanupUnusedImages: () => runCommand('cleanupImages.open'),
-          keywordTemplates: () => runCommand('keywordTemplates.open'),
-          attributeChart: () => runCommand('attributeChart.open'),
-          onboarding: () => runCommand('onboarding.open'),
-          aiPanel: () => runCommand('app.focusAi'),
-          quit: () => runCommand('app.quit')
-        }}
-      />
+      <MenuBar host={pluginHost} />
       <div className="app-body">
         <Sidebar items={SIDEBAR_ITEMS} activePanel={panelId} onNavigate={handleSidebar} />
         <div className="main">

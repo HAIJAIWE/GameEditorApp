@@ -175,6 +175,11 @@ export class PluginHost {
     return this.capabilities('service')
   }
 
+  /** 菜单能力（按 `order` 升序；同标题的条目由宿主合并渲染） */
+  menus(): Extract<PluginCapability, { kind: 'menu' }>[] {
+    return [...this.capabilities('menu')].sort((left, right) => left.order - right.order)
+  }
+
   /**
    * 打开某面板能力（仅已启用的 panel 可打开）；重复打开同一面板幂等。
    *

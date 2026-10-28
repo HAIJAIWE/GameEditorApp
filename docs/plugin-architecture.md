@@ -1,6 +1,6 @@
 # 插件架构与深层插件化迁移设计
 
-> 状态：**B 方案 Slice 1–8 全部完成**（2026-10-28）：23/23 浮层、35/35 菜单动作、12/12 引导动作全部由插件自供给，App 不再持有面板清单 / 标题表 / 动作实现。
+> 状态：**B 方案 Slice 1–9 全部完成**（2026-10-28）：23/23 浮层、35/35 菜单动作、12/12 引导动作，**连菜单结构本身**都由插件声明。App 不再持有面板清单 / 标题表 / 动作实现 / 菜单树。
 > 本文是插件系统的权威设计文档，也是「深层插件化」跨会话的交接文档。
 > 相关代码：`desktop/src/shared/plugin/`、`desktop/src/renderer/src/plugins/`。
 
@@ -46,6 +46,8 @@ renderer/src/plugins/
   hostBridge.ts            宿主 UI 桥：notify / openPanel（含守卫）/ setHomeVisible / getActiveCeshuId
   appActionsPlugin.ts      Slice 8c/8e：应用级动作（窗口 / 焦点 / 退出 / 文件 I/O / 撤销重做）纯 command
   appActionsIo.ts          Slice 8e：文件 I/O 实现（从 useDataTransfer 搬出）+ 注入式端口
+  menusPlugin.ts           Slice 9：6 个 menu 能力（文件/编辑/工具/视图/设置/帮助），菜单结构由插件声明
+  menuState.ts             菜单禁用态通道（disabledWhen → undo/redo 可用性，App 注入）
 ```
 
 ### 2.1 契约（`types.ts`）
@@ -57,10 +59,12 @@ renderer/src/plugins/
 - `protected?: boolean` —— 受保护核心，不可禁用（如 ceshu）
 - `engines?: { host?: string }` —— 宿主主版本门禁
 - `activate?: () => void | Promise<void>` —— 启动钩子；**抛错非致命**（标 `status:'error'`，宿主不崩）
-- `capabilities: PluginCapability[]` —— 四类能力：
+- `capabilities: PluginCapability[]` —— 五类能力：
   - `command`：`{ id, label, run() }` 可执行动作
   - `panel`：`{ id, title, ui: UiNode | (() => UiNode) }` 可挂载视图
   - `service`：`{ id, invoke(...args) }` 供其他插件调用
+  - `menu`：`{ id, menu, order, items }` 往宿主某顶层菜单塞条目（`PluginMenuItem.command` 指向命令；
+    `disabledWhen` 只写**判定键**，状态由宿主注入——manifest 保持可序列化）
   - `view`：声明式视图
 
 `UiNode`：`text | button | input | container`，完全可序列化，供非 React 宿主解析。
@@ -105,6 +109,7 @@ App.renderPanel()
 | Slice 6 | 依赖动作的面板（备份 refreshUndo / 清空 handleDataCleared）→ `maintenance-panels` bundle；`onboarding` 的 action 分发改归 Slice 8 | ✅ 完成 |
 | Slice 7 | 带打开参数的面板（类型编辑器 / 快速创建 / 批量编辑 / 导入预览）→ `entry-panels` bundle；App 里 4 份专用 state 全部删除 | ✅ 完成 |
 | Slice 8 | `MenuBar` 35 个菜单动作 → `command` 能力，App 不再持有动作清单 | ✅ 完成（8a 浮层塌缩 / 8b 导航 / 8c+8e 应用动作 / 8d 引导） |
+| Slice 9 | **菜单结构本身** → `menu` 能力：`MenuBar` 从 `host.menus()` 渲染，App 的 35 项 `MenuActions` 表删除 | ✅ 完成 |
 
 ---
 
@@ -352,8 +357,7 @@ manifest（`utility-panels` 8 个面板、`data-panels` 3 个面板），这是 
 
 ### 9.4 后续可选（都不阻塞当前架构）
 
-1. **`MenuBar` 从 `host.commands()` 生成菜单项**：现在是「App 持有一张 35 项 actions 映射表 → 各自 runCommand」，
-   再进一步就是让菜单结构也由插件声明（`menu` 能力），App 只剩 `canUndo/canRedo` 两个状态。
+1. ~~`MenuBar` 从 `host.commands()` 生成菜单项~~ → **Slice 9 已完成**（`menu` 能力 + `MenuBar` 从 `host.menus()` 渲染）。
 2. **`CeshuView` 内部面板**（报告 / 体检 / 路线 / 影响面）：不在本次范围（编辑器内视图，非浮层），
    若要插件化需要新能力类型（如 `view` 的挂载点声明）。
 3. **`Sidebar` 数据驱动**：`SIDEBAR_ITEMS` 仍是 App 的常量表，可改为插件声明的导航项。
@@ -391,6 +395,16 @@ Slice 4（8 个不依赖 App 状态的面板）：
 - `renderer/src/plugins/builtins.ts`（注册）
 - `renderer/src/App.tsx`（8 个 case → HostPanel，删 8 个直接 import）
 - `tests/unit/dom/utilityPanelsPlugin.test.tsx`（3 条：能力清单 / testid 保留 / 禁用后不再渲染）
+
+Slice 9（菜单结构插件化）：
+- `shared/plugin/types.ts`（新增 `PluginMenuCapability` / `PluginMenuItem`，能力扩到五类）
+- `shared/plugin/host.ts`（`menus()`：仅启用插件、按 `order` 升序）
+- `renderer/src/plugins/menusPlugin.ts`（新增；6 个 menu 能力，35 项 + 子菜单 + 分隔符，testid 原样保留）
+- `renderer/src/plugins/menuState.ts`（新增；`disabledWhen` 判定通道，App 注入 undo/redo 可用性）
+- `renderer/src/components/MenuBar.tsx`（重写：props 只剩 `host`；从 `host.menus()` 合并渲染；点击派发命令）
+- `renderer/src/App.tsx`（删 35 项 `MenuActions` 映射表；注入 `setMenuStateProvider`）
+- `tests/unit/menusPlugin.test.ts`（6 条，含「菜单引用的命令都存在」的死链守卫）
+- `tests/unit/dom/menuBar.behavior.test.tsx`（重写 9 条：结构来自插件 / 派发命令 / 置灰不派发 / 角部件走命令）
 
 Slice 8e（文件 I/O + 撤销重做命令化）：
 - `renderer/src/plugins/appActionsIo.ts`（新增；8 个 I/O 实现 + `setAppIoPort` 注入式端口）
