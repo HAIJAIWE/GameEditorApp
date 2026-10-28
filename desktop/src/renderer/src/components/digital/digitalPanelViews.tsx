@@ -1,10 +1,20 @@
 import { useState, type ReactNode } from 'react'
 
+import { RISK_LEVEL, resolveRiskLevel } from '../../../../shared/agent/protocol'
 import {
   summarizeToolTasks,
   type DigitalPanelState,
   type DigitalStep
 } from '../../../../shared/agent/panel'
+
+/** 风险等级 → 中文档位（审批卡展示用） */
+const RISK_LABELS: Record<number, string> = {
+  [RISK_LEVEL.READ_ONLY]: '只读',
+  [RISK_LEVEL.DATA_WRITE]: '写数据',
+  [RISK_LEVEL.FILE_SYSTEM]: '文件系统',
+  [RISK_LEVEL.NETWORK]: '网络',
+  [RISK_LEVEL.SYSTEM]: '系统级'
+}
 
 /** 危险操作审批模态：展示工具 / 操作 / 参数，回传「允许 / 拒绝」决定 */
 export function DigitalApproval({
@@ -14,13 +24,25 @@ export function DigitalApproval({
   approval: NonNullable<DigitalPanelState['approval']>
   onApprove: (approved: boolean) => void
 }) {
+  const risk = resolveRiskLevel(approval.tool, approval.action)
+  const riskTone =
+    risk >= RISK_LEVEL.SYSTEM ? 'danger' : risk >= RISK_LEVEL.NETWORK ? 'warn' : 'muted'
   return (
     <div className="digital-approval" data-testid="digital-approval">
-      <div className="form-label">⚠️ 危险操作确认</div>
+      <div className="digital-approval-head">
+        <span className="form-label">⚠️ 危险操作确认</span>
+        <span className={`digital-risk-badge digital-risk-${riskTone}`} data-testid="digital-approval-risk">
+          风险：{RISK_LABELS[risk] ?? '未知'}
+        </span>
+      </div>
       <div className="item-meta">
         工具：{approval.tool} · 操作：{approval.action || '(未指定)'}
       </div>
-      <pre className="digital-approval-params">{JSON.stringify(approval.params, null, 2)}</pre>
+      <details className="digital-approval-details" open>
+        <summary className="item-meta">参数</summary>
+        <pre className="digital-approval-params">{JSON.stringify(approval.params, null, 2)}</pre>
+      </details>
+      <div className="item-meta">批准后执行；拒绝会把「未确认」回灌给模型，让它换方案。</div>
       <div className="editor-actions">
         <button
           type="button"

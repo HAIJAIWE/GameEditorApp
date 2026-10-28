@@ -5520,6 +5520,42 @@ button.ref-row:hover {
   font-size: calc(13px * var(--ui-font-scale) * 11/13);
 }
 
+/* Slice 39：审批卡风险档 + 参数折叠 */
+.digital-approval-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.digital-risk-badge {
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: calc(13px * var(--ui-font-scale) * 11/13);
+}
+
+.digital-risk-danger {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.digital-risk-warn {
+  color: var(--warning);
+  border-color: var(--warning);
+}
+
+.digital-risk-muted {
+  color: var(--text-muted);
+}
+
+.digital-approval-details {
+  margin: 0;
+}
+
+.digital-approval-details summary {
+  cursor: pointer;
+}
+
 .digital-input-row {
   display: flex;
   gap: 8px;
