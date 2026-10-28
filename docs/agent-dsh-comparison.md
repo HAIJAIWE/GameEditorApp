@@ -193,6 +193,8 @@ dsh 用 **cordis** 做插件组合，profile 是 YAML 补丁层（`bundles` + `c
 >
 > **已落地（Slice 32，2026-10-28）**：**沙箱策略** `SandboxPolicy = 'read-only' | 'workspace-write'`（缺省后者）；`read-only` 下 **CLI provider 拒绝运行**（`MB_SANDBOX_POLICY=read-only` 切换）。**诚实边界**：非 OS 级隔离，强制点目前是「拒绝外部 CLI」。
 > **事件日志回放**：`AgentSessionStore.readEvents(sessionId?)` 按会话读 run 记录 + `deriveTranscript` 派生可读轨迹（工具/最终答复/中止/轮次）。**仍非「从日志派生完整消息历史」**——恢复走 `save()` 快照。
+>
+> **已落地（Slice 33，2026-10-28）**：**远程子智能体 provider**——`createRemoteSubAgentProvider`（POST `{task,depth}` → `{text}`，headers 鉴权、超时/取消 abort）。`stores.ts` 优先级 **远程 URL（`MB_SUBAGENT_REMOTE_URL`/`_TOKEN`）> CLI（`MB_SUBAGENT_CLI`）> 进程内 spawn**。
 
 ---
 
