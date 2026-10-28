@@ -199,7 +199,7 @@ test('Agent Brain 循环：桩服务返回工具调用 → 执行工具 → 流�
     // 线格式守卫：桩服务收到的每个工具都必须带 `type:'function'` 外层（缺了 Ollama 会静默拿到无名工具）
     expect(first?.tools.every((tool) => tool.type === 'function')).toBe(true)
     expect(first?.messages[0]?.role).toBe('system')
-    expect(first?.messages[0]?.content).toContain('游戏策划 AI 助手')
+    expect(first?.messages[0]?.content).toContain('游戏策划智能体')
     expect(first?.messages.some((message) => message.role === 'system' && message.content?.includes('## 规则'))).toBe(true)
     expect(first?.messages.at(-1)).toEqual({ role: 'user', content: '帮我看看有哪些数据类型' })
 
