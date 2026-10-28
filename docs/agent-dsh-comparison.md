@@ -190,6 +190,9 @@ dsh 用 **cordis** 做插件组合，profile 是 YAML 补丁层（`bundles` + `c
 > **已落地（Slice 30，2026-10-28）**：子智能体 **provider seam**——`SubAgentProvider { id, run(SubAgentTask) }`；默认进程内 `spawn`，外部后端（CLI/远程）实现接口注入 `subAgentProvider` 即可，不改循环。
 >
 > **已落地（Slice 31，2026-10-28）**：**CLI 外部后端**——`createCliSubAgentProvider`（`shell:false`、arg/stdin、超时/取消 kill、stdout→stderr 回退）。配置 `MB_SUBAGENT_CLI=claude`（可选 `MB_SUBAGENT_CLI_ARGS` JSON 数组 / `MB_SUBAGENT_CLI_INPUT=stdin`）即把子任务交给本地 CLI 编码智能体；未配置仍用进程内 spawn。
+>
+> **已落地（Slice 32，2026-10-28）**：**沙箱策略** `SandboxPolicy = 'read-only' | 'workspace-write'`（缺省后者）；`read-only` 下 **CLI provider 拒绝运行**（`MB_SANDBOX_POLICY=read-only` 切换）。**诚实边界**：非 OS 级隔离，强制点目前是「拒绝外部 CLI」。
+> **事件日志回放**：`AgentSessionStore.readEvents(sessionId?)` 按会话读 run 记录 + `deriveTranscript` 派生可读轨迹（工具/最终答复/中止/轮次）。**仍非「从日志派生完整消息历史」**——恢复走 `save()` 快照。
 
 ---
 
