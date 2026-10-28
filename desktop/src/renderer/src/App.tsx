@@ -5,8 +5,6 @@ import { loadGameStyle, normalizeGameStyleId, saveGameStyle } from '../../shared
 import type { AppInfo, DataTypeDef } from '../../shared/types'
 import { applyTheme, loadTheme, saveTheme, type ThemeMode } from '../../shared/config/theme'
 
-import CeshuHomePanel from './components/CeshuHomePanel'
-import CeshuView from './components/CeshuView'
 import { type PreviewJumpTarget } from './components/ceshu/CeshuDataPreview'
 import DigitalPanel from './components/digital/DigitalPanel'
 import MenuBar from './components/MenuBar'
@@ -469,7 +467,7 @@ export default function App() {
   }
 
   /** 跳转已处理（预览面板点击标签页 / 未命中被驳回）：清空 jumpTarget，避免重复触发 */
-  const handleJumpHandled = (): void => setJumpTarget(null)
+  const handleJumpHandled = useCallback((): void => setJumpTarget(null), [])
 
   /** 条目表单「更多 ▸ → 编辑当前类型字段结构」：把该类型作为打开参数交给宿主 */
   const handleEditType = useCallback((typeId: string): void => {
@@ -488,9 +486,9 @@ export default function App() {
   }, [])
 
   /** 跳转未命中：目标类型不在当前策划书启用的游戏系统里，给出可理解的提示 */
-  const handleJumpMissed = (name: string): void => {
+  const handleJumpMissed = useCallback((name: string): void => {
     setNotice(`该条目「${name}」所属的数据类型未在当前策划书启用的游戏系统中，无法定位`)
-  }
+  }, [])
 
   /**
    * 注：原先这里有一个 `notImplemented(label)` 轻提示，供「点了只报尚未实现」的菜单占位项复用。
@@ -529,10 +527,23 @@ export default function App() {
   }, [refreshUndo, performUndo, performRedo])
 
   /** 打开某份策划书（同时离开首页卡片视图） */
-  const handleOpenCeshu = (id: string): void => {
+  const handleOpenCeshu = useCallback((id: string): void => {
     setActiveCeshuId(id)
     setCeshuHomeVisible(false)
-  }
+  }, [])
+
+  /** 某份策划书被删除后清掉失效的选中态（Slice 24：编辑器迁 view 后经 context 下发） */
+  const handleDeleteCeshu = useCallback((deletedId: string): void => {
+    setActiveCeshuId((current) => (current === deletedId ? null : current))
+  }, [])
+
+  /** 编辑器「返回策划书首页」 */
+  const handleBackToHome = useCallback((): void => setCeshuHomeVisible(true), [])
+
+  /** 刷新策划书列表（包一层以匹配 context 的同步签名） */
+  const handleReloadCeshuList = useCallback((): void => {
+    void reloadCeshuList()
+  }, [reloadCeshuList])
 
   /**
    * 面板自供给通道（B 方案 Slice 2）：把面板共用的业务状态/动作经 context 注入，
@@ -553,55 +564,51 @@ export default function App() {
    * memo 化：`types`/`gameStyle` 不变时引用稳定，数据页签不随 App 其它状态重渲染（性能隔离）。
    */
   const mainViewContextValue = useMemo(
-    () => ({ types, gameStyle, onEditType: handleEditType, onShowReferences: handleShowReferences }),
-    [types, gameStyle, handleEditType, handleShowReferences]
+    () => ({
+      types,
+      gameStyle,
+      onEditType: handleEditType,
+      onShowReferences: handleShowReferences,
+      ceshuHomeVisible,
+      ceshuList,
+      activeCeshuId,
+      onOpenCeshu: handleOpenCeshu,
+      onReloadCeshuList: handleReloadCeshuList,
+      onDeleteCeshu: handleDeleteCeshu,
+      onGameStyleChange: handleGameStyleChange,
+      onBackToHome: handleBackToHome,
+      jumpTarget,
+      dataEpoch,
+      onTypesChanged: setTypes,
+      onJumpHandled: handleJumpHandled,
+      onJumpMissed: handleJumpMissed,
+      host: pluginHost
+    }),
+    [
+      types,
+      gameStyle,
+      handleEditType,
+      handleShowReferences,
+      ceshuHomeVisible,
+      ceshuList,
+      activeCeshuId,
+      handleOpenCeshu,
+      handleReloadCeshuList,
+      handleDeleteCeshu,
+      handleGameStyleChange,
+      handleBackToHome,
+      jumpTarget,
+      dataEpoch,
+      handleJumpHandled,
+      handleJumpMissed
+    ]
   )
 
   /**
-   * 主区页签（Slice 22/23）：编辑器暂以内联 `render` 下发（吃大量 App 状态与 props），
-   * 数据 / 代码 / 浏览器三个视图已由 `core-views` 插件的 `mainView` 能力提供。
-   * 编辑器常驻挂载（`lazy:false`，切走不丢草稿）。
+   * 主区页签（Slice 22–24）：策划书 / 数据 / 代码 / 浏览器**全部**由 `core-views` 插件的
+   * `mainView` 能力提供，App 不再内联渲染任何页签内容。`appTabs` 保留为「非插件页签」逃生口（当前为空）。
    */
-  const appTabs: AppMainTab[] = [
-    {
-      id: 'editor',
-      label: '策划书',
-      title: '策划书编辑器（游戏设计文档：24 章 / AI 生成 / 校验评分）',
-      order: 0,
-      lazy: false,
-      render: () =>
-        ceshuHomeVisible ? (
-          <CeshuHomePanel
-            summaries={ceshuList}
-            activeId={activeCeshuId}
-            onOpen={handleOpenCeshu}
-            onChanged={() => void reloadCeshuList()}
-            onDeleted={(deletedId) => {
-              setActiveCeshuId((current) => (current === deletedId ? null : current))
-            }}
-          />
-        ) : (
-          <CeshuView
-            ceshuId={activeCeshuId}
-            onChanged={() => void reloadCeshuList()}
-            onSelect={handleOpenCeshu}
-            onGameStyleChange={handleGameStyleChange}
-            types={types}
-            gameStyle={gameStyle}
-            onBack={() => setCeshuHomeVisible(true)}
-            jumpTarget={jumpTarget}
-            dataEpoch={dataEpoch}
-            onEditType={handleEditType}
-            onTypesChanged={setTypes}
-            onShowReferences={handleShowReferences}
-            onJumpHandled={handleJumpHandled}
-            onJumpMissed={handleJumpMissed}
-            host={pluginHost}
-          />
-        )
-    },
-    // 「数据」页签已迁到 core-views 插件的 data.mainView（Slice 23），经 mainViewContext 取状态。
-  ]
+  const appTabs: AppMainTab[] = []
 
   /**
    * 浮层头部标题：由 `panel` 能力自带（插件声明 `title`），App 不再维护 23 项标题表。

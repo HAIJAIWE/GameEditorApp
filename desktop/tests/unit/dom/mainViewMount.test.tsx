@@ -93,14 +93,20 @@ describe('主区视图挂载器（Slice 22）', () => {
     expect(view.byTestId('editor-body')).toBeTruthy()
   })
 
-  it('core-views 插件声明数据/代码/浏览器三个 mainView（lazy、order 10/30/40）+ React 绑定', () => {
+  it('core-views 插件声明策划书/数据/代码/浏览器四个 mainView（order 0/10/30/40）+ React 绑定', () => {
     const manifest = defineCoreViewsPlugin()
     const views = manifest.capabilities.filter((cap) => cap.kind === 'mainView')
-    expect(views.map((v) => v.id)).toEqual(['data.mainView', 'code.mainView', 'browser.mainView'])
-    expect(views.map((v) => v.order)).toEqual([10, 30, 40])
-    expect(views.every((v) => v.lazy === true)).toBe(true)
-    expect(getReactBinding('data.mainView')).toBeDefined()
-    expect(getReactBinding('code.mainView')).toBeDefined()
-    expect(getReactBinding('browser.mainView')).toBeDefined()
+    expect(views.map((v) => v.id)).toEqual([
+      'editor.mainView',
+      'data.mainView',
+      'code.mainView',
+      'browser.mainView'
+    ])
+    expect(views.map((v) => v.order)).toEqual([0, 10, 30, 40])
+    // 编辑器常驻挂载（lazy:false），其余首访才挂
+    expect(views.map((v) => v.lazy)).toEqual([false, true, true, true])
+    for (const id of ['editor.mainView', 'data.mainView', 'code.mainView', 'browser.mainView']) {
+      expect(getReactBinding(id)).toBeDefined()
+    }
   })
 })

@@ -1,15 +1,17 @@
 import type { PluginManifest } from '../../../shared/plugin/types'
 import BrowserPanel from '../components/BrowserPanel'
+import CeshuHomePanel from '../components/CeshuHomePanel'
+import CeshuView from '../components/CeshuView'
 import CodePanel from '../components/CodePanel'
 import DataEditorPanel from '../components/DataEditorPanel'
 import { useMainViewContext } from './mainViewContext'
 import { registerReactBinding } from './reactBindings'
 
 /**
- * 主区视图插件化（Slice 22）。
+ * 主区视图插件化（Slice 22–24）。
  *
- * 先把**零 prop** 的「代码编辑」「浏览器」两个中间页签迁出 App，验证 `mainView` 能力通路；
- * 编辑器 / 数据页签仍由 App 以 `appTabs` 内联传给 `MainViewMount`（重视图，后续片再迁）。
+ * 中间页签（策划书/数据/代码/浏览器）全部由 `mainView` 能力提供，App 不再内联渲染任何页签内容。
+ * 重视图（编辑器/数据）的 props 从独立的 `mainViewContext` 取，与面板 `appContext` 隔离。
  *
  * 绑定组件定义在模块级（不在工厂/渲染期新建），注册在工厂里由 builtins 调用一次。
  */
@@ -35,22 +37,70 @@ function DataMainView() {
   )
 }
 
+/**
+ * 编辑器页签（Slice 24）：策划书首页 ↔ 具体策划书由 `ceshuHomeVisible` 决定。
+ * 常驻挂载（lazy:false）⇒ 切到别的页签再切回，CeshuView 不卸载、草稿/滚动/选中态都不丢。
+ */
+function EditorMainView() {
+  const ctx = useMainViewContext()
+  if (ctx.ceshuHomeVisible) {
+    return (
+      <CeshuHomePanel
+        summaries={[...ctx.ceshuList]}
+        activeId={ctx.activeCeshuId}
+        onOpen={ctx.onOpenCeshu}
+        onChanged={ctx.onReloadCeshuList}
+        onDeleted={ctx.onDeleteCeshu}
+      />
+    )
+  }
+  return (
+    <CeshuView
+      ceshuId={ctx.activeCeshuId}
+      onChanged={ctx.onReloadCeshuList}
+      onSelect={ctx.onOpenCeshu}
+      onGameStyleChange={ctx.onGameStyleChange}
+      types={ctx.types}
+      gameStyle={ctx.gameStyle}
+      onBack={ctx.onBackToHome}
+      jumpTarget={ctx.jumpTarget}
+      dataEpoch={ctx.dataEpoch}
+      onEditType={ctx.onEditType}
+      onTypesChanged={ctx.onTypesChanged}
+      onShowReferences={ctx.onShowReferences}
+      onJumpHandled={ctx.onJumpHandled}
+      onJumpMissed={ctx.onJumpMissed}
+      host={ctx.host}
+    />
+  )
+}
+
 export function defineCoreViewsPlugin(): PluginManifest {
+  registerReactBinding('editor.mainView', EditorMainView)
+  registerReactBinding('data.mainView', DataMainView)
   registerReactBinding('code.mainView', CodeMainView)
   registerReactBinding('browser.mainView', BrowserMainView)
-  registerReactBinding('data.mainView', DataMainView)
 
   return {
     id: 'core-views',
     name: 'core-views',
     version: '0.1.0',
-    description: 'App 主区页签：代码编辑 / 内置浏览器',
+    description: 'App 主区页签：策划书 / 数据 / 代码 / 浏览器',
     meta: {
       label: '主区视图',
       icon: '🗂️',
-      description: '中间页签里的代码编辑与浏览器'
+      description: '中间页签里的策划书、数据、代码与浏览器'
     },
     capabilities: [
+      {
+        kind: 'mainView',
+        id: 'editor.mainView',
+        label: '策划书',
+        title: '策划书编辑器（游戏设计文档：24 章 / AI 生成 / 校验评分）',
+        order: 0,
+        lazy: false,
+        ui: { type: 'text', text: '策划书' }
+      },
       {
         kind: 'mainView',
         id: 'data.mainView',
