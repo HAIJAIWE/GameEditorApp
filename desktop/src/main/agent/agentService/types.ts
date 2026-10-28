@@ -8,7 +8,8 @@ import type {
   BrainEvent,
   BrainInteractionResponder,
   BrainLlmTransport,
-  BrainToolRunner
+  BrainToolRunner,
+  SubAgentProvider
 } from '../../../shared/agent/brain'
 import type { SkillExecutionContext } from '../../../shared/agent/protocol'
 import type { StoredLlmConfig } from '../../../shared/config/llmConfig'
@@ -76,4 +77,9 @@ export interface AgentBrainServiceDeps {
   preferences?: PreferenceStore
   /** 工具执行器覆盖（E3-2）：接线层可传入包了记录器的 runner，Brain 本身不感知记录逻辑 */
   runner?: BrainToolRunner
+  /**
+   * 子智能体 provider（Slice 31）：缺省 = 进程内 spawn；
+   * 注入 CLI/远程 provider 即可把子任务交给外部后端（见 `subagentCli.ts`）。
+   */
+  subAgentProvider?: SubAgentProvider
 }

@@ -10,12 +10,27 @@
 
 import { join } from 'node:path'
 
+/**
+ * 解析 CLI 子智能体的固定参数（Slice 31）：`MB_SUBAGENT_CLI_ARGS` 期望 JSON 字符串数组。
+ * 解析失败/非数组 ⇒ 空数组（不因为配置写错就崩）。
+ */
+function parseCliArgs(raw: string | undefined): string[] {
+  if (raw === undefined || raw.trim() === '') return []
+  try {
+    const parsed: unknown = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === 'string') : []
+  } catch {
+    return []
+  }
+}
+
 import { AgentApprovalBroker } from './agent/approvalBroker'
 import { AgentBrainService, createDispatcherToolRunner } from './agent/brainService'
 import { OperationLogStore } from './agent/operationLogStore'
 import { createRecordingToolRunner } from './agent/operationRecorder'
 import { createRollbackSkill } from './agent/skills/rollbackSkill'
 import { createSubAgentSkill } from './agent/skills/subAgentSkill'
+import { createCliSubAgentProvider } from './agent/subagentCli'
 import { mcpManager } from './agent/mcp/manager'
 import { AgentMemoryStore } from './agent/memoryStore'
 import { createOllamaEmbeddingProvider } from './agent/embedding'
@@ -123,7 +138,18 @@ export function buildStores(libDir: string): AppStores {
       // F3：显式配置 MB_MEMORY_EMBED_MODEL 时走真实 embedding；否则回落到确定性哈希
       memoryStore: new AgentMemoryStore(agentDir, { embedder: createOllamaEmbeddingProvider() }),
       preferences: personalization.preferences,
-      runner
+      runner,
+      // Slice 31：显式配置 MB_SUBAGENT_CLI 时，子智能体交给该 CLI（如 claude/codex）执行；
+      // 未配置则沿用循环默认的进程内 spawn。可选 MB_SUBAGENT_CLI_ARGS（JSON 数组）/ MB_SUBAGENT_CLI_INPUT=stdin。
+      ...(process.env.MB_SUBAGENT_CLI !== undefined && process.env.MB_SUBAGENT_CLI.trim() !== ''
+        ? {
+            subAgentProvider: createCliSubAgentProvider({
+              command: process.env.MB_SUBAGENT_CLI.trim(),
+              args: parseCliArgs(process.env.MB_SUBAGENT_CLI_ARGS),
+              ...(process.env.MB_SUBAGENT_CLI_INPUT === 'stdin' ? { inputMode: 'stdin' as const } : {})
+            })
+          }
+        : {})
     }),
     agentSessionStore: sessionStore,
     agentPreferences: personalization.preferences,

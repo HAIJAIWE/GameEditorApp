@@ -121,6 +121,10 @@ export class AgentBrainService {
       tier,
       // F4 评估闭环：云端档挂默认评估器（确定性底线检查，不阻断）；本地 4B 一般不挂
       ...(tier === 'cloud' ? { evaluator: defaultDialogueEvaluator } : {}),
+      // Slice 31：外部子智能体 provider（CLI/远程）；缺省由循环用进程内 spawn
+      ...(this.deps.subAgentProvider !== undefined
+        ? { subAgentProvider: this.deps.subAgentProvider }
+        : {}),
       // 不显式兜底：让循环按档位取默认（云端 12 / 本地 6）。显式传值会盖掉 tier-aware 默认。
       ...(this.deps.maxTurns !== undefined ? { maxTurns: this.deps.maxTurns } : {}),
       ...(this.deps.maxToolCalls !== undefined ? { maxToolCalls: this.deps.maxToolCalls } : {}),
