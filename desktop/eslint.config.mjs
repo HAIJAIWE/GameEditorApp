@@ -27,6 +27,13 @@ export default tseslint.config(
     }
   },
   {
+    // 测试夹具（Node 子进程，被 ACP provider 等 spawn）
+    files: ['tests/fixtures/**/*.mjs'],
+    languageOptions: {
+      globals: globals.node
+    }
+  },
+  {
     // 浏览器预览工具（Node 跑静态服务器 + 注入 window.mbApi 桩 + Edge 截图驱动）
     files: ['preview/**/*.mjs', 'preview/**/*.js'],
     languageOptions: {
