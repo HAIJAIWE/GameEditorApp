@@ -34,6 +34,11 @@ export interface CeshuViewContextValue {
   validateErrors: string[]
   readiness: CeshuReadinessReport | null
 
+  /** 编辑器是否忙（浮层按钮据此禁用） */
+  busy: boolean
+  /** 执行字段迁移（迁移预览浮层的「执行迁移」） */
+  onRunMigration: () => void
+
   /** 子面板把「应用后」的文档回传给编辑器（AI 生成 / 模板 / 预设 / 系统确认） */
   onAiApplied: (updated: CeshuDocument, chapters: readonly ChapterKey[]) => void
   onTemplateApplied: (updated: CeshuDocument, chapter: ChapterKey) => void

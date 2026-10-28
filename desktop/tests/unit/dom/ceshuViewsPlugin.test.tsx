@@ -60,6 +60,8 @@ function ctx(overrides: Partial<CeshuViewContextValue> = {}): CeshuViewContextVa
     changelog: null,
     validateErrors: [],
     readiness: null,
+    busy: false,
+    onRunMigration: () => undefined,
     onAiApplied: () => undefined,
     onTemplateApplied: () => undefined,
     onPresetApplied: () => undefined,
@@ -74,12 +76,14 @@ function ctx(overrides: Partial<CeshuViewContextValue> = {}): CeshuViewContextVa
 }
 
 describe('编辑器内视图插件（Slice 11/12/13：view 挂载点 + 内容槽）', () => {
-  it('浮层挂载点声明 3 个 view，按 order 排序', () => {
+  it('浮层挂载点声明 5 个 view（路线/体检/影响面/迁移/消费提示词），按 order 排序', () => {
     const host = hostWithPlugin()
     expect(host.views(CESHU_VIEW_MOUNT).map((v) => v.id)).toEqual([
       'route.view',
       'health.view',
-      'fieldImpact.view'
+      'fieldImpact.view',
+      'migration.view',
+      'consume.view'
     ])
     for (const v of host.views(CESHU_VIEW_MOUNT)) expect(v.mount).toBe(CESHU_VIEW_MOUNT)
   })
@@ -104,12 +108,14 @@ describe('编辑器内视图插件（Slice 11/12/13：view 挂载点 + 内容槽
     expect(host.views('other.mount')).toEqual([])
   })
 
-  it('16 个 view 都有 React 绑定（否则会退化成占位文本）', () => {
+  it('18 个 view 都有 React 绑定（否则会退化成占位文本）', () => {
     hostWithPlugin()
     const ids = [
       'route.view',
       'health.view',
       'fieldImpact.view',
+      'migration.view',
+      'consume.view',
       'diff.view',
       'timeline.view',
       'changelog.view',

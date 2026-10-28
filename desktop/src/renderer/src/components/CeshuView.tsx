@@ -40,9 +40,7 @@ import { fieldStatusOf, setFieldStatuses, type FieldReviewStatus } from '../../.
 import type { FieldAction } from '../../../shared/ceshuFieldAction'
 import { clearFieldRequest } from '../ceshuFieldFocus'
 import { CESHU_CHAPTER_FIELDS } from '../../../shared/ceshuFields'
-import { migrationSplitTitle, pendingSplitCount, planCeshuMigration } from '../../../shared/ceshuMigrationPlan'
 import { REVIEW_QUEUE_KEY_HINT, resolveReviewQueueKey } from '../reviewQueueKeys'
-import { buildCeshuBundle } from '../../../shared/ceshuBundle'
 import {
   applyCeshuPatch,
   parseCeshuIssues,
@@ -52,13 +50,6 @@ import {
   type CeshuPatchItem,
   type CeshuPatchParseResult
 } from '../../../shared/ceshuImportPatch'
-import {
-  BUNDLE_CONSUME_TASKS,
-  BUNDLE_CONSUME_TASK_LABELS,
-  BUNDLE_CONSUME_USAGE,
-  buildBundleConsumePrompt,
-  type BundleConsumeTask
-} from '../../../shared/ceshuBundlePrompt'
 import type { CeshuAiGenerateResult } from '../../../shared/ceshuAi'
 import type { PluginHost } from '../../../shared/plugin/host'
 import type { DataTypeDef } from '../../../shared/types'
@@ -187,11 +178,10 @@ export default function CeshuView({
    * 挂在挂载点 `ceshu.overlay` 上由 `<ViewMount>` 渲染（打开走 `host.openView`，见下方 openEditorView）。
    * 这样它们叠在编辑器之上、**不卸载编辑器**，草稿与编辑态都保留。
    */
-  /** 迁移预览（只读）浮层是否展开 */
-  const [migrationOpen, setMigrationOpen] = useState(false)
-  /** AI 消费提示词浮层是否展开，以及当前任务（draft=按契约起草 / review=审阅找问题） */
-  const [consumeOpen, setConsumeOpen] = useState(false)
-  const [consumeTask, setConsumeTask] = useState<BundleConsumeTask>('draft')
+  /*
+   * 迁移预览 / AI 消费提示词（Slice 14）：已抽成独立组件（components/ceshu/EditorOverlays），
+   * 挂在 `ceshu.overlay` 由 `<ViewMount>` 渲染——本组件不再持它们的 state 与内联 JSX。
+   */
   /** 审阅队列键盘光标（第几条待审）；打开队列时归零，列表变化时渲染期夹取，不写 effect */
   const [reviewCursor, setReviewCursor] = useState(0)
   /**
@@ -582,10 +572,6 @@ export default function CeshuView({
     }
   }
 
-  /** 迁移预览（只读）：大 textarea 会怎么拆 / 哪些字段语义重叠 */
-  const migrationPlan = planCeshuMigration(doc)
-  /** AI 消费提示词（双轨 JSON 的配套）：按任务生成可粘贴给外部 AI 的提示词 */
-  const consumePrompt = buildBundleConsumePrompt(buildCeshuBundle(doc), consumeTask)
   const progress = computeChapterProgress(doc, stageFilter === 'all' ? undefined : stageFilter)
   /** 由第四章游戏系统派生的启用编辑器（内嵌数据预览面板据此渲染标签页） */
   const enabledEditors = computeEnabledEditors(doc)
@@ -1029,8 +1015,8 @@ export default function CeshuView({
       { testid: 'ceshu-timeline', label: '版本时间线', run: () => openEditorView('timeline.view') },
       { testid: 'ceshu-changelog', label: '变更记录', run: () => void handleShowChangelog() },
       { testid: 'ceshu-datarefs', label: '数据引用', run: () => openEditorView('dataRefs.view') },
-      { testid: 'ceshu-migration-preview', label: '迁移预览（只读）', run: () => setMigrationOpen(true) },
-      { testid: 'ceshu-consume-prompt', label: 'AI 消费提示词', run: () => setConsumeOpen(true) },
+      { testid: 'ceshu-migration-preview', label: '迁移预览（只读）', run: () => openEditorView('migration.view') },
+      { testid: 'ceshu-consume-prompt', label: 'AI 消费提示词', run: () => openEditorView('consume.view') },
       { testid: 'ceshu-import-patch', label: '导入 AI 结果', run: () => setImportOpen(true) },
       { testid: 'ceshu-export-project', label: '导出项目文件夹', run: () => void handleExportProject() },
       { testid: 'ceshu-export-handoff', label: '导出开发交接包', run: () => void handleExportHandoff() }
@@ -1053,6 +1039,8 @@ export default function CeshuView({
     changelog,
     validateErrors,
     readiness,
+    busy,
+    onRunMigration: handleRunMigration,
     onAiApplied: handleAiApplied,
     onTemplateApplied: handleTemplateApplied,
     onPresetApplied: handlePresetApplied,
@@ -1338,74 +1326,6 @@ export default function CeshuView({
              * 改为插件 `view` 能力，由 ViewMount 在这里渲染——**CeshuView 保持挂载**（草稿/编辑态不丢）。
              */}
             <ViewMount host={host} mount={CESHU_VIEW_MOUNT} context={viewContext} />
-            {/* 迁移预览（只读）：只展示「会怎么拆 / 哪些重叠」，不改文档 */}
-            {migrationOpen && (
-              <div className="review-overlay" data-testid="migration-overlay" onClick={() => setMigrationOpen(false)}>
-                <div className="review-panel" data-testid="migration-panel" onClick={(event) => event.stopPropagation()}>
-                  <div className="review-panel-header">
-                    <span>迁移预览</span>
-                    <button
-                      type="button"
-                      className="btn primary slim"
-                      data-testid="migration-run"
-                      disabled={busy || pendingSplitCount(doc) === 0}
-                      onClick={() => void handleRunMigration()}
-                    >
-                      执行迁移（{pendingSplitCount(doc)}）
-                    </button>
-                    <button type="button" className="btn slim" onClick={() => setMigrationOpen(false)}>
-                      关闭
-                    </button>
-                  </div>
-                  <div className="item-meta">
-                    迁移**幂等且非破坏**：把大段文本拆成「要点 + 补充」，原文保留，确认无误后可手动清空旧字段。
-                  </div>
-                  {migrationPlan.splits.length === 0 && migrationPlan.overlaps.length === 0 ? (
-                    <div className="item-meta">没有需要迁移的字段。</div>
-                  ) : (
-                    <div className="review-list">
-                      {migrationPlan.splits.map((item) => (
-                        <div
-                          className="migration-item"
-                          key={`split:${item.chapter}:${item.fieldKey}`}
-                          data-testid="migration-split"
-                        >
-                          <div className="migration-title">{migrationSplitTitle(item)}</div>
-                          <div className="item-meta">
-                            拆成：要点列表（{item.points.length} 条）+ 补充说明
-                          </div>
-                          <ul className="migration-points">
-                            {item.points.map((point, index) => (
-                              <li key={index}>{point}</li>
-                            ))}
-                          </ul>
-                          {item.notes !== '' && (
-                            <div className="item-meta">
-                              补充：{item.notes.slice(0, 120)}
-                              {item.notes.length > 120 ? '…' : ''}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                      {migrationPlan.overlaps.map((item) => (
-                        <div className="migration-item" key={`overlap:${item.chapter}`} data-testid="migration-overlap">
-                          <div className="migration-title">
-                            {CHAPTER_LABELS[item.chapter]} · 重叠字段
-                            {item.duplicated && (
-                              <span className="field-badge duplicate" data-testid="migration-overlap-duplicated">
-                                已重复 {Math.round(item.similarity * 100)}%
-                              </span>
-                            )}
-                          </div>
-                          <div className="item-meta">{item.fieldLabels.join(' / ')}</div>
-                          <div className="item-meta">{item.note}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
             {/* 导入 AI 结果：把外部 AI 的增量 JSON 粘回来，预览后按章写盘 */}
             {importOpen && (
               <div className="review-overlay" data-testid="import-overlay" onClick={() => setImportOpen(false)}>
@@ -1534,41 +1454,6 @@ export default function CeshuView({
                       </div>
                     </>
                   )}
-                </div>
-              </div>
-            )}
-            {/* AI 消费提示词：双轨 JSON 的配套——生成可粘贴给任意外部 AI 的提示词 */}
-            {consumeOpen && (
-              <div className="review-overlay" data-testid="consume-overlay" onClick={() => setConsumeOpen(false)}>
-                <div className="review-panel" data-testid="consume-panel" onClick={(event) => event.stopPropagation()}>
-                  <div className="review-panel-header">
-                    <span>AI 消费提示词</span>
-                    <button type="button" className="btn slim" onClick={() => setConsumeOpen(false)}>
-                      关闭
-                    </button>
-                  </div>
-                  <div className="item-meta">{BUNDLE_CONSUME_USAGE}</div>
-                  <div className="field-action-strip-actions">
-                    {BUNDLE_CONSUME_TASKS.map((task) => (
-                      <button
-                        key={task}
-                        type="button"
-                        className={`btn slim${consumeTask === task ? ' accent-outline' : ''}`}
-                        data-testid={`consume-task-${task}`}
-                        onClick={() => setConsumeTask(task)}
-                      >
-                        {BUNDLE_CONSUME_TASK_LABELS[task]}
-                      </button>
-                    ))}
-                  </div>
-                  <textarea
-                    className="form-textarea"
-                    data-testid="consume-prompt"
-                    readOnly
-                    rows={16}
-                    value={consumePrompt}
-                    onFocus={(event) => event.currentTarget.select()}
-                  />
                 </div>
               </div>
             )}
