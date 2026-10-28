@@ -60,6 +60,12 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
   const maxTurns = options.maxTurns ?? DEFAULT_MAX_TURNS
   const maxToolCalls = options.maxToolCalls ?? DEFAULT_MAX_TOOL_CALLS
   const wallClockMs = options.wallClockMs ?? DEFAULT_WALL_CLOCK_MS
+  // Slice 19：并行工具执行（opt-in，默认关；仅对非审批工具并发，审批/交互仍串行）
+  const parallelToolCalls = options.parallelToolCalls === true
+  const maxToolConcurrency = Math.max(1, options.maxToolConcurrency ?? 4)
+  // Slice 19：子智能体（默认工具名 `tool.spawn_subagent`；depth 防无限递归，最多 1 层）
+  const subAgentTool = options.subAgentTool ?? 'tool.spawn_subagent'
+  const depth = options.depth ?? 0
   // M3 档位路由：缺省 local（与既有行为一致）；真实档位由 brainService 经 resolveLlmTier 注入
   const tier: AgentRunTier = options.tier ?? 'local'
   const context: SkillExecutionContext = options.context ?? {}
@@ -218,6 +224,90 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
     return { text: `用户回答：${answerText}`, success: true }
   }
 
+  /**
+   * 执行单个工具（已 resolve + 已过审批）：执行 → 交互结算 → 裁剪 → 失败计数。
+   *
+   * 只返回结果，**不 emit / 不 push 消息**——由调用方按顺序落事件与消息（保证 `step_done`
+   * 与 tool 消息的顺序稳定）。顺序路径与并行路径共用它，避免两份执行逻辑漂移。
+   */
+  /**
+   * 子智能体（Slice 19）：递归跑一轮新的 Brain 循环处理子任务。
+   * `depth` 限制最多 1 层（子智能体不能再派子智能体），防无限递归。
+   */
+  const runSubAgent = async (call: {
+    arguments: Record<string, unknown>
+  }): Promise<{ text: string; success: boolean }> => {
+    if (depth >= 1) {
+      return { text: '[STOP] 子智能体嵌套已达上限（最多 1 层）', success: false }
+    }
+    const task = typeof call.arguments.task === 'string' ? call.arguments.task.trim() : ''
+    if (task === '') {
+      return { text: '[STOP] 子智能体缺少 task 参数', success: false }
+    }
+    try {
+      const sub = await runBrainLoop({
+        input: task,
+        systemPrompts,
+        transport,
+        runner,
+        tools,
+        tier,
+        depth: depth + 1,
+        maxTurns: 3,
+        maxToolCalls: 4,
+        wallClockMs: Math.min(wallClockMs > 0 ? wallClockMs : 60000, 60000),
+        signal: controller.signal,
+        parallelToolCalls
+      })
+      return { text: `子智能体结果：${sub.text}`, success: sub.completed }
+    } catch (error) {
+      return {
+        text: `子智能体执行失败：${error instanceof Error ? error.message : String(error)}`,
+        success: false
+      }
+    }
+  }
+
+  const runTool = async (
+    call: { id: string; name: string; arguments: Record<string, unknown> },
+    resolved: string,
+    action: string
+  ): Promise<{ text: string; success: boolean }> => {
+    // 子智能体工具：不执行技能，改为递归跑一轮子循环
+    if (subAgentTool !== '' && resolved === subAgentTool) {
+      return runSubAgent(call)
+    }
+    let text: string
+    let success: boolean
+    try {
+      const result = await runner.execute(resolved, call.arguments, context)
+      success = result.success
+      text = formatToolResult(result)
+      // 技能要求交互（确认破坏性动作 / 提问澄清）→ 暂停并等用户回答
+      if (isSkillInteraction(result.interaction)) {
+        const settled = await settleInteraction(result.interaction, resolved, action, call.arguments)
+        text = settled.text
+        success = settled.success
+      }
+    } catch (error) {
+      success = false
+      text = `执行失败: ${error instanceof Error ? error.message : String(error)}`
+    }
+    // F6 工具结果尺寸闸（本地档窄上下文，超长输出截断）+ F10 per-tool 重试预算
+    text = clipToolResult(text, tier === 'local' ? 1500 : 4000)
+    const fKey = `${resolved}/${action}`
+    if (!success) {
+      const fc = (failCount.get(fKey) ?? 0) + 1
+      failCount.set(fKey, fc)
+      if (fc >= 3) {
+        text = `[STOP] 工具 ${fKey} 已连续失败 ${fc} 次，请换方案或检查参数`
+      }
+    } else {
+      failCount.set(fKey, 0)
+    }
+    return { text, success }
+  }
+
   for (let iteration = 0; iteration < maxTurns; iteration++) {
     // 用户取消：契约上与计数闸同款 —— 优雅中止并返回部分产出（不是 reject / 不是 error）
     if (externalSignal?.aborted === true || controller.signal.aborted) {
@@ -349,6 +439,61 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
     // 应当继续循环把 [STOP] 结果回灌给 LLM，让它改提案（见下方 F3 注释）。
     let resolvedAny = false
     let abortedDuringBatch = false
+
+    /*
+     * Slice 19 并行执行（opt-in）：**先**把「能解析、且不需要审批」的工具**预启动**为并发 promise，
+     * 随后仍按原顺序逐个 await。这样：① 非审批工具真正并发；② 审批/交互仍串行（交互式不能并发，
+     * 且 `dangerConfirmed` 是单令牌，并发会互相覆盖）；③ `step_done` / tool 消息顺序完全不变。
+     * 预启动发生在取消/上限闸**之后**，故闸命中时不会白跑工具。
+     */
+    const prelaunched = new Map<
+      number,
+      { resolved: string; action: string; promise: Promise<{ text: string; success: boolean }> }
+    >()
+    if (parallelToolCalls) {
+      // 简单信号量：最多 maxToolConcurrency 个并发，避免一次拉爆外部工具（MCP/网络）
+      let active = 0
+      const waiting: Array<() => void> = []
+      const acquire = (): Promise<void> => {
+        if (active < maxToolConcurrency) {
+          active += 1
+          return Promise.resolve()
+        }
+        return new Promise<void>((resolve) => {
+          waiting.push(() => {
+            active += 1
+            resolve()
+          })
+        })
+      }
+      const release = (): void => {
+        active -= 1
+        const next = waiting.shift()
+        if (next !== undefined) next()
+      }
+      for (let index = 0; index < reply.toolCalls.length; index += 1) {
+        const call = reply.toolCalls[index]
+        if (call === undefined) continue
+        const resolved = runner.resolve(call.name)
+        if (resolved === null) continue
+        const normalizedAction = fixParams(resolved, call.arguments).action
+        const action = typeof normalizedAction === 'string' ? normalizedAction : ''
+        if (runner.needsConfirmation(resolved, action)) continue
+        prelaunched.set(index, {
+          resolved,
+          action,
+          promise: (async () => {
+            await acquire()
+            try {
+              return await runTool(call, resolved, action)
+            } finally {
+              release()
+            }
+          })()
+        })
+      }
+    }
+
     for (let index = 0; index < reply.toolCalls.length; index += 1) {
       const call = reply.toolCalls[index]
       if (call === undefined) break
@@ -368,6 +513,18 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
         abortedDuringBatch = true
         break
       }
+
+      // 并行路径：该工具已预启动，直接 await（事件/消息仍按原顺序落）
+      const pre = prelaunched.get(index)
+      if (pre !== undefined) {
+        resolvedAny = true
+        const { text, success } = await pre.promise
+        results.push(text)
+        emit({ type: 'step_done', tool: pre.resolved, result: text, success })
+        messages.push(buildToolMessage(call.id, pre.resolved, text))
+        continue
+      }
+
       const resolved = runner.resolve(call.name)
       if (resolved === null) {
         const text = `未知工具: ${call.name}`
@@ -413,35 +570,7 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
         context.dangerConfirmed = { tool: resolved, action }
       }
 
-      let text: string
-      let success: boolean
-      try {
-        const result = await runner.execute(resolved, call.arguments, context)
-        success = result.success
-        text = formatToolResult(result)
-
-        // 技能要求交互（确认破坏性动作 / 提问澄清）→ 暂停并等用户回答
-        if (isSkillInteraction(result.interaction)) {
-          const settled = await settleInteraction(result.interaction, resolved, action, call.arguments)
-          text = settled.text
-          success = settled.success
-        }
-      } catch (error) {
-        success = false
-        text = `执行失败: ${error instanceof Error ? error.message : String(error)}`
-      }
-      // F6 工具结果尺寸闸（本地档窄上下文，超长输出截断）+ F10 per-tool 重试预算
-      text = clipToolResult(text, tier === 'local' ? 1500 : 4000)
-      const fKey = `${resolved}/${action}`
-      if (!success) {
-        const fc = (failCount.get(fKey) ?? 0) + 1
-        failCount.set(fKey, fc)
-        if (fc >= 3) {
-          text = `[STOP] 工具 ${fKey} 已连续失败 ${fc} 次，请换方案或检查参数`
-        }
-      } else {
-        failCount.set(fKey, 0)
-      }
+      const { text, success } = await runTool(call, resolved, action)
       results.push(text)
       emit({ type: 'step_done', tool: resolved, result: text, success })
       messages.push(buildToolMessage(call.id, resolved, text))

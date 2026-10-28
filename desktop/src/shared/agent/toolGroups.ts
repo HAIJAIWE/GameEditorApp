@@ -54,7 +54,8 @@ export const TOOL_GROUP_MAP: Readonly<Record<string, ToolGroupId>> = {
   'system.ceshu': 'ceshu',
   'system.code': 'system',
   'tool.rollback_ai_changes': 'system',
-  'tool.ask_user': 'system'
+  'tool.ask_user': 'system',
+  'tool.spawn_subagent': 'system'
 }
 
 /** 未登记工具的兜底分组（保守归到「系统与协作」） */

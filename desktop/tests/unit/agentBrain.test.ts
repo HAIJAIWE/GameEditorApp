@@ -1232,3 +1232,124 @@ describe('runBrainLoop：审查修复回归', () => {
     ).toBe(true)
   })
 })
+
+/* ---- 并行工具执行（Slice 19，opt-in） ---- */
+
+describe('并行工具执行（Slice 19，opt-in）', () => {
+  /** 记录「同时在跑的工具数」峰值 */
+  function makeConcurrencyRunner(delayMs: number): { runner: BrainToolRunner; peak: () => number } {
+    let active = 0
+    let maxActive = 0
+    const runner: BrainToolRunner = {
+      resolve: (name) => (name.startsWith('system.') ? name : null),
+      needsConfirmation: () => false,
+      execute: async (tool) => {
+        active += 1
+        maxActive = Math.max(maxActive, active)
+        await new Promise((resolve) => setTimeout(resolve, delayMs))
+        active -= 1
+        return { success: true, message: `ok ${tool}` }
+      }
+    }
+    return { runner, peak: () => maxActive }
+  }
+
+  const twoTools: BrainLlmReply = {
+    content: '',
+    toolCalls: [
+      { id: 'a', name: 'system.a', arguments: {} },
+      { id: 'b', name: 'system.b', arguments: {} }
+    ],
+    finishReason: 'tool_calls'
+  }
+
+  it('parallelToolCalls=true：同轮多工具并发执行，事件顺序不变', async () => {
+    const { runner, peak } = makeConcurrencyRunner(10)
+    const transport = scripted([twoTools, FINAL])
+    const result = await runBrainLoop({
+      input: 'x',
+      systemPrompts: [],
+      transport,
+      runner,
+      parallelToolCalls: true
+    })
+
+    expect(peak()).toBe(2) // 两个工具确实同时在跑
+    const done = result.events.filter((event) => event.type === 'step_done')
+    expect(done.map((event) => (event.type === 'step_done' ? event.tool : ''))).toEqual(['system.a', 'system.b'])
+  })
+
+  it('默认（不传）：仍串行（一次只跑一个）', async () => {
+    const { runner, peak } = makeConcurrencyRunner(5)
+    const transport = scripted([twoTools, FINAL])
+    await runBrainLoop({ input: 'x', systemPrompts: [], transport, runner })
+
+    expect(peak()).toBe(1)
+  })
+
+  it('parallelToolCalls=true 但只有 1 个工具：不并发（无副作用）', async () => {
+    const { runner, peak } = makeConcurrencyRunner(5)
+    const transport = scripted([
+      { content: '', toolCalls: [{ id: 'a', name: 'system.a', arguments: {} }], finishReason: 'tool_calls' },
+      FINAL
+    ])
+    const result = await runBrainLoop({
+      input: 'x',
+      systemPrompts: [],
+      transport,
+      runner,
+      parallelToolCalls: true
+    })
+    expect(peak()).toBe(1)
+    expect(result.completed).toBe(true)
+  })
+})
+
+/* ---- 子智能体（Slice 19） ---- */
+
+describe('子智能体（Slice 19）', () => {
+  it('tool.spawn_subagent 被循环拦截：递归跑子循环并把结果回灌', async () => {
+    const runner = makeRunner({
+      resolvable: (name) => (name === 'tool.spawn_subagent' ? name : null)
+    })
+    const transport = scripted([
+      {
+        content: '',
+        toolCalls: [{ id: 's1', name: 'tool.spawn_subagent', arguments: { task: '写一段简介' } }],
+        finishReason: 'tool_calls'
+      },
+      FINAL, // 子循环的最终答复
+      FINAL // 外层的最终答复
+    ])
+    const result = await runBrainLoop({ input: 'x', systemPrompts: [], transport, runner })
+
+    // 技能本身未被直接执行（被循环拦截）
+    expect(runner.executed).toHaveLength(0)
+    // 外层拿到「子智能体结果：…」作为工具结果
+    const toolMsg = result.messages.find(
+      (message) => message.role === 'tool' && (message.content ?? '').includes('子智能体结果')
+    )
+    expect(toolMsg).toBeDefined()
+    expect(result.completed).toBe(true)
+  })
+
+  it('depth>=1 时拒绝再派子智能体（防无限递归）', async () => {
+    const runner = makeRunner({
+      resolvable: (name) => (name === 'tool.spawn_subagent' ? name : null)
+    })
+    const transport = scripted([
+      {
+        content: '',
+        toolCalls: [{ id: 's1', name: 'tool.spawn_subagent', arguments: { task: '再派一个' } }],
+        finishReason: 'tool_calls'
+      },
+      FINAL
+    ])
+    const result = await runBrainLoop({ input: 'x', systemPrompts: [], transport, runner, depth: 1 })
+
+    const toolMsg = result.messages.find(
+      (message) => message.role === 'tool' && (message.content ?? '').includes('嵌套已达上限')
+    )
+    expect(toolMsg).toBeDefined()
+  })
+})

@@ -193,7 +193,8 @@ test('Agent Brain 循环：桩服务返回工具调用 → 执行工具 → 流�
       'system.code',
       'system.game_data',
       'tool.ask_user',
-      'tool.rollback_ai_changes'
+      'tool.rollback_ai_changes',
+      'tool.spawn_subagent'
     ])
     // 线格式守卫：桩服务收到的每个工具都必须带 `type:'function'` 外层（缺了 Ollama 会静默拿到无名工具）
     expect(first?.tools.every((tool) => tool.type === 'function')).toBe(true)

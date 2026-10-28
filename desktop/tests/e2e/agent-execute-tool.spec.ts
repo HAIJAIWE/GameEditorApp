@@ -51,7 +51,8 @@ test('Agent 技能调度：listTools + 只读技能执行 + 结构化错误', as
       'system.code',
       'system.game_data',
       'tool.ask_user',
-      'tool.rollback_ai_changes'
+      'tool.rollback_ai_changes',
+      'tool.spawn_subagent'
     ])
     expect(meta.description).toContain('- system.game_data:')
     expect(meta.description).toContain('- system.ceshu:')
