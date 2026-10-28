@@ -180,6 +180,12 @@ dsh 用 **cordis** 做插件组合，profile 是 YAML 补丁层（`bundles` + `c
 > **已确认（B 片基本已具备）**：工具执行已是「先预启动、再按原顺序 await」，审批/交互串行（独占屏障）——即 dsh 的「保序 + 屏障」语义；本轮只是把云端默认并发提到 10（Slice 25）。
 >
 > **已落地（Slice 27，2026-10-28）**：审批策略 `approvalPolicy: 'ask'(默认) | 'never'`——`never` 确定性拒绝危险操作、不发审批事件（无头/CI）。
+>
+> **已落地（Slice 28，2026-10-28）**：运行中收件箱 `BrainInbox { push, drain }`——循环每轮开始前 drain 注入 `user` 消息；`onSubAgentSpawned(childId, inbox)` 暴露子智能体 handle，可 `sendMessage` 插话（dsh inbox / Steer）。
+>
+> **已落地（Slice 29，2026-10-28）**：会话事件日志 append-only——`AgentSessionStore.recordEvents` 每轮写一行 `events.jsonl`（只追加不覆盖），`agentService` 每轮落盘 `result.events`。**最小版只审计**，不从日志派生历史。
+>
+> **已确认（E 片基本已具备）**：系统提示词已有 `## 可用工具`（`face.catalog`，按场景分组 + 每工具一行摘要），完整 schema 走 function calling——即 dsh 的「目录 + 渐进披露」。dsh 的 markdown 技能包是另一概念，本项目暂无。
 
 ---
 
