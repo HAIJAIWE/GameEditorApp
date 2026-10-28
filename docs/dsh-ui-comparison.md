@@ -67,6 +67,11 @@ dsh 的 UI 成熟在**两件事**：① **typed slot 组合**（父级声明扩�
 | **P2** | **非 React store** | `store` | 把数字员工状态从组件内 reducer 提到共享 observable（跨组件/跨面板可读） | 中 | 中：为子智能体面板/任务面板共享状态铺路 |
 | **P3** | **凭据遮挡** | `ui-secret-mask` | 发送前对用户文本里的疑似密钥打码 | 小 | 低 |
 
+> **已落地（Slice 37，2026-10-28）**：**P0 两项**——
+> ① 工具调用卡片 + 按工具视图（`system.code` 等宽块、`system.game_data`/`mcp.*` JSON 美化、其余纯文本）；
+> ② 轮次分组折叠（按 `step.order` 分轮，每轮可折叠；整体折叠与 token/耗时统计此前已有）。
+> 保留 `digital-step` / `data-status` 等既有 e2e 锚点，新增 `digital-turn`。
+
 ### 不抄什么
 - **40+ 个包的拆分**：我们规模不需要，拆太细反而难维护。
 - **完整 cordis slot 运行时**：我们已有 `PluginHost`（panel/view/menu/sidebar/mainView）；只借「keyed slot」的思路，不引框架。
