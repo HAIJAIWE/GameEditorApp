@@ -174,6 +174,12 @@ dsh 用 **cordis** 做插件组合，profile 是 YAML 补丁层（`bundles` + `c
 > 每一片都要过四道闸 + e2e；A/B 是「数字员工」体验的分水岭，建议先做。
 
 > **已落地（Slice 25，2026-10-28）**：tier-aware 参数——云端档 `maxTurns 12 / wallClock 300s / 并行默认开·并发 10 / 工具面 24`；本地档 `6 / 120s / 关·4 / 8`。`loop.ts` 提前算 `tier`，`agentService` 不再显式兜底 `maxTurns`（否则盖掉档位默认）。
+>
+> **已落地（Slice 26，2026-10-28）**：子智能体改**异步 activation**——`spawn_subagent` 立即返回 `started subagent <id>`，父循环在 finalize 前 `drainSubAgents()` 收量并以「完成通知」注入，然后继续；并发上限 `MAX_ACTIVE_SUBAGENTS=8`，`depth≤1` 不变。
+>
+> **已确认（B 片基本已具备）**：工具执行已是「先预启动、再按原顺序 await」，审批/交互串行（独占屏障）——即 dsh 的「保序 + 屏障」语义；本轮只是把云端默认并发提到 10（Slice 25）。
+>
+> **已落地（Slice 27，2026-10-28）**：审批策略 `approvalPolicy: 'ask'(默认) | 'never'`——`never` 确定性拒绝危险操作、不发审批事件（无头/CI）。
 
 ---
 
