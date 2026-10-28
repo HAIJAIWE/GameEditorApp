@@ -12,6 +12,7 @@ import {
   parseToolArguments,
   runBrainLoop,
   type BrainEvent,
+  type BrainInbox,
   type BrainLlmReply,
   type BrainLlmRequest,
   type BrainLlmTransport,
@@ -1425,5 +1426,57 @@ describe('审批策略 never（无头模式）', () => {
       )
     ).toBe(true)
     expect(runner.executed).toHaveLength(0)
+  })
+})
+
+/* ---- 运行中收件箱（inbox / Steer，对齐 dsh） ---- */
+
+describe('运行中收件箱（inbox / Steer）', () => {
+  it('inbox：运行前 push 的消息在首轮注入为 user 消息', async () => {
+    const queue: string[] = ['先看日志再动手']
+    const inbox: BrainInbox = {
+      push: (content: string) => queue.push(content),
+      drain: () => queue.splice(0, queue.length)
+    }
+    const transport = scripted([FINAL])
+    const result = await runBrainLoop({
+      input: 'x',
+      systemPrompts: [],
+      transport,
+      runner: makeRunner(),
+      inbox
+    })
+
+    expect(
+      result.messages.some((message) => message.role === 'user' && message.content === '先看日志再动手')
+    ).toBe(true)
+  })
+
+  it('onSubAgentSpawned：拿到 childId + inbox，可对运行中的子智能体插话', async () => {
+    const spawned: Array<{ id: string; inbox: BrainInbox }> = []
+    const runner = makeRunner({
+      resolvable: (name) => (name === 'tool.spawn_subagent' ? name : null)
+    })
+    const transport = scripted([
+      {
+        content: '',
+        toolCalls: [{ id: 's1', name: 'tool.spawn_subagent', arguments: { task: '子任务' } }],
+        finishReason: 'tool_calls'
+      },
+      FINAL
+    ])
+    const result = await runBrainLoop({
+      input: 'x',
+      systemPrompts: [],
+      transport,
+      runner,
+      onSubAgentSpawned: (childId, inbox) => spawned.push({ id: childId, inbox })
+    })
+
+    expect(spawned).toHaveLength(1)
+    expect(spawned[0]?.id).toMatch(/^sub_\d+$/)
+    // handle 可用：push 不抛（子任务可能已完成，这里只验证接口）
+    expect(() => spawned[0]?.inbox.push('补充要求')).not.toThrow()
+    expect(result.completed).toBe(true)
   })
 })

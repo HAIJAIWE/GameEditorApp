@@ -36,6 +36,7 @@ import {
   DEFAULT_TOOL_CONCURRENCY,
   DEFAULT_WALL_CLOCK_MS,
   type BrainEvent,
+  type BrainInbox,
   type BrainRunResult,
   type BrainStopReason,
   type RunBrainLoopOptions
@@ -61,6 +62,17 @@ import { isAbortError } from '../../abort'
  */
 /** 子智能体并发上限（对齐 dsh `maxActiveSubagents` 默认 8） */
 const MAX_ACTIVE_SUBAGENTS = 8
+
+/** 进程内收件箱（简单队列；dsh inbox 的最小实现） */
+function createInbox(): BrainInbox {
+  const queue: string[] = []
+  return {
+    push: (content: string): void => {
+      queue.push(content)
+    },
+    drain: (): string[] => queue.splice(0, queue.length)
+  }
+}
 
 export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainRunResult> {
   const { input, systemPrompts, transport, runner, requestApproval, requestInteraction, onEvent } = options
@@ -88,6 +100,8 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
   const interactionTimeoutMs = options.interactionTimeoutMs ?? DEFAULT_INTERACTION_TIMEOUT_MS
   // 审批策略（对齐 dsh）：ask=询问（无通道则拒绝）；never=确定性拒绝（无头模式）
   const approvalPolicy = options.approvalPolicy ?? 'ask'
+  // 运行中收件箱（dsh inbox / Steer）：每轮开始前 drain 并注入为 user 消息
+  const inbox = options.inbox ?? createInbox()
   const tools = options.tools ?? []
 
   const events: BrainEvent[] = []
@@ -272,6 +286,8 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
       return { text: '[STOP] 子智能体缺少 task 参数', success: false }
     }
     const childId = `sub_${++subAgentSeq}`
+    // 每个子智能体有自己的收件箱：外部可经 onSubAgentSpawned 拿到它并 push 消息（sendMessage）
+    const childInbox = createInbox()
     const promise = (async (): Promise<{ text: string; success: boolean }> => {
       try {
         const sub = await runBrainLoop({
@@ -286,7 +302,8 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
           maxToolCalls: 4,
           wallClockMs: Math.min(wallClockMs > 0 ? wallClockMs : 60000, 60000),
           signal: controller.signal,
-          parallelToolCalls
+          parallelToolCalls,
+          inbox: childInbox
         })
         return { text: `子智能体结果：${sub.text}`, success: sub.completed }
       } catch (error) {
@@ -297,6 +314,8 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
       }
     })()
     pendingSubagents.set(childId, promise)
+    // 暴露 handle 给调用方：拿到 childId + inbox 即可对运行中的子智能体「插话」
+    options.onSubAgentSpawned?.(childId, childInbox)
     return { text: `started subagent ${childId}`, success: true }
   }
 
@@ -376,6 +395,10 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
     if (wallClockMs > 0 && remainingBudget() < 0) {
       stopReason = 'wall_clock'
       break
+    }
+    // 收件箱（dsh inbox / Steer）：把运行中收到的消息注入为 user 消息（本轮 LLM 即可见）
+    for (const content of inbox.drain()) {
+      messages.push({ role: 'user', content })
     }
     // F5 上下文重置（DD-8）：历史过长时压缩续跑，防本地 4B context rot / 目标漂移
     messages = maybeResetContext(messages, tier)

@@ -97,6 +97,16 @@ export type BrainInteractionResponder = (
   request: BrainInteractionRequest
 ) => Promise<BrainInteractionAnswer> | BrainInteractionAnswer
 
+/**
+ * 运行中收件箱（对齐 dsh inbox / Steer）：外部可在循环跑动中 `push` 一条消息，
+ * 循环在**下一轮开始前** `drain` 并注入为 `user` 消息——用于「跑到一半改需求 / 追问」。
+ */
+export interface BrainInbox {
+  push(content: string): void
+  /** 取走并清空当前全部待处理消息 */
+  drain(): string[]
+}
+
 export interface RunBrainLoopOptions {
   /** 用户本轮输入 */
   input: string
@@ -128,6 +138,13 @@ export interface RunBrainLoopOptions {
   approvalPolicy?: 'ask' | 'never'
   /** 技能交互（确认/提问）答复通道；未提供 → 视为用户未确认/未答复 */
   requestInteraction?: BrainInteractionResponder
+  /** 运行中收件箱：每轮开始前 drain，注入为 user 消息（对齐 dsh inbox / Steer） */
+  inbox?: BrainInbox
+  /**
+   * 子智能体启动回调：拿到 `childId` 与该子循环的 `inbox`，可后续 `push` 消息
+   * （即 dsh 的 `sendMessage` 对运行中子级的「插话」）。
+   */
+  onSubAgentSpawned?: (childId: string, inbox: BrainInbox) => void
   /** 审批请求 id 生成器（默认进程内自增；测试可注入确定性实现） */
   newRequestId?: () => string
   /** 等待用户答复的超时（毫秒）；超时按「未确认/未答复」处理，0 表示不超时 */
