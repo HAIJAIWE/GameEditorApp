@@ -4,6 +4,7 @@ import {
   CHAPTER_LABELS,
   GDD_SCOPE_FULL,
   GDD_SCOPE_LITE,
+  contentChapterCount,
   type CeshuDocument,
   type ChapterData,
   type ChapterKey,
@@ -24,7 +25,7 @@ import { toErrorMessage } from '../../../shared/util/errors'
 import { readText } from '../../../shared/util/readText'
 
 /**
- * AI 一键生成完整策划书（对应 旧版 N10 AIFullGenerateDialog）：
+ * AI 一键生成完整策划书：
  * 填写简要描述 → 按章节依赖顺序逐章调用本地模型 → 逐章进度 → 应用并保存 / 重试失败章节。
  * 生成期间不写盘；点「全部应用并保存」才逐章 saveChapter 写入当前策划书。
  */
@@ -359,7 +360,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
               disabled={locked}
               onChange={() => setScope(GDD_SCOPE_LITE)}
             />
-            标准版（文档信息 + 9 章）
+            标准版（文档信息 + {contentChapterCount(GDD_SCOPE_LITE)} 章）
           </label>
           <label className="ai-gen-check">
             <input
@@ -370,7 +371,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
               disabled={locked}
               onChange={() => setScope(GDD_SCOPE_FULL)}
             />
-            专业版（文档信息 + 16 章）
+            专业版（文档信息 + {contentChapterCount(GDD_SCOPE_FULL)} 章）
           </label>
           <label className="ai-gen-check">
             <input
@@ -517,7 +518,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
           </div>
         )
       })()}
-      {/* v1.0 DD-19 剩余项：judge 辅助评审聚合（确定性门为主，judge 为辅，不覆盖 blocking/scoreDelta） */}
+      {/* v1.0 DD-19 剩余项：judge 辅助评审聚合（确定性门为主，judge 为辅，不覆盖 blocking/completionDelta） */}
       {(() => {
         const entries = plan.order
           .map((chapter) => judges[chapter])

@@ -6,7 +6,7 @@ import type { DataService } from './service'
 
 /**
  * 数据导出（Phase 1 数据核心 W2）：把入库数据导回旧版 JSON 交换格式 { 复数键: [条目] }。
- * - 全部类型按当前 schema 顺序输出（空类型也保留空数组，与旧版文件同构）
+ * - 全部类型按当前 schema 顺序输出
  * - 未收录类型键保持原键名，排序后追加（数据无损）
  * - 条目按 record.data 原样写出（导入前形状）
  * - 原子写：临时文件 + rename

@@ -7,11 +7,14 @@ import { applyJudge, evaluateChapterDraft } from '../../src/shared/agent/quality
 import type { LlmJudgeVerdict } from '../../src/shared/types'
 
 /**
- * 策划书 AI 产出的**确定性评分门**（v0.5 DD-19）。
+ * 策划书 AI 产出的**确定性质量门**（v0.5 DD-19）。
  *
- * 设计要点：本项目的策划书质量**有机器可查的 rubric**（`validateCeshu` / `scoreCeshu`），
+ * 设计要点：本项目的策划书质量**有机器可查的 rubric**（`validateCeshu` / 立项完成度），
  * 所以评估**先过确定性门**，而不是让 LLM 自己给自己打分（Anthropic 实证：自评系统性偏松）。
  * 这些用例锁的就是「门真的接上了、且判定方向正确」。
+ *
+ * 2026-10-27：判据从已删除的 100 分制 `scoreCeshu` 改基到
+ * 「错误数 + `computeChapterProgress(doc,'concept').total`」——二者都是本就产出的客观量。
  */
 function makeDoc(): CeshuDocument {
   return createDefaultCeshu({ scope: 'full' })
@@ -31,16 +34,16 @@ function firstMissingMetaField(doc: CeshuDocument): string | null {
   return matched?.[1] ?? null
 }
 
-describe('策划书 AI 产出的确定性评分门（v0.5 DD-19）', () => {
+describe('策划书 AI 产出的确定性质量门（v0.5 DD-19）', () => {
   it('非法章节返回 null（调用方通常已在 IPC 层用 isChapterKey 校验）', () => {
     expect(evaluateChapterDraft(makeDoc(), 'not_a_chapter', {})).toBeNull()
   })
 
-  it('空生成 ⇒ 错误数、评分均无变化，improved 为假', () => {
+  it('空生成 ⇒ 错误数、完成度均无变化，improved 为假', () => {
     const verdict = evaluateChapterDraft(makeDoc(), 'meta', {})
     expect(verdict).not.toBeNull()
     expect(verdict!.errorDelta).toBe(0)
-    expect(verdict!.scoreDelta).toBe(0)
+    expect(verdict!.completionDelta).toBe(0)
     expect(verdict!.improved).toBe(false)
   })
 
@@ -51,7 +54,7 @@ describe('策划书 AI 产出的确定性评分门（v0.5 DD-19）', () => {
     expect(verdict!.summary).toContain('阻断问题')
   })
 
-  it('补上必填字段 ⇒ 错误数下降、improved 为真（门真的接上了）', () => {
+  it('补上必填字段 ⇒ 错误数下降、立项完成度上升、improved 为真（门真的接上了）', () => {
     const doc = makeDoc()
     const field = firstMissingMetaField(doc)
     expect(field).not.toBeNull()
@@ -60,6 +63,9 @@ describe('策划书 AI 产出的确定性评分门（v0.5 DD-19）', () => {
     expect(verdict!.beforeErrors).toBe(validateCeshu(doc).length)
     expect(verdict!.errorDelta).toBe(-1)
     expect(verdict!.afterErrors).toBe(verdict!.beforeErrors - 1)
+    // 补上 meta 的一个必填 ⇒ 立项阶段完成度提高（computeChapterProgress 的客观量）
+    expect(verdict!.completionDelta).toBeGreaterThan(0)
+    expect(verdict!.completionAfter).toBeGreaterThan(verdict!.completionBefore)
     expect(verdict!.improved).toBe(true)
   })
 
@@ -94,12 +100,12 @@ describe('策划书 AI 产出的确定性评分门（v0.5 DD-19）', () => {
     expect(withNew!.errorDelta).toBe(-1) // 真正填入 ⇒ 少一个必填错误
   })
 
-  it('评分与等级取自 scoreCeshu（同一份确定性来源）', () => {
+  it('立项完成度取自 computeChapterProgress（同一份确定性来源，无变化时前后相等）', () => {
     const doc = makeDoc()
     const verdict = evaluateChapterDraft(doc, 'meta', {})
-    expect(verdict!.gradeBefore).toBe(verdict!.gradeAfter)
-    expect(typeof verdict!.beforeScore).toBe('number')
-    expect(verdict!.afterScore).toBe(verdict!.beforeScore + verdict!.scoreDelta)
+    expect(verdict!.completionBefore).toBe(verdict!.completionAfter)
+    expect(typeof verdict!.completionBefore).toBe('number')
+    expect(verdict!.completionDelta).toBe(0)
   })
 })
 
@@ -252,10 +258,10 @@ describe('LLM-as-Judge 辅助维度（v1.0 DD-19 剩余项）', () => {
     expect(merged.judge).toEqual(safeJudge())
     expect(merged.summary).toBe(baseSummary)
     expect(merged.blocking).toEqual(verdict!.blocking)
-    expect(merged.scoreDelta).toBe(verdict!.scoreDelta)
+    expect(merged.completionDelta).toBe(verdict!.completionDelta)
   })
 
-  it('flagged 毒性 ⇒ 往 summary 追加合规提示，但不推翻 blocking / scoreDelta', () => {
+  it('flagged 毒性 ⇒ 往 summary 追加合规提示，但不推翻 blocking / completionDelta', () => {
     const verdict = evaluateChapterDraft(makeDoc(), 'meta', {})
     const flagged: LlmJudgeVerdict = { ...safeJudge(), toxicity: 'flagged', comment: '含敏感内容' }
     const merged = applyJudge(verdict!, flagged)!
@@ -265,7 +271,7 @@ describe('LLM-as-Judge 辅助维度（v1.0 DD-19 剩余项）', () => {
     // 关键：judge 只追加提示，不修改确定性门的硬结论
     expect(merged.blocking).toEqual(verdict!.blocking)
     expect(merged.errorDelta).toBe(verdict!.errorDelta)
-    expect(merged.scoreDelta).toBe(verdict!.scoreDelta)
+    expect(merged.completionDelta).toBe(verdict!.completionDelta)
     expect(merged.improved).toBe(verdict!.improved)
   })
 

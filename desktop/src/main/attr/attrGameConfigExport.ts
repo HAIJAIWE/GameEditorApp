@@ -3,9 +3,9 @@ import { rename, writeFile } from 'node:fs/promises'
 import { buildAttrGameConfig, validateAttrSystem, type AttrSystem } from '../../shared/attrSystem'
 
 /**
- * 属性系统 → 游戏引擎配置导出（对应 旧版 AttrSystemEditor「导出游戏配置」）：
+ * 属性系统 → 游戏引擎配置导出：
  * - 输出与 旧版 同构的 JSON（version "1.0" / base_attributes / derived_formulas / calculation_order / attribute_constraints）
- * - 导出前做领域校验（依赖存在 / 环依赖 / min≤max / 数值合法），非法系统拒绝导出（旧版 不校验直接写出）
+ * - 导出前做领域校验（依赖存在 / 环依赖 / min≤max / 数值合法），非法系统拒绝导出
  * - 原子写：临时文件 + rename
  */
 export async function exportAttrGameConfigFile(filePath: string, system: AttrSystem): Promise<{ filePath: string }> {

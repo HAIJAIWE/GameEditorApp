@@ -19,9 +19,9 @@ import EquipPreviewPanel from './EquipPreviewPanel'
 import { textsOf, formatPreview } from './attrSystemUtils'
 
 /**
- * 属性系统编辑器（属性库切片，对应 旧版 attr_system_editor 的左侧属性库 + attr_library）：
+ * 属性系统编辑器：
  * - 属性增删改（名称/显示名/类型/分类/默认值/最小·上限）+ 系数公式文本编辑（如 "= 力量*10 + 体质*20"）
- * - 保存前校验：公式可解析、依赖存在、无环依赖、min ≤ 上限、数值合法（依赖 旧版 的缺陷：环/非法公式静默）
+ * - 保存前校验：公式可解析、依赖存在、无环依赖、min ≤ 上限、数值合法
  * - 示例值列：以各基础属性默认值实时计算全部属性（拓扑序 + min/max 截断）
  * 明确推迟（后续切片）：关系矩阵、等级/装备/Buff 实时预览、导出游戏配置、装备预览。
  */
@@ -167,7 +167,7 @@ export default function AttrSystemPanel({ onClose }: AttrSystemPanelProps) {
     setFormulaTexts((prev) => ({ ...prev, [name]: '=0' }))
   }
 
-  /** 删除属性：被其他属性公式依赖时拒绝（对应 旧版 remove_attribute 的保护） */
+  /** 删除属性：被其他属性公式依赖时拒绝 */
   const removeAttr = (name: string): void => {
     if (!draft) return
     const dependents = Object.entries(draft.attributes)
@@ -253,7 +253,7 @@ export default function AttrSystemPanel({ onClose }: AttrSystemPanelProps) {
     }
   }
 
-  /** 导出游戏引擎配置：与保存同校验；导出当前草稿（含未保存编辑，对应 旧版 就地编辑后导出） */
+  /** 导出游戏引擎配置：与保存同校验；导出当前草稿 */
   const handleExportGameConfig = async (): Promise<void> => {
     setErrors([])
     setNotice(null)
@@ -276,7 +276,7 @@ export default function AttrSystemPanel({ onClose }: AttrSystemPanelProps) {
     }
   }
 
-  /** 导出属性系统 JSON：导出当前草稿（旧版 导出前同样不做领域校验）；主进程原子写盘 */
+  /** 导出属性系统 JSON：导出当前草稿；主进程原子写盘 */
   const handleExportJson = async (): Promise<void> => {
     setErrors([])
     setNotice(null)
@@ -294,7 +294,7 @@ export default function AttrSystemPanel({ onClose }: AttrSystemPanelProps) {
     }
   }
 
-  /** 导入属性系统 JSON：替换当前草稿（结构与公式异常以警告提示），需再点「保存」才落盘（对应 旧版 导入后仍要「确定」） */
+  /** 导入属性系统 JSON：替换当前草稿（结构与公式异常以警告提示），需再点「保存」才落盘 */
   const handleImportJson = async (): Promise<void> => {
     setErrors([])
     setNotice(null)

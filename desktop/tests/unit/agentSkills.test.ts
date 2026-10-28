@@ -368,7 +368,7 @@ describe('tool.ask_user 技能（参数澄清）', () => {
     })
   })
 
-  it('多问题（旧版 questions 形态）：兼容 {question, options:[{label,description}], multiSelect}', async () => {
+  it('多问题：兼容 {question, options:[{label,description}], multiSelect}', async () => {
     const skill = createAskUserSkill()
     const result = await skill.execute(
       {

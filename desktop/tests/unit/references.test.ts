@@ -18,7 +18,7 @@ const items: ItemRecord[] = [
   record('story', 'STORY1', { name: '序章', dialog_ids: 'DLG001' })
 ]
 
-describe('引用 token 解析（匹平 旧版 _parse_tokens）', () => {
+describe('引用 token 解析', () => {
   it('字符串按 、，,; 分隔并清理空白', () => {
     expect(parseReferenceTokens('S1、S2, S3;S4，S5')).toEqual(['S1', 'S2', 'S3', 'S4', 'S5'])
     expect(parseReferenceTokens('   ')).toEqual([])

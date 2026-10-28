@@ -14,7 +14,7 @@
  * 前者依赖工作区接线，后者分别依赖会话存储与业务接线。
  */
 
-/** 默认身份（旧版 从 `workspace.read_persona()` 读文件；TS 侧先内置） */
+/** 默认身份 */
 export const DEFAULT_IDENTITY =
   '你是「墨白编辑器」内置的游戏策划 AI 助手，负责协助用户管理游戏数据表与撰写策划书。'
 
@@ -26,7 +26,7 @@ export const DEFAULT_IDENTITY =
  */
 export const PROMPT_CORE_MAX_LINES = 30
 
-/** 执行规则（逐字对齐 旧版 `_build_system_prompt` 的 `## 规则`） */
+/** 执行规则 */
 export const AGENT_RULES = [
   '1. 使用提供的工具完成任务，优先并行调用独立工具',
   '2. 工具失败后反思参数, 不要重复相同错误',

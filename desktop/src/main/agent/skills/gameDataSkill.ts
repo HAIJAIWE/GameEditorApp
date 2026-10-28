@@ -1,5 +1,5 @@
 /**
- * `system.game_data` 内置技能（对应 旧版 `core/agent/skills/game_data_skill` 的最小集）。
+ * `system.game_data` 内置技能。
  *
  * 已实现：`list_types` / `list` / `query` / `create` / `update` / `delete`，
  * 以及 **M2.5 复合批量动作 `batch_create` / `batch_update`**（DD-15）：

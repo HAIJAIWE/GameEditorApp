@@ -14,7 +14,7 @@
 /** 预览体积上限：超过就不给 data URL，只显示路径（IPC 传输 + 渲染内存都要有界） */
 export const IMAGE_PREVIEW_MAX_BYTES = 8 * 1024 * 1024
 
-/** 扩展名 → MIME（对齐 旧版 的 `*.png *.jpg *.jpeg *.bmp *.gif` 白名单） */
+/** 扩展名 → MIME */
 const MIME_BY_EXTENSION: Readonly<Record<string, string>> = {
   png: 'image/png',
   jpg: 'image/jpeg',

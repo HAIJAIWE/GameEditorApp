@@ -3,13 +3,13 @@ import { useMemo, useState } from 'react'
 import { buildFormulaFromCoeffs, initialEntries } from '../../../shared/util/formulaBuilder'
 
 /**
- * 系数公式编辑器（内联展开，对应 旧版 `FormulaBuilderDialog`）。
+ * 系数公式编辑器。
  *
  * 形态选择：旧版 是 QDialog 模态弹窗（双击公式列弹出）。本渲染层**没有模态/弹层约定**（全部面板都是内联的），
  * 故做成挂在属性行下方的内联展开块——沿用既有 `.attr-panel-error` 的 `flex-basis:100%` 先例，不新造交互范式。
  *
  * 初始系数在**挂载时一次性**计算（`useState` 惰性初始化）：
- * - 原公式可回填 → 用真实系数（修正 旧版「打开即用默认值顶替、点确定覆盖原公式」的缺陷）
+ * - 原公式可回填 → 用真实系数
  * - 原公式不可回填 → 系数归零并显示警告，用户能在替换前核对原文
  * 依赖调用方用 `key` 控制挂载/卸载（换行编辑即重新初始化）。
  */
@@ -129,7 +129,7 @@ export default function AttrFormulaBuilder({
   )
 }
 
-/** 输入框文本 → 系数（空串/非法一律按 0，与 旧版 spinbox 的「无值即 0」一致） */
+/** 输入框文本 → 系数 */
 function parseCoeffText(text: string): number {
   const trimmed = text.trim()
   if (trimmed === '') return 0

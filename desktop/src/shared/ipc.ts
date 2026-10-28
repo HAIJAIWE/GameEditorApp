@@ -9,6 +9,14 @@ import type {
   BackupRestoreInput,
   BatchUpdateInput,
   CeshuAiGenerateInput,
+  CeshuCloneDecomposeInput,
+  CeshuExportProjectInput,
+  CeshuOpenProjectInput,
+  CeshuAiTasksInput,
+  CeshuSaveDemoInput,
+  CeshuCheckContractInput,
+  CeshuCheckDataTablesInput,
+  CeshuScaffoldDataTablesInput,
   CeshuApplyPresetInput,
   CeshuConfirmSystemsInput,
   CeshuSyncDataInput,
@@ -21,7 +29,7 @@ import type {
   CeshuDeriveInput,
   CeshuDiffExportInput,
   CeshuDiffInput,
-  CeshuScoreExportInput,
+  CeshuReadinessExportInput,
   CeshuValidationExportInput,
   CeshuChangelogExportInput,
   CeshuExportInput,
@@ -36,6 +44,8 @@ import type {
   ImageGenInput,
   ExportLegacyInput,
   ImportDataFileInput,
+  PreviewImportInput,
+  ApplyImportInput,
   ImportLegacyInput,
   NotesAddInput,
   NotesDeleteInput,
@@ -87,6 +97,7 @@ import type {
   DeleteManySummary,
   ExportSummary,
   ImportSummary,
+  ImportPreview,
   ItemRecord,
   TypeFieldDef
 } from './types'
@@ -97,7 +108,11 @@ import type { AgentRunStats } from './agent/observability'
 import type { DraftSummary, SessionInfo } from './agent/session'
 import type { JsonObjectSchema, SkillResult } from './agent/protocol'
 import type { CeshuChangelog, CeshuVersionDiff } from './ceshuDiff'
-import type { CeshuScoreReport } from './ceshuScorer'
+import type { CeshuTaskPlan } from './ceshuTasks'
+import type { ContractReport } from './ceshuContract'
+import type { DataTableCheckResult } from './ceshuDataTableCheck'
+import type { ScaffoldApplyResult, ScaffoldPlan } from './ceshuDataTableScaffold'
+import type { CeshuReadinessReport } from './ceshuReadiness'
 import type { CeshuNote } from './ceshuNotes'
 import type { CeshuCustomTemplate } from './ceshuCustomTemplates'
 import type { CeshuAiGenerateResult, CeshuAiReviewResult } from './ceshuAi'
@@ -115,7 +130,7 @@ export interface IpcContract {
   'app:info': { req: undefined; res: AppInfo }
   /** 渲染层转发日志到主进程（主进程写文件 + 回显控制台）。req 为单条日志条目 */
   'app:log': { req: AppLogInput; res: undefined }
-  /** 渲染层上报最后停留的界面模式（迁移 ui/window_state.py 的 last_tab_index） */
+  /** 渲染层上报最后停留的界面模式（迁移 ui/window_state 的 last_tab_index） */
   'app:setWindowMode': { req: WindowModeInput; res: undefined }
   /** 视图菜单动作（放大/缩小/重置缩放/重新加载/开发者工具）：对聚焦窗口执行 */
   'app:viewAction': { req: AppViewActionInput; res: undefined }
@@ -146,7 +161,7 @@ export interface IpcContract {
   'data:batchUpdate': { req: BatchUpdateInput; res: BatchUpdateSummary }
   'data:deleteMany': { req: DeleteManyInput; res: DeleteManySummary }
   /**
-   * 清空整个活跃库的数据（PyQt `data_manager.clear_all`）。
+   * 清空整个活跃库的数据。
    * 破坏性操作：req.confirm 必须为 true，主进程再校验一次。
    * 走 `deleteMany` 的统一路径 ⇒ 整批落一条可撤销记录（用户可 Ctrl+Z 找回）。
    */
@@ -160,15 +175,21 @@ export interface IpcContract {
   'data:references': { req: ReferencesInput; res: ReferenceReport }
   'data:importLegacy': { req: ImportLegacyInput; res: ImportSummary }
   'data:exportLegacy': { req: ExportLegacyInput; res: ExportSummary }
-  // 游戏数据 CSV / Excel 导入导出（迁移 features/export.py 的 export_csv/import_csv/export_excel/import_excel）
+  // 游戏数据 CSV / Excel 导入导出（迁移 features/export 的 export_csv/import_csv/export_excel/import_excel）
   'data:exportCsv': { req: ExportDirInput; res: CsvExportSummary }
   'data:importCsv': { req: ImportDataFileInput; res: ImportSummary }
   'data:exportExcel': { req: ExportDirInput; res: ExportSummary }
   'data:importExcel': { req: ImportDataFileInput; res: ImportSummary }
+  /** 导入预览：解析文件、与库内比对，**不落库**（返回会话 id 供确认导入） */
+  'data:previewImport': { req: PreviewImportInput; res: { previewId: string; preview: ImportPreview } }
+  /** 确认导入：用预览时的解析结果落库（会话一次性消费） */
+  'data:applyImport': { req: ApplyImportInput; res: ImportSummary }
   'dialog:chooseExportDir': { req: undefined; res: { path: string | null } }
+  /** 选一个「项目文件夹」目录（策划书：打开已有项目） */
+  'dialog:chooseProjectDir': { req: undefined; res: { path: string | null } }
   'dialog:chooseCsvFile': { req: undefined; res: { path: string | null } }
   'dialog:chooseExcelFile': { req: undefined; res: { path: string | null } }
-  // AI 生图（features/_ai_image.py 能力缺口补齐）：生成 + 落盘
+  // AI 生图（features/_ai_image 能力缺口补齐）：生成 + 落盘
   // 注意：req.config.apiKey 由渲染层传空串即可，主进程会用系统钥匙串里的真实 Key 覆盖
   // （见 main/ipc.ts 的 image:generate handler）——明文不进 IPC 的「回程」也不进 localStorage。
   'image:generate': {
@@ -186,7 +207,7 @@ export interface IpcContract {
    * 复用主进程既有的 `LlmClient`（本地 ollama），**不新建模型客户端**。
    */
   /**
-   * 列出图片库（`settings_dialog.py` → 工具页「清理未使用图片」的扫描侧）。
+   * 列出图片库（`settings_dialog` → 工具页「清理未使用图片」的扫描侧）。
    *
    * `dir` 一并返回：渲染层要靠它把相对路径解析成可显示的完整路径。
    * 目录取 `<活跃库目录>/images` —— 切库时天然跟随，不需要渲染层传路径。
@@ -210,7 +231,7 @@ export interface IpcContract {
   /** 渲染层推 LLM 非敏感配置镜像（主进程读不到 localStorage）；API Key 不在其中 */
   'llm:configure': { req: LlmConfigureInput; res: { ok: boolean } }
   /** 测试连通性（E63）：返回可直接展示的中文结果，**失败也算成功返回**（不抛） */
-  /** 测试连通性（E63，对齐 Python `api_config.py` 的「测试连接」）：探活当前已配置镜像
+  /** 测试连通性：探活当前已配置镜像
    *  （经 `llm:configure` 推过来），返回可直接展示的中文结果，**失败也算成功返回**（不抛）。
    *  req 为空：探活目标即当前已配置镜像，无需入参。 */
   'llm:testConnection': { req: Record<string, never>; res: { ok: boolean; message: string } }
@@ -226,7 +247,7 @@ export interface IpcContract {
   'settings:hasSecret': { req: SecretNameInput; res: { has: boolean } }
   'settings:setSecret': { req: SetSecretInput; res: { ok: boolean; error?: string } }
   'settings:deleteSecret': { req: SecretNameInput; res: { ok: boolean; error?: string } }
-  // 引擎数据导出：lua + unity/unreal/godot/cocos2d（对齐 PyQt `features/engine_export.py`）。
+  // 引擎数据导出：lua + unity/unreal/godot/cocos2d。
   // 渲染/落盘在 main/engineExport（lua 在 ./lua，其余四个在 ./engines），取数由 handler 注入。
   'engine:exportData': { req: EngineExportInput; res: { filePath: string; engine: string; bytes: number; backupPath?: string; manifestPath?: string; version?: number } }
   // 数据快照导出：把 SQLite 全量数据 + 类型 schema 渲染成**确定性可 git diff** 的 JSON/CSV，
@@ -283,7 +304,7 @@ export interface IpcContract {
   'agent:sessionInfo': { req: undefined; res: SessionInfo }
   'agent:sessionRestore': { req: undefined; res: { messages: Array<Record<string, unknown>> } }
   'agent:sessionClear': { req: undefined; res: { cleared: boolean } }
-  // 草稿管理（对齐 Python `ui/digital_panel_workspace.py` 的 `_save_draft` / `_load_draft_from` / `_list_drafts`）
+  // 草稿管理
   'agent:draftSave': { req: AgentDraftSaveInput; res: DraftSummary }
   'agent:draftList': { req: undefined; res: DraftSummary[] }
   'agent:draftLoad': { req: AgentDraftLoadInput; res: { name: string; messages: Array<Record<string, unknown>> } }
@@ -320,9 +341,35 @@ export interface IpcContract {
   'ceshu:setActive': { req: { id: string }; res: CeshuDocument }
   'ceshu:changelog': { req: { id: string }; res: CeshuChangelog }
   'ceshu:validate': { req: { id: string }; res: string[] }
-  'ceshu:score': { req: { id: string }; res: CeshuScoreReport }
+  'ceshu:readiness': { req: { id: string }; res: CeshuReadinessReport }
   'ceshu:aiGenerateChapter': { req: CeshuAiGenerateInput; res: CeshuAiGenerateResult }
-  /** 按字段 AI 填充（E62，对齐 Python `ai_field_button.py` 的 `_add_row(…, ai_path)` + `_AIFillFieldWorker`）：
+  /** 复刻拆解：参考游戏名 → AI 拆出「立项一页」→ 新建文档并返回（复刻单线 MVP） */
+  'ceshu:cloneDecompose': { req: CeshuCloneDecomposeInput; res: { doc: CeshuDocument; model: string } }
+  /** 导出项目文件夹：config.json + design/*.md + tasks/*.md */
+  'ceshu:exportProjectFolder': { req: CeshuExportProjectInput; res: { dir: string; files: string[] } }
+  /**
+   * 导出**开发交接包**：分卷规格（架构→玩法→内容→系统→界面→打磨）+ 机读包 + 契约
+   * + 数据表 schema/快照 + 原型。输入与「导出项目文件夹」同形（id + 目标目录）。
+   */
+  'ceshu:exportHandoff': { req: CeshuExportProjectInput; res: { dir: string; files: string[] } }
+  /** 打开项目文件夹（一个游戏一个文件夹）：读目录 → 还原文档 → 在本库落地为项目文件夹 */
+  'ceshu:openProjectFolder': { req: CeshuOpenProjectInput; res: { doc: CeshuDocument } }
+  /** 岗位任务生成：整份文档 → 各岗位可执行任务（覆盖旧计划） */
+  'ceshu:aiGenerateTasks': {
+    req: CeshuAiTasksInput
+    res: { doc: CeshuDocument; plan: CeshuTaskPlan; model: string }
+  }
+  /** 保存可玩原型（单文件 HTML）：落盘到项目文件夹 prototype/demo.html；空串 = 清掉 */
+  'ceshu:saveDemo': { req: CeshuSaveDemoInput; res: { doc: CeshuDocument } }
+  /** 设计 ↔ 数据表核对：策划书「所需数据表」vs 数据编辑器实际表（条数/字段） */
+  'ceshu:checkDataTables': { req: CeshuCheckDataTablesInput; res: DataTableCheckResult }
+  /** 设计契约体检：把 24 章里的可验证承诺投影成机读契约并整体检查（PASS/FAIL + findings） */
+  'ceshu:checkContract': { req: CeshuCheckContractInput; res: ContractReport }
+  /** 按声明补齐结构：只算不写，给用户看清楚要建什么 */
+  'ceshu:planDataTableScaffold': { req: CeshuScaffoldDataTablesInput; res: ScaffoldPlan }
+  /** 按声明补齐结构：落盘（建类型 / 加字段），返回改动数与重新核对结果 */
+  'ceshu:applyDataTableScaffold': { req: CeshuScaffoldDataTablesInput; res: ScaffoldApplyResult }
+  /** 按字段 AI 填充：
    *  单字段定向生成（非整章），提示词走 `buildChapterPrompt` 的 `onlyFields` 分支；res 复用整章生成结果形状。 */
   'ceshu:aiGenerateField': {
     req: { id: string; chapter: ChapterKey; field: string; action?: FieldAction }
@@ -339,7 +386,7 @@ export interface IpcContract {
   }
   'ceshu:diff': { req: CeshuDiffInput; res: CeshuVersionDiff }
   'ceshu:exportDiffReport': { req: CeshuDiffExportInput; res: { filePath: string } }
-  'ceshu:exportScoreReport': { req: CeshuScoreExportInput; res: { filePath: string } }
+  'ceshu:exportReadinessReport': { req: CeshuReadinessExportInput; res: { filePath: string } }
   'ceshu:exportValidationReport': { req: CeshuValidationExportInput; res: { filePath: string } }
   'ceshu:exportChangelogReport': { req: CeshuChangelogExportInput; res: { filePath: string } }
   'ceshu:notes:list': { req: NotesListInput; res: CeshuNote[] }

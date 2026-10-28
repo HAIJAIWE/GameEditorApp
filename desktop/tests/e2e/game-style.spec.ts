@@ -1,7 +1,7 @@
 import { test } from '@playwright/test'
 
 /**
- * 术语风格（迁移自 旧版 `core/style_manager`）。
+ * 术语风格。
  *
  * 原用例验证的是**工具栏「术语风格」下拉**（testid `game-style`）的手工切换 + 字段标签术语替换 + 持久化。
  *

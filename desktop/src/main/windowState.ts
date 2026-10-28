@@ -44,7 +44,7 @@ export const WINDOW_STATE_VERSION = 1
 
 export const WINDOW_STATE_FILENAME = 'window-state.json'
 
-/** 默认几何（对齐 旧版 restore 的默认值：1200×800，位置 100/50） */
+/** 默认几何 */
 export const DEFAULT_WINDOW_STATE: WindowState = {
   x: 100,
   y: 50,
@@ -171,7 +171,7 @@ export function readWindowState(userDataDir: string): WindowState | null {
     const parsed: unknown = JSON.parse(readFileSync(file, 'utf-8'))
     return normalizeWindowState(parsed)
   } catch {
-    // 损坏 → 当作没有状态（旧版 是记 warning 后用默认值，等价）
+    // 损坏 → 当作没有状态
     return null
   }
 }

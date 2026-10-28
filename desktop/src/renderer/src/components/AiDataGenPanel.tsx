@@ -16,26 +16,36 @@ import type { DataTypeDef } from '../../../shared/types'
 import { toErrorMessage } from '../../../shared/util/errors'
 
 /**
- * AI 数据生成面板（对应 Python AIDataGenerateDialog）：
+ * AI 数据生成面板：
  * 数据共同开发工作流入口 —— 策划书数值/系统章作为设定 → AI 生成候选游戏数据 → 表格预览勾选 → 人工导入。
  * 核心原则：AI 只生产候选，人工审批后才会写入数据表。
- * 说明：Python 用 QThread 后台生成 + QTabWidget 分类预览；TS 走 IPC（主进程调 LLM，不阻塞渲染）+
+ * 说明：旧版 用 QThread 后台生成 + QTabWidget 分类预览；TS 走 IPC（主进程调 LLM，不阻塞渲染）+
  * 标签按钮 + 勾选列表；导入逐条走 data:createItem（type 用单数键，id 已由生成端剥离）。
  */
 
 interface AiDataGenPanelProps {
   ceshuId: string
-  /** 打开时预选的数据类型 id（由条目表单的「AI 生成」传入；不传则默认全选，与 Python 一致） */
+  /** 打开时预选的数据类型 id */
   initialTypeId?: string
+  /** 打开时预设的每类生成数量（由「设计↔数据表核对」的「AI 生成缺失数据」传入；不传则用默认 5） */
+  initialCount?: number
+  /** 打开时预填的补充要求（同上，说明要补齐的表与缺口）；不传则空 */
+  initialInstruction?: string
   onClose: () => void
 }
 
-export default function AiDataGenPanel({ ceshuId, initialTypeId, onClose }: AiDataGenPanelProps) {
+export default function AiDataGenPanel({
+  ceshuId,
+  initialTypeId,
+  initialCount,
+  initialInstruction,
+  onClose
+}: AiDataGenPanelProps) {
   const stopIntent = useStopIntent()
   const [types, setTypes] = useState<DataTypeDef[]>([])
   const [checkedTypeIds, setCheckedTypeIds] = useState<string[]>([])
-  const [count, setCount] = useState(DATA_GEN_DEFAULT_COUNT)
-  const [instruction, setInstruction] = useState('')
+  const [count, setCount] = useState(initialCount ?? DATA_GEN_DEFAULT_COUNT)
+  const [instruction, setInstruction] = useState(initialInstruction ?? '')
   const [result, setResult] = useState<CeshuDataGenResult | null>(null)
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean[]>>({})
   const [activeTab, setActiveTab] = useState('')
@@ -57,7 +67,7 @@ export default function AiDataGenPanel({ ceshuId, initialTypeId, onClose }: AiDa
       .then((loaded) => {
         if (cancelled) return
         setTypes(loaded)
-        // 默认全选（与 Python 一致）；若由条目表单指定了类型，则只预选该类型，
+        // 默认全选；若由条目表单指定了类型，则只预选该类型，
         // 避免用户从「某条数据的 AI 生成」进来后还要手动取消其余类型。
         setCheckedTypeIds(
           initialTypeId !== undefined && loaded.some((type) => type.id === initialTypeId)
@@ -134,7 +144,7 @@ export default function AiDataGenPanel({ ceshuId, initialTypeId, onClose }: AiDa
     }
   }
 
-  /** 全选 / 取消全选（对应 Python _on_toggle_select_all：以第一类首项状态为准取反） */
+  /** 全选 / 取消全选 */
   const handleToggleSelectAll = (): void => {
     if (pluralKeys.length === 0) return
     const next = !allChecked

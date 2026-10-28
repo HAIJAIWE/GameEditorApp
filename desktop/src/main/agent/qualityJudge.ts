@@ -7,7 +7,7 @@ import type { LlmJudgeVerdict } from '../../shared/types'
  * LLM-as-Judge 的**异步评审层**（DD-19 剩余项，章节侧专用）。
  *
  * ## 职责分工（与 `shared/agent/qualityGate.ts` 配合）
- * - `qualityGate.ts::evaluateChapterDraft`：确定性门（validateCeshu + scoreCeshu），
+ * - `qualityGate.ts::evaluateChapterDraft`：确定性门（validateCeshu + 立项完成度），
  *   纯同步、不调 LLM、可单测 —— 这是**主**结论。
  * - 本模块 `runLlmJudge`：**辅助**维度（毒性/可读性/创意），必须由 main 层发起 LLM 调用
  *   （shared 层禁 import main，铁律），结果再交给 `applyJudge` 合并进 verdict。

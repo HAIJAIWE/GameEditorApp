@@ -56,7 +56,7 @@ describe('DataService', () => {
 
     const list = service.listItems('skill')
     expect(list).toHaveLength(1)
-    // 新建即种子化业务短 id（旧版 generate_id：首个为 0）
+    // 新建即种子化业务短 id
     expect(list[0]?.data).toEqual({ name: '火球术', id: '0' })
   })
 

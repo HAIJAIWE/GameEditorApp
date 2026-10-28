@@ -49,8 +49,8 @@ export function displayItemId(record: { id: string; data: Record<string, unknown
 }
 
 /**
- * 生成下一个短序号（旧版 `generate_id`）：取该类型现有**数值** id 的最大值 + 1，
- * 无数值 id 时从 0 开始。非数值 id 跳过不参与 max（与 旧版 的 try/int 一致）。
+ * 生成下一个短序号：取该类型现有**数值** id 的最大值 + 1，
+ * 无数值 id 时从 0 开始。非数值 id 跳过不参与 max。
  */
 export function nextItemId(items: readonly HasItemData[]): string {
   let max = -1
@@ -69,7 +69,7 @@ export function nextItemId(items: readonly HasItemData[]): string {
  * 分配短序号，返回 `记录 id → 新 data.id` 映射。幂等：全量有合法 id 时返回空映射。
  *
  * 起始值取该类型现有数值 id 的 max+1（含**其他**条目的数值 id），
- * 保证回填号不与存量短 id 撞号（旧版 计数器同规则）。
+ * 保证回填号不与存量短 id 撞号。
  */
 export function planShortIdBackfill<T extends HasItemData & { id: string }>(
   items: readonly T[]

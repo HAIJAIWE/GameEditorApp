@@ -20,7 +20,7 @@ const IMAGE_EXTENSION_SET: ReadonlySet<string> = new Set(IMAGE_EXTENSIONS)
 export function registerImagesIpc(deps: IpcHandlerDeps, handle: IpcRegistrar): void {
   const { libraryManager, dataService } = deps
   /**
-   * 递归收集 `<dir>` 下的全部图片文件（对齐 旧版 `features/advanced:405` 的 `data_dir.rglob(f'*{ext}')`）。
+   * 递归收集 `<dir>` 下的全部图片文件。
    * 目录不存在时返回空列表（首次使用就是空的，不该抛错）。
    */
   async function listAllImagePaths(dir: string): Promise<string[]> {
@@ -71,7 +71,7 @@ export function registerImagesIpc(deps: IpcHandlerDeps, handle: IpcRegistrar): v
   })
 
   /**
-   * 按路径读取图片为 data URL（对应 旧版 `LazyImageLabel.load_image`）。
+   * 按路径读取图片为 data URL。
    * 由**主进程**读文件并回传 `data:` URL（渲染层是网页上下文，不能直接 `<img src="C://...">`）。
    *
    * **相对路径按活跃库目录解析**（2026-10-20 图片入库后字段值统一是 `images/xxx.png`）：

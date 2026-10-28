@@ -7,7 +7,7 @@ import { SECRET_NAMES } from '../../../shared/config/secretNames'
 import { migrateLegacyApiKey, readLegacyImageGenApiKey } from '../../../shared/config/secretMigration'
 
 /**
- * AI 生图面板（对应 旧版 `features/_ai_image` 的 UI 层）。
+ * AI 生图面板。
  *
  * 旧版 侧该文件的 UI 入口（`dynamic_form._on_ai_image`）本身是**死桩**（只弹「需配置
  * API Key」提示、从不真正调用），这里按其**设计意图**（`show_ai_image_dialog`：
@@ -26,7 +26,7 @@ import { migrateLegacyApiKey, readLegacyImageGenApiKey } from '../../../shared/c
  *   （`shared/secretMigration.ts`，读完即删）。
  *
  * 与 旧版 的其他差异：
- * - 落盘目录由用户经原生对话框选择（旧版 是从 `assets_dir` 推导）。
+ * - 落盘目录由用户经原生对话框选择。
  */
 
 const PROVIDER_LABELS: Readonly<Record<StoredProvider, string>> = {

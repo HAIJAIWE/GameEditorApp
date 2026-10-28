@@ -9,7 +9,7 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 
-/** 初始库名（对齐 旧版 `INITIAL_LIBRARY_NAME`） */
+/** 初始库名 */
 export const INITIAL_LIBRARY_NAME = '初始库'
 
 export interface LibraryEntry {

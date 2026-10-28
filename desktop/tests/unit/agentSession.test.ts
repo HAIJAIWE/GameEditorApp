@@ -22,7 +22,7 @@ function userMessage(text: string, extra: Record<string, unknown> = {}): Record<
   return { role: 'user', content: text, ...extra }
 }
 
-describe('会话快照纯逻辑（对齐 旧版 _save_session / _truncate）', () => {
+describe('会话快照纯逻辑', () => {
   it('超长 content 截断并带标记，短内容与其它键原样保留', () => {
     const long = 'x'.repeat(SESSION_CONTENT_LIMIT + 50)
     const truncated = truncateSessionMessage({ role: 'user', content: long, extra: 1 })
@@ -143,7 +143,7 @@ describe('AgentSessionStore：落盘与读取', () => {
     expect(readdirSync(dir).filter((file) => file.endsWith('.tmp'))).toHaveLength(0)
   })
 
-  it('recordMetric：追加 JSONL（对齐 旧版 metrics.jsonl）', async () => {
+  it('recordMetric：追加 JSONL', async () => {
     const dir = makeDir()
     const store = new AgentSessionStore(dir)
     await store.recordMetric('chat', { iterations: 2 })

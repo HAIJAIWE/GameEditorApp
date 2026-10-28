@@ -18,13 +18,13 @@
  *    task/dialog/story/achievement共 **10** 个键；而 `advanced:235` 的下拉框只加了
  *    `["skill", "role", "monster", "equip", "item"]` **5** 项。
  *    → 本模块**两份都如实保留**：默认表10 项（重置的真相来源）、
- *      `KEYWORD_TEMPLATE_TYPE_OPTIONS` 5 项（面板下拉，对齐 旧版 UI）。
+ *      `KEYWORD_TEMPLATE_TYPE_OPTIONS` 5 项。
  *      其余 5 类在 旧版 里就是**不可编辑的死数据**，这里也不给它们造入口。
  * 2. **旧版 的「保存」只改内存，不落盘**。`advanced:272-273` 的注释自己都写了
  *    「（可以后续添加保存到文件的功能）」——全仓 grep `keyword_templates` 只有
  *    `settings:185`（内存初始化）与 `advanced:273`（内存赋值），
  *    `KEYWORD_TEMPLATES_FILENAME`（`constants:132`）**被定义了却从无任何写入点**，
- *    且**没有任何读取方**（模板在 旧版 里是只写不读的）。
+ *    且**没有任何读取方**。
  *    → TS侧改为**真的落 localStorage**（`mb.keywordTemplates`），这是**修正**不是抄错。
  * 3. **旧版 的「重置默认」只回填文本框、不保存**，用户还得再点一次「保存」才生效。
  *    → 本模块保留这个语义（`defaultTemplateFor()` 是纯取值，不写状态），

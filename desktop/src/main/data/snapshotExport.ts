@@ -62,7 +62,13 @@ function escapeCsvField(field: string): string {
   return field
 }
 
-function buildJsonSnapshot(records: ItemRecord[], types: DataTypeDef[]): string {
+/**
+ * 确定性 JSON 快照（types + items + counts）。
+ *
+ * 导出为公共函数的原因：开发交接包（`ceshu/export/handoff.ts`）要把它内嵌进包里，
+ * 而「快照长什么样」只该有一个定义 —— 复制一份到交接包，两边迟早不一致。
+ */
+export function buildJsonSnapshot(records: ItemRecord[], types: DataTypeDef[]): string {
   const items = records.slice().sort(byId)
   const sortedTypes = types.slice().sort(byId)
   const byType: Record<string, number> = {}

@@ -30,7 +30,7 @@ export type LlmProvider = 'ollama' | 'openai' | 'doubao' | 'qwen' | 'claude' | '
  * 若回落值继续引用 `DEFAULT_LLM_CONFIG.provider`，那么
  * `loadLlmConfig` / `sanitizeLlmConfig` 遇到非法 provider 时就会**静默回落成云端** ⇒
  * `isCloudProvider` 判成云端 ⇒ 真发请求 + 弹花费确认。而用户根本不知情
- * （他只是手改过 localStorage，或升级自一个残留字段的旧版本——**误伤而非攻击**）。
+ * 。
  *
  * 这与产品的保密底线直接冲突：**「回落」在任何路径下都必须落在最保守的一档**。
  * 故：默认档位（用户可见的初始选择）与回落档位（异常兜底）是**两件不同的事**，
@@ -39,11 +39,11 @@ export type LlmProvider = 'ollama' | 'openai' | 'doubao' | 'qwen' | 'claude' | '
 export const FALLBACK_LLM_PROVIDER: LlmProvider = 'ollama'
 
 export interface LlmProviderPreset {
-  /** 服务商展示名（与 旧版 菜单文案一致） */
+  /** 服务商展示名 */
   label: string
   /** 默认接口地址（空串表示「由用户填写」） */
   baseUrl: string
-  /** 预置模型清单（对齐 旧版 的 `models`） */
+  /** 预置模型清单 */
   models: readonly string[]
   /**
    * 是否需要 API Key。Ollama 是本地服务不需要（对齐 旧版 `test_connection`：
@@ -53,7 +53,7 @@ export interface LlmProviderPreset {
 }
 
 /**
- * 服务商预设（逐条对齐 旧版 `api_config:35-100` 的 `MODEL_PRESETS`）。
+ * 服务商预设。
  *
  * 注：key 用小写英文（`ollama`/`openai`/...）而不用 旧版 的中文标签
  * （`"Ollama"`/`"OpenAI"`/`"豆包"`/...）—— **因为 label 要显示给用户、key 是持久化契约**，
@@ -173,11 +173,11 @@ export const LLM_PROVIDER_ORDER: readonly LlmProvider[] = [
   'custom'
 ]
 
-/** 温度上下限（对齐 旧版 `temp_spin.setRange(0.0, 2.0)` / `setSingleStep(0.1)`） */
+/** 温度上下限 */
 export const LLM_TEMPERATURE_MIN = 0
 export const LLM_TEMPERATURE_MAX = 2
 
-/** 最大令牌上下限（对齐 旧版 `max_tokens_spin.setRange(1, 32000)`） */
+/** 最大令牌上下限 */
 export const LLM_MAX_TOKENS_MIN = 1
 export const LLM_MAX_TOKENS_MAX = 32000
 
@@ -267,7 +267,7 @@ export const LLM_STOP_WORDS_MAX = 2000
  * 因此 M0 的全部改动都靠**新增导出 + 引用替换**完成，**零 interface 字段新增**。
  */
 export interface StoredLlmConfig {
-  /** 是否启用 LLM（对齐 旧版 `config.enabled`；为 false 时 AI 入口应提示先启用） */
+  /** 是否启用 LLM */
   enabled: boolean
   provider: LlmProvider
   model: string

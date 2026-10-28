@@ -8,7 +8,7 @@ import type { DataTypeDef, FieldType, TypeFieldDef, TypeSectionDef } from './typ
  * 字段键：name/label/type/editable/values/from_/to/ref_type（TS 内部用 camelCase from/to/refType）。
  */
 
-/** 字段类型中文标签（与 旧版 config/constants FIELD_TYPE_MAP 一致 + attrtable + attrpanel） */
+/** 字段类型中文标签 */
 export const FIELD_TYPE_LABELS: Record<FieldType, string> = {
   entry: '文本输入',
   combobox: '下拉选择',
@@ -62,7 +62,7 @@ interface TypeSchemaFileType {
   plural_key: string
   color: string
   form_fields: TypeSchemaFileField[]
-  /** 可选的自定义分区（旧版 侧忽略未知键，故与旧文件互通） */
+  /** 可选的自定义分区 */
   sections?: TypeSchemaFileSection[]
 }
 
@@ -191,7 +191,7 @@ function parseField(raw: unknown, typeName: string, index: number): TypeFieldDef
   }
   if (!isFieldType(type)) {
     /*
-     * **刻意降级而非抛错**（对齐 旧版 `field_config` 的 `else: QLineEdit()` 兜底）。
+     * **刻意降级而非抛错**。
      *
      * 为什么必须这样：字段结构文件存在 `<库目录>/type_schema.json`，**与 早期版本同构**
      * （`main/stores.ts` 用 `join(libDir, 'type_schema.json')`）。旧版 支持而 TS 尚未收录的

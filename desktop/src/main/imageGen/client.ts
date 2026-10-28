@@ -21,7 +21,7 @@ export type ImageGenOutcome = { ok: true; url: string } | { ok: false; error: st
 
 /** 最小请求间隔（ms），对齐 旧版 image_gen 桶 rate=0.5/s */
 const MIN_INTERVAL_MS = 2000
-/** 最多重试次数（旧版 `max_retries=2`）→ 共 3 次尝试 */
+/** 最多重试次数→ 共 3 次尝试 */
 const MAX_RETRIES = 2
 /** 退避基数（ms）：第 n 次重试等待 BASE * 2^n */
 const BACKOFF_BASE_MS = 500
@@ -79,7 +79,7 @@ async function requestWithRetry(
       if (response.ok) {
         return response
       }
-      // 非 2xx：不重试，直接把响应交给调用方（与 旧版 一致：只有异常才重试）
+      // 非 2xx：不重试，直接把响应交给调用方
       return response
     } catch (err) {
       // 调用方主动取消时不再重试

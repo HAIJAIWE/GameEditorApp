@@ -10,17 +10,17 @@ import {
 } from '../../../shared/util/dropTable'
 
 /**
- * 掉落表字段编辑器（droptable 字段，对应 旧版 `ui/widgets/drop_table` 的 DropTableWidget）。
+ * 掉落表字段编辑器。
  *
  * - 表格四列：名称（只读）+ 掉率(%) + 最小 + 最大
  * - 「+ 添加掉落」→ 内联选库面板（从装备/道具库搜索选择 + 设掉率与数量范围）；「- 删除选中」按当前选中行删除
- * - 存储 `[{name, rate, count_min, count_max}]`（**仅 name，无 id**，与 旧版 数据格式逐字一致）
+ * - 存储 `[{name, rate, count_min, count_max}]`
  *
  * 相对 旧版 的有意改进：
  * - 旧版 用独立模态 QDialog；TS 改为**内联面板**（更易测试）
  * - 旧版 选库时 `data_manager.data.get('equips'/'items')`（复数键）；TS 用单数 type id（键口径修正）
  *
- * 已知局限（照搬 旧版，不擅自改成 id 引用）：掉落条目只存 `name`，**来源条目改名后此引用会失配**。
+ * 已知局限：掉落条目只存 `name`，**来源条目改名后此引用会失配**。
  * 这是既有数据模型的约束（存量数据无 id），保持格式兼容优先；如需改 id 引用应作为独立设计变更并迁移存量数据。
  */
 

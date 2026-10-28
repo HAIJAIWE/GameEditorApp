@@ -147,7 +147,7 @@ describe('快捷键清单（shared/util/shortcuts.ts）', () => {
     }
   })
 
-  it('不含 Escape（属交互键「关闭浮层」，不是命令键，旧版 表里也没有）', () => {
+  it('不含 Escape', () => {
     expect(APP_SHORTCUTS.map((s) => s.keys)).not.toContain('Escape')
   })
 

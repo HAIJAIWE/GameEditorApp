@@ -2,7 +2,7 @@ import { calculateAttributes } from './attrEngine'
 import type { AttrFormula, AttrSystem } from '../../attrSystem'
 
 /**
- * 实时属性预览（对应 旧版 LivePreviewWidget，属性系统编辑器第三视图）：
+ * 实时属性预览：
  * - 基础属性当前值 → 装备固定加成（+X）→ Buff 百分比加成（×(1 + p/100)，作用于「基础 + 装备」之后）→ 拓扑计算全部属性
  * - 计算过程文本（基础属性 / 装备加成 / Buff加成 / 派生属性 + 公式与结果）与 旧版 展示同构
  * 有意不迁移：旧版 的「等级」控件无任何实际计算（仅打印标题占位、不改变数值），待真实等级机制设计后再实现；
@@ -25,7 +25,7 @@ export interface LivePreviewResult {
   values: Record<string, number>
   /** 环依赖成员（非 null 时计算不完整） */
   cycle: string[] | null
-  /** 计算过程文本行（对应 旧版「计算过程」区） */
+  /** 计算过程文本行 */
   processLines: string[]
 }
 
@@ -36,7 +36,7 @@ export function baseAttrNames(system: AttrSystem): string[] {
     .map(([name]) => name)
 }
 
-/** 派生 + 战斗属性名（定义顺序，对应 旧版 derived_attributes + combat_attributes） */
+/** 派生 + 战斗属性名 */
 export function derivedAndCombatNames(system: AttrSystem): string[] {
   return Object.entries(system.attributes)
     .filter(([, attr]) => attr.type === 'derived' || attr.type === 'combat')
@@ -90,7 +90,7 @@ function formatNumber(value: number): string {
   return Number.isInteger(value) ? String(value) : String(Math.round(value * 10) / 10)
 }
 
-/** 公式文本：'HP = 力量*10 + 体质*20'（对应 旧版 Formula.to_string(display_name)） */
+/** 公式文本：'HP = 力量*10 + 体质*20' */
 function formulaLine(displayName: string, formula: AttrFormula): string {
   const parts: string[] = []
   if (formula.baseValue !== 0) parts.push(String(formula.baseValue))

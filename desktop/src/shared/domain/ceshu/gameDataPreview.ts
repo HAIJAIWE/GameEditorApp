@@ -13,7 +13,7 @@ import type { DataTypeDef, ItemRecord } from '../../types'
  *   浏览器渲染几十万字没问题。截断反而让用户看不到自己数据的全貌。仍保留 `totalChars`
  *   供 UI 显示规模，**超长时在 UI 上明确告知已渲染全量**。
  * - **键序 = 有数据的类型按字典序**：旧版 直接倾倒 `data_manager.data`（插入序，不稳定）。
- *   预览是给人看的，稳定顺序更可读；且**空桶不出现**（旧版 会留一堆空数组）。
+ *   预览是给人看的，稳定顺序更可读；且**空桶不出现**。
  */
 
 /** 预览文本的统计信息（给 UI 展示规模用） */
@@ -24,7 +24,7 @@ export interface GameDataPreview {
   bucketCount: number
   /** 条目总条数 */
   itemCount: number
-  /** 文本字符数（中文按 1 字符计，与 旧版 `len(str)` 一致） */
+  /** 文本字符数 */
   totalChars: number
 }
 

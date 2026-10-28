@@ -28,7 +28,7 @@ const types: DataTypeDef[] = BUILTIN_DATA_TYPES
 const role = items.find((item) => item.id === 'ROLE001')!
 const roleEmpty = items.find((item) => item.id === 'ROLE002')!
 
-describe('关系图行构建（对齐 旧版 relation_graph._show_subject）', () => {
+describe('关系图行构建', () => {
   it('按引用字段展开，逐 token 一行，解析出名称/类型/ID/描述/类型色', () => {
     const rows = buildRelationRows(types, items, role)
     expect(rows.map((row) => [row.field, row.name, row.typeLabel, row.targetId, row.detail])).toEqual([
@@ -78,14 +78,14 @@ describe('关系图行构建（对齐 旧版 relation_graph._show_subject）', (
   })
 })
 
-describe('主体信息摘要行（对齐 旧版 `" | ".join(details[:8])`）', () => {
+describe('主体信息摘要行', () => {
   it('跳过 id / name，列表展开为 `a, b(id)`，字符串与数字直出', () => {
     expect(buildSubjectDetailLine(role)).toBe(
       'job: 战士 | level: 12 | skills: SKILL000 | talents: SKILL002、SKILL999 | buffs: SKILL001(SKILL001), SKILL003(SKILL003)'
     )
   })
 
-  it('跳过空数组（有意差异：旧版 会追加一条 `字段: ` 空壳）', () => {
+  it('跳过空数组', () => {
     expect(buildSubjectDetailLine(roleEmpty)).toBe('')
   })
 

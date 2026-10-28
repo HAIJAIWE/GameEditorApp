@@ -25,6 +25,16 @@ export function registerDialogIpc(deps: IpcHandlerDeps, handle: IpcRegistrar): v
     const result = focused ? await dialog.showOpenDialog(focused, options) : await dialog.showOpenDialog(options)
     return { path: result.canceled || result.filePaths.length === 0 ? null : result.filePaths[0] ?? null }
   })
+  // 打开「项目文件夹」（一个游戏一个文件夹）：只选目录，合法性由 `ceshu:openProjectFolder` 校验
+  handle('dialog:chooseProjectDir', undefined, async () => {
+    const focused = BrowserWindow.getFocusedWindow()
+    const options: OpenDialogOptions = {
+      title: '打开项目文件夹（含 config.json）',
+      properties: ['openDirectory']
+    }
+    const result = focused ? await dialog.showOpenDialog(focused, options) : await dialog.showOpenDialog(options)
+    return { path: result.canceled || result.filePaths.length === 0 ? null : result.filePaths[0] ?? null }
+  })
   handle('dialog:chooseCsvFile', undefined, async () => {
     const focused = BrowserWindow.getFocusedWindow()
     const options: OpenDialogOptions = {

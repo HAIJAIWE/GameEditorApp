@@ -1,5 +1,5 @@
 /**
- * 纯工具：容错解析 LLM 返回的 JSON（匹平 旧版 `_parse_llm_json`）。
+ * 纯工具：容错解析 LLM 返回的 JSON。
  *
  * 分层归属：`shared/util/` —— 不含任何业务域名词，main / renderer / 任意 domain 均可 import。
  * 收敛自 `ceshu/ceshuAi.ts`：原为策划书 AI 生成模块私有函数，但 `main/agent/qualityJudge`、

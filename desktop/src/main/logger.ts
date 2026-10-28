@@ -1,5 +1,5 @@
 /**
- * 主进程日志实现（对应 旧版 `common/logger` 的 AppLogger 文件写入部分）。
+ * 主进程日志实现。
  *
  * 提供：轮转文件日志（单文件上限 + 保留 N 个备份）、按级别回显控制台。
  * 与 早期版本对齐的刻意取舍：
@@ -58,7 +58,7 @@ function timestamp(d: Date = new Date()): string {
   )
 }
 
-/** 将一条日志格式化为单行文本（与 旧版 Formatter 对齐） */
+/** 将一条日志格式化为单行文本 */
 export function formatLogLine(entry: AppLogInput, time: Date = new Date()): string {
   const metaPart = entry.meta !== undefined ? ` | meta: ${serializeMeta(entry.meta)}` : ''
   return `${timestamp(time)} - ${LOGGER_NAME} - ${LEVEL_NAME[entry.level]} - ${entry.message}${metaPart}`

@@ -5,20 +5,22 @@ import { join } from 'node:path'
 import ExcelJS from 'exceljs'
 
 import { getTypeByLegacyKey } from '../../shared/typeSchema'
+import { orderHeadersWithId, RECORD_ID_KEY } from '../../shared/util/recordHeaders'
+import type { ParsedImport } from './importSession'
 import type { DataTypeDef, ExportSummary, ImportSummary, ItemRecord } from '../../shared/types'
 import type { DataService, ImportRecord } from './service'
 
 /**
- * Excel 导入/导出（自 Python src/features/export.py 的 export_excel / import_excel 匹平迁移，改用 exceljs）。
+ * Excel 导入/导出。
  * 样式与 ceshu excel 导出共享同一套约定：表头蓝底（FF4472C4）白字加粗 + 细边框、冻结首行、列宽 clamp 8~60。
  *
- * 有意偏离 Python（均为修正）：
+ * 有意偏离 旧版（均为修正）：
  * - 工作表名用 def.name（中文，如「角色」），而非硬编码 EXCEL_TYPE_LABELS —— 那份表还漏了
- *   story/task/dialog/job；用 def.name 覆盖全部 12 类且不会与 schema 脱节。往返兼容 Python 文件，
+ *   story/task/dialog/job；用 def.name 覆盖全部 12 类且不会与 schema 脱节。往返兼容 旧版 文件，
  *   因为那些 sheet 名恰好等于 def.name。
- * - 表头取该类型全部条目键的并集（保首次出现顺序），而非 Python 只取 items[0].keys()——
+ * - 表头取该类型全部条目键的并集（保首次出现顺序），而非 旧版 只取 items[0].keys()——
  *   避免首条缺字段导致后续条目数据落表丢失。
- * - 列宽 clamp 到 [8, 60]（Python 不 clamp）。
+ * - 列宽 clamp 到 [8, 60]。
  */
 
 /** 样式常量（exceljs 需要 ARGB，故补 FF 前缀） */
@@ -84,11 +86,10 @@ export async function exportExcelFile(
  * - 未命中任何 schema 类型的 sheet 数据仍入库（type 用回退名），并在 unknownTypes 中报告
  * - 首行为表头；其后非空行构造条目，缺 id 时生成 UUID 回写
  */
-export async function importExcelFile(
-  filePath: string,
-  service: DataService,
-  types: DataTypeDef[]
-): Promise<ImportSummary> {
+/**
+ * 只解析、不落库（导入预览用）。`importExcelFile` 也走它，保证「预览看到的」与「导入写入的」是同一份。
+ */
+export async function parseExcelImport(filePath: string, types: DataTypeDef[]): Promise<ParsedImport> {
   const workbook = new ExcelJS.Workbook()
   try {
     await workbook.xlsx.readFile(filePath)
@@ -97,8 +98,9 @@ export async function importExcelFile(
   }
 
   const records: ImportRecord[] = []
-  const byType: Record<string, number> = {}
   const unknownTypes: Record<string, number> = {}
+  /** 没有 id 列的工作表：每行都会被当新条目（可能整表翻倍），要报出来 */
+  const missingIdSources: string[] = []
   let skipped = 0
 
   for (const worksheet of workbook.worksheets) {
@@ -113,6 +115,10 @@ export async function importExcelFile(
       headers.push(String(raw ?? ''))
     }
     if (headers.every((header) => header === '')) continue
+
+    // 该表有没有 id 列：没有 ⇒ 下面每一行都会拿到新 id（= 新增），必须报给用户
+    const hasIdColumn = headers.includes(RECORD_ID_KEY)
+    let sheetRows = 0
 
     worksheet.eachRow((row, rowNumber) => {
       if (rowNumber === 1) return
@@ -136,20 +142,48 @@ export async function importExcelFile(
       if (id !== rawId) item['id'] = id
 
       records.push({ type: resolvedType, id, data: item })
-      byType[resolvedType] = (byType[resolvedType] ?? 0) + 1
+      sheetRows += 1
       if (!matched) unknownTypes[sheetTitle] = (unknownTypes[sheetTitle] ?? 0) + 1
     })
+
+    if (!hasIdColumn && sheetRows > 0) missingIdSources.push(`工作表「${sheetTitle}」`)
   }
 
-  const { imported, updated } = await service.importRecords(records)
+  return { records, skipped, unknownTypes, missingIdSources }
+}
+
+/** 解析 + 立即落库（不预览的快捷路径；菜单走的是 preview → apply） */
+export async function importExcelFile(
+  filePath: string,
+  service: DataService,
+  types: DataTypeDef[]
+): Promise<ImportSummary> {
+  const parsed = await parseExcelImport(filePath, types)
+  return applyParsedImport(filePath, parsed, service)
+}
+
+/** 把解析结果落库并汇总（预览确认后也走这里，保证两条路径同一套计数） */
+export async function applyParsedImport(
+  filePath: string,
+  parsed: ParsedImport,
+  service: DataService
+): Promise<ImportSummary> {
+  const { imported, updated } = await service.importRecords(parsed.records)
+
+  const byType: Record<string, number> = {}
+  for (const record of parsed.records) {
+    byType[record.type] = (byType[record.type] ?? 0) + 1
+  }
+
   return {
     filePath,
-    totalItems: records.length + skipped,
+    totalItems: parsed.records.length + parsed.skipped,
     imported,
     updated,
-    skipped,
+    skipped: parsed.skipped,
     byType,
-    unknownTypes
+    unknownTypes: parsed.unknownTypes,
+    missingIdSources: parsed.missingIdSources
   }
 }
 
@@ -159,12 +193,14 @@ export async function importExcelFile(
 function writeTypeSheet(workbook: ExcelJS.Workbook, name: string, items: ItemRecord[]): void {
   const sheet = workbook.addWorksheet(name)
 
-  const headers: string[] = []
+  const collected: string[] = []
   for (const item of items) {
     for (const key of Object.keys(item.data)) {
-      if (!headers.includes(key)) headers.push(key)
+      if (!collected.includes(key)) collected.push(key)
     }
   }
+  // id 是往返主键，固定放首列（放最后极易被整列删掉，删了导入就全表翻倍）
+  const headers = orderHeadersWithId(collected)
   const rows: CellValue[][] = items.map((item) => headers.map((header) => serializeCell(item.data[header])))
 
   sheet.addRow(headers)

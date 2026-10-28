@@ -3,15 +3,15 @@ import { bucketize } from '../../shared/util/dataBuckets'
 /**
  * 目标引擎（不含 `lua`——Lua 渲染器在 `./lua.ts`，本文件处理另外四个）。
  *
- * 背景：`features/engine_export.py` 的 PyQt 版有**四个各自独立**的导出器
+ * 背景：`features/engine_export` 的 早期版本有**四个各自独立**的导出器
  * （`export_to_unity/unreal/godot/cocos2d`），菜单里也是四个独立项
- * （`ui/menus.py:64-67`）。TS 侧原本 `EngineTarget` 只有 `'lua'`，
+ * （`ui/menus:64-67`）。TS 侧原本 `EngineTarget` 只有 `'lua'`，
  * 四个菜单项**全都调同一个导出器、都吐 `.lua`** —— 菜单文案与实际产物不符。
  * 本文件把四个目标补齐为真导出器。
  */
 export type EngineKind = 'unity' | 'unreal' | 'godot' | 'cocos2d'
 
-/** 引擎 → 产物扩展名（PyQt `ui/dialogs/engine_export.py::export_file` 追加的后缀） */
+/** 引擎 → 产物扩展名 */
 export const ENGINE_EXTENSIONS: Record<EngineKind, string> = {
   unity: '.cs',
   unreal: '.h',
@@ -28,12 +28,12 @@ export const ENGINE_LABELS: Record<EngineKind, string> = {
 }
 
 /**
- * Cocos2d 导出的 7 个固定键（PyQt `export_file` 里 `data.get(...)` 逐个列的）。
- * 顺序即 Python dict 字面量顺序，保证同输入两次渲染结果完全相等（幂等）。
+ * Cocos2d 导出的 7 个固定键。
+ * 顺序即 旧版 dict 字面量顺序，保证同输入两次渲染结果完全相等（幂等）。
  */
 const COCOS_KEYS = ['skills', 'roles', 'monsters', 'equips', 'items', 'talents', 'achievements'] as const
 
-/** 代码模板里用到的 5 个桶（PyQt 三个导出器的 `if data.get(...)` 条件） */
+/** 代码模板里用到的 5 个桶 */
 const TEMPLATE_KEYS = ['skills', 'roles', 'monsters', 'equips', 'items'] as const
 
 /**
@@ -47,18 +47,18 @@ function rowsOf(buckets: Map<string, Record<string, unknown>[]>, key: string): R
   return buckets.get(key) ?? []
 }
 
-/** 稳定 JSON（2 空格缩进、不转义非 ASCII —— 与 Python `json.dumps(..., ensure_ascii=False, indent=2)` 一致） */
+/** 稳定 JSON */
 function toJson(value: unknown): string {
   return JSON.stringify(value, null, 2)
 }
 
 /**
- * 实际数据块 —— 补 PyQt 的一处**实现与文案不符**。
+ * 实际数据块 —— 补 旧版 的一处**实现与文案不符**。
  *
- * PyQt 三个代码模板导出的对话框里写着「将生成 .cs 代码模板 + 实际数据」
- * （`ui/dialogs/engine_export.py::_generate_unity_preview` 等），
+ * 旧版 三个代码模板导出的对话框里写着「将生成 .cs 代码模板 + 实际数据」
+ * （`ui/dialogs/engine_export::_generate_unity_preview` 等），
  * 但 `_generate_unity_export` / `_generate_unreal_export` / `_generate_godot_export`
- * **只吐类/结构体声明，一行真实数据都没有**。按本项目「Python 缺陷在 TS 侧修正并记录」
+ * **只吐类/结构体声明，一行真实数据都没有**。按本项目「旧版 缺陷在 TS 侧修正并记录」
  * 的规矩，这里在模板之后追加一段注释包裹的真实数据 JSON。
  */
 function dataBlock(buckets: Map<string, Record<string, unknown>[]>, commentPrefix: string): string {
@@ -76,10 +76,10 @@ function dataBlock(buckets: Map<string, Record<string, unknown>[]>, commentPrefi
 }
 
 /**
- * Unity C# 脚本（对齐 PyQt `_generate_unity_export`）。
+ * Unity C# 脚本。
  *
- * 与 PyQt 的两处**有意偏差**：
- * 1) PyQt 的 `RoleData.skills` 声明了 `public List<TalentRef> talents;` 却**从未定义 `TalentRef` 类**
+ * 与 旧版 的两处**有意偏差**：
+ * 1) 旧版 的 `RoleData.skills` 声明了 `public List<TalentRef> talents;` 却**从未定义 `TalentRef` 类**
  *    —— 生成的 .cs 编译不过。TS 侧补上定义。
  * 2) 追加「实际数据」块（见 `dataBlock` 的说明）。
  */
@@ -109,7 +109,7 @@ export function renderUnityCs(buckets: Map<string, Record<string, unknown>[]>): 
     'public class RoleData { public string id; public string name; public string className; public int hp; public int mp; public int attack; public int defense; public List<SkillRef> skills; public List<TalentRef> talents; }',
     'public class MonsterData { public string id; public string name; public int level; public int hp; public int attack; public int defense; public int exp; public List<SkillRef> skills; public List<DropData> equipDrops; public List<DropData> itemDrops; public List<GenericDrop> genericDrops; }',
     'public class SkillRef { public string name; public int level; }',
-    // ↓ PyQt 漏了这个类（RoleData 引用了它），补上以保证生成的 .cs 能编译
+    // ↓ 旧版 漏了这个类（RoleData 引用了它），补上以保证生成的 .cs 能编译
     'public class TalentRef { public string name; public int level; }',
     'public class DropData { public string name; public int rate; public int countMin; public int countMax; }',
     'public class GenericDrop { public string type; public string name; public int rate; public int minVal; public int maxVal; }'
@@ -121,7 +121,7 @@ export function renderUnityCs(buckets: Map<string, Record<string, unknown>[]>): 
   return parts.join('') + dataBlock(buckets, '//')
 }
 
-/** Unreal C++ 头文件（对齐 PyQt `_generate_unreal_export`，三个结构体恒定输出） */
+/** Unreal C++ 头文件 */
 export function renderUnrealHeader(buckets: Map<string, Record<string, unknown>[]>): string {
   const parts: string[] = []
   parts.push('// Unreal Engine C++ Header - Auto Generated\n')
@@ -155,7 +155,7 @@ export function renderUnrealHeader(buckets: Map<string, Record<string, unknown>[
   return parts.join('').replace(/\n\n$/, '\n') + dataBlock(buckets, '//')
 }
 
-/** Godot GDScript 资源（对齐 PyQt `_generate_godot_export`：`extends Resource` + 按桶加 `var x = []`） */
+/** Godot GDScript 资源 */
 export function renderGodotGd(buckets: Map<string, Record<string, unknown>[]>): string {
   const parts: string[] = []
   parts.push('# Godot GDScript - Auto Generated\n\n')
@@ -170,11 +170,11 @@ export function renderGodotGd(buckets: Map<string, Record<string, unknown>[]>): 
 }
 
 /**
- * Cocos2d JSON（对齐 PyQt `export_file` 的 cocos2d 分支）。
+ * Cocos2d JSON。
  *
- * 与 PyQt 的**有意偏差**：PyQt 只写死 7 个键，多出来的桶会被**静默丢弃**。
+ * 与 旧版 的**有意偏差**：旧版 只写死 7 个键，多出来的桶会被**静默丢弃**。
  * TS 的 schema 是用户可配的，可能有第 8、第 9 个类型；这里保留 7 个规范键在最前
- * （schema 与 Python 一致时产物与 PyQt **逐字节相同**），其余桶按名排序追加在后面，
+ * ，其余桶按名排序追加在后面，
  * **不丢数据**。
  */
 export function renderCocosJson(buckets: Map<string, Record<string, unknown>[]>): string {

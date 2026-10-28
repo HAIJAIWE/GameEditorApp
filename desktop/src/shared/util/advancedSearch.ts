@@ -1,12 +1,12 @@
 /**
- * 高级搜索（迁移自 旧版 `ui/dialogs/advanced_search`，172 行）。
+ * 高级搜索。
  *
  * ## 与审计描述的一处**更正**（有实证）
  * 审计原写「缺跨类型搜索/按字段选择/结果跳转」。但读 旧版 源码可见：
  * - 旧版 **是单类型搜索**（`type_combo` 选一个类型），**并没有跨类型搜索**；
  * - 按字段选择（`field_combo`：名称/ID/类型/描述）与结果跳转（双击 → 切 tab 选中）旧版 **都有**。
  * 故本刀移植的是 旧版 真实能力（选类型 + 选字段 + 关键词 + 结果 + 跳转），
- * 并额外提供「全部类型」与「全部字段」两个 TS 增强项（旧版 无，已在文档注明）。
+ * 并额外提供「全部类型」与「全部字段」两个 TS 增强项。
  *
  * ## 口径
  * 旧版 的 `item['type']` 指**条目自己的字段**（如技能的「攻击/治疗」），
@@ -16,7 +16,7 @@
 
 import type { ItemRecord } from '../types'
 
-/** 可选的搜索字段（对齐 旧版 field_combo 的 4 项） */
+/** 可选的搜索字段 */
 export const SEARCH_FIELD_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
   { value: 'name', label: '名称' },
   { value: 'id', label: 'ID' },
@@ -24,10 +24,10 @@ export const SEARCH_FIELD_OPTIONS: ReadonlyArray<{ value: string; label: string 
   { value: 'desc', label: '描述' }
 ]
 
-/** 「全部字段」的哨兵值（TS 增强：旧版 只能选单个字段） */
+/** 「全部字段」的哨兵值 */
 export const SEARCH_ALL_FIELDS = '__all__'
 
-/** 「全部类型」的哨兵值（TS 增强：旧版 只能选单个类型） */
+/** 「全部类型」的哨兵值 */
 export const SEARCH_ALL_TYPES = '__all__'
 
 export interface AdvancedSearchParams {
@@ -62,7 +62,7 @@ function allFieldsText(item: ItemRecord): string {
 
 /**
  * 执行高级搜索。
- * - 关键词为空 → 返回空数组（旧版 在此弹窗提示「请输入搜索关键词」，不返回全量）
+ * - 关键词为空 → 返回空数组
  * - 空格拆分多词，**全部命中**才保留（与列表过滤 `filterItemRecords` 同约定）
  * - 类型/字段哨兵值表示不限
  */

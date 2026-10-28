@@ -5,7 +5,7 @@
 // - 本文件 import contract 根（domain → contract，README §1.1 允许方向）。
 import { topoSortAttributes, type AttrFormula, type AttrSystem } from '../../attrSystem'
 
-/** 系数求值（对应 旧版 Formula.evaluate：未定义依赖按 0、系数 0 跳过） */
+/** 系数求值 */
 export function evaluateFormula(formula: AttrFormula, context: Record<string, number>): number {
   let value = formula.baseValue
   for (const [name, coeff] of Object.entries(formula.coefficients)) {
@@ -23,7 +23,7 @@ export interface AttrCalculation {
 }
 
 /**
- * 计算全部属性（对应 旧版 AttributeSystem.calculate_all）：
+ * 计算全部属性：
  * 入参 base_values 中的属性直接采用；其余按拓扑序计算并做 min/max 截断。
  */
 export function calculateAttributes(system: AttrSystem, baseValues: Record<string, number>): AttrCalculation {

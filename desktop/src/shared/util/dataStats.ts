@@ -1,5 +1,5 @@
 /**
- * 数据统计与平衡性分析（迁移自 旧版 `ui/dialogs/statistics`，374 行）。
+ * 数据统计与平衡性分析。
  *
  * ## 与 旧版 的一处**重要差异**（有实证，不是偷懒）
  * 旧版 `_analyze_roles` / `_analyze_monsters` 读的是扁平字段 `hp` / `atk` / `def`。
@@ -20,12 +20,12 @@
  *
  * ## 键口径
  * 用**单数** `DataTypeDef.id`（`role`/`skill`），与 `items.type` 一致
- * （旧版 用的是复数 `roles`/`skills`，那是旧版平铺存储的键）。
+ * 。
  */
 
 import type { DataTypeDef, ItemRecord } from '../types'
 
-/** 平衡性判定阈值：标准差 < 均值 × 0.3 视为「良好」（对齐 旧版 `_analyze_skills`） */
+/** 平衡性判定阈值：标准差 < 均值 × 0.3 视为「良好」 */
 export const BALANCE_STD_RATIO = 0.3
 
 /** 均值；空数组返回 0（调用方按 count 判断是否展示） */
@@ -35,8 +35,8 @@ export function mean(values: readonly number[]): number {
 }
 
 /**
- * 样本标准差（对齐 旧版 `statistics.stdev`，分母 n-1）；
- * 样本数 < 2 时返回 0（旧版 在此分支也是取 0，见 `_analyze_skills` 的三元表达式）。
+ * 样本标准差；
+ * 样本数 < 2 时返回 0。
  */
 export function stdev(values: readonly number[]): number {
   if (values.length < 2) return 0
@@ -101,9 +101,9 @@ export function numericFieldNames(typeDef: DataTypeDef | null): string[] {
 /** 单个数值字段的统计摘要 */
 export interface NumericSummary {
   field: string
-  /** 字段显示名（去掉 旧版/TS 里表单标签的冒号后缀） */
+  /** 字段显示名 */
   label: string
-  /** 有效数值条数（无法解析为数字的条目被跳过，对齐 旧版 的 try/except） */
+  /** 有效数值条数 */
   count: number
   avg: number
   min: number
@@ -111,7 +111,7 @@ export interface NumericSummary {
   std: number
 }
 
-/** 把任意 data 值转成有限数字；无法转换返回 null（对齐 旧版 `float()` + try/except） */
+/** 把任意 data 值转成有限数字；无法转换返回 null */
 function toFiniteNumber(value: unknown): number | null {
   if (typeof value === 'number') return Number.isFinite(value) ? value : null
   if (typeof value === 'string') {

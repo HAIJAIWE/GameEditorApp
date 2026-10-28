@@ -1,7 +1,7 @@
 import type { DataTypeDef, FieldType, TypeFieldDef } from './types'
 
 /**
- * 字段结构编辑器内置模板（照抄 旧版 data/type_editor_templates TYPE_TEMPLATES，7 套）。
+ * 字段结构编辑器内置模板。
  * 模板粒度 = 单个类型的字段列表（含 id 字段），应用时整体替换当前类型字段。
  */
 

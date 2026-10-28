@@ -12,13 +12,16 @@ import {
   exportLegacyInputSchema,
   exportDirInputSchema,
   importDataFileInputSchema,
+  previewImportInputSchema,
+  applyImportInputSchema,
   dataSnapshotInputSchema
 } from '../../shared/schemas'
 import { buildReferenceReport } from '../../shared/util/references'
 import { importLegacyDataFile } from '../data/legacyImport'
 import { exportLegacyDataFile } from '../data/legacyExport'
-import { exportCsvFiles, importCsvFile } from '../data/csvIO'
-import { exportExcelFile, importExcelFile } from '../data/excelIO'
+import { applyParsedImport, exportCsvFiles, importCsvFile, parseCsvImport } from '../data/csvIO'
+import { exportExcelFile, importExcelFile, parseExcelImport } from '../data/excelIO'
+import { buildImportPreview, ImportSessionStore } from '../data/importSession'
 import { type DataSnapshotResult, exportDataSnapshot } from '../data/snapshotExport'
 
 export function registerDataIpc(deps: IpcHandlerDeps, handle: IpcRegistrar): void {
@@ -79,7 +82,7 @@ export function registerDataIpc(deps: IpcHandlerDeps, handle: IpcRegistrar): voi
   handle('data:exportLegacy', exportLegacyInputSchema, (req) =>
     exportLegacyDataFile(req.path, dataService, typeSchemaStore.getTypes())
   )
-  // 游戏数据 CSV / Excel 导入导出（迁移 features/export.py）
+  // 游戏数据 CSV / Excel 导入导出（迁移 features/export）
   handle('data:exportCsv', exportDirInputSchema, (req) =>
     exportCsvFiles(req.dir, dataService, typeSchemaStore.getTypes())
   )
@@ -93,6 +96,38 @@ export function registerDataIpc(deps: IpcHandlerDeps, handle: IpcRegistrar): voi
   )
   handle('data:importExcel', importDataFileInputSchema, async (req) => {
     const summary = await importExcelFile(req.path, dataService, typeSchemaStore.getTypes())
+    await dataSync.onDataChanged()
+    return summary
+  })
+
+  /*
+   * 导入 = 预览 + 确认两步。
+   * 导入是不可撤销的批量写（撤销栈只记单条），先让用户看清「改了什么」再落，
+   * 否则一次误导入只能靠备份回滚。解析结果暂存在主进程，apply 直接用，
+   * 不再读一遍文件（两次读取之间文件可能已变，也可能读出错落）。
+   */
+  const importSessions = new ImportSessionStore()
+  handle('data:previewImport', previewImportInputSchema, async (req) => {
+    const types = typeSchemaStore.getTypes()
+    const parsed =
+      req.kind === 'excel' ? await parseExcelImport(req.path, types) : await parseCsvImport(req.path, types)
+    const preview = buildImportPreview(parsed.records, dataService.listAllItems(), {
+      kind: req.kind,
+      filePath: req.path,
+      skipped: parsed.skipped,
+      unknownTypes: parsed.unknownTypes,
+      missingIdSources: parsed.missingIdSources
+    })
+    const previewId = importSessions.put(req.kind, req.path, parsed)
+    return { previewId, preview }
+  })
+  handle('data:applyImport', applyImportInputSchema, async (req) => {
+    const session = importSessions.take(req.previewId)
+    if (session === undefined) {
+      // 会话过期（10 分钟）或已被消费过：让用户重新走一遍预览，而不是猜着写
+      throw new Error('导入会话已失效，请重新选择文件')
+    }
+    const summary = await applyParsedImport(session.filePath, session, dataService)
     await dataSync.onDataChanged()
     return summary
   })

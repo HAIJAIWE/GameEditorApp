@@ -8,7 +8,7 @@ import { resolveVisibilityResult } from '../../../shared/config/visibleTypes'
  * 的 `TypeVisibilityDialog`。
  *
  * ⚠️ 当前**未接线**：它原本用于过滤侧栏的类型列表，而侧栏已随顶层 IA 重写一并下线
- * （且 旧版 无对应功能）。组件文件保留以留迁移痕迹，不再有菜单/入口引用。
+ * 。组件文件保留以留迁移痕迹，不再有菜单/入口引用。
  *
  * 确认结果语义不变：全选→null（=默认全部显示）、全不选→[]（=全隐藏）、否则为勾选 id 列表。
  */

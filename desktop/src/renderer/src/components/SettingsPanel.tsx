@@ -37,7 +37,7 @@ import {
 } from '../../../shared/config/settingsPreferences'
 
 /**
- * 设置面板（对齐 旧版 `ui/dialogs/settings_dialog`，菜单入口 `设置 → 打开设置...`）。
+ * 设置面板。
  *
  * 旧版 是 4 页签（通用 / AI / 编辑器 / 工具）的 QDialog。TS 侧做**四项**：
  * 字体大小 / 主题 / 删除时确认（前三项，`shared/settingsPreferences.ts`）+ 
@@ -104,7 +104,7 @@ export default function SettingsPanel() {
     saveBlockExportMissingImages(next)
   }
 
-  /* ---- LLM 服务商配置（对齐 旧版 `ui/dialogs/api_config` 基础设置页） ---- */
+  /* ---- LLM 服务商配置 ---- */
   const [llm, setLlm] = useState<StoredLlmConfig>(() => loadLlmConfig())
   const [llmKeyDraft, setLlmKeyDraft] = useState('')
   const [llmNotice, setLlmNotice] = useState<string | null>(null)
@@ -144,7 +144,7 @@ export default function SettingsPanel() {
       .catch(() => setLlmNotice('已保存到本地，但推送给主进程失败，AI 调用可能仍用旧配置'))
   }
 
-  /** 切服务商：带出该服务商的预设地址与首个模型（对齐 旧版 `on_provider_changed`） */
+  /** 切服务商：带出该服务商的预设地址与首个模型 */
   const handleProviderChange = (next: LlmProvider): void => {
     const preset = LLM_PROVIDER_PRESETS[next]
     commitLlm({
@@ -209,7 +209,7 @@ export default function SettingsPanel() {
     }
   }
 
-  /** 「测试连接」（E63，对齐 旧版 `api_config`）：探活当前已配置镜像，结果直接展示在 llmNotice */
+  /** 「测试连接」：探活当前已配置镜像，结果直接展示在 llmNotice */
   const handleTestConnection = async (): Promise<void> => {
     setLlmNotice(null)
     setLlmTesting(true)
@@ -258,10 +258,10 @@ export default function SettingsPanel() {
             </div>
             <div className="item-meta" data-testid="settings-theme-current">
               当前：{theme === 'dark' ? '深色' : '浅色'}
-              （本版仅深/浅两档，不含 旧版 的 10 套 QSS 主题）
+              
             </div>
 
-            {/* 字体大小：立即生效（优于 旧版 的「需重启」，故如实说明而非照抄） */}
+            {/* 字体大小：立即生效 */}
             <div className="form-row">
               <label className="form-label" htmlFor="settings-font-size">
                 字体大小
@@ -338,7 +338,7 @@ export default function SettingsPanel() {
           </div>
         </div>
 
-        {/* ---- LLM 服务商配置（对齐 旧版 `api_config` 基础设置页） ---- */}
+        {/* ---- LLM 服务商配置 ---- */}
         <div className="form-section" data-testid="settings-llm">
           <strong>AI 模型服务</strong>
 

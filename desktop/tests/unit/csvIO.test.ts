@@ -74,7 +74,7 @@ describe('serializeCsvCell', () => {
     expect(serializeCsvCell('a,b')).toBe('a,b')
   })
 
-  it('数组 → 真 JSON 字符串（不是 Python 式单引号伪 JSON）', () => {
+  it('数组 → 真 JSON 字符串', () => {
     expect(serializeCsvCell(['a', 'b'])).toBe('["a","b"]')
     expect(serializeCsvCell([])).toBe('[]')
   })
@@ -416,5 +416,38 @@ describe('exportCsvFiles + importCsvFile 真实往返', () => {
     const stored = service.listAllItems().find((item) => item.id === 'r1')
     expect(typeof stored?.data['hp']).toBe('number')
     expect(stored?.data['hp']).toBe(120)
+  })
+})
+
+/**
+ * CSV 侧的「没有 id 列」告警：与 Excel 同一类风险（每行都当新增 ⇒ 可能整表翻倍）。
+ */
+describe('CSV：缺少 id 列的告警', () => {
+  it('没有 id 列时汇总报出该来源', async () => {
+    const { root, service } = makeService()
+    writeFileSync(join(root, 'roles.csv'), 'name,hp\n战士,120\n', 'utf-8')
+
+    const summary = await importCsvFile(join(root, 'roles.csv'), service, TYPES)
+    expect(summary.missingIdSources).toEqual(['CSV「roles」'])
+  })
+
+  it('带 id 列时不报（正常往返）', async () => {
+    const { root, service } = makeService()
+    await service.importRecords([{ type: 'role', id: 'r1', data: { id: 'r1', name: '战士', hp: 120 } }])
+    await exportCsvFiles(root, service, TYPES)
+
+    const summary = await importCsvFile(join(root, 'roles.csv'), service, TYPES)
+    expect(summary.missingIdSources).toEqual([])
+    expect(summary.updated).toBe(1)
+  })
+
+  it('导出的 CSV 首列是 id（往返主键不能被挤到末尾）', async () => {
+    const { root, service } = makeService()
+    await service.importRecords([{ type: 'role', id: 'r1', data: { name: '战士', hp: 120, id: 'r1' } }])
+    await exportCsvFiles(root, service, TYPES)
+
+    const firstLine = readFileSync(join(root, 'roles.csv'), 'utf-8').split('\n')[0] ?? ''
+    // 导出带 UTF-8 BOM（Excel 打开中文不乱码），断言时剥掉
+    expect(firstLine.replace(/^\uFEFF/, '').split(',')[0]).toBe('id')
   })
 })

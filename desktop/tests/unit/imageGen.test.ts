@@ -29,7 +29,7 @@ describe('checkImageConfig', () => {
     expect(r).toEqual({ ok: false, error: '未设置API Key' })
   })
 
-  it('apiKey 为空字符串 → 未设置（对齐 旧版 `if not config.api_key`）', () => {
+  it('apiKey 为空字符串 → 未设置', () => {
     const r = checkImageConfig(baseConfig({ apiKey: '' }))
     expect(r).toEqual({ ok: false, error: '未设置API Key' })
   })
@@ -194,7 +194,7 @@ describe('buildImageRequest - doubao', () => {
     })
   })
 
-  it('model 为空时仍发出空 model（对齐 旧版）', () => {
+  it('model 为空时仍发出空 model', () => {
     const r = buildImageRequest(baseConfig({ provider: 'doubao' }), 'x') as any
     expect(r.body.model).toBe('')
   })

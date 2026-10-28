@@ -1,5 +1,5 @@
 /**
- * 技能调度器内核（自 旧版 `core/agent/dispatcher` 匹平迁移，A1-1）。
+ * 技能调度器内核。
  *
  * 职责：注册表 + 名称解析（精确/模糊）+ 危险操作确认门 + 结构化错误。
  *
@@ -10,8 +10,8 @@
  *    大量映射指向本批次未注册的工具（`system.file_system` 等），照搬会产出指向
  *    不存在技能的映射，反而有害。
  *  - 旧版 的全局可变「已禁止工具/操作」集合改为 `checkPermission` 的显式入参，
- *    避免进程级隐式状态；调度器本身只做「危险确认门」（与 旧版 `_check_dangerous` 一致）。
- *  - **action 别名在调度器层统一归一**（旧版 是在各技能内部调 `normalize_params`）。
+ *    避免进程级隐式状态；调度器本身只做「危险确认门」。
+ *  - **action 别名在调度器层统一归一**。
  *    单一归一化点更稳，但副作用是：危险确认令牌与「高危操作需用户确认: 工具/操作」里的
  *    操作名是**规范动作名**（如 `exec` → `execute`），旧版 则保留原文。
  */
@@ -70,7 +70,7 @@ const FUZZY_ALIASES: Record<string, string> = {
 export class SkillRegistry {
   private readonly skills = new Map<string, SkillProtocol>()
 
-  /** 注册技能；id 为空时拒绝（对齐 旧版 `register_skill` 返回 False） */
+  /** 注册技能；id 为空时拒绝 */
   register(skill: SkillProtocol): boolean {
     if (skill.id === '') return false
     this.skills.set(skill.id, skill)
@@ -149,7 +149,7 @@ export class SkillDispatcher {
     this.fuzzyIndex.clear()
   }
 
-  /** 供 A1-2 组装提示词用（对齐 旧版 `get_tools_description`）——**全量多行**描述，含参数明细 */
+  /** 供 A1-2 组装提示词用——**全量多行**描述，含参数明细 */
   toolsDescription(): string {
     return this.registry
       .list()
@@ -169,7 +169,7 @@ export class SkillDispatcher {
   }
 
   /**
-   * 供 LLM Function Calling 用（对齐 旧版 `get_tools_json_schema`）。
+   * 供 LLM Function Calling 用。
    *
    * ⚠️ 返回的是**内层** `{name,description,parameters}`（同一个函数也供 `agent:listTools` 的
    * UI 编辑器使用），**不是**可直接下发的线格式 —— 下发前需经 `toFunctionCallingTools` 补
@@ -198,7 +198,7 @@ export class SkillDispatcher {
   }
 
   /**
-   * 名称解析（对齐 旧版 `fuzzy_match`）：精确 → 索引包含匹配，取「键最长」为最佳。
+   * 名称解析：精确 → 索引包含匹配，取「键最长」为最佳。
    * 无可解析目标返回 null。
    */
   fuzzyMatch(name: string): string | null {
@@ -217,7 +217,7 @@ export class SkillDispatcher {
   }
 
   /**
-   * 执行工具（对齐 旧版 `ToolDispatcher.execute` 的解析 → 参数修正 → 危险确认 → 执行）。
+   * 执行工具。
    * 危险确认令牌与本次 (工具, action) 匹配时放行并**就地置空**（一次性）。
    * 技能抛错不冒泡，统一收敛为结构化错误。
    */

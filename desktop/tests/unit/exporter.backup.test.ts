@@ -30,7 +30,7 @@ describe('exportEngineData 覆盖前备份', () => {
     expect(res.backupPath).toBe(`${target}.bak`)
     expect(existsSync(res.backupPath!)).toBe(true)
     expect(readFileSync(res.backupPath!, 'utf-8')).toBe('OLD CONTENT')
-    // 新文件已被覆盖为导出内容（不再是旧版）
+    // 新文件已被覆盖为导出内容
     expect(readFileSync(target, 'utf-8')).not.toBe('OLD CONTENT')
   })
 

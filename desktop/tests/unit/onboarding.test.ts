@@ -41,7 +41,7 @@ const state = (over: Partial<OnboardingState>): OnboardingState => ({
   ...over
 })
 
-describe('常量（逐项对齐 旧版 home_widget）', () => {
+describe('常量', () => {
   it('ONBOARDING_STEPS 为 5 步，id 精确', () => {
     expect(ONBOARDING_STEPS).toHaveLength(5)
     expect(ONBOARDING_STEPS.map((step) => step.id)).toEqual([

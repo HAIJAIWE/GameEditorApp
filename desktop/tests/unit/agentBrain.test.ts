@@ -109,7 +109,7 @@ describe('brain 辅助函数', () => {
     })
   })
 
-  it('fallbackAnswer：取首个非空结果，全空用兜底文案（对齐 旧版 _fallback_answer）', () => {
+  it('fallbackAnswer：取首个非空结果，全空用兜底文案', () => {
     expect(fallbackAnswer(['', '   ', '有内容'])).toBe('有内容')
     expect(fallbackAnswer([' 前后空白 '])).toBe('前后空白')
     expect(fallbackAnswer(['', '  '])).toBe(FALLBACK_ANSWER)
@@ -221,7 +221,7 @@ describe('runBrainLoop：事件序列', () => {
     expect(result.events[4]).toEqual({ type: 'stream_done', fullText: '这是最终答复' })
   })
 
-  it('协议合法性：每个 tool_call 都有对应的 tool 消息回灌（旧版 会在此留非法序列）', async () => {
+  it('协议合法性：每个 tool_call 都有对应的 tool 消息回灌', async () => {
     const transport = scripted([
       {
         content: '',

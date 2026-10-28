@@ -11,7 +11,7 @@ interface FieldControlProps {
   jsonMode: boolean
   onChange: (value: unknown) => void
   /**
-   * `template` 字段被选中/输入时回调（旧版 `dynamic_form::_on_template_changed`）。
+   * `template` 字段被选中/输入时回调。
    * 用来把模板文本联动写进同类型的 `desc` 字段 —— 语义由调用方决定，这里只负责传出来。
    */
   onTemplatePicked?: (templateText: string) => void
@@ -23,7 +23,7 @@ interface FieldControlProps {
   aiAssist?: FieldAiAssist
   /** 当前表单里 `image` 字段的值（图片类按钮需要路径才能分析/生图） */
   imagePath?: string
-  /** 当前条目的名称（「自动填充」模板要它，对齐 旧版 `_on_auto_generate_image_info` 的 `data.get('name')`） */
+  /** 当前条目的名称 */
   itemName?: string
   /**
    * `dialog` 字段可选的对话条目（对齐 旧版 `dynamic_form::_on_select_dialog`：
@@ -34,15 +34,15 @@ interface FieldControlProps {
 }
 
 export interface FieldAiAssist {
-  /** 生成 desc（对齐 旧版 `_on_ai_generate` → `features.generate_desc_only`） */
+  /** 生成 desc */
   generateDesc: (fieldLabel: string, currentText: string) => Promise<string>
   /**
-   * 为某个字段生成配图（对齐 旧版 `_on_ai_image`）。
+   * 为某个字段生成配图。
    * 旧版 只是 `QMessageBox.information("需要配置API密钥")` 的**占位桩**；
    * TS 侧接真实的 `image:generate`（项目已有该通道）—— 详见 ItemForm 里的说明。
    */
   generateImage: (prompt: string) => Promise<string>
-  /** 现有图片路径存在时，让模型提取标签（对齐 旧版 `_on_ai_analyze_image`） */
+  /** 现有图片路径存在时，让模型提取标签 */
   analyzeImageTags: (imagePath: string) => Promise<string>
 }
 
@@ -208,7 +208,7 @@ export function FieldControl({
      * （「图片文件不存在」时要能看出指向哪），但不再占据主视觉。
      *
      * 预览仍走 `LazyImage`：按字段值（已保存的绝对路径）经主进程 `images:readByPath`
-     * 回读 data URL，**打开已保存图片的条目也能看到图**（对齐 旧版 `load_image`）。
+     * 回读 data URL，**打开已保存图片的条目也能看到图**。
      * 渲染层直接引用 `C://...` 会被 `webSecurity` 拦，故一律走主进程转 data URL。
      */
     case 'image': {
@@ -314,7 +314,7 @@ export function FieldControl({
       )
     /*
      * `desc` / `content` / `achievement_desc`：文本域 + 两个 AI 按钮
-     * （对齐 旧版 `dynamic_form::_create_desc_widget`：QTextEdit(120px) + 「AI生成」「AI生图」两枚）。
+     * 。
      *
      * 「AI生图」与 旧版 **刻意不同**：旧版 的 `_on_ai_image` 只是一句
      * `QMessageBox.information("AI图片生成功能需要配置API密钥")` 的**占位桩**（零能力）。
@@ -383,7 +383,7 @@ export function FieldControl({
     }
     /*
      * `image_tags`：单行标签框 + 「自动填充」「AI分析」
-     * （对齐 旧版 `dynamic_form::_create_image_tags_widget` 的两枚按钮）。
+     * 。
      *
      * **「自动填充」不调 AI**：旧版 的 `_on_auto_generate_image_info` 是纯字符串模板
      * （`f'{name}的图片描述'` / `f'{name},图片,游戏'`），按钮名里的「生成」容易误读成 AI。

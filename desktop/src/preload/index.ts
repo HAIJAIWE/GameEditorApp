@@ -79,6 +79,8 @@ const api: MbApi = {
     importCsv: (req) => invoke('data:importCsv', req),
     exportExcel: (req) => invoke('data:exportExcel', req),
     importExcel: (req) => invoke('data:importExcel', req),
+    previewImport: (req) => invoke('data:previewImport', req),
+    applyImport: (req) => invoke('data:applyImport', req),
     exportSnapshot: (req) => invoke('data:exportSnapshot', req)
   },
   engine: {
@@ -112,7 +114,7 @@ const api: MbApi = {
     /** 单次文本生成（字段级 AI 按钮）；失败由主进程抛中文错误 */
     generate: (req: { system: string; prompt: string }) => invoke('llm:generate', req),
     /**
-     * 推 LLM 非敏感配置镜像（对齐 Python `api_config.py`）。
+     * 推 LLM 非敏感配置镜像。
      * 渲染层启动时 + 改设置时各调一次；**不要把 apiKey 放进来** ——
      * 它走 `settings:setSecret` 进 safeStorage，由主进程每次调用时自行解密注入。
      */
@@ -128,7 +130,7 @@ const api: MbApi = {
    */
   images: {
     listLibraryImages: () => invoke('images:listLibraryImages', undefined),
-    // 按已保存路径回显预览（对齐 PyQt LazyImageLabel.load_image）
+    // 按已保存路径回显预览
     // ⚠️ 主进程只允许读当前库 images 目录内的文件，越界返回 reason 说明，不静默失败
     readByPath: (req: { path: string }) => invoke('images:readByPath', req),
     deleteImages: (req: { paths: string[]; confirm: true }) => invoke('images:deleteImages', req)
@@ -139,6 +141,7 @@ const api: MbApi = {
     chooseDataSnapshotFile: (req) => invoke('dialog:chooseDataSnapshotFile', req),
     chooseSaveJsonFile: () => invoke('dialog:chooseSaveJsonFile', undefined),
     chooseExportDir: () => invoke('dialog:chooseExportDir', undefined),
+    chooseProjectDir: () => invoke('dialog:chooseProjectDir', undefined),
     chooseCsvFile: () => invoke('dialog:chooseCsvFile', undefined),
     chooseExcelFile: () => invoke('dialog:chooseExcelFile', undefined),
     chooseImageSaveDir: () => invoke('dialog:chooseImageSaveDir', undefined),
@@ -165,8 +168,18 @@ const api: MbApi = {
     setActive: (req) => invoke('ceshu:setActive', req),
     changelog: (req) => invoke('ceshu:changelog', req),
     validate: (req) => invoke('ceshu:validate', req),
-    score: (req) => invoke('ceshu:score', req),
+    readiness: (req) => invoke('ceshu:readiness', req),
     aiGenerateChapter: (req) => invoke('ceshu:aiGenerateChapter', req),
+    cloneDecompose: (req) => invoke('ceshu:cloneDecompose', req),
+    exportProjectFolder: (req) => invoke('ceshu:exportProjectFolder', req),
+    exportHandoff: (req) => invoke('ceshu:exportHandoff', req),
+    openProjectFolder: (req) => invoke('ceshu:openProjectFolder', req),
+    aiGenerateTasks: (req) => invoke('ceshu:aiGenerateTasks', req),
+    saveDemo: (req) => invoke('ceshu:saveDemo', req),
+    checkDataTables: (req) => invoke('ceshu:checkDataTables', req),
+    checkContract: (req) => invoke('ceshu:checkContract', req),
+    planDataTableScaffold: (req) => invoke('ceshu:planDataTableScaffold', req),
+    applyDataTableScaffold: (req) => invoke('ceshu:applyDataTableScaffold', req),
     aiReview: (req) => invoke('ceshu:aiReview', req),
     aiGenerateData: (req) => invoke('ceshu:aiGenerateData', req),
     aiGenerateField: (req) => invoke('ceshu:aiGenerateField', req),
@@ -175,7 +188,7 @@ const api: MbApi = {
     migrateFieldSplits: (req) => invoke('ceshu:migrateFieldSplits', req),
     diff: (req) => invoke('ceshu:diff', req),
     exportDiffReport: (req) => invoke('ceshu:exportDiffReport', req),
-    exportScoreReport: (req) => invoke('ceshu:exportScoreReport', req),
+    exportReadinessReport: (req) => invoke('ceshu:exportReadinessReport', req),
     exportValidationReport: (req) => invoke('ceshu:exportValidationReport', req),
     exportChangelogReport: (req) => invoke('ceshu:exportChangelogReport', req),
     notes: {

@@ -21,7 +21,7 @@ export const SECRET_NAMES = {
    */
   imageGenApiKey: 'imageGen.apiKey',
   /**
-   * LLM 服务商 API Key（对齐 旧版 `api_config` 的 `config.api_key`）。
+   * LLM 服务商 API Key。
    * 同样**明文不进 localStorage**，只经 `safeStorage` 加密落盘（理由同 imageGenApiKey）。
    */
   llmApiKey: 'llm.apiKey'

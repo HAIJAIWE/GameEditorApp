@@ -1,5 +1,5 @@
 /**
- * `tool.ask_user` 内置技能（对应 旧版 `core/agent/skills/ask_user_skill`）：
+ * `tool.ask_user` 内置技能：
  * 参数/选项/方案不确定时向用户提问，避免 LLM 瞎猜。
  *
  * 与 旧版 的区别：旧版 走 `threading.Event` + 回调注册表的**阻塞式**弹窗
@@ -8,7 +8,7 @@
  *
  * 两种用法：
  *  - 单问题：`question` + `options?: string[]`
- *  - 多问题（对齐 旧版）：`questions: [{ question|prompt, options?, multiSelect? }]`
+ *  - 多问题：`questions: [{ question|prompt, options?, multiSelect? }]`
  */
 
 import type {
@@ -21,7 +21,7 @@ import type {
 
 const ACTIONS = ['ask'] as const
 
-/** 归一化候选项：接受字符串或 `{label, description}`（旧版 侧两种调用点都存在） */
+/** 归一化候选项：接受字符串或 `{label, description}` */
 export function normalizeOptions(raw: unknown): SkillInteractionOption[] {
   if (!Array.isArray(raw)) return []
   const options: SkillInteractionOption[] = []
@@ -68,7 +68,7 @@ const OPTION_HINT =
 
 export function createAskUserSkill(): SkillProtocol {
   function ask(params: Record<string, unknown>): SkillResult {
-    // 多问题形态（对齐 旧版 questions 数组）
+    // 多问题形态
     const rawQuestions = params.questions
     if (Array.isArray(rawQuestions) && rawQuestions.length > 0) {
       const questions = rawQuestions

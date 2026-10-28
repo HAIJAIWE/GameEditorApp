@@ -18,7 +18,7 @@
  *   出现位置，故这里用 `split(source).join(target)`（而非 `String.replace`，
  *   后者只替换第一处），以匹配 旧版 行为。
  *
- * 有意偏离（旧版 → TS）：
+ * 有意偏离：
  * - 旧版 `StyleManager` 是单例，内部持有可变状态 `_active_style`。TS 端
  *   **不保留任何模块级可变状态**（便于测试与 React 状态管理），活跃风格由调用方
  *   （React state）持有，因此所有需要风格的函数都把 `styleId` 作为必填参数。
@@ -124,7 +124,7 @@ export function buildReplacementPairs(targetId: string): Array<[string, string]>
  * 例：目标=仙侠 "生命加成%" → "气血加成%"，"法力加成%" → "灵力加成%"；
  *     目标=科幻 "生命加成%" → "HP加成%"，"法力加成%" → "能量加成%"。
  *
- * 注意：替换为**全部替换**（旧版 `str.replace` 语义），故用 split/join。
+ * 注意：替换为**全部替换**，故用 split/join。
  */
 export function resolveLabel(label: string, styleId: string): string {
   if (!label || !styleId) return label
@@ -177,7 +177,7 @@ export function inferStyleFromText(text: string): string {
     for (const term of Object.values(style.terminology)) {
       if (term && text.includes(term)) score += 1
     }
-    // 严格 > ：平分时保留先出现的风格（对齐 旧版 max 取首个最大 key）
+    // 严格 > ：平分时保留先出现的风格
     if (score > bestScore) {
       bestScore = score
       bestId = style.id

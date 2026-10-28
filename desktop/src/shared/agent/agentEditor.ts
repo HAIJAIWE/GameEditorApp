@@ -1,11 +1,11 @@
 /**
  * 智能体编辑器 —— 纯逻辑层（零 React / 零 Electron，Node 下可单测）。
  *
- * ## 范围判定（读 旧版 真源 `src/ui/widgets/team_dialog` 后得出）
+ * ## 范围判定
  *
  * 旧版 的 TeamDialog 是 818 行的「双栏对话框」，但**两半在 TS 侧的数据支撑完全不同**：
  *
- * ### 判定为「不做」（旧版 侧结构存在，TS 侧无真源 / 无消费者 → 做了就是假控件）
+ * ### 判定为「不做」
  *
  * | 旧版 位置 | 功能 | 不做的依据 |
  * | --- | --- | --- |
@@ -74,7 +74,7 @@ export function needsConfirmation(risk: RiskLevel): boolean {
 /** 工具 id 的命名空间（`system.*` / `tool.*` / 其他） */
 export type ToolNamespace = 'system' | 'tool' | 'other'
 
-/** 命名空间 → 中文分类名（`team_dialog:393` 的「系统工具」是 旧版 侧的自造分类名） */
+/** 命名空间 → 中文分类名 */
 export const NAMESPACE_LABELS: Readonly<Record<ToolNamespace, string>> = {
   system: '系统工具',
   tool: '交互工具',

@@ -8,7 +8,8 @@ import {
   summarizeNumeric,
   type NumericSummary
 } from '../../../shared/util/dataStats'
-import type { DataTypeDef, ItemRecord } from '../../../shared/types'
+import type { ItemRecord } from '../../../shared/types'
+import { useAppContext } from '../plugins/appContext'
 
 /**
  * 数据统计 + 平衡性分析面板（对应 旧版 `ui/dialogs/statistics` 的
@@ -23,13 +24,15 @@ import type { DataTypeDef, ItemRecord } from '../../../shared/types'
  */
 
 interface StatisticsPanelProps {
-  types: DataTypeDef[]
+  /** 面板关闭（宿主 `HostPanel` 统一下发的面板生命周期契约） */
   onClose: () => void
 }
 
 type Tab = 'overview' | 'balance'
 
-export default function StatisticsPanel({ types, onClose }: StatisticsPanelProps) {
+export default function StatisticsPanel({ onClose }: StatisticsPanelProps) {
+  // 自供给：数据类型定义经 appContext 取用，不再由 App 以 props 下发（B 方案 Slice 2）
+  const { types } = useAppContext()
   const [tab, setTab] = useState<Tab>('overview')
   const [items, setItems] = useState<ItemRecord[] | null>(null)
   const [error, setError] = useState<string | null>(null)

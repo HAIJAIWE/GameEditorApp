@@ -1,5 +1,5 @@
 /**
- * 快速创建模板（迁移自 旧版 `ui/dialogs/quick_create` 的 `TEMPLATE_DEFS` / `DATA_TYPE_LABELS`）。
+ * 快速创建模板。
  *
  * ## 为什么是纯数据 + 纯函数，且不需要新 IPC
  * 模板是**静态常量**（无主进程状态），渲染层像其它 `shared/*` 常量一样直接 import 即可；

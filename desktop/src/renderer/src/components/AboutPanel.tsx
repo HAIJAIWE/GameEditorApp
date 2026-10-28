@@ -1,5 +1,5 @@
 /**
- * 关于面板（对齐 旧版 `ui/main_window::_show_about`，菜单入口 `帮助 → 关于墨白编辑器`）。
+ * 关于面板。
  *
  * 旧版 是一段 `QMessageBox.about` 的静态 HTML（标题 / 版本 / 定位 / 两行小字）。
  * TS 侧沿用同样的文案与层次，但**版本号取真实 `app:info`**（由 `App.tsx` 传入），

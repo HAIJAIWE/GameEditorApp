@@ -52,11 +52,11 @@ describe('parseDataRefs：语法解析', () => {
     expect(refs[0]).toMatchObject({ typeKey: 'role', itemId: 'hero_01', field: 'atk', fullPath: 'role.hero_01.atk' })
   })
 
-  it('一段式 @data[role] 不匹配（对齐 旧版 末尾的 + 量词）', () => {
+  it('一段式 @data[role] 不匹配', () => {
     expect(parseDataRefs('@data[role]')).toHaveLength(0)
   })
 
-  it('四段及以上跳过（对齐 旧版 else: continue）', () => {
+  it('四段及以上跳过', () => {
     expect(parseDataRefs('@data[a.b.c.d]')).toHaveLength(0)
   })
 
@@ -82,7 +82,7 @@ describe('parseDataRefs：语法解析', () => {
     expect(parseDataRefs(text)).toHaveLength(2)
   })
 
-  it('⚠️ 中文标识符不被支持（对齐 旧版 正则 [a-zA-Z_]，非 TS 缺陷）', () => {
+  it('⚠️ 中文标识符不被支持', () => {
     // 旧版 REF_PATTERN 同样只认 ASCII；字段名若用中文则该引用**整体不匹配**（不会被当坏引用显示）
     expect(parseDataRefs('@data[role.不存在.atk]')).toHaveLength(0)
     expect(parseDataRefs('@data[角色.攻击]')).toHaveLength(0)
@@ -96,7 +96,7 @@ describe('parseDataRefs：语法解析', () => {
 })
 
 describe('resolveRefValue：🔧 修正了 旧版 的单复数 bug', () => {
-  it('单数写法 @data[role.atk] 能解析出值（旧版 这里恒为 None）', () => {
+  it('单数写法 @data[role.atk] 能解析出值', () => {
     const ref = parseDataRefs('@data[role.atk]')[0]!
     // 旧版: raw.get('role') 但 data 的键是复数 'roles' ⇒ 永远拿不到
     // TS 修正后：按单数 id 归一 ⇒ 101 之外的真实值
@@ -108,7 +108,7 @@ describe('resolveRefValue：🔧 修正了 旧版 的单复数 bug', () => {
     expect(resolveRefValue(ITEMS, TYPES, ref)).toBe(100)
   })
 
-  it('itemId 为空 ⇒ 取该类型第一条（对齐 旧版 items[0]）', () => {
+  it('itemId 为空 ⇒ 取该类型第一条', () => {
     const ref = parseDataRefs('@data[role.name]')[0]!
     expect(resolveRefValue(ITEMS, TYPES, ref)).toBe('勇者')
   })
@@ -177,7 +177,7 @@ describe('formatRefValue：展示格式', () => {
     expect(formatRefValue(undefined)).toBe('')
   })
 
-  it('超长值截断到 60 并加省略号（对齐 旧版 [:60]）', () => {
+  it('超长值截断到 60 并加省略号', () => {
     const long = 'x'.repeat(100)
     const out = formatRefValue(long)
     expect(out).toHaveLength(61)
@@ -195,7 +195,7 @@ describe('extractAllRefs：从整本策划书提取 + 去重', () => {
     expect(extractAllRefs(chapters).map((r) => r.fullPath)).toEqual(['role.atk'])
   })
 
-  it('下探一层嵌套字典（对齐 旧版 的 dict 分支）', () => {
+  it('下探一层嵌套字典', () => {
     const chapters = chaptersOf({ meta: { nested: { a: '@data[role.atk]' } } })
     expect(extractAllRefs(chapters).map((r) => r.fullPath)).toEqual(['role.atk'])
   })
@@ -205,7 +205,7 @@ describe('extractAllRefs：从整本策划书提取 + 去重', () => {
     expect(extractAllRefs(chapters).map((r) => r.fullPath)).toEqual(['role.atk', 'role.hp'])
   })
 
-  it('不递归第三层（对齐 旧版 只下探一层的 else-if）', () => {
+  it('不递归第三层', () => {
     const chapters = chaptersOf({ meta: { deep: { deeper: { x: '@data[role.atk]' } } } })
     expect(extractAllRefs(chapters)).toHaveLength(0)
   })

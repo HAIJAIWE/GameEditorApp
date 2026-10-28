@@ -1,5 +1,5 @@
 /**
- * settingsStore —— 统一设置存储基座（迁移 旧版 `config/settings` 的存储职责）。
+ * settingsStore —— 统一设置存储基座。
  *
  * ## 为什么有这个模块
  * 迁移到 E22 时，应用里已有 **4 处各自为政的 localStorage 写法**，无统一抽象：
@@ -244,7 +244,7 @@ export const SETTINGS_KEYS = {
   fontSize: 'mb.fontSize',
   confirmDelete: 'mb.confirmDelete',
   /**
-   * AI 关键词模板（5 类可编辑，对齐 旧版 `features/advanced:206-306`）。
+   * AI 关键词模板。
    * 不登记到这里的话，`exportSettings` / `resetAllSettings` 不会覆盖它。
    */
   keywordTemplates: 'mb.keywordTemplates',

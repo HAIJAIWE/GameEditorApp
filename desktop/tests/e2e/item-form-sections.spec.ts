@@ -7,7 +7,7 @@ import { launchApp, waitReady } from './helpers/app'
 import { createDataItem, openCeshuFromHome, openDataEditor, seedCeshu } from './helpers/ceshuData'
 
 /**
- * 条目编辑器表单：**折叠分区**（2026-10-19 恢复，源自 旧版 `FIELD_GROUPS`）。
+ * 条目编辑器表单：**折叠分区**。
  *
  * ## 结构沿革（两次反转，都以用户要求为准）
  * - 2026-10-04：从更新版 旧版 `FIELD_GROUPS` 迁入分区卡片（含双列 grid + emoji 前缀）。
@@ -17,7 +17,7 @@ import { createDataItem, openCeshuFromHome, openDataEditor, seedCeshu } from './
  *
  * 锁四件事：
  * 1. 结构：按类型的 `FORM_GROUPS` 产出分区，标题/顺序正确；**默认全部展开**（不藏字段）；
- * 2. 顺序：分区**内**按分区定义顺序（≠ schema 顺序，旧版 亦如此），一个字段不丢不重；
+ * 2. 顺序：分区**内**按分区定义顺序，一个字段不丢不重；
  * 3. 标签：字段自身 label（经术语替换），**无** emoji 前缀（📊/⏱️ 仍是 grid 时代产物）；
  * 4. 保存链路仍然正确（控件挂载方式变了，这是结构改动的真实风险）。
  *
@@ -92,7 +92,7 @@ test('条目编辑器表单：折叠分区结构 + 分区内顺序 + 控件不�
     )
     await expect(window.locator('[data-testid="form-section-body"]')).toHaveCount(ROLE_SECTIONS.length)
 
-    // ③ 逐个字段断言控件恰一份（attrpanel 曾被 旧版 分区缺陷渲染两遍）
+    // ③ 逐个字段断言控件恰一份
     for (const name of ROLE_SECTIONS.flatMap((section) => section.fields)) {
       await expect(window.getByTestId(`field-${name}`), `字段 ${name} 应恰有一个控件`).toHaveCount(1)
     }

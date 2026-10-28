@@ -275,7 +275,7 @@ describe('resolveLabel', () => {
     expect(resolveLabel('法力加成%', 'scifi')).toBe('能量加成%')
   })
 
-  it('替换是「全部替换」（旧版 str.replace 语义）', () => {
+  it('替换是「全部替换」', () => {
     expect(resolveLabel('生命生命', 'xianxia')).toBe('气血气血')
   })
 

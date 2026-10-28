@@ -1,7 +1,6 @@
 import { isChapterKey, type ChapterData, type CeshuDocument } from '../ceshuConstants'
-import { withChapter } from '../ceshuModel'
+import { computeChapterProgress, withChapter } from '../ceshuModel'
 import { categorizeValidationError } from '../domain/ceshu/ceshuReports'
-import { scoreCeshu } from '../ceshuScorer'
 import { validateCeshu } from '../ceshuValidation'
 import { findCountConstraint, exceedsCountConstraint } from '../util/dataCountConstraint'
 import { assessBalance, mean, numericFieldNames, stdev } from '../util/dataStats'
@@ -18,7 +17,7 @@ import type {
  * AI 产出的**确定性质量门**（v0.5 DD-19）—— 策划书半边 + 数据半边。
  *
  * ## 为什么要有这一层
- * 本项目已有 **7,114 行确定性纯逻辑**在生产里跑着（`ceshuValidation` / `ceshuScorer` /
+ * 本项目已有 **7,114 行确定性纯逻辑**在生产里跑着（`ceshuValidation` / `ceshuReadiness` /
  * `dataStats` / `dataCountConstraint` / `dataRef` / `ceshuFieldDeps`），
  * 但 agent / AI 生成的产出路径（`brain.ts` → LLM → 文本）**并没有强制跑这些门**
  * ⇒ **无法用机器判定"这次生成是好是坏"**，评估只能退化成 LLM 自评——
@@ -32,7 +31,7 @@ import type {
  * ## 两个半边
  * | 半边 | 入口 | 判据 |
  * |---|---|---|
- * | **策划书** | `evaluateChapterDraft` | 生成字段合并进文档后重跑 `validateCeshu` + `scoreCeshu`，比较 before/after |
+ * | **策划书** | `evaluateChapterDraft` | 生成字段合并进文档后重跑 `validateCeshu`，比较 before/after 的**错误数**与**立项阶段完成度** |
  * | **数据** | `evaluateDataCandidates` | 数量约束（P5，硬）+ 数值平衡性（`assessBalance`，建议） |
  *
  * 本模块是纯函数，不落盘、不调 LLM，可被 Node 端单测直接覆盖。
@@ -53,15 +52,20 @@ function summarize(verdict: Omit<QualityGateVerdict, 'summary'>): string {
     return `仍有 ${verdict.blocking.length} 个阻断问题（必填缺失 / 章节间硬冲突），建议先补齐再继续`
   }
   if (verdict.errorDelta < 0) {
-    return `校验问题减少 ${-verdict.errorDelta} 个，评分 ${verdict.beforeScore} → ${verdict.afterScore}`
+    return `校验问题减少 ${-verdict.errorDelta} 个，立项完成度 ${pct(verdict.completionBefore)} → ${pct(verdict.completionAfter)}`
   }
-  if (verdict.scoreDelta > 0) {
-    return `评分提高 ${verdict.scoreDelta} 分（${verdict.beforeScore} → ${verdict.afterScore}）`
+  if (verdict.completionDelta > 0) {
+    return `立项完成度提高 ${Math.round(verdict.completionDelta * 100)} 个百分点（${pct(verdict.completionBefore)} → ${pct(verdict.completionAfter)}）`
   }
-  if (verdict.errorDelta === 0 && verdict.scoreDelta === 0) {
-    return '校验问题与评分均无变化'
+  if (verdict.errorDelta === 0 && verdict.completionDelta === 0) {
+    return '校验问题与完成度均无变化'
   }
-  return `校验问题增加 ${verdict.errorDelta} 个，评分 ${verdict.beforeScore} → ${verdict.afterScore}，建议复核生成内容`
+  return `校验问题增加 ${verdict.errorDelta} 个，立项完成度 ${pct(verdict.completionBefore)} → ${pct(verdict.completionAfter)}，建议复核生成内容`
+}
+
+/** 完成度（0~1）→ 百分比整数串 */
+function pct(value: number): string {
+  return `${Math.round(value * 100)}%`
 }
 
 /**
@@ -83,11 +87,16 @@ export function evaluateChapterDraft(
 
   const beforeErrors = validateCeshu(base)
   const afterErrors = validateCeshu(afterDoc)
-  const beforeReport = scoreCeshu(base)
-  const afterReport = scoreCeshu(afterDoc)
 
+  /*
+   * 改善判据从「总分差」改基到两个已有真实信号（2026-10-27，随 100 分制一并移除）：
+   * `beforeScore/scoreDelta` 来自已删除的 `scoreCeshu`；而「错误数」与「立项完成度」
+   * 都是校验/进度链路本就产出的客观量——不依赖任何拍出来的权重，也不可能编造。
+   */
   const errorDelta = afterErrors.length - beforeErrors.length
-  const scoreDelta = afterReport.total_score - beforeReport.total_score
+  const completionBefore = computeChapterProgress(base, 'concept').total ?? 0
+  const completionAfter = computeChapterProgress(afterDoc, 'concept').total ?? 0
+  const completionDelta = Math.round((completionAfter - completionBefore) * 10000) / 10000
   const blocking = afterErrors.filter(isBlocking)
 
   const verdict: Omit<QualityGateVerdict, 'summary'> = {
@@ -96,12 +105,10 @@ export function evaluateChapterDraft(
     afterErrors: afterErrors.length,
     errorDelta,
     blocking,
-    beforeScore: beforeReport.total_score,
-    afterScore: afterReport.total_score,
-    scoreDelta,
-    gradeBefore: beforeReport.grade,
-    gradeAfter: afterReport.grade,
-    improved: errorDelta < 0 || scoreDelta > 0,
+    completionBefore,
+    completionAfter,
+    completionDelta,
+    improved: errorDelta < 0 || completionDelta > 0,
     judge: null
   }
   return { ...verdict, summary: summarize(verdict) }
@@ -227,7 +234,7 @@ export function evaluateDataCandidates(
  *
  * 纯函数（不调 LLM、不改入参），可被 Node 端单测直接覆盖：
  * - `judge` 为 `null`（judge 调用失败 / 降级 / 保密模式禁用）时**原样返回**确定性 verdict；
- * - `toxicity === 'flagged'` 时只往 `summary` 追加合规提示，**不改动** `blocking` / `scoreDelta`；
+ * - `toxicity === 'flagged'` 时只往 `summary` 追加合规提示，**不改动** `blocking` / `completionDelta`；
  * - 其余情况把 `judge` 挂到 `verdict.judge`，`summary` 保持不变。
  *
  * 调用方（`main/agent/qualityJudge.ts::runLlmJudge`）负责真正发起 LLM 调用、

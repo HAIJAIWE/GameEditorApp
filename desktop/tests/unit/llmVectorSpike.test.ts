@@ -15,7 +15,7 @@ import { describe, expect, it } from 'vitest'
  * 替代 chromadb 的选型依据见预演报告。
  */
 
-/** 32 维确定性字符 n-gram 哈希嵌入（预览版，等价迁移自 旧版 memory_embedder） */
+/** 32 维确定性字符 n-gram 哈希嵌入 */
 function embedText(text: string, dims = 32): number[] {
   const vector = new Array<number>(dims).fill(0)
   const normalized = text.toLowerCase()

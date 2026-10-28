@@ -89,7 +89,7 @@ export function buildRollbackPlan(records: readonly OperationRecord[]): Rollback
   return { steps, skipped }
 }
 
-/** 回滚结果（对齐 旧版 的 `(count, errors)`，但错误带条目名便于定位） */
+/** 回滚结果 */
 export interface RollbackOutcome {
   /** 成功回滚的条目数 */
   count: number

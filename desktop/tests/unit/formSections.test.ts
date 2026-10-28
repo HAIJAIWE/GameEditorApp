@@ -10,7 +10,7 @@ import { BUILTIN_DATA_TYPES } from '../../src/shared/typeSchema'
  * 重点锁三件容易回归的事：
  * 1. **分区定义与真实 schema 必须吻合** —— `FORM_GROUPS` 是照抄 旧版 的静态表，
  *    schema 改了它不会自动跟上； mismatch 的字段会被并入第一个分区（不丢，但顺序会变）。
- * 2. **未归组字段并入第一个分区**（旧版 原版渲染在分区外，2026-10-19 刻意改变）。
+ * 2. **未归组字段并入第一个分区**。
  * 3. **复杂控件单独成区**（attrpanel / attrtable / multiselect / droptable）。
  */
 
@@ -32,7 +32,7 @@ const titles = (typeId: string): string[] => buildFormLayout(typeId, builtin(typ
 describe('FORM_GROUPS 与内置 schema 的吻合度', () => {
   /*
    * 这张表是**分类断言**而非逐字段比对：分区定义允许比 schema 少（少的部分并入第一个分区），
-   * 但不允许有分区整段渲染不出内容 —— 那说明定义过期了（旧版 字段改名/删除而表没跟上）。
+   * 但不允许有分区整段渲染不出内容 —— 那说明定义过期了。
    */
   it.each(['role', 'monster', 'job', 'skill', 'talent', 'equip', 'item'])(
     '%s：每个分区都至少渲染出一个字段（分区定义未过期）',
@@ -88,7 +88,7 @@ describe('字段顺序', () => {
     expect(base.fields.map((f) => f.name)).toEqual(['id', 'name', 'job', 'race', 'faction', 'category'])
   })
 
-  it('分区定义里 schema 不存在的字段名被跳过（旧版 同款 continue）', () => {
+  it('分区定义里 schema 不存在的字段名被跳过', () => {
     const sparse = [field('id'), field('name')]
     const layout = buildFormLayout('role', sparse)
     expect(layout.sections).toHaveLength(1)

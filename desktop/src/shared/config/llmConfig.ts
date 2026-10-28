@@ -71,8 +71,8 @@ export * from './llmConfigData'
  * ## 与 旧版 的差异
  * 旧版 的 `MODEL_PRESETS`（`api_config:35`）硬编码 6 家服务商的模型清单与 base_url。
  * 这里照抄那份清单（它是**真实可用的默认值**，不是臆测），但：
- * - 选中的 model 允许为空 ⇒ 交给 `llm/client.ts` 运行时探测（旧版 也允许手填）。
- * - base_url 允许为空 ⇒ 回落该服务商的预设地址（旧版 是选服务商就自动填）。
+ * - 选中的 model 允许为空 ⇒ 交给 `llm/client.ts` 运行时探测。
+ * - base_url 允许为空 ⇒ 回落该服务商的预设地址。
  */
 
 export function isLlmProvider(value: unknown): value is LlmProvider {
@@ -248,7 +248,7 @@ export function isCloudProvider(config: StoredLlmConfig): boolean {
   return !config.confidential && config.provider !== 'ollama'
 }
 
-/** 生效的接口地址：用户填了用用户的，否则用服务商预设（对齐 旧版 选服务商即自动填） */
+/** 生效的接口地址：用户填了用用户的，否则用服务商预设 */
 export function resolveLlmBaseUrl(config: StoredLlmConfig): string {
   const trimmed = config.baseUrl.trim()
   const provider = effectiveProvider(config)

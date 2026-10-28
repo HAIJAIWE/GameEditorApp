@@ -2,7 +2,7 @@ import type { SystemConfigFieldDef } from './ceshuConstants'
 import * as OPT from './ceshuOptionLabels'
 
 /**
- * 13 个游戏系统的标准 config 字段定义（自 旧版 ceshu_constants SYSTEM_CONFIG_SCHEMA 匹平迁移）。
+ * 13 个游戏系统的标准 config 字段定义。
  * 字段类型映射：entry→text / textarea→textarea / combobox→combo / spinbox→number(from,to) / checkbox→checkbox
  */
 

@@ -2,7 +2,7 @@ import { CHAPTER_KEYS, type CeshuChapters } from '../../ceshuConstants'
 import type { DataTypeDef, ItemRecord } from '../../types'
 
 /**
- * 数据引用引擎（对齐 旧版 `src/common/data_ref`）。
+ * 数据引用引擎。
  *
  * 引用语法：`@data[type_key.field]` 或 `@data[type_key.item_id.field]`
  * 例：`角色基础攻击力为 @data[role.atk]`，`@data[skill.fireball.damage]`
@@ -25,13 +25,13 @@ import type { DataTypeDef, ItemRecord } from '../../types'
  * - 条目业务字段在 **`item.data`** 下（不是顶层）
  */
 
-/** 一个数据引用的完整信息（对齐 旧版 `DataRef` NamedTuple） */
+/** 一个数据引用的完整信息 */
 export interface DataRef {
   /** 原始文本，如 `@data[role.atk]` */
   raw: string
   /** 数据类型键（单数 `id`，如 `role`） */
   typeKey: string
-  /** 条目 id；`''` 表示「取该类型第一条」（对齐 旧版） */
+  /** 条目 id；`''` 表示「取该类型第一条」 */
   itemId: string
   /** 字段名，如 `atk` */
   field: string
@@ -40,9 +40,9 @@ export interface DataRef {
 }
 
 /**
- * 引用正则（逐字对齐 旧版 `REF_PATTERN`）：
+ * 引用正则：
  * `@data[` + 标识符 + **至少一个** `.标识符` + `]`。
- * 注意末尾的 `+` —— 意味着 `@data[role]`（单段）**不匹配**（旧版 同）。
+ * 注意末尾的 `+` —— 意味着 `@data[role]`（单段）**不匹配**。
  */
 const REF_PATTERN = /@data\[([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)+)\]/g
 
@@ -50,7 +50,7 @@ const REF_PATTERN = /@data\[([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)+
  * 从一段文本里解析所有数据引用（对齐 `parse_data_refs`）。
  *
  * 只支持 2 段（`type.field`）与 3 段（`type.item.field`）；
- * 4 段及以上**跳过**（对齐 旧版 `else: continue`）。
+ * 4 段及以上**跳过**。
  */
 export function parseDataRefs(text: string): DataRef[] {
   const refs: DataRef[] = []
@@ -67,14 +67,14 @@ export function parseDataRefs(text: string): DataRef[] {
       const [typeKey, itemId, field] = parts as [string, string, string]
       refs.push({ raw: match[0], typeKey, itemId, field, fullPath })
     }
-    // 4 段及以上：跳过（对齐 旧版）
+    // 4 段及以上：跳过
     match = re.exec(text)
   }
   return refs
 }
 
 /**
- * 类型键归一：单数 id 优先，其次复数 pluralKey（修正 旧版 的单复数不匹配）。
+ * 类型键归一：单数 id 优先，其次复数 pluralKey。
  *
  * ## 为什么对 `id` / `pluralKey` 都做空值保护
  * `DataTypeDef` 声明上两者都是必填，但**运行时数据不一定完整**：
@@ -115,7 +115,7 @@ export function resolveRefValue(
   const rows = rowsByType !== undefined ? (rowsByType.get(target) ?? []) : items.filter((item) => item.type === target)
   if (rows.length === 0) return null
 
-  // itemId 为空 ⇒ 取第一条（对齐 旧版 `items[0]`）
+  // itemId 为空 ⇒ 取第一条
   const row = ref.itemId === '' ? rows[0] : rows.find((r) => r.id === ref.itemId)
   if (row === undefined) return null
 
@@ -127,19 +127,19 @@ export function resolveRefValue(
 
 /** 一条引用 + 其解析结果（用于概览展示） */
 export interface ResolvedRef extends DataRef {
-  /** 解析到的值；`null` = 未找到（对齐 旧版 的 `Optional[Any]`） */
+  /** 解析到的值；`null` = 未找到 */
   value: unknown
   /** 该值是否存在（区分「值为 null/空」与「没找到」） */
   found: boolean
 }
 
-/** 未找到时展示的占位（对齐 旧版 `✗ ... (未找到)`） */
+/** 未找到时展示的占位 */
 export const REF_NOT_FOUND_TEXT = '未找到'
 
-/** 值的展示上限（对齐 旧版 `str(value)[:60]`） */
+/** 值的展示上限 */
 const VALUE_DISPLAY_MAX = 60
 
-/** 把任意值转成展示文本（对齐 旧版 `str(value)[:60]`，null ⇒ ''） */
+/** 把任意值转成展示文本 */
 export function formatRefValue(value: unknown): string {
   if (value === null || value === undefined) return ''
   const text = typeof value === 'string' ? value : String(value)
@@ -150,7 +150,7 @@ export function formatRefValue(value: unknown): string {
  * 从整本策划书里提取所有引用（对齐 `extract_all_refs`）。
  *
  * 遍历 `CHAPTER_KEYS` 每章的字段值：字符串直接解析、嵌套字典**只下探一层**、
- * 列表**只取字符串元素**（逐条对齐 旧版 的三层 else-if，不递归）。
+ * 列表**只取字符串元素**。
  * 按 `fullPath` **去重**（保持首次出现顺序）。
  */
 export function extractAllRefs(chapters: CeshuChapters | null): DataRef[] {
@@ -186,7 +186,7 @@ export function extractAllRefs(chapters: CeshuChapters | null): DataRef[] {
   return all
 }
 
-/** 按 typeKey 分组的引用（对齐 旧版 的 `defaultdict` 分组，P7 便于阅读） */
+/** 按 typeKey 分组的引用 */
 export interface RefGroup {
   typeKey: string
   refs: ResolvedRef[]
@@ -196,7 +196,7 @@ export interface RefOverview {
   groups: RefGroup[]
   /** 引用总数 */
   total: number
-  /** 能解析出值 的个数（对齐 旧版 `has_value`） */
+  /** 能解析出值 的个数 */
   resolved: number
 }
 

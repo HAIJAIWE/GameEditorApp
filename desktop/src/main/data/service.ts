@@ -142,9 +142,9 @@ export class DataService implements UndoRecorderPort {
   }
 
   /**
-   * 批量字段操作（匹平 旧版 BatchEditDialog._on_apply）：整批走一次写队列任务。
+   * 批量字段操作：整批走一次写队列任务。
    * 逐条读取最新数据 → 用共享纯函数计算新值 → 写回；
-   * - adjust_number 遇非数值：skipped 计数（与 旧版 continue 一致，不阻断整批）
+   * - adjust_number 遇非数值：skipped 计数
    * - id 不存在或类型不符：missing 计数
    */
   batchUpdate(input: BatchUpdateInput): Promise<BatchUpdateSummary> {
@@ -203,7 +203,7 @@ export class DataService implements UndoRecorderPort {
     })
   }
 
-  /** 批量删除：整批走一次写队列任务（与 旧版 delete_selected 一致，无级联） */
+  /** 批量删除：整批走一次写队列任务 */
   deleteMany(ids: string[]): Promise<DeleteManySummary> {
     return this.enqueueWrite(() => {
       const summary: DeleteManySummary = { deleted: 0, missing: 0 }
@@ -242,11 +242,11 @@ export class DataService implements UndoRecorderPort {
   }
 
   /**
-   * 清空所有数据（对齐 旧版 `data_manager.clear_all`，菜单入口 `编辑 → 清空所有数据`）。
+   * 清空所有数据。
    *
    * 实现要点：**刻意走 `listAllItems()` + `deleteMany(ids)` 的统一路径**，
    * 而不是直接 `DELETE FROM items` —— 后者绕过撤销记录器，用户按下「撤销 (Ctrl+Z)」
-   * 却发现数据回不来（旧版 侧的 `clear_all` 也是走 manager 的统一删除路径，故同样可撤销）。
+   * 却发现数据回不来。
    *
    * 规模：`deleteMany` 逐条删（本仓数据量级下 O(N) 可接受），且整批只落**一条**
    * `deleteMany` 撤销条目（children 逐条），撤销栈不会被清空操作刷爆。
@@ -258,7 +258,7 @@ export class DataService implements UndoRecorderPort {
   }
 
   /**
-   * 批量导入（旧版 JSON/CSV/Excel 共用）：整批走一次写队列，保持「唯一写者」语义。
+   * 批量导入：整批走一次写队列，保持「唯一写者」语义。
    *
    * 两条 id（2026-10-13 解耦后）：
    * - 记录 id（uuid）= 内部键；导入侧提供的 `record.id`（文件 id 列）只在**新建**时用作键；

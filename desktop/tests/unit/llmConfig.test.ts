@@ -93,7 +93,7 @@ describe('LLM_PROVIDER_PRESETS：baseUrl 对齐 旧版 api_config:35-100，模�
     expect(LLM_PROVIDER_PRESETS.qwen.models[0]).toContain('max')
   })
 
-  it('只有 Ollama 不需要 API Key（对齐 旧版 test_connection 的判断）', () => {
+  it('只有 Ollama 不需要 API Key', () => {
     expect(LLM_PROVIDER_PRESETS.ollama.requiresApiKey).toBe(false)
     for (const p of LLM_PROVIDER_ORDER.filter((x) => x !== 'ollama')) {
       expect(LLM_PROVIDER_PRESETS[p].requiresApiKey).toBe(true)

@@ -8,7 +8,7 @@ import {
 } from '../../src/shared/util/fieldId'
 import { GAME_TERMS } from '../../src/shared/glossaryTerms'
 
-describe('fieldId：术语表保真（由脚本从 旧版 AST 提取）', () => {
+describe('fieldId：术语表保真', () => {
   it('条数与 旧版 一致（143 条）', () => {
     expect(Object.keys(GAME_TERMS)).toHaveLength(143)
   })
@@ -47,7 +47,7 @@ describe('fieldId：与 旧版 实测输出逐条对照（回归锁）', () => {
     expect(suggestFieldIds('速度上限').suggestions[0]?.id).toBe('speed_max') // same
   })
 
-  it('缺陷 1：ASCII 不再被逐字打碎（旧版 每字母单独成 token，最后用 _ 拼）', () => {
+  it('缺陷 1：ASCII 不再被逐字打碎', () => {
     // 旧版 实测：'HP上限' → 'h_p_max'、'HP' → 'h_p'、即便本是合法 ID 的 'hp_max' → 'h_p_m_a_x'
     expect(suggestFieldIds('HP上限').suggestions[0]?.id).toBe('hp_max')
     expect(suggestFieldIds('HP').suggestions[0]?.id).toBe('hp')
@@ -57,7 +57,7 @@ describe('fieldId：与 旧版 实测输出逐条对照（回归锁）', () => {
   })
 
   it('缺陷 2：未收录中文不再交给词典产出垃圾，而是如实报告', () => {
-    // 旧版 实测：'斗能' → 'abbr_surname'（正是 旧版 文档自己举的示例词！）
+    // 旧版 实测：'斗能' → 'abbr_surname'
     const douNeng = suggestFieldIds('斗能')
     expect(douNeng.suggestions).toEqual([])
     expect(douNeng.error).toContain('斗能')

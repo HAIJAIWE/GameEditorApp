@@ -58,7 +58,7 @@ describe('keywordTemplates：类型选项对齐 advanced:235', () => {
 })
 
 describe('keywordTemplates：默认模板对齐 settings:311-523', () => {
-  it('默认表有 10 类（比面板可编辑的 5 类多，旧版 里另5 类是死数据）', () => {
+  it('默认表有 10 类', () => {
     expect(Object.keys(DEFAULT_KEYWORD_TEMPLATES).sort()).toEqual([
       'achievement',
       'dialog',
@@ -243,7 +243,7 @@ describe('cleanupImages：路径解析与比较键', () => {
     expect(resolveImagePath('/lib//images///a.png', '')).toBe('/lib/images/a.png')
   })
 
-  it('比较键大小写不敏感（复刻 旧版 WindowsPath 语义）', () => {
+  it('比较键大小写不敏感', () => {
     expect(imagePathKey('C:/Lib/A.PNG')).toBe(imagePathKey('c:/lib/a.png'))
   })
 
@@ -291,7 +291,7 @@ describe('cleanupImages：collectReferencedImagePaths', () => {
     expect(collectReferencedImagePaths(dup, '/lib')).toHaveLength(1)
   })
 
-  it('额外字段（如 desc）里的图片路径不算引用（口径与 旧版 一致）', () => {
+  it('额外字段（如 desc）里的图片路径不算引用', () => {
     expect(collectReferencedImagePaths([item('skill', 'a', { desc: 'images/x.png' })], '/lib')).toEqual([])
   })
 

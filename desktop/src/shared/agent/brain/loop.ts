@@ -191,7 +191,7 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
       }
     }
 
-    // 多问题形态（对齐 旧版 `questions` 数组）：按下标取 answers，缺一不可
+    // 多问题形态：按下标取 answers，缺一不可
     if (interaction.questions !== undefined && interaction.questions.length > 0) {
       const questions = interaction.questions
       const raw = Array.isArray(answer.answers) ? answer.answers : []

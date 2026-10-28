@@ -13,7 +13,7 @@ import {
 import { toErrorMessage } from '../../../shared/util/errors'
 
 /**
- * 版本时间线面板（对应 旧版 VersionTimelineDialog）：
+ * 版本时间线面板：
  * - 读取同版本链下的所有版本（ceshu:versions，主策划在首位）
  * - 横向时间线：主轴虚线 + 节点（版本号/时间/名称）+ 父→子箭头；绿色=激活、蓝色=主策划、灰蓝=子版本
  * - 点击节点 → 底部展示版本说明与完成进度；「切换到此版本」切换到选中版本
@@ -28,7 +28,7 @@ interface VersionTimelinePanelProps {
   onClose: () => void
 }
 
-/** 箭头头部三角形（与 旧版 _make_arrow 的 head_size=8 一致） */
+/** 箭头头部三角形 */
 function arrowHead(toX: number, toY: number): string {
   const size = 8
   return `${toX},${toY} ${toX - size},${toY - size / 2} ${toX - size},${toY + size / 2}`

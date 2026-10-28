@@ -1,10 +1,10 @@
 /**
  * 数据编辑器里 AI 辅助按钮的**提示词组装**与**纯模板逻辑**。
  *
- * 对齐 Python 真源：
- * - `features/_ai_image.py::generate_desc_only`（desc 类字段的「AI生成」）
- * - `ui/widgets/dynamic_form.py::_on_auto_generate_image_info`（图片字段的「自动生成」）
- * - `ui/widgets/dynamic_form.py::_on_ai_analyze_image`（图片标签的「AI分析」）
+ * 对齐 旧版 真源：
+ * - `features/_ai_image::generate_desc_only`（desc 类字段的「AI生成」）
+ * - `ui/widgets/dynamic_form::_on_auto_generate_image_info`（图片字段的「自动生成」）
+ * - `ui/widgets/dynamic_form::_on_ai_analyze_image`（图片标签的「AI分析」）
  *
  * 全部为纯函数，不碰 Electron / 网络 —— 可直接 vitest，也可被主进程 IPC 与渲染层共用。
  */
@@ -13,10 +13,10 @@
    一、desc 类字段的「AI生成」
    ============================================================ */
 
-/** 不参与上下文的字段（对齐 PyQt `generate_desc_only` 的排除清单） */
+/** 不参与上下文的字段 */
 export const DESC_CONTEXT_EXCLUDED_FIELDS: readonly string[] = ['desc', 'description', 'image', 'id']
 
-/** 单个上下文字段值的最大长度（防止长文本把 prompt 撑爆；对齐 PyQt 无上限，此处为 TS 侧自加的保护） */
+/** 单个上下文字段值的最大长度 */
 const CONTEXT_VALUE_MAX = 200
 
 /** 单条上下文行的最大长度 */
@@ -28,7 +28,7 @@ const CONTEXT_FIELD_LIMIT = 20
 /**
  * 组装上下文块。
  *
- * 对齐 PyQt `generate_desc_only`：
+ * 对齐 旧版 `generate_desc_only`：
  * ```
  * context_parts = [f"数据类型：{data_type}"]
  * for key, value in form_data.items():
@@ -37,12 +37,12 @@ const CONTEXT_FIELD_LIMIT = 20
  * context = "\n".join(context_parts)
  * ```
  *
- * 与 PyQt 的两处**有意差异**（都写明理由）：
+ * 与 旧版 的两处**有意差异**（都写明理由）：
  * 1. **跳过数组/对象值**：`form_data` 里可能有 `tags` 数组、`multiselect` 引用列表。
- *    PyQt 的 `f"{value}"` 会把它们直接塞成 `['a', 'b']`，模型读到的是 Python 字面量。
+ *    旧版 的 `f"{value}"` 会把它们直接塞成 `['a', 'b']`，模型读到的是 旧版 字面量。
  *    TS 侧改为跳过并在末尾给一行「（另有 N 个列表字段未纳入上下文）」，
  *    **不猜怎么把引用列表描述成句子** —— 那是编造。
- * 2. **值截断 + 字段数上限**：PyQt 无上限，一个 3000 字的 desc 字段能让 prompt 爆炸。
+ * 2. **值截断 + 字段数上限**：旧版 无上限，一个 3000 字的 desc 字段能让 prompt 爆炸。
  */
 export function buildDescContext(dataType: string, formData: Record<string, unknown>): string {
   const parts: string[] = [`数据类型：${dataType}`]
@@ -69,8 +69,8 @@ export function buildDescContext(dataType: string, formData: Record<string, unkn
 }
 
 /**
- * desc 生成提示词 —— **逐字对齐** Python `features/_ai_image.py:296-323`
- * 的 `prompt = f"""..."""`。改动前请先核 Python 真源。
+ * desc 生成提示词 —— **逐字对齐** 旧版 `features/_ai_image:296-323`
+ * 的 `prompt = f"""..."""`。改动前请先核 旧版 真源。
  */
 export function buildDescPrompt(dataType: string, context: string): string {
   return `【角色】
@@ -100,19 +100,19 @@ ${context}
    二、图片字段的「自动生成」（**纯字符串模板，不调 AI**）
    ============================================================ */
 
-/** 自动生成的图片标签上限（对齐 PyQt `_on_ai_analyze_image` 的 `result.strip()[:200]`） */
+/** 自动生成的图片标签上限 */
 export const IMAGE_TAGS_MAX = 200
 
 /**
  * 「自动生成」填入 `image_desc` / `image_tags` 的文本。
  *
- * 对齐 Python `dynamic_form.py::_on_auto_generate_image_info`：
- * ```python
+ * 对齐 旧版 `dynamic_form::_on_auto_generate_image_info`：
+ * ```
  * name = data.get('name', '')
  * info = {'desc': f'{name}的图片描述', 'tags': f'{name},图片,游戏'}
  * ```
  *
- * **注意这是一个纯字符串模板，不调用任何 AI**（PyQt 按钮名叫「自动生成」但没接 AI，
+ * **注意这是一个纯字符串模板，不调用任何 AI**（旧版 按钮名叫「自动生成」但没接 AI，
  * 容易被误读）。TS 侧保持同样语义，但按钮文案明确叫「自动填充」以免误导 ——
  * 判定在 `autoFillLabel()`。
  *
@@ -128,7 +128,7 @@ export function autoFillLabel(): string {
   return '自动填充'
 }
 
-/** 「AI分析」提示词 —— 对齐 Python `dynamic_form.py::_on_ai_analyze_image` 的 prompt */
+/** 「AI分析」提示词 —— 对齐 旧版 `dynamic_form::_on_ai_analyze_image` 的 prompt */
 export function buildImageTagsPrompt(imagePath: string): string {
   return `请描述这张图片的内容，提取主要视觉元素作为标签: ${imagePath}`
 }
@@ -136,8 +136,8 @@ export function buildImageTagsPrompt(imagePath: string): string {
 /**
  * 把 AI 返回的标签结果清洗成可写入 tags 字段的文本。
  *
- * 对齐 PyQt `_on_ai_analyze_image`：
- * ```python
+ * 对齐 旧版 `_on_ai_analyze_image`：
+ * ```
  * new_tags = result.strip()[:200]
  * widget.setText(f"{current}{', ' if current else ''}{new_tags}")
  * ```

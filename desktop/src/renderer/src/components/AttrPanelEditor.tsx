@@ -10,11 +10,11 @@ import {
 import AttrFormulaBuilder from './AttrFormulaBuilder'
 
 /**
- * 条目级属性面板编辑器（attrpanel 字段，对应 旧版 AttributePanelWidget）：
- * - 行=类别/属性名称/公式/计算结果；名称为本行列表内的变量，公式按行间依赖拓扑序求值（修正 旧版 行序缺陷）
- * - 工具条：载入模板（role 7 套 / monster 4 套，照抄 旧版，选择即整体替换）、快速添加（照抄预置类别/公式）、添加行
+ * 条目级属性面板编辑器：
+ * - 行=类别/属性名称/公式/计算结果；名称为本行列表内的变量，公式按行间依赖拓扑序求值
+ * - 工具条：载入模板、快速添加（照抄预置类别/公式）、添加行
  * - 错误（未定义名称/非法公式/除零/环依赖）行下红字提示；结果列只读、按 旧版 语义展示 1 位小数
- * - 系数公式编辑器：每行公式框旁的 ƒx 按钮内联展开（旧版 双击公式列弹 QDialog）
+ * - 系数公式编辑器：每行公式框旁的 ƒx 按钮内联展开
  * 明确推迟：多选批量删除（TS 用逐行 ✕）。
  */
 
@@ -51,7 +51,7 @@ export default function AttrPanelEditor({ fieldName, typeId, rows, onChange }: A
     if (template) onChange(template.map((row) => ({ ...row })))
   }
 
-  /** 快速添加：同名已存在时忽略（对应 旧版 _on_quick_add 的去重） */
+  /** 快速添加：同名已存在时忽略 */
   const quickAdd = (name: string): void => {
     const preset = ATTR_PANEL_QUICK_ADD.find((item) => item.name === name)
     if (!preset) return
@@ -194,7 +194,7 @@ export default function AttrPanelEditor({ fieldName, typeId, rows, onChange }: A
   )
 }
 
-/** 结果展示（对应 旧版：正常 → 1 位小数；错误 → 按 0 展示并由行下错误提示说明） */
+/** 结果展示 */
 function formatResult(value: number, error: string | null): string {
   if (error || !Number.isFinite(value)) return '0'
   return value.toFixed(1)

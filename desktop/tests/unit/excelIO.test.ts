@@ -392,3 +392,59 @@ describe('importExcelFile：工作表名映射与容错', () => {
     await expect(importExcelFile(join(dir, 'missing.xlsx'), target, TYPES)).rejects.toThrow(/读取 Excel 文件失败/)
   })
 })
+
+/**
+ * `id` 列位置与「没有 id 列」的告警。
+ *
+ * 真实链路里 `data.id` 是最后写进 data 的（createItem 先展开用户输入，再补短 id），
+ * 所以按 data 键序导出会把 id 甩到最右列；而它正是往返主键，删了导入就整表翻倍。
+ */
+describe('Excel：id 列位置与缺失告警', () => {
+  it('导出时 id 固定在首列（即使 data 里 id 是最后加进去的）', () => {
+    // 模拟 createItem 的键序：用户字段在前，id 最后补
+    const record: ItemRecord = {
+      id: 'rec-1',
+      type: 'role',
+      data: { name: '铁剑', value: 10, desc: '基础', id: '0' },
+      createdAt: '2020-01-01T00:00:00.000Z',
+      updatedAt: '2020-01-01T00:00:00.000Z'
+    }
+    const workbook = buildDataWorkbook([record], TYPES)
+    const sheet = workbook.getWorksheet('角色')!
+    const headers: string[] = []
+    sheet.getRow(1).eachCell((cell) => headers.push(String(cell.value ?? '')))
+    expect(headers[0]).toBe('id')
+  })
+
+  it('工作表没有 id 列时，汇总里报出该工作表（不阻断，但必须可见）', async () => {
+    const { dir } = makeEnv()
+    const workbook = new ExcelJS.Workbook()
+    const sheet = workbook.addWorksheet('角色')
+    sheet.addRow(['name', 'level'])
+    sheet.addRow(['无名英雄', 9])
+    const filePath = join(dir, 'no-id.xlsx')
+    await workbook.xlsx.writeFile(filePath)
+
+    const target = makeEmptyService()
+    const summary = await importExcelFile(filePath, target, TYPES)
+    expect(summary.missingIdSources).toEqual(['工作表「角色」'])
+  })
+
+  it('正常导出再导入：不报缺失 id，且原地更新不翻倍', async () => {
+    const { dir, service } = makeEnv()
+    await service.importRecords([
+      { type: 'role', id: 'r1', data: { id: 'r1', name: '战士', level: 3 } },
+      { type: 'role', id: 'r2', data: { id: 'r2', name: '法师', level: 5 } },
+      { type: 'skill', id: 's1', data: { id: 's1', name: '火球' } }
+    ])
+    const exported = await exportExcelFile(dir, service, TYPES)
+    const target = makeEmptyService()
+    await importExcelFile(exported.filePath, target, TYPES)
+    const again = await importExcelFile(exported.filePath, target, TYPES)
+
+    expect(again.missingIdSources).toEqual([])
+    expect(again.imported).toBe(0)
+    expect(again.updated).toBe(3)
+    expect(target.listAllItems()).toHaveLength(3)
+  })
+})

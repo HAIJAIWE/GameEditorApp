@@ -3,12 +3,12 @@ import { pinyin } from 'pinyin-pro'
 import { uniquifyFieldId, type SuggestFieldIdResult } from './fieldId'
 
 /**
- * 中文 → 拼音字段 ID（对齐 旧版 `ui/dialogs/type_editor_field_widget::_chinese_to_pinyin`）。
+ * 中文 → 拼音字段 ID。
  *
  * ## 为什么单独一个模块
  * 字段 ID 生成在 旧版 里有**两条独立的路子**，各有自己的按钮：
  * - **英译**（`_auto_translate` → `_translate_game_terms`）：走术语表，`攻击力 → atk`。
- *   TS 侧已由 `shared/fieldId.ts::suggestFieldIds` 承接（且修掉了 旧版 把 ASCII 逐字打碎的缺陷）。
+ *   TS 侧已由 `shared/fieldId.ts::suggestFieldIds` 承接。
  * - **拼音**（`_auto_pinyin` → `_chinese_to_pinyin`）：走 `pypinyin`，`攻击力 → gong_ji_li`，
  *   **支持任意汉字**（不必在术语表里）。本模块就是补这一条。
  * 两条路都只做「给候选」，不自动覆盖用户已填内容（TS 沿用 `fieldId.ts` 的「只提案不写入」约定）。
@@ -21,7 +21,7 @@ import { uniquifyFieldId, type SuggestFieldIdResult } from './fieldId'
  * | 输入 | 本模块输出 | 说明 |
  * |---|---|---|
  * | `攻击力` | `gong_ji_li` | 逐字取拼音，`_` 连接 |
- * | `斗能` | `dou_neng` | **术语表未收录也能转**（旧版 这里会落 CEDICT 产出 `abbr_surname` 垃圾） |
+ * | `斗能` | `dou_neng` | **术语表未收录也能转** |
  * | `hp_max` | `hp_max` | 本就合法的 ID 原样通过（不逐字打碎） |
  * | `HP上限` | `hp_shang_xian` | 与 旧版 `lazy_pinyin` 同（ASCII 段 + 拼音段） |
  * | `生命值%` | `sheng_ming_zhi` | `%` 被清洗掉 |

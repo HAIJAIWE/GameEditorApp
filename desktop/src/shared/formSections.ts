@@ -9,7 +9,7 @@ import type { FieldType, TypeFieldDef, TypeSectionDef } from './types'
  * 2026-10-19 用户对照分区版截图再次要求恢复，故本模块重写回来。
  *
  * ## 与已删除版本的有意差异（**不是漏迁，是刻意不收**）
- * - **不收双列网格**（旧版 `layout: 'grid'`）：numeric 分区排两列、标签带
+ * - **不收双列网格**：numeric 分区排两列、标签带
  *   `❤️ HP` / `⏱️ CD` 这类 emoji 前缀。用户给的目标截图里是单列 + 原始标签，
  *   且 10-13 拉平时的理由（「一列看全、不用展开分区」）仍然成立 ⇒ 不恢复。
  * - **不收「更新版 旧版」那套 `editor_layouts.json` 配置**（`dbfe391` 已实证它是
@@ -36,7 +36,7 @@ export interface FormSectionDef {
 }
 
 /**
- * 内置 7 类型的分区定义（照抄 旧版 `FIELD_GROUPS` 的**分组**，去掉 grid 版式）。
+ * 内置 7 类型的分区定义。
  * 折叠默认值：仅第一个分区展开，其余折叠 —— 与用户给的目标截图一致。
  */
 export const FORM_GROUPS: Readonly<Record<string, readonly FormSectionDef[]>> = {
@@ -134,7 +134,7 @@ export const FORM_GROUPS: Readonly<Record<string, readonly FormSectionDef[]>> = 
   ]
 }
 
-/** 复杂字段类型：编辑器自带工具条/表头，值得单独成区（对应旧版 `_COMPLEX_TYPES`） */
+/** 复杂字段类型：编辑器自带工具条/表头，值得单独成区 */
 export const COMPLEX_FIELD_TYPES: ReadonlySet<FieldType> = new Set<FieldType>([
   'multiselect',
   'droptable',
@@ -255,7 +255,7 @@ export function buildFormLayout(
   const leftovers = fields.filter((field) => !built.grouped.has(field.name))
 
   /*
-   * 未归组字段并入第一个分区（旧版 原版渲染在分区外，观感割裂）。
+   * 未归组字段并入第一个分区。
    * 追加顺序 = schema 顺序（`leftovers` 本身就是按 fields 顺序过滤出来的）。
    * 若一个分区都没产出（极端情况：类型只定义了不存在的字段名），补一个基础信息分区。
    */

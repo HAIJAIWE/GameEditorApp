@@ -7,7 +7,7 @@ function record(id: string, data: Record<string, unknown>): ItemRecord {
   return { id, type: 'role', data: { id, ...data }, createdAt: '', updatedAt: '' }
 }
 
-describe('列表搜索过滤（匹平 旧版 ListModel.set_filter）', () => {
+describe('列表搜索过滤', () => {
   const items = [
     record('R1', { name: '艾尔文', desc: '圣骑士团长' }),
     record('R2', { name: '希尔瓦', desc: 'dark ranger' }),
@@ -33,7 +33,7 @@ describe('列表搜索过滤（匹平 旧版 ListModel.set_filter）', () => {
   })
 })
 
-describe('批量操作纯函数（匹平 旧版 BatchEditDialog._on_apply）', () => {
+describe('批量操作纯函数', () => {
   const base = { id: 'X1', name: '旧名', value: 100, tags: 'a' }
 
   it('设置字段值：可为空串；不修改入参', () => {
@@ -82,7 +82,7 @@ describe('批量操作纯函数（匹平 旧版 BatchEditDialog._on_apply）', (
     expect(applyBatchOp({ v: true }, { kind: 'adjust_number', field: 'v', mode: 'add', adjust: 1 })).toBeNull()
   })
 })
-describe('条目重命名（匹平 旧版 data_tab._on_rename_item）', () => {
+describe('条目重命名', () => {
   it('新名称去首尾空白后写入 name，其余字段原样保留、不修改入参', () => {
     const source = { id: 'R1', name: '旧名', desc: '描述' }
     const next = withRenamedName(source, '  新名  ')
@@ -92,7 +92,7 @@ describe('条目重命名（匹平 旧版 data_tab._on_rename_item）', () => {
     expect(next).not.toBe(source)
   })
 
-  it('空白/仅空格名称视为取消（旧版 `if ok and new_name.strip()`）→ null', () => {
+  it('空白/仅空格名称视为取消→ null', () => {
     expect(withRenamedName({ name: '旧名' }, '')).toBeNull()
     expect(withRenamedName({ name: '旧名' }, '   ')).toBeNull()
     expect(withRenamedName({ name: '旧名' }, '\t\n')).toBeNull()

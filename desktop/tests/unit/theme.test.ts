@@ -21,7 +21,7 @@ function memStorage(initial: Record<string, string> = {}): StorageLike & { data:
 }
 
 describe('theme：读取与校验', () => {
-  it('storage=null → 回落默认主题（浅色，对齐 旧版「默认」）', () => {
+  it('storage=null → 回落默认主题', () => {
     expect(loadTheme(null)).toBe(DEFAULT_THEME)
     expect(DEFAULT_THEME).toBe('light')
   })

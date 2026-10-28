@@ -39,7 +39,7 @@ function toRow(key: string, entry: SystemEntry): RowView {
 }
 
 /**
- * 系统确认面板（对齐 旧版 SystemConfirmDialog）：
+ * 系统确认面板：
  * 展示策划书所有游戏系统，可勾选启用、展开查看字段架构预览、增删自定义系统；
  * 确认后写回 systems 章并自动触发数据同步（注册启用系统的数据结构）。
  */

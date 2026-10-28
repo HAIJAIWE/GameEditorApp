@@ -6,6 +6,7 @@ import { FIELD_ACTION_LABELS, type FieldAction } from '../../../shared/ceshuFiel
 import { isPlainObject } from '../../../shared/ceshuModel'
 import { CESHU_CHAPTER_FIELDS, resolveFieldMeta } from '../../../shared/ceshuFields'
 import { isMachineDataField } from '../../../shared/ceshuStages'
+import { HANDOFF_DOCS } from '../../../shared/ceshuHandoff'
 import type { ChapterFieldStatus, FieldReviewStatus } from '../../../shared/ceshuFieldStatus'
 import { countFieldStatuses, formatFieldStatusSummary } from '../../../shared/ceshuFieldStatusStats'
 import {
@@ -54,13 +55,25 @@ interface ChapterFormProps {
   /** AI 生成单个字段（E62）；由上层走 IPC 调本地模型，返回清洗后的字段供回填。
    *  `action` 为局部重生成动作（停靠栏快捷操作发起），见 `ceshuFieldAction.ts` */
   onAiGenerateField: (chapter: ChapterKey, field: string, action?: FieldAction) => Promise<CeshuAiGenerateResult>
+  /**
+   * 外部要求聚焦的字段 key（校验 / 完备度面板的「跳到字段」）：
+   * 挂载或变化时滚到该字段块并短暂高亮，然后由 `onFocusConsumed` 让宿主清掉目标。
+   */
+  focusField?: string
+  /** 聚焦已消费（宿主据此清空目标，否则同字段第二次点击不会再触发） */
+  onFocusConsumed?: () => void
+  /**
+   * 查看字段影响面（「改这里会影响什么」）。面板在宿主渲染——本组件拿不到整份文档，
+   * 只负责发信号；缺省则不显示「影响面」按钮（纯表单模式）。
+   */
+  onShowImpact?: (chapter: ChapterKey, field: string) => void
 }
 
 /**
  * 章节表单：由 CESHU_CHAPTER_FIELDS 驱动渲染；保存时在原始章节数据上合并字段值，
  * 未在 schema 中出现的扩展/未知字段原样保留（与旧数据兼容）。
  */
-/** 单字段 AI 生成的 60 秒安全兜底（对齐 旧版 QTimer.singleShot）：IPC 挂住时强制解除 busy，避免按钮永久禁用 */
+/** 单字段 AI 生成的 60 秒安全兜底：IPC 挂住时强制解除 busy，避免按钮永久禁用 */
 const AI_FIELD_SAFETY_MS = 60_000
 
 export default function ChapterForm({
@@ -72,11 +85,28 @@ export default function ChapterForm({
   onAiGenerate,
   onAiGenerateField,
   fieldStatus,
-  onFieldStatus
+  onFieldStatus,
+  focusField,
+  onFocusConsumed,
+  onShowImpact
 }: ChapterFormProps) {
   /** 本章字段定义（useMemo：`CESHU_CHAPTER_FIELDS[chapter]` 每次渲染都是新数组，
    *  不进 memo 会让下游 useCallback 的依赖每渲染都变，告警 + 回调失效） */
   const fields = useMemo(() => CESHU_CHAPTER_FIELDS[chapter] ?? [], [chapter])
+  /**
+   * 只有**被交接文档引用**的字段才显示「影响面」按钮。
+   * 没被引用的字段点开只会看到「没有交接文档直接引用」——那是噪音，不如不显示。
+   * 集合按章算一次（不是每个字段扫一遍 HANDOFF_DOCS）。
+   */
+  const impactableFields = useMemo(() => {
+    const keys = new Set<string>()
+    for (const def of HANDOFF_DOCS) {
+      for (const item of def.fields) {
+        if (item.chapter === chapter) keys.add(item.field)
+      }
+    }
+    return keys
+  }, [chapter])
   /**
    * 字段分两段渲染（2026-10-26，反向验证后）：
    * 「验收 / 机读数据」类字段（对账账本、数值断言、证据核对、用例清单…）存在价值是
@@ -93,6 +123,23 @@ export default function ChapterForm({
     }
     return { bodyFields: body, machineFields: machine }
   }, [fields, chapter])
+  /**
+   * 字段搜索（长章必备：combat 32 个字段，靠滚动找「伤害公式」要翻很久）。
+   * 只影响**渲染**，不影响保存——`collectChapterData` 始终遍历完整 `fields`，
+   * 被过滤掉的字段值仍在 `inputs` 里，保存不会丢内容。
+   */
+  const [fieldQuery, setFieldQuery] = useState('')
+  /** 字段少时不出搜索框：8 个字段一眼看完，多个输入框只是噪音 */
+  const searchable = fields.length >= 10
+  const visibleFields = useMemo(() => {
+    const query = fieldQuery.trim().toLowerCase()
+    if (query === '') return { body: bodyFields, machine: machineFields, matched: fields.length }
+    const hit = (field: CeshuFieldDef): boolean =>
+      `${field.label} ${field.key} ${field.placeholder ?? ''}`.toLowerCase().includes(query)
+    const body = bodyFields.filter(hit)
+    const machine = machineFields.filter(hit)
+    return { body, machine, matched: body.length + machine.length }
+  }, [bodyFields, machineFields, fieldQuery, fields.length])
   /** 本章待审（AI 草稿）字段数：用于顶部审阅提示 */
   const pendingCount = fields.filter((field) => fieldStatus?.[field.key]?.status === 'ai_draft').length
   /** 顶部「本章字段状态」摘要（普通 const：本组件 hook 顺序敏感，纯计算不引入 useMemo） */
@@ -169,8 +216,12 @@ export default function ChapterForm({
     }
   }
 
-  /** 滚动到指定字段块并短暂高亮；连点先清旧定时器，卸载时由 effect 清理 */
-  const focusFieldBlock = (fieldKey: string): void => {
+  /**
+   * 滚动到指定字段块并短暂高亮；连点先清旧定时器，卸载时由 effect 清理。
+   * `useCallback([])`：只碰 ref 与 setState（都稳定），稳定引用才能让下面
+   * 「外部跳字段」的 effect 不因每次渲染新建函数而反复重跑。
+   */
+  const focusFieldBlock = useCallback((fieldKey: string): void => {
     const el = fieldBlockRefs.current[fieldKey]
     // jsdom 未实现 scrollIntoView：可选调用，测试环境不抛错
     el?.scrollIntoView?.({ block: 'center', behavior: 'smooth' })
@@ -181,13 +232,46 @@ export default function ChapterForm({
       flashTimerRef.current = null
       setFlashField(null)
     }, 1200)
-  }
+  }, [])
 
   /** 摘要点击：滚到首个待审字段并短暂高亮，省掉人工往下翻找 */
   const jumpToFirstPending = (): void => {
     if (firstPendingField === null) return
     focusFieldBlock(firstPendingField)
   }
+
+  /**
+   * 外部「跳到某字段」请求（校验面板 / 完备度面板）：滚过去 + 高亮，再让宿主清掉目标。
+   *
+   * 用 ref 记「已处理过的 key」而不是只靠依赖数组：宿主传的 `onFocusConsumed` 是每次渲染
+   * 新建的闭包，effect 会跟着重跑；没有这层去重，人正在打字时表单会被反复滚走。
+   * 宿主清空目标（`focusField` 变 undefined）时把 ref 也清掉，同一个字段才能再跳一次。
+   */
+  /*
+   * 跳转请求到达时先清空搜索。
+   *
+   * 为什么在**渲染期**调整而不是 effect 里：搜索过滤会把目标字段藏起来，不清空就滚不到
+   * （表现为「点了没反应」）。但 effect 里 setState 会多跑一轮提交，React 的
+   * `set-state-in-effect` 规则也会报错；「prop 变了就调整 state」是 React 官方认可的模式——
+   * 同一轮内立即重渲染，DOM 提交时字段已经回到列表里，effect 再去滚就是有效目标。
+   */
+  const [lastFocusRequest, setLastFocusRequest] = useState<string | undefined>(undefined)
+  if (focusField !== lastFocusRequest) {
+    setLastFocusRequest(focusField)
+    if (focusField !== undefined && fieldQuery !== '') setFieldQuery('')
+  }
+
+  const consumedFocusRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (focusField === undefined) {
+      consumedFocusRef.current = null
+      return
+    }
+    if (consumedFocusRef.current === focusField) return
+    consumedFocusRef.current = focusField
+    focusFieldBlock(focusField)
+    onFocusConsumed?.()
+  }, [focusField, onFocusConsumed, focusFieldBlock])
 
   /** 应用模板：按模式合并到当前草稿并回填表单（不落盘，仍需点「保存本章」） */
   const handleApplyTemplate = (template: ChapterTemplate, mode: TemplateApplyMode): void => {
@@ -264,7 +348,7 @@ export default function ChapterForm({
   /**
    * AI 生成单个字段（E62）：结果按字段 schema 转为编辑值填入该字段，由用户检查后手动保存。
    * `action` 为局部重生成动作（停靠栏快捷操作）：改写/展开/精简/通俗化，注入提示词让模型
-   * 按人的诉求重写，而不是重新起草。60 秒安全兜底（对齐 旧版 QTimer.singleShot）：
+   * 按人的诉求重写，而不是重新起草。60 秒安全兜底：
    * IPC 挂住时强制解除 busy，避免按钮永久禁用。
    */
   const handleAiFillField = useCallback(
@@ -353,6 +437,7 @@ export default function ChapterForm({
   const renderFieldBlock = (field: CeshuFieldDef) => {
     const meta = resolveFieldMeta(chapter, field)
     const status = fieldStatus?.[field.key]?.status
+    const showImpact = onShowImpact !== undefined && impactableFields.has(field.key)
     return (
       <div
         className={`field-block${flashField === field.key ? ' field-block-flash' : ''}`}
@@ -388,7 +473,7 @@ export default function ChapterForm({
           />
         </div>
         {/* 协作契约：必填 / 人定 / 人审要点 —— 只在有信息时出现，不打扰默认字段 */}
-        {(meta.required || !meta.aiDraftable || meta.reviewHint !== '' || status !== undefined) && (
+        {(meta.required || !meta.aiDraftable || meta.reviewHint !== '' || status !== undefined || showImpact) && (
           <div className="field-contract" data-testid="field-contract">
             {status === 'ai_draft' && <span className="field-badge ai-draft">AI 草稿</span>}
             {status === 'human_edited' && <span className="field-badge human-edited">人改</span>}
@@ -396,6 +481,17 @@ export default function ChapterForm({
             {meta.required && <span className="field-badge required">必填</span>}
             {!meta.aiDraftable && <span className="field-badge human">人定</span>}
             {meta.reviewHint !== '' && <span className="item-meta">{meta.reviewHint}</span>}
+            {showImpact && (
+              <button
+                type="button"
+                className="btn slim"
+                data-testid="field-impact"
+                title="改这个字段会影响哪些交接文档 / 断言 / 同源字段"
+                onClick={() => onShowImpact?.(chapter, field.key)}
+              >
+                影响面
+              </button>
+            )}
             {status === 'ai_draft' && onFieldStatus !== undefined && (
               <button
                 type="button"
@@ -488,6 +584,35 @@ export default function ChapterForm({
 
       {formNotice && <div className="notice-banner inline">{formNotice}</div>}
 
+      {/* 字段搜索：只对长章出现（见 `searchable`）；过滤只影响渲染，不影响保存 */}
+      {searchable && !pickerOpen && chapter !== 'systems' && (
+        <div className="field-search-row" data-testid="field-search-row">
+          <input
+            type="search"
+            className="field-search-input"
+            data-testid="field-search"
+            placeholder={`搜索字段（本章共 ${fields.length} 个）`}
+            value={fieldQuery}
+            onChange={(event) => setFieldQuery(event.target.value)}
+          />
+          {fieldQuery.trim() !== '' && (
+            <>
+              <span className="item-meta" data-testid="field-search-count">
+                匹配 {visibleFields.matched}/{fields.length}
+              </span>
+              <button
+                type="button"
+                className="btn slim"
+                data-testid="field-search-clear"
+                onClick={() => setFieldQuery('')}
+              >
+                清空
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
       {pickerOpen ? (
         <TemplatePickerPanel
           chapter={chapter}
@@ -498,10 +623,18 @@ export default function ChapterForm({
         />
       ) : chapter === 'systems' ? (
         <SystemsEditor systems={systemsDraft} onChange={setSystemsDraft} />
+      ) : visibleFields.matched === 0 ? (
+        /* 搜不到时给明确出口：不然看起来像「这一章没字段」 */
+        <div className="empty" data-testid="field-search-empty">
+          没有匹配「{fieldQuery.trim()}」的字段
+          <button type="button" className="btn slim" data-testid="field-search-empty-clear" onClick={() => setFieldQuery('')}>
+            清空搜索
+          </button>
+        </div>
       ) : (
         <>
-          {bodyFields.map(renderFieldBlock)}
-          {machineFields.length > 0 && (
+          {visibleFields.body.map(renderFieldBlock)}
+          {visibleFields.machine.length > 0 && (
             <div className="field-group-head" data-testid="machine-data-group">
               <div className="field-group-title">验收 / 机读数据</div>
               <div className="field-group-hint">
@@ -509,11 +642,11 @@ export default function ChapterForm({
               </div>
             </div>
           )}
-          {machineFields.map(renderFieldBlock)}
+          {visibleFields.machine.map(renderFieldBlock)}
         </>
       )}
 
-      {/* 第二章：竞品象限图（对应 旧版 ChapterPanel 在 vision 章附加 CompetitiveChart） */}
+      {/* 第二章：竞品象限图 */}
       {chapter === 'vision' && !pickerOpen && (
         <div className="competitive-chart-block">
           <span className="form-label">竞品象限图（横轴=创新度，纵轴=完成度）</span>

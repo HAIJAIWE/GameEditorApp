@@ -36,6 +36,13 @@ export interface RenderResult {
   text: () => string
   /** 模拟点击并等待 React 与异步副作用落定 */
   click: (element: HTMLElement) => Promise<void>
+  /**
+   * 换 props 重渲染（同一个 root，保留组件内部 state）。
+   *
+   * 用于「外部 props 变化 → 组件反应」这类契约：新建 root 会把组件重挂，
+   * 内部 state（搜索词、草稿）全丢，测出来的行为与真实使用不一致。
+   */
+  rerender: (element: ReactElement) => Promise<void>
   /** 等待挂载期 promise 链（如 `mbApi.ceshu.get`）落定 */
   flush: () => Promise<void>
   cleanup: () => Promise<void>
@@ -85,6 +92,12 @@ export async function renderDom(element: ReactElement): Promise<RenderResult> {
     click: async (target) => {
       await act(async () => {
         target.click()
+      })
+      await flush()
+    },
+    rerender: async (element) => {
+      await act(async () => {
+        root.render(element)
       })
       await flush()
     },
@@ -160,6 +173,9 @@ export function installMbApi(options: ApiStubOptions = {}): ApiStub {
     versions: recorder('ceshu.versions', () => []),
     changelog: recorder('ceshu.changelog', () => ({ entries: [] })),
     validate: recorder('ceshu.validate', () => []),
+    // 核对面板挂载即自动核对（从生成面板返回后无需再手点），默认给一个合法的空结果，
+    // 形状必须与 DataTableCheckResult 一致，否则组件会二次报错
+    checkDataTables: recorder('ceshu.checkDataTables', () => ({ requirements: [], issues: [], ok: true })),
     saveChapter: recorder('ceshu.saveChapter', () => doc),
     setActive: recorder('ceshu.setActive', () => doc),
     notes: {

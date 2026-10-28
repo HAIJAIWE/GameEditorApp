@@ -32,7 +32,7 @@ describe('formulaBuilder：常量表照抄保真', () => {
 })
 
 describe('formulaBuilder：系数格式化', () => {
-  it('整数不带小数点，小数按 1 位输出（对齐 旧版）', () => {
+  it('整数不带小数点，小数按 1 位输出', () => {
     expect(formatCoeff(10)).toBe('10')
     expect(formatCoeff(10.0)).toBe('10')
     expect(formatCoeff(0.5)).toBe('0.5')
@@ -41,7 +41,7 @@ describe('formulaBuilder：系数格式化', () => {
     expect(formatCoeff(2.5)).toBe('2.5')
   })
 
-  it('浮点残渣按 1 位小数规范化（旧版 输入源是 decimals=1 的 spinbox）', () => {
+  it('浮点残渣按 1 位小数规范化', () => {
     expect(formatCoeff(0.1 + 0.2)).toBe('0.3')
     expect(formatCoeff(0.30000000000000004)).toBe('0.3')
   })
@@ -53,7 +53,7 @@ describe('formulaBuilder：系数格式化', () => {
 })
 
 describe('formulaBuilder：系数 → 公式', () => {
-  it('跳过 0 系数，空则返回 =0（对齐 旧版）', () => {
+  it('跳过 0 系数，空则返回 =0', () => {
     expect(buildFormulaFromCoeffs([])).toBe('=0')
     expect(buildFormulaFromCoeffs([{ name: '力量', coeff: 0 }])).toBe('=0')
     expect(
@@ -85,7 +85,7 @@ describe('formulaBuilder：系数 → 公式', () => {
     ).toBe('=力量*2+敏捷*-0.5')
   })
 
-  it('回归锁（旧版 缺陷 2）：非默认属性的系数不会被丢弃', () => {
+  it('回归锁：非默认属性的系数不会被丢弃', () => {
     // 旧版 迭代的是类常量 BASE_ATTRS（恒为力量/智力/敏捷/体质），
     // 实测「幸运」系数设 7 后 get_formula() 仍返回 '=力量*2+敏捷*1'
     const formula = buildFormulaFromCoeffs([
@@ -142,7 +142,7 @@ describe('formulaBuilder：公式 → 系数（回填）', () => {
     })
   })
 
-  it('往返数值一致：重建后项顺序按属性列表归一（与 旧版 一致）', () => {
+  it('往返数值一致：重建后项顺序按属性列表归一', () => {
     const text = '=力量*10+体质*20+敏捷*5'
     const parsed = parseFormulaToCoeffs(text, ATTRS)
     expect(parsed.ok).toBe(true)
@@ -200,7 +200,7 @@ describe('formulaBuilder：公式 → 系数（回填）', () => {
 describe('formulaBuilder：打开编辑器时的初始状态', () => {
   const ATTRS = ['力量', '智力', '敏捷', '体质']
 
-  it('回归锁（旧版 缺陷 1）：回填原公式真实系数，而非用默认系数表顶替', () => {
+  it('回归锁：回填原公式真实系数，而非用默认系数表顶替', () => {
     // 旧版 实测：传 current_formula='=智力*5'、current_attr='物攻' 时，
     // 对话框显示的是默认系数 '=力量*2+敏捷*1' —— 点确定即覆盖用户原公式
     const initial = initialEntries(ATTRS, '=智力*5', '物攻')
@@ -216,11 +216,11 @@ describe('formulaBuilder：打开编辑器时的初始状态', () => {
     expect(buildFormulaFromCoeffs(initial.entries)).not.toContain('力量*2')
   })
 
-  it('空公式才用默认系数起手（保留 旧版 的贴心室性）', () => {
+  it('空公式才用默认系数起手', () => {
     for (const empty of ['', '0', '=0']) {
       const initial = initialEntries(ATTRS, empty, 'HP')
       expect(initial.warning).toBeNull()
-      // 顺序 = 属性列表顺序（旧版 同理：它迭代 BASE_ATTRS 列表而非默认系数表）
+      // 顺序 = 属性列表顺序
       expect(buildFormulaFromCoeffs(initial.entries)).toBe('=力量*10+敏捷*5+体质*20')
     }
     expect(initialEntries(ATTRS, '', '经验值').entries).toEqual([
@@ -240,7 +240,7 @@ describe('formulaBuilder：打开编辑器时的初始状态', () => {
     expect(initial.warning).toContain('替换')
   })
 
-  it('回归锁（旧版 缺陷 3）：属性集合来自调用方，非硬编码四项', () => {
+  it('回归锁：属性集合来自调用方，非硬编码四项', () => {
     const available = ['力量', '智力', '敏捷', '体质', '幸运']
     const initial = initialEntries(available, '=幸运*7', '物攻')
     expect(initial.warning).toBeNull()

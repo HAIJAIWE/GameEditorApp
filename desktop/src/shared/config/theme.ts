@@ -10,7 +10,7 @@
  * 都用 `var(--xxx)`。因此切换主题只需在 `<html>` 上切换 `data-theme` 属性，并在 CSS
  * 里加一段覆盖块即可整站换肤——**无需重构任何现有样式**。
  *
- * - 默认（无属性 / `data-theme` 缺失）= **浅色**（`styles.css` 的 `:root` 即 旧版「默认」主题配色）
+ * - 默认（无属性 / `data-theme` 缺失）= **浅色**
  * - `data-theme="dark"` = 深色覆盖
  *
  * ## 为什么默认是浅色
@@ -32,7 +32,7 @@ export type ThemeMode = 'dark' | 'light'
 /** 主题设置键（登记进 `settingsStore.SETTINGS_KEYS`） */
 export const THEME_KEY = 'mb.theme'
 
-/** 缺省主题：浅色（= 旧版「默认」主题；与 `styles.css` 的 `:root` 默认值一致，避免闪屏） */
+/** 缺省主题：浅色 */
 export const DEFAULT_THEME: ThemeMode = 'light'
 
 /** 合法主题枚举（用于校验存储值，挡掉损坏/旧值） */

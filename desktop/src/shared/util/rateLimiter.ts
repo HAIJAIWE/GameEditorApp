@@ -4,14 +4,14 @@
  * 旧版 侧的真实消费者：`common/ai_client` 用 `_acquire_rate_limit(bucket, timeout)`
  * 包住 5 处 LLM / stream 调用（:193 :254 :357 :435 :579），是生产里在跑的限流。
  *
- * 语义对齐要点（与 旧版 逐条核对）：
+ * 语义对齐要点：
  * - 初始令牌 = `burst`（满桶起步），不是 0。
  * - **每次 `acquire` 先按经过时间补充令牌再判断**：`tokens = min(burst, tokens + elapsedSec * rate)`，
  *   并**更新** `lastRefill`。
  * - **`available` 是只读的**：旧版 的 `available` property 只算不改（`_tokens` / `_last_refill` 不写回）。
  *   这点很容易写错 —— 写成会改状态的话，反复读 `available` 就会"白嫖"令牌。已由单测锁死。
  * - `waitAndAcquire`：先判 deadline 再尝试取令牌。⇒ **timeout=0 时即使有令牌也返回 false**
- *   （旧版 `while now < deadline` 同样一次都不进循环）。已由单测锁死。
+ *   。已由单测锁死。
  * - 桶命名与默认值照抄：`llm(3,5)` / `stream(5,8)` / `web_search(1,3)` / `image_gen(0.5,2)`；
  *   未知桶名回落 `(1,3)`。
  *
@@ -23,7 +23,7 @@
  * 属**算法固有**而非 TS 侧偏差 —— 若把这里改成"就近取整"或"从锚点重算"，就会破坏匹平。
  * 故单测按**区间**断言（1000~1100ms），不硬钉精确值。
  *
- * 有意偏离（旧版 → TS，逐条写明）：
+ * 有意偏离：
  * 1. **不引入锁**：旧版 用 `threading.Lock` 保护多线程；TS 主进程是单线程事件循环，无共享内存竞争。
  * 2. **`waitAndAcquire` 改为 async**：旧版 阻塞线程等待；TS **绝不能阻塞事件循环**（会整个应用卡住），
  *    故改为 `await` 休眠器让出。
@@ -31,7 +31,7 @@
  *    （便于测试与依赖注入），此处只导出类，实例由调用方持有 —— 接线时由 main 进程持有一个实例。
  * 4. **时钟与休眠器可注入**：旧版 直接用 `time.monotonic()`；此处允许注入，使限流可确定性单测。
  * 5. **放弃 旧版 的 `threading.Event` 提前唤醒**：旧版 靠 `event.set()` 唤醒等待者，此处改为
- *    固定间隔轮询（上限 100ms，与 旧版 `event.wait(min(remaining, 0.1))` 的 0.1s 上限一致）。
+ *    固定间隔轮询。
  *    正确性等价，只是唤醒没那么即时。
  */
 
@@ -40,7 +40,7 @@ export interface MonotonicClock {
   now(): number
 }
 
-/** 休眠器 —— `waitAndAcquire` 用它让出事件循环（旧版 是阻塞线程） */
+/** 休眠器 —— `waitAndAcquire` 用它让出事件循环 */
 export interface Sleeper {
   sleep(ms: number): Promise<void>
 }
@@ -56,14 +56,14 @@ export interface TokenBucketOptions {
 
 export const DEFAULT_RATE = 3
 export const DEFAULT_BURST = 5
-/** 未知桶名的回落参数（对齐 旧版 `RateLimiter.acquire` / `get_bucket`） */
+/** 未知桶名的回落参数 */
 export const FALLBACK_RATE = 1
 export const FALLBACK_BURST = 3
 export const DEFAULT_TIMEOUT_MS = 30_000
-/** 轮询间隔上限（对齐 旧版 `event.wait(min(remaining, 0.1))`） */
+/** 轮询间隔上限 */
 export const POLL_INTERVAL_MS = 100
 
-/** 4 个内置桶的限流参数（照抄 旧版 `RateLimiter.__init__._buckets`） */
+/** 4 个内置桶的限流参数 */
 export const DEFAULT_BUCKET_LIMITS: Readonly<Record<string, { rate: number; burst: number }>> = {
   llm: { rate: 3, burst: 5 },
   stream: { rate: 5, burst: 8 },
@@ -115,7 +115,7 @@ export class TokenBucket {
 
   /**
    * 当前可用令牌数。**只读**：补桶结果仅用于返回，不写回内部状态
-   * （对齐 旧版 `available` property —— 写回会导致反复读取白嫖令牌）。
+   * 。
    */
   available(): number {
     const now = this.clock.now()
@@ -123,10 +123,10 @@ export class TokenBucket {
   }
 
   /**
-   * 异步等待并取令牌（旧版 为阻塞线程版）。
+   * 异步等待并取令牌。
    *
    * ⚠️ 与 旧版 一致的边界：**`timeoutMs = 0` 时直接返回 false**，即使桶里有令牌
-   * （旧版 `while now < deadline` 一次都不进循环）。
+   * 。
    *
    * @param tokens 需要的令牌数
    * @param timeoutMs 最长等待毫秒
@@ -148,7 +148,7 @@ export class TokenBucket {
   }
 }
 
-/** 多桶限流管理器（对齐 旧版 `RateLimiter`，但不做单例） */
+/** 多桶限流管理器 */
 export class RateLimiter {
   private readonly buckets = new Map<string, TokenBucket>()
   private readonly clock: MonotonicClock
@@ -160,7 +160,7 @@ export class RateLimiter {
     }
   }
 
-  /** 取桶；不存在则按回落参数 `(1, 3)` 新建（对齐 旧版 `get_bucket`） */
+  /** 取桶；不存在则按回落参数 `(1, 3)` 新建 */
   getBucket(name: string): TokenBucket {
     const existing = this.buckets.get(name)
     if (existing !== undefined) return existing

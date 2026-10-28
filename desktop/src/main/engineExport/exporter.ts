@@ -68,7 +68,7 @@ export async function exportEngineData(
       ? renderLuaGameData(records, types)
       : ENGINE_RENDERERS[options.engine](bucketize(records, types))
 
-  // 覆盖前备份上一版：目标已存在才备份（首次导出无旧版可留）。
+  // 覆盖前备份上一版：目标已存在才备份。
   let backupPath: string | undefined
   if (existsSync(filePath)) {
     backupPath = `${filePath}.bak`

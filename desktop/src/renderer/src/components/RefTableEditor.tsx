@@ -11,7 +11,7 @@ import {
 import type { DataTypeDef } from '../../../shared/types'
 
 /**
- * 引用表字段编辑器（multiselect 字段，对应 旧版 `ui/widgets/multi_select` 的 RefTableWidget）。
+ * 引用表字段编辑器。
  *
  * - 表格两列：名称（由 id 解析，只读）+ 触发等级（0~999，可编辑）
  * - 「+ 添加{类型}」→ 内联选库面板（搜索 + 选择 + 设等级）；「- 删除选中」按当前选中行删除

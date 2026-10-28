@@ -19,7 +19,7 @@ function hpOf(typeId: string, templateName: string): number {
   return evaluateAttrPanel(rows).values[rows.findIndex((item) => item.name === 'HP')]
 }
 
-describe('属性面板模板（照抄 旧版 ATTR_TEMPLATES）', () => {
+describe('属性面板模板', () => {
   it('role 7 套 / monster 4 套，各 17 行，关键数值与公式一致', () => {
     expect(Object.keys(ATTR_PANEL_TEMPLATES.role)).toEqual(['新手', '战士', '法师', '刺客', '射手', '牧师', '坦克'])
     expect(Object.keys(ATTR_PANEL_TEMPLATES.monster)).toEqual(['小怪', '普通怪', '精英怪', 'Boss'])
@@ -92,7 +92,7 @@ describe('属性面板快速添加预置', () => {
 })
 
 describe('属性面板编辑行 ↔ 存储转换', () => {
-  it('加载：过滤非对象与空名称行，缺省类别/公式补齐、去空白、未知键保留（对应 旧版 load_data）', () => {
+  it('加载：过滤非对象与空名称行，缺省类别/公式补齐、去空白、未知键保留', () => {
     const rows = attrPanelToRows([
       null,
       '力量',
@@ -107,7 +107,7 @@ describe('属性面板编辑行 ↔ 存储转换', () => {
     expect(attrPanelToRows(undefined)).toEqual([])
   })
 
-  it('保存：空名称行忽略、类别/公式空值补齐、未知键保留（对应 旧版 get_data）', () => {
+  it('保存：空名称行忽略、类别/公式空值补齐、未知键保留', () => {
     const rows: AttrPanelRow[] = [
       { name: '  ', category: '基础', formula: '5' },
       { name: ' 力量 ', category: '  ', formula: '  ', note: 'x' },
@@ -120,7 +120,7 @@ describe('属性面板编辑行 ↔ 存储转换', () => {
   })
 })
 
-describe('属性面板求值（拓扑序，修正 旧版 两趟行序缺陷）', () => {
+describe('属性面板求值', () => {
   it('行序倒置（派生行在基础行之前）仍正确计算', () => {
     const evaluation = evaluateAttrPanel([
       row('HP', '=力量*10+体质*20+敏捷*5', '派生'),
@@ -172,19 +172,19 @@ describe('属性面板求值（拓扑序，修正 旧版 两趟行序缺陷）',
     expect(errors[0]).toContain('循环依赖')
   })
 
-  it('重名取最后一行（与 旧版 results 覆盖语义一致）', () => {
+  it('重名取最后一行', () => {
     const { values, errors } = evaluateAttrPanel([row('力量', '5'), row('HP', '=力量*10', '派生'), row('力量', '30')])
     expect(errors).toEqual([null, null, null])
     expect(values).toEqual([30, 300, 30])
   })
 
-  it('每行结果舍入到 1 位小数并参与下游（复刻 旧版 舍入传播）', () => {
+  it('每行结果舍入到 1 位小数并参与下游', () => {
     const { values } = evaluateAttrPanel([row('力量', '10'), row('X', '=力量/3', '派生'), row('Y', '=X*3', '派生')])
     expect(values[1]).toBe(3.3)
     expect(values[2]).toBe(9.9)
   })
 
-  it('括号/整除/取模/幂（右结合、优先级与 旧版 一致）与含斜杠属性名', () => {
+  it('括号/整除/取模/幂与含斜杠属性名', () => {
     const { values, errors } = evaluateAttrPanel([
       row('力量', '10'),
       row('回血/回合', '4', '战斗'),
@@ -199,7 +199,7 @@ describe('属性面板求值（拓扑序，修正 旧版 两趟行序缺陷）',
     expect(values.slice(2)).toEqual([28, 3, 1, 512, 9, -4])
   })
 
-  it('名称边界：不替换更长标识符中的部分匹配（与 旧版 \\b 对齐）', () => {
+  it('名称边界：不替换更长标识符中的部分匹配', () => {
     const { errors } = evaluateAttrPanel([row('HP', '100'), row('A', '=HPMax*2', '派生')])
     expect(errors[1]).toContain('未定义的属性名')
   })

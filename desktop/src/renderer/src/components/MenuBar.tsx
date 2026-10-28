@@ -8,15 +8,16 @@ import LucideIcon from './LucideIcon'
 type EngineTarget = EngineExportInput['engine']
 
 /**
- * 顶部菜单栏（对齐 旧版 `ui/menus` 的 MENU_CONFIG + `ui/main_window` 的角部件）。
+ * 顶部菜单栏。
  *
  * 设计取舍：
- * - 菜单栏是整个应用**唯一的能力入口**（对齐 旧版：无侧栏，能力全在菜单里）。
+ * - 菜单栏是整个应用**唯一的能力入口**。
  * - **全部菜单项均已接线**（E37 起分批清理 `notImplemented` 占位，E57 收掉最后两项 → 见
  *   `menuTree` 里「内容关联」位置的注释）。菜单里**不存在**「点了只报尚未实现」的占位项，
  *   故 `notImplemented` 这个动作与对应的占位机制已一并移除 —— 今后新能力要么接线、要么不进菜单。
- * - 菜单栏**右侧角部件**（对齐 旧版 `menuBar().setCornerWidget`）承载库选择与
- *   「设置 / 智能体 / AI」三个强调按钮；库条（`library-bar`）自侧栏迁入此处并保持可见。
+ * - 菜单栏**右侧角部件**承载库选择与
+ *   「设置 / AI」两个强调按钮；库条（`library-bar`）自侧栏迁入此处并保持可见。
+ *   智能体的「能力清单」不再是顶栏按钮——它与 AI 对话同属一个智能体，收进 dock 头部。
  */
 
 export interface MenuActions {
@@ -27,7 +28,7 @@ export interface MenuActions {
   exportCsv: () => void
   exportExcel: () => void
   batchEdit: () => void
-  /** 引擎数据导出：按目标引擎走各自的渲染器与扩展名（对齐 旧版 `features/engine_export`） */
+  /** 引擎数据导出：按目标引擎走各自的渲染器与扩展名 */
   engineExport: (engine: EngineTarget) => void
   /** 数据快照导出（审查件）：json = 确定性可 diff 的全量数据；csv = 单表宽表。format 经菜单项 arg 传入 */
   exportSnapshot: (format: 'json' | 'csv') => void
@@ -39,7 +40,7 @@ export interface MenuActions {
   toggleDevTools: () => void
   /**
    * 「打开」/「保存」—— 整个数据仓库的 JSON 文件 I/O
-   * （对齐 旧版 `main_window:710` 的 `open_file` / `:730` 的 `save_file`）。
+   * 。
    *
    * ⚠️ **与 旧版 的已知语义差异**（勿改文案掩盖）：
    * - 旧版 `打开` 是**整库替换**（`data_manager:382` 直接 `self.data = temp_data`）并记录
@@ -67,14 +68,14 @@ export interface MenuActions {
   redo: () => void
   quickCreate: () => void
   references: () => void
-  /** 「工具 → 关系图」：表格式总览某条数据的关联数据（对齐 旧版 `relation_graph::RelationTablePanel`） */
+  /** 「工具 → 关系图」：表格式总览某条数据的关联数据 */
   relationGraph: () => void
   dataDiff: () => void
   stats: () => void
   attrSystem: () => void
-  /** 游戏数据预览（对齐 旧版 `menus:69`「导出 → 游戏数据预览」） */
+  /** 游戏数据预览 */
   gameDataPreview: () => void
-  /** 字段结构编辑器（TS 独有入口：该面板无 旧版 菜单项） */
+  /** 字段结构编辑器 */
   fieldEditor: () => void
   /** 高级搜索（TS 独有入口） */
   advancedSearch: () => void
@@ -85,11 +86,9 @@ export interface MenuActions {
   settings: () => void
   /** 清理未使用图片（迁移 `features/advanced::cleanup_unused_images`，破坏性） */
   cleanupUnusedImages: () => void
-  /** AI 关键词模板配置（旧版 只在设置面板工具页有，`menus` 零引用） */
+  /** AI 关键词模板配置 */
   keywordTemplates: () => void
-  /** 角部件「智能体」按钮（打开智能体编辑器） */
-  agentEditor: () => void
-  /** 角部件「AI」按钮（唤起 AI 助手） */
+  /** 角部件「AI 助手」按钮（聚焦右侧常驻对话输入框） */
   aiPanel: () => void
   /** 「编辑 → 清空所有数据」：破坏性操作，交互由宿主做内联二次确认 */
   clearAll: () => void
@@ -97,7 +96,7 @@ export interface MenuActions {
   shortcuts: () => void
   /** 「帮助 → 关于墨白编辑器」 */
   about: () => void
-  /** 「帮助 → 快速入门」：打开引导式主页浮层（对齐 旧版 `HomeWidget`） */
+  /** 「帮助 → 快速入门」：打开引导式主页浮层 */
   onboarding: () => void
   quit: () => void
 }
@@ -335,7 +334,7 @@ export default function MenuBar({ canUndo, canRedo, actions }: MenuBarProps) {
         </div>
       ))}
 
-      {/* 右侧角部件（对齐 旧版 `menuBar().setCornerWidget`）：库标签 + 库条 + 设置/智能体/AI */}
+      {/* 右侧角部件：库标签 + 库条 + 设置/智能体/AI */}
       <div className="menubar-right">
         <span className="menubar-label">当前库:</span>
         <LibraryBar />
@@ -350,16 +349,13 @@ export default function MenuBar({ canUndo, canRedo, actions }: MenuBarProps) {
         </button>
         <button
           type="button"
-          className="btn slim"
-          data-testid="menubar-agent"
-          onClick={() => actions.agentEditor()}
+          className="btn slim primary"
+          data-testid="menubar-ai"
+          title="聚焦右侧 AI 对话输入框"
+          onClick={() => actions.aiPanel()}
         >
-          <LucideIcon name="brain" size={14} />
-          智能体
-        </button>
-        <button type="button" className="btn slim primary" data-testid="menubar-ai" onClick={() => actions.aiPanel()}>
           <LucideIcon name="bot" size={14} />
-          AI
+          AI 助手
         </button>
       </div>
     </div>

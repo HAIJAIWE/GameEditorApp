@@ -17,7 +17,7 @@ describe('desc 生成：上下文组装', () => {
     expect(context).toBe('数据类型：角色\nname：亚瑟\nlevel：3')
   })
 
-  it('排除 desc/description/image/id（对齐 旧版 generate_desc_only 的排除清单）', () => {
+  it('排除 desc/description/image/id', () => {
     const context = buildDescContext('角色', {
       id: 'r1',
       name: '亚瑟',
@@ -29,13 +29,13 @@ describe('desc 生成：上下文组装', () => {
     expect(context).toBe('数据类型：角色\nname：亚瑟')
   })
 
-  it('跳过空值与 null/undefined（旧版 的 `if value` 语义）', () => {
+  it('跳过空值与 null/undefined', () => {
     const context = buildDescContext('角色', { name: '亚瑟', desc2: '', level: null, hp: undefined, atk: 0 })
-    // atk=0 是有效数字（旧版 的 `if value` 会跳过 0，但 0 攻击力是合法数据）
+    // atk=0 是有效数字
     expect(context).toBe('数据类型：角色\nname：亚瑟\natk：0')
   })
 
-  it('数组/对象字段跳过并在末尾计数（不把 旧版 字面量喂给模型）', () => {
+  it('数组/对象字段跳过并在末尾计数', () => {
     const context = buildDescContext('技能', {
       name: '火球',
       tags: ['火', '远程'],
@@ -73,7 +73,7 @@ describe('desc 生成：上下文组装', () => {
 })
 
 describe('desc 生成：提示词', () => {
-  it('包含类型名、上下文与风格约束（结构对齐 旧版 features/_ai_image:296-323）', () => {
+  it('包含类型名、上下文与风格约束', () => {
     const prompt = buildDescPrompt('角色', '数据类型：角色\nname：亚瑟')
     expect(prompt).toContain('【角色】')
     expect(prompt).toContain('你是一位游戏文案创作专家')
@@ -124,12 +124,12 @@ describe('图片字段：自动填充（纯模板，不调 AI）', () => {
 })
 
 describe('图片标签：AI 分析', () => {
-  it('提示词带上图片路径（对齐 旧版 dynamic_form::_on_ai_analyze_image）', () => {
+  it('提示词带上图片路径', () => {
     const prompt = buildImageTagsPrompt('D:/art/hero.png')
     expect(prompt).toBe('请描述这张图片的内容，提取主要视觉元素作为标签: D:/art/hero.png')
   })
 
-  it('追加到现有标签后、分隔符是「, 」（对齐 旧版 的 setText 拼接）', () => {
+  it('追加到现有标签后、分隔符是「, 」', () => {
     expect(mergeImageTagsResult('已有', '火焰,岩石')).toBe('已有, 火焰,岩石')
   })
 
@@ -142,7 +142,7 @@ describe('图片标签：AI 分析', () => {
     expect(mergeImageTagsResult('', '火焰, 岩石\n烟雾, 魔法')).toBe('火焰,岩石,烟雾,魔法')
   })
 
-  it('结果截断到 200 字（对齐 旧版 的 result.strip()[:200]）', () => {
+  it('结果截断到 200 字', () => {
     const merged = mergeImageTagsResult('', 'x'.repeat(500))
     expect(merged).toHaveLength(IMAGE_TAGS_MAX)
     expect(IMAGE_TAGS_MAX).toBe(200)

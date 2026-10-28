@@ -14,7 +14,7 @@ import type { AppLogInput } from '../../src/shared/types'
 
 const fixedTime = new Date('2026-10-04T12:00:00')
 
-describe('logger：格式化（与 旧版 Formatter 对齐）', () => {
+describe('logger：格式化', () => {
   it('基础字段：时间 - 名 - 级别 - 消息', () => {
     expect(formatLogLine({ level: 'info', message: '启动完成' }, fixedTime)).toBe(
       '2026-10-04 12:00:00 - GameEditorApp - INFO - 启动完成'

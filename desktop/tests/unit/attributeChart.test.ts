@@ -29,7 +29,7 @@ describe('buildAttributeChart：抽字段 + 降序 + 统计', () => {
     expect(chart.truncated).toBe(0)
   })
 
-  it('小数也参与统计（旧版 用 float() 解析）', () => {
+  it('小数也参与统计', () => {
     const chart = buildAttributeChart(
       [row('1', '甲', { hp: 10.5 }), row('2', '乙', { hp: 20.5 })],
       'hp'
@@ -38,12 +38,12 @@ describe('buildAttributeChart：抽字段 + 降序 + 统计', () => {
     expect(chart.stats.avg).toBeCloseTo(15.5, 10)
   })
 
-  it('字符串数字被解析为数值（对齐 旧版 的 float(value)）', () => {
+  it('字符串数字被解析为数值', () => {
     const chart = buildAttributeChart([row('1', '甲', { level: '7' })], 'level')
     expect(chart.data[0]?.value).toBe(7)
   })
 
-  it('非数值/空串/缺字段一律跳过，不进数据点（对齐 旧版 的 try/except continue）', () => {
+  it('非数值/空串/缺字段一律跳过，不进数据点', () => {
     const chart = buildAttributeChart(
       [
         row('1', '甲', { atk: 10 }),
@@ -75,7 +75,7 @@ describe('buildAttributeChart：抽字段 + 降序 + 统计', () => {
     expect(Number.isNaN(chart.stats.avg)).toBe(false)
   })
 
-  it('超过 20 条只画前 20，truncated 记明剩余数（对齐 旧版 data_points[:20]）', () => {
+  it('超过 20 条只画前 20，truncated 记明剩余数', () => {
     const rows = Array.from({ length: 25 }, (_, i) => row(String(i), `条目${i}`, { atk: i }))
     const chart = buildAttributeChart(rows, 'atk')
     expect(chart.data).toHaveLength(25)
@@ -102,7 +102,7 @@ describe('buildAttributeChart：抽字段 + 降序 + 统计', () => {
     expect(chart.data.map((d) => d.name)).toEqual(['丙', '甲', '乙'])
   })
 
-  it('缺 name 时用 id 兜底，都没有则「未命名」（对齐 旧版 的 name/id/未命名口径）', () => {
+  it('缺 name 时用 id 兜底，都没有则「未命名」', () => {
     const rows: Record<string, unknown>[] = [
       { id: 'a1', atk: 1 },
       { id: '', atk: 2 },

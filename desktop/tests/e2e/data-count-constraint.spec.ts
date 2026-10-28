@@ -100,7 +100,7 @@ test('条目右键菜单四项 + 重命名（去空白提交 / 空白名视为�
     await expect(input).toBeHidden()
     await expect(rows.first()).toContainText('改后的技能名')
 
-    // F2 进入重命名；空白名回车 = 取消（对齐 旧版 `if ok and new_name.strip()`）
+    // F2 进入重命名；空白名回车 = 取消
     await window.getByTestId('ceshu-data-list').focus()
     await window.keyboard.press('F2')
     await expect(input).toBeVisible()

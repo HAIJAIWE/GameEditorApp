@@ -14,7 +14,8 @@ afterEach(async () => {
 
 async function mount(
   messages: string[],
-  onJumpChapter?: (chapter: ChapterKey) => void
+  onJumpChapter?: (chapter: ChapterKey) => void,
+  onJumpField?: (chapter: ChapterKey, field: string) => void
 ): Promise<RenderResult> {
   view = await renderDom(
     <ValidatePanel
@@ -22,6 +23,7 @@ async function mount(
       onExport={() => {}}
       onClose={() => {}}
       onJumpChapter={onJumpChapter}
+      onJumpField={onJumpField}
     />
   )
   return view
@@ -98,5 +100,67 @@ describe('ValidatePanel：校验结果分组展示', () => {
     const rendered = await mount([`${CHAPTER_LABELS.vision}：字段 'design_vision' 为必填项`])
     expect(rendered.queryAll('[data-testid="validate-jump"]')).toHaveLength(0)
     expect(rendered.queryAll('[data-validate-item]')).toHaveLength(1)
+  })
+})
+
+describe('ValidatePanel：跳到具体字段（onJumpField）', () => {
+  it('字段级问题：行带 data-field，点击回调收到 (章, 字段)', async () => {
+    const jumps: Array<[ChapterKey, string]> = []
+    const rendered = await mount(
+      [
+        `${CHAPTER_LABELS.vision}：字段 'design_vision' 为必填项`,
+        `${CHAPTER_LABELS.combat}：字段 'combat_mode' 由人确定，尚未填写（AI 不起草，需人工决断）`
+      ],
+      undefined,
+      (chapter, field) => jumps.push([chapter, field])
+    )
+
+    const links = rendered.queryAll('[data-testid="validate-jump"]')
+    expect(links.map((link) => link.getAttribute('data-field'))).toEqual(['design_vision', 'combat_mode'])
+    expect(links.map((link) => link.getAttribute('data-chapter'))).toEqual(['vision', 'combat'])
+
+    await rendered.click(links[0]!)
+    await rendered.click(links[1]!)
+    expect(jumps).toEqual([
+      ['vision', 'design_vision'],
+      ['combat', 'combat_mode']
+    ])
+  })
+
+  it('只有章节级定位的文案（系统配置键）：退化成章节跳转，不带 data-field', async () => {
+    const chapterJumps: ChapterKey[] = []
+    const fieldJumps: string[] = []
+    const rendered = await mount(
+      [
+        `一致性冲突：${CHAPTER_LABELS.combat} combat.combat_mode='回合' 与 ${CHAPTER_LABELS.systems} systems.battle.config.turn_mode='实时' 不一致`
+      ],
+      (chapter) => chapterJumps.push(chapter),
+      (_chapter, field) => fieldJumps.push(field)
+    )
+
+    const link = rendered.queryAll('[data-testid="validate-jump"]')[0]!
+    expect(link.getAttribute('data-field')).toBeNull()
+    await rendered.click(link)
+    expect(chapterJumps).toEqual(['combat'])
+    expect(fieldJumps).toEqual([])
+  })
+
+  it('同时传两个回调：字段级走 onJumpField，章节级走 onJumpChapter', async () => {
+    const chapterJumps: ChapterKey[] = []
+    const fieldJumps: string[] = []
+    const rendered = await mount(
+      [
+        `${CHAPTER_LABELS.vision}：字段 'design_vision' 为必填项`,
+        `${CHAPTER_LABELS.economy} economy.currency_types 与 ${CHAPTER_LABELS.systems} systems.economy.config.currency_types 不一致`
+      ],
+      (chapter) => chapterJumps.push(chapter),
+      (_chapter, field) => fieldJumps.push(field)
+    )
+
+    const links = rendered.queryAll('[data-testid="validate-jump"]')
+    await rendered.click(links[0]!)
+    await rendered.click(links[1]!)
+    expect(fieldJumps).toEqual(['design_vision'])
+    expect(chapterJumps).toEqual(['economy'])
   })
 })

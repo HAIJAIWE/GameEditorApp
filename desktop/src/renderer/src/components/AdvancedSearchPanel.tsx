@@ -10,10 +10,10 @@ import {
 import type { DataTypeDef, ItemRecord } from '../../../shared/types'
 
 /**
- * 高级搜索面板（对应 旧版 `ui/dialogs/advanced_search` 的 AdvancedSearchDialog）。
+ * 高级搜索面板。
  *
  * 旧版 能力：选类型 + 选字段（名称/ID/类型/描述）+ 关键词 + 结果列表 + 双击跳转。
- * TS 增强：额外提供「全部类型」「全部字段」两个哨兵选项（旧版 只能单选）。
+ * TS 增强：额外提供「全部类型」「全部字段」两个哨兵选项。
  * 数据来自 `data:listAll`（跨类型），不用新开 IPC；跳转复用主列表的 handleJump。
  *
  * 与列表搜索框的区别：列表搜索固定搜「名称/描述/ID」且限定当前类型；

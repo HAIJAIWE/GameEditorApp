@@ -38,7 +38,7 @@ export interface QuickAction {
   readonly dataType: string | null
 }
 
-/** 引导区持久化状态（对齐 旧版 `_load_state` 的三个键） */
+/** 引导区持久化状态 */
 export interface OnboardingState {
   /** 卡片区是否折叠（仅折叠卡片，标题行始终可见） */
   collapsed: boolean
@@ -48,7 +48,7 @@ export interface OnboardingState {
   completed: number[]
 }
 
-/** 5 步引导（id / emoji / 标题 / 说明逐项对齐 旧版 `ONBOARDING_STEPS`） */
+/** 5 步引导 */
 export const ONBOARDING_STEPS: readonly OnboardingStep[] = [
   { id: 'onboarding_library', icon: '📁', title: '创建游戏库', desc: '管理你的游戏项目，每个库独立配置数据结构和类型' },
   { id: 'onboarding_types', icon: '📋', title: '定义数据类型', desc: '配置角色、技能、装备等数据类型的字段结构' },
@@ -57,7 +57,7 @@ export const ONBOARDING_STEPS: readonly OnboardingStep[] = [
   { id: 'onboarding_ai', icon: '🤖', title: 'AI 辅助', desc: '使用 AI 生成数据、分析数值平衡' }
 ]
 
-/** 6 张快捷操作卡（id / label / icon / desc / dataType 逐项对齐 旧版 `QUICK_ACTIONS`） */
+/** 6 张快捷操作卡 */
 export const QUICK_ACTIONS: readonly QuickAction[] = [
   { id: 'create_role', label: '创建角色', icon: '⚔️', desc: '设计一个新的游戏角色', dataType: 'role' },
   { id: 'create_monster', label: '创建怪物', icon: '👹', desc: '设计一个新的敌人', dataType: 'monster' },
@@ -70,10 +70,10 @@ export const QUICK_ACTIONS: readonly QuickAction[] = [
 /** 渲染层设置键（登记在 `settingsStore.SETTINGS_KEYS` 里，纳入导出/重置可预期） */
 export const ONBOARDING_STORAGE_KEY = 'mb.onboarding'
 
-/** 引导卡片每行数量（对齐 旧版 `STEPS_PER_ROW`） */
+/** 引导卡片每行数量 */
 export const STEPS_PER_ROW = 3
 
-/** 数据概览卡每行数量（对齐 旧版 `STATS_PER_ROW`） */
+/** 数据概览卡每行数量 */
 export const STATS_PER_ROW = 4
 
 /** 默认（未开始）状态 */
@@ -125,7 +125,7 @@ function completedCount(state: OnboardingState): number {
   return normalizeCompleted(state.completed).length
 }
 
-/** 进度文案，如 `"2/5 已完成"`（对齐 旧版 `f"{completed_count}/{total} 已完成"`） */
+/** 进度文案，如 `"2/5 已完成"` */
 export function progressLabel(state: OnboardingState): string {
   return `${completedCount(state)}/${ONBOARDING_STEPS.length} 已完成`
 }

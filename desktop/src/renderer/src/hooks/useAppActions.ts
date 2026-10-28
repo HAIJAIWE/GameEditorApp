@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 
 import { formatImportSummary, toErrorMessage } from '../appUtils'
 import type { DataSnapshotFormat, EngineExportInput } from '../../../shared/schemas'
+import type { ImportPreview } from '../../../shared/types'
 import { engineExportNotice } from '../../../shared/util/engineExportNotice'
 import { loadBlockExportMissingImages } from '../../../shared/config/settingsPreferences'
 
@@ -25,7 +26,7 @@ function writeLastEngineExportPath(engine: string, path: string): void {
 }
 
 /**
- * 撤销 / 重做（对齐 PyQt `main_window` 的 undo/redo 动作 + 菜单项 disabled/标签）。
+ * 撤销 / 重做。
  *
  * 从 `App.tsx` 原样抽出：撤销态（`undoUi`）只服务于菜单项的 disabled 与 tooltip 标签，
  * 以及三个动作（`performUndo` / `performRedo` / `refreshUndo`）。它们构成一个内聚单元，
@@ -139,7 +140,9 @@ export interface UseDataTransfer {
 export function useDataTransfer(
   setNotice: (msg: string | null) => void,
   setError: (msg: string | null) => void,
-  refreshUndo: () => void
+  refreshUndo: () => void,
+  /** 选完文件先出预览（App 负责开面板）；确认后才落库 */
+  onPreview: (payload: { previewId: string; preview: ImportPreview }) => void
 ): UseDataTransfer {
   const importJson = async (): Promise<void> => {
     try {
@@ -168,15 +171,17 @@ export function useDataTransfer(
     }
   }
 
+  /*
+   * 导入 = 选文件 → 预览 → 确认。
+   * 不再「选完就写库」：导入是不可撤销的批量写，先让用户看清改了什么。
+   */
   const importCsv = async (): Promise<void> => {
     try {
       setError(null)
       setNotice(null)
       const chosen = await window.mbApi.dialog.chooseCsvFile()
       if (!chosen.path) return
-      const summary = await window.mbApi.data.importCsv({ path: chosen.path })
-      setNotice(formatImportSummary(summary))
-      refreshUndo()
+      onPreview(await window.mbApi.data.previewImport({ path: chosen.path, kind: 'csv' }))
     } catch (err) {
       setError(toErrorMessage(err))
     }
@@ -201,9 +206,7 @@ export function useDataTransfer(
       setNotice(null)
       const chosen = await window.mbApi.dialog.chooseExcelFile()
       if (!chosen.path) return
-      const summary = await window.mbApi.data.importExcel({ path: chosen.path })
-      setNotice(formatImportSummary(summary))
-      refreshUndo()
+      onPreview(await window.mbApi.data.previewImport({ path: chosen.path, kind: 'excel' }))
     } catch (err) {
       setError(toErrorMessage(err))
     }
@@ -224,7 +227,7 @@ export function useDataTransfer(
 
   /**
    * 引擎数据导出：菜单「导出 → 导出为 XX 格式」按目标引擎各走各的渲染器与扩展名
-   * （对齐 PyQt `features/engine_export.py` 的四个独立导出器）。
+   * 。
    * 此前四个菜单项全都硬编码 `engine: 'lua'`，点「导出为 Unity 格式」拿到的是 `.lua`。
    */
   const engineExport = async (engine: EngineExportInput['engine']): Promise<void> => {

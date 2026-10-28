@@ -24,7 +24,7 @@ const CATEGORY_CONFLICT = '一致性冲突'
 const CATEGORY_WARNING = '一致性警告'
 const CATEGORY_DEP = '依赖缺失'
 
-/** 单条错误归类（对应 旧版 `_categorize`；判定顺序与原实现一致） */
+/** 单条错误归类 */
 export function categorizeValidationError(error: string): ValidationCategory {
   if (error.includes(CATEGORY_DEP)) return 'dep'
   if (error.includes(CATEGORY_CONFLICT)) return 'conflict'
@@ -33,7 +33,7 @@ export function categorizeValidationError(error: string): ValidationCategory {
   return 'other'
 }
 
-/** 分类展示元数据（对应 旧版 `_CATEGORY_META`） */
+/** 分类展示元数据 */
 export const VALIDATION_CATEGORY_META: Record<ValidationCategory, { title: string; icon: string; color: string; tip: string }> = {
   required: { title: '必填字段缺失', icon: '🔴', color: '#e57373', tip: '影响工业级 GDD 完整性，必须修复' },
   conflict: { title: '一致性冲突', icon: '🟠', color: '#ffb74d', tip: '章节间硬冲突，会导致执行歧义' },
@@ -42,13 +42,13 @@ export const VALIDATION_CATEGORY_META: Record<ValidationCategory, { title: strin
   other: { title: '其他问题', icon: '⚪', color: '#bdbdbd', tip: '未分类问题' }
 }
 
-/** 摘要计数顺序（与 旧版 摘要段一致） */
+/** 摘要计数顺序 */
 const SUMMARY_ORDER: ValidationCategory[] = ['required', 'conflict', 'warning', 'dep', 'other']
-/** 问题清单分组顺序（与 旧版 问题清单段一致，dep 在 warning 前） */
+/** 问题清单分组顺序 */
 const LIST_ORDER: ValidationCategory[] = ['required', 'conflict', 'dep', 'warning', 'other']
 
 /**
- * 生成校验报告的 Markdown（逐行对齐 旧版 `_build_markdown`）。
+ * 生成校验报告的 Markdown。
  *
  * @param gameName 项目名称（空则显示「未命名」）
  * @param versionLabel 版本标签（空则显示「v1.0」）
@@ -175,7 +175,7 @@ export function buildValidationReportMarkdown(
 
 /* ---------------- 变更日志 ---------------- */
 
-/** HTML 特殊字符转义（对应 旧版 `_esc`） */
+/** HTML 特殊字符转义 */
 function escapeHtml(text: unknown): string {
   if (text === null || text === undefined) return ''
   return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -206,7 +206,7 @@ function groupByChapter<T extends { chapter: string }>(changes: T[]): Array<{ ch
   return order.map((chapter) => ({ chapter, items: map.get(chapter)! }))
 }
 
-/** 渲染为 Markdown（对应 旧版 `Changelog.to_markdown`） */
+/** 渲染为 Markdown */
 export function buildChangelogMarkdown(log: ChangelogLike): string {
   const lines: string[] = ['# 变更日志', '']
   const totalChanges = log.entries.reduce((sum, entry) => sum + entry.changes.length, 0)
@@ -239,7 +239,7 @@ export function buildChangelogMarkdown(log: ChangelogLike): string {
   return lines.join('\n')
 }
 
-/** 渲染为纯文本（对应 旧版 `Changelog.to_text`） */
+/** 渲染为纯文本 */
 export function buildChangelogText(log: ChangelogLike): string {
   const lines: string[] = ['变更日志', '='.repeat(40), '']
   const totalChanges = log.entries.reduce((sum, entry) => sum + entry.changes.length, 0)
@@ -269,7 +269,7 @@ export function buildChangelogText(log: ChangelogLike): string {
   return lines.join('\n')
 }
 
-/** 渲染为 HTML（对应 旧版 `Changelog.to_html`，含内联样式、无外部依赖） */
+/** 渲染为 HTML */
 export function buildChangelogHtml(log: ChangelogLike): string {
   const parts: string[] = [
     '<!DOCTYPE html>',

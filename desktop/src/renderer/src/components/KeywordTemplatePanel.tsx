@@ -21,13 +21,13 @@ import { readSetting, writeSetting } from '../../../shared/config/settingsStore'
  *
  * 旧版 侧结构：类型下拉（5 项）+ 模板编辑框 + 「💾 保存」「🔄 重置默认」「关闭」。
  *
- * ## 三处与 旧版 的差异（都是「补齐旧版 的缺口」或「如实告知」，不是漏做）
+ * ## 三处与 旧版 的差异
  *
  * 1. **保存真的落盘**。旧版 的 `save_template()` 只写内存
  *    （`advanced:272-273` 的注释自己写着「可以后续添加保存到文件的功能」，
  *    且全仓 grep 下来`KEYWORD_TEMPLATES_FILENAME` 从无写入点、模板也无读取方）。
  *    TS 侧落 localStorage（`mb.keywordTemplates`），否则关掉窗口就丢。
- * 2. **重置默认仍需再点保存**（与 旧版 一致：`reset_template()` 只 `setPlainText`）。
+ * 2. **重置默认仍需再点保存**。
  *    面板在按钮下方与提示行都写明了这一点，不让用户以为已经还原。
  * 3. **标注「已修改」**：旧版 没有未保存提示，切类型时编辑框内容直接被覆盖。
  *    TS 侧切类型同样覆盖（保持一致，不加二次确认弹窗），

@@ -75,12 +75,12 @@ export function llmConfirmReason(scope: LlmCallScope): string | null {
 export interface PermissionCheck {
   allowed: boolean
   risk: RiskLevel
-  /** 是否需用户二次确认（对齐 旧版：risk >= SYSTEM） */
+  /** 是否需用户二次确认 */
   needsConfirmation: boolean
 }
 
 /**
- * 权限判定（对齐 旧版 `acl.check_permission` 的三段：显式禁止 → 全局上限 → 危险确认）。
+ * 权限判定。
  * `blockedTools` / `blockedActions` 由调用方按会话维度传入（旧版 是进程级全局集合，
  * TS 侧刻意改成显式入参，避免全局可变状态）。
  */
@@ -109,7 +109,7 @@ export function checkPermission(
 
 /* ---- 技能协议 ---- */
 
-/** 参数定义（对齐 旧版 `BaseSkill.parameters` 的 list[dict] 形态） */
+/** 参数定义 */
 export interface SkillParameter {
   name: string
   /** JSON Schema 基础类型：string / integer / number / boolean / array / object */
@@ -125,10 +125,10 @@ export interface SkillParameter {
   items?: string
 }
 
-/** 工具执行上下文（对齐 旧版 `execute(params, context)` 的 context dict） */
+/** 工具执行上下文 */
 export interface SkillExecutionContext {
   /**
-   * 危险操作的一次性确认令牌（对齐 旧版 `context['_danger_confirmed']` 元组语义）。
+   * 危险操作的一次性确认令牌。
    * 与本次 (工具, 操作) 完全匹配时放行，并**就地置空**以避免重复使用。
    */
   dangerConfirmed?: { tool: string; action: string } | null
@@ -145,13 +145,13 @@ export interface SkillExecutionContext {
  * 背景：旧版 里 `needs_confirm`（`game_data_skill:414`）**只有生产者、没有消费者**，
  * 标志位无人处理、循环只把错误文案回灌给 LLM —— 属死路。TS 把它做成真实通道。
  */
-/** 候选项（对齐 旧版 `ask_user_skill` 的 `{label, description}`） */
+/** 候选项 */
 export interface SkillInteractionOption {
   label: string
   description?: string
 }
 
-/** 单个问题（`questions` 的元素，对齐 旧版 `{question, options, multiSelect}`） */
+/** 单个问题 */
 export interface SkillInteractionQuestion {
   prompt: string
   options?: readonly SkillInteractionOption[]
@@ -168,11 +168,11 @@ export interface SkillInteraction {
    * 注意：这是 `questions` 长度为 1 时的便捷写法；两者同时存在时**以 `questions` 为准**。
    */
   options?: readonly SkillInteractionOption[]
-  /** kind === 'question' 的多问题列表（对齐 旧版 `questions`） */
+  /** kind === 'question' 的多问题列表 */
   questions?: readonly SkillInteractionQuestion[]
 }
 
-/** 技能执行结果（对齐 旧版 归一化后的 `{success, message, data}`，另加 `interaction`） */
+/** 技能执行结果 */
 export interface SkillResult {
   success: boolean
   message: string
@@ -184,16 +184,16 @@ export interface SkillResult {
 
 /** 技能协议：实现该接口即可被调度器注册 */
 export interface SkillProtocol {
-  /** 工具 id，如 `system.game_data`（对齐 旧版 `name` / `NAME`） */
+  /** 工具 id，如 `system.game_data` */
   id: string
   description: string
   version: string
   /** 参数定义（当未提供 parametersSchema 时用于生成 JSON Schema） */
   parameters?: SkillParameter[]
-  /** 直出 JSON Schema（优先；对齐 旧版 `PARAMS_SCHEMA`） */
+  /** 直出 JSON Schema */
   parametersSchema?: JsonObjectSchema
   tags?: readonly string[]
-  /** 依赖的同批工具 id（对齐 旧版 `depends_on`） */
+  /** 依赖的同批工具 id */
   dependsOn?: readonly string[]
   /** 语义标记：涉及 GUI 主线程（TS 侧无硬约束，仅供面板/调度排序参考） */
   requiresMainThread?: boolean
@@ -219,7 +219,7 @@ export interface JsonSchemaProperty {
 }
 
 /**
- * 单个工具的**函数体**：`{name, description, parameters}`（对齐 旧版 `BaseSkill.to_json_schema`）。
+ * 单个工具的**函数体**：`{name, description, parameters}`。
  *
  * ⚠️ 这**不是**可以直接下发给模型的线格式 —— 它是 Function Calling 线格式的**内层**对象，
  * 外层还要套一层 `{type:'function', function: …}`（见 `toFunctionCallingTools`）。
@@ -230,7 +230,7 @@ export interface ToolFunctionSchema {
   parameters: JsonObjectSchema
 }
 
-/** 技能工具描述（对齐 旧版 `BaseSkill.to_json_schema`） */
+/** 技能工具描述 */
 export function toJsonSchema(skill: SkillProtocol): ToolFunctionSchema {
   if (skill.parametersSchema) {
     return { name: skill.id, description: skill.description, parameters: skill.parametersSchema }
@@ -307,7 +307,7 @@ function clipToolSummary(text: string): string {
 }
 
 /**
- * 单行工具描述（对齐 旧版 `BaseSkill.get_tool_description`）：
+ * 单行工具描述：
  * `- {id}: {description}` + 每个参数一行 `    {*}{name}: {desc} ({type=.., enum=[..], default=..})`
  */
 export function getToolDescription(skill: SkillProtocol): string {
@@ -372,7 +372,7 @@ export function resolveInteractionQuestions(
   ]
 }
 
-/** 归一化技能返回（对齐 旧版 `ToolDispatcher._normalize_result`，去掉内部 `_raw`） */
+/** 归一化技能返回 */
 export function normalizeSkillResult(raw: unknown): SkillResult {
   if (raw !== null && typeof raw === 'object' && !Array.isArray(raw)) {
     const record = raw as Record<string, unknown>
@@ -402,9 +402,9 @@ export function normalizeSkillResult(raw: unknown): SkillResult {
   return { success: true, message: String(raw), data: null }
 }
 
-/* ---- 参数修正（对齐 旧版 `ToolDispatcher._fix_params` + `skills/common.normalize_params`） ---- */
+/* ---- 参数修正 ---- */
 
-/** 参数别名表（对齐 旧版 `_fix_params` 的 param_aliases） */
+/** 参数别名表 */
 const PARAM_ALIASES: Record<string, readonly string[]> = {
   data_type: ['data_type', 'type', 'category', 'kind'],
   field: ['field', 'attr', 'attribute', 'prop', 'property', 'column'],
@@ -420,7 +420,7 @@ const PARAM_ALIASES: Record<string, readonly string[]> = {
 }
 
 /**
- * 按工具推断缺失的 action（对齐 旧版 `_fix_params` 的 action 推断）。
+ * 按工具推断缺失的 action。
  * 只覆盖**本批次已注册的工具**（game_data / ceshu）；旧版 里还有 shell / file_ops /
  * code / ui_control 的推断分支，待相应技能在 A1-5 接线时一并补上。
  */
@@ -443,7 +443,7 @@ export function inferAction(toolId: string, params: Record<string, unknown>): st
 }
 
 /**
- * 修正调用参数（对齐 旧版 `_fix_params` + `normalize_params`）：
+ * 修正调用参数：
  * 1) action 别名归一（含中文）；2) 缺失 action 按工具推断；3) 参数别名收敛到规范名。
  * 输入不被修改，返回新对象。
  */

@@ -12,17 +12,17 @@
 // `formatLocalTimestamp` 来自 `shared/util/`（纯工具层），不引入 agent → ceshu 的跨业务域依赖。
 import { formatLocalTimestamp } from '../util/datetime'
 
-/** 只保留最近 N 条消息（对齐 旧版 `messages[-50:]`） */
+/** 只保留最近 N 条消息 */
 export const SESSION_MAX_MESSAGES = 50
 
-/** 单条 content 的截断上限（对齐 旧版 `len(v) > 2000`） */
+/** 单条 content 的截断上限 */
 export const SESSION_CONTENT_LIMIT = 2000
 
 export interface SessionSnapshot {
   meta: {
     saved_at: string
     timestamp: number
-    /** 保存时的**全量**消息条数（截断前，对齐 旧版 `len(messages)`） */
+    /** 保存时的**全量**消息条数 */
     message_count: number
   }
   /** 已截断的超长内容 */
@@ -36,7 +36,7 @@ export interface SessionInfo {
 }
 
 /**
- * 单条消息截断（对齐 旧版 `_truncate`）：
+ * 单条消息截断：
  * 仅当 `content` 是字符串且超长时截断，并追加 `[...截断 N 字符...]` 标记（**截断而非丢弃**，
  * 以免会话恢复时丢失上下文角色）。其它键原样保留。
  */
@@ -75,7 +75,7 @@ export function isSessionSnapshot(value: unknown): value is SessionSnapshot {
   return record.meta !== null && typeof record.meta === 'object' && Array.isArray(record.messages)
 }
 
-/** 由快照生成给 UI/调用方看的信息摘要（对齐 旧版 `get_pending_session_info`） */
+/** 由快照生成给 UI/调用方看的信息摘要 */
 export function sessionInfoFromSnapshot(snapshot: SessionSnapshot | null): SessionInfo {
   if (snapshot === null) return { hasSession: false, messageCount: 0, savedAt: '' }
   const savedAt = snapshot.meta.saved_at
@@ -87,7 +87,7 @@ export function sessionInfoFromSnapshot(snapshot: SessionSnapshot | null): Sessi
 }
 
 /* ============================================================
-   草稿（对齐 旧版 `ui/digital_panel_workspace` 的草稿保存/恢复机制）
+   草稿
    ============================================================ */
 
 /** 草稿文件内容：`<userData>/agent/drafts/<名字>.json` */
@@ -96,7 +96,7 @@ export interface DraftFile {
   name: string
   /** 保存时间（本地时间字符串，与 `formatLocalTimestamp` 同格式） */
   time: string
-  /** 会话消息（**存结构化消息，不是 HTML** —— 旧版 存的是 `QTextEdit.toHtml()`，TS 侧无需如此） */
+  /** 会话消息 */
   messages: Array<Record<string, unknown>>
 }
 
@@ -109,10 +109,10 @@ export interface DraftSummary {
   path: string
 }
 
-/** 草稿列表最多返回几条（对齐 旧版 `_show_draft_menu` 的「最近草稿」上限 5） */
+/** 草稿列表最多返回几条 */
 export const DRAFT_LIST_LIMIT = 5
 
-/** 默认草稿名（对齐 旧版 `对话草稿_{MMdd_HHMM}`） */
+/** 默认草稿名 */
 export function defaultDraftName(now: Date = new Date()): string {
   const pad = (value: number): string => String(value).padStart(2, '0')
   return `对话草稿_${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`

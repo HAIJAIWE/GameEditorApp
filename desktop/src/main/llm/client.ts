@@ -251,7 +251,7 @@ export class LlmClient {
     }
   }
 
-  /** 真实连通性探测（E63，对齐 旧版 `api_config` 的「测试连接」）。
+  /** 真实连通性探测。
    *  不抛错：成功/失败都返回 `{ ok, message }` 供 UI 直接展示。 */
   async testConnection(options: LlmCallOptions = {}): Promise<{ ok: boolean; message: string }> {
     const config = resolveConfig(options)

@@ -3,7 +3,7 @@ import { useSyncExternalStore } from 'react'
 import { dismissToast, getToasts, subscribeToasts } from '../../../shared/util/toast'
 
 /**
- * Toast 宿主组件（对齐 旧版 `src/ui/components/toast` 的 `Toast`）。
+ * Toast 宿主组件。
  *
  * ## 为什么用 useSyncExternalStore 而不是 useEffect + setState
  * react-hooks v7.1.1 的 `set-state-in-effect` 是 **error**：在 effect 里同步 setState

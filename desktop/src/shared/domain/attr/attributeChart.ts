@@ -27,15 +27,15 @@
 
 /** 单个条目在图表里的一行 */
 export interface ChartDatum {
-  /** 条目 id（缺名时用它兜底，对齐 旧版 的 `item.get("name","未命名")`） */
+  /** 条目 id */
   id: string
   /** 条目名 */
   name: string
-  /** 该字段的数值；非有限值不会进入数据点（对齐 旧版 的 try/except continue） */
+  /** 该字段的数值；非有限值不会进入数据点 */
   value: number
 }
 
-/** 统计摘要（对应 旧版 末尾的「📈 统计信息」块） */
+/** 统计摘要 */
 export interface ChartStats {
   /** 有效数据点数量 */
   count: number
@@ -50,16 +50,16 @@ export interface AttributeChart {
   /** 数据点（已按 value 降序） */
   data: ChartDatum[]
   stats: ChartStats
-  /** 实际画出来的条数（旧版 限前 20） */
+  /** 实际画出来的条数 */
   shown: number
   /** 被截断的条数；0 表示全部画出 */
   truncated: number
 }
 
-/** 图表最多展示的条数（对齐 旧版 `data_points[:20]`） */
+/** 图表最多展示的条数 */
 export const CHART_TOP_N = 20
 
-/** 把任意 data 值转成有限数字；无法转换返回 null（对齐 旧版 的 `float()` + try/except） */
+/** 把任意 data 值转成有限数字；无法转换返回 null */
 function toFiniteNumber(value: unknown): number | null {
   if (typeof value === 'number') return Number.isFinite(value) ? value : null
   if (typeof value === 'string') {
@@ -72,7 +72,7 @@ function toFiniteNumber(value: unknown): number | null {
 }
 
 /**
- * 取条目显示名：优先 `name`，其次 `id`，都没有则「未命名」（对齐 旧版 的取值口径）
+ * 取条目显示名：优先 `name`，其次 `id`，都没有则「未命名」
  *
  * 注意 `name` 可能被塞在 `data` 里（`ItemRecord` 的业务字段都在 `data` 下），
  * 与 `dataStats.ts::summarizeNumeric` 读 `item.data[field]` 同一口径。
@@ -87,7 +87,7 @@ function displayName(raw: Record<string, unknown>, id: string): string {
 /** 图表数据行上限，供 UI 提示用（避免组件里散落魔数） */
 export const CHART_NAME_MAX = 12
 
-/** 截断显示名（旧版 `name[:12] + "..."`，TS 侧多留一个省略号宽度） */
+/** 截断显示名 */
 export function truncateName(name: string): string {
   return name.length > CHART_NAME_MAX ? `${name.slice(0, CHART_NAME_MAX)}…` : name
 }
@@ -111,7 +111,7 @@ export function buildAttributeChart(rows: readonly Record<string, unknown>[], fi
     if (value === null) continue
     points.push({ id, name: displayName(bag.name !== undefined ? bag : row, id), value })
   }
-  // 降序；同值时按名称稳定排序，避免同值条目顺序抖动（旧版 的 sort 是稳定排序）
+  // 降序；同值时按名称稳定排序，避免同值条目顺序抖动
   points.sort((a, b) => (b.value - a.value) || a.name.localeCompare(b.name, 'zh-CN'))
 
   const values = points.map((p) => p.value)
@@ -133,7 +133,7 @@ export function barPercent(value: number, max: number): number {
   return Math.max(0, Math.min(100, (value / max) * 100))
 }
 
-/** 数值展示：整数不带小数点，小数保留 1 位（对齐 旧版 的 `:6.0f` / `:3.0f` 观感） */
+/** 数值展示：整数不带小数点，小数保留 1 位 */
 export function formatChartValue(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(1)
 }

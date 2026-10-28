@@ -29,7 +29,7 @@ import { toErrorMessage } from '../../../shared/util/errors'
  * - **不可撤销的后果写明**：与 `ClearAllPanel` 不同，数据删除走撤销栈能 Ctrl+Z 找回，
  *   而**文件删除进不了撤销栈**（主进程只unlink），所以这里必须说清「先备份」。
  * - **删除结果绝不假装全成功**：沿用 旧版 的 `已删除 N/M 张` 口径，
- *   并把失败条目逐条列出（旧版 只写进日志，用户看不到）。
+ *   并把失败条目逐条列出。
  * - **悬空引用如实告知**：数据里引用了但目录里不存在的图片，会算进 旧版 的
  *   `len(referenced)`（虚高）。TS 侧单列为 `danglingRefCount` 显示，不混进「已引用」数。
  *
@@ -149,7 +149,7 @@ export default function CleanupImagesPanel() {
     api
       .deleteImages({ paths: targets, confirm: true })
       .then((res) => {
-        // 与 旧版 同一口径：如实报「成功数/总数」，失败条目逐条列出（旧版 只写进日志）
+        // 与 旧版 同一口径：如实报「成功数/总数」，失败条目逐条列出
         setResult(`已删除 ${res.deleted}/${targets.length} 张未使用的图片。`)
         setFailures(res.failed)
         setConfirming(false)

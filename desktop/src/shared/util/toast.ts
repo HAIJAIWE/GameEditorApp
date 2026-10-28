@@ -1,5 +1,5 @@
 /**
- * Toast 非阻塞通知的**纯逻辑**（对齐 旧版 `src/ui/components/toast`）。
+ * Toast 非阻塞通知的**纯逻辑**。
  *
  * ## 为什么要有它
  * 旧版 侧 `data_tab` 有 **9 处**真实调用（`_show_toast`）：保存成功 / 删除成功 /
@@ -28,7 +28,7 @@
  * 避免自己写 effect 同步 setState（react-hooks v7 的 `set-state-in-effect` 是 error）。
  */
 
-/** Toast 类型（对齐 旧版 的三套样式） */
+/** Toast 类型 */
 export type ToastKind = 'default' | 'success' | 'error'
 
 /** 单条 Toast */
@@ -36,11 +36,11 @@ export interface ToastItem {
   id: number
   text: string
   kind: ToastKind
-  /** 自动消失的毫秒数（对齐 旧版 `duration=3000`） */
+  /** 自动消失的毫秒数 */
   duration: number
 }
 
-/** 默认显示时长（对齐 旧版 默认值 3000ms） */
+/** 默认显示时长 */
 export const DEFAULT_TOAST_DURATION = 3000
 
 /** 同屏最多显示几条（超出时丢弃**最旧的**，保证最新反馈一定可见） */

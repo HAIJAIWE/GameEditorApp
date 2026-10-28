@@ -43,7 +43,7 @@ describe('advancedSearch：字段口径', () => {
 })
 
 describe('advancedSearch：searchItems', () => {
-  it('关键词为空 → 空数组（旧版 是弹窗提示，不返回全量）', () => {
+  it('关键词为空 → 空数组', () => {
     expect(searchItems(ALL, { keyword: '', type: SEARCH_ALL_TYPES, field: 'name' })).toEqual([])
     expect(searchItems(ALL, { keyword: '   ', type: SEARCH_ALL_TYPES, field: 'name' })).toEqual([])
   })
@@ -52,7 +52,7 @@ describe('advancedSearch：searchItems', () => {
     expect(searchItems(SKILLS, { keyword: '斩击', type: SEARCH_ALL_TYPES, field: 'name' })).toHaveLength(1)
   })
 
-  it('限定类型：只在该类型内搜（旧版 的单类型行为）', () => {
+  it('限定类型：只在该类型内搜', () => {
     const hit = searchItems(ALL, { keyword: '战士', type: 'role', field: SEARCH_ALL_FIELDS })
     expect(hit.map((row) => row.id)).toEqual(['r1'])
     // 同样的词限定到 skill → 无结果
@@ -64,7 +64,7 @@ describe('advancedSearch：searchItems', () => {
     expect(hit.map((row) => row.id)).toEqual(['r1'])
   })
 
-  it('按描述字段搜（旧版 的 desc 选项）', () => {
+  it('按描述字段搜', () => {
     expect(searchItems(SKILLS, { keyword: '燃烧', type: SEARCH_ALL_TYPES, field: 'desc' })).toHaveLength(1)
     // desc 里没有「燃烧」的字段是 name → 限定 name 搜不到
     expect(searchItems(SKILLS, { keyword: '燃烧', type: SEARCH_ALL_TYPES, field: 'name' })).toHaveLength(0)

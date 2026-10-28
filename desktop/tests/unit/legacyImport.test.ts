@@ -91,7 +91,7 @@ describe('旧版 JSON 导入', () => {
     expect(() => parseLegacyData(null, BUILTIN_DATA_TYPES)).toThrow()
   })
 
-  it('解析：数值型 id（旧版 文件的 "id": 0）转字符串保留，不补 UUID', () => {
+  it('解析：数值型 id转字符串保留，不补 UUID', () => {
     const parsed = parseLegacyData(
       { roles: [{ id: 0, name: '零号' }, { id: 12, name: '十二号' }] },
       BUILTIN_DATA_TYPES

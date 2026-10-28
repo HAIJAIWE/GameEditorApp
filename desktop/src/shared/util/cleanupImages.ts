@@ -113,7 +113,7 @@ export function imagePathKey(path: string): string {
  * 扫描条目数据，收集**被引用**的图片路径（规范化、去重）。
  *
  * 口径严格对齐 `advanced:391-399`：
- * - 遍历**全部类型**的全部条目（旧版 遍历 `raw` 的每个复数键）；
+ * - 遍历**全部类型**的全部条目；
  * - 只看 `image`/`icon`/`avatar`/`img` 四个字段；
  * - 值必须是**非空字符串**（`isinstance(val, str) and val.strip()`）——
  * 数字、null、数组、嵌套对象里的图片路径一概不算引用。

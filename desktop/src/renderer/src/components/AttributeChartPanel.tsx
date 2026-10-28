@@ -10,7 +10,7 @@ import {
 import type { DataTypeDef, ItemRecord } from '../../../shared/types'
 
 /**
- * 属性分布图表面板（对应 旧版 `src/features/advanced:48` `show_attribute_charts`）。
+ * 属性分布图表面板。
  *
  * ## 为什么下拉是「按 schema 自动发现」而不是照抄 旧版 的写死列表
  *

@@ -1,5 +1,5 @@
 /**
- * 图片预览缓存（对齐 旧版 `src/ui/components/image_loader`）。
+ * 图片预览缓存。
  *
  * ## 范围：只迁 `LazyImageLabel` 那条真实路径
  * 那个文件里有两个类，**别照着名字迁错**：
@@ -32,19 +32,19 @@ export interface CachedImageEntry {
   reason: string | null
 }
 
-/** 缓存条数上限（对齐 旧版 `MAX_CACHE_SIZE = 50`） */
+/** 缓存条数上限 */
 export const IMAGE_CACHE_MAX_SIZE = 50
 
-/** 缓存字节上限 100MB（对齐 旧版 `MAX_CACHE_BYTES`） */
+/** 缓存字节上限 100MB */
 export const IMAGE_CACHE_MAX_BYTES = 100 * 1024 * 1024
 
-/** 占位文本（对齐 旧版 `placeholder_text="无图片"`） */
+/** 占位文本 */
 export const IMAGE_PLACEHOLDER_TEXT = '无图片'
 
-/** 加载中文本（对齐 旧版 `setText("加载中...")`） */
+/** 加载中文本 */
 export const IMAGE_LOADING_TEXT = '加载中…'
 
-/** 组装缓存键：路径 + 目标尺寸（修正 旧版 只按路径作键） */
+/** 组装缓存键：路径 + 目标尺寸 */
 export function buildCacheKey(path: string, width: number, height: number): string {
   return `${path}@${width}x${height}`
 }
@@ -58,7 +58,7 @@ export function isLoadableImagePath(path: string | null | undefined): boolean {
   return path.trim() !== ''
 }
 
-/** 估算解码后占用：RGBA = w * h * 4（对齐 旧版 `_add_to_cache`） */
+/** 估算解码后占用：RGBA = w * h * 4 */
 export function estimateImageBytes(width: number, height: number): number {
   if (!Number.isFinite(width) || !Number.isFinite(height)) return 0
   const w = Math.max(0, Math.floor(width))

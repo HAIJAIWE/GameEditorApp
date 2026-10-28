@@ -14,7 +14,7 @@ import { isPlainObject } from './guards'
  *    （缺陷 D）。本引擎携带该条目的 `data` 全量。
  * 4. 旧版 有一个从不产出的 `UNCHANGED` 死枚举，不复刻——无变化即不产出条目。
  *
- * 已知局限：数组按**下标**对齐（与 旧版 一致），插入/删除会连带后续元素错位。
+ * 已知局限：数组按**下标**对齐，插入/删除会连带后续元素错位。
  */
 
 export type ItemDiffType = 'added' | 'removed' | 'modified'
@@ -68,7 +68,7 @@ function diffObjects(
   path: string
 ): DiffEntry[] {
   const entries: DiffEntry[] = []
-  // key 并集 + 排序遍历，保证输出稳定（对齐 旧版 的 sorted(all_keys)）
+  // key 并集 + 排序遍历，保证输出稳定
   const keys = Array.from(new Set([...Object.keys(oldObj), ...Object.keys(newObj)])).sort()
 
   for (const key of keys) {

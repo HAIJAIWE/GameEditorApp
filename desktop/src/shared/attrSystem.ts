@@ -3,13 +3,13 @@ import { isPlainObject } from './util/guards'
 import { readText } from './util/readText'
 
 /**
- * RPG 属性系统核心（自 旧版 core/attr_system + common/graph 匹平迁移）：
+ * RPG 属性系统核心：
  * - 模型：属性 = { 类型(base/derived/combat)、分类、显示名、最小/上限、默认值、系数公式 }
  * - 公式：与 旧版 Formula 一致采用「系数 + 常数项」结构；JSON 以旧版文本形式互转（= 力量*10 + 体质*20）
- * - 拓扑排序：Kahn 算法（对应 旧版 common/graph）；环依赖返回成员而非抛裸异常
+ * - 拓扑排序：Kahn 算法；环依赖返回成员而非抛裸异常
  * - 文件：<userData>/attr_system.json，与 旧版 同构（顶层为「属性名 → 定义」的平铺对象、snake_case 键）
- * 有意改进（相对 旧版 的缺陷）：公式解析失败返回 null（旧版 静默当 0/崩溃）；环依赖返回成员供 UI 提示；
- * 上限 max_value 序列化保留（旧版 的 Formula.max_value 不落盘，往返后丢失战斗属性上限）。
+ * 有意改进：公式解析失败返回 null；环依赖返回成员供 UI 提示；
+ * 上限 max_value 序列化保留。
  *
  * 归区说明（2026-10-12）：模型 + 拓扑排序留 contract 根——main 进程的 validateAttrSystem /
  * buildAttrGameConfig / AttrSystemStore 依赖它们（README rule 4：main 不碰 domain/**）；
@@ -25,7 +25,7 @@ export const ATTR_TYPE_LABELS: Record<AttrType, string> = {
   combat: '战斗属性'
 }
 
-/** 系数公式（对应 旧版 Formula：coefficients + base_value + max_value） */
+/** 系数公式 */
 export interface AttrFormula {
   /** 依赖属性名 → 系数 */
   coefficients: Record<string, number>
@@ -49,7 +49,7 @@ export interface AttrSystem {
   attributes: Record<string, AttrDefinition>
 }
 
-/* ---- 默认属性系统（照抄 旧版 AttributeSystem._build_default_system） ---- */
+/* ---- 默认属性系统 ---- */
 
 function createAttr(
   name: string,
@@ -144,7 +144,7 @@ export function formulaToText(formula: AttrFormula): string {
   return parts.length === 0 ? '=0' : `= ${parts.join(' + ')}`
 }
 
-/** 旧版文本 → 系数公式；无法解析返回 null（对应 旧版 from_legacy_string，但失败不静默） */
+/** 旧版文本 → 系数公式；无法解析返回 null */
 export function parseFormulaText(text: string): AttrFormula | null {
   const trimmed = (text ?? '').trim()
   if (trimmed === '') return { coefficients: {}, baseValue: 0 }
@@ -193,7 +193,7 @@ export interface TopoResult {
   cycle: string[] | null
 }
 
-/** 拓扑排序（Kahn，对应 旧版 common/graph；未定义的依赖忽略） */
+/** 拓扑排序 */
 export function topoSortAttributes(system: AttrSystem): TopoResult {
   const names = Object.keys(system.attributes)
   const inDegree = new Map<string, number>()
@@ -262,7 +262,7 @@ export function validateAttrSystem(system: AttrSystem): string[] {
   return errors
 }
 
-/* ---- 游戏引擎配置导出（对应 旧版 AttrSystemEditor._build_game_config） ---- */
+/* ---- 游戏引擎配置导出 ---- */
 
 export interface AttrGameConfigBaseAttribute {
   name: string
@@ -284,14 +284,14 @@ export interface AttrGameConfig {
   version: string
   base_attributes: AttrGameConfigBaseAttribute[]
   derived_formulas: Record<string, AttrGameConfigFormula>
-  /** 拓扑计算顺序；存在环依赖时为空数组（对应 旧版 _topological_sort 抛错回退） */
+  /** 拓扑计算顺序；存在环依赖时为空数组 */
   calculation_order: string[]
   attribute_constraints: Record<string, { min: number; max: number | null }>
 }
 
 /**
  * 构建游戏引擎可用的属性配置：基础属性列表 + 派生/战斗公式（linear，零系数剔除）+ 计算顺序 + 约束。
- * 与 旧版 同构（version "1.0"）；TS 无 ExtendedFormula 模型，公式统一输出 linear（旧版 无 config 时亦然）。
+ * 与 旧版 同构（version "1.0"）；TS 无 ExtendedFormula 模型，公式统一输出 linear。
  */
 export function buildAttrGameConfig(system: AttrSystem): AttrGameConfig {
   const baseAttributes: AttrGameConfigBaseAttribute[] = []
@@ -333,7 +333,7 @@ export function buildAttrGameConfig(system: AttrSystem): AttrGameConfig {
   }
 }
 
-/* ---- 文件序列化 / 解析（与 旧版 attr_system.json 同构） ---- */
+/* ---- 文件序列化 / 解析 ---- */
 
 export interface AttrSystemFileEntry {
   name: string
@@ -346,7 +346,7 @@ export interface AttrSystemFileEntry {
   formula: string
 }
 
-/** 旧版 同构：顶层为「属性名 → 定义」的平铺对象（无版本号，与 旧版 一致） */
+/** 旧版 同构：顶层为「属性名 → 定义」的平铺对象 */
 export type AttrSystemFile = Record<string, AttrSystemFileEntry>
 
 export function serializeAttrSystem(system: AttrSystem): AttrSystemFile {

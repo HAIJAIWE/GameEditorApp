@@ -62,7 +62,7 @@ const ICON_PATHS = {
   'zap': ['M13 2 3 14h9l-1 8 10-12h-9l1-8z'],
 } as const
 
-/** 友好名 → path 名（与 旧版 `_ALIASES` 逐键一致；`chevron-*`/`save` 等都走别名） */
+/** 友好名 → path 名 */
 const ICON_ALIASES = {
   'home': 'house',
   'document': 'file-text',
@@ -108,7 +108,7 @@ export type LucideIconName = keyof typeof ICON_PATHS | keyof typeof ICON_ALIASES
 
 /**
  * 把图标名（可能是别名）解析为真实 path 键。
- * @returns 未收录时返回 `null`（旧版 侧同场景是打印 MISSING 并返回空 QIcon，等价于不渲染）
+ * @returns 未收录时返回 `null`
  */
 export function resolveIconName(name: string): keyof typeof ICON_PATHS | null {
   const real = (LUCIDE_ICON_ALIASES as Record<string, string>)[name] ?? name

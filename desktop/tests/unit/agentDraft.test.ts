@@ -53,7 +53,7 @@ describe('草稿：文件名安全化（草稿名直接当文件名用）', () =
     expect(safeDraftFileName('   ')).toBe(defaultDraftName())
   })
 
-  it('默认名格式：对话草稿_MMDD_HHMM（对齐 旧版）', () => {
+  it('默认名格式：对话草稿_MMDD_HHMM', () => {
     const name = defaultDraftName(new Date(2026, 0, 5, 9, 7))
     expect(name).toBe('对话草稿_0105_0907')
   })
@@ -114,7 +114,7 @@ describe('草稿仓：保存 / 列表 / 读取', () => {
     expect(loaded.messages[0]?.content).toBe('第一条')
   })
 
-  it('同名保存 → 覆盖同一文件（对齐 旧版 的 `{name}.json`），不产生第二份', async () => {
+  it('同名保存 → 覆盖同一文件，不产生第二份', async () => {
     const store = new AgentSessionStore(makeDir())
     await store.save([userMessage('v1')])
     await store.saveDraft('同名')
@@ -133,7 +133,7 @@ describe('草稿仓：保存 / 列表 / 读取', () => {
     expect(saved.name).toBe(defaultDraftName())
   })
 
-  it('列表上限 DRAFT_LIST_LIMIT（对齐 旧版「最近草稿」5 条），按时间倒序', async () => {
+  it('列表上限 DRAFT_LIST_LIMIT，按时间倒序', async () => {
     const dir = makeDir()
     const store = new AgentSessionStore(dir)
     await store.save([userMessage('x')])

@@ -12,7 +12,7 @@ import {
 } from '../../src/shared/util/rateLimiter'
 
 /**
- * 令牌桶限流器测试（移植自 旧版 `common/rate_limiter`）。
+ * 令牌桶限流器测试。
  *
  * 用**假时钟 + 假休眠器**做确定性断言：休眠器每次被调用就把时钟往前推，
  * 这样 `waitAndAcquire` 的轮询循环可预测、不依赖真实计时。
@@ -49,7 +49,7 @@ function setup(options: { rate?: number; burst?: number } = {}) {
   return { clock, sleeper, bucket }
 }
 
-describe('令牌桶：基础语义（对齐 旧版 TokenBucket）', () => {
+describe('令牌桶：基础语义', () => {
   it('初始令牌 = burst（满桶起步，不是 0）', () => {
     const { bucket } = setup({ rate: 1, burst: 5 })
     expect(bucket.available()).toBe(5)
@@ -95,14 +95,14 @@ describe('令牌桶：基础语义（对齐 旧版 TokenBucket）', () => {
     expect(bucket.acquire(1)).toBe(false)
   })
 
-  it('tokens=0 的请求恒为 true（对齐 旧版 `self._tokens >= 0`）', () => {
+  it('tokens=0 的请求恒为 true', () => {
     const { bucket } = setup({ rate: 1, burst: 1 })
     bucket.acquire(1) // 抽干
     expect(bucket.acquire(0)).toBe(true)
   })
 })
 
-describe('令牌桶：waitAndAcquire（异步等待，对齐 旧版 阻塞版）', () => {
+describe('令牌桶：waitAndAcquire', () => {
   it('令牌不足时轮询等待，补够后成功返回', async () => {
     const { clock, sleeper, bucket } = setup({ rate: 1, burst: 1 })
     bucket.acquire(1) // 抽干
@@ -133,7 +133,7 @@ describe('令牌桶：waitAndAcquire（异步等待，对齐 旧版 阻塞版）
     expect(sleeper.calls).toEqual([100, 50])
   })
 
-  it('🟢 timeout=0 时即使桶里有令牌也返回 false（对齐 旧版 `while now < deadline`）', async () => {
+  it('🟢 timeout=0 时即使桶里有令牌也返回 false', async () => {
     const { sleeper, bucket } = setup({ rate: 1, burst: 5 })
     expect(bucket.available()).toBe(5) // 令牌充足
 
@@ -151,7 +151,7 @@ describe('令牌桶：waitAndAcquire（异步等待，对齐 旧版 阻塞版）
   })
 })
 
-describe('RateLimiter 多桶管理器（对齐 旧版 RateLimiter）', () => {
+describe('RateLimiter 多桶管理器', () => {
   it('内置 4 个桶的参数与 旧版 一致', () => {
     expect(DEFAULT_BUCKET_LIMITS).toEqual({
       llm: { rate: 3, burst: 5 },
@@ -185,7 +185,7 @@ describe('RateLimiter 多桶管理器（对齐 旧版 RateLimiter）', () => {
     expect(bucket.available()).toBe(FALLBACK_RATE)
   })
 
-  it('getBucket 对同一名字返回同一个桶实例（与 旧版 dict 语义一致）', () => {
+  it('getBucket 对同一名字返回同一个桶实例', () => {
     const limiter = new RateLimiter(new FakeClock())
     expect(limiter.getBucket('llm')).toBe(limiter.getBucket('llm'))
   })

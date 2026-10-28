@@ -6,7 +6,7 @@ import { parseTypeSchemaFile, serializeTypeSchema, validateTypeSchema } from '..
 import { TYPE_TEMPLATES, buildNewTypeDraft } from '../../src/shared/typeTemplates'
 import type { DataTypeDef } from '../../src/shared/types'
 
-describe('字段结构文件格式（与 旧版 type_schema.json 同构）', () => {
+describe('字段结构文件格式', () => {
   it('序列化：snake_case 键、from_/to、ref_type、可选值保留', () => {
     const file = serializeTypeSchema(BUILTIN_DATA_TYPES, '2.4')
     expect(file.version).toBe('2.4')
@@ -34,7 +34,7 @@ describe('字段结构文件格式（与 旧版 type_schema.json 同构）', () 
     expect(() => parseTypeSchemaFile({ version: '2.4' })).toThrow('data_types')
   })
 
-  it('未知控件类型**降级为 entry 而不抛错**（对齐 旧版 field_config 的 else: QLineEdit 兜底）', () => {
+  it('未知控件类型**降级为 entry 而不抛错**', () => {
     // 动机：字段结构文件与 早期版本同构（<库目录>/type_schema.json），旧版 独有而 TS 未收录的
     // 控件类型（已核实 ref / textarea）不能把整个应用锁死 —— 否则 schema:list 抛错 → 应用打不开。
     const parsed = parseTypeSchemaFile({
@@ -123,7 +123,7 @@ describe('字段结构领域校验（保存前共用）', () => {
   })
 })
 
-describe('字段模板（照抄 旧版 TYPE_TEMPLATES）', () => {
+describe('字段模板', () => {
   it('8 套模板（含「空白」），均以 id 首字段开头且不可编辑', () => {
     expect(Object.keys(TYPE_TEMPLATES)).toHaveLength(8)
     for (const fields of Object.values(TYPE_TEMPLATES)) {

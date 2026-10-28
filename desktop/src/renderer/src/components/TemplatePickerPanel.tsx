@@ -22,9 +22,9 @@ import {
 import { toErrorMessage } from '../../../shared/util/errors'
 
 /**
- * 章节模板库面板（对应 旧版 TemplatePickerDialog + CustomTemplateManager 的选择端）：
+ * 章节模板库面板：
  * - 章节下拉 + 关键词搜索 + 来源筛选（全部/内置/自定义）+ 模板列表（`[章节] 名称` + 标签行）
- * - 右侧预览：标题/描述/标签 + 模板内容层级树（旧版 为 HTML 渲染，此处用等价行树）
+ * - 右侧预览：标题/描述/标签 + 模板内容层级树
  * - 应用模式三选一（仅填空字段 / 覆盖 / 追加）+ 二次确认后回填章节草稿
  * - 「另存为模板」把当前章节草稿存为自定义模板；自定义模板可删除
  * 说明：应用/保存都由上层（ChapterForm）提供数据与合并，面板只负责选择与确认。
@@ -91,7 +91,7 @@ export default function TemplatePickerPanel({
     }
   }, [])
 
-  // 内置：章节 + 关键词筛选；自定义：章节 + 关键词筛选（与 旧版 list_templates 分类语义一致）
+  // 内置：章节 + 关键词筛选；自定义：章节 + 关键词筛选
   const builtinHits = filterChapterTemplates(chapterFilter, keyword)
   const customHits = searchCustomTemplates(
     filterCustomTemplates(customTemplates, chapterFilter || undefined),

@@ -11,7 +11,7 @@ export const AI_DOCK_MIN_WIDTH = 300
 /** 主区至少保留的宽度：窗口再窄也不把主区挤没 */
 export const MAIN_AREA_MIN_WIDTH = 480
 
-/** 默认宽度占视口的比例（对齐 旧版 的 75:25） */
+/** 默认宽度占视口的比例 */
 export const AI_DOCK_DEFAULT_RATIO = 0.25
 
 const STORAGE_KEY = 'mb.aiDock.width'

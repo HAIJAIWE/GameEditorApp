@@ -1,5 +1,5 @@
 /**
- * `system.ceshu` 内置技能（对应 旧版 `core/agent/skills/ceshu_skill` 的子集）。
+ * `system.ceshu` 内置技能。
  *
  * A1-1 只做只读（`list` / `get`）；**A1-5 补齐写操作**（`create` / `update`），
  * 把已有的策划书能力接进统一协议。
@@ -18,6 +18,7 @@ import {
   CESHU_EXPORT_FORMATS,
   CHAPTER_KEYS,
   CHAPTER_LABELS,
+  contentChapterCount,
   isChapterKey,
   isGddScope,
   type CeshuDocument,
@@ -183,7 +184,7 @@ export function createCeshuSkill(deps: CeshuSkillDeps): SkillProtocol {
 
   /**
    * 删除策划书：与 `system.game_data.delete` 同一取向——**未带 `confirm: true` 时返回 confirm 交互**，
-   * 由 Brain 暂停询问；批准后带 `confirm: true` 重执行。（旧版 的 `needs_confirm` 无消费者，属死路。）
+   * 由 Brain 暂停询问；批准后带 `confirm: true` 重执行。
    */
   function deleteCeshu(params: Record<string, unknown>): Promise<SkillResult> {
     return guard(async () => {
@@ -283,7 +284,7 @@ export function createCeshuSkill(deps: CeshuSkillDeps): SkillProtocol {
         scope: {
           type: 'string',
           enum: ['full', 'lite'],
-          description: '章节档位（create 时使用）: full=专业版 16 章, lite=标准版 9 章',
+          description: `章节档位（create 时使用）: full=专业版 ${contentChapterCount('full')} 章, lite=标准版 ${contentChapterCount('lite')} 章`,
           default: DEFAULT_SCOPE
         },
         meta: { type: 'object', description: '项目元信息对象（create 时使用，写入 meta 章）' },

@@ -41,8 +41,8 @@ interface ItemFormProps {
   types: readonly DataTypeDef[]
   /**
    * 当前活跃的游戏风格 id（`game_styles.json` 的 id，如 `xianxia`）。
-   * 用于按风格替换字段标签术语（对应 旧版 `style_manager.resolve_field_label`）；
-   * `''` = 不启用，标签原样显示（与 旧版 无活跃风格时等价）。
+   * 用于按风格替换字段标签术语；
+   * `''` = 不启用，标签原样显示。
    */
   gameStyle?: string
   onSaved: (updated: ItemRecord) => void
@@ -113,7 +113,7 @@ export default function ItemForm({
     }
   }, [hasAttrTable])
 
-  // `dialog` 字段候选懒加载（对齐 旧版 `_on_select_dialog` 读 `data['dialogs']`）
+  // `dialog` 字段候选懒加载
   useEffect(() => {
     if (!hasDialogField) return undefined
     let cancelled = false
@@ -154,9 +154,9 @@ export default function ItemForm({
 
   /**
    * 模板联动：把选中的模板文本写进同类型的 `desc` 字段
-   * （对齐 旧版 `dynamic_form::_on_template_changed` —— 它也是写进名为 `desc` 的 QTextEdit）。
+   * 。
    *
-   * 两处刻意的收敛（都与 旧版 不同，理由写明）：
+   * 两处刻意的收敛：
    * - 只在**存在可编辑的 `desc` 字段**时才写；没有就只更新 template 本身，不凭空造字段。
    * - 旧版 的 `_apply_desc_template` 实际是 `return template_text`（**没有做 `{职业}` 占位符替换**，
    *   是留给子类实现的钩子）。TS 侧同样**不猜占位符语义**，只做原文写入 —— 免得替换错了
@@ -172,7 +172,7 @@ export default function ItemForm({
    */
   const SYSTEM_PROMPT_TEXT = '你是一位游戏文案创作专家，擅长用精炼、有感染力的中文写出令人印象深刻的游戏描述。'
 
-  /** 当前条目所属类型的中文名（旧版 直接传 `data_type`，那是英文 id；TS 侧用中文名更像给人看的上下文） */
+  /** 当前条目所属类型的中文名 */
   const typeLabel = types.find((definition) => definition.id === item.type)?.name ?? item.type
 
   /** 当前草稿里 `image` 字段的路径（图片类 AI 按钮需要它才能分析） */
@@ -192,11 +192,11 @@ export default function ItemForm({
     setLocalError(null)
   }
 
-  /* ---- 字段级 AI 辅助（对齐 旧版 `dynamic_form` 的四个回调） ----
+  /* ---- 字段级 AI 辅助 ----
      能力实现在这里、控件只管按钮与忙态 —— 这样上下文（整份表单草稿）只有一份真源。
      提示词组装在 `shared/util/fieldAiAssist.ts`（纯函数、可单测），此处只负责发 IPC 与取回结果。 */
 
-  /** 当前草稿里的条目名（旧版 `data.get('name', '')`） */
+  /** 当前草稿里的条目名 */
   const currentItemName = (): string => {
     const value = draft['name']
     return typeof value === 'string' ? value : ''
@@ -213,7 +213,7 @@ export default function ItemForm({
     const reply = await api.llm.generate({ system: SYSTEM_PROMPT_TEXT, prompt })
     const text = reply.content.trim()
     if (text === '') throw new Error('AI 未返回内容，请重试或检查本地模型')
-    // 已有内容时追加而不是覆盖：用户手写的前半段不该被一键抹掉（旧版 是直接 setPlainText 覆盖）
+    // 已有内容时追加而不是覆盖：用户手写的前半段不该被一键抹掉
     return currentText === '' ? text : `${currentText}\n${text}`
   }
 
@@ -257,7 +257,7 @@ export default function ItemForm({
     return `配图已保存：${result.path}`
   }
 
-  /** 「AI分析」：把图片路径交给模型提取标签（对齐 旧版 `_on_ai_analyze_image`） */
+  /** 「AI分析」：把图片路径交给模型提取标签 */
   const analyzeImageTagsFor = async (imagePath: string): Promise<string> => {
     const api = window.mbApi as unknown as {
       llm: { generate: (req: { system: string; prompt: string }) => Promise<{ content: string }> }
@@ -294,8 +294,8 @@ export default function ItemForm({
   }
 
   /**
-   * 复制当前条目为独立副本（对应 旧版 `data_tab._on_copy_clicked`）：
-   * 沿用当前表单内容 + 新短 id（主进程 `createItem` 种子化，对应 旧版 `generate_id`）。
+   * 复制当前条目为独立副本：
+   * 沿用当前表单内容 + 新短 id。
    * 副本不带原 id（`delete payload.id`）⇒ 落库时分配该类型下一个序号。
    */
   const handleDuplicate = async (): Promise<void> => {
@@ -435,7 +435,7 @@ export default function ItemForm({
           </div>
         )}
         {/*
-          折叠分区（2026-10-19 恢复，源自 旧版 FIELD_GROUPS；双列网格版式刻意未恢复）。
+          折叠分区。
           分区内仍是「标签左、控件右」的扁平行 —— 拉平期确立的行形态原样保留，
           变的只是「行被归到哪个可折叠分组里」。复杂控件（属性面板/属性表/引用表）
           在 旧版 侧本就该单独成区，这里由 buildFormLayout 兜底保证。
@@ -492,9 +492,9 @@ export default function ItemForm({
           </button>
         )}
         {/*
-          「更多 ▸」收纳低频项（对应 旧版 data_tab 的 more_btn 菜单）。
+          「更多 ▸」收纳低频项。
           每一项仅在父级确实传入了回调时才渲染，保证菜单里不存在点了没反应的死控件。
-          注：删除已从行内图标移至本操作栏（对齐 旧版 底部「删除」钮，见 onDelete prop）；新建仍留在左栏。
+          注：删除已从行内图标移至本操作栏；新建仍留在左栏。
         */}
         {(onEditType !== undefined || onShowReferences !== undefined) && (
           <div className="toolbar-more" ref={moreRef}>

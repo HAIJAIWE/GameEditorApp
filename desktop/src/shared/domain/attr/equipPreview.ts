@@ -2,12 +2,12 @@ import { calculateAttributes } from './attrEngine'
 import type { AttrSystem } from '../../attrSystem'
 
 /**
- * 装备/Buff 预览（对应 旧版 EquipmentPreviewWidget + InspectorPanel）：
+ * 装备/Buff 预览：
  * - 数据映射与 旧版 同构：装备 bonuses 取 base_attrs + extra_attrs（平铺），slot=part、rarity=rarity||rare；
  *   Buff 按 value + effect_type 映射到单个属性（属性提升/降低→力量、持续伤害→物攻、持续治疗/护盾→体质、加速/减速→敏捷）
  * - TS 扩展（为让 TS 原生装备可用）：无 base_attrs/extra_attrs 时按 (effect, value) 推导单项加成；支持导入扩展 percentage_bonuses
  * - 明确修复 旧版 缺陷：① Buff 卡片此前不参与计算（仅展示）——TS 参与（固定加成 + 百分比）；
- *   ② 未知 effect_type 不再默认加「力量」；③ 槽位与 schema「部位」对齐（旧版 为 7 槽、含无对应部位的「饰品」且缺护腿/项链/披风）
+ *   ② 未知 effect_type 不再默认加「力量」；③ 槽位与 schema「部位」对齐
  * - 计算：全部固定加成先加，再乘全部百分比加成 → 拓扑计算；对比「基础 → 最终」与差值
  */
 
@@ -38,7 +38,7 @@ const EQUIP_EFFECT_ATTRS: Record<string, string> = {
   魔法抗性: '魔防'
 }
 
-/** Buff「效果类别」→ 属性名（照抄 旧版 _buff_dict_to_data_item 的 attr_mapping） */
+/** Buff「效果类别」→ 属性名 */
 const BUFF_EFFECT_ATTRS: Record<string, string> = {
   属性提升: '力量',
   属性降低: '力量',
@@ -69,7 +69,7 @@ function readBonusMap(value: unknown): Record<string, number> {
   return result
 }
 
-/** 数据表装备记录 → 预览项（旧版 同构 + effect/value 推导扩展） */
+/** 数据表装备记录 → 预览项 */
 export function equipRecordToItem(data: Record<string, unknown>): EquipPreviewItem {
   const bonuses = { ...readBonusMap(data['base_attrs']), ...readBonusMap(data['extra_attrs']) }
   if (Object.keys(bonuses).length === 0) {
@@ -88,7 +88,7 @@ export function equipRecordToItem(data: Record<string, unknown>): EquipPreviewIt
   }
 }
 
-/** 数据表 Buff 记录 → 预览项（旧版 同构；未知效果类别不加成——旧版 会默认加「力量」，已修正） */
+/** 数据表 Buff 记录 → 预览项 */
 export function buffRecordToItem(data: Record<string, unknown>): EquipPreviewItem {
   const bonuses: Record<string, number> = {}
   const value = readNumber(data['value'])
@@ -119,7 +119,7 @@ export interface EquipComparison {
   cycle: string[] | null
 }
 
-/** 「基础 → 装备 + Buff → 最终」对比（固定加成先加、百分比后乘；旧版 不计算 Buff 卡片） */
+/** 「基础 → 装备 + Buff → 最终」对比 */
 export function computeEquipComparison(
   system: AttrSystem,
   baseValues: Record<string, number>,
@@ -152,7 +152,7 @@ export function computeEquipComparison(
   return { rows, cycle: null }
 }
 
-/** 数值展示：整数省略小数，否则 1 位（对应 旧版 的 int 判断显示） */
+/** 数值展示：整数省略小数，否则 1 位 */
 export function formatPreviewNumber(value: number): string {
   return Number.isInteger(value) ? String(value) : String(Math.round(value * 10) / 10)
 }

@@ -33,7 +33,7 @@ export interface OperationRecorderDeps {
   now?: () => number
 }
 
-/** 唯一被记录变更的工具（与 旧版 一致：只管数据表增删改） */
+/** 唯一被记录变更的工具 */
 const GAME_DATA_TOOL = 'system.game_data'
 
 function toPayload(value: unknown): Record<string, unknown> | null {
@@ -91,7 +91,7 @@ export function createRecordingToolRunner(
     needsConfirmation: (toolName, action) => inner.needsConfirmation(toolName, action),
     execute: async (toolName, params, ctx: SkillExecutionContext) => {
       const described = describeOperation(toolName, params)
-      // 无会话上下文不记录（对齐 旧版 `if not conv_id: return`：不记手动编辑/非会话调用）
+      // 无会话上下文不记录
       const conversationId = typeof ctx.sessionId === 'string' ? ctx.sessionId.trim() : ''
       if (described === null || conversationId === '') {
         return inner.execute(toolName, params, ctx)

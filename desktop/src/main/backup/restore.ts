@@ -1,5 +1,5 @@
 /**
- * 备份 / 恢复编排（对应 旧版 `ui/dialogs/backup_manager` 的 create/restore 路径）。
+ * 备份 / 恢复编排。
  *
  * ## 为什么单独一层（不塞进 backupStore）
  * `backupStore` 只做文件系统（原子写 / 软删 / 路径校验）；本层负责**动数据**，
@@ -11,13 +11,13 @@
  *    先落一份当前全量快照；快照失败则**中止恢复**（宁可不动，也不留无法回退的坑）。
  * 2. **精确还原（含删除多余条目）**：旧版 是 `data = backup_data` 整体替换内存字典；
  *    TS 是 SQLite，仅靠 upsert 无法删除「备份里没有、当前却存在」的条目
- *    （这正是 旧版 AI 工具路径的同类缺陷）。故先按 id 差集 `deleteMany`，再 `importRecords` upsert。
- * 3. **恢复真正落盘**：TS 的数据本就是 SQLite 落盘（无 旧版「只改内存不保存 → 假成功」问题），
- *    且 id 由 `importRecords` 保留，**引用关系不会因恢复而错乱**（旧版 亦未保 id 之外的东西）。
+ *    。故先按 id 差集 `deleteMany`，再 `importRecords` upsert。
+ * 3. **恢复真正落盘**：TS 的数据本就是 SQLite 落盘，
+ *    且 id 由 `importRecords` 保留，**引用关系不会因恢复而错乱**。
  *
  * ## 有意不做
- * - 不触发 `CeshuDataSync`（策划书↔数据同步是独立关注点；旧版 恢复后也只刷新页签）。
- * - 不做备份轮转/上限（旧版 对话框路径也没有；`auto_backup` 的 20 份上限属死代码，不迁）。
+ * - 不触发 `CeshuDataSync`。
+ * - 不做备份轮转/上限。
  */
 
 import { buildBackupName, type BackupEntry, type RestoreOutcome } from '../../shared/util/backup'

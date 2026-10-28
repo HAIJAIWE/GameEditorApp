@@ -15,7 +15,7 @@ import { toErrorMessage } from '../../../shared/util/errors'
  * **与 旧版 的差异（都写明理由）**：
  * - 不做 50000 字符截断（那是 Qt 单控件的现实约束，`<pre>` 扛得住；截断会让用户看不到全貌），
  *   改为在标题里显示规模（类型数 / 条目数 / 字符数），超长时也明确告知「已渲染全量」。
- * - 键序按字典序稳定输出、空桶不出现（旧版 是 dict 插入序 + 一堆空数组）。
+ * - 键序按字典序稳定输出、空桶不出现。
  */
 type PreviewState = { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready'; text: string; bucketCount: number; itemCount: number; totalChars: number }
 

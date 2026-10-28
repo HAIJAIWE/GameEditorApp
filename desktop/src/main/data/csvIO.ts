@@ -3,6 +3,8 @@ import { readFile, rename, writeFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 
 import { getTypeByLegacyKey } from '../../shared/typeSchema'
+import { orderHeadersWithId, RECORD_ID_KEY } from '../../shared/util/recordHeaders'
+import type { ParsedImport } from './importSession'
 import type {
   CsvExportSummary,
   DataTypeDef,
@@ -14,17 +16,17 @@ import type {
 import type { DataService, ImportRecord } from './service'
 
 /**
- * CSV 导入/导出（Phase 1 数据核心）：匹平 Python 版 `export_csv` / `import_csv`。
- * - 导出：每种数据类型一个独立文件，文件名为该类型的复数键（与旧版文件同构）
+ * CSV 导入/导出（Phase 1 数据核心）：匹平 早期版本 `export_csv` / `import_csv`。
+ * - 导出：每种数据类型一个独立文件，文件名为该类型的复数键
  * - 导入：以文件名的 stem 作为数据类型键（复数键 → 单数类型 id，未收录键保留原键名入库）
  *
- * 相对 Python 版的**有意修正**：
- * - 复杂值（数组/对象）序列化为**真 JSON**（Python `csv` 对 list/dict 直接 str() 出单引号伪 JSON，
+ * 相对 早期版本的**有意修正**：
+ * - 复杂值（数组/对象）序列化为**真 JSON**（旧版 `csv` 对 list/dict 直接 str() 出单引号伪 JSON，
  *   往返会坏）；导入侧用 `decodeCsvCell` 还原回对象。
  * - 导入侧再按 schema 把**数字类字段**（`spinbox` / `double_spin`）从文本还原为 `number`：
  *   CSV 天然只有字符串，不还原会让这类字段从数字退化成字符串，违反
  *   `itemFormUtils` 建立的「数字类字段存真数字」不变量（后果：批量调数会静默跳过这些条目）。
- * - 表头取**全部条目键的并集**（Python 只取 `items[0].keys()`，异质条目会丢列/崩）。
+ * - 表头取**全部条目键的并集**。
  * - 写出 UTF-8 BOM 且行分隔用 CRLF（Excel 打开中文/换行更友好）。
  */
 
@@ -51,7 +53,8 @@ export function collectHeaders(records: ItemRecord[]): string[] {
       }
     }
   }
-  return headers
+  // id 是往返主键，固定放首列（放最后极易被整列删掉，删了导入就全表翻倍）
+  return orderHeadersWithId(headers)
 }
 
 /** 需要引号包裹时按 RFC4180 转义（值含 , " \r \n 之一）。 */
@@ -202,14 +205,15 @@ export function rowsToImportRecords(
   rows: string[][],
   type: string,
   fields?: readonly TypeFieldDef[]
-): { records: ImportRecord[]; skipped: number } {
+): { records: ImportRecord[]; skipped: number; hasIdColumn: boolean } {
   const records: ImportRecord[] = []
   let skipped = 0
   if (rows.length === 0) {
-    return { records, skipped }
+    return { records, skipped, hasIdColumn: false }
   }
 
-  const headers = rows[0]
+  const headers = rows[0] ?? []
+  const hasIdColumn = headers.includes(RECORD_ID_KEY)
   const fieldTypes = new Map((fields ?? []).map((field) => [field.name, field.type]))
   for (let rowIndex = 1; rowIndex < rows.length; rowIndex++) {
     const row = rows[rowIndex]
@@ -234,7 +238,7 @@ export function rowsToImportRecords(
     records.push({ type, id, data: item })
   }
 
-  return { records, skipped }
+  return { records, skipped, hasIdColumn }
 }
 
 /** 按 schema 顺序聚合：得到「键（复数键或原键名）→ 条目」的分桶。 */
@@ -254,7 +258,7 @@ function groupByFileKey(records: ItemRecord[], types: DataTypeDef[]): Map<string
 }
 
 /**
- * 将每种数据类型导出为独立 CSV 文件（文件名 = 复数键，与 Python `export_csv` 兼容）。
+ * 将每种数据类型导出为独立 CSV 文件。
  * 仅导出有 ≥1 条数据的类型；内容带 UTF-8 BOM；原子写（tmp + rename）。
  */
 export async function exportCsvFiles(dir: string, service: DataService, types: DataTypeDef[]): Promise<CsvExportSummary> {
@@ -306,11 +310,8 @@ export async function exportCsvFiles(dir: string, service: DataService, types: D
  * 从单个 CSV 文件导入（文件名 stem 为数据类型键）。
  * BOM 被剥离；复数键 stem 解析为单数类型 id；未命中 schema 时数据仍入库并记入 unknownTypes。
  */
-export async function importCsvFile(
-  filePath: string,
-  service: DataService,
-  types: DataTypeDef[]
-): Promise<ImportSummary> {
+/** 只解析、不落库（导入预览用）。`importCsvFile` 也走它，保证预览与写入是同一份。 */
+export async function parseCsvImport(filePath: string, types: DataTypeDef[]): Promise<ParsedImport> {
   const stem = basename(filePath, '.csv')
   const def = getTypeByLegacyKey(types, stem)
   const resolvedType = def?.id ?? stem
@@ -328,16 +329,40 @@ export async function importCsvFile(
 
   // 传 schema 字段：数字类字段（spinbox/double_spin）按声明还原为 number
   const parsed = rowsToImportRecords(parseCsvText(text), resolvedType, def?.formFields)
+
+  const unknownTypes: Record<string, number> = {}
+  if (!def) {
+    unknownTypes[stem] = parsed.records.length
+  }
+
+  // CSV 没有 id 列时每行都会被当新条目（可能整表翻倍），要报出来
+  const missingIdSources: string[] = []
+  if (!parsed.hasIdColumn && parsed.records.length > 0) missingIdSources.push(`CSV「${stem}」`)
+
+  return { records: parsed.records, skipped: parsed.skipped, unknownTypes, missingIdSources }
+}
+
+/** 解析 + 立即落库（不预览的快捷路径；菜单走的是 preview → apply） */
+export async function importCsvFile(
+  filePath: string,
+  service: DataService,
+  types: DataTypeDef[]
+): Promise<ImportSummary> {
+  const parsed = await parseCsvImport(filePath, types)
+  return applyParsedImport(filePath, parsed, service)
+}
+
+/** 把解析结果落库并汇总（与 Excel 共用同一套计数，避免两条路径数字不一致） */
+export async function applyParsedImport(
+  filePath: string,
+  parsed: ParsedImport,
+  service: DataService
+): Promise<ImportSummary> {
   const { imported, updated } = await service.importRecords(parsed.records)
 
   const byType: Record<string, number> = {}
   for (const record of parsed.records) {
     byType[record.type] = (byType[record.type] ?? 0) + 1
-  }
-
-  const unknownTypes: Record<string, number> = {}
-  if (!def) {
-    unknownTypes[stem] = parsed.records.length
   }
 
   return {
@@ -347,6 +372,7 @@ export async function importCsvFile(
     updated,
     skipped: parsed.skipped,
     byType,
-    unknownTypes
+    unknownTypes: parsed.unknownTypes,
+    missingIdSources: parsed.missingIdSources
   }
 }

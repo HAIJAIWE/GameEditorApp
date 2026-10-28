@@ -108,6 +108,10 @@ export interface MbApi {
     importCsv(req: IpcContract['data:importCsv']['req']): Promise<IpcContract['data:importCsv']['res']>
     exportExcel(req: IpcContract['data:exportExcel']['req']): Promise<IpcContract['data:exportExcel']['res']>
     importExcel(req: IpcContract['data:importExcel']['req']): Promise<IpcContract['data:importExcel']['res']>
+    /** 导入预览：解析文件并与库内比对，不落库 */
+    previewImport(req: IpcContract['data:previewImport']['req']): Promise<IpcContract['data:previewImport']['res']>
+    /** 确认导入：用预览时的解析结果落库 */
+    applyImport(req: IpcContract['data:applyImport']['req']): Promise<IpcContract['data:applyImport']['res']>
     /** 数据快照导出（确定性 JSON / 单表 CSV，供 git/PR 审核；与引擎运行态导出定位不同） */
     exportSnapshot(
       req: IpcContract['data:exportSnapshot']['req']
@@ -151,7 +155,7 @@ export interface MbApi {
   llm: {
     /** 单次文本生成（数据编辑器字段级 AI 按钮） */
     generate(req: IpcContract['llm:generate']['req']): Promise<IpcContract['llm:generate']['res']>
-    /** 推 LLM 非敏感配置镜像（对齐 Python `ui/dialogs/api_config.py` 基础设置） */
+    /** 推 LLM 非敏感配置镜像 */
     configure(req: IpcContract['llm:configure']['req']): Promise<IpcContract['llm:configure']['res']>
     /** 探测当前配置下的服务可用性（设置面板状态提示用） */
     status(): Promise<IpcContract['llm:status']['res']>
@@ -161,7 +165,7 @@ export interface MbApi {
   /** 图片库扫描 / 清理（`deleteImages` 是破坏性操作，`confirm` 必填true） */
   images: {
     listLibraryImages(): Promise<IpcContract['images:listLibraryImages']['res']>
-    /** 按已保存路径回显预览（对齐 PyQt `LazyImageLabel.load_image`；主进程限库内 images 目录） */
+    /** 按已保存路径回显预览 */
     readByPath(req: IpcContract['images:readByPath']['req']): Promise<IpcContract['images:readByPath']['res']>
     deleteImages(req: IpcContract['images:deleteImages']['req']): Promise<IpcContract['images:deleteImages']['res']>
   },
@@ -175,6 +179,8 @@ export interface MbApi {
     ): Promise<IpcContract['dialog:chooseDataSnapshotFile']['res']>
     chooseSaveJsonFile(): Promise<IpcContract['dialog:chooseSaveJsonFile']['res']>
     chooseExportDir(): Promise<IpcContract['dialog:chooseExportDir']['res']>
+    /** 选一个项目文件夹目录（策划书：打开已有项目） */
+    chooseProjectDir(): Promise<IpcContract['dialog:chooseProjectDir']['res']>
     chooseCsvFile(): Promise<IpcContract['dialog:chooseCsvFile']['res']>
     chooseExcelFile(): Promise<IpcContract['dialog:chooseExcelFile']['res']>
     chooseImageSaveDir(): Promise<IpcContract['dialog:chooseImageSaveDir']['res']>
@@ -212,10 +218,47 @@ export interface MbApi {
     setActive(req: IpcContract['ceshu:setActive']['req']): Promise<IpcContract['ceshu:setActive']['res']>
     changelog(req: IpcContract['ceshu:changelog']['req']): Promise<IpcContract['ceshu:changelog']['res']>
     validate(req: IpcContract['ceshu:validate']['req']): Promise<IpcContract['ceshu:validate']['res']>
-    score(req: IpcContract['ceshu:score']['req']): Promise<IpcContract['ceshu:score']['res']>
+    readiness(req: IpcContract['ceshu:readiness']['req']): Promise<IpcContract['ceshu:readiness']['res']>
     aiGenerateChapter(
       req: IpcContract['ceshu:aiGenerateChapter']['req']
     ): Promise<IpcContract['ceshu:aiGenerateChapter']['res']>
+    /** 复刻拆解：参考游戏名 → 立项一页 → 新建文档（复刻单线 MVP） */
+    cloneDecompose(
+      req: IpcContract['ceshu:cloneDecompose']['req']
+    ): Promise<IpcContract['ceshu:cloneDecompose']['res']>
+    exportProjectFolder(
+      req: IpcContract['ceshu:exportProjectFolder']['req']
+    ): Promise<IpcContract['ceshu:exportProjectFolder']['res']>
+    /** 导出开发交接包（分卷施工图 + 机读包 + 契约 + 数据表快照 + 原型） */
+    exportHandoff(
+      req: IpcContract['ceshu:exportHandoff']['req']
+    ): Promise<IpcContract['ceshu:exportHandoff']['res']>
+    /** 打开项目文件夹（一个游戏一个文件夹）：还原文档并落地到本库 */
+    openProjectFolder(
+      req: IpcContract['ceshu:openProjectFolder']['req']
+    ): Promise<IpcContract['ceshu:openProjectFolder']['res']>
+    /** 岗位任务生成：整份文档 → 各岗位可执行任务 */
+    aiGenerateTasks(
+      req: IpcContract['ceshu:aiGenerateTasks']['req']
+    ): Promise<IpcContract['ceshu:aiGenerateTasks']['res']>
+    /** 保存可玩原型（单文件 HTML） */
+    saveDemo(req: IpcContract['ceshu:saveDemo']['req']): Promise<IpcContract['ceshu:saveDemo']['res']>
+    /** 设计 ↔ 数据表核对 */
+    checkDataTables(
+      req: IpcContract['ceshu:checkDataTables']['req']
+    ): Promise<IpcContract['ceshu:checkDataTables']['res']>
+    /** 设计契约体检：投影机读契约并整体检查（PASS/FAIL + findings） */
+    checkContract(
+      req: IpcContract['ceshu:checkContract']['req']
+    ): Promise<IpcContract['ceshu:checkContract']['res']>
+    /** 按声明补齐数据表结构（只算不写） */
+    planDataTableScaffold(
+      req: IpcContract['ceshu:planDataTableScaffold']['req']
+    ): Promise<IpcContract['ceshu:planDataTableScaffold']['res']>
+    /** 按声明补齐数据表结构（落盘） */
+    applyDataTableScaffold(
+      req: IpcContract['ceshu:applyDataTableScaffold']['req']
+    ): Promise<IpcContract['ceshu:applyDataTableScaffold']['res']>
     aiReview(req: IpcContract['ceshu:aiReview']['req']): Promise<IpcContract['ceshu:aiReview']['res']>
     aiGenerateData(
       req: IpcContract['ceshu:aiGenerateData']['req']
@@ -236,9 +279,9 @@ export interface MbApi {
     exportDiffReport(
       req: IpcContract['ceshu:exportDiffReport']['req']
     ): Promise<IpcContract['ceshu:exportDiffReport']['res']>
-    exportScoreReport(
-      req: IpcContract['ceshu:exportScoreReport']['req']
-    ): Promise<IpcContract['ceshu:exportScoreReport']['res']>
+    exportReadinessReport(
+      req: IpcContract['ceshu:exportReadinessReport']['req']
+    ): Promise<IpcContract['ceshu:exportReadinessReport']['res']>
     exportValidationReport(
       req: IpcContract['ceshu:exportValidationReport']['req']
     ): Promise<IpcContract['ceshu:exportValidationReport']['res']>

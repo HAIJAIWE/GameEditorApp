@@ -4,7 +4,7 @@ import { buildGameDataPreview } from '../../src/shared/domain/ceshu/gameDataPrev
 import type { DataTypeDef, ItemRecord } from '../../src/shared/types'
 
 /**
- * 游戏数据预览（对齐 旧版 `src/features/engine_export::show_game_data_preview`）。
+ * 游戏数据预览。
  * 关键口径：按 `pluralKey` 分桶、**空桶不出现**、键序按字典序稳定、2 空格缩进不转义非 ASCII。
  */
 
@@ -30,7 +30,7 @@ function record(id: string, type: string, data: Record<string, unknown>): ItemRe
 }
 
 describe('游戏数据预览：分桶与文本', () => {
-  it('按 pluralKey 分桶；无数据的类型不出现（旧版 会留空数组，这里不留）', () => {
+  it('按 pluralKey 分桶；无数据的类型不出现', () => {
     const preview = buildGameDataPreview([record('r1', 'role', { name: '亚瑟' })], TYPES)
     const parsed = JSON.parse(preview.text) as Record<string, unknown>
     expect(Object.keys(parsed)).toEqual(['roles'])
@@ -71,7 +71,7 @@ describe('游戏数据预览：分桶与文本', () => {
     expect(preview.itemCount).toBe(0)
   })
 
-  it('**不做 50000 字符截断**（旧版 的截断是 Qt 单控件约束，<pre> 扛得住）', () => {
+  it('**不做 50000 字符截断**', () => {
     const big = 'x'.repeat(60_000)
     const preview = buildGameDataPreview([record('r1', 'role', { name: big })], TYPES)
     expect(preview.text).toContain(big) // 全文在，没被砍

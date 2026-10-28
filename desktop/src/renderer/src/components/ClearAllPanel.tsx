@@ -24,7 +24,7 @@ import { toErrorMessage } from '../../../shared/util/errors'
  */
 
 interface ClearAllPanelProps {
-  /** 清空完成回调：宿主需刷新增撤状态与各视图（对齐 旧版 的 `_refresh_all_tabs()`） */
+  /** 清空完成回调：宿主需刷新增撤状态与各视图 */
   onCleared: (deleted: number) => void
 }
 

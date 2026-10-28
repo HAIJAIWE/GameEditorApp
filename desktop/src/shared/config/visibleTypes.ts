@@ -2,7 +2,7 @@
  * 侧栏「显示哪些数据类型」偏好 —— 迁移自 旧版
  * `ui/dialogs/type_visibility_dialog`（选择对话框）+ `settings` 的 `visible_types` 落盘。
  *
- * 语义（与 旧版 对齐）：
+ * 语义：
  * - `null` = 全部显示（默认；键不存在即此意）
  * - `[]`   = 全不显示（显式空列表）
  * - 数组   = 仅这些 id 显示

@@ -14,7 +14,7 @@ export function registerSchemaIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, ll
   const { typeSchemaStore, fieldTemplates, llmClient } = deps
   handle('schema:list', undefined, () => typeSchemaStore.getTypes())
   handle('schema:save', schemaSaveInputSchema, (req) => typeSchemaStore.saveTypes(req.types))
-  // 用户自定义字段模板（存完整 TypeFieldDef[]，非 旧版 那样只存标签）
+  // 用户自定义字段模板
   handle('schema:listFieldTemplates', undefined, () => ({
     builtin: [...TYPE_TEMPLATE_NAMES],
     custom: fieldTemplates.listNames()

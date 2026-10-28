@@ -19,12 +19,12 @@ import { refOptions, parseOptionalNumber } from './typeEditorUtils'
 import FieldIdSuggest from './FieldIdSuggest'
 
 /**
- * 数据表字段结构编辑器（对应 旧版 type_editor_dialog 核心切片）：
+ * 数据表字段结构编辑器：
  * - 类型：新建 / 删除 / 名称·复数键·颜色编辑（既有类型的 ID 锁定，避免存量条目失联）
  * - 字段：增删 / 排序 / 名称·标签·控件类型·可编辑·可选值·数值范围·引用类型
  * - 模板：7 套内置字段模板整体替换；保存前领域校验；保存走 IPC（主进程原子写 type_schema.json）
  * - 字段 ID 生成：两条独立路子 —— **英译**（术语表，`shared/fieldId.ts`）+ **拼音**（`shared/pinyinFieldId.ts`）
- * - 新建类型的 ID：随中文名自动填拼音（对齐 旧版 `type_editor_dialog.add_type`，仅当 ID 未被手改）
+ * - 新建类型的 ID：随中文名自动填拼音
  * 明确未迁移：布局分区编辑、AI 推荐字段/分析数据/联网参考（属 AI 域，见 roadmap E42/E56）。
  */
 
@@ -210,7 +210,7 @@ export default function TypeEditorPanel({ types, initialTypeId, onSaved, onClose
   }
 
   /**
-   * 「拼音」：中文→拼音兜底候选（对齐 旧版 `_auto_pinyin`）。
+   * 「拼音」：中文→拼音兜底候选。
    * 同步纯计算；开启时一并带上规则层候选，便于对照（术语语义 vs 拼音音节）。
    */
   const requestPinyinSuggestions = (index: number): void => {
@@ -269,7 +269,7 @@ export default function TypeEditorPanel({ types, initialTypeId, onSaved, onClose
     updateType({ formFields: fields })
   }
 
-  /** 应用模板：整体替换字段（含 id 字段，与 旧版 导入模板行为一致） */
+  /** 应用模板：整体替换字段 */
   const applyTemplate = async (): Promise<void> => {
     if (!current) return
     // 内置模板在 shared 常量里直接取；自定义模板需向主进程要完整字段定义
@@ -323,7 +323,7 @@ export default function TypeEditorPanel({ types, initialTypeId, onSaved, onClose
     setNotice(`已应用模板「${name}」${suggestion ? '并填入建议分区' : ''}（尚未保存）`)
   }
 
-  /** 把当前类型的字段存为自定义模板（存完整定义，非 旧版 那样只存标签） */
+  /** 把当前类型的字段存为自定义模板 */
   const saveAsTemplate = async (): Promise<void> => {
     if (!current) return
     const name = newTemplateName.trim()

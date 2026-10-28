@@ -2,13 +2,13 @@
  * 我们的项目生成 · 端到端实测脚本（AI 生成链路 E2E）
  *
  * 为什么需要它：应用内「AI 一键生成」是产品核心能力，但一直缺一次**可复跑的
- * 全链路实测**——bundle 提示词 → 真实模型 → 字段解析 → 质量门（校验+评分）→
+ * 全链路实测**——bundle 提示词 → 真实模型 → 字段解析 → 质量门（校验+完备度）→
  * 落盘。单测只锁契约与解析，锁不住「模型在真实提示词下的产出质量」。
  *
  * 用法（需应用以 --remote-debugging-port 启动，且 LLM 配置可用）：
  *   node scripts/ceshuAiE2E.mjs <cdp-ws-url> [--chapters meta,vision,gameplay,numeric] [--name 名称]
  *
- * 输出：逐章表格（tokens / 校验错误 before→after / 总分 before→after）+ 终局评分。
+ * 输出：逐章表格（tokens / 校验错误 before→after / 立项完成度 before→after）+ 终局完备度。
  * 退出码：0 = 全章生成成功；1 = 有章节失败（详情见输出）。
  *
  * ⚠️ 会**新建**一份策划书（名字带时间戳），不会动你已有的文档。
@@ -114,24 +114,25 @@ ws.onopen = async () => {
         fields: fieldCount,
         tokens: res.usage?.totalTokens ?? 0,
         errors: `${q.beforeErrors ?? '?'}→${q.afterErrors ?? '?'}`,
-        score: `${q.beforeScore ?? '?'}→${q.afterScore ?? '?'}`,
+        completion: `${q.completionBefore ?? '?'}→${q.completionAfter ?? '?'}`,
         seconds
       })
     }
 
-    // 3. 终局评分（整篇文档）
-    const finalScore = JSON.parse(
-      await evaluate(`(async () => JSON.stringify(await window.mbApi.ceshu.score({ id: ${JSON.stringify(docId)} })))()`)
+    // 3. 终局完备度（整篇文档）
+    const finalReadiness = JSON.parse(
+      await evaluate(`(async () => JSON.stringify(await window.mbApi.ceshu.readiness({ id: ${JSON.stringify(docId)} })))()`)
     )
 
-    console.log('\n章 | 状态 | 字段 | tokens | 校验错误 | 总分 | 耗时')
+    console.log('\n章 | 状态 | 字段 | tokens | 校验错误 | 立项完成度 | 耗时')
     for (const r of rows) {
       console.log(
-        `${r.chapter} | ${r.status} | ${r.fields ?? '-'} | ${r.tokens ?? '-'} | ${r.errors ?? '-'} | ${r.score ?? '-'} | ${r.seconds}s${r.detail ? ' | ' + r.detail : ''}`
+        `${r.chapter} | ${r.status} | ${r.fields ?? '-'} | ${r.tokens ?? '-'} | ${r.errors ?? '-'} | ${r.completion ?? '-'} | ${r.seconds}s${r.detail ? ' | ' + r.detail : ''}`
       )
     }
+    const finalConcept = finalReadiness.concept
     console.log(
-      `\n终局：总分 ${finalScore.total_score}（${finalScore.grade}）｜结构 ${finalScore.structure_score}/30｜内容 ${finalScore.content_quality_score}/40｜市场 ${finalScore.market_potential_score}/30`
+      `\n终局：立项必填 ${finalConcept.required_filled}/${finalConcept.required_total}（缺口 ${finalConcept.missing_count}）｜研发 ${finalReadiness.production.required_filled}/${finalReadiness.production.required_total}｜发行 ${finalReadiness.release.required_filled}/${finalReadiness.release.required_total}`
     )
     process.exitCode = failed > 0 ? 1 : 0
   } catch (e) {

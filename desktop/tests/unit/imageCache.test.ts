@@ -32,7 +32,7 @@ describe('常量：逐条对齐 旧版 image_loader', () => {
   })
 })
 
-describe('estimateImageBytes：RGBA 估算 w*h*4（对齐 旧版）', () => {
+describe('estimateImageBytes：RGBA 估算 w*h*4', () => {
   it('常规尺寸', () => {
     expect(estimateImageBytes(100, 100)).toBe(40_000)
     expect(estimateImageBytes(1920, 1080)).toBe(1920 * 1080 * 4)
@@ -49,7 +49,7 @@ describe('estimateImageBytes：RGBA 估算 w*h*4（对齐 旧版）', () => {
   })
 })
 
-describe('buildCacheKey：路径 + 尺寸（修正 旧版 只按路径作键）', () => {
+describe('buildCacheKey：路径 + 尺寸', () => {
   it('同路径不同尺寸 ⇒ 不同键', () => {
     expect(buildCacheKey('/a.png', 100, 100)).not.toBe(buildCacheKey('/a.png', 200, 200))
   })
@@ -203,7 +203,7 @@ describe('ImageCache：LRU 与双重淘汰', () => {
     expect(c.bytes).toBeLessThanOrEqual(90_000)
   })
 
-  it('重复 set 同一键：不重复计数（对齐 旧版 先移除旧记录）', () => {
+  it('重复 set 同一键：不重复计数', () => {
     const c = new ImageCache(50, 1024 * 1024)
     c.set('a', entry('a', 100, 100))
     const afterFirst = c.bytes
