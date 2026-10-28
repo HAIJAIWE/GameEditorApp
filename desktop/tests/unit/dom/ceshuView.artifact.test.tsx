@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import CeshuView from '../../../src/renderer/src/components/CeshuView'
+import { defineCeshuMenusPlugin } from '../../../src/renderer/src/plugins/ceshuMenusPlugin'
 import { defineCeshuViewsPlugin } from '../../../src/renderer/src/plugins/ceshuViewsPlugin'
 import { createDefaultCeshu } from '../../../src/shared/ceshuModel'
 import { PluginHost } from '../../../src/shared/plugin/host'
@@ -34,6 +35,7 @@ async function mount(): Promise<RenderResult> {
   // Slice 11：CeshuView 需要宿主来挂载编辑器内视图
   const host = new PluginHost()
   host.register(defineCeshuViewsPlugin())
+  host.register(defineCeshuMenusPlugin(host))
   view = await renderDom(
     <CeshuView
       ceshuId="c1"

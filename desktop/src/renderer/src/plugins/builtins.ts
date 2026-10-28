@@ -1,5 +1,6 @@
 import { PluginHost } from '../../../shared/plugin/host'
 import { defineAppActionsPlugin } from './appActionsPlugin'
+import { defineCeshuMenusPlugin } from './ceshuMenusPlugin'
 import { defineCeshuPlugin } from './ceshuPlugin'
 import { defineCeshuViewsPlugin } from './ceshuViewsPlugin'
 import { defineDataPanelsPlugin } from './dataPanelsPlugin'
@@ -44,6 +45,7 @@ export function registerBuiltinPlugins(): void {
   pluginHost.register(defineMenusPlugin(pluginHost))
   pluginHost.register(defineNavigationPlugin(pluginHost))
   pluginHost.register(defineCeshuViewsPlugin())
+  pluginHost.register(defineCeshuMenusPlugin(pluginHost))
 }
 
 registerBuiltinPlugins()

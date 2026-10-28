@@ -187,9 +187,14 @@ export class PluginHost {
     return this.capabilities('service')
   }
 
-  /** 菜单能力（按 `order` 升序；同标题的条目由宿主合并渲染） */
-  menus(): Extract<PluginCapability, { kind: 'menu' }>[] {
-    return [...this.capabilities('menu')].sort((left, right) => left.order - right.order)
+  /**
+   * 菜单能力（按 `order` 升序；同标题的条目由宿主合并渲染）。
+   * `mount` 默认 `'app'`（App 顶栏）；编辑器内菜单用别的挂载点过滤。
+   */
+  menus(mount = 'app'): Extract<PluginCapability, { kind: 'menu' }>[] {
+    return this.capabilities('menu')
+      .filter((menu) => (menu.mount ?? 'app') === mount)
+      .sort((left, right) => left.order - right.order)
   }
 
   /** 某挂载点下启用的 view 能力（按 `order` 升序；未声明 `mount` 的不参与） */

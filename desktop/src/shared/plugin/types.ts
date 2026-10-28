@@ -73,6 +73,11 @@ export interface PluginMenuCapability {
   menu: string
   /** 顶层菜单排序，小在前 */
   order: number
+  /**
+   * 挂载点：省略 = App 顶栏（默认 `'app'`）。
+   * 编辑器内下拉菜单用别的挂载点（如 `'ceshu.toolbar'`），由宿主在对应位置渲染。
+   */
+  mount?: string
   items: PluginMenuItem[]
 }
 

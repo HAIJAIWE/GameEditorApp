@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
 
 import {
   CESHU_EXPORT_FORMATS,
@@ -54,6 +54,8 @@ import CeshuDataPreview, { type PreviewJumpTarget } from './ceshu/CeshuDataPrevi
 import { collectPendingReviewFields } from './ceshu/reviewQueueData'
 import LucideIcon from './LucideIcon'
 import { ViewMount } from '../plugins/ViewMount'
+import { MenuMount } from '../plugins/MenuMount'
+import { setCeshuEditorBridge } from '../plugins/ceshuEditorBridge'
 import {
   CESHU_CHAPTERNAV_MOUNT,
   CESHU_CONTENT_MOUNT,
@@ -169,8 +171,6 @@ export default function CeshuView({
    * 消费方是 `ChapterForm` 的 `focusField`：滚过去 + 高亮，然后回调清空（见其注释）。
    */
   const [fieldJump, setFieldJump] = useState<{ chapter: ChapterKey; field: string } | null>(null)
-  /** 「更多 ▸」下拉展开状态 */
-  const [moreOpen, setMoreOpen] = useState(false)
   /**
    * 数据栏是否展开（左栏 + 中间 = 工作区，右栏 = 智能体）。
    *
@@ -197,27 +197,7 @@ export default function CeshuView({
       return next
     })
   }
-  /** 「AI 生成数据」的预选目标（由条目表单 / 设计↔数据表核对的「AI 生成缺失数据」指定） */
   /* AI 数据生成的「预选类型 / 数量 / 要求」不再存本组件 state：改为 openView 的打开参数。 */
-  const moreRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!moreOpen) return undefined
-    const onDocClick = (event: MouseEvent): void => {
-      if (moreRef.current && !moreRef.current.contains(event.target as Node)) {
-        setMoreOpen(false)
-      }
-    }
-    const onKey = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') setMoreOpen(false)
-    }
-    document.addEventListener('mousedown', onDocClick)
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('mousedown', onDocClick)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [moreOpen])
 
   useEffect(() => {
     if (!ceshuId) return
@@ -361,6 +341,7 @@ export default function CeshuView({
   useEffect(() => () => {
     host.closeView(CESHU_VIEW_MOUNT)
     host.closeView(CESHU_CONTENT_MOUNT)
+    setCeshuEditorBridge(null)
   }, [host])
 
   if (!ceshuId) {
@@ -846,46 +827,19 @@ export default function CeshuView({
     onChanged()
   }
 
-  /**
-   * 「更多 ▸」菜单分组。骨架对齐 旧版 `editor_view:160-187` 的 `_more_menu` 顺序与分隔。
-   *
-   * **与 旧版 菜单仍有差异（E30 审计确认，非笔误）**：旧版 另有「档位切换（轻量 9 章 ↔
-   * 工业级 18 章）、更多模板、导出 AI 报告」三项，TS 侧**没有对应入口**（不是按钮失效，是真没有）。
-   *
-   * 「补全空白字段」已于 W0 收口：它原先只挂在 `ChecklistPanel` 的「一键修复」上，
-   * 该面板随字数 / 清单 / 字段依赖三项旁路报告一并移除后，能力改由本菜单承载
-   * （见下方 `ceshu-autofill`），否则 `ceshu:autoFill` 会变成没有 UI 入口的死通道。
-   *
-   * 每项 testid 保持与改造前平铺按钮**逐一同名**，既有 E2E 只需补一步展开即可继续命中。
+  /*
+   * 「更多 ▸」菜单（Slice 16）已迁到 ceshuMenusPlugin：结构与 18 条命令都在插件里，
+   * 工具栏由 `<MenuMount mount="ceshu.toolbar">` 渲染。这里只把「非视图类」动作注入桥
+   * （补全 / 完备度 / 变更记录 / 导出项目 / 导出交接包），供插件命令调用；卸载时清空（见上方 cleanup）。
+   * 注：注入在渲染期执行（handlers 在文档守卫之后定义，无法放进早退之前的 effect）。
    */
-  const moreMenuGroups: { testid: string; label: string; run: () => void }[][] = [
-    [
-      { testid: 'ceshu-derive', label: '派生新版本', run: () => openEditorView('derive.view') },
-      { testid: 'ceshu-ai-review', label: 'AI 审阅', run: () => openEditorView('aiReview.view') }
-    ],
-    [
-      { testid: 'ceshu-preset-market', label: '预设市场', run: () => openEditorView('presetMarket.view') },
-      { testid: 'ceshu-template-editor', label: '模板编辑器', run: () => openEditorView('templateEditor.view') }
-    ],
-    [
-      { testid: 'ceshu-route', label: '开发路线', run: () => openEditorView('route.view') },
-      { testid: 'ceshu-health', label: '开发体检', run: () => openEditorView('health.view') },
-      { testid: 'ceshu-readiness', label: '完备度', run: () => void handleReadiness() },
-      { testid: 'ceshu-autofill', label: '补全空白字段', run: () => void handleAutoFill() },
-      { testid: 'ceshu-diff', label: '版本对比', run: () => openEditorView('diff.view') },
-      { testid: 'ceshu-timeline', label: '版本时间线', run: () => openEditorView('timeline.view') },
-      { testid: 'ceshu-changelog', label: '变更记录', run: () => void handleShowChangelog() },
-      { testid: 'ceshu-datarefs', label: '数据引用', run: () => openEditorView('dataRefs.view') },
-      { testid: 'ceshu-migration-preview', label: '迁移预览（只读）', run: () => openEditorView('migration.view') },
-      { testid: 'ceshu-consume-prompt', label: 'AI 消费提示词', run: () => openEditorView('consume.view') },
-      { testid: 'ceshu-import-patch', label: '导入 AI 结果', run: () => openEditorView('import.view') },
-      { testid: 'ceshu-export-project', label: '导出项目文件夹', run: () => void handleExportProject() },
-      { testid: 'ceshu-export-handoff', label: '导出开发交接包', run: () => void handleExportHandoff() }
-    ],
-    // 「确认游戏系统」**不在菜单里**：旧版 无此菜单项，改为打开策划书时自动弹窗
-    // （见上方加载回调；条件 = 未确认过 且 已有启用系统）
-    [{ testid: 'ceshu-notes', label: '笔记', run: () => openEditorView('notes.view') }]
-  ]
+  setCeshuEditorBridge({
+    autoFill: () => void handleAutoFill(),
+    showReadiness: () => void handleReadiness(),
+    showChangelog: () => void handleShowChangelog(),
+    exportProject: () => void handleExportProject(),
+    exportHandoff: () => void handleExportHandoff()
+  })
 
   /**
    * 编辑器下发给内部视图的上下文（Slice 11–13）：文档 + 类型 + 版本切换 + 报告数据 +
@@ -998,47 +952,8 @@ export default function CeshuView({
         >
           AI 生成数据
         </button>
-        {/* 「更多 ▸」：对齐 旧版 `editor_view:154` —— 低频/高级功能收进下拉，
-            工具栏只留高频操作（返回/保存/校验/AI/导出），避免「一屏 19 个按钮」的操作带过载
-            （正是 docs/ux-simplification-plan.md 的 P3「操作带过多，层级重叠」） */}
-        <div className="toolbar-more" ref={moreRef}>
-          <button
-            type="button"
-            className="btn accent-outline"
-            data-testid="ceshu-more"
-            disabled={busy}
-            aria-haspopup="menu"
-            aria-expanded={moreOpen}
-            onClick={() => setMoreOpen((open) => !open)}
-          >
-            更多
-            <LucideIcon name="chevron-down" size={14} />
-          </button>
-          {moreOpen && (
-            <div className="toolbar-more-menu" role="menu" data-testid="ceshu-more-menu">
-              {moreMenuGroups.map((group, groupIndex) => (
-                <div className="toolbar-more-group" key={groupIndex}>
-                  {group.map((item) => (
-                    <button
-                      key={item.testid}
-                      type="button"
-                      role="menuitem"
-                      className="toolbar-more-item"
-                      data-testid={item.testid}
-                      disabled={busy}
-                      onClick={() => {
-                        setMoreOpen(false)
-                        item.run()
-                      }}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        {/* 「更多 ▸」菜单（Slice 16）：结构与动作由 ceshuMenusPlugin 声明，MenuMount 在此渲染 */}
+        <MenuMount host={host} mount="ceshu.toolbar" busy={busy} />
         <select
           className="form-select export-format"
           data-testid="export-format"
