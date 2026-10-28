@@ -125,6 +125,7 @@ App.renderPanel()
 | Slice 11 | **编辑器内视图** → `view` 能力 + 挂载点：`ViewMount` 在 CeshuView 内部渲染（编辑器不卸载），开发路线 / 体检 / 影响面迁出 CeshuView 的本地 state 与内联渲染 | ✅ 完成（3 个只读浮层） |
 | Slice 12 | **内容槽** → `ceshu.content` 挂载点：版本对比 / 时间线（**替换内容区**、非叠浮层）迁出 `panel` 三元链；`CeshuViewContext` 扩 `types`/`onSelect` | ✅ 完成（2 个内容视图） |
 | Slice 13 | **11 个 `panel` 变体全迁内容槽**（报告 / 笔记 / 数据引用 / AI 三件 / 预设市场 / 系统确认 / 模板编辑器）；`CeshuViewContext` 扩报告数据 + 应用/导出/跳转动作；`panel` 状态与整条三元链**彻底删除** | ✅ 完成（`panel` 三元链归零） |
+| Slice 14 | **4 个内联浮层抽成独立组件**（迁移 / 消费提示词 / 全局审阅队列 / 导入 AI 结果）→ `EditorOverlays.tsx`；上下文增 busy/迁移/审阅/导入动作 | ✅ 完成（20 view；仅剩 derive/modulePicker 两个内联气泡保持原样） |
 
 ---
 
@@ -373,11 +374,9 @@ manifest（`utility-panels` 8 个面板、`data-panels` 3 个面板），这是 
 ### 9.4 后续可选（都不阻塞当前架构）
 
 1. ~~`MenuBar` 从 `host.commands()` 生成菜单项~~ → **Slice 9 已完成**（`menu` 能力 + `MenuBar` 从 `host.menus()` 渲染）。
-2. **`CeshuView` 内部面板**：**全部 11 个 `panel` 变体已迁完**（Slice 13，内容槽），`panel` 状态与整条三元链已**彻底删除**。
-   仅剩 6 个**内联浮层**（它们不是 `panel`，而是编辑器默认内容里的内联 JSX / 组件）：
-   review / migration / import / consume（内联 `review-overlay`）+ derive（内联弹层）/ modulePicker（内联气泡）。
-   这些的 state / handler 天然属编辑器局部，抽成插件视图只增加间接层而不解耦；`derive` / `modulePicker`
-   还会改变定位（从内联变成居中浮层）。**建议保持内联**——真正可复用的「面板」已经全部插件化。
+2. **`CeshuView` 内部面板**：**11 个 `panel` 变体（Slice 13）+ 4 个内联浮层（Slice 14：审阅/迁移/导入/消费提示词）已全部迁完**。
+   仅剩 2 个**内联弹层/气泡**：`derive`（派生新版本的小弹层，贴工具栏）+ `modulePicker`（系统模块勾选气泡，贴章节列表）。
+   它们不是浮层、定位依附具体控件，抽成视图会改变定位 → **保持内联**。真正可复用的「面板/浮层」已 **100% 插件化（20 view）**。
 3. ~~`Sidebar` 数据驱动~~ → **Slice 10 已完成**（`sidebar` 能力 + `navigationPlugin`，App 的 `SIDEBAR_ITEMS` 常量删除）。
 4. **插件市场 / `source` 字段落地**：契约已留 `source`，尚未有安装流程。
 
@@ -413,6 +412,14 @@ Slice 4（8 个不依赖 App 状态的面板）：
 - `renderer/src/plugins/builtins.ts`（注册）
 - `renderer/src/App.tsx`（8 个 case → HostPanel，删 8 个直接 import）
 - `tests/unit/dom/utilityPanelsPlugin.test.tsx`（3 条：能力清单 / testid 保留 / 禁用后不再渲染）
+
+Slice 14（4 个内联浮层抽成独立组件）：
+- `renderer/src/components/ceshu/EditorOverlays.tsx`（新增；MigrationOverlay / ConsumePromptOverlay / ReviewQueueOverlay / ImportOverlay）
+- `renderer/src/components/ceshu/reviewQueueData.ts`（新增；`collectPendingReviewFields` 抽到共享模块）
+- `renderer/src/plugins/ceshuViewContext.tsx`（增 `busy` / `onRunMigration` / `onApproveAllPending` / `onFieldStatus` / `onApplyImport`）
+- `renderer/src/plugins/ceshuViewsPlugin.tsx`（+4 个浮层视图，共 20 view）
+- `renderer/src/components/CeshuView.tsx`（删 reviewOpen/importOpen/migrationOpen/consumeOpen 等 state、审阅键盘 effect、内联 JSX；`handleApplyImport`→`onApplyImport`；工具栏/菜单改 `openEditorView`）
+- `tests/unit/dom/ceshuViewsPlugin.test.tsx`（7 浮层 + 13 内容 + 20 绑定）
 
 Slice 13（11 个 `panel` 变体全迁内容槽）：
 - `renderer/src/plugins/ceshuViewContext.tsx`（扩 `gameName`/`currentChapter`/`changelog`/`validateErrors`/`readiness` + 应用/导出/跳转动作）
