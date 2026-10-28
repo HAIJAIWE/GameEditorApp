@@ -123,7 +123,8 @@ App.renderPanel()
 | Slice 9 | **菜单结构本身** → `menu` 能力：`MenuBar` 从 `host.menus()` 渲染，App 的 35 项 `MenuActions` 表删除 | ✅ 完成 |
 | Slice 10 | **侧栏结构本身** → `sidebar` 能力：`Sidebar` 消费 `PluginSidebarItem[]`，App 的 `SIDEBAR_ITEMS` 常量与 `handleSidebar` 三分支删除；`home`/`agent` 收编为 `nav.*` 命令 | ✅ 完成 |
 | Slice 11 | **编辑器内视图** → `view` 能力 + 挂载点：`ViewMount` 在 CeshuView 内部渲染（编辑器不卸载），开发路线 / 体检 / 影响面迁出 CeshuView 的本地 state 与内联渲染 | ✅ 完成（3 个只读浮层） |
-| Slice 12 | **内容槽** → `ceshu.content` 挂载点：版本对比 / 时间线（**替换内容区**、非叠浮层）迁出 `panel` 三元链；`CeshuViewContext` 扩 `types`/`onSelect` | ✅ 完成（2 个内容视图；`panel` 三元链剩 11） |
+| Slice 12 | **内容槽** → `ceshu.content` 挂载点：版本对比 / 时间线（**替换内容区**、非叠浮层）迁出 `panel` 三元链；`CeshuViewContext` 扩 `types`/`onSelect` | ✅ 完成（2 个内容视图） |
+| Slice 13 | **11 个 `panel` 变体全迁内容槽**（报告 / 笔记 / 数据引用 / AI 三件 / 预设市场 / 系统确认 / 模板编辑器）；`CeshuViewContext` 扩报告数据 + 应用/导出/跳转动作；`panel` 状态与整条三元链**彻底删除** | ✅ 完成（`panel` 三元链归零） |
 
 ---
 
@@ -372,11 +373,11 @@ manifest（`utility-panels` 8 个面板、`data-panels` 3 个面板），这是 
 ### 9.4 后续可选（都不阻塞当前架构）
 
 1. ~~`MenuBar` 从 `host.commands()` 生成菜单项~~ → **Slice 9 已完成**（`menu` 能力 + `MenuBar` 从 `host.menus()` 渲染）。
-2. **`CeshuView` 内部面板**：路线 / 体检 / 影响面（浮层，Slice 11）+ 版本对比 / 时间线（内容槽，Slice 12）已完成。
-   仍待处理：`panel` 三元链剩 **11 个**（AI 审阅 / AI 全文 / AI 数据生成 / 模板编辑器 / 笔记 / 数据引用 /
-   变更记录 / 完备度 / 校验 / 预设市场 / 系统确认），以及 6 个内联浮层（派生 / 审阅队列 / 迁移 / 导入 /
-   消费提示词 / 模块勾选）。它们强耦合编辑器的 handler 与 state，需逐个切片迁移。
-   注：`CeshuDataRefsPanel` 目前不接 `onClose`（无关闭入口），迁到内容槽前需先补关闭按钮。
+2. **`CeshuView` 内部面板**：**全部 11 个 `panel` 变体已迁完**（Slice 13，内容槽），`panel` 状态与整条三元链已**彻底删除**。
+   仅剩 6 个**内联浮层**（它们不是 `panel`，而是编辑器默认内容里的内联 JSX / 组件）：
+   review / migration / import / consume（内联 `review-overlay`）+ derive（内联弹层）/ modulePicker（内联气泡）。
+   这些的 state / handler 天然属编辑器局部，抽成插件视图只增加间接层而不解耦；`derive` / `modulePicker`
+   还会改变定位（从内联变成居中浮层）。**建议保持内联**——真正可复用的「面板」已经全部插件化。
 3. ~~`Sidebar` 数据驱动~~ → **Slice 10 已完成**（`sidebar` 能力 + `navigationPlugin`，App 的 `SIDEBAR_ITEMS` 常量删除）。
 4. **插件市场 / `source` 字段落地**：契约已留 `source`，尚未有安装流程。
 
@@ -412,6 +413,13 @@ Slice 4（8 个不依赖 App 状态的面板）：
 - `renderer/src/plugins/builtins.ts`（注册）
 - `renderer/src/App.tsx`（8 个 case → HostPanel，删 8 个直接 import）
 - `tests/unit/dom/utilityPanelsPlugin.test.tsx`（3 条：能力清单 / testid 保留 / 禁用后不再渲染）
+
+Slice 13（11 个 `panel` 变体全迁内容槽）：
+- `renderer/src/plugins/ceshuViewContext.tsx`（扩 `gameName`/`currentChapter`/`changelog`/`validateErrors`/`readiness` + 应用/导出/跳转动作）
+- `renderer/src/plugins/ceshuViewsPlugin.tsx`（+11 个内容视图 + 绑定，共 16 view）
+- `renderer/src/components/CeshuView.tsx`（删 `panel` 状态与整条三元链、删 `aiGenTarget`、删 9 个面板 import；`openEditorView` 上移；`viewContext` 统一下发）
+- `renderer/src/components/ceshu/CeshuDataRefsPanel.tsx`（增 `onClose`，内容槽需要关闭出口）
+- `tests/unit/dom/ceshuViewsPlugin.test.tsx`（13 内容视图 + 16 绑定）
 
 Slice 12（内容槽：版本对比 / 时间线）：
 - `renderer/src/plugins/ceshuViewContext.tsx`（`CeshuViewContextValue` 扩 `types` / `onSelect`；新增 `CESHU_CONTENT_MOUNT`）
