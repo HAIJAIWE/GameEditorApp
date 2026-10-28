@@ -39,7 +39,7 @@ import { toErrorMessage } from '../../../../shared/util/errors'
 import { AGENT_PRESETS, DEFAULT_PRESET_ID, presetLabel } from '../../../../shared/agent/presets'
 
 /**
- * 数字员工面板（A1-4）：对话气泡 + 流式文本 + 可折叠步骤 + 任务列表 + 危险操作审批模态。
+ * 智能体面板（A1-4）：对话气泡 + 流式文本 + 可折叠步骤 + 任务列表 + 危险操作审批模态。
  *
  * 行为全部在 `shared/agent/panel.ts` 的纯归约里（可单测），本组件只做：
  * 订阅主进程事件流 → dispatch、发送输入、回传审批决定、会话恢复入口。
@@ -189,6 +189,8 @@ export default function DigitalPanel({
   const api = useMemo(() => (window.mbApi as unknown as { agent: ChatApi }).agent, [])
   const tasks = useMemo(() => summarizeToolTasks(state.steps), [state.steps])
   const running = isRunning(state)
+  /** 是否已有对话（用于区分「开新对话」空态与「运行中/历史」态：预设在空态可选，之后只读） */
+  const hasConversation = state.messages.length > 0 || state.streaming !== ''
 
   /**
    * 工具视图 keyed slot（P2）：插件声明的 `toolView` 能力 → 渲染层绑定的 React 视图。
@@ -464,17 +466,7 @@ export default function DigitalPanel({
    */
   type CommandWithRun = DigitalCommand & { run: () => void }
   const COMMANDS: CommandWithRun[] = [
-    { id: 'new', label: '新建对话', hint: '清空当前记录，开始新对话', run: () => void handleNewChat() },
-    {
-      id: 'preset',
-      label: '切换预设',
-      hint: `当前：${presetLabel(preset)}；切到下一个`,
-      run: () => {
-        const index = AGENT_PRESETS.findIndex((option) => option.id === preset)
-        const next = AGENT_PRESETS[(index + 1) % AGENT_PRESETS.length]
-        if (next !== undefined) changePreset(next.id)
-      }
-    },
+    { id: 'new', label: '新建对话', hint: '清空当前记录，开始新对话（可重新选择智能体预设）', run: () => void handleNewChat() },
     {
       id: 'drafts',
       label: '草稿管理',
@@ -496,7 +488,7 @@ export default function DigitalPanel({
       id: 'help',
       label: '帮助',
       hint: '斜杠命令与发送方式',
-      run: () => setNotice('输入 / 打开命令；直接输入文字则发送给数字员工。')
+      run: () => setNotice('输入 / 打开命令；直接输入文字则发送给智能体。')
     }
   ]
   const { matches: commandMatches } = parseDigitalCommands(COMMANDS, input)
@@ -524,21 +516,18 @@ export default function DigitalPanel({
   return (
     <div className="digital-panel" data-testid="digital-panel">
       <div className="changelog-header">
-        <span className="chapter-form-title">🤖 数字员工</span>
-        {/* 智能体预设选择器（借 dsh ui-agent-preset）：开聊前锁定对话视角 */}
-        <select
-          className="form-input digital-preset"
-          data-testid="digital-preset"
-          value={preset}
-          title={`智能体预设：${presetLabel(preset)}`}
-          onChange={(event) => changePreset(event.target.value)}
-        >
-          {AGENT_PRESETS.map((option) => (
-            <option key={option.id} value={option.id}>
-              {option.label}
-            </option>
-          ))}
-        </select>
+        <span className="chapter-form-title">🤖 智能体</span>
+        {/* 运行中/已有对话：预设只读显示（借 dsh AgentPresetLabel，会话级锁定）；
+            改预设请走「新建对话」——空态会重新出现预设选择（借 dsh AgentPresetSeat）。 */}
+        {hasConversation && (
+          <span
+            className="digital-preset-chip"
+            data-testid="digital-preset-chip"
+            title={`本对话的智能体预设：${presetLabel(preset)}（新建对话可更改）`}
+          >
+            {presetLabel(preset)}
+          </span>
+        )}
         <div className="editor-actions">
           <span className="item-meta" data-testid="digital-status">
             {STATUS_LABELS[state.status]}
@@ -652,8 +641,8 @@ export default function DigitalPanel({
               type="button"
               className="btn slim"
               data-testid="digital-capabilities"
-              title="查看 AI 能力清单（工具与风险等级）"
-              aria-label="查看 AI 能力清单（工具与风险等级）"
+              title="查看智能体能力清单（工具与风险等级）"
+              aria-label="查看智能体能力清单（工具与风险等级）"
               onClick={onOpenCapabilities}
             >
               <LucideIcon name="clipboard" size={14} />
@@ -713,7 +702,29 @@ export default function DigitalPanel({
           </div>
         )}
         {state.messages.length === 0 && state.streaming === '' && (
-          <div className="empty">描述你想做的事，我会调用工具完成（例如「列出所有角色数据」）。</div>
+          <>
+            {/* 开新对话入口（借 dsh AgentPresetSeat）：选预设 → 开聊后锁定为只读 */}
+            <div className="digital-preset-seat">
+              <label className="home-section-label" htmlFor="digital-preset">
+                选择智能体预设
+              </label>
+              <select
+                id="digital-preset"
+                className="form-input digital-preset"
+                data-testid="digital-preset"
+                value={preset}
+                title={`智能体预设：${presetLabel(preset)}`}
+                onChange={(event) => changePreset(event.target.value)}
+              >
+                {AGENT_PRESETS.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="empty">描述你想做的事，我会调用工具完成（例如「列出所有角色数据」）。</div>
+          </>
         )}
       </div>
 
@@ -926,7 +937,7 @@ export default function DigitalPanel({
           ref={inputRef}
           className="form-input"
           data-testid="digital-input"
-          placeholder="和数字员工说点什么…（/ 命令，@ 引用数据表）"
+          placeholder="和智能体说点什么…（/ 命令，@ 引用数据表）"
           value={input}
           disabled={running}
           onChange={(event) => {

@@ -41,7 +41,7 @@ const CLEARS_PARAMS_ON_OPEN = new Set(['typeEditor.panel', 'quickCreate.panel', 
  * 设计要点：
  * - **无左侧栏**：所有能力走顶部菜单栏；库选择与「设置 / 智能体 / AI」按钮挂在菜单栏右侧角部件。
  * - 中央是**单栈**：策划书首页 ↔ 策划书编辑器（编辑器内嵌数据预览面板且常驻），默认落在首页。
- * - 右侧 `.ai-dock` 为常驻数字员工停靠面板（单一实例）。
+ * - 右侧 `.ai-dock` 为常驻智能体停靠面板（单一实例）。
  * - 底部状态栏（版本 / 类型数 / 数据库路径 / 主题切换）常驻。
  */
 export default function App() {
@@ -150,7 +150,7 @@ export default function App() {
   }
 
   // 活跃库切换（A2-2）：主进程已重建全部 store，渲染层直接整页重载——
-  // 这样所有视图（策划书/属性系统/数字员工）都从新库重新拉取，无需逐处写刷新逻辑。
+  // 这样所有视图（策划书/属性系统/智能体）都从新库重新拉取，无需逐处写刷新逻辑。
   useEffect(() => {
     const library = (window.mbApi as unknown as { library?: { onChanged?: (h: (p: unknown) => void) => () => void } })
       .library

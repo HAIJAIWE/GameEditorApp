@@ -5086,6 +5086,35 @@ button.ref-row:hover {
   overflow: hidden;
 }
 
+/* 运行时只读预设标签（借 dsh AgentPresetLabel：会话级锁定，显示当前预设） */
+.digital-preset-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: calc(12px * var(--ui-font-scale));
+  font-weight: 600;
+  color: var(--text);
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+/* 开新对话入口的预设选择区（借 dsh AgentPresetSeat：选预设后才开聊） */
+.digital-preset-seat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+}
+
+.digital-preset-seat .form-input {
+  width: 100%;
+}
+
 /*
  * 停靠栏「当前字段」动作条（人机协作·右半环）。
  * 位于数字员工面板头部之下：无选中字段时是一行引导文案；有字段时是

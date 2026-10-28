@@ -106,7 +106,7 @@ describe('应用级动作插件（B 方案 Slice 8c 第一批）', () => {
 
     hostWithPlugin().commands().find((command) => command.id === 'app.focusAi')!.run()
 
-    expect(notified).toEqual(['AI 助手在右侧常驻；当前对话运行中，输入框暂不可用'])
+    expect(notified).toEqual(['智能体在右侧常驻；当前对话运行中，输入框暂不可用'])
   })
 
   it('notify 未注入时不抛错（宿主没接通道也要能跑）', () => {

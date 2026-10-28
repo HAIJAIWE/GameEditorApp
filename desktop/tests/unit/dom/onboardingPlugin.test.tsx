@@ -113,7 +113,7 @@ describe('快速入门：引导动作已命令化（B 方案 Slice 8d）', () =>
 
     expect(bridge.notices).toHaveLength(2)
     expect(bridge.notices[0]).toContain('当前库')
-    expect(bridge.notices[1]).toContain('AI 助手')
+    expect(bridge.notices[1]).toContain('智能体')
   })
 
   it('「去设计数据」：没有打开的策划书 → 提示 + 回首页', () => {

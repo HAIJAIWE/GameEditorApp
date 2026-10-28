@@ -123,8 +123,8 @@ export function defineOnboardingPlugin(host: PluginHost): PluginManifest {
       {
         kind: 'command',
         id: 'nav.ai',
-        label: 'AI 助手',
-        run: () => notify('AI 助手在界面右侧常驻栏，直接输入即可')
+        label: '智能体',
+        run: () => notify('智能体在界面右侧常驻栏，直接输入即可')
       },
       {
         kind: 'command',

@@ -81,7 +81,7 @@ describe('LLM_PROVIDER_PRESETS：baseUrl 对齐 旧版 api_config:35-100，模�
 
   it('ollama 默认模型是 qwen3:8b（DD-2），而非旧世代或推理模型', () => {
     expect(LLM_PROVIDER_PRESETS.ollama.models[0]).toBe('qwen3:8b')
-    // 推理模型无工具调用，不该被当默认（否则数字员工对话面会踩空）
+    // 推理模型无工具调用，不该被当默认（否则智能体对话面会踩空）
     expect(LLM_PROVIDER_PRESETS.ollama.models[0]).not.toContain('r1')
   })
 

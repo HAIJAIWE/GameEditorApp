@@ -155,7 +155,7 @@ describe('主导航插件（Slice 10：侧栏由插件声明）', () => {
     expect(host.activePanel()).toBeNull()
   })
 
-  it('nav.agent 聚焦数字员工输入框（可用时）', () => {
+  it('nav.agent 聚焦智能体输入框（可用时）', () => {
     const host = navHost()
     injectBridge()
 

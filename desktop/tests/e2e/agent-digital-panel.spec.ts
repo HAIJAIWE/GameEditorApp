@@ -7,7 +7,7 @@ import { expect, test } from '@playwright/test'
 import { launchApp, waitReady } from './helpers/app'
 
 /**
- * A1-4 数字员工面板端到端验收：
+ * A1-4 智能体面板端到端验收：
  * Ollama `/api/chat` 桩服务驱动一轮「思考 → 工具 → 结果」，断言
  * 对话气泡、流式文本、折叠步骤、任务列表与状态文案。
  *
@@ -132,7 +132,7 @@ async function startOllamaChatStub(options: StubOptions = {}): Promise<OllamaCha
   }
 }
 
-test('数字员工面板：桩服务驱动一轮「思考 → 工具 → 结果」并渲染步骤与任务', async () => {
+test('智能体面板：桩服务驱动一轮「思考 → 工具 → 结果」并渲染步骤与任务', async () => {
   // delayMs 让 `思考中…` 瞬态态可观测（否则零延迟桩会在首帧前跑完整轮，断言必竞态）
   const stub = await startOllamaChatStub({ delayMs: 600 })
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-agent-panel-e2e-'))
@@ -142,7 +142,7 @@ test('数字员工面板：桩服务驱动一轮「思考 → 工具 → 结果�
     const window = await app.firstWindow()
     await waitReady(window)
 
-    // 新 IA 下 AI 助手（数字员工）面板常驻右栏——`App.tsx` 的 `.ai-dock` 无条件渲染，
+    // 新 IA 下 AI 助手（智能体）面板常驻右栏——`App.tsx` 的 `.ai-dock` 无条件渲染，
     // 侧栏与 `mode-digital` 切换入口已随 IA 重写删除，故无需再点击进入。
     await expect(window.getByTestId('digital-panel')).toBeVisible()
     await expect(window.getByTestId('digital-status')).toHaveText('待命')
@@ -192,7 +192,7 @@ test('数字员工面板：桩服务驱动一轮「思考 → 工具 → 结果�
   }
 })
 
-test('数字员工面板：上一轮会话落盘后，重新启动可看到「恢复上次会话」提示并回填历史', async () => {
+test('智能体面板：上一轮会话落盘后，重新启动可看到「恢复上次会话」提示并回填历史', async () => {
   const stub = await startOllamaChatStub()
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-agent-panel-session-e2e-'))
   const launch = (): ReturnType<typeof launchApp> =>
@@ -234,7 +234,7 @@ test('数字员工面板：上一轮会话落盘后，重新启动可看到「�
   }
 })
 
-test('数字员工面板：运行中点「停止」→ 打断在途调用、给出诚实提示、不报成故障', async () => {
+test('智能体面板：运行中点「停止」→ 打断在途调用、给出诚实提示、不报成故障', async () => {
   /*
    * 首轮响应压后 5s：给「思考中…」留出稳定窗口，也保证点停止时请求**确实在途**
    * （改前 `wallClockMs` 只在轮次间检查，这种挂住的单次调用根本出不来）。
@@ -272,7 +272,7 @@ test('数字员工面板：运行中点「停止」→ 打断在途调用、给�
   }
 })
 
-test('数字员工面板：等待危险确认时点「停止」→ 立刻中止，不必等 120s 交互超时', async () => {
+test('智能体面板：等待危险确认时点「停止」→ 立刻中止，不必等 120s 交互超时', async () => {
   /*
    * 这条钉的是一个用户可感知的洞：取消只 abort 了 fetch，而「等用户点批准」不走 fetch。
    * 改前在「等待确认」态点停止**毫无反应** —— 得等 `DEFAULT_INTERACTION_TIMEOUT_MS`
@@ -358,7 +358,7 @@ async function runDangerousRound(decision: 'approve' | 'reject'): Promise<{
   }
 }
 
-test('数字员工面板：SYSTEM 级技能触发危险确认，拒绝后不执行代码', async () => {
+test('智能体面板：SYSTEM 级技能触发危险确认，拒绝后不执行代码', async () => {
   const { stepTexts } = await runDangerousRound('reject')
   const joined = stepTexts.join('\n')
   expect(joined).toContain('system.code')
@@ -367,7 +367,7 @@ test('数字员工面板：SYSTEM 级技能触发危险确认，拒绝后不执�
   expect(joined).not.toContain('执行成功')
 })
 
-test('数字员工面板：SYSTEM 级技能获批后在沙箱执行并回灌结果', async () => {
+test('智能体面板：SYSTEM 级技能获批后在沙箱执行并回灌结果', async () => {
   const { stepTexts } = await runDangerousRound('approve')
   const joined = stepTexts.join('\n')
   expect(joined).toContain('system.code')
@@ -375,7 +375,7 @@ test('数字员工面板：SYSTEM 级技能获批后在沙箱执行并回灌结�
   expect(joined).not.toContain('[STOP]')
 })
 
-test('数字员工面板：多问题提问逐题作答后一次性提交，答复按序号回灌', async () => {
+test('智能体面板：多问题提问逐题作答后一次性提交，答复按序号回灌', async () => {
   const stub = await startOllamaChatStub({
     toolName: 'tool.ask_user',
     toolArgs: {
@@ -426,7 +426,7 @@ test('数字员工面板：多问题提问逐题作答后一次性提交，答�
   }
 })
 
-test('数字员工面板：删除条目走「操作确认」交互，确认后真正删除', async () => {
+test('智能体面板：删除条目走「操作确认」交互，确认后真正删除', async () => {
   const stub = await startOllamaChatStub({
     toolName: 'system.game_data',
     toolArgs: { action: 'delete', data_type: 'role', name: '待删法师' },
@@ -473,7 +473,7 @@ test('数字员工面板：删除条目走「操作确认」交互，确认后�
   }
 })
 
-test('数字员工面板：ask_user 提问走「需要你澄清」交互，答复回灌为工具结果', async () => {
+test('智能体面板：ask_user 提问走「需要你澄清」交互，答复回灌为工具结果', async () => {
   const stub = await startOllamaChatStub({
     toolName: 'tool.ask_user',
     toolArgs: { action: 'ask', question: '用哪个职业？', options: ['战士', '法师'] },

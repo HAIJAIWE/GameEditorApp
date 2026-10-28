@@ -75,7 +75,7 @@ export class OllamaChatTransport implements BrainLlmTransport {
     const model = this.options.model ?? process.env['MB_OLLAMA_MODEL']
     if (model === undefined || model === '') {
       throw new Error(
-        '未指定本地模型：数字员工对话面读取的是环境变量 MB_OLLAMA_MODEL（或本机已拉取的默认模型），' +
+        '未指定本地模型：智能体对话面读取的是环境变量 MB_OLLAMA_MODEL（或本机已拉取的默认模型），' +
           '请先 ollama pull 拉取模型并设置该环境变量后重试（设置面板的「AI 模型服务」对本对话面不生效）'
       )
     }

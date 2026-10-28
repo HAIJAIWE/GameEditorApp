@@ -24,7 +24,7 @@ function focusDigitalInput(): void {
     input.focus()
     return
   }
-  notify('AI 助手在右侧常驻；当前对话运行中，输入框暂不可用')
+  notify('智能体在右侧常驻；当前对话运行中，输入框暂不可用')
 }
 
 /**
@@ -71,7 +71,7 @@ export function defineAppActionsPlugin(_host: PluginHost): PluginManifest {
         label: '开发者工具',
         run: viewAction('toggleDevTools')
       },
-      { kind: 'command', id: 'app.focusAi', label: 'AI 助手', run: focusDigitalInput },
+      { kind: 'command', id: 'app.focusAi', label: '智能体', run: focusDigitalInput },
       {
         kind: 'command',
         id: 'app.quit',

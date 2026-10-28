@@ -161,11 +161,11 @@ export default function MenuBar({ host }: MenuBarProps) {
           type="button"
           className="btn slim primary"
           data-testid="menubar-ai"
-          title="聚焦右侧 AI 对话输入框"
+          title="聚焦右侧智能体对话输入框"
           onClick={() => runCommand('app.focusAi')}
         >
           <LucideIcon name="bot" size={14} />
-          AI 助手
+          智能体
         </button>
       </div>
     </div>

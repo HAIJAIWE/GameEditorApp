@@ -8,7 +8,7 @@ import { notify, setHomeVisible } from './hostBridge'
  * 把 `App.tsx` 里那张写死的 `SIDEBAR_ITEMS` 常量搬到这里，改由 `sidebar` 能力声明。
  * 侧栏条目有三类动作，统一收编成「能力 id」语义：
  * - **home**：回策划书首页 = 命令 `nav.home`（`setHomeVisible(true)` + 关浮层）；
- * - **agent**：聚焦右侧数字员工输入框 = 命令 `nav.agent`（DOM focus 或提示）；
+ * - **agent**：聚焦右侧智能体输入框 = 命令 `nav.agent`（DOM focus 或提示）；
  * - **其余**：打开对应 panel 能力（如 `statistics.panel`），高亮靠 `item.panel===activePanel`。
  *
  * home/agent 之所以能收编成命令，是因为它们需要的界面能力（`setHomeVisible` / `notify`）
@@ -26,18 +26,18 @@ export function defineNavigationPlugin(host: PluginHost): PluginManifest {
     { key: 'stats', label: '统计', icon: '📊', panel: 'statistics.panel' },
     { key: 'settings', label: '设置', icon: '⚙', panel: 'settings.panel' },
     { key: 'about', label: '关于', icon: 'ℹ', panel: 'about.panel' },
-    { key: 'agent', label: '数字员工', icon: '🤖', command: 'nav.agent' }
+    { key: 'agent', label: '智能体', icon: '🤖', command: 'nav.agent' }
   ]
 
   return {
     id: 'navigation',
     name: 'navigation',
     version: '0.1.0',
-    description: '左侧主导航栏（侧栏条目由插件声明）+ 首页/数字员工导航命令',
+    description: '左侧主导航栏（侧栏条目由插件声明）+ 首页/智能体导航命令',
     meta: {
       label: '主导航',
       icon: '🧭',
-      description: '侧栏条目与首页/数字员工导航命令'
+      description: '侧栏条目与首页/智能体导航命令'
     },
     capabilities: [
       {
@@ -53,7 +53,7 @@ export function defineNavigationPlugin(host: PluginHost): PluginManifest {
       {
         kind: 'command',
         id: 'nav.agent',
-        label: '聚焦数字员工',
+        label: '聚焦智能体',
         // 与旧 handleSidebar 的 agent 分支一致：可用则聚焦输入框，否则提示
         run: () => {
           const input = document.querySelector<HTMLInputElement>('[data-testid="digital-input"]')
@@ -62,7 +62,7 @@ export function defineNavigationPlugin(host: PluginHost): PluginManifest {
             input.focus()
             return
           }
-          notify('AI 助手在右侧常驻；当前对话运行中，输入框暂不可用')
+          notify('智能体在右侧常驻；当前对话运行中，输入框暂不可用')
         }
       },
       {
