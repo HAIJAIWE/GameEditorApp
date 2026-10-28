@@ -67,6 +67,8 @@ dsh 的 UI 成熟在**两件事**：① **typed slot 组合**（父级声明扩�
 | **P2** | **非 React store** | `store` | 把数字员工状态从组件内 reducer 提到共享 observable（跨组件/跨面板可读） | 中 | 中：为子智能体面板/任务面板共享状态铺路 |
 | **P3** | **凭据遮挡** | `ui-secret-mask` | 发送前对用户文本里的疑似密钥打码 | 小 | 低 |
 
+> **已落地（Slice 38，2026-10-28）**：**P1 子智能体面板**——`BrainEvent` 增 `subagent_started`/`subagent_done`，面板状态增 `subagents[]`，渲染「子智能体（N）」列表（状态/结果摘要）。**「继续对话」入口未做**（需把运行中子智能体的 inbox 经 IPC 暴露给渲染层）。
+>
 > **已落地（Slice 37，2026-10-28）**：**P0 两项**——
 > ① 工具调用卡片 + 按工具视图（`system.code` 等宽块、`system.game_data`/`mcp.*` JSON 美化、其余纯文本）；
 > ② 轮次分组折叠（按 `step.order` 分轮，每轮可折叠；整体折叠与 token/耗时统计此前已有）。
