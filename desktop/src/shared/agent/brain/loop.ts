@@ -86,6 +86,8 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
   let requestSeq = 0
   const newRequestId = options.newRequestId ?? ((): string => `approval_${++requestSeq}`)
   const interactionTimeoutMs = options.interactionTimeoutMs ?? DEFAULT_INTERACTION_TIMEOUT_MS
+  // 审批策略（对齐 dsh）：ask=询问（无通道则拒绝）；never=确定性拒绝（无头模式）
+  const approvalPolicy = options.approvalPolicy ?? 'ask'
   const tools = options.tools ?? []
 
   const events: BrainEvent[] = []
@@ -604,6 +606,14 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
       const normalizedAction = fixParams(resolved, call.arguments).action
       const action = typeof normalizedAction === 'string' ? normalizedAction : ''
       if (runner.needsConfirmation(resolved, action)) {
+        // 审批策略 `never`（无头模式）：确定性拒绝，不发审批事件（对齐 dsh user-approval）。
+        if (approvalPolicy === 'never') {
+          const text = `[STOP] 审批策略为 never，已拒绝危险操作: ${resolved}`
+          results.push(text)
+          emit({ type: 'step_done', tool: resolved, result: text, success: false })
+          messages.push(buildToolMessage(call.id, resolved, text))
+          continue
+        }
         const requestId = newRequestId()
         emit({ type: 'approval_required', requestId, tool: resolved, action, params: call.arguments })
         let approved = false

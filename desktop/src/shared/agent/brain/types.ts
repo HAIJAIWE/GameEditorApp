@@ -120,6 +120,12 @@ export interface RunBrainLoopOptions {
   wallClockMs?: number
   /** 危险操作审批；未提供 → 一律视为未确认（拒绝） */
   requestApproval?: BrainApprover
+  /**
+   * 审批策略（对齐 dsh `user-approval`）：
+   * - `'ask'`（默认）：危险操作走 `requestApproval` 询问；无通道则拒绝（fail-closed）。
+   * - `'never'`：**确定性拒绝**所有危险操作，不发审批事件——CI / 无人值守的严格无头模式。
+   */
+  approvalPolicy?: 'ask' | 'never'
   /** 技能交互（确认/提问）答复通道；未提供 → 视为用户未确认/未答复 */
   requestInteraction?: BrainInteractionResponder
   /** 审批请求 id 生成器（默认进程内自增；测试可注入确定性实现） */

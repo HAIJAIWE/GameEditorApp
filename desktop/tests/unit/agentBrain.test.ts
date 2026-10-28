@@ -1397,3 +1397,33 @@ describe('子智能体（Slice 19）', () => {
     expect(toolMsg).toBeDefined()
   })
 })
+
+/* ---- 审批策略 never（无头模式，对齐 dsh user-approval） ---- */
+
+describe('审批策略 never（无头模式）', () => {
+  it('never：危险操作确定性拒绝，不询问、不发审批事件', async () => {
+    const transport = scripted([toolCall('c1', 'system.shell', { action: 'exec' }), FINAL])
+    const runner = makeRunner({ dangerous: () => true })
+    let approvalCalls = 0
+    const result = await runBrainLoop({
+      input: 'x',
+      systemPrompts: [],
+      transport,
+      runner,
+      approvalPolicy: 'never',
+      requestApproval: async () => {
+        approvalCalls += 1
+        return true
+      }
+    })
+
+    expect(approvalCalls).toBe(0) // never 不询问
+    expect(result.events.some((event) => event.type === 'approval_required')).toBe(false)
+    expect(
+      result.events.some(
+        (event) => event.type === 'step_done' && event.result.includes('审批策略为 never')
+      )
+    ).toBe(true)
+    expect(runner.executed).toHaveLength(0)
+  })
+})
