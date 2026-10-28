@@ -1,6 +1,6 @@
 # dsh UI 对照：成熟做法与本项目可改造项
 
-> 状态：**只读调研**（2026-10-28）。目的：在改数字员工/主界面 UI 之前，先看清 dsh 的 UI 架构，给出「抄什么、不抄什么、按什么顺序」。
+> 状态：**只读调研**（2026-10-28）。目的：在改智能体/主界面 UI 之前，先看清 dsh 的 UI 架构，给出「抄什么、不抄什么、按什么顺序」。
 > dsh 源码：`D:/GameEditorApp/deepseek-harness-master/deepseek-harness-master/packages/client/`（`ui-*` 系列）。
 > 本项目 UI：`desktop/src/renderer/src/components/digital/`（`DigitalPanel.tsx` 802 行 + `digitalPanelViews.tsx` + `ChatMarkdown.tsx`）。
 
@@ -9,7 +9,7 @@
 ## 0. 一句话结论
 
 dsh 的 UI 成熟在**两件事**：① **typed slot 组合**（父级声明扩展点、插件注册进去，类型推导 + 加载期冲突检测）；② **每关注点一个包**（聊天/工具/子智能体/审批/后台任务/输入触发各管一摊）。
-我们现在的数字员工是**一个大组件 + 扁平步骤列表**。最值得抄的不是它的框架，而是**「工具调用树 + 每工具自己的视图」**和**「轮次折叠 + token 用量」**这两条具体做法。
+我们现在的智能体是**一个大组件 + 扁平步骤列表**。最值得抄的不是它的框架，而是**「工具调用树 + 每工具自己的视图」**和**「轮次折叠 + token 用量」**这两条具体做法。
 
 ---
 
@@ -64,7 +64,7 @@ dsh 的 UI 成熟在**两件事**：① **typed slot 组合**（父级声明扩�
 | **P1** | **审批/提问卡片升级** | `ui-approval` / `ui-user-questions` | 审批卡片显示工具名/参数/风险档；提问支持多问题、选项式 | 小 | 中：现在已有，缺细节 |
 | **P2** | **输入触发（`/` 与 `@`）** | `ui-commands` / `ui-input-trigger` | `/` 触发命令（我们已有 command 系统）、`@` 引用会话/文件/技能 | 中 | 中：效率提升。**✅ Slice 41：`/` 已接通**（`parseDigitalCommands` + `DigitalCommandMenu`，↑↓/Enter/Esc；命令：新建/切换预设/草稿/能力/清空/帮助）。**✅ Slice 43：`@` 引用已接通**（`parseDigitalReferences` + `DigitalReferenceMenu`；首次 `@` 懒加载当前库数据表类型，选中插入 `@名称 `；`@名称 ` 带空格即收起菜单）。**边界**：只支持一个前置引用、且是「数据表名」提示而非后端硬引用 |
 | **P2** | **keyed slot 机制** | `ui-slots` | 在我们的 `PluginHost` 上加一个「keyed slot」能力：业务插件可注册「某工具的视图」，与现有 panel/view/menu/sidebar 并列 | 中 | 中：让工具视图可插件化，和现有插件体系一致。**✅ Slice 42：`toolView` 能力 + `pluginHost.toolViews()` + 渲染层 `registerToolViewBinding` 已接通**（`DigitalStepList` 按工具名解析，未命中回退内置） |
-| **P2** | **非 React store** | `store` | 把数字员工状态从组件内 reducer 提到共享 observable（跨组件/跨面板可读） | 中 | 中：为子智能体面板/任务面板共享状态铺路。**暂缓**：当前仅 `DigitalPanel` 一个消费者，提到全局 store 无实际收益、徒增跨组件同步风险；待出现第二个消费者再做 |
+| **P2** | **非 React store** | `store` | 把智能体状态从组件内 reducer 提到共享 observable（跨组件/跨面板可读） | 中 | 中：为子智能体面板/任务面板共享状态铺路。**暂缓**：当前仅 `DigitalPanel` 一个消费者，提到全局 store 无实际收益、徒增跨组件同步风险；待出现第二个消费者再做 |
 | **P3** | **凭据遮挡** | `ui-secret-mask` | 发送前对用户文本里的疑似密钥打码 | 小 | 低 |
 
 > **已落地（Slice 39，2026-10-28）**：**审批卡升级**——风险徽标（`resolveRiskLevel` → 只读/写数据/文件系统/网络/系统级，按档配色）+ 参数 `<details open>` 折叠 + 「拒绝回灌 [STOP]」说明。
@@ -90,7 +90,7 @@ dsh 的 UI 成熟在**两件事**：① **typed slot 组合**（父级声明扩�
 3. **P1 子智能体/后台任务面板**（两者可合成一个「任务」面板）。
 4. **P2 输入触发 + keyed slot**。
 
-> 每一片都要过四道闸 + e2e；P0 两片是「数字员工看起来是否专业」的分水岭。
+> 每一片都要过四道闸 + e2e；P0 两片是「智能体看起来是否专业」的分水岭。
 
 ---
 

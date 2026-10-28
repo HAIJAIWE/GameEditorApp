@@ -27,7 +27,7 @@ await window.mbApi.ceshu.saveChapter({
 |---|---|---|
 | `app` | `info` / `log` / `setWindowMode` | 应用信息、日志转发、窗口模式 |
 | `schema` | `list` / `save` / `suggestFieldIds` / `listFieldTemplates` / `getFieldTemplate` / `saveFieldTemplate` / `deleteFieldTemplate` | 数据类型与字段模板 |
-| `agent` | `listTools` / `executeTool` / `chat` / `respondApproval` / `respondInteraction` / `sessionInfo` / `sessionRestore` / `sessionClear` / `draftSave` / `draftList` / `draftLoad` / `feedback` / `onEvent` | 数字员工：工具、会话、草稿、审批、事件流 |
+| `agent` | `listTools` / `executeTool` / `chat` / `respondApproval` / `respondInteraction` / `sessionInfo` / `sessionRestore` / `sessionClear` / `draftSave` / `draftList` / `draftLoad` / `feedback` / `onEvent` | 智能体：工具、会话、草稿、审批、事件流 |
 | `attrSystem` | `get` / `save` / `exportGameConfig` / `exportJson` / `importJson` | 属性系统 |
 | `data` | `listItems` / `listAll` / `createItem` / `updateItem` / `deleteItem` / `batchUpdate` / `deleteMany` / `clearAll` / `undo` / `redo` / `undoState` / `references` / `importLegacy` / `exportLegacy` / `exportCsv` / `importCsv` / `exportExcel` / `importExcel` | 游戏数据 CRUD/搜索/导入导出/撤销重做 |
 | `engine` | `exportData` | 引擎代码导出（Lua/Unity/Unreal/Godot/Cocos2d） |

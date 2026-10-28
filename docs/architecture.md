@@ -50,7 +50,7 @@
 - `preload` + `ipc.ts`：`mbApi.ceshu.*` 与 `ceshu:*` 通道一一对应。
 - `renderer/src/components`：`CeshuHomePanel`（首页卡片）、`CeshuView`（编辑器，内嵌数据预览）、`ChapterForm`/`CeshuFieldControl`（schema 驱动表单）、`SystemsEditor`/`SystemConfirmPanel`、`AiFullGeneratePanel`/`AiFieldButton`/`AiReviewPanel`/`AiDataGenPanel`、`ChecklistPanel`/`VersionDiffPanel`/`VersionTimelinePanel`/`WordStatsPanel`/`FieldDepsPanel`/`ChapterNotesPanel`/`TemplateEditorPanel` 等。
 
-### 2. 智能体系统（数字员工）
+### 2. 智能体系统
 - `shared/agent/*`：纯逻辑 —— `brain`（推理循环）、`protocol`（工具协议/档位限量）、`prompts`、`budget`（token 预算与确认闸）、`qualityGate`（确定性评分门）、`session`/`memory`/`personalization`/`operationLog`/`observability`/`toolGroups`。
 - `main/agent/*`：运行时 —— `dispatcher`（技能调度）、`brainService`（循环编排）、`agentTransport`/`ollamaTransport`/`openAiTransport`（本地 Ollama / 云端 OpenAI 兼容双传输层，按 `resolveLlmTier` 档位路由）、`approvalBroker`（危险操作审批）、`memoryStore`/`sessionStore`/`preferenceStore`/`qualityJudge`/`operationRecorder`。
 - `main/agent/skills/*`：5 个技能 —— `askUserSkill`、`ceshuSkill`、`codeSkill`、`gameDataSkill`、`rollbackSkill`。
@@ -107,7 +107,7 @@ DataEditorTab 操作 → mbApi.data.createItem / updateItem / ...
 
 ## 主题与界面
 - 4 档主题（深/浅/暖调/暗夜），由 `shared/theme` + 渲染层 `loadTheme`/`applyTheme` 管理，持久化在 localStorage；状态栏一键快切深/浅。
-- 信息架构：无左侧栏，所有能力走顶部菜单栏；中央单栈（首页卡片 ↔ 编辑器），右侧常驻数字员工停靠栏，底部状态栏；其余能力以互斥浮层（overlay）承载。详见 [`ux-simplification-plan.md`](./ux-simplification-plan.md)。
+- 信息架构：无左侧栏，所有能力走顶部菜单栏；中央单栈（首页卡片 ↔ 编辑器），右侧常驻智能体停靠栏，底部状态栏；其余能力以互斥浮层（overlay）承载。详见 [`ux-simplification-plan.md`](./ux-simplification-plan.md)。
 
 ## 测试架构
 ```
