@@ -49,6 +49,9 @@ renderer/src/plugins/
   menusPlugin.ts           Slice 9：6 个 menu 能力（文件/编辑/工具/视图/设置/帮助），菜单结构由插件声明
   menuState.ts             菜单禁用态通道（disabledWhen → undo/redo 可用性，App 注入）
   navigationPlugin.tsx     Slice 10：1 个 sidebar 能力（8 条目）+ nav.home / nav.agent 命令，侧栏结构由插件声明
+  ceshuViewContext.tsx     Slice 11：编辑器向内部视图下发 { doc } 的上下文（+ CESHU_VIEW_MOUNT 常量）
+  ViewMount.tsx            Slice 11：视图挂载点渲染器（挂在 CeshuView 内部，编辑器不卸载）
+  ceshuViewsPlugin.tsx     Slice 11：3 个 view 能力（route/health/fieldImpact）挂 ceshu.overlay
 ```
 
 ### 2.1 契约（`types.ts`）
@@ -68,7 +71,8 @@ renderer/src/plugins/
     `disabledWhen` 只写**判定键**，状态由宿主注入——manifest 保持可序列化）
   - `sidebar`：`{ id, order, items }` 往宿主左侧主导航栏塞条目（`PluginSidebarItem` 二选一：
     `command` 执行命令 / `panel` 打开面板并高亮；`key` 作 E2E 锚点 `sidebar-<key>`）
-  - `view`：声明式视图
+  - `view`：`{ id, label, mount?, order?, ui }` 挂在宿主某个**挂载点**上的视图（如 `ceshu.overlay`）。
+    与 `panel` 的区别：`panel` 打开会**替换主区**（编辑器卸载）；`view` 挂在宿主内部、**编辑器不卸载**
 
 `UiNode`：`text | button | input | container`，完全可序列化，供非 React 宿主解析。
 
@@ -81,6 +85,8 @@ renderer/src/plugins/
 - `openPanel(id, params?)` / `closePanel()` / `activePanel()` / `subscribe(fn)`。
 - `menus()`：启用插件的 `menu` 能力，按 `order` 升序（同标题由 `MenuBar` 合并）。
 - `sidebarItems()`：合并启用插件的 `sidebar` 能力（按 `order` 升序拼接，`key` 去重，先到者为准）。
+- `views(mount)` / `openView(id, params?)` / `closeView(mount)` / `activeView(mount)` / `viewParams(id)` / `setViewParams(id, params)`：
+  **视图挂载点**通道（Slice 11）。按 `mount` 分区、同挂载点互斥；`disable` 时关闭该插件拥有的已打开视图。
 - `setPanelParams(id, params)` / `panelParams(id)`：面板**打开参数**通道（Slice 3，见 §5）。
 - `PluginPersistence`：启用/禁用覆写持久化接口（宿主注入，核心不碰 IO）；**只记录被显式禁用的 id**。
 
@@ -116,6 +122,7 @@ App.renderPanel()
 | Slice 8 | `MenuBar` 35 个菜单动作 → `command` 能力，App 不再持有动作清单 | ✅ 完成（8a 浮层塌缩 / 8b 导航 / 8c+8e 应用动作 / 8d 引导） |
 | Slice 9 | **菜单结构本身** → `menu` 能力：`MenuBar` 从 `host.menus()` 渲染，App 的 35 项 `MenuActions` 表删除 | ✅ 完成 |
 | Slice 10 | **侧栏结构本身** → `sidebar` 能力：`Sidebar` 消费 `PluginSidebarItem[]`，App 的 `SIDEBAR_ITEMS` 常量与 `handleSidebar` 三分支删除；`home`/`agent` 收编为 `nav.*` 命令 | ✅ 完成 |
+| Slice 11 | **编辑器内视图** → `view` 能力 + 挂载点：`ViewMount` 在 CeshuView 内部渲染（编辑器不卸载），开发路线 / 体检 / 影响面迁出 CeshuView 的本地 state 与内联渲染 | ✅ 完成（3 个只读浮层；13 变体 `panel` 三元链待后续） |
 
 ---
 
@@ -364,8 +371,9 @@ manifest（`utility-panels` 8 个面板、`data-panels` 3 个面板），这是 
 ### 9.4 后续可选（都不阻塞当前架构）
 
 1. ~~`MenuBar` 从 `host.commands()` 生成菜单项~~ → **Slice 9 已完成**（`menu` 能力 + `MenuBar` 从 `host.menus()` 渲染）。
-2. **`CeshuView` 内部面板**（报告 / 体检 / 路线 / 影响面）：不在本次范围（编辑器内视图，非浮层），
-   若要插件化需要新能力类型（如 `view` 的挂载点声明）。
+2. **`CeshuView` 内部面板**：路线 / 体检 / 影响面三个只读浮层 → **Slice 11 已完成**（`view` 能力 + 挂载点）。
+   仍待处理：CeshuView 里那个 13 变体的 `panel` 三元链（AI 审阅 / 版本对比 / 时间线 / 模板编辑器 / 笔记 /
+   数据引用 / 变更记录 / 完备度 / 校验…），它们强耦合编辑器的 handler 与 state，需逐个切片迁移。
 3. ~~`Sidebar` 数据驱动~~ → **Slice 10 已完成**（`sidebar` 能力 + `navigationPlugin`，App 的 `SIDEBAR_ITEMS` 常量删除）。
 4. **插件市场 / `source` 字段落地**：契约已留 `source`，尚未有安装流程。
 
@@ -401,6 +409,17 @@ Slice 4（8 个不依赖 App 状态的面板）：
 - `renderer/src/plugins/builtins.ts`（注册）
 - `renderer/src/App.tsx`（8 个 case → HostPanel，删 8 个直接 import）
 - `tests/unit/dom/utilityPanelsPlugin.test.tsx`（3 条：能力清单 / testid 保留 / 禁用后不再渲染）
+
+Slice 11（编辑器内视图插件化）：
+- `shared/plugin/types.ts`（`PluginViewCapability` 增 `mount?` / `order?`，注明 view 与 panel 的挂载语义差异）
+- `shared/plugin/host.ts`（视图状态：`activeViewByMount` + `viewParamsByView`；`views/openView/closeView/activeView/viewParams/setViewParams`；`disable` 关闭该插件的视图）
+- `renderer/src/plugins/ceshuViewContext.tsx`（新增；`{ doc }` 上下文 + `CESHU_VIEW_MOUNT` 常量）
+- `renderer/src/plugins/ViewMount.tsx`（新增；订阅 `activeView`/`viewParams`，渲染绑定并下发 doc 上下文）
+- `renderer/src/plugins/ceshuViewsPlugin.tsx`（新增；route/health/fieldImpact 三个 view + React 绑定）
+- `renderer/src/components/CeshuView.tsx`（删 `impactTarget`/`routeOpen`/`healthOpen` 与 3 个内联渲染；菜单与 onShowImpact 走 `openView`；渲染 `<ViewMount>`；卸载关视图；增 `host` prop）
+- `renderer/src/App.tsx`（CeshuView 传 `host={pluginHost}`）
+- `tests/unit/dom/ceshuViewsPlugin.test.tsx`（7 条：能力清单 / 绑定存在 / 互斥 / 未知抛错 / 渲染出现消失 / 影响面参数 / 禁用关闭）
+- `tests/unit/dom/ceshuView.behavior.test.tsx` / `ceshuView.artifact.test.tsx`（补 `host`）
 
 Slice 10（侧栏结构插件化）：
 - `shared/plugin/types.ts`（新增 `PluginSidebarCapability` / `PluginSidebarItem`，能力扩到六类）
