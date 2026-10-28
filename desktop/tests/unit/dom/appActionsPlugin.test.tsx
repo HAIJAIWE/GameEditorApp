@@ -2,7 +2,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { PluginHost } from '../../../src/shared/plugin/host'
-import { defineAppActionsPlugin, notify, setNotifier } from '../../../src/renderer/src/plugins/appActionsPlugin'
+import { defineAppActionsPlugin } from '../../../src/renderer/src/plugins/appActionsPlugin'
+import { notify, setHostUi } from '../../../src/renderer/src/plugins/hostBridge'
 import { installMbApi } from './render'
 
 let api: ReturnType<typeof installMbApi> | null = null
@@ -10,7 +11,7 @@ let api: ReturnType<typeof installMbApi> | null = null
 afterEach(() => {
   api?.restore()
   api = null
-  setNotifier(null)
+  setHostUi(null)
   document.body.innerHTML = ''
   vi.restoreAllMocks()
 })
@@ -45,7 +46,12 @@ describe('应用级动作插件（B 方案 Slice 8c 第一批）', () => {
 
   it('AI 焦点：输入框可用时聚焦，不弹提示', () => {
     const notified: string[] = []
-    setNotifier((message) => notified.push(message))
+    setHostUi({
+      notify: (message) => notified.push(message),
+      openPanel: () => undefined,
+      setHomeVisible: () => undefined,
+      getActiveCeshuId: () => null
+    })
     const input = document.createElement('input')
     input.setAttribute('data-testid', 'digital-input')
     // jsdom 没有实现 scrollIntoView（真实浏览器有），这里补个空实现
@@ -60,7 +66,12 @@ describe('应用级动作插件（B 方案 Slice 8c 第一批）', () => {
 
   it('AI 焦点：输入框缺失/禁用时经 notify 通道给提示（不静默失败）', () => {
     const notified: string[] = []
-    setNotifier((message) => notified.push(message))
+    setHostUi({
+      notify: (message) => notified.push(message),
+      openPanel: () => undefined,
+      setHomeVisible: () => undefined,
+      getActiveCeshuId: () => null
+    })
     const input = document.createElement('input')
     input.setAttribute('data-testid', 'digital-input')
     input.disabled = true

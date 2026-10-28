@@ -1,6 +1,6 @@
 # 插件架构与深层插件化迁移设计
 
-> 状态：进行中（B 方案，**23/23 浮层全部插件化，27/35 菜单动作转 command**；剩 8 个住在 App hooks 里的动作 + onboarding 的 8 个 action）。最后更新 2026-10-28。
+> 状态：进行中（B 方案，**23/23 浮层全部插件化、27/35 菜单动作 + 12/12 引导动作转 command**；只剩 8 个住在 App hooks 里的菜单动作）。最后更新 2026-10-28。
 > 本文是插件系统的权威设计文档，也是「深层插件化」跨会话的交接文档。
 > 相关代码：`desktop/src/shared/plugin/`、`desktop/src/renderer/src/plugins/`。
 
@@ -42,7 +42,8 @@ renderer/src/plugins/
   maintenancePanelsPlugin.tsx  Slice 6：依赖动作的面板 bundle（backup / clearAll）
   entryPanelsPlugin.tsx    Slice 7：带打开参数的面板 bundle（typeEditor / quickCreate / batch / importPreview）
   shellPanelsPlugin.tsx    Slice 8 前置：外壳面板（about 走参数 / plugins 自举）
-  onboardingPlugin.tsx     Slice 8a 收尾：快速入门（8 个 action 暂走 context，8d 转 command）
+  onboardingPlugin.tsx     快速入门 + 12 个 nav.* 引导命令（8d 后 App 不再持有分发逻辑）
+  hostBridge.ts            宿主 UI 桥：notify / openPanel（含守卫）/ setHomeVisible / getActiveCeshuId
   appActionsPlugin.ts      Slice 8c：应用级动作（窗口缩放/重载/DevTools/AI 焦点/退出）+ notify 通道
 ```
 
@@ -102,7 +103,7 @@ App.renderPanel()
 | Slice 5 | 只依赖 `types + handleJump` 的面板（高级搜索 / 关系图 / 属性图表，`data-panels` bundle） | ✅ 完成 |
 | Slice 6 | 依赖动作的面板（备份 refreshUndo / 清空 handleDataCleared）→ `maintenance-panels` bundle；`onboarding` 的 action 分发改归 Slice 8 | ✅ 完成 |
 | Slice 7 | 带打开参数的面板（类型编辑器 / 快速创建 / 批量编辑 / 导入预览）→ `entry-panels` bundle；App 里 4 份专用 state 全部删除 | ✅ 完成 |
-| Slice 8 | `MenuBar` 35 个菜单动作 → `command` 能力，App 不再持有动作清单 | 🔶 8a/8b（浮层塌缩 + 20 导航动作）✅、8c 第一批（7 个应用动作）✅；剩 8 个 hook 动作 + 8d 引导命令化 |
+| Slice 8 | `MenuBar` 35 个菜单动作 → `command` 能力，App 不再持有动作清单 | 🔶 8a/8b（浮层塌缩 + 20 导航动作）✅、8c 第一批（7 个应用动作）✅、8d（12 个引导命令）✅；剩 8 个 hook 动作 |
 
 ---
 
@@ -308,7 +309,9 @@ manifest（`utility-panels` 8 个面板、`data-panels` 3 个面板），这是 
     `setPanelParams(id, undefined)`，否则「上次从条目表单打开时选中的类型」会粘住下一次菜单打开。
 11. **绑定里用 hook 必须写具名函数组件**：内联箭头 `({onClose}) => { useAppContext() … }` 会被
     `react-hooks/rules-of-hooks` 判为「hook 不在组件内」。
-12. **词汇纪律**：策划书=章（阅读序）；交接包=卷 + 编号文档（开发序）。插件化文档不混用。
+12. **插件要发提示/做导航，走 `hostBridge`**（`notify` / `openPanel` / `setHomeVisible` / `getActiveCeshuId`）；
+    别自己 import App，也别在插件里复制守卫逻辑。注入的 effect 必须声明在 `openPanel` 之后。
+13. **词汇纪律**：策划书=章（阅读序）；交接包=卷 + 编号文档（开发序）。插件化文档不混用。
 13. **四道闸**（在 `desktop/`）：
    - `npx vitest run`
    - `npx tsc --noEmit -p tsconfig.node.json --composite false`（+ `tsconfig.web.json` + `tsconfig.test-dom.json`）
@@ -325,6 +328,7 @@ manifest（`utility-panels` 8 个面板、`data-panels` 3 个面板），这是 
 |---|---|---|
 | 浮层面板 | **23 / 23**（11 个插件，24 个 `panel` 能力，含 demo 示例） | — |
 | 菜单动作（35 个） | **27 / 35**（20 导航 + 7 应用动作） | **8**：文件 I/O 6 个（`useDataTransfer`）+ 撤销/重做 2 个（`useUndoRedo`） |
+| 快速入门引导动作（12 个 actionId） | **12 / 12**（`nav.*` command） | — |
 | 侧边栏（6 个面板入口） | ✅ 全部走 panel id | — |
 | 状态栏 / 顶栏按钮 | 部分（插件中心、AI、库切换仍在 App） | 约 5 个 |
 | 策划书子系统内部面板 | 0（**不在范围**：编辑器内视图，不是浮层） | — |
@@ -371,11 +375,23 @@ App 挂载时 `setNotifier(setNotice)` 注入。**理由**：插件命令跑在�
 这是一次独立重构（要动 `useAppActions.ts` 两个 hook 与 `MenuBar` 的 `canUndo/canRedo` 接线），
 不宜和「搬动作」混在一刀里。
 
-### 9.5 8d：引导动作命令化
+### 9.5 8d：引导动作命令化（已完成）
 
-`onboarding` 的 8 个 action（建角色/怪物/技能/装备、批量、看关系、去库、去类型、去数据、去策划书、看 AI）
-现在挂在 context 的 `handleOnboardingAction`（**过渡态**）。8d 把它们变成 `nav.*` command，
-`OnboardingPanel` 只发 command id，context 里那一项删除。
+`OnboardingPanel` 的 12 个 actionId 各对应一个 `nav.*` command，**App 的 `handleOnboardingAction` 已删除**，
+context 里那个过渡字段 `handleOnboardingAction` 也一并删掉。
+
+- `command.run()` 不带参数 ⇒ 4 个「创建某类型」动作把类型**烘进命令**（`nav.createRole` → `quickCreate.panel` + `{type:'role'}`）。
+- 导航类命令统一走 `hostBridge.openPanel`（= App 的 `openPanel`，**带守卫**），所以「schema 为空时快速创建只提示」
+  这类语义与菜单完全一致，插件里不必重写一遍。
+- 面板绑定拿到 actionId 后查 `COMMAND_BY_ACTION` 派发，然后 `onClose()`（原 App 每个分支都带 `setPanel(null)`）。
+
+**顺带解掉的耦合**：`hostBridge` 把「提示 / 打开浮层（含守卫）/ 首页开关 / 当前策划书 id」四件事统一成一条
+注入式通道（`setHostUi`），`appActionsPlugin` 原先自带的 `notify` 也并了进来——以后任何插件要发提示或做导航，
+都走这一个入口，不再各造一份。
+
+**新增的坑（已记入 §8）**：`setHostUi` 的注入 effect 必须放在 `openPanel` 之后声明，否则
+`react-hooks` 报「访问未声明变量」；`openPanel` 因为要进 effect 依赖，已包成 `useCallback`
+（同时把「引用无目标 → 改跳高级搜索」的自递归改成直接调宿主，否则包不了）。
 
 **最终验收**：`App.tsx` 里没有 `PANEL_TITLES` / `switch (panel)` / `handleOnboardingAction`；
 `MenuBar` 的 `actions` 只剩「按 id 查命令」；四道闸绿 + e2e 全过。
@@ -412,6 +428,13 @@ Slice 4（8 个不依赖 App 状态的面板）：
 - `renderer/src/plugins/builtins.ts`（注册）
 - `renderer/src/App.tsx`（8 个 case → HostPanel，删 8 个直接 import）
 - `tests/unit/dom/utilityPanelsPlugin.test.tsx`（3 条：能力清单 / testid 保留 / 禁用后不再渲染）
+
+Slice 8d（引导动作命令化）：
+- `renderer/src/plugins/onboardingPlugin.tsx`（12 个 `nav.*` command + `COMMAND_BY_ACTION` 派发表）
+- `renderer/src/plugins/hostBridge.ts`（新增；宿主 UI 桥）
+- `renderer/src/App.tsx`（注入桥；删 `handleOnboardingAction`；`openPanel` 包 `useCallback` 并去掉自递归）
+- `renderer/src/plugins/appContext.tsx`（删 `handleOnboardingAction` 过渡字段）
+- `tests/unit/dom/onboardingPlugin.test.tsx`（7 条：命令清单 / 创建类带类型 / 导航类走守卫 / 提示类 / 数据设计两分支 / 面板渲染）
 
 Slice 8c 第一批（7 个应用动作）：
 - `renderer/src/plugins/appActionsPlugin.ts`（新增；`app-actions` 纯 command 插件 + `notify/setNotifier` 通道）

@@ -1,22 +1,6 @@
 import type { PluginHost } from '../../../shared/plugin/host'
 import type { PluginManifest } from '../../../shared/plugin/types'
-
-/**
- * 宿主 UI 通道：让插件能发**顶部提示**，而不必反向依赖 App 组件。
- *
- * 为什么需要它：插件命令跑在纯模块里，拿不到 App 的 `setNotice`。而「点了没反应」比
- * 「提示一句」糟得多（如 AI 输入框被禁用时）。这里用模块级单例把宿主能力暴露出来，
- * App 挂载时注入实现——与 `pluginHost` 单例同一路数，不引入新的 context 依赖。
- */
-let notifyImpl: ((message: string) => void) | null = null
-
-export function setNotifier(fn: ((message: string) => void) | null): void {
-  notifyImpl = fn
-}
-
-export function notify(message: string): void {
-  notifyImpl?.(message)
-}
+import { notify } from './hostBridge'
 
 /** 右侧数字员工 dock 的输入框：`aiPanel` 命令把焦点送过去（不新开对话） */
 const DIGITAL_INPUT = '[data-testid="digital-input"]'

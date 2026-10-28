@@ -39,7 +39,6 @@ export function appContextValue(overrides: Partial<AppContextValue> = {}): AppCo
     refreshUndo: () => undefined,
     handleDataCleared: () => undefined,
     afterMutation: () => undefined,
-    handleOnboardingAction: () => undefined,
     ...overrides
   }
 }

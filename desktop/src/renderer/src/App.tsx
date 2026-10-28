@@ -21,7 +21,7 @@ import { useDataTransfer, useUndoRedo } from './hooks/useAppActions'
 import { toErrorMessage } from './appUtils'
 import { clampDockWidth, defaultDockWidth, loadAiDockWidth, saveAiDockWidth } from './dockWidth'
 import { pluginHost } from './plugins/builtins'
-import { setNotifier } from './plugins/appActionsPlugin'
+import { setHostUi } from './plugins/hostBridge'
 import { HostPanel } from './plugins/HostPanel'
 import { AppContextProvider } from './plugins/appContext'
 
@@ -77,15 +77,6 @@ export default function App() {
    */
   const subscribeHost = useCallback((onChange: () => void) => pluginHost.subscribe(onChange), [])
   const panelId = useSyncExternalStore(subscribeHost, () => pluginHost.activePanel()?.id ?? null)
-
-  /**
-   * 把「顶部提示」这条宿主能力交给插件通道（`plugins/appActionsPlugin.ts::notify`）。
-   * 插件命令跑在纯模块里，拿不到 `setNotice`；不注入的话，动作失败时用户只会看到「点了没反应」。
-   */
-  useEffect(() => {
-    setNotifier((message: string) => setNotice(message))
-    return () => setNotifier(null)
-  }, [])
 
   /**
    * 关闭浮层：宿主是单一来源，关也走宿主。
@@ -394,7 +385,7 @@ export default function App() {
    * - 需要「一个类型」才能工作的面板（快速创建 / 批量）无类型时只提示，不开空面板；
    * - 「数据关联预览」无目标时改引导去「高级搜索」（保证入口永不灰死）。
    */
-  const openPanel = (panel: string, params?: unknown): void => {
+  const openPanel = useCallback((panel: string, params?: unknown): void => {
     if ((panel === 'quickCreate.panel' || panel === 'batch.panel') && firstType === null) {
       setNotice('当前没有可用的数据类型（schema 为空），请先在「字段结构编辑器」中新增类型')
       return
@@ -405,7 +396,8 @@ export default function App() {
       pluginHost.panelParams('references.panel') === undefined
     ) {
       setNotice('请先在「高级搜索」中搜索并点击一条结果完成定位，随后即可查看其引用关系')
-      openPanel('advancedSearch.panel')
+      // 高级搜索没有守卫，直接走宿主（不自递归：递归会让 openPanel 无法包成 useCallback）
+      pluginHost.openPanel('advancedSearch.panel')
       return
     }
     // 菜单入口（无参数）= 默认上下文：清掉上次内部入口留下的一次性参数，避免「上次选的类型」粘住
@@ -423,7 +415,7 @@ export default function App() {
       // 插件被禁用时 host 会拒绝：给可理解的提示，而不是抛到用户脸上
       setNotice('该面板所属插件未启用，可在「插件中心」重新启用')
     }
-  }
+  }, [firstType, info, setNotice])
 
   /**
    * 派发插件命令（Slice 8b）：菜单里「纯导航」类动作不再自己 `setPanel`，改调插件声明的
@@ -442,68 +434,24 @@ export default function App() {
   }
 
   /**
-   * 「快速入门」面板派发的动作 → App 级导航（对齐 旧版 `HomeWidget.action_triggered`
-   * 到各主窗口 handler 的映射）。
-   *
-   * 有意省略 旧版 数据概览头的「⚙ 管理显示类型」：它唯一的消费者 `TypeVisibilityPanel`
-   * 在 TS 已随侧栏刻意下线（见下方 renderPanel 注释），旧版 亦无等价物 —— 宁缺勿错。
-   * 「查看关联」对齐 旧版 `main_window:1200`（`view_relations` → `_show_relation_graph()`），
-   * 打开**关系图**面板（自带类型/主体选择器，无需先定位目标条目）。
+   * 把界面级能力交给插件桥（`plugins/hostBridge.ts`）：提示 / 打开浮层（含守卫）/ 首页开关 / 当前策划书 id。
+   * 插件命令跑在纯模块里拿不到这些；不注入的话，导航类命令只能留在 App 里，等于没插件化。
+   * 放在 `openPanel` 之后：它要引用 `openPanel`（含守卫），早声明会被 react-hooks 判「访问未声明变量」。
    */
-  const handleOnboardingAction = (actionId: string, dataType: string): void => {
-    switch (actionId) {
-      case 'create_role':
-      case 'create_monster':
-      case 'create_skill':
-      case 'create_equip':
-        // 目标类型作为打开参数交给宿主（Slice 7：App 不再持有 quickCreateTarget）
-        pluginHost.openPanel('quickCreate.panel', { type: dataType })
-        return
-      case 'batch_create':
-        // 复用 openPanel 对「无类型」的同一 guard 与文案（不另造提示）
-        if (firstType === null) {
-          setNotice('当前没有可用的数据类型（schema 为空），请先在「字段结构编辑器」中新增类型')
-        } else {
-          openPanel('batch.panel')
-        }
-        return
-      case 'view_relations':
-        // 对齐 旧版 `main_window:1200`：`view_relations` → `_show_relation_graph()`。
-        // 关系图面板自带类型/主体选择器，无需先定位目标条目（旧行为弹去高级搜索是偏差，已改正）。
-        openPanel('relationGraph.panel')
-        return
-      case 'onboarding_library':
-        setNotice('在界面右上角「当前库」处可切换或新建游戏库')
-        return
-      case 'onboarding_types':
-        // 走菜单同一入口：会先清掉预选类型，回到「第一个类型」
-        openPanel('typeEditor.panel')
-        return
-      case 'onboarding_data':
-        if (activeCeshuId === null) {
-          setNotice('请先打开一本策划书…')
-          setCeshuHomeVisible(true)
-          closePanel()
-        } else {
-          // 对齐 旧版 `_goto_data_design`：离开浮层、进入策划书编辑器的数据设计区
-          closePanel()
-          setCeshuHomeVisible(false)
-        }
-        return
-      case 'onboarding_ceshu':
-        closePanel()
-        setCeshuHomeVisible(true)
-        return
-      case 'onboarding_ai':
-        setNotice('AI 助手在界面右侧常驻栏，直接输入即可')
-        return
-      case 'stats':
-        openPanel('statistics.panel')
-        return
-      default:
-        return
-    }
-  }
+  useEffect(() => {
+    setHostUi({
+      notify: setNotice,
+      openPanel,
+      setHomeVisible: setCeshuHomeVisible,
+      getActiveCeshuId: () => activeCeshuId
+    })
+  }, [openPanel, activeCeshuId])
+  useEffect(() => () => setHostUi(null), [])
+
+  /*
+   * 注：原 `handleOnboardingAction`（12 个引导 action 的导航分发）已随 Slice 8d 删除——
+   * 它变成了 `onboardingPlugin` 里的 `nav.*` command，App 不再持有这段分发逻辑。
+   */
 
   /**
    * 引用/搜索跳转：切到策划书编辑器并下发跳转目标以定位条目
@@ -589,8 +537,7 @@ export default function App() {
     handleJump,
     refreshUndo,
     handleDataCleared,
-    afterMutation,
-    handleOnboardingAction
+    afterMutation
   }
 
   /**

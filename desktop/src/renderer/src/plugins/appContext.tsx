@@ -33,13 +33,6 @@ export interface AppContextValue {
    * 合并成这一个动作，避免每个面板都往 context 里塞一个同形回调。
    */
   afterMutation: (notice: string) => void
-  /**
-   * 「快速入门」卡片派发的动作 → App 级导航（8 个 action：建条目 / 批量 / 看关系 / 去某处）。
-   *
-   * ⚠️ **过渡态**：这本质是导航分发，最终应是一批 `nav.*` command（Slice 8d）。
-   * 放进 context 只是因为浮层渲染塌缩后 `onboarding` 必须成为插件，而命令通路还没接上。
-   */
-  handleOnboardingAction: (actionId: string, dataType: string) => void
 }
 
 const AppContext = createContext<AppContextValue | null>(null)
