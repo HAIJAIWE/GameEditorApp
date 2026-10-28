@@ -50,8 +50,8 @@ renderer/src/plugins/
   menuState.ts             菜单禁用态通道（disabledWhen → undo/redo 可用性，App 注入）
   navigationPlugin.tsx     Slice 10：1 个 sidebar 能力（8 条目）+ nav.home / nav.agent 命令，侧栏结构由插件声明
   ceshuViewContext.tsx     Slice 11：编辑器向内部视图下发 { doc } 的上下文（+ CESHU_VIEW_MOUNT 常量）
-  ViewMount.tsx            Slice 11：视图挂载点渲染器（挂在 CeshuView 内部，编辑器不卸载）
-  ceshuViewsPlugin.tsx     Slice 11：3 个 view 能力（route/health/fieldImpact）挂 ceshu.overlay
+  ViewMount.tsx            Slice 11/12：视图挂载点渲染器（挂在 CeshuView 内部，编辑器不卸载；支持浮层与内容槽）
+  ceshuViewsPlugin.tsx     Slice 11/12：5 个 view（route/health/fieldImpact 浮层 + diff/timeline 内容槽）
 ```
 
 ### 2.1 契约（`types.ts`）
@@ -122,7 +122,8 @@ App.renderPanel()
 | Slice 8 | `MenuBar` 35 个菜单动作 → `command` 能力，App 不再持有动作清单 | ✅ 完成（8a 浮层塌缩 / 8b 导航 / 8c+8e 应用动作 / 8d 引导） |
 | Slice 9 | **菜单结构本身** → `menu` 能力：`MenuBar` 从 `host.menus()` 渲染，App 的 35 项 `MenuActions` 表删除 | ✅ 完成 |
 | Slice 10 | **侧栏结构本身** → `sidebar` 能力：`Sidebar` 消费 `PluginSidebarItem[]`，App 的 `SIDEBAR_ITEMS` 常量与 `handleSidebar` 三分支删除；`home`/`agent` 收编为 `nav.*` 命令 | ✅ 完成 |
-| Slice 11 | **编辑器内视图** → `view` 能力 + 挂载点：`ViewMount` 在 CeshuView 内部渲染（编辑器不卸载），开发路线 / 体检 / 影响面迁出 CeshuView 的本地 state 与内联渲染 | ✅ 完成（3 个只读浮层；13 变体 `panel` 三元链待后续） |
+| Slice 11 | **编辑器内视图** → `view` 能力 + 挂载点：`ViewMount` 在 CeshuView 内部渲染（编辑器不卸载），开发路线 / 体检 / 影响面迁出 CeshuView 的本地 state 与内联渲染 | ✅ 完成（3 个只读浮层） |
+| Slice 12 | **内容槽** → `ceshu.content` 挂载点：版本对比 / 时间线（**替换内容区**、非叠浮层）迁出 `panel` 三元链；`CeshuViewContext` 扩 `types`/`onSelect` | ✅ 完成（2 个内容视图；`panel` 三元链剩 11） |
 
 ---
 
@@ -371,9 +372,11 @@ manifest（`utility-panels` 8 个面板、`data-panels` 3 个面板），这是 
 ### 9.4 后续可选（都不阻塞当前架构）
 
 1. ~~`MenuBar` 从 `host.commands()` 生成菜单项~~ → **Slice 9 已完成**（`menu` 能力 + `MenuBar` 从 `host.menus()` 渲染）。
-2. **`CeshuView` 内部面板**：路线 / 体检 / 影响面三个只读浮层 → **Slice 11 已完成**（`view` 能力 + 挂载点）。
-   仍待处理：CeshuView 里那个 13 变体的 `panel` 三元链（AI 审阅 / 版本对比 / 时间线 / 模板编辑器 / 笔记 /
-   数据引用 / 变更记录 / 完备度 / 校验…），它们强耦合编辑器的 handler 与 state，需逐个切片迁移。
+2. **`CeshuView` 内部面板**：路线 / 体检 / 影响面（浮层，Slice 11）+ 版本对比 / 时间线（内容槽，Slice 12）已完成。
+   仍待处理：`panel` 三元链剩 **11 个**（AI 审阅 / AI 全文 / AI 数据生成 / 模板编辑器 / 笔记 / 数据引用 /
+   变更记录 / 完备度 / 校验 / 预设市场 / 系统确认），以及 6 个内联浮层（派生 / 审阅队列 / 迁移 / 导入 /
+   消费提示词 / 模块勾选）。它们强耦合编辑器的 handler 与 state，需逐个切片迁移。
+   注：`CeshuDataRefsPanel` 目前不接 `onClose`（无关闭入口），迁到内容槽前需先补关闭按钮。
 3. ~~`Sidebar` 数据驱动~~ → **Slice 10 已完成**（`sidebar` 能力 + `navigationPlugin`，App 的 `SIDEBAR_ITEMS` 常量删除）。
 4. **插件市场 / `source` 字段落地**：契约已留 `source`，尚未有安装流程。
 
@@ -409,6 +412,13 @@ Slice 4（8 个不依赖 App 状态的面板）：
 - `renderer/src/plugins/builtins.ts`（注册）
 - `renderer/src/App.tsx`（8 个 case → HostPanel，删 8 个直接 import）
 - `tests/unit/dom/utilityPanelsPlugin.test.tsx`（3 条：能力清单 / testid 保留 / 禁用后不再渲染）
+
+Slice 12（内容槽：版本对比 / 时间线）：
+- `renderer/src/plugins/ceshuViewContext.tsx`（`CeshuViewContextValue` 扩 `types` / `onSelect`；新增 `CESHU_CONTENT_MOUNT`）
+- `renderer/src/plugins/ViewMount.tsx`（props 由 `doc` 改为 `context: CeshuViewContextValue`）
+- `renderer/src/plugins/ceshuViewsPlugin.tsx`（新增 `diff.view` / `timeline.view`，挂 `ceshu.content`）
+- `renderer/src/components/CeshuView.tsx`（订阅 `contentViewId`；`.content` 三元链前置内容槽 ViewMount；删 diff/timeline 分支与 import、删 panel 联合两值；菜单改 `openEditorView`；卸载关两个挂载点）
+- `tests/unit/dom/ceshuViewsPlugin.test.tsx`（9 条：浮层 3 + 内容槽 2 + 绑定 + 互斥 + 渲染 + 禁用关闭）
 
 Slice 11（编辑器内视图插件化）：
 - `shared/plugin/types.ts`（`PluginViewCapability` 增 `mount?` / `order?`，注明 view 与 panel 的挂载语义差异）
