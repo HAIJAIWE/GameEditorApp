@@ -8,8 +8,10 @@ import CeshuDataRefsPanel from '../components/ceshu/CeshuDataRefsPanel'
 import { ChangelogPanel, ReadinessPanel, ValidatePanel } from '../components/ceshu/CeshuReportPanels'
 import {
   ConsumePromptOverlay,
+  DeriveOverlay,
   ImportOverlay,
   MigrationOverlay,
+  ModulePickerOverlay,
   ReviewQueueOverlay
 } from '../components/ceshu/EditorOverlays'
 import FieldImpactPanel from '../components/ceshu/FieldImpactPanel'
@@ -20,7 +22,13 @@ import SystemConfirmPanel from '../components/SystemConfirmPanel'
 import TemplateEditorPanel from '../components/TemplateEditorPanel'
 import VersionDiffPanel from '../components/VersionDiffPanel'
 import VersionTimelinePanel from '../components/VersionTimelinePanel'
-import { CESHU_CONTENT_MOUNT, CESHU_VIEW_MOUNT, useCeshuView } from './ceshuViewContext'
+import {
+  CESHU_CHAPTERNAV_MOUNT,
+  CESHU_CONTENT_MOUNT,
+  CESHU_TOOLBAR_MOUNT,
+  CESHU_VIEW_MOUNT,
+  useCeshuView
+} from './ceshuViewContext'
 import { registerReactBinding, type PanelBindingProps } from './reactBindings'
 
 /**
@@ -94,6 +102,14 @@ export function defineCeshuViewsPlugin(): PluginManifest {
         onClose={onClose}
       />
     )
+  }
+  function DeriveOverlayBound({ onClose }: PanelBindingProps) {
+    const { busy, onDerive } = useCeshuView()
+    return <DeriveOverlay busy={busy} onDerive={onDerive} onClose={onClose} />
+  }
+  function ModulePickerOverlayBound({ onClose }: PanelBindingProps) {
+    const { doc, onToggleModule } = useCeshuView()
+    return <ModulePickerOverlay doc={doc} onToggle={onToggleModule} onClose={onClose} />
   }
 
   /* ---------------- 内容槽挂载点（ceshu.content） ---------------- */
@@ -230,6 +246,8 @@ export function defineCeshuViewsPlugin(): PluginManifest {
   registerReactBinding('consume.view', ConsumePromptOverlayBound)
   registerReactBinding('review.view', ReviewQueueOverlayBound)
   registerReactBinding('import.view', ImportOverlayBound)
+  registerReactBinding('derive.view', DeriveOverlayBound)
+  registerReactBinding('modulePicker.view', ModulePickerOverlayBound)
   registerReactBinding('diff.view', DiffPanelBound)
   registerReactBinding('timeline.view', TimelinePanelBound)
   registerReactBinding('changelog.view', ChangelogPanelBound)
@@ -263,6 +281,9 @@ export function defineCeshuViewsPlugin(): PluginManifest {
       { kind: 'view', id: 'consume.view', label: 'AI 消费提示词', mount: CESHU_VIEW_MOUNT, order: 50, ui: { type: 'text', text: 'AI 消费提示词' } },
       { kind: 'view', id: 'review.view', label: '全局审阅队列', mount: CESHU_VIEW_MOUNT, order: 60, ui: { type: 'text', text: '全局审阅队列' } },
       { kind: 'view', id: 'import.view', label: '导入 AI 结果', mount: CESHU_VIEW_MOUNT, order: 70, ui: { type: 'text', text: '导入 AI 结果' } },
+      // 内联弹层 / 气泡挂载点（保持原有定位）
+      { kind: 'view', id: 'derive.view', label: '派生新版本', mount: CESHU_TOOLBAR_MOUNT, order: 10, ui: { type: 'text', text: '派生新版本' } },
+      { kind: 'view', id: 'modulePicker.view', label: '系统模块', mount: CESHU_CHAPTERNAV_MOUNT, order: 10, ui: { type: 'text', text: '系统模块' } },
       // 内容槽挂载点（替换编辑器内容区）
       { kind: 'view', id: 'diff.view', label: '版本对比', mount: CESHU_CONTENT_MOUNT, order: 10, ui: { type: 'text', text: '版本对比' } },
       { kind: 'view', id: 'timeline.view', label: '版本时间线', mount: CESHU_CONTENT_MOUNT, order: 20, ui: { type: 'text', text: '版本时间线' } },

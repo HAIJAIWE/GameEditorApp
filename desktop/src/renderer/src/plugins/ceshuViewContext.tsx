@@ -18,6 +18,10 @@ import type { DataTypeDef } from '../../../shared/types'
  */
 export const CESHU_VIEW_MOUNT = 'ceshu.overlay'
 export const CESHU_CONTENT_MOUNT = 'ceshu.content'
+/** 工具栏下的内联弹层（派生新版本）挂载点 */
+export const CESHU_TOOLBAR_MOUNT = 'ceshu.toolbar'
+/** 章节列表旁的内联气泡（系统模块勾选）挂载点 */
+export const CESHU_CHAPTERNAV_MOUNT = 'ceshu.chapterNav'
 
 export interface CeshuViewContextValue {
   /** 当前文档（活对象，随编辑更新） */
@@ -46,6 +50,10 @@ export interface CeshuViewContextValue {
   onFieldStatus: (chapter: ChapterKey, updates: Record<string, FieldReviewStatus>) => void
   /** 应用导入补丁（导入浮层的「应用」）；返回是否成功 */
   onApplyImport: (changed: CeshuPatchItem[]) => Promise<boolean>
+  /** 派生新版本（工具栏弹层的「确认派生」） */
+  onDerive: (note: string) => void
+  /** 勾选/取消系统模块（章节列表旁气泡） */
+  onToggleModule: (module: ChapterKey, enabled: boolean) => void
 
   /** 子面板把「应用后」的文档回传给编辑器（AI 生成 / 模板 / 预设 / 系统确认） */
   onAiApplied: (updated: CeshuDocument, chapters: readonly ChapterKey[]) => void

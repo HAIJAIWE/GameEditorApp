@@ -20,6 +20,7 @@ import {
 } from '../../../../shared/ceshuImportPatch'
 import { migrationSplitTitle, pendingSplitCount, planCeshuMigration } from '../../../../shared/ceshuMigrationPlan'
 import { REVIEW_QUEUE_KEY_HINT, resolveReviewQueueKey } from '../../reviewQueueKeys'
+import CeshuModulePicker from '../CeshuModulePicker'
 import { cursorAfterAccept } from './reviewQueueAdvance'
 import { collectPendingReviewFields } from './reviewQueueData'
 import { groupReviewQueue } from './reviewQueueGroups'
@@ -466,4 +467,42 @@ export function ImportOverlay({ doc, busy, onApplyImport, onJumpChapter, onClose
       </div>
     </div>
   )
+}
+
+/* ------------------------------ 派生新版本 ------------------------------ */
+
+export function DeriveOverlay({ busy, onDerive, onClose }: {
+  busy: boolean
+  onDerive: (note: string) => void
+  onClose: () => void
+}): ReactElement {
+  const [note, setNote] = useState('')
+  return (
+    <div className="derive-panel">
+      <span className="form-label">新版本说明（可留空）</span>
+      <input
+        className="form-input"
+        data-testid="derive-note"
+        value={note}
+        placeholder="本次迭代改了什么"
+        onChange={(event) => setNote(event.target.value)}
+      />
+      <button type="button" className="btn primary" data-testid="derive-confirm" disabled={busy} onClick={() => onDerive(note)}>
+        确认派生
+      </button>
+      <button type="button" className="btn" onClick={onClose}>
+        取消
+      </button>
+    </div>
+  )
+}
+
+/* ---------------------------- 系统模块勾选气泡 ---------------------------- */
+
+export function ModulePickerOverlay({ doc, onToggle, onClose }: {
+  doc: CeshuDocument
+  onToggle: (module: ChapterKey, enabled: boolean) => void
+  onClose: () => void
+}): ReactElement {
+  return <CeshuModulePicker doc={doc} onToggle={onToggle} onClose={onClose} />
 }

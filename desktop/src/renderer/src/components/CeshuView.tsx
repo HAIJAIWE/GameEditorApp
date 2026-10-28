@@ -45,7 +45,6 @@ import type { PluginHost } from '../../../shared/plugin/host'
 import type { DataTypeDef } from '../../../shared/types'
 
 import ChapterForm from './ChapterForm'
-import CeshuModulePicker from './CeshuModulePicker'
 import CeshuOverview from './CeshuOverview'
 import CeshuPrototypePanel from './CeshuPrototypePanel'
 import CeshuAgentPanel from './CeshuAgentPanel'
@@ -55,7 +54,13 @@ import CeshuDataPreview, { type PreviewJumpTarget } from './ceshu/CeshuDataPrevi
 import { collectPendingReviewFields } from './ceshu/reviewQueueData'
 import LucideIcon from './LucideIcon'
 import { ViewMount } from '../plugins/ViewMount'
-import { CESHU_CONTENT_MOUNT, CESHU_VIEW_MOUNT, type CeshuViewContextValue } from '../plugins/ceshuViewContext'
+import {
+  CESHU_CHAPTERNAV_MOUNT,
+  CESHU_CONTENT_MOUNT,
+  CESHU_TOOLBAR_MOUNT,
+  CESHU_VIEW_MOUNT,
+  type CeshuViewContextValue
+} from '../plugins/ceshuViewContext'
 import { toErrorMessage } from './ceshuViewUtils'
 
 /** 数据栏展开状态的 localStorage 键（`'0'` = 收起，其它/缺失 = 展开） */
@@ -137,8 +142,6 @@ export default function CeshuView({
   const [stageFilter, setStageFilter] = useState<CeshuStage | 'all'>('concept')
   /** 一页总览（2026 对齐）：把当前阶段压成一页只读摘要；默认仍是逐章编辑 */
   const [viewMode, setViewMode] = useState<'edit' | 'overview'>('edit')
-  /** 系统模块勾选面板是否展开 */
-  const [modulePickerOpen, setModulePickerOpen] = useState(false)
   /** 左栏产出物：设计文档 / 原型 / 数据 / 任务 */
   const [artifact, setArtifact] = useState<ArtifactKey>('doc')
   /*
@@ -152,8 +155,7 @@ export default function CeshuView({
   const [notice, setNotice] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [exportFormat, setExportFormat] = useState<CeshuExportFormat>('markdown')
-  const [deriveOpen, setDeriveOpen] = useState(false)
-  const [deriveNote, setDeriveNote] = useState('')
+  /* 派生新版本 / 系统模块勾选（Slice 15）：已抽成 EditorOverlays 组件，经内联挂载点渲染。 */
   /*
    * 内容型面板（Slice 12/13）：原来的 `panel` 状态 + 三元链已全部迁到插件 `view` 能力，
    * 挂在内容槽 `ceshu.content` 上由 `<ViewMount>` 渲染（打开走 `openEditorView`，见下）。
@@ -228,7 +230,7 @@ export default function CeshuView({
         setActiveChapter('meta')
         setError(null)
         host.closeView(CESHU_CONTENT_MOUNT)
-        setDeriveOpen(false)
+        host.closeView(CESHU_TOOLBAR_MOUNT)
         // 对齐 旧版 `ceshu_controller:66-71`：打开策划书时，若**尚未确认过系统**且
         // 已有启用系统，则自动弹出「确认游戏系统」对话框。
         // 注意在 promise 回调里 setState —— react-hooks v7 禁止 effect 体内同步 setState。
@@ -545,13 +547,12 @@ export default function CeshuView({
     }
   }
 
-  /** 派生新版本：复制当前版本内容，版本号自动递增，默认未激活 */
-  const handleDerive = async (): Promise<void> => {
+  /** 派生新版本：复制当前版本内容，版本号自动递增，默认未激活（派生弹层经上下文调用） */
+  const onDerive = async (note: string): Promise<void> => {
     await runBusy(
       async () => {
-        const created = await window.mbApi.ceshu.derive({ id: doc.ceshu_id, note: deriveNote })
-        setDeriveOpen(false)
-        setDeriveNote('')
+        const created = await window.mbApi.ceshu.derive({ id: doc.ceshu_id, note })
+        host.closeView(CESHU_TOOLBAR_MOUNT)
         setNotice(`已派生新版本 ${created.version_label}（默认未激活，可点「设为激活」）`)
         onChanged()
         onSelect(created.ceshu_id)
@@ -859,7 +860,7 @@ export default function CeshuView({
    */
   const moreMenuGroups: { testid: string; label: string; run: () => void }[][] = [
     [
-      { testid: 'ceshu-derive', label: '派生新版本', run: () => setDeriveOpen((open) => !open) },
+      { testid: 'ceshu-derive', label: '派生新版本', run: () => openEditorView('derive.view') },
       { testid: 'ceshu-ai-review', label: 'AI 审阅', run: () => openEditorView('aiReview.view') }
     ],
     [
@@ -904,6 +905,8 @@ export default function CeshuView({
     onApproveAllPending: handleApproveAllPending,
     onFieldStatus: handleFieldStatus,
     onApplyImport,
+    onDerive,
+    onToggleModule: handleToggleModule,
     onAiApplied: handleAiApplied,
     onTemplateApplied: handleTemplateApplied,
     onPresetApplied: handlePresetApplied,
@@ -1053,24 +1056,8 @@ export default function CeshuView({
         </button>
       </header>
 
-      {deriveOpen && (
-        <div className="derive-panel">
-          <span className="form-label">新版本说明（可留空）</span>
-          <input
-            className="form-input"
-            data-testid="derive-note"
-            value={deriveNote}
-            placeholder="本次迭代改了什么"
-            onChange={(event) => setDeriveNote(event.target.value)}
-          />
-          <button type="button" className="btn primary" data-testid="derive-confirm" disabled={busy} onClick={() => void handleDerive()}>
-            确认派生
-          </button>
-          <button type="button" className="btn" onClick={() => setDeriveOpen(false)}>
-            取消
-          </button>
-        </div>
-      )}
+      {/* 派生新版本内联弹层（Slice 15）：原位置挂载，定位不变 */}
+      <ViewMount host={host} mount={CESHU_TOOLBAR_MOUNT} context={viewContext} />
 
       {error && <div className="error-banner">{error}</div>}
       {notice && <div className="notice-banner">{notice}</div>}
@@ -1138,13 +1125,14 @@ export default function CeshuView({
               <button
                 type="button"
                 data-testid="module-picker-toggle"
-                className={`chapter-stage-btn module-picker-toggle${modulePickerOpen ? ' active' : ''}`}
+                className="chapter-stage-btn module-picker-toggle"
                 title="勾选要做的系统模块（通用底座恒有）"
-                onClick={() => setModulePickerOpen((open) => !open)}
+                onClick={() => openEditorView('modulePicker.view')}
               >
                 系统模块 {enabledModuleChapters(doc).length}/{MODULE_CHAPTERS.length}
               </button>
-              {modulePickerOpen && <CeshuModulePicker doc={doc} onToggle={handleToggleModule} />}
+              {/* 系统模块勾选气泡（Slice 15）：原位置挂载，定位不变 */}
+              <ViewMount host={host} mount={CESHU_CHAPTERNAV_MOUNT} context={viewContext} />
               <button
                 type="button"
                 data-testid="view-mode-toggle"

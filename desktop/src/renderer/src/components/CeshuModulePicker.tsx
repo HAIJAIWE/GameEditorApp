@@ -16,13 +16,22 @@ import {
 interface CeshuModulePickerProps {
   doc: CeshuDocument
   onToggle: (module: ChapterKey, enabled: boolean) => void
+  /** 关闭（Slice 15 起为内联气泡视图：没有它就关不掉）。省略 = 不画关闭按钮 */
+  onClose?: () => void
 }
 
-export default function CeshuModulePicker({ doc, onToggle }: CeshuModulePickerProps) {
+export default function CeshuModulePicker({ doc, onToggle, onClose }: CeshuModulePickerProps) {
   const enabled = new Set(enabledModuleChapters(doc))
 
   return (
     <div className="module-picker" data-testid="module-picker">
+      {onClose !== undefined && (
+        <div className="module-picker-actions">
+          <button type="button" className="btn slim" data-testid="module-picker-close" onClick={onClose}>
+            关闭
+          </button>
+        </div>
+      )}
       <div className="module-picker-core">
         <div className="module-picker-title">通用底座（恒有）</div>
         <div className="module-picker-chips">
