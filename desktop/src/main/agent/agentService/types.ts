@@ -9,6 +9,7 @@ import type {
   BrainInteractionResponder,
   BrainLlmTransport,
   BrainToolRunner,
+  SandboxPolicy,
   SubAgentProvider
 } from '../../../shared/agent/brain'
 import type { SkillExecutionContext } from '../../../shared/agent/protocol'
@@ -82,4 +83,6 @@ export interface AgentBrainServiceDeps {
    * 注入 CLI/远程 provider 即可把子任务交给外部后端（见 `subagentCli.ts`）。
    */
   subAgentProvider?: SubAgentProvider
+  /** 沙箱策略（缺省 `workspace-write`）；`read-only` 会拒绝外部 CLI 子智能体 */
+  sandboxPolicy?: SandboxPolicy
 }

@@ -47,8 +47,15 @@ export function createCliSubAgentProvider(options: CliSubAgentOptions): SubAgent
 
   return {
     id,
-    run: (task: SubAgentTask): Promise<SubAgentOutcome> =>
-      new Promise<SubAgentOutcome>((resolve) => {
+    run: (task: SubAgentTask): Promise<SubAgentOutcome> => {
+      // 沙箱：read-only 下不运行会写文件的外部 CLI（诚实边界：非 OS 级隔离）
+      if (task.sandboxPolicy === 'read-only') {
+        return Promise.resolve({
+          text: '[STOP] 沙箱策略 read-only：不运行外部 CLI 子智能体（可能写文件）',
+          success: false
+        })
+      }
+      return new Promise<SubAgentOutcome>((resolve) => {
         const args = [...(options.args ?? [])]
         if (inputMode === 'arg') args.push(task.task)
 
@@ -113,5 +120,6 @@ export function createCliSubAgentProvider(options: CliSubAgentOptions): SubAgent
 
         if (inputMode === 'stdin') child.stdin?.end(task.task)
       })
+    }
   }
 }

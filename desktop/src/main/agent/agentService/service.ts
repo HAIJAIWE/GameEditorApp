@@ -125,6 +125,8 @@ export class AgentBrainService {
       ...(this.deps.subAgentProvider !== undefined
         ? { subAgentProvider: this.deps.subAgentProvider }
         : {}),
+      // Slice 32：沙箱策略（read-only 会拒绝外部 CLI 子智能体）
+      ...(this.deps.sandboxPolicy !== undefined ? { sandboxPolicy: this.deps.sandboxPolicy } : {}),
       // 不显式兜底：让循环按档位取默认（云端 12 / 本地 6）。显式传值会盖掉 tier-aware 默认。
       ...(this.deps.maxTurns !== undefined ? { maxTurns: this.deps.maxTurns } : {}),
       ...(this.deps.maxToolCalls !== undefined ? { maxToolCalls: this.deps.maxToolCalls } : {}),

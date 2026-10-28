@@ -103,6 +103,8 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
   const approvalPolicy = options.approvalPolicy ?? 'ask'
   // 运行中收件箱（dsh inbox / Steer）：每轮开始前 drain 并注入为 user 消息
   const inbox = options.inbox ?? createInbox()
+  // 沙箱策略（对齐 dsh）：缺省 workspace-write（本项目 agent 本来就要写策划书/数据）
+  const sandboxPolicy = options.sandboxPolicy ?? 'workspace-write'
   const tools = options.tools ?? []
 
   const events: BrainEvent[] = []
@@ -315,7 +317,7 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
     const childInbox = createInbox()
     // 交给 provider 执行（默认进程内 spawn；外部后端只需实现 SubAgentProvider）
     const promise = subAgentProvider
-      .run({ task, depth: depth + 1, signal: controller.signal, inbox: childInbox })
+      .run({ task, depth: depth + 1, signal: controller.signal, inbox: childInbox, sandboxPolicy })
       .catch((error: unknown) => ({
         text: `子智能体执行失败：${error instanceof Error ? error.message : String(error)}`,
         success: false

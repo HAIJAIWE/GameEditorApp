@@ -9,6 +9,7 @@ import {
   SESSION_CONTENT_LIMIT,
   SESSION_MAX_MESSAGES,
   buildSessionSnapshot,
+  deriveTranscript,
   isSessionSnapshot,
   sessionInfoFromSnapshot,
   truncateSessionMessage
@@ -181,5 +182,33 @@ describe('事件日志 append-only（Slice 29）', () => {
     const store = new AgentSessionStore(makeDir())
     await store.recordEvents([], { sessionId: 's1' })
     expect(() => readFileSync(store.eventsFilePath, 'utf-8')).toThrow()
+  })
+})
+
+describe('事件日志回放（Slice 32）', () => {
+  it('readEvents 按 sessionId 过滤 + deriveTranscript 派生可读轨迹', async () => {
+    const store = new AgentSessionStore(makeDir())
+    await store.recordEvents(
+      [
+        { type: 'turn_stats', turn: 0 },
+        { type: 'step_done', tool: 'system.ceshu', result: '已保存' },
+        { type: 'done', text: '完成' }
+      ],
+      { sessionId: 's1' }
+    )
+    await store.recordEvents([{ type: 'done', text: '别的会话' }], { sessionId: 's2' })
+
+    const runs = store.readEvents('s1')
+    expect(runs).toHaveLength(1)
+    const transcript = deriveTranscript(runs)
+    expect(transcript).toContain('第 1 轮')
+    expect(transcript).toContain('工具 system.ceshu：已保存')
+    expect(transcript).toContain('最终答复：完成')
+    expect(transcript).not.toContain('别的会话')
+  })
+
+  it('readEvents 文件不存在 → 空数组（不抛）', () => {
+    const store = new AgentSessionStore(makeDir())
+    expect(store.readEvents('x')).toEqual([])
   })
 })

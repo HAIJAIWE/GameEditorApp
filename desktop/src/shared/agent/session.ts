@@ -165,3 +165,45 @@ export function buildDraftFile(
 export function draftSummaryOf(draft: DraftFile, path: string): DraftSummary {
   return { name: draft.name, time: draft.time, messageCount: draft.messages.length, path }
 }
+
+/**
+ * 从事件日志派生**可读轨迹**（回放用，Slice 32）。
+ *
+ * 输入是 `recordEvents` 落盘的 run 记录（`{ events: BrainEvent[] }`）。
+ * 输出是人能读的时间线：工具调用 / 最终答复 / 中止 / 轮次。
+ *
+ * 注意：这是**轨迹**，不是可恢复的消息历史——恢复仍走 `save()` 快照；
+ * 要从事件日志**派生完整历史**需要把 user/system/assistant 消息也记成事件（未做）。
+ */
+export function deriveTranscript(runs: readonly { events?: unknown }[]): string {
+  const lines: string[] = []
+  for (const run of runs) {
+    const events = Array.isArray(run.events) ? (run.events as unknown[]) : []
+    for (const raw of events) {
+      if (raw === null || typeof raw !== 'object') continue
+      const event = raw as {
+        type?: string
+        tool?: string
+        result?: string
+        text?: string
+        turn?: number
+        reason?: string
+      }
+      switch (event.type) {
+        case 'step_done':
+          lines.push(`- 工具 ${event.tool ?? '?'}：${event.result ?? ''}`)
+          break
+        case 'done':
+          lines.push(`- 最终答复：${event.text ?? ''}`)
+          break
+        case 'terminated':
+          lines.push(`- 中止（${event.reason ?? '未知'}）`)
+          break
+        case 'turn_stats':
+          lines.push(`- 第 ${(event.turn ?? 0) + 1} 轮`)
+          break
+      }
+    }
+  }
+  return lines.join('\n')
+}

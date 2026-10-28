@@ -146,6 +146,26 @@ export class AgentSessionStore {
   }
 
   /**
+   * 读取事件日志（回放/审计，Slice 32）：按 `sessionId` 过滤；文件不存在或坏行一律跳过（不抛）。
+   * 返回每条 run 记录 `{ type:'run_events', timestamp, sessionId?, events: BrainEvent[] }`。
+   */
+  readEvents(sessionId?: string): Array<Record<string, unknown>> {
+    const path = this.eventsFilePath
+    if (!existsSync(path)) return []
+    const out: Array<Record<string, unknown>> = []
+    for (const line of readFileSync(path, 'utf-8').split('\n')) {
+      if (line.trim() === '') continue
+      try {
+        const entry = JSON.parse(line) as Record<string, unknown>
+        if (sessionId === undefined || entry.sessionId === sessionId) out.push(entry)
+      } catch {
+        continue // 坏行跳过，不影响其余
+      }
+    }
+    return out
+  }
+
+  /**
    * 保存当前会话为草稿。
    *
    * **从磁盘上的活跃会话快照取数据**，不从渲染层传消息 ——

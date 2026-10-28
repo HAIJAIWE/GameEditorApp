@@ -149,7 +149,9 @@ export function buildStores(libDir: string): AppStores {
               ...(process.env.MB_SUBAGENT_CLI_INPUT === 'stdin' ? { inputMode: 'stdin' as const } : {})
             })
           }
-        : {})
+        : {}),
+      // Slice 32：沙箱策略（MB_SANDBOX_POLICY=read-only 时拒绝外部 CLI 子智能体）
+      ...(process.env.MB_SANDBOX_POLICY === 'read-only' ? { sandboxPolicy: 'read-only' as const } : {})
     }),
     agentSessionStore: sessionStore,
     agentPreferences: personalization.preferences,

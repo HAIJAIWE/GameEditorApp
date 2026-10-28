@@ -107,6 +107,16 @@ export interface BrainInbox {
   drain(): string[]
 }
 
+/**
+ * 沙箱策略（对齐 dsh `sandbox-policy`）：
+ * - `'workspace-write'`（本项目默认）：允许写工作区（策划书/数据/文件）；
+ * - `'read-only'`：只读——**禁止会写文件的外部后端**（如 CLI 子智能体），工具层按需自行遵守。
+ *
+ * 诚实说明：本项目没有 OS 级文件沙箱；`read-only` 的强制点目前是「拒绝外部 CLI 子智能体」，
+ * 而不是内核级隔离。真要做 OS 级隔离（Windows ACL / 容器）是另一件事。
+ */
+export type SandboxPolicy = 'read-only' | 'workspace-write'
+
 /** 子智能体任务（交给 provider 执行） */
 export interface SubAgentTask {
   task: string
@@ -115,6 +125,8 @@ export interface SubAgentTask {
   signal: AbortSignal
   /** 子级收件箱（进程内 provider 使用；外部 provider 可忽略） */
   inbox: BrainInbox
+  /** 沙箱策略：外部后端应据此拒绝写操作（CLI provider 在 read-only 下直接拒绝运行） */
+  sandboxPolicy: SandboxPolicy
 }
 
 /** 子智能体执行结果 */
@@ -170,6 +182,8 @@ export interface RunBrainLoopOptions {
   inbox?: BrainInbox
   /** 子智能体 provider（缺省=进程内 spawn）；注入自定义实现即可接外部后端 */
   subAgentProvider?: SubAgentProvider
+  /** 沙箱策略（缺省 `'workspace-write'`，本项目 agent 本来就要写策划书/数据） */
+  sandboxPolicy?: SandboxPolicy
   /**
    * 子智能体启动回调：拿到 `childId` 与该子循环的 `inbox`，可后续 `push` 消息
    * （即 dsh 的 `sendMessage` 对运行中子级的「插话」）。
