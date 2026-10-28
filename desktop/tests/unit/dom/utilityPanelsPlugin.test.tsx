@@ -6,7 +6,7 @@ import type { DataTypeDef } from '../../../src/shared/types'
 import { HostPanel } from '../../../src/renderer/src/plugins/HostPanel'
 import { AppContextProvider } from '../../../src/renderer/src/plugins/appContext'
 import { defineUtilityPanelsPlugin } from '../../../src/renderer/src/plugins/utilityPanelsPlugin'
-import { installMbApi, renderDom, type RenderResult } from './render'
+import { installMbApi, renderDom, type RenderResult, appContextValue } from './render'
 
 const TYPES: DataTypeDef[] = []
 
@@ -50,7 +50,7 @@ describe('零依赖工具面板经宿主渲染（B 方案 Slice 4 · bundle 形�
 
     view = await renderDom(
       <AppContextProvider
-        value={{ types: TYPES, setTypes: () => undefined, handleJump: () => undefined, refreshUndo: () => undefined }}
+        value={appContextValue({ types: TYPES })}
       >
         <HostPanel host={host} panelId="settings.panel" onClose={() => undefined} />
       </AppContextProvider>
@@ -67,7 +67,7 @@ describe('零依赖工具面板经宿主渲染（B 方案 Slice 4 · bundle 形�
 
     view = await renderDom(
       <AppContextProvider
-        value={{ types: TYPES, setTypes: () => undefined, handleJump: () => undefined, refreshUndo: () => undefined }}
+        value={appContextValue({ types: TYPES })}
       >
         <HostPanel host={host} panelId="settings.panel" onClose={() => undefined} />
       </AppContextProvider>

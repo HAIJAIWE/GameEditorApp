@@ -1,6 +1,6 @@
 # 插件架构与深层插件化迁移设计
 
-> 状态：进行中（B 方案，Slice 5/8 完成，11 个面板已迁）。最后更新 2026-10-28。
+> 状态：进行中（B 方案，Slice 6/8 完成，13 个面板已迁）。最后更新 2026-10-28。
 > 本文是插件系统的权威设计文档，也是「深层插件化」跨会话的交接文档。
 > 相关代码：`desktop/src/shared/plugin/`、`desktop/src/renderer/src/plugins/`。
 
@@ -39,6 +39,7 @@ renderer/src/plugins/
   referencesPlugin.tsx     Slice 3：带打开参数的面板迁移样例（宿主携带目标条目，见 §5）
   utilityPanelsPlugin.tsx  Slice 4：不依赖 App 状态的面板 bundle（8 个 panel 能力，见 §6 bundle 形态）
   dataPanelsPlugin.tsx     Slice 5：只依赖 types + handleJump 的面板 bundle（appContext 自供给）
+  maintenancePanelsPlugin.tsx  Slice 6：依赖动作的面板 bundle（backup / clearAll）
 ```
 
 ### 2.1 契约（`types.ts`）
@@ -95,7 +96,7 @@ App.renderPanel()
 | Slice 3 | `openPanel(id, params)` 承载面板打开参数；引用面板迁出 App 的 `refTarget` state | ✅ 完成 |
 | Slice 4 | 不依赖 App 状态的面板批迁（8 个，`utility-panels` bundle：5 零 props + 3 仅 onClose） | ✅ 完成 |
 | Slice 5 | 只依赖 `types + handleJump` 的面板（高级搜索 / 关系图 / 属性图表，`data-panels` bundle） | ✅ 完成 |
-| Slice 6 | 依赖回调的面板（备份 refreshUndo / 清空 handleDataCleared / 引导 action） | ⬜ 待做 |
+| Slice 6 | 依赖动作的面板（备份 refreshUndo / 清空 handleDataCleared）→ `maintenance-panels` bundle；`onboarding` 的 action 分发改归 Slice 8 | ✅ 完成 |
 | Slice 7 | 带打开参数的面板（类型编辑器 / 快速创建 / 批量编辑 / 导入预览） | ⬜ 待做 |
 | Slice 8 | `MenuBar` ~40 个菜单动作 → `command` 能力，App 不再持有动作清单 | ⬜ 待做 |
 
@@ -110,7 +111,8 @@ interface AppContextValue {
   types: DataTypeDef[]                                        // 当前类型定义（编辑态）
   setTypes: (next: DataTypeDef[]) => void                     // 字段结构编辑器保存回写
   handleJump: (type: string, itemId: string, name: string) => void  // 条目跳转
-  refreshUndo: () => void                                     // 撤销栈刷新
+  refreshUndo: () => void                                     // 撤销栈刷新（备份恢复后）
+  handleDataCleared: (deleted: number) => void                // 整库清空后的收尾（Slice 6 新增）
 }
 ```
 
@@ -229,9 +231,9 @@ function ReferencesPanelBound({ onClose, params }: PanelBindingProps) {
 | `attributeChart` | AttributeChartPanel | `types` | 中 | ✅ |
 | `relationGraph` | RelationGraphPanel | `types` + `handleJump` | 中 | ✅ |
 | `advancedSearch` | AdvancedSearchPanel | `types` + `handleJump` | 中 | ✅ |
-| `backup` | BackupPanel | `refreshUndo` | 中 | ⬜ |
-| `clearAll` | ClearAllPanel | `handleDataCleared` | 中 | ⬜ |
-| `onboarding` | OnboardingPanel | `types` + `handleOnboardingAction` | 中 | ⬜ |
+| `backup` | BackupPanel | `refreshUndo` | 中 | ✅ |
+| `clearAll` | ClearAllPanel | `handleDataCleared` | 中 | ✅ |
+| `onboarding` | OnboardingPanel | `types` + `handleOnboardingAction` | 中 | ⬜（归 Slice 8：action 分发改 command） |
 | `references` | ReferencesPanel | 打开参数（目标条目）+ `types` + `handleJump` | 高 | ✅ |
 | `typeEditor` | TypeEditorPanel | `typeEditorTarget` 参数 + `types` + `setTypes` | 高 | ⬜ |
 | `quickCreate` | QuickCreatePanel | `quickCreateTarget` 参数 + `types` | 高 | ⬜ |
@@ -296,25 +298,19 @@ manifest（`utility-panels` 8 个面板、`data-panels` 3 个面板），这是 
 
 ---
 
-## 9. 下一步（Slice 6 / 7 / 8）
+## 9. 下一步（Slice 7 / 8）
 
-**现状**：三件使能件（宿主渲染 / 共享状态 / 打开参数）已齐，**11 个面板已迁**（Slice 1/2/3/4/5）。
-App 的 `renderPanel()` 里「组件直连」只剩 7 个：`backup` / `clearAll` / `onboarding` /
-`typeEditor` / `quickCreate` / `batch` / `importPreview`。
+**现状**：三件使能件（宿主渲染 / 共享状态 / 打开参数）已齐，**13 个面板已迁**（Slice 1–6）。
+App 的 `renderPanel()` 里「组件直连」只剩 5 个：`onboarding` / `typeEditor` / `quickCreate` /
+`batch` / `importPreview`。
 
-**Slice 6 — 依赖回调的面板（3 个）**
+**Slice 6 收尾说明**：`backup` / `clearAll` 已迁（`maintenance-panels` bundle），
+`handleDataCleared` 已进 appContext。`onboarding` **刻意不迁**——它的 `handleOnboardingAction`
+是「8 个 action → 导航」的分发，本质属于 command 而不是共享状态；现在塞进 context 只是把耦合换个地方，
+留给 Slice 8 一并处理。同理，`clearAll` 的 `handleDataCleared` 与 `backup` 的 `refreshUndo`
+语义相近但**没有合并**：前者要重置整套视图（数据没了），后者只刷撤销可用性，合并会掩盖差异。
 
-| 面板 | 需要的动作 | 归属 |
-|---|---|---|
-| `backup` | `refreshUndo` | 已在 appContext，直接可用 |
-| `clearAll` | `handleDataCleared` | 需新增到 appContext（破坏性操作后的收尾） |
-| `onboarding` | `handleOnboardingAction`（8 个 action 的导航分发） | 需新增到 appContext，或改造成 command 派发 |
-
-- `clearAll` 的 `handleDataCleared` 与 `backup` 的 `refreshUndo` 语义相近（都是「数据被改过，刷新外部状态」），
-  可考虑合并成一个 `afterDataMutation()` 动作，避免 context 里堆同义项。
-- `onboarding` 的 action 分发本质是「导航」——更适合走 Slice 8 的 command，而不是塞进 context。
-
-**Slice 7 — 带打开参数的面板（4 个）**：`typeEditor`（`initialTypeId`）/ `quickCreate`（目标类型）/
+**Slice 7 — 带打开参数的面板（4 个，下一步）**：`typeEditor`（`initialTypeId`）/ `quickCreate`（目标类型）/
 `batch`（`firstType`）/ `importPreview`（`previewId` + `preview`）。通路已由 Slice 3 打通，
 这 4 个是「照抄 referencesPlugin 的写法」，但要额外注意：
 - `importPreview` 的参数含**整份预览数据**（不是小对象），断言时校验 `previewId` 与 `preview` 同源，避免错配；
@@ -322,7 +318,8 @@ App 的 `renderPanel()` 里「组件直连」只剩 7 个：`backup` / `clearAll
 
 **Slice 8 — 菜单动作 → command（~40 个）**：`MenuBar` 的 `actions` 对象整块交给插件自供给，
 App 不再持有动作清单。这是最大一片，建议先把「纯导航类」（打开某面板）批量转成 command，
-再处理「有副作用的」（导入/导出/清空）。
+再处理「有副作用的」（导入/导出/清空）。`onboarding` 的 8 个 action 在这里一并转成 command
+（届时 `OnboardingPanel` 只发 command id，不再需要 `handleOnboardingAction` 回调）。
 
 **验收**：`renderPanel()` 的 switch 只剩 `default`；`MenuBar` 的 actions 由 `host.commands()` 生成；四道闸绿。
 
@@ -360,6 +357,13 @@ Slice 4（8 个不依赖 App 状态的面板）：
 - `renderer/src/plugins/builtins.ts`（注册）
 - `renderer/src/App.tsx`（8 个 case → HostPanel，删 8 个直接 import）
 - `tests/unit/dom/utilityPanelsPlugin.test.tsx`（3 条：能力清单 / testid 保留 / 禁用后不再渲染）
+
+Slice 6（2 个依赖动作的面板）：
+- `renderer/src/plugins/maintenancePanelsPlugin.tsx`（新增；`maintenance-panels` bundle）
+- `renderer/src/plugins/appContext.tsx`（`AppContextValue` 加 `handleDataCleared`）
+- `renderer/src/plugins/builtins.ts` / `renderer/src/App.tsx`（注册 / 2 个 case → HostPanel / context 值补字段）
+- `tests/unit/dom/render.tsx`（新增 `appContextValue()` 工厂：context 加字段只改一处，不再改一圈测试）
+- `tests/unit/dom/maintenancePanelsPlugin.test.tsx`（3 条：能力清单 / 清空走 context 动作 / 备份面板渲染）
 
 Slice 5（3 个只依赖共享状态的面板）：
 - `renderer/src/plugins/dataPanelsPlugin.tsx`（新增；`data-panels` bundle，绑定内 `useAppContext()`）

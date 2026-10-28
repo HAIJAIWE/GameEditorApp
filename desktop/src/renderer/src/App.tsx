@@ -7,11 +7,9 @@ import type { AppInfo, DataTypeDef, ImportPreview } from '../../shared/types'
 import { applyTheme, loadTheme, saveTheme, type ThemeMode } from '../../shared/config/theme'
 
 import AboutPanel from './components/AboutPanel'
-import BackupPanel from './components/BackupPanel'
 import BatchEditPanel from './components/BatchEditPanel'
 import ImportPreviewPanel from './components/ImportPreviewPanel'
 import CeshuHomePanel from './components/CeshuHomePanel'
-import ClearAllPanel from './components/ClearAllPanel'
 import BrowserPanel from './components/BrowserPanel'
 import CeshuView from './components/CeshuView'
 import CodePanel from './components/CodePanel'
@@ -591,7 +589,7 @@ export default function App() {
    * 面板用 `useAppContext()` 自行取用，不再由本组件逐个以 props 下发。
    * 刻意不 memo：`handleJump` 为普通函数每次渲染新建，memo 不会命中；面板数量少，重渲染可接受。
    */
-  const appContextValue = { types, setTypes, handleJump, refreshUndo }
+  const appContextValue = { types, setTypes, handleJump, refreshUndo, handleDataCleared }
 
   /** 渲染当前打开的浮层面板（互斥；面板 props 里来自已下线数据态的项一律给兜底值） */
   const renderPanel = (): ReactNode => {
@@ -617,7 +615,8 @@ export default function App() {
         // Slice 4 第二批：只依赖 onClose，绑定负责转发（utility-panels bundle）。
         return <HostPanel host={pluginHost} panelId="dataDiff.panel" onClose={() => setPanel(null)} />
       case 'backup':
-        return <BackupPanel onRestored={() => refreshUndo()} onClose={() => setPanel(null)} />
+        // Slice 6：动作经 appContext 自供给（maintenance-panels bundle）。
+        return <HostPanel host={pluginHost} panelId="backup.panel" onClose={() => setPanel(null)} />
       case 'imageGen':
         return <HostPanel host={pluginHost} panelId="imageGen.panel" onClose={() => setPanel(null)} />
       case 'gameDataPreview':
@@ -629,7 +628,7 @@ export default function App() {
       case 'about':
         return <AboutPanel version={info?.version ?? null} />
       case 'clearAll':
-        return <ClearAllPanel onCleared={handleDataCleared} />
+        return <HostPanel host={pluginHost} panelId="clearAll.panel" onClose={() => setPanel(null)} />
       case 'settings':
         return <HostPanel host={pluginHost} panelId="settings.panel" onClose={() => setPanel(null)} />
       case 'cleanupImages':

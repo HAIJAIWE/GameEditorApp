@@ -22,6 +22,11 @@ export interface AppContextValue {
   handleJump: (type: string, itemId: string, name: string) => void
   /** 触发撤销栈刷新（备份恢复等破坏性操作后） */
   refreshUndo: () => void
+  /**
+   * 整库数据被清空后的收尾（刷新数据版本 + 顶部提示 + 关浮层 + 刷撤销栈）。
+   * 与 `refreshUndo` 的区别：`refreshUndo` 只是「刷新撤销可用性」，这个是「数据没了，整套视图要重置」。
+   */
+  handleDataCleared: (deleted: number) => void
 }
 
 const AppContext = createContext<AppContextValue | null>(null)

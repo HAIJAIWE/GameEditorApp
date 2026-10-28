@@ -17,12 +17,30 @@ import { createRoot, type Root } from 'react-dom/client'
 
 import { createDefaultCeshu } from '../../../src/shared/ceshuModel'
 import type { CeshuDocument } from '../../../src/shared/ceshuConstants'
+import type { AppContextValue } from '../../../src/renderer/src/plugins/appContext'
 
 declare global {
   var IS_REACT_ACT_ENVIRONMENT: boolean | undefined
 }
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
+
+/**
+ * 面板测试用的 `AppContextValue`：默认全是空实现，按需覆盖。
+ *
+ * 为什么要有这个 helper：`AppContextValue` 会随插件化切片增长（Slice 6 加了 `handleDataCleared`），
+ * 若每个测试都手写完整字面量，加一个字段就要改一圈测试。新增字段只改这里。
+ */
+export function appContextValue(overrides: Partial<AppContextValue> = {}): AppContextValue {
+  return {
+    types: [],
+    setTypes: () => undefined,
+    handleJump: () => undefined,
+    refreshUndo: () => undefined,
+    handleDataCleared: () => undefined,
+    ...overrides
+  }
+}
 
 export interface RenderResult {
   container: HTMLDivElement

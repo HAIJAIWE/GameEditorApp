@@ -6,7 +6,7 @@ import type { DataTypeDef, ItemRecord } from '../../../src/shared/types'
 import { HostPanel } from '../../../src/renderer/src/plugins/HostPanel'
 import { AppContextProvider } from '../../../src/renderer/src/plugins/appContext'
 import { defineStatisticsPlugin } from '../../../src/renderer/src/plugins/statisticsPlugin'
-import { installMbApi, renderDom, type RenderResult } from './render'
+import { installMbApi, renderDom, type RenderResult, appContextValue } from './render'
 
 const TYPES: DataTypeDef[] = [
   { id: 'weapon', name: '武器', pluralKey: 'weapons', color: '#c00', formFields: [] }
@@ -35,7 +35,7 @@ describe('状态化面板经宿主渲染 + appContext 自供给（B 方案 Slice
 
     view = await renderDom(
       <AppContextProvider
-        value={{ types: TYPES, setTypes: () => undefined, handleJump: () => undefined, refreshUndo: () => undefined }}
+        value={appContextValue({ types: TYPES })}
       >
         <HostPanel host={host} panelId="statistics.panel" onClose={() => undefined} />
       </AppContextProvider>
