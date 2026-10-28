@@ -25,7 +25,7 @@ function parseCliArgs(raw: string | undefined): string[] {
 }
 
 /**
- * 构造子智能体 provider（Slice 31/33）：优先级 **远程 URL > CLI > 进程内 spawn**。
+ * 构造子智能体 provider（Slice 31/33/36）：优先级 **远程 URL > ACP > CLI > 进程内 spawn**。
  * 未配置任何 env ⇒ 返回空对象，循环沿用默认进程内 spawn。
  */
 function buildSubAgentProvider(): { subAgentProvider?: SubAgentProvider } {
@@ -36,6 +36,16 @@ function buildSubAgentProvider(): { subAgentProvider?: SubAgentProvider } {
       subAgentProvider: createRemoteSubAgentProvider({
         url: remoteUrl,
         ...(token !== undefined && token !== '' ? { headers: { authorization: `Bearer ${token}` } } : {})
+      })
+    }
+  }
+  const acp = process.env.MB_SUBAGENT_ACP?.trim()
+  if (acp !== undefined && acp !== '') {
+    return {
+      subAgentProvider: createAcpSubAgentProvider({
+        command: acp,
+        args: parseCliArgs(process.env.MB_SUBAGENT_ACP_ARGS),
+        ...(process.env.MB_SUBAGENT_ACP_PERMISSION === 'allow' ? { permission: 'allow' as const } : {})
       })
     }
   }
@@ -60,6 +70,7 @@ import { createRollbackSkill } from './agent/skills/rollbackSkill'
 import { createSubAgentSkill } from './agent/skills/subAgentSkill'
 import { createCliSubAgentProvider } from './agent/subagentCli'
 import { createRemoteSubAgentProvider } from './agent/subagentRemote'
+import { createAcpSubAgentProvider } from './agent/subagentAcp'
 import type { SubAgentProvider } from '../shared/agent/brain'
 import { mcpManager } from './agent/mcp/manager'
 import { AgentMemoryStore } from './agent/memoryStore'
