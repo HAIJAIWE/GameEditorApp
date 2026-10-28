@@ -185,12 +185,23 @@ export interface BrainRunResult {
   verdict?: AgentEvalVerdict | null
 }
 
-/** 最大 LLM 轮数默认值（DD-5 `maxTurns`：本地档 4B 的计数式硬闸；云端档可在 M3 放宽） */
+/**
+ * 最大 LLM 轮数默认值。
+ * 本地档 = 4B 的计数式硬闸（DD-5）；云端档放宽（云端优先，2026-10-28）。
+ */
 export const DEFAULT_MAX_TURNS = 6
+/** 云端档最大轮数（模型更强、上下文更大，允许更多轮次） */
+export const CLOUD_MAX_TURNS = 12
 /** 累计工具调用上限默认值（DD-5 `maxToolCalls`） */
 export const DEFAULT_MAX_TOOL_CALLS = 8
-/** 墙钟上限默认值（毫秒，DD-5 `wallClockMs` = 120s） */
+/** 墙钟上限默认值（毫秒，DD-5 `wallClockMs` = 120s，本地档） */
 export const DEFAULT_WALL_CLOCK_MS = 120_000
+/** 云端档墙钟上限（5 分钟；云端长任务不应被本地 2 分钟卡住） */
+export const CLOUD_WALL_CLOCK_MS = 300_000
+/** 并行工具执行的默认并发（本地档；云端档见 `CLOUD_TOOL_CONCURRENCY`） */
+export const DEFAULT_TOOL_CONCURRENCY = 4
+/** 云端档并行并发（dsh 同款 `maxParallelToolCalls` = 10） */
+export const CLOUD_TOOL_CONCURRENCY = 10
 
 /**
  * 等待用户答复（危险确认 / 技能交互）的默认超时。

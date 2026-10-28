@@ -73,8 +73,10 @@ export function resolveToolGroup(toolId: string): ToolGroupId {
  * 依据：本地 4B 在工具过多时会「只挑第一个」（G2 实测），故**本地严于云端**。
  */
 export const TOOL_FACE_LIMITS: Readonly<Record<'local' | 'cloud', number>> = {
+  // 本地 4B：工具一多就「只挑第一个」，刻意保守（DD-3）。
+  // 云端（云端优先，2026-10-28）：上下文大、工具调用稳，放宽到 24；接多 MCP 仍可 `maxTools` 覆写。
   local: 8,
-  cloud: 15
+  cloud: 24
 }
 
 /**

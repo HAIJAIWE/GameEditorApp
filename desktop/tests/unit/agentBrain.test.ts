@@ -1303,6 +1303,24 @@ describe('并行工具执行（Slice 19，opt-in）', () => {
     expect(peak()).toBe(1)
     expect(result.completed).toBe(true)
   })
+
+  it('云端档默认并行（云端优先）：不传 parallelToolCalls 也并发，顺序不变', async () => {
+    const { runner, peak } = makeConcurrencyRunner(10)
+    const transport = scripted([twoTools, FINAL])
+    const result = await runBrainLoop({ input: 'x', systemPrompts: [], transport, runner, tier: 'cloud' })
+
+    expect(peak()).toBe(2)
+    const done = result.events.filter((event) => event.type === 'step_done')
+    expect(done.map((event) => (event.type === 'step_done' ? event.tool : ''))).toEqual(['system.a', 'system.b'])
+  })
+
+  it('本地档默认串行：tier=local 不传 parallelToolCalls 仍一次一个', async () => {
+    const { runner, peak } = makeConcurrencyRunner(5)
+    const transport = scripted([twoTools, FINAL])
+    await runBrainLoop({ input: 'x', systemPrompts: [], transport, runner, tier: 'local' })
+
+    expect(peak()).toBe(1)
+  })
 })
 
 /* ---- 子智能体（Slice 19） ---- */

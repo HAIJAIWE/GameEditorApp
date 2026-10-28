@@ -67,11 +67,11 @@ describe('M3 分组表与档位预算', () => {
     expect(resolveToolGroup('system.unknown_thing')).toBe(DEFAULT_TOOL_GROUP)
   })
 
-  it('faceLimitFor：本地 8 / 云端 15；unconfigured 按最保守的本地预算', () => {
+  it('faceLimitFor：本地 8 / 云端 24（云端优先放宽）；unconfigured 按最保守的本地预算', () => {
     expect(TOOL_FACE_LIMITS.local).toBe(8)
-    expect(TOOL_FACE_LIMITS.cloud).toBe(15)
+    expect(TOOL_FACE_LIMITS.cloud).toBe(24)
     expect(faceLimitFor('local')).toBe(8)
-    expect(faceLimitFor('cloud')).toBe(15)
+    expect(faceLimitFor('cloud')).toBe(24)
     expect(faceLimitFor('unconfigured')).toBe(8)
   })
 
@@ -98,7 +98,7 @@ describe('M3 buildToolFace：装配与限量', () => {
 
     const cloud = buildToolFace(skills, 'cloud')
     expect(cloud.policy).toBe('soft')
-    expect(cloud.limit).toBe(15)
+    expect(cloud.limit).toBe(24)
   })
 
   it('本地档超 8 个即截断（云端 15 的额度不动）', () => {
@@ -143,9 +143,9 @@ describe('M3 buildToolFace：装配与限量', () => {
     } finally {
       setMaxToolsOverride(null)
     }
-    // 恢复 DD-3 默认
+    // 恢复档位默认（本地 8 / 云端 24）
     expect(faceLimitFor('local')).toBe(8)
-    expect(faceLimitFor('cloud')).toBe(15)
+    expect(faceLimitFor('cloud')).toBe(24)
   })
 })
 

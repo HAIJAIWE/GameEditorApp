@@ -27,9 +27,13 @@ import {
   type AgentRunTier
 } from '../observability'
 import {
+  CLOUD_MAX_TURNS,
+  CLOUD_TOOL_CONCURRENCY,
+  CLOUD_WALL_CLOCK_MS,
   DEFAULT_INTERACTION_TIMEOUT_MS,
   DEFAULT_MAX_TOOL_CALLS,
   DEFAULT_MAX_TURNS,
+  DEFAULT_TOOL_CONCURRENCY,
   DEFAULT_WALL_CLOCK_MS,
   type BrainEvent,
   type BrainRunResult,
@@ -57,17 +61,24 @@ import { isAbortError } from '../../abort'
  */
 export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainRunResult> {
   const { input, systemPrompts, transport, runner, requestApproval, requestInteraction, onEvent } = options
-  const maxTurns = options.maxTurns ?? DEFAULT_MAX_TURNS
+  // M3 档位路由：缺省 local；真实档位由 brainService 经 resolveLlmTier 注入。
+  // 云端优先（2026-10-28）：预算/并发**按档位分**——云端取 dsh 同款激进值，本地才保守。
+  // （之前把「本地 4B 并发高会乱」当成全局约束是错的：本地只是降级档，不是设计基准。）
+  const tier: AgentRunTier = options.tier ?? 'local'
+  const isCloud = tier === 'cloud'
+  const maxTurns = options.maxTurns ?? (isCloud ? CLOUD_MAX_TURNS : DEFAULT_MAX_TURNS)
   const maxToolCalls = options.maxToolCalls ?? DEFAULT_MAX_TOOL_CALLS
-  const wallClockMs = options.wallClockMs ?? DEFAULT_WALL_CLOCK_MS
-  // Slice 19：并行工具执行（opt-in，默认关；仅对非审批工具并发，审批/交互仍串行）
-  const parallelToolCalls = options.parallelToolCalls === true
-  const maxToolConcurrency = Math.max(1, options.maxToolConcurrency ?? 4)
+  const wallClockMs = options.wallClockMs ?? (isCloud ? CLOUD_WALL_CLOCK_MS : DEFAULT_WALL_CLOCK_MS)
+  // Slice 19/25：并行工具执行——云端**默认开**（并发 10），本地默认关（并发 4）；
+  // 仅对非审批工具并发，审批/交互仍串行（独占屏障）。显式传 `parallelToolCalls` 可覆盖。
+  const parallelToolCalls = options.parallelToolCalls ?? isCloud
+  const maxToolConcurrency = Math.max(
+    1,
+    options.maxToolConcurrency ?? (isCloud ? CLOUD_TOOL_CONCURRENCY : DEFAULT_TOOL_CONCURRENCY)
+  )
   // Slice 19：子智能体（默认工具名 `tool.spawn_subagent`；depth 防无限递归，最多 1 层）
   const subAgentTool = options.subAgentTool ?? 'tool.spawn_subagent'
   const depth = options.depth ?? 0
-  // M3 档位路由：缺省 local（与既有行为一致）；真实档位由 brainService 经 resolveLlmTier 注入
-  const tier: AgentRunTier = options.tier ?? 'local'
   const context: SkillExecutionContext = options.context ?? {}
   let requestSeq = 0
   const newRequestId = options.newRequestId ?? ((): string => `approval_${++requestSeq}`)
