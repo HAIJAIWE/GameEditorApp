@@ -1,6 +1,6 @@
 # 插件架构与深层插件化迁移设计
 
-> 状态：进行中（B 方案）。最后更新 2026-10-28。
+> 状态：进行中（B 方案，Slice 3/8 完成）。最后更新 2026-10-28。
 > 本文是插件系统的权威设计文档，也是「深层插件化」跨会话的交接文档。
 > 相关代码：`desktop/src/shared/plugin/`、`desktop/src/renderer/src/plugins/`。
 
@@ -28,14 +28,15 @@ shared/plugin/types.ts     契约：PluginManifest + 四类能力（command / pa
 shared/plugin/host.ts      宿主：register / enable / disable / capabilities / openPanel / subscribe
                            —— 纯 TS，无 React，可在主进程或渲染进程实例化
 renderer/src/plugins/
-  reactBindings.tsx        React 绑定表：panel id → ComponentType<{onClose}>；UiNode 渲染器
-  HostPanel.tsx            宿主侧面板渲染器：优先 React 绑定，缺失回退 UiNode
+  reactBindings.tsx        React 绑定表：panel id → ComponentType<PanelBindingProps>；UiNode 渲染器
+  HostPanel.tsx            宿主侧面板渲染器：优先 React 绑定，缺失回退 UiNode；下发打开参数
   appContext.tsx           应用级共享状态（面板自供给通道，见 §4）
   builtins.ts              pluginHost 单例 + 内置插件幂等注册
   ceshuPlugin.ts           受保护核心插件（暴露 readiness / route / health 三个 service）
   demoPlugin.tsx           命令/面板/服务三类端到端示例
   shortcutsPlugin.tsx      Slice 1：静态面板迁移样例
   statisticsPlugin.tsx     Slice 2：状态化面板迁移样例（appContext 自供给）
+  referencesPlugin.tsx     Slice 3：带打开参数的面板迁移样例（宿主携带目标条目，见 §5）
 ```
 
 ### 2.1 契约（`types.ts`）
@@ -61,7 +62,8 @@ renderer/src/plugins/
   执行 `activate`，失败标 `status:'error'` 且 `enabled:false`。
 - `enable / disable`：`disable` 受保护插件抛错；**只关闭该插件自己打开的面板**（`panelOwner` 精确匹配）。
 - `capabilities(kind)`：只返回 `status==='enabled'` 插件的能力（禁用/坏插件不参与分发）。
-- `openPanel(id)` / `closePanel()` / `activePanel()` / `subscribe(fn)`。
+- `openPanel(id, params?)` / `closePanel()` / `activePanel()` / `subscribe(fn)`。
+- `setPanelParams(id, params)` / `panelParams(id)`：面板**打开参数**通道（Slice 3，见 §5）。
 - `PluginPersistence`：启用/禁用覆写持久化接口（宿主注入，核心不碰 IO）；**只记录被显式禁用的 id**。
 
 ### 2.3 渲染链
@@ -69,8 +71,9 @@ renderer/src/plugins/
 ```
 App.renderPanel()
   └─ <HostPanel host={pluginHost} panelId="xxx.panel" onClose={...} />
+       ├─ useSyncExternalStore(host.subscribe, () => host.panelParams(id))  ── 参数快照
        ├─ host.panels().find(id)  ── 未命中 → return null（注意 find 返回 undefined，不是 null）
-       ├─ getReactBinding(id)     ── 有 → <BoundPanel component={Bound} onClose={...} />
+       ├─ getReactBinding(id)     ── 有 → <BoundPanel component={Bound} onClose params />
        └─ 无                       ── renderUiNode(uiOf(panel), onAction)
 ```
 
@@ -87,9 +90,9 @@ App.renderPanel()
 |---|---|---|
 | Slice 1 | 静态面板（快捷键参考）经 `HostPanel` 渲染，打通「面板经宿主渲染」通路 | ✅ 完成 |
 | Slice 2 | `appContext` store + 状态化面板（数据统计）自供给 `types`，解耦 App props | ✅ 完成 |
-| Slice 3 | `openPanel(id, params)` 承载面板打开参数（refTarget / importPreview / quickCreateTarget…） | ⬜ 待做 |
-| Slice 4 | 低风险无状态/仅 onClose 面板批量迁移（见 §5 清单） | ⬜ 待做 |
-| Slice 5 | 依赖 `types + handleJump` 的面板（高级搜索 / 关系图 / 属性图表 / 引用） | ⬜ 待做 |
+| Slice 3 | `openPanel(id, params)` 承载面板打开参数；引用面板迁出 App 的 `refTarget` state | ✅ 完成 |
+| Slice 4 | 低风险无状态/仅 onClose 面板批量迁移（见 §6 清单） | ⬜ 待做 |
+| Slice 5 | 依赖 `types + handleJump` 的面板（高级搜索 / 关系图 / 属性图表） | ⬜ 待做 |
 | Slice 6 | 依赖回调的面板（备份 refreshUndo / 清空 handleDataCleared / 引导 action） | ⬜ 待做 |
 | Slice 7 | 带打开参数的面板（类型编辑器 / 快速创建 / 批量编辑 / 导入预览） | ⬜ 待做 |
 | Slice 8 | `MenuBar` ~40 个菜单动作 → `command` 能力，App 不再持有动作清单 | ⬜ 待做 |
@@ -128,7 +131,7 @@ interface AppContextValue {
 
 - **只放**被多个面板共用的稳定数据/动作。
 - **不放**面板专属打开参数（`refTarget` / `importPreview` / `quickCreateTarget` / `typeEditorTarget`）。
-  这些走 Slice 3 的 `openPanel(id, params)`，否则 context 会膨胀成「第二个 App」。
+  这些走宿主的 `openPanel(id, params)` / `setPanelParams`（Slice 3 已落地，见 §5），否则 context 会膨胀成「第二个 App」。
 - `onClose` **不进 context**：它是面板生命周期契约，由 `HostPanel` 统一以 prop 下发。
 
 ### 4.4 已迁移面板示例（`StatisticsPanel`）
@@ -149,7 +152,62 @@ registerReactBinding('statistics.panel', ({ onClose }) => <StatisticsPanel onClo
 
 ---
 
-## 5. 面板迁移清单
+## 5. 打开参数：面板上下文由宿主携带（Slice 3 落地）
+
+### 5.1 问题
+
+「引用关系」面板要知道**看哪一条**。Slice 2 之前这份上下文是 App 的 `refTarget` state，
+面板再由 props 收下——于是 App 里堆了一串「某个面板专用」的状态
+（`refTarget` / `typeEditorTarget` / `quickCreateTarget` / `importPreview`…），
+每加一个面板就要改 App，正是要拆掉的耦合。
+
+### 5.2 契约
+
+```ts
+host.openPanel(id, params?)      // 打开 + 写参数（省略 params = 沿用上次预置）
+host.setPanelParams(id, params)  // 只预置参数、不打开（「先定位、后打开」）
+host.panelParams(id): unknown    // 读参数；未预置为 undefined
+```
+
+三条纪律：
+
+1. **契约只认 `unknown`**：共享契约不引入任何业务类型（`ReferenceTarget` 之类留在渲染层）。
+   面板绑定自行断言（`asReferenceTarget(params)`），形状不对就 `return null`，不画空壳、不崩。
+2. **省略 `params` = 沿用**：因为菜单入口是「用上次定位到的目标打开」；
+   要清空必须显式 `setPanelParams(id, undefined)`。
+3. **快照返回同一引用**：`panelParams()` 返回宿主 Map 里存的那个对象，
+   所以 `useSyncExternalStore` 的快照身份稳定（换参数→变、不换→不变，不会每渲染都判「变了」）。
+
+### 5.3 参数怎么传到面板
+
+`HostPanel` 订阅宿主，参数变化即重渲染，再以 `params` prop 交给绑定：
+
+```tsx
+const params = useSyncExternalStore(subscribe, () => host.panelParams(panelId))
+// 绑定侧
+function ReferencesPanelBound({ onClose, params }: PanelBindingProps) {
+  const { types, handleJump } = useAppContext()   // 共享状态仍走 context
+  const target = asReferenceTarget(params)        // 打开参数走 params
+  if (target === null) return null
+  return <ReferencesPanel target={target} types={types} onJump={handleJump} onClose={onClose} />
+}
+```
+
+**为什么要订阅**：面板已打开时再对另一条数据打开（`setPanel` 同值不会触发 App 重渲染），
+只有宿主这一层能感知参数替换。这条已由 `referencesPlugin.test.tsx` 用例锁死。
+
+### 5.4 App 侧的净效果
+
+- 删除 `const [refTarget, setRefTarget] = useState<ReferenceTarget | null>(null)`
+- `handleJump` → `pluginHost.setPanelParams('references.panel', { type, id, name })`（预置，不打开）
+- 菜单守卫 → `pluginHost.panelParams('references.panel') === undefined` 才引导去高级搜索
+- 条目「更多 ▸ 查看引用」→ `pluginHost.openPanel('references.panel', target)` 再 `setPanel('references')`
+  （原先要绕开 `openPanel` 的守卫，因为同批次 `setRefTarget` 还没生效；现在参数随打开动作同步写入，绕行理由消失）
+- `case 'references'` → `<HostPanel panelId="references.panel" />`，删掉对 `ReferencesPanel` 的直接 import
+
+---
+
+## 6. 面板迁移清单
 
 来源：`App.tsx::renderPanel()` 的 `switch (panel)`。
 
@@ -172,7 +230,7 @@ registerReactBinding('statistics.panel', ({ onClose }) => <StatisticsPanel onClo
 | `backup` | BackupPanel | `refreshUndo` | 中 | ⬜ |
 | `clearAll` | ClearAllPanel | `handleDataCleared` | 中 | ⬜ |
 | `onboarding` | OnboardingPanel | `types` + `handleOnboardingAction` | 中 | ⬜ |
-| `references` | ReferencesPanel | `refTarget` 参数 + `types` + `handleJump` | 高 | ⬜ |
+| `references` | ReferencesPanel | 打开参数（目标条目）+ `types` + `handleJump` | 高 | ✅ |
 | `typeEditor` | TypeEditorPanel | `typeEditorTarget` 参数 + `types` + `setTypes` | 高 | ⬜ |
 | `quickCreate` | QuickCreatePanel | `quickCreateTarget` 参数 + `types` | 高 | ⬜ |
 | `batch` | BatchEditPanel | `firstType` 参数 + `types` | 高 | ⬜ |
@@ -183,7 +241,7 @@ registerReactBinding('statistics.panel', ({ onClose }) => <StatisticsPanel onClo
 
 ---
 
-## 6. 新增一个插件面板的标准步骤
+## 7. 新增一个插件面板的标准步骤
 
 1. **写插件文件** `plugins/xxxPlugin.tsx`：
    ```tsx
@@ -201,21 +259,27 @@ registerReactBinding('statistics.panel', ({ onClose }) => <StatisticsPanel onClo
    ```
 2. **注册**到 `plugins/builtins.ts::registerBuiltinPlugins()`。
 3. **面板消费共享状态**：用 `useAppContext()`，不要新增 App props。
-4. **App 侧改渲染**：对应 `case` 改 `<HostPanel host={pluginHost} panelId="xxx.panel" onClose={() => setPanel(null)} />`，删除直接 import。
-5. **加 DOM 测试**（`tests/unit/dom/xxxPlugin.test.tsx`）：证明经宿主渲染 + 数据自供给。
-6. **跑四道闸**。
+4. **需要打开参数的面板**：不要新增 App state，走 `host.openPanel(id, params)`；绑定里断言参数形状（见 §5）。
+5. **App 侧改渲染**：对应 `case` 改 `<HostPanel host={pluginHost} panelId="xxx.panel" onClose={() => setPanel(null)} />`，删除直接 import。
+6. **加 DOM 测试**（`tests/unit/dom/xxxPlugin.test.tsx`）：证明经宿主渲染 + 数据自供给（带参数的还要证明换参数会刷新）。
+7. **跑四道闸**。
 
 ---
 
-## 7. 不变量与坑（务必遵守）
+## 8. 不变量与坑（务必遵守）
 
 1. **`find` 返回 `undefined` 不是 `null`**：`host.panels().find(...)` 未命中必须判 `=== undefined`，否则空面板崩渲染链。
 2. **`react-hooks/static-components`**：渲染期把查到的组件赋给变量再当 JSX 标签会报错。用模块级 `BoundPanel` 包装、组件作为 prop 传入。
 3. **绑定必须转发 `onClose`**：面板签名 `{ onClose }` 时，绑定写 `({ onClose }) => <Panel onClose={onClose} />`，不能写 `() => <Panel />`（tsc 会报缺 prop）。
 4. **保留既有 `data-testid`**：迁移只换渲染通道，不改 DOM 契约，否则既有测试与用户脚本断。
 5. **Provider 必须包住 `HostPanel` 渲染处**：否则 `useAppContext()` 抛错。
-6. **词汇纪律**：策划书=章（阅读序）；交接包=卷 + 编号文档（开发序）。插件化文档不混用。
-7. **四道闸**（在 `desktop/`）：
+6. **打开参数只认 `unknown`**：契约里出现业务类型（`ReferenceTarget` 等）就破坏了「任意宿主可接」。
+   断言写在绑定里，形状不对返回 `null`，不要抛错（坏参数不该炸整个渲染链）。
+7. **`panelParams` 必须返回宿主保存的同一引用**：`useSyncExternalStore` 拿它当快照，
+   每次新建对象会触发「快照不稳定」的无限重渲染。
+8. **`openPanel(id)` 省略参数 = 沿用**，不是清空；要清空显式 `setPanelParams(id, undefined)`。
+9. **词汇纪律**：策划书=章（阅读序）；交接包=卷 + 编号文档（开发序）。插件化文档不混用。
+10. **四道闸**（在 `desktop/`）：
    - `npx vitest run`
    - `npx tsc --noEmit -p tsconfig.node.json --composite false`（+ `tsconfig.web.json` + `tsconfig.test-dom.json`）
    - `npx eslint <改动文件>`（或 `src tests/unit/dom`）
@@ -223,22 +287,26 @@ registerReactBinding('statistics.panel', ({ onClose }) => <StatisticsPanel onClo
 
 ---
 
-## 8. 下一步（Slice 3 设计草案）
+## 9. 下一步（Slice 4 设计草案）
 
-**问题**：`references` / `typeEditor` / `quickCreate` / `batch` / `importPreview` 需要「打开参数」，
-当前 `openPanel(id)` 不承载参数，这些面板仍靠 App 的本地 state（`refTarget` / `typeEditorTarget` …）。
+**现状**：通路（宿主渲染 / 共享状态 / 打开参数）三件使能件已齐，剩下的是**批量搬运**。
 
-**方案**：扩展宿主 `openPanel(id, params?: unknown)`，内部保存 `panelParams: Map<string, unknown>`，
-并提供 `panelParams(id): unknown` 访问器；`HostPanel` 把参数作为 prop 传给绑定组件。
-- 共享契约只认 `unknown`，不引入具体业务类型（宿主无关）。
-- 插件侧绑定自行断言参数类型（`as RefTarget`），类型安全留在渲染层。
-- App 删除对应 `useState`，改由 `host.openPanel('references.panel', { type, id, name })`。
+**Slice 4 = 低风险面板批迁**（无依赖或只依赖 `onClose`）：`attrSystem` / `dataDiff` / `settings` /
+`cleanupImages` / `keywordTemplates` / `agentEditor` / `imageGen` / `gameDataPreview` 共 8 个。
 
-**验收**：`references` 面板经宿主渲染、参数自供给，App 不再持有 `refTarget` state，四道闸绿。
+- 每个 = 一个 `xxxPlugin.tsx` + `builtins.ts` 一行 + App 一个 `case` 改 `HostPanel` + 一条 DOM 测试。
+- 机械重复，适合一次提交 3–4 个，逐个跑四道闸（批量搬完再一次跑，出错时定位成本高）。
+- 顺序建议按「无依赖优先」：`settings` / `cleanupImages` / `keywordTemplates` / `agentEditor` /
+  `gameDataPreview`（5 个零依赖）→ `attrSystem` / `dataDiff` / `imageGen`（仅 `onClose`）。
+
+**Slice 5 预告**：`advancedSearch` / `relationGraph` / `attributeChart` 只依赖 `types + handleJump`，
+可直接复用 appContext，属「纯配置迁移」，风险低于 Slice 4 的 `onClose` 转发。
+
+**验收**：App 的 `renderPanel()` 中 `switch` 的「组件直连」分支只剩 Slice 5–7 未迁面板；四道闸绿。
 
 ---
 
-## 9. 文件改动索引（本轮）
+## 10. 文件改动索引
 
 Slice 1：
 - `renderer/src/plugins/shortcutsPlugin.tsx`（新增）
@@ -254,3 +322,13 @@ Slice 2：
 - `renderer/src/components/StatisticsPanel.tsx`（`types` 改 `useAppContext()`）
 - `renderer/src/App.tsx`（`stats` case → HostPanel，删直接 import，加 Provider + `appContextValue`）
 - `tests/unit/dom/statisticsPlugin.test.tsx`（新增）
+
+Slice 3：
+- `shared/plugin/host.ts`（`openPanel(id, params?)` + `setPanelParams` + `panelParams` + 参数 Map）
+- `renderer/src/plugins/reactBindings.tsx`（`PanelBindingProps`：`onClose` + `params?: unknown`）
+- `renderer/src/plugins/HostPanel.tsx`（`useSyncExternalStore` 订阅宿主，参数下发绑定）
+- `renderer/src/plugins/referencesPlugin.tsx`（新增；`asReferenceTarget` 断言在渲染层）
+- `renderer/src/plugins/builtins.ts`（注册 references 插件）
+- `renderer/src/App.tsx`（删 `refTarget` state；守卫与跳转改读宿主参数；`references` case → HostPanel）
+- `tests/unit/pluginHost.test.ts`（+3：参数同一引用 / 预置与沿用 / 变更通知）
+- `tests/unit/dom/referencesPlugin.test.tsx`（新增 4 条：参数下发 / 换参数刷新 / 坏参数不崩 / 命令沿用预置）

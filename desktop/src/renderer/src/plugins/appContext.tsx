@@ -10,8 +10,8 @@ import type { DataTypeDef } from '../../../shared/types'
  * App 不再持有「哪个面板需要哪些 prop」的硬编码清单。
  *
  * 范围克制：只放被多个面板共用的稳定动作/数据（types / 跳转 / 撤销刷新）。
- * 面板专属打开参数（如 refTarget / importPreview）后续走 `host.openPanel(id, params)` 扩展，
- * 不塞进这个共享 context，避免它膨胀成第二个 App。
+ * 面板专属打开参数（如引用面板的目标条目）走 `host.openPanel(id, params)` / `setPanelParams`
+ * 由宿主携带（Slice 3 已落地），不塞进这个共享 context，避免它膨胀成第二个 App。
  */
 export interface AppContextValue {
   /** 当前全部数据类型定义（编辑态） */

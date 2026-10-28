@@ -1,6 +1,7 @@
 import { PluginHost } from '../../../shared/plugin/host'
 import { defineCeshuPlugin } from './ceshuPlugin'
 import { defineDemoPlugin } from './demoPlugin'
+import { defineReferencesPlugin } from './referencesPlugin'
 import { defineShortcutsPlugin } from './shortcutsPlugin'
 import { defineStatisticsPlugin } from './statisticsPlugin'
 
@@ -22,6 +23,7 @@ export function registerBuiltinPlugins(): void {
   pluginHost.register(defineDemoPlugin(pluginHost))
   pluginHost.register(defineShortcutsPlugin(pluginHost))
   pluginHost.register(defineStatisticsPlugin(pluginHost))
+  pluginHost.register(defineReferencesPlugin(pluginHost))
 }
 
 registerBuiltinPlugins()

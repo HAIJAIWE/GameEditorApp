@@ -51,6 +51,11 @@ export class PluginHost {
   private readonly plugins = new Map<string, RegisteredPlugin>()
   private readonly listeners = new Set<() => void>()
   private activePanelId: string | null = null
+  /**
+   * 面板打开参数：panelId → params（Slice 3）。
+   * 契约只认 `unknown`——宿主无关核心不引入任何业务类型，类型断言留给面板绑定（渲染层）。
+   */
+  private readonly paramsByPanel = new Map<string, unknown>()
   private readonly persistence: PluginPersistence | null
   /** 覆写表：id → 是否禁用（true=禁用）。仅记录偏离默认的项 */
   private readonly overrides: Record<string, boolean>
@@ -170,13 +175,42 @@ export class PluginHost {
     return this.capabilities('service')
   }
 
-  /** 打开某面板能力（仅已启用的 panel 可打开）；重复打开同一面板幂等。 */
-  openPanel(id: string): void {
+  /**
+   * 打开某面板能力（仅已启用的 panel 可打开）；重复打开同一面板幂等。
+   *
+   * `params` 是**打开参数**（如「要看哪一条的引用关系」）：宿主原样保存，面板绑定自行断言类型。
+   * 省略 `params` = 沿用上一次预置的参数（`setPanelParams` 写入的），便于「先定位、后从菜单打开」
+   * 这类流程；确实要清空时显式调 `setPanelParams(id, undefined)`。
+   */
+  openPanel(id: string, params?: unknown): void {
     if (!this.panels().some((panel) => panel.id === id)) {
       throw new Error(`no enabled panel capability "${id}"`)
     }
     this.activePanelId = id
+    if (params !== undefined) this.paramsByPanel.set(id, params)
     this.emit()
+  }
+
+  /**
+   * 预置面板参数但**不打开**面板（Slice 3）。
+   *
+   * 场景：搜索跳转时记住「当前定位到的条目」，用户随后从菜单打开引用面板即可直接看到它——
+   * 这类上下文属于面板的打开参数，不该再让 App 各持一份 `useState`。
+   * 传 `undefined` 即清除（面板下次打开时按「无参数」处理）。
+   */
+  setPanelParams(id: string, params: unknown): void {
+    if (params === undefined) this.paramsByPanel.delete(id)
+    else this.paramsByPanel.set(id, params)
+    this.emit()
+  }
+
+  /**
+   * 取面板打开参数；未预置返回 `undefined`。
+   * 返回的是宿主保存的**同一引用**，故可安全用作 `useSyncExternalStore` 的快照
+   * （换参数时引用变化触发重渲染，未换时身份稳定不抖动）。
+   */
+  panelParams(id: string): unknown {
+    return this.paramsByPanel.get(id)
   }
 
   closePanel(): void {

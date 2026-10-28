@@ -11,14 +11,25 @@ import type { PluginPanelCapability, PluginViewCapability, UiNode } from '../../
  * 这样同一份 manifest 既能跑在富 React 主机，也能跑在只认 `UiNode` 的 CLI / 引擎宿主。
  */
 
-/** panel id → React 组件（可选绑定；非 React 宿主忽略此表） */
-const reactPluginBindings = new Map<string, ComponentType<{ onClose: () => void }>>()
+/**
+ * React 绑定收到的 props（宿主侧约定，**不进共享契约**）。
+ * - `onClose`：面板生命周期契约，由宿主下发；
+ * - `params`：`host.openPanel(id, params)` 的打开参数，契约层是 `unknown`，
+ *   绑定自行断言成业务类型（如 `ReferenceTarget`）——类型安全留在渲染层，契约保持宿主无关。
+ */
+export interface PanelBindingProps {
+  onClose: () => void
+  params?: unknown
+}
 
-export function registerReactBinding(id: string, component: ComponentType<{ onClose: () => void }>): void {
+/** panel id → React 组件（可选绑定；非 React 宿主忽略此表） */
+const reactPluginBindings = new Map<string, ComponentType<PanelBindingProps>>()
+
+export function registerReactBinding(id: string, component: ComponentType<PanelBindingProps>): void {
   reactPluginBindings.set(id, component)
 }
 
-export function getReactBinding(id: string): ComponentType<{ onClose: () => void }> | undefined {
+export function getReactBinding(id: string): ComponentType<PanelBindingProps> | undefined {
   return reactPluginBindings.get(id)
 }
 

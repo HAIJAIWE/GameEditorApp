@@ -25,7 +25,7 @@ import DigitalPanel from './components/digital/DigitalPanel'
 import ImageGenPanel from './components/ImageGenPanel'
 import MenuBar from './components/MenuBar'
 import QuickCreatePanel from './components/QuickCreatePanel'
-import ReferencesPanel, { type ReferenceTarget } from './components/ReferencesPanel'
+import { type ReferenceTarget } from './components/ReferencesPanel'
 import RelationGraphPanel from './components/RelationGraphPanel'
 import PluginsPanel from './components/PluginsPanel'
 import Sidebar, { type SidebarAction, type SidebarItem } from './components/Sidebar'
@@ -250,8 +250,12 @@ export default function App() {
    * `''` = 原始术语（不替换）。
    */
   const [gameStyle, setGameStyle] = useState<string>(() => loadGameStyle())
-  /** 引用面板的目标条目；由「高级搜索 → 点击结果跳转」回填，供菜单「数据关联预览」打开引用面板 */
-  const [refTarget, setRefTarget] = useState<ReferenceTarget | null>(null)
+  /**
+   * 注：引用面板的目标条目**不再是 App 的 state**（B 方案 Slice 3）。
+   * 它属于「面板打开参数」，由宿主携带：`pluginHost.setPanelParams('references.panel', target)`
+   * 预置、`pluginHost.openPanel('references.panel', target)` 打开时替换。
+   * 面板经 `HostPanel` 渲染，参数由宿主下发——App 不再为单个面板持有专用状态。
+   */
   /** 「字段结构编辑器」打开时要预选的类型；由条目表单的「更多 ▸」回填，菜单入口保持默认（第一个类型） */
   const [typeEditorTarget, setTypeEditorTarget] = useState<string | null>(null)
   /**
@@ -429,13 +433,14 @@ export default function App() {
    * 打开浮层面板（菜单入口）。
    * 需要「一个类型」才能工作的面板（快速创建 / 批量）若无可用类型则只给 notice。
    * 「数据关联预览」无目标时不打开空面板，改为引导到「高级搜索」先完成定位（保证入口永不灰死）。
+   * 目标条目存在宿主的打开参数里（Slice 3），不再读 App state。
    */
   const openPanel = (kind: OverlayPanel): void => {
     if ((kind === 'quickCreate' || kind === 'batch') && firstType === null) {
       setNotice('当前没有可用的数据类型（schema 为空），请先在「字段结构编辑器」中新增类型')
       return
     }
-    if (kind === 'references' && refTarget === null) {
+    if (kind === 'references' && pluginHost.panelParams('references.panel') === undefined) {
       setNotice('请先在「高级搜索」中搜索并点击一条结果完成定位，随后即可查看其引用关系')
       setPanel('advancedSearch')
       return
@@ -510,10 +515,11 @@ export default function App() {
   /**
    * 引用/搜索跳转：切到策划书编辑器并下发跳转目标以定位条目
    * 。
-   * 同时记录 refTarget，使「数据关联预览」可以直接打开该条目的引用关系。
+   * 同时把定位到的条目预置为引用面板的打开参数（不打开面板），使菜单「数据关联预览」
+   * 可以直接查看该条目的引用关系。
    */
   const handleJump = (type: string, itemId: string, name: string): void => {
-    setRefTarget({ type, id: itemId, name })
+    pluginHost.setPanelParams('references.panel', { type, id: itemId, name })
     setCeshuHomeVisible(false)
     setPanel(null)
     // 跳转成功即清掉此前的引导类 notice（如「请先在「高级搜索」中…完成定位」），
@@ -533,13 +539,14 @@ export default function App() {
   }
 
   /**
-   * 条目表单「更多 ▸ → 查看此项的引用关系」：先落 `refTarget` 再开面板。
+   * 条目表单「更多 ▸ → 查看此项的引用关系」：把目标作为**打开参数**交给宿主再开面板。
    *
-   * ⚠️ **不能走 `openPanel('references')`** —— 那条通道带「无 refTarget 则改跳高级搜索」的守卫，
-   * 而同一批次内 `setRefTarget` 尚未生效，守卫会读到旧的 `null`，把用户弹去高级搜索。
+   * Slice 3 之前这里必须绕开 `openPanel('references')`（那条通道的守卫读 App state，
+   * 同批次 `setRefTarget` 还没生效会把用户弹去高级搜索）。现在参数直接随打开动作下发，
+   * 守卫读的是宿主里已写入的参数，不存在「同一批次读旧值」问题。
    */
   const handleShowReferences = (target: ReferenceTarget): void => {
-    setRefTarget(target)
+    pluginHost.openPanel('references.panel', target)
     setPanel('references')
   }
 
@@ -686,9 +693,8 @@ export default function App() {
       // 注：原「数据可见类型」面板（TypeVisibilityPanel）不再接线——它唯一的作用是过滤
       // 已随侧栏一并下线的类型列表，且 旧版 无对应功能。组件文件保留（迁移留痕），但不再有入口。
       case 'references':
-        return refTarget ? (
-          <ReferencesPanel target={refTarget} types={types} onJump={handleJump} onClose={() => setPanel(null)} />
-        ) : null
+        // Slice 3：面板经宿主渲染，目标条目由宿主打开参数自供给（App 不再持有 refTarget）。
+        return <HostPanel host={pluginHost} panelId="references.panel" onClose={() => setPanel(null)} />
       case 'relationGraph':
         return <RelationGraphPanel types={types} onJump={handleJump} />
       case 'plugins':

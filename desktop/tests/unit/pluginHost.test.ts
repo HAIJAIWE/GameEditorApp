@@ -141,4 +141,48 @@ describe('PluginHost', () => {
     host.disable('a')
     expect(host.activePanel()).toBeNull()
   })
+
+  it('openPanel 带打开参数：panelParams 原样返回同一引用（宿主无关，只认 unknown）', () => {
+    const host = new PluginHost()
+    host.register(manifest({ id: 'p', capabilities: [{ kind: 'panel', id: 'p.panel', title: 'P', ui: { type: 'text', text: 'p' } }] }))
+    const params = { type: 'weapon', id: 'w1', name: '铁剑' }
+
+    host.openPanel('p.panel', params)
+    // 同一引用：HostPanel 的 useSyncExternalStore 快照靠这个身份稳定（否则每渲染都判「变了」）
+    expect(host.panelParams('p.panel')).toBe(params)
+    expect(host.activePanel()?.id).toBe('p.panel')
+  })
+
+  it('省略参数时沿用上次预置的参数；setPanelParams(id, undefined) 才是清除', () => {
+    const host = new PluginHost()
+    host.register(manifest({ id: 'p', capabilities: [{ kind: 'panel', id: 'p.panel', title: 'P', ui: { type: 'text', text: 'p' } }] }))
+    const params = { id: 'w1' }
+
+    // 「先定位、后打开」：预置参数不打开面板
+    host.setPanelParams('p.panel', params)
+    expect(host.activePanel()).toBeNull()
+    host.openPanel('p.panel')
+    expect(host.panelParams('p.panel')).toBe(params)
+
+    // 换参数：直接覆盖
+    const next = { id: 'w2' }
+    host.openPanel('p.panel', next)
+    expect(host.panelParams('p.panel')).toBe(next)
+
+    // 显式清除后才回到「无参数」
+    host.setPanelParams('p.panel', undefined)
+    expect(host.panelParams('p.panel')).toBeUndefined()
+  })
+
+  it('参数变更会通知订阅者（面板已打开时换参数也要刷新）', () => {
+    const host = new PluginHost()
+    host.register(manifest({ id: 'p', capabilities: [{ kind: 'panel', id: 'p.panel', title: 'P', ui: { type: 'text', text: 'p' } }] }))
+    let ticks = 0
+    host.subscribe(() => {
+      ticks += 1
+    })
+    host.openPanel('p.panel', { id: 'a' })
+    host.openPanel('p.panel', { id: 'b' })
+    expect(ticks).toBe(2)
+  })
 })
