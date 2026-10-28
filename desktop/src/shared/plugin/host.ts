@@ -61,6 +61,13 @@ function majorOf(version: string): number | null {
   return Number.isNaN(value) ? null : value
 }
 
+/** 运行时守卫：`app.sidebar` slot 的 payload 是否为侧栏条目（bridge 只放条目，防御性校验）。 */
+function isPluginSidebarItem(value: unknown): value is PluginSidebarItem {
+  if (value === null || typeof value !== 'object') return false
+  const record = value as Record<string, unknown>
+  return typeof record.key === 'string' && typeof record.label === 'string' && typeof record.icon === 'string'
+}
+
 export class PluginHost {
   private readonly plugins = new Map<string, RegisteredPlugin>()
   private readonly listeners = new Set<() => void>()
@@ -443,22 +450,37 @@ export class PluginHost {
     const disposers: Array<() => void> = []
     try {
       for (const capability of manifest.capabilities) {
-        if (capability.kind !== 'slot') continue
-        const cell = capability.entryKey ?? capability.entryId
-        disposers.push(
-          this.slotRegistry.register({
-            key: capability.key,
-            ...(capability.slotKind !== undefined ? { kind: capability.slotKind } : {}),
-            ...(capability.priority !== undefined ? { priority: capability.priority } : {}),
-            ...(capability.order !== undefined ? { order: capability.order } : {}),
-            ...(cell !== undefined ? { entryKey: cell } : {}),
-            ownerId: manifest.id,
-            payload: capability.ui,
-            ...(capability.select !== undefined ? { select: capability.select } : {}),
-            ...(capability.store !== undefined ? { store: capability.store } : {}),
-            ...(capability.children !== undefined ? { children: capability.children } : {})
-          })
-        )
+        if (capability.kind === 'slot') {
+          const cell = capability.entryKey ?? capability.entryId
+          disposers.push(
+            this.slotRegistry.register({
+              key: capability.key,
+              ...(capability.slotKind !== undefined ? { kind: capability.slotKind } : {}),
+              ...(capability.priority !== undefined ? { priority: capability.priority } : {}),
+              ...(capability.order !== undefined ? { order: capability.order } : {}),
+              ...(cell !== undefined ? { entryKey: cell } : {}),
+              ownerId: manifest.id,
+              payload: capability.ui,
+              ...(capability.select !== undefined ? { select: capability.select } : {}),
+              ...(capability.store !== undefined ? { store: capability.store } : {}),
+              ...(capability.children !== undefined ? { children: capability.children } : {})
+            })
+          )
+        } else if (capability.kind === 'sidebar') {
+          // 双写：sidebar 能力同时桥接进 `app.sidebar` slot（旧 `sidebarItems()` 保留向后兼容）。
+          // 同名 item.key 走 list cell 遮蔽：同优先级先注册者胜——与旧「先到者为准」一致。
+          for (const item of capability.items) {
+            disposers.push(
+              this.slotRegistry.register({
+                key: 'app.sidebar',
+                entryKey: item.key,
+                order: capability.order,
+                ownerId: manifest.id,
+                payload: item
+              })
+            )
+          }
+        }
       }
     } catch (error) {
       for (const dispose of disposers) dispose()
@@ -499,6 +521,18 @@ export class PluginHost {
   /** 某 slot 的渲染读（已按 kind 投影 + 遮蔽）。 */
   slotEntries(key: string): SlotEntry[] {
     return this.slotRegistry.entriesOfSlot(key)
+  }
+
+  /**
+   * 左栏条目：从 `app.sidebar` slot 读（App 迁移到 slot 数据源的入口）。
+   * `sidebar` 能力经 `installSlots` 双写进该 slot；payload 即原 `PluginSidebarItem`。
+   */
+  slotSidebarItems(): PluginSidebarItem[] {
+    const items: PluginSidebarItem[] = []
+    for (const entry of this.slotRegistry.entriesOfSlot('app.sidebar')) {
+      if (isPluginSidebarItem(entry.payload)) items.push(entry.payload)
+    }
+    return items
   }
 
   /** chain slot 选举结果（owner 为父级传入的 props）。 */

@@ -61,19 +61,31 @@ export default function App() {
   const subscribeHost = useCallback((onChange: () => void) => pluginHost.subscribe(onChange), [])
   const panelId = useSyncExternalStore(subscribeHost, () => pluginHost.activePanel()?.id ?? null)
   /**
-   * 左侧侧栏条目 = **宿主合并后的 sidebar 能力**（Slice 10）。
-   * 订阅用「条目签名串」当快照：插件启停导致条目增减时字符串变化触发重渲染，
-   * 真正渲染时读 `pluginHost.sidebarItems()` 最新值（与 MenuBar 取 `host.menus()` 同源）。
+   * 左侧侧栏条目 = **`app.sidebar` slot**（Slice 46 起从 slot 内核读）。
+   * `sidebar` 能力由宿主**双写**进该 slot（旧 `sidebarItems()` 保留向后兼容）；
+   * 订阅同时覆盖宿主 emit（插件启停）与 slot key 变更，二者都触发重渲染。
+   * 快照仍用「条目签名串」：条目增减时字符串变化，渲染时读 `slotSidebarItems()` 最新值。
    */
+  const subscribeSidebar = useCallback(
+    (onChange: () => void) => {
+      const offHost = pluginHost.subscribe(onChange)
+      const offSlot = pluginHost.subscribeSlot('app.sidebar', onChange)
+      return () => {
+        offHost()
+        offSlot()
+      }
+    },
+    []
+  )
   useSyncExternalStore(
-    subscribeHost,
+    subscribeSidebar,
     () =>
       pluginHost
-        .sidebarItems()
+        .slotSidebarItems()
         .map((item) => `${item.key}:${item.command ?? ''}:${item.panel ?? ''}`)
         .join('|')
   )
-  const sidebarItems = pluginHost.sidebarItems()
+  const sidebarItems = pluginHost.slotSidebarItems()
 
   /**
    * 关闭浮层：宿主是单一来源，关也走宿主。

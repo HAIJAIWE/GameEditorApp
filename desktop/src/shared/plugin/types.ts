@@ -21,6 +21,15 @@ export type UiNode =
   | { type: 'input'; name: string; label?: string; value?: string }
   | { type: 'container'; children: UiNode[] }
 
+const UI_NODE_TYPES = new Set(['text', 'button', 'input', 'container'])
+
+/** 运行时守卫：判断未知值是否为 `UiNode`（slot 的 payload 为 `unknown`，渲染前需收窄）。 */
+export function isUiNode(value: unknown): value is UiNode {
+  if (value === null || typeof value !== 'object') return false
+  const type = (value as { type?: unknown }).type
+  return typeof type === 'string' && UI_NODE_TYPES.has(type)
+}
+
 /** 命令能力：类比 dsh 的 CLI 命令，宿主菜单/快捷键/CLI 可触发 `run`。纯逻辑，完全宿主无关。 */
 export interface PluginCommandCapability {
   kind: 'command'

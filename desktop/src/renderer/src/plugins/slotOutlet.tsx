@@ -2,7 +2,7 @@ import { Fragment, useSyncExternalStore, type ReactNode } from 'react'
 
 import type { PluginHost } from '../../../shared/plugin/host'
 import type { SlotEntry } from '../../../shared/plugin/slotRegistry'
-import type { UiNode } from '../../../shared/plugin/types'
+import { isUiNode } from '../../../shared/plugin/types'
 import { renderUiNode } from './reactBindings'
 
 /**
@@ -52,8 +52,9 @@ export function SlotOutlet({ host, slotKey, ownerProps, className, empty }: Slot
 }
 
 function renderEntry(entry: SlotEntry, host: PluginHost): ReactNode {
-  const ui: UiNode = typeof entry.payload === 'function' ? entry.payload() : entry.payload
-  return renderUiNode(ui, (commandId) => {
+  const payload = typeof entry.payload === 'function' ? (entry.payload as () => unknown)() : entry.payload
+  if (!isUiNode(payload)) return null
+  return renderUiNode(payload, (commandId) => {
     const command = host.commands().find((capability) => capability.id === commandId)
     if (command !== undefined) void command.run()
   })

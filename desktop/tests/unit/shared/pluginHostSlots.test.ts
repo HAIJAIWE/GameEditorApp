@@ -84,4 +84,46 @@ describe('PluginHost slot 集成', () => {
     expect(cell).toHaveLength(1)
     expect(cell[0]?.payload).toEqual(ui('shadow'))
   })
+
+  it('sidebar 能力双写进 app.sidebar：slotSidebarItems 与旧 sidebarItems 一致，禁用后清空', () => {
+    const host = new PluginHost()
+    host.register(
+      manifest('nav', [
+        {
+          kind: 'sidebar',
+          id: 'nav.sidebar',
+          order: 100,
+          items: [
+            { key: 'home', label: '首页', icon: '🏠', command: 'nav.home' },
+            { key: 'data', label: '数据', icon: '📊', panel: 'data.panel' }
+          ]
+        }
+      ])
+    )
+    expect(host.slotSidebarItems().map((item) => item.key)).toEqual(['home', 'data'])
+    expect(host.sidebarItems().map((item) => item.key)).toEqual(['home', 'data'])
+
+    host.disable('nav')
+    expect(host.slotSidebarItems()).toHaveLength(0)
+    expect(host.sidebarItems()).toHaveLength(0)
+
+    host.enable('nav')
+    expect(host.slotSidebarItems().map((item) => item.key)).toEqual(['home', 'data'])
+  })
+
+  it('sidebar 跨能力按 order 排序（slot 与旧路径一致）', () => {
+    const host = new PluginHost()
+    host.register(
+      manifest('late', [
+        { kind: 'sidebar', id: 'late.sidebar', order: 20, items: [{ key: 'a1', label: 'A1', icon: '1' }] }
+      ])
+    )
+    host.register(
+      manifest('early', [
+        { kind: 'sidebar', id: 'early.sidebar', order: 5, items: [{ key: 'b1', label: 'B1', icon: '2' }] }
+      ])
+    )
+    expect(host.slotSidebarItems().map((item) => item.key)).toEqual(['b1', 'a1'])
+    expect(host.sidebarItems().map((item) => item.key)).toEqual(['b1', 'a1'])
+  })
 })

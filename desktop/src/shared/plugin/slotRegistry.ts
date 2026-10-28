@@ -13,7 +13,7 @@
  * 纯函数层不做 React——渲染由宿主侧 `<SlotOutlet>` 消费 `entriesOfSlot()` 完成。
  */
 
-import type { SlotKind, SlotScope, SlotSpec, SlotStoreDecl, UiNode } from './types'
+import type { SlotKind, SlotScope, SlotSpec, SlotStoreDecl } from './types'
 
 /** Slot 相关错误基类 */
 export class SlotError extends Error {}
@@ -36,7 +36,8 @@ export interface SlotEntry {
   readonly entryKey?: string
   /** 归属插件 id（禁用时清理用） */
   readonly ownerId?: string
-  readonly payload: UiNode | (() => UiNode)
+  /** 展示体（`slot` 能力是 UiNode；`sidebar` 桥接时是 `PluginSidebarItem`——故为 unknown，由消费者收窄） */
+  readonly payload: unknown
   readonly select?: (owner: unknown) => unknown | null | undefined
   readonly store?: SlotStoreDecl
   /** 该条目声明（并认领）的子 slot key 列表 */
@@ -62,7 +63,7 @@ export interface SlotRegistrationInput {
   order?: number
   entryKey?: string
   ownerId?: string
-  payload: UiNode | (() => UiNode)
+  payload: unknown
   select?: (owner: unknown) => unknown | null | undefined
   store?: SlotStoreDecl
   children?: Record<string, SlotSpec>
