@@ -16,7 +16,8 @@ import {
   type BrainLlmReply,
   type BrainLlmRequest,
   type BrainLlmTransport,
-  type BrainToolRunner
+  type BrainToolRunner,
+  type SubAgentProvider
 } from '../../src/shared/agent/brain'
 import { RISK_LEVEL, fixParams, resolveRiskLevel, type SkillResult } from '../../src/shared/agent/protocol'
 import { isAbortError } from '../../src/shared/abort'
@@ -1478,5 +1479,44 @@ describe('运行中收件箱（inbox / Steer）', () => {
     // handle 可用：push 不抛（子任务可能已完成，这里只验证接口）
     expect(() => spawned[0]?.inbox.push('补充要求')).not.toThrow()
     expect(result.completed).toBe(true)
+  })
+})
+
+/* ---- 子智能体 provider seam（多后端，对齐 dsh ctx.subagents） ---- */
+
+describe('子智能体 provider seam（多后端）', () => {
+  it('注入自定义 provider：spawn 走外部实现，完成通知带其返回文本', async () => {
+    const calls: string[] = []
+    const customProvider: SubAgentProvider = {
+      id: 'stub',
+      run: async ({ task }) => {
+        calls.push(task)
+        return { text: '外部后端结果：已处理', success: true }
+      }
+    }
+    const runner = makeRunner({
+      resolvable: (name) => (name === 'tool.spawn_subagent' ? name : null)
+    })
+    const transport = scripted([
+      {
+        content: '',
+        toolCalls: [{ id: 's1', name: 'tool.spawn_subagent', arguments: { task: '交给外部' } }],
+        finishReason: 'tool_calls'
+      },
+      FINAL
+    ])
+    const result = await runBrainLoop({
+      input: 'x',
+      systemPrompts: [],
+      transport,
+      runner,
+      subAgentProvider: customProvider
+    })
+
+    expect(calls).toEqual(['交给外部'])
+    const notice = result.messages.find(
+      (message) => message.role === 'user' && (message.content ?? '').includes('外部后端结果：已处理')
+    )
+    expect(notice).toBeDefined()
   })
 })

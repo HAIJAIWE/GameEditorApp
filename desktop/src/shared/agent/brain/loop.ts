@@ -39,7 +39,8 @@ import {
   type BrainInbox,
   type BrainRunResult,
   type BrainStopReason,
-  type RunBrainLoopOptions
+  type RunBrainLoopOptions,
+  type SubAgentProvider
 } from './types'
 import { clipToolResult, maybeResetContext, safeRunEvaluator } from './context'
 import { isAbortError } from '../../abort'
@@ -271,6 +272,30 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
   const pendingSubagents = new Map<string, Promise<{ text: string; success: boolean }>>()
   let subAgentSeq = 0
 
+  /** 默认 provider：进程内 spawn（递归 runBrainLoop）；外部后端可经 `subAgentProvider` 替换 */
+  const defaultSubAgentProvider: SubAgentProvider = {
+    id: 'spawn',
+    run: async ({ task, depth: childDepth, signal, inbox: childInbox }) => {
+      const sub = await runBrainLoop({
+        input: task,
+        systemPrompts,
+        transport,
+        runner,
+        tools,
+        tier,
+        depth: childDepth,
+        maxTurns: 3,
+        maxToolCalls: 4,
+        wallClockMs: Math.min(wallClockMs > 0 ? wallClockMs : 60000, 60000),
+        signal,
+        parallelToolCalls,
+        inbox: childInbox
+      })
+      return { text: `子智能体结果：${sub.text}`, success: sub.completed }
+    }
+  }
+  const subAgentProvider = options.subAgentProvider ?? defaultSubAgentProvider
+
   const spawnSubAgent = (call: { arguments: Record<string, unknown> }): { text: string; success: boolean } => {
     if (depth >= 1) {
       return { text: '[STOP] 子智能体嵌套已达上限（最多 1 层）', success: false }
@@ -288,31 +313,13 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
     const childId = `sub_${++subAgentSeq}`
     // 每个子智能体有自己的收件箱：外部可经 onSubAgentSpawned 拿到它并 push 消息（sendMessage）
     const childInbox = createInbox()
-    const promise = (async (): Promise<{ text: string; success: boolean }> => {
-      try {
-        const sub = await runBrainLoop({
-          input: task,
-          systemPrompts,
-          transport,
-          runner,
-          tools,
-          tier,
-          depth: depth + 1,
-          maxTurns: 3,
-          maxToolCalls: 4,
-          wallClockMs: Math.min(wallClockMs > 0 ? wallClockMs : 60000, 60000),
-          signal: controller.signal,
-          parallelToolCalls,
-          inbox: childInbox
-        })
-        return { text: `子智能体结果：${sub.text}`, success: sub.completed }
-      } catch (error) {
-        return {
-          text: `子智能体执行失败：${error instanceof Error ? error.message : String(error)}`,
-          success: false
-        }
-      }
-    })()
+    // 交给 provider 执行（默认进程内 spawn；外部后端只需实现 SubAgentProvider）
+    const promise = subAgentProvider
+      .run({ task, depth: depth + 1, signal: controller.signal, inbox: childInbox })
+      .catch((error: unknown) => ({
+        text: `子智能体执行失败：${error instanceof Error ? error.message : String(error)}`,
+        success: false
+      }))
     pendingSubagents.set(childId, promise)
     // 暴露 handle 给调用方：拿到 childId + inbox 即可对运行中的子智能体「插话」
     options.onSubAgentSpawned?.(childId, childInbox)

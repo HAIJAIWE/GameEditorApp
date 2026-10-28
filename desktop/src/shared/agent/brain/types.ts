@@ -107,6 +107,34 @@ export interface BrainInbox {
   drain(): string[]
 }
 
+/** 子智能体任务（交给 provider 执行） */
+export interface SubAgentTask {
+  task: string
+  /** 子级深度（父深度 + 1） */
+  depth: number
+  signal: AbortSignal
+  /** 子级收件箱（进程内 provider 使用；外部 provider 可忽略） */
+  inbox: BrainInbox
+}
+
+/** 子智能体执行结果 */
+export interface SubAgentOutcome {
+  text: string
+  success: boolean
+}
+
+/**
+ * 子智能体 provider（对齐 dsh `ctx.subagents` 的多后端 seam）。
+ *
+ * 默认实现是进程内 `spawn`（递归 `runBrainLoop`）；外部后端（CLI 编码智能体 / 远程服务）
+ * 只需实现本接口并注入 `subAgentProvider`，**不必改循环**。
+ */
+export interface SubAgentProvider {
+  /** provider 名称（如 `spawn` / `cli` / `remote`） */
+  id: string
+  run(task: SubAgentTask): Promise<SubAgentOutcome>
+}
+
 export interface RunBrainLoopOptions {
   /** 用户本轮输入 */
   input: string
@@ -140,6 +168,8 @@ export interface RunBrainLoopOptions {
   requestInteraction?: BrainInteractionResponder
   /** 运行中收件箱：每轮开始前 drain，注入为 user 消息（对齐 dsh inbox / Steer） */
   inbox?: BrainInbox
+  /** 子智能体 provider（缺省=进程内 spawn）；注入自定义实现即可接外部后端 */
+  subAgentProvider?: SubAgentProvider
   /**
    * 子智能体启动回调：拿到 `childId` 与该子循环的 `inbox`，可后续 `push` 消息
    * （即 dsh 的 `sendMessage` 对运行中子级的「插话」）。
