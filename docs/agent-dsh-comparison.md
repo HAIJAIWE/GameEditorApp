@@ -186,6 +186,8 @@ dsh 用 **cordis** 做插件组合，profile 是 YAML 补丁层（`bundles` + `c
 > **已落地（Slice 29，2026-10-28）**：会话事件日志 append-only——`AgentSessionStore.recordEvents` 每轮写一行 `events.jsonl`（只追加不覆盖），`agentService` 每轮落盘 `result.events`。**最小版只审计**，不从日志派生历史。
 >
 > **已确认（E 片基本已具备）**：系统提示词已有 `## 可用工具`（`face.catalog`，按场景分组 + 每工具一行摘要），完整 schema 走 function calling——即 dsh 的「目录 + 渐进披露」。dsh 的 markdown 技能包是另一概念，本项目暂无。
+>
+> **已落地（Slice 30，2026-10-28）**：子智能体 **provider seam**——`SubAgentProvider { id, run(SubAgentTask) }`；默认进程内 `spawn`，外部后端（CLI/远程）实现接口注入 `subAgentProvider` 即可，不改循环。
 
 ---
 
