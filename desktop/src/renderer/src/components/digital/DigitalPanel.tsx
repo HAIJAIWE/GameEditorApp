@@ -49,6 +49,10 @@ interface ChatApi {
     answer?: string
     answers?: string[]
   }) => Promise<{ ok: boolean }>
+  /** 子智能体「继续对话」：对运行中的子智能体插话（Slice 40） */
+  subagentSend: (req: { id: string; content: string }) => Promise<{ ok: boolean }>
+  /** 单独停止某个运行中的子智能体（不牵连父循环） */
+  subagentStop: (req: { id: string }) => Promise<{ ok: boolean }>
   sessionInfo: () => Promise<{ hasSession: boolean; messageCount: number; savedAt: string }>
   sessionRestore: () => Promise<{ messages: Array<{ role?: unknown; content?: unknown }> }>
   sessionClear: () => Promise<{ cleared: boolean }>
@@ -64,6 +68,8 @@ type Action =
   | { kind: 'approval'; approved: boolean }
   | { kind: 'interaction' }
   | { kind: 'hydrate'; history: Array<{ role?: unknown; content?: unknown }> }
+  /** 子智能体被用户停止：乐观标记（真实 subagent_done 随后会再覆盖一次，幂等） */
+  | { kind: 'subagentStop'; id: string }
 
 function reducer(state: DigitalPanelState, action: Action): DigitalPanelState {
   switch (action.kind) {
@@ -77,6 +83,9 @@ function reducer(state: DigitalPanelState, action: Action): DigitalPanelState {
       return resolveInteraction(state)
     case 'hydrate':
       return hydrateFromSession(state, action.history)
+    case 'subagentStop':
+      // 复用 subagent_done 的归约：立即给出「已停止」反馈，避免按钮点击后无响应
+      return reduceBrainEvent(state, { type: 'subagent_done', id: action.id, success: false, text: '已停止' })
     default:
       return state
   }
@@ -250,6 +259,33 @@ export default function DigitalPanel({
     lastSeedNonce.current = seed.nonce
     submitText(seed.text)
   }, [seed, submitText])
+
+  /**
+   * 对运行中的子智能体「插话」：push 一条消息进它的收件箱（Slice 40）。
+   * 子循环在下一轮开始前会把它注入为 user 消息；父循环不受影响。
+   */
+  const handleSubagentSteer = (id: string, content: string): void => {
+    setLocalError(null)
+    void api.subagentSend({ id, content }).catch((error: unknown) => {
+      setLocalError(toErrorMessage(error))
+    })
+  }
+
+  /**
+   * 单独停止运行中的子智能体（只 abort 它自己，不牵连父循环）。
+   * `ok:true` 才乐观标记为「已停止」；`ok:false`（已完成/跨轮）不动状态，等真实事件覆盖。
+   */
+  const handleSubagentStop = (id: string): void => {
+    setLocalError(null)
+    void api
+      .subagentStop({ id })
+      .then((result) => {
+        if (result.ok) dispatch({ kind: 'subagentStop', id })
+      })
+      .catch((error: unknown) => {
+        setLocalError(toErrorMessage(error))
+      })
+  }
 
   const handleApproval = (approved: boolean): void => {
     const approval = state.approval
@@ -583,7 +619,11 @@ export default function DigitalPanel({
         )}
       </div>
 
-      <DigitalSubagentList subagents={state.subagents} />
+      <DigitalSubagentList
+        subagents={state.subagents}
+        onSteer={handleSubagentSteer}
+        onStop={handleSubagentStop}
+      />
 
       {state.steps.length > 0 && (
         <div className="digital-steps" data-testid="digital-steps">

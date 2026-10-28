@@ -1506,6 +1506,62 @@ describe('运行中收件箱（inbox / Steer）', () => {
     expect(() => spawned[0]?.inbox.push('补充要求')).not.toThrow()
     expect(result.completed).toBe(true)
   })
+
+  it('onSubAgentSpawned：stopChild 只 abort 子智能体，不牵连父循环', async () => {
+    // provider 挂起直到被 abort：模拟「运行中」的子智能体
+    // 用 holder 对象承接闭包内赋值（`let x: T | null = null` 会被 TS 的 CFA 误判为恒 null）
+    const captured: { signal: AbortSignal | null } = { signal: null }
+    let stopChild: (() => void) | null = null
+    let notifySpawned: (() => void) | null = null
+    const spawned = new Promise<void>((resolve) => {
+      notifySpawned = resolve
+    })
+    const provider: SubAgentProvider = {
+      id: 'stub',
+      run: ({ signal }) =>
+        new Promise((resolve) => {
+          captured.signal = signal
+          signal.addEventListener('abort', () => resolve({ text: '子智能体已停止', success: false }), { once: true })
+        })
+    }
+    const runner = makeRunner({
+      resolvable: (name) => (name === 'tool.spawn_subagent' ? name : null)
+    })
+    const transport = scripted([
+      {
+        content: '',
+        toolCalls: [{ id: 's1', name: 'tool.spawn_subagent', arguments: { task: '子任务' } }],
+        finishReason: 'tool_calls'
+      },
+      FINAL
+    ])
+    const loopPromise = runBrainLoop({
+      input: 'x',
+      systemPrompts: [],
+      transport,
+      runner,
+      subAgentProvider: provider,
+      onSubAgentSpawned: (_childId, _inbox, stop) => {
+        stopChild = stop
+        notifySpawned?.()
+      }
+    })
+
+    await spawned
+    expect(captured.signal).not.toBeNull()
+    // spawn 后子智能体仍在跑（未被 abort）
+    expect(captured.signal?.aborted).toBe(false)
+    // 单独停止子智能体：只 abort 子级 signal
+    stopChild!()
+    expect(captured.signal?.aborted).toBe(true)
+
+    const result = await loopPromise
+    // 父循环仍正常终稿（未被牵连 abort）
+    expect(result.completed).toBe(true)
+    expect(result.stopReason).toBe('final')
+    // 子智能体以失败/停止收量，作为完成通知回灌
+    expect(result.events.some((event) => event.type === 'subagent_done' && event.success === false)).toBe(true)
+  })
 })
 
 /* ---- 子智能体 provider seam（多后端，对齐 dsh ctx.subagents） ---- */

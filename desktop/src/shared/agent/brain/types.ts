@@ -194,9 +194,10 @@ export interface RunBrainLoopOptions {
   initialMessages?: BrainMessage[]
   /**
    * 子智能体启动回调：拿到 `childId` 与该子循环的 `inbox`，可后续 `push` 消息
-   * （即 dsh 的 `sendMessage` 对运行中子级的「插话」）。
+   * （即 dsh 的 `sendMessage` 对运行中子级的「插话」）；`stopChild` 用于**单独停止**
+   * 该子智能体（只 abort 它自己，不牵连父循环）。
    */
-  onSubAgentSpawned?: (childId: string, inbox: BrainInbox) => void
+  onSubAgentSpawned?: (childId: string, inbox: BrainInbox, stopChild: () => void) => void
   /** 审批请求 id 生成器（默认进程内自增；测试可注入确定性实现） */
   newRequestId?: () => string
   /** 等待用户答复的超时（毫秒）；超时按「未确认/未答复」处理，0 表示不超时 */

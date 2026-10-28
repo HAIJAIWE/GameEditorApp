@@ -166,7 +166,7 @@ dsh 用 **cordis** 做插件组合，profile 是 YAML 补丁层（`bundles` + `c
 |---|---|---|
 | A | 子智能体改**异步 activation + 完成通知**（保留 depth≤1，先不做多 provider） | 中 |
 | B | 工具执行改**全批次保序 + 屏障**（并行仍 opt-in，默认值不动） | 中 |
-| C | 子智能体**容量上限**（`maxActiveSubagents`）+ `sendMessage` 继续对话 | 中 |
+| C | 子智能体**容量上限**（`maxActiveSubagents`）+ `sendMessage` 继续对话 | 中 ✅（Slice 26/40） |
 | D | 会话**append-only 事件日志**最小版（可恢复/审计） | 高 |
 | E | 技能**目录注入 + 按需加载**（替代硬编码技能表） | 中 |
 | F | 审批 `never` 无头模式 + 审计落库 | 低 |
@@ -201,6 +201,8 @@ dsh 用 **cordis** 做插件组合，profile 是 YAML 补丁层（`bundles` + `c
 > **已落地（Slice 35，2026-10-28）**：**OS 级文件沙箱（Windows ACL）**——`windowsSandbox.ts` 用 `icacls /deny <user>:(W)` 在窗口期真·拒绝写入、`finally` 恢复。CLI provider：`read-only` + 显式 `cwd` + `MB_SANDBOX_ACL=1` ⇒ 真·OS 只读；否则拒绝运行。**诚实边界**：非容器/内核隔离。
 >
 > **已落地（Slice 36，2026-10-28）**：**ACP 子智能体 provider**——`createAcpSubAgentProvider`（ACP v1：JSON-RPC 2.0 + ndjson；`initialize`→`session/new`→`session/prompt`，累积 `session/update` 的 `agent_message_chunk`，自动应答 `session/request_permission`，`session/cancel` 取消）。`MB_SUBAGENT_ACP` 启用；优先级 **远程 > ACP > CLI > 进程内**。
+>
+> **已落地（Slice 40，2026-10-28）**：**子智能体「继续对话」后端能力 → UI 接通**（C 片收尾）。① `loop.ts` 给每个子智能体**独立 `AbortController`**，`onSubAgentSpawned(childId, inbox, stopChild)` 额外暴露 `stopChild`（只 abort 子级，父级取消时经监听器级联 abort）；② `AgentBrainService` 加**本轮注册表** `childId → { inbox, stop }`，`chat()` 开始清空、`subagent_done` 时摘除，公开 `sendToSubagent` / `stopSubagent`；③ IPC `agent:subagentSend` / `agent:subagentStop` + preload + `MbApi`；④ 面板 `DigitalSubagentList` 对**运行中**子智能体显示「插话输入 + 停止」，停止后乐观标记「已停止」。**诚实边界**：仅对「本轮仍注册」的子智能体有效；已完成/跨轮返回 `ok:false`（面板不提示）；「插话」对进程内 spawn 子循环即时生效（子循环每轮 drain 自己的 inbox），外部 provider 是否消费 inbox 由其实现决定。
 
 ---
 

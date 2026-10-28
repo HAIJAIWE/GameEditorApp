@@ -26,6 +26,10 @@ export interface MbApi {
     respondInteraction(
       req: IpcContract['agent:interactionResponse']['req']
     ): Promise<IpcContract['agent:interactionResponse']['res']>
+    /** 子智能体「继续对话」：对运行中的子智能体插话（push 消息进它的收件箱） */
+    subagentSend(req: IpcContract['agent:subagentSend']['req']): Promise<IpcContract['agent:subagentSend']['res']>
+    /** 单独停止某个运行中的子智能体（不牵连父循环） */
+    subagentStop(req: IpcContract['agent:subagentStop']['req']): Promise<IpcContract['agent:subagentStop']['res']>
     sessionInfo(): Promise<IpcContract['agent:sessionInfo']['res']>
     sessionRestore(): Promise<IpcContract['agent:sessionRestore']['res']>
     sessionClear(): Promise<IpcContract['agent:sessionClear']['res']>

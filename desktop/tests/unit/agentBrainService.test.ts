@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest'
 
 import { AgentBrainService } from '../../src/main/agent/brainService'
 import { SkillDispatcher } from '../../src/main/agent/dispatcher'
-import type { BrainLlmRequest, BrainLlmTransport } from '../../src/shared/agent/brain'
+import type {
+  BrainInbox,
+  BrainLlmRequest,
+  BrainLlmTransport,
+  BrainToolRunner,
+  SubAgentProvider
+} from '../../src/shared/agent/brain'
 import type { SkillProtocol } from '../../src/shared/agent/protocol'
 import { DEFAULT_LLM_CONFIG, type StoredLlmConfig } from '../../src/shared/config/llmConfig'
 
@@ -144,5 +150,103 @@ describe('AgentBrainService：M3 档位路由装配', () => {
     await service.chat('随便聊聊', { preset: 'no-such-agent' })
     const text2 = systemText(requests[1] as BrainLlmRequest)
     expect(text2).not.toContain('【智能体预设】')
+  })
+})
+
+/* ---- 子智能体注册表（Slice 40 继续对话：send / stop） ---- */
+
+/** 第一次回 spawn 工具调用，之后一律回终稿 */
+function spawnThenFinalTransport(): { transport: BrainLlmTransport } {
+  const requests: BrainLlmRequest[] = []
+  return {
+    transport: {
+      complete: async (request: BrainLlmRequest) => {
+        requests.push(request)
+        if (requests.length === 1) {
+          return {
+            content: '',
+            toolCalls: [{ id: 's1', name: 'tool.spawn_subagent', arguments: { task: '子任务' } }],
+            finishReason: 'tool_calls',
+            model: 'stub',
+            usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 }
+          }
+        }
+        return {
+          content: '最终答复',
+          toolCalls: [],
+          finishReason: 'stop',
+          model: 'stub',
+          usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 }
+        }
+      }
+    }
+  }
+}
+
+describe('AgentBrainService：子智能体注册表（继续对话）', () => {
+  it('chat 运行中可 send 插话 / stop 停止；完成后 send 返回 false', async () => {
+    // 用 holder 对象承接闭包内赋值（`let x: T | null = null` 会被 TS 的 CFA 误判为恒 null）
+    const captured: { signal: AbortSignal | null; inbox: BrainInbox | null } = { signal: null, inbox: null }
+    let notifySpawned: (() => void) | null = null
+    const spawned = new Promise<void>((resolve) => {
+      notifySpawned = resolve
+    })
+    // provider 挂起直到被 abort：模拟「运行中」的子智能体
+    const provider: SubAgentProvider = {
+      id: 'stub',
+      run: ({ signal, inbox }) =>
+        new Promise((resolve) => {
+          captured.signal = signal
+          captured.inbox = inbox
+          signal.addEventListener('abort', () => resolve({ text: '子智能体已停止', success: false }), { once: true })
+        })
+    }
+    const runner: BrainToolRunner = {
+      resolve: (name) => (name === 'tool.spawn_subagent' ? name : null),
+      needsConfirmation: () => false,
+      execute: async () => ({ success: true, message: 'ok' })
+    }
+    const { transport } = spawnThenFinalTransport()
+    const service = new AgentBrainService({
+      dispatcher: makeDispatcher(),
+      transport,
+      runner,
+      subAgentProvider: provider
+    })
+
+    let spawnedId: string | null = null
+    const chatPromise = service.chat('x', {
+      onEvent: (event) => {
+        if (event.type === 'subagent_started') {
+          spawnedId = event.id
+          notifySpawned?.()
+        }
+      }
+    })
+    await spawned
+    expect(spawnedId).toBe('sub_1')
+
+    // 插话：push 进子智能体收件箱
+    expect(service.sendToSubagent('sub_1', '补充要求')).toBe(true)
+    expect(captured.inbox?.drain()).toEqual(['补充要求'])
+
+    // 单独停止：只 abort 子级 signal
+    expect(service.stopSubagent('sub_1')).toBe(true)
+    expect(captured.signal?.aborted).toBe(true)
+
+    const result = await chatPromise
+    expect(result.completed).toBe(true)
+    expect(result.stopReason).toBe('final')
+
+    // 完成后从注册表摘除：再 send/stop 返回 false（不是错误）
+    expect(service.sendToSubagent('sub_1', '再来')).toBe(false)
+    expect(service.stopSubagent('sub_1')).toBe(false)
+  })
+
+  it('未知 id：send/stop 返回 false（不抛）', () => {
+    const { transport } = spawnThenFinalTransport()
+    const service = new AgentBrainService({ dispatcher: makeDispatcher(), transport })
+    expect(service.sendToSubagent('nope', 'x')).toBe(false)
+    expect(service.stopSubagent('nope')).toBe(false)
   })
 })

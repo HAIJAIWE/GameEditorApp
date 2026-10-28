@@ -64,6 +64,8 @@ import type {
   AgentDraftSaveInput,
   AgentFeedbackInput,
   AgentInteractionResponseInput,
+  AgentSubagentSendInput,
+  AgentSubagentStopInput,
   EngineExportFileDialogInput,
   DataSnapshotInput,
   DataSnapshotFileDialogInput,
@@ -308,6 +310,10 @@ export interface IpcContract {
   'task:cancel': { req: TaskCancelInput; res: { cancelled: boolean } }
   'agent:approvalResponse': { req: { requestId: string; approved: boolean }; res: { ok: boolean } }
   'agent:interactionResponse': { req: AgentInteractionResponseInput; res: { ok: boolean } }
+  /** 子智能体「继续对话」：对运行中的子智能体插话（push 消息进它的收件箱） */
+  'agent:subagentSend': { req: AgentSubagentSendInput; res: { ok: boolean } }
+  /** 单独停止某个运行中的子智能体（不牵连父循环） */
+  'agent:subagentStop': { req: AgentSubagentStopInput; res: { ok: boolean } }
   'agent:sessionInfo': { req: undefined; res: SessionInfo }
   'agent:sessionRestore': { req: undefined; res: { messages: Array<Record<string, unknown>> } }
   'agent:sessionClear': { req: undefined; res: { cleared: boolean } }

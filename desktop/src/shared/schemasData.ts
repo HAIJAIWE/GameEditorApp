@@ -607,6 +607,16 @@ export const agentChatInputSchema = z.object({
   preset: z.string().min(1).max(64).optional()
 })
 
+/** Agent Brain：对运行中的子智能体「插话」（push 一条消息进它的收件箱） */
+export const agentSubagentSendInputSchema = z.object({
+  id: z.string().min(1).max(64),
+  content: z.string().min(1).max(4000)
+})
+/** Agent Brain：单独停止某个运行中的子智能体（不牵连父循环） */
+export const agentSubagentStopInputSchema = z.object({
+  id: z.string().min(1).max(64)
+})
+
 /**
  * 取消某个长任务（对话循环 / 单发 AI 生成都走这一条）。
  * 缺省 `taskId` ⇒ 取消该窗口当前活跃的那一笔（面板上只有一个停止按钮时的自然语义）。
@@ -908,6 +918,8 @@ export type AgentFeedbackInput = z.infer<typeof agentFeedbackInputSchema>
 export type AgentChatInput = z.infer<typeof agentChatInputSchema>
 export type AgentApprovalResponseInput = z.infer<typeof agentApprovalResponseInputSchema>
 export type AgentInteractionResponseInput = z.infer<typeof agentInteractionResponseInputSchema>
+export type AgentSubagentSendInput = z.infer<typeof agentSubagentSendInputSchema>
+export type AgentSubagentStopInput = z.infer<typeof agentSubagentStopInputSchema>
 export type EngineExportFileDialogInput = z.infer<typeof engineExportFileDialogInputSchema>
 export type LibraryCreateInput = z.infer<typeof libraryCreateInputSchema>
 export type LibraryRenameInput = z.infer<typeof libraryRenameInputSchema>

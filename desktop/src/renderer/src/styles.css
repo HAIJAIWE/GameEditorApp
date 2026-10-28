@@ -5423,6 +5423,21 @@ button.ref-row:hover {
   white-space: pre-wrap;
 }
 
+/* 子智能体「继续对话」控件（Slice 40）：插话输入 + 插话 / 停止 */
+.digital-subagent-controls {
+  flex-basis: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.digital-subagent-input {
+  flex: 1;
+  min-width: 0;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
+}
+
 .digital-step-head {
   display: flex;
   align-items: baseline;

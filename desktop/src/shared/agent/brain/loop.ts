@@ -315,19 +315,31 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
       return { text: '[STOP] 子智能体缺少 task 参数', success: false }
     }
     const childId = `sub_${++subAgentSeq}`
-    // 每个子智能体有自己的收件箱：外部可经 onSubAgentSpawned 拿到它并 push 消息（sendMessage）
+    // 每个子智能体有自己的收件箱：外部可经 onSubAgentSpawned 拿到它并 push 消息（sendMessage / 插话）
     const childInbox = createInbox()
+    // 每个子智能体有**独立**的取消控制器：这样「停止子智能体」只 abort 它自己，
+    // 不会误伤父循环（改前直接把父级 controller 传下去，一停子智能体就把父循环一起 abort）。
+    // 父级取消时通过监听器**级联** abort 子级（父停则子必停）。
+    const childAbort = new AbortController()
+    const onParentAbort = (): void => childAbort.abort()
+    controller.signal.addEventListener('abort', onParentAbort, { once: true })
     // 交给 provider 执行（默认进程内 spawn；外部后端只需实现 SubAgentProvider）
     const promise = subAgentProvider
-      .run({ task, depth: depth + 1, signal: controller.signal, inbox: childInbox, sandboxPolicy })
+      .run({ task, depth: depth + 1, signal: childAbort.signal, inbox: childInbox, sandboxPolicy })
       .catch((error: unknown) => ({
         text: `子智能体执行失败：${error instanceof Error ? error.message : String(error)}`,
         success: false
       }))
+      // 子任务结束即摘除父级 abort 监听器：长回合里反复 spawn 不会让 `controller.signal`
+      // 累积监听器（Node 默认 >10 会告警）。
+      .finally(() => {
+        controller.signal.removeEventListener('abort', onParentAbort)
+      })
     pendingSubagents.set(childId, promise)
     emit({ type: 'subagent_started', id: childId, task })
-    // 暴露 handle 给调用方：拿到 childId + inbox 即可对运行中的子智能体「插话」
-    options.onSubAgentSpawned?.(childId, childInbox)
+    // 暴露 handle 给调用方：拿到 childId + inbox 即可对运行中的子智能体「插话」，
+    // 拿到 stopChild 即可「单独停止」它（父级继续跑，不被牵连）。
+    options.onSubAgentSpawned?.(childId, childInbox, () => childAbort.abort())
     return { text: `started subagent ${childId}`, success: true }
   }
 

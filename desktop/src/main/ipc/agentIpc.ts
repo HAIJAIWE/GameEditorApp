@@ -9,6 +9,8 @@ import {
   agentFeedbackInputSchema,
   agentDraftLoadInputSchema,
   agentDraftSaveInputSchema,
+  agentSubagentSendInputSchema,
+  agentSubagentStopInputSchema,
   mcpSetConfigInputSchema
 } from '../../shared/schemas'
 import { parseMcpConfig } from '../../shared/agent/mcp/config'
@@ -101,6 +103,14 @@ export function registerAgentIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
       ...(req.answer !== undefined ? { answer: req.answer } : {}),
       ...(req.answers !== undefined ? { answers: req.answers } : {})
     })
+  }))
+  // 子智能体「继续对话」（Slice 40）：对运行中的子智能体插话 / 单独停止。
+  // 只认**当前本轮**注册表里的 id；已完成 / 跨轮返回 ok:false（不是错误，面板无需提示）。
+  handle('agent:subagentSend', agentSubagentSendInputSchema, (req) => ({
+    ok: agentBrain.sendToSubagent(req.id, req.content)
+  }))
+  handle('agent:subagentStop', agentSubagentStopInputSchema, (req) => ({
+    ok: agentBrain.stopSubagent(req.id)
   }))
   handle('agent:sessionInfo', undefined, () => agentSessionStore.info())
   handle('agent:sessionRestore', undefined, () => {

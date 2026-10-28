@@ -9,6 +9,8 @@
 
 import {
   runBrainLoop,
+  type BrainEvent,
+  type BrainInbox,
   type BrainLlmTransport,
   type BrainMessage,
   type BrainRunResult,
@@ -50,6 +52,13 @@ export class AgentBrainService {
   /** 注入的固定传输层（测试/定制）；缺省 ⇒ 每次调用按配置做档位路由（M3） */
   private readonly fixedTransport?: BrainLlmTransport
   private sessionSeq = 0
+  /**
+   * 本轮运行中的子智能体注册表（Slice 40）：`onSubAgentSpawned` 把 `childId → { inbox, stop }` 登记进来，
+   * 渲染层经 IPC `agent:subagentSend` / `agent:subagentStop` 对运行中的子智能体「插话 / 单独停止」。
+   * 每次 `chat()` 开始时清空——避免上一轮遗留的 `sub_1` 与新轮的 `sub_1` 撞 id（id 是每轮本地自增）。
+   * 子智能体 `subagent_done` 时从表里摘除（见下方 `onEvent` 包装），只留运行中的条目。
+   */
+  private readonly subagents = new Map<string, { inbox: BrainInbox; stop: () => void }>()
 
   /**
    * 生成会话 id。**本刀的回滚范围是单次对话轮次**（一次 `chat()` 内的全部数据变更）——
@@ -63,6 +72,29 @@ export class AgentBrainService {
 
   constructor(private readonly deps: AgentBrainServiceDeps) {
     this.fixedTransport = deps.transport
+  }
+
+  /**
+   * 对运行中的子智能体「插话」（对齐 dsh 的 `sendMessage` / Steer）。
+   * 把一条消息 push 进它的收件箱，父/子循环在下一轮开始前会把它注入为 `user` 消息。
+   * 返回 `false` 表示该 id 不在注册表（已完成 / 不存在 / 跨轮）。
+   */
+  sendToSubagent(id: string, content: string): boolean {
+    const entry = this.subagents.get(id)
+    if (entry === undefined) return false
+    entry.inbox.push(content)
+    return true
+  }
+
+  /**
+   * 单独停止某个运行中的子智能体（只 abort 它自己，不牵连父循环）。
+   * 返回 `false` 表示该 id 不在注册表（已完成 / 不存在 / 跨轮）。
+   */
+  stopSubagent(id: string): boolean {
+    const entry = this.subagents.get(id)
+    if (entry === undefined) return false
+    entry.stop()
+    return true
   }
 
   /** 选本次调用的传输层：注入的固定层优先，否则由配置解析（M3 档位路由） */
@@ -79,6 +111,8 @@ export class AgentBrainService {
     const tier = resolveAgentTier(options.config)
     const transport = this.resolveTransport(options)
     const face = buildToolFace(this.deps.dispatcher.list(), tier, options.explicitTools)
+    // 新一轮：清空上一轮子智能体注册表（见字段注释的 id 碰撞说明）
+    this.subagents.clear()
 
     const memoryBlock = await buildMemoryBlock(this.deps.memoryStore, input)
     const extraBlocks: string[] = []
@@ -144,7 +178,17 @@ export class AgentBrainService {
       ...(requestApproval ? { requestApproval } : {}),
       ...(options.requestInteraction ? { requestInteraction: options.requestInteraction } : {}),
       ...(options.newRequestId ? { newRequestId: options.newRequestId } : {}),
-      ...(options.onEvent ? { onEvent: options.onEvent } : {}),
+      // Slice 40：子智能体「继续对话」——把运行中的 childId 与其 inbox / stop 登记进注册表，
+      // 渲染层经 IPC 即可对运行中子智能体插话 / 单独停止（不牵连父循环）。
+      onSubAgentSpawned: (childId, inbox, stopChild) => {
+        this.subagents.set(childId, { inbox, stop: stopChild })
+      },
+      // 事件包装**始终安装**：子智能体收量即从注册表摘除（只留运行中的条目）。
+      // 不能只在调用方传了 onEvent 时才装——否则无 onEvent 的调用（测试/内嵌）会留下陈旧条目。
+      onEvent: (payload: BrainEvent): void => {
+        if (payload.type === 'subagent_done') this.subagents.delete(payload.id)
+        options.onEvent?.(payload)
+      },
       ...(options.signal ? { signal: options.signal } : {}),
       context
     })
