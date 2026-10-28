@@ -1,6 +1,6 @@
 # 插件架构与深层插件化迁移设计
 
-> 状态：进行中（B 方案，Slice 7/8 完成，17 个面板已迁）。最后更新 2026-10-28。
+> 状态：进行中（B 方案，Slice 7 完成 + Slice 8 前置落地：**22/23 浮层已插件化**，剩 onboarding 与 35 个菜单动作）。最后更新 2026-10-28。
 > 本文是插件系统的权威设计文档，也是「深层插件化」跨会话的交接文档。
 > 相关代码：`desktop/src/shared/plugin/`、`desktop/src/renderer/src/plugins/`。
 
@@ -41,6 +41,7 @@ renderer/src/plugins/
   dataPanelsPlugin.tsx     Slice 5：只依赖 types + handleJump 的面板 bundle（appContext 自供给）
   maintenancePanelsPlugin.tsx  Slice 6：依赖动作的面板 bundle（backup / clearAll）
   entryPanelsPlugin.tsx    Slice 7：带打开参数的面板 bundle（typeEditor / quickCreate / batch / importPreview）
+  shellPanelsPlugin.tsx    Slice 8 前置：外壳面板（about 走参数 / plugins 自举）
 ```
 
 ### 2.1 契约（`types.ts`）
@@ -99,7 +100,7 @@ App.renderPanel()
 | Slice 5 | 只依赖 `types + handleJump` 的面板（高级搜索 / 关系图 / 属性图表，`data-panels` bundle） | ✅ 完成 |
 | Slice 6 | 依赖动作的面板（备份 refreshUndo / 清空 handleDataCleared）→ `maintenance-panels` bundle；`onboarding` 的 action 分发改归 Slice 8 | ✅ 完成 |
 | Slice 7 | 带打开参数的面板（类型编辑器 / 快速创建 / 批量编辑 / 导入预览）→ `entry-panels` bundle；App 里 4 份专用 state 全部删除 | ✅ 完成 |
-| Slice 8 | `MenuBar` ~40 个菜单动作 → `command` 能力，App 不再持有动作清单 | ⬜ 待做 |
+| Slice 8 | `MenuBar` 35 个菜单动作 → `command` 能力，App 不再持有动作清单 | 🔶 进行中（前置：`about`/`plugins` 已成插件；动作本身未转） |
 
 ---
 
@@ -236,7 +237,7 @@ function ReferencesPanelBound({ onClose, params }: PanelBindingProps) {
 | `agentEditor` | AgentEditorPanel | 无 | 低 | ✅ |
 | `imageGen` | ImageGenPanel | `onClose` | 低 | ✅ |
 | `gameDataPreview` | GameDataPreviewPanel | 无 | 低 | ✅ |
-| `about` | AboutPanel | `version`（AppInfo） | 中 | ⬜ |
+| `about` | AboutPanel | 打开参数 `{ version }` | 中 | ✅ |
 | `attributeChart` | AttributeChartPanel | `types` | 中 | ✅ |
 | `relationGraph` | RelationGraphPanel | `types` + `handleJump` | 中 | ✅ |
 | `advancedSearch` | AdvancedSearchPanel | `types` + `handleJump` | 中 | ✅ |
@@ -248,7 +249,7 @@ function ReferencesPanelBound({ onClose, params }: PanelBindingProps) {
 | `quickCreate` | QuickCreatePanel | `quickCreateTarget` 参数 + `types` | 高 | ✅ |
 | `batch` | BatchEditPanel | `firstType` 参数 + `types` | 高 | ✅ |
 | `importPreview` | ImportPreviewPanel | `previewId` / `preview` 参数 + `types` | 高 | ✅ |
-| `plugins` | PluginsPanel | `host` | 已插件管理面 | — |
+| `plugins` | PluginsPanel | `host`（define 闭包捕获） | 已插件管理面 | ✅ 自举 |
 
 > 注：`onClose` 是通用契约，不计入「依赖」。
 
@@ -314,34 +315,54 @@ manifest（`utility-panels` 8 个面板、`data-panels` 3 个面板），这是 
 
 ---
 
-## 9. 下一步（只剩 Slice 8）
+## 9. 下一步（Slice 8 主体：菜单动作 → command）
 
-**现状**：三件使能件（宿主渲染 / 共享状态 / 打开参数）已齐，**17 个面板已迁**（Slice 1–7）。
-App 的 `renderPanel()` 里「组件直连」只剩 3 个：`onboarding`（`OnboardingPanel`）、
-`about`（要 `AppInfo.version`）、`plugins`（插件管理面本身）。
+### 9.1 现状账本（2026-10-28）
 
-**Slice 7 的做法与两个取舍**：
-- 4 份 App state（`typeEditorTarget` / `quickCreateTarget` / `importPreview` / `firstType` 的兜底）
-  全部删除，改成宿主参数；菜单入口在 `openPanel(kind)` 里显式清参，保住「菜单 = 默认类型」的语义。
-- 三处「数据改过」的同形回调（快速创建 / 批量编辑 / 导入应用）合并成 context 的 `afterMutation`，
-  App 里两个重复函数直接删掉。
-- 新增 `close()`（清参 + 关面板），专给「参数是整份预览数据」的导入预览用。
+| 面 | 已插件化 | 剩余 |
+|---|---|---|
+| 浮层面板（`renderPanel()` 23 个 case） | **22**（10 个插件，23 个 `panel` 能力） | 1：`onboarding` |
+| 菜单动作（`MenuBar` actions） | 0（仅 `about`/`plugins` 的面板本身成了插件） | **35** |
+| 侧边栏 / 顶栏 / 状态栏按钮 | 0 | 约 10 个入口 |
+| 策划书子系统内部面板（`CeshuView` 内的报告/体检/路线等） | 0（**不在本切片范围**：它们是编辑器内视图，不是浮层） | — |
 
-**Slice 8 — 菜单动作 → command（~40 个）**：`MenuBar` 的 `actions` 对象整块交给插件自供给，
-App 不再持有动作清单。这是最大一片，建议先把「纯导航类」（打开某面板）批量转成 command，
-再处理「有副作用的」（导入/导出/清空）。`onboarding` 的 8 个 action 在这里一并转成 command
-（届时 `OnboardingPanel` 只发 command id，不再需要 `handleOnboardingAction` 回调）。
+### 9.2 35 个菜单动作分两类
 
-**验收**：`renderPanel()` 的 switch 只剩 `default`（`about` / `plugins` 也各自成插件）；
-`MenuBar` 的 actions 由 `host.commands()` 生成；四道闸绿。
-**Slice 7 — 带打开参数的面板（4 个，下一步）**：`typeEditor`（`initialTypeId`）/ `quickCreate`（目标类型）/
-`batch`（`firstType`）/ `importPreview`（`previewId` + `preview`）。通路已由 Slice 3 打通，
-这 4 个是「照抄 referencesPlugin 的写法」，但要额外注意：
-- `importPreview` 的参数含**整份预览数据**（不是小对象），断言时校验 `previewId` 与 `preview` 同源，避免错配；
-- 这 4 个面板的 App state 同时被别处读（如 `openPanel` 的 `firstType` 守卫），删 state 前先确认没有第二消费者。
+**A. 纯导航类（20 个，机械、低风险）**：`backup` / `quickCreate` / `references` / `relationGraph` /
+`gameDataPreview` / `dataDiff` / `stats` / `attrSystem` / `fieldEditor` / `advancedSearch` / `imageGen` /
+`clearAll` / `shortcuts` / `about` / `settings` / `cleanupUnusedImages` / `keywordTemplates` /
+`attributeChart` / `batchEdit` / `onboarding`。
 
+这些的目标插件**都已经声明了 `<x>.open` command**，缺的只是「让 App 的菜单去调 command 而不是自己 `setPanel`」。
+但这里有个结构性障碍必须先拆：
 
----
+> **障碍**：command 调 `host.openPanel(id)` 只改宿主的 `activePanelId`，App 的 `panel` state 不变，
+> 浮层不会出现。要打通，得让**宿主成为「当前浮层」的单一来源**——把 App 的
+> `panel: OverlayPanel | null` 换成 `panelId: string | null`，`renderPanel()` 塌缩成一个
+> `<HostPanel panelId={panelId}>`，标题从 `panel` 能力的 `title` 读（`PANEL_TITLES` 那张 23 项的表一起删）。
+> 这是 Slice 8 的**关键一步**，也是一次涉及 `Sidebar`（`SIDEBAR_ITEMS` 用的是 kind）与全部
+> `setPanel(...)` 调用的改动，必须单独一片、单独跑四道闸 + 手工过一遍菜单。
+
+**B. 有副作用类（15 个，需要逐个设计）**：`open` / `save` / `batchImport` / `batchExport` /
+`engineExport` / `exportSnapshot`（文件 I/O，走 `useDataTransfer`）、`undo` / `redo`（撤销栈）、
+`zoomIn` / `zoomOut` / `zoomReset` / `reload` / `toggleDevTools`（窗口动作，经 `app.viewAction`）、
+`aiPanel`（右侧常驻栏开关）、`quit`（退出）。
+
+这 15 个不该塞进 `panel` 插件：它们不是视图。建议单独一个 **`app-actions` 插件**（`command` 能力），
+把 `useDataTransfer` 与窗口动作包成命令；撤销/重做要能读 `undoUi.canUndo`，得先把撤销栈状态放进 context
+或让 command 自行查询。
+
+### 9.3 建议顺序
+
+1. **8a 关键一步**：`panel` state → `panelId`，`renderPanel()` 塌缩成单个 `HostPanel`，标题改由能力提供。
+   验收：23 个浮层全部仍能打开、标题正确、`Sidebar` 高亮正常、四道闸绿。
+2. **8b A 类 20 个动作** → `host.commands()`；`MenuBar` 的 `actions` 只保留 B 类，或整块改为「按 id 查命令」。
+3. **8c B 类 15 个动作** → `app-actions` 插件；`MenuBar` 彻底不再持有动作清单。
+4. **8d `onboarding`**：8 个 action 转成 command（`nav.createRole` / `nav.viewRelations` …），
+   `OnboardingPanel` 只发 command id，`handleOnboardingAction` 删除。
+
+**最终验收**：`App.tsx` 里没有 `switch (panel)`、没有 `PANEL_TITLES`、没有 `actions={{...35 项...}}`；
+`MenuBar` 从 `host.commands()` 生成；四道闸绿 + e2e 全过。
 
 ## 10. 文件改动索引
 
@@ -375,6 +396,12 @@ Slice 4（8 个不依赖 App 状态的面板）：
 - `renderer/src/plugins/builtins.ts`（注册）
 - `renderer/src/App.tsx`（8 个 case → HostPanel，删 8 个直接 import）
 - `tests/unit/dom/utilityPanelsPlugin.test.tsx`（3 条：能力清单 / testid 保留 / 禁用后不再渲染）
+
+Slice 8 前置（外壳两件）：
+- `renderer/src/plugins/shellPanelsPlugin.tsx`（新增；`shell-panels`：`about.panel` 走参数、`plugins.panel` 自举）
+- `renderer/src/components/PluginsPanel.tsx`（`SELF_PANEL_ID` 守卫：自举后不能预览自己，否则无限递归 OOM）
+- `renderer/src/App.tsx`（2 个 case → HostPanel；`openPanel('about')` 下发版本参数）
+- `tests/unit/dom/shellPanelsPlugin.test.tsx`（4 条：能力清单 / 版本参数 / 无版本占位 / 自举列清单）
 
 Slice 7（4 个带打开参数的面板）：
 - `renderer/src/plugins/entryPanelsPlugin.tsx`（新增；`entry-panels` bundle，4 面板 + 3 命令）

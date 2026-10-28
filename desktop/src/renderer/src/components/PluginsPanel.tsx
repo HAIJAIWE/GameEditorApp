@@ -15,6 +15,13 @@ function PluginActiveRenderer({ component: Bound, onClose, close, params }: {
   return <Bound onClose={onClose} close={close} params={params} />
 }
 
+/**
+ * 插件中心自己的 panel id。它是自举面板（`shell-panels` 注册的 `plugins.panel`），
+ * 一旦被 `host.openPanel` 打开就成了「活动面板」——若不排除，本组件会去预览自己，
+ * 形成无限递归（实测 worker 直接 OOM 崩掉）。
+ */
+const SELF_PANEL_ID = 'plugins.panel'
+
 /** 状态徽标文案（dsh 风格：启用 / 禁用 / 错误） */
 function statusLabel(status: 'enabled' | 'disabled' | 'error'): string {
   if (status === 'enabled') return '已启用'
@@ -145,7 +152,7 @@ export default function PluginsPanel({ host, onClose }: { host: PluginHost; onCl
         })}
       </ul>
 
-      {active !== null && (
+      {active !== null && active.id !== SELF_PANEL_ID && (
         <div className="plugin-active" data-testid="plugin-active-panel">
           {getReactBinding(active.id) !== undefined ? (
             <PluginActiveRenderer

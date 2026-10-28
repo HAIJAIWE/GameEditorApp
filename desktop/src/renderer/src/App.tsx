@@ -6,7 +6,6 @@ import { loadMiddleTab, MIDDLE_TABS, saveMiddleTab, type MiddleTab } from '../..
 import type { AppInfo, DataTypeDef } from '../../shared/types'
 import { applyTheme, loadTheme, saveTheme, type ThemeMode } from '../../shared/config/theme'
 
-import AboutPanel from './components/AboutPanel'
 import CeshuHomePanel from './components/CeshuHomePanel'
 import BrowserPanel from './components/BrowserPanel'
 import CeshuView from './components/CeshuView'
@@ -16,7 +15,6 @@ import { type PreviewJumpTarget } from './components/ceshu/CeshuDataPreview'
 import DigitalPanel from './components/digital/DigitalPanel'
 import MenuBar from './components/MenuBar'
 import { type ReferenceTarget } from './components/ReferencesPanel'
-import PluginsPanel from './components/PluginsPanel'
 import Sidebar, { type SidebarAction, type SidebarItem } from './components/Sidebar'
 import OnboardingPanel from './components/OnboardingPanel'
 import ToastHost from './components/ToastHost'
@@ -426,6 +424,8 @@ export default function App() {
       setPanel('advancedSearch')
       return
     }
+    // 「关于」要版本号：作为打开参数下发（其余面板不需要）
+    if (kind === 'about') pluginHost.openPanel('about.panel', { version: info?.version ?? null })
     // 菜单入口 = 默认上下文：清掉上次的内部入口留下的目标（否则「上次选的类型」会粘住）
     if (kind === 'typeEditor') pluginHost.setPanelParams('typeEditor.panel', undefined)
     if (kind === 'quickCreate') pluginHost.setPanelParams('quickCreate.panel', undefined)
@@ -619,7 +619,8 @@ export default function App() {
         // 首切片（B 方案）：真实产品面板经 PluginHost 渲染，App 不再硬编码组件。
         return <HostPanel host={pluginHost} panelId="shortcuts.panel" onClose={() => setPanel(null)} />
       case 'about':
-        return <AboutPanel version={info?.version ?? null} />
+        // Slice 8 前置：版本号作为打开参数（不为一个字符串往 context 加字段）。
+        return <HostPanel host={pluginHost} panelId="about.panel" onClose={() => setPanel(null)} />
       case 'clearAll':
         return <HostPanel host={pluginHost} panelId="clearAll.panel" onClose={() => setPanel(null)} />
       case 'settings':
@@ -649,7 +650,8 @@ export default function App() {
       case 'relationGraph':
         return <HostPanel host={pluginHost} panelId="relationGraph.panel" onClose={() => setPanel(null)} />
       case 'plugins':
-        return <PluginsPanel host={pluginHost} onClose={() => setPanel(null)} />
+        // 自举：插件中心本身也是一个插件面板（host 由 defineShellPanelsPlugin 闭包捕获）。
+        return <HostPanel host={pluginHost} panelId="plugins.panel" onClose={() => setPanel(null)} />
       default:
         return null
     }
