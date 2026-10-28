@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type MouseEvent as ReactMouseEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type MouseEvent as ReactMouseEvent } from 'react'
 
 import type { CeshuSummary } from '../../shared/ceshuConstants'
 import { loadGameStyle, normalizeGameStyleId, saveGameStyle } from '../../shared/config/gameStyle'
@@ -7,7 +7,6 @@ import { applyTheme, loadTheme, saveTheme, type ThemeMode } from '../../shared/c
 
 import CeshuHomePanel from './components/CeshuHomePanel'
 import CeshuView from './components/CeshuView'
-import DataEditorPanel from './components/DataEditorPanel'
 import { type PreviewJumpTarget } from './components/ceshu/CeshuDataPreview'
 import DigitalPanel from './components/digital/DigitalPanel'
 import MenuBar from './components/MenuBar'
@@ -473,9 +472,9 @@ export default function App() {
   const handleJumpHandled = (): void => setJumpTarget(null)
 
   /** 条目表单「更多 ▸ → 编辑当前类型字段结构」：把该类型作为打开参数交给宿主 */
-  const handleEditType = (typeId: string): void => {
+  const handleEditType = useCallback((typeId: string): void => {
     pluginHost.openPanel('typeEditor.panel', { initialTypeId: typeId })
-  }
+  }, [])
 
   /**
    * 条目表单「更多 ▸ → 查看此项的引用关系」：把目标作为**打开参数**交给宿主再开面板。
@@ -484,9 +483,9 @@ export default function App() {
    * 同批次 `setRefTarget` 还没生效会把用户弹去高级搜索）。现在参数直接随打开动作下发，
    * 守卫读的是宿主里已写入的参数，不存在「同一批次读旧值」问题。
    */
-  const handleShowReferences = (target: ReferenceTarget): void => {
+  const handleShowReferences = useCallback((target: ReferenceTarget): void => {
     pluginHost.openPanel('references.panel', target)
-  }
+  }, [])
 
   /** 跳转未命中：目标类型不在当前策划书启用的游戏系统里，给出可理解的提示 */
   const handleJumpMissed = (name: string): void => {
@@ -550,9 +549,18 @@ export default function App() {
   }
 
   /**
-   * 主区页签（Slice 22）：编辑器/数据两个**重视图**暂以内联 `render` 下发（吃大量 App 状态与 props），
-   * 代码/浏览器两个零 prop 视图已由 `core-views` 插件的 `mainView` 能力提供。
-   * 编辑器常驻挂载（`lazy:false`，切走不丢草稿）；数据首访才挂（`lazy:true`）。
+   * 主区视图共享状态（Slice 23）：独立于面板 `appContext`，只喂主区视图（数据/后续编辑器）。
+   * memo 化：`types`/`gameStyle` 不变时引用稳定，数据页签不随 App 其它状态重渲染（性能隔离）。
+   */
+  const mainViewContextValue = useMemo(
+    () => ({ types, gameStyle, onEditType: handleEditType, onShowReferences: handleShowReferences }),
+    [types, gameStyle, handleEditType, handleShowReferences]
+  )
+
+  /**
+   * 主区页签（Slice 22/23）：编辑器暂以内联 `render` 下发（吃大量 App 状态与 props），
+   * 数据 / 代码 / 浏览器三个视图已由 `core-views` 插件的 `mainView` 能力提供。
+   * 编辑器常驻挂载（`lazy:false`，切走不丢草稿）。
    */
   const appTabs: AppMainTab[] = [
     {
@@ -592,21 +600,7 @@ export default function App() {
           />
         )
     },
-    {
-      id: 'data',
-      label: '数据编辑',
-      title: '数据编辑器（角色/怪物/技能等纯数据，直连 SQLite）',
-      order: 10,
-      lazy: true,
-      render: () => (
-        <DataEditorPanel
-          types={types}
-          gameStyle={gameStyle}
-          onEditType={handleEditType}
-          onShowReferences={handleShowReferences}
-        />
-      )
-    }
+    // 「数据」页签已迁到 core-views 插件的 data.mainView（Slice 23），经 mainViewContext 取状态。
   ]
 
   /**
@@ -644,7 +638,7 @@ export default function App() {
               ) : (
                 // 主区页签（Slice 22）：页签条 + 常驻挂载语义由 MainViewMount 接管；
                 // 代码/浏览器来自 core-views 插件的 mainView，编辑器/数据经 appTabs 内联。
-                <MainViewMount host={pluginHost} appTabs={appTabs} />
+                <MainViewMount host={pluginHost} appTabs={appTabs} context={mainViewContextValue} />
               )}
             </div>
             {/* 右栏拖拽分隔条：拖动改宽，双击复位到 25% */}

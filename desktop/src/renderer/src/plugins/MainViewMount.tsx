@@ -3,6 +3,11 @@ import { useCallback, useMemo, useState, useSyncExternalStore, type ComponentTyp
 import { MIDDLE_TAB_KEY, loadStoredTab, saveStoredTab } from '../../../shared/config/middleTab'
 import type { PluginHost } from '../../../shared/plugin/host'
 import type { PluginMainViewCapability } from '../../../shared/plugin/types'
+import {
+  EMPTY_MAIN_VIEW_CONTEXT,
+  MainViewProvider,
+  type MainViewContextValue
+} from './mainViewContext'
 import { getReactBinding, renderUiNode, uiOf, type PanelBindingProps } from './reactBindings'
 
 /**
@@ -70,7 +75,12 @@ function buildMerged(appTabs: AppMainTab[], pluginViews: PluginMainViewCapabilit
   return out.sort((left, right) => left.order - right.order)
 }
 
-export function MainViewMount({ host, appTabs }: { host: PluginHost; appTabs: AppMainTab[] }) {
+export function MainViewMount({ host, appTabs, context = EMPTY_MAIN_VIEW_CONTEXT }: {
+  host: PluginHost
+  appTabs: AppMainTab[]
+  /** 主区视图共享状态（独立于面板 appContext，见 mainViewContext 注释） */
+  context?: MainViewContextValue
+}) {
   const subscribe = useMemo(() => (onChange: () => void) => host.subscribe(onChange), [host])
   // 订阅版本号（稳定数值快照）以在插件增删/禁用后重渲染；列表在下方按最新宿主状态重算。
   // 不能直接拿 `host.mainViews()` 当快照：它每次返回新数组，身份抖动会导致无限重渲染。
@@ -97,7 +107,7 @@ export function MainViewMount({ host, appTabs }: { host: PluginHost; appTabs: Ap
   }, [])
 
   return (
-    <>
+    <MainViewProvider value={context}>
       <nav className="middle-tabs" data-testid="middle-tabs" aria-label="中间窗口页签">
         {merged.map((tab) => (
           <button
@@ -130,6 +140,6 @@ export function MainViewMount({ host, appTabs }: { host: PluginHost; appTabs: Ap
           )
         })}
       </div>
-    </>
+    </MainViewProvider>
   )
 }

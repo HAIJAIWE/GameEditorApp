@@ -1,6 +1,8 @@
 import type { PluginManifest } from '../../../shared/plugin/types'
 import BrowserPanel from '../components/BrowserPanel'
 import CodePanel from '../components/CodePanel'
+import DataEditorPanel from '../components/DataEditorPanel'
+import { useMainViewContext } from './mainViewContext'
 import { registerReactBinding } from './reactBindings'
 
 /**
@@ -20,9 +22,23 @@ function BrowserMainView() {
   return <BrowserPanel />
 }
 
+/** 数据页签：4 个 props 从独立的 mainViewContext 取（不污染面板 appContext） */
+function DataMainView() {
+  const { types, gameStyle, onEditType, onShowReferences } = useMainViewContext()
+  return (
+    <DataEditorPanel
+      types={types}
+      gameStyle={gameStyle}
+      onEditType={onEditType}
+      onShowReferences={onShowReferences}
+    />
+  )
+}
+
 export function defineCoreViewsPlugin(): PluginManifest {
   registerReactBinding('code.mainView', CodeMainView)
   registerReactBinding('browser.mainView', BrowserMainView)
+  registerReactBinding('data.mainView', DataMainView)
 
   return {
     id: 'core-views',
@@ -35,6 +51,15 @@ export function defineCoreViewsPlugin(): PluginManifest {
       description: '中间页签里的代码编辑与浏览器'
     },
     capabilities: [
+      {
+        kind: 'mainView',
+        id: 'data.mainView',
+        label: '数据编辑',
+        title: '数据编辑器（角色/怪物/技能等纯数据，直连 SQLite）',
+        order: 10,
+        lazy: true,
+        ui: { type: 'text', text: '数据编辑' }
+      },
       {
         kind: 'mainView',
         id: 'code.mainView',

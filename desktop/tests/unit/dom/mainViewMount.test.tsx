@@ -93,12 +93,13 @@ describe('主区视图挂载器（Slice 22）', () => {
     expect(view.byTestId('editor-body')).toBeTruthy()
   })
 
-  it('core-views 插件声明代码/浏览器两个 mainView（lazy、order 30/40）+ React 绑定', () => {
+  it('core-views 插件声明数据/代码/浏览器三个 mainView（lazy、order 10/30/40）+ React 绑定', () => {
     const manifest = defineCoreViewsPlugin()
     const views = manifest.capabilities.filter((cap) => cap.kind === 'mainView')
-    expect(views.map((v) => v.id)).toEqual(['code.mainView', 'browser.mainView'])
-    expect(views.map((v) => v.order)).toEqual([30, 40])
+    expect(views.map((v) => v.id)).toEqual(['data.mainView', 'code.mainView', 'browser.mainView'])
+    expect(views.map((v) => v.order)).toEqual([10, 30, 40])
     expect(views.every((v) => v.lazy === true)).toBe(true)
+    expect(getReactBinding('data.mainView')).toBeDefined()
     expect(getReactBinding('code.mainView')).toBeDefined()
     expect(getReactBinding('browser.mainView')).toBeDefined()
   })
