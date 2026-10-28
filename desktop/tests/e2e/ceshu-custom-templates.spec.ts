@@ -4,6 +4,7 @@ import { join } from 'node:path'
 
 import { type Page, expect, test } from '@playwright/test'
 import { launchApp, libraryDir, waitReady } from './helpers/app'
+import { countChapterTemplates } from '../../src/shared/ceshuTemplates'
 
 interface StoredTemplate {
   id: string
@@ -135,10 +136,11 @@ test('自定义模板：另存为模板（章节/全局）→ 来源筛选 → �
     await window.getByTestId('template-save-confirm').click()
     await expect(window.getByTestId('template-notice')).toContainText('已保存为自定义模板「全局通用模板」')
 
-    // 章节筛选 = meta 时全局模板不出现；切「全部章节」后可见（34 内置 + 2 自定义）并标注 [全局]
+    // 章节筛选 = meta 时全局模板不出现；切「全部章节」后可见（全部内置 + 2 自定义）并标注 [全局]
     await expect(window.getByTestId('template-item')).toHaveCount(4)
     await window.getByTestId('template-chapter').selectOption('')
-    await expect(window.getByTestId('template-item')).toHaveCount(36)
+    // 内置模板数不写死：由 `countChapterTemplates()` 派生（补模板时不必再改这里）
+    await expect(window.getByTestId('template-item')).toHaveCount(countChapterTemplates() + 2)
     const globalRow = window.getByTestId('template-row').filter({ hasText: '全局通用模板' })
     await expect(globalRow.getByTestId('template-item')).toContainText('[全局] 全局通用模板')
     await expect(globalRow.getByTestId('template-badge')).toHaveText('自定义')
@@ -149,7 +151,7 @@ test('自定义模板：另存为模板（章节/全局）→ 来源筛选 → �
     await globalRow.getByTestId('template-delete').click()
     await globalRow.getByTestId('template-delete-confirm').click()
     await expect(window.getByTestId('template-notice')).toContainText('已删除自定义模板')
-    await expect(window.getByTestId('template-item')).toHaveCount(35)
+    await expect(window.getByTestId('template-item')).toHaveCount(countChapterTemplates() + 1)
     expect(readCategoryFile(userDataDir, 'global')).toEqual([])
     expect(readCategoryFile(userDataDir, 'meta')).toHaveLength(1)
   } finally {

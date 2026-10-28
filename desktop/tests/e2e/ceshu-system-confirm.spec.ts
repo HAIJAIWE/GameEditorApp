@@ -157,13 +157,14 @@ test('系统确认：勾选启用 + 自定义系统 + 确认落盘 + 双向同�
     expect(sync.toCeshu[keyA]).toBe(0)
     expect(sync.toCeshu[customName]).toBe(0)
 
-    // 磁盘回读：确认 systems 已原子落盘
+    // 磁盘回读：确认 systems 已原子落盘。
+    // 新文档落成**项目文件夹**，且章节数据与配置分离 —— systems 在 `data/systems.json`，不在 config.json。
     const onDisk = JSON.parse(
-      readFileSync(join(libraryDir(userDataDir), 'ceshu', `${createdId}.json`), 'utf-8')
-    ) as { systems: Record<string, { enabled: boolean; config?: Record<string, unknown> }> }
-    expect(onDisk.systems[keyA]?.enabled).toBe(true)
-    expect(onDisk.systems[customName]?.enabled).toBe(true)
-    expect(onDisk.systems[customName]?.config?.note).toBe('自定义系统')
+      readFileSync(join(libraryDir(userDataDir), 'ceshu', createdId, 'data', 'systems.json'), 'utf-8')
+    ) as Record<string, { enabled: boolean; config?: Record<string, unknown> }>
+    expect(onDisk[keyA]?.enabled).toBe(true)
+    expect(onDisk[customName]?.enabled).toBe(true)
+    expect(onDisk[customName]?.config?.note).toBe('自定义系统')
   } finally {
     await app.close()
   }

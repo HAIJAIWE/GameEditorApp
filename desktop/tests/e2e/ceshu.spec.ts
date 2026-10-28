@@ -4,6 +4,7 @@ import { join } from 'node:path'
 
 import { expect, test } from '@playwright/test'
 import { launchApp, libraryDir, waitReady } from './helpers/app'
+import { CHAPTER_KEYS } from '../../src/shared/ceshuConstants'
 
 test('策划书：读取旧版文件 → 新建 → 编辑保存章节 → 磁盘落盘', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-ceshu-e2e-'))
@@ -35,9 +36,12 @@ test('策划书：读取旧版文件 → 新建 → 编辑保存章节 → 磁�
     await expect(window.getByTestId('home-card')).toHaveCount(1)
     await expect(window.getByTestId('home-card').first()).toContainText
 
-    // 新建空白策划书（默认专业版 = 文档信息 + 16 章）→ 自动进入编辑器
+    // 新建空白策划书 → 自动进入编辑器。
+    // 章节数**不写死**：专业版章数由 `CHAPTER_KEYS` 派生（2026-10 追加 P2 章后从 17 变 24）；
+    // 且编辑器默认按「立项阶段」筛选只显示 7 章，故先切「全部阶段」再数。
     await window.getByTestId('home-new-blank').click()
-    await expect(window.getByTestId('chapter-tab')).toHaveCount(17)
+    await window.getByTestId('stage-filter-all').click()
+    await expect(window.getByTestId('chapter-tab')).toHaveCount(CHAPTER_KEYS.length)
     await expect(window.getByTestId('chapter-form')).toContainText('文档信息')
 
     // 编辑文档信息并保存
@@ -62,32 +66,48 @@ test('策划书：读取旧版文件 → 新建 → 编辑保存章节 → 磁�
     await window.getByTestId('chapter-save').click()
     await expect(combatTab).toContainText('50%')
 
-    // 第四章（游戏系统）：启用「战斗」并保存
+    // 第四章（游戏系统）：启用「战斗」并保存。
+    // 注意：从首页重进编辑器时 `stageFilter` 会重置回「立项阶段」，而第四章归研发阶段 ⇒ 需再切一次全部。
+    await window.getByTestId('stage-filter-all').click()
     await window.getByTestId('chapter-tab').filter({ hasText: '第四章·游戏系统设计' }).click()
     await window.getByTestId('system-toggle-battle').check()
     await expect(window.getByTestId('system-field-battle-turn_mode')).toBeVisible()
     await window.getByTestId('chapter-save').click()
     await expect(window.getByText('已保存：第四章·游戏系统设计')).toBeVisible()
 
-    // 磁盘落盘校验：新文件为 旧版 兼容格式
-    const files = readdirSync(ceshuDir).filter((file) => file.endsWith('.json'))
-    expect(files).toHaveLength(2)
-    const savedPath = files.map((file) => join(ceshuDir, file)).find((path) => {
-      const raw = JSON.parse(readFileSync(path, 'utf-8')) as { meta?: { game_name?: string } }
-      return raw.meta?.game_name === 'E2E 测试游戏'
-    })
-    expect(savedPath).toBeDefined()
-    expect(existsSync(savedPath as string)).toBe(true)
+    // 磁盘落盘校验：新文档落成**项目文件夹**（config.json + design/*.md + data/*.json）。
+    // 旧版 `<id>.json` 单文件仍可读，但新建不再产生 ⇒ 用「含 config.json 且游戏名匹配的目录」定位新文档。
+    const newFolder = readdirSync(ceshuDir, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name)
+      .find((name) => {
+        const configPath = join(ceshuDir, name, 'config.json')
+        if (!existsSync(configPath)) return false
+        const config = JSON.parse(readFileSync(configPath, 'utf-8')) as { game_name?: string }
+        return config.game_name === 'E2E 测试游戏'
+      })
+    expect(newFolder).toBeDefined()
+    const folderPath = join(ceshuDir, newFolder as string)
 
-    const saved = JSON.parse(readFileSync(savedPath as string, 'utf-8')) as Record<string, unknown>
-    expect(saved['ceshu_id']).toMatch(/^[0-9a-f]{8}$/)
-    expect(typeof saved['created_at']).toBe('string')
-    expect((saved['meta'] as Record<string, unknown>)['gdd_scope']).toBe('full')
-    expect((saved['meta'] as Record<string, unknown>)['game_name']).toBe('E2E 测试游戏')
-    expect((saved['combat'] as Record<string, unknown>)['damage_formula']).toBe('伤害 = 攻击 - 防御')
-    expect(((saved['systems'] as Record<string, Record<string, unknown>>)['battle'] ?? {})['enabled']).toBe(true)
-    // 原子写不残留临时文件
-    expect(files.filter((file) => file.endsWith('.tmp'))).toHaveLength(0)
+    const config = JSON.parse(readFileSync(join(folderPath, 'config.json'), 'utf-8')) as Record<string, unknown>
+    expect(config['ceshu_id']).toMatch(/^[0-9a-f]{8}$/)
+    expect(typeof config['created_at']).toBe('string')
+    expect(config['gdd_scope']).toBe('full')
+    expect(config['game_name']).toBe('E2E 测试游戏')
+
+    // 章节数据与配置分离：文字字段进 design/<章>.md，结构化字段进 data/<章>.json
+    const combatFiles = ['design/combat.md', 'data/combat.json']
+      .map((relative) => join(folderPath, relative))
+      .filter((path) => existsSync(path))
+    expect(combatFiles.some((path) => readFileSync(path, 'utf-8').includes('伤害 = 攻击 - 防御'))).toBe(true)
+    const systems = JSON.parse(readFileSync(join(folderPath, 'data', 'systems.json'), 'utf-8')) as Record<
+      string,
+      Record<string, unknown>
+    >
+    expect((systems['battle'] ?? {})['enabled']).toBe(true)
+
+    // 原子写不残留临时文件（含子目录）
+    expect(readdirSync(ceshuDir, { recursive: true }).filter((entry) => String(entry).endsWith('.tmp'))).toHaveLength(0)
   } finally {
     await app.close()
   }

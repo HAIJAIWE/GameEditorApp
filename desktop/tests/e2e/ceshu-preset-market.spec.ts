@@ -93,10 +93,15 @@ test('预设市场：18 卡片 + 搜索筛选 + 应用预设（启用推荐系�
       'social'
     ])
 
-    // 磁盘回读：直接读策划书 JSON，确认 systems/meta 已原子落盘
-    const onDisk = JSON.parse(readFileSync(join(libraryDir(userDataDir), 'ceshu', `${createdId}.json`), 'utf-8')) as {
-      systems: Record<string, { enabled: boolean }>
-      meta: Record<string, unknown>
+    // 磁盘回读：新文档是**项目文件夹**（章节数据与配置分离）——
+    // systems 在 `data/systems.json`，品类等配置在 `config.json`。
+    const folder = join(libraryDir(userDataDir), 'ceshu', createdId)
+    const onDisk = {
+      systems: JSON.parse(readFileSync(join(folder, 'data', 'systems.json'), 'utf-8')) as Record<
+        string,
+        { enabled: boolean }
+      >,
+      meta: JSON.parse(readFileSync(join(folder, 'config.json'), 'utf-8')) as Record<string, unknown>
     }
     expect(onDisk.systems.economy?.enabled).toBe(true)
     expect(onDisk.meta.game_type).toBe('rpg')

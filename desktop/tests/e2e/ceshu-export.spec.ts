@@ -4,6 +4,7 @@ import { join } from 'node:path'
 
 import { expect, test } from '@playwright/test'
 import { launchApp, waitReady } from './helpers/app'
+import { CESHU_EXPORT_FORMATS } from '../../src/shared/ceshuConstants'
 import ExcelJS from 'exceljs'
 
 interface CeshuExportResult {
@@ -23,7 +24,10 @@ test('策划书导出 UI：格式选择（6 种）与导出按钮存在', async 
     // 新建空白策划书 → 自动进入编辑器（导出按钮/格式选择在工具栏）
     await window.getByTestId('home-new-blank').click()
     await expect(window.getByTestId('ceshu-export')).toBeVisible()
-    await expect(window.getByTestId('export-format').locator('option')).toHaveCount(6)
+    // 格式数不写死：由 `CESHU_EXPORT_FORMATS` 派生（当前 11 种，含一页纸/叙事/任务/交接包等）
+    await expect(window.getByTestId('export-format').locator('option')).toHaveCount(
+      CESHU_EXPORT_FORMATS.length
+    )
   } finally {
     await app.close()
   }

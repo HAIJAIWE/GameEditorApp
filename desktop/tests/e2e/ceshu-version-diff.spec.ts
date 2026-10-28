@@ -4,6 +4,7 @@ import { join } from 'node:path'
 
 import { expect, test } from '@playwright/test'
 import { launchApp, waitReady } from './helpers/app'
+import { CHAPTER_KEYS } from '../../src/shared/ceshuConstants'
 
 interface DiffProbe {
   rootId: string
@@ -132,9 +133,9 @@ test('版本对比：派生改字段 → 精确 Diff 计数 + 面板断言 + 导
     expect(probe.totalModified).toBe(1)
     expect(probe.totalAdded).toBe(1)
     expect(probe.totalRemoved).toBe(0)
-    // 默认章节内容确定：meta 扁平 10 键（1 处修改 → 未变 9）、全域 190 键（2 处变更 → 未变 188）
-    expect(probe.metaUnchanged).toBe(9)
-    expect(probe.totalUnchanged).toBe(188)
+    // 默认章节内容确定：meta 扁平 14 键（1 处修改 → 未变 13）、全域 264 键（2 处变更 → 未变 262）
+    expect(probe.metaUnchanged).toBe(13)
+    expect(probe.totalUnchanged).toBe(262)
     expect(probe.gameNameField).toMatchObject({
       field_path: 'meta.game_name',
       old_value: '差异A',
@@ -162,7 +163,8 @@ test('版本对比：派生改字段 → 精确 Diff 计数 + 面板断言 + 导
     await expect(window.getByTestId('diff-stats')).toContainText('✚ 新增 1')
     await expect(window.getByTestId('diff-stats')).toContainText('✎ 修改 1')
     await expect(window.getByTestId('diff-stats')).toContainText('变更率')
-    await expect(window.getByTestId('diff-chapter')).toHaveCount(17)
+    // 章节数不写死：由 `CHAPTER_KEYS` 派生（专业版全部章，含文档信息段）
+    await expect(window.getByTestId('diff-chapter')).toHaveCount(CHAPTER_KEYS.length)
     await expect(window.getByTestId('diff-chapter').first()).toContainText('1 处变更')
 
     // 默认选中第一个有变更的章节（文档信息 meta）：1 个字段 game_name

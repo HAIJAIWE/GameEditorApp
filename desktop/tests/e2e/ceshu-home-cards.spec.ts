@@ -109,10 +109,11 @@ test('策划书首页：卡片渲染 + 搜索 + 最近打开 + 重命名/复制/
     await cardB2.getByTestId('home-delete-confirm').click()
     await expect(window.getByTestId('home-notice')).toContainText('已删除策划书')
     await expect(window.getByTestId('home-card')).toHaveCount(3)
-    expect(existsSync(join(libraryDir(userDataDir), 'ceshu', `${idB}.json`))).toBe(false)
+    // 落盘布局：新文档是**项目文件夹** `<id>/config.json`（旧版 `<id>.json` 仍可读，但新建不再产生）
+    expect(existsSync(join(libraryDir(userDataDir), 'ceshu', idB))).toBe(false)
     // 未删除的仍在
-    expect(existsSync(join(libraryDir(userDataDir), 'ceshu', `${idA}.json`))).toBe(true)
-    expect(existsSync(join(libraryDir(userDataDir), 'ceshu', `${idC}.json`))).toBe(true)
+    expect(existsSync(join(libraryDir(userDataDir), 'ceshu', idA, 'config.json'))).toBe(true)
+    expect(existsSync(join(libraryDir(userDataDir), 'ceshu', idC, 'config.json'))).toBe(true)
     // 目录内无残留临时文件
     expect(readdirSync(join(libraryDir(userDataDir), 'ceshu')).filter((file) => file.endsWith('.tmp'))).toHaveLength(0)
 

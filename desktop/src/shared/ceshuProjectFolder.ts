@@ -9,7 +9,13 @@ import {
 } from './ceshuConstants'
 import { CESHU_CHAPTER_FIELDS } from './ceshuFields'
 import { displayFieldValue } from './ceshuFieldDisplay'
-import { createDefaultCeshu, getGameType, getGddScope, visibleChaptersForDoc } from './ceshuModel'
+import {
+  computeEnabledEditors,
+  createDefaultCeshu,
+  getGameType,
+  getGddScope,
+  visibleChaptersForDoc
+} from './ceshuModel'
 import { CESHU_ROLE_LABELS, CESHU_ROLE_ORDER, renderRoleTasksMarkdown, type CeshuTaskPlan } from './ceshuTasks'
 
 /**
@@ -258,6 +264,13 @@ export function projectFilesToDoc(files: Record<string, string>): CeshuDocument 
       target[chapter] = { ...(doc[chapter] as object), ...structured }
     }
   }
+
+  /*
+   * `enabled_editors` 是**派生字段**（由 `systems` 决定），`config.json` 刻意不落盘它。
+   * 但载入后必须重算一次：否则从项目文件夹读回的 doc 里它恒为空数组，与「写入后内存里的 doc」
+   * 不一致——调用方（如预设市场、数据预览）读 `doc.enabled_editors` 会看到空列表。
+   */
+  doc.enabled_editors = computeEnabledEditors(doc)
 
   return doc
 }

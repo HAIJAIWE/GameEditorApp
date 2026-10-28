@@ -126,7 +126,9 @@ test('章节模板库：筛选/预览/三模式应用/保存落盘/无数据模�
       positioning: '3D 仙侠开放世界 RPG，重剧情 + 轻社交\n近未来科幻 TPS，强调战术配合与可破坏场景'
     })
 
-    // 系统章：唯一内置模板无数据 → 展示 note 且应用按钮禁用
+    // 系统章：唯一内置模板无数据 → 展示 note 且应用按钮禁用。
+    // 「游戏系统设计」归研发阶段，而编辑器默认按立项阶段筛选 ⇒ 先切「全部阶段」才看得到这一章。
+    await window.getByTestId('stage-filter-all').click()
     await window.getByTestId('chapter-tab').filter({ hasText: '第四章·游戏系统设计' }).click()
     await window.getByTestId('template-picker-open').click()
     await expect(window.getByTestId('template-item')).toHaveCount(1)

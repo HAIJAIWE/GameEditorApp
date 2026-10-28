@@ -4,6 +4,7 @@ import { join } from 'node:path'
 
 import { type Page, expect, test } from '@playwright/test'
 import { launchApp, libraryDir, waitReady } from './helpers/app'
+import { countChapterTemplates } from '../../src/shared/ceshuTemplates'
 
 interface StoredTemplate {
   id: string
@@ -140,9 +141,9 @@ test('模板编辑器：列表筛选 → 新建/保存 → 编辑更新 → 应�
     await window.getByTestId('editor-filter').selectOption('__custom__')
     await expect(window.getByTestId('editor-item')).toHaveCount(1)
     await window.getByTestId('editor-filter').selectOption('__builtin__')
-    await expect(window.getByTestId('editor-item')).toHaveCount(34)
+    await expect(window.getByTestId('editor-item')).toHaveCount(countChapterTemplates())
     await window.getByTestId('editor-filter').selectOption('')
-    await expect(window.getByTestId('editor-item')).toHaveCount(35)
+    await expect(window.getByTestId('editor-item')).toHaveCount(countChapterTemplates() + 1)
     await window.getByTestId('editor-search').fill('仙侠')
     await expect(window.getByTestId('editor-item')).toHaveCount(8)
     await window.getByTestId('editor-search').fill('zzz')
