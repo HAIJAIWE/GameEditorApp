@@ -28,8 +28,9 @@ MCP server ──stdio JSON-RPC──▶ McpClient ──tools/list──▶ Mcp
 | `shared/agent/mcp/config.ts` | 解析 `{ mcpServers: {...} }`（容错：坏项跳过） |
 | `shared/agent/mcp/bridge.ts` | `mcpToolToSkill`：MCP 工具 → `SkillProtocol`（纯函数，可单测） |
 | `shared/agent/mcp/client.ts` | 协议层：`initialize` / `tools/list` / `tools/call`（传输层注入） |
-| `main/agent/mcp/stdioTransport.ts` | 真实传输：拉子进程，行分隔 JSON-RPC，id 配对 |
-| `main/agent/mcp/manager.ts` | 单例：应用级连接、库级注册、失败隔离 |
+| `main/agent/mcp/stdioTransport.ts` | 真实传输（stdio）：拉子进程，行分隔 JSON-RPC，id 配对 |
+| `main/agent/mcp/streamableHttpTransport.ts` | 真实传输（HTTP）：POST JSON-RPC，响应支持 `application/json` 或 `text/event-stream`(SSE)，带 `Mcp-Session-Id` |
+| `main/agent/mcp/manager.ts` | 单例：应用级连接、库级注册、失败隔离、按配置选传输层 |
 
 ## 3. 配置
 
@@ -47,8 +48,23 @@ MCP server ──stdio JSON-RPC──▶ McpClient ──tools/list──▶ Mcp
 }
 ```
 
+远程（streamable-http，如 dsh 的 context7）：
+
+```json
+{
+  "mcpServers": {
+    "context7": {
+      "url": "https://mcp.context7.com/mcp",
+      "headers": { "Accept": "application/json, text/event-stream" }
+    }
+  }
+}
+```
+
+- **stdio**（`command`）与 **http**（`url`）二选一，按配置自动选传输层。
 - 没有这个文件 = **不启用 MCP**（静默，不影响 agent 本体）。
 - 单个服务器起不来 = 只跳过它，其他服务器与 agent 不受影响。
+- dsh 的 MCP 配置（`/d/dsh/storages/mcp_connector.json`）就是这两种形态，**可直接搬**。
 
 ## 4. 生命周期（为什么连接与注册分开）
 
@@ -59,13 +75,13 @@ MCP server ──stdio JSON-RPC──▶ McpClient ──tools/list──▶ Mcp
 ## 5. 已做 / 未做（诚实边界）
 
 **已做**
-- stdio 传输 + `initialize`/`tools/list`/`tools/call`
+- **两种传输**：stdio 子进程 + Streamable HTTP（`application/json` 与 SSE 两种响应）
+- `initialize`/`tools/list`/`tools/call`
 - 工具 → 技能桥（文本内容拼接、`isError`→`success`、异常收敛）
-- 配置解析（容错）+ 应用级单例 + 库级注册
-- 8 条单测（配置 / 桥 / 协议客户端用假传输层）
+- 配置解析（容错，stdio/http 二选一）+ 应用级单例 + 库级注册
+- 9 条单测（配置含 http / 桥 / 协议客户端用假传输层）
 
 **未做（后续）**
-- **SSE / HTTP 传输**（目前只支持 stdio 子进程）
 - **MCP 配置 UI**（现在手写 `mcp.json`；未来可在「插件中心」加配置面板）
 - **风险分级**：MCP 工具目前走 `DEFAULT_TOOL_RISK`（未登记），shell 类工具**不会**自动要求二次确认；要更严可在 `TOOL_RISK_MAP` 登记或按服务器配置风险
 - **工具面限量**：MCP 工具计入本地 8 / 云端 15 的上限，接多了会被截断（可调 `TOOL_FACE_LIMITS`）
