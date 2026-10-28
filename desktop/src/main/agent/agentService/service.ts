@@ -138,6 +138,10 @@ export class AgentBrainService {
       await this.deps.sessionStore.save(toPlainMessages(result.messages)).catch(() => undefined)
       // F11 观测闭环：落盘本次运行统计，供跨会话成本汇总 / 超预算自动降级（DD-5b 真降级）
       await this.deps.sessionStore.recordRunStats(result.stats).catch(() => undefined)
+      // Slice 29：事件日志 append-only（审计/回放；与快照分开，只追加不覆盖）
+      await this.deps.sessionStore
+        .recordEvents(result.events, { sessionId: context.sessionId })
+        .catch(() => undefined)
       // F1/DD-5b 护栏级：云端档超预算记一次指标（真降级待补）
       if (tier === 'cloud') {
         const est = estimateTokens(systemPrompts.join('\n') + '\n' + input)

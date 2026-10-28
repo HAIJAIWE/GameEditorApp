@@ -31,6 +31,7 @@ import type { AgentRunStats } from '../../shared/agent/observability'
 const SESSION_FILE = 'active_session.json'
 const METRICS_FILE = 'metrics.jsonl'
 const RUNSTATS_FILE = 'runstats.jsonl'
+const EVENTS_FILE = 'events.jsonl'
 const DRAFTS_DIR = 'drafts'
 
 export class AgentSessionStore {
@@ -117,6 +118,31 @@ export class AgentSessionStore {
       const entry = { type: 'run_stats', timestamp: Math.floor(Date.now() / 1000), ...stats }
       appendFileSync(join(this.dir, RUNSTATS_FILE), `${JSON.stringify(entry)}\n`, 'utf-8')
     })
+  }
+
+  /**
+   * 追加一轮的**事件日志**（append-only，审计/回放用，Slice 29）。
+   *
+   * 与 `save()` 的区别：
+   * - `save()` = 可恢复**快照**（覆盖写、只留最近 N 条消息）；
+   * - `recordEvents()` = 不可变**追加日志**（每轮一行，只追加不覆盖）——
+   *   提供「这一轮到底发生了什么」的完整轨迹（step/审批/工具结果/turn_stats）。
+   *
+   * 最小版只做审计，不从日志派生历史（那需要改会话模型，风险高，留待后续）。
+   */
+  recordEvents(events: readonly unknown[], meta: { sessionId?: string } = {}): Promise<void> {
+    return this.enqueue(() => {
+      if (events.length === 0) return
+      mkdirSync(this.dir, { recursive: true })
+      const timestamp = Math.floor(Date.now() / 1000)
+      const line = JSON.stringify({ type: 'run_events', timestamp, ...meta, events })
+      appendFileSync(join(this.dir, EVENTS_FILE), `${line}\n`, 'utf-8')
+    })
+  }
+
+  /** 事件日志文件绝对路径（排障/回放用） */
+  get eventsFilePath(): string {
+    return join(this.dir, EVENTS_FILE)
   }
 
   /**

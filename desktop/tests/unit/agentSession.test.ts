@@ -158,3 +158,28 @@ describe('AgentSessionStore：落盘与读取', () => {
     expect((JSON.parse(lines[1] as string) as Record<string, unknown>).tool).toBe('system.game_data')
   })
 })
+
+describe('事件日志 append-only（Slice 29）', () => {
+  it('recordEvents 追加 JSONL：每轮一行、只追加不覆盖', async () => {
+    const store = new AgentSessionStore(makeDir())
+    await store.recordEvents([{ type: 'step_start', tool: 'x' }], { sessionId: 's1' })
+    await store.recordEvents([{ type: 'done', text: 'ok' }], { sessionId: 's1' })
+
+    const lines = readFileSync(store.eventsFilePath, 'utf-8').trim().split('\n')
+    expect(lines).toHaveLength(2)
+    const first = JSON.parse(lines[0] as string) as {
+      type: string
+      sessionId: string
+      events: unknown[]
+    }
+    expect(first.type).toBe('run_events')
+    expect(first.sessionId).toBe('s1')
+    expect(first.events).toEqual([{ type: 'step_start', tool: 'x' }])
+  })
+
+  it('空事件不写行（不产生空日志文件）', async () => {
+    const store = new AgentSessionStore(makeDir())
+    await store.recordEvents([], { sessionId: 's1' })
+    expect(() => readFileSync(store.eventsFilePath, 'utf-8')).toThrow()
+  })
+})
