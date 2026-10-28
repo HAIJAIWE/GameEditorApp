@@ -1,6 +1,6 @@
 # 插件架构与深层插件化迁移设计
 
-> 状态：进行中（B 方案，**23/23 浮层全部插件化、27/35 菜单动作 + 12/12 引导动作转 command**；只剩 8 个住在 App hooks 里的菜单动作）。最后更新 2026-10-28。
+> 状态：**B 方案 Slice 1–8 全部完成**（2026-10-28）：23/23 浮层、35/35 菜单动作、12/12 引导动作全部由插件自供给，App 不再持有面板清单 / 标题表 / 动作实现。
 > 本文是插件系统的权威设计文档，也是「深层插件化」跨会话的交接文档。
 > 相关代码：`desktop/src/shared/plugin/`、`desktop/src/renderer/src/plugins/`。
 
@@ -44,7 +44,8 @@ renderer/src/plugins/
   shellPanelsPlugin.tsx    Slice 8 前置：外壳面板（about 走参数 / plugins 自举）
   onboardingPlugin.tsx     快速入门 + 12 个 nav.* 引导命令（8d 后 App 不再持有分发逻辑）
   hostBridge.ts            宿主 UI 桥：notify / openPanel（含守卫）/ setHomeVisible / getActiveCeshuId
-  appActionsPlugin.ts      Slice 8c：应用级动作（窗口缩放/重载/DevTools/AI 焦点/退出）+ notify 通道
+  appActionsPlugin.ts      Slice 8c/8e：应用级动作（窗口 / 焦点 / 退出 / 文件 I/O / 撤销重做）纯 command
+  appActionsIo.ts          Slice 8e：文件 I/O 实现（从 useDataTransfer 搬出）+ 注入式端口
 ```
 
 ### 2.1 契约（`types.ts`）
@@ -103,7 +104,7 @@ App.renderPanel()
 | Slice 5 | 只依赖 `types + handleJump` 的面板（高级搜索 / 关系图 / 属性图表，`data-panels` bundle） | ✅ 完成 |
 | Slice 6 | 依赖动作的面板（备份 refreshUndo / 清空 handleDataCleared）→ `maintenance-panels` bundle；`onboarding` 的 action 分发改归 Slice 8 | ✅ 完成 |
 | Slice 7 | 带打开参数的面板（类型编辑器 / 快速创建 / 批量编辑 / 导入预览）→ `entry-panels` bundle；App 里 4 份专用 state 全部删除 | ✅ 完成 |
-| Slice 8 | `MenuBar` 35 个菜单动作 → `command` 能力，App 不再持有动作清单 | 🔶 8a/8b（浮层塌缩 + 20 导航动作）✅、8c 第一批（7 个应用动作）✅、8d（12 个引导命令）✅；剩 8 个 hook 动作 |
+| Slice 8 | `MenuBar` 35 个菜单动作 → `command` 能力，App 不再持有动作清单 | ✅ 完成（8a 浮层塌缩 / 8b 导航 / 8c+8e 应用动作 / 8d 引导） |
 
 ---
 
@@ -320,81 +321,43 @@ manifest（`utility-panels` 8 个面板、`data-panels` 3 个面板），这是 
 
 ---
 
-## 9. 下一步（Slice 8c / 8d）
+## 9. 结果与后续（Slice 8 完成后）
 
-### 9.1 现状账本（2026-10-28，8a/8b 之后）
+### 9.1 账本（2026-10-28 收口）
 
-| 面 | 已插件化 | 剩余 |
-|---|---|---|
-| 浮层面板 | **23 / 23**（11 个插件，24 个 `panel` 能力，含 demo 示例） | — |
-| 菜单动作（35 个） | **27 / 35**（20 导航 + 7 应用动作） | **8**：文件 I/O 6 个（`useDataTransfer`）+ 撤销/重做 2 个（`useUndoRedo`） |
-| 快速入门引导动作（12 个 actionId） | **12 / 12**（`nav.*` command） | — |
-| 侧边栏（6 个面板入口） | ✅ 全部走 panel id | — |
-| 状态栏 / 顶栏按钮 | 部分（插件中心、AI、库切换仍在 App） | 约 5 个 |
-| 策划书子系统内部面板 | 0（**不在范围**：编辑器内视图，不是浮层） | — |
-
-### 9.2 8a 做了什么（关键一步）
-
-- **删** `type OverlayPanel`（23 个 kind 的联合类型）、`PANEL_TITLES`（23 项标题表）、`renderPanel()`（23 case 的 switch）。
-- **改** 浮层身份 = `panel` 能力 id（`statistics.panel`）；标题读能力的 `title`。
-- **改** `panelId` 由 `useSyncExternalStore(pluginHost.subscribe, () => pluginHost.activePanel()?.id ?? null)` 得出
-  —— 宿主是单一来源，于是「插件命令打开面板」和「菜单打开面板」是同一条路。
-- **改** `setPanel(null)` → `closePanel()`（即 `host.closePanel()`），`setPanel(kind)` → `openPanel(panelId)`。
-- **改** `Sidebar` 的 `panel: OverlayPanel` → `panel: string`（panel id），高亮比对也改成 id。
-- 守卫仍留 App：`quickCreate.panel` / `batch.panel` 需要至少一个类型；`references.panel` 无目标时改跳高级搜索；
-  `about.panel` 无参打开时补 `{ version }`。
-- 插件被禁用时 `host.openPanel` 会抛：`openPanel` 里 try/catch 转成顶部提示（不炸界面）。
-
-### 9.3 8b 做了什么
-
-菜单 35 个动作里，**16 个纯导航**改成 `runCommand('<x>.open')`（命令由插件声明，App 只按 id 找）；
-**4 个带守卫/参数的**仍走 `openPanel`（字段结构 / 快速创建 / 批量 / 引用）。
-`runCommand` 找不到命令（插件被禁用）时给提示而不是抛错。
-
-### 9.4 8c：应用动作（第一批 7 个已迁，剩 8 个卡在 hook）
-
-**已迁（`app-actions` 插件，纯 command，无 panel）**：`app.zoomIn` / `app.zoomOut` / `app.zoomReset` /
-`app.reload` / `app.toggleDevTools` / `app.focusAi` / `app.quit`。
-它们只碰 `window.mbApi.app.viewAction`、DOM 焦点、`window.close()`，不依赖任何 App state。
-
-顺带解决了「插件怎么发顶部提示」：新增 `plugins/appActionsPlugin.ts::notify/setNotifier` 模块级通道，
-App 挂载时 `setNotifier(setNotice)` 注入。**理由**：插件命令跑在纯模块里拿不到 `setNotice`，
-而没有提示的动作失败 = 用户看到「点了没反应」（如 AI 输入框被禁用时）。
-
-**剩下 8 个搬不动的真正原因**：
-
-| 动作 | 依赖 |
+| 面 | 结果 |
 |---|---|
-| `open` / `save` / `batchImport` / `batchExport` / `engineExport` / `exportSnapshot` | `useDataTransfer` hook（内部读写 `notice`/`error`/`refreshUndo`，还会带参数打开导入预览面板） |
-| `undo` / `redo` | `useUndoRedo` hook（`undoUi.canUndo` 决定菜单禁用态） |
+| 浮层面板 | **23 / 23**（12 个插件、24 个 `panel` 能力含 demo 示例） |
+| 菜单动作 | **35 / 35** 走 `host.commands()`（其中引擎导出 5 条、快照导出 2 条各成命令） |
+| 快速入门引导动作 | **12 / 12**（`nav.*`） |
+| 侧边栏入口 | 6 / 6 走 panel 能力 id |
+| App 里已删除 | `type OverlayPanel`、`PANEL_TITLES`、`renderPanel()` 的 23-case switch、`handleOnboardingAction`、`useDataTransfer` hook、`handleQuit` |
 
-要搬，得先把这两个 hook 从「组件内 hook」改成「宿主服务 + 订阅」：
-- 服务：`host.register({ id:'app.io', capabilities:[{ kind:'service', id:'app.io.export', invoke }] })`；
-- 状态（canUndo/canRedo）：经 `host.subscribe` 或 appContext 暴露给 `MenuBar` 决定禁用态。
+### 9.2 三件使能件（后续新面板/新动作只需用它们，不必改 App）
 
-这是一次独立重构（要动 `useAppActions.ts` 两个 hook 与 `MenuBar` 的 `canUndo/canRedo` 接线），
-不宜和「搬动作」混在一刀里。
+1. **宿主渲染**：`<HostPanel panelId>` + `host.activePanel()` 单一来源。
+2. **共享状态**：`useAppContext()`（types / setTypes / handleJump / refreshUndo / handleDataCleared / afterMutation）。
+3. **打开参数 + 宿主 UI 桥**：`host.openPanel(id, params)` / `setPanelParams` / `panelParams`；
+   `hostBridge`（`notify` / `openPanel` 含守卫 / `setHomeVisible` / `getActiveCeshuId`）；
+   `appActionsIo` 的端口（提示 / 报错 / 刷撤销 / 开预览 / 撤销重做）。
 
-### 9.5 8d：引导动作命令化（已完成）
+### 9.3 8e 的做法（最后 8 个动作）
 
-`OnboardingPanel` 的 12 个 actionId 各对应一个 `nav.*` command，**App 的 `handleOnboardingAction` 已删除**，
-context 里那个过渡字段 `handleOnboardingAction` 也一并删掉。
+- `useDataTransfer` 的 8 个实现搬进 `plugins/appActionsIo.ts`，只依赖**注入端口**（`setAppIoPort`）：
+  `{ notify, error, refreshUndo, openPreview, undo, redo }`。hook 版本**已删除**（不留两份实现）。
+- 注册为 `app.io.*` 命令；`run()` 不带参数 ⇒ **引擎导出按引擎各成一条**（`app.io.engineExport.unity`…）、
+  快照按格式各成一条（`app.io.snapshot.csv`），App 侧只做 `runCommand(`app.io.engineExport.${engine}`)`。
+- 撤销/重做：**实现仍住在 `useUndoRedo`**（撤销态是它的 state），命令经端口转交；`undoUi.canUndo/canRedo`
+  仍由 App 传给 `MenuBar` 决定禁用态——状态留在 React，动作走命令。
 
-- `command.run()` 不带参数 ⇒ 4 个「创建某类型」动作把类型**烘进命令**（`nav.createRole` → `quickCreate.panel` + `{type:'role'}`）。
-- 导航类命令统一走 `hostBridge.openPanel`（= App 的 `openPanel`，**带守卫**），所以「schema 为空时快速创建只提示」
-  这类语义与菜单完全一致，插件里不必重写一遍。
-- 面板绑定拿到 actionId 后查 `COMMAND_BY_ACTION` 派发，然后 `onClose()`（原 App 每个分支都带 `setPanel(null)`）。
+### 9.4 后续可选（都不阻塞当前架构）
 
-**顺带解掉的耦合**：`hostBridge` 把「提示 / 打开浮层（含守卫）/ 首页开关 / 当前策划书 id」四件事统一成一条
-注入式通道（`setHostUi`），`appActionsPlugin` 原先自带的 `notify` 也并了进来——以后任何插件要发提示或做导航，
-都走这一个入口，不再各造一份。
-
-**新增的坑（已记入 §8）**：`setHostUi` 的注入 effect 必须放在 `openPanel` 之后声明，否则
-`react-hooks` 报「访问未声明变量」；`openPanel` 因为要进 effect 依赖，已包成 `useCallback`
-（同时把「引用无目标 → 改跳高级搜索」的自递归改成直接调宿主，否则包不了）。
-
-**最终验收**：`App.tsx` 里没有 `PANEL_TITLES` / `switch (panel)` / `handleOnboardingAction`；
-`MenuBar` 的 `actions` 只剩「按 id 查命令」；四道闸绿 + e2e 全过。
+1. **`MenuBar` 从 `host.commands()` 生成菜单项**：现在是「App 持有一张 35 项 actions 映射表 → 各自 runCommand」，
+   再进一步就是让菜单结构也由插件声明（`menu` 能力），App 只剩 `canUndo/canRedo` 两个状态。
+2. **`CeshuView` 内部面板**（报告 / 体检 / 路线 / 影响面）：不在本次范围（编辑器内视图，非浮层），
+   若要插件化需要新能力类型（如 `view` 的挂载点声明）。
+3. **`Sidebar` 数据驱动**：`SIDEBAR_ITEMS` 仍是 App 的常量表，可改为插件声明的导航项。
+4. **插件市场 / `source` 字段落地**：契约已留 `source`，尚未有安装流程。
 
 ## 10. 文件改动索引
 
@@ -428,6 +391,13 @@ Slice 4（8 个不依赖 App 状态的面板）：
 - `renderer/src/plugins/builtins.ts`（注册）
 - `renderer/src/App.tsx`（8 个 case → HostPanel，删 8 个直接 import）
 - `tests/unit/dom/utilityPanelsPlugin.test.tsx`（3 条：能力清单 / testid 保留 / 禁用后不再渲染）
+
+Slice 8e（文件 I/O + 撤销重做命令化）：
+- `renderer/src/plugins/appActionsIo.ts`（新增；8 个 I/O 实现 + `setAppIoPort` 注入式端口）
+- `renderer/src/plugins/appActionsPlugin.ts`（+17 条命令：`app.io.*` 15 条 + `app.undo`/`app.redo`）
+- `renderer/src/hooks/useAppActions.ts`（删 `useDataTransfer`，只留 `useUndoRedo`）
+- `renderer/src/App.tsx`（删 `useDataTransfer` 调用；注入 I/O 端口；菜单 35 项全走 `runCommand`）
+- `tests/unit/dom/appActionsIo.test.tsx`（10 条：导入/导出/取消/预览/引擎/快照/报错/撤销重做/无端口不抛）
 
 Slice 8d（引导动作命令化）：
 - `renderer/src/plugins/onboardingPlugin.tsx`（12 个 `nav.*` command + `COMMAND_BY_ACTION` 派发表）

@@ -23,9 +23,11 @@ function hostWithPlugin(): PluginHost {
 }
 
 describe('应用级动作插件（B 方案 Slice 8c 第一批）', () => {
-  it('暴露 7 个 command 能力（不含 panel —— 这些不是视图）', () => {
+  it('暴露全部应用动作 command（不含 panel —— 这些不是视图）', () => {
     const host = hostWithPlugin()
-    expect(host.commands().map((command) => command.id).sort()).toEqual([
+    const ids = host.commands().map((command) => command.id)
+    // 窗口 / 焦点 / 退出
+    for (const id of [
       'app.focusAi',
       'app.quit',
       'app.reload',
@@ -33,7 +35,32 @@ describe('应用级动作插件（B 方案 Slice 8c 第一批）', () => {
       'app.zoomIn',
       'app.zoomOut',
       'app.zoomReset'
-    ])
+    ]) {
+      expect(ids).toContain(id)
+    }
+    // 文件 I/O（Slice 8e）：打开/保存/批量 + CSV/Excel + 引擎×5 + 快照×2
+    for (const id of [
+      'app.io.open',
+      'app.io.save',
+      'app.io.batchImport',
+      'app.io.batchExport',
+      'app.io.importCsv',
+      'app.io.exportCsv',
+      'app.io.importExcel',
+      'app.io.exportExcel',
+      'app.io.engineExport.lua',
+      'app.io.engineExport.unity',
+      'app.io.engineExport.unreal',
+      'app.io.engineExport.godot',
+      'app.io.engineExport.cocos2d',
+      'app.io.snapshot.json',
+      'app.io.snapshot.csv'
+    ]) {
+      expect(ids).toContain(id)
+    }
+    // 撤销 / 重做
+    expect(ids).toContain('app.undo')
+    expect(ids).toContain('app.redo')
     expect(host.panels()).toHaveLength(0)
   })
 

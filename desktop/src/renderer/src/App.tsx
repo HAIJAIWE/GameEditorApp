@@ -17,11 +17,12 @@ import MenuBar from './components/MenuBar'
 import { type ReferenceTarget } from './components/ReferencesPanel'
 import Sidebar, { type SidebarAction, type SidebarItem } from './components/Sidebar'
 import ToastHost from './components/ToastHost'
-import { useDataTransfer, useUndoRedo } from './hooks/useAppActions'
+import { useUndoRedo } from './hooks/useAppActions'
 import { toErrorMessage } from './appUtils'
 import { clampDockWidth, defaultDockWidth, loadAiDockWidth, saveAiDockWidth } from './dockWidth'
 import { pluginHost } from './plugins/builtins'
 import { setHostUi } from './plugins/hostBridge'
+import { setAppIoPort } from './plugins/appActionsIo'
 import { HostPanel } from './plugins/HostPanel'
 import { AppContextProvider } from './plugins/appContext'
 
@@ -513,12 +514,22 @@ export default function App() {
     [refreshUndo]
   )
 
-  /** 数据导入 / 导出（JSON / CSV / Excel / 引擎格式）：内聚单元，见 hooks/useAppActions */
-  const { importJson, exportJson, importCsv, exportCsv, importExcel, exportExcel, engineExport, exportSnapshot } =
-    useDataTransfer(setNotice, setError, refreshUndo, (payload) => {
-      // 预览数据作为打开参数交给宿主（Slice 7）；面板用完调 close() 清掉
-      pluginHost.openPanel('importPreview.panel', payload)
+  /**
+   * 文件 I/O 动作（打开/保存/批量导入导出/引擎导出/快照导出）已搬到 `plugins/appActionsIo.ts`
+   * 并注册为插件命令（Slice 8e）。这里只负责注入它们需要的**端口**：提示 / 报错 / 刷撤销 / 开预览。
+   * 撤销与重做的实现仍由 `useUndoRedo` 持有（撤销态是它的 state），同样经端口转交。
+   */
+  useEffect(() => {
+    setAppIoPort({
+      notify: setNotice,
+      error: setError,
+      refreshUndo,
+      openPreview: (payload) => pluginHost.openPanel('importPreview.panel', payload),
+      undo: performUndo,
+      redo: performRedo
     })
+    return () => setAppIoPort(null)
+  }, [refreshUndo, performUndo, performRedo])
 
   /** 打开某份策划书（同时离开首页卡片视图） */
   const handleOpenCeshu = (id: string): void => {
@@ -552,30 +563,33 @@ export default function App() {
         canUndo={undoUi.canUndo}
         canRedo={undoUi.canRedo}
         actions={{
-          importJson,
           /*
-           * 「打开」/「保存」/「批量导入」/「批量导出」四项与 `importJson`/`exportJson`
-           * **共用同一对 handler**（`hooks/useAppActions.ts::useDataTransfer` 已完整实现）。
-           * 语义澄清：这里的「打开/保存」是**整个数据仓库的 JSON 文件 I/O**
-           * ，**不是**编辑器里章节级的「保存本章」。
-           * 不抽包装层：抽了只是给同一个函数换两个名字，不产生行为差异（铁律：不过度开发）。
+           * 「打开/保存/批量导入/批量导出」历史上**共用同一对 handler**（导入 JSON / 导出 JSON）。
+           * Slice 8e 后它们由 `app-actions` 插件的 `app.io.*` 命令提供，映射关系保持不变：
+           *   open → app.io.open（导入 JSON）、save → app.io.save（导出 JSON）
+           *   batchImport → app.io.batchImport、batchExport → app.io.batchExport（同一对实现）
+           * 语义澄清：这里的「打开/保存」是**整个数据仓库的 JSON 文件 I/O**，
+           * **不是**编辑器里章节级的「保存本章」。
            *
            * ⚠️ 已知的 旧版 语义差异（详见 `MenuBar.tsx` 的 `MenuActions.open` 注释）：
            * 旧版「打开」是整库替换 + 记忆 `current_file`，「批量导入」会重生成 id；
            * 而 `importLegacy` 是按 id upsert 的合并、每次都问路径。补齐需新增 IPC，不在本轮范围。
            */
-          open: importJson,
-          save: exportJson,
-          batchImport: importJson,
-          batchExport: exportJson,
-          importCsv,
-          importExcel,
-          exportJson,
-          exportCsv,
-          exportExcel,
+          // 文件 I/O 8 项：由 `app-actions` 插件提供（实现见 plugins/appActionsIo.ts）
+          importJson: () => runCommand('app.io.open'),
+          open: () => runCommand('app.io.open'),
+          save: () => runCommand('app.io.save'),
+          batchImport: () => runCommand('app.io.batchImport'),
+          batchExport: () => runCommand('app.io.batchExport'),
+          importCsv: () => runCommand('app.io.importCsv'),
+          importExcel: () => runCommand('app.io.importExcel'),
+          exportJson: () => runCommand('app.io.save'),
+          exportCsv: () => runCommand('app.io.exportCsv'),
+          exportExcel: () => runCommand('app.io.exportExcel'),
           batchEdit: () => openPanel('batch.panel'),
-          engineExport: (engine) => void engineExport(engine),
-          exportSnapshot: (format) => void exportSnapshot(format),
+          // 引擎/快照导出：一个目标一条命令（`run()` 不带参数 ⇒ 目标烘进命令 id）
+          engineExport: (engine) => runCommand(`app.io.engineExport.${engine}`),
+          exportSnapshot: (format) => runCommand(`app.io.snapshot.${format}`),
           // 窗口/焦点/退出 7 项：由 `app-actions` 插件提供（App 不再持有这些动作）
           zoomIn: () => runCommand('app.zoomIn'),
           zoomOut: () => runCommand('app.zoomOut'),
@@ -583,8 +597,8 @@ export default function App() {
           reload: () => runCommand('app.reload'),
           toggleDevTools: () => runCommand('app.toggleDevTools'),
           backup: () => runCommand('backup.open'),
-          undo: () => void performUndo(),
-          redo: () => void performRedo(),
+          undo: () => runCommand('app.undo'),
+          redo: () => runCommand('app.redo'),
           // 菜单入口：openPanel 会先清掉「快速入门」快捷卡留下的目标类型，回到默认（第一个类型）
           quickCreate: () => openPanel('quickCreate.panel'),
           references: () => openPanel('references.panel'),
