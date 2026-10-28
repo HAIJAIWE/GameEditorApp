@@ -3,9 +3,19 @@ import { readFile } from 'node:fs/promises'
 import { mcpToolToSkill, type McpCallTool } from '../../../shared/agent/mcp/bridge'
 import { McpClient } from '../../../shared/agent/mcp/client'
 import { parseMcpConfig } from '../../../shared/agent/mcp/config'
-import type { McpConfig, McpToolInfo } from '../../../shared/agent/mcp/types'
+import type { McpConfig, McpServerConfig, McpToolInfo, McpTransport } from '../../../shared/agent/mcp/types'
 import type { SkillDispatcher } from '../dispatcher'
 import { StdioMcpTransport } from './stdioTransport'
+import { StreamableHttpTransport } from './streamableHttpTransport'
+
+/** 按配置选传输层：有 `url` 走 HTTP，有 `command` 走 stdio，都没有返回 null */
+function createTransport(config: McpServerConfig): McpTransport | null {
+  if (config.url !== undefined) return new StreamableHttpTransport(config.url, config.headers)
+  if (config.command !== undefined) {
+    return new StdioMcpTransport({ command: config.command, args: config.args, env: config.env })
+  }
+  return null
+}
 
 /**
  * MCP 管理器（Slice 18，主进程单例）。
@@ -26,8 +36,10 @@ export class McpManager {
     if (this.connected) return
     this.connected = true
     for (const [server, serverConfig] of Object.entries(config.mcpServers)) {
+      const transport = createTransport(serverConfig)
+      if (transport === null) continue
       try {
-        const client = new McpClient(server, new StdioMcpTransport(serverConfig))
+        const client = new McpClient(server, transport)
         await client.initialize()
         const tools = await client.listTools()
         this.clients.set(server, client)

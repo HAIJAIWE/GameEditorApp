@@ -21,22 +21,39 @@ export function parseMcpConfig(raw: unknown): McpConfig {
 
 function parseServer(value: unknown): McpServerConfig | null {
   if (value === null || typeof value !== 'object') return null
-  const v = value as { command?: unknown; args?: unknown; env?: unknown }
-  if (typeof v.command !== 'string' || v.command.trim() === '') return null
+  const v = value as {
+    command?: unknown
+    args?: unknown
+    env?: unknown
+    url?: unknown
+    headers?: unknown
+  }
+
+  // stdio（command）与 streamable-http（url）二选一，都没有则视为无效项
+  const command = typeof v.command === 'string' && v.command.trim() !== '' ? v.command : undefined
+  const url = typeof v.url === 'string' && v.url.trim() !== '' ? v.url : undefined
+  if (command === undefined && url === undefined) return null
 
   const args = Array.isArray(v.args)
     ? v.args.filter((arg): arg is string => typeof arg === 'string')
     : undefined
-  const env =
-    v.env !== null && typeof v.env === 'object'
-      ? (Object.fromEntries(
-          Object.entries(v.env as Record<string, unknown>).filter((entry): entry is [string, string] => typeof entry[1] === 'string')
-        ) as Record<string, string>)
-      : undefined
+  const env = toStringMap(v.env)
+  const headers = toStringMap(v.headers)
 
   return {
-    command: v.command,
+    ...(command !== undefined ? { command } : {}),
     ...(args !== undefined ? { args } : {}),
-    ...(env !== undefined ? { env } : {})
+    ...(env !== undefined ? { env } : {}),
+    ...(url !== undefined ? { url } : {}),
+    ...(headers !== undefined ? { headers } : {})
   }
+}
+
+/** 把对象里的字符串值抽成 map（非对象 / 无合法项返回 undefined） */
+function toStringMap(value: unknown): Record<string, string> | undefined {
+  if (value === null || typeof value !== 'object') return undefined
+  const entries = Object.entries(value as Record<string, unknown>).filter(
+    (entry): entry is [string, string] => typeof entry[1] === 'string'
+  )
+  return entries.length > 0 ? Object.fromEntries(entries) : undefined
 }

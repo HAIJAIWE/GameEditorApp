@@ -10,11 +10,29 @@ import type { JsonObjectSchema } from '../protocol'
  * 本文件只放**纯类型**（宿主无关），传输/进程实现留在 `main/agent/mcp/`。
  */
 
-/** 单个 MCP 服务器配置（stdio 启动：`command` + `args` + `env`） */
+/**
+ * 单个 MCP 服务器配置。两种传输二选一：
+ * - **stdio**：`command` + `args` + `env`（拉起子进程）；
+ * - **streamable-http**：`url` + `headers`（远程服务器，如 context7）。
+ */
 export interface McpServerConfig {
-  command: string
+  /** stdio：启动命令（与 `url` 二选一） */
+  command?: string
   args?: string[]
   env?: Record<string, string>
+  /** streamable-http：服务地址（与 `command` 二选一） */
+  url?: string
+  headers?: Record<string, string>
+}
+
+/** stdio 配置（`command` 必填，供 `StdioMcpTransport` 用） */
+export interface StdioServerConfig extends McpServerConfig {
+  command: string
+}
+
+/** streamable-http 配置（`url` 必填，供 `StreamableHttpTransport` 用） */
+export interface HttpServerConfig extends McpServerConfig {
+  url: string
 }
 
 /** MCP 配置文件形态（与 Claude Desktop / dsh 的 `mcpServers` 同构） */

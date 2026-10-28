@@ -31,6 +31,21 @@ describe('parseMcpConfig', () => {
     expect(parseMcpConfig({}).mcpServers).toEqual({})
     expect(parseMcpConfig('x').mcpServers).toEqual({})
   })
+
+  it('支持 streamable-http（url + headers）', () => {
+    const config = parseMcpConfig({
+      mcpServers: {
+        context7: {
+          url: 'https://mcp.context7.com/mcp',
+          headers: { Accept: 'application/json, text/event-stream' }
+        }
+      }
+    })
+    expect(config.mcpServers.context7.url).toBe('https://mcp.context7.com/mcp')
+    expect(config.mcpServers.context7.headers).toEqual({ Accept: 'application/json, text/event-stream' })
+    // http 项没有 command，合法
+    expect(config.mcpServers.context7.command).toBeUndefined()
+  })
 })
 
 /* ------------------------------ 工具→技能桥 ------------------------------ */

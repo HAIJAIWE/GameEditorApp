@@ -1,6 +1,6 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 
-import type { McpServerConfig, McpTransport } from '../../../shared/agent/mcp/types'
+import type { McpTransport, StdioServerConfig } from '../../../shared/agent/mcp/types'
 
 /**
  * MCP stdio 传输层：拉起子进程，用**行分隔 JSON-RPC** 通信。
@@ -23,7 +23,7 @@ export class StdioMcpTransport implements McpTransport {
   private buffer = ''
   private closed = false
 
-  constructor(config: McpServerConfig) {
+  constructor(config: StdioServerConfig) {
     // 不显式传 stdio：默认即 ['pipe','pipe','pipe']，且类型为 ChildProcessWithoutNullStreams（流非空）
     this.child = spawn(config.command, config.args ?? [], {
       env: { ...process.env, ...(config.env ?? {}) }
