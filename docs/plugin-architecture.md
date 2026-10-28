@@ -2,7 +2,7 @@
 
 > 状态：**B 方案 Slice 1–17 全部完成**（2026-10-28）：23/23 浮层、35/35 菜单动作、12/12 引导动作、**连菜单结构与侧栏结构本身**都由插件声明；编辑器内 **25 view**（7 浮层 + 13 内容 + 2 内联 + 3 产出物）+ 编辑器菜单（18 项）全部插件化。App 不再持有面板清单 / 标题表 / 动作实现 / 菜单树 / 侧栏项。
 > 另：**Agent/MCP Slice 18–21 已完成**（MCP stdio+HTTP / 并行执行 / 子智能体 / 风险分级 / 配置 UI / 工具面上限），见 [`mcp-integration.md`](./mcp-integration.md) 与 [`agent-parallel-subagent.md`](./agent-parallel-subagent.md)。
-> 另：**主区视图插件化 Slice 22–23**——新增 `mainView` 能力 + `MainViewMount` + 独立 `mainViewContext`；**数据 / 代码 / 浏览器**三个页签已迁出 App，编辑器 / 右栏数字员工仍内联（重视图，后续片再迁）。
+> 另：**主区视图插件化 Slice 22–24**——新增 `mainView` 能力 + `MainViewMount` + 独立 `mainViewContext`；**策划书 / 数据 / 代码 / 浏览器四个中间页签已 100% 迁出 App**。右栏「数字员工」（智能体）**刻意保留内联**：智能体设计需对照 dsh 源码（`/d/dsh`：`skills/`、`mcp-servers/`、`dsh-runtimes/`、`profiles/`）再定，不自行拍板。
 > 本文是插件系统的权威设计文档，也是「深层插件化」跨会话的交接文档。
 > 相关代码：`desktop/src/shared/plugin/`、`desktop/src/renderer/src/plugins/`。
 
@@ -55,7 +55,7 @@ renderer/src/plugins/
   ViewMount.tsx            Slice 11/12：视图挂载点渲染器（挂在 CeshuView 内部，编辑器不卸载；支持浮层与内容槽）
   ceshuViewsPlugin.tsx     Slice 11/12：5 个 view（route/health/fieldImpact 浮层 + diff/timeline 内容槽）
   MainViewMount.tsx        Slice 22：主区页签挂载器（页签条 + 常驻挂载/hidden 切换 + lazy 首访挂载）
-  coreViewsPlugin.tsx      Slice 22/23：主区视图插件（数据 / 代码 / 浏览器页签）
+  coreViewsPlugin.tsx      Slice 22–24：主区视图插件（策划书 / 数据 / 代码 / 浏览器页签）
   mainViewContext.tsx      Slice 23：主区视图共享状态（独立于面板 appContext，性能隔离）
 ```
 
@@ -137,6 +137,7 @@ App.renderPanel()
 | Slice 17 | **左栏产出物页签**：原型/数据/任务 → `ceshu.artifact` 挂载点的 view；页签高亮与内容从 `activeView` 派生 | ✅ 完成（25 view；「设计文档」仍为章节表单本体） |
 | Slice 22 | **主区视图插件化（第一步）**：新增 `mainView` 能力（App 主区页签，非编辑器内子视图）+ `MainViewMount`（页签条 + 常驻挂载/hidden 切换 + lazy 首访挂载）；代码/浏览器两个零 prop 页签迁出 App | ✅ 完成（编辑器/数据/数字员工仍内联） |
 | Slice 23 | **数据页签迁 mainView** + 独立 `mainViewContext`（主区状态与面板 `appContext` 分离，性能隔离）；`MainViewMount` 增 `context`；数据绑定走 `useMainViewContext` | ✅ 完成（剩编辑器 / 数字员工） |
+| Slice 24 | **编辑器页签迁 mainView**：`mainViewContext` 扩编辑器全部状态；`editor.mainView` 常驻挂载（`lazy:false`，切页签不丢草稿），绑定按 `ceshuHomeVisible` 切首页/编辑器；App `appTabs` 清空 | ✅ 完成（中间页签 100%；数字员工=智能体，留待对照 dsh） |
 
 ---
 
@@ -387,8 +388,8 @@ manifest（`utility-panels` 8 个面板、`data-panels` 3 个面板），这是 
 1. ~~`MenuBar` 从 `host.commands()` 生成菜单项~~ → **Slice 9 已完成**（`menu` 能力 + `MenuBar` 从 `host.menus()` 渲染）。
 2. **`CeshuView` 内部 UI**：11 panel 变体（13）+ 4 浮层（14）+ derive/modulePicker（15）+ 编辑器菜单（16）+ 产出物页签（17）已全部迁完，
    共 **25 view**（7 浮层 + 13 内容 + 2 内联 + 3 产出物）+ 编辑器菜单（18 项）。
-   **App 主区视图**（Slice 22–23）：数据 / 代码 / 浏览器三个页签已迁到 `mainView` 能力
-   （数据经独立 `mainViewContext` 取状态）；编辑器 / 右栏数字员工仍内联（重视图，后续片再迁）。
+   **App 主区视图**（Slice 22–24）：策划书 / 数据 / 代码 / 浏览器四个中间页签已 100% 迁到 `mainView` 能力
+   （重视图经独立 `mainViewContext` 取状态）。右栏「数字员工」属智能体，**刻意留内联**——等对照 dsh 源码再定，不自行拍板。
    产出物「设计文档」页签仍是章节表单本体（内联，不做视图）。
 3. ~~`Sidebar` 数据驱动~~ → **Slice 10 已完成**（`sidebar` 能力 + `navigationPlugin`，App 的 `SIDEBAR_ITEMS` 常量删除）。
 4. **插件市场 / `source` 字段落地**：契约已留 `source`，尚未有安装流程。
