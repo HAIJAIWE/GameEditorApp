@@ -195,6 +195,10 @@ dsh 用 **cordis** 做插件组合，profile 是 YAML 补丁层（`bundles` + `c
 > **事件日志回放**：`AgentSessionStore.readEvents(sessionId?)` 按会话读 run 记录 + `deriveTranscript` 派生可读轨迹（工具/最终答复/中止/轮次）。**仍非「从日志派生完整消息历史」**——恢复走 `save()` 快照。
 >
 > **已落地（Slice 33，2026-10-28）**：**远程子智能体 provider**——`createRemoteSubAgentProvider`（POST `{task,depth}` → `{text}`，headers 鉴权、超时/取消 abort）。`stores.ts` 优先级 **远程 URL（`MB_SUBAGENT_REMOTE_URL`/`_TOKEN`）> CLI（`MB_SUBAGENT_CLI`）> 进程内 spawn**。
+>
+> **已落地（Slice 34，2026-10-28）**：**事件溯源历史**——`AgentSessionStore.appendTurn`（`turns.jsonl`，只追加）+ `readTurns` + `deriveMessagesFromTurns`；`RunBrainLoopOptions.initialMessages` 播种历史；`AgentChatOptions.resumeHistory` 用稳定 `sessionId` 从轮次日志恢复。
+>
+> **已落地（Slice 35，2026-10-28）**：**OS 级文件沙箱（Windows ACL）**——`windowsSandbox.ts` 用 `icacls /deny <user>:(W)` 在窗口期真·拒绝写入、`finally` 恢复。CLI provider：`read-only` + 显式 `cwd` + `MB_SANDBOX_ACL=1` ⇒ 真·OS 只读；否则拒绝运行。**诚实边界**：非容器/内核隔离。
 
 ---
 
