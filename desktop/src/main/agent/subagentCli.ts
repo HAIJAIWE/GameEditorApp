@@ -14,6 +14,7 @@
 import { spawn } from 'node:child_process'
 
 import type { SubAgentOutcome, SubAgentProvider, SubAgentTask } from '../../shared/agent/brain'
+import { isAclSandboxSupported, withReadOnlyDir } from './windowsSandbox'
 
 export interface CliSubAgentOptions {
   /** provider 名称（默认 `cli`） */
@@ -48,14 +49,8 @@ export function createCliSubAgentProvider(options: CliSubAgentOptions): SubAgent
   return {
     id,
     run: (task: SubAgentTask): Promise<SubAgentOutcome> => {
-      // 沙箱：read-only 下不运行会写文件的外部 CLI（诚实边界：非 OS 级隔离）
-      if (task.sandboxPolicy === 'read-only') {
-        return Promise.resolve({
-          text: '[STOP] 沙箱策略 read-only：不运行外部 CLI 子智能体（可能写文件）',
-          success: false
-        })
-      }
-      return new Promise<SubAgentOutcome>((resolve) => {
+      const runProcess = (): Promise<SubAgentOutcome> =>
+        new Promise<SubAgentOutcome>((resolve) => {
         const args = [...(options.args ?? [])]
         if (inputMode === 'arg') args.push(task.task)
 
@@ -118,8 +113,21 @@ export function createCliSubAgentProvider(options: CliSubAgentOptions): SubAgent
           finish(toOutcome(stdout, stderr, code))
         })
 
-        if (inputMode === 'stdin') child.stdin?.end(task.task)
-      })
+          if (inputMode === 'stdin') child.stdin?.end(task.task)
+        })
+
+      // 沙箱（read-only）：开启 OS ACL 沙箱且有显式 cwd ⇒ 真·OS 级只读（icacls 拒绝写入）；
+      // 否则拒绝运行（诚实边界：不假装有隔离）。
+      if (task.sandboxPolicy === 'read-only') {
+        if (options.cwd !== undefined && process.env.MB_SANDBOX_ACL === '1' && isAclSandboxSupported()) {
+          return withReadOnlyDir(options.cwd, runProcess)
+        }
+        return Promise.resolve({
+          text: '[STOP] 沙箱策略 read-only：不运行外部 CLI 子智能体（未启用 OS ACL 沙箱）',
+          success: false
+        })
+      }
+      return runProcess()
     }
   }
 }
