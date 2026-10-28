@@ -91,7 +91,7 @@ MCP server ──stdio JSON-RPC──▶ McpClient ──tools/list──▶ Mcp
 ## 6. 验证
 
 ```bash
-npx vitest run tests/unit/mcp.test.ts   # 8 条
+npx vitest run tests/unit/mcp.test.ts   # 13 条
 npm run typecheck && npx eslint src/shared/agent/mcp src/main/agent/mcp
 env -u NODE_OPTIONS npm run build
 ```
