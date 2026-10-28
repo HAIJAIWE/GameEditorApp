@@ -59,6 +59,9 @@ import { isAbortError } from '../../abort'
  *     ⚠️ 取消还要能打断**等待用户答复**（危险确认 / 提问）：那条 promise 不经过 fetch，
  *     不参与竞速就要等交互超时（120s）才生效，面板上的「停止」在这两分钟里形同无效。
  */
+/** 子智能体并发上限（对齐 dsh `maxActiveSubagents` 默认 8） */
+const MAX_ACTIVE_SUBAGENTS = 8
+
 export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainRunResult> {
   const { input, systemPrompts, transport, runner, requestApproval, requestInteraction, onEvent } = options
   // M3 档位路由：缺省 local；真实档位由 brainService 经 resolveLlmTier 注入。
@@ -242,41 +245,83 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
    * 与 tool 消息的顺序稳定）。顺序路径与并行路径共用它，避免两份执行逻辑漂移。
    */
   /**
-   * 子智能体（Slice 19）：递归跑一轮新的 Brain 循环处理子任务。
-   * `depth` 限制最多 1 层（子智能体不能再派子智能体），防无限递归。
+   * 子智能体（Slice 19/26）：**异步启动**（对齐 dsh 的 activation 模型）。
+   *
+   * - 立即返回 `started subagent <id>`，**不阻塞父循环**；子任务在后台跑。
+   * - 父循环在「要 finalize / 无工具可调」时由 `drainSubAgents()` 收量，把结果作为
+   *   **完成通知**注入父对话（`user` 消息），父级据此继续下一轮。
+   * - `depth` 限制最多 1 层（防无限递归）；并发上限 `MAX_ACTIVE_SUBAGENTS`（dsh 默认 8）。
    */
-  const runSubAgent = async (call: {
-    arguments: Record<string, unknown>
-  }): Promise<{ text: string; success: boolean }> => {
+  const pendingSubagents = new Map<string, Promise<{ text: string; success: boolean }>>()
+  let subAgentSeq = 0
+
+  const spawnSubAgent = (call: { arguments: Record<string, unknown> }): { text: string; success: boolean } => {
     if (depth >= 1) {
       return { text: '[STOP] 子智能体嵌套已达上限（最多 1 层）', success: false }
+    }
+    if (pendingSubagents.size >= MAX_ACTIVE_SUBAGENTS) {
+      return {
+        text: `[STOP] 子智能体并发已达上限（${MAX_ACTIVE_SUBAGENTS}），请等现有子智能体完成`,
+        success: false
+      }
     }
     const task = typeof call.arguments.task === 'string' ? call.arguments.task.trim() : ''
     if (task === '') {
       return { text: '[STOP] 子智能体缺少 task 参数', success: false }
     }
-    try {
-      const sub = await runBrainLoop({
-        input: task,
-        systemPrompts,
-        transport,
-        runner,
-        tools,
-        tier,
-        depth: depth + 1,
-        maxTurns: 3,
-        maxToolCalls: 4,
-        wallClockMs: Math.min(wallClockMs > 0 ? wallClockMs : 60000, 60000),
-        signal: controller.signal,
-        parallelToolCalls
-      })
-      return { text: `子智能体结果：${sub.text}`, success: sub.completed }
-    } catch (error) {
-      return {
-        text: `子智能体执行失败：${error instanceof Error ? error.message : String(error)}`,
-        success: false
+    const childId = `sub_${++subAgentSeq}`
+    const promise = (async (): Promise<{ text: string; success: boolean }> => {
+      try {
+        const sub = await runBrainLoop({
+          input: task,
+          systemPrompts,
+          transport,
+          runner,
+          tools,
+          tier,
+          depth: depth + 1,
+          maxTurns: 3,
+          maxToolCalls: 4,
+          wallClockMs: Math.min(wallClockMs > 0 ? wallClockMs : 60000, 60000),
+          signal: controller.signal,
+          parallelToolCalls
+        })
+        return { text: `子智能体结果：${sub.text}`, success: sub.completed }
+      } catch (error) {
+        return {
+          text: `子智能体执行失败：${error instanceof Error ? error.message : String(error)}`,
+          success: false
+        }
       }
+    })()
+    pendingSubagents.set(childId, promise)
+    return { text: `started subagent ${childId}`, success: true }
+  }
+
+  /**
+   * 收量子智能体：等所有在跑的子任务完成，把结果作为**完成通知**注入父对话。
+   * 返回是否确实有子任务被收量（有则调用方应 `continue` 而非 finalize）。
+   */
+  const drainSubAgents = async (): Promise<boolean> => {
+    if (pendingSubagents.size === 0) return false
+    const entries = [...pendingSubagents.entries()]
+    pendingSubagents.clear()
+    const settled = await Promise.allSettled(entries.map(([, promise]) => promise))
+    for (let index = 0; index < entries.length; index += 1) {
+      const entry = entries[index]
+      const outcome = settled[index]
+      if (entry === undefined) continue
+      const childId = entry[0]
+      const text =
+        outcome !== undefined && outcome.status === 'fulfilled'
+          ? outcome.value.text
+          : `子智能体执行失败：${outcome?.status === 'rejected' ? String(outcome.reason) : '未知错误'}`
+      const success = outcome !== undefined && outcome.status === 'fulfilled' ? outcome.value.success : false
+      results.push(text)
+      emit({ type: 'step_done', tool: 'subagent', result: text, success })
+      messages.push({ role: 'user', content: `子智能体 ${childId} 完成通知：${text}` })
     }
+    return true
   }
 
   const runTool = async (
@@ -284,9 +329,9 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
     resolved: string,
     action: string
   ): Promise<{ text: string; success: boolean }> => {
-    // 子智能体工具：不执行技能，改为递归跑一轮子循环
+    // 子智能体工具：不执行技能，改为**异步启动**子循环（立即返回 started subagent <id>）
     if (subAgentTool !== '' && resolved === subAgentTool) {
-      return runSubAgent(call)
+      return spawnSubAgent(call)
     }
     let text: string
     let success: boolean
@@ -402,6 +447,8 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
     messages.push(buildAssistantMessage(reply))
 
     if (reply.finishReason === 'stop' && reply.toolCalls.length === 0) {
+      // 还有子智能体在跑：先收量（完成通知注入），再继续下一轮 —— 不 finalize。
+      if (await drainSubAgents()) continue
       const text = reply.content.trim()
       emit({ type: 'done', text })
       const verdict = options.evaluator ? safeRunEvaluator(options.evaluator, text) : null
@@ -409,6 +456,8 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
     }
 
     if (reply.toolCalls.length === 0) {
+      // 同上：子智能体未收量前不结束。
+      if (await drainSubAgents()) continue
       stopReason = 'no_tools'
       break
     }

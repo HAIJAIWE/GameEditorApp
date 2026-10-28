@@ -1326,7 +1326,7 @@ describe('并行工具执行（Slice 19，opt-in）', () => {
 /* ---- 子智能体（Slice 19） ---- */
 
 describe('子智能体（Slice 19）', () => {
-  it('tool.spawn_subagent 被循环拦截：递归跑子循环并把结果回灌', async () => {
+  it('tool.spawn_subagent 异步启动：立即返回 started，完成后以完成通知注入父对话', async () => {
     const runner = makeRunner({
       resolvable: (name) => (name === 'tool.spawn_subagent' ? name : null)
     })
@@ -1336,19 +1336,45 @@ describe('子智能体（Slice 19）', () => {
         toolCalls: [{ id: 's1', name: 'tool.spawn_subagent', arguments: { task: '写一段简介' } }],
         finishReason: 'tool_calls'
       },
-      FINAL, // 子循环的最终答复
-      FINAL // 外层的最终答复
+      FINAL // 之后所有调用（父续跑 / 子循环）都拿 FINAL（scripted 会重复最后一个）
     ])
     const result = await runBrainLoop({ input: 'x', systemPrompts: [], transport, runner })
 
     // 技能本身未被直接执行（被循环拦截）
     expect(runner.executed).toHaveLength(0)
-    // 外层拿到「子智能体结果：…」作为工具结果
-    const toolMsg = result.messages.find(
-      (message) => message.role === 'tool' && (message.content ?? '').includes('子智能体结果')
+    // spawn 立即返回 started（不等待子任务完成）
+    const spawnMsg = result.messages.find(
+      (message) => message.role === 'tool' && (message.content ?? '').includes('started subagent')
     )
-    expect(toolMsg).toBeDefined()
+    expect(spawnMsg).toBeDefined()
+    // 子任务完成后以「完成通知」注入（user 消息，含子智能体结果）
+    const notice = result.messages.find(
+      (message) => message.role === 'user' && (message.content ?? '').includes('子智能体结果')
+    )
+    expect(notice).toBeDefined()
     expect(result.completed).toBe(true)
+  })
+
+  it('子智能体并发上限：同轮派 9 个，第 9 个被拒（maxActiveSubagents=8）', async () => {
+    const runner = makeRunner({
+      resolvable: (name) => (name === 'tool.spawn_subagent' ? name : null)
+    })
+    const nine = Array.from({ length: 9 }, (_, index) => ({
+      id: `s${index}`,
+      name: 'tool.spawn_subagent',
+      arguments: { task: `任务${index}` }
+    }))
+    const transport = scripted([
+      { content: '', toolCalls: nine, finishReason: 'tool_calls' },
+      FINAL
+    ])
+    // maxToolCalls 默认 8，9 个调用会整批被工具上限拦；放宽以专测子智能体并发上限
+    const result = await runBrainLoop({ input: 'x', systemPrompts: [], transport, runner, maxToolCalls: 20 })
+
+    const capped = result.messages.filter(
+      (message) => message.role === 'tool' && (message.content ?? '').includes('并发已达上限')
+    )
+    expect(capped).toHaveLength(1)
   })
 
   it('depth>=1 时拒绝再派子智能体（防无限递归）', async () => {
