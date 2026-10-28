@@ -87,3 +87,9 @@ GameEditorApp/
 # spike 试跑输出（docx/pptx 样例），仅本地验证用
 spikes/out/
 
+# 依赖目录
+node_modules/
+
+# 第三方源码参考（dsh / deepseek-harness 仅作设计参考阅读，不进本仓库）
+deepseek-harness-master/
+

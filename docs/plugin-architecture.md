@@ -1,0 +1,256 @@
+# 插件架构与深层插件化迁移设计
+
+> 状态：进行中（B 方案）。最后更新 2026-10-28。
+> 本文是插件系统的权威设计文档，也是「深层插件化」跨会话的交接文档。
+> 相关代码：`desktop/src/shared/plugin/`、`desktop/src/renderer/src/plugins/`。
+
+---
+
+## 1. 目标与定位
+
+把应用改造成 **dsh 式万物插件化**：产品能力（面板、菜单动作、服务）由插件自供给，
+经统一 `PluginHost` 注册 / 发现 / 渲染，而不是硬编码在 `App.tsx` 的 switch 与 `MenuBar` 里。
+
+**关键定位（用户拍板）**：dsh 只是**设计参考**，不是运行时、不 vendoring 源码。
+契约必须**宿主无关**，未来其他项目（CLI / 游戏引擎 / 别的 Electron 应用）能复用同一接口。
+
+两条硬约束：
+1. **共享契约零框架依赖**：`shared/plugin/types.ts` 不 import React，UI 用可序列化 `UiNode`。
+2. **富 React 组件外置**：经 `renderer/src/plugins/reactBindings.tsx` 的 `registerReactBinding` 注册，
+   非 React 宿主回退到 `renderUiNode`（几十行即可实现）。
+
+---
+
+## 2. 分层架构
+
+```
+shared/plugin/types.ts     契约：PluginManifest + 四类能力（command / panel / service / view）
+shared/plugin/host.ts      宿主：register / enable / disable / capabilities / openPanel / subscribe
+                           —— 纯 TS，无 React，可在主进程或渲染进程实例化
+renderer/src/plugins/
+  reactBindings.tsx        React 绑定表：panel id → ComponentType<{onClose}>；UiNode 渲染器
+  HostPanel.tsx            宿主侧面板渲染器：优先 React 绑定，缺失回退 UiNode
+  appContext.tsx           应用级共享状态（面板自供给通道，见 §4）
+  builtins.ts              pluginHost 单例 + 内置插件幂等注册
+  ceshuPlugin.ts           受保护核心插件（暴露 readiness / route / health 三个 service）
+  demoPlugin.tsx           命令/面板/服务三类端到端示例
+  shortcutsPlugin.tsx      Slice 1：静态面板迁移样例
+  statisticsPlugin.tsx     Slice 2：状态化面板迁移样例（appContext 自供给）
+```
+
+### 2.1 契约（`types.ts`）
+
+`PluginManifest` 关键字段：
+- `id / name / version / description`
+- `meta?: { label, icon, description }` —— 管理面展示（dsh bundle 具名风格）
+- `source?: string` —— 来源标记
+- `protected?: boolean` —— 受保护核心，不可禁用（如 ceshu）
+- `engines?: { host?: string }` —— 宿主主版本门禁
+- `activate?: () => void | Promise<void>` —— 启动钩子；**抛错非致命**（标 `status:'error'`，宿主不崩）
+- `capabilities: PluginCapability[]` —— 四类能力：
+  - `command`：`{ id, label, run() }` 可执行动作
+  - `panel`：`{ id, title, ui: UiNode | (() => UiNode) }` 可挂载视图
+  - `service`：`{ id, invoke(...args) }` 供其他插件调用
+  - `view`：声明式视图
+
+`UiNode`：`text | button | input | container`，完全可序列化，供非 React 宿主解析。
+
+### 2.2 宿主（`host.ts`）
+
+- `register(manifest)`：重复 id 抛错；`engines.host` 主版本高于宿主则拒绝；按持久化覆写决定初始启停；
+  执行 `activate`，失败标 `status:'error'` 且 `enabled:false`。
+- `enable / disable`：`disable` 受保护插件抛错；**只关闭该插件自己打开的面板**（`panelOwner` 精确匹配）。
+- `capabilities(kind)`：只返回 `status==='enabled'` 插件的能力（禁用/坏插件不参与分发）。
+- `openPanel(id)` / `closePanel()` / `activePanel()` / `subscribe(fn)`。
+- `PluginPersistence`：启用/禁用覆写持久化接口（宿主注入，核心不碰 IO）；**只记录被显式禁用的 id**。
+
+### 2.3 渲染链
+
+```
+App.renderPanel()
+  └─ <HostPanel host={pluginHost} panelId="xxx.panel" onClose={...} />
+       ├─ host.panels().find(id)  ── 未命中 → return null（注意 find 返回 undefined，不是 null）
+       ├─ getReactBinding(id)     ── 有 → <BoundPanel component={Bound} onClose={...} />
+       └─ 无                       ── renderUiNode(uiOf(panel), onAction)
+```
+
+`BoundPanel` 是**模块级稳定组件**，把绑定组件作为 prop 传入再渲染。
+目的：规避 `react-hooks/static-components`（渲染期赋值组件变量会被判「动态创建组件」而报错）。
+
+---
+
+## 3. 迁移策略：垂直切片
+
+整轮估算 ~60–90 dev-days。**不一次性重写**，按垂直切片推进，每片可运行、四道闸绿、可回滚。
+
+| 切片 | 内容 | 状态 |
+|---|---|---|
+| Slice 1 | 静态面板（快捷键参考）经 `HostPanel` 渲染，打通「面板经宿主渲染」通路 | ✅ 完成 |
+| Slice 2 | `appContext` store + 状态化面板（数据统计）自供给 `types`，解耦 App props | ✅ 完成 |
+| Slice 3 | `openPanel(id, params)` 承载面板打开参数（refTarget / importPreview / quickCreateTarget…） | ⬜ 待做 |
+| Slice 4 | 低风险无状态/仅 onClose 面板批量迁移（见 §5 清单） | ⬜ 待做 |
+| Slice 5 | 依赖 `types + handleJump` 的面板（高级搜索 / 关系图 / 属性图表 / 引用） | ⬜ 待做 |
+| Slice 6 | 依赖回调的面板（备份 refreshUndo / 清空 handleDataCleared / 引导 action） | ⬜ 待做 |
+| Slice 7 | 带打开参数的面板（类型编辑器 / 快速创建 / 批量编辑 / 导入预览） | ⬜ 待做 |
+| Slice 8 | `MenuBar` ~40 个菜单动作 → `command` 能力，App 不再持有动作清单 | ⬜ 待做 |
+
+---
+
+## 4. `appContext`：面板自供给通道（Slice 2 落地）
+
+### 4.1 契约
+
+```ts
+interface AppContextValue {
+  types: DataTypeDef[]                                        // 当前类型定义（编辑态）
+  setTypes: (next: DataTypeDef[]) => void                     // 字段结构编辑器保存回写
+  handleJump: (type: string, itemId: string, name: string) => void  // 条目跳转
+  refreshUndo: () => void                                     // 撤销栈刷新
+}
+```
+
+`useAppContext()` 必须在 `<AppContextProvider>` 内调用，缺失即抛错（避免静默拿到空数据）。
+
+### 4.2 放置位置
+
+`App.tsx` 只在**面板渲染子树**外包 Provider，不包整棵树：
+
+```tsx
+<div className="panel-overlay-body">
+  <AppContextProvider value={appContextValue}>{renderPanel()}</AppContextProvider>
+</div>
+```
+
+`appContextValue` 刻意**不 memo**：`handleJump` 是普通函数、每次渲染新建，memo 不会命中；
+面板数量少，重渲染可接受。（后续若要优化，应先把 `handleJump` 等包成 `useCallback`，再 memo。）
+
+### 4.3 范围纪律
+
+- **只放**被多个面板共用的稳定数据/动作。
+- **不放**面板专属打开参数（`refTarget` / `importPreview` / `quickCreateTarget` / `typeEditorTarget`）。
+  这些走 Slice 3 的 `openPanel(id, params)`，否则 context 会膨胀成「第二个 App」。
+- `onClose` **不进 context**：它是面板生命周期契约，由 `HostPanel` 统一以 prop 下发。
+
+### 4.4 已迁移面板示例（`StatisticsPanel`）
+
+```tsx
+// 迁移前：App 下发 props
+<StatisticsPanel types={types} onClose={() => setPanel(null)} />
+
+// 迁移后：types 自供给，onClose 仍由宿主下发
+const { types } = useAppContext()
+```
+
+插件侧绑定必须**转发 onClose**：
+
+```tsx
+registerReactBinding('statistics.panel', ({ onClose }) => <StatisticsPanel onClose={onClose} />)
+```
+
+---
+
+## 5. 面板迁移清单
+
+来源：`App.tsx::renderPanel()` 的 `switch (panel)`。
+
+| OverlayPanel | 组件 | 依赖 | 迁移难度 | 状态 |
+|---|---|---|---|---|
+| `shortcuts` | ShortcutsPanel | 无 | 低 | ✅ |
+| `stats` | StatisticsPanel | `types` | 低 | ✅ |
+| `attrSystem` | AttrSystemPanel | `onClose` | 低 | ⬜ |
+| `dataDiff` | DataDiffPanel | `onClose` | 低 | ⬜ |
+| `settings` | SettingsPanel | 无 | 低 | ⬜ |
+| `cleanupImages` | CleanupImagesPanel | 无 | 低 | ⬜ |
+| `keywordTemplates` | KeywordTemplatePanel | 无 | 低 | ⬜ |
+| `agentEditor` | AgentEditorPanel | 无 | 低 | ⬜ |
+| `imageGen` | ImageGenPanel | `onClose` | 低 | ⬜ |
+| `gameDataPreview` | GameDataPreviewPanel | 无 | 低 | ⬜ |
+| `about` | AboutPanel | `version`（AppInfo） | 中 | ⬜ |
+| `attributeChart` | AttributeChartPanel | `types` | 中 | ⬜ |
+| `relationGraph` | RelationGraphPanel | `types` + `handleJump` | 中 | ⬜ |
+| `advancedSearch` | AdvancedSearchPanel | `types` + `handleJump` | 中 | ⬜ |
+| `backup` | BackupPanel | `refreshUndo` | 中 | ⬜ |
+| `clearAll` | ClearAllPanel | `handleDataCleared` | 中 | ⬜ |
+| `onboarding` | OnboardingPanel | `types` + `handleOnboardingAction` | 中 | ⬜ |
+| `references` | ReferencesPanel | `refTarget` 参数 + `types` + `handleJump` | 高 | ⬜ |
+| `typeEditor` | TypeEditorPanel | `typeEditorTarget` 参数 + `types` + `setTypes` | 高 | ⬜ |
+| `quickCreate` | QuickCreatePanel | `quickCreateTarget` 参数 + `types` | 高 | ⬜ |
+| `batch` | BatchEditPanel | `firstType` 参数 + `types` | 高 | ⬜ |
+| `importPreview` | ImportPreviewPanel | `previewId` / `preview` 参数 + `types` | 高 | ⬜ |
+| `plugins` | PluginsPanel | `host` | 已插件管理面 | — |
+
+> 注：`onClose` 是通用契约，不计入「依赖」。
+
+---
+
+## 6. 新增一个插件面板的标准步骤
+
+1. **写插件文件** `plugins/xxxPlugin.tsx`：
+   ```tsx
+   export function defineXxxPlugin(host: PluginHost): PluginManifest {
+     registerReactBinding('xxx.panel', ({ onClose }) => <XxxPanel onClose={onClose} />)
+     return {
+       id: 'xxx', name: 'xxx', version: '0.1.0',
+       meta: { label: 'X', icon: '🔧' },
+       capabilities: [
+         { kind: 'command', id: 'xxx.open', label: 'X', run: () => host.openPanel('xxx.panel') },
+         { kind: 'panel', id: 'xxx.panel', title: 'X', ui: { type: 'text', text: 'X' } }
+       ]
+     }
+   }
+   ```
+2. **注册**到 `plugins/builtins.ts::registerBuiltinPlugins()`。
+3. **面板消费共享状态**：用 `useAppContext()`，不要新增 App props。
+4. **App 侧改渲染**：对应 `case` 改 `<HostPanel host={pluginHost} panelId="xxx.panel" onClose={() => setPanel(null)} />`，删除直接 import。
+5. **加 DOM 测试**（`tests/unit/dom/xxxPlugin.test.tsx`）：证明经宿主渲染 + 数据自供给。
+6. **跑四道闸**。
+
+---
+
+## 7. 不变量与坑（务必遵守）
+
+1. **`find` 返回 `undefined` 不是 `null`**：`host.panels().find(...)` 未命中必须判 `=== undefined`，否则空面板崩渲染链。
+2. **`react-hooks/static-components`**：渲染期把查到的组件赋给变量再当 JSX 标签会报错。用模块级 `BoundPanel` 包装、组件作为 prop 传入。
+3. **绑定必须转发 `onClose`**：面板签名 `{ onClose }` 时，绑定写 `({ onClose }) => <Panel onClose={onClose} />`，不能写 `() => <Panel />`（tsc 会报缺 prop）。
+4. **保留既有 `data-testid`**：迁移只换渲染通道，不改 DOM 契约，否则既有测试与用户脚本断。
+5. **Provider 必须包住 `HostPanel` 渲染处**：否则 `useAppContext()` 抛错。
+6. **词汇纪律**：策划书=章（阅读序）；交接包=卷 + 编号文档（开发序）。插件化文档不混用。
+7. **四道闸**（在 `desktop/`）：
+   - `npx vitest run`
+   - `npx tsc --noEmit -p tsconfig.node.json --composite false`（+ `tsconfig.web.json` + `tsconfig.test-dom.json`）
+   - `npx eslint <改动文件>`（或 `src tests/unit/dom`）
+   - `env -u NODE_OPTIONS npm run build`
+
+---
+
+## 8. 下一步（Slice 3 设计草案）
+
+**问题**：`references` / `typeEditor` / `quickCreate` / `batch` / `importPreview` 需要「打开参数」，
+当前 `openPanel(id)` 不承载参数，这些面板仍靠 App 的本地 state（`refTarget` / `typeEditorTarget` …）。
+
+**方案**：扩展宿主 `openPanel(id, params?: unknown)`，内部保存 `panelParams: Map<string, unknown>`，
+并提供 `panelParams(id): unknown` 访问器；`HostPanel` 把参数作为 prop 传给绑定组件。
+- 共享契约只认 `unknown`，不引入具体业务类型（宿主无关）。
+- 插件侧绑定自行断言参数类型（`as RefTarget`），类型安全留在渲染层。
+- App 删除对应 `useState`，改由 `host.openPanel('references.panel', { type, id, name })`。
+
+**验收**：`references` 面板经宿主渲染、参数自供给，App 不再持有 `refTarget` state，四道闸绿。
+
+---
+
+## 9. 文件改动索引（本轮）
+
+Slice 1：
+- `renderer/src/plugins/shortcutsPlugin.tsx`（新增）
+- `renderer/src/plugins/HostPanel.tsx`（新增）
+- `renderer/src/plugins/builtins.ts`（注册）
+- `renderer/src/App.tsx`（`shortcuts` case → HostPanel，删直接 import）
+- `tests/unit/dom/shortcutsPlugin.test.tsx`（新增）
+
+Slice 2：
+- `renderer/src/plugins/appContext.tsx`（新增）
+- `renderer/src/plugins/statisticsPlugin.tsx`（新增）
+- `renderer/src/plugins/builtins.ts`（注册）
+- `renderer/src/components/StatisticsPanel.tsx`（`types` 改 `useAppContext()`）
+- `renderer/src/App.tsx`（`stats` case → HostPanel，删直接 import，加 Provider + `appContextValue`）
+- `tests/unit/dom/statisticsPlugin.test.tsx`（新增）

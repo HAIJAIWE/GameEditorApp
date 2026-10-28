@@ -1,0 +1,50 @@
+{
+  "schema_version": "1.0",
+  "ruleset_id": "abyssal-beacon-v1",
+  "task": {
+    "type": "gdd+demo",
+    "title": "深潮灯塔",
+    "authority": "用户指令：换个题材生成，用skill"
+  },
+  "scope": {
+    "freeze": [],
+    "allowed": ["玩法", "数值", "Demo"],
+    "non_goals": ["多路径", "技能", "装备", "付费", "多存档", "正式美术与音频"]
+  },
+  "parameters": [
+    { "key": "hp_base", "value": 18, "unit": "HP", "source": "设计初值" },
+    { "key": "hp_growth", "value": 1.16, "unit": "倍/波", "source": "设计初值" },
+    { "key": "gold_base", "value": 2, "unit": "生物质", "source": "设计初值" },
+    { "key": "gold_growth", "value": 1.08, "unit": "倍/波", "source": "设计初值" },
+    { "key": "beacon_dps", "value": 15, "unit": "DPS", "source": "设计初值" },
+    { "key": "sonar_dps", "value": 6, "unit": "DPS", "source": "设计初值" },
+    { "key": "corrosive_dps", "value": 8, "unit": "DPS", "source": "设计初值" }
+  ],
+  "assertions": [
+    { "id": "A1", "expr": "ceil(hp_base * hp_growth ** 19) >= 300", "note": "第 20 波基础怪血量 ≥ 300（后期有压力）" },
+    { "id": "A2", "expr": "ceil(gold_base * gold_growth ** 19) >= 8", "note": "第 20 波单杀生物质 ≥ 8（经济跟得上）" },
+    { "id": "A3", "expr": "beacon_dps > sonar_dps", "note": "探照灯单体 DPS 高于声呐（AOE 的代价）" },
+    { "id": "A4", "expr": "ceil(hp_base * hp_growth ** 4) <= 40", "note": "第 5 波基础怪血量 ≤ 40（前期不劝退）" }
+  ],
+  "prototype": {
+    "checks": [
+      { "id": "C1", "desc": "首载无阻断错误", "status": "passed", "evidence": "headless Chrome pageerror=0" },
+      { "id": "C2", "desc": "建塔扣费且塔数 +1", "status": "passed", "evidence": "生物质 150→100，塔 0→1" },
+      { "id": "C3", "desc": "主循环推进并击杀", "status": "passed", "evidence": "×5 加速 4.5s，wave 0→1，击杀 2 只，生物质 100→104" },
+      { "id": "C4", "desc": "失败与重开闭合", "status": "passed", "evidence": "耐久 1→漏怪→「灯塔熄灭」→重开 wave0/hp20" }
+    ]
+  },
+  "journeys": {
+    "standard": ["选塔", "点空地建造", "波次推进", "击杀得生物质", "升级", "守到第 20 波"],
+    "recovery": ["漏怪扣耐久", "耐久归 0 显示失败", "点再来一局重置"],
+    "abuse": ["×5 倍速连续推进", "+100 生物质堆塔", "拆除返还 50%"]
+  },
+  "persistence": {
+    "required": false,
+    "keys": [],
+    "write_trigger": "",
+    "restore_rule": "",
+    "abnormal_exit": ""
+  },
+  "capacity": { "flag": false }
+}

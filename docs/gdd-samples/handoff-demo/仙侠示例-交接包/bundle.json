@@ -1,0 +1,4916 @@
+{
+  "schema": "mobai-ceshu-bundle/1",
+  "exportedAt": "2026-10-27T00:20:18.158Z",
+  "doc": {
+    "ceshuId": "34a02196",
+    "versionLabel": "v1.0",
+    "gddScope": "full",
+    "style": "",
+    "moduleType": "",
+    "isActive": true,
+    "createdAt": "2026-10-27 08:20:18",
+    "updatedAt": "2026-10-27 08:20:18",
+    "gameName": "仙侠示例",
+    "gameType": "RPG",
+    "positioning": "3D 仙侠开放世界 RPG，重剧情 + 轻社交",
+    "tags": [
+      "仙侠",
+      "开放世界",
+      "剧情向",
+      "国产"
+    ],
+    "status": "draft",
+    "confidentiality": "internal"
+  },
+  "chapters": [
+    {
+      "key": "meta",
+      "label": "文档信息",
+      "index": 1,
+      "fields": [
+        {
+          "key": "game_name",
+          "label": "游戏名称",
+          "kind": "text",
+          "required": true,
+          "aiDraftable": false,
+          "reviewHint": "确认名称是否最终确定",
+          "value": "仙侠示例"
+        },
+        {
+          "key": "game_type",
+          "label": "游戏类型",
+          "kind": "combo",
+          "required": true,
+          "aiDraftable": false,
+          "reviewHint": "类型是否与核心玩法一致（不是题材分类）；是否与平台、目标用户对得上",
+          "value": "RPG"
+        },
+        {
+          "key": "game_type_tags",
+          "label": "玩法标签（可多选）",
+          "kind": "multiCombo",
+          "required": false,
+          "aiDraftable": false,
+          "reviewHint": "是否只重复了「游戏类型」；组合玩法（如 SLG+卡牌）是否真的都实现了，还是只做了主类型",
+          "value": []
+        },
+        {
+          "key": "platform",
+          "label": "平台",
+          "kind": "multiCombo",
+          "required": false,
+          "aiDraftable": false,
+          "reviewHint": "是否与团队实际能力、操作方案一致；多平台是否真的都能兼顾",
+          "value": [
+            "PC",
+            "移动端"
+          ]
+        },
+        {
+          "key": "positioning",
+          "label": "一句话定位",
+          "kind": "text",
+          "required": true,
+          "aiDraftable": true,
+          "aiHint": "一句话说清「给谁玩、玩什么、和谁不一样」",
+          "reviewHint": "是否一句话能讲清，且不与竞品同质",
+          "value": "3D 仙侠开放世界 RPG，重剧情 + 轻社交"
+        },
+        {
+          "key": "tags",
+          "label": "特色标签",
+          "kind": "stringList",
+          "required": true,
+          "aiDraftable": true,
+          "aiHint": "3-5 个具体标签，避免「好玩」「有趣」这类空泛词",
+          "reviewHint": "标签是否具体到能用于商店分类与搜索；是否与玩法/题材一致；有无互相重复的同义标签",
+          "value": [
+            "仙侠",
+            "开放世界",
+            "剧情向",
+            "国产"
+          ]
+        },
+        {
+          "key": "non_goals",
+          "label": "范围与非目标",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-5 条明确不做的功能/范围，每条说清「不做什么」，必要时补一句「要做到什么程度才算够」；禁止写成「暂不做」这类没有边界的表述",
+          "reviewHint": "是否与设计支柱的反例一致；是否真的砍掉了功能边界；有无「什么都做」式的伪非目标",
+          "value": []
+        },
+        {
+          "key": "status",
+          "label": "文档状态",
+          "kind": "combo",
+          "required": false,
+          "aiDraftable": false,
+          "reviewHint": "状态是否与实际进度相符（评审中却还有大量空缺就该退回草稿）",
+          "value": "draft"
+        },
+        {
+          "key": "confidentiality",
+          "label": "保密级别",
+          "kind": "combo",
+          "required": false,
+          "aiDraftable": false,
+          "reviewHint": "是否与分享对象匹配（对外演示用公开/内部，涉未公开玩法用保密）",
+          "value": "internal"
+        },
+        {
+          "key": "gdd_scope",
+          "label": "策划档位",
+          "kind": "combo",
+          "required": false,
+          "aiDraftable": false,
+          "reviewHint": "档位是否与项目阶段匹配（立项期用标准版，进入研发再切专业版）",
+          "value": "full"
+        },
+        {
+          "key": "version",
+          "label": "版本号",
+          "kind": "text",
+          "required": false,
+          "aiDraftable": false,
+          "reviewHint": "与 version_label 区分：这是数据结构版本",
+          "value": "0.1.0"
+        },
+        {
+          "key": "date",
+          "label": "日期",
+          "kind": "text",
+          "required": false,
+          "aiDraftable": false,
+          "reviewHint": "是否为最近一次实质修改的日期（对外发出前记得更新）",
+          "value": "2026-10-27"
+        }
+      ]
+    },
+    {
+      "key": "vision",
+      "label": "第一章·产品愿景",
+      "index": 2,
+      "fields": [
+        {
+          "key": "design_vision",
+          "label": "设计愿景",
+          "kind": "textarea",
+          "required": true,
+          "aiDraftable": true,
+          "aiHint": "先一句愿景（要做成什么样的游戏），再给三条支撑理由；不要写与竞品的对比",
+          "reviewHint": "是否具体、可判断，而不是口号；与「差异化优势」不重复",
+          "value": "以东方仙侠美学为核心，构建一个有温度、有诗意的修真世界。玩家在云海、剑阁、幽谷间体验修仙者的修行、情劫与抉择，用现代游戏语言重新讲述中国古典文化中的'道'与'人'。"
+        },
+        {
+          "key": "user_personas.primary",
+          "label": "主要用户",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "年龄 / 使用场景 / 核心痛点，各一句",
+          "reviewHint": "痛点是否具体到场景（不是「想放松」）；是否与游戏类型、平台对得上；能否据此判断一个功能要不要做",
+          "value": ""
+        },
+        {
+          "key": "user_personas.secondary",
+          "label": "次要用户",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "与主要用户的具体差异，不要复述",
+          "reviewHint": "差异是否具体（不是「也有年轻人」）；是否说明为何值得一并服务；是否与主要用户画像重叠",
+          "value": ""
+        },
+        {
+          "key": "differentiation",
+          "label": "差异化优势",
+          "kind": "textarea",
+          "required": true,
+          "aiDraftable": true,
+          "aiHint": "与 2-3 个竞品的具体差异，给出可验证的例子；不要复述设计愿景",
+          "reviewHint": "是否说得出「玩家凭什么选你」；与「设计愿景」不重复",
+          "value": "1) 独创'剑心'系统：玩家抉择影响剑道走向\n2) 国风美术：实机渲染 + 水墨滤镜\n3) 剧情分支：双主角多结局，重玩价值高"
+        },
+        {
+          "key": "business_model",
+          "label": "商业模式",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": false,
+          "reviewHint": "是商业决策而非玩法描述：谁付钱、为什么付、与付费模式章是否一致",
+          "value": "F2P + 外观付费 + 季票，避免 P2W"
+        },
+        {
+          "key": "competitive_analysis",
+          "label": "竞品对比要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-5 条竞品对比结论，每条一句话点出「与谁比、差在哪或强在哪」；完整竞品清单（名称/类型/数据/差异）在第十一章，此处只写对比要点",
+          "reviewHint": "是否点明对比对象与具体维度（不是「玩法更丰富」这类空话）；是否与第十一章竞品表自洽；是否落到可执行的差异方向",
+          "value": []
+        },
+        {
+          "key": "design_pillars",
+          "label": "设计支柱",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "每条支柱给「裁决」（坚持什么，最好有数字或规则支撑）+「反例」（因此明确不做什么功能）；3-4 条，反例必须是具体功能而不是态度",
+          "reviewHint": "支柱是否可判断（有数字/规则支撑）；反例是否真实砍掉了功能，而非正确的废话"
+        },
+        {
+          "key": "design_assumptions",
+          "label": "关键假设",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "登记「没验证过的设计判断」：影响程度、怎么验证、验证不通过时调什么参数（如「首转生集中在 40+ 层则下调微光步长」）；没有不确定的判断就留空",
+          "reviewHint": "假设是否可被证伪；验证方法是否能在 Demo/试玩里执行；调参阈值是否具体"
+        }
+      ]
+    },
+    {
+      "key": "story",
+      "label": "第二章·世界观与角色",
+      "index": 3,
+      "fields": [
+        {
+          "key": "architecture",
+          "label": "世界观架构",
+          "kind": "textarea",
+          "required": true,
+          "aiDraftable": true,
+          "aiHint": "一句话世界观 + 3-5 条设定要点（每条一句）",
+          "reviewHint": "设定之间是否自洽、有无互相矛盾",
+          "value": "九重天架构：凡界、修真界、灵界、仙界、神界，每界有独立法则与生态。界与界之间以'界门'相通，受天道法则约束。"
+        },
+        {
+          "key": "architecture_points",
+          "label": "世界观架构·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-5 条设定要点，每条一句，便于逐条审阅",
+          "reviewHint": "每条是否只讲一个设定；要点是否覆盖本体提到但未展开的部分"
+        },
+        {
+          "key": "architecture_notes",
+          "label": "世界观架构·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "要点之外的补充说明，可留空",
+          "reviewHint": "是否只放补充信息、没有把要点又抄一遍；该留空时是否确实留空"
+        },
+        {
+          "key": "geography",
+          "label": "地理设定",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：世界地理的整体格局；具体地点条目走「要点」，各说清在哪、有什么用",
+          "reviewHint": "概述是否说清整体格局；地点是否覆盖关键场景；与剧情发生地是否一致",
+          "value": "凡界：九州大陆；修真界：五大仙山；灵界：灵脉汇聚之地；仙界：仙宫与仙山"
+        },
+        {
+          "key": "geography_points",
+          "label": "地理设定·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条：每条一个关键地点 + 位置特征 + 在剧情/玩法中的作用",
+          "reviewHint": "每条是否说清在哪、有什么用；地点间是否有关联；与 NPC 列表位置是否一致"
+        },
+        {
+          "key": "geography_notes",
+          "label": "地理设定·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "要点之外的补充说明：地理成因、未开放区域或地图规模，可留空",
+          "reviewHint": "补充是否与要点重复；未开放区域是否注明"
+        },
+        {
+          "key": "main_plot",
+          "label": "主线剧情",
+          "kind": "textarea",
+          "required": true,
+          "aiDraftable": true,
+          "aiHint": "主线分 3 幕，每幕一句：起因 / 转折 / 结局",
+          "reviewHint": "三幕是否各有明确事件；主角目标是否随幕推进；与分支结局是否对得上",
+          "value": "主角意外觉醒'剑心'，被卷入界门封印之争，在双主角视角下逐步揭开天道真相，最终抉择：维护旧序 / 重立新规。"
+        },
+        {
+          "key": "main_plot_points",
+          "label": "主线剧情·节拍",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-5 个情节点，每行一个，按顺序",
+          "reviewHint": "情节点是否按时间递增；每个点是否改变了局势；是否与三幕概述重复"
+        },
+        {
+          "key": "main_plot_notes",
+          "label": "主线剧情·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "节拍之外的补充说明，可留空",
+          "reviewHint": "是否只放补充信息、没有把要点又抄一遍；该留空时是否确实留空"
+        },
+        {
+          "key": "protagonist",
+          "label": "主角设定",
+          "kind": "textarea",
+          "required": true,
+          "aiDraftable": true,
+          "aiHint": "身份 / 目标 / 缺陷，各一句",
+          "reviewHint": "缺陷是否真的会制造障碍（不是装饰）；目标是否与主线一致；是否与角色关系网对得上",
+          "value": "云澈：落魄散修，觉醒「天道印记」，踏上证道之路"
+        },
+        {
+          "key": "main_npc_count",
+          "label": "主要 NPC 数量",
+          "kind": "number",
+          "required": true,
+          "aiDraftable": false,
+          "reviewHint": "数量是否与 NPC 列表实际条数一致；是否与资源产能匹配（多了做不完）",
+          "value": 8
+        },
+        {
+          "key": "npc_list",
+          "label": "NPC 列表",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "每个 NPC 一行：名称/角色/位置/性格/任务钩子",
+          "reviewHint": "每个 NPC 是否有明确的剧情或功能作用（无用的删掉）；位置是否与地理设定一致；数量是否与「主要 NPC 数量」对得上",
+          "value": []
+        },
+        {
+          "key": "antagonists",
+          "label": "反派设计",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "2-3 个反派，每个一行：名称/动机/与主角的冲突点；动机必须能解释「为什么非对立不可」",
+          "reviewHint": "动机是否成立；与世界观设定有无矛盾",
+          "value": []
+        },
+        {
+          "key": "boss_design",
+          "label": "Boss 设计",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "每个 Boss 一行：名称/阶段数/每阶段核心机制/弱点；机制必须能对应到已填的战斗系统",
+          "reviewHint": "机制能否用现有战斗规则实现；阶段间是否有节奏变化",
+          "value": []
+        },
+        {
+          "key": "companion_system",
+          "label": "同伴系统",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：同伴系统的整体设计思路；加入/培养/协作的具体规则走「要点」逐条列",
+          "reviewHint": "是否与角色成长弧线、NPC 列表自洽",
+          "value": ""
+        },
+        {
+          "key": "companion_system_points",
+          "label": "同伴系统·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条：每条一个同伴规则（加入条件/培养方式/协作机制），须具体可执行",
+          "reviewHint": "每条规则是否可执行；是否与角色成长弧线、NPC 列表自洽"
+        },
+        {
+          "key": "companion_system_notes",
+          "label": "同伴系统·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "要点之外的补充说明：暂不加入的同伴构思或与主角的关系设定，可留空",
+          "reviewHint": "补充是否与要点重复；构思是否标注为暂缓"
+        },
+        {
+          "key": "character_arcs",
+          "label": "角色成长弧线",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "主要角色各一条弧线：起点状态→转折事件→终点状态；只写已出场角色",
+          "reviewHint": "转折是否有剧情支撑；与主线剧情节拍能否对上",
+          "value": []
+        },
+        {
+          "key": "history_eras",
+          "label": "历史纪元",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-5 个纪元，每行「纪元名|该纪元发生的核心事件与它如何塑造当下世界」；事件要能解释当前冲突的由来",
+          "reviewHint": "纪元顺序是否与主线时间线自洽；每个纪元是否都有「改变世界格局」的事件；有没有只为凑数的纪元",
+          "value": [
+            {
+              "name": "太古纪元",
+              "desc": "神魔大战，天道初立"
+            },
+            {
+              "name": "上古纪元",
+              "desc": "人族崛起，修真界成形"
+            },
+            {
+              "name": "近世纪元",
+              "desc": "界门封印渐松，主角登场"
+            }
+          ]
+        },
+        {
+          "key": "factions",
+          "label": "阵营",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-5 个主要阵营，每行「名称|立场（与主角/彼此的关系）|当前势力现状」；至少一方与玩家目标正面冲突",
+          "reviewHint": "立场是否互斥形成张力；现状是否可被玩家行为改变；是否与角色关系网、敌人类型对得上",
+          "value": [
+            {
+              "name": "剑阁",
+              "type": "正道",
+              "goal": "守护界门"
+            },
+            {
+              "name": "幽冥宗",
+              "type": "魔道",
+              "goal": "打破封印"
+            },
+            {
+              "name": "云游散修",
+              "type": "中立",
+              "goal": "各自修行"
+            }
+          ]
+        },
+        {
+          "key": "branch_endings",
+          "label": "分支结局",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "2-4 个结局，每行「结局名|可机器判定的达成条件」（如「集齐 3 枚印记且未杀死 X」）；条件必须落在游戏内可观测的变量上",
+          "reviewHint": "达成条件是否可判定（不能是「玩家做出选择」这类模糊说法）；是否覆盖好/坏/隐藏结局；是否与胜负条件冲突",
+          "value": [
+            {
+              "name": "正道结局：剑斩天道",
+              "condition": "天道印记 ≥ 3 且 苏婉清存活"
+            },
+            {
+              "name": "魔道结局：以魔证道",
+              "condition": "入魔值 ≥ 100 且 魔尊已击杀"
+            },
+            {
+              "name": "隐世结局：归隐云海",
+              "condition": "支线完成度 = 100% 且 天道印记 < 3"
+            }
+          ]
+        },
+        {
+          "key": "character_network",
+          "label": "角色关系网",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "4-6 条关键人物关系，每行「角色A-角色B|关系（血缘/契约/敌对/师徒）|张力（当前冲突或未说破的秘密）」；只写推动剧情的关系",
+          "reviewHint": "是否只列关系不写张力；是否与阵营、角色设定矛盾；是否存在没人推动的孤立角色",
+          "value": [
+            {
+              "name": "主角",
+              "camp": "可选",
+              "relation": "玩家"
+            },
+            {
+              "name": "苏婉清",
+              "camp": "剑阁",
+              "relation": "青梅竹马"
+            },
+            {
+              "name": "魔尊",
+              "camp": "幽冥宗",
+              "relation": "宿敌 / 父亲"
+            }
+          ]
+        },
+        {
+          "key": "enemy_types",
+          "label": "敌人类型",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "4-6 类敌人，每行「类型|等级区间|行为模式（追击/伏击/远程）|在关卡中的作用（消耗/教学/压迫）」；数值细节留给第八章",
+          "reviewHint": "行为模式是否在战斗系统能力范围内；每类是否有明确作用（不只是换皮）；等级区间是否覆盖前期到后期",
+          "value": []
+        },
+        {
+          "key": "voice_cast",
+          "label": "配音阵容",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "需要配音的角色，每行「角色|语言|声线特征|配音范围（全剧情/关键台词/战斗喊声）」；无配音计划就写「暂不配音，仅音效」",
+          "reviewHint": "范围是否与预算工期匹配；主角与关键 NPC 是否被漏掉；多语言是否与第十六章语言列表一致",
+          "value": []
+        },
+        {
+          "key": "character_relationships",
+          "label": "角色关系",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "2-4 条主角视角的关系描述（与谁、什么关系、随剧情如何变化）；结构化关系网在「角色关系网」字段，此处只写会演变的关系",
+          "reviewHint": "是否与关系网重复；是否写出「初始 → 结局」的变化；是否服务于主角动机",
+          "value": []
+        }
+      ]
+    },
+    {
+      "key": "gameplay",
+      "label": "第三章·核心玩法",
+      "index": 4,
+      "fields": [
+        {
+          "key": "core_loop",
+          "label": "核心循环",
+          "kind": "textarea",
+          "required": true,
+          "aiDraftable": true,
+          "aiHint": "闭环叙事：做什么→得到什么→为何想继续；须首尾成环，每步写具体行为，禁「体验内容」空话；步骤归「核心循环·步骤」，勿重复",
+          "reviewHint": "能否闭环；每一步是否具体可玩；与「核心循环·步骤」是否重复",
+          "value": "探索地图 → 完成剧情/支线 → 获取资源 → 修炼突破 → 解锁新区域 → 循环"
+        },
+        {
+          "key": "core_loop_points",
+          "label": "核心循环·步骤",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 个步骤，按顺序每行一个",
+          "reviewHint": "步骤是否可玩（动词开头，不是「体验内容」）；是否首尾成环；与本体是否重复"
+        },
+        {
+          "key": "core_loop_notes",
+          "label": "核心循环·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "循环之外的补充说明，可留空",
+          "reviewHint": "是否只放补充信息、没有把步骤又抄一遍；该留空时是否确实留空"
+        },
+        {
+          "key": "loop_three_layers",
+          "label": "三层循环",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "三层各一行：①瞬时（秒级，一次操作的手感与即时反馈）②单局（分钟级，一局的起承转合）③长线（小时级以上，跨局的成长/解锁）。每行写清「玩家动作→系统变化→反馈」，并指出向下一层传递什么（经验/资源/解锁/叙事钩子）",
+          "reviewHint": "三层是否都在；层级间是否有明确的「传递物」（不是各玩各的）；反馈是否即时可感知；与核心循环是否一致",
+          "value": []
+        },
+        {
+          "key": "game_modes",
+          "label": "游戏模式",
+          "kind": "stringList",
+          "required": true,
+          "aiDraftable": true,
+          "aiHint": "2-4 个模式，每个一行：名称 + 一句话玩法差异",
+          "reviewHint": "是否为 2-4 个模式；每行是否「名称+一句差异」；差异句能否区分模式而非套话",
+          "value": [
+            "主线剧情",
+            "支线任务",
+            "秘境副本",
+            "PVP 竞技场",
+            "师门系统"
+          ]
+        },
+        {
+          "key": "first_30_min",
+          "label": "新手体验(前30分钟)",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：前 30 分钟的设计目标与节奏安排；按 0-2/2-10/10-30 分段的具体动作与反馈条目走「要点」字段，勿在本体罗列",
+          "reviewHint": "是否覆盖 0-2/2-10/10-30 三段；每段是否有具体动作与反馈；是否出现首个目标/高潮点",
+          "value": "1) 开场 CG（5min）2) 角色创建（5min）3) 新手村教学（15min）4) 第一个剧情分支（5min）"
+        },
+        {
+          "key": "first_30_min_points",
+          "label": "新手体验(前30分钟)·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "按 0-2/2-10/10-30 分钟分段，每段一行：玩家动作 + 即时反馈 + 本段目标",
+          "reviewHint": "三段是否齐全；每行是否有「动作+反馈+目标」三要素；反馈是否即时可感知"
+        },
+        {
+          "key": "first_30_min_notes",
+          "label": "新手体验(前30分钟)·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "新手引导的补充说明（如容错设计、跳过条件），可留空",
+          "reviewHint": "是否与「要点」的时间线段落重复"
+        },
+        {
+          "key": "playthrough_120s",
+          "label": "120 秒走读",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "连续走读一个 60–120 秒的真实片段（不是分段罗列）：进入看到什么→第一眼注意到什么→做第一个选择→这个选择的代价→代价如何恢复（或不可恢复）。要写成一条时间线，含具体数值与界面元素；用来验证「第一分钟是否留得住人」",
+          "reviewHint": "是否是一条连续时间线（而非分段清单）；是否包含代价与恢复；是否有具体数值/界面元素；与「新手体验(前30分钟)」是否重复",
+          "value": ""
+        },
+        {
+          "key": "control_scheme",
+          "label": "操作方案",
+          "kind": "text",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一套操作方案：平台与输入方式 + 核心操作映射（移动/攻击/技能/交互）+ 键位或手势；多平台时写清差异",
+          "reviewHint": "是否覆盖全部核心操作；键位是否冲突；是否与目标平台（文档信息 platform）一致",
+          "value": "键鼠：WASD 移动 + 鼠标视角 + 数字键技能；手柄：左摇杆移动 + 右摇杆视角 + ABXY 技能"
+        },
+        {
+          "key": "win_lose_conditions",
+          "label": "胜负条件",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "写清胜利条件（达成什么即胜）与失败条件（什么情况即败），各 1-3 条且可机器判定；单局与整体战役两个层级都要有",
+          "reviewHint": "条件是否可判定；是否存在「不可能输」的漏洞；是否与分支结局的达成条件冲突",
+          "value": "无传统胜负，以剧情结局为目标；PVP 模式以击杀/积分判胜"
+        },
+        {
+          "key": "tutorial_design",
+          "label": "新手引导设计",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "新手引导：分几步、每步教什么机制、用什么场景承载、多久完成；给出「首次进入 3 分钟内理解核心循环」这类可验证目标",
+          "reviewHint": "是否只教操作不教目标；是否可跳过/重看；是否与首关设计（第十九章）重复或冲突",
+          "value": "情境式教学：融入新手村日常任务，玩家在'采药→炼丹→御剑'中自然学习操作"
+        },
+        {
+          "key": "state_machine",
+          "label": "核心状态机",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "只描述核心循环涉及的状态与转移；每行一次转移，结算效果写清「什么被重置、什么被保留」；怀疑重复结算的地方写明「每次只结算一次」；AI 全量生成时必填 5-8 条转移（覆盖主菜单/对局中/暂停/结算/失败/重开），禁止留空",
+          "reviewHint": "转移是否覆盖异常路径（资源不足/误触/刷新重进）；重置与保留的边界是否明确",
+          "value": [
+            "MainMenu|start|载入数据表与存档|InGame",
+            "InGame|pause|冻结计时|Paused",
+            "InGame|player_dead|结算失败|GameOver",
+            "GameOver|retry|清空本局状态|InGame",
+            "GameOver|back|保存进度|MainMenu"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "systems",
+      "label": "第四章·游戏系统设计",
+      "index": 5,
+      "fields": [
+        {
+          "key": "battle",
+          "label": "battle",
+          "value": {
+            "enabled": true,
+            "name": "战斗",
+            "config": {
+              "turn_mode": "realtime",
+              "pvp_type": "arena",
+              "team_size": 3,
+              "battle_duration": 60,
+              "damage_formula": "见「战斗·伤害公式」（唯一源），此处不重复",
+              "death_penalty": "原地复活，损失 10% 当前经验，冷却 30 秒",
+              "combat_pace": "medium",
+              "buff_limit": 8,
+              "crit_system": true,
+              "element_system": "light_dark_wuxing",
+              "escape_rule": "chance_based",
+              "ai_behavior": "behavior_tree",
+              "battle_trigger": "zone",
+              "battle_view": "3d_third",
+              "multiplayer_coop": false
+            }
+          }
+        },
+        {
+          "key": "character",
+          "label": "character",
+          "value": {
+            "enabled": true,
+            "name": "角色",
+            "config": {
+              "max_level": 99,
+              "init_level": 1,
+              "attribute_system": "力量 / 敏捷 / 灵力 / 体质 / 悟性 五维",
+              "base_attributes": "力量 10 / 敏捷 10 / 灵力 10 / 体质 10 / 悟性 10",
+              "growth_rate": "每级 ×1.08",
+              "class_count": 5,
+              "class_change": "tier_based",
+              "talent_system": true,
+              "gender_options": "male_female_neutral",
+              "character_slot": 3,
+              "respawn_rule": "死亡回最近传送点，损失部分经验",
+              "race_enabled": false,
+              "race_count": 0,
+              "race_list": ""
+            }
+          }
+        },
+        {
+          "key": "skill",
+          "label": "skill",
+          "value": {
+            "enabled": true,
+            "name": "技能",
+            "config": {
+              "max_skill_count": 6,
+              "skill_max_level": 10,
+              "skill_type": "active_passive_aura",
+              "skill_point_source": "升级 + 任务 + 秘籍",
+              "learn_method": "skill_book",
+              "upgrade_method": "material_cost",
+              "combo_system": "chain",
+              "cooldown_mode": "per_skill",
+              "resource_cost": "灵力（MP）",
+              "aoe_rule": "aoe_cone",
+              "skill_tree": "branch_tree",
+              "element_type": "light_dark_wuxing"
+            }
+          }
+        },
+        {
+          "key": "equipment",
+          "label": "equipment",
+          "value": {
+            "enabled": true,
+            "name": "装备",
+            "config": {
+              "slot_count": 6,
+              "equip_types": "武器 / 防具 / 饰品",
+              "quality_levels": "凡品 / 灵品 / 宝品 / 仙品 / 神品",
+              "enhance_max": 15,
+              "enhance_material": "金币 + 强化石",
+              "set_bonus_enabled": true,
+              "socket_enabled": true,
+              "durability_enabled": false,
+              "enchant_system": true,
+              "refine_system": true,
+              "decompose_system": true,
+              "score_system": "power_score"
+            }
+          }
+        },
+        {
+          "key": "item",
+          "label": "item",
+          "value": {
+            "enabled": true,
+            "name": "物品",
+            "config": {
+              "item_categories": "消耗品 / 材料 / 任务 / 法宝 / 丹药",
+              "stack_size_max": 999,
+              "rarity_levels": "普通 / 精良 / 稀有 / 史诗 / 传说",
+              "trade_enabled": true,
+              "drop_bind_rule": "bind_on_pickup",
+              "craft_system": true,
+              "consumable_system": true,
+              "use_effect": "回血 / 回灵 / 增益 / 传送",
+              "bag_size": 200,
+              "bank_system": true,
+              "drop_system": "weighted_table"
+            }
+          }
+        },
+        {
+          "key": "quest",
+          "label": "quest",
+          "value": {
+            "enabled": true,
+            "name": "任务",
+            "config": {
+              "quest_types": "主线 / 支线 / 日常 / 周常 / 宗门",
+              "daily_quest_limit": 10,
+              "weekly_quest_limit": 5,
+              "chain_quest_enabled": true,
+              "story_quest": "branch",
+              "branch_quest": "multi_branch",
+              "random_quest": "daily_random",
+              "achievement_integration": true,
+              "repeatable": "daily",
+              "quest_track_limit": 5,
+              "reward_rule": "经验 + 金币 + 随机装备"
+            }
+          }
+        },
+        {
+          "key": "social",
+          "label": "social",
+          "value": {
+            "enabled": true,
+            "name": "社交",
+            "config": {
+              "faction_system": "two_sides",
+              "guild_max_members": 100,
+              "guild_level": 10,
+              "guild_war": "scheduled",
+              "team_size": 4,
+              "friend_max": 100,
+              "mentor_system": true,
+              "marriage_system": false,
+              "enemy_system": false,
+              "chat_channels": "世界 / 宗门 / 队伍 / 私聊",
+              "mail_system": true,
+              "trade_system": true,
+              "blacklist_system": true
+            }
+          }
+        },
+        {
+          "key": "economy",
+          "label": "economy",
+          "value": {
+            "enabled": true,
+            "name": "经济",
+            "config": {
+              "currency_types": "金币,钻石,友情点",
+              "init_currency": "金币 1000 / 钻石 0",
+              "source_mechanisms": "任务 / 副本 / 采集 / 活动",
+              "sink_mechanisms": "强化 / 合成 / 交易税 / 商店",
+              "tax_rate": 5,
+              "market_type": "auction",
+              "inflation_control": "金币池周增速 ≤ 5%，超阈值则加大回收",
+              "payment_system": "f2p",
+              "recharge_tiers": "6,30,68,128,328,648",
+              "vip_system": true,
+              "monthly_card": true,
+              "season_pass": true,
+              "vip_max_level": 15,
+              "monthly_card_price": 30,
+              "season_pass_price": 68
+            }
+          }
+        },
+        {
+          "key": "growth",
+          "label": "growth",
+          "value": {
+            "enabled": true,
+            "name": "成长",
+            "config": {
+              "exp_source": "战斗 / 任务 / 副本",
+              "exp_curve": "经验需求 = 80 × 等级^1.5",
+              "attribute_point": "hybrid",
+              "breakthrough_enabled": true,
+              "prestige_system": false,
+              "rank_system": "tier",
+              "achievement_score": true,
+              "achievement_reward": "称号 + 金币",
+              "progression_track": "milestone"
+            }
+          }
+        },
+        {
+          "key": "customization",
+          "label": "customization",
+          "value": {
+            "enabled": true,
+            "name": "自定义外观",
+            "config": {
+              "appearance_slots": 4,
+              "dye_system": true,
+              "mount_enabled": true,
+              "housing_enabled": false,
+              "title_system": true,
+              "pet_system": true,
+              "follower_system": false,
+              "emote_system": true,
+              "skin_system": true,
+              "profile_tag": true,
+              "avatar_system": true
+            }
+          }
+        },
+        {
+          "key": "content",
+          "label": "content",
+          "value": {
+            "enabled": true,
+            "name": "关卡内容",
+            "config": {
+              "stage_count": 30,
+              "stage_types": "主线 / 秘境 / 副本 / 世界 Boss",
+              "difficulty_tiers": 3,
+              "stage_reward": "经验 + 灵石 + 装备",
+              "chapter_system": true,
+              "star_rating": "1-3star",
+              "sweep_enabled": true,
+              "energy_system": "realtime",
+              "endless_mode": true,
+              "weekly_dungeon": true,
+              "energy_cap": 120,
+              "energy_regen": 1
+            }
+          }
+        },
+        {
+          "key": "gacha",
+          "label": "gacha",
+          "value": {
+            "enabled": true,
+            "name": "抽卡系统",
+            "config": {
+              "gacha_types": "角色 UP / 法宝",
+              "currency_type": "钻石",
+              "pity_count": 50,
+              "pity_mechanism": "hard_pity",
+              "rate_up_enabled": true,
+              "spark_enabled": true,
+              "free_draw": "daily",
+              "banner_rotation": true,
+              "guarantee_carry": true,
+              "gacha_price_single": 160,
+              "gacha_price_ten": 1600
+            }
+          }
+        },
+        {
+          "key": "competitive",
+          "label": "competitive",
+          "value": {
+            "enabled": true,
+            "name": "排位竞技",
+            "config": {
+              "rank_tiers": "青铜 / 白银 / 黄金 / 铂金 / 钻石 / 仙尊",
+              "season_duration": 28,
+              "mmr_system": "elo",
+              "placement_matches": 5,
+              "tier_protection": true,
+              "rank_reward": "赛季外观 + 金币",
+              "leaderboard": "top100",
+              "matchmaking_pool": "按段位 + MMR 匹配，差值 ≤ 200",
+              "ban_pick_enabled": false,
+              "decay_system": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "key": "combat",
+      "label": "第五章·战斗系统设计",
+      "index": 6,
+      "fields": [
+        {
+          "key": "combat_mode",
+          "label": "战斗模式",
+          "kind": "combo",
+          "required": true,
+          "aiDraftable": true,
+          "aiHint": "从候选中选 1 个主模式并说明理由；须与战斗节奏、技能系统自洽",
+          "reviewHint": "选项是否来自候选列表；是否与节奏、技能设计互相矛盾",
+          "value": "realtime"
+        },
+        {
+          "key": "damage_formula",
+          "label": "伤害公式",
+          "kind": "textarea",
+          "required": true,
+          "aiDraftable": true,
+          "aiHint": "伤害计算公式：写清攻击/防御/暴击等变量的关系",
+          "reviewHint": "公式是否可计算；数值章「核心公式」是否重复本条",
+          "value": "伤害 = (攻击 × 技能倍率 - 防御 × 0.5) × (1 + 暴击率 × 暴击伤害) × 五行克制"
+        },
+        {
+          "key": "damage_formula_points",
+          "label": "伤害公式·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "每条公式或步骤一行，便于机器解析",
+          "reviewHint": "每行是否是可计算的表达式；变量是否都有定义；与本体描述是否一致"
+        },
+        {
+          "key": "damage_formula_notes",
+          "label": "伤害公式·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "公式之外的推导或说明，可留空",
+          "reviewHint": "是否只放补充信息、没有把公式又抄一遍；该留空时是否确实留空"
+        },
+        {
+          "key": "skill_system",
+          "label": "技能系统",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：技能体系的设计目标与整体结构；具体技能条目走「要点」字段，不要在这里罗列",
+          "reviewHint": "本体是否只讲目标与结构；要点是否覆盖分类、升级路径与代表技能",
+          "value": "普攻 + 4 主动技能 + 1 大招 + 剑心技能（觉醒）；技能可通过修炼升级"
+        },
+        {
+          "key": "skill_system_points",
+          "label": "技能系统·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条：技能分类、代表技能、消耗与冷却量级、解锁节奏",
+          "reviewHint": "条目是否可逐条核对；与本体的概述是否重复"
+        },
+        {
+          "key": "skill_system_notes",
+          "label": "技能系统·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "技能设计思路、参考作品等要点之外的补充说明，可留空",
+          "reviewHint": "是否只放补充信息，没有把要点又抄一遍"
+        },
+        {
+          "key": "buff_debuff",
+          "label": "Buff/Debuff",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：Buff/Debuff 系统的定位与设计原则；具体效果条目走「要点」字段",
+          "reviewHint": "本体是否只讲定位与原则；要点是否覆盖主要类型与规则",
+          "value": "Buff：剑意、灵气护体；Debuff：中毒、灼烧、定身、心魔"
+        },
+        {
+          "key": "buff_debuff_points",
+          "label": "Buff/Debuff·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条：主要 Buff/Debuff 类型、持续时长、叠加与驱散规则",
+          "reviewHint": "条目是否可逐条核对；持续与叠加规则是否明确可执行"
+        },
+        {
+          "key": "buff_debuff_notes",
+          "label": "Buff/Debuff·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "与技能、装备联动的补充说明，可留空",
+          "reviewHint": "是否只放补充信息，没有把要点又抄一遍"
+        },
+        {
+          "key": "element_system",
+          "label": "元素系统",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：元素系统的定位与相克/反应框架；具体元素条目走「要点」字段",
+          "reviewHint": "本体是否只讲框架；要点是否覆盖元素种类与反应结果",
+          "value": "五行（金木水火土）相生相克，克制关系造成 1.5x 伤害"
+        },
+        {
+          "key": "element_system_points",
+          "label": "元素系统·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条：元素种类、相克关系、反应结果与技能伤害联动方式",
+          "reviewHint": "条目是否可逐条核对；元素关系是否闭环自洽"
+        },
+        {
+          "key": "element_system_notes",
+          "label": "元素系统·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "元素与技能、伤害计算联动的补充说明，可留空",
+          "reviewHint": "是否只放补充信息，没有把要点又抄一遍"
+        },
+        {
+          "key": "combat_pace",
+          "label": "战斗节奏",
+          "kind": "combo",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "从候选中选 1 个节奏档位；给出单场战斗的目标时长与回合数",
+          "reviewHint": "选项是否来自候选；目标时长是否与模式、关卡设计匹配",
+          "value": "中等节奏，平均战斗时长 30-60 秒（小怪）/ 3-5 分钟（Boss）"
+        },
+        {
+          "key": "team_formation",
+          "label": "队伍编排",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：队伍编排的设计目标与策略空间；具体阵容与站位走「要点」字段",
+          "reviewHint": "本体是否只讲目标；要点是否给出人数、站位与推荐阵容",
+          "value": "主角 + 2 队友，可切换控制；队友 AI 自动战斗"
+        },
+        {
+          "key": "team_formation_points",
+          "label": "队伍编排·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条：队伍人数、站位规则、职业搭配、推荐阵容与羁绊效果",
+          "reviewHint": "条目是否可逐条核对；站位与职业是否产生策略差异"
+        },
+        {
+          "key": "team_formation_notes",
+          "label": "队伍编排·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "站位示例、与角色章联动的补充说明，可留空",
+          "reviewHint": "是否只放补充信息，没有把要点又抄一遍"
+        },
+        {
+          "key": "pvp_design",
+          "label": "PVP 设计",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：PVP 模式的定位与公平性方针；匹配、奖励等规则条目走「要点」字段",
+          "reviewHint": "本体是否只讲定位与方针；要点是否覆盖匹配规则与奖励",
+          "value": "1v1 竞技场 + 3v3 团战；公平模式（属性平衡）+ 开放模式（带装备）"
+        },
+        {
+          "key": "pvp_design_points",
+          "label": "PVP 设计·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条：模式玩法、匹配规则、段位与奖励、防作弊措施",
+          "reviewHint": "条目是否可逐条核对；匹配规则是否可执行、奖励是否防刷"
+        },
+        {
+          "key": "pvp_design_notes",
+          "label": "PVP 设计·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "赛季安排、社交压力处理的补充说明，可留空",
+          "reviewHint": "是否只放补充信息，没有把要点又抄一遍"
+        },
+        {
+          "key": "pve_design",
+          "label": "PVE 设计",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：PVE 内容的定位与难度曲线思路；关卡类型条目走「要点」字段",
+          "reviewHint": "本体是否只讲定位与思路；要点是否覆盖关卡类型与目标",
+          "value": "主线战斗 + 秘境副本 + Boss 战 + 挑战模式"
+        },
+        {
+          "key": "pve_design_points",
+          "label": "PVE 设计·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条：关卡类型、难度曲线、通关目标与奖励",
+          "reviewHint": "条目是否可逐条核对；难度曲线是否递增、关卡类型是否至少 2 种"
+        },
+        {
+          "key": "pve_design_notes",
+          "label": "PVE 设计·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "关卡与战斗节奏配合关系的补充说明，可留空",
+          "reviewHint": "是否只放补充信息，没有把要点又抄一遍"
+        },
+        {
+          "key": "boss_mechanics",
+          "label": "Boss 战机制",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：Boss 战的设计目标与机制风格；具体机制条目走「要点」字段",
+          "reviewHint": "本体是否只讲目标与风格；要点是否覆盖阶段与应对手段",
+          "value": "多阶段 + 弱点机制 + QTE 处决；Boss 有独特 AI 行为模式"
+        },
+        {
+          "key": "boss_mechanics_points",
+          "label": "Boss 战机制·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条：Boss 阶段、技能机制要点、玩家应对策略",
+          "reviewHint": "条目是否可逐条核对；阶段转换是否明确、每个机制是否有应对手段"
+        },
+        {
+          "key": "boss_mechanics_notes",
+          "label": "Boss 战机制·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "Boss 背景与演出联动的补充说明，可留空",
+          "reviewHint": "是否只放补充信息，没有把要点又抄一遍"
+        },
+        {
+          "key": "balance_strategy",
+          "label": "平衡策略",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：数值平衡的总体原则与调优机制；具体指标条目走「要点」字段",
+          "reviewHint": "本体是否只讲原则；要点是否列出可量化指标与调优周期",
+          "value": "PVE 数值宽松，PVP 严格平衡；定期根据数据调整"
+        },
+        {
+          "key": "balance_strategy_points",
+          "label": "平衡策略·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条：平衡原则、可量化指标、调优周期、PVP 与 PVE 分目标",
+          "reviewHint": "条目是否可逐条核对；指标是否可量化、PVP 与 PVE 目标是否分开"
+        },
+        {
+          "key": "balance_strategy_notes",
+          "label": "平衡策略·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "数据来源、历史调优案例的补充说明，可留空",
+          "reviewHint": "是否只放补充信息，没有把要点又抄一遍"
+        },
+        {
+          "key": "combat_progression",
+          "label": "战斗成长",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "战斗侧成长曲线：角色战力随等级/装备/技能的变化节点，给 3-5 个关键等级的战力区间与新增战斗手段；具体公式在第八章",
+          "reviewHint": "成长节点是否能被关卡内容体验到；是否出现某阶段没有新手段；是否与数值章公式同一套符号",
+          "value": "新手：教学战 → 简单；中期：组合技；后期：高难度 Boss 战"
+        },
+        {
+          "key": "combat_progression_points",
+          "label": "战斗成长·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条，每行一条可核对的要点",
+          "reviewHint": "条目是否具体可核对；与本体的概述是否重复"
+        },
+        {
+          "key": "combat_progression_notes",
+          "label": "战斗成长·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "要点之外的补充说明，可留空",
+          "reviewHint": "是否只放补充信息、没有把要点又抄一遍；该留空时是否确实留空"
+        }
+      ]
+    },
+    {
+      "key": "economy",
+      "label": "第六章·经济系统设计",
+      "index": 7,
+      "fields": [
+        {
+          "key": "currency_types",
+          "label": "货币类型",
+          "kind": "pipeList",
+          "required": true,
+          "aiDraftable": true,
+          "aiHint": "每行一种货币，按名称/产出/回收/兑换率四列填写；货币间兑换关系需闭环",
+          "reviewHint": "是否至少一种货币；四列是否齐全；兑换率之间是否矛盾",
+          "value": [
+            {
+              "name": "金币",
+              "source": "任务/副本/卖出",
+              "sink": "强化/消耗品",
+              "exchange_rate": "不可兑换"
+            },
+            {
+              "name": "钻石",
+              "source": "充值/活动",
+              "sink": "抽卡/外观",
+              "exchange_rate": "1元=10钻石"
+            },
+            {
+              "name": "友情点",
+              "source": "好友互动",
+              "sink": "友情抽卡",
+              "exchange_rate": "不可兑换"
+            }
+          ]
+        },
+        {
+          "key": "source_sink",
+          "label": "产出与回收",
+          "kind": "textarea",
+          "required": true,
+          "aiDraftable": true,
+          "aiHint": "列出主要产出途径与回收途径各至少 3 条，并标注单次获取的数值区间",
+          "reviewHint": "产出与回收是否配平；是否有具体数值；是否与货币类型一一对应",
+          "value": "产出：主线 40% + 副本 30% + 任务 20% + 活动 10%；回收：强化 50% + 消耗品 30% + 外观 20%"
+        },
+        {
+          "key": "drop_tables",
+          "label": "掉落表",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "每行一个掉落项，格式为「物品|来源|概率」；同来源概率总和需接近 100%",
+          "reviewHint": "格式是否统一；概率是否注明；必掉项是否有说明",
+          "value": [
+            {
+              "item": "金币袋(小)",
+              "rate": "50%",
+              "value": "100"
+            },
+            {
+              "item": "金币袋(大)",
+              "rate": "5%",
+              "value": "1000"
+            },
+            {
+              "item": "钻石",
+              "rate": "1%",
+              "value": "10"
+            }
+          ]
+        },
+        {
+          "key": "production_chain",
+          "label": "生产链",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：生产链的定位与经济闭环思路；具体链条条目走「要点」字段",
+          "reviewHint": "本体是否只讲定位与思路；要点是否给出各环耗时与消耗",
+          "value": "材料 → 装备 → 强化 → 高级装备（多级合成链）"
+        },
+        {
+          "key": "production_chain_points",
+          "label": "生产链·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条：原材料、加工环节、成品及每环耗时与消耗",
+          "reviewHint": "条目是否可逐条核对；链条是否闭环、成品是否挂钩货币回收"
+        },
+        {
+          "key": "production_chain_notes",
+          "label": "生产链·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "链条与货币回收联动的补充说明，可留空",
+          "reviewHint": "是否只放补充信息，没有把要点又抄一遍"
+        },
+        {
+          "key": "market_design",
+          "label": "交易市场",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：交易系统的定位与设计原则；交易方式等规则条目走「要点」字段",
+          "reviewHint": "本体是否只讲定位与原则；要点是否覆盖交易方式与定价机制",
+          "value": "玩家交易行（限制可交易物品）+ 拍卖行（稀有物品）"
+        },
+        {
+          "key": "market_design_points",
+          "label": "交易市场·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条：交易方式、手续费、价格形成机制、防线下交易措施",
+          "reviewHint": "条目是否可逐条核对；交易方式是否明确、定价来源是否说明"
+        },
+        {
+          "key": "market_design_notes",
+          "label": "交易市场·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "经济监控、商人玩法的补充说明，可留空",
+          "reviewHint": "是否只放补充信息，没有把要点又抄一遍"
+        },
+        {
+          "key": "inflation_control",
+          "label": "通胀控制",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：通胀控制的总体思路；控制手段与阈值条目走「要点」字段",
+          "reviewHint": "控制手段与阈值是否具体；是否与产出回收数据挂钩；是否有监测指标",
+          "value": "1) 等级锁定金币产出上限\n2) 强化失败回收金币\n3) 限时活动大额回收"
+        },
+        {
+          "key": "inflation_control_points",
+          "label": "通胀控制·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条：控制手段、具体阈值、监测指标与触发动作",
+          "reviewHint": "条目是否可逐条核对；阈值是否有运营数据依据"
+        },
+        {
+          "key": "inflation_control_notes",
+          "label": "通胀控制·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "运营数据来源、历史曲线判断的补充说明，可留空",
+          "reviewHint": "是否只放补充信息，没有把要点又抄一遍"
+        },
+        {
+          "key": "economic_goals",
+          "label": "经济目标",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：经济系统的健康愿景；可量化目标条目走「要点」字段",
+          "reviewHint": "本体是否只讲愿景；要点是否给出目标数值与健康区间",
+          "value": "免费玩家：可获取全部内容；付费玩家：加速进度；运营：ARPU 8元"
+        },
+        {
+          "key": "economic_goals_points",
+          "label": "经济目标·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条：经济目标名称、目标数值与健康区间",
+          "reviewHint": "条目是否可逐条核对；目标是否可量化、是否与产出回收匹配"
+        },
+        {
+          "key": "economic_goals_notes",
+          "label": "经济目标·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "目标测算依据的补充说明，可留空",
+          "reviewHint": "是否只放补充信息，没有把要点又抄一遍"
+        },
+        {
+          "key": "ledger",
+          "label": "经济账本（逐笔对账）",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "用一笔**具体交易**验证经济闭环：初始值 + 逐笔交易（逗号分隔，如 4,4,-5）= 期末期望；机器会逐笔求和与期末期望对账，不符即报错。交易必须是玩家真实会经历的那几笔（如首局两次击杀 → 首次升级）",
+          "reviewHint": "交易顺序是否与新手路径一致；期末期望是否与正文数字一致；允许为负是否有明确理由"
+        },
+        {
+          "key": "metrics_tracking",
+          "label": "经济监控指标",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-5 个经济监控指标，每行「指标（如通胀率/人均货币存量）|口径（怎么算）|告警阈值」；阈值要具体到数字并能触发人工干预",
+          "reviewHint": "口径是否能用埋点算出来；阈值是否具体到数字；是否与第十七章指标体系重复",
+          "value": [
+            "金币产出/回收比",
+            "钻石消耗率",
+            "留存与付费相关性"
+          ]
+        },
+        {
+          "key": "seasonal_adjustment",
+          "label": "赛季调整",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "赛季/版本切换时的经济调整：新增什么产出与回收、上季资源如何处理（继承/折价/清空）、如何防囤积套利",
+          "reviewHint": "是否处理了老玩家囤积；是否会让新玩家吃亏；是否与货币类型、兑换率自洽",
+          "value": "新赛季引入新消耗品（外观/通行证），回收上季囤积"
+        },
+        {
+          "key": "seasonal_adjustment_points",
+          "label": "赛季调整·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条，每行一条可核对的要点",
+          "reviewHint": "条目是否具体可核对；与本体的概述是否重复"
+        },
+        {
+          "key": "seasonal_adjustment_notes",
+          "label": "赛季调整·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "要点之外的补充说明，可留空",
+          "reviewHint": "是否只放补充信息、没有把要点又抄一遍；该留空时是否确实留空"
+        }
+      ]
+    },
+    {
+      "key": "numeric",
+      "label": "第七章·数值设计",
+      "index": 8,
+      "fields": [
+        {
+          "key": "core_formulas",
+          "label": "核心公式",
+          "kind": "textarea",
+          "required": true,
+          "aiDraftable": true,
+          "aiHint": "每行一个核心数值公式（成长/经济/掉落等非战斗公式）；**伤害公式属战斗章，此处禁止重写，只引用战斗章「伤害公式」**",
+          "reviewHint": "公式是否自洽；是否重复了战斗章「伤害公式」（伤害公式只能有一处定义，numeric 必须引用而非重写）",
+          "value": "(伤害公式以战斗章「伤害公式」为准，本处不重复)\n经验需求 = 80 × 等级 ^ 1.5\n属性成长 = 基础值 × (1 + 等级 × 成长系数)"
+        },
+        {
+          "key": "core_formulas_points",
+          "label": "核心公式·列表",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "每行一个公式，格式统一",
+          "reviewHint": "每行是否可直接代入计算；变量符号是否与伤害公式、成长公式一致"
+        },
+        {
+          "key": "core_formulas_notes",
+          "label": "核心公式·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "公式之外的说明，可留空",
+          "reviewHint": "是否只放补充信息、没有把公式又抄一遍；该留空时是否确实留空"
+        },
+        {
+          "key": "balance_principles",
+          "label": "平衡原则",
+          "kind": "textarea",
+          "required": true,
+          "aiDraftable": true,
+          "aiHint": "3-5 条平衡原则，每条一句：原则 + 量化表现（如「单次战斗时长 3-5 分钟」）",
+          "reviewHint": "原则是否可验证；与核心公式、战斗章数值是否自洽",
+          "value": "1) PVE 数值宽松，玩家体验优先\n2) PVP 数值严格控制，避免 P2W\n3) 长尾成长：满级后属性缓慢增长，避免数值膨胀"
+        },
+        {
+          "key": "economic_model",
+          "label": "经济模型",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：货币流转的数值模型与设计意图；公式与参数条目走「要点」字段，勿罗列",
+          "reviewHint": "变量是否都有定义；是否只写数值模型而未重复经济章的机制设计",
+          "value": "金币产出 = 主线(40%) + 副本(30%) + 任务(20%) + 其他(10%)；金币回收 = 装备强化(50%) + 消耗品(30%) + 外观(20%)"
+        },
+        {
+          "key": "economic_model_points",
+          "label": "经济模型·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条：每条一个公式或参数定义（含变量含义与取值范围），引用须在本章或战斗章有定义",
+          "reviewHint": "公式是否可计算；变量是否都有定义；与战斗章/经济章是否重复"
+        },
+        {
+          "key": "economic_model_notes",
+          "label": "经济模型·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "公式推导过程或敏感性说明，可留空",
+          "reviewHint": "是否与「要点」里的公式重复；推导是否有依据"
+        },
+        {
+          "key": "growth_curves",
+          "label": "成长曲线",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "每行一个对象：曲线形状写「指数/线性/对数」；指数型参数写「基数,成长」（如 10,1.28）——导出时据此画对数坐标曲线图；参数写不清就不画图，不影响校验",
+          "reviewHint": "基数/成长是否与数值参数表一致；形状是否符合设计意图",
+          "value": [
+            {
+              "name": "等级-属性",
+              "curve": "线性 + 软上限"
+            },
+            {
+              "name": "经验-等级",
+              "curve": "幂函数 1.5"
+            },
+            {
+              "name": "金币-产出",
+              "curve": "对数增长"
+            }
+          ]
+        },
+        {
+          "key": "drop_tables",
+          "label": "掉落公式",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条掉落配置，每行「物品|来源（怪物/宝箱/活动）|掉落公式（概率或权重）」；概率含保底机制，符号与核心公式同一套",
+          "reviewHint": "概率是否说得通（含保底）；是否给出期望产出（每 N 次一件）；是否与核心公式符号一致",
+          "value": [
+            {
+              "item": "普通装备",
+              "rate": "30%",
+              "tier": "白"
+            },
+            {
+              "item": "稀有装备",
+              "rate": "5%",
+              "tier": "蓝"
+            },
+            {
+              "item": "传说装备",
+              "rate": "0.5%",
+              "tier": "橙"
+            }
+          ]
+        },
+        {
+          "key": "numeric_parameters",
+          "label": "数值参数表",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "每个可调参数一行；标注「设计初值」还是「复算值」；合法范围给区间；影响写「调高/调低后玩法怎么变」（可观察的变化），不写「影响较大」这类空话；AI 全量生成时必填 10-20 行，攻击/防御/暴击率/经验等公式变量都要有初值与合法范围，禁止留空",
+          "reviewHint": "参数是否与公式一致；范围是否有依据；影响是否可观察",
+          "value": [
+            "攻击力 | 120 | 10–999 | 伤害线性升高，TTK 变短 | 战斗拖长，低攻角色吃亏",
+            "防御力 | 60 | 0–999 | 减伤变强，可扛同级怪 | 脆皮，容错下降",
+            "暴击率 | 15% | 0–100% | 爆发期望升高，波动变大 | 输出稳定但上限低",
+            "暴击伤害 | 150% | 100–300% | 暴击更痛，堆暴击收益高 | 暴击流收益下降",
+            "生命值 | 800 | 100–9999 | 生存更强，战斗更慢 | 易被秒，靠操作",
+            "经验需求基数 | 80 | 20–500 | 升级变慢，长线拉长 | 升级过快，内容被跳过",
+            "成长系数 | 0.08 | 0–0.5 | 每级提升更明显 | 升级感知弱",
+            "普通怪掉落率 | 30% | 0–100% | 资源宽松，经济通胀 | 资源紧张，卡养成",
+            "强化成功率 | 80% | 10–100% | 强化更友好 | 挫败感强，劝退",
+            "体力恢复 | 1/分 | 0–10/分 | 可玩时间更长 | 逼氪感强"
+          ]
+        },
+        {
+          "key": "numeric_assertions",
+          "label": "数值断言",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "把「设计目标」写成可复算的断言：表达式用参数名（如 floor((层-1)/微光步长)），给期望值、容差与接受条件（==2 / ≥0 / between 9.5-10.6）；3-5 条，至少一条覆盖边界",
+          "reviewHint": "断言是否能在不改代码的情况下手算复现；期望值与正文数值是否一致",
+          "value": [
+            {
+              "claim": "满级经验需求",
+              "expr": "80 * 99 ^ 1.5",
+              "expected": "约 78800",
+              "tolerance": "5",
+              "accept": "between 74000-82000"
+            },
+            {
+              "claim": "暴击期望倍率",
+              "expr": "1 + 1.5 * 0.15",
+              "expected": "1.225",
+              "tolerance": "0.01",
+              "accept": "between 1.21-1.24"
+            },
+            {
+              "claim": "同级怪 TTK（秒）",
+              "expr": "800 / (120 - 60 * 0.6)",
+              "expected": "约 9.52",
+              "tolerance": "0.5",
+              "accept": "between 9-10"
+            },
+            {
+              "claim": "强化一次期望消耗",
+              "expr": "100 / 0.8",
+              "expected": "125",
+              "tolerance": "5",
+              "accept": "between 120-130"
+            }
+          ]
+        },
+        {
+          "key": "design_claims",
+          "label": "设计主张（claim→证据）",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "每条设计主张一行：强度写「计算」时证据必须填**数值断言表里的断言名**（机器会复算并核对）；强度写「实测」时证据填验证方式（如 Demo 验收项）；强度写「假设」时证据填验证计划；无法给出证据的主张不要写",
+          "reviewHint": "每条主张是否挂了证据；「计算」类主张的证据是否真能支撑它；有没有该标「假设」却标成「计算」的"
+        }
+      ]
+    },
+    {
+      "key": "art",
+      "label": "第八章·美术设计",
+      "index": 9,
+      "fields": [
+        {
+          "key": "art_style",
+          "label": "美术风格",
+          "kind": "textarea",
+          "required": true,
+          "aiDraftable": true,
+          "aiHint": "产出美术风格描述：整体风格定位 + 表现手法（像素/水墨/写实3D等）+ 关键视觉特征；须具体到可验收",
+          "reviewHint": "是否有明确风格定位词；是否含表现手法与关键特征；是否出现「精致」「好看」等空话",
+          "value": "国风水墨 + 实机 3D 渲染，场景以青绿山水为基调，角色采用半写实比例（7-8 头身）+ 国风服饰"
+        },
+        {
+          "key": "color_system",
+          "label": "色彩体系",
+          "kind": "textarea",
+          "required": true,
+          "aiDraftable": true,
+          "aiHint": "产出色彩体系：主色/辅助色/强调色/背景色四类，每类给色名或色值，附使用比例或场景",
+          "reviewHint": "是否覆盖主/辅/强调/背景四类；每类是否给色名或色值；有无使用场景或比例说明",
+          "value": "主色：青绿（#5B8C7A）；辅色：朱砂（#C73E3A）；点缀：金黄（#D4A537）；背景：宣纸色（#F5EFE0）"
+        },
+        {
+          "key": "typography",
+          "label": "字体排版",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：字体排版的整体风格与选型原则；各场景字体与授权情况走「要点」逐条列",
+          "reviewHint": "是否按标题/正文/UI 分场景给具体字体名；是否提及授权风险；理由是否与 art_style 匹配",
+          "value": "标题：方正清刻本悦宋；正文：思源宋体；UI：鸿雷板书简体"
+        },
+        {
+          "key": "typography_points",
+          "label": "字体排版·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条：每条一个用途场景（标题/正文/UI）+ 具体字体名 + 授权情况",
+          "reviewHint": "是否按场景给到具体字体名；是否提及授权；理由是否与 art_style 匹配"
+        },
+        {
+          "key": "typography_notes",
+          "label": "字体排版·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "要点之外的补充说明：备用字体或本地化字形兼容问题，可留空",
+          "reviewHint": "补充是否与要点重复；字形兼容问题是否写清"
+        },
+        {
+          "key": "vfx",
+          "label": "特效风格",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：特效的整体风格定位；各特效类型与视觉语言走「要点」逐条列",
+          "reviewHint": "是否列出特效类型清单；每类是否有视觉语言描述；是否与整体美术风格一致",
+          "value": "水墨晕染特效 + 剑光粒子 + 法术符文特效"
+        },
+        {
+          "key": "vfx_points",
+          "label": "特效风格·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条：每条一类特效 + 视觉语言（粒子/光效/材质）+ 触发场景",
+          "reviewHint": "每类是否有视觉语言与触发场景；是否与整体美术风格一致；有无「炫酷」这类空话"
+        },
+        {
+          "key": "vfx_notes",
+          "label": "特效风格·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "要点之外的补充说明：性能预算或特效管线工具，可留空",
+          "reviewHint": "补充是否与要点重复；性能预算是否给出量级"
+        },
+        {
+          "key": "character_design",
+          "label": "角色设计要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-5 条角色设计要点：造型/配色/辨识度/与世界观的一致性；只写可执行的约束（如「主角剪影在 64px 下仍可辨」）",
+          "reviewHint": "是否可执行（不是「要好看」）；主角与敌人是否易区分；是否与本章美术风格字段一致",
+          "value": "主角：剑眉星目 + 飘逸长发 + 汉服元素；NPC：按势力区分服饰色彩（正道青、魔道紫、中立灰）"
+        },
+        {
+          "key": "environment_design",
+          "label": "场景设计要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-5 条场景设计要点：区域划分/光照氛围/可交互元素密度/性能约束（同屏面数或贴图规格）",
+          "reviewHint": "是否给出可量化的性能约束；场景是否服务玩法（不只是背景板）；是否与关卡模板对应",
+          "value": "云海、剑阁、幽谷、仙山，采用 volumetric fog 营造仙气"
+        },
+        {
+          "key": "ui_design_language",
+          "label": "UI 设计语言",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "UI 设计语言：风格基调、主色/辅色（给色值或色相范围）、字体层级、圆角/描边等可复用规则，3-5 条能直接落到组件上的约束",
+          "reviewHint": "是否给的是可复用规则而不是形容词；是否考虑对比度与无障碍；是否与交互设计（第十八章）一致",
+          "value": "毛笔字标题 + 卷轴式 UI + 印章式按钮，整体淡雅留白"
+        },
+        {
+          "key": "ui_design_language_points",
+          "label": "UI 设计语言·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条，每行一条可核对的要点",
+          "reviewHint": "条目是否具体可核对；与本体的概述是否重复"
+        },
+        {
+          "key": "ui_design_language_notes",
+          "label": "UI 设计语言·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "要点之外的补充说明，可留空",
+          "reviewHint": "是否只放补充信息、没有把要点又抄一遍；该留空时是否确实留空"
+        },
+        {
+          "key": "animation",
+          "label": "动画规格",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-5 条动画规格：角色动作套数、帧数或时长、是否骨骼动画、受击/死亡/技能的特效衔接要求",
+          "reviewHint": "规格是否能被美术直接执行（帧数/时长）；动作数量是否与战斗手段匹配；是否考虑移动端性能",
+          "value": "动作捕捉 + 手工调整，剑招参考真实剑术"
+        },
+        {
+          "key": "multi_resolution",
+          "label": "多分辨率适配",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "目标分辨率与适配策略：基准分辨率、UI 锚点与缩放规则、超宽/窄屏处理、安全区；给 2-3 档典型分辨率下的表现",
+          "reviewHint": "是否覆盖超宽屏与刘海屏；UI 是否会遮住关键操作区；是否与目标机型（第十四章）一致",
+          "value": "支持 1080P/2K/4K，移动端降采到 720P + LOD 优化"
+        },
+        {
+          "key": "multi_resolution_points",
+          "label": "多分辨率适配·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条，每行一条可核对的要点",
+          "reviewHint": "条目是否具体可核对；与本体的概述是否重复"
+        },
+        {
+          "key": "multi_resolution_notes",
+          "label": "多分辨率适配·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "要点之外的补充说明，可留空",
+          "reviewHint": "是否只放补充信息、没有把要点又抄一遍；该留空时是否确实留空"
+        },
+        {
+          "key": "asset_spec",
+          "label": "资产规格",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "每行一种资产类型：类型|尺寸（含各分辨率档位）|格式（引擎要求的文件格式/压缩/Atlas）|命名规则（前缀+用途+序号，可机读，不靠中文名找文件）|备注（导入设置/最大尺寸/是否可九宫）；至少覆盖 角色立绘/头像、UI 图标、场景贴图、特效、字体；尺寸要与 multi_resolution 的分辨率档位对齐",
+          "reviewHint": "每种资产是否都有尺寸与格式（缺失即视为未定）；命名是否可机读（不靠中文名找文件）；导入设置是否写明（压缩/Atlas/最大尺寸）；尺寸是否与 multi_resolution 档位对齐",
+          "value": [
+            {
+              "type": "角色立绘",
+              "size": "全身 2048×4096 / 半身 2048×2048",
+              "format": "PNG（透明）/ 骨骼 SpriteSheet 2048²",
+              "naming": "char_<id>_pose<01>",
+              "note": "半身 live2d 可拆分；移动端 LOD 降 1024²"
+            },
+            {
+              "type": "头像",
+              "size": "512×512",
+              "format": "PNG（透明）",
+              "naming": "face_<id>_v<01>",
+              "note": "圆形遮罩 1:1"
+            },
+            {
+              "type": "UI 图标",
+              "size": "256×256",
+              "format": "PNG + Atlas（2048²）",
+              "naming": "icon_<sys>_<name>",
+              "note": "九宫拉伸的框走 slice 标记"
+            },
+            {
+              "type": "场景贴图",
+              "size": "2048² 可 Tile",
+              "format": "TGA/PVR（压缩）",
+              "naming": "env_<region>_<seq>",
+              "note": "volumetric fog 区域单独 layer"
+            },
+            {
+              "type": "特效",
+              "size": "512×512 Particle",
+              "format": "PNG 序列帧 / 3D 粒子",
+              "naming": "vfx_<cat>_<name>",
+              "note": "水墨晕染用 Shader 而非序列帧"
+            },
+            {
+              "type": "字体",
+              "size": "动态合字",
+              "format": "TTF（思源宋体/鸿雷板书）",
+              "naming": "font_<use>",
+              "note": "只打包用到的字模，控制包体"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "audio",
+      "label": "第九章·音频设计",
+      "index": 10,
+      "fields": [
+        {
+          "key": "music_style",
+          "label": "音乐风格",
+          "kind": "textarea",
+          "required": true,
+          "aiDraftable": true,
+          "aiHint": "产出音乐风格定位：主风格 + 乐器/编曲特征 + 情绪基调；须与 art_style 视觉风格协调",
+          "reviewHint": "是否有明确风格与乐器描述；与 art_style 是否协调（如像素风配交响乐需说明理由）",
+          "value": "国风 + 现代管弦编曲；古琴、箫、二胡为主，配合弦乐与合成器"
+        },
+        {
+          "key": "sfx_count",
+          "label": "音效数量估算",
+          "kind": "number",
+          "required": true,
+          "aiDraftable": true,
+          "aiHint": "给出音效总量估算：按 sfx_list 各类别数量求和，取整数，可附估算依据（场景数×每场景音效数）",
+          "reviewHint": "是否为整数；是否与 sfx_list 数量级一致；偏差大时是否附估算依据",
+          "value": 120
+        },
+        {
+          "key": "soundtrack_list",
+          "label": "配乐清单",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "产出配乐清单，每行四列：场景 + 时长（区间）+ 情绪 + 作曲者；覆盖主要游戏场景，不少于 3 行",
+          "reviewHint": "每行四列是否齐全；场景是否覆盖主线关键节点；时长是否为区间；行数是否≥3",
+          "value": [
+            {
+              "scene": "主菜单",
+              "duration": "3 min",
+              "mood": "古琴独奏，克制",
+              "composer": "待确认"
+            },
+            {
+              "scene": "战斗",
+              "duration": "2 min",
+              "mood": "快速鼓点 + 琵琶",
+              "composer": "待确认"
+            },
+            {
+              "scene": "剧情",
+              "duration": "5 min",
+              "mood": "箫 + 弦乐，留白",
+              "composer": "待确认"
+            }
+          ]
+        },
+        {
+          "key": "sfx_list",
+          "label": "音效清单",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "产出音效清单，每行三列：类别 + 数量 + 描述；类别覆盖 UI/战斗/环境等，总数与 sfx_count 匹配",
+          "reviewHint": "三列是否齐全；类别划分是否覆盖主要玩法；各行数量之和与 sfx_count 是否量级一致",
+          "value": [
+            {
+              "category": "UI",
+              "count": 80,
+              "description": "点击/确认/报错，统一短促木质音色"
+            },
+            {
+              "category": "战斗",
+              "count": 220,
+              "description": "剑招参考真实剑鸣；法术结合自然元素（雷、火、水）"
+            },
+            {
+              "category": "环境",
+              "count": 120,
+              "description": "山林风声、水流、鸟鸣，按场景循环"
+            },
+            {
+              "category": "剧情提示",
+              "count": 80,
+              "description": "任务完成/获得道具/危险预警"
+            }
+          ]
+        },
+        {
+          "key": "sfx_events",
+          "label": "音效事件映射",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "每行一个交互事件：事件名|音效 id|音量（0–1 相对值）|并发上限（数字，如 3）；事件名要与程序侧事件表一致（如 ui.click / combat.hit / pickup.coin）；至少覆盖 UI 点击/确认/报错、战斗命中/暴击、拾取/升级、切场景",
+          "reviewHint": "事件名是否与程序事件表一致（不能各叫一套）；关键交互是否都有音效；并发上限是否合理（避免爆音）；音量是相对值还是绝对值（绝对值要写单位）",
+          "value": [
+            {
+              "event": "ui.click",
+              "sfx": "sfx_ui_wood_01",
+              "volume": "0.7",
+              "concurrency": "1"
+            },
+            {
+              "event": "combat.hit",
+              "sfx": "sfx_sword_hit_03",
+              "volume": "0.9",
+              "concurrency": "4"
+            },
+            {
+              "event": "combat.crit",
+              "sfx": "sfx_crit_bell",
+              "volume": "1.0",
+              "concurrency": "2"
+            },
+            {
+              "event": "pickup.coin",
+              "sfx": "sfx_coin_02",
+              "volume": "0.6",
+              "concurrency": "3"
+            }
+          ]
+        },
+        {
+          "key": "voice_acting",
+          "label": "配音设计",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：配音设计的总体方案与取舍；配音范围、声线定位、语言录制方式走「要点」字段",
+          "reviewHint": "是否明确配音范围；角色声线是否有区分度；是否说明语言或明确「无配音」",
+          "value": "配音总量约 1000 句：主角全剧情配音，主要 NPC 关键台词，其余用文字气泡。"
+        },
+        {
+          "key": "voice_acting_points",
+          "label": "配音设计·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条：配音范围、角色声线定位、语言与录制方式；无配音则写「无配音」并说明",
+          "reviewHint": "是否明确配音范围；声线是否有区分度；是否说明语言或明确「无配音」"
+        },
+        {
+          "key": "voice_acting_notes",
+          "label": "配音设计·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "配音预算档位与选角标准等要点之外的补充说明，可留空",
+          "reviewHint": "补充是否与要点重复；是否给出可执行标准"
+        },
+        {
+          "key": "audio_engine",
+          "label": "音频引擎",
+          "kind": "combo",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "从给定引擎选项中选一个并说明适配理由；须考虑项目技术栈与动态音频需求",
+          "reviewHint": "所选引擎是否在选项内；理由是否结合 tech.engine 与 dynamic_audio 需求",
+          "value": "Wwise"
+        },
+        {
+          "key": "dynamic_audio",
+          "label": "动态音频",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：动态音频的设计目标；分层机制、触发条件与引擎匹配走「要点」字段",
+          "reviewHint": "是否描述具体机制而非罗列名词；触发条件是否明确；是否与 audio_engine 能力匹配",
+          "value": "战斗音乐根据战斗强度动态切换层（探索/接触/激战）。"
+        },
+        {
+          "key": "dynamic_audio_points",
+          "label": "动态音频·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条：分层/交互音乐机制、触发条件、混音曲线与 audio_engine 能力匹配",
+          "reviewHint": "是否描述具体机制而非罗列名词；触发条件是否明确；是否与 audio_engine 匹配"
+        },
+        {
+          "key": "dynamic_audio_notes",
+          "label": "动态音频·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "动态音频的测试场景与调试工具等要点之外的补充说明，可留空",
+          "reviewHint": "补充是否可落地；是否与要点重复"
+        },
+        {
+          "key": "audio_localization",
+          "label": "音频本地化",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：音频本地化的总体策略；本地化音频类型、各语言策略与排期走「要点」字段",
+          "reviewHint": "是否区分配音与文本本地化；多语言策略是否给出；是否考虑排期与预算约束",
+          "value": "首发 zh-CN 配音；ja 配音二期；en 仅字幕。"
+        },
+        {
+          "key": "audio_localization_points",
+          "label": "音频本地化·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条：需本地化的音频类型、各语言配音策略、与开发里程碑的排期",
+          "reviewHint": "是否区分配音与文本本地化；多语言策略是否给出；是否考虑排期与预算"
+        },
+        {
+          "key": "audio_localization_notes",
+          "label": "音频本地化·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "本地化质检流程与字幕音频同步等要点之外的补充说明，可留空",
+          "reviewHint": "补充是否具体；是否与 audio_budget 约束匹配"
+        },
+        {
+          "key": "audio_budget",
+          "label": "音频预算",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": false,
+          "reviewHint": "金额是否给出构成（作曲/音效/配音/授权费）；是否与 audio_localization 范围匹配；是否注明报价来源或待定",
+          "value": ""
+        },
+        {
+          "key": "audio_milestones",
+          "label": "音频里程碑",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-5 个音频交付节点，每行「时间（相对里程碑，如 Alpha 前 2 周）|交付物（BGM 套数/音效数量/配音批次）」",
+          "reviewHint": "时间是否与 MVP 里程碑对齐；交付物是否可验收（数量/时长）；是否给混音与迭代留了时间",
+          "value": []
+        }
+      ]
+    },
+    {
+      "key": "tech",
+      "label": "第十章·技术规格",
+      "index": 11,
+      "fields": [
+        {
+          "key": "engine",
+          "label": "引擎/框架",
+          "kind": "combo",
+          "required": true,
+          "aiDraftable": false,
+          "reviewHint": "引擎是否在选项内；选型理由是否匹配团队经验与项目类型；是否注明版本",
+          "value": "Unreal Engine 5.3"
+        },
+        {
+          "key": "core_architecture",
+          "label": "核心架构",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：客户端/服务端划分与架构总体形态；关键模块与通信方式走「要点」逐条列；禁堆砌技术名词",
+          "reviewHint": "是否说清端侧划分与关键模块；模块通信是否有具体方案；是否有与项目规模不匹配的过度设计",
+          "value": "Gameplay Ability System + Lyra 项目结构 + 数据驱动配置（DataTable）"
+        },
+        {
+          "key": "core_architecture_points",
+          "label": "核心架构·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条：每条一个关键模块（玩法/网络/存档）+ 职责 + 通信方式",
+          "reviewHint": "模块是否覆盖核心玩法；通信是否有具体方案；有无过度设计的技术名词"
+        },
+        {
+          "key": "core_architecture_notes",
+          "label": "核心架构·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "要点之外的补充说明：选型备选方案或已知技术债，可留空",
+          "reviewHint": "补充是否与要点重复；备选方案是否写了放弃理由"
+        },
+        {
+          "key": "milestones",
+          "label": "开发里程碑",
+          "kind": "pipeList",
+          "required": true,
+          "aiDraftable": true,
+          "aiHint": "产出开发里程碑清单，每行一阶段：阶段名 + 可验证交付物 + 时间区间；交付物须可验证，时间给区间不给精确到日的承诺",
+          "reviewHint": "每行是否有可验证交付物；时间是否为区间而非精确日期；阶段是否覆盖原型→垂直切片→量产→上线",
+          "value": [
+            "原型 Demo|核心战斗 + 1 关卡|T+3M",
+            "Alpha|全部系统 + 5 关卡|T+9M",
+            "Beta|全部内容 + 联机|T+15M",
+            "正式上线|全平台发布|T+18M"
+          ]
+        },
+        {
+          "key": "team_structure",
+          "label": "团队分工",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": false,
+          "reviewHint": "岗位是否覆盖 core_architecture 所列模块；人数是否与 milestones 周期匹配；是否注明外包/兼职",
+          "value": "程序 15 / 美术 25 / 策划 10 / QA 5 / 运营 3，总 58 人"
+        },
+        {
+          "key": "third_party_deps",
+          "label": "第三方依赖",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "实际要引入的第三方库/SDK/中间件，每行「名称|用途|授权（MIT/商业/需署名）」；不确定的写「待确认」，不要编造版本号",
+          "reviewHint": "授权是否兼容商业发行（GPL 类要标注）；是否与引擎自带能力重复；名称是否真实存在",
+          "value": [
+            "Wwise（音频）",
+            "Apollo（热更新）",
+            "Sentinel（监控）",
+            "Protobuf（网络协议）"
+          ]
+        },
+        {
+          "key": "performance_targets",
+          "label": "性能目标",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "分平台的性能目标：帧率、加载时长、内存/包体上限、发热与耗电约束；低端/中端/高端三档都给具体数字",
+          "reviewHint": "数字是否可测（有口径）；是否与性能预算章（第二十四章）重复或冲突；低端档是否现实",
+          "value": "PC：2K 60fps；主机：4K 30fps / 1440p 60fps；移动端：1080p 30fps"
+        },
+        {
+          "key": "performance_targets_points",
+          "label": "性能目标·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条，每行一条可核对的要点",
+          "reviewHint": "条目是否具体可核对；与本体的概述是否重复"
+        },
+        {
+          "key": "performance_targets_notes",
+          "label": "性能目标·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "要点之外的补充说明，可留空",
+          "reviewHint": "是否只放补充信息、没有把要点又抄一遍；该留空时是否确实留空"
+        },
+        {
+          "key": "production_risks",
+          "label": "生产风险（检测与兜底）",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "工程/生产视角的风险（性能、存档、数据一致性、依赖、外包），每条给「怎么发现」与「发现后怎么办」；概率与影响在风险控制章的矩阵里写，此处不重复；3-5 条",
+          "reviewHint": "检测方法是否可执行（有指标/工具）；兜底方案是否真的能降级而不是「加强监控」"
+        },
+        {
+          "key": "qa_plan",
+          "label": "QA 计划",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "技术侧 QA 计划：测什么（功能/性能/兼容/崩溃）、怎么测（自动化/手工/灰度）、何时测（里程碑节点）、谁负责",
+          "reviewHint": "是否与第二十一章测试章分工清楚（此处偏技术验证，不重复用例清单）；是否有回归策略与上线前冒烟清单",
+          "value": "单元测试（核心系统）+ 自动化冒烟测试 + 每日构建 + 性能基线监控"
+        },
+        {
+          "key": "qa_plan_points",
+          "label": "QA 计划·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条，每行一条可核对的要点",
+          "reviewHint": "条目是否具体可核对；与本体的概述是否重复"
+        },
+        {
+          "key": "qa_plan_notes",
+          "label": "QA 计划·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "要点之外的补充说明，可留空",
+          "reviewHint": "是否只放补充信息、没有把要点又抄一遍；该留空时是否确实留空"
+        },
+        {
+          "key": "data_tables",
+          "label": "所需数据表",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "本设计需要编辑器提供哪些数据表：每行「表名|用途|关键字段（逗号分隔）|期望条数」；表名尽量写数据编辑器里已有的类型名（装备/道具/技能/怪物…），要新建就写明；期望条数写数字或下限（如 200 或 ≥50，估不准可留空）；只列这份策划真正会用到的表，3-6 行",
+          "reviewHint": "表名是否与编辑器现有类型对得上（对不上要说明新建）；关键字段是否够支撑核心玩法；期望条数与正文规模描述是否一致；有没有建了却没人用的表",
+          "value": [
+            "equipment|装备|id,name,attack,defense|≥60",
+            "skill|技能|id,name,damage_rate,cooldown|≥30",
+            "enemy|敌人|id,name,hp,attack,ai_type|≥20",
+            "level|关卡|id,enemies,reward,difficulty|≥10"
+          ]
+        },
+        {
+          "key": "online_mode",
+          "label": "联机形态",
+          "kind": "combo",
+          "required": false,
+          "aiDraftable": false,
+          "reviewHint": "是否与平台、商业化、团队规模匹配；纯单机却写了联机系统，或要联机却没有服务端规划",
+          "value": "leaderboard"
+        },
+        {
+          "key": "net_protocol",
+          "label": "网络协议表",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "每行一条关键消息（5–10 行，不要抄整张协议）：消息名|方向（C→S / S→C / 双向）|频率（每次操作 / 每秒 / 事件触发）|权威端（服务端 / 客户端）；关键判定类消息的权威端必须是服务端",
+          "reviewHint": "关键操作是否都有对应消息；权威端有没有出现「客户端说了算」（可作弊）；频率是否会导致刷包（如每帧上报）；纯单机项目不该有这张表",
+          "value": [
+            {
+              "message": "player_move",
+              "direction": "C→S",
+              "frequency": "每秒 10 次",
+              "authority": "服务端"
+            },
+            {
+              "message": "combat_damage",
+              "direction": "C→S",
+              "frequency": "每次攻击",
+              "authority": "服务端"
+            },
+            {
+              "message": "world_snapshot",
+              "direction": "S→C",
+              "frequency": "每秒 5 次",
+              "authority": "服务端"
+            }
+          ]
+        },
+        {
+          "key": "save_format",
+          "label": "存档格式",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "每行一个必须持久化的数据项：存档项|类型（int/float/string/bool/数组/对象）|写入时机（通关/购买/退出/每次变更）|迁移策略（缺失时的默认值或版本升级处理）；至少覆盖「进度、资源、解锁、设置」四类，字段名用代码里能直接用的英文 key",
+          "reviewHint": "是否覆盖进度/资源/解锁/设置四类；类型能否直接映射到代码；旧版本缺字段是否有默认值；有没有把可从数据表推导的东西也存进存档（冗余）",
+          "value": [
+            {
+              "field": "chapter_progress",
+              "type": "int",
+              "when": "每章通关时",
+              "migrate": "缺失视为 0"
+            },
+            {
+              "field": "player_stats",
+              "type": "object",
+              "when": "升级/装备变更",
+              "migrate": "新增属性给默认值"
+            },
+            {
+              "field": "unlocked_levels",
+              "type": "int[]",
+              "when": "首次解锁",
+              "migrate": "缺失视为空数组"
+            },
+            {
+              "field": "settings",
+              "type": "object",
+              "when": "设置项变更",
+              "migrate": "键位/音量缺失回默认"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "resources",
+      "label": "第十一章·资源规划",
+      "index": 12,
+      "fields": [
+        {
+          "key": "budget.summary",
+          "label": "预算概算",
+          "kind": "text",
+          "required": false,
+          "aiDraftable": false,
+          "reviewHint": "概算是否含总额与分项（人力/外包/软件/市场）；数字是否与 team_structure 规模自洽；是否注明币种与估算口径"
+        },
+        {
+          "key": "risk_matrix",
+          "label": "资源风险（TOP 摘要）",
+          "kind": "stringList",
+          "required": true,
+          "aiDraftable": true,
+          "aiHint": "资源视角的 TOP 3-5 条风险概要，每行：风险 + 概率/影响 + 应对方向；完整矩阵与负责人分派在第十三章，此处勿展开",
+          "reviewHint": "是否只列 TOP 几条而未展开完整矩阵；每条是否三要素齐全；与第十三章矩阵是否自洽不矛盾",
+          "value": [
+            {
+              "risk": "核心人员流失",
+              "probability": "中",
+              "impact": "高",
+              "mitigation": "股权激励 + 知识沉淀"
+            },
+            {
+              "risk": "美术外包延期",
+              "probability": "高",
+              "impact": "中",
+              "mitigation": "多供应商 + 提前启动"
+            },
+            {
+              "risk": "性能不达标",
+              "probability": "中",
+              "impact": "高",
+              "mitigation": "早期性能基线"
+            }
+          ]
+        },
+        {
+          "key": "ip",
+          "label": "知识产权",
+          "kind": "text",
+          "required": false,
+          "aiDraftable": false,
+          "reviewHint": "是否区分自研/授权/第三方资产；授权项是否注明授权范围与期限；是否有侵权风险项未处置",
+          "value": "全部资产自有 IP，外包合同明确转让条款"
+        },
+        {
+          "key": "art_assets",
+          "label": "美术资源清单",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "4-6 行美术资源估算，每行「类别（角色/场景/UI/特效）|数量|规格（分辨率/面数/是否含动画）」；数量要与内容量对得上",
+          "reviewHint": "数量能否被内容量支撑（不多不少）；规格是否统一；是否标了外包/自制的分配",
+          "value": [
+            {
+              "type": "角色",
+              "count": 50,
+              "outsource": "30%"
+            },
+            {
+              "type": "场景",
+              "count": 20,
+              "outsource": "20%"
+            },
+            {
+              "type": "道具",
+              "count": 500,
+              "outsource": "50%"
+            },
+            {
+              "type": "特效",
+              "count": 200,
+              "outsource": "40%"
+            }
+          ]
+        },
+        {
+          "key": "audio_assets",
+          "label": "音频资源清单",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "4-6 行音频资源估算，每行「类别（BGM/音效/配音/环境音）|数量|说明（时长或触发场景）」",
+          "reviewHint": "数量是否与音频设计章一致；是否写了版权音乐的处理方式；是否估算到混音工时",
+          "value": [
+            {
+              "type": "BGM",
+              "count": 30,
+              "duration_min": 90
+            },
+            {
+              "type": "SFX",
+              "count": 500,
+              "duration_min": 30
+            },
+            {
+              "type": "配音",
+              "count": 1000,
+              "duration_min": 300
+            }
+          ]
+        },
+        {
+          "key": "localization",
+          "label": "本地化资源",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "首发与后续语言，每行「语言|本地化阶段（首发/上线后 3 个月）|文本量（约多少字或占比）」；首发语言要收敛",
+          "reviewHint": "是否与第十六章语言列表一致；文本量是否含 UI 与剧情两部分；是否算了字体与排版成本",
+          "value": [
+            "zh-CN",
+            "zh-TW",
+            "en",
+            "ja",
+            "ko"
+          ]
+        },
+        {
+          "key": "outsourcing",
+          "label": "外包计划",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-5 项外包，每行「事项（美术/音频/本地化/QA）|方式（整包/按件/驻场）|预算区间」；预算给区间，不给假精确数字",
+          "reviewHint": "预算区间是否与总预算自洽；是否写清验收标准与交付节奏；核心玩法是否被外包（风险）",
+          "value": [
+            {
+              "item": "场景美术",
+              "vendor": "待定",
+              "budget": "50万"
+            },
+            {
+              "item": "动作捕捉",
+              "vendor": "待定",
+              "budget": "20万"
+            }
+          ]
+        },
+        {
+          "key": "contingency_plan",
+          "label": "资源应急预案",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "资源侧应急预案：关键人员流失、外包延期、预算超支三种情形，各写触发条件与替代方案；风险矩阵与止损线在第十三章，此处不重复",
+          "reviewHint": "是否针对资源而非玩法风险；每条是否有可执行的替代方案；是否与第十三章预案冲突",
+          "value": "若 T+12M 未达 Beta：1) 削减支线内容 30%；2) 推迟上线 3 个月；3) 增派 QA 资源"
+        },
+        {
+          "key": "contingency_plan_points",
+          "label": "资源应急预案·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条，每行一条可核对的要点",
+          "reviewHint": "条目是否具体可核对；与本体的概述是否重复"
+        },
+        {
+          "key": "contingency_plan_notes",
+          "label": "资源应急预案·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "要点之外的补充说明，可留空",
+          "reviewHint": "是否只放补充信息、没有把要点又抄一遍；该留空时是否确实留空"
+        },
+        {
+          "key": "appendix",
+          "label": "附录",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "附录放什么：术语表、参考作品与出处、版本变更记录、待确认清单；只列结构与要点，不复制正文",
+          "reviewHint": "是否与正文重复；待确认项是否汇总了全文的「待确认」；是否有版本与日期",
+          "value": "供应商清单、合同模板、资产清单详见附件"
+        },
+        {
+          "key": "appendix_points",
+          "label": "附录·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条，每行一条可核对的要点",
+          "reviewHint": "条目是否具体可核对；与本体的概述是否重复"
+        },
+        {
+          "key": "appendix_notes",
+          "label": "附录·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "要点之外的补充说明，可留空",
+          "reviewHint": "是否只放补充信息、没有把要点又抄一遍；该留空时是否确实留空"
+        },
+        {
+          "key": "budget.summary",
+          "label": "budget.summary",
+          "value": "人力 1500 万 + 美术外包 300 万 + 音频 100 万 + 服务器 50 万 + 营销 200 万 = 总计 2150 万（18 个月，人民币）"
+        }
+      ]
+    },
+    {
+      "key": "market_analysis",
+      "label": "第十二章·市场分析",
+      "index": 13,
+      "fields": [
+        {
+          "key": "target_market",
+          "label": "目标市场",
+          "kind": "textarea",
+          "required": true,
+          "aiDraftable": true,
+          "aiHint": "给出目标市场的地域/平台/品类三层定位；引用数字须标来源，无来源标『待确认』",
+          "reviewHint": "地域平台品类是否明确；数字是否有出处或待确认标记",
+          "value": "中国大陆为主（PC + 移动），港澳台同步上线；海外以日韩东南亚为主"
+        },
+        {
+          "key": "market_size",
+          "label": "市场容量",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：市场规模的整体估算与统计口径；数字须给出处或标『待确认』，不得编造；具体数据条目走「要点」",
+          "reviewHint": "数字是否有出处或待确认；是否注明年份与统计口径；是否与目标市场一致",
+          "value": "国产仙侠 RPG 市场 2024 年规模约 80 亿，年增长率 8%；F2P 模式占比 70%，买断制 30%"
+        },
+        {
+          "key": "market_size_points",
+          "label": "市场容量·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条：每条一个可采集的数据项 + 数值 + 年份 + 来源，无来源标『待确认』",
+          "reviewHint": "每条是否有数值与来源或待确认；口径是否与本体一致；有无无出处数字"
+        },
+        {
+          "key": "market_size_notes",
+          "label": "市场容量·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "要点之外的补充说明：估算方法、口径差异或存疑数据，可留空",
+          "reviewHint": "补充是否与要点重复；存疑数据是否写清原因"
+        },
+        {
+          "key": "user_demographics",
+          "label": "用户画像",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：核心用户是谁、为什么是目标；各维度数据走「要点」逐条列；引用外部报告须标来源",
+          "reviewHint": "画像维度是否至少 3 项；是否与目标市场匹配；外部数据是否标来源",
+          "value": "年龄 18-35 岁（占 65%）；男性 60% / 女性 40%；一二线城市 55%，下沉市场增长迅速"
+        },
+        {
+          "key": "user_demographics_points",
+          "label": "用户画像·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条：每条一个画像维度 + 具体数据（如 18-25 岁占比 60%）并注明来源",
+          "reviewHint": "每条是否一个维度带数据；维度是否至少 3 项；外部数据是否标来源"
+        },
+        {
+          "key": "user_demographics_notes",
+          "label": "用户画像·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "要点之外的补充说明：调研方法、样本说明或待验证假设，可留空",
+          "reviewHint": "补充是否与要点重复；假设是否标注待验证"
+        },
+        {
+          "key": "competitors",
+          "label": "竞品分析",
+          "kind": "pipeList",
+          "required": true,
+          "aiDraftable": true,
+          "aiHint": "每行一个真实存在的竞品，按名称/类型/优势/劣势/市场份额五列填写；不确定的销量/排名/收入标『待确认』，不得编造",
+          "reviewHint": "竞品名是否真实存在；五列是否齐全；无来源的份额数据是否标待确认",
+          "value": [
+            {
+              "name": "原神",
+              "type": "开放世界",
+              "strengths": "全球化运营",
+              "weaknesses": "氪金重",
+              "market_share": "30%"
+            },
+            {
+              "name": "古剑奇谭",
+              "type": "单机 RPG",
+              "strengths": "剧情深厚",
+              "weaknesses": "节奏慢",
+              "market_share": "5%"
+            },
+            {
+              "name": "鬼谷八荒",
+              "type": "修真沙盒",
+              "strengths": "创意",
+              "weaknesses": "美术粗",
+              "market_share": "3%"
+            }
+          ]
+        },
+        {
+          "key": "market_positioning",
+          "label": "市场定位",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：一句话说清与竞品的差异点；具体优势条目走「要点」，须可验证",
+          "reviewHint": "差异点是否一句话说清；是否与竞品分析对应；优势是否可验证",
+          "value": "差异化定位：剧情向 + 国风美术，避开开放世界红海，主打单机/轻网游体验"
+        },
+        {
+          "key": "market_positioning_points",
+          "label": "市场定位·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "2-4 条：每条一个差异化优势 + 对应竞品的短板，须可验证",
+          "reviewHint": "每条是否对应具体竞品；优势是否可验证；有无「体验更好」这类空话"
+        },
+        {
+          "key": "market_positioning_notes",
+          "label": "市场定位·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "要点之外的补充说明：定位推理过程或暂不采用的定位方向，可留空",
+          "reviewHint": "补充是否与要点重复；放弃的方向是否写了原因"
+        },
+        {
+          "key": "entry_barriers",
+          "label": "进入壁垒",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：进入该市场的核心壁垒判断；具体壁垒与应对走「要点」逐条列",
+          "reviewHint": "壁垒是否具体可执行；是否有应对思路；是否结合竞品劣势",
+          "value": "1) 美术资产投入门槛高\n2) 仙侠 IP 用户忠诚度高\n3) 渠道发行资源集中"
+        },
+        {
+          "key": "entry_barriers_points",
+          "label": "进入壁垒·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "2-4 条：每条一类壁垒（技术/资金/IP/渠道）+ 具体表现 + 我们的应对",
+          "reviewHint": "每条壁垒是否具体到场景；应对是否可执行；是否结合竞品劣势"
+        },
+        {
+          "key": "entry_barriers_notes",
+          "label": "进入壁垒·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "要点之外的补充说明：壁垒变化趋势或资源缺口，可留空",
+          "reviewHint": "补充是否与要点重复；资源缺口是否写清"
+        },
+        {
+          "key": "market_trends",
+          "label": "市场趋势",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "每行一个趋势并注明驱动因素；引用报告须标来源与年份",
+          "reviewHint": "是否注明来源或驱动因素；是否与定位一致；引用年份是否过期",
+          "value": [
+            {
+              "trend": "国风美学复兴",
+              "direction": "利好"
+            },
+            {
+              "trend": "F2P 主导",
+              "direction": "需适配"
+            },
+            {
+              "trend": "短内容偏好",
+              "direction": "需调整"
+            }
+          ]
+        },
+        {
+          "key": "kpi_forecast",
+          "label": "KPI 预测",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 个上线后要看的业务 KPI，每行「指标|目标值|达成周期」（如 DAU|20 万|上线 3 个月）；目标值须有依据（对标竞品或历史数据），无依据标「待确认」；埋点口径在第二十章，此处不写",
+          "reviewHint": "指标是否可统计；目标值是否有依据；周期是否具体；与市场规模、竞品数据是否自洽",
+          "value": [
+            "DAU|20 万|上线 3 个月",
+            "MAU|100 万|上线 6 个月",
+            "次日留存|45%|上线即达",
+            "7 日留存|20%|上线即达",
+            "ARPU|8 元|上线 6 个月",
+            "LTV|120 元|上线 12 个月"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "risk_handling",
+      "label": "第十三章·风险控制",
+      "index": 14,
+      "fields": [
+        {
+          "key": "risk_matrix",
+          "label": "风险矩阵",
+          "kind": "pipeList",
+          "required": true,
+          "aiDraftable": true,
+          "aiHint": "每行一条风险，按风险/概率/影响/应对/负责人五列填写；概率与影响用高中低或具体描述，不用纯形容词",
+          "reviewHint": "每条风险是否有具体场景；概率影响是否可判定；应对是否落到负责人",
+          "value": [
+            {
+              "risk": "核心人员流失",
+              "probability": "中",
+              "impact": "高",
+              "mitigation": "股权激励 + 知识沉淀 + 双备份",
+              "owner": "制作人"
+            },
+            {
+              "risk": "美术外包延期",
+              "probability": "高",
+              "impact": "中",
+              "mitigation": "多供应商 + 提前 2 个月启动",
+              "owner": "美术总监"
+            },
+            {
+              "risk": "性能不达标",
+              "probability": "中",
+              "impact": "高",
+              "mitigation": "早期性能基线 + 持续监控",
+              "owner": "技术总监"
+            },
+            {
+              "risk": "市场风向变化",
+              "probability": "中",
+              "impact": "中",
+              "mitigation": "敏捷调整 + 多版本预案",
+              "owner": "制作人"
+            },
+            {
+              "risk": "审核风险",
+              "probability": "低",
+              "impact": "高",
+              "mitigation": "提前送审 + 内容合规",
+              "owner": "运营"
+            }
+          ]
+        },
+        {
+          "key": "contingency_plan",
+          "label": "应急预案",
+          "kind": "textarea",
+          "required": true,
+          "aiDraftable": true,
+          "aiHint": "列出前三大风险的触发条件、降级方案与止损线；写清谁有权启动预案及启动时点",
+          "reviewHint": "触发条件是否可观测；预案是否有明确止损线；启动人是否明确",
+          "value": "若 T+12M 未达 Beta：1) 削减支线 30%；2) 推迟上线 3 个月；3) 增派 QA"
+        },
+        {
+          "key": "technical_risks",
+          "label": "技术风险",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "每行一个技术风险，格式「风险—后果—缓解」；只列本项目技术栈相关的具体风险",
+          "reviewHint": "是否与项目技术栈匹配；每条是否有缓解措施；是否与矩阵重复",
+          "value": [
+            {
+              "risk": "引擎性能瓶颈",
+              "mitigation": "早期原型 + 性能基线"
+            },
+            {
+              "risk": "联机架构不稳",
+              "mitigation": "压力测试 + 弹性扩容"
+            }
+          ]
+        },
+        {
+          "key": "market_risks",
+          "label": "市场风险",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "每行一个市场风险，格式「风险—后果—缓解」；结合本作品类与竞品现状，不写行业空话",
+          "reviewHint": "是否结合本作品类；是否与市场分析章结论一致；缓解是否可执行",
+          "value": [
+            {
+              "risk": "竞品提前上线",
+              "mitigation": "差异化定位 + 快速迭代"
+            },
+            {
+              "risk": "玩家偏好变化",
+              "mitigation": "持续用户调研"
+            }
+          ]
+        },
+        {
+          "key": "team_risks",
+          "label": "团队风险",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "每行一个团队风险，格式「风险—后果—缓解」；聚焦人员流动、技能缺口、协作成本",
+          "reviewHint": "是否具体到岗位或角色；缓解措施是否可操作",
+          "value": [
+            {
+              "risk": "核心人员流失",
+              "mitigation": "股权 + 双备份"
+            },
+            {
+              "risk": "团队扩张过快",
+              "mitigation": "渐进式招聘 + 培训"
+            }
+          ]
+        },
+        {
+          "key": "legal_risks",
+          "label": "法律风险",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "每行一个法律风险，格式「风险—后果—缓解」；覆盖版号、隐私、版权、付费合规等具体场景",
+          "reviewHint": "是否给出具体法规或合规场景；是否覆盖版号与隐私；缓解是否可落地",
+          "value": [
+            {
+              "risk": "版权争议",
+              "mitigation": "法务审查 + 自有 IP"
+            },
+            {
+              "risk": "审核不通过",
+              "mitigation": "内容合规 + 预审"
+            }
+          ]
+        },
+        {
+          "key": "schedule_risks",
+          "label": "进度风险",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "每行一个进度风险，格式「风险—后果—缓解」；关联里程碑，指出会延期哪一阶段",
+          "reviewHint": "是否关联到具体里程碑；延期影响是否可量化",
+          "value": []
+        },
+        {
+          "key": "risk_monitoring",
+          "label": "风险监控",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：风险监控的总体机制；频率/阈值/台账等具体规则走「要点」逐条列",
+          "reviewHint": "复审频率是否明确；升级阈值是否可判定；是否有责任角色",
+          "value": "1) 每周风险评审会\n2) 关键指标看板\n3) 月度风险报告"
+        },
+        {
+          "key": "risk_monitoring_points",
+          "label": "风险监控·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条：每条一个可执行规则（复审频率/责任角色/升级阈值/台账更新）",
+          "reviewHint": "每条是否有责任角色与时限；升级阈值是否可判定；规则能否直接执行"
+        },
+        {
+          "key": "risk_monitoring_notes",
+          "label": "风险监控·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "要点之外的补充说明：历史风险案例或监控工具选型，可留空",
+          "reviewHint": "补充是否与要点重复；案例是否注明来源"
+        },
+        {
+          "key": "crisis_management",
+          "label": "危机管理",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：危机管理的总体原则；分级/流程/口径等具体安排走「要点」逐条列",
+          "reviewHint": "事故分级是否可判定；响应流程是否有决策链；是否含回滚与复盘",
+          "value": ""
+        },
+        {
+          "key": "crisis_management_points",
+          "label": "危机管理·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条：每条一个具体安排（事故分级/响应步骤/决策人/对外口径）",
+          "reviewHint": "每条是否可判定可执行；分级标准是否明确；是否含决策链与回滚"
+        },
+        {
+          "key": "crisis_management_notes",
+          "label": "危机管理·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "要点之外的补充说明：历史事故复盘结论或公关资源储备，可留空",
+          "reviewHint": "补充是否与要点重复；复盘结论是否写清"
+        },
+        {
+          "key": "escalation_path",
+          "label": "升级路径",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-4 级升级路径，每行「层级（一线/主策/制作人/发行）|决策人角色|时限（多少小时内响应）」；最高层要能拍板砍范围",
+          "reviewHint": "时限是否可执行；决策人是否写到角色而非具体姓名；最高层是否有权变更范围与排期",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "key": "mvp",
+      "label": "第十四章·MVP 规划",
+      "index": 15,
+      "fields": [
+        {
+          "key": "mvp_scope",
+          "label": "MVP 范围",
+          "kind": "textarea",
+          "required": true,
+          "aiDraftable": true,
+          "aiHint": "列出 MVP 必含的最小玩法闭环与明确不做的事；每项说明为什么最小必要",
+          "reviewHint": "是否形成可玩闭环；不做什么是否写明；是否与核心特性一致",
+          "value": "核心战斗系统 + 1 个完整关卡 + 角色养成基础 + 主线第一章"
+        },
+        {
+          "key": "mvp_timeline",
+          "label": "MVP 时间线",
+          "kind": "textarea",
+          "required": true,
+          "aiDraftable": true,
+          "aiHint": "给出各阶段起止时间与产出；阶段按玩法原型→垂直切片→内容填充排序",
+          "reviewHint": "阶段顺序是否合理；起止时间是否覆盖到上线；是否与里程碑一致",
+          "value": "T+0 至 T+3M：原型 Demo；T+3M 完成可玩 Demo 内部测试"
+        },
+        {
+          "key": "core_features",
+          "label": "核心特性",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "每行一个 MVP 核心特性，注明验证目标；只列验证核心假设的必需项",
+          "reviewHint": "每条是否服务核心假设；是否与范围一致；有无混入暂缓项",
+          "value": [
+            "核心战斗循环",
+            "角色升级",
+            "1 个完整关卡",
+            "基础 UI",
+            "存档系统"
+          ]
+        },
+        {
+          "key": "cut_features",
+          "label": "暂缓特性",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "每行一个暂缓特性，注明暂缓原因与预计回归版本；不与核心特性重复",
+          "reviewHint": "暂缓原因是否成立；是否与核心特性重复；是否注明回归版本",
+          "value": [
+            "多人联机",
+            "PVP",
+            "外观系统",
+            "成就系统",
+            "多语言"
+          ]
+        },
+        {
+          "key": "milestones",
+          "label": "里程碑",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "每行一个里程碑，按名称/日期/交付物/验收标准四列填写；验收标准要可判定",
+          "reviewHint": "日期是否递进；交付物是否可交付；验收标准是否可判定",
+          "value": [
+            {
+              "name": "M1 战斗原型",
+              "date": "T+1M",
+              "deliverables": "可玩战斗 Demo",
+              "acceptance": "手感达标"
+            },
+            {
+              "name": "M2 关卡原型",
+              "date": "T+2M",
+              "deliverables": "1 关卡完整",
+              "acceptance": "流程顺畅"
+            },
+            {
+              "name": "M3 MVP 完成",
+              "date": "T+3M",
+              "deliverables": "可玩 Demo",
+              "acceptance": "通过试玩评审"
+            }
+          ]
+        },
+        {
+          "key": "success_criteria",
+          "label": "成功标准",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：MVP 成功的定义与判定逻辑；具体指标条目走「要点」字段",
+          "reviewHint": "指标是否可采集；每条是否有目标值；是否剔除不可测表述",
+          "value": "1) 战斗手感评分 ≥ 4/5\n2) 关卡流程 ≤ 30min\n3) 试玩留存意愿 ≥ 60%"
+        },
+        {
+          "key": "success_criteria_points",
+          "label": "成功标准·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条：每条一个可采集指标 + 目标值（如次留 40%）",
+          "reviewHint": "指标是否可采集可验证；有没有「用户体验良好」这类不可测表述"
+        },
+        {
+          "key": "success_criteria_notes",
+          "label": "成功标准·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "要点之外的补充说明：指标的采集方式或判定口径，可留空",
+          "reviewHint": "补充是否与要点重复；采集方式是否可落地"
+        },
+        {
+          "key": "team_size",
+          "label": "团队规模",
+          "kind": "number",
+          "required": false,
+          "aiDraftable": false,
+          "reviewHint": "人数是否与实际编制一致；角色是否覆盖 MVP 范围所需",
+          "value": 8
+        },
+        {
+          "key": "budget_estimate",
+          "label": "预算估算",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": false,
+          "reviewHint": "是否按阶段或科目拆分；是否与商业化目标匹配；是否留有缓冲",
+          "value": "150万（3 个月）"
+        },
+        {
+          "key": "playtest_plan",
+          "label": "试玩测试",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：试玩的整体安排与目标；每轮的对象/样本量/问题走「要点」逐条列",
+          "reviewHint": "每轮是否有明确验证问题；样本量是否足够；指标是否与成功标准一致",
+          "value": "每周内部试玩 + T+3M 外部小范围测试（50 人）"
+        },
+        {
+          "key": "playtest_plan_points",
+          "label": "试玩测试·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条：每轮一条，含对象/样本量/要验证的问题/采集指标",
+          "reviewHint": "每轮是否有验证问题与采集指标；样本量是否写明；指标是否与成功标准一致"
+        },
+        {
+          "key": "playtest_plan_notes",
+          "label": "试玩测试·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "要点之外的补充说明：招募渠道、场地或伦理合规事项，可留空",
+          "reviewHint": "补充是否与要点重复；合规事项是否写清"
+        },
+        {
+          "key": "prototype_features",
+          "label": "原型特性",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-5 个原型必做特性，每行「特性|周期（人日或周）」；只保留验证核心循环所需的最小集",
+          "reviewHint": "是否混入了完整版特性；周期加总是否落在原型总周期内；每个特性是否对应一个要验证的假设",
+          "value": [
+            "战斗手感",
+            "关卡流程",
+            "数值平衡"
+          ]
+        },
+        {
+          "key": "risk_assessment",
+          "label": "风险评估",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-5 条 MVP 特有风险（范围膨胀/技术验证失败/周期不足），每条写「风险 + 早期信号 + 应对」",
+          "reviewHint": "是否与第十三章风险矩阵重复；是否有可观测的早期信号；是否给出砍范围的具体顺序",
+          "value": "中风险：核心战斗手感是关键，需多次迭代"
+        },
+        {
+          "key": "prototype_plan",
+          "label": "原型计划",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "原型计划：验证哪些假设、用什么最小实现、谁来做、几周完成、成功与失败判据；判据必须可观测",
+          "reviewHint": "是否有明确判据（不是「感觉可行」）；是否安排了对真实玩家的可玩验证；失败后的决策是否写明",
+          "value": "白盒关卡 + 占位美术，重点验证战斗与流程"
+        },
+        {
+          "key": "prototype_plan_points",
+          "label": "原型计划·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条，每行一条可核对的要点",
+          "reviewHint": "条目是否具体可核对；与本体的概述是否重复"
+        },
+        {
+          "key": "prototype_plan_notes",
+          "label": "原型计划·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "要点之外的补充说明，可留空",
+          "reviewHint": "是否只放补充信息、没有把要点又抄一遍；该留空时是否确实留空"
+        }
+      ]
+    },
+    {
+      "key": "monetization",
+      "label": "第十五章·商业化设计",
+      "index": 16,
+      "fields": [
+        {
+          "key": "payment_model",
+          "label": "付费模式",
+          "kind": "combo",
+          "required": true,
+          "aiDraftable": true,
+          "aiHint": "从候选中选 1-2 个主模式并说明理由；模式须与定价档位、内购设计自洽",
+          "reviewHint": "所选模式是否与档位内购一致；理由是否结合品类",
+          "value": "f2p"
+        },
+        {
+          "key": "pricing_tiers",
+          "label": "定价档位",
+          "kind": "stringList",
+          "required": true,
+          "aiDraftable": true,
+          "aiHint": "每行一个价格档位，按价格从低到高排列；覆盖小额首充到大额，标注币种",
+          "reviewHint": "档位是否递进；是否覆盖不同付费层级；是否标注币种",
+          "value": [
+            "6",
+            "30",
+            "68",
+            "128",
+            "328",
+            "648"
+          ]
+        },
+        {
+          "key": "iap_design",
+          "label": "内购设计",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "每行一个内购项，按物品/价格/价值/目标用户四列填写；价值需与价格匹配",
+          "reviewHint": "价格与价值是否匹配；目标用户是否明确；是否与定价档位一致",
+          "value": [
+            {
+              "item": "月卡",
+              "price": "30",
+              "value": "每日钻石 + 即时钻石",
+              "target": "稳定付费玩家"
+            },
+            {
+              "item": "战令",
+              "price": "68",
+              "value": "赛季奖励",
+              "target": "中端玩家"
+            },
+            {
+              "item": "外观礼包",
+              "price": "128",
+              "value": "限定皮肤",
+              "target": "外观党"
+            }
+          ]
+        },
+        {
+          "key": "ad_strategy",
+          "label": "广告策略",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：广告策略的目标与插入原则；广告位、频次、激励方式等细节走「要点」字段",
+          "reviewHint": "广告频次是否有上限；是否影响核心体验；激励视频是否可选",
+          "value": "无广告（F2P 主流方向）"
+        },
+        {
+          "key": "ad_strategy_points",
+          "label": "广告策略·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条：广告位、每日频次上限、激励方式与不破坏核心循环的插入原则",
+          "reviewHint": "每条是否可逐条核对；频次是否有上限；是否与订阅、内购权益冲突"
+        },
+        {
+          "key": "ad_strategy_notes",
+          "label": "广告策略·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "广告收益预期与 A/B 实验计划等要点之外的补充说明，可留空",
+          "reviewHint": "补充是否与要点重复；收益预期是否注明为估算"
+        },
+        {
+          "key": "subscription_design",
+          "label": "订阅制",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：订阅制的定位与设计原则；周期、价格、权益列表等细节走「要点」字段",
+          "reviewHint": "权益是否可交付；是否破坏付费平衡；周期价格是否明确",
+          "value": "月卡：30元，每日领取 + 即时钻石；季卡：88元，3个月"
+        },
+        {
+          "key": "subscription_design_points",
+          "label": "订阅制·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条：订阅周期、价格、权益项与每项权益的交付方式",
+          "reviewHint": "权益是否可逐条交付；是否破坏付费平衡；是否与定价档位一致"
+        },
+        {
+          "key": "subscription_design_notes",
+          "label": "订阅制·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "订阅转化预期与取消/退款政策等要点之外的补充说明，可留空",
+          "reviewHint": "补充是否具体；是否提及取消或退款政策"
+        },
+        {
+          "key": "season_pass",
+          "label": "赛季通行证",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：赛季通行证的定位与设计原则；周期、价格、奖励结构与免费线走「要点」字段",
+          "reviewHint": "免费线奖励是否可得；付费奖励是否只含外观或便利；周期价格是否明确",
+          "value": "战令：68元，100级奖励；免费线 30 级；付费线 100 级 + 隐藏奖励"
+        },
+        {
+          "key": "season_pass_points",
+          "label": "赛季通行证·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条：赛季周期、价格、免费线奖励与付费奖励结构",
+          "reviewHint": "免费线奖励是否可不付费获得；付费奖励是否只含外观便利；周期价格是否明确"
+        },
+        {
+          "key": "season_pass_notes",
+          "label": "赛季通行证·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "赛季更替规则与老玩家衔接等要点之外的补充说明，可留空",
+          "reviewHint": "补充是否与要点重复；是否说明赛季切换时的衔接"
+        },
+        {
+          "key": "vip_system",
+          "label": "VIP 系统",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：VIP 体系的目标与设计原则；等级、成长值与各等级权益走「要点」字段",
+          "reviewHint": "成长值来源是否明确；是否出现数值售卖；权益是否可交付",
+          "value": "VIP 1-15，按累计充值升级；提供永久特权（不提供数值）"
+        },
+        {
+          "key": "vip_system_points",
+          "label": "VIP 系统·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条：VIP 等级、每级权益、定价锚点、与免费线的区隔",
+          "reviewHint": "权益是否可逐条核对；与「定价档位」字段是否重复；是否出现数值售卖"
+        },
+        {
+          "key": "vip_system_notes",
+          "label": "VIP 系统·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "成长值获取途径与保级规则等要点之外的补充说明，可留空",
+          "reviewHint": "成长值来源是否明确；补充是否可落地"
+        },
+        {
+          "key": "whale_strategy",
+          "label": "大 R 策略",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": false,
+          "reviewHint": "是否规避诱导与概率陷阱；是否守住合规与口碑底线；是否与定价档位匹配",
+          "value": "648 档位礼包 + 限定收集品 + 排行榜荣誉"
+        },
+        {
+          "key": "f2p_experience",
+          "label": "免费玩家体验",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：免费玩家体验的目标与设计原则；内容边界、成长节奏、卡点设计走「要点」字段",
+          "reviewHint": "免费内容是否覆盖主线；卡点是否过度；是否与付费点冲突",
+          "value": "免费玩家可获取全部核心内容；付费仅加速 + 外观；无 P2W"
+        },
+        {
+          "key": "f2p_experience_points",
+          "label": "免费玩家体验·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条：免费内容边界、成长节奏、卡点位置与付费墙说明",
+          "reviewHint": "免费内容是否覆盖主线；卡点是否逐条可判定；是否与付费点冲突"
+        },
+        {
+          "key": "f2p_experience_notes",
+          "label": "免费玩家体验·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "免费向付费的转化路径等要点之外的补充说明，可留空",
+          "reviewHint": "转化路径是否自然；是否与「广告策略」重复"
+        },
+        {
+          "key": "arpu_target",
+          "label": "ARPU 目标",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": false,
+          "reviewHint": "目标值是否结合品类基准；是否与付费模式、团队成本匹配",
+          "value": "8 元/月"
+        },
+        {
+          "key": "limited_offers",
+          "label": "限时优惠",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "2-4 个限时优惠，每行「名称|参与条件|有效期（时长或触发场景）」；避免纯折扣式付费压力",
+          "reviewHint": "是否有诱导性过强的时间压力；条件对免费玩家是否公平；是否与定价档位、付费模型自洽",
+          "value": "节日限定外观 + 周年庆礼包 + 联动礼包"
+        },
+        {
+          "key": "revenue_forecast",
+          "label": "流水预测",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "2-4 行流水目标，每行「周期（首月/首年）|流水目标|测算依据」（如 首月|500 万|10 万套 × 50 元客单）；依据须可追溯，无依据标「待确认」，不要给假精确数字",
+          "reviewHint": "测算依据是否可追溯；目标与 ARPU、付费率是否自洽；是否注明为估算而非承诺",
+          "value": [
+            "首月|500 万|月卡 30 元档转化 3% + 战令 68 元档 2 万份",
+            "首年|3000 万|首月 500 万后按 8% 月复合增长"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "accessibility",
+      "label": "第十六章·可访问性与本地化",
+      "index": 17,
+      "fields": [
+        {
+          "key": "language_list",
+          "label": "支持语言",
+          "kind": "stringList",
+          "required": true,
+          "aiDraftable": true,
+          "aiHint": "每行一个支持语言，标注首发还是后续版本，并注明对应目标市场",
+          "reviewHint": "是否区分首发与后续；语言是否与目标市场匹配",
+          "value": [
+            "zh-CN",
+            "zh-TW",
+            "en",
+            "ja",
+            "ko"
+          ]
+        },
+        {
+          "key": "localization_strategy",
+          "label": "本地化策略",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：本地化的总体策略与流程框架；文本抽取、翻译、QA 等各环节细节走「要点」字段",
+          "reviewHint": "是否覆盖更新与回归流程；是否含字体排版适配",
+          "value": ""
+        },
+        {
+          "key": "localization_strategy_points",
+          "label": "本地化策略·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条：文本抽取、翻译流程、QA 回归、更新机制与字体排版适配",
+          "reviewHint": "是否覆盖抽取到更新全流程；每条是否可落地为环节；是否含字体排版"
+        },
+        {
+          "key": "localization_strategy_notes",
+          "label": "本地化策略·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "本地化供应商选型与术语库管理等要点之外的补充说明，可留空",
+          "reviewHint": "补充是否与要点重复；是否提及术语管理"
+        },
+        {
+          "key": "cultural_adaptation",
+          "label": "文化适配",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：文化适配的原则与重点市场；各目标市场的适配项走「要点」字段",
+          "reviewHint": "是否逐市场列适配项；是否含法规红线；有无凭空臆测",
+          "value": ""
+        },
+        {
+          "key": "cultural_adaptation_points",
+          "label": "文化适配·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条：逐市场列适配项——敏感元素、节日、审美偏好与法规红线",
+          "reviewHint": "是否逐市场列出；是否含法规红线；有无凭空臆测"
+        },
+        {
+          "key": "cultural_adaptation_notes",
+          "label": "文化适配·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "文化风险案例与审查机制等要点之外的补充说明，可留空",
+          "reviewHint": "是否给出具体市场；有无凭空臆测"
+        },
+        {
+          "key": "accessibility_features",
+          "label": "无障碍特性",
+          "kind": "stringList",
+          "required": true,
+          "aiDraftable": true,
+          "aiHint": "每行一个无障碍特性，注明对应的功能入口；只列本项目会做的项",
+          "reviewHint": "每条是否可落地为功能；是否与字号/色盲等专项重复",
+          "value": [
+            "字幕（对话/音效）",
+            "色盲模式（红绿/蓝黄/全色盲）",
+            "键位自定义",
+            "手柄支持",
+            "高对比度 UI",
+            "字体大小调节",
+            "语音朗读（菜单）",
+            "震动反馈"
+          ]
+        },
+        {
+          "key": "subtitle_design",
+          "label": "字幕设计",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：字幕设计的总体规范；字号、描边、安全区、说话人标识等细节走「要点」字段",
+          "reviewHint": "是否含字号与安全区规范；是否标识说话人；是否覆盖音效提示",
+          "value": "对话字幕：底部居中 + 说话人标识；音效字幕：右侧标注音效类型"
+        },
+        {
+          "key": "subtitle_design_points",
+          "label": "字幕设计·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条：字号、描边、安全区、语速、说话人标识与关键音效提示",
+          "reviewHint": "是否给出具体数值规范而非「清晰易读」；是否标识说话人；是否覆盖音效提示"
+        },
+        {
+          "key": "subtitle_design_notes",
+          "label": "字幕设计·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "字幕字体选型与多行换行规则等要点之外的补充说明，可留空",
+          "reviewHint": "补充是否可执行；是否与要点重复"
+        },
+        {
+          "key": "color_blind_support",
+          "label": "色盲支持",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：色盲支持的设计原则；模式类型、覆盖场景与替代信息传达走「要点」字段",
+          "reviewHint": "是否覆盖全部 UI 场景；关键信息是否有非颜色通道；模式是否可选",
+          "value": "提供 3 种色盲模式（红绿/蓝黄/全色盲），关键信息不依赖颜色区分。"
+        },
+        {
+          "key": "color_blind_support_points",
+          "label": "色盲支持·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条：色盲模式类型、覆盖的 UI 场景与替代信息传达方式",
+          "reviewHint": "是否给出具体模式而非只说「支持」；关键信息是否有非颜色通道；模式是否可选"
+        },
+        {
+          "key": "color_blind_support_notes",
+          "label": "色盲支持·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "色盲模拟测试与验证方式等要点之外的补充说明，可留空",
+          "reviewHint": "是否说明验证方式；是否覆盖全部场景"
+        },
+        {
+          "key": "motor_accessibility",
+          "label": "运动无障碍",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：操作无障碍的目标与原则；按键自定义、简化选项等细节走「要点」字段",
+          "reviewHint": "是否支持按键自定义；是否有简化操作选项；是否覆盖手柄",
+          "value": "全键位可重映射；支持手柄 / 键鼠 / 触屏；单指可完成核心操作。"
+        },
+        {
+          "key": "motor_accessibility_points",
+          "label": "运动无障碍·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条：按键自定义、辅助瞄准、连发、操作简化选项与手柄支持",
+          "reviewHint": "是否支持按键自定义；是否有简化操作选项；是否覆盖手柄；每条是否可落地"
+        },
+        {
+          "key": "motor_accessibility_notes",
+          "label": "运动无障碍·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "输入设备适配与摇杆灵敏度等要点之外的补充说明，可留空",
+          "reviewHint": "补充是否具体；是否与要点重复"
+        },
+        {
+          "key": "cognitive_accessibility",
+          "label": "认知无障碍",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：认知无障碍的设计原则；难度、提示、节奏与防眩晕细节走「要点」字段",
+          "reviewHint": "难度是否可调；提示是否可关闭；是否含防眩晕",
+          "value": "可关闭镜头摇晃、闪烁特效与动态模糊；难度分 4 档且战斗/解谜可分别调整。"
+        },
+        {
+          "key": "cognitive_accessibility_points",
+          "label": "认知无障碍·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条：难度选项、提示系统、节奏控制与防眩晕设计",
+          "reviewHint": "难度是否可调；提示是否可关闭；是否含防眩晕；是否给出具体选项"
+        },
+        {
+          "key": "cognitive_accessibility_notes",
+          "label": "认知无障碍·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "阅读障碍友好与教程重放等要点之外的补充说明，可留空",
+          "reviewHint": "补充是否可落地；是否与要点重复"
+        },
+        {
+          "key": "rating_certification",
+          "label": "分级认证",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "每行一个目标分级机构与目标等级，如 ESRB/PEGI；注明送审时间",
+          "reviewHint": "机构是否覆盖目标市场；目标等级是否匹配内容；是否注明送审时间",
+          "value": []
+        },
+        {
+          "key": "compliance_notes",
+          "label": "合规备注",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "列出各市场合规要求：付费披露、概率公示、儿童保护与数据合规",
+          "reviewHint": "是否覆盖概率公示与儿童保护；是否逐市场列出；有无引用过期法规",
+          "value": "中国大陆：版号 + 内容合规\n欧盟：GDPR 数据合规\n日本：CERO 分级\n美国：ESRB 分级"
+        }
+      ]
+    },
+    {
+      "key": "uiux",
+      "label": "第十七章·UI/UX 交互设计",
+      "index": 18,
+      "fields": [
+        {
+          "key": "design_principles",
+          "label": "设计原则",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：UI/UX 设计的总体原则与取向；逐条原则及界面体现走「要点」字段，本体勿罗列",
+          "reviewHint": "本体是否只讲总体取向；要点是否逐条可核对；是否与流程、界面说明矛盾",
+          "value": "一块主屏 + 三级下钻；任何需要等待的操作都必须显示剩余时间与加速花费。"
+        },
+        {
+          "key": "design_principles_points",
+          "label": "设计原则·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-5 条原则，每条一句：原则 + 在界面上的具体体现",
+          "reviewHint": "每条是否「原则+体现」两要素齐全；体现是否可核对；与本体是否重复",
+          "value": [
+            "一眼可读：主界面常驻 4 个关键数字（资源、队列、战力、社交状态）",
+            "等待可见：任何 ≥30 秒的操作都显示倒计时与加速价格",
+            "点击可逆：破坏性操作二次确认，其余操作一步返回",
+            "信息不重叠：同一数字只在一处显示，跨界面只引用不复制"
+          ]
+        },
+        {
+          "key": "design_principles_notes",
+          "label": "设计原则·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "原则之外的补充说明（如参考依据、取舍记录），可留空",
+          "reviewHint": "是否只放补充信息，没有把要点又抄一遍",
+          "value": "参考范式：同类产品的「基地 / 主场景分屏 + 等待可见」交互；本模板为交互范式示范，不代表具体品类，落地时请按实际游戏替换名词（示例假设基地与主场景分屏，实际是否同屏按品类定）。"
+        },
+        {
+          "key": "information_architecture",
+          "label": "信息架构",
+          "kind": "textarea",
+          "required": true,
+          "aiDraftable": true,
+          "aiHint": "界面层级与导航结构：有哪些界面、从属关系、主导航形态与各入口规则",
+          "reviewHint": "层级是否成树；导航形态是否明确；入口是否与核心流程对得上",
+          "value": "核心基地（建筑/队列）→ 主场景（区域/行进）→ 社交（成员/集结）三级下钻；底部 4 个常驻入口；设置与背包从右上角头像进入。（示例名词，按实际品类替换）"
+        },
+        {
+          "key": "core_flows",
+          "label": "核心界面流程",
+          "kind": "pipeList",
+          "required": true,
+          "aiDraftable": true,
+          "aiHint": "每行一个核心流程：流程名称|步骤|出口；步骤按先后写，出口写清返回或跳转目标",
+          "reviewHint": "步骤是否有先后顺序；出口是否明确；流程是否与信息架构所列界面一一对应",
+          "value": [
+            {
+              "name": "升级设施",
+              "steps": "核心基地 → 点建筑 → 看耗时与花费 → 确认",
+              "exit": "回基地，队列条显示倒计时"
+            },
+            {
+              "name": "发起行动",
+              "steps": "主场景 → 选目标 → 选队伍 → 看行进时间与预估战损 → 确认",
+              "exit": "回主场景，行进线动画 + 队伍面板倒计时"
+            },
+            {
+              "name": "组队集结",
+              "steps": "社交 → 集结列表 → 加入 → 等发起人开战",
+              "exit": "战斗结算页 → 返回社交"
+            }
+          ]
+        },
+        {
+          "key": "key_screens",
+          "label": "关键界面说明",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "每行一个关键界面：名称+核心元素+交互方式；元素写界面里实际存在的东西",
+          "reviewHint": "每行是否三要素齐全；元素是否具体；是否与信息架构所列界面一致",
+          "value": [
+            "核心基地：4 座核心建筑 + 1 条队列条 + 资源栏 4 项",
+            "主场景：区域色块 + 迷雾遮罩 + 单位图标，缩放 3 档",
+            "战报页：双方兵力 / 战损 / 克制加成，可分享到社交频道"
+          ]
+        },
+        {
+          "key": "feedback_rules",
+          "label": "交互反馈规范",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "每行一条反馈规则：触发操作|反馈形式|时机；须覆盖点击、加载、错误、奖励场景",
+          "reviewHint": "每条是否操作与反馈对应；是否覆盖错误与加载场景；时机是否可感知",
+          "value": [
+            {
+              "trigger": "点击升级",
+              "feedback": "按钮变倒计时条 + 队列占用提示",
+              "timing": "立即"
+            },
+            {
+              "trigger": "资源不足",
+              "feedback": "缺口数字标红 + 跳转获取途径",
+              "timing": "点击时"
+            },
+            {
+              "trigger": "行进到达",
+              "feedback": "推送 + 主场景对应格闪烁",
+              "timing": "到达瞬间"
+            }
+          ]
+        },
+        {
+          "key": "usability_standards",
+          "label": "可用性标准",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "每行一条可量化验收线（如「任意功能 ≤3 步到达」）；必须带数字或明确判定条件",
+          "reviewHint": "每条是否可量化；是否覆盖核心流程；步数上限与流程步骤数是否自洽",
+          "value": [
+            "核心操作（升级/行动/集结）≤3 步完成",
+            "主界面 4 个关键数字首屏可见，无需滚动",
+            "所有 ≥30 秒的等待都有可见倒计时",
+            "破坏性操作 100% 有二次确认"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "level_design",
+      "label": "第十八章·关卡与内容设计",
+      "index": 19,
+      "fields": [
+        {
+          "key": "level_principles",
+          "label": "关卡设计原则",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：关卡设计的总体原则与内容取向；可逐条核对的规则走结构化字段，本体勿罗列",
+          "reviewHint": "本体是否只讲原则；是否与难度曲线、关卡模板自洽",
+          "value": "地图即关卡：每层 3-5 个节点，节点类型决定节奏；难度靠组合与资源压力，不靠数值堆叠。"
+        },
+        {
+          "key": "level_principles_points",
+          "label": "关卡设计原则·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条，每行一条可核对的要点",
+          "reviewHint": "条目是否具体可核对；与本体的概述是否重复"
+        },
+        {
+          "key": "level_principles_notes",
+          "label": "关卡设计原则·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "要点之外的补充说明，可留空",
+          "reviewHint": "是否只放补充信息、没有把要点又抄一遍；该留空时是否确实留空"
+        },
+        {
+          "key": "difficulty_curve",
+          "label": "难度曲线",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：难度起伏的总体形状与设计意图；按阶段的具体曲线点走「要点」字段",
+          "reviewHint": "本体是否只讲形状与意图；要点是否按阶段递进；是否有峰值与喘息段",
+          "value": "前 3 层教学期，4-6 层建立压力，7 层后每层一次高峰、每 3 层给一个喘息层。"
+        },
+        {
+          "key": "difficulty_curve_points",
+          "label": "难度曲线·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "按阶段每行一条：阶段/关卡区间+难度等级+考验能力；难度须整体递增",
+          "reviewHint": "阶段是否递进；每行是否有难度与考验能力；新高峰前是否有缓冲关",
+          "value": [
+            "1-3 层：只出普通战斗与休息，教学基础操作与成长",
+            "4-6 层：加入精英节点，考验 Build 成型速度",
+            "7-9 层：Boss 前压力峰值，药水与金币紧张",
+            "10 层后：每 3 层插一个商店/事件层，避免连续高压"
+          ]
+        },
+        {
+          "key": "difficulty_curve_notes",
+          "label": "难度曲线·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "曲线依据（玩家成长、数值章能力线）的补充说明，可留空",
+          "reviewHint": "依据是否与数值章成长线一致；是否与要点重复",
+          "value": "曲线依据：单局 25-35 分钟、每层 4-6 分钟；与数值章「每层一次成长机会」的成长线对齐。"
+        },
+        {
+          "key": "level_templates",
+          "label": "关卡模板",
+          "kind": "stringList",
+          "required": true,
+          "aiDraftable": true,
+          "aiHint": "每行一个模板：模板名+结构+适用阶段；参考某游戏关卡时案例必须真实存在，不确定标「待确认」",
+          "reviewHint": "每行是否三要素齐全；参考案例是否真实可查；模板是否覆盖各阶段",
+          "value": [
+            "单线三节点：战斗→战斗→休息，用于教学层",
+            "分叉双线：左线精英（高风险高奖励）、右线普通（稳妥）",
+            "Boss 层：前置一个商店节点，允许最后一搏调整 Build"
+          ]
+        },
+        {
+          "key": "first_levels",
+          "label": "首关体验",
+          "kind": "stringList",
+          "required": true,
+          "aiDraftable": true,
+          "aiHint": "每行一关：关卡名+教学点+引入机制；前三关按教学顺序排；参考案例必须真实存在，不确定标「待确认」",
+          "reviewHint": "前三关是否齐全；每关是否只有一个教学重点；是否与核心玩法一致",
+          "value": [
+            "第 1 层：只教基础操作与资源（纯普通战斗，敌人 2 只）",
+            "第 2 层：教升级选奖励（战斗 → 奖励三选一）",
+            "第 3 层：教强化物（首个强化节点，效果写清触发时机）"
+          ]
+        },
+        {
+          "key": "content_estimate",
+          "label": "内容量估算",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "每行一阶段：阶段|关卡数量|单关时长(分钟)|测算依据；数量与时长须有依据，禁拍脑袋",
+          "reviewHint": "每行是否四列齐全；总量是否与 MVP 范围匹配；时长是否有依据",
+          "value": [
+            {
+              "stage": "教学层",
+              "count": "3",
+              "minutes": "4",
+              "basis": "单场 3 回合 × 约 80 秒"
+            },
+            {
+              "stage": "中段",
+              "count": "6",
+              "minutes": "5",
+              "basis": "精英战平均 5 回合"
+            },
+            {
+              "stage": "终段",
+              "count": "3",
+              "minutes": "7",
+              "basis": "Boss 战 8-10 回合"
+            }
+          ]
+        },
+        {
+          "key": "level_table",
+          "label": "关卡配置表",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "逐关一行（至少覆盖 MVP 范围，能落表）：关卡名/编号|敌人编队（种类×数量，引用数据表的 id）|奖励（道具×数量）|难度系数（首关 0.5 起，以 1.0 为基准）|解锁条件；这是编码时**直接读表生成关卡**的内容，不要写「若干」「适中」「循序渐进」",
+          "reviewHint": "每行五列是否齐全；敌人与奖励是否引用真实数据表 id（不是「小怪」这类泛指）；难度系数是否与难度曲线同向；首关是否最简单、Boss 是否最高",
+          "value": [
+            {
+              "level": "1-1 教学层",
+              "encounter": "slime×2、bat×1",
+              "reward": "gold×20、item_random×1",
+              "difficulty": "0.5",
+              "unlock": "默认解锁"
+            },
+            {
+              "level": "4-1 精英层",
+              "encounter": "elite_golem×1、slime×2",
+              "reward": "gold×60、enhance_random×1",
+              "difficulty": "1.0",
+              "unlock": "通过 3 层"
+            },
+            {
+              "level": "10-Boss",
+              "encounter": "boss_lich×1（三阶段）",
+              "reward": "gold×200、enhance_rare×1",
+              "difficulty": "1.6",
+              "unlock": "通过 9 层"
+            }
+          ]
+        },
+        {
+          "key": "editor_needs",
+          "label": "编辑器需求",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "每行一个编辑器能力需求：能力名称+支撑的关卡配置场景",
+          "reviewHint": "每条是否对应具体配置场景；是否与关卡模板、首关体验配套",
+          "value": [
+            "节点表：类型 / 难度系数 / 掉落表，支撑分叉图配置",
+            "敌人编队：按层数区间取权重，支持同层随机",
+            "奖励池：按节点类型过滤，支持三选一去重"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "live_ops",
+      "label": "第十九章·运营与活动",
+      "index": 20,
+      "fields": [
+        {
+          "key": "ops_goals",
+          "label": "运营目标",
+          "kind": "textarea",
+          "required": true,
+          "aiDraftable": true,
+          "aiHint": "3-5 条目标，每条：指标 + 目标值 + 时间窗",
+          "reviewHint": "目标是否可量化可采集；是否与数据分析章指标体系一致",
+          "value": "运营目标：上线 3 月 DAU 稳定 20 万；首月付费率 6%；主线第一章通关率 ≥ 70%；月留存 D30 ≥ 18%。"
+        },
+        {
+          "key": "activity_system",
+          "label": "活动体系",
+          "kind": "textarea",
+          "required": true,
+          "aiDraftable": true,
+          "aiHint": "一段概述：活动类型 × 玩法载体 × 奖励的框架与设计原则；具体活动条目走「要点」字段，不要在这里罗列",
+          "reviewHint": "本体是否只讲框架与原则；要点是否覆盖主要活动类型与奖励量级",
+          "value": "活动体系：以「仙侠节气 + 剧情节点」双轴驱动。常驻玩法（秘境 / 论剑）保日常活跃，限时活动（仙缘节 / 渡劫大典）做脉冲拉收，剧情版本（每 6 周一大章）做长线留存。活动奖励与数值章经济产出自洽，不发放破坏战力的数值碾压道具。"
+        },
+        {
+          "key": "activity_system_points",
+          "label": "活动体系·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条：每类活动的类型、玩法载体、奖励量级与刷新周期",
+          "reviewHint": "条目是否可逐条核对；奖励量级是否给数值区间、与经济章产出自洽",
+          "value": [
+            "节气活动：清明 / 中秋等现实节气联动，轻量收集 + 限定时装，周期 2 周",
+            "剧情版本活动：新章上线配套「重温前情 + 前瞻彩蛋」，周期随版本",
+            "竞技活动：论剑大会（赛季制，每 4 周一赛季），奖励段位外观",
+            "社交活动：双修 / 宗门任务，拉动轻社交与回流",
+            "付费活动：限时卡池 UP + 累充礼包，保底与掉率公示"
+          ]
+        },
+        {
+          "key": "activity_system_notes",
+          "label": "活动体系·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "活动排期冲突规避、与商业化章礼包的分工等补充说明，可留空",
+          "reviewHint": "是否只放补充信息，没有把要点又抄一遍",
+          "value": "活动排期用「节气 + 版本」双日历，避免同周叠 2 个脉冲活动；付费活动与常驻经济隔离，防止通货膨胀。"
+        },
+        {
+          "key": "activity_calendar",
+          "label": "活动日历",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "每行一个活动，按时间窗口/活动名/目标/资源位四列填写；至少覆盖上线后 3 个月",
+          "reviewHint": "时间窗口是否互不重叠；资源位是否具体；目标是否与 ops_goals 对得上",
+          "value": [
+            {
+              "window": "上线第 1 月",
+              "name": "开服盛典",
+              "goal": "拉新 + 首充",
+              "placement": "首页 Banner + 推送"
+            },
+            {
+              "window": "上线第 2 月",
+              "name": "仙缘节",
+              "goal": "付费脉冲",
+              "placement": "活动中心 + 邮件"
+            },
+            {
+              "window": "上线第 3 月",
+              "name": "第一章·云海篇",
+              "goal": "剧情版本留存",
+              "placement": "剧情入口 + 首页"
+            },
+            {
+              "window": "持续每 4 周",
+              "name": "论剑大会",
+              "goal": "竞技活跃",
+              "placement": "竞技入口"
+            }
+          ]
+        },
+        {
+          "key": "retention_measures",
+          "label": "留存与拉回手段",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 个手段：每行一个，含触发条件与预期效果",
+          "reviewHint": "手段是否可落地；是否与活动体系、版本节奏互相重复",
+          "value": [
+            "次日回流：离线收益 + 一键追剧情（触发：离线 ≥ 24h，预期回流 +8%）",
+            "7 日防流失：卡关推送「本命功法推荐」+ 免费体力（触发：3 日未通关，预期 D7 +5%）",
+            "月回流：老玩家专属「故人重逢」剧情（触发：月活下降，预期回流 +3%）"
+          ]
+        },
+        {
+          "key": "version_cadence",
+          "label": "版本运营节奏",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "每行一种版本，按版本类型/周期/内容配比三列填写；区分大版本、小版本与热更",
+          "reviewHint": "周期是否与开发里程碑匹配；内容配比是否落到活动日历上",
+          "value": [
+            {
+              "type": "大版本",
+              "cycle": "每 6 周",
+              "mix": "新剧情章 + 新系统 + 新角色"
+            },
+            {
+              "type": "小版本",
+              "cycle": "每 2 周",
+              "mix": "活动 + 平衡性调整 + 修复"
+            },
+            {
+              "type": "热更",
+              "cycle": "按需",
+              "mix": "紧急 Bug / 数值回滚"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "analytics",
+      "label": "第二十章·数据埋点与指标",
+      "index": 21,
+      "fields": [
+        {
+          "key": "metric_system",
+          "label": "指标体系",
+          "kind": "pipeList",
+          "required": true,
+          "aiDraftable": true,
+          "aiHint": "8-12 个指标，每行一个，按指标名/定义/统计口径/目标值四列填写；口径写清统计窗口与去重规则",
+          "reviewHint": "每个指标是否都有目标值；口径是否可复现；是否与运营章 ops_goals 对得上",
+          "value": [
+            {
+              "name": "DAU",
+              "definition": "日活跃用户数",
+              "caliber": "自然日去重，UTC+8 0 点切分",
+              "target": "20 万"
+            },
+            {
+              "name": "付费率",
+              "definition": "当日付费人数 / 当日活跃",
+              "caliber": "自然日，去重",
+              "target": "6%"
+            },
+            {
+              "name": "ARPU",
+              "definition": "日均收入 / 日均活跃",
+              "caliber": "自然日",
+              "target": "¥8"
+            },
+            {
+              "name": "剧情通关率",
+              "definition": "通关第一章人数 / 进入第一章人数",
+              "caliber": "7 日窗口",
+              "target": "≥70%"
+            },
+            {
+              "name": "D30 留存",
+              "definition": "注册 30 日后仍活跃比例",
+              "caliber": "cohort 去重",
+              "target": "≥18%"
+            },
+            {
+              "name": "抽卡 ARPU",
+              "definition": "卡池收入 / 抽卡人数",
+              "caliber": "卡池周期",
+              "target": "¥45"
+            },
+            {
+              "name": "论剑参与率",
+              "definition": "赛季参与论剑人数 / 活跃",
+              "caliber": "赛季",
+              "target": "≥35%"
+            },
+            {
+              "name": "日均时长",
+              "definition": "人均在线时长",
+              "caliber": "自然日",
+              "target": "42 min"
+            }
+          ]
+        },
+        {
+          "key": "key_funnels",
+          "label": "关键漏斗",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：注册→新手→核心行为→付费的链路与每级目标转化率；各级定义走「环节」字段",
+          "reviewHint": "本体是否给出全链路；环节是否覆盖注册到付费、级间是否衔接无断点",
+          "value": "核心漏斗：注册 → 新手引导 → 首场战斗 → 首次抽卡 → 首次付费。各级定义见要点，目标转化率与指标体系对齐。"
+        },
+        {
+          "key": "key_funnels_points",
+          "label": "关键漏斗·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "4-6 个环节：每行一个，含进入条件、流出条件与目标转化率",
+          "reviewHint": "环节是否可逐条核对；每级是否都有目标转化率；事件是否与埋点清单对得上",
+          "value": [
+            "注册→新手引导完成：进入条件=注册成功，目标 ≥ 92%",
+            "新手引导→首场战斗：进入条件=引导完成，目标 ≥ 85%",
+            "首场战斗→首次抽卡：进入条件=战斗胜利，目标 ≥ 60%",
+            "首次抽卡→首次付费：进入条件=抽卡，目标 ≥ 12%",
+            "首日→D7 留存：进入条件=首日活跃，目标 ≥ 25%"
+          ]
+        },
+        {
+          "key": "key_funnels_notes",
+          "label": "关键漏斗·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "分渠道、分版本的漏斗差异等补充说明，可留空",
+          "reviewHint": "是否只放补充信息，没有把环节又抄一遍",
+          "value": "分渠道漏斗差异：买量渠道首充转化偏低，需单独看板。"
+        },
+        {
+          "key": "event_tracking",
+          "label": "埋点清单",
+          "kind": "pipeList",
+          "required": true,
+          "aiDraftable": true,
+          "aiHint": "每行一个事件，按事件名/触发时机/关键参数三列填写；命名统一小写下划线；涉及埋点平台时名称必须真实存在，不确定标『待确认』",
+          "reviewHint": "事件名是否全局唯一不撞车；参数是否含分析所需维度；平台名是否真实或已标待确认",
+          "value": [
+            {
+              "event": "user_register",
+              "trigger": "注册成功",
+              "params": "channel, device_model"
+            },
+            {
+              "event": "combat_win",
+              "trigger": "战斗胜利结算",
+              "params": "level_id, duration, team_power"
+            },
+            {
+              "event": "gacha_draw",
+              "trigger": "抽卡完成",
+              "params": "pool_id, count, is_up"
+            },
+            {
+              "event": "pay_success",
+              "trigger": "支付成功",
+              "params": "order_id, amount, product_id"
+            },
+            {
+              "event": "chapter_clear",
+              "trigger": "章节通关",
+              "params": "chapter_id, time_cost"
+            },
+            {
+              "event": "quest_accept",
+              "trigger": "接取宗门任务",
+              "params": "quest_id, repeat"
+            }
+          ]
+        },
+        {
+          "key": "dashboards",
+          "label": "数据看板",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "每行一个看板，按看板名/使用角色/核心指标/刷新频率四列填写；涉及分析平台时名称必须真实存在，不确定标『待确认』",
+          "reviewHint": "看板是否按角色分层；核心指标是否来自指标体系；平台名是否真实或已标待确认",
+          "value": [
+            {
+              "name": "实时大盘",
+              "audience": "制作人 / 运营",
+              "metrics": "DAU / 付费率 / 收入",
+              "refresh": "5 min"
+            },
+            {
+              "name": "留存看板",
+              "audience": "增长",
+              "metrics": "D1 / D7 / D30",
+              "refresh": "每日"
+            },
+            {
+              "name": "经济监控",
+              "audience": "数值",
+              "metrics": "货币产出 / 消耗 / 通胀",
+              "refresh": "每小时"
+            }
+          ]
+        },
+        {
+          "key": "alert_monitoring",
+          "label": "异常监控",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "每行一个监控项，按监控项/告警阈值/通知方式/响应动作四列填写；告警渠道名称必须真实存在，不确定标『待确认』",
+          "reviewHint": "阈值是否可计算；是否指定通知对象；崩溃、掉率类高危项是否覆盖",
+          "value": [
+            {
+              "item": "崩溃率",
+              "threshold": ">1%",
+              "channel": "企业微信告警群",
+              "response": "10 min 内定位，热更"
+            },
+            {
+              "item": "付费成功率",
+              "threshold": "<95%",
+              "channel": "企业微信告警群",
+              "response": "查支付通道"
+            },
+            {
+              "item": "抽卡掉率偏离",
+              "threshold": "偏离公示 ±20%",
+              "channel": "数值群",
+              "response": "核对保底逻辑"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "qa",
+      "label": "第二十一章·测试与质量保障",
+      "index": 22,
+      "fields": [
+        {
+          "key": "test_strategy",
+          "label": "测试策略",
+          "kind": "textarea",
+          "required": true,
+          "aiDraftable": true,
+          "aiHint": "一段概述：功能/兼容/性能/体验分层测试策略与自动化边界；各层重点走「要点」字段",
+          "reviewHint": "本体是否只讲策略与自动化边界；要点是否覆盖四层且给出各层重点",
+          "value": "分层测试：功能（战斗 / 经济 / 剧情主链路）+ 兼容（机型档位 × OS）+ 性能（帧率 / 内存 / 加载）+ 体验（新手引导 / 操作手感）。自动化覆盖回归与主链路，体验类手工验收。"
+        },
+        {
+          "key": "test_strategy_points",
+          "label": "测试策略·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "4 层：功能、兼容、性能、体验，每行一层，含测试重点与自动化比例",
+          "reviewHint": "条目是否可逐条核对；四层是否齐全；自动化比例是否合理可行",
+          "value": [
+            "功能层：战斗结算 / 抽卡保底 / 经济产消，自动化 70%",
+            "兼容层：高 / 中 / 低三档 × Android / iOS 主流版本，自动化 40%",
+            "性能层：副本峰值 / 大世界同屏，自动化 60%",
+            "体验层：新手引导完成率 / 操作误触，手工 100%"
+          ]
+        },
+        {
+          "key": "test_strategy_notes",
+          "label": "测试策略·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "自动化工具链、测试左移与准入准出规则等补充说明，可留空",
+          "reviewHint": "是否只放补充信息，没有把要点又抄一遍",
+          "value": "测试左移：策划案评审即列验收点；准入=主线通关率 ≥ 70%，准出=无 P0 / P1。"
+        },
+        {
+          "key": "test_cases",
+          "label": "用例范围",
+          "kind": "pipeList",
+          "required": true,
+          "aiDraftable": true,
+          "aiHint": "每行一个模块，按模块/用例数/优先级三列填写；覆盖核心玩法、战斗、经济、UI 等模块",
+          "reviewHint": "模块是否覆盖主要系统；用例数是否与优先级匹配、量级是否合理",
+          "value": [
+            {
+              "module": "战斗",
+              "count": "120",
+              "priority": "P0"
+            },
+            {
+              "module": "抽卡 / 经济",
+              "count": "80",
+              "priority": "P0"
+            },
+            {
+              "module": "剧情",
+              "count": "60",
+              "priority": "P1"
+            },
+            {
+              "module": "UI / 交互",
+              "count": "90",
+              "priority": "P1"
+            },
+            {
+              "module": "联机 / 排行榜",
+              "count": "50",
+              "priority": "P1"
+            }
+          ]
+        },
+        {
+          "key": "acceptance_criteria",
+          "label": "体验验收标准",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条可判定条款，每行一条，必须含数值阈值或明确通过条件，如「新手引导完成率 ≥ 80%」",
+          "reviewHint": "每条是否可判定；是否含数值阈值；是否与数据分析章指标体系对得上",
+          "value": [
+            "新手引导完成率 ≥ 80%",
+            "主线第一章通关率 ≥ 70%",
+            "P0 缺陷数 = 0 方可发版",
+            "中档机 30 分钟平均帧率 ≥ 45fps"
+          ]
+        },
+        {
+          "key": "defect_management",
+          "label": "缺陷管理",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "每行一个缺陷级别，按级别/定义/响应 SLA/修复时限四列填写；一般 3-4 级",
+          "reviewHint": "分级定义是否互不重叠；SLA 是否明确到小时/天；是否含回归验证要求",
+          "value": [
+            {
+              "level": "P0 致命",
+              "definition": "崩溃 / 无法推进主线 / 支付异常",
+              "response_sla": "10 min",
+              "fix_sla": "当日"
+            },
+            {
+              "level": "P1 严重",
+              "definition": "核心玩法异常 / 数据错误",
+              "response_sla": "1 h",
+              "fix_sla": "3 日"
+            },
+            {
+              "level": "P2 一般",
+              "definition": "体验问题 / 显示异常",
+              "response_sla": "1 日",
+              "fix_sla": "7 日"
+            },
+            {
+              "level": "P3 建议",
+              "definition": "优化建议",
+              "response_sla": "评审",
+              "fix_sla": "排期"
+            }
+          ]
+        },
+        {
+          "key": "test_env",
+          "label": "测试环境",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": false,
+          "reviewHint": "机型与系统覆盖是否匹配目标平台；设备采购预算是否人核；网络环境是否含弱网",
+          "value": "测试机型：高（骁龙 8 Gen3 / A17）、中（天玑 8200 / A14）、低（骁龙 6 Gen1 / A12）；含 Android 12–15 与 iOS 16–18；弱网用 100ms / 丢包 5% 模拟。设备采购预算需人核。"
+        },
+        {
+          "key": "prototype_acceptance",
+          "label": "原型验收记录",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "每行一条验收记录：检查项|结果|证据。结果列只填「通过 / 未通过 / 部分通过」三选一；证据写可复核的数值或现象（如「平均 28 秒完成首单」）",
+          "reviewHint": "结果列是否为三选一受控值（其他写法会被校验判为无法识别）；未通过/部分通过是否有证据与跟进计划",
+          "value": [
+            {
+              "check": "首单战斗可完成",
+              "result": "通过",
+              "evidence": "平均 28 秒通关教学战"
+            },
+            {
+              "check": "首次抽卡保底生效",
+              "result": "通过",
+              "evidence": "第 50 抽必出 UP"
+            },
+            {
+              "check": "经济无通胀",
+              "result": "部分通过",
+              "evidence": "需上线后 2 周观测，见跟进"
+            }
+          ]
+        },
+        {
+          "key": "test_case_list",
+          "label": "用例清单（可执行）",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "5-8 条可执行用例，每行「用例|类型（正常/边界/恢复/滥用）|前置|操作|期望|状态（待执行）」；期望必须可判定，状态只填待执行/通过/失败",
+          "reviewHint": "期望是否可判定（不能写「正常」）；是否覆盖边界与异常；是否与验收旅程对得上",
+          "value": [
+            {
+              "case": "战斗结算数值正确",
+              "type": "正常",
+              "precondition": "进入战斗",
+              "action": "释放技能至敌死",
+              "expected": "血量 / 伤害与数值表一致",
+              "status": "待执行"
+            },
+            {
+              "case": "抽卡保底边界",
+              "type": "边界",
+              "precondition": "已抽 49 次",
+              "action": "第 50 抽",
+              "expected": "必出 UP 角色",
+              "status": "待执行"
+            },
+            {
+              "case": "断线重连",
+              "type": "恢复",
+              "precondition": "对局中",
+              "action": "断网 5s 重连",
+              "expected": "状态恢复无丢战",
+              "status": "待执行"
+            },
+            {
+              "case": "重复点击抽卡",
+              "type": "滥用",
+              "precondition": "抽卡界面",
+              "action": "1 秒内连点 10 次",
+              "expected": "仅发起 1 次请求，不重复扣费",
+              "status": "待执行"
+            }
+          ]
+        },
+        {
+          "key": "acceptance_journeys",
+          "label": "验收旅程",
+          "kind": "pipeList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-5 条验收旅程，每行「旅程名|步骤（用 > 串联关键节点）|期望结果」；至少覆盖首次进入、核心循环、失败路径各一条",
+          "reviewHint": "步骤是否可复现；是否覆盖首次体验与失败路径；期望是否与产品目标一致",
+          "value": [
+            {
+              "journey": "首次进入",
+              "steps": "注册 > 引导 > 首战 > 首抽",
+              "expected": "30 min 内到首抽无卡点"
+            },
+            {
+              "journey": "核心循环",
+              "steps": "日常 > 秘境 > 论剑",
+              "expected": "每日 20 min 形成习惯"
+            },
+            {
+              "journey": "失败路径",
+              "steps": "支付失败 > 重试",
+              "expected": "提示清晰可恢复"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "publishing",
+      "label": "第二十二章·上线与发行",
+      "index": 23,
+      "fields": [
+        {
+          "key": "publish_plan",
+          "label": "发行计划",
+          "kind": "textarea",
+          "required": true,
+          "aiDraftable": true,
+          "aiHint": "一段概述：发行节奏与阶段目标；里程碑条目走「要点」字段",
+          "reviewHint": "阶段是否可验证；软启动与全量发行的判定标准是否明确",
+          "value": "发行节奏：先东南亚华语区软启动验证付费与留存，再中国大陆全量（需版号），之后港澳台 / 日韩。阶段里程碑见要点。"
+        },
+        {
+          "key": "publish_plan_points",
+          "label": "发行计划·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条：每条一个发行阶段 + 时间点 + 进入下一阶段的达标线",
+          "reviewHint": "每条是否有时间与可验证达标线；阶段顺序是否合理",
+          "value": [
+            "软启动：T+0 东南亚华语区，达标线 D7 留存 ≥ 20%",
+            "全量（大陆）：T+3M 持版号上线，达标线 首月付费率 ≥ 6%",
+            "港澳台：T+4M，达标线 双端畅销榜 Top50",
+            "日韩：T+6M，达标线 D30 留存 ≥ 15%"
+          ]
+        },
+        {
+          "key": "publish_plan_notes",
+          "label": "发行计划·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "里程碑之外的补充说明，可留空",
+          "reviewHint": "是否只放补充信息，没有把要点又抄一遍",
+          "value": "大陆上线强依赖版号批复，时间表随版号节奏浮动。"
+        },
+        {
+          "key": "channel_strategy",
+          "label": "渠道策略",
+          "kind": "pipeList",
+          "required": true,
+          "aiDraftable": true,
+          "aiHint": "每行一个真实存在的渠道，按渠道|素材要求|分成|预期量级四列填写；渠道名须真实存在，无依据的分成或量级标『待确认』",
+          "reviewHint": "渠道名是否真实存在；四列是否齐全；数字是否有依据或待确认",
+          "value": [
+            {
+              "channel": "App Store",
+              "asset_req": "竖图 / 视频 / 隐私标签",
+              "revenue_share": "30%",
+              "expected_scale": "iOS 30% 量"
+            },
+            {
+              "channel": "Google Play",
+              "asset_req": "AAB / 分级",
+              "revenue_share": "30%",
+              "expected_scale": "海外安卓主渠道"
+            },
+            {
+              "channel": "TapTap",
+              "asset_req": "开发者站 / 评测",
+              "revenue_share": "0%（抽成豁免）",
+              "expected_scale": "核心安卓用户"
+            },
+            {
+              "channel": "应用宝",
+              "asset_req": "版号 / 软著",
+              "revenue_share": "待确认",
+              "expected_scale": "大陆安卓"
+            }
+          ]
+        },
+        {
+          "key": "compliance",
+          "label": "合规要求",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": false,
+          "reviewHint": "版号/分级/隐私政策要点是否齐全；责任人与时间节点是否明确；结论是否经法务确认",
+          "value": "合规：大陆需版号 + 游戏版号备案 + 防沉迷实名；港澳台分级（IOS 分级）；隐私政策含儿童数据条款；责任人与时间节点待法务确认。"
+        },
+        {
+          "key": "marketing_rhythm",
+          "label": "市场宣传",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "按预热/首发/长线三阶段写宣传节奏：各阶段目标、动作、素材与投放渠道",
+          "reviewHint": "三阶段是否齐全；动作是否有时间点；素材是否与渠道策略对应",
+          "value": "预热：上线前 4 周，发 PV 与角色曝光。首发：上线周，KOL 试玩 + 买量。长线：版本节点，剧情 PV + 节气活动联动。"
+        },
+        {
+          "key": "marketing_rhythm_points",
+          "label": "市场宣传·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条，每行一条可核对的要点",
+          "reviewHint": "条目是否具体可核对；与本体的概述是否重复"
+        },
+        {
+          "key": "marketing_rhythm_notes",
+          "label": "市场宣传·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "要点之外的补充说明，可留空",
+          "reviewHint": "是否只放补充信息、没有把要点又抄一遍；该留空时是否确实留空"
+        },
+        {
+          "key": "soft_launch",
+          "label": "软启动方案",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：软启动的地区选择思路与核心观察指标；地区条目与放量标准走「要点」字段",
+          "reviewHint": "本体是否只讲思路；要点是否给出地区、指标与放量标准",
+          "value": "软启动思路：选东南亚华语区（文化近、买量便宜）验证核心指标，放量标准见要点。"
+        },
+        {
+          "key": "soft_launch_points",
+          "label": "软启动方案·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条：每条一个软启动地区 + 观察指标 + 放量（进入全量）标准",
+          "reviewHint": "每条是否有可判定的放量标准；地区选择是否与目标市场一致",
+          "value": [
+            "地区：马来西亚 / 新加坡华语区，观察指标 D7 留存",
+            "地区：港澳台（并行小量），观察指标 付费率",
+            "放量标准：D7 留存 ≥ 20% 且 付费率 ≥ 5% 进入全量"
+          ]
+        },
+        {
+          "key": "soft_launch_notes",
+          "label": "软启动方案·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "软启动风险预案的补充说明，可留空",
+          "reviewHint": "是否只放补充信息，没有把要点又抄一遍",
+          "value": "软启动风险预案：付费异常回滚、localization 漏译热更。"
+        },
+        {
+          "key": "launch_checklist",
+          "label": "上线检查单",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "逐行列出发布前必检项：提包、合规、支付、客服、监控各至少 1 条",
+          "reviewHint": "是否覆盖提包/合规/支付/客服/监控；每条是否可勾选验证",
+          "value": [
+            "提包：双端商店包体 + 热更通道可用",
+            "合规：版号 / 分级 / 隐私政策就位",
+            "支付：双渠道支付联调通过",
+            "客服：FAQ + 工单通道就位",
+            "监控：崩溃 / 付费告警接入"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "performance",
+      "label": "第二十三章·性能与适配",
+      "index": 24,
+      "fields": [
+        {
+          "key": "performance_budget",
+          "label": "性能预算",
+          "kind": "pipeList",
+          "required": true,
+          "aiDraftable": true,
+          "aiHint": "每行一个指标，按指标|目标值|测量方法三列填写；覆盖帧率/内存/包体/加载时长",
+          "reviewHint": "每行是否有目标值与测量方法；指标是否可机测；目标值是否与目标机型匹配",
+          "value": [
+            {
+              "metric": "帧率（中档机）",
+              "target": "≥ 45 fps",
+              "method": "Perfetto 采主城 1 min 平均"
+            },
+            {
+              "metric": "内存峰值",
+              "target": "≤ 1.2 GB",
+              "method": "Android Studio Memory Profiler"
+            },
+            {
+              "metric": "包体（首包）",
+              "target": "≤ 200 MB",
+              "method": "构建产物大小统计"
+            },
+            {
+              "metric": "冷启动",
+              "target": "≤ 3 s",
+              "method": "adb shell am start 计时"
+            },
+            {
+              "metric": "场景加载",
+              "target": "≤ 2 s",
+              "method": "加载完成回调计时"
+            }
+          ]
+        },
+        {
+          "key": "target_devices",
+          "label": "目标机型",
+          "kind": "stringList",
+          "required": true,
+          "aiDraftable": true,
+          "aiHint": "按高/中/低档位列出目标机型系列；只给系列不给具体 SKU，不确定标『待确认』",
+          "reviewHint": "是否按档位覆盖；是否只给系列未写具体 SKU；档位是否与预算匹配",
+          "value": [
+            "高端：骁龙 8 Gen3 / 天玑 9300 / A17 同级",
+            "中端：骁龙 7+ Gen3 / 天玑 8200 / A14 同级",
+            "低端：骁龙 6 Gen1 / A12 同级（保最低可玩）"
+          ]
+        },
+        {
+          "key": "memory_package",
+          "label": "内存与包体",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：内存与包体的总体预算与优化思路；具体预算值与优化手段走「要点」字段",
+          "reviewHint": "本体是否只讲思路；要点是否给出预算值与优化手段",
+          "value": "内存与包体总体预算：首包 ≤ 200MB（资源走按需下载），中档机常驻内存 ≤ 1.2GB，大世界用流式加载控制峰值。"
+        },
+        {
+          "key": "memory_package_points",
+          "label": "内存与包体·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条：每条一项预算（内存峰值/包体大小）+ 优化手段与预期收益",
+          "reviewHint": "每条是否有数值与手段；包体预算是否与渠道限制匹配",
+          "value": [
+            "首包 ≤ 200MB：角色 / 场景分章资源 CDN 按需下发",
+            "常驻内存 ≤ 1.2GB：对象池复用 + 贴图 mipmap 分级",
+            "峰值优化：大世界区块卸载，离开即释放"
+          ]
+        },
+        {
+          "key": "memory_package_notes",
+          "label": "内存与包体·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "资源裁剪、按需下载策略的补充说明，可留空",
+          "reviewHint": "是否只放补充信息，没有把要点又抄一遍",
+          "value": "资源裁剪按中端机基准；高清资源仅高端机下发。"
+        },
+        {
+          "key": "network_adaptation",
+          "label": "网络适配",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：弱网/断网/流量敏感三类场景的适配策略，每类给出兜底方案与降级顺序",
+          "reviewHint": "三类场景是否齐全；弱网是否有降级顺序；是否注明流量敏感点",
+          "value": "弱网：操作请求本地预演 + 服务端对账，断网 5s 内可重连恢复对局；流量敏感：大资源仅 WiFi 下载，蜂窝网下暂停非必要下发。降级顺序：画质→同屏数→特效。"
+        },
+        {
+          "key": "network_adaptation_points",
+          "label": "网络适配·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条，每行一条可核对的要点",
+          "reviewHint": "条目是否具体可核对；与本体的概述是否重复"
+        },
+        {
+          "key": "network_adaptation_notes",
+          "label": "网络适配·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "要点之外的补充说明，可留空",
+          "reviewHint": "是否只放补充信息、没有把要点又抄一遍；该留空时是否确实留空"
+        },
+        {
+          "key": "thermal_power",
+          "label": "发热与耗电",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "一段概述：长时间游玩的温升与功耗控制思路，含限帧/降频/省电模式的触发条件",
+          "reviewHint": "是否有可测的温升或功耗上限；降级策略是否有明确触发条件",
+          "value": "温升控制：中档机连续游玩 30 min 表面温度 ≤ 43°C；触发限帧（45→30fps）与降频，省电模式可手动开。"
+        },
+        {
+          "key": "thermal_power_points",
+          "label": "发热与耗电·要点",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "3-6 条，每行一条可核对的要点",
+          "reviewHint": "条目是否具体可核对；与本体的概述是否重复"
+        },
+        {
+          "key": "thermal_power_notes",
+          "label": "发热与耗电·补充",
+          "kind": "textarea",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "要点之外的补充说明，可留空",
+          "reviewHint": "是否只放补充信息、没有把要点又抄一遍；该留空时是否确实留空"
+        },
+        {
+          "key": "compat_matrix",
+          "label": "兼容测试矩阵",
+          "kind": "stringList",
+          "required": false,
+          "aiDraftable": true,
+          "aiHint": "每行一组兼容用例：OS 版本 × 机型档位 × 必测用例；机型只给档位不给具体 SKU",
+          "reviewHint": "OS 版本与机型档位是否交叉覆盖；必测用例是否可执行",
+          "value": [
+            "Android 12 × 中端 × 主流程 + 战斗",
+            "Android 14 × 高端 × 大世界同屏",
+            "iOS 16 × 中端 × 抽卡 / 支付",
+            "iOS 18 × 低端 × 冷启动"
+          ]
+        }
+      ]
+    }
+  ],
+  "validation": {
+    "errorCount": 0,
+    "errors": []
+  }
+}

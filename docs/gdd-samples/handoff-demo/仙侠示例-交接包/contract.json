@@ -1,0 +1,163 @@
+{
+  "schemaVersion": "1.0",
+  "rulesetId": "ceshu-34a02196",
+  "gameName": "仙侠示例",
+  "scope": "full",
+  "parameters": [
+    {
+      "key": "攻击力",
+      "value": 120,
+      "pending": false
+    },
+    {
+      "key": "防御力",
+      "value": 60,
+      "pending": false
+    },
+    {
+      "key": "暴击率",
+      "value": 15,
+      "pending": false
+    },
+    {
+      "key": "暴击伤害",
+      "value": 150,
+      "pending": false
+    },
+    {
+      "key": "生命值",
+      "value": 800,
+      "pending": false
+    },
+    {
+      "key": "经验需求基数",
+      "value": 80,
+      "pending": false
+    },
+    {
+      "key": "成长系数",
+      "value": 0.08,
+      "pending": false
+    },
+    {
+      "key": "普通怪掉落率",
+      "value": 30,
+      "pending": false
+    },
+    {
+      "key": "强化成功率",
+      "value": 80,
+      "pending": false
+    },
+    {
+      "key": "体力恢复",
+      "value": 1,
+      "pending": false
+    }
+  ],
+  "assertions": [
+    {
+      "id": "A1",
+      "statement": "满级经验需求",
+      "expression": "80 * 99 ^ 1.5",
+      "expected": "约 78800",
+      "tolerance": "5",
+      "accept": "between 74000-82000",
+      "status": "pass",
+      "computed": 78803.0050188443
+    },
+    {
+      "id": "A2",
+      "statement": "暴击期望倍率",
+      "expression": "1 + 1.5 * 0.15",
+      "expected": "1.225",
+      "tolerance": "0.01",
+      "accept": "between 1.21-1.24",
+      "status": "pass",
+      "computed": 1.225
+    },
+    {
+      "id": "A3",
+      "statement": "同级怪 TTK（秒）",
+      "expression": "800 / (120 - 60 * 0.6)",
+      "expected": "约 9.52",
+      "tolerance": "0.5",
+      "accept": "between 9-10",
+      "status": "pass",
+      "computed": 9.523809523809524
+    },
+    {
+      "id": "A4",
+      "statement": "强化一次期望消耗",
+      "expression": "100 / 0.8",
+      "expected": "125",
+      "tolerance": "5",
+      "accept": "between 120-130",
+      "status": "pass",
+      "computed": 125
+    }
+  ],
+  "prototype": {
+    "checks": [
+      {
+        "check": "首单战斗可完成",
+        "result": "通过",
+        "evidence": "平均 28 秒通关教学战",
+        "passed": true
+      },
+      {
+        "check": "首次抽卡保底生效",
+        "result": "通过",
+        "evidence": "第 50 抽必出 UP",
+        "passed": true
+      },
+      {
+        "check": "经济无通胀",
+        "result": "部分通过",
+        "evidence": "需上线后 2 周观测，见跟进",
+        "passed": false
+      }
+    ],
+    "allPassed": false
+  },
+  "journeys": [
+    {
+      "journey": "首次进入",
+      "steps": "注册 > 引导 > 首战 > 首抽",
+      "expected": "30 min 内到首抽无卡点"
+    },
+    {
+      "journey": "核心循环",
+      "steps": "日常 > 秘境 > 论剑",
+      "expected": "每日 20 min 形成习惯"
+    },
+    {
+      "journey": "失败路径",
+      "steps": "支付失败 > 重试",
+      "expected": "提示清晰可恢复"
+    }
+  ],
+  "testCases": [
+    {
+      "name": "战斗结算数值正确",
+      "type": "正常",
+      "status": "待执行"
+    },
+    {
+      "name": "抽卡保底边界",
+      "type": "边界",
+      "status": "待执行"
+    },
+    {
+      "name": "断线重连",
+      "type": "恢复",
+      "status": "待执行"
+    },
+    {
+      "name": "重复点击抽卡",
+      "type": "滥用",
+      "status": "待执行"
+    }
+  ],
+  "evidence": []
+}

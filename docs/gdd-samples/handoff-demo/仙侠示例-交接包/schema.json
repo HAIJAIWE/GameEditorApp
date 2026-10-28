@@ -1,0 +1,145 @@
+{
+  "schema": "mb-type-schema/v1",
+  "types": [
+    {
+      "id": "equipment",
+      "name": "equipment",
+      "pluralKey": "equipments",
+      "color": "#2196F3",
+      "formFields": [
+        {
+          "name": "id",
+          "label": "ID:",
+          "type": "entry",
+          "editable": false
+        },
+        {
+          "name": "name",
+          "label": "name:",
+          "type": "entry",
+          "editable": true
+        },
+        {
+          "name": "attack",
+          "label": "attack:",
+          "type": "spinbox",
+          "editable": true
+        },
+        {
+          "name": "defense",
+          "label": "defense:",
+          "type": "spinbox",
+          "editable": true
+        }
+      ]
+    },
+    {
+      "id": "skill",
+      "name": "skill",
+      "pluralKey": "skills",
+      "color": "#4CAF50",
+      "formFields": [
+        {
+          "name": "id",
+          "label": "ID:",
+          "type": "entry",
+          "editable": false
+        },
+        {
+          "name": "name",
+          "label": "name:",
+          "type": "entry",
+          "editable": true
+        },
+        {
+          "name": "damage_rate",
+          "label": "damage_rate:",
+          "type": "spinbox",
+          "editable": true
+        },
+        {
+          "name": "cooldown",
+          "label": "cooldown:",
+          "type": "spinbox",
+          "editable": true
+        }
+      ]
+    },
+    {
+      "id": "enemy",
+      "name": "enemy",
+      "pluralKey": "enemys",
+      "color": "#FF9800",
+      "formFields": [
+        {
+          "name": "id",
+          "label": "ID:",
+          "type": "entry",
+          "editable": false
+        },
+        {
+          "name": "name",
+          "label": "name:",
+          "type": "entry",
+          "editable": true
+        },
+        {
+          "name": "hp",
+          "label": "hp:",
+          "type": "spinbox",
+          "editable": true
+        },
+        {
+          "name": "attack",
+          "label": "attack:",
+          "type": "spinbox",
+          "editable": true
+        },
+        {
+          "name": "ai_type",
+          "label": "ai_type:",
+          "type": "entry",
+          "editable": true
+        }
+      ]
+    },
+    {
+      "id": "level",
+      "name": "level",
+      "pluralKey": "levels",
+      "color": "#9C27B0",
+      "formFields": [
+        {
+          "name": "id",
+          "label": "ID:",
+          "type": "entry",
+          "editable": false
+        },
+        {
+          "name": "name",
+          "label": "名称:",
+          "type": "entry",
+          "editable": true
+        },
+        {
+          "name": "enemies",
+          "label": "enemies:",
+          "type": "entry",
+          "editable": true
+        },
+        {
+          "name": "reward",
+          "label": "reward:",
+          "type": "entry",
+          "editable": true
+        },
+        {
+          "name": "difficulty",
+          "label": "difficulty:",
+          "type": "spinbox",
+          "editable": true
+        }
+      ]
+    }
+  ]
+}

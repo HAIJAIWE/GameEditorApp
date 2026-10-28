@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>深潮灯塔 · Abyssal Beacon</title>
+<style>
+  :root { --bg:#07131f; --panel:#0d2233; --line:#1d3b52; --text:#dff3ff; --muted:#7fa6bd; --accent:#4cc9f0; --danger:#e07a5f; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:radial-gradient(1200px 600px at 50% -10%, #0b2a3f, var(--bg)); color:var(--text); font:14px/1.5 "Microsoft YaHei","PingFang SC",system-ui,sans-serif; }
+  #app { display:flex; gap:12px; padding:16px; max-width:1044px; margin:0 auto; align-items:flex-start; }
+  #stage { position:relative; }
+  canvas { display:block; border-radius:12px; border:1px solid var(--line); background:#04101a; cursor:crosshair; }
+  #hud { width:212px; display:flex; flex-direction:column; gap:10px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:10px; }
+  .row { display:flex; justify-content:space-between; gap:8px; padding:1px 0; }
+  .k { color:var(--muted); }
+  .v { font-weight:700; font-variant-numeric:tabular-nums; }
+  .tower-btn { width:100%; text-align:left; background:#10293c; color:var(--text); border:1px solid var(--line); border-radius:8px; padding:8px; margin-bottom:6px; cursor:pointer; }
+  .tower-btn:hover { border-color:var(--accent); }
+  .tower-btn.active { outline:2px solid var(--accent); background:#163a52; }
+  .tower-btn small { color:var(--muted); display:block; font-size:12px; }
+  .btn { background:#16374d; color:var(--text); border:1px solid var(--line); border-radius:8px; padding:6px 8px; cursor:pointer; }
+  .btn:hover { border-color:var(--accent); }
+  .btn:disabled { opacity:.45; cursor:not-allowed; }
+  .debug { display:flex; gap:6px; flex-wrap:wrap; }
+  .legend { color:var(--muted); font-size:12px; }
+  #overlay { position:absolute; inset:0; display:none; place-items:center; background:rgba(2,10,18,.8); border-radius:12px; }
+  #overlay.show { display:grid; }
+  #overlay .box { text-align:center; padding:24px 32px; }
+  #overlay h1 { margin:0 0 8px; font-size:28px; }
+  #overlay p { margin:0 0 16px; color:var(--muted); }
+  #hint { position:absolute; left:12px; bottom:12px; color:var(--muted); font-size:12px; background:rgba(4,16,26,.7); padding:4px 8px; border-radius:6px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+    <canvas id="cv" width="800" height="480"></canvas>
+    <div id="hint">选塔 → 点空地建造 · 点塔可升级/拆除</div>
+    <div id="overlay"><div class="box"><h1 id="ov-title"></h1><p id="ov-sub"></p><button class="btn" id="ov-btn">再来一局</button></div></div>
+  </div>
+  <aside id="hud">
+    <div class="card">
+      <div class="row"><span class="k">波次</span><span class="v"><span id="wave">0</span> / 20</span></div>
+      <div class="row"><span class="k">灯塔耐久</span><span class="v" id="hp">20</span></div>
+      <div class="row"><span class="k">生物质</span><span class="v" id="gold">150</span></div>
+      <div class="row"><span class="k">状态</span><span class="v" id="status">准备</span></div>
+    </div>
+    <div class="card">
+      <div class="k" style="margin-bottom:6px">建造（选一种，点空地）</div>
+      <button class="tower-btn" data-type="beacon"><b>探照灯</b> · 50<small>单体高伤，甲壳减伤 40%</small></button>
+      <button class="tower-btn" data-type="sonar"><b>声呐塔</b> · 45<small>范围伤害 + 减速 30%</small></button>
+      <button class="tower-btn" data-type="corrosive"><b>腐蚀塔</b> · 55<small>直伤 + 持续伤害（无视护甲）</small></button>
+    </div>
+    <div class="card" id="sel" style="display:none">
+      <div class="row"><span class="k">选中</span><span class="v" id="sel-name"></span></div>
+      <div class="row"><span class="k">等级</span><span class="v" id="sel-lv"></span></div>
+      <div class="row"><span class="k">DPS</span><span class="v" id="sel-dps"></span></div>
+      <div class="debug" style="margin-top:8px">
+        <button class="btn" id="btn-up">升级</button>
+        <button class="btn" id="btn-sell">拆除</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="k" style="margin-bottom:6px">调试</div>
+      <div class="debug">
+        <button class="btn" data-speed="1">×1</button>
+        <button class="btn" data-speed="2">×2</button>
+        <button class="btn" data-speed="5">×5</button>
+        <button class="btn" id="btn-gold">+100</button>
+        <button class="btn" id="btn-reset">重置</button>
+      </div>
+    </div>
+    <div class="legend">规则集 <b>abyssal-beacon-v1</b><br>单文件 Demo · 与 GDD 共用同一套常量</div>
+  </aside>
+</div>
+<script>
+'use strict';
+
+/* ================= 规则集（GDD 与 Demo 的唯一数值源） ================= */
+const RULES = {
+  ruleset_id: 'abyssal-beacon-v1',
+  grid: { cols: 20, rows: 12, cell: 40 },
+  lighthouseHp: 20,
+  startBiomass: 150,
+  hpBase: 18, hpGrowth: 1.16,
+  goldBase: 2, goldGrowth: 1.08,
+  waveBonusBase: 8, waveBonusPerWave: 2,
+  maxWave: 20,
+  towers: {
+    beacon:    { name:'探照灯', cost:50, dmg:15, range:2.5, rate:1.0, color:'#ffd166' },
+    sonar:     { name:'声呐塔', cost:45, dmg:6,  range:2.0, rate:1.0, color:'#4cc9f0', slow:0.30, slowDur:1.2 },
+    corrosive: { name:'腐蚀塔', cost:55, dmg:8,  range:2.2, rate:1.0, color:'#9b5de5', dotDps:10, dotDur:2 }
+  },
+  upgrade: { costMul:1.6, dmgMul:1.5, maxLevel:3 },
+  enemies: {
+    drifter:  { name:'浮游体', hpMul:1,   speed:1.2, armor:0,   goldMul:1,   leak:1, color:'#a8dadc' },
+    carapace: { name:'甲壳兽', hpMul:3,   speed:0.6, armor:0.4, goldMul:3,   leak:3, color:'#e07a5f' },
+    moth:     { name:'灯蛾',   hpMul:0.6, speed:2.0, armor:0,   goldMul:1.2, leak:2, color:'#f4f1de' }
+  }
+};
+
+const CELL = RULES.grid.cell;
+const COLS = RULES.grid.cols, ROWS = RULES.grid.rows;
+const PATH_CELLS = [[0,6],[5,6],[5,2],[12,2],[12,9],[18,9],[18,5],[20,5]];
+const pathPx = PATH_CELLS.map(([x,y]) => ({ x:(x+0.5)*CELL, y:(y+0.5)*CELL }));
+const segLen = []; let pathLen = 0;
+for (let i=1;i<pathPx.length;i++){ const d=Math.hypot(pathPx[i].x-pathPx[i-1].x, pathPx[i].y-pathPx[i-1].y); segLen.push(d); pathLen+=d; }
+
+function pointAt(dist){
+  let d = Math.max(0, Math.min(dist, pathLen));
+  for (let i=0;i<segLen.length;i++){
+    if (d <= segLen[i]) { const t = segLen[i]===0?0:d/segLen[i]; const a=pathPx[i], b=pathPx[i+1]; return { x:a.x+(b.x-a.x)*t, y:a.y+(b.y-a.y)*t }; }
+    d -= segLen[i];
+  }
+  return { ...pathPx[pathPx.length-1] };
+}
+
+// 路径覆盖的格子（塔不能建在路上）
+const pathCells = new Set();
+for (let d=0; d<=pathLen; d+=3){ const p=pointAt(d); pathCells.add(`${Math.floor(p.x/CELL)},${Math.floor(p.y/CELL)}`); }
+
+const hpOf = w => Math.ceil(RULES.hpBase * Math.pow(RULES.hpGrowth, w-1));
+const goldOf = w => Math.ceil(RULES.goldBase * Math.pow(RULES.goldGrowth, w-1));
+const upgradeCost = (t) => Math.ceil(RULES.towers[t.type].cost * Math.pow(RULES.upgrade.costMul, t.level-1));
+const levelMul = lv => Math.pow(RULES.upgrade.dmgMul, lv-1);
+
+/* ================= 状态 ================= */
+let S = null;
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+
+function reset(){
+  S = {
+    wave: 0, hp: RULES.lighthouseHp, biomass: RULES.startBiomass,
+    towers: [], enemies: [], queue: [], waveTime: 0, between: 1.2,
+    time: 0, speed: 1, selected: null, buildType: null, over: false, waveActive: false,
+    flashes: []
+  };
+  document.getElementById('overlay').classList.remove('show');
+  setStatus('准备');
+  syncHud();
+}
+
+function setStatus(text){ document.getElementById('status').textContent = text; }
+
+function syncHud(){
+  document.getElementById('wave').textContent = S.wave;
+  document.getElementById('hp').textContent = S.hp;
+  document.getElementById('gold').textContent = Math.floor(S.biomass);
+  const sel = S.selected !== null ? S.towers[S.selected] : null;
+  const box = document.getElementById('sel');
+  if (sel) {
+    box.style.display = 'block';
+    const t = RULES.towers[sel.type];
+    document.getElementById('sel-name').textContent = t.name;
+    document.getElementById('sel-lv').textContent = sel.level + (sel.level>=RULES.upgrade.maxLevel?'（满）':'');
+    document.getElementById('sel-dps').textContent = (t.dmg*levelMul(sel.level)).toFixed(0);
+    const up = document.getElementById('btn-up');
+    up.disabled = sel.level >= RULES.upgrade.maxLevel || S.biomass < upgradeCost(sel);
+    up.textContent = sel.level >= RULES.upgrade.maxLevel ? '已满级' : `升级 · ${upgradeCost(sel)}`;
+  } else {
+    box.style.display = 'none';
+  }
+}
+
+/* ================= 波次 ================= */
+function waveGroups(w){
+  const groups = [];
+  groups.push({ type:'drifter', count: 4 + Math.floor(w*0.4), gap:0.55 });
+  if (w >= 4) groups.push({ type:'carapace', count: Math.floor(w/4), gap:1.2 });
+  if (w >= 8) groups.push({ type:'moth', count: Math.floor(w/6), gap:0.35 });
+  return groups;
+}
+
+function startWave(){
+  S.wave += 1;
+  S.waveActive = true;
+  S.waveTime = 0;
+  S.queue = [];
+  let t = 0;
+  for (const g of waveGroups(S.wave)){
+    for (let i=0;i<g.count;i++){ S.queue.push({ type:g.type, at:t }); t += g.gap; }
+  }
+  setStatus(`第 ${S.wave} 波`);
+  syncHud();
+}
+
+function spawnEnemy(type){
+  const e = RULES.enemies[type];
+  const maxHp = Math.ceil(hpOf(S.wave) * e.hpMul);
+  S.enemies.push({
+    type, maxHp, hp:maxHp, speed:e.speed, armor:e.armor,
+    progress:0, slowUntil:-1, slowAmt:0, dots:[], gold: Math.ceil(goldOf(S.wave) * e.goldMul), leak:e.leak
+  });
+}
+
+/* ================= 更新 ================= */
+function update(dt){
+  if (S.over) return;
+  S.time += dt;
+
+  // 波间倒计时
+  if (!S.waveActive){
+    if (S.wave >= RULES.maxWave){ win(); return; }
+    S.between -= dt;
+    if (S.between <= 0){ startWave(); }
+    else { setStatus(`下一波 ${S.between.toFixed(1)}s`); }
+    return;
+  }
+
+  // 生成
+  S.waveTime += dt;
+  while (S.queue.length && S.queue[0].at <= S.waveTime){ spawnEnemy(S.queue.shift().type); }
+
+  // 敌人推进 + DoT
+  for (const en of S.enemies){
+    for (const dot of en.dots){ en.hp -= dot.dps * dt; }
+    en.dots = en.dots.filter(d => d.until > S.time);
+    if (en.hp <= 0) continue;
+    const slow = en.slowUntil > S.time ? (1 - en.slowAmt) : 1;
+    en.progress += en.speed * CELL * slow * dt;
+  }
+
+  // 塔攻击
+  for (const tw of S.towers){
+    tw.cd -= dt;
+    if (tw.cd > 0) continue;
+    const t = RULES.towers[tw.type];
+    const rangePx = t.range * CELL;
+    const cx = (tw.cx+0.5)*CELL, cy = (tw.cy+0.5)*CELL;
+    const inRange = S.enemies.filter(en => en.hp > 0 && Math.hypot(en.progressX-cx, en.progressY-cy) <= rangePx);
+    if (!inRange.length) continue;
+    tw.cd = 1 / t.rate;
+    const dmg = t.dmg * levelMul(tw.level);
+
+    if (tw.type === 'sonar'){
+      for (const en of inRange){
+        en.hp -= dmg * (1 - en.armor);
+        en.slowUntil = S.time + t.slowDur; en.slowAmt = t.slow;
+      }
+      S.flashes.push({ x:cx, y:cy, r:rangePx, until:S.time+0.12, color:t.color });
+    } else {
+      // 选最靠近灯塔的目标
+      const target = inRange.reduce((a,b)=> a.progress > b.progress ? a : b);
+      target.hp -= dmg * (1 - target.armor);
+      if (tw.type === 'corrosive') target.dots.push({ dps: t.dotDps*levelMul(tw.level), until: S.time + t.dotDur });
+      S.flashes.push({ x:cx, y:cy, tx:target.progressX, ty:target.progressY, until:S.time+0.1, color:t.color });
+    }
+  }
+
+  // 结算击杀 / 漏怪
+  const keep = [];
+  for (const en of S.enemies){
+    if (en.hp <= 0){ S.biomass += en.gold; continue; }
+    if (en.progress >= pathLen){ S.hp -= en.leak; continue; }
+    const p = pointAt(en.progress); en.progressX = p.x; en.progressY = p.y;
+    keep.push(en);
+  }
+  S.enemies = keep;
+  S.flashes = S.flashes.filter(f => f.until > S.time);
+
+  if (S.hp <= 0){ lose(); return; }
+
+  // 波清
+  if (!S.queue.length && !S.enemies.length){
+    S.waveActive = false;
+    const bonus = RULES.waveBonusBase + RULES.waveBonusPerWave * S.wave;
+    S.biomass += bonus;
+    if (S.wave >= RULES.maxWave){ win(); return; }
+    S.between = 2.5;
+    setStatus(`第 ${S.wave} 波清除 · +${bonus}`);
+  }
+  syncHud();
+}
+
+function win(){ S.over = true; showOverlay('灯塔守住了', `20 波全部清除 · 剩余耐久 ${S.hp}/20`); }
+function lose(){ S.over = true; S.hp = 0; showOverlay('灯塔熄灭', `坚持到第 ${S.wave} 波`); }
+function showOverlay(title, sub){
+  document.getElementById('ov-title').textContent = title;
+  document.getElementById('ov-sub').textContent = sub;
+  document.getElementById('overlay').classList.add('show');
+}
+
+/* ================= 渲染 ================= */
+function draw(){
+  ctx.clearRect(0,0,cv.width,cv.height);
+
+  // 网格
+  ctx.strokeStyle = 'rgba(76,201,240,.07)'; ctx.lineWidth = 1;
+  for (let x=0;x<=COLS;x++){ ctx.beginPath(); ctx.moveTo(x*CELL,0); ctx.lineTo(x*CELL,ROWS*CELL); ctx.stroke(); }
+  for (let y=0;y<=ROWS;y++){ ctx.beginPath(); ctx.moveTo(0,y*CELL); ctx.lineTo(COLS*CELL,y*CELL); ctx.stroke(); }
+
+  // 路径
+  ctx.strokeStyle = 'rgba(76,201,240,.22)'; ctx.lineWidth = CELL*0.72; ctx.lineCap='round'; ctx.lineJoin='round';
+  ctx.beginPath(); ctx.moveTo(pathPx[0].x, pathPx[0].y);
+  for (let i=1;i<pathPx.length;i++) ctx.lineTo(pathPx[i].x, pathPx[i].y);
+  ctx.stroke();
+
+  // 灯塔
+  const lh = pathPx[pathPx.length-1];
+  ctx.fillStyle = '#ffd166'; ctx.beginPath(); ctx.arc(lh.x, lh.y, 14, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,209,102,.18)'; ctx.beginPath(); ctx.arc(lh.x, lh.y, 26, 0, Math.PI*2); ctx.fill();
+
+  // 选中/建造范围
+  const sel = S.selected !== null ? S.towers[S.selected] : null;
+  if (sel){
+    const t = RULES.towers[sel.type];
+    ctx.strokeStyle = 'rgba(76,201,240,.6)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc((sel.cx+0.5)*CELL, (sel.cy+0.5)*CELL, t.range*CELL, 0, Math.PI*2); ctx.stroke();
+  }
+
+  // 塔
+  for (let i=0;i<S.towers.length;i++){
+    const tw = S.towers[i]; const t = RULES.towers[tw.type];
+    const x=(tw.cx+0.5)*CELL, y=(tw.cy+0.5)*CELL;
+    ctx.fillStyle = t.color; ctx.beginPath(); ctx.arc(x,y,12,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#04101a'; ctx.font='bold 11px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(String(tw.level), x, y);
+    if (i === S.selected){ ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(x,y,15,0,Math.PI*2); ctx.stroke(); }
+  }
+
+  // 攻击闪光
+  for (const f of S.flashes){
+    ctx.strokeStyle = f.color; ctx.globalAlpha = 0.7;
+    if (f.tx !== undefined){ ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(f.x,f.y); ctx.lineTo(f.tx,f.ty); ctx.stroke(); }
+    else { ctx.lineWidth=2; ctx.beginPath(); ctx.arc(f.x,f.y,f.r,0,Math.PI*2); ctx.stroke(); }
+    ctx.globalAlpha = 1;
+  }
+
+  // 敌人
+  for (const en of S.enemies){
+    if (en.progressX === undefined) continue;
+    const e = RULES.enemies[en.type];
+    ctx.fillStyle = e.color; ctx.beginPath(); ctx.arc(en.progressX, en.progressY, 8, 0, Math.PI*2); ctx.fill();
+    if (en.slowUntil > S.time){ ctx.strokeStyle='#4cc9f0'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(en.progressX,en.progressY,10,0,Math.PI*2); ctx.stroke(); }
+    // HP 条
+    const w=22, h=3, x=en.progressX-w/2, y=en.progressY-14;
+    ctx.fillStyle='rgba(0,0,0,.5)'; ctx.fillRect(x,y,w,h);
+    ctx.fillStyle='#7ee081'; ctx.fillRect(x,y,w*Math.max(0,en.hp/en.maxHp),h);
+  }
+}
+
+/* ================= 主循环 ================= */
+let last = 0;
+function frame(ts){
+  if (!last) last = ts;
+  let dt = Math.min(0.05, (ts - last) / 1000);
+  last = ts;
+  dt *= S.speed;
+  update(dt);
+  draw();
+  requestAnimationFrame(frame);
+}
+
+/* ================= 交互 ================= */
+cv.addEventListener('click', (ev) => {
+  if (S.over) return;
+  const rect = cv.getBoundingClientRect();
+  const x = (ev.clientX - rect.left) * (cv.width / rect.width);
+  const y = (ev.clientY - rect.top) * (cv.height / rect.height);
+  const cx = Math.floor(x / CELL), cy = Math.floor(y / CELL);
+  if (cx < 0 || cy < 0 || cx >= COLS || cy >= ROWS) return;
+
+  // 先看是否点到已有塔
+  const idx = S.towers.findIndex(t => t.cx === cx && t.cy === cy);
+  if (idx >= 0){ S.selected = idx; S.buildType = null; syncButtons(); syncHud(); return; }
+
+  // 建造
+  if (S.buildType){
+    const t = RULES.towers[S.buildType];
+    if (pathCells.has(`${cx},${cy}`)) { setStatus('不能建在路径上'); return; }
+    if (S.biomass < t.cost) { setStatus('生物质不足'); return; }
+    S.biomass -= t.cost;
+    S.towers.push({ type:S.buildType, cx, cy, level:1, cd:0 });
+    S.buildType = null; syncButtons(); syncHud();
+    return;
+  }
+  S.selected = null; syncHud();
+});
+
+document.querySelectorAll('.tower-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    S.buildType = S.buildType === btn.dataset.type ? null : btn.dataset.type;
+    S.selected = null;
+    syncButtons(); syncHud();
+  });
+});
+function syncButtons(){
+  document.querySelectorAll('.tower-btn').forEach(b => b.classList.toggle('active', b.dataset.type === S.buildType));
+}
+
+document.getElementById('btn-up').addEventListener('click', () => {
+  const tw = S.selected !== null ? S.towers[S.selected] : null;
+  if (!tw || tw.level >= RULES.upgrade.maxLevel) return;
+  const cost = upgradeCost(tw);
+  if (S.biomass < cost) return;
+  S.biomass -= cost; tw.level += 1; syncHud();
+});
+
+document.getElementById('btn-sell').addEventListener('click', () => {
+  const tw = S.selected !== null ? S.towers[S.selected] : null;
+  if (!tw) return;
+  let invested = RULES.towers[tw.type].cost;
+  for (let l=1;l<tw.level;l++) invested += Math.ceil(RULES.towers[tw.type].cost * Math.pow(RULES.upgrade.costMul, l));
+  S.biomass += Math.floor(invested * 0.5);
+  S.towers.splice(S.selected, 1); S.selected = null; syncHud();
+});
+
+document.querySelectorAll('[data-speed]').forEach(btn => {
+  btn.addEventListener('click', () => { S.speed = Number(btn.dataset.speed); });
+});
+document.getElementById('btn-gold').addEventListener('click', () => { S.biomass += 100; syncHud(); });
+document.getElementById('btn-reset').addEventListener('click', () => { reset(); });
+document.getElementById('ov-btn').addEventListener('click', () => { reset(); });
+
+/* ================= 测试/调试钩子（只读状态，供无头验收使用） ================= */
+window.__abyss = { RULES, get state(){ return S; }, hpOf, goldOf };
+
+/* ================= 启动 ================= */
+reset(); // reset 内部已设 between=1.2（开局/重开都有 1.2s 缓冲）
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
