@@ -15,6 +15,7 @@ import { AgentBrainService, createDispatcherToolRunner } from './agent/brainServ
 import { OperationLogStore } from './agent/operationLogStore'
 import { createRecordingToolRunner } from './agent/operationRecorder'
 import { createRollbackSkill } from './agent/skills/rollbackSkill'
+import { mcpManager } from './agent/mcp/manager'
 import { AgentMemoryStore } from './agent/memoryStore'
 import { createOllamaEmbeddingProvider } from './agent/embedding'
 import { createPersonalizationStores } from './agent/preferenceStore'
@@ -88,6 +89,8 @@ export function buildStores(libDir: string): AppStores {
   // 会话级回滚（E3）：日志 + 回滚技能，记录器包在 runner 上（Agent 改数据的唯一漏斗）
   const operationLog = new OperationLogStore()
   dispatcher.register(createRollbackSkill({ operationLog, dataService: data }))
+  // MCP 工具（若已连接）：注册进本库的 dispatcher。连接是应用级的，注册是库级的。
+  mcpManager.attach(dispatcher)
   const runner = createRecordingToolRunner(createDispatcherToolRunner(dispatcher), {
     operationLog,
     listItems: () => data.listAllItems()

@@ -10,6 +10,7 @@ import { LibraryManager } from './library/manager'
 import { migrateFlatToLibraries } from './library/migrate'
 import { INITIAL_LIBRARY_NAME } from './library/store'
 import { buildStores, type AppStores } from './stores'
+import { mcpManager } from './agent/mcp/manager'
 import { getSecretStore } from './settings/secretStoreInstance'
 import { disposeTray, registerShortcuts, setupTray, unregisterShortcuts } from './tray'
 import { DEFAULT_WINDOW_STATE, fitBoundsToDisplays, readWindowState, writeWindowState } from './windowState'
@@ -237,6 +238,10 @@ app.whenReady().then(async () => {
   const libraryManager = new LibraryManager(userDataDir)
   await libraryManager.ensureReady()
   activateLibrary(libraryManager)
+
+  // MCP（Slice 18）：应用级连接一次；有 userData/mcp.json 才启用，无则静默不启用。
+  // 连接是异步的，完成后 mcpManager 会把工具注册进当前库的 dispatcher（见 stores.ts）。
+  void mcpManager.connectFromFile(join(userDataDir, 'mcp.json'))
 
   createWindow()
 
