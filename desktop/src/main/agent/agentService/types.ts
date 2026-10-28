@@ -9,6 +9,7 @@ import type {
   BrainInteractionResponder,
   BrainLlmTransport,
   BrainToolRunner,
+  PreExecReviewFn,
   SandboxPolicy,
   SubAgentProvider
 } from '../../../shared/agent/brain'
@@ -44,6 +45,12 @@ export interface AgentChatOptions {
   onEvent?: (event: BrainEvent) => void
   /** 本次调用的危险操作审批（优先于构造时的缺省审批） */
   requestApproval?: BrainApprover
+  /**
+   * 本次调用的**执行预审**（#27，缺省走 `deps.preExecReview`）。
+   * 渲染层无法跨 IPC 传函数，故通常由主进程经 `deps.preExecReview` 注入；
+   * 预留此覆盖位以便测试与未来前端直传。
+   */
+  preExecReview?: PreExecReviewFn
   /** 技能交互（确认/提问）答复通道 */
   requestInteraction?: BrainInteractionResponder
   /** 审批请求 id 生成器（与 broker 配对） */
@@ -76,6 +83,12 @@ export interface AgentBrainServiceDeps {
   wallClockMs?: number
   /** 危险操作审批回调（A1-4 接入；缺省 → 危险操作一律拒绝） */
   requestApproval?: BrainApprover
+  /**
+   * **执行预审**（#27）：工具执行前的模型/规则预审钩子，缺省不挂。
+   * 只收紧不放开——`approve:false` 直接 [STOP]（见 `PreExecReviewFn`）。
+   * 渲染层插件的开关经 IPC `agent:setPreReviewEnabled` 在主进程侧装配为 provider。
+   */
+  preExecReview?: PreExecReviewFn
   /** 会话持久化（A1-3）；缺省不落盘 */
   sessionStore?: AgentSessionStore
   /** 语义记忆（A1-3）；缺省不检索也不回写 */

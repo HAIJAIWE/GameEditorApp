@@ -41,6 +41,12 @@ export interface MbApi {
     draftLoad(req: IpcContract['agent:draftLoad']['req']): Promise<IpcContract['agent:draftLoad']['res']>
     /** 提交用户反馈（评分 + 可选评论）；评分高且带评论时提炼偏好 */
     feedback(req: IpcContract['agent:feedback']['req']): Promise<IpcContract['agent:feedback']['res']>
+    /** 会话历史检索（#25）：聚合 turns.jsonl 为会话摘要，可选按内容搜索 */
+    sessionTurns(req: IpcContract['agent:sessionTurns']['req']): Promise<IpcContract['agent:sessionTurns']['res']>
+    /** 执行预审开关（#27）：开/关主进程侧预审 provider */
+    setPreReviewEnabled(req: IpcContract['agent:setPreReviewEnabled']['req']): Promise<IpcContract['agent:setPreReviewEnabled']['res']>
+    /** 读取执行预审当前开关状态（#27，UI 回显） */
+    getPreReviewEnabled(): Promise<IpcContract['agent:getPreReviewEnabled']['res']>
     /** 订阅主进程推送的事件流；返回取消订阅函数 */
     onEvent(handler: (event: unknown) => void): () => void
   }

@@ -107,7 +107,7 @@ import type { ChapterKey, CeshuDocument, CeshuExportResult, CeshuSummary } from 
 import type { FieldAction } from './ceshuFieldAction'
 import type { BrainEvent } from './agent/brain'
 import type { AgentRunStats } from './agent/observability'
-import type { DraftSummary, SessionInfo } from './agent/session'
+import type { DraftSummary, SessionInfo, SessionTurnSummary } from './agent/session'
 import type { JsonObjectSchema, SkillResult } from './agent/protocol'
 import type { CeshuChangelog, CeshuVersionDiff } from './ceshuDiff'
 import type { CeshuTaskPlan } from './ceshuTasks'
@@ -323,6 +323,15 @@ export interface IpcContract {
   'agent:draftLoad': { req: AgentDraftLoadInput; res: { name: string; messages: Array<Record<string, unknown>> } }
   /** 用户反馈：评分 + 可选评论；评分 ≥4 且评论非空时提炼偏好写入偏好库 */
   'agent:feedback': { req: AgentFeedbackInput; res: undefined }
+  /**
+   * 会话历史检索（#25）：按 sessionId 聚合 turns.jsonl，返回每条会话的摘要
+   * （首条用户消息作标题、消息数、最后活跃时间、轮次数）。`query` 可选，按标题/首消息子串过滤。
+   */
+  'agent:sessionTurns': { req: { query?: string }; res: { sessions: SessionTurnSummary[] } }
+  /** 执行预审开关（#27）：渲染层插件经此开/关主进程侧的预审 provider */
+  'agent:setPreReviewEnabled': { req: { enabled: boolean }; res: { ok: boolean } }
+  /** 读取执行预审当前开关状态（#27，插件 UI 回显用） */
+  'agent:getPreReviewEnabled': { req: undefined; res: { enabled: boolean } }
 
   'dialog:chooseEngineExportFile': { req: EngineExportFileDialogInput; res: { path: string | null } }
 

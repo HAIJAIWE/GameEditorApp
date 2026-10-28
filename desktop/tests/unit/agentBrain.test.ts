@@ -1433,6 +1433,97 @@ describe('审批策略 never（无头模式）', () => {
   })
 })
 
+/* ---- 执行预审（#27）：工具执行前、人工审批前的模型/规则预审 ---- */
+
+describe('执行预审（#27）', () => {
+  it('preExecReview 拒绝（approve:false）→ 确定性 [STOP]，不再走人工审批', async () => {
+    const transport = scripted([toolCall('c1', 'system.shell', { action: 'exec' }), FINAL])
+    const runner = makeRunner({ dangerous: () => true })
+    let approvalCalls = 0
+    const result = await runBrainLoop({
+      input: 'x',
+      systemPrompts: [],
+      transport,
+      runner,
+      requestApproval: async () => {
+        approvalCalls += 1
+        return true
+      },
+      preExecReview: async () => ({ approve: false, reason: '预审判读为危险' })
+    })
+
+    expect(approvalCalls).toBe(0) // 预审拒绝后不再询问人工
+    expect(result.events.some((event) => event.type === 'approval_required')).toBe(false)
+    expect(
+      result.events.some(
+        (event) => event.type === 'step_done' && event.result.includes('执行预审拒绝')
+      )
+    ).toBe(true)
+    expect(runner.executed).toHaveLength(0)
+  })
+
+  it('preExecReview 通过（approve:true）→ 放行至人工审批（requestApproval 被调用）', async () => {
+    const transport = scripted([toolCall('c1', 'system.shell', { action: 'exec' }), FINAL])
+    const runner = makeRunner({ dangerous: () => true })
+    let approvalCalls = 0
+    await runBrainLoop({
+      input: 'x',
+      systemPrompts: [],
+      transport,
+      runner,
+      requestApproval: async () => {
+        approvalCalls += 1
+        return false
+      },
+      preExecReview: async () => ({ approve: true, reason: '预审通过' })
+    })
+    expect(approvalCalls).toBe(1) // 预审放行后走到人工审批
+  })
+
+  it('preExecReview 抛错 → 回落放行至人工（绝不因预审故障误杀正常工具）', async () => {
+    const transport = scripted([toolCall('c1', 'system.shell', { action: 'exec' }), FINAL])
+    const runner = makeRunner({ dangerous: () => true })
+    let approvalCalls = 0
+    await runBrainLoop({
+      input: 'x',
+      systemPrompts: [],
+      transport,
+      runner,
+      requestApproval: async () => {
+        approvalCalls += 1
+        return false
+      },
+      preExecReview: async () => {
+        throw new Error('预审服务挂了')
+      }
+    })
+    expect(approvalCalls).toBe(1) // 异常回落放行至人工
+  })
+
+  it('approvalPolicy=never：先于预审生效，preExecReview 不被调用', async () => {
+    const transport = scripted([toolCall('c1', 'system.shell', { action: 'exec' }), FINAL])
+    const runner = makeRunner({ dangerous: () => true })
+    let preCalls = 0
+    const result = await runBrainLoop({
+      input: 'x',
+      systemPrompts: [],
+      transport,
+      runner,
+      approvalPolicy: 'never',
+      preExecReview: async () => {
+        preCalls += 1
+        return { approve: true, reason: 'x' }
+      }
+    })
+    expect(preCalls).toBe(0) // never 分支先命中，预审根本不跑
+    expect(
+      result.events.some(
+        (event) => event.type === 'step_done' && event.result.includes('审批策略为 never')
+      )
+    ).toBe(true)
+  })
+})
+
 /* ---- 运行中收件箱（inbox / Steer，对齐 dsh） ---- */
 
 describe('运行中收件箱（inbox / Steer）', () => {

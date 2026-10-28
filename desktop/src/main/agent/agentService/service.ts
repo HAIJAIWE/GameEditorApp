@@ -176,6 +176,12 @@ export class AgentBrainService {
       ...(this.deps.maxToolCalls !== undefined ? { maxToolCalls: this.deps.maxToolCalls } : {}),
       ...(this.deps.wallClockMs !== undefined ? { wallClockMs: this.deps.wallClockMs } : {}),
       ...(requestApproval ? { requestApproval } : {}),
+      // #27 执行预审：本次选项优先，否则构造时的缺省 provider（经 IPC 开关装配）
+      ...(options.preExecReview
+        ? { preExecReview: options.preExecReview }
+        : this.deps.preExecReview
+          ? { preExecReview: this.deps.preExecReview }
+          : {}),
       ...(options.requestInteraction ? { requestInteraction: options.requestInteraction } : {}),
       ...(options.newRequestId ? { newRequestId: options.newRequestId } : {}),
       // Slice 40：子智能体「继续对话」——把运行中的 childId 与其 inbox / stop 登记进注册表，

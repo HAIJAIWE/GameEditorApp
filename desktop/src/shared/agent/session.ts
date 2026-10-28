@@ -36,6 +36,76 @@ export interface SessionInfo {
 }
 
 /**
+ * 会话历史摘要（#25，会话历史检索）：把 `turns.jsonl` 里同一 `sessionId` 的多条轮次聚合成一条。
+ * `title` 取该会话**首条 user 消息**截断作标题；`firstMessage` 保留完整首消息（搜索用）；
+ * `lastActivity` 取所有轮次里最大的 timestamp（秒），`turnCount` 为轮次数。
+ */
+export interface SessionTurnSummary {
+  sessionId: string
+  title: string
+  firstMessage: string
+  messageCount: number
+  turnCount: number
+  /** 最后活跃时间（Unix 秒，取各轮 max） */
+  lastActivity: number
+}
+
+/** 标题截断上限（字符） */
+const SESSION_TITLE_LIMIT = 60
+
+/**
+ * 聚合轮次日志为会话摘要列表（纯函数，可单测，不碰磁盘）。
+ *
+ * @param entries `AgentSessionStore.readTurns()` 返回的原始行：`{ type:'turn', timestamp, sessionId, messages }`
+ * @param query   可选搜索词：对 `title` / `firstMessage` 做**大小写不敏感**子串匹配；空/未传 ⇒ 不过滤
+ * @returns 按 `lastActivity` 倒序的会话摘要（无会话则返回空数组）
+ */
+export function groupSessionTurns(
+  entries: readonly Record<string, unknown>[],
+  query?: string
+): SessionTurnSummary[] {
+  const bySession = new Map<string, { title: string; firstMessage: string; messageCount: number; turnCount: number; lastActivity: number }>()
+
+  const source = Array.isArray(entries) ? entries : []
+  for (const entry of source) {
+    const sessionId = entry.sessionId
+    if (typeof sessionId !== 'string' || sessionId === '') continue
+    const timestamp = typeof entry.timestamp === 'number' ? entry.timestamp : 0
+    const messages = Array.isArray(entry.messages) ? (entry.messages as Array<Record<string, unknown>>) : []
+
+    const existing = bySession.get(sessionId)
+    if (existing === undefined) {
+      const firstUser = messages.find((message) => message.role === 'user')
+      const firstText = typeof firstUser?.content === 'string' ? firstUser.content : ''
+      bySession.set(sessionId, {
+        title: firstText.slice(0, SESSION_TITLE_LIMIT) || '(空会话)',
+        firstMessage: firstText,
+        messageCount: messages.length,
+        turnCount: 1,
+        lastActivity: timestamp
+      })
+    } else {
+      existing.messageCount += messages.length
+      existing.turnCount += 1
+      if (timestamp > existing.lastActivity) existing.lastActivity = timestamp
+    }
+  }
+
+  const normalizedQuery = typeof query === 'string' && query.trim() !== '' ? query.trim().toLowerCase() : ''
+  const list = [...bySession.entries()].map(([sessionId, info]) => ({ sessionId, ...info }))
+  const filtered = normalizedQuery
+    ? list.filter(
+        (item) =>
+          item.title.toLowerCase().includes(normalizedQuery) ||
+          item.firstMessage.toLowerCase().includes(normalizedQuery)
+      )
+    : list
+  filtered.sort((a, b) => (a.lastActivity < b.lastActivity ? 1 : a.lastActivity > b.lastActivity ? -1 : 0))
+  return filtered
+}
+
+
+/**
  * 单条消息截断：
  * 仅当 `content` 是字符串且超长时截断，并追加 `[...截断 N 字符...]` 标记（**截断而非丢弃**，
  * 以免会话恢复时丢失上下文角色）。其它键原样保留。

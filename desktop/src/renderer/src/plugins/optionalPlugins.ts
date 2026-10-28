@@ -26,7 +26,7 @@ export const marketRegistry: PluginMarketEntry[] = [
     description: '会话历史检索：列出草稿/历史事件，按内容搜索',
     source: 'factory:session-history',
     tier: 'optional',
-    ready: false,
+    ready: true,
     recommended: true,
     icon: '🕘'
   },
@@ -47,7 +47,7 @@ export const marketRegistry: PluginMarketEntry[] = [
     description: '执行预审：工具执行前由模型做风险预审（approve/reject/reason）',
     source: 'factory:auto-review',
     tier: 'experimental',
-    ready: false,
+    ready: true,
     icon: '🛡️'
   }
 ]

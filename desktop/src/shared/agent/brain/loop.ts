@@ -9,7 +9,7 @@
  * approval_required? → step_done* → … → done
  */
 
-import { fixParams, isSkillInteraction, type SkillExecutionContext, type SkillInteraction } from '../protocol'
+import { fixParams, isSkillInteraction, resolveRiskLevel, type SkillExecutionContext, type SkillInteraction } from '../protocol'
 import {
   buildAssistantMessage,
   buildToolMessage,
@@ -39,6 +39,7 @@ import {
   type BrainInbox,
   type BrainRunResult,
   type BrainStopReason,
+  type PreExecReviewVerdict,
   type RunBrainLoopOptions,
   type SubAgentProvider
 } from './types'
@@ -76,7 +77,8 @@ function createInbox(): BrainInbox {
 }
 
 export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainRunResult> {
-  const { input, systemPrompts, transport, runner, requestApproval, requestInteraction, onEvent } = options
+  const { input, systemPrompts, transport, runner, requestApproval, requestInteraction, onEvent, preExecReview } =
+    options
   // M3 档位路由：缺省 local；真实档位由 brainService 经 resolveLlmTier 注入。
   // 云端优先（2026-10-28）：预算/并发**按档位分**——云端取 dsh 同款激进值，本地才保守。
   // （之前把「本地 4B 并发高会乱」当成全局约束是错的：本地只是降级档，不是设计基准。）
@@ -660,6 +662,25 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
           emit({ type: 'step_done', tool: resolved, result: text, success: false })
           messages.push(buildToolMessage(call.id, resolved, text))
           continue
+        }
+        // 执行预审（#27）：在**人工审批之前**由模型/规则先拦一道。
+        // 只收紧不放开——approve:false 直接 [STOP]，不再走人工；异常回落放行至人工。
+        if (preExecReview) {
+          const riskLevel = resolveRiskLevel(resolved, action)
+          let verdict: PreExecReviewVerdict
+          try {
+            verdict = await preExecReview({ tool: resolved, action, params: call.arguments, risk: riskLevel })
+          } catch {
+            // 预审实现异常 ⇒ 回落放行至人工审批（绝不因预审故障误杀正常工具）
+            verdict = { approve: true, reason: '预审异常，回落至人工审批' }
+          }
+          if (verdict.approve !== true) {
+            const text = `[STOP] 执行预审拒绝危险操作: ${resolved}（${verdict.reason || '未提供原因'}）`
+            results.push(text)
+            emit({ type: 'step_done', tool: resolved, result: text, success: false })
+            messages.push(buildToolMessage(call.id, resolved, text))
+            continue
+          }
         }
         const requestId = newRequestId()
         emit({ type: 'approval_required', requestId, tool: resolved, action, params: call.arguments })

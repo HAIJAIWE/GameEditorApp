@@ -46,6 +46,12 @@ const api: MbApi = {
     draftList: () => invoke('agent:draftList', undefined),
     draftLoad: (req: { path: string }) => invoke('agent:draftLoad', req),
     feedback: (req) => invoke('agent:feedback', req),
+    /** 会话历史检索（#25）：聚合 turns.jsonl 为会话摘要，可选按内容搜索 */
+    sessionTurns: (req: { query?: string }) => invoke('agent:sessionTurns', req),
+    /** 执行预审开关（#27）：开/关主进程侧预审 provider */
+    setPreReviewEnabled: (req: { enabled: boolean }) => invoke('agent:setPreReviewEnabled', req),
+    /** 读取执行预审当前开关状态（#27，UI 回显） */
+    getPreReviewEnabled: () => invoke('agent:getPreReviewEnabled', undefined),
     /** 订阅主进程推送的事件流；返回取消订阅函数 */
     onEvent: (handler: (event: unknown) => void): (() => void) => {
       const listener = (_event: unknown, payload: unknown): void => handler(payload)

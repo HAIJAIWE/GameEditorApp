@@ -15,6 +15,8 @@ import { defineNavigationPlugin } from './navigationPlugin'
 import { defineOnboardingPlugin } from './onboardingPlugin'
 import { definePluginMarketPlugin } from './pluginMarketPlugin'
 import { defineAgentTeamPlugin } from './agentTeamPlugin'
+import { defineSessionHistoryPlugin } from './sessionHistoryPlugin'
+import { defineAutoReviewPlugin } from './autoReviewPlugin'
 import { defineReferencesPlugin } from './referencesPlugin'
 import { defineShellPanelsPlugin } from './shellPanelsPlugin'
 import { defineShortcutsPlugin } from './shortcutsPlugin'
@@ -43,7 +45,9 @@ export const installedPluginStore = createLocalStorageInstalledStore()
  */
 export const pluginLoader = createPluginLoader({
   'plugin-market': () => definePluginMarketPlugin(pluginHost, pluginLoader, installedPluginStore),
-  'agent-team': () => defineAgentTeamPlugin(pluginHost)
+  'agent-team': () => defineAgentTeamPlugin(pluginHost),
+  'session-history': () => defineSessionHistoryPlugin(pluginHost),
+  'auto-review': () => defineAutoReviewPlugin(pluginHost)
 })
 
 let registered = false
@@ -80,6 +84,8 @@ registerBuiltinPlugins()
  */
 void pluginHost.loadPlugin(pluginLoader, 'factory:plugin-market')
 void pluginHost.loadPlugin(pluginLoader, 'factory:agent-team')
+void pluginHost.loadPlugin(pluginLoader, 'factory:session-history')
+void pluginHost.loadPlugin(pluginLoader, 'factory:auto-review')
 for (const source of installedPluginStore.load()) {
   void pluginHost.loadPlugin(pluginLoader, source)
 }

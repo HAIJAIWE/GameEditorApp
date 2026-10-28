@@ -16,6 +16,7 @@ import {
 import { parseMcpConfig } from '../../shared/agent/mcp/config'
 import { mcpManager } from '../agent/mcp/manager'
 import { DEFAULT_INTERACTION_TIMEOUT_MS } from '../../shared/agent/brain'
+import { isPreReviewEnabled, makePreExecReview, setPreReviewEnabled } from '../agent/agentService/preReview'
 import type { AgentInteractionAnswer } from '../agent/approvalBroker'
 import { withTask } from '../task/taskRegistry'
 
@@ -68,14 +69,16 @@ export function registerAgentIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
      * 对话循环与单发 AI 生成共用一套登记/注销，渲染层只面对一个取消通道。
      * `withTask` 负责 begin/end 配对（含 `end` 的 signal 身份比对），此处不再手写 try/finally。
      */
-    return withTask(
-      event.sender.id,
-      (signal) =>
-        agentBrain.chat(req.input, {
-          ...(llmCall.config !== undefined ? { config: llmCall.config } : {}),
-          ...(llmCall.apiKey !== undefined ? { apiKey: llmCall.apiKey } : {}),
-          ...(req.preset !== undefined ? { preset: req.preset } : {}),
-          signal,
+        return withTask(
+          event.sender.id,
+          (signal) =>
+            agentBrain.chat(req.input, {
+              ...(llmCall.config !== undefined ? { config: llmCall.config } : {}),
+              ...(llmCall.apiKey !== undefined ? { apiKey: llmCall.apiKey } : {}),
+              ...(req.preset !== undefined ? { preset: req.preset } : {}),
+              // #27 执行预审：主进程开关打开时装配确定性预审 provider（渲染层经 IPC 控制）
+              ...(isPreReviewEnabled() ? { preExecReview: makePreExecReview() } : {}),
+              signal,
           onEvent: (payload) => {
             event.sender.send('agent:event', payload)
           },
@@ -130,4 +133,14 @@ export function registerAgentIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
     agentFeedback.record(req.rating, req.comment)
     return undefined
   })
+  // 会话历史检索（#25）：聚合 turns.jsonl 为会话摘要，可选按内容搜索
+  handle('agent:sessionTurns', undefined, (req) => ({
+    sessions: agentSessionStore.listSessions(req?.query)
+  }))
+  // 执行预审开关（#27）：渲染层插件经此开/关主进程侧预审 provider
+  handle('agent:setPreReviewEnabled', undefined, (req) => {
+    setPreReviewEnabled(req.enabled === true)
+    return { ok: true }
+  })
+  handle('agent:getPreReviewEnabled', undefined, () => ({ enabled: isPreReviewEnabled() }))
 }

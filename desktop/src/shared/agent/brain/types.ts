@@ -81,6 +81,43 @@ export interface BrainApprovalRequest {
 
 export type BrainApprover = (request: BrainApprovalRequest) => Promise<boolean> | boolean
 
+/**
+ * **执行预审**（#27，对齐 dsh 的执行前审查）：工具执行**前**、人工审批**之前**由模型/规则做一轮预审。
+ *
+ * 设计铁律：**只能收紧、不能放宽**——
+ * - `approve: false` ⇒ 循环确定性拒绝该工具（走 `[STOP]`），**不再**走人工审批；
+ * - `approve: true` ⇒ 放行至**人工审批**（人类仍是最终闸；预审只负责「先拦一道」）。
+ *
+ * 之所以放在人工审批之前：无人值守 / 高吞吐场景下，模型先拦掉明显危险的调用，
+ * 把「需要人判断」的流量降到最低。预审函数异常一律回落 `approve: true`（放行至人工），
+ * 绝不因预审故障而误杀正常工具。
+ */
+export interface PreExecReviewCtx {
+  /** 解析后的工具 id（与 dispatcher 同口径，已归一别名） */
+  tool: string
+  /** 归一后的动作（如 `execute`） */
+  action: string
+  /** 工具参数（原始 arguments） */
+  params: Record<string, unknown>
+  /**
+   * 该（tool, action）的风险等级数值（`RISK_LEVEL` 体系）。
+   * 由循环用 `resolveRiskLevel` 算好传入，预审实现不必再算一遍。
+   */
+  risk: number
+}
+
+/** 执行预审结论 */
+export interface PreExecReviewVerdict {
+  /** false ⇒ 拒绝执行（确定性 [STOP]）；true ⇒ 放行至人工审批 */
+  approve: boolean
+  /** 拒绝/通过的原因（回显给面板与事件流，便于审计） */
+  reason: string
+}
+
+export type PreExecReviewFn = (
+  ctx: PreExecReviewCtx
+) => Promise<PreExecReviewVerdict> | PreExecReviewVerdict
+
 /** 交互请求（技能要求确认或提问） */
 export interface BrainInteractionRequest {
   requestId: string
@@ -229,6 +266,13 @@ export interface RunBrainLoopOptions {
    * 云端档建议挂一个确定性门（复用 `qualityGate` 思路），本地档一般不挂（4B 不值当）。
    */
   evaluator?: (text: string) => AgentEvalVerdict | null
+  /**
+   * **执行预审**（#27）：工具执行**前**、人工审批**之前**的模型/规则预审钩子。
+   * 只收紧不放开——`{approve:false}` 直接 [STOP]，不再走人工；`{approve:true}` 放行至人工。
+   * 异常回落 `approve:true`（放行至人工，绝不因预审故障误杀正常工具）。
+   * 详见 `PreExecReviewFn` 注释。典型实现见 `main/agent/agentService/preReview.ts`。
+   */
+  preExecReview?: PreExecReviewFn
   context?: SkillExecutionContext
   /** 事件实时回调（A1-4 面板流式渲染用；事件同样会收集进返回值） */
   onEvent?: (event: BrainEvent) => void

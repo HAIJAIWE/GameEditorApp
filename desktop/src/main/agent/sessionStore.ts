@@ -20,11 +20,13 @@ import {
   isSessionSnapshot,
   safeDraftFileName,
   sessionInfoFromSnapshot,
+  groupSessionTurns,
   DRAFT_LIST_LIMIT,
   type DraftFile,
   type DraftSummary,
   type SessionInfo,
-  type SessionSnapshot
+  type SessionSnapshot,
+  type SessionTurnSummary
 } from '../../shared/agent/session'
 import type { AgentRunStats } from '../../shared/agent/observability'
 
@@ -178,6 +180,14 @@ export class AgentSessionStore {
   /** 读取轮次日志（按 `sessionId` 过滤；坏行跳过） */
   readTurns(sessionId?: string): Array<Record<string, unknown>> {
     return this.readJsonl(this.turnsFilePath, sessionId)
+  }
+
+  /**
+   * 会话历史检索（#25）：聚合 turns.jsonl 为按会话分组的摘要列表，可选按内容搜索。
+   * `query` 空/未传 ⇒ 返回全部会话（按最后活跃倒序）。底层纯逻辑在 `groupSessionTurns`（已单测）。
+   */
+  listSessions(query?: string): SessionTurnSummary[] {
+    return groupSessionTurns(this.readTurns(), query)
   }
 
   /** 读 JSONL：文件不存在返回空，坏行跳过；可按 sessionId 过滤 */

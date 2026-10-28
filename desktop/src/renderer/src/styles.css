@@ -7583,3 +7583,125 @@ button.ref-row:hover {
   color: var(--text-muted);
   margin-top: auto;
 }
+
+/* ===== 会话历史检索（#25） ===== */
+.session-history {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  height: 100%;
+  overflow: auto;
+}
+.session-history-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.session-history-search input {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color, #ccc);
+  border-radius: 6px;
+  font-size: 14px;
+}
+.session-history-loading {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.session-history-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.session-history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.session-history-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color, #eee);
+  border-radius: 6px;
+  background: var(--bg-subtle, #fafafa);
+}
+.session-history-title {
+  font-weight: 600;
+}
+.session-history-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.session-history-snippet {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.session-history-draft .btn-link {
+  background: none;
+  border: none;
+  color: var(--accent, #2b6cb0);
+  cursor: pointer;
+  padding: 0;
+  font-size: 14px;
+  text-align: left;
+}
+.session-history-empty {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.session-history-detail {
+  border-top: 1px solid var(--border-color, #eee);
+  padding-top: 12px;
+}
+.session-history-messages {
+  max-height: 240px;
+  overflow: auto;
+  font-size: 13px;
+}
+.session-history-role {
+  font-weight: 600;
+  color: var(--accent, #2b6cb0);
+}
+
+/* ===== 执行预审（#27） ===== */
+.auto-review {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  height: 100%;
+  overflow: auto;
+}
+.auto-review-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.auto-review-toggle label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+}
+.auto-review-status.on {
+  color: #2f855a;
+  font-weight: 600;
+}
+.auto-review-status.off {
+  color: var(--text-muted);
+}
+.auto-review-hint {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
