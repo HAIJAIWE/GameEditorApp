@@ -1,6 +1,6 @@
 # 插件架构与深层插件化迁移设计
 
-> 状态：进行中（B 方案，**Slice 8a/8b 完成：23/23 浮层全部插件化，20/35 菜单动作转 command**；剩 8c 有副作用动作 + 8d 引导命令化）。最后更新 2026-10-28。
+> 状态：进行中（B 方案，**23/23 浮层全部插件化，27/35 菜单动作转 command**；剩 8 个住在 App hooks 里的动作 + onboarding 的 8 个 action）。最后更新 2026-10-28。
 > 本文是插件系统的权威设计文档，也是「深层插件化」跨会话的交接文档。
 > 相关代码：`desktop/src/shared/plugin/`、`desktop/src/renderer/src/plugins/`。
 
@@ -43,6 +43,7 @@ renderer/src/plugins/
   entryPanelsPlugin.tsx    Slice 7：带打开参数的面板 bundle（typeEditor / quickCreate / batch / importPreview）
   shellPanelsPlugin.tsx    Slice 8 前置：外壳面板（about 走参数 / plugins 自举）
   onboardingPlugin.tsx     Slice 8a 收尾：快速入门（8 个 action 暂走 context，8d 转 command）
+  appActionsPlugin.ts      Slice 8c：应用级动作（窗口缩放/重载/DevTools/AI 焦点/退出）+ notify 通道
 ```
 
 ### 2.1 契约（`types.ts`）
@@ -101,7 +102,7 @@ App.renderPanel()
 | Slice 5 | 只依赖 `types + handleJump` 的面板（高级搜索 / 关系图 / 属性图表，`data-panels` bundle） | ✅ 完成 |
 | Slice 6 | 依赖动作的面板（备份 refreshUndo / 清空 handleDataCleared）→ `maintenance-panels` bundle；`onboarding` 的 action 分发改归 Slice 8 | ✅ 完成 |
 | Slice 7 | 带打开参数的面板（类型编辑器 / 快速创建 / 批量编辑 / 导入预览）→ `entry-panels` bundle；App 里 4 份专用 state 全部删除 | ✅ 完成 |
-| Slice 8 | `MenuBar` 35 个菜单动作 → `command` 能力，App 不再持有动作清单 | 🔶 8a（浮层塌缩 ✅）/ 8b（20 个导航动作 ✅）完成；8c（15 个副作用动作）/ 8d（引导命令化）待做 |
+| Slice 8 | `MenuBar` 35 个菜单动作 → `command` 能力，App 不再持有动作清单 | 🔶 8a/8b（浮层塌缩 + 20 导航动作）✅、8c 第一批（7 个应用动作）✅；剩 8 个 hook 动作 + 8d 引导命令化 |
 
 ---
 
@@ -323,7 +324,7 @@ manifest（`utility-panels` 8 个面板、`data-panels` 3 个面板），这是 
 | 面 | 已插件化 | 剩余 |
 |---|---|---|
 | 浮层面板 | **23 / 23**（11 个插件，24 个 `panel` 能力，含 demo 示例） | — |
-| 菜单动作（35 个） | **20 / 35**（纯导航类） | **15**：文件 I/O、撤销、窗口动作、AI 面板、退出 |
+| 菜单动作（35 个） | **27 / 35**（20 导航 + 7 应用动作） | **8**：文件 I/O 6 个（`useDataTransfer`）+ 撤销/重做 2 个（`useUndoRedo`） |
 | 侧边栏（6 个面板入口） | ✅ 全部走 panel id | — |
 | 状态栏 / 顶栏按钮 | 部分（插件中心、AI、库切换仍在 App） | 约 5 个 |
 | 策划书子系统内部面板 | 0（**不在范围**：编辑器内视图，不是浮层） | — |
@@ -346,15 +347,29 @@ manifest（`utility-panels` 8 个面板、`data-panels` 3 个面板），这是 
 **4 个带守卫/参数的**仍走 `openPanel`（字段结构 / 快速创建 / 批量 / 引用）。
 `runCommand` 找不到命令（插件被禁用）时给提示而不是抛错。
 
-### 9.4 8c：15 个有副作用动作
+### 9.4 8c：应用动作（第一批 7 个已迁，剩 8 个卡在 hook）
 
-`open` / `save` / `batchImport` / `batchExport` / `engineExport` / `exportSnapshot`（文件 I/O，走 `useDataTransfer`）、
-`undo` / `redo`（撤销栈）、`zoomIn` / `zoomOut` / `zoomReset` / `reload` / `toggleDevTools`（窗口动作）、
-`aiPanel`（右侧常驻栏聚焦）、`quit`（退出）。
+**已迁（`app-actions` 插件，纯 command，无 panel）**：`app.zoomIn` / `app.zoomOut` / `app.zoomReset` /
+`app.reload` / `app.toggleDevTools` / `app.focusAi` / `app.quit`。
+它们只碰 `window.mbApi.app.viewAction`、DOM 焦点、`window.close()`，不依赖任何 App state。
 
-建议：单独一个 **`app-actions` 插件**（纯 `command`，无 panel）。难点两处：
-- 这些动作要 `setNotice` / `setError` / 撤销栈状态 → 需要往 context 或宿主注入一个「通知 + 撤销」服务能力；
-- `useDataTransfer` 是 hook（依赖 state 更新），要包成命令就得先把它的依赖提到 context。
+顺带解决了「插件怎么发顶部提示」：新增 `plugins/appActionsPlugin.ts::notify/setNotifier` 模块级通道，
+App 挂载时 `setNotifier(setNotice)` 注入。**理由**：插件命令跑在纯模块里拿不到 `setNotice`，
+而没有提示的动作失败 = 用户看到「点了没反应」（如 AI 输入框被禁用时）。
+
+**剩下 8 个搬不动的真正原因**：
+
+| 动作 | 依赖 |
+|---|---|
+| `open` / `save` / `batchImport` / `batchExport` / `engineExport` / `exportSnapshot` | `useDataTransfer` hook（内部读写 `notice`/`error`/`refreshUndo`，还会带参数打开导入预览面板） |
+| `undo` / `redo` | `useUndoRedo` hook（`undoUi.canUndo` 决定菜单禁用态） |
+
+要搬，得先把这两个 hook 从「组件内 hook」改成「宿主服务 + 订阅」：
+- 服务：`host.register({ id:'app.io', capabilities:[{ kind:'service', id:'app.io.export', invoke }] })`；
+- 状态（canUndo/canRedo）：经 `host.subscribe` 或 appContext 暴露给 `MenuBar` 决定禁用态。
+
+这是一次独立重构（要动 `useAppActions.ts` 两个 hook 与 `MenuBar` 的 `canUndo/canRedo` 接线），
+不宜和「搬动作」混在一刀里。
 
 ### 9.5 8d：引导动作命令化
 
@@ -397,6 +412,11 @@ Slice 4（8 个不依赖 App 状态的面板）：
 - `renderer/src/plugins/builtins.ts`（注册）
 - `renderer/src/App.tsx`（8 个 case → HostPanel，删 8 个直接 import）
 - `tests/unit/dom/utilityPanelsPlugin.test.tsx`（3 条：能力清单 / testid 保留 / 禁用后不再渲染）
+
+Slice 8c 第一批（7 个应用动作）：
+- `renderer/src/plugins/appActionsPlugin.ts`（新增；`app-actions` 纯 command 插件 + `notify/setNotifier` 通道）
+- `renderer/src/App.tsx`（注入 notifier；7 个菜单项改 `runCommand`；删 `handleQuit`）
+- `tests/unit/dom/appActionsPlugin.test.tsx`（6 条：能力清单 / viewAction 派发 / 焦点两分支 / notify 未注入不抛 / 退出）
 
 Slice 8a/8b（浮层塌缩 + 导航动作命令化）：
 - `renderer/src/App.tsx`（删 `OverlayPanel` 类型 / `PANEL_TITLES` / `renderPanel()`；`panelId` 订阅宿主；

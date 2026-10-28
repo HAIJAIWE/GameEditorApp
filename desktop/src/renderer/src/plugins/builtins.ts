@@ -1,4 +1,5 @@
 import { PluginHost } from '../../../shared/plugin/host'
+import { defineAppActionsPlugin } from './appActionsPlugin'
 import { defineCeshuPlugin } from './ceshuPlugin'
 import { defineDataPanelsPlugin } from './dataPanelsPlugin'
 import { defineDemoPlugin } from './demoPlugin'
@@ -36,6 +37,7 @@ export function registerBuiltinPlugins(): void {
   pluginHost.register(defineEntryPanelsPlugin(pluginHost))
   pluginHost.register(defineShellPanelsPlugin(pluginHost))
   pluginHost.register(defineOnboardingPlugin(pluginHost))
+  pluginHost.register(defineAppActionsPlugin(pluginHost))
 }
 
 registerBuiltinPlugins()

@@ -21,6 +21,7 @@ import { useDataTransfer, useUndoRedo } from './hooks/useAppActions'
 import { toErrorMessage } from './appUtils'
 import { clampDockWidth, defaultDockWidth, loadAiDockWidth, saveAiDockWidth } from './dockWidth'
 import { pluginHost } from './plugins/builtins'
+import { setNotifier } from './plugins/appActionsPlugin'
 import { HostPanel } from './plugins/HostPanel'
 import { AppContextProvider } from './plugins/appContext'
 
@@ -76,6 +77,15 @@ export default function App() {
    */
   const subscribeHost = useCallback((onChange: () => void) => pluginHost.subscribe(onChange), [])
   const panelId = useSyncExternalStore(subscribeHost, () => pluginHost.activePanel()?.id ?? null)
+
+  /**
+   * 把「顶部提示」这条宿主能力交给插件通道（`plugins/appActionsPlugin.ts::notify`）。
+   * 插件命令跑在纯模块里，拿不到 `setNotice`；不注入的话，动作失败时用户只会看到「点了没反应」。
+   */
+  useEffect(() => {
+    setNotifier((message: string) => setNotice(message))
+    return () => setNotifier(null)
+  }, [])
 
   /**
    * 关闭浮层：宿主是单一来源，关也走宿主。
@@ -562,15 +572,6 @@ export default function App() {
       pluginHost.openPanel('importPreview.panel', payload)
     })
 
-  /** 退出：关闭渲染进程窗口（Electron 主窗口关闭即退出） */
-  const handleQuit = (): void => {
-    try {
-      window.close()
-    } catch {
-      /* 忽略：无主窗口上下文时静默 */
-    }
-  }
-
   /** 打开某份策划书（同时离开首页卡片视图） */
   const handleOpenCeshu = (id: string): void => {
     setActiveCeshuId(id)
@@ -628,11 +629,12 @@ export default function App() {
           batchEdit: () => openPanel('batch.panel'),
           engineExport: (engine) => void engineExport(engine),
           exportSnapshot: (format) => void exportSnapshot(format),
-          zoomIn: () => void window.mbApi.app.viewAction({ action: 'zoomIn' }),
-          zoomOut: () => void window.mbApi.app.viewAction({ action: 'zoomOut' }),
-          zoomReset: () => void window.mbApi.app.viewAction({ action: 'zoomReset' }),
-          reload: () => void window.mbApi.app.viewAction({ action: 'reload' }),
-          toggleDevTools: () => void window.mbApi.app.viewAction({ action: 'toggleDevTools' }),
+          // 窗口/焦点/退出 7 项：由 `app-actions` 插件提供（App 不再持有这些动作）
+          zoomIn: () => runCommand('app.zoomIn'),
+          zoomOut: () => runCommand('app.zoomOut'),
+          zoomReset: () => runCommand('app.zoomReset'),
+          reload: () => runCommand('app.reload'),
+          toggleDevTools: () => runCommand('app.toggleDevTools'),
           backup: () => runCommand('backup.open'),
           undo: () => void performUndo(),
           redo: () => void performRedo(),
@@ -656,18 +658,8 @@ export default function App() {
           keywordTemplates: () => runCommand('keywordTemplates.open'),
           attributeChart: () => runCommand('attributeChart.open'),
           onboarding: () => runCommand('onboarding.open'),
-          aiPanel: () => {
-            // AI 对话是右侧常驻 dock（无独立窗口）。按钮的职责是「把焦点送到输入框」，
-            // 而不是弹一句「已在右侧」——后者会被误读成「又开了一个 AI 会话」。
-            const input = document.querySelector<HTMLInputElement>('[data-testid="digital-input"]')
-            if (input !== null && !input.disabled) {
-              input.scrollIntoView({ block: 'nearest' })
-              input.focus()
-              return
-            }
-            setNotice('AI 助手在右侧常驻；当前对话运行中，输入框暂不可用')
-          },
-          quit: handleQuit
+          aiPanel: () => runCommand('app.focusAi'),
+          quit: () => runCommand('app.quit')
         }}
       />
       <div className="app-body">
