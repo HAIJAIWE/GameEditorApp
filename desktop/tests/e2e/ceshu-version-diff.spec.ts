@@ -151,7 +151,7 @@ test('版本对比：派生改字段 → 精确 Diff 计数 + 面板断言 + 导
     await waitReady(window)
     await expect(window.getByTestId('home-card')).toHaveCount(2)
     await window.getByTestId('home-card').filter({ hasText: '差异A' }).getByTestId('home-card-open').click()
-    // 「ceshu-diff」已收进工具栏「更多 ▸」下拉（对齐 旧版），需先展开再点
+    // 「ceshu-diff」已收进工具栏「更多 ▸」下拉，需先展开再点
     await window.getByTestId('ceshu-more').click()
     await window.getByTestId('ceshu-diff').click()
     await expect(window.getByTestId('diff-panel')).toBeVisible()

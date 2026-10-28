@@ -111,7 +111,7 @@ test('章节笔记：IPC 增删改查 + 磁盘落盘 + UI 面板全链路', asyn
     expect(probe.secondDelete).toBe(false)
     expect(probe.remainingCount).toBe(2)
 
-    // 磁盘：每份策划书一个 {"notes": [...]} 文件（旧版 兼容结构）
+    // 磁盘：每份策划书一个 {"notes": [...]} 文件
     const raw = JSON.parse(readFileSync(join(libraryDir(userDataDir), 'ceshu_notes', `${probe.ceshuId}.json`), 'utf-8')) as {
       notes: NoteRecord[]
     }
@@ -122,7 +122,7 @@ test('章节笔记：IPC 增删改查 + 磁盘落盘 + UI 面板全链路', asyn
     await window.reload()
     await waitReady(window)
     await window.getByTestId('home-card').filter({ hasText: '笔记E2E' }).getByTestId('home-card-open').click()
-    // 「ceshu-notes」已收进工具栏「更多 ▸」下拉（对齐 旧版），需先展开再点
+    // 「ceshu-notes」已收进工具栏「更多 ▸」下拉，需先展开再点
     await window.getByTestId('ceshu-more').click()
     await window.getByTestId('ceshu-notes').click()
     await expect(window.getByTestId('notes-panel')).toBeVisible()

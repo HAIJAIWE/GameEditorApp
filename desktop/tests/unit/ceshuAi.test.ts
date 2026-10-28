@@ -5,10 +5,12 @@ import {
   agentForChapter,
   buildChapterOrder,
   buildChapterPrompt,
+  buildChapterPrompts,
   buildFullGeneratePlan,
   buildReviewMarkdown,
   buildReviewPrompts,
   buildReviewSummary,
+  finalizeReview,
   filterGeneratedFields,
   getStyleGlossary,
   mapStyleLabelToKey,
@@ -18,12 +20,13 @@ import {
   parseReviewResponse,
   type CeshuAiReviewResult
 } from '../../src/shared/ceshuAi'
+import { genreReviewProfile, reviewProbeFor } from '../../src/shared/ceshuAiData'
 import { parseLlmJson } from '../../src/shared/util/parseLlmJson'
 import { CHAPTER_KEYS } from '../../src/shared/ceshuConstants'
 import { CESHU_CHAPTER_FIELDS } from '../../src/shared/ceshuFields'
-import { createDefaultCeshu } from '../../src/shared/ceshuModel'
+import { createDefaultCeshu, deriveRulesetId } from '../../src/shared/ceshuModel'
 
-describe('AI 结构化审阅（匹平 旧版 _ai_review + AIReviewDialog）', () => {
+describe('成稿反审（7 项三级判定，2026-10-26 由 5 维度评分改造）', () => {
   it('章节摘要：仅标量真值、【标签】+ key: value、每值截断 60 字', () => {
     const doc = createDefaultCeshu({ scope: 'full' })
     doc.meta.game_name = '测试游戏'
@@ -32,83 +35,115 @@ describe('AI 结构化审阅（匹平 旧版 _ai_review + AIReviewDialog）', ()
     const summary = buildReviewSummary(doc)
     expect(summary).toContain('【文档信息】')
     expect(summary).toContain('game_name: 测试游戏')
-    expect(summary).not.toContain('player_count') // 0 视为未填（旧版 真值语义）
+    expect(summary).not.toContain('player_count') // 0 视为未填
     expect(summary).toContain(`core_fantasy: ${'x'.repeat(60)}`)
     expect(summary).not.toContain('x'.repeat(61))
   })
 
-  it('空内容摘要与提示词（含评分标准 / 进度 / 校验数 / 严格 JSON 要求）', () => {
+  it('空内容反审提示词：含 7 项追问 / 进度 / 校验数 / 严格 JSON 要求 / 规则集标识', () => {
     const doc = createDefaultCeshu({ scope: 'full' })
     for (const key of CHAPTER_KEYS) doc[key] = {}
     expect(buildReviewSummary(doc)).toBe('(策划书内容为空)')
 
     const built = buildReviewPrompts(doc, { progressTotal: 0.25, validationCount: 3 })
-    expect(built.system).toContain('"suggestions"')
+    expect(built.system).toContain('"findings"')
     expect(built.system).toContain('只输出 JSON')
+    expect(built.system).toContain('blocker')
     expect(built.prompt).toContain('(策划书内容为空)')
     expect(built.prompt).toContain('完成进度: 25%')
     expect(built.prompt).toContain('内置校验问题数: 3')
-    expect(built.prompt).toContain('评分标准：1-3 分（严重不足）')
+    expect(built.prompt).toContain('规则集标识:')
   })
 
-  it('解析：规范顺序 / 分数截断（1-10）/ 标签兜底 / 建议补足 3 条', () => {
+  it('解析：规范顺序 / level 兜底 pass / 标签兜底 / 建议补足 3 条', () => {
     const content = JSON.stringify({
-      dimensions: [
-        { key: 'creativity', label: '创意度', score: 9.7, feedback: '有亮点' },
-        { key: 'completeness', score: 0, feedback: '不足' },
-        { key: 'market', score: 99 },
-        { key: 'consistency', score: 'x' },
-        { key: 'technical', score: 6, label: '技术可行性', feedback: '可行' }
+      findings: [
+        { key: 'ruleset', label: '同一规则集', level: 'BLOCKER', evidence: 'Demo 与正文口径不一致' },
+        { key: 'constraints', level: 'suggestion', evidence: '少继承一条约束' },
+        { key: 'numeric', level: '乱写', evidence: '无法识别' },
+        { key: 'units', evidence: '缺 level 字段' }
       ],
-      overall: '总体不错',
+      overall: '总体还行',
       suggestions: ['建议一', '建议二']
     })
     const payload = parseReviewResponse(content)
     expect(payload.parsed).toBe(true)
-    expect(payload.dimensions.map((dimension) => dimension.key)).toEqual([
-      'completeness',
-      'consistency',
-      'market',
-      'technical',
-      'creativity'
+    expect(payload.findings.map((finding) => finding.key)).toEqual([
+      'constraints',
+      'choice',
+      'numeric',
+      'units',
+      'lifecycle',
+      'production',
+      'ruleset'
     ])
-    expect(payload.dimensions.map((dimension) => dimension.score)).toEqual([1, 1, 10, 6, 9])
-    expect(payload.dimensions[0].label).toBe('内容完整性')
-    expect(payload.dimensions[0].feedback).toBe('不足')
+    // level 大写归一化；非法 / 缺失一律兜底 pass
+    expect(payload.findings.map((finding) => finding.level)).toEqual([
+      'suggestion',
+      'pass',
+      'pass',
+      'pass',
+      'pass',
+      'pass',
+      'blocker'
+    ])
+    expect(payload.findings[0].label).toBe('约束与事实')
+    expect(payload.findings[0].evidence).toBe('少继承一条约束')
     expect(payload.suggestions).toEqual(['建议一', '建议二', '（暂无更多建议）'])
-    expect(payload.overall).toBe('总体不错')
+    expect(payload.overall).toBe('总体还行')
+  })
+
+  it('finalizeReview 回填品类档案 / 规则集标识 / 品类追问', () => {
+    const doc = createDefaultCeshu({ scope: 'full' })
+    doc.meta.game_type = '塔防'
+    const payload = parseReviewResponse(JSON.stringify({ findings: [{ key: 'numeric', level: 'blocker', evidence: 'x' }] }))
+    expect(payload.genreLabel).toBe('') // 解析层看不到文档，留空
+    const finalized = finalizeReview(payload, doc)
+    expect(finalized.genreLabel).toBe(genreReviewProfile('塔防').label)
+    expect(finalized.rulesetId).toBe(deriveRulesetId(doc))
+    // 追问按品类回填，与提示词同源
+    const numeric = finalized.findings.find((finding) => finding.key === 'numeric')
+    expect(numeric?.probe).toBe(reviewProbeFor('numeric', 'defense'))
   })
 
   it('解析：markdown 围栏与字符串建议容错；非法输出 parsed=false 且保留原文', () => {
     const fenced =
-      '```json\n{"dimensions":[{"key":"completeness","score":8,"feedback":"ok"}],"overall":"好","suggestions":"单一建议"}\n```'
+      '```json\n{"findings":[{"key":"numeric","level":"suggestion","evidence":"ok"}],"overall":"好","suggestions":"单一建议"}\n```'
     const payload = parseReviewResponse(fenced)
     expect(payload.parsed).toBe(true)
-    expect(payload.dimensions[0].score).toBe(8)
+    expect(payload.findings.find((finding) => finding.key === 'numeric')?.level).toBe('suggestion')
     expect(payload.suggestions[0]).toBe('单一建议')
     expect(payload.suggestions).toHaveLength(3)
 
     const broken = parseReviewResponse('完全不是 JSON')
     expect(broken.parsed).toBe(false)
     expect(broken.rawText).toBe('完全不是 JSON')
-    expect(broken.dimensions).toEqual([])
+    expect(broken.findings).toEqual([])
   })
 
-  it('报告 Markdown：表格 / 竖线转义 / 进度与校验行', () => {
+  it('报告 Markdown：检查项表 / 竖线转义 / 阻塞·建议小结 / 进度与校验行', () => {
     const result: CeshuAiReviewResult = {
       model: 'test-model',
       parsed: true,
       rawText: '',
       progressTotal: 0.5,
       validationCount: 2,
-      overall: '总体评价',
+      genreLabel: '动作 / 战斗导向',
+      rulesetId: 'ceshu-x',
+      overall: '总体结论',
       suggestions: ['A', 'B', 'C'],
-      dimensions: [{ key: 'completeness', label: '内容完整性', score: 8, feedback: '反馈|含竖线\n换行' }]
+      findings: [
+        { key: 'numeric', label: '数值与可达性', level: 'blocker', probe: 'p', evidence: '依据|含竖线\n换行' },
+        { key: 'units', label: '口径与单位', level: 'pass', probe: 'p', evidence: '' }
+      ]
     }
     const markdown = buildReviewMarkdown('测试游戏', '2026-10-01 12:00:00', result)
-    expect(markdown).toContain('# AI 智能审阅报告')
+    expect(markdown).toContain('# 成稿反审报告')
     expect(markdown).toContain('**游戏名称**: 测试游戏')
-    expect(markdown).toContain('| 内容完整性 | 8 / 10 | 反馈\\|含竖线 换行 |')
+    expect(markdown).toContain('**品类**: 动作 / 战斗导向')
+    expect(markdown).toContain('**规则集标识**: ceshu-x')
+    expect(markdown).toContain('**结论**: 阻塞 1 项 · 建议 0 项')
+    expect(markdown).toContain('| 数值与可达性 | 阻塞 | 依据\\|含竖线 换行 |')
     expect(markdown).toContain('## Top 3 改进建议')
     expect(markdown).toContain('1. A')
     expect(markdown).toContain('**策划书完成进度**: 50%')
@@ -116,7 +151,7 @@ describe('AI 结构化审阅（匹平 旧版 _ai_review + AIReviewDialog）', ()
   })
 })
 
-describe('AI 生成：子智能体路由与风格术语（匹平 旧版 AgentRouter / _STYLE_GLOSSARIES）', () => {
+describe('AI 生成：子智能体路由与风格术语', () => {
   it('17 章均有路由与展示名；关键映射与章节提示语正确', () => {
     for (const chapter of CHAPTER_KEYS) {
       const agent = agentForChapter(chapter)
@@ -139,7 +174,7 @@ describe('AI 生成：子智能体路由与风格术语（匹平 旧版 AgentRou
   })
 })
 
-describe('AI 生成：整章提示词组装（匹平 旧版 _ai_fill_chapter）', () => {
+describe('AI 生成：整章提示词组装', () => {
   it('整章模式：字段列表含全部键、含上下文与 JSON 输出要求', () => {
     const doc = createDefaultCeshu({ scope: 'full', name: '测试游戏' })
     const built = buildChapterPrompt(doc, 'meta')
@@ -148,9 +183,12 @@ describe('AI 生成：整章提示词组装（匹平 旧版 _ai_fill_chapter）'
     expect(built.fields).toEqual([
       'game_name',
       'game_type',
+      'game_type_tags',
       'platform',
       'positioning',
       'tags',
+      'non_goals',
+      'alternatives',
       'status',
       'confidentiality',
       'gdd_scope',
@@ -208,7 +246,7 @@ describe('AI 生成：整章提示词组装（匹平 旧版 _ai_fill_chapter）'
   })
 })
 
-describe('AI 生成：单字段定向生成（E62 onlyFields，匹平 旧版 _AIFillFieldWorker）', () => {
+describe('AI 生成：单字段定向生成', () => {
   it('onlyFields 收窄：fields 精确等于传入的字段列表（不取全章键）', () => {
     const doc = createDefaultCeshu({ scope: 'full', name: '测试游戏' })
     const built = buildChapterPrompt(doc, 'meta', { onlyFields: ['game_name'] })
@@ -261,7 +299,7 @@ describe('AI 生成：单字段定向生成（E62 onlyFields，匹平 旧版 _AI
   })
 })
 
-describe('AI 生成：LLM 输出容错解析（匹平 旧版 _parse_llm_json）', () => {
+describe('AI 生成：LLM 输出容错解析', () => {
   it('去除 markdown 围栏并截取 JSON 边界', () => {
     expect(parseLlmJson('```json\n{"a": 1}\n```')).toEqual({ a: 1 })
     expect(parseLlmJson('好的，结果如下：{"game_name": "星海"} 以上。')).toEqual({ game_name: '星海' })
@@ -302,8 +340,8 @@ describe('AI 生成：字段清洗', () => {
   })
 })
 
-describe('AI 全量生成：章节顺序与生成要求（匹平 旧版 _build_chapter_order / chapter_hint）', () => {
-  it('含市场/风险为 17 章，顺序与 旧版 一致', () => {
+describe('AI 全量生成：章节顺序与生成要求', () => {
+  it('含市场/风险为 24 章，顺序与 旧版 一致（含 P2 扩展 7 章）', () => {
     expect(buildChapterOrder(true, true)).toEqual([
       'meta',
       'vision',
@@ -321,31 +359,42 @@ describe('AI 全量生成：章节顺序与生成要求（匹平 旧版 _build_c
       'risk_handling',
       'mvp',
       'resources',
-      'accessibility'
+      'accessibility',
+      'uiux',
+      'level_design',
+      'live_ops',
+      'analytics',
+      'qa',
+      'publishing',
+      'performance'
     ])
   })
 
-  it('关闭市场/风险后为 15 章且位置正确', () => {
+  it('关闭市场/风险后为 22 章且位置正确', () => {
     const order = buildChapterOrder(false, false)
-    expect(order).toHaveLength(15)
+    expect(order).toHaveLength(22)
     expect(order).not.toContain('market_analysis')
     expect(order).not.toContain('risk_handling')
     expect(order[0]).toBe('meta')
     expect(order[1]).toBe('vision')
-    expect(order[order.length - 1]).toBe('accessibility')
+    expect(order[order.length - 1]).toBe('performance')
   })
 
-  it('17 章生成要求文案齐全（抽查关键条目）', () => {
+  it('24 章生成要求文案齐全（抽查关键条目）', () => {
     for (const chapter of CHAPTER_KEYS) {
       expect(CHAPTER_GENERATION_HINTS[chapter].length).toBeGreaterThan(0)
     }
     expect(CHAPTER_GENERATION_HINTS.systems).toContain('enabled/config')
     expect(CHAPTER_GENERATION_HINTS.combat).toContain('伤害公式')
     expect(CHAPTER_GENERATION_HINTS.risk_handling).toContain('应急预案')
+    // 一句话生成必须逼 AI 填实这两张最关键的机核验表（P0 #1/#2 在生成路径的闭环）
+    expect(CHAPTER_GENERATION_HINTS.gameplay).toContain('状态机')
+    expect(CHAPTER_GENERATION_HINTS.numeric).toContain('数值参数表')
+    expect(CHAPTER_GENERATION_HINTS.numeric).toContain('数值断言')
   })
 })
 
-describe('AI 全量生成：计划组装（匹平 旧版 _ai_generate_full / _build_chapter_prompts / _build_meta_seed）', () => {
+describe('AI 全量生成：计划组装', () => {
   const form = {
     gameName: '星河战记',
     gameType: 'RPG',
@@ -381,22 +430,61 @@ describe('AI 全量生成：计划组装（匹平 旧版 _ai_generate_full / _bu
     })
   })
 
-  it('工业级档：市场/风险开关生效；每章提示词含【章节】【用户输入】【生成要求】', () => {
+  it('工业级档：市场/风险开关生效；每章提示词含【章节】【用户输入】【关键词与硬约束】【生成要求】', () => {
     const full = buildFullGeneratePlan(form, { scope: 'full', includeMarket: true, includeRisk: true })
-    expect(full.order).toHaveLength(17)
+    expect(full.order).toHaveLength(24)
     const prompt = full.chapterPrompts.systems ?? ''
     expect(prompt).toContain('【章节】第四章·游戏系统设计')
     expect(prompt).toContain('【用户输入】')
     expect(prompt).toContain('游戏名称: 星河战记')
     expect(prompt).toContain('概念描述: 修真者探索三界')
     expect(prompt).toContain('参考游戏: 原神, 艾尔登法环')
+    expect(prompt).toContain('【关键词与硬约束】')
     expect(prompt).toContain('【生成要求】')
     expect(prompt).toContain('enabled/config')
     expect(prompt.endsWith('只输出 JSON。')).toBe(true)
 
     const noMarket = buildFullGeneratePlan(form, { scope: 'full', includeMarket: false, includeRisk: false })
-    expect(noMarket.order).toHaveLength(15)
+    expect(noMarket.order).toHaveLength(22)
     expect(noMarket.chapterPrompts.market_analysis).toBeUndefined()
+  })
+
+  it('每章提示词注入结构化关键词 + 硬约束（一句话生成信号补足）', () => {
+    const input = normalizeFullGenerateInput(form)
+    const prompt = buildChapterPrompts(input, ['systems']).systems ?? ''
+    // 风格术语表（仙侠 → xianxia，含渡劫/境界）
+    expect(prompt).toContain('风格术语表(仙侠)')
+    expect(prompt).toContain('渡劫')
+    expect(prompt).toContain('境界划分')
+    // 品类关键词 + 应含系统（RPG）
+    expect(prompt).toContain('品类关键词(RPG)')
+    expect(prompt).toContain('品类应含系统(RPG)')
+    expect(prompt).toContain('战斗')
+    // 平台硬约束（移动端点击区 44×44pt）
+    expect(prompt).toContain('[平台·移动端]')
+    expect(prompt).toContain('44×44pt')
+    // 商业模式硬约束（F2P 保底）
+    expect(prompt).toContain('[商业·F2P]')
+    expect(prompt).toContain('保底')
+    // 验收红线提示
+    expect(prompt).toContain('验收红线')
+  })
+
+  it('无风格/类型/平台/商业时不注入空块（仅【关键词与硬约束】占位为「(无)」）', () => {
+    const input = normalizeFullGenerateInput({
+      gameName: 'x',
+      gameType: '',
+      style: '',
+      description: '',
+      references: '',
+      platforms: '',
+      businessModel: ''
+    })
+    const prompt = buildChapterPrompts(input, ['meta']).meta ?? ''
+    expect(prompt).toContain('【关键词与硬约束】')
+    expect(prompt).toContain('(无)')
+    expect(prompt).not.toContain('风格术语表')
+    expect(prompt).not.toContain('[平台·')
   })
 
   it('归一化：逗号拆分参考游戏、清理空白', () => {

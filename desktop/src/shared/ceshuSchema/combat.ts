@@ -96,6 +96,26 @@ export const COMBAT_FIELDS: CeshuFieldDef[] = [
     aiHint: '从候选中选 1 个节奏档位；给出单场战斗的目标时长与回合数',
     reviewHint: '选项是否来自候选；目标时长是否与模式、关卡设计匹配'
   },
+  /*
+   * 2026-10-28 补：游戏里的「物理」多数不是刚体，而是**判定**。
+   * 判定形状、无敌帧、霸体是手感的地基，属于设计侧必须定的约定；
+   * 物理引擎参数（摩擦/弹性/约束）才是实现层，不进设计文档。
+   */
+  {
+    key: 'hit_detection',
+    label: '命中判定',
+    kind: 'pipeList',
+    columns: [
+      { key: 'attack', label: '攻击类型' },
+      { key: 'shape', label: '判定形状' },
+      { key: 'iframe', label: '无敌帧' },
+      { key: 'super_armor', label: '霸体规则' }
+    ],
+    aiHint:
+      '每行一类攻击（普攻/技能/范围/投射物，3–6 行）：攻击类型|判定形状（射线/盒/球/胶囊 + 尺寸与挂点）|无敌帧（起止或时长，没有就写「无」）|霸体规则（什么动作不被打断，没有就写「无」）；这是判定约定，不是物理引擎参数',
+    reviewHint:
+      '每类攻击是否有判定形状；无敌帧与霸体是否写清（「无」也要写）；判定形状能否支撑战斗节奏（快节奏却用大盒判定会「打空气也中」）'
+  },
   {
     key: 'team_formation',
     label: '队伍编排',
@@ -230,6 +250,7 @@ export const COMBAT_DEFAULTS: ChapterData = {
   buff_debuff: '',
   element_system: '',
   combat_pace: '',
+  hit_detection: [],
   team_formation: '',
   pvp_design: '',
   pve_design: '',

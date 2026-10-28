@@ -25,8 +25,12 @@ import {
   filterGeneratedFields,
   mergeChapterDraft,
   parseReviewResponse,
+  finalizeReview,
   type CeshuReviewPayload
 } from '../../../shared/ceshuAi'
+import { buildCloneDecomposePrompt, parseCloneDecompose } from '../../../shared/ceshuClonePrompt'
+import { buildRoleTaskPrompt, parseRoleTaskPlan, taskRolesForDoc } from '../../../shared/ceshuTaskPrompt'
+import type { CeshuRole, CeshuTaskPlan } from '../../../shared/ceshuTasks'
 import {
   DATA_GEN_ERROR_EMPTY,
   DATA_GEN_ERROR_NO_TYPE,
@@ -126,6 +130,83 @@ export async function generateChapterTask(
     quality: task.value.quality,
     usage: task.usage
   }
+}
+
+/* ------------------------------------------------------------------ */
+/* 复刻拆解（复刻单线 MVP）                                            */
+/* ------------------------------------------------------------------ */
+
+export interface CloneDecomposeTaskInput {
+  /** 参考游戏名（如「吸血鬼幸存者」） */
+  gameName: string
+  /** 品类（可选） */
+  gameType?: string
+  senderId?: number
+}
+
+export interface CloneDecomposeTaskOutput {
+  model: string
+  /** 立项一页（只含立项章）；落盘/套用由调用方做 */
+  fields: Partial<Record<ChapterKey, ChapterData>>
+  rawText: string
+  usage: LlmUsage | null
+}
+
+/**
+ * 参考游戏名 → 立项一页。纯编排（组提示词 → 调模型 → 解析），不落盘。
+ * 落盘（新建文档 + 逐章保存）由 IPC 层做，保持 `main/ai/**` 不依赖存储。
+ */
+export async function cloneDecomposeTask(
+  ports: CeshuAiPorts,
+  input: CloneDecomposeTaskInput
+): Promise<CloneDecomposeTaskOutput> {
+  const built = buildCloneDecomposePrompt({
+    gameName: input.gameName,
+    ...(input.gameType !== undefined && input.gameType !== '' ? { gameType: input.gameType } : {})
+  })
+  const task = await runAiTask(ports, {
+    system: built.system,
+    prompt: built.prompt,
+    budget: { taskType: 'chapter' },
+    ...(input.senderId !== undefined ? { senderId: input.senderId } : {}),
+    interpret: async (content) => ({ fields: parseCloneDecompose(content) })
+  })
+  return { model: task.model, fields: task.value.fields, rawText: task.content, usage: task.usage }
+}
+
+/* ------------------------------------------------------------------ */
+/* 岗位任务生成                                                        */
+/* ------------------------------------------------------------------ */
+
+export interface GenerateRoleTasksInput {
+  base: CeshuDocument
+  /** 指定岗位；缺省 = 全部岗位 */
+  roles?: CeshuRole[]
+  senderId?: number
+}
+
+/**
+ * 读整份策划书 → 拆成各岗位可执行任务。
+ * 与「按章搬运字段」的旧口径不同：这里产出的是动作（实现/搭建/绘制/配置），不是阅读清单。
+ */
+export async function generateRoleTasksTask(
+  ports: CeshuAiPorts,
+  input: GenerateRoleTasksInput
+): Promise<{ model: string; plan: CeshuTaskPlan; rawText: string; usage: LlmUsage | null }> {
+  const built = buildRoleTaskPrompt(input.base, input.roles ?? taskRolesForDoc(input.base))
+  const task = await runAiTask(ports, {
+    system: built.system,
+    prompt: built.prompt,
+    /*
+     * `budget: null`：输入被 `TASK_DIGEST_LIMIT`（8000 字符）硬封顶，输出是「每岗 3-8 条」，
+     * 单次成本有上界；而通道入参里没有 `confirmed`、界面也没有确认回路
+     * ⇒ 挂确认门只会抛出一个用户无法确认的错误。这里只借用取消 / 计时 / 观测。
+     */
+    budget: null,
+    ...(input.senderId !== undefined ? { senderId: input.senderId } : {}),
+    interpret: async (content) => ({ plan: parseRoleTaskPlan(content, input.base) })
+  })
+  return { model: task.model, plan: task.value.plan, rawText: task.content, usage: task.usage }
 }
 
 /* ------------------------------------------------------------------ */
@@ -277,7 +358,7 @@ export async function reviewTask(ports: CeshuAiPorts, input: ReviewInput): Promi
     budget: { taskType: 'review' },
     confirmed: input.confirmed === true,
     ...(input.senderId !== undefined ? { senderId: input.senderId } : {}),
-    interpret: async (content) => parseReviewResponse(content)
+    interpret: async (content) => finalizeReview(parseReviewResponse(content), input.doc)
   })
 
   return {

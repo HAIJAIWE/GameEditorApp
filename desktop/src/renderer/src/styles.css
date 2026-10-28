@@ -1,10 +1,10 @@
 /* ============================================================
    主题令牌
    ------------------------------------------------------------
-   **默认档 = PyQt「默认」主题（浅色）** —— 与 `src/ui/main_window.py:116`
+   **默认档 = 旧版「默认」主题（浅色）** —— 与 `src/ui/main_window:116`
    `self.current_theme = "默认"` 一致，色值逐一取自
-   `src/ui/themes/themes.py::_THEME_CONFIGS["默认"]`，不是另配一套配色。
-   `[data-theme="dark"]` 为深色档（对齐 PyQt「深色」主题家族）。
+   `src/ui/themes/themes::_THEME_CONFIGS["默认"]`，不是另配一套配色。
+   `[data-theme="dark"]` 为深色档（对齐 旧版「深色」主题家族）。
    全文规则一律用 var(--xxx)，切换 `data-theme` 即整站换肤。
    ============================================================ */
 :root {
@@ -12,7 +12,7 @@
    * 全站字号缩放系数（设置面板「字体大小」写入）。
    *
    * **全站正文字号都写成 `calc(13px * var(--ui-font-scale) * k)`**，13px 是基准
-   * （对齐 PyQt `settings_dialog.py:401` 的 `setValue(13)`），k 是该元素的相对比例
+   * （对齐 旧版 `settings_dialog:401` 的 `setValue(13)`），k 是该元素的相对比例
    * （12px → 12/13、11px → 11/13…，用**精确分数**而非小数 —— 小数系数（如 0.8462）
    * 在 scale=1 时会还原成 11.001px / 14.999px，累积成「默认值下视觉与改动前不一致」
    * 的隐性回归；分数形式在 scale=1 时**精确还原**每个原值）。
@@ -28,21 +28,21 @@
   color-scheme: light;
 
   /* 表面 */
-  --bg: #f8fafc; /* PyQt bg */
-  --bg-panel: #ffffff; /* PyQt input_bg / menu_bg */
-  --bg-hover: #f0f9ff; /* PyQt hover_bg */
-  --border: #e2e8f0; /* PyQt border */
-  --divider: #f1f5f9; /* PyQt divider */
-  --cell-bg: #fafbfc; /* PyQt cell_bg */
+  --bg: #f8fafc; /* 旧版 bg */
+  --bg-panel: #ffffff; /* 旧版 input_bg / menu_bg */
+  --bg-hover: #f0f9ff; /* 旧版 hover_bg */
+  --border: #e2e8f0; /* 旧版 border */
+  --divider: #f1f5f9; /* 旧版 divider */
+  --cell-bg: #fafbfc; /* 旧版 cell_bg */
 
   /* 文本 */
-  --text: #000000; /* PyQt fg */
-  --text-secondary: #334155; /* PyQt secondary_fg */
-  --text-muted: #556678; /* PyQt hint */
-  --section-title: #1e293b; /* PyQt section_title */
-  --btn-text: #ffffff; /* PyQt btn_text：主按钮/强调底上的前景 */
+  --text: #000000; /* 旧版 fg */
+  --text-secondary: #334155; /* 旧版 secondary_fg */
+  --text-muted: #556678; /* 旧版 hint */
+  --section-title: #1e293b; /* 旧版 section_title */
+  --btn-text: #ffffff; /* 旧版 btn_text：主按钮/强调底上的前景 */
 
-  /* 强调色（PyQt accent 家族） */
+  /* 强调色（旧版 accent 家族） */
   --accent: #0ea5e9;
   --accent-hover: #0284c7;
   --accent-active: #0369a1;
@@ -57,11 +57,11 @@
   --danger-soft: rgba(239, 68, 68, 0.12);
   --success: #22C55E;
   --warning: #F59E0B;
-  /* 完成度三色阈值（PyQt `chapter_panel.py::set_progress`：<50 / 50-79 / >=80） */
+  /* 完成度三色阈值（旧版 `chapter_panel::set_progress`：<50 / 50-79 / >=80） */
   --progress-low: #e57373;
   --progress-mid: #fff176;
   --progress-hi: #81c784;
-  /* 完成度三色阈值（PyQt `chapter_panel.py::set_progress`：<50 / 50-79 / >=80） */
+  /* 完成度三色阈值（旧版 `chapter_panel::set_progress`：<50 / 50-79 / >=80） */
   --progress-low: #e57373;
   --progress-mid: #fff176;
   --progress-hi: #81c784;
@@ -118,8 +118,8 @@
 }
 
 /*
- * 暖调（E64）—— 对齐 PyQt `_THEME_CONFIGS["暖调"]`，色值**逐一取自**
- * `src/ui/themes/themes.py`，不自配。
+ * 暖调（E64）—— 对齐 旧版 `_THEME_CONFIGS["暖调"]`，色值**逐一取自**
+ * `src/ui/themes/themes`，不自配。
  *
  * ⚠️ 注意它是**浅色系**（bg #FFFBF7 暖白底），只是强调色换成琥珀 #D97706、
  * 底色偏暖 —— 不是深色调。`color-scheme` 因此保持 light（否则原生滚动条/表单会变深色）。
@@ -161,10 +161,10 @@
 }
 
 /*
- * 暗夜（E64）—— 对齐 PyQt `_THEME_CONFIGS["暗夜"]`，色值取自 `themes.py`。
+ * 暗夜（E64）—— 对齐 旧版 `_THEME_CONFIGS["暗夜"]`，色值取自 `themes`。
  *
  * 与「深色」同为**深色系**（bg #181418），差别在强调色是紫 #A78BFA 而非绿。
- * ⚠️ `btn_text` 沿用 Python 的 white —— 紫底白字的对比度**待渲染确认**
+ * ⚠️ `btn_text` 沿用 旧版 的 white —— 紫底白字的对比度**待渲染确认**
  * （深色档用的是深色字 #06281a，因为它的强调色是亮绿；紫色更亮，可能需要同改深色字）。
  */
 [data-theme='night'] {
@@ -236,14 +236,63 @@ body {
   height: 100%;
 }
 
-/* 菜单栏下方的单栏主体（无侧栏，对齐 PyQt「菜单栏在上、主体在下」） */
+/* 菜单栏下方的单栏主体（无侧栏，对齐 旧版「菜单栏在上、主体在下」） */
 .app-body {
   display: flex;
   flex: 1;
   min-height: 0;
 }
 
-/* ---- 顶部菜单栏（对齐 PyQt ui/menus.py 的 MENU_CONFIG） ---- */
+/* 左侧主导航栏（dsh Web 侧边栏风格）：常驻竖排 rail，互补顶部菜单栏 */
+.sidebar {
+  flex: 0 0 76px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 6px;
+  border-right: 1px solid var(--border);
+  background: var(--bg-panel);
+  overflow-y: auto;
+}
+
+.sidebar-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 4px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 11px;
+  line-height: 1.2;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.sidebar-item:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.sidebar-item.active {
+  background: var(--accent-soft);
+  color: var(--accent-active);
+  border-color: var(--accent);
+}
+
+.sidebar-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.sidebar-label {
+  text-align: center;
+  word-break: break-all;
+}
+
+/* ---- 顶部菜单栏（对齐 旧版 ui/menus 的 MENU_CONFIG） ---- */
 
 .menubar {
   display: flex;
@@ -258,7 +307,7 @@ body {
   background: var(--bg-panel);
 }
 
-/* 右侧角部件（对齐 PyQt `menuBar().setCornerWidget`）：库标签 + 库条 + 设置/智能体/AI */
+/* 右侧角部件（对齐 旧版 `menuBar().setCornerWidget`）：库标签 + 库条 + 设置/智能体/AI */
 .menubar-right {
   display: flex;
   align-items: center;
@@ -416,7 +465,7 @@ body {
   min-height: 0;
 }
 
-/* 主区下半部：左=页面内容，右=AI 对话停靠栏（对齐 PyQt 中央 QSplitter 的 3:1 两栏） */
+/* 主区下半部：左=页面内容，右=AI 对话停靠栏（对齐 旧版 中央 QSplitter 的 3:1 两栏） */
 .main-body {
   display: flex;
   flex: 1;
@@ -479,18 +528,18 @@ body {
 }
 
 /*
- * AI 对话停靠栏：常驻右栏，默认约 1/4 宽（PyQt 默认 75:25）。
+ * AI 对话停靠栏：常驻右栏，默认约 1/4 宽（旧版 默认 75:25）。
  * `resize: horizontal` 提供原生拖拽调宽（需 overflow 非 visible）。
  */
 .ai-dock {
   display: flex;
   flex-direction: column;
-  /* 对齐 PyQt `layout_builder.py:145-149`：QSplitter stretch 3:1、初始 **75:25**、
+  /* 对齐 旧版 `layout_builder:145-149`：QSplitter stretch 3:1、初始 **75:25**、
      右栏 `setMinimumWidth(300)`、**无上限**（P3-12 已移除 520 硬上限）。
      实际宽度由 App 的 `style.width` 控制（拖拽后落 localStorage）；这里给默认值兜底。 */
   width: 25%;
   min-width: 300px;
-  /* 不设 max-width：与 PyQt「自由拖动、无上限」一致 */
+  /* 不设 max-width：与 旧版「自由拖动、无上限」一致 */
   flex: 0 0 auto;
   border-left: 1px solid var(--border);
   background: var(--bg-panel);
@@ -511,7 +560,7 @@ body {
   background: var(--border);
 }
 
-/* 数字员工停靠栏常驻右侧，无「专注对话」全屏模式（对齐 PyQt：AI 面板恒为右栏） */
+/* 数字员工停靠栏常驻右侧，无「专注对话」全屏模式（对齐 旧版：AI 面板恒为右栏） */
 
 .toolbar {
   display: flex;
@@ -553,10 +602,10 @@ body {
 }
 
 /*
- * 强调色描边按钮 —— 对齐 PyQt `ceshu_theme.py::ceshu_editor_btn_export_qss()`：
+ * 强调色描边按钮 —— 对齐 旧版 `ceshu_theme::ceshu_editor_btn_export_qss()`：
  * `border:1px solid accent; color:accent; background:bg`，hover 只换底色。
- * PyQt 的编辑器工具栏把「校验 / AI 生成 / AI 数据 / 更多 / 导出」都套了这套描边，
- * 一眼看过去是**一排蓝色描边按钮**，不是中性灰 —— 这是与 PyQt 观感的第二处主因。
+ * 旧版 的编辑器工具栏把「校验 / AI 生成 / AI 数据 / 更多 / 导出」都套了这套描边，
+ * 一眼看过去是**一排蓝色描边按钮**，不是中性灰 —— 这是与 旧版 观感的第二处主因。
  */
 .btn.accent-outline {
   border-color: var(--accent);
@@ -647,17 +696,17 @@ body {
 
 /* ---- 数据条目：行内重命名 / 右键菜单 / 数量上限确认 ---- */
 
-/* 行内重命名输入框（替代 PyQt 的 QInputDialog：Electron 渲染层没有 window.prompt） */
+/* 行内重命名输入框（替代 旧版 的 QInputDialog：Electron 渲染层没有 window.prompt） */
 .rename-input {
   flex: 1;
   min-width: 0;
 }
 
 /*
- * 内嵌数据编辑器的条目行 —— 对齐 PyQt `virtual_list.VirtualListItemDelegate`：
+ * 内嵌数据编辑器的条目行 —— 对齐 旧版 `virtual_list.VirtualListItemDelegate`：
  * 扁平单行、无卡片描边/圆角、行间无间距、选中=高亮填充。
  * 行内容是密集单行文本 `ID | 名称 | 关键字段`（见 DataEditorTab.buildListRowText）；
- * 删除入口在右键菜单 + 表单底部操作栏（对齐 PyQt），行内不再放删除图标，
+ * 删除入口在右键菜单 + 表单底部操作栏（对齐 旧版），行内不再放删除图标，
  * 也就没有「点行中心=误删」的问题——原为行内删除钮/短 id 而写的窄列 mitigations 已随之移除。
  */
 .ceshu-preview .list {
@@ -724,7 +773,7 @@ body {
   text-align: left;
 }
 
-/* 数量上限确认横幅（对齐 PyQt `data_tab._check_count_constraint` 的 QMessageBox.question） */
+/* 数量上限确认横幅（对齐 旧版 `data_tab._check_count_constraint` 的 QMessageBox.question） */
 .count-warning {
   display: flex;
   align-items: center;
@@ -785,7 +834,7 @@ body {
   padding: 12px 16px;
 }
 
-/* ---- 条目编辑器分区（对应 Python CollapsibleSection + FIELD_GROUPS） ---- */
+/* ---- 条目编辑器分区（对应 旧版 CollapsibleSection + FIELD_GROUPS） ---- */
 
 .form-section {
   border: 1px solid var(--border);
@@ -835,7 +884,7 @@ body {
 }
 
 /*
- * 表单行 —— 对齐 PyQt 章节/条目表单的 `QFormLayout`（`chapter_forms/_common.py::_add_row`）：
+ * 表单行 —— 对齐 旧版 章节/条目表单的 `QFormLayout`（`chapter_forms/_common::_add_row`）：
  * **标签在左、字段在右**，不是上下堆叠。实测 QFormLayout 默认
  * `labelAlignment = AlignLeft`、`formAlignment = AlignLeft|AlignTop`、`rowWrapPolicy = DontWrapRows`，
  * 即：标签左对齐、所有行的字段起始 x 对齐（标签列等宽）、标签从不换行到字段下方。
@@ -887,7 +936,7 @@ body {
   flex: 0 0 120px;
   max-width: 45%;
   padding-top: 7px; /* 与 6px 内边距的输入框首行文字对齐 */
-  color: var(--text-secondary); /* PyQt `ceshu_form_label_qss` 用的是 secondary_fg */
+  color: var(--text-secondary); /* 旧版 `ceshu_form_label_qss` 用的是 secondary_fg */
   font-size: calc(13px * var(--ui-font-scale) * 12/13);
   line-height: 1.45;
 }
@@ -933,7 +982,7 @@ body {
 /*
  * 条目表单（数据编辑器右侧字段表单）的标签列 —— **忠实**复刻 QFormLayout，取代上面的 120px 近似：
  * 标签列宽 = 分区内最宽标签（`max-content`），同时保留「分区内所有行的字段起始 x 对齐」。
- * 上面 flex 方案固定 120px 是「每行独立 flex 拿不到全表最宽标签」的妥协；而实测 PyQt 参考
+ * 上面 flex 方案固定 120px 是「每行独立 flex 拿不到全表最宽标签」的妥协；而实测 旧版 参考
  * 的标签列只有 ~57px（skill 类型最长标签「图片描述:」）—— 在窄列里 120px 白白吃掉四成宽度
  * （1184 窗口下控件只剩 135px）。改 grid + `display: contents`：行容器不再生成盒子，
  * 标签与控件直接成为网格项 ⇒ 列宽由网格统一计算，正是 QFormLayout 的语义。
@@ -946,7 +995,7 @@ body {
  *
  * ⚠️ 控件列上限**只在内嵌态生效**：`.ceshu-preview .editor` 是 `width:auto; flex:1 1 0`，
  * 宽度跟着窗口弹性变，窗口一宽控件就拉成一条长横线（用户反馈「太宽了不紧」）⇒ 收在 360px。
- * 但「整窗展开」（`ceshu-data-overlay`）这个功能的存在意义就是**吃宽**（PyQt 参考里表单占
+ * 但「整窗展开」（`ceshu-data-overlay`）这个功能的存在意义就是**吃宽**（旧版 参考里表单占
  * 窗宽 78%），那里必须放开到 `1fr` —— 否则把该功能直接废掉（`ceshu-data-maximize.spec.ts`
  * 断言整窗态 formW > 700 且控件起始线唯一）。
  */
@@ -1030,8 +1079,8 @@ body {
 }
 
 /*
- * 「AI 帮我填」小按钮 —— 对齐 Python `AIFieldButton` 的 26px 圆形按钮。
- * Python 用 Lucide 的 bot 图标；TS 侧**未引入图标库** ⇒ 用文字「AI」，避免为此新增依赖。
+ * 「AI 帮我填」小按钮 —— 对齐 旧版 `AIFieldButton` 的 26px 圆形按钮。
+ * 旧版 用 Lucide 的 bot 图标；TS 侧**未引入图标库** ⇒ 用文字「AI」，避免为此新增依赖。
  * 配色一律走主题令牌，深色档自动跟随。
  */
 .ai-field-btn {
@@ -1058,7 +1107,7 @@ body {
   color: var(--accent);
 }
 
-/* busy / 禁用：对应 Python `set_busy(True)` 的「禁用按钮 + 等待光标」 */
+/* busy / 禁用：对应 旧版 `set_busy(True)` 的「禁用按钮 + 等待光标」 */
 .ai-field-btn:disabled,
 .ai-field-btn.busy {
   cursor: progress;
@@ -1115,6 +1164,40 @@ body {
   font-size: calc(11px * var(--ui-font-scale));
   line-height: 1.5;
   opacity: 0.85;
+}
+
+/*
+ * 字段搜索条（长章用：combat 32 个字段）。
+ * 粘在表单顶部：往下翻到第 20 个字段时仍能直接改搜索词，不必滚回顶部。
+ * 只影响渲染，不影响保存（见 ChapterForm 的 `visibleFields`）。
+ */
+.field-search-row {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  margin-bottom: 4px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+}
+
+.field-search-input {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 8px;
+  font-size: calc(12px * var(--ui-font-scale));
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.field-search-input:focus {
+  outline: none;
+  border-color: var(--accent);
 }
 
 /*
@@ -1217,6 +1300,28 @@ body {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+/* 字段影响面（FieldImpactPanel）：分节标题 + 紧凑列表 */
+.impact-section {
+  margin-top: 12px;
+}
+
+.impact-section > h4 {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.impact-list {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  line-height: 1.6;
 }
 
 .review-row {
@@ -1333,7 +1438,7 @@ body {
 }
 
 /*
- * 游戏数据预览的 JSON 文本（对齐 PyQt 只读 QTextEdit 的等宽字体：
+ * 游戏数据预览的 JSON 文本（对齐 旧版 只读 QTextEdit 的等宽字体：
  * `Cascadia Code, Consolas, 9`；此处用 CSS 栈取系统等宽，不绑死具体字体名）。
  */
 .game-data-preview-text {
@@ -1438,7 +1543,7 @@ body {
   border-color: var(--border);
 }
 
-/* LazyImage（图片字段预览，对齐 PyQt LazyImageLabel 的「无图片 / 加载中... / 到位」三态） */
+/* LazyImage（图片字段预览，对齐 旧版 LazyImageLabel 的「无图片 / 加载中... / 到位」三态） */
 .image-lazy {
   align-self: flex-start;
   max-width: 100%;
@@ -1476,7 +1581,7 @@ body {
 }
 
 /*
- * 字段级 AI 按钮行。对齐 PyQt `_create_desc_widget` 的
+ * 字段级 AI 按钮行。对齐 旧版 `_create_desc_widget` 的
  * `QHBoxLayout` + `addStretch()`：按钮左对齐、右侧留白，不撑满。
  */
 .field-ai-actions {
@@ -1496,7 +1601,7 @@ body {
 }
 
 /*
- * `image_desc` 专用高度：PyQt `dynamic_form.py` 的 image_desc 分支是
+ * `image_desc` 专用高度：旧版 `dynamic_form` 的 image_desc 分支是
  * `QTextEdit` + `setMaximumHeight(60)`（多行，但比 desc 的 120 矮一半）。
  * 用 max-height 而非 min-height：既能显示两三行，又不会被拉成和 desc 一样高。
  */
@@ -1564,7 +1669,7 @@ body {
   color: var(--accent);
 }
 
-/* 状态栏：底色/文字/上边框对齐 PyQt `themes.py` 的 QStatusBar 规则（bg / hint / border） */
+/* 状态栏：底色/文字/上边框对齐 旧版 `themes` 的 QStatusBar 规则（bg / hint / border） */
 .statusbar {
   display: flex;
   align-items: center;
@@ -1576,7 +1681,7 @@ body {
   font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
 
-/* 快捷键提示（PyQt 侧是常驻的 shortcut_label，11px + 左右留白） */
+/* 快捷键提示（旧版 侧是常驻的 shortcut_label，11px + 左右留白） */
 .statusbar-hint {
   padding: 0 10px;
   color: var(--text-muted);
@@ -1660,9 +1765,9 @@ body {
 }
 
 /*
- * 章节导航项 —— 对齐 PyQt `chapter_panel.py::_CollapsibleSection._apply_theme()`：
+ * 章节导航项 —— 对齐 旧版 `chapter_panel::_CollapsibleSection._apply_theme()`：
  * 白底 + 1px 边框 + **左侧 3px 强调色竖条** + 10px 圆角 + 左对齐 13px 文字，
- * hover 变 `accent_light`。PyQt 是折叠面板，所有标题栏同款；TS 是单选切换，
+ * hover 变 `accent_light`。旧版 是折叠面板，所有标题栏同款；TS 是单选切换，
  * 故额外给选中项加一层 `accent_light` 底 + 强调色描边作为「当前章」指示。
  */
 .chapter-tab {
@@ -1681,7 +1786,7 @@ body {
 
 /*
  * 「AI 生成、待核对」圆点 —— 章节名与进度条之间。
- * 用点不用文字：16 章里每章多两个字会比圆点更吵；鼠标悬停有 title 说明。
+ * 用点不用文字：章节导航里每章多两个字会比圆点更吵；鼠标悬停有 title 说明。
  * 颜色取 accent（与当前章的左侧高亮同色系），让它比进度条更醒眼一点。
  */
 .chapter-tab-ai {
@@ -1710,7 +1815,7 @@ body {
 }
 
 /*
- * 章节完成度迷你进度条 —— 对齐 PyQt `chapter_panel.py::_CollapsibleSection`：
+ * 章节完成度迷你进度条 —— 对齐 旧版 `chapter_panel::_CollapsibleSection`：
  * 固定 60x6、圆角 3，轨道用 `border`；填充**按完成度三色**（`set_progress`：
  * <50 红 / 50-79 黄 / >=80 绿），与「字数统计」面板共用 `--progress-*` 令牌。
  */
@@ -1741,7 +1846,7 @@ body {
 }
 
 /*
- * 百分比文本：视觉上**不显示**（PyQt 用 `setTextVisible(False)`，只有迷你条），
+ * 百分比文本：视觉上**不显示**（旧版 用 `setTextVisible(False)`，只有迷你条），
  * 但**必须留在 DOM 文本里** —— `tests/e2e/ceshu.spec.ts:63` 断言
  * `expect(combatTab).toContainText('50%')`，删掉会打破既有 E2E 契约。
  * 用 .sr-only 而非 title：既保文本契约，又对读屏软件可读。
@@ -1769,6 +1874,464 @@ body {
   flex: 1;
   min-width: 0;
   overflow: auto;
+}
+
+/* ---- 一页式总览（2026 对齐：一页讲清 → 分层展开）---- */
+.ceshu-overview {
+  flex: 1;
+  min-width: 0;
+  padding: 16px 20px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  color: var(--text);
+}
+.overview-head {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 10px;
+}
+.overview-title {
+  margin: 0 0 4px;
+  font-size: 16px;
+  font-weight: 600;
+}
+.overview-summary {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.overview-gap {
+  color: var(--text-muted);
+}
+.overview-chapter {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  background: var(--bg-panel);
+}
+.overview-chapter-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.overview-pct {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+}
+.overview-pct.hi {
+  color: #15803d;
+}
+.overview-pct.mid {
+  color: #b45309;
+}
+.overview-pct.low {
+  color: var(--text-muted);
+}
+.overview-fields {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.overview-field {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 10px;
+  font-size: 13px;
+}
+.overview-field-label {
+  color: var(--text-muted);
+}
+.overview-field-label.required {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+.overview-field-value {
+  margin: 0;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.overview-field-value.empty {
+  color: var(--text-muted);
+  font-style: italic;
+}
+.overview-empty-note,
+.overview-machine-note {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.overview-machine-note {
+  border-top: 1px dashed var(--border);
+  padding-top: 6px;
+}
+.overview-toggle {
+  margin-top: 6px;
+}
+
+/* ---- 左栏产出物切换（设计文档 / 原型 / 数据 / 任务）---- */
+.artifact-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.artifact-btn {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.artifact-btn.active {
+  background: var(--bg-hover);
+  color: var(--text);
+  font-weight: 600;
+}
+.artifact-placeholder {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  text-align: center;
+  color: var(--text-muted);
+}
+.artifact-placeholder-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+/* ---- 原型预览（单文件 HTML，沙箱 iframe）---- */
+.prototype-panel {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 16px;
+}
+.prototype-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.prototype-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.prototype-frame {
+  flex: 1;
+  width: 100%;
+  min-height: 320px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+/* ---- 右栏智能体 ---- */
+.agent-panel {
+  width: 280px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-left: 1px solid var(--border);
+  background: var(--bg-panel);
+  min-height: 0;
+}
+.agent-header {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.agent-messages {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.agent-empty {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.agent-msg {
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 8px 10px;
+  border-radius: 8px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.agent-msg.user {
+  align-self: flex-end;
+  background: var(--bg-hover);
+  color: var(--text);
+  max-width: 90%;
+}
+.agent-msg.assistant {
+  align-self: flex-start;
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+  max-width: 95%;
+}
+.agent-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.agent-chip {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.agent-input-row {
+  display: flex;
+  gap: 6px;
+}
+.agent-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.agent-mode {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+/* ---- 岗位任务 ---- */
+.tasks-panel {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tasks-role-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+/* 岗位切换 + 「AI 生成任务」同一行：生成是对当前文档整体生效，不针对某个岗位 */
+.tasks-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+/* 「按章字段清单」的免责说明：它不是任务，别让人误当待办 */
+.tasks-derived-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  background: var(--surface-2, rgba(127, 127, 127, 0.08));
+  border-left: 2px solid var(--border);
+  padding: 6px 10px;
+  border-radius: 4px;
+  line-height: 1.5;
+}
+.tasks-priority {
+  flex: none;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 3px;
+  letter-spacing: 0.02em;
+}
+.tasks-priority.priority-P0 {
+  color: #fff;
+  background: var(--danger, #d9534f);
+}
+.tasks-priority.priority-P1 {
+  color: #fff;
+  background: var(--accent, #4a7dff);
+}
+.tasks-priority.priority-P2 {
+  color: var(--text-secondary);
+  background: var(--border);
+}
+/* 任务依据章：说明这条任务是从哪一章推出来的 */
+.tasks-source {
+  flex: none;
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.tasks-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.tasks-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+.tasks-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.tasks-item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+}
+.tasks-check {
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  flex: none;
+}
+.tasks-label {
+  color: var(--text-secondary);
+  flex: none;
+}
+.tasks-value {
+  color: var(--text);
+}
+.tasks-value.empty {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ---- 数据 / 机读 ---- */
+.machine-panel {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.machine-note {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.machine-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.machine-item {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.machine-item-head {
+  display: flex;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.machine-label {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.machine-value {
+  font-size: 13px;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.machine-value.empty {
+  color: var(--text-muted);
+  font-style: italic;
+}
+.machine-reason {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* ---- 系统模块勾选（通用底座恒有 + 可选系统模块）---- */
+.module-picker {
+  margin-top: 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: var(--bg-panel);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.module-picker-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+.module-picker-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.module-chip {
+  font-size: 12px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+}
+.module-chip.core {
+  border: 1px solid var(--border);
+}
+.module-picker-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 10px;
+}
+.module-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text);
+  cursor: pointer;
+}
+.module-check input {
+  margin: 0;
 }
 
 .chapter-form {
@@ -1919,7 +2482,7 @@ body {
   width: auto;
 }
 
-/* ---- 工具栏「更多 ▸」下拉（对齐 PyQt editor_view.py 的 _btn_more 菜单） ---- */
+/* ---- 工具栏「更多 ▸」下拉（对齐 旧版 editor_view 的 _btn_more 菜单） ---- */
 
 /* 下拉定位容器；工具栏本身是 flex-wrap，需显式 relative 才能让菜单挂在按钮下方 */
 .toolbar-more {
@@ -2070,7 +2633,9 @@ body {
   color: var(--warning);
 }
 
-/* ---- 校验与评分面板 ---- */
+/* ---- 校验与完备度面板 ----
+ * `score-*` 类名保留：`.score-table` 仍被 ShortcutsPanel / VersionDiffPanel 共用，
+ * `.score-suggestion` 仍被 AiReviewPanel 共用；完备度面板复用了同一套排版令牌。 */
 
 .validate-line {
   padding: 2px 0;
@@ -2868,7 +3433,7 @@ button.ref-row:hover {
   white-space: nowrap;
 }
 
-/* ---- 关系图面板（对齐 PyQt `ui/widgets/relation_graph.py::RelationTablePanel`） ---- */
+/* ---- 关系图面板（对齐 旧版 `ui/widgets/relation_graph::RelationTablePanel`） ---- */
 
 .rg-picker {
   display: flex;
@@ -3350,7 +3915,7 @@ button.ref-row:hover {
   font-family: 'Consolas', monospace;
 }
 
-/* 系数公式编辑器（内联展开；Python 为双击公式列弹出的 QDialog） */
+/* 系数公式编辑器（内联展开；旧版 为双击公式列弹出的 QDialog） */
 .attr-panel-builder {
   flex-basis: 100%;
   display: flex;
@@ -3724,85 +4289,68 @@ button.ref-row:hover {
   color: var(--danger);
 }
 
-/* ---- AI 智能审阅（策划书） ---- */
+/* ---- 成稿反审清单（策划书，2026-10-26：替代评分条） ---- */
 
-.review-dim-row {
+.review-check-row {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 4px 0;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
 }
 
-.review-dim-label {
-  width: 88px;
+.review-check-row:last-child {
+  border-bottom: none;
+}
+
+.review-check-badge {
   flex-shrink: 0;
-  font-size: calc(13px * var(--ui-font-scale) * 1.0);
-}
-
-.review-dim-track {
-  flex: 1;
-  min-width: 120px;
-  height: 12px;
-  border-radius: 6px;
+  min-width: 44px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  text-align: center;
+  font-size: calc(12px * var(--ui-font-scale) * 12/13);
+  font-weight: 600;
+  color: var(--text-muted);
   background: var(--border);
-  overflow: hidden;
 }
 
-.review-dim-fill {
-  height: 100%;
-  border-radius: 6px;
-  background: var(--text-muted);
-  transition: width 0.2s ease;
-}
-
-.review-dim-fill.hi {
-  background: var(--success);
-}
-
-.review-dim-fill.mid {
-  background: var(--accent);
-}
-
-.review-dim-fill.low {
-  background: var(--warning);
-}
-
-.review-dim-fill.fail {
+.review-check-badge.blocker {
+  color: #fff;
   background: var(--danger);
 }
 
-.review-dim-score {
-  width: 60px;
-  flex-shrink: 0;
-  text-align: right;
-  color: var(--text-muted);
-  font-family: Consolas, monospace;
+.review-check-badge.suggestion {
+  color: #fff;
+  background: var(--warning);
+}
+
+.review-check-badge.pass {
+  color: #fff;
+  background: var(--success);
+}
+
+.review-check-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.review-check-label {
   font-size: calc(13px * var(--ui-font-scale) * 1.0);
   font-weight: 600;
 }
 
-.review-dim-score.hi {
-  color: var(--success);
-}
-
-.review-dim-score.mid {
-  color: var(--accent);
-}
-
-.review-dim-score.low {
-  color: var(--warning);
-}
-
-.review-dim-score.fail {
-  color: var(--danger);
-}
-
-.review-dim-feedback {
-  flex-basis: 100%;
-  padding-left: 96px;
+.review-check-probe {
+  margin-top: 2px;
   color: var(--text-muted);
+  font-size: calc(12px * var(--ui-font-scale) * 12/13);
+}
+
+.review-check-evidence {
+  margin-top: 4px;
+  color: var(--text);
   font-size: calc(13px * var(--ui-font-scale) * 12/13);
+  line-height: 1.5;
 }
 
 /* ---- 混合玩法预设市场（策划书） ---- */
@@ -4611,7 +5159,7 @@ button.ref-row:hover {
   background: var(--bg-panel);
 }
 
-/* ── 数字员工气泡内的 markdown 渲染（对齐 Python chat_renderer.render_markdown 的 codehilite/fenced_code/tables/nl2br） ── */
+/* ── 数字员工气泡内的 markdown 渲染（对齐 旧版 chat_renderer.render_markdown 的 codehilite/fenced_code/tables/nl2br） ── */
 .digital-bubble .markdown-body {
   font-size: inherit;
   line-height: 1.55;
@@ -4893,7 +5441,7 @@ button.ref-row:hover {
   min-width: 0;
 }
 
-/* 快速创建：模板卡片网格（对应 Python quick_create 的卡片式向导） */
+/* 快速创建：模板卡片网格（对应 旧版 quick_create 的卡片式向导） */
 .qc-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -5082,7 +5630,7 @@ button.ref-row:hover {
   margin-top: 8px;
 }
 
-/* ---- 策划书内嵌数据预览面板（对齐 PyQt ui/ceshu/preview_panel.py::EditorPreviewPanel） ---- */
+/* ---- 策划书内嵌数据预览面板（对齐 旧版 ui/ceshu/preview_panel::EditorPreviewPanel） ---- */
 
 /* 章节导航 + 章节表单 + 内嵌数据编辑器 三栏同排（外层 .content 为 flex 行容器） */
 .ceshu-pane-row {
@@ -5095,8 +5643,8 @@ button.ref-row:hover {
 .ceshu-preview {
   display: flex;
   flex-direction: column;
-  /* 对齐 PyQt `editor_view.py:216 setSizes([500, 400])` —— 章节区 : 预览 ≈ 55.6% : 44.4%。
-     此前是定宽 380px（PyQt 是按比例的 QSplitter，宽屏下差异明显）。
+  /* 对齐 旧版 `editor_view:216 setSizes([500, 400])` —— 章节区 : 预览 ≈ 55.6% : 44.4%。
+     此前是定宽 380px（旧版 是按比例的 QSplitter，宽屏下差异明显）。
      保留 260px 兜底：窄窗口下不让预览塌到不可用。 */
   width: 44%;
   min-width: 260px;
@@ -5107,7 +5655,7 @@ button.ref-row:hover {
 }
 
 /*
- * 数据编辑器「展开」态：覆盖整窗（对齐 PyQt 全窗口数据编辑器 tab）。
+ * 数据编辑器「展开」态：覆盖整窗（对齐 旧版 全窗口数据编辑器 tab）。
  * 参考实测：整窗下表单区约占窗宽 78%（列表 ~190 + 表单 ~840@1080 窗）；
  * 而内嵌预览 44% 再切 200px 列表后，表单只剩 311px（1184 窗）——拉宽窗口也吃不到红利。
  * 只在用户点「展开」时出现，收起即回内嵌，不动外壳导航。
@@ -5144,7 +5692,7 @@ button.ref-row:hover {
   min-height: 0;
 }
 
-/* 展开态列表列放宽到 240px（对齐 PyQt setSizes([240, 720]) 的左列；内嵌态仍 200px） */
+/* 展开态列表列放宽到 240px（对齐 旧版 setSizes([240, 720]) 的左列；内嵌态仍 200px） */
 .ceshu-data-overlay .list-column {
   flex: 0 0 240px;
   min-width: 0;
@@ -5189,7 +5737,7 @@ button.ref-row:hover {
 
 /* 空态：做成一张「引导卡片」而非飘在空白里的两行灰字 ——
    原本大片留白 + 小号灰字容易被误读成「界面没渲染出来」，这里明确给出
-   「当前状态 / 原因 / 下一步动作」三层信息（对齐 PyQt preview_panel.py 的 _empty_box 意图）。 */
+   「当前状态 / 原因 / 下一步动作」三层信息（对齐 旧版 preview_panel 的 _empty_box 意图）。 */
 .ceshu-preview-empty {
   display: flex;
   flex: 1;
@@ -5305,8 +5853,8 @@ button.ref-row:hover {
   min-height: 0;
 }
 
-/* 预览面板较窄（380px）：内嵌「列表 | 表单」**仍与 PyQt 一致保持左右两栏** ——
-   PyQt `data_tab.py:78-91` 的 DataEditorTab 就是 QSplitter 左右两栏
+/* 预览面板较窄（380px）：内嵌「列表 | 表单」**仍与 旧版 一致保持左右两栏** ——
+   旧版 `data_tab:78-91` 的 DataEditorTab 就是 QSplitter 左右两栏
    （left_panel.setMinimumWidth(200) + setSizes([240, 720])），内嵌时并未改成上下堆叠。
    但必须**放开顶层那套定宽下限**：`.editor` 的 400px 定宽 + `.list-column` 的 220px 下限
    塞进 380px 会横向溢出 241px（表单约 60% 在屏外）。放开后改为「表单列收缩」而非溢出。 */
@@ -5315,7 +5863,7 @@ button.ref-row:hover {
 }
 
 .ceshu-preview .list-column {
-  /* 对齐 PyQt 左列最小宽度 200px；380px 容器下给表单留 ≈180px */
+  /* 对齐 旧版 左列最小宽度 200px；380px 容器下给表单留 ≈180px */
   flex: 0 0 200px;
   min-width: 0;
 }
@@ -5345,17 +5893,17 @@ button.ref-row:hover {
   min-width: 240px;
 }
 
-/* ---- Toast 非阻塞通知（对齐 Python ui/components/toast.py）---- */
+/* ---- Toast 非阻塞通知（对齐 旧版 ui/components/toast）---- */
 /*
- * 配色沿用 PyQt 的三套 QSS 语义：
+ * 配色沿用 旧版 的三套 QSS 语义：
  *   default → theme_color('bg')      ⇒ 这里用 --bg-panel（QSS 是深色底 + 白字，
  *             但本项目默认主题是浅色，故取面板底 + --text 前景，保证浅色主题下可读）
  *   success → theme_color('accent')  ⇒ --accent（#0EA5E9）
  *   error   → theme_color('danger')  ⇒ --danger（#EF4444）
- * 前景一律用 --btn-text（对齐 PyQt 的 theme_color('btn_text')）。
+ * 前景一律用 --btn-text（对齐 旧版 的 theme_color('btn_text')）。
  *
  * 定位刻意用 absolute：宿主**不占布局空间**，不会推挤下方面板
- * （这正是 notice-banner 的痛点）。PyQt 是「父窗口顶部居中 +60px」，
+ * （这正是 notice-banner 的痛点）。旧版 是「父窗口顶部居中 +60px」，
  * 本项目界面顶部已有菜单栏/浮层头部，放右上角更不挡内容。
  */
 .toast-host {
@@ -5439,7 +5987,7 @@ button.ref-row:hover {
   }
 }
 
-/* ================= 快速入门面板（对齐 Python ui/widgets/home_widget.py） ================= */
+/* ================= 快速入门面板（对齐 旧版 ui/widgets/home_widget） ================= */
 
 .onboarding .editor-title.onboarding-head {
   display: flex;
@@ -5784,7 +6332,7 @@ button.ref-row:hover {
    这些类此前没有规则 ⇒ 相关文本/控件以浏览器默认样式渲染。
    ============================================================ */
 
-/* 提示性说明文字（对齐 PyQt hint 色） */
+/* 提示性说明文字（对齐 旧版 hint 色） */
 .form-hint {
   color: var(--text-muted);
   font-size: calc(13px * var(--ui-font-scale) * 12/13);
@@ -6422,4 +6970,198 @@ button.ref-row:hover {
   justify-content: center;
   flex: 1;
   color: var(--text-secondary);
+}
+
+/* ---- 导入预览（确认后才落库） ---- */
+.import-preview-stats {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.import-stat {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--border);
+  color: var(--text-secondary);
+}
+/* 新增/修改要能一眼分开：绿=加、蓝=改 */
+.import-stat.create {
+  background: rgba(76, 175, 80, 0.16);
+  color: var(--text);
+}
+.import-stat.update {
+  background: rgba(74, 125, 255, 0.16);
+  color: var(--text);
+}
+.import-preview-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: auto;
+  min-height: 0;
+}
+.import-preview-row {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+.import-preview-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+.import-tag {
+  flex: none;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+.import-tag.create {
+  color: #fff;
+  background: #4caf50;
+}
+.import-tag.update {
+  color: #fff;
+  background: var(--accent, #4a7dff);
+}
+.import-preview-type {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.import-preview-name {
+  font-weight: 600;
+  color: var(--text);
+}
+.import-change-list {
+  margin: 6px 0 0;
+  padding: 0 0 0 2px;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.import-change {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+.import-change-field {
+  color: var(--text-secondary);
+  flex: none;
+}
+/* 改前弱化、改后强调：扫一眼就知道动了什么 */
+.import-change-before {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+.import-change-arrow {
+  color: var(--text-muted);
+}
+.import-change-after {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* ---- 设计 ↔ 数据表核对 ---- */
+.datatable-check {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-2, rgba(127, 127, 127, 0.06));
+}
+.contract-check {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-2, rgba(127, 127, 127, 0.06));
+}
+.datatable-check-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.datatable-check-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.datatable-issues {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.datatable-issue {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+/* 不符 = 红、注意 = 黄：一眼分出「必须改」和「看一眼」 */
+.datatable-issue.error {
+  color: var(--text);
+}
+.datatable-issue.warn {
+  color: var(--text-secondary);
+}
+.datatable-issue-tag {
+  flex: none;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 0 5px;
+  border-radius: 3px;
+}
+.datatable-issue.error .datatable-issue-tag {
+  color: #fff;
+  background: var(--danger, #d9534f);
+}
+.datatable-issue.warn .datatable-issue-tag {
+  color: var(--text-secondary);
+  background: var(--border);
+}
+
+/* ---- 数据表补齐（按声明建表/加字段） ---- */
+.datatable-scaffold-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.datatable-scaffold-plan {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+.datatable-plan-row {
+  border-left: 2px solid var(--border);
+  padding: 2px 0 2px 8px;
+}
+.datatable-plan-head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 12px;
+}
+.datatable-plan-name {
+  font-weight: 600;
+  color: var(--text);
 }

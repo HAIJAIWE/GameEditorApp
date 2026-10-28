@@ -144,7 +144,8 @@ export const RESOURCES_TEMPLATES: ChapterTemplate[] = [
         'zh-CN',
         'zh-TW',
         'en',
-        'ja'
+        'ja',
+        'ko'
       ],
       outsourcing: [
         {
@@ -174,7 +175,7 @@ export const RESOURCES_TEMPLATES: ChapterTemplate[] = [
           mitigation: '多供应商 + 提前启动'
         },
         {
-          risk: '技术风险（性能）',
+          risk: '性能不达标',
           probability: '中',
           impact: '高',
           mitigation: '早期性能基线'

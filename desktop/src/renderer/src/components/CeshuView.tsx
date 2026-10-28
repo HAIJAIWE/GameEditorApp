@@ -4,8 +4,10 @@ import {
   CESHU_EXPORT_FORMATS,
   CESHU_FORMAT_LABELS,
   CHAPTER_LABELS,
+  MODULE_CHAPTERS,
+  contentChapterCount,
+  enabledModuleChapters,
   isChapterKey,
-  visibleChapterKeys,
   type CeshuDocument,
   type CeshuExportFormat,
   type ChapterData,
@@ -16,7 +18,8 @@ import {
   computeEnabledEditors,
   formatLocalTimestamp,
   getGddScope,
-  resolveDocGameStyle
+  resolveDocGameStyle,
+  visibleChaptersForDoc
 } from '../../../shared/ceshuModel'
 import type { CeshuChangelog } from '../../../shared/ceshuDiff'
 import {
@@ -31,7 +34,7 @@ import {
   buildChangelogText,
   buildValidationReportMarkdown
 } from '../../../shared/domain/ceshu/ceshuReports'
-import { buildScoreReportMarkdown, type CeshuScoreReport } from '../../../shared/ceshuScorer'
+import { buildReadinessReportMarkdown, type CeshuReadinessReport } from '../../../shared/ceshuReadiness'
 import { clearAiGenerated, markAiGenerated, readAiGenerated } from '../../../shared/ceshuAiMark'
 import { fieldStatusOf, setFieldStatuses, type FieldReviewStatus } from '../../../shared/ceshuFieldStatus'
 import type { FieldAction } from '../../../shared/ceshuFieldAction'
@@ -46,6 +49,7 @@ import {
   parseCeshuPatch,
   previewPatchValue,
   type CeshuIssueParseResult,
+  type CeshuPatchItem,
   type CeshuPatchParseResult
 } from '../../../shared/ceshuImportPatch'
 import {
@@ -62,10 +66,19 @@ import AiDataGenPanel from './AiDataGenPanel'
 import AiFullGeneratePanel from './AiFullGeneratePanel'
 import AiReviewPanel from './AiReviewPanel'
 import ChapterForm from './ChapterForm'
+import CeshuModulePicker from './CeshuModulePicker'
+import CeshuOverview from './CeshuOverview'
+import CeshuPrototypePanel from './CeshuPrototypePanel'
+import CeshuAgentPanel from './CeshuAgentPanel'
+import CeshuTasksPanel from './CeshuTasksPanel'
+import CeshuMachineDataPanel from './CeshuMachineDataPanel'
 import ChapterNotesPanel from './ChapterNotesPanel'
 import CeshuDataPreview, { type PreviewJumpTarget } from './ceshu/CeshuDataPreview'
 import CeshuDataRefsPanel from './ceshu/CeshuDataRefsPanel'
-import { ChangelogPanel, ScorePanel, ValidatePanel } from './ceshu/CeshuReportPanels'
+import FieldImpactPanel from './ceshu/FieldImpactPanel'
+import HealthPanel from './ceshu/HealthPanel'
+import RoutePanel from './ceshu/RoutePanel'
+import { ChangelogPanel, ReadinessPanel, ValidatePanel } from './ceshu/CeshuReportPanels'
 import { cursorAfterAccept } from './ceshu/reviewQueueAdvance'
 import { groupReviewQueue } from './ceshu/reviewQueueGroups'
 import { previewFieldValue, readFieldValue } from './ceshu/reviewPreview'
@@ -87,7 +100,7 @@ function collectPendingReviewFields(doc: CeshuDocument): Array<{
   fieldLabel: string
 }> {
   const pending: Array<{ chapter: ChapterKey; fieldKey: string; fieldLabel: string }> = []
-  for (const chapter of visibleChapterKeys(getGddScope(doc))) {
+  for (const chapter of visibleChaptersForDoc(doc)) {
     const statuses = fieldStatusOf(doc.meta, chapter)
     for (const field of CESHU_CHAPTER_FIELDS[chapter] ?? []) {
       if (statuses[field.key]?.status === 'ai_draft') {
@@ -98,13 +111,22 @@ function collectPendingReviewFields(doc: CeshuDocument): Array<{
   return pending
 }
 
+/** 左栏「产出物」切换（2026-10-26 三栏布局：左=产出物+大纲，中=工作区，右=智能体） */
+const ARTIFACTS = [
+  { key: 'doc', label: '设计文档' },
+  { key: 'prototype', label: '原型预览' },
+  { key: 'data', label: '数据 / 机读' },
+  { key: 'tasks', label: '岗位任务' }
+] as const
+type ArtifactKey = (typeof ARTIFACTS)[number]['key']
+
 interface CeshuViewProps {
   ceshuId: string | null
   onChanged: () => void
   /** 切换当前策划书（派生新版本后自动切到新版本） */
   onSelect: (id: string) => void
   /**
-   * 打开策划书时回填活跃术语风格（对应 Python `ceshu_controller.open_ceshu`：
+   * 打开策划书时回填活跃术语风格（对应 旧版 `ceshu_controller.open_ceshu`：
    * 由 meta 推断风格后 `set_active_style`；本版优先采用用户显式选过的 `doc.style`）。
    */
   onGameStyleChange?: (styleId: string) => void
@@ -112,7 +134,7 @@ interface CeshuViewProps {
   types: readonly DataTypeDef[]
   /** 活跃术语风格 id（透传给内嵌数据编辑器的字段标签术语替换） */
   gameStyle?: string
-  /** 返回策划书首页（对齐 PyQt `editor_view.py::_on_back` 的 `back_requested`） */
+  /** 返回策划书首页 */
   onBack: () => void
   /** 跳转定位目标（透传给内嵌数据预览面板，命中启用编辑器时定位到对应条目） */
   jumpTarget?: PreviewJumpTarget | null
@@ -124,6 +146,8 @@ interface CeshuViewProps {
   dataEpoch?: number
   /** 打开「字段结构编辑器」编辑指定类型（由条目表单的「更多 ▸」触发，宿主负责开面板） */
   onEditType?: (typeId: string) => void
+  /** 类型 schema 被改动（数据表补齐会新建类型/字段）：宿主刷新类型列表 */
+  onTypesChanged?: (types: DataTypeDef[]) => void
   /** 打开「数据关联预览」查看某条目引用关系（由条目表单的「更多 ▸」触发，宿主负责开面板） */
   onShowReferences?: (target: { type: string; id: string; name: string }) => void
 }
@@ -142,19 +166,31 @@ export default function CeshuView({
   onJumpHandled,
   onJumpMissed,
   onEditType,
+  onTypesChanged,
   onShowReferences
 }: CeshuViewProps) {
   const [doc, setDoc] = useState<CeshuDocument | null>(null)
   const [activeChapter, setActiveChapter] = useState<ChapterKey>('meta')
   /**
    * 阶段筛选（2026-10-26，反向验证后的入口分层）：
-   * 默认 'all' 保持原行为——真实使用里立项阶段只看 7 章就够，
-   * 但发行阶段的章不能真藏起来（校验跳转、评审队列都可能指向它们）。
-   * 当前章永远参与渲染，避免「筛掉自己」导致右侧面板空白。
+   * **默认 'concept'（立项 7 章）**——24 章全平铺会把策划书变成 checklist（「不像设计文档」）。
+   * 要扩展再切「研发 / 发行 / 全部」；发行阶段的章不会真丢：校验跳转、评审队列会把
+   * activeChapter 带过去，而当前章永远参与渲染，避免「筛掉自己」导致右侧面板空白。
    */
-  const [stageFilter, setStageFilter] = useState<CeshuStage | 'all'>('all')
+  const [stageFilter, setStageFilter] = useState<CeshuStage | 'all'>('concept')
+  /** 一页总览（2026 对齐）：把当前阶段压成一页只读摘要；默认仍是逐章编辑 */
+  const [viewMode, setViewMode] = useState<'edit' | 'overview'>('edit')
+  /** 系统模块勾选面板是否展开 */
+  const [modulePickerOpen, setModulePickerOpen] = useState(false)
+  /** 左栏产出物：设计文档 / 原型 / 数据 / 任务 */
+  const [artifact, setArtifact] = useState<ArtifactKey>('doc')
   /** 全局审阅队列（跨章列出 AI 草稿字段）是否展开 */
   const [reviewOpen, setReviewOpen] = useState(false)
+  /** 字段影响面面板的目标（null = 关闭）；由字段头上的「影响面」按钮打开 */
+  const [impactTarget, setImpactTarget] = useState<{ chapter: ChapterKey; field: string } | null>(null)
+  /** 开发路线面板：几波、每波能并行做什么、门禁过没过 */
+  const [routeOpen, setRouteOpen] = useState(false)
+  const [healthOpen, setHealthOpen] = useState(false)
   /** 迁移预览（只读）浮层是否展开 */
   const [migrationOpen, setMigrationOpen] = useState(false)
   /** AI 消费提示词浮层是否展开，以及当前任务（draft=按契约起草 / review=审阅找问题） */
@@ -183,7 +219,7 @@ export default function CeshuView({
   const [panel, setPanel] = useState<
     | 'changelog'
     | 'validate'
-    | 'score'
+    | 'readiness'
     | 'aiFull'
     | 'aiReview'
     | 'diff'
@@ -198,8 +234,14 @@ export default function CeshuView({
   >(null)
   const [changelog, setChangelog] = useState<CeshuChangelog | null>(null)
   const [validateErrors, setValidateErrors] = useState<string[]>([])
-  const [score, setScore] = useState<CeshuScoreReport | null>(null)
-  /** 「更多 ▸」下拉展开状态（对齐 PyQt `editor_view.py:154` 的 `_btn_more` 菜单） */
+  const [readiness, setReadiness] = useState<CeshuReadinessReport | null>(null)
+  /**
+   * 「跳到某章的某个字段」目标（校验面板的必填缺失 / 完备度面板的逐章缺口 / 审阅队列的「查看」）。
+   * 与数据栏的 `jumpTarget`（跳到引用）无关：那个跳数据、这个跳表单字段。
+   * 消费方是 `ChapterForm` 的 `focusField`：滚过去 + 高亮，然后回调清空（见其注释）。
+   */
+  const [fieldJump, setFieldJump] = useState<{ chapter: ChapterKey; field: string } | null>(null)
+  /** 「更多 ▸」下拉展开状态 */
   const [moreOpen, setMoreOpen] = useState(false)
   /**
    * 数据栏是否展开（左栏 + 中间 = 工作区，右栏 = 智能体）。
@@ -227,8 +269,16 @@ export default function CeshuView({
       return next
     })
   }
-  /** 「AI 生成数据」的预选类型（由条目表单的「AI 生成」按钮指定；null = 面板默认全选） */
-  const [aiGenTarget, setAiGenTarget] = useState<string | null>(null)
+  /** 「AI 生成数据」的预选目标（由条目表单 / 设计↔数据表核对的「AI 生成缺失数据」指定） */
+  interface AiGenTarget {
+    /** 预选的数据类型 id；null = 面板默认全选 */
+    typeId: string | null
+    /** 预填的每类生成数量（核对缺口传入） */
+    count?: number
+    /** 预填的补充要求（核对缺口传入，说明要补齐的表与缺口） */
+    instruction?: string
+  }
+  const [aiGenTarget, setAiGenTarget] = useState<AiGenTarget | null>(null)
   const moreRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -261,14 +311,14 @@ export default function CeshuView({
         setError(null)
         setPanel(null)
         setDeriveOpen(false)
-        // 对齐 PyQt `ceshu_controller.py:66-71`：打开策划书时，若**尚未确认过系统**且
-        // 已有启用系统，则自动弹出「确认游戏系统」对话框（PyQt 无手动菜单项，TS 同步移除）。
+        // 对齐 旧版 `ceshu_controller:66-71`：打开策划书时，若**尚未确认过系统**且
+        // 已有启用系统，则自动弹出「确认游戏系统」对话框。
         // 注意在 promise 回调里 setState —— react-hooks v7 禁止 effect 体内同步 setState。
         const alreadyConfirmed = loaded.meta?.system_confirmed === true
         if (!alreadyConfirmed && computeEnabledEditors(loaded).length > 0) {
           setPanel('systemConfirm')
         }
-        // 打开策划书 → 回填活跃术语风格（Python 在 open_ceshu 里 set_active_style）
+        // 打开策划书 → 回填活跃术语风格
         onGameStyleChange?.(resolveDocGameStyle(loaded))
       })
       .catch((err: unknown) => {
@@ -344,6 +394,19 @@ export default function CeshuView({
       setDoc(await window.mbApi.ceshu.saveChapter({ id: ceshuId, chapter: 'meta', data: nextMeta }))
     },
     [ceshuId, doc]
+  )
+
+  /** 勾选/取消系统模块：写进 meta.enabled_modules（随「文档信息」保存） */
+  const handleToggleModule = useCallback(
+    async (module: ChapterKey, enabled: boolean): Promise<void> => {
+      if (doc === null) return
+      const current = new Set(enabledModuleChapters(doc))
+      if (enabled) current.add(module)
+      else current.delete(module)
+      const nextModules = MODULE_CHAPTERS.filter((item) => current.has(item))
+      await handleSave('meta', { ...doc.meta, enabled_modules: nextModules })
+    },
+    [doc, handleSave]
   )
 
   /*
@@ -456,7 +519,7 @@ export default function CeshuView({
   /** 「AI 生成、待核对」的章节集合 —— 章节列表据此画小圆点 */
   const aiMarks = readAiGenerated(doc.meta)
   const scope = getGddScope(doc)
-  const visible = visibleChapterKeys(scope)
+  const visible = visibleChaptersForDoc(doc)
   /**
    * 阶段筛选后的章节列表：`all` 为原行为；选了阶段则只留「截至该阶段」的章，
    * 但**始终保留当前章**——否则从校验报告/评审队列跳过来时右侧会空白。
@@ -509,7 +572,7 @@ export default function CeshuView({
   const migrationPlan = planCeshuMigration(doc)
   /** AI 消费提示词（双轨 JSON 的配套）：按任务生成可粘贴给外部 AI 的提示词 */
   const consumePrompt = buildBundleConsumePrompt(buildCeshuBundle(doc), consumeTask)
-  const progress = computeChapterProgress(doc)
+  const progress = computeChapterProgress(doc, stageFilter === 'all' ? undefined : stageFilter)
   /** 由第四章游戏系统派生的启用编辑器（内嵌数据预览面板据此渲染标签页） */
   const enabledEditors = computeEnabledEditors(doc)
   const gameName = typeof doc.meta.game_name === 'string' && doc.meta.game_name ? doc.meta.game_name : '未命名策划书'
@@ -566,6 +629,46 @@ export default function CeshuView({
     }
   }
 
+  /** 导出项目文件夹：config.json + design/*.md + tasks/*.md（一个可交付的项目目录） */
+  const handleExportProject = async (): Promise<void> => {
+    try {
+      setError(null)
+      setNotice(null)
+      const chosen = await window.mbApi.dialog.chooseExportDir()
+      if (chosen.path === null) return
+      setBusy(true)
+      const result = await window.mbApi.ceshu.exportProjectFolder({ id: doc.ceshu_id, path: chosen.path })
+      setNotice(`已导出项目文件夹：${result.dir}（${result.files.length} 个文件）`)
+    } catch (err) {
+      setError(toErrorMessage(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  /**
+   * 导出**开发交接包**：分卷施工图（架构→玩法→内容→系统→界面→打磨）+ 机读包 + 契约
+   * + 数据表 schema/快照 + 原型。与「项目文件夹」的区别：那份是**给人看的项目资料**，
+   * 这份是**给编码智能体按卷施工**的规格（每卷有门禁与验收）。
+   */
+  const handleExportHandoff = async (): Promise<void> => {
+    try {
+      setError(null)
+      setNotice(null)
+      const chosen = await window.mbApi.dialog.chooseExportDir()
+      if (chosen.path === null) return
+      setBusy(true)
+      const result = await window.mbApi.ceshu.exportHandoff({ id: doc.ceshu_id, path: chosen.path })
+      setNotice(
+        `已导出开发交接包：${result.dir}（${result.files.length} 个文件，先看 README.md 的分卷顺序）`
+      )
+    } catch (err) {
+      setError(toErrorMessage(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
   /** 派生新版本：复制当前版本内容，版本号自动递增，默认未激活 */
   const handleDerive = async (): Promise<void> => {
     await runBusy(
@@ -612,40 +715,52 @@ export default function CeshuView({
     })
   }
 
-  /** 质量评分：结构 30 + 质量 40 + 市场 30（含章节明细与改进建议） */
-  const handleScore = async (): Promise<void> => {
+  /** 完备度：各阶段必填覆盖 + 逐章缺口 + 有出处的参照对比（替代旧的 100 分制评分） */
+  const handleReadiness = async (): Promise<void> => {
     await runBusy(async () => {
-      const report = await window.mbApi.ceshu.score({ id: doc.ceshu_id })
-      setScore(report)
-      setPanel('score')
+      const report = await window.mbApi.ceshu.readiness({ id: doc.ceshu_id })
+      setReadiness(report)
+      setPanel('readiness')
     })
   }
 
-  /** 导出评分报告：渲染层生成 Markdown → 主进程原子写盘（对齐 Python score_report_dialog._on_export_md） */
-  const handleExportScore = async (): Promise<void> => {
-    if (!score) return
+  /**
+   * 跳到某章的某个字段：切章 + 交给 `ChapterForm` 滚过去高亮，并关掉当前报告面板。
+   *
+   * 三处入口共用（校验面板的必填缺失、完备度面板的逐章缺口、审阅队列的「查看」）——
+   * 只跳章等于让人在 32 个字段里再翻一遍，而这三处本来就知道具体是哪个字段。
+   */
+  const jumpToField = (chapter: ChapterKey, field: string): void => {
+    setActiveChapter(chapter)
+    setFieldJump({ chapter, field })
+    setPanel(null)
+  }
+
+  /** 导出完备度报告：渲染层生成 Markdown → 主进程原子写盘 */
+  const handleExportReadiness = async (): Promise<void> => {
+    if (!readiness) return
     try {
       setError(null)
       setNotice(null)
       const chosen = await window.mbApi.dialog.chooseCeshuExportFile({
         format: 'markdown',
-        defaultName: `${gameName}-GDD评分报告`
+        defaultName: `${gameName}-完备度报告`
       })
       if (!chosen.path) return
-      const markdown = buildScoreReportMarkdown(gameName, gameType, score, formatLocalTimestamp())
-      const exported = await window.mbApi.ceshu.exportScoreReport({ path: chosen.path, content: markdown })
-      setNotice(`评分报告已导出：${exported.filePath}`)
+      const markdown = buildReadinessReportMarkdown(gameName, gameType, readiness, formatLocalTimestamp())
+      const exported = await window.mbApi.ceshu.exportReadinessReport({ path: chosen.path, content: markdown })
+      setNotice(`完备度报告已导出：${exported.filePath}`)
     } catch (err) {
       setError(toErrorMessage(err))
     }
   }
 
-  /** 导出校验报告：渲染层生成 Markdown → 主进程原子写盘（对齐 Python validation_dialog._on_export_md） */
+  /** 导出校验报告：渲染层生成 Markdown → 主进程原子写盘 */
   const handleExportValidation = async (): Promise<void> => {
     try {
       setError(null)
       setNotice(null)
-      // 文件名安全化：保留字母/数字/._-（含 CJK，对齐 Python str.isalnum 语义）
+      // 文件名安全化：保留字母/数字/._-
       const safeName = [...gameName].filter((ch) => /[\p{L}\p{N}._-]/u.test(ch)).join('') || 'ceshu'
       const chosen = await window.mbApi.dialog.chooseReportFile({
         defaultName: `${safeName}_${doc.version_label || 'v1.0'}_校验报告`,
@@ -667,7 +782,7 @@ export default function CeshuView({
     }
   }
 
-  /** 导出变更日志：MD / HTML / Text 三格式（对齐 Python changelog_dialog._on_export） */
+  /** 导出变更日志：MD / HTML / Text 三格式 */
   const handleExportChangelog = async (format: 'md' | 'html' | 'text'): Promise<void> => {
     if (!changelog) return
     try {
@@ -711,7 +826,7 @@ export default function CeshuView({
         const marked = markAiGenerated(updated.meta, chapters, new Date().toISOString())
         const saved = await window.mbApi.ceshu.saveChapter({ id: ceshuId, chapter: 'meta', data: marked })
         setDoc(saved)
-        // 跳到第一处变化：省得用户自己在 16 章里找
+        // 跳到第一处变化：省得用户自己在整份文档里找
         setActiveChapter(chapters[0])
       } catch (err) {
         // 标记失败不该让用户以为生成失败了 —— 内容已经写进去了
@@ -829,6 +944,33 @@ export default function CeshuView({
     )
   }
 
+  /** 智能体「改文档」应用：按章写盘 + 标记 AI 草稿（与导入补丁同一条写入路径） */
+  const handleApplyAgentPatch = async (items: CeshuPatchItem[]): Promise<void> => {
+    if (!ceshuId) return
+    const changed = items.filter((item) => item.changed)
+    if (changed.length === 0) return
+    const { doc: next, chapters } = applyCeshuPatch(doc, changed)
+    let latest = doc
+    for (const chapter of chapters) {
+      latest = await window.mbApi.ceshu.saveChapter({ id: ceshuId, chapter, data: next[chapter] })
+    }
+    const now = new Date().toISOString()
+    let meta = latest.meta
+    for (const chapter of chapters) {
+      const updates: Record<string, FieldReviewStatus> = {}
+      for (const item of changed) {
+        if (item.chapter === chapter) updates[item.fieldKey] = 'ai_draft'
+      }
+      if (Object.keys(updates).length > 0) meta = setFieldStatuses(meta, chapter, updates, now)
+    }
+    if (meta !== latest.meta) {
+      latest = await window.mbApi.ceshu.saveChapter({ id: ceshuId, chapter: 'meta', data: meta })
+    }
+    setDoc(latest)
+    setNotice(`智能体已改 ${changed.length} 个字段（标记为 AI 草稿，待审）`)
+    onChanged()
+  }
+
   /** 预设市场应用完成：systems/meta 已在主进程写盘，更新文档并刷新侧边栏 */
   const handlePresetApplied = (updated: CeshuDocument, enabledCount: number, presetLabel: string): void => {
     setDoc(updated)
@@ -844,9 +986,9 @@ export default function CeshuView({
   }
 
   /**
-   * 「更多 ▸」菜单分组。骨架对齐 PyQt `editor_view.py:160-187` 的 `_more_menu` 顺序与分隔。
+   * 「更多 ▸」菜单分组。骨架对齐 旧版 `editor_view:160-187` 的 `_more_menu` 顺序与分隔。
    *
-   * **与 PyQt 菜单仍有差异（E30 审计确认，非笔误）**：PyQt 另有「档位切换（轻量 9 章 ↔
+   * **与 旧版 菜单仍有差异（E30 审计确认，非笔误）**：旧版 另有「档位切换（轻量 9 章 ↔
    * 工业级 18 章）、更多模板、导出 AI 报告」三项，TS 侧**没有对应入口**（不是按钮失效，是真没有）。
    *
    * 「补全空白字段」已于 W0 收口：它原先只挂在 `ChecklistPanel` 的「一键修复」上，
@@ -865,7 +1007,9 @@ export default function CeshuView({
       { testid: 'ceshu-template-editor', label: '模板编辑器', run: () => setPanel('templateEditor') }
     ],
     [
-      { testid: 'ceshu-score', label: '评分', run: () => void handleScore() },
+      { testid: 'ceshu-route', label: '开发路线', run: () => setRouteOpen(true) },
+      { testid: 'ceshu-health', label: '开发体检', run: () => setHealthOpen(true) },
+      { testid: 'ceshu-readiness', label: '完备度', run: () => void handleReadiness() },
       { testid: 'ceshu-autofill', label: '补全空白字段', run: () => void handleAutoFill() },
       { testid: 'ceshu-diff', label: '版本对比', run: () => setPanel('diff') },
       { testid: 'ceshu-timeline', label: '版本时间线', run: () => setPanel('timeline') },
@@ -873,9 +1017,11 @@ export default function CeshuView({
       { testid: 'ceshu-datarefs', label: '数据引用', run: () => setPanel('dataRefs') },
       { testid: 'ceshu-migration-preview', label: '迁移预览（只读）', run: () => setMigrationOpen(true) },
       { testid: 'ceshu-consume-prompt', label: 'AI 消费提示词', run: () => setConsumeOpen(true) },
-      { testid: 'ceshu-import-patch', label: '导入 AI 结果', run: () => setImportOpen(true) }
+      { testid: 'ceshu-import-patch', label: '导入 AI 结果', run: () => setImportOpen(true) },
+      { testid: 'ceshu-export-project', label: '导出项目文件夹', run: () => void handleExportProject() },
+      { testid: 'ceshu-export-handoff', label: '导出开发交接包', run: () => void handleExportHandoff() }
     ],
-    // 「确认游戏系统」**不在菜单里**：PyQt 无此菜单项，改为打开策划书时自动弹窗
+    // 「确认游戏系统」**不在菜单里**：旧版 无此菜单项，改为打开策划书时自动弹窗
     // （见上方加载回调；条件 = 未确认过 且 已有启用系统）
     [{ testid: 'ceshu-notes', label: '笔记', run: () => setPanel('notes') }]
   ]
@@ -898,7 +1044,12 @@ export default function CeshuView({
           {doc.version_label}
           {doc.is_active ? ' ★ 激活' : ' · 未激活'}
         </span>
-        <span className="item-meta">档位：{scope === 'lite' ? '标准版（9 章）' : '专业版（16 章）'}</span>
+        <span className="item-meta">
+          档位：
+          {scope === 'lite'
+            ? `标准版（${contentChapterCount('lite')} 章）`
+            : `专业版（${contentChapterCount('full')} 章）`}
+        </span>
         <span className="item-meta" data-testid="ceshu-total-progress">
           总进度 {Math.round((progress.total ?? 0) * 100)}%
         </span>
@@ -958,7 +1109,7 @@ export default function CeshuView({
         >
           AI 生成数据
         </button>
-        {/* 「更多 ▸」：对齐 PyQt `editor_view.py:154` —— 低频/高级功能收进下拉，
+        {/* 「更多 ▸」：对齐 旧版 `editor_view:154` —— 低频/高级功能收进下拉，
             工具栏只留高频操作（返回/保存/校验/AI/导出），避免「一屏 19 个按钮」的操作带过载
             （正是 docs/ux-simplification-plan.md 的 P3「操作带过多，层级重叠」） */}
         <div className="toolbar-more" ref={moreRef}>
@@ -1068,7 +1219,9 @@ export default function CeshuView({
           <AiDataGenPanel
             key={doc.ceshu_id}
             ceshuId={doc.ceshu_id}
-            initialTypeId={aiGenTarget ?? undefined}
+            initialTypeId={aiGenTarget?.typeId ?? undefined}
+            initialCount={aiGenTarget?.count}
+            initialInstruction={aiGenTarget?.instruction}
             onClose={() => setPanel(null)}
           />
         ) : panel === 'presetMarket' ? (
@@ -1115,9 +1268,15 @@ export default function CeshuView({
               setActiveChapter(chapter)
               setPanel(null)
             }}
+            onJumpField={jumpToField}
           />
-        ) : panel === 'score' ? (
-          <ScorePanel score={score} onExport={() => void handleExportScore()} onClose={() => setPanel(null)} />
+        ) : panel === 'readiness' ? (
+          <ReadinessPanel
+            readiness={readiness}
+            onExport={() => void handleExportReadiness()}
+            onClose={() => setPanel(null)}
+            onJumpField={jumpToField}
+          />
         ) : (
           <>
             {/* 全局审阅队列（浮层）：跨章列出 ai_draft 字段，逐条接受 / 跳转 */}
@@ -1180,7 +1339,8 @@ export default function CeshuView({
                                     className="btn slim"
                                     data-testid="review-goto"
                                     onClick={() => {
-                                      setActiveChapter(item.chapter)
+                                      // 审阅队列本来就知道是哪个字段：直接跳过去，省掉二次翻找
+                                      jumpToField(item.chapter, item.fieldKey)
                                       setReviewOpen(false)
                                     }}
                                   >
@@ -1212,6 +1372,19 @@ export default function CeshuView({
                   )}
                 </div>
               </div>
+            )}
+            {/* 开发路线：并行波次 + 每份文档的门禁状态 */}
+            {routeOpen && <RoutePanel doc={doc} onClose={() => setRouteOpen(false)} />}
+            {/* 开发交接体检：完成度 + 门禁 + 并行 + 可开发性缺口 一张快照 */}
+            {healthOpen && <HealthPanel doc={doc} onClose={() => setHealthOpen(false)} />}
+            {/* 字段影响面：改一个字段会波及哪些文档 / 断言 / 同源字段 / 数据侧 */}
+            {impactTarget !== null && (
+              <FieldImpactPanel
+                doc={doc}
+                chapter={impactTarget.chapter}
+                field={impactTarget.field}
+                onClose={() => setImpactTarget(null)}
+              />
             )}
             {/* 迁移预览（只读）：只展示「会怎么拆 / 哪些重叠」，不改文档 */}
             {migrationOpen && (
@@ -1449,6 +1622,22 @@ export default function CeshuView({
             )}
             <div className="ceshu-pane-row">
             <div className="chapter-nav">
+              {/* 产出物切换：设计文档 / 原型预览 / 数据·机读 / 岗位任务 */}
+              <div className="artifact-switch" role="group" aria-label="产出物">
+                {ARTIFACTS.map((item) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    data-testid={`artifact-${item.key}`}
+                    className={`artifact-btn${artifact === item.key ? ' active' : ''}`}
+                    onClick={() => setArtifact(item.key)}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+              {artifact === 'doc' ? (
+                <>
               {/*
                 阶段筛选（默认「全部」= 原行为）。用途：立项阶段只需要 7 章，
                 24 章全铺开是劝退主因（库内文档填写率 1%–13%，见
@@ -1476,9 +1665,28 @@ export default function CeshuView({
                   </button>
                 ))}
               </div>
+              <button
+                type="button"
+                data-testid="module-picker-toggle"
+                className={`chapter-stage-btn module-picker-toggle${modulePickerOpen ? ' active' : ''}`}
+                title="勾选要做的系统模块（通用底座恒有）"
+                onClick={() => setModulePickerOpen((open) => !open)}
+              >
+                系统模块 {enabledModuleChapters(doc).length}/{MODULE_CHAPTERS.length}
+              </button>
+              {modulePickerOpen && <CeshuModulePicker doc={doc} onToggle={handleToggleModule} />}
+              <button
+                type="button"
+                data-testid="view-mode-toggle"
+                className={`chapter-stage-btn overview-toggle${viewMode === 'overview' ? ' active' : ''}`}
+                title="把当前阶段压成一页只读摘要（2026 主流：一页讲清 → 分层展开）"
+                onClick={() => setViewMode((mode) => (mode === 'overview' ? 'edit' : 'overview'))}
+              >
+                {viewMode === 'overview' ? '返回编辑' : '一页总览'}
+              </button>
               {visibleByStage.map((key) => {
                 const pct = Math.round((progress[key] ?? 0) * 100)
-                // 完成度三色阈值与 PyQt `chapter_panel.py::set_progress` 一致（<50 / 50-79 / >=80）
+                // 完成度三色阈值与 旧版 `chapter_panel::set_progress` 一致（<50 / 50-79 / >=80）
                 const level = pct >= 80 ? 'hi' : pct >= 50 ? 'mid' : 'low'
                 return (
                   <button
@@ -1486,12 +1694,15 @@ export default function CeshuView({
                     type="button"
                     data-testid="chapter-tab"
                     className={`chapter-tab${key === activeChapter ? ' active' : ''}`}
-                    onClick={() => setActiveChapter(key)}
+                    onClick={() => {
+                      setActiveChapter(key)
+                      setViewMode('edit')
+                    }}
                   >
                     <span className="chapter-tab-label">{CHAPTER_LABELS[key]}</span>
                     {/*
                       「待核对」圆点：AI 刚生成、人还没看过。点了「保存本章」即消失。
-                      视觉上不用文字 —— 16 章里多出的两个字会比圆点更吵。
+                      视觉上不用文字 —— 章节导航里多出的两个字会比圆点更吵。
                     */}
                     {aiMarks[key] !== undefined && (
                       <span className="chapter-tab-ai" title="AI 生成，待核对" data-testid={`chapter-ai-${key}`} />
@@ -1512,23 +1723,77 @@ export default function CeshuView({
                 )
               })}
               {scope === 'lite' && (
-                <div className="chapter-nav-hint">标准版仅含基础 9 章；在「文档信息」中可切换为专业版 16 章</div>
+                <div className="chapter-nav-hint">
+                  标准版仅含基础 {contentChapterCount('lite')} 章；在「文档信息」中可切换为专业版{' '}
+                  {contentChapterCount('full')} 章
+                </div>
+              )}
+                </>
+              ) : (
+                <div className="chapter-nav-hint" data-testid="artifact-nav-hint">
+                  「{ARTIFACTS.find((item) => item.key === artifact)?.label}」的目录将在这里
+                </div>
               )}
             </div>
 
             <div className="chapter-body">
-              <ChapterForm
-                key={`${doc.ceshu_id}:${activeChapter}`}
-                chapter={activeChapter}
-                data={doc[activeChapter]}
-                busy={busy}
-                gameName={gameName}
-                onSave={handleSave}
-                onAiGenerate={handleAiGenerate}
-                onAiGenerateField={handleAiGenerateField}
-                fieldStatus={fieldStatusOf(doc.meta, activeChapter)}
-                onFieldStatus={handleFieldStatus}
-              />
+              {artifact === 'prototype' ? (
+                <CeshuPrototypePanel
+                  doc={doc}
+                  onDocUpdated={(next) => {
+                    setDoc(next)
+                    onChanged()
+                  }}
+                />
+              ) : artifact === 'data' ? (
+                <CeshuMachineDataPanel
+                  doc={doc}
+                  onTypesChanged={onTypesChanged}
+                  onGenerateData={(target) => {
+                    setAiGenTarget(target)
+                    setPanel('aiDataGen')
+                  }}
+                />
+              ) : artifact === 'tasks' ? (
+                <CeshuTasksPanel
+                  doc={doc}
+                  onDocUpdated={(next) => {
+                    setDoc(next)
+                    onChanged()
+                  }}
+                />
+              ) : artifact !== 'doc' ? (
+                <div className="artifact-placeholder" data-testid={`artifact-placeholder-${artifact}`}>
+                  <div className="artifact-placeholder-title">
+                    {ARTIFACTS.find((item) => item.key === artifact)?.label}
+                  </div>
+                  <p>这里将显示「{ARTIFACTS.find((item) => item.key === artifact)?.label}」（下一步接入）。</p>
+                </div>
+              ) : viewMode === 'overview' ? (
+                <CeshuOverview
+                  doc={doc}
+                  stage={stageFilter === 'all' ? 'concept' : stageFilter}
+                  progress={progress}
+                />
+              ) : (
+                <ChapterForm
+                  key={`${doc.ceshu_id}:${activeChapter}`}
+                  chapter={activeChapter}
+                  data={doc[activeChapter]}
+                  busy={busy}
+                  gameName={gameName}
+                  onSave={handleSave}
+                  onAiGenerate={handleAiGenerate}
+                  onAiGenerateField={handleAiGenerateField}
+                  fieldStatus={fieldStatusOf(doc.meta, activeChapter)}
+                  onFieldStatus={handleFieldStatus}
+                  /* 只在目标章与当前章一致时下发：切章后 ChapterForm 会重挂，目标必须跟着换 */
+                  focusField={fieldJump?.chapter === activeChapter ? fieldJump.field : undefined}
+                  onFocusConsumed={() => setFieldJump(null)}
+                  /* 「改这里会影响什么」：面板在宿主渲染，ChapterForm 只负责发信号 */
+                  onShowImpact={(chapter, field) => setImpactTarget({ chapter, field })}
+                />
+              )}
             </div>
 
             {/*
@@ -1540,24 +1805,28 @@ export default function CeshuView({
               未传时是 `undefined`，而 `undefined !== null` 为真 ⇒ 数据栏会永远展开、
               开关形同虚设（组件测试抓到的）。
             */}
-            {(previewOpen || jumpTarget != null) && <CeshuDataPreview
-              enabledEditors={enabledEditors}
-              types={types}
-              chapters={doc}
-              gameStyle={gameStyle}
-              dataEpoch={dataEpoch}
-              onGotoSystems={() => setActiveChapter('systems')}
-              onDataChanged={onChanged}
-              jumpTarget={jumpTarget}
-              onEditType={onEditType}
-              onShowReferences={onShowReferences}
-              onAiGenerate={(typeId) => {
-                setAiGenTarget(typeId)
-                setPanel('aiDataGen')
-              }}
-              onJumpHandled={onJumpHandled}
-              onJumpMissed={onJumpMissed}
-            />}
+            {previewOpen || jumpTarget != null ? (
+              <CeshuDataPreview
+                enabledEditors={enabledEditors}
+                types={types}
+                chapters={doc}
+                gameStyle={gameStyle}
+                dataEpoch={dataEpoch}
+                onGotoSystems={() => setActiveChapter('systems')}
+                onDataChanged={onChanged}
+                jumpTarget={jumpTarget}
+                onEditType={onEditType}
+                onShowReferences={onShowReferences}
+                onAiGenerate={(typeId) => {
+                  setAiGenTarget({ typeId })
+                  setPanel('aiDataGen')
+                }}
+                onJumpHandled={onJumpHandled}
+                onJumpMissed={onJumpMissed}
+              />
+            ) : (
+              <CeshuAgentPanel doc={doc} onApplyPatch={handleApplyAgentPatch} />
+            )}
           </div>
           </>
         )}

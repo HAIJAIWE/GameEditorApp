@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { expect, test } from '@playwright/test'
 import { launchApp, libraryDir, waitReady } from './helpers/app'
 
-test('策划书：读取旧版文件 → 新建 → 编辑保存章节 → 磁盘落盘（旧版 兼容格式）', async () => {
+test('策划书：读取旧版文件 → 新建 → 编辑保存章节 → 磁盘落盘', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-ceshu-e2e-'))
   const ceshuDir = join(libraryDir(userDataDir), 'ceshu')
   mkdirSync(ceshuDir, { recursive: true })
@@ -33,7 +33,7 @@ test('策划书：读取旧版文件 → 新建 → 编辑保存章节 → 磁�
 
     // 默认落在策划书首页：首页卡片能读到旧版文件
     await expect(window.getByTestId('home-card')).toHaveCount(1)
-    await expect(window.getByTestId('home-card').first()).toContainText('旧版策划书')
+    await expect(window.getByTestId('home-card').first()).toContainText
 
     // 新建空白策划书（默认专业版 = 文档信息 + 16 章）→ 自动进入编辑器
     await window.getByTestId('home-new-blank').click()

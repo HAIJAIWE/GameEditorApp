@@ -1,5 +1,5 @@
 import { chapterOrdinalCn, type CeshuDocument, type ChapterKey } from './ceshuConstants'
-import { CESHU_CHAPTER_FIELDS } from './ceshuFields'
+import { fieldLabelOf } from './ceshuFields'
 import { isPlainObject } from './ceshuModel'
 
 /**
@@ -135,10 +135,8 @@ export function detectTextDuplication(a: string, b: string): TextDuplication {
 }
 
 /** 字段标签（schema 内取 label，schema 外回落 key） */
-function fieldLabel(chapter: ChapterKey, key: string): string {
-  const def = (CESHU_CHAPTER_FIELDS[chapter] ?? []).find((field) => field.key === key)
-  return def?.label ?? key
-}
+/** 字段中文标签（单源在 `ceshuFields.fieldLabelOf`，此处保留短名以少改调用点） */
+const fieldLabel = fieldLabelOf
 
 /** 读章节文本字段（非字符串按空处理：列表/表格型字段不参与文本重复判定） */
 function readFieldText(doc: CeshuDocument, chapter: ChapterKey, key: string): string {

@@ -267,7 +267,7 @@ export function CeshuFieldControl({ field, value, onChange, testId }: FieldContr
   )
 }
 
-/** 列表显示：字符串原样；对象取 name/label/title/phase，否则序列化（对齐 旧版 _join_items 容错） */
+/** 列表显示：字符串原样；对象取 name/label/title/phase，否则序列化 */
 function joinList(raw: unknown, separator: string): string {
   if (!Array.isArray(raw)) return ''
   return raw
@@ -283,7 +283,7 @@ function joinList(raw: unknown, separator: string): string {
     .join(separator)
 }
 
-/** 结构化行列表显示：对象按列顺序拼接，字符串原样（对齐 旧版 管道分隔编辑格式） */
+/** 结构化行列表显示：对象按列顺序拼接，字符串原样 */
 function joinPipeList(raw: unknown, columns: CeshuColumnDef[]): string {
   if (!Array.isArray(raw)) return ''
   return raw

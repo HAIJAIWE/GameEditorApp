@@ -56,6 +56,11 @@ export const VISION_FIELDS: CeshuFieldDef[] = [
     key: 'design_pillars',
     label: '设计支柱',
     kind: 'pipeList',
+    columns: [
+      { key: 'pillar', label: '支柱' },
+      { key: 'ruling', label: '裁决' },
+      { key: 'anti', label: '反例（明确不做）' }
+    ],
     placeholder: '支柱|裁决|反例（明确不做）',
     aiHint: '每条支柱给「裁决」（坚持什么，最好有数字或规则支撑）+「反例」（因此明确不做什么功能）；3-4 条，反例必须是具体功能而不是态度',
     reviewHint: '支柱是否可判断（有数字/规则支撑）；反例是否真实砍掉了功能，而非正确的废话'

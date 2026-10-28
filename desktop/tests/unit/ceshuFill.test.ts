@@ -8,7 +8,7 @@ function makeDoc(name = '填充测试'): CeshuDocument {
   return createDefaultCeshu({ scope: 'full', name })
 }
 
-describe('策划书自动填充（匹平 旧版 auto_fill_required_fields）', () => {
+describe('策划书自动填充', () => {
   it('默认文档填充 48 个空必填字段，且不修改原文档（P2 后 +14）', () => {
     const doc = makeDoc()
     const { doc: filled, filled: count } = autoFillRequiredFields(doc)

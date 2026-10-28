@@ -1,5 +1,6 @@
 import type { CeshuDocument } from './ceshuConstants'
-import { column, toRows } from './ceshuPipeRows'
+import { fieldColumns } from './ceshuFields'
+import { column, toRowStrings } from './ceshuPipeRows'
 import { readText } from './util/readText'
 
 /**
@@ -29,12 +30,14 @@ export function buildDemoPrompt(doc: CeshuDocument): DemoPromptResult {
   const gameName = readText(doc.meta.game_name) || '未命名游戏'
   const gameType = readText(doc.meta.game_type) || '未指定'
   const positioning = readText(doc.meta.positioning) || ''
-  const loopPoints = toRows(doc.gameplay.core_loop_points)
-  const stateMachine = toRows(doc.gameplay.state_machine)
-  const parameters = toRows(doc.numeric.numeric_parameters)
-  const ledger = toRows(doc.economy.ledger)
-  const journeys = toRows(doc.qa.acceptance_journeys)
-  const cases = toRows(doc.qa.test_case_list)
+  // 一律走 toRowStrings：这些字段有的有列定义（对象行）、有的没有（字符串行），
+  // 只认字符串会让 Demo 悄悄少掉数值参数表 / 验收旅程这类「必须可玩出来」的规则。
+  const loopPoints = toRowStrings(doc.gameplay.core_loop_points, fieldColumns('gameplay', 'core_loop_points'))
+  const stateMachine = toRowStrings(doc.gameplay.state_machine, fieldColumns('gameplay', 'state_machine'))
+  const parameters = toRowStrings(doc.numeric.numeric_parameters, fieldColumns('numeric', 'numeric_parameters'))
+  const ledger = toRowStrings(doc.economy.ledger, fieldColumns('economy', 'ledger'))
+  const journeys = toRowStrings(doc.qa.acceptance_journeys, fieldColumns('qa', 'acceptance_journeys'))
+  const cases = toRowStrings(doc.qa.test_case_list, fieldColumns('qa', 'test_case_list'))
 
   const lines: string[] = []
   lines.push(`为《${gameName}》（${gameType}）写一个**单文件可玩 HTML Demo**。`)

@@ -9,7 +9,7 @@ import type { CeshuFieldDef, ChapterKey } from '../../src/shared/ceshuConstants'
  *
  * 两种字段形态必须各自稳定：
  * - **有 columns**（如 qa.test_case_list）：存 `[{列key: 值}]`；
- * - **无 columns**（如 economy.ledger、numeric.numeric_assertions，靠 placeholder 描述列）：
+ * - **无 columns**（如 economy.ledger、tech.data_tables，靠 placeholder 描述列）：
  *   存**字符串行**——管道工具 `ceshuPipeRows.toRows` 就按字符串读。
  *
  * 修复前的 bug：无列字段每行都拆成 `{}`，打开再保存等于清空（27 个字段受影响，
@@ -31,12 +31,6 @@ describe('pipeList 往返：无 columns 存字符串行', () => {
     const input = fieldValueToInput(field, stored)
     expect(input).toBe('首局|4|4,-5|3|否\n首升级|3|6,-2|4|是')
     expect(inputToFieldValue(field, input)).toEqual(stored)
-  })
-
-  it('numeric_assertions（数值断言）：往返不丢列分隔符', () => {
-    const field = fieldOf('numeric', 'numeric_assertions')
-    const stored = ['断言|伤害 = 攻 - 防|100|0.1|≥']
-    expect(inputToFieldValue(field, fieldValueToInput(field, stored))).toEqual(stored)
   })
 
   it('tech.data_tables（新增字段）：同样是字符串行', () => {
@@ -66,6 +60,16 @@ describe('pipeList 往返：有 columns 存对象', () => {
     ]
     const input = fieldValueToInput(field, stored)
     expect(input).toBe('首关通关 | 功能 | 新号 | 打完第一关 | 结算页出现 | 待执行')
+    expect(inputToFieldValue(field, input)).toEqual(stored)
+  })
+
+  it('numeric_assertions（数值断言）：按 5 列映射成对象', () => {
+    const field = fieldOf('numeric', 'numeric_assertions')
+    const stored = [
+      { claim: '伤害 = 攻 - 防', expr: 'atk - def', expected: '100', tolerance: '0.1', accept: '≥' }
+    ]
+    const input = fieldValueToInput(field, stored)
+    expect(input).toBe('伤害 = 攻 - 防 | atk - def | 100 | 0.1 | ≥')
     expect(inputToFieldValue(field, input)).toEqual(stored)
   })
 

@@ -77,6 +77,22 @@ export const LEVEL_DESIGN_FIELDS: CeshuFieldDef[] = [
     reviewHint: '每行是否四列齐全；总量是否与 MVP 范围匹配；时长是否有依据'
   },
   {
+    key: 'level_table',
+    label: '关卡配置表',
+    kind: 'pipeList',
+    columns: [
+      { key: 'level', label: '关卡' },
+      { key: 'encounter', label: '敌人编队' },
+      { key: 'reward', label: '奖励' },
+      { key: 'difficulty', label: '难度系数' },
+      { key: 'unlock', label: '解锁条件' }
+    ],
+    aiHint:
+      '逐关一行（至少覆盖 MVP 范围，能落表）：关卡名/编号|敌人编队（种类×数量，引用数据表的 id）|奖励（道具×数量）|难度系数（首关 0.5 起，以 1.0 为基准）|解锁条件；这是编码时**直接读表生成关卡**的内容，不要写「若干」「适中」「循序渐进」',
+    reviewHint:
+      '每行五列是否齐全；敌人与奖励是否引用真实数据表 id（不是「小怪」这类泛指）；难度系数是否与难度曲线同向；首关是否最简单、Boss 是否最高'
+  },
+  {
     key: 'editor_needs',
     label: '编辑器需求',
     kind: 'stringList',
@@ -93,6 +109,7 @@ export const LEVEL_DESIGN_DEFAULTS: ChapterData = {
   level_templates: [],
   first_levels: [],
   content_estimate: [],
+  level_table: [],
   editor_needs: []
 }
 
@@ -102,6 +119,65 @@ export const LEVEL_DESIGN_DEFAULTS: ChapterData = {
  * 这里给两份带具体层数 / 关卡数 / 时长的样例。
  */
 export const LEVEL_DESIGN_TEMPLATES: ChapterTemplate[] = [
+  {
+    name: '层进关卡（交互范式示例）',
+    description: '单局多层推进、每层数分钟，难度靠节点组合而非数值堆叠；示例名词按品类替换（出牌→操作、费用→资源、遗物→强化物、构筑→Build）',
+    tags: ['关卡结构', '难度曲线', '节点', '示例'],
+    data: {
+      level_principles: '地图即关卡：每层 3-5 个节点，节点类型决定节奏；难度靠组合与资源压力，不靠数值堆叠。',
+      difficulty_curve: '前 3 层教学期，4-6 层建立压力，7 层后每层一次高峰、每 3 层给一个喘息层。',
+      difficulty_curve_points: [
+        '1-3 层：只出普通战斗与休息，教学基础操作与成长',
+        '4-6 层：加入精英节点，考验 Build 成型速度',
+        '7-9 层：Boss 前压力峰值，药水与金币紧张',
+        '10 层后：每 3 层插一个商店/事件层，避免连续高压'
+      ],
+      difficulty_curve_notes: '曲线依据：单局 25-35 分钟、每层 4-6 分钟；与数值章「每层一次成长机会」的成长线对齐。',
+      level_templates: [
+        '单线三节点：战斗→战斗→休息，用于教学层',
+        '分叉双线：左线精英（高风险高奖励）、右线普通（稳妥）',
+        'Boss 层：前置一个商店节点，允许最后一搏调整 Build'
+      ],
+      first_levels: [
+        '第 1 层：只教基础操作与资源（纯普通战斗，敌人 2 只）',
+        '第 2 层：教升级选奖励（战斗 → 奖励三选一）',
+        '第 3 层：教强化物（首个强化节点，效果写清触发时机）'
+      ],
+      content_estimate: [
+        { stage: '教学层', count: '3', minutes: '4', basis: '单场 3 回合 × 约 80 秒' },
+        { stage: '中段', count: '6', minutes: '5', basis: '精英战平均 5 回合' },
+        { stage: '终段', count: '3', minutes: '7', basis: 'Boss 战 8-10 回合' }
+      ],
+      level_table: [
+        {
+          level: '1-1 教学层',
+          encounter: 'slime×2、bat×1',
+          reward: 'gold×20、item_random×1',
+          difficulty: '0.5',
+          unlock: '默认解锁'
+        },
+        {
+          level: '4-1 精英层',
+          encounter: 'elite_golem×1、slime×2',
+          reward: 'gold×60、enhance_random×1',
+          difficulty: '1.0',
+          unlock: '通过 3 层'
+        },
+        {
+          level: '10-Boss',
+          encounter: 'boss_lich×1（三阶段）',
+          reward: 'gold×200、enhance_rare×1',
+          difficulty: '1.6',
+          unlock: '通过 9 层'
+        }
+      ],
+      editor_needs: [
+        '节点表：类型 / 难度系数 / 掉落表，支撑分叉图配置',
+        '敌人编队：按层数区间取权重，支持同层随机',
+        '奖励池：按节点类型过滤，支持三选一去重'
+      ]
+    }
+  },
   {
     name: 'Roguelike 层进关卡',
     description: '单局 10-12 层、每层 4-6 分钟，难度靠节点组合而非数值堆叠',
@@ -130,6 +206,29 @@ export const LEVEL_DESIGN_TEMPLATES: ChapterTemplate[] = [
         { stage: '教学层', count: '3', minutes: '4', basis: '单场 3 回合 × 约 80 秒' },
         { stage: '中段', count: '6', minutes: '5', basis: '精英战平均 5 回合' },
         { stage: '终段', count: '3', minutes: '7', basis: 'Boss 战 8-10 回合' }
+      ],
+      level_table: [
+        {
+          level: '1-1 教学层',
+          encounter: 'slime×2、bat×1',
+          reward: 'gold×20、card_random×1',
+          difficulty: '0.5',
+          unlock: '默认解锁'
+        },
+        {
+          level: '4-1 精英层',
+          encounter: 'elite_golem×1、slime×2',
+          reward: 'gold×60、relic_random×1',
+          difficulty: '1.0',
+          unlock: '通过 3 层'
+        },
+        {
+          level: '10-Boss',
+          encounter: 'boss_lich×1（三阶段）',
+          reward: 'gold×200、relic_rare×1',
+          difficulty: '1.6',
+          unlock: '通过 9 层'
+        }
       ],
       editor_needs: [
         '节点表：类型 / 难度系数 / 掉落表，支撑分叉图配置',
@@ -166,6 +265,29 @@ export const LEVEL_DESIGN_TEMPLATES: ChapterTemplate[] = [
         { stage: '出生州', count: '9', minutes: '10', basis: '每格一次占领战 + 行军时间' },
         { stage: '相邻州', count: '12', minutes: '15', basis: '含侦查与集结等待' },
         { stage: '首府', count: '3', minutes: '45', basis: '集结 30 分钟 + 攻城 15 分钟' }
+      ],
+      level_table: [
+        {
+          level: '出生州·1 格',
+          encounter: 'guard_militia×100',
+          reward: 'gold×800/小时',
+          difficulty: '0.5',
+          unlock: '开局'
+        },
+        {
+          level: '相邻州·2 格',
+          encounter: 'guard_archer×500',
+          reward: 'gold×1200/小时',
+          difficulty: '1.0',
+          unlock: '占领 1 格'
+        },
+        {
+          level: '关隘',
+          encounter: 'guard_elite×800（两波次）',
+          reward: '州归属权',
+          difficulty: '1.4',
+          unlock: '联盟集结 ≥10 人'
+        }
       ],
       editor_needs: [
         '地图格子表：坐标 / 州归属 / 守军配置',

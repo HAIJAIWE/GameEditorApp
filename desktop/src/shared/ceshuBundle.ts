@@ -1,12 +1,11 @@
 import {
   CHAPTER_KEYS,
   CHAPTER_LABELS,
-  visibleChapterKeys,
   type CeshuDocument,
   type ChapterData,
   type ChapterKey
 } from './ceshuConstants'
-import { getGddScope, isPlainObject } from './ceshuModel'
+import { getGddScope, isPlainObject, visibleChaptersForDoc } from './ceshuModel'
 import { CESHU_CHAPTER_FIELDS, resolveFieldMeta } from './ceshuFields'
 import { fieldStatusOf } from './ceshuFieldStatus'
 import { validateCeshu } from './ceshuValidation'
@@ -87,7 +86,7 @@ export interface BuildBundleOptions {
 /** 组装机读轨结构（导出给测试与潜在的其他序列化格式复用） */
 export function buildCeshuBundle(doc: CeshuDocument, options: BuildBundleOptions = {}): CeshuBundle {
   const scope = getGddScope(doc)
-  const visible = new Set(visibleChapterKeys(scope))
+  const visible = new Set(visibleChaptersForDoc(doc))
   const chapters: CeshuBundleChapter[] = []
   for (const [position, key] of CHAPTER_KEYS.entries()) {
     if (!visible.has(key)) continue
@@ -131,7 +130,9 @@ export function renderCeshuBundleJson(doc: CeshuDocument, options: BuildBundleOp
 
 /** 单章字段：schema 定义序在前（带契约），数据里的扩展键追加在后（仅键值） */
 function buildChapterFields(doc: CeshuDocument, chapter: ChapterKey): CeshuBundleField[] {
-  const data: ChapterData = doc[chapter]
+  // 防御：章节数据缺失（桩/老文档缺章、字段被整体删掉）时不应让导出崩溃，
+  // 一律按空对象处理——schema 字段仍按契约产出（值为 undefined），只是没有扩展键。
+  const data: ChapterData = isPlainObject(doc[chapter]) ? doc[chapter] : {}
   const statusMap = fieldStatusOf(doc.meta, chapter)
   const fields: CeshuBundleField[] = []
 

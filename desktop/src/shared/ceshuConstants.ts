@@ -13,6 +13,9 @@
  *   full = 全部章节。持久化在 meta.gdd_scope。
  */
 
+// 仅类型引用（`import type` 在编译期擦除）⇒ 不构成与 ceshuTasks 的运行时循环依赖
+import type { CeshuTaskPlan } from './ceshuTasks'
+
 /** 文档信息段：封面信息，不占章号 */
 export const META_CHAPTER_KEY = 'meta'
 
@@ -102,6 +105,18 @@ export function chapterNumber(key: ChapterKey): number {
 }
 
 /**
+ * 章节在导出文档里的锚点 id（`ch1`~`chN`）。
+ *
+ * 索引 = 在 `CHAPTER_KEYS` 中的位置 + 1，与 `main/ceshu/export/common.ts` 的
+ * `visibleChapterEntries` 完全一致。**注意不等于 `chapterNumber`**：meta 章号是 0 但锚点是 `ch1`，
+ * 编号章的锚点也比章号大 1（如第十六章 → `ch17`）。Markdown/HTML 目录与交接包「来源」回链
+ * 必须指同一个锚点，故此处单源派生，别在别处手写 `ch${...}`。
+ */
+export function chapterAnchorOf(key: ChapterKey): string {
+  return `ch${CHAPTER_KEYS.indexOf(key) + 1}`
+}
+
+/**
  * 中文数字章号（供文案拼 `第${chapterOrdinalCn(key)}章` 用）。
  *
  * 存在的理由：`ceshuValidation` 的一致性提示里散落着「第十四章 monetization…」这类**手写章号**，
@@ -145,6 +160,18 @@ export const GDD_SCOPE_FULL = 'full'
 export const GDD_SCOPE_LITE = 'lite'
 export type GddScope = typeof GDD_SCOPE_FULL | typeof GDD_SCOPE_LITE
 
+/**
+ * 某档位的**内容章数**（不含「文档信息」段）。
+ *
+ * 界面/提示词里凡是要写「文档信息 + N 章」的地方都必须用它，**不要写死数字**：
+ * 2026-10-26 追加 7 个 P2 章后，full 从 16 章变成 23 章，而各处文案仍写 16 ——
+ * 用户看到的导航有 24 章、档位标签却说 16 章，属于典型的「文案跟着数据腐烂」。
+ * 守卫见 `tests/unit/ceshuScopeLabel.test.ts`。
+ */
+export function contentChapterCount(scope: GddScope): number {
+  return scope === GDD_SCOPE_LITE ? LITE_CHAPTER_KEYS.length : NUMBERED_CHAPTER_KEYS.length
+}
+
 export function isChapterKey(value: string): value is ChapterKey {
   return (CHAPTER_KEYS as readonly string[]).includes(value)
 }
@@ -153,9 +180,98 @@ export function isGddScope(value: unknown): value is GddScope {
   return value === GDD_SCOPE_FULL || value === GDD_SCOPE_LITE
 }
 
-/** 按档位返回可见章节 key：full = 全部；lite = 文档信息段 + 核心设计 9 章 */
-export function visibleChapterKeys(scope: GddScope): readonly ChapterKey[] {
-  return scope === GDD_SCOPE_LITE ? [META_CHAPTER_KEY, ...LITE_CHAPTER_KEYS] : CHAPTER_KEYS
+/**
+ * 无战斗品类的「游戏类型」取值（`meta.game_type` 合法值的子集）。
+ *
+ * 这些品类没有战斗系统，`combat` 章不应参与可见章节与完成度——否则立项稿会被
+ * 「伪必填」的 combat 拉低（真实 GDD 走查：休闲合成立项 68% vs 含战斗 82%，
+ * 见 `docs/ceshu-import-walkthrough.md` / `docs/ceshu-genre-taxonomy-proposal.md`）。
+ *
+ * **刻意复用既有 `meta.game_type`，不新增 `game_genre` 字段**：它的 22 个取值本身
+ * 就是品类枚举，再加一个同义字段只会造成「双维护 + 静默漂移」（项目既有教训）。
+ * 未匹配 / 空值一律按「有战斗」保守处理 ⇒ 老文档行为零变化。
+ */
+export const NON_COMBAT_GAME_TYPES: ReadonlySet<string> = new Set([
+  '模拟经营',
+  '视觉小说',
+  '派对',
+  '休闲益智'
+])
+
+/** 该游戏类型是否有战斗系统（缺省/未知一律按「有战斗」保守处理） */
+export function gameTypeHasCombat(gameType: unknown): boolean {
+  if (typeof gameType !== 'string' || gameType === '') return true
+  return !NON_COMBAT_GAME_TYPES.has(gameType)
+}
+
+/** 该章在给定游戏类型下是否适用（目前仅 `combat` 条件化；其余章恒适用） */
+export function chapterApplicableToGenre(chapter: ChapterKey, gameType: unknown): boolean {
+  return chapter !== 'combat' || gameTypeHasCombat(gameType)
+}
+
+/* ---- 通用底座 vs 系统模块（2026-10-26，见 docs/gdd-universal-core.md）---- */
+
+/**
+ * 通用底座：任何品类都必须写的章（对应「所有游戏都要回答的 6 个问题」）。
+ * - meta：它是什么 / 平台 / 受众 / 商业模式
+ * - vision：核心体验（设计支柱 + 差异化）
+ * - gameplay：核心循环 + 目标/进度
+ * - mvp：首个可玩范围
+ *
+ * 其余章都是「系统模块」，按品类/项目勾选，**不是通用清单**。
+ */
+export const UNIVERSAL_CORE_CHAPTERS: readonly ChapterKey[] = ['meta', 'vision', 'gameplay', 'mvp'] as const
+
+/** 系统模块 = 除通用底座外的所有章（战斗/经济/数值/叙事/美术/…），可选。 */
+export const MODULE_CHAPTERS: readonly ChapterKey[] = CHAPTER_KEYS.filter(
+  (chapter) => !UNIVERSAL_CORE_CHAPTERS.includes(chapter)
+)
+
+export function isCoreChapter(chapter: ChapterKey): boolean {
+  return UNIVERSAL_CORE_CHAPTERS.includes(chapter)
+}
+
+/**
+ * 文档启用的系统模块：
+ * - `doc.enabled_modules` 是合法数组 ⇒ 用它（过滤到 MODULE_CHAPTERS 内）；
+ * - 缺省 / 非法 ⇒ **全部模块**（向后兼容：老文档行为零变化）。
+ */
+export function enabledModuleChapters(doc: CeshuDocument): ChapterKey[] {
+  // 存在 meta 上（与 gdd_scope 一致，随「文档信息」一起保存）；缺省 = 全部模块
+  const raw = (doc.meta as Record<string, unknown>).enabled_modules
+  if (Array.isArray(raw)) {
+    return raw.filter(
+      (key): key is ChapterKey => typeof key === 'string' && MODULE_CHAPTERS.includes(key as ChapterKey)
+    )
+  }
+  return [...MODULE_CHAPTERS]
+}
+
+/** 该章在文档中是否启用（底座恒启用；模块看 enabled_modules） */
+export function isChapterEnabled(chapter: ChapterKey, doc: CeshuDocument): boolean {
+  return isCoreChapter(chapter) || enabledModuleChapters(doc).includes(chapter)
+}
+
+/**
+ * 按档位返回可见章节 key：full = 全部；lite = 文档信息段 + 核心设计 9 章。
+ *
+ * - 传 `gameType` 时按品类剔除「不适用章」（无战斗品类的 combat 章）；
+ * - 传 `enabledModules` 时再按模块启用剔除未勾选的模块章（底座恒保留）。
+ * - **两者都不传时行为与旧版逐项一致**（不做任何过滤），保证既有调用方与测试不变。
+ */
+export function visibleChapterKeys(
+  scope: GddScope,
+  gameType?: unknown,
+  enabledModules?: readonly ChapterKey[]
+): readonly ChapterKey[] {
+  const base: readonly ChapterKey[] =
+    scope === GDD_SCOPE_LITE ? [META_CHAPTER_KEY, ...LITE_CHAPTER_KEYS] : CHAPTER_KEYS
+  if (gameType === undefined && enabledModules === undefined) return base
+  return base.filter((chapter) => {
+    if (gameType !== undefined && !chapterApplicableToGenre(chapter, gameType)) return false
+    if (enabledModules !== undefined && !isCoreChapter(chapter) && !enabledModules.includes(chapter)) return false
+    return true
+  })
 }
 
 /**
@@ -190,7 +306,7 @@ export const CHAPTER_REQUIRED_FIELDS: Record<ChapterKey, string[]> = {
   performance: ['performance_budget', 'target_devices']
 }
 
-/** 游戏系统中文名称映射（与 Python SYSTEM_LABELS 一致） */
+/** 游戏系统中文名称映射 */
 export const SYSTEM_LABELS: Record<string, string> = {
   battle: '战斗',
   character: '角色',
@@ -207,7 +323,7 @@ export const SYSTEM_LABELS: Record<string, string> = {
   competitive: '排位竞技'
 }
 
-/** 系统间硬依赖：启用某系统时，其依赖的系统必须也已启用（与 Python SYSTEM_DEPENDENCIES 一致） */
+/** 系统间硬依赖：启用某系统时，其依赖的系统必须也已启用 */
 export const SYSTEM_DEPENDENCIES: Record<string, string[]> = {
   battle: ['character', 'skill'],
   skill: ['character'],
@@ -222,7 +338,7 @@ export const SYSTEM_DEPENDENCIES: Record<string, string[]> = {
   content: ['character', 'battle']
 }
 
-/** 检查已启用系统的依赖是否满足（对应 Python check_system_dependencies） */
+/** 检查已启用系统的依赖是否满足 */
 export function checkSystemDependencies(enabledSystems: string[]): Array<{ system: string; missing: string[] }> {
   const enabled = new Set(enabledSystems)
   const result: Array<{ system: string; missing: string[] }> = []
@@ -285,7 +401,7 @@ export interface CeshuFieldDef {
   reviewHint?: string
 }
 
-/** 游戏系统 config 字段（无 key，键即字段名，与 Python SYSTEM_CONFIG_SCHEMA 对应） */
+/** 游戏系统 config 字段 */
 export type SystemConfigFieldDef = Omit<CeshuFieldDef, 'key'>
 
 export type ChapterData = Record<string, unknown>
@@ -304,7 +420,7 @@ export interface EnabledEditor {
   data_type: string
 }
 
-/** 策划书文档（磁盘 JSON 与 Python 版同构：顶层元数据 + 文档信息段 + 16 章平铺） */
+/** 策划书文档（磁盘 JSON 与 早期版本同构：顶层元数据 + 文档信息段 + 各章平铺） */
 export type CeshuChapters = { [K in ChapterKey]: ChapterData }
 
 export interface CeshuDocumentBase {
@@ -320,6 +436,32 @@ export interface CeshuDocumentBase {
   module_type: string
   enabled_editors: EnabledEditor[]
   editor_configs: Record<string, unknown>
+  /**
+   * AI 生成的岗位任务计划（按岗位分组）。
+   * 缺省/空 = 还没生成过，此时岗位任务回落到「按章字段清单」。
+   * 只由 `ceshu:aiGenerateTasks` 写入；落盘在项目文件夹的 `data/tasks.json`。
+   */
+  task_plan?: CeshuTaskPlan
+  /**
+   * 可玩原型的单文件 HTML（AI 按设计文档生成）。
+   * 落盘在项目文件夹的 `prototype/demo.html`——原型也是交付物，不能只活在界面内存里。
+   * 空串/缺省 = 还没生成过。
+   */
+  demo_html?: string
+  /**
+   * 生成原型那一刻的设计内容指纹（见 `ceshuPrototypeStale.fingerprintCeshuDesign`）。
+   * 用来判断「文档后来改了、原型是否过期」；落盘在 `config.json`。
+   * 缺省 = 老原型（本功能之前生成），不做过期判定。
+   */
+  demo_source_fingerprint?: string
+  /**
+   * 规则集标识（设计契约的锚点）。
+   *
+   * 为什么需要它：设计文档、契约 JSON、原型 Demo、数据表配置必须能证明「引用的是同一套规则」。
+   * 缺了它，改了数值后没法核对「哪些产物还停在旧规则」。派生规则见 `deriveRulesetId`：
+   * 优先显式值，否则由 ceshu_id 生成稳定值（**不落盘派生值**，避免把派生结果当事实写进文件）。
+   */
+  ruleset_id?: string
 }
 
 export type CeshuDocument = CeshuDocumentBase & CeshuChapters
@@ -355,11 +497,27 @@ export interface CeshuSummary {
 
 /* ---- 导出 ---- */
 
-export const CESHU_EXPORT_FORMATS = ['markdown', 'html', 'docx', 'pptx', 'pdf', 'excel', 'bundle'] as const
+export const CESHU_EXPORT_FORMATS = [
+  'markdown',
+  'onepage',
+  'deliverable',
+  'narrative',
+  'tasks',
+  'html',
+  'docx',
+  'pptx',
+  'pdf',
+  'excel',
+  'bundle'
+] as const
 export type CeshuExportFormat = (typeof CESHU_EXPORT_FORMATS)[number]
 
 export const CESHU_FORMAT_LABELS: Record<CeshuExportFormat, string> = {
   markdown: 'Markdown 文档',
+  onepage: '一页摘要（Markdown）',
+  deliverable: '交付版（摘要+目录+全章）',
+  narrative: '叙事版（首页+走读+机制+附录）',
+  tasks: '岗位任务清单（程序/美术/测试…）',
   html: 'HTML 网页',
   docx: 'Word 文档（docx）',
   pptx: 'PowerPoint 演示（pptx）',
@@ -370,6 +528,10 @@ export const CESHU_FORMAT_LABELS: Record<CeshuExportFormat, string> = {
 
 export const CESHU_FORMAT_EXTENSIONS: Record<CeshuExportFormat, string> = {
   markdown: '.md',
+  onepage: '.md',
+  deliverable: '.md',
+  narrative: '.md',
+  tasks: '.md',
   html: '.html',
   docx: '.docx',
   pptx: '.pptx',

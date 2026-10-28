@@ -50,7 +50,7 @@ function makeV4Raw(): Record<string, unknown> {
   }
 }
 
-describe('needsV4Migration（对齐 旧版 from_dict 的缺章检测）', () => {
+describe('needsV4Migration', () => {
   it('version=4.0 → 需要迁移', () => {
     expect(needsV4Migration({ version: '4.0' })).toBe(true)
   })
@@ -107,7 +107,7 @@ describe('migrateV4ToV5：全部派生规则', () => {
     ])
   })
 
-  it('vision.business_model 优先于 systems.economy.payment_system 写入 monetization.payment_model（顺序对齐 旧版）', () => {
+  it('vision.business_model 优先于 systems.economy.payment_system 写入 monetization.payment_model', () => {
     expect((migrated.monetization as Record<string, unknown>).payment_model).toBe('买断制')
   })
 

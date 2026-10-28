@@ -59,6 +59,17 @@ function makeCleanDoc(): CeshuDocument {
   doc.combat.combat_mode = 'turn_based'
   doc.risk_handling.risk_matrix = doc.resources.risk_matrix
   doc.story.main_npc_count = (doc.story.npc_list as unknown[]).length
+  /*
+   * 字段联动（可开发性）：填了触发字段就得补上依赖字段。
+   * 这些字段不是必填，但缺了会报「可开发性缺口」——「干净文档」必须真的是能开工的文档。
+   */
+  doc.combat.hit_detection = [{ attack: '普攻', shape: '胶囊 0.6m', iframe: '无', super_armor: '无' }]
+  doc.performance.quality_tiers = [{ tier: '中', downgrade: '阴影关闭', fps: '60', devices: '中端机' }]
+  doc.gameplay.state_machine = ['MainMenu|start|载入|InGame']
+  doc.economy.source_sink = '产出：战斗掉落；回收：强化消耗'
+  doc.audio.sfx_events = [{ event: '攻击命中', sfx: 'hit', volume: '80', concurrency: '8' }]
+  doc.art.asset_spec = [{ type: '角色', size: '2048', format: 'png', naming: 'char_*', note: '' }]
+  doc.level_design.content_estimate = [{ stage: '首发', count: '20 关', note: '每关 5 分钟' }]
   return doc
 }
 
@@ -85,7 +96,7 @@ function overviewMap(sheet: ExcelJS.Worksheet): Map<string, ExcelJS.CellValue> {
   return map
 }
 
-describe('策划书导出：Excel（匹平 旧版 ceshu_excel_exporter）', () => {
+describe('策划书导出：Excel', () => {
   it('8 个 Sheet 顺序与中文名，标题行样式/冻结首行/列宽', () => {
     const workbook = buildExcelWorkbook(makeDoc())
     expect(workbook.worksheets.map((sheet) => sheet.name)).toEqual(SHEET_NAMES)

@@ -24,7 +24,8 @@ const EXPECTED_IDS = [
   'designClaims',
   'prototypeAcceptance',
   'testCaseList',
-  'ledger'
+  'ledger',
+  'fieldCoupling'
 ]
 
 function makeDoc(): CeshuDocument {

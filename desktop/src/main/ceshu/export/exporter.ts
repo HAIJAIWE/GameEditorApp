@@ -12,9 +12,12 @@ import { renderCeshuBundleJson } from './bundle'
 import { renderCeshuDocx } from './docx'
 import { renderCeshuExcel } from './excel'
 import { renderCeshuHtml } from './html'
-import { renderCeshuMarkdown } from './markdown'
+import { renderCeshuDeliverableMarkdown, renderCeshuMarkdown } from './markdown'
+import { renderCeshuNarrative } from './narrative'
+import { renderCeshuOnePageMarkdown } from './onepage'
 import { renderCeshuPdf } from './pdf'
 import { renderCeshuPptx } from './pptx'
+import { renderCeshuTasksMarkdown } from './tasks'
 
 /**
  * 策划书导出管道：按格式渲染 → 临时文件 + rename 原子写 → 返回结果。
@@ -75,6 +78,14 @@ async function renderContent(
   switch (format) {
     case 'markdown':
       return renderCeshuMarkdown(doc)
+    case 'onepage':
+      return renderCeshuOnePageMarkdown(doc)
+    case 'deliverable':
+      return renderCeshuDeliverableMarkdown(doc)
+    case 'narrative':
+      return renderCeshuNarrative(doc)
+    case 'tasks':
+      return renderCeshuTasksMarkdown(doc)
     case 'html':
       return renderCeshuHtml(doc)
     case 'docx':

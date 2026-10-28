@@ -1,16 +1,17 @@
 import type { ChapterKey } from '../../../../shared/ceshuConstants'
 import type { CeshuChangelog } from '../../../../shared/ceshuDiff'
-import { gradeLabel, type CeshuScoreReport } from '../../../../shared/ceshuScorer'
+import { fieldLabelOf } from '../../../../shared/ceshuFields'
+import type { CeshuReadinessReport } from '../../../../shared/ceshuReadiness'
 import {
   VALIDATION_SEVERITY_LABELS,
   groupValidationMessages,
   summarizeValidation
 } from '../../../../shared/ceshuValidationGroups'
-import { resolveValidationChapter } from '../../../../shared/ceshuValidationJump'
+import { resolveValidationTarget } from '../../../../shared/ceshuValidationJump'
 import { groupByChapter } from '../ceshuViewUtils'
 
 /**
- * 策划书编辑器的三块「报告」视图（变更记录 / 数据校验 / 质量评分）。
+ * 策划书编辑器的三块「报告」视图（变更记录 / 数据校验 / 完备度）。
  *
  * 从 `CeshuView.tsx` 原样抽出：三者都是**自足的只读报告 UI**——只依赖各自的数据对象与
  * 「导出 / 关闭」两个回调，不碰编辑器的章节/表单状态。原先它们以大段内联 JSX 混在
@@ -19,7 +20,11 @@ import { groupByChapter } from '../ceshuViewUtils'
  * ⚠️ className / data-testid / disabled 判定全部**原样保留** —— 有既有 E2E 直接命中
  * （`ceshu.spec.ts` 等）。改这些等于改测试契约，不是本次重构范围。
  * 例外：`ValidatePanel` 的可跳转问题行是 `<button data-testid="validate-jump">`，
- * 与纯文本行的 `validate-item` 靠共同的 `data-validate-item` 属性统一计数。
+ * 与纯文本行的 `validate-item` 靠共同的 `data-validate-item` 属性统一计数；
+ * 能定位到字段的行额外带 `data-field`（宿主据此切章 + 表单聚焦）。
+ *
+ * 2026-10-27：`ScorePanel`（结构 30+质量 40+市场 30+总分+等级+编造的行业均值）
+ * 整体替换为 `ReadinessPanel`（必填覆盖 + 逐章缺口 + **有出处**的参照对比）。
  */
 
 /** 变更记录（同链版本按时间逐对 diff）；导出格式 MD / HTML / Text */
@@ -100,7 +105,8 @@ export function ValidatePanel({
   validateErrors,
   onExport,
   onClose,
-  onJumpChapter
+  onJumpChapter,
+  onJumpField
 }: {
   validateErrors: string[]
   onExport: () => void
@@ -110,6 +116,12 @@ export function ValidatePanel({
    * 可选：不传则所有问题行退化为纯文本，保持只读语义。
    */
   onJumpChapter?: (chapter: ChapterKey) => void
+  /**
+   * 点击「能定位到字段」的问题行时回调（章 + 字段 key）：宿主切章后还应把表单滚到该字段。
+   * 比 `onJumpChapter` 更精确——`必填缺失` 这类问题本来就指向单个字段，只跳章等于让人再翻一遍。
+   * 可选：不传则退化成章节级跳转（若 `onJumpChapter` 也没传，则整行不可点）。
+   */
+  onJumpField?: (chapter: ChapterKey, field: string) => void
 }) {
   const groups = groupValidationMessages(validateErrors)
   const summary = summarizeValidation(validateErrors)
@@ -117,7 +129,7 @@ export function ValidatePanel({
     <div className="changelog-panel" data-testid="validate-panel">
       <div className="changelog-header">
         <span className="chapter-form-title">
-          {/* 标题保留「个问题」字样：既有 e2e（ceshu-validate-score.spec.ts）以此断言面板已出结果 */}
+          {/* 标题保留「个问题」字样：既有 e2e（ceshu-validate-readiness.spec.ts）以此断言面板已出结果 */}
           数据校验{validateErrors.length > 0 ? `（${validateErrors.length} 个问题：${summary}）` : ''}
         </span>
         <div className="editor-actions">
@@ -146,8 +158,30 @@ export function ValidatePanel({
                 {group.items.length}）
               </div>
               {group.items.map((item, index) => {
-                // 能定位到章节才做成按钮：定位不到的行没有可跳目标，点了只会误导
-                const chapter = onJumpChapter ? resolveValidationChapter(item.message) : null
+                // 先解析出「章 + 字段」：能定位到字段就跳字段（更省事），否则退化成只跳章；
+                // 两者都定位不到才渲染纯文本（点了没反应的链接比不可点更误导）
+                const target =
+                  onJumpChapter !== undefined || onJumpField !== undefined
+                    ? resolveValidationTarget(item.message)
+                    : null
+                if (target !== null && target.field !== null && onJumpField !== undefined) {
+                  const field = target.field
+                  return (
+                    <button
+                      key={`${index}:${item.message}`}
+                      type="button"
+                      className="validate-line validate-line-link"
+                      data-testid="validate-jump"
+                      data-chapter={target.chapter}
+                      data-field={field}
+                      data-validate-item="true"
+                      onClick={() => onJumpField(target.chapter, field)}
+                    >
+                      · {item.message}
+                    </button>
+                  )
+                }
+                const chapter = target !== null ? target.chapter : null
                 if (chapter !== null && onJumpChapter !== undefined) {
                   return (
                     <button
@@ -182,94 +216,181 @@ export function ValidatePanel({
   )
 }
 
-/** 质量评分：结构 30 + 质量 40 + 市场 30（含总分、行业对比与改进建议） */
-export function ScorePanel({
-  score,
+/**
+ * 策划书完备度：必填覆盖（立项 / 研发 / 发行）+ 逐章缺口 + 有出处的参照对比。
+ *
+ * 替代旧的「质量评分」面板（结构 30 + 质量 40 + 市场 30 + 总分 + 等级 + 行业均值）。
+ * 改动理由：100 分制是三个拍出来的权重，既无行动力、其「行业均值」还属编造；
+ * 完备度用**有明确分母**的必填覆盖说话，且每个缺口都能定位到章节。
+ */
+export function ReadinessPanel({
+  readiness,
   onExport,
-  onClose
+  onClose,
+  onJumpField
 }: {
-  score: CeshuScoreReport | null
+  readiness: CeshuReadinessReport | null
   onExport: () => void
   onClose: () => void
+  /**
+   * 点「缺失必填」里的字段名 → 切到该章并把表单滚到该字段。
+   * 可选：不传则缺失字段退化为纯文本（只读报告）。
+   */
+  onJumpField?: (chapter: ChapterKey, field: string) => void
 }) {
+  const pct = (value: number): string => `${Math.round(value * 100)}%`
   return (
-    <div className="changelog-panel" data-testid="score-panel">
+    <div className="changelog-panel" data-testid="readiness-panel">
       <div className="changelog-header">
-        <span className="chapter-form-title">质量评分</span>
+        <span className="chapter-form-title">完备度</span>
         <div className="editor-actions">
-          <button type="button" className="btn" data-testid="score-export" disabled={!score} onClick={onExport}>
-            导出评分报告
+          <button
+            type="button"
+            className="btn"
+            data-testid="readiness-export"
+            disabled={!readiness}
+            onClick={onExport}
+          >
+            导出完备度报告
           </button>
-          <button type="button" className="btn" data-testid="score-close" onClick={onClose}>
+          <button type="button" className="btn" data-testid="readiness-close" onClick={onClose}>
             关闭
           </button>
         </div>
       </div>
-      {!score ? (
-        <div className="empty">正在评分…</div>
+      {!readiness ? (
+        <div className="empty">正在统计…</div>
       ) : (
         <>
           <div className="changelog-entry">
             <div className="score-total">
-              <span className="score-total-value">{score.total_score}</span>
+              <span className="score-total-value">{pct(readiness.concept.ratio)}</span>
               <span className="score-total-grade">
-                {score.grade} · {gradeLabel(score.grade)}
+                立项必填 {readiness.concept.required_filled}/{readiness.concept.required_total}
               </span>
             </div>
             <div className="score-dimensions">
               <span>
-                结构 {score.structure_score}/30 {score.pass_status.structure ? '✅' : '⚠️'}
+                立项 {readiness.concept.required_filled}/{readiness.concept.required_total}
               </span>
               <span>
-                质量 {score.content_quality_score}/40 {score.pass_status.quality ? '✅' : '⚠️'}
+                研发 {readiness.production.required_filled}/{readiness.production.required_total}
               </span>
               <span>
-                市场 {score.market_potential_score}/30 {score.pass_status.market ? '✅' : '⚠️'}
+                发行 {readiness.release.required_filled}/{readiness.release.required_total}
               </span>
             </div>
             <div className="item-meta">
-              行业对比（{score.industry_benchmark.label}）：总分 {score.total_score} vs 行业均值{' '}
-              {score.industry_benchmark.total_avg}（{score.industry_benchmark.vs_total >= 0 ? '+' : ''}
-              {score.industry_benchmark.vs_total}）
+              全文必填 {readiness.total_required - readiness.total_missing}/{readiness.total_required}（
+              {pct(readiness.total_ratio)}），还差 {readiness.total_missing} 项
             </div>
           </div>
 
           <div className="changelog-entry">
-            <div className="form-label">改进建议</div>
-            {score.suggestions.map((suggestion, index) => (
-              <div key={`${index}:${suggestion}`} className="score-suggestion">
-                {suggestion}
+            <div className="form-label">下一步</div>
+            {readiness.next_steps.map((step, index) => (
+              <div key={`${index}:${step}`} className="score-suggestion">
+                {step}
               </div>
             ))}
           </div>
 
           <div className="changelog-entry">
-            <div className="form-label">章节明细（按得分升序，优先补强弱项）</div>
+            <div className="form-label">
+              逐章缺口（按缺口数降序，优先补多的{onJumpField !== undefined ? '；点字段名直接跳过去' : ''}）
+            </div>
             <table className="score-table">
               <thead>
                 <tr>
                   <th>章节</th>
-                  <th>得分</th>
+                  <th>必填</th>
                   <th>字数</th>
                   <th>完成度</th>
                   <th>缺失必填</th>
                 </tr>
               </thead>
               <tbody>
-                {[...score.chapter_scores]
-                  .sort((a, b) => a.score - b.score)
+                {[...readiness.chapters]
+                  .sort((a, b) => b.missing_required.length - a.missing_required.length)
                   .map((chapter) => (
                     <tr key={chapter.chapter_key}>
                       <td>{chapter.chapter_label}</td>
-                      <td>{chapter.score}</td>
+                      <td>
+                        {chapter.required_filled}/{chapter.required_total}
+                      </td>
                       <td>{chapter.word_count}</td>
-                      <td>{Math.round(chapter.completion * 100)}%</td>
-                      <td>{chapter.missing_required.length > 0 ? chapter.missing_required.join('、') : '—'}</td>
+                      <td>{pct(chapter.completion)}</td>
+                      <td>
+                        {chapter.missing_required.length === 0
+                          ? '—'
+                          : chapter.missing_required.map((field, index) => (
+                              <span key={field}>
+                                {index > 0 && '、'}
+                                {onJumpField === undefined ? (
+                                  /* 中文标签优先：裸 key（positioning / core_fantasy）人读起来要二次翻译 */
+                                  fieldLabelOf(chapter.chapter_key, field)
+                                ) : (
+                                  <button
+                                    type="button"
+                                    className="btn-link"
+                                    data-testid="readiness-missing-field"
+                                    data-chapter={chapter.chapter_key}
+                                    data-field={field}
+                                    onClick={() => onJumpField(chapter.chapter_key, field)}
+                                  >
+                                    {fieldLabelOf(chapter.chapter_key, field)}
+                                  </button>
+                                )}
+                              </span>
+                            ))}
+                      </td>
                     </tr>
                   ))}
               </tbody>
             </table>
           </div>
+
+          {readiness.references.length > 0 && (
+            <div className="changelog-entry" data-testid="readiness-references">
+              <div className="form-label">参照文档对比（有出处）</div>
+              <div className="item-meta">只比立项阶段同一批必填字段；合成样例已标注，不可当行业基准</div>
+              <table className="score-table">
+                <thead>
+                  <tr>
+                    <th>参照文档</th>
+                    <th>出处类型</th>
+                    <th>覆盖</th>
+                    <th>你的覆盖</th>
+                    <th>差距</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {readiness.references.map((reference) => (
+                    <tr key={reference.id}>
+                      <td>{reference.title}</td>
+                      <td>{reference.kindLabel}</td>
+                      <td>
+                        {reference.covered}/{reference.total}（{pct(reference.ratio)}）
+                      </td>
+                      <td>{reference.docCovered}</td>
+                      <td>
+                        {reference.delta >= 0 ? '+' : ''}
+                        {reference.delta}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="item-meta">
+                {readiness.references.map((reference) => (
+                  <div key={`src:${reference.id}`}>
+                    {reference.title}：{reference.attribution}
+                    {reference.url ? ` — ${reference.url}` : reference.path ? ` — ${reference.path}` : ''}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>

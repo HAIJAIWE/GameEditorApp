@@ -71,6 +71,27 @@ export const ART_FIELDS: CeshuFieldDef[] = [
     kind: 'textarea',
     aiHint: '目标分辨率与适配策略：基准分辨率、UI 锚点与缩放规则、超宽/窄屏处理、安全区；给 2-3 档典型分辨率下的表现',
     reviewHint: '是否覆盖超宽屏与刘海屏；UI 是否会遮住关键操作区；是否与目标机型（第十四章）一致'
+  },
+  /*
+   * 2026-10-28 角色评审补的字段：美术风格只回答「长什么样」，不回答「文件怎么交付」。
+   * 没有这张表，程序只能自己猜尺寸/格式、换平台或接外包时对不上，命名也各叫一套，
+   * 找文件靠中文名——这是美术与程序之间最容易扯皮、又最该一张表钉死的地方。
+   */
+  {
+    key: 'asset_spec',
+    label: '资产规格',
+    kind: 'pipeList',
+    columns: [
+      { key: 'type', label: '类型' },
+      { key: 'size', label: '尺寸' },
+      { key: 'format', label: '格式' },
+      { key: 'naming', label: '命名' },
+      { key: 'note', label: '备注' }
+    ],
+    aiHint:
+      '每行一种资产类型：类型|尺寸（含各分辨率档位）|格式（引擎要求的文件格式/压缩/Atlas）|命名规则（前缀+用途+序号，可机读，不靠中文名找文件）|备注（导入设置/最大尺寸/是否可九宫）；至少覆盖 角色立绘/头像、UI 图标、场景贴图、特效、字体；尺寸要与 multi_resolution 的分辨率档位对齐',
+    reviewHint:
+      '每种资产是否都有尺寸与格式（缺失即视为未定）；命名是否可机读（不靠中文名找文件）；导入设置是否写明（压缩/Atlas/最大尺寸）；尺寸是否与 multi_resolution 档位对齐'
   }
 ]
 
@@ -106,7 +127,8 @@ export const ART_DEFAULTS: ChapterData = {
   typography: '',
   vfx: '',
   animation: '',
-  multi_resolution: ''
+  multi_resolution: '',
+  asset_spec: []
 }
 
 export const ART_TEMPLATES: ChapterTemplate[] = [
@@ -127,7 +149,15 @@ export const ART_TEMPLATES: ChapterTemplate[] = [
       typography: '标题：方正清刻本悦宋；正文：思源宋体；UI：鸿雷板书简体',
       vfx: '水墨晕染特效 + 剑光粒子 + 法术符文特效',
       animation: '动作捕捉 + 手工调整，剑招参考真实剑术',
-      multi_resolution: '支持 1080P/2K/4K，移动端降采到 720P + LOD 优化'
+      multi_resolution: '支持 1080P/2K/4K，移动端降采到 720P + LOD 优化',
+      asset_spec: [
+        { type: '角色立绘', size: '全身 2048×4096 / 半身 2048×2048', format: 'PNG（透明）/ 骨骼 SpriteSheet 2048²', naming: 'char_<id>_pose<01>', note: '半身 live2d 可拆分；移动端 LOD 降 1024²' },
+        { type: '头像', size: '512×512', format: 'PNG（透明）', naming: 'face_<id>_v<01>', note: '圆形遮罩 1:1' },
+        { type: 'UI 图标', size: '256×256', format: 'PNG + Atlas（2048²）', naming: 'icon_<sys>_<name>', note: '九宫拉伸的框走 slice 标记' },
+        { type: '场景贴图', size: '2048² 可 Tile', format: 'TGA/PVR（压缩）', naming: 'env_<region>_<seq>', note: 'volumetric fog 区域单独 layer' },
+        { type: '特效', size: '512×512 Particle', format: 'PNG 序列帧 / 3D 粒子', naming: 'vfx_<cat>_<name>', note: '水墨晕染用 Shader 而非序列帧' },
+        { type: '字体', size: '动态合字', format: 'TTF（思源宋体/鸿雷板书）', naming: 'font_<use>', note: '只打包用到的字模，控制包体' }
+      ]
     }
   },
   {
@@ -147,7 +177,15 @@ export const ART_TEMPLATES: ChapterTemplate[] = [
       typography: '标题：Orbitron；正文：Roboto；中文：思源黑体',
       vfx: '全息投影 + 故障特效 + 雨水反射',
       animation: '写实动作 + 战术动画，枪械参考真实武器',
-      multi_resolution: '支持 1080P/2K/4K，启用 DLSS/FSR 提升性能'
+      multi_resolution: '支持 1080P/2K/4K，启用 DLSS/FSR 提升性能',
+      asset_spec: [
+        { type: '角色模型', size: '中模 3 万面 / 高模 15 万面', format: 'FBX（骨骼）+ 贴图 2K² PBR', naming: 'chr_<id>_lod<0-2>', note: '三档 LOD；攻击件单独挂点' },
+        { type: '武器', size: '2K² 贴图', format: 'FBX + 法线/AO', naming: 'wpn_<caliber>_<seq>', note: '按口径分资产包' },
+        { type: 'UI 图标', size: '256×256', format: 'PNG + Atlas（2048²）', naming: 'icon_<sys>_<name>', note: '故障字体图标单独 layer' },
+        { type: '场景贴图', size: '4K² 主贴图', format: 'TGA/BC7 压缩', naming: 'env_<zone>_<seq>', note: '霓虹自发光走 emissive' },
+        { type: '特效', size: '1024 粒子', format: 'PNG 序列帧 / Niagara', naming: 'vfx_<cat>_<name>', note: '故障干扰用 UV 抖动' },
+        { type: '字体', size: '动态合字', format: 'TTF（思源黑体/Orbitron）', naming: 'font_<use>', note: '只打包用到的字模' }
+      ]
     }
   },
   {
@@ -167,7 +205,14 @@ export const ART_TEMPLATES: ChapterTemplate[] = [
       typography: '标题：站酷快乐体；正文：思源黑体；UI：圆体',
       vfx: '粒子光点 + 心形特效 + 柔光过渡',
       animation: 'Q 版弹性动画 + 夸张表情',
-      multi_resolution: '支持 720P/1080P，移动端友好'
+      multi_resolution: '支持 720P/1080P，移动端友好',
+      asset_spec: [
+        { type: '角色', size: '立绘 1024×1024 / 表情 512²', format: 'PNG（透明）SpriteSheet', naming: 'char_<id>_expr<01>', note: '3 头身，表情单独拆 Sheet' },
+        { type: 'UI 图标', size: '256×256', format: 'PNG + Atlas（1024²）', naming: 'icon_<sys>_<name>', note: '圆角手绘图标' },
+        { type: '场景', size: '1024² Tile', format: 'PNG（手绘）/ 低多边形 FBX', naming: 'env_<region>_<seq>', note: '低多边形顶点色上色' },
+        { type: '特效', size: '256 粒子', format: 'PNG 光点序列帧', naming: 'vfx_<cat>_<name>', note: '柔光过渡用加法混合' },
+        { type: '字体', size: '动态合字', format: 'TTF（站酷快乐体/圆体）', naming: 'font_<use>', note: '只打包用到的字模' }
+      ]
     }
   }
 ]

@@ -3,11 +3,11 @@ import {
   CHAPTER_REQUIRED_FIELDS,
   chapterOrdinalCn,
   checkSystemDependencies,
-  visibleChapterKeys,
   type ChapterData,
   type CeshuDocument
 } from './ceshuConstants'
 import { normalizeValue } from './ceshuDiff'
+import { couplingMessages } from './ceshuCoupling'
 import { detectFieldOverlaps, fieldOverlapMessage } from './ceshuOverlap'
 import { detectTerminologyConflicts, terminologyConflictMessages } from './ceshuTerminology'
 import {
@@ -16,7 +16,7 @@ import {
   ANALYSIS_MIN_CHARS as QUALITY_MIN_CHARS
 } from './ceshuContentQuality'
 import { CESHU_CHAPTER_FIELDS } from './ceshuFields'
-import { getGddScope, isEmptyRequiredValue, isPlainObject } from './ceshuModel'
+import { isEmptyRequiredValue, isPlainObject, visibleChaptersForDoc } from './ceshuModel'
 import {
   buildPrototypeResults,
   checkDesignClaimsWith,
@@ -28,7 +28,7 @@ import { column } from './ceshuPipeRows'
 import { readText } from './util/readText'
 
 /**
- * 策划书数据完整性校验（自 Python ceshu_validation.py 匹平迁移）。
+ * 策划书数据完整性校验。
  * 校验范围：必填字段非空 + 11 项章节间一致性检查 + 内容重复检测 + 术语一致性 + 内容质量提示；返回错误/警告文案列表（空数组=全部通过）。
  *
  * ## 2026-10-24 重构为 CHECKS 注册表（改造档3）
@@ -77,7 +77,9 @@ export const CESHU_CHECKS: CeshuCheck[] = [
   { id: 'designClaims', run: checkDesignClaimsMessages },
   { id: 'prototypeAcceptance', run: checkPrototypeAcceptanceMessages },
   { id: 'testCaseList', run: (ctx) => checkTestCaseList(ctx.doc) },
-  { id: 'ledger', run: (ctx) => checkLedger(ctx.doc) }
+  { id: 'ledger', run: (ctx) => checkLedger(ctx.doc) },
+  // 可开发性缺口（字段联动）：填了 A 却没填 B，完备度是绿的但开不了工
+  { id: 'fieldCoupling', run: (ctx) => couplingMessages(ctx.doc) }
 ]
 
 // ---------- 各检查实现（body 与重构前逐字节一致） ----------
@@ -87,7 +89,7 @@ function checkRequiredFields(ctx: CeshuCheckContext): string[] {
   const errors: string[] = []
 
   // 基础必填字段检查（按档位可见章节：lite 只校验基础 9 章）
-  for (const key of visibleChapterKeys(getGddScope(doc))) {
+  for (const key of visibleChaptersForDoc(doc)) {
     if (key === 'systems') continue // 游戏系统无必填字段
     const required = CHAPTER_REQUIRED_FIELDS[key]
     if (required.length === 0) continue
@@ -126,7 +128,7 @@ function checkCrossChapterConsistency(ctx: CeshuCheckContext): string[] {
   const economyConfig = systemConfig(doc, 'economy')
 
   // 1. combat.combat_mode 与 systems.battle.config.turn_mode 应一致
-  const combatMode = readText(doc.combat.combat_mode)
+  const combatMode = readText(doc.combat?.combat_mode)
   const battleTurnMode = readText(battleConfig['turn_mode'])
   if (combatMode && battleTurnMode && combatMode !== battleTurnMode) {
     errors.push(
@@ -135,7 +137,7 @@ function checkCrossChapterConsistency(ctx: CeshuCheckContext): string[] {
   }
 
   // 2. monetization.payment_model 与 systems.economy.config.payment_system 应一致
-  const paymentModel = readText(doc.monetization.payment_model)
+  const paymentModel = readText(doc.monetization?.payment_model)
   const economyPayment = readText(economyConfig['payment_system'])
   if (paymentModel && economyPayment && paymentModel !== economyPayment) {
     errors.push(
@@ -150,9 +152,10 @@ function checkCrossChapterConsistency(ctx: CeshuCheckContext): string[] {
    * （三份不同游戏的产出全部误报）。新语义：概要列出的每条风险，详细矩阵里
    * 必须能找到对应——概要不是详情的子集才是真问题。
    */
-  const riskHandlingText = JSON.stringify(doc.risk_handling.risk_matrix ?? [])
+  const riskHandlingText = JSON.stringify(doc.risk_handling?.risk_matrix ?? [])
   const missingTopRisks: string[] = []
-  for (const entry of Array.isArray(doc.resources.risk_matrix) ? doc.resources.risk_matrix : []) {
+  const resourceRiskMatrix = doc.resources?.risk_matrix
+  for (const entry of Array.isArray(resourceRiskMatrix) ? resourceRiskMatrix : []) {
     const name = topRiskName(entry)
     if (name !== '' && !riskHandlingText.includes(name)) missingTopRisks.push(name)
   }
@@ -163,15 +166,15 @@ function checkCrossChapterConsistency(ctx: CeshuCheckContext): string[] {
   }
 
   // 4. worldview.factions 与 social.faction_system 应协同
-  const factions = nonEmptyArray(doc.story.factions)
+  const factions = nonEmptyArray(doc.story?.factions)
   const factionSystem = readText(systemConfig(doc, 'social')['faction_system'])
   if (factions && factionSystem === 'none') {
     errors.push(`一致性冲突：第${chapterOrdinalCn('story')}章 story.factions 已设定阵营，但 systems.social.config.faction_system='none'`)
   }
 
   // 5. art.art_style 与 audio.music_style 风格应协同（像素风 ↔ 交响乐提示）
-  const artStyle = readText(doc.art.art_style)
-  const musicStyle = readText(doc.audio.music_style)
+  const artStyle = readText(doc.art?.art_style)
+  const musicStyle = readText(doc.audio?.music_style)
   if (artStyle && musicStyle) {
     const artLower = artStyle.toLowerCase()
     const musicLower = musicStyle.toLowerCase()
@@ -183,14 +186,20 @@ function checkCrossChapterConsistency(ctx: CeshuCheckContext): string[] {
   }
 
   // 6. mvp.milestones 与 tech.milestones 应一致
-  const mvpMilestones = nonEmptyArray(doc.mvp.milestones)
-  const techMilestones = nonEmptyArray(doc.tech.milestones)
-  if (mvpMilestones && techMilestones && normalizeValue(mvpMilestones) !== normalizeValue(techMilestones)) {
+  // 两字段存储形态不同：mvp.milestones 带 columns（对象行），tech.milestones 无 columns（字符串行）。
+  // 形态不同时逐字比对必然不等 → 永久误报，故仅在「同为对象行 / 同为字符串行」时比对。
+  const mvpMilestones = nonEmptyArray(doc.mvp?.milestones)
+  const techMilestones = nonEmptyArray(doc.tech?.milestones)
+  const milestonesSameShape =
+    mvpMilestones !== null &&
+    techMilestones !== null &&
+    isPlainObject(mvpMilestones[0]) === isPlainObject(techMilestones[0])
+  if (milestonesSameShape && normalizeValue(mvpMilestones) !== normalizeValue(techMilestones)) {
     errors.push(`一致性警告：第${chapterOrdinalCn('mvp')}章 mvp.milestones 与 第${chapterOrdinalCn('tech')}章 tech.milestones 不一致，MVP 里程碑应与技术里程碑对齐`)
   }
 
   // 7. monetization.pricing_tiers 与 systems.economy.config.recharge_tiers 应一致
-  const pricingTiers = nonEmptyArray(doc.monetization.pricing_tiers)
+  const pricingTiers = nonEmptyArray(doc.monetization?.pricing_tiers)
   const rechargeRaw = economyConfig['recharge_tiers']
   if (pricingTiers && rechargeRaw) {
     const rechargeTiers = typeof rechargeRaw === 'string'
@@ -204,21 +213,21 @@ function checkCrossChapterConsistency(ctx: CeshuCheckContext): string[] {
   }
 
   // 8. accessibility.language_list 与 resources.localization 应一致
-  const languageList = nonEmptyArray(doc.accessibility.language_list)
-  const localization = nonEmptyArray(doc.resources.localization)
+  const languageList = nonEmptyArray(doc.accessibility?.language_list)
+  const localization = nonEmptyArray(doc.resources?.localization)
   if (languageList && localization && normalizeValue(languageList) !== normalizeValue(localization)) {
     errors.push(`一致性警告：第${chapterOrdinalCn('accessibility')}章 accessibility.language_list 与 第${chapterOrdinalCn('resources')}章 resources.localization 不一致，建议统一`)
   }
 
   // 9. characters.main_npc_count 与 characters.npc_list 数量应一致
-  const npcCount = doc.story.main_npc_count
-  const npcList = nonEmptyArray(doc.story.npc_list)
+  const npcCount = doc.story?.main_npc_count
+  const npcList = nonEmptyArray(doc.story?.npc_list)
   if (typeof npcCount === 'number' && npcCount !== 0 && npcList && Math.abs(npcCount - npcList.length) > Math.max(2, Math.trunc(npcCount * 0.2))) {
     errors.push(`一致性警告：第${chapterOrdinalCn('story')}章 story.main_npc_count=${npcCount} 与 npc_list 实际数量=${npcList.length} 差异较大，请核对`)
   }
 
   // 10. economy.currency_types 与 systems.economy.config.currency_types 应一致
-  const economyCurrencies = nonEmptyArray(doc.economy.currency_types)
+  const economyCurrencies = nonEmptyArray(doc.economy?.currency_types)
   const systemCurrencies = economyConfig['currency_types']
   if (economyCurrencies && systemCurrencies) {
     const economyNames = extractNames(economyCurrencies)
@@ -235,7 +244,8 @@ function checkCrossChapterConsistency(ctx: CeshuCheckContext): string[] {
   }
 
   // 11. 游戏系统依赖检查：启用某系统时，其依赖的系统必须也已启用
-  const enabledSystems = Object.entries(doc.systems)
+  const systemsData = isPlainObject(doc.systems) ? doc.systems : {}
+  const enabledSystems = Object.entries(systemsData)
     .filter(([, value]) => isPlainObject(value) && (value.enabled === undefined ? true : Boolean(value.enabled)))
     .map(([key]) => key)
   for (const item of checkSystemDependencies(enabledSystems)) {
@@ -267,7 +277,7 @@ function checkContentQuality(ctx: CeshuCheckContext): string[] {
    * 只查 schema 内的自由文本字段，且只输出经过人类写作基线校准的判据
    * （2026-10-23 用 docs/ 161 段真实写作校准，见 ceshuContentQuality 内注释）。
    */
-  for (const key of visibleChapterKeys(getGddScope(doc))) {
+  for (const key of visibleChaptersForDoc(doc)) {
     const label = CHAPTER_LABELS[key]
     const data = doc[key]
     if (!isPlainObject(data)) continue
@@ -315,7 +325,9 @@ function readQualityText(data: ChapterData, path: string): string | null {
 
 /** 读取系统 config（缺省为空对象） */
 function systemConfig(doc: CeshuDocument, systemId: string): Record<string, unknown> {
-  const entry = doc.systems[systemId]
+  // 守卫：章节本身可能缺失（部分文档 / 跨章一致性校验在缺 systems 时不应抛错）。
+  const systems = isPlainObject(doc.systems) ? doc.systems : {}
+  const entry = systems[systemId]
   if (!isPlainObject(entry) || !isPlainObject(entry.config)) return {}
   return entry.config
 }
@@ -341,7 +353,7 @@ function topRiskName(entry: unknown): string {
   return ''
 }
 
-/** 提取货币名称：dict 取 name，字符串原样（对应 Python 名称提取规则） */
+/** 提取货币名称：dict 取 name，字符串原样 */
 function extractNames(items: unknown[]): string[] {
   return items.map((item) => {
     if (isPlainObject(item)) return typeof item.name === 'string' ? item.name : ''

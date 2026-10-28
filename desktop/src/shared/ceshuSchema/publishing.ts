@@ -112,7 +112,45 @@ export const PUBLISHING_DEFAULTS: ChapterData = {
   launch_checklist: []
 }
 
-export const PUBLISHING_TEMPLATES: ChapterTemplate[] = []
+export const PUBLISHING_TEMPLATES: ChapterTemplate[] = [
+  {
+    name: '发行计划（示例）',
+    description: '软启动 → 全量发行，含渠道策略、合规与上线检查单',
+    tags: ['发行', '上线', '示例'],
+    data: {
+      publish_plan: '发行节奏：先东南亚华语区软启动验证付费与留存，再中国大陆全量（需版号），之后港澳台 / 日韩。阶段里程碑见要点。',
+      publish_plan_points: [
+        '软启动：T+0 东南亚华语区，达标线 D7 留存 ≥ 20%',
+        '全量（大陆）：T+3M 持版号上线，达标线 首月付费率 ≥ 6%',
+        '港澳台：T+4M，达标线 双端畅销榜 Top50',
+        '日韩：T+6M，达标线 D30 留存 ≥ 15%'
+      ],
+      publish_plan_notes: '大陆上线强依赖版号批复，时间表随版号节奏浮动。',
+      channel_strategy: [
+        { channel: 'App Store', asset_req: '竖图 / 视频 / 隐私标签', revenue_share: '30%', expected_scale: 'iOS 30% 量' },
+        { channel: 'Google Play', asset_req: 'AAB / 分级', revenue_share: '30%', expected_scale: '海外安卓主渠道' },
+        { channel: 'TapTap', asset_req: '开发者站 / 评测', revenue_share: '0%（抽成豁免）', expected_scale: '核心安卓用户' },
+        { channel: '应用宝', asset_req: '版号 / 软著', revenue_share: '待确认', expected_scale: '大陆安卓' }
+      ],
+      compliance: '合规：大陆需版号 + 游戏版号备案 + 防沉迷实名；港澳台分级（IOS 分级）；隐私政策含儿童数据条款；责任人与时间节点待法务确认。',
+      marketing_rhythm: '预热：上线前 4 周，发 PV 与角色曝光。首发：上线周，KOL 试玩 + 买量。长线：版本节点，剧情 PV + 节气活动联动。',
+      soft_launch: '软启动思路：选东南亚华语区（文化近、买量便宜）验证核心指标，放量标准见要点。',
+      soft_launch_points: [
+        '地区：马来西亚 / 新加坡华语区，观察指标 D7 留存',
+        '地区：港澳台（并行小量），观察指标 付费率',
+        '放量标准：D7 留存 ≥ 20% 且 付费率 ≥ 5% 进入全量'
+      ],
+      soft_launch_notes: '软启动风险预案：付费异常回滚、localization 漏译热更。',
+      launch_checklist: [
+        '提包：双端商店包体 + 热更通道可用',
+        '合规：版号 / 分级 / 隐私政策就位',
+        '支付：双渠道支付联调通过',
+        '客服：FAQ + 工单通道就位',
+        '监控：崩溃 / 付费告警接入'
+      ]
+    }
+  }
+]
 
 export const PUBLISHING_SCHEMA: ChapterSchema = {
   fields: PUBLISHING_FIELDS,

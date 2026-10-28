@@ -33,6 +33,22 @@ export const GAMEPLAY_FIELDS: CeshuFieldDef[] = [
     reviewHint: '是否只放补充信息、没有把步骤又抄一遍；该留空时是否确实留空'
   },
   {
+    key: 'loop_three_layers',
+    label: '三层循环',
+    kind: 'pipeList',
+    columns: [
+      { key: 'layer', label: '层级' },
+      { key: 'question', label: '关注问题' },
+      { key: 'action', label: '玩家动作' },
+      { key: 'system', label: '系统变化' },
+      { key: 'feedback', label: '反馈' },
+      { key: 'carrier', label: '传递物' }
+    ],
+    placeholder: '层级|关注问题|玩家动作|系统变化|反馈|传递物',
+    aiHint: '三层各一行：①瞬时（秒级，一次操作的手感与即时反馈）②单局（分钟级，一局的起承转合）③长线（小时级以上，跨局的成长/解锁）。每行写清「玩家动作→系统变化→反馈」，并指出向下一层传递什么（经验/资源/解锁/叙事钩子）',
+    reviewHint: '三层是否都在；层级间是否有明确的「传递物」（不是各玩各的）；反馈是否即时可感知；与核心循环是否一致'
+  },
+  {
     key: 'game_modes',
     label: '游戏模式',
     kind: 'stringList',
@@ -46,6 +62,13 @@ export const GAMEPLAY_FIELDS: CeshuFieldDef[] = [
     kind: 'textarea',
     aiHint: '一段概述：前 30 分钟的设计目标与节奏安排；按 0-2/2-10/10-30 分段的具体动作与反馈条目走「要点」字段，勿在本体罗列',
     reviewHint: '是否覆盖 0-2/2-10/10-30 三段；每段是否有具体动作与反馈；是否出现首个目标/高潮点'
+  },
+  {
+    key: 'playthrough_120s',
+    label: '120 秒走读',
+    kind: 'textarea',
+    aiHint: '连续走读一个 60–120 秒的真实片段（不是分段罗列）：进入看到什么→第一眼注意到什么→做第一个选择→这个选择的代价→代价如何恢复（或不可恢复）。要写成一条时间线，含具体数值与界面元素；用来验证「第一分钟是否留得住人」',
+    reviewHint: '是否是一条连续时间线（而非分段清单）；是否包含代价与恢复；是否有具体数值/界面元素；与「新手体验(前30分钟)」是否重复'
   },
   {
     key: 'control_scheme',
@@ -73,7 +96,7 @@ export const GAMEPLAY_FIELDS: CeshuFieldDef[] = [
     label: '核心状态机',
     kind: 'pipeList',
     placeholder: '状态|触发事件|结算效果|新状态',
-    aiHint: '只描述核心循环涉及的状态与转移；每行一次转移，结算效果写清「什么被重置、什么被保留」；怀疑重复结算的地方写明「每次只结算一次」',
+    aiHint: '只描述核心循环涉及的状态与转移；每行一次转移，结算效果写清「什么被重置、什么被保留」；怀疑重复结算的地方写明「每次只结算一次」；AI 全量生成时必填 5-8 条转移（覆盖主菜单/对局中/暂停/结算/失败/重开），禁止留空',
     reviewHint: '转移是否覆盖异常路径（资源不足/误触/刷新重进）；重置与保留的边界是否明确'
   }
 ]
@@ -97,7 +120,9 @@ export const GAMEPLAY_DEFAULTS: ChapterData = {
   first_30_min: '',
   game_modes: [],
   win_lose_conditions: '',
-  tutorial_design: ''
+  tutorial_design: '',
+  loop_three_layers: [],
+  playthrough_120s: ''
 }
 
 export const GAMEPLAY_TEMPLATES: ChapterTemplate[] = [

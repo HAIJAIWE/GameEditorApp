@@ -20,8 +20,8 @@ import { CHAPTER_KEYS } from '../../src/shared/ceshuConstants'
 import { CESHU_CHAPTER_FIELDS } from '../../src/shared/ceshuFields'
 
 describe('ceshuTemplates 内置模板库', () => {
-  it('数据池：24 章 / 38 个模板（P2 的 uiux、level_design 2026-10-26 补了填满样例）', () => {
-    expect(countChapterTemplates()).toBe(38)
+  it('数据池：24 章 / 45 个模板（2026-10-27：uiux、level_design 各加中性默认模板；live_ops/analytics/qa/publishing/performance 各补 1 个填满样例）', () => {
+    expect(countChapterTemplates()).toBe(45)
     expect(chapterTemplateSummary()).toEqual({
       meta: 3,
       vision: 3,
@@ -41,13 +41,13 @@ describe('ceshuTemplates 内置模板库', () => {
       audio: 2,
       accessibility: 1,
       // P2 扩展设计 7 章：uiux / level_design 已有填满样例，其余 5 章仍待补
-      uiux: 2,
-      level_design: 2,
-      live_ops: 0,
-      analytics: 0,
-      qa: 0,
-      publishing: 0,
-      performance: 0
+      uiux: 3,
+      level_design: 3,
+      live_ops: 1,
+      analytics: 1,
+      qa: 1,
+      publishing: 1,
+      performance: 1
     })
     expect(Object.keys(chapterTemplateSummary())).toHaveLength(24)
   })
@@ -64,7 +64,7 @@ describe('ceshuTemplates 内置模板库', () => {
   })
 
   it('跨章搜索：关键词命中 name/description/tags，空关键词返回全部', () => {
-    expect(searchChapterTemplates('')).toHaveLength(38)
+    expect(searchChapterTemplates('')).toHaveLength(45)
     expect(searchChapterTemplates('仙侠')).toHaveLength(8)
     expect(searchChapterTemplates('RPG')).toHaveLength(7)
     expect(searchChapterTemplates('放置')).toHaveLength(1)
@@ -210,7 +210,13 @@ describe('ceshuTemplates 预览树', () => {
       'growth_curves[1].name'
     ])
     // 仅 dict / list 值产生分组行（economic_model 与 balance_principles 为文本）
-    expect(rows.filter((row) => row.kind === 'group').map((row) => row.text)).toEqual(['growth_curves:', 'drop_tables:'])
+    // 2026-10-27：模板补了 numeric_parameters / numeric_assertions 两张表，分组多两个
+    expect(rows.filter((row) => row.kind === 'group').map((row) => row.text)).toEqual([
+      'growth_curves:',
+      'drop_tables:',
+      'numeric_parameters:',
+      'numeric_assertions:'
+    ])
     expect(rows.map((row) => row.path)).toContain('economic_model')
     expect(rows.map((row) => row.path)).toContain('balance_principles')
   })

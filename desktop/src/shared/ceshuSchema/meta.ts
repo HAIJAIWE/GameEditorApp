@@ -7,6 +7,7 @@
 import type { ChapterTemplate } from '../ceshuTemplates'
 import type { ChapterSchema } from './types'
 import type { CeshuFieldDef, ChapterData } from '../ceshuConstants'
+import { GDD_SCOPE_LABELS } from '../ceshuOptionLabels'
 
 export const META_FIELDS: CeshuFieldDef[] = [
   {
@@ -47,6 +48,42 @@ export const META_FIELDS: CeshuFieldDef[] = [
     ],
     reviewHint: '类型是否与核心玩法一致（不是题材分类）；是否与平台、目标用户对得上'
   },
+  /*
+   * 2026-10-27 交接包品类适配补的字段：`game_type` 是单选，装不下「SLG + 卡牌 + Roguelike」
+   * 这类**组合玩法**。加一个多选标签，交接包按它做**品类并集**（多出对应系统的设计文档），
+   * AI 审阅也按它下发多套追问 —— 否则组合品类只能落进单一档案，生成出来的规格会漏系统。
+   */
+  {
+    key: 'game_type_tags',
+    label: '玩法标签（可多选）',
+    kind: 'multiCombo',
+    values: [
+      'RPG',
+      'MMORPG',
+      'ARPG',
+      '战棋',
+      'SLG',
+      'RTS',
+      'MOBA',
+      'FPS',
+      'TPS',
+      '格斗',
+      '大逃杀',
+      '非对称竞技',
+      '卡牌',
+      '塔防',
+      '模拟经营',
+      '开放世界',
+      'Roguelike',
+      '生存建造',
+      '视觉小说',
+      '放置',
+      '派对',
+      '休闲益智'
+    ],
+    aiDraftable: false,
+    reviewHint: '是否只重复了「游戏类型」；组合玩法（如 SLG+卡牌）是否真的都实现了，还是只做了主类型'
+  },
   {
     key: 'platform',
     label: '平台',
@@ -75,6 +112,38 @@ export const META_FIELDS: CeshuFieldDef[] = [
     placeholder: '用逗号分隔，如: 剧情向,开放世界,多人联机',
     aiHint: '3-5 个具体标签，避免「好玩」「有趣」这类空泛词',
     reviewHint: '标签是否具体到能用于商店分类与搜索；是否与玩法/题材一致；有无互相重复的同义标签'
+  },
+  {
+    key: 'non_goals',
+    label: '范围与非目标',
+    kind: 'stringList',
+    placeholder: '每行一条「明确不做」',
+    aiHint: '3-5 条明确不做的功能/范围，每条说清「不做什么」，必要时补一句「要做到什么程度才算够」；禁止写成「暂不做」这类没有边界的表述',
+    reviewHint: '是否与设计支柱的反例一致；是否真的砍掉了功能边界；有无「什么都做」式的伪非目标'
+  },
+  /*
+   * 方案取舍（Alternatives considered）。
+   *
+   * 为什么放在文档信息而不是某章：关键决策（引擎、付费、核心循环、联机形态）跨章，
+   * 挂到任何单章都会让别的章「看不到自己那条」。Google 设计文档范式把它列为独立一节，
+   * 交接包把它挂在「范围与平台」——实现方开工前先知道**哪些路已经被否了**，
+   * 否则最容易「好心」把被放弃的方案换回来。
+   */
+  {
+    key: 'alternatives',
+    label: '方案取舍',
+    kind: 'pipeList',
+    columns: [
+      { key: 'decision', label: '决策' },
+      { key: 'option', label: '候选方案' },
+      { key: 'rejected', label: '为什么不选' },
+      { key: 'chosen', label: '结论' }
+    ],
+    placeholder: '每行一条：决策|候选方案|为什么不选|结论',
+    aiHint:
+      '3-6 条关键决策的取舍：写清「考虑过什么、为什么不选、最后选了什么」。只写「经过考虑」不算，必须给出被放弃方案的具体代价（成本/风险/上限）',
+    reviewHint:
+      '是否覆盖了会引发返工的决策（引擎、付费模式、核心循环、联机形态）；每条是否真的给了放弃理由，而不是复述结论'
   },
   {
     key: 'status',
@@ -124,8 +193,8 @@ export const META_FIELDS: CeshuFieldDef[] = [
       'full'
     ],
     optionLabels: {
-      lite: '标准版（文档信息 + 9 章）',
-      full: '专业版（文档信息 + 16 章）'
+      lite: GDD_SCOPE_LABELS.lite,
+      full: GDD_SCOPE_LABELS.full
     },
     reviewHint: '档位是否与项目阶段匹配（立项期用标准版，进入研发再切专业版）'
   },
@@ -148,9 +217,12 @@ export const META_FIELDS: CeshuFieldDef[] = [
 export const META_DEFAULTS: ChapterData = {
   game_name: '',
   game_type: '',
+  game_type_tags: [],
   platform: [],
   positioning: '',
   tags: [],
+  non_goals: [],
+  alternatives: [],
   version: '0.1.0',
   date: '2026-10-24',
   confidentiality: 'internal',

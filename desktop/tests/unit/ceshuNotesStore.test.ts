@@ -11,7 +11,7 @@ function makeDir(): string {
 }
 
 describe('章节笔记存储（W21）', () => {
-  it('add → 磁盘落盘（{"notes": [...]} 旧版 兼容结构 + 无 tmp 残留），list 可读回', async () => {
+  it('add → 磁盘落盘，list 可读回', async () => {
     const dir = makeDir()
     const store = new CeshuNotesStore(dir)
 

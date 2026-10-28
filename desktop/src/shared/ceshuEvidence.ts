@@ -1,5 +1,6 @@
 import { CHAPTER_LABELS, type CeshuDocument } from './ceshuConstants'
-import { EPSILON, splitRow, toRows } from './ceshuPipeRows'
+import { fieldColumns } from './ceshuFields'
+import { EPSILON, splitRow, toRowStrings } from './ceshuPipeRows'
 
 /**
  * 证据层检查（用例清单 + 经济账本）——2026-10-24 对标豆包 tests / ledgers 两键。
@@ -47,7 +48,7 @@ const CASE_STATUS = new Map<string, string>([
  * - 前置/操作/期望 任一为空 → 一致性警告（不可执行的用例没有价值）。
  */
 export function checkTestCaseList(doc: CeshuDocument): string[] {
-  const rows = toRows(doc.qa.test_case_list)
+  const rows = toRowStrings(doc.qa?.test_case_list ?? [], fieldColumns('qa', 'test_case_list'))
   if (rows.length === 0) return []
   const label = CHAPTER_LABELS.qa
   const messages: string[] = []
@@ -92,7 +93,7 @@ export function checkTestCaseList(doc: CeshuDocument): string[] {
  * - 数字无法解析/列数不足 → 格式异常。
  */
 export function checkLedger(doc: CeshuDocument): string[] {
-  const rows = toRows(doc.economy.ledger)
+  const rows = toRowStrings(doc.economy?.ledger ?? [], fieldColumns('economy', 'ledger'))
   if (rows.length === 0) return []
   const label = CHAPTER_LABELS.economy
   const messages: string[] = []
@@ -202,7 +203,7 @@ export function normalizeAcceptanceResult(raw: string): AcceptanceResultStatus |
  * 所以即使没有设计主张也独立校验——无法识别的写法按一致性警告如实提醒。
  */
 export function checkPrototypeAcceptanceResults(doc: CeshuDocument): string[] {
-  const rows = toRows(doc.qa.prototype_acceptance)
+  const rows = toRowStrings(doc.qa?.prototype_acceptance ?? [], fieldColumns('qa', 'prototype_acceptance'))
   if (rows.length === 0) return []
   const label = CHAPTER_LABELS.qa
   const messages: string[] = []

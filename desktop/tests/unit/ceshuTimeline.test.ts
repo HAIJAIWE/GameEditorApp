@@ -43,7 +43,7 @@ describe('ceshuTimeline 节点分类与文案', () => {
     expect(classifyTimelineNode(summary({ isActive: false, parentId: 'id-root' }))).toBe('sub')
   })
 
-  it('节点标题：主策划加前缀 ★，激活加后缀 ★（与 旧版 一致，主+激活为“★ v1.0 ★”）', () => {
+  it('节点标题：主策划加前缀 ★，激活加后缀 ★', () => {
     expect(timelineNodeLabel(summary({ versionLabel: 'v1.0', parentId: '' }))).toBe('★ v1.0')
     expect(timelineNodeLabel(summary({ versionLabel: 'v1.1', parentId: 'id-root', isActive: true }))).toBe('v1.1 ★')
     expect(timelineNodeLabel(summary({ versionLabel: 'v1.0', parentId: '', isActive: true }))).toBe('★ v1.0 ★')

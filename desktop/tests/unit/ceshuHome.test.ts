@@ -37,7 +37,7 @@ function summary(overrides: Partial<CeshuSummary> = {}): CeshuSummary {
   }
 }
 
-describe('ceshuHome 文案与徽章（对齐 旧版 home_card）', () => {
+describe('ceshuHome 文案与徽章', () => {
   it('状态标签：四个已知状态有中文，未知状态原样返回', () => {
     expect(CESHU_STATUS_LABELS).toEqual({
       draft: '草稿',
@@ -75,7 +75,7 @@ describe('ceshuHome 文案与徽章（对齐 旧版 home_card）', () => {
     expect(ceshuVersionBadge({ versionLabel: '', parentId: '', isActive: true })).toBe('')
   })
 
-  it('进度百分比：向零截断（对齐 旧版 int(progress*100)），非有限值归零', () => {
+  it('进度百分比：向零截断，非有限值归零', () => {
     expect(ceshuProgressPercent(0.756)).toBe(75)
     expect(ceshuProgressPercent(1)).toBe(100)
     expect(ceshuProgressPercent(0)).toBe(0)
@@ -177,7 +177,7 @@ describe('ceshuHome 只看待审', () => {
 })
 
 describe('ceshuHome 复制命名', () => {
-  it('buildDuplicateName：追加「 (副本)」；空名回退「未命名」（修正 旧版 的空名怪值）', () => {
+  it('buildDuplicateName：追加「 (副本)」；空名回退「未命名」', () => {
     expect(buildDuplicateName('仙侠 RPG')).toBe('仙侠 RPG (副本)')
     expect(buildDuplicateName('')).toBe('未命名 (副本)')
   })

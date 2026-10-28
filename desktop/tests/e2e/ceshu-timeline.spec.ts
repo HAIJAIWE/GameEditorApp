@@ -86,7 +86,7 @@ test('版本时间线：版本链顺序与节点文案 → 点击详情 → 切�
     await window.getByTestId('home-card').filter({ hasText: 'v1.0' }).getByTestId('home-card-open').click()
     await expect(window.getByTestId('ceshu-version')).toContainText('v1.0')
 
-    // 「ceshu-timeline」已收进工具栏「更多 ▸」下拉（对齐 旧版），需先展开再点
+    // 「ceshu-timeline」已收进工具栏「更多 ▸」下拉，需先展开再点
     await window.getByTestId('ceshu-more').click()
     await window.getByTestId('ceshu-timeline').click()
     await expect(window.getByTestId('timeline-panel')).toBeVisible()

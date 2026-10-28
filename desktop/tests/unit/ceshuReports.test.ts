@@ -9,7 +9,7 @@ import {
   categorizeValidationError
 } from '../../src/shared/domain/ceshu/ceshuReports'
 
-describe('categorizeValidationError（对齐 旧版 validation_dialog._categorize）', () => {
+describe('categorizeValidationError', () => {
   it('按关键字归类，判定顺序为 dep > conflict > warning > required', () => {
     expect(categorizeValidationError('依赖缺失：第五章 systems.battle 已启用')).toBe('dep')
     expect(categorizeValidationError('一致性冲突：combat.combat_mode 不一致')).toBe('conflict')
@@ -19,7 +19,7 @@ describe('categorizeValidationError（对齐 旧版 validation_dialog._categoriz
   })
 })
 
-describe('buildValidationReportMarkdown（对齐 旧版 _build_markdown）', () => {
+describe('buildValidationReportMarkdown', () => {
   const progress: Record<string, number> = { meta: 1, systems: 0.5, total: 0.75 }
 
   it('评分 = max(0, 100 - 错误数*3)，并按分类计数', () => {
@@ -95,7 +95,7 @@ describe('buildValidationReportMarkdown（对齐 旧版 _build_markdown）', () 
   })
 })
 
-describe('变更日志三格式（对齐 旧版 Changelog.to_{markdown,text,html}）', () => {
+describe('变更日志三格式', () => {
   const log: CeshuChangelog = {
     entries: [
       {

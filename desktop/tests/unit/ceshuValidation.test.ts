@@ -13,7 +13,7 @@ function hasError(errors: string[], fragment: string): boolean {
   return errors.some((error) => error.includes(fragment))
 }
 
-describe('策划书校验：必填字段（匹平 旧版 validate_ceshu）', () => {
+describe('策划书校验：必填字段', () => {
   it('空文档：必填字段逐项报错（49 条，budget 默认 {} 不算空），无依赖错误', () => {
     const errors = validateCeshu(makeDoc())
     expect(errors).toHaveLength(49) // P2 后 24 章 47 必填 + 2 条依赖类（与旧口径的差集即新增 14 条）
@@ -179,5 +179,30 @@ describe('策划书校验：内容质量提示（「写对」代理指标）', (
       { name: '丙', role: '卫兵', location: '城门', personality: '严肃', quest_hook: '警戒任务' }
     ]
     expect(validateCeshu(doc).some((item) => item.includes('NPC 列表') && item.includes('列表结构'))).toBe(false)
+  })
+})
+
+describe('策划书校验：残缺文档不抛错（防御）', () => {
+  /*
+   * validateCeshu 是共享纯函数，导出 / 完备度 / 质量门 / 机读轨都调它。
+   * 生产加载路径由 `createDefaultCeshu` 保证章节齐全（projectFilesToDoc 也从它起手），
+   * 但外部调用方（AI 草稿、单测、未来的增量编辑）可能传半成品文档——
+   * 校验器只负责报告问题，不该自己崩掉。
+   */
+  it('缺全部章节时返回「章节数据格式异常」，而不是抛异常', () => {
+    const partial = { meta: { game_name: '残缺样本', game_type: 'RPG' } } as unknown as CeshuDocument
+    expect(() => validateCeshu(partial)).not.toThrow()
+    expect(validateCeshu(partial).some((item) => item.includes('章节数据格式异常'))).toBe(true)
+  })
+
+  it('缺 systems / numeric / qa 章节时跨章一致性与证据类检查不崩', () => {
+    // 这三章是 checkCrossChapterConsistency / evaluateAssertions / checkLedger 的直接读取点：
+    // 曾因 `doc.systems[systemId]`、`doc.numeric.numeric_parameters` 无守卫而整条校验抛错。
+    const doc = createDefaultCeshu({ scope: 'full' })
+    const bare = doc as unknown as Record<string, unknown>
+    delete bare.systems
+    delete bare.numeric
+    delete bare.qa
+    expect(() => validateCeshu(doc)).not.toThrow()
   })
 })

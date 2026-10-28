@@ -24,7 +24,7 @@ describe('ceshuSystemConfirm 字段预览', () => {
     expect(preview).toContain('• team_size（队伍人数, number） = 4')
   })
 
-  it('字段 label 末尾冒号被剥离（与 旧版 .rstrip(":") 一致）', () => {
+  it('字段 label 末尾冒号被剥离', () => {
     const preview = formatFieldsPreview('battle', {})
     expect(preview).toContain('（战斗模式,') // 无尾随冒号
     expect(preview).not.toContain('（战斗模式:,')

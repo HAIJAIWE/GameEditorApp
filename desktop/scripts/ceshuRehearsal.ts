@@ -10,7 +10,7 @@
  *   `buildBundleConsumePrompt(doc, 'draft')` 生成提示词——外部 AI 拿到的
  *   就是这份；写手按它产出 `{章: {字段: 值}}` JSON；
  *   阶段 2 `apply`：把 JSON 粘回来，走与「导入 AI 结果」面板**同一条**
- *   `parseCeshuPatch` → `applyCeshuPatch` → `validateCeshu` → `scoreCeshu`
+ *   `parseCeshuPatch` → `applyCeshuPatch` → `validateCeshu` → `computeReadiness`
  *   管道，输出机器校验报告。
  *
  * ## 用法
@@ -18,7 +18,7 @@
  *   npx tsx scripts/ceshuRehearsal.ts apply --patch /tmp/p1.json --type rpg --name 星露种田
  *
  * 判据全是机器可复算的：必填缺失、跨章一致性、内容重复、术语一致性、
- * 内容质量（空话/长句/数字）、三维评分。人只看报告就能判断「这份产出
+ * 内容质量（空话/长句/数字）、三阶段必填覆盖。人只看报告就能判断「这份产出
  * 能不能用、契约有没有起作用」。
  */
 
@@ -28,7 +28,7 @@ import { buildBundleConsumePrompt, BUNDLE_CONSUME_TASK_LABELS, type BundleConsum
 import { buildCeshuBundle } from '../src/shared/ceshuBundle'
 import { applyCeshuPatch, parseCeshuPatch } from '../src/shared/ceshuImportPatch'
 import { createDefaultCeshu } from '../src/shared/ceshuModel'
-import { scoreCeshu } from '../src/shared/ceshuScorer'
+import { computeReadiness } from '../src/shared/ceshuReadiness'
 import { validateCeshu } from '../src/shared/ceshuValidation'
 import { CHAPTER_LABELS, type CeshuDocument } from '../src/shared/ceshuConstants'
 
@@ -102,7 +102,7 @@ function runApply(flags: Record<string, string>): void {
 
   const { doc, chapters } = applyCeshuPatch(baseDoc, parsed.items)
   const errors = validateCeshu(doc)
-  const report = scoreCeshu(doc)
+  const readiness = computeReadiness(doc, errors)
 
   lines.push(`## 应用范围: ${chapters.length} 个章（${chapters.map((c) => CHAPTER_LABELS[c]).join('、')}）`)
   lines.push('')
@@ -117,12 +117,13 @@ function runApply(flags: Record<string, string>): void {
     for (const error of errors) lines.push(`- ${error}`)
   }
   lines.push('')
-  lines.push('## 评分（scoreCeshu）')
+  lines.push('## 完备度（computeReadiness）')
   lines.push('')
-  lines.push(`- 总分 ${report.total_score}（${report.grade}）`)
-  lines.push(`- 结构完整度 ${report.structure_score} / 30`)
-  lines.push(`- 内容质量 ${report.content_quality_score} / 40`)
-  lines.push(`- 市场潜力 ${report.market_potential_score} / 30`)
+  lines.push(`- 立项阶段必填 ${readiness.concept.required_filled}/${readiness.concept.required_total}（缺口 ${readiness.concept.missing_count}）`)
+  lines.push(`- 研发阶段必填 ${readiness.production.required_filled}/${readiness.production.required_total}`)
+  lines.push(`- 发行阶段必填 ${readiness.release.required_filled}/${readiness.release.required_total}`)
+  lines.push('')
+  for (const step of readiness.next_steps) lines.push(`- ${step}`)
   lines.push('')
   lines.push('## 待审字段（ai_draft）分布')
   lines.push('')
@@ -138,7 +139,7 @@ function runApply(flags: Record<string, string>): void {
   const out = flags.out ?? '/tmp/ceshu-rehearsal-report.md'
   writeFileSync(out, lines.join('\n'), 'utf8')
   console.log(`报告已写入 ${out}`)
-  console.log(`可应用 ${parsed.items.length} 字段 | 校验 ${errors.length} 条 | 总分 ${report.total_score}（${report.grade}）`)
+  console.log(`可应用 ${parsed.items.length} 字段 | 校验 ${errors.length} 条 | 立项必填 ${readiness.concept.required_filled}/${readiness.concept.required_total}`)
 }
 
 function main(): void {

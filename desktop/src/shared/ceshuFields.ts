@@ -1,5 +1,6 @@
 import {
   CHAPTER_REQUIRED_FIELDS,
+  type CeshuColumnDef,
   type ChapterKey,
   type CeshuFieldDef
 } from './ceshuConstants'
@@ -89,3 +90,25 @@ export const CESHU_CHAPTER_FIELDS: Record<ChapterKey, CeshuFieldDef[]> = Object.
     return [chapter, fields.map((field) => ({ ...field, ...hints[field.key] }))]
   })
 ) as Record<ChapterKey, CeshuFieldDef[]>
+
+/**
+ * 取字段的列定义（`pipeList` 的 `columns`；取不到返回空数组）。
+ *
+ * 给**校验 / 复算 / Demo 提示词**这类消费方用：它们读到的是文档数据，需要把
+ * 「对象行」按列顺序还原成字符串行（见 `ceshuPipeRows.toRowStrings`）。
+ * 放在此处而不是各消费方内联 `find(...)`，因为「字段定义在哪」这件事只该有一个答案。
+ */
+export function fieldColumns(chapter: ChapterKey, key: string): CeshuColumnDef[] {
+  return (CESHU_CHAPTER_FIELDS[chapter] ?? []).find((field) => field.key === key)?.columns ?? []
+}
+
+/**
+ * 取字段的中文标签（schema 里没有的扩展键回退成 key 本身，至少不丢信息）。
+ *
+ * 与 `fieldColumns` 同理放在单源处：此前 `ceshuImportPatch` / `ceshuMigrationPlan` /
+ * `ceshuOverlap` / `export/common` 各写了一份逐字相同的 `find(...).label ?? key`，
+ * 任一处口径漂移（例如将来支持 `label` 为空时回退 aiHint）都会让界面与导出不一致。
+ */
+export function fieldLabelOf(chapter: ChapterKey, key: string): string {
+  return (CESHU_CHAPTER_FIELDS[chapter] ?? []).find((field) => field.key === key)?.label ?? key
+}

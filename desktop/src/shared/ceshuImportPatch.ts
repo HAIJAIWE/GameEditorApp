@@ -1,5 +1,5 @@
 import { CHAPTER_LABELS, isChapterKey, type CeshuDocument, type ChapterData, type ChapterKey } from './ceshuConstants'
-import { CESHU_CHAPTER_FIELDS } from './ceshuFields'
+import { CESHU_CHAPTER_FIELDS, fieldLabelOf } from './ceshuFields'
 import { isPlainObject } from './ceshuModel'
 import { parseLlmJson } from './util/parseLlmJson'
 
@@ -43,10 +43,8 @@ function isEmptyPatchValue(value: unknown): boolean {
   return false
 }
 
-function fieldLabel(chapter: ChapterKey, key: string): string {
-  const def = (CESHU_CHAPTER_FIELDS[chapter] ?? []).find((field) => field.key === key)
-  return def?.label ?? key
-}
+/** 字段中文标签（单源在 `ceshuFields.fieldLabelOf`，此处保留短名以少改调用点） */
+const fieldLabel = fieldLabelOf
 
 /** 点路径读取（如 user_personas.primary） */
 function readByPath(data: ChapterData, path: string): unknown {

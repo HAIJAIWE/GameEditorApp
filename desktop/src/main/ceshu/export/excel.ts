@@ -16,7 +16,7 @@ import { classifySystems, formatFieldValue } from './common'
 import { readText } from '../../../shared/util/readText'
 
 /**
- * Excel 导出（自 旧版 core/ceshu/ceshu_excel_exporter 匹平迁移，改用 exceljs）。
+ * Excel 导出。
  * 8 个 Sheet：概览 / 系统配置 / 数值表 / 角色 / 里程碑 / 风险 / 竞品 / 校验报告。
  * 共同样式：标题行加粗白字 + 蓝底（4472C4）、冻结首行、列宽自适应（表头/正文首行长度 +2，clamp 8~60）。
  * 与 旧版 一致：数值型字符串按 int/float 落表（保证 Excel 里是数字而非文本）。
@@ -296,7 +296,7 @@ function safeSheetName(name: string): string {
   return sanitized.length > 31 ? sanitized.slice(0, 31) : sanitized
 }
 
-/** 数值型字符串转 int/float（对应 旧版 _coerce_numeric；仅接受十进制字面量，其余原样返回） */
+/** 数值型字符串转 int/float */
 function coerceNumeric(value: unknown): CellValue {
   if (typeof value !== 'string' || value === '') return (value ?? null) as CellValue
   const trimmed = value.trim()

@@ -288,12 +288,12 @@ describe('ceshu:aiGenerateData（批量数据生成）', () => {
   })
 })
 
-describe('ceshu:aiReview（AI 审阅）', () => {
-  it('解析维度并回填 progressTotal / validationCount / usage', async () => {
+describe('ceshu:aiReview（成稿反审）', () => {
+  it('解析反审清单并回填 progressTotal / validationCount / usage / 品类', async () => {
     const reply = JSON.stringify({
-      dimensions: [{ key: 'completeness', score: 8, feedback: '覆盖较全' }],
-      overall: '整体不错',
-      suggestions: ['补充竞品分析']
+      findings: [{ key: 'numeric', level: 'blocker', evidence: '总血量算不通' }],
+      overall: '有 1 项阻塞',
+      suggestions: ['补齐波次数值']
     })
     const harness = createHarness({ reply })
 
@@ -302,12 +302,15 @@ describe('ceshu:aiReview（AI 审阅）', () => {
     expect(result['model']).toBe('stub-model')
     expect(result['rawText']).toBe(reply)
     expect(result['usage']).toEqual(USAGE)
-    expect(result['overall']).toBe('整体不错')
+    expect(result['overall']).toBe('有 1 项阻塞')
     expect(typeof result['progressTotal']).toBe('number')
     expect(typeof result['validationCount']).toBe('number')
+    // finalizeReview 回填了品类与规则集标识（解析层拿不到文档）
+    expect(typeof result['genreLabel']).toBe('string')
+    expect(typeof result['rulesetId']).toBe('string')
 
-    const dimensions = result['dimensions'] as Array<{ key: string; score: number }>
-    expect(dimensions.find((item) => item.key === 'completeness')?.score).toBe(8)
+    const findings = result['findings'] as Array<{ key: string; level: string }>
+    expect(findings.find((item) => item.key === 'numeric')?.level).toBe('blocker')
   })
 
   it('LLM 调用失败时向上抛，不吞成空审阅结果', async () => {

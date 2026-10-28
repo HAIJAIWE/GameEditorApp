@@ -1,5 +1,5 @@
 import { CHAPTER_LABELS, type CeshuDocument, type ChapterKey } from './ceshuConstants'
-import { CESHU_CHAPTER_FIELDS } from './ceshuFields'
+import { fieldLabelOf } from './ceshuFields'
 import { isPlainObject } from './ceshuModel'
 import { detectTextDuplication, OVERLAP_PAIRS } from './ceshuOverlap'
 
@@ -97,10 +97,8 @@ export function splitNarrative(text: string, maxPoints = 5): { points: string[];
   return { points: [trimmed], notes: '' }
 }
 
-function fieldLabel(chapter: ChapterKey, fieldKey: string): string {
-  const def = (CESHU_CHAPTER_FIELDS[chapter] ?? []).find((field) => field.key === fieldKey)
-  return def?.label ?? fieldKey
-}
+/** 字段中文标签（单源在 `ceshuFields.fieldLabelOf`，此处保留短名以少改调用点） */
+const fieldLabel = fieldLabelOf
 
 function readText(value: unknown): string {
   return typeof value === 'string' ? value : ''

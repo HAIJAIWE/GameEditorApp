@@ -9,7 +9,7 @@ import { isPlainObject } from './ceshuModel'
  * - 字段级状态回答「这一章里**哪几个格子**是 AI 草稿 / 人改过 / 已批准」。
  *
  * 存储：`meta.field_status = { [章节key]: { [字段key]: { status, at } } }`。
- * 与 `ai_generated` 一样是 **TS 独占格式**（旧版 侧无此键），且是**辅助信息**——
+ * 与 `ai_generated` 一样是 **TS 独占格式**，且是**辅助信息**——
  * 脏数据一律当空表，坏了不影响策划书本身读写。
  *
  * 状态机（刻意简单，只保留协作必需的三态）：

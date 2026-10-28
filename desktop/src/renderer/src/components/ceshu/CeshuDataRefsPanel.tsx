@@ -10,7 +10,7 @@ import {
 import type { DataTypeDef, ItemRecord } from '../../../../shared/types'
 
 /**
- * 数据引用概览面板（对应 旧版 `src/ui/ceshu/preview_panel:102` `_refresh_refs`）。
+ * 数据引用概览面板。
  *
  * ## 作用
  * 策划书正文里写 `@data[role.atk]` 时，这里列出**全部引用及其当前真实值**，

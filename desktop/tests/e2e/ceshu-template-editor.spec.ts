@@ -63,7 +63,7 @@ test('模板编辑器：列表筛选 → 新建/保存 → 编辑更新 → 应�
     await window.getByTestId('home-card').filter({ hasText: '模板编辑器E2E' }).getByTestId('home-card-open').click()
 
     // 打开编辑器：默认筛选当前章节（meta 的 3 个内置模板）
-    // 「ceshu-template-editor」已收进工具栏「更多 ▸」下拉（对齐 旧版），需先展开再点
+    // 「ceshu-template-editor」已收进工具栏「更多 ▸」下拉，需先展开再点
     await window.getByTestId('ceshu-more').click()
     await window.getByTestId('ceshu-template-editor').click()
     await expect(window.getByTestId('template-editor-panel')).toBeVisible()
@@ -85,7 +85,7 @@ test('模板编辑器：列表筛选 → 新建/保存 → 编辑更新 → 应�
     await window.getByTestId('editor-save').click()
     await expect(window.getByTestId('editor-notice')).toContainText('模板「E2E 编辑器模板」已保存。')
     await expect(window.getByTestId('editor-item')).toHaveCount(4)
-    // 自定义在前、内置在后（与 旧版 _refresh_list 顺序一致）
+    // 自定义在前、内置在后
     await expect(window.getByTestId('editor-item').nth(0)).toContainText('[自定义] E2E 编辑器模板  (文档信息)')
     await expect(window.getByTestId('editor-item').nth(0)).toContainText('编辑器 · E2E')
     await expect(window.getByTestId('editor-delete')).toBeEnabled()

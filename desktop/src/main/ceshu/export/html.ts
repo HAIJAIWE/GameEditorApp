@@ -1,8 +1,14 @@
-import { CHAPTER_KEYS, CHAPTER_LABELS, type CeshuDocument } from '../../../shared/ceshuConstants'
+import {
+  CHAPTER_KEYS,
+  CHAPTER_LABELS,
+  enabledModuleChapters,
+  type CeshuDocument,
+  type ChapterKey
+} from '../../../shared/ceshuConstants'
 import { fieldStatusOf } from '../../../shared/ceshuFieldStatus'
 import { countFieldStatuses, formatFieldStatusSummary } from '../../../shared/ceshuFieldStatusStats'
 import { CESHU_CHAPTER_FIELDS } from '../../../shared/ceshuFields'
-import { computeChapterProgress, formatLocalTimestamp, getGddScope } from '../../../shared/ceshuModel'
+import { computeChapterProgress, formatLocalTimestamp, getGameType, getGddScope } from '../../../shared/ceshuModel'
 import { renderDocDiagrams } from './diagrams'
 
 import {
@@ -10,8 +16,12 @@ import {
   chapterAnchor,
   chapterHeading,
   classifySystems,
+  fieldLabel,
   formatFieldValue,
+  isEmptyValue,
+  machineFieldEntries,
   orderedFieldEntries,
+  pipeTable,
   visibleChapterEntries,
   type VisibleChapterEntry
 } from './common'
@@ -25,7 +35,7 @@ export function renderCeshuHtml(doc: CeshuDocument): string {
   const today = formatLocalTimestamp().slice(0, 10)
   const gameName = readString(doc.meta.game_name) || '未命名策划书'
   const scope = getGddScope(doc)
-  const entries = visibleChapterEntries(scope)
+  const entries = visibleChapterEntries(scope, getGameType(doc), enabledModuleChapters(doc))
 
   const body: string[] = []
   body.push(renderHeader(doc, gameName, today))
@@ -34,6 +44,7 @@ export function renderCeshuHtml(doc: CeshuDocument): string {
   for (const entry of entries) {
     body.push(renderChapter(doc, entry))
   }
+  body.push(renderMachineAppendix(doc))
   body.push(renderReviewProgress(doc))
   body.push(renderProgressReport(doc, entries))
 
@@ -97,22 +108,43 @@ function renderChapter(doc: CeshuDocument, entry: VisibleChapterEntry): string {
     return `<section class="chapter">${heading}\n${renderSystems(data)}</section>`
   }
 
-  if (!data || Object.keys(data).length === 0) {
+  const entries = data ? orderedFieldEntries(entry.key, data) : []
+  if (entries.length === 0) {
     return `<section class="chapter">${heading}\n<p class="empty">(本章暂无内容)</p></section>`
   }
 
-  const fields = orderedFieldEntries(entry.key, data)
-    .map(([fieldName, value]) => {
-      const formatted = formatFieldValue(value, { bullet: '- ' })
-      return [
-        '<div class="field">',
-        `<div class="field-label">${escapeHtml(fieldName)}</div>`,
-        `<pre class="field-value">${escapeHtml(formatted)}</pre>`,
-        '</div>'
-      ].join('')
-    })
-    .join('\n')
+  const fields = entries.map(([fieldKey, value]) => renderFieldBlock(entry.key, fieldKey, value)).join('\n')
   return `<section class="chapter">${heading}\n${fields}</section>`
+}
+
+/** 单个字段 → HTML（pipeList 有列定义时渲染成真表格，否则回落成等宽文本块） */
+function renderFieldBlock(chapter: ChapterKey, fieldKey: string, value: unknown): string {
+  const label = escapeHtml(fieldLabel(chapter, fieldKey))
+  const table = pipeTable(chapter, fieldKey, value)
+  if (table !== null) {
+    const head = `<thead><tr>${table.headers.map((header) => `<th>${escapeHtml(header)}</th>`).join('')}</tr></thead>`
+    const body = `<tbody>${table.rows
+      .map((row) => `<tr>${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join('')}</tr>`)
+      .join('')}</tbody>`
+    return `<div class="field"><div class="field-label">${label}</div><table>${head}${body}</table></div>`
+  }
+  const formatted = formatFieldValue(value, { bullet: '- ' })
+  return `<div class="field"><div class="field-label">${label}</div><pre class="field-value">${escapeHtml(formatted)}</pre></div>`
+}
+
+/** 附录：验收与机读数据（正文只留人读字段，机读表格集中在此） */
+function renderMachineAppendix(doc: CeshuDocument): string {
+  const groups: string[] = []
+  for (const entry of visibleChapterEntries(getGddScope(doc), getGameType(doc), enabledModuleChapters(doc))) {
+    const data = doc[entry.key]
+    if (!data) continue
+    const machine = machineFieldEntries(entry.key, data)
+    if (machine.length === 0) continue
+    const blocks = machine.map(([fieldKey, value]) => renderFieldBlock(entry.key, fieldKey, value)).join('\n')
+    groups.push(`<div class="appendix-group"><h3>${escapeHtml(chapterHeading(entry))}</h3>${blocks}</div>`)
+  }
+  if (groups.length === 0) return ''
+  return ['<section class="chapter appendix">', '<h2>附录：验收与机读数据</h2>', ...groups, '</section>'].join('\n')
 }
 
 function renderSystems(data: Record<string, unknown> | undefined): string {
@@ -132,7 +164,7 @@ function renderSystems(data: Record<string, unknown> | undefined): string {
     .map(([systemId, systemData]) => {
       const name = readString(systemData.name) || systemId
       const config = isRecord(systemData.config) ? systemData.config : {}
-      const entries = Object.entries(config)
+      const entries = Object.entries(config).filter(([, value]) => !isEmptyValue(value))
       const configHtml =
         entries.length > 0
           ? `<pre class="field-value">${escapeHtml(

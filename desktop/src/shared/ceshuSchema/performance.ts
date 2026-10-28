@@ -30,6 +30,27 @@ export const PERFORMANCE_FIELDS: CeshuFieldDef[] = [
     aiHint: '每行一个指标，按指标|目标值|测量方法三列填写；覆盖帧率/内存/包体/加载时长',
     reviewHint: '每行是否有目标值与测量方法；指标是否可机测；目标值是否与目标机型匹配'
   },
+  /*
+   * 2026-10-28 补：渲染实现层缺的那条底线。
+   * 性能预算只说「多少帧」，不说「降什么」——程序拿到的是一堆目标数字，
+   * 却不知道低端机该砍阴影还是砍后处理，只能自己拍；拍错了就是返工。
+   * 这是**设计侧定的取舍**（体验 vs 画质），不是渲染方案（用哪个管线）。
+   */
+  {
+    key: 'quality_tiers',
+    label: '画质档位',
+    kind: 'pipeList',
+    columns: [
+      { key: 'tier', label: '档位' },
+      { key: 'downgrade', label: '降什么' },
+      { key: 'fps', label: '目标帧率' },
+      { key: 'devices', label: '目标机型' }
+    ],
+    aiHint:
+      '每行一个画质档位（低/中/高，2–3 行）：档位|降什么（阴影/后处理/粒子/分辨率缩放的具体取舍）|目标帧率|目标机型；每档必须有明确帧率目标，禁止只写「流畅」',
+    reviewHint:
+      '每档是否写了具体降级项与帧率目标；档位与目标机型是否对应；有没有「高档不降任何东西但帧率也达标」这种自相矛盾'
+  },
   {
     key: 'target_devices',
     label: '目标机型',
@@ -83,6 +104,7 @@ export const PERFORMANCE_FIELDS: CeshuFieldDef[] = [
 
 export const PERFORMANCE_DEFAULTS: ChapterData = {
   performance_budget: [],
+  quality_tiers: [],
   target_devices: [],
   memory_package: '',
   memory_package_points: [],
@@ -92,7 +114,42 @@ export const PERFORMANCE_DEFAULTS: ChapterData = {
   compat_matrix: []
 }
 
-export const PERFORMANCE_TEMPLATES: ChapterTemplate[] = []
+export const PERFORMANCE_TEMPLATES: ChapterTemplate[] = [
+  {
+    name: '性能预算（示例）',
+    description: '帧率 / 内存 / 包体 / 加载目标与测量方法，含适配与发热控制',
+    tags: ['性能', '适配', '示例'],
+    data: {
+      performance_budget: [
+        { metric: '帧率（中档机）', target: '≥ 45 fps', method: 'Perfetto 采主城 1 min 平均' },
+        { metric: '内存峰值', target: '≤ 1.2 GB', method: 'Android Studio Memory Profiler' },
+        { metric: '包体（首包）', target: '≤ 200 MB', method: '构建产物大小统计' },
+        { metric: '冷启动', target: '≤ 3 s', method: 'adb shell am start 计时' },
+        { metric: '场景加载', target: '≤ 2 s', method: '加载完成回调计时' }
+      ],
+      target_devices: [
+        '高端：骁龙 8 Gen3 / 天玑 9300 / A17 同级',
+        '中端：骁龙 7+ Gen3 / 天玑 8200 / A14 同级',
+        '低端：骁龙 6 Gen1 / A12 同级（保最低可玩）'
+      ],
+      memory_package: '内存与包体总体预算：首包 ≤ 200MB（资源走按需下载），中档机常驻内存 ≤ 1.2GB，大世界用流式加载控制峰值。',
+      memory_package_points: [
+        '首包 ≤ 200MB：角色 / 场景分章资源 CDN 按需下发',
+        '常驻内存 ≤ 1.2GB：对象池复用 + 贴图 mipmap 分级',
+        '峰值优化：大世界区块卸载，离开即释放'
+      ],
+      memory_package_notes: '资源裁剪按中端机基准；高清资源仅高端机下发。',
+      network_adaptation: '弱网：操作请求本地预演 + 服务端对账，断网 5s 内可重连恢复对局；流量敏感：大资源仅 WiFi 下载，蜂窝网下暂停非必要下发。降级顺序：画质→同屏数→特效。',
+      thermal_power: '温升控制：中档机连续游玩 30 min 表面温度 ≤ 43°C；触发限帧（45→30fps）与降频，省电模式可手动开。',
+      compat_matrix: [
+        'Android 12 × 中端 × 主流程 + 战斗',
+        'Android 14 × 高端 × 大世界同屏',
+        'iOS 16 × 中端 × 抽卡 / 支付',
+        'iOS 18 × 低端 × 冷启动'
+      ]
+    }
+  }
+]
 
 export const PERFORMANCE_SCHEMA: ChapterSchema = {
   fields: PERFORMANCE_FIELDS,

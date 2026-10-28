@@ -7,14 +7,14 @@ import { describe, expect, it } from 'vitest'
 import { CeshuManager } from '../../src/main/ceshu/manager'
 import { CeshuStorage } from '../../src/main/ceshu/storage'
 
-/** 首页卡片的重命名 / 删除 / 复制（对应 Python rename_ceshu / delete_ceshu / duplicate_ceshu） */
+/** 首页卡片的重命名 / 删除 / 复制 */
 
 function makeManager(): { manager: CeshuManager; dir: string } {
   const dir = mkdtempSync(join(tmpdir(), 'mb-ceshu-crud-'))
   return { manager: new CeshuManager(new CeshuStorage(dir)), dir }
 }
 
-describe('CeshuManager.rename（对齐 Python rename_ceshu）', () => {
+describe('CeshuManager.rename', () => {
   it('改 meta.game_name 并落盘，档位与既有字段保留', async () => {
     const { manager } = makeManager()
     const created = await manager.create({ scope: 'lite', name: '旧名字' })
@@ -41,17 +41,17 @@ describe('CeshuManager.rename（对齐 Python rename_ceshu）', () => {
   })
 })
 
-describe('CeshuManager.remove（对齐 Python delete_ceshu）', () => {
+describe('CeshuManager.remove', () => {
   it('删除文件并返回 true；再次删除返回 false', async () => {
     const { manager, dir } = makeManager()
     const created = await manager.create({ scope: 'full', name: '待删除' })
-    const path = join(dir, `${created.ceshu_id}.json`)
-    expect(existsSync(path)).toBe(true)
+    const projectDir = join(dir, created.ceshu_id)
+    expect(existsSync(projectDir)).toBe(true)
 
     expect(await manager.remove(created.ceshu_id)).toBe(true)
-    expect(existsSync(path)).toBe(false)
+    expect(existsSync(projectDir)).toBe(false)
     expect(manager.list()).toEqual([])
-    // 不存在时返回 false（对齐 Python）
+    // 不存在时返回 false
     expect(await manager.remove(created.ceshu_id)).toBe(false)
   })
 
@@ -63,7 +63,7 @@ describe('CeshuManager.remove（对齐 Python delete_ceshu）', () => {
   })
 })
 
-describe('CeshuManager.duplicate（对齐 Python duplicate_ceshu）', () => {
+describe('CeshuManager.duplicate', () => {
   it('新 id + 名称加「 (副本)」+ 刷新时间戳 + parent_id 置空（独立副本）', async () => {
     const { manager } = makeManager()
     const source = await manager.create({ scope: 'full', name: '原策划书' })
@@ -91,7 +91,7 @@ describe('CeshuManager.duplicate（对齐 Python duplicate_ceshu）', () => {
     expect(manager.get(copy.ceshu_id).meta.game_name).toBe('副本改过了')
   })
 
-  it('复制空名文档：回退「未命名 (副本)」（修正 Python 的「 (副本)」空名怪值）', async () => {
+  it('复制空名文档：回退「未命名 (副本)」', async () => {
     const { manager } = makeManager()
     const source = await manager.create({ scope: 'full' }) // 无名称
     const copy = await manager.duplicate(source.ceshu_id)

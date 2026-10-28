@@ -1,16 +1,20 @@
 import {
   CHAPTER_KEYS,
   CHAPTER_LABELS,
-  CHAPTER_REQUIRED_FIELDS,
   visibleChapterKeys,
+  type CeshuColumnDef,
+  type CeshuFieldDef,
   type ChapterData,
   type ChapterKey,
   type GddScope
 } from '../../../shared/ceshuConstants'
+import { CESHU_CHAPTER_FIELDS, fieldLabelOf } from '../../../shared/ceshuFields'
 import { isPlainObject } from '../../../shared/ceshuModel'
+import { splitRow, toRows } from '../../../shared/ceshuPipeRows'
+import { isMachineDataField } from '../../../shared/ceshuStages'
 
 /**
- * 导出器公用工具（自 Python ceshu_export_common.py 匹平迁移）。
+ * 导出器公用工具。
  * 供 markdown / html / docx / pptx / pdf 共用的字段格式化与章节渲染辅助。
  */
 
@@ -38,7 +42,7 @@ export interface FormatFieldOptions {
 
 /**
  * 字段值 → 人类可读多行文本（空值统一返回 '—'）。
- * 与 Python format_field_value 行为一致：列表逐项加 bullet，字典按键值展开并对嵌套缩进。
+ * 与 旧版 format_field_value 行为一致：列表逐项加 bullet，字典按键值展开并对嵌套缩进。
  */
 export function formatFieldValue(value: unknown, options: FormatFieldOptions = {}): string {
   const indent = options.indent ?? 0
@@ -83,7 +87,7 @@ export function formatFieldValue(value: unknown, options: FormatFieldOptions = {
   return String(value)
 }
 
-/** 列表内对象的标量显示（字符串原样、布尔中文、其余紧凑 JSON，对应 Python str(v) 的效果） */
+/** 列表内对象的标量显示 */
 function formatScalar(value: unknown): string {
   if (typeof value === 'string') return value
   if (typeof value === 'boolean') return value ? '是' : '否'
@@ -92,7 +96,7 @@ function formatScalar(value: unknown): string {
   return value === null || value === undefined ? EMPTY_PLACEHOLDER : String(value)
 }
 
-/** 系统分组：(已启用, 未启用)，顺序保持数据键序（对齐 Python classify_systems） */
+/** 系统分组：(已启用, 未启用)，顺序保持数据键序 */
 export function classifySystems(data: ChapterData | undefined): Array<[string, ChapterData]>[] {
   const enabled: Array<[string, ChapterData]> = []
   const disabled: Array<[string, ChapterData]> = []
@@ -107,26 +111,90 @@ export function classifySystems(data: ChapterData | undefined): Array<[string, C
   return [enabled, disabled]
 }
 
+/** 字段定义（key → label/kind/columns）；schema 里没有的扩展键返回 undefined */
+export function fieldDef(chapterKey: ChapterKey, key: string): CeshuFieldDef | undefined {
+  return (CESHU_CHAPTER_FIELDS[chapterKey] ?? []).find((field) => field.key === key)
+}
+
+/** 字段中文标签（schema 外扩展键回退成 key 本身，至少不丢信息） */
+export function fieldLabel(chapterKey: ChapterKey, key: string): string {
+  return fieldLabelOf(chapterKey, key)
+}
+
+/** schema 阅读顺序索引（schema 外扩展键排到最后） */
+function schemaOrder(chapterKey: ChapterKey): Map<string, number> {
+  return new Map((CESHU_CHAPTER_FIELDS[chapterKey] ?? []).map((field, index) => [field.key, index]))
+}
+
+function bySchemaOrder(chapterKey: ChapterKey, keys: string[]): string[] {
+  const order = schemaOrder(chapterKey)
+  return keys.sort((a, b) => (order.get(a) ?? Number.MAX_SAFE_INTEGER) - (order.get(b) ?? Number.MAX_SAFE_INTEGER))
+}
+
 /**
- * 章节字段渲染顺序：必填字段在前（按 CHAPTER_REQUIRED_FIELDS 顺序），其余键按数据原顺序。
- * 与 Python 导出器的 ordered_keys 规则一致；仅返回数据中实际存在的键。
+ * 章节正文字段：按 **schema 阅读顺序**、跳过**机读字段**与**空值**。
+ *
+ * 与旧实现的区别：旧版是「必填在前 + 数据原序」，导出顺序和编辑器里看到的顺序对不上，
+ * 还把 `ledger` / `numeric_assertions` 这类机读字段混进正文。现在正文只留人读字段、
+ * 按 schema 顺序、不输出 `—` 空行；机读字段统一进「附录：验收与机读数据」。
  */
 export function orderedFieldEntries(chapterKey: ChapterKey, data: ChapterData): Array<[string, unknown]> {
-  const required = CHAPTER_REQUIRED_FIELDS[chapterKey]
-  const optional = Object.keys(data).filter((key) => !required.includes(key))
-  const ordered = [...required, ...optional]
-  return ordered.filter((key) => key in data).map((key) => [key, data[key]])
+  const keys = Object.keys(data).filter(
+    (key) => !isMachineDataField(chapterKey, key) && !isEmptyValue(data[key])
+  )
+  return bySchemaOrder(chapterKey, keys).map((key) => [key, data[key]] as [string, unknown])
+}
+
+/** 机读/验收字段（schema 顺序、跳过空值），供各格式的「附录：验收与机读数据」 */
+export function machineFieldEntries(chapterKey: ChapterKey, data: ChapterData): Array<[string, unknown]> {
+  const keys = Object.keys(data).filter(
+    (key) => isMachineDataField(chapterKey, key) && !isEmptyValue(data[key])
+  )
+  return bySchemaOrder(chapterKey, keys).map((key) => [key, data[key]] as [string, unknown])
+}
+
+/** 表格化后的 pipeList：表头 + 数据行；无 `columns` 或空表返回 null（调用方回落成文本） */
+export interface PipeTable {
+  headers: string[]
+  rows: string[][]
+}
+
+export function pipeTable(chapterKey: ChapterKey, key: string, value: unknown): PipeTable | null {
+  const field = fieldDef(chapterKey, key)
+  if (field?.kind !== 'pipeList' || field.columns === undefined || field.columns.length === 0) return null
+  const rows = pipeRows(value, field.columns)
+  return rows.length > 0 ? { headers: field.columns.map((column) => column.label), rows } : null
+}
+
+/** 管道行 → 二维字符串（兼容 `['a|b']` 与 `[{colKey: 值}]` 两种存储形态） */
+function pipeRows(value: unknown, columns: readonly CeshuColumnDef[]): string[][] {
+  if (Array.isArray(value) && value.some((item) => isPlainObject(item))) {
+    const rows: string[][] = []
+    for (const item of value) {
+      if (!isPlainObject(item)) continue
+      rows.push(columns.map((column) => formatScalar(item[column.key])))
+    }
+    return rows
+  }
+  return toRows(value).map((row) => {
+    const cells = splitRow(row)
+    return columns.map((_, index) => cells[index] ?? '')
+  })
 }
 
 export interface VisibleChapterEntry {
   key: ChapterKey
-  /** 全量章节序号（1 起，与 Python 导出锚点 ch1~ch18 一致） */
+  /** 全量章节序号 */
   index: number
 }
 
-/** 按档位返回导出章节及全局序号（lite 档只导出基础 9 章，序号仍用全局章号） */
-export function visibleChapterEntries(scope: GddScope): VisibleChapterEntry[] {
-  const visible = new Set(visibleChapterKeys(scope))
+/** 按档位返回导出章节及全局序号（lite 档只导出基础 9 章，序号仍用全局章号）；传 gameType / enabledModules 时再按品类与系统模块剔除 */
+export function visibleChapterEntries(
+  scope: GddScope,
+  gameType?: unknown,
+  enabledModules?: readonly ChapterKey[]
+): VisibleChapterEntry[] {
+  const visible = new Set(visibleChapterKeys(scope, gameType, enabledModules))
   return CHAPTER_KEYS.map((key, position) => ({ key, index: position + 1 })).filter((entry) => visible.has(entry.key))
 }
 

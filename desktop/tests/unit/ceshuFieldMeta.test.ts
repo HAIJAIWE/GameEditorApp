@@ -121,12 +121,14 @@ describe('字段契约覆盖率守卫（P0 补契约后不回落）', () => {
 
   /**
    * 反向缺口守卫（2026-10-26，见 docs/ceshu-field-necessity.md）：
-   * 真实 5 页 GDD 的最后一节是「数据编辑对接（本设计需要哪些数据表）」，
-   * 而本产品的本体就是数据编辑器。这个字段曾被漏掉，补上后钉住防删。
+   * 真实 5 页 GDD 的最后一节是「数据编辑对接（本设计需要哪些数据表）」。
+   * 产品定位已从「数据编辑器」调整为「设计文档 + 游戏数据生成器」——但
+   * 「设计声明需要哪些数据表」这层需求不变：数据侧要从设计派生结构。
+   * 这个字段曾被漏掉，补上后钉住防删。
    */
   it('技术规格章保留「所需数据表」字段（真实 GDD 的数据编辑对接）', () => {
     const field = CESHU_CHAPTER_FIELDS.tech.find((item) => item.key === 'data_tables')
-    expect(field, 'tech.data_tables 缺失——策划书无法告诉编辑器要建哪些表').toBeDefined()
+    expect(field, 'tech.data_tables 缺失——策划书无法声明本设计需要哪些数据表，数据侧无法派生').toBeDefined()
     const meta = resolveFieldMeta('tech', field!)
     expect(meta.aiHint).not.toBe('')
     expect(meta.reviewHint).not.toBe('')

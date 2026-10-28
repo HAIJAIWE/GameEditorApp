@@ -1,6 +1,7 @@
 import { CHAPTER_LABELS, type CeshuDocument } from './ceshuConstants'
+import { fieldColumns } from './ceshuFields'
 import { normalizeAcceptanceResult } from './ceshuEvidence'
-import { EPSILON, column, splitRow, toRows } from './ceshuPipeRows'
+import { EPSILON, column, splitRow, toRowStrings } from './ceshuPipeRows'
 
 /**
  * 数值断言执行器 —— 把 `numeric.numeric_assertions` 从「文档字段」升级为「可复算检查」。
@@ -377,8 +378,10 @@ export interface AssertionResult {
 
 /** 逐条复算断言，返回结构化结论（checkNumericAssertions 与 checkDesignClaims 共用） */
 export function evaluateAssertions(doc: CeshuDocument): AssertionResult[] {
-  const parameterRows = toRows(doc.numeric.numeric_parameters)
-  const assertionRows = toRows(doc.numeric.numeric_assertions)
+  // 用 toRowStrings 而非 toRows：`numeric_parameters` / `numeric_assertions` 都有列定义，
+  // 表单保存的是对象行；只认字符串会让对象行被静默跳过（断言一条都不复算）。
+  const parameterRows = toRowStrings(doc.numeric?.numeric_parameters ?? [], fieldColumns('numeric', 'numeric_parameters'))
+  const assertionRows = toRowStrings(doc.numeric?.numeric_assertions ?? [], fieldColumns('numeric', 'numeric_assertions'))
   if (assertionRows.length === 0) return []
 
   const label = CHAPTER_LABELS.numeric
@@ -449,7 +452,7 @@ export function evaluateAssertions(doc: CeshuDocument): AssertionResult[] {
 /** QA 章「原型验收记录」（检查项 → 结果）映射，供实测类主张核对（也供校验上下文复用，避免重复构建） */
 export function buildPrototypeResults(doc: CeshuDocument): Map<string, string> {
   const prototypeResults = new Map<string, string>()
-  for (const row of toRows(doc.qa.prototype_acceptance)) {
+  for (const row of toRowStrings(doc.qa?.prototype_acceptance ?? [], fieldColumns('qa', 'prototype_acceptance'))) {
     const columns = splitRow(row)
     const check = columns[0] ?? ''
     if (check !== '') prototypeResults.set(check, columns[1] ?? '')
@@ -467,7 +470,7 @@ export function checkDesignClaimsWith(
   assertionResults: AssertionResult[],
   prototypeResults: Map<string, string>
 ): string[] {
-  const claimRows = toRows(doc.numeric.design_claims)
+  const claimRows = toRowStrings(doc.numeric?.design_claims ?? [], fieldColumns('numeric', 'design_claims'))
   if (claimRows.length === 0) return []
 
   const label = CHAPTER_LABELS.numeric

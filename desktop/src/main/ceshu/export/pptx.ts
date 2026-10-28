@@ -4,6 +4,7 @@ import {
   CHAPTER_KEYS,
   CHAPTER_LABELS,
   SYSTEM_LABELS,
+  enabledModuleChapters,
   type CeshuDocument,
   type ChapterData,
   type ChapterKey
@@ -11,11 +12,12 @@ import {
 import { fieldStatusOf } from '../../../shared/ceshuFieldStatus'
 import { countFieldStatuses, formatFieldStatusSummary } from '../../../shared/ceshuFieldStatusStats'
 import { CESHU_CHAPTER_FIELDS } from '../../../shared/ceshuFields'
-import { computeChapterProgress, formatLocalTimestamp, getGddScope, isPlainObject } from '../../../shared/ceshuModel'
+import { computeChapterProgress, formatLocalTimestamp, getGameType, getGddScope, isPlainObject } from '../../../shared/ceshuModel'
 import {
   EMPTY_PLACEHOLDER,
   chapterHeading,
   classifySystems,
+  fieldLabel,
   formatFieldValue,
   orderedFieldEntries,
   visibleChapterEntries
@@ -55,8 +57,8 @@ function chapterBodyText(key: ChapterKey, data: ChapterData): string {
   if (fields.length === 0) return '(本章暂无内容)'
 
   const lines: string[] = []
-  for (const [name, value] of fields) {
-    lines.push(`${name}:`)
+  for (const [fieldKey, value] of fields) {
+    lines.push(`${fieldLabel(key, fieldKey)}:`)
     const formatted = formatFieldValue(value, { bullet: '• ' })
     for (const line of formatted.split('\n')) {
       if (line.trim() === '') continue
@@ -174,7 +176,7 @@ export async function renderCeshuPptx(doc: CeshuDocument): Promise<Buffer> {
   })
 
   // 每章一页
-  const entries = visibleChapterEntries(getGddScope(doc))
+  const entries = visibleChapterEntries(getGddScope(doc), getGameType(doc), enabledModuleChapters(doc))
   for (const entry of entries) {
     const slide = pptx.addSlide()
     slide.background = { color: COLORS.bg }

@@ -1,9 +1,9 @@
 import { isPlainObject } from './util/guards'
 
 /**
- * 「写对」代理指标：机器可判定的内容质量信号（纯函数，供校验链与评分引擎共用）。
+ * 「写对」代理指标：机器可判定的内容质量信号（纯函数，供校验链与完备度共用）。
  *
- * 背景：改造前 ceshuScorer 的「内容质量 40 分」只看字数是否落在基准区间，
+ * 背景：改造前评分引擎的「内容质量 40 分」只看字数是否落在基准区间，
  * 奖励的是「写满」而不是「写对」——AI 产出容易又长又空（空话套话、长句、
  * 无可验证数字），机器完全测不出来。本模块把「写对」拆成四个可判定信号：
  *   1. 空话套话密度（命中清单且密度超标才报，少量命中不报）
@@ -12,10 +12,13 @@ import { isPlainObject } from './util/guards'
  *   4. 数字具体性（含数字的句子占比，衡量可验证性）
  * 只读字符串、不碰 fs/网络/React，可被 Node 直接单测。
  *
- * 两个消费方（2026-10-26 起）：
+ * 两个消费方（2026-10-27 起）：
  *   · 校验链 `ceshuValidation` → `contentQualityIssues()`：逐条给「内容质量提示」；
- *   · 评分引擎 `ceshuScorer` → `contentQualityFactor()`：把「字数达标分」乘上质量系数，
- *     让「写满但空」拿不到满分（此前评分只数字数，等于奖励注水）。
+ *   · 完备度 `ceshuReadiness` → `analyzeChapterQuality()` + `contentQualityIssues()`：
+ *     填进逐章的 `quality_notes`，让「写满但空」在完备度里也被点出来。
+ *
+ * ⚠️ 曾经的第三个消费方（评分引擎的 `contentQualityFactor()`，把系数乘到字数分上）
+ * 已随 100 分制一起删除 —— 那是「字数=质量」的最后一处残留。
  */
 
 /** 空话套话清单（命中即记录；可后续扩充） */
@@ -228,63 +231,3 @@ export function contentQualityIssues(
   return issues
 }
 
-/* ---------------- 评分侧：内容质量系数 ---------------- */
-
-/**
- * 单项扣分力度（乘性）。
- * 刻意做「轻扣、可叠加」而不是「一票否决」：单项命中只掉 10%~20%，
- * 三项全中约 0.65（再被下限托底）——因为任何单项信号都可能是合理写法
- * （比如「流畅」形容操作、短句为主的清单式文本）。
- */
-export const QUALITY_FACTOR_CLICHE = 0.8
-export const QUALITY_FACTOR_LONG_SENTENCE = 0.9
-export const QUALITY_FACTOR_NO_NUMERIC = 0.9
-/** 系数下限：再差也不把字数分打到 0（字数本身确实达标，只是内容不够实） */
-export const QUALITY_FACTOR_FLOOR = 0.5
-
-/** 内容质量系数的判定结果 */
-export interface ContentQualityFactor {
-  /** 0.5~1 之间，乘到「字数达标分」上 */
-  factor: number
-  /** 扣分原因（人类可读，进章节备注；空数组表示满分） */
-  reasons: string[]
-}
-
-/**
- * 把章节内容质量信号折算成 0.5~1 的系数，供评分引擎乘到字数分上。
- *
- * 判定与 `contentQualityIssues` **完全同阈值**——同一条文本在「校验面板」报
- * 什么问题，在「评分」里就扣什么分，不允许两套标准（那会让人不知道该信哪个）。
- *
- * 空章节直接返回 1：没有内容不是「内容差」，字数分本来就是 0，
- * 再乘系数只会让「未填写」和「写得差」混为一谈。
- */
-export function contentQualityFactor(signal: ContentQualitySignal): ContentQualityFactor {
-  if (signal.charCount === 0) return { factor: 1, reasons: [] }
-
-  let factor = 1
-  const reasons: string[] = []
-
-  const clicheCount = signal.cliches.length
-  const clicheRate = clicheCount / Math.max(1, signal.sentenceCount)
-  if (clicheCount >= CLICHE_COUNT_THRESHOLD || clicheRate > CLICHE_RATE_THRESHOLD) {
-    factor *= QUALITY_FACTOR_CLICHE
-    reasons.push(`空话套话 ${clicheCount} 处（${signal.cliches.slice(0, 3).join('、')}）`)
-  }
-
-  if (signal.longSentenceRate > LONG_SENTENCE_RATE_THRESHOLD) {
-    factor *= QUALITY_FACTOR_LONG_SENTENCE
-    reasons.push(`长句偏多（占 ${Math.round(signal.longSentenceRate * 100)}%）`)
-  }
-
-  /*
-   * 「写满但空」的核心信号：长文却几乎没有数字/实例。
-   * 短文本（< NUMERIC_MIN_CHARS）不判——「设计理念」本来就不该塞数字。
-   */
-  if (signal.charCount > NUMERIC_MIN_CHARS && signal.numericRate < NUMERIC_RATE_THRESHOLD) {
-    factor *= QUALITY_FACTOR_NO_NUMERIC
-    reasons.push('长篇但缺少可验证的数字或实例')
-  }
-
-  return { factor: Math.max(QUALITY_FACTOR_FLOOR, Math.round(factor * 100) / 100), reasons }
-}

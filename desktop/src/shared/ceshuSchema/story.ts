@@ -298,9 +298,9 @@ export const STORY_TEMPLATES: ChapterTemplate[] = [
       geography: '凡界：九州大陆；修真界：五大仙山；灵界：灵脉汇聚之地；仙界：仙宫与仙山',
       main_plot: '主角意外觉醒\'剑心\'，被卷入界门封印之争，在双主角视角下逐步揭开天道真相，最终抉择：维护旧序 / 重立新规。',
       branch_endings: [
-        '正道结局：剑斩天道',
-        '魔道结局：以魔证道',
-        '隐世结局：归隐云海'
+        { name: '正道结局：剑斩天道', condition: '天道印记 ≥ 3 且 苏婉清存活' },
+        { name: '魔道结局：以魔证道', condition: '入魔值 ≥ 100 且 魔尊已击杀' },
+        { name: '隐世结局：归隐云海', condition: '支线完成度 = 100% 且 天道印记 < 3' }
       ],
       character_network: [
         {
@@ -365,9 +365,9 @@ export const STORY_TEMPLATES: ChapterTemplate[] = [
       geography: '新东京都：穹顶区 + 都市带 + 废弃区 + 周边荒野',
       main_plot: '主角作为\'记忆猎人\'调查一起涉及穹顶议会的阴谋，逐步揭开自己被植入的虚假记忆，最终抉择真相与秩序。',
       branch_endings: [
-        '真相结局：揭露阴谋',
-        '秩序结局：维护现状',
-        '复仇结局：焚毁穹顶'
+        { name: '真相结局：揭露阴谋', condition: '证据链 ≥ 5 且 未与议长和解' },
+        { name: '秩序结局：维护现状', condition: '穹顶信任度 ≥ 80 且 未揭露核心秘密' },
+        { name: '复仇结局：焚毁穹顶', condition: '议会议长已击杀 且 城市动荡值 ≥ 100' }
       ],
       character_network: [
         {
@@ -432,9 +432,9 @@ export const STORY_TEMPLATES: ChapterTemplate[] = [
       geography: '北境冰原、中央平原、南域森林与群岛、龙脊山脉',
       main_plot: '主角作为银盾王国遗孤，召集同伴对抗黑鹰帝国，途中揭开自己身世与古代龙之契约的真相。',
       branch_endings: [
-        '王者结局：复国称王',
-        '龙裔结局：契约觉醒',
-        '游侠结局：归隐山林'
+        { name: '王者结局：复国称王', condition: '银盾声望 ≥ 100 且 黑鹰王已击杀' },
+        { name: '龙裔结局：契约觉醒', condition: '龙之契约已觉醒 且 古老龙族好感 ≥ 100' },
+        { name: '游侠结局：归隐山林', condition: '王国统一度 < 50 且 主角未称王' }
       ],
       character_network: [
         {

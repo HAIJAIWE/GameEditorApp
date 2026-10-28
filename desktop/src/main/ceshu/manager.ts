@@ -6,6 +6,8 @@ import { buildDuplicateName } from '../../shared/ceshuHome'
 import { computeChapterProgress, computeEnabledEditors, createCeshuId, createDefaultCeshu, formatLocalTimestamp, getGddScope, withChapter } from '../../shared/ceshuModel'
 import { migrateCeshuFieldSplits } from '../../shared/ceshuMigrationPlan'
 import { buildPresetApplication } from '../../shared/ceshuPresets'
+import { fingerprintCeshuDesign } from '../../shared/ceshuPrototypeStale'
+import type { CeshuTaskPlan } from '../../shared/ceshuTasks'
 import { CeshuStorage } from './storage'
 
 /**
@@ -37,7 +39,7 @@ export class CeshuManager {
     })
   }
 
-  /** 重命名策划书（对应 Python `rename_ceshu`：改 meta.game_name 后原子写盘 + 刷新时间戳） */
+  /** 重命名策划书 */
   rename(id: string, name: string): Promise<CeshuDocument> {
     return this.enqueueWrite(() => {
       const doc = this.storage.load(id)
@@ -47,14 +49,14 @@ export class CeshuManager {
     })
   }
 
-  /** 删除策划书（对应 Python `delete_ceshu`）；文件不存在时返回 false */
+  /** 删除策划书；文件不存在时返回 false */
   remove(id: string): Promise<boolean> {
     return this.enqueueWrite(() => this.storage.remove(id))
   }
 
   /**
-   * 复制为独立副本（对应 Python `duplicate_ceshu`）：新 id + 名称加「 (副本)」+ 刷新时间戳。
-   * 偏离：`parent_id` 置空——Python 会原样保留，与其 UI「独立副本 / 不建立版本关系」的表述自相矛盾。
+   * 复制为独立副本：新 id + 名称加「 (副本)」+ 刷新时间戳。
+   * 偏离：`parent_id` 置空——旧版 会原样保留，与其 UI「独立副本 / 不建立版本关系」的表述自相矛盾。
    */
   duplicate(id: string): Promise<CeshuDocument> {
     return this.enqueueWrite(() => {
@@ -93,7 +95,7 @@ export class CeshuManager {
   }
 
   /**
-   * 一键修复（对应 Python CeshuModel.auto_fill_required）：
+   * 一键修复：
    * 按规则自动填充空必填字段 → 刷新时间戳/启用编辑器 → 整文档原子写盘。
    * 无字段可填时不写盘，原样返回。
    */
@@ -131,7 +133,7 @@ export class CeshuManager {
   }
 
   /**
-   * 应用混合玩法预设（对应 Python PresetMarketDialog._on_apply）：
+   * 应用混合玩法预设：
    * 启用推荐系统 + 空 game_type 时写入预设模块类型，systems 与 meta 两章一次原子写盘。
    */
   applyPreset(
@@ -154,7 +156,7 @@ export class CeshuManager {
     })
   }
 
-  /** 版本链列表：主策划在首位，其余按版本号排序（对应 Python list_versions） */
+  /** 版本链列表：主策划在首位，其余按版本号排序 */
   versions(id: string): CeshuSummary[] {
     const target = this.storage.load(id)
     const rootId = target.parent_id || target.ceshu_id
@@ -169,7 +171,7 @@ export class CeshuManager {
   }
 
   /**
-   * 派生新版本（对应 Python derive_version）：
+   * 派生新版本：
    * 复制父本全部内容 → parent_id 指向链根 → 版本号自动递增 → 默认非激活。
    */
   derive(id: string, note: string): Promise<CeshuDocument> {
@@ -194,7 +196,7 @@ export class CeshuManager {
     })
   }
 
-  /** 设为激活版本：同链其他版本取消激活（对应 Python set_active_version） */
+  /** 设为激活版本：同链其他版本取消激活 */
   setActive(id: string): Promise<CeshuDocument> {
     return this.enqueueWrite(() => {
       const target = this.storage.load(id)
@@ -211,7 +213,7 @@ export class CeshuManager {
     })
   }
 
-  /** 变更日志：同链版本按时间升序逐对计算 diff（对应 Python generate_changelog） */
+  /** 变更日志：同链版本按时间升序逐对计算 diff */
   changelog(id: string): CeshuChangelog {
     const target = this.storage.load(id)
     const rootId = target.parent_id || target.ceshu_id
@@ -228,6 +230,51 @@ export class CeshuManager {
       entries.push(buildChangelogEntry(oldDoc, newDoc, newDoc.version_label, newDoc.updated_at || newDoc.created_at))
     }
     return { entries }
+  }
+
+  /** 打开项目文件夹（一个游戏一个文件夹）：导入并在本库落地为项目文件夹，返回文档 */
+  openProjectFolder(sourceDir: string): Promise<CeshuDocument> {
+    return this.enqueueWrite(() => this.storage.importProjectFolder(sourceDir))
+  }
+
+  /**
+   * 保存 AI 生成的岗位任务计划（整份替换）。
+   * 空计划 = 清掉计划，岗位任务回落到「按章字段清单」。
+   */
+  saveTaskPlan(id: string, plan: CeshuTaskPlan): Promise<CeshuDocument> {
+    return this.enqueueWrite(() => {
+      const doc = this.storage.load(id)
+      const next: CeshuDocument = { ...doc }
+      if (Object.keys(plan).length === 0) delete next.task_plan
+      else next.task_plan = plan
+      next.updated_at = formatLocalTimestamp()
+      this.storage.save(next)
+      return next
+    })
+  }
+
+  /**
+   * 保存可玩原型（单文件 HTML）。空串 = 清掉（原型是交付物，删掉也该跟着删）。
+   * 落盘在项目文件夹的 `prototype/demo.html`，见 `buildProjectFolder`。
+   */
+  saveDemo(id: string, html: string): Promise<CeshuDocument> {
+    return this.enqueueWrite(() => {
+      const doc = this.storage.load(id)
+      const next: CeshuDocument = { ...doc }
+      const trimmed = html.trim()
+      if (trimmed === '') {
+        delete next.demo_html
+        delete next.demo_source_fingerprint
+      } else {
+        next.demo_html = html
+        // 记下「生成这一刻」的设计指纹（`doc` 尚未被本次写入改动）：
+        // 之后文档再改，指纹对不上就能提示「原型可能过期」，而不是让旧原型冒充最新。
+        next.demo_source_fingerprint = fingerprintCeshuDesign(doc)
+      }
+      next.updated_at = formatLocalTimestamp()
+      this.storage.save(next)
+      return next
+    })
   }
 
   private toSummary(doc: CeshuDocument): CeshuSummary {

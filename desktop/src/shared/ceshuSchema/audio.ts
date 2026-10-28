@@ -71,6 +71,25 @@ export const AUDIO_FIELDS: CeshuFieldDef[] = [
     aiHint: '产出音效清单，每行三列：类别 + 数量 + 描述；类别覆盖 UI/战斗/环境等，总数与 sfx_count 匹配',
     reviewHint: '三列是否齐全；类别划分是否覆盖主要玩法；各行数量之和与 sfx_count 是否量级一致'
   },
+  /*
+   * 2026-10-27 角色评审补的字段：音频清单只回答「有哪些音效」，不回答「哪个交互播哪个」。
+   * 没有这张表，程序只能自己在界面里散写播放调用 —— 换音效要改代码，并发也控不住。
+   */
+  {
+    key: 'sfx_events',
+    label: '音效事件映射',
+    kind: 'pipeList',
+    columns: [
+      { key: 'event', label: '事件' },
+      { key: 'sfx', label: '音效 id' },
+      { key: 'volume', label: '音量' },
+      { key: 'concurrency', label: '并发上限' }
+    ],
+    aiHint:
+      '每行一个交互事件：事件名|音效 id|音量（0–1 相对值）|并发上限（数字，如 3）；事件名要与程序侧事件表一致（如 ui.click / combat.hit / pickup.coin）；至少覆盖 UI 点击/确认/报错、战斗命中/暴击、拾取/升级、切场景',
+    reviewHint:
+      '事件名是否与程序事件表一致（不能各叫一套）；关键交互是否都有音效；并发上限是否合理（避免爆音）；音量是相对值还是绝对值（绝对值要写单位）'
+  },
   {
     key: 'voice_acting',
     label: '配音设计',
@@ -170,6 +189,7 @@ export const AUDIO_DEFAULTS: ChapterData = {
   sfx_count: 0,
   soundtrack_list: [],
   sfx_list: [],
+  sfx_events: [],
   voice_acting: '',
   audio_engine: '',
   dynamic_audio: '',
@@ -201,6 +221,12 @@ export const AUDIO_TEMPLATES: ChapterTemplate[] = [
         { category: '环境', count: 120, description: '山林风声、水流、鸟鸣，按场景循环' },
         { category: '剧情提示', count: 80, description: '任务完成/获得道具/危险预警' }
       ],
+      sfx_events: [
+        { event: 'ui.click', sfx: 'sfx_ui_wood_01', volume: '0.7', concurrency: '1' },
+        { event: 'combat.hit', sfx: 'sfx_sword_hit_03', volume: '0.9', concurrency: '4' },
+        { event: 'combat.crit', sfx: 'sfx_crit_bell', volume: '1.0', concurrency: '2' },
+        { event: 'pickup.coin', sfx: 'sfx_coin_02', volume: '0.6', concurrency: '3' }
+      ],
       voice_acting: '配音总量约 1000 句：主角全剧情配音，主要 NPC 关键台词，其余用文字气泡。',
       audio_engine: 'Wwise',
       dynamic_audio: '战斗音乐根据战斗强度动态切换层（探索/接触/激战）。',
@@ -227,6 +253,12 @@ export const AUDIO_TEMPLATES: ChapterTemplate[] = [
         { category: 'UI', count: 120, description: '故障音 + 数字音，强化赛博质感' },
         { category: '环境', count: 220, description: '都市底噪、通风管、雨声，分区循环' },
         { category: '技能与特效', count: 200, description: '电子充能、过载、故障干扰' }
+      ],
+      sfx_events: [
+        { event: 'ui.click', sfx: 'sfx_ui_digital_01', volume: '0.6', concurrency: '1' },
+        { event: 'weapon.fire', sfx: 'sfx_rifle_fire_05', volume: '0.9', concurrency: '6' },
+        { event: 'skill.overload', sfx: 'sfx_overload_burst', volume: '1.0', concurrency: '2' },
+        { event: 'ui.error', sfx: 'sfx_glitch_deny', volume: '0.8', concurrency: '1' }
       ],
       voice_acting: '配音总量约 1500 句：三名主角全剧情配音，反派关键场次，其余文字。',
       audio_engine: 'Wwise',

@@ -6,7 +6,7 @@ import { SYSTEM_CONFIG_SCHEMA } from '../../src/shared/systemConfigSchema'
 /**
  * 下拉选项中文别名守卫。
  *
- * 起因（旧版 侧缺陷）：`SYSTEM_CONFIG_SCHEMA` 的 combobox 只给英文枚举码，`CeshuFieldControl`
+ * 起因：`SYSTEM_CONFIG_SCHEMA` 的 combobox 只给英文枚举码，`CeshuFieldControl`
  * 回退 `optionLabels?.[option] ?? option` ⇒ 第五章「游戏系统配置」下拉裸显示 turn_based/arena/
  * behavior_tree 等英文码；meta 的 status/confidentiality 同样中招。
  *

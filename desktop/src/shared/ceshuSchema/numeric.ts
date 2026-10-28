@@ -14,8 +14,8 @@ export const NUMERIC_FIELDS: CeshuFieldDef[] = [
     label: '核心公式',
     kind: 'textarea',
     placeholder: '核心数值公式，每行一个',
-    aiHint: '每行一个核心数值公式；伤害公式属战斗章，此处不要重复',
-    reviewHint: '公式是否自洽；是否与战斗章「伤害公式」重复'
+    aiHint: '每行一个核心数值公式（成长/经济/掉落等非战斗公式）；**伤害公式属战斗章，此处禁止重写，只引用战斗章「伤害公式」**',
+    reviewHint: '公式是否自洽；是否重复了战斗章「伤害公式」（伤害公式只能有一处定义，numeric 必须引用而非重写）'
   },
   {
     key: 'core_formulas_points',
@@ -67,13 +67,20 @@ export const NUMERIC_FIELDS: CeshuFieldDef[] = [
     label: '数值参数表',
     kind: 'pipeList',
     placeholder: '参数|当前值|合法范围|调高影响|调低影响',
-    aiHint: '每个可调参数一行；标注「设计初值」还是「复算值」；合法范围给区间；影响写「调高/调低后玩法怎么变」（可观察的变化），不写「影响较大」这类空话',
+    aiHint: '每个可调参数一行；标注「设计初值」还是「复算值」；合法范围给区间；影响写「调高/调低后玩法怎么变」（可观察的变化），不写「影响较大」这类空话；AI 全量生成时必填 10-20 行，攻击/防御/暴击率/经验等公式变量都要有初值与合法范围，禁止留空',
     reviewHint: '参数是否与公式一致；范围是否有依据；影响是否可观察'
   },
   {
     key: 'numeric_assertions',
     label: '数值断言',
     kind: 'pipeList',
+    columns: [
+      { key: 'claim', label: '断言' },
+      { key: 'expr', label: '表达式' },
+      { key: 'expected', label: '期望值' },
+      { key: 'tolerance', label: '容差' },
+      { key: 'accept', label: '接受条件' }
+    ],
     placeholder: '断言|表达式|期望值|容差|接受条件',
     aiHint: '把「设计目标」写成可复算的断言：表达式用参数名（如 floor((层-1)/微光步长)），给期望值、容差与接受条件（==2 / ≥0 / between 9.5-10.6）；3-5 条，至少一条覆盖边界',
     reviewHint: '断言是否能在不改代码的情况下手算复现；期望值与正文数值是否一致'
@@ -119,7 +126,7 @@ export const NUMERIC_TEMPLATES: ChapterTemplate[] = [
       '平衡'
     ],
     data: {
-      core_formulas: '伤害 = (攻击力 - 防御力 × 0.6) × 技能倍率 × (1 + 暴击伤害 × 暴击率)\n经验需求 = 80 × 等级 ^ 1.5\n属性成长 = 基础值 × (1 + 等级 × 成长系数)',
+      core_formulas: '(伤害公式以战斗章「伤害公式」为准，本处不重复)\n经验需求 = 80 × 等级 ^ 1.5\n属性成长 = 基础值 × (1 + 等级 × 成长系数)',
       growth_curves: [
         {
           name: '等级-属性',
@@ -150,6 +157,24 @@ export const NUMERIC_TEMPLATES: ChapterTemplate[] = [
           rate: '0.5%',
           tier: '橙'
         }
+      ],
+      numeric_parameters: [
+        '攻击力 | 120 | 10–999 | 伤害线性升高，TTK 变短 | 战斗拖长，低攻角色吃亏',
+        '防御力 | 60 | 0–999 | 减伤变强，可扛同级怪 | 脆皮，容错下降',
+        '暴击率 | 15% | 0–100% | 爆发期望升高，波动变大 | 输出稳定但上限低',
+        '暴击伤害 | 150% | 100–300% | 暴击更痛，堆暴击收益高 | 暴击流收益下降',
+        '生命值 | 800 | 100–9999 | 生存更强，战斗更慢 | 易被秒，靠操作',
+        '经验需求基数 | 80 | 20–500 | 升级变慢，长线拉长 | 升级过快，内容被跳过',
+        '成长系数 | 0.08 | 0–0.5 | 每级提升更明显 | 升级感知弱',
+        '普通怪掉落率 | 30% | 0–100% | 资源宽松，经济通胀 | 资源紧张，卡养成',
+        '强化成功率 | 80% | 10–100% | 强化更友好 | 挫败感强，劝退',
+        '体力恢复 | 1/分 | 0–10/分 | 可玩时间更长 | 逼氪感强'
+      ],
+      numeric_assertions: [
+        { claim: '满级经验需求', expr: '80 * 99 ^ 1.5', expected: '约 78800', tolerance: '5', accept: 'between 74000-82000' },
+        { claim: '暴击期望倍率', expr: '1 + 1.5 * 0.15', expected: '1.225', tolerance: '0.01', accept: 'between 1.21-1.24' },
+        { claim: '同级怪 TTK（秒）', expr: '800 / (120 - 60 * 0.6)', expected: '约 9.52', tolerance: '0.5', accept: 'between 9-10' },
+        { claim: '强化一次期望消耗', expr: '100 / 0.8', expected: '125', tolerance: '5', accept: 'between 120-130' }
       ],
       economic_model: '金币产出 = 主线(40%) + 副本(30%) + 任务(20%) + 其他(10%)；金币回收 = 装备强化(50%) + 消耗品(30%) + 外观(20%)',
       balance_principles: '1) PVE 数值宽松，玩家体验优先\n2) PVP 数值严格控制，避免 P2W\n3) 长尾成长：满级后属性缓慢增长，避免数值膨胀'

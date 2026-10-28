@@ -12,7 +12,7 @@ import {
 import type { LlmUsage } from './config/llmConfig'
 import { CESHU_CHAPTER_FIELDS, resolveFieldMeta } from './ceshuFields'
 import type { QualityGateVerdict } from './types'
-import { isPlainObject } from './ceshuModel'
+import { isPlainObject, getGameType, deriveRulesetId } from './ceshuModel'
 import { readText } from './util/readText'
 import { parseLlmJson } from './util/parseLlmJson'
 import {
@@ -24,9 +24,19 @@ import {
   REQUIREMENTS_FULL,
   STYLE_LABEL_TO_KEY,
   TYPE_LABEL_TO_KEY,
+  STYLE_KEYWORD_HINTS,
+  PLATFORM_HARD_CONSTRAINTS,
+  BUSINESS_HARD_CONSTRAINTS,
+  TYPE_KEYWORD_HINTS,
   CHAPTER_GENERATION_HINTS,
-  REVIEW_DIMENSION_KEYS,
-  REVIEW_DIMENSION_LABELS
+  ADVERSARIAL_CHECK_KEYS,
+  ADVERSARIAL_CHECK_LABELS,
+  ADVERSARIAL_LEVELS,
+  ADVERSARIAL_LEVEL_LABELS,
+  genreReviewProfile,
+  reviewProbeFor,
+  type AdversarialLevel,
+  type AdversarialCheckKey
 } from './ceshuAiData'
 import { buildFieldActionInstruction, type FieldAction } from './ceshuFieldAction'
 export * from './ceshuAiData'
@@ -57,7 +67,7 @@ export function getStyleGlossary(style: string): string {
   return STYLE_GLOSSARIES[style] ?? ''
 }
 
-/* ---- 整章提示词组装（匹平 旧版 _ai_fill_chapter） ---- */
+/* ---- 整章提示词组装 ---- */
 
 /**
  * 整章生成的字段清单 = **字段表（schema，权威）∪ 文档数据键**（点路径键取首段）。
@@ -118,7 +128,7 @@ export function buildChapterPrompt(
         : allKeys
   const fieldList = fields.join(', ')
 
-  // 已有非空内容（仅字符串/数字，对应 旧版 isinstance(v, (str, int, float)) 过滤）
+  // 已有非空内容
   const existingContent = allKeys
     .filter((key) => {
       const value = chapterData[key]
@@ -214,7 +224,7 @@ export interface CeshuAiGenerateResult {
   /**
    * 生成结果的**确定性评分门**结论（v0.5 DD-19）。
    * 由 `shared/agent/qualityGate.ts::evaluateChapterDraft` 产出：把 `fields` 合并进文档后
-   * 重跑 `validateCeshu` + `scoreCeshu`，给出「生成前/后」的错误数与评分变化。
+   * 重跑 `validateCeshu`，给出「生成前/后」的错误数与立项完成度变化。
    * **可选**：仅当章节 key 合法时才有值；旧调用方忽略该字段即可。
    */
   quality?: QualityGateVerdict | null
@@ -224,7 +234,7 @@ export interface CeshuAiGenerateResult {
 
 /**
  * 清洗生成字段：仅保留该章表单字段 / 既有数据键（含点路径父键），丢弃 null 与未知键。
- * 说明：空字符串与空数组被丢弃（避免 AI 空值清空用户已填内容，与 旧版 直接整章覆盖略有差异）。
+ * 说明：空字符串与空数组被丢弃。
  */
 export function filterGeneratedFields(
   doc: CeshuDocument,
@@ -258,14 +268,14 @@ function isTruthyValue(value: unknown): boolean {
   return true
 }
 
-/* ---- 全量生成（一键生成完整策划书，匹平 旧版 ai_full_generate_dialog + ceshu_skill_prompt） ---- */
+/* ---- 全量生成 ---- */
 
-/** 风格中文标签 → style key（对应 旧版 _map_style_to_key） */
+/** 风格中文标签 → style key */
 export function mapStyleLabelToKey(label: string): string {
   return STYLE_LABEL_TO_KEY[label.trim()] ?? ''
 }
 
-/** 游戏类型中文标签 → module_type key（对应 旧版 _map_type_to_key） */
+/** 游戏类型中文标签 → module_type key */
 export function mapTypeLabelToKey(label: string): string {
   return TYPE_LABEL_TO_KEY[label.trim()] ?? ''
 }
@@ -281,7 +291,7 @@ export interface FullGenerateFormInput {
   businessModel: string
 }
 
-/** 归一化后的全量生成输入（对应 旧版 _normalize_user_input） */
+/** 归一化后的全量生成输入 */
 export interface FullGenerateInput {
   gameName: string
   gameType: string
@@ -292,7 +302,13 @@ export interface FullGenerateInput {
   businessModel: string
 }
 
-/** 文档信息 + 16 章生成顺序（对应 旧版 _build_chapter_order：market 在 vision 后、risk 在 tech 后） */
+/**
+ * 文档信息 + 全量生成顺序（market 在 vision 后、risk 在 tech 后）。
+ *
+ * 2026-10-26 修复：此前只返回 17 章，**P2 扩展 7 章被漏掉**——「一键全量生成」永远不写
+ * `uiux / level_design / live_ops / analytics / qa / publishing / performance`，生成的文档不完整。
+ * 现在 full 档补全 24 章；lite 档仍由 `BASE_CHAPTER_KEYS` 过滤回基础 9 章。
+ */
 export function buildChapterOrder(includeMarket: boolean, includeRisk: boolean): ChapterKey[] {
   const order: ChapterKey[] = ['meta', 'vision']
   if (includeMarket) order.push('market_analysis')
@@ -310,10 +326,12 @@ export function buildChapterOrder(includeMarket: boolean, includeRisk: boolean):
   )
   if (includeRisk) order.push('risk_handling')
   order.push('mvp', 'resources', 'accessibility')
+  // P2 扩展设计 7 章（2026-10-23 新增，此前漏在生成顺序外）
+  order.push('uiux', 'level_design', 'live_ops', 'analytics', 'qa', 'publishing', 'performance')
   return order
 }
 
-/** meta 章节种子（对应 旧版 _build_meta_seed；风格以中文标签写入 tags） */
+/** meta 章节种子 */
 export function buildMetaSeed(input: FullGenerateInput): ChapterData {
   return {
     game_name: input.gameName,
@@ -336,7 +354,7 @@ export interface FullGeneratePlan {
   typeKey: string
 }
 
-/** 归一化全量生成输入（对应 旧版 _normalize_user_input：空白清理 + 逗号拆分） */
+/** 归一化全量生成输入 */
 export function normalizeFullGenerateInput(raw: FullGenerateFormInput): FullGenerateInput {
   return {
     gameName: raw.gameName.trim(),
@@ -350,8 +368,8 @@ export function normalizeFullGenerateInput(raw: FullGenerateFormInput): FullGene
 }
 
 /**
- * 组装全量生成计划（对应 旧版 _ai_generate_full）：章节顺序 + 每章定制提示词 + meta 种子。
- * 轻量档（lite）按基础 9 章裁剪（与 旧版 对话框按 BASE_CHAPTER_KEYS 过滤一致）。
+ * 组装全量生成计划：章节顺序 + 每章定制提示词 + meta 种子。
+ * 轻量档（lite）按基础 9 章裁剪。
  */
 export function buildFullGeneratePlan(
   raw: FullGenerateFormInput,
@@ -374,18 +392,85 @@ export function buildFullGeneratePlan(
 }
 
 /**
- * 每章定制提示词（对应 旧版 _build_chapter_prompts）：由全量生成流程逐章追加到默认提示之后。
+ * 从全量生成表单派生「关键词 + 硬约束」块（2026-10-28 一句话生成信号补足）。
+ *
+ * 为什么需要：此前每章提示词只把用户原话（名称/类型/风格/描述/参考/平台/商业模式）
+ * 平铺进【用户输入】，模型看不到「这类游戏该长啥样、平台/商业有哪些验收红线」——
+ * 一句话生成时更容易跑题或缺系统。这里把表单选择**结构化**成：
+ *   · 关键词：风格术语表 + 风格关键词 + 品类关键词 + 品类应含系统
+ *   · 硬约束：平台约束（点击区/重连/包体…）+ 商业模式约束（保底/不卖数值…）
+ * 全部逐条可核验，注入每章提示词（同一份输入，逐章共享）。
+ */
+export function buildKeywordConstraintBlock(input: FullGenerateInput): string {
+  const lines: string[] = []
+
+  // —— 关键词 ——
+  const keywords: string[] = []
+  if (input.style) {
+    const styleKey = mapStyleLabelToKey(input.style)
+    if (styleKey) {
+      const glossary = getStyleGlossary(styleKey)
+      if (glossary) {
+        keywords.push(`风格术语表(${input.style}): ${glossary.replace(/\n/g, '；')}`)
+      }
+      const styleHints = STYLE_KEYWORD_HINTS[styleKey]
+      if (styleHints && styleHints.length > 0) {
+        keywords.push(`风格关键词(${input.style}): ${styleHints.join('、')}`)
+      }
+    }
+  }
+  if (input.gameType) {
+    const typeHint = TYPE_KEYWORD_HINTS[input.gameType]
+    if (typeHint) {
+      keywords.push(`品类关键词(${input.gameType}): ${typeHint.keywords.join('、')}`)
+      keywords.push(`品类应含系统(${input.gameType}): ${typeHint.expectedSystems.join('、')}`)
+    }
+  }
+  if (keywords.length > 0) {
+    lines.push('【关键词】')
+    lines.push(keywords.join('\n'))
+    lines.push('')
+  }
+
+  // —— 硬约束 ——
+  const constraints: string[] = []
+  for (const platform of input.platforms) {
+    const pc = PLATFORM_HARD_CONSTRAINTS[platform]
+    if (pc) constraints.push(...pc.map((c) => `[平台·${platform}] ${c}`))
+  }
+  if (input.businessModel) {
+    const bc = BUSINESS_HARD_CONSTRAINTS[input.businessModel]
+    if (bc) constraints.push(...bc.map((c) => `[商业·${input.businessModel}] ${c}`))
+  }
+  if (constraints.length > 0) {
+    lines.push('【硬约束】')
+    lines.push(constraints.join('\n'))
+    lines.push('')
+    lines.push(
+      '以上硬约束是验收红线：相关章节（如 UI/性能/商业化/数值）的生成内容必须可被机器或测试核验；' +
+        '无法确定的项写「待确认」并标注将在哪章补，不要模糊带过。'
+    )
+    lines.push('')
+  }
+
+  return lines.join('\n')
+}
+
+/**
+ * 每章定制提示词：由全量生成流程逐章追加到默认提示之后。
  */
 export function buildChapterPrompts(
   input: FullGenerateInput,
   order: ChapterKey[]
 ): Partial<Record<ChapterKey, string>> {
   const userInputText = buildUserInputLines(input).join('\n')
+  const keywordBlock = buildKeywordConstraintBlock(input)
   const prompts: Partial<Record<ChapterKey, string>> = {}
   for (const chapter of order) {
     prompts[chapter] =
       `【章节】${CHAPTER_LABELS[chapter]}\n` +
       `【用户输入】\n${userInputText || '(无)'}\n` +
+      `【关键词与硬约束】\n${keywordBlock || '(无)'}\n` +
       `【生成要求】${CHAPTER_GENERATION_HINTS[chapter]}\n` +
       '输出 JSON，键为字段名，值为生成内容；只输出 JSON。'
   }
@@ -422,22 +507,35 @@ function buildUserInputLines(input: FullGenerateInput): string[] {
   return lines
 }
 
-/* ---- AI 结构化审阅（N6，对应 旧版 CeshuSkill._ai_review + AIReviewDialog） ---- */
+/* ---- 成稿反审（N6；2026-10-26 由「5 维度评分」改为「7 项三级判定」，见 ceshuAiData 说明） ---- */
 
-export interface CeshuReviewDimension {
+/**
+ * 单条反审结论。
+ * - `level`：`blocker`（必须修）/ `suggestion`（可改可不改）/ `pass`（未发现问题）
+ * - `probe`：该品类下这一项**具体查了什么**（回显用，让作者知道判定依据）
+ * - `evidence`：AI 给的依据（引用文档里的哪句话 / 哪个数字）
+ */
+export interface AdversarialFinding {
   key: string
   label: string
-  score: number
-  feedback: string
+  level: AdversarialLevel
+  /** 该品类下本项的追问重点（来自 `reviewProbeFor`，不依赖 AI 复述） */
+  probe: string
+  /** AI 给的判定依据 / 说明 */
+  evidence: string
 }
 
 export interface CeshuReviewPayload {
-  dimensions: CeshuReviewDimension[]
+  findings: AdversarialFinding[]
   overall: string
   suggestions: string[]
+  /** 本次审阅采用的品类档案展示名（如「塔防」） */
+  genreLabel: string
+  /** 本次审阅针对的规则集标识（与契约、Demo 对齐） */
+  rulesetId: string
   /** LLM 原始输出（解析失败时供 UI 展示排查） */
   rawText: string
-  /** 是否成功解析出 dimensions */
+  /** 是否成功解析出 findings */
   parsed: boolean
 }
 
@@ -451,7 +549,18 @@ export interface CeshuAiReviewResult extends CeshuReviewPayload {
   usage?: LlmUsage | null
 }
 
-/** 章节填充摘要（照抄 旧版：仅标量真值、每值截断 60 字、【章节标签】+ key: value） */
+/** 阻塞 / 建议 条数（面板与报告共用口径） */
+export function countFindings(findings: readonly AdversarialFinding[]): { blockers: number; suggestions: number } {
+  let blockers = 0
+  let suggestions = 0
+  for (const finding of findings) {
+    if (finding.level === 'blocker') blockers += 1
+    else if (finding.level === 'suggestion') suggestions += 1
+  }
+  return { blockers, suggestions }
+}
+
+/** 章节填充摘要 */
 export function buildReviewSummary(doc: CeshuDocument): string {
   const parts: string[] = []
   for (const key of CHAPTER_KEYS) {
@@ -469,64 +578,76 @@ export function buildReviewSummary(doc: CeshuDocument): string {
   return parts.length > 0 ? parts.join('\n') : '(策划书内容为空)'
 }
 
-/** 审阅提示词（照抄 旧版 system/user 文案；要求严格 JSON 输出） */
+/** 反审提示词（成稿反审：7 项三级判定 + 品类追问，要求严格 JSON 输出） */
 export function buildReviewPrompts(
   doc: CeshuDocument,
   input: { progressTotal: number; validationCount: number }
 ): { system: string; prompt: string } {
   /*
-   * 维度样例从 REVIEW_DIMENSION_KEYS / LABELS 派生：新增或改名一个维度只改
-   * ceshuAiData 一处，提示词自动跟上——避免「常量表 + 手写 JSON」双处维护。
+   * 检查项样例从 ADVERSARIAL_CHECK_KEYS / LABELS 派生，追问从 reviewProbeFor(品类) 取：
+   * 新增/改名一项只改 ceshuAiData 一处，提示词与面板自动跟上——避免双处维护。
    */
-  const dimensionLines = REVIEW_DIMENSION_KEYS.map(
+  const genre = genreReviewProfile(getGameType(doc))
+  const checkLines = ADVERSARIAL_CHECK_KEYS.map(
     (key, index) =>
-      `    {"key":"${key}","label":"${REVIEW_DIMENSION_LABELS[key]}","score":1-10,"feedback":"详细反馈"}${
-        index === REVIEW_DIMENSION_KEYS.length - 1 ? '' : ','
+      `    {"key":"${key}","label":"${ADVERSARIAL_CHECK_LABELS[key]}","level":"pass|suggestion|blocker","evidence":"依据：引用文档里的哪句话/哪个数字，或说明未发现问题"}${
+        index === ADVERSARIAL_CHECK_KEYS.length - 1 ? '' : ','
       }`
   )
+  const probeLines = ADVERSARIAL_CHECK_KEYS.map(
+    (key, index) => `${index + 1}. 【${ADVERSARIAL_CHECK_LABELS[key]}】${reviewProbeFor(key, genre.key)}`
+  )
   const system = [
-    '你是资深游戏策划审阅专家。请对策划书进行结构化审阅，输出严格 JSON。',
+    '你是资深游戏策划，正在对一份**成稿**做反审（审查与写作分离）：不要框「好不好」，只回答「有没有必须修的」。',
+    `本品类：${genre.label}。以下每一项按本品类的追问重点核查，结论只能是 pass / suggestion / blocker 三选一：`,
+    '  · blocker = 存在必须修的问题（数值算不通、有支配解、规则不闭合、多方口径不一致）',
+    '  · suggestion = 可改可不改的改进点',
+    '  · pass = 该项未发现问题',
     'JSON 格式如下：',
     '{',
-    '  "dimensions": [',
-    ...dimensionLines,
+    '  "findings": [',
+    ...checkLines,
     '  ],',
-    '  "overall":"总体评价 100-200 字",',
+    '  "overall":"总体结论 100-200 字：先说有没有 blocker，再说整体离交付还差什么",',
     '  "suggestions":["改进建议1","改进建议2","改进建议3"]',
     '}',
     '只输出 JSON，不要加任何解释或 markdown 标记。'
   ].join('\n')
 
   const prompt =
-    `请对以下策划书进行 ${REVIEW_DIMENSION_KEYS.length} 维度结构化审阅：\n\n${buildReviewSummary(doc)}\n\n` +
+    `请对以下策划书做 ${ADVERSARIAL_CHECK_KEYS.length} 项成稿反审。逐项按下面的追问核查：\n\n` +
+    `${probeLines.join('\n')}\n\n` +
+    `【待审策划书】\n${buildReviewSummary(doc)}\n\n` +
     `完成进度: ${Math.round(input.progressTotal * 100)}%\n` +
     `内置校验问题数: ${input.validationCount}\n` +
-    `风格: ${doc.style || '未指定'}, 模块类型: ${doc.module_type || '未指定'}\n\n` +
-    '评分标准：1-3 分（严重不足）/ 4-6 分（合格）/ 7-8 分（良好）/ 9-10 分（优秀）。'
+    `游戏类型: ${getGameType(doc) || '未指定'}（按「${genre.label}」品类反审）, 风格: ${doc.style || '未指定'}\n` +
+    `规则集标识: ${deriveRulesetId(doc)}（正文/配置/示例/Demo 应引用同一标识）`
 
   return { system, prompt }
 }
 
-/** 解析审阅输出：维度按规范顺序补全、分数截断到 1-10、建议补足 3 条；失败时 parsed=false 且保留原文 */
+/** 解析反审输出：按规范顺序补全 7 项、level 兜底 pass、建议补足 3 条；失败时 parsed=false 且保留原文 */
 export function parseReviewResponse(content: string): CeshuReviewPayload {
   const parsed = parseLlmJson(content)
-  const rawDimensions = parsed['dimensions']
-  if (!Array.isArray(rawDimensions)) {
-    return { dimensions: [], overall: '', suggestions: [], rawText: content, parsed: false }
+  const rawFindings = parsed['findings']
+  if (!Array.isArray(rawFindings)) {
+    return { findings: [], overall: '', suggestions: [], genreLabel: '', rulesetId: '', rawText: content, parsed: false }
   }
   const byKey = new Map<string, Record<string, unknown>>()
-  for (const entry of rawDimensions) {
+  for (const entry of rawFindings) {
     if (isPlainObject(entry) && typeof entry['key'] === 'string') byKey.set(entry['key'], entry)
   }
-  const dimensions: CeshuReviewDimension[] = REVIEW_DIMENSION_KEYS.map((key) => {
+  const findings: AdversarialFinding[] = ADVERSARIAL_CHECK_KEYS.map((key) => {
     const entry = byKey.get(key)
-    const rawScore = Number(entry?.['score'])
-    let score = Number.isFinite(rawScore) ? Math.trunc(rawScore) : 0
-    if (score < 1) score = 1
-    if (score > 10) score = 10
-    const label = typeof entry?.['label'] === 'string' && entry['label'] !== '' ? entry['label'] : REVIEW_DIMENSION_LABELS[key]
-    const feedback = typeof entry?.['feedback'] === 'string' ? entry['feedback'] : ''
-    return { key, label, score, feedback }
+    const rawLevel = typeof entry?.['level'] === 'string' ? entry['level'].toLowerCase().trim() : ''
+    const level: AdversarialLevel = (ADVERSARIAL_LEVELS as readonly string[]).includes(rawLevel)
+      ? (rawLevel as AdversarialLevel)
+      : 'pass'
+    const label =
+      typeof entry?.['label'] === 'string' && entry['label'] !== '' ? entry['label'] : ADVERSARIAL_CHECK_LABELS[key]
+    const evidence = typeof entry?.['evidence'] === 'string' ? entry['evidence'] : ''
+    // probe 留空：解析层看不到文档（拿不到品类），由 finalizeReview 用 doc 回填品类追问
+    return { key, label, level, probe: '', evidence }
   })
 
   const rawSuggestions = parsed['suggestions']
@@ -539,31 +660,52 @@ export function parseReviewResponse(content: string): CeshuReviewPayload {
   while (suggestions.length < 3) suggestions.push('（暂无更多建议）')
 
   const overall = typeof parsed['overall'] === 'string' ? parsed['overall'] : ''
-  return { dimensions, overall, suggestions, rawText: content, parsed: true }
+  return { findings, overall, suggestions, genreLabel: '', rulesetId: '', rawText: content, parsed: true }
 }
 
-/** 审阅报告 Markdown（照抄 旧版 AIReviewDialog._build_markdown） */
+/**
+ * 用文档回填「解析层拿不到」的字段：品类档案 + 规则集标识 + 每项的品类追问。
+ *
+ * 为什么单独一步：`parseReviewResponse` 只吃 LLM 原文（可单测、无副作用），
+ * 而品类 / 规则集来自文档——分开后两者都能独立测，且最终结果的 probe 与
+ * 提示词里下发的追问**逐字一致**（同源于 `reviewProbeFor`）。
+ */
+export function finalizeReview(payload: CeshuReviewPayload, doc: CeshuDocument): CeshuReviewPayload {
+  const genre = genreReviewProfile(getGameType(doc))
+  return {
+    ...payload,
+    genreLabel: genre.label,
+    rulesetId: deriveRulesetId(doc),
+    findings: payload.findings.map((finding) => ({
+      ...finding,
+      probe: reviewProbeFor(finding.key as AdversarialCheckKey, genre.key)
+    }))
+  }
+}
+
+/** 反审报告 Markdown（检查项 | 判定 | 依据 + 阻塞/建议小结） */
 export function buildReviewMarkdown(
   gameName: string,
   reviewedAt: string,
   result: CeshuAiReviewResult
 ): string {
+  const counts = countFindings(result.findings)
   const lines = [
-    '# AI 智能审阅报告',
+    '# 成稿反审报告',
     '',
     `**游戏名称**: ${gameName}`,
-    `**审阅时间**: ${reviewedAt}`,
-    '',
-    '## 维度评分',
-    '',
-    '| 维度 | 分数 | 反馈 |',
-    '|------|------|------|'
+    `**审阅时间**: ${reviewedAt}`
   ]
-  for (const dim of result.dimensions) {
-    const feedback = dim.feedback.replace(/\n/g, ' ').replace(/\|/g, '\\|')
-    lines.push(`| ${dim.label} | ${dim.score} / 10 | ${feedback} |`)
+  if (result.genreLabel) lines.push(`**品类**: ${result.genreLabel}`)
+  if (result.rulesetId) lines.push(`**规则集标识**: ${result.rulesetId}`)
+  lines.push(`**结论**: 阻塞 ${counts.blockers} 项 · 建议 ${counts.suggestions} 项`)
+  lines.push('', '## 反审清单', '', '| 检查项 | 判定 | 依据 |', '|------|------|------|')
+  for (const finding of result.findings) {
+    const level = ADVERSARIAL_LEVEL_LABELS[finding.level]
+    const evidence = finding.evidence.replace(/\n/g, ' ').replace(/\|/g, '\\|')
+    lines.push(`| ${finding.label} | ${level} | ${evidence} |`)
   }
-  lines.push('', '## 总体评价', '', result.overall || '（无）')
+  lines.push('', '## 总体结论', '', result.overall || '（无）')
   lines.push('', '## Top 3 改进建议', '')
   result.suggestions.slice(0, 3).forEach((suggestion, index) => lines.push(`${index + 1}. ${suggestion}`))
   if (result.progressTotal > 0) lines.push('', `**策划书完成进度**: ${Math.round(result.progressTotal * 100)}%`)

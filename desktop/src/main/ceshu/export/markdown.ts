@@ -1,8 +1,14 @@
-import { CHAPTER_KEYS, CHAPTER_LABELS, type CeshuDocument } from '../../../shared/ceshuConstants'
+import {
+  CHAPTER_KEYS,
+  CHAPTER_LABELS,
+  enabledModuleChapters,
+  type CeshuDocument,
+  type ChapterKey
+} from '../../../shared/ceshuConstants'
 import { fieldStatusOf } from '../../../shared/ceshuFieldStatus'
 import { countFieldStatuses, formatFieldStatusSummary } from '../../../shared/ceshuFieldStatusStats'
 import { CESHU_CHAPTER_FIELDS } from '../../../shared/ceshuFields'
-import { formatLocalTimestamp, getGddScope } from '../../../shared/ceshuModel'
+import { formatLocalTimestamp, getGameType, getGddScope } from '../../../shared/ceshuModel'
 import { validateCeshu } from '../../../shared/ceshuValidation'
 
 import {
@@ -10,15 +16,20 @@ import {
   chapterAnchor,
   chapterHeading,
   classifySystems,
+  fieldLabel,
   formatFieldValue,
+  isEmptyValue,
+  machineFieldEntries,
   orderedFieldEntries,
+  pipeTable,
   visibleChapterEntries,
   type VisibleChapterEntry
 } from './common'
+import { renderOnePageSummary } from './onepage'
 
 /**
- * Markdown 导出器（自 Python ceshu_markdown_exporter.py 匹平迁移）。
- * 文档信息 + 16 章结构（按档位裁剪）+ 目录锚点 + systems 表格 + 完成度附录；适合 Git 版本控制。
+ * Markdown 导出器。
+ * 文档信息 + 全部章节（按档位裁剪）+ 目录锚点 + systems 表格 + 完成度附录；适合 Git 版本控制。
  */
 
 const MD_BULLET = '- '
@@ -27,11 +38,32 @@ const MD_SEPARATOR = '\n\n---\n\n'
 export function renderCeshuMarkdown(doc: CeshuDocument): string {
   const today = formatLocalTimestamp().slice(0, 10)
   const blocks: string[] = [renderHeader(doc, today), renderToc(doc)]
-  for (const entry of visibleChapterEntries(getGddScope(doc))) {
+  for (const entry of visibleChapterEntries(getGddScope(doc), getGameType(doc), enabledModuleChapters(doc))) {
     blocks.push(renderChapter(doc, entry))
   }
+  blocks.push(renderMachineAppendix(doc))
   blocks.push(renderReviewProgress(doc))
   blocks.push(renderValidationReport(doc))
+  return blocks.join(MD_SEPARATOR) + '\n'
+}
+
+/**
+ * 交付版 Markdown（2026 对齐）：**封面 + 一页摘要 + 目录 + 详细章节**。
+ *
+ * 与工作版 `renderCeshuMarkdown` 的区别：**不带**「审核进度 / 数据校验报告」这类内部附录——
+ * 交付物是给外部（老板/程序/发行）看的，内部过程信息不该混进去。
+ */
+export function renderCeshuDeliverableMarkdown(doc: CeshuDocument): string {
+  const today = formatLocalTimestamp().slice(0, 10)
+  const blocks: string[] = [
+    renderHeader(doc, today),
+    `## 一页摘要\n\n${renderOnePageSummary(doc, 3)}`,
+    renderToc(doc)
+  ]
+  for (const entry of visibleChapterEntries(getGddScope(doc), getGameType(doc), enabledModuleChapters(doc))) {
+    blocks.push(renderChapter(doc, entry))
+  }
+  blocks.push(renderMachineAppendix(doc))
   return blocks.join(MD_SEPARATOR) + '\n'
 }
 
@@ -53,7 +85,7 @@ function renderHeader(doc: CeshuDocument, today: string): string {
 /** 目录（带锚点链接） */
 function renderToc(doc: CeshuDocument): string {
   const lines = ['## 目录', '']
-  for (const entry of visibleChapterEntries(getGddScope(doc))) {
+  for (const entry of visibleChapterEntries(getGddScope(doc), getGameType(doc), enabledModuleChapters(doc))) {
     lines.push(`${entry.index}. [${CHAPTER_LABELS[entry.key]}](#${chapterAnchor(entry.index)})`)
   }
   return lines.join('\n')
@@ -67,25 +99,69 @@ function renderChapter(doc: CeshuDocument, entry: VisibleChapterEntry): string {
     lines.push(...renderSystemsTable(data))
     return lines.join('\n')
   }
-  if (!data || Object.keys(data).length === 0) {
+  const entries = data ? orderedFieldEntries(entry.key, data) : []
+  if (entries.length === 0) {
     lines.push('(本章暂无内容)')
     return lines.join('\n')
   }
-  for (const [fieldName, value] of orderedFieldEntries(entry.key, data)) {
-    const formatted = formatFieldValue(value, { bullet: MD_BULLET })
-    if (formatted.includes('\n')) {
-      lines.push(`**${fieldName}**:`)
-      for (const line of formatted.split('\n')) {
-        if (line.trim()) lines.push(line)
-      }
-    } else {
-      lines.push(`**${fieldName}**: ${formatted}`)
-    }
+  for (const [fieldKey, value] of entries) {
+    lines.push(...renderFieldBlock(entry.key, fieldKey, value))
   }
   return lines.join('\n')
 }
 
-/** systems 章节：状态表 + 已启用系统配置详情（对齐 Python） */
+/** 单个字段 → Markdown 行（pipeList 有列定义时渲染成真表格，否则回落成文本） */
+function renderFieldBlock(chapter: ChapterKey, fieldKey: string, value: unknown): string[] {
+  const label = fieldLabel(chapter, fieldKey)
+  const table = pipeTable(chapter, fieldKey, value)
+  if (table !== null) {
+    return [
+      `**${label}**:`,
+      '',
+      `| ${table.headers.map(mdCell).join(' | ')} |`,
+      `| ${table.headers.map(() => '---').join(' | ')} |`,
+      ...table.rows.map((row) => `| ${row.map(mdCell).join(' | ')} |`),
+      ''
+    ]
+  }
+  const formatted = formatFieldValue(value, { bullet: MD_BULLET })
+  if (formatted.includes('\n')) {
+    return [`**${label}**:`, ...formatted.split('\n').filter((line) => line.trim() !== '')]
+  }
+  return [`**${label}**: ${formatted}`]
+}
+
+/** Markdown 表格单元格转义（竖线与换行会撑破表格） */
+function mdCell(text: string): string {
+  return text.replace(/\|/g, '\\|').replace(/\n+/g, ' ')
+}
+
+/**
+ * 附录：验收与机读数据。
+ *
+ * 这些字段（账本 / 数值断言 / 用例 / 验收旅程 / 设计假设）机器要读、人也要能查，
+ * 但塞进正文章节会把「设计叙述」切碎。集中到附录：正文干净，附录完整。
+ */
+function renderMachineAppendix(doc: CeshuDocument): string {
+  const lines = ['## 附录：验收与机读数据', '']
+  let any = false
+  for (const entry of visibleChapterEntries(getGddScope(doc), getGameType(doc), enabledModuleChapters(doc))) {
+    const data = doc[entry.key]
+    if (!data) continue
+    const machine = machineFieldEntries(entry.key, data)
+    if (machine.length === 0) continue
+    any = true
+    lines.push(`### ${chapterHeading(entry)}`)
+    for (const [fieldKey, value] of machine) {
+      lines.push(...renderFieldBlock(entry.key, fieldKey, value))
+    }
+    lines.push('')
+  }
+  if (!any) lines.push('(无)')
+  return lines.join('\n')
+}
+
+/** systems 章节：状态表 + 已启用系统配置详情 */
 function renderSystemsTable(data: Record<string, unknown> | undefined): string[] {
   const [enabled, disabled] = classifySystems(data)
   const lines = ['| 系统 | 状态 | 数据类型 | 名称 |', '|------|------|----------|------|']
@@ -104,8 +180,9 @@ function renderSystemsTable(data: Record<string, unknown> | undefined): string[]
       const name = readString(systemData.name) || systemId
       lines.push('', `#### ${name} (${systemId})`)
       const config = isRecord(systemData.config) ? systemData.config : {}
-      if (Object.keys(config).length > 0) {
-        for (const [fieldName, value] of Object.entries(config)) {
+      const configEntries = Object.entries(config).filter(([, value]) => !isEmptyValue(value))
+      if (configEntries.length > 0) {
+        for (const [fieldName, value] of configEntries) {
           lines.push(`- **${fieldName}**: ${formatFieldValue(value, { bullet: MD_BULLET })}`)
         }
       } else {
@@ -146,7 +223,7 @@ function renderReviewProgress(doc: CeshuDocument): string {
   return lines.join('\n')
 }
 
-/** 附录：数据校验报告（对应 Python _render_validation_report） */
+/** 附录：数据校验报告 */
 function renderValidationReport(doc: CeshuDocument): string {
   const lines = ['## 附录：数据校验报告', '']
   const errors = validateCeshu(doc)

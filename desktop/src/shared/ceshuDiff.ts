@@ -2,7 +2,7 @@ import { CHAPTER_KEYS, CHAPTER_LABELS, type CeshuDocument, type ChapterKey } fro
 import { isPlainObject } from './ceshuModel'
 
 /**
- * 版本链纯逻辑（自 旧版 ceshu_changelog + version_diff_dialog.compute_version_diff 匹平迁移）：
+ * 版本链纯逻辑：
  * - 版本号递增：v1.0 → v1.1 → v1.2
  * - 版本 diff：章节字段扁平化比较（空值按新增/删除语义），systems 章按 enabled 状态比较
  * - 变更描述：added/removed/modified 三类人类可读文案
@@ -40,7 +40,7 @@ export interface CeshuChangelog {
   entries: CeshuChangelogEntry[]
 }
 
-/** 归一化字段值（对应 旧版 _normalize_value）：null → ''；对象 → 键排序 JSON；其余 String */
+/** 归一化字段值：null → ''；对象 → 键排序 JSON；其余 String */
 export function normalizeValue(value: unknown): string {
   if (value === null || value === undefined) return ''
   if (typeof value === 'object') return stableStringify(value)
@@ -53,14 +53,14 @@ export function computeCeshuDiff(oldDoc: CeshuDocument, newDoc: CeshuDocument): 
   for (const key of CHAPTER_KEYS) {
     const oldData = oldDoc[key]
     const newData = newDoc[key]
-    // 短路：章节结构相等则无差异（对应 旧版 old_data == new_data）
+    // 短路：章节结构相等则无差异
     if (normalizeValue(oldData) === normalizeValue(newData)) continue
     diffs.push(...(key === 'systems' ? diffSystems(oldData, newData) : diffChapterFlat(key, oldData, newData)))
   }
   return diffs
 }
 
-/** 生成两个版本之间的变更条目（对应 旧版 generate_changelog_between） */
+/** 生成两个版本之间的变更条目 */
 export function buildChangelogEntry(
   oldDoc: CeshuDocument,
   newDoc: CeshuDocument,
@@ -93,7 +93,7 @@ export function buildChangelogEntry(
   }
 }
 
-/** 变更描述文案（systems 章特殊处理，与 旧版 _build_change_description 一致） */
+/** 变更描述文案 */
 export function buildChangeDescription(diff: CeshuFieldDiff): string {
   if (diff.chapter === 'systems') {
     const systemId = diff.field.includes(' ') ? diff.field.split(' ')[0] : diff.field
@@ -108,7 +108,7 @@ export function buildChangeDescription(diff: CeshuFieldDiff): string {
   return `修改字段 ${diff.field}：${oldText} → ${newText}`
 }
 
-/** 变更值格式化（对象走紧凑 JSON，超长截断；对应 旧版 _format_value） */
+/** 变更值格式化 */
 export function formatChangeValue(value: unknown, maxLength = 80): string {
   let text: string
   if (value === null || value === undefined) text = '(空)'
@@ -118,7 +118,7 @@ export function formatChangeValue(value: unknown, maxLength = 80): string {
   return text.length > maxLength ? `${text.slice(0, maxLength)}...` : text
 }
 
-/** 计算下一个版本号：v1.0 → v1.1 → v1.2（对应 旧版 _next_version_label） */
+/** 计算下一个版本号：v1.0 → v1.1 → v1.2 */
 export function nextVersionLabel(parentLabel: string, existingLabels: string[]): string {
   const parsed = parseVersionLabel(parentLabel) ?? [1, 0]
   const [major, parentMinor] = parsed
@@ -137,14 +137,14 @@ export function parseVersionLabel(label: string): [number, number] | null {
   return [Number(matched[1]), matched[2] === undefined ? 0 : Number(matched[2])]
 }
 
-/** 版本号排序比较（主策划在前由调用方处理；无效标签按 (0,0) 处理，对应 旧版 _sort_key） */
+/** 版本号排序比较 */
 export function compareVersionLabels(left: string, right: string): number {
   const a = parseVersionLabel(left) ?? [0, 0]
   const b = parseVersionLabel(right) ?? [0, 0]
   return a[0] - b[0] || a[1] - b[1]
 }
 
-/* ---- 版本对比（N1，自 旧版 version_diff_dialog 匹平迁移） ---- */
+/* ---- 版本对比 ---- */
 
 export interface CeshuVersionFieldDiff {
   /** 字段路径（如 meta.game_name / systems.battle.enabled） */
@@ -179,7 +179,7 @@ export interface CeshuVersionDiff {
   total_unchanged: number
 }
 
-/** 变更类型展示映射（文案 + 颜色，与 旧版 DIFF_DISPLAY 一致） */
+/** 变更类型展示映射 */
 export const DIFF_DISPLAY: Record<CeshuDiffType, { text: string; color: string }> = {
   added: { text: '✚ 新增', color: '#22C55E' },
   removed: { text: '✖ 删除', color: '#EF4444' },
@@ -198,7 +198,7 @@ export function versionDiffTotalChanges(diff: CeshuVersionDiff): number {
 }
 
 /**
- * 字段值格式化（对应 旧版 _format_value）：null → (空)；bool → 是/否；对象 → JSON；其余 String。
+ * 字段值格式化：null → (空)；bool → 是/否；对象 → JSON；其余 String。
  * maxLength > 0 时截断并补省略号（对应 _iter_changed_renders 的 max_len）。
  */
 export function formatDiffValue(value: unknown, maxLength = 0): string {
@@ -211,7 +211,7 @@ export function formatDiffValue(value: unknown, maxLength = 0): string {
 }
 
 /**
- * 两个版本之间的完整章节级 Diff（对应 旧版 compute_version_diff）：
+ * 两个版本之间的完整章节级 Diff：
  * 章节相等时短路（仅按旧章扁平键数计未变）；否则逐字段分类计数（含 unchanged）。
  */
 export function buildVersionDiff(oldDoc: CeshuDocument, newDoc: CeshuDocument): CeshuVersionDiff {
@@ -227,7 +227,7 @@ export function buildVersionDiff(oldDoc: CeshuDocument, newDoc: CeshuDocument): 
     const newData = newDoc[key]
     let chapterDiff: CeshuChapterDiff
     if (normalizeValue(oldData) === normalizeValue(newData)) {
-      // 章节相等：不展开字段，未变数按旧章扁平键数近似（对应 旧版 短路分支）
+      // 章节相等：不展开字段，未变数按旧章扁平键数近似
       const flat = flattenChapter(isPlainObject(oldData) ? oldData : {})
       chapterDiff = {
         chapter_key: key,
@@ -263,7 +263,7 @@ export function buildVersionDiff(oldDoc: CeshuDocument, newDoc: CeshuDocument): 
   }
 }
 
-/** 版本对比 Markdown 报告（对应 旧版 VersionDiffDialog._build_markdown，字段值截断 60） */
+/** 版本对比 Markdown 报告 */
 export function buildVersionDiffMarkdown(diff: CeshuVersionDiff, timestamp: string): string {
   const lines: string[] = [
     '# 版本对比报告',
@@ -305,7 +305,7 @@ export function buildVersionDiffMarkdown(diff: CeshuVersionDiff, timestamp: stri
   return lines.join('\n')
 }
 
-/** Markdown 表格单元格转义：折叠换行 + 转义管道符（对应 旧版 导出时的处理） */
+/** Markdown 表格单元格转义：折叠换行 + 转义管道符 */
 function escapeMarkdownCell(text: string): string {
   return text.replace(/\n/g, ' ').replace(/\|/g, '\\|')
 }
@@ -423,7 +423,7 @@ function diffSystems(oldData: unknown, newData: unknown): CeshuFieldDiff[] {
 }
 
 /**
- * diff 分类（对应 旧版 _classify_field_diff）：
+ * diff 分类：
  * 归一化相等 → unchanged；旧缺失或旧值为空 → added；新缺失或新值为空 → removed；否则 modified。
  */
 function classifyFieldDiff(inOld: boolean, inNew: boolean, oldValue: unknown, newValue: unknown): CeshuDiffType {
@@ -435,7 +435,7 @@ function classifyFieldDiff(inOld: boolean, inNew: boolean, oldValue: unknown, ne
   return 'modified'
 }
 
-/** 章节字段扁平化：简单字典（值均非 dict/list）与列表作为叶节点（对应 旧版 _flatten_chapter） */
+/** 章节字段扁平化：简单字典（值均非 dict/list）与列表作为叶节点 */
 function flattenChapter(data: Record<string, unknown>, prefix = ''): Record<string, unknown> {
   const result: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(data)) {
@@ -453,7 +453,7 @@ function isLeafValue(value: Record<string, unknown>): boolean {
   return Object.values(value).every((item) => !isPlainObject(item) && !Array.isArray(item))
 }
 
-/** 键排序的稳定 JSON（对应 旧版 json.dumps(sort_keys=True)，用于比较与显示） */
+/** 键排序的稳定 JSON */
 function stableStringify(value: unknown): string {
   if (value === null || value === undefined) return JSON.stringify(value) ?? 'null'
   if (Array.isArray(value)) return `[${value.map((item) => stableStringify(item)).join(',')}]`

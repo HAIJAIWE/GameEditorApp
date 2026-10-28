@@ -13,12 +13,12 @@ import LucideIcon from './LucideIcon'
 import { toErrorMessage } from '../../../shared/util/errors'
 
 /**
- * 策划书首页（对应 Python `ui/ceshu/home_view.py` + `home_card.py`）：
+ * 策划书首页：
  * 搜索 + 最近打开 + 新建入口 + 卡片网格 + 卡片操作（重命名/复制/派生/删除）。
  *
- * 有意偏离 Python：
- *  - PyQt 用右键 `QMenu` 承载卡片操作；TS 改为卡片内联按钮（可发现、可测）。
- *  - 「从模板新建」未移植：Python 的 `CeshuTemplate` 是**整份文档模板**，TS 的模板体系是
+ * 有意偏离 旧版：
+ *  - 旧版 用右键 `QMenu` 承载卡片操作；TS 改为卡片内联按钮（可发现、可测）。
+ *  - 「从模板新建」未移植：旧版 的 `CeshuTemplate` 是**整份文档模板**，TS 的模板体系是
  *    **章节级**模板（W27–W29），两者不是同一概念。
  */
 
@@ -54,6 +54,9 @@ export default function CeshuHomePanel({
   const [actionText, setActionText] = useState('')
   const [copyPickerOpen, setCopyPickerOpen] = useState(false)
   const [copySourceId, setCopySourceId] = useState('')
+  const [cloneOpen, setCloneOpen] = useState(false)
+  const [cloneName, setCloneName] = useState('')
+  const [cloneType, setCloneType] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
@@ -109,6 +112,45 @@ export default function CeshuHomePanel({
       onOpen(doc.ceshu_id)
       return '已新建空白策划书'
     })
+
+  /** 复刻/想法入口：参考游戏名 → AI 拆出「立项一页」→ 新建文档并打开 */
+  const handleClone = (): void =>
+    void run(async () => {
+      const gameName = cloneName.trim()
+      if (gameName === '') throw new Error('请填写参考游戏名或你的点子')
+      const { doc } = await window.mbApi.ceshu.cloneDecompose({
+        gameName,
+        ...(cloneType.trim() !== '' ? { gameType: cloneType.trim() } : {})
+      })
+      onOpen(doc.ceshu_id)
+      setCloneOpen(false)
+      setCloneName('')
+      setCloneType('')
+      return '已生成「立项一页」'
+    })
+
+  /**
+   * 打开项目文件夹（一个游戏一个文件夹）：选目录 → 主进程还原文档并落地到本库 → 打开。
+   * 不走 `run()`：取消选择时不该弹 notice，也不该刷新列表。
+   */
+  const handleOpenProjectFolder = async (): Promise<void> => {
+    setError(null)
+    setNotice(null)
+    try {
+      const chosen = await window.mbApi.dialog.chooseProjectDir()
+      if (chosen.path === null) return
+      setBusy(true)
+      const { doc } = await window.mbApi.ceshu.openProjectFolder({ path: chosen.path })
+      const name = typeof doc.meta.game_name === 'string' ? doc.meta.game_name : ''
+      onChanged()
+      onOpen(doc.ceshu_id)
+      setNotice(`已打开项目文件夹${name === '' ? '' : `：${name}`}`)
+    } catch (err) {
+      setError(toErrorMessage(err))
+    } finally {
+      setBusy(false)
+    }
+  }
 
   const handleDuplicate = (id: string): void =>
     void run(async () => {
@@ -172,6 +214,32 @@ export default function CeshuHomePanel({
           >
             从已有复制…
           </button>
+          <button
+            type="button"
+            className="btn"
+            data-testid="home-open-folder"
+            disabled={busy}
+            title="打开一个已有的项目文件夹（一个游戏一个文件夹：config.json + design/ + data/ + tasks/）"
+            onClick={() => void handleOpenProjectFolder()}
+          >
+            打开项目文件夹…
+          </button>
+          <button
+            type="button"
+            className="btn"
+            data-testid="home-clone-open"
+            disabled={busy}
+            title="给一个参考游戏名或点子，AI 拆成「立项一页」"
+            onClick={() => {
+              setAction(null)
+              setError(null)
+              setNotice(null)
+              setCopyPickerOpen(false)
+              setCloneOpen((open) => !open)
+            }}
+          >
+            ✨ 从想法/复刻…
+          </button>
         </div>
       </div>
 
@@ -214,6 +282,43 @@ export default function CeshuHomePanel({
             复制为独立副本
           </button>
           <button type="button" className="btn" data-testid="home-copy-cancel" disabled={busy} onClick={closeAction}>
+            取消
+          </button>
+        </div>
+      )}
+
+      {cloneOpen && (
+        <div className="home-copy-picker" data-testid="home-clone-form">
+          <input
+            className="form-input"
+            data-testid="home-clone-name"
+            placeholder="参考游戏名或你的点子，如：吸血鬼幸存者 / 猫咪经营邮局"
+            value={cloneName}
+            onChange={(event) => setCloneName(event.target.value)}
+          />
+          <input
+            className="form-input"
+            data-testid="home-clone-type"
+            placeholder="品类（可选），如 Roguelike / SLG"
+            value={cloneType}
+            onChange={(event) => setCloneType(event.target.value)}
+          />
+          <button
+            type="button"
+            className="btn primary"
+            data-testid="home-clone-confirm"
+            disabled={busy || cloneName.trim() === ''}
+            onClick={handleClone}
+          >
+            {busy ? '生成中…' : '生成立项一页'}
+          </button>
+          <button
+            type="button"
+            className="btn"
+            data-testid="home-clone-cancel"
+            disabled={busy}
+            onClick={() => setCloneOpen(false)}
+          >
             取消
           </button>
         </div>
@@ -268,7 +373,7 @@ export default function CeshuHomePanel({
       ) : visibleCards.length === 0 ? (
         <div className="empty" data-testid="home-empty">
           {summaries.length === 0
-            ? '暂无策划书，点击右上角「+ 空白策划书」开始吧'
+            ? '暂无策划书，点右上角「空白策划书」新建，或「打开项目文件夹…」导入已有项目'
             : `未找到匹配 '${keyword}' 的策划书`}
         </div>
       ) : (

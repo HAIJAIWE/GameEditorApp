@@ -1,5 +1,5 @@
 /**
- * 策划书首页（卡片视图）纯逻辑（自 旧版 `ui/ceshu/home_view` + `home_card` 匹平迁移）。
+ * 策划书首页（卡片视图）纯逻辑。
  *
  * 只做「摘要 → 卡片展示模型」的纯映射、搜索过滤、最近打开选取与复制命名；
  * 不触碰磁盘与 React，输入既有对象、返回新对象，便于 Node 环境单测。
@@ -11,7 +11,7 @@
 
 import type { CeshuSummary } from './ceshuConstants'
 
-/** 策划书状态标签（对齐 旧版 `CeshuCard.STATUS_LABELS`） */
+/** 策划书状态标签 */
 export const CESHU_STATUS_LABELS: Record<string, string> = {
   draft: '草稿',
   in_progress: '进行中',
@@ -19,22 +19,22 @@ export const CESHU_STATUS_LABELS: Record<string, string> = {
   final: '已确认'
 }
 
-/** 无名称时的占位（对齐 旧版 卡片的「未命名」） */
+/** 无名称时的占位 */
 export const UNNAMED_CESHU = '未命名'
 
-/** 无游戏类型时的占位（对齐 旧版 卡片的「未分类」） */
+/** 无游戏类型时的占位 */
 export const UNCATEGORIZED_TYPE = '未分类'
 
-/** 复制策划书追加的名称后缀（对齐 旧版 `duplicate_ceshu` 的 " (副本)"） */
+/** 复制策划书追加的名称后缀 */
 export const DUPLICATE_NAME_SUFFIX = ' (副本)'
 
-/** 最近打开展示条数（对齐 旧版 home_view 的 `recents[:5]`） */
+/** 最近打开展示条数 */
 export const RECENT_LIMIT = 5
 
-/** 卡片更新时间显示的最大长度（对齐 旧版 `updated[:16]`） */
+/** 卡片更新时间显示的最大长度 */
 export const UPDATED_DISPLAY_MAX = 16
 
-/** 状态标签；未知状态原样返回（对齐 旧版 `STATUS_LABELS.get(status, status)`） */
+/** 状态标签；未知状态原样返回 */
 export function ceshuStatusLabel(status: string): string {
   return CESHU_STATUS_LABELS[status] ?? status
 }
@@ -49,9 +49,9 @@ export function ceshuTypeLabel(gameType: string): string {
   return gameType === '' ? UNCATEGORIZED_TYPE : gameType
 }
 
-/** 更新时间显示：超过 16 字符截断（对齐 旧版 `updated[:16]`） */
+/** 更新时间显示：超过 16 字符截断 */
 /**
- * 更新时间显示：超过 16 字符截断（对齐 旧版 `updated[:16]`）。
+ * 更新时间显示：超过 16 字符截断。
  *
  * 另把 ISO 的 `T` 归一成空格：本应用自己写盘用 `YYYY-MM-DD HH:mm:ss`（空格分隔），
  * 但**导入/外部来源**可能是 ISO（`2026-01-01T00:00:00`），直接截断会露出一个
@@ -63,7 +63,7 @@ export function ceshuUpdatedDisplay(updatedAt: string): string {
 }
 
 /**
- * 版本徽章文案（对齐 旧版 `CeshuCard._refresh_version_label`）：
+ * 版本徽章文案：
  * `{versionLabel} ({主|子}){ ★}`；无 versionLabel 时返回空串（徽章不显示）。
  * 主/子由 parentId 是否为空判定（无父 = 主策划）。
  */
@@ -76,7 +76,7 @@ export function ceshuVersionBadge(
   return `${version.versionLabel} (${suffix})${star}`
 }
 
-/** 进度百分比（对齐 旧版 `int(progress * 100)`：向零截断，非四舍五入） */
+/** 进度百分比 */
 export function ceshuProgressPercent(progress: number): number {
   if (!Number.isFinite(progress)) return 0
   return Math.trunc(progress * 100)
@@ -131,7 +131,7 @@ export function buildCeshuCards(summaries: CeshuSummary[]): CeshuCardView[] {
   return summaries.map((summary) => buildCeshuCard(summary))
 }
 
-/** 按标题不区分大小写子串过滤（对齐 旧版 `list_ceshu` 的 keyword 过滤） */
+/** 按标题不区分大小写子串过滤 */
 export function filterCeshuCards(cards: CeshuCardView[], keyword: string): CeshuCardView[] {
   const needle = keyword.trim().toLowerCase()
   if (needle === '') return cards
@@ -149,7 +149,7 @@ export function filterPendingCards(cards: CeshuCardView[], enabled: boolean): Ce
   return cards.filter((card) => card.pendingCount > 0)
 }
 
-/** 最近打开：按 updatedAt 倒序取前 count 条（对齐 旧版 `get_recent_ceshus`） */
+/** 最近打开：按 updatedAt 倒序取前 count 条 */
 export function pickRecentCeshu(summaries: CeshuSummary[], count: number = RECENT_LIMIT): CeshuSummary[] {
   return [...summaries]
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
@@ -157,7 +157,7 @@ export function pickRecentCeshu(summaries: CeshuSummary[], count: number = RECEN
 }
 
 /**
- * 复制策划书的名称（对齐 旧版 `duplicate_ceshu` 的 `name + " (副本)"`）。
+ * 复制策划书的名称。
  * 偏离：空名回退「未命名」，避免产出「 (副本)」。
  */
 export function buildDuplicateName(name: string): string {

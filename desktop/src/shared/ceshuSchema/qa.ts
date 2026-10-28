@@ -147,7 +147,7 @@ export const QA_FIELDS: CeshuFieldDef[] = [
       }
     ],
     aiHint:
-      '5-8 条可执行用例，每行「用例|类型（功能/边界/异常/性能）|前置|操作|期望|状态（待执行）」；期望必须可判定，状态只填待执行/通过/失败',
+      '5-8 条可执行用例，每行「用例|类型（正常/边界/恢复/滥用）|前置|操作|期望|状态（待执行）」；期望必须可判定，状态只填待执行/通过/失败',
     reviewHint: '期望是否可判定（不能写「正常」）；是否覆盖边界与异常；是否与验收旅程对得上'
   },
   {
@@ -187,7 +187,59 @@ export const QA_DEFAULTS: ChapterData = {
   acceptance_journeys: []
 }
 
-export const QA_TEMPLATES: ChapterTemplate[] = []
+export const QA_TEMPLATES: ChapterTemplate[] = [
+  {
+    name: '测试策略（示例）',
+    description: '功能 / 兼容 / 性能 / 体验分层，含用例范围、验收标准与验收旅程',
+    tags: ['测试', 'QA', '示例'],
+    data: {
+      test_strategy: '分层测试：功能（战斗 / 经济 / 剧情主链路）+ 兼容（机型档位 × OS）+ 性能（帧率 / 内存 / 加载）+ 体验（新手引导 / 操作手感）。自动化覆盖回归与主链路，体验类手工验收。',
+      test_strategy_points: [
+        '功能层：战斗结算 / 抽卡保底 / 经济产消，自动化 70%',
+        '兼容层：高 / 中 / 低三档 × Android / iOS 主流版本，自动化 40%',
+        '性能层：副本峰值 / 大世界同屏，自动化 60%',
+        '体验层：新手引导完成率 / 操作误触，手工 100%'
+      ],
+      test_strategy_notes: '测试左移：策划案评审即列验收点；准入=主线通关率 ≥ 70%，准出=无 P0 / P1。',
+      test_cases: [
+        { module: '战斗', count: '120', priority: 'P0' },
+        { module: '抽卡 / 经济', count: '80', priority: 'P0' },
+        { module: '剧情', count: '60', priority: 'P1' },
+        { module: 'UI / 交互', count: '90', priority: 'P1' },
+        { module: '联机 / 排行榜', count: '50', priority: 'P1' }
+      ],
+      acceptance_criteria: [
+        '新手引导完成率 ≥ 80%',
+        '主线第一章通关率 ≥ 70%',
+        'P0 缺陷数 = 0 方可发版',
+        '中档机 30 分钟平均帧率 ≥ 45fps'
+      ],
+      defect_management: [
+        { level: 'P0 致命', definition: '崩溃 / 无法推进主线 / 支付异常', response_sla: '10 min', fix_sla: '当日' },
+        { level: 'P1 严重', definition: '核心玩法异常 / 数据错误', response_sla: '1 h', fix_sla: '3 日' },
+        { level: 'P2 一般', definition: '体验问题 / 显示异常', response_sla: '1 日', fix_sla: '7 日' },
+        { level: 'P3 建议', definition: '优化建议', response_sla: '评审', fix_sla: '排期' }
+      ],
+      test_env: '测试机型：高（骁龙 8 Gen3 / A17）、中（天玑 8200 / A14）、低（骁龙 6 Gen1 / A12）；含 Android 12–15 与 iOS 16–18；弱网用 100ms / 丢包 5% 模拟。设备采购预算需人核。',
+      prototype_acceptance: [
+        { check: '首单战斗可完成', result: '通过', evidence: '平均 28 秒通关教学战' },
+        { check: '首次抽卡保底生效', result: '通过', evidence: '第 50 抽必出 UP' },
+        { check: '经济无通胀', result: '部分通过', evidence: '需上线后 2 周观测，见跟进' }
+      ],
+      test_case_list: [
+        { case: '战斗结算数值正确', type: '正常', precondition: '进入战斗', action: '释放技能至敌死', expected: '血量 / 伤害与数值表一致', status: '待执行' },
+        { case: '抽卡保底边界', type: '边界', precondition: '已抽 49 次', action: '第 50 抽', expected: '必出 UP 角色', status: '待执行' },
+        { case: '断线重连', type: '恢复', precondition: '对局中', action: '断网 5s 重连', expected: '状态恢复无丢战', status: '待执行' },
+        { case: '重复点击抽卡', type: '滥用', precondition: '抽卡界面', action: '1 秒内连点 10 次', expected: '仅发起 1 次请求，不重复扣费', status: '待执行' }
+      ],
+      acceptance_journeys: [
+        { journey: '首次进入', steps: '注册 > 引导 > 首战 > 首抽', expected: '30 min 内到首抽无卡点' },
+        { journey: '核心循环', steps: '日常 > 秘境 > 论剑', expected: '每日 20 min 形成习惯' },
+        { journey: '失败路径', steps: '支付失败 > 重试', expected: '提示清晰可恢复' }
+      ]
+    }
+  }
+]
 
 export const QA_SCHEMA: ChapterSchema = {
   fields: QA_FIELDS,

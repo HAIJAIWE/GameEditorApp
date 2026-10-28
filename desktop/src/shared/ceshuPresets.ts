@@ -173,7 +173,7 @@ export const HYBRID_GAMEPLAY_PRESETS: Record<string, HybridGameplayPreset> = {
 
 export const PRESET_KEYS: string[] = Object.keys(HYBRID_GAMEPLAY_PRESETS)
 
-/** 风格徽章底色（照抄 旧版 preset_market_dialog::_STYLE_BADGE_COLORS 10 项） */
+/** 风格徽章底色 */
 export const PRESET_STYLE_BADGE_COLORS: Record<string, string> = {
   xianxia: '#9c27b0', // 紫
   wuxia: '#795548', // 棕
@@ -219,7 +219,7 @@ export function formatModuleBadge(moduleType: string): string {
   return moduleType.toUpperCase()
 }
 
-/** 卡片上最多展示的推荐系统个数（对应 旧版 `rec_systems[:6]`） */
+/** 卡片上最多展示的推荐系统个数 */
 const RECOMMENDED_SYSTEMS_SHOWN = 6
 
 /**

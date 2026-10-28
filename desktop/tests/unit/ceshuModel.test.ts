@@ -158,7 +158,7 @@ describe('策划书模型（W3 第一切片）', () => {
 describe('resolveDocGameStyle：策划书 → 活跃术语风格', () => {
   const base = (): CeshuDocument => createDefaultCeshu({ scope: 'full' })
 
-  it('doc.style 为已知风格 id 时优先采用（旧版 忽略它，此处有意增强）', () => {
+  it('doc.style 为已知风格 id 时优先采用', () => {
     const doc = base()
     doc.style = 'xianxia'
     doc.meta.game_type = ''
@@ -167,7 +167,7 @@ describe('resolveDocGameStyle：策划书 → 活跃术语风格', () => {
     expect(resolveDocGameStyle(doc)).toBe('xianxia')
   })
 
-  it('doc.style 未知/为空时回退到关键词推断（对齐 旧版 open_ceshu）', () => {
+  it('doc.style 未知/为空时回退到关键词推断', () => {
     const unknown = base()
     unknown.style = '不存在的风格'
     unknown.meta.game_type = '仙侠MMORPG'
@@ -179,7 +179,7 @@ describe('resolveDocGameStyle：策划书 → 活跃术语风格', () => {
     expect(resolveDocGameStyle(byType)).toBe('scifi')
   })
 
-  it('game_type + tags 推断不出时回退 positioning（旧版 的第二段 fallback）', () => {
+  it('game_type + tags 推断不出时回退 positioning', () => {
     const doc = base()
     doc.meta.game_type = '未知类型'
     doc.meta.tags = []
@@ -187,7 +187,7 @@ describe('resolveDocGameStyle：策划书 → 活跃术语风格', () => {
     expect(resolveDocGameStyle(doc)).toBe('fantasy')
   })
 
-  it('全都推断不出 → 空串（= 无活跃风格，标签原样显示，同 旧版 set_active_style("")）', () => {
+  it('全都推断不出 → 空串', () => {
     const doc = base()
     doc.meta.game_type = ''
     doc.meta.tags = []

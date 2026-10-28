@@ -1,10 +1,14 @@
 import {
+  AlignmentType,
   Document,
+  Footer,
   HeadingLevel,
   Packer,
+  PageNumber,
   Paragraph,
   Table,
   TableCell,
+  TableOfContents,
   TableRow,
   TextRun,
   WidthType
@@ -14,25 +18,32 @@ import {
   CHAPTER_KEYS,
   CHAPTER_LABELS,
   SYSTEM_LABELS,
+  enabledModuleChapters,
   type CeshuDocument,
-  type ChapterData
+  type ChapterData,
+  type ChapterKey
 } from '../../../shared/ceshuConstants'
 import { fieldStatusOf } from '../../../shared/ceshuFieldStatus'
 import { countFieldStatuses, formatFieldStatusSummary } from '../../../shared/ceshuFieldStatusStats'
 import { CESHU_CHAPTER_FIELDS } from '../../../shared/ceshuFields'
-import { computeChapterProgress, formatLocalTimestamp, getGddScope, isPlainObject } from '../../../shared/ceshuModel'
+import { computeChapterProgress, formatLocalTimestamp, getGameType, getGddScope, isPlainObject } from '../../../shared/ceshuModel'
 import {
   EMPTY_PLACEHOLDER,
   chapterHeading,
   classifySystems,
+  fieldLabel,
   formatFieldValue,
+  isEmptyValue,
+  machineFieldEntries,
   orderedFieldEntries,
-  visibleChapterEntries
+  pipeTable,
+  visibleChapterEntries,
+  type PipeTable
 } from './common'
 
 /**
  * 策划书 docx 渲染器（纯函数式，返回 Buffer，写盘由上层 exporter 负责）。
- * 结构参照 Python ceshu_docx_exporter.py：封面元信息 → 各章正文 → 完成度附录。
+ * 结构参照 旧版 ceshu_docx_exporter：封面元信息 → 各章正文 → 完成度附录。
  */
 
 /** 中文字体（正文与标题统一，避免 Word 回退到默认西文字体） */
@@ -74,7 +85,7 @@ function fieldParagraphs(name: string, value: unknown): Paragraph[] {
   return paragraphs
 }
 
-/** 系统中文名/数据类型回退（与 Python name/data_type 缺省规则一致） */
+/** 系统中文名/数据类型回退 */
 function systemName(sysId: string, sysData: ChapterData): string {
   return typeof sysData.name === 'string' && sysData.name ? sysData.name : (SYSTEM_LABELS[sysId] ?? sysId)
 }
@@ -113,7 +124,7 @@ function enabledSystemDetails(data: ChapterData): Paragraph[] {
   for (const [sysId, sysData] of enabled) {
     blocks.push(headingParagraph(`${systemName(sysId, sysData)} (${sysId})`, HeadingLevel.HEADING_3))
     const config = isPlainObject(sysData.config) ? sysData.config : {}
-    const entries = Object.entries(config)
+    const entries = Object.entries(config).filter(([, value]) => !isEmptyValue(value))
     if (entries.length === 0) {
       blocks.push(bodyParagraph('(无配置)'))
       continue
@@ -159,6 +170,58 @@ function renderReviewProgress(doc: CeshuDocument): Paragraph[] {
   return blocks
 }
 
+/** 字段中文标签段落（pipeList 表格前用，表格另起一段） */
+function fieldLabelParagraph(label: string): Paragraph {
+  return new Paragraph({ spacing: { before: 120, after: 40 }, children: [textRun(`${label}:`, { bold: true })] })
+}
+
+/** pipeList → Word 表格（表头加粗） */
+function pipeTableToDocx(table: PipeTable): Table {
+  const header = new TableRow({
+    children: table.headers.map(
+      (label) => new TableCell({ children: [new Paragraph({ children: [textRun(label, { bold: true })] })] })
+    )
+  })
+  const rows: TableRow[] = [header]
+  for (const row of table.rows) {
+    rows.push(
+      new TableRow({
+        children: row.map(
+          (cell) => new TableCell({ children: [new Paragraph({ children: [textRun(cell)] })] })
+        )
+      })
+    )
+  }
+  return new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows })
+}
+
+/** 单个字段 → 段落/表格（pipeList 有列定义时渲染成真表格，否则回落成文本段落） */
+function fieldBlock(chapter: ChapterKey, fieldKey: string, value: unknown): Array<Paragraph | Table> {
+  const label = fieldLabel(chapter, fieldKey)
+  const table = pipeTable(chapter, fieldKey, value)
+  if (table !== null) return [fieldLabelParagraph(label), pipeTableToDocx(table)]
+  return fieldParagraphs(label, value)
+}
+
+/** 附录：验收与机读数据（正文只留人读字段，机读表格集中在此） */
+function renderMachineAppendix(doc: CeshuDocument): Array<Paragraph | Table> {
+  const blocks: Array<Paragraph | Table> = []
+  let any = false
+  for (const entry of visibleChapterEntries(getGddScope(doc), getGameType(doc), enabledModuleChapters(doc))) {
+    const data = doc[entry.key]
+    if (!data) continue
+    const machine = machineFieldEntries(entry.key, data)
+    if (machine.length === 0) continue
+    if (!any) {
+      blocks.push(headingParagraph('附录：验收与机读数据', HeadingLevel.HEADING_2))
+      any = true
+    }
+    blocks.push(headingParagraph(chapterHeading(entry), HeadingLevel.HEADING_3))
+    for (const [fieldKey, value] of machine) blocks.push(...fieldBlock(entry.key, fieldKey, value))
+  }
+  return blocks
+}
+
 /** docx 渲染器：返回文档 Buffer（写盘由上层 exporter 负责） */
 export async function renderCeshuDocx(doc: CeshuDocument): Promise<Buffer> {
   const meta = doc.meta
@@ -170,13 +233,23 @@ export async function renderCeshuDocx(doc: CeshuDocument): Promise<Buffer> {
     typeof meta.positioning === 'string' && meta.positioning.trim() ? meta.positioning : EMPTY_PLACEHOLDER
   const date = formatLocalTimestamp().slice(0, 10)
 
+  const entries = visibleChapterEntries(getGddScope(doc), getGameType(doc), enabledModuleChapters(doc))
+
+  // 正文：目录域 → 章节 → 机读附录 → 内部附录（审核进度 / 完成度）
   const children: Array<Paragraph | Table> = [
-    headingParagraph(gameName, HeadingLevel.HEADING_1),
-    bodyParagraph(`版本: ${doc.version_label} | 类型: ${gameType} | 日期: ${date}`),
-    bodyParagraph(`定位: ${positioning}`)
+    new Paragraph({ children: [new TableOfContents('目录', { hyperlink: true, headingStyleRange: '1-2' })] }),
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: '（若目录为空，请在 Word 中右键「更新域」或按 F9 刷新页码）',
+          font: FONT,
+          size: 16,
+          color: '888888'
+        })
+      ]
+    })
   ]
 
-  const entries = visibleChapterEntries(getGddScope(doc))
   for (const entry of entries) {
     children.push(headingParagraph(chapterHeading(entry), HeadingLevel.HEADING_2))
     const data = doc[entry.key]
@@ -184,13 +257,16 @@ export async function renderCeshuDocx(doc: CeshuDocument): Promise<Buffer> {
       children.push(systemsTable(data), ...enabledSystemDetails(data))
       continue
     }
-    const fields = orderedFieldEntries(entry.key, data)
+    const fields = data ? orderedFieldEntries(entry.key, data) : []
     if (fields.length === 0) {
       children.push(bodyParagraph('(本章暂无内容)'))
       continue
     }
-    for (const [name, value] of fields) children.push(...fieldParagraphs(name, value))
+    for (const [fieldKey, value] of fields) children.push(...fieldBlock(entry.key, fieldKey, value))
   }
+
+  // 附录：验收与机读数据（机读表格集中在此，不切碎正文）
+  children.push(...renderMachineAppendix(doc))
 
   // 附录：审核进度（放在完成度之前，与 Markdown 的附录顺序一致）
   children.push(...renderReviewProgress(doc))
@@ -204,6 +280,47 @@ export async function renderCeshuDocx(doc: CeshuDocument): Promise<Buffer> {
   }
   children.push(bodyParagraph(`总进度: ${Math.round((progress.total ?? 0) * 100)}%`))
 
+  // 封面（独立分节，不显示页码）
+  const cover: Paragraph[] = [
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 3000, after: 200 },
+      children: [new TextRun({ text: gameName, font: FONT, bold: true, size: 56 })]
+    }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 240 },
+      children: [new TextRun({ text: '游戏设计文档（GDD）', font: FONT, size: 32 })]
+    }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 80 },
+      children: [new TextRun({ text: `版本 ${doc.version_label || 'v1.0'} · ${date}`, font: FONT, size: 24 })]
+    }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 80 },
+      children: [new TextRun({ text: `类型：${gameType}`, font: FONT, size: 24 })]
+    }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [new TextRun({ text: `定位：${positioning}`, font: FONT, size: 24 })]
+    })
+  ]
+
+  const footer = new Footer({
+    children: [
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [
+          new TextRun({ text: '第 ', font: FONT, size: 18 }),
+          new TextRun({ children: [PageNumber.CURRENT], font: FONT, size: 18 }),
+          new TextRun({ text: ' 页', font: FONT, size: 18 })
+        ]
+      })
+    ]
+  })
+
   const document = new Document({
     styles: {
       default: {
@@ -216,6 +333,11 @@ export async function renderCeshuDocx(doc: CeshuDocument): Promise<Buffer> {
     sections: [
       {
         properties: { page: { margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 } } },
+        children: cover
+      },
+      {
+        properties: { page: { margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 } } },
+        footers: { default: footer },
         children
       }
     ]

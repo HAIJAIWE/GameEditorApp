@@ -1,7 +1,7 @@
 /**
  * combo / multiCombo 选项的**中文别名表**（定义层，仅供 `systemConfigSchema` 与 `ceshuFields` 引用）。
  *
- * 起因（旧版 侧缺陷）：下拉只给英文枚举码，渲染层 `optionLabels?.[option] ?? option`
+ * 起因：下拉只给英文枚举码，渲染层 `optionLabels?.[option] ?? option`
  * ⇒ 界面裸显示 turn_based / arena / behavior_tree / f2p_p2w 这类内部码。
  *
  * 两条硬约束（由 `tests/unit/ceshuOptionLabels.test.ts` 锁死）：
@@ -13,9 +13,10 @@
  * `systems.battle.config.turn_mode`）⇒ 共用同一张表，避免两处翻译漂移。
  */
 
+import { contentChapterCount } from './ceshuConstants'
+
 /** 无 / 关闭：绝大多数枚举集的默认值，单独抽出以避免逐表重复 */
 const NONE: Record<string, string> = { none: '无' }
-
 /** 战斗模式（combat.combat_mode / systems.battle.config.turn_mode 共用） */
 export const COMBAT_MODE_LABELS: Record<string, string> = {
   turn_based: '回合制',
@@ -73,12 +74,12 @@ export const CONFIDENTIALITY_LABELS: Record<string, string> = {
 
 /**
  * 策划档位（meta.gdd_scope）。
- * 章数说法必须与 `ceshuConstants` 的 `CHAPTER_PARTS` 一致：标准版 = 文档信息 + 核心设计 9 章，
- * 专业版 = 文档信息 + 全部 16 章（**文档信息段不占章号**，所以不写「17 章」）。
+ * 章数由 `contentChapterCount` 派生（**不写死**）：`CHAPTER_KEYS` 追加章节时文案自动跟随，
+ * 否则会重演「导航 24 章、档位标签说 16 章」的漂移（2026-10-26 追加 7 个 P2 章后就是这么烂的）。
  */
 export const GDD_SCOPE_LABELS: Record<string, string> = {
-  lite: '标准版（文档信息 + 9 章）',
-  full: '专业版（文档信息 + 16 章）'
+  lite: `标准版（文档信息 + ${contentChapterCount('lite')} 章）`,
+  full: `专业版（文档信息 + ${contentChapterCount('full')} 章）`
 }
 
 /**

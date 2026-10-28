@@ -141,7 +141,52 @@ export const ANALYTICS_DEFAULTS: ChapterData = {
   alert_monitoring: []
 }
 
-export const ANALYTICS_TEMPLATES: ChapterTemplate[] = []
+export const ANALYTICS_TEMPLATES: ChapterTemplate[] = [
+  {
+    name: '指标体系与埋点（示例）',
+    description: '覆盖核心指标、关键漏斗、埋点清单、看板与异常监控，口径可复现',
+    tags: ['数据', '埋点', '指标', '示例'],
+    data: {
+      metric_system: [
+        { name: 'DAU', definition: '日活跃用户数', caliber: '自然日去重，UTC+8 0 点切分', target: '20 万' },
+        { name: '付费率', definition: '当日付费人数 / 当日活跃', caliber: '自然日，去重', target: '6%' },
+        { name: 'ARPU', definition: '日均收入 / 日均活跃', caliber: '自然日', target: '¥8' },
+        { name: '剧情通关率', definition: '通关第一章人数 / 进入第一章人数', caliber: '7 日窗口', target: '≥70%' },
+        { name: 'D30 留存', definition: '注册 30 日后仍活跃比例', caliber: 'cohort 去重', target: '≥18%' },
+        { name: '抽卡 ARPU', definition: '卡池收入 / 抽卡人数', caliber: '卡池周期', target: '¥45' },
+        { name: '论剑参与率', definition: '赛季参与论剑人数 / 活跃', caliber: '赛季', target: '≥35%' },
+        { name: '日均时长', definition: '人均在线时长', caliber: '自然日', target: '42 min' }
+      ],
+      key_funnels: '核心漏斗：注册 → 新手引导 → 首场战斗 → 首次抽卡 → 首次付费。各级定义见要点，目标转化率与指标体系对齐。',
+      key_funnels_points: [
+        '注册→新手引导完成：进入条件=注册成功，目标 ≥ 92%',
+        '新手引导→首场战斗：进入条件=引导完成，目标 ≥ 85%',
+        '首场战斗→首次抽卡：进入条件=战斗胜利，目标 ≥ 60%',
+        '首次抽卡→首次付费：进入条件=抽卡，目标 ≥ 12%',
+        '首日→D7 留存：进入条件=首日活跃，目标 ≥ 25%'
+      ],
+      key_funnels_notes: '分渠道漏斗差异：买量渠道首充转化偏低，需单独看板。',
+      event_tracking: [
+        { event: 'user_register', trigger: '注册成功', params: 'channel, device_model' },
+        { event: 'combat_win', trigger: '战斗胜利结算', params: 'level_id, duration, team_power' },
+        { event: 'gacha_draw', trigger: '抽卡完成', params: 'pool_id, count, is_up' },
+        { event: 'pay_success', trigger: '支付成功', params: 'order_id, amount, product_id' },
+        { event: 'chapter_clear', trigger: '章节通关', params: 'chapter_id, time_cost' },
+        { event: 'quest_accept', trigger: '接取宗门任务', params: 'quest_id, repeat' }
+      ],
+      dashboards: [
+        { name: '实时大盘', audience: '制作人 / 运营', metrics: 'DAU / 付费率 / 收入', refresh: '5 min' },
+        { name: '留存看板', audience: '增长', metrics: 'D1 / D7 / D30', refresh: '每日' },
+        { name: '经济监控', audience: '数值', metrics: '货币产出 / 消耗 / 通胀', refresh: '每小时' }
+      ],
+      alert_monitoring: [
+        { item: '崩溃率', threshold: '>1%', channel: '企业微信告警群', response: '10 min 内定位，热更' },
+        { item: '付费成功率', threshold: '<95%', channel: '企业微信告警群', response: '查支付通道' },
+        { item: '抽卡掉率偏离', threshold: '偏离公示 ±20%', channel: '数值群', response: '核对保底逻辑' }
+      ]
+    }
+  }
+]
 
 export const ANALYTICS_SCHEMA: ChapterSchema = {
   fields: ANALYTICS_FIELDS,
