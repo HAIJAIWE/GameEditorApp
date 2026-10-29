@@ -7235,36 +7235,39 @@ button.ref-row:hover {
  * 切走再切回不能丢）。代码/浏览器面板样式见各自区块。
  * ==========================================================================*/
 
+/* 主区页签条：与右栏页签同一套语言（36px 高、14px 字、文字色 + 2px 品牌色下划线），
+   不用胶囊/描边——dsh 的页签是「文字 + 下划线」，选中靠色阶而不是描边。 */
 .middle-tabs {
   display: flex;
   align-items: stretch;
   gap: 2px;
   padding: 0 8px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.12);
   background: var(--bg-panel);
   flex: 0 0 auto;
 }
 
 .middle-tab {
-  padding: 8px 16px;
+  height: 36px;
+  padding: 0 10px;
   border: none;
   border-bottom: 2px solid transparent;
   background: transparent;
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: calc(14px * var(--ui-font-scale));
   cursor: pointer;
   white-space: nowrap;
 }
 
 .middle-tab:hover {
   color: var(--text);
-  background: var(--bg-hover);
+  background: rgba(38, 49, 72, 0.06);
 }
 
 .middle-tab.active {
-  color: var(--accent);
+  color: var(--text);
   border-bottom-color: var(--accent);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .middle-tab-body {
@@ -8907,20 +8910,23 @@ button.ref-row:hover {
 .rightbar-tabs {
   display: flex;
   flex: 0 0 auto;
+  align-items: stretch;
   gap: 2px;
-  padding: 4px 8px 0;
-  border-bottom: 1px solid var(--divider);
+  padding: 0 8px;
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.12);
   overflow-x: auto;
 }
+/* 与主区页签同一套语言：36px 高、14px 字、文字色 + 2px 下划线 */
 .rightbar-tab {
   flex: 0 0 auto;
-  padding: 5px 10px;
+  height: 36px;
+  padding: 0 10px;
   border: 0;
   border-bottom: 2px solid transparent;
   background: none;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   font: inherit;
-  font-size: calc(13px * var(--ui-font-scale) * 12/13);
+  font-size: calc(14px * var(--ui-font-scale));
   cursor: pointer;
   white-space: nowrap;
 }
@@ -8930,6 +8936,7 @@ button.ref-row:hover {
 .rightbar-tab.active {
   color: var(--text);
   border-bottom-color: var(--accent);
+  font-weight: 500;
 }
 
 .rightbar-body {
