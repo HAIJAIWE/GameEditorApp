@@ -76,6 +76,17 @@
   --tooltip-fg: #bae6fd;
 
   --radius: 8px;
+
+  /*
+   * 改动卡三色（新建 / 修改 / 删除）。
+   *
+   * 为什么不直接用 `--success` / `--danger`：这两个是**按钮底色/图标**语义，
+   * `--success: #22C55E` 在浅色白底上对比度仅 ~2.3:1，拿来写 11px 小字读不清。
+   * 这里给一组「可作前景文字」的同色相变体，深色档再单独调亮。
+   */
+  --change-create: #15803d;
+  --change-update: #475569;
+  --change-delete: #b91c1c;
 }
 
 /* ---- 深色档覆盖（沿用 :root 的令牌结构；整站换肤无需改任何规则） ---- */
@@ -115,6 +126,11 @@
   --scroll: #3a4049;
   --tooltip-bg: #1b1e24;
   --tooltip-fg: #7ee2ae;
+
+  /* 改动卡三色：深底上把浅色档的深绿/深红换成亮色，保证 11px 小字可读 */
+  --change-create: #4ade80;
+  --change-update: #a9b2c0;
+  --change-delete: #f87171;
 }
 
 /*
@@ -203,6 +219,11 @@
   --scroll: #2e2830;
   --tooltip-bg: #2e2830;
   --tooltip-fg: #a78bfa;
+
+  /* 改动卡三色：同为深色档，跟「深色」一致的亮色变体 */
+  --change-create: #4ade80;
+  --change-update: #b6afbd;
+  --change-delete: #f87171;
 }
 
 * {
@@ -7788,60 +7809,178 @@ button.ref-row:hover {
   display: flex;
   gap: 8px;
 }
-.recent-changes-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+/* 行渲染已统一到 .digital-change-*（见下），这里只留面板自身的错误条 */
+.recent-changes-error {
+  font-size: calc(13px * var(--ui-font-scale) * 13/13);
+  color: var(--change-delete);
+}
+
+/* ===== 改动卡（对话内联 + 「最近改动」面板共用；借 dsh deliverables 卡结构） ===== */
+.digital-change-card {
+  align-self: stretch;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-panel);
+  overflow: hidden;
 }
-.recent-changes-item {
+
+.digital-change-card-head {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
-  padding: 8px 10px;
-  border: 1px solid var(--border-color, #eee);
-  border-radius: 6px;
-  background: var(--bg-subtle, #fafafa);
+  padding: 8px 12px 0;
 }
-.recent-changes-op {
-  flex: 0 0 auto;
-  padding: 1px 6px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 600;
+
+.digital-change-all {
+  flex: none;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
-.recent-changes-op.op-create {
-  color: #2f855a;
-  background: #e6ffed;
+
+.digital-change-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 8px 12px;
 }
-.recent-changes-op.op-update {
-  color: #2b6cb0;
-  background: #e6f0ff;
+
+.digital-change-tile {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--accent-bg);
+  color: var(--accent);
 }
-.recent-changes-op.op-delete {
-  color: #c53030;
-  background: #ffe6e6;
+
+.digital-change-titles {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
 }
-.recent-changes-name {
-  flex: 1 1 auto;
+
+.digital-change-title {
   overflow: hidden;
+  color: var(--text);
+  font-size: calc(13px * var(--ui-font-scale) * 13/13);
+  font-weight: 600;
+  line-height: 1.45;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.recent-changes-meta {
-  flex: 0 0 auto;
-  font-size: 12px;
+
+.digital-change-stat {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   color: var(--text-muted);
+  font-size: calc(13px * var(--ui-font-scale) * 11/13);
+  line-height: 1.5;
 }
-.recent-changes-empty,
-.recent-changes-error {
-  font-size: 13px;
+.digital-change-stat-create {
+  color: var(--change-create);
+}
+.digital-change-stat-update {
+  color: var(--change-update);
+}
+.digital-change-stat-delete {
+  color: var(--change-delete);
+}
+
+.digital-change-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--divider);
+}
+
+.digital-change-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 7px 12px;
+  border-top: 1px solid var(--divider);
+  color: var(--text-secondary);
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
+}
+.digital-change-row:first-child {
+  border-top: 0;
+}
+
+.digital-change-op {
+  flex: none;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--change-update) 12%, transparent);
+  color: var(--change-update);
+  font-size: calc(13px * var(--ui-font-scale) * 11/13);
+  font-weight: 600;
+}
+.digital-change-op.op-create {
+  background: color-mix(in srgb, var(--change-create) 14%, transparent);
+  color: var(--change-create);
+}
+.digital-change-op.op-update {
+  background: color-mix(in srgb, var(--change-update) 12%, transparent);
+  color: var(--change-update);
+}
+.digital-change-op.op-delete {
+  background: color-mix(in srgb, var(--change-delete) 14%, transparent);
+  color: var(--change-delete);
+}
+
+.digital-change-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.digital-change-meta {
+  flex: none;
   color: var(--text-muted);
+  font-size: calc(13px * var(--ui-font-scale) * 11/13);
+  white-space: nowrap;
 }
-.recent-changes-error {
-  color: #c53030;
+
+.digital-change-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0;
+  padding: 8px 12px;
+  border: 0;
+  border-top: 1px solid var(--divider);
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
+  text-align: left;
+  cursor: pointer;
+}
+.digital-change-toggle:hover {
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+}
+
+.digital-change-empty {
+  margin: 0;
+  padding: 12px;
+  color: var(--text-muted);
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
 
 /* 输入区接管（chain slot） */

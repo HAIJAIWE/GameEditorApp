@@ -9,6 +9,7 @@ import {
   agentFeedbackInputSchema,
   agentDraftLoadInputSchema,
   agentDraftSaveInputSchema,
+  agentRecentChangesInputSchema,
   agentSubagentSendInputSchema,
   agentSubagentStopInputSchema,
   mcpSetConfigInputSchema
@@ -141,8 +142,11 @@ export function registerAgentIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
     return { ok: true }
   })
   handle('agent:getPreReviewEnabled', undefined, () => ({ enabled: isPreReviewEnabled() }))
-  // 最近改动（操作日志）：最近的数据变更记录（新→旧），供「最近改动」面板
-  handle('agent:recentChanges', undefined, (req) => ({
-    changes: agentOperationLog.listRecent(typeof req?.limit === 'number' ? req.limit : undefined)
+  // 最近改动（操作日志）：最近的数据变更记录（新→旧），供「最近改动」面板与对话内联改动卡
+  handle('agent:recentChanges', agentRecentChangesInputSchema, (req) => ({
+    changes: agentOperationLog.listRecentFiltered(req?.limit, {
+      since: req?.since,
+      conversationId: req?.conversationId
+    })
   }))
 }

@@ -15,6 +15,14 @@ export const MAX_OPERATIONS = 5000
 /** 每次超限淘汰的条目数（旧条目优先） */
 export const PURGE_BATCH = 500
 
+/** 「最近改动」的收窄条件（两者缺省 = 不筛，行为与全量一致） */
+export interface RecentChangesFilter {
+  /** 只保留 `timestamp >= since` 的记录（对话面板传本轮开始时间） */
+  since?: number
+  /** 只保留该会话的记录（操作日志本就按会话分组） */
+  conversationId?: string
+}
+
 export class OperationLogStore {
   private operations: OperationRecord[] = []
 
@@ -34,8 +42,25 @@ export class OperationLogStore {
 
   /** 最近 N 条记录（新→旧），供「最近改动」UI 展示 */
   listRecent(limit = 50): OperationRecord[] {
+    return this.listRecentFiltered(limit)
+  }
+
+  /**
+   * 最近 N 条记录（新→旧），可按会话 / 起始时间收窄。
+   *
+   * 顺序固定为「会话 → since → 取尾部 N 条」：**先筛再截断**。
+   * 反过来（先截断再筛）会让「某会话最近 50 条」退化成「全局最近 50 条里恰好属于该会话的几条」，
+   * 数据一多就几乎总是空卡。
+   */
+  listRecentFiltered(limit = 50, filter: RecentChangesFilter = {}): OperationRecord[] {
     const n = Number.isFinite(limit) && limit > 0 ? Math.trunc(limit) : 50
-    return this.operations.slice(-n).reverse()
+    const { since, conversationId } = filter
+    const matched = this.operations.filter(
+      (record) =>
+        (conversationId === undefined || record.conversationId === conversationId) &&
+        (since === undefined || record.timestamp >= since)
+    )
+    return matched.slice(-n).reverse()
   }
 
   count(): number {

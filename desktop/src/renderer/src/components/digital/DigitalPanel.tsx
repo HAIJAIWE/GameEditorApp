@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'r
 import { defaultDraftName, type DraftSummary } from '../../../../shared/agent/session'
 
 import ChatMarkdown from './ChatMarkdown'
+import { DigitalChangeCard } from './DigitalChangeCard'
 import FieldActionStrip from './FieldActionStrip'
 
 import LucideIcon from '../LucideIcon'
@@ -23,6 +24,7 @@ import { SlotOutlet } from '../../plugins/slotOutlet'
 
 import type { BrainEvent } from '../../../../shared/agent/brain'
 import type { AgentRunTier } from '../../../../shared/agent/observability'
+import type { OperationRecord } from '../../../../shared/agent/operationLog'
 import {
   hydrateFromSession,
   initialDigitalPanelState,
@@ -71,6 +73,12 @@ interface ChatApi {
   draftSave: (req: { name: string }) => Promise<DraftSummary>
   draftList: () => Promise<DraftSummary[]>
   draftLoad: (req: { path: string }) => Promise<{ name: string; messages: Array<{ role?: unknown; content?: unknown }> }>
+  /** 本轮改动：按 `since`（本轮开始时间）从操作日志取变更记录（新→旧） */
+  recentChanges: (req: {
+    limit?: number
+    since?: number
+    conversationId?: string
+  }) => Promise<{ changes: OperationRecord[] }>
   onEvent: (handler: (event: unknown) => void) => () => void
 }
 
@@ -186,6 +194,13 @@ export default function DigitalPanel({
   const draftMenuRef = useRef<HTMLDivElement | null>(null)
   /** 当前进行中那一轮的 runId（「停止」按钮据此精确取消） */
   const activeRunId = useRef<string | null>(null)
+  /**
+   * 本轮改动（操作日志）：**运行结束后一次性拉取**，不做轮询。
+   * 只存本轮 `since` 之后新建/修改/删除的数据条目，供对话流内联改动卡展示。
+   */
+  const [turnChanges, setTurnChanges] = useState<OperationRecord[]>([])
+  /** 本轮开始时间（`since` 过滤锚点）。只读不触发渲染，故用 ref 而非 state */
+  const turnStartedAt = useRef<number | null>(null)
 
   const api = useMemo(() => (window.mbApi as unknown as { agent: ChatApi }).agent, [])
   const tasks = useMemo(() => summarizeToolTasks(state.steps), [state.steps])
@@ -246,6 +261,30 @@ export default function DigitalPanel({
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight })
   }, [state.messages.length, state.streaming])
 
+  /**
+   * 本轮结束（`done`）后拉「本轮改动」：`since` 取发送时记下的开始时间。
+   *
+   * effect 内**不能同步 setState**（`react-hooks/set-state-in-effect`），故先 await 再 set。
+   * 拉取失败静默降级：改动卡不出现即可，绝不能因为「查日志失败」打断对话。
+   */
+  useEffect(() => {
+    if (state.status !== 'done') return
+    const since = turnStartedAt.current
+    if (since === null) return
+    let cancelled = false
+    void (async () => {
+      try {
+        const res = await api.recentChanges({ limit: 50, since })
+        if (!cancelled) setTurnChanges(res.changes)
+      } catch (error: unknown) {
+        console.warn('读取本轮改动失败（不影响对话）：', error)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [state.status, api])
+
   // `@` 引用候选：首次输入 `@` 时懒加载当前库的数据表类型（失败静默，输入框仍可用）
   useEffect(() => {
     if (!input.startsWith('@') || dataTypesLoaded.current) return
@@ -263,6 +302,9 @@ export default function DigitalPanel({
       if (text === '' || running) return
       setLocalError(null)
       setInput('')
+      // 本轮改动卡的锚点：先清掉上一轮的结果，避免运行中看到旧卡
+      turnStartedAt.current = Date.now()
+      setTurnChanges([])
       dispatch({ kind: 'submit', text })
       // 本轮 runId：取消时据此精确定位（主进程也按窗口兜底，双保险）
       const runId = `run_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
@@ -425,6 +467,8 @@ export default function DigitalPanel({
       dispatch({ kind: 'hydrate', history: [] })
       setSessionHint(null)
       setInput('')
+      // 新对话不再展示上一轮的改动卡（`turnStartedAt` 留给下一次发送覆盖，无需在此清空）
+      setTurnChanges([])
     } catch (error: unknown) {
       setLocalError(toErrorMessage(error))
     }
@@ -705,6 +749,8 @@ export default function DigitalPanel({
               <ChatMarkdown text={message.text} />
             </div>
           ))}
+        {/* 本轮改动卡：对话流内、紧跟助手消息之后、流式气泡之前；空列表不渲染任何 DOM */}
+        <DigitalChangeCard changes={turnChanges} />
         {state.streaming !== '' && (
           <div className="digital-bubble digital-bubble-assistant" data-testid="digital-streaming">
             {state.streaming}

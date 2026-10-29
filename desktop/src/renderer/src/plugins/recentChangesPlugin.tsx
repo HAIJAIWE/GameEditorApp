@@ -3,6 +3,7 @@ import { useEffect, useState, type ReactElement } from 'react'
 import type { PluginHost } from '../../../shared/plugin/host'
 import type { PluginManifest } from '../../../shared/plugin/types'
 import type { OperationRecord } from '../../../shared/agent/operationLog'
+import { DigitalChangeList } from '../components/digital/DigitalChangeCard'
 import { registerReactBinding, type PanelBindingProps } from './reactBindings'
 
 /**
@@ -96,33 +97,8 @@ function RecentChangesPanel({ onClose }: PanelBindingProps): ReactElement {
       </div>
 
       {error !== null && <p className="recent-changes-error">读取失败：{error}</p>}
-      {changes.length === 0 ? (
-        <p className="recent-changes-empty">暂无改动记录（智能体尚未修改数据）</p>
-      ) : (
-        <ul className="recent-changes-list">
-          {changes.map((change, index) => (
-            <li key={`${change.itemId}-${change.timestamp}-${index}`} className="recent-changes-item">
-              <span className={`recent-changes-op op-${change.opType}`}>{opLabel(change.opType)}</span>
-              <span className="recent-changes-name">{change.itemName}</span>
-              <span className="recent-changes-meta">
-                {change.dataType} · {formatTime(change.timestamp)}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
+      {/* 行渲染统一在 DigitalChangeList（与对话内联改动卡共用），此处只负责取数与刷新 */}
+      <DigitalChangeList changes={changes} loading={loading} />
     </div>
   )
-}
-
-function opLabel(op: OperationRecord['opType']): string {
-  return op === 'create' ? '新建' : op === 'update' ? '修改' : '删除'
-}
-
-function formatTime(timestamp: number): string {
-  if (!timestamp) return '—'
-  const ms = timestamp < 1e12 ? timestamp * 1000 : timestamp
-  const date = new Date(ms)
-  const pad = (value: number): string => String(value).padStart(2, '0')
-  return `${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`
 }

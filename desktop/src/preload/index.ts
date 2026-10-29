@@ -52,7 +52,9 @@ const api: MbApi = {
     setPreReviewEnabled: (req: { enabled: boolean }) => invoke('agent:setPreReviewEnabled', req),
     /** 读取执行预审当前开关状态（#27，UI 回显） */
     getPreReviewEnabled: () => invoke('agent:getPreReviewEnabled', undefined),
-    recentChanges: (req: { limit?: number }) => invoke('agent:recentChanges', req),
+    /** 最近改动（操作日志）：可按 `since`（本轮开始时间）/ `conversationId` 收窄 */
+    recentChanges: (req: { limit?: number; since?: number; conversationId?: string }) =>
+      invoke('agent:recentChanges', req),
     /** 订阅主进程推送的事件流；返回取消订阅函数 */
     onEvent: (handler: (event: unknown) => void): (() => void) => {
       const listener = (_event: unknown, payload: unknown): void => handler(payload)

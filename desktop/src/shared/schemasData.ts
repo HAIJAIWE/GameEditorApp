@@ -142,6 +142,21 @@ export const agentDraftLoadInputSchema = z.object({
   path: z.string().min(1)
 })
 
+/**
+ * 最近改动（操作日志）的查询条件。
+ *
+ * `undefined` 整体合法：旧调用方 `recentChanges()` 不带参数，不能因为新增过滤字段就报校验错。
+ * `limit` 只挡明显非法值（上限 1000 远大于任何 UI 用途），真正的截断仍由 store 兜底。
+ */
+export const agentRecentChangesInputSchema = z
+  .object({
+    limit: z.number().int().positive().max(1000).optional(),
+    /** 只取 `timestamp >= since` 的记录（毫秒时间戳） */
+    since: z.number().nonnegative().optional(),
+    conversationId: z.string().min(1).max(200).optional()
+  })
+  .optional()
+
 /* ---- 字段级 AI 辅助 ---- */
 
 /** 单次文本生成的入参 */
