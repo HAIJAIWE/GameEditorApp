@@ -76,4 +76,33 @@ describe('会话轨迹页签', () => {
     expect(result.byTestId('trajectory').textContent).toContain('回答')
     await result.cleanup()
   })
+
+  it('有参数/输出的行可展开看详情；思考轮（无参数无输出）不可展开', async () => {
+    const host = new PluginHost()
+    const store = host.declareStore(CONVERSATION_STORE_KEY, createConversationStoreDecl())
+    store.actions.dispatch({ kind: 'event', event: { type: 'step_start', order: 0, tool: 'llm_think' } })
+    store.actions.dispatch({
+      kind: 'event',
+      event: {
+        type: 'step_done',
+        tool: 'system.game_data',
+        result: '共 13 种数据类型',
+        success: true,
+        args: '{"action":"list"}'
+      }
+    })
+
+    const result = await renderTrajectory(host)
+    const rows = result.queryAll('[data-testid="trajectory-row"]')
+    expect(rows).toHaveLength(2)
+    // 思考轮：没有 args/result → 不是 summary（不可展开）
+    expect(rows[0]?.tagName.toLowerCase()).toBe('div')
+    // 工具行：可展开，详情里有美化后的参数与输出
+    expect(rows[1]?.tagName.toLowerCase()).toBe('summary')
+    const detail = result.byTestId('trajectory-row-detail')
+    expect(detail.textContent).toContain('参数')
+    expect(detail.textContent).toContain('"action": "list"')
+    expect(detail.textContent).toContain('共 13 种数据类型')
+    await result.cleanup()
+  })
 })

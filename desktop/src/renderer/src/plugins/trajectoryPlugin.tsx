@@ -2,7 +2,13 @@ import { useMemo, useSyncExternalStore, type ReactElement } from 'react'
 
 import { CONVERSATION_STORE_KEY, createConversationStoreDecl } from '../../../shared/agent/conversationStore'
 import type { DigitalPanelState } from '../../../shared/agent/panel'
-import { buildTrajectory, formatLatency, type TrajectoryModel } from '../../../shared/agent/trajectory'
+import { formatToolArgs, diffRows } from '../../../shared/agent/toolDetail'
+import {
+  buildTrajectory,
+  formatLatency,
+  type TrajectoryModel,
+  type TrajectoryStepRow
+} from '../../../shared/agent/trajectory'
 import type { PluginHost } from '../../../shared/plugin/host'
 import { createStoreInstance } from '../../../shared/plugin/slotRegistry'
 import type { PluginManifest } from '../../../shared/plugin/types'
@@ -118,20 +124,32 @@ function TrajectoryMainView({ host }: { host: PluginHost }): ReactElement {
               </div>
               <ol className="trajectory-rows">
                 {turn.steps.map((row) => (
-                  <li
-                    className={`trajectory-row status-${row.status}`}
-                    key={row.index}
-                    data-testid="trajectory-row"
-                    data-status={row.status}
-                    data-kind={row.kind}
-                  >
-                    <span className="trajectory-row-index">{row.index + 1}</span>
-                    <span className={`trajectory-row-kind kind-${row.kind}`}>{KIND_LABELS[row.kind]}</span>
-                    <span className="trajectory-row-tool">{row.tool}</span>
-                    {row.summary !== '' && <span className="trajectory-row-summary">{row.summary}</span>}
-                    <span className={`trajectory-row-status badge-${row.status}`}>
-                      {row.status === 'running' ? '执行中' : row.status === 'done' ? '完成' : '失败'}
-                    </span>
+                  <li className="trajectory-row-item" key={row.index}>
+                    {hasDetail(row) ? (
+                      // 有参数或输出时用原生 <details>：无需自管展开状态，键盘/读屏都直接可用
+                      <details className="trajectory-row-details">
+                        <summary
+                          className={`trajectory-row status-${row.status}`}
+                          data-testid="trajectory-row"
+                          data-status={row.status}
+                          data-kind={row.kind}
+                        >
+                          <TrajectoryRowCells row={row} />
+                        </summary>
+                        <div className="trajectory-row-detail" data-testid="trajectory-row-detail">
+                          <TrajectoryRowDetail row={row} />
+                        </div>
+                      </details>
+                    ) : (
+                      <div
+                        className={`trajectory-row status-${row.status}`}
+                        data-testid="trajectory-row"
+                        data-status={row.status}
+                        data-kind={row.kind}
+                      >
+                        <TrajectoryRowCells row={row} />
+                      </div>
+                    )}
                   </li>
                 ))}
               </ol>
@@ -182,5 +200,70 @@ function Fact({
       <span className="trajectory-fact-label">{label}</span>
       <span className={`trajectory-fact-value${tone === 'error' ? ' is-error' : ''}`}>{value}</span>
     </div>
+  )
+}
+
+/** 输出上限：轨迹详情是「够看清发生了什么」，整段几万字的输出留给对话面板 */
+const DETAIL_OUTPUT_LIMIT = 4000
+
+/** 有参数或输出才值得展开（思考轮既没参数也没输出，展开只会看到空面板） */
+function hasDetail(row: TrajectoryStepRow): boolean {
+  return row.args !== '' || row.result !== ''
+}
+
+/** 行内单元格：序号 / 类型 / 工具名 / 摘要 / 状态（行本身既可能是 `div` 也可能是 `<summary>`） */
+function TrajectoryRowCells({ row }: { row: TrajectoryStepRow }): ReactElement {
+  return (
+    <>
+      <span className="trajectory-row-index">{row.index + 1}</span>
+      <span className={`trajectory-row-kind kind-${row.kind}`}>{KIND_LABELS[row.kind]}</span>
+      <span className="trajectory-row-tool">{row.tool}</span>
+      {row.summary !== '' && <span className="trajectory-row-summary">{row.summary}</span>}
+      <span className={`trajectory-row-status badge-${row.status}`}>
+        {row.status === 'running' ? '执行中' : row.status === 'done' ? '完成' : '失败'}
+      </span>
+    </>
+  )
+}
+
+/**
+ * 展开后的详情：参数（美化 JSON）+ 输出（diff 走行级配色，其余纯文本）。
+ *
+ * 复用 `toolDetail.ts` 的 `formatToolArgs` / `diffRows`，与对话面板的工具卡同一套判据——
+ * 同一条工具调用在两个视图里不该有不同的「是不是 diff」判断。
+ */
+function TrajectoryRowDetail({ row }: { row: TrajectoryStepRow }): ReactElement {
+  const args = formatToolArgs(row.args)
+  const diff = row.result === '' ? null : diffRows(row.result)
+  const output =
+    row.result.length > DETAIL_OUTPUT_LIMIT
+      ? `${row.result.slice(0, DETAIL_OUTPUT_LIMIT)}\n…（已截断）`
+      : row.result
+
+  return (
+    <>
+      {args.text !== '' && (
+        <div className="trajectory-detail-block">
+          <span className="trajectory-detail-label">参数</span>
+          <pre className="trajectory-detail-pre">{args.text}</pre>
+        </div>
+      )}
+      {row.result !== '' && (
+        <div className="trajectory-detail-block">
+          <span className="trajectory-detail-label">输出</span>
+          {diff !== null ? (
+            <pre className="trajectory-detail-pre trajectory-detail-diff">
+              {diff.map((line, index) => (
+                <span key={index} className={`diff-row diff-${line.kind}`}>
+                  {line.text}
+                </span>
+              ))}
+            </pre>
+          ) : (
+            <pre className="trajectory-detail-pre">{output}</pre>
+          )}
+        </div>
+      )}
+    </>
   )
 }

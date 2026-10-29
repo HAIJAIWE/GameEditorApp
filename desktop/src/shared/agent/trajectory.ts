@@ -18,8 +18,12 @@ export interface TrajectoryStepRow {
   tool: string
   kind: DigitalStep['kind']
   status: DigitalStep['status']
-  /** 结果首行截断（详情仍在对话面板的步骤列表里） */
+  /** 结果首行截断（行内摘要；详情见 `args` / `result`） */
   summary: string
+  /** 原始参数文本（原始 JSON 字符串；空串表示该步没有参数，如思考轮） */
+  args: string
+  /** 完整输出（详情区展示；行内只看 `summary`） */
+  result: string
 }
 
 /** 一轮（`order` 相同即同一轮） */
@@ -75,7 +79,9 @@ export function buildTrajectory(state: DigitalPanelState): TrajectoryModel {
       tool: step.tool,
       kind: step.kind,
       status: step.status,
-      summary: summarize(step.result)
+      summary: summarize(step.result),
+      args: step.args ?? '',
+      result: step.result ?? ''
     }
     if (last !== undefined && last.order === step.order) {
       last.steps.push(row)

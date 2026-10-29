@@ -8685,3 +8685,64 @@ button.ref-row:hover {
   color: var(--text-muted);
   font-size: calc(13px * var(--ui-font-scale) * 11/13);
 }
+
+/* 轨迹行详情（原生 <details>）：行本身是 summary，展开后给参数/输出 */
+.trajectory-row-item {
+  border-top: 1px solid var(--divider);
+}
+.trajectory-row-item:first-child {
+  border-top: 0;
+}
+.trajectory-row-details > summary {
+  list-style: none;
+  cursor: pointer;
+}
+.trajectory-row-details > summary::-webkit-details-marker {
+  display: none;
+}
+/* 行内分隔交给 .trajectory-row-item，避免 summary 与 li 双线 */
+.trajectory-row-item .trajectory-row {
+  border-top: 0;
+}
+.trajectory-row-details > summary:hover {
+  background: var(--bg-hover);
+}
+.trajectory-row-details[open] > summary {
+  background: var(--bg-hover);
+}
+
+.trajectory-row-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 12px 10px 38px;
+  background: var(--cell-bg);
+}
+.trajectory-detail-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.trajectory-detail-label {
+  color: var(--text-muted);
+  font-size: calc(13px * var(--ui-font-scale) * 11/13);
+}
+.trajectory-detail-pre {
+  margin: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-panel);
+  color: var(--text-secondary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
+  max-height: 240px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.trajectory-detail-diff {
+  padding: 4px 0;
+  white-space: pre;
+}

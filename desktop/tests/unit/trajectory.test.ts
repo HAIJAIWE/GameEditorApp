@@ -64,6 +64,18 @@ describe('buildTrajectory', () => {
     expect(model.turns[1]?.steps[0]?.summary).toBe('')
   })
 
+  it('详情字段（args / result）原样保留，供行展开看参数与完整输出', () => {
+    const state = {
+      ...freshConversationState(),
+      steps: [{ ...step('a', 0), args: '{"action":"list"}', result: '第一行\n第二行' }]
+    }
+    const row = buildTrajectory(state).turns[0]?.steps[0]
+    expect(row?.args).toBe('{"action":"list"}')
+    expect(row?.result).toBe('第一行\n第二行')
+    // 摘要仍只取首行（详情不挤进行内）
+    expect(row?.summary).toBe('第一行')
+  })
+
   it('消息按原文投影（role + text），运行中子智能体计入概览', () => {
     const state = {
       ...freshConversationState(),
