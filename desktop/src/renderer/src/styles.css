@@ -8464,3 +8464,224 @@ button.ref-row:hover {
 .digital-run-plan-current.is-error {
   color: var(--change-delete);
 }
+
+/* 「查看步骤」：把进度条与折叠的步骤列表接上（无 onExpand 时不渲染） */
+.digital-run-plan-expand {
+  align-self: flex-start;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: calc(13px * var(--ui-font-scale) * 11/13);
+  cursor: pointer;
+}
+.digital-run-plan-expand:hover {
+  text-decoration: underline;
+}
+
+/* ── 会话轨迹（借 dsh ui-trajectory 的「按轮次事件表 + 概览」） ── */
+.trajectory {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  height: 100%;
+  overflow: auto;
+}
+
+.trajectory-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.trajectory-header h2 {
+  margin: 0;
+  font-size: 18px;
+}
+.trajectory-status {
+  color: var(--text-muted);
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
+}
+
+/* 概览：一排事实（标签 + 数值），窄屏自动换行 */
+.trajectory-overview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-panel);
+}
+.trajectory-fact {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.trajectory-fact-label {
+  color: var(--text-muted);
+  font-size: calc(13px * var(--ui-font-scale) * 11/13);
+}
+.trajectory-fact-value {
+  color: var(--text);
+  font-size: calc(13px * var(--ui-font-scale) * 13/13);
+  font-variant-numeric: tabular-nums;
+}
+.trajectory-fact-value.is-error {
+  color: var(--change-delete);
+}
+
+.trajectory-turns {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.trajectory-turn {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-panel);
+  overflow: hidden;
+}
+.trajectory-turn-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--divider);
+}
+.trajectory-turn-title {
+  color: var(--text-secondary);
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
+  font-weight: 600;
+}
+.trajectory-turn-meta {
+  color: var(--text-muted);
+  font-size: calc(13px * var(--ui-font-scale) * 11/13);
+}
+
+.trajectory-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.trajectory-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 6px 12px;
+  border-top: 1px solid var(--divider);
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
+}
+.trajectory-row:first-child {
+  border-top: 0;
+}
+.trajectory-row-index {
+  flex: none;
+  width: 18px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.trajectory-row-kind {
+  flex: none;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--text-muted) 12%, transparent);
+  color: var(--text-muted);
+  font-size: calc(13px * var(--ui-font-scale) * 11/13);
+}
+.trajectory-row-tool {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.trajectory-row-summary {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.trajectory-row-status {
+  flex: none;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: calc(13px * var(--ui-font-scale) * 11/13);
+  font-weight: 600;
+}
+.trajectory-row-status.badge-done {
+  background: color-mix(in srgb, var(--change-create) 14%, transparent);
+  color: var(--change-create);
+}
+.trajectory-row-status.badge-failed {
+  background: color-mix(in srgb, var(--change-delete) 14%, transparent);
+  color: var(--change-delete);
+}
+.trajectory-row-status.badge-running {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent);
+}
+
+.trajectory-messages h3 {
+  margin: 4px 0 8px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.trajectory-message-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.trajectory-message {
+  display: flex;
+  gap: 8px;
+  padding: 6px 10px;
+  border-left: 3px solid var(--border);
+  border-radius: 0 6px 6px 0;
+  background: var(--cell-bg);
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
+  line-height: 1.6;
+}
+.trajectory-message.role-assistant {
+  border-left-color: var(--accent);
+}
+.trajectory-message-role {
+  flex: none;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.trajectory-message-text {
+  min-width: 0;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  word-break: break-word;
+  /* 长回复在轨迹里只留前若干行，详情回对话面板看 */
+  display: -webkit-box;
+  -webkit-line-clamp: 6;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.trajectory-empty {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.trajectory-hint {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: calc(13px * var(--ui-font-scale) * 11/13);
+}

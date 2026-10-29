@@ -69,5 +69,15 @@ export const marketRegistry: PluginMarketEntry[] = [
     tier: 'core',
     ready: true,
     icon: '⌘'
+  },
+  {
+    id: 'trajectory',
+    name: 'trajectory',
+    version: '0.1.0',
+    description: '会话轨迹：按轮次查看执行步骤、消息与运行成本',
+    source: 'factory:trajectory',
+    tier: 'optional',
+    ready: true,
+    icon: '🧭'
   }
 ]

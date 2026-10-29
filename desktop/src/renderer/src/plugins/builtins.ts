@@ -24,6 +24,7 @@ import { defineReferencesPlugin } from './referencesPlugin'
 import { defineShellPanelsPlugin } from './shellPanelsPlugin'
 import { defineShortcutsPlugin } from './shortcutsPlugin'
 import { defineStatisticsPlugin } from './statisticsPlugin'
+import { defineTrajectoryPlugin } from './trajectoryPlugin'
 import { defineUtilityPanelsPlugin } from './utilityPanelsPlugin'
 import { createLocalStorageInstalledStore } from './installedPluginStore'
 
@@ -59,7 +60,8 @@ export const pluginLoader = createPluginLoader({
   'session-history': () => defineSessionHistoryPlugin(pluginHost),
   'auto-review': () => defineAutoReviewPlugin(pluginHost),
   'recent-changes': () => defineRecentChangesPlugin(pluginHost),
-  'command-palette': () => defineCommandPalettePlugin(pluginHost)
+  'command-palette': () => defineCommandPalettePlugin(pluginHost),
+  'trajectory': () => defineTrajectoryPlugin(pluginHost)
 })
 
 let registered = false
@@ -100,6 +102,7 @@ void pluginHost.loadPlugin(pluginLoader, 'factory:session-history')
 void pluginHost.loadPlugin(pluginLoader, 'factory:auto-review')
 void pluginHost.loadPlugin(pluginLoader, 'factory:recent-changes')
 void pluginHost.loadPlugin(pluginLoader, 'factory:command-palette')
+void pluginHost.loadPlugin(pluginLoader, 'factory:trajectory')
 for (const source of installedPluginStore.load()) {
   void pluginHost.loadPlugin(pluginLoader, source)
 }

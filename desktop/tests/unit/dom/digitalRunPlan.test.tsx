@@ -66,4 +66,24 @@ describe('DigitalRunPlan', () => {
     expect(result.byTestId('digital-run-plan').getAttribute('data-state')).toBe('done')
     await result.cleanup()
   })
+
+  it('传了 onExpand 才出现「查看步骤」，点击回调一次（不传则不渲染）', async () => {
+    const without = await renderDom(<DigitalRunPlan steps={[step('a', 'done')]} status="done" />)
+    expect(without.query('[data-testid="digital-run-plan-expand"]')).toBeNull()
+    await without.cleanup()
+
+    let calls = 0
+    const withHandler = await renderDom(
+      <DigitalRunPlan
+        steps={[step('a', 'done')]}
+        status="done"
+        onExpand={() => {
+          calls += 1
+        }}
+      />
+    )
+    await withHandler.click(withHandler.byTestId('digital-run-plan-expand'))
+    expect(calls).toBe(1)
+    await withHandler.cleanup()
+  })
 })

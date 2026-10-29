@@ -36,11 +36,14 @@ function PlanIcon(): ReactElement {
 
 export function DigitalRunPlan({
   steps,
-  status
+  status,
+  onExpand
 }: {
   steps: DigitalStep[]
   /** 面板整体状态：用于徽标（进行中/已完成/有失败） */
   status: DigitalPanelState['status']
+  /** 有值时卡片底部出现「查看步骤」：展开下方的执行步骤列表（进度条只给概览，细节仍在列表里） */
+  onExpand?: () => void
 }): ReactElement | null {
   if (steps.length === 0) return null
 
@@ -94,6 +97,16 @@ export function DigitalRunPlan({
         <div className="digital-run-plan-current is-error" data-testid="digital-run-plan-failed">
           {failed} 步失败（展开执行步骤查看原因）
         </div>
+      )}
+      {onExpand !== undefined && (
+        <button
+          type="button"
+          className="digital-run-plan-expand"
+          data-testid="digital-run-plan-expand"
+          onClick={onExpand}
+        >
+          查看步骤
+        </button>
       )}
     </div>
   )
