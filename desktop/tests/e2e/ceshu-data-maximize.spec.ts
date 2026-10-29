@@ -34,13 +34,16 @@ test('数据编辑器：展开为整窗 → 字段表单显著变宽；标签列
             `${sel} [data-testid="form-section-body"] > .form-row > [data-testid^="field-"]`
           )
         ]
-        const lefts = new Set(controls.map((el) => Math.round(el.getBoundingClientRect().left)))
+        // 取原始小数再判定：0.5px 描边 + 字号取整会让个别控件差 ~0.2px，
+        // 先 Round 成整数会把「同一条线」拆成 818/819 两个值（假失败）。
+        const rawLefts = controls.map((el) => el.getBoundingClientRect().left)
         return {
           present: root !== null && form !== null,
           formW: form ? Math.round(form.getBoundingClientRect().width) : -1,
           labelW: labels.length > 0 ? Math.round(Math.max(...labels.map((el) => el.getBoundingClientRect().width))) : -1,
           labelCount: labels.length,
-          controlLefts: [...lefts]
+          controlSpread:
+            rawLefts.length > 0 ? Math.max(...rawLefts) - Math.min(...rawLefts) : null
         }
       }, scope)
     )
@@ -58,7 +61,9 @@ test('数据编辑器：展开为整窗 → 字段表单显著变宽；标签列
     expect(embedded.present).toBe(true)
     expect(embedded.labelCount).toBe(18)
     expect(embedded.labelW).toBeLessThan(100)
-    expect(embedded.controlLefts).toHaveLength(1)
+    // 「同一条控件起始线」：亚像素差允许 <1px（描边/字号取整），但不允许真的分两列
+    expect(embedded.controlSpread).not.toBeNull()
+    expect(embedded.controlSpread!).toBeLessThan(1)
 
     // 展开 → 整窗覆盖层
     await window.getByTestId('ceshu-preview-expand').click()
@@ -74,7 +79,7 @@ test('数据编辑器：展开为整窗 → 字段表单显著变宽；标签列
     // 表单宽度量级跃迁：内嵌 311px 级 → 整窗 700px+
     expect(maximized.formW).toBeGreaterThan(700)
     expect(maximized.formW).toBeGreaterThan(embedded.formW * 2)
-    expect(maximized.controlLefts).toHaveLength(1)
+    expect(maximized.controlSpread!).toBeLessThan(1)
 
     // 收起 → 覆盖层移除，内嵌态仍在
     await window.getByTestId('ceshu-data-overlay-close').click()

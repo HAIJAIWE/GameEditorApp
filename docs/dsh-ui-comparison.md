@@ -154,11 +154,16 @@ dsh 的 UI 成熟在**两件事**：① **typed slot 组合**（父级声明扩�
 
 ### 4.5 做到哪一步了（2026-10-29）
 
-**已对齐 dsh 的**：三栏结构、右栏页签轨道（对话是内置保留页签）、右栏全屏、侧栏 280px/56px 度量与 14px 标签、侧栏 `border-l3` 边界。
+**已对齐 dsh 的**：
+- 三栏结构、右栏页签轨道（对话是内置保留页签）、右栏全屏；
+- 侧栏 280px / 收起 56px、14px 标签、行高 36px、`border-l3` 边界；
+- **控件形态**（`ui-primitives`）：
+  - 按钮 md = **36px 高 / 14px 字 / 12px 圆角 / 0 14 内距**，默认 outline（0.5px inset `border-l3` + hover `rgba(38,49,72,.06)`）；主按钮 = **近黑 `#0f1115`**（dsh 的 brand-primary 不是品牌蓝）；紧凑按钮 = sm（28px / 12px / 8px 圆角）；
+  - 输入框/下拉 = **32px 高 / 14px 字 / 12px 圆角 / 0.5px `border-l4`**，聚焦换品牌色描边。
 
 **还没对齐的（下一步）**：
-- **全局 token**：dsh 的 `bg-layer-*` / `label-primary/secondary` / `border-l1..l4` / 圆角与字号阶梯，我们只借了侧栏那一条边界色，其余仍是自研 `--bg-*` / `--border`。
-- **控件形态**：dsh 的按钮/输入框/下拉来自 `ui-primitives`（36px 高、8px 圆角、ghost/hover 填充），我们的 `.btn` 仍是旧一套。
+- **其余全局 token**：`bg-layer-1..3` / `label-primary|secondary|tertiary` / `border-l1..l4` 的分层，我们目前只在侧栏与控件上借了值，卡片、表格、浮层仍用自研 `--bg-*` / `--border`。
+- **主区页签条**：dsh 没有这一层（主区就是对话）；我们的页签仍是旧样式，未按 dsh 的语言重画。
 - **顶部菜单栏**：dsh 是 Web GUI，没有桌面菜单栏；我们保留（功能性取舍，非视觉）。
 
 **顺手修的两个布局 bug**：
