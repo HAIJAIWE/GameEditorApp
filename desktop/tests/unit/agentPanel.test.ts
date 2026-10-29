@@ -57,6 +57,14 @@ describe('digital panel：发送与状态', () => {
     expect(state.steps[0]?.status).toBe('failed')
     expect(state.steps[0]?.success).toBe(false)
   })
+
+  it('step_done 带 args → 步骤保留原始参数文本（面板据此渲染参数段）', () => {
+    const args = '{"action":"list","data_type":"role"}'
+    const state = applyBrainEvents(initialDigitalPanelState, [
+      { type: 'step_done', tool: 'system.game_data', result: '共 2 条', success: true, args }
+    ])
+    expect(state.steps[0]?.args).toBe(args)
+  })
 })
 
 describe('digital panel：流式与终稿', () => {

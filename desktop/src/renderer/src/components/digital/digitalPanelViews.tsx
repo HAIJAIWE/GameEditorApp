@@ -3,6 +3,7 @@ import { useState, type ReactNode } from 'react'
 import { RISK_LEVEL, resolveRiskLevel } from '../../../../shared/agent/protocol'
 import type { DigitalCommand } from '../../../../shared/agent/commands'
 import type { DigitalReference } from '../../../../shared/agent/references'
+import { diffRows, formatToolArgs } from '../../../../shared/agent/toolDetail'
 import {
   summarizeToolTasks,
   type DigitalPanelState,
@@ -204,14 +205,29 @@ function stepSummary(step: DigitalStep): string {
   return first.length > 56 ? `${first.slice(0, 56)}…` : first
 }
 
-/** 单步卡片：默认展开（结果可见），点头部折叠（借 dsh ui-tool 的 ToolRow 设计） */
+/** 参数摘要：美化后的 JSON 多行，摘要必须是单行，故把空白折成一个空格 */
+function argsSummary(text: string): string {
+  const flat = text.replace(/\s+/g, ' ').trim()
+  return flat.length > 60 ? `${flat.slice(0, 60)}…` : flat
+}
+
+/**
+ * 单步卡片：默认展开（结果可见），点头部折叠（借 dsh ui-tool 的 ToolRow 设计）。
+ *
+ * 展开体按 dsh `ToolDetails` 分段：先「参数」（默认折叠，避免长 JSON 顶掉结果），
+ * 再「输出」（diff 输出走行级配色，其余走工具视图）。
+ */
 function ToolStepCard({ step, resolveView }: { step: DigitalStep; resolveView?: ToolViewResolver }) {
   const [expanded, setExpanded] = useState(true)
-  const hasBody = step.result !== undefined && step.result !== ''
+  const [argsOpen, setArgsOpen] = useState(false)
+  const args = formatToolArgs(step.args)
+  const hasResult = step.result !== undefined && step.result !== ''
+  const hasBody = hasResult || args.text !== ''
   // 插件 keyed slot 优先，其次内置按工具名分派
   const view = resolveView?.(step.tool) ?? resolveToolView(step.tool)
   const variant = toolVariant(step.tool)
   const summary = stepSummary(step)
+  const diff = hasResult ? diffRows(step.result) : null
   return (
     <li
       className={`digital-step digital-step-card digital-step-${step.status}`}
@@ -247,8 +263,43 @@ function ToolStepCard({ step, resolveView }: { step: DigitalStep; resolveView?: 
       </button>
       {expanded && hasBody && (
         <div className="digital-step-body">
-          <span className="digital-step-body-label">输出</span>
-          {view(step)}
+          {args.text !== '' && (
+            <div className="digital-step-args" data-testid="digital-step-args">
+              <button
+                type="button"
+                className="digital-step-args-toggle"
+                aria-expanded={argsOpen}
+                onClick={() => setArgsOpen((value) => !value)}
+              >
+                <span className="digital-step-body-label">参数</span>
+                {!argsOpen && <span className="digital-step-args-summary">{argsSummary(args.text)}</span>}
+                <span className="digital-step-chevron" aria-hidden="true">
+                  {argsOpen ? '▾' : '▸'}
+                </span>
+              </button>
+              {argsOpen && (
+                <pre className="digital-step-args-pre" data-json={args.isJson || undefined}>
+                  {args.text}
+                </pre>
+              )}
+            </div>
+          )}
+          {hasResult && (
+            <>
+              <span className="digital-step-body-label">输出</span>
+              {diff !== null ? (
+                <pre className="digital-step-diff" data-testid="digital-step-diff">
+                  {diff.map((row, index) => (
+                    <span key={index} className={`diff-row diff-${row.kind}`}>
+                      {row.text}
+                    </span>
+                  ))}
+                </pre>
+              ) : (
+                view(step)
+              )}
+            </>
+          )}
         </div>
       )}
     </li>

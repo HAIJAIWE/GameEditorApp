@@ -76,6 +76,15 @@ function createInbox(): BrainInbox {
   }
 }
 
+/**
+ * `step_done.args` 收的是**原始 JSON 文本**（面板按字符串截断 / 美化 / 判断是否 JSON），
+ * 而 `BrainToolCall.arguments` 在传输层已解析成对象——这里序列化回文本。
+ * 只影响事件字段，不参与 tool 消息构造，故不影响「tool_calls ⟷ tool 结果」一一对应。
+ */
+function toolArgsText(args: Record<string, unknown>): string {
+  return JSON.stringify(args)
+}
+
 export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainRunResult> {
   const { input, systemPrompts, transport, runner, requestApproval, requestInteraction, onEvent, preExecReview } =
     options
@@ -524,7 +533,13 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
       const text = '[STOP] 已按要求停止，本批工具未执行'
       for (const call of reply.toolCalls) {
         results.push(text)
-        emit({ type: 'step_done', tool: call.name, result: text, success: false })
+        emit({
+          type: 'step_done',
+          tool: call.name,
+          result: text,
+          success: false,
+          args: toolArgsText(call.arguments)
+        })
         messages.push(buildToolMessage(call.id, call.name, text))
       }
       stopReason = wallClockTripped ? 'wall_clock' : 'cancelled'
@@ -539,7 +554,13 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
       const text = `[STOP] 已达工具调用上限（${maxToolCalls} 次），本批未执行`
       for (const call of reply.toolCalls) {
         results.push(text)
-        emit({ type: 'step_done', tool: call.name, result: text, success: false })
+        emit({
+          type: 'step_done',
+          tool: call.name,
+          result: text,
+          success: false,
+          args: toolArgsText(call.arguments)
+        })
         messages.push(buildToolMessage(call.id, call.name, text))
       }
       stopReason = 'max_tool_calls'
@@ -618,7 +639,13 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
         const stopText = '[STOP] 已按要求停止，本批剩余工具未执行'
         for (const rest of reply.toolCalls.slice(index)) {
           results.push(stopText)
-          emit({ type: 'step_done', tool: rest.name, result: stopText, success: false })
+          emit({
+            type: 'step_done',
+            tool: rest.name,
+            result: stopText,
+            success: false,
+            args: toolArgsText(rest.arguments)
+          })
           messages.push(buildToolMessage(rest.id, rest.name, stopText))
         }
         abortedDuringBatch = true
@@ -631,7 +658,13 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
         resolvedAny = true
         const { text, success } = await pre.promise
         results.push(text)
-        emit({ type: 'step_done', tool: pre.resolved, result: text, success })
+        emit({
+          type: 'step_done',
+          tool: pre.resolved,
+          result: text,
+          success,
+          args: toolArgsText(call.arguments)
+        })
         messages.push(buildToolMessage(call.id, pre.resolved, text))
         continue
       }
@@ -640,7 +673,13 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
       if (resolved === null) {
         const text = `未知工具: ${call.name}`
         results.push(text)
-        emit({ type: 'step_done', tool: call.name, result: text, success: false })
+        emit({
+          type: 'step_done',
+          tool: call.name,
+          result: text,
+          success: false,
+          args: toolArgsText(call.arguments)
+        })
         messages.push(buildToolMessage(call.id, call.name, text))
         continue
       }
@@ -674,7 +713,13 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
             const detail = error instanceof Error ? error.message : String(error)
             const text = `[STOP] 执行预审失败，已拒绝（fail-closed）: ${resolved}（${detail}）`
             results.push(text)
-            emit({ type: 'step_done', tool: resolved, result: text, success: false })
+            emit({
+              type: 'step_done',
+              tool: resolved,
+              result: text,
+              success: false,
+              args: toolArgsText(call.arguments)
+            })
             messages.push(buildToolMessage(call.id, resolved, text))
             continue
           }
@@ -685,7 +730,13 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
             // 预审拒绝 + never ⇒ 终局拒绝，不询问。
             const text = `[STOP] 执行预审拒绝危险操作: ${resolved}（${verdict.reason || '未提供原因'}）`
             results.push(text)
-            emit({ type: 'step_done', tool: resolved, result: text, success: false })
+            emit({
+              type: 'step_done',
+              tool: resolved,
+              result: text,
+              success: false,
+              args: toolArgsText(call.arguments)
+            })
             messages.push(buildToolMessage(call.id, resolved, text))
             continue
           }
@@ -694,7 +745,13 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
           // 无预审 + never：确定性拒绝（原语义）。
           const text = `[STOP] 审批策略为 never，已拒绝危险操作: ${resolved}`
           results.push(text)
-          emit({ type: 'step_done', tool: resolved, result: text, success: false })
+          emit({
+            type: 'step_done',
+            tool: resolved,
+            result: text,
+            success: false,
+            args: toolArgsText(call.arguments)
+          })
           messages.push(buildToolMessage(call.id, resolved, text))
           continue
         }
@@ -719,7 +776,13 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
           if (approved !== true) {
             const text = `[STOP] 用户未确认危险操作: ${resolved}`
             results.push(text)
-            emit({ type: 'step_done', tool: resolved, result: text, success: false })
+            emit({
+              type: 'step_done',
+              tool: resolved,
+              result: text,
+              success: false,
+              args: toolArgsText(call.arguments)
+            })
             messages.push(buildToolMessage(call.id, resolved, text))
             continue
           }
@@ -730,7 +793,13 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
 
       const { text, success } = await runTool(call, resolved, action)
       results.push(text)
-      emit({ type: 'step_done', tool: resolved, result: text, success })
+      emit({
+        type: 'step_done',
+        tool: resolved,
+        result: text,
+        success,
+        args: toolArgsText(call.arguments)
+      })
       messages.push(buildToolMessage(call.id, resolved, text))
     }
 

@@ -176,7 +176,8 @@ describe('runBrainLoop：事件序列', () => {
       type: 'step_done',
       tool: 'system.game_data',
       result: '已执行 system.game_data',
-      success: true
+      success: true,
+      args: '{"action":"list"}'
     })
     expect(runner.executed).toEqual([{ tool: 'system.game_data', params: { action: 'list' } }])
     expect(result.text).toBe('这是最终答复')
@@ -255,7 +256,8 @@ describe('runBrainLoop：分支与兜底', () => {
       type: 'step_done',
       tool: '不存在的工具',
       result: '未知工具: 不存在的工具',
-      success: false
+      success: false,
+      args: '{}'
     })
     // 没有任何工具执行成功 → 不进第二轮
     expect(transport.calls).toHaveLength(1)
@@ -303,7 +305,8 @@ describe('runBrainLoop：分支与兜底', () => {
       type: 'step_done',
       tool: 'system.shell',
       result: '[STOP] 用户未确认危险操作: system.shell',
-      success: false
+      success: false,
+      args: '{"action":"exec"}'
     })
     expect(result.stopReason).toBe('final')
     expect(result.text).toBe('这是最终答复')

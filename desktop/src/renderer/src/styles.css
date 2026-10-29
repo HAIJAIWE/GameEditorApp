@@ -5603,6 +5603,98 @@ button.ref-row:hover {
   overflow: auto;
 }
 
+/* 参数段（借 dsh ui-tool ToolDetails 的分段思路）：左侧细边框，默认折叠、摘要单行省略 */
+.digital-step-args {
+  margin: 2px 0 6px;
+  padding-left: 8px;
+  border-left: 2px solid var(--border);
+}
+
+.digital-step-args-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.digital-step-args-toggle:hover {
+  color: var(--text);
+}
+
+.digital-step-args-toggle .digital-step-body-label {
+  flex: none;
+  margin: 0;
+}
+
+.digital-step-args-summary {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: calc(13px * var(--ui-font-scale) * 11/13);
+}
+
+.digital-step-args-pre {
+  margin: 4px 0 0;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: rgba(127, 127, 127, 0.08);
+  color: var(--text-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 240px;
+  overflow: auto;
+}
+
+/* 输出 diff（借 dsh FileDiff 的行级配色）：不换行，横向滚动，行首 + / - 由原文保留 */
+.digital-step-diff {
+  margin: 4px 0 0;
+  padding: 4px 0;
+  border-radius: 6px;
+  background: rgba(127, 127, 127, 0.06);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
+  max-height: 240px;
+  overflow: auto;
+}
+
+.digital-step-diff .diff-row {
+  display: block;
+  padding: 0 8px;
+  white-space: pre;
+}
+
+.digital-step-diff .diff-add {
+  color: var(--change-create);
+  background: color-mix(in srgb, var(--change-create) 10%, transparent);
+}
+
+.digital-step-diff .diff-del {
+  color: var(--change-delete);
+  background: color-mix(in srgb, var(--change-delete) 10%, transparent);
+}
+
+.digital-step-diff .diff-ctx {
+  color: var(--text-muted);
+}
+
+.digital-step-diff .diff-hunk {
+  color: var(--text-muted);
+  background: rgba(127, 127, 127, 0.08);
+}
+
 /* M1 观测：本轮运行消耗行（轮数 / token / 耗时 / 工具次数） */
 .digital-run-stats {
   display: flex;

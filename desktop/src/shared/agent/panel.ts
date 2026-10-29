@@ -28,6 +28,8 @@ export interface DigitalStep {
   /** 工具执行结果摘要（仅 kind='tool'） */
   result?: string
   success?: boolean
+  /** 本次调用的原始参数文本（仅 kind='tool'；事件没带就为空） */
+  args?: string
 }
 
 export interface DigitalMessage {
@@ -171,7 +173,8 @@ export function reduceBrainEvent(state: DigitalPanelState, event: BrainEvent): D
             kind: 'tool',
             status: event.success ? 'done' : 'failed',
             result: event.result,
-            success: event.success
+            success: event.success,
+            args: event.args
           }
         ]
       }

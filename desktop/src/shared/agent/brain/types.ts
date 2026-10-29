@@ -48,7 +48,17 @@ export type BrainEvent =
       action: string
       interaction: SkillInteraction
     }
-  | { type: 'step_done'; tool: string; result: string; success: boolean }
+  | {
+      type: 'step_done'
+      tool: string
+      result: string
+      success: boolean
+      /**
+       * 本次调用的原始参数（JSON 文本）。面板据此展示「参数」段——
+       * 拿不到参数时省略该字段（不要编造 `{}`，否则卡片会显示一个假参数段）。
+       */
+      args?: string
+    }
   /** 子智能体生命周期（Slice 38）：启动 / 完成，供面板展示子任务列表 */
   | { type: 'subagent_started'; id: string; task: string }
   | { type: 'subagent_done'; id: string; success: boolean; text: string }
