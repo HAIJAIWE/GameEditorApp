@@ -111,6 +111,18 @@ describe('PluginHost slot 集成', () => {
     expect(host.slotSidebarItems().map((item) => item.key)).toEqual(['home', 'data'])
   })
 
+  it('toolView 能力桥接进 tool.call.toolview keyed slot（order 大者胜）', () => {
+    const host = new PluginHost()
+    host.register(
+      manifest('p1', [{ kind: 'toolView', id: 'p1.view', tool: 'system.x', order: 1, ui: ui('v1') }])
+    )
+    host.register(
+      manifest('p2', [{ kind: 'toolView', id: 'p2.view', tool: 'system.x', order: 5, ui: ui('v2') }])
+    )
+    expect(host.slotEntryFor('tool.call.toolview', 'system.x')?.component).toBe('p2.view')
+    expect(host.slotEntryFor('tool.call.toolview', 'nope')).toBeUndefined()
+  })
+
   it('slot 能力带 component → entry.component 被记录（富 UI）', () => {
     const host = new PluginHost()
     host.register(

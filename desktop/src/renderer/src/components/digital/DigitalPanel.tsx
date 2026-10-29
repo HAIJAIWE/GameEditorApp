@@ -193,12 +193,14 @@ export default function DigitalPanel({
   const hasConversation = state.messages.length > 0 || state.streaming !== ''
 
   /**
-   * 工具视图 keyed slot（P2）：插件声明的 `toolView` 能力 → 渲染层绑定的 React 视图。
+   * 工具视图 keyed slot（Slice 46 起从 slot 内核读 `tool.call.toolview`）：
+   * `toolView` 能力由宿主桥接进该 keyed slot（entryKey=工具 id、component=能力 id），
+   * 这里按工具取胜出条目 → `getToolViewBinding(entry.component)` 取 React 视图。
    * 未命中（无插件为该工具提供视图）返回 undefined，`DigitalStepList` 回退内置 text/code/json。
    */
   const resolveToolViewFromPlugins = useCallback((tool: string) => {
-    const capability = pluginHost.toolViews().find((candidate) => candidate.tool === tool)
-    return capability === undefined ? undefined : getToolViewBinding(capability.id)
+    const entry = pluginHost.slotEntryFor('tool.call.toolview', tool)
+    return entry?.component === undefined ? undefined : getToolViewBinding(entry.component)
   }, [])
 
   const currentInteraction = state.interaction?.interaction ?? null

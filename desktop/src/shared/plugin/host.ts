@@ -481,6 +481,19 @@ export class PluginHost {
               })
             )
           }
+        } else if (capability.kind === 'toolView') {
+          // keyed slot：`tool.call.toolview` 按工具 id 分派（对齐 dsh 的 per-tool view）。
+          // 旧 `toolView` 语义是「order 大者胜」，slot 是「priority 小者胜」——故取负号映射。
+          disposers.push(
+            this.slotRegistry.register({
+              key: 'tool.call.toolview',
+              entryKey: capability.tool,
+              priority: -(capability.order ?? 0),
+              ownerId: manifest.id,
+              component: capability.id,
+              payload: capability.ui
+            })
+          )
         }
       }
     } catch (error) {
@@ -522,6 +535,11 @@ export class PluginHost {
   /** 某 slot 的渲染读（已按 kind 投影 + 遮蔽）。 */
   slotEntries(key: string): SlotEntry[] {
     return this.slotRegistry.entriesOfSlot(key)
+  }
+
+  /** 某 keyed/list slot 里某 cell（`entryKey`）的胜出条目；未命中返回 undefined。 */
+  slotEntryFor(slotKey: string, entryKey: string): SlotEntry | undefined {
+    return this.slotRegistry.entriesOfSlot(slotKey).find((entry) => entry.entryKey === entryKey)
   }
 
   /**
