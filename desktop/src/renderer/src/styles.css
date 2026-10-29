@@ -8850,3 +8850,38 @@ button.ref-row:hover {
 .rightbar-pane[hidden] {
   display: none;
 }
+
+/* 全屏呈现（dsh `openRightbar` 的第二形态）：右栏吃掉主区；
+   左侧导航保留，便于边看会话边切业务窗口 */
+.ai-dock.is-fullscreen {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+  border-left: 0;
+}
+/* `.main-area` 是 display:flex，会盖过 [hidden] 的 display:none，必须显式压回 */
+.main-area[hidden] {
+  display: none;
+}
+
+/* 页签条右端的全屏开关（只有外部容器支持全屏时才渲染） */
+.rightbar-fullscreen {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding: 3px 6px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.rightbar-fullscreen:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+.rightbar-fullscreen[aria-pressed='true'] {
+  color: var(--accent);
+}

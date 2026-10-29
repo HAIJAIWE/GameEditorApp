@@ -26,6 +26,44 @@ import { SlotOutlet } from './slotOutlet'
  * 才能在「看对话」时顺手切到「看轨迹」，而不用跨区移动视线。
  */
 
+/** 全屏图标：四角向外（内联 SVG，零依赖，随文字色） */
+function ExpandIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 14 14"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M8.5 2H12v3.5M12 2L7.5 6.5M5.5 12H2V8.5M2 12l4.5-4.5" />
+    </svg>
+  )
+}
+
+/** 退出全屏图标：四角向内 */
+function CollapseIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 14 14"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M12 6.5H8.5V3M8.5 6.5L12 3M2 7.5h3.5V11M2 7.5L5.5 11" />
+    </svg>
+  )
+}
+
 /** 内置对话页签的 id（dsh 的会话界面是保留 key，不是插件面板） */
 export const CONVERSATION_TAB_ID = 'conversation'
 
@@ -75,11 +113,17 @@ export function buildRightTabs(views: readonly PluginMainViewCapability[]): Righ
 
 export function RightBarTabs({
   host,
-  ownerProps
+  ownerProps,
+  fullscreen = false,
+  onToggleFullscreen
 }: {
   host: PluginHost
   /** 透传给 `app.rightPanel` slot 占据者的打开参数（DigitalPanel 需要 onOpenCapabilities） */
   ownerProps?: Record<string, unknown>
+  /** 全屏呈现（对齐 dsh `openRightbar(track, fullscreen)` 的第二形态） */
+  fullscreen?: boolean
+  /** 缺省不渲染全屏按钮（外部容器不支持全屏时） */
+  onToggleFullscreen?: () => void
 }): ReactNode {
   const subscribe = useMemo(() => (onChange: () => void) => host.subscribe(onChange), [host])
   // 订阅版本号（稳定数值快照）；列表在 render 里按最新宿主状态重算，避免数组身份抖动
@@ -118,6 +162,19 @@ export function RightBarTabs({
             {tab.label}
           </button>
         ))}
+        {onToggleFullscreen !== undefined && (
+          <button
+            type="button"
+            className="rightbar-fullscreen"
+            data-testid="rightbar-fullscreen"
+            aria-pressed={fullscreen}
+            aria-label={fullscreen ? '退出全屏' : '全屏'}
+            title={fullscreen ? '退出全屏（Esc）' : '全屏（右栏铺满主区）'}
+            onClick={onToggleFullscreen}
+          >
+            {fullscreen ? <CollapseIcon /> : <ExpandIcon />}
+          </button>
+        )}
       </nav>
 
       <div className="rightbar-body">

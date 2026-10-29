@@ -108,4 +108,29 @@ describe('右栏页签容器', () => {
 
     await view.cleanup()
   })
+
+  it('全屏开关：不传回调不渲染；传了点击只触发一次，aria-pressed 跟随 fullscreen', async () => {
+    // 容器不支持全屏 → 不出现按钮
+    const plain = await renderDom(<RightBarTabs host={makeHost()} />)
+    expect(plain.query('[data-testid="rightbar-fullscreen"]')).toBeNull()
+    await plain.cleanup()
+
+    let toggles = 0
+    const view = await renderDom(
+      <RightBarTabs host={makeHost()} fullscreen={false} onToggleFullscreen={() => (toggles += 1)} />
+    )
+    const button = view.byTestId('rightbar-fullscreen')
+    expect(button.getAttribute('aria-pressed')).toBe('false')
+    await view.click(button)
+    expect(toggles).toBe(1)
+    await view.cleanup()
+
+    // 已是全屏 → 按钮呈「退出全屏」态
+    const fullscreenView = await renderDom(
+      <RightBarTabs host={makeHost()} fullscreen onToggleFullscreen={() => undefined} />
+    )
+    expect(fullscreenView.byTestId('rightbar-fullscreen').getAttribute('aria-pressed')).toBe('true')
+    expect(fullscreenView.byTestId('rightbar-fullscreen').getAttribute('aria-label')).toBe('退出全屏')
+    await fullscreenView.cleanup()
+  })
 })

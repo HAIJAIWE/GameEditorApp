@@ -121,6 +121,11 @@ export default function App() {
    * 用 ref 存「拖拽起点 / 最新宽度」，避免每帧重建监听器、也避免 mouseup 时读到旧值。
    */
   const [aiDockWidth, setAiDockWidth] = useState<number>(() => loadAiDockWidth(window.innerWidth))
+  /**
+   * 右栏全屏（dsh `openRightbar(track, fullscreen)` 的第二形态）：
+   * 只在本会话内有效，不持久化——dsh 的布局状态刷新后同样重置。
+   */
+  const [dockFullscreen, setDockFullscreen] = useState(false)
   const aiDockWidthRef = useRef(aiDockWidth)
   const dockDragRef = useRef<{ startX: number; startWidth: number } | null>(null)
 
@@ -134,6 +139,16 @@ export default function App() {
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
   }, [])
+
+  // 全屏右栏按 Esc 退出（对齐 dsh：全屏面板的常规退出手势）
+  useEffect(() => {
+    if (!dockFullscreen) return
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') setDockFullscreen(false)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [dockFullscreen])
 
   // 拖拽：mousemove 只更新宽度，mouseup 才落盘（减少 localStorage 写）
   useEffect(() => {
@@ -645,7 +660,8 @@ export default function App() {
         <Sidebar items={sidebarItems} activePanel={panelId} onActivate={handleSidebarItem} />
         <div className="main">
           <div className="main-body">
-            <div className="main-area">
+            {/* 全屏右栏时主区让位（`hidden` 而非卸载：编辑器草稿/滚动/选中态不丢） */}
+            <div className="main-area" hidden={dockFullscreen}>
               {error && <div className="error-banner">{error}</div>}
               {notice && <div className="notice-banner">{notice}</div>}
               {panelId !== null ? (
@@ -670,23 +686,32 @@ export default function App() {
                 <MainViewMount host={pluginHost} appTabs={appTabs} context={mainViewContextValue} />
               )}
             </div>
-            {/* 右栏拖拽分隔条：拖动改宽，双击复位到 25% */}
-            <div
-              className="ai-dock-resizer"
-              role="separator"
-              aria-orientation="vertical"
-              aria-label="调整 AI 停靠栏宽度"
-              title="拖拽调整宽度，双击复位"
-              data-testid="ai-dock-resizer"
-              onMouseDown={startDockResize}
-              onDoubleClick={resetDockWidth}
-            />
-            <aside className="ai-dock" style={{ width: aiDockWidth }} data-testid="ai-dock">
+            {/* 右栏拖拽分隔条：拖动改宽，双击复位；全屏时没有「宽」可调，不渲染 */}
+            {!dockFullscreen && (
+              <div
+                className="ai-dock-resizer"
+                role="separator"
+                aria-orientation="vertical"
+                aria-label="调整 AI 停靠栏宽度"
+                title="拖拽调整宽度，双击复位"
+                data-testid="ai-dock-resizer"
+                onMouseDown={startDockResize}
+                onDoubleClick={resetDockWidth}
+              />
+            )}
+            <aside
+              className={`ai-dock${dockFullscreen ? ' is-fullscreen' : ''}`}
+              // 全屏宽度由 CSS 接管（flex 铺满），不再写死像素
+              style={dockFullscreen ? undefined : { width: aiDockWidth }}
+              data-testid="ai-dock"
+            >
               {/* dsh 式右栏：内置「对话」+ 插件声明的右栏页签（会话等）。
                   对话仍是 `app.rightPanel` slot 的占据者，`digital-panel` 常驻挂载。 */}
               <RightBarTabs
                 host={pluginHost}
                 ownerProps={{ onOpenCapabilities: () => runCommand('agentEditor.open') }}
+                fullscreen={dockFullscreen}
+                onToggleFullscreen={() => setDockFullscreen((value) => !value)}
               />
             </aside>
           </div>

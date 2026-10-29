@@ -141,6 +141,11 @@ dsh 的 UI 成熟在**两件事**：① **typed slot 组合**（父级声明扩�
 | 面板是**可选项**，注册进 `main` keyed slot | 插件 `mainView` 加 `host: 'rightbar'` | 复用同一套注册/懒挂/顺序，不新增能力种类 |
 | 右栏首次打开 **45%**，上限 70%，主区保 400px | 默认 **30%**，上限 70%，主区保 480px | **有意偏离**：45% 实测把策划书工具条挤到换行（主区是密集表单，不是文档）。要更宽就直接拖，宽度会落 localStorage |
 | 切页签不重挂载（普通/全屏共用同一棵内容树） | 切页签只 `hidden`，不卸载 | 对话的滚动位置、输入草稿、流式输出不能因切页签丢 |
+| 两种呈现形态：普通 / 全屏（`openRightbar(track, fullscreen)`） | `.ai-dock.is-fullscreen`（flex 吃掉主区）+ 页签条右端开关 + Esc 退出 | 主区用 `hidden` 隐藏而非卸载（草稿/滚动不丢）；**左侧导航保留**（dsh 会连侧栏一起盖，我们留着便于边看边切窗口） |
+
+**又一个 `[hidden]` 坑**：`.main-area` 是 `display: flex`，同样会盖过 `[hidden]` 的 `display: none`，
+全屏时必须写 `.main-area[hidden] { display: none }`，否则「全屏」看起来没生效（右栏变宽了、主区还在挤）。
+这和 `.rightbar-pane[hidden]` 是同一个陷阱，写隐藏态时先看目标元素有没有 `display` 声明。
 
 **一个坑**：`.rightbar-pane` 用了 `display: flex`，会盖过原生 `[hidden]` 的 `display: none`，
 必须显式写 `.rightbar-pane[hidden] { display: none }`，否则切页签看起来「没反应」（其实两个 pane 叠着）。
