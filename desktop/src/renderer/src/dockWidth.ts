@@ -12,13 +12,14 @@ export const AI_DOCK_MIN_WIDTH = 300
 export const MAIN_AREA_MIN_WIDTH = 480
 
 /**
- * 默认宽度占视口的比例：**30%**。
+ * 默认宽度占视口的比例：**25%**。
  *
  * dsh `ui-layout` 首次打开用 45%，但那是「对话就是主区」的场景；我们的主区是
- * 策划书 / 数据编辑这类密集表单——实测 45% 会把策划书工具条挤到换行，故取 30%，
- * 同时保留 dsh 的两条护栏（上限 70%、主区至少 480px）。用户拖一次就落 localStorage。
+ * 策划书 / 数据编辑这类密集表单。且左栏按 dsh 度量展开到 280px 后，三栏同时变宽
+ * 会把主区挤到换行——故取 25%，保留 dsh 的两条护栏（上限 70%、主区至少 480px）。
+ * 用户拖一次就落 localStorage，之后按偏好走。
  */
-export const AI_DOCK_DEFAULT_RATIO = 0.3
+export const AI_DOCK_DEFAULT_RATIO = 0.25
 
 /** 右栏宽度上限占视口的比例（对齐 dsh 的 70% 上限） */
 export const AI_DOCK_MAX_RATIO = 0.7

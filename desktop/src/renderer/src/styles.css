@@ -264,31 +264,72 @@ body {
   min-height: 0;
 }
 
-/* 左侧主导航栏（dsh Web 侧边栏风格）：常驻竖排 rail，互补顶部菜单栏 */
+/* 左侧主导航栏（对齐 dsh `ui-sidebar` 的度量）：
+   展开 280px / 收起 56px；字号 14px、行高 36px、图标与文字间隙 6px；
+   右边界用 dsh `border-l3` 的 rgba(0,0,0,.12)，不用主题里偏重的 var(--border)。 */
 .sidebar {
-  flex: 0 0 76px;
+  flex: 0 0 280px;
+  width: 280px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 8px 6px;
-  border-right: 1px solid var(--border);
+  gap: 2px;
+  padding: 6px 8px;
+  border-right: 0.5px solid rgba(0, 0, 0, 0.12);
   background: var(--bg-panel);
+  color: var(--text);
+  font-size: 14px;
   overflow-y: auto;
+  overflow-x: hidden;
+  transition: width 160ms ease, flex-basis 160ms ease;
+}
+
+/* 收起：56px 轨道（dsh 的 rail 几何：18px 顶距、10px 侧距） */
+.sidebar.collapsed {
+  flex-basis: 56px;
+  width: 56px;
+  padding: 18px 10px 6px;
+}
+
+.sidebar-toggle {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 28px;
+  margin-bottom: 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 14px;
+}
+.sidebar-toggle:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+.sidebar.collapsed .sidebar-toggle {
+  margin: 0 auto 6px;
 }
 
 .sidebar-item {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 4px;
-  padding: 8px 4px;
-  border: 1px solid transparent;
+  gap: 6px;
+  flex: none;
+  height: 36px;
+  padding: 0 8px;
+  border: 0;
   border-radius: 8px;
   background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
-  font-size: 11px;
-  line-height: 1.2;
+  font-size: 14px;
+  line-height: 1;
+  text-align: left;
+  white-space: nowrap;
   transition: background 120ms ease, color 120ms ease;
 }
 
@@ -297,20 +338,36 @@ body {
   color: var(--text);
 }
 
+/* 选中态：dsh 用填充底 + 主文字色，不用描边（描边在 14px 文字旁显得吵） */
 .sidebar-item.active {
-  background: var(--accent-soft);
-  color: var(--accent-active);
-  border-color: var(--accent);
+  background: var(--bg-hover);
+  color: var(--text);
+  font-weight: 500;
 }
 
 .sidebar-icon {
-  font-size: 18px;
+  flex: none;
+  width: 20px;
+  text-align: center;
+  font-size: 16px;
   line-height: 1;
 }
 
 .sidebar-label {
-  text-align: center;
-  word-break: break-all;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+}
+
+/* 收起后只留图标：居中，隐藏文字 */
+.sidebar.collapsed .sidebar-item {
+  justify-content: center;
+  padding: 0;
+}
+.sidebar.collapsed .sidebar-label {
+  display: none;
 }
 
 /* ---- 顶部菜单栏（对齐 旧版 ui/menus 的 MENU_CONFIG） ---- */
@@ -8949,4 +9006,24 @@ button.ref-row:hover {
     -webkit-text-fill-color: var(--text-muted);
     color: var(--text-muted);
   }
+}
+
+/* 紧凑角部件里 select 已经显示了库名；再挂一份 `item-meta` 只会在窄条里换行，
+   掉出一个孤零零的字（截图里那个「库」）。收起这份重复信息。 */
+.menubar-right .library-bar-row .item-meta {
+  display: none;
+}
+
+/* 策划书首页头部：主区被三栏挤压时让按钮组整体换行，而不是裁掉最后一个按钮 */
+.changelog-header {
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+/* 首页头部复用 `.editor-actions` 时不该带「底部分隔条 + 大内边距」那套（那是列表页脚） */
+.changelog-header .editor-actions {
+  min-width: 0;
+  padding: 0;
+  border-top: 0;
+  justify-content: flex-start;
+  flex-wrap: wrap;
 }

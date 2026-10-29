@@ -137,6 +137,8 @@ dsh 的 UI 成熟在**两件事**：① **typed slot 组合**（父级声明扩�
 
 | dsh | 我们 | 说明 |
 |---|---|---|
+| 侧栏 280px（264–420）、`padding: 6px 8px`、字号 14px、行高 36px、图标↔文字 6px | `.sidebar` 同值；收起 56px（`padding: 18px 10px 6px`） | 度量取自 `ui-sidebar/SidebarRoot.module.css`；`Mod+B` 切换；<1024px 自动收起、变宽不强行展开（同 dsh） |
+| 侧栏右边界 `border-l3` = `rgba(0,0,0,.12)`、0.5px | 同值（只有侧栏用这个；其余仍是我们的 `--border`） | 未做全局 token 对齐（见下） |
 | 右栏是**停靠轨道**，`selectPanel(id)` 选面板、`null` = 会话界面 | `RightBarTabs`：`conversation` 是**内置**页签，渲染 `app.rightPanel` slot | 对话不是插件面板，是保留 key——所以插件禁用不会把对话弄没 |
 | 面板是**可选项**，注册进 `main` keyed slot | 插件 `mainView` 加 `host: 'rightbar'` | 复用同一套注册/懒挂/顺序，不新增能力种类 |
 | 右栏首次打开 **45%**，上限 70%，主区保 400px | 默认 **30%**，上限 70%，主区保 480px | **有意偏离**：45% 实测把策划书工具条挤到换行（主区是密集表单，不是文档）。要更宽就直接拖，宽度会落 localStorage |
@@ -149,6 +151,19 @@ dsh 的 UI 成熟在**两件事**：① **typed slot 组合**（父级声明扩�
 
 **一个坑**：`.rightbar-pane` 用了 `display: flex`，会盖过原生 `[hidden]` 的 `display: none`，
 必须显式写 `.rightbar-pane[hidden] { display: none }`，否则切页签看起来「没反应」（其实两个 pane 叠着）。
+
+### 4.5 做到哪一步了（2026-10-29）
+
+**已对齐 dsh 的**：三栏结构、右栏页签轨道（对话是内置保留页签）、右栏全屏、侧栏 280px/56px 度量与 14px 标签、侧栏 `border-l3` 边界。
+
+**还没对齐的（下一步）**：
+- **全局 token**：dsh 的 `bg-layer-*` / `label-primary/secondary` / `border-l1..l4` / 圆角与字号阶梯，我们只借了侧栏那一条边界色，其余仍是自研 `--bg-*` / `--border`。
+- **控件形态**：dsh 的按钮/输入框/下拉来自 `ui-primitives`（36px 高、8px 圆角、ghost/hover 填充），我们的 `.btn` 仍是旧一套。
+- **顶部菜单栏**：dsh 是 Web GUI，没有桌面菜单栏；我们保留（功能性取舍，非视觉）。
+
+**顺手修的两个布局 bug**：
+1. 顶部「当前库」在窄条里换行，掉出一个孤零零的「库」字 —— 紧凑角部件里 `select` 已显示库名，`item-meta` 是重复信息，收起。
+2. 策划书首页头部在 800px 主区里裁掉最后一个按钮 —— 头部改为可换行，并去掉首页误用的「列表页脚」样式（`padding: 12px 16px` + `border-top`）。
 
 **为什么不把会话留在主区**：它和对话读同一份 `conversation.state`，放同一根轨道里
 「看对话 → 看轨迹」不用跨区移动视线；主区腾给策划书/数据编辑这两个真正需要宽度的窗口。

@@ -47,18 +47,18 @@ describe('dockWidth：宽度夹取', () => {
 })
 
 describe('dockWidth：默认值与持久化', () => {
-  it('默认 = 视口 30%（clamp 后；dsh 的 45% 会把策划书工具条挤换行）', () => {
-    expect(defaultDockWidth(1600)).toBe(480)
-    expect(defaultDockWidth(1920)).toBe(576)
+  it('默认 = 视口 25%（clamp 后；左栏展开 280px 后主区需要更多宽度）', () => {
+    expect(defaultDockWidth(1600)).toBe(400)
+    expect(defaultDockWidth(1920)).toBe(480)
   })
 
   it('缺失 → 默认', () => {
-    expect(loadAiDockWidth(1600, memoryStorage())).toBe(480)
+    expect(loadAiDockWidth(1600, memoryStorage())).toBe(400)
   })
 
   it('非法值 → 默认', () => {
-    expect(loadAiDockWidth(1600, memoryStorage({ 'mb.aiDock.width': 'abc' }))).toBe(480)
-    expect(loadAiDockWidth(1600, memoryStorage({ 'mb.aiDock.width': '' }))).toBe(480)
+    expect(loadAiDockWidth(1600, memoryStorage({ 'mb.aiDock.width': 'abc' }))).toBe(400)
+    expect(loadAiDockWidth(1600, memoryStorage({ 'mb.aiDock.width': '' }))).toBe(400)
   })
 
   it('保存后能读回（并按当前视口 clamp）', () => {
@@ -71,6 +71,6 @@ describe('dockWidth：默认值与持久化', () => {
 
   it('storage 为 null 不抛', () => {
     expect(() => saveAiDockWidth(400, null)).not.toThrow()
-    expect(loadAiDockWidth(1600, null)).toBe(480)
+    expect(loadAiDockWidth(1600, null)).toBe(400)
   })
 })
