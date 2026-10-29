@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { DIFF_ROW_LIMIT, TOOL_ARGS_LIMIT, diffRows, formatToolArgs } from '../../src/shared/agent/toolDetail'
+import { DIFF_ROW_LIMIT, TOOL_ARGS_LIMIT, diffRows, diffTotals, formatToolArgs } from '../../src/shared/agent/toolDetail'
 
 describe('formatToolArgs：参数文本整理', () => {
   it('空 / 纯空白 → 空文本，不标记 JSON', () => {
@@ -67,5 +67,19 @@ describe('diffRows：unified diff 行切分', () => {
     const rows = diffRows(lines.join('\n'))
     expect(rows).toHaveLength(DIFF_ROW_LIMIT + 1)
     expect(rows?.at(-1)).toEqual({ kind: 'hunk', text: '…（已截断）' })
+  })
+})
+
+describe('diffTotals：增删行数', () => {
+  it('只数 add / del；文件头归 hunk，不计入', () => {
+    const rows = diffRows(
+      ['--- a/x.ts', '+++ b/x.ts', '@@ -1,3 +1,4 @@', ' keep', '-old1', '-old2', '+new1', '+new2', '+new3'].join('\n')
+    )
+    expect(rows).not.toBeNull()
+    expect(diffTotals(rows ?? [])).toEqual({ added: 3, removed: 2 })
+  })
+
+  it('空行集 → 0/0（不抛）', () => {
+    expect(diffTotals([])).toEqual({ added: 0, removed: 0 })
   })
 })

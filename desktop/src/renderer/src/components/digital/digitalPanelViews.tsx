@@ -3,7 +3,7 @@ import { useState, type ReactNode } from 'react'
 import { RISK_LEVEL, resolveRiskLevel } from '../../../../shared/agent/protocol'
 import type { DigitalCommand } from '../../../../shared/agent/commands'
 import type { DigitalReference } from '../../../../shared/agent/references'
-import { diffRows, formatToolArgs } from '../../../../shared/agent/toolDetail'
+import { diffRows, diffTotals, formatToolArgs } from '../../../../shared/agent/toolDetail'
 import {
   summarizeToolTasks,
   type DigitalPanelState,
@@ -228,6 +228,8 @@ function ToolStepCard({ step, resolveView }: { step: DigitalStep; resolveView?: 
   const variant = toolVariant(step.tool)
   const summary = stepSummary(step)
   const diff = hasResult ? diffRows(step.result) : null
+  // 行头的 `+N −M`（借 dsh ToolRow 的 diffAdded/diffRemoved）：折叠时也能看出改了多少
+  const totals = diff !== null ? diffTotals(diff) : null
   return (
     <li
       className={`digital-step digital-step-card digital-step-${step.status}`}
@@ -248,6 +250,12 @@ function ToolStepCard({ step, resolveView }: { step: DigitalStep; resolveView?: 
         <span className="digital-step-tool">{step.tool}</span>
         {summary !== '' && (
           <span className={`digital-step-summary${step.status === 'failed' ? ' is-error' : ''}`}>{summary}</span>
+        )}
+        {totals !== null && (totals.added > 0 || totals.removed > 0) && (
+          <span className="digital-step-diff-total" data-testid="digital-step-diff-total">
+            {totals.added > 0 && <span className="is-add">+{totals.added}</span>}
+            {totals.removed > 0 && <span className="is-del">−{totals.removed}</span>}
+          </span>
         )}
         <span className={`digital-step-status digital-step-status-${step.status}`}>
           {step.status === 'running' && <span className="digital-step-dot" aria-hidden="true" />}

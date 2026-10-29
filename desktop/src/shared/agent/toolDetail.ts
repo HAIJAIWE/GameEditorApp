@@ -71,6 +71,28 @@ export function diffRows(text?: string): DiffRow[] | null {
   return rows
 }
 
+/** diff 增删行数（行头那对 `+N −M` 的唯一来源） */
+export interface DiffTotals {
+  added: number
+  removed: number
+}
+
+/**
+ * 统计 diff 的增删行数。
+ *
+ * 与 `diffRows` 同源：只数 `add` / `del`，`+++` / `---` 文件头已被归类成 `hunk`，不会误计。
+ * 截断标记也是 `hunk`，所以超大补丁的总数是「已渲染部分」的真实值，不虚报。
+ */
+export function diffTotals(rows: readonly DiffRow[]): DiffTotals {
+  let added = 0
+  let removed = 0
+  for (const row of rows) {
+    if (row.kind === 'add') added += 1
+    else if (row.kind === 'del') removed += 1
+  }
+  return { added, removed }
+}
+
 /**
  * 单行归类。`+++` / `---` 必须先于 `+` / `-` 判断：它们是文件头，
  * 按增删行染绿染红会让「整个文件都变了」的错觉盖住真实改动。

@@ -8885,3 +8885,27 @@ button.ref-row:hover {
 .rightbar-fullscreen[aria-pressed='true'] {
   color: var(--accent);
 }
+
+/* diff 增删行数（借 dsh ToolRow 的 diffAdded / diffRemoved）：
+   折叠态灰、悬停或展开时着色——数字先给「改了多少」，颜色留给「凑近看」 */
+.digital-step-diff-total {
+  flex: 0 0 auto;
+  display: inline-flex;
+  gap: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: calc(13px * var(--ui-font-scale) * 11/13);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+.digital-step-diff-total .is-add,
+.digital-step-diff-total .is-del {
+  transition: color 120ms ease;
+}
+.digital-step-head:hover .digital-step-diff-total .is-add,
+.digital-step-head[aria-expanded='true'] .digital-step-diff-total .is-add {
+  color: var(--change-create);
+}
+.digital-step-head:hover .digital-step-diff-total .is-del,
+.digital-step-head[aria-expanded='true'] .digital-step-diff-total .is-del {
+  color: var(--change-delete);
+}
