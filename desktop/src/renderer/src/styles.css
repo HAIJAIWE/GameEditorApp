@@ -9255,3 +9255,63 @@ button.ref-row:hover {
   color: var(--text-muted);
   font-size: calc(12px * var(--ui-font-scale));
 }
+
+/* ── 中栏子页签（对齐 dsh：标题行下方 对话 / 轨迹） ── */
+.conv-tabs {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  flex: none;
+  padding: 0 14px;
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.12);
+}
+.conv-tab {
+  height: 32px;
+  padding: 0 10px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: calc(13px * var(--ui-font-scale));
+  cursor: pointer;
+  white-space: nowrap;
+}
+.conv-tab:hover {
+  color: var(--text);
+}
+.conv-tab.active {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+  font-weight: 500;
+}
+
+/* 轨迹视图：替换消息区（消息区靠 CSS 收起，避免把整棵子树重排） */
+.conv-trajectory {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  padding: 10px 14px 16px;
+  overflow: auto;
+}
+.conv-trajectory-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  color: var(--text-muted);
+  font-size: calc(12px * var(--ui-font-scale));
+  font-variant-numeric: tabular-nums;
+}
+.conv-trajectory-empty {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: calc(13px * var(--ui-font-scale));
+}
+.digital-panel[data-center-tab='trajectory'] .digital-messages,
+.digital-panel[data-center-tab='trajectory'] .digital-input-row,
+.digital-panel[data-center-tab='trajectory'] .field-action-strip,
+.digital-panel[data-center-tab='trajectory'] .digital-composer-takeover {
+  display: none;
+}

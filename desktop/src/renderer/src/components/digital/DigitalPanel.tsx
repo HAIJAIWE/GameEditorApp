@@ -142,6 +142,8 @@ export default function DigitalPanel({
   const [dataTypes, setDataTypes] = useState<DigitalReference[]>([])
   const dataTypesLoaded = useRef(false)
   const [stepsOpen, setStepsOpen] = useState(true)
+  /** 中栏子页签：对话 / 轨迹（对齐 dsh 的 conversation 子页签） */
+  const [centerTab, setCenterTab] = useState<'chat' | 'trajectory'>('chat')
   const [sessionHint, setSessionHint] = useState<{ messageCount: number; savedAt: string } | null>(null)
   const [interactionAnswer, setInteractionAnswer] = useState('')
   /** 多问题：自由文本作答（按下标对齐） */
@@ -556,7 +558,7 @@ export default function DigitalPanel({
   }
 
   return (
-    <div className="digital-panel" data-testid="digital-panel">
+    <div className="digital-panel" data-testid="digital-panel" data-center-tab={centerTab}>
       <div className="changelog-header">
         <span className="chapter-form-title">
           <LucideIcon name="bot" size={16} />
@@ -695,6 +697,48 @@ export default function DigitalPanel({
           )}
         </div>
       </div>
+
+      {/* 中栏子页签（对齐 dsh：标题行下方 对话 / 轨迹；dsh 还有「上下文」，
+          但 token 用量我们只有 totalTokens 一个数，撑不起那一屏，宁缺勿造） */}
+      <nav className="conv-tabs" data-testid="conv-tabs" aria-label="对话视图">
+        <button
+          type="button"
+          className={`conv-tab${centerTab === 'chat' ? ' active' : ''}`}
+          data-testid="conv-tab-chat"
+          aria-current={centerTab === 'chat' ? 'page' : undefined}
+          onClick={() => setCenterTab('chat')}
+        >
+          对话
+        </button>
+        <button
+          type="button"
+          className={`conv-tab${centerTab === 'trajectory' ? ' active' : ''}`}
+          data-testid="conv-tab-trajectory"
+          aria-current={centerTab === 'trajectory' ? 'page' : undefined}
+          onClick={() => setCenterTab('trajectory')}
+        >
+          轨迹
+        </button>
+      </nav>
+
+      {centerTab === 'trajectory' && (
+        <div className="conv-trajectory" data-testid="conv-trajectory">
+          {state.runStats.turns > 0 ? (
+            <div className="conv-trajectory-summary">
+              <span>{state.runStats.turns} 轮</span>
+              <span>{state.steps.length} 步</span>
+              <span>{state.runStats.toolCalls} 次工具</span>
+              <span>{state.runStats.totalTokens} token</span>
+              <span>{state.runStats.latencyMs} ms</span>
+            </div>
+          ) : (
+            <p className="conv-trajectory-empty">这一轮还没有执行记录。</p>
+          )}
+          {state.steps.length > 0 && (
+            <DigitalStepList steps={state.steps} resolveView={resolveToolViewFromPlugins} />
+          )}
+        </div>
+      )}
 
       {(localError !== null || state.error !== null) && (
         <div className="form-error" data-testid="digital-error">
