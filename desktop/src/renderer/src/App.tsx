@@ -563,6 +563,20 @@ export default function App() {
     return () => setAppIoPort(null)
   }, [refreshUndo, performUndo, performRedo])
 
+  /** 顶部「＋ 新建策划书」：与首页的「空白策划书」同一调用，建完直接打开 */
+  const handleNewCeshu = useCallback((): void => {
+    void (async () => {
+      try {
+        const doc = await window.mbApi.ceshu.create({ name: '', scope: 'full' })
+        await reloadCeshuList()
+        setActiveCeshuId(doc.ceshu_id)
+        setCeshuHomeVisible(false)
+      } catch (err) {
+        setError(toErrorMessage(err))
+      }
+    })()
+  }, [reloadCeshuList])
+
   /** 打开某份策划书（同时离开首页卡片视图） */
   const handleOpenCeshu = useCallback((id: string): void => {
     setActiveCeshuId(id)
@@ -657,7 +671,15 @@ export default function App() {
     <div className="app">
       <MenuBar host={pluginHost} />
       <div className="app-body">
-        <Sidebar items={sidebarItems} activePanel={panelId} onActivate={handleSidebarItem} />
+        <Sidebar
+          items={sidebarItems}
+          activePanel={panelId}
+          onActivate={handleSidebarItem}
+          onNewCeshu={handleNewCeshu}
+          ceshuList={ceshuList}
+          activeCeshuId={activeCeshuId}
+          onOpenCeshu={handleOpenCeshu}
+        />
         <div className="main">
           {/* 通知条放在两态之上：面板开着时也要能看到「已创建 / 错误」反馈 */}
           {error && <div className="error-banner">{error}</div>}
