@@ -547,6 +547,15 @@ body {
 }
 
 /* 右栏与主区之间的拖拽分隔条（替代原先 CSS resize 的右下角小把手） */
+/* Slot 出口容器：让 app.rightPanel 的占据者（智能体面板）填满右栏 */
+.ai-dock-slot {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 .ai-dock-resizer {
   flex: 0 0 4px;
   width: 4px;

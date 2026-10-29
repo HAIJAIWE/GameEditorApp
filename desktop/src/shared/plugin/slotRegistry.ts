@@ -38,6 +38,8 @@ export interface SlotEntry {
   readonly ownerId?: string
   /** 展示体（`slot` 能力是 UiNode；`sidebar` 桥接时是 `PluginSidebarItem`——故为 unknown，由消费者收窄） */
   readonly payload: unknown
+  /** 富 UI 绑定 id（宿主侧 React 组件）；存在时渲染层优先画组件 */
+  readonly component?: string
   readonly select?: (owner: unknown) => unknown | null | undefined
   readonly store?: SlotStoreDecl
   /** 该条目声明（并认领）的子 slot key 列表 */
@@ -64,6 +66,7 @@ export interface SlotRegistrationInput {
   entryKey?: string
   ownerId?: string
   payload: unknown
+  component?: string
   select?: (owner: unknown) => unknown | null | undefined
   store?: SlotStoreDecl
   children?: Record<string, SlotSpec>
@@ -185,6 +188,7 @@ export class SlotRegistry {
       ...(input.entryKey !== undefined ? { entryKey: input.entryKey } : {}),
       ...(input.ownerId !== undefined ? { ownerId: input.ownerId } : {}),
       payload: input.payload,
+      ...(input.component !== undefined ? { component: input.component } : {}),
       ...(input.select !== undefined ? { select: input.select } : {}),
       ...(input.store !== undefined ? { store: input.store } : {}),
       declaredChildren,

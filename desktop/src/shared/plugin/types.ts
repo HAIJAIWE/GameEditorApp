@@ -239,8 +239,13 @@ export interface PluginSlotCapability {
   store?: SlotStoreDecl
   /** 声明子 slot（声明即认领） */
   children?: Record<string, SlotSpec>
-  /** 展示体（声明式；惰性函数形式与 panel/view 一致） */
-  ui: UiNode | (() => UiNode)
+  /**
+   * 富 UI 绑定 id（宿主侧 `registerSlotComponent` 注册的 React 组件）。
+   * 与 `ui` 二选一：有 `component` 时渲染层优先画组件，`ui` 仅作非 React 宿主回退。
+   */
+  component?: string
+  /** 展示体（声明式；惰性函数形式与 panel/view 一致）。`component` 存在时可省略。 */
+  ui?: UiNode | (() => UiNode)
 }
 
 export type PluginCapability =

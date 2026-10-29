@@ -3,7 +3,7 @@ import { Fragment, useSyncExternalStore, type ReactNode } from 'react'
 import type { PluginHost } from '../../../shared/plugin/host'
 import type { SlotEntry } from '../../../shared/plugin/slotRegistry'
 import { isUiNode } from '../../../shared/plugin/types'
-import { renderUiNode } from './reactBindings'
+import { getSlotComponent, renderUiNode } from './reactBindings'
 
 /**
  * Slot 出口：把宿主 `SlotRegistry` 的渲染读画出来（借 dsh ui-renderer 的 slot 渲染思路）。
@@ -37,7 +37,7 @@ export function SlotOutlet({ host, slotKey, ownerProps, className, empty }: Slot
   if (spec.kind === 'chain') {
     const winner = host.slotChainWinner(slotKey, ownerProps)
     if (winner === null) return empty ?? null
-    return <div className={className}>{renderEntry(winner.entry, host)}</div>
+    return <div className={className}>{renderEntry(winner.entry, host, ownerProps)}</div>
   }
 
   const entries = host.slotEntries(slotKey)
@@ -45,13 +45,21 @@ export function SlotOutlet({ host, slotKey, ownerProps, className, empty }: Slot
   return (
     <div className={className}>
       {entries.map((entry) => (
-        <Fragment key={entry.id}>{renderEntry(entry, host)}</Fragment>
+        <Fragment key={entry.id}>{renderEntry(entry, host, ownerProps)}</Fragment>
       ))}
     </div>
   )
 }
 
-function renderEntry(entry: SlotEntry, host: PluginHost): ReactNode {
+function renderEntry(entry: SlotEntry, host: PluginHost, ownerProps: unknown): ReactNode {
+  // 富 UI：`component` 指向宿主侧注册的 React 组件，ownerProps 原样下发
+  if (entry.component !== undefined) {
+    const Component = getSlotComponent(entry.component)
+    if (Component !== undefined) {
+      const props = ownerProps !== null && typeof ownerProps === 'object' ? (ownerProps as Record<string, unknown>) : {}
+      return <Component {...props} />
+    }
+  }
   const payload = typeof entry.payload === 'function' ? (entry.payload as () => unknown)() : entry.payload
   if (!isUiNode(payload)) return null
   return renderUiNode(payload, (commandId) => {

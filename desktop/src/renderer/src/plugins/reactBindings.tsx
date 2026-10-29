@@ -44,6 +44,20 @@ export function getReactBinding(id: string): ComponentType<PanelBindingProps> | 
   return reactPluginBindings.get(id)
 }
 
+/**
+ * Slot 富 UI 绑定：slot 能力的 `component` 字段指向此表的组件 id。
+ * 与 panel 绑定同理——契约层只存 id（宿主无关），React 组件在此外置注册。
+ */
+const slotComponents = new Map<string, ComponentType<Record<string, unknown>>>()
+
+export function registerSlotComponent(id: string, component: ComponentType<Record<string, unknown>>): void {
+  slotComponents.set(id, component)
+}
+
+export function getSlotComponent(id: string): ComponentType<Record<string, unknown>> | undefined {
+  return slotComponents.get(id)
+}
+
 /** 取面板/视图/主区视图的声明式 UI（支持惰性函数形式） */
 export function uiOf(cap: PluginPanelCapability | PluginViewCapability | PluginMainViewCapability): UiNode {
   return typeof cap.ui === 'function' ? cap.ui() : cap.ui

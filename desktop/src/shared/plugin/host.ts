@@ -460,7 +460,8 @@ export class PluginHost {
               ...(capability.order !== undefined ? { order: capability.order } : {}),
               ...(cell !== undefined ? { entryKey: cell } : {}),
               ownerId: manifest.id,
-              payload: capability.ui,
+              payload: capability.ui ?? null,
+              ...(capability.component !== undefined ? { component: capability.component } : {}),
               ...(capability.select !== undefined ? { select: capability.select } : {}),
               ...(capability.store !== undefined ? { store: capability.store } : {}),
               ...(capability.children !== undefined ? { children: capability.children } : {})

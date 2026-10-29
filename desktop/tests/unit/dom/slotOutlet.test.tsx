@@ -1,10 +1,15 @@
 // @vitest-environment jsdom
-import { act } from 'react'
+import { act, type ComponentType } from 'react'
 import { describe, expect, it } from 'vitest'
 
 import { renderDom } from './render'
 import { PluginHost } from '../../../src/shared/plugin/host'
 import { SlotOutlet } from '../../../src/renderer/src/plugins/slotOutlet'
+import { registerSlotComponent } from '../../../src/renderer/src/plugins/reactBindings'
+
+function Greeting(props: Record<string, unknown>) {
+  return <span>你好 {String(props.name ?? '')}</span>
+}
 
 describe('SlotOutlet', () => {
   it('未声明 / 无条目时显示占位', async () => {
@@ -38,6 +43,24 @@ describe('SlotOutlet', () => {
     await result.flush()
     expect(result.text()).toContain('空')
 
+    await result.cleanup()
+  })
+
+  it('渲染 component 富 UI 并下发 ownerProps', async () => {
+    registerSlotComponent('test.greeting', Greeting as unknown as ComponentType<Record<string, unknown>>)
+    const host = new PluginHost()
+    host.register({
+      id: 'p',
+      name: 'p',
+      version: '0.1.0',
+      capabilities: [
+        { kind: 'slot', id: 'p.greet', key: 'app.header', component: 'test.greeting', ui: { type: 'text', text: '回退' } }
+      ]
+    })
+    const result = await renderDom(
+      <SlotOutlet host={host} slotKey="app.header" ownerProps={{ name: '世界' }} />
+    )
+    expect(result.text()).toContain('你好 世界')
     await result.cleanup()
   })
 })

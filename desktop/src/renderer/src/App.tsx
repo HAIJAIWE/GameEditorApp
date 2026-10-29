@@ -6,7 +6,8 @@ import type { AppInfo, DataTypeDef } from '../../shared/types'
 import { applyTheme, loadTheme, saveTheme, type ThemeMode } from '../../shared/config/theme'
 
 import { type PreviewJumpTarget } from './components/ceshu/CeshuDataPreview'
-import DigitalPanel from './components/digital/DigitalPanel'
+import { SlotOutlet } from './plugins/slotOutlet'
+import { defineDigitalPanelPlugin } from './plugins/digitalPanelPlugin'
 import MenuBar from './components/MenuBar'
 import { type ReferenceTarget } from './components/ReferencesPanel'
 import Sidebar from './components/Sidebar'
@@ -22,6 +23,14 @@ import { setMenuStateProvider } from './plugins/menuState'
 import { HostPanel } from './plugins/HostPanel'
 import { MainViewMount, type AppMainTab } from './plugins/MainViewMount'
 import { AppContextProvider } from './plugins/appContext'
+
+/**
+ * 智能体面板收编为 `app.rightPanel` slot 的默认占据者（Slice 46）。
+ * 模块级注册一次；受保护插件（`protected`），不可禁用。
+ */
+if (pluginHost.get('digital-panel') === undefined) {
+  pluginHost.register(defineDigitalPanelPlugin(pluginHost))
+}
 
 /**
  * 这些面板的打开参数是**一次性上下文**（「编辑哪个类型」之类）：从菜单打开时必须先清空，
@@ -672,7 +681,12 @@ export default function App() {
               onDoubleClick={resetDockWidth}
             />
             <aside className="ai-dock" style={{ width: aiDockWidth }} data-testid="ai-dock">
-              <DigitalPanel onOpenCapabilities={() => runCommand('agentEditor.open')} />
+              <SlotOutlet
+                host={pluginHost}
+                slotKey="app.rightPanel"
+                className="ai-dock-slot"
+                ownerProps={{ onOpenCapabilities: () => runCommand('agentEditor.open') }}
+              />
             </aside>
           </div>
 

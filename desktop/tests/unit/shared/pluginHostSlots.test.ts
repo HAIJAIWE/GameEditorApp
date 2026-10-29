@@ -111,6 +111,16 @@ describe('PluginHost slot 集成', () => {
     expect(host.slotSidebarItems().map((item) => item.key)).toEqual(['home', 'data'])
   })
 
+  it('slot 能力带 component → entry.component 被记录（富 UI）', () => {
+    const host = new PluginHost()
+    host.register(
+      manifest('p', [
+        { kind: 'slot', id: 'p.h', key: 'app.header', component: 'x.y', ui: { type: 'text', text: 'h' } }
+      ])
+    )
+    expect(host.slotEntries('app.header')[0]?.component).toBe('x.y')
+  })
+
   it('sidebar 跨能力按 order 排序（slot 与旧路径一致）', () => {
     const host = new PluginHost()
     host.register(
