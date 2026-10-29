@@ -5197,98 +5197,227 @@ button.ref-row:hover {
   padding: 4px;
 }
 
-.digital-bubble {
-  max-width: 78%;
+/* ── 对话消息（移植 dsh ui-chat MessageItem 的排版取舍） ──
+   用户消息右对齐实心气泡；助手消息扁平正文、不套边框卡片。 */
+.digital-message-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
+  line-height: 1.6;
+}
+
+.digital-message-item-user {
+  align-self: flex-end;
+  align-items: flex-end;
+  /* dsh 的 userStack 上限：窄栏按比例收，宽栏不至于拉成一整行 */
+  max-width: 82%;
+}
+
+.digital-message-item-assistant {
+  align-self: stretch;
+  align-items: stretch;
+}
+
+.digital-message-bubble {
   padding: 8px 12px;
-  border-radius: var(--radius);
-  font-size: calc(13px * var(--ui-font-scale) * 1.0);
+  border-radius: 10px;
+  background: var(--accent);
+  color: var(--btn-text);
   white-space: pre-wrap;
   word-break: break-word;
 }
 
-.digital-bubble-user {
-  align-self: flex-end;
+.digital-message-body {
+  /* 助手正文占满列宽；流式时光标跟在原文尾部 */
+  min-width: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* 流式光标：闪烁的方块，纯装饰 */
+.digital-cursor {
+  display: inline-block;
+  width: 0.5em;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: -0.15em;
   background: var(--accent);
-  color: var(--btn-text);
+  animation: digital-cursor-blink 1s steps(2, start) infinite;
 }
 
-.digital-bubble-assistant {
-  align-self: flex-start;
-  border: 1px solid var(--border);
-  background: var(--bg-panel);
+@keyframes digital-cursor-blink {
+  to {
+    visibility: hidden;
+  }
 }
 
-/* ── 数字员工气泡内的 markdown 渲染（对齐 旧版 chat_renderer.render_markdown 的 codehilite/fenced_code/tables/nl2br） ── */
-.digital-bubble .markdown-body {
+/* 动作行：静止不可见（opacity 保留布局，悬停时不会顶动正文） */
+.digital-message-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.digital-message-item:hover .digital-message-actions,
+.digital-message-item:focus-within .digital-message-actions {
+  opacity: 1;
+}
+
+.digital-message-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 4px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.digital-message-action:hover {
+  /* 用 --text-muted 混出浅底：仓库没有 --fg 令牌，写错会让整条声明失效（悬停无反馈） */
+  background: color-mix(in srgb, var(--text-muted) 12%, transparent);
+  color: var(--text);
+}
+
+/* 无 hover 的设备（触屏）上常显，否则复制入口永远摸不到 */
+@media (hover: none) {
+  .digital-message-actions {
+    opacity: 1;
+  }
+}
+
+/* ── 助手正文的 markdown 排版（作用域限定在消息正文，避免影响其它 markdown-body） ── */
+.digital-message-body .markdown-body {
   font-size: inherit;
-  line-height: 1.55;
-  /* 气泡默认 pre-wrap，markdown 由 remark-breaks 控制换行，故正文按 normal 渲染避免双重换行 */
+  line-height: 1.6;
+  /* 正文由 remark-breaks 控制换行，按 normal 渲染避免与 pre-wrap 叠加 */
   white-space: normal;
 }
-.digital-bubble .markdown-body > :first-child {
+
+.digital-message-body .markdown-body > :first-child {
   margin-top: 0;
 }
-.digital-bubble .markdown-body > :last-child {
+
+.digital-message-body .markdown-body > :last-child {
   margin-bottom: 0;
 }
 
-.digital-bubble .markdown-body p {
-  margin: 6px 0;
-}
-.digital-bubble .markdown-body ul,
-.digital-bubble .markdown-body ol {
-  margin: 6px 0;
-  padding-left: 22px;
-}
-.digital-bubble .markdown-body li {
-  margin: 2px 0;
-}
-
-.digital-bubble .markdown-body code {
-  background: color-mix(in srgb, var(--fg) 10%, transparent);
-  padding: 1px 5px;
-  border-radius: 4px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-  font-size: 0.92em;
-}
-.digital-bubble .markdown-body pre {
-  /* 令牌化：浅色主题浅底 + 浅色语法调色板；深色主题深底 + [data-theme=dark] 的深色调色板。
-     此前硬编码 #0d1117 深底 ⇒ 浅色主题下「黑底配深色字」，代码看不清。 */
-  background: var(--cell-bg);
-  color: var(--text);
-  border: 1px solid var(--divider);
-  padding: 10px 12px;
-  border-radius: 8px;
-  overflow-x: auto;
+.digital-message-body .markdown-body p {
   margin: 8px 0;
 }
-.digital-bubble .markdown-body pre code {
-  background: none;
-  padding: 0;
-  border-radius: 0;
-  font-size: 0.92em;
-  color: inherit;
+
+.digital-message-body .markdown-body h1,
+.digital-message-body .markdown-body h2,
+.digital-message-body .markdown-body h3,
+.digital-message-body .markdown-body h4 {
+  margin: 12px 0 6px;
+  font-weight: 600;
+  line-height: 1.35;
 }
 
-.digital-bubble .markdown-body table {
+.digital-message-body .markdown-body h1 {
+  font-size: calc(16px * var(--ui-font-scale) * 12/13);
+}
+
+.digital-message-body .markdown-body h2 {
+  font-size: calc(15px * var(--ui-font-scale) * 12/13);
+}
+
+.digital-message-body .markdown-body h3 {
+  font-size: calc(14px * var(--ui-font-scale) * 12/13);
+}
+
+.digital-message-body .markdown-body h4 {
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
+}
+
+.digital-message-body .markdown-body ul,
+.digital-message-body .markdown-body ol {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+.digital-message-body .markdown-body li {
+  margin: 4px 0;
+}
+
+.digital-message-body .markdown-body table {
   border-collapse: collapse;
   margin: 8px 0;
-}
-.digital-bubble .markdown-body th,
-.digital-bubble .markdown-body td {
-  border: 1px solid var(--border);
-  padding: 4px 8px;
+  max-width: 100%;
 }
 
-.digital-bubble .markdown-body blockquote {
+.digital-message-body .markdown-body th,
+.digital-message-body .markdown-body td {
+  border: 1px solid var(--border);
+  padding: 6px 8px;
+}
+
+.digital-message-body .markdown-body th {
+  background: var(--cell-bg);
+  font-weight: 600;
+}
+
+.digital-message-body .markdown-body blockquote {
   margin: 8px 0;
   padding-left: 10px;
   border-left: 3px solid var(--border);
   color: var(--text-muted);
 }
 
-.digital-bubble .markdown-body a {
+.digital-message-body .markdown-body hr {
+  margin: 12px 0;
+  border: none;
+  border-top: 1px solid var(--border);
+}
+
+.digital-message-body .markdown-body a {
   color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.digital-message-body .markdown-body strong {
+  font-weight: 600;
+}
+
+.digital-message-body .markdown-body code {
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--cell-bg);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 0.92em;
+}
+
+.digital-message-body .markdown-body pre {
+  /* 令牌化：浅色主题浅底、深色主题深底（见 [data-theme="dark"] 的 --cell-bg） */
+  margin: 8px 0;
+  padding: 10px;
+  max-height: 320px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--cell-bg);
+  color: var(--text);
+  font-size: calc(12px * var(--ui-font-scale) * 12/13);
+  line-height: 1.5;
+}
+
+.digital-message-body .markdown-body pre code {
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  color: inherit;
+  font-size: inherit;
 }
 
 /* ── highlight.js 自包含词法调色板（不引外部 CSS；浅色为基，[data-theme="dark"] 覆盖） ── */

@@ -2,8 +2,8 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'r
 
 import { defaultDraftName, type DraftSummary } from '../../../../shared/agent/session'
 
-import ChatMarkdown from './ChatMarkdown'
 import { DigitalChangeCard } from './DigitalChangeCard'
+import { DigitalMessageItem } from './DigitalMessageItem'
 import FieldActionStrip from './FieldActionStrip'
 
 import LucideIcon from '../LucideIcon'
@@ -740,22 +740,11 @@ export default function DigitalPanel({
         {state.messages
           .filter((message) => message.role === 'user' || message.role === 'assistant')
           .map((message) => (
-            <div
-              key={message.id}
-              className={`digital-bubble digital-bubble-${message.role}`}
-              data-testid="digital-message"
-              data-role={message.role}
-            >
-              <ChatMarkdown text={message.text} />
-            </div>
+            <DigitalMessageItem key={message.id} role={message.role} text={message.text} />
           ))}
         {/* 本轮改动卡：对话流内、紧跟助手消息之后、流式气泡之前；空列表不渲染任何 DOM */}
         <DigitalChangeCard changes={turnChanges} />
-        {state.streaming !== '' && (
-          <div className="digital-bubble digital-bubble-assistant" data-testid="digital-streaming">
-            {state.streaming}
-          </div>
-        )}
+        {state.streaming !== '' && <DigitalMessageItem role="assistant" text={state.streaming} streaming />}
         {state.messages.length === 0 && state.streaming === '' && (
           <>
             {/* 开新对话入口（借 dsh AgentPresetSeat）：选预设 → 开聊后锁定为只读 */}
