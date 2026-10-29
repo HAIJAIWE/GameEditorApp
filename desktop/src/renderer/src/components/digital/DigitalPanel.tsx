@@ -47,6 +47,8 @@ import {
 import { createStoreInstance } from '../../../../shared/plugin/slotRegistry'
 import { toErrorMessage } from '../../../../shared/util/errors'
 import { AGENT_PRESETS, DEFAULT_PRESET_ID, presetLabel } from '../../../../shared/agent/presets'
+import { loadLlmConfig, saveLlmConfig, LLM_PROVIDER_PRESETS } from '../../../../shared/config/llmConfig'
+import type { LlmProvider } from '../../../../shared/config/llmConfigData'
 
 /**
  * 智能体面板（A1-4）：对话气泡 + 流式文本 + 可折叠步骤 + 任务列表 + 危险操作审批模态。
@@ -198,6 +200,21 @@ export default function DigitalPanel({
   /** 输入框左下「＋」的菜单：把已经存在但藏起来的两个能力（@ 引用 / / 命令）摆到明面上 */
   const [plusMenuOpen, setPlusMenuOpen] = useState(false)
   const plusMenuRef = useRef<HTMLDivElement | null>(null)
+  /**
+   * 输入框的「模型」下拉：**真下拉**。当前模型来自 localStorage 的 LLM 配置，
+   * 选项来自 `LLM_PROVIDER_PRESETS[provider].models`；Ollama 再叠加 `llm:status`
+   * 探到的本机已装模型。选中即写回 localStorage + 推主进程镜像（与设置面板同一链路），
+   * 后续 agent 调用会读到新模型。权限「完全权限」则无后端开关，保持静态展示。
+   */
+  const [modelMenuOpen, setModelMenuOpen] = useState(false)
+  const modelMenuRef = useRef<HTMLDivElement | null>(null)
+  const [availableModels, setAvailableModels] = useState<string[]>([])
+  const [currentModel, setCurrentModel] = useState<string>(() => {
+    try { return loadLlmConfig().model } catch { return '' }
+  })
+  const [currentProvider, setCurrentProvider] = useState<LlmProvider>(() => {
+    try { return loadLlmConfig().provider } catch { return 'ollama' }
+  })
   const clearMenuRef = useRef<HTMLDivElement | null>(null)
   const draftMenuRef = useRef<HTMLDivElement | null>(null)
   /** 当前进行中那一轮的 runId（「停止」按钮据此精确取消） */
@@ -451,11 +468,14 @@ export default function DigitalPanel({
    * 监听挂在 document 上、命中判定用各自的 ref —— 两个下拉互不影响。
    */
   useEffect(() => {
-    if (!clearMenuOpen && !draftMenuOpen) return undefined
+    if (!clearMenuOpen && !draftMenuOpen && !modelMenuOpen && !plusMenuOpen) return undefined
     const onDocClick = (event: MouseEvent): void => {
       const target = event.target as Node
       if (plusMenuOpen && plusMenuRef.current && !plusMenuRef.current.contains(target)) {
         setPlusMenuOpen(false)
+      }
+      if (modelMenuOpen && modelMenuRef.current && !modelMenuRef.current.contains(target)) {
+        setModelMenuOpen(false)
       }
       if (clearMenuOpen && clearMenuRef.current && !clearMenuRef.current.contains(target)) {
         setClearMenuOpen(false)
@@ -466,6 +486,8 @@ export default function DigitalPanel({
     }
     const onKey = (event: KeyboardEvent): void => {
       if (event.key !== 'Escape') return
+      setPlusMenuOpen(false)
+      setModelMenuOpen(false)
       setClearMenuOpen(false)
       setDraftMenuOpen(false)
     }
@@ -475,7 +497,42 @@ export default function DigitalPanel({
       document.removeEventListener('mousedown', onDocClick)
       document.removeEventListener('keydown', onKey)
     }
-  }, [plusMenuOpen, clearMenuOpen, draftMenuOpen])
+  }, [plusMenuOpen, modelMenuOpen, clearMenuOpen, draftMenuOpen])
+
+  /**
+   * 打开模型下拉时拉取可选项：预设清单（离线安全）打底，Ollama 再叠加本机已装模型。
+   * 当前已选模型若不在清单里也补到首位，避免「选了但列表里看不见」。
+   */
+  const loadModels = useCallback(async (): Promise<void> => {
+    const cfg = loadLlmConfig()
+    setCurrentProvider(cfg.provider)
+    setCurrentModel(cfg.model)
+    let models = [...(LLM_PROVIDER_PRESETS[cfg.provider]?.models ?? [])]
+    if (cfg.provider === 'ollama') {
+      try {
+        const status = await window.mbApi.llm.status()
+        if (status.models.length > 0) models = status.models
+      } catch {
+        /* 离线安全：用预设清单兜底 */
+      }
+    }
+    if (cfg.model !== '' && !models.includes(cfg.model)) models = [cfg.model, ...models]
+    setAvailableModels(models)
+  }, [])
+
+  /** 选中模型：写回 localStorage + 推主进程镜像（与设置面板同一链路），后续调用即生效 */
+  const chooseModel = useCallback(async (model: string): Promise<void> => {
+    const cfg = loadLlmConfig()
+    const next = { ...cfg, model }
+    saveLlmConfig(next)
+    try {
+      await window.mbApi.llm.configure({ config: next })
+    } catch {
+      /* 镜像推送尽力而为；本地配置已落盘 */
+    }
+    setCurrentModel(model)
+    setModelMenuOpen(false)
+  }, [])
 
   /** 拉草稿列表（打开下拉时触发；失败只提示不打断面板） */
   const loadDrafts = async (): Promise<void> => {
@@ -1189,17 +1246,57 @@ export default function DigitalPanel({
                   </div>
                 )}
               </div>
-              <span className="dsh-composer-chip" title="当前权限：完全权限（只显示，切换未实现）">
+              <span
+                className="dsh-composer-chip dsh-composer-chip-static"
+                title="当前权限模式：完全权限（主智能体工具全开，后端无可切换开关）"
+              >
                 <span className="dsh-composer-chip-label">完全权限</span>
-                <LucideIcon name="chevron-down" size={12} />
               </span>
             </div>
 
             <div className="dsh-composer-group">
-              <span className="dsh-composer-chip" title="当前模型（展示用，切换请到设置）">
-                <span className="dsh-composer-chip-label">DeepSeek-V4.1-Flash</span>
-                <LucideIcon name="chevron-down" size={12} />
-              </span>
+              <div className="dsh-composer-picker" ref={modelMenuRef}>
+                <button
+                  type="button"
+                  className="dsh-composer-chip dsh-composer-chip-button"
+                  data-testid="digital-composer-model"
+                  title={`当前模型：${currentModel || '未选择'}（${LLM_PROVIDER_PRESETS[currentProvider]?.label ?? currentProvider}）`}
+                  aria-haspopup="menu"
+                  aria-expanded={modelMenuOpen}
+                  onClick={async () => {
+                    if (!modelMenuOpen) await loadModels()
+                    setModelMenuOpen((open) => !open)
+                  }}
+                >
+                  <span className="dsh-composer-chip-label">{currentModel || '未选择模型'}</span>
+                  <LucideIcon name="chevron-down" size={12} />
+                </button>
+                {modelMenuOpen && (
+                  <div className="dsh-composer-menu" role="menu" data-testid="digital-model-menu">
+                    {availableModels.length === 0 ? (
+                      <div className="dsh-composer-menu-empty">无可切换模型</div>
+                    ) : (
+                      availableModels.map((m) => (
+                        <button
+                          key={m}
+                          type="button"
+                          role="menuitem"
+                          className="dsh-composer-menu-item"
+                          data-testid="digital-model-item"
+                          data-model={m}
+                          data-selected={m === currentModel ? 'true' : 'false'}
+                          onClick={() => { void chooseModel(m) }}
+                        >
+                          <span className="dsh-composer-menu-check">
+                            {m === currentModel && <LucideIcon name="check" size={14} />}
+                          </span>
+                          <span className="dsh-composer-menu-item-label">{m}</span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
               <button
                 type="button"
                 className="dsh-composer-icon"

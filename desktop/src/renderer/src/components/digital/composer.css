@@ -226,3 +226,37 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: calc(12px * var(--ui-font-scale));
 }
+
+/* 模型 chip 做成真按钮：清掉默认 button 外观，保留 chip 内联排版 */
+.dsh-composer-chip-button {
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+.dsh-composer-chip-button:hover {
+  background: var(--bg-hover);
+}
+/* 权限 chip：纯展示，不可点（后端无可切换开关） */
+.dsh-composer-chip-static {
+  cursor: default;
+}
+/* 选中项左侧的对勾占位，固定宽度保证未选中项文字对齐 */
+.dsh-composer-menu-check {
+  display: inline-flex;
+  flex: 0 0 auto;
+  width: 14px;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+}
+.dsh-composer-menu-item-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dsh-composer-menu-empty {
+  padding: 8px 10px;
+  color: var(--text-muted);
+  font-size: calc(12px * var(--ui-font-scale));
+}

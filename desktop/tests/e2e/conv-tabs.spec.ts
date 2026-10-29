@@ -78,3 +78,38 @@ test('输入框「＋」菜单：注入 @ 与 / 触发符并自动收起', async
     await app.close()
   }
 })
+
+/**
+ * 输入框「模型」下拉：真下拉（对齐 dsh 的 conversation.input.model）。
+ * 断言「点开列出可选模型 → 选中后菜单收起且 chip 文案更新」，而不是「按钮能点」——
+ * 选中的模型会写回 localStorage + 推主进程镜像，后续 agent 调用即生效。
+ */
+test('输入框「模型」下拉：列出可选模型并切换生效', async () => {
+  const userDataDir = mkdtempSync(join(tmpdir(), 'mb-model-'))
+  const app = await launchApp(userDataDir)
+
+  try {
+    const window = await app.firstWindow()
+    await waitReady(window)
+
+    const trigger = window.getByTestId('digital-composer-model')
+    await expect(window.getByTestId('digital-model-menu')).toHaveCount(0)
+
+    await trigger.click()
+    const menu = window.getByTestId('digital-model-menu')
+    await expect(menu).toBeVisible()
+
+    const items = window.getByTestId('digital-model-item')
+    const count = await items.count()
+    expect(count).toBeGreaterThan(0)
+
+    const targetModel = (await items.nth(0).getAttribute('data-model')) ?? ''
+    expect(targetModel).not.toBe('')
+    await items.nth(0).click()
+
+    await expect(menu).toHaveCount(0)
+    await expect(trigger).toHaveText(new RegExp(targetModel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
+  } finally {
+    await app.close()
+  }
+})
