@@ -100,7 +100,7 @@ dsh 的 UI 成熟在**两件事**：① **typed slot 组合**（父级声明扩�
 
 | 组件 | dsh 出处 | 借了什么（只借设计） | 刻意没搬 | 数据来源 | testid 锚点 |
 |---|---|---|---|---|---|
-| `ToolStepCard`（`digitalPanelViews.tsx`，由 `DigitalStepList` 渲染） | `ui-tool` 的 ToolRow / ToolDetails | 变体图标 + 一行摘要 + 分段详情（**参数默认折叠**，避免长 JSON 顶掉结果）；**行头 diff 增删数 `+N −M`**（折叠态灰、悬停/展开着色，同 dsh 的 diffAdded/diffRemoved） | `ui-primitives` 图标包（我们内联 SVG，零依赖）；dsh 用 `sr-only` 藏状态字，我们**保留可见的状态字**（面向策划，不是终端用户） | `state.steps`（`step_start` / `step_done`） | `digital-step`、`digital-step-args`、`digital-step-diff`、`digital-step-diff-total` |
+| `ToolStepCard`（`digitalPanelViews.tsx`，由 `DigitalStepList` 渲染） | `ui-tool` 的 ToolRow / ToolDetails | 变体图标 + 一行摘要 + 分段详情（**参数默认折叠**，避免长 JSON 顶掉结果）；**行头 diff 增删数 `+N −M`**（折叠态灰、悬停/展开着色，同 dsh 的 diffAdded/diffRemoved）；**运行态文字扫光**（对齐 `TextShimmer`：1.5s + `steps(48)` 阶梯、0.3s 延迟、`prefers-reduced-motion` 关闭）；**失败行摘要取错误行**（先剔 `exit code` / `command failed` / 堆栈噪音，再找错误词，取不到退回首行） | `ui-primitives` 图标包（我们内联 SVG，零依赖）；dsh 用装饰副本叠层做扫光，我们用 `background-clip`（摘要带 ellipsis，副本宽度算不准会错位）；dsh 用 `sr-only` 藏状态字，我们**保留可见的状态字**（面向策划，不是终端用户） | `state.steps`（`step_start` / `step_done`） | `digital-step`、`digital-step-args`、`digital-step-diff`、`digital-step-diff-total` |
 | `TurnGroup`（同上） | `ui-chat` 的「轮次过程折叠」 | 按**连续** `order` 分组、可折叠 | 本地回声 + 权威替换（我们是单一事件流，没有双源） | `state.steps` | `digital-turn` |
 | `DigitalRunPlan` | `ui-plan` 的 PlanCard / PlanPreview | 图标 + 标题 + 计数 + 状态徽标；压成**分段进度条** | **plan 模式与审批流**（模型提交计划文档，我们没有后端） | `state.steps` + `state.status` | `digital-run-plan`、`-segment`、`-current`、`-count`、`-expand`、`-failed` |
 | `DigitalMessageItem` | `ui-chat` 的 MessageItem | 角色分层与排版节奏 | — | `state.messages` | `digital-message-copy` |

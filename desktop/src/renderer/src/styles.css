@@ -8909,3 +8909,44 @@ button.ref-row:hover {
 .digital-step-head[aria-expanded='true'] .digital-step-diff-total .is-del {
   color: var(--change-delete);
 }
+
+/* 运行态文字扫光（借 dsh `ui-primitives` 的 TextShimmer）：
+   高亮带横扫、阶梯式（steps(48)）而不是平滑渐变——平滑看着像加载条，阶梯像「正在读」。
+   这里用 background-clip 而不是叠一层装饰副本：摘要带 ellipsis，副本的宽度算不准会错位。 */
+.digital-step-summary.is-shimmer,
+.digital-step-status .is-shimmer {
+  background-image: linear-gradient(
+    100deg,
+    var(--text-muted) 0%,
+    var(--text-muted) 40%,
+    var(--text) 50%,
+    var(--text-muted) 60%,
+    var(--text-muted) 100%
+  );
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: digital-step-shimmer 1.5s steps(48, end) 0.3s infinite;
+}
+
+@keyframes digital-step-shimmer {
+  from {
+    background-position: 150% 0;
+  }
+  to {
+    background-position: -150% 0;
+  }
+}
+
+/* 减少动效：直接给回普通文字色，不留一片透明字 */
+@media (prefers-reduced-motion: reduce) {
+  .digital-step-summary.is-shimmer,
+  .digital-step-status .is-shimmer {
+    animation: none;
+    background: none;
+    -webkit-text-fill-color: var(--text-muted);
+    color: var(--text-muted);
+  }
+}

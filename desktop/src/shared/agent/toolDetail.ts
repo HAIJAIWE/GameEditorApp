@@ -71,6 +71,29 @@ export function diffRows(text?: string): DiffRow[] | null {
   return rows
 }
 
+/**
+ * 失败行的折叠摘要：优先取「像错误」的那一行。
+ *
+ * 工具失败时 `result` 常是多行，首行往往是 `Command failed with exit code 1` 这类窄信息，
+ * 真正有用的是后面的 `Error: 字段 ID 重复`。做法是**先剔噪音行**（exit code / command failed /
+ * 堆栈 `at ...`），再在剩下的行里找错误词；都没有就退回剩下的首行（再不济退回原首行）。
+ * 不猜、不拼，只做「挑一行」。
+ */
+const ERROR_LINE = /错误|失败|拒绝|异常|超时|不支持|未找到|不可用|error|failed|exception|denied|refused|timeout|not found|cannot|unable/i
+/** 噪音行：只说明「失败了」却不说「为什么」，不该占住摘要位 */
+const ERROR_NOISE_LINE = /exit code|command failed|^\s*at\s/i
+
+export function errorSummary(text?: string): string {
+  const lines = (text ?? '')
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line !== '')
+  if (lines.length === 0) return ''
+  const signal = lines.filter((line) => !ERROR_NOISE_LINE.test(line))
+  const pool = signal.length > 0 ? signal : lines
+  return pool.find((line) => ERROR_LINE.test(line)) ?? pool[0] ?? ''
+}
+
 /** diff 增删行数（行头那对 `+N −M` 的唯一来源） */
 export interface DiffTotals {
   added: number

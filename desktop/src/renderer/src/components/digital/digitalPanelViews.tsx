@@ -3,7 +3,7 @@ import { useState, type ReactNode } from 'react'
 import { RISK_LEVEL, resolveRiskLevel } from '../../../../shared/agent/protocol'
 import type { DigitalCommand } from '../../../../shared/agent/commands'
 import type { DigitalReference } from '../../../../shared/agent/references'
-import { diffRows, diffTotals, formatToolArgs } from '../../../../shared/agent/toolDetail'
+import { diffRows, diffTotals, errorSummary, formatToolArgs } from '../../../../shared/agent/toolDetail'
 import {
   summarizeToolTasks,
   type DigitalPanelState,
@@ -196,11 +196,12 @@ function ToolIcon({ variant }: { variant: ToolVariant }) {
   }
 }
 
-/** 折叠态摘要：think/batch 给固定文案，tool 取结果首行（截断） */
+/** 折叠态摘要：think/batch 给固定文案，tool 取结果首行（失败时取错误行），截断 */
 function stepSummary(step: DigitalStep): string {
   if (step.kind === 'think') return step.status === 'running' ? '思考中…' : ''
   if (step.kind === 'batch') return step.status === 'running' ? '并行执行中…' : ''
-  const first = (step.result ?? '').trim().split('\n')[0] ?? ''
+  // 失败行挑「像错误」的那行（首行常常只是 `Command failed with exit code 1`）
+  const first = step.status === 'failed' ? errorSummary(step.result) : ((step.result ?? '').trim().split('\n')[0] ?? '')
   if (first === '') return ''
   return first.length > 56 ? `${first.slice(0, 56)}…` : first
 }
@@ -249,7 +250,13 @@ function ToolStepCard({ step, resolveView }: { step: DigitalStep; resolveView?: 
         </span>
         <span className="digital-step-tool">{step.tool}</span>
         {summary !== '' && (
-          <span className={`digital-step-summary${step.status === 'failed' ? ' is-error' : ''}`}>{summary}</span>
+          <span
+            className={`digital-step-summary${step.status === 'failed' ? ' is-error' : ''}${
+              step.status === 'running' ? ' is-shimmer' : ''
+            }`}
+          >
+            {summary}
+          </span>
         )}
         {totals !== null && (totals.added > 0 || totals.removed > 0) && (
           <span className="digital-step-diff-total" data-testid="digital-step-diff-total">
@@ -259,7 +266,7 @@ function ToolStepCard({ step, resolveView }: { step: DigitalStep; resolveView?: 
         )}
         <span className={`digital-step-status digital-step-status-${step.status}`}>
           {step.status === 'running' && <span className="digital-step-dot" aria-hidden="true" />}
-          {step.status === 'running' ? '执行中' : null}
+          {step.status === 'running' ? <span className="is-shimmer">执行中</span> : null}
           {step.status === 'done' ? '完成' : null}
           {step.status === 'failed' ? '失败' : null}
         </span>

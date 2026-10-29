@@ -38,4 +38,29 @@ describe('工具卡 · diff 增删行数', () => {
     expect(view.query('[data-testid="digital-step-diff-total"]')).toBeNull()
     await view.cleanup()
   })
+
+  it('失败行摘要取错误行（跳过 "exit code" 噪音首行）并染红', async () => {
+    const view = await renderDom(
+      <DigitalStepList
+        steps={[
+          step({
+            status: 'failed',
+            success: false,
+            result: 'Command failed with exit code 1\nError: 字段 ID 重复'
+          })
+        ]}
+      />
+    )
+    const summary = view.container.querySelector('.digital-step-summary')
+    expect(summary?.textContent).toBe('Error: 字段 ID 重复')
+    expect(summary?.className).toContain('is-error')
+    await view.cleanup()
+  })
+
+  it('运行中的摘要与状态字带 is-shimmer（扫光由 CSS 接管）', async () => {
+    const view = await renderDom(<DigitalStepList steps={[step({ status: 'running', result: '正在读取数据' })]} />)
+    expect(view.container.querySelector('.digital-step-summary.is-shimmer')).not.toBeNull()
+    expect(view.container.querySelector('.digital-step-status .is-shimmer')?.textContent).toBe('执行中')
+    await view.cleanup()
+  })
 })

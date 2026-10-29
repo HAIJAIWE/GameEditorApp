@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { DIFF_ROW_LIMIT, TOOL_ARGS_LIMIT, diffRows, diffTotals, formatToolArgs } from '../../src/shared/agent/toolDetail'
+import { DIFF_ROW_LIMIT, TOOL_ARGS_LIMIT, diffRows, diffTotals, errorSummary, formatToolArgs } from '../../src/shared/agent/toolDetail'
 
 describe('formatToolArgs：参数文本整理', () => {
   it('空 / 纯空白 → 空文本，不标记 JSON', () => {
@@ -81,5 +81,21 @@ describe('diffTotals：增删行数', () => {
 
   it('空行集 → 0/0（不抛）', () => {
     expect(diffTotals([])).toEqual({ added: 0, removed: 0 })
+  })
+})
+
+describe('errorSummary：失败行挑错误行', () => {
+  it('跳过噪音首行，取带错误词的那行', () => {
+    expect(errorSummary('Command failed with exit code 1\nError: 字段 ID 重复')).toBe('Error: 字段 ID 重复')
+    expect(errorSummary('执行中\n[STOP] 用户拒绝执行')).toBe('[STOP] 用户拒绝执行')
+  })
+
+  it('没有错误词 → 退回首行', () => {
+    expect(errorSummary('第一行\n第二行')).toBe('第一行')
+  })
+
+  it('空 / undefined → 空串', () => {
+    expect(errorSummary()).toBe('')
+    expect(errorSummary('  \n  ')).toBe('')
   })
 })
