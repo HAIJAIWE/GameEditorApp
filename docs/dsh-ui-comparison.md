@@ -1,15 +1,17 @@
 # dsh UI 对照：成熟做法与本项目可改造项
 
-> 状态：**只读调研**（2026-10-28）。目的：在改智能体/主界面 UI 之前，先看清 dsh 的 UI 架构，给出「抄什么、不抄什么、按什么顺序」。
+> **状态：活的对照文档。** 2026-10-28 初版是「只读调研 + 改造计划」；2026-10-29 更新为「已落地现状 + 逐组件改写地图」（§2 现状、§4 对照表），供后续整体重写 UI 时按图施工。
 > dsh 源码：`D:/GameEditorApp/deepseek-harness-master/deepseek-harness-master/packages/client/`（`ui-*` 系列）。
-> 本项目 UI：`desktop/src/renderer/src/components/digital/`（`DigitalPanel.tsx` 802 行 + `digitalPanelViews.tsx` + `ChatMarkdown.tsx`）。
+> 本项目 UI：`desktop/src/renderer/src/components/digital/`（`DigitalPanel.tsx` 1062 行 + `digitalPanelViews.tsx` 553 行 + 3 个独立卡组件）与 `plugins/`（会话页签）。
+>
+> **先回答一个常见疑问**：仓库里**没有任何一行 dsh UI 代码在跑**。`package.json` 无 `deepseek-harness` / `cordis` / `typert` 依赖，`src` 无 dsh 包 import，`styles.css` 无 `dsh-` / `--dsh-` 前缀；全部 114 处「dsh」（37 个文件）都是注释里的**设计出处标注**。所以「重写 UI」不需要先拔掉任何 dsh 依赖，底子是干净的。
 
 ---
 
 ## 0. 一句话结论
 
 dsh 的 UI 成熟在**两件事**：① **typed slot 组合**（父级声明扩展点、插件注册进去，类型推导 + 加载期冲突检测）；② **每关注点一个包**（聊天/工具/子智能体/审批/后台任务/输入触发各管一摊）。
-我们现在的智能体是**一个大组件 + 扁平步骤列表**。最值得抄的不是它的框架，而是**「工具调用树 + 每工具自己的视图」**和**「轮次折叠 + token 用量」**这两条具体做法。
+最值得抄的不是它的框架，而是**「工具调用树 + 每工具自己的视图」**和**「轮次折叠 + token 用量」**这两条具体做法——这两条 2026-10-28 定的 P0，已在 Slice 37/42 落地（见 §2）。
 
 ---
 
@@ -35,25 +37,30 @@ dsh 的 UI 成熟在**两件事**：① **typed slot 组合**（父级声明扩�
 
 ---
 
-## 2. 我们现在的 UI（准确现状）
+## 2. 我们现在的 UI（2026-10-29 更新）
+
+> 下表是**当前真实状态**；括号里的 `Slice N` 对应仓库提交历史。
 
 | 项 | 现状 |
 |---|---|
-| 体量 | `DigitalPanel.tsx` **802 行**，单组件；`digitalPanelViews.tsx` 放视图 |
-| 步骤展示 | `DigitalStepList`：**扁平列表**，每行 `工具名 + 状态图标 + 原始结果文本` |
-| 工具视图 | ❌ 无按工具定制的卡片（ceshu/gameData/code/MCP 都长一样） |
-| 轮次折叠 | ❌ 无（过程与最终答复混在一起） |
-| token 用量 | ⚠️ 有 `turn_stats` 事件与档位标识，但没做「每轮可展开用量行」 |
-| 子智能体 | ❌ 后端已做（异步 + 完成通知 + inbox），**UI 完全没露** |
-| 后台任务 | ❌ 无独立面板（异步子智能体其实算 job） |
-| 审批/提问 | ✅ 有 `DigitalApproval`（结构化程度可再提升） |
-| 输入触发 | ❌ 无 `/` 命令、`@` 引用 |
-| 状态管理 | React `useReducer` + 局部 state（无跨组件 observable store） |
-| 凭据遮挡 | ❌ 无 |
+| 体量 | `DigitalPanel.tsx` **1062 行**（含命令/引用/多问/审批分支）；`digitalPanelViews.tsx` 553 行；`DigitalMessageItem` 131、`DigitalChangeCard` 186、`DigitalRunPlan` 115 |
+| 步骤展示 | **工具卡**（变体图标 + 摘要 + 状态，可折叠）+ **轮次分组** + **本轮进度条**（不再是一坨纯文本） |
+| 工具视图 | ✅ keyed `tool.call.toolview`（Slice 42）：按工具名分派，未命中回退内置通用卡 |
+| 轮次折叠 | ✅ 按连续 `step.order` 分组，每轮可折叠（Slice 37，锚点 `digital-turn`） |
+| token / 耗时 | ✅ `state.runStats`（累计 token/耗时/模型）+ `digital-run-stats`；轨迹页概览也读它 |
+| 子智能体 | ✅ 右栏面板列表 + 插话 + 停止（Slice 38/40）；✅ 「会话」页签看板可独立停止 |
+| 后台任务 | ⚠️ 用子智能体看板承载，**没有**独立 jobs 面板（dsh 的「两击停止」未做） |
+| 审批 / 提问 | ✅ 风险徽标（4 档配色）+ 参数 `<details>` 折叠 + 「拒绝回灌 `[STOP]`」（Slice 39）+ 结构化多问 |
+| 输入触发 | ✅ `/` 命令（Slice 41）、`@` 引用（Slice 43） |
+| 状态管理 | ✅ 根级 store `conversation.state`（Slice 46/47）+ `agent.conversation` 服务面（外部 bundle 用） |
+| 主区页签 | ✅ 策划书 / 数据编辑 / 代码编辑 / 浏览器 / **会话**（Slice 51 把「团队协作」+「轨迹」合并成一个） |
+| 凭据遮挡 | ❌ 未做（`ui-secret-mask`，低优先） |
 
 ---
 
 ## 3. 差距与改造清单（按价值/成本排序）
+
+> **2026-10-29 补**：下表 P0 / P1 / P2 已**全部落地**（Slice 37–43），当前状态以 §2 为准；本表保留作「当初为什么这么排」的设计依据。剩余只有「凭据遮挡」（P3，低优先）与「独立 jobs 面板」（可选项）。
 
 | 优先 | 改造项 | 抄谁 | 具体做法 | 成本 | 价值 |
 |---|---|---|---|---|---|
@@ -83,18 +90,76 @@ dsh 的 UI 成熟在**两件事**：① **typed slot 组合**（父级声明扩�
 
 ---
 
-## 4. 建议的落地顺序
+## 4. 逐组件改写对照表（2026-10-29）
 
-1. **P0-a 工具调用卡片**（把 `DigitalStepList` 换成卡片 + keyed 视图表）—— 先做通用卡片，再逐个补 ceshu/gameData/code 的定制视图。
-2. **P0-b 轮次折叠 + token 行**。
-3. **P1 子智能体/后台任务面板**（两者可合成一个「任务」面板）。
-4. **P2 输入触发 + keyed slot**。
+> 用途：**整体重写 UI 时按图施工**。每条都写清「借了 dsh 什么设计 / 刻意没搬什么 / 数据从哪来 / 哪些 testid 不能丢」。
+> 判断标准：dsh 只提供**信息架构与阅读节奏**，颜色、间距、字体、组件实现全是我们自己的（`styles.css` 用 `--ui-font-scale` 等自有变量）。
+
+### 4.1 对话流（`components/digital/`）
+
+| 组件 | dsh 出处 | 借了什么（只借设计） | 刻意没搬 | 数据来源 | testid 锚点 |
+|---|---|---|---|---|---|
+| `ToolStepCard`（`digitalPanelViews.tsx`，由 `DigitalStepList` 渲染） | `ui-tool` 的 ToolRow / ToolDetails | 变体图标 + 一行摘要 + 分段详情（**参数默认折叠**，避免长 JSON 顶掉结果） | `ui-primitives` 图标包（我们内联 SVG，零依赖） | `state.steps`（`step_start` / `step_done`） | `digital-step`、`digital-step-args`、`digital-step-diff` |
+| `TurnGroup`（同上） | `ui-chat` 的「轮次过程折叠」 | 按**连续** `order` 分组、可折叠 | 本地回声 + 权威替换（我们是单一事件流，没有双源） | `state.steps` | `digital-turn` |
+| `DigitalRunPlan` | `ui-plan` 的 PlanCard / PlanPreview | 图标 + 标题 + 计数 + 状态徽标；压成**分段进度条** | **plan 模式与审批流**（模型提交计划文档，我们没有后端） | `state.steps` + `state.status` | `digital-run-plan`、`-segment`、`-current`、`-count`、`-expand`、`-failed` |
+| `DigitalMessageItem` | `ui-chat` 的 MessageItem | 角色分层与排版节奏 | — | `state.messages` | `digital-message-copy` |
+| `DigitalChangeCard` | dsh deliverables 卡 | 折叠行数（对齐 `COLLAPSED_ROWS`）、**无改动不出卡** | 文件 diff 模型（我们数据在 SQLite，行级 diff 无从谈起） | 由 `DigitalPanel` 经 `agent.recentChanges` IPC 取；本组件**只收 props** | `digital-change-card`、`-row`、`-toggle` |
+| `DigitalApproval` | `ui-approval` | 工具名 / 参数 / 风险档三层信息 + 拒绝回灌 `[STOP]` | — | `state.interaction`（单数，`DigitalInteraction \| null`） | `digital-approval`、`-risk`、`-approve`、`-reject` |
+| `DigitalSubagentList` / `SubagentControls`（同上） | `ui-subagent` | 状态 + 结果摘要；运行中可插话 / 停止 | 子会话目录与续接的完整拓扑 | `state.subagents`（面板侧归约） | `digital-subagents`、`digital-subagent`、`-input`、`-send`、`-stop`、`-controls` |
+| `DigitalCommandMenu` | `ui-commands` / `ui-input-trigger` | `/` 内联建议、↑↓ / Enter / Esc | — | `parseDigitalCommands` + `host` 的命令能力 | `digital-command-menu`、`-item` |
+| `DigitalReferenceMenu` | `ui-reference` | `@` 引用、输入空格即收起 | 后端硬引用（只做到「数据表名提示」） | `parseDigitalReferences` + 当前库数据类型 | `digital-reference-menu`、`-item` |
+
+### 4.2 主区页签与外壳
+
+| 组件 | dsh 出处 | 借了什么 | 数据来源 | testid 锚点 |
+|---|---|---|---|---|
+| `sessionPlugin`（会话页签外壳） | **无，自研合并** | — | `conversation.state`（只读状态） | `session`、`session-status`、`session-block-trajectory` |
+| `agentTeamSection`（主对话 + 子智能体看板） | `ui-subagent`（弱参考） | 状态 / 规模 / 最近回复一眼可见；看板可单独停止 | `conversation.state` + `agent/subagentStore.ts` | `agent-team-conversation`、`-status`、`-last` |
+| `trajectorySection`（轨迹） | `ui-trajectory` | 按轮次事件表 + 概览（token / 耗时 / 模型）+ 行可展开 | `buildTrajectory(conversation.state)`（纯函数） | `trajectory`、`-overview`、`-turn`、`-row`、`-row-detail`、`-empty`、`-message` |
+| `PluginsPanel`（插件中心） | dsh 的 Plugins 页 | 卡片清单 + 状态徽标（启用 / 禁用 / 错误 / 加载中） | `host.list()` | `plugins-count` 等 |
+| `Sidebar`（左栏） | dsh Web 侧边栏 | 导航布局 | `host.sidebarItems()`（slot `list`） | — |
+| `DigitalPanel` 外壳 | `ui-conversation` / `ui-agent-preset` | 预设「空态可选 → 开聊后只读」的会话级锁定 | `conversation.state`（**唯一写者**；`mbApi.agent.chat` 的流式事件在此归约） | `digital-panel`、`digital-status`、`digital-preset*`、`digital-tier-hint` |
+
+### 4.3 为什么子智能体有两份订阅
+
+`DigitalPanel` 里的 `state.subagents` 与 `agent/subagentStore.ts` 是**同一事件流的两个消费者**，不是两个数据源：
+
+- 面板那份随 reducer 一起归约，服务对话内联（`digital-subagents`）；
+- store 那份独立订阅，服务「会话」页签（跨插件、不改 DigitalPanel），避免动摇既有 e2e 锚点。
+
+重写时若想合并成一份，必须保证两边都还能拿到 `running / done / failed` 与结果文本；否则不如维持两份。
+
+---
+
+## 5. 改写时的硬约束
+
+1. **不 import dsh。** 它是 cordis + Typert 插件运行时，直接引组件等于换运行时（A 路线），已明确否掉；只能照设计重画。
+2. **不复制 dsh CSS / 图标包。** 我们零依赖 + 内联 SVG；复制会带来主题变量耦合（`--ui-font-scale` 那套是我们自有的）。
+3. **`data-testid` 是回归契约。** e2e 75 例依赖 §4 的锚点；要改名必须同步改 `tests/e2e/*.spec.ts`，否则宁可保留。
+4. **数据层不动。** `shared/agent/*`（`panel.ts` 归约、`trajectory.ts`、`toolDetail.ts`、`conversationStore.ts`）与 UI 解耦，重画时原样复用；尤其 `toolDetail` 的 diff 判据**只能有一份**（工具卡与轨迹详情共用）。
+5. **四道闸 + e2e 全绿**才算完（`npm run test` / `typecheck` / `lint` / `build` + `playwright test`），基线见 `.workbuddy-ai/memory/MEMORY.md`。
+6. **单测偶发失败**：全量套件出现过「偶发 1 例失败、复跑全绿」，连跑 5 次未复现；按抖动处理，别据此改代码（要定位用 `npx vitest run --reporter=dot` 抓 test 名）。
+
+---
+
+## 6. 建议的落地顺序
+
+> 2026-10-29：以下 1–4 **已全部落地**（对照 §2）。若重写，顺序建议反过来——**先定数据契约与 testid，再画界面**。
+
+1. ~~**P0-a 工具调用卡片**（`DigitalStepList` → 卡片 + keyed 视图表）~~ ✅ Slice 37/42
+2. ~~**P0-b 轮次折叠 + token 行**~~ ✅ Slice 37
+3. ~~**P1 子智能体 / 后台任务面板**~~ ✅ Slice 38/40（jobs 面板未做，由看板承载）
+4. ~~**P2 输入触发 + keyed slot**~~ ✅ Slice 41/42/43
 
 > 每一片都要过四道闸 + e2e；P0 两片是「智能体看起来是否专业」的分水岭。
 
 ---
 
-## 5. 来源（可复查）
+## 7. 来源（可复查）
 
 - dsh：`packages/client/README.zh.md`（包地图）、`ui-slots/README.zh.md`（slot 架构）、`ui-chat/README.zh.md`（轮次折叠/token/滚动/本地回声）、`ui-tool/README.zh.md`（工具树 + keyed 视图）、`ui-subagent/README.zh.md`（子会话目录 + 续接）、`ui-jobs/README.zh.md`（后台任务 + 两击停止）、`ui-conversation/README.zh.md`。
-- 本项目：`desktop/src/renderer/src/components/digital/DigitalPanel.tsx`、`digitalPanelViews.tsx`、`shared/agent/panel.ts`。
+- 本项目（2026-10-29 补）：
+  - 外壳 / 对话流：`desktop/src/renderer/src/components/digital/{DigitalPanel,digitalPanelViews,DigitalMessageItem,DigitalChangeCard,DigitalRunPlan}.tsx`
+  - 主区页签：`desktop/src/renderer/src/plugins/{sessionPlugin,agentTeamSection,trajectorySection}.tsx`
+  - 数据与纯逻辑：`desktop/src/shared/agent/{panel,trajectory,toolDetail,conversationStore,commands,references}.ts`、`desktop/src/renderer/src/agent/subagentStore.ts`
+  - 回归：`desktop/tests/e2e/*.spec.ts`、`desktop/tests/unit/**`
