@@ -9315,3 +9315,24 @@ button.ref-row:hover {
 .digital-panel[data-center-tab='trajectory'] .digital-composer-takeover {
   display: none;
 }
+
+/*
+ * 停靠区里装的是任意面板（代码 / 浏览器 / 数据），内容可能比容器宽。
+ * 三栏链路上每一层都要能压缩，否则一个长代码行会把**整个窗口**顶出横向滚动条、
+ * 底部状态栏被挤成两行（实测：`white-space: pre` 的代码 + 默认 `min-width: auto`）。
+ */
+.main-body,
+.ai-dock,
+.ai-dock .middle-tab-body,
+.ai-dock .middle-tab-pane {
+  min-width: 0;
+}
+
+/* 状态栏单行：窗口窄时允许横向滚动，但每个条目自身不折行
+   （否则「版本 0.1.0」会被压成两行，状态栏整体变高、挤掉内容区高度）。 */
+.statusbar {
+  overflow-x: auto;
+}
+.statusbar > * {
+  white-space: nowrap;
+}

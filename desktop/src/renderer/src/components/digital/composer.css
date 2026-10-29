@@ -1,0 +1,161 @@
+/*
+ * 中栏输入区（对齐 dsh composer）：圆角框内「多行输入 + 工具条」，框外一行运行统计。
+ *
+ * 为什么单独成文件：这套样式只服务这一个组件（框、chip、圆形发送键），
+ * 塞进全局 styles.css 会和别的面板样式混在一起，删除时也找不到边界。
+ *
+ * 约定：
+ * - 颜色只用仓库既有令牌（--text / --text-secondary / --text-muted / --bg-hover / --border / --accent），
+ *   换肤时不用改这里；
+ * - 字号一律 `calc(Npx * var(--ui-font-scale))`，跟随全站字号缩放。
+ */
+
+/* 外层：原本是横向一行（styles.css 的 `.digital-input-row`），这里改纵向两块
+   —— 框 + 框外统计。双类名提高优先级，避免受全局那条第 1 条规则影响（也免依赖引入顺序）。 */
+.digital-input-row.dsh-composer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  /* 面板是纵向 flex + overflow:hidden，输入区被消息区挤扁会让发送键点不到 */
+  flex: 0 0 auto;
+}
+
+/* 输入框本体：0.5px 发丝线 + 12px 圆角，聚焦时整框换强调色（不是给 textarea 加描边） */
+.dsh-composer-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 0.5px solid rgba(0, 0, 0, 0.16);
+  border-radius: 12px;
+  background: var(--bg-panel, #fff);
+  transition: border-color 0.12s ease;
+}
+
+.dsh-composer-box:focus-within {
+  border-color: var(--accent);
+}
+
+/* 深色档：黑色 16% 的线在深底上看不见，换成同一套 border 令牌 */
+[data-theme='dark'] .dsh-composer-box {
+  border-color: var(--border);
+}
+
+/* 多行输入：无边框无描边，高度随内容长（field-sizing: content 是 Chromium 特性，
+   Electron 内置 Chromium 支持），6 行封顶后内部滚动，不再撑高面板 */
+.dsh-composer-input {
+  width: 100%;
+  min-height: calc(20px * var(--ui-font-scale));
+  max-height: calc(144px * var(--ui-font-scale));
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  resize: none;
+  overflow-y: auto;
+  field-sizing: content;
+  color: var(--text);
+  font-family: inherit;
+  font-size: calc(13px * var(--ui-font-scale));
+  line-height: 1.5;
+}
+
+.dsh-composer-input::placeholder {
+  color: var(--text-muted);
+}
+
+.dsh-composer-input:disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+/* 框内底部一行：左侧附件/权限，右侧模型/语音/发送 */
+.dsh-composer-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.dsh-composer-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+/* 图标按钮（＋ / 语音 / 停止）：透明底、hover 才出淡填充，不抢输入框的注意力 */
+.dsh-composer-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.dsh-composer-icon:hover {
+  background: var(--bg-hover);
+}
+
+/* 静态 chip：只显示不展开（附件面板 / 权限下拉 / 模型切换都还没有对应能力，不做假下拉） */
+.dsh-composer-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 7px;
+  border-radius: 7px;
+  color: var(--text-secondary);
+  font-size: calc(12px * var(--ui-font-scale));
+  white-space: nowrap;
+  user-select: none;
+}
+
+/* 发送：圆形图标键，可用时蓝底白箭头，禁用时灰底灰箭头 */
+.dsh-composer-send {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.dsh-composer-send:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.dsh-composer-send:disabled {
+  background: var(--bg-hover);
+  color: var(--text-muted);
+  cursor: default;
+}
+
+/* 停止：运行中与发送键并排，用描边区分「这不是发送」 */
+.dsh-composer-stop {
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+}
+
+/* 框外统计行：阅读权重最低，只占一行、数字等宽（避免刷新时左右跳动） */
+.dsh-composer-stats {
+  padding-left: 2px;
+  color: var(--text-muted);
+  font-size: calc(12px * var(--ui-font-scale));
+  font-variant-numeric: tabular-nums;
+}

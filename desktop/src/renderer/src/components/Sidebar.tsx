@@ -4,6 +4,7 @@ import type { CeshuSummary } from '../../../shared/ceshuConstants'
 import type { PluginSidebarItem } from '../../../shared/plugin/types'
 import { resolveIconName } from '../../../shared/util/lucideIcons'
 import LucideIcon from './LucideIcon'
+import './sidebar-nav.css'
 
 /**
  * 左侧主导航栏（对齐 dsh `ui-sidebar` 的结构与度量）。
@@ -19,6 +20,12 @@ import LucideIcon from './LucideIcon'
 const COLLAPSED_KEY = 'mb.sidebar.collapsed'
 /** dsh：窗口低于 1024px 自动收起侧栏 */
 const AUTO_COLLAPSE_WIDTH = 1024
+/**
+ * 展开态只平铺前 4 项，第 5 项起收进「更多」——dsh 侧栏就是只露 4 项。
+ * 不按「能不能放下」动态算：侧栏高度随窗口变化，动态阈值会让同一份界面
+ * 在不同屏幕上「哪些项在更多里」不一致，用户记不住位置。
+ */
+const VISIBLE_ITEM_COUNT = 4
 
 function loadCollapsed(): boolean {
   try {
@@ -56,6 +63,11 @@ export default function Sidebar({
   onOpenCeshu?: (id: string) => void
 }) {
   const [collapsed, setCollapsed] = useState<boolean>(() => loadCollapsed())
+  /**
+   * 「更多」默认收起：默认状态下界面上只有 4 项，视觉与 dsh 一致；
+   * 展开态**不持久化**——一次性查看，下次进来仍回到干净的 4 项。
+   */
+  const [moreOpen, setMoreOpen] = useState(false)
 
   const toggle = useCallback(() => {
     setCollapsed((value) => {
@@ -85,6 +97,41 @@ export default function Sidebar({
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
   }, [])
+
+  // 收起成 56px 图标轨时不做「更多」：图标轨本身只占 20px，藏文字已经够省地方，
+  // 再折叠一次反而要点两下才能到目标项。所以「更多」只在展开态（280px）出现。
+  const showMore = !collapsed && items.length > VISIBLE_ITEM_COUNT
+  const primaryItems = showMore ? items.slice(0, VISIBLE_ITEM_COUNT) : items
+  const moreItems = showMore ? items.slice(VISIBLE_ITEM_COUNT) : []
+
+  /**
+   * 平铺区与「更多」子列表共用同一套渲染：`data-testid` 不会因为搬家而变，
+   * 测试（`sidebar-<key>` / 插件自带 testid）在折叠前后都能定位到同一个元素。
+   */
+  const renderNavItem = (item: PluginSidebarItem) => {
+    const isActive = item.panel !== undefined && item.panel === activePanel
+    const testid = item.testid ?? `sidebar-${item.key}`
+    // 图标优先当**线性图标名**解析（dsh 的语言：统一 16px 单色）；
+    // 解析不到才回退成原字符串（插件可能仍传 emoji，不让它瞎掉）。
+    const iconName = resolveIconName(item.icon)
+    return (
+      <button
+        key={item.key}
+        type="button"
+        className={`sidebar-item${isActive ? ' active' : ''}`}
+        data-testid={testid}
+        // 收起时只剩图标，标题（悬浮提示）就是唯一说明
+        title={item.label}
+        aria-current={isActive ? 'page' : undefined}
+        onClick={() => onActivate(item)}
+      >
+        <span className="sidebar-icon" aria-hidden>
+          {iconName !== null ? <LucideIcon name={iconName} size={16} /> : item.icon}
+        </span>
+        <span className="sidebar-label">{item.label}</span>
+      </button>
+    )
+  }
 
   return (
     <nav
@@ -124,30 +171,35 @@ export default function Sidebar({
       )}
 
       <div className="sidebar-nav">
-        {items.map((item) => {
-          const isActive = item.panel !== undefined && item.panel === activePanel
-          const testid = item.testid ?? `sidebar-${item.key}`
-          // 图标优先当**线性图标名**解析（dsh 的语言：统一 16px 单色）；
-          // 解析不到才回退成原字符串（插件可能仍传 emoji，不让它瞎掉）。
-          const iconName = resolveIconName(item.icon)
-          return (
+        {primaryItems.map(renderNavItem)}
+
+        {/* 「更多」：就地展开/收起（不做浮层）——溢出的项仍属于同一列导航，
+            弹菜单会丢掉「侧栏里就这几项」的空间感，还要多一次点击外部的关闭动作。 */}
+        {showMore && (
+          <>
             <button
-              key={item.key}
               type="button"
-              className={`sidebar-item${isActive ? ' active' : ''}`}
-              data-testid={testid}
-              // 收起时只剩图标，标题（悬浮提示）就是唯一说明
-              title={item.label}
-              aria-current={isActive ? 'page' : undefined}
-              onClick={() => onActivate(item)}
+              className="sidebar-item sidebar-more"
+              data-testid="sidebar-more"
+              aria-expanded={moreOpen}
+              aria-controls={moreOpen ? 'sidebar-more-items' : undefined}
+              title={moreOpen ? '收起更多' : '更多'}
+              onClick={() => setMoreOpen((open) => !open)}
             >
               <span className="sidebar-icon" aria-hidden>
-                {iconName !== null ? <LucideIcon name={iconName} size={16} /> : item.icon}
+                {moreOpen ? <LucideIcon name="chevron-down" size={16} /> : <LucideIcon name="chevron-right" size={16} />}
               </span>
-              <span className="sidebar-label">{item.label}</span>
+              <span className="sidebar-label">更多</span>
             </button>
-          )
-        })}
+            {/* 收起时不渲染，避免隐藏项还能被 Tab 聚焦到（display:none 的按钮在部分
+                浏览器里仍会被读屏枚举），也让测试只在展开后才找得到溢出项。 */}
+            {moreOpen && (
+              <div className="sidebar-more-list" id="sidebar-more-items">
+                {moreItems.map(renderNavItem)}
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {/* 工作区段（dsh 的「工作区」+ 列表；我们列策划书） */}

@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
+import LucideIcon from './LucideIcon'
 import { baseNameOf, formatBytes, isCodeFile, sortEntries, tokenizeCode } from '../utils/codeView'
 import type { FsDirEntry } from '../../../shared/ipc'
+import './code-panel.css'
 
 /**
  * 代码面板（中间窗口「代码编辑」页签）——**只读**代码查看器。
@@ -13,6 +15,10 @@ import type { FsDirEntry } from '../../../shared/ipc'
  * ## 数据来源
  * 主进程 `fs:*` 三道闸（条目数 500 / 文件 512KB / 二进制探测），失败走 reason
  * 不抛异常。目录树懒加载：只有展开过的目录才发起 listDir，结果进 treeCache。
+ *
+ * ## 版面（对齐 dsh 右栏代码面板）
+ * 左树 / 右栏自上而下：文件页签 → 面包屑（右侧工具图标）→ 带行号槽的代码区。
+ * 多文件不再是「替换当前内容」，而是页签并存 + 内容按路径缓存。
  */
 
 /** 树节点：路径 + 加载态 + 条目 + 展开态 */
@@ -23,14 +29,29 @@ interface TreeNode {
   error: string | null
 }
 
+/** 单个文件的读取结果（含失败原因，失败不抛异常） */
+interface FileBuffer {
+  text: string
+  reason: string | null
+  bytes: number
+}
+
 export default function CodePanel(): React.JSX.Element {
   const [root, setRoot] = useState<string>('')
   const [tree, setTree] = useState<TreeNode>({ path: '', loading: true, entries: null, error: null })
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set())
+  /** 已打开文件（页签顺序即打开顺序）+ 当前激活项 */
+  const [openFiles, setOpenFiles] = useState<string[]>([])
   const [activePath, setActivePath] = useState<string>('')
-  const [content, setContent] = useState<{ text: string; reason: string | null; bytes: number } | null>(null)
+  /** 按路径缓存的内容：切页签直接复用，不必重读 */
+  const [buffers, setBuffers] = useState<Record<string, FileBuffer>>({})
   const [pathInput, setPathInput] = useState<string>('')
-  const contentRef = useRef<HTMLPreElement>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
+  /**
+   * buffers 的镜像。openFile 需要「这个路径读过没有」这个同步答案，
+   * 而 state 在回调闭包里永远是上一次渲染的快照——用 ref 兜住。
+   */
+  const buffersRef = useRef<Record<string, FileBuffer>>({})
 
   /** 列目录（结果直接写进树状态） */
   const loadDir = useCallback((path: string): void => {
@@ -66,19 +87,60 @@ export default function CodePanel(): React.JSX.Element {
     }
   }, [loadDir])
 
-  /** 打开文件：读内容并回到顶部 */
-  const openFile = useCallback((path: string): void => {
-    setActivePath(path)
-    setContent(null)
+  /** 写缓存：null 表示「未知/读取中」（清掉旧值，界面回到 loading 态） */
+  const putBuffer = useCallback((path: string, buf: FileBuffer | null): void => {
+    const next = { ...buffersRef.current }
+    if (buf === null) {
+      delete next[path]
+    } else {
+      next[path] = buf
+    }
+    buffersRef.current = next
+    setBuffers(next)
+  }, [])
+
+  /** 读文件（也用于「刷新」：先清缓存再读，界面会短暂回到读取中） */
+  const readFile = useCallback((path: string): void => {
+    putBuffer(path, null)
     void window.mbApi.fs.readFile({ path }).then((res) => {
-      setContent({ text: res.content, reason: res.reason, bytes: res.bytes })
+      putBuffer(path, { text: res.content, reason: res.reason, bytes: res.bytes })
+      // 换文件/刷新后回到顶部：滚动容器是 .code-body（行号槽与代码同在它里面）
       requestAnimationFrame(() => {
         contentRef.current?.scrollTo({ top: 0 })
       })
     }).catch(() => {
-      setContent({ text: '', reason: '读取失败', bytes: 0 })
+      putBuffer(path, { text: '', reason: '读取失败', bytes: 0 })
     })
-  }, [])
+  }, [putBuffer])
+
+  /**
+   * 打开文件：已开过就只激活页签；没读过才发起读取。
+   * （若每次激活都重读，来回切页签会反复闪「读取中…」，而文件内容在查看器里不会变。）
+   */
+  const openFile = useCallback((path: string): void => {
+    setOpenFiles((prev) => (prev.includes(path) ? prev : [...prev, path]))
+    setActivePath(path)
+    if (buffersRef.current[path] === undefined) readFile(path)
+  }, [readFile])
+
+  /** 关页签：关掉激活项时接管右邻，其次左邻；全关光回空态 */
+  const closeFile = useCallback((path: string): void => {
+    const index = openFiles.indexOf(path)
+    if (index === -1) return
+    const next = openFiles.filter((p) => p !== path)
+    setOpenFiles(next)
+    if (activePath === path) setActivePath(next[index] ?? next[index - 1] ?? '')
+  }, [openFiles, activePath])
+
+  /*
+   * 切页签也要回顶部。命中缓存的激活不会走 readFile，若不管，新文件会停在
+   * 上一份文件的滚动位置——看起来像是「打开错了地方」。
+   */
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      contentRef.current?.scrollTo({ top: 0 })
+    })
+  }, [activePath])
 
   /**
    * 展开/折叠目录：**只切展开态**。子目录的数据由 `DirChildren` 自行加载
@@ -97,23 +159,32 @@ export default function CodePanel(): React.JSX.Element {
     })
   }, [])
 
-  /** 面包屑：当前树路径相对 root 的展示 */
-  const breadcrumb = useMemo(() => {
-    if (tree.path === '') return ''
-    return tree.path === root ? tree.path : tree.path.replace(root, '').replace(/^[\\/]/, '')
-  }, [tree.path, root])
-
   /** 路径栏回车：跳转到输入的绝对路径 */
   const gotoPath = useCallback((): void => {
     const target = pathInput.trim()
     if (target !== '') loadDir(target)
   }, [pathInput, loadDir])
 
+  /** 面包屑：优先显示当前文件，其次当前目录；按分隔符拆段 */
+  const crumb = useMemo(() => {
+    const raw = activePath !== '' ? activePath : tree.path !== '' ? tree.path : root
+    const segments = raw.split(/[\\/]+/).filter((seg) => seg !== '')
+    // 路径过深时折叠中段（保留盘符/前两段 + … + 末两段），否则右侧工具栏会被挤没
+    if (segments.length > 6) return [segments[0], '…', ...segments.slice(-2)]
+    return segments
+  }, [activePath, tree.path, root])
+
+  const content = activePath !== '' ? buffers[activePath] ?? null : null
   const tokens = useMemo(
     () => (content !== null && content.reason === null && activePath !== '' ? tokenizeCode(content.text, extOf(activePath)) : []),
     [content, activePath]
   )
   const lineCount = content !== null && content.reason === null ? content.text.split('\n').length : 0
+  /** 行号用一整块文本渲染（而不是 N 个 div）：几万行的文件也不会卡 */
+  const gutterText = useMemo(
+    () => Array.from({ length: lineCount }, (_, i) => i + 1).join('\n'),
+    [lineCount]
+  )
 
   return (
     <div className="code-panel" data-testid="code-panel">
@@ -190,8 +261,74 @@ export default function CodePanel(): React.JSX.Element {
         </div>
       </aside>
 
-      {/* 右：代码查看 */}
+      {/* 右：页签 + 面包屑 + 代码查看 */}
       <section className="code-view" data-testid="code-view">
+        {/* 文件页签：一个文件一个页签，横向可滚 */}
+        <div className="code-tabs">
+          {openFiles.map((path) => (
+            <div key={path} className={`code-tab${path === activePath ? ' active' : ''}`} title={path}>
+              <button type="button" className="code-tab-label" onClick={() => openFile(path)}>
+                {baseNameOf(path)}
+              </button>
+              <button
+                type="button"
+                className="code-tab-close"
+                title="关闭"
+                aria-label={`关闭 ${baseNameOf(path)}`}
+                onClick={() => closeFile(path)}
+              >
+                <LucideIcon name="x" size={12} />
+              </button>
+            </div>
+          ))}
+          <button type="button" className="code-tab-add" disabled title="新建文件（本面板只读，暂未实现）">
+            <LucideIcon name="plus" size={14} />
+          </button>
+        </div>
+
+        {/* 面包屑：按 / 拆段（末段加重），右侧工具图标 */}
+        <div className="code-breadcrumb" data-testid="code-breadcrumb">
+          <span className="code-crumb-path" title={activePath || tree.path}>
+            {crumb.length === 0
+              ? '（未加载）'
+              : crumb.map((segment, index) => (
+                  <span key={`${index}-${segment}`} className={`code-crumb-seg${index === crumb.length - 1 ? ' last' : ''}`}>
+                    {index > 0 && <span className="code-crumb-sep">/</span>}
+                    {segment}
+                  </span>
+                ))}
+          </span>
+          {content !== null && content.reason === null && (
+            <span className="code-crumb-meta">
+              {lineCount} 行 · {formatBytes(content.bytes)}
+            </span>
+          )}
+          {activePath !== '' && (
+            <span className="code-crumb-badge" title="本面板只读，不提供编辑保存">
+              只读
+            </span>
+          )}
+          <span className="code-crumb-tools">
+            <button type="button" className="code-tool" disabled title="代码视图切换（暂未实现）">
+              <LucideIcon name="file-text" size={14} />
+            </button>
+            <button
+              type="button"
+              className="code-tool"
+              disabled={activePath === ''}
+              title="重新读取当前文件"
+              onClick={() => {
+                if (activePath !== '') readFile(activePath)
+              }}
+            >
+              <LucideIcon name="refresh" size={14} />
+            </button>
+            <button type="button" className="code-tool" disabled title="更多操作（暂未实现）">
+              <LucideIcon name="chevron-down" size={14} />
+            </button>
+          </span>
+        </div>
+
         {activePath === '' ? (
           <div className="code-view-empty">
             <p>从左侧选择一个代码文件</p>
@@ -199,17 +336,6 @@ export default function CodePanel(): React.JSX.Element {
           </div>
         ) : (
           <>
-            <header className="code-view-head">
-              <span className="code-view-path" title={activePath}>
-                {baseNameOf(activePath)}
-              </span>
-              <span className="code-view-meta">
-                {content !== null && content.reason === null ? `${lineCount} 行 · ${formatBytes(content.bytes)}` : ''}
-              </span>
-              <span className="code-view-badge" title="本面板只读，不提供编辑保存">
-                只读
-              </span>
-            </header>
             {content === null && <div className="code-view-empty">读取中…</div>}
             {content !== null && content.reason !== null && (
               <div className="code-view-empty error" data-testid="code-view-reason">
@@ -217,21 +343,23 @@ export default function CodePanel(): React.JSX.Element {
               </div>
             )}
             {content !== null && content.reason === null && (
-              <pre className="code-content" ref={contentRef} data-testid="code-content">
-                {tokens.map((token, index) => (
-                  <span key={index} className={`tok-${token.kind}`}>
-                    {token.text}
-                  </span>
-                ))}
-              </pre>
+              /* 行号槽与代码同处一个滚动容器，才能保证逐行对齐 + 横向滚动时行号仍可见 */
+              <div className="code-body" ref={contentRef}>
+                <pre className="code-gutter" aria-hidden="true">
+                  {gutterText}
+                </pre>
+                <pre className="code-content" data-testid="code-content">
+                  {tokens.map((token, index) => (
+                    <span key={index} className={`tok-${token.kind}`}>
+                      {token.text}
+                    </span>
+                  ))}
+                </pre>
+              </div>
             )}
           </>
         )}
       </section>
-      {/* 面包屑（调试/定位用：当前目录） */}
-      <div className="code-breadcrumb" data-testid="code-breadcrumb">
-        {breadcrumb || '（未加载）'}
-      </div>
     </div>
   )
 }

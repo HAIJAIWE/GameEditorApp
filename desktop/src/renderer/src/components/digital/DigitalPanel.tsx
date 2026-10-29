@@ -9,6 +9,12 @@ import FieldActionStrip from './FieldActionStrip'
 
 import LucideIcon from '../LucideIcon'
 
+/**
+ * 输入区样式（对齐 dsh composer）。单独一份而不是塞进全局 `styles.css`：
+ * 这里的圆角框 + 框内工具条是一套自持的局部样式，跟着组件走才好删好改。
+ */
+import './composer.css'
+
 import {
   DigitalApproval,
   DigitalCommandMenu,
@@ -152,7 +158,8 @@ export default function DigitalPanel({
   const [multiChoice, setMultiChoice] = useState<string[][]>([])
   const [localError, setLocalError] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement | null>(null)
-  const inputRef = useRef<HTMLInputElement | null>(null)
+  /** 输入框改多行后类型随之变 textarea（原 `HTMLInputElement` 的 `rows` 不存在） */
+  const inputRef = useRef<HTMLTextAreaElement | null>(null)
   /** 「新建对话」下拉展开状态 */
   const [clearMenuOpen, setClearMenuOpen] = useState(false)
   /** 「草稿管理」下拉展开状态 */
@@ -1014,84 +1021,155 @@ export default function DigitalPanel({
         />
       )}
 
-      <div className="digital-input-row" style={composerTakeover === null ? undefined : { display: 'none' }}>
-        <input
-          ref={inputRef}
-          className="form-input"
-          data-testid="digital-input"
-          placeholder="和智能体说点什么…（/ 命令，@ 引用数据表）"
-          value={input}
-          disabled={running}
-          onChange={(event) => {
-            setInput(event.target.value)
-            setCommandIndex(0)
-          }}
-          onKeyDown={(event) => {
-            if (commandOpen) {
-              if (event.key === 'ArrowDown') {
-                event.preventDefault()
-                setCommandIndex((index) => (index + 1) % commandMatches.length)
-                return
+      {/* 输入区（对齐 dsh composer）：圆角框内「多行输入 + 工具条」，框下方一行运行统计。
+          外层仍叫 `digital-input-row` —— 轨迹页签的 `display:none` 与 e2e 的
+          `.digital-input-row input/textarea` 定位都挂在它身上，名字一改就断。
+          接管（chain slot）存在时整块隐藏但仍挂载，草稿状态不丢。 */}
+      <div
+        className="digital-input-row dsh-composer"
+        style={composerTakeover === null ? undefined : { display: 'none' }}
+      >
+        <div className="dsh-composer-box">
+          <textarea
+            ref={inputRef}
+            className="dsh-composer-input"
+            data-testid="digital-input"
+            rows={1}
+            placeholder="和智能体说点什么…（/ 命令，@ 引用数据表）"
+            value={input}
+            disabled={running}
+            onChange={(event) => {
+              setInput(event.target.value)
+              setCommandIndex(0)
+            }}
+            onKeyDown={(event) => {
+              if (commandOpen) {
+                if (event.key === 'ArrowDown') {
+                  event.preventDefault()
+                  setCommandIndex((index) => (index + 1) % commandMatches.length)
+                  return
+                }
+                if (event.key === 'ArrowUp') {
+                  event.preventDefault()
+                  setCommandIndex((index) => (index - 1 + commandMatches.length) % commandMatches.length)
+                  return
+                }
+                if (event.key === 'Enter') {
+                  event.preventDefault()
+                  const command = commandMatches[activeCommandIndex]
+                  if (command !== undefined) runCommand(command.id)
+                  return
+                }
+                if (event.key === 'Escape') {
+                  event.preventDefault()
+                  setInput('')
+                  setCommandIndex(0)
+                  return
+                }
               }
-              if (event.key === 'ArrowUp') {
-                event.preventDefault()
-                setCommandIndex((index) => (index - 1 + commandMatches.length) % commandMatches.length)
-                return
+              if (referenceOpen) {
+                if (event.key === 'ArrowDown') {
+                  event.preventDefault()
+                  setCommandIndex((index) => (index + 1) % referenceMatches.length)
+                  return
+                }
+                if (event.key === 'ArrowUp') {
+                  event.preventDefault()
+                  setCommandIndex((index) => (index - 1 + referenceMatches.length) % referenceMatches.length)
+                  return
+                }
+                if (event.key === 'Enter') {
+                  event.preventDefault()
+                  const reference = referenceMatches[activeReferenceIndex]
+                  if (reference !== undefined) pickReference(reference.name)
+                  return
+                }
+                if (event.key === 'Escape') {
+                  event.preventDefault()
+                  setInput('')
+                  setCommandIndex(0)
+                  return
+                }
               }
-              if (event.key === 'Enter') {
+              // 多行后 Enter 与换行冲突：沿用「Enter 发送」，换行让给 Shift+Enter
+              if (event.key === 'Enter' && !event.shiftKey) {
                 event.preventDefault()
-                const command = commandMatches[activeCommandIndex]
-                if (command !== undefined) runCommand(command.id)
-                return
+                handleSend()
               }
-              if (event.key === 'Escape') {
-                event.preventDefault()
-                setInput('')
-                setCommandIndex(0)
-                return
-              }
-            }
-            if (referenceOpen) {
-              if (event.key === 'ArrowDown') {
-                event.preventDefault()
-                setCommandIndex((index) => (index + 1) % referenceMatches.length)
-                return
-              }
-              if (event.key === 'ArrowUp') {
-                event.preventDefault()
-                setCommandIndex((index) => (index - 1 + referenceMatches.length) % referenceMatches.length)
-                return
-              }
-              if (event.key === 'Enter') {
-                event.preventDefault()
-                const reference = referenceMatches[activeReferenceIndex]
-                if (reference !== undefined) pickReference(reference.name)
-                return
-              }
-              if (event.key === 'Escape') {
-                event.preventDefault()
-                setInput('')
-                setCommandIndex(0)
-                return
-              }
-            }
-            if (event.key === 'Enter') handleSend()
-          }}
-        />
-        <button
-          type="button"
-          className="btn primary"
-          data-testid="digital-send"
-          disabled={running || input.trim() === '' || commandOpen || referenceOpen}
-          onClick={handleSend}
-        >
-          发送
-        </button>
-        {/* 运行中才出现：取消是「优雅中止」，已产出的部分结果会保留并如实提示 */}
-        {running && (
-          <button type="button" className="btn" data-testid="digital-stop" onClick={handleStop}>
-            停止
-          </button>
+            }}
+          />
+
+          <div className="dsh-composer-bar">
+            <div className="dsh-composer-group">
+              {/* ＋ 与权限 chip 目前只占位：dsh 的附件面板与权限下拉我们没有对应能力，
+                  所以不做「点开是空菜单」的假下拉 —— 按钮只回显 title，不改变状态 */}
+              <button
+                type="button"
+                className="dsh-composer-icon"
+                data-testid="digital-composer-add"
+                title="添加上下文（未实现）"
+                aria-label="添加上下文（未实现）"
+                aria-disabled="true"
+                onClick={() => undefined}
+              >
+                <LucideIcon name="plus" size={16} />
+              </button>
+              <span className="dsh-composer-chip" title="当前权限：完全权限（只显示，切换未实现）">
+                完全权限
+                <LucideIcon name="chevron-down" size={12} />
+              </span>
+            </div>
+
+            <div className="dsh-composer-group">
+              <span className="dsh-composer-chip" title="当前模型（展示用，切换请到设置）">
+                DeepSeek-V4.1-Flash
+                <LucideIcon name="chevron-down" size={12} />
+              </span>
+              <button
+                type="button"
+                className="dsh-composer-icon"
+                data-testid="digital-composer-mic"
+                title="语音输入（未实现）"
+                aria-label="语音输入（未实现）"
+                aria-disabled="true"
+                onClick={() => undefined}
+              >
+                {/* 图标库没有 mic，取最接近的 sparkles 占位（绝不用 emoji） */}
+                <LucideIcon name="sparkles" size={16} />
+              </button>
+              {running && (
+                <button
+                  type="button"
+                  className="dsh-composer-icon dsh-composer-stop"
+                  data-testid="digital-stop"
+                  title="停止本轮（已产出的结果会保留）"
+                  aria-label="停止"
+                  onClick={handleStop}
+                >
+                  <LucideIcon name="x" size={16} />
+                </button>
+              )}
+              <button
+                type="button"
+                className="dsh-composer-send"
+                data-testid="digital-send"
+                title="发送（Enter）"
+                aria-label="发送"
+                disabled={running || input.trim() === '' || commandOpen || referenceOpen}
+                onClick={handleSend}
+              >
+                <LucideIcon name="arrow-up" size={16} />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* 框外统计行：没有跑过任何一轮就不占位（空态不该有一行 0 轮 · 0 步） */}
+        {state.runStats.turns > 0 && (
+          <div className="dsh-composer-stats" data-testid="digital-composer-stats">
+            {state.runStats.turns} 轮 · {state.steps.length} 步 · {state.runStats.totalTokens} tok ·{' '}
+            {state.runStats.latencyMs} ms
+          </div>
         )}
       </div>
 
