@@ -22,7 +22,7 @@ export function defineRecentChangesPlugin(_host: PluginHost): PluginManifest {
     name: 'recent-changes',
     version: '0.1.0',
     description: '最近改动：查看智能体最近修改的数据（来自操作日志）',
-    meta: { label: '最近改动', icon: '📝' },
+    meta: { label: '最近改动', icon: 'pencil' },
     capabilities: [
       {
         kind: 'command',
@@ -34,7 +34,7 @@ export function defineRecentChangesPlugin(_host: PluginHost): PluginManifest {
         kind: 'sidebar',
         id: 'recentChanges.sidebar',
         order: 930,
-        items: [{ key: 'recent-changes', label: '最近改动', icon: '📝', command: 'recentChanges.open' }]
+        items: [{ key: 'recent-changes', label: '最近改动', icon: 'pencil', command: 'recentChanges.open' }]
       },
       { kind: 'panel', id: 'recentChanges.panel', title: '最近改动', ui: { type: 'text', text: '最近改动' } }
     ]

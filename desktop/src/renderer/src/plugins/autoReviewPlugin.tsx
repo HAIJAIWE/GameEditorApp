@@ -24,7 +24,7 @@ export function defineAutoReviewPlugin(_host: PluginHost): PluginManifest {
     description: '执行预审：工具执行前由当前模型做风险判读（allow 直接执行 / deny 走人工或终局）',
     meta: {
       label: '执行预审',
-      icon: '🛡️',
+      icon: 'shield',
       description: '高危工具执行前的模型风险判读开关（dsh Auto 语义）'
     },
     capabilities: [
@@ -38,7 +38,7 @@ export function defineAutoReviewPlugin(_host: PluginHost): PluginManifest {
         kind: 'sidebar',
         id: 'autoReview.sidebar',
         order: 920,
-        items: [{ key: 'auto-review', label: '执行预审', icon: '🛡️', command: 'autoReview.open' }]
+        items: [{ key: 'auto-review', label: '执行预审', icon: 'shield', command: 'autoReview.open' }]
       },
       {
         kind: 'panel',

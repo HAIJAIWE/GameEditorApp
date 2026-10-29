@@ -558,7 +558,10 @@ export default function DigitalPanel({
   return (
     <div className="digital-panel" data-testid="digital-panel">
       <div className="changelog-header">
-        <span className="chapter-form-title">🤖 智能体</span>
+        <span className="chapter-form-title">
+          <LucideIcon name="bot" size={16} />
+          智能体
+        </span>
         {/* 运行中/已有对话：预设只读显示（借 dsh AgentPresetLabel，会话级锁定）；
             改预设请走「新建对话」——空态会重新出现预设选择（借 dsh AgentPresetSeat）。 */}
         {hasConversation && (

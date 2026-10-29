@@ -23,7 +23,7 @@ export function defineSessionHistoryPlugin(_host: PluginHost): PluginManifest {
     description: '会话历史检索：列出会话/草稿，按内容搜索，点击草稿只读回看',
     meta: {
       label: '会话历史',
-      icon: '🕘',
+      icon: 'clock',
       description: '检索历史会话与草稿，按内容搜索并回看'
     },
     capabilities: [
@@ -37,7 +37,7 @@ export function defineSessionHistoryPlugin(_host: PluginHost): PluginManifest {
         kind: 'sidebar',
         id: 'sessionHistory.sidebar',
         order: 910,
-        items: [{ key: 'session-history', label: '会话历史', icon: '🕘', command: 'sessionHistory.open' }]
+        items: [{ key: 'session-history', label: '会话历史', icon: 'clock', command: 'sessionHistory.open' }]
       },
       {
         kind: 'panel',

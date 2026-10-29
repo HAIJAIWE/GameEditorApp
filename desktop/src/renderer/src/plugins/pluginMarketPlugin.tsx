@@ -29,7 +29,7 @@ export function definePluginMarketPlugin(
     description: '插件市场：浏览、启用/禁用、按需安装可选能力',
     meta: {
       label: '插件市场',
-      icon: '🧩',
+      icon: 'sparkles',
       description: '浏览与启停插件，按需安装可选能力（cordis 式运行时加载）'
     },
     capabilities: [
@@ -43,7 +43,7 @@ export function definePluginMarketPlugin(
         kind: 'sidebar',
         id: 'pluginMarket.sidebar',
         order: 900,
-        items: [{ key: 'plugin-market', label: '插件市场', icon: '🧩', command: 'pluginMarket.open' }]
+        items: [{ key: 'plugin-market', label: '插件市场', icon: 'sparkles', command: 'pluginMarket.open' }]
       },
       {
         kind: 'panel',

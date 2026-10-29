@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 
+import { resolveIconName } from '../../../shared/util/lucideIcons'
 import type { PluginSidebarItem } from '../../../shared/plugin/types'
+import LucideIcon from './LucideIcon'
 
 /**
  * 左侧主导航栏（对齐 dsh `ui-sidebar` 的度量）。
@@ -89,13 +91,16 @@ export default function Sidebar({
         onClick={toggle}
       >
         <span className="sidebar-icon" aria-hidden>
-          {collapsed ? '»' : '«'}
+          {collapsed ? <LucideIcon name="chevron-right" size={16} /> : <LucideIcon name="chevron-left" size={16} />}
         </span>
       </button>
 
       {items.map((item) => {
         const isActive = item.panel !== undefined && item.panel === activePanel
         const testid = item.testid ?? `sidebar-${item.key}`
+        // 图标优先当**线性图标名**解析（dsh 的语言：统一 16px 单色）；
+        // 解析不到才回退成原字符串（插件可能仍传 emoji，不让它瞎掉）。
+        const iconName = resolveIconName(item.icon)
         return (
           <button
             key={item.key}
@@ -108,7 +113,7 @@ export default function Sidebar({
             onClick={() => onActivate(item)}
           >
             <span className="sidebar-icon" aria-hidden>
-              {item.icon}
+              {iconName !== null ? <LucideIcon name={iconName} size={16} /> : item.icon}
             </span>
             <span className="sidebar-label">{item.label}</span>
           </button>

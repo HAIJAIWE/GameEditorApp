@@ -187,7 +187,10 @@ export default function CeshuHomePanel({
   return (
     <div className="changelog-panel" data-testid="ceshu-home-panel">
       <div className="changelog-header">
-        <span className="chapter-form-title">📚 策划书</span>
+        <span className="chapter-form-title">
+          <LucideIcon name="book-open" size={18} />
+          策划书
+        </span>
         <div className="editor-actions">
           <button
             type="button"
@@ -238,7 +241,8 @@ export default function CeshuHomePanel({
               setCloneOpen((open) => !open)
             }}
           >
-            ✨ 从想法/复刻…
+            <LucideIcon name="sparkles" size={16} />
+            从想法/复刻…
           </button>
         </div>
       </div>
@@ -329,7 +333,7 @@ export default function CeshuHomePanel({
         <input
           className="form-input home-search"
           data-testid="home-search"
-          placeholder="🔍 搜索策划书..."
+          placeholder="搜索策划书"
           value={keyword}
           onChange={(event) => setKeyword(event.target.value)}
         />

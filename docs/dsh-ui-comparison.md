@@ -157,13 +157,15 @@ dsh 的 UI 成熟在**两件事**：① **typed slot 组合**（父级声明扩�
 **已对齐 dsh 的**：
 - 三栏结构、右栏页签轨道（对话是内置保留页签）、右栏全屏；
 - 侧栏 280px / 收起 56px、14px 标签、行高 36px、`border-l3` 边界；
+- **色阶**（`ui-theme` 浅色别名）：画布与卡片都是纯白（dsh 的 `bg-base` 与 `bg-layer-1..3` 同值），层级靠 0.5px 发丝线（`border-l2` = rgba(0,0,0,.1)）而不是灰底；hover = `rgba(38,49,72,.06)`；文字三级 `#0f1115 / #61666b / #81858c`；强调色 = `deepseek-500` `#4176e6`；侧栏/顶栏用 `specific-sidebar-fill` `#f9fafb`（画面上唯一有底色的区域）。四套主题（默认/深色/暖调/夜色）都补了 `--sidebar-fill`，避免深色主题继承浅灰。
+- **图标**：侧栏 12 项从 emoji 换成 `LucideIcon` 单色线稿（16px）；`Sidebar` 用 `resolveIconName()` 判定，解析得到就渲染 SVG、解析不到回退原字符串（插件仍可传 emoji，不会瞎掉）。首页标题、右栏「智能体」标题、搜索占位里的 emoji 一并清掉。
 - **控件形态**（`ui-primitives`）：
   - 按钮 md = **36px 高 / 14px 字 / 12px 圆角 / 0 14 内距**，默认 outline（0.5px inset `border-l3` + hover `rgba(38,49,72,.06)`）；主按钮 = **近黑 `#0f1115`**（dsh 的 brand-primary 不是品牌蓝）；紧凑按钮 = sm（28px / 12px / 8px 圆角）；
   - 输入框/下拉 = **32px 高 / 14px 字 / 12px 圆角 / 0.5px `border-l4`**，聚焦换品牌色描边。
 
 **还没对齐的（下一步）**：
-- **其余全局 token**：`bg-layer-1..3` / `label-primary|secondary|tertiary` / `border-l1..l4` 的分层，我们目前只在侧栏与控件上借了值，卡片、表格、浮层仍用自研 `--bg-*` / `--border`。
-- **主区页签条**：dsh 没有这一层（主区就是对话）；我们的页签仍是旧样式，未按 dsh 的语言重画。
+- **浮层与表格的细节**：色阶已统一，但表格斑马纹、浮层阴影（dsh 用 `bg-overlay` + 遮罩）还没逐个核。
+- **零散 emoji**：底部主题切换（🌙/☀️）、报表里的 ✅⏳⛔ 状态符仍是 emoji（`lucideIcons` 暂无 sun/moon，状态符语义上可保留）。
 - **顶部菜单栏**：dsh 是 Web GUI，没有桌面菜单栏；我们保留（功能性取舍，非视觉）。
 
 **顺手修的两个布局 bug**：
