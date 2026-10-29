@@ -115,18 +115,110 @@ function resolveToolView(tool: string): ToolView {
   return textView
 }
 
-/** 单步卡片：默认展开（结果可见），点头部折叠 */
+/**
+ * 工具变体（借 dsh `ui-tool` 的 variant 思路）：决定前导图标与配色。
+ * dsh 用 `ui-primitives` 的图标包；我们保持零依赖，用内联线性 SVG。
+ */
+type ToolVariant = 'search' | 'read' | 'bash' | 'code' | 'data' | 'doc' | 'api' | 'others'
+
+function toolVariant(tool: string): ToolVariant {
+  if (tool.includes('session_search') || tool.includes('search')) return 'search'
+  if (tool.includes('game_data')) return 'data'
+  if (tool.includes('ceshu')) return 'doc'
+  if (tool.includes('code')) return 'code'
+  if (tool.includes('shell') || tool.includes('terminal')) return 'bash'
+  if (tool.startsWith('mcp.')) return 'api'
+  return 'others'
+}
+
+/** 前导线性图标（15px，随文字色；不引 dsh 图标包） */
+function ToolIcon({ variant }: { variant: ToolVariant }) {
+  const common = {
+    width: 15,
+    height: 15,
+    viewBox: '0 0 16 16',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 1.5,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+    'aria-hidden': true
+  }
+  switch (variant) {
+    case 'search':
+      return (
+        <svg {...common}>
+          <circle cx="7" cy="7" r="4.5" />
+          <path d="M10.5 10.5 14 14" />
+        </svg>
+      )
+    case 'data':
+      return (
+        <svg {...common}>
+          <rect x="2.5" y="3" width="11" height="10" rx="1.5" />
+          <path d="M2.5 6.5h11M6.5 6.5V13" />
+        </svg>
+      )
+    case 'doc':
+      return (
+        <svg {...common}>
+          <path d="M4 2.5h5l3 3v8H4z" />
+          <path d="M9 2.5v3h3M6 9h4M6 11h3" />
+        </svg>
+      )
+    case 'code':
+      return (
+        <svg {...common}>
+          <path d="M6 5 3 8l3 3M10 5l3 3-3 3" />
+        </svg>
+      )
+    case 'bash':
+      return (
+        <svg {...common}>
+          <rect x="2" y="3" width="12" height="10" rx="1.5" />
+          <path d="M4.5 6.5 6.5 8l-2 1.5M8 10h3" />
+        </svg>
+      )
+    case 'api':
+      return (
+        <svg {...common}>
+          <path d="M6 2.5v3M10 2.5v3M4 5.5h8v3a4 4 0 0 1-8 0z" />
+          <path d="M8 12.5v1" />
+        </svg>
+      )
+    default:
+      return (
+        <svg {...common}>
+          <path d="M8 2.5l1.6 3.4 3.4 1.6-3.4 1.6L8 12.5 6.4 9.1 3 7.5l3.4-1.6z" />
+        </svg>
+      )
+  }
+}
+
+/** 折叠态摘要：think/batch 给固定文案，tool 取结果首行（截断） */
+function stepSummary(step: DigitalStep): string {
+  if (step.kind === 'think') return step.status === 'running' ? '思考中…' : ''
+  if (step.kind === 'batch') return step.status === 'running' ? '并行执行中…' : ''
+  const first = (step.result ?? '').trim().split('\n')[0] ?? ''
+  if (first === '') return ''
+  return first.length > 56 ? `${first.slice(0, 56)}…` : first
+}
+
+/** 单步卡片：默认展开（结果可见），点头部折叠（借 dsh ui-tool 的 ToolRow 设计） */
 function ToolStepCard({ step, resolveView }: { step: DigitalStep; resolveView?: ToolViewResolver }) {
   const [expanded, setExpanded] = useState(true)
   const hasBody = step.result !== undefined && step.result !== ''
   // 插件 keyed slot 优先，其次内置按工具名分派
   const view = resolveView?.(step.tool) ?? resolveToolView(step.tool)
+  const variant = toolVariant(step.tool)
+  const summary = stepSummary(step)
   return (
     <li
       className={`digital-step digital-step-card digital-step-${step.status}`}
       data-testid="digital-step"
       data-status={step.status}
       data-kind={step.kind}
+      data-variant={variant}
     >
       <button
         type="button"
@@ -135,13 +227,17 @@ function ToolStepCard({ step, resolveView }: { step: DigitalStep; resolveView?: 
         onClick={() => setExpanded((value) => !value)}
       >
         <span className="digital-step-icon" aria-hidden="true">
-          {STEP_ICONS[step.kind]}
+          {step.kind === 'tool' ? <ToolIcon variant={variant} /> : STEP_ICONS[step.kind]}
         </span>
         <span className="digital-step-tool">{step.tool}</span>
-        <span className="item-meta digital-step-status">
-          {step.status === 'running' ? '执行中…' : null}
-          {step.status === 'done' ? '✅' : null}
-          {step.status === 'failed' ? '❌' : null}
+        {summary !== '' && (
+          <span className={`digital-step-summary${step.status === 'failed' ? ' is-error' : ''}`}>{summary}</span>
+        )}
+        <span className={`digital-step-status digital-step-status-${step.status}`}>
+          {step.status === 'running' && <span className="digital-step-dot" aria-hidden="true" />}
+          {step.status === 'running' ? '执行中' : null}
+          {step.status === 'done' ? '完成' : null}
+          {step.status === 'failed' ? '失败' : null}
         </span>
         {hasBody && (
           <span className="digital-step-chevron" aria-hidden="true">
@@ -149,7 +245,12 @@ function ToolStepCard({ step, resolveView }: { step: DigitalStep; resolveView?: 
           </span>
         )}
       </button>
-      {expanded && hasBody && <div className="digital-step-body">{view(step)}</div>}
+      {expanded && hasBody && (
+        <div className="digital-step-body">
+          <span className="digital-step-body-label">输出</span>
+          {view(step)}
+        </div>
+      )}
     </li>
   )
 }
