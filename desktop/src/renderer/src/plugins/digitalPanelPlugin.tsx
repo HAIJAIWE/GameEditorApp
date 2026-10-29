@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react'
 
+import { CONVERSATION_STORE_KEY, createConversationStoreDecl } from '../../../shared/agent/conversationStore'
 import type { PluginHost } from '../../../shared/plugin/host'
 import type { PluginManifest } from '../../../shared/plugin/types'
 import DigitalPanel from '../components/digital/DigitalPanel'
@@ -13,11 +14,17 @@ import { registerSlotComponent } from './reactBindings'
  * - slot 能力 `{ key:'app.rightPanel', component:'digital.panel' }` 由宿主注册进 slot 内核；
  * - 受保护（`protected:true`）：智能体面板是核心，不可禁用。
  *
+ * 另外**声明根级 store** `conversation.state`：对话状态由面板写入、任何插件可读
+ * （命令面板据此显示运行中/消息数）。声明放在这里是因为「面板的插件」天然拥有这份状态，
+ * 放进宿主构造器会让 `shared/plugin` 反向依赖 `shared/agent`。
+ *
  * App 只负责 `<SlotOutlet slotKey="app.rightPanel" ownerProps={{ onOpenCapabilities }} />`，
  * 插件生态可在同 key 注册更高优先级条目替换它（single 遮蔽）。
  */
 export function defineDigitalPanelPlugin(_host: PluginHost): PluginManifest {
   registerSlotComponent('digital.panel', DigitalPanel as unknown as ComponentType<Record<string, unknown>>)
+  // 幂等：重复注册（测试重建宿主）返回既有实例，不会把面板的订阅甩到旧 store 上
+  _host.declareStore(CONVERSATION_STORE_KEY, createConversationStoreDecl())
   return {
     id: 'digital-panel',
     name: 'digital-panel',

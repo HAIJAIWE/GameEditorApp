@@ -125,6 +125,38 @@ describe('SlotRegistry（slot 内核）', () => {
     expect(calls).toBe(1)
   })
 
+  it('根级 store：声明即创建、幂等、可被 storeOfKey 取到', () => {
+    const r = registry()
+    expect(r.storeOfKey('app.state')).toBeUndefined()
+
+    let inits = 0
+    const decl = {
+      init: () => {
+        inits += 1
+        return { n: 0 }
+      },
+      actions: { inc: (state: unknown) => ({ n: (state as { n: number }).n + 1 }) }
+    }
+    const first = r.declareStore('app.state', decl)
+    // 重复声明（测试重建宿主 / 模块级注册执行两次）返回既有实例，不重跑 init
+    const second = r.declareStore('app.state', decl)
+    expect(second).toBe(first)
+    expect(inits).toBe(1)
+    expect(r.storeOfKey('app.state')).toBe(first)
+
+    let calls = 0
+    const unsubscribe = first.subscribe(() => {
+      calls += 1
+    })
+    first.actions.inc()
+    expect(first.getSnapshot()).toEqual({ n: 1 })
+    expect(calls).toBe(1)
+    unsubscribe()
+
+    r.clear()
+    expect(r.storeOfKey('app.state')).toBeUndefined()
+  })
+
   it('version/subscribeKey 随注册/释放递增', () => {
     const r = registry()
     let hits = 0

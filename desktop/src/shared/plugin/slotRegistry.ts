@@ -95,7 +95,13 @@ function comparePriority(a: SlotEntry, b: SlotEntry): number {
   return a.registrationOrder - b.registrationOrder
 }
 
-function createStore<S>(decl: SlotStoreDecl<S>): SlotStoreInstance<S> {
+/**
+ * 按声明创建一个 store 实例（懒创建逻辑与根级 store 共用）。
+ *
+ * 导出是为了让**没有宿主**的场景（单测、或面板在宿主未就绪时的兜底）也能拿到
+ * 同一份语义：`getSnapshot` 稳定引用 + `actions` 写后通知。
+ */
+export function createStoreInstance<S>(decl: SlotStoreDecl<S>): SlotStoreInstance<S> {
   let state: S = typeof decl.init === 'function' ? (decl.init as () => S)() : decl.init
   const listeners = new Set<() => void>()
   const actions: Record<string, (...args: unknown[]) => void> = {}
@@ -121,6 +127,8 @@ function createStore<S>(decl: SlotStoreDecl<S>): SlotStoreInstance<S> {
 export class SlotRegistry {
   private readonly declarations = new Map<string, { spec: SlotSpec; declaredBy: string }>()
   private readonly entriesByKey = new Map<string, SlotEntry[]>()
+  /** 根级 store（不绑条目）：key → 实例 */
+  private readonly rootStores = new Map<string, SlotStoreInstance>()
   private readonly listeners = new Set<(key: string) => void>()
   private readonly keyListeners = new Map<string, Set<() => void>>()
   private readonly versions = new Map<string, number>()
@@ -271,8 +279,32 @@ export class SlotRegistry {
   /** 取某条目的 store 实例（懒创建）；未声明 store 返回 undefined。 */
   storeOf(entry: SlotEntry): SlotStoreInstance | undefined {
     if (entry.store === undefined) return undefined
-    if (entry.storeInstance === undefined) entry.storeInstance = createStore(entry.store)
+    if (entry.storeInstance === undefined) entry.storeInstance = createStoreInstance(entry.store)
     return entry.storeInstance
+  }
+
+  /**
+   * 声明一个**根级** store（不绑定某个 slot 条目）。
+   *
+   * 为什么需要它：对话状态这类「应用级单例」不属于任何一条 slot 条目，
+   * 但多个插件都要读写（命令面板要显示当前对话状态、面板本身要驱动它）。
+   * 挂在条目上的 store seat 只服务「那个条目自己的组件」，跨插件消费必须走根级。
+   *
+   * **幂等**：同一 key 重复声明直接返回既有实例（模块级注册可能被执行多次，
+   * 例如测试里重建宿主；抛错只会让「重复注册」变成难以定位的崩溃）。
+   */
+  declareStore<S>(key: string, decl: SlotStoreDecl<S>): SlotStoreInstance<S> {
+    const existing = this.rootStores.get(key)
+    if (existing !== undefined) return existing as SlotStoreInstance<S>
+    const store = createStoreInstance(decl)
+    this.rootStores.set(key, store as SlotStoreInstance)
+    this.bump(`store:${key}`)
+    return store
+  }
+
+  /** 取根级 store（未声明返回 undefined；不做隐式创建，避免「谁先读谁定义」）。 */
+  storeOfKey(key: string): SlotStoreInstance | undefined {
+    return this.rootStores.get(key)
   }
 
   /** 某 key 的单调版本号（供 uSES 作稳定快照）。 */
@@ -305,6 +337,7 @@ export class SlotRegistry {
   clear(): void {
     this.entriesByKey.clear()
     this.declarations.clear()
+    this.rootStores.clear()
     this.versions.clear()
   }
 

@@ -195,6 +195,22 @@ describe('PluginHost', () => {
     expect(host.panelParams('p.panel')).toBeUndefined()
   })
 
+  it('根级 store：declareStore 后 slotStore 可取到，未声明返回 null', () => {
+    const host = new PluginHost()
+    expect(host.slotStore('conversation.state')).toBeNull()
+
+    const store = host.declareStore('conversation.state', {
+      init: () => ({ n: 0 }),
+      actions: { inc: (state) => ({ n: (state as { n: number }).n + 1 }) }
+    })
+    // 宿主只做委托：同一 key 再声明拿到的仍是同一实例（幂等）
+    expect(host.declareStore('conversation.state', { init: () => ({ n: 99 }) })).toBe(store)
+    expect(host.slotStore('conversation.state')).toBe(store)
+
+    store.actions.inc()
+    expect(store.getSnapshot()).toEqual({ n: 1 })
+  })
+
   it('参数变更会通知订阅者（面板已打开时换参数也要刷新）', () => {
     const host = new PluginHost()
     host.register(manifest({ id: 'p', capabilities: [{ kind: 'panel', id: 'p.panel', title: 'P', ui: { type: 'text', text: 'p' } }] }))

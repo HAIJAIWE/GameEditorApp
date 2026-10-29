@@ -5,13 +5,15 @@ import type {
   PluginManifest,
   PluginSidebarItem,
   PluginSource,
-  SlotSpec
+  SlotSpec,
+  SlotStoreDecl
 } from './types'
 import {
   ROOT_SLOT_DECLARATIONS,
   SlotRegistry,
   type ChainOutcome,
-  type SlotEntry
+  type SlotEntry,
+  type SlotStoreInstance
 } from './slotRegistry'
 
 /**
@@ -567,6 +569,22 @@ export class PluginHost {
   /** 订阅某 slot key 的变更（供 uSES 订阅）。 */
   subscribeSlot(key: string, listener: () => void): () => void {
     return this.slotRegistry.subscribeKey(key, listener)
+  }
+
+  /**
+   * 声明一个**根级** store（应用级单例状态，跨插件读写）。
+   *
+   * 与挂在 slot 条目上的 store seat 的区别：条目 store 的生命周期属于「那个条目」，
+   * 只服务它自己的组件；根级 store 属于应用，任何插件都能 `slotStore(key)` 拿到同一实例。
+   * 幂等：同一 key 重复声明返回既有实例（模块级注册在测试重建宿主时会重复执行）。
+   */
+  declareStore<S>(key: string, decl: SlotStoreDecl<S>): SlotStoreInstance<S> {
+    return this.slotRegistry.declareStore(key, decl)
+  }
+
+  /** 取根级 store；未声明返回 null（不做隐式创建——避免「谁先读谁定义」）。 */
+  slotStore<S = unknown>(key: string): SlotStoreInstance<S> | null {
+    return (this.slotRegistry.storeOfKey(key) as SlotStoreInstance<S> | undefined) ?? null
   }
 
   private require(id: string): RegisteredPlugin {

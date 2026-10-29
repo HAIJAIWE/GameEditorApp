@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 
 import { defaultDraftName, type DraftSummary } from '../../../../shared/agent/session'
 
@@ -26,18 +26,18 @@ import type { BrainEvent } from '../../../../shared/agent/brain'
 import type { AgentRunTier } from '../../../../shared/agent/observability'
 import type { OperationRecord } from '../../../../shared/agent/operationLog'
 import {
-  hydrateFromSession,
-  initialDigitalPanelState,
   isAnswerComplete,
   isMultiQuestion,
   isRunning,
-  reduceBrainEvent,
-  resolveApproval,
-  resolveInteraction,
-  submitUserMessage,
   summarizeToolTasks,
   type DigitalPanelState
 } from '../../../../shared/agent/panel'
+import {
+  CONVERSATION_STORE_KEY,
+  createConversationStoreDecl,
+  type ConversationAction
+} from '../../../../shared/agent/conversationStore'
+import { createStoreInstance } from '../../../../shared/plugin/slotRegistry'
 import { toErrorMessage } from '../../../../shared/util/errors'
 import { AGENT_PRESETS, DEFAULT_PRESET_ID, presetLabel } from '../../../../shared/agent/presets'
 
@@ -82,35 +82,6 @@ interface ChatApi {
   onEvent: (handler: (event: unknown) => void) => () => void
 }
 
-type Action =
-  | { kind: 'event'; event: BrainEvent }
-  | { kind: 'submit'; text: string }
-  | { kind: 'approval'; approved: boolean }
-  | { kind: 'interaction' }
-  | { kind: 'hydrate'; history: Array<{ role?: unknown; content?: unknown }> }
-  /** 子智能体被用户停止：乐观标记（真实 subagent_done 随后会再覆盖一次，幂等） */
-  | { kind: 'subagentStop'; id: string }
-
-function reducer(state: DigitalPanelState, action: Action): DigitalPanelState {
-  switch (action.kind) {
-    case 'event':
-      return reduceBrainEvent(state, action.event)
-    case 'submit':
-      return submitUserMessage(state, action.text)
-    case 'approval':
-      return resolveApproval(state, action.approved)
-    case 'interaction':
-      return resolveInteraction(state)
-    case 'hydrate':
-      return hydrateFromSession(state, action.history)
-    case 'subagentStop':
-      // 复用 subagent_done 的归约：立即给出「已停止」反馈，避免按钮点击后无响应
-      return reduceBrainEvent(state, { type: 'subagent_done', id: action.id, success: false, text: '已停止' })
-    default:
-      return state
-  }
-}
-
 const STATUS_LABELS: Record<DigitalPanelState['status'], string> = {
   idle: '待命',
   thinking: '思考中…',
@@ -145,7 +116,24 @@ export default function DigitalPanel({
    */
   onOpenCapabilities?: () => void
 }) {
-  const [state, dispatch] = useReducer(reducer, initialDigitalPanelState)
+  /**
+   * 对话状态存放在**宿主根级 store**（`conversation.state`）而不是组件 `useReducer`：
+   * 面板是唯一写入者，但状态要能被别的插件读到（命令面板显示运行中/消息数、按状态禁用动作）。
+   * 宿主未就绪时退回一个同声明的本地 store——语义一致，面板不会因为「没人声明」而崩。
+   */
+  const conversationStore = useMemo(
+    () =>
+      pluginHost.slotStore<DigitalPanelState>(CONVERSATION_STORE_KEY) ??
+      createStoreInstance(createConversationStoreDecl()),
+    []
+  )
+  const state = useSyncExternalStore(conversationStore.subscribe, conversationStore.getSnapshot)
+  const dispatch = useCallback(
+    (action: ConversationAction): void => {
+      conversationStore.actions.dispatch(action)
+    },
+    [conversationStore]
+  )
   const [input, setInput] = useState('')
   /** 斜杠命令 / @ 引用菜单的当前高亮项（两者互斥，共用同一索引；输入变化时重置为 0） */
   const [commandIndex, setCommandIndex] = useState(0)
@@ -239,7 +227,7 @@ export default function DigitalPanel({
       dispatch({ kind: 'event', event: payload as BrainEvent })
     })
     return unsubscribe
-  }, [api])
+  }, [api, dispatch])
 
   // 询问是否有可恢复会话
   useEffect(() => {
@@ -318,7 +306,7 @@ export default function DigitalPanel({
           if (activeRunId.current === runId) activeRunId.current = null
         })
     },
-    [running, api, preset]
+    [running, api, preset, dispatch]
   )
 
   /** 用户点「停止」：让循环优雅中止并保留已产出的部分结果 */
