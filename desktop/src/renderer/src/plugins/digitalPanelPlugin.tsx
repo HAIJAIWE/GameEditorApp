@@ -1,6 +1,8 @@
 import type { ComponentType } from 'react'
 
 import { CONVERSATION_STORE_KEY, createConversationStoreDecl } from '../../../shared/agent/conversationStore'
+import { createConversationService } from '../../../shared/agent/conversationService'
+import type { DigitalPanelState } from '../../../shared/agent/panel'
 import type { PluginHost } from '../../../shared/plugin/host'
 import type { PluginManifest } from '../../../shared/plugin/types'
 import DigitalPanel from '../components/digital/DigitalPanel'
@@ -39,6 +41,12 @@ export function defineDigitalPanelPlugin(_host: PluginHost): PluginManifest {
         key: 'app.rightPanel',
         component: 'digital.panel',
         ui: { type: 'text', text: '智能体' }
+      },
+      {
+        // 对外服务面：插件清单里可见、可 invoke，不必知道 store key 与内部类型
+        kind: 'service',
+        id: 'agent.conversation',
+        invoke: createConversationService(_host.slotStore<DigitalPanelState>(CONVERSATION_STORE_KEY))
       }
     ]
   }

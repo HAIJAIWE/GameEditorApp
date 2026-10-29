@@ -70,9 +70,8 @@ export function defineCommandPalettePlugin(host: PluginHost): PluginManifest {
 /**
  * 条目的真实动作：纯逻辑层只拍平（那里的 `run` 是占位），按 `group` 在这里接回宿主。
  *
- * 「页签」组当前不产出条目：宿主**没有** `openMainView` 这类方法（主区页签的激活态是
- * `MainViewMount` 的局部 state + localStorage），硬编一个改 localStorage 的假动作
- * 只会「看起来点了、页签没切」，故只做命令与面板两类。
+ * 「页签」组走 `host.openMainView(id)`（写 `mainView.state` 根级 store）：
+ * 页签条与命令面板因此共享同一个真相源，从面板切页与点页签等价。
  */
 function runItem(host: PluginHost, item: PaletteItem): void {
   if (item.group === '命令') {
@@ -82,6 +81,10 @@ function runItem(host: PluginHost, item: PaletteItem): void {
   }
   if (item.group === '面板') {
     host.openPanel(item.id)
+    return
+  }
+  if (item.group === '页签') {
+    host.openMainView(item.id)
   }
 }
 
@@ -227,7 +230,13 @@ export function CommandPalette({ host }: { host: PluginHost }): ReactElement | n
   const items = useMemo<PaletteItem[]>(() => {
     // 显式引用版本号：能力增删后必须重算条目（`host.commands()` 每次都是新数组，不能当快照）
     void version
-    const flattened = buildPaletteItems({ commands: host.commands(), panels: host.panels(), mainViews: [] })
+    const flattened = buildPaletteItems({
+      commands: host.commands(),
+      panels: host.panels(),
+      // 页签清单：插件 `mainView` 能力（策划书/数据/代码/浏览器都已迁成 mainView，
+      // App 的 `appTabs` 逃生口当前为空；将来有内联页签时再由 App 经 ownerProps 追加）
+      mainViews: host.mainViews().map((view) => ({ id: view.id, label: view.label }))
+    })
     return [
       ...flattened.map((item) => ({
         ...item,

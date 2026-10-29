@@ -1,7 +1,9 @@
-import { useCallback, useMemo, useState, useSyncExternalStore, type ComponentType, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore, type ComponentType, type ReactNode } from 'react'
 
 import { MIDDLE_TAB_KEY, loadStoredTab, saveStoredTab } from '../../../shared/config/middleTab'
 import type { PluginHost } from '../../../shared/plugin/host'
+import { MAIN_VIEW_STORE_KEY, createMainViewStoreDecl, type MainViewState } from '../../../shared/plugin/mainViewStore'
+import { createStoreInstance } from '../../../shared/plugin/slotRegistry'
 import type { PluginMainViewCapability } from '../../../shared/plugin/types'
 import {
   EMPTY_MAIN_VIEW_CONTEXT,
@@ -91,7 +93,23 @@ export function MainViewMount({ host, appTabs, context = EMPTY_MAIN_VIEW_CONTEXT
   const firstId = merged[0]?.id ?? ''
   const initialId = loadStoredTab(MIDDLE_TAB_KEY, validIds, firstId)
 
-  const [activeId, setActiveId] = useState<string>(initialId)
+  /**
+   * 激活态来自根级 store（`mainView.state`），不再是本组件的 `useState`：
+   * 命令面板 / 快捷键要能「从外面切页」，局部 state 没有对外写入口。
+   * 宿主未声明 store 时退回同声明的本地实例，挂载器不会因为「没人声明」而崩。
+   */
+  const mainViewStore = useMemo(
+    () => host.slotStore<MainViewState>(MAIN_VIEW_STORE_KEY) ?? createStoreInstance(createMainViewStoreDecl()),
+    [host]
+  )
+  const activeId = useSyncExternalStore(mainViewStore.subscribe, mainViewStore.getSnapshot).activeId
+
+  // 首帧把「持久化 / 首个页签」写进 store（store 的初始值是空串 = 未初始化）。
+  // 只在空串时写，之后用户切页 / 外部切页都以 store 为准，不会被这段初始化覆盖。
+  useEffect(() => {
+    if (activeId === '' && initialId !== '') mainViewStore.actions.activate(initialId)
+  }, [activeId, initialId, mainViewStore])
+
   const [visited, setVisited] = useState<ReadonlySet<string>>(() => new Set([initialId]))
 
   // 持久/激活的 id 可能因插件被禁用而失效 → 回落到第一个
@@ -100,11 +118,14 @@ export function MainViewMount({ host, appTabs, context = EMPTY_MAIN_VIEW_CONTEXT
   const mounted = new Set(visited)
   if (effectiveActive !== '') mounted.add(effectiveActive)
 
-  const switchTo = useCallback((id: string) => {
-    setActiveId(id)
-    saveStoredTab(id, MIDDLE_TAB_KEY)
-    setVisited((prev) => (prev.has(id) ? prev : new Set([...prev, id])))
-  }, [])
+  const switchTo = useCallback(
+    (id: string) => {
+      mainViewStore.actions.activate(id)
+      saveStoredTab(id, MIDDLE_TAB_KEY)
+      setVisited((prev) => (prev.has(id) ? prev : new Set([...prev, id])))
+    },
+    [mainViewStore]
+  )
 
   return (
     <MainViewProvider value={context}>

@@ -45,3 +45,33 @@ test('命令面板：Ctrl+K 打开 → 过滤 → Esc 关闭', async () => {
     await app.close()
   }
 })
+
+/**
+ * 从命令面板切主区页签（`host.openMainView` → `mainView.state` 根级 store）。
+ *
+ * 这条用例锁的是**外部切页真的生效**：面板与页签条共享同一个 store，
+ * 不是「点了没反应」。判定用页签的 `aria-current`（`MainViewMount` 的激活语义）。
+ */
+test('命令面板：搜索「数据编辑」并执行 → 主区切到数据编辑页签', async () => {
+  const userDataDir = mkdtempSync(join(tmpdir(), 'mb-palette-tab-e2e-'))
+  const app = await launchApp(userDataDir)
+
+  try {
+    const window = await app.firstWindow()
+    await waitReady(window)
+
+    // 默认停在策划书页签
+    await expect(window.getByTestId('middle-tab-editor.mainView')).toHaveAttribute('aria-current', 'true')
+
+    await window.keyboard.press('Control+k')
+    await window.getByTestId('command-palette-input').fill('数据编辑')
+    // 页签组的第一条就是「数据编辑」（mainView 能力，非面板）
+    await window.keyboard.press('Enter')
+
+    await expect(window.getByTestId('command-palette')).toHaveCount(0)
+    await expect(window.getByTestId('middle-tab-data.mainView')).toHaveAttribute('aria-current', 'true')
+    await expect(window.getByTestId('middle-tab-editor.mainView')).toHaveAttribute('aria-current', 'false')
+  } finally {
+    await app.close()
+  }
+})

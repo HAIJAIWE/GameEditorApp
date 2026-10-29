@@ -1,5 +1,6 @@
 import { PluginHost } from '../../../shared/plugin/host'
 import { createPluginLoader } from '../../../shared/plugin/loader'
+import { MAIN_VIEW_STORE_KEY, createMainViewStoreDecl } from '../../../shared/plugin/mainViewStore'
 import { defineAppActionsPlugin } from './appActionsPlugin'
 import { defineCeshuMenusPlugin } from './ceshuMenusPlugin'
 import { defineCeshuPlugin } from './ceshuPlugin'
@@ -34,6 +35,13 @@ import { createLocalStorageInstalledStore } from './installedPluginStore'
  * 不再硬编码进 App/MenuBar/CeshuView。
  */
 export const pluginHost = new PluginHost()
+
+/*
+ * 主区页签激活态的根级 store：**在这里声明**（而不是等 `MainViewMount` 挂载时），
+ * 因为 `host.openMainView(id)` 可能先于挂载被调用（命令面板刚打开就点页签、
+ * 或引导脚本在首帧前跳页）。声明在宿主单例创建之后、任何消费方渲染之前，顺序最稳。
+ */
+pluginHost.declareStore(MAIN_VIEW_STORE_KEY, createMainViewStoreDecl())
 
 /**
  * 插件市场持久化（已安装 source 清单）。浏览器端落地 localStorage，非浏览器降级为空。

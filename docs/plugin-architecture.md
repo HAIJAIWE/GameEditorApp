@@ -571,3 +571,59 @@ Slice 5（3 个只依赖共享状态的面板）：
 - `renderer/src/plugins/builtins.ts`（注册）
 - `renderer/src/App.tsx`（3 个 case → HostPanel，删 3 个直接 import）
 - `tests/unit/dom/dataPanelsPlugin.test.tsx`（3 条：能力清单 / types 经 context 注入 / 无 onClose 面板可挂）
+
+---
+
+## 11. 根级 store：跨插件的应用级状态（Slice 47）
+
+### 11.1 三种状态该放哪
+
+| 位置 | 生命周期 | 谁能读 | 什么时候用 |
+| --- | --- | --- | --- |
+| 组件 `useState` / `useReducer` | 随组件挂载 | 只有它自己 | 纯局部 UI（输入框、折叠开关、草稿） |
+| 条目 store seat（`SlotStoreDecl` 挂在 slot 能力上） | 随**那个条目** | 该条目的组件 | 「这个视图自己的」状态，别的插件不该碰 |
+| **根级 store**（`host.declareStore`） | 随**宿主** | 任何插件 | 应用级单例：对话状态、主区页签激活态 |
+
+判断口径：**有没有第二个写入者或第二个读取者**。有 ⇒ 根级；没有 ⇒ 留在组件里。
+
+### 11.2 契约
+
+```ts
+// 声明（幂等：同 key 重复声明返回既有实例）
+const store = host.declareStore('conversation.state', {
+  init: () => ({ ... }),                        // 必须是「每次新建对象」的工厂
+  actions: {
+    activate: (state, id) => ({ ...state, id }) // 返回新 state；返回 undefined 表示「不变」
+  }
+})
+
+// 读取（未声明返回 null，不做隐式创建）
+const s = host.slotStore<MyState>('conversation.state')
+useSyncExternalStore(s.subscribe, s.getSnapshot)
+```
+
+- **幂等**是刻意的：模块级注册在测试重建宿主时会重复执行，抛错只会把「重复注册」变成难定位的崩溃。
+- **`init` 必须是工厂函数**：`reset` 若直接返回常量初始态，快照引用不变 ⇒ `useSyncExternalStore`
+  **不重渲染**（「清空对话」看起来没生效）。数组字段也要给新引用。
+- **未声明返回 `null`**：消费方要有兜底（`?? createStoreInstance(decl)`），否则「谁先读谁定义」的时序问题会变成白屏。
+
+### 11.3 现有根级 store
+
+| key | 声明方 | 写入方 | 读取方 |
+| --- | --- | --- | --- |
+| `conversation.state` | `digitalPanelPlugin` | `DigitalPanel`（唯一写者） | `DigitalPanel`、`commandPalettePlugin`（状态行）、`agent.conversation` 服务 |
+| `mainView.state` | `builtins`（宿主创建后立刻声明） | `MainViewMount`（点页签）、`host.openMainView(id)`（命令面板/快捷键/引导） | `MainViewMount` |
+
+### 11.4 两个派生入口
+
+- `host.openMainView(id)`：切主区页签。**不校验 id**——页签清单是派生的（`mainViews()` + App 内联页签），
+  无效 id 由 `MainViewMount` 回落到首个页签；返回 `false` 仅表示「store 未声明」。
+- `service` 能力 `agent.conversation`：`invoke({ op: 'snapshot' | 'clear' })`。给**外部 bundle**用的可发现入口，
+  不必知道 store key 与内部类型；**失败一律 `{ ok:false, error }`，不抛异常**（跨 bundle 拿不到我们的异常类型）。
+
+### 11.5 坑
+
+1. 根级 store 的 actions **不做副作用**（IPC/取消/草稿都在组件里），否则 store 会变成第二个业务层，且无法纯逻辑单测。
+2. 声明位置要早于消费方渲染：`mainView.state` 放在 `builtins`（宿主单例之后），`conversation.state` 放在面板插件
+   （它是这份状态的所有者）。放进 `shared/plugin` 的构造器会让插件内核反向依赖 `shared/agent`。
+3. 服务面返回的摘要要**截断**（`lastAssistantText` 200 字）：跨插件传整段对话会把清单/通知撑爆。

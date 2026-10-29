@@ -15,6 +15,7 @@ import {
   type SlotEntry,
   type SlotStoreInstance
 } from './slotRegistry'
+import { MAIN_VIEW_STORE_KEY, type MainViewState } from './mainViewStore'
 
 /**
  * 插件宿主：管理插件的注册与生命周期（dsh 风格 install → activate → disable）。
@@ -585,6 +586,25 @@ export class PluginHost {
   /** 取根级 store；未声明返回 null（不做隐式创建——避免「谁先读谁定义」）。 */
   slotStore<S = unknown>(key: string): SlotStoreInstance<S> | null {
     return (this.slotRegistry.storeOfKey(key) as SlotStoreInstance<S> | undefined) ?? null
+  }
+
+  /**
+   * 切到某个主区页签（命令面板 / 快捷键 / 引导共用入口）。
+   *
+   * 只写 `mainView.state` 的 `activeId`：**不校验 id 是否存在**——页签清单是派生的
+   * （`mainViews()` + App 内联页签），宿主没有完整视图；无效 id 由 `MainViewMount` 回落到首个页签。
+   * 返回 false 表示 store 未声明（宿主还没装主区挂载器），调用方可据此提示而不是静默。
+   */
+  openMainView(id: string): boolean {
+    const store = this.slotStore<MainViewState>(MAIN_VIEW_STORE_KEY)
+    if (store === null) return false
+    store.actions.activate(id)
+    return true
+  }
+
+  /** 当前激活的主区页签 id（未声明 store 或未初始化返回空串）。 */
+  mainViewActive(): string {
+    return this.slotStore<MainViewState>(MAIN_VIEW_STORE_KEY)?.getSnapshot().activeId ?? ''
   }
 
   private require(id: string): RegisteredPlugin {
