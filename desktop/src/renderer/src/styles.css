@@ -41,6 +41,9 @@
   --cell-bg: #ffffff;
   /* dsh specific-sidebar-fill：侧栏/顶栏用的极浅灰，是画面上唯一「有底色」的区域 */
   --sidebar-fill: #f9fafb;
+  /* 选中行底色（dsh `interactive-bg-hover-solid`）：比 hover 深一档、仍是中性色——
+     选中靠「填色 + 主文字色」表达，不靠蓝色文字（那是旧版的做法，颜色一多就吵） */
+  --bg-selected: #f1f3f5;
 
   /* 文本（dsh label-primary / secondary / tertiary） */
   --text: #0f1115;
@@ -103,6 +106,7 @@
   --bg: #14161a;
   --bg-panel: #1b1e24;
   --sidebar-fill: #1b1b1c; /* dsh 深色 specific-sidebar-fill */
+  --bg-selected: #2a2e36;
   --bg-hover: #23272f;
   --border: rgba(255, 255, 255, 0.08);
   --divider: rgba(255, 255, 255, 0.06);
@@ -152,6 +156,7 @@
   --bg: #fffbf7;
   --bg-panel: #ffffff;
   --sidebar-fill: #fdf7f2; /* 暖白：比 bg 略浅一档，保持「侧栏是唯一有底色的区域」 */
+  --bg-selected: #f5ece3;
   --bg-hover: #fff7ed;
   --border: #e7e5e4;
   --divider: #fafaf9;
@@ -198,6 +203,7 @@
   --bg: #181418;
   --bg-panel: #1f1a1f;
   --sidebar-fill: #1d181d;
+  --bg-selected: #2a232a;
   --bg-hover: #1c181c;
   --border: #2e2830;
   --divider: #252025;
@@ -802,15 +808,21 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  padding: 8px 12px;
+  border: 0.5px solid var(--border);
+  border-radius: 10px;
   background: var(--bg-panel);
   cursor: pointer;
 }
 
+.item-row:hover {
+  background: var(--bg-hover);
+}
+
+/* 选中：0.5px 品牌色内描边 + 极淡品牌底色（不用整块蓝底，行内文字保持可读） */
 .item-row.selected {
-  border-color: var(--accent);
+  background: rgba(65, 118, 230, 0.04);
+  box-shadow: inset 0 0 0 0.5px var(--accent);
 }
 
 /* ---- 数据条目：行内重命名 / 右键菜单 / 数量上限确认 ---- */
@@ -3659,7 +3671,8 @@ button.ref-row:hover {
 }
 
 .rg-table tbody tr:nth-child(even) {
-  background: var(--cell-bg);
+  /* 不留斑马纹：dsh 的行分隔靠 0.5px 发丝线，条纹会让密集表格发灰 */
+  background: transparent;
 }
 
 .rg-row {
@@ -3667,7 +3680,7 @@ button.ref-row:hover {
 }
 
 .rg-row:hover {
-  background: var(--accent-bg);
+  background: var(--bg-hover);
 }
 
 .rg-row.dangling {
@@ -7599,12 +7612,15 @@ button.ref-row:hover {
 
 .data-editor-type {
   display: block;
-  width: 100%;
-  padding: 6px 12px;
+  width: calc(100% - 12px);
+  margin: 0 6px;
+  padding: 0 10px;
+  height: 30px;
   border: none;
+  border-radius: 8px;
   background: transparent;
-  color: var(--text);
-  font-size: 12.5px;
+  color: var(--text-secondary);
+  font-size: calc(13px * var(--ui-font-scale));
   text-align: left;
   cursor: pointer;
   white-space: nowrap;
@@ -7614,12 +7630,13 @@ button.ref-row:hover {
 
 .data-editor-type:hover {
   background: var(--bg-hover);
+  color: var(--text);
 }
 
 .data-editor-type.active {
-  background: var(--accent-soft, rgba(0, 122, 204, 0.15));
-  color: var(--accent);
-  font-weight: 600;
+  background: var(--bg-selected);
+  color: var(--text);
+  font-weight: 500;
 }
 
 .data-editor-main {
