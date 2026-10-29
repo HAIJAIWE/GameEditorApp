@@ -181,35 +181,37 @@ export default function LibraryBar() {
       <div className="library-bar-actions">
         <button
           type="button"
-          className="btn slim"
+          className="btn slim icon"
           data-testid="library-create"
+          aria-label="新建库"
+          title="新建库"
           disabled={busy}
           onClick={() => startEdit('create')}
         >
-          <LucideIcon name="plus" size={14} />
-          新建
+          <LucideIcon name="plus" size={16} />
         </button>
         <button
           type="button"
-          className="btn slim"
+          className="btn slim icon"
           data-testid="library-rename"
+          aria-label="重命名库"
+          title="重命名库"
           disabled={busy || current === undefined}
           onClick={() => startEdit('rename')}
         >
-          <LucideIcon name="pencil" size={14} />
-          重命名
+          <LucideIcon name="pencil" size={16} />
         </button>
         <button
           type="button"
-          className="btn slim danger"
+          className="btn slim icon danger"
           data-testid="library-remove"
+          aria-label="删除库"
           // 初始库禁删（主进程同样会拒绝，这里只是不给无效入口）
           disabled={busy || current === undefined || current.isInitial}
-          title={current?.isInitial === true ? '初始库不可删除' : undefined}
+          title={current?.isInitial === true ? '初始库不可删除' : '删除库'}
           onClick={handleRemove}
         >
-          <LucideIcon name="trash" size={14} />
-          删除
+          <LucideIcon name="trash" size={16} />
         </button>
       </div>
 

@@ -9075,3 +9075,24 @@ button.ref-row:hover {
   justify-content: flex-start;
   flex-wrap: wrap;
 }
+
+/* 图标按钮（dsh 的 icon-only 形态）：28×28、无内距、图标居中；靠 title/aria-label 说明 */
+.btn.icon {
+  width: 28px;
+  padding: 0;
+  justify-content: center;
+}
+
+/* 菜单栏里「库」与「应用级动作」之间的细分隔（dsh `border-l2` = rgba(0,0,0,.1)） */
+.menubar-divider {
+  width: 1px;
+  height: 18px;
+  margin: 0 2px;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+/* 菜单栏高度与内距对齐控件档位（按钮 28px + 上下留白） */
+.menubar {
+  min-height: 44px;
+  padding: 0 10px;
+}

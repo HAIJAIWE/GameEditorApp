@@ -146,16 +146,19 @@ export default function MenuBar({ host }: MenuBarProps) {
 
       {/* 右侧角部件：库标签 + 库条 + 设置/智能体/AI */}
       <div className="menubar-right">
-        <span className="menubar-label">当前库:</span>
+        <span className="menubar-label">当前库</span>
         <LibraryBar />
+        {/* 库操作与应用级动作分组：一条 1px 细线，避免 7 个控件连成一排 */}
+        <span className="menubar-divider" aria-hidden="true" />
         <button
           type="button"
-          className="btn slim"
+          className="btn slim icon"
           data-testid="menubar-settings"
+          aria-label="设置"
+          title="设置"
           onClick={() => runCommand('settings.open')}
         >
-          <LucideIcon name="settings" size={14} />
-          设置
+          <LucideIcon name="settings" size={16} />
         </button>
         <button
           type="button"
@@ -164,7 +167,7 @@ export default function MenuBar({ host }: MenuBarProps) {
           title="聚焦右侧智能体对话输入框"
           onClick={() => runCommand('app.focusAi')}
         >
-          <LucideIcon name="bot" size={14} />
+          <LucideIcon name="bot" size={16} />
           智能体
         </button>
       </div>
