@@ -146,6 +146,52 @@ export const LLM_PROVIDER_PRESETS: Readonly<Record<LlmProvider, LlmProviderPrese
 }
 
 /**
+ * 各模型的上下文窗口上限（token 数）。
+ *
+ * 用途：对话输入区的令牌环（ContextMeter）要画「已用 / 上限」的百分比。
+ * 这些值是各模型**公开发布的规格**（非运行时探测、也非估算的假数据），只在用户
+ * 当前模型的上下文窗口未知时回落到 `DEFAULT_CONTEXT_WINDOW`。
+ *
+ * 注意：只覆盖 `LLM_PROVIDER_PRESETS` 里列出的模型；Ollama 本机模型按常见本地上下文给 128k。
+ */
+export const MODEL_CONTEXT_WINDOWS: Readonly<Record<string, number>> = {
+  // OpenAI
+  'gpt-3.5-turbo': 16385,
+  'gpt-4': 8192,
+  'gpt-4-turbo': 128000,
+  'gpt-4o': 128000,
+  // 豆包
+  'doubao-pro-32k': 32000,
+  'doubao-pro-128k': 128000,
+  'doubao-lite-32k': 32000,
+  // 通义千问（DashScope）
+  'qwen3-max': 1000000,
+  'qwen3.8-max': 1000000,
+  'qwen-plus': 131072,
+  'qwen3.5-flash': 131072,
+  'qwen-long': 1000000,
+  // DeepSeek
+  'deepseek-v4-pro': 64000,
+  'deepseek-v4-flash': 64000,
+  // Ollama 本机（常见本地上下文）
+  'qwen3:8b': 128000,
+  'qwen2.5:7b': 128000,
+  'qwen2.5:14b': 128000,
+  'llama3.1:8b': 128000,
+  'mistral:7b': 128000,
+  'deepseek-r1:8b': 128000
+}
+
+/** 未知模型回落到的上下文窗口（常见下限，纯估算上限，仅用于画环百分比） */
+export const DEFAULT_CONTEXT_WINDOW = 128000
+
+/** 取某模型的上下文窗口上限；不在表里时回落 `DEFAULT_CONTEXT_WINDOW` */
+export function modelContextWindow(model: string): number {
+  if (model === '') return DEFAULT_CONTEXT_WINDOW
+  return MODEL_CONTEXT_WINDOWS[model] ?? DEFAULT_CONTEXT_WINDOW
+}
+
+/**
  * 下拉框用的服务商顺序。
  *
  * ## ⚠️ 这是产品决策（DD-0「云端优先」），**不是**迁移保真，勿改回

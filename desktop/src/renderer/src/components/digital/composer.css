@@ -196,7 +196,10 @@
   padding: 4px;
   border: 0.5px solid var(--border);
   border-radius: 10px;
-  background: var(--bg-panel);
+  /* dsh 的浮层是「轻玻璃」：半透表面 + 背景模糊 + 浅描边 + 柔和投影，而不是纯白卡片 */
+  background: color-mix(in srgb, var(--bg-panel) 90%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
 }
 .dsh-composer-menu-item {
@@ -259,4 +262,93 @@
   padding: 8px 10px;
   color: var(--text-muted);
   font-size: calc(12px * var(--ui-font-scale));
+}
+
+/*
+ * 菜单遮罩（对齐 dsh `bg-overlay`）：菜单打开时盖一层极淡的 scrim，点它即关闭。
+ * 既给浮层「模态感」，也补上「裸定位 div 没有遮罩」的差距。z-index 低于菜单(40)，
+ * 但高于面板常规内容；点击它走既有 document mousedown 关闭逻辑（目标在 picker ref 外）。
+ */
+.dsh-composer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 38;
+  background: rgba(15, 17, 21, 0.04);
+}
+
+/* 令牌环（ContextMeter）：输入区统计行里的圆环进度，直径 22px */
+.dsh-context-meter {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+}
+.dsh-context-meter svg {
+  display: block;
+}
+/* hover 分解面板：输入 / 输出 / 上限 / 占用，对齐 dsh 的 ContextMeter 悬浮卡 */
+.dsh-context-meter-pop {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 45;
+  min-width: 188px;
+  padding: 8px 10px;
+  border: 0.5px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-panel);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  font-size: calc(12px * var(--ui-font-scale));
+  color: var(--text-secondary);
+}
+.dsh-context-meter-pop div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 2px 0;
+}
+.dsh-context-meter-pop b {
+  color: var(--text);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 「新建对话」危险确认（对齐 dsh RiskConfirmation，给破坏性用户动作加一道确认） */
+.dsh-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 17, 21, 0.28);
+}
+.dsh-confirm-card {
+  width: min(360px, 86vw);
+  padding: 16px;
+  border: 0.5px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-panel);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.24);
+}
+.dsh-confirm-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: calc(14px * var(--ui-font-scale));
+  font-weight: 500;
+  color: var(--text);
+}
+.dsh-confirm-text {
+  margin: 8px 0 14px;
+  font-size: calc(13px * var(--ui-font-scale));
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+.dsh-confirm-card .editor-actions {
+  justify-content: flex-end;
 }

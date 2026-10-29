@@ -49,7 +49,7 @@ import { createStoreInstance } from '../../../../shared/plugin/slotRegistry'
 import { toErrorMessage } from '../../../../shared/util/errors'
 import { AGENT_PRESETS, DEFAULT_PRESET_ID, presetLabel } from '../../../../shared/agent/presets'
 import { loadLlmConfig, saveLlmConfig, LLM_PROVIDER_PRESETS } from '../../../../shared/config/llmConfig'
-import type { LlmProvider } from '../../../../shared/config/llmConfigData'
+import { modelContextWindow, type LlmProvider } from '../../../../shared/config/llmConfigData'
 
 /**
  * 智能体面板（A1-4）：对话气泡 + 流式文本 + 可折叠步骤 + 任务列表 + 危险操作审批模态。
@@ -176,8 +176,6 @@ export default function DigitalPanel({
   const scrollRef = useRef<HTMLDivElement | null>(null)
   /** 输入框改多行后类型随之变 textarea（原 `HTMLInputElement` 的 `rows` 不存在） */
   const inputRef = useRef<HTMLTextAreaElement | null>(null)
-  /** 「新建对话」下拉展开状态 */
-  const [clearMenuOpen, setClearMenuOpen] = useState(false)
   /** 「草稿管理」下拉展开状态 */
   const [draftMenuOpen, setDraftMenuOpen] = useState(false)
   /** 草稿列表（打开下拉时按需拉取，不常驻轮询） */
@@ -222,7 +220,8 @@ export default function DigitalPanel({
   const [currentProvider, setCurrentProvider] = useState<LlmProvider>(() => {
     try { return loadLlmConfig().provider } catch { return 'ollama' }
   })
-  const clearMenuRef = useRef<HTMLDivElement | null>(null)
+  /** 「新建对话」危险确认：先弹确认再清空，避免误触丢失活跃会话（对齐 dsh RiskConfirmation） */
+  const [confirmNewChat, setConfirmNewChat] = useState(false)
   const draftMenuRef = useRef<HTMLDivElement | null>(null)
   /** 当前进行中那一轮的 runId（「停止」按钮据此精确取消） */
   const activeRunId = useRef<string | null>(null)
@@ -475,7 +474,7 @@ export default function DigitalPanel({
    * 监听挂在 document 上、命中判定用各自的 ref —— 两个下拉互不影响。
    */
   useEffect(() => {
-    if (!clearMenuOpen && !draftMenuOpen && !modelMenuOpen && !plusMenuOpen) return undefined
+    if (!draftMenuOpen && !modelMenuOpen && !plusMenuOpen) return undefined
     const onDocClick = (event: MouseEvent): void => {
       const target = event.target as Node
       if (plusMenuOpen && plusMenuRef.current && !plusMenuRef.current.contains(target)) {
@@ -483,9 +482,6 @@ export default function DigitalPanel({
       }
       if (modelMenuOpen && modelMenuRef.current && !modelMenuRef.current.contains(target)) {
         setModelMenuOpen(false)
-      }
-      if (clearMenuOpen && clearMenuRef.current && !clearMenuRef.current.contains(target)) {
-        setClearMenuOpen(false)
       }
       if (draftMenuOpen && draftMenuRef.current && !draftMenuRef.current.contains(target)) {
         setDraftMenuOpen(false)
@@ -495,7 +491,6 @@ export default function DigitalPanel({
       if (event.key !== 'Escape') return
       setPlusMenuOpen(false)
       setModelMenuOpen(false)
-      setClearMenuOpen(false)
       setDraftMenuOpen(false)
     }
     document.addEventListener('mousedown', onDocClick)
@@ -504,7 +499,7 @@ export default function DigitalPanel({
       document.removeEventListener('mousedown', onDocClick)
       document.removeEventListener('keydown', onKey)
     }
-  }, [plusMenuOpen, modelMenuOpen, clearMenuOpen, draftMenuOpen])
+  }, [plusMenuOpen, modelMenuOpen, draftMenuOpen])
 
   /**
    * 打开模型下拉时拉取可选项：预设清单（离线安全）打底，Ollama 再叠加本机已装模型。
@@ -610,7 +605,7 @@ export default function DigitalPanel({
    */
   type CommandWithRun = DigitalCommand & { run: () => void }
   const COMMANDS: CommandWithRun[] = [
-    { id: 'new', label: '新建对话', hint: '清空当前记录，开始新对话（可重新选择智能体预设）', run: () => void handleNewChat() },
+    { id: 'new', label: '新建对话', hint: '清空当前记录，开始新对话（可重新选择智能体预设）', run: () => setConfirmNewChat(true) },
     {
       id: 'drafts',
       label: '草稿管理',
@@ -684,38 +679,17 @@ export default function DigitalPanel({
               旧版 菜单有「新建对话 / 清空当前对话 / 删除全部聊天记录」三项，但它的历史是**按对话分文件**的；
               TS 只有**一份**活跃会话（`agent/sessionStore.ts` 的 `active_session.json`），
               三项在 TS 语义上完全等价 —— 宁缺勿错，只给一项，不摆三个点下去一样的按钮。 */}
-          <div className="toolbar-more" ref={clearMenuRef}>
-            <button
-              type="button"
-              className="btn slim"
-              data-testid="digital-clear"
-              title="新建对话（清空当前记录）"
-              aria-label="新建对话（清空当前记录）"
-              aria-haspopup="menu"
-              aria-expanded={clearMenuOpen}
-              onClick={() => setClearMenuOpen((open) => !open)}
-            >
-              <LucideIcon name="trash" size={14} />
-            </button>
-            {clearMenuOpen && (
-              <div className="toolbar-more-menu" role="menu" data-testid="digital-clear-menu">
-                <div className="toolbar-more-group">
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className="toolbar-more-item"
-                    data-testid="digital-clear-new"
-                    onClick={() => {
-                      setClearMenuOpen(false)
-                      handleNewChat()
-                    }}
-                  >
-                    新建对话（清空当前记录）
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+          {/* 「新建对话」：直接弹危险确认（对齐 dsh RiskConfirmation），不经单层下拉——下拉里只有一项，不如直接确认 */}
+          <button
+            type="button"
+            className="btn slim"
+            data-testid="digital-clear"
+            title="新建对话（清空当前记录）"
+            aria-label="新建对话（清空当前记录）"
+            onClick={() => setConfirmNewChat(true)}
+          >
+            <LucideIcon name="trash" size={14} />
+          </button>
 
           {/* 草稿管理：
               保存当前对话为草稿 / 从最近草稿恢复（上限 5 条）。 */}
@@ -1344,14 +1318,76 @@ export default function DigitalPanel({
           </div>
         </div>
 
-        {/* 框外统计行：没有跑过任何一轮就不占位（空态不该有一行 0 轮 · 0 步） */}
+        {/* 框外统计行：没有跑过任何一轮就不占位（空态不该有一行 0 轮 · 0 步）。
+            行首嵌令牌环（ContextMeter），用真实的 prompt/completion/total 累计数画「已用 / 上下文上限」。 */}
         {state.runStats.turns > 0 && (
           <div className="dsh-composer-stats" data-testid="digital-composer-stats">
+            <ContextMeter
+              total={state.runStats.totalTokens}
+              prompt={state.runStats.promptTokens}
+              completion={state.runStats.completionTokens}
+              model={currentModel}
+            />
             {state.runStats.turns} 轮 · {state.steps.length} 步 · {state.runStats.totalTokens} tok ·{' '}
             {state.runStats.latencyMs} ms
           </div>
         )}
       </div>
+
+      {/* 菜单遮罩（对齐 dsh bg-overlay）：模型 / ＋ 菜单打开时盖一层极淡 scrim，点击即关闭 */}
+      {(plusMenuOpen || modelMenuOpen) && (
+        <div
+          className="dsh-composer-overlay"
+          data-testid="digital-composer-overlay"
+          onClick={() => {
+            setPlusMenuOpen(false)
+            setModelMenuOpen(false)
+          }}
+        />
+      )}
+
+      {/* 「新建对话」危险确认：避免误触清空活跃会话（对齐 dsh RiskConfirmation） */}
+      {confirmNewChat && (
+        <div
+          className="dsh-confirm-overlay"
+          data-testid="digital-newchat-confirm-overlay"
+          onClick={() => setConfirmNewChat(false)}
+        >
+          <div
+            className="dsh-confirm-card"
+            role="alertdialog"
+            aria-label="确认新建对话"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="dsh-confirm-title">
+              <LucideIcon name="alert-triangle" size={14} />
+              新建对话
+            </div>
+            <p className="dsh-confirm-text">当前对话记录将被清空且无法恢复。确定要开始新对话吗？</p>
+            <div className="editor-actions">
+              <button
+                type="button"
+                className="btn danger"
+                data-testid="digital-newchat-confirm"
+                onClick={() => {
+                  setConfirmNewChat(false)
+                  void handleNewChat()
+                }}
+              >
+                清空并新建
+              </button>
+              <button
+                type="button"
+                className="btn"
+                data-testid="digital-newchat-cancel"
+                onClick={() => setConfirmNewChat(false)}
+              >
+                取消
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 输入区接管（chain slot）：插件选举胜出时叠加接管组件；内置行已隐藏但仍挂载 */}
       {composerTakeover !== null && (
@@ -1408,5 +1444,84 @@ function ConversationRunStatus({
       <span className={`conv-status-dot${thinking ? ' is-running' : ''}`} aria-hidden />
       <span className={thinking ? 'is-shimmer' : undefined}>{text}</span>
     </div>
+  )
+}
+
+/**
+ * 令牌环（对齐 dsh ContextMeter）：用对话里**真实累计**的 token 数（prompt/completion/total，
+ * 来自 `AgentRunStats`，由 `observability.ts` 事后统计）画「已用 / 上下文上限」圆环。
+ *
+ * 上限取按模型的**公开发布规格**（`MODEL_CONTEXT_WINDOWS`），不在表里回落默认值——
+ * 是规格值、不是假运行时探测值。占用接近上限时环变色（accent → 强调 hover → 删除红）。
+ * hover 浮出分解卡。无用量时不渲染（由外层 `turns > 0` 控制）。
+ */
+function ContextMeter({
+  total,
+  prompt,
+  completion,
+  model
+}: {
+  total: number
+  prompt: number
+  completion: number
+  model: string
+}): React.JSX.Element {
+  const ctx = modelContextWindow(model)
+  const pct = ctx > 0 ? Math.min(1, total / ctx) : 0
+  const [hover, setHover] = useState(false)
+  const color =
+    pct > 0.9 ? 'var(--change-delete)' : pct > 0.7 ? 'var(--accent-hover)' : 'var(--accent)'
+  const radius = 9
+  const circumference = 2 * Math.PI * radius
+  const fmt = (n: number): string => (n >= 1000 ? `${(n / 1000).toFixed(n < 10000 ? 1 : 0)}k` : String(n))
+  const title = `上下文用量 ${Math.round(pct * 100)}% · ${fmt(total)} / ${fmt(ctx)} tok`
+  return (
+    <span
+      className="dsh-context-meter"
+      data-testid="digital-context-meter"
+      title={title}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+    >
+      <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
+        <circle cx="11" cy="11" r={radius} fill="none" stroke="var(--border)" strokeWidth="2.5" />
+        <circle
+          cx="11"
+          cy="11"
+          r={radius}
+          fill="none"
+          stroke={color}
+          strokeWidth="2.5"
+          strokeDasharray={circumference}
+          strokeDashoffset={circumference * (1 - pct)}
+          strokeLinecap="round"
+          transform="rotate(-90 11 11)"
+        />
+      </svg>
+      {hover && (
+        <span className="dsh-context-meter-pop" role="tooltip">
+          <div>
+            <span>总用量</span>
+            <b>{total} tok</b>
+          </div>
+          <div>
+            <span>输入</span>
+            <b>{prompt}</b>
+          </div>
+          <div>
+            <span>输出</span>
+            <b>{completion}</b>
+          </div>
+          <div>
+            <span>上下文窗口</span>
+            <b>{ctx}</b>
+          </div>
+          <div>
+            <span>占用</span>
+            <b>{Math.round(pct * 100)}%</b>
+          </div>
+        </span>
+      )}
+    </span>
   )
 }

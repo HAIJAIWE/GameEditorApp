@@ -113,3 +113,50 @@ test('输入框「模型」下拉：列出可选模型并切换生效', async ()
     await app.close()
   }
 })
+
+/**
+ * 浮层遮罩（对齐 dsh bg-overlay）：打开模型菜单时盖一层极淡 scrim，点它即关闭。
+ * 断言的是「菜单打开有遮罩、点遮罩菜单与遮罩一起消失」，而不是「遮罩长什么样」。
+ */
+test('输入框浮层：打开模型菜单显示遮罩，点遮罩关闭', async () => {
+  const userDataDir = mkdtempSync(join(tmpdir(), 'mb-overlay-'))
+  const app = await launchApp(userDataDir)
+
+  try {
+    const window = await app.firstWindow()
+    await waitReady(window)
+
+    await window.getByTestId('digital-composer-model').click()
+    await expect(window.getByTestId('digital-model-menu')).toBeVisible()
+    await expect(window.getByTestId('digital-composer-overlay')).toBeVisible()
+
+    await window.getByTestId('digital-composer-overlay').click()
+    await expect(window.getByTestId('digital-model-menu')).toHaveCount(0)
+    await expect(window.getByTestId('digital-composer-overlay')).toHaveCount(0)
+  } finally {
+    await app.close()
+  }
+})
+
+/**
+ * 「新建对话」危险确认（对齐 dsh RiskConfirmation）：点删除按钮先弹确认框，
+ * 取消则留在当前对话、确认框消失。不做假清空。
+ */
+test('「新建对话」需二次确认：弹确认框，取消则保留', async () => {
+  const userDataDir = mkdtempSync(join(tmpdir(), 'mb-newchat-'))
+  const app = await launchApp(userDataDir)
+
+  try {
+    const window = await app.firstWindow()
+    await waitReady(window)
+
+    await window.getByTestId('digital-clear').click()
+    await expect(window.getByTestId('digital-newchat-confirm-overlay')).toBeVisible()
+    await expect(window.getByTestId('digital-newchat-confirm')).toBeVisible()
+
+    await window.getByTestId('digital-newchat-cancel').click()
+    await expect(window.getByTestId('digital-newchat-confirm-overlay')).toHaveCount(0)
+  } finally {
+    await app.close()
+  }
+})

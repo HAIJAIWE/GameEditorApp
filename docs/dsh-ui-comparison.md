@@ -168,21 +168,22 @@ dsh 的 UI 成熟在**两件事**：① **typed slot 组合**（父级声明扩�
 - **「完全权限」/ 语音入口**：dsh 的权限是 `conversation.input.permission` slot、语音是独立采集链路，我们主智能体无对应后端（SandboxPolicy 只管子智能体、无音频链路）→ 改为**静态展示**（去假箭头、加 `dsh-composer-chip-static`），不做假按钮。
 - **对话/智能体 UI 内 emoji 全清**：运行统计区的 💾/📂、云端/本地/未配置的 ☁🖥⚙、步骤的 🧠📦🔧、审批/子智能体/任务列表的 ⚠️❓✅❌ 全部换成 `LucideIcon` 单色线稿（`alert-triangle`/`brain`/`package`/`wrench`/`check`/`x`/`info`/`cloud`/`database`/`settings`…）。唯一残留是**全局顶部主题切换 🌙/☀️**——`lucideIcons` 暂无 sun/moon，且那是主窗口控件、不在「数字员工 UI」范围内，按 §4.5 既有结论保留。
 - `sessionPlugin` 的 `icon: '💬'` → `book-open`；`.form-label > svg` 加 `vertical-align:-2px;margin-right:3px` 让图标与文字基线对齐。
+- **浮层遮罩 + 轻玻璃（第二轮）**：模型菜单 / ＋ 菜单打开时盖一层极淡 scrim（`digital-composer-overlay`，点它即关），浮层本身改成 `color-mix` 半透 + `backdrop-filter: blur(8px)` 的轻玻璃（`dsh-composer-menu`）；之前是裸定位 div 缺遮罩。
+- **ContextMeter 令牌环（第二轮）**：输入区统计行行首嵌圆环，用 `AgentRunStats` 里**真实累计**的 `prompt/completion/total` 画「已用 / 上下文上限」，hover 浮出分解卡；上限取 `MODEL_CONTEXT_WINDOWS`（各模型**公开发布规格**，非运行时假探测），不在表里回落默认值。`data-testid: digital-context-meter`。
+- **「新建对话」危险确认（第二轮，对齐 dsh RiskConfirmation）**：删按钮（trash）直接弹确认框（清空并新建 / 取消），误触不再丢活跃会话。说明：agent 工具执行的风险审批（`DigitalApproval` + `TOOL_RISK_MAP`/`RISK_LEVEL`）之前就已存在；本次补的是**用户侧破坏性动作**的确认（我们的命令集全是良性 UI 动作，没有可映射的高危命令，故不做假风险徽标）。`data-testid: digital-newchat-confirm(-overlay/-cancel)`。
 
 **还没对齐的（下一步候选，按成本/价值分层）**：
 - **纯视觉 / 低成本（优先）**：
-  - 轨迹表格无斑马纹 → dsh 用 hover `rgba(38,49,72,.06)` + 选中中性填充（不用蓝色文字）；我们目前行样式偏素，需补 hover/选中。
-  - 浮层阴影/遮罩：dsh 用 `bg-overlay` 半透遮罩 + 轻玻璃浮层；我们部分浮层是纯定位缺遮罩。
-  - 消息图标操作行（hover 才显的 `MessageIconActions`）：我们的消息卡是常显，缺 hover-reveal。
-  - 发送中 spinner / steer-queue / adjudicating 只读态按钮样式：dsh 有 `sending`/`steering`/`queued` 三态，我们缺这三态的视觉。
-  - ContextMeter 令牌环（圆环进度 + 悬浮分解面板）：dsh `ui-conversation` 有，需要 `contextPressure` 投影，属数据依赖但视觉先做占位。
-- **数据/后端依赖（较大，需先定契约）**：
-  - jobs 两次点击停止（需 jobs 快照 + `killJob`）。
-  - 目标栏内联编辑（goal bar inline edit）。
+  - 轨迹表格无斑马纹 → dsh 用 hover `rgba(38,49,72,.06)` + 选中中性填充（不用蓝色文字）；我们目前行样式偏素，需补 hover/选中。（注：行 hover 已在第二轮补 `--bg-hover`，差的是「选中态」中性填充。）
+  - 发送中 spinner / steer-queue / adjudicating 只读态按钮样式：dsh 有 `sending`/`steering`/`queued` 三态，我们循环未建模这些运行态，暂无数据可渲染。
+- **数据/后端依赖（较大，需先定契约 —— 做出来必是假按钮，先别动）**：
+  - jobs 两次点击停止（全代码无 `killJob`/`jobId`/`cancelJob`，无 jobs 概念）。
+  - 目标栏内联编辑（panel/conversationStore 无 `goal`/`objective` 字段）。
   - 结构化问题 composer（structured question）。
-  - 附件缩略图/进度/lightbox（需附件实体）。
-  - 二级命令 `popupSelect` + 风险确认（需命令风险元数据）。
-- **顶部菜单栏**：dsh 是 Web GUI 没有桌面菜单栏；我们保留（功能性取舍，非视觉）。
+  - 附件缩略图/进度/lightbox（shared/agent 与 digital 组件无 attachment 数据模型）。
+- **刻意保留（非视觉）**：
+  - 顶部菜单栏：dsh 是 Web GUI 没有桌面菜单栏；我们保留。
+  - 消息卡 hover 显形图标操作行：已对齐（`DigitalMessageItem` 自带 hover/focus-within 显隐，见其文件注释），不列入 gap。
 
 **顺手修的两个布局 bug**：
 1. 顶部「当前库」在窄条里换行，掉出一个孤零零的「库」字 —— 紧凑角部件里 `select` 已显示库名，`item-meta` 是重复信息，收起。
@@ -198,7 +199,7 @@ dsh 的 UI 成熟在**两件事**：① **typed slot 组合**（父级声明扩�
 
 1. **不 import dsh。** 它是 cordis + Typert 插件运行时，直接引组件等于换运行时（A 路线），已明确否掉；只能照设计重画。
 2. **不复制 dsh CSS / 图标包。** 我们零依赖 + 内联 SVG；复制会带来主题变量耦合（`--ui-font-scale` 那套是我们自有的）。
-3. **`data-testid` 是回归契约。** e2e 75 例依赖 §4 的锚点；要改名必须同步改 `tests/e2e/*.spec.ts`，否则宁可保留。
+3. **`data-testid` 是回归契约。** e2e 81 例依赖 §4 的锚点；要改名必须同步改 `tests/e2e/*.spec.ts`，否则宁可保留。
 4. **数据层不动。** `shared/agent/*`（`panel.ts` 归约、`trajectory.ts`、`toolDetail.ts`、`conversationStore.ts`）与 UI 解耦，重画时原样复用；尤其 `toolDetail` 的 diff 判据**只能有一份**（工具卡与轨迹详情共用）。
 5. **四道闸 + e2e 全绿**才算完（`npm run test` / `typecheck` / `lint` / `build` + `playwright test`），基线见 `.workbuddy-ai/memory/MEMORY.md`。
 6. **单测偶发失败**：全量套件出现过「偶发 1 例失败、复跑全绿」，连跑 5 次未复现；按抖动处理，别据此改代码（要定位用 `npx vitest run --reporter=dot` 抓 test 名）。
