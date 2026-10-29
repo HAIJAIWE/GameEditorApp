@@ -8,6 +8,7 @@ import { DigitalRunPlan } from './DigitalRunPlan'
 import FieldActionStrip from './FieldActionStrip'
 
 import LucideIcon from '../LucideIcon'
+import type { LucideIconName } from '../../../../shared/util/lucideIcons'
 
 /**
  * 输入区样式（对齐 dsh composer）。单独一份而不是塞进全局 `styles.css`：
@@ -102,9 +103,15 @@ const STATUS_LABELS: Record<DigitalPanelState['status'], string> = {
 
 /** M3：档位标识（与 `turn_stats.tier` 同源；让用户一眼看出本轮走云端还是本地） */
 const TIER_LABELS: Record<AgentRunTier, string> = {
-  cloud: '☁ 云端',
-  local: '🖥 本地',
-  unconfigured: '⚙ 未配置'
+  cloud: '云端',
+  local: '本地',
+  unconfigured: '未配置'
+}
+/** 档位对应的 Lucide 图标（零 emoji，对齐 dsh 的图标化表达） */
+const TIER_ICONS: Record<AgentRunTier, LucideIconName> = {
+  cloud: 'cloud',
+  local: 'database',
+  unconfigured: 'settings'
 }
 
 /**
@@ -566,7 +573,7 @@ export default function DigitalPanel({
       const saved = await api.draftSave({ name: draftName.trim() })
       setDraftName('')
       setDrafts(await api.draftList())
-      setNotice(`💾 草稿已保存：${saved.name}`)
+      setNotice(`草稿已保存：${saved.name}`)
     } catch (error: unknown) {
       setLocalError(toErrorMessage(error))
     } finally {
@@ -581,7 +588,7 @@ export default function DigitalPanel({
     try {
       const draft = await api.draftLoad({ path })
       dispatch({ kind: 'hydrate', history: draft.messages })
-      setNotice(`📂 已恢复草稿：${draft.name}`)
+      setNotice(`已恢复草稿：${draft.name}`)
     } catch (error: unknown) {
       setLocalError(toErrorMessage(error))
     }
@@ -934,7 +941,7 @@ export default function DigitalPanel({
         <div className="digital-run-stats" data-testid="digital-run-stats">
           <span className="home-section-label">本次消耗</span>
           <span className="item-meta">
-            {TIER_LABELS[state.runStats.tier]} · {state.runStats.turns} 轮 · {state.runStats.totalTokens}{' '}
+            <LucideIcon name={TIER_ICONS[state.runStats.tier]} size={13} /> {TIER_LABELS[state.runStats.tier]} · {state.runStats.turns} 轮 · {state.runStats.totalTokens}{' '}
             token · {state.runStats.latencyMs} ms
             {state.runStats.toolCalls > 0 ? ` · ${state.runStats.toolCalls} 次工具` : ''}
           </span>
@@ -962,7 +969,8 @@ export default function DigitalPanel({
       {state.interaction !== null && (
         <div className="digital-approval" data-testid="digital-interaction">
           <div className="form-label">
-            {state.interaction.interaction.kind === 'confirm' ? '⚠️ 操作确认' : '❓ 需要你澄清'}
+            <LucideIcon name={state.interaction.interaction.kind === 'confirm' ? 'alert-triangle' : 'info'} size={14} />
+            {state.interaction.interaction.kind === 'confirm' ? '操作确认' : '需要你澄清'}
           </div>
           <div className="item-meta">
             {state.interaction.tool} · {state.interaction.action || '(未指定)'}

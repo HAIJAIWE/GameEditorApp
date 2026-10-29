@@ -163,10 +163,26 @@ dsh 的 UI 成熟在**两件事**：① **typed slot 组合**（父级声明扩�
   - 按钮 md = **36px 高 / 14px 字 / 12px 圆角 / 0 14 内距**，默认 outline（0.5px inset `border-l3` + hover `rgba(38,49,72,.06)`）；主按钮 = **近黑 `#0f1115`**（dsh 的 brand-primary 不是品牌蓝）；紧凑按钮 = sm（28px / 12px / 8px 圆角）；
   - 输入框/下拉 = **32px 高 / 14px 字 / 12px 圆角 / 0.5px `border-l4`**，聚焦换品牌色描边。
 
-**还没对齐的（下一步）**：
-- **浮层与表格的细节**：色阶已统一，但表格斑马纹、浮层阴影（dsh 用 `bg-overlay` + 遮罩）还没逐个核。
-- **零散 emoji**：底部主题切换（🌙/☀️）、报表里的 ✅⏳⛔ 状态符仍是 emoji（`lucideIcons` 暂无 sun/moon，状态符语义上可保留）。
-- **顶部菜单栏**：dsh 是 Web GUI，没有桌面菜单栏；我们保留（功能性取舍，非视觉）。
+**本轮已补齐（2026-10-30）**：
+- **模型下拉做成真功能**：`DigitalPanel` 的「模型」chip 现为真实下拉（`digital-composer-model` + `digital-model-menu`），选项取自 `LLM_PROVIDER_PRESETS[provider].models`，并用 `llm:status` 探 Ollama 本机模型叠加；选中写回 `saveLlmConfig` + `llm:configure`，agent 每次调用重读即生效（纯渲染胶水，不动后端）。
+- **「完全权限」/ 语音入口**：dsh 的权限是 `conversation.input.permission` slot、语音是独立采集链路，我们主智能体无对应后端（SandboxPolicy 只管子智能体、无音频链路）→ 改为**静态展示**（去假箭头、加 `dsh-composer-chip-static`），不做假按钮。
+- **对话/智能体 UI 内 emoji 全清**：运行统计区的 💾/📂、云端/本地/未配置的 ☁🖥⚙、步骤的 🧠📦🔧、审批/子智能体/任务列表的 ⚠️❓✅❌ 全部换成 `LucideIcon` 单色线稿（`alert-triangle`/`brain`/`package`/`wrench`/`check`/`x`/`info`/`cloud`/`database`/`settings`…）。唯一残留是**全局顶部主题切换 🌙/☀️**——`lucideIcons` 暂无 sun/moon，且那是主窗口控件、不在「数字员工 UI」范围内，按 §4.5 既有结论保留。
+- `sessionPlugin` 的 `icon: '💬'` → `book-open`；`.form-label > svg` 加 `vertical-align:-2px;margin-right:3px` 让图标与文字基线对齐。
+
+**还没对齐的（下一步候选，按成本/价值分层）**：
+- **纯视觉 / 低成本（优先）**：
+  - 轨迹表格无斑马纹 → dsh 用 hover `rgba(38,49,72,.06)` + 选中中性填充（不用蓝色文字）；我们目前行样式偏素，需补 hover/选中。
+  - 浮层阴影/遮罩：dsh 用 `bg-overlay` 半透遮罩 + 轻玻璃浮层；我们部分浮层是纯定位缺遮罩。
+  - 消息图标操作行（hover 才显的 `MessageIconActions`）：我们的消息卡是常显，缺 hover-reveal。
+  - 发送中 spinner / steer-queue / adjudicating 只读态按钮样式：dsh 有 `sending`/`steering`/`queued` 三态，我们缺这三态的视觉。
+  - ContextMeter 令牌环（圆环进度 + 悬浮分解面板）：dsh `ui-conversation` 有，需要 `contextPressure` 投影，属数据依赖但视觉先做占位。
+- **数据/后端依赖（较大，需先定契约）**：
+  - jobs 两次点击停止（需 jobs 快照 + `killJob`）。
+  - 目标栏内联编辑（goal bar inline edit）。
+  - 结构化问题 composer（structured question）。
+  - 附件缩略图/进度/lightbox（需附件实体）。
+  - 二级命令 `popupSelect` + 风险确认（需命令风险元数据）。
+- **顶部菜单栏**：dsh 是 Web GUI 没有桌面菜单栏；我们保留（功能性取舍，非视觉）。
 
 **顺手修的两个布局 bug**：
 1. 顶部「当前库」在窄条里换行，掉出一个孤零零的「库」字 —— 紧凑角部件里 `select` 已显示库名，`item-meta` 是重复信息，收起。

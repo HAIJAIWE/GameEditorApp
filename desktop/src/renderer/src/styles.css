@@ -1562,6 +1562,13 @@ body {
   font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
 
+/* 内联 Lucide 图标与文字的竖向对齐（档位/审批标题等） */
+.form-label > svg,
+.item-meta > svg {
+  vertical-align: -2px;
+  margin-right: 3px;
+}
+
 /* 输入控件：对齐 dsh `ui-primitives/Input`（32px 高 / 14px 字 / 12px 圆角 /
    0.5px `border-l4` = rgba(0,0,0,.16) / 聚焦换品牌色描边）。 */
 .form-input,
@@ -8710,6 +8717,11 @@ button.ref-row:hover {
 }
 .trajectory-row:first-child {
   border-top: 0;
+}
+/* dsh 轨迹表行 hover 用 neutral `interactive-bg-hover`（非蓝色），这里复用主题令牌，
+   四套主题各自的 --bg-hover 都偏中性，保证深色/暖调/夜色下也可见。 */
+.trajectory-row:hover {
+  background: var(--bg-hover);
 }
 .trajectory-row-index {
   flex: none;

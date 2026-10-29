@@ -33,7 +33,7 @@ export function defineSessionPlugin(host: PluginHost): PluginManifest {
     description: '会话：主对话摘要、子智能体看板与会话轨迹（同一份状态）',
     meta: {
       label: '会话',
-      icon: '💬',
+      icon: 'book-open',
       description: '主对话摘要 + 子智能体看板 + 轨迹，都读同一份 conversation.state'
     },
     capabilities: [

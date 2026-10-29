@@ -1,5 +1,7 @@
 import { useState, type ReactNode } from 'react'
 
+import LucideIcon from '../LucideIcon'
+import type { LucideIconName } from '../../../../shared/util/lucideIcons'
 import { RISK_LEVEL, resolveRiskLevel } from '../../../../shared/agent/protocol'
 import type { DigitalCommand } from '../../../../shared/agent/commands'
 import type { DigitalReference } from '../../../../shared/agent/references'
@@ -33,7 +35,7 @@ export function DigitalApproval({
   return (
     <div className="digital-approval" data-testid="digital-approval">
       <div className="digital-approval-head">
-        <span className="form-label">⚠️ 危险操作确认</span>
+        <span className="form-label"><LucideIcon name="alert-triangle" size={14} /> 危险操作确认</span>
         <span className={`digital-risk-badge digital-risk-${riskTone}`} data-testid="digital-approval-risk">
           风险：{RISK_LABELS[risk] ?? '未知'}
         </span>
@@ -68,11 +70,11 @@ export function DigitalApproval({
   )
 }
 
-/** 步骤图标（按 kind）：让「思考 / 批量 / 工具」一眼可分 */
-const STEP_ICONS: Record<DigitalStep['kind'], string> = {
-  think: '🧠',
-  batch: '🧩',
-  tool: '🔧'
+/** 步骤图标（按 kind）：让「思考 / 批量 / 工具」一眼可分（Lucide 单色线稿，零 emoji） */
+const STEP_ICONS: Record<DigitalStep['kind'], LucideIconName> = {
+  think: 'brain',
+  batch: 'package',
+  tool: 'wrench'
 }
 
 /**
@@ -246,7 +248,7 @@ function ToolStepCard({ step, resolveView }: { step: DigitalStep; resolveView?: 
         onClick={() => setExpanded((value) => !value)}
       >
         <span className="digital-step-icon" aria-hidden="true">
-          {step.kind === 'tool' ? <ToolIcon variant={variant} /> : STEP_ICONS[step.kind]}
+          {step.kind === 'tool' ? <ToolIcon variant={variant} /> : <LucideIcon name={STEP_ICONS[step.kind]} size={14} />}
         </span>
         <span className="digital-step-tool">{step.tool}</span>
         {summary !== '' && (
@@ -437,7 +439,7 @@ export function DigitalSubagentList({
             <span className="digital-subagent-id">{sub.id}</span>
             <span className="digital-subagent-task">{sub.task}</span>
             <span className="item-meta">
-              {sub.status === 'running' ? '执行中…' : sub.status === 'done' ? '✅' : '❌'}
+              {sub.status === 'running' ? '执行中…' : sub.status === 'done' ? <LucideIcon name="check" size={12} /> : <LucideIcon name="x" size={12} />}
             </span>
             {sub.result !== undefined && sub.result !== '' && (
               <div className="digital-subagent-result">{sub.result}</div>
@@ -558,7 +560,7 @@ export function DigitalTaskList({ tasks }: { tasks: ReturnType<typeof summarizeT
       <span className="home-section-label">任务</span>
       {tasks.map((task, index) => (
         <div className="digital-task" data-testid="digital-task" key={`${task.tool}-${index}`}>
-          <span>{task.success ? '✅' : '❌'}</span>
+          <span>{task.success ? <LucideIcon name="check" size={12} /> : <LucideIcon name="x" size={12} />}</span>
           <span className="digital-task-tool">{task.tool}</span>
           <span className="item-meta">{task.summary}</span>
         </div>
