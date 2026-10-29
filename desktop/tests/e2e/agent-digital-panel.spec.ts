@@ -154,6 +154,8 @@ test('智能体面板：桩服务驱动一轮「思考 → 工具 → 结果」�
     // 用户气泡立即出现，状态进入思考
     await expect(window.getByTestId('digital-message').filter({ hasText: '看看有哪些数据类型' })).toHaveCount(1)
     await expect(window.getByTestId('digital-status')).toHaveText('思考中…')
+    // 状态行：运行中要报「深度求索中，用时 …」（dsh 的那一行）
+    await expect(window.getByTestId('conv-status')).toContainText('深度求索中')
 
     // 流式文本出现（第二轮分片）
     await expect(window.getByTestId('digital-streaming')).toContainText('共', { timeout: 15_000 })
@@ -164,6 +166,11 @@ test('智能体面板：桩服务驱动一轮「思考 → 工具 → 结果」�
     ).toHaveCount(1, { timeout: 15_000 })
     await expect(window.getByTestId('digital-streaming')).toHaveCount(0)
     await expect(window.getByTestId('digital-status')).toHaveText('已完成')
+    // 状态行切到「已完成分析 · 用时 …」，不再报运行中
+    await expect(window.getByTestId('conv-status')).toContainText('已完成分析')
+    // 进度条徽标必须落定为「已完成」：`step_start` 压入的占位步自己收不了尾，
+    // 靠 reducer 在 `done` 事件里统一落定（否则永远显示「1/4 进行中」，与状态行打脸）
+    await expect(window.getByTestId('digital-run-plan')).toHaveAttribute('data-state', 'done')
 
     // 执行步骤：每来一个 step_start / step_done 事件就追加一条（见 `shared/agent/panel.ts`）。
     // 本轮为「两次 LLM 调用 + 一次工具执行」⇒ think(0) → 并行1工具(0) → system.game_data → think(1) = 4 条。
@@ -250,6 +257,8 @@ test('智能体面板：运行中点「停止」→ 打断在途调用、给出�
     await window.getByTestId('digital-input').fill('看看有哪些数据类型')
     await window.getByTestId('digital-send').click()
     await expect(window.getByTestId('digital-status')).toHaveText('思考中…')
+    // 状态行：运行中要报「深度求索中，用时 …」（dsh 的那一行）
+    await expect(window.getByTestId('conv-status')).toContainText('深度求索中')
 
     // 先确认桩已收到请求：否则「停止」会扑空成 cancelled:false，用例就成了空转
     await expect.poll(() => stub.hits(), { timeout: 10_000 }).toBeGreaterThan(0)

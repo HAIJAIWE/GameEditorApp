@@ -150,6 +150,13 @@ export default function DigitalPanel({
   const [stepsOpen, setStepsOpen] = useState(true)
   /** 中栏子页签：对话 / 轨迹（对齐 dsh 的 conversation 子页签） */
   const [centerTab, setCenterTab] = useState<'chat' | 'trajectory'>('chat')
+  /**
+   * 本轮开始时间 + 已用秒数：给「深度求索中，用时 X」那行状态用。
+   * 开始时间在**发送时**写、不放在 effect 里——effect 里同步 setState 会触发
+   * `react-hooks/set-state-in-effect`（仓库里踩过），事件处理器写入最干净。
+   */
+  const runStartedAt = useRef<number | null>(null)
+  const [elapsedSec, setElapsedSec] = useState(0)
   const [sessionHint, setSessionHint] = useState<{ messageCount: number; savedAt: string } | null>(null)
   const [interactionAnswer, setInteractionAnswer] = useState('')
   /** 多问题：自由文本作答（按下标对齐） */
@@ -334,7 +341,23 @@ export default function DigitalPanel({
       })
   }
 
-  const handleSend = (): void => submitText(input)
+  /** 运行中（含等待确认/回答）：状态行要显示跳动的时间 */
+  const busy =
+    state.status === 'thinking' || state.status === 'waiting_approval' || state.status === 'waiting_input'
+  useEffect(() => {
+    if (!busy) return undefined
+    const timer = setInterval(() => {
+      const started = runStartedAt.current ?? Date.now()
+      setElapsedSec(Math.floor((Date.now() - started) / 1000))
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [busy])
+
+  const handleSend = (): void => {
+    runStartedAt.current = Date.now()
+    setElapsedSec(0)
+    submitText(input)
+  }
 
   // 首页 AI 入口卡「投喂」：seed.nonce 变化时（且非首次挂载的 null）自动把引导文案投入对话。
   // 用 ref 记上次处理的 nonce，保证幂等 —— submitText 自身也会在 running 时忽略，双重保险。
@@ -790,6 +813,13 @@ export default function DigitalPanel({
         <DigitalRunPlan steps={state.steps} status={state.status} onExpand={() => setStepsOpen(true)} />
         <DigitalChangeCard changes={turnChanges} />
         {state.streaming !== '' && <DigitalMessageItem role="assistant" text={state.streaming} streaming />}
+        {/* 状态行（对齐 dsh 的「深度求索中，用时 …」/「已完成分析」）：
+            只在本轮有内容时说一句；没有重试事件可报，就**不伪造**「已重试 (2/5)」那种行 */}
+        {(state.messages.length > 0 || state.streaming !== '') && <ConversationRunStatus
+          status={state.status}
+          elapsedSec={elapsedSec}
+          latencyMs={state.runStats.latencyMs}
+        />}
         {state.messages.length === 0 && state.streaming === '' && (
           <>
             {/* 开新对话入口（借 dsh AgentPresetSeat）：选预设 → 开聊后锁定为只读 */}
@@ -1115,14 +1145,14 @@ export default function DigitalPanel({
                 <LucideIcon name="plus" size={16} />
               </button>
               <span className="dsh-composer-chip" title="当前权限：完全权限（只显示，切换未实现）">
-                完全权限
+                <span className="dsh-composer-chip-label">完全权限</span>
                 <LucideIcon name="chevron-down" size={12} />
               </span>
             </div>
 
             <div className="dsh-composer-group">
               <span className="dsh-composer-chip" title="当前模型（展示用，切换请到设置）">
-                DeepSeek-V4.1-Flash
+                <span className="dsh-composer-chip-label">DeepSeek-V4.1-Flash</span>
                 <LucideIcon name="chevron-down" size={12} />
               </span>
               <button
@@ -1182,6 +1212,51 @@ export default function DigitalPanel({
           ownerProps={{ running, input, setInput, send: handleSend }}
         />
       )}
+    </div>
+  )
+}
+
+/** 秒 → 「12 秒」/「1 分 05 秒」（状态行用，不带毫秒——那是 runStats 的活） */
+function formatElapsed(sec: number): string {
+  if (sec < 60) return `${sec} 秒`
+  const minutes = Math.floor(sec / 60)
+  const rest = sec % 60
+  return rest === 0 ? `${minutes} 分` : `${minutes} 分 ${String(rest).padStart(2, '0')} 秒`
+}
+
+/**
+ * 本轮状态行（对齐 dsh 对话流里的「深度求索中，用时 11分47秒…」/「已完成分析」）。
+ *
+ * **只报我们真有的状态**：dsh 那行还会带「已重试模型请求 (2/5) · 1s ▾」，
+ * 但我们的循环没有把重试事件回传渲染层——没有数据就不造，宁可比它少一行。
+ */
+function ConversationRunStatus({
+  status,
+  elapsedSec,
+  latencyMs
+}: {
+  status: 'idle' | 'thinking' | 'waiting_approval' | 'waiting_input' | 'done' | 'error'
+  elapsedSec: number
+  latencyMs: number
+}): React.JSX.Element | null {
+  // 空闲/出错不显示：出错有专门的错误条（`digital-error`），这里再报一遍是噪音
+  if (status === 'idle' || status === 'error') return null
+
+  const thinking = status === 'thinking'
+  const text = thinking
+    ? `深度求索中，用时 ${formatElapsed(elapsedSec)}…`
+    : status === 'waiting_approval'
+      ? '等待你确认'
+      : status === 'waiting_input'
+        ? '等待你回答'
+        : latencyMs > 0
+          ? `已完成分析 · 用时 ${formatElapsed(Math.round(latencyMs / 1000))}`
+          : '已完成分析'
+
+  return (
+    <div className={`conv-status conv-status-${status}`} data-testid="conv-status" role="status">
+      <span className={`conv-status-dot${thinking ? ' is-running' : ''}`} aria-hidden />
+      <span className={thinking ? 'is-shimmer' : undefined}>{text}</span>
     </div>
   )
 }

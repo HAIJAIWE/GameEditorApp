@@ -107,6 +107,8 @@
 /* 静态 chip：只显示不展开（附件面板 / 权限下拉 / 模型切换都还没有对应能力，不做假下拉） */
 .dsh-composer-chip {
   display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
   align-items: center;
   gap: 3px;
   padding: 3px 7px;
@@ -158,4 +160,20 @@
   color: var(--text-muted);
   font-size: calc(12px * var(--ui-font-scale));
   font-variant-numeric: tabular-nums;
+}
+
+/*
+ * chip 里的文字必须能被压缩：中栏只有 400~500px 时，
+ * 「完全权限」+「DeepSeek-V4.1-Flash」+ 三个图标按钮放不进一行，
+ * 不给文字加省略号的话整条工具条会溢出输入框（实测宽出 14px）。
+ * 图标不参与收缩（`flex: none`），只让文字吃省略号。
+ */
+.dsh-composer-chip > svg {
+  flex: none;
+}
+.dsh-composer-chip-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

@@ -271,6 +271,12 @@ body {
   display: flex;
   flex-direction: column;
   height: 100%;
+  /*
+   * 桌面外壳**永不产生页面级滚动条**：滚动只允许发生在内层（消息区/代码区/表格）。
+   * 不加这条时，一个超长内容（长路径、长代码行、超长步骤名）会把整个界面顶宽，
+   * 用户看到的是「左侧侧栏被裁掉一截 + 底部多一条横向滚动条」。
+   */
+  overflow: hidden;
 }
 
 /* 菜单栏下方的单栏主体（无侧栏，对齐 旧版「菜单栏在上、主体在下」） */
@@ -9335,4 +9341,42 @@ button.ref-row:hover {
 }
 .statusbar > * {
   white-space: nowrap;
+}
+
+/* ── 本轮状态行（深度求索中 / 已完成分析 / 等待确认） ── */
+.conv-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 2px 0 6px;
+  color: var(--text-muted);
+  font-size: calc(12px * var(--ui-font-scale));
+}
+.conv-status-dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.5;
+}
+/* 运行中的点做呼吸：只动透明度，不动尺寸（尺寸动画会引起重排抖动） */
+.conv-status-dot.is-running {
+  opacity: 1;
+  background: var(--accent);
+  animation: conv-status-pulse 1.4s ease-in-out infinite;
+}
+@keyframes conv-status-pulse {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .conv-status-dot.is-running {
+    animation: none;
+  }
 }

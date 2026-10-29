@@ -125,6 +125,23 @@ export function submitUserMessage(state: DigitalPanelState, text: string): Digit
   }
 }
 
+/**
+ * 本轮结束时把还挂在 `running` 的步骤落定。
+ *
+ * 事件模型里 `step_start` 压入的是**占位步**（think / batch），真正的完成信息由
+ * `step_done` 另起一条 tool 步承载——所以占位步永远不会被自己关闭。不兜这一下，
+ * 面板状态已经是「已完成」，进度条徽标却永远停在「进行中」，两处互相打脸。
+ */
+function settleRunningSteps(steps: DigitalStep[], fallback: 'done' | 'failed'): DigitalStep[] {
+  let touched = false
+  const next = steps.map((step) => {
+    if (step.status !== 'running') return step
+    touched = true
+    return { ...step, status: fallback }
+  })
+  return touched ? next : steps
+}
+
 /** 归约单个事件；未知事件原样返回（向前兼容后续新增事件类型） */
 export function reduceBrainEvent(state: DigitalPanelState, event: BrainEvent): DigitalPanelState {
   switch (event.type) {
@@ -220,11 +237,21 @@ export function reduceBrainEvent(state: DigitalPanelState, event: BrainEvent): D
         streaming: '',
         approval: null,
         interaction: null,
-        status: 'done'
+        status: 'done',
+        // 收尾：占位步落定为「完成」，否则进度条会永远显示「进行中」
+        steps: settleRunningSteps(state.steps, 'done')
       }
     }
     case 'error':
-      return { ...state, error: event.message, approval: null, interaction: null, status: 'error' }
+      return {
+        ...state,
+        error: event.message,
+        approval: null,
+        interaction: null,
+        status: 'error',
+        // 出错时把仍挂着的步骤标成失败：它们确实没跑完
+        steps: settleRunningSteps(state.steps, 'failed')
+      }
     default:
       return state
   }
