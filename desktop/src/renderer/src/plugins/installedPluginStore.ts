@@ -34,3 +34,17 @@ export function createLocalStorageInstalledStore(key = 'mb.installedPlugins'): I
     }
   }
 }
+
+/**
+ * 已下线的插件 source（合并 / 改名后不再存在）。
+ *
+ * `agent-team` 与 `trajectory` 在 Slice 51 合并为 `session`；它们曾经是「市场可安装」项，
+ * 用户装过就会写进 localStorage。留着只会让启动时去加载一个不存在的 factory，
+ * 在插件列表里留下一个 error 占位。
+ */
+const OBSOLETE_PLUGIN_SOURCES: ReadonlySet<string> = new Set(['factory:agent-team', 'factory:trajectory'])
+
+/** 从持久化清单里剔除已下线的 source（纯函数，便于单测） */
+export function pruneObsoleteSources(sources: PluginSource[]): PluginSource[] {
+  return sources.filter((source) => !OBSOLETE_PLUGIN_SOURCES.has(source))
+}

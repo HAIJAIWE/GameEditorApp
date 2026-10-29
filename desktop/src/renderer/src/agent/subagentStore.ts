@@ -2,7 +2,7 @@ import type { DigitalSubagent } from '../../../shared/agent/panel'
 import type { BrainEvent } from '../../../shared/agent/brain/types'
 
 /**
- * 子智能体共享 store（agent-team 插件 / 后续可复用）。
+ * 子智能体共享 store（「会话」页签的子智能体分区 / 后续可复用）。
  *
  * 单一数据源：与右侧智能体面板（DigitalPanel）订阅**同一条** `agent:event` 事件流，
  * 自己维护一份 `DigitalSubagent[]`（running/done/failed）。独立订阅、不改动 DigitalPanel，

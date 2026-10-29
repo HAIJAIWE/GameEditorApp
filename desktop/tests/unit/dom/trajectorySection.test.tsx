@@ -1,8 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
 
-import { defineTrajectoryPlugin } from '../../../src/renderer/src/plugins/trajectoryPlugin'
-import { getReactBinding } from '../../../src/renderer/src/plugins/reactBindings'
+import { TrajectorySection } from '../../../src/renderer/src/plugins/trajectorySection'
 import {
   CONVERSATION_STORE_KEY,
   createConversationStoreDecl
@@ -11,29 +10,23 @@ import { PluginHost } from '../../../src/shared/plugin/host'
 import { renderDom } from './render'
 
 /**
- * 轨迹页签：概览 / 按轮次的步骤表 / 消息序列 / 空态。
+ * 「会话」页签的轨迹分区：概览 / 按轮次的步骤表 / 消息序列 / 空态。
  *
- * 与团队页签同构——都从根级 store `conversation.state` 读，故这里也顺带守住
- * 「换插件消费同一份状态」这条接线不会退化。
+ * 与主对话分区同构——都从根级 store `conversation.state` 读，故这里也顺带守住
+ * 「多个分区消费同一份状态」这条接线不会退化。
  */
 
-const noop = (): void => undefined
-
 function renderTrajectory(host: PluginHost): ReturnType<typeof renderDom> {
-  defineTrajectoryPlugin(host)
-  const Bound = getReactBinding('trajectory.mainView')
-  if (Bound === undefined) throw new Error('trajectory.mainView 绑定未注册')
-  return renderDom(<Bound onClose={noop} close={noop} params={undefined} />)
+  return renderDom(<TrajectorySection host={host} />)
 }
 
-describe('会话轨迹页签', () => {
+describe('会话 · 轨迹分区', () => {
   it('没有记录时给引导文案', async () => {
     const host = new PluginHost()
     host.declareStore(CONVERSATION_STORE_KEY, createConversationStoreDecl())
 
     const result = await renderTrajectory(host)
     expect(result.byTestId('trajectory-empty')).toBeTruthy()
-    expect(result.byTestId('trajectory-status').textContent).toBe('待命')
     expect(result.byTestId('trajectory-steps').textContent).toContain('0')
     await result.cleanup()
   })

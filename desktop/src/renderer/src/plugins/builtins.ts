@@ -16,7 +16,7 @@ import { defineMenusPlugin } from './menusPlugin'
 import { defineNavigationPlugin } from './navigationPlugin'
 import { defineOnboardingPlugin } from './onboardingPlugin'
 import { definePluginMarketPlugin } from './pluginMarketPlugin'
-import { defineAgentTeamPlugin } from './agentTeamPlugin'
+import { defineSessionPlugin } from './sessionPlugin'
 import { defineSessionHistoryPlugin } from './sessionHistoryPlugin'
 import { defineAutoReviewPlugin } from './autoReviewPlugin'
 import { defineRecentChangesPlugin } from './recentChangesPlugin'
@@ -24,9 +24,8 @@ import { defineReferencesPlugin } from './referencesPlugin'
 import { defineShellPanelsPlugin } from './shellPanelsPlugin'
 import { defineShortcutsPlugin } from './shortcutsPlugin'
 import { defineStatisticsPlugin } from './statisticsPlugin'
-import { defineTrajectoryPlugin } from './trajectoryPlugin'
 import { defineUtilityPanelsPlugin } from './utilityPanelsPlugin'
-import { createLocalStorageInstalledStore } from './installedPluginStore'
+import { createLocalStorageInstalledStore, pruneObsoleteSources } from './installedPluginStore'
 
 /**
  * 宿主单例：整个渲染进程共享一个 PluginHost。
@@ -56,12 +55,11 @@ export const installedPluginStore = createLocalStorageInstalledStore()
  */
 export const pluginLoader = createPluginLoader({
   'plugin-market': () => definePluginMarketPlugin(pluginHost, pluginLoader, installedPluginStore),
-  'agent-team': () => defineAgentTeamPlugin(pluginHost),
+  'session': () => defineSessionPlugin(pluginHost),
   'session-history': () => defineSessionHistoryPlugin(pluginHost),
   'auto-review': () => defineAutoReviewPlugin(pluginHost),
   'recent-changes': () => defineRecentChangesPlugin(pluginHost),
-  'command-palette': () => defineCommandPalettePlugin(pluginHost),
-  'trajectory': () => defineTrajectoryPlugin(pluginHost)
+  'command-palette': () => defineCommandPalettePlugin(pluginHost)
 })
 
 let registered = false
@@ -97,12 +95,19 @@ registerBuiltinPlugins()
  * 失败仅把对应占位标 `status:'error'`，不阻塞宿主。
  */
 void pluginHost.loadPlugin(pluginLoader, 'factory:plugin-market')
-void pluginHost.loadPlugin(pluginLoader, 'factory:agent-team')
+void pluginHost.loadPlugin(pluginLoader, 'factory:session')
 void pluginHost.loadPlugin(pluginLoader, 'factory:session-history')
 void pluginHost.loadPlugin(pluginLoader, 'factory:auto-review')
 void pluginHost.loadPlugin(pluginLoader, 'factory:recent-changes')
 void pluginHost.loadPlugin(pluginLoader, 'factory:command-palette')
-void pluginHost.loadPlugin(pluginLoader, 'factory:trajectory')
-for (const source of installedPluginStore.load()) {
+/**
+ * 迁移（Slice 51）：`agent-team` / `trajectory` 已合并为 `session`。
+ * 清掉可能残留在 localStorage 的旧 source——否则启动时加载一个已不存在的 factory，
+ * 会在插件列表里留下一个无意义的 error 占位（`loadPlugin` 不抛，但状态是 error）。
+ */
+const installedSources = installedPluginStore.load()
+const liveSources = pruneObsoleteSources(installedSources)
+if (liveSources.length !== installedSources.length) installedPluginStore.save(liveSources)
+for (const source of liveSources) {
   void pluginHost.loadPlugin(pluginLoader, source)
 }

@@ -7795,7 +7795,7 @@ button.ref-row:hover {
   margin-top: auto;
 }
 
-/* 智能体协作（agent-team，Slice 44） */
+/* 智能体协作分区（原 agent-team 页签，现并入「会话」页签） */
 .agent-team {
   display: flex;
   flex-direction: column;
@@ -7803,15 +7803,6 @@ button.ref-row:hover {
   padding: 16px;
   height: 100%;
   overflow: auto;
-}
-.agent-team-header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-}
-.agent-team-header h2 {
-  margin: 0;
-  font-size: 18px;
 }
 .agent-team-count {
   font-size: 12px;
@@ -8745,4 +8736,64 @@ button.ref-row:hover {
 .trajectory-detail-diff {
   padding: 4px 0;
   white-space: pre;
+}
+
+/* ── 会话页签（合并原「团队协作」+「轨迹」，一份 state 一屏读完） ── */
+.session {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  height: 100%;
+  overflow: auto;
+}
+.session-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.session-header h2 {
+  margin: 0;
+  font-size: 18px;
+}
+.session-status {
+  color: var(--text-muted);
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
+}
+
+.session-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.session-block-title {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/*
+ * 两个分区原本是独立页签，各自 height:100% + overflow:auto + padding（自己滚动）。
+ * 嵌入会话外壳后统一交给 `.session` 滚动，否则会出现「页签里再套一个滚动区」，
+ * 滚轮落在内层、外层标题被顶走。
+ */
+.session .agent-team,
+.session .trajectory {
+  height: auto;
+  overflow: visible;
+  padding: 0;
+}
+
+/* 子智能体计数挪进看板标题行，紧跟标题（原来推到最右边缘，离标题太远） */
+.agent-team-board h3 {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.session-hint {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: calc(13px * var(--ui-font-scale) * 11/13);
 }

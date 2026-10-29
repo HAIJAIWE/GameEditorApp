@@ -31,16 +31,6 @@ export const marketRegistry: PluginMarketEntry[] = [
     icon: '🕘'
   },
   {
-    id: 'agent-team',
-    name: 'agent-team',
-    version: '0.1.0',
-    description: '智能体协作：展示运行中的子智能体 + 共享任务看板',
-    source: 'factory:agent-team',
-    tier: 'optional',
-    ready: true,
-    icon: '🤝'
-  },
-  {
     id: 'auto-review',
     name: 'auto-review',
     version: '0.1.0',
@@ -71,13 +61,13 @@ export const marketRegistry: PluginMarketEntry[] = [
     icon: '⌘'
   },
   {
-    id: 'trajectory',
-    name: 'trajectory',
+    id: 'session',
+    name: 'session',
     version: '0.1.0',
-    description: '会话轨迹：按轮次查看执行步骤、消息与运行成本',
-    source: 'factory:trajectory',
-    tier: 'optional',
+    description: '会话：主对话摘要、子智能体看板与会话轨迹（同一份状态）',
+    source: 'factory:session',
+    tier: 'core',
     ready: true,
-    icon: '🧭'
+    icon: '💬'
   }
 ]
