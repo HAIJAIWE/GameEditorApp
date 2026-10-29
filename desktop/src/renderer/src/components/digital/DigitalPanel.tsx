@@ -195,6 +195,9 @@ export default function DigitalPanel({
       /* 忽略：隐私模式等写入失败不打断对话 */
     }
   }
+  /** 输入框左下「＋」的菜单：把已经存在但藏起来的两个能力（@ 引用 / / 命令）摆到明面上 */
+  const [plusMenuOpen, setPlusMenuOpen] = useState(false)
+  const plusMenuRef = useRef<HTMLDivElement | null>(null)
   const clearMenuRef = useRef<HTMLDivElement | null>(null)
   const draftMenuRef = useRef<HTMLDivElement | null>(null)
   /** 当前进行中那一轮的 runId（「停止」按钮据此精确取消） */
@@ -451,6 +454,9 @@ export default function DigitalPanel({
     if (!clearMenuOpen && !draftMenuOpen) return undefined
     const onDocClick = (event: MouseEvent): void => {
       const target = event.target as Node
+      if (plusMenuOpen && plusMenuRef.current && !plusMenuRef.current.contains(target)) {
+        setPlusMenuOpen(false)
+      }
       if (clearMenuOpen && clearMenuRef.current && !clearMenuRef.current.contains(target)) {
         setClearMenuOpen(false)
       }
@@ -469,7 +475,7 @@ export default function DigitalPanel({
       document.removeEventListener('mousedown', onDocClick)
       document.removeEventListener('keydown', onKey)
     }
-  }, [clearMenuOpen, draftMenuOpen])
+  }, [plusMenuOpen, clearMenuOpen, draftMenuOpen])
 
   /** 拉草稿列表（打开下拉时触发；失败只提示不打断面板） */
   const loadDrafts = async (): Promise<void> => {
@@ -1133,17 +1139,56 @@ export default function DigitalPanel({
             <div className="dsh-composer-group">
               {/* ＋ 与权限 chip 目前只占位：dsh 的附件面板与权限下拉我们没有对应能力，
                   所以不做「点开是空菜单」的假下拉 —— 按钮只回显 title，不改变状态 */}
-              <button
-                type="button"
-                className="dsh-composer-icon"
-                data-testid="digital-composer-add"
-                title="添加上下文（未实现）"
-                aria-label="添加上下文（未实现）"
-                aria-disabled="true"
-                onClick={() => undefined}
-              >
-                <LucideIcon name="plus" size={16} />
-              </button>
+              <div className="dsh-composer-picker" ref={plusMenuRef}>
+                <button
+                  type="button"
+                  className="dsh-composer-icon"
+                  data-testid="digital-composer-add"
+                  title="添加上下文（引用数据表 / 斜杠命令）"
+                  aria-label="添加上下文"
+                  aria-haspopup="menu"
+                  aria-expanded={plusMenuOpen}
+                  onClick={() => setPlusMenuOpen((open) => !open)}
+                >
+                  <LucideIcon name="plus" size={16} />
+                </button>
+                {plusMenuOpen && (
+                  <div className="dsh-composer-menu" role="menu" data-testid="digital-composer-menu">
+                    {/* 这里不新增能力：`@` 引用与 `/` 命令本来就能用，只是没有入口提示。
+                        点一下就是把触发符填进输入框，后续菜单由既有的解析逻辑接管。 */}
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="dsh-composer-menu-item"
+                      data-testid="composer-insert-reference"
+                      onClick={() => {
+                        setInput('@')
+                        setPlusMenuOpen(false)
+                        inputRef.current?.focus()
+                      }}
+                    >
+                      <LucideIcon name="database" size={14} />
+                      引用数据表
+                      <span className="dsh-composer-menu-hint">@</span>
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="dsh-composer-menu-item"
+                      data-testid="composer-insert-command"
+                      onClick={() => {
+                        setInput('/')
+                        setPlusMenuOpen(false)
+                        inputRef.current?.focus()
+                      }}
+                    >
+                      <LucideIcon name="zap" size={14} />
+                      斜杠命令
+                      <span className="dsh-composer-menu-hint">/</span>
+                    </button>
+                  </div>
+                )}
+              </div>
               <span className="dsh-composer-chip" title="当前权限：完全权限（只显示，切换未实现）">
                 <span className="dsh-composer-chip-label">完全权限</span>
                 <LucideIcon name="chevron-down" size={12} />

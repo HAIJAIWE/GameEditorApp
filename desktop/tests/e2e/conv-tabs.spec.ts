@@ -44,3 +44,37 @@ test('中栏子页签：对话 ↔ 轨迹 切换，输入区随视图显隐且�
     await app.close()
   }
 })
+
+/**
+ * 输入框左下「＋」：把本来就存在、但只能靠打字触发的两个能力摆到明面上。
+ *
+ * 断言的是「点完真的把触发符填进输入框且菜单收起」——不是「按钮能点」。
+ * 这两个能力（@ 引用数据表 / / 斜杠命令）在别处已有用例覆盖，这里只验入口。
+ */
+test('输入框「＋」菜单：注入 @ 与 / 触发符并自动收起', async () => {
+  const userDataDir = mkdtempSync(join(tmpdir(), 'mb-composer-plus-'))
+  const app = await launchApp(userDataDir)
+
+  try {
+    const window = await app.firstWindow()
+    await waitReady(window)
+
+    const input = window.getByTestId('digital-input')
+    await expect(window.getByTestId('digital-composer-menu')).toHaveCount(0)
+
+    await window.getByTestId('digital-composer-add').click()
+    await expect(window.getByTestId('digital-composer-menu')).toBeVisible()
+
+    await window.getByTestId('composer-insert-reference').click()
+    await expect(window.getByTestId('digital-composer-menu')).toHaveCount(0)
+    await expect(input).toHaveValue('@')
+
+    // 清空再试第二项，避免 @ 引用菜单挡着
+    await input.fill('')
+    await window.getByTestId('digital-composer-add').click()
+    await window.getByTestId('composer-insert-command').click()
+    await expect(input).toHaveValue('/')
+  } finally {
+    await app.close()
+  }
+})
