@@ -4,6 +4,7 @@ import { defaultDraftName, type DraftSummary } from '../../../../shared/agent/se
 
 import { DigitalChangeCard } from './DigitalChangeCard'
 import { DigitalMessageItem } from './DigitalMessageItem'
+import { DigitalRunPlan } from './DigitalRunPlan'
 import FieldActionStrip from './FieldActionStrip'
 
 import LucideIcon from '../LucideIcon'
@@ -731,6 +732,8 @@ export default function DigitalPanel({
             <DigitalMessageItem key={message.id} role={message.role} text={message.text} />
           ))}
         {/* 本轮改动卡：对话流内、紧跟助手消息之后、流式气泡之前；空列表不渲染任何 DOM */}
+        {/* 本轮进度条：步骤默认折叠在下面的「展开执行步骤」里，这里先给一眼可见的进度 */}
+        <DigitalRunPlan steps={state.steps} status={state.status} />
         <DigitalChangeCard changes={turnChanges} />
         {state.streaming !== '' && <DigitalMessageItem role="assistant" text={state.streaming} streaming />}
         {state.messages.length === 0 && state.streaming === '' && (

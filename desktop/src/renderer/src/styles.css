@@ -7822,6 +7822,45 @@ button.ref-row:hover {
   font-size: 13px;
   color: var(--text-muted);
 }
+
+/* 主对话摘要（读根级 store `conversation.state`）：三个事实 + 最近回复 */
+.agent-team-conversation h3 {
+  margin: 4px 0 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.agent-team-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin: 0 0 8px;
+}
+.agent-team-facts > div {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.agent-team-facts dt {
+  font-size: calc(13px * var(--ui-font-scale) * 11/13);
+  color: var(--text-muted);
+}
+.agent-team-facts dd {
+  margin: 0;
+  font-size: calc(13px * var(--ui-font-scale) * 13/13);
+  color: var(--text);
+}
+.agent-team-last {
+  margin: 0;
+  padding: 8px 10px;
+  border-left: 3px solid var(--border);
+  border-radius: 0 6px 6px 0;
+  background: var(--cell-bg);
+  color: var(--text-secondary);
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
 .agent-team-empty {
   font-size: 13px;
   color: var(--text-muted);
@@ -8317,4 +8356,111 @@ button.ref-row:hover {
   border-top: 1px solid var(--divider);
   color: var(--text-muted);
   font-size: calc(11px * var(--ui-font-scale));
+}
+
+/* ── 本轮进度条（借 dsh ui-plan 的卡片结构：图标 + 标题 + 计数 + 状态徽标） ──
+   步骤列表默认折叠，这一行让「跑到第几步 / 有没有失败」不用点开就能看到。 */
+.digital-run-plan {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-panel);
+}
+
+.digital-run-plan-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.digital-run-plan-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  color: var(--text-muted);
+}
+
+.digital-run-plan-title {
+  flex: 1;
+  min-width: 0;
+  color: var(--text-secondary);
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
+  font-weight: 600;
+}
+
+.digital-run-plan-count {
+  flex: none;
+  color: var(--text-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: calc(13px * var(--ui-font-scale) * 11/13);
+}
+
+.digital-run-plan-badge {
+  flex: none;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: calc(13px * var(--ui-font-scale) * 11/13);
+  font-weight: 600;
+}
+.digital-run-plan-badge.badge-running {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent);
+}
+.digital-run-plan-badge.badge-done {
+  background: color-mix(in srgb, var(--change-create) 14%, transparent);
+  color: var(--change-create);
+}
+.digital-run-plan-badge.badge-failed {
+  background: color-mix(in srgb, var(--change-delete) 14%, transparent);
+  color: var(--change-delete);
+}
+
+/* 分段条：每步一段，失败段永远红色（不因整体「已完成」而变绿） */
+.digital-run-plan-bar {
+  display: flex;
+  gap: 2px;
+  height: 4px;
+}
+
+.digital-run-plan-segment {
+  flex: 1 1 0;
+  min-width: 4px;
+  border-radius: 2px;
+  background: var(--divider);
+}
+.digital-run-plan-segment.segment-done {
+  background: var(--change-create);
+}
+.digital-run-plan-segment.segment-failed {
+  background: var(--change-delete);
+}
+.digital-run-plan-segment.segment-running {
+  background: var(--accent);
+  animation: digital-run-plan-pulse 1.1s ease-in-out infinite;
+}
+
+@keyframes digital-run-plan-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.digital-run-plan-current {
+  color: var(--text-muted);
+  font-size: calc(13px * var(--ui-font-scale) * 11/13);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.digital-run-plan-current code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--text-secondary);
+}
+.digital-run-plan-current.is-error {
+  color: var(--change-delete);
 }
