@@ -22,6 +22,7 @@ import { setAppIoPort } from './plugins/appActionsIo'
 import { setMenuStateProvider } from './plugins/menuState'
 import { HostPanel } from './plugins/HostPanel'
 import { MainViewMount, type AppMainTab } from './plugins/MainViewMount'
+import { RightBarTabs } from './plugins/RightBarTabs'
 import { AppContextProvider } from './plugins/appContext'
 
 /**
@@ -681,10 +682,10 @@ export default function App() {
               onDoubleClick={resetDockWidth}
             />
             <aside className="ai-dock" style={{ width: aiDockWidth }} data-testid="ai-dock">
-              <SlotOutlet
+              {/* dsh 式右栏：内置「对话」+ 插件声明的右栏页签（会话等）。
+                  对话仍是 `app.rightPanel` slot 的占据者，`digital-panel` 常驻挂载。 */}
+              <RightBarTabs
                 host={pluginHost}
-                slotKey="app.rightPanel"
-                className="ai-dock-slot"
                 ownerProps={{ onOpenCapabilities: () => runCommand('agentEditor.open') }}
               />
             </aside>

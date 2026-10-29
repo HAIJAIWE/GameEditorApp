@@ -555,10 +555,11 @@ body {
 .ai-dock {
   display: flex;
   flex-direction: column;
-  /* 对齐 旧版 `layout_builder:145-149`：QSplitter stretch 3:1、初始 **75:25**、
-     右栏 `setMinimumWidth(300)`、**无上限**（P3-12 已移除 520 硬上限）。
-     实际宽度由 App 的 `style.width` 控制（拖拽后落 localStorage）；这里给默认值兜底。 */
-  width: 25%;
+  /* 三栏布局对齐 dsh `ui-layout`：右栏是贴边的**停靠轨道**，首次打开用视口 45%，
+     上限 70% 且给主区留 480px（见 `dockWidth.ts` 的 clamp）；
+     默认取 30% 而非 45%——主区是密集表单，45% 会把策划书工具条挤换行。
+     实际宽度由 App 的 `style.width` 控制（拖拽后落 localStorage）；这里给同值兜底。 */
+  width: 30%;
   min-width: 300px;
   /* 不设 max-width：与 旧版「自由拖动、无上限」一致 */
   flex: 0 0 auto;
@@ -8796,4 +8797,56 @@ button.ref-row:hover {
   margin: 0;
   color: var(--text-muted);
   font-size: calc(13px * var(--ui-font-scale) * 11/13);
+}
+
+/* ── 右栏页签（dsh 式停靠轨道：内置「对话」+ 插件声明的右栏视图） ── */
+.rightbar {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+.rightbar-tabs {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 2px;
+  padding: 4px 8px 0;
+  border-bottom: 1px solid var(--divider);
+  overflow-x: auto;
+}
+.rightbar-tab {
+  flex: 0 0 auto;
+  padding: 5px 10px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.rightbar-tab:hover {
+  color: var(--text);
+}
+.rightbar-tab.active {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+
+.rightbar-body {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.rightbar-pane {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+}
+/* display:flex 会盖过 [hidden]，必须显式压回 none（否则切页签不生效） */
+.rightbar-pane[hidden] {
+  display: none;
 }

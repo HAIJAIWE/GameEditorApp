@@ -109,4 +109,30 @@ describe('主区视图挂载器（Slice 22）', () => {
       expect(getReactBinding(id)).toBeDefined()
     }
   })
+
+  it('`host: rightbar` 的 mainView 不进主区页签条（由右栏容器认领）', async () => {
+    registerReactBinding('test.rightbar', () => <div data-testid="rightbar-body">RIGHT</div>)
+    const host = makeHost()
+    host.register({
+      id: 'test-rightbar-view',
+      name: 'test-rightbar-view',
+      version: '0.1.0',
+      capabilities: [
+        {
+          kind: 'mainView',
+          id: 'test.rightbar',
+          label: '会话',
+          order: 50,
+          lazy: true,
+          host: 'rightbar',
+          ui: { type: 'text', text: '会话' }
+        }
+      ]
+    })
+    view = await renderDom(<MainViewMount host={host} appTabs={appTabs} />)
+
+    // 主区页签条只有内联页签 + 主区视图；右栏视图既不出页签、也不渲染内容
+    expect(view.query('[data-testid="middle-tab-test.rightbar"]')).toBeNull()
+    expect(view.query('[data-testid="rightbar-body"]')).toBeNull()
+  })
 })

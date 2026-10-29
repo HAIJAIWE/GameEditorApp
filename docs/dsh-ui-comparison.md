@@ -53,7 +53,8 @@ dsh 的 UI 成熟在**两件事**：① **typed slot 组合**（父级声明扩�
 | 审批 / 提问 | ✅ 风险徽标（4 档配色）+ 参数 `<details>` 折叠 + 「拒绝回灌 `[STOP]`」（Slice 39）+ 结构化多问 |
 | 输入触发 | ✅ `/` 命令（Slice 41）、`@` 引用（Slice 43） |
 | 状态管理 | ✅ 根级 store `conversation.state`（Slice 46/47）+ `agent.conversation` 服务面（外部 bundle 用） |
-| 主区页签 | ✅ 策划书 / 数据编辑 / 代码编辑 / 浏览器 / **会话**（Slice 51 把「团队协作」+「轨迹」合并成一个） |
+| 主区页签 | ✅ 策划书 / 数据编辑 / 代码编辑 / 浏览器（**4 个业务窗口**）；「会话」见下一行 |
+| 右栏（dsh 式停靠轨道） | ✅ `RightBarTabs`：内置「对话」（`app.rightPanel` slot，DigitalPanel 常驻）+ 插件右栏页签「会话」（`host: 'rightbar'`）；宽度默认 30%、上限 70%、主区保 480px |
 | 凭据遮挡 | ❌ 未做（`ui-secret-mask`，低优先） |
 
 ---
@@ -113,7 +114,8 @@ dsh 的 UI 成熟在**两件事**：① **typed slot 组合**（父级声明扩�
 
 | 组件 | dsh 出处 | 借了什么 | 数据来源 | testid 锚点 |
 |---|---|---|---|---|
-| `sessionPlugin`（会话页签外壳） | **无，自研合并** | — | `conversation.state`（只读状态） | `session`、`session-status`、`session-block-trajectory` |
+| `sessionPlugin`（会话页签） | **无，自研合并** | — | `conversation.state`（只读状态） | `session`、`session-status`、`session-block-trajectory` |
+| `RightBarTabs`（右栏页签容器） | `ui-layout` 右栏轨道 + `ui-sidebar-right` 的 tab 域 | 「对话」是**内置保留页签**（dsh 的 `selectPanel(null)`），插件视图靠 `host: 'rightbar'` 加进来；切页签只 `hidden` 不卸载 | `host.mainViews()` + `app.rightPanel` slot | `rightbar`、`rightbar-tabs`、`rightbar-tab-*`、`rightbar-pane-*` |
 | `agentTeamSection`（主对话 + 子智能体看板） | `ui-subagent`（弱参考） | 状态 / 规模 / 最近回复一眼可见；看板可单独停止 | `conversation.state` + `agent/subagentStore.ts` | `agent-team-conversation`、`-status`、`-last` |
 | `trajectorySection`（轨迹） | `ui-trajectory` | 按轮次事件表 + 概览（token / 耗时 / 模型）+ 行可展开 | `buildTrajectory(conversation.state)`（纯函数） | `trajectory`、`-overview`、`-turn`、`-row`、`-row-detail`、`-empty`、`-message` |
 | `PluginsPanel`（插件中心） | dsh 的 Plugins 页 | 卡片清单 + 状态徽标（启用 / 禁用 / 错误 / 加载中） | `host.list()` | `plugins-count` 等 |
@@ -128,6 +130,24 @@ dsh 的 UI 成熟在**两件事**：① **typed slot 组合**（父级声明扩�
 - store 那份独立订阅，服务「会话」页签（跨插件、不改 DigitalPanel），避免动摇既有 e2e 锚点。
 
 重写时若想合并成一份，必须保证两边都还能拿到 `running / done / failed` 与结果文本；否则不如维持两份。
+
+### 4.4 三栏布局的落点（Slice 53）
+
+对齐 dsh `ui-layout` 的三栏：左栏（`Sidebar`）+ 主区（业务窗口）+ 右栏（停靠轨道）。
+
+| dsh | 我们 | 说明 |
+|---|---|---|
+| 右栏是**停靠轨道**，`selectPanel(id)` 选面板、`null` = 会话界面 | `RightBarTabs`：`conversation` 是**内置**页签，渲染 `app.rightPanel` slot | 对话不是插件面板，是保留 key——所以插件禁用不会把对话弄没 |
+| 面板是**可选项**，注册进 `main` keyed slot | 插件 `mainView` 加 `host: 'rightbar'` | 复用同一套注册/懒挂/顺序，不新增能力种类 |
+| 右栏首次打开 **45%**，上限 70%，主区保 400px | 默认 **30%**，上限 70%，主区保 480px | **有意偏离**：45% 实测把策划书工具条挤到换行（主区是密集表单，不是文档）。要更宽就直接拖，宽度会落 localStorage |
+| 切页签不重挂载（普通/全屏共用同一棵内容树） | 切页签只 `hidden`，不卸载 | 对话的滚动位置、输入草稿、流式输出不能因切页签丢 |
+
+**一个坑**：`.rightbar-pane` 用了 `display: flex`，会盖过原生 `[hidden]` 的 `display: none`，
+必须显式写 `.rightbar-pane[hidden] { display: none }`，否则切页签看起来「没反应」（其实两个 pane 叠着）。
+
+**为什么不把会话留在主区**：它和对话读同一份 `conversation.state`，放同一根轨道里
+「看对话 → 看轨迹」不用跨区移动视线；主区腾给策划书/数据编辑这两个真正需要宽度的窗口。
+
 
 ---
 

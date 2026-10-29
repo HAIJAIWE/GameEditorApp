@@ -11,19 +11,34 @@ export const AI_DOCK_MIN_WIDTH = 300
 /** 主区至少保留的宽度：窗口再窄也不把主区挤没 */
 export const MAIN_AREA_MIN_WIDTH = 480
 
-/** 默认宽度占视口的比例 */
-export const AI_DOCK_DEFAULT_RATIO = 0.25
+/**
+ * 默认宽度占视口的比例：**30%**。
+ *
+ * dsh `ui-layout` 首次打开用 45%，但那是「对话就是主区」的场景；我们的主区是
+ * 策划书 / 数据编辑这类密集表单——实测 45% 会把策划书工具条挤到换行，故取 30%，
+ * 同时保留 dsh 的两条护栏（上限 70%、主区至少 480px）。用户拖一次就落 localStorage。
+ */
+export const AI_DOCK_DEFAULT_RATIO = 0.3
+
+/** 右栏宽度上限占视口的比例（对齐 dsh 的 70% 上限） */
+export const AI_DOCK_MAX_RATIO = 0.7
 
 const STORAGE_KEY = 'mb.aiDock.width'
 
-/** 把期望宽度夹到「[300, 视口 - 480]」区间；窄屏时两者相等，结果为 300 */
+/**
+ * 把期望宽度夹到合法区间：
+ * 下界 300；上界取「视口 - 主区 480」与「视口 70%」的较小者（两者都要满足）。
+ * 窄屏时上界可能低于下界，此时结果为 300（宁可挤主区也不给负宽度）。
+ */
 export function clampDockWidth(desired: number, viewportWidth: number): number {
-  const max = Math.max(AI_DOCK_MIN_WIDTH, viewportWidth - MAIN_AREA_MIN_WIDTH)
+  const maxByMain = viewportWidth - MAIN_AREA_MIN_WIDTH
+  const maxByRatio = viewportWidth * AI_DOCK_MAX_RATIO
+  const max = Math.max(AI_DOCK_MIN_WIDTH, Math.min(maxByMain, maxByRatio))
   const rounded = Math.round(desired)
   return Math.min(Math.max(rounded, AI_DOCK_MIN_WIDTH), max)
 }
 
-/** 默认宽度：视口的 25%（再 clamp） */
+/** 默认宽度：视口的 45%（再 clamp） */
 export function defaultDockWidth(viewportWidth: number): number {
   return clampDockWidth(viewportWidth * AI_DOCK_DEFAULT_RATIO, viewportWidth)
 }

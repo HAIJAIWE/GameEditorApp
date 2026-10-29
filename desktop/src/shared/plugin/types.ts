@@ -131,6 +131,14 @@ export interface PluginMainViewCapability {
   order?: number
   /** 首访才挂载（重视图，如代码/浏览器）；缺省 false = 常驻挂载 */
   lazy?: boolean
+  /**
+   * 挂载容器（默认 `main`）。
+   *
+   * 对应 dsh 的 `ui-layout` 三栏：`main` = 主区页签条（业务窗口），
+   * `rightbar` = 右栏停靠轨道的页签（与内置「对话」并列）。
+   * 同一个能力类型，靠这个字段决定由哪个容器认领——不新增能力种类，注册/懒挂/顺序语义都复用。
+   */
+  host?: 'main' | 'rightbar'
   ui: UiNode | (() => UiNode)
 }
 

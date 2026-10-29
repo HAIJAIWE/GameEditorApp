@@ -10,15 +10,17 @@ import { TrajectorySection } from './trajectorySection'
 import { registerReactBinding } from './reactBindings'
 
 /**
- * 会话（session）：主区**一个**只读页签，替代原先并排的「团队协作」+「轨迹」。
+ * 会话（session）：**右栏**的一个页签，与内置「对话」并列（对齐 dsh 的三栏布局）。
+ *
+ * 原来它是主区页签，和「团队协作」「轨迹」并排。改成右栏的理由：
+ * 会话与对话读**同一份** `conversation.state`，放在同一根停靠轨道里，
+ * 「看对话」时顺手切到「看轨迹」不用跨区移动视线；主区留给业务窗口
+ * （策划书 / 数据编辑 / 代码编辑 / 浏览器）。
  *
  * 三个分区共用一层外壳与同一个 `conversation.state`：
  * - 主对话摘要（状态 / 消息数 / 步骤数 / 最近回复）
  * - 共享任务看板（运行中的子智能体，可单独停止）
  * - 轨迹（概览 + 按轮次步骤表 + 消息序列，行可展开看参数/输出）
- *
- * 为什么合并：三者本质是**同一份会话数据**的三种观察角度，拆成两个页签只会让页签条变长，
- * 且用户要在两个页签之间来回对照「这条工具调用的上下文」。合并后一屏能从上到下读完。
  *
  * 为什么读 store 而不是 `agent.conversation` 服务：本插件与面板同进程、能 import 类型，
  * store 的 uSES 订阅是**实时**的；service 面留给拿不到我们类型的外部 bundle（一次性快照）。
@@ -42,8 +44,10 @@ export function defineSessionPlugin(host: PluginHost): PluginManifest {
         id: 'session.mainView',
         label: '会话',
         title: '会话：主对话摘要 + 子智能体 + 轨迹',
-        order: 50,
+        order: 10,
         lazy: true,
+        // 右栏页签：由 `RightBarTabs` 认领，主区页签条不再显示它
+        host: 'rightbar',
         ui: { type: 'text', text: '会话' }
       }
     ]

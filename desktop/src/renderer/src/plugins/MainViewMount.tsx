@@ -88,7 +88,12 @@ export function MainViewMount({ host, appTabs, context = EMPTY_MAIN_VIEW_CONTEXT
   // 不能直接拿 `host.mainViews()` 当快照：它每次返回新数组，身份抖动会导致无限重渲染。
   useSyncExternalStore(subscribe, () => host.getVersion())
 
-  const merged = buildMerged(appTabs, host.mainViews())
+  // 只认领 `host: 'main'`（缺省）——`rightbar` 的 mainView 由 `RightBarTabs` 渲染，
+  // 否则「会话」会同时出现在主区页签条和右栏，出现两个入口。
+  const merged = buildMerged(
+    appTabs,
+    host.mainViews().filter((view) => view.host !== 'rightbar')
+  )
   const validIds = new Set(merged.map((tab) => tab.id))
   const firstId = merged[0]?.id ?? ''
   const initialId = loadStoredTab(MIDDLE_TAB_KEY, validIds, firstId)

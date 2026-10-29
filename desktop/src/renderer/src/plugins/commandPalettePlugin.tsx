@@ -234,8 +234,13 @@ export function CommandPalette({ host }: { host: PluginHost }): ReactElement | n
       commands: host.commands(),
       panels: host.panels(),
       // 页签清单：插件 `mainView` 能力（策划书/数据/代码/浏览器都已迁成 mainView，
-      // App 的 `appTabs` 逃生口当前为空；将来有内联页签时再由 App 经 ownerProps 追加）
-      mainViews: host.mainViews().map((view) => ({ id: view.id, label: view.label }))
+      // App 的 `appTabs` 逃生口当前为空；将来有内联页签时再由 App 经 ownerProps 追加）。
+      // 右栏页签（`host: 'rightbar'`，如「会话」）不在此列：它不由主区页签条渲染，
+      // 列进来会变成一条点了没反应的命令。
+      mainViews: host
+        .mainViews()
+        .filter((view) => view.host !== 'rightbar')
+        .map((view) => ({ id: view.id, label: view.label }))
     })
     return [
       ...flattened.map((item) => ({
