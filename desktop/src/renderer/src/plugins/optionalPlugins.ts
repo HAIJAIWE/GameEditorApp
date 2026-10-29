@@ -49,5 +49,15 @@ export const marketRegistry: PluginMarketEntry[] = [
     tier: 'experimental',
     ready: true,
     icon: '🛡️'
+  },
+  {
+    id: 'recent-changes',
+    name: 'recent-changes',
+    version: '0.1.0',
+    description: '最近改动：查看智能体最近修改的数据（来自操作日志）',
+    source: 'factory:recent-changes',
+    tier: 'optional',
+    ready: true,
+    icon: '📝'
   }
 ]

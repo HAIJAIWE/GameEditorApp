@@ -32,6 +32,12 @@ export class OperationLogStore {
     return this.operations.filter((record) => record.conversationId === conversationId)
   }
 
+  /** 最近 N 条记录（新→旧），供「最近改动」UI 展示 */
+  listRecent(limit = 50): OperationRecord[] {
+    const n = Number.isFinite(limit) && limit > 0 ? Math.trunc(limit) : 50
+    return this.operations.slice(-n).reverse()
+  }
+
   count(): number {
     return this.operations.length
   }

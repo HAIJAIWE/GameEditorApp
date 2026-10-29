@@ -19,6 +19,7 @@ import { parseDigitalCommands, type DigitalCommand } from '../../../../shared/ag
 import { parseDigitalReferences, type DigitalReference } from '../../../../shared/agent/references'
 import { pluginHost } from '../../plugins/builtins'
 import { getToolViewBinding } from '../../plugins/toolViewBindings'
+import { SlotOutlet } from '../../plugins/slotOutlet'
 
 import type { BrainEvent } from '../../../../shared/agent/brain'
 import type { AgentRunTier } from '../../../../shared/agent/observability'
@@ -202,6 +203,12 @@ export default function DigitalPanel({
     const entry = pluginHost.slotEntryFor('tool.call.toolview', tool)
     return entry?.component === undefined ? undefined : getToolViewBinding(entry.component)
   }, [])
+
+  /**
+   * 输入区 chain slot（Slice 46）：插件可经 `conversation.composer` 的 chain 条目**接管**输入区。
+   * 无接管（`null`）时保持内置输入行；有接管时内置行隐藏（仍挂载，草稿状态不丢）并叠加接管组件。
+   */
+  const composerTakeover = pluginHost.slotChainWinner('conversation.composer', { running, input })
 
   const currentInteraction = state.interaction?.interaction ?? null
   const multiAnswers = (currentInteraction?.questions ?? []).map((question, index) =>
@@ -934,7 +941,7 @@ export default function DigitalPanel({
         />
       )}
 
-      <div className="digital-input-row">
+      <div className="digital-input-row" style={composerTakeover === null ? undefined : { display: 'none' }}>
         <input
           ref={inputRef}
           className="form-input"
@@ -1014,6 +1021,16 @@ export default function DigitalPanel({
           </button>
         )}
       </div>
+
+      {/* 输入区接管（chain slot）：插件选举胜出时叠加接管组件；内置行已隐藏但仍挂载 */}
+      {composerTakeover !== null && (
+        <SlotOutlet
+          host={pluginHost}
+          slotKey="conversation.composer"
+          className="digital-composer-takeover"
+          ownerProps={{ running, input, setInput, send: handleSend }}
+        />
+      )}
     </div>
   )
 }

@@ -63,4 +63,30 @@ describe('SlotOutlet', () => {
     expect(result.text()).toContain('你好 世界')
     await result.cleanup()
   })
+
+  it('chain：select 胜出者接管（ownerProps 下发）', async () => {
+    registerSlotComponent('test.takeover', Greeting as unknown as ComponentType<Record<string, unknown>>)
+    const host = new PluginHost()
+    host.register({
+      id: 'p',
+      name: 'p',
+      version: '0.1.0',
+      capabilities: [
+        {
+          kind: 'slot',
+          id: 'p.composer',
+          key: 'conversation.composer',
+          priority: 1,
+          select: (owner) => ((owner as { running: boolean }).running ? 'on' : null),
+          component: 'test.takeover',
+          ui: { type: 'text', text: '回退' }
+        }
+      ]
+    })
+    const result = await renderDom(
+      <SlotOutlet host={host} slotKey="conversation.composer" ownerProps={{ running: true, name: '接管' }} />
+    )
+    expect(result.text()).toContain('你好 接管')
+    await result.cleanup()
+  })
 })

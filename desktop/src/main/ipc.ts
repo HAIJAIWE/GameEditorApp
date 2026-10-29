@@ -38,6 +38,7 @@ export interface IpcHandlerDeps {
   agentBrain: import('./agent/brainService').AgentBrainService
   agentSessionStore: import('./agent/sessionStore').AgentSessionStore
   agentFeedback: import('./agent/preferenceStore').FeedbackStore
+  agentOperationLog: import('./agent/operationLogStore').OperationLogStore
   approvalBroker: import('./agent/approvalBroker').AgentApprovalBroker
   libraryManager: import('./library/manager').LibraryManager
   /**

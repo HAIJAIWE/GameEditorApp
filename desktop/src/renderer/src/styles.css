@@ -7714,3 +7714,79 @@ button.ref-row:hover {
   line-height: 1.6;
 }
 
+/* ===== 最近改动（操作日志） ===== */
+.recent-changes {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  height: 100%;
+  overflow: auto;
+}
+.recent-changes-actions {
+  display: flex;
+  gap: 8px;
+}
+.recent-changes-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.recent-changes-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color, #eee);
+  border-radius: 6px;
+  background: var(--bg-subtle, #fafafa);
+}
+.recent-changes-op {
+  flex: 0 0 auto;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.recent-changes-op.op-create {
+  color: #2f855a;
+  background: #e6ffed;
+}
+.recent-changes-op.op-update {
+  color: #2b6cb0;
+  background: #e6f0ff;
+}
+.recent-changes-op.op-delete {
+  color: #c53030;
+  background: #ffe6e6;
+}
+.recent-changes-name {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.recent-changes-meta {
+  flex: 0 0 auto;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.recent-changes-empty,
+.recent-changes-error {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.recent-changes-error {
+  color: #c53030;
+}
+
+/* 输入区接管（chain slot） */
+.digital-composer-takeover {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+

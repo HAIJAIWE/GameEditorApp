@@ -21,7 +21,7 @@ import type { AgentInteractionAnswer } from '../agent/approvalBroker'
 import { withTask } from '../task/taskRegistry'
 
 export function registerAgentIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm: LlmShared): void {
-  const { agentDispatcher, agentBrain, approvalBroker, agentSessionStore, agentFeedback } = deps
+  const { agentDispatcher, agentBrain, approvalBroker, agentSessionStore, agentFeedback, agentOperationLog } = deps
   // Agent 技能调度：listTools 供提示词/面板展示，executeTool 走统一调度与安全门
   handle('agent:listTools', undefined, () => ({
     description: agentDispatcher.toolsDescription(),
@@ -141,4 +141,8 @@ export function registerAgentIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
     return { ok: true }
   })
   handle('agent:getPreReviewEnabled', undefined, () => ({ enabled: isPreReviewEnabled() }))
+  // 最近改动（操作日志）：最近的数据变更记录（新→旧），供「最近改动」面板
+  handle('agent:recentChanges', undefined, (req) => ({
+    changes: agentOperationLog.listRecent(typeof req?.limit === 'number' ? req.limit : undefined)
+  }))
 }

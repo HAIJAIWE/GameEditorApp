@@ -116,6 +116,8 @@ export interface AppStores {
   agentSessionStore: AgentSessionStore
   agentPreferences: PreferenceStore
   agentFeedback: FeedbackStore
+  /** 操作日志（AI 数据变更记录，供「最近改动」面板与回滚） */
+  agentOperationLog: OperationLogStore
   approvalBroker: AgentApprovalBroker
   llmClient: LlmClient
 }
@@ -192,6 +194,7 @@ export function buildStores(libDir: string): AppStores {
     agentSessionStore: sessionStore,
     agentPreferences: personalization.preferences,
     agentFeedback: personalization.feedback,
+    agentOperationLog: operationLog,
     approvalBroker: new AgentApprovalBroker(),
     llmClient: new LlmClient()
   }

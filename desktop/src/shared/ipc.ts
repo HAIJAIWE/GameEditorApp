@@ -108,6 +108,7 @@ import type { FieldAction } from './ceshuFieldAction'
 import type { BrainEvent } from './agent/brain'
 import type { AgentRunStats } from './agent/observability'
 import type { DraftSummary, SessionInfo, SessionTurnSummary } from './agent/session'
+import type { OperationRecord } from './agent/operationLog'
 import type { JsonObjectSchema, SkillResult } from './agent/protocol'
 import type { CeshuChangelog, CeshuVersionDiff } from './ceshuDiff'
 import type { CeshuTaskPlan } from './ceshuTasks'
@@ -332,6 +333,8 @@ export interface IpcContract {
   'agent:setPreReviewEnabled': { req: { enabled: boolean }; res: { ok: boolean } }
   /** 读取执行预审当前开关状态（#27，插件 UI 回显用） */
   'agent:getPreReviewEnabled': { req: undefined; res: { enabled: boolean } }
+  /** 最近改动（操作日志）：返回最近的 AI 数据变更记录（新→旧），供「最近改动」面板 */
+  'agent:recentChanges': { req: { limit?: number }; res: { changes: OperationRecord[] } }
 
   'dialog:chooseEngineExportFile': { req: EngineExportFileDialogInput; res: { path: string | null } }
 
