@@ -59,5 +59,15 @@ export const marketRegistry: PluginMarketEntry[] = [
     tier: 'optional',
     ready: true,
     icon: '📝'
+  },
+  {
+    id: 'command-palette',
+    name: 'command-palette',
+    version: '0.1.0',
+    description: '命令面板：⌘K 搜索并执行命令 / 打开面板',
+    source: 'factory:command-palette',
+    tier: 'core',
+    ready: true,
+    icon: '⌘'
   }
 ]

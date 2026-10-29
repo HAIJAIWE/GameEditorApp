@@ -4,6 +4,7 @@ import { defineAppActionsPlugin } from './appActionsPlugin'
 import { defineCeshuMenusPlugin } from './ceshuMenusPlugin'
 import { defineCeshuPlugin } from './ceshuPlugin'
 import { defineCeshuViewsPlugin } from './ceshuViewsPlugin'
+import { defineCommandPalettePlugin } from './commandPalettePlugin'
 import { defineCoreViewsPlugin } from './coreViewsPlugin'
 import { defineDataPanelsPlugin } from './dataPanelsPlugin'
 import { defineDemoPlugin } from './demoPlugin'
@@ -49,7 +50,8 @@ export const pluginLoader = createPluginLoader({
   'agent-team': () => defineAgentTeamPlugin(pluginHost),
   'session-history': () => defineSessionHistoryPlugin(pluginHost),
   'auto-review': () => defineAutoReviewPlugin(pluginHost),
-  'recent-changes': () => defineRecentChangesPlugin(pluginHost)
+  'recent-changes': () => defineRecentChangesPlugin(pluginHost),
+  'command-palette': () => defineCommandPalettePlugin(pluginHost)
 })
 
 let registered = false
@@ -89,6 +91,7 @@ void pluginHost.loadPlugin(pluginLoader, 'factory:agent-team')
 void pluginHost.loadPlugin(pluginLoader, 'factory:session-history')
 void pluginHost.loadPlugin(pluginLoader, 'factory:auto-review')
 void pluginHost.loadPlugin(pluginLoader, 'factory:recent-changes')
+void pluginHost.loadPlugin(pluginLoader, 'factory:command-palette')
 for (const source of installedPluginStore.load()) {
   void pluginHost.loadPlugin(pluginLoader, source)
 }

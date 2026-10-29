@@ -85,6 +85,8 @@ export const ROOT_SLOT_DECLARATIONS: ReadonlyArray<{ key: string; spec: SlotSpec
   { key: 'app.main', spec: { kind: 'single' } },
   { key: 'app.rightPanel', spec: { kind: 'single' } },
   { key: 'app.statusbar', spec: { kind: 'list' } },
+  // 全屏浮层（命令面板等）：single，空时 SlotOutlet 渲染 null，不占布局也不挡鼠标
+  { key: 'app.overlay', spec: { kind: 'single' } },
   { key: 'conversation.composer', spec: { kind: 'chain' } },
   { key: 'tool.call.toolview', spec: { kind: 'keyed' } }
 ]

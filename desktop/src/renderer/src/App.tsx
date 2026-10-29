@@ -692,6 +692,8 @@ export default function App() {
 
           {/* Toast 宿主：absolute 浮层，不占布局空间 */}
           <ToastHost />
+          {/* 根级浮层 slot：命令面板（⌘K）等全屏层；空 slot 渲染 null，不影响布局 */}
+          <SlotOutlet host={pluginHost} slotKey="app.overlay" />
           <footer className="statusbar">
             {info ? (
               <>

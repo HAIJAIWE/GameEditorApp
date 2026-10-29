@@ -8211,3 +8211,110 @@ button.ref-row:hover {
   gap: 8px;
 }
 
+
+/* ==========================================================================
+   命令面板（⌘K）：根级 slot `app.overlay` 的全屏浮层
+   z-index 1000：高于既有最高层（面板 300 / 右键菜单 70 / toast 60），
+   否则命令面板会被已打开的面板浮层盖住。
+   ========================================================================== */
+.command-palette-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 12vh;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.command-palette {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: 560px;
+  max-width: calc(100vw - 32px);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-panel);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+}
+
+.command-palette-input {
+  margin: 8px 8px 4px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--cell-bg);
+  color: var(--text);
+  font: inherit;
+  font-size: calc(13px * var(--ui-font-scale));
+  outline: none;
+}
+.command-palette-input:focus {
+  border-color: var(--accent);
+}
+
+.command-palette-list {
+  max-height: 320px;
+  overflow: auto;
+  padding: 4px;
+}
+
+.command-palette-group {
+  padding: 6px 8px 2px;
+  color: var(--text-muted);
+  font-size: calc(11px * var(--ui-font-scale));
+  letter-spacing: 0.04em;
+}
+
+.command-palette-item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  color: var(--text);
+  font-size: calc(13px * var(--ui-font-scale));
+  cursor: pointer;
+}
+.command-palette-item[aria-selected='true'] {
+  background: var(--bg-hover);
+}
+
+.command-palette-label {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.command-palette-detail {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+  font-size: calc(11px * var(--ui-font-scale));
+  text-align: right;
+}
+
+.command-palette-empty {
+  padding: 14px 10px;
+  color: var(--text-muted);
+  font-size: calc(13px * var(--ui-font-scale));
+  text-align: center;
+}
+
+.command-palette-hint {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 10px;
+  border-top: 1px solid var(--divider);
+  color: var(--text-muted);
+  font-size: calc(11px * var(--ui-font-scale));
+}
