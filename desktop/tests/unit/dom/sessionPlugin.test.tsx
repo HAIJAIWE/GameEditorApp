@@ -27,7 +27,7 @@ function renderSession(host: PluginHost): ReturnType<typeof renderDom> {
 }
 
 describe('会话页签', () => {
-  it('声明唯一 mainView「会话」，挂右栏（host: rightbar）、order 10、lazy', () => {
+  it('声明唯一 mainView「会话」，order 50、lazy（与业务窗口同一页签条）', () => {
     const host = new PluginHost()
     const manifest = defineSessionPlugin(host)
     expect(manifest.id).toBe('session')
@@ -36,9 +36,8 @@ describe('会话页签', () => {
       kind: 'mainView',
       id: 'session.mainView',
       label: '会话',
-      order: 10,
-      lazy: true,
-      host: 'rightbar'
+      order: 50,
+      lazy: true
     })
   })
 

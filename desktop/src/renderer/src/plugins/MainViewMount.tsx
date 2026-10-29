@@ -77,11 +77,18 @@ function buildMerged(appTabs: AppMainTab[], pluginViews: PluginMainViewCapabilit
   return out.sort((left, right) => left.order - right.order)
 }
 
-export function MainViewMount({ host, appTabs, context = EMPTY_MAIN_VIEW_CONTEXT }: {
+export function MainViewMount({
+  host,
+  appTabs,
+  context = EMPTY_MAIN_VIEW_CONTEXT,
+  actions
+}: {
   host: PluginHost
   appTabs: AppMainTab[]
   /** 主区视图共享状态（独立于面板 appContext，见 mainViewContext 注释） */
   context?: MainViewContextValue
+  /** 页签条右端的附加动作（如停靠区全屏开关）；不传则无 */
+  actions?: ReactNode
 }) {
   const subscribe = useMemo(() => (onChange: () => void) => host.subscribe(onChange), [host])
   // 订阅版本号（稳定数值快照）以在插件增删/禁用后重渲染；列表在下方按最新宿主状态重算。
@@ -148,6 +155,7 @@ export function MainViewMount({ host, appTabs, context = EMPTY_MAIN_VIEW_CONTEXT
             {tab.label}
           </button>
         ))}
+        {actions !== undefined && <div className="middle-tabs-actions">{actions}</div>}
       </nav>
       <div className="middle-tab-body">
         {merged.map((tab) => {

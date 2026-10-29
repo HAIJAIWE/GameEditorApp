@@ -21,8 +21,8 @@ import { setHostUi } from './plugins/hostBridge'
 import { setAppIoPort } from './plugins/appActionsIo'
 import { setMenuStateProvider } from './plugins/menuState'
 import { HostPanel } from './plugins/HostPanel'
+import { CollapseIcon, ExpandIcon } from './components/FullscreenIcons'
 import { MainViewMount, type AppMainTab } from './plugins/MainViewMount'
-import { RightBarTabs } from './plugins/RightBarTabs'
 import { AppContextProvider } from './plugins/appContext'
 
 /**
@@ -659,32 +659,40 @@ export default function App() {
       <div className="app-body">
         <Sidebar items={sidebarItems} activePanel={panelId} onActivate={handleSidebarItem} />
         <div className="main">
+          {/* 通知条放在两态之上：面板开着时也要能看到「已创建 / 错误」反馈 */}
+          {error && <div className="error-banner">{error}</div>}
+          {notice && <div className="notice-banner">{notice}</div>}
           <div className="main-body">
-            {/* 全屏右栏时主区让位（`hidden` 而非卸载：编辑器草稿/滚动/选中态不丢） */}
-            <div className="main-area" hidden={dockFullscreen}>
-              {error && <div className="error-banner">{error}</div>}
-              {notice && <div className="notice-banner">{notice}</div>}
-              {panelId !== null ? (
-                <div className="panel-overlay">
-                  <div className="panel-overlay-header">
-                    <span className="chapter-form-title">{panelTitle}</span>
-                    <button type="button" className="btn" data-testid="panel-close" onClick={() => closePanel()}>
-                      关闭
-                    </button>
-                  </div>
-                  <div className="panel-overlay-body">
-                    {/* 面板自供给通道：此子树内的面板可经 useAppContext() 取共享状态；
-                        渲染只认 panelId —— 23 case 的 switch 已随 Slice 8a 删除 */}
-                    <AppContextProvider value={appContextValue}>
-                      <HostPanel host={pluginHost} panelId={panelId} onClose={closePanel} />
-                    </AppContextProvider>
-                  </div>
+            {panelId !== null ? (
+              /* 全局面板占满「中栏 + 停靠区」：面板里多是表格/表单，中栏那 400~500px 撑不开
+                 （实测装备预览的 Buff 列表会被压成 0 高）。与改版前的可用宽度保持一致。 */
+              <div className="panel-overlay">
+                <div className="panel-overlay-header">
+                  <span className="chapter-form-title">{panelTitle}</span>
+                  <button type="button" className="btn" data-testid="panel-close" onClick={() => closePanel()}>
+                    关闭
+                  </button>
                 </div>
-              ) : (
-                // 主区页签（Slice 22）：页签条 + 常驻挂载语义由 MainViewMount 接管；
-                // 代码/浏览器来自 core-views 插件的 mainView，编辑器/数据经 appTabs 内联。
-                <MainViewMount host={pluginHost} appTabs={appTabs} context={mainViewContextValue} />
-              )}
+                <div className="panel-overlay-body">
+                  {/* 面板自供给通道：此子树内的面板可经 useAppContext() 取共享状态；
+                      渲染只认 panelId —— 23 case 的 switch 已随 Slice 8a 删除 */}
+                  <AppContextProvider value={appContextValue}>
+                    <HostPanel host={pluginHost} panelId={panelId} onClose={closePanel} />
+                  </AppContextProvider>
+                </div>
+              </div>
+            ) : (
+              <>
+            {/* 全屏停靠区时中栏让位（`hidden` 而非卸载：对话滚动/草稿不丢） */}
+            <div className="main-area" hidden={dockFullscreen}>
+              {/* 中栏 = 对话流（对齐 dsh 三栏：中间对话、右栏停靠工具）。
+                  对话仍是 `app.rightPanel` slot 的占据者，`digital-panel` 常驻挂载。 */}
+              <SlotOutlet
+                host={pluginHost}
+                slotKey="app.rightPanel"
+                className="conversation-slot"
+                ownerProps={{ onOpenCapabilities: () => runCommand('agentEditor.open') }}
+              />
             </div>
             {/* 右栏拖拽分隔条：拖动改宽，双击复位；全屏时没有「宽」可调，不渲染 */}
             {!dockFullscreen && (
@@ -705,15 +713,29 @@ export default function App() {
               style={dockFullscreen ? undefined : { width: aiDockWidth }}
               data-testid="ai-dock"
             >
-              {/* dsh 式右栏：内置「对话」+ 插件声明的右栏页签（会话等）。
-                  对话仍是 `app.rightPanel` slot 的占据者，`digital-panel` 常驻挂载。 */}
-              <RightBarTabs
+              {/* 右栏 = 停靠面板（对齐 dsh 的 rightbar）：策划书 / 数据编辑 / 代码编辑 /
+                  浏览器 / 会话都在这条页签里；中栏留给对话。 */}
+              <MainViewMount
                 host={pluginHost}
-                ownerProps={{ onOpenCapabilities: () => runCommand('agentEditor.open') }}
-                fullscreen={dockFullscreen}
-                onToggleFullscreen={() => setDockFullscreen((value) => !value)}
+                appTabs={appTabs}
+                context={mainViewContextValue}
+                actions={
+                  <button
+                    type="button"
+                    className="middle-tab-action"
+                    data-testid="dock-fullscreen"
+                    aria-pressed={dockFullscreen}
+                    aria-label={dockFullscreen ? '退出全屏' : '停靠区全屏'}
+                    title={dockFullscreen ? '退出全屏（Esc）' : '停靠区全屏'}
+                    onClick={() => setDockFullscreen((value) => !value)}
+                  >
+                    {dockFullscreen ? <CollapseIcon /> : <ExpandIcon />}
+                  </button>
+                }
               />
             </aside>
+              </>
+            )}
           </div>
 
           {/* Toast 宿主：absolute 浮层，不占布局空间 */}

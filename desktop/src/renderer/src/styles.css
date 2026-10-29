@@ -630,14 +630,20 @@ body {
   flex-direction: column;
   /* 三栏布局对齐 dsh `ui-layout`：右栏是贴边的**停靠轨道**，首次打开用视口 45%，
      上限 70% 且给主区留 480px（见 `dockWidth.ts` 的 clamp）；
-     默认取 30% 而非 45%——主区是密集表单，45% 会把策划书工具条挤换行。
+     中栏改成对话后按 dsh 的 45%：对话 400px 就够读，右栏要装密集表单。
      实际宽度由 App 的 `style.width` 控制（拖拽后落 localStorage）；这里给同值兜底。 */
-  width: 30%;
+  width: 45%;
   min-width: 300px;
   /* 不设 max-width：与 旧版「自由拖动、无上限」一致 */
   flex: 0 0 auto;
   border-left: 1px solid var(--border);
   background: var(--bg-panel);
+  /* 不能裁：停靠区里装的编辑器有自己的「更多」下拉，overflow:hidden 会把菜单裁掉，
+     点击点落到容器上（e2e 报「ai-dock intercepts pointer events」）。全屏态单独裁。 */
+  overflow: visible;
+}
+
+.ai-dock.is-fullscreen {
   overflow: hidden;
 }
 
@@ -9125,4 +9131,42 @@ button.ref-row:hover {
   padding: 0 10px;
   background: var(--sidebar-fill);
   border-bottom: 0.5px solid rgba(0, 0, 0, 0.12);
+}
+
+/* ── dsh 三栏改版：中栏=对话、右栏=停靠面板 ── */
+/* 中栏的对话出口：铺满整个中栏（DigitalPanel 自己是 flex 列） */
+.conversation-slot {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* 页签条右端的附加动作（停靠区全屏开关） */
+.middle-tabs-actions {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  padding-right: 4px;
+}
+.middle-tab-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.middle-tab-action:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+.middle-tab-action[aria-pressed='true'] {
+  color: var(--accent);
 }

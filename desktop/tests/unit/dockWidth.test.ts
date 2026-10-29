@@ -33,8 +33,10 @@ describe('dockWidth：宽度夹取', () => {
     expect(clampDockWidth(120, 1600)).toBe(AI_DOCK_MIN_WIDTH)
   })
 
-  it('高于上限 → 视口 - 主区最小宽', () => {
-    expect(clampDockWidth(2000, 1600)).toBe(1600 - MAIN_AREA_MIN_WIDTH)
+  it('高于上限 → 取「视口 - 中栏保底」与「视口 70%」的较小者', () => {
+    expect(clampDockWidth(2000, 1600)).toBe(Math.min(1600 - MAIN_AREA_MIN_WIDTH, 1600 * 0.7))
+    // 1200(保底) vs 1120(70%) → 70% 先收紧
+    expect(clampDockWidth(2000, 1600)).toBe(1120)
   })
 
   it('区间内原样（取整）', () => {
@@ -47,30 +49,30 @@ describe('dockWidth：宽度夹取', () => {
 })
 
 describe('dockWidth：默认值与持久化', () => {
-  it('默认 = 视口 25%（clamp 后；左栏展开 280px 后主区需要更多宽度）', () => {
-    expect(defaultDockWidth(1600)).toBe(400)
-    expect(defaultDockWidth(1920)).toBe(480)
+  it('默认 = 视口 45%（对齐 dsh RIGHTBAR_DEFAULT_RATIO）', () => {
+    expect(defaultDockWidth(1600)).toBe(720)
+    expect(defaultDockWidth(1920)).toBe(864)
   })
 
   it('缺失 → 默认', () => {
-    expect(loadAiDockWidth(1600, memoryStorage())).toBe(400)
+    expect(loadAiDockWidth(1600, memoryStorage())).toBe(720)
   })
 
   it('非法值 → 默认', () => {
-    expect(loadAiDockWidth(1600, memoryStorage({ 'mb.aiDock.width': 'abc' }))).toBe(400)
-    expect(loadAiDockWidth(1600, memoryStorage({ 'mb.aiDock.width': '' }))).toBe(400)
+    expect(loadAiDockWidth(1600, memoryStorage({ 'mb.aiDock.width': 'abc' }))).toBe(720)
+    expect(loadAiDockWidth(1600, memoryStorage({ 'mb.aiDock.width': '' }))).toBe(720)
   })
 
   it('保存后能读回（并按当前视口 clamp）', () => {
     const storage = memoryStorage()
     saveAiDockWidth(520, storage)
     expect(loadAiDockWidth(1600, storage)).toBe(520)
-    // 换到更小视口：上限 = 900 - 480 = 420，520 被夹到 420
-    expect(loadAiDockWidth(900, storage)).toBe(420)
+    // 换到更小视口：上限 = min(900 - 400, 900 * 70%) = 500，520 被夹到 500
+    expect(loadAiDockWidth(900, storage)).toBe(500)
   })
 
   it('storage 为 null 不抛', () => {
     expect(() => saveAiDockWidth(400, null)).not.toThrow()
-    expect(loadAiDockWidth(1600, null)).toBe(400)
+    expect(loadAiDockWidth(1600, null)).toBe(720)
   })
 })

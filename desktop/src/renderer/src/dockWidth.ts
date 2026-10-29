@@ -8,18 +8,16 @@
 /** 右栏最小宽度（与旧 CSS `min-width: 300px` 一致） */
 export const AI_DOCK_MIN_WIDTH = 300
 
-/** 主区至少保留的宽度：窗口再窄也不把主区挤没 */
-export const MAIN_AREA_MIN_WIDTH = 480
+/** 中栏（对话）至少保留的宽度：对齐 dsh `columns.ts` 的 CENTER_MIN = 400 */
+export const MAIN_AREA_MIN_WIDTH = 400
 
 /**
- * 默认宽度占视口的比例：**25%**。
+ * 默认宽度占视口的比例：**45%**（dsh `columns.ts` 的 RIGHTBAR_DEFAULT_RATIO）。
  *
- * dsh `ui-layout` 首次打开用 45%，但那是「对话就是主区」的场景；我们的主区是
- * 策划书 / 数据编辑这类密集表单。且左栏按 dsh 度量展开到 280px 后，三栏同时变宽
- * 会把主区挤到换行——故取 25%，保留 dsh 的两条护栏（上限 70%、主区至少 480px）。
- * 用户拖一次就落 localStorage，之后按偏好走。
+ * 中栏改成对话之后，这条可以照 dsh 用了：对话在 400px 就够读，
+ * 右栏要装策划书/数据编辑这类密集表单，给宽才是对的。
  */
-export const AI_DOCK_DEFAULT_RATIO = 0.25
+export const AI_DOCK_DEFAULT_RATIO = 0.45
 
 /** 右栏宽度上限占视口的比例（对齐 dsh 的 70% 上限） */
 export const AI_DOCK_MAX_RATIO = 0.7

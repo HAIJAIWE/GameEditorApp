@@ -10,12 +10,10 @@ import { TrajectorySection } from './trajectorySection'
 import { registerReactBinding } from './reactBindings'
 
 /**
- * 会话（session）：**右栏**的一个页签，与内置「对话」并列（对齐 dsh 的三栏布局）。
+ * 会话（session）：**右栏停靠面板**里的一个页签（对齐 dsh 三栏：中间对话、右栏工具）。
  *
- * 原来它是主区页签，和「团队协作」「轨迹」并排。改成右栏的理由：
- * 会话与对话读**同一份** `conversation.state`，放在同一根停靠轨道里，
- * 「看对话」时顺手切到「看轨迹」不用跨区移动视线；主区留给业务窗口
- * （策划书 / 数据编辑 / 代码编辑 / 浏览器）。
+ * 会话与对话读**同一份** `conversation.state`——对话在中间，会话在右侧停靠区，
+ * 一边看对话一边切到轨迹，不用跨区移动视线。
  *
  * 三个分区共用一层外壳与同一个 `conversation.state`：
  * - 主对话摘要（状态 / 消息数 / 步骤数 / 最近回复）
@@ -44,10 +42,8 @@ export function defineSessionPlugin(host: PluginHost): PluginManifest {
         id: 'session.mainView',
         label: '会话',
         title: '会话：主对话摘要 + 子智能体 + 轨迹',
-        order: 10,
+        order: 50,
         lazy: true,
-        // 右栏页签：由 `RightBarTabs` 认领，主区页签条不再显示它
-        host: 'rightbar',
         ui: { type: 'text', text: '会话' }
       }
     ]
