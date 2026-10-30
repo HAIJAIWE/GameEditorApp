@@ -44,6 +44,7 @@ import {
   type SubAgentProvider
 } from './types'
 import { clipToolResult, maybeResetContext, safeRunEvaluator } from './context'
+import { RepeatCallGuard } from '../guard'
 import { isAbortError } from '../../abort'
 
 /**
@@ -139,6 +140,8 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
   const results: string[] = []
   /** F10 per-tool 重试预算：按 `工具/动作` 累计连续失败次数，达阈值强制换方案 */
   const failCount = new Map<string, number>()
+  // 循环卫生（dsh guard/repeat-tool-reminder）：连续「同工具 + 同参数」调用时给模型建议性提醒
+  const repeatGuard = new RepeatCallGuard()
   // M1 观测：本轮运行的累计消耗（每轮 LLM 调用后并入；档位来自 M3 注入的 `tier`）
   let runStats: AgentRunStats = emptyAgentRunStats(tier)
   // M0.5 终止闸（DD-5）：轮次 / 工具调用累计 / 墙钟 三道**计数式**硬闸。
@@ -422,6 +425,12 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
       }
     } else {
       failCount.set(fKey, 0)
+    }
+    // 循环卫生：连续「同工具 + 同参数」调用时注入**建议性**提醒（只提醒，不否决也不改写调用）。
+    // 与 failCount 互补：后者管连续失败（硬转向 [STOP]），这里管连续重复（哪怕次次成功）。
+    const repeatReminder = repeatGuard.record(fKey, call.arguments)
+    if (repeatReminder !== null) {
+      messages.push({ role: 'user', content: repeatReminder })
     }
     return { text, success }
   }
