@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { SkillDispatcher } from '../../src/main/agent/dispatcher'
+import { SkillDispatcher } from '../../src/main/agent/execution/dispatcher'
 import { createCodeSkill } from '../../src/main/agent/skills/codeSkill'
 import { RISK_LEVEL, resolveRiskLevel } from '../../src/shared/agent/config/protocol'
 

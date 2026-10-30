@@ -10,7 +10,7 @@ import {
   PURGE_BATCH,
   executeRollbackPlan,
   type RollbackPort
-} from '../../src/main/agent/operationLogStore'
+} from '../../src/main/agent/store/operationLogStore'
 
 function makeRecord(over: Partial<OperationRecord> = {}): OperationRecord {
   return {

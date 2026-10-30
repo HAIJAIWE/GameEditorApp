@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { TaskRegistry, taskRegistry, withTask } from '../../src/main/task/taskRegistry'
-import { runSingleShotTask } from '../../src/main/agent/runTask'
+import { runSingleShotTask } from '../../src/main/agent/execution/runTask'
 
 /*
  * 取消表的语义（对话循环与单发 AI 共用）。

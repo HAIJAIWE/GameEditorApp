@@ -13,8 +13,8 @@
 
 import { spawn } from 'node:child_process'
 
-import type { SubAgentOutcome, SubAgentProvider, SubAgentTask } from '../../shared/agent/brain'
-import { isAclSandboxSupported, withReadOnlyDir } from './windowsSandbox'
+import type { SubAgentOutcome, SubAgentProvider, SubAgentTask } from '../../../shared/agent/brain'
+import { isAclSandboxSupported, withReadOnlyDir } from '../ops/windowsSandbox'
 
 export interface CliSubAgentOptions {
   /** provider 名称（默认 `cli`） */

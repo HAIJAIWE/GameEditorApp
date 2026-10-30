@@ -5,7 +5,7 @@
  * 记忆是辅助功能——任何异常都返回 null，绝不阻塞主流程。
  */
 
-import type { AgentMemoryStore } from '../memoryStore'
+import type { AgentMemoryStore } from '../store/memoryStore'
 
 /** 检索注入进提示词的记忆条数上限 */
 export const MEMORY_INJECT_TOP_K = 3

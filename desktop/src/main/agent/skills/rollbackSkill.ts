@@ -8,8 +8,8 @@
  * 跨轮次的会话级回滚需要会话 id 持久化，属后续工作；此处取最小爆炸半径，宁小勿大。
  */
 
-import { executeRollbackPlan, type RollbackPort } from '../operationLogStore'
-import type { OperationLogStore } from '../operationLogStore'
+import { executeRollbackPlan, type RollbackPort } from '../store/operationLogStore'
+import type { OperationLogStore } from '../store/operationLogStore'
 import type { SkillExecutionContext, SkillProtocol, SkillResult } from '../../../shared/agent/config/protocol'
 
 /** 回滚所需的最小数据端口（从 `DataService` 取，便于单测注入替身） */

@@ -27,7 +27,7 @@
  * 解析规则本身逐行保持：`error` 字段抛中文错误、`tool_calls` 按到达顺序追加、末 chunk 取 token 计数。
  */
 
-import { LLM_DEFAULT_NUM_CTX, LLM_MESSAGES, type LlmUsage } from '../../shared/config/llm/llmConfig'
+import { LLM_DEFAULT_NUM_CTX, LLM_MESSAGES, type LlmUsage } from '../../../shared/config/llm/llmConfig'
 import {
   parseToolArguments,
   type BrainLlmReply,
@@ -35,8 +35,8 @@ import {
   type BrainLlmTransport,
   type BrainMessage,
   type BrainToolCall
-} from '../../shared/agent/brain'
-import { resolveVisionSupport, stripDataUrlPrefix, type VisionMode } from '../../shared/util/ui/visionSupport'
+} from '../../../shared/agent/brain'
+import { resolveVisionSupport, stripDataUrlPrefix, type VisionMode } from '../../../shared/util/ui/visionSupport'
 import { assertHttpOk, isAbortError, pumpLines } from './agentStream'
 
 const DEFAULT_HOST = 'http://127.0.0.1:11434'

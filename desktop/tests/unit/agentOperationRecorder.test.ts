@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
-import { createRecordingToolRunner, locateItem } from '../../src/main/agent/operationRecorder'
-import { OperationLogStore } from '../../src/main/agent/operationLogStore'
-import { DeliveryLogStore } from '../../src/main/agent/deliveryLogStore'
+import { createRecordingToolRunner, locateItem } from '../../src/main/agent/ops/operationRecorder'
+import { OperationLogStore } from '../../src/main/agent/store/operationLogStore'
+import { DeliveryLogStore } from '../../src/main/agent/store/deliveryLogStore'
 import { createRollbackSkill, type RollbackDataPort } from '../../src/main/agent/skills/rollbackSkill'
 import type { BrainToolRunner } from '../../src/shared/agent/brain'
 import type { SkillResult } from '../../src/shared/agent/config/protocol'

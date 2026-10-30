@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { SkillDispatcher } from '../../src/main/agent/dispatcher'
-import { OperationLogStore } from '../../src/main/agent/operationLogStore'
+import { SkillDispatcher } from '../../src/main/agent/execution/dispatcher'
+import { OperationLogStore } from '../../src/main/agent/store/operationLogStore'
 import { createAskUserSkill } from '../../src/main/agent/skills/askUserSkill'
 import { createCeshuSkill } from '../../src/main/agent/skills/ceshuSkill'
 import { createCodeSkill } from '../../src/main/agent/skills/codeSkill'

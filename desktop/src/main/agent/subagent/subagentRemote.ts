@@ -12,7 +12,7 @@
  * 安全：远程服务在自己的环境里跑，本进程的沙箱策略管不到它；是否允许使用由调用方决定。
  */
 
-import type { SubAgentOutcome, SubAgentProvider, SubAgentTask } from '../../shared/agent/brain'
+import type { SubAgentOutcome, SubAgentProvider, SubAgentTask } from '../../../shared/agent/brain'
 
 export interface RemoteSubAgentOptions {
   /** provider 名称（默认 `remote`） */

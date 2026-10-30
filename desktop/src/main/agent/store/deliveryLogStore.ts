@@ -5,7 +5,7 @@
  * （文件可能已被移动/删除，旧记录反而误导）。超上限淘汰最旧一批。
  */
 
-import type { DeliveryRecord } from '../../shared/agent/observability/deliveryLog'
+import type { DeliveryRecord } from '../../../shared/agent/observability/deliveryLog'
 
 /** 内存上限（超出后淘汰最旧一批） */
 export const MAX_DELIVERIES = 2000

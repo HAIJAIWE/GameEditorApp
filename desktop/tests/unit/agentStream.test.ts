@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { assertHttpOk, isAbortError, pumpLines } from '../../src/main/agent/agentStream'
+import { assertHttpOk, isAbortError, pumpLines } from '../../src/main/agent/transport/agentStream'
 
 /*
  * 行泵是两个传输层（Ollama NDJSON / OpenAI SSE）共用的底座，改前各写一份且已漂移

@@ -7,7 +7,7 @@ import {
 } from '../../shared/schema/core/schemas'
 import { TYPE_TEMPLATE_NAMES } from '../../shared/schema/core/typeTemplates'
 import { buildFieldIdPrompt, parseFieldIdCandidates } from '../../shared/util/id/fieldIdAi'
-import { runSingleShotTask } from '../agent/runTask'
+import { runSingleShotTask } from '../agent/execution/runTask'
 import { estimateTokens } from '../../shared/agent/runtime/budget'
 
 export function registerSchemaIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm: LlmShared): void {

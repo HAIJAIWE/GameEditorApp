@@ -4,7 +4,7 @@ import { join } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { AgentSessionStore } from '../../src/main/agent/sessionStore'
+import { AgentSessionStore } from '../../src/main/agent/session/sessionStore'
 import {
   SESSION_CONTENT_LIMIT,
   SESSION_MAX_MESSAGES,

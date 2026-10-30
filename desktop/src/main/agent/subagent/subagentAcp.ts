@@ -15,7 +15,7 @@
 
 import { spawn } from 'node:child_process'
 
-import type { SubAgentOutcome, SubAgentProvider, SubAgentTask } from '../../shared/agent/brain'
+import type { SubAgentOutcome, SubAgentProvider, SubAgentTask } from '../../../shared/agent/brain'
 
 const DEFAULT_PROTOCOL_VERSION = 1
 const DEFAULT_TIMEOUT_MS = 300_000

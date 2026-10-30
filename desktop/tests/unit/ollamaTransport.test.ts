@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { OllamaChatTransport } from '../../src/main/agent/ollamaTransport'
+import { OllamaChatTransport } from '../../src/main/agent/transport/ollamaTransport'
 import { LLM_DEFAULT_NUM_CTX } from '../../src/shared/config/llm/llmConfig'
 
 /**

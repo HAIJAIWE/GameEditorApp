@@ -8,7 +8,7 @@
  * 单进程单线程（主进程），故无锁；写入按到达顺序追加。
  */
 
-import { buildRollbackPlan, type OperationRecord, type RollbackOutcome, type RollbackPlan } from '../../shared/agent/observability/operationLog'
+import { buildRollbackPlan, type OperationRecord, type RollbackOutcome, type RollbackPlan } from '../../../shared/agent/observability/operationLog'
 
 /** 内存上限（超出后淘汰最旧一批，防长时间运行内存增长） */
 export const MAX_OPERATIONS = 5000

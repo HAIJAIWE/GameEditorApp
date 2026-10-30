@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { DeliveryLogStore } from '../../src/main/agent/deliveryLogStore'
+import { DeliveryLogStore } from '../../src/main/agent/store/deliveryLogStore'
 
 const delivery = (
   conversationId: string,

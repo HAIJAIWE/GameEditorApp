@@ -13,11 +13,11 @@
  *    绝不静默伪造一份快照（那会在回滚时把用户数据写坏）。
  */
 
-import type { BrainToolRunner } from '../../shared/agent/brain'
-import type { OperationRecord } from '../../shared/agent/observability/operationLog'
-import type { SkillExecutionContext, SkillResult } from '../../shared/agent/config/protocol'
-import type { OperationLogStore } from './operationLogStore'
-import type { DeliveryLogStore } from './deliveryLogStore'
+import type { BrainToolRunner } from '../../../shared/agent/brain'
+import type { OperationRecord } from '../../../shared/agent/observability/operationLog'
+import type { SkillExecutionContext, SkillResult } from '../../../shared/agent/config/protocol'
+import type { OperationLogStore } from '../store/operationLogStore'
+import type { DeliveryLogStore } from '../store/deliveryLogStore'
 
 /** 记录器需要的条目形态（`ItemRecord` 的结构子集） */
 export interface RecorderItem {

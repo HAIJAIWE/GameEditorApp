@@ -4,8 +4,8 @@ import { join } from 'node:path'
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { AgentSessionStore } from '../../src/main/agent/sessionStore'
-import { SessionSearchIndex } from '../../src/main/agent/sessionIndex'
+import { AgentSessionStore } from '../../src/main/agent/session/sessionStore'
+import { SessionSearchIndex } from '../../src/main/agent/session/sessionIndex'
 import { createSessionSearchSkill } from '../../src/main/agent/skills/sessionSearchSkill'
 
 let dir: string

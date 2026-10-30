@@ -16,10 +16,10 @@ import type {
 import type { SkillExecutionContext } from '../../../shared/agent/config/protocol'
 import type { DigitalAttachment } from '../../../shared/util/io/libraryAttachments'
 import type { StoredLlmConfig } from '../../../shared/config/llm/llmConfig'
-import type { AgentMemoryStore } from '../memoryStore'
-import type { PreferenceStore } from '../preferenceStore'
-import type { SkillDispatcher } from '../dispatcher'
-import type { AgentSessionStore } from '../sessionStore'
+import type { AgentMemoryStore } from '../store/memoryStore'
+import type { PreferenceStore } from '../store/preferenceStore'
+import type { SkillDispatcher } from '../execution/dispatcher'
+import type { AgentSessionStore } from '../session/sessionStore'
 
 /** 单次调用可覆盖的选项（A1-4 面板注入事件流与审批） */
 export interface AgentChatOptions {

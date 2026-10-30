@@ -4,7 +4,7 @@ import { join } from 'node:path'
 
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { isAclSandboxSupported, withReadOnlyDir } from '../../src/main/agent/windowsSandbox'
+import { isAclSandboxSupported, withReadOnlyDir } from '../../src/main/agent/ops/windowsSandbox'
 
 const isWin = isAclSandboxSupported()
 let dir: string | null = null

@@ -14,8 +14,8 @@
  */
 
 import type { SkillProtocol, SkillResult } from '../../../shared/agent/config/protocol'
-import type { AgentSessionStore } from '../sessionStore'
-import { SessionSearchIndex } from '../sessionIndex'
+import type { AgentSessionStore } from '../session/sessionStore'
+import { SessionSearchIndex } from '../session/sessionIndex'
 
 const ACTIONS = ['search', 'read', 'list'] as const
 

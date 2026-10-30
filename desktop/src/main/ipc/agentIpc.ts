@@ -19,7 +19,7 @@ import { parseMcpConfig } from '../../shared/agent/mcp/config'
 import { mcpManager } from '../agent/mcp/manager'
 import { DEFAULT_INTERACTION_TIMEOUT_MS } from '../../shared/agent/brain'
 import { isPreReviewEnabled, setPreReviewEnabled } from '../agent/agentService/preReview'
-import type { AgentInteractionAnswer } from '../agent/approvalBroker'
+import type { AgentInteractionAnswer } from '../agent/execution/approvalBroker'
 import { withTask } from '../task/taskRegistry'
 
 export function registerAgentIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm: LlmShared): void {

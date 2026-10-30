@@ -8,7 +8,7 @@ import {
   extractPreferences,
   PREFERENCE_KEYWORDS
 } from '../../src/shared/agent/config/personalization'
-import { FeedbackStore, PreferenceStore, createPersonalizationStores } from '../../src/main/agent/preferenceStore'
+import { FeedbackStore, PreferenceStore, createPersonalizationStores } from '../../src/main/agent/store/preferenceStore'
 
 describe('personalization：extractPreferences（关键词 → 偏好键值）', () => {
   it('空评论返回空对象', () => {

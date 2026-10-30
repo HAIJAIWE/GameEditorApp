@@ -47,7 +47,7 @@ import { computeChapterProgress } from '../../../shared/ceshu/model/ceshuModel'
 import { validateCeshu } from '../../../shared/ceshu/validation/ceshuValidation'
 import { parseLlmJson } from '../../../shared/util/object/parseLlmJson'
 import { applyJudge, evaluateChapterDraft, evaluateDataCandidates } from '../../../shared/agent/runtime/qualityGate'
-import { runLlmJudge } from '../../agent/qualityJudge'
+import { runLlmJudge } from '../../agent/execution/qualityJudge'
 import { runAiTask, type AiGeneratePort, type AiLlmPort } from '../../ai/runner'
 
 /** 四路任务共用的两个外部端口（配置门面 + 生成客户端） */

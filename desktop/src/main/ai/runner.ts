@@ -27,7 +27,7 @@ import { estimateTokens, type LlmTaskType } from '../../shared/agent/runtime/bud
 import type { LlmUsage } from '../../shared/config/llm/llmConfig'
 import type { AgentRunStats } from '../../shared/agent/observability/observability'
 import type { LlmCallOptions } from '../llm/client'
-import { runSingleShotTask } from '../agent/runTask'
+import { runSingleShotTask } from '../agent/execution/runTask'
 
 /** 主进程侧的 LLM 配置门面（对应 `ipc.ts::LlmShared`，此处只声明本模块用到的两个方法） */
 export interface AiLlmPort {

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { LlmClient } from '../../src/main/llm/client'
-import { runLlmJudge } from '../../src/main/agent/qualityJudge'
+import { runLlmJudge } from '../../src/main/agent/execution/qualityJudge'
 import type { LlmCallOptions } from '../../src/main/llm/client'
 
 /**

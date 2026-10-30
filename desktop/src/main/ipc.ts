@@ -36,13 +36,13 @@ export interface IpcHandlerDeps {
   attrSystemStore: import('./attr/attrSystemStore').AttrSystemStore
   llmClient: import('./llm/client').LlmClient
   dataSync: import('./ceshu/dataSync').CeshuDataSync
-  agentDispatcher: import('./agent/dispatcher').SkillDispatcher
-  agentBrain: import('./agent/brainService').AgentBrainService
-  agentSessionStore: import('./agent/sessionStore').AgentSessionStore
-  agentFeedback: import('./agent/preferenceStore').FeedbackStore
-  agentOperationLog: import('./agent/operationLogStore').OperationLogStore
-  agentDeliveryLog: import('./agent/deliveryLogStore').DeliveryLogStore
-  approvalBroker: import('./agent/approvalBroker').AgentApprovalBroker
+  agentDispatcher: import('./agent/execution/dispatcher').SkillDispatcher
+  agentBrain: import('./agent/brain/brainService').AgentBrainService
+  agentSessionStore: import('./agent/session/sessionStore').AgentSessionStore
+  agentFeedback: import('./agent/store/preferenceStore').FeedbackStore
+  agentOperationLog: import('./agent/store/operationLogStore').OperationLogStore
+  agentDeliveryLog: import('./agent/store/deliveryLogStore').DeliveryLogStore
+  approvalBroker: import('./agent/execution/approvalBroker').AgentApprovalBroker
   libraryManager: import('./library/manager').LibraryManager
   /**
    * 系统钥匙串（`safeStorage` 加密的 API Key 存储）。

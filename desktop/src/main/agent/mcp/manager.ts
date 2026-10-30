@@ -6,7 +6,7 @@ import { setMaxToolsOverride } from '../../../shared/agent/tools/toolGroups'
 import { McpClient } from '../../../shared/agent/mcp/client'
 import { parseMcpConfig } from '../../../shared/agent/mcp/config'
 import type { McpConfig, McpServerConfig, McpToolInfo, McpTransport } from '../../../shared/agent/mcp/types'
-import type { SkillDispatcher } from '../dispatcher'
+import type { SkillDispatcher } from '../execution/dispatcher'
 import { StdioMcpTransport } from './stdioTransport'
 import { StreamableHttpTransport } from './streamableHttpTransport'
 

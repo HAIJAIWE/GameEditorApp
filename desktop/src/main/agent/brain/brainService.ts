@@ -10,4 +10,4 @@
  * 外部 import 站点零改动——本文件继续导出与拆分前完全相同的公共 API。
  */
 
-export * from './agentService/index'
+export * from '../agentService/index'

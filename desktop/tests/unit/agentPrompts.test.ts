@@ -13,7 +13,7 @@ import {
   getToolCatalogLine,
   type SkillProtocol
 } from '../../src/shared/agent/config/protocol'
-import { SkillDispatcher } from '../../src/main/agent/dispatcher'
+import { SkillDispatcher } from '../../src/main/agent/execution/dispatcher'
 
 function makeSkill(id: string, description = '示例技能'): SkillProtocol {
   return {

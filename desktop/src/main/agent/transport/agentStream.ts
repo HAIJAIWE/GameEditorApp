@@ -68,4 +68,4 @@ export async function assertHttpOk(response: Response, label: string): Promise<v
  * 是否是「取消」导致的异常 —— 实现下沉在 `shared/abort.ts`（循环层/单发生成也要用，禁止反向 import）。
  * 这里 re-export 保持传输层的既有 import 站点不变。
  */
-export { isAbortError } from '../../shared/abort'
+export { isAbortError } from '../../../shared/abort'

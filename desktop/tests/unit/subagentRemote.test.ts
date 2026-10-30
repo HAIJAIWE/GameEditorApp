@@ -1,7 +1,7 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { createRemoteSubAgentProvider } from '../../src/main/agent/subagentRemote'
+import { createRemoteSubAgentProvider } from '../../src/main/agent/subagent/subagentRemote'
 import type { SubAgentTask } from '../../src/shared/agent/brain'
 
 function makeTask(text: string): SubAgentTask {

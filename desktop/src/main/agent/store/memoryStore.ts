@@ -19,7 +19,7 @@ import { join } from 'node:path'
 
 import { LocalIndex } from 'vectra'
 
-import { hashEmbeddingProvider, type EmbeddingProvider } from './embedding'
+import { hashEmbeddingProvider, type EmbeddingProvider } from '../brain/embedding'
 
 export interface MemoryHit {
   id: string

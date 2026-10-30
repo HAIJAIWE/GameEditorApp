@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { createCliSubAgentProvider } from '../../src/main/agent/subagentCli'
+import { createCliSubAgentProvider } from '../../src/main/agent/subagent/subagentCli'
 import type { SubAgentTask } from '../../src/shared/agent/brain'
 
 function makeTask(text: string, sandboxPolicy: SubAgentTask['sandboxPolicy'] = 'workspace-write'): SubAgentTask {
