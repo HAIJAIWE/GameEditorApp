@@ -51,6 +51,59 @@ const HISTORY_ATTACHMENT_LIMIT = 20
 const INPUT_IMAGE_LIMIT = 4
 /** 单轮图片总字节上限（按原始字节算；data URL 会再膨胀约 1/3） */
 const INPUT_IMAGE_TOTAL_BYTES = 20 * 1024 * 1024
+/** 历史重发图片的上限（与当轮共用「≤4 张 / 20MB」口径） */
+const HISTORY_IMAGE_LIMIT = 4
+const HISTORY_IMAGE_TOTAL_BYTES = 20 * 1024 * 1024
+
+/**
+ * 从恢复的历史里**重发图片**（对齐 dsh：later turns 也会把附件发给模型）。
+ * 只处理 user 消息上 `attachments` 里的 `image/*`；取最近若干张、按总字节截断；
+ * 非视觉模型原样返回（不读图）。返回新数组（不改原对象）——`images` 只活在这一轮请求里、不落盘。
+ */
+async function hydratePriorImages(
+  priorMessages: readonly Record<string, unknown>[],
+  resolve: ResolveAttachmentPath,
+  vision: boolean
+): Promise<Array<Record<string, unknown>>> {
+  if (!vision) return [...priorMessages]
+  const candidates: Array<{ messageIndex: number; file: DigitalAttachment }> = []
+  priorMessages.forEach((message, messageIndex) => {
+    if (message.role !== 'user') return
+    const attachments = message.attachments
+    if (!Array.isArray(attachments)) return
+    for (const raw of attachments) {
+      if (raw === null || typeof raw !== 'object') continue
+      const record = raw as Record<string, unknown>
+      const name = typeof record['name'] === 'string' ? record['name'] : ''
+      const mime = typeof record['mime'] === 'string' ? record['mime'] : ''
+      if (name === '' || !mime.startsWith('image/')) continue
+      const bytes = typeof record['bytes'] === 'number' && Number.isFinite(record['bytes']) ? record['bytes'] : 0
+      candidates.push({ messageIndex, file: { name, mime, bytes } })
+    }
+  })
+  if (candidates.length === 0) return [...priorMessages]
+  const byMessage = new Map<number, string[]>()
+  let total = 0
+  for (const { messageIndex, file } of candidates.slice(-HISTORY_IMAGE_LIMIT)) {
+    const path = resolve(file.name)
+    if (path === undefined) continue
+    if (file.bytes > 0 && total + file.bytes > HISTORY_IMAGE_TOTAL_BYTES) continue
+    try {
+      const buffer = await readFile(path)
+      total += buffer.byteLength
+      const list = byMessage.get(messageIndex) ?? []
+      list.push(`data:${file.mime};base64,${buffer.toString('base64')}`)
+      byMessage.set(messageIndex, list)
+    } catch {
+      // 读不到就跳过该图（历史路径行仍在提示词里）
+    }
+  }
+  if (byMessage.size === 0) return [...priorMessages]
+  return priorMessages.map((message, index) => {
+    const images = byMessage.get(index)
+    return images === undefined ? message : { ...message, images }
+  })
+}
 
 /**
  * 把**本轮**图片附件读成 data URL（历史附件仍只给路径）。
@@ -265,6 +318,8 @@ export class AgentBrainService {
       )
     }
     const inputImages = vision ? await buildInputImages(options.attachments, resolveAttachmentPath) : undefined
+    // 历史图片重发（dsh：later turns 也把附件发给模型）；非视觉模型不读图
+    const priorMessagesWithImages = await hydratePriorImages(priorMessages, resolveAttachmentPath, vision)
     const systemPrompts = buildSystemPrompts({
       // M2/G7 + M3/DD-3：注入**按场景分组、按档位限量**的紧凑能力目录（每工具一行）
       capabilityCatalog: face.catalog,
@@ -296,8 +351,8 @@ export class AgentBrainService {
       // Slice 32：沙箱策略（read-only 会拒绝外部 CLI 子智能体）
       ...(this.deps.sandboxPolicy !== undefined ? { sandboxPolicy: this.deps.sandboxPolicy } : {}),
       // Slice 34：从轮次日志恢复的历史（系统提示词之后、本次输入之前）
-      ...(priorMessages.length > 0
-        ? { initialMessages: priorMessages as unknown as BrainMessage[] }
+      ...(priorMessagesWithImages.length > 0
+        ? { initialMessages: priorMessagesWithImages as unknown as BrainMessage[] }
         : {}),
       // 本轮图片（data URL）：只在本轮发给模型，不落盘
       ...(inputImages !== undefined ? { inputImages } : {}),

@@ -256,6 +256,80 @@ describe('AgentBrainService：M3 档位路由装配', () => {
     expect(systemText(request)).toContain('未启用视觉输入')
   })
 
+  it('恢复会话 + 视觉模型：历史图片重发给模型（data URL）', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'mb-vision-'))
+    const imgPath = join(dir, 'old.png')
+    writeFileSync(imgPath, Buffer.from([0x89, 0x50, 0x4e, 0x47]))
+
+    const sessionStore = {
+      readTurns: () => [
+        {
+          type: 'turn',
+          sessionId: 's1',
+          messages: [{ role: 'user', content: '旧图', attachments: [{ name: 'old.png', mime: 'image/png', bytes: 4 }] }]
+        }
+      ],
+      save: async () => undefined,
+      recordRunStats: async () => undefined,
+      recordEvents: async () => undefined,
+      appendTurn: async () => undefined
+    } as unknown as AgentSessionStore
+
+    const { transport, requests } = capturingTransport()
+    const service = new AgentBrainService({
+      dispatcher: makeDispatcher(),
+      transport,
+      sessionStore,
+      resolveAttachmentPath: (name) => (name === 'old.png' ? imgPath : name)
+    })
+    await service.chat('继续', {
+      resumeHistory: true,
+      context: { sessionId: 's1' },
+      config: { ...DEFAULT_LLM_CONFIG, provider: 'openai', model: 'gpt-4o' }
+    })
+
+    const request = requests[0] as BrainLlmRequest
+    const priorUser = request.messages.find((message) => message.role === 'user' && message.content === '旧图')
+    expect(priorUser?.images?.[0]).toMatch(/^data:image\/png;base64,/)
+  })
+
+  it('恢复会话 + 非视觉模型：历史图片不重发', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'mb-vision-'))
+    const imgPath = join(dir, 'old.png')
+    writeFileSync(imgPath, Buffer.from([0x89, 0x50, 0x4e, 0x47]))
+
+    const sessionStore = {
+      readTurns: () => [
+        {
+          type: 'turn',
+          sessionId: 's1',
+          messages: [{ role: 'user', content: '旧图', attachments: [{ name: 'old.png', mime: 'image/png', bytes: 4 }] }]
+        }
+      ],
+      save: async () => undefined,
+      recordRunStats: async () => undefined,
+      recordEvents: async () => undefined,
+      appendTurn: async () => undefined
+    } as unknown as AgentSessionStore
+
+    const { transport, requests } = capturingTransport()
+    const service = new AgentBrainService({
+      dispatcher: makeDispatcher(),
+      transport,
+      sessionStore,
+      resolveAttachmentPath: (name) => (name === 'old.png' ? imgPath : name)
+    })
+    await service.chat('继续', {
+      resumeHistory: true,
+      context: { sessionId: 's1' },
+      config: { ...DEFAULT_LLM_CONFIG, provider: 'deepseek', model: 'deepseek-chat' }
+    })
+
+    const request = requests[0] as BrainLlmRequest
+    const priorUser = request.messages.find((message) => message.role === 'user' && message.content === '旧图')
+    expect(priorUser?.images).toBeUndefined()
+  })
+
   it('会话落盘：附件元数据挂到本轮 user 消息（恢复时才能重放）', async () => {
     const saved: Array<Array<Record<string, unknown>>> = []
     const appended: Array<Array<Record<string, unknown>>> = []
