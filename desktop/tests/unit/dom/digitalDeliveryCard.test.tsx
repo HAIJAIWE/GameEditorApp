@@ -39,7 +39,7 @@ describe('交付卡', () => {
       expect(rendered.text()).toContain('2.0 KB')
 
       await rendered.click(files[0] as HTMLElement)
-      expect(api.calls).toContain('attachments.open')
+      expect(api.calls).toContain('shell.openPath')
       await rendered.cleanup()
     } finally {
       api.restore()

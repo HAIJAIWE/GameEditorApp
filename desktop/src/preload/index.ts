@@ -153,6 +153,9 @@ const api: MbApi = {
     // 拖拽文件取本地路径：renderer 沙箱拿不到 File.path，只能经 webUtils（preload 侧）
     pathForFile: (file) => webUtils.getPathForFile(file as never)
   },
+  shell: {
+    openPath: (req) => invoke('shell:openPath', req)
+  },
   images: {
     listLibraryImages: () => invoke('images:listLibraryImages', undefined),
     // 按已保存路径回显预览

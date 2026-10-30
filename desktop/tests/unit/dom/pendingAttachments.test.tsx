@@ -9,15 +9,13 @@ import { installMbApi, renderDom } from './render'
  * 图片显示真实缩略图、其它显示文件 chip、可移除、读图失败回退。
  */
 
-const img = (name: string): { name: string; path: string; mime: string; bytes: number } => ({
+const img = (name: string): { name: string; mime: string; bytes: number } => ({
   name,
-  path: `/lib/attachments/${name}`,
   mime: 'image/png',
   bytes: 4096
 })
-const file = (name: string): { name: string; path: string; mime: string; bytes: number } => ({
+const file = (name: string): { name: string; mime: string; bytes: number } => ({
   name,
-  path: `/lib/attachments/${name}`,
   mime: 'text/markdown',
   bytes: 2048
 })

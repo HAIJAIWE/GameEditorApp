@@ -104,6 +104,11 @@ export interface AgentBrainServiceDeps {
   preExecReview?: PreExecReviewFn
   /** 会话持久化（A1-3）；缺省不落盘 */
   sessionStore?: AgentSessionStore
+  /**
+   * 附件叶子名 → 库内绝对路径。附件只存叶子名（对齐 dsh：持久化事件不含路径），
+   * 提示词里给智能体可读的绝对路径时用它解析；未注入（测试/内嵌）时只给叶子名。
+   */
+  resolveAttachmentPath?: (name: string) => string
   /** 语义记忆（A1-3）；缺省不检索也不回写 */
   memoryStore?: AgentMemoryStore
   /** 用户偏好（来自历史反馈，确定性键值）；缺省不注入个性化片段 */

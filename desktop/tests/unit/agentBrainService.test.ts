@@ -172,44 +172,45 @@ describe('AgentBrainService：M3 档位路由装配', () => {
     expect(text2).not.toContain('【本轮目标】')
   })
 
-  it('会话附件注入系统提示词「【附件】…」（文件名/路径/大小）', async () => {
+  it('会话附件注入系统提示词「【附件】…」（名称/路径/大小），只给路径不内联内容', async () => {
     const { transport, requests } = capturingTransport()
-    const service = new AgentBrainService({ dispatcher: makeDispatcher(), transport })
+    const service = new AgentBrainService({
+      dispatcher: makeDispatcher(),
+      transport,
+      resolveAttachmentPath: (name) => `/lib/attachments/${name}`
+    })
 
     await service.chat('看看这份设计', {
-      attachments: [{ name: 'design.md', path: '/lib/attachments/design.md', mime: 'text/markdown', bytes: 2048 }]
+      attachments: [{ name: 'design.md', mime: 'text/markdown', bytes: 2048 }]
     })
     const text = systemText(requests[0] as BrainLlmRequest)
     expect(text).toContain('【附件】')
     expect(text).toContain('design.md')
     expect(text).toContain('/lib/attachments/design.md')
     expect(text).toContain('2.0 KB')
+    // 对齐 dsh：只给路径、不内联内容
+    expect(text).not.toContain('内容：')
   })
 
-  it('文本类附件内联内容；二进制附件只给路径（不读内容）', async () => {
+  it('文本附件也只给路径、不内联内容（对齐 dsh）', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'mb-attach-'))
     const textPath = join(dir, 'notes.md')
     writeFileSync(textPath, '# 战斗公式\n伤害 = 攻击 - 防御')
-    const binPath = join(dir, 'pic.png')
-    writeFileSync(binPath, Buffer.from([0x89, 0x50, 0x4e, 0x47]))
 
     const { transport, requests } = capturingTransport()
-    const service = new AgentBrainService({ dispatcher: makeDispatcher(), transport })
-
+    const service = new AgentBrainService({
+      dispatcher: makeDispatcher(),
+      transport,
+      resolveAttachmentPath: (name) => (name === 'notes.md' ? textPath : name)
+    })
     await service.chat('看看附件', {
-      attachments: [
-        { name: 'notes.md', path: textPath, mime: 'text/markdown', bytes: 20 },
-        { name: 'pic.png', path: binPath, mime: 'image/png', bytes: 4 }
-      ]
+      attachments: [{ name: 'notes.md', mime: 'text/markdown', bytes: 20 }]
     })
     const text = systemText(requests[0] as BrainLlmRequest)
-    // 文本附件：内容内联
-    expect(text).toContain('伤害 = 攻击 - 防御')
     expect(text).toContain('notes.md')
-    // 二进制附件：只给路径
-    expect(text).toContain('pic.png')
-    // 只有文本附件会内联内容：整段只出现一次「内容：」
-    expect((text.match(/内容：/g) ?? []).length).toBe(1)
+    expect(text).toContain(textPath)
+    // 内容不内联：文件里的正文不该出现在提示词里
+    expect(text).not.toContain('伤害 = 攻击 - 防御')
   })
 
   it('会话落盘：附件元数据挂到本轮 user 消息（恢复时才能重放）', async () => {
@@ -229,7 +230,7 @@ describe('AgentBrainService：M3 档位路由装配', () => {
 
     const { transport } = capturingTransport()
     const service = new AgentBrainService({ dispatcher: makeDispatcher(), transport, sessionStore })
-    const file = { name: 'a.md', path: '/lib/attachments/a.md', mime: 'text/markdown', bytes: 10 }
+    const file = { name: 'a.md', mime: 'text/markdown', bytes: 10 }
     await service.chat('看看附件', { attachments: [file] })
 
     expect(saved[0]?.find((message) => message.role === 'user')).toMatchObject({ attachments: [file] })
@@ -238,7 +239,7 @@ describe('AgentBrainService：M3 档位路由装配', () => {
   })
 
   it('恢复会话：历史附件以「【历史附件】」路径清单注入（只给路径，不内联内容）', async () => {
-    const file = { name: 'old.md', path: '/lib/attachments/old.md', mime: 'text/markdown', bytes: 10 }
+    const file = { name: 'old.md', mime: 'text/markdown', bytes: 10 }
     const sessionStore = {
       readTurns: () => [
         { type: 'turn', sessionId: 's1', messages: [{ role: 'user', content: '旧消息', attachments: [file] }] }
@@ -250,7 +251,12 @@ describe('AgentBrainService：M3 档位路由装配', () => {
     } as unknown as AgentSessionStore
 
     const { transport, requests } = capturingTransport()
-    const service = new AgentBrainService({ dispatcher: makeDispatcher(), transport, sessionStore })
+    const service = new AgentBrainService({
+      dispatcher: makeDispatcher(),
+      transport,
+      sessionStore,
+      resolveAttachmentPath: (name) => `/lib/attachments/${name}`
+    })
     await service.chat('继续', { resumeHistory: true, context: { sessionId: 's1' } })
 
     const text = systemText(requests[0] as BrainLlmRequest)

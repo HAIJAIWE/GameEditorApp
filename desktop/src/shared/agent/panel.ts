@@ -332,12 +332,11 @@ function parseAttachments(value: unknown): DigitalAttachment[] | undefined {
   for (const raw of value) {
     if (raw === null || typeof raw !== 'object') continue
     const record = raw as Record<string, unknown>
+    // 只认叶子名（对齐 dsh：持久化事件不含路径）；旧数据里的 path 字段忽略即可
     const name = typeof record['name'] === 'string' ? record['name'] : ''
-    const path = typeof record['path'] === 'string' ? record['path'] : ''
-    if (name === '' || path === '') continue
+    if (name === '') continue
     out.push({
       name,
-      path,
       mime: typeof record['mime'] === 'string' ? record['mime'] : 'application/octet-stream',
       bytes: typeof record['bytes'] === 'number' && Number.isFinite(record['bytes']) ? record['bytes'] : 0
     })

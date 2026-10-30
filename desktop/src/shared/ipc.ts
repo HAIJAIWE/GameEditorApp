@@ -308,6 +308,8 @@ export interface IpcContract {
     req: AttachmentsReadImageInput
     res: { ok: true; dataUrl: string } | { ok: false; error: string }
   }
+  /** 用系统默认程序打开任意路径（交付文件等不在 attachments 目录的产物） */
+  'shell:openPath': { req: { path: string }; res: { ok: boolean; error?: string } }
   'agent:chat': {
     req: AgentChatInput
     res: { text: string; events: BrainEvent[]; completed: boolean; stats: AgentRunStats }

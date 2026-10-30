@@ -7,8 +7,6 @@
  * M3 档位路由：`chat()` 按 `options.config` 解析生效档位 ⇒ 选传输层、装配工具面、注入循环。
  */
 
-import { readFile } from 'node:fs/promises'
-
 import {
   runBrainLoop,
   type BrainEvent,
@@ -22,11 +20,7 @@ import { deriveMessagesFromTurns } from '../../../shared/agent/session'
 import { buildSystemPrompts } from '../../../shared/agent/prompts'
 import { presetLabel, presetPersona } from '../../../shared/agent/presets'
 import { buildPersonalizedContext } from '../../../shared/agent/personalization'
-import {
-  formatAttachmentSize,
-  isTextAttachment,
-  type DigitalAttachment
-} from '../../../shared/util/libraryAttachments'
+import { formatAttachmentSize, type DigitalAttachment } from '../../../shared/util/libraryAttachments'
 import {
   RISK_LEVEL,
   resolveRiskLevel,
@@ -47,54 +41,38 @@ import type { AgentBrainServiceDeps, AgentChatOptions } from './types'
 /** 云端对话档的 token 预算（F1/DD-5b 护栏级，保守粗估；超预算仅记录指标，不阻断） */
 const CLOUD_CHAT_BUDGET = 8000
 
-/** 单个文本附件内联上限（字符）：超出截断并注明，避免撑爆提示词 */
-const ATTACHMENT_TEXT_LIMIT = 20_000
-/** 本轮全部附件内联总上限（字符） */
-const ATTACHMENT_TEXT_TOTAL_LIMIT = 60_000
-/** 超过此字节数就不尝试内联（先看大小，避免把巨型文件整个读进内存） */
-const ATTACHMENT_TEXT_SKIP_BYTES = 200_000
-
-/**
- * 组装「【附件】」提示词段：文本类附件**内联内容**（有上限、超限截断），
- * 其余（图片/PDF/Office 等二进制）只给名称/路径/大小，交给智能体按路径读取。
- * 读失败不丢附件——退化成只给路径那一行。
- */
-async function buildAttachmentBlock(attachments: readonly DigitalAttachment[]): Promise<string> {
-  const parts: string[] = []
-  let remaining = ATTACHMENT_TEXT_TOTAL_LIMIT
-  for (const file of attachments) {
-    const header = `- ${file.name}（${file.path}，${formatAttachmentSize(file.bytes)}）`
-    const inlineable =
-      isTextAttachment(file.mime) && file.bytes <= ATTACHMENT_TEXT_SKIP_BYTES && remaining > 0
-    if (!inlineable) {
-      parts.push(header)
-      continue
-    }
-    try {
-      const raw = await readFile(file.path, 'utf8')
-      const cap = Math.min(ATTACHMENT_TEXT_LIMIT, remaining)
-      const text = raw.length > cap ? `${raw.slice(0, cap)}\n…（已截断）` : raw
-      remaining -= Math.min(text.length, cap)
-      parts.push(`${header}\n  内容：\n\`\`\`\n${text}\n\`\`\``)
-    } catch {
-      // 读不到就只给路径（附件仍在，不静默丢）
-      parts.push(header)
-    }
-  }
-  return `【附件】用户随消息附带了以下文件（文本类已内联内容，其余可按路径用文件工具读取）：\n${parts.join('\n')}`
-}
-
 /** 历史附件清单上限（只列最近的这些，避免系统提示词随会话无限增长） */
 const HISTORY_ATTACHMENT_LIMIT = 20
 
+/** 附件叶子名 → 库内绝对路径；未注入（测试/内嵌）时返回 undefined，只给叶子名、不伪造路径 */
+type ResolveAttachmentPath = (name: string) => string | undefined
+
+/** 单条附件的一行：`- name（路径，大小）`；无解析器时省略路径段 */
+function attachmentLine(file: DigitalAttachment, resolve: ResolveAttachmentPath): string {
+  const path = resolve(file.name)
+  return path === undefined
+    ? `- ${file.name}（${formatAttachmentSize(file.bytes)}）`
+    : `- ${file.name}（${path}，${formatAttachmentSize(file.bytes)}）`
+}
+
+/**
+ * 组装「【附件】」提示词段（对齐 dsh：**只给路径、不内联内容**——
+ * 模型需要时用文件工具按路径读取，避免把文件字节塞进上下文）。
+ */
+function buildAttachmentBlock(attachments: readonly DigitalAttachment[], resolve: ResolveAttachmentPath): string {
+  const lines = attachments.map((file) => attachmentLine(file, resolve))
+  return `【附件】用户随消息附带了以下文件（内容未内联；需要时用文件工具按路径读取）：\n${lines.join('\n')}`
+}
+
 /**
  * 从恢复的历史消息里收集附件（只取 user 消息），生成「【历史附件】」路径清单。
- *
- * **只列路径、不内联内容**：历史附件的内容可能很多，重放会撑爆上下文；
- * 智能体需要时可用文件工具按路径读取。按路径去重（重复出现时移到末尾，保留最近顺序）。
+ * 只列路径、不内联内容；按叶子名去重（重复出现时移到末尾，保留最近顺序）。
  */
-function buildHistoryAttachmentBlock(priorMessages: readonly Record<string, unknown>[]): string | null {
-  const byPath = new Map<string, DigitalAttachment>()
+function buildHistoryAttachmentBlock(
+  priorMessages: readonly Record<string, unknown>[],
+  resolve: ResolveAttachmentPath
+): string | null {
+  const byName = new Map<string, DigitalAttachment>()
   for (const message of priorMessages) {
     if (message.role !== 'user') continue
     const attachments = message.attachments
@@ -103,22 +81,20 @@ function buildHistoryAttachmentBlock(priorMessages: readonly Record<string, unkn
       if (raw === null || typeof raw !== 'object') continue
       const record = raw as Record<string, unknown>
       const name = typeof record['name'] === 'string' ? record['name'] : ''
-      const path = typeof record['path'] === 'string' ? record['path'] : ''
-      if (name === '' || path === '') continue
+      if (name === '') continue
       // 去重并保留最近顺序：先删再塞，Map 的插入顺序即「最近」
-      byPath.delete(path)
-      byPath.set(path, {
+      byName.delete(name)
+      byName.set(name, {
         name,
-        path,
         mime: typeof record['mime'] === 'string' ? record['mime'] : 'application/octet-stream',
         bytes: typeof record['bytes'] === 'number' && Number.isFinite(record['bytes']) ? record['bytes'] : 0
       })
     }
   }
-  if (byPath.size === 0) return null
-  const files = [...byPath.values()].slice(-HISTORY_ATTACHMENT_LIMIT)
-  const lines = files.map((file) => `- ${file.name}（${file.path}，${formatAttachmentSize(file.bytes)}）`)
-  return `【历史附件】本会话此前附带过以下文件（仅列路径，内容未内联；需要时用文件工具按路径读取）：\n${lines.join('\n')}`
+  if (byName.size === 0) return null
+  const files = [...byName.values()].slice(-HISTORY_ATTACHMENT_LIMIT)
+  const lines = files.map((file) => attachmentLine(file, resolve))
+  return `【历史附件】本会话此前附带过以下文件（内容未内联；需要时用文件工具按路径读取）：\n${lines.join('\n')}`
 }
 
 /** 把技能调度器适配为 Brain 的工具执行器 */
@@ -208,6 +184,8 @@ export class AgentBrainService {
         : []
 
     const memoryBlock = await buildMemoryBlock(this.deps.memoryStore, input)
+    // 附件只存叶子名，提示词里要绝对路径时按活跃库目录解析（stores 注入；测试可不注入）
+    const resolveAttachmentPath: ResolveAttachmentPath = (name) => this.deps.resolveAttachmentPath?.(name)
     const extraBlocks: string[] = []
     if (memoryBlock !== null) extraBlocks.push(memoryBlock)
     // F8 域 grounding：章节结构常驻注入（不计入 30 行核心区，DD-6）
@@ -233,10 +211,10 @@ export class AgentBrainService {
     // 附件（对齐 dsh ui-attachment 的诚实子集）：文本类**内联内容**（.md/.json/.txt 等），
     // 其余只给路径让智能体用文件工具按需读取。文件已由 `attachments:add` 复制进库，路径稳定。
     if (options.attachments !== undefined && options.attachments.length > 0) {
-      extraBlocks.push(await buildAttachmentBlock(options.attachments))
+      extraBlocks.push(buildAttachmentBlock(options.attachments, resolveAttachmentPath))
     }
     // 历史附件（恢复会话时）：只给路径，不重放内容——避免上下文随历史膨胀；需要时智能体按路径读取
-    const historyAttachmentBlock = buildHistoryAttachmentBlock(priorMessages)
+    const historyAttachmentBlock = buildHistoryAttachmentBlock(priorMessages, resolveAttachmentPath)
     if (historyAttachmentBlock !== null) extraBlocks.push(historyAttachmentBlock)
     const systemPrompts = buildSystemPrompts({
       // M2/G7 + M3/DD-3：注入**按场景分组、按档位限量**的紧凑能力目录（每工具一行）

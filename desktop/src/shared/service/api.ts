@@ -183,6 +183,10 @@ export interface MbApi {
     /** 测试当前配置下的服务连通性（设置面板「测试连接」按钮） */
     testConnection(): Promise<IpcContract['llm:testConnection']['res']>
   },
+  /** 系统 shell：用默认程序打开任意路径（交付文件等） */
+  shell: {
+    openPath(req: IpcContract['shell:openPath']['req']): Promise<IpcContract['shell:openPath']['res']>
+  }
   /** 会话附件：复制进 `<库>/attachments/` + 用系统程序打开（诚实子集，无上传进度/lightbox） */
   attachments: {
     add(req: IpcContract['attachments:add']['req']): Promise<IpcContract['attachments:add']['res']>

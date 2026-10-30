@@ -188,6 +188,8 @@ export function buildStores(libDir: string): AppStores {
     agentBrain: new AgentBrainService({
       dispatcher,
       sessionStore,
+      // 附件只存叶子名；提示词里给绝对路径时按活跃库目录解析
+      resolveAttachmentPath: (name) => join(libDir, 'attachments', name),
       // F3：显式配置 MB_MEMORY_EMBED_MODEL 时走真实 embedding；否则回落到确定性哈希
       memoryStore: new AgentMemoryStore(agentDir, { embedder: createOllamaEmbeddingProvider() }),
       preferences: personalization.preferences,

@@ -17,6 +17,16 @@ import { importAttachmentIntoLibrary } from '../attachments'
 const READ_IMAGE_MAX_BYTES = 8 * 1024 * 1024
 
 /**
+ * 解析附件叶子名 → 库内绝对路径（对齐 dsh：消息里只存叶子名，不存路径）。
+ * 含分隔符 / `..` / 空名一律视为越界（防目录穿越），返回 null。
+ */
+function resolveAttachmentPath(deps: IpcHandlerDeps, name: string): string | null {
+  const leaf = name.trim()
+  if (leaf === '' || leaf.includes('/') || leaf.includes('\\') || leaf.includes('..')) return null
+  return join(deps.libraryManager.activeDir(), LIBRARY_ATTACHMENTS_DIRNAME, leaf)
+}
+
+/**
  * 会话附件（对齐 dsh `ui-attachment` 的诚实子集）。
  *
  * - `attachments:add`：把用户选的文件复制进 `<活跃库>/attachments/`，返回元数据；
@@ -31,27 +41,25 @@ export function registerAttachmentsIpc(deps: IpcHandlerDeps, handle: IpcRegistra
     importAttachmentIntoLibrary(req.path, deps.libraryManager.activeDir())
   )
   handle('attachments:open', attachmentsOpenInputSchema, async (req) => {
-    const error = await shell.openPath(req.path)
+    const path = resolveAttachmentPath(deps, req.name)
+    if (path === null) return { ok: false, error: '无效的附件名' }
+    const error = await shell.openPath(path)
     return error === '' ? { ok: true } : { ok: false, error }
   })
   handle('attachments:readImage', attachmentsReadImageInputSchema, (req) => {
-    const dir = join(deps.libraryManager.activeDir(), LIBRARY_ATTACHMENTS_DIRNAME)
-    const normalizedDir = dir.replace(/\\/g, '/').toLowerCase()
-    const normalizedPath = req.path.replace(/\\/g, '/').toLowerCase()
-    if (!normalizedPath.startsWith(`${normalizedDir}/`)) {
-      return { ok: false, error: '只能读取库内附件' }
-    }
-    if (!existsSync(req.path)) return { ok: false, error: '附件文件不存在' }
+    const path = resolveAttachmentPath(deps, req.name)
+    if (path === null) return { ok: false, error: '无效的附件名' }
+    if (!existsSync(path)) return { ok: false, error: '附件文件不存在' }
     try {
-      const info = statSync(req.path)
+      const info = statSync(path)
       if (!info.isFile()) return { ok: false, error: '路径不是文件' }
       if (info.size > READ_IMAGE_MAX_BYTES) return { ok: false, error: '图片过大（超过 8MB）' }
-      if (!isSupportedImageFile(req.path)) return { ok: false, error: '不是受支持的图片格式' }
-      const buffer = readFileSync(req.path)
-      return { ok: true, dataUrl: `data:${guessMimeType(req.path)};base64,${buffer.toString('base64')}` }
+      if (!isSupportedImageFile(path)) return { ok: false, error: '不是受支持的图片格式' }
+      const buffer = readFileSync(path)
+      return { ok: true, dataUrl: `data:${guessMimeType(path)};base64,${buffer.toString('base64')}` }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
-      log.warn('读取附件图片失败', { path: req.path, error: message })
+      log.warn('读取附件图片失败', { name: req.name, error: message })
       return { ok: false, error: '读取图片失败' }
     }
   })

@@ -11,16 +11,14 @@ import { installMbApi, pressKey, renderDom } from './render'
  * 而不是「有个按钮」——`onOpenAttachment` 就是接 `attachments:open` 的那根线。
  */
 
-const file = (name: string): { name: string; path: string; mime: string; bytes: number } => ({
+const file = (name: string): { name: string; mime: string; bytes: number } => ({
   name,
-  path: `/lib/attachments/${name}`,
   mime: 'text/markdown',
   bytes: 2048
 })
 
-const img = (name: string): { name: string; path: string; mime: string; bytes: number } => ({
+const img = (name: string): { name: string; mime: string; bytes: number } => ({
   name,
-  path: `/lib/attachments/${name}`,
   mime: 'image/png',
   bytes: 4096
 })
@@ -43,7 +41,7 @@ describe('消息附件 chip', () => {
     expect(rendered.text()).toContain('2.0 KB')
 
     await rendered.click(chips[0] as HTMLElement)
-    expect(onOpen).toHaveBeenCalledWith('/lib/attachments/a.md')
+    expect(onOpen).toHaveBeenCalledWith('a.md')
     await rendered.cleanup()
   })
 

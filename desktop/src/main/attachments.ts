@@ -38,7 +38,8 @@ export async function importAttachmentIntoLibrary(
     const target = join(dir, name)
     await copyFile(sourcePath, target)
     const bytes = (await stat(target)).size
-    return { ok: true, attachment: { name, path: target, mime: guessMimeType(name), bytes } }
+    // 只回叶子名（对齐 dsh FileAttachmentRef：不含路径）；用时按活跃库目录解析
+    return { ok: true, attachment: { name, mime: guessMimeType(name), bytes } }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     log.warn('附件入库失败', { sourcePath, error: message })

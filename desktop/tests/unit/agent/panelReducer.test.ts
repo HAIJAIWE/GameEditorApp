@@ -56,7 +56,7 @@ describe('reduceBrainEvent：本轮收尾落定步骤', () => {
 
 describe('submitUserMessage：附件随用户消息携带', () => {
   it('有附件时写进用户消息；空数组不写字段', () => {
-    const file = { name: 'design.md', path: '/lib/attachments/design.md', mime: 'text/markdown', bytes: 1234 }
+    const file = { name: 'design.md', mime: 'text/markdown', bytes: 1234 }
     const withFile = submitUserMessage(initialDigitalPanelState, '看看这个', [file])
     expect(withFile.messages.at(-1)).toMatchObject({ role: 'user', text: '看看这个', attachments: [file] })
 
@@ -68,9 +68,10 @@ describe('submitUserMessage：附件随用户消息携带', () => {
 
 describe('hydrateFromSession：附件重放', () => {
   it('快照里的 attachments 恢复成消息附件；坏条目逐条丢弃', () => {
-    const file = { name: 'a.md', path: '/lib/attachments/a.md', mime: 'text/markdown', bytes: 10 }
+    const file = { name: 'a.md', mime: 'text/markdown', bytes: 10 }
     const state = hydrateFromSession(initialDigitalPanelState, [
-      { role: 'user', content: '看看', attachments: [file, { name: '坏条目' }] },
+      // 坏条目：缺 name / 非对象，逐条丢弃（有 name 的才算有效附件）
+      { role: 'user', content: '看看', attachments: [file, { mime: 'text/plain' }, null] },
       { role: 'assistant', content: '好' }
     ])
     expect(state.messages[0]).toMatchObject({ role: 'user', text: '看看', attachments: [file] })

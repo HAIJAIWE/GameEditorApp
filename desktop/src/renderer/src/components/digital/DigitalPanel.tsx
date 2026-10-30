@@ -402,7 +402,7 @@ export default function DigitalPanel({
         }
         // 同一文件重复选不重复加（按入库后的绝对路径去重）
         setAttachments((prev) =>
-          prev.some((file) => file.path === result.attachment.path) ? prev : [...prev, result.attachment]
+          prev.some((file) => file.name === result.attachment.name) ? prev : [...prev, result.attachment]
         )
       } catch (error: unknown) {
         setLocalError(toErrorMessage(error))
@@ -480,8 +480,8 @@ export default function DigitalPanel({
     }
   }, [running, addAttachmentPath])
 
-  const removeAttachment = useCallback((path: string): void => {
-    setAttachments((prev) => prev.filter((file) => file.path !== path))
+  const removeAttachment = useCallback((name: string): void => {
+    setAttachments((prev) => prev.filter((file) => file.name !== name))
   }, [])
 
   /**
@@ -503,7 +503,8 @@ export default function DigitalPanel({
       if (isCodeFile(name) || /\.csv$/i.test(name)) {
         handleOpenFile(path)
       } else {
-        void window.mbApi.attachments.open({ path })
+        // 交付文件是导出产物（任意路径，不在 attachments 目录），走通用 shell 打开
+        void window.mbApi.shell.openPath({ path })
       }
     },
     [handleOpenFile]
@@ -1077,8 +1078,8 @@ export default function DigitalPanel({
               role={message.role}
               text={message.text}
               {...(message.attachments !== undefined ? { attachments: message.attachments } : {})}
-              onOpenAttachment={(path: string) => {
-                void window.mbApi.attachments.open({ path })
+              onOpenAttachment={(name: string) => {
+                void window.mbApi.attachments.open({ name })
               }}
               onOpenFile={handleOpenFile}
               // 仅助手消息挂反馈（对齐 dsh：Like/Dislike 只出现在定稿的助手消息上）；

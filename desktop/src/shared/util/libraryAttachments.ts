@@ -14,12 +14,16 @@
 /** 库内附件目录名（与 `images` 同级，互相独立） */
 export const LIBRARY_ATTACHMENTS_DIRNAME = 'attachments'
 
-/** 一条附件的元数据：消息里存、渲染层展示、传给智能体做上下文 */
+/**
+ * 一条附件的元数据（对齐 dsh `FileAttachmentRef`：**不含任何路径**）。
+ *
+ * 只存叶子名 `name`（即 `<库>/attachments/<name>` 的文件名），用时按**活跃库目录**解析——
+ * 这样持久化事件里没有本机绝对路径（dsh 明确要求 durable events 排除路径），
+ * 库搬家/备份后历史附件仍可解析。
+ */
 export interface DigitalAttachment {
-  /** 展示用文件名（入库后的名字，重名会带 `-2` 后缀） */
+  /** 展示用文件名（入库后的叶子名，重名会带 `-2` 后缀） */
   name: string
-  /** 库内绝对路径（`shell.openPath` 可开、智能体文件工具可读） */
-  path: string
   /** MIME 类型（按扩展名推断，未知为 `application/octet-stream`） */
   mime: string
   /** 字节数 */
@@ -89,15 +93,6 @@ export function attachmentExtension(name: string): string {
   const dot = name.lastIndexOf('.')
   if (dot <= 0 || dot === name.length - 1) return ''
   return name.slice(dot + 1).toUpperCase().slice(0, 8)
-}
-
-/**
- * 是否文本类附件（可内联进提示词）：`text/*`、`application/json`、`application/xml`。
- * 图片/PDF/Office 等二进制不内联（只给路径，由智能体的文件工具按需读取）。
- */
-export function isTextAttachment(mime: string): boolean {
-  const value = mime.toLowerCase()
-  return value.startsWith('text/') || value === 'application/json' || value === 'application/xml'
 }
 
 /** 人类可读的字节数（1024 进制；<1KB 显示 B） */

@@ -55,7 +55,7 @@ export function DigitalDeliveryCard({
                 title={file.path}
                 onClick={() => {
                   if (onOpen !== undefined) onOpen(file.path)
-                  else void window.mbApi.attachments.open({ path: file.path })
+                  else void window.mbApi.shell.openPath({ path: file.path })
                 }}
               >
                 {FILE_ICON}

@@ -644,8 +644,8 @@ export const agentChatInputSchema = z.object({
   attachments: z
     .array(
       z.object({
+        // 只存叶子名（对齐 dsh FileAttachmentRef：持久化事件不含路径）
         name: z.string().min(1).max(260),
-        path: z.string().min(1),
         mime: z.string().min(1).max(120),
         bytes: z.number().int().nonnegative()
       })
@@ -660,17 +660,23 @@ export const attachmentsAddInputSchema = z.object({
 })
 export type AttachmentsAddInput = z.infer<typeof attachmentsAddInputSchema>
 
-/** 会话附件：用系统默认程序打开库内附件 */
+/** 会话附件：用系统默认程序打开库内附件（按叶子名解析，不含路径） */
 export const attachmentsOpenInputSchema = z.object({
-  path: z.string().min(1)
+  name: z.string().min(1).max(260)
 })
 export type AttachmentsOpenInput = z.infer<typeof attachmentsOpenInputSchema>
 
-/** 会话附件：把库内图片附件读成 data URL（缩略图/lightbox 用；仅限库内附件目录） */
+/** 会话附件：把库内图片附件读成 data URL（按叶子名解析，缩略图/lightbox 用） */
 export const attachmentsReadImageInputSchema = z.object({
-  path: z.string().min(1)
+  name: z.string().min(1).max(260)
 })
 export type AttachmentsReadImageInput = z.infer<typeof attachmentsReadImageInputSchema>
+
+/** 用系统默认程序打开任意路径（交付文件等不在 attachments 目录的产物） */
+export const shellOpenPathInputSchema = z.object({
+  path: z.string().min(1)
+})
+export type ShellOpenPathInput = z.infer<typeof shellOpenPathInputSchema>
 
 /** Agent Brain：对运行中的子智能体「插话」（push 一条消息进它的收件箱） */
 export const agentSubagentSendInputSchema = z.object({

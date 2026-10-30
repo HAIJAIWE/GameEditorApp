@@ -10,6 +10,7 @@ import { registerAppIpc } from './ipc/appIpc'
 import { registerSettingsIpc } from './ipc/settingsIpc'
 import { registerImagesIpc } from './ipc/imagesIpc'
 import { registerAttachmentsIpc } from './ipc/attachmentsIpc'
+import { registerShellIpc } from './ipc/shellIpc'
 import { registerLlmIpc } from './ipc/llmIpc'
 import { registerAgentIpc } from './ipc/agentIpc'
 import { registerTaskIpc } from './ipc/taskIpc'
@@ -103,6 +104,7 @@ export function registerIpcHandlers(deps: IpcHandlerDeps): void {
   registerSettingsIpc(deps, handle)
   registerImagesIpc(deps, handle)
   registerAttachmentsIpc(deps, handle)
+  registerShellIpc(deps, handle)
   registerLlmIpc(deps, handle, llm)
   registerAgentIpc(deps, handle, llm)
   registerTaskIpc(deps, handle)

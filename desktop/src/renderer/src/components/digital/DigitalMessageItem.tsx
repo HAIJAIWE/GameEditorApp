@@ -229,7 +229,7 @@ export function DigitalMessageItem({
               {attachments.map((file) =>
                 isImageAttachment(file) ? (
                   <ImageAttachment
-                    key={file.path}
+                    key={file.name}
                     file={file}
                     variant={attachments.length === 1 ? 'single' : 'tile'}
                     onOpenImage={(src, alt, opener) => {
@@ -240,7 +240,7 @@ export function DigitalMessageItem({
                   />
                 ) : (
                   <FileAttachmentChip
-                    key={file.path}
+                    key={file.name}
                     file={file}
                     {...(onOpenAttachment !== undefined ? { onOpen: onOpenAttachment } : {})}
                   />
@@ -371,8 +371,8 @@ function FileAttachmentChip({
       type="button"
       className="digital-attachment-chip"
       data-testid="digital-message-attachment"
-      title={file.path}
-      onClick={() => onOpen?.(file.path)}
+      title={file.name}
+      onClick={() => onOpen?.(file.name)}
     >
       <FileIcon />
       <span className="digital-attachment-name">{file.name}</span>
@@ -397,8 +397,8 @@ function ImageAttachment({
   onOpenImage: (src: string, alt: string, opener: HTMLElement) => void
   onOpenFile?: (path: string) => void
 }): ReactElement {
-  // 父级按 `file.path` 作 key，路径变化会重挂组件；读图逻辑复用共享 hook。
-  const { src, failed } = useAttachmentImage(file.path)
+  // 父级按 `file.name` 作 key，路径变化会重挂组件；读图逻辑复用共享 hook。
+  const { src, failed } = useAttachmentImage(file.name)
 
   if (failed) {
     return <FileAttachmentChip file={file} {...(onOpenFile !== undefined ? { onOpen: onOpenFile } : {})} />

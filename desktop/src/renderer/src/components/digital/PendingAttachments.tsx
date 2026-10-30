@@ -31,9 +31,9 @@ export function PendingAttachments({
     <div className="dsh-attachment-chips" data-testid="digital-attachments">
       {attachments.map((file) =>
         file.mime.startsWith('image/') ? (
-          <PendingImageChip key={file.path} file={file} onRemove={onRemove} />
+          <PendingImageChip key={file.name} file={file} onRemove={onRemove} />
         ) : (
-          <PendingFileChip key={file.path} file={file} onRemove={onRemove} />
+          <PendingFileChip key={file.name} file={file} onRemove={onRemove} />
         )
       )}
       {adding && (
@@ -53,7 +53,7 @@ function metaOf(file: DigitalAttachment): string {
     .join(' · ')
 }
 
-function RemoveButton({ path, onRemove }: { path: string; onRemove: (path: string) => void }): ReactElement {
+function RemoveButton({ name, onRemove }: { name: string; onRemove: (name: string) => void }): ReactElement {
   return (
     <button
       type="button"
@@ -61,7 +61,7 @@ function RemoveButton({ path, onRemove }: { path: string; onRemove: (path: strin
       data-testid="digital-attachment-remove"
       aria-label="移除附件"
       title="移除附件"
-      onClick={() => onRemove(path)}
+      onClick={() => onRemove(name)}
     >
       <LucideIcon name="x" size={12} />
     </button>
@@ -78,11 +78,11 @@ function PendingFileChip({
   return (
     <span className="dsh-attachment-chip" data-testid="digital-attachment-chip" data-kind="file">
       <LucideIcon name="file-text" size={12} />
-      <span className="dsh-attachment-name" title={file.path}>
+      <span className="dsh-attachment-name" title={file.name}>
         {file.name}
       </span>
       <span className="dsh-attachment-size">{metaOf(file)}</span>
-      <RemoveButton path={file.path} onRemove={onRemove} />
+      <RemoveButton name={file.name} onRemove={onRemove} />
     </span>
   )
 }
@@ -94,7 +94,7 @@ function PendingImageChip({
   file: DigitalAttachment
   onRemove: (path: string) => void
 }): ReactElement {
-  const { src, failed } = useAttachmentImage(file.path)
+  const { src, failed } = useAttachmentImage(file.name)
   // 读图失败：回退文件 chip（附件本身还在，只是没缩略图）
   if (failed) return <PendingFileChip file={file} onRemove={onRemove} />
   return (
@@ -102,11 +102,11 @@ function PendingImageChip({
       <span className="dsh-attachment-thumb" aria-hidden="true">
         {src === null ? <span className="dsh-attachment-thumb-loading" /> : <img src={src} alt="" />}
       </span>
-      <span className="dsh-attachment-name" title={file.path}>
+      <span className="dsh-attachment-name" title={file.name}>
         {file.name}
       </span>
       <span className="dsh-attachment-size">{metaOf(file)}</span>
-      <RemoveButton path={file.path} onRemove={onRemove} />
+      <RemoveButton name={file.name} onRemove={onRemove} />
     </span>
   )
 }
