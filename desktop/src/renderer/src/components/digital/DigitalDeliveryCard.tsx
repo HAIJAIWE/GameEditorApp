@@ -1,16 +1,10 @@
 import { useState, type ReactElement } from 'react'
 
 import type { DeliveryRecord } from '../../../../shared/agent/deliveryLog'
-import { formatAttachmentSize } from '../../../../shared/util/libraryAttachments'
+import { attachmentExtension, formatAttachmentSize } from '../../../../shared/util/libraryAttachments'
 
 /** 折叠前显示的行数（对齐 dsh `Deliverables` 的 COLLAPSED_PRESENTED_COUNT） */
 const COLLAPSED_DELIVERIES = 4
-
-/** 扩展名大写标签（对齐 dsh `PresentedFileCard` 的 fileExtension 兜底） */
-function extensionOf(name: string): string {
-  const dot = name.lastIndexOf('.')
-  return dot > 0 ? name.slice(dot + 1).toUpperCase() : ''
-}
 
 /**
  * 对话内联「本轮交付」卡（对齐 dsh `ui-deliverables` 的 delivery cards）。
@@ -48,7 +42,7 @@ export function DigitalDeliveryCard({
       </div>
       <ul className="digital-delivery-list">
         {rows.map((file) => {
-          const extension = extensionOf(file.label)
+          const extension = attachmentExtension(file.label)
           const meta = [extension, file.bytes > 0 ? formatAttachmentSize(file.bytes) : '']
             .filter((part) => part !== '')
             .join(' · ')

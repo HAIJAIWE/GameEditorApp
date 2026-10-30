@@ -425,6 +425,59 @@ export default function DigitalPanel({
     })()
   }, [addAttachmentPath])
 
+  /**
+   * 文档级拖拽投放（对齐 dsh `installDocumentDropEvents`）：整页任意位置拖入文件都能加入附件；
+   * 用嵌套深度计数（dragenter/dragleave 成对）避免子元素间移动时高亮闪烁。
+   */
+  const dragDepth = useRef(0)
+  useEffect(() => {
+    const hasFiles = (event: DragEvent): boolean =>
+      event.dataTransfer !== null && event.dataTransfer.types.includes('Files')
+    const reset = (): void => {
+      dragDepth.current = 0
+      setDragActive(false)
+    }
+    const onDragEnter = (event: DragEvent): void => {
+      if (running || !hasFiles(event)) return
+      event.preventDefault()
+      dragDepth.current += 1
+      setDragActive(true)
+    }
+    const onDragOver = (event: DragEvent): void => {
+      if (running || !hasFiles(event)) return
+      event.preventDefault()
+      if (event.dataTransfer !== null) event.dataTransfer.dropEffect = 'copy'
+    }
+    const onDragLeave = (event: DragEvent): void => {
+      if (!hasFiles(event)) return
+      dragDepth.current = Math.max(0, dragDepth.current - 1)
+      if (dragDepth.current === 0) setDragActive(false)
+    }
+    const onDrop = (event: DragEvent): void => {
+      if (!hasFiles(event)) return
+      event.preventDefault()
+      reset()
+      if (running) return
+      for (const file of Array.from(event.dataTransfer?.files ?? [])) {
+        const path = window.mbApi.attachments.pathForFile(file)
+        if (path !== '') addAttachmentPath(path)
+      }
+    }
+    const onDragEnd = (): void => reset()
+    document.addEventListener('dragenter', onDragEnter)
+    document.addEventListener('dragover', onDragOver)
+    document.addEventListener('dragleave', onDragLeave)
+    document.addEventListener('drop', onDrop)
+    window.addEventListener('dragend', onDragEnd)
+    return () => {
+      document.removeEventListener('dragenter', onDragEnter)
+      document.removeEventListener('dragover', onDragOver)
+      document.removeEventListener('dragleave', onDragLeave)
+      document.removeEventListener('drop', onDrop)
+      window.removeEventListener('dragend', onDragEnd)
+    }
+  }, [running, addAttachmentPath])
+
   const removeAttachment = useCallback((path: string): void => {
     setAttachments((prev) => prev.filter((file) => file.path !== path))
   }, [])
@@ -1286,29 +1339,8 @@ export default function DigitalPanel({
         className="digital-input-row dsh-composer"
         style={composerTakeover === null ? undefined : { display: 'none' }}
       >
-        {/* 拖拽上传（对齐 dsh 的 drop 目标）：把文件拖到输入框即可加入待发送附件 */}
-        <div
-          className={`dsh-composer-box${dragActive ? ' is-drag-active' : ''}`}
-          onDragOver={(event) => {
-            if (running) return
-            event.preventDefault()
-            setDragActive(true)
-          }}
-          onDragLeave={(event) => {
-            // 子元素间移动也会触发 dragleave：指针仍在框内时不熄灭高亮
-            if (event.currentTarget.contains(event.relatedTarget as Node | null)) return
-            setDragActive(false)
-          }}
-          onDrop={(event) => {
-            event.preventDefault()
-            setDragActive(false)
-            if (running) return
-            for (const file of Array.from(event.dataTransfer.files)) {
-              const path = window.mbApi.attachments.pathForFile(file)
-              if (path !== '') addAttachmentPath(path)
-            }
-          }}
-        >
+        {/* 拖拽上传（对齐 dsh drop-events 的文档级投放）：整页可拖入，输入框高亮 */}
+        <div className={`dsh-composer-box${dragActive ? ' is-drag-active' : ''}`}>
           {/* 本轮目标条（对齐 dsh GoalBar）：一句话意图锚点，随每次发送发给主进程注入系统提示词。
               空串视为未填；跨轮持续生效，新建对话才清空。 */}
           <div className="dsh-goal-bar" data-testid="digital-goal-bar">

@@ -84,6 +84,13 @@ export function guessMimeType(name: string): string {
   return MIME_BY_EXT[name.slice(dot).toLowerCase()] ?? 'application/octet-stream'
 }
 
+/** 文件扩展名（大写，最多 8 字符；无扩展名返回空串）—— chip / 交付卡标签用（对齐 dsh FileCard） */
+export function attachmentExtension(name: string): string {
+  const dot = name.lastIndexOf('.')
+  if (dot <= 0 || dot === name.length - 1) return ''
+  return name.slice(dot + 1).toUpperCase().slice(0, 8)
+}
+
 /**
  * 是否文本类附件（可内联进提示词）：`text/*`、`application/json`、`application/xml`。
  * 图片/PDF/Office 等二进制不内联（只给路径，由智能体的文件工具按需读取）。

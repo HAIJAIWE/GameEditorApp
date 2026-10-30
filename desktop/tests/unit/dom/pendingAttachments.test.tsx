@@ -58,6 +58,9 @@ describe('composer 待发送附件区', () => {
       expect(fileChip).toBeTruthy()
       // 图片 chip 里有真实 <img> 缩略图
       expect(imageChip?.querySelector('img')).not.toBeNull()
+      // 扩展名 + 大小（对齐 dsh FileCard 的 [extension, size]）
+      expect(rendered.text()).toContain('PNG')
+      expect(rendered.text()).toContain('MD')
 
       const removeButtons = rendered.queryAll('[data-testid="digital-attachment-remove"]')
       await rendered.click(removeButtons[0] as HTMLElement)

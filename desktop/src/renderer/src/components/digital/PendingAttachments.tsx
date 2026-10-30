@@ -1,7 +1,11 @@
 import type { ReactElement } from 'react'
 
 import LucideIcon from '../LucideIcon'
-import { formatAttachmentSize, type DigitalAttachment } from '../../../../shared/util/libraryAttachments'
+import {
+  attachmentExtension,
+  formatAttachmentSize,
+  type DigitalAttachment
+} from '../../../../shared/util/libraryAttachments'
 import { useAttachmentImage } from './useAttachmentImage'
 
 /**
@@ -42,6 +46,13 @@ export function PendingAttachments({
   )
 }
 
+/** chip 的次要文本：扩展名 + 大小（对齐 dsh `FileCard` 的 `[extension, size].join(' ')`） */
+function metaOf(file: DigitalAttachment): string {
+  return [attachmentExtension(file.name), formatAttachmentSize(file.bytes)]
+    .filter((part) => part !== '')
+    .join(' · ')
+}
+
 function RemoveButton({ path, onRemove }: { path: string; onRemove: (path: string) => void }): ReactElement {
   return (
     <button
@@ -70,7 +81,7 @@ function PendingFileChip({
       <span className="dsh-attachment-name" title={file.path}>
         {file.name}
       </span>
-      <span className="dsh-attachment-size">{formatAttachmentSize(file.bytes)}</span>
+      <span className="dsh-attachment-size">{metaOf(file)}</span>
       <RemoveButton path={file.path} onRemove={onRemove} />
     </span>
   )
@@ -94,7 +105,7 @@ function PendingImageChip({
       <span className="dsh-attachment-name" title={file.path}>
         {file.name}
       </span>
-      <span className="dsh-attachment-size">{formatAttachmentSize(file.bytes)}</span>
+      <span className="dsh-attachment-size">{metaOf(file)}</span>
       <RemoveButton path={file.path} onRemove={onRemove} />
     </span>
   )
