@@ -1,3 +1,7 @@
+import { mkdtempSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+
 import { describe, expect, it } from 'vitest'
 
 import { AgentBrainService } from '../../src/main/agent/brainService'
@@ -179,6 +183,32 @@ describe('AgentBrainService：M3 档位路由装配', () => {
     expect(text).toContain('design.md')
     expect(text).toContain('/lib/attachments/design.md')
     expect(text).toContain('2.0 KB')
+  })
+
+  it('文本类附件内联内容；二进制附件只给路径（不读内容）', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'mb-attach-'))
+    const textPath = join(dir, 'notes.md')
+    writeFileSync(textPath, '# 战斗公式\n伤害 = 攻击 - 防御')
+    const binPath = join(dir, 'pic.png')
+    writeFileSync(binPath, Buffer.from([0x89, 0x50, 0x4e, 0x47]))
+
+    const { transport, requests } = capturingTransport()
+    const service = new AgentBrainService({ dispatcher: makeDispatcher(), transport })
+
+    await service.chat('看看附件', {
+      attachments: [
+        { name: 'notes.md', path: textPath, mime: 'text/markdown', bytes: 20 },
+        { name: 'pic.png', path: binPath, mime: 'image/png', bytes: 4 }
+      ]
+    })
+    const text = systemText(requests[0] as BrainLlmRequest)
+    // 文本附件：内容内联
+    expect(text).toContain('伤害 = 攻击 - 防御')
+    expect(text).toContain('notes.md')
+    // 二进制附件：只给路径
+    expect(text).toContain('pic.png')
+    // 只有文本附件会内联内容：整段只出现一次「内容：」
+    expect((text.match(/内容：/g) ?? []).length).toBe(1)
   })
 })
 

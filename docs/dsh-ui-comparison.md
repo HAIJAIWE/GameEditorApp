@@ -198,6 +198,7 @@ dsh 的 UI 成熟在**两件事**：① **typed slot 组合**（父级声明扩�
 - **导入进度** —— `attachments:add` 改异步（`fs/promises`），复制期间渲染层显示「导入中…」chip（**不确定进度**，不画假百分比——拷贝没有流式回调）。`data-testid: digital-attachment-adding`。
 - **快捷键参考（`ui-shortcuts` 只读子集）** —— `shortcutsData.ts` 是快捷键**单一事实来源**（只收录代码里真实存在的：Enter/Shift+Enter/`/`/`@`/Esc/Ctrl+B/Ctrl+Z/Ctrl+Shift+Z），`ShortcutsDialog` 只读它渲染分组列表，Esc/遮罩/关闭收起。**不做** dsh 的录制/清除/恢复绑定（我们没有可改写的键位注册表，做录制就是假按钮）。入口在智能体面板头部（`digital-shortcuts`）。
 - **拖拽上传（`ui-attachment` drop 目标）** —— 输入框接 `dragover/drop`，经 preload 暴露的 `webUtils.getPathForFile` 取本地路径（Electron 32+ 已移除 `File.path`）→ 与原生选择共用 `addAttachmentPath`（复制进库 + 「导入中…」）。拖入时输入框虚线高亮（`.is-drag-active`）。
+- **附件内容注入** —— 文本类附件（`text/*` / `application/json` / `application/xml`，且 ≤200KB）在 `service.chat` 里读入并**内联进「【附件】」提示词段**（单文件 20KB / 本轮 60KB 上限，超限截断）；二进制只给名称/路径/大小。读失败退化成路径行，不丢附件。这样智能体不靠文件工具也能直接读到文本附件内容。
 
 **还没对齐的（下一步候选，按成本/价值分层）**：
 - **纯视觉 / 低成本（优先）**：

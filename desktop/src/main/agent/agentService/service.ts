@@ -7,6 +7,8 @@
  * M3 档位路由：`chat()` 按 `options.config` 解析生效档位 ⇒ 选传输层、装配工具面、注入循环。
  */
 
+import { readFile } from 'node:fs/promises'
+
 import {
   runBrainLoop,
   type BrainEvent,
@@ -20,7 +22,11 @@ import { deriveMessagesFromTurns } from '../../../shared/agent/session'
 import { buildSystemPrompts } from '../../../shared/agent/prompts'
 import { presetLabel, presetPersona } from '../../../shared/agent/presets'
 import { buildPersonalizedContext } from '../../../shared/agent/personalization'
-import { formatAttachmentSize } from '../../../shared/util/libraryAttachments'
+import {
+  formatAttachmentSize,
+  isTextAttachment,
+  type DigitalAttachment
+} from '../../../shared/util/libraryAttachments'
 import {
   RISK_LEVEL,
   resolveRiskLevel,
@@ -40,6 +46,43 @@ import type { AgentBrainServiceDeps, AgentChatOptions } from './types'
 
 /** 云端对话档的 token 预算（F1/DD-5b 护栏级，保守粗估；超预算仅记录指标，不阻断） */
 const CLOUD_CHAT_BUDGET = 8000
+
+/** 单个文本附件内联上限（字符）：超出截断并注明，避免撑爆提示词 */
+const ATTACHMENT_TEXT_LIMIT = 20_000
+/** 本轮全部附件内联总上限（字符） */
+const ATTACHMENT_TEXT_TOTAL_LIMIT = 60_000
+/** 超过此字节数就不尝试内联（先看大小，避免把巨型文件整个读进内存） */
+const ATTACHMENT_TEXT_SKIP_BYTES = 200_000
+
+/**
+ * 组装「【附件】」提示词段：文本类附件**内联内容**（有上限、超限截断），
+ * 其余（图片/PDF/Office 等二进制）只给名称/路径/大小，交给智能体按路径读取。
+ * 读失败不丢附件——退化成只给路径那一行。
+ */
+async function buildAttachmentBlock(attachments: readonly DigitalAttachment[]): Promise<string> {
+  const parts: string[] = []
+  let remaining = ATTACHMENT_TEXT_TOTAL_LIMIT
+  for (const file of attachments) {
+    const header = `- ${file.name}（${file.path}，${formatAttachmentSize(file.bytes)}）`
+    const inlineable =
+      isTextAttachment(file.mime) && file.bytes <= ATTACHMENT_TEXT_SKIP_BYTES && remaining > 0
+    if (!inlineable) {
+      parts.push(header)
+      continue
+    }
+    try {
+      const raw = await readFile(file.path, 'utf8')
+      const cap = Math.min(ATTACHMENT_TEXT_LIMIT, remaining)
+      const text = raw.length > cap ? `${raw.slice(0, cap)}\n…（已截断）` : raw
+      remaining -= Math.min(text.length, cap)
+      parts.push(`${header}\n  内容：\n\`\`\`\n${text}\n\`\`\``)
+    } catch {
+      // 读不到就只给路径（附件仍在，不静默丢）
+      parts.push(header)
+    }
+  }
+  return `【附件】用户随消息附带了以下文件（文本类已内联内容，其余可按路径用文件工具读取）：\n${parts.join('\n')}`
+}
 
 /** 把技能调度器适配为 Brain 的工具执行器 */
 export function createDispatcherToolRunner(dispatcher: SkillDispatcher): BrainToolRunner {
@@ -139,13 +182,10 @@ export class AgentBrainService {
     if (options.goal !== undefined && options.goal.trim() !== '') {
       extraBlocks.push(`【本轮目标】${options.goal.trim()}`)
     }
-    // 附件（对齐 dsh ui-attachment 的诚实子集）：告知智能体有哪些文件、路径与大小，
-    // 让它能用文件工具按绝对路径读取。文件已由 `attachments:add` 复制进库，路径稳定。
+    // 附件（对齐 dsh ui-attachment 的诚实子集）：文本类**内联内容**（.md/.json/.txt 等），
+    // 其余只给路径让智能体用文件工具按需读取。文件已由 `attachments:add` 复制进库，路径稳定。
     if (options.attachments !== undefined && options.attachments.length > 0) {
-      const lines = options.attachments.map(
-        (file) => `- ${file.name}（${file.path}，${formatAttachmentSize(file.bytes)}）`
-      )
-      extraBlocks.push(`【附件】用户随消息附带了以下文件，可用文件工具按路径读取：\n${lines.join('\n')}`)
+      extraBlocks.push(await buildAttachmentBlock(options.attachments))
     }
     const systemPrompts = buildSystemPrompts({
       // M2/G7 + M3/DD-3：注入**按场景分组、按档位限量**的紧凑能力目录（每工具一行）

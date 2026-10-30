@@ -84,6 +84,15 @@ export function guessMimeType(name: string): string {
   return MIME_BY_EXT[name.slice(dot).toLowerCase()] ?? 'application/octet-stream'
 }
 
+/**
+ * 是否文本类附件（可内联进提示词）：`text/*`、`application/json`、`application/xml`。
+ * 图片/PDF/Office 等二进制不内联（只给路径，由智能体的文件工具按需读取）。
+ */
+export function isTextAttachment(mime: string): boolean {
+  const value = mime.toLowerCase()
+  return value.startsWith('text/') || value === 'application/json' || value === 'application/xml'
+}
+
 /** 人类可读的字节数（1024 进制；<1KB 显示 B） */
 export function formatAttachmentSize(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes < 0) return ''
