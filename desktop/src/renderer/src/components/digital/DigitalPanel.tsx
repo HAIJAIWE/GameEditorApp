@@ -5,6 +5,7 @@ import { defaultDraftName, type DraftSummary } from '../../../../shared/agent/se
 import { DigitalChangeCard } from './DigitalChangeCard'
 import { DigitalMessageItem } from './DigitalMessageItem'
 import { DigitalRunPlan } from './DigitalRunPlan'
+import { PendingAttachments } from './PendingAttachments'
 import FieldActionStrip from './FieldActionStrip'
 
 import LucideIcon from '../LucideIcon'
@@ -50,7 +51,7 @@ import { toErrorMessage } from '../../../../shared/util/errors'
 import { AGENT_PRESETS, DEFAULT_PRESET_ID, presetLabel } from '../../../../shared/agent/presets'
 import { loadLlmConfig, saveLlmConfig, LLM_PROVIDER_PRESETS } from '../../../../shared/config/llmConfig'
 import { modelContextWindow, type LlmProvider } from '../../../../shared/config/llmConfigData'
-import { formatAttachmentSize, type DigitalAttachment } from '../../../../shared/util/libraryAttachments'
+import type { DigitalAttachment } from '../../../../shared/util/libraryAttachments'
 
 /**
  * 智能体面板（A1-4）：对话气泡 + 流式文本 + 可折叠步骤 + 任务列表 + 危险操作审批模态。
@@ -1227,30 +1228,8 @@ export default function DigitalPanel({
               }}
             />
           </div>
-          {/* 待发送附件：已复制进库，发送后清空。空列表不占位。 */}
-          {attachments.length > 0 && (
-            <div className="dsh-attachment-chips" data-testid="digital-attachments">
-              {attachments.map((file) => (
-                <span className="dsh-attachment-chip" key={file.path} data-testid="digital-attachment-chip">
-                  <LucideIcon name="file-text" size={12} />
-                  <span className="dsh-attachment-name" title={file.path}>
-                    {file.name}
-                  </span>
-                  <span className="dsh-attachment-size">{formatAttachmentSize(file.bytes)}</span>
-                  <button
-                    type="button"
-                    className="dsh-attachment-remove"
-                    data-testid="digital-attachment-remove"
-                    aria-label="移除附件"
-                    title="移除附件"
-                    onClick={() => removeAttachment(file.path)}
-                  >
-                    <LucideIcon name="x" size={12} />
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
+          {/* 待发送附件：已复制进库，发送后清空。图片显示真实缩略图，空列表不占位。 */}
+          <PendingAttachments attachments={attachments} onRemove={removeAttachment} />
           <textarea
             ref={inputRef}
             className="dsh-composer-input"

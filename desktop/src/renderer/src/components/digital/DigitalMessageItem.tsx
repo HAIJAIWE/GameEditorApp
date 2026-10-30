@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react'
 
 import ChatMarkdown from './ChatMarkdown'
+import { useAttachmentImage } from './useAttachmentImage'
 import { formatAttachmentSize, type DigitalAttachment } from '../../../../shared/util/libraryAttachments'
 
 export interface DigitalMessageItemProps {
@@ -393,27 +394,8 @@ function ImageAttachment({
   onOpenImage: (src: string, alt: string, opener: HTMLElement) => void
   onOpenFile?: (path: string) => void
 }): ReactElement {
-  const [src, setSrc] = useState<string | null>(null)
-  const [failed, setFailed] = useState(false)
-
-  // 父级按 `file.path` 作 key，路径变化会重挂组件，初始态已是「未加载/未失败」，
-  // 故 effect 里不再同步 setState（会触发 react-hooks/set-state-in-effect）。
-  useEffect(() => {
-    let live = true
-    void window.mbApi.attachments
-      .readImage({ path: file.path })
-      .then((result) => {
-        if (!live) return
-        if (result.ok) setSrc(result.dataUrl)
-        else setFailed(true)
-      })
-      .catch(() => {
-        if (live) setFailed(true)
-      })
-    return () => {
-      live = false
-    }
-  }, [file.path])
+  // 父级按 `file.path` 作 key，路径变化会重挂组件；读图逻辑复用共享 hook。
+  const { src, failed } = useAttachmentImage(file.path)
 
   if (failed) {
     return <FileAttachmentChip file={file} {...(onOpenFile !== undefined ? { onOpen: onOpenFile } : {})} />

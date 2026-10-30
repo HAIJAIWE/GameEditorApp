@@ -5431,6 +5431,32 @@ button.ref-row:hover {
   color: var(--text);
 }
 
+/* composer 待发送区的图片缩略图：24px 方块嵌在 chip 里（对齐 dsh draft rail 的缩略图思路） */
+.dsh-attachment-thumb {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--bg-hover);
+}
+.dsh-attachment-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.dsh-attachment-thumb-loading {
+  width: 12px;
+  height: 12px;
+  border: 2px solid color-mix(in srgb, var(--text-muted) 30%, transparent);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: digital-attachment-spin 0.7s linear infinite;
+}
+
 /* 图片附件缩略图（对齐 dsh MessageImage）：单图 240px 长边、多图 64px 方块 */
 .digital-attachment-image {
   display: inline-flex;

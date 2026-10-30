@@ -184,6 +184,7 @@ dsh 的 UI 成熟在**两件事**：① **typed slot 组合**（父级声明扩�
 
 **第五轮（会话附件 `ui-attachment` 的诚实子集）**：
 - **做了什么**：`＋ → 上传文件` 选文件 → 主进程复制进 `<活跃库>/attachments/`（重名加 `-2`，与图片入库同策略）→ 返回 `{name,path,mime,bytes}`；用户消息气泡下渲染附件：**图片类**（`image/*`）走 `attachments:readImage`（主进程读成 data URL，**仅限库内附件目录 + 8MB 上限**）渲染缩略图（单图 240px 长边 / 多图 64px 方块），点开**原图 lightbox**（Esc / 点遮罩 / 关闭按钮，焦点归还缩略图）；**非图片**走文件 chip（点开 `shell.openPath`）。发送时元数据随 `agent:chat` 上送，`service.ts` 注入系统提示词「【附件】…（名称/路径/大小）」，让智能体知道有这些文件、能用文件工具按绝对路径读取。新通道 `dialog:chooseAttachmentFile` / `attachments:add` / `attachments:open` / `attachments:readImage`，主进程 `main/attachments.ts` + `ipc/attachmentsIpc.ts`。`data-testid: composer-upload-file / digital-attachments / digital-attachment-chip / digital-message-attachment / digital-message-image / digital-lightbox(-close)`。
+- **composer 待发送区（对齐 dsh draft rail 的诚实子集）**：图片附件显示**真实缩略图**（24px 嵌在 chip 里），其它显示文件 chip；读图失败回退文件 chip。读图逻辑抽成共享 hook `useAttachmentImage`（消息缩略图与 composer 缩略图同一份，避免重复）。刻意不做 dsh 的边缘翻页箭头 / 滚轮横向滚动（窄 composer 用不上，做了是空转）。
 - **刻意不做**：上传进度条（无流式上传链路）、拖拽上传（无 drag-drop 数据链路）。按「宁缺毋假」留白，而不是画假进度。~~图片 lightbox~~ 已做（有真实读图链路）。
 - 测试：`libraryAttachments.test.ts`（命名/MIME/大小）、`panelReducer`（消息携带附件）、`agentBrainService`（提示词注入）、`digitalMessageAttachments.test.tsx`（文件 chip / 图片缩略图 / lightbox 开关 / Esc / 读图失败回退 / 助手不显示）。
 
