@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
-import { renderCeshuDeliverableMarkdown } from '../../src/main/ceshu/export/markdown'
-import { renderCeshuOnePageMarkdown } from '../../src/main/ceshu/export/onepage'
-import { renderCeshuTasksMarkdown } from '../../src/main/ceshu/export/tasks'
+import { renderCeshuDeliverableMarkdown } from '../../src/main/ceshu/export/doc/markdown'
+import { renderCeshuOnePageMarkdown } from '../../src/main/ceshu/export/content/onepage'
+import { renderCeshuTasksMarkdown } from '../../src/main/ceshu/export/delivery/tasks'
 import { CESHU_EXPORT_FORMATS, CESHU_FORMAT_EXTENSIONS } from '../../src/shared/ceshu/reference/ceshuConstants'
 import { createDefaultCeshu } from '../../src/shared/ceshu/model/ceshuModel'
 

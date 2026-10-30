@@ -1,8 +1,8 @@
 import JSZip from 'jszip'
 import { describe, expect, it } from 'vitest'
 
-import { renderCeshuDocx } from '../../src/main/ceshu/export/docx'
-import { renderCeshuPptx } from '../../src/main/ceshu/export/pptx'
+import { renderCeshuDocx } from '../../src/main/ceshu/export/doc/docx'
+import { renderCeshuPptx } from '../../src/main/ceshu/export/doc/pptx'
 import { CHAPTER_LABELS, type CeshuDocument, type GddScope } from '../../src/shared/ceshu/reference/ceshuConstants'
 import { createDefaultCeshu } from '../../src/shared/ceshu/model/ceshuModel'
 

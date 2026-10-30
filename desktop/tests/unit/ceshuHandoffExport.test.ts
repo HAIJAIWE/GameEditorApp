@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { buildHandoffFiles, handoffFolderName } from '../../src/main/ceshu/export/handoff'
+import { buildHandoffFiles, handoffFolderName } from '../../src/main/ceshu/export/delivery/handoff'
 import type { CeshuDocument } from '../../src/shared/ceshu/reference/ceshuConstants'
 import { HANDOFF_VOLUMES, handoffVolumeIndexPath, planHandoffDocs } from '../../src/shared/ceshu/workflow/ceshuHandoff'
 import { createDefaultCeshu } from '../../src/shared/ceshu/model/ceshuModel'

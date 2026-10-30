@@ -4,8 +4,8 @@ import {
   type CeshuDocument,
   type ChapterData,
   type ChapterKey
-} from '../../../shared/ceshu/reference/ceshuConstants'
-import { formatLocalTimestamp, getGameType, getGddScope, deriveRulesetId } from '../../../shared/ceshu/model/ceshuModel'
+} from '../../../../shared/ceshu/reference/ceshuConstants'
+import { formatLocalTimestamp, getGameType, getGddScope, deriveRulesetId } from '../../../../shared/ceshu/model/ceshuModel'
 import {
   chapterHeading,
   classifySystems,
@@ -15,7 +15,7 @@ import {
   orderedFieldEntries,
   pipeTable,
   visibleChapterEntries
-} from './common'
+} from '../common'
 
 /**
  * 叙事版导出：把 24 章的字段重排成「设计首页 → 走读 → 架构 → 机制 → 数值 → MVP → 原型 → 变更」，

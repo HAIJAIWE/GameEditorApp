@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { renderCeshuMarkdown } from '../../src/main/ceshu/export/markdown'
+import { renderCeshuMarkdown } from '../../src/main/ceshu/export/doc/markdown'
 import { CHAPTER_KEYS, type CeshuDocument, type ChapterKey } from '../../src/shared/ceshu/reference/ceshuConstants'
 import { CESHU_CHAPTER_FIELDS } from '../../src/shared/ceshu/fields/ceshuFields'
 import { createDefaultCeshu } from '../../src/shared/ceshu/model/ceshuModel'

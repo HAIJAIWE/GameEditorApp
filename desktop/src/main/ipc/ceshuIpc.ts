@@ -65,8 +65,8 @@ import { buildSystemConfirmResult } from '../../shared/ceshu/prompts/ceshuSystem
 import { computeReadiness } from '../../shared/ceshu/readiness/ceshuReadiness'
 import { validateCeshu } from '../../shared/ceshu/validation/ceshuValidation'
 import { exportCeshuDocument } from '../ceshu/export/exporter'
-import { exportHandoff } from '../ceshu/export/handoff'
-import { exportProjectFolder } from '../ceshu/export/projectFolder'
+import { exportHandoff } from '../ceshu/export/delivery/handoff'
+import { exportProjectFolder } from '../ceshu/export/delivery/projectFolder'
 import { exportTextReportFile } from '../ceshu/reportExport'
 
 export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm: LlmShared): void {

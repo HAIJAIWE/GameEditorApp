@@ -22,11 +22,11 @@ import {
   type CeshuDocument,
   type ChapterData,
   type ChapterKey
-} from '../../../shared/ceshu/reference/ceshuConstants'
-import { fieldStatusOf } from '../../../shared/ceshu/fields/ceshuFieldStatus'
-import { countFieldStatuses, formatFieldStatusSummary } from '../../../shared/ceshu/fields/ceshuFieldStatusStats'
-import { CESHU_CHAPTER_FIELDS } from '../../../shared/ceshu/fields/ceshuFields'
-import { computeChapterProgress, formatLocalTimestamp, getGameType, getGddScope, isPlainObject } from '../../../shared/ceshu/model/ceshuModel'
+} from '../../../../shared/ceshu/reference/ceshuConstants'
+import { fieldStatusOf } from '../../../../shared/ceshu/fields/ceshuFieldStatus'
+import { countFieldStatuses, formatFieldStatusSummary } from '../../../../shared/ceshu/fields/ceshuFieldStatusStats'
+import { CESHU_CHAPTER_FIELDS } from '../../../../shared/ceshu/fields/ceshuFields'
+import { computeChapterProgress, formatLocalTimestamp, getGameType, getGddScope, isPlainObject } from '../../../../shared/ceshu/model/ceshuModel'
 import {
   EMPTY_PLACEHOLDER,
   chapterHeading,
@@ -39,7 +39,7 @@ import {
   pipeTable,
   visibleChapterEntries,
   type PipeTable
-} from './common'
+} from '../common'
 
 /**
  * 策划书 docx 渲染器（纯函数式，返回 Buffer，写盘由上层 exporter 负责）。

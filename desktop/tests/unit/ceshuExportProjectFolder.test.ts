@@ -4,7 +4,7 @@ import { join } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { exportProjectFolder } from '../../src/main/ceshu/export/projectFolder'
+import { exportProjectFolder } from '../../src/main/ceshu/export/delivery/projectFolder'
 import { createDefaultCeshu } from '../../src/shared/ceshu/model/ceshuModel'
 
 /**

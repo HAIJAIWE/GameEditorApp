@@ -9,7 +9,7 @@ import {
   CESHU_BUNDLE_SCHEMA,
   buildCeshuBundle,
   renderCeshuBundleJson
-} from '../../src/main/ceshu/export/bundle'
+} from '../../src/main/ceshu/export/delivery/bundle'
 import type { CeshuDocument } from '../../src/shared/ceshu/reference/ceshuConstants'
 import { createDefaultCeshu } from '../../src/shared/ceshu/model/ceshuModel'
 import { setFieldStatuses } from '../../src/shared/ceshu/fields/ceshuFieldStatus'

@@ -4,12 +4,12 @@ import {
   enabledModuleChapters,
   type CeshuDocument,
   type ChapterKey
-} from '../../../shared/ceshu/reference/ceshuConstants'
-import { fieldStatusOf } from '../../../shared/ceshu/fields/ceshuFieldStatus'
-import { countFieldStatuses, formatFieldStatusSummary } from '../../../shared/ceshu/fields/ceshuFieldStatusStats'
-import { CESHU_CHAPTER_FIELDS } from '../../../shared/ceshu/fields/ceshuFields'
-import { computeChapterProgress, formatLocalTimestamp, getGameType, getGddScope } from '../../../shared/ceshu/model/ceshuModel'
-import { renderDocDiagrams } from './diagrams'
+} from '../../../../shared/ceshu/reference/ceshuConstants'
+import { fieldStatusOf } from '../../../../shared/ceshu/fields/ceshuFieldStatus'
+import { countFieldStatuses, formatFieldStatusSummary } from '../../../../shared/ceshu/fields/ceshuFieldStatusStats'
+import { CESHU_CHAPTER_FIELDS } from '../../../../shared/ceshu/fields/ceshuFields'
+import { computeChapterProgress, formatLocalTimestamp, getGameType, getGddScope } from '../../../../shared/ceshu/model/ceshuModel'
+import { renderDocDiagrams } from '../content/diagrams'
 
 import {
   EMPTY_PLACEHOLDER,
@@ -24,7 +24,7 @@ import {
   pipeTable,
   visibleChapterEntries,
   type VisibleChapterEntry
-} from './common'
+} from '../common'
 
 /**
  * HTML 导出器：生成自包含的可打印 HTML（浅色主题、微软雅黑、A4 友好）。

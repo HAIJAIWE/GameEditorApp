@@ -8,16 +8,16 @@ import {
   type CeshuExportResult
 } from '../../../shared/ceshu/reference/ceshuConstants'
 
-import { renderCeshuBundleJson } from './bundle'
-import { renderCeshuDocx } from './docx'
-import { renderCeshuExcel } from './excel'
-import { renderCeshuHtml } from './html'
-import { renderCeshuDeliverableMarkdown, renderCeshuMarkdown } from './markdown'
-import { renderCeshuNarrative } from './narrative'
-import { renderCeshuOnePageMarkdown } from './onepage'
-import { renderCeshuPdf } from './pdf'
-import { renderCeshuPptx } from './pptx'
-import { renderCeshuTasksMarkdown } from './tasks'
+import { renderCeshuBundleJson } from './delivery/bundle'
+import { renderCeshuDocx } from './doc/docx'
+import { renderCeshuExcel } from './doc/excel'
+import { renderCeshuHtml } from './doc/html'
+import { renderCeshuDeliverableMarkdown, renderCeshuMarkdown } from './doc/markdown'
+import { renderCeshuNarrative } from './content/narrative'
+import { renderCeshuOnePageMarkdown } from './content/onepage'
+import { renderCeshuPdf } from './doc/pdf'
+import { renderCeshuPptx } from './doc/pptx'
+import { renderCeshuTasksMarkdown } from './delivery/tasks'
 
 /**
  * 策划书导出管道：按格式渲染 → 临时文件 + rename 原子写 → 返回结果。

@@ -1,8 +1,8 @@
-import { CHAPTER_LABELS, CHAPTER_REQUIRED_FIELDS, type CeshuDocument } from '../../../shared/ceshu/reference/ceshuConstants'
-import { CESHU_CHAPTER_FIELDS } from '../../../shared/ceshu/fields/ceshuFields'
-import { displayFieldValue } from '../../../shared/ceshu/fields/ceshuFieldDisplay'
-import { computeChapterProgress, visibleChaptersForDoc } from '../../../shared/ceshu/model/ceshuModel'
-import { CESHU_STAGE_LABELS, chaptersUpToStage, isMachineDataField } from '../../../shared/ceshu/workflow/ceshuStages'
+import { CHAPTER_LABELS, CHAPTER_REQUIRED_FIELDS, type CeshuDocument } from '../../../../shared/ceshu/reference/ceshuConstants'
+import { CESHU_CHAPTER_FIELDS } from '../../../../shared/ceshu/fields/ceshuFields'
+import { displayFieldValue } from '../../../../shared/ceshu/fields/ceshuFieldDisplay'
+import { computeChapterProgress, visibleChaptersForDoc } from '../../../../shared/ceshu/model/ceshuModel'
+import { CESHU_STAGE_LABELS, chaptersUpToStage, isMachineDataField } from '../../../../shared/ceshu/workflow/ceshuStages'
 
 /**
  * 一页摘要（2026 对齐，见 `docs/one-page-overview.md`）。

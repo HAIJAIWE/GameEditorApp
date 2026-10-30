@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import ExcelJS from 'exceljs'
 import { describe, expect, it } from 'vitest'
 
-import { buildExcelWorkbook, renderCeshuExcel } from '../../src/main/ceshu/export/excel'
+import { buildExcelWorkbook, renderCeshuExcel } from '../../src/main/ceshu/export/doc/excel'
 import { exportCeshuDocument } from '../../src/main/ceshu/export/exporter'
 import { CHAPTER_LABELS, type CeshuDocument } from '../../src/shared/ceshu/reference/ceshuConstants'
 import { autoFillRequiredFields } from '../../src/shared/ceshu/workflow/ceshuFill'

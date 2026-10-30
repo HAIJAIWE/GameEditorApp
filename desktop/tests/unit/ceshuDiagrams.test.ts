@@ -5,7 +5,7 @@ import {
   renderDocDiagrams,
   renderGrowthChartSvg,
   renderStateMachineSvg
-} from '../../src/main/ceshu/export/diagrams'
+} from '../../src/main/ceshu/export/content/diagrams'
 import { createDefaultCeshu } from '../../src/shared/ceshu/model/ceshuModel'
 
 describe('renderCoreLoopSvg：核心循环图', () => {

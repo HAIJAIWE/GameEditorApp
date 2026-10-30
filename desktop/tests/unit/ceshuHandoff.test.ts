@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { renderCeshuMarkdown } from '../../src/main/ceshu/export/markdown'
+import { renderCeshuMarkdown } from '../../src/main/ceshu/export/doc/markdown'
 import type { CeshuDocument } from '../../src/shared/ceshu/reference/ceshuConstants'
 import { CESHU_CHAPTER_FIELDS } from '../../src/shared/ceshu/fields/ceshuFields'
 import {
@@ -26,7 +26,7 @@ import {
   renderHandoffVolumeIndex,
   resolveHandoffGenre
 } from '../../src/shared/ceshu/workflow/ceshuHandoff'
-import { buildHandoffFiles } from '../../src/main/ceshu/export/handoff'
+import { buildHandoffFiles } from '../../src/main/ceshu/export/delivery/handoff'
 import { createDefaultCeshu } from '../../src/shared/ceshu/model/ceshuModel'
 import { SYSTEM_CONFIG_SCHEMA } from '../../src/shared/ceshu/model/systemConfigSchema'
 
