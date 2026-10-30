@@ -4,8 +4,8 @@ import {
   fieldTemplateNameInputSchema,
   fieldTemplateSaveInputSchema,
   fieldIdSuggestInputSchema
-} from '../../shared/schema/schemas'
-import { TYPE_TEMPLATE_NAMES } from '../../shared/schema/typeTemplates'
+} from '../../shared/schema/core/schemas'
+import { TYPE_TEMPLATE_NAMES } from '../../shared/schema/core/typeTemplates'
 import { buildFieldIdPrompt, parseFieldIdCandidates } from '../../shared/util/fieldIdAi'
 import { runSingleShotTask } from '../agent/runTask'
 import { estimateTokens } from '../../shared/agent/budget'

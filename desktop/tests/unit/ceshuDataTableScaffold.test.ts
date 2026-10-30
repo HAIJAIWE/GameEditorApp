@@ -7,7 +7,7 @@ import {
   planDataTableScaffold
 } from '../../src/shared/ceshu/data/ceshuDataTableScaffold'
 import { parseDataTableRequirements, type DataTableActual } from '../../src/shared/ceshu/data/ceshuDataTableCheck'
-import { validateTypeSchema } from '../../src/shared/schema/typeSchemaFile'
+import { validateTypeSchema } from '../../src/shared/schema/adapters/typeSchemaFile'
 import type { DataTypeDef } from '../../src/shared/types'
 
 /**

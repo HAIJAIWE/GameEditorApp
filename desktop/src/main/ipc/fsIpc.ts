@@ -4,7 +4,7 @@ import { dirname, isAbsolute, join } from 'node:path'
 
 import { app } from 'electron'
 
-import { fsListDirInputSchema, fsReadFileInputSchema } from '../../shared/schema/schemas'
+import { fsListDirInputSchema, fsReadFileInputSchema } from '../../shared/schema/core/schemas'
 import type { IpcHandlerDeps, IpcRegistrar } from '../ipc'
 import type { FsDirEntry, FsDirListing, FsFileContent } from '../../shared/ipc'
 

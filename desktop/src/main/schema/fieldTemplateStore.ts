@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 
-import { FIELD_TYPES } from '../../shared/schema/typeSchemaFile'
+import { FIELD_TYPES } from '../../shared/schema/adapters/typeSchemaFile'
 import type { TypeFieldDef } from '../../shared/types'
 
 /**

@@ -6,4 +6,4 @@
  * 本文件仅作再导出桶，所有现有 `import { ... } from './schemas'` 站点保持不变。
  */
 
-export * from './schemasData'
+export * from '../adapters/schemasData'

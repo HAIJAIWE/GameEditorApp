@@ -1,4 +1,4 @@
-import type { DataTypeDef, FieldType, TypeFieldDef } from '../types'
+import type { DataTypeDef, FieldType, TypeFieldDef } from '../../types'
 
 /**
  * 字段结构编辑器内置模板。

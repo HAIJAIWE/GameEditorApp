@@ -7,7 +7,7 @@ import {
   attachmentsAddInputSchema,
   attachmentsOpenInputSchema,
   attachmentsReadImageInputSchema
-} from '../../shared/schema/schemas'
+} from '../../shared/schema/core/schemas'
 import { LIBRARY_ATTACHMENTS_DIRNAME, guessMimeType } from '../../shared/util/libraryAttachments'
 import { isSupportedImageFile } from '../../shared/util/imagePreview'
 import { log } from '../../shared/util/logger'

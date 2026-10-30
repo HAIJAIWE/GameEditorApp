@@ -89,7 +89,7 @@ import type {
   AppViewActionInput,
   FsListDirInput,
   FsReadFileInput
-} from './schema/schemas'
+} from './schema/core/schemas'
 import type {
   AppInfo,
   AppLogInput,
@@ -110,7 +110,7 @@ import type { AgentRunStats } from './agent/observability'
 import type { DraftSummary, SessionInfo, SessionTurnSummary } from './agent/session'
 import type { OperationRecord } from './agent/operationLog'
 import type { JsonObjectSchema, SkillResult } from './agent/protocol'
-import type { AgentDeliveriesInput, AttachmentsAddInput, AttachmentsOpenInput, AttachmentsReadImageInput } from './schema/schemas'
+import type { AgentDeliveriesInput, AttachmentsAddInput, AttachmentsOpenInput, AttachmentsReadImageInput } from './schema/core/schemas'
 import type { DigitalAttachment } from './util/libraryAttachments'
 import type { DeliveryRecord } from './agent/deliveryLog'
 import type { CeshuChangelog, CeshuVersionDiff } from './ceshu/workflow/ceshuDiff'

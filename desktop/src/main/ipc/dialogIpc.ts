@@ -8,7 +8,7 @@ import {
   engineExportFileDialogInputSchema,
   templateJsonDialogInputSchema,
   dataSnapshotFileDialogInputSchema
-} from '../../shared/schema/schemas'
+} from '../../shared/schema/core/schemas'
 import { CESHU_FORMAT_EXTENSIONS, CESHU_FORMAT_LABELS } from '../../shared/ceshu/reference/ceshuConstants'
 import { buildImagePreviewDataUrl } from '../../shared/util/imagePreview'
 import { log } from '../../shared/util/logger'

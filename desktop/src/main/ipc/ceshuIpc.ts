@@ -38,7 +38,7 @@ import {
   templatesListInputSchema,
   templatesSaveInputSchema,
   templatesUpdateInputSchema
-} from '../../shared/schema/schemas'
+} from '../../shared/schema/core/schemas'
 import { CHAPTER_LABELS, isChapterKey, type ChapterKey, type SystemEntry } from '../../shared/ceshu/reference/ceshuConstants'
 import type { DataTypeDef } from '../../shared/types'
 import { CESHU_CHAPTER_FIELDS } from '../../shared/ceshu/fields/ceshuFields'

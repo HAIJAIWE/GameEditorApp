@@ -6,13 +6,13 @@ import {
   FIELD_ID_AI_ERROR_EMPTY_LABEL,
   FIELD_ID_AI_ERROR_NO_CANDIDATE
 } from '../../../shared/util/fieldIdAi'
-import { FIELD_TYPE_LABELS, FIELD_TYPES, validateTypeSchema } from '../../../shared/schema/typeSchemaFile'
+import { FIELD_TYPE_LABELS, FIELD_TYPES, validateTypeSchema } from '../../../shared/schema/adapters/typeSchemaFile'
 import {
   TYPE_TEMPLATE_NAMES,
   TYPE_TEMPLATE_SECTIONS,
   TYPE_TEMPLATES,
   buildNewTypeDraft
-} from '../../../shared/schema/typeTemplates'
+} from '../../../shared/schema/core/typeTemplates'
 import type { DataTypeDef, FieldType, TypeFieldDef, TypeSectionDef } from '../../../shared/types'
 
 import { refOptions, parseOptionalNumber } from './typeEditorUtils'

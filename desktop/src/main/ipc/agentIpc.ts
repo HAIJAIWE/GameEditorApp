@@ -14,7 +14,7 @@ import {
   agentSubagentSendInputSchema,
   agentSubagentStopInputSchema,
   mcpSetConfigInputSchema
-} from '../../shared/schema/schemas'
+} from '../../shared/schema/core/schemas'
 import { parseMcpConfig } from '../../shared/agent/mcp/config'
 import { mcpManager } from '../agent/mcp/manager'
 import { DEFAULT_INTERACTION_TIMEOUT_MS } from '../../shared/agent/brain'

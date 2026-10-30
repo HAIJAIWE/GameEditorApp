@@ -1,4 +1,4 @@
-import type { FieldType, TypeFieldDef, TypeSectionDef } from '../types'
+import type { FieldType, TypeFieldDef, TypeSectionDef } from '../../types'
 
 /**
  * 条目编辑器的**分区定义与构建**（折叠分区布局）。

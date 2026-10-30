@@ -3,7 +3,7 @@ import { BrowserWindow } from 'electron'
 import { log } from '../../shared/util/logger'
 import type { LogLevel } from '../../shared/types'
 import type { IpcHandlerDeps, IpcRegistrar } from '../ipc'
-import { appLogInputSchema, appViewActionInputSchema, windowModeInputSchema } from '../../shared/schema/schemas'
+import { appLogInputSchema, appViewActionInputSchema, windowModeInputSchema } from '../../shared/schema/core/schemas'
 
 export function registerAppIpc(deps: IpcHandlerDeps, handle: IpcRegistrar): void {
   const { getAppInfo, setWindowMode } = deps

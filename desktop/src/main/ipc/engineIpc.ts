@@ -1,5 +1,5 @@
 import type { IpcHandlerDeps, IpcRegistrar } from '../ipc'
-import { engineExportInputSchema } from '../../shared/schema/schemas'
+import { engineExportInputSchema } from '../../shared/schema/core/schemas'
 import { exportEngineData, type EngineExportResult } from '../engineExport/exporter'
 import { copyImagesForExport, detectMissingImages } from '../exportImagesCopy'
 import { log } from '../../shared/util/logger'

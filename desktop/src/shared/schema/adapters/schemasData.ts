@@ -1,16 +1,16 @@
 /**
  * `schemas.ts` 的纯定义层：全部 zod 运行时 schema 与 `z.infer` 类型别名。
- * 由 `schemas.ts` 再导出，外部 `import { ... } from './schemas'` 站点保持不变。
+ * 由 `schemas.ts` 再导出，外部 `import { ... } from '../core/schemas'` 站点保持不变。
  */
 
 import { z } from 'zod'
 
-import { ATTR_TYPES } from '../attrSystem'
-import { CESHU_EXPORT_FORMATS } from '../ceshu/reference/ceshuConstants'
-import { FIELD_ACTIONS } from '../ceshu/fields/ceshuFieldAction'
-import { ADJUST_MODES, BATCH_OP_KINDS } from '../util/dataTableOps'
+import { ATTR_TYPES } from '../../attrSystem'
+import { CESHU_EXPORT_FORMATS } from '../../ceshu/reference/ceshuConstants'
+import { FIELD_ACTIONS } from '../../ceshu/fields/ceshuFieldAction'
+import { ADJUST_MODES, BATCH_OP_KINDS } from '../../util/dataTableOps'
 import { FIELD_TYPES } from './typeSchemaFile'
-import type { FieldType } from '../types'
+import type { FieldType } from '../../types'
 
 export const listItemsInputSchema = z.object({
   type: z.string().min(1)

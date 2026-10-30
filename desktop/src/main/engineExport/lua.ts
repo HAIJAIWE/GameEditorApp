@@ -1,5 +1,5 @@
-import { getTypeById } from '../../shared/schema/typeSchema'
-import { DEFAULT_TYPE_SCHEMA_VERSION } from '../../shared/schema/typeSchemaFile'
+import { getTypeById } from '../../shared/schema/core/typeSchema'
+import { DEFAULT_TYPE_SCHEMA_VERSION } from '../../shared/schema/adapters/typeSchemaFile'
 import type { DataTypeDef, ItemRecord } from '../../shared/types'
 
 import { toLuaKey, toLuaLiteral } from './luaLiteral'
