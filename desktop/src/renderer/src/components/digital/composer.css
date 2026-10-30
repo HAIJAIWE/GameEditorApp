@@ -411,3 +411,80 @@
 .dsh-confirm-card .editor-actions {
   justify-content: flex-end;
 }
+
+/* 键盘快捷键参考弹窗（对齐 dsh ui-shortcuts 的只读子集） */
+.digital-shortcuts-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 17, 21, 0.28);
+}
+.digital-shortcuts-card {
+  width: min(420px, 88vw);
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 16px;
+  border: 0.5px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-panel);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.24);
+}
+.digital-shortcuts-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.digital-shortcuts-title {
+  font-size: calc(14px * var(--ui-font-scale));
+  font-weight: 500;
+  color: var(--text);
+}
+.digital-shortcuts-group {
+  margin-top: 12px;
+}
+.digital-shortcuts-group-label {
+  margin-bottom: 6px;
+  color: var(--text-muted);
+  font-size: calc(12px * var(--ui-font-scale));
+}
+.digital-shortcuts-list {
+  margin: 0;
+  padding: 0;
+}
+.digital-shortcuts-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 5px 0;
+  border-top: 0.5px solid var(--divider);
+  font-size: calc(13px * var(--ui-font-scale));
+  color: var(--text);
+}
+.digital-shortcuts-row:first-child {
+  border-top: 0;
+}
+.digital-shortcuts-row dd {
+  margin: 0;
+}
+.digital-shortcut-key {
+  display: inline-block;
+  padding: 1px 6px;
+  border: 0.5px solid var(--border);
+  border-radius: 5px;
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: calc(12px * var(--ui-font-scale));
+  white-space: nowrap;
+}
+.digital-shortcuts-note {
+  margin: 12px 0 0;
+  color: var(--text-muted);
+  font-size: calc(12px * var(--ui-font-scale));
+}

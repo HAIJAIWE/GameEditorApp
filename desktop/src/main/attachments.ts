@@ -1,4 +1,4 @@
-import { copyFileSync, existsSync, mkdirSync, readdirSync, statSync } from 'node:fs'
+import { copyFile, mkdir, readdir, stat } from 'node:fs/promises'
 import { join } from 'node:path'
 
 import {
@@ -19,18 +19,25 @@ export type AttachmentImportResult =
  *
  * 与图片入库（`imageImport.ts`）同一套取舍：复制进库、重名加后缀，
  * 工程搬家/备份时附件跟着库走；渲染层只拿元数据，不碰 fs。
+ *
+ * **异步**（`fs/promises`）：大文件拷贝期间主进程不阻塞，渲染层可据 promise 未决
+ * 显示「导入中…」——诚实的不确定进度，而不是假百分比（拷贝没有流式回调）。
  */
-export function importAttachmentIntoLibrary(sourcePath: string, libraryDir: string): AttachmentImportResult {
+export async function importAttachmentIntoLibrary(
+  sourcePath: string,
+  libraryDir: string
+): Promise<AttachmentImportResult> {
   try {
-    if (!existsSync(sourcePath)) return { ok: false, error: `文件不存在：${sourcePath}` }
-    if (!statSync(sourcePath).isFile()) return { ok: false, error: '所选路径不是文件' }
+    const info = await stat(sourcePath).catch(() => null)
+    if (info === null) return { ok: false, error: `文件不存在：${sourcePath}` }
+    if (!info.isFile()) return { ok: false, error: '所选路径不是文件' }
 
     const dir = join(libraryDir, LIBRARY_ATTACHMENTS_DIRNAME)
-    mkdirSync(dir, { recursive: true })
-    const name = planAttachmentName(sourcePath, readdirSync(dir))
+    await mkdir(dir, { recursive: true })
+    const name = planAttachmentName(sourcePath, await readdir(dir))
     const target = join(dir, name)
-    copyFileSync(sourcePath, target)
-    const bytes = statSync(target).size
+    await copyFile(sourcePath, target)
+    const bytes = (await stat(target)).size
     return { ok: true, attachment: { name, path: target, mime: guessMimeType(name), bytes } }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)

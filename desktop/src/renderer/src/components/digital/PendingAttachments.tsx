@@ -14,12 +14,15 @@ import { useAttachmentImage } from './useAttachmentImage'
  */
 export function PendingAttachments({
   attachments,
-  onRemove
+  onRemove,
+  adding = false
 }: {
   attachments: DigitalAttachment[]
   onRemove: (path: string) => void
+  /** 正在把选中的文件复制进库：显示不确定进度（不画假百分比） */
+  adding?: boolean
 }): ReactElement | null {
-  if (attachments.length === 0) return null
+  if (attachments.length === 0 && !adding) return null
   return (
     <div className="dsh-attachment-chips" data-testid="digital-attachments">
       {attachments.map((file) =>
@@ -28,6 +31,12 @@ export function PendingAttachments({
         ) : (
           <PendingFileChip key={file.path} file={file} onRemove={onRemove} />
         )
+      )}
+      {adding && (
+        <span className="dsh-attachment-chip dsh-attachment-adding" data-testid="digital-attachment-adding">
+          <span className="dsh-attachment-thumb-loading" aria-hidden="true" />
+          导入中…
+        </span>
       )}
     </div>
   )

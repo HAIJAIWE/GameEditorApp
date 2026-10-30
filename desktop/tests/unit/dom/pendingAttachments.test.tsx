@@ -23,9 +23,18 @@ const file = (name: string): { name: string; path: string; mime: string; bytes: 
 })
 
 describe('composer 待发送附件区', () => {
-  it('空列表不渲染', async () => {
+  it('空列表且不在导入中 → 不渲染', async () => {
     const rendered = await renderDom(<PendingAttachments attachments={[]} onRemove={() => undefined} />)
     expect(rendered.queryAll('[data-testid="digital-attachments"]')).toHaveLength(0)
+    await rendered.cleanup()
+  })
+
+  it('导入中显示「导入中…」chip（不确定进度）', async () => {
+    const rendered = await renderDom(
+      <PendingAttachments attachments={[]} onRemove={() => undefined} adding />
+    )
+    expect(rendered.byTestId('digital-attachment-adding')).toBeTruthy()
+    expect(rendered.text()).toContain('导入中')
     await rendered.cleanup()
   })
 

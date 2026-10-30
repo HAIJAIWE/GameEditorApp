@@ -5457,6 +5457,11 @@ button.ref-row:hover {
   animation: digital-attachment-spin 0.7s linear infinite;
 }
 
+/* 「导入中…」chip：与附件 chip 同构，左侧小 spinner；诚实的不确定进度 */
+.dsh-attachment-adding {
+  color: var(--text-muted);
+}
+
 /* 图片附件缩略图（对齐 dsh MessageImage）：单图 240px 长边、多图 64px 方块 */
 .digital-attachment-image {
   display: inline-flex;

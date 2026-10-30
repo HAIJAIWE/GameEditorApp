@@ -7,6 +7,7 @@ import { DigitalDeliveryCard } from './DigitalDeliveryCard'
 import { DigitalMessageItem } from './DigitalMessageItem'
 import { DigitalRunPlan } from './DigitalRunPlan'
 import { PendingAttachments } from './PendingAttachments'
+import { ShortcutsDialog } from './ShortcutsDialog'
 import FieldActionStrip from './FieldActionStrip'
 
 import LucideIcon from '../LucideIcon'
@@ -182,6 +183,8 @@ export default function DigitalPanel({
    * 已由主进程复制进 `<库>/attachments/`，这里只存元数据；发送后清空。
    */
   const [attachments, setAttachments] = useState<DigitalAttachment[]>([])
+  /** 正在把选中文件复制进库（不确定进度：显示「导入中…」，不画假百分比） */
+  const [addingAttachment, setAddingAttachment] = useState(false)
   /** 斜杠命令 / @ 引用菜单的当前高亮项（两者互斥，共用同一索引；输入变化时重置为 0） */
   const [commandIndex, setCommandIndex] = useState(0)
   /** `@` 引用候选：当前游戏库的数据表类型（首次输入 `@` 时懒加载） */
@@ -253,6 +256,8 @@ export default function DigitalPanel({
   })
   /** 「新建对话」危险确认：先弹确认再清空，避免误触丢失活跃会话（对齐 dsh RiskConfirmation） */
   const [confirmNewChat, setConfirmNewChat] = useState(false)
+  /** 键盘快捷键参考弹窗（对齐 dsh ui-shortcuts 的只读子集） */
+  const [shortcutsOpen, setShortcutsOpen] = useState(false)
   const draftMenuRef = useRef<HTMLDivElement | null>(null)
   /** 当前进行中那一轮的 runId（「停止」按钮据此精确取消） */
   const activeRunId = useRef<string | null>(null)
@@ -386,15 +391,21 @@ export default function DigitalPanel({
       try {
         const picked = await window.mbApi.dialog.chooseAttachmentFile()
         if (picked.path === null) return
-        const result = await window.mbApi.attachments.add({ path: picked.path })
-        if (!result.ok) {
-          setLocalError(result.error)
-          return
+        // 复制进库期间显示「导入中…」（真实拷贝，异步不阻塞；没有流式回调，故不确定进度）
+        setAddingAttachment(true)
+        try {
+          const result = await window.mbApi.attachments.add({ path: picked.path })
+          if (!result.ok) {
+            setLocalError(result.error)
+            return
+          }
+          // 同一文件重复选不重复加（按入库后的绝对路径去重）
+          setAttachments((prev) =>
+            prev.some((file) => file.path === result.attachment.path) ? prev : [...prev, result.attachment]
+          )
+        } finally {
+          setAddingAttachment(false)
         }
-        // 同一文件重复选不重复加（按入库后的绝对路径去重）
-        setAttachments((prev) =>
-          prev.some((file) => file.path === result.attachment.path) ? prev : [...prev, result.attachment]
-        )
       } catch (error: unknown) {
         setLocalError(toErrorMessage(error))
       }
@@ -886,6 +897,16 @@ export default function DigitalPanel({
               <LucideIcon name="clipboard" size={14} />
             </button>
           )}
+          <button
+            type="button"
+            className="btn slim"
+            data-testid="digital-shortcuts"
+            title="键盘快捷键"
+            aria-label="键盘快捷键"
+            onClick={() => setShortcutsOpen(true)}
+          >
+            <LucideIcon name="info" size={14} />
+          </button>
         </div>
       </div>
 
@@ -1259,7 +1280,7 @@ export default function DigitalPanel({
             />
           </div>
           {/* 待发送附件：已复制进库，发送后清空。图片显示真实缩略图，空列表不占位。 */}
-          <PendingAttachments attachments={attachments} onRemove={removeAttachment} />
+          <PendingAttachments attachments={attachments} onRemove={removeAttachment} adding={addingAttachment} />
           <textarea
             ref={inputRef}
             className="dsh-composer-input"
@@ -1561,6 +1582,9 @@ export default function DigitalPanel({
           </div>
         </div>
       )}
+
+      {/* 键盘快捷键参考（对齐 dsh ui-shortcuts 的只读子集） */}
+      {shortcutsOpen && <ShortcutsDialog onClose={() => setShortcutsOpen(false)} />}
 
       {/* 输入区接管（chain slot）：插件选举胜出时叠加接管组件；内置行已隐藏但仍挂载 */}
       {composerTakeover !== null && (
