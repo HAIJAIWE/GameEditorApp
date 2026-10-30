@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { DigitalDeliveryCard } from '../../../src/renderer/src/components/digital/DigitalDeliveryCard'
 import { installMbApi, renderDom } from './render'
@@ -44,6 +44,16 @@ describe('交付卡', () => {
     } finally {
       api.restore()
     }
+  })
+
+  it('传 onOpen 时点击交给调用方（文本预览 / 二进制原生由调用方决定）', async () => {
+    const onOpen = vi.fn()
+    const rendered = await renderDom(
+      <DigitalDeliveryCard deliveries={[delivery('d1', 'a.md')]} onOpen={onOpen} />
+    )
+    await rendered.click(rendered.byTestId('digital-delivery-file'))
+    expect(onOpen).toHaveBeenCalledWith('/lib/exports/a.md')
+    await rendered.cleanup()
   })
 
   it('超过 4 行折叠（对齐 COLLAPSED_PRESENTED_COUNT），点开全部展开', async () => {

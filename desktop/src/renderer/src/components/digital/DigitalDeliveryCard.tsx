@@ -21,7 +21,17 @@ function extensionOf(name: string): string {
  *
  * 空列表整体不渲染：对话里多一张「本轮没交付」的空卡只会干扰阅读。
  */
-export function DigitalDeliveryCard({ deliveries }: { deliveries: readonly DeliveryRecord[] }): ReactElement | null {
+export function DigitalDeliveryCard({
+  deliveries,
+  onOpen
+}: {
+  deliveries: readonly DeliveryRecord[]
+  /**
+   * 打开一个交付文件。对齐 dsh `file-actions` 的「主点击=应用内预览」：
+   * 调用方按类型决定（文本进代码面板、二进制走系统程序）；缺省直接走系统程序。
+   */
+  onOpen?: (path: string) => void
+}): ReactElement | null {
   const [expanded, setExpanded] = useState(false)
   if (deliveries.length === 0) return null
   const foldable = deliveries.length > COLLAPSED_DELIVERIES
@@ -50,7 +60,8 @@ export function DigitalDeliveryCard({ deliveries }: { deliveries: readonly Deliv
                 data-testid="digital-delivery-file"
                 title={file.path}
                 onClick={() => {
-                  void window.mbApi.attachments.open({ path: file.path })
+                  if (onOpen !== undefined) onOpen(file.path)
+                  else void window.mbApi.attachments.open({ path: file.path })
                 }}
               >
                 {FILE_ICON}

@@ -31,6 +31,7 @@ import { parseDigitalCommands, type DigitalCommand } from '../../../../shared/ag
 import { parseDigitalReferences, type DigitalReference } from '../../../../shared/agent/references'
 import { pluginHost } from '../../plugins/builtins'
 import { requestCodeView } from '../../plugins/codeViewRequest'
+import { baseNameOf, isCodeFile } from '../../utils/codeView'
 import { getToolViewBinding } from '../../plugins/toolViewBindings'
 import { SlotOutlet } from '../../plugins/slotOutlet'
 
@@ -436,6 +437,22 @@ export default function DigitalPanel({
     requestCodeView(path)
     pluginHost.openMainView('code.mainView')
   }, [])
+
+  /**
+   * 打开交付文件（对齐 dsh `file-actions`：主点击=应用内预览）。
+   * 文本类（代码面板能读的扩展名 + csv）先进代码面板；二进制（docx/pptx/pdf 等）走系统程序。
+   */
+  const handleOpenDelivery = useCallback(
+    (path: string): void => {
+      const name = baseNameOf(path)
+      if (isCodeFile(name) || /\.csv$/i.test(name)) {
+        handleOpenFile(path)
+      } else {
+        void window.mbApi.attachments.open({ path })
+      }
+    },
+    [handleOpenFile]
+  )
 
   /** 提交一段文本（输入框发送与外部播种共用；空文本或正在运行则忽略） */
   const submitText = useCallback(
@@ -1020,7 +1037,7 @@ export default function DigitalPanel({
         {/* 本轮进度条：步骤默认折叠在下面的「展开执行步骤」里，这里先给一眼可见的进度 */}
         <DigitalRunPlan steps={state.steps} status={state.status} onExpand={() => setStepsOpen(true)} />
         <DigitalChangeCard changes={turnChanges} />
-        <DigitalDeliveryCard deliveries={turnDeliveries} />
+        <DigitalDeliveryCard deliveries={turnDeliveries} onOpen={handleOpenDelivery} />
         {state.streaming !== '' && <DigitalMessageItem role="assistant" text={state.streaming} streaming />}
         {/* 状态行（对齐 dsh 的「深度求索中，用时 …」/「已完成分析」）：
             只在本轮有内容时说一句；没有重试事件可报，就**不伪造**「已重试 (2/5)」那种行 */}
