@@ -43,6 +43,56 @@
   background: color-mix(in srgb, var(--accent) 6%, var(--bg-panel));
 }
 
+/* 全屏投放邀请（对齐 dsh DropOverlay）：pointer-events:none 让拖拽事件继续到达页面 */
+.digital-drop-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--bg-panel) 72%, transparent);
+  backdrop-filter: blur(10px);
+  animation: digital-drop-fade 160ms ease-out;
+}
+@keyframes digital-drop-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .digital-drop-mask {
+    animation: none;
+  }
+}
+.digital-drop-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: -3%;
+  padding: 0 40px;
+  color: var(--text);
+  text-align: center;
+}
+.digital-drop-illustration {
+  color: var(--accent);
+}
+.digital-drop-title {
+  margin-top: 16px;
+  font-size: calc(16px * var(--ui-font-scale));
+  font-weight: 500;
+  color: var(--text);
+}
+.digital-drop-desc {
+  margin-top: 8px;
+  font-size: calc(13px * var(--ui-font-scale));
+  color: var(--text-muted);
+}
+
 /* 深色档：黑色 16% 的线在深底上看不见，换成同一套 border 令牌 */
 [data-theme='dark'] .dsh-composer-box {
   border-color: var(--border);

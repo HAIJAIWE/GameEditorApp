@@ -4,6 +4,7 @@ import { defaultDraftName, type DraftSummary } from '../../../../shared/agent/se
 
 import { DigitalChangeCard } from './DigitalChangeCard'
 import { DigitalDeliveryCard } from './DigitalDeliveryCard'
+import { DropOverlay } from './DropOverlay'
 import { DigitalMessageItem } from './DigitalMessageItem'
 import { DigitalRunPlan } from './DigitalRunPlan'
 import { PendingAttachments } from './PendingAttachments'
@@ -438,15 +439,16 @@ export default function DigitalPanel({
       setDragActive(false)
     }
     const onDragEnter = (event: DragEvent): void => {
-      if (running || !hasFiles(event)) return
+      if (!hasFiles(event)) return
       event.preventDefault()
       dragDepth.current += 1
+      // 运行中也显示投放邀请（disabled 态），与 dsh 一致；真正拒绝发生在 drop
       setDragActive(true)
     }
     const onDragOver = (event: DragEvent): void => {
-      if (running || !hasFiles(event)) return
+      if (!hasFiles(event)) return
       event.preventDefault()
-      if (event.dataTransfer !== null) event.dataTransfer.dropEffect = 'copy'
+      if (event.dataTransfer !== null) event.dataTransfer.dropEffect = running ? 'none' : 'copy'
     }
     const onDragLeave = (event: DragEvent): void => {
       if (!hasFiles(event)) return
@@ -1665,6 +1667,9 @@ export default function DigitalPanel({
           </div>
         </div>
       )}
+
+      {/* 全屏投放邀请（对齐 dsh DropOverlay）：拖入文件时覆盖整页 */}
+      {dragActive && <DropOverlay disabled={running} />}
 
       {/* 键盘快捷键参考（对齐 dsh ui-shortcuts 的只读子集） */}
       {shortcutsOpen && <ShortcutsDialog onClose={() => setShortcutsOpen(false)} />}
