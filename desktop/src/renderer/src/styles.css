@@ -5673,6 +5673,23 @@ button.ref-row:hover {
   margin-bottom: 0;
 }
 
+/* 正文内联文件引用：像内联代码，但可点（对齐 dsh ui-deliverables 的内联文件链接） */
+.chat-file-link {
+  display: inline;
+  padding: 0 3px;
+  border: 0;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: inherit;
+  cursor: pointer;
+}
+.chat-file-link:hover {
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  text-decoration: underline;
+}
+
 .digital-message-body .markdown-body p {
   margin: 8px 0;
 }

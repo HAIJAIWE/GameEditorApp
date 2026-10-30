@@ -1,6 +1,6 @@
 import { readdir, stat } from 'node:fs/promises'
 import { readFile } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
+import { dirname, isAbsolute, join } from 'node:path'
 
 import { app } from 'electron'
 
@@ -46,7 +46,9 @@ export function registerFsIpc(_deps: IpcHandlerDeps, handle: IpcRegistrar): void
   handle('fs:appRoot', undefined, () => ({ root: resolveDefaultRoot() }))
 
   handle('fs:listDir', fsListDirInputSchema, async (req): Promise<FsDirListing> => {
-    const path = req.path === '' ? resolveDefaultRoot() : req.path
+    // 相对路径按默认根目录解析：正文里的 `src/main/ipc.ts` 这类相对引用也能定位
+    const path =
+      req.path === '' ? resolveDefaultRoot() : isAbsolute(req.path) ? req.path : join(resolveDefaultRoot(), req.path)
     let names: string[]
     try {
       names = await readdir(path)
@@ -78,7 +80,8 @@ export function registerFsIpc(_deps: IpcHandlerDeps, handle: IpcRegistrar): void
   })
 
   handle('fs:readFile', fsReadFileInputSchema, async (req): Promise<FsFileContent> => {
-    const path = req.path
+    // 相对路径按默认根目录解析（同 fs:listDir）：让正文内联文件引用可直接打开
+    const path = isAbsolute(req.path) ? req.path : join(resolveDefaultRoot(), req.path)
     let buffer: Buffer
     try {
       buffer = await readFile(path)

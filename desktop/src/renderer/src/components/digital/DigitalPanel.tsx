@@ -28,6 +28,7 @@ import {
 import { parseDigitalCommands, type DigitalCommand } from '../../../../shared/agent/commands'
 import { parseDigitalReferences, type DigitalReference } from '../../../../shared/agent/references'
 import { pluginHost } from '../../plugins/builtins'
+import { requestCodeView } from '../../plugins/codeViewRequest'
 import { getToolViewBinding } from '../../plugins/toolViewBindings'
 import { SlotOutlet } from '../../plugins/slotOutlet'
 
@@ -386,6 +387,15 @@ export default function DigitalPanel({
 
   const removeAttachment = useCallback((path: string): void => {
     setAttachments((prev) => prev.filter((file) => file.path !== path))
+  }, [])
+
+  /**
+   * 正文内联文件引用点开（对齐 dsh ui-deliverables）：先发「在代码面板打开该文件」请求，
+   * 再把右栏切到代码页签。代码面板订阅该请求并定位到文件（相对路径由主进程按根目录解析）。
+   */
+  const handleOpenFile = useCallback((path: string): void => {
+    requestCodeView(path)
+    pluginHost.openMainView('code.mainView')
   }, [])
 
   /** 提交一段文本（输入框发送与外部播种共用；空文本或正在运行则忽略） */
@@ -947,6 +957,7 @@ export default function DigitalPanel({
               onOpenAttachment={(path: string) => {
                 void window.mbApi.attachments.open({ path })
               }}
+              onOpenFile={handleOpenFile}
               // 仅助手消息挂反馈（对齐 dsh：Like/Dislike 只出现在定稿的助手消息上）；
               // 走真实后端 agent:feedback，rating≥4 且填了说明会提炼偏好
               {...(message.role === 'assistant'

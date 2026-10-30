@@ -19,6 +19,8 @@ export interface DigitalMessageItemProps {
   /** 用户消息附带的文件（对齐 dsh ui-attachment 的诚实子集）；点开用系统程序打开 */
   attachments?: DigitalAttachment[]
   onOpenAttachment?: (path: string) => void
+  /** 正文内联文件引用点开（对齐 dsh ui-deliverables）；缺省则按普通内联代码渲染 */
+  onOpenFile?: (path: string) => void
 }
 
 /**
@@ -147,7 +149,8 @@ export function DigitalMessageItem({
   streaming = false,
   onFeedback,
   attachments,
-  onOpenAttachment
+  onOpenAttachment,
+  onOpenFile
 }: DigitalMessageItemProps): ReactElement {
   const [copied, setCopied] = useState(false)
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -248,7 +251,7 @@ export function DigitalMessageItem({
         </>
       ) : (
         <div className="digital-message-body">
-          {streaming ? text : <ChatMarkdown text={text} />}
+          {streaming ? text : <ChatMarkdown text={text} {...(onOpenFile !== undefined ? { onOpenFile } : {})} />}
           {streaming && <span className="digital-cursor" aria-hidden="true" />}
         </div>
       )}

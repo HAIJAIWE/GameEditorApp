@@ -188,11 +188,18 @@ dsh 的 UI 成熟在**两件事**：① **typed slot 组合**（父级声明扩�
 - **刻意不做**：上传进度条（无流式上传链路）、拖拽上传（无 drag-drop 数据链路）。按「宁缺毋假」留白，而不是画假进度。~~图片 lightbox~~ 已做（有真实读图链路）。
 - 测试：`libraryAttachments.test.ts`（命名/MIME/大小）、`panelReducer`（消息携带附件）、`agentBrainService`（提示词注入）、`digitalMessageAttachments.test.tsx`（文件 chip / 图片缩略图 / lightbox 开关 / Esc / 读图失败回退 / 助手不显示）。
 
+**第六轮（`ui-deliverables` 第三块：正文内联文件引用 → 代码面板）**：
+- **做了什么**：助手正文里**像文件路径的内联代码**（含分隔符 + 已知代码扩展名、单行、≤200 字）渲染成可点链接（`chat-file-link`），点击 → `requestCodeView(path)` 发请求 + `host.openMainView('code.mainView')` 切到代码页签；`CodePanel` 订阅该请求并 `openFile(path)` 定位。**围栏代码块内不链接化**（用 `InFenceContext` 标记，避免把代码内容当路径）。`fs:readFile`/`fs:listDir` 补了**相对路径按 appRoot 解析**，所以正文里的 `src/main/ipc.ts` 也能打开。
+- **刻意不做**：dsh 的「交付卡（显式交付的文件）」——我们的操作日志只记数据变更、不记文件导出，**没有数据链路**，做了是假卡。「改动文件卡」已有等价物 `DigitalChangeCard`。
+- 通道 `renderer/src/plugins/codeViewRequest.ts`（单例请求 + 挂载前暂存）；`data-testid: chat-file-link`。
+- 测试：`chatMarkdownFileLink.test.tsx`（内联路径链接化 / 围栏内不链接 / 非路径不链接 / 无回调不链接）、`codeViewRequest.test.ts`（请求/取一次/取消订阅）。
+
 **还没对齐的（下一步候选，按成本/价值分层）**：
 - **纯视觉 / 低成本（优先）**：
   - ~~轨迹表格无斑马纹 → 补 hover / 选中中性填充~~ ✅ 已对齐：hover 用 `--bg-hover`（第二轮），**选中态**（第三轮）= 正在查看详情的那一行（`<details>` 展开态）用 `--bg-selected` 中性填充、文字保持 `--text`（不用蓝色文字），且选择器特异性高于 `:hover` ⇒ 展开时鼠标划过不闪（对齐 dsh `tr[data-selected='true']` 抑制 hover）。DOM 测试钉住 `<details> > <summary.trajectory-row>` 结构，防止 CSS 静默失效。
 - **数据/后端依赖**：
   - ~~附件~~ ✅ 已落地诚实子集（见第五轮，含图片缩略图 + 原图 lightbox）；**仅剩**上传进度 / 拖拽两项未做（无对应数据链路，做出来是假进度）。
+  - ~~正文内联文件引用~~ ✅ 已落地（第六轮）；dsh 的**交付卡**仍无数据链路（操作日志不记文件导出），不做假卡。
 - **刻意保留（非视觉）**：
   - 顶部菜单栏：dsh 是 Web GUI 没有桌面菜单栏；我们保留。
   - 消息卡 hover 显形图标操作行：已对齐（`DigitalMessageItem` 自带 hover/focus-within 显隐，见其文件注释），不列入 gap。

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import LucideIcon from './LucideIcon'
+import { subscribeCodeViewRequest, takeCodeViewRequest } from '../plugins/codeViewRequest'
 import { baseNameOf, formatBytes, isCodeFile, sortEntries, tokenizeCode } from '../utils/codeView'
 import type { FsDirEntry } from '../../../shared/ipc'
 import './code-panel.css'
@@ -122,6 +123,18 @@ export default function CodePanel(): React.JSX.Element {
     setActivePath(path)
     if (buffersRef.current[path] === undefined) readFile(path)
   }, [readFile])
+
+  /*
+   * 「在代码面板打开某文件」请求（正文内联文件引用等）：挂载前发出的取一次
+   * （不丢首次点击），之后订阅后续请求。本 effect 必须声明在 openFile 之后
+   * （deps 数组在渲染期求值，写在前面会撞 TDZ）。
+   */
+  useEffect(() => {
+    const pending = takeCodeViewRequest()
+    // 用微任务延后到 effect 之外执行（openFile 会 setState，直接同步调用会触发 set-state-in-effect）
+    if (pending !== null) queueMicrotask(() => openFile(pending))
+    return subscribeCodeViewRequest((path) => openFile(path))
+  }, [openFile])
 
   /** 关页签：关掉激活项时接管右邻，其次左邻；全关光回空态 */
   const closeFile = useCallback((path: string): void => {
