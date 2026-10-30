@@ -5431,6 +5431,94 @@ button.ref-row:hover {
   color: var(--text);
 }
 
+/* 图片附件缩略图（对齐 dsh MessageImage）：单图 240px 长边、多图 64px 方块 */
+.digital-attachment-image {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0.5px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-hover);
+  overflow: hidden;
+  cursor: zoom-in;
+}
+.digital-attachment-image[data-variant='tile'] {
+  width: 64px;
+  height: 64px;
+}
+.digital-attachment-image[data-variant='single'] {
+  max-width: 240px;
+  max-height: 240px;
+}
+.digital-attachment-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.digital-attachment-image[data-variant='single'] img {
+  width: auto;
+  height: auto;
+  max-width: 240px;
+  max-height: 240px;
+  object-fit: contain;
+}
+/* 加载占位：旋转圆环（本地 keyframes，不依赖 composer.css 的 dsh-spin） */
+.digital-attachment-image-loading {
+  width: 16px;
+  height: 16px;
+  border: 2px solid color-mix(in srgb, var(--text-muted) 30%, transparent);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: digital-attachment-spin 0.7s linear infinite;
+}
+@keyframes digital-attachment-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 原图 lightbox：全屏遮罩 + 居中图片 + 右上角关闭；点遮罩/Esc 收起 */
+.digital-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  background: rgba(15, 17, 21, 0.82);
+  cursor: zoom-out;
+}
+.digital-lightbox-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+  cursor: default;
+}
+.digital-lightbox-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  cursor: pointer;
+}
+.digital-lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.24);
+}
+
 .digital-message-body {
   /* 助手正文占满列宽；流式时光标跟在原文尾部 */
   min-width: 0;

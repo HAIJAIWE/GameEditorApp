@@ -657,6 +657,12 @@ export const attachmentsOpenInputSchema = z.object({
 })
 export type AttachmentsOpenInput = z.infer<typeof attachmentsOpenInputSchema>
 
+/** 会话附件：把库内图片附件读成 data URL（缩略图/lightbox 用；仅限库内附件目录） */
+export const attachmentsReadImageInputSchema = z.object({
+  path: z.string().min(1)
+})
+export type AttachmentsReadImageInput = z.infer<typeof attachmentsReadImageInputSchema>
+
 /** Agent Brain：对运行中的子智能体「插话」（push 一条消息进它的收件箱） */
 export const agentSubagentSendInputSchema = z.object({
   id: z.string().min(1).max(64),

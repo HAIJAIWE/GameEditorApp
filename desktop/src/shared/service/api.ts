@@ -185,6 +185,8 @@ export interface MbApi {
   attachments: {
     add(req: IpcContract['attachments:add']['req']): Promise<IpcContract['attachments:add']['res']>
     open(req: IpcContract['attachments:open']['req']): Promise<IpcContract['attachments:open']['res']>
+    /** 图片附件读成 data URL（缩略图/lightbox）；仅限库内附件目录 */
+    readImage(req: IpcContract['attachments:readImage']['req']): Promise<IpcContract['attachments:readImage']['res']>
   }
   /** 图片库扫描 / 清理（`deleteImages` 是破坏性操作，`confirm` 必填true） */
   images: {

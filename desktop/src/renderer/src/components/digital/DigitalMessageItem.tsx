@@ -159,6 +159,10 @@ export function DigitalMessageItem({
   const [feedbackBusy, setFeedbackBusy] = useState(false)
   const [feedbackError, setFeedbackError] = useState<string | null>(null)
 
+  /** 图片 lightbox：非空时全屏查看原图；opener 用于关闭后把焦点还给缩略图 */
+  const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null)
+  const lightboxOpener = useRef<HTMLElement | null>(null)
+
   // 卸载时清掉「已复制」的回落定时器，避免对已卸载组件 setState
   useEffect(() => {
     return () => {
@@ -218,20 +222,26 @@ export function DigitalMessageItem({
           <div className="digital-message-bubble">{text}</div>
           {attachments !== undefined && attachments.length > 0 && (
             <div className="digital-message-attachments" data-testid="digital-message-attachments">
-              {attachments.map((file) => (
-                <button
-                  type="button"
-                  className="digital-attachment-chip"
-                  key={file.path}
-                  data-testid="digital-message-attachment"
-                  title={file.path}
-                  onClick={() => onOpenAttachment?.(file.path)}
-                >
-                  <FileIcon />
-                  <span className="digital-attachment-name">{file.name}</span>
-                  <span className="digital-attachment-size">{formatAttachmentSize(file.bytes)}</span>
-                </button>
-              ))}
+              {attachments.map((file) =>
+                isImageAttachment(file) ? (
+                  <ImageAttachment
+                    key={file.path}
+                    file={file}
+                    variant={attachments.length === 1 ? 'single' : 'tile'}
+                    onOpenImage={(src, alt, opener) => {
+                      lightboxOpener.current = opener
+                      setLightbox({ src, alt })
+                    }}
+                    {...(onOpenAttachment !== undefined ? { onOpenFile: onOpenAttachment } : {})}
+                  />
+                ) : (
+                  <FileAttachmentChip
+                    key={file.path}
+                    file={file}
+                    {...(onOpenAttachment !== undefined ? { onOpen: onOpenAttachment } : {})}
+                  />
+                )
+              )}
             </div>
           )}
         </>
@@ -325,6 +335,157 @@ export function DigitalMessageItem({
           )}
         </div>
       )}
+      {lightbox !== null && (
+        <AttachmentLightbox
+          src={lightbox.src}
+          alt={lightbox.alt}
+          onClose={() => {
+            setLightbox(null)
+            lightboxOpener.current?.focus()
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+/** 图片类附件（按 MIME 判定，image/* 即图片） */
+function isImageAttachment(file: DigitalAttachment): boolean {
+  return file.mime.startsWith('image/')
+}
+
+/** 通用文件 chip：文件名 + 大小，点开用系统程序打开 */
+function FileAttachmentChip({
+  file,
+  onOpen
+}: {
+  file: DigitalAttachment
+  onOpen?: (path: string) => void
+}): ReactElement {
+  return (
+    <button
+      type="button"
+      className="digital-attachment-chip"
+      data-testid="digital-message-attachment"
+      title={file.path}
+      onClick={() => onOpen?.(file.path)}
+    >
+      <FileIcon />
+      <span className="digital-attachment-name">{file.name}</span>
+      <span className="digital-attachment-size">{formatAttachmentSize(file.bytes)}</span>
+    </button>
+  )
+}
+
+/**
+ * 图片附件缩略图（对齐 dsh `MessageImage` 的诚实子集）：
+ * 主进程把库内图片读成 data URL，加载中点显示占位；点开进 lightbox 看原图。
+ * 读图失败时回退成文件 chip（仍能用系统程序打开），不静默丢附件。
+ */
+function ImageAttachment({
+  file,
+  variant,
+  onOpenImage,
+  onOpenFile
+}: {
+  file: DigitalAttachment
+  variant: 'single' | 'tile'
+  onOpenImage: (src: string, alt: string, opener: HTMLElement) => void
+  onOpenFile?: (path: string) => void
+}): ReactElement {
+  const [src, setSrc] = useState<string | null>(null)
+  const [failed, setFailed] = useState(false)
+
+  // 父级按 `file.path` 作 key，路径变化会重挂组件，初始态已是「未加载/未失败」，
+  // 故 effect 里不再同步 setState（会触发 react-hooks/set-state-in-effect）。
+  useEffect(() => {
+    let live = true
+    void window.mbApi.attachments
+      .readImage({ path: file.path })
+      .then((result) => {
+        if (!live) return
+        if (result.ok) setSrc(result.dataUrl)
+        else setFailed(true)
+      })
+      .catch(() => {
+        if (live) setFailed(true)
+      })
+    return () => {
+      live = false
+    }
+  }, [file.path])
+
+  if (failed) {
+    return <FileAttachmentChip file={file} {...(onOpenFile !== undefined ? { onOpen: onOpenFile } : {})} />
+  }
+
+  return (
+    <button
+      type="button"
+      className="digital-attachment-image"
+      data-testid="digital-message-image"
+      data-variant={variant}
+      title={file.name}
+      aria-label={`打开图片 ${file.name}`}
+      onClick={(event) => {
+        if (src !== null) onOpenImage(src, file.name, event.currentTarget)
+      }}
+    >
+      {src === null ? (
+        <span className="digital-attachment-image-loading" aria-hidden="true" />
+      ) : (
+        <img src={src} alt={file.name} />
+      )}
+    </button>
+  )
+}
+
+/** 原图 lightbox：Escape / 点遮罩 / 关闭按钮都收起；点图片本身不关 */
+function AttachmentLightbox({
+  src,
+  alt,
+  onClose
+}: {
+  src: string
+  alt: string
+  onClose: () => void
+}): ReactElement {
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  return (
+    <div
+      className="digital-lightbox"
+      data-testid="digital-lightbox"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`查看图片 ${alt}`}
+      onClick={onClose}
+    >
+      <button
+        type="button"
+        className="digital-lightbox-close"
+        data-testid="digital-lightbox-close"
+        aria-label="关闭"
+        title="关闭（Esc）"
+        onClick={(event) => {
+          event.stopPropagation()
+          onClose()
+        }}
+      >
+        <XIcon />
+      </button>
+      <img
+        className="digital-lightbox-img"
+        src={src}
+        alt={alt}
+        onClick={(event) => event.stopPropagation()}
+      />
     </div>
   )
 }

@@ -183,15 +183,15 @@ dsh 的 UI 成熟在**两件事**：① **typed slot 组合**（父级声明扩�
 - 说明：dsh 的 7 类 category chips、retract、per-message id 我们没做（schema 只有 1–5 + comment，无分类/无 retract 通道）——不做假分类，只做**真实存在**的评分+说明。
 
 **第五轮（会话附件 `ui-attachment` 的诚实子集）**：
-- **做了什么**：`＋ → 上传文件` 选文件 → 主进程复制进 `<活跃库>/attachments/`（重名加 `-2`，与图片入库同策略）→ 返回 `{name,path,mime,bytes}`；用户消息气泡下渲染附件 chip（点开走 `shell.openPath`）；发送时元数据随 `agent:chat` 上送，`service.ts` 注入系统提示词「【附件】…（名称/路径/大小）」，让智能体知道有这些文件、能用文件工具按绝对路径读取。新通道 `dialog:chooseAttachmentFile` / `attachments:add` / `attachments:open`，主进程 `main/attachments.ts` + `ipc/attachmentsIpc.ts`。`data-testid: composer-upload-file / digital-attachments / digital-attachment-chip / digital-message-attachment`。
-- **刻意不做**：上传进度条（无流式上传链路）、图片 lightbox / 内联预览（chip 点开交给系统程序）、拖拽上传（无 drag-drop 数据链路）。按「宁缺毋假」留白，而不是画假进度。
-- 测试：`libraryAttachments.test.ts`（命名/MIME/大小）、`panelReducer`（消息携带附件）、`agentBrainService`（提示词注入）、`digitalMessageAttachments.test.tsx`（chip 渲染/点开/助手不显示）。
+- **做了什么**：`＋ → 上传文件` 选文件 → 主进程复制进 `<活跃库>/attachments/`（重名加 `-2`，与图片入库同策略）→ 返回 `{name,path,mime,bytes}`；用户消息气泡下渲染附件：**图片类**（`image/*`）走 `attachments:readImage`（主进程读成 data URL，**仅限库内附件目录 + 8MB 上限**）渲染缩略图（单图 240px 长边 / 多图 64px 方块），点开**原图 lightbox**（Esc / 点遮罩 / 关闭按钮，焦点归还缩略图）；**非图片**走文件 chip（点开 `shell.openPath`）。发送时元数据随 `agent:chat` 上送，`service.ts` 注入系统提示词「【附件】…（名称/路径/大小）」，让智能体知道有这些文件、能用文件工具按绝对路径读取。新通道 `dialog:chooseAttachmentFile` / `attachments:add` / `attachments:open` / `attachments:readImage`，主进程 `main/attachments.ts` + `ipc/attachmentsIpc.ts`。`data-testid: composer-upload-file / digital-attachments / digital-attachment-chip / digital-message-attachment / digital-message-image / digital-lightbox(-close)`。
+- **刻意不做**：上传进度条（无流式上传链路）、拖拽上传（无 drag-drop 数据链路）。按「宁缺毋假」留白，而不是画假进度。~~图片 lightbox~~ 已做（有真实读图链路）。
+- 测试：`libraryAttachments.test.ts`（命名/MIME/大小）、`panelReducer`（消息携带附件）、`agentBrainService`（提示词注入）、`digitalMessageAttachments.test.tsx`（文件 chip / 图片缩略图 / lightbox 开关 / Esc / 读图失败回退 / 助手不显示）。
 
 **还没对齐的（下一步候选，按成本/价值分层）**：
 - **纯视觉 / 低成本（优先）**：
   - ~~轨迹表格无斑马纹 → 补 hover / 选中中性填充~~ ✅ 已对齐：hover 用 `--bg-hover`（第二轮），**选中态**（第三轮）= 正在查看详情的那一行（`<details>` 展开态）用 `--bg-selected` 中性填充、文字保持 `--text`（不用蓝色文字），且选择器特异性高于 `:hover` ⇒ 展开时鼠标划过不闪（对齐 dsh `tr[data-selected='true']` 抑制 hover）。DOM 测试钉住 `<details> > <summary.trajectory-row>` 结构，防止 CSS 静默失效。
 - **数据/后端依赖**：
-  - ~~附件~~ ✅ 已落地诚实子集（见第五轮）；**仅剩**上传进度 / lightbox / 拖拽三项未做（无对应数据链路，做出来是假进度/假预览）。
+  - ~~附件~~ ✅ 已落地诚实子集（见第五轮，含图片缩略图 + 原图 lightbox）；**仅剩**上传进度 / 拖拽两项未做（无对应数据链路，做出来是假进度）。
 - **刻意保留（非视觉）**：
   - 顶部菜单栏：dsh 是 Web GUI 没有桌面菜单栏；我们保留。
   - 消息卡 hover 显形图标操作行：已对齐（`DigitalMessageItem` 自带 hover/focus-within 显隐，见其文件注释），不列入 gap。

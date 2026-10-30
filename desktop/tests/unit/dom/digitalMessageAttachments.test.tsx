@@ -2,7 +2,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { DigitalMessageItem } from '../../../src/renderer/src/components/digital/DigitalMessageItem'
-import { renderDom } from './render'
+import { installMbApi, pressKey, renderDom } from './render'
 
 /**
  * 用户消息的附件 chip（对齐 dsh ui-attachment 的诚实子集）。
@@ -16,6 +16,13 @@ const file = (name: string): { name: string; path: string; mime: string; bytes: 
   path: `/lib/attachments/${name}`,
   mime: 'text/markdown',
   bytes: 2048
+})
+
+const img = (name: string): { name: string; path: string; mime: string; bytes: number } => ({
+  name,
+  path: `/lib/attachments/${name}`,
+  mime: 'image/png',
+  bytes: 4096
 })
 
 describe('消息附件 chip', () => {
@@ -52,5 +59,89 @@ describe('消息附件 chip', () => {
     )
     expect(rendered.queryAll('[data-testid="digital-message-attachment"]')).toHaveLength(0)
     await rendered.cleanup()
+  })
+
+  it('图片附件渲染缩略图（单图 single），点开 lightbox 并可关闭', async () => {
+    const api = installMbApi({
+      overrides: {
+        'attachments.readImage': async () => ({ ok: true, dataUrl: 'data:image/png;base64,AAAA' })
+      }
+    })
+    try {
+      const rendered = await renderDom(
+        <DigitalMessageItem role="user" text="看图" attachments={[img('pic.png')]} />
+      )
+      await rendered.flush()
+      const imageBtn = rendered.byTestId('digital-message-image')
+      expect(imageBtn.getAttribute('data-variant')).toBe('single')
+      expect(rendered.queryAll('[data-testid="digital-message-image"] img')).toHaveLength(1)
+
+      await rendered.click(imageBtn)
+      expect(rendered.byTestId('digital-lightbox')).toBeTruthy()
+      // 点关闭收起
+      await rendered.click(rendered.byTestId('digital-lightbox-close'))
+      expect(rendered.queryAll('[data-testid="digital-lightbox"]')).toHaveLength(0)
+      await rendered.cleanup()
+    } finally {
+      api.restore()
+    }
+  })
+
+  it('多附件时图片用 64px 方块（tile）', async () => {
+    const api = installMbApi({
+      overrides: {
+        'attachments.readImage': async () => ({ ok: true, dataUrl: 'data:image/png;base64,AAAA' })
+      }
+    })
+    try {
+      const rendered = await renderDom(
+        <DigitalMessageItem role="user" text="两个" attachments={[img('a.png'), file('b.md')]} />
+      )
+      await rendered.flush()
+      expect(rendered.byTestId('digital-message-image').getAttribute('data-variant')).toBe('tile')
+      await rendered.cleanup()
+    } finally {
+      api.restore()
+    }
+  })
+
+  it('lightbox 支持 Esc 关闭', async () => {
+    const api = installMbApi({
+      overrides: {
+        'attachments.readImage': async () => ({ ok: true, dataUrl: 'data:image/png;base64,AAAA' })
+      }
+    })
+    try {
+      const rendered = await renderDom(
+        <DigitalMessageItem role="user" text="看图" attachments={[img('pic.png')]} />
+      )
+      await rendered.flush()
+      await rendered.click(rendered.byTestId('digital-message-image'))
+      expect(rendered.byTestId('digital-lightbox')).toBeTruthy()
+      await pressKey('Escape')
+      expect(rendered.queryAll('[data-testid="digital-lightbox"]')).toHaveLength(0)
+      await rendered.cleanup()
+    } finally {
+      api.restore()
+    }
+  })
+
+  it('读图失败时回退成文件 chip（仍可打开）', async () => {
+    const api = installMbApi({
+      overrides: {
+        'attachments.readImage': async () => ({ ok: false, error: '不是受支持的图片格式' })
+      }
+    })
+    try {
+      const rendered = await renderDom(
+        <DigitalMessageItem role="user" text="坏图" attachments={[img('bad.png')]} />
+      )
+      await rendered.flush()
+      expect(rendered.queryAll('[data-testid="digital-message-image"]')).toHaveLength(0)
+      expect(rendered.queryAll('[data-testid="digital-message-attachment"]')).toHaveLength(1)
+      await rendered.cleanup()
+    } finally {
+      api.restore()
+    }
   })
 })

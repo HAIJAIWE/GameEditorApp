@@ -145,7 +145,8 @@ const api: MbApi = {
    */
   attachments: {
     add: (req) => invoke('attachments:add', req),
-    open: (req) => invoke('attachments:open', req)
+    open: (req) => invoke('attachments:open', req),
+    readImage: (req) => invoke('attachments:readImage', req)
   },
   images: {
     listLibraryImages: () => invoke('images:listLibraryImages', undefined),

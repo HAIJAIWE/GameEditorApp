@@ -110,7 +110,7 @@ import type { AgentRunStats } from './agent/observability'
 import type { DraftSummary, SessionInfo, SessionTurnSummary } from './agent/session'
 import type { OperationRecord } from './agent/operationLog'
 import type { JsonObjectSchema, SkillResult } from './agent/protocol'
-import type { AttachmentsAddInput, AttachmentsOpenInput } from './schemas'
+import type { AttachmentsAddInput, AttachmentsOpenInput, AttachmentsReadImageInput } from './schemas'
 import type { DigitalAttachment } from './util/libraryAttachments'
 import type { CeshuChangelog, CeshuVersionDiff } from './ceshuDiff'
 import type { CeshuTaskPlan } from './ceshuTasks'
@@ -302,6 +302,11 @@ export interface IpcContract {
     res: { ok: true; attachment: DigitalAttachment } | { ok: false; error: string }
   }
   'attachments:open': { req: AttachmentsOpenInput; res: { ok: boolean; error?: string } }
+  /** 图片附件读成 data URL（缩略图/lightbox）；仅限 `<库>/attachments/` 内，超限/非图返回 ok:false */
+  'attachments:readImage': {
+    req: AttachmentsReadImageInput
+    res: { ok: true; dataUrl: string } | { ok: false; error: string }
+  }
   'agent:chat': {
     req: AgentChatInput
     res: { text: string; events: BrainEvent[]; completed: boolean; stats: AgentRunStats }
