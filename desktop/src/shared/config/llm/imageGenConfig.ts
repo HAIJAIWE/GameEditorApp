@@ -19,8 +19,8 @@
  * 留了一条把明文写回 localStorage 的路，是后门而非冗余。
  */
 
-import type { StorageLike } from './settingsStore'
-import { defaultStorage } from './settingsStore'
+import type { StorageLike } from '../settings/settingsStore'
+import { defaultStorage } from '../settings/settingsStore'
 
 export type { StorageLike }
 

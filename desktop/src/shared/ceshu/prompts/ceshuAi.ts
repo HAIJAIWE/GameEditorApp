@@ -9,7 +9,7 @@ import {
   type ChapterKey,
   type GddScope
 } from '../reference/ceshuConstants'
-import type { LlmUsage } from '../../config/llmConfig'
+import type { LlmUsage } from '../../config/llm/llmConfig'
 import { CESHU_CHAPTER_FIELDS, resolveFieldMeta } from '../fields/ceshuFields'
 import type { QualityGateVerdict } from '../../types'
 import { isPlainObject, getGameType, deriveRulesetId } from '../model/ceshuModel'

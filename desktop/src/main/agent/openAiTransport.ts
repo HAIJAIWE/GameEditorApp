@@ -33,7 +33,7 @@
  * 改前两层的行泵是各自拷贝，已出现「一份有锁释放、一份没有」的漂移。
  */
 
-import { LLM_MESSAGES, type LlmUsage } from '../../shared/config/llmConfig'
+import { LLM_MESSAGES, type LlmUsage } from '../../shared/config/llm/llmConfig'
 import {
   parseToolArguments,
   type BrainLlmReply,

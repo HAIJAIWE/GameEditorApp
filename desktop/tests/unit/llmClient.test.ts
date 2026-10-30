@@ -8,8 +8,8 @@ import {
   loadLlmConfig,
   TASK_CANCELLED_MESSAGE,
   type StoredLlmConfig
-} from '../../src/shared/config/llmConfig'
-import type { StorageLike } from '../../src/shared/config/settingsStore'
+} from '../../src/shared/config/llm/llmConfig'
+import type { StorageLike } from '../../src/shared/config/settings/settingsStore'
 
 /** 内存 storage（模拟 localStorage）；空构造 = 新装用户 */
 function memStorage(): StorageLike {

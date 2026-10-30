@@ -19,7 +19,7 @@
 import type { DataTypeDef, QualityGateVerdict } from '../../../shared/types'
 import type { ChapterData, ChapterKey, CeshuDocument } from '../../../shared/ceshu/reference/ceshuConstants'
 import type { FieldAction } from '../../../shared/ceshu/fields/ceshuFieldAction'
-import type { LlmUsage } from '../../../shared/config/llmConfig'
+import type { LlmUsage } from '../../../shared/config/llm/llmConfig'
 import {
   buildChapterPrompt,
   buildReviewPrompts,

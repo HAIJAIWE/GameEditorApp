@@ -4,7 +4,7 @@ import DataEditorTab from './DataEditorTab'
 import type { ReferenceTarget } from './ReferencesPanel'
 import type { DataTypeDef } from '../../../shared/types'
 import { buildTypeLabelMap } from '../utils/typeLabels'
-import { readSetting, writeSetting } from '../../../shared/config/settingsStore'
+import { readSetting, writeSetting } from '../../../shared/config/settings/settingsStore'
 
 /**
  * 数据编辑面板（中间窗口「数据编辑」页签）——**纯数据编辑器**的全屏形态。

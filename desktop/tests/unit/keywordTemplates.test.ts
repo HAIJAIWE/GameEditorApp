@@ -12,8 +12,8 @@ import {
   serializeKeywordTemplates,
   templateTextFor,
   withTemplateText
-} from '../../src/shared/config/keywordTemplates'
-import type { KeywordTemplates } from '../../src/shared/config/keywordTemplates'
+} from '../../src/shared/config/secrets/keywordTemplates'
+import type { KeywordTemplates } from '../../src/shared/config/secrets/keywordTemplates'
 import {
   IMAGE_EXTENSIONS,
   IMAGE_REFERENCE_FIELDS,

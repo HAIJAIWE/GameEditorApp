@@ -8,7 +8,7 @@
 
 import type { SkillExecutionContext, SkillInteraction } from '../protocol'
 import type { BrainLlmTransport, BrainToolRunner, BrainMessage } from '../brainMessages'
-import type { LlmUsage } from '../../config/llmConfig'
+import type { LlmUsage } from '../../config/llm/llmConfig'
 import type { AgentRunStats, AgentRunTier } from '../observability'
 
 /* ---- 事件 ---- */

@@ -14,7 +14,7 @@
  * 不同步会造成「前端看着已生效、主进程收到的 config 里没有该字段」的静默丢失）。
  */
 
-import type { VisionMode } from '../util/visionSupport'
+import type { VisionMode } from '../../util/visionSupport'
 
 /** 已登记的服务商 key（对齐 `api_config:35` `MODEL_PRESETS` 的 6 个键） */
 /**

@@ -11,7 +11,7 @@ import {
   type LlmProvider,
   type LlmUsage,
   type StoredLlmConfig
-} from '../../shared/config/llmConfig'
+} from '../../shared/config/llm/llmConfig'
 import { isAbortError } from '../../shared/abort'
 import { sharedRateLimiter } from '../../shared/util/rateLimiter'
 

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { applyTheme, DEFAULT_THEME, loadTheme, saveTheme, type ThemeMode } from '../../src/shared/config/theme'
-import type { StorageLike } from '../../src/shared/config/settingsStore'
+import { applyTheme, DEFAULT_THEME, loadTheme, saveTheme, type ThemeMode } from '../../src/shared/config/settings/theme'
+import type { StorageLike } from '../../src/shared/config/settings/settingsStore'
 
 /** 内存版 StorageLike（只实现 theme 用到的三项；不实现 length/key） */
 function memStorage(initial: Record<string, string> = {}): StorageLike & { data: Map<string, string> } {

@@ -2,7 +2,7 @@ import { formatImportSummary, toErrorMessage } from '../appUtils'
 import type { DataSnapshotFormat, EngineExportInput } from '../../../shared/schema/core/schemas'
 import type { ImportPreview } from '../../../shared/types'
 import { engineExportNotice } from '../../../shared/util/engineExportNotice'
-import { loadBlockExportMissingImages } from '../../../shared/config/settingsPreferences'
+import { loadBlockExportMissingImages } from '../../../shared/config/settings/settingsPreferences'
 
 /**
  * 文件 I/O 动作（打开 / 保存 / 批量导入导出 / 引擎导出 / 快照导出）——从 `useDataTransfer` 搬出来。

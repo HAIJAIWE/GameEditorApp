@@ -5,10 +5,10 @@ import {
   buildDescPrompt,
   buildImageTagsPrompt
 } from '../../../shared/util/fieldAiAssist'
-import type { ImageGenConfig } from '../../../shared/config/imageGen'
-import { loadImageGenConfig } from '../../../shared/config/imageGenConfig'
-import { SECRET_NAMES } from '../../../shared/config/secretNames'
-import { resolveFieldLabel } from '../../../shared/config/gameStyle'
+import type { ImageGenConfig } from '../../../shared/config/llm/imageGen'
+import { loadImageGenConfig } from '../../../shared/config/llm/imageGenConfig'
+import { SECRET_NAMES } from '../../../shared/config/secrets/secretNames'
+import { resolveFieldLabel } from '../../../shared/config/game/gameStyle'
 import { displayItemId } from '../../../shared/util/itemId'
 import type { AttrSystem } from '../../../shared/attrSystem'
 import { buildFormLayout } from '../../../shared/schema/core/formSections'

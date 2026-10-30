@@ -55,8 +55,8 @@ import {
 import { createStoreInstance } from '../../../../shared/plugin/slotRegistry'
 import { toErrorMessage } from '../../../../shared/util/errors'
 import { AGENT_PRESETS, DEFAULT_PRESET_ID, presetLabel } from '../../../../shared/agent/presets'
-import { loadLlmConfig, saveLlmConfig, LLM_PROVIDER_PRESETS } from '../../../../shared/config/llmConfig'
-import { modelContextWindow, type LlmProvider } from '../../../../shared/config/llmConfigData'
+import { loadLlmConfig, saveLlmConfig, LLM_PROVIDER_PRESETS } from '../../../../shared/config/llm/llmConfig'
+import { modelContextWindow, type LlmProvider } from '../../../../shared/config/llm/llmConfigData'
 import type { DigitalAttachment } from '../../../../shared/util/libraryAttachments'
 
 /**

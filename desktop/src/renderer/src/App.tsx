@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type MouseEvent as ReactMouseEvent } from 'react'
 
 import type { CeshuSummary } from '../../shared/ceshu/reference/ceshuConstants'
-import { loadGameStyle, normalizeGameStyleId, saveGameStyle } from '../../shared/config/gameStyle'
+import { loadGameStyle, normalizeGameStyleId, saveGameStyle } from '../../shared/config/game/gameStyle'
 import type { AppInfo, DataTypeDef } from '../../shared/types'
-import { applyTheme, loadTheme, saveTheme, type ThemeMode } from '../../shared/config/theme'
+import { applyTheme, loadTheme, saveTheme, type ThemeMode } from '../../shared/config/settings/theme'
 
 import { type PreviewJumpTarget } from './components/ceshu/CeshuDataPreview'
 import { SlotOutlet } from './plugins/slotOutlet'

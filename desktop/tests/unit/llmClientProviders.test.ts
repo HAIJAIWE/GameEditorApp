@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { LlmClient } from '../../src/main/llm/client'
-import { DEFAULT_LLM_CONFIG, type StoredLlmConfig } from '../../src/shared/config/llmConfig'
+import { DEFAULT_LLM_CONFIG, type StoredLlmConfig } from '../../src/shared/config/llm/llmConfig'
 
 /**
  * LlmClient 的**协议分流**测试。

@@ -15,7 +15,7 @@ import type {
 } from '../../../shared/agent/brain'
 import type { SkillExecutionContext } from '../../../shared/agent/protocol'
 import type { DigitalAttachment } from '../../../shared/util/libraryAttachments'
-import type { StoredLlmConfig } from '../../../shared/config/llmConfig'
+import type { StoredLlmConfig } from '../../../shared/config/llm/llmConfig'
 import type { AgentMemoryStore } from '../memoryStore'
 import type { PreferenceStore } from '../preferenceStore'
 import type { SkillDispatcher } from '../dispatcher'

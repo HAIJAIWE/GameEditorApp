@@ -15,7 +15,7 @@ import type {
   SubAgentProvider
 } from '../../src/shared/agent/brain'
 import type { SkillProtocol } from '../../src/shared/agent/protocol'
-import { DEFAULT_LLM_CONFIG, type StoredLlmConfig } from '../../src/shared/config/llmConfig'
+import { DEFAULT_LLM_CONFIG, type StoredLlmConfig } from '../../src/shared/config/llm/llmConfig'
 
 /**
  * M3 档位路由的**装配层**集成测试（brainService）。

@@ -1,10 +1,10 @@
 import { ZodError, type ZodType } from 'zod'
 import { ipcMain, type IpcMainInvokeEvent } from 'electron'
 import type { IpcChannel, IpcContract, IpcResult } from '../shared/ipc'
-import type { StoredLlmConfig } from '../shared/config/llmConfig'
-import { resolveLlmTier } from '../shared/config/llmConfig'
+import type { StoredLlmConfig } from '../shared/config/llm/llmConfig'
+import { resolveLlmTier } from '../shared/config/llm/llmConfig'
 import type { SecretStore } from './settings/secretStore'
-import { SECRET_NAMES } from '../shared/config/secretNames'
+import { SECRET_NAMES } from '../shared/config/secrets/secretNames'
 
 import { registerAppIpc } from './ipc/appIpc'
 import { registerSettingsIpc } from './ipc/settingsIpc'

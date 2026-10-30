@@ -13,7 +13,7 @@
 
 import { llmConfirmReason } from '../../shared/agent/protocol'
 import type { LlmTaskType } from '../../shared/agent/budget'
-import type { LlmUsage } from '../../shared/config/llmConfig'
+import type { LlmUsage } from '../../shared/config/llm/llmConfig'
 import { taskRegistry } from '../task/taskRegistry'
 import {
   accumulateTurn,

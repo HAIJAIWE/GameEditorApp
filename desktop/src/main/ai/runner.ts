@@ -24,7 +24,7 @@
  */
 
 import { estimateTokens, type LlmTaskType } from '../../shared/agent/budget'
-import type { LlmUsage } from '../../shared/config/llmConfig'
+import type { LlmUsage } from '../../shared/config/llm/llmConfig'
 import type { AgentRunStats } from '../../shared/agent/observability'
 import type { LlmCallOptions } from '../llm/client'
 import { runSingleShotTask } from '../agent/runTask'

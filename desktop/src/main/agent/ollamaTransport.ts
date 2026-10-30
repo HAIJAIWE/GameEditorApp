@@ -27,7 +27,7 @@
  * 解析规则本身逐行保持：`error` 字段抛中文错误、`tool_calls` 按到达顺序追加、末 chunk 取 token 计数。
  */
 
-import { LLM_DEFAULT_NUM_CTX, LLM_MESSAGES, type LlmUsage } from '../../shared/config/llmConfig'
+import { LLM_DEFAULT_NUM_CTX, LLM_MESSAGES, type LlmUsage } from '../../shared/config/llm/llmConfig'
 import {
   parseToolArguments,
   type BrainLlmReply,

@@ -6,8 +6,8 @@ import {
   MIDDLE_TAB_KEY,
   saveMiddleTab,
   type MiddleTab
-} from '../../src/shared/config/middleTab'
-import type { StorageLike } from '../../src/shared/config/settingsStore'
+} from '../../src/shared/config/settings/middleTab'
+import type { StorageLike } from '../../src/shared/config/settings/settingsStore'
 import { buildTypeLabelMap } from '../../src/renderer/src/utils/typeLabels'
 
 /** 内存版 StorageLike（与主题/游戏风格测试同款注入方式） */

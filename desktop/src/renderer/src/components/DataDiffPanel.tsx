@@ -13,7 +13,7 @@ import {
   readJsonSetting,
   removeSetting,
   writeJsonSetting
-} from '../../../shared/config/settingsStore'
+} from '../../../shared/config/settings/settingsStore'
 import type { ItemRecord } from '../../../shared/types'
 
 /**

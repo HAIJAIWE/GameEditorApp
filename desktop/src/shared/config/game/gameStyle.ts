@@ -28,8 +28,8 @@
  *   此处落 localStorage 属有意增强，避免重载后标签"莫名"变回原始术语。
  */
 
-import type { StorageLike } from './settingsStore'
-import { defaultStorage } from './settingsStore'
+import type { StorageLike } from '../settings/settingsStore'
+import { defaultStorage } from '../settings/settingsStore'
 
 import {
   GAME_STYLES,

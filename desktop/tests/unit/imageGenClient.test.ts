@@ -2,7 +2,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import * as fs from 'node:fs'
 import * as os from 'node:os'
 import * as path from 'node:path'
-import type { ImageGenConfig } from '../../src/shared/config/imageGen'
+import type { ImageGenConfig } from '../../src/shared/config/llm/imageGen'
 
 // 客户端模块通过 resetModules 动态导入，以保证限流状态（lastCall）在用例间隔离，
 // 避免用例串行时累积 2s 间隔拖慢测试。

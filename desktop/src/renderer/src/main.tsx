@@ -3,8 +3,8 @@ import { createRoot } from 'react-dom/client'
 
 import App from './App'
 import { pushLlmConfigMirror } from './llmBootstrap'
-import { applyFontSize, loadFontSize } from '../../shared/config/settingsPreferences'
-import { applyTheme, loadTheme } from '../../shared/config/theme'
+import { applyFontSize, loadFontSize } from '../../shared/config/settings/settingsPreferences'
+import { applyTheme, loadTheme } from '../../shared/config/settings/theme'
 
 import './styles.css'
 
