@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { buildReadinessReportMarkdown, type CeshuReadinessReport } from '../../src/shared/ceshu/ceshuReadiness'
+import { buildReadinessReportMarkdown, type CeshuReadinessReport } from '../../src/shared/ceshu/readiness/ceshuReadiness'
 
 /**
  * `buildReadinessReportMarkdown` 单测（2026-10-27）。

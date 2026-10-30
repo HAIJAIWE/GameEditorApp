@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 
-import { SYSTEM_LABELS, type CeshuDocument } from '../../../shared/ceshu/ceshuConstants'
+import { SYSTEM_LABELS, type CeshuDocument } from '../../../shared/ceshu/reference/ceshuConstants'
 import {
   HYBRID_GAMEPLAY_PRESETS,
   PRESET_KEYS,
@@ -9,7 +9,7 @@ import {
   formatRecommendedSystems,
   formatSecondaryModules,
   styleBadgeColor
-} from '../../../shared/ceshu/ceshuPresets'
+} from '../../../shared/ceshu/reference/ceshuPresets'
 import { toErrorMessage } from '../../../shared/util/errors'
 
 /**

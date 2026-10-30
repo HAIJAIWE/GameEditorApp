@@ -8,11 +8,11 @@ import {
   type CeshuDocument,
   type ChapterData,
   type ChapterKey
-} from '../../../shared/ceshu/ceshuConstants'
-import { fieldStatusOf } from '../../../shared/ceshu/ceshuFieldStatus'
-import { countFieldStatuses, formatFieldStatusSummary } from '../../../shared/ceshu/ceshuFieldStatusStats'
-import { CESHU_CHAPTER_FIELDS } from '../../../shared/ceshu/ceshuFields'
-import { computeChapterProgress, formatLocalTimestamp, getGameType, getGddScope, isPlainObject } from '../../../shared/ceshu/ceshuModel'
+} from '../../../shared/ceshu/reference/ceshuConstants'
+import { fieldStatusOf } from '../../../shared/ceshu/fields/ceshuFieldStatus'
+import { countFieldStatuses, formatFieldStatusSummary } from '../../../shared/ceshu/fields/ceshuFieldStatusStats'
+import { CESHU_CHAPTER_FIELDS } from '../../../shared/ceshu/fields/ceshuFields'
+import { computeChapterProgress, formatLocalTimestamp, getGameType, getGddScope, isPlainObject } from '../../../shared/ceshu/model/ceshuModel'
 import {
   EMPTY_PLACEHOLDER,
   chapterHeading,

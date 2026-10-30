@@ -48,7 +48,7 @@ export interface FieldIdSuggestResult {
   candidates: FieldIdSuggestion[]
 }
 
-/** 构造字段 ID 的 AI 提示词（对齐 `shared/ceshu/ceshuDataGen.ts` 的中文提示词风格与区块结构） */
+/** 构造字段 ID 的 AI 提示词（对齐 `shared/ceshu/data/ceshuDataGen.ts` 的中文提示词风格与区块结构） */
 export function buildFieldIdPrompt(
   label: string,
   existingNames: readonly string[],

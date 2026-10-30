@@ -1,7 +1,7 @@
-import type { CeshuDocument, ChapterKey } from '../../../../shared/ceshu/ceshuConstants'
-import { fieldStatusOf } from '../../../../shared/ceshu/ceshuFieldStatus'
-import { CESHU_CHAPTER_FIELDS } from '../../../../shared/ceshu/ceshuFields'
-import { visibleChaptersForDoc } from '../../../../shared/ceshu/ceshuModel'
+import type { CeshuDocument, ChapterKey } from '../../../../shared/ceshu/reference/ceshuConstants'
+import { fieldStatusOf } from '../../../../shared/ceshu/fields/ceshuFieldStatus'
+import { CESHU_CHAPTER_FIELDS } from '../../../../shared/ceshu/fields/ceshuFields'
+import { visibleChaptersForDoc } from '../../../../shared/ceshu/model/ceshuModel'
 
 /**
  * 全局待审字段（跨章）：AI 草稿、尚未接受。

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { CHAPTER_KEYS, CHAPTER_REQUIRED_FIELDS, type CeshuDocument } from '../../src/shared/ceshu/ceshuConstants'
-import { createDefaultCeshu } from '../../src/shared/ceshu/ceshuModel'
+import { CHAPTER_KEYS, CHAPTER_REQUIRED_FIELDS, type CeshuDocument } from '../../src/shared/ceshu/reference/ceshuConstants'
+import { createDefaultCeshu } from '../../src/shared/ceshu/model/ceshuModel'
 import {
   CESHU_REFERENCE_GDDS,
   CESHU_REFERENCE_KIND_LABELS,
@@ -10,8 +10,8 @@ import {
   referenceGaps,
   referenceKey,
   type CeshuReferenceKind
-} from '../../src/shared/ceshu/ceshuReferenceGdd'
-import { chaptersUpToStage } from '../../src/shared/ceshu/ceshuStages'
+} from '../../src/shared/ceshu/reference/ceshuReferenceGdd'
+import { chaptersUpToStage } from '../../src/shared/ceshu/workflow/ceshuStages'
 
 /**
  * 有出处的参照文档库守卫（2026-10-27）。

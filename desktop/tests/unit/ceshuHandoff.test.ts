@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
 import { renderCeshuMarkdown } from '../../src/main/ceshu/export/markdown'
-import type { CeshuDocument } from '../../src/shared/ceshu/ceshuConstants'
-import { CESHU_CHAPTER_FIELDS } from '../../src/shared/ceshu/ceshuFields'
+import type { CeshuDocument } from '../../src/shared/ceshu/reference/ceshuConstants'
+import { CESHU_CHAPTER_FIELDS } from '../../src/shared/ceshu/fields/ceshuFields'
 import {
   HANDOFF_DOCS,
   HANDOFF_VOLUMES,
@@ -25,10 +25,10 @@ import {
   renderHandoffManifest,
   renderHandoffVolumeIndex,
   resolveHandoffGenre
-} from '../../src/shared/ceshu/ceshuHandoff'
+} from '../../src/shared/ceshu/workflow/ceshuHandoff'
 import { buildHandoffFiles } from '../../src/main/ceshu/export/handoff'
-import { createDefaultCeshu } from '../../src/shared/ceshu/ceshuModel'
-import { SYSTEM_CONFIG_SCHEMA } from '../../src/shared/ceshu/systemConfigSchema'
+import { createDefaultCeshu } from '../../src/shared/ceshu/model/ceshuModel'
+import { SYSTEM_CONFIG_SCHEMA } from '../../src/shared/ceshu/model/systemConfigSchema'
 
 /**
  * 开发交接包的**分卷 + 分文档 + 品类适配**（2026-10-27 第三轮）。

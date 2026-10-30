@@ -12,8 +12,8 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
-import { applyCloneDecompose, buildCloneDecomposePrompt, parseCloneDecompose } from '../src/shared/ceshu/ceshuClonePrompt'
-import { createDefaultCeshu } from '../src/shared/ceshu/ceshuModel'
+import { applyCloneDecompose, buildCloneDecomposePrompt, parseCloneDecompose } from '../src/shared/ceshu/prompts/ceshuClonePrompt'
+import { createDefaultCeshu } from '../src/shared/ceshu/model/ceshuModel'
 
 function arg(name: string): string | undefined {
   const index = process.argv.indexOf(`--${name}`)

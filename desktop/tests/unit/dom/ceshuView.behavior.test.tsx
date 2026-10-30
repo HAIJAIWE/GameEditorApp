@@ -5,11 +5,11 @@ import { act } from 'react'
 import CeshuView from '../../../src/renderer/src/components/CeshuView'
 import { defineCeshuMenusPlugin } from '../../../src/renderer/src/plugins/ceshuMenusPlugin'
 import { defineCeshuViewsPlugin } from '../../../src/renderer/src/plugins/ceshuViewsPlugin'
-import { createDefaultCeshu } from '../../../src/shared/ceshu/ceshuModel'
+import { createDefaultCeshu } from '../../../src/shared/ceshu/model/ceshuModel'
 import { PluginHost } from '../../../src/shared/plugin/host'
 import { installMbApi, pressKey, renderDom, type ApiStub, type RenderResult } from './render'
-import type { CeshuDocument } from '../../../src/shared/ceshu/ceshuConstants'
-import { CHAPTER_LABELS } from '../../../src/shared/ceshu/ceshuConstants'
+import type { CeshuDocument } from '../../../src/shared/ceshu/reference/ceshuConstants'
+import { CHAPTER_LABELS } from '../../../src/shared/ceshu/reference/ceshuConstants'
 
 /**
  * `CeshuView` 的**行为级**测试（W2）。

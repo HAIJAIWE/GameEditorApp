@@ -6,7 +6,7 @@ import {
   type CeshuDocument,
   type CeshuExportFormat,
   type CeshuExportResult
-} from '../../../shared/ceshu/ceshuConstants'
+} from '../../../shared/ceshu/reference/ceshuConstants'
 
 import { renderCeshuBundleJson } from './bundle'
 import { renderCeshuDocx } from './docx'

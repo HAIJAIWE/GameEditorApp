@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { exportProjectFolder } from '../../src/main/ceshu/export/projectFolder'
-import { createDefaultCeshu } from '../../src/shared/ceshu/ceshuModel'
+import { createDefaultCeshu } from '../../src/shared/ceshu/model/ceshuModel'
 
 /**
  * 导出项目文件夹：落点是 `<所选目录>/<游戏名>/`，不是直接摊在所选目录里。

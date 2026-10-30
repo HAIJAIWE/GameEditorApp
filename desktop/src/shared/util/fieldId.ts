@@ -1,4 +1,4 @@
-import { GAME_TERMS } from '../ceshu/glossaryTerms'
+import { GAME_TERMS } from '../ceshu/reference/glossaryTerms'
 
 /**
  * 字段 ID 建议（中文显示名 → 英文字段 ID）。

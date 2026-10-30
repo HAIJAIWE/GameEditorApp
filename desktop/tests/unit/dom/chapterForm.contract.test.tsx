@@ -2,8 +2,8 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import ChapterForm, { nextPendingFieldKey } from '../../../src/renderer/src/components/ChapterForm'
-import { CESHU_CHAPTER_FIELDS } from '../../../src/shared/ceshu/ceshuFields'
-import { createDefaultCeshu } from '../../../src/shared/ceshu/ceshuModel'
+import { CESHU_CHAPTER_FIELDS } from '../../../src/shared/ceshu/fields/ceshuFields'
+import { createDefaultCeshu } from '../../../src/shared/ceshu/model/ceshuModel'
 import {
   requestFieldAction,
   resetCeshuFieldFocusForTest,

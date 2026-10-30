@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
 import { CeshuDataSync } from '../../src/main/ceshu/dataSync'
-import { createDefaultCeshu } from '../../src/shared/ceshu/ceshuModel'
+import { createDefaultCeshu } from '../../src/shared/ceshu/model/ceshuModel'
 import { BUILTIN_DATA_TYPES } from '../../src/shared/schema/typeSchema'
-import type { CeshuDocument, SystemEntry } from '../../src/shared/ceshu/ceshuConstants'
+import type { CeshuDocument, SystemEntry } from '../../src/shared/ceshu/reference/ceshuConstants'
 import type { DataTypeDef, ItemRecord } from '../../src/shared/types'
 
 /** 内存版 typeSchemaStore 桩 */

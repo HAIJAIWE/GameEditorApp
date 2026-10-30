@@ -4,7 +4,7 @@ import { join } from 'node:path'
 
 import { expect, test } from '@playwright/test'
 import { launchApp, waitReady } from './helpers/app'
-import { CHAPTER_KEYS } from '../../src/shared/ceshu/ceshuConstants'
+import { CHAPTER_KEYS } from '../../src/shared/ceshu/reference/ceshuConstants'
 
 interface DiffProbe {
   rootId: string

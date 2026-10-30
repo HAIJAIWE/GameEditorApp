@@ -1,6 +1,6 @@
 import { rename, writeFile } from 'node:fs/promises'
 
-import { buildAttrGameConfig, validateAttrSystem, type AttrSystem } from '../../shared/ceshu/attrSystem'
+import { buildAttrGameConfig, validateAttrSystem, type AttrSystem } from '../../shared/ceshu/reference/attrSystem'
 
 /**
  * 属性系统 → 游戏引擎配置导出：

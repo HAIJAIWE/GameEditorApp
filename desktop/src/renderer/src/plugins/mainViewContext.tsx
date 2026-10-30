@@ -1,6 +1,6 @@
 import { createContext, useContext, type ReactNode } from 'react'
 
-import type { CeshuSummary } from '../../../shared/ceshu/ceshuConstants'
+import type { CeshuSummary } from '../../../shared/ceshu/reference/ceshuConstants'
 import { PluginHost } from '../../../shared/plugin/host'
 import type { DataTypeDef } from '../../../shared/types'
 import type { PreviewJumpTarget } from '../components/ceshu/CeshuDataPreview'

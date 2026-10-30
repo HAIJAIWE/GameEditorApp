@@ -8,11 +8,11 @@ import {
   isChapterEnabled,
   isCoreChapter,
   visibleChapterKeys
-} from '../../src/shared/ceshu/ceshuConstants'
-import { buildCeshuBundle } from '../../src/shared/ceshu/ceshuBundle'
-import { computeChapterProgress, createDefaultCeshu, visibleChaptersForDoc } from '../../src/shared/ceshu/ceshuModel'
-import { computeReadiness } from '../../src/shared/ceshu/ceshuReadiness'
-import { validateCeshu } from '../../src/shared/ceshu/ceshuValidation'
+} from '../../src/shared/ceshu/reference/ceshuConstants'
+import { buildCeshuBundle } from '../../src/shared/ceshu/workflow/ceshuBundle'
+import { computeChapterProgress, createDefaultCeshu, visibleChaptersForDoc } from '../../src/shared/ceshu/model/ceshuModel'
+import { computeReadiness } from '../../src/shared/ceshu/readiness/ceshuReadiness'
+import { validateCeshu } from '../../src/shared/ceshu/validation/ceshuValidation'
 
 /**
  * 通用底座 vs 系统模块（2026-10-26，docs/gdd-universal-core.md）：

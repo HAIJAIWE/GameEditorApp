@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { baseAttrNames, computeLivePreview, derivedAndCombatNames } from '../../src/shared/domain/attr/attrPreview'
-import { createDefaultAttrSystem, type AttrDefinition, type AttrSystem } from '../../src/shared/ceshu/attrSystem'
+import { createDefaultAttrSystem, type AttrDefinition, type AttrSystem } from '../../src/shared/ceshu/reference/attrSystem'
 
 const system = createDefaultAttrSystem()
 

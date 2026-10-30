@@ -7,7 +7,7 @@ import {
   ADVERSARIAL_CHECK_LABELS,
   GENRE_REVIEW_PROFILES,
   ADVERSARIAL_LEVEL_LABELS
-} from '../../../src/shared/ceshu/ceshuAiData'
+} from '../../../src/shared/ceshu/prompts/ceshuAiData'
 import { installMbApi, renderDom, type ApiStub, type RenderResult } from './render'
 
 /**

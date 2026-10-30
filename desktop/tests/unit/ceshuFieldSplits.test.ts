@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
-import { CHAPTER_KEYS, CHAPTER_REQUIRED_FIELDS } from '../../src/shared/ceshu/ceshuConstants'
+import { CHAPTER_KEYS, CHAPTER_REQUIRED_FIELDS } from '../../src/shared/ceshu/reference/ceshuConstants'
 import { FIELD_SPLITS } from '../../src/shared/ceshuSchema'
-import { CESHU_CHAPTER_FIELDS } from '../../src/shared/ceshu/ceshuFields'
+import { CESHU_CHAPTER_FIELDS } from '../../src/shared/ceshu/fields/ceshuFields'
 
 /*
  * P1 结构拆分的守卫测试（2026-10-23）。

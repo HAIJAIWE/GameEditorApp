@@ -6,8 +6,8 @@ import {
   markAiGenerated,
   pendingAiChapters,
   readAiGenerated
-} from '../../src/shared/ceshu/ceshuAiMark'
-import type { ChapterKey } from '../../src/shared/ceshu/ceshuConstants'
+} from '../../src/shared/ceshu/prompts/ceshuAiMark'
+import type { ChapterKey } from '../../src/shared/ceshu/reference/ceshuConstants'
 
 /**
  * 「AI 生成、待核对」标记的纯逻辑。

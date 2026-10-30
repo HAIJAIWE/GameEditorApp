@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
 import { renderCeshuMarkdown } from '../../src/main/ceshu/export/markdown'
-import { CHAPTER_KEYS, type CeshuDocument, type ChapterKey } from '../../src/shared/ceshu/ceshuConstants'
-import { CESHU_CHAPTER_FIELDS } from '../../src/shared/ceshu/ceshuFields'
-import { createDefaultCeshu } from '../../src/shared/ceshu/ceshuModel'
-import { isMachineDataField } from '../../src/shared/ceshu/ceshuStages'
+import { CHAPTER_KEYS, type CeshuDocument, type ChapterKey } from '../../src/shared/ceshu/reference/ceshuConstants'
+import { CESHU_CHAPTER_FIELDS } from '../../src/shared/ceshu/fields/ceshuFields'
+import { createDefaultCeshu } from '../../src/shared/ceshu/model/ceshuModel'
+import { isMachineDataField } from '../../src/shared/ceshu/workflow/ceshuStages'
 
 /**
  * 编辑器字段 ↔ 生成设计文档 对拍（用户反馈「前端和生成后的内容不太一样」）。

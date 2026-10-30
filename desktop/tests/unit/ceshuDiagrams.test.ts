@@ -6,7 +6,7 @@ import {
   renderGrowthChartSvg,
   renderStateMachineSvg
 } from '../../src/main/ceshu/export/diagrams'
-import { createDefaultCeshu } from '../../src/shared/ceshu/ceshuModel'
+import { createDefaultCeshu } from '../../src/shared/ceshu/model/ceshuModel'
 
 describe('renderCoreLoopSvg：核心循环图', () => {
   it('步骤不足 2 个 → null（不画空图）', () => {

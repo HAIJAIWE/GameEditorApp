@@ -6,7 +6,7 @@ import {
   uniquifyFieldId,
   validateFieldId
 } from '../../src/shared/util/fieldId'
-import { GAME_TERMS } from '../../src/shared/ceshu/glossaryTerms'
+import { GAME_TERMS } from '../../src/shared/ceshu/reference/glossaryTerms'
 
 describe('fieldId：术语表保真', () => {
   it('条数与 旧版 一致（143 条）', () => {

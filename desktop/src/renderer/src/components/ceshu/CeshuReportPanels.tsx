@@ -1,13 +1,13 @@
-import type { ChapterKey } from '../../../../shared/ceshu/ceshuConstants'
-import type { CeshuChangelog } from '../../../../shared/ceshu/ceshuDiff'
-import { fieldLabelOf } from '../../../../shared/ceshu/ceshuFields'
-import type { CeshuReadinessReport } from '../../../../shared/ceshu/ceshuReadiness'
+import type { ChapterKey } from '../../../../shared/ceshu/reference/ceshuConstants'
+import type { CeshuChangelog } from '../../../../shared/ceshu/workflow/ceshuDiff'
+import { fieldLabelOf } from '../../../../shared/ceshu/fields/ceshuFields'
+import type { CeshuReadinessReport } from '../../../../shared/ceshu/readiness/ceshuReadiness'
 import {
   VALIDATION_SEVERITY_LABELS,
   groupValidationMessages,
   summarizeValidation
-} from '../../../../shared/ceshu/ceshuValidationGroups'
-import { resolveValidationTarget } from '../../../../shared/ceshu/ceshuValidationJump'
+} from '../../../../shared/ceshu/validation/ceshuValidationGroups'
+import { resolveValidationTarget } from '../../../../shared/ceshu/validation/ceshuValidationJump'
 import { groupByChapter } from '../ceshuViewUtils'
 
 /**

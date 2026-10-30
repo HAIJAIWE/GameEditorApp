@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
-import { CESHU_CHAPTER_FIELDS } from '../../src/shared/ceshu/ceshuFields'
+import { CESHU_CHAPTER_FIELDS } from '../../src/shared/ceshu/fields/ceshuFields'
 import { FIELD_SPLITS } from '../../src/shared/ceshuSchema'
-import { CHAPTER_KEYS } from '../../src/shared/ceshu/ceshuConstants'
+import { CHAPTER_KEYS } from '../../src/shared/ceshu/reference/ceshuConstants'
 import { NUMERIC_TEMPLATES } from '../../src/shared/ceshuSchema/numeric'
 import { STORY_TEMPLATES } from '../../src/shared/ceshuSchema/story'
 

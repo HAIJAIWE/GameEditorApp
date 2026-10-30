@@ -1,21 +1,21 @@
 import { useEffect, useState } from 'react'
 
-import { CHAPTER_KEYS, CHAPTER_LABELS, type CeshuDocument, type ChapterKey } from '../../../shared/ceshu/ceshuConstants'
+import { CHAPTER_KEYS, CHAPTER_LABELS, type CeshuDocument, type ChapterKey } from '../../../shared/ceshu/reference/ceshuConstants'
 import {
   TEMPLATE_NAME_REQUIRED_ERROR,
   filterCustomTemplates,
   isValidCustomTemplateName,
   parseTemplateTagsInput,
   type CeshuCustomTemplate
-} from '../../../shared/ceshu/ceshuCustomTemplates'
-import { isPlainObject } from '../../../shared/ceshu/ceshuModel'
+} from '../../../shared/ceshu/reference/ceshuCustomTemplates'
+import { isPlainObject } from '../../../shared/ceshu/model/ceshuModel'
 import {
   listChapterTemplates,
   mergeTemplateByMode,
   searchChapterTemplates,
   templateChapterLabel,
   type ChapterTemplate
-} from '../../../shared/ceshu/ceshuTemplates'
+} from '../../../shared/ceshu/reference/ceshuTemplates'
 import { toErrorMessage } from '../../../shared/util/errors'
 
 /**

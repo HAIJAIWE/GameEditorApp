@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
-import { CHAPTER_LABELS, type CeshuFieldDef, type ChapterData, type ChapterKey } from '../../../shared/ceshu/ceshuConstants'
-import type { CeshuAiGenerateResult } from '../../../shared/ceshu/ceshuAi'
-import { FIELD_ACTION_LABELS, type FieldAction } from '../../../shared/ceshu/ceshuFieldAction'
-import { isPlainObject } from '../../../shared/ceshu/ceshuModel'
-import { CESHU_CHAPTER_FIELDS, resolveFieldMeta } from '../../../shared/ceshu/ceshuFields'
-import { isMachineDataField } from '../../../shared/ceshu/ceshuStages'
-import { HANDOFF_DOCS } from '../../../shared/ceshu/ceshuHandoff'
-import type { ChapterFieldStatus, FieldReviewStatus } from '../../../shared/ceshu/ceshuFieldStatus'
-import { countFieldStatuses, formatFieldStatusSummary } from '../../../shared/ceshu/ceshuFieldStatusStats'
+import { CHAPTER_LABELS, type CeshuFieldDef, type ChapterData, type ChapterKey } from '../../../shared/ceshu/reference/ceshuConstants'
+import type { CeshuAiGenerateResult } from '../../../shared/ceshu/prompts/ceshuAi'
+import { FIELD_ACTION_LABELS, type FieldAction } from '../../../shared/ceshu/fields/ceshuFieldAction'
+import { isPlainObject } from '../../../shared/ceshu/model/ceshuModel'
+import { CESHU_CHAPTER_FIELDS, resolveFieldMeta } from '../../../shared/ceshu/fields/ceshuFields'
+import { isMachineDataField } from '../../../shared/ceshu/workflow/ceshuStages'
+import { HANDOFF_DOCS } from '../../../shared/ceshu/workflow/ceshuHandoff'
+import type { ChapterFieldStatus, FieldReviewStatus } from '../../../shared/ceshu/fields/ceshuFieldStatus'
+import { countFieldStatuses, formatFieldStatusSummary } from '../../../shared/ceshu/fields/ceshuFieldStatusStats'
 import {
   clearActiveCeshuField,
   consumeFieldRequest,
@@ -23,7 +23,7 @@ import {
   mergeTemplateByMode,
   type ChapterTemplate,
   type TemplateApplyMode
-} from '../../../shared/ceshu/ceshuTemplates'
+} from '../../../shared/ceshu/reference/ceshuTemplates'
 
 import { CeshuFieldControl, fieldValueToInput, inputToFieldValue, type FieldInput } from './CeshuFieldControl'
 import { AiFieldButton } from './AiFieldButton'

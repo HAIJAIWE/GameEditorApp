@@ -21,7 +21,7 @@ import {
   serializeTemplateCategoryFile,
   sortCustomTemplates,
   type CeshuCustomTemplate
-} from '../../src/shared/ceshu/ceshuCustomTemplates'
+} from '../../src/shared/ceshu/reference/ceshuCustomTemplates'
 
 function template(overrides: Partial<CeshuCustomTemplate> = {}): CeshuCustomTemplate {
   return {

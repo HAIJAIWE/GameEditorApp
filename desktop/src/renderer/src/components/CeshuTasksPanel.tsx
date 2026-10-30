@@ -1,15 +1,15 @@
 import { useState } from 'react'
 
-import type { CeshuDocument } from '../../../shared/ceshu/ceshuConstants'
+import type { CeshuDocument } from '../../../shared/ceshu/reference/ceshuConstants'
 import {
   CESHU_ROLE_LABELS,
   CESHU_ROLE_ORDER,
   CESHU_TASK_PRIORITIES,
   collectRoleTasks,
   type CeshuRole
-} from '../../../shared/ceshu/ceshuTasks'
-import { countTaskPlan } from '../../../shared/ceshu/ceshuTaskPrompt'
-import { CHAPTER_LABELS } from '../../../shared/ceshu/ceshuConstants'
+} from '../../../shared/ceshu/workflow/ceshuTasks'
+import { countTaskPlan } from '../../../shared/ceshu/prompts/ceshuTaskPrompt'
+import { CHAPTER_LABELS } from '../../../shared/ceshu/reference/ceshuConstants'
 import { toErrorMessage } from '../../../shared/util/errors'
 
 /**

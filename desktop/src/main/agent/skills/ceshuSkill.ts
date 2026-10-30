@@ -7,7 +7,7 @@
  * **未移植**（各有更合适的归属）：
  *  - `delete` / `export` / `import`：UI 侧已有完整入口（首页卡片删除、导出面板），
  *    再经 Agent 暴露会与既有交互重复且更难确认；如需再立项。
- *  - 全部 `ai_*` 动作：已在 `shared/ceshu/ceshuAi.ts` / `shared/ceshu/ceshuDataGen.ts` 以纯函数存在，
+ *  - 全部 `ai_*` 动作：已在 `shared/ceshu/prompts/ceshuAi.ts` / `shared/ceshu/data/ceshuDataGen.ts` 以纯函数存在，
  *    按 §2.5「只注册进协议、不搬家」处理——但它们的返回是「待应用字段」而非落盘结果，
  *    需要一层「应用」语义，故同样留到后续立项。
  */
@@ -25,7 +25,7 @@ import {
   type CeshuExportFormat,
   type ChapterKey,
   type GddScope
-} from '../../../shared/ceshu/ceshuConstants'
+} from '../../../shared/ceshu/reference/ceshuConstants'
 import type { SkillExecutionContext, SkillProtocol, SkillResult } from '../../../shared/agent/protocol'
 import type { CeshuManager } from '../../ceshu/manager'
 

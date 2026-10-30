@@ -1,13 +1,13 @@
 import { useMemo, type ReactElement } from 'react'
 
-import type { CeshuDocument } from '../../../../shared/ceshu/ceshuConstants'
-import { findCouplingGaps } from '../../../../shared/ceshu/ceshuCoupling'
+import type { CeshuDocument } from '../../../../shared/ceshu/reference/ceshuConstants'
+import { findCouplingGaps } from '../../../../shared/ceshu/workflow/ceshuCoupling'
 import {
   analyzeParallelism,
   buildHandoffPlan,
   planHandoffDocs
-} from '../../../../shared/ceshu/ceshuHandoff'
-import { computeReadiness } from '../../../../shared/ceshu/ceshuReadiness'
+} from '../../../../shared/ceshu/workflow/ceshuHandoff'
+import { computeReadiness } from '../../../../shared/ceshu/readiness/ceshuReadiness'
 
 /**
  * 开发交接体检面板。

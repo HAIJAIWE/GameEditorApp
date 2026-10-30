@@ -11,7 +11,7 @@ import {
   type AttrDefinition,
   type AttrSystem,
   type AttrType
-} from '../../../shared/ceshu/attrSystem'
+} from '../../../shared/ceshu/reference/attrSystem'
 import { calculateAttributes } from '../../../shared/domain/attr/attrEngine'
 
 import AttrLivePreview from './AttrLivePreview'

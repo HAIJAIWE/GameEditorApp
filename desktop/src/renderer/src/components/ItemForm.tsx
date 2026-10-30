@@ -10,7 +10,7 @@ import { loadImageGenConfig } from '../../../shared/config/imageGenConfig'
 import { SECRET_NAMES } from '../../../shared/config/secretNames'
 import { resolveFieldLabel } from '../../../shared/config/gameStyle'
 import { displayItemId } from '../../../shared/util/itemId'
-import type { AttrSystem } from '../../../shared/ceshu/attrSystem'
+import type { AttrSystem } from '../../../shared/ceshu/reference/attrSystem'
 import { buildFormLayout } from '../../../shared/schema/formSections'
 import type { DataTypeDef, ItemRecord, TypeFieldDef } from '../../../shared/types'
 

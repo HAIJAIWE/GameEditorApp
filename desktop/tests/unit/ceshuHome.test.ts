@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import type { CeshuSummary } from '../../src/shared/ceshu/ceshuConstants'
+import type { CeshuSummary } from '../../src/shared/ceshu/reference/ceshuConstants'
 import {
   CESHU_STATUS_LABELS,
   RECENT_LIMIT,
@@ -16,7 +16,7 @@ import {
   filterCeshuCards,
   filterPendingCards,
   pickRecentCeshu
-} from '../../src/shared/ceshu/ceshuHome'
+} from '../../src/shared/ceshu/notes/ceshuHome'
 
 function summary(overrides: Partial<CeshuSummary> = {}): CeshuSummary {
   return {

@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import HealthPanel from '../../../src/renderer/src/components/ceshu/HealthPanel'
-import { createDefaultCeshu } from '../../../src/shared/ceshu/ceshuModel'
+import { createDefaultCeshu } from '../../../src/shared/ceshu/model/ceshuModel'
 import { installMbApi, renderDom, type RenderResult } from './render'
 
 /**

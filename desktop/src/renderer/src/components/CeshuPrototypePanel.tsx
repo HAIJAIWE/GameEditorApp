@@ -1,8 +1,8 @@
 import { useState } from 'react'
 
-import type { CeshuDocument } from '../../../shared/ceshu/ceshuConstants'
-import { buildDemoPrompt } from '../../../shared/ceshu/ceshuDemoPrompt'
-import { isPrototypeStale } from '../../../shared/ceshu/ceshuPrototypeStale'
+import type { CeshuDocument } from '../../../shared/ceshu/reference/ceshuConstants'
+import { buildDemoPrompt } from '../../../shared/ceshu/prompts/ceshuDemoPrompt'
+import { isPrototypeStale } from '../../../shared/ceshu/workflow/ceshuPrototypeStale'
 import { toErrorMessage } from '../../../shared/util/errors'
 
 /**

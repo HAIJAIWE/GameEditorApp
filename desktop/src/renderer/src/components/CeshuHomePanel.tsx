@@ -1,13 +1,13 @@
 import { useMemo, useState } from 'react'
 
-import type { CeshuSummary } from '../../../shared/ceshu/ceshuConstants'
+import type { CeshuSummary } from '../../../shared/ceshu/reference/ceshuConstants'
 import {
   RECENT_LIMIT,
   buildCeshuCards,
   filterCeshuCards,
   filterPendingCards,
   pickRecentCeshu
-} from '../../../shared/ceshu/ceshuHome'
+} from '../../../shared/ceshu/notes/ceshuHome'
 
 import LucideIcon from './LucideIcon'
 import { toErrorMessage } from '../../../shared/util/errors'

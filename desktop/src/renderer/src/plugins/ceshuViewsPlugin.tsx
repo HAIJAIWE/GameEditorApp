@@ -1,4 +1,4 @@
-import type { ChapterKey } from '../../../shared/ceshu/ceshuConstants'
+import type { ChapterKey } from '../../../shared/ceshu/reference/ceshuConstants'
 import type { PluginManifest } from '../../../shared/plugin/types'
 import AiDataGenPanel from '../components/AiDataGenPanel'
 import AiFullGeneratePanel from '../components/AiFullGeneratePanel'

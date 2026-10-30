@@ -3,7 +3,7 @@
  *
  * 分层归属：`shared/util/` —— 不依赖任何业务域，main / renderer / 任意 domain 均可 import。
  *
- * 历史说明：本函数原定义在 `shared/ceshu/ceshuModel.ts`（ceshu 业务域），导致
+ * 历史说明：本函数原定义在 `shared/ceshu/model/ceshuModel.ts`（ceshu 业务域），导致
  *   - `shared/agent/session.ts` → `ceshuModel`（agent → ceshu 跨业务域违规）
  * 为消除该跨域边而迁至此处。`ceshuModel` 保留 re-export 以兼容既有 40+ 处调用方。
  */

@@ -1,10 +1,10 @@
-import { CHAPTER_LABELS } from '../../../../shared/ceshu/ceshuConstants'
+import { CHAPTER_LABELS } from '../../../../shared/ceshu/reference/ceshuConstants'
 import {
   FIELD_ACTIONS,
   FIELD_ACTION_LABELS,
   FIELD_ACTION_TITLES
-} from '../../../../shared/ceshu/ceshuFieldAction'
-import type { FieldReviewStatus } from '../../../../shared/ceshu/ceshuFieldStatus'
+} from '../../../../shared/ceshu/fields/ceshuFieldAction'
+import type { FieldReviewStatus } from '../../../../shared/ceshu/fields/ceshuFieldStatus'
 import {
   requestFieldAction,
   useCeshuFieldFocus,

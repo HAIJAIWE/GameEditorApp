@@ -9,7 +9,7 @@ import {
   templateJsonDialogInputSchema,
   dataSnapshotFileDialogInputSchema
 } from '../../shared/schema/schemas'
-import { CESHU_FORMAT_EXTENSIONS, CESHU_FORMAT_LABELS } from '../../shared/ceshu/ceshuConstants'
+import { CESHU_FORMAT_EXTENSIONS, CESHU_FORMAT_LABELS } from '../../shared/ceshu/reference/ceshuConstants'
 import { buildImagePreviewDataUrl } from '../../shared/util/imagePreview'
 import { log } from '../../shared/util/logger'
 import { ENGINE_EXTENSIONS as ENGINE_KIND_EXTENSIONS, ENGINE_LABELS as ENGINE_KIND_LABELS } from '../engineExport/engines'

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
-import { CHAPTER_LABELS, type CeshuDocument } from '../../src/shared/ceshu/ceshuConstants'
-import { createDefaultCeshu } from '../../src/shared/ceshu/ceshuModel'
-import { validateCeshu } from '../../src/shared/ceshu/ceshuValidation'
+import { CHAPTER_LABELS, type CeshuDocument } from '../../src/shared/ceshu/reference/ceshuConstants'
+import { createDefaultCeshu } from '../../src/shared/ceshu/model/ceshuModel'
+import { validateCeshu } from '../../src/shared/ceshu/validation/ceshuValidation'
 import { applyJudge, evaluateChapterDraft } from '../../src/shared/agent/qualityGate'
 import type { LlmJudgeVerdict } from '../../src/shared/types'
 

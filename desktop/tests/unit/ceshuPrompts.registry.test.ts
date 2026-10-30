@@ -1,30 +1,57 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { buildReviewPrompts } from '../../src/shared/ceshu/ceshuAi'
+import { buildReviewPrompts } from '../../src/shared/ceshu/prompts/ceshuAi'
 import {
   ADVERSARIAL_CHECK_KEYS,
   ADVERSARIAL_CHECK_LABELS,
   GENRE_REVIEW_PROFILES,
   genreReviewProfile,
   reviewProbeFor
-} from '../../src/shared/ceshu/ceshuAiData'
-import { createDefaultCeshu } from '../../src/shared/ceshu/ceshuModel'
+} from '../../src/shared/ceshu/prompts/ceshuAiData'
+import { createDefaultCeshu } from '../../src/shared/ceshu/model/ceshuModel'
+
+/** 在 base 目录下递归查找名为 name 的文件（ceshu/ 已按子能力拆分子目录） */
+function findUnder(base: string, name: string): string | null {
+  const stack = [base]
+  while (stack.length) {
+    const cur = stack.pop() as string
+    let entries: string[]
+    try {
+      entries = readdirSync(cur)
+    } catch {
+      continue
+    }
+    for (const e of entries) {
+      const full = resolve(cur, e)
+      if (e === name) return full
+      let st
+      try {
+        st = statSync(full)
+      } catch {
+        continue
+      }
+      if (st.isDirectory()) stack.push(full)
+    }
+  }
+  return null
+}
 
 /** 读取 shared 层源码（vitest 在 desktop/ 下运行；兼容从仓库根跑） */
 function readSharedSource(name: string): string {
-  const candidates = [
-    resolve(process.cwd(), 'src', 'shared', name),
-    resolve(process.cwd(), 'desktop', 'src', 'shared', name)
+  const bases = [
+    resolve(process.cwd(), 'src', 'shared'),
+    resolve(process.cwd(), 'desktop', 'src', 'shared')
   ]
-  for (const path of candidates) {
-    try {
-      return readFileSync(path, 'utf-8')
-    } catch {
-      /* 试下一个候选路径 */
-    }
+  const tried: string[] = []
+  for (const base of bases) {
+    const flat = resolve(base, name)
+    tried.push(flat)
+    if (existsSync(flat)) return readFileSync(flat, 'utf-8')
+    const under = findUnder(resolve(base, 'ceshu'), name)
+    if (under) return readFileSync(under, 'utf-8')
   }
-  throw new Error(`找不到 ${name}（尝试过：${candidates.join(' / ')}）`)
+  throw new Error(`找不到 ${name}（尝试过：${tried.join(' / ')}）`)
 }
 
 /**
@@ -92,8 +119,10 @@ describe('反审提示词与检查项枚举同源', () => {
   })
 
   it('消费式提示词复用 ceshuAiData 的写作规范，不各自重写', () => {
-    // 机读包消费提示词必须引用单一来源的写作规范
-    expect(readSharedSource('ceshuBundlePrompt.ts')).toContain("from './ceshu/ceshuAiData'")
+    // 机读包消费提示词必须引用单一来源的写作规范（ceshuAiData），不得内联重写
+    const bundlePrompt = readSharedSource('ceshuBundlePrompt.ts')
+    expect(bundlePrompt).toContain('CESHU_WRITING_STANDARD')
+    expect(bundlePrompt).toMatch(/from\s+['"]\.{1,2}\/ceshuAiData['"]/)
     // 各任务的提示词组装入口都在登记表注释里点名，改动前有导航
     const registry = readSharedSource('ceshuAiData.ts')
     for (const module of ['ceshuAi.ts', 'ceshuBundlePrompt.ts', 'ceshuDataGen.ts', 'ceshuDemoPrompt.ts']) {

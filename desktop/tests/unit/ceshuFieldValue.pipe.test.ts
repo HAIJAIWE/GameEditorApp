@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
 import { fieldValueToInput, inputToFieldValue } from '../../src/renderer/src/components/CeshuFieldControl'
-import { CESHU_CHAPTER_FIELDS } from '../../src/shared/ceshu/ceshuFields'
-import type { CeshuFieldDef, ChapterKey } from '../../src/shared/ceshu/ceshuConstants'
+import { CESHU_CHAPTER_FIELDS } from '../../src/shared/ceshu/fields/ceshuFields'
+import type { CeshuFieldDef, ChapterKey } from '../../src/shared/ceshu/reference/ceshuConstants'
 
 /**
  * pipeList 的「数据值 ↔ 控件值」往返（2026-10-26 修数据丢失后立的守卫）。

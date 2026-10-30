@@ -1,5 +1,5 @@
-import type { CeshuFieldDef, ChapterData } from '../ceshu/ceshuConstants'
-import type { ChapterTemplate } from '../ceshu/ceshuTemplates'
+import type { CeshuFieldDef, ChapterData } from '../ceshu/reference/ceshuConstants'
+import type { ChapterTemplate } from '../ceshu/reference/ceshuTemplates'
 
 /**
  * 档 4 合并产物的类型定义（2026-10-24）。

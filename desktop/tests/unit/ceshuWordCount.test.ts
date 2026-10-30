@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { RE_CHINESE_CHARS, RE_ENGLISH_WORDS, countWordsInChapter } from '../../src/shared/ceshu/ceshuWordCount'
+import { RE_CHINESE_CHARS, RE_ENGLISH_WORDS, countWordsInChapter } from '../../src/shared/ceshu/validation/ceshuWordCount'
 
 /**
  * `countWordsInChapter` 单测（2026-10-27）。

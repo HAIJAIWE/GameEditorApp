@@ -15,9 +15,9 @@
 
 import { useSyncExternalStore } from 'react'
 
-import type { ChapterKey } from '../../shared/ceshu/ceshuConstants'
-import type { FieldReviewStatus } from '../../shared/ceshu/ceshuFieldStatus'
-import type { FieldAction } from '../../shared/ceshu/ceshuFieldAction'
+import type { ChapterKey } from '../../shared/ceshu/reference/ceshuConstants'
+import type { FieldReviewStatus } from '../../shared/ceshu/fields/ceshuFieldStatus'
+import type { FieldAction } from '../../shared/ceshu/fields/ceshuFieldAction'
 
 export interface ActiveCeshuField {
   chapter: ChapterKey

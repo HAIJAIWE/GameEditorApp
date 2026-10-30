@@ -15,9 +15,9 @@ import {
   mergeTemplateToChapter,
   searchChapterTemplates,
   templateChapterLabel
-} from '../../src/shared/ceshu/ceshuTemplates'
-import { CHAPTER_KEYS } from '../../src/shared/ceshu/ceshuConstants'
-import { CESHU_CHAPTER_FIELDS } from '../../src/shared/ceshu/ceshuFields'
+} from '../../src/shared/ceshu/reference/ceshuTemplates'
+import { CHAPTER_KEYS } from '../../src/shared/ceshu/reference/ceshuConstants'
+import { CESHU_CHAPTER_FIELDS } from '../../src/shared/ceshu/fields/ceshuFields'
 
 describe('ceshuTemplates 内置模板库', () => {
   it('数据池：24 章 / 45 个模板（2026-10-27：uiux、level_design 各加中性默认模板；live_ops/analytics/qa/publishing/performance 各补 1 个填满样例）', () => {

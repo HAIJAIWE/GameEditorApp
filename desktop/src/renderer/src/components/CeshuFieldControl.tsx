@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 
-import type { CeshuColumnDef, CeshuFieldDef } from '../../../shared/ceshu/ceshuConstants'
+import type { CeshuColumnDef, CeshuFieldDef } from '../../../shared/ceshu/reference/ceshuConstants'
 
 /**
  * 策划书通用字段控件：由字段 schema（kind）驱动渲染，

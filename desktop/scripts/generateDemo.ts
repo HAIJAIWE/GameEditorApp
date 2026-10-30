@@ -15,8 +15,8 @@ import { spawnSync } from 'node:child_process'
 import { writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { buildDemoPrompt } from '../src/shared/ceshu/ceshuDemoPrompt'
-import type { CeshuDocument } from '../src/shared/ceshu/ceshuConstants'
+import { buildDemoPrompt } from '../src/shared/ceshu/prompts/ceshuDemoPrompt'
+import type { CeshuDocument } from '../src/shared/ceshu/reference/ceshuConstants'
 
 /** CDP 求值（与 ceshuAiE2E.mjs 同款最小客户端；Node 22 全局 WebSocket） */
 async function connectCdp(url: string): Promise<{ evaluate: (expression: string) => Promise<unknown>; close: () => void }> {

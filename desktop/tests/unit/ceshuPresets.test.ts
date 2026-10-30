@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { createDefaultCeshu } from '../../src/shared/ceshu/ceshuModel'
+import { createDefaultCeshu } from '../../src/shared/ceshu/model/ceshuModel'
 import {
   HYBRID_GAMEPLAY_PRESETS,
   PRESET_KEYS,
@@ -12,7 +12,7 @@ import {
   formatRecommendedSystems,
   formatSecondaryModules,
   styleBadgeColor
-} from '../../src/shared/ceshu/ceshuPresets'
+} from '../../src/shared/ceshu/reference/ceshuPresets'
 
 type SystemMap = Record<string, { enabled: boolean }>
 

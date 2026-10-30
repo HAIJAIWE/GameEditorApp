@@ -3,12 +3,12 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   formatFieldsPreview,
   type SystemConfirmCustom
-} from '../../../shared/ceshu/ceshuSystemConfirm'
+} from '../../../shared/ceshu/prompts/ceshuSystemConfirm'
 import {
   type CeshuDocument,
   type SystemEntry
-} from '../../../shared/ceshu/ceshuConstants'
-import { SYSTEM_CONFIG_SCHEMA } from '../../../shared/ceshu/systemConfigSchema'
+} from '../../../shared/ceshu/reference/ceshuConstants'
+import { SYSTEM_CONFIG_SCHEMA } from '../../../shared/ceshu/model/systemConfigSchema'
 
 interface SystemConfirmPanelProps {
   ceshuId: string

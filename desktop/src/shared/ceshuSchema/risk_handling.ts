@@ -4,9 +4,9 @@
  * 字段定义 / 契约（aiHint/reviewHint/aiDraftable 已内联）/ 三件套拆分清单
  * 全部收进单文件（字段 / 契约 / 拆分 / 默认 / 模板），改一个字段只碰这一处。
  */
-import type { ChapterTemplate } from '../ceshu/ceshuTemplates'
+import type { ChapterTemplate } from '../ceshu/reference/ceshuTemplates'
 import type { ChapterSchema } from './types'
-import type { CeshuFieldDef, ChapterData } from '../ceshu/ceshuConstants'
+import type { CeshuFieldDef, ChapterData } from '../ceshu/reference/ceshuConstants'
 
 export const RISK_HANDLING_FIELDS: CeshuFieldDef[] = [
   {

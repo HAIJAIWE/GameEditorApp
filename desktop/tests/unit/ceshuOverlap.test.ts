@@ -7,10 +7,10 @@ import {
   detectTextDuplication,
   fieldOverlapMessage,
   textSimilarity
-} from '../../src/shared/ceshu/ceshuOverlap'
-import { validateCeshu } from '../../src/shared/ceshu/ceshuValidation'
-import { createDefaultCeshu } from '../../src/shared/ceshu/ceshuModel'
-import type { CeshuDocument } from '../../src/shared/ceshu/ceshuConstants'
+} from '../../src/shared/ceshu/workflow/ceshuOverlap'
+import { validateCeshu } from '../../src/shared/ceshu/validation/ceshuValidation'
+import { createDefaultCeshu } from '../../src/shared/ceshu/model/ceshuModel'
+import type { CeshuDocument } from '../../src/shared/ceshu/reference/ceshuConstants'
 
 describe('textSimilarity：字符二元组 Dice', () => {
   it('完全相同 → 1；都空 → 0；完全无关 → 低分', () => {
