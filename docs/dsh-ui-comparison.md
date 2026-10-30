@@ -1,6 +1,8 @@
 # dsh UI 对照：成熟做法与本项目可改造项
 
 > **状态：活的对照文档。** 2026-10-28 初版是「只读调研 + 改造计划」；2026-10-29 更新为「已落地现状 + 逐组件改写地图」（§2 现状、§4 对照表），供后续整体重写 UI 时按图施工。
+>
+> **2026-10-30 修（重要）**：早期 §7 的来源几乎清一色是 `README.zh.md`，被质疑「到底有没有读源码」。本轮已实地核对目录与文件内容，结论见新增的 **§1.1 源码级结构核实**；并**订正一条此前流传的错误印象**——「dsh 叶子包 5–15 文件」**不存在此上限**，我们据此拆包时给出的理由是错的（结构本身无害，见 §1.1 ⑥）。
 > dsh 源码：`D:/GameEditorApp/deepseek-harness-master/deepseek-harness-master/packages/client/`（`ui-*` 系列）。
 > 本项目 UI：`desktop/src/renderer/src/components/digital/`（`DigitalPanel.tsx` 1062 行 + `digitalPanelViews.tsx` 553 行 + 3 个独立卡组件）与 `plugins/`（会话页签）。
 >
@@ -34,6 +36,52 @@ dsh 的 UI 成熟在**两件事**：① **typed slot 组合**（父级声明扩�
 - `ui-tool` 的注释原话：「业务 UI 包只注册 wire 工具名称和原子视图——它们不配对会话事件、不重建 transcript、也不拥有 root/subcall 拓扑，因为**运行时对 call/result 配对、生命周期与递归 subCalls 投影拥有最终决定权**」。
 - `ui-chat`：「本地 transcript 与 steering 提交会**立即显示并保留在原区域，在权威会话记录到达时原子地消失**」——本地回声 + 权威替换。
 - `ui-jobs`：「`ctx.jobs` 镜像的 `job.list` 流是**唯一名册**」——单一数据源。
+
+### 1.1 源码级结构核实（2026-10-30，含一条订正）
+
+> 动机：此前 §7 的来源清一色是 `README.zh.md`，被质疑「是否真读了代码」。本轮直接核对 `packages/` 的目录、文件大小与关键文件内容，以下是**可复查的实测结论**（路径见 §7）。
+
+**① 包的规模没有上限（订正一条错误印象）**
+
+早期曾依据「dsh 叶子包 5–15 文件」去拆本项目的 `shared/` 与 `renderer/`。**这条是错的**。实测 `packages/` 共 **50 个包**，跨度极大：
+
+| 规模 | 包（源码 `.ts/.tsx` 数） |
+|---|---|
+| 2–7 | `identity`(2) `store`(2) `guard`(4) `plan`(7) `todo`(7) |
+| 10–30 | `document`(10) `terminal`(13) `mcp`(23) `storage`(24) `attachment`(28) |
+| 77–232 | `util`(77) `core`(133) `session`(232) |
+| 巨大 | `client`(1925) `experimental`(1237) |
+
+UI 侧同理：`ui-primitives`(104) `ui-chat`(100) `ui-conversation`(85) `ui-tool`(42) `ui-attachment`(11) `ui-settings`(10)。
+**真实原则是「能力=文件夹」，不是文件数上限。** 我们拆完之后最大子包仅 15 文件，比 dsh 更细——**无害**，但当初「因为 dsh 是 5–15 文件所以要这么拆」的理由不成立。
+
+**② `util`(77) 本身就是 21 个子能力包的巢**
+
+`atomic-write` `brand` `chunked-list` `code-language` `crypto` `deque` `file-drag` `home-paths` `http-proxy` `launch-environment` `lazy-require` `native-command` `official-bundles` `output-retention` `package-manifest` `plugin-detail` `plugin-market-index` `time` `timeout` `values` `workspace-path`
+——**每个自带 `package.json`（可独立发布 `@deepseek-ai/dsh-<name>`）+ `src/index.ts` + `tests/*.spec.ts`**，kebab-case 命名。
+
+**③ `src/index.ts` 常常是「实现本体」，不是再导出桶**
+
+`util/atomic-write/src/index.ts` 直接装着 `writeFileAtomic` / `withFileLock` 的全部实现与成篇 JSDoc（`@module` / `@param` / `@returns`，含 Windows `EACCES`/`EBUSY`/`EPERM` 重试与死锁接管的处理说明）。
+对照：我们子包的 `index.ts` 是纯 `export * from './X'` 聚合桶——**风格差异，非缺陷**。
+
+**④ UI 包有 `src/` 与 `src/client/` 两层出口**
+
+- `ui-attachment/src/index.ts` = 宿主半边：`export function apply() {}`，注释写明「No host-side behavior; the client half registers the React slot entries」；
+- `ui-attachment/src/client/index.ts` = 真正注册逻辑：cordis `Context` + `ctx.slots.inject('conversation.input.attachments', …)`、`ctx.slots.registerFactory({ name: 'conversation.images.content', … })`；
+- `package.json` 的 `exports` 把 `.` 与 `./client` 分别导出。
+
+→ 这层依赖 **cordis 运行时**，按 §5 硬约束 1 **不引入**（借了 `ui-slots` 的 keyed 思路，已在 Slice 42 落地）。
+
+**⑤ 样式与测试的组织**
+
+- CSS 是 **CSS Modules、逐组件同目录**：`AttachmentRail.tsx` + `AttachmentRail.module.css`、`DropOverlay.tsx` + `DropOverlay.module.css`、`FileCard` / `MessageImage` 同。我们用全局 `styles.css` + 自有令牌（`--ui-font-scale`），**有意不同**（§5 硬约束 2）。
+- 测试放在**包内** `tests/*.spec.ts(x)`；我们集中在 `desktop/tests/unit/`。
+
+**⑥ 结论：我们这轮拆出来的东西要不要回改？**
+
+**不需要。** 结构自洽且已验证：typecheck/lint 全绿、全量单测 3432 通过/6 跳过零回归、**build 产物哈希与重构前逐字节一致**（`index-DEfpcs6a.js` / `index-DW-r-E2h.css`）。
+要改的是「依据」而不是「代码」——即上面 ① 的订正，以及把「先读源码、再下结论」的顺序固定下来（本轮被质疑后补做，代价是一次返工自查）。
 
 ---
 
@@ -85,7 +133,7 @@ dsh 的 UI 成熟在**两件事**：① **typed slot 组合**（父级声明扩�
 > 保留 `digital-step` / `data-status` 等既有 e2e 锚点，新增 `digital-turn`。
 
 ### 不抄什么
-- **40+ 个包的拆分**：我们规模不需要，拆太细反而难维护。
+- **40+ 个包的拆分**（2026-10-30 重写此条）：早期以此为由不拆；后来实际是照 dsh「能力=文件夹」拆了（`renderer/components` 10 / `renderer/plugins` 6 / `main/agent` 7 / `main/ceshu/export` 3 / `shared/util` 9 个子包）。但**刻意不照搬**它的「每包一个 `package.json` 可独立发布」与「`src` / `src/client` 双层出口」——前者是 SDK 需求，后者依赖 cordis 运行时。包的真实规模分布与订正见 **§1.1**。
 - **完整 cordis slot 运行时**：我们已有 `PluginHost`（panel/view/menu/sidebar/mainView）；只借「keyed slot」的思路，不引框架。
 - **产品埋点 / 品牌包 / 官方模型角标**：与产品无关。
 
@@ -253,7 +301,18 @@ dsh 的 UI 成熟在**两件事**：① **typed slot 组合**（父级声明扩�
 
 ## 7. 来源（可复查）
 
+### README 层（初版调研来源，仅作背景；**不足以支撑结构判断**）
 - dsh：`packages/client/README.zh.md`（包地图）、`ui-slots/README.zh.md`（slot 架构）、`ui-chat/README.zh.md`（轮次折叠/token/滚动/本地回声）、`ui-tool/README.zh.md`（工具树 + keyed 视图）、`ui-subagent/README.zh.md`（子会话目录 + 续接）、`ui-jobs/README.zh.md`（后台任务 + 两击停止）、`ui-conversation/README.zh.md`。
+
+### 源码层（2026-10-30 实地核对，§1.1 的唯一依据）
+> 初版只引 README 曾被质疑「没读源码」。以下为本轮**逐一看过/统计过**的具体路径，可复查：
+
+- **包的规模分布**：`packages/client/ui-attachment/src/client/index.ts`
+- **规模统计**：对 `packages/` 下 50 个包递归统计 `.ts/.tsx` 文件数（含 `client/ui-*` 60+ 子包的分别计数）得到 §1.1 ① 的表格。
+- **`util` 是 21 个子能力包的巢**：`packages/util/<name>/package.json` + `packages/util/<name>/src/index.ts` + `packages/util/<name>/tests/*.spec.ts`（逐个 `ls` 确认，每个都有 `package.json`）。
+- **`index.ts` 即实现本体**：通读 `packages/util/atomic-write/src/index.ts`（`writeFileAtomic` / `withFileLock` 完整实现 + `@module`/`@param` JSDoc）。
+- **`src` / `src/client` 双层出口**：通读 `packages/client/ui-attachment/src/index.ts`（空 apply）与 `packages/client/ui-attachment/src/client/index.ts`（cordis `ctx.slots.inject` 注册），并看其 `package.json` 的 `exports` 字段。
+- **CSS Modules 逐组件同目录**：`packages/client/ui-attachment/src/` 下 `AttachmentRail.tsx`+`.module.css`、`DropOverlay.tsx`+`.module.css`、`FileCard`、`MessageImage` 均成对出现。
 - 本项目（2026-10-29 补）：
   - 外壳 / 对话流：`desktop/src/renderer/src/components/digital/{DigitalPanel,digitalPanelViews,DigitalMessageItem,DigitalChangeCard,DigitalRunPlan}.tsx`
   - 主区页签：`desktop/src/renderer/src/plugins/{sessionPlugin,agentTeamSection,trajectorySection}.tsx`
