@@ -200,6 +200,8 @@ dsh 的 UI 成熟在**两件事**：① **typed slot 组合**（父级声明扩�
 - **拖拽上传（`ui-attachment` drop 目标）** —— 输入框接 `dragover/drop`，经 preload 暴露的 `webUtils.getPathForFile` 取本地路径（Electron 32+ 已移除 `File.path`）→ 与原生选择共用 `addAttachmentPath`（复制进库 + 「导入中…」）。拖入时输入框虚线高亮（`.is-drag-active`）。
 - **附件内容注入** —— 文本类附件（`text/*` / `application/json` / `application/xml`，且 ≤200KB）在 `service.chat` 里读入并**内联进「【附件】」提示词段**（单文件 20KB / 本轮 60KB 上限，超限截断）；二进制只给名称/路径/大小。读失败退化成路径行，不丢附件。这样智能体不靠文件工具也能直接读到文本附件内容。
 
+**源码级复核（补真读）**：真读了 `ui-deliverables` 的 `turn-deliverables.ts` / `Deliverables.tsx` / `PresentedFileCard.tsx` / `ChangedFiles.tsx` / `presented.ts`，以及 `ui-shortcuts` 的 `Reference.tsx` / `fixed.ts`。据此对齐两处：**交付卡 4 行折叠 + 扩展名标签**（`COLLAPSED_PRESENTED_COUNT` / `fileExtension`）；**快捷键弹窗加搜索**（对齐 `Reference.tsx` 按动作/按键过滤、打开聚焦搜索框）。**有意保留的差异**（不是漏读，是数据模型不同）：① dsh 的 deliveries 来自 `deliverables/presented` 事件（agent 显式 present 一个文件），我们没有 present 工具，交付改从 `export` 结果派生；② dsh 的内联文件链接只解析「本轮 produced/delivered 的路径」且需唯一命中，我们的 agent 不写源码文件，按 dsh 规则几乎无链接可用，故保留「像路径即可点」；③ dsh 的改动卡单文件只出卡头，我们的单条行还带 dataType/时间（卡头没有），保留该行。
+
 **还没对齐的（下一步候选，按成本/价值分层）**：
 - **纯视觉 / 低成本（优先）**：
   - ~~轨迹表格无斑马纹 → 补 hover / 选中中性填充~~ ✅ 已对齐：hover 用 `--bg-hover`（第二轮），**选中态**（第三轮）= 正在查看详情的那一行（`<details>` 展开态）用 `--bg-selected` 中性填充、文字保持 `--text`（不用蓝色文字），且选择器特异性高于 `:hover` ⇒ 展开时鼠标划过不闪（对齐 dsh `tr[data-selected='true']` 抑制 hover）。DOM 测试钉住 `<details> > <summary.trajectory-row>` 结构，防止 CSS 静默失效。

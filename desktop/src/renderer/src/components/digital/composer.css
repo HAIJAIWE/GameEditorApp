@@ -451,6 +451,17 @@
   font-weight: 500;
   color: var(--text);
 }
+.digital-shortcuts-search {
+  width: 100%;
+  margin: 4px 0 4px;
+  box-sizing: border-box;
+}
+.digital-shortcuts-empty {
+  margin: 16px 0;
+  color: var(--text-muted);
+  font-size: calc(13px * var(--ui-font-scale));
+  text-align: center;
+}
 .digital-shortcuts-group {
   margin-top: 12px;
 }

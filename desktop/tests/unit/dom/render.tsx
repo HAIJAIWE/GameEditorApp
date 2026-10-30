@@ -56,6 +56,11 @@ export interface RenderResult {
   /** 模拟点击并等待 React 与异步副作用落定 */
   click: (element: HTMLElement) => Promise<void>
   /**
+   * 给受控输入框设值并触发 React 的 onChange（走原生 value setter，绕过 React 的值追踪），
+   * 包 `act` 并等待更新落定。用于搜索框 / 表单这类受控输入。
+   */
+  change: (element: HTMLElement, value: string) => Promise<void>
+  /**
    * 换 props 重渲染（同一个 root，保留组件内部 state）。
    *
    * 用于「外部 props 变化 → 组件反应」这类契约：新建 root 会把组件重挂，
@@ -111,6 +116,15 @@ export async function renderDom(element: ReactElement): Promise<RenderResult> {
     click: async (target) => {
       await act(async () => {
         target.click()
+      })
+      await flush()
+    },
+    change: async (target, value) => {
+      const input = target as HTMLInputElement
+      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set
+      await act(async () => {
+        setter?.call(input, value)
+        input.dispatchEvent(new Event('input', { bubbles: true }))
       })
       await flush()
     },

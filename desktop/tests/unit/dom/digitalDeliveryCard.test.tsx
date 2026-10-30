@@ -34,10 +34,29 @@ describe('交付卡', () => {
       const files = rendered.queryAll('[data-testid="digital-delivery-file"]')
       expect(files).toHaveLength(2)
       expect(rendered.text()).toContain('game.docx')
+      // 扩展名标签 + 大小（对齐 dsh PresentedFileCard 的扩展名兜底）
+      expect(rendered.text()).toContain('DOCX')
       expect(rendered.text()).toContain('2.0 KB')
 
       await rendered.click(files[0] as HTMLElement)
       expect(api.calls).toContain('attachments.open')
+      await rendered.cleanup()
+    } finally {
+      api.restore()
+    }
+  })
+
+  it('超过 4 行折叠（对齐 COLLAPSED_PRESENTED_COUNT），点开全部展开', async () => {
+    const api = installMbApi()
+    try {
+      const files = [1, 2, 3, 4, 5].map((n) => delivery(`d${n}`, `f${n}.docx`))
+      const rendered = await renderDom(<DigitalDeliveryCard deliveries={files} />)
+      expect(rendered.queryAll('[data-testid="digital-delivery-file"]')).toHaveLength(4)
+
+      const toggle = rendered.byTestId('digital-delivery-toggle')
+      expect(toggle.textContent).toContain('全部 5 个文件')
+      await rendered.click(toggle)
+      expect(rendered.queryAll('[data-testid="digital-delivery-file"]')).toHaveLength(5)
       await rendered.cleanup()
     } finally {
       api.restore()

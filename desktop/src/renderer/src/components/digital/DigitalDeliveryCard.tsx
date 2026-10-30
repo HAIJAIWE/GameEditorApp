@@ -1,18 +1,31 @@
-import type { ReactElement } from 'react'
+import { useState, type ReactElement } from 'react'
 
 import type { DeliveryRecord } from '../../../../shared/agent/deliveryLog'
 import { formatAttachmentSize } from '../../../../shared/util/libraryAttachments'
+
+/** 折叠前显示的行数（对齐 dsh `Deliverables` 的 COLLAPSED_PRESENTED_COUNT） */
+const COLLAPSED_DELIVERIES = 4
+
+/** 扩展名大写标签（对齐 dsh `PresentedFileCard` 的 fileExtension 兜底） */
+function extensionOf(name: string): string {
+  const dot = name.lastIndexOf('.')
+  return dot > 0 ? name.slice(dot + 1).toUpperCase() : ''
+}
 
 /**
  * 对话内联「本轮交付」卡（对齐 dsh `ui-deliverables` 的 delivery cards）。
  *
  * 数据来自交付日志（`system.ceshu` 的 export 动作成功后落一条），只展示**真实交付**的文件，
- * 不从正文里猜。点文件名用系统默认程序打开（`attachments:open` 底层即 `shell.openPath`）。
+ * 不从正文里猜。行结构对齐 dsh `PresentedFileCard`：文件图标 + 名称 + 扩展名/大小；
+ * 超过 4 行折叠（对齐 `COLLAPSED_PRESENTED_COUNT`）。点文件名用系统默认程序打开。
  *
  * 空列表整体不渲染：对话里多一张「本轮没交付」的空卡只会干扰阅读。
  */
 export function DigitalDeliveryCard({ deliveries }: { deliveries: readonly DeliveryRecord[] }): ReactElement | null {
+  const [expanded, setExpanded] = useState(false)
   if (deliveries.length === 0) return null
+  const foldable = deliveries.length > COLLAPSED_DELIVERIES
+  const rows = foldable && !expanded ? deliveries.slice(0, COLLAPSED_DELIVERIES) : deliveries
   return (
     <div className="digital-delivery-card" data-testid="digital-delivery-card" data-count={deliveries.length}>
       <div className="digital-delivery-head">
@@ -24,24 +37,41 @@ export function DigitalDeliveryCard({ deliveries }: { deliveries: readonly Deliv
         </span>
       </div>
       <ul className="digital-delivery-list">
-        {deliveries.map((file) => (
-          <li key={file.id} className="digital-delivery-row">
-            <button
-              type="button"
-              className="digital-delivery-file"
-              data-testid="digital-delivery-file"
-              title={file.path}
-              onClick={() => {
-                void window.mbApi.attachments.open({ path: file.path })
-              }}
-            >
-              {FILE_ICON}
-              <span className="digital-delivery-name">{file.label}</span>
-              {file.bytes > 0 && <span className="digital-delivery-size">{formatAttachmentSize(file.bytes)}</span>}
-            </button>
-          </li>
-        ))}
+        {rows.map((file) => {
+          const extension = extensionOf(file.label)
+          const meta = [extension, file.bytes > 0 ? formatAttachmentSize(file.bytes) : '']
+            .filter((part) => part !== '')
+            .join(' · ')
+          return (
+            <li key={file.id} className="digital-delivery-row">
+              <button
+                type="button"
+                className="digital-delivery-file"
+                data-testid="digital-delivery-file"
+                title={file.path}
+                onClick={() => {
+                  void window.mbApi.attachments.open({ path: file.path })
+                }}
+              >
+                {FILE_ICON}
+                <span className="digital-delivery-name">{file.label}</span>
+                {meta !== '' && <span className="digital-delivery-size">{meta}</span>}
+              </button>
+            </li>
+          )
+        })}
       </ul>
+      {foldable && (
+        <button
+          type="button"
+          className="digital-delivery-toggle"
+          data-testid="digital-delivery-toggle"
+          aria-expanded={expanded}
+          onClick={() => setExpanded((value) => !value)}
+        >
+          {expanded ? '收起 ▴' : `全部 ${deliveries.length} 个文件 ▾`}
+        </button>
+      )}
     </div>
   )
 }

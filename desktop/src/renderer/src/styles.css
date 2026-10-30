@@ -8546,6 +8546,20 @@ button.ref-row:hover {
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
 }
+.digital-delivery-toggle {
+  align-self: flex-start;
+  margin: 0 12px 8px;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: calc(12px * var(--ui-font-scale));
+  cursor: pointer;
+}
+.digital-delivery-toggle:hover {
+  color: var(--text);
+}
 
 .digital-change-card-head {
   display: flex;
