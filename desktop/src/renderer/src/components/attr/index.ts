@@ -1,7 +1,0 @@
-export * from './AttrFormulaBuilder'
-export * from './AttrLivePreview'
-export * from './AttrPanelEditor'
-export * from './AttrSystemPanel'
-export * from './AttrTableEditor'
-export * from './AttributeChartPanel'
-export * from './EquipPreviewPanel'

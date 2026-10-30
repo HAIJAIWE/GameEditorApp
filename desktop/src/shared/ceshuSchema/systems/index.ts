@@ -1,6 +1,0 @@
-export * from './combat'
-export * from './economy'
-export * from './numeric'
-export * from './resources'
-export * from './systems'
-export * from './tech'

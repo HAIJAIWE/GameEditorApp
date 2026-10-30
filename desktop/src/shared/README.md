@@ -20,11 +20,15 @@
 
 | 分区 | 位置 | 职责 | 代表文件 |
 |---|---|---|---|
-| **contract** | `src/shared/` 根目录 | 跨进程契约：类型、zod 校验、IPC 通道 | `types.ts`、`schemas.ts`、`ipc.ts` |
-| **domain/*** | `src/shared/domain/<域>/` | 业务域逻辑，**域间禁止互相 import** | `domain/ceshu/ceshuDefaults.ts` |
-| **config** | `src/shared/config/` | 设置项 / 偏好持久化 | `settingsStore.ts`、`visibleTypes.ts`、`imageGenConfig.ts` |
+| **contract** | `src/shared/` 根目录（**仅 4 个**：`abort.ts` `attrSystem.ts` `ipc.ts` `types.ts`） | 跨进程契约：类型、zod 校验、IPC 通道 | `types.ts`、`ipc.ts`、`attrSystem.ts` |
+| **domain/*** | `src/shared/domain/<域>/` | 业务域逻辑，**域间禁止互相 import** | `domain/ceshu/dataRef.ts` |
+| **config** | `src/shared/config/`（4 子包：`llm`/`game`/`settings`/`secrets`） | 设置项 / 偏好持久化 | `config/settings/settingsStore.ts`、`config/game/visibleTypes.ts` |
 | **service** | `src/shared/service/` | 主进程对外服务契约（preload↔renderer 门面） | `service/api.ts` |
-| **util** | `src/shared/util/` | 零业务语义的纯工具 | `util/guards.ts`、`util/datetime.ts` |
+| **util** | `src/shared/util/`（9 子包：`id`/`object`/`search`/`field`/`data`/`datetime`/`io`/`ui`/`system`） | 零业务语义的纯工具 | `util/object/guards.ts`、`util/datetime/datetime.ts` |
+
+> **2026-10-30 结构变更**：`ceshu`(9 子包) / `ceshuSchema`(5 子包) / `config`(4 子包) / `schema`(2 子包) / `agent`(8 子包) / `util`(9 子包)
+> 已按 dsh「能力=文件夹」全部拆成单职责子包，contract 根因此从 39 个平铺文件收敛到 **4 个**。
+> 下文 §4 的统计表是 2026-10-12 归区批次的历史快照，**请以实际目录为准**。
 
 ### 1.1 依赖方向（允许 → 禁止）
 
@@ -169,20 +173,27 @@ for(const [n,fp,code] of [
 
 | 分区 | 已归入 | 仍在根目录平铺（定案留根，原因见 §4.1） |
 |---|---|---|
-| `domain/ceshu/` | 5 个（纯 renderer 向）：`ceshuCompetitiveChart` `ceshuReports` `ceshuTimeline` `dataRef` `gameDataPreview` | ceshu 25 个（逻辑 18 + 数据 7，main 依赖倒逼留根，见 §4.1）+ `ceshuSchema/`（26 文件目录：24 章 schema + types + index，档 4 合并产物） |
+| `domain/ceshu/` | 5 个（纯 renderer 向）：`ceshuCompetitiveChart` `ceshuReports` `ceshuTimeline` `dataRef` `gameDataPreview` | —（2026-10-30：`ceshu/` 已拆 9 子包、`ceshuSchema/` 已拆 5 子包，不再平铺） |
 | `domain/attr/` | 6 个：`attrEngine`（求值引擎）`attrList` `attrPanel` `attrPreview` `attributeChart` `equipPreview` | `attrSystem`（模型 + 拓扑排序，main 依赖留根） |
 | `domain/type/` | —（暂无） | `typeSchema` `typeSchemaData` `typeSchemaFile` `typeTemplates`（元模型契约，定案留根） |
-| `agent/` | 15 个（含 2g 迁入的 `agentEditor`；有意保持平铺，见 §5） | — |
-| `config/` | 14 个：`settingsStore` `settingsPreferences` `visibleTypes` `gameStyle`(+Data) `imageGen`(+Config) `llmConfig`(+Data) `onboarding` `keywordTemplates` `secretMigration` `secretNames` `theme` | — |
+| `agent/` | 8 子包（`brain`/`config`/`conversation`/`mcp`/`observability`/`runtime`/`tools`/`ui` + `compaction`/`guard`） | — |
+| `config/` | 4 子包：`llm` `game` `settings` `secrets` | — |
 | `service/` | `api`（`MbApi` 契约门面） | — |
-| `util/` | 32 个（`guards` `datetime` `errors` `safeJson` `readText` `undoStack` `refTable` `fieldId` `pinyinFieldId` `formulaBuilder` `itemDiff` `dropTable` `quickCreate` `dataCountConstraint` `parseLlmJson` `lucideIcons` `rateLimiter` + 2e 迁入 15 个） | — |
+| `util/` | 9 子包：`id` `object` `search` `field` `data` `datetime` `io` `ui` `system` | — |
 
 **新增文件请直接放进对应分区目录**（规则 1–4 只对已归区文件生效，新文件放根目录不受约束）。
 存量迁移优先级：先迁「被其它域 import 的」——它们才是分层收益的来源。
 
 ### 4.1 contract 根存量说明（为什么 ceshu/attr 的大头留根）
 
-根目录现存 39 个平铺文件中，**27 个是 rule 4 倒逼的既成事实**而非疏漏：
+> **2026-10-30 更新**：本节描述的「根目录 39 个平铺文件」已不复存在——
+> ceshu / ceshuSchema / schema / config / agent / util 六处已全部拆成子包，
+> **contract 根现在只剩 4 个文件**：`abort.ts` `attrSystem.ts` `ipc.ts` `types.ts`。
+> 其中 `attrSystem.ts` 是 2026-10-30 从 `ceshu/reference/` 归位到 contract 根的
+> （它本就是 attr 域的契约，放在 ceshu 下会造成 attr → ceshu 跨域违规）。
+> 以下为历史说明，保留作「当初为什么留根」的决策依据。
+
+根目录曾存 39 个平铺文件中，**27 个是 rule 4 倒逼的既成事实**而非疏漏：
 
 - **ceshu 25 个**（逻辑 18 + 数据 7；原模板数据聚合器 1 已随档 4 合并删除）：`main/ceshu/`（manager /
   notesStore / templateStore）与 `main/ipc/ceshuIpc.ts` 直接消费这些纯函数
