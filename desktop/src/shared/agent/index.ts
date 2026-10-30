@@ -1,4 +1,5 @@
 export * from './brain'
+export * from './compaction'
 export * from './config'
 export * from './conversation'
 export * from './mcp'

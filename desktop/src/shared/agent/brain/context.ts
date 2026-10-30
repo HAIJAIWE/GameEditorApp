@@ -10,7 +10,8 @@
 
 import type { BrainMessage } from '../runtime/brainMessages'
 import type { AgentRunTier } from '../observability/observability'
-import { estimateTokens } from '../runtime/budget'
+import { compactHistory } from '../compaction'
+import { pruneText } from '../compaction'
 import type { AgentEvalVerdict } from './types'
 
 /** 安全调用评估器：任何异常都降级为 null（不阻断循环） */
@@ -27,39 +28,34 @@ export function safeRunEvaluator(
 
 /**
  * 工具结果尺寸闸（F6）：本地档上下文窄（4B/4K~16K），超长工具输出（如 200 条数据列表）
- * 直接撑爆上下文 ⇒ 截断并附提示。云端档预算宽，阈值更高。
+ * 直接撑爆上下文 ⇒ 剪枝并附提示。云端档预算宽，阈值更高。
+ *
+ * **改为「保留首尾」**（对齐 dsh `compaction-tool-result-pruner`）：
+ * 以前是 `slice(0, maxChars)` 直接砍掉尾部，而错误与结论常常就在结尾；
+ * 现在保留 head + 中段标记 + tail，并按 **Unicode 码点**切分（不劈开代理对）。
  */
 export function clipToolResult(text: string, maxChars: number): string {
-  if (text.length <= maxChars) return text
-  return `${text.slice(0, maxChars)}\n…（工具结果已截断至 ${maxChars} 字，可进一步查询细化）`
+  return pruneText(text, {
+    thresholdChars: maxChars,
+    headChars: Math.floor(maxChars * 0.5),
+    tailChars: Math.floor(maxChars * 0.3),
+  })
 }
 
 /**
- * 上下文重置（F5 / DD-8 落地）：当历史估算 token 超阈值，把除 system 与最近 2 条外的消息
+ * 上下文重置（F5 / DD-8 落地）：当历史估算 token 超阈值，把除 system 与尾部若干条外的消息
  * 压成一段「交接摘要」开新 messages 续跑，避免本地 4B 的 context rot / 目标漂移。
- * 用模板摘要（不额外调 LLM），显式重述「前 N 条已压缩」以约束 goal drift。
+ *
+ * 实现已下沉到 `../compaction`（`compactHistory`），本函数只保留调用点。
+ * 相对改造前的两处升级：
+ *  1. 阈值由**模型上下文窗口**推导（小模型提前压；常规档位数值不变）；
+ *  2. 保留条数**尊重工具配对**，不会把 assistant 的 `tool_calls` 与其 `tool` 应答切散。
+ * 仍用模板摘要（不额外调 LLM），显式重述「前 N 条已压缩」以约束 goal drift。
  */
-export function maybeResetContext(messages: BrainMessage[], tier: AgentRunTier): BrainMessage[] {
-  const threshold = tier === 'local' ? 6000 : 30000
-  const estimated = messages.reduce((sum, message) => {
-    const content = typeof message.content === 'string' ? message.content : ''
-    return sum + estimateTokens(content)
-  }, 0)
-  if (estimated <= threshold) return messages
-  const systemMessages = messages.filter((message) => message.role === 'system')
-  const rest = messages.filter((message) => message.role !== 'system')
-  if (rest.length <= 2) return messages
-  const recent = rest.slice(-2)
-  const compact = rest
-    .slice(0, -2)
-    .map((message) => {
-      const content = typeof message.content === 'string' ? message.content : ''
-      return `[${message.role}] ${content.slice(0, 200)}`
-    })
-    .join('\n')
-  const summary: BrainMessage = {
-    role: 'system',
-    content: `## 上下文交接摘要（前 ${rest.length - 2} 条已压缩，防目标漂移）\n${compact}`
-  }
-  return [...systemMessages, summary, ...recent]
+export function maybeResetContext(
+  messages: BrainMessage[],
+  tier: AgentRunTier,
+  model?: string,
+): BrainMessage[] {
+  return compactHistory(messages, { tier, model }).messages
 }

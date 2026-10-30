@@ -426,6 +426,9 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
     return { text, success }
   }
 
+  // 上一轮实际使用的模型：用于按「模型真实上下文窗口」推导压缩阈值（首轮为空 → 由档位兜底）
+  let lastTurnModel = ''
+
   for (let iteration = 0; iteration < maxTurns; iteration++) {
     // 用户取消：契约上与计数闸同款 —— 优雅中止并返回部分产出（不是 reject / 不是 error）
     if (externalSignal?.aborted === true || controller.signal.aborted) {
@@ -442,7 +445,7 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
       messages.push({ role: 'user', content })
     }
     // F5 上下文重置（DD-8）：历史过长时压缩续跑，防本地 4B context rot / 目标漂移
-    messages = maybeResetContext(messages, tier)
+    messages = maybeResetContext(messages, tier, lastTurnModel)
     emit({ type: 'step_start', order: iteration, tool: 'llm_think' })
 
     let reply: BrainLlmReply
@@ -495,6 +498,7 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
     const turnUsage = reply.usage
     const turnToolCalls = reply.toolCalls.length
     const turnModel = reply.model ?? ''
+    lastTurnModel = turnModel
     runStats = accumulateTurn(
       runStats,
       turnStatFromReply(iteration, turnModel, tier, turnUsage, turnLatencyMs, turnToolCalls)
