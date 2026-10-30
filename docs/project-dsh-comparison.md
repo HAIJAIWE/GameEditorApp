@@ -18,7 +18,8 @@
 但在「**做 Intelligent 产品的必要零件**」上，重合度高得意外：循环、工具、子智能体（含 ACP）、技能、审批、沙箱、会话检索、偏差/交付卡、附件、MCP、多 LLM 后端——这些我们**都自己实现过一遍了**，而且大多走通端到端。
 
 真正的差距有两类，且性质不同：
-1. **工程深度**（dsh 做得更系统）：上下文压缩（我们是单策略截断，dsh 是多策略包族）、后台任务/jobs、定时、PTC 程序化调工具、 transmissions 的跨平台 shell/ssh/终端。
+1. **工程深度**（dsh 做得更系统）：后台任务/jobs、定时、PTC 程序化调工具、跨平台 shell/ssh/终端、以及 compaction 的 checkpoint 与影子计价协议。
+   > **2026-10-31**：上下文压缩这一项已补齐（三条 model-free 策略落地，见 §2.2），不再是最大差距；剩余的是 checkpoint/影子计价与 `/compact` 命令。
 2. **产品无关性**（不该抄）：ssh、lsp、terminal、浏览器代持、机械全empowerment——我们是**游戏策划编辑器**，这些与产品无关。
 
 而**我们有、dsh 完全没有的**，恰恰是产品本体：策划书 24 章 351 字段体系、属性/装备/公式系统、数据表编辑与版本 diff、引擎导出、图像生成——这部分占我们代码的大头，也是 dsh 无法提供答案的地方。
@@ -59,15 +60,21 @@
 | `subagent/*` 9 个包 (123) | `main/agent/subagent/{subagentAcp, subagentCli, subagentRemote}` + `subAgentSkill` | ⚠️ 3 后端 vs dsh 6+；`depth≤1`、`MAX_ACTIVE 8` |
 | `skill/*` 5 个包 | `main/agent/skills/` 7 个（ceshu/code/gameData/rollback/askUser/sessionSearch/subAgent） | ✅ 产品化的 |
 
-### 2.2 上下文与压缩（差距最大的一处）
+### 2.2 上下文与压缩（2026-10-31 已补齐三条策略）
+
+> **2026-10-31 更新**：读完 dsh `compaction` 源码后，已落地 `shared/agent/compaction/` 子包
+> （`prune` / `pressure` / `pairing` / `compact`），下表按**现状**重写。仍是 **model-free**（不调 LLM）。
 
 | dsh | 本项目 | 状态 |
 |---|---|---|
 | `context/*` 8 个包（file/session/time/tmux-reference、agent-instructions） | `context.ts` 简化的 context blocks | ✅ 简化版 |
-| `compaction/compaction` + `compaction-basic` | 单策略：旧轮次压成「上下文交接摘要」（防目标漂移，见 `context.ts:53-62`） | ⚠️ |
-| `compaction-image-offload` | 历史图片按最近 4 张重发（`hydratePriorImages`），非卸载策略 | ❌ |
-| `compaction-tool-result-pruner` | — | ❌ |
+| `compaction-basic`（按模型窗口推导阈值） | `pressure.ts`：`threshold = min(档位阈值, floor(模型窗口 × 0.8))`，窗口取 `MODEL_CONTEXT_WINDOWS`。常规档位数值**等于改造前**（local 6000 / cloud 30000）零回归，仅小窗口模型提前压（gpt-4 8192 → 6553） | ✅ |
+| `compaction-tool-result-pruner` | `prune.ts`：保留 **head + 中段标记 + tail**，按 **Unicode 码点**切分（不劈代理对）。修正了旧实现「只截头部、丢掉尾部」——错误与结论常在结尾 | ✅ |
+| `compaction/tool-pairing` | `pairing.ts`：assistant 的 `tool_calls` 开 N、tool 关 1，计数为 0 才是安全切点；尾部保留「至少 2 条，为闭合配对可多留」，**宁可不压也不制造悬空 tool_call** | ✅ |
+| `compaction`（checkpoint / shadow-price / tool-pairing 完整协议） | 我们无 checkpoint 与影子计价（会话是 jsonl 追加，非可重放 surface） | ⚠️ 有意识简化 |
+| `compaction-image-offload` | 历史图片按最近 4 张重发（`hydratePriorImages`），非卸载策略；图片本就不落盘 | ❌ |
 | `command-compact`（`/compact` 命令） | — | ❌ |
+| LLM 摘要（`summarizationModel`） | 仍用模板摘要（零额外成本、零失败面） | ➖ 暂无需求 |
 
 ### 2.3 工具族（大部分 ➖，与产品无关）
 
