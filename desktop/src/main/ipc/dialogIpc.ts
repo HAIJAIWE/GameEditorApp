@@ -87,6 +87,16 @@ export function registerDialogIpc(deps: IpcHandlerDeps, handle: IpcRegistrar): v
       return { path, dataUrl: '', bytes: 0 }
     }
   })
+  // 选一个会话附件文件（不复制；复制由 `attachments:add` 负责，保持职责单一）
+  handle('dialog:chooseAttachmentFile', undefined, async () => {
+    const focused = BrowserWindow.getFocusedWindow()
+    const options: OpenDialogOptions = {
+      title: '选择附件',
+      properties: ['openFile']
+    }
+    const result = focused ? await dialog.showOpenDialog(focused, options) : await dialog.showOpenDialog(options)
+    return { path: result.canceled || result.filePaths.length === 0 ? null : (result.filePaths[0] ?? null) }
+  })
   handle('dialog:chooseImageSaveDir', undefined, async () => {
     const focused = BrowserWindow.getFocusedWindow()
     const options: OpenDialogOptions = {

@@ -14,6 +14,7 @@ import type {
   SubAgentProvider
 } from '../../../shared/agent/brain'
 import type { SkillExecutionContext } from '../../../shared/agent/protocol'
+import type { DigitalAttachment } from '../../../shared/util/libraryAttachments'
 import type { StoredLlmConfig } from '../../../shared/config/llmConfig'
 import type { AgentMemoryStore } from '../memoryStore'
 import type { PreferenceStore } from '../preferenceStore'
@@ -47,6 +48,12 @@ export interface AgentChatOptions {
    * 空串/未传视为未填。每次 `chat` 都重新注入，故目标可跨轮持续生效。
    */
   goal?: string
+  /**
+   * 随消息附带的文件（对齐 dsh ui-attachment 的诚实子集）。
+   * 非空时注入为系统提示词的一段「【附件】…」，让智能体知道有这些文件、
+   * 并能用文件工具按绝对路径读取。文件已由 `attachments:add` 复制进库。
+   */
+  attachments?: DigitalAttachment[]
   /** 事件流实时回调（面板流式渲染） */
   onEvent?: (event: BrainEvent) => void
   /** 本次调用的危险操作审批（优先于构造时的缺省审批） */

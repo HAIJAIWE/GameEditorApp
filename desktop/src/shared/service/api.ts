@@ -181,6 +181,11 @@ export interface MbApi {
     /** 测试当前配置下的服务连通性（设置面板「测试连接」按钮） */
     testConnection(): Promise<IpcContract['llm:testConnection']['res']>
   },
+  /** 会话附件：复制进 `<库>/attachments/` + 用系统程序打开（诚实子集，无上传进度/lightbox） */
+  attachments: {
+    add(req: IpcContract['attachments:add']['req']): Promise<IpcContract['attachments:add']['res']>
+    open(req: IpcContract['attachments:open']['req']): Promise<IpcContract['attachments:open']['res']>
+  }
   /** 图片库扫描 / 清理（`deleteImages` 是破坏性操作，`confirm` 必填true） */
   images: {
     listLibraryImages(): Promise<IpcContract['images:listLibraryImages']['res']>
@@ -205,6 +210,8 @@ export interface MbApi {
     chooseImageSaveDir(): Promise<IpcContract['dialog:chooseImageSaveDir']['res']>
     /** 选一张本地图片（数据编辑器「图片」字段）；主进程代读文件并回传 data URL */
     chooseImageFile(): Promise<IpcContract['dialog:chooseImageFile']['res']>
+    /** 选一个会话附件文件（复制进库由 `attachments:add` 负责） */
+    chooseAttachmentFile(): Promise<IpcContract['dialog:chooseAttachmentFile']['res']>
     chooseTemplateJsonFile(
       req: IpcContract['dialog:chooseTemplateJsonFile']['req']
     ): Promise<IpcContract['dialog:chooseTemplateJsonFile']['res']>

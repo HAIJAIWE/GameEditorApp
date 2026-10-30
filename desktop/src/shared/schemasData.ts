@@ -626,8 +626,36 @@ export const agentChatInputSchema = z.object({
    * 可选、纯展示性约束——不阻断对话，也不强制模型遵守；仅作为意图锚点。
    * 空串视为未填。
    */
-  goal: z.string().max(500).optional()
+  goal: z.string().max(500).optional(),
+  /**
+   * 随消息附带的文件元数据（对齐 dsh ui-attachment 的诚实子集）：
+   * 渲染层在用户选文件时先经 `attachments:add` 复制进 `<库>/attachments/`，
+   * 发送时把这些元数据带上，主进程注入系统提示词让智能体知道有这些文件。
+   */
+  attachments: z
+    .array(
+      z.object({
+        name: z.string().min(1).max(260),
+        path: z.string().min(1),
+        mime: z.string().min(1).max(120),
+        bytes: z.number().int().nonnegative()
+      })
+    )
+    .max(20)
+    .optional()
 })
+
+/** 会话附件：把用户选中的文件复制进 `<活跃库>/attachments/` 并返回元数据 */
+export const attachmentsAddInputSchema = z.object({
+  path: z.string().min(1)
+})
+export type AttachmentsAddInput = z.infer<typeof attachmentsAddInputSchema>
+
+/** 会话附件：用系统默认程序打开库内附件 */
+export const attachmentsOpenInputSchema = z.object({
+  path: z.string().min(1)
+})
+export type AttachmentsOpenInput = z.infer<typeof attachmentsOpenInputSchema>
 
 /** Agent Brain：对运行中的子智能体「插话」（push 一条消息进它的收件箱） */
 export const agentSubagentSendInputSchema = z.object({

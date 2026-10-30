@@ -143,6 +143,10 @@ const api: MbApi = {
    * `deleteImages` 传 `confirm: true` 才会真删 —— 契约里是 `z.literal(true)`，
    * 渲染层漏传会直接被主进程 schema 拒掉。
    */
+  attachments: {
+    add: (req) => invoke('attachments:add', req),
+    open: (req) => invoke('attachments:open', req)
+  },
   images: {
     listLibraryImages: () => invoke('images:listLibraryImages', undefined),
     // 按已保存路径回显预览
@@ -161,6 +165,7 @@ const api: MbApi = {
     chooseExcelFile: () => invoke('dialog:chooseExcelFile', undefined),
     chooseImageSaveDir: () => invoke('dialog:chooseImageSaveDir', undefined),
     chooseImageFile: () => invoke('dialog:chooseImageFile', undefined),
+    chooseAttachmentFile: () => invoke('dialog:chooseAttachmentFile', undefined),
     chooseCeshuExportFile: (req) => invoke('dialog:chooseCeshuExportFile', req),
     chooseReportFile: (req) => invoke('dialog:chooseReportFile', req),
     chooseAttrSystemJsonFile: (req) => invoke('dialog:chooseAttrSystemJsonFile', req),

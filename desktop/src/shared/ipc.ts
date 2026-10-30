@@ -110,6 +110,8 @@ import type { AgentRunStats } from './agent/observability'
 import type { DraftSummary, SessionInfo, SessionTurnSummary } from './agent/session'
 import type { OperationRecord } from './agent/operationLog'
 import type { JsonObjectSchema, SkillResult } from './agent/protocol'
+import type { AttachmentsAddInput, AttachmentsOpenInput } from './schemas'
+import type { DigitalAttachment } from './util/libraryAttachments'
 import type { CeshuChangelog, CeshuVersionDiff } from './ceshuDiff'
 import type { CeshuTaskPlan } from './ceshuTasks'
 import type { ContractReport } from './ceshuContract'
@@ -289,6 +291,17 @@ export interface IpcContract {
     }
   }
   'agent:executeTool': { req: AgentExecuteToolInput; res: SkillResult }
+  /**
+   * 会话附件（对齐 dsh ui-attachment 的诚实子集）：
+   * 选文件 → 复制进 `<活跃库>/attachments/` → 消息只存元数据。
+   * `add` 失败返回 `ok:false`（不抛），`open` 用系统默认程序打开。
+   */
+  'dialog:chooseAttachmentFile': { req: undefined; res: { path: string | null } }
+  'attachments:add': {
+    req: AttachmentsAddInput
+    res: { ok: true; attachment: DigitalAttachment } | { ok: false; error: string }
+  }
+  'attachments:open': { req: AttachmentsOpenInput; res: { ok: boolean; error?: string } }
   'agent:chat': {
     req: AgentChatInput
     res: { text: string; events: BrainEvent[]; completed: boolean; stats: AgentRunStats }

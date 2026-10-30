@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react'
 
 import ChatMarkdown from './ChatMarkdown'
+import { formatAttachmentSize, type DigitalAttachment } from '../../../../shared/util/libraryAttachments'
 
 export interface DigitalMessageItemProps {
   role: 'user' | 'assistant'
@@ -14,6 +15,9 @@ export interface DigitalMessageItemProps {
    * rating：5 = 有帮助，1 = 没帮助（与 `agent:feedback` 的 1–5 契约对齐）。
    */
   onFeedback?: (input: { rating: number; comment: string }) => Promise<void> | void
+  /** 用户消息附带的文件（对齐 dsh ui-attachment 的诚实子集）；点开用系统程序打开 */
+  attachments?: DigitalAttachment[]
+  onOpenAttachment?: (path: string) => void
 }
 
 /**
@@ -109,6 +113,16 @@ function XIcon(): ReactElement {
   )
 }
 
+/** 附件 chip 左侧的文件图标（16px 视口，与消息其它图标同规格） */
+function FileIcon(): ReactElement {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+      <path d="M14 2v6h6" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 /** 有帮助 / 没帮助对应的 rating（与 `agent:feedback` 的 1–5 契约对齐） */
 const RATING_UP = 5
 const RATING_DOWN = 1
@@ -130,7 +144,9 @@ export function DigitalMessageItem({
   role,
   text,
   streaming = false,
-  onFeedback
+  onFeedback,
+  attachments,
+  onOpenAttachment
 }: DigitalMessageItemProps): ReactElement {
   const [copied, setCopied] = useState(false)
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -198,7 +214,27 @@ export function DigitalMessageItem({
       data-role={role}
     >
       {role === 'user' ? (
-        <div className="digital-message-bubble">{text}</div>
+        <>
+          <div className="digital-message-bubble">{text}</div>
+          {attachments !== undefined && attachments.length > 0 && (
+            <div className="digital-message-attachments" data-testid="digital-message-attachments">
+              {attachments.map((file) => (
+                <button
+                  type="button"
+                  className="digital-attachment-chip"
+                  key={file.path}
+                  data-testid="digital-message-attachment"
+                  title={file.path}
+                  onClick={() => onOpenAttachment?.(file.path)}
+                >
+                  <FileIcon />
+                  <span className="digital-attachment-name">{file.name}</span>
+                  <span className="digital-attachment-size">{formatAttachmentSize(file.bytes)}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </>
       ) : (
         <div className="digital-message-body">
           {streaming ? text : <ChatMarkdown text={text} />}

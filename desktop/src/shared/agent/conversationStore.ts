@@ -15,6 +15,7 @@
 
 import type { SlotStoreDecl } from '../plugin/types'
 import type { BrainEvent } from './brain'
+import type { DigitalAttachment } from '../util/libraryAttachments'
 import {
   hydrateFromSession,
   initialDigitalPanelState,
@@ -28,7 +29,7 @@ import {
 /** 对话状态的写入口（原 `DigitalPanel` 内的本地 Action，搬到这里以便跨插件复用） */
 export type ConversationAction =
   | { kind: 'event'; event: BrainEvent }
-  | { kind: 'submit'; text: string }
+  | { kind: 'submit'; text: string; attachments?: DigitalAttachment[] }
   | { kind: 'approval'; approved: boolean }
   | { kind: 'interaction' }
   | { kind: 'hydrate'; history: Array<{ role?: unknown; content?: unknown }> }
@@ -44,7 +45,7 @@ export function reduceConversation(state: DigitalPanelState, action: Conversatio
     case 'event':
       return reduceBrainEvent(state, action.event)
     case 'submit':
-      return submitUserMessage(state, action.text)
+      return submitUserMessage(state, action.text, action.attachments)
     case 'approval':
       return resolveApproval(state, action.approved)
     case 'interaction':

@@ -9,6 +9,7 @@ import { SECRET_NAMES } from '../shared/config/secretNames'
 import { registerAppIpc } from './ipc/appIpc'
 import { registerSettingsIpc } from './ipc/settingsIpc'
 import { registerImagesIpc } from './ipc/imagesIpc'
+import { registerAttachmentsIpc } from './ipc/attachmentsIpc'
 import { registerLlmIpc } from './ipc/llmIpc'
 import { registerAgentIpc } from './ipc/agentIpc'
 import { registerTaskIpc } from './ipc/taskIpc'
@@ -100,6 +101,7 @@ export function registerIpcHandlers(deps: IpcHandlerDeps): void {
   registerAppIpc(deps, handle)
   registerSettingsIpc(deps, handle)
   registerImagesIpc(deps, handle)
+  registerAttachmentsIpc(deps, handle)
   registerLlmIpc(deps, handle, llm)
   registerAgentIpc(deps, handle, llm)
   registerTaskIpc(deps, handle)

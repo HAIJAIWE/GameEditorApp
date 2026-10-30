@@ -20,6 +20,7 @@ import { deriveMessagesFromTurns } from '../../../shared/agent/session'
 import { buildSystemPrompts } from '../../../shared/agent/prompts'
 import { presetLabel, presetPersona } from '../../../shared/agent/presets'
 import { buildPersonalizedContext } from '../../../shared/agent/personalization'
+import { formatAttachmentSize } from '../../../shared/util/libraryAttachments'
 import {
   RISK_LEVEL,
   resolveRiskLevel,
@@ -137,6 +138,14 @@ export class AgentBrainService {
     // 不强制模型遵守，也不阻断对话；空串/未传视为未填。每次 chat 都重注入 ⇒ 跨轮持续生效。
     if (options.goal !== undefined && options.goal.trim() !== '') {
       extraBlocks.push(`【本轮目标】${options.goal.trim()}`)
+    }
+    // 附件（对齐 dsh ui-attachment 的诚实子集）：告知智能体有哪些文件、路径与大小，
+    // 让它能用文件工具按绝对路径读取。文件已由 `attachments:add` 复制进库，路径稳定。
+    if (options.attachments !== undefined && options.attachments.length > 0) {
+      const lines = options.attachments.map(
+        (file) => `- ${file.name}（${file.path}，${formatAttachmentSize(file.bytes)}）`
+      )
+      extraBlocks.push(`【附件】用户随消息附带了以下文件，可用文件工具按路径读取：\n${lines.join('\n')}`)
     }
     const systemPrompts = buildSystemPrompts({
       // M2/G7 + M3/DD-3：注入**按场景分组、按档位限量**的紧凑能力目录（每工具一行）

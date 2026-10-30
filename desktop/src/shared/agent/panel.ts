@@ -13,6 +13,7 @@
 import type { BrainEvent } from './brain'
 import { accumulateTurn, emptyAgentRunStats, type AgentRunStats } from './observability'
 import type { SkillInteraction } from './protocol'
+import type { DigitalAttachment } from '../util/libraryAttachments'
 
 export type DigitalStatus = 'idle' | 'thinking' | 'waiting_approval' | 'waiting_input' | 'done' | 'error'
 
@@ -36,6 +37,8 @@ export interface DigitalMessage {
   id: string
   role: 'user' | 'assistant'
   text: string
+  /** 用户消息附带的文件（对齐 dsh ui-attachment 的诚实子集）；助手消息不带 */
+  attachments?: DigitalAttachment[]
 }
 
 export interface DigitalApproval {
@@ -107,12 +110,24 @@ export const initialDigitalPanelState: DigitalPanelState = {
 export const TASK_SUMMARY_LIMIT = 120
 
 /** 追加用户消息并进入思考态（点击发送时调用） */
-export function submitUserMessage(state: DigitalPanelState, text: string): DigitalPanelState {
+export function submitUserMessage(
+  state: DigitalPanelState,
+  text: string,
+  attachments?: DigitalAttachment[]
+): DigitalPanelState {
   const seq = state.seq + 1
   return {
     ...state,
     seq,
-    messages: [...state.messages, { id: `m${seq}`, role: 'user', text }],
+    messages: [
+      ...state.messages,
+      {
+        id: `m${seq}`,
+        role: 'user',
+        text,
+        ...(attachments !== undefined && attachments.length > 0 ? { attachments } : {})
+      }
+    ],
     steps: [],
     subagents: [],
     streaming: '',

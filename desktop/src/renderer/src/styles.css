@@ -5370,6 +5370,67 @@ button.ref-row:hover {
   word-break: break-word;
 }
 
+/* ── 会话附件 chip（对齐 dsh ui-attachment 的诚实子集）──
+   同一套 chip 用在两处：composer 待发送区、用户消息气泡下方。 */
+.digital-message-attachments,
+.dsh-attachment-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+}
+.digital-attachment-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  padding: 3px 8px;
+  border: 0.5px solid var(--border);
+  border-radius: 7px;
+  background: var(--bg-panel);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: calc(12px * var(--ui-font-scale));
+  cursor: pointer;
+}
+.digital-attachment-chip:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+.digital-attachment-chip svg {
+  flex: none;
+  color: var(--text-muted);
+}
+.digital-attachment-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.digital-attachment-size {
+  flex: none;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.dsh-attachment-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-left: 1px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.dsh-attachment-remove:hover {
+  background: color-mix(in srgb, var(--text-muted) 16%, transparent);
+  color: var(--text);
+}
+
 .digital-message-body {
   /* 助手正文占满列宽；流式时光标跟在原文尾部 */
   min-width: 0;

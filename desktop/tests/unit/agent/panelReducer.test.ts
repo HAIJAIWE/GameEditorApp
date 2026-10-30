@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { initialDigitalPanelState, reduceBrainEvent } from '../../../src/shared/agent/panel'
+import { initialDigitalPanelState, reduceBrainEvent, submitUserMessage } from '../../../src/shared/agent/panel'
 import type { DigitalPanelState } from '../../../src/shared/agent/panel'
 
 /**
@@ -46,5 +46,17 @@ describe('reduceBrainEvent：本轮收尾落定步骤', () => {
   it('没有 running 步骤时返回同一数组（不做无意义的重建）', () => {
     const state = reduceBrainEvent(initialDigitalPanelState, { type: 'done', text: 'x' } as never)
     expect(state.steps).toBe(initialDigitalPanelState.steps)
+  })
+})
+
+describe('submitUserMessage：附件随用户消息携带', () => {
+  it('有附件时写进用户消息；空数组不写字段', () => {
+    const file = { name: 'design.md', path: '/lib/attachments/design.md', mime: 'text/markdown', bytes: 1234 }
+    const withFile = submitUserMessage(initialDigitalPanelState, '看看这个', [file])
+    expect(withFile.messages.at(-1)).toMatchObject({ role: 'user', text: '看看这个', attachments: [file] })
+
+    // 空数组等同没有附件：不写 attachments 字段（保持消息形状干净）
+    const empty = submitUserMessage(initialDigitalPanelState, '没有附件', [])
+    expect(empty.messages.at(-1)).not.toHaveProperty('attachments')
   })
 })

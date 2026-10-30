@@ -166,6 +166,20 @@ describe('AgentBrainService：M3 档位路由装配', () => {
     const text2 = systemText(requests[1] as BrainLlmRequest)
     expect(text2).not.toContain('【本轮目标】')
   })
+
+  it('会话附件注入系统提示词「【附件】…」（文件名/路径/大小）', async () => {
+    const { transport, requests } = capturingTransport()
+    const service = new AgentBrainService({ dispatcher: makeDispatcher(), transport })
+
+    await service.chat('看看这份设计', {
+      attachments: [{ name: 'design.md', path: '/lib/attachments/design.md', mime: 'text/markdown', bytes: 2048 }]
+    })
+    const text = systemText(requests[0] as BrainLlmRequest)
+    expect(text).toContain('【附件】')
+    expect(text).toContain('design.md')
+    expect(text).toContain('/lib/attachments/design.md')
+    expect(text).toContain('2.0 KB')
+  })
 })
 
 /* ---- 子智能体注册表（Slice 40 继续对话：send / stop） ---- */

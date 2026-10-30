@@ -50,6 +50,7 @@ import { toErrorMessage } from '../../../../shared/util/errors'
 import { AGENT_PRESETS, DEFAULT_PRESET_ID, presetLabel } from '../../../../shared/agent/presets'
 import { loadLlmConfig, saveLlmConfig, LLM_PROVIDER_PRESETS } from '../../../../shared/config/llmConfig'
 import { modelContextWindow, type LlmProvider } from '../../../../shared/config/llmConfigData'
+import { formatAttachmentSize, type DigitalAttachment } from '../../../../shared/util/libraryAttachments'
 
 /**
  * 智能体面板（A1-4）：对话气泡 + 流式文本 + 可折叠步骤 + 任务列表 + 危险操作审批模态。
@@ -65,7 +66,13 @@ interface ChatApi {
    * 读取 `input`/`runId`，`preset` 为 **[PLACEHOLDER]** —— 后端消费预设做角色路由的接线待补，
    * 渲染层先把选择带上，避免后续再改契约形状。
    */
-  chat: (req: { input: string; runId?: string; preset?: string; goal?: string }) => Promise<{ text: string }>
+  chat: (req: {
+    input: string
+    runId?: string
+    preset?: string
+    goal?: string
+    attachments?: DigitalAttachment[]
+  }) => Promise<{ text: string }>
   respondApproval: (req: { requestId: string; approved: boolean }) => Promise<{ ok: boolean }>
   respondInteraction: (req: {
     requestId: string
@@ -160,6 +167,11 @@ export default function DigitalPanel({
    * 它不被脑事件驱动，只是会话级意图锚点。
    */
   const [goal, setGoal] = useState('')
+  /**
+   * 待发送附件（对齐 dsh ui-attachment 的诚实子集）：用户经「＋ → 上传文件」选的文件，
+   * 已由主进程复制进 `<库>/attachments/`，这里只存元数据；发送后清空。
+   */
+  const [attachments, setAttachments] = useState<DigitalAttachment[]>([])
   /** 斜杠命令 / @ 引用菜单的当前高亮项（两者互斥，共用同一索引；输入变化时重置为 0） */
   const [commandIndex, setCommandIndex] = useState(0)
   /** `@` 引用候选：当前游戏库的数据表类型（首次输入 `@` 时懒加载） */
@@ -349,6 +361,32 @@ export default function DigitalPanel({
     }
   }, [])
 
+  /** 选文件并复制进库：选 → 主进程复制 → 元数据入待发送列表（失败给中文提示） */
+  const handleAddAttachment = useCallback((): void => {
+    setLocalError(null)
+    void (async () => {
+      try {
+        const picked = await window.mbApi.dialog.chooseAttachmentFile()
+        if (picked.path === null) return
+        const result = await window.mbApi.attachments.add({ path: picked.path })
+        if (!result.ok) {
+          setLocalError(result.error)
+          return
+        }
+        // 同一文件重复选不重复加（按入库后的绝对路径去重）
+        setAttachments((prev) =>
+          prev.some((file) => file.path === result.attachment.path) ? prev : [...prev, result.attachment]
+        )
+      } catch (error: unknown) {
+        setLocalError(toErrorMessage(error))
+      }
+    })()
+  }, [])
+
+  const removeAttachment = useCallback((path: string): void => {
+    setAttachments((prev) => prev.filter((file) => file.path !== path))
+  }, [])
+
   /** 提交一段文本（输入框发送与外部播种共用；空文本或正在运行则忽略） */
   const submitText = useCallback(
     (raw: string): void => {
@@ -362,12 +400,21 @@ export default function DigitalPanel({
       // 本轮改动卡的锚点：先清掉上一轮的结果，避免运行中看到旧卡
       turnStartedAt.current = Date.now()
       setTurnChanges([])
-      dispatch({ kind: 'submit', text })
+      // 附件随本轮一起走：先记进用户消息（气泡上显示），再发给主进程注入上下文；发完清空
+      const sentAttachments = attachments.length > 0 ? attachments : undefined
+      dispatch({ kind: 'submit', text, ...(sentAttachments !== undefined ? { attachments: sentAttachments } : {}) })
+      setAttachments([])
       // 本轮 runId：取消时据此精确定位（主进程也按窗口兜底，双保险）
       const runId = `run_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
       activeRunId.current = runId
       void api
-        .chat({ input: text, runId, preset, goal })
+        .chat({
+          input: text,
+          runId,
+          preset,
+          goal,
+          ...(sentAttachments !== undefined ? { attachments: sentAttachments } : {})
+        })
         .catch((error: unknown) => {
           setLocalError(toErrorMessage(error))
         })
@@ -375,7 +422,7 @@ export default function DigitalPanel({
           if (activeRunId.current === runId) activeRunId.current = null
         })
     },
-    [running, api, preset, goal, dispatch, clearStopArm]
+    [running, api, preset, goal, attachments, dispatch, clearStopArm]
   )
 
   /** 用户点「停止」：让循环优雅中止并保留已产出的部分结果 */
@@ -895,6 +942,10 @@ export default function DigitalPanel({
               key={message.id}
               role={message.role}
               text={message.text}
+              {...(message.attachments !== undefined ? { attachments: message.attachments } : {})}
+              onOpenAttachment={(path: string) => {
+                void window.mbApi.attachments.open({ path })
+              }}
               // 仅助手消息挂反馈（对齐 dsh：Like/Dislike 只出现在定稿的助手消息上）；
               // 走真实后端 agent:feedback，rating≥4 且填了说明会提炼偏好
               {...(message.role === 'assistant'
@@ -1176,6 +1227,30 @@ export default function DigitalPanel({
               }}
             />
           </div>
+          {/* 待发送附件：已复制进库，发送后清空。空列表不占位。 */}
+          {attachments.length > 0 && (
+            <div className="dsh-attachment-chips" data-testid="digital-attachments">
+              {attachments.map((file) => (
+                <span className="dsh-attachment-chip" key={file.path} data-testid="digital-attachment-chip">
+                  <LucideIcon name="file-text" size={12} />
+                  <span className="dsh-attachment-name" title={file.path}>
+                    {file.name}
+                  </span>
+                  <span className="dsh-attachment-size">{formatAttachmentSize(file.bytes)}</span>
+                  <button
+                    type="button"
+                    className="dsh-attachment-remove"
+                    data-testid="digital-attachment-remove"
+                    aria-label="移除附件"
+                    title="移除附件"
+                    onClick={() => removeAttachment(file.path)}
+                  >
+                    <LucideIcon name="x" size={12} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
           <textarea
             ref={inputRef}
             className="dsh-composer-input"
@@ -1295,6 +1370,19 @@ export default function DigitalPanel({
                       <LucideIcon name="zap" size={14} />
                       斜杠命令
                       <span className="dsh-composer-menu-hint">/</span>
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="dsh-composer-menu-item"
+                      data-testid="composer-upload-file"
+                      onClick={() => {
+                        setPlusMenuOpen(false)
+                        handleAddAttachment()
+                      }}
+                    >
+                      <LucideIcon name="upload" size={14} />
+                      上传文件
                     </button>
                   </div>
                 )}
