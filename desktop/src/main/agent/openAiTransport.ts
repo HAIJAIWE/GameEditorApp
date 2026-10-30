@@ -39,9 +39,32 @@ import {
   type BrainLlmReply,
   type BrainLlmRequest,
   type BrainLlmTransport,
+  type BrainMessage,
   type BrainToolCall
 } from '../../shared/agent/brain'
+import { modelSupportsVision } from '../../shared/util/visionSupport'
 import { assertHttpOk, isAbortError, pumpLines } from './agentStream'
+
+/** OpenAI 多模态 content part（文本 + 图片） */
+type OpenAiContentPart =
+  | { type: 'text'; text: string }
+  | { type: 'image_url'; image_url: { url: string } }
+
+/**
+ * 把消息映射成 OpenAI 线格式：视觉模型把 `images` 转成 `content` 数组（text + image_url）；
+ * 非视觉模型丢弃图片（只保留文本）。`images` 字段本身绝不下发（不是 OpenAI 协议字段）。
+ */
+function toOpenAiMessages(messages: readonly BrainMessage[], vision: boolean): unknown[] {
+  return messages.map((message) => {
+    if (message.images === undefined || message.images.length === 0) return message
+    if (!vision) return { ...message, images: undefined }
+    const content: OpenAiContentPart[] = [
+      { type: 'text', text: message.content },
+      ...message.images.map((url) => ({ type: 'image_url' as const, image_url: { url } }))
+    ]
+    return { ...message, content, images: undefined }
+  })
+}
 
 export interface OpenAiChatTransportOptions {
   /** 接口地址（`https://api.deepseek.com/v1` 形态；**不含** `/chat/completions`） */
@@ -101,7 +124,7 @@ export class OpenAiChatTransport implements BrainLlmTransport {
     // `tools: []` 会被部分严格端点判为非法（宁可省略而非空数组）；本层只做透传。
     const body = JSON.stringify({
       model,
-      messages: request.messages,
+      messages: toOpenAiMessages(request.messages, modelSupportsVision(model)),
       ...(request.tools.length > 0 ? { tools: request.tools } : {}),
       stream: true,
       // 请求服务端在末段 chunk 回传 usage（多数 OpenAI 兼容支持；不支持则观测记零值）

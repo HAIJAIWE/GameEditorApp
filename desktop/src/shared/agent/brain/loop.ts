@@ -128,7 +128,13 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
     ...systemPrompts.map((content) => ({ role: 'system' as const, content })),
     // Slice 34：从事件日志恢复的历史（系统提示词之后、本次输入之前）
     ...(options.initialMessages ?? []),
-    { role: 'user', content: input }
+    {
+      role: 'user',
+      content: input,
+      ...(options.inputImages !== undefined && options.inputImages.length > 0
+        ? { images: options.inputImages }
+        : {})
+    }
   ]
   const results: string[] = []
   /** F10 per-tool 重试预算：按 `工具/动作` 累计连续失败次数，达阈值强制换方案 */

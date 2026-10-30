@@ -7,6 +7,8 @@
  * M3 档位路由：`chat()` 按 `options.config` 解析生效档位 ⇒ 选传输层、装配工具面、注入循环。
  */
 
+import { readFile } from 'node:fs/promises'
+
 import {
   runBrainLoop,
   type BrainEvent,
@@ -21,6 +23,7 @@ import { buildSystemPrompts } from '../../../shared/agent/prompts'
 import { presetLabel, presetPersona } from '../../../shared/agent/presets'
 import { buildPersonalizedContext } from '../../../shared/agent/personalization'
 import { formatAttachmentSize, type DigitalAttachment } from '../../../shared/util/libraryAttachments'
+import { modelSupportsVision } from '../../../shared/util/visionSupport'
 import {
   RISK_LEVEL,
   resolveRiskLevel,
@@ -43,6 +46,39 @@ const CLOUD_CHAT_BUDGET = 8000
 
 /** 历史附件清单上限（只列最近的这些，避免系统提示词随会话无限增长） */
 const HISTORY_ATTACHMENT_LIMIT = 20
+
+/** 单轮最多发多少张图片（有上限，不无界发） */
+const INPUT_IMAGE_LIMIT = 4
+/** 单轮图片总字节上限（按原始字节算；data URL 会再膨胀约 1/3） */
+const INPUT_IMAGE_TOTAL_BYTES = 20 * 1024 * 1024
+
+/**
+ * 把**本轮**图片附件读成 data URL（历史附件仍只给路径）。
+ * 只处理 `image/*`，按上限截断；读不到就跳过该图（不阻断对话）。
+ */
+async function buildInputImages(
+  attachments: readonly DigitalAttachment[] | undefined,
+  resolve: ResolveAttachmentPath
+): Promise<string[] | undefined> {
+  if (attachments === undefined) return undefined
+  const images = attachments.filter((file) => file.mime.startsWith('image/')).slice(0, INPUT_IMAGE_LIMIT)
+  if (images.length === 0) return undefined
+  const out: string[] = []
+  let total = 0
+  for (const file of images) {
+    const path = resolve(file.name)
+    if (path === undefined) continue
+    if (file.bytes > 0 && total + file.bytes > INPUT_IMAGE_TOTAL_BYTES) continue
+    try {
+      const buffer = await readFile(path)
+      total += buffer.byteLength
+      out.push(`data:${file.mime};base64,${buffer.toString('base64')}`)
+    } catch {
+      // 读不到就跳过该图（附件仍在，路径行还在提示词里）
+    }
+  }
+  return out.length > 0 ? out : undefined
+}
 
 /** 附件叶子名 → 库内绝对路径；未注入（测试/内嵌）时返回 undefined，只给叶子名、不伪造路径 */
 type ResolveAttachmentPath = (name: string) => string | undefined
@@ -216,6 +252,19 @@ export class AgentBrainService {
     // 历史附件（恢复会话时）：只给路径，不重放内容——避免上下文随历史膨胀；需要时智能体按路径读取
     const historyAttachmentBlock = buildHistoryAttachmentBlock(priorMessages, resolveAttachmentPath)
     if (historyAttachmentBlock !== null) extraBlocks.push(historyAttachmentBlock)
+    /*
+     * 图片 vision（对齐 dsh：图片发给模型）：仅当模型**可能**支持视觉时才把本轮图片 data URL 发给模型；
+     * 不支持时在提示词里如实说明「图片仅提供路径」，不做假。
+     */
+    const modelName = tier === 'cloud' ? (options.config?.model ?? '') : (process.env['MB_OLLAMA_MODEL'] ?? '')
+    const vision = modelSupportsVision(modelName)
+    const imageCount = (options.attachments ?? []).filter((file) => file.mime.startsWith('image/')).length
+    if (imageCount > 0 && !vision) {
+      extraBlocks.push(
+        `【附件】当前模型（${modelName === '' ? '未指定' : modelName}）未启用视觉输入，${imageCount} 张图片仅提供路径。`
+      )
+    }
+    const inputImages = vision ? await buildInputImages(options.attachments, resolveAttachmentPath) : undefined
     const systemPrompts = buildSystemPrompts({
       // M2/G7 + M3/DD-3：注入**按场景分组、按档位限量**的紧凑能力目录（每工具一行）
       capabilityCatalog: face.catalog,
@@ -250,6 +299,8 @@ export class AgentBrainService {
       ...(priorMessages.length > 0
         ? { initialMessages: priorMessages as unknown as BrainMessage[] }
         : {}),
+      // 本轮图片（data URL）：只在本轮发给模型，不落盘
+      ...(inputImages !== undefined ? { inputImages } : {}),
       // 不显式兜底：让循环按档位取默认（云端 12 / 本地 6）。显式传值会盖掉 tier-aware 默认。
       ...(this.deps.maxTurns !== undefined ? { maxTurns: this.deps.maxTurns } : {}),
       ...(this.deps.maxToolCalls !== undefined ? { maxToolCalls: this.deps.maxToolCalls } : {}),

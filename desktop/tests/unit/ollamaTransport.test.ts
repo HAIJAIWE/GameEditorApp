@@ -126,3 +126,32 @@ describe('OllamaChatTransport：M0.5 显式下发 num_ctx（DD-1）', () => {
     expect(body.options?.num_ctx).toBe(8192)
   })
 })
+
+
+describe('OllamaChatTransport：图片 vision（按模型能力下发）', () => {
+  it('视觉模型：images（data URL）转成裸 base64 下发', async () => {
+    const { bodies } = stubFetch(
+      ndjsonResponse([JSON.stringify({ message: { role: 'assistant', content: 'ok' }, done: true, done_reason: 'stop' })])
+    )
+    const transport = new OllamaChatTransport({ host: 'http://127.0.0.1:9', model: 'llava:7b' })
+    await transport.complete({
+      messages: [{ role: 'user', content: '看图', images: ['data:image/png;base64,AAAA'] }],
+      tools: []
+    })
+    const body = JSON.parse(bodies[0] ?? '{}') as { messages?: Array<{ images?: string[] }> }
+    expect(body.messages?.[0]?.images).toEqual(['AAAA'])
+  })
+
+  it('非视觉模型：images 不下发（只保留文本）', async () => {
+    const { bodies } = stubFetch(
+      ndjsonResponse([JSON.stringify({ message: { role: 'assistant', content: 'ok' }, done: true, done_reason: 'stop' })])
+    )
+    const transport = new OllamaChatTransport({ host: 'http://127.0.0.1:9', model: 'qwen3:8b' })
+    await transport.complete({
+      messages: [{ role: 'user', content: '看图', images: ['data:image/png;base64,AAAA'] }],
+      tools: []
+    })
+    const body = JSON.parse(bodies[0] ?? '{}') as { messages?: Array<{ images?: string[] }> }
+    expect(body.messages?.[0]?.images).toBeUndefined()
+  })
+})

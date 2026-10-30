@@ -19,6 +19,11 @@ export interface BrainToolCall {
 export interface BrainMessage {
   role: 'system' | 'user' | 'assistant' | 'tool'
   content: string
+  /**
+   * 图片附件（**data URL**，如 `data:image/png;base64,...`）。
+   * 只在「本轮」挂到 user 消息上，**不落盘**（dsh 同样排除 base64）；传输层按模型能力决定是否下发。
+   */
+  images?: string[]
   tool_calls?: Array<{ id: string; type: 'function'; function: { name: string; arguments: string } }>
   tool_call_id?: string
   name?: string

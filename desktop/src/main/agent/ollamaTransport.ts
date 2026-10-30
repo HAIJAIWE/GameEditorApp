@@ -33,8 +33,10 @@ import {
   type BrainLlmReply,
   type BrainLlmRequest,
   type BrainLlmTransport,
+  type BrainMessage,
   type BrainToolCall
 } from '../../shared/agent/brain'
+import { modelSupportsVision, stripDataUrlPrefix } from '../../shared/util/visionSupport'
 import { assertHttpOk, isAbortError, pumpLines } from './agentStream'
 
 const DEFAULT_HOST = 'http://127.0.0.1:11434'
@@ -64,6 +66,18 @@ interface OllamaChatChunk {
   eval_count?: number
 }
 
+/**
+ * 把消息映射成 Ollama 线格式：视觉模型才把 `images`（data URL）转成裸 base64 下发；
+ * 非视觉模型**丢弃**图片（只保留文本，路径仍在系统提示词里）。
+ */
+function toOllamaMessages(messages: readonly BrainMessage[], vision: boolean): unknown[] {
+  if (!vision) return messages.map((message) => ({ ...message, images: undefined }))
+  return messages.map((message) => {
+    if (message.images === undefined || message.images.length === 0) return message
+    return { ...message, images: message.images.map(stripDataUrlPrefix) }
+  })
+}
+
 export class OllamaChatTransport implements BrainLlmTransport {
   constructor(private readonly options: OllamaChatTransportOptions = {}) {}
 
@@ -86,7 +100,7 @@ export class OllamaChatTransport implements BrainLlmTransport {
     const model = this.resolveModel()
     const body = JSON.stringify({
       model,
-      messages: request.messages,
+      messages: toOllamaMessages(request.messages, modelSupportsVision(model)),
       tools: request.tools,
       stream: true,
       options: {

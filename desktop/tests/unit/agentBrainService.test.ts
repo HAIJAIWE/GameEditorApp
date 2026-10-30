@@ -213,6 +213,49 @@ describe('AgentBrainService：M3 档位路由装配', () => {
     expect(text).not.toContain('伤害 = 攻击 - 防御')
   })
 
+  it('视觉模型：本轮图片读成 data URL 随 user 消息发给模型', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'mb-vision-'))
+    const imgPath = join(dir, 'pic.png')
+    writeFileSync(imgPath, Buffer.from([0x89, 0x50, 0x4e, 0x47]))
+
+    const { transport, requests } = capturingTransport()
+    const service = new AgentBrainService({
+      dispatcher: makeDispatcher(),
+      transport,
+      resolveAttachmentPath: (name) => (name === 'pic.png' ? imgPath : name)
+    })
+    await service.chat('看看这张图', {
+      config: { ...DEFAULT_LLM_CONFIG, provider: 'openai', model: 'gpt-4o' },
+      attachments: [{ name: 'pic.png', mime: 'image/png', bytes: 4 }]
+    })
+
+    const request = requests[0] as BrainLlmRequest
+    const userMessage = request.messages.find((message) => message.role === 'user' && message.content === '看看这张图')
+    expect(userMessage?.images?.[0]).toMatch(/^data:image\/png;base64,/)
+  })
+
+  it('非视觉模型：图片不发、提示词如实说明只给路径', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'mb-vision-'))
+    const imgPath = join(dir, 'pic.png')
+    writeFileSync(imgPath, Buffer.from([0x89, 0x50, 0x4e, 0x47]))
+
+    const { transport, requests } = capturingTransport()
+    const service = new AgentBrainService({
+      dispatcher: makeDispatcher(),
+      transport,
+      resolveAttachmentPath: (name) => (name === 'pic.png' ? imgPath : name)
+    })
+    await service.chat('看看这张图', {
+      config: { ...DEFAULT_LLM_CONFIG, provider: 'deepseek', model: 'deepseek-chat' },
+      attachments: [{ name: 'pic.png', mime: 'image/png', bytes: 4 }]
+    })
+
+    const request = requests[0] as BrainLlmRequest
+    const userMessage = request.messages.find((message) => message.role === 'user' && message.content === '看看这张图')
+    expect(userMessage?.images).toBeUndefined()
+    expect(systemText(request)).toContain('未启用视觉输入')
+  })
+
   it('会话落盘：附件元数据挂到本轮 user 消息（恢复时才能重放）', async () => {
     const saved: Array<Array<Record<string, unknown>>> = []
     const appended: Array<Array<Record<string, unknown>>> = []

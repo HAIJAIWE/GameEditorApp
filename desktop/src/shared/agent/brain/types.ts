@@ -205,6 +205,11 @@ export interface SubAgentProvider {
 export interface RunBrainLoopOptions {
   /** 用户本轮输入 */
   input: string
+  /**
+   * 本轮随输入一起发的图片（data URL）。挂到首条 user 消息上，
+   * 传输层按模型是否支持视觉决定是否下发；**不落盘**（base64 不进会话记录）。
+   */
+  inputImages?: string[]
   /** 系统提示词（可多条，按顺序注入；见 `prompts.ts`） */
   systemPrompts: string[]
   transport: BrainLlmTransport
