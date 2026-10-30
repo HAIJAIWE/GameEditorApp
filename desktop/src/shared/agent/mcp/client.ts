@@ -1,4 +1,4 @@
-import type { JsonObjectSchema } from '../protocol'
+import type { JsonObjectSchema } from '../config/protocol'
 import type { McpCallResult, McpToolInfo, McpTransport } from './types'
 
 /**

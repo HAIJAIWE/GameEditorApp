@@ -10,7 +10,7 @@
  */
 
 // `formatLocalTimestamp` 来自 `shared/util/`（纯工具层），不引入 agent → ceshu 的跨业务域依赖。
-import { formatLocalTimestamp } from '../util/datetime'
+import { formatLocalTimestamp } from '../../util/datetime'
 
 /** 只保留最近 N 条消息 */
 export const SESSION_MAX_MESSAGES = 50

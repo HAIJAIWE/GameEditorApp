@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { CHAPTER_LABELS, type CeshuDocument } from '../../src/shared/ceshu/reference/ceshuConstants'
 import { createDefaultCeshu } from '../../src/shared/ceshu/model/ceshuModel'
 import { validateCeshu } from '../../src/shared/ceshu/validation/ceshuValidation'
-import { applyJudge, evaluateChapterDraft } from '../../src/shared/agent/qualityGate'
+import { applyJudge, evaluateChapterDraft } from '../../src/shared/agent/runtime/qualityGate'
 import type { LlmJudgeVerdict } from '../../src/shared/types'
 
 /**
@@ -112,7 +112,7 @@ describe('策划书 AI 产出的确定性质量门（v0.5 DD-19）', () => {
 /* ---- 数据半边：候选的确定性质量门（v0.5 DD-19） ---- */
 
 import type { DataTypeDef } from '../../src/shared/types'
-import { evaluateDataCandidates } from '../../src/shared/agent/qualityGate'
+import { evaluateDataCandidates } from '../../src/shared/agent/runtime/qualityGate'
 
 function makeType(
   id: string,

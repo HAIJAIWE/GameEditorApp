@@ -6,7 +6,7 @@ import {
   taskBudget,
   type BudgetScale,
   type LlmTaskType
-} from '../../src/shared/agent/budget'
+} from '../../src/shared/agent/runtime/budget'
 
 describe('预算护栏纯逻辑（v0.6 M5）', () => {
   const tasks: LlmTaskType[] = ['chapter', 'full', 'datagen', 'review']

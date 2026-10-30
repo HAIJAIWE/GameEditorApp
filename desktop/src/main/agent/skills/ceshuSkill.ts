@@ -26,7 +26,7 @@ import {
   type ChapterKey,
   type GddScope
 } from '../../../shared/ceshu/reference/ceshuConstants'
-import type { SkillExecutionContext, SkillProtocol, SkillResult } from '../../../shared/agent/protocol'
+import type { SkillExecutionContext, SkillProtocol, SkillResult } from '../../../shared/agent/config/protocol'
 import type { CeshuManager } from '../../ceshu/manager'
 
 const ACTIONS = ['list', 'get', 'create', 'update', 'delete', 'export'] as const

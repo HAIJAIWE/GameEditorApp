@@ -11,8 +11,8 @@
  * 已是共享纯函数，创作面直接复用，无需再包。工具循环仍留在 `brainService`，不做大合并。
  */
 
-import { llmConfirmReason } from '../../shared/agent/protocol'
-import type { LlmTaskType } from '../../shared/agent/budget'
+import { llmConfirmReason } from '../../shared/agent/config/protocol'
+import type { LlmTaskType } from '../../shared/agent/runtime/budget'
 import type { LlmUsage } from '../../shared/config/llm/llmConfig'
 import { taskRegistry } from '../task/taskRegistry'
 import {
@@ -21,7 +21,7 @@ import {
   turnStatFromReply,
   type AgentRunStats,
   type AgentRunTier
-} from '../../shared/agent/observability'
+} from '../../shared/agent/observability/observability'
 
 export interface AgentBudgetConfirmInput {
   /** 是否云端档（云端才计费、才需确认） */

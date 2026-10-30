@@ -5,7 +5,7 @@ import { AgentTeamSection } from '../../../src/renderer/src/plugins/agentTeamSec
 import {
   CONVERSATION_STORE_KEY,
   createConversationStoreDecl
-} from '../../../src/shared/agent/conversationStore'
+} from '../../../src/shared/agent/conversation/conversationStore'
 import { PluginHost } from '../../../src/shared/plugin/host'
 import { renderDom } from './render'
 

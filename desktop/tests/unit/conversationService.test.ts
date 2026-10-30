@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { createConversationService, snapshotConversation } from '../../src/shared/agent/conversationService'
-import { createConversationStoreDecl, freshConversationState } from '../../src/shared/agent/conversationStore'
+import { createConversationService, snapshotConversation } from '../../src/shared/agent/conversation/conversationService'
+import { createConversationStoreDecl, freshConversationState } from '../../src/shared/agent/conversation/conversationStore'
 import { createStoreInstance } from '../../src/shared/plugin/slotRegistry'
 
 /**

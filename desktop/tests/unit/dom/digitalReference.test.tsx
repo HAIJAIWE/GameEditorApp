@@ -2,7 +2,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { DigitalReferenceMenu } from '../../../src/renderer/src/components/digital/digitalPanelViews'
-import type { DigitalReference } from '../../../src/shared/agent/references'
+import type { DigitalReference } from '../../../src/shared/agent/ui/references'
 import { renderDom } from './render'
 
 const REFS: DigitalReference[] = [

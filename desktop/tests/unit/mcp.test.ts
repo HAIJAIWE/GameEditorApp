@@ -8,7 +8,7 @@ import { mcpToolId, mcpToolRisk, mcpToolToSkill } from '../../src/shared/agent/m
 import { McpClient } from '../../src/shared/agent/mcp/client'
 import { parseMcpConfig } from '../../src/shared/agent/mcp/config'
 import type { McpTransport } from '../../src/shared/agent/mcp/types'
-import { RISK_LEVEL, clearDynamicToolRisk, resolveRiskLevel, setDynamicToolRisk } from '../../src/shared/agent/protocol'
+import { RISK_LEVEL, clearDynamicToolRisk, resolveRiskLevel, setDynamicToolRisk } from '../../src/shared/agent/config/protocol'
 
 /* ------------------------------- 配置解析 ------------------------------- */
 

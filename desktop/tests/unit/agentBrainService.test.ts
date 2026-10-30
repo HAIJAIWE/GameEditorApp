@@ -14,7 +14,7 @@ import type {
   BrainToolRunner,
   SubAgentProvider
 } from '../../src/shared/agent/brain'
-import type { SkillProtocol } from '../../src/shared/agent/protocol'
+import type { SkillProtocol } from '../../src/shared/agent/config/protocol'
 import { DEFAULT_LLM_CONFIG, type StoredLlmConfig } from '../../src/shared/config/llm/llmConfig'
 
 /**

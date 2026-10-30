@@ -5,7 +5,7 @@ import {
   filterPaletteItems,
   movePaletteIndex,
   type PaletteItem
-} from '../../src/shared/agent/commandPalette'
+} from '../../src/shared/agent/tools/commandPalette'
 
 /** 造条目的最小工厂（测试只关心 id/label/group，run 不参与断言） */
 function item(id: string, label: string, group: PaletteItem['group'] = '命令'): PaletteItem {

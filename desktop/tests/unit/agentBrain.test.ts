@@ -19,7 +19,7 @@ import {
   type BrainToolRunner,
   type SubAgentProvider
 } from '../../src/shared/agent/brain'
-import { RISK_LEVEL, fixParams, resolveRiskLevel, type SkillResult } from '../../src/shared/agent/protocol'
+import { RISK_LEVEL, fixParams, resolveRiskLevel, type SkillResult } from '../../src/shared/agent/config/protocol'
 import { isAbortError } from '../../src/shared/abort'
 
 /* ---- 测试替身 ---- */

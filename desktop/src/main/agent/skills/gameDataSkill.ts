@@ -13,7 +13,7 @@
  * 旧版 里依赖 `dm.data` 字典形态的消息（如 `可用类型: <复数键>`）在本侧按 TS 类型表重写。
  */
 
-import type { SkillExecutionContext, SkillProtocol, SkillResult } from '../../../shared/agent/protocol'
+import type { SkillExecutionContext, SkillProtocol, SkillResult } from '../../../shared/agent/config/protocol'
 import type { BatchOp } from '../../../shared/util/dataTableOps'
 import type { DataService } from '../../data/service'
 import type { TypeSchemaStore } from '../../schema/store'

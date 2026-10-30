@@ -7,12 +7,12 @@ import {
   buildSystemPrompts,
   checkPromptBudget,
   countPromptLines
-} from '../../src/shared/agent/prompts'
+} from '../../src/shared/agent/ui/prompts'
 import {
   TOOL_CATALOG_SUMMARY_MAX_CHARS,
   getToolCatalogLine,
   type SkillProtocol
-} from '../../src/shared/agent/protocol'
+} from '../../src/shared/agent/config/protocol'
 import { SkillDispatcher } from '../../src/main/agent/dispatcher'
 
 function makeSkill(id: string, description = '示例技能'): SkillProtocol {

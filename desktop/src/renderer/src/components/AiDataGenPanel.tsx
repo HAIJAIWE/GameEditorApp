@@ -8,8 +8,8 @@ import {
   summarizeCandidateItem,
   type CeshuDataGenResult
 } from '../../../shared/ceshu/data/ceshuDataGen'
-import { LLM_BULK_COUNT_THRESHOLD, isBulkLlmCall } from '../../../shared/agent/protocol'
-import { evaluateBudget, taskBudget } from '../../../shared/agent/budget'
+import { LLM_BULK_COUNT_THRESHOLD, isBulkLlmCall } from '../../../shared/agent/config/protocol'
+import { evaluateBudget, taskBudget } from '../../../shared/agent/runtime/budget'
 import { useStopIntent } from '../hooks/useStopIntent'
 import type { DataQualityVerdict } from '../../../shared/types'
 import type { DataTypeDef } from '../../../shared/types'

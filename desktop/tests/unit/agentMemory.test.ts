@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { AgentMemoryStore } from '../../src/main/agent/memoryStore'
-import { MEMORY_DIMS, embedText } from '../../src/shared/agent/memory'
+import { MEMORY_DIMS, embedText } from '../../src/shared/agent/conversation/memory'
 
 function makeDir(): string {
   return mkdtempSync(join(tmpdir(), 'mb-agent-memory-'))

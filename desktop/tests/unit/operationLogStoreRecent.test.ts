@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { OperationLogStore } from '../../src/main/agent/operationLogStore'
-import type { OperationRecord } from '../../src/shared/agent/operationLog'
+import type { OperationRecord } from '../../src/shared/agent/observability/operationLog'
 
 function record(n: number, overrides: Partial<OperationRecord> = {}): OperationRecord {
   return {

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 
-import { defaultDraftName, type DraftSummary } from '../../../../shared/agent/session'
+import { defaultDraftName, type DraftSummary } from '../../../../shared/agent/conversation/session'
 
 import { DigitalChangeCard } from './DigitalChangeCard'
 import { DigitalDeliveryCard } from './DigitalDeliveryCard'
@@ -28,8 +28,8 @@ import {
   DigitalSubagentList,
   DigitalTaskList
 } from './digitalPanelViews'
-import { parseDigitalCommands, type DigitalCommand } from '../../../../shared/agent/commands'
-import { parseDigitalReferences, type DigitalReference } from '../../../../shared/agent/references'
+import { parseDigitalCommands, type DigitalCommand } from '../../../../shared/agent/tools/commands'
+import { parseDigitalReferences, type DigitalReference } from '../../../../shared/agent/ui/references'
 import { pluginHost } from '../../plugins/builtins'
 import { requestCodeView } from '../../plugins/codeViewRequest'
 import { baseNameOf, isCodeFile } from '../../utils/codeView'
@@ -37,24 +37,24 @@ import { getToolViewBinding } from '../../plugins/toolViewBindings'
 import { SlotOutlet } from '../../plugins/slotOutlet'
 
 import type { BrainEvent } from '../../../../shared/agent/brain'
-import type { AgentRunTier } from '../../../../shared/agent/observability'
-import type { OperationRecord } from '../../../../shared/agent/operationLog'
-import type { DeliveryRecord } from '../../../../shared/agent/deliveryLog'
+import type { AgentRunTier } from '../../../../shared/agent/observability/observability'
+import type { OperationRecord } from '../../../../shared/agent/observability/operationLog'
+import type { DeliveryRecord } from '../../../../shared/agent/observability/deliveryLog'
 import {
   isAnswerComplete,
   isMultiQuestion,
   isRunning,
   summarizeToolTasks,
   type DigitalPanelState
-} from '../../../../shared/agent/panel'
+} from '../../../../shared/agent/ui/panel'
 import {
   CONVERSATION_STORE_KEY,
   createConversationStoreDecl,
   type ConversationAction
-} from '../../../../shared/agent/conversationStore'
+} from '../../../../shared/agent/conversation/conversationStore'
 import { createStoreInstance } from '../../../../shared/plugin/slotRegistry'
 import { toErrorMessage } from '../../../../shared/util/errors'
-import { AGENT_PRESETS, DEFAULT_PRESET_ID, presetLabel } from '../../../../shared/agent/presets'
+import { AGENT_PRESETS, DEFAULT_PRESET_ID, presetLabel } from '../../../../shared/agent/config/presets'
 import { loadLlmConfig, saveLlmConfig, LLM_PROVIDER_PRESETS } from '../../../../shared/config/llm/llmConfig'
 import { modelContextWindow, type LlmProvider } from '../../../../shared/config/llm/llmConfigData'
 import type { DigitalAttachment } from '../../../../shared/util/libraryAttachments'

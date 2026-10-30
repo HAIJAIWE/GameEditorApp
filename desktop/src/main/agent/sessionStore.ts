@@ -27,8 +27,8 @@ import {
   type SessionInfo,
   type SessionSnapshot,
   type SessionTurnSummary
-} from '../../shared/agent/session'
-import type { AgentRunStats } from '../../shared/agent/observability'
+} from '../../shared/agent/conversation/session'
+import type { AgentRunStats } from '../../shared/agent/observability/observability'
 
 const SESSION_FILE = 'active_session.json'
 const METRICS_FILE = 'metrics.jsonl'

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import { DigitalStepList } from '../../../src/renderer/src/components/digital/digitalPanelViews'
 import { getToolViewBinding, registerToolViewBinding } from '../../../src/renderer/src/plugins/toolViewBindings'
-import type { DigitalStep } from '../../../src/shared/agent/panel'
+import type { DigitalStep } from '../../../src/shared/agent/ui/panel'
 import { PluginHost } from '../../../src/shared/plugin/host'
 import { renderDom } from './render'
 

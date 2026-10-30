@@ -1,8 +1,8 @@
 import type { ComponentType } from 'react'
 
-import { CONVERSATION_STORE_KEY, createConversationStoreDecl } from '../../../shared/agent/conversationStore'
-import { createConversationService } from '../../../shared/agent/conversationService'
-import type { DigitalPanelState } from '../../../shared/agent/panel'
+import { CONVERSATION_STORE_KEY, createConversationStoreDecl } from '../../../shared/agent/conversation/conversationStore'
+import { createConversationService } from '../../../shared/agent/conversation/conversationService'
+import type { DigitalPanelState } from '../../../shared/agent/ui/panel'
 import type { PluginHost } from '../../../shared/plugin/host'
 import type { PluginManifest } from '../../../shared/plugin/types'
 import DigitalPanel from '../components/digital/DigitalPanel'

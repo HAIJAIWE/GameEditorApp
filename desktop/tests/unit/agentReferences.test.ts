@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { parseDigitalReferences, type DigitalReference } from '../../src/shared/agent/references'
+import { parseDigitalReferences, type DigitalReference } from '../../src/shared/agent/ui/references'
 
 const REFS: DigitalReference[] = [
   { id: 'character', name: '角色' },

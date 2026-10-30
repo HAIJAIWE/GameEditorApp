@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { parseDigitalCommands, type DigitalCommand } from '../../src/shared/agent/commands'
+import { parseDigitalCommands, type DigitalCommand } from '../../src/shared/agent/tools/commands'
 
 const COMMANDS: DigitalCommand[] = [
   { id: 'new', label: '新建对话', hint: '清空当前记录' },

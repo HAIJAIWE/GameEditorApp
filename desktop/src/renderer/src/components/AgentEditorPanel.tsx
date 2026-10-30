@@ -6,7 +6,7 @@ import {
   filterToolViews,
   summarizeCatalog,
   type ToolCatalog
-} from '../../../shared/agent/agentEditor'
+} from '../../../shared/agent/ui/agentEditor'
 import { toErrorMessage } from '../../../shared/util/errors'
 
 /**

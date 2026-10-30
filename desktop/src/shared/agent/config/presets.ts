@@ -1,4 +1,4 @@
-import { AGENT_DISPLAY } from '../ceshu/prompts/ceshuAiData'
+import { AGENT_DISPLAY } from '../../ceshu/prompts/ceshuAiData'
 
 /**
  * 智能体预设（借 dsh `ui-agent-preset` 的设计：对话前先选「视角/角色」）。

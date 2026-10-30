@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { groupSessionTurns, type SessionTurnSummary } from '../../../src/shared/agent/session'
+import { groupSessionTurns, type SessionTurnSummary } from '../../../src/shared/agent/conversation/session'
 
 const turn = (
   sessionId: string,

@@ -17,7 +17,7 @@ import type {
   SkillInteractionQuestion,
   SkillProtocol,
   SkillResult
-} from '../../../shared/agent/protocol'
+} from '../../../shared/agent/config/protocol'
 
 const ACTIONS = ['ask'] as const
 

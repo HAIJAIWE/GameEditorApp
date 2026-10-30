@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { SkillDispatcher } from '../../src/main/agent/dispatcher'
 import { createCodeSkill } from '../../src/main/agent/skills/codeSkill'
-import { RISK_LEVEL, resolveRiskLevel } from '../../src/shared/agent/protocol'
+import { RISK_LEVEL, resolveRiskLevel } from '../../src/shared/agent/config/protocol'
 
 /**
  * `system.code`（A1-5）：沙箱执行 + SYSTEM 级危险确认门。

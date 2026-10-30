@@ -1,4 +1,4 @@
-import type { DigitalSubagent } from '../../../shared/agent/panel'
+import type { DigitalSubagent } from '../../../shared/agent/ui/panel'
 import type { BrainEvent } from '../../../shared/agent/brain/types'
 
 /**

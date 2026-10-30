@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   buildRollbackPlan,
   type OperationRecord
-} from '../../src/shared/agent/operationLog'
+} from '../../src/shared/agent/observability/operationLog'
 import {
   MAX_OPERATIONS,
   OperationLogStore,

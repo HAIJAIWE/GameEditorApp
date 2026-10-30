@@ -2,15 +2,15 @@ import { useState, type ReactNode } from 'react'
 
 import LucideIcon from '../LucideIcon'
 import type { LucideIconName } from '../../../../shared/util/lucideIcons'
-import { RISK_LEVEL, resolveRiskLevel } from '../../../../shared/agent/protocol'
-import type { DigitalCommand } from '../../../../shared/agent/commands'
-import type { DigitalReference } from '../../../../shared/agent/references'
-import { diffRows, diffTotals, errorSummary, formatToolArgs } from '../../../../shared/agent/toolDetail'
+import { RISK_LEVEL, resolveRiskLevel } from '../../../../shared/agent/config/protocol'
+import type { DigitalCommand } from '../../../../shared/agent/tools/commands'
+import type { DigitalReference } from '../../../../shared/agent/ui/references'
+import { diffRows, diffTotals, errorSummary, formatToolArgs } from '../../../../shared/agent/tools/toolDetail'
 import {
   summarizeToolTasks,
   type DigitalPanelState,
   type DigitalStep
-} from '../../../../shared/agent/panel'
+} from '../../../../shared/agent/ui/panel'
 
 /** 风险等级 → 中文档位（审批卡展示用） */
 const RISK_LABELS: Record<number, string> = {

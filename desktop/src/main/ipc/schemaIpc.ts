@@ -8,7 +8,7 @@ import {
 import { TYPE_TEMPLATE_NAMES } from '../../shared/schema/core/typeTemplates'
 import { buildFieldIdPrompt, parseFieldIdCandidates } from '../../shared/util/fieldIdAi'
 import { runSingleShotTask } from '../agent/runTask'
-import { estimateTokens } from '../../shared/agent/budget'
+import { estimateTokens } from '../../shared/agent/runtime/budget'
 
 export function registerSchemaIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm: LlmShared): void {
   const { typeSchemaStore, fieldTemplates, llmClient } = deps

@@ -14,7 +14,7 @@
  */
 
 // 预算护栏的纯逻辑在 budget.ts；确认门（DD-17 + M5）复用其计算。
-import { taskBudget, evaluateBudget, type LlmTaskType } from './budget'
+import { taskBudget, evaluateBudget, type LlmTaskType } from '../runtime/budget'
 import { RISK_LEVEL, TOOL_RISK_MAP, DEFAULT_TOOL_RISK, DEFAULT_MAX_ALLOWED_RISK, ACTION_ALIASES, LLM_BULK_COUNT_THRESHOLD, type RiskLevel } from './protocolData'
 export * from './protocolData'
 

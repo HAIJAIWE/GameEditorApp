@@ -1,4 +1,4 @@
-import { RISK_LEVEL, type RiskLevel, type SkillProtocol, type SkillResult } from '../protocol'
+import { RISK_LEVEL, type RiskLevel, type SkillProtocol, type SkillResult } from '../config/protocol'
 import type { McpCallResult, McpRiskLevel, McpToolInfo } from './types'
 
 /**

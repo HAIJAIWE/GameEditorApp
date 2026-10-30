@@ -11,7 +11,7 @@ import type { CeshuManager } from '../../src/main/ceshu/manager'
 import type { DataService } from '../../src/main/data/service'
 import type { TypeSchemaStore } from '../../src/main/schema/store'
 import { applyBatchOp, type BatchOp } from '../../src/shared/util/dataTableOps'
-import { TOOL_GROUP_MAP } from '../../src/shared/agent/toolGroups'
+import { TOOL_GROUP_MAP } from '../../src/shared/agent/tools/toolGroups'
 import { BUILTIN_DATA_TYPES } from '../../src/shared/schema/core/typeSchema'
 import type { BatchUpdateSummary, DataTypeDef, ItemRecord } from '../../src/shared/types'
 

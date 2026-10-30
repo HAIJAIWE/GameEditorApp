@@ -8,9 +8,9 @@
  * 三者都是纯函数（或只依赖纯函数），可独立单测。
  */
 
-import type { BrainMessage } from '../brainMessages'
-import type { AgentRunTier } from '../observability'
-import { estimateTokens } from '../budget'
+import type { BrainMessage } from '../runtime/brainMessages'
+import type { AgentRunTier } from '../observability/observability'
+import { estimateTokens } from '../runtime/budget'
 import type { AgentEvalVerdict } from './types'
 
 /** 安全调用评估器：任何异常都降级为 null（不阻断循环） */

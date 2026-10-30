@@ -5,9 +5,9 @@ import {
   filterPaletteItems,
   movePaletteIndex,
   type PaletteItem
-} from '../../../shared/agent/commandPalette'
-import { CONVERSATION_STORE_KEY, createConversationStoreDecl } from '../../../shared/agent/conversationStore'
-import type { DigitalPanelState } from '../../../shared/agent/panel'
+} from '../../../shared/agent/tools/commandPalette'
+import { CONVERSATION_STORE_KEY, createConversationStoreDecl } from '../../../shared/agent/conversation/conversationStore'
+import type { DigitalPanelState } from '../../../shared/agent/ui/panel'
 import type { PluginHost } from '../../../shared/plugin/host'
 import type { PluginManifest } from '../../../shared/plugin/types'
 import { createStoreInstance } from '../../../shared/plugin/slotRegistry'

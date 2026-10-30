@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { DigitalRunPlan } from '../../../src/renderer/src/components/digital/DigitalRunPlan'
-import type { DigitalStep } from '../../../src/shared/agent/panel'
+import type { DigitalStep } from '../../../src/shared/agent/ui/panel'
 import { renderDom } from './render'
 
 /**

@@ -10,10 +10,10 @@
  * 组件退化为 `useReducer` 的薄壳。
  */
 
-import type { BrainEvent } from './brain'
-import { accumulateTurn, emptyAgentRunStats, type AgentRunStats } from './observability'
-import type { SkillInteraction } from './protocol'
-import type { DigitalAttachment } from '../util/libraryAttachments'
+import type { BrainEvent } from '../brain'
+import { accumulateTurn, emptyAgentRunStats, type AgentRunStats } from '../observability/observability'
+import type { SkillInteraction } from '../config/protocol'
+import type { DigitalAttachment } from '../../util/libraryAttachments'
 
 export type DigitalStatus = 'idle' | 'thinking' | 'waiting_approval' | 'waiting_input' | 'done' | 'error'
 

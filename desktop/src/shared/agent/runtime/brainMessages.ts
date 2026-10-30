@@ -1,10 +1,10 @@
 /**
  * `brain.ts` 的传输契约层：LLM 消息模型类型与构建 / 归一化辅助函数。
- * 由 `brain.ts` 再导出，外部 `import { ... } from './brain'` 站点保持不变。
+ * 由 `brain.ts` 再导出，外部 `import { ... } from '../brain'` 站点保持不变。
  */
 
-import type { SkillExecutionContext, SkillResult } from './protocol'
-import type { LlmUsage } from '../config/llm/llmConfig'
+import type { SkillExecutionContext, SkillResult } from '../config/protocol'
+import type { LlmUsage } from '../../config/llm/llmConfig'
 
 /* ---- 消息与传输层 ---- */
 

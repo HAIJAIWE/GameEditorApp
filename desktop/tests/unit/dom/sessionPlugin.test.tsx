@@ -6,7 +6,7 @@ import { defineSessionPlugin } from '../../../src/renderer/src/plugins/sessionPl
 import {
   CONVERSATION_STORE_KEY,
   createConversationStoreDecl
-} from '../../../src/shared/agent/conversationStore'
+} from '../../../src/shared/agent/conversation/conversationStore'
 import { PluginHost } from '../../../src/shared/plugin/host'
 import { renderDom } from './render'
 

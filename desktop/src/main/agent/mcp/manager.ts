@@ -1,8 +1,8 @@
 import { readFile } from 'node:fs/promises'
 
 import { mcpToolId, mcpToolRisk, mcpToolToSkill, type McpCallTool } from '../../../shared/agent/mcp/bridge'
-import { clearDynamicToolRisk, setDynamicToolRisk, type RiskLevel } from '../../../shared/agent/protocol'
-import { setMaxToolsOverride } from '../../../shared/agent/toolGroups'
+import { clearDynamicToolRisk, setDynamicToolRisk, type RiskLevel } from '../../../shared/agent/config/protocol'
+import { setMaxToolsOverride } from '../../../shared/agent/tools/toolGroups'
 import { McpClient } from '../../../shared/agent/mcp/client'
 import { parseMcpConfig } from '../../../shared/agent/mcp/config'
 import type { McpConfig, McpServerConfig, McpToolInfo, McpTransport } from '../../../shared/agent/mcp/types'

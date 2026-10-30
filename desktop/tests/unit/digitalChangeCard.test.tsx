@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { DigitalChangeCard, DigitalChangeList } from '../../src/renderer/src/components/digital/DigitalChangeCard'
-import type { OperationRecord } from '../../src/shared/agent/operationLog'
+import type { OperationRecord } from '../../src/shared/agent/observability/operationLog'
 import { renderDom, type RenderResult } from './dom/render'
 
 /**

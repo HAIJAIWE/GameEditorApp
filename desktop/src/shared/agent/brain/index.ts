@@ -10,4 +10,4 @@
 export * from './types'
 export * from './context'
 export * from './loop'
-export * from '../brainMessages'
+export * from '../runtime/brainMessages'

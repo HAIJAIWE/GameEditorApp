@@ -13,9 +13,9 @@
  *   这样 actions 可以在 Node 下直接单测，也不会把 store 变成第二个业务层。
  */
 
-import type { SlotStoreDecl } from '../plugin/types'
-import type { BrainEvent } from './brain'
-import type { DigitalAttachment } from '../util/libraryAttachments'
+import type { SlotStoreDecl } from '../../plugin/types'
+import type { BrainEvent } from '../brain'
+import type { DigitalAttachment } from '../../util/libraryAttachments'
 import {
   hydrateFromSession,
   initialDigitalPanelState,
@@ -24,7 +24,7 @@ import {
   resolveInteraction,
   submitUserMessage,
   type DigitalPanelState
-} from './panel'
+} from '../ui/panel'
 
 /** 对话状态的写入口（原 `DigitalPanel` 内的本地 Action，搬到这里以便跨插件复用） */
 export type ConversationAction =

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { SkillDispatcher, SkillRegistry } from '../../src/main/agent/dispatcher'
-import { RISK_LEVEL, type SkillProtocol } from '../../src/shared/agent/protocol'
+import { RISK_LEVEL, type SkillProtocol } from '../../src/shared/agent/config/protocol'
 
 function makeSkill(overrides: Partial<SkillProtocol> & Pick<SkillProtocol, 'id'>): SkillProtocol {
   return {

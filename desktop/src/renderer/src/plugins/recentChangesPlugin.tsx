@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactElement } from 'react'
 
 import type { PluginHost } from '../../../shared/plugin/host'
 import type { PluginManifest } from '../../../shared/plugin/types'
-import type { OperationRecord } from '../../../shared/agent/operationLog'
+import type { OperationRecord } from '../../../shared/agent/observability/operationLog'
 import { DigitalChangeList } from '../components/digital/DigitalChangeCard'
 import { registerReactBinding, type PanelBindingProps } from './reactBindings'
 

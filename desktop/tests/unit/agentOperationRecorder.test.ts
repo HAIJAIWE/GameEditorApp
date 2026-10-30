@@ -5,7 +5,7 @@ import { OperationLogStore } from '../../src/main/agent/operationLogStore'
 import { DeliveryLogStore } from '../../src/main/agent/deliveryLogStore'
 import { createRollbackSkill, type RollbackDataPort } from '../../src/main/agent/skills/rollbackSkill'
 import type { BrainToolRunner } from '../../src/shared/agent/brain'
-import type { SkillResult } from '../../src/shared/agent/protocol'
+import type { SkillResult } from '../../src/shared/agent/config/protocol'
 
 const ROLE = { id: 'r1', type: 'role', data: { name: '法师', hp: 320 } }
 

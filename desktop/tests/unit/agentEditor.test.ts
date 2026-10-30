@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { RISK_LEVEL, type JsonObjectSchema } from '../../src/shared/agent/protocol'
+import { RISK_LEVEL, type JsonObjectSchema } from '../../src/shared/agent/config/protocol'
 import {
   CONFIRM_THRESHOLD,
   NAMESPACE_LABELS,
@@ -18,7 +18,7 @@ import {
   toolNamespace,
   toolShortName,
   type ToolListEntry
-} from '../../src/shared/agent/agentEditor'
+} from '../../src/shared/agent/ui/agentEditor'
 
 /** 构造一份最小可用的参数 schema */
 function schema(

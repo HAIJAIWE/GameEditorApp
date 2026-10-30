@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-import type { DigitalStep } from '../../../shared/agent/panel'
+import type { DigitalStep } from '../../../shared/agent/ui/panel'
 
 /**
  * 工具视图的 React 绑定层（P2 keyed slot）。

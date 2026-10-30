@@ -12,7 +12,7 @@ import {
   draftSummaryOf,
   isDraftFile,
   safeDraftFileName
-} from '../../src/shared/agent/session'
+} from '../../src/shared/agent/conversation/session'
 
 /**
  * AI 对话草稿（对齐 旧版 `ui/digital_panel_workspace` 的

@@ -2,7 +2,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { DigitalCommandMenu } from '../../../src/renderer/src/components/digital/digitalPanelViews'
-import type { DigitalCommand } from '../../../src/shared/agent/commands'
+import type { DigitalCommand } from '../../../src/shared/agent/tools/commands'
 import { renderDom } from './render'
 
 const COMMANDS: DigitalCommand[] = [

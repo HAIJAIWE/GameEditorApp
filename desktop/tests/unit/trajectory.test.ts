@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
-import { freshConversationState } from '../../src/shared/agent/conversationStore'
-import type { DigitalStep } from '../../src/shared/agent/panel'
-import { buildTrajectory, formatLatency } from '../../src/shared/agent/trajectory'
+import { freshConversationState } from '../../src/shared/agent/conversation/conversationStore'
+import type { DigitalStep } from '../../src/shared/agent/ui/panel'
+import { buildTrajectory, formatLatency } from '../../src/shared/agent/observability/trajectory'
 
 /**
  * 会话轨迹的纯逻辑：按轮次分组、计数、消息投影、耗时格式化。
