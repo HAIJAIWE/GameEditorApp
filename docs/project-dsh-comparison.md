@@ -59,6 +59,8 @@
 | `core/tool-executor-ptc` (14) | — | ❌ **PTC（程序化调工具）无** |
 | `subagent/*` 9 个包 (123) | `main/agent/subagent/{subagentAcp, subagentCli, subagentRemote}` + `subAgentSkill` | ⚠️ 3 后端 vs dsh 6+；`depth≤1`、`MAX_ACTIVE 8` |
 | `skill/*` 5 个包 | `main/agent/skills/` 7 个（ceshu/code/gameData/rollback/askUser/sessionSearch/subAgent） | ✅ 产品化的 |
+| `guard/repeat-tool-reminder` | **2026-10-31 落地** `shared/agent/guard/repeatCall.ts`：advisory（只提醒不否决）、阈值 [3,5,8] 递进、链键用**完整规范化参数**（深度 key 排序）、提醒里参数预览截断到 500 字 | ✅ |
+| `guard/timeout-policy` | 墙钟闸 + 取消信号（`wallClockMs` / `controller.signal`） | ✅ |
 
 ### 2.2 上下文与压缩（2026-10-31 已补齐三条策略）
 
@@ -86,7 +88,7 @@
 | `web/*`（fetch / 三个 search 后端） | — | ➖ 无联网检索不形态 |
 | `browser-use` / `computer-use` | 有 `BrowserPanel`（webview 展示） | ➖ 非代持 |
 | `workflow/*`(29) / `plan` / `todo/tool-todo` / `schedule` | — | ❌ 无工作流/计划模式/待办/定时 |
-| `jobs` | 子智能体看板承载 | ⚠️ 无独立面板、无「两击停止」 |
+| `jobs` | 子智能体看板承载；**「两击停止」已落地**（`DigitalPanel` 的 `stopArmed` 防误触 + `data-armed`，e2e 连点两次） | ⚠️ 仅缺独立 jobs 面板 |
 | `goal/*`(21，含 `goal-round-driver`) | GoalBar 注入提示词 | ⚠️ 无 round driver |
 | `spill/*`（溢出/卸载） | — | ❌ |
 
@@ -145,11 +147,11 @@
 
 | 项 | 判断 |
 |---|---|
-| **多策略上下文压缩**（工具结果剪枝、图片卸载、`/compact`） | **值得对标**。我们目前只有截断+交接摘要，长回合会越来越贵。但先要有证测再说，不要先毒化简 เพียง加策略 |
+| **多策略上下文压缩**（工具结果剪枝、图片卸载、`/compact`） | ~~值得对标~~ **已落地**（2026-10-31，见 §2.2）：工具结果剪枝 + 按模型窗口推导阈值 + 工具配对安全切点。仍缺图片卸载与 `/compact` 命令 |
 | **PTC（程序化调工具）** | 暂时不需要。我们工具面很小（本地 8/15、云端 24），批处理的收益不抵复杂度 |
-| **后台任务面板 + 两击停止** | 中低优先。子智能体看板已承载；「两击停止」其实是**防误触**，成本极低可做（UI 文档已记为 gap） |
+| **后台任务面板 + 两击停止** | ~~可做~~ **已落地**：「两击停止」（防误触）早已在 `DigitalPanel` 实现（`stopArmed` + 3s 自动解除，e2e 覆盖）。**仅剩独立 jobs 面板**，价值不高，跳过 |
 | **计划模式 / 待办 / 定时 / 工作流** | 与游戏策划编辑器无关，跳过 |
-| **guard 循环卫生**（重复工具提醒、超时策略） | 低成本中收益：我们已有预审，缺的是「同一捞出反复失败时提醒模型」 |
+| **guard 循环卫生**（重复工具提醒、超时策略） | ~~缺~~ **已落地**（2026-10-31）：`shared/agent/guard/repeatCall.ts`，与既有 `failCount`（连续失败硬转向）互补，专管「同工具 + 同参数连续重复（哪怕次次成功）」 |
 | **OpenTelemetry** | 单机应用没必要。我们已有轨迹 + 操作日志 + 交付日志三层，够用 |
 | **账户 / OAuth 凭据** | 我们用本地密钥，单机场景足够 |
 | **HTTP gateway / controller** | 我们是 IPC，形态不同不改。除非要远程访问（无此需求） |
