@@ -185,6 +185,8 @@ export default function DigitalPanel({
   const [attachments, setAttachments] = useState<DigitalAttachment[]>([])
   /** 正在把选中文件复制进库（不确定进度：显示「导入中…」，不画假百分比） */
   const [addingAttachment, setAddingAttachment] = useState(false)
+  /** 文件正拖到输入框上（高亮投放区） */
+  const [dragActive, setDragActive] = useState(false)
   /** 斜杠命令 / @ 引用菜单的当前高亮项（两者互斥，共用同一索引；输入变化时重置为 0） */
   const [commandIndex, setCommandIndex] = useState(0)
   /** `@` 引用候选：当前游戏库的数据表类型（首次输入 `@` 时懒加载） */
@@ -384,33 +386,43 @@ export default function DigitalPanel({
     }
   }, [])
 
-  /** 选文件并复制进库：选 → 主进程复制 → 元数据入待发送列表（失败给中文提示） */
+  /** 把一个本地路径的附件复制进库并加入待发送列表（原生选择与拖拽共用） */
+  const addAttachmentPath = useCallback((path: string): void => {
+    setLocalError(null)
+    // 复制进库期间显示「导入中…」（真实拷贝，异步不阻塞；没有流式回调，故不确定进度）
+    setAddingAttachment(true)
+    void (async () => {
+      try {
+        const result = await window.mbApi.attachments.add({ path })
+        if (!result.ok) {
+          setLocalError(result.error)
+          return
+        }
+        // 同一文件重复选不重复加（按入库后的绝对路径去重）
+        setAttachments((prev) =>
+          prev.some((file) => file.path === result.attachment.path) ? prev : [...prev, result.attachment]
+        )
+      } catch (error: unknown) {
+        setLocalError(toErrorMessage(error))
+      } finally {
+        setAddingAttachment(false)
+      }
+    })()
+  }, [])
+
+  /** 选文件（原生对话框）→ 复制进库 → 入待发送列表 */
   const handleAddAttachment = useCallback((): void => {
     setLocalError(null)
     void (async () => {
       try {
         const picked = await window.mbApi.dialog.chooseAttachmentFile()
         if (picked.path === null) return
-        // 复制进库期间显示「导入中…」（真实拷贝，异步不阻塞；没有流式回调，故不确定进度）
-        setAddingAttachment(true)
-        try {
-          const result = await window.mbApi.attachments.add({ path: picked.path })
-          if (!result.ok) {
-            setLocalError(result.error)
-            return
-          }
-          // 同一文件重复选不重复加（按入库后的绝对路径去重）
-          setAttachments((prev) =>
-            prev.some((file) => file.path === result.attachment.path) ? prev : [...prev, result.attachment]
-          )
-        } finally {
-          setAddingAttachment(false)
-        }
+        addAttachmentPath(picked.path)
       } catch (error: unknown) {
         setLocalError(toErrorMessage(error))
       }
     })()
-  }, [])
+  }, [addAttachmentPath])
 
   const removeAttachment = useCallback((path: string): void => {
     setAttachments((prev) => prev.filter((file) => file.path !== path))
@@ -1257,7 +1269,29 @@ export default function DigitalPanel({
         className="digital-input-row dsh-composer"
         style={composerTakeover === null ? undefined : { display: 'none' }}
       >
-        <div className="dsh-composer-box">
+        {/* 拖拽上传（对齐 dsh 的 drop 目标）：把文件拖到输入框即可加入待发送附件 */}
+        <div
+          className={`dsh-composer-box${dragActive ? ' is-drag-active' : ''}`}
+          onDragOver={(event) => {
+            if (running) return
+            event.preventDefault()
+            setDragActive(true)
+          }}
+          onDragLeave={(event) => {
+            // 子元素间移动也会触发 dragleave：指针仍在框内时不熄灭高亮
+            if (event.currentTarget.contains(event.relatedTarget as Node | null)) return
+            setDragActive(false)
+          }}
+          onDrop={(event) => {
+            event.preventDefault()
+            setDragActive(false)
+            if (running) return
+            for (const file of Array.from(event.dataTransfer.files)) {
+              const path = window.mbApi.attachments.pathForFile(file)
+              if (path !== '') addAttachmentPath(path)
+            }
+          }}
+        >
           {/* 本轮目标条（对齐 dsh GoalBar）：一句话意图锚点，随每次发送发给主进程注入系统提示词。
               空串视为未填；跨轮持续生效，新建对话才清空。 */}
           <div className="dsh-goal-bar" data-testid="digital-goal-bar">

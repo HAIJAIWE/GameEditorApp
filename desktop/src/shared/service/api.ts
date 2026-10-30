@@ -189,6 +189,11 @@ export interface MbApi {
     open(req: IpcContract['attachments:open']['req']): Promise<IpcContract['attachments:open']['res']>
     /** 图片附件读成 data URL（缩略图/lightbox）；仅限库内附件目录 */
     readImage(req: IpcContract['attachments:readImage']['req']): Promise<IpcContract['attachments:readImage']['res']>
+    /**
+     * 拖拽文件取本地路径（同步）。渲染层是沙箱，`File.path` 在 Electron 32+ 已移除，
+     * 只能经 preload 暴露的 `webUtils.getPathForFile` 取；拿不到返回空串。
+     */
+    pathForFile(file: unknown): string
   }
   /** 图片库扫描 / 清理（`deleteImages` 是破坏性操作，`confirm` 必填true） */
   images: {

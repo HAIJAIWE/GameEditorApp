@@ -36,6 +36,13 @@
   border-color: var(--accent);
 }
 
+/* 拖拽投放高亮：虚线强调边框 + 极淡强调底（真实投放目标） */
+.dsh-composer-box.is-drag-active {
+  border-color: var(--accent);
+  border-style: dashed;
+  background: color-mix(in srgb, var(--accent) 6%, var(--bg-panel));
+}
+
 /* 深色档：黑色 16% 的线在深底上看不见，换成同一套 border 令牌 */
 [data-theme='dark'] .dsh-composer-box {
   border-color: var(--border);

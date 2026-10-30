@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 
 import type { MbApi } from '../shared/service/api'
 import { IpcInvokeError, type IpcChannel, type IpcContract, type IpcResult } from '../shared/ipc'
@@ -149,7 +149,9 @@ const api: MbApi = {
   attachments: {
     add: (req) => invoke('attachments:add', req),
     open: (req) => invoke('attachments:open', req),
-    readImage: (req) => invoke('attachments:readImage', req)
+    readImage: (req) => invoke('attachments:readImage', req),
+    // 拖拽文件取本地路径：renderer 沙箱拿不到 File.path，只能经 webUtils（preload 侧）
+    pathForFile: (file) => webUtils.getPathForFile(file as never)
   },
   images: {
     listLibraryImages: () => invoke('images:listLibraryImages', undefined),

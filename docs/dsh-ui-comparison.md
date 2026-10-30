@@ -197,12 +197,13 @@ dsh 的 UI 成熟在**两件事**：① **typed slot 组合**（父级声明扩�
 - **交付卡（`ui-deliverables` delivery cards）** —— 之前说「无数据链路」不成立：`system.ceshu` 的 `export` 动作成功后返回 `data.filePath`，这就是真实交付。新增**独立交付日志**（`shared/agent/deliveryLog.ts` + `main/agent/deliveryLogStore.ts`，与操作日志分开——交付不可回滚，混进去会污染回滚计划）；`operationRecorder` 在导出成功时记一条（非导出/失败/无 `filePath` 都不记，不造假）；通道 `agent:deliveries`；`DigitalPanel` 运行结束并行拉改动 + 交付；`DigitalDeliveryCard` 渲染文件行（名称/大小），点开走系统程序。`data-testid: digital-delivery-card / digital-delivery-file`。
 - **导入进度** —— `attachments:add` 改异步（`fs/promises`），复制期间渲染层显示「导入中…」chip（**不确定进度**，不画假百分比——拷贝没有流式回调）。`data-testid: digital-attachment-adding`。
 - **快捷键参考（`ui-shortcuts` 只读子集）** —— `shortcutsData.ts` 是快捷键**单一事实来源**（只收录代码里真实存在的：Enter/Shift+Enter/`/`/`@`/Esc/Ctrl+B/Ctrl+Z/Ctrl+Shift+Z），`ShortcutsDialog` 只读它渲染分组列表，Esc/遮罩/关闭收起。**不做** dsh 的录制/清除/恢复绑定（我们没有可改写的键位注册表，做录制就是假按钮）。入口在智能体面板头部（`digital-shortcuts`）。
+- **拖拽上传（`ui-attachment` drop 目标）** —— 输入框接 `dragover/drop`，经 preload 暴露的 `webUtils.getPathForFile` 取本地路径（Electron 32+ 已移除 `File.path`）→ 与原生选择共用 `addAttachmentPath`（复制进库 + 「导入中…」）。拖入时输入框虚线高亮（`.is-drag-active`）。
 
 **还没对齐的（下一步候选，按成本/价值分层）**：
 - **纯视觉 / 低成本（优先）**：
   - ~~轨迹表格无斑马纹 → 补 hover / 选中中性填充~~ ✅ 已对齐：hover 用 `--bg-hover`（第二轮），**选中态**（第三轮）= 正在查看详情的那一行（`<details>` 展开态）用 `--bg-selected` 中性填充、文字保持 `--text`（不用蓝色文字），且选择器特异性高于 `:hover` ⇒ 展开时鼠标划过不闪（对齐 dsh `tr[data-selected='true']` 抑制 hover）。DOM 测试钉住 `<details> > <summary.trajectory-row>` 结构，防止 CSS 静默失效。
 - **数据/后端依赖**：
-  - ~~附件~~ ✅ 已落地诚实子集（见第五轮，含图片缩略图 + 原图 lightbox + 导入进度）；**仅剩拖拽上传**未做（需要 `webUtils.getPathForFile` 的 preload 桥，非数据问题）。
+  - ~~附件~~ ✅ 已完整落地诚实子集（第五/七轮：图片缩略图 + 原图 lightbox + 导入进度 + 拖拽上传）。
   - ~~正文内联文件引用~~ ✅ 已落地（第六轮）。
   - ~~交付卡~~ ✅ 已落地（第七轮，真实数据来自 export 结果）。
   - ~~快捷键参考~~ ✅ 已落地只读子集（第七轮）；可编辑键位注册表未做（超范围）。
