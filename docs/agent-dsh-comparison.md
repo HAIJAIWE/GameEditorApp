@@ -1,6 +1,8 @@
 # 智能体对照：dsh 源码 vs 本项目（智能体该怎么落）
 
 > 状态：**只读调研**（2026-10-28）。目的：在动手做「智能体」之前，先把 dsh 的实现读清楚，给出「抄什么、不抄什么、按什么顺序」的结论。
+>
+> **导航：三份对照文档的分工。** 本篇 = **智能体内核专项**；`dsh-ui-comparison.md` = **UI 专项**（逐组件改写地图）；`project-dsh-comparison.md` = **全项目级总览**（本篇未覆盖的产品应用层、工具族、上下文压缩、持久化、宿主集成）。
 > dsh 源码位置：`D:/GameEditorApp/deepseek-harness-master/deepseek-harness-master/packages/`（完整 monorepo；`/d/dsh` 只是运行/配置目录，不是源码）。
 > 本项目 agent：`desktop/src/shared/agent/brain/loop.ts` + `desktop/src/main/agent/dispatcher.ts` + `main/agent/skills/`。
 
