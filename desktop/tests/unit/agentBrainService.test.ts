@@ -256,6 +256,52 @@ describe('AgentBrainService：M3 档位路由装配', () => {
     expect(systemText(request)).toContain('未启用视觉输入')
   })
 
+  it("vision='on'：allowlist 未收录的模型也强制发图（用户覆盖）", async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'mb-vision-'))
+    const imgPath = join(dir, 'pic.png')
+    writeFileSync(imgPath, Buffer.from([0x89, 0x50, 0x4e, 0x47]))
+
+    const { transport, requests } = capturingTransport()
+    const service = new AgentBrainService({
+      dispatcher: makeDispatcher(),
+      transport,
+      resolveAttachmentPath: (name) => (name === 'pic.png' ? imgPath : name)
+    })
+    await service.chat('看看这张图', {
+      // deepseek-chat 不在 allowlist 里，但用户显式开了 vision
+      config: { ...DEFAULT_LLM_CONFIG, provider: 'deepseek', model: 'deepseek-chat', vision: 'on' },
+      attachments: [{ name: 'pic.png', mime: 'image/png', bytes: 4 }]
+    })
+
+    const request = requests[0] as BrainLlmRequest
+    const userMessage = request.messages.find((message) => message.role === 'user' && message.content === '看看这张图')
+    expect(userMessage?.images?.[0]).toMatch(/^data:image\/png;base64,/)
+    // 也不该再出现「未启用视觉输入」的说明
+    expect(systemText(request)).not.toContain('未启用视觉输入')
+  })
+
+  it("vision='off'：视觉模型也强制不发图，并按路径告知", async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'mb-vision-'))
+    const imgPath = join(dir, 'pic.png')
+    writeFileSync(imgPath, Buffer.from([0x89, 0x50, 0x4e, 0x47]))
+
+    const { transport, requests } = capturingTransport()
+    const service = new AgentBrainService({
+      dispatcher: makeDispatcher(),
+      transport,
+      resolveAttachmentPath: (name) => (name === 'pic.png' ? imgPath : name)
+    })
+    await service.chat('看看这张图', {
+      config: { ...DEFAULT_LLM_CONFIG, provider: 'openai', model: 'gpt-4o', vision: 'off' },
+      attachments: [{ name: 'pic.png', mime: 'image/png', bytes: 4 }]
+    })
+
+    const request = requests[0] as BrainLlmRequest
+    const userMessage = request.messages.find((message) => message.role === 'user' && message.content === '看看这张图')
+    expect(userMessage?.images).toBeUndefined()
+    expect(systemText(request)).toContain('未启用视觉输入')
+  })
+
   it('恢复会话 + 视觉模型：历史图片重发给模型（data URL）', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'mb-vision-'))
     const imgPath = join(dir, 'old.png')

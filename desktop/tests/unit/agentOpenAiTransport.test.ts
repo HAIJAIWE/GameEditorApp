@@ -197,3 +197,48 @@ describe('M3 档位解析与传输层选择', () => {
     await expect(transport.complete({ messages: [], tools: [] })).rejects.toThrow(/Claude/)
   })
 })
+
+describe('OpenAiChatTransport：视觉设定覆盖（vision on/off）', () => {
+  function captureBody(): { bodies: unknown[] } {
+    const bodies: unknown[] = []
+    globalThis.fetch = (async (_url: string, init?: { body?: unknown }) => {
+      bodies.push(typeof init?.body === 'string' ? JSON.parse(init.body) : init?.body)
+      return jsonResponse({ choices: [{ message: { content: 'ok' } }] })
+    }) as unknown as typeof fetch
+    return { bodies }
+  }
+
+  it("vision='on'：文本模型名也把图转成 content parts（image_url）", async () => {
+    const { bodies } = captureBody()
+    const transport = new OpenAiChatTransport({
+      baseUrl: 'https://api.example.com/v1',
+      model: 'my-own-vlm',
+      apiKey: 'k',
+      vision: 'on'
+    })
+    await transport.complete({
+      messages: [{ role: 'user', content: '看图', images: ['data:image/png;base64,AAAA'] }],
+      tools: []
+    })
+    const message = (bodies[0] as { messages: Array<{ content: unknown }> }).messages[0]
+    expect(Array.isArray(message?.content)).toBe(true)
+    expect(message?.content).toContainEqual({ type: 'image_url', image_url: { url: 'data:image/png;base64,AAAA' } })
+  })
+
+  it("vision='off'：视觉模型名也丢弃 images（不下发非协议字段）", async () => {
+    const { bodies } = captureBody()
+    const transport = new OpenAiChatTransport({
+      baseUrl: 'https://api.example.com/v1',
+      model: 'gpt-4o',
+      apiKey: 'k',
+      vision: 'off'
+    })
+    await transport.complete({
+      messages: [{ role: 'user', content: '看图', images: ['data:image/png;base64,AAAA'] }],
+      tools: []
+    })
+    const message = (bodies[0] as { messages: Array<{ content: unknown; images?: unknown }> }).messages[0]
+    expect(message?.content).toBe('看图')
+    expect(message?.images).toBeUndefined()
+  })
+})

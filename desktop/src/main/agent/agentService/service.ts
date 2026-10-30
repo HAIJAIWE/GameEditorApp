@@ -23,7 +23,7 @@ import { buildSystemPrompts } from '../../../shared/agent/prompts'
 import { presetLabel, presetPersona } from '../../../shared/agent/presets'
 import { buildPersonalizedContext } from '../../../shared/agent/personalization'
 import { formatAttachmentSize, type DigitalAttachment } from '../../../shared/util/libraryAttachments'
-import { modelSupportsVision } from '../../../shared/util/visionSupport'
+import { resolveVisionSupport } from '../../../shared/util/visionSupport'
 import {
   RISK_LEVEL,
   resolveRiskLevel,
@@ -297,8 +297,8 @@ export class AgentBrainService {
     if (options.goal !== undefined && options.goal.trim() !== '') {
       extraBlocks.push(`【本轮目标】${options.goal.trim()}`)
     }
-    // 附件（对齐 dsh ui-attachment 的诚实子集）：文本类**内联内容**（.md/.json/.txt 等），
-    // 其余只给路径让智能体用文件工具按需读取。文件已由 `attachments:add` 复制进库，路径稳定。
+    // 附件（对齐 dsh `FileAttachmentRef`）：**只给名称/路径/大小，不内联内容**——
+    // dsh 的取向是「模型按需用文件工具读」，不是「把字节塞进提示词」。路径由主进程按叶子名解析。
     if (options.attachments !== undefined && options.attachments.length > 0) {
       extraBlocks.push(buildAttachmentBlock(options.attachments, resolveAttachmentPath))
     }
@@ -310,7 +310,8 @@ export class AgentBrainService {
      * 不支持时在提示词里如实说明「图片仅提供路径」，不做假。
      */
     const modelName = tier === 'cloud' ? (options.config?.model ?? '') : (process.env['MB_OLLAMA_MODEL'] ?? '')
-    const vision = modelSupportsVision(modelName)
+    // 用户设定优先（设置里的「视觉输入」），auto 才回落到模型名 allowlist——与传输层同一判定
+    const vision = resolveVisionSupport(modelName, options.config?.vision)
     const imageCount = (options.attachments ?? []).filter((file) => file.mime.startsWith('image/')).length
     if (imageCount > 0 && !vision) {
       extraBlocks.push(

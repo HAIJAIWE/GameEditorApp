@@ -14,6 +14,8 @@
  * 不同步会造成「前端看着已生效、主进程收到的 config 里没有该字段」的静默丢失）。
  */
 
+import type { VisionMode } from '../util/visionSupport'
+
 /** 已登记的服务商 key（对齐 `api_config:35` `MODEL_PRESETS` 的 6 个键） */
 /**
  * 服务商。`custom` = **任意 OpenAI 兼容端点**（自建网关 / 中转 / 第三方聚合等）：
@@ -349,6 +351,14 @@ export interface StoredLlmConfig {
    * 并向用户明确告知「数据不出本机」。与云端档在 UI 上**并列**（显式开关），不是隐藏设置。
    */
   confidential: boolean
+  /**
+   * 视觉输入（图片）设定：`auto` = 按已知视觉模型家族判断（保守，未知不发图）；
+   * `on` = 强制把图片发给模型（用于 allowlist 未收录的视觉模型）；`off` = 强制不发。
+   *
+   * 为什么需要手动开关：模型能力没有元数据来源，只能靠模型名启发式判断，
+   * 新模型 / 自建模型必然漏判——漏判时用户只能改代码。给一个显式覆盖口，才不会假。
+   */
+  vision: VisionMode
 }
 
 /** 一次 LLM 调用的 token 用量（v0.6 M5：成本护栏的观测地基；client 层填充，shared 层复用） */
@@ -391,7 +401,9 @@ export const DEFAULT_LLM_CONFIG: StoredLlmConfig = {
   mirostatEta: 0.1,
   stopWords: '',
   numGpu: -1,
-  confidential: false
+  confidential: false,
+  // 默认按模型名启发式判断（保守：未知模型不发图）；可在设置里改成 on/off 覆盖
+  vision: 'auto'
 }
 
 /**

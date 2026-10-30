@@ -41,6 +41,7 @@ import {
   type LlmSetupState,
   type LlmSetupGuide
 } from './llmConfigData'
+import { isVisionMode } from '../util/visionSupport'
 export * from './llmConfigData'
 
 /**
@@ -163,7 +164,9 @@ export function loadLlmConfig(storage: StorageLike | null = defaultStorage()): S
     ),
     stopWords: asString(raw.stopWords),
     numGpu: clampNumber(raw.numGpu, LLM_NUM_GPU_MIN, LLM_NUM_GPU_MAX, DEFAULT_LLM_CONFIG.numGpu),
-    confidential: asBool(raw.confidential, DEFAULT_LLM_CONFIG.confidential)
+    confidential: asBool(raw.confidential, DEFAULT_LLM_CONFIG.confidential),
+    // 旧配置没有该字段 ⇒ 回落 auto（行为与加字段前一致）
+    vision: isVisionMode(raw.vision) ? raw.vision : DEFAULT_LLM_CONFIG.vision
   }
 }
 
@@ -225,7 +228,8 @@ export function sanitizeLlmConfig(config: StoredLlmConfig): StoredLlmConfig {
     // 停止词是「换行分隔」的字符串；截断到上限，避免异常输入把请求体撑爆
     stopWords: asString(config.stopWords).slice(0, LLM_STOP_WORDS_MAX),
     numGpu: clampNumber(config.numGpu, LLM_NUM_GPU_MIN, LLM_NUM_GPU_MAX, DEFAULT_LLM_CONFIG.numGpu),
-    confidential: asBool(config.confidential, DEFAULT_LLM_CONFIG.confidential)
+    confidential: asBool(config.confidential, DEFAULT_LLM_CONFIG.confidential),
+    vision: isVisionMode(config.vision) ? config.vision : DEFAULT_LLM_CONFIG.vision
   }
 }
 

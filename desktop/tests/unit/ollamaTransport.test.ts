@@ -155,3 +155,31 @@ describe('OllamaChatTransport：图片 vision（按模型能力下发）', () =>
     expect(body.messages?.[0]?.images).toBeUndefined()
   })
 })
+
+describe('OllamaChatTransport：视觉设定覆盖（vision on/off）', () => {
+  it("vision='on'：非视觉模型名也下发裸 base64", async () => {
+    const { bodies } = stubFetch(
+      ndjsonResponse([JSON.stringify({ message: { role: 'assistant', content: 'ok' }, done: true, done_reason: 'stop' })])
+    )
+    const transport = new OllamaChatTransport({ host: 'http://127.0.0.1:9', model: 'my-own-vlm', vision: 'on' })
+    await transport.complete({
+      messages: [{ role: 'user', content: '看图', images: ['data:image/png;base64,AAAA'] }],
+      tools: []
+    })
+    const body = JSON.parse(bodies[0] ?? '{}') as { messages?: Array<{ images?: string[] }> }
+    expect(body.messages?.[0]?.images).toEqual(['AAAA'])
+  })
+
+  it("vision='off'：视觉模型名也丢弃 images", async () => {
+    const { bodies } = stubFetch(
+      ndjsonResponse([JSON.stringify({ message: { role: 'assistant', content: 'ok' }, done: true, done_reason: 'stop' })])
+    )
+    const transport = new OllamaChatTransport({ host: 'http://127.0.0.1:9', model: 'llava:13b', vision: 'off' })
+    await transport.complete({
+      messages: [{ role: 'user', content: '看图', images: ['data:image/png;base64,AAAA'] }],
+      tools: []
+    })
+    const body = JSON.parse(bodies[0] ?? '{}') as { messages?: Array<{ images?: string[] }> }
+    expect(body.messages?.[0]?.images).toBeUndefined()
+  })
+})

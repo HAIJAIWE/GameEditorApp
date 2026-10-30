@@ -185,7 +185,7 @@ test('AI 生成数据（桩服务）：提示词组装 → 候选预览 → 勾�
      *
      * `confidential: true` 走 DD-0b 保密模式（强制本地、无视 baseUrl），
      * 与「处理未发布设计稿要保密」的产品底线一致，也让本用例天然不碰任何云端地址。
-     * 配置字段以 `helpers/llmConfig.ts` 的夹具为底 —— 18 个字段由 `DEFAULT_LLM_CONFIG`
+     * 配置字段以 `helpers/llmConfig.ts` 的夹具为底 —— 全部字段由 `DEFAULT_LLM_CONFIG`
      * 自动补齐，不再手抄（手抄版曾因新增采样参数而静默失效）。
      */
     await window.evaluate(async (config) => {

@@ -36,7 +36,7 @@ import {
   type BrainMessage,
   type BrainToolCall
 } from '../../shared/agent/brain'
-import { modelSupportsVision, stripDataUrlPrefix } from '../../shared/util/visionSupport'
+import { resolveVisionSupport, stripDataUrlPrefix, type VisionMode } from '../../shared/util/visionSupport'
 import { assertHttpOk, isAbortError, pumpLines } from './agentStream'
 
 const DEFAULT_HOST = 'http://127.0.0.1:11434'
@@ -47,6 +47,8 @@ export interface OllamaChatTransportOptions {
   temperature?: number
   /** 上下文窗口（Ollama `num_ctx`）；缺省 `LLM_DEFAULT_NUM_CTX`（DD-1） */
   numCtx?: number
+  /** 视觉设定（`auto` 按模型名判断 / `on` 强制 / `off` 强制不发）；缺省 `auto` */
+  vision?: VisionMode
 }
 
 interface OllamaChatChunk {
@@ -100,7 +102,7 @@ export class OllamaChatTransport implements BrainLlmTransport {
     const model = this.resolveModel()
     const body = JSON.stringify({
       model,
-      messages: toOllamaMessages(request.messages, modelSupportsVision(model)),
+      messages: toOllamaMessages(request.messages, resolveVisionSupport(model, this.options.vision)),
       tools: request.tools,
       stream: true,
       options: {

@@ -218,7 +218,9 @@ export const llmConfigSchema = z.object({
   mirostatEta: z.number().min(0).max(1),
   stopWords: z.string().max(2000),
   numGpu: z.number().int().min(-1).max(200),
-  confidential: z.boolean()
+  confidential: z.boolean(),
+  /** 视觉输入设定：auto=按模型名判断，on=强制发图，off=强制不发 */
+  vision: z.enum(['auto', 'on', 'off'])
 })
 
 /** 渲染层 → 主进程推配置镜像（启动时 + 改设置时各一次） */

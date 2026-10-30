@@ -18,6 +18,7 @@ import {
   type StoredLlmConfig
 } from '../../../shared/config/llmConfig'
 import { SECRET_NAMES } from '../../../shared/config/secretNames'
+import { resolveVisionSupport, type VisionMode } from '../../../shared/util/visionSupport'
 import {
   applyFontSize,
   applyTheme,
@@ -484,6 +485,33 @@ export default function SettingsPanel() {
                   <option key={m} value={m} />
                 ))}
               </datalist>
+            </div>
+          </div>
+
+          {/*
+            视觉输入（图片）设定。模型能力没有元数据来源，只能按模型名启发式判断，
+            新模型 / 自建模型必然漏判 ⇒ 给一个显式覆盖口，避免「明明能看图却只收到路径」。
+          */}
+          <div className="form-row">
+            <label className="form-label" htmlFor="llm-vision">
+              视觉输入
+            </label>
+            <div className="form-field">
+              <select
+                id="llm-vision"
+                data-testid="llm-vision"
+                value={llm.vision}
+                onChange={(e) => commitLlm({ ...llm, vision: e.target.value as VisionMode })}
+              >
+                <option value="auto">自动（按模型名判断）</option>
+                <option value="on">强制发送图片</option>
+                <option value="off">不发送图片</option>
+              </select>
+              <div className="item-meta" data-testid="llm-vision-effective">
+                {resolveVisionSupport(llm.model, llm.vision)
+                  ? '当前判定：会把图片附件发给模型（受 4 张 / 20MB 上限约束）。'
+                  : '当前判定：不发送图片，仅把附件路径告诉智能体（需要时它自己按路径读）。'}
+              </div>
             </div>
           </div>
 

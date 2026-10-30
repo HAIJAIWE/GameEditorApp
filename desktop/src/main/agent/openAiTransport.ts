@@ -42,7 +42,7 @@ import {
   type BrainMessage,
   type BrainToolCall
 } from '../../shared/agent/brain'
-import { modelSupportsVision } from '../../shared/util/visionSupport'
+import { resolveVisionSupport, type VisionMode } from '../../shared/util/visionSupport'
 import { assertHttpOk, isAbortError, pumpLines } from './agentStream'
 
 /** OpenAI 多模态 content part（文本 + 图片） */
@@ -73,6 +73,8 @@ export interface OpenAiChatTransportOptions {
   /** API Key（调用方从 secretStore 现取；可为空串 ⇒ 由服务端拒绝并回报中文错误） */
   apiKey: string
   temperature?: number
+  /** 视觉设定（`auto` 按模型名判断 / `on` 强制 / `off` 强制不发）；缺省 `auto` */
+  vision?: VisionMode
 }
 
 interface OpenAiStreamChunk {
@@ -124,7 +126,7 @@ export class OpenAiChatTransport implements BrainLlmTransport {
     // `tools: []` 会被部分严格端点判为非法（宁可省略而非空数组）；本层只做透传。
     const body = JSON.stringify({
       model,
-      messages: toOpenAiMessages(request.messages, modelSupportsVision(model)),
+      messages: toOpenAiMessages(request.messages, resolveVisionSupport(model, this.options.vision)),
       ...(request.tools.length > 0 ? { tools: request.tools } : {}),
       stream: true,
       // 请求服务端在末段 chunk 回传 usage（多数 OpenAI 兼容支持；不支持则观测记零值）

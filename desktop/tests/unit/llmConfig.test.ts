@@ -196,7 +196,8 @@ describe('loadLlmConfig：容错读取', () => {
       mirostatEta: 0.1,
       stopWords: '',
       numGpu: -1,
-      confidential: false
+      confidential: false,
+      vision: 'auto'
     }
     const s = memStorage({ [LLM_CONFIG_KEY]: JSON.stringify(stored) })
     expect(loadLlmConfig(s)).toEqual(stored)
@@ -229,6 +230,25 @@ describe('loadLlmConfig：容错读取', () => {
     expect(LLM_DEFAULT_NUM_CTX).toBe(16_384)
     expect(DEFAULT_LLM_CONFIG.numCtx).toBe(LLM_DEFAULT_NUM_CTX)
   })
+
+  it('vision：旧配置没有该字段 ⇒ 回落 auto（行为与加字段前一致）', () => {
+    const legacy = { ...DEFAULT_LLM_CONFIG } as Record<string, unknown>
+    delete legacy['vision']
+    const s = memStorage({ [LLM_CONFIG_KEY]: JSON.stringify(legacy) })
+    expect(loadLlmConfig(s).vision).toBe('auto')
+  })
+
+  it('vision：非法值 ⇒ 回落 auto（不信任外部输入）', () => {
+    const s = memStorage({ [LLM_CONFIG_KEY]: JSON.stringify({ ...DEFAULT_LLM_CONFIG, vision: 'yes' }) })
+    expect(loadLlmConfig(s).vision).toBe('auto')
+  })
+
+  it('vision：合法值原样读回（on / off 不被抹成 auto）', () => {
+    const on = memStorage({ [LLM_CONFIG_KEY]: JSON.stringify({ ...DEFAULT_LLM_CONFIG, vision: 'on' }) })
+    expect(loadLlmConfig(on).vision).toBe('on')
+    const off = memStorage({ [LLM_CONFIG_KEY]: JSON.stringify({ ...DEFAULT_LLM_CONFIG, vision: 'off' }) })
+    expect(loadLlmConfig(off).vision).toBe('off')
+  })
 })
 
 describe('saveLlmConfig：安全硬约束 —— apiKey 绝不入库', () => {
@@ -250,7 +270,7 @@ describe('saveLlmConfig：安全硬约束 —— apiKey 绝不入库', () => {
     expect(loaded.apiKey).toBeUndefined()
   })
 
-  it('只写白名单里的 8 个字段，不夹带额外键', () => {
+  it('只写白名单里的字段，不夹带额外键', () => {
     const s = memStorage()
     const dirty = { ...DEFAULT_LLM_CONFIG, extra: 'x', nested: { a: 1 } } as unknown as StoredLlmConfig
     saveLlmConfig(dirty, s)
@@ -272,7 +292,8 @@ describe('saveLlmConfig：安全硬约束 —— apiKey 绝不入库', () => {
       'stopWords',
       'temperature',
       'topK',
-      'topP'
+      'topP',
+      'vision'
     ])
   })
 
@@ -294,8 +315,9 @@ describe('saveLlmConfig：安全硬约束 —— apiKey 绝不入库', () => {
       mirostatEta: 99,
       stopWords: 'x',
       numGpu: 999,
-      confidential: true
-    }
+      confidential: true,
+      vision: 'auto'
+    } as StoredLlmConfig
     expect(sanitizeLlmConfig(dirty)).toEqual({
       enabled: true,
       provider: 'ollama',
@@ -313,7 +335,8 @@ describe('saveLlmConfig：安全硬约束 —— apiKey 绝不入库', () => {
       mirostatEta: 1,
       stopWords: 'x',
       numGpu: 200,
-      confidential: true
+      confidential: true,
+      vision: 'auto'
     })
   })
 
@@ -352,7 +375,8 @@ describe('resolveLlmBaseUrl：用户填了用用户的，否则用预设', () =>
       ...DEFAULT_LLM_CONFIG,
       provider: 'deepseek',
       baseUrl: 'https://api.deepseek.com/v1',
-      confidential: true
+      confidential: true,
+      vision: 'auto'
     }
     expect(resolveLlmBaseUrl(cfg)).toBe('http://localhost:11434/v1')
   })
@@ -528,7 +552,8 @@ describe('M0 llmSetupState：四态真值表', () => {
     mirostatEta: 0.1,
     stopWords: '',
     numGpu: -1,
-    confidential: false
+    confidential: false,
+    vision: 'auto'
   }
 
   it('hasStored=false ⇒ never-configured（配没配过只由 hasStored 回答）', () => {
@@ -556,7 +581,8 @@ describe('M0 llmSetupState：四态真值表', () => {
       ...ready,
       provider: 'deepseek',
       model: '',
-      confidential: true
+      confidential: true,
+      vision: 'auto'
     }
     expect(llmSetupState(confidential, true)).toBe('ready')
   })
@@ -580,7 +606,8 @@ describe('M0 llmSetupGuide：引导内容与按钮可见性', () => {
     mirostatEta: 0.1,
     stopWords: '',
     numGpu: -1,
-    confidential: false
+    confidential: false,
+    vision: 'auto'
   }
 
   it('never-configured ⇒ 显示引导 + 给「一键保密」按钮', () => {
@@ -689,7 +716,8 @@ describe('M0 buildConfidentialConfig：一键切本地档', () => {
       'stopWords',
       'temperature',
       'topK',
-      'topP'
+      'topP',
+      'vision'
     ])
   })
 })

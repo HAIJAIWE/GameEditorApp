@@ -2,7 +2,7 @@
  * e2e 用的 LLM 配置夹具。
  *
  * ## 为什么不是每条用例手写字段
- * `shared/schemas.ts::llmConfigSchema` 是 **18 个字段全必填**的 zod 契约（`z.object` 默认
+ * `shared/schemas.ts::llmConfigSchema` 是**全字段必填**的 zod 契约（`z.object` 默认
  * 全 required）。历史上 e2e 手抄过一份「7 个字段」的配置，随后本地采样参数
  * （`topP` / `numCtx` / `repeatPenalty` / `topK` / `seed` / `mirostat*` / `stopWords` / `numGpu`）
  * 陆续加进契约，那份夹具就静默失效了 —— 报错是 `page.evaluate: invalid_type ... path:["config","topP"]`，
@@ -14,7 +14,7 @@
 
 import { DEFAULT_LLM_CONFIG } from '../../../src/shared/config/llmConfigData'
 
-/** 本地档（Ollama）测试配置：18 字段齐全，可直接过 `llmConfigureInputSchema` */
+/** 本地档（Ollama）测试配置：全字段齐全，可直接过 `llmConfigureInputSchema` */
 export function localStubLlmConfig(host: string, model = 'stub:latest'): Record<string, unknown> {
   return {
     ...DEFAULT_LLM_CONFIG,

@@ -59,11 +59,12 @@ export function resolveAgentTransport(
     return new OpenAiChatTransport({
       baseUrl: resolveLlmBaseUrl(config),
       model: config.model,
-      apiKey
+      apiKey,
+      vision: config.vision
     })
   }
   // 本地 / 未配置：本对话面的原生传输层（`num_ctx` 由配置显式下发，未配置则用传输层默认 16384）
   return config !== undefined
-    ? new OllamaChatTransport({ numCtx: config.numCtx })
+    ? new OllamaChatTransport({ numCtx: config.numCtx, vision: config.vision })
     : new OllamaChatTransport()
 }
