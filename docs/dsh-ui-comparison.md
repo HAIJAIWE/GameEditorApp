@@ -178,6 +178,10 @@ dsh 的 UI 成熟在**两件事**：① **typed slot 组合**（父级声明扩�
 - **发送中 spinner** —— 运行中停止按钮内显示旋转 spinner（对应 dsh `InputState.phase: 'sending'`），明确「本轮在跑、不是卡死」。只读态之前已有（输入框 `disabled={running}`），本次补的是视觉旋转指示。纯 CSS 动画，无新增数据依赖。`data-testid: digital-stop` 内含 `.dsh-composer-spinner`。
 - **结构化问题 composer** —— 经核查，`DigitalPanel.tsx` 里**早已实现**（`interaction_required` 事件 → `digital-interaction` 渲染确认按钮与多问题表单 `digital-multi-form`/`digital-multi-option`/`digital-multi-input`，数据模型 `SkillInteraction.questions` 端到端存在），不属 gap，移出列表。
 
+**第四轮（对齐 dsh `ui-message-feedback`）**：
+- **助手消息 Like/Dislike** —— 之前漏了这条：dsh 在定稿助手消息的动作行有 Like/Dislike（点开收集分类+说明再记录）。我们后端 `agent:feedback`（`FeedbackStore.record(rating, comment)`，≥4 分且说明非空时提炼偏好写偏好库）**早已完整**，只是**渲染层从未消费**。本次补 UI：助手消息动作行加 `digital-feedback-up`（rating=5）/ `digital-feedback-down`（rating=1），点任一个展开可选补充说明框（`digital-feedback-form`/`digital-feedback-comment`，图标按钮 `-submit`/`-cancel`，均 aria-label 无可见文字，避免污染 e2e 的 `innerText` 断言），提交走真实 `api.feedback`；成功标记 `data-active`（对齐 dsh recorded rating 常显），失败就地报错不静默。只有**定稿**助手消息挂载（流式半截不挂，同 dsh）。DOM 测试 `digitalMessageFeedback.test.tsx` 覆盖评分/说明/失败/取消四条路径。
+- 说明：dsh 的 7 类 category chips、retract、per-message id 我们没做（schema 只有 1–5 + comment，无分类/无 retract 通道）——不做假分类，只做**真实存在**的评分+说明。
+
 **还没对齐的（下一步候选，按成本/价值分层）**：
 - **纯视觉 / 低成本（优先）**：
   - ~~轨迹表格无斑马纹 → 补 hover / 选中中性填充~~ ✅ 已对齐：hover 用 `--bg-hover`（第二轮），**选中态**（第三轮）= 正在查看详情的那一行（`<details>` 展开态）用 `--bg-selected` 中性填充、文字保持 `--text`（不用蓝色文字），且选择器特异性高于 `:hover` ⇒ 展开时鼠标划过不闪（对齐 dsh `tr[data-selected='true']` 抑制 hover）。DOM 测试钉住 `<details> > <summary.trajectory-row>` 结构，防止 CSS 静默失效。

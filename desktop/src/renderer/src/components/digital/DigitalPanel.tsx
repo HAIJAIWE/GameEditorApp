@@ -73,6 +73,8 @@ interface ChatApi {
     answer?: string
     answers?: string[]
   }) => Promise<{ ok: boolean }>
+  /** 消息反馈（对齐 dsh ui-message-feedback）：评分 + 可选说明，主进程落盘并在 ≥4 分时提炼偏好 */
+  feedback: (req: { rating: number; comment?: string }) => Promise<void>
   /** 子智能体「继续对话」：对运行中的子智能体插话（Slice 40） */
   subagentSend: (req: { id: string; content: string }) => Promise<{ ok: boolean }>
   /** 单独停止某个运行中的子智能体（不牵连父循环） */
@@ -889,7 +891,16 @@ export default function DigitalPanel({
         {state.messages
           .filter((message) => message.role === 'user' || message.role === 'assistant')
           .map((message) => (
-            <DigitalMessageItem key={message.id} role={message.role} text={message.text} />
+            <DigitalMessageItem
+              key={message.id}
+              role={message.role}
+              text={message.text}
+              // 仅助手消息挂反馈（对齐 dsh：Like/Dislike 只出现在定稿的助手消息上）；
+              // 走真实后端 agent:feedback，rating≥4 且填了说明会提炼偏好
+              {...(message.role === 'assistant'
+                ? { onFeedback: (input: { rating: number; comment: string }) => api.feedback({ rating: input.rating, comment: input.comment }) }
+                : {})}
+            />
           ))}
         {/* 本轮改动卡：对话流内、紧跟助手消息之后、流式气泡之前；空列表不渲染任何 DOM */}
         {/* 本轮进度条：步骤默认折叠在下面的「展开执行步骤」里，这里先给一眼可见的进度 */}

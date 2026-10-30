@@ -5429,6 +5429,52 @@ button.ref-row:hover {
   color: var(--text);
 }
 
+/* 已记录的反馈评分：按钮保持强调色（对齐 dsh「recorded rating 常显填充」），不靠 hover 才看见 */
+.digital-message-feedback[data-active='true'] {
+  color: var(--accent);
+}
+.digital-message-feedback[data-active='true']:hover {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+}
+
+/* 反馈补充说明框：评分后展开、可选；收起时不渲染（不污染消息 innerText） */
+.digital-feedback-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 8px;
+  border: 0.5px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-panel);
+}
+.digital-feedback-comment {
+  width: 100%;
+  min-height: 40px;
+  padding: 6px 8px;
+  border: 0.5px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font-family: inherit;
+  font-size: calc(13px * var(--ui-font-scale));
+  line-height: 1.5;
+  resize: vertical;
+}
+.digital-feedback-comment::placeholder {
+  color: var(--text-muted);
+}
+.digital-feedback-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.digital-feedback-error {
+  color: var(--change-delete, #e5484d);
+  font-size: calc(12px * var(--ui-font-scale));
+}
+
 /* 无 hover 的设备（触屏）上常显，否则复制入口永远摸不到 */
 @media (hover: none) {
   .digital-message-actions {

@@ -8,6 +8,12 @@ export interface DigitalMessageItemProps {
   text: string
   /** 流式中的半截文本：只渲染原文 + 光标，避免半截 markdown 闪格式 */
   streaming?: boolean
+  /**
+   * 助手消息反馈提交（对齐 dsh `ui-message-feedback` 的 Like/Dislike）。
+   * 传入才渲染反馈按钮；缺省时组件保持纯展示（其它用法不受影响）。
+   * rating：5 = 有帮助，1 = 没帮助（与 `agent:feedback` 的 1–5 契约对齐）。
+   */
+  onFeedback?: (input: { rating: number; comment: string }) => Promise<void> | void
 }
 
 /**
@@ -67,6 +73,46 @@ function CopiedIcon(): ReactElement {
   )
 }
 
+/** 大拇指（有帮助）。Lucide `thumbs-up` 路径，16px 视口。 */
+function ThumbUpIcon(): ReactElement {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+      <path d="M7 10v12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+/** 大拇指（没帮助）：镜像的 thumbs-down。 */
+function ThumbDownIcon(): ReactElement {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+      <path d="M17 14V2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function CheckIcon(): ReactElement {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" focusable="false">
+      <path d="M3.5 8.5 6.5 11.5 12.5 5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function XIcon(): ReactElement {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" focusable="false">
+      <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+/** 有帮助 / 没帮助对应的 rating（与 `agent:feedback` 的 1–5 契约对齐） */
+const RATING_UP = 5
+const RATING_DOWN = 1
+
 /**
  * 一条对话消息（移植 dsh `ui-chat` 的 MessageItem 排版取舍）。
  *
@@ -76,10 +122,26 @@ function CopiedIcon(): ReactElement {
  *
  * 动作按钮刻意不写可见文字：e2e 用 `filter({ hasText })` + `innerText()` 断言消息内容，
  * 任何标签文字都会污染断言，因此语义只走 `aria-label`。
+ *
+ * 助手消息额外挂 Like/Dislike（对齐 dsh `ui-message-feedback`）：点任一评分先展开一个
+ * 可选的补充说明框，提交时走真实后端 `agent:feedback`（rating ≥4 且填了说明会提炼偏好）。
  */
-export function DigitalMessageItem({ role, text, streaming = false }: DigitalMessageItemProps): ReactElement {
+export function DigitalMessageItem({
+  role,
+  text,
+  streaming = false,
+  onFeedback
+}: DigitalMessageItemProps): ReactElement {
   const [copied, setCopied] = useState(false)
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  /** 反馈表单：0 = 未打开；5/1 = 当前选中的评分 */
+  const [feedbackRating, setFeedbackRating] = useState(0)
+  const [feedbackComment, setFeedbackComment] = useState('')
+  /** 已记录的评分（提交成功后按钮保持高亮） */
+  const [recordedRating, setRecordedRating] = useState(0)
+  const [feedbackBusy, setFeedbackBusy] = useState(false)
+  const [feedbackError, setFeedbackError] = useState<string | null>(null)
 
   // 卸载时清掉「已复制」的回落定时器，避免对已卸载组件 setState
   useEffect(() => {
@@ -96,6 +158,37 @@ export function DigitalMessageItem({ role, text, streaming = false }: DigitalMes
       resetTimer.current = setTimeout(() => setCopied(false), 1500)
     })
   }, [text])
+
+  const openFeedback = useCallback((rating: number) => {
+    setFeedbackRating(rating)
+    setFeedbackError(null)
+  }, [])
+
+  const closeFeedback = useCallback(() => {
+    setFeedbackRating(0)
+    setFeedbackComment('')
+    setFeedbackError(null)
+  }, [])
+
+  const submitFeedback = useCallback(() => {
+    if (feedbackRating === 0 || onFeedback === undefined) return
+    setFeedbackBusy(true)
+    setFeedbackError(null)
+    void Promise.resolve(onFeedback({ rating: feedbackRating, comment: feedbackComment.trim() }))
+      .then(() => {
+        setRecordedRating(feedbackRating)
+        setFeedbackRating(0)
+        setFeedbackComment('')
+      })
+      .catch(() => {
+        setFeedbackError('反馈提交失败，请重试')
+      })
+      .finally(() => {
+        setFeedbackBusy(false)
+      })
+  }, [feedbackRating, feedbackComment, onFeedback])
+
+  const showFeedback = role === 'assistant' && !streaming && onFeedback !== undefined
 
   return (
     // 流式条目沿用旧 testid（e2e 按 digital-streaming 做 toContainText / toHaveCount(0)）
@@ -123,7 +216,79 @@ export function DigitalMessageItem({ role, text, streaming = false }: DigitalMes
         >
           {copied ? <CopiedIcon /> : <CopyIcon />}
         </button>
+        {showFeedback && (
+          <>
+            <button
+              type="button"
+              className="digital-message-action digital-message-feedback"
+              data-testid="digital-feedback-up"
+              data-active={recordedRating === RATING_UP ? 'true' : undefined}
+              aria-label={recordedRating === RATING_UP ? '已标记有帮助' : '标记有帮助'}
+              title={recordedRating === RATING_UP ? '已标记有帮助' : '标记有帮助'}
+              onClick={() => openFeedback(RATING_UP)}
+            >
+              <ThumbUpIcon />
+            </button>
+            <button
+              type="button"
+              className="digital-message-action digital-message-feedback"
+              data-testid="digital-feedback-down"
+              data-active={recordedRating === RATING_DOWN ? 'true' : undefined}
+              aria-label={recordedRating === RATING_DOWN ? '已标记没帮助' : '标记没帮助'}
+              title={recordedRating === RATING_DOWN ? '已标记没帮助' : '标记没帮助'}
+              onClick={() => openFeedback(RATING_DOWN)}
+            >
+              <ThumbDownIcon />
+            </button>
+          </>
+        )}
       </div>
+      {showFeedback && feedbackRating !== 0 && (
+        // 补充说明框：可选。填了且评分 ≥4 时后端会把说明提炼成偏好（真实副作用）。
+        // 收起时不渲染，故不会污染 e2e 对消息 innerText 的断言。
+        <div className="digital-feedback-form" data-testid="digital-feedback-form">
+          <textarea
+            className="digital-feedback-comment"
+            data-testid="digital-feedback-comment"
+            rows={2}
+            placeholder={
+              feedbackRating === RATING_UP
+                ? '哪里有帮助？（可选，会记成偏好）'
+                : '哪里不对？（可选）'
+            }
+            value={feedbackComment}
+            onChange={(event) => setFeedbackComment(event.target.value)}
+          />
+          <div className="digital-feedback-actions">
+            <button
+              type="button"
+              className="digital-message-action"
+              data-testid="digital-feedback-submit"
+              aria-label="提交反馈"
+              title="提交反馈"
+              disabled={feedbackBusy}
+              onClick={submitFeedback}
+            >
+              <CheckIcon />
+            </button>
+            <button
+              type="button"
+              className="digital-message-action"
+              data-testid="digital-feedback-cancel"
+              aria-label="取消"
+              title="取消"
+              onClick={closeFeedback}
+            >
+              <XIcon />
+            </button>
+          </div>
+          {feedbackError !== null && (
+            <div className="digital-feedback-error" data-testid="digital-feedback-error">
+              {feedbackError}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
