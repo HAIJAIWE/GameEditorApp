@@ -89,7 +89,7 @@ import type {
   AppViewActionInput,
   FsListDirInput,
   FsReadFileInput
-} from './schemas'
+} from './schema/schemas'
 import type {
   AppInfo,
   AppLogInput,
@@ -103,29 +103,29 @@ import type {
   ItemRecord,
   TypeFieldDef
 } from './types'
-import type { ChapterKey, CeshuDocument, CeshuExportResult, CeshuSummary } from './ceshuConstants'
-import type { FieldAction } from './ceshuFieldAction'
+import type { ChapterKey, CeshuDocument, CeshuExportResult, CeshuSummary } from './ceshu/ceshuConstants'
+import type { FieldAction } from './ceshu/ceshuFieldAction'
 import type { BrainEvent } from './agent/brain'
 import type { AgentRunStats } from './agent/observability'
 import type { DraftSummary, SessionInfo, SessionTurnSummary } from './agent/session'
 import type { OperationRecord } from './agent/operationLog'
 import type { JsonObjectSchema, SkillResult } from './agent/protocol'
-import type { AgentDeliveriesInput, AttachmentsAddInput, AttachmentsOpenInput, AttachmentsReadImageInput } from './schemas'
+import type { AgentDeliveriesInput, AttachmentsAddInput, AttachmentsOpenInput, AttachmentsReadImageInput } from './schema/schemas'
 import type { DigitalAttachment } from './util/libraryAttachments'
 import type { DeliveryRecord } from './agent/deliveryLog'
-import type { CeshuChangelog, CeshuVersionDiff } from './ceshuDiff'
-import type { CeshuTaskPlan } from './ceshuTasks'
-import type { ContractReport } from './ceshuContract'
-import type { DataTableCheckResult } from './ceshuDataTableCheck'
-import type { ScaffoldApplyResult, ScaffoldPlan } from './ceshuDataTableScaffold'
-import type { CeshuReadinessReport } from './ceshuReadiness'
-import type { CeshuNote } from './ceshuNotes'
-import type { CeshuCustomTemplate } from './ceshuCustomTemplates'
-import type { CeshuAiGenerateResult, CeshuAiReviewResult } from './ceshuAi'
-import type { CeshuDataGenResult } from './ceshuDataGen'
+import type { CeshuChangelog, CeshuVersionDiff } from './ceshu/ceshuDiff'
+import type { CeshuTaskPlan } from './ceshu/ceshuTasks'
+import type { ContractReport } from './ceshu/ceshuContract'
+import type { DataTableCheckResult } from './ceshu/ceshuDataTableCheck'
+import type { ScaffoldApplyResult, ScaffoldPlan } from './ceshu/ceshuDataTableScaffold'
+import type { CeshuReadinessReport } from './ceshu/ceshuReadiness'
+import type { CeshuNote } from './ceshu/ceshuNotes'
+import type { CeshuCustomTemplate } from './ceshu/ceshuCustomTemplates'
+import type { CeshuAiGenerateResult, CeshuAiReviewResult } from './ceshu/ceshuAi'
+import type { CeshuDataGenResult } from './ceshu/ceshuDataGen'
 import type { ReferenceReport } from './util/references'
 import type { FieldIdSuggestResult } from './util/fieldIdAi'
-import type { AttrSystem } from './attrSystem'
+import type { AttrSystem } from './ceshu/attrSystem'
 import type { BackupEntry, RestoreOutcome } from './util/backup'
 
 /**

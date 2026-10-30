@@ -5,9 +5,9 @@ import {
   countValidationBySeverity,
   groupValidationMessages,
   summarizeValidation
-} from '../../src/shared/ceshuValidationGroups'
-import { validateCeshu } from '../../src/shared/ceshuValidation'
-import { createDefaultCeshu } from '../../src/shared/ceshuModel'
+} from '../../src/shared/ceshu/ceshuValidationGroups'
+import { validateCeshu } from '../../src/shared/ceshu/ceshuValidation'
+import { createDefaultCeshu } from '../../src/shared/ceshu/ceshuModel'
 
 describe('classifyValidationMessage：按文案前缀归类', () => {
   it('硬错误：必填缺失 / 格式异常 / 跨章冲突 / 依赖缺失', () => {

@@ -1,15 +1,15 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { buildReviewPrompts } from '../../src/shared/ceshuAi'
+import { buildReviewPrompts } from '../../src/shared/ceshu/ceshuAi'
 import {
   ADVERSARIAL_CHECK_KEYS,
   ADVERSARIAL_CHECK_LABELS,
   GENRE_REVIEW_PROFILES,
   genreReviewProfile,
   reviewProbeFor
-} from '../../src/shared/ceshuAiData'
-import { createDefaultCeshu } from '../../src/shared/ceshuModel'
+} from '../../src/shared/ceshu/ceshuAiData'
+import { createDefaultCeshu } from '../../src/shared/ceshu/ceshuModel'
 
 /** 读取 shared 层源码（vitest 在 desktop/ 下运行；兼容从仓库根跑） */
 function readSharedSource(name: string): string {
@@ -93,7 +93,7 @@ describe('反审提示词与检查项枚举同源', () => {
 
   it('消费式提示词复用 ceshuAiData 的写作规范，不各自重写', () => {
     // 机读包消费提示词必须引用单一来源的写作规范
-    expect(readSharedSource('ceshuBundlePrompt.ts')).toContain("from './ceshuAiData'")
+    expect(readSharedSource('ceshuBundlePrompt.ts')).toContain("from './ceshu/ceshuAiData'")
     // 各任务的提示词组装入口都在登记表注释里点名，改动前有导航
     const registry = readSharedSource('ceshuAiData.ts')
     for (const module of ['ceshuAi.ts', 'ceshuBundlePrompt.ts', 'ceshuDataGen.ts', 'ceshuDemoPrompt.ts']) {

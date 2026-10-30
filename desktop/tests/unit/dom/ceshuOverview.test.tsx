@@ -2,8 +2,8 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import CeshuOverview from '../../../src/renderer/src/components/CeshuOverview'
-import type { CeshuDocument } from '../../../src/shared/ceshuConstants'
-import { computeChapterProgress, createDefaultCeshu } from '../../../src/shared/ceshuModel'
+import type { CeshuDocument } from '../../../src/shared/ceshu/ceshuConstants'
+import { computeChapterProgress, createDefaultCeshu } from '../../../src/shared/ceshu/ceshuModel'
 import { installMbApi, renderDom, type RenderResult } from './render'
 
 /**

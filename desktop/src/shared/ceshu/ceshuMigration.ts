@@ -15,7 +15,7 @@
  */
 
 import { createDefaultChapters } from './ceshuDefaults'
-import { isPlainObject } from './util/guards'
+import { isPlainObject } from '../util/guards'
 
 /** v5.0 相对 v4.0 新增的 9 章 */
 export const V5_NEW_CHAPTER_KEYS = [

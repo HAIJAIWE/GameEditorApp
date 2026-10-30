@@ -8,7 +8,7 @@ import {
   parseTypeSchemaFile,
   serializeTypeSchema,
   validateTypeSchema
-} from '../../shared/typeSchemaFile'
+} from '../../shared/schema/typeSchemaFile'
 
 /**
  * 数据类型 schema 存储（本模块内唯一写者）。

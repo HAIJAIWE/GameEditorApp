@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 
 import { baseAttrNames, computeLivePreview, derivedAndCombatNames } from '../../../shared/domain/attr/attrPreview'
-import type { AttrSystem } from '../../../shared/attrSystem'
+import type { AttrSystem } from '../../../shared/ceshu/attrSystem'
 
 /**
  * 实时预览视图：

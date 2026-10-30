@@ -1,8 +1,8 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 
-import type { CeshuDocument } from '../../../shared/ceshuConstants'
-import { buildContract } from '../../../shared/ceshuContract'
+import type { CeshuDocument } from '../../../shared/ceshu/ceshuConstants'
+import { buildContract } from '../../../shared/ceshu/ceshuContract'
 import {
   HANDOFF_VOLUMES,
   buildHandoffPlan,
@@ -14,7 +14,7 @@ import {
   renderHandoffRouteMarkdown,
   renderHandoffVolumeIndex,
   type HandoffRenderContext
-} from '../../../shared/ceshuHandoff'
+} from '../../../shared/ceshu/ceshuHandoff'
 import type { DataTypeDef, ItemRecord } from '../../../shared/types'
 import { buildJsonSnapshot } from '../../data/snapshotExport'
 

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
-import { CESHU_CHAPTER_FIELDS } from '../../src/shared/ceshuFields'
-import { CHAPTER_KEYS } from '../../src/shared/ceshuConstants'
-import { splitRow, toRowStrings, toRows } from '../../src/shared/ceshuPipeRows'
+import { CESHU_CHAPTER_FIELDS } from '../../src/shared/ceshu/ceshuFields'
+import { CHAPTER_KEYS } from '../../src/shared/ceshu/ceshuConstants'
+import { splitRow, toRowStrings, toRows } from '../../src/shared/ceshu/ceshuPipeRows'
 
 /**
  * pipeList **两种存储形态**的读取守卫（2026-10-26 修静默失效 bug 后立的）。

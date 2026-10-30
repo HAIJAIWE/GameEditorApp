@@ -14,7 +14,7 @@ import {
   validateAttrSystem,
   type AttrDefinition,
   type AttrSystem
-} from '../../src/shared/attrSystem'
+} from '../../src/shared/ceshu/attrSystem'
 
 function attr(name: string, patch: Partial<AttrDefinition> = {}): AttrDefinition {
   return {

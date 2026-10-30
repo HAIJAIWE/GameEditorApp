@@ -1,5 +1,5 @@
 import { BUILTIN_DATA_TYPES } from './typeSchema'
-import type { DataTypeDef, FieldType, TypeFieldDef, TypeSectionDef } from './types'
+import type { DataTypeDef, FieldType, TypeFieldDef, TypeSectionDef } from '../types'
 
 /**
  * 数据类型 schema 的文件格式与校验（跨进程共用）。

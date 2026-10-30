@@ -17,9 +17,9 @@
  * 当前实现不依赖该参数（以 `_` 前缀标记未使用）。
  */
 
-import type { CeshuDocument, ChapterData, SystemEntry } from '../../shared/ceshuConstants'
-import { SYSTEM_LABELS } from '../../shared/ceshuConstants'
-import { isPlainObject } from '../../shared/ceshuModel'
+import type { CeshuDocument, ChapterData, SystemEntry } from '../../shared/ceshu/ceshuConstants'
+import { SYSTEM_LABELS } from '../../shared/ceshu/ceshuConstants'
+import { isPlainObject } from '../../shared/ceshu/ceshuModel'
 import type { CeshuManager } from './manager'
 import type { DataService } from '../data/service'
 import type { TypeSchemaStore } from '../schema/store'

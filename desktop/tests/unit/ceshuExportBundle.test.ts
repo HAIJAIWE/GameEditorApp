@@ -10,9 +10,9 @@ import {
   buildCeshuBundle,
   renderCeshuBundleJson
 } from '../../src/main/ceshu/export/bundle'
-import type { CeshuDocument } from '../../src/shared/ceshuConstants'
-import { createDefaultCeshu } from '../../src/shared/ceshuModel'
-import { setFieldStatuses } from '../../src/shared/ceshuFieldStatus'
+import type { CeshuDocument } from '../../src/shared/ceshu/ceshuConstants'
+import { createDefaultCeshu } from '../../src/shared/ceshu/ceshuModel'
+import { setFieldStatuses } from '../../src/shared/ceshu/ceshuFieldStatus'
 
 function makeDoc(scope: 'full' | 'lite' = 'full'): CeshuDocument {
   const doc = createDefaultCeshu({ scope, name: '测试游戏' })

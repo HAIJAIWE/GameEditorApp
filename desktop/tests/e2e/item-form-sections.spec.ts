@@ -31,7 +31,7 @@ async function toggleSection(page: Page, title: string): Promise<void> {
   await page.locator(`[data-testid="form-section-head"][data-section="${title}"]`).click()
 }
 
-/** role 的分区定义（`shared/formSections.ts::FORM_GROUPS.role`，与实现同源维护） */
+/** role 的分区定义（`shared/schema/formSections.ts::FORM_GROUPS.role`，与实现同源维护） */
 const ROLE_SECTIONS: ReadonlyArray<{ title: string; fields: readonly string[] }> = [
   { title: '基础信息', fields: ['id', 'name', 'job', 'race', 'faction', 'category'] },
   { title: '属性面板 (RPG三层体系)', fields: ['attr_list'] },

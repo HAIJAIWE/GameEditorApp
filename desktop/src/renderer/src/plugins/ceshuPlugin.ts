@@ -1,10 +1,10 @@
 import type { PluginManifest } from '../../../shared/plugin/types'
-import type { CeshuDocument } from '../../../shared/ceshuConstants'
-import { computeReadiness } from '../../../shared/ceshuReadiness'
+import type { CeshuDocument } from '../../../shared/ceshu/ceshuConstants'
+import { computeReadiness } from '../../../shared/ceshu/ceshuReadiness'
 import {
   renderHandoffHealthMarkdown,
   renderHandoffRouteMarkdown
-} from '../../../shared/ceshuHandoff'
+} from '../../../shared/ceshu/ceshuHandoff'
 
 /**
  * 策划书子系统作为「第一个插件」注册进宿主。

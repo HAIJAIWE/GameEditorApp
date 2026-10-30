@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { ValidatePanel } from '../../../src/renderer/src/components/ceshu/CeshuReportPanels'
-import { CHAPTER_LABELS, type ChapterKey } from '../../../src/shared/ceshuConstants'
+import { CHAPTER_LABELS, type ChapterKey } from '../../../src/shared/ceshu/ceshuConstants'
 import { renderDom, type RenderResult } from './render'
 
 let view: RenderResult | null = null

@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
-import { createDefaultCeshu } from '../../src/shared/ceshuModel'
+import { createDefaultCeshu } from '../../src/shared/ceshu/ceshuModel'
 import {
   checkDataTablePlan,
   parseDataTableRequirements,
   parseExpectedCount,
   readDataTableRows,
   type DataTableActual
-} from '../../src/shared/ceshuDataTableCheck'
+} from '../../src/shared/ceshu/ceshuDataTableCheck'
 
 /**
  * 设计 ↔ 数据表核对。

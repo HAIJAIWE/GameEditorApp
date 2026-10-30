@@ -1,7 +1,7 @@
 import { SYSTEM_LABELS, type ChapterData, type ChapterKey } from './ceshuConstants'
 import { SYSTEM_CONFIG_SCHEMA } from './systemConfigSchema'
 // 档 4：每章默认数据已随 defaults 收进 ceshuSchema/<章>.ts，此处只做「聚合 + 动态覆盖」。
-import { CHAPTER_SCHEMAS } from './ceshuSchema'
+import { CHAPTER_SCHEMAS } from '../ceshuSchema'
 
 function today(): string {
   const d = new Date()

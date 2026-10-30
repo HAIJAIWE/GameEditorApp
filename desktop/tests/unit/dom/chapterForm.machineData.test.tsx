@@ -2,9 +2,9 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import ChapterForm from '../../../src/renderer/src/components/ChapterForm'
-import type { ChapterKey } from '../../../src/shared/ceshuConstants'
-import { createDefaultCeshu } from '../../../src/shared/ceshuModel'
-import { CESHU_MACHINE_DATA_FIELDS } from '../../../src/shared/ceshuStages'
+import type { ChapterKey } from '../../../src/shared/ceshu/ceshuConstants'
+import { createDefaultCeshu } from '../../../src/shared/ceshu/ceshuModel'
+import { CESHU_MACHINE_DATA_FIELDS } from '../../../src/shared/ceshu/ceshuStages'
 import { installMbApi, renderDom, type RenderResult } from './render'
 
 /**

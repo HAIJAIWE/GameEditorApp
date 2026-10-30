@@ -3,8 +3,8 @@ import { useState } from 'react'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import CeshuTasksPanel from '../../../src/renderer/src/components/CeshuTasksPanel'
-import { createDefaultCeshu } from '../../../src/shared/ceshuModel'
-import type { CeshuDocument } from '../../../src/shared/ceshuConstants'
+import { createDefaultCeshu } from '../../../src/shared/ceshu/ceshuModel'
+import type { CeshuDocument } from '../../../src/shared/ceshu/ceshuConstants'
 import { installMbApi, renderDom, type RenderResult } from './render'
 
 /**

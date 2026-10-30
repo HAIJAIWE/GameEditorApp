@@ -2,11 +2,11 @@
  * 域上下文与默认评估器（从 `brainService.ts` 拆出）。
  *
  * 放在 `main` 层而非 `shared/agent`：`shared/agent` 必须保持领域无关（分层铁律），
- * 而这里要读本项目的策划书章节结构（`shared/ceshuConstants`）。
+ * 而这里要读本项目的策划书章节结构（`shared/ceshu/ceshuConstants`）。
  */
 
 import type { AgentEvalVerdict } from '../../../shared/agent/brain'
-import { CHAPTER_KEYS, CHAPTER_NAMES } from '../../../shared/ceshuConstants'
+import { CHAPTER_KEYS, CHAPTER_NAMES } from '../../../shared/ceshu/ceshuConstants'
 
 /**
  * 域上下文块（F8 / DD-18）：把本项目的策划书章节结构作为常驻 grounding 注入，

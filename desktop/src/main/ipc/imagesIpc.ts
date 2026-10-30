@@ -12,7 +12,7 @@ import { isSupportedImageFile, buildImagePreviewDataUrl } from '../../shared/uti
 import { ensureLibraryImagesDir } from '../imageImport'
 import { log } from '../../shared/util/logger'
 import type { IpcHandlerDeps, IpcRegistrar } from '../ipc'
-import { deleteImagesInputSchema, imageReadByPathInputSchema } from '../../shared/schemas'
+import { deleteImagesInputSchema, imageReadByPathInputSchema } from '../../shared/schema/schemas'
 
 /** 扩展名白名单的 Set 形态（热路径查表用；真源仍是 shared 的 IMAGE_EXTENSIONS 数组） */
 const IMAGE_EXTENSION_SET: ReadonlySet<string> = new Set(IMAGE_EXTENSIONS)

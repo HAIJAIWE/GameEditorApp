@@ -10,7 +10,7 @@
  *
  * ⚠️ 安全硬约束（详见 llmConfig.ts 文件头说明）：API Key **不落** localStorage，
  * 本结构刻意**不含 apiKey** 字段。将来加字段必须同批改
- * `shared/schemas.ts::llmConfigSchema`（zod `object()` 会剥掉未知键，
+ * `shared/schema/schemas.ts::llmConfigSchema`（zod `object()` 会剥掉未知键，
  * 不同步会造成「前端看着已生效、主进程收到的 config 里没有该字段」的静默丢失）。
  */
 
@@ -304,7 +304,7 @@ export const LLM_STOP_WORDS_MAX = 2000
 /**
  * 落 localStorage 的非敏感字段（**没有 apiKey**，见文件头安全说明）。
  *
- * ## ⚠️ 铁律留档：将来加字段**必须同批改 `shared/schemas.ts::llmConfigSchema`**
+ * ## ⚠️ 铁律留档：将来加字段**必须同批改 `shared/schema/schemas.ts::llmConfigSchema`**
  *
  * 本结构会经 IPC 送到主进程，而 `llmConfigSchema` 是 zod 的 `object()`——
  * **zod 默认剥掉未知键**。所以只改这里不改 schema 的后果是：

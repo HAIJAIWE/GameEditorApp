@@ -2,9 +2,9 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import CeshuMachineDataPanel from '../../../src/renderer/src/components/CeshuMachineDataPanel'
-import { checkContract } from '../../../src/shared/ceshuContract'
-import { createDefaultCeshu } from '../../../src/shared/ceshuModel'
-import type { DataTableCheckResult } from '../../../src/shared/ceshuDataTableCheck'
+import { checkContract } from '../../../src/shared/ceshu/ceshuContract'
+import { createDefaultCeshu } from '../../../src/shared/ceshu/ceshuModel'
+import type { DataTableCheckResult } from '../../../src/shared/ceshu/ceshuDataTableCheck'
 import type { DataTypeDef } from '../../../src/shared/types'
 import { installMbApi, renderDom, type ApiStub, type RenderResult } from './render'
 

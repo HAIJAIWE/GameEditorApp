@@ -4,7 +4,7 @@ import { join } from 'node:path'
 
 import { expect, test } from '@playwright/test'
 import { launchApp, waitReady } from './helpers/app'
-import { CESHU_EXPORT_FORMATS } from '../../src/shared/ceshuConstants'
+import { CESHU_EXPORT_FORMATS } from '../../src/shared/ceshu/ceshuConstants'
 import ExcelJS from 'exceljs'
 
 interface CeshuExportResult {

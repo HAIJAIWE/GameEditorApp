@@ -12,7 +12,7 @@ import type { DataService } from '../../src/main/data/service'
 import type { TypeSchemaStore } from '../../src/main/schema/store'
 import { applyBatchOp, type BatchOp } from '../../src/shared/util/dataTableOps'
 import { TOOL_GROUP_MAP } from '../../src/shared/agent/toolGroups'
-import { BUILTIN_DATA_TYPES } from '../../src/shared/typeSchema'
+import { BUILTIN_DATA_TYPES } from '../../src/shared/schema/typeSchema'
 import type { BatchUpdateSummary, DataTypeDef, ItemRecord } from '../../src/shared/types'
 
 const ROLE = BUILTIN_DATA_TYPES.find((type) => type.id === 'role') as DataTypeDef

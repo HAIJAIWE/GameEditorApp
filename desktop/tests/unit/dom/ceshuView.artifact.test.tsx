@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import CeshuView from '../../../src/renderer/src/components/CeshuView'
 import { defineCeshuMenusPlugin } from '../../../src/renderer/src/plugins/ceshuMenusPlugin'
 import { defineCeshuViewsPlugin } from '../../../src/renderer/src/plugins/ceshuViewsPlugin'
-import { createDefaultCeshu } from '../../../src/shared/ceshuModel'
+import { createDefaultCeshu } from '../../../src/shared/ceshu/ceshuModel'
 import { PluginHost } from '../../../src/shared/plugin/host'
 import { installMbApi, renderDom, type ApiStub, type RenderResult } from './render'
 

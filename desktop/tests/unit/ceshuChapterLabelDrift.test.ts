@@ -3,7 +3,7 @@ import { join } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { CHAPTER_LABELS, CHAPTER_NAMES } from '../../src/shared/ceshuConstants'
+import { CHAPTER_LABELS, CHAPTER_NAMES } from '../../src/shared/ceshu/ceshuConstants'
 
 /**
  * 守卫：**源码里不得出现与 CHAPTER_LABELS 不一致的硬编码章节标签**。

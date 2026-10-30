@@ -3,8 +3,8 @@ import { act, type ReactElement } from 'react'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import ChapterForm from '../../../src/renderer/src/components/ChapterForm'
-import type { ChapterKey } from '../../../src/shared/ceshuConstants'
-import { createDefaultCeshu } from '../../../src/shared/ceshuModel'
+import type { ChapterKey } from '../../../src/shared/ceshu/ceshuConstants'
+import { createDefaultCeshu } from '../../../src/shared/ceshu/ceshuModel'
 import { installMbApi, renderDom, type RenderResult } from './render'
 
 /**

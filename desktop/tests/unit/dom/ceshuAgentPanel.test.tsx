@@ -3,7 +3,7 @@ import { act } from 'react'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import CeshuAgentPanel from '../../../src/renderer/src/components/CeshuAgentPanel'
-import { createDefaultCeshu } from '../../../src/shared/ceshuModel'
+import { createDefaultCeshu } from '../../../src/shared/ceshu/ceshuModel'
 import { installMbApi, renderDom, type ApiStub, type RenderResult } from './render'
 
 /**

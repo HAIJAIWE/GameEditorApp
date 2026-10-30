@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import { buildChapterPrompt } from '../../src/shared/ceshuAi'
-import { CHAPTER_KEYS, type ChapterKey } from '../../src/shared/ceshuConstants'
-import { CESHU_CHAPTER_FIELDS, resolveFieldMeta } from '../../src/shared/ceshuFields'
-import { createDefaultCeshu } from '../../src/shared/ceshuModel'
+import { buildChapterPrompt } from '../../src/shared/ceshu/ceshuAi'
+import { CHAPTER_KEYS, type ChapterKey } from '../../src/shared/ceshu/ceshuConstants'
+import { CESHU_CHAPTER_FIELDS, resolveFieldMeta } from '../../src/shared/ceshu/ceshuFields'
+import { createDefaultCeshu } from '../../src/shared/ceshu/ceshuModel'
 
 /**
  * 字段协作契约（人机协作写策划书的第一层）：

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-import type { CeshuSummary } from '../../../shared/ceshuConstants'
+import type { CeshuSummary } from '../../../shared/ceshu/ceshuConstants'
 import {
   TIMELINE_COLORS,
   TIMELINE_LEGEND,

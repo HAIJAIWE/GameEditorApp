@@ -5,7 +5,7 @@ import {
   FIELD_ACTION_LABELS,
   FIELD_ACTION_TITLES,
   buildFieldActionInstruction
-} from '../../src/shared/ceshuFieldAction'
+} from '../../src/shared/ceshu/ceshuFieldAction'
 
 describe('ceshuFieldAction：局部重生成动作词表', () => {
   it('四个动作均有标签、说明与任务指令（UI / 提示词不缺口）', () => {

@@ -7,7 +7,7 @@
  * 同时再导出 `FIELD_SPLITS`（由各 `schema.splits` 派生，覆盖全部 24 章），
  * 兼容旧 `ceshuFieldSplits` 目录的消费方（守卫测试 / ceshuFields 的 applySplits）。
  */
-import type { ChapterKey } from '../ceshuConstants'
+import type { ChapterKey } from '../ceshu/ceshuConstants'
 import type { ChapterSchema, ChapterFieldSplits } from './types'
 
 import { META_SCHEMA } from './meta'

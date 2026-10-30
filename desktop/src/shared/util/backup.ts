@@ -7,7 +7,7 @@
  * - 时间戳解析与命名独立成纯函数，不再用 `text.split(' - ')[1]` 从显示文本反推文件名；
  * - 列表项直接携带文件名与 ISO 时间，无需渲染层再拼/拆字符串。
  *
- * 说明：本模块不含 zod。仓库惯例是将 IPC 输入 schema 集中在 `src/shared/schemas.ts`
+ * 说明：本模块不含 zod。仓库惯例是将 IPC 输入 schema 集中在 `src/shared/schema/schemas.ts`
  * （该文件是全仓唯一导入 zod 的 shared 模块），故此处只导出类型与纯函数。
  */
 

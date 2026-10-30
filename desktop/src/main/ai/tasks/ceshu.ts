@@ -16,8 +16,8 @@
  */
 
 import type { DataTypeDef, QualityGateVerdict } from '../../../shared/types'
-import type { ChapterData, ChapterKey, CeshuDocument } from '../../../shared/ceshuConstants'
-import type { FieldAction } from '../../../shared/ceshuFieldAction'
+import type { ChapterData, ChapterKey, CeshuDocument } from '../../../shared/ceshu/ceshuConstants'
+import type { FieldAction } from '../../../shared/ceshu/ceshuFieldAction'
 import type { LlmUsage } from '../../../shared/config/llmConfig'
 import {
   buildChapterPrompt,
@@ -27,10 +27,10 @@ import {
   parseReviewResponse,
   finalizeReview,
   type CeshuReviewPayload
-} from '../../../shared/ceshuAi'
-import { buildCloneDecomposePrompt, parseCloneDecompose } from '../../../shared/ceshuClonePrompt'
-import { buildRoleTaskPrompt, parseRoleTaskPlan, taskRolesForDoc } from '../../../shared/ceshuTaskPrompt'
-import type { CeshuRole, CeshuTaskPlan } from '../../../shared/ceshuTasks'
+} from '../../../shared/ceshu/ceshuAi'
+import { buildCloneDecomposePrompt, parseCloneDecompose } from '../../../shared/ceshu/ceshuClonePrompt'
+import { buildRoleTaskPrompt, parseRoleTaskPlan, taskRolesForDoc } from '../../../shared/ceshu/ceshuTaskPrompt'
+import type { CeshuRole, CeshuTaskPlan } from '../../../shared/ceshu/ceshuTasks'
 import {
   DATA_GEN_ERROR_EMPTY,
   DATA_GEN_ERROR_NO_TYPE,
@@ -41,9 +41,9 @@ import {
   normalizeDataGenCandidates,
   resolveSelectedDataTypes,
   type CeshuDataGenResult
-} from '../../../shared/ceshuDataGen'
-import { computeChapterProgress } from '../../../shared/ceshuModel'
-import { validateCeshu } from '../../../shared/ceshuValidation'
+} from '../../../shared/ceshu/ceshuDataGen'
+import { computeChapterProgress } from '../../../shared/ceshu/ceshuModel'
+import { validateCeshu } from '../../../shared/ceshu/ceshuValidation'
 import { parseLlmJson } from '../../../shared/util/parseLlmJson'
 import { applyJudge, evaluateChapterDraft, evaluateDataCandidates } from '../../../shared/agent/qualityGate'
 import { runLlmJudge } from '../../agent/qualityJudge'

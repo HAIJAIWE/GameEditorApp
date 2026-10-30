@@ -1,4 +1,4 @@
-import { formulaToText, type AttrSystem } from '../../../shared/attrSystem'
+import { formulaToText, type AttrSystem } from '../../../shared/ceshu/attrSystem'
 
 /** 由属性系统生成「属性名 → 公式文本」映射（编辑前初始化，改名时同步） */
 export function textsOf(system: AttrSystem): Record<string, string> {

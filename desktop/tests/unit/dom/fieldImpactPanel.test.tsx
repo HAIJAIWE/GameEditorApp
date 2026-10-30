@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import ChapterForm from '../../../src/renderer/src/components/ChapterForm'
 import FieldImpactPanel from '../../../src/renderer/src/components/ceshu/FieldImpactPanel'
-import { createDefaultCeshu } from '../../../src/shared/ceshuModel'
+import { createDefaultCeshu } from '../../../src/shared/ceshu/ceshuModel'
 import { installMbApi, renderDom, type RenderResult } from './render'
 
 /**

@@ -1,4 +1,4 @@
-import type { CeshuChangeItem } from '../../../shared/ceshuDiff'
+import type { CeshuChangeItem } from '../../../shared/ceshu/ceshuDiff'
 
 export { toErrorMessage } from '../../../shared/util/errors'
 

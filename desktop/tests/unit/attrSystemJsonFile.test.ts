@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { exportAttrSystemJsonFile, importAttrSystemJsonFile } from '../../src/main/attr/attrSystemJsonFile'
-import { createDefaultAttrSystem } from '../../src/shared/attrSystem'
+import { createDefaultAttrSystem } from '../../src/shared/ceshu/attrSystem'
 
 function makeDir(): string {
   return mkdtempSync(join(tmpdir(), 'mb-attr-json-'))

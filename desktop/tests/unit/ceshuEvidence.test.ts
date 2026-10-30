@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
-import { checkLedger, checkPrototypeAcceptanceResults, checkTestCaseList, normalizeAcceptanceResult } from '../../src/shared/ceshuEvidence'
-import { createDefaultCeshu } from '../../src/shared/ceshuModel'
-import { validateCeshu } from '../../src/shared/ceshuValidation'
+import { checkLedger, checkPrototypeAcceptanceResults, checkTestCaseList, normalizeAcceptanceResult } from '../../src/shared/ceshu/ceshuEvidence'
+import { createDefaultCeshu } from '../../src/shared/ceshu/ceshuModel'
+import { validateCeshu } from '../../src/shared/ceshu/ceshuValidation'
 
 describe('checkTestCaseList：用例清单', () => {
   function docWithCases(rows: string[]) {

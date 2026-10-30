@@ -1,4 +1,4 @@
-import { getTypeById } from '../typeSchema'
+import { getTypeById } from '../schema/typeSchema'
 import type { DataTypeDef, ItemRecord } from '../types'
 
 /**

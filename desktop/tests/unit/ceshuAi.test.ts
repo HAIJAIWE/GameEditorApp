@@ -19,12 +19,12 @@ import {
   normalizeFullGenerateInput,
   parseReviewResponse,
   type CeshuAiReviewResult
-} from '../../src/shared/ceshuAi'
-import { genreReviewProfile, reviewProbeFor } from '../../src/shared/ceshuAiData'
+} from '../../src/shared/ceshu/ceshuAi'
+import { genreReviewProfile, reviewProbeFor } from '../../src/shared/ceshu/ceshuAiData'
 import { parseLlmJson } from '../../src/shared/util/parseLlmJson'
-import { CHAPTER_KEYS } from '../../src/shared/ceshuConstants'
-import { CESHU_CHAPTER_FIELDS } from '../../src/shared/ceshuFields'
-import { createDefaultCeshu, deriveRulesetId } from '../../src/shared/ceshuModel'
+import { CHAPTER_KEYS } from '../../src/shared/ceshu/ceshuConstants'
+import { CESHU_CHAPTER_FIELDS } from '../../src/shared/ceshu/ceshuFields'
+import { createDefaultCeshu, deriveRulesetId } from '../../src/shared/ceshu/ceshuModel'
 
 describe('成稿反审（7 项三级判定，2026-10-26 由 5 维度评分改造）', () => {
   it('章节摘要：仅标量真值、【标签】+ key: value、每值截断 60 字', () => {

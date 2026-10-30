@@ -7,7 +7,7 @@
  * - aiContext（AI 生成上下文）暂不迁移，留待 AI 阶段统一设计
  */
 
-import type { DataTypeDef, FieldType, TypeFieldDef } from './types'
+import type { DataTypeDef, FieldType, TypeFieldDef } from '../types'
 
 function field(name: string, label: string, type: FieldType, extra: Partial<TypeFieldDef> = {}): TypeFieldDef {
   return { name, label, type, editable: true, ...extra }

@@ -8,7 +8,7 @@
  * ceshuDemoPrompt / ceshuValidation 里各写各的）。
  */
 import { type CeshuColumnDef } from './ceshuConstants'
-import { isPlainObject } from './util/guards'
+import { isPlainObject } from '../util/guards'
 
 /** 浮点比较容差（数值复算、账本对账共用；防病态相等判定） */
 export const EPSILON = 1e-9

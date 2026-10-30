@@ -1,5 +1,5 @@
 import type { IpcHandlerDeps, IpcRegistrar, LlmShared } from '../ipc'
-import { llmConfigureInputSchema, llmStatusInputSchema, llmGenerateInputSchema, llmTestConnectionInputSchema } from '../../shared/schemas'
+import { llmConfigureInputSchema, llmStatusInputSchema, llmGenerateInputSchema, llmTestConnectionInputSchema } from '../../shared/schema/schemas'
 
 export function registerLlmIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm: LlmShared): void {
   const { llmClient } = deps

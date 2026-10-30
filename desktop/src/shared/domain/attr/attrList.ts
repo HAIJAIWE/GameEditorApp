@@ -1,5 +1,5 @@
 import { calculateAttributes } from './attrEngine'
-import type { AttrSystem, AttrType } from '../../attrSystem'
+import type { AttrSystem, AttrType } from '../../ceshu/attrSystem'
 
 /**
  * 条目级属性列表（job.attr_list 等 attrtable 字段）的编辑 / 保存 / 预览逻辑：

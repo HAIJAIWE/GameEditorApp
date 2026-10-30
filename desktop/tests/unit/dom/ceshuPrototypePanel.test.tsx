@@ -2,9 +2,9 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import CeshuPrototypePanel from '../../../src/renderer/src/components/CeshuPrototypePanel'
-import { createDefaultCeshu } from '../../../src/shared/ceshuModel'
-import { fingerprintCeshuDesign } from '../../../src/shared/ceshuPrototypeStale'
-import type { CeshuDocument } from '../../../src/shared/ceshuConstants'
+import { createDefaultCeshu } from '../../../src/shared/ceshu/ceshuModel'
+import { fingerprintCeshuDesign } from '../../../src/shared/ceshu/ceshuPrototypeStale'
+import type { CeshuDocument } from '../../../src/shared/ceshu/ceshuConstants'
 import { installMbApi, renderDom, type ApiStub, type RenderResult } from './render'
 
 /**

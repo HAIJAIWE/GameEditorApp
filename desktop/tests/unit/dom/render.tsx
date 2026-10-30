@@ -15,8 +15,8 @@
 import { act, type ReactElement } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 
-import { createDefaultCeshu } from '../../../src/shared/ceshuModel'
-import type { CeshuDocument } from '../../../src/shared/ceshuConstants'
+import { createDefaultCeshu } from '../../../src/shared/ceshu/ceshuModel'
+import type { CeshuDocument } from '../../../src/shared/ceshu/ceshuConstants'
 import type { AppContextValue } from '../../../src/renderer/src/plugins/appContext'
 
 declare global {

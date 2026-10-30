@@ -5,7 +5,7 @@
  * 外部 `import { BUILTIN_DATA_TYPES, getTypeById, getTypeByLegacyKey } from './typeSchema'` 不变。
  */
 
-import type { DataTypeDef } from './types'
+import type { DataTypeDef } from '../types'
 export * from './typeSchemaData'
 
 /** 按类型 id 查找（types 为运行期 schema 列表） */

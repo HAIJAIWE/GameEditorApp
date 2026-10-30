@@ -1,15 +1,15 @@
 import { useEffect, useMemo, useState, type ReactElement } from 'react'
 
-import { buildCeshuBundle } from '../../../../shared/ceshuBundle'
+import { buildCeshuBundle } from '../../../../shared/ceshu/ceshuBundle'
 import {
   BUNDLE_CONSUME_TASKS,
   BUNDLE_CONSUME_TASK_LABELS,
   BUNDLE_CONSUME_USAGE,
   buildBundleConsumePrompt,
   type BundleConsumeTask
-} from '../../../../shared/ceshuBundlePrompt'
-import { CHAPTER_LABELS, isChapterKey, type CeshuDocument, type ChapterKey } from '../../../../shared/ceshuConstants'
-import type { FieldReviewStatus } from '../../../../shared/ceshuFieldStatus'
+} from '../../../../shared/ceshu/ceshuBundlePrompt'
+import { CHAPTER_LABELS, isChapterKey, type CeshuDocument, type ChapterKey } from '../../../../shared/ceshu/ceshuConstants'
+import type { FieldReviewStatus } from '../../../../shared/ceshu/ceshuFieldStatus'
 import {
   parseCeshuIssues,
   parseCeshuPatch,
@@ -17,8 +17,8 @@ import {
   type CeshuIssueParseResult,
   type CeshuPatchItem,
   type CeshuPatchParseResult
-} from '../../../../shared/ceshuImportPatch'
-import { migrationSplitTitle, pendingSplitCount, planCeshuMigration } from '../../../../shared/ceshuMigrationPlan'
+} from '../../../../shared/ceshu/ceshuImportPatch'
+import { migrationSplitTitle, pendingSplitCount, planCeshuMigration } from '../../../../shared/ceshu/ceshuMigrationPlan'
 import { REVIEW_QUEUE_KEY_HINT, resolveReviewQueueKey } from '../../reviewQueueKeys'
 import CeshuModulePicker from '../CeshuModulePicker'
 import { cursorAfterAccept } from './reviewQueueAdvance'

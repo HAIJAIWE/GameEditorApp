@@ -1,7 +1,7 @@
 import type { CeshuDocument } from './ceshuConstants'
 import { fieldColumns } from './ceshuFields'
 import { column, toRowStrings } from './ceshuPipeRows'
-import { readText } from './util/readText'
+import { readText } from '../util/readText'
 
 /**
  * Demo 生成提示词构建（文档 → 单文件可玩 HTML）。

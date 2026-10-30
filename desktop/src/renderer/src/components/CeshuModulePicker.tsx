@@ -5,7 +5,7 @@ import {
   enabledModuleChapters,
   type CeshuDocument,
   type ChapterKey
-} from '../../../shared/ceshuConstants'
+} from '../../../shared/ceshu/ceshuConstants'
 
 /**
  * 系统模块勾选（2026-10-26，见 `docs/gdd-universal-core.md`）。

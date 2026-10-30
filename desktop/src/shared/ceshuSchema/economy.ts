@@ -1,5 +1,5 @@
-import type { ChapterTemplate } from '../ceshuTemplates'
-import type { ChapterData } from '../ceshuConstants'
+import type { ChapterTemplate } from '../ceshu/ceshuTemplates'
+import type { ChapterData } from '../ceshu/ceshuConstants'
 import type { ChapterSchema } from './types'
 import { f } from './types'
 

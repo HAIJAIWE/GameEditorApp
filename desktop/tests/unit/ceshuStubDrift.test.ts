@@ -2,13 +2,13 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
-import { CHAPTER_KEYS } from '../../src/shared/ceshuConstants'
+import { CHAPTER_KEYS } from '../../src/shared/ceshu/ceshuConstants'
 
 /**
  * preview-stub.js 章节列表漂移守卫。
  *
  * `preview/preview-stub.js` 是「纯浏览器预览桩」，它**手写了一份** `CHAPTER_KEYS`
- * 来给 DOC 每个章建空对象骨架。这份副本与 `src/shared/ceshuConstants.ts` 的
+ * 来给 DOC 每个章建空对象骨架。这份副本与 `src/shared/ceshu/ceshuConstants.ts` 的
  * `CHAPTER_KEYS` 没有任何编译期联动——历史上 P2 扩展设计补了 7 章后，stub 没同步，
  * 缺失的章 `doc[chapter] === undefined`，渲染层 `Object.keys(undefined)` 直接白屏，
  * 而这份断裂只有「打开预览」时才暴露，typecheck / 业务测试都抓不到。

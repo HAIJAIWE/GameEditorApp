@@ -8,7 +8,7 @@ import {
   formatPreviewNumber,
   type EquipPreviewItem
 } from '../../../shared/domain/attr/equipPreview'
-import type { AttrSystem } from '../../../shared/attrSystem'
+import type { AttrSystem } from '../../../shared/ceshu/attrSystem'
 
 /**
  * 装备预览视图：

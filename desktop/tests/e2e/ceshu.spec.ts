@@ -4,7 +4,7 @@ import { join } from 'node:path'
 
 import { expect, test } from '@playwright/test'
 import { launchApp, libraryDir, waitReady } from './helpers/app'
-import { CHAPTER_KEYS } from '../../src/shared/ceshuConstants'
+import { CHAPTER_KEYS } from '../../src/shared/ceshu/ceshuConstants'
 
 test('策划书：读取旧版文件 → 新建 → 编辑保存章节 → 磁盘落盘', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-ceshu-e2e-'))

@@ -1,10 +1,10 @@
-import type { CeshuDocument } from '../../../shared/ceshuConstants'
+import type { CeshuDocument } from '../../../shared/ceshu/ceshuConstants'
 import {
   CESHU_ROLE_LABELS,
   CESHU_ROLE_ORDER,
   renderRoleTasksMarkdown,
   type CeshuRole
-} from '../../../shared/ceshuTasks'
+} from '../../../shared/ceshu/ceshuTasks'
 
 /**
  * 岗位任务清单（Markdown 导出）。
@@ -17,7 +17,7 @@ export {
   CESHU_ROLE_ORDER,
   ROLE_CHAPTERS,
   type CeshuRole
-} from '../../../shared/ceshuTasks'
+} from '../../../shared/ceshu/ceshuTasks'
 
 export function renderCeshuRoleTasksMarkdown(doc: CeshuDocument, role: CeshuRole): string {
   return renderRoleTasksMarkdown(doc, role)

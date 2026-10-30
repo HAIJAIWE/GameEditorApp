@@ -1,16 +1,16 @@
 import ExcelJS from 'exceljs'
 
-import { CHAPTER_KEYS, CHAPTER_LABELS, type CeshuDocument, type ChapterData } from '../../../shared/ceshuConstants'
-import { CESHU_CHAPTER_FIELDS } from '../../../shared/ceshuFields'
-import { fieldStatusOf } from '../../../shared/ceshuFieldStatus'
-import { countFieldStatuses, formatFieldStatusSummary } from '../../../shared/ceshuFieldStatusStats'
-import { computeChapterProgress, isPlainObject } from '../../../shared/ceshuModel'
-import { validateCeshu } from '../../../shared/ceshuValidation'
+import { CHAPTER_KEYS, CHAPTER_LABELS, type CeshuDocument, type ChapterData } from '../../../shared/ceshu/ceshuConstants'
+import { CESHU_CHAPTER_FIELDS } from '../../../shared/ceshu/ceshuFields'
+import { fieldStatusOf } from '../../../shared/ceshu/ceshuFieldStatus'
+import { countFieldStatuses, formatFieldStatusSummary } from '../../../shared/ceshu/ceshuFieldStatusStats'
+import { computeChapterProgress, isPlainObject } from '../../../shared/ceshu/ceshuModel'
+import { validateCeshu } from '../../../shared/ceshu/ceshuValidation'
 import {
   groupValidationMessages,
   VALIDATION_SEVERITY_LABELS,
   type ValidationSeverity
-} from '../../../shared/ceshuValidationGroups'
+} from '../../../shared/ceshu/ceshuValidationGroups'
 
 import { classifySystems, formatFieldValue } from './common'
 import { readText } from '../../../shared/util/readText'

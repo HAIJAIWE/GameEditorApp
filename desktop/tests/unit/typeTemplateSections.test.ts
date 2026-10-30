@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
-import { buildFormLayout } from '../../src/shared/formSections'
-import { validateTypeSchema } from '../../src/shared/typeSchemaFile'
-import { TYPE_TEMPLATE_NAMES, TYPE_TEMPLATE_SECTIONS, TYPE_TEMPLATES } from '../../src/shared/typeTemplates'
+import { buildFormLayout } from '../../src/shared/schema/formSections'
+import { validateTypeSchema } from '../../src/shared/schema/typeSchemaFile'
+import { TYPE_TEMPLATE_NAMES, TYPE_TEMPLATE_SECTIONS, TYPE_TEMPLATES } from '../../src/shared/schema/typeTemplates'
 import type { DataTypeDef } from '../../src/shared/types'
 
 /**

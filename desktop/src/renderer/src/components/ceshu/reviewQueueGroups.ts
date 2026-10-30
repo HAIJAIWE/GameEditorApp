@@ -1,4 +1,4 @@
-import type { ChapterKey } from '../../../../shared/ceshuConstants'
+import type { ChapterKey } from '../../../../shared/ceshu/ceshuConstants'
 
 /**
  * 审阅队列按章节分组的纯逻辑（供 CeshuView 渲染与单测共用）。

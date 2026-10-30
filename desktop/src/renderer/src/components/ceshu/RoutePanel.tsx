@@ -1,7 +1,7 @@
 import { useMemo, type ReactElement } from 'react'
 
-import type { CeshuDocument } from '../../../../shared/ceshuConstants'
-import { analyzeParallelism, buildHandoffPlan, planHandoffDocs } from '../../../../shared/ceshuHandoff'
+import type { CeshuDocument } from '../../../../shared/ceshu/ceshuConstants'
+import { analyzeParallelism, buildHandoffPlan, planHandoffDocs } from '../../../../shared/ceshu/ceshuHandoff'
 
 /**
  * 开发路线面板。

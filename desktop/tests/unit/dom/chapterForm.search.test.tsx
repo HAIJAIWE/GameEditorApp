@@ -3,9 +3,9 @@ import { act } from 'react'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import ChapterForm from '../../../src/renderer/src/components/ChapterForm'
-import type { ChapterData, ChapterKey } from '../../../src/shared/ceshuConstants'
-import { CESHU_CHAPTER_FIELDS } from '../../../src/shared/ceshuFields'
-import { createDefaultCeshu } from '../../../src/shared/ceshuModel'
+import type { ChapterData, ChapterKey } from '../../../src/shared/ceshu/ceshuConstants'
+import { CESHU_CHAPTER_FIELDS } from '../../../src/shared/ceshu/ceshuFields'
+import { createDefaultCeshu } from '../../../src/shared/ceshu/ceshuModel'
 import { installMbApi, renderDom, type RenderResult } from './render'
 
 /**

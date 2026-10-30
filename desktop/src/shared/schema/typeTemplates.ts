@@ -1,4 +1,4 @@
-import type { DataTypeDef, FieldType, TypeFieldDef } from './types'
+import type { DataTypeDef, FieldType, TypeFieldDef } from '../types'
 
 /**
  * 字段结构编辑器内置模板。
@@ -110,7 +110,7 @@ export const TYPE_TEMPLATE_NAMES = Object.keys(TYPE_TEMPLATES)
  * 模板的「建议分区」——一键套用后给用户的**命名参考**。
  *
  * 定位：套用内置模板时，这些建议分区会**一并写进类型的 `sections`**，保存后条目表单即按它渲染
- * （`shared/formSections.ts::buildFormLayout` 里自定义分区的优先级高于内置 `FORM_GROUPS`）。
+ * （`shared/schema/formSections.ts::buildFormLayout` 里自定义分区的优先级高于内置 `FORM_GROUPS`）。
  * 本表是「模板 → 建议分组」的唯一数据源，保证一键套用后字段天然分成有名字的几组，
  * 避免 hp/atk/def 这类战斗数值被并进「基础信息」。
  *

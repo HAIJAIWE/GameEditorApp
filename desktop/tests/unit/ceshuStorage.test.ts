@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest'
 
 import { CeshuManager } from '../../src/main/ceshu/manager'
 import { CeshuStorage } from '../../src/main/ceshu/storage'
-import { buildProjectFolder } from '../../src/shared/ceshuProjectFolder'
+import { buildProjectFolder } from '../../src/shared/ceshu/ceshuProjectFolder'
 
 function makeDir(): string {
   return mkdtempSync(join(tmpdir(), 'mb-ceshu-'))

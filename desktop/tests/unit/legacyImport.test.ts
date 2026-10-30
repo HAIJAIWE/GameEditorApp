@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest'
 import { importLegacyDataFile, parseLegacyData } from '../../src/main/data/legacyImport'
 import type { ItemsRepository } from '../../src/main/data/repository'
 import { DataService } from '../../src/main/data/service'
-import { BUILTIN_DATA_TYPES } from '../../src/shared/typeSchema'
+import { BUILTIN_DATA_TYPES } from '../../src/shared/schema/typeSchema'
 import type { ItemRecord } from '../../src/shared/types'
 
 /** 与 DataService 单测同构的内存仓储（此处独立声明，避免测试间共享状态） */

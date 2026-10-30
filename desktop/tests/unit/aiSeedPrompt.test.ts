@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { buildAiSeedPrompt } from '../../src/shared/aiSeedPrompt'
+import { buildAiSeedPrompt } from '../../src/shared/ceshu/aiSeedPrompt'
 
 /** 逐字对齐 旧版 `ui/ceshu/home_view::_on_ai_send` 的 `guided_text` 括号引导段 */
 const GUIDE =

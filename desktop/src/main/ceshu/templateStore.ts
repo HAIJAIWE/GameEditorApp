@@ -14,8 +14,8 @@ import {
   type CeshuCustomTemplate,
   type CustomTemplateDraft,
   type CustomTemplateUpdate
-} from '../../shared/ceshuCustomTemplates'
-import { formatLocalTimestamp } from '../../shared/ceshuModel'
+} from '../../shared/ceshu/ceshuCustomTemplates'
+import { formatLocalTimestamp } from '../../shared/ceshu/ceshuModel'
 
 /**
  * 自定义模板存储：每个分类一个 JSON 文件（<dir>/<category>.json，结构 {"templates": [...]}），

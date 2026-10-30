@@ -11,7 +11,7 @@ import {
   type CeshuExportFormat,
   type ChapterData,
   type ChapterKey
-} from '../../../shared/ceshuConstants'
+} from '../../../shared/ceshu/ceshuConstants'
 import {
   computeChapterProgress,
   computeEnabledEditors,
@@ -19,28 +19,28 @@ import {
   getGddScope,
   resolveDocGameStyle,
   visibleChaptersForDoc
-} from '../../../shared/ceshuModel'
-import type { CeshuChangelog } from '../../../shared/ceshuDiff'
+} from '../../../shared/ceshu/ceshuModel'
+import type { CeshuChangelog } from '../../../shared/ceshu/ceshuDiff'
 import {
   CESHU_STAGE_LABELS,
   CESHU_STAGE_ORDER,
   isChapterVisibleInStage,
   type CeshuStage
-} from '../../../shared/ceshuStages'
+} from '../../../shared/ceshu/ceshuStages'
 import {
   buildChangelogHtml,
   buildChangelogMarkdown,
   buildChangelogText,
   buildValidationReportMarkdown
 } from '../../../shared/domain/ceshu/ceshuReports'
-import { buildReadinessReportMarkdown, type CeshuReadinessReport } from '../../../shared/ceshuReadiness'
-import { clearAiGenerated, markAiGenerated, readAiGenerated } from '../../../shared/ceshuAiMark'
-import { fieldStatusOf, setFieldStatuses, type FieldReviewStatus } from '../../../shared/ceshuFieldStatus'
-import type { FieldAction } from '../../../shared/ceshuFieldAction'
+import { buildReadinessReportMarkdown, type CeshuReadinessReport } from '../../../shared/ceshu/ceshuReadiness'
+import { clearAiGenerated, markAiGenerated, readAiGenerated } from '../../../shared/ceshu/ceshuAiMark'
+import { fieldStatusOf, setFieldStatuses, type FieldReviewStatus } from '../../../shared/ceshu/ceshuFieldStatus'
+import type { FieldAction } from '../../../shared/ceshu/ceshuFieldAction'
 import { clearFieldRequest } from '../ceshuFieldFocus'
-import { CESHU_CHAPTER_FIELDS } from '../../../shared/ceshuFields'
-import { applyCeshuPatch, type CeshuPatchItem } from '../../../shared/ceshuImportPatch'
-import type { CeshuAiGenerateResult } from '../../../shared/ceshuAi'
+import { CESHU_CHAPTER_FIELDS } from '../../../shared/ceshu/ceshuFields'
+import { applyCeshuPatch, type CeshuPatchItem } from '../../../shared/ceshu/ceshuImportPatch'
+import type { CeshuAiGenerateResult } from '../../../shared/ceshu/ceshuAi'
 import type { PluginHost } from '../../../shared/plugin/host'
 import type { DataTypeDef } from '../../../shared/types'
 

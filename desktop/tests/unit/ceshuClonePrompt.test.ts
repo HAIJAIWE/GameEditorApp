@@ -5,8 +5,8 @@ import {
   applyCloneDecompose,
   buildCloneDecomposePrompt,
   parseCloneDecompose
-} from '../../src/shared/ceshuClonePrompt'
-import { createDefaultCeshu } from '../../src/shared/ceshuModel'
+} from '../../src/shared/ceshu/ceshuClonePrompt'
+import { createDefaultCeshu } from '../../src/shared/ceshu/ceshuModel'
 
 /**
  * 复刻拆解（复刻单线 MVP）：提示词 → AI JSON → 立项一页 → 文档。

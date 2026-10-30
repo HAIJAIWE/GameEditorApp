@@ -7,7 +7,7 @@ import {
   equipRecordToItem,
   formatPreviewNumber
 } from '../../src/shared/domain/attr/equipPreview'
-import { createDefaultAttrSystem, defaultBaseValues, type AttrDefinition, type AttrSystem } from '../../src/shared/attrSystem'
+import { createDefaultAttrSystem, defaultBaseValues, type AttrDefinition, type AttrSystem } from '../../src/shared/ceshu/attrSystem'
 
 const system = createDefaultAttrSystem()
 

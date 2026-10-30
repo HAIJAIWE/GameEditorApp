@@ -1,10 +1,10 @@
 import { useState } from 'react'
 
-import { CHAPTER_KEYS, CHAPTER_LABELS, type CeshuDocument } from '../../../shared/ceshuConstants'
-import { CESHU_CHAPTER_FIELDS } from '../../../shared/ceshuFields'
-import { displayFieldValue } from '../../../shared/ceshuFieldDisplay'
-import { parseCeshuPatch, type CeshuPatchItem } from '../../../shared/ceshuImportPatch'
-import { visibleChaptersForDoc } from '../../../shared/ceshuModel'
+import { CHAPTER_KEYS, CHAPTER_LABELS, type CeshuDocument } from '../../../shared/ceshu/ceshuConstants'
+import { CESHU_CHAPTER_FIELDS } from '../../../shared/ceshu/ceshuFields'
+import { displayFieldValue } from '../../../shared/ceshu/ceshuFieldDisplay'
+import { parseCeshuPatch, type CeshuPatchItem } from '../../../shared/ceshu/ceshuImportPatch'
+import { visibleChaptersForDoc } from '../../../shared/ceshu/ceshuModel'
 import { toErrorMessage } from '../../../shared/util/errors'
 
 /**

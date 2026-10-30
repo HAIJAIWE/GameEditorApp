@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 
-import type { CeshuSummary } from '../../../shared/ceshuConstants'
+import type { CeshuSummary } from '../../../shared/ceshu/ceshuConstants'
 import type { PluginSidebarItem } from '../../../shared/plugin/types'
 import { resolveIconName } from '../../../shared/util/lucideIcons'
 import LucideIcon from './LucideIcon'

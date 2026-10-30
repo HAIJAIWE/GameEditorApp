@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { buildDemoPrompt } from '../../src/shared/ceshuDemoPrompt'
-import { createDefaultCeshu } from '../../src/shared/ceshuModel'
+import { buildDemoPrompt } from '../../src/shared/ceshu/ceshuDemoPrompt'
+import { createDefaultCeshu } from '../../src/shared/ceshu/ceshuModel'
 
 describe('buildDemoPrompt：文档 → Demo 提示词', () => {
   it('空文档也能产出可用提示词（规则区为空，硬约束齐全）', () => {

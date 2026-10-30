@@ -330,7 +330,7 @@ export class LlmClient {
      * 两端（`llmBootstrap.ts:18-34` 与此处）都写了这个耦合，改任一侧请同步另一侧。
      *
      * 本层**无法自行补救**：`undefined` 是「没有配置可判」的唯一载体，
-     * 补上就得改 IPC 形状（在 `shared/schemas.ts` 加字段），代价远大于收益。
+     * 补上就得改 IPC 形状（在 `shared/schema/schemas.ts` 加字段），代价远大于收益。
      * 故此处只做两件事：把依赖写明（后人不会误删本闸），并用单测锁死
      * 「`config === undefined` ⇒ `notConfigured` 且不发任何请求」
      * （见 `tests/unit/llmClient.test.ts` 的「未配置闸所依赖的跨层前提」组）。

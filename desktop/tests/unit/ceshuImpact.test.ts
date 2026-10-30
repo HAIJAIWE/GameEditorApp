@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { analyzeFieldImpact, renderFieldImpactMarkdown } from '../../src/shared/ceshuImpact'
-import { createDefaultCeshu } from '../../src/shared/ceshuModel'
+import { analyzeFieldImpact, renderFieldImpactMarkdown } from '../../src/shared/ceshu/ceshuImpact'
+import { createDefaultCeshu } from '../../src/shared/ceshu/ceshuModel'
 
 /**
  * 字段变更影响面：改一个字段时，哪些交接文档 / 断言 / 拆分字段 / 数据侧会跟着动。

@@ -1,4 +1,4 @@
-import { GAME_TERMS } from '../glossaryTerms'
+import { GAME_TERMS } from '../ceshu/glossaryTerms'
 
 /**
  * 字段 ID 建议（中文显示名 → 英文字段 ID）。
@@ -45,7 +45,7 @@ import { GAME_TERMS } from '../glossaryTerms'
 /**
  * TS 侧补充术语：旧版 `GAME_TERMS_CN` 缺失、但**代码库自身已确立**的命名。
  * 每一条都必须有据可依，不得凭个人偏好添加。
- * - `加成 → bonus`：依据 `src/shared/typeSchema.ts:62-65` 自身的字段名
+ * - `加成 → bonus`：依据 `src/shared/schema/typeSchema.ts:62-65` 自身的字段名
  *   `hp_bonus` / `mp_bonus` / `atk_bonus` / `def_bonus`（标签为「生命加成%」等），
  *   即代码库已用 `bonus` 表示「加成」。
  */

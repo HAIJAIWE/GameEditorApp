@@ -4,12 +4,12 @@ import {
   enabledModuleChapters,
   type CeshuDocument,
   type ChapterKey
-} from '../../../shared/ceshuConstants'
-import { fieldStatusOf } from '../../../shared/ceshuFieldStatus'
-import { countFieldStatuses, formatFieldStatusSummary } from '../../../shared/ceshuFieldStatusStats'
-import { CESHU_CHAPTER_FIELDS } from '../../../shared/ceshuFields'
-import { formatLocalTimestamp, getGameType, getGddScope } from '../../../shared/ceshuModel'
-import { validateCeshu } from '../../../shared/ceshuValidation'
+} from '../../../shared/ceshu/ceshuConstants'
+import { fieldStatusOf } from '../../../shared/ceshu/ceshuFieldStatus'
+import { countFieldStatuses, formatFieldStatusSummary } from '../../../shared/ceshu/ceshuFieldStatusStats'
+import { CESHU_CHAPTER_FIELDS } from '../../../shared/ceshu/ceshuFields'
+import { formatLocalTimestamp, getGameType, getGddScope } from '../../../shared/ceshu/ceshuModel'
+import { validateCeshu } from '../../../shared/ceshu/ceshuValidation'
 
 import {
   EMPTY_PLACEHOLDER,

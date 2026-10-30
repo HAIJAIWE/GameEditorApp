@@ -1,6 +1,6 @@
 import { readFile, rename, writeFile } from 'node:fs/promises'
 
-import { parseAttrSystemFile, serializeAttrSystem, type AttrSystem } from '../../shared/attrSystem'
+import { parseAttrSystemFile, serializeAttrSystem, type AttrSystem } from '../../shared/ceshu/attrSystem'
 
 /**
  * 属性系统 JSON 导入 / 导出：

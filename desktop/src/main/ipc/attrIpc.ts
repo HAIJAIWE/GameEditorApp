@@ -6,7 +6,7 @@ import {
   attrSystemJsonImportInputSchema,
   attrJsonDialogInputSchema,
   attrGameConfigExportInputSchema
-} from '../../shared/schemas'
+} from '../../shared/schema/schemas'
 import { exportAttrGameConfigFile } from '../attr/attrGameConfigExport'
 import { exportAttrSystemJsonFile, importAttrSystemJsonFile } from '../attr/attrSystemJsonFile'
 

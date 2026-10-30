@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
-import { CHAPTER_LABELS, type CeshuFieldDef, type ChapterData, type ChapterKey } from '../../../shared/ceshuConstants'
-import type { CeshuAiGenerateResult } from '../../../shared/ceshuAi'
-import { FIELD_ACTION_LABELS, type FieldAction } from '../../../shared/ceshuFieldAction'
-import { isPlainObject } from '../../../shared/ceshuModel'
-import { CESHU_CHAPTER_FIELDS, resolveFieldMeta } from '../../../shared/ceshuFields'
-import { isMachineDataField } from '../../../shared/ceshuStages'
-import { HANDOFF_DOCS } from '../../../shared/ceshuHandoff'
-import type { ChapterFieldStatus, FieldReviewStatus } from '../../../shared/ceshuFieldStatus'
-import { countFieldStatuses, formatFieldStatusSummary } from '../../../shared/ceshuFieldStatusStats'
+import { CHAPTER_LABELS, type CeshuFieldDef, type ChapterData, type ChapterKey } from '../../../shared/ceshu/ceshuConstants'
+import type { CeshuAiGenerateResult } from '../../../shared/ceshu/ceshuAi'
+import { FIELD_ACTION_LABELS, type FieldAction } from '../../../shared/ceshu/ceshuFieldAction'
+import { isPlainObject } from '../../../shared/ceshu/ceshuModel'
+import { CESHU_CHAPTER_FIELDS, resolveFieldMeta } from '../../../shared/ceshu/ceshuFields'
+import { isMachineDataField } from '../../../shared/ceshu/ceshuStages'
+import { HANDOFF_DOCS } from '../../../shared/ceshu/ceshuHandoff'
+import type { ChapterFieldStatus, FieldReviewStatus } from '../../../shared/ceshu/ceshuFieldStatus'
+import { countFieldStatuses, formatFieldStatusSummary } from '../../../shared/ceshu/ceshuFieldStatusStats'
 import {
   clearActiveCeshuField,
   consumeFieldRequest,
@@ -23,7 +23,7 @@ import {
   mergeTemplateByMode,
   type ChapterTemplate,
   type TemplateApplyMode
-} from '../../../shared/ceshuTemplates'
+} from '../../../shared/ceshu/ceshuTemplates'
 
 import { CeshuFieldControl, fieldValueToInput, inputToFieldValue, type FieldInput } from './CeshuFieldControl'
 import { AiFieldButton } from './AiFieldButton'

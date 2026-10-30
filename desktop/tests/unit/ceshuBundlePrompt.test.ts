@@ -4,9 +4,9 @@ import {
   BUNDLE_CONSUME_TASK_LABELS,
   BUNDLE_CONSUME_USAGE,
   buildBundleConsumePrompt
-} from '../../src/shared/ceshuBundlePrompt'
-import { buildCeshuBundle } from '../../src/shared/ceshuBundle'
-import { createDefaultCeshu } from '../../src/shared/ceshuModel'
+} from '../../src/shared/ceshu/ceshuBundlePrompt'
+import { buildCeshuBundle } from '../../src/shared/ceshu/ceshuBundle'
+import { createDefaultCeshu } from '../../src/shared/ceshu/ceshuModel'
 
 function makeBundle() {
   const doc = createDefaultCeshu({ scope: 'full', name: '测试游戏' })

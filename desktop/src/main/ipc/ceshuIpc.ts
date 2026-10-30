@@ -38,10 +38,10 @@ import {
   templatesListInputSchema,
   templatesSaveInputSchema,
   templatesUpdateInputSchema
-} from '../../shared/schemas'
-import { CHAPTER_LABELS, isChapterKey, type ChapterKey, type SystemEntry } from '../../shared/ceshuConstants'
+} from '../../shared/schema/schemas'
+import { CHAPTER_LABELS, isChapterKey, type ChapterKey, type SystemEntry } from '../../shared/ceshu/ceshuConstants'
 import type { DataTypeDef } from '../../shared/types'
-import { CESHU_CHAPTER_FIELDS } from '../../shared/ceshuFields'
+import { CESHU_CHAPTER_FIELDS } from '../../shared/ceshu/ceshuFields'
 import {
   cloneDecomposeTask,
   generateChapterTask,
@@ -50,20 +50,20 @@ import {
   generateRoleTasksTask,
   reviewTask
 } from '../ai/tasks/ceshu'
-import { CLONE_CONCEPT_CHAPTERS } from '../../shared/ceshuClonePrompt'
-import { checkContract } from '../../shared/ceshuContract'
+import { CLONE_CONCEPT_CHAPTERS } from '../../shared/ceshu/ceshuClonePrompt'
+import { checkContract } from '../../shared/ceshu/ceshuContract'
 import {
   checkDataTablePlan,
   parseDataTableRequirements,
   readDataTableRows,
   type DataTableActual
-} from '../../shared/ceshuDataTableCheck'
-import { applyDataTableScaffold, planDataTableScaffold } from '../../shared/ceshuDataTableScaffold'
-import { buildVersionDiff } from '../../shared/ceshuDiff'
+} from '../../shared/ceshu/ceshuDataTableCheck'
+import { applyDataTableScaffold, planDataTableScaffold } from '../../shared/ceshu/ceshuDataTableScaffold'
+import { buildVersionDiff } from '../../shared/ceshu/ceshuDiff'
 import { formatLocalTimestamp } from '../../shared/util/datetime'
-import { buildSystemConfirmResult } from '../../shared/ceshuSystemConfirm'
-import { computeReadiness } from '../../shared/ceshuReadiness'
-import { validateCeshu } from '../../shared/ceshuValidation'
+import { buildSystemConfirmResult } from '../../shared/ceshu/ceshuSystemConfirm'
+import { computeReadiness } from '../../shared/ceshu/ceshuReadiness'
+import { validateCeshu } from '../../shared/ceshu/ceshuValidation'
 import { exportCeshuDocument } from '../ceshu/export/exporter'
 import { exportHandoff } from '../ceshu/export/handoff'
 import { exportProjectFolder } from '../ceshu/export/projectFolder'

@@ -7,7 +7,7 @@ import {
   DATA_GEN_ERROR_NO_TYPE,
   summarizeCandidateItem,
   type CeshuDataGenResult
-} from '../../../shared/ceshuDataGen'
+} from '../../../shared/ceshu/ceshuDataGen'
 import { LLM_BULK_COUNT_THRESHOLD, isBulkLlmCall } from '../../../shared/agent/protocol'
 import { evaluateBudget, taskBudget } from '../../../shared/agent/budget'
 import { useStopIntent } from '../hooks/useStopIntent'

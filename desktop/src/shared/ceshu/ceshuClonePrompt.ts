@@ -1,7 +1,7 @@
 import type { CeshuDocument, ChapterData, ChapterKey } from './ceshuConstants'
 import { CESHU_CHAPTER_FIELDS } from './ceshuFields'
 import { chaptersUpToStage, isMachineDataField } from './ceshuStages'
-import { parseLlmJson } from './util/parseLlmJson'
+import { parseLlmJson } from '../util/parseLlmJson'
 
 /**
  * 复刻拆解（2026-10-26，见 docs/plan-clone-pipeline.md）。

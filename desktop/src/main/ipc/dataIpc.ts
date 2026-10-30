@@ -15,7 +15,7 @@ import {
   previewImportInputSchema,
   applyImportInputSchema,
   dataSnapshotInputSchema
-} from '../../shared/schemas'
+} from '../../shared/schema/schemas'
 import { buildReferenceReport } from '../../shared/util/references'
 import { importLegacyDataFile } from '../data/legacyImport'
 import { exportLegacyDataFile } from '../data/legacyExport'

@@ -2,8 +2,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import CeshuModulePicker from '../../../src/renderer/src/components/CeshuModulePicker'
-import { CHAPTER_LABELS, MODULE_CHAPTERS, UNIVERSAL_CORE_CHAPTERS } from '../../../src/shared/ceshuConstants'
-import { createDefaultCeshu } from '../../../src/shared/ceshuModel'
+import { CHAPTER_LABELS, MODULE_CHAPTERS, UNIVERSAL_CORE_CHAPTERS } from '../../../src/shared/ceshu/ceshuConstants'
+import { createDefaultCeshu } from '../../../src/shared/ceshu/ceshuModel'
 import { installMbApi, renderDom, type RenderResult } from './render'
 
 let view: RenderResult | null = null

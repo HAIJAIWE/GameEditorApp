@@ -69,7 +69,7 @@ export interface TypeFieldDef {
   refType?: string
 }
 
-/** 类型自定义分区定义（可选；存在时条目表单优先按它分组，见 shared/formSections.ts） */
+/** 类型自定义分区定义（可选；存在时条目表单优先按它分组，见 shared/schema/formSections.ts） */
 export interface TypeSectionDef {
   /** 分区标题（如「基础信息」「战斗属性」） */
   title: string

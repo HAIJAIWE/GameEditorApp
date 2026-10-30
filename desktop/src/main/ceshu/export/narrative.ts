@@ -4,8 +4,8 @@ import {
   type CeshuDocument,
   type ChapterData,
   type ChapterKey
-} from '../../../shared/ceshuConstants'
-import { formatLocalTimestamp, getGameType, getGddScope, deriveRulesetId } from '../../../shared/ceshuModel'
+} from '../../../shared/ceshu/ceshuConstants'
+import { formatLocalTimestamp, getGameType, getGddScope, deriveRulesetId } from '../../../shared/ceshu/ceshuModel'
 import {
   chapterHeading,
   classifySystems,

@@ -1,7 +1,7 @@
-import { CHAPTER_KEYS, CHAPTER_LABELS } from '../../ceshuConstants'
-import type { CeshuChangelog } from '../../ceshuDiff'
-import { groupValidationMessages, VALIDATION_SEVERITY_LABELS } from '../../ceshuValidationGroups'
-import type { ValidationSeverity } from '../../ceshuValidationGroups'
+import { CHAPTER_KEYS, CHAPTER_LABELS } from '../../ceshu/ceshuConstants'
+import type { CeshuChangelog } from '../../ceshu/ceshuDiff'
+import { groupValidationMessages, VALIDATION_SEVERITY_LABELS } from '../../ceshu/ceshuValidationGroups'
+import type { ValidationSeverity } from '../../ceshu/ceshuValidationGroups'
 
 /**
  * 策划书报告渲染纯逻辑（渲染层生成文本 → 主进程原子写盘）。

@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest'
 import { exportEngineData, type EngineTarget } from '../../src/main/engineExport/exporter'
 import { renderLuaGameData } from '../../src/main/engineExport/lua'
 import { toLuaLiteral } from '../../src/main/engineExport/luaLiteral'
-import { engineExportInputSchema } from '../../src/shared/schemas'
+import { engineExportInputSchema } from '../../src/shared/schema/schemas'
 import type { DataTypeDef, ItemRecord } from '../../src/shared/types'
 
 /** 最小 schema：role→roles、skill→skills（AC1 分组依据） */

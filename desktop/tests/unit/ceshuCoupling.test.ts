@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { COUPLING_RULES, couplingMessages, findCouplingGaps } from '../../src/shared/ceshuCoupling'
-import { createDefaultCeshu } from '../../src/shared/ceshuModel'
+import { COUPLING_RULES, couplingMessages, findCouplingGaps } from '../../src/shared/ceshu/ceshuCoupling'
+import { createDefaultCeshu } from '../../src/shared/ceshu/ceshuModel'
 
 /**
  * 字段联动：填了 A 却没填 B —— 完备度是绿的，但开不了工。

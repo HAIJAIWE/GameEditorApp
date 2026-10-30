@@ -13,4 +13,4 @@ export {
   type CeshuBundle,
   type CeshuBundleChapter,
   type CeshuBundleField
-} from '../../../shared/ceshuBundle'
+} from '../../../shared/ceshu/ceshuBundle'

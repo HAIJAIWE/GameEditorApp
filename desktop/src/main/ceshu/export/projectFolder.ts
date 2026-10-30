@@ -1,8 +1,8 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 
-import type { CeshuDocument } from '../../../shared/ceshuConstants'
-import { buildProjectFolder, projectFolderName } from '../../../shared/ceshuProjectFolder'
+import type { CeshuDocument } from '../../../shared/ceshu/ceshuConstants'
+import { buildProjectFolder, projectFolderName } from '../../../shared/ceshu/ceshuProjectFolder'
 
 /**
  * 把策划书写成一个「项目文件夹」：`config.json` + `design/<章>.md` + `data/<章>.json` + `tasks/<岗位>.md`。

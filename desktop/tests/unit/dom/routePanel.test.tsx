@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import RoutePanel from '../../../src/renderer/src/components/ceshu/RoutePanel'
-import { createDefaultCeshu } from '../../../src/shared/ceshuModel'
+import { createDefaultCeshu } from '../../../src/shared/ceshu/ceshuModel'
 import { installMbApi, renderDom, type RenderResult } from './render'
 
 /**

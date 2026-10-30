@@ -1,6 +1,6 @@
-import { SYSTEM_LABELS, type ChapterData } from '../../../shared/ceshuConstants'
-import { isPlainObject } from '../../../shared/ceshuModel'
-import { SYSTEM_CONFIG_SCHEMA } from '../../../shared/systemConfigSchema'
+import { SYSTEM_LABELS, type ChapterData } from '../../../shared/ceshu/ceshuConstants'
+import { isPlainObject } from '../../../shared/ceshu/ceshuModel'
+import { SYSTEM_CONFIG_SCHEMA } from '../../../shared/ceshu/systemConfigSchema'
 
 import { CeshuFieldControl, fieldValueToInput, inputToFieldValue } from './CeshuFieldControl'
 

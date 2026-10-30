@@ -7,7 +7,7 @@ import {
   analyzeChapterQuality,
   analyzeTextQuality,
   contentQualityIssues
-} from '../../src/shared/ceshuContentQuality'
+} from '../../src/shared/ceshu/ceshuContentQuality'
 
 /**
  * 单测约定（与 tsconfig.node.json 一致：无 DOM lib，不使用 window/document）。

@@ -1,8 +1,8 @@
 import { useMemo, type ReactElement } from 'react'
 
-import { CHAPTER_LABELS, type CeshuDocument, type ChapterKey } from '../../../../shared/ceshuConstants'
-import { fieldLabelOf } from '../../../../shared/ceshuFields'
-import { analyzeFieldImpact } from '../../../../shared/ceshuImpact'
+import { CHAPTER_LABELS, type CeshuDocument, type ChapterKey } from '../../../../shared/ceshu/ceshuConstants'
+import { fieldLabelOf } from '../../../../shared/ceshu/ceshuFields'
+import { analyzeFieldImpact } from '../../../../shared/ceshu/ceshuImpact'
 
 /**
  * 字段变更影响面面板（「改这里会影响什么」）。

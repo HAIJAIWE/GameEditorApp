@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import CeshuHomePanel from '../../../src/renderer/src/components/CeshuHomePanel'
-import type { CeshuSummary } from '../../../src/shared/ceshuConstants'
+import type { CeshuSummary } from '../../../src/shared/ceshu/ceshuConstants'
 import { renderDom, type RenderResult } from './render'
 
 /**

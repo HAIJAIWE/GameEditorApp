@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 
-import { getTypeByLegacyKey } from '../../shared/typeSchema'
+import { getTypeByLegacyKey } from '../../shared/schema/typeSchema'
 import type { DataTypeDef, ImportSummary } from '../../shared/types'
 import type { DataService, ImportRecord } from './service'
 

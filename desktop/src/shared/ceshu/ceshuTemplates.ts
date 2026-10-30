@@ -1,7 +1,7 @@
 import { CHAPTER_LABELS, isChapterKey, type ChapterKey } from './ceshuConstants'
 import { isPlainObject } from './ceshuModel'
 // 档 4：模板数据本体已随 templates 收进 ceshuSchema/<章>.ts，此处从 CHAPTER_SCHEMAS 聚合。
-import { CHAPTER_SCHEMAS } from './ceshuSchema'
+import { CHAPTER_SCHEMAS } from '../ceshuSchema'
 
 /**
  * 章节模板库纯逻辑：

@@ -1,4 +1,4 @@
-import type { CeshuSummary } from '../../ceshuConstants'
+import type { CeshuSummary } from '../../ceshu/ceshuConstants'
 
 /**
  * 版本时间线纯逻辑：

@@ -1,4 +1,4 @@
-import type { DataTypeDef, FieldType, TypeFieldDef } from './types'
+import type { DataTypeDef, FieldType, TypeFieldDef } from '../types'
 import { resolveDataTable, type DataTableActual, type DataTableCheckResult, type DataTableRequirement } from './ceshuDataTableCheck'
 
 /**

@@ -2,9 +2,9 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { ReadinessPanel } from '../../../src/renderer/src/components/ceshu/CeshuReportPanels'
-import type { ChapterKey } from '../../../src/shared/ceshuConstants'
-import { createDefaultCeshu } from '../../../src/shared/ceshuModel'
-import { computeReadiness } from '../../../src/shared/ceshuReadiness'
+import type { ChapterKey } from '../../../src/shared/ceshu/ceshuConstants'
+import { createDefaultCeshu } from '../../../src/shared/ceshu/ceshuModel'
+import { computeReadiness } from '../../../src/shared/ceshu/ceshuReadiness'
 import { renderDom, type RenderResult } from './render'
 
 /**

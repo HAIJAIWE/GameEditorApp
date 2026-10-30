@@ -9,7 +9,7 @@ import {
   type ChapterData,
   type ChapterKey,
   type GddScope
-} from '../../../shared/ceshuConstants'
+} from '../../../shared/ceshu/ceshuConstants'
 import {
   FULL_GEN_BUSINESS_MODELS,
   FULL_GEN_GAME_TYPES,
@@ -17,8 +17,8 @@ import {
   FULL_GEN_STYLES,
   buildFullGeneratePlan,
   type FullGeneratePlan
-} from '../../../shared/ceshuAi'
-import { getGddScope, isPlainObject } from '../../../shared/ceshuModel'
+} from '../../../shared/ceshu/ceshuAi'
+import { getGddScope, isPlainObject } from '../../../shared/ceshu/ceshuModel'
 import { evaluateBudget, taskBudget } from '../../../shared/agent/budget'
 import type { LlmJudgeVerdict } from '../../../shared/types'
 import { toErrorMessage } from '../../../shared/util/errors'
