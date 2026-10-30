@@ -236,6 +236,30 @@ describe('AgentBrainService：M3 档位路由装配', () => {
     // 增量（turns.jsonl，供 resumeHistory）也带附件
     expect(appended[0]?.find((message) => message.role === 'user')).toMatchObject({ attachments: [file] })
   })
+
+  it('恢复会话：历史附件以「【历史附件】」路径清单注入（只给路径，不内联内容）', async () => {
+    const file = { name: 'old.md', path: '/lib/attachments/old.md', mime: 'text/markdown', bytes: 10 }
+    const sessionStore = {
+      readTurns: () => [
+        { type: 'turn', sessionId: 's1', messages: [{ role: 'user', content: '旧消息', attachments: [file] }] }
+      ],
+      save: async () => undefined,
+      recordRunStats: async () => undefined,
+      recordEvents: async () => undefined,
+      appendTurn: async () => undefined
+    } as unknown as AgentSessionStore
+
+    const { transport, requests } = capturingTransport()
+    const service = new AgentBrainService({ dispatcher: makeDispatcher(), transport, sessionStore })
+    await service.chat('继续', { resumeHistory: true, context: { sessionId: 's1' } })
+
+    const text = systemText(requests[0] as BrainLlmRequest)
+    expect(text).toContain('【历史附件】')
+    expect(text).toContain('old.md')
+    expect(text).toContain('/lib/attachments/old.md')
+    // 只给路径：历史附件的内容不内联（此文件也不存在，读不到）
+    expect(text).not.toContain('内容：')
+  })
 })
 
 /* ---- 子智能体注册表（Slice 40 继续对话：send / stop） ---- */

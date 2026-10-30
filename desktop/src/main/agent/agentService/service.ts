@@ -84,6 +84,43 @@ async function buildAttachmentBlock(attachments: readonly DigitalAttachment[]): 
   return `【附件】用户随消息附带了以下文件（文本类已内联内容，其余可按路径用文件工具读取）：\n${parts.join('\n')}`
 }
 
+/** 历史附件清单上限（只列最近的这些，避免系统提示词随会话无限增长） */
+const HISTORY_ATTACHMENT_LIMIT = 20
+
+/**
+ * 从恢复的历史消息里收集附件（只取 user 消息），生成「【历史附件】」路径清单。
+ *
+ * **只列路径、不内联内容**：历史附件的内容可能很多，重放会撑爆上下文；
+ * 智能体需要时可用文件工具按路径读取。按路径去重（重复出现时移到末尾，保留最近顺序）。
+ */
+function buildHistoryAttachmentBlock(priorMessages: readonly Record<string, unknown>[]): string | null {
+  const byPath = new Map<string, DigitalAttachment>()
+  for (const message of priorMessages) {
+    if (message.role !== 'user') continue
+    const attachments = message.attachments
+    if (!Array.isArray(attachments)) continue
+    for (const raw of attachments) {
+      if (raw === null || typeof raw !== 'object') continue
+      const record = raw as Record<string, unknown>
+      const name = typeof record['name'] === 'string' ? record['name'] : ''
+      const path = typeof record['path'] === 'string' ? record['path'] : ''
+      if (name === '' || path === '') continue
+      // 去重并保留最近顺序：先删再塞，Map 的插入顺序即「最近」
+      byPath.delete(path)
+      byPath.set(path, {
+        name,
+        path,
+        mime: typeof record['mime'] === 'string' ? record['mime'] : 'application/octet-stream',
+        bytes: typeof record['bytes'] === 'number' && Number.isFinite(record['bytes']) ? record['bytes'] : 0
+      })
+    }
+  }
+  if (byPath.size === 0) return null
+  const files = [...byPath.values()].slice(-HISTORY_ATTACHMENT_LIMIT)
+  const lines = files.map((file) => `- ${file.name}（${file.path}，${formatAttachmentSize(file.bytes)}）`)
+  return `【历史附件】本会话此前附带过以下文件（仅列路径，内容未内联；需要时用文件工具按路径读取）：\n${lines.join('\n')}`
+}
+
 /** 把技能调度器适配为 Brain 的工具执行器 */
 export function createDispatcherToolRunner(dispatcher: SkillDispatcher): BrainToolRunner {
   return {
@@ -159,6 +196,17 @@ export class AgentBrainService {
     // 新一轮：清空上一轮子智能体注册表（见字段注释的 id 碰撞说明）
     this.subagents.clear()
 
+    // E3-2：为本次对话轮次补一个会话 id，使操作记录器与回滚技能能按「这一轮」分组
+    const context: SkillExecutionContext = { ...(options.context ?? {}) }
+    if (typeof context.sessionId !== 'string' || context.sessionId.trim() === '') {
+      context.sessionId = this.nextSessionId()
+    }
+    // Slice 34：从轮次日志恢复历史（需调用方传稳定 sessionId；无历史则为空）
+    const priorMessages =
+      options.resumeHistory === true && this.deps.sessionStore !== undefined
+        ? deriveMessagesFromTurns(this.deps.sessionStore.readTurns(context.sessionId))
+        : []
+
     const memoryBlock = await buildMemoryBlock(this.deps.memoryStore, input)
     const extraBlocks: string[] = []
     if (memoryBlock !== null) extraBlocks.push(memoryBlock)
@@ -187,6 +235,9 @@ export class AgentBrainService {
     if (options.attachments !== undefined && options.attachments.length > 0) {
       extraBlocks.push(await buildAttachmentBlock(options.attachments))
     }
+    // 历史附件（恢复会话时）：只给路径，不重放内容——避免上下文随历史膨胀；需要时智能体按路径读取
+    const historyAttachmentBlock = buildHistoryAttachmentBlock(priorMessages)
+    if (historyAttachmentBlock !== null) extraBlocks.push(historyAttachmentBlock)
     const systemPrompts = buildSystemPrompts({
       // M2/G7 + M3/DD-3：注入**按场景分组、按档位限量**的紧凑能力目录（每工具一行）
       capabilityCatalog: face.catalog,
@@ -199,16 +250,6 @@ export class AgentBrainService {
       options.preExecReview ??
       this.deps.preExecReview ??
       (isPreReviewEnabled() ? makePreExecReview(transport) : undefined)
-    // E3-2：为本次对话轮次补一个会话 id，使操作记录器与回滚技能能按「这一轮」分组
-    const context: SkillExecutionContext = { ...(options.context ?? {}) }
-    if (typeof context.sessionId !== 'string' || context.sessionId.trim() === '') {
-      context.sessionId = this.nextSessionId()
-    }
-    // Slice 34：从轮次日志恢复历史（需调用方传稳定 sessionId；无历史则为空）
-    const priorMessages =
-      options.resumeHistory === true && this.deps.sessionStore !== undefined
-        ? deriveMessagesFromTurns(this.deps.sessionStore.readTurns(context.sessionId))
-        : []
     const result = await runBrainLoop({
       input,
       systemPrompts,
