@@ -77,6 +77,7 @@ export function registerAgentIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
               ...(llmCall.config !== undefined ? { config: llmCall.config } : {}),
               ...(llmCall.apiKey !== undefined ? { apiKey: llmCall.apiKey } : {}),
               ...(req.preset !== undefined ? { preset: req.preset } : {}),
+              ...(req.goal !== undefined ? { goal: req.goal } : {}),
               signal,
           onEvent: (payload) => {
             event.sender.send('agent:event', payload)

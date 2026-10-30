@@ -151,6 +151,21 @@ describe('AgentBrainService：M3 档位路由装配', () => {
     const text2 = systemText(requests[1] as BrainLlmRequest)
     expect(text2).not.toContain('【智能体预设】')
   })
+
+  it('本轮目标（GoalBar）注入系统提示词「【本轮目标】…」；空串/未传不注入', async () => {
+    const { transport, requests } = capturingTransport()
+    const service = new AgentBrainService({ dispatcher: makeDispatcher(), transport })
+
+    await service.chat('帮我看看战斗系统', { goal: '把战斗公式收敛到 3 个可调参数' })
+    const text = systemText(requests[0] as BrainLlmRequest)
+    expect(text).toContain('【本轮目标】')
+    expect(text).toContain('把战斗公式收敛到 3 个可调参数')
+
+    // 空串视为未填，不注入目标段（保持提示词干净）
+    await service.chat('随便聊聊', { goal: '   ' })
+    const text2 = systemText(requests[1] as BrainLlmRequest)
+    expect(text2).not.toContain('【本轮目标】')
+  })
 })
 
 /* ---- 子智能体注册表（Slice 40 继续对话：send / stop） ---- */

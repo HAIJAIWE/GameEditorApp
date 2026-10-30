@@ -153,6 +153,65 @@
   width: 30px;
   height: 30px;
 }
+/* 停止「确认态」（二次确认已 arm）：描边转强调色，提示「再点一次即停止」 */
+.dsh-composer-stop-armed {
+  border-color: var(--change-delete, #e5484d);
+  color: var(--change-delete, #e5484d);
+  background: color-mix(in srgb, var(--change-delete, #e5484d) 10%, transparent);
+}
+/* 运行中：发送键位置显示旋转 spinner（对齐 dsh InputState.phase 'sending'），
+   明确「本轮正在跑、不是卡死」。spinner 用强调色圆环 + 旋转动画。 */
+.dsh-composer-spinner {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  border: 2px solid color-mix(in srgb, var(--text-secondary) 30%, transparent);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: dsh-spin 0.7s linear infinite;
+}
+@keyframes dsh-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 本轮目标条（对齐 dsh GoalBar）：输入框上方一行意图锚点，随每次发送发给主进程 */
+.dsh-goal-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border: 0.5px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg-hover) 50%, transparent);
+}
+.dsh-goal-icon {
+  flex: 0 0 auto;
+  color: var(--text-muted);
+}
+.dsh-goal-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font-family: inherit;
+  font-size: calc(12px * var(--ui-font-scale));
+  line-height: 1.4;
+}
+.dsh-goal-input::placeholder {
+  color: var(--text-muted);
+}
+.dsh-goal-input:disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+.dsh-goal-bar:focus-within {
+  border-color: var(--accent);
+}
 
 /* 框外统计行：阅读权重最低，只占一行、数字等宽（避免刷新时左右跳动） */
 .dsh-composer-stats {

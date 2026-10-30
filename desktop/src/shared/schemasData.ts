@@ -619,7 +619,14 @@ export const agentChatInputSchema = z.object({
    * 智能体预设 id（借 dsh agent-preset 设计；来自 `shared/agent/presets.ts` 的 `AGENT_PRESETS`）。
    * 渲染层开聊前选定；主进程据此注入角色定位 system prompt。未知 id 静默忽略。
    */
-  preset: z.string().min(1).max(64).optional()
+  preset: z.string().min(1).max(64).optional(),
+  /**
+   * 本轮目标（对齐 dsh GoalBar）：用户在输入框上方的目标条里填的一句话，
+   * 随每次 `chat` 一起发往主进程，注入为系统提示词的一段「本轮目标」。
+   * 可选、纯展示性约束——不阻断对话，也不强制模型遵守；仅作为意图锚点。
+   * 空串视为未填。
+   */
+  goal: z.string().max(500).optional()
 })
 
 /** Agent Brain：对运行中的子智能体「插话」（push 一条消息进它的收件箱） */

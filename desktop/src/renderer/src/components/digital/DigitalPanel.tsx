@@ -65,7 +65,7 @@ interface ChatApi {
    * 读取 `input`/`runId`，`preset` 为 **[PLACEHOLDER]** —— 后端消费预设做角色路由的接线待补，
    * 渲染层先把选择带上，避免后续再改契约形状。
    */
-  chat: (req: { input: string; runId?: string; preset?: string }) => Promise<{ text: string }>
+  chat: (req: { input: string; runId?: string; preset?: string; goal?: string }) => Promise<{ text: string }>
   respondApproval: (req: { requestId: string; approved: boolean }) => Promise<{ ok: boolean }>
   respondInteraction: (req: {
     requestId: string
@@ -151,6 +151,13 @@ export default function DigitalPanel({
     [conversationStore]
   )
   const [input, setInput] = useState('')
+  /**
+   * 本轮目标（对齐 dsh GoalBar）：输入框上方目标条里的一句话，随每次发送一起发给主进程，
+   * 注入为系统提示词的「本轮目标」。跨轮持续生效（目标条不清空，除非新建对话）；
+   * 空串视为未填。用本地 state（与 `preset`/`input` 同列），不进面板 reducer——
+   * 它不被脑事件驱动，只是会话级意图锚点。
+   */
+  const [goal, setGoal] = useState('')
   /** 斜杠命令 / @ 引用菜单的当前高亮项（两者互斥，共用同一索引；输入变化时重置为 0） */
   const [commandIndex, setCommandIndex] = useState(0)
   /** `@` 引用候选：当前游戏库的数据表类型（首次输入 `@` 时懒加载） */
@@ -326,11 +333,28 @@ export default function DigitalPanel({
       .catch(() => undefined)
   }, [input])
 
+  /**
+   * 「停止」二次确认（对齐 dsh JobView 的两段式 kill：先 arm 再确认）。
+   * 第一次点只把按钮切到「再点一次确认」，3 秒内不点则自动解除；第二次点才真正取消本轮。
+   * 状态声明提前到 `submitText` 之前：新一轮发送时要顺手解除上一轮可能残留的确认态。
+   */
+  const [stopArmed, setStopArmed] = useState(false)
+  const stopArmTimer = useRef<number | null>(null)
+  const clearStopArm = useCallback((): void => {
+    if (stopArmTimer.current !== null) {
+      window.clearTimeout(stopArmTimer.current)
+      stopArmTimer.current = null
+    }
+  }, [])
+
   /** 提交一段文本（输入框发送与外部播种共用；空文本或正在运行则忽略） */
   const submitText = useCallback(
     (raw: string): void => {
       const text = raw.trim()
       if (text === '' || running) return
+      // 新一轮开始：解除上一轮可能残留的「停止确认态」，避免新按钮一出现就是红色警告
+      clearStopArm()
+      setStopArmed(false)
       setLocalError(null)
       setInput('')
       // 本轮改动卡的锚点：先清掉上一轮的结果，避免运行中看到旧卡
@@ -341,7 +365,7 @@ export default function DigitalPanel({
       const runId = `run_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
       activeRunId.current = runId
       void api
-        .chat({ input: text, runId, preset })
+        .chat({ input: text, runId, preset, goal })
         .catch((error: unknown) => {
           setLocalError(toErrorMessage(error))
         })
@@ -349,11 +373,11 @@ export default function DigitalPanel({
           if (activeRunId.current === runId) activeRunId.current = null
         })
     },
-    [running, api, preset, dispatch]
+    [running, api, preset, goal, dispatch, clearStopArm]
   )
 
   /** 用户点「停止」：让循环优雅中止并保留已产出的部分结果 */
-  const handleStop = (): void => {
+  const handleStop = useCallback((): void => {
     const runId = activeRunId.current
     setLocalError(null)
     // 走通用取消通道（对话循环与单发 AI 共用一条，见 `main/task/taskRegistry.ts`）
@@ -365,7 +389,20 @@ export default function DigitalPanel({
       .catch((error: unknown) => {
         setLocalError(toErrorMessage(error))
       })
-  }
+  }, [])
+
+  /** 停止按钮点击：第一次 arm（3 秒自动解除），第二次才真正取消本轮 */
+  const onStopClick = useCallback((): void => {
+    if (stopArmed) {
+      clearStopArm()
+      setStopArmed(false)
+      handleStop()
+    } else {
+      setStopArmed(true)
+      clearStopArm()
+      stopArmTimer.current = window.setTimeout(() => setStopArmed(false), 3000)
+    }
+  }, [stopArmed, clearStopArm, handleStop])
 
   /** 运行中（含等待确认/回答）：状态行要显示跳动的时间 */
   const busy =
@@ -553,6 +590,8 @@ export default function DigitalPanel({
       dispatch({ kind: 'hydrate', history: [] })
       setSessionHint(null)
       setInput('')
+      // 新对话清空目标条（目标随会话走，不是一行消息的附属）
+      setGoal('')
       // 新对话不再展示上一轮的改动卡（`turnStartedAt` 留给下一次发送覆盖，无需在此清空）
       setTurnChanges([])
     } catch (error: unknown) {
@@ -1105,6 +1144,27 @@ export default function DigitalPanel({
         style={composerTakeover === null ? undefined : { display: 'none' }}
       >
         <div className="dsh-composer-box">
+          {/* 本轮目标条（对齐 dsh GoalBar）：一句话意图锚点，随每次发送发给主进程注入系统提示词。
+              空串视为未填；跨轮持续生效，新建对话才清空。 */}
+          <div className="dsh-goal-bar" data-testid="digital-goal-bar">
+            <LucideIcon name="target" size={14} className="dsh-goal-icon" aria-hidden />
+            <input
+              type="text"
+              className="dsh-goal-input"
+              data-testid="digital-goal-input"
+              placeholder="本轮目标（可选，随对话一起发给智能体）"
+              value={goal}
+              disabled={running}
+              onChange={(event) => setGoal(event.target.value)}
+              onKeyDown={(event) => {
+                // 目标条里按 Enter 不换行、也不发送——它是单独的一行意图，避免误触提交
+                if (event.key === 'Enter') {
+                  event.preventDefault()
+                  inputRef.current?.focus()
+                }
+              }}
+            />
+          </div>
           <textarea
             ref={inputRef}
             className="dsh-composer-input"
@@ -1294,13 +1354,18 @@ export default function DigitalPanel({
               {running && (
                 <button
                   type="button"
-                  className="dsh-composer-icon dsh-composer-stop"
+                  className={`dsh-composer-icon dsh-composer-stop${stopArmed ? ' dsh-composer-stop-armed' : ''}`}
                   data-testid="digital-stop"
-                  title="停止本轮（已产出的结果会保留）"
-                  aria-label="停止"
-                  onClick={handleStop}
+                  data-armed={stopArmed ? 'true' : 'false'}
+                  title={stopArmed ? '再点一次即可停止本轮' : '停止本轮（已产出的结果会保留）'}
+                  aria-label={stopArmed ? '确认停止' : '停止'}
+                  onClick={onStopClick}
                 >
-                  <LucideIcon name="x" size={16} />
+                  {stopArmed ? (
+                    <LucideIcon name="alert-triangle" size={14} />
+                  ) : (
+                    <span className="dsh-composer-spinner" aria-hidden />
+                  )}
                 </button>
               )}
               <button

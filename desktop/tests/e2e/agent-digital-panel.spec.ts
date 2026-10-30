@@ -263,6 +263,8 @@ test('智能体面板：运行中点「停止」→ 打断在途调用、给出�
     // 先确认桩已收到请求：否则「停止」会扑空成 cancelled:false，用例就成了空转
     await expect.poll(() => stub.hits(), { timeout: 10_000 }).toBeGreaterThan(0)
     await expect(window.getByTestId('digital-stop')).toBeVisible()
+    // 停止是二次确认（对齐 dsh 两段式 kill）：第一次点只 arm，第二次点才真正取消
+    await window.getByTestId('digital-stop').click()
     await window.getByTestId('digital-stop').click()
 
     /*
@@ -306,6 +308,8 @@ test('智能体面板：等待危险确认时点「停止」→ 立刻中止，�
     await expect(window.getByTestId('digital-status')).toHaveText('等待确认')
 
     await expect(window.getByTestId('digital-stop')).toBeVisible()
+    // 二次确认：第一次 arm、第二次真正取消
+    await window.getByTestId('digital-stop').click()
     await window.getByTestId('digital-stop').click()
 
     await expect(window.getByTestId('digital-terminated')).toContainText('已按要求停止', { timeout: 4000 })

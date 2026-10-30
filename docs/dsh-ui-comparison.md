@@ -172,15 +172,17 @@ dsh 的 UI 成熟在**两件事**：① **typed slot 组合**（父级声明扩�
 - **ContextMeter 令牌环（第二轮）**：输入区统计行行首嵌圆环，用 `AgentRunStats` 里**真实累计**的 `prompt/completion/total` 画「已用 / 上下文上限」，hover 浮出分解卡；上限取 `MODEL_CONTEXT_WINDOWS`（各模型**公开发布规格**，非运行时假探测），不在表里回落默认值。`data-testid: digital-context-meter`。
 - **「新建对话」危险确认（第二轮，对齐 dsh RiskConfirmation）**：删按钮（trash）直接弹确认框（清空并新建 / 取消），误触不再丢活跃会话。说明：agent 工具执行的风险审批（`DigitalApproval` + `TOOL_RISK_MAP`/`RISK_LEVEL`）之前就已存在；本次补的是**用户侧破坏性动作**的确认（我们的命令集全是良性 UI 动作，没有可映射的高危命令，故不做假风险徽标）。`data-testid: digital-newchat-confirm(-overlay/-cancel)`。
 
+**第三轮（本次，对齐 dsh 之前「后端依赖」误判的项）**：
+- **本轮目标栏（GoalBar）** —— 之前误判为「无 `goal` 字段、做出来必是假」。实际可以诚实做：渲染层在输入框上方放一条可编辑目标（`digital-goal-input`），每次发送随 `agent:chat` 的 `goal` 字段上送；IPC 收到后转交 `AgentBrainService.chat({ goal })`，`service.ts` 把非空目标作为一段「【本轮目标】…」注入系统提示词（`extraBlocks`）。目标跨轮持续生效，新建对话才清空。dsh 的 `GoalSnapshot{id,revision,objective,...}` 完整版我们没做（无后端持久化），但「填一句话当意图锚点」这个**核心能力是真的**。`data-testid: digital-goal-bar / digital-goal-input`。
+- **「停止」二次确认（两段式 kill）** —— 之前误判为「无 `killJob`/`jobId` 概念」。其实我们的取消通道（`window.mbApi.task.cancel`）是真实存在的，缺的只是**前端防误触的二次确认**。做法对齐 dsh JobView 的 `KillState`：第一次点只把停止按钮切到「再点一次确认」（`data-armed="true"`、图标转方块、描边转红），3 秒内不点自动解除；第二次点才真正调 `handleStop` → `task.cancel`。运行结束（stop/完成/出错）自动解除 armed，避免下一轮带着旧态。全部走既有真实取消链路，无假按钮。`data-testid: digital-stop`（`data-armed` 属性）。
+- **发送中 spinner** —— 运行中停止按钮内显示旋转 spinner（对应 dsh `InputState.phase: 'sending'`），明确「本轮在跑、不是卡死」。只读态之前已有（输入框 `disabled={running}`），本次补的是视觉旋转指示。纯 CSS 动画，无新增数据依赖。`data-testid: digital-stop` 内含 `.dsh-composer-spinner`。
+- **结构化问题 composer** —— 经核查，`DigitalPanel.tsx` 里**早已实现**（`interaction_required` 事件 → `digital-interaction` 渲染确认按钮与多问题表单 `digital-multi-form`/`digital-multi-option`/`digital-multi-input`，数据模型 `SkillInteraction.questions` 端到端存在），不属 gap，移出列表。
+
 **还没对齐的（下一步候选，按成本/价值分层）**：
 - **纯视觉 / 低成本（优先）**：
   - 轨迹表格无斑马纹 → dsh 用 hover `rgba(38,49,72,.06)` + 选中中性填充（不用蓝色文字）；我们目前行样式偏素，需补 hover/选中。（注：行 hover 已在第二轮补 `--bg-hover`，差的是「选中态」中性填充。）
-  - 发送中 spinner / steer-queue / adjudicating 只读态按钮样式：dsh 有 `sending`/`steering`/`queued` 三态，我们循环未建模这些运行态，暂无数据可渲染。
-- **数据/后端依赖（较大，需先定契约 —— 做出来必是假按钮，先别动）**：
-  - jobs 两次点击停止（全代码无 `killJob`/`jobId`/`cancelJob`，无 jobs 概念）。
-  - 目标栏内联编辑（panel/conversationStore 无 `goal`/`objective` 字段）。
-  - 结构化问题 composer（structured question）。
-  - 附件缩略图/进度/lightbox（shared/agent 与 digital 组件无 attachment 数据模型）。
+- **数据/后端依赖（仅剩这一项）**：
+  - 附件缩略图/进度/lightbox（`shared/agent` 与 digital 组件无 attachment 数据模型；dsh `ui-attachment` 有完整上传生命周期 + lightbox，我们暂无可映射的数据源，做出来必是假按钮，先别动）。
 - **刻意保留（非视觉）**：
   - 顶部菜单栏：dsh 是 Web GUI 没有桌面菜单栏；我们保留。
   - 消息卡 hover 显形图标操作行：已对齐（`DigitalMessageItem` 自带 hover/focus-within 显隐，见其文件注释），不列入 gap。
@@ -199,7 +201,7 @@ dsh 的 UI 成熟在**两件事**：① **typed slot 组合**（父级声明扩�
 
 1. **不 import dsh。** 它是 cordis + Typert 插件运行时，直接引组件等于换运行时（A 路线），已明确否掉；只能照设计重画。
 2. **不复制 dsh CSS / 图标包。** 我们零依赖 + 内联 SVG；复制会带来主题变量耦合（`--ui-font-scale` 那套是我们自有的）。
-3. **`data-testid` 是回归契约。** e2e 81 例依赖 §4 的锚点；要改名必须同步改 `tests/e2e/*.spec.ts`，否则宁可保留。
+3. **`data-testid` 是回归契约。** e2e 83 例依赖 §4 的锚点；要改名必须同步改 `tests/e2e/*.spec.ts`，否则宁可保留。
 4. **数据层不动。** `shared/agent/*`（`panel.ts` 归约、`trajectory.ts`、`toolDetail.ts`、`conversationStore.ts`）与 UI 解耦，重画时原样复用；尤其 `toolDetail` 的 diff 判据**只能有一份**（工具卡与轨迹详情共用）。
 5. **四道闸 + e2e 全绿**才算完（`npm run test` / `typecheck` / `lint` / `build` + `playwright test`），基线见 `.workbuddy-ai/memory/MEMORY.md`。
 6. **单测偶发失败**：全量套件出现过「偶发 1 例失败、复跑全绿」，连跑 5 次未复现；按抖动处理，别据此改代码（要定位用 `npx vitest run --reporter=dot` 抓 test 名）。

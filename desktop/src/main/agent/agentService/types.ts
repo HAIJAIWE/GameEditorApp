@@ -41,6 +41,12 @@ export interface AgentChatOptions {
    * 让本轮对话以选定视角进行。未知 id 静默忽略（不阻断对话）。
    */
   preset?: string
+  /**
+   * 本轮目标（对齐 dsh GoalBar）：用户在输入框上方目标条填的一句话。
+   * 非空时注入为系统提示词的一段「本轮目标」，作为意图锚点（不强制模型遵守）。
+   * 空串/未传视为未填。每次 `chat` 都重新注入，故目标可跨轮持续生效。
+   */
+  goal?: string
   /** 事件流实时回调（面板流式渲染） */
   onEvent?: (event: BrainEvent) => void
   /** 本次调用的危险操作审批（优先于构造时的缺省审批） */

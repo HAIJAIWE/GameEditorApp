@@ -133,6 +133,11 @@ export class AgentBrainService {
         extraBlocks.push(`【智能体预设】${presetLabel(options.preset)}：${persona}`)
       }
     }
+    // 本轮目标（对齐 dsh GoalBar）：用户填的一句话，作为意图锚点注入系统提示词。
+    // 不强制模型遵守，也不阻断对话；空串/未传视为未填。每次 chat 都重注入 ⇒ 跨轮持续生效。
+    if (options.goal !== undefined && options.goal.trim() !== '') {
+      extraBlocks.push(`【本轮目标】${options.goal.trim()}`)
+    }
     const systemPrompts = buildSystemPrompts({
       // M2/G7 + M3/DD-3：注入**按场景分组、按档位限量**的紧凑能力目录（每工具一行）
       capabilityCatalog: face.catalog,
