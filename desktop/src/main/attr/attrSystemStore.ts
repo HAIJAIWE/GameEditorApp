@@ -6,7 +6,7 @@ import {
   serializeAttrSystem,
   validateAttrSystem,
   type AttrSystem
-} from '../../shared/ceshu/reference/attrSystem'
+} from '../../shared/attrSystem'
 
 /**
  * 属性系统存储（本模块内唯一写者）。

@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 
 import { buildAttrPreview, type AttrRow } from '../../../shared/domain/attr/attrList'
-import type { AttrSystem } from '../../../shared/ceshu/reference/attrSystem'
+import type { AttrSystem } from '../../../shared/attrSystem'
 
 /**
  * 条目级属性列表编辑器：

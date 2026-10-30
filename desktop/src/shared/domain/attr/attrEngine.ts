@@ -1,9 +1,9 @@
-// 属性求值引擎（attr 域域逻辑，自 shared/ceshu/attrSystem.ts 拆出）：
+// 属性求值引擎（attr 域域逻辑，自 shared/attrSystem.ts 拆出）：
 // - evaluateFormula / calculateAttributes 是 attr 域的域逻辑（含 min/max 截断、环依赖语义）；
 // - 模型与拓扑排序留在 contract 根 attrSystem.ts——main 进程的 validateAttrSystem /
 //   buildAttrGameConfig / AttrSystemStore 需要它们（README rule 4：main 不碰 domain/**）；
 // - 本文件 import contract 根（domain → contract，README §1.1 允许方向）。
-import { topoSortAttributes, type AttrFormula, type AttrSystem } from '../../ceshu/attrSystem'
+import { topoSortAttributes, type AttrFormula, type AttrSystem } from '../../attrSystem'
 
 /** 系数求值 */
 export function evaluateFormula(formula: AttrFormula, context: Record<string, number>): number {

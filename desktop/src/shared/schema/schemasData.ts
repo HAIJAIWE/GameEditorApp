@@ -5,7 +5,7 @@
 
 import { z } from 'zod'
 
-import { ATTR_TYPES } from '../ceshu/reference/attrSystem'
+import { ATTR_TYPES } from '../attrSystem'
 import { CESHU_EXPORT_FORMATS } from '../ceshu/reference/ceshuConstants'
 import { FIELD_ACTIONS } from '../ceshu/fields/ceshuFieldAction'
 import { ADJUST_MODES, BATCH_OP_KINDS } from '../util/dataTableOps'

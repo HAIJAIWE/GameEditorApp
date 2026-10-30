@@ -125,7 +125,7 @@ import type { CeshuAiGenerateResult, CeshuAiReviewResult } from './ceshu/prompts
 import type { CeshuDataGenResult } from './ceshu/data/ceshuDataGen'
 import type { ReferenceReport } from './util/references'
 import type { FieldIdSuggestResult } from './util/fieldIdAi'
-import type { AttrSystem } from './ceshu/reference/attrSystem'
+import type { AttrSystem } from './attrSystem'
 import type { BackupEntry, RestoreOutcome } from './util/backup'
 
 /**

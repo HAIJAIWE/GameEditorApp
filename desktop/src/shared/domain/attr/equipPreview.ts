@@ -1,5 +1,5 @@
 import { calculateAttributes } from './attrEngine'
-import type { AttrSystem } from '../../ceshu/attrSystem'
+import type { AttrSystem } from '../../attrSystem'
 
 /**
  * 装备/Buff 预览：

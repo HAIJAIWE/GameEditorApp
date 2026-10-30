@@ -7,17 +7,18 @@
  * 四处重复的前导只剩一份，新增通道也不会再漏掉某一项治理。
  *
  * ## 分层约束
- * 本文件属 `main/ai/**`，**禁止 import `main/ceshu/**` 与 `main/data/**`**（eslint 规则 7）：
+ * 本文件属 `main/ceshu/ai/**`（策划书域自有的 AI 编排），因此不在 `main/ai/**` 的受限范围
+ * （eslint 规则 7 只约束 `main/ai/**`）：
  * - 文档、类型清单、既有条目计数一律由调用方（`ceshuIpc`）经参数传入；
  * - 依赖的纯逻辑全部来自 `shared/`（提示词、解析、质量门），不反向依赖 IPC 层。
  *
- * 这样 `main/ai/` 只认识「提示词进、结构化结果出」，不认识存储与通道，
- * 测试时无需构造 `CeshuManager` / `DataService`。
+ * 这样 `main/ai/` 只认识「提示词进、结构化结果出」的通用机制（runner / 判官），而策划书这一路
+ * 的具体编排随策划书域一起落在 `main/ceshu/ai`，测试时无需构造 `CeshuManager` / `DataService`。
  */
 
 import type { DataTypeDef, QualityGateVerdict } from '../../../shared/types'
-import type { ChapterData, ChapterKey, CeshuDocument } from '../../../shared/ceshu/ceshuConstants'
-import type { FieldAction } from '../../../shared/ceshu/ceshuFieldAction'
+import type { ChapterData, ChapterKey, CeshuDocument } from '../../../shared/ceshu/reference/ceshuConstants'
+import type { FieldAction } from '../../../shared/ceshu/fields/ceshuFieldAction'
 import type { LlmUsage } from '../../../shared/config/llmConfig'
 import {
   buildChapterPrompt,
@@ -27,10 +28,10 @@ import {
   parseReviewResponse,
   finalizeReview,
   type CeshuReviewPayload
-} from '../../../shared/ceshu/ceshuAi'
-import { buildCloneDecomposePrompt, parseCloneDecompose } from '../../../shared/ceshu/ceshuClonePrompt'
-import { buildRoleTaskPrompt, parseRoleTaskPlan, taskRolesForDoc } from '../../../shared/ceshu/ceshuTaskPrompt'
-import type { CeshuRole, CeshuTaskPlan } from '../../../shared/ceshu/ceshuTasks'
+} from '../../../shared/ceshu/prompts/ceshuAi'
+import { buildCloneDecomposePrompt, parseCloneDecompose } from '../../../shared/ceshu/prompts/ceshuClonePrompt'
+import { buildRoleTaskPrompt, parseRoleTaskPlan, taskRolesForDoc } from '../../../shared/ceshu/prompts/ceshuTaskPrompt'
+import type { CeshuRole, CeshuTaskPlan } from '../../../shared/ceshu/workflow/ceshuTasks'
 import {
   DATA_GEN_ERROR_EMPTY,
   DATA_GEN_ERROR_NO_TYPE,
@@ -41,13 +42,13 @@ import {
   normalizeDataGenCandidates,
   resolveSelectedDataTypes,
   type CeshuDataGenResult
-} from '../../../shared/ceshu/ceshuDataGen'
-import { computeChapterProgress } from '../../../shared/ceshu/ceshuModel'
-import { validateCeshu } from '../../../shared/ceshu/ceshuValidation'
+} from '../../../shared/ceshu/data/ceshuDataGen'
+import { computeChapterProgress } from '../../../shared/ceshu/model/ceshuModel'
+import { validateCeshu } from '../../../shared/ceshu/validation/ceshuValidation'
 import { parseLlmJson } from '../../../shared/util/parseLlmJson'
 import { applyJudge, evaluateChapterDraft, evaluateDataCandidates } from '../../../shared/agent/qualityGate'
 import { runLlmJudge } from '../../agent/qualityJudge'
-import { runAiTask, type AiGeneratePort, type AiLlmPort } from '../runner'
+import { runAiTask, type AiGeneratePort, type AiLlmPort } from '../../ai/runner'
 
 /** 四路任务共用的两个外部端口（配置门面 + 生成客户端） */
 export interface CeshuAiPorts {

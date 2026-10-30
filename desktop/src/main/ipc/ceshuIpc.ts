@@ -49,7 +49,7 @@ import {
   generateFieldTask,
   generateRoleTasksTask,
   reviewTask
-} from '../ai/tasks/ceshu'
+} from '../ceshu/ai/ceshu'
 import { CLONE_CONCEPT_CHAPTERS } from '../../shared/ceshu/prompts/ceshuClonePrompt'
 import { checkContract } from '../../shared/ceshu/validation/ceshuContract'
 import {
@@ -158,7 +158,7 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
     }
     // 显式收窄成 const：属性访问的类型收窄不跨入异步调用
     const chapter: ChapterKey = req.chapter
-    // 编排（提示词 / 预算门 / 取消 / 质量门 / 判官）全部在 `main/ai/tasks/ceshu`，
+    // 编排（提示词 / 预算门 / 取消 / 质量门 / 判官）全部在 `main/ceshu/ai/ceshu`，
     // 此处只负责取文档与转交渲染层入参，见该文件顶部说明。
     return generateChapterTask(
       { llm, client: llmClient },
@@ -176,7 +176,7 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
     )
   })
   handle('ceshu:cloneDecompose', ceshuCloneDecomposeInputSchema, async (req, event) => {
-    // 编排（提示词/预算/解析）在 `main/ai/tasks/ceshu`；这里只负责新建文档 + 逐章落盘
+    // 编排（提示词/预算/解析）在 `main/ceshu/ai/ceshu`；这里只负责新建文档 + 逐章落盘
     const task = await cloneDecomposeTask(
       { llm, client: llmClient },
       {
@@ -274,7 +274,7 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
       check: checkDataTablePlan(requirements, readDataTableActual(savedTypes))
     }
   })
-  // 岗位任务生成：整份文档 → 各岗位可执行任务；编排在 main/ai/tasks/ceshu，这里只落盘
+  // 岗位任务生成：整份文档 → 各岗位可执行任务；编排在 main/ceshu/ai/ceshu，这里只落盘
   handle('ceshu:aiGenerateTasks', ceshuAiTasksInputSchema, async (req, event) => {
     const base = ceshuManager.get(req.id)
     const task = await generateRoleTasksTask(

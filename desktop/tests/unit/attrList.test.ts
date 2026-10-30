@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { attrListToRows, buildAttrPreview, rowsToAttrList } from '../../src/shared/domain/attr/attrList'
-import { createDefaultAttrSystem, type AttrDefinition, type AttrSystem } from '../../src/shared/ceshu/reference/attrSystem'
+import { createDefaultAttrSystem, type AttrDefinition, type AttrSystem } from '../../src/shared/attrSystem'
 
 describe('属性列表编辑行 ↔ 存储转换', () => {
   it('非数组/缺失值按空列表处理', () => {

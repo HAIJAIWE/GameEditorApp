@@ -1,5 +1,5 @@
 import { calculateAttributes } from './attrEngine'
-import type { AttrFormula, AttrSystem } from '../../ceshu/attrSystem'
+import type { AttrFormula, AttrSystem } from '../../attrSystem'
 
 /**
  * 实时属性预览：
