@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { UndoRecorder, type UndoRecorderPort } from '../../src/main/data/undoRecorder'
-import type { UndoEntry } from '../../src/shared/util/undoStack'
+import type { UndoEntry } from '../../src/shared/util/system/undoStack'
 import type { ItemRecord } from '../../src/shared/types'
 
 function makeRecord(id: string, type: string, data: Record<string, unknown>): ItemRecord {

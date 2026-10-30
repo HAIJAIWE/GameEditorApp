@@ -1,7 +1,7 @@
 import { formatImportSummary, toErrorMessage } from '../appUtils'
 import type { DataSnapshotFormat, EngineExportInput } from '../../../shared/schema/core/schemas'
 import type { ImportPreview } from '../../../shared/types'
-import { engineExportNotice } from '../../../shared/util/engineExportNotice'
+import { engineExportNotice } from '../../../shared/util/system/engineExportNotice'
 import { loadBlockExportMissingImages } from '../../../shared/config/settings/settingsPreferences'
 
 /**

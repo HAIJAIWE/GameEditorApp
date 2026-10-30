@@ -9,7 +9,7 @@ import {
   TokenBucket,
   type MonotonicClock,
   type Sleeper
-} from '../../src/shared/util/rateLimiter'
+} from '../../src/shared/util/system/rateLimiter'
 
 /**
  * 令牌桶限流器测试。

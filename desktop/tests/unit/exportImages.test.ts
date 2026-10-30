@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { planExportImages } from '../../src/shared/util/exportImages'
+import { planExportImages } from '../../src/shared/util/io/exportImages'
 import type { ItemRecord } from '../../src/shared/types'
 
 /**

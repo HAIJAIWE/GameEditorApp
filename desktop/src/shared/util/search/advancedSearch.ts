@@ -14,7 +14,7 @@
  * 关键字匹配沿用列表过滤的既有约定：小写、空格拆分多词、全部命中（AND）。
  */
 
-import type { ItemRecord } from '../types'
+import type { ItemRecord } from '../../types'
 
 /** 可选的搜索字段 */
 export const SEARCH_FIELD_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [

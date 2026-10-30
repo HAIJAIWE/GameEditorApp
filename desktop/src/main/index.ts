@@ -2,7 +2,7 @@ import { join } from 'node:path'
 
 import { app, BrowserWindow, screen, shell, type Tray } from 'electron'
 
-import { log } from '../shared/util/logger'
+import { log } from '../shared/util/system/logger'
 import type { DataService } from './data/service'
 import { disposeIpcHandlers, registerIpcHandlers } from './ipc'
 import { initLogger } from './logger'

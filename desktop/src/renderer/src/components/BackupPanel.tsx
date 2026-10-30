@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 
-import type { BackupEntry, RestoreOutcome } from '../../../shared/util/backup'
+import type { BackupEntry, RestoreOutcome } from '../../../shared/util/io/backup'
 
 /**
  * 数据备份面板。

@@ -3,7 +3,7 @@ import { useState } from 'react'
 import type { CeshuDocument } from '../../../shared/ceshu/reference/ceshuConstants'
 import { buildDemoPrompt } from '../../../shared/ceshu/prompts/ceshuDemoPrompt'
 import { isPrototypeStale } from '../../../shared/ceshu/workflow/ceshuPrototypeStale'
-import { toErrorMessage } from '../../../shared/util/errors'
+import { toErrorMessage } from '../../../shared/util/system/errors'
 
 /**
  * 原型预览（三栏布局「原型预览」标签）。

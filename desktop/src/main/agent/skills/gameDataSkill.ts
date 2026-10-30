@@ -14,7 +14,7 @@
  */
 
 import type { SkillExecutionContext, SkillProtocol, SkillResult } from '../../../shared/agent/config/protocol'
-import type { BatchOp } from '../../../shared/util/dataTableOps'
+import type { BatchOp } from '../../../shared/util/data/dataTableOps'
 import type { DataService } from '../../data/service'
 import type { TypeSchemaStore } from '../../schema/store'
 import type { ItemRecord } from '../../../shared/types'

@@ -1,4 +1,4 @@
-import { APP_SHORTCUTS } from '../../../shared/util/shortcuts'
+import { APP_SHORTCUTS } from '../../../shared/util/ui/shortcuts'
 
 /**
  * 快捷键参考面板（对齐 旧版 `ui/shortcuts_dialog::ShortcutsDialog`，

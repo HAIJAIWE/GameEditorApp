@@ -13,7 +13,7 @@ import {
 } from '../../../shared/ceshu/validation/ceshuValidationGroups'
 
 import { classifySystems, formatFieldValue } from './common'
-import { readText } from '../../../shared/util/readText'
+import { readText } from '../../../shared/util/io/readText'
 
 /**
  * Excel 导出。

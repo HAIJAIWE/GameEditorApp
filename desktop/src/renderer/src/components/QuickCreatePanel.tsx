@@ -5,7 +5,7 @@ import {
   listQuickCreateTemplates,
   quickCreateTypeLabel,
   type QuickCreateTemplate
-} from '../../../shared/util/quickCreate'
+} from '../../../shared/util/field/quickCreate'
 import type { DataTypeDef } from '../../../shared/types'
 
 /**

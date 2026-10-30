@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 
 import { buildGameDataPreview } from '../../../shared/domain/ceshu/gameDataPreview'
 import type { DataTypeDef, ItemRecord } from '../../../shared/types'
-import { toErrorMessage } from '../../../shared/util/errors'
+import { toErrorMessage } from '../../../shared/util/system/errors'
 
 /**
  * 游戏数据预览面板（对齐 旧版 `src/features/engine_export::show_game_data_preview`，

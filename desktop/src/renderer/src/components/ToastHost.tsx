@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react'
 
-import { dismissToast, getToasts, subscribeToasts } from '../../../shared/util/toast'
+import { dismissToast, getToasts, subscribeToasts } from '../../../shared/util/ui/toast'
 
 /**
  * Toast 宿主组件。

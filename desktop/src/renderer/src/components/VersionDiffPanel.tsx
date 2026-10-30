@@ -12,7 +12,7 @@ import {
   type CeshuVersionFieldDiff
 } from '../../../shared/ceshu/workflow/ceshuDiff'
 import { formatLocalTimestamp } from '../../../shared/ceshu/model/ceshuModel'
-import { toErrorMessage } from '../../../shared/util/errors'
+import { toErrorMessage } from '../../../shared/util/system/errors'
 
 /**
  * 版本对比面板：

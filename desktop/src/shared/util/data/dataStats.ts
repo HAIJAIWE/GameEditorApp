@@ -23,7 +23,7 @@
  * 。
  */
 
-import type { DataTypeDef, ItemRecord } from '../types'
+import type { DataTypeDef, ItemRecord } from '../../types'
 
 /** 平衡性判定阈值：标准差 < 均值 × 0.3 视为「良好」 */
 export const BALANCE_STD_RATIO = 0.3

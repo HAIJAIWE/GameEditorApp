@@ -12,7 +12,7 @@ import { ShortcutsDialog } from './ShortcutsDialog'
 import FieldActionStrip from './FieldActionStrip'
 
 import LucideIcon from '../LucideIcon'
-import type { LucideIconName } from '../../../../shared/util/lucideIcons'
+import type { LucideIconName } from '../../../../shared/util/ui/lucideIcons'
 
 /**
  * 输入区样式（对齐 dsh composer）。单独一份而不是塞进全局 `styles.css`：
@@ -53,11 +53,11 @@ import {
   type ConversationAction
 } from '../../../../shared/agent/conversation/conversationStore'
 import { createStoreInstance } from '../../../../shared/plugin/slotRegistry'
-import { toErrorMessage } from '../../../../shared/util/errors'
+import { toErrorMessage } from '../../../../shared/util/system/errors'
 import { AGENT_PRESETS, DEFAULT_PRESET_ID, presetLabel } from '../../../../shared/agent/config/presets'
 import { loadLlmConfig, saveLlmConfig, LLM_PROVIDER_PRESETS } from '../../../../shared/config/llm/llmConfig'
 import { modelContextWindow, type LlmProvider } from '../../../../shared/config/llm/llmConfigData'
-import type { DigitalAttachment } from '../../../../shared/util/libraryAttachments'
+import type { DigitalAttachment } from '../../../../shared/util/io/libraryAttachments'
 
 /**
  * 智能体面板（A1-4）：对话气泡 + 流式文本 + 可折叠步骤 + 任务列表 + 危险操作审批模态。

@@ -8,9 +8,9 @@ import {
   attachmentsOpenInputSchema,
   attachmentsReadImageInputSchema
 } from '../../shared/schema/core/schemas'
-import { LIBRARY_ATTACHMENTS_DIRNAME, guessMimeType } from '../../shared/util/libraryAttachments'
-import { isSupportedImageFile } from '../../shared/util/imagePreview'
-import { log } from '../../shared/util/logger'
+import { LIBRARY_ATTACHMENTS_DIRNAME, guessMimeType } from '../../shared/util/io/libraryAttachments'
+import { isSupportedImageFile } from '../../shared/util/io/imagePreview'
+import { log } from '../../shared/util/system/logger'
 import { importAttachmentIntoLibrary } from '../attachments'
 
 /** 图片附件读图上限：再大就拒绝，避免把巨型 data URL 塞进渲染层 */

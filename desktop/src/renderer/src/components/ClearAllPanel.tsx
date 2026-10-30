@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { toErrorMessage } from '../../../shared/util/errors'
+import { toErrorMessage } from '../../../shared/util/system/errors'
 
 /**
  * 「清空所有数据」确认面板（对齐 旧版 `ui/main_window::clear_all_data`，

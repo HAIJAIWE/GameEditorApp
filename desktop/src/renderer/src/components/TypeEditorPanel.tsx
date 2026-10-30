@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 
-import { suggestFieldIds, type FieldIdSuggestion, type SuggestFieldIdResult } from '../../../shared/util/fieldId'
-import { chineseToPinyin, suggestPinyinFieldId } from '../../../shared/util/pinyinFieldId'
+import { suggestFieldIds, type FieldIdSuggestion, type SuggestFieldIdResult } from '../../../shared/util/id/fieldId'
+import { chineseToPinyin, suggestPinyinFieldId } from '../../../shared/util/id/pinyinFieldId'
 import {
   FIELD_ID_AI_ERROR_EMPTY_LABEL,
   FIELD_ID_AI_ERROR_NO_CANDIDATE
-} from '../../../shared/util/fieldIdAi'
+} from '../../../shared/util/id/fieldIdAi'
 import { FIELD_TYPE_LABELS, FIELD_TYPES, validateTypeSchema } from '../../../shared/schema/adapters/typeSchemaFile'
 import {
   TYPE_TEMPLATE_NAMES,

@@ -5,7 +5,7 @@ import {
   suggestFieldIds,
   uniquifyFieldId,
   validateFieldId
-} from '../../src/shared/util/fieldId'
+} from '../../src/shared/util/id/fieldId'
 import { GAME_TERMS } from '../../src/shared/ceshu/reference/glossaryTerms'
 
 describe('fieldId：术语表保真', () => {

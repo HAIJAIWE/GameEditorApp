@@ -9,7 +9,7 @@ import {
   IMAGE_PLACEHOLDER_TEXT,
   isLoadableImagePath,
   subscribeImageCache
-} from '../../../shared/util/imageCache'
+} from '../../../shared/util/io/imageCache'
 
 /**
  * 延迟加载的图片控件。

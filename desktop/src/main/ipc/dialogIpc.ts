@@ -10,8 +10,8 @@ import {
   dataSnapshotFileDialogInputSchema
 } from '../../shared/schema/core/schemas'
 import { CESHU_FORMAT_EXTENSIONS, CESHU_FORMAT_LABELS } from '../../shared/ceshu/reference/ceshuConstants'
-import { buildImagePreviewDataUrl } from '../../shared/util/imagePreview'
-import { log } from '../../shared/util/logger'
+import { buildImagePreviewDataUrl } from '../../shared/util/io/imagePreview'
+import { log } from '../../shared/util/system/logger'
 import { ENGINE_EXTENSIONS as ENGINE_KIND_EXTENSIONS, ENGINE_LABELS as ENGINE_KIND_LABELS } from '../engineExport/engines'
 
 export function registerDialogIpc(deps: IpcHandlerDeps, handle: IpcRegistrar): void {

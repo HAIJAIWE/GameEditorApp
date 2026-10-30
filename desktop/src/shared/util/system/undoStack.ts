@@ -8,7 +8,7 @@
  * - `before`/`after` 直接用 `ItemRecord`，因为撤销恢复需要完整记录（含 createdAt）。
  */
 
-import type { ItemRecord } from '../types'
+import type { ItemRecord } from '../../types'
 
 /** 一条可撤销的操作记录 */
 export interface UndoEntry {

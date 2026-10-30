@@ -20,7 +20,7 @@
  * - 不做备份轮转/上限。
  */
 
-import { buildBackupName, type BackupEntry, type RestoreOutcome } from '../../shared/util/backup'
+import { buildBackupName, type BackupEntry, type RestoreOutcome } from '../../shared/util/io/backup'
 import type { DataTypeDef } from '../../shared/types'
 import { parseLegacyData } from '../data/legacyImport'
 import { buildLegacyPayload } from '../data/legacyExport'

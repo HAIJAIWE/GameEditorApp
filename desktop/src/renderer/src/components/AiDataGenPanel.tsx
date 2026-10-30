@@ -13,7 +13,7 @@ import { evaluateBudget, taskBudget } from '../../../shared/agent/runtime/budget
 import { useStopIntent } from '../hooks/useStopIntent'
 import type { DataQualityVerdict } from '../../../shared/types'
 import type { DataTypeDef } from '../../../shared/types'
-import { toErrorMessage } from '../../../shared/util/errors'
+import { toErrorMessage } from '../../../shared/util/system/errors'
 
 /**
  * AI 数据生成面板：

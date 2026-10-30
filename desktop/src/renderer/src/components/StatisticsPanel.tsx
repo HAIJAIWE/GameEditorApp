@@ -7,7 +7,7 @@ import {
   numericFieldNames,
   summarizeNumeric,
   type NumericSummary
-} from '../../../shared/util/dataStats'
+} from '../../../shared/util/data/dataStats'
 import type { ItemRecord } from '../../../shared/types'
 import { useAppContext } from '../plugins/appContext'
 

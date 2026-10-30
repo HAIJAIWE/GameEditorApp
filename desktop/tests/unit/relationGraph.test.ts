@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { UNKNOWN_TYPE_COLOR, buildRelationRows, buildSubjectDetailLine, itemDisplayName } from '../../src/shared/util/relationGraph'
+import { UNKNOWN_TYPE_COLOR, buildRelationRows, buildSubjectDetailLine, itemDisplayName } from '../../src/shared/util/search/relationGraph'
 import { BUILTIN_DATA_TYPES } from '../../src/shared/schema/core/typeSchema'
 import type { DataTypeDef, ItemRecord } from '../../src/shared/types'
 

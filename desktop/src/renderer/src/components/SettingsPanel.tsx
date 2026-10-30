@@ -18,7 +18,7 @@ import {
   type StoredLlmConfig
 } from '../../../shared/config/llm/llmConfig'
 import { SECRET_NAMES } from '../../../shared/config/secrets/secretNames'
-import { resolveVisionSupport, type VisionMode } from '../../../shared/util/visionSupport'
+import { resolveVisionSupport, type VisionMode } from '../../../shared/util/ui/visionSupport'
 import {
   applyFontSize,
   applyTheme,

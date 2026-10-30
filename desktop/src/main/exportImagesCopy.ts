@@ -1,9 +1,9 @@
 import { copyFileSync, existsSync, mkdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 
-import { planExportImages } from '../shared/util/exportImages'
+import { planExportImages } from '../shared/util/io/exportImages'
 import type { ItemRecord } from '../shared/types'
-import { log } from '../shared/util/logger'
+import { log } from '../shared/util/system/logger'
 
 /** 拷贝结果：`missing` 是"引用了但文件不在盘上"，只提示、不阻断导出 */
 export interface ExportImagesResult {

@@ -45,7 +45,7 @@ import {
 } from '../../../shared/ceshu/data/ceshuDataGen'
 import { computeChapterProgress } from '../../../shared/ceshu/model/ceshuModel'
 import { validateCeshu } from '../../../shared/ceshu/validation/ceshuValidation'
-import { parseLlmJson } from '../../../shared/util/parseLlmJson'
+import { parseLlmJson } from '../../../shared/util/object/parseLlmJson'
 import { applyJudge, evaluateChapterDraft, evaluateDataCandidates } from '../../../shared/agent/runtime/qualityGate'
 import { runLlmJudge } from '../../agent/qualityJudge'
 import { runAiTask, type AiGeneratePort, type AiLlmPort } from '../../ai/runner'

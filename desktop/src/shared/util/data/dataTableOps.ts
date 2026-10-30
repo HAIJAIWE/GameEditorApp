@@ -1,4 +1,4 @@
-import type { ItemRecord } from '../types'
+import type { ItemRecord } from '../../types'
 
 /**
  * 数据表操作纯逻辑（匹平 旧版 ui/components/virtual_list 的 ListModel.set_filter

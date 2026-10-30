@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import ExcelJS from 'exceljs'
 
 import { getTypeByLegacyKey } from '../../shared/schema/core/typeSchema'
-import { orderHeadersWithId, RECORD_ID_KEY } from '../../shared/util/recordHeaders'
+import { orderHeadersWithId, RECORD_ID_KEY } from '../../shared/util/id/recordHeaders'
 import type { ParsedImport } from './importSession'
 import type { DataTypeDef, ExportSummary, ImportSummary, ItemRecord } from '../../shared/types'
 import type { DataService, ImportRecord } from './service'

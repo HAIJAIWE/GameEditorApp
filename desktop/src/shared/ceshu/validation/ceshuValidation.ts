@@ -25,7 +25,7 @@ import {
 } from './ceshuNumericAssert'
 import { checkLedger, checkPrototypeAcceptanceResults, checkTestCaseList } from '../notes/ceshuEvidence'
 import { column } from '../workflow/ceshuPipeRows'
-import { readText } from '../../util/readText'
+import { readText } from '../../util/io/readText'
 
 /**
  * 策划书数据完整性校验。

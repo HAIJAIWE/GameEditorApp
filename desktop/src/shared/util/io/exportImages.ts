@@ -1,6 +1,6 @@
 import { LIBRARY_IMAGES_DIRNAME } from './libraryImageImport'
 import { IMAGE_REFERENCE_FIELDS, resolveImagePath } from './cleanupImages'
-import type { ItemRecord } from '../types'
+import type { ItemRecord } from '../../types'
 
 /**
  * 导出时「把图片一起带走」的路径计算（纯函数，不碰 fs）。

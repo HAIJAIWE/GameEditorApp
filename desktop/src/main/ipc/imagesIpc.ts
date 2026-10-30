@@ -7,10 +7,10 @@ import {
   imagePathKey,
   resolveImagePath,
   IMAGE_EXTENSIONS
-} from '../../shared/util/cleanupImages'
-import { isSupportedImageFile, buildImagePreviewDataUrl } from '../../shared/util/imagePreview'
+} from '../../shared/util/io/cleanupImages'
+import { isSupportedImageFile, buildImagePreviewDataUrl } from '../../shared/util/io/imagePreview'
 import { ensureLibraryImagesDir } from '../imageImport'
-import { log } from '../../shared/util/logger'
+import { log } from '../../shared/util/system/logger'
 import type { IpcHandlerDeps, IpcRegistrar } from '../ipc'
 import { deleteImagesInputSchema, imageReadByPathInputSchema } from '../../shared/schema/core/schemas'
 

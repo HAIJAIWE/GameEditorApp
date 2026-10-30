@@ -10,7 +10,7 @@ import {
 } from '../../../shared/ceshu/notes/ceshuHome'
 
 import LucideIcon from './LucideIcon'
-import { toErrorMessage } from '../../../shared/util/errors'
+import { toErrorMessage } from '../../../shared/util/system/errors'
 
 /**
  * 策划书首页：

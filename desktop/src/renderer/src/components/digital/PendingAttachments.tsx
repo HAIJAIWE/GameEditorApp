@@ -5,7 +5,7 @@ import {
   attachmentExtension,
   formatAttachmentSize,
   type DigitalAttachment
-} from '../../../../shared/util/libraryAttachments'
+} from '../../../../shared/util/io/libraryAttachments'
 import { useAttachmentImage } from './useAttachmentImage'
 
 /**

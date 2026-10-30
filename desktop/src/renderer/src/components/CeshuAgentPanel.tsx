@@ -5,7 +5,7 @@ import { CESHU_CHAPTER_FIELDS } from '../../../shared/ceshu/fields/ceshuFields'
 import { displayFieldValue } from '../../../shared/ceshu/fields/ceshuFieldDisplay'
 import { parseCeshuPatch, type CeshuPatchItem } from '../../../shared/ceshu/data/ceshuImportPatch'
 import { visibleChaptersForDoc } from '../../../shared/ceshu/model/ceshuModel'
-import { toErrorMessage } from '../../../shared/util/errors'
+import { toErrorMessage } from '../../../shared/util/system/errors'
 
 /**
  * 右栏智能体（三栏布局：左=产出物+大纲，中=工作区，右=智能体）。

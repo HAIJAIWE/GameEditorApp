@@ -13,8 +13,8 @@ import type { LlmUsage } from '../../config/llm/llmConfig'
 import { CESHU_CHAPTER_FIELDS, resolveFieldMeta } from '../fields/ceshuFields'
 import type { QualityGateVerdict } from '../../types'
 import { isPlainObject, getGameType, deriveRulesetId } from '../model/ceshuModel'
-import { readText } from '../../util/readText'
-import { parseLlmJson } from '../../util/parseLlmJson'
+import { readText } from '../../util/io/readText'
+import { parseLlmJson } from '../../util/object/parseLlmJson'
 import {
   CHAPTER_AGENT_MAP,
   AGENT_DISPLAY,

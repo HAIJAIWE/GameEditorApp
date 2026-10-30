@@ -60,7 +60,7 @@ import {
 } from '../../shared/ceshu/data/ceshuDataTableCheck'
 import { applyDataTableScaffold, planDataTableScaffold } from '../../shared/ceshu/data/ceshuDataTableScaffold'
 import { buildVersionDiff } from '../../shared/ceshu/workflow/ceshuDiff'
-import { formatLocalTimestamp } from '../../shared/util/datetime'
+import { formatLocalTimestamp } from '../../shared/util/datetime/datetime'
 import { buildSystemConfirmResult } from '../../shared/ceshu/prompts/ceshuSystemConfirm'
 import { computeReadiness } from '../../shared/ceshu/readiness/ceshuReadiness'
 import { validateCeshu } from '../../shared/ceshu/validation/ceshuValidation'

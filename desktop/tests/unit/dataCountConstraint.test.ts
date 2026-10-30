@@ -6,7 +6,7 @@ import {
   exceedsCountConstraint,
   findCountConstraint,
   resolveCountLimit
-} from '../../src/shared/util/dataCountConstraint'
+} from '../../src/shared/util/data/dataCountConstraint'
 
 /**
  * 数量约束纯逻辑 —— 对照 旧版 `ui/data_tab::DataEditorTab._check_count_constraint`

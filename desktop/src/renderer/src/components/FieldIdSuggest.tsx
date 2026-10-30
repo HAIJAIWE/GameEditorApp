@@ -1,4 +1,4 @@
-import type { FieldIdSuggestion } from '../../../shared/util/fieldId'
+import type { FieldIdSuggestion } from '../../../shared/util/id/fieldId'
 import type { IdSuggestState } from './TypeEditorPanel'
 
 interface FieldIdSuggestProps {

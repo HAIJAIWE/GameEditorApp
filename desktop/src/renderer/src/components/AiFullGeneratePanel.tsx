@@ -21,8 +21,8 @@ import {
 import { getGddScope, isPlainObject } from '../../../shared/ceshu/model/ceshuModel'
 import { evaluateBudget, taskBudget } from '../../../shared/agent/runtime/budget'
 import type { LlmJudgeVerdict } from '../../../shared/types'
-import { toErrorMessage } from '../../../shared/util/errors'
-import { readText } from '../../../shared/util/readText'
+import { toErrorMessage } from '../../../shared/util/system/errors'
+import { readText } from '../../../shared/util/io/readText'
 
 /**
  * AI 一键生成完整策划书：

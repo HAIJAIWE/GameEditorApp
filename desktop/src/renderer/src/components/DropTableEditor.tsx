@@ -7,7 +7,7 @@ import {
   dropSourceTypeId,
   normalizeDropRange,
   type DropEntry
-} from '../../../shared/util/dropTable'
+} from '../../../shared/util/data/dropTable'
 
 /**
  * 掉落表字段编辑器。

@@ -1,8 +1,8 @@
 import { copyFileSync, existsSync, mkdirSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { LIBRARY_IMAGES_DIRNAME, planLibraryImageName } from '../shared/util/libraryImageImport'
-import { log } from '../shared/util/logger'
+import { LIBRARY_IMAGES_DIRNAME, planLibraryImageName } from '../shared/util/io/libraryImageImport'
+import { log } from '../shared/util/system/logger'
 
 /** 入库结果：`relativePath` 是写进字段值的形态（`images/xxx.png`） */
 export type ImageImportResult =

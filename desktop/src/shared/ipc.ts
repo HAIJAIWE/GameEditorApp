@@ -111,7 +111,7 @@ import type { DraftSummary, SessionInfo, SessionTurnSummary } from './agent/conv
 import type { OperationRecord } from './agent/observability/operationLog'
 import type { JsonObjectSchema, SkillResult } from './agent/config/protocol'
 import type { AgentDeliveriesInput, AttachmentsAddInput, AttachmentsOpenInput, AttachmentsReadImageInput } from './schema/core/schemas'
-import type { DigitalAttachment } from './util/libraryAttachments'
+import type { DigitalAttachment } from './util/io/libraryAttachments'
 import type { DeliveryRecord } from './agent/observability/deliveryLog'
 import type { CeshuChangelog, CeshuVersionDiff } from './ceshu/workflow/ceshuDiff'
 import type { CeshuTaskPlan } from './ceshu/workflow/ceshuTasks'
@@ -123,10 +123,10 @@ import type { CeshuNote } from './ceshu/notes/ceshuNotes'
 import type { CeshuCustomTemplate } from './ceshu/reference/ceshuCustomTemplates'
 import type { CeshuAiGenerateResult, CeshuAiReviewResult } from './ceshu/prompts/ceshuAi'
 import type { CeshuDataGenResult } from './ceshu/data/ceshuDataGen'
-import type { ReferenceReport } from './util/references'
-import type { FieldIdSuggestResult } from './util/fieldIdAi'
+import type { ReferenceReport } from './util/search/references'
+import type { FieldIdSuggestResult } from './util/id/fieldIdAi'
 import type { AttrSystem } from './attrSystem'
-import type { BackupEntry, RestoreOutcome } from './util/backup'
+import type { BackupEntry, RestoreOutcome } from './util/io/backup'
 
 /**
  * IPC 契约：通道 → 请求/响应类型。

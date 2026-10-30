@@ -32,7 +32,7 @@
  * 此处统一按不敏感处理也不影响正确性。
  */
 
-import type { ItemRecord } from '../types'
+import type { ItemRecord } from '../../types'
 
 /** 视为「图片引用」的字段名（严格照抄 `advanced:398` 的四项，顺序一致） */
 export const IMAGE_REFERENCE_FIELDS = ['image', 'icon', 'avatar', 'img'] as const

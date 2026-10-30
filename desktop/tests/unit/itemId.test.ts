@@ -6,7 +6,7 @@ import {
   needsShortId,
   nextItemId,
   planShortIdBackfill
-} from '../../src/shared/util/itemId'
+} from '../../src/shared/util/id/itemId'
 import type { ItemRecord } from '../../src/shared/types'
 
 function record(id: string, data: Record<string, unknown>): ItemRecord {

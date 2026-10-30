@@ -12,7 +12,7 @@ import { CESHU_CHAPTER_FIELDS } from '../fields/ceshuFields'
 import { displayFieldValue } from '../fields/ceshuFieldDisplay'
 import { createDefaultCeshu, getGddScope, visibleChaptersForDoc } from '../model/ceshuModel'
 import { isMachineDataField } from '../workflow/ceshuStages'
-import { parseLlmJson } from '../../util/parseLlmJson'
+import { parseLlmJson } from '../../util/object/parseLlmJson'
 
 /**
  * 岗位任务生成（2026-10-26）。

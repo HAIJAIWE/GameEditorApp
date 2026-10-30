@@ -16,7 +16,7 @@ import {
   applyImportInputSchema,
   dataSnapshotInputSchema
 } from '../../shared/schema/core/schemas'
-import { buildReferenceReport } from '../../shared/util/references'
+import { buildReferenceReport } from '../../shared/util/search/references'
 import { importLegacyDataFile } from '../data/legacyImport'
 import { exportLegacyDataFile } from '../data/legacyExport'
 import { applyParsedImport, exportCsvFiles, importCsvFile, parseCsvImport } from '../data/csvIO'

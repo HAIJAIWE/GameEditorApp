@@ -10,7 +10,7 @@ import {
   formatSecondaryModules,
   styleBadgeColor
 } from '../../../shared/ceshu/reference/ceshuPresets'
-import { toErrorMessage } from '../../../shared/util/errors'
+import { toErrorMessage } from '../../../shared/util/system/errors'
 
 /**
  * 混合玩法预设市场：

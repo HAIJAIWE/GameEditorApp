@@ -1,5 +1,5 @@
-import { getTypeById } from '../schema/core/typeSchema'
-import type { DataTypeDef, ItemRecord } from '../types'
+import { getTypeById } from '../../schema/core/typeSchema'
+import type { DataTypeDef, ItemRecord } from '../../types'
 
 /**
  * 数据按 schema 的 `pluralKey` 归桶。

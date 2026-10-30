@@ -15,7 +15,7 @@
 
 import type { SlotStoreDecl } from '../../plugin/types'
 import type { BrainEvent } from '../brain'
-import type { DigitalAttachment } from '../../util/libraryAttachments'
+import type { DigitalAttachment } from '../../util/io/libraryAttachments'
 import {
   hydrateFromSession,
   initialDigitalPanelState,

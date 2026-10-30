@@ -22,8 +22,8 @@ import { deriveMessagesFromTurns } from '../../../shared/agent/conversation/sess
 import { buildSystemPrompts } from '../../../shared/agent/ui/prompts'
 import { presetLabel, presetPersona } from '../../../shared/agent/config/presets'
 import { buildPersonalizedContext } from '../../../shared/agent/config/personalization'
-import { formatAttachmentSize, type DigitalAttachment } from '../../../shared/util/libraryAttachments'
-import { resolveVisionSupport } from '../../../shared/util/visionSupport'
+import { formatAttachmentSize, type DigitalAttachment } from '../../../shared/util/io/libraryAttachments'
+import { resolveVisionSupport } from '../../../shared/util/ui/visionSupport'
 import {
   RISK_LEVEL,
   resolveRiskLevel,

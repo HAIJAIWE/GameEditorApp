@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
-import { UNKNOWN_TYPE_COLOR, buildRelationRows, buildSubjectDetailLine, itemDisplayName } from '../../../shared/util/relationGraph'
+import { UNKNOWN_TYPE_COLOR, buildRelationRows, buildSubjectDetailLine, itemDisplayName } from '../../../shared/util/search/relationGraph'
 import type { DataTypeDef, ItemRecord } from '../../../shared/types'
 
 /**

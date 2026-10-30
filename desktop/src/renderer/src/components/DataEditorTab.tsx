@@ -4,15 +4,15 @@ import {
   buildCountConstraintMessage,
   exceedsCountConstraint,
   type CountConstraint
-} from '../../../shared/util/dataCountConstraint'
-import { filterItemRecords, withRenamedName } from '../../../shared/util/dataTableOps'
-import { displayItemId } from '../../../shared/util/itemId'
-import { showToast } from '../../../shared/util/toast'
+} from '../../../shared/util/data/dataCountConstraint'
+import { filterItemRecords, withRenamedName } from '../../../shared/util/data/dataTableOps'
+import { displayItemId } from '../../../shared/util/id/itemId'
+import { showToast } from '../../../shared/util/ui/toast'
 import type { DataTypeDef, ItemRecord, TypeFieldDef } from '../../../shared/types'
 
 import ItemForm from './ItemForm'
 import LucideIcon from './LucideIcon'
-import { toErrorMessage } from '../../../shared/util/errors'
+import { toErrorMessage } from '../../../shared/util/system/errors'
 
 interface DataEditorTabProps {
   /** 目标数据类型 id（对应策划书 enabled_editors[].data_type） */

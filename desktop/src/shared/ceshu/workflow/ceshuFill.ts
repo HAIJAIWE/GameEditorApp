@@ -1,6 +1,6 @@
 import type { CeshuDocument } from '../reference/ceshuConstants'
 import { isFilledValue } from '../model/ceshuModel'
-import { readText } from '../../util/readText'
+import { readText } from '../../util/io/readText'
 
 /**
  * 策划书必填字段自动填充。

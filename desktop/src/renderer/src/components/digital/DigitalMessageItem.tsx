@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ReactElement } from 'rea
 
 import ChatMarkdown from './ChatMarkdown'
 import { useAttachmentImage } from './useAttachmentImage'
-import { formatAttachmentSize, type DigitalAttachment } from '../../../../shared/util/libraryAttachments'
+import { formatAttachmentSize, type DigitalAttachment } from '../../../../shared/util/io/libraryAttachments'
 
 export interface DigitalMessageItemProps {
   role: 'user' | 'assistant'

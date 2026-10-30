@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { importImageIntoLibrary, ensureLibraryImagesDir } from '../../src/main/imageImport'
-import { resolveImagePath } from '../../src/shared/util/cleanupImages'
+import { resolveImagePath } from '../../src/shared/util/io/cleanupImages'
 
 /**
  * 图片入库的真实 fs 行为（`importImageIntoLibrary`）。

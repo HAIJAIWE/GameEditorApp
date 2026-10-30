@@ -13,7 +13,7 @@ import {
   ImageCache,
   isLoadableImagePath,
   subscribeImageCache
-} from '../../src/shared/util/imageCache'
+} from '../../src/shared/util/io/imageCache'
 
 /** 造一条缓存项 */
 const entry = (key: string, w: number, h: number): { key: string; src: string; bytes: number; reason: string | null } => ({

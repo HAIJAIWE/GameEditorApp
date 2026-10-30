@@ -10,7 +10,7 @@ import {
 } from '../../../shared/ceshu/workflow/ceshuTasks'
 import { countTaskPlan } from '../../../shared/ceshu/prompts/ceshuTaskPrompt'
 import { CHAPTER_LABELS } from '../../../shared/ceshu/reference/ceshuConstants'
-import { toErrorMessage } from '../../../shared/util/errors'
+import { toErrorMessage } from '../../../shared/util/system/errors'
 
 /**
  * 岗位任务（三栏布局「岗位任务」标签）。

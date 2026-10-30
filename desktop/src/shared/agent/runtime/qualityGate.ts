@@ -2,8 +2,8 @@ import { isChapterKey, type ChapterData, type CeshuDocument } from '../../ceshu/
 import { computeChapterProgress, withChapter } from '../../ceshu/model/ceshuModel'
 import { categorizeValidationError } from '../../domain/ceshu/ceshuReports'
 import { validateCeshu } from '../../ceshu/validation/ceshuValidation'
-import { findCountConstraint, exceedsCountConstraint } from '../../util/dataCountConstraint'
-import { assessBalance, mean, numericFieldNames, stdev } from '../../util/dataStats'
+import { findCountConstraint, exceedsCountConstraint } from '../../util/data/dataCountConstraint'
+import { assessBalance, mean, numericFieldNames, stdev } from '../../util/data/dataStats'
 import type {
   DataBalanceRow,
   DataQualityIssue,

@@ -3,7 +3,7 @@ import { resolve } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { APP_SHORTCUTS } from '../../src/shared/util/shortcuts'
+import { APP_SHORTCUTS } from '../../src/shared/util/ui/shortcuts'
 
 /**
  * 快捷键清单与**实际注册**的一致性守护测试。

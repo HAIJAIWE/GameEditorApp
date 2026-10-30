@@ -16,8 +16,8 @@ import { createDefaultChapters } from '../reference/ceshuDefaults'
 import { getStyle, inferStyleFromText } from '../../config/game/gameStyle'
 import { migrateV4ToV5, needsV4Migration } from '../data/ceshuMigration'
 import { isChapterVisibleInStage, type CeshuStage } from '../workflow/ceshuStages'
-import { formatLocalTimestamp } from '../../util/datetime'
-import { isPlainObject } from '../../util/guards'
+import { formatLocalTimestamp } from '../../util/datetime/datetime'
+import { isPlainObject } from '../../util/object/guards'
 
 /**
  * 策划书纯逻辑（跨进程共用：主进程存取用，渲染层进度展示用）。

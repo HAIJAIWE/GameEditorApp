@@ -7,7 +7,7 @@ import {
   type DiffLeaf,
   type ItemDiffType,
   type LibraryDiffGroup
-} from '../../../shared/util/itemDiff'
+} from '../../../shared/util/data/itemDiff'
 import {
   SETTINGS_KEYS,
   readJsonSetting,

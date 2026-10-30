@@ -4,12 +4,12 @@ import {
   buildDescContext,
   buildDescPrompt,
   buildImageTagsPrompt
-} from '../../../shared/util/fieldAiAssist'
+} from '../../../shared/util/field/fieldAiAssist'
 import type { ImageGenConfig } from '../../../shared/config/llm/imageGen'
 import { loadImageGenConfig } from '../../../shared/config/llm/imageGenConfig'
 import { SECRET_NAMES } from '../../../shared/config/secrets/secretNames'
 import { resolveFieldLabel } from '../../../shared/config/game/gameStyle'
-import { displayItemId } from '../../../shared/util/itemId'
+import { displayItemId } from '../../../shared/util/id/itemId'
 import type { AttrSystem } from '../../../shared/attrSystem'
 import { buildFormLayout } from '../../../shared/schema/core/formSections'
 import type { DataTypeDef, ItemRecord, TypeFieldDef } from '../../../shared/types'

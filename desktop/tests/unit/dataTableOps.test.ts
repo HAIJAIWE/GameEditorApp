@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { applyBatchOp, filterItemRecords, withRenamedName } from '../../src/shared/util/dataTableOps'
+import { applyBatchOp, filterItemRecords, withRenamedName } from '../../src/shared/util/data/dataTableOps'
 import type { ItemRecord } from '../../src/shared/types'
 
 function record(id: string, data: Record<string, unknown>): ItemRecord {

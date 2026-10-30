@@ -1,4 +1,4 @@
-import { isPlainObject } from './guards'
+import { isPlainObject } from '../object/guards'
 
 /**
  * 数据条目「数量约束」纯逻辑 —— 对齐 旧版 `ui/data_tab::DataEditorTab._check_count_constraint`。

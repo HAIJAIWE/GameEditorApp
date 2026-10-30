@@ -1,5 +1,5 @@
-import { isPlainObject } from './guards'
-import type { DataTypeDef, ItemRecord } from '../types'
+import { isPlainObject } from '../object/guards'
+import type { DataTypeDef, ItemRecord } from '../../types'
 
 /**
  * 引用关系纯逻辑：

@@ -1,5 +1,5 @@
-import type { ItemRecord } from '../types'
-import { isPlainObject } from './guards'
+import type { ItemRecord } from '../../types'
+import { isPlainObject } from '../object/guards'
 
 /**
  * 通用递归 JSON diff 引擎（迁移自 旧版 `src/common/data_diff`，

@@ -21,7 +21,7 @@ import {
   type CeshuAiReviewResult
 } from '../../src/shared/ceshu/prompts/ceshuAi'
 import { genreReviewProfile, reviewProbeFor } from '../../src/shared/ceshu/prompts/ceshuAiData'
-import { parseLlmJson } from '../../src/shared/util/parseLlmJson'
+import { parseLlmJson } from '../../src/shared/util/object/parseLlmJson'
 import { CHAPTER_KEYS } from '../../src/shared/ceshu/reference/ceshuConstants'
 import { CESHU_CHAPTER_FIELDS } from '../../src/shared/ceshu/fields/ceshuFields'
 import { createDefaultCeshu, deriveRulesetId } from '../../src/shared/ceshu/model/ceshuModel'

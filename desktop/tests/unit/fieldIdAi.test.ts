@@ -4,8 +4,8 @@ import {
   FIELD_ID_AI_MAX_CANDIDATES,
   buildFieldIdPrompt,
   parseFieldIdCandidates
-} from '../../src/shared/util/fieldIdAi'
-import { validateFieldId } from '../../src/shared/util/fieldId'
+} from '../../src/shared/util/id/fieldIdAi'
+import { validateFieldId } from '../../src/shared/util/id/fieldId'
 
 describe('fieldIdAi：提示词构建', () => {
   const built = buildFieldIdPrompt('斗能', ['id', 'name', 'job'], { typeName: '角色', fieldType: 'spinbox' })

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 
-import { numericFieldNames } from '../../../shared/util/dataStats'
+import { numericFieldNames } from '../../../shared/util/data/dataStats'
 import {
   barPercent,
   buildAttributeChart,

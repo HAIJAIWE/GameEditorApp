@@ -10,7 +10,7 @@ import type { ContractReport } from '../../../shared/ceshu/validation/ceshuContr
 import { DATA_GEN_MAX_COUNT, DATA_GEN_MIN_COUNT } from '../../../shared/ceshu/data/ceshuDataGen'
 import type { ScaffoldPlan } from '../../../shared/ceshu/data/ceshuDataTableScaffold'
 import type { DataTypeDef } from '../../../shared/types'
-import { toErrorMessage } from '../../../shared/util/errors'
+import { toErrorMessage } from '../../../shared/util/system/errors'
 
 /**
  * 把「AI 生成缺失数据」的补充要求拼出来：说清要补哪张表、缺口多大、按什么原则生成。

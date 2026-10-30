@@ -9,7 +9,7 @@ import {
   leafEntries,
   type UndoEntry,
   type UndoStep
-} from '../../src/shared/util/undoStack'
+} from '../../src/shared/util/system/undoStack'
 import type { ItemRecord } from '../../src/shared/types'
 
 function rec(id: string, data: Record<string, unknown> = {}): ItemRecord {

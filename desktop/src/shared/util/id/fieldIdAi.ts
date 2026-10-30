@@ -1,4 +1,4 @@
-import { parseLlmJson } from './parseLlmJson'
+import { parseLlmJson } from '../object/parseLlmJson'
 import { uniquifyFieldId, validateFieldId, type FieldIdSuggestion } from './fieldId'
 
 /**

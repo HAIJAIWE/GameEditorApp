@@ -10,7 +10,7 @@ import {
   type AssertionResult
 } from './ceshuNumericAssert'
 import { splitRow, toRowStrings } from '../workflow/ceshuPipeRows'
-import { readText } from '../../util/readText'
+import { readText } from '../../util/io/readText'
 
 /**
  * 设计契约（design contract）——把「散落在 24 章里的可验证承诺」抽成一份机读契约。

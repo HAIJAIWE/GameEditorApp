@@ -14,7 +14,7 @@ import type {
   SubAgentProvider
 } from '../../../shared/agent/brain'
 import type { SkillExecutionContext } from '../../../shared/agent/config/protocol'
-import type { DigitalAttachment } from '../../../shared/util/libraryAttachments'
+import type { DigitalAttachment } from '../../../shared/util/io/libraryAttachments'
 import type { StoredLlmConfig } from '../../../shared/config/llm/llmConfig'
 import type { AgentMemoryStore } from '../memoryStore'
 import type { PreferenceStore } from '../preferenceStore'

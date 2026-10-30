@@ -1,6 +1,6 @@
-import { isPlainObject } from './guards'
+import { isPlainObject } from '../object/guards'
 import { parseReferenceTokens, referenceFieldsOf } from './references'
-import type { DataTypeDef, ItemRecord } from '../types'
+import type { DataTypeDef, ItemRecord } from '../../types'
 
 /**
  * 「关系图」面板纯逻辑：

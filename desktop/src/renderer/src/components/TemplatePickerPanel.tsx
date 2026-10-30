@@ -19,7 +19,7 @@ import {
   type ChapterTemplate,
   type TemplateApplyMode
 } from '../../../shared/ceshu/reference/ceshuTemplates'
-import { toErrorMessage } from '../../../shared/util/errors'
+import { toErrorMessage } from '../../../shared/util/system/errors'
 
 /**
  * 章节模板库面板：

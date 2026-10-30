@@ -41,7 +41,7 @@ import {
   type LlmSetupState,
   type LlmSetupGuide
 } from './llmConfigData'
-import { isVisionMode } from '../../util/visionSupport'
+import { isVisionMode } from '../../util/ui/visionSupport'
 export * from './llmConfigData'
 
 /**

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 
 import type { CeshuSummary } from '../../../shared/ceshu/reference/ceshuConstants'
 import type { PluginSidebarItem } from '../../../shared/plugin/types'
-import { resolveIconName } from '../../../shared/util/lucideIcons'
+import { resolveIconName } from '../../../shared/util/ui/lucideIcons'
 import LucideIcon from './LucideIcon'
 import './sidebar-nav.css'
 

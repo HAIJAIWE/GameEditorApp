@@ -10,7 +10,7 @@ import {
   buildTimelineLayout,
   defaultTimelineSelectionId
 } from '../../../shared/domain/ceshu/ceshuTimeline'
-import { toErrorMessage } from '../../../shared/util/errors'
+import { toErrorMessage } from '../../../shared/util/system/errors'
 
 /**
  * 版本时间线面板：

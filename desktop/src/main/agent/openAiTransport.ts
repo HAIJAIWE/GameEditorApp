@@ -42,7 +42,7 @@ import {
   type BrainMessage,
   type BrainToolCall
 } from '../../shared/agent/brain'
-import { resolveVisionSupport, type VisionMode } from '../../shared/util/visionSupport'
+import { resolveVisionSupport, type VisionMode } from '../../shared/util/ui/visionSupport'
 import { assertHttpOk, isAbortError, pumpLines } from './agentStream'
 
 /** OpenAI 多模态 content part（文本 + 图片） */

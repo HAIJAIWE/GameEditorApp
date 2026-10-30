@@ -15,8 +15,8 @@
  *   故解析时按 `id === refType || pluralKey === refType` 双向命中。
  */
 
-import type { DataTypeDef } from '../types'
-import { isPlainObject } from './guards'
+import type { DataTypeDef } from '../../types'
+import { isPlainObject } from '../object/guards'
 
 export interface ReferenceEntry {
   /** 被引用条目 id（新写入一律带 id；兼容旧数据可缺省） */

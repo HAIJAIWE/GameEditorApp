@@ -16,7 +16,7 @@ import {
   templateChapterLabel,
   type ChapterTemplate
 } from '../../../shared/ceshu/reference/ceshuTemplates'
-import { toErrorMessage } from '../../../shared/util/errors'
+import { toErrorMessage } from '../../../shared/util/system/errors'
 
 /**
  * GDD 模板编辑器面板：

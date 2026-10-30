@@ -36,7 +36,7 @@ import {
   type BrainMessage,
   type BrainToolCall
 } from '../../shared/agent/brain'
-import { resolveVisionSupport, stripDataUrlPrefix, type VisionMode } from '../../shared/util/visionSupport'
+import { resolveVisionSupport, stripDataUrlPrefix, type VisionMode } from '../../shared/util/ui/visionSupport'
 import { assertHttpOk, isAbortError, pumpLines } from './agentStream'
 
 const DEFAULT_HOST = 'http://127.0.0.1:11434'
