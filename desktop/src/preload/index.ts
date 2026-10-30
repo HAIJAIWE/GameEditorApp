@@ -55,6 +55,9 @@ const api: MbApi = {
     /** 最近改动（操作日志）：可按 `since`（本轮开始时间）/ `conversationId` 收窄 */
     recentChanges: (req: { limit?: number; since?: number; conversationId?: string }) =>
       invoke('agent:recentChanges', req),
+    /** 最近交付（交付日志）：可按 `since` / `conversationId` 收窄 */
+    deliveries: (req: { limit?: number; since?: number; conversationId?: string }) =>
+      invoke('agent:deliveries', req),
     /** 订阅主进程推送的事件流；返回取消订阅函数 */
     onEvent: (handler: (event: unknown) => void): (() => void) => {
       const listener = (_event: unknown, payload: unknown): void => handler(payload)

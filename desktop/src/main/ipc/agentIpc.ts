@@ -10,6 +10,7 @@ import {
   agentDraftLoadInputSchema,
   agentDraftSaveInputSchema,
   agentRecentChangesInputSchema,
+  agentDeliveriesInputSchema,
   agentSubagentSendInputSchema,
   agentSubagentStopInputSchema,
   mcpSetConfigInputSchema
@@ -22,7 +23,7 @@ import type { AgentInteractionAnswer } from '../agent/approvalBroker'
 import { withTask } from '../task/taskRegistry'
 
 export function registerAgentIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm: LlmShared): void {
-  const { agentDispatcher, agentBrain, approvalBroker, agentSessionStore, agentFeedback, agentOperationLog } = deps
+  const { agentDispatcher, agentBrain, approvalBroker, agentSessionStore, agentFeedback, agentOperationLog, agentDeliveryLog } = deps
   // Agent 技能调度：listTools 供提示词/面板展示，executeTool 走统一调度与安全门
   handle('agent:listTools', undefined, () => ({
     description: agentDispatcher.toolsDescription(),
@@ -147,6 +148,13 @@ export function registerAgentIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
   // 最近改动（操作日志）：最近的数据变更记录（新→旧），供「最近改动」面板与对话内联改动卡
   handle('agent:recentChanges', agentRecentChangesInputSchema, (req) => ({
     changes: agentOperationLog.listRecentFiltered(req?.limit, {
+      since: req?.since,
+      conversationId: req?.conversationId
+    })
+  }))
+  // 最近交付（交付日志）：Agent 显式交付的文件，供对话内联交付卡展示
+  handle('agent:deliveries', agentDeliveriesInputSchema, (req) => ({
+    deliveries: agentDeliveryLog.listRecentFiltered(req?.limit, {
       since: req?.since,
       conversationId: req?.conversationId
     })

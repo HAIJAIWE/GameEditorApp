@@ -110,8 +110,9 @@ import type { AgentRunStats } from './agent/observability'
 import type { DraftSummary, SessionInfo, SessionTurnSummary } from './agent/session'
 import type { OperationRecord } from './agent/operationLog'
 import type { JsonObjectSchema, SkillResult } from './agent/protocol'
-import type { AttachmentsAddInput, AttachmentsOpenInput, AttachmentsReadImageInput } from './schemas'
+import type { AgentDeliveriesInput, AttachmentsAddInput, AttachmentsOpenInput, AttachmentsReadImageInput } from './schemas'
 import type { DigitalAttachment } from './util/libraryAttachments'
+import type { DeliveryRecord } from './agent/deliveryLog'
 import type { CeshuChangelog, CeshuVersionDiff } from './ceshuDiff'
 import type { CeshuTaskPlan } from './ceshuTasks'
 import type { ContractReport } from './ceshuContract'
@@ -358,6 +359,14 @@ export interface IpcContract {
   'agent:recentChanges': {
     req: { limit?: number; since?: number; conversationId?: string }
     res: { changes: OperationRecord[] }
+  }
+  /**
+   * 最近交付（交付日志）：Agent 显式交付给用户的文件（目前来自 `system.ceshu` 的 export）。
+   * `since` / `conversationId` 可选，缺省 = 全量最近 N 条。
+   */
+  'agent:deliveries': {
+    req: AgentDeliveriesInput
+    res: { deliveries: DeliveryRecord[] }
   }
 
   'dialog:chooseEngineExportFile': { req: EngineExportFileDialogInput; res: { path: string | null } }

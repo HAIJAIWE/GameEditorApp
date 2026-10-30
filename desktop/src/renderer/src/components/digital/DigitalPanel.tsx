@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import { defaultDraftName, type DraftSummary } from '../../../../shared/agent/session'
 
 import { DigitalChangeCard } from './DigitalChangeCard'
+import { DigitalDeliveryCard } from './DigitalDeliveryCard'
 import { DigitalMessageItem } from './DigitalMessageItem'
 import { DigitalRunPlan } from './DigitalRunPlan'
 import { PendingAttachments } from './PendingAttachments'
@@ -35,6 +36,7 @@ import { SlotOutlet } from '../../plugins/slotOutlet'
 import type { BrainEvent } from '../../../../shared/agent/brain'
 import type { AgentRunTier } from '../../../../shared/agent/observability'
 import type { OperationRecord } from '../../../../shared/agent/operationLog'
+import type { DeliveryRecord } from '../../../../shared/agent/deliveryLog'
 import {
   isAnswerComplete,
   isMultiQuestion,
@@ -100,6 +102,12 @@ interface ChatApi {
     since?: number
     conversationId?: string
   }) => Promise<{ changes: OperationRecord[] }>
+  /** 本轮交付的文件（交付日志）：供对话内联交付卡展示 */
+  deliveries: (req: {
+    limit?: number
+    since?: number
+    conversationId?: string
+  }) => Promise<{ deliveries: DeliveryRecord[] }>
   onEvent: (handler: (event: unknown) => void) => () => void
 }
 
@@ -253,6 +261,8 @@ export default function DigitalPanel({
    * 只存本轮 `since` 之后新建/修改/删除的数据条目，供对话流内联改动卡展示。
    */
   const [turnChanges, setTurnChanges] = useState<OperationRecord[]>([])
+  /** 本轮交付的文件（交付日志）：与改动一起在运行结束后拉取，供交付卡展示 */
+  const [turnDeliveries, setTurnDeliveries] = useState<DeliveryRecord[]>([])
   /** 本轮开始时间（`since` 过滤锚点）。只读不触发渲染，故用 ref 而非 state */
   const turnStartedAt = useRef<number | null>(null)
 
@@ -328,10 +338,16 @@ export default function DigitalPanel({
     let cancelled = false
     void (async () => {
       try {
-        const res = await api.recentChanges({ limit: 50, since })
-        if (!cancelled) setTurnChanges(res.changes)
+        const [changesRes, deliveriesRes] = await Promise.all([
+          api.recentChanges({ limit: 50, since }),
+          api.deliveries({ limit: 50, since })
+        ])
+        if (!cancelled) {
+          setTurnChanges(changesRes.changes)
+          setTurnDeliveries(deliveriesRes.deliveries)
+        }
       } catch (error: unknown) {
-        console.warn('读取本轮改动失败（不影响对话）：', error)
+        console.warn('读取本轮改动/交付失败（不影响对话）：', error)
       }
     })()
     return () => {
@@ -411,6 +427,7 @@ export default function DigitalPanel({
       // 本轮改动卡的锚点：先清掉上一轮的结果，避免运行中看到旧卡
       turnStartedAt.current = Date.now()
       setTurnChanges([])
+      setTurnDeliveries([])
       // 附件随本轮一起走：先记进用户消息（气泡上显示），再发给主进程注入上下文；发完清空
       const sentAttachments = attachments.length > 0 ? attachments : undefined
       dispatch({ kind: 'submit', text, ...(sentAttachments !== undefined ? { attachments: sentAttachments } : {}) })
@@ -654,6 +671,7 @@ export default function DigitalPanel({
       setGoal('')
       // 新对话不再展示上一轮的改动卡（`turnStartedAt` 留给下一次发送覆盖，无需在此清空）
       setTurnChanges([])
+      setTurnDeliveries([])
     } catch (error: unknown) {
       setLocalError(toErrorMessage(error))
     }
@@ -969,6 +987,7 @@ export default function DigitalPanel({
         {/* 本轮进度条：步骤默认折叠在下面的「展开执行步骤」里，这里先给一眼可见的进度 */}
         <DigitalRunPlan steps={state.steps} status={state.status} onExpand={() => setStepsOpen(true)} />
         <DigitalChangeCard changes={turnChanges} />
+        <DigitalDeliveryCard deliveries={turnDeliveries} />
         {state.streaming !== '' && <DigitalMessageItem role="assistant" text={state.streaming} streaming />}
         {/* 状态行（对齐 dsh 的「深度求索中，用时 …」/「已完成分析」）：
             只在本轮有内容时说一句；没有重试事件可报，就**不伪造**「已重试 (2/5)」那种行 */}

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { createRecordingToolRunner, locateItem } from '../../src/main/agent/operationRecorder'
 import { OperationLogStore } from '../../src/main/agent/operationLogStore'
+import { DeliveryLogStore } from '../../src/main/agent/deliveryLogStore'
 import { createRollbackSkill, type RollbackDataPort } from '../../src/main/agent/skills/rollbackSkill'
 import type { BrainToolRunner } from '../../src/shared/agent/brain'
 import type { SkillResult } from '../../src/shared/agent/protocol'
@@ -110,6 +111,53 @@ describe('createRecordingToolRunner：会话内数据变更的记录', () => {
     await runner.execute('system.game_data', { action: 'delete', name: '法师' }, { sessionId: 'c1' })
     // 无结果 id 也无快照 → 整条不记录（宁缺勿错）
     expect(operationLog.count()).toBe(0)
+  })
+})
+
+describe('createRecordingToolRunner：导出交付的记录', () => {
+  it('system.ceshu export 成功 → 记一条交付（路径/文件名/字节/时间戳）', async () => {
+    const deliveryLog = new DeliveryLogStore()
+    const runner = createRecordingToolRunner(
+      makeInner({ success: true, message: 'ok', data: { filePath: 'D:/lib/exports/game.docx', format: 'docx', bytes: 2048 } }),
+      { operationLog: new OperationLogStore(), deliveryLog, listItems: () => [], now: () => 1234 }
+    )
+    await runner.execute('system.ceshu', { action: 'export', ceshu_id: 'c1' }, { sessionId: 'conv1' })
+
+    const [record] = deliveryLog.listRecentFiltered(10, { conversationId: 'conv1' })
+    expect(record).toMatchObject({
+      conversationId: 'conv1',
+      path: 'D:/lib/exports/game.docx',
+      label: 'game.docx',
+      bytes: 2048,
+      timestamp: 1234
+    })
+  })
+
+  it('非导出动作 / 结果无 filePath / 失败 → 不记交付（不造假）', async () => {
+    const deliveryLog = new DeliveryLogStore()
+    const listRunner = createRecordingToolRunner(makeInner({ success: true, message: '', data: null }), {
+      operationLog: new OperationLogStore(),
+      deliveryLog,
+      listItems: () => [],
+      now: () => 1
+    })
+    await listRunner.execute('system.ceshu', { action: 'list' }, { sessionId: 'conv1' })
+
+    const noPathRunner = createRecordingToolRunner(makeInner({ success: true, message: '', data: {} }), {
+      operationLog: new OperationLogStore(),
+      deliveryLog,
+      listItems: () => [],
+      now: () => 1
+    })
+    await noPathRunner.execute('system.ceshu', { action: 'export' }, { sessionId: 'conv1' })
+
+    const failedRunner = createRecordingToolRunner(
+      makeInner({ success: false, message: '', error: '失败', data: { filePath: 'x.docx', bytes: 1 } }),
+      { operationLog: new OperationLogStore(), deliveryLog, listItems: () => [], now: () => 1 }
+    )
+    await failedRunner.execute('system.ceshu', { action: 'export' }, { sessionId: 'conv1' })
+
+    expect(deliveryLog.listRecentFiltered(10).length).toBe(0)
   })
 })
 

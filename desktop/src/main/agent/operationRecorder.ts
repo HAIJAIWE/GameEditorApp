@@ -17,6 +17,7 @@ import type { BrainToolRunner } from '../../shared/agent/brain'
 import type { OperationRecord } from '../../shared/agent/operationLog'
 import type { SkillExecutionContext, SkillResult } from '../../shared/agent/protocol'
 import type { OperationLogStore } from './operationLogStore'
+import type { DeliveryLogStore } from './deliveryLogStore'
 
 /** 记录器需要的条目形态（`ItemRecord` 的结构子集） */
 export interface RecorderItem {
@@ -27,6 +28,11 @@ export interface RecorderItem {
 
 export interface OperationRecorderDeps {
   operationLog: OperationLogStore
+  /**
+   * 交付日志（可选）：导出类动作成功后记一条「交付了某文件」。
+   * 与操作日志分开存——交付不可回滚，混进去会污染回滚计划。
+   */
+  deliveryLog?: DeliveryLogStore
   /** 列出全部条目：用于定位目标并抓「变更前快照」 */
   listItems: () => RecorderItem[]
   /** 时间戳来源（测试可注入确定性实现） */
@@ -81,6 +87,32 @@ function describeOperation(
   return null
 }
 
+/** 取路径最后一段（交付卡展示用；不引 node:path） */
+function baseNameOf(path: string): string {
+  const normalized = path.replace(/\\/g, '/')
+  const index = normalized.lastIndexOf('/')
+  return index === -1 ? normalized : normalized.slice(index + 1)
+}
+
+/**
+ * 从技能结果里提取「交付文件」：目前唯一来源是 `system.ceshu` 的 `export` 动作，
+ * 成功后 `data.filePath` 即交付文件的绝对路径。非导出动作/失败一律返回 null（不造假交付）。
+ */
+function extractDelivery(
+  toolName: string,
+  params: Record<string, unknown>,
+  result: SkillResult
+): { path: string; bytes: number } | null {
+  if (toolName !== 'system.ceshu' || result.success !== true) return null
+  if (params['action'] !== 'export') return null
+  const data = toPayload(result.data)
+  if (data === null) return null
+  const filePath = typeof data['filePath'] === 'string' ? data['filePath'].trim() : ''
+  if (filePath === '') return null
+  const bytes = typeof data['bytes'] === 'number' && Number.isFinite(data['bytes']) ? data['bytes'] : 0
+  return { path: filePath, bytes }
+}
+
 /** 包一层记录器；`inner` 为实际执行器（通常是 `createDispatcherToolRunner` 的产物） */
 export function createRecordingToolRunner(
   inner: BrainToolRunner,
@@ -90,33 +122,50 @@ export function createRecordingToolRunner(
     resolve: (toolName) => inner.resolve(toolName),
     needsConfirmation: (toolName, action) => inner.needsConfirmation(toolName, action),
     execute: async (toolName, params, ctx: SkillExecutionContext) => {
-      const described = describeOperation(toolName, params)
-      // 无会话上下文不记录
+      // 无会话上下文：不记录任何东西，直接执行
       const conversationId = typeof ctx.sessionId === 'string' ? ctx.sessionId.trim() : ''
-      if (described === null || conversationId === '') {
-        return inner.execute(toolName, params, ctx)
+      const described = describeOperation(toolName, params)
+      // 变更前快照必须在执行**前**抓（执行后数据已变）
+      const snapshot =
+        described !== null && conversationId !== '' && described.opType !== 'create'
+          ? locateItem(deps.listItems(), params)
+          : null
+
+      const result = await inner.execute(toolName, params, ctx)
+
+      // ① 数据变更记录（成功才记；定位不到条目不记，避免写出指向错误条目的回滚计划）
+      if (described !== null && conversationId !== '' && result.success === true) {
+        const after = extractItem(result)
+        const itemId = after?.id ?? snapshot?.id ?? ''
+        const dataType = after?.type ?? snapshot?.type ?? ''
+        if (itemId !== '' && dataType !== '') {
+          deps.operationLog.record({
+            opType: described.opType,
+            dataType,
+            itemId,
+            itemName: itemNameOf(after) ?? itemNameOf(snapshot) ?? itemId,
+            before: snapshot === null ? null : { ...snapshot.data, id: snapshot.id },
+            after: after === null ? null : { ...after.data, id: after.id },
+            conversationId,
+            timestamp: (deps.now ?? Date.now)()
+          })
+        }
       }
 
-      const snapshot = described.opType === 'create' ? null : locateItem(deps.listItems(), params)
-      const result = await inner.execute(toolName, params, ctx)
-      if (result.success !== true) return result
+      // ② 交付记录（导出成功 → 交付了某文件；与数据变更分开存，交付不可回滚）
+      if (deps.deliveryLog !== undefined && conversationId !== '') {
+        const delivery = extractDelivery(toolName, params, result)
+        if (delivery !== null) {
+          deps.deliveryLog.record({
+            conversationId,
+            path: delivery.path,
+            label: baseNameOf(delivery.path),
+            bytes: delivery.bytes,
+            timestamp: (deps.now ?? Date.now)()
+          })
+        }
+      }
 
-      const after = extractItem(result)
-      const itemId = after?.id ?? snapshot?.id ?? ''
-      const dataType = after?.type ?? snapshot?.type ?? ''
-      // 定位不到条目（既无结果 id 也无快照）→ 不记录，避免写出指向错误条目的回滚计划
-      if (itemId === '' || dataType === '') return result
-
-      deps.operationLog.record({
-        opType: described.opType,
-        dataType,
-        itemId,
-        itemName: itemNameOf(after) ?? itemNameOf(snapshot) ?? itemId,
-        before: snapshot === null ? null : { ...snapshot.data, id: snapshot.id },
-        after: after === null ? null : { ...after.data, id: after.id },
-        conversationId,
-        timestamp: (deps.now ?? Date.now)()
-      })
       return result
     }
   }

@@ -49,6 +49,8 @@ export interface MbApi {
     getPreReviewEnabled(): Promise<IpcContract['agent:getPreReviewEnabled']['res']>
     /** 最近改动（操作日志）：最近的数据变更记录（新→旧） */
     recentChanges(req: IpcContract['agent:recentChanges']['req']): Promise<IpcContract['agent:recentChanges']['res']>
+    /** 最近交付（交付日志）：Agent 显式交付的文件（新→旧） */
+    deliveries(req: IpcContract['agent:deliveries']['req']): Promise<IpcContract['agent:deliveries']['res']>
     /** 订阅主进程推送的事件流；返回取消订阅函数 */
     onEvent(handler: (event: unknown) => void): () => void
   }

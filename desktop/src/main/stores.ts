@@ -65,6 +65,7 @@ function buildSubAgentProvider(): { subAgentProvider?: SubAgentProvider } {
 import { AgentApprovalBroker } from './agent/approvalBroker'
 import { AgentBrainService, createDispatcherToolRunner } from './agent/brainService'
 import { OperationLogStore } from './agent/operationLogStore'
+import { DeliveryLogStore } from './agent/deliveryLogStore'
 import { createRecordingToolRunner } from './agent/operationRecorder'
 import { createRollbackSkill } from './agent/skills/rollbackSkill'
 import { createSessionSearchSkill } from './agent/skills/sessionSearchSkill'
@@ -118,6 +119,8 @@ export interface AppStores {
   agentFeedback: FeedbackStore
   /** 操作日志（AI 数据变更记录，供「最近改动」面板与回滚） */
   agentOperationLog: OperationLogStore
+  /** 交付日志（Agent 显式交付的文件，供对话内联交付卡） */
+  agentDeliveryLog: DeliveryLogStore
   approvalBroker: AgentApprovalBroker
   llmClient: LlmClient
 }
@@ -148,6 +151,8 @@ export function buildStores(libDir: string): AppStores {
 
   // 会话级回滚（E3）：日志 + 回滚技能，记录器包在 runner 上（Agent 改数据的唯一漏斗）
   const operationLog = new OperationLogStore()
+  // 交付日志（ui-deliverables 交付卡）：与操作日志分开存（交付不可回滚）
+  const deliveryLog = new DeliveryLogStore()
   dispatcher.register(createRollbackSkill({ operationLog, dataService: data }))
   // 子智能体（Slice 19）：标记技能，实际由 Brain 循环按名拦截并递归跑子循环
   dispatcher.register(createSubAgentSkill())
@@ -155,6 +160,7 @@ export function buildStores(libDir: string): AppStores {
   mcpManager.attach(dispatcher)
   const runner = createRecordingToolRunner(createDispatcherToolRunner(dispatcher), {
     operationLog,
+    deliveryLog,
     listItems: () => data.listAllItems()
   })
 
@@ -195,6 +201,7 @@ export function buildStores(libDir: string): AppStores {
     agentPreferences: personalization.preferences,
     agentFeedback: personalization.feedback,
     agentOperationLog: operationLog,
+    agentDeliveryLog: deliveryLog,
     approvalBroker: new AgentApprovalBroker(),
     llmClient: new LlmClient()
   }

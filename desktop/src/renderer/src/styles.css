@@ -8464,6 +8464,84 @@ button.ref-row:hover {
   overflow: hidden;
 }
 
+/* 交付卡（对齐 dsh ui-deliverables 的 delivery cards）：与改动卡同构，只有文件行 */
+.digital-delivery-card {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-panel);
+  overflow: hidden;
+}
+.digital-delivery-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px 8px;
+  border-bottom: 0.5px solid var(--divider);
+}
+.digital-delivery-tile {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+}
+.digital-delivery-title {
+  font-size: calc(13px * var(--ui-font-scale));
+  font-weight: 500;
+  color: var(--text);
+}
+.digital-delivery-list {
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+}
+.digital-delivery-row {
+  padding: 0 4px;
+}
+.digital-delivery-file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
+  text-align: left;
+  cursor: pointer;
+}
+.digital-delivery-file:hover {
+  background: var(--bg-hover);
+}
+.digital-delivery-file svg {
+  flex: none;
+  color: var(--text-muted);
+}
+.digital-delivery-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.digital-delivery-size {
+  flex: none;
+  margin-left: auto;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
 .digital-change-card-head {
   display: flex;
   align-items: center;

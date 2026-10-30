@@ -157,6 +157,15 @@ export const agentRecentChangesInputSchema = z
   })
   .optional()
 
+/** 交付日志：最近交付的文件（新→旧），可按 since/conversationId 收窄 */
+export const agentDeliveriesInputSchema = z
+  .object({
+    limit: z.number().int().positive().max(1000).optional(),
+    since: z.number().nonnegative().optional(),
+    conversationId: z.string().min(1).max(200).optional()
+  })
+  .optional()
+
 /* ---- 字段级 AI 辅助 ---- */
 
 /** 单次文本生成的入参 */
@@ -972,6 +981,7 @@ export type AgentDraftSaveInput = z.infer<typeof agentDraftSaveInputSchema>
 export type AgentDraftLoadInput = z.infer<typeof agentDraftLoadInputSchema>
 export type AgentFeedbackInput = z.infer<typeof agentFeedbackInputSchema>
 export type AgentChatInput = z.infer<typeof agentChatInputSchema>
+export type AgentDeliveriesInput = z.infer<typeof agentDeliveriesInputSchema>
 export type AgentApprovalResponseInput = z.infer<typeof agentApprovalResponseInputSchema>
 export type AgentInteractionResponseInput = z.infer<typeof agentInteractionResponseInputSchema>
 export type AgentSubagentSendInput = z.infer<typeof agentSubagentSendInputSchema>
