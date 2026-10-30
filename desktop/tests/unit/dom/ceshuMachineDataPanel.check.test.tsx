@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest'
 
-import CeshuMachineDataPanel from '../../../src/renderer/src/components/CeshuMachineDataPanel'
+import CeshuMachineDataPanel from '../../../src/renderer/src/components/ceshuDoc/CeshuMachineDataPanel'
 import { checkContract } from '../../../src/shared/ceshu/validation/ceshuContract'
 import { createDefaultCeshu } from '../../../src/shared/ceshu/model/ceshuModel'
 import type { DataTableCheckResult } from '../../../src/shared/ceshu/data/ceshuDataTableCheck'

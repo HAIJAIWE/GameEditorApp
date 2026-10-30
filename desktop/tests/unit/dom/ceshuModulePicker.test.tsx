@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import CeshuModulePicker from '../../../src/renderer/src/components/CeshuModulePicker'
+import CeshuModulePicker from '../../../src/renderer/src/components/ceshuDoc/CeshuModulePicker'
 import { CHAPTER_LABELS, MODULE_CHAPTERS, UNIVERSAL_CORE_CHAPTERS } from '../../../src/shared/ceshu/reference/ceshuConstants'
 import { createDefaultCeshu } from '../../../src/shared/ceshu/model/ceshuModel'
 import { installMbApi, renderDom, type RenderResult } from './render'

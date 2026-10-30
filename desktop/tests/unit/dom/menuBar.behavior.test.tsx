@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { PluginHost } from '../../../src/shared/plugin/host'
 import type { PluginMenuItem } from '../../../src/shared/plugin/types'
-import MenuBar from '../../../src/renderer/src/components/MenuBar'
+import MenuBar from '../../../src/renderer/src/components/layout/MenuBar'
 import { defineMenusPlugin } from '../../../src/renderer/src/plugins/menusPlugin'
 import { setMenuStateProvider } from '../../../src/renderer/src/plugins/menuState'
 import { installMbApi, pressKey, renderDom, type ApiStub, type RenderResult } from './render'

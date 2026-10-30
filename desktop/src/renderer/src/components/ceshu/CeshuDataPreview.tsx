@@ -5,7 +5,7 @@ import type { CeshuChapters, EnabledEditor } from '../../../../shared/ceshu/refe
 import { findCountConstraint } from '../../../../shared/util/data/dataCountConstraint'
 import type { DataTypeDef } from '../../../../shared/types'
 
-import DataEditorTab from '../DataEditorTab'
+import DataEditorTab from '../data/DataEditorTab'
 import CeshuDataRefsPanel from './CeshuDataRefsPanel'
 
 /** 跳转目标（由「高级搜索 / 引用关系」的 onJump 触发；nonce 递增以支持重复跳转同一类型） */

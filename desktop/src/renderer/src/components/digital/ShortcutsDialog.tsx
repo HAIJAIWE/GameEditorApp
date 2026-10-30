@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactElement } from 'react'
 
-import LucideIcon from '../LucideIcon'
+import LucideIcon from '../common/LucideIcon'
 import { SHORTCUTS, type ShortcutEntry } from './shortcutsData'
 
 /**

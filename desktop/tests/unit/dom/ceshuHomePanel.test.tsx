@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest'
 
-import CeshuHomePanel from '../../../src/renderer/src/components/CeshuHomePanel'
+import CeshuHomePanel from '../../../src/renderer/src/components/ceshuDoc/CeshuHomePanel'
 import type { CeshuSummary } from '../../../src/shared/ceshu/reference/ceshuConstants'
 import { renderDom, type RenderResult } from './render'
 

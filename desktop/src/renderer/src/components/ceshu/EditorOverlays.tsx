@@ -20,7 +20,7 @@ import {
 } from '../../../../shared/ceshu/data/ceshuImportPatch'
 import { migrationSplitTitle, pendingSplitCount, planCeshuMigration } from '../../../../shared/ceshu/data/ceshuMigrationPlan'
 import { REVIEW_QUEUE_KEY_HINT, resolveReviewQueueKey } from '../../reviewQueueKeys'
-import CeshuModulePicker from '../CeshuModulePicker'
+import CeshuModulePicker from '../ceshuDoc/CeshuModulePicker'
 import { cursorAfterAccept } from './reviewQueueAdvance'
 import { collectPendingReviewFields } from './reviewQueueData'
 import { groupReviewQueue } from './reviewQueueGroups'

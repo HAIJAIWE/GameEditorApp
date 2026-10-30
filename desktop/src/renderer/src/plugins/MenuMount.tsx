@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'reac
 
 import type { PluginHost } from '../../../shared/plugin/host'
 import type { PluginMenuItem } from '../../../shared/plugin/types'
-import LucideIcon from '../components/LucideIcon'
+import LucideIcon from '../components/common/LucideIcon'
 
 /**
  * 菜单挂载点（Slice 16）：把插件声明的 `menu` 能力渲染成宿主某位置的**下拉菜单**。

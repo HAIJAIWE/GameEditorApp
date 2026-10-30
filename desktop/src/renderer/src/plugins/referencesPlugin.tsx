@@ -1,6 +1,6 @@
 import type { PluginHost } from '../../../shared/plugin/host'
 import type { PluginManifest } from '../../../shared/plugin/types'
-import ReferencesPanel, { type ReferenceTarget } from '../components/ReferencesPanel'
+import ReferencesPanel, { type ReferenceTarget } from '../components/ceshuField/ReferencesPanel'
 import { useAppContext } from './appContext'
 import { registerReactBinding, type PanelBindingProps } from './reactBindings'
 

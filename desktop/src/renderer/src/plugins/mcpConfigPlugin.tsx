@@ -1,6 +1,6 @@
 import type { PluginHost } from '../../../shared/plugin/host'
 import type { PluginManifest } from '../../../shared/plugin/types'
-import McpConfigPanel from '../components/McpConfigPanel'
+import McpConfigPanel from '../components/agent/McpConfigPanel'
 import { registerReactBinding, type PanelBindingProps } from './reactBindings'
 
 /**

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import AiReviewPanel from '../../../src/renderer/src/components/AiReviewPanel'
+import AiReviewPanel from '../../../src/renderer/src/components/agent/AiReviewPanel'
 import {
   ADVERSARIAL_CHECK_KEYS,
   ADVERSARIAL_CHECK_LABELS,

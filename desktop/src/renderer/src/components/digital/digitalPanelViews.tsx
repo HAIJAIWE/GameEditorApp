@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react'
 
-import LucideIcon from '../LucideIcon'
+import LucideIcon from '../common/LucideIcon'
 import type { LucideIconName } from '../../../../shared/util/ui/lucideIcons'
 import { RISK_LEVEL, resolveRiskLevel } from '../../../../shared/agent/config/protocol'
 import type { DigitalCommand } from '../../../../shared/agent/tools/commands'

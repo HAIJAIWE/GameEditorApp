@@ -1,6 +1,6 @@
 import type { PluginHost } from '../../../shared/plugin/host'
 import type { PluginManifest } from '../../../shared/plugin/types'
-import OnboardingPanel from '../components/OnboardingPanel'
+import OnboardingPanel from '../components/common/OnboardingPanel'
 import { useAppContext } from './appContext'
 import { getActiveCeshuId, notify, openPanel, setHomeVisible } from './hostBridge'
 import { registerReactBinding, type PanelBindingProps } from './reactBindings'

@@ -1,7 +1,7 @@
 import type { PluginHost } from '../../../shared/plugin/host'
 import type { PluginManifest } from '../../../shared/plugin/types'
 import { registerReactBinding } from './reactBindings'
-import StatisticsPanel from '../components/StatisticsPanel'
+import StatisticsPanel from '../components/ceshuType/StatisticsPanel'
 
 /**
  * 数据统计面板 → 插件化第二切片（B 方案 Slice 2）。

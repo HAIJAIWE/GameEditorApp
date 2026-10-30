@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest'
 
-import ChapterForm, { nextPendingFieldKey } from '../../../src/renderer/src/components/ChapterForm'
+import ChapterForm, { nextPendingFieldKey } from '../../../src/renderer/src/components/ceshuField/ChapterForm'
 import { CESHU_CHAPTER_FIELDS } from '../../../src/shared/ceshu/fields/ceshuFields'
 import { createDefaultCeshu } from '../../../src/shared/ceshu/model/ceshuModel'
 import {

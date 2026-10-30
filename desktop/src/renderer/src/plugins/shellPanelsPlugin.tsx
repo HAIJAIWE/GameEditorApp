@@ -1,7 +1,7 @@
 import type { PluginHost } from '../../../shared/plugin/host'
 import type { PluginManifest } from '../../../shared/plugin/types'
-import AboutPanel from '../components/AboutPanel'
-import PluginsPanel from '../components/PluginsPanel'
+import AboutPanel from '../components/common/AboutPanel'
+import PluginsPanel from '../components/common/PluginsPanel'
 import { registerReactBinding, type PanelBindingProps } from './reactBindings'
 
 /**

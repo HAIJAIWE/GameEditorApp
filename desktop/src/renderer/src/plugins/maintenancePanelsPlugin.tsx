@@ -1,7 +1,7 @@
 import type { PluginHost } from '../../../shared/plugin/host'
 import type { PluginManifest } from '../../../shared/plugin/types'
-import BackupPanel from '../components/BackupPanel'
-import ClearAllPanel from '../components/ClearAllPanel'
+import BackupPanel from '../components/backup/BackupPanel'
+import ClearAllPanel from '../components/backup/ClearAllPanel'
 import { useAppContext } from './appContext'
 import { registerReactBinding, type PanelBindingProps } from './reactBindings'
 

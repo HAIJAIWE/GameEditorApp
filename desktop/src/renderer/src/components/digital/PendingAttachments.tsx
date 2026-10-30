@@ -1,6 +1,6 @@
 import type { ReactElement } from 'react'
 
-import LucideIcon from '../LucideIcon'
+import LucideIcon from '../common/LucideIcon'
 import {
   attachmentExtension,
   formatAttachmentSize,

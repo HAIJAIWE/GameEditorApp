@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest'
 
-import CeshuView from '../../../src/renderer/src/components/CeshuView'
+import CeshuView from '../../../src/renderer/src/components/ceshuDoc/CeshuView'
 import { defineCeshuMenusPlugin } from '../../../src/renderer/src/plugins/ceshuMenusPlugin'
 import { defineCeshuViewsPlugin } from '../../../src/renderer/src/plugins/ceshuViewsPlugin'
 import { createDefaultCeshu } from '../../../src/shared/ceshu/model/ceshuModel'

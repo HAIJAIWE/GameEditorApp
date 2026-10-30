@@ -1,8 +1,8 @@
 import type { PluginHost } from '../../../shared/plugin/host'
 import type { PluginManifest } from '../../../shared/plugin/types'
-import AdvancedSearchPanel from '../components/AdvancedSearchPanel'
-import AttributeChartPanel from '../components/AttributeChartPanel'
-import RelationGraphPanel from '../components/RelationGraphPanel'
+import AdvancedSearchPanel from '../components/common/AdvancedSearchPanel'
+import AttributeChartPanel from '../components/attr/AttributeChartPanel'
+import RelationGraphPanel from '../components/ceshuField/RelationGraphPanel'
 import { useAppContext } from './appContext'
 import { registerReactBinding, type PanelBindingProps } from './reactBindings'
 

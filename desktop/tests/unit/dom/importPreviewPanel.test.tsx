@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest'
 
-import ImportPreviewPanel from '../../../src/renderer/src/components/ImportPreviewPanel'
+import ImportPreviewPanel from '../../../src/renderer/src/components/data/ImportPreviewPanel'
 import type { DataTypeDef, ImportPreview, ImportSummary } from '../../../src/shared/types'
 import { installMbApi, renderDom, type ApiStub, type RenderResult } from './render'
 

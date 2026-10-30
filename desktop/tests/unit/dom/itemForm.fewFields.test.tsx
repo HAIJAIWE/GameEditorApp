@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import ItemForm from '../../../src/renderer/src/components/ItemForm'
+import ItemForm from '../../../src/renderer/src/components/ceshuField/ItemForm'
 import type { DataTypeDef, ItemRecord, TypeFieldDef } from '../../../src/shared/types'
 import { installMbApi, renderDom, type RenderResult } from './render'
 

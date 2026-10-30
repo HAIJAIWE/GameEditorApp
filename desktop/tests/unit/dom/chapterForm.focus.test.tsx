@@ -2,7 +2,7 @@
 import { act, type ReactElement } from 'react'
 import { afterEach, describe, expect, it } from 'vitest'
 
-import ChapterForm from '../../../src/renderer/src/components/ChapterForm'
+import ChapterForm from '../../../src/renderer/src/components/ceshuField/ChapterForm'
 import type { ChapterKey } from '../../../src/shared/ceshu/reference/ceshuConstants'
 import { createDefaultCeshu } from '../../../src/shared/ceshu/model/ceshuModel'
 import { installMbApi, renderDom, type RenderResult } from './render'

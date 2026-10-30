@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { fieldValueToInput, inputToFieldValue } from '../../src/renderer/src/components/CeshuFieldControl'
+import { fieldValueToInput, inputToFieldValue } from '../../src/renderer/src/components/ceshuField/CeshuFieldControl'
 import { CESHU_CHAPTER_FIELDS } from '../../src/shared/ceshu/fields/ceshuFields'
 import type { CeshuFieldDef, ChapterKey } from '../../src/shared/ceshu/reference/ceshuConstants'
 

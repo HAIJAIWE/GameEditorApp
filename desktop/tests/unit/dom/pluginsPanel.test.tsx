@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { PluginHost } from '../../../src/shared/plugin/host'
-import PluginsPanel from '../../../src/renderer/src/components/PluginsPanel'
+import PluginsPanel from '../../../src/renderer/src/components/common/PluginsPanel'
 import { registerReactBinding } from '../../../src/renderer/src/plugins/reactBindings'
 import { installMbApi, renderDom, type RenderResult } from './render'
 

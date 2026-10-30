@@ -11,7 +11,7 @@ import { PendingAttachments } from './PendingAttachments'
 import { ShortcutsDialog } from './ShortcutsDialog'
 import FieldActionStrip from './FieldActionStrip'
 
-import LucideIcon from '../LucideIcon'
+import LucideIcon from '../common/LucideIcon'
 import type { LucideIconName } from '../../../../shared/util/ui/lucideIcons'
 
 /**

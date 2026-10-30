@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest'
 
-import CeshuHomePanel from '../../../src/renderer/src/components/CeshuHomePanel'
+import CeshuHomePanel from '../../../src/renderer/src/components/ceshuDoc/CeshuHomePanel'
 import { installMbApi, renderDom, type RenderResult } from './render'
 
 /**
