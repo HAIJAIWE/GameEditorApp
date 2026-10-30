@@ -11,7 +11,7 @@
  */
 import { readFileSync } from 'node:fs'
 
-import { createDefaultCeshu, normalizeCeshu } from '../src/shared/ceshuModel'
+import { createDefaultCeshu, normalizeCeshu } from '../src/shared/ceshu/ceshuModel'
 import {
   buildRoleTaskPrompt,
   buildTaskDigest,
@@ -19,9 +19,9 @@ import {
   isEmptyTaskPlan,
   parseRoleTaskPlan,
   taskRolesForDoc
-} from '../src/shared/ceshuTaskPrompt'
-import { renderRoleTasksMarkdown } from '../src/shared/ceshuTasks'
-import type { CeshuDocument } from '../src/shared/ceshuConstants'
+} from '../src/shared/ceshu/ceshuTaskPrompt'
+import { renderRoleTasksMarkdown } from '../src/shared/ceshu/ceshuTasks'
+import type { CeshuDocument } from '../src/shared/ceshu/ceshuConstants'
 
 function arg(name: string): string | undefined {
   const index = process.argv.indexOf(`--${name}`)
