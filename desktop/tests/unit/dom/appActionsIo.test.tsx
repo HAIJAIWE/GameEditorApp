@@ -12,7 +12,7 @@ import {
   redo,
   setAppIoPort,
   undo
-} from '../../../src/renderer/src/plugins/appActionsIo'
+} from '../../../src/renderer/src/plugins/context/appActionsIo'
 import { installMbApi } from './render'
 
 const PREVIEW: ImportPreview = {

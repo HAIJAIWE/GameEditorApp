@@ -3,9 +3,9 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { PluginHost } from '../../../src/shared/plugin/host'
 import type { DataTypeDef } from '../../../src/shared/types'
-import { HostPanel } from '../../../src/renderer/src/plugins/HostPanel'
-import { AppContextProvider } from '../../../src/renderer/src/plugins/appContext'
-import { defineDataPanelsPlugin } from '../../../src/renderer/src/plugins/dataPanelsPlugin'
+import { HostPanel } from '../../../src/renderer/src/plugins/host/HostPanel'
+import { AppContextProvider } from '../../../src/renderer/src/plugins/host/appContext'
+import { defineDataPanelsPlugin } from '../../../src/renderer/src/plugins/panels/dataPanelsPlugin'
 import { installMbApi, renderDom, type RenderResult, appContextValue } from './render'
 
 const TYPES: DataTypeDef[] = [

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
 
-import { AgentTeamSection } from '../../../src/renderer/src/plugins/agentTeamSection'
+import { AgentTeamSection } from '../../../src/renderer/src/plugins/session/agentTeamSection'
 import {
   CONVERSATION_STORE_KEY,
   createConversationStoreDecl

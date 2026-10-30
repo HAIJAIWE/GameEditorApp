@@ -50,9 +50,9 @@ import CeshuAgentPanel from './CeshuAgentPanel'
 import CeshuDataPreview, { type PreviewJumpTarget } from '../ceshu/CeshuDataPreview'
 import { collectPendingReviewFields } from '../ceshu/reviewQueueData'
 import LucideIcon from '../common/LucideIcon'
-import { ViewMount } from '../../plugins/ViewMount'
-import { MenuMount } from '../../plugins/MenuMount'
-import { setCeshuEditorBridge } from '../../plugins/ceshuEditorBridge'
+import { ViewMount } from '../../plugins/host/ViewMount'
+import { MenuMount } from '../../plugins/host/MenuMount'
+import { setCeshuEditorBridge } from '../../plugins/ceshu/ceshuEditorBridge'
 import {
   CESHU_ARTIFACT_MOUNT,
   CESHU_CHAPTERNAV_MOUNT,
@@ -60,7 +60,7 @@ import {
   CESHU_TOOLBAR_MOUNT,
   CESHU_VIEW_MOUNT,
   type CeshuViewContextValue
-} from '../../plugins/ceshuViewContext'
+} from '../../plugins/ceshu/ceshuViewContext'
 import { toErrorMessage } from '../ceshuViewUtils'
 
 /** 数据栏展开状态的 localStorage 键（`'0'` = 收起，其它/缺失 = 展开） */

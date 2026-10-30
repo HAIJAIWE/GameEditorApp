@@ -9,7 +9,7 @@ import {
   type NumericSummary
 } from '../../../../shared/util/data/dataStats'
 import type { ItemRecord } from '../../../../shared/types'
-import { useAppContext } from '../../plugins/appContext'
+import { useAppContext } from '../../plugins/host/appContext'
 
 /**
  * 数据统计 + 平衡性分析面板（对应 旧版 `ui/dialogs/statistics` 的

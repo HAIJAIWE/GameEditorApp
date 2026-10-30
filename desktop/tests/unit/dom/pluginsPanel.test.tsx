@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { PluginHost } from '../../../src/shared/plugin/host'
 import PluginsPanel from '../../../src/renderer/src/components/common/PluginsPanel'
-import { registerReactBinding } from '../../../src/renderer/src/plugins/reactBindings'
+import { registerReactBinding } from '../../../src/renderer/src/plugins/host/reactBindings'
 import { installMbApi, renderDom, type RenderResult } from './render'
 
 const Stub = () => <div data-testid="stub">stub 面板</div>

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import LucideIcon from '../common/LucideIcon'
-import { subscribeCodeViewRequest, takeCodeViewRequest } from '../../plugins/codeViewRequest'
+import { subscribeCodeViewRequest, takeCodeViewRequest } from '../../plugins/context/codeViewRequest'
 import { baseNameOf, formatBytes, isCodeFile, sortEntries, tokenizeCode } from '../../utils/codeView'
 import type { FsDirEntry } from '../../../../shared/ipc'
 import './code-panel.css'

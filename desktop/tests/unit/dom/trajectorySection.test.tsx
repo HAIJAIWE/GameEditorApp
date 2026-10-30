@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
 
-import { TrajectorySection } from '../../../src/renderer/src/plugins/trajectorySection'
+import { TrajectorySection } from '../../../src/renderer/src/plugins/session/trajectorySection'
 import {
   CONVERSATION_STORE_KEY,
   createConversationStoreDecl

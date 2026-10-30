@@ -2,8 +2,8 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import CeshuView from '../../../src/renderer/src/components/ceshuDoc/CeshuView'
-import { defineCeshuMenusPlugin } from '../../../src/renderer/src/plugins/ceshuMenusPlugin'
-import { defineCeshuViewsPlugin } from '../../../src/renderer/src/plugins/ceshuViewsPlugin'
+import { defineCeshuMenusPlugin } from '../../../src/renderer/src/plugins/ceshu/ceshuMenusPlugin'
+import { defineCeshuViewsPlugin } from '../../../src/renderer/src/plugins/ceshu/ceshuViewsPlugin'
 import { createDefaultCeshu } from '../../../src/shared/ceshu/model/ceshuModel'
 import { PluginHost } from '../../../src/shared/plugin/host'
 import { installMbApi, renderDom, type ApiStub, type RenderResult } from './render'

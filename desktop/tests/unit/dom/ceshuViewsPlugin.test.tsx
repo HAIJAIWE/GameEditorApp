@@ -19,10 +19,10 @@ import {
   CESHU_CONTENT_MOUNT,
   CESHU_VIEW_MOUNT,
   type CeshuViewContextValue
-} from '../../../src/renderer/src/plugins/ceshuViewContext'
-import { defineCeshuViewsPlugin } from '../../../src/renderer/src/plugins/ceshuViewsPlugin'
-import { getReactBinding } from '../../../src/renderer/src/plugins/reactBindings'
-import { ViewMount } from '../../../src/renderer/src/plugins/ViewMount'
+} from '../../../src/renderer/src/plugins/ceshu/ceshuViewContext'
+import { defineCeshuViewsPlugin } from '../../../src/renderer/src/plugins/ceshu/ceshuViewsPlugin'
+import { getReactBinding } from '../../../src/renderer/src/plugins/host/reactBindings'
+import { ViewMount } from '../../../src/renderer/src/plugins/host/ViewMount'
 import { createDefaultCeshu } from '../../../src/shared/ceshu/model/ceshuModel'
 import { PluginHost } from '../../../src/shared/plugin/host'
 import { installMbApi, renderDom, type ApiStub, type RenderResult } from './render'

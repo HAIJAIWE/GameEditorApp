@@ -17,7 +17,7 @@ import { createRoot, type Root } from 'react-dom/client'
 
 import { createDefaultCeshu } from '../../../src/shared/ceshu/model/ceshuModel'
 import type { CeshuDocument } from '../../../src/shared/ceshu/reference/ceshuConstants'
-import type { AppContextValue } from '../../../src/renderer/src/plugins/appContext'
+import type { AppContextValue } from '../../../src/renderer/src/plugins/host/appContext'
 
 declare global {
   var IS_REACT_ACT_ENVIRONMENT: boolean | undefined

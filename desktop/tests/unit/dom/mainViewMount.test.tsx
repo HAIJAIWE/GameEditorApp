@@ -4,9 +4,9 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import type { PluginManifest } from '../../../src/shared/plugin/types'
 import { PluginHost } from '../../../src/shared/plugin/host'
-import { MainViewMount, type AppMainTab } from '../../../src/renderer/src/plugins/MainViewMount'
-import { defineCoreViewsPlugin } from '../../../src/renderer/src/plugins/coreViewsPlugin'
-import { getReactBinding, registerReactBinding } from '../../../src/renderer/src/plugins/reactBindings'
+import { MainViewMount, type AppMainTab } from '../../../src/renderer/src/plugins/host/MainViewMount'
+import { defineCoreViewsPlugin } from '../../../src/renderer/src/plugins/panels/coreViewsPlugin'
+import { getReactBinding, registerReactBinding } from '../../../src/renderer/src/plugins/host/reactBindings'
 import { renderDom, type RenderResult } from './render'
 
 let view: RenderResult | null = null

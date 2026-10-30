@@ -2,9 +2,9 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { PluginHost } from '../../../src/shared/plugin/host'
-import { HostPanel } from '../../../src/renderer/src/plugins/HostPanel'
-import { AppContextProvider } from '../../../src/renderer/src/plugins/appContext'
-import { defineShellPanelsPlugin } from '../../../src/renderer/src/plugins/shellPanelsPlugin'
+import { HostPanel } from '../../../src/renderer/src/plugins/host/HostPanel'
+import { AppContextProvider } from '../../../src/renderer/src/plugins/host/appContext'
+import { defineShellPanelsPlugin } from '../../../src/renderer/src/plugins/panels/shellPanelsPlugin'
 import { appContextValue, installMbApi, renderDom, type RenderResult } from './render'
 
 let view: RenderResult | null = null

@@ -3,10 +3,10 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { PluginHost } from '../../../src/shared/plugin/host'
 import type { DataTypeDef } from '../../../src/shared/types'
-import { HostPanel } from '../../../src/renderer/src/plugins/HostPanel'
-import { AppContextProvider } from '../../../src/renderer/src/plugins/appContext'
-import { setHostUi, type HostUiBridge } from '../../../src/renderer/src/plugins/hostBridge'
-import { defineOnboardingPlugin } from '../../../src/renderer/src/plugins/onboardingPlugin'
+import { HostPanel } from '../../../src/renderer/src/plugins/host/HostPanel'
+import { AppContextProvider } from '../../../src/renderer/src/plugins/host/appContext'
+import { setHostUi, type HostUiBridge } from '../../../src/renderer/src/plugins/host/hostBridge'
+import { defineOnboardingPlugin } from '../../../src/renderer/src/plugins/ux/onboardingPlugin'
 import { appContextValue, installMbApi, renderDom, type RenderResult } from './render'
 
 const TYPES: DataTypeDef[] = [

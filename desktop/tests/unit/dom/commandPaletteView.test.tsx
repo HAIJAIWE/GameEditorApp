@@ -7,7 +7,7 @@ import {
   CommandPalette,
   CommandPaletteView,
   type CommandPaletteViewProps
-} from '../../../src/renderer/src/plugins/commandPalettePlugin'
+} from '../../../src/renderer/src/plugins/ux/commandPalettePlugin'
 import type { PaletteItem } from '../../../src/shared/agent/tools/commandPalette'
 import { PluginHost } from '../../../src/shared/plugin/host'
 

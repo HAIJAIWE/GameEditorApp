@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
 
-import { getReactBinding } from '../../../src/renderer/src/plugins/reactBindings'
-import { defineSessionPlugin } from '../../../src/renderer/src/plugins/sessionPlugin'
+import { getReactBinding } from '../../../src/renderer/src/plugins/host/reactBindings'
+import { defineSessionPlugin } from '../../../src/renderer/src/plugins/session/sessionPlugin'
 import {
   CONVERSATION_STORE_KEY,
   createConversationStoreDecl
