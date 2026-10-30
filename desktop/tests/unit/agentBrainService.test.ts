@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { AgentBrainService } from '../../src/main/agent/brainService'
+import type { AgentSessionStore } from '../../src/main/agent/sessionStore'
 import { SkillDispatcher } from '../../src/main/agent/dispatcher'
 import type {
   BrainInbox,
@@ -209,6 +210,31 @@ describe('AgentBrainService：M3 档位路由装配', () => {
     expect(text).toContain('pic.png')
     // 只有文本附件会内联内容：整段只出现一次「内容：」
     expect((text.match(/内容：/g) ?? []).length).toBe(1)
+  })
+
+  it('会话落盘：附件元数据挂到本轮 user 消息（恢复时才能重放）', async () => {
+    const saved: Array<Array<Record<string, unknown>>> = []
+    const appended: Array<Array<Record<string, unknown>>> = []
+    const sessionStore = {
+      readTurns: () => [],
+      save: async (messages: Array<Record<string, unknown>>) => {
+        saved.push(messages)
+      },
+      recordRunStats: async () => undefined,
+      recordEvents: async () => undefined,
+      appendTurn: async (_sessionId: string, messages: Array<Record<string, unknown>>) => {
+        appended.push(messages)
+      }
+    } as unknown as AgentSessionStore
+
+    const { transport } = capturingTransport()
+    const service = new AgentBrainService({ dispatcher: makeDispatcher(), transport, sessionStore })
+    const file = { name: 'a.md', path: '/lib/attachments/a.md', mime: 'text/markdown', bytes: 10 }
+    await service.chat('看看附件', { attachments: [file] })
+
+    expect(saved[0]?.find((message) => message.role === 'user')).toMatchObject({ attachments: [file] })
+    // 增量（turns.jsonl，供 resumeHistory）也带附件
+    expect(appended[0]?.find((message) => message.role === 'user')).toMatchObject({ attachments: [file] })
   })
 })
 

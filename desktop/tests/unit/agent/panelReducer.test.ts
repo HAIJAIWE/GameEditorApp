@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { initialDigitalPanelState, reduceBrainEvent, submitUserMessage } from '../../../src/shared/agent/panel'
+import {
+  hydrateFromSession,
+  initialDigitalPanelState,
+  reduceBrainEvent,
+  submitUserMessage
+} from '../../../src/shared/agent/panel'
 import type { DigitalPanelState } from '../../../src/shared/agent/panel'
 
 /**
@@ -58,5 +63,17 @@ describe('submitUserMessage：附件随用户消息携带', () => {
     // 空数组等同没有附件：不写 attachments 字段（保持消息形状干净）
     const empty = submitUserMessage(initialDigitalPanelState, '没有附件', [])
     expect(empty.messages.at(-1)).not.toHaveProperty('attachments')
+  })
+})
+
+describe('hydrateFromSession：附件重放', () => {
+  it('快照里的 attachments 恢复成消息附件；坏条目逐条丢弃', () => {
+    const file = { name: 'a.md', path: '/lib/attachments/a.md', mime: 'text/markdown', bytes: 10 }
+    const state = hydrateFromSession(initialDigitalPanelState, [
+      { role: 'user', content: '看看', attachments: [file, { name: '坏条目' }] },
+      { role: 'assistant', content: '好' }
+    ])
+    expect(state.messages[0]).toMatchObject({ role: 'user', text: '看看', attachments: [file] })
+    expect(state.messages[1]).not.toHaveProperty('attachments')
   })
 })

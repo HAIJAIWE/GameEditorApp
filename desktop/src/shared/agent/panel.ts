@@ -322,9 +322,32 @@ export function isRunning(state: DigitalPanelState): boolean {
 }
 
 /** 用历史会话消息初始化面板（会话恢复入口） */
+/**
+ * 从会话快照的 `attachments` 字段解析附件元数据（恢复会话时重放 chip）。
+ * 结构不对/缺必填字段的条目**逐条丢弃**（不因一条坏数据丢掉整段历史）。
+ */
+function parseAttachments(value: unknown): DigitalAttachment[] | undefined {
+  if (!Array.isArray(value)) return undefined
+  const out: DigitalAttachment[] = []
+  for (const raw of value) {
+    if (raw === null || typeof raw !== 'object') continue
+    const record = raw as Record<string, unknown>
+    const name = typeof record['name'] === 'string' ? record['name'] : ''
+    const path = typeof record['path'] === 'string' ? record['path'] : ''
+    if (name === '' || path === '') continue
+    out.push({
+      name,
+      path,
+      mime: typeof record['mime'] === 'string' ? record['mime'] : 'application/octet-stream',
+      bytes: typeof record['bytes'] === 'number' && Number.isFinite(record['bytes']) ? record['bytes'] : 0
+    })
+  }
+  return out.length > 0 ? out : undefined
+}
+
 export function hydrateFromSession(
   state: DigitalPanelState,
-  history: Array<{ role?: unknown; content?: unknown }>
+  history: Array<{ role?: unknown; content?: unknown; attachments?: unknown }>
 ): DigitalPanelState {
   let seq = state.seq
   const messages: DigitalMessage[] = []
@@ -334,7 +357,13 @@ export function hydrateFromSession(
     if (typeof content !== 'string' || content === '') continue
     if (role !== 'user' && role !== 'assistant') continue
     seq += 1
-    messages.push({ id: `m${seq}`, role, text: content })
+    const attachments = parseAttachments(entry.attachments)
+    messages.push({
+      id: `m${seq}`,
+      role,
+      text: content,
+      ...(attachments !== undefined ? { attachments } : {})
+    })
   }
   return {
     ...state,

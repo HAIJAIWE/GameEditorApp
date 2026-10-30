@@ -256,8 +256,21 @@ export class AgentBrainService {
     })
 
     if (this.deps.sessionStore) {
+      /*
+       * 本轮消息的落盘形态。把附件元数据挂到**本轮** user 消息上（索引 = 系统提示词 + 已恢复历史之后），
+       * 恢复会话时 `hydrateFromSession` 才能重放附件 chip——否则附件只活在当轮系统提示词里，历史一恢复就丢。
+       */
+      const plain = toPlainMessages(result.messages)
+      const newUserIndex = systemPrompts.length + priorMessages.length
+      if (
+        options.attachments !== undefined &&
+        options.attachments.length > 0 &&
+        plain[newUserIndex]?.role === 'user'
+      ) {
+        plain[newUserIndex] = { ...plain[newUserIndex], attachments: options.attachments }
+      }
       // 会话落盘失败不阻塞本轮答复（原子写 + 串行队列已在 store 内保证）
-      await this.deps.sessionStore.save(toPlainMessages(result.messages)).catch(() => undefined)
+      await this.deps.sessionStore.save(plain).catch(() => undefined)
       // F11 观测闭环：落盘本次运行统计，供跨会话成本汇总 / 超预算自动降级（DD-5b 真降级）
       await this.deps.sessionStore.recordRunStats(result.stats).catch(() => undefined)
       // Slice 29：事件日志 append-only（审计/回放；与快照分开，只追加不覆盖）
@@ -266,9 +279,9 @@ export class AgentBrainService {
         .catch(() => undefined)
       // Slice 34：追加本轮消息增量（append-only 会话历史，供 resumeHistory 重建）
       // 增量 = 去掉系统提示词与已恢复的历史，只留本轮新增（user 输入 + assistant/tool …）
-      const seeded = priorMessages.length
-      const delta = result.messages.slice(systemPrompts.length + seeded)
-      await this.deps.sessionStore.appendTurn(context.sessionId, delta).catch(() => undefined)
+      await this.deps.sessionStore
+        .appendTurn(context.sessionId, plain.slice(newUserIndex))
+        .catch(() => undefined)
       // F1/DD-5b 护栏级：云端档超预算记一次指标（真降级待补）
       if (tier === 'cloud') {
         const est = estimateTokens(systemPrompts.join('\n') + '\n' + input)
