@@ -92,6 +92,15 @@ describe('会话 · 轨迹分区', () => {
     expect(rows[0]?.tagName.toLowerCase()).toBe('div')
     // 工具行：可展开，详情里有美化后的参数与输出
     expect(rows[1]?.tagName.toLowerCase()).toBe('summary')
+    /*
+     * 选中态 CSS 契约：`.trajectory-row-details[open] > .trajectory-row` 依赖
+     * 「带详情的行 = `<details>` 下的 `<summary class="trajectory-row">`」。
+     * 若有人把 summary 换成 div，展开时就不会有中性选中填充（且不会报错）——
+     * 这里把结构钉住，避免 CSS 静默失效。
+     */
+    const detailsEl = rows[1]?.parentElement
+    expect(detailsEl?.tagName.toLowerCase()).toBe('details')
+    expect(detailsEl?.className).toContain('trajectory-row-details')
     const detail = result.byTestId('trajectory-row-detail')
     expect(detail.textContent).toContain('参数')
     expect(detail.textContent).toContain('"action": "list"')

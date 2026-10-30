@@ -180,7 +180,7 @@ dsh 的 UI 成熟在**两件事**：① **typed slot 组合**（父级声明扩�
 
 **还没对齐的（下一步候选，按成本/价值分层）**：
 - **纯视觉 / 低成本（优先）**：
-  - 轨迹表格无斑马纹 → dsh 用 hover `rgba(38,49,72,.06)` + 选中中性填充（不用蓝色文字）；我们目前行样式偏素，需补 hover/选中。（注：行 hover 已在第二轮补 `--bg-hover`，差的是「选中态」中性填充。）
+  - ~~轨迹表格无斑马纹 → 补 hover / 选中中性填充~~ ✅ 已对齐：hover 用 `--bg-hover`（第二轮），**选中态**（第三轮）= 正在查看详情的那一行（`<details>` 展开态）用 `--bg-selected` 中性填充、文字保持 `--text`（不用蓝色文字），且选择器特异性高于 `:hover` ⇒ 展开时鼠标划过不闪（对齐 dsh `tr[data-selected='true']` 抑制 hover）。DOM 测试钉住 `<details> > <summary.trajectory-row>` 结构，防止 CSS 静默失效。
 - **数据/后端依赖（仅剩这一项）**：
   - 附件缩略图/进度/lightbox（`shared/agent` 与 digital 组件无 attachment 数据模型；dsh `ui-attachment` 有完整上传生命周期 + lightbox，我们暂无可映射的数据源，做出来必是假按钮，先别动）。
 - **刻意保留（非视觉）**：

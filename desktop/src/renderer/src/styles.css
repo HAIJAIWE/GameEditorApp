@@ -8723,6 +8723,16 @@ button.ref-row:hover {
 .trajectory-row:hover {
   background: var(--bg-hover);
 }
+/*
+ * 轨迹表「选中行」= 正在查看详情的那一行（`<details>` 展开态）。
+ * 对齐 dsh：选中用 neutral `interactive-bg-active`（我们的 `--bg-selected`，四主题各一值），
+ * 文字保持 `--text`（不用蓝色文字）。该选择器特异性（0,3,0）高于 `.trajectory-row:hover`（0,2,0），
+ * 故展开时鼠标划过不会把选中填充闪成 hover 填充——与 dsh「selected 行抑制 hover」一致。
+ */
+.trajectory-row-details[open] > .trajectory-row {
+  background: var(--bg-selected);
+  color: var(--text);
+}
 .trajectory-row-index {
   flex: none;
   width: 18px;
