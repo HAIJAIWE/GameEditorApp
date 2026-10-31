@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 
-import { defaultDraftName, type DraftSummary } from '../../../../shared/agent/conversation/session'
+import { defaultDraftName } from '../../../../shared/agent/conversation/session'
 
 import { DigitalChangeCard } from './DigitalChangeCard'
 import { DigitalDeliveryCard } from './DigitalDeliveryCard'
@@ -28,8 +28,16 @@ import {
   DigitalSubagentList,
   DigitalTaskList
 } from './digitalPanelViews'
-import { parseDigitalCommands, type DigitalCommand } from '../../../../shared/agent/tools/commands'
-import { parseDigitalReferences, type DigitalReference } from '../../../../shared/agent/ui/references'
+import { ContextMeter, ConversationRunStatus } from './digitalPanelParts'
+import type { ChatApi } from './digitalPanelApi'
+import { useDigitalPanelAttachments } from './useDigitalPanelAttachments'
+import { useDigitalPanelCommands } from './useDigitalPanelCommands'
+import { useDigitalPanelDrafts } from './useDigitalPanelDrafts'
+import { useDigitalPanelInteraction } from './useDigitalPanelInteraction'
+import { useDigitalPanelModelMenu } from './useDigitalPanelModelMenu'
+import { useDigitalPanelStopArm } from './useDigitalPanelStopArm'
+import { useDigitalPanelTurnArtifacts } from './useDigitalPanelTurnArtifacts'
+import type { DigitalCommand } from '../../../../shared/agent/tools/commands'
 import { pluginHost } from '../../plugins/context/builtins'
 import { requestCodeView } from '../../plugins/context/codeViewRequest'
 import { baseNameOf, isCodeFile } from '../../utils/codeView'
@@ -38,10 +46,7 @@ import { SlotOutlet } from '../../plugins/host/slotOutlet'
 
 import type { BrainEvent } from '../../../../shared/agent/brain'
 import type { AgentRunTier } from '../../../../shared/agent/observability/observability'
-import type { OperationRecord } from '../../../../shared/agent/observability/operationLog'
-import type { DeliveryRecord } from '../../../../shared/agent/observability/deliveryLog'
 import {
-  isAnswerComplete,
   isMultiQuestion,
   isRunning,
   summarizeToolTasks,
@@ -55,64 +60,17 @@ import {
 import { createStoreInstance } from '../../../../shared/plugin/slotRegistry'
 import { toErrorMessage } from '../../../../shared/util/system/errors'
 import { AGENT_PRESETS, DEFAULT_PRESET_ID, presetLabel } from '../../../../shared/agent/config/presets'
-import { loadLlmConfig, saveLlmConfig, LLM_PROVIDER_PRESETS } from '../../../../shared/config/llm/llmConfig'
-import { modelContextWindow, type LlmProvider } from '../../../../shared/config/llm/llmConfigData'
-import type { DigitalAttachment } from '../../../../shared/util/io/libraryAttachments'
+import { LLM_PROVIDER_PRESETS } from '../../../../shared/config/llm/llmConfig'
 
 /**
  * 智能体面板（A1-4）：对话气泡 + 流式文本 + 可折叠步骤 + 任务列表 + 危险操作审批模态。
  *
  * 行为全部在 `shared/agent/panel.ts` 的纯归约里（可单测），本组件只做：
  * 订阅主进程事件流 → dispatch、发送输入、回传审批决定、会话恢复入口。
+ *
+ * 体量上按「自洽的状态簇」分给同目录的 `useDigitalPanel*` 系列 hook（附件、草稿、模型下拉、
+ * 停止二次确认、斜杠命令/@引用、人机协作答复、本轮产物），本文件只留装配与 JSX。
  */
-
-interface ChatApi {
-  /**
-   * 发送一段对话。
-   * `preset` 为智能体预设 id（借 dsh agent-preset 设计）；主进程 `agent.chat` 当前
-   * 读取 `input`/`runId`，`preset` 为 **[PLACEHOLDER]** —— 后端消费预设做角色路由的接线待补，
-   * 渲染层先把选择带上，避免后续再改契约形状。
-   */
-  chat: (req: {
-    input: string
-    runId?: string
-    preset?: string
-    goal?: string
-    attachments?: DigitalAttachment[]
-  }) => Promise<{ text: string }>
-  respondApproval: (req: { requestId: string; approved: boolean }) => Promise<{ ok: boolean }>
-  respondInteraction: (req: {
-    requestId: string
-    approved?: boolean
-    answer?: string
-    answers?: string[]
-  }) => Promise<{ ok: boolean }>
-  /** 消息反馈（对齐 dsh ui-message-feedback）：评分 + 可选说明，主进程落盘并在 ≥4 分时提炼偏好 */
-  feedback: (req: { rating: number; comment?: string }) => Promise<void>
-  /** 子智能体「继续对话」：对运行中的子智能体插话（Slice 40） */
-  subagentSend: (req: { id: string; content: string }) => Promise<{ ok: boolean }>
-  /** 单独停止某个运行中的子智能体（不牵连父循环） */
-  subagentStop: (req: { id: string }) => Promise<{ ok: boolean }>
-  sessionInfo: () => Promise<{ hasSession: boolean; messageCount: number; savedAt: string }>
-  sessionRestore: () => Promise<{ messages: Array<{ role?: unknown; content?: unknown }> }>
-  sessionClear: () => Promise<{ cleared: boolean }>
-  draftSave: (req: { name: string }) => Promise<DraftSummary>
-  draftList: () => Promise<DraftSummary[]>
-  draftLoad: (req: { path: string }) => Promise<{ name: string; messages: Array<{ role?: unknown; content?: unknown }> }>
-  /** 本轮改动：按 `since`（本轮开始时间）从操作日志取变更记录（新→旧） */
-  recentChanges: (req: {
-    limit?: number
-    since?: number
-    conversationId?: string
-  }) => Promise<{ changes: OperationRecord[] }>
-  /** 本轮交付的文件（交付日志）：供对话内联交付卡展示 */
-  deliveries: (req: {
-    limit?: number
-    since?: number
-    conversationId?: string
-  }) => Promise<{ deliveries: DeliveryRecord[] }>
-  onEvent: (handler: (event: unknown) => void) => () => void
-}
 
 const STATUS_LABELS: Record<DigitalPanelState['status'], string> = {
   idle: '待命',
@@ -172,6 +130,8 @@ export default function DigitalPanel({
     },
     [conversationStore]
   )
+  const api = useMemo(() => (window.mbApi as unknown as { agent: ChatApi }).agent, [])
+  const running = isRunning(state)
   const [input, setInput] = useState('')
   /**
    * 本轮目标（对齐 dsh GoalBar）：输入框上方目标条里的一句话，随每次发送一起发给主进程，
@@ -180,20 +140,22 @@ export default function DigitalPanel({
    * 它不被脑事件驱动，只是会话级意图锚点。
    */
   const [goal, setGoal] = useState('')
+  /** 错误（发送/附件/草稿等失败时的就地提示）：多个状态簇共用，故在 hook 之前声明 */
+  const [localError, setLocalError] = useState<string | null>(null)
+  /** 轻提示（草稿保存/恢复成功后的回执，与 localError 上下呼应） */
+  const [notice, setNotice] = useState<string | null>(null)
   /**
    * 待发送附件（对齐 dsh ui-attachment 的诚实子集）：用户经「＋ → 上传文件」选的文件，
    * 已由主进程复制进 `<库>/attachments/`，这里只存元数据；发送后清空。
    */
-  const [attachments, setAttachments] = useState<DigitalAttachment[]>([])
-  /** 正在把选中文件复制进库（不确定进度：显示「导入中…」，不画假百分比） */
-  const [addingAttachment, setAddingAttachment] = useState(false)
-  /** 文件正拖到输入框上（高亮投放区） */
-  const [dragActive, setDragActive] = useState(false)
-  /** 斜杠命令 / @ 引用菜单的当前高亮项（两者互斥，共用同一索引；输入变化时重置为 0） */
-  const [commandIndex, setCommandIndex] = useState(0)
-  /** `@` 引用候选：当前游戏库的数据表类型（首次输入 `@` 时懒加载） */
-  const [dataTypes, setDataTypes] = useState<DigitalReference[]>([])
-  const dataTypesLoaded = useRef(false)
+  const {
+    attachments,
+    adding: addingAttachment,
+    dragActive,
+    addFromDialog: handleAddAttachment,
+    removeAttachment,
+    clearAttachments
+  } = useDigitalPanelAttachments({ running, setLocalError })
   const [stepsOpen, setStepsOpen] = useState(true)
   /** 中栏子页签：对话 / 轨迹（对齐 dsh 的 conversation 子页签） */
   const [centerTab, setCenterTab] = useState<'chat' | 'trajectory'>('chat')
@@ -205,25 +167,23 @@ export default function DigitalPanel({
   const runStartedAt = useRef<number | null>(null)
   const [elapsedSec, setElapsedSec] = useState(0)
   const [sessionHint, setSessionHint] = useState<{ messageCount: number; savedAt: string } | null>(null)
-  const [interactionAnswer, setInteractionAnswer] = useState('')
-  /** 多问题：自由文本作答（按下标对齐） */
-  const [multiText, setMultiText] = useState<string[]>([])
-  /** 多问题：点选作答（按下标对齐；多选题为多个 label） */
-  const [multiChoice, setMultiChoice] = useState<string[][]>([])
-  const [localError, setLocalError] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement | null>(null)
   /** 输入框改多行后类型随之变 textarea（原 `HTMLInputElement` 的 `rows` 不存在） */
   const inputRef = useRef<HTMLTextAreaElement | null>(null)
-  /** 「草稿管理」下拉展开状态 */
-  const [draftMenuOpen, setDraftMenuOpen] = useState(false)
-  /** 草稿列表（打开下拉时按需拉取，不常驻轮询） */
-  const [drafts, setDrafts] = useState<DraftSummary[]>([])
-  /** 草稿名输入框（空串由主进程回落成默认名 `对话草稿_MMDD_HHMM`） */
-  const [draftName, setDraftName] = useState('')
-  /** 草稿保存进行中（避免重复点击；与「发送中」互不干扰） */
-  const [draftBusy, setDraftBusy] = useState(false)
-  /** 轻提示（草稿保存/恢复成功后的回执，与 localError 上下呼应） */
-  const [notice, setNotice] = useState<string | null>(null)
+  /** 草稿管理下拉（保存 / 恢复对话草稿）：列表按需拉取，不常驻轮询 */
+  const {
+    open: draftMenuOpen,
+    menuRef: draftMenuRef,
+    drafts,
+    draftName,
+    setDraftName,
+    busy: draftBusy,
+    saveDraft: handleSaveDraft,
+    loadDraft: handleLoadDraft,
+    toggleMenu: toggleDraftMenu,
+    openMenu: openDraftMenu,
+    closeMenu: closeDraftMenu
+  } = useDigitalPanelDrafts({ api, dispatch, setLocalError, setNotice })
   /** 当前智能体预设（借 dsh agent-preset 设计）；持久化在 localStorage，重启保留 */
   const [preset, setPreset] = useState<string>(() => {
     try {
@@ -243,41 +203,35 @@ export default function DigitalPanel({
   /** 输入框左下「＋」的菜单：把已经存在但藏起来的两个能力（@ 引用 / / 命令）摆到明面上 */
   const [plusMenuOpen, setPlusMenuOpen] = useState(false)
   const plusMenuRef = useRef<HTMLDivElement | null>(null)
-  /**
-   * 输入框的「模型」下拉：**真下拉**。当前模型来自 localStorage 的 LLM 配置，
-   * 选项来自 `LLM_PROVIDER_PRESETS[provider].models`；Ollama 再叠加 `llm:status`
-   * 探到的本机已装模型。选中即写回 localStorage + 推主进程镜像（与设置面板同一链路），
-   * 后续 agent 调用会读到新模型。权限「完全权限」则无后端开关，保持静态展示。
-   */
-  const [modelMenuOpen, setModelMenuOpen] = useState(false)
-  const modelMenuRef = useRef<HTMLDivElement | null>(null)
-  const [availableModels, setAvailableModels] = useState<string[]>([])
-  const [currentModel, setCurrentModel] = useState<string>(() => {
-    try { return loadLlmConfig().model } catch { return '' }
-  })
-  const [currentProvider, setCurrentProvider] = useState<LlmProvider>(() => {
-    try { return loadLlmConfig().provider } catch { return 'ollama' }
-  })
+  /** 输入框的「模型」下拉：真下拉，选中即写回配置并推主进程镜像（详见 hook 注释） */
+  const {
+    open: modelMenuOpen,
+    menuRef: modelMenuRef,
+    availableModels,
+    currentModel,
+    currentProvider,
+    chooseModel,
+    close: closeModelMenu,
+    onTriggerClick: onModelTriggerClick
+  } = useDigitalPanelModelMenu()
   /** 「新建对话」危险确认：先弹确认再清空，避免误触丢失活跃会话（对齐 dsh RiskConfirmation） */
   const [confirmNewChat, setConfirmNewChat] = useState(false)
   /** 键盘快捷键参考弹窗（对齐 dsh ui-shortcuts 的只读子集） */
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
-  const draftMenuRef = useRef<HTMLDivElement | null>(null)
   /** 当前进行中那一轮的 runId（「停止」按钮据此精确取消） */
   const activeRunId = useRef<string | null>(null)
   /**
-   * 本轮改动（操作日志）：**运行结束后一次性拉取**，不做轮询。
-   * 只存本轮 `since` 之后新建/修改/删除的数据条目，供对话流内联改动卡展示。
+   * 本轮改动 / 本轮交付：**运行结束后一次性拉取**，不做轮询。
+   * 只存本轮 `since` 之后的结果，供对话流内联改动卡 / 交付卡展示。
    */
-  const [turnChanges, setTurnChanges] = useState<OperationRecord[]>([])
-  /** 本轮交付的文件（交付日志）：与改动一起在运行结束后拉取，供交付卡展示 */
-  const [turnDeliveries, setTurnDeliveries] = useState<DeliveryRecord[]>([])
-  /** 本轮开始时间（`since` 过滤锚点）。只读不触发渲染，故用 ref 而非 state */
-  const turnStartedAt = useRef<number | null>(null)
+  const {
+    changes: turnChanges,
+    deliveries: turnDeliveries,
+    beginTurn,
+    reset: resetTurnArtifacts
+  } = useDigitalPanelTurnArtifacts({ status: state.status, api })
 
-  const api = useMemo(() => (window.mbApi as unknown as { agent: ChatApi }).agent, [])
   const tasks = useMemo(() => summarizeToolTasks(state.steps), [state.steps])
-  const running = isRunning(state)
   /** 是否已有对话（用于区分「开新对话」空态与「运行中/历史」态：预设在空态可选，之后只读） */
   const hasConversation = state.messages.length > 0 || state.streaming !== ''
 
@@ -298,13 +252,18 @@ export default function DigitalPanel({
    */
   const composerTakeover = pluginHost.slotChainWinner('conversation.composer', { running, input })
 
-  const currentInteraction = state.interaction?.interaction ?? null
-  const multiAnswers = (currentInteraction?.questions ?? []).map((question, index) =>
-    question.options !== undefined && question.options.length > 0
-      ? (multiChoice[index] ?? []).join('、')
-      : (multiText[index] ?? '').trim()
-  )
-  const multiReady = currentInteraction !== null && isAnswerComplete(currentInteraction, multiAnswers)
+  /** 人机协作答复（确认 / 提问 / 多问题）：草稿状态、组装与提交都在 hook 里 */
+  const {
+    answer: interactionAnswer,
+    setAnswer: setInteractionAnswer,
+    multiText,
+    setMultiText,
+    multiChoice,
+    multiReady,
+    respond: handleInteraction,
+    submitAnswers: submitMultiAnswers,
+    toggleChoice
+  } = useDigitalPanelInteraction({ interaction: state.interaction, dispatch, api, setLocalError })
 
   // 订阅主进程推送的事件流（与 chat 的返回值二选一即可，这里用推送保证流式可见）
   useEffect(() => {
@@ -335,154 +294,14 @@ export default function DigitalPanel({
   }, [state.messages.length, state.streaming])
 
   /**
-   * 本轮结束（`done`）后拉「本轮改动」：`since` 取发送时记下的开始时间。
-   *
-   * effect 内**不能同步 setState**（`react-hooks/set-state-in-effect`），故先 await 再 set。
-   * 拉取失败静默降级：改动卡不出现即可，绝不能因为「查日志失败」打断对话。
-   */
-  useEffect(() => {
-    if (state.status !== 'done') return
-    const since = turnStartedAt.current
-    if (since === null) return
-    let cancelled = false
-    void (async () => {
-      try {
-        const [changesRes, deliveriesRes] = await Promise.all([
-          api.recentChanges({ limit: 50, since }),
-          api.deliveries({ limit: 50, since })
-        ])
-        if (!cancelled) {
-          setTurnChanges(changesRes.changes)
-          setTurnDeliveries(deliveriesRes.deliveries)
-        }
-      } catch (error: unknown) {
-        console.warn('读取本轮改动/交付失败（不影响对话）：', error)
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [state.status, api])
-
-  // `@` 引用候选：首次输入 `@` 时懒加载当前库的数据表类型（失败静默，输入框仍可用）
-  useEffect(() => {
-    if (!input.startsWith('@') || dataTypesLoaded.current) return
-    dataTypesLoaded.current = true
-    void window.mbApi.schema
-      .list()
-      .then((types) => setDataTypes(types.map((type) => ({ id: type.id, name: type.name }))))
-      .catch(() => undefined)
-  }, [input])
-
-  /**
    * 「停止」二次确认（对齐 dsh JobView 的两段式 kill：先 arm 再确认）。
-   * 第一次点只把按钮切到「再点一次确认」，3 秒内不点则自动解除；第二次点才真正取消本轮。
-   * 状态声明提前到 `submitText` 之前：新一轮发送时要顺手解除上一轮可能残留的确认态。
+   * 声明提前到 `submitText` 之前：新一轮发送时要顺手解除上一轮可能残留的确认态。
    */
-  const [stopArmed, setStopArmed] = useState(false)
-  const stopArmTimer = useRef<number | null>(null)
-  const clearStopArm = useCallback((): void => {
-    if (stopArmTimer.current !== null) {
-      window.clearTimeout(stopArmTimer.current)
-      stopArmTimer.current = null
-    }
-  }, [])
-
-  /** 把一个本地路径的附件复制进库并加入待发送列表（原生选择与拖拽共用） */
-  const addAttachmentPath = useCallback((path: string): void => {
-    setLocalError(null)
-    // 复制进库期间显示「导入中…」（真实拷贝，异步不阻塞；没有流式回调，故不确定进度）
-    setAddingAttachment(true)
-    void (async () => {
-      try {
-        const result = await window.mbApi.attachments.add({ path })
-        if (!result.ok) {
-          setLocalError(result.error)
-          return
-        }
-        // 同一文件重复选不重复加（按入库后的绝对路径去重）
-        setAttachments((prev) =>
-          prev.some((file) => file.name === result.attachment.name) ? prev : [...prev, result.attachment]
-        )
-      } catch (error: unknown) {
-        setLocalError(toErrorMessage(error))
-      } finally {
-        setAddingAttachment(false)
-      }
-    })()
-  }, [])
-
-  /** 选文件（原生对话框）→ 复制进库 → 入待发送列表 */
-  const handleAddAttachment = useCallback((): void => {
-    setLocalError(null)
-    void (async () => {
-      try {
-        const picked = await window.mbApi.dialog.chooseAttachmentFile()
-        if (picked.path === null) return
-        addAttachmentPath(picked.path)
-      } catch (error: unknown) {
-        setLocalError(toErrorMessage(error))
-      }
-    })()
-  }, [addAttachmentPath])
-
-  /**
-   * 文档级拖拽投放（对齐 dsh `installDocumentDropEvents`）：整页任意位置拖入文件都能加入附件；
-   * 用嵌套深度计数（dragenter/dragleave 成对）避免子元素间移动时高亮闪烁。
-   */
-  const dragDepth = useRef(0)
-  useEffect(() => {
-    const hasFiles = (event: DragEvent): boolean =>
-      event.dataTransfer !== null && event.dataTransfer.types.includes('Files')
-    const reset = (): void => {
-      dragDepth.current = 0
-      setDragActive(false)
-    }
-    const onDragEnter = (event: DragEvent): void => {
-      if (!hasFiles(event)) return
-      event.preventDefault()
-      dragDepth.current += 1
-      // 运行中也显示投放邀请（disabled 态），与 dsh 一致；真正拒绝发生在 drop
-      setDragActive(true)
-    }
-    const onDragOver = (event: DragEvent): void => {
-      if (!hasFiles(event)) return
-      event.preventDefault()
-      if (event.dataTransfer !== null) event.dataTransfer.dropEffect = running ? 'none' : 'copy'
-    }
-    const onDragLeave = (event: DragEvent): void => {
-      if (!hasFiles(event)) return
-      dragDepth.current = Math.max(0, dragDepth.current - 1)
-      if (dragDepth.current === 0) setDragActive(false)
-    }
-    const onDrop = (event: DragEvent): void => {
-      if (!hasFiles(event)) return
-      event.preventDefault()
-      reset()
-      if (running) return
-      for (const file of Array.from(event.dataTransfer?.files ?? [])) {
-        const path = window.mbApi.attachments.pathForFile(file)
-        if (path !== '') addAttachmentPath(path)
-      }
-    }
-    const onDragEnd = (): void => reset()
-    document.addEventListener('dragenter', onDragEnter)
-    document.addEventListener('dragover', onDragOver)
-    document.addEventListener('dragleave', onDragLeave)
-    document.addEventListener('drop', onDrop)
-    window.addEventListener('dragend', onDragEnd)
-    return () => {
-      document.removeEventListener('dragenter', onDragEnter)
-      document.removeEventListener('dragover', onDragOver)
-      document.removeEventListener('dragleave', onDragLeave)
-      document.removeEventListener('drop', onDrop)
-      window.removeEventListener('dragend', onDragEnd)
-    }
-  }, [running, addAttachmentPath])
-
-  const removeAttachment = useCallback((name: string): void => {
-    setAttachments((prev) => prev.filter((file) => file.name !== name))
-  }, [])
+  const { stopArmed, disarm: disarmStop, onStopClick } = useDigitalPanelStopArm({
+    activeRunId,
+    setLocalError,
+    setNotice
+  })
 
   /**
    * 正文内联文件引用点开（对齐 dsh ui-deliverables）：先发「在代码面板打开该文件」请求，
@@ -516,18 +335,15 @@ export default function DigitalPanel({
       const text = raw.trim()
       if (text === '' || running) return
       // 新一轮开始：解除上一轮可能残留的「停止确认态」，避免新按钮一出现就是红色警告
-      clearStopArm()
-      setStopArmed(false)
+      disarmStop()
       setLocalError(null)
       setInput('')
       // 本轮改动卡的锚点：先清掉上一轮的结果，避免运行中看到旧卡
-      turnStartedAt.current = Date.now()
-      setTurnChanges([])
-      setTurnDeliveries([])
+      beginTurn()
       // 附件随本轮一起走：先记进用户消息（气泡上显示），再发给主进程注入上下文；发完清空
       const sentAttachments = attachments.length > 0 ? attachments : undefined
       dispatch({ kind: 'submit', text, ...(sentAttachments !== undefined ? { attachments: sentAttachments } : {}) })
-      setAttachments([])
+      clearAttachments()
       // 本轮 runId：取消时据此精确定位（主进程也按窗口兜底，双保险）
       const runId = `run_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
       activeRunId.current = runId
@@ -546,36 +362,20 @@ export default function DigitalPanel({
           if (activeRunId.current === runId) activeRunId.current = null
         })
     },
-    [running, api, preset, goal, attachments, dispatch, clearStopArm]
+    [
+      running,
+      api,
+      preset,
+      goal,
+      attachments,
+      dispatch,
+      disarmStop,
+      beginTurn,
+      clearAttachments,
+      setInput,
+      setLocalError
+    ]
   )
-
-  /** 用户点「停止」：让循环优雅中止并保留已产出的部分结果 */
-  const handleStop = useCallback((): void => {
-    const runId = activeRunId.current
-    setLocalError(null)
-    // 走通用取消通道（对话循环与单发 AI 共用一条，见 `main/task/taskRegistry.ts`）
-    void window.mbApi.task
-      .cancel(runId === null ? {} : { taskId: runId })
-      .then((result) => {
-        if (!result.cancelled) setNotice('本轮已结束，无需停止')
-      })
-      .catch((error: unknown) => {
-        setLocalError(toErrorMessage(error))
-      })
-  }, [])
-
-  /** 停止按钮点击：第一次 arm（3 秒自动解除），第二次才真正取消本轮 */
-  const onStopClick = useCallback((): void => {
-    if (stopArmed) {
-      clearStopArm()
-      setStopArmed(false)
-      handleStop()
-    } else {
-      setStopArmed(true)
-      clearStopArm()
-      stopArmTimer.current = window.setTimeout(() => setStopArmed(false), 3000)
-    }
-  }, [stopArmed, clearStopArm, handleStop])
 
   /** 运行中（含等待确认/回答）：状态行要显示跳动的时间 */
   const busy =
@@ -641,47 +441,10 @@ export default function DigitalPanel({
     })
   }
 
-  /** 交互答复（确认破坏性动作 / 回答提问，含多问题） */
-  const handleInteraction = (payload: { approved?: boolean; answer?: string; answers?: string[] }): void => {
-    const pending = state.interaction
-    if (pending === null) return
-    setInteractionAnswer('')
-    setMultiText([])
-    setMultiChoice([])
-    dispatch({ kind: 'interaction' })
-    void api.respondInteraction({ requestId: pending.requestId, ...payload }).catch((error: unknown) => {
-      setLocalError(toErrorMessage(error))
-    })
-  }
-
-  /** 多问题：按题组装答复（有选项的题取点选结果，其余取文本输入） */
-  const submitMultiAnswers = (): void => {
-    const questions = state.interaction?.interaction.questions ?? []
-    const answers = questions.map((question, index) =>
-      question.options !== undefined && question.options.length > 0
-        ? (multiChoice[index] ?? []).join('、')
-        : (multiText[index] ?? '').trim()
-    )
-    handleInteraction({ answers })
-  }
-
-  /** 点选/取消某题的一个候选 */
-  const toggleChoice = (index: number, label: string, multiSelect: boolean): void => {
-    setMultiChoice((current) => {
-      const next = [...current]
-      const picked = next[index] ?? []
-      if (!multiSelect) {
-        next[index] = picked[0] === label ? [] : [label]
-        return next
-      }
-      next[index] = picked.includes(label) ? picked.filter((item) => item !== label) : [...picked, label]
-      return next
-    })
-  }
-
   /**
    * 两个下拉的「点击外部 / Esc 关闭」（与工具栏「更多 ▸」同一套交互）。
    * 监听挂在 document 上、命中判定用各自的 ref —— 两个下拉互不影响。
+   * 仍是**单个**监听器：菜单状态进了 hook，关闭动作改由 hook 的 `close` 回传，时序不变。
    */
   useEffect(() => {
     if (!draftMenuOpen && !modelMenuOpen && !plusMenuOpen) return undefined
@@ -691,17 +454,17 @@ export default function DigitalPanel({
         setPlusMenuOpen(false)
       }
       if (modelMenuOpen && modelMenuRef.current && !modelMenuRef.current.contains(target)) {
-        setModelMenuOpen(false)
+        closeModelMenu()
       }
       if (draftMenuOpen && draftMenuRef.current && !draftMenuRef.current.contains(target)) {
-        setDraftMenuOpen(false)
+        closeDraftMenu()
       }
     }
     const onKey = (event: KeyboardEvent): void => {
       if (event.key !== 'Escape') return
       setPlusMenuOpen(false)
-      setModelMenuOpen(false)
-      setDraftMenuOpen(false)
+      closeModelMenu()
+      closeDraftMenu()
     }
     document.addEventListener('mousedown', onDocClick)
     document.addEventListener('keydown', onKey)
@@ -709,51 +472,7 @@ export default function DigitalPanel({
       document.removeEventListener('mousedown', onDocClick)
       document.removeEventListener('keydown', onKey)
     }
-  }, [plusMenuOpen, modelMenuOpen, draftMenuOpen])
-
-  /**
-   * 打开模型下拉时拉取可选项：预设清单（离线安全）打底，Ollama 再叠加本机已装模型。
-   * 当前已选模型若不在清单里也补到首位，避免「选了但列表里看不见」。
-   */
-  const loadModels = useCallback(async (): Promise<void> => {
-    const cfg = loadLlmConfig()
-    setCurrentProvider(cfg.provider)
-    setCurrentModel(cfg.model)
-    let models = [...(LLM_PROVIDER_PRESETS[cfg.provider]?.models ?? [])]
-    if (cfg.provider === 'ollama') {
-      try {
-        const status = await window.mbApi.llm.status()
-        if (status.models.length > 0) models = status.models
-      } catch {
-        /* 离线安全：用预设清单兜底 */
-      }
-    }
-    if (cfg.model !== '' && !models.includes(cfg.model)) models = [cfg.model, ...models]
-    setAvailableModels(models)
-  }, [])
-
-  /** 选中模型：写回 localStorage + 推主进程镜像（与设置面板同一链路），后续调用即生效 */
-  const chooseModel = useCallback(async (model: string): Promise<void> => {
-    const cfg = loadLlmConfig()
-    const next = { ...cfg, model }
-    saveLlmConfig(next)
-    try {
-      await window.mbApi.llm.configure({ config: next })
-    } catch {
-      /* 镜像推送尽力而为；本地配置已落盘 */
-    }
-    setCurrentModel(model)
-    setModelMenuOpen(false)
-  }, [])
-
-  /** 拉草稿列表（打开下拉时触发；失败只提示不打断面板） */
-  const loadDrafts = async (): Promise<void> => {
-    try {
-      setDrafts(await api.draftList())
-    } catch (error: unknown) {
-      setLocalError(toErrorMessage(error))
-    }
-  }
+  }, [plusMenuOpen, modelMenuOpen, draftMenuOpen, closeModelMenu, closeDraftMenu, draftMenuRef, modelMenuRef])
 
   /** 新建对话：清掉主进程活跃会话 + 清空面板消息（TS 只有一份会话，见菜单项注释） */
   const handleNewChat = async (): Promise<void> => {
@@ -765,38 +484,8 @@ export default function DigitalPanel({
       setInput('')
       // 新对话清空目标条（目标随会话走，不是一行消息的附属）
       setGoal('')
-      // 新对话不再展示上一轮的改动卡（`turnStartedAt` 留给下一次发送覆盖，无需在此清空）
-      setTurnChanges([])
-      setTurnDeliveries([])
-    } catch (error: unknown) {
-      setLocalError(toErrorMessage(error))
-    }
-  }
-
-  /** 保存当前对话为草稿（主进程从落盘的活跃会话取数据，渲染层不传消息） */
-  const handleSaveDraft = async (): Promise<void> => {
-    setLocalError(null)
-    setDraftBusy(true)
-    try {
-      const saved = await api.draftSave({ name: draftName.trim() })
-      setDraftName('')
-      setDrafts(await api.draftList())
-      setNotice(`草稿已保存：${saved.name}`)
-    } catch (error: unknown) {
-      setLocalError(toErrorMessage(error))
-    } finally {
-      setDraftBusy(false)
-    }
-  }
-
-  /** 从草稿恢复：只灌历史，不动主进程活跃会话（用户点「恢复上次会话」才落盘） */
-  const handleLoadDraft = async (path: string): Promise<void> => {
-    setLocalError(null)
-    setDraftMenuOpen(false)
-    try {
-      const draft = await api.draftLoad({ path })
-      dispatch({ kind: 'hydrate', history: draft.messages })
-      setNotice(`已恢复草稿：${draft.name}`)
+      // 新对话不再展示上一轮的改动卡（锚点留给下一次发送覆盖，无需在此清空）
+      resetTurnArtifacts()
     } catch (error: unknown) {
       setLocalError(toErrorMessage(error))
     }
@@ -815,6 +504,7 @@ export default function DigitalPanel({
   /*
    * 斜杠命令（P2）：输入框以 `/` 开头时弹出，键盘上下选择 + Enter 执行。
    * 只放「不需要运行中也能用」的命令——运行中输入框是禁用的，放了也点不到。
+   * 清单留在组件里（执行体都是面板自己的动作）；解析、高亮与键盘导航交给 hook。
    */
   type CommandWithRun = DigitalCommand & { run: () => void }
   const COMMANDS: CommandWithRun[] = [
@@ -823,10 +513,7 @@ export default function DigitalPanel({
       id: 'drafts',
       label: '草稿管理',
       hint: '保存 / 恢复对话草稿',
-      run: () => {
-        setDraftMenuOpen(true)
-        void loadDrafts()
-      }
+      run: () => openDraftMenu()
     },
     {
       id: 'capabilities',
@@ -843,27 +530,18 @@ export default function DigitalPanel({
       run: () => setNotice('输入 / 打开命令；直接输入文字则发送给智能体。')
     }
   ]
-  const { matches: commandMatches } = parseDigitalCommands(COMMANDS, input)
-  const commandOpen = commandMatches.length > 0
-  const activeCommandIndex =
-    commandMatches.length === 0 ? 0 : Math.min(commandIndex, commandMatches.length - 1)
-  const runCommand = (id: string): void => {
-    const command = COMMANDS.find((candidate) => candidate.id === id)
-    if (command === undefined) return
-    setInput('')
-    setCommandIndex(0)
-    command.run()
-  }
-
-  // `@` 引用：与 `/` 互斥（输入不可能同时以 / 和 @ 开头）；选中后插入 `@名称 `（空格 ⇒ 菜单收起）
-  const { matches: referenceMatches } = parseDigitalReferences(dataTypes, input)
-  const referenceOpen = referenceMatches.length > 0
-  const activeReferenceIndex =
-    referenceMatches.length === 0 ? 0 : Math.min(commandIndex, referenceMatches.length - 1)
-  const pickReference = (name: string): void => {
-    setInput(`@${name} `)
-    setCommandIndex(0)
-  }
+  const {
+    commandMatches,
+    commandOpen,
+    activeCommandIndex,
+    referenceMatches,
+    referenceOpen,
+    activeReferenceIndex,
+    runCommand,
+    pickReference,
+    onInputChange,
+    onKeyDown: onComposerKeyDown
+  } = useDigitalPanelCommands({ input, setInput, commands: COMMANDS, onSend: handleSend })
 
   return (
     <div className="digital-panel" data-testid="digital-panel" data-center-tab={centerTab}>
@@ -915,11 +593,7 @@ export default function DigitalPanel({
               aria-label="草稿管理（保存 / 恢复对话）"
               aria-haspopup="menu"
               aria-expanded={draftMenuOpen}
-              onClick={() => {
-                setDraftMenuOpen((open) => !open)
-                setNotice(null)
-                if (!draftMenuOpen) void loadDrafts()
-              }}
+              onClick={toggleDraftMenu}
             >
               <LucideIcon name="database" size={14} />
             </button>
@@ -1375,65 +1049,8 @@ export default function DigitalPanel({
             placeholder="和智能体说点什么…（/ 命令，@ 引用数据表）"
             value={input}
             disabled={running}
-            onChange={(event) => {
-              setInput(event.target.value)
-              setCommandIndex(0)
-            }}
-            onKeyDown={(event) => {
-              if (commandOpen) {
-                if (event.key === 'ArrowDown') {
-                  event.preventDefault()
-                  setCommandIndex((index) => (index + 1) % commandMatches.length)
-                  return
-                }
-                if (event.key === 'ArrowUp') {
-                  event.preventDefault()
-                  setCommandIndex((index) => (index - 1 + commandMatches.length) % commandMatches.length)
-                  return
-                }
-                if (event.key === 'Enter') {
-                  event.preventDefault()
-                  const command = commandMatches[activeCommandIndex]
-                  if (command !== undefined) runCommand(command.id)
-                  return
-                }
-                if (event.key === 'Escape') {
-                  event.preventDefault()
-                  setInput('')
-                  setCommandIndex(0)
-                  return
-                }
-              }
-              if (referenceOpen) {
-                if (event.key === 'ArrowDown') {
-                  event.preventDefault()
-                  setCommandIndex((index) => (index + 1) % referenceMatches.length)
-                  return
-                }
-                if (event.key === 'ArrowUp') {
-                  event.preventDefault()
-                  setCommandIndex((index) => (index - 1 + referenceMatches.length) % referenceMatches.length)
-                  return
-                }
-                if (event.key === 'Enter') {
-                  event.preventDefault()
-                  const reference = referenceMatches[activeReferenceIndex]
-                  if (reference !== undefined) pickReference(reference.name)
-                  return
-                }
-                if (event.key === 'Escape') {
-                  event.preventDefault()
-                  setInput('')
-                  setCommandIndex(0)
-                  return
-                }
-              }
-              // 多行后 Enter 与换行冲突：沿用「Enter 发送」，换行让给 Shift+Enter
-              if (event.key === 'Enter' && !event.shiftKey) {
-                event.preventDefault()
-                handleSend()
-              }
-            }}
+            onChange={(event) => onInputChange(event.target.value)}
+            onKeyDown={onComposerKeyDown}
           />
 
           <div className="dsh-composer-bar">
@@ -1520,10 +1137,7 @@ export default function DigitalPanel({
                   title={`当前模型：${currentModel || '未选择'}（${LLM_PROVIDER_PRESETS[currentProvider]?.label ?? currentProvider}）`}
                   aria-haspopup="menu"
                   aria-expanded={modelMenuOpen}
-                  onClick={async () => {
-                    if (!modelMenuOpen) await loadModels()
-                    setModelMenuOpen((open) => !open)
-                  }}
+                  onClick={onModelTriggerClick}
                 >
                   <span className="dsh-composer-chip-label">{currentModel || '未选择模型'}</span>
                   <LucideIcon name="chevron-down" size={12} />
@@ -1621,7 +1235,7 @@ export default function DigitalPanel({
           data-testid="digital-composer-overlay"
           onClick={() => {
             setPlusMenuOpen(false)
-            setModelMenuOpen(false)
+            closeModelMenu()
           }}
         />
       )}
@@ -1685,129 +1299,5 @@ export default function DigitalPanel({
         />
       )}
     </div>
-  )
-}
-
-/** 秒 → 「12 秒」/「1 分 05 秒」（状态行用，不带毫秒——那是 runStats 的活） */
-function formatElapsed(sec: number): string {
-  if (sec < 60) return `${sec} 秒`
-  const minutes = Math.floor(sec / 60)
-  const rest = sec % 60
-  return rest === 0 ? `${minutes} 分` : `${minutes} 分 ${String(rest).padStart(2, '0')} 秒`
-}
-
-/**
- * 本轮状态行（对齐 dsh 对话流里的「深度求索中，用时 11分47秒…」/「已完成分析」）。
- *
- * **只报我们真有的状态**：dsh 那行还会带「已重试模型请求 (2/5) · 1s ▾」，
- * 但我们的循环没有把重试事件回传渲染层——没有数据就不造，宁可比它少一行。
- */
-function ConversationRunStatus({
-  status,
-  elapsedSec,
-  latencyMs
-}: {
-  status: 'idle' | 'thinking' | 'waiting_approval' | 'waiting_input' | 'done' | 'error'
-  elapsedSec: number
-  latencyMs: number
-}): React.JSX.Element | null {
-  // 空闲/出错不显示：出错有专门的错误条（`digital-error`），这里再报一遍是噪音
-  if (status === 'idle' || status === 'error') return null
-
-  const thinking = status === 'thinking'
-  const text = thinking
-    ? `深度求索中，用时 ${formatElapsed(elapsedSec)}…`
-    : status === 'waiting_approval'
-      ? '等待你确认'
-      : status === 'waiting_input'
-        ? '等待你回答'
-        : latencyMs > 0
-          ? `已完成分析 · 用时 ${formatElapsed(Math.round(latencyMs / 1000))}`
-          : '已完成分析'
-
-  return (
-    <div className={`conv-status conv-status-${status}`} data-testid="conv-status" role="status">
-      <span className={`conv-status-dot${thinking ? ' is-running' : ''}`} aria-hidden />
-      <span className={thinking ? 'is-shimmer' : undefined}>{text}</span>
-    </div>
-  )
-}
-
-/**
- * 令牌环（对齐 dsh ContextMeter）：用对话里**真实累计**的 token 数（prompt/completion/total，
- * 来自 `AgentRunStats`，由 `observability.ts` 事后统计）画「已用 / 上下文上限」圆环。
- *
- * 上限取按模型的**公开发布规格**（`MODEL_CONTEXT_WINDOWS`），不在表里回落默认值——
- * 是规格值、不是假运行时探测值。占用接近上限时环变色（accent → 强调 hover → 删除红）。
- * hover 浮出分解卡。无用量时不渲染（由外层 `turns > 0` 控制）。
- */
-function ContextMeter({
-  total,
-  prompt,
-  completion,
-  model
-}: {
-  total: number
-  prompt: number
-  completion: number
-  model: string
-}): React.JSX.Element {
-  const ctx = modelContextWindow(model)
-  const pct = ctx > 0 ? Math.min(1, total / ctx) : 0
-  const [hover, setHover] = useState(false)
-  const color =
-    pct > 0.9 ? 'var(--change-delete)' : pct > 0.7 ? 'var(--accent-hover)' : 'var(--accent)'
-  const radius = 9
-  const circumference = 2 * Math.PI * radius
-  const fmt = (n: number): string => (n >= 1000 ? `${(n / 1000).toFixed(n < 10000 ? 1 : 0)}k` : String(n))
-  const title = `上下文用量 ${Math.round(pct * 100)}% · ${fmt(total)} / ${fmt(ctx)} tok`
-  return (
-    <span
-      className="dsh-context-meter"
-      data-testid="digital-context-meter"
-      title={title}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-    >
-      <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
-        <circle cx="11" cy="11" r={radius} fill="none" stroke="var(--border)" strokeWidth="2.5" />
-        <circle
-          cx="11"
-          cy="11"
-          r={radius}
-          fill="none"
-          stroke={color}
-          strokeWidth="2.5"
-          strokeDasharray={circumference}
-          strokeDashoffset={circumference * (1 - pct)}
-          strokeLinecap="round"
-          transform="rotate(-90 11 11)"
-        />
-      </svg>
-      {hover && (
-        <span className="dsh-context-meter-pop" role="tooltip">
-          <div>
-            <span>总用量</span>
-            <b>{total} tok</b>
-          </div>
-          <div>
-            <span>输入</span>
-            <b>{prompt}</b>
-          </div>
-          <div>
-            <span>输出</span>
-            <b>{completion}</b>
-          </div>
-          <div>
-            <span>上下文窗口</span>
-            <b>{ctx}</b>
-          </div>
-          <div>
-            <span>占用</span>
-            <b>{Math.round(pct * 100)}%</b>
-          </div>
-        </span>
-      )}
-    </span>
   )
 }
