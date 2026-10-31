@@ -108,6 +108,13 @@ function clampLimit(raw: unknown, fallback: number): number {
 export class SessionSearchIndex {
   private db: Database.Database | null = null
   private builtMtime = -1
+  /**
+   * 按 `builtMtime` 缓存的解析结果：FTS 库已按 mtime 懒重建，
+   * 但 `search`/`list`/`readSession` 原本每次都重新 `readTurns()`（读盘+逐行 JSON.parse）+ `groupSessionTurns`。
+   * 这里把二者也按同一 mtime 缓存，文件未变则不重读不重算（详见 `ensureFresh`）。
+   */
+  private turnsCache: Array<Record<string, unknown>> | null = null
+  private summariesCache: SessionTurnSummary[] | null = null
 
   constructor(private readonly store: AgentSessionStore) {}
 
@@ -137,9 +144,23 @@ export class SessionSearchIndex {
       }
     })
     build(rows)
+    this.turnsCache = rows
+    this.summariesCache = groupSessionTurns(rows)
     this.db = db
     this.builtMtime = mtime
     return db
+  }
+
+  /** 返回按 mtime 缓存的 turns.jsonl 解析结果（文件未变则不重读重解析） */
+  private freshTurns(): Array<Record<string, unknown>> {
+    this.ensureFresh()
+    return this.turnsCache ?? []
+  }
+
+  /** 返回按 mtime 缓存的会话摘要（文件未变则不重算 `groupSessionTurns`） */
+  private freshSummaries(): SessionTurnSummary[] {
+    this.ensureFresh()
+    return this.summariesCache ?? []
   }
 
   /** FTS5 检索：按会话去重（保留最新命中），排除当前会话，按最后活跃倒序 */
@@ -153,7 +174,7 @@ export class SessionSearchIndex {
       .all(match) as Array<{ sid: string; ts: number; raw: string }>
 
     const summaries = new Map<string, SessionTurnSummary>()
-    for (const summary of groupSessionTurns(this.store.readTurns())) summaries.set(summary.sessionId, summary)
+    for (const summary of this.freshSummaries()) summaries.set(summary.sessionId, summary)
 
     const seen = new Set<string>()
     const hits: SessionSearchHit[] = []
@@ -176,13 +197,14 @@ export class SessionSearchIndex {
 
   /** 读取指定会话的消息（按轮次顺序重建，取最后 limit 条） */
   readSession(sessionId: string, limit = 50): Array<Record<string, unknown>> {
-    const messages = deriveMessagesFromTurns(this.store.readTurns(sessionId))
+    const turns = this.freshTurns().filter((turn) => turn.sessionId === sessionId)
+    const messages = deriveMessagesFromTurns(turns)
     return messages.slice(-clampLimit(limit, 50))
   }
 
   /** 列出最近会话摘要（按最后活跃倒序） */
   list(): SessionTurnSummary[] {
-    return groupSessionTurns(this.store.readTurns())
+    return this.freshSummaries()
   }
 
   /** 释放内存库（切换库/测试清理用） */
@@ -190,5 +212,7 @@ export class SessionSearchIndex {
     this.db?.close()
     this.db = null
     this.builtMtime = -1
+    this.turnsCache = null
+    this.summariesCache = null
   }
 }
