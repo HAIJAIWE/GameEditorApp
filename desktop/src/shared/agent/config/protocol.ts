@@ -235,7 +235,12 @@ export interface JsonSchemaProperty {
   example?: unknown
   minimum?: number
   maximum?: number
-  items?: { type: string }
+  /** type=array 时的元素 schema（可递归嵌套对象，用于对象数组参数） */
+  items?: JsonSchemaProperty
+  /** type=object 时的属性表（嵌套对象） */
+  properties?: Record<string, JsonSchemaProperty>
+  /** type=object 时的必填键 */
+  required?: readonly string[]
 }
 
 /**

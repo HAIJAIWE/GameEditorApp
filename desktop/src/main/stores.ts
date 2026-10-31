@@ -70,6 +70,7 @@ import { createRecordingToolRunner } from './agent/ops/operationRecorder'
 import { createRollbackSkill } from './agent/skills/rollbackSkill'
 import { createSessionSearchSkill } from './agent/skills/sessionSearchSkill'
 import { createSubAgentSkill } from './agent/skills/subAgentSkill'
+import { createTodoSkill } from './agent/skills/todoSkill'
 import { createCliSubAgentProvider } from './agent/subagent/subagentCli'
 import { createRemoteSubAgentProvider } from './agent/subagent/subagentRemote'
 import { createAcpSubAgentProvider } from './agent/subagent/subagentAcp'
@@ -170,6 +171,8 @@ export function buildStores(libDir: string): AppStores {
   // #25 会话检索（对齐 dsh session-search）：给智能体的只读历史检索工具（SQLite FTS5）。
   // 依赖 sessionStore（按库隔离），故在它之后注册；工具面按 chat 时 `dispatcher.list()` 现算，晚注册无碍。
   dispatcher.register(createSessionSearchSkill({ sessionStore }))
+  // 任务清单（对齐 dsh tool-todo）：多步任务先列计划、逐条推进，工具结果里即清单，模型下一轮可见
+  dispatcher.register(createTodoSkill())
   // 用户偏好 / 反馈：随库隔离，构造时即从磁盘加载；偏好注入系统提示词（见 brainService）
   const personalization = createPersonalizationStores(agentDir)
 
