@@ -6,13 +6,13 @@ import {
   type CeshuRoleTask,
   type CeshuTaskPlan,
   type CeshuTaskPriority
-} from '../workflow/ceshuTasks'
-import { CHAPTER_LABELS, isChapterKey, type CeshuDocument, type ChapterKey } from '../reference/ceshuConstants'
-import { CESHU_CHAPTER_FIELDS } from '../fields/ceshuFields'
-import { displayFieldValue } from '../fields/ceshuFieldDisplay'
-import { createDefaultCeshu, getGddScope, visibleChaptersForDoc } from '../model/ceshuModel'
-import { isMachineDataField } from '../workflow/ceshuStages'
-import { parseLlmJson } from '../../util/object/parseLlmJson'
+} from '../workflow'
+import { CHAPTER_LABELS, isChapterKey, type CeshuDocument, type ChapterKey } from '../reference'
+import { CESHU_CHAPTER_FIELDS } from '../fields'
+import { displayFieldValue } from '../fields'
+import { createDefaultCeshu, getGddScope, visibleChaptersForDoc } from '../model'
+import { isMachineDataField } from '../workflow'
+import { parseLlmJson } from '../../util/object'
 
 /**
  * 岗位任务生成（2026-10-26）。

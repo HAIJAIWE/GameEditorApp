@@ -4,7 +4,7 @@ import {
   readSetting,
   writeJsonSetting,
   type StorageLike
-} from '../settings/settingsStore'
+} from '../settings'
 import {
   FALLBACK_LLM_PROVIDER,
   LLM_PROVIDER_PRESETS,
@@ -41,7 +41,7 @@ import {
   type LlmSetupState,
   type LlmSetupGuide
 } from './llmConfigData'
-import { isVisionMode } from '../../util/ui/visionSupport'
+import { isVisionMode } from '../../util/ui'
 export * from './llmConfigData'
 
 /**

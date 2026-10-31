@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest'
 
-import type { CeshuDocument } from '../../src/shared/ceshu/reference/ceshuConstants'
+import type { CeshuDocument } from '../../src/shared/ceshu/reference'
 import {
   buildVersionDiff,
   buildVersionDiffMarkdown,
   chapterTotalChanges,
   formatDiffValue,
   versionDiffTotalChanges
-} from '../../src/shared/ceshu/workflow/ceshuDiff'
-import { createDefaultCeshu } from '../../src/shared/ceshu/model/ceshuModel'
+} from '../../src/shared/ceshu/workflow'
+import { createDefaultCeshu } from '../../src/shared/ceshu/model'
 
 function makeDoc(name = 'A'): CeshuDocument {
   return createDefaultCeshu({ scope: 'full', name })

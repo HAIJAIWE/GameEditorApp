@@ -1,4 +1,4 @@
-import type { GenreProfileKey } from '../prompts/ceshuAiData'
+import type { GenreProfileKey } from '../prompts'
 import type { HandoffDoc, HandoffVolumeId } from './ceshuHandoffTypes'
 
 /**

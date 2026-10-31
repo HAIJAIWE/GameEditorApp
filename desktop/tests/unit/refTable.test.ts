@@ -10,7 +10,7 @@ import {
   refTypeDisplayName,
   resolveRefTypeId,
   serializeRefEntries
-} from '../../src/shared/util/search/refTable'
+} from '../../src/shared/util/search'
 import type { DataTypeDef } from '../../src/shared/types'
 
 /** 最小 schema 夹具：id 单数、pluralKey 复数，口径与 types.ts 一致 */

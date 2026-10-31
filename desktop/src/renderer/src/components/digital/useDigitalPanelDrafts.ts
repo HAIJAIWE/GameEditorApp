@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react'
 
-import type { DraftSummary } from '../../../../shared/agent/conversation/session'
-import type { ConversationAction } from '../../../../shared/agent/conversation/conversationStore'
-import { toErrorMessage } from '../../../../shared/util/system/errors'
+import type { DraftSummary } from '../../../../shared/agent/conversation'
+import type { ConversationAction } from '../../../../shared/agent/conversation'
+import { toErrorMessage } from '../../../../shared/util/system'
 import type { ChatApi } from './digitalPanelApi'
 
 /**

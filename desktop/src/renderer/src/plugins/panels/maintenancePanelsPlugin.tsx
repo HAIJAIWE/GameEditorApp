@@ -1,9 +1,9 @@
 import type { PluginHost } from '../../../../shared/plugin/host'
 import type { PluginManifest } from '../../../../shared/plugin/types'
-import BackupPanel from '../../components/backup/BackupPanel'
-import ClearAllPanel from '../../components/backup/ClearAllPanel'
-import { useAppContext } from '../host/appContext'
-import { registerReactBinding, type PanelBindingProps } from '../host/reactBindings'
+import { BackupPanel } from '../../components/backup'
+import { ClearAllPanel } from '../../components/backup'
+import { useAppContext } from '../host'
+import { registerReactBinding, type PanelBindingProps } from '../host'
 
 /**
  * 破坏性/维护类面板 → 插件化第六切片（B 方案 Slice 6 的第一批）。

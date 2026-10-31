@@ -1,22 +1,22 @@
 import { useEffect, useState } from 'react'
 
-import { CHAPTER_KEYS, CHAPTER_LABELS, type CeshuDocument, type ChapterKey } from '../../../../shared/ceshu/reference/ceshuConstants'
+import { CHAPTER_KEYS, CHAPTER_LABELS, type CeshuDocument, type ChapterKey } from '../../../../shared/ceshu/reference'
 import {
   TEMPLATE_NAME_REQUIRED_ERROR,
   filterCustomTemplates,
   isValidCustomTemplateName,
   parseTemplateTagsInput,
   type CeshuCustomTemplate
-} from '../../../../shared/ceshu/reference/ceshuCustomTemplates'
-import { isPlainObject } from '../../../../shared/ceshu/model/ceshuModel'
+} from '../../../../shared/ceshu/reference'
+import { isPlainObject } from '../../../../shared/ceshu/model'
 import {
   listChapterTemplates,
   mergeTemplateByMode,
   searchChapterTemplates,
   templateChapterLabel,
   type ChapterTemplate
-} from '../../../../shared/ceshu/reference/ceshuTemplates'
-import { toErrorMessage } from '../../../../shared/util/system/errors'
+} from '../../../../shared/ceshu/reference'
+import { toErrorMessage } from '../../../../shared/util/system'
 
 /**
  * GDD 模板编辑器面板：

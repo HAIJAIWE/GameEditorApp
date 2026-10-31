@@ -1,6 +1,6 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 
-import type { McpTransport, StdioServerConfig } from '../../../shared/agent/mcp/types'
+import type { McpTransport, StdioServerConfig } from '../../../shared/agent/mcp'
 
 /**
  * MCP stdio 传输层：拉起子进程，用**行分隔 JSON-RPC** 通信。

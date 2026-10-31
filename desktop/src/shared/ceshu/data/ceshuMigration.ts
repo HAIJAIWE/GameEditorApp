@@ -14,8 +14,8 @@
  * （`ceshuModel` → `ceshuMigration` → `ceshuModel`）；`ceshuCompetitiveChart.ts` 亦为同样处理。
  */
 
-import { createDefaultChapters } from '../reference/ceshuDefaults'
-import { isPlainObject } from '../../util/object/guards'
+import { createDefaultChapters } from '../reference'
+import { isPlainObject } from '../../util/object'
 
 /** v5.0 相对 v4.0 新增的 9 章 */
 export const V5_NEW_CHAPTER_KEYS = [

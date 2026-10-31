@@ -1,5 +1,5 @@
-import type { ChapterKey } from '../reference/ceshuConstants'
-import type { GenreProfileKey } from '../prompts/ceshuAiData'
+import type { ChapterKey } from '../reference'
+import type { GenreProfileKey } from '../prompts'
 
 /**
  * **开发交接包**的公共类型与验收口径。

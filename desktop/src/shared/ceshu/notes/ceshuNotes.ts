@@ -1,4 +1,4 @@
-import { isPlainObject } from '../model/ceshuModel'
+import { isPlainObject } from '../model'
 
 /**
  * 章节笔记纯逻辑。

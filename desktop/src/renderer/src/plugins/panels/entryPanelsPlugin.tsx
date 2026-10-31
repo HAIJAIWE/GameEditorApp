@@ -2,12 +2,12 @@ import type { PluginHost } from '../../../../shared/plugin/host'
 import type { PluginManifest } from '../../../../shared/plugin/types'
 import type { ImportPreview } from '../../../../shared/types'
 import { formatImportSummary } from '../../appUtils'
-import BatchEditPanel from '../../components/data/BatchEditPanel'
-import ImportPreviewPanel from '../../components/data/ImportPreviewPanel'
-import QuickCreatePanel from '../../components/common/QuickCreatePanel'
-import TypeEditorPanel from '../../components/ceshuType/TypeEditorPanel'
-import { useAppContext } from '../host/appContext'
-import { registerReactBinding, type PanelBindingProps } from '../host/reactBindings'
+import { BatchEditPanel } from '../../components/data'
+import { ImportPreviewPanel } from '../../components/data'
+import { QuickCreatePanel } from '../../components/common'
+import { TypeEditorPanel } from '../../components/ceshuType'
+import { useAppContext } from '../host'
+import { registerReactBinding, type PanelBindingProps } from '../host'
 
 /**
  * 数据录入/编辑面板 → 插件化第七切片（B 方案 Slice 7）。

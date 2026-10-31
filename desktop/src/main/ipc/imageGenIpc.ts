@@ -1,7 +1,7 @@
 import type { IpcHandlerDeps, IpcRegistrar } from '../ipc'
-import { imageGenInputSchema } from '../../shared/schema/adapters/schemasDataImage'
-import { SECRET_NAMES } from '../../shared/config/secrets/secretNames'
-import type { ImageGenConfig } from '../../shared/config/llm/imageGen'
+import { imageGenInputSchema } from '../../shared/schema/adapters'
+import { SECRET_NAMES } from '../../shared/config/secrets'
+import type { ImageGenConfig } from '../../shared/config/llm'
 import { generateImage } from '../imageGen/client'
 import { saveImageFromUrl } from '../imageGen/save'
 

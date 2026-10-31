@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
-import { countByType, type TypeCountRow } from '../../../../shared/util/data/dataStats'
+import { countByType, type TypeCountRow } from '../../../../shared/util/data'
 import {
   ONBOARDING_STEPS,
   QUICK_ACTIONS,
@@ -14,9 +14,9 @@ import {
   withDismissed,
   withStepCompleted,
   type OnboardingState
-} from '../../../../shared/config/settings/onboarding'
+} from '../../../../shared/config/settings'
 import type { DataTypeDef, ItemRecord } from '../../../../shared/types'
-import { toErrorMessage } from '../../../../shared/util/system/errors'
+import { toErrorMessage } from '../../../../shared/util/system'
 
 /**
  * 快速入门面板。

@@ -10,7 +10,7 @@
 
 import { executeRollbackPlan, type RollbackPort } from '../store/operationLogStore'
 import type { OperationLogStore } from '../store/operationLogStore'
-import type { SkillExecutionContext, SkillProtocol, SkillResult } from '../../../shared/agent/config/protocol'
+import type { SkillExecutionContext, SkillProtocol, SkillResult } from '../../../shared/agent/config'
 
 /** 回滚所需的最小数据端口（从 `DataService` 取，便于单测注入替身） */
 export interface RollbackDataPort {

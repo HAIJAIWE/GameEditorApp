@@ -8,10 +8,10 @@ import {
   detectTerminologyConflicts,
   terminologyConflictMessage,
   terminologyConflictMessages
-} from '../../src/shared/ceshu/reference/ceshuTerminology'
-import { validateCeshu } from '../../src/shared/ceshu/validation/ceshuValidation'
-import { createDefaultCeshu } from '../../src/shared/ceshu/model/ceshuModel'
-import type { CeshuDocument } from '../../src/shared/ceshu/reference/ceshuConstants'
+} from '../../src/shared/ceshu/reference'
+import { validateCeshu } from '../../src/shared/ceshu/validation'
+import { createDefaultCeshu } from '../../src/shared/ceshu/model'
+import type { CeshuDocument } from '../../src/shared/ceshu/reference'
 
 function makeDoc(): CeshuDocument {
   return createDefaultCeshu({ scope: 'full', name: '测试游戏' })

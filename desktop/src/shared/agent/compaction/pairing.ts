@@ -13,7 +13,7 @@
  * 只保留同一个计数器不变式。
  */
 
-import type { BrainMessage } from '../runtime/brainMessages'
+import type { BrainMessage } from '../runtime'
 
 /** 一条消息对「进行中工具调用数」的增量 */
 export function pairingDelta(message: BrainMessage): number {

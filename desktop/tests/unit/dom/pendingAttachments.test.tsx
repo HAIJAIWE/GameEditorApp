@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest'
 
-import { PendingAttachments } from '../../../src/renderer/src/components/digital/PendingAttachments'
+import { PendingAttachments } from '../../../src/renderer/src/components/digital'
 import { installMbApi, renderDom } from './render'
 
 /**

@@ -14,7 +14,7 @@
  */
 
 import type { BrainLlmTransport, BrainMessage, PreExecReviewFn } from '../../../shared/agent/brain'
-import { resolveRiskLevel } from '../../../shared/agent/config/protocol'
+import { resolveRiskLevel } from '../../../shared/agent/config'
 
 let enabled = false
 

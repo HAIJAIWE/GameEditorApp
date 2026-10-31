@@ -2,11 +2,11 @@ import {
   CHAPTER_LABELS,
   CHAPTER_REQUIRED_FIELDS,
   type CeshuDocument
-} from '../../../../shared/ceshu/reference/ceshuConstants'
-import { CESHU_CHAPTER_FIELDS } from '../../../../shared/ceshu/fields/ceshuFields'
-import { displayFieldValue } from '../../../../shared/ceshu/fields/ceshuFieldDisplay'
-import { visibleChaptersForDoc } from '../../../../shared/ceshu/model/ceshuModel'
-import { CESHU_STAGE_LABELS, chaptersUpToStage, isMachineDataField, type CeshuStage } from '../../../../shared/ceshu/workflow/ceshuStages'
+} from '../../../../shared/ceshu/reference'
+import { CESHU_CHAPTER_FIELDS } from '../../../../shared/ceshu/fields'
+import { displayFieldValue } from '../../../../shared/ceshu/fields'
+import { visibleChaptersForDoc } from '../../../../shared/ceshu/model'
+import { CESHU_STAGE_LABELS, chaptersUpToStage, isMachineDataField, type CeshuStage } from '../../../../shared/ceshu/workflow'
 
 /**
  * 一页式总览（2026 对齐）。

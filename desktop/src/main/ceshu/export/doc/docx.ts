@@ -22,11 +22,11 @@ import {
   type CeshuDocument,
   type ChapterData,
   type ChapterKey
-} from '../../../../shared/ceshu/reference/ceshuConstants'
-import { fieldStatusOf } from '../../../../shared/ceshu/fields/ceshuFieldStatus'
-import { countFieldStatuses, formatFieldStatusSummary } from '../../../../shared/ceshu/fields/ceshuFieldStatusStats'
-import { CESHU_CHAPTER_FIELDS } from '../../../../shared/ceshu/fields/ceshuFields'
-import { computeChapterProgress, formatLocalTimestamp, getGameType, getGddScope, isPlainObject } from '../../../../shared/ceshu/model/ceshuModel'
+} from '../../../../shared/ceshu/reference'
+import { fieldStatusOf } from '../../../../shared/ceshu/fields'
+import { countFieldStatuses, formatFieldStatusSummary } from '../../../../shared/ceshu/fields'
+import { CESHU_CHAPTER_FIELDS } from '../../../../shared/ceshu/fields'
+import { computeChapterProgress, formatLocalTimestamp, getGameType, getGddScope, isPlainObject } from '../../../../shared/ceshu/model'
 import {
   EMPTY_PLACEHOLDER,
   chapterHeading,

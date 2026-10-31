@@ -7,7 +7,7 @@ import {
   buildPersonalizedContext,
   extractPreferences,
   PREFERENCE_KEYWORDS
-} from '../../src/shared/agent/config/personalization'
+} from '../../src/shared/agent/config'
 import { FeedbackStore, PreferenceStore, createPersonalizationStores } from '../../src/main/agent/store/preferenceStore'
 
 describe('personalization：extractPreferences（关键词 → 偏好键值）', () => {

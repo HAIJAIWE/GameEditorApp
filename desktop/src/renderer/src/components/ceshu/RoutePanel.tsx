@@ -1,8 +1,8 @@
 import { useMemo, type ReactElement } from 'react'
 
-import type { CeshuDocument } from '../../../../shared/ceshu/reference/ceshuConstants'
-import { analyzeParallelism } from '../../../../shared/ceshu/workflow/ceshuHandoffParallel'
-import { buildHandoffPlan, planHandoffDocs } from '../../../../shared/ceshu/workflow/ceshuHandoffPlan'
+import type { CeshuDocument } from '../../../../shared/ceshu/reference'
+import { analyzeParallelism } from '../../../../shared/ceshu/workflow'
+import { buildHandoffPlan, planHandoffDocs } from '../../../../shared/ceshu/workflow'
 
 /**
  * 开发路线面板。

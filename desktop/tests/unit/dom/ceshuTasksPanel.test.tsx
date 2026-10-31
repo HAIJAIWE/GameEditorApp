@@ -2,9 +2,9 @@
 import { useState } from 'react'
 import { afterEach, describe, expect, it } from 'vitest'
 
-import CeshuTasksPanel from '../../../src/renderer/src/components/ceshuDoc/CeshuTasksPanel'
-import { createDefaultCeshu } from '../../../src/shared/ceshu/model/ceshuModel'
-import type { CeshuDocument } from '../../../src/shared/ceshu/reference/ceshuConstants'
+import { CeshuTasksPanel } from '../../../src/renderer/src/components/ceshuDoc'
+import { createDefaultCeshu } from '../../../src/shared/ceshu/model'
+import type { CeshuDocument } from '../../../src/shared/ceshu/reference'
 import { installMbApi, renderDom, type RenderResult } from './render'
 
 /**

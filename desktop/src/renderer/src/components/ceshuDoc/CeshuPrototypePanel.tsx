@@ -1,9 +1,9 @@
 import { useState } from 'react'
 
-import type { CeshuDocument } from '../../../../shared/ceshu/reference/ceshuConstants'
-import { buildDemoPrompt } from '../../../../shared/ceshu/prompts/ceshuDemoPrompt'
-import { isPrototypeStale } from '../../../../shared/ceshu/workflow/ceshuPrototypeStale'
-import { toErrorMessage } from '../../../../shared/util/system/errors'
+import type { CeshuDocument } from '../../../../shared/ceshu/reference'
+import { buildDemoPrompt } from '../../../../shared/ceshu/prompts'
+import { isPrototypeStale } from '../../../../shared/ceshu/workflow'
+import { toErrorMessage } from '../../../../shared/util/system'
 
 /**
  * 原型预览（三栏布局「原型预览」标签）。

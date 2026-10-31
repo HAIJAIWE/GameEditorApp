@@ -1,13 +1,13 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import AiReviewPanel from '../../../src/renderer/src/components/agent/AiReviewPanel'
+import { AiReviewPanel } from '../../../src/renderer/src/components/agent'
 import {
   ADVERSARIAL_CHECK_KEYS,
   ADVERSARIAL_CHECK_LABELS,
   GENRE_REVIEW_PROFILES,
   ADVERSARIAL_LEVEL_LABELS
-} from '../../../src/shared/ceshu/prompts/ceshuAiData'
+} from '../../../src/shared/ceshu/prompts'
 import { installMbApi, renderDom, type ApiStub, type RenderResult } from './render'
 
 /**

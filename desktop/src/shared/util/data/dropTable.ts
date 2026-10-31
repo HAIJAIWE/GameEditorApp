@@ -1,4 +1,4 @@
-import { isPlainObject } from '../object/guards'
+import { isPlainObject } from '../object'
 /**
  * 掉落表纯逻辑。
  *

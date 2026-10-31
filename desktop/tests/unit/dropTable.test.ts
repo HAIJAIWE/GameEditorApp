@@ -13,8 +13,8 @@ import {
   normalizeDropEntries,
   normalizeDropRange,
   serializeDropEntries
-} from '../../src/shared/util/data/dropTable'
-import type { DropEntry } from '../../src/shared/util/data/dropTable'
+} from '../../src/shared/util/data'
+import type { DropEntry } from '../../src/shared/util/data'
 
 describe('dropTable：常量', () => {
   it('夹紧边界与源码一致', () => {

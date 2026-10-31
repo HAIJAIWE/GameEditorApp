@@ -12,8 +12,8 @@ import {
   TOOL_GROUP_LABELS,
   TOOL_GROUP_MAP,
   TOOL_GROUP_ORDER
-} from '../../src/shared/agent/tools/toolGroups'
-import type { SkillProtocol } from '../../src/shared/agent/config/protocol'
+} from '../../src/shared/agent/tools'
+import type { SkillProtocol } from '../../src/shared/agent/config'
 
 /**
  * M3 工具面分组与按档位限量（G2 + DD-3 + DD-4）的纯逻辑单测。

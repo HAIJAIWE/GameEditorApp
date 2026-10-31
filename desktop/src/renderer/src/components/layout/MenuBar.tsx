@@ -2,9 +2,9 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from '
 
 import type { PluginHost } from '../../../../shared/plugin/host'
 import type { PluginMenuItem } from '../../../../shared/plugin/types'
-import { isMenuDisabled } from '../../plugins/context/menuState'
-import LibraryBar from '../common/LibraryBar'
-import LucideIcon from '../common/LucideIcon'
+import { isMenuDisabled } from '../../plugins/context'
+import { LibraryBar } from '../common'
+import { LucideIcon } from '../common'
 
 /**
  * 顶部菜单栏。

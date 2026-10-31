@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactElement } from 'react'
 
 import type { PluginHost } from '../../../../shared/plugin/host'
 import type { PluginManifest } from '../../../../shared/plugin/types'
-import { registerReactBinding, type PanelBindingProps } from '../host/reactBindings'
+import { registerReactBinding, type PanelBindingProps } from '../host'
 
 /**
  * 会话历史检索（#25，对齐 dsh session-search）。

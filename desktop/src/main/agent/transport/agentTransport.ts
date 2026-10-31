@@ -18,8 +18,8 @@ import {
   resolveLlmBaseUrl,
   resolveLlmTier,
   type StoredLlmConfig
-} from '../../../shared/config/llm/llmConfig'
-import type { AgentRunTier } from '../../../shared/agent/observability/observability'
+} from '../../../shared/config/llm'
+import type { AgentRunTier } from '../../../shared/agent/observability'
 import type { BrainLlmTransport } from '../../../shared/agent/brain'
 import { OllamaChatTransport } from './ollamaTransport'
 import { claudeUnsupportedError, OpenAiChatTransport } from './openAiTransport'

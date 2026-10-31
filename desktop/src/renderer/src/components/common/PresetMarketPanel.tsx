@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 
-import { SYSTEM_LABELS, type CeshuDocument } from '../../../../shared/ceshu/reference/ceshuConstants'
+import { SYSTEM_LABELS, type CeshuDocument } from '../../../../shared/ceshu/reference'
 import {
   HYBRID_GAMEPLAY_PRESETS,
   PRESET_KEYS,
@@ -9,8 +9,8 @@ import {
   formatRecommendedSystems,
   formatSecondaryModules,
   styleBadgeColor
-} from '../../../../shared/ceshu/reference/ceshuPresets'
-import { toErrorMessage } from '../../../../shared/util/system/errors'
+} from '../../../../shared/ceshu/reference'
+import { toErrorMessage } from '../../../../shared/util/system'
 
 /**
  * 混合玩法预设市场：

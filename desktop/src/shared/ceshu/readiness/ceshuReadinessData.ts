@@ -19,9 +19,9 @@
  * `ceshuReferenceGdd.ts`）才是「同类文档一般写到哪」。两者都不编造分数。
  */
 
-import type { ChapterKey } from '../reference/ceshuConstants'
-import type { CeshuStage } from '../workflow/ceshuStages'
-import type { CeshuReferenceComparison } from '../reference/ceshuReferenceGdd'
+import type { ChapterKey } from '../reference'
+import type { CeshuStage } from '../workflow'
+import type { CeshuReferenceComparison } from '../reference'
 /** 单个章节在某个阶段的完备情况 */
 export interface CeshuChapterReadiness {
   chapter_key: ChapterKey

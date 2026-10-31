@@ -1,7 +1,7 @@
 import type { PluginHost } from '../../../../shared/plugin/host'
 import type { PluginManifest } from '../../../../shared/plugin/types'
-import { registerReactBinding } from '../host/reactBindings'
-import ShortcutsPanel from '../../components/common/ShortcutsPanel'
+import { registerReactBinding } from '../host'
+import { ShortcutsPanel } from '../../components/common'
 
 /**
  * 快捷键参考面板 → 插件化首切片（证明「真实产品面板经宿主渲染」通路）。

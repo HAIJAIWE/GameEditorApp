@@ -1,11 +1,11 @@
 import type { PluginManifest } from '../../../../shared/plugin/types'
-import BrowserPanel from '../../components/browser/BrowserPanel'
-import CeshuHomePanel from '../../components/ceshuDoc/CeshuHomePanel'
-import CeshuView from '../../components/ceshuDoc/CeshuView'
-import CodePanel from '../../components/browser/CodePanel'
-import DataEditorPanel from '../../components/data/DataEditorPanel'
-import { useMainViewContext } from '../host/mainViewContext'
-import { registerReactBinding } from '../host/reactBindings'
+import { BrowserPanel } from '../../components/browser'
+import { CeshuHomePanel } from '../../components/ceshuDoc'
+import { CeshuView } from '../../components/ceshuDoc'
+import { CodePanel } from '../../components/browser'
+import { DataEditorPanel } from '../../components/data'
+import { useMainViewContext } from '../host'
+import { registerReactBinding } from '../host'
 
 /**
  * 主区视图插件化（Slice 22–24）。

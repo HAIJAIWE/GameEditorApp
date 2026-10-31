@@ -7,15 +7,15 @@ import {
   imagePathKey,
   resolveImagePath,
   IMAGE_EXTENSIONS
-} from '../../shared/util/io/cleanupImages'
-import { isSupportedImageFile, buildImagePreviewDataUrl } from '../../shared/util/io/imagePreview'
+} from '../../shared/util/io'
+import { isSupportedImageFile, buildImagePreviewDataUrl } from '../../shared/util/io'
 import { ensureLibraryImagesDir } from '../imageImport'
-import { log } from '../../shared/util/system/logger'
+import { log } from '../../shared/util/system'
 import type { IpcHandlerDeps, IpcRegistrar } from '../ipc'
 import {
   deleteImagesInputSchema,
   imageReadByPathInputSchema
-} from '../../shared/schema/adapters/schemasDataImage'
+} from '../../shared/schema/adapters'
 
 /** 扩展名白名单的 Set 形态（热路径查表用；真源仍是 shared 的 IMAGE_EXTENSIONS 数组） */
 const IMAGE_EXTENSION_SET: ReadonlySet<string> = new Set(IMAGE_EXTENSIONS)

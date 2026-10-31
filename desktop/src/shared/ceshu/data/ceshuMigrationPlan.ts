@@ -1,7 +1,7 @@
-import { CHAPTER_LABELS, type CeshuDocument, type ChapterKey } from '../reference/ceshuConstants'
-import { fieldLabelOf } from '../fields/ceshuFields'
-import { isPlainObject } from '../model/ceshuModel'
-import { detectTextDuplication, OVERLAP_PAIRS } from '../workflow/ceshuOverlap'
+import { CHAPTER_LABELS, type CeshuDocument, type ChapterKey } from '../reference'
+import { fieldLabelOf } from '../fields'
+import { isPlainObject } from '../model'
+import { detectTextDuplication, OVERLAP_PAIRS } from '../workflow'
 
 /**
  * 策划书字段迁移**预览**（只读，不写盘）。

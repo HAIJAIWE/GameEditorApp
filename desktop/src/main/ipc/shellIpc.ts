@@ -1,7 +1,7 @@
 import { shell } from 'electron'
 
 import type { IpcHandlerDeps, IpcRegistrar } from '../ipc'
-import { shellOpenPathInputSchema } from '../../shared/schema/adapters/schemasDataAttachments'
+import { shellOpenPathInputSchema } from '../../shared/schema/adapters'
 
 /**
  * 系统 shell 通道：用默认程序打开**任意路径**。

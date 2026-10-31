@@ -11,7 +11,7 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 
-import { extractPreferences, type FeedbackRecord } from '../../../shared/agent/config/personalization'
+import { extractPreferences, type FeedbackRecord } from '../../../shared/agent/config'
 
 /**
  * 原子写 JSON（tmp + rename，与仓库其余 store 同一约定）。

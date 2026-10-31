@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-import type { ReferenceReport } from '../../../../shared/util/search/references'
+import type { ReferenceReport } from '../../../../shared/util/search'
 import type { DataTypeDef } from '../../../../shared/types'
 
 /**

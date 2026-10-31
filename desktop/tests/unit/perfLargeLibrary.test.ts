@@ -3,9 +3,9 @@ import { describe, expect, it } from 'vitest'
 // 注意：求值引擎已归区到 domain/attr/attrEngine（2b 批），模型与拓扑排序仍在 contract 根
 import { createDefaultAttrSystem, defaultBaseValues, topoSortAttributes } from '../../src/shared/attrSystem'
 import { calculateAttributes } from '../../src/shared/domain/attr/attrEngine'
-import { SEARCH_ALL_FIELDS, SEARCH_ALL_TYPES, searchItems } from '../../src/shared/util/search/advancedSearch'
-import { summarizeNumeric } from '../../src/shared/util/data/dataStats'
-import { filterItemRecords } from '../../src/shared/util/data/dataTableOps'
+import { SEARCH_ALL_FIELDS, SEARCH_ALL_TYPES, searchItems } from '../../src/shared/util/search'
+import { summarizeNumeric } from '../../src/shared/util/data'
+import { filterItemRecords } from '../../src/shared/util/data'
 import type { ItemRecord } from '../../src/shared/types'
 
 /**

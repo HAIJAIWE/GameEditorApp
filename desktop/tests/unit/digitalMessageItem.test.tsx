@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { copyToClipboard, DigitalMessageItem } from '../../src/renderer/src/components/digital/DigitalMessageItem'
+import { copyToClipboard, DigitalMessageItem } from '../../src/renderer/src/components/digital'
 import { renderDom, type RenderResult } from './dom/render'
 
 /**

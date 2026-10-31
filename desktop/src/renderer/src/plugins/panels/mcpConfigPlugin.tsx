@@ -1,7 +1,7 @@
 import type { PluginHost } from '../../../../shared/plugin/host'
 import type { PluginManifest } from '../../../../shared/plugin/types'
-import McpConfigPanel from '../../components/agent/McpConfigPanel'
-import { registerReactBinding, type PanelBindingProps } from '../host/reactBindings'
+import { McpConfigPanel } from '../../components/agent'
+import { registerReactBinding, type PanelBindingProps } from '../host'
 
 /**
  * MCP 配置插件（Slice 20）：一个面板 + 一条打开命令。

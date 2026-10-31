@@ -1,8 +1,8 @@
 import { useState } from 'react'
 
-import { isAnswerComplete, type DigitalPanelState } from '../../../../shared/agent/ui/panel'
-import type { ConversationAction } from '../../../../shared/agent/conversation/conversationStore'
-import { toErrorMessage } from '../../../../shared/util/system/errors'
+import { isAnswerComplete, type DigitalPanelState } from '../../../../shared/agent/ui'
+import type { ConversationAction } from '../../../../shared/agent/conversation'
+import { toErrorMessage } from '../../../../shared/util/system'
 import type { ChatApi } from './digitalPanelApi'
 
 /**

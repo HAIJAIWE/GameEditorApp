@@ -5,27 +5,27 @@ import {
   checkSystemDependencies,
   type ChapterData,
   type CeshuDocument
-} from '../reference/ceshuConstants'
-import { normalizeValue } from '../workflow/ceshuDiff'
-import { couplingMessages } from '../workflow/ceshuCoupling'
-import { detectFieldOverlaps, fieldOverlapMessage } from '../workflow/ceshuOverlap'
-import { detectTerminologyConflicts, terminologyConflictMessages } from '../reference/ceshuTerminology'
+} from '../reference'
+import { normalizeValue } from '../workflow'
+import { couplingMessages } from '../workflow'
+import { detectFieldOverlaps, fieldOverlapMessage } from '../workflow'
+import { detectTerminologyConflicts, terminologyConflictMessages } from '../reference'
 import {
   analyzeTextQuality,
   contentQualityIssues,
   ANALYSIS_MIN_CHARS as QUALITY_MIN_CHARS
 } from './ceshuContentQuality'
-import { CESHU_CHAPTER_FIELDS } from '../fields/ceshuFields'
-import { isEmptyRequiredValue, isPlainObject, visibleChaptersForDoc } from '../model/ceshuModel'
-import {
-  buildPrototypeResults,
-  checkDesignClaimsWith,
-  evaluateAssertions,
-  type AssertionResult
-} from './ceshuNumericAssert'
-import { checkLedger, checkPrototypeAcceptanceResults, checkTestCaseList } from '../notes/ceshuEvidence'
-import { column } from '../workflow/ceshuPipeRows'
-import { readText } from '../../util/io/readText'
+import { CESHU_CHAPTER_FIELDS } from '../fields'
+import { isEmptyRequiredValue, isPlainObject, visibleChaptersForDoc } from '../model'
+import { buildPrototypeResults, checkDesignClaimsWith, type AssertionResult } from './ceshuNumericAssert'
+// ⚠️ `evaluateAssertions` 故意从**本目录入口**取，而不是 './ceshuNumericAssert'：
+// 守卫测试 `tests/unit/ceshuValidation.checks.test.ts` 用 `vi.spyOn(校验入口, 'evaluateAssertions')`
+// 断言「一次 validateCeshu 只复算一次」。入口的再导出是活绑定（getter），从入口取才能被 spy 观察到；
+// 直接取模块本地绑定则 spy 永远打不中（实测：0 次调用）。
+import { evaluateAssertions } from './index'
+import { checkLedger, checkPrototypeAcceptanceResults, checkTestCaseList } from '../notes'
+import { column } from '../workflow'
+import { readText } from '../../util/io'
 
 /**
  * 策划书数据完整性校验。

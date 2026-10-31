@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { createDefaultCeshu } from '../../src/shared/ceshu/model/ceshuModel'
+import { createDefaultCeshu } from '../../src/shared/ceshu/model'
 import {
   TASK_PER_ROLE_LIMIT,
   buildRoleTaskPrompt,
@@ -9,7 +9,7 @@ import {
   isEmptyTaskPlan,
   parseRoleTaskPlan,
   taskRolesForDoc
-} from '../../src/shared/ceshu/prompts/ceshuTaskPrompt'
+} from '../../src/shared/ceshu/prompts'
 
 /**
  * 岗位任务生成：纯逻辑（摘要 / 提示词 / 解析）。

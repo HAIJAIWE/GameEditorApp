@@ -1,4 +1,4 @@
-import { bucketize } from '../../util/data/dataBuckets'
+import { bucketize } from '../../util/data'
 import type { DataTypeDef, ItemRecord } from '../../types'
 
 /**

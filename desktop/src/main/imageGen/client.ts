@@ -1,5 +1,5 @@
-import { buildImageRequest, checkImageConfig, extractImageUrl } from '../../shared/config/llm/imageGen'
-import type { ImageGenConfig } from '../../shared/config/llm/imageGen'
+import { buildImageRequest, checkImageConfig, extractImageUrl } from '../../shared/config/llm'
+import type { ImageGenConfig } from '../../shared/config/llm'
 
 /**
  * 图像生成主进程客户端（云 API 调用侧）。

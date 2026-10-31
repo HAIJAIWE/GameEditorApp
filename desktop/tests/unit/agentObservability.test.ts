@@ -4,7 +4,7 @@ import {
   accumulateTurn,
   emptyAgentRunStats,
   turnStatFromReply
-} from '../../src/shared/agent/observability/observability'
+} from '../../src/shared/agent/observability'
 
 /**
  * M1 观测纯代数单测。

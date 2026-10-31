@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest'
 
-import CeshuPrototypePanel from '../../../src/renderer/src/components/ceshuDoc/CeshuPrototypePanel'
-import { createDefaultCeshu } from '../../../src/shared/ceshu/model/ceshuModel'
-import { fingerprintCeshuDesign } from '../../../src/shared/ceshu/workflow/ceshuPrototypeStale'
-import type { CeshuDocument } from '../../../src/shared/ceshu/reference/ceshuConstants'
+import { CeshuPrototypePanel } from '../../../src/renderer/src/components/ceshuDoc'
+import { createDefaultCeshu } from '../../../src/shared/ceshu/model'
+import { fingerprintCeshuDesign } from '../../../src/shared/ceshu/workflow'
+import type { CeshuDocument } from '../../../src/shared/ceshu/reference'
 import { installMbApi, renderDom, type ApiStub, type RenderResult } from './render'
 
 /**

@@ -1,4 +1,4 @@
-import { isPlainObject } from '../../util/object/guards'
+import { isPlainObject } from '../../util/object'
 /**
  * 竞品象限图纯逻辑：
  * - 画布尺寸/留白常量与网格步长

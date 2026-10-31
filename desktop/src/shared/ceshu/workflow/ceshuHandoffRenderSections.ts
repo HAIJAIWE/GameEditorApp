@@ -1,5 +1,5 @@
-import type { CeshuDocument } from '../reference/ceshuConstants'
-import { isFilledValue } from '../model/ceshuModel'
+import type { CeshuDocument } from '../reference'
+import { isFilledValue } from '../model'
 import { readPath } from './ceshuHandoffPaths'
 
 /**

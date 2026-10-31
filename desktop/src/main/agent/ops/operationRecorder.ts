@@ -14,8 +14,8 @@
  */
 
 import type { BrainToolRunner } from '../../../shared/agent/brain'
-import type { OperationRecord } from '../../../shared/agent/observability/operationLog'
-import type { SkillExecutionContext, SkillResult } from '../../../shared/agent/config/protocol'
+import type { OperationRecord } from '../../../shared/agent/observability'
+import type { SkillExecutionContext, SkillResult } from '../../../shared/agent/config'
 import type { OperationLogStore } from '../store/operationLogStore'
 import type { DeliveryLogStore } from '../store/deliveryLogStore'
 

@@ -4,7 +4,7 @@ import {
   requestCodeView,
   subscribeCodeViewRequest,
   takeCodeViewRequest
-} from '../../src/renderer/src/plugins/context/codeViewRequest'
+} from '../../src/renderer/src/plugins/context'
 
 /**
  * 「在代码面板打开某文件」的请求通道：单例语义（只关心最后一个请求），

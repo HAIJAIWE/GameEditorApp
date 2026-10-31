@@ -11,7 +11,7 @@ import {
   normalizeDuration,
   showToast,
   subscribeToasts
-} from '../../src/shared/util/ui/toast'
+} from '../../src/shared/util/ui'
 
 describe('normalizeDuration：时长夹紧', () => {
   it('默认 3000', () => {

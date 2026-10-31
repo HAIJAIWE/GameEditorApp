@@ -1,4 +1,4 @@
-import type { JsonObjectSchema } from '../config/protocol'
+import type { JsonObjectSchema } from '../config'
 
 /**
  * MCP（Model Context Protocol）接入类型（Slice 18）。

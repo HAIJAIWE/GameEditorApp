@@ -1,7 +1,148 @@
 import js from '@eslint/js'
 import reactHooks from 'eslint-plugin-react-hooks'
 import globals from 'globals'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import tseslint from 'typescript-eslint'
+
+const PROJECT_ROOT = path.dirname(fileURLToPath(import.meta.url))
+
+/**
+ * 「能力文件夹」清单：这些目录是一个**带入口的子包**，外部只能 `import '.../<folder>'`
+ * （或显式 `.../<folder>/index`），不得再深插到目录内的某个文件。
+ *
+ * 为什么需要机器守卫：历史上建过一次入口又删掉了——因为没人走，入口形同虚设。
+ * 现在消费者已经全部改走入口，再允许深插就一定会烂回去。
+ *
+ * ⚠️ 只用「能力子包」目录，不含包根（`shared/util`、`shared/ceshu`、`components` 等）。
+ */
+const CAPABILITY_FOLDERS = [
+  // shared/util
+  'src/shared/util/id',
+  'src/shared/util/object',
+  'src/shared/util/search',
+  'src/shared/util/field',
+  'src/shared/util/data',
+  'src/shared/util/datetime',
+  'src/shared/util/io',
+  'src/shared/util/ui',
+  'src/shared/util/system',
+  // shared/ceshu
+  'src/shared/ceshu/fields',
+  'src/shared/ceshu/validation',
+  'src/shared/ceshu/prompts',
+  'src/shared/ceshu/readiness',
+  'src/shared/ceshu/data',
+  'src/shared/ceshu/workflow',
+  'src/shared/ceshu/model',
+  'src/shared/ceshu/reference',
+  'src/shared/ceshu/notes',
+  // shared/agent
+  'src/shared/agent/brain',
+  'src/shared/agent/compaction',
+  'src/shared/agent/guard',
+  'src/shared/agent/config',
+  'src/shared/agent/conversation',
+  'src/shared/agent/mcp',
+  'src/shared/agent/observability',
+  'src/shared/agent/runtime',
+  'src/shared/agent/tools',
+  'src/shared/agent/ui',
+  // shared/config
+  'src/shared/config/llm',
+  'src/shared/config/game',
+  'src/shared/config/settings',
+  'src/shared/config/secrets',
+  // shared/schema
+  'src/shared/schema/core',
+  'src/shared/schema/adapters',
+  // shared/ceshuSchema（顶层 ceshuSchema/index.ts 是聚合器，不在此列）
+  'src/shared/ceshuSchema/design',
+  'src/shared/ceshuSchema/systems',
+  'src/shared/ceshuSchema/production',
+  'src/shared/ceshuSchema/quality',
+  'src/shared/ceshuSchema/core',
+  // renderer components
+  'src/renderer/src/components/ceshuDoc',
+  'src/renderer/src/components/ceshuField',
+  'src/renderer/src/components/ceshuType',
+  'src/renderer/src/components/ceshu',
+  'src/renderer/src/components/digital',
+  'src/renderer/src/components/attr',
+  'src/renderer/src/components/data',
+  'src/renderer/src/components/agent',
+  'src/renderer/src/components/backup',
+  'src/renderer/src/components/browser',
+  'src/renderer/src/components/common',
+  'src/renderer/src/components/layout',
+  // renderer plugins
+  'src/renderer/src/plugins/host',
+  'src/renderer/src/plugins/context',
+  'src/renderer/src/plugins/ceshu',
+  'src/renderer/src/plugins/session',
+  'src/renderer/src/plugins/panels',
+  'src/renderer/src/plugins/ux'
+].map((dir) => path.resolve(PROJECT_ROOT, dir))
+
+/**
+ * 本地规则 `no-deep-capability-import`。
+ *
+ * 为什么不用 `no-restricted-imports` + glob（本文件上面 7 条分层规则用的写法）：
+ * 那条规则的 pattern 匹配的是 import 语句里的**原始字符串**，不做路径解析。而本仓没有
+ * path alias，同一个文件从不同深度写出来的相对路径五花八门（`./util/id/x`、
+ * `../id/x`、`../../util/id/x`、`../../../src/shared/util/id/x` …）。要么按「目录名」匹配
+ * （那会误伤 `src/main/id/…` 这类同名但不在清单里的目录），要么把每个目录的
+ * 每种前缀都枚举一遍（60 个目录 × 5 种前缀，且新增一层目录就漏）。
+ *
+ * 这里直接**把 specifier 解析成绝对路径**再判断归属，零误伤、零漏判。
+ * 另一个好处：flat config 里同名规则是**整体覆盖**而非合并，新增一条
+ * `no-restricted-imports` 会盖掉上面 7 条分层规则（文件里已有两处「覆盖警告」注释）；
+ * 用独立规则名就不存在这个坑。
+ */
+const noDeepCapabilityImport = {
+  meta: {
+    type: 'problem',
+    docs: {
+      description: '能力文件夹只能从目录入口 import（禁止深插目录内文件）'
+    },
+    schema: [],
+    messages: {
+      deep: '禁止深插能力文件夹：`{{spec}}` 应改为 `{{entry}}`（走目录入口 index.ts）。'
+    }
+  },
+  create(context) {
+    const filename = context.filename ?? context.getFilename()
+    const importerDir = path.dirname(filename)
+
+    function check(node) {
+      const spec = node?.value
+      if (typeof spec !== 'string' || !spec.startsWith('.')) return
+      const resolved = path.resolve(importerDir, spec)
+      for (const folder of CAPABILITY_FOLDERS) {
+        const rel = path.relative(folder, resolved)
+        if (!rel || rel.startsWith('..') || path.isAbsolute(rel)) continue
+        // 入口自身 / 显式 index 放行
+        if (path.basename(resolved) === 'index') return
+        // 目录内部的互相 import（含子目录）放行——本规则只管「外部消费者」
+        const importerRel = path.relative(folder, importerDir)
+        if (!importerRel.startsWith('..') && !path.isAbsolute(importerRel)) return
+        context.report({
+          node,
+          messageId: 'deep',
+          data: { spec, entry: spec.replace(/\/[^/]+$/, '') }
+        })
+        return
+      }
+    }
+
+    return {
+      ImportDeclaration: (node) => check(node.source),
+      ExportNamedDeclaration: (node) => node.source && check(node.source),
+      ExportAllDeclaration: (node) => check(node.source),
+      ImportExpression: (node) => node.source?.type === 'Literal' && check(node.source)
+    }
+  }
+}
 
 export default tseslint.config(
   {
@@ -287,6 +428,24 @@ export default tseslint.config(
           ]
         }
       ]
+    }
+  },
+  // 规则 8：能力文件夹必须走入口（禁止深插）
+  // —— 把「dsh 式目录入口」从约定变成机器守卫。清单见文件顶部的 CAPABILITY_FOLDERS。
+  //
+  // 放行：`.../<folder>`（入口）与 `.../<folder>/index`；
+  // 禁止：`.../<folder>/<File>`；
+  // 不管：目录内部模块互相 import（含子目录）——能力文件夹是叶子，内部本来就走相对文件。
+  //
+  // 用独立规则名（不是 `no-restricted-imports`）的原因见上面 noDeepCapabilityImport 的注释：
+  // 需要**解析后的绝对路径**才能零误伤，且要避开 flat config 同名规则整体覆盖的坑。
+  {
+    files: ['**/*.{ts,tsx,mts,cts}'],
+    plugins: {
+      local: { rules: { 'no-deep-capability-import': noDeepCapabilityImport } }
+    },
+    rules: {
+      'local/no-deep-capability-import': 'error'
     }
   }
 )

@@ -1,14 +1,14 @@
 import { useMemo, useSyncExternalStore, type ReactElement } from 'react'
 
-import { CONVERSATION_STORE_KEY, createConversationStoreDecl } from '../../../../shared/agent/conversation/conversationStore'
-import type { DigitalPanelState } from '../../../../shared/agent/ui/panel'
-import { formatToolArgs, diffRows } from '../../../../shared/agent/tools/toolDetail'
+import { CONVERSATION_STORE_KEY, createConversationStoreDecl } from '../../../../shared/agent/conversation'
+import type { DigitalPanelState } from '../../../../shared/agent/ui'
+import { formatToolArgs, diffRows } from '../../../../shared/agent/tools'
 import {
   buildTrajectory,
   formatLatency,
   type TrajectoryModel,
   type TrajectoryStepRow
-} from '../../../../shared/agent/observability/trajectory'
+} from '../../../../shared/agent/observability'
 import type { PluginHost } from '../../../../shared/plugin/host'
 import { createStoreInstance } from '../../../../shared/plugin/slotRegistry'
 

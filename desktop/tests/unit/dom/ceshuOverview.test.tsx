@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest'
 
-import CeshuOverview from '../../../src/renderer/src/components/ceshuDoc/CeshuOverview'
-import type { CeshuDocument } from '../../../src/shared/ceshu/reference/ceshuConstants'
-import { computeChapterProgress, createDefaultCeshu } from '../../../src/shared/ceshu/model/ceshuModel'
+import { CeshuOverview } from '../../../src/renderer/src/components/ceshuDoc'
+import type { CeshuDocument } from '../../../src/shared/ceshu/reference'
+import { computeChapterProgress, createDefaultCeshu } from '../../../src/shared/ceshu/model'
 import { installMbApi, renderDom, type RenderResult } from './render'
 
 /**

@@ -3,10 +3,10 @@ import {
   CESHU_FORMAT_LABELS,
   contentChapterCount,
   type CeshuExportFormat
-} from '../../../../shared/ceshu/reference/ceshuConstants'
+} from '../../../../shared/ceshu/reference'
 import type { PluginHost } from '../../../../shared/plugin/host'
-import LucideIcon from '../common/LucideIcon'
-import { MenuMount } from '../../plugins/host/MenuMount'
+import { LucideIcon } from '../common'
+import { MenuMount } from '../../plugins/host'
 
 /**
  * 策划书编辑器顶部工具栏（返回 / 书名 / 版本 / 档位 / 总进度 / 各动作入口 / 导出格式）。

@@ -13,9 +13,9 @@ import type {
   SandboxPolicy,
   SubAgentProvider
 } from '../../../shared/agent/brain'
-import type { SkillExecutionContext } from '../../../shared/agent/config/protocol'
-import type { DigitalAttachment } from '../../../shared/util/io/libraryAttachments'
-import type { StoredLlmConfig } from '../../../shared/config/llm/llmConfig'
+import type { SkillExecutionContext } from '../../../shared/agent/config'
+import type { DigitalAttachment } from '../../../shared/util/io'
+import type { StoredLlmConfig } from '../../../shared/config/llm'
 import type { AgentMemoryStore } from '../store/memoryStore'
 import type { PreferenceStore } from '../store/preferenceStore'
 import type { SkillDispatcher } from '../execution/dispatcher'

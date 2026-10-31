@@ -7,13 +7,13 @@ import {
   DATA_GEN_ERROR_NO_TYPE,
   summarizeCandidateItem,
   type CeshuDataGenResult
-} from '../../../../shared/ceshu/data/ceshuDataGen'
-import { LLM_BULK_COUNT_THRESHOLD, isBulkLlmCall } from '../../../../shared/agent/config/protocol'
-import { evaluateBudget, taskBudget } from '../../../../shared/agent/runtime/budget'
+} from '../../../../shared/ceshu/data'
+import { LLM_BULK_COUNT_THRESHOLD, isBulkLlmCall } from '../../../../shared/agent/config'
+import { evaluateBudget, taskBudget } from '../../../../shared/agent/runtime'
 import { useStopIntent } from '../../hooks/useStopIntent'
 import type { DataQualityVerdict } from '../../../../shared/types'
 import type { DataTypeDef } from '../../../../shared/types'
-import { toErrorMessage } from '../../../../shared/util/system/errors'
+import { toErrorMessage } from '../../../../shared/util/system'
 
 /**
  * AI 数据生成面板：

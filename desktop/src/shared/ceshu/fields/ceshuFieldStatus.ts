@@ -1,5 +1,5 @@
-import type { ChapterData, ChapterKey } from '../reference/ceshuConstants'
-import { isPlainObject } from '../model/ceshuModel'
+import type { ChapterData, ChapterKey } from '../reference'
+import { isPlainObject } from '../model'
 
 /**
  * 策划书**字段级**审核状态（人机协作的第二层）。

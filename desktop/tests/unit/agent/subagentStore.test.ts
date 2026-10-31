@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { reduceSubagents } from '../../../src/renderer/src/agent/subagentStore'
-import type { DigitalSubagent } from '../../../src/shared/agent/ui/panel'
+import type { DigitalSubagent } from '../../../src/shared/agent/ui'
 
 const started: DigitalSubagent[] = [
   { id: 's1', task: '写策划书第一章', status: 'running' },

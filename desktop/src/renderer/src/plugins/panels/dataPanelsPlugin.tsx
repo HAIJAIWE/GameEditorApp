@@ -1,10 +1,10 @@
 import type { PluginHost } from '../../../../shared/plugin/host'
 import type { PluginManifest } from '../../../../shared/plugin/types'
-import AdvancedSearchPanel from '../../components/common/AdvancedSearchPanel'
-import AttributeChartPanel from '../../components/attr/AttributeChartPanel'
-import RelationGraphPanel from '../../components/ceshuField/RelationGraphPanel'
-import { useAppContext } from '../host/appContext'
-import { registerReactBinding, type PanelBindingProps } from '../host/reactBindings'
+import { AdvancedSearchPanel } from '../../components/common'
+import { AttributeChartPanel } from '../../components/attr'
+import { RelationGraphPanel } from '../../components/ceshuField'
+import { useAppContext } from '../host'
+import { registerReactBinding, type PanelBindingProps } from '../host'
 
 /**
  * 数据浏览面板 → 插件化第五切片（B 方案 Slice 5）。

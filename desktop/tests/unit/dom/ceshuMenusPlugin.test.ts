@@ -6,8 +6,8 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { defineCeshuMenusPlugin } from '../../../src/renderer/src/plugins/ceshu/ceshuMenusPlugin'
-import { defineCeshuViewsPlugin } from '../../../src/renderer/src/plugins/ceshu/ceshuViewsPlugin'
+import { defineCeshuMenusPlugin } from '../../../src/renderer/src/plugins/ceshu'
+import { defineCeshuViewsPlugin } from '../../../src/renderer/src/plugins/ceshu'
 import { PluginHost } from '../../../src/shared/plugin/host'
 import type { PluginMenuItem } from '../../../src/shared/plugin/types'
 

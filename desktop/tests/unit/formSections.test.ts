@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
-import { buildFormLayout, isComplexFieldType } from '../../src/shared/schema/core/formSections'
+import { buildFormLayout, isComplexFieldType } from '../../src/shared/schema/core'
 import type { TypeFieldDef } from '../../src/shared/types'
-import { BUILTIN_DATA_TYPES } from '../../src/shared/schema/core/typeSchema'
+import { BUILTIN_DATA_TYPES } from '../../src/shared/schema/core'
 
 /**
  * `buildFormLayout` 的单元测试（2026-10-19 分区回归）。

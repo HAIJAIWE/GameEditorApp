@@ -9,7 +9,7 @@ import {
   type CeshuExportFormat,
   type ChapterData,
   type ChapterKey
-} from '../../../../shared/ceshu/reference/ceshuConstants'
+} from '../../../../shared/ceshu/reference'
 import {
   computeChapterProgress,
   computeEnabledEditors,
@@ -17,41 +17,41 @@ import {
   getGddScope,
   resolveDocGameStyle,
   visibleChaptersForDoc
-} from '../../../../shared/ceshu/model/ceshuModel'
-import type { CeshuChangelog } from '../../../../shared/ceshu/workflow/ceshuDiff'
+} from '../../../../shared/ceshu/model'
+import type { CeshuChangelog } from '../../../../shared/ceshu/workflow'
 import {
   isChapterVisibleInStage,
   type CeshuStage
-} from '../../../../shared/ceshu/workflow/ceshuStages'
+} from '../../../../shared/ceshu/workflow'
 import {
   buildChangelogHtml,
   buildChangelogMarkdown,
   buildChangelogText,
   buildValidationReportMarkdown
 } from '../../../../shared/domain/ceshu/ceshuReports'
-import { buildReadinessReportMarkdown, type CeshuReadinessReport } from '../../../../shared/ceshu/readiness/ceshuReadiness'
-import { clearAiGenerated, markAiGenerated, readAiGenerated } from '../../../../shared/ceshu/prompts/ceshuAiMark'
-import { fieldStatusOf, setFieldStatuses, type FieldReviewStatus } from '../../../../shared/ceshu/fields/ceshuFieldStatus'
-import type { FieldAction } from '../../../../shared/ceshu/fields/ceshuFieldAction'
+import { buildReadinessReportMarkdown, type CeshuReadinessReport } from '../../../../shared/ceshu/readiness'
+import { clearAiGenerated, markAiGenerated, readAiGenerated } from '../../../../shared/ceshu/prompts'
+import { fieldStatusOf, setFieldStatuses, type FieldReviewStatus } from '../../../../shared/ceshu/fields'
+import type { FieldAction } from '../../../../shared/ceshu/fields'
 import { clearFieldRequest } from '../../ceshuFieldFocus'
-import { CESHU_CHAPTER_FIELDS } from '../../../../shared/ceshu/fields/ceshuFields'
-import { applyCeshuPatch, type CeshuPatchItem } from '../../../../shared/ceshu/data/ceshuImportPatch'
-import type { CeshuAiGenerateResult } from '../../../../shared/ceshu/prompts/ceshuAi'
+import { CESHU_CHAPTER_FIELDS } from '../../../../shared/ceshu/fields'
+import { applyCeshuPatch, type CeshuPatchItem } from '../../../../shared/ceshu/data'
+import type { CeshuAiGenerateResult } from '../../../../shared/ceshu/prompts'
 import type { PluginHost } from '../../../../shared/plugin/host'
 import type { DataTypeDef } from '../../../../shared/types'
 
-import CeshuDataPreview, { type PreviewJumpTarget } from '../ceshu/CeshuDataPreview'
+import { CeshuDataPreview, type PreviewJumpTarget } from '../ceshu'
 import CeshuAgentPanel from './CeshuAgentPanel'
-import { collectPendingReviewFields } from '../ceshu/reviewQueueData'
-import { ViewMount } from '../../plugins/host/ViewMount'
-import { setCeshuEditorBridge } from '../../plugins/ceshu/ceshuEditorBridge'
+import { collectPendingReviewFields } from '../ceshu'
+import { ViewMount } from '../../plugins/host'
+import { setCeshuEditorBridge } from '../../plugins/ceshu'
 import {
   CESHU_ARTIFACT_MOUNT,
   CESHU_CONTENT_MOUNT,
   CESHU_TOOLBAR_MOUNT,
   CESHU_VIEW_MOUNT,
   type CeshuViewContextValue
-} from '../../plugins/ceshu/ceshuViewContext'
+} from '../../plugins/ceshu'
 import { toErrorMessage } from '../ceshuViewUtils'
 import CeshuToolbar from './CeshuToolbar'
 import CeshuChapterNav from './CeshuChapterNav'

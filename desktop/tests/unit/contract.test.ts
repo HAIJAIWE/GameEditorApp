@@ -4,7 +4,7 @@ import {
   createItemInputSchema,
   deleteItemInputSchema,
   listItemsInputSchema
-} from '../../src/shared/schema/adapters/schemasDataItems'
+} from '../../src/shared/schema/adapters'
 
 describe('IPC 契约 schema', () => {
   it('listItems 需要非空 type', () => {

@@ -9,25 +9,25 @@ import type {
   AgentInteractionResponseInput,
   AgentSubagentSendInput,
   AgentSubagentStopInput
-} from './schema/adapters/schemasDataAgent'
+} from './schema/adapters'
 import type {
   WindowModeInput,
   AppViewActionInput,
   FsListDirInput,
   FsReadFileInput
-} from './schema/adapters/schemasDataApp'
+} from './schema/adapters'
 import type {
   AttrGameConfigExportInput,
   AttrJsonDialogInput,
   AttrSystemJsonExportInput,
   AttrSystemJsonImportInput,
   AttrSystemSaveInput
-} from './schema/adapters/schemasDataAttr'
+} from './schema/adapters'
 import type {
   BackupCreateInput,
   BackupDeleteInput,
   BackupRestoreInput
-} from './schema/adapters/schemasDataBackup'
+} from './schema/adapters'
 import type {
   CeshuCloneDecomposeInput,
   CeshuExportProjectInput,
@@ -48,11 +48,11 @@ import type {
   CeshuExportInput,
   CeshuSaveChapterInput,
   CeshuRenameInput
-} from './schema/adapters/schemasDataCeshu'
+} from './schema/adapters'
 import type {
   CeshuAiGenerateInput,
   CeshuDataGenInput
-} from './schema/adapters/schemasDataCeshuAi'
+} from './schema/adapters'
 import type {
   ReportFileDialogInput,
   CeshuDiffExportInput,
@@ -61,16 +61,16 @@ import type {
   CeshuValidationExportInput,
   CeshuChangelogExportInput,
   CeshuReviewExportInput
-} from './schema/adapters/schemasDataCeshuReports'
+} from './schema/adapters'
 import type {
   EngineExportInput,
   EngineExportFileDialogInput
-} from './schema/adapters/schemasDataEngineExport'
+} from './schema/adapters'
 import type {
   ImageGenInput,
   DeleteImagesInput,
   ImageReadByPathInput
-} from './schema/adapters/schemasDataImage'
+} from './schema/adapters'
 import type {
   ExportDirInput,
   ExportLegacyInput,
@@ -80,34 +80,34 @@ import type {
   ImportLegacyInput,
   DataSnapshotInput,
   DataSnapshotFileDialogInput
-} from './schema/adapters/schemasDataImportExport'
+} from './schema/adapters'
 import type {
   BatchUpdateInput,
   CreateItemInput,
   ClearAllInput,
   DeleteManyInput,
   ReferencesInput
-} from './schema/adapters/schemasDataItems'
+} from './schema/adapters'
 import type {
   LibraryCreateInput,
   LibraryNameInput,
   LibraryRemoveInput,
   LibraryRenameInput
-} from './schema/adapters/schemasDataLibrary'
+} from './schema/adapters'
 import type {
   LlmGenerateInput,
   LlmConfigureInput
-} from './schema/adapters/schemasDataLlm'
+} from './schema/adapters'
 import type {
   NotesAddInput,
   NotesDeleteInput,
   NotesListInput,
   NotesUpdateInput
-} from './schema/adapters/schemasDataNotes'
+} from './schema/adapters'
 import type {
   SecretNameInput,
   SetSecretInput
-} from './schema/adapters/schemasDataSecret'
+} from './schema/adapters'
 import type {
   TemplateJsonDialogInput,
   TemplatesDeleteInput,
@@ -116,13 +116,13 @@ import type {
   TemplatesListInput,
   TemplatesSaveInput,
   TemplatesUpdateInput
-} from './schema/adapters/schemasDataTemplates'
+} from './schema/adapters'
 import type {
   FieldTemplateNameInput,
   FieldTemplateSaveInput,
   FieldIdSuggestInput,
   SchemaSaveInput
-} from './schema/adapters/schemasDataTypeSchema'
+} from './schema/adapters'
 import type {
   AppInfo,
   AppLogInput,
@@ -136,34 +136,34 @@ import type {
   ItemRecord,
   TypeFieldDef
 } from './types'
-import type { ChapterKey, CeshuDocument, CeshuExportResult, CeshuSummary } from './ceshu/reference/ceshuConstants'
-import type { FieldAction } from './ceshu/fields/ceshuFieldAction'
+import type { ChapterKey, CeshuDocument, CeshuExportResult, CeshuSummary } from './ceshu/reference'
+import type { FieldAction } from './ceshu/fields'
 import type { BrainEvent } from './agent/brain'
-import type { AgentRunStats } from './agent/observability/observability'
-import type { DraftSummary, SessionInfo, SessionTurnSummary } from './agent/conversation/session'
-import type { OperationRecord } from './agent/observability/operationLog'
-import type { JsonObjectSchema, SkillResult } from './agent/config/protocol'
+import type { AgentRunStats } from './agent/observability'
+import type { DraftSummary, SessionInfo, SessionTurnSummary } from './agent/conversation'
+import type { OperationRecord } from './agent/observability'
+import type { JsonObjectSchema, SkillResult } from './agent/config'
 import type {
   AttachmentsAddInput,
   AttachmentsOpenInput,
   AttachmentsReadImageInput
-} from './schema/adapters/schemasDataAttachments'
-import type { DigitalAttachment } from './util/io/libraryAttachments'
-import type { DeliveryRecord } from './agent/observability/deliveryLog'
-import type { CeshuChangelog, CeshuVersionDiff } from './ceshu/workflow/ceshuDiff'
-import type { CeshuTaskPlan } from './ceshu/workflow/ceshuTasks'
-import type { ContractReport } from './ceshu/validation/ceshuContract'
-import type { DataTableCheckResult } from './ceshu/data/ceshuDataTableCheck'
-import type { ScaffoldApplyResult, ScaffoldPlan } from './ceshu/data/ceshuDataTableScaffold'
-import type { CeshuReadinessReport } from './ceshu/readiness/ceshuReadiness'
-import type { CeshuNote } from './ceshu/notes/ceshuNotes'
-import type { CeshuCustomTemplate } from './ceshu/reference/ceshuCustomTemplates'
-import type { CeshuAiGenerateResult, CeshuAiReviewResult } from './ceshu/prompts/ceshuAi'
-import type { CeshuDataGenResult } from './ceshu/data/ceshuDataGen'
-import type { ReferenceReport } from './util/search/references'
-import type { FieldIdSuggestResult } from './util/id/fieldIdAi'
+} from './schema/adapters'
+import type { DigitalAttachment } from './util/io'
+import type { DeliveryRecord } from './agent/observability'
+import type { CeshuChangelog, CeshuVersionDiff } from './ceshu/workflow'
+import type { CeshuTaskPlan } from './ceshu/workflow'
+import type { ContractReport } from './ceshu/validation'
+import type { DataTableCheckResult } from './ceshu/data'
+import type { ScaffoldApplyResult, ScaffoldPlan } from './ceshu/data'
+import type { CeshuReadinessReport } from './ceshu/readiness'
+import type { CeshuNote } from './ceshu/notes'
+import type { CeshuCustomTemplate } from './ceshu/reference'
+import type { CeshuAiGenerateResult, CeshuAiReviewResult } from './ceshu/prompts'
+import type { CeshuDataGenResult } from './ceshu/data'
+import type { ReferenceReport } from './util/search'
+import type { FieldIdSuggestResult } from './util/id'
 import type { AttrSystem } from './attrSystem'
-import type { BackupEntry, RestoreOutcome } from './util/io/backup'
+import type { BackupEntry, RestoreOutcome } from './util/io'
 
 /**
  * IPC 契约：通道 → 请求/响应类型。

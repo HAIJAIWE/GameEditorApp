@@ -15,8 +15,8 @@
  * 只有当模型真实窗口比档位阈值还小时才提前压缩——**小模型被保护，大模型零回归**。
  */
 
-import { modelContextWindow } from '../../config/llm/llmConfigData'
-import type { AgentRunTier } from '../observability/observability'
+import { modelContextWindow } from '../../config/llm'
+import type { AgentRunTier } from '../observability'
 
 /** 窗口的百分之多少算「压力到了」（dsh 默认 0.8） */
 export const THRESHOLD_RATIO = 0.8

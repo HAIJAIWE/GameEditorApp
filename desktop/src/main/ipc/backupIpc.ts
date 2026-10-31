@@ -4,7 +4,7 @@ import {
   backupCreateInputSchema,
   backupRestoreInputSchema,
   backupDeleteInputSchema
-} from '../../shared/schema/adapters/schemasDataBackup'
+} from '../../shared/schema/adapters'
 import { listBackups, deleteBackupFile } from '../backup/backupStore'
 import { createLibraryBackup, restoreLibraryBackup } from '../backup/restore'
 

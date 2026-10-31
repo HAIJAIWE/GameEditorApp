@@ -7,7 +7,7 @@ import { app } from 'electron'
 import {
   fsListDirInputSchema,
   fsReadFileInputSchema
-} from '../../shared/schema/adapters/schemasDataApp'
+} from '../../shared/schema/adapters'
 import type { IpcHandlerDeps, IpcRegistrar } from '../ipc'
 import type { FsDirEntry, FsDirListing, FsFileContent } from '../../shared/ipc'
 

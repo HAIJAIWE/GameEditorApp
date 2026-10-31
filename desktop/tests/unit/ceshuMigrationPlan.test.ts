@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { createDefaultCeshu } from '../../src/shared/ceshu/model/ceshuModel'
-import { migrateCeshuFieldSplits, pendingSplitCount, planCeshuMigration, splitNarrative } from '../../src/shared/ceshu/data/ceshuMigrationPlan'
+import { createDefaultCeshu } from '../../src/shared/ceshu/model'
+import { migrateCeshuFieldSplits, pendingSplitCount, planCeshuMigration, splitNarrative } from '../../src/shared/ceshu/data'
 
 describe('splitNarrative：启发式拆分', () => {
   it('多行 → 按行拆，去掉列表前缀', () => {

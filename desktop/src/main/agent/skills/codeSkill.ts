@@ -11,7 +11,7 @@
  */
 
 import { runInSandbox } from '../../security/jsSandbox'
-import type { SkillExecutionContext, SkillProtocol, SkillResult } from '../../../shared/agent/config/protocol'
+import type { SkillExecutionContext, SkillProtocol, SkillResult } from '../../../shared/agent/config'
 
 /** 默认执行超时（毫秒） */
 export const CODE_DEFAULT_TIMEOUT_MS = 2000

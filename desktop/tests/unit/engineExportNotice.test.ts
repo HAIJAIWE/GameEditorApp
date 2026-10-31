@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { engineExportNotice } from '../../src/shared/util/system/engineExportNotice'
+import { engineExportNotice } from '../../src/shared/util/system'
 
 /** 导出提示文案（纯函数）：让用户知道图片有没有一起走 */
 describe('engineExportNotice', () => {

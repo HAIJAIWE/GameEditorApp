@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactElement } from 'react'
 
 import type { PluginHost } from '../../../../shared/plugin/host'
 import type { PluginManifest } from '../../../../shared/plugin/types'
-import { registerReactBinding, type PanelBindingProps } from '../host/reactBindings'
+import { registerReactBinding, type PanelBindingProps } from '../host'
 
 /**
  * 执行预审（#27，对齐 dsh experimental auto-review 的 LLM 判读版）。

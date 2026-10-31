@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
 
-import { DigitalApproval } from '../../../src/renderer/src/components/digital/digitalPanelViews'
+import { DigitalApproval } from '../../../src/renderer/src/components/digital'
 import { renderDom } from './render'
 
 describe('审批卡片（Slice 39）', () => {

@@ -7,7 +7,7 @@ import {
   pendingFieldKeys,
   readFieldStatus,
   setFieldStatuses
-} from '../../src/shared/ceshu/fields/ceshuFieldStatus'
+} from '../../src/shared/ceshu/fields'
 
 describe('ceshuFieldStatus：字段级审核状态', () => {
   it('空 meta → 空表', () => {

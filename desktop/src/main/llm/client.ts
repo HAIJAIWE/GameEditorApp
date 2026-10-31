@@ -11,9 +11,9 @@ import {
   type LlmProvider,
   type LlmUsage,
   type StoredLlmConfig
-} from '../../shared/config/llm/llmConfig'
+} from '../../shared/config/llm'
 import { isAbortError } from '../../shared/abort'
-import { sharedRateLimiter } from '../../shared/util/system/rateLimiter'
+import { sharedRateLimiter } from '../../shared/util/system'
 
 /**
  * LLM 客户端。

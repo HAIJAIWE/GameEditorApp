@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest'
 
-import { ShortcutsDialog } from '../../../src/renderer/src/components/digital/ShortcutsDialog'
+import { ShortcutsDialog } from '../../../src/renderer/src/components/digital'
 import { pressKey, renderDom } from './render'
 
 /**

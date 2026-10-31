@@ -4,8 +4,8 @@ import {
   createConversationStoreDecl,
   freshConversationState,
   reduceConversation
-} from '../../src/shared/agent/conversation/conversationStore'
-import { initialDigitalPanelState } from '../../src/shared/agent/ui/panel'
+} from '../../src/shared/agent/conversation'
+import { initialDigitalPanelState } from '../../src/shared/agent/ui'
 import { createStoreInstance } from '../../src/shared/plugin/slotRegistry'
 
 /**

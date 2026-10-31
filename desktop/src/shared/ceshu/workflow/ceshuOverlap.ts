@@ -1,6 +1,6 @@
-import { chapterOrdinalCn, type CeshuDocument, type ChapterKey } from '../reference/ceshuConstants'
-import { fieldLabelOf } from '../fields/ceshuFields'
-import { isPlainObject } from '../model/ceshuModel'
+import { chapterOrdinalCn, type CeshuDocument, type ChapterKey } from '../reference'
+import { fieldLabelOf } from '../fields'
+import { isPlainObject } from '../model'
 
 /**
  * 字段内容**重复检测**（AI 按字段生成时的质量护栏）。

@@ -6,9 +6,9 @@ import {
   chapterApplicableToGenre,
   gameTypeHasCombat,
   visibleChapterKeys
-} from '../../src/shared/ceshu/reference/ceshuConstants'
-import { computeChapterProgress, createDefaultCeshu, getGameType } from '../../src/shared/ceshu/model/ceshuModel'
-import { computeReadiness } from '../../src/shared/ceshu/readiness/ceshuReadiness'
+} from '../../src/shared/ceshu/reference'
+import { computeChapterProgress, createDefaultCeshu, getGameType } from '../../src/shared/ceshu/model'
+import { computeReadiness } from '../../src/shared/ceshu/readiness'
 
 /**
  * 品类条件必填守卫（2026-10-26）。

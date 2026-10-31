@@ -6,7 +6,7 @@
  */
 
 import { SYSTEM_LABELS, type CeshuDocument, type ChapterData } from './ceshuConstants'
-import { isPlainObject } from '../model/ceshuModel'
+import { isPlainObject } from '../model'
 
 export interface HybridGameplayPreset {
   label: string

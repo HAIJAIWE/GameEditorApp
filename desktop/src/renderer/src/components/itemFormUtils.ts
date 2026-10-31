@@ -1,7 +1,7 @@
 import { attrListToRows, rowsToAttrList, type AttrRow } from '../../../shared/domain/attr/attrList'
 import { attrPanelToRows, defaultAttrPanelRows, rowsToAttrPanel, type AttrPanelRow } from '../../../shared/domain/attr/attrPanel'
-import { canParseAsDropTable, normalizeDropEntries, serializeDropEntries, type DropEntry } from '../../../shared/util/data/dropTable'
-import { canParseAsRefTable, normalizeRefEntries, serializeRefEntries, type ReferenceEntry } from '../../../shared/util/search/refTable'
+import { canParseAsDropTable, normalizeDropEntries, serializeDropEntries, type DropEntry } from '../../../shared/util/data'
+import { canParseAsRefTable, normalizeRefEntries, serializeRefEntries, type ReferenceEntry } from '../../../shared/util/search'
 import type { ItemRecord, TypeFieldDef } from '../../../shared/types'
 
 export function usesJsonEditor(field: TypeFieldDef, value: unknown): boolean {

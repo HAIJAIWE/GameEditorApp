@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { BUILTIN_DATA_TYPES } from '../../src/shared/schema/core/typeSchema'
+import { BUILTIN_DATA_TYPES } from '../../src/shared/schema/core'
 import {
   DATA_GEN_DEFAULT_COUNT,
   DATA_GEN_ERROR_EMPTY,
@@ -16,7 +16,7 @@ import {
   normalizeDataGenCandidates,
   resolveSelectedDataTypes,
   summarizeCandidateItem
-} from '../../src/shared/ceshu/data/ceshuDataGen'
+} from '../../src/shared/ceshu/data'
 
 const roleDef = BUILTIN_DATA_TYPES.find((type) => type.id === 'role')
 const skillDef = BUILTIN_DATA_TYPES.find((type) => type.id === 'skill')

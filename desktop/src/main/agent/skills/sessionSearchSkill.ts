@@ -13,7 +13,7 @@
  * `search` 会排除调用方当前会话（对齐 dsh「不返回 caller 自己」）。
  */
 
-import type { SkillProtocol, SkillResult } from '../../../shared/agent/config/protocol'
+import type { SkillProtocol, SkillResult } from '../../../shared/agent/config'
 import type { AgentSessionStore } from '../session/sessionStore'
 import { SessionSearchIndex } from '../session/sessionIndex'
 

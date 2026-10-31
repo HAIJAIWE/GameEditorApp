@@ -6,7 +6,7 @@
  */
 
 import type { DataTypeDef } from '../../types'
-export * from '../adapters/typeSchemaData'
+export * from '../adapters'
 
 /** 按类型 id 查找（types 为运行期 schema 列表） */
 export function getTypeById(types: DataTypeDef[], id: string): DataTypeDef | undefined {

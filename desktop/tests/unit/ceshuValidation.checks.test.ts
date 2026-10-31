@@ -1,13 +1,13 @@
 import { describe, expect, test, vi } from 'vitest'
-import * as numericAssert from '../../src/shared/ceshu/validation/ceshuNumericAssert'
-import { createDefaultCeshu } from '../../src/shared/ceshu/model/ceshuModel'
+import * as numericAssert from '../../src/shared/ceshu/validation'
+import { createDefaultCeshu } from '../../src/shared/ceshu/model'
 import {
   buildCheckContext,
   CESHU_CHECKS,
   validateCeshu,
   type CeshuCheckContext
-} from '../../src/shared/ceshu/validation/ceshuValidation'
-import type { CeshuDocument } from '../../src/shared/ceshu/reference/ceshuConstants'
+} from '../../src/shared/ceshu/validation'
+import type { CeshuDocument } from '../../src/shared/ceshu/reference'
 
 /**
  * 守卫「校验注册表」（改造档3）：

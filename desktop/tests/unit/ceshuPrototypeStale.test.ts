@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { createDefaultCeshu } from '../../src/shared/ceshu/model/ceshuModel'
-import { fingerprintCeshuDesign, isPrototypeStale } from '../../src/shared/ceshu/workflow/ceshuPrototypeStale'
+import { createDefaultCeshu } from '../../src/shared/ceshu/model'
+import { fingerprintCeshuDesign, isPrototypeStale } from '../../src/shared/ceshu/workflow'
 
 /**
  * 原型过期判定：生成原型时记下设计指纹，打开时重算比对。

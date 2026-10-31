@@ -6,9 +6,9 @@ import {
   diffUnusedImages,
   previewUnused,
   summarizeScan
-} from '../../../../shared/util/io/cleanupImages'
-import type { UnusedImageScan } from '../../../../shared/util/io/cleanupImages'
-import { toErrorMessage } from '../../../../shared/util/system/errors'
+} from '../../../../shared/util/io'
+import type { UnusedImageScan } from '../../../../shared/util/io'
+import { toErrorMessage } from '../../../../shared/util/system'
 
 /**
  * 清理未使用图片面板（对齐 旧版 `src/features/advanced:373-431` 的

@@ -5,9 +5,9 @@ import {
   guessFieldKey,
   guessFieldType,
   planDataTableScaffold
-} from '../../src/shared/ceshu/data/ceshuDataTableScaffold'
-import { parseDataTableRequirements, type DataTableActual } from '../../src/shared/ceshu/data/ceshuDataTableCheck'
-import { validateTypeSchema } from '../../src/shared/schema/adapters/typeSchemaFile'
+} from '../../src/shared/ceshu/data'
+import { parseDataTableRequirements, type DataTableActual } from '../../src/shared/ceshu/data'
+import { validateTypeSchema } from '../../src/shared/schema/adapters'
 import type { DataTypeDef } from '../../src/shared/types'
 
 /**

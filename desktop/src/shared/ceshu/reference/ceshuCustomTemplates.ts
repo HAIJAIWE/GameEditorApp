@@ -1,4 +1,4 @@
-import { isPlainObject } from '../model/ceshuModel'
+import { isPlainObject } from '../model'
 import type { ChapterTemplate } from './ceshuTemplates'
 
 /**

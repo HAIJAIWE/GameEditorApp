@@ -1,6 +1,6 @@
 import type { ReactElement } from 'react'
 
-import type { DigitalPanelState, DigitalStep } from '../../../../shared/agent/ui/panel'
+import type { DigitalPanelState, DigitalStep } from '../../../../shared/agent/ui'
 
 /**
  * 「本轮进度」条（借 dsh `ui-plan` 的 PlanCard / PlanPreview 结构：图标 + 标题 + 状态）。

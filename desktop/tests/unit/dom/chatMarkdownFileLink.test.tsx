@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest'
 
-import ChatMarkdown from '../../../src/renderer/src/components/digital/ChatMarkdown'
+import { ChatMarkdown } from '../../../src/renderer/src/components/digital'
 import { renderDom } from './render'
 
 /**

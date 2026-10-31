@@ -19,12 +19,12 @@ import {
   ceshuRenameInputSchema,
   ceshuSaveChapterInputSchema,
   ceshuSyncDataInputSchema
-} from '../../shared/schema/adapters/schemasDataCeshu'
+} from '../../shared/schema/adapters'
 import {
   ceshuAiGenerateInputSchema,
   ceshuAiGenerateFieldInputSchema,
   ceshuDataGenInputSchema
-} from '../../shared/schema/adapters/schemasDataCeshuAi'
+} from '../../shared/schema/adapters'
 import {
   ceshuChangelogExportInputSchema,
   ceshuDiffExportInputSchema,
@@ -32,13 +32,13 @@ import {
   ceshuReviewExportInputSchema,
   ceshuReadinessExportInputSchema,
   ceshuValidationExportInputSchema
-} from '../../shared/schema/adapters/schemasDataCeshuReports'
+} from '../../shared/schema/adapters'
 import {
   notesAddInputSchema,
   notesDeleteInputSchema,
   notesListInputSchema,
   notesUpdateInputSchema
-} from '../../shared/schema/adapters/schemasDataNotes'
+} from '../../shared/schema/adapters'
 import {
   templatesDeleteInputSchema,
   templatesExportInputSchema,
@@ -46,10 +46,10 @@ import {
   templatesListInputSchema,
   templatesSaveInputSchema,
   templatesUpdateInputSchema
-} from '../../shared/schema/adapters/schemasDataTemplates'
-import { CHAPTER_LABELS, isChapterKey, type ChapterKey, type SystemEntry } from '../../shared/ceshu/reference/ceshuConstants'
+} from '../../shared/schema/adapters'
+import { CHAPTER_LABELS, isChapterKey, type ChapterKey, type SystemEntry } from '../../shared/ceshu/reference'
 import type { DataTypeDef } from '../../shared/types'
-import { CESHU_CHAPTER_FIELDS } from '../../shared/ceshu/fields/ceshuFields'
+import { CESHU_CHAPTER_FIELDS } from '../../shared/ceshu/fields'
 import {
   cloneDecomposeTask,
   generateChapterTask,
@@ -58,20 +58,20 @@ import {
   generateRoleTasksTask,
   reviewTask
 } from '../ceshu/ai/ceshu'
-import { CLONE_CONCEPT_CHAPTERS } from '../../shared/ceshu/prompts/ceshuClonePrompt'
-import { checkContract } from '../../shared/ceshu/validation/ceshuContract'
+import { CLONE_CONCEPT_CHAPTERS } from '../../shared/ceshu/prompts'
+import { checkContract } from '../../shared/ceshu/validation'
 import {
   checkDataTablePlan,
   parseDataTableRequirements,
   readDataTableRows,
   type DataTableActual
-} from '../../shared/ceshu/data/ceshuDataTableCheck'
-import { applyDataTableScaffold, planDataTableScaffold } from '../../shared/ceshu/data/ceshuDataTableScaffold'
-import { buildVersionDiff } from '../../shared/ceshu/workflow/ceshuDiff'
-import { formatLocalTimestamp } from '../../shared/util/datetime/datetime'
-import { buildSystemConfirmResult } from '../../shared/ceshu/prompts/ceshuSystemConfirm'
-import { computeReadiness } from '../../shared/ceshu/readiness/ceshuReadiness'
-import { validateCeshu } from '../../shared/ceshu/validation/ceshuValidation'
+} from '../../shared/ceshu/data'
+import { applyDataTableScaffold, planDataTableScaffold } from '../../shared/ceshu/data'
+import { buildVersionDiff } from '../../shared/ceshu/workflow'
+import { formatLocalTimestamp } from '../../shared/util/datetime'
+import { buildSystemConfirmResult } from '../../shared/ceshu/prompts'
+import { computeReadiness } from '../../shared/ceshu/readiness'
+import { validateCeshu } from '../../shared/ceshu/validation'
 import { exportCeshuDocument } from '../ceshu/export/exporter'
 import { exportHandoff } from '../ceshu/export/delivery/handoff'
 import { exportProjectFolder } from '../ceshu/export/delivery/projectFolder'

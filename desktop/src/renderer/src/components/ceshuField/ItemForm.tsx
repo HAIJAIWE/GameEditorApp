@@ -4,21 +4,21 @@ import {
   buildDescContext,
   buildDescPrompt,
   buildImageTagsPrompt
-} from '../../../../shared/util/field/fieldAiAssist'
-import type { ImageGenConfig } from '../../../../shared/config/llm/imageGen'
-import { loadImageGenConfig } from '../../../../shared/config/llm/imageGenConfig'
-import { SECRET_NAMES } from '../../../../shared/config/secrets/secretNames'
-import { resolveFieldLabel } from '../../../../shared/config/game/gameStyle'
-import { displayItemId } from '../../../../shared/util/id/itemId'
+} from '../../../../shared/util/field'
+import type { ImageGenConfig } from '../../../../shared/config/llm'
+import { loadImageGenConfig } from '../../../../shared/config/llm'
+import { SECRET_NAMES } from '../../../../shared/config/secrets'
+import { resolveFieldLabel } from '../../../../shared/config/game'
+import { displayItemId } from '../../../../shared/util/id'
 import type { AttrSystem } from '../../../../shared/attrSystem'
-import { buildFormLayout } from '../../../../shared/schema/core/formSections'
+import { buildFormLayout } from '../../../../shared/schema/core'
 import type { DataTypeDef, ItemRecord, TypeFieldDef } from '../../../../shared/types'
 
-import AttrPanelEditor from '../attr/AttrPanelEditor'
-import AttrTableEditor from '../attr/AttrTableEditor'
-import DropTableEditor from '../data/DropTableEditor'
+import { AttrPanelEditor } from '../attr'
+import { AttrTableEditor } from '../attr'
+import { DropTableEditor } from '../data'
 import FormSectionCard from './FormSectionCard'
-import LucideIcon from '../common/LucideIcon'
+import { LucideIcon } from '../common'
 import RefTableEditor from './RefTableEditor'
 
 import {

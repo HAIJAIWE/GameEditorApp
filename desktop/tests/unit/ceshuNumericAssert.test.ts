@@ -9,10 +9,10 @@ import {
   parseNumericParameters,
   parseParameterNames,
   parseParameterValue
-} from '../../src/shared/ceshu/validation/ceshuNumericAssert'
-import { validateCeshu } from '../../src/shared/ceshu/validation/ceshuValidation'
-import { createDefaultCeshu } from '../../src/shared/ceshu/model/ceshuModel'
-import type { CeshuDocument } from '../../src/shared/ceshu/reference/ceshuConstants'
+} from '../../src/shared/ceshu/validation'
+import { validateCeshu } from '../../src/shared/ceshu/validation'
+import { createDefaultCeshu } from '../../src/shared/ceshu/model'
+import type { CeshuDocument } from '../../src/shared/ceshu/reference'
 
 /** 构造只填数值两章的文档（其余章留空，避免必填噪音干扰断言检查） */
 function docWithNumeric(parameters: string[], assertions: string[]): CeshuDocument {

@@ -14,7 +14,7 @@ import {
   resolveInteraction,
   submitUserMessage,
   summarizeToolTasks
-} from '../../src/shared/agent/ui/panel'
+} from '../../src/shared/agent/ui'
 
 function stepStart(order: number, tool: string): BrainEvent {
   return { type: 'step_start', order, tool }

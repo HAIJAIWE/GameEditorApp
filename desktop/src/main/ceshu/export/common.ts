@@ -7,11 +7,11 @@ import {
   type ChapterData,
   type ChapterKey,
   type GddScope
-} from '../../../shared/ceshu/reference/ceshuConstants'
-import { CESHU_CHAPTER_FIELDS, fieldLabelOf } from '../../../shared/ceshu/fields/ceshuFields'
-import { isPlainObject } from '../../../shared/ceshu/model/ceshuModel'
-import { splitRow, toRows } from '../../../shared/ceshu/workflow/ceshuPipeRows'
-import { isMachineDataField } from '../../../shared/ceshu/workflow/ceshuStages'
+} from '../../../shared/ceshu/reference'
+import { CESHU_CHAPTER_FIELDS, fieldLabelOf } from '../../../shared/ceshu/fields'
+import { isPlainObject } from '../../../shared/ceshu/model'
+import { splitRow, toRows } from '../../../shared/ceshu/workflow'
+import { isMachineDataField } from '../../../shared/ceshu/workflow'
 
 /**
  * 导出器公用工具。

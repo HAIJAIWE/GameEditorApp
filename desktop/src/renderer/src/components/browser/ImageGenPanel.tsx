@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 
-import type { ImageGenConfig } from '../../../../shared/config/llm/imageGen'
-import { loadImageGenConfig, saveImageGenConfig } from '../../../../shared/config/llm/imageGenConfig'
-import type { StoredImageGenConfig, StoredProvider } from '../../../../shared/config/llm/imageGenConfig'
-import { SECRET_NAMES } from '../../../../shared/config/secrets/secretNames'
-import { migrateLegacyApiKey, readLegacyImageGenApiKey } from '../../../../shared/config/secrets/secretMigration'
+import type { ImageGenConfig } from '../../../../shared/config/llm'
+import { loadImageGenConfig, saveImageGenConfig } from '../../../../shared/config/llm'
+import type { StoredImageGenConfig, StoredProvider } from '../../../../shared/config/llm'
+import { SECRET_NAMES } from '../../../../shared/config/secrets'
+import { migrateLegacyApiKey, readLegacyImageGenApiKey } from '../../../../shared/config/secrets'
 
 /**
  * AI 生图面板。

@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { CESHU_CHAPTER_FIELDS } from '../../src/shared/ceshu/fields/ceshuFields'
+import { CESHU_CHAPTER_FIELDS } from '../../src/shared/ceshu/fields'
 import { FIELD_SPLITS } from '../../src/shared/ceshuSchema'
-import { CHAPTER_KEYS } from '../../src/shared/ceshu/reference/ceshuConstants'
-import { NUMERIC_TEMPLATES } from '../../src/shared/ceshuSchema/systems/numeric'
-import { STORY_TEMPLATES } from '../../src/shared/ceshuSchema/design/story'
+import { CHAPTER_KEYS } from '../../src/shared/ceshu/reference'
+import { NUMERIC_TEMPLATES } from '../../src/shared/ceshuSchema/systems'
+import { STORY_TEMPLATES } from '../../src/shared/ceshuSchema/design'
 
 /**
  * 档 4（字段定义合并为按章 schema）的结构守卫。

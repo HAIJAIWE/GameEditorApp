@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
 
-import { DigitalStepList } from '../../../src/renderer/src/components/digital/digitalPanelViews'
-import type { DigitalStep } from '../../../src/shared/agent/ui/panel'
+import { DigitalStepList } from '../../../src/renderer/src/components/digital'
+import type { DigitalStep } from '../../../src/shared/agent/ui'
 import { renderDom } from './render'
 
 /**

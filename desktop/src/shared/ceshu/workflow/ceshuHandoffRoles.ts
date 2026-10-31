@@ -1,4 +1,4 @@
-import type { CeshuDocument } from '../reference/ceshuConstants'
+import type { CeshuDocument } from '../reference'
 import { planHandoffDocs, type PlannedHandoffDoc } from './ceshuHandoffPlan'
 import type { HandoffDoc } from './ceshuHandoffTypes'
 

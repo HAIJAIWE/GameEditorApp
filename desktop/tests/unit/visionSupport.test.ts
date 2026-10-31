@@ -5,7 +5,7 @@ import {
   modelSupportsVision,
   resolveVisionSupport,
   stripDataUrlPrefix
-} from '../../src/shared/util/ui/visionSupport'
+} from '../../src/shared/util/ui'
 
 describe('modelSupportsVision（保守 allowlist）', () => {
   it('已知视觉模型家族 → true', () => {

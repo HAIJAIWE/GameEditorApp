@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { previewFieldValue, readFieldValue } from '../../src/renderer/src/components/ceshu/reviewPreview'
+import { previewFieldValue, readFieldValue } from '../../src/renderer/src/components/ceshu'
 
 describe('previewFieldValue：队列内联预览', () => {
   it('字符串压缩连续空白并 trim（换行也压成单空格）', () => {

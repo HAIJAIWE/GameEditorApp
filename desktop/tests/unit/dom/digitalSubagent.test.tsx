@@ -2,7 +2,7 @@
 import { act } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 
-import { DigitalSubagentList } from '../../../src/renderer/src/components/digital/digitalPanelViews'
+import { DigitalSubagentList } from '../../../src/renderer/src/components/digital'
 import { renderDom } from './render'
 
 async function typeInto(input: HTMLInputElement, text: string): Promise<void> {

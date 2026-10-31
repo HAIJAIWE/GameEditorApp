@@ -1,10 +1,10 @@
 import { createContext, useContext, type ReactNode } from 'react'
 
-import type { CeshuDocument, ChapterKey } from '../../../../shared/ceshu/reference/ceshuConstants'
-import type { CeshuChangelog } from '../../../../shared/ceshu/workflow/ceshuDiff'
-import type { FieldReviewStatus } from '../../../../shared/ceshu/fields/ceshuFieldStatus'
-import type { CeshuPatchItem } from '../../../../shared/ceshu/data/ceshuImportPatch'
-import type { CeshuReadinessReport } from '../../../../shared/ceshu/readiness/ceshuReadiness'
+import type { CeshuDocument, ChapterKey } from '../../../../shared/ceshu/reference'
+import type { CeshuChangelog } from '../../../../shared/ceshu/workflow'
+import type { FieldReviewStatus } from '../../../../shared/ceshu/fields'
+import type { CeshuPatchItem } from '../../../../shared/ceshu/data'
+import type { CeshuReadinessReport } from '../../../../shared/ceshu/readiness'
 import type { DataTypeDef } from '../../../../shared/types'
 
 /**

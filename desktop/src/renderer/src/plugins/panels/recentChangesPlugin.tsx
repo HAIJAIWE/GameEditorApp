@@ -2,9 +2,9 @@ import { useEffect, useState, type ReactElement } from 'react'
 
 import type { PluginHost } from '../../../../shared/plugin/host'
 import type { PluginManifest } from '../../../../shared/plugin/types'
-import type { OperationRecord } from '../../../../shared/agent/observability/operationLog'
-import { DigitalChangeList } from '../../components/digital/DigitalChangeCard'
-import { registerReactBinding, type PanelBindingProps } from '../host/reactBindings'
+import type { OperationRecord } from '../../../../shared/agent/observability'
+import { DigitalChangeList } from '../../components/digital'
+import { registerReactBinding, type PanelBindingProps } from '../host'
 
 /**
  * 「最近改动」面板（dsh deliverables 的本土对应物）。

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest'
 
-import FieldActionStrip from '../../../src/renderer/src/components/digital/FieldActionStrip'
+import { FieldActionStrip } from '../../../src/renderer/src/components/digital'
 import {
   resetCeshuFieldFocusForTest,
   setActiveCeshuField,

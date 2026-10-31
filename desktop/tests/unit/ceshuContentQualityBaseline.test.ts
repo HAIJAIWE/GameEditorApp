@@ -7,7 +7,7 @@ import {
   NUMERIC_MIN_CHARS,
   analyzeTextQuality,
   contentQualityIssues
-} from '../../src/shared/ceshu/validation/ceshuContentQuality'
+} from '../../src/shared/ceshu/validation'
 
 /*
  * 「写对」指标的**人类写作基线**（2026-10-23 校准实验的固化）。

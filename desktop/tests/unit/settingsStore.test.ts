@@ -13,8 +13,8 @@ import {
   resetAllSettings,
   writeJsonSetting,
   writeSetting
-} from '../../src/shared/config/settings/settingsStore'
-import type { StorageLike } from '../../src/shared/config/settings/settingsStore'
+} from '../../src/shared/config/settings'
+import type { StorageLike } from '../../src/shared/config/settings'
 
 /** 可枚举的 storage（带 length/key，模拟真实 localStorage） */
 type EnumerableStorage = StorageLike & {

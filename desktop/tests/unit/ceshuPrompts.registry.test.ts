@@ -1,15 +1,15 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { buildReviewPrompts } from '../../src/shared/ceshu/prompts/ceshuAi'
+import { buildReviewPrompts } from '../../src/shared/ceshu/prompts'
 import {
   ADVERSARIAL_CHECK_KEYS,
   ADVERSARIAL_CHECK_LABELS,
   GENRE_REVIEW_PROFILES,
   genreReviewProfile,
   reviewProbeFor
-} from '../../src/shared/ceshu/prompts/ceshuAiData'
-import { createDefaultCeshu } from '../../src/shared/ceshu/model/ceshuModel'
+} from '../../src/shared/ceshu/prompts'
+import { createDefaultCeshu } from '../../src/shared/ceshu/model'
 
 /** 在 base 目录下递归查找名为 name 的文件（ceshu/ 已按子能力拆分子目录） */
 function findUnder(base: string, name: string): string | null {

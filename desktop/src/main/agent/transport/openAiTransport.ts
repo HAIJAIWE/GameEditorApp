@@ -33,7 +33,7 @@
  * 改前两层的行泵是各自拷贝，已出现「一份有锁释放、一份没有」的漂移。
  */
 
-import { LLM_MESSAGES, type LlmUsage } from '../../../shared/config/llm/llmConfig'
+import { LLM_MESSAGES, type LlmUsage } from '../../../shared/config/llm'
 import {
   parseToolArguments,
   type BrainLlmReply,
@@ -42,7 +42,7 @@ import {
   type BrainMessage,
   type BrainToolCall
 } from '../../../shared/agent/brain'
-import { resolveVisionSupport, type VisionMode } from '../../../shared/util/ui/visionSupport'
+import { resolveVisionSupport, type VisionMode } from '../../../shared/util/ui'
 import { assertHttpOk, isAbortError, pumpLines } from './agentStream'
 
 /** OpenAI 多模态 content part（文本 + 图片） */

@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest'
 
 import { buildLegacyPayload, exportLegacyDataFile } from '../../src/main/data/legacyExport'
 import { importLegacyDataFile } from '../../src/main/data/legacyImport'
-import { BUILTIN_DATA_TYPES } from '../../src/shared/schema/core/typeSchema'
+import { BUILTIN_DATA_TYPES } from '../../src/shared/schema/core'
 import type { ItemsRepository } from '../../src/main/data/repository'
 import { DataService } from '../../src/main/data/service'
 import type { ItemRecord } from '../../src/shared/types'

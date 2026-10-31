@@ -7,7 +7,7 @@ import {
   imageMimeOf,
   imagePreviewUnavailableReason,
   isSupportedImageFile
-} from '../../src/shared/util/io/imagePreview'
+} from '../../src/shared/util/io'
 
 /**
  * 本地图片预览纯逻辑。

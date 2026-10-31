@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { libraryRemoveInputSchema } from '../../src/shared/schema/adapters/schemasDataLibrary'
+import { libraryRemoveInputSchema } from '../../src/shared/schema/adapters'
 import { registerLibraryIpc } from '../../src/main/ipc/libraryIpc'
 
 /**

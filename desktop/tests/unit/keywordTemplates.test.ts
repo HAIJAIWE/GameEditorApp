@@ -12,8 +12,8 @@ import {
   serializeKeywordTemplates,
   templateTextFor,
   withTemplateText
-} from '../../src/shared/config/secrets/keywordTemplates'
-import type { KeywordTemplates } from '../../src/shared/config/secrets/keywordTemplates'
+} from '../../src/shared/config/secrets'
+import type { KeywordTemplates } from '../../src/shared/config/secrets'
 import {
   IMAGE_EXTENSIONS,
   IMAGE_REFERENCE_FIELDS,
@@ -25,7 +25,7 @@ import {
   previewUnused,
   resolveImagePath,
   summarizeScan
-} from '../../src/shared/util/io/cleanupImages'
+} from '../../src/shared/util/io'
 import type { ItemRecord } from '../../src/shared/types'
 
 /* ================= 关键词模板：与 旧版 真源的一致性 ================= */

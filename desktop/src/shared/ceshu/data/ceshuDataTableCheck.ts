@@ -1,6 +1,6 @@
-import { CESHU_CHAPTER_FIELDS } from '../fields/ceshuFields'
-import type { CeshuDocument } from '../reference/ceshuConstants'
-import { visibleChaptersForDoc } from '../model/ceshuModel'
+import { CESHU_CHAPTER_FIELDS } from '../fields'
+import type { CeshuDocument } from '../reference'
+import { visibleChaptersForDoc } from '../model'
 
 /**
  * 设计 ↔ 数据表核对：把「策划书说要建哪些表」与「数据编辑器里实际有什么」对上。

@@ -1,6 +1,6 @@
-import type { ChapterData } from '../reference/ceshuConstants'
-import type { ChapterKey } from '../reference/ceshuConstants'
-import { isPlainObject } from '../model/ceshuModel'
+import type { ChapterData } from '../reference'
+import type { ChapterKey } from '../reference'
+import { isPlainObject } from '../model'
 
 /**
  * 策划书章节的「AI 生成 / 待核对」标记。

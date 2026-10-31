@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest'
 
-import ChapterForm from '../../../src/renderer/src/components/ceshuField/ChapterForm'
-import FieldImpactPanel from '../../../src/renderer/src/components/ceshu/FieldImpactPanel'
-import { createDefaultCeshu } from '../../../src/shared/ceshu/model/ceshuModel'
+import { ChapterForm } from '../../../src/renderer/src/components/ceshuField'
+import { FieldImpactPanel } from '../../../src/renderer/src/components/ceshu'
+import { createDefaultCeshu } from '../../../src/shared/ceshu/model'
 import { installMbApi, renderDom, type RenderResult } from './render'
 
 /**

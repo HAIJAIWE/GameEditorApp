@@ -24,13 +24,13 @@
 
 import { readFileSync, writeFileSync } from 'node:fs'
 
-import { buildBundleConsumePrompt, BUNDLE_CONSUME_TASK_LABELS, type BundleConsumeTask } from '../src/shared/ceshu/prompts/ceshuBundlePrompt'
-import { buildCeshuBundle } from '../src/shared/ceshu/workflow/ceshuBundle'
-import { applyCeshuPatch, parseCeshuPatch } from '../src/shared/ceshu/data/ceshuImportPatch'
-import { createDefaultCeshu } from '../src/shared/ceshu/model/ceshuModel'
-import { computeReadiness } from '../src/shared/ceshu/readiness/ceshuReadiness'
-import { validateCeshu } from '../src/shared/ceshu/validation/ceshuValidation'
-import { CHAPTER_LABELS, type CeshuDocument } from '../src/shared/ceshu/reference/ceshuConstants'
+import { buildBundleConsumePrompt, BUNDLE_CONSUME_TASK_LABELS, type BundleConsumeTask } from '../src/shared/ceshu/prompts'
+import { buildCeshuBundle } from '../src/shared/ceshu/workflow'
+import { applyCeshuPatch, parseCeshuPatch } from '../src/shared/ceshu/data'
+import { createDefaultCeshu } from '../src/shared/ceshu/model'
+import { computeReadiness } from '../src/shared/ceshu/readiness'
+import { validateCeshu } from '../src/shared/ceshu/validation'
+import { CHAPTER_LABELS, type CeshuDocument } from '../src/shared/ceshu/reference'
 
 /** 演练案例的游戏类型预设（影响 meta.game_type 与风格，其余全靠提示词驱动） */
 const TYPE_PRESETS: Record<string, { gameType: string; style: string }> = {

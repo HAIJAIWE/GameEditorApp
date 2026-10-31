@@ -1,16 +1,16 @@
 import { useMemo, useState } from 'react'
 
-import type { CeshuSummary } from '../../../../shared/ceshu/reference/ceshuConstants'
+import type { CeshuSummary } from '../../../../shared/ceshu/reference'
 import {
   RECENT_LIMIT,
   buildCeshuCards,
   filterCeshuCards,
   filterPendingCards,
   pickRecentCeshu
-} from '../../../../shared/ceshu/notes/ceshuHome'
+} from '../../../../shared/ceshu/notes'
 
-import LucideIcon from '../common/LucideIcon'
-import { toErrorMessage } from '../../../../shared/util/system/errors'
+import { LucideIcon } from '../common'
+import { toErrorMessage } from '../../../../shared/util/system'
 
 /**
  * 策划书首页：

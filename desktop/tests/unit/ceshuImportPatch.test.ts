@@ -5,8 +5,8 @@ import {
   parseCeshuIssues,
   parseCeshuPatch,
   previewPatchValue
-} from '../../src/shared/ceshu/data/ceshuImportPatch'
-import { createDefaultCeshu } from '../../src/shared/ceshu/model/ceshuModel'
+} from '../../src/shared/ceshu/data'
+import { createDefaultCeshu } from '../../src/shared/ceshu/model'
 
 function makeDoc() {
   const doc = createDefaultCeshu({ scope: 'full', name: '测试游戏' })

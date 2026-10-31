@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest'
 
-import CeshuMachineDataPanel from '../../../src/renderer/src/components/ceshuDoc/CeshuMachineDataPanel'
-import { checkContract } from '../../../src/shared/ceshu/validation/ceshuContract'
-import { createDefaultCeshu } from '../../../src/shared/ceshu/model/ceshuModel'
-import type { DataTableCheckResult } from '../../../src/shared/ceshu/data/ceshuDataTableCheck'
+import { CeshuMachineDataPanel } from '../../../src/renderer/src/components/ceshuDoc'
+import { checkContract } from '../../../src/shared/ceshu/validation'
+import { createDefaultCeshu } from '../../../src/shared/ceshu/model'
+import type { DataTableCheckResult } from '../../../src/shared/ceshu/data'
 import type { DataTypeDef } from '../../../src/shared/types'
 import { installMbApi, renderDom, type ApiStub, type RenderResult } from './render'
 

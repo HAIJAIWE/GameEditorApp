@@ -2,7 +2,7 @@ import type { ComponentType } from 'react'
 
 import type { PluginHost } from '../../../../shared/plugin/host'
 import type { PluginManifest, UiNode } from '../../../../shared/plugin/types'
-import { registerReactBinding } from '../host/reactBindings'
+import { registerReactBinding } from '../host'
 
 /**
  * 示例插件：证明插件契约端到端可用，且 manifest **零框架依赖**。

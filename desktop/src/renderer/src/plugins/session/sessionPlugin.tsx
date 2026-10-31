@@ -1,13 +1,13 @@
 import { useMemo, useSyncExternalStore, type ReactElement } from 'react'
 
-import { CONVERSATION_STORE_KEY, createConversationStoreDecl } from '../../../../shared/agent/conversation/conversationStore'
-import type { DigitalPanelState } from '../../../../shared/agent/ui/panel'
+import { CONVERSATION_STORE_KEY, createConversationStoreDecl } from '../../../../shared/agent/conversation'
+import type { DigitalPanelState } from '../../../../shared/agent/ui'
 import type { PluginHost } from '../../../../shared/plugin/host'
 import { createStoreInstance } from '../../../../shared/plugin/slotRegistry'
 import type { PluginManifest } from '../../../../shared/plugin/types'
 import { AgentTeamSection } from './agentTeamSection'
 import { TrajectorySection } from './trajectorySection'
-import { registerReactBinding } from '../host/reactBindings'
+import { registerReactBinding } from '../host'
 
 /**
  * 会话（session）：**右栏停靠面板**里的一个页签（对齐 dsh 三栏：中间对话、右栏工具）。

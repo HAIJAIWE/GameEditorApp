@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
 
-import { TrajectorySection } from '../../../src/renderer/src/plugins/session/trajectorySection'
+import { TrajectorySection } from '../../../src/renderer/src/plugins/session'
 import {
   CONVERSATION_STORE_KEY,
   createConversationStoreDecl
-} from '../../../src/shared/agent/conversation/conversationStore'
+} from '../../../src/shared/agent/conversation'
 import { PluginHost } from '../../../src/shared/plugin/host'
 import { renderDom } from './render'
 

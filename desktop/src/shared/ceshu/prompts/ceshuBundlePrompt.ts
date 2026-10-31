@@ -1,6 +1,6 @@
 import { CESHU_WRITING_STANDARD } from './ceshuAiData'
-import type { CeshuBundle } from '../workflow/ceshuBundle'
-import { isEmptyRequiredValue } from '../model/ceshuModel'
+import type { CeshuBundle } from '../workflow'
+import { isEmptyRequiredValue } from '../model'
 
 /**
  * 机读轨（bundle JSON）的**消费端提示词**生成器。

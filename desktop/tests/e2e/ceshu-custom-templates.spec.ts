@@ -4,7 +4,7 @@ import { join } from 'node:path'
 
 import { type Page, expect, test } from '@playwright/test'
 import { launchApp, libraryDir, waitReady } from './helpers/app'
-import { countChapterTemplates } from '../../src/shared/ceshu/reference/ceshuTemplates'
+import { countChapterTemplates } from '../../src/shared/ceshu/reference'
 
 interface StoredTemplate {
   id: string

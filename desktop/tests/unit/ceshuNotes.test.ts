@@ -12,7 +12,7 @@ import {
   sortNotes,
   updateNoteIn,
   type CeshuNote
-} from '../../src/shared/ceshu/notes/ceshuNotes'
+} from '../../src/shared/ceshu/notes'
 
 function note(overrides: Partial<CeshuNote> & { id: string; created_at: string }): CeshuNote {
   return {

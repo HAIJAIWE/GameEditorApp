@@ -2,7 +2,7 @@
 import { act } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 
-import { DigitalMessageItem } from '../../../src/renderer/src/components/digital/DigitalMessageItem'
+import { DigitalMessageItem } from '../../../src/renderer/src/components/digital'
 import { flush, renderDom } from './render'
 
 /**

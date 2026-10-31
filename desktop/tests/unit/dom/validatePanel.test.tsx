@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { ValidatePanel } from '../../../src/renderer/src/components/ceshu/CeshuReportPanels'
-import { CHAPTER_LABELS, type ChapterKey } from '../../../src/shared/ceshu/reference/ceshuConstants'
+import { ValidatePanel } from '../../../src/renderer/src/components/ceshu'
+import { CHAPTER_LABELS, type ChapterKey } from '../../../src/shared/ceshu/reference'
 import { renderDom, type RenderResult } from './render'
 
 let view: RenderResult | null = null

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
 
-import { DropOverlay } from '../../../src/renderer/src/components/digital/DropOverlay'
+import { DropOverlay } from '../../../src/renderer/src/components/digital'
 import { renderDom } from './render'
 
 /**

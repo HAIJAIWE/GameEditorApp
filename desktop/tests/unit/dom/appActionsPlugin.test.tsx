@@ -2,8 +2,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { PluginHost } from '../../../src/shared/plugin/host'
-import { defineAppActionsPlugin } from '../../../src/renderer/src/plugins/ux/appActionsPlugin'
-import { notify, setHostUi } from '../../../src/renderer/src/plugins/host/hostBridge'
+import { defineAppActionsPlugin } from '../../../src/renderer/src/plugins/ux'
+import { notify, setHostUi } from '../../../src/renderer/src/plugins/host'
 import { installMbApi } from './render'
 
 let api: ReturnType<typeof installMbApi> | null = null

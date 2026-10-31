@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-import { CHAPTER_KEYS, CHAPTER_LABELS, type ChapterKey } from '../../../../shared/ceshu/reference/ceshuConstants'
+import { CHAPTER_KEYS, CHAPTER_LABELS, type ChapterKey } from '../../../../shared/ceshu/reference'
 import {
   isValidCustomTemplateName,
   parseTemplateTagsInput,
@@ -8,7 +8,7 @@ import {
   filterCustomTemplates,
   customTemplateToChapterTemplate,
   type CeshuCustomTemplate
-} from '../../../../shared/ceshu/reference/ceshuCustomTemplates'
+} from '../../../../shared/ceshu/reference'
 import {
   TEMPLATE_APPLY_MODES,
   TEMPLATE_APPLY_MODE_LABELS,
@@ -18,8 +18,8 @@ import {
   templateChapterLabel,
   type ChapterTemplate,
   type TemplateApplyMode
-} from '../../../../shared/ceshu/reference/ceshuTemplates'
-import { toErrorMessage } from '../../../../shared/util/system/errors'
+} from '../../../../shared/ceshu/reference'
+import { toErrorMessage } from '../../../../shared/util/system'
 
 /**
  * 章节模板库面板：

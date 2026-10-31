@@ -11,7 +11,7 @@
  * 我们只处理纯文本（工具结果是 string），因此比 dsh 的 ContentBlock 版本简单得多。
  */
 
-import type { AgentRunTier } from '../observability/observability'
+import type { AgentRunTier } from '../observability'
 
 /** 中段被剪掉时插入的标记 */
 export const PRUNE_MARKER = '\n…（中段已剪枝，保留首尾；如需中段请细化查询）\n'

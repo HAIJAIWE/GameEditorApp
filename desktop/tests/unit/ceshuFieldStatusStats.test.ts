@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import type { CeshuDocument, CeshuFieldDef } from '../../src/shared/ceshu/reference/ceshuConstants'
-import type { ChapterFieldStatus } from '../../src/shared/ceshu/fields/ceshuFieldStatus'
-import { createDefaultCeshu } from '../../src/shared/ceshu/model/ceshuModel'
-import { countDocPendingFields, countFieldStatuses, formatFieldStatusSummary } from '../../src/shared/ceshu/fields/ceshuFieldStatusStats'
+import type { CeshuDocument, CeshuFieldDef } from '../../src/shared/ceshu/reference'
+import type { ChapterFieldStatus } from '../../src/shared/ceshu/fields'
+import { createDefaultCeshu } from '../../src/shared/ceshu/model'
+import { countDocPendingFields, countFieldStatuses, formatFieldStatusSummary } from '../../src/shared/ceshu/fields'
 
 /** 只关心 key：统计逻辑不读 label/kind */
 function field(key: string): CeshuFieldDef {

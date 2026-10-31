@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react'
 
-import { LLM_PROVIDER_PRESETS, loadLlmConfig, saveLlmConfig } from '../../../../shared/config/llm/llmConfig'
-import type { LlmProvider } from '../../../../shared/config/llm/llmConfigData'
+import { LLM_PROVIDER_PRESETS, loadLlmConfig, saveLlmConfig } from '../../../../shared/config/llm'
+import type { LlmProvider } from '../../../../shared/config/llm'
 
 /**
  * 输入框的「模型」下拉：**真下拉**。当前模型来自 localStorage 的 LLM 配置，

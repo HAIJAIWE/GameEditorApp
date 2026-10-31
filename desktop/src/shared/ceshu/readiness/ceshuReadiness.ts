@@ -16,21 +16,21 @@ import {
   chapterApplicableToGenre,
   type CeshuDocument,
   type ChapterKey
-} from '../reference/ceshuConstants'
-import { analyzeChapterQuality, contentQualityIssues } from '../validation/ceshuContentQuality'
-import { fieldLabelOf } from '../fields/ceshuFields'
-import { computeChapterProgress, getGameType, isFilledValue, visibleChaptersForDoc } from '../model/ceshuModel'
-import { CESHU_STAGE_LABELS, chaptersUpToStage, type CeshuStage } from '../workflow/ceshuStages'
-import { classifyValidationMessage } from '../validation/ceshuValidationGroups'
-import { countWordsInChapter } from '../validation/ceshuWordCount'
-import { compareWithReferences } from '../reference/ceshuReferenceGdd'
+} from '../reference'
+import { analyzeChapterQuality, contentQualityIssues } from '../validation'
+import { fieldLabelOf } from '../fields'
+import { computeChapterProgress, getGameType, isFilledValue, visibleChaptersForDoc } from '../model'
+import { CESHU_STAGE_LABELS, chaptersUpToStage, type CeshuStage } from '../workflow'
+import { classifyValidationMessage } from '../validation'
+import { countWordsInChapter } from '../validation'
+import { compareWithReferences } from '../reference'
 import {
   READINESS_STAGE_ORDER,
   type CeshuChapterReadiness,
   type CeshuReadinessReport,
   type CeshuStageReadiness
 } from './ceshuReadinessData'
-import { validateCeshu } from '../validation/ceshuValidation'
+import { validateCeshu } from '../validation'
 
 // 契约层（ipc.ts / 渲染层）统一从本模块引入完备度报告类型与常量
 export * from './ceshuReadinessData'

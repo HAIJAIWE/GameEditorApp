@@ -6,8 +6,8 @@
  * 注意：本模块不触碰 CeshuModel / 磁盘，输入原对象、返回新对象。
  */
 
-import { SYSTEM_CONFIG_SCHEMA } from '../model/systemConfigSchema'
-import { SYSTEM_LABELS, type SystemEntry } from '../reference/ceshuConstants'
+import { SYSTEM_CONFIG_SCHEMA } from '../model'
+import { SYSTEM_LABELS, type SystemEntry } from '../reference'
 
 /** 字段预览最多展示的字段数 */
 export const FIELDS_PREVIEW_LIMIT = 8

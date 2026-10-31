@@ -11,9 +11,9 @@
  */
 
 import type { BrainEvent } from '../brain'
-import { accumulateTurn, emptyAgentRunStats, type AgentRunStats } from '../observability/observability'
-import type { SkillInteraction } from '../config/protocol'
-import type { DigitalAttachment } from '../../util/io/libraryAttachments'
+import { accumulateTurn, emptyAgentRunStats, type AgentRunStats } from '../observability'
+import type { SkillInteraction } from '../config'
+import type { DigitalAttachment } from '../../util/io'
 
 export type DigitalStatus = 'idle' | 'thinking' | 'waiting_approval' | 'waiting_input' | 'done' | 'error'
 

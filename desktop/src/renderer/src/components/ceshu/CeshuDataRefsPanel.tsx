@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-import type { CeshuChapters } from '../../../../shared/ceshu/reference/ceshuConstants'
+import type { CeshuChapters } from '../../../../shared/ceshu/reference'
 import {
   buildRefOverview,
   formatRefValue,

@@ -1,7 +1,7 @@
-import type { ChapterTemplate } from '../../ceshu/reference/ceshuTemplates'
-import type { ChapterData } from '../../ceshu/reference/ceshuConstants'
-import type { ChapterSchema } from '../core/types'
-import { f } from '../core/types'
+import type { ChapterTemplate } from '../../ceshu/reference'
+import type { ChapterData } from '../../ceshu/reference'
+import type { ChapterSchema } from '../core'
+import { f } from '../core'
 
 /**
  * 第六章·经济系统设计的按章 schema（档 4 合并试点，2026-10-24）。

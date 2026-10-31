@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { CHAPTER_KEYS, CHAPTER_LABELS, CHAPTER_REQUIRED_FIELDS, type CeshuDocument } from '../../src/shared/ceshu/reference/ceshuConstants'
-import { createDefaultCeshu } from '../../src/shared/ceshu/model/ceshuModel'
-import { computeReadiness, readinessFillGap, readinessStageLabel } from '../../src/shared/ceshu/readiness/ceshuReadiness'
-import { chaptersUpToStage } from '../../src/shared/ceshu/workflow/ceshuStages'
-import { validateCeshu } from '../../src/shared/ceshu/validation/ceshuValidation'
+import { CHAPTER_KEYS, CHAPTER_LABELS, CHAPTER_REQUIRED_FIELDS, type CeshuDocument } from '../../src/shared/ceshu/reference'
+import { createDefaultCeshu } from '../../src/shared/ceshu/model'
+import { computeReadiness, readinessFillGap, readinessStageLabel } from '../../src/shared/ceshu/readiness'
+import { chaptersUpToStage } from '../../src/shared/ceshu/workflow'
+import { validateCeshu } from '../../src/shared/ceshu/validation'
 
 /**
  * 完备度引擎（`computeReadiness`）—— 替代已删除的 100 分制 `scoreCeshu`。

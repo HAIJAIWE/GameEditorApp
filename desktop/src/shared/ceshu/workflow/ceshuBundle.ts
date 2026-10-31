@@ -4,11 +4,11 @@ import {
   type CeshuDocument,
   type ChapterData,
   type ChapterKey
-} from '../reference/ceshuConstants'
-import { getGddScope, isPlainObject, visibleChaptersForDoc } from '../model/ceshuModel'
-import { CESHU_CHAPTER_FIELDS, resolveFieldMeta } from '../fields/ceshuFields'
-import { fieldStatusOf } from '../fields/ceshuFieldStatus'
-import { validateCeshu } from '../validation/ceshuValidation'
+} from '../reference'
+import { getGddScope, isPlainObject, visibleChaptersForDoc } from '../model'
+import { CESHU_CHAPTER_FIELDS, resolveFieldMeta } from '../fields'
+import { fieldStatusOf } from '../fields'
+import { validateCeshu } from '../validation'
 
 /**
  * 双轨导出·机读轨（JSON）的纯逻辑（schema 类型 + 组装 + 序列化）。

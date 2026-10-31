@@ -2,7 +2,7 @@
 import { act } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import TypeEditorPanel from '../../../src/renderer/src/components/ceshuType/TypeEditorPanel'
+import { TypeEditorPanel } from '../../../src/renderer/src/components/ceshuType'
 import type { DataTypeDef, TypeFieldDef } from '../../../src/shared/types'
 import { installMbApi, renderDom, type RenderResult } from './render'
 

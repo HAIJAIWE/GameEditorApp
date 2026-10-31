@@ -8,7 +8,7 @@
 
 import { z } from 'zod'
 
-import { FIELD_ACTIONS } from '../../ceshu/fields/ceshuFieldAction'
+import { FIELD_ACTIONS } from '../../ceshu/fields'
 
 export const ceshuAiGenerateInputSchema = z.object({
   id: z.string().min(1),

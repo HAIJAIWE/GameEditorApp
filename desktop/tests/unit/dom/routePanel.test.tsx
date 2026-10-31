@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest'
 
-import RoutePanel from '../../../src/renderer/src/components/ceshu/RoutePanel'
-import { createDefaultCeshu } from '../../../src/shared/ceshu/model/ceshuModel'
+import { RoutePanel } from '../../../src/renderer/src/components/ceshu'
+import { createDefaultCeshu } from '../../../src/shared/ceshu/model'
 import { installMbApi, renderDom, type RenderResult } from './render'
 
 /**

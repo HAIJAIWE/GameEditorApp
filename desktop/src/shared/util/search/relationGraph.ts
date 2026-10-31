@@ -1,4 +1,4 @@
-import { isPlainObject } from '../object/guards'
+import { isPlainObject } from '../object'
 import { parseReferenceTokens, referenceFieldsOf } from './references'
 import type { DataTypeDef, ItemRecord } from '../../types'
 

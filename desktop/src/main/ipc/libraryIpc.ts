@@ -4,7 +4,7 @@ import {
   libraryRenameInputSchema,
   libraryNameInputSchema,
   libraryRemoveInputSchema
-} from '../../shared/schema/adapters/schemasDataLibrary'
+} from '../../shared/schema/adapters'
 
 export function registerLibraryIpc(deps: IpcHandlerDeps, handle: IpcRegistrar): void {
   const { libraryManager, onSwitchLibrary } = deps

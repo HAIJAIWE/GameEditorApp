@@ -9,7 +9,7 @@ import {
   type ChapterData,
   type ChapterKey,
   type GddScope
-} from '../../../../shared/ceshu/reference/ceshuConstants'
+} from '../../../../shared/ceshu/reference'
 import {
   FULL_GEN_BUSINESS_MODELS,
   FULL_GEN_GAME_TYPES,
@@ -17,12 +17,12 @@ import {
   FULL_GEN_STYLES,
   buildFullGeneratePlan,
   type FullGeneratePlan
-} from '../../../../shared/ceshu/prompts/ceshuAi'
-import { getGddScope, isPlainObject } from '../../../../shared/ceshu/model/ceshuModel'
-import { evaluateBudget, taskBudget } from '../../../../shared/agent/runtime/budget'
+} from '../../../../shared/ceshu/prompts'
+import { getGddScope, isPlainObject } from '../../../../shared/ceshu/model'
+import { evaluateBudget, taskBudget } from '../../../../shared/agent/runtime'
 import type { LlmJudgeVerdict } from '../../../../shared/types'
-import { toErrorMessage } from '../../../../shared/util/system/errors'
-import { readText } from '../../../../shared/util/io/readText'
+import { toErrorMessage } from '../../../../shared/util/system'
+import { readText } from '../../../../shared/util/io'
 
 /**
  * AI 一键生成完整策划书：

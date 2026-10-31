@@ -1,10 +1,10 @@
 import {
   FIELD_TYPE_LABELS,
   FIELD_TYPES
-} from '../../../../shared/schema/adapters/typeSchemaFile'
+} from '../../../../shared/schema/adapters'
 import type { DataTypeDef, FieldType, TypeFieldDef } from '../../../../shared/types'
 
-import FieldIdSuggest from '../ceshuField/FieldIdSuggest'
+import { FieldIdSuggest } from '../ceshuField'
 import { parseOptionalNumber, refOptions } from '../typeEditorUtils'
 import type { IdSuggestState } from './TypeEditorPanel'
 

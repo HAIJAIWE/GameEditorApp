@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 
-import { CHAPTER_LABELS } from '../../../../shared/ceshu/reference/ceshuConstants'
-import type { CeshuChapters, EnabledEditor } from '../../../../shared/ceshu/reference/ceshuConstants'
-import { findCountConstraint } from '../../../../shared/util/data/dataCountConstraint'
+import { CHAPTER_LABELS } from '../../../../shared/ceshu/reference'
+import type { CeshuChapters, EnabledEditor } from '../../../../shared/ceshu/reference'
+import { findCountConstraint } from '../../../../shared/util/data'
 import type { DataTypeDef } from '../../../../shared/types'
 
-import DataEditorTab from '../data/DataEditorTab'
+import { DataEditorTab } from '../data'
 import CeshuDataRefsPanel from './CeshuDataRefsPanel'
 
 /** 跳转目标（由「高级搜索 / 引用关系」的 onJump 触发；nonce 递增以支持重复跳转同一类型） */

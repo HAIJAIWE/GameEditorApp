@@ -16,9 +16,9 @@ import {
   type LlmProvider,
   type LlmSetupGuide,
   type StoredLlmConfig
-} from '../../../../shared/config/llm/llmConfig'
-import { SECRET_NAMES } from '../../../../shared/config/secrets/secretNames'
-import { resolveVisionSupport, type VisionMode } from '../../../../shared/util/ui/visionSupport'
+} from '../../../../shared/config/llm'
+import { SECRET_NAMES } from '../../../../shared/config/secrets'
+import { resolveVisionSupport, type VisionMode } from '../../../../shared/util/ui'
 import {
   applyFontSize,
   applyTheme,
@@ -35,7 +35,7 @@ import {
   saveTheme,
   THEME_OPTIONS,
   type ThemeMode
-} from '../../../../shared/config/settings/settingsPreferences'
+} from '../../../../shared/config/settings'
 
 /**
  * 设置面板。

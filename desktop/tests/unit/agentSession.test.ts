@@ -14,7 +14,7 @@ import {
   isSessionSnapshot,
   sessionInfoFromSnapshot,
   truncateSessionMessage
-} from '../../src/shared/agent/conversation/session'
+} from '../../src/shared/agent/conversation'
 
 function makeDir(): string {
   return mkdtempSync(join(tmpdir(), 'mb-agent-session-'))

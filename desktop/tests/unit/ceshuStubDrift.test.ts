@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
-import { CHAPTER_KEYS } from '../../src/shared/ceshu/reference/ceshuConstants'
+import { CHAPTER_KEYS } from '../../src/shared/ceshu/reference'
 
 /**
  * preview-stub.js 章节列表漂移守卫。

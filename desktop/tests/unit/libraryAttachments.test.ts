@@ -4,7 +4,7 @@ import {
   formatAttachmentSize,
   guessMimeType,
   planAttachmentName
-} from '../../src/shared/util/io/libraryAttachments'
+} from '../../src/shared/util/io'
 
 describe('会话附件：纯辅助函数', () => {
   it('planAttachmentName：保留文件名，重名加 -2/-3 后缀', () => {

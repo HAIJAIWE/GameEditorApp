@@ -1,12 +1,12 @@
 import type { ComponentType } from 'react'
 
-import { CONVERSATION_STORE_KEY, createConversationStoreDecl } from '../../../../shared/agent/conversation/conversationStore'
-import { createConversationService } from '../../../../shared/agent/conversation/conversationService'
-import type { DigitalPanelState } from '../../../../shared/agent/ui/panel'
+import { CONVERSATION_STORE_KEY, createConversationStoreDecl } from '../../../../shared/agent/conversation'
+import { createConversationService } from '../../../../shared/agent/conversation'
+import type { DigitalPanelState } from '../../../../shared/agent/ui'
 import type { PluginHost } from '../../../../shared/plugin/host'
 import type { PluginManifest } from '../../../../shared/plugin/types'
-import DigitalPanel from '../../components/digital/DigitalPanel'
-import { registerSlotComponent } from '../host/reactBindings'
+import { DigitalPanel } from '../../components/digital'
+import { registerSlotComponent } from '../host'
 
 /**
  * 智能体面板插件（右栏 `app.rightPanel` 的默认占据者）。

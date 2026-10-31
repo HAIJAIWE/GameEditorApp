@@ -1,16 +1,16 @@
 import { useEffect, useState } from 'react'
 
-import { CHAPTER_LABELS, type CeshuDocument } from '../../../../shared/ceshu/reference/ceshuConstants'
-import { CESHU_CHAPTER_FIELDS } from '../../../../shared/ceshu/fields/ceshuFields'
-import { displayFieldValue } from '../../../../shared/ceshu/fields/ceshuFieldDisplay'
-import { visibleChaptersForDoc } from '../../../../shared/ceshu/model/ceshuModel'
-import { CESHU_MACHINE_DATA_FIELDS } from '../../../../shared/ceshu/workflow/ceshuStages'
-import type { DataTableCheckResult, DataTableIssue } from '../../../../shared/ceshu/data/ceshuDataTableCheck'
-import type { ContractReport } from '../../../../shared/ceshu/validation/ceshuContract'
-import { DATA_GEN_MAX_COUNT, DATA_GEN_MIN_COUNT } from '../../../../shared/ceshu/data/ceshuDataGen'
-import type { ScaffoldPlan } from '../../../../shared/ceshu/data/ceshuDataTableScaffold'
+import { CHAPTER_LABELS, type CeshuDocument } from '../../../../shared/ceshu/reference'
+import { CESHU_CHAPTER_FIELDS } from '../../../../shared/ceshu/fields'
+import { displayFieldValue } from '../../../../shared/ceshu/fields'
+import { visibleChaptersForDoc } from '../../../../shared/ceshu/model'
+import { CESHU_MACHINE_DATA_FIELDS } from '../../../../shared/ceshu/workflow'
+import type { DataTableCheckResult, DataTableIssue } from '../../../../shared/ceshu/data'
+import type { ContractReport } from '../../../../shared/ceshu/validation'
+import { DATA_GEN_MAX_COUNT, DATA_GEN_MIN_COUNT } from '../../../../shared/ceshu/data'
+import type { ScaffoldPlan } from '../../../../shared/ceshu/data'
 import type { DataTypeDef } from '../../../../shared/types'
-import { toErrorMessage } from '../../../../shared/util/system/errors'
+import { toErrorMessage } from '../../../../shared/util/system'
 
 /**
  * 把「AI 生成缺失数据」的补充要求拼出来：说清要补哪张表、缺口多大、按什么原则生成。

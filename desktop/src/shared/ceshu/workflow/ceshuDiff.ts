@@ -1,5 +1,5 @@
-import { CHAPTER_KEYS, CHAPTER_LABELS, type CeshuDocument, type ChapterKey } from '../reference/ceshuConstants'
-import { isPlainObject } from '../model/ceshuModel'
+import { CHAPTER_KEYS, CHAPTER_LABELS, type CeshuDocument, type ChapterKey } from '../reference'
+import { isPlainObject } from '../model'
 
 /**
  * 版本链纯逻辑：

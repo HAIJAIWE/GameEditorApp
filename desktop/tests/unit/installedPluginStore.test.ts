@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { pruneObsoleteSources } from '../../src/renderer/src/plugins/context/installedPluginStore'
+import { pruneObsoleteSources } from '../../src/renderer/src/plugins/context'
 
 /**
  * 已安装插件清单的迁移：`agent-team` / `trajectory` 合并为 `session` 后，

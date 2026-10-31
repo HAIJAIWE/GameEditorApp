@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import type { CeshuSummary } from '../../src/shared/ceshu/reference/ceshuConstants'
+import type { CeshuSummary } from '../../src/shared/ceshu/reference'
 import {
   TIMELINE_COLORS,
   TIMELINE_LEGEND,

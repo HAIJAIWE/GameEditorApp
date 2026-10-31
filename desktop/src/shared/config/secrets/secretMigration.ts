@@ -18,9 +18,9 @@
  * 单测注入假实现），故本模块可在 Node 下直接单测。
  */
 
-import { IMAGE_GEN_CONFIG_KEY } from '../llm/imageGenConfig'
-import type { StorageLike } from '../settings/settingsStore'
-import { defaultSettingsStorage, readSetting, writeSetting } from '../settings/settingsStore'
+import { IMAGE_GEN_CONFIG_KEY } from '../llm'
+import type { StorageLike } from '../settings'
+import { defaultSettingsStorage, readSetting, writeSetting } from '../settings'
 import { SECRET_NAMES } from './secretNames'
 
 /** 旧版本明文所在的字段名（`mb.imageGenConfig` 内） */

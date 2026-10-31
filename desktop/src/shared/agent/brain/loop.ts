@@ -9,7 +9,7 @@
  * approval_required? → step_done* → … → done
  */
 
-import { fixParams, isSkillInteraction, resolveRiskLevel, type SkillExecutionContext, type SkillInteraction } from '../config/protocol'
+import { fixParams, isSkillInteraction, resolveRiskLevel, type SkillExecutionContext, type SkillInteraction } from '../config'
 import {
   buildAssistantMessage,
   buildToolMessage,
@@ -18,14 +18,14 @@ import {
   terminationDetail,
   type BrainLlmReply,
   type BrainMessage
-} from '../runtime/brainMessages'
+} from '../runtime'
 import {
   accumulateTurn,
   emptyAgentRunStats,
   turnStatFromReply,
   type AgentRunStats,
   type AgentRunTier
-} from '../observability/observability'
+} from '../observability'
 import {
   CLOUD_MAX_TURNS,
   CLOUD_TOOL_CONCURRENCY,

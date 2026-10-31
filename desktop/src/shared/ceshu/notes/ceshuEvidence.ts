@@ -1,6 +1,6 @@
-import { CHAPTER_LABELS, type CeshuDocument } from '../reference/ceshuConstants'
-import { fieldColumns } from '../fields/ceshuFields'
-import { EPSILON, splitRow, toRowStrings } from '../workflow/ceshuPipeRows'
+import { CHAPTER_LABELS, type CeshuDocument } from '../reference'
+import { fieldColumns } from '../fields'
+import { EPSILON, splitRow, toRowStrings } from '../workflow'
 
 /**
  * 证据层检查（用例清单 + 经济账本）——2026-10-24 对标豆包 tests / ledgers 两键。

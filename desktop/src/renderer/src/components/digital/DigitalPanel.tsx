@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 
-import { defaultDraftName } from '../../../../shared/agent/conversation/session'
+import { defaultDraftName } from '../../../../shared/agent/conversation'
 
 import { DigitalChangeCard } from './DigitalChangeCard'
 import { DigitalDeliveryCard } from './DigitalDeliveryCard'
@@ -11,8 +11,8 @@ import { PendingAttachments } from './PendingAttachments'
 import { ShortcutsDialog } from './ShortcutsDialog'
 import FieldActionStrip from './FieldActionStrip'
 
-import LucideIcon from '../common/LucideIcon'
-import type { LucideIconName } from '../../../../shared/util/ui/lucideIcons'
+import { LucideIcon } from '../common'
+import type { LucideIconName } from '../../../../shared/util/ui'
 
 /**
  * 输入区样式（对齐 dsh composer）。单独一份而不是塞进全局 `styles.css`：
@@ -37,30 +37,30 @@ import { useDigitalPanelInteraction } from './useDigitalPanelInteraction'
 import { useDigitalPanelModelMenu } from './useDigitalPanelModelMenu'
 import { useDigitalPanelStopArm } from './useDigitalPanelStopArm'
 import { useDigitalPanelTurnArtifacts } from './useDigitalPanelTurnArtifacts'
-import type { DigitalCommand } from '../../../../shared/agent/tools/commands'
-import { pluginHost } from '../../plugins/context/builtins'
-import { requestCodeView } from '../../plugins/context/codeViewRequest'
+import type { DigitalCommand } from '../../../../shared/agent/tools'
+import { pluginHost } from '../../plugins/context'
+import { requestCodeView } from '../../plugins/context'
 import { baseNameOf, isCodeFile } from '../../utils/codeView'
-import { getToolViewBinding } from '../../plugins/session/toolViewBindings'
-import { SlotOutlet } from '../../plugins/host/slotOutlet'
+import { getToolViewBinding } from '../../plugins/session'
+import { SlotOutlet } from '../../plugins/host'
 
 import type { BrainEvent } from '../../../../shared/agent/brain'
-import type { AgentRunTier } from '../../../../shared/agent/observability/observability'
+import type { AgentRunTier } from '../../../../shared/agent/observability'
 import {
   isMultiQuestion,
   isRunning,
   summarizeToolTasks,
   type DigitalPanelState
-} from '../../../../shared/agent/ui/panel'
+} from '../../../../shared/agent/ui'
 import {
   CONVERSATION_STORE_KEY,
   createConversationStoreDecl,
   type ConversationAction
-} from '../../../../shared/agent/conversation/conversationStore'
+} from '../../../../shared/agent/conversation'
 import { createStoreInstance } from '../../../../shared/plugin/slotRegistry'
-import { toErrorMessage } from '../../../../shared/util/system/errors'
-import { AGENT_PRESETS, DEFAULT_PRESET_ID, presetLabel } from '../../../../shared/agent/config/presets'
-import { LLM_PROVIDER_PRESETS } from '../../../../shared/config/llm/llmConfig'
+import { toErrorMessage } from '../../../../shared/util/system'
+import { AGENT_PRESETS, DEFAULT_PRESET_ID, presetLabel } from '../../../../shared/agent/config'
+import { LLM_PROVIDER_PRESETS } from '../../../../shared/config/llm'
 
 /**
  * 智能体面板（A1-4）：对话气泡 + 流式文本 + 可折叠步骤 + 任务列表 + 危险操作审批模态。

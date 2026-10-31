@@ -1,4 +1,4 @@
-import { hasStoredLlmConfig, loadLlmConfig } from '../../shared/config/llm/llmConfig'
+import { hasStoredLlmConfig, loadLlmConfig } from '../../shared/config/llm'
 
 /**
  * 启动时把 LLM 非敏感配置镜像推给主进程（M0 / DD-0）。

@@ -16,7 +16,7 @@
  */
 
 import type { DataTypeDef } from '../../types'
-import { isPlainObject } from '../object/guards'
+import { isPlainObject } from '../object'
 
 export interface ReferenceEntry {
   /** 被引用条目 id（新写入一律带 id；兼容旧数据可缺省） */

@@ -6,16 +6,16 @@ import {
   type CeshuFieldDef,
   type ChapterData,
   type ChapterKey
-} from '../reference/ceshuConstants'
-import { CESHU_CHAPTER_FIELDS } from '../fields/ceshuFields'
-import { displayFieldValue } from '../fields/ceshuFieldDisplay'
+} from '../reference'
+import { CESHU_CHAPTER_FIELDS } from '../fields'
+import { displayFieldValue } from '../fields'
 import {
   computeEnabledEditors,
   createDefaultCeshu,
   getGameType,
   getGddScope,
   visibleChaptersForDoc
-} from '../model/ceshuModel'
+} from '../model'
 import { CESHU_ROLE_LABELS, CESHU_ROLE_ORDER, renderRoleTasksMarkdown, type CeshuTaskPlan } from './ceshuTasks'
 
 /**

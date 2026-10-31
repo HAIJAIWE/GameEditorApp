@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { CHAPTER_KEYS, type CeshuDocument } from '../../src/shared/ceshu/reference/ceshuConstants'
+import { CHAPTER_KEYS, type CeshuDocument } from '../../src/shared/ceshu/reference'
 import {
   computeChapterProgress,
   computeEnabledEditors,
@@ -12,7 +12,7 @@ import {
   normalizeCeshu,
   resolveDocGameStyle,
   withChapter
-} from '../../src/shared/ceshu/model/ceshuModel'
+} from '../../src/shared/ceshu/model'
 
 describe('策划书模型（W3 第一切片）', () => {
   it('createDefaultCeshu：18 章 + 13 系统默认关闭 + 档位写入 meta.gdd_scope', () => {

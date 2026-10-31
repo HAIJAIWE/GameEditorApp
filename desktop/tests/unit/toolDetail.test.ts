@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { DIFF_ROW_LIMIT, TOOL_ARGS_LIMIT, diffRows, diffTotals, errorSummary, formatToolArgs } from '../../src/shared/agent/tools/toolDetail'
+import { DIFF_ROW_LIMIT, TOOL_ARGS_LIMIT, diffRows, diffTotals, errorSummary, formatToolArgs } from '../../src/shared/agent/tools'
 
 describe('formatToolArgs：参数文本整理', () => {
   it('空 / 纯空白 → 空文本，不标记 JSON', () => {

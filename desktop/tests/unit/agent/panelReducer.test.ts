@@ -5,8 +5,8 @@ import {
   initialDigitalPanelState,
   reduceBrainEvent,
   submitUserMessage
-} from '../../../src/shared/agent/ui/panel'
-import type { DigitalPanelState } from '../../../src/shared/agent/ui/panel'
+} from '../../../src/shared/agent/ui'
+import type { DigitalPanelState } from '../../../src/shared/agent/ui'
 
 /**
  * `reduceBrainEvent` 的收尾语义。

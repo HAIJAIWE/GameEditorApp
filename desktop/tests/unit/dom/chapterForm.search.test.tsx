@@ -2,10 +2,10 @@
 import { act } from 'react'
 import { afterEach, describe, expect, it } from 'vitest'
 
-import ChapterForm from '../../../src/renderer/src/components/ceshuField/ChapterForm'
-import type { ChapterData, ChapterKey } from '../../../src/shared/ceshu/reference/ceshuConstants'
-import { CESHU_CHAPTER_FIELDS } from '../../../src/shared/ceshu/fields/ceshuFields'
-import { createDefaultCeshu } from '../../../src/shared/ceshu/model/ceshuModel'
+import { ChapterForm } from '../../../src/renderer/src/components/ceshuField'
+import type { ChapterData, ChapterKey } from '../../../src/shared/ceshu/reference'
+import { CESHU_CHAPTER_FIELDS } from '../../../src/shared/ceshu/fields'
+import { createDefaultCeshu } from '../../../src/shared/ceshu/model'
 import { installMbApi, renderDom, type RenderResult } from './render'
 
 /**

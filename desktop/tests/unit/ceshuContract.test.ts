@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { buildContract, checkContract, compareDemoRuleset, validateContract } from '../../src/shared/ceshu/validation/ceshuContract'
-import { createDefaultCeshu, deriveRulesetId } from '../../src/shared/ceshu/model/ceshuModel'
+import { buildContract, checkContract, compareDemoRuleset, validateContract } from '../../src/shared/ceshu/validation'
+import { createDefaultCeshu, deriveRulesetId } from '../../src/shared/ceshu/model'
 
 /**
  * 设计契约（`ceshuContract`）守卫。

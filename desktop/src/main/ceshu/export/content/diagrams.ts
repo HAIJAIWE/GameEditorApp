@@ -1,4 +1,4 @@
-import type { CeshuDocument } from '../../../../shared/ceshu/reference/ceshuConstants'
+import type { CeshuDocument } from '../../../../shared/ceshu/reference'
 
 /**
  * 导出用图表（内联 SVG）——对标豆包交付物里的 gameflow.svg / curve.svg。

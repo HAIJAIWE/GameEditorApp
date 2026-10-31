@@ -7,8 +7,8 @@ import {
   normalizeVisibleTypes,
   resolveVisibilityResult,
   saveVisibleTypes
-} from '../../src/shared/config/game/visibleTypes'
-import type { StorageLike } from '../../src/shared/config/game/visibleTypes'
+} from '../../src/shared/config/game'
+import type { StorageLike } from '../../src/shared/config/game'
 
 /** 内存假 storage，绝不碰真实 localStorage */
 class FakeStorage implements StorageLike {

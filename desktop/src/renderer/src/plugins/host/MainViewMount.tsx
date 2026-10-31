@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore, type ComponentType, type ReactNode } from 'react'
 
-import { MIDDLE_TAB_KEY, loadStoredTab, saveStoredTab } from '../../../../shared/config/settings/middleTab'
+import { MIDDLE_TAB_KEY, loadStoredTab, saveStoredTab } from '../../../../shared/config/settings'
 import type { PluginHost } from '../../../../shared/plugin/host'
 import { MAIN_VIEW_STORE_KEY, createMainViewStoreDecl, type MainViewState } from '../../../../shared/plugin/mainViewStore'
 import { createStoreInstance } from '../../../../shared/plugin/slotRegistry'

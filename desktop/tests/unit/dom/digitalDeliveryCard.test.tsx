@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest'
 
-import { DigitalDeliveryCard } from '../../../src/renderer/src/components/digital/DigitalDeliveryCard'
+import { DigitalDeliveryCard } from '../../../src/renderer/src/components/digital'
 import { installMbApi, renderDom } from './render'
 
 /**

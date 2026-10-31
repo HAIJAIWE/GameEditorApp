@@ -1,6 +1,6 @@
 import type { PluginHost } from '../../../../shared/plugin/host'
 import type { PluginManifest, PluginSidebarItem } from '../../../../shared/plugin/types'
-import { notify, setHomeVisible } from '../host/hostBridge'
+import { notify, setHomeVisible } from '../host'
 
 /**
  * 左侧主导航栏插件化（B 方案 Slice 10）。

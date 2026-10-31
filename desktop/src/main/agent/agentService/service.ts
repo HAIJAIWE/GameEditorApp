@@ -18,21 +18,21 @@ import {
   type BrainRunResult,
   type BrainToolRunner
 } from '../../../shared/agent/brain'
-import { deriveMessagesFromTurns } from '../../../shared/agent/conversation/session'
-import { buildSystemPrompts } from '../../../shared/agent/ui/prompts'
-import { presetLabel, presetPersona } from '../../../shared/agent/config/presets'
-import { buildPersonalizedContext } from '../../../shared/agent/config/personalization'
-import { formatAttachmentSize, type DigitalAttachment } from '../../../shared/util/io/libraryAttachments'
-import { resolveVisionSupport } from '../../../shared/util/ui/visionSupport'
+import { deriveMessagesFromTurns } from '../../../shared/agent/conversation'
+import { buildSystemPrompts } from '../../../shared/agent/ui'
+import { presetLabel, presetPersona } from '../../../shared/agent/config'
+import { buildPersonalizedContext } from '../../../shared/agent/config'
+import { formatAttachmentSize, type DigitalAttachment } from '../../../shared/util/io'
+import { resolveVisionSupport } from '../../../shared/util/ui'
 import {
   RISK_LEVEL,
   resolveRiskLevel,
   toFunctionCallingTools,
   toJsonSchema,
   type SkillExecutionContext
-} from '../../../shared/agent/config/protocol'
-import { buildToolFace } from '../../../shared/agent/tools/toolGroups'
-import { estimateTokens, evaluateBudget } from '../../../shared/agent/runtime/budget'
+} from '../../../shared/agent/config'
+import { buildToolFace } from '../../../shared/agent/tools'
+import { estimateTokens, evaluateBudget } from '../../../shared/agent/runtime'
 import { extractLearnings } from '../store/memoryStore'
 import type { SkillDispatcher } from '../execution/dispatcher'
 import { resolveAgentTier, resolveAgentTransport } from '../transport/agentTransport'

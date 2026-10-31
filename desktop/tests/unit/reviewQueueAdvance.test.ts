@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { cursorAfterAccept } from '../../src/renderer/src/components/ceshu/reviewQueueAdvance'
+import { cursorAfterAccept } from '../../src/renderer/src/components/ceshu'
 
 /**
  * 审阅队列接受后的光标落点。

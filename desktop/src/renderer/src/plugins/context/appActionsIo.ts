@@ -1,9 +1,9 @@
 import { formatImportSummary, toErrorMessage } from '../../appUtils'
-import type { EngineExportInput } from '../../../../shared/schema/adapters/schemasDataEngineExport'
-import type { DataSnapshotFormat } from '../../../../shared/schema/adapters/schemasDataImportExport'
+import type { EngineExportInput } from '../../../../shared/schema/adapters'
+import type { DataSnapshotFormat } from '../../../../shared/schema/adapters'
 import type { ImportPreview } from '../../../../shared/types'
-import { engineExportNotice } from '../../../../shared/util/system/engineExportNotice'
-import { loadBlockExportMissingImages } from '../../../../shared/config/settings/settingsPreferences'
+import { engineExportNotice } from '../../../../shared/util/system'
+import { loadBlockExportMissingImages } from '../../../../shared/config/settings'
 
 /**
  * 文件 I/O 动作（打开 / 保存 / 批量导入导出 / 引擎导出 / 快照导出）——从 `useDataTransfer` 搬出来。

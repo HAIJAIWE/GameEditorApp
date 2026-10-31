@@ -12,7 +12,7 @@
  * 将来再加字段，夹具自动跟上，不会再漂。
  */
 
-import { DEFAULT_LLM_CONFIG } from '../../../src/shared/config/llm/llmConfigData'
+import { DEFAULT_LLM_CONFIG } from '../../../src/shared/config/llm'
 
 /** 本地档（Ollama）测试配置：全字段齐全，可直接过 `llmConfigureInputSchema` */
 export function localStubLlmConfig(host: string, model = 'stub:latest'): Record<string, unknown> {

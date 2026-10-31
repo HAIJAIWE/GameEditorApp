@@ -19,7 +19,7 @@ import {
   toJsonSchema,
   LLM_BULK_COUNT_THRESHOLD,
   type SkillProtocol
-} from '../../src/shared/agent/config/protocol'
+} from '../../src/shared/agent/config'
 
 describe('agent 协议：风险等级与权限', () => {
   it('风险等级数值与 旧版 RiskLevel 一致', () => {

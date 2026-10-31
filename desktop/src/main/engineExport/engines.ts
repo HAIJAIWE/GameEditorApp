@@ -1,4 +1,4 @@
-import { bucketize } from '../../shared/util/data/dataBuckets'
+import { bucketize } from '../../shared/util/data'
 
 /**
  * 目标引擎（不含 `lua`——Lua 渲染器在 `./lua.ts`，本文件处理另外四个）。

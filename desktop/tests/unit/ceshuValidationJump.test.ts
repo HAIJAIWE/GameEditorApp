@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { CHAPTER_LABELS } from '../../src/shared/ceshu/reference/ceshuConstants'
-import { resolveValidationChapter, resolveValidationTarget } from '../../src/shared/ceshu/validation/ceshuValidationJump'
+import { CHAPTER_LABELS } from '../../src/shared/ceshu/reference'
+import { resolveValidationChapter, resolveValidationTarget } from '../../src/shared/ceshu/validation'
 
 describe('resolveValidationChapter：从校验文案定位章节', () => {
   it('文档信息段文案 → meta', () => {

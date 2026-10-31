@@ -1,4 +1,4 @@
-import type { McpTransport } from '../../../shared/agent/mcp/types'
+import type { McpTransport } from '../../../shared/agent/mcp'
 
 /**
  * MCP **Streamable HTTP** 传输层（Slice 18b）。

@@ -6,10 +6,10 @@
  * 这样 `loop.ts` 只需关心流程，类型变更的影响面被限制在这一层。
  */
 
-import type { SkillExecutionContext, SkillInteraction } from '../config/protocol'
-import type { BrainLlmTransport, BrainToolRunner, BrainMessage } from '../runtime/brainMessages'
-import type { LlmUsage } from '../../config/llm/llmConfig'
-import type { AgentRunStats, AgentRunTier } from '../observability/observability'
+import type { SkillExecutionContext, SkillInteraction } from '../config'
+import type { BrainLlmTransport, BrainToolRunner, BrainMessage } from '../runtime'
+import type { LlmUsage } from '../../config/llm'
+import type { AgentRunStats, AgentRunTier } from '../observability'
 
 /* ---- 事件 ---- */
 

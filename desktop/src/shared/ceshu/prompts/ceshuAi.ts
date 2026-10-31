@@ -8,13 +8,13 @@ import {
   type ChapterData,
   type ChapterKey,
   type GddScope
-} from '../reference/ceshuConstants'
-import type { LlmUsage } from '../../config/llm/llmConfig'
-import { CESHU_CHAPTER_FIELDS, resolveFieldMeta } from '../fields/ceshuFields'
+} from '../reference'
+import type { LlmUsage } from '../../config/llm'
+import { CESHU_CHAPTER_FIELDS, resolveFieldMeta } from '../fields'
 import type { QualityGateVerdict } from '../../types'
-import { isPlainObject, getGameType, deriveRulesetId } from '../model/ceshuModel'
-import { readText } from '../../util/io/readText'
-import { parseLlmJson } from '../../util/object/parseLlmJson'
+import { isPlainObject, getGameType, deriveRulesetId } from '../model'
+import { readText } from '../../util/io'
+import { parseLlmJson } from '../../util/object'
 import {
   CHAPTER_AGENT_MAP,
   AGENT_DISPLAY,
@@ -38,7 +38,7 @@ import {
   type AdversarialLevel,
   type AdversarialCheckKey
 } from './ceshuAiData'
-import { buildFieldActionInstruction, type FieldAction } from '../fields/ceshuFieldAction'
+import { buildFieldActionInstruction, type FieldAction } from '../fields'
 export * from './ceshuAiData'
 
 /**

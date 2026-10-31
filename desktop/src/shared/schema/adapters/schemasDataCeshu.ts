@@ -10,7 +10,7 @@
 
 import { z } from 'zod'
 
-import { CESHU_EXPORT_FORMATS } from '../../ceshu/reference/ceshuConstants'
+import { CESHU_EXPORT_FORMATS } from '../../ceshu/reference'
 
 export const ceshuCreateInputSchema = z.object({
   name: z.string().max(200).default(''),

@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest'
 
 import { renderCeshuDocx } from '../../src/main/ceshu/export/doc/docx'
 import { renderCeshuPptx } from '../../src/main/ceshu/export/doc/pptx'
-import { CHAPTER_LABELS, type CeshuDocument, type GddScope } from '../../src/shared/ceshu/reference/ceshuConstants'
-import { createDefaultCeshu } from '../../src/shared/ceshu/model/ceshuModel'
+import { CHAPTER_LABELS, type CeshuDocument, type GddScope } from '../../src/shared/ceshu/reference'
+import { createDefaultCeshu } from '../../src/shared/ceshu/model'
 
 /**
  * 策划书 docx / pptx 渲染器单测：以 JSZip 解包回读 XML，断言关键结构与字段均已落地。

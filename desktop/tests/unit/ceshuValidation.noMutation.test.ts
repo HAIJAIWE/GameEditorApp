@@ -1,9 +1,9 @@
 import { describe, expect, test } from 'vitest'
-import { createDefaultCeshu } from '../../src/shared/ceshu/model/ceshuModel'
-import { validateCeshu } from '../../src/shared/ceshu/validation/ceshuValidation'
-import { evaluateAssertions } from '../../src/shared/ceshu/validation/ceshuNumericAssert'
-import { checkLedger } from '../../src/shared/ceshu/notes/ceshuEvidence'
-import type { CeshuDocument } from '../../src/shared/ceshu/reference/ceshuConstants'
+import { createDefaultCeshu } from '../../src/shared/ceshu/model'
+import { validateCeshu } from '../../src/shared/ceshu/validation'
+import { evaluateAssertions } from '../../src/shared/ceshu/validation'
+import { checkLedger } from '../../src/shared/ceshu/notes'
+import type { CeshuDocument } from '../../src/shared/ceshu/reference'
 
 /**
  * 防御回归：校验链路是「纯读取」——历史上踩过 ceshuDefaults 的浅拷贝污染

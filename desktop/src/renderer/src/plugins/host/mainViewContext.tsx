@@ -1,10 +1,10 @@
 import { createContext, useContext, type ReactNode } from 'react'
 
-import type { CeshuSummary } from '../../../../shared/ceshu/reference/ceshuConstants'
+import type { CeshuSummary } from '../../../../shared/ceshu/reference'
 import { PluginHost } from '../../../../shared/plugin/host'
 import type { DataTypeDef } from '../../../../shared/types'
-import type { PreviewJumpTarget } from '../../components/ceshu/CeshuDataPreview'
-import type { ReferenceTarget } from '../../components/ceshuField/ReferencesPanel'
+import type { PreviewJumpTarget } from '../../components/ceshu'
+import type { ReferenceTarget } from '../../components/ceshuField'
 
 /**
  * 主区视图共享状态（Slice 23/24）。

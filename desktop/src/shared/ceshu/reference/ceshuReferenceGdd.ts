@@ -27,7 +27,7 @@
  */
 
 import { CHAPTER_LABELS, CHAPTER_REQUIRED_FIELDS, type ChapterKey, type CeshuDocument } from './ceshuConstants'
-import { chaptersUpToStage } from '../workflow/ceshuStages'
+import { chaptersUpToStage } from '../workflow'
 
 /** 参照文档的出处强度（决定 UI 怎么标注，不能混为一谈） */
 export type CeshuReferenceKind = 'real-public' | 'project-deliverable' | 'project-sample'

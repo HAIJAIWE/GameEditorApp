@@ -1,4 +1,4 @@
-import { isPlainObject } from '../../util/object/guards'
+import { isPlainObject } from '../../util/object'
 
 /**
  * 「写对」代理指标：机器可判定的内容质量信号（纯函数，供校验链与完备度共用）。

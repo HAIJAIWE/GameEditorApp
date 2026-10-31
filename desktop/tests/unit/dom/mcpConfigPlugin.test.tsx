@@ -4,8 +4,8 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { defineMcpConfigPlugin } from '../../../src/renderer/src/plugins/panels/mcpConfigPlugin'
-import { getReactBinding } from '../../../src/renderer/src/plugins/host/reactBindings'
+import { defineMcpConfigPlugin } from '../../../src/renderer/src/plugins/panels'
+import { getReactBinding } from '../../../src/renderer/src/plugins/host'
 import { PluginHost } from '../../../src/shared/plugin/host'
 
 describe('MCP 配置插件（Slice 20）', () => {

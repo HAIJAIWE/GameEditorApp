@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import type { OperationRecord } from '../../../../shared/agent/observability/operationLog'
-import type { DeliveryRecord } from '../../../../shared/agent/observability/deliveryLog'
-import type { DigitalPanelState } from '../../../../shared/agent/ui/panel'
+import type { OperationRecord } from '../../../../shared/agent/observability'
+import type { DeliveryRecord } from '../../../../shared/agent/observability'
+import type { DigitalPanelState } from '../../../../shared/agent/ui'
 import type { ChatApi } from './digitalPanelApi'
 
 /**

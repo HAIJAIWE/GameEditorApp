@@ -1,4 +1,4 @@
-import type { CeshuFieldDef } from '../reference/ceshuConstants'
+import type { CeshuFieldDef } from '../reference'
 
 /**
  * 字段值的**只读展示**格式化（一页总览视图 + 一页导出共用，避免两套实现漂移）。

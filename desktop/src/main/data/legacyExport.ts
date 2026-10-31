@@ -1,6 +1,6 @@
 import { rename, writeFile } from 'node:fs/promises'
 
-import { getTypeById } from '../../shared/schema/core/typeSchema'
+import { getTypeById } from '../../shared/schema/core'
 import type { DataTypeDef, ExportSummary, ItemRecord } from '../../shared/types'
 import type { DataService } from './service'
 

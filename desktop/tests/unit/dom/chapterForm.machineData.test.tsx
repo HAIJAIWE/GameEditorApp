@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest'
 
-import ChapterForm from '../../../src/renderer/src/components/ceshuField/ChapterForm'
-import type { ChapterKey } from '../../../src/shared/ceshu/reference/ceshuConstants'
-import { createDefaultCeshu } from '../../../src/shared/ceshu/model/ceshuModel'
-import { CESHU_MACHINE_DATA_FIELDS } from '../../../src/shared/ceshu/workflow/ceshuStages'
+import { ChapterForm } from '../../../src/renderer/src/components/ceshuField'
+import type { ChapterKey } from '../../../src/shared/ceshu/reference'
+import { createDefaultCeshu } from '../../../src/shared/ceshu/model'
+import { CESHU_MACHINE_DATA_FIELDS } from '../../../src/shared/ceshu/workflow'
 import { installMbApi, renderDom, type RenderResult } from './render'
 
 /**

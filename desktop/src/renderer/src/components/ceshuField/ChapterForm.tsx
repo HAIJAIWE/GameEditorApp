@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
-import { CHAPTER_LABELS, type CeshuFieldDef, type ChapterData, type ChapterKey } from '../../../../shared/ceshu/reference/ceshuConstants'
-import type { CeshuAiGenerateResult } from '../../../../shared/ceshu/prompts/ceshuAi'
-import { FIELD_ACTION_LABELS, type FieldAction } from '../../../../shared/ceshu/fields/ceshuFieldAction'
-import { isPlainObject } from '../../../../shared/ceshu/model/ceshuModel'
-import { CESHU_CHAPTER_FIELDS, resolveFieldMeta } from '../../../../shared/ceshu/fields/ceshuFields'
-import { isMachineDataField } from '../../../../shared/ceshu/workflow/ceshuStages'
-import { HANDOFF_DOCS } from '../../../../shared/ceshu/workflow/ceshuHandoffDocs'
-import type { ChapterFieldStatus, FieldReviewStatus } from '../../../../shared/ceshu/fields/ceshuFieldStatus'
-import { countFieldStatuses, formatFieldStatusSummary } from '../../../../shared/ceshu/fields/ceshuFieldStatusStats'
+import { CHAPTER_LABELS, type CeshuFieldDef, type ChapterData, type ChapterKey } from '../../../../shared/ceshu/reference'
+import type { CeshuAiGenerateResult } from '../../../../shared/ceshu/prompts'
+import { FIELD_ACTION_LABELS, type FieldAction } from '../../../../shared/ceshu/fields'
+import { isPlainObject } from '../../../../shared/ceshu/model'
+import { CESHU_CHAPTER_FIELDS, resolveFieldMeta } from '../../../../shared/ceshu/fields'
+import { isMachineDataField } from '../../../../shared/ceshu/workflow'
+import { HANDOFF_DOCS } from '../../../../shared/ceshu/workflow'
+import type { ChapterFieldStatus, FieldReviewStatus } from '../../../../shared/ceshu/fields'
+import { countFieldStatuses, formatFieldStatusSummary } from '../../../../shared/ceshu/fields'
 import {
   clearActiveCeshuField,
   consumeFieldRequest,
@@ -23,13 +23,13 @@ import {
   mergeTemplateByMode,
   type ChapterTemplate,
   type TemplateApplyMode
-} from '../../../../shared/ceshu/reference/ceshuTemplates'
+} from '../../../../shared/ceshu/reference'
 
 import { CeshuFieldControl, fieldValueToInput, inputToFieldValue, type FieldInput } from './CeshuFieldControl'
-import { AiFieldButton } from '../agent/AiFieldButton'
-import CompetitiveChart from '../ceshuType/CompetitiveChart'
+import { AiFieldButton } from '../agent'
+import { CompetitiveChart } from '../ceshuType'
 import SystemsEditor from './SystemsEditor'
-import TemplatePickerPanel from '../ceshuType/TemplatePickerPanel'
+import { TemplatePickerPanel } from '../ceshuType'
 
 interface ChapterFormProps {
   chapter: ChapterKey

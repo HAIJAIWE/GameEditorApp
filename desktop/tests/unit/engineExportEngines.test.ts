@@ -13,7 +13,7 @@ import {
   renderUnityCs,
   renderUnrealHeader
 } from '../../src/main/engineExport/engines'
-import { engineExportInputSchema } from '../../src/shared/schema/adapters/schemasDataEngineExport'
+import { engineExportInputSchema } from '../../src/shared/schema/adapters'
 import type { DataTypeDef, ItemRecord } from '../../src/shared/types'
 
 /**

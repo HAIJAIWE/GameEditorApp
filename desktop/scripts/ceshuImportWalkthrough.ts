@@ -12,14 +12,14 @@
  *
  * 用法：`cd desktop && npx tsx scripts/ceshuImportWalkthrough.ts`（本机无 tsx，见 MEMORY）
  */
-import { CHAPTER_KEYS, CHAPTER_REQUIRED_FIELDS, GDD_SCOPE_FULL, chapterApplicableToGenre } from '../src/shared/ceshu/reference/ceshuConstants'
-import { computeChapterProgress, createDefaultCeshu } from '../src/shared/ceshu/model/ceshuModel'
-import { chaptersUpToStage } from '../src/shared/ceshu/workflow/ceshuStages'
+import { CHAPTER_KEYS, CHAPTER_REQUIRED_FIELDS, GDD_SCOPE_FULL, chapterApplicableToGenre } from '../src/shared/ceshu/reference'
+import { computeChapterProgress, createDefaultCeshu } from '../src/shared/ceshu/model'
+import { chaptersUpToStage } from '../src/shared/ceshu/workflow'
 import {
   CESHU_REFERENCE_GDDS,
   referenceKey,
   type CeshuReferenceGdd
-} from '../src/shared/ceshu/reference/ceshuReferenceGdd'
+} from '../src/shared/ceshu/reference'
 
 const CONCEPT_CHAPTERS = chaptersUpToStage('concept')
 

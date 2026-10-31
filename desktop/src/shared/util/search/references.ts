@@ -1,4 +1,4 @@
-import { isPlainObject } from '../object/guards'
+import { isPlainObject } from '../object'
 import type { DataTypeDef, ItemRecord } from '../../types'
 
 /**

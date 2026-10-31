@@ -1,18 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
 
-import { suggestFieldIds, type FieldIdSuggestion, type SuggestFieldIdResult } from '../../../../shared/util/id/fieldId'
-import { chineseToPinyin, suggestPinyinFieldId } from '../../../../shared/util/id/pinyinFieldId'
+import { suggestFieldIds, type FieldIdSuggestion, type SuggestFieldIdResult } from '../../../../shared/util/id'
+import { chineseToPinyin, suggestPinyinFieldId } from '../../../../shared/util/id'
 import {
   FIELD_ID_AI_ERROR_EMPTY_LABEL,
   FIELD_ID_AI_ERROR_NO_CANDIDATE
-} from '../../../../shared/util/id/fieldIdAi'
-import { validateTypeSchema } from '../../../../shared/schema/adapters/typeSchemaFile'
+} from '../../../../shared/util/id'
+import { validateTypeSchema } from '../../../../shared/schema/adapters'
 import {
   TYPE_TEMPLATE_NAMES,
   TYPE_TEMPLATE_SECTIONS,
   TYPE_TEMPLATES,
   buildNewTypeDraft
-} from '../../../../shared/schema/core/typeTemplates'
+} from '../../../../shared/schema/core'
 import type { DataTypeDef, TypeFieldDef, TypeSectionDef } from '../../../../shared/types'
 
 import { TypeSideList, TypeEditorHeader } from './TypeEditorChrome'

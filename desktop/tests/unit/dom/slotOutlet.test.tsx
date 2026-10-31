@@ -4,8 +4,8 @@ import { describe, expect, it } from 'vitest'
 
 import { renderDom } from './render'
 import { PluginHost } from '../../../src/shared/plugin/host'
-import { SlotOutlet } from '../../../src/renderer/src/plugins/host/slotOutlet'
-import { registerSlotComponent } from '../../../src/renderer/src/plugins/host/reactBindings'
+import { SlotOutlet } from '../../../src/renderer/src/plugins/host'
+import { registerSlotComponent } from '../../../src/renderer/src/plugins/host'
 
 function Greeting(props: Record<string, unknown>) {
   return <span>你好 {String(props.name ?? '')}</span>

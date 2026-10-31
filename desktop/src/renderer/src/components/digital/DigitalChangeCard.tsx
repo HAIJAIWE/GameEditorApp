@@ -1,6 +1,6 @@
 import { useState, type ReactElement } from 'react'
 
-import type { OperationRecord } from '../../../../shared/agent/observability/operationLog'
+import type { OperationRecord } from '../../../../shared/agent/observability'
 
 /**
  * 对话内联「本轮改动」卡（dsh deliverables 卡的本土对应物）。

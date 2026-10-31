@@ -1,9 +1,9 @@
 import { type MouseEvent as ReactMouseEvent } from 'react'
 
 import type { PluginHost } from '../../../../shared/plugin/host'
-import { CollapseIcon, ExpandIcon } from '../common/FullscreenIcons'
-import { MainViewMount, type AppMainTab } from '../../plugins/host/MainViewMount'
-import type { MainViewContextValue } from '../../plugins/host/mainViewContext'
+import { CollapseIcon, ExpandIcon } from '../common'
+import { MainViewMount, type AppMainTab } from '../../plugins/host'
+import type { MainViewContextValue } from '../../plugins/host'
 
 /**
  * 右侧 AI 停靠栏（对齐 dsh 的 rightbar）+ 它的拖拽分隔条。

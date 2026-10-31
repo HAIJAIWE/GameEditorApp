@@ -6,8 +6,8 @@ import {
   countFindings,
   type AdversarialFinding,
   type CeshuAiReviewResult
-} from '../../../../shared/ceshu/prompts/ceshuAi'
-import { formatLocalTimestamp } from '../../../../shared/ceshu/model/ceshuModel'
+} from '../../../../shared/ceshu/prompts'
+import { formatLocalTimestamp } from '../../../../shared/ceshu/model'
 import { useStopIntent } from '../../hooks/useStopIntent'
 
 /**

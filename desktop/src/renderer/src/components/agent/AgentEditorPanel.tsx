@@ -6,8 +6,8 @@ import {
   filterToolViews,
   summarizeCatalog,
   type ToolCatalog
-} from '../../../../shared/agent/ui/agentEditor'
-import { toErrorMessage } from '../../../../shared/util/system/errors'
+} from '../../../../shared/agent/ui'
+import { toErrorMessage } from '../../../../shared/util/system'
 
 /**
  * 智能体编辑器（对齐 旧版 `src/ui/ai_bridge:93` `open_agent_editor` 的入口 +

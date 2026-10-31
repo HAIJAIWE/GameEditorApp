@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { ReadinessPanel } from '../../../src/renderer/src/components/ceshu/CeshuReportPanels'
-import type { ChapterKey } from '../../../src/shared/ceshu/reference/ceshuConstants'
-import { createDefaultCeshu } from '../../../src/shared/ceshu/model/ceshuModel'
-import { computeReadiness } from '../../../src/shared/ceshu/readiness/ceshuReadiness'
+import { ReadinessPanel } from '../../../src/renderer/src/components/ceshu'
+import type { ChapterKey } from '../../../src/shared/ceshu/reference'
+import { createDefaultCeshu } from '../../../src/shared/ceshu/model'
+import { computeReadiness } from '../../../src/shared/ceshu/readiness'
 import { renderDom, type RenderResult } from './render'
 
 /**

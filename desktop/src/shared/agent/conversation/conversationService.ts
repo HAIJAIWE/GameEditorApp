@@ -10,7 +10,7 @@
  * 失败一律 `{ ok:false, error }`，让调用方按结果分支（跨进程/跨 bundle 的调用方拿不到我们的异常类型）。
  */
 
-import type { DigitalPanelState } from '../ui/panel'
+import type { DigitalPanelState } from '../ui'
 import type { SlotStoreInstance } from '../../plugin/slotRegistry'
 
 /** 面板状态摘要（对外只暴露「稳定且有用」的字段，不泄露内部结构） */

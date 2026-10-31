@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import type { CeshuChangelog } from '../../src/shared/ceshu/workflow/ceshuDiff'
+import type { CeshuChangelog } from '../../src/shared/ceshu/workflow'
 import {
   buildChangelogHtml,
   buildChangelogMarkdown,

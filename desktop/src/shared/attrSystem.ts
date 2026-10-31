@@ -1,6 +1,6 @@
 // `isPlainObject` 来自 `shared/util/`（纯工具层），不引入 attr → ceshu 的跨业务域依赖。
-import { isPlainObject } from './util/object/guards'
-import { readText } from './util/io/readText'
+import { isPlainObject } from './util/object'
+import { readText } from './util/io'
 
 /**
  * RPG 属性系统核心：

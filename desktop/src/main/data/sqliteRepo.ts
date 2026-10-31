@@ -1,7 +1,7 @@
 import Database from 'better-sqlite3'
 
-import { planShortIdBackfill } from '../../shared/util/id/itemId'
-import { safeJsonParse } from '../../shared/util/object/safeJson'
+import { planShortIdBackfill } from '../../shared/util/id'
+import { safeJsonParse } from '../../shared/util/object'
 import type { ItemRecord } from '../../shared/types'
 import type { ItemsRepository } from './repository'
 

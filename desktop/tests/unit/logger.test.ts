@@ -3,7 +3,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'no
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { setLogSink, log } from '../../src/shared/util/system/logger'
+import { setLogSink, log } from '../../src/shared/util/system'
 import {
   formatLogLine,
   initLogger,

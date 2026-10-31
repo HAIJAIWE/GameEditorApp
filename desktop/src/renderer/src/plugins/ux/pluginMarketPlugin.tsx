@@ -2,9 +2,9 @@ import { useSyncExternalStore, useState, type ReactElement } from 'react'
 
 import type { PluginHost } from '../../../../shared/plugin/host'
 import type { PluginLoader, PluginManifest, PluginMarketEntry, PluginSource } from '../../../../shared/plugin/types'
-import { registerReactBinding, type PanelBindingProps } from '../host/reactBindings'
-import { marketRegistry } from '../context/optionalPlugins'
-import type { InstalledPluginStore } from '../context/installedPluginStore'
+import { registerReactBinding, type PanelBindingProps } from '../host'
+import { marketRegistry } from '../context'
+import type { InstalledPluginStore } from '../context'
 
 /**
  * 插件市场（Part A 探路 + Part B 市场 UI 种子，Slice 44）。

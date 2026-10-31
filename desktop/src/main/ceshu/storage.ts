@@ -1,9 +1,9 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 
-import type { CeshuDocument } from '../../shared/ceshu/reference/ceshuConstants'
-import { normalizeCeshu } from '../../shared/ceshu/model/ceshuModel'
-import { buildProjectFolder, projectFilesToDoc } from '../../shared/ceshu/workflow/ceshuProjectFolder'
+import type { CeshuDocument } from '../../shared/ceshu/reference'
+import { normalizeCeshu } from '../../shared/ceshu/model'
+import { buildProjectFolder, projectFilesToDoc } from '../../shared/ceshu/workflow'
 
 /**
  * 策划书存储（2026-10-26：支持「一份 JSON」与「项目文件夹」两种形态并存）。

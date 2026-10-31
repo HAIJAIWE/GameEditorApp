@@ -39,7 +39,7 @@ import {
   type JsonObjectSchema,
   type JsonSchemaProperty,
   type RiskLevel
-} from '../config/protocol'
+} from '../config'
 
 /* ------------------------------------------------------------------ */
 /* 风险等级文案                                                          */

@@ -10,9 +10,9 @@ import { createRollbackSkill } from '../../src/main/agent/skills/rollbackSkill'
 import type { CeshuManager } from '../../src/main/ceshu/manager'
 import type { DataService } from '../../src/main/data/service'
 import type { TypeSchemaStore } from '../../src/main/schema/store'
-import { applyBatchOp, type BatchOp } from '../../src/shared/util/data/dataTableOps'
-import { TOOL_GROUP_MAP } from '../../src/shared/agent/tools/toolGroups'
-import { BUILTIN_DATA_TYPES } from '../../src/shared/schema/core/typeSchema'
+import { applyBatchOp, type BatchOp } from '../../src/shared/util/data'
+import { TOOL_GROUP_MAP } from '../../src/shared/agent/tools'
+import { BUILTIN_DATA_TYPES } from '../../src/shared/schema/core'
 import type { BatchUpdateSummary, DataTypeDef, ItemRecord } from '../../src/shared/types'
 
 const ROLE = BUILTIN_DATA_TYPES.find((type) => type.id === 'role') as DataTypeDef

@@ -1,10 +1,10 @@
 import { useMemo, type ReactElement } from 'react'
 
-import type { CeshuDocument } from '../../../../shared/ceshu/reference/ceshuConstants'
-import { findCouplingGaps } from '../../../../shared/ceshu/workflow/ceshuCoupling'
-import { analyzeParallelism } from '../../../../shared/ceshu/workflow/ceshuHandoffParallel'
-import { buildHandoffPlan, planHandoffDocs } from '../../../../shared/ceshu/workflow/ceshuHandoffPlan'
-import { computeReadiness } from '../../../../shared/ceshu/readiness/ceshuReadiness'
+import type { CeshuDocument } from '../../../../shared/ceshu/reference'
+import { findCouplingGaps } from '../../../../shared/ceshu/workflow'
+import { analyzeParallelism } from '../../../../shared/ceshu/workflow'
+import { buildHandoffPlan, planHandoffDocs } from '../../../../shared/ceshu/workflow'
+import { computeReadiness } from '../../../../shared/ceshu/readiness'
 
 /**
  * 开发交接体检面板。

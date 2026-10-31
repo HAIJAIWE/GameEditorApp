@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-import type { CeshuSummary } from '../../../../shared/ceshu/reference/ceshuConstants'
+import type { CeshuSummary } from '../../../../shared/ceshu/reference'
 import {
   TIMELINE_COLORS,
   TIMELINE_LEGEND,
@@ -10,7 +10,7 @@ import {
   buildTimelineLayout,
   defaultTimelineSelectionId
 } from '../../../../shared/domain/ceshu/ceshuTimeline'
-import { toErrorMessage } from '../../../../shared/util/system/errors'
+import { toErrorMessage } from '../../../../shared/util/system'
 
 /**
  * 版本时间线面板：

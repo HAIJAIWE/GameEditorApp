@@ -19,7 +19,7 @@ import {
   deriveMessagesFromTurns,
   groupSessionTurns,
   type SessionTurnSummary
-} from '../../../shared/agent/conversation/session'
+} from '../../../shared/agent/conversation'
 import type { AgentSessionStore } from './sessionStore'
 
 /** 单条检索命中（按会话聚合） */

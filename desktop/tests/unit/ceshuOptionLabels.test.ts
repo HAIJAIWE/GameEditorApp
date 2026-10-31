@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { CESHU_CHAPTER_FIELDS } from '../../src/shared/ceshu/fields/ceshuFields'
-import { SYSTEM_CONFIG_SCHEMA } from '../../src/shared/ceshu/model/systemConfigSchema'
+import { CESHU_CHAPTER_FIELDS } from '../../src/shared/ceshu/fields'
+import { SYSTEM_CONFIG_SCHEMA } from '../../src/shared/ceshu/model'
 
 /**
  * 下拉选项中文别名守卫。

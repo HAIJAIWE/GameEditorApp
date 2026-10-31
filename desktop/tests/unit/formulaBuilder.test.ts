@@ -10,7 +10,7 @@ import {
   initialEntries,
   parseFormulaToCoeffs,
   resolveBuilderAttrs
-} from '../../src/shared/util/data/formulaBuilder'
+} from '../../src/shared/util/data'
 
 describe('formulaBuilder：常量表照抄保真', () => {
   it('BASE_ATTR_EFFECTS 与 旧版 逐字一致（16 项，键名含斜杠）', () => {

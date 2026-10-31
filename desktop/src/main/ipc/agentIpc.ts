@@ -14,8 +14,8 @@ import {
   agentSubagentSendInputSchema,
   agentSubagentStopInputSchema,
   mcpSetConfigInputSchema
-} from '../../shared/schema/adapters/schemasDataAgent'
-import { parseMcpConfig } from '../../shared/agent/mcp/config'
+} from '../../shared/schema/adapters'
+import { parseMcpConfig } from '../../shared/agent/mcp'
 import { mcpManager } from '../agent/mcp/manager'
 import { DEFAULT_INTERACTION_TIMEOUT_MS } from '../../shared/agent/brain'
 import { isPreReviewEnabled, setPreReviewEnabled } from '../agent/agentService/preReview'

@@ -1,7 +1,7 @@
 import { useMemo, useSyncExternalStore } from 'react'
 
-import { CONVERSATION_STORE_KEY, createConversationStoreDecl } from '../../../../shared/agent/conversation/conversationStore'
-import type { DigitalPanelState } from '../../../../shared/agent/ui/panel'
+import { CONVERSATION_STORE_KEY, createConversationStoreDecl } from '../../../../shared/agent/conversation'
+import type { DigitalPanelState } from '../../../../shared/agent/ui'
 import type { PluginHost } from '../../../../shared/plugin/host'
 import { createStoreInstance } from '../../../../shared/plugin/slotRegistry'
 import { getSubagentsSnapshot, stopSubagent, subscribeSubagents } from '../../agent/subagentStore'

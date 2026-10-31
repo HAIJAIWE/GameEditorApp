@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { DigitalChangeCard, DigitalChangeList } from '../../src/renderer/src/components/digital/DigitalChangeCard'
-import type { OperationRecord } from '../../src/shared/agent/observability/operationLog'
+import { DigitalChangeCard, DigitalChangeList } from '../../src/renderer/src/components/digital'
+import type { OperationRecord } from '../../src/shared/agent/observability'
 import { renderDom, type RenderResult } from './dom/render'
 
 /**

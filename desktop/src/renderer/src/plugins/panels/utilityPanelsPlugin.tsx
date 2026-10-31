@@ -1,14 +1,14 @@
 import type { PluginHost } from '../../../../shared/plugin/host'
 import type { PluginManifest } from '../../../../shared/plugin/types'
-import AgentEditorPanel from '../../components/agent/AgentEditorPanel'
-import AttrSystemPanel from '../../components/attr/AttrSystemPanel'
-import CleanupImagesPanel from '../../components/backup/CleanupImagesPanel'
-import DataDiffPanel from '../../components/data/DataDiffPanel'
-import GameDataPreviewPanel from '../../components/data/GameDataPreviewPanel'
-import ImageGenPanel from '../../components/browser/ImageGenPanel'
-import KeywordTemplatePanel from '../../components/ceshuType/KeywordTemplatePanel'
-import SettingsPanel from '../../components/common/SettingsPanel'
-import { registerReactBinding } from '../host/reactBindings'
+import { AgentEditorPanel } from '../../components/agent'
+import { AttrSystemPanel } from '../../components/attr'
+import { CleanupImagesPanel } from '../../components/backup'
+import { DataDiffPanel } from '../../components/data'
+import { GameDataPreviewPanel } from '../../components/data'
+import { ImageGenPanel } from '../../components/browser'
+import { KeywordTemplatePanel } from '../../components/ceshuType'
+import { SettingsPanel } from '../../components/common'
+import { registerReactBinding } from '../host'
 
 /**
  * 低风险工具面板 → 插件化第四切片（B 方案 Slice 4）。

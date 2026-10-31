@@ -8,9 +8,9 @@ import { exportCeshuDocument } from '../../src/main/ceshu/export/exporter'
 import { renderCeshuHtml } from '../../src/main/ceshu/export/doc/html'
 import { renderCeshuMarkdown } from '../../src/main/ceshu/export/doc/markdown'
 import { renderCeshuNarrative } from '../../src/main/ceshu/export/content/narrative'
-import { CHAPTER_LABELS, type CeshuDocument } from '../../src/shared/ceshu/reference/ceshuConstants'
-import { setFieldStatuses } from '../../src/shared/ceshu/fields/ceshuFieldStatus'
-import { createDefaultCeshu } from '../../src/shared/ceshu/model/ceshuModel'
+import { CHAPTER_LABELS, type CeshuDocument } from '../../src/shared/ceshu/reference'
+import { setFieldStatuses } from '../../src/shared/ceshu/fields'
+import { createDefaultCeshu } from '../../src/shared/ceshu/model'
 
 function makeDoc(scope: 'full' | 'lite' = 'full'): CeshuDocument {
   const doc = createDefaultCeshu({ scope, name: '测试游戏' })

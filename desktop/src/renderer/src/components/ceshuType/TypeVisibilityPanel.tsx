@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
 import type { DataTypeDef } from '../../../../shared/types'
-import { resolveVisibilityResult } from '../../../../shared/config/game/visibleTypes'
+import { resolveVisibilityResult } from '../../../../shared/config/game'
 
 /**
  * 显示类型选择面板 —— 迁移自 旧版 `ui/dialogs/type_visibility_dialog`

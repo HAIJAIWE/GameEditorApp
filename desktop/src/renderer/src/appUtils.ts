@@ -1,6 +1,6 @@
 import type { ImportSummary } from '../../shared/types'
 
-export { toErrorMessage } from '../../shared/util/system/errors'
+export { toErrorMessage } from '../../shared/util/system'
 
 export function formatImportSummary(summary: ImportSummary): string {
   const unknownKeys = Object.keys(summary.unknownTypes)

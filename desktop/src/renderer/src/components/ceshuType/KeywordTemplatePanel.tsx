@@ -10,9 +10,9 @@ import {
   serializeKeywordTemplates,
   templateTextFor,
   withTemplateText
-} from '../../../../shared/config/secrets/keywordTemplates'
-import type { KeywordTemplates, KeywordTemplateType } from '../../../../shared/config/secrets/keywordTemplates'
-import { readSetting, writeSetting } from '../../../../shared/config/settings/settingsStore'
+} from '../../../../shared/config/secrets'
+import type { KeywordTemplates, KeywordTemplateType } from '../../../../shared/config/secrets'
+import { readSetting, writeSetting } from '../../../../shared/config/settings'
 
 /**
  * 关键词模板配置面板（对齐 旧版 `src/features/advanced:206-306`

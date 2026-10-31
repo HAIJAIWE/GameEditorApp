@@ -6,9 +6,9 @@ import {
   GDD_SCOPE_LITE,
   LITE_CHAPTER_KEYS,
   contentChapterCount
-} from '../../src/shared/ceshu/reference/ceshuConstants'
-import { CESHU_CHAPTER_FIELDS } from '../../src/shared/ceshu/fields/ceshuFields'
-import { GDD_SCOPE_LABELS } from '../../src/shared/ceshu/reference/ceshuOptionLabels'
+} from '../../src/shared/ceshu/reference'
+import { CESHU_CHAPTER_FIELDS } from '../../src/shared/ceshu/fields'
+import { GDD_SCOPE_LABELS } from '../../src/shared/ceshu/reference'
 
 /**
  * 档位文案里的「N 章」必须**由 `CHAPTER_KEYS` 派生**，不许写死。

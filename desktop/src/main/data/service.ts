@@ -1,13 +1,13 @@
 import { randomUUID } from 'node:crypto'
 
-import { applyBatchOp } from '../../shared/util/data/dataTableOps'
-import { isMissingId, needsShortId, nextItemId } from '../../shared/util/id/itemId'
+import { applyBatchOp } from '../../shared/util/data'
+import { isMissingId, needsShortId, nextItemId } from '../../shared/util/id'
 import type {
   BatchUpdateInput,
   CreateItemInput
-} from '../../shared/schema/adapters/schemasDataItems'
+} from '../../shared/schema/adapters'
 import type { BatchUpdateSummary, DeleteManySummary, ItemRecord } from '../../shared/types'
-import type { UndoEntry } from '../../shared/util/system/undoStack'
+import type { UndoEntry } from '../../shared/util/system'
 import type { UndoRecorder, UndoRecorderPort } from './undoRecorder'
 import type { ItemsRepository } from './repository'
 

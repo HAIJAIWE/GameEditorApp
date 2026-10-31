@@ -7,7 +7,7 @@ import {
   extractImageUrl,
   type ImageGenConfig,
   type ImageProvider
-} from '../../src/shared/config/llm/imageGen'
+} from '../../src/shared/config/llm'
 
 function baseConfig(overrides: Partial<ImageGenConfig> = {}): ImageGenConfig {
   return {

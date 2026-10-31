@@ -2,12 +2,12 @@ import { describe, expect, it } from 'vitest'
 
 import { registerCeshuIpc } from '../../src/main/ipc/ceshuIpc'
 import type { IpcHandlerDeps, IpcRegistrar, LlmShared } from '../../src/main/ipc'
-import { createDefaultCeshu } from '../../src/shared/ceshu/model/ceshuModel'
+import { createDefaultCeshu } from '../../src/shared/ceshu/model'
 import {
   DATA_GEN_ERROR_EMPTY,
   DATA_GEN_ERROR_NO_TYPE,
   DATA_GEN_ERROR_UNPARSABLE
-} from '../../src/shared/ceshu/data/ceshuDataGen'
+} from '../../src/shared/ceshu/data'
 
 /**
  * 策划书四路 AI 通道的**特征测试**（characterization test，W1 重构护栏）。

@@ -1,6 +1,6 @@
 import { CHAPTER_KEYS, CHAPTER_LABELS, type CeshuDocument, type ChapterKey } from './ceshuConstants'
 import { GAME_TERMS } from './glossaryTerms'
-import { isPlainObject } from '../model/ceshuModel'
+import { isPlainObject } from '../model'
 
 /**
  * 术语一致性检查：同一概念在全文用了不同叫法时提示统一。

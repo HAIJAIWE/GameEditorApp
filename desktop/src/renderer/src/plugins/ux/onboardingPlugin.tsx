@@ -1,9 +1,9 @@
 import type { PluginHost } from '../../../../shared/plugin/host'
 import type { PluginManifest } from '../../../../shared/plugin/types'
-import OnboardingPanel from '../../components/common/OnboardingPanel'
-import { useAppContext } from '../host/appContext'
-import { getActiveCeshuId, notify, openPanel, setHomeVisible } from '../host/hostBridge'
-import { registerReactBinding, type PanelBindingProps } from '../host/reactBindings'
+import { OnboardingPanel } from '../../components/common'
+import { useAppContext } from '../host'
+import { getActiveCeshuId, notify, openPanel, setHomeVisible } from '../host'
+import { registerReactBinding, type PanelBindingProps } from '../host'
 
 /**
  * 快速入门 → 插件化（Slice 8a 收尾 + 8d 命令化）。

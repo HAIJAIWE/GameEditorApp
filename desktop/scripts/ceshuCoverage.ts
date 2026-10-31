@@ -17,8 +17,8 @@
  *
  * 用法：`cd desktop && npx tsx scripts/ceshuCoverage.ts [--json]`
  */
-import { CHAPTER_KEYS } from '../src/shared/ceshu/reference/ceshuConstants'
-import { CESHU_CHAPTER_FIELDS, resolveFieldMeta } from '../src/shared/ceshu/fields/ceshuFields'
+import { CHAPTER_KEYS } from '../src/shared/ceshu/reference'
+import { CESHU_CHAPTER_FIELDS, resolveFieldMeta } from '../src/shared/ceshu/fields'
 
 interface ChapterCoverage {
   chapter: string

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { chineseToPinyin, suggestPinyinFieldId } from '../../src/shared/util/id/pinyinFieldId'
+import { chineseToPinyin, suggestPinyinFieldId } from '../../src/shared/util/id'
 
 /**
  * 拼音兜底：中文 → 拼音字段 ID。

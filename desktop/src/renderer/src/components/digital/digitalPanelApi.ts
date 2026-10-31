@@ -1,7 +1,7 @@
-import type { DraftSummary } from '../../../../shared/agent/conversation/session'
-import type { OperationRecord } from '../../../../shared/agent/observability/operationLog'
-import type { DeliveryRecord } from '../../../../shared/agent/observability/deliveryLog'
-import type { DigitalAttachment } from '../../../../shared/util/io/libraryAttachments'
+import type { DraftSummary } from '../../../../shared/agent/conversation'
+import type { OperationRecord } from '../../../../shared/agent/observability'
+import type { DeliveryRecord } from '../../../../shared/agent/observability'
+import type { DigitalAttachment } from '../../../../shared/util/io'
 
 /**
  * 智能体面板用到的 IPC 面（`window.mbApi.agent`）。

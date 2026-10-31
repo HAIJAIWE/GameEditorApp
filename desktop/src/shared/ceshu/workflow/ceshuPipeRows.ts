@@ -7,8 +7,8 @@
  * 不必再同步多处（改造前这些拆分逻辑在 ceshuNumericAssert / ceshuEvidence /
  * ceshuDemoPrompt / ceshuValidation 里各写各的）。
  */
-import { type CeshuColumnDef } from '../reference/ceshuConstants'
-import { isPlainObject } from '../../util/object/guards'
+import { type CeshuColumnDef } from '../reference'
+import { isPlainObject } from '../../util/object'
 
 /** 浮点比较容差（数值复算、账本对账共用；防病态相等判定） */
 export const EPSILON = 1e-9

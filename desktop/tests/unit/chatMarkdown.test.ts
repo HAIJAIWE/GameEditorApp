@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 
-import ChatMarkdown from '../../src/renderer/src/components/digital/ChatMarkdown'
+import { ChatMarkdown } from '../../src/renderer/src/components/digital'
 
 /**
  * 覆盖 旧版 `chat_renderer.render_markdown` 的核心能力：

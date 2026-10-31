@@ -7,9 +7,9 @@ import {
   numericFieldNames,
   summarizeNumeric,
   type NumericSummary
-} from '../../../../shared/util/data/dataStats'
+} from '../../../../shared/util/data'
 import type { ItemRecord } from '../../../../shared/types'
-import { useAppContext } from '../../plugins/host/appContext'
+import { useAppContext } from '../../plugins/host'
 
 /**
  * 数据统计 + 平衡性分析面板（对应 旧版 `ui/dialogs/statistics` 的

@@ -3,9 +3,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { PluginHost } from '../../../src/shared/plugin/host'
 import type { DataTypeDef, ItemRecord } from '../../../src/shared/types'
-import { HostPanel } from '../../../src/renderer/src/plugins/host/HostPanel'
-import { AppContextProvider } from '../../../src/renderer/src/plugins/host/appContext'
-import { defineMaintenancePanelsPlugin } from '../../../src/renderer/src/plugins/panels/maintenancePanelsPlugin'
+import { HostPanel } from '../../../src/renderer/src/plugins/host'
+import { AppContextProvider } from '../../../src/renderer/src/plugins/host'
+import { defineMaintenancePanelsPlugin } from '../../../src/renderer/src/plugins/panels'
 import { appContextValue, installMbApi, renderDom, type RenderResult } from './render'
 
 const TYPES: DataTypeDef[] = [

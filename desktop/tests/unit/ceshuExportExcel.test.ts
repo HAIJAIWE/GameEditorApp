@@ -7,9 +7,9 @@ import { describe, expect, it } from 'vitest'
 
 import { buildExcelWorkbook, renderCeshuExcel } from '../../src/main/ceshu/export/doc/excel'
 import { exportCeshuDocument } from '../../src/main/ceshu/export/exporter'
-import { CHAPTER_LABELS, type CeshuDocument } from '../../src/shared/ceshu/reference/ceshuConstants'
-import { autoFillRequiredFields } from '../../src/shared/ceshu/workflow/ceshuFill'
-import { createDefaultCeshu } from '../../src/shared/ceshu/model/ceshuModel'
+import { CHAPTER_LABELS, type CeshuDocument } from '../../src/shared/ceshu/reference'
+import { autoFillRequiredFields } from '../../src/shared/ceshu/workflow'
+import { createDefaultCeshu } from '../../src/shared/ceshu/model'
 
 /** 与 旧版 ceshu_excel_exporter 的 8 个 Sheet 顺序一致 */
 const SHEET_NAMES = ['概览', '系统配置', '数值表', '角色', '里程碑', '风险', '竞品', '校验报告']

@@ -3,11 +3,11 @@ import {
   type CeshuColumnDef,
   type ChapterKey,
   type CeshuFieldDef
-} from '../reference/ceshuConstants'
+} from '../reference'
 // 档 4：字段定义 / 契约 / 拆分 / 默认 / 模板已全部收进 ceshuSchema/<章>.ts。
 // 此处只做「合并」：把按章 schema 聚合成最终字段表（结构拆分 + 契约叠加）。
 import { CHAPTER_SCHEMAS, FIELD_SPLITS } from '../../ceshuSchema'
-import { toFieldHints } from '../../ceshuSchema/core/types'
+import { toFieldHints } from '../../ceshuSchema/core'
 
 /** 字段的协作契约（解析后的结果，供 UI 标记与单字段生成提示词使用） */
 export interface ResolvedFieldMeta {

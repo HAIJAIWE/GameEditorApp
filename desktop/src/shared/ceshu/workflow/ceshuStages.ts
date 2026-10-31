@@ -1,4 +1,4 @@
-import type { ChapterKey } from '../reference/ceshuConstants'
+import type { ChapterKey } from '../reference'
 
 /**
  * 策划书阶段分层 —— 「打开就是 24 章 334 个字段」的解法。

@@ -1,6 +1,6 @@
 import type { PluginHost } from '../../../../shared/plugin/host'
 import type { PluginManifest } from '../../../../shared/plugin/types'
-import { notify } from '../host/hostBridge'
+import { notify } from '../host'
 import {
   engineExport,
   exportCsv,
@@ -12,7 +12,7 @@ import {
   importJson,
   redo,
   undo
-} from '../context/appActionsIo'
+} from '../context'
 
 /** 右侧数字员工 dock 的输入框：`aiPanel` 命令把焦点送过去（不新开对话） */
 const DIGITAL_INPUT = '[data-testid="digital-input"]'

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { toErrorMessage } from '../../../../shared/util/system/errors'
-import type { DigitalAttachment } from '../../../../shared/util/io/libraryAttachments'
+import { toErrorMessage } from '../../../../shared/util/system'
+import type { DigitalAttachment } from '../../../../shared/util/io'
 
 /**
  * 待发送附件簇（对齐 dsh ui-attachment 的诚实子集）。

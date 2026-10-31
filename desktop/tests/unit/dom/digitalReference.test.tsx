@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest'
 
-import { DigitalReferenceMenu } from '../../../src/renderer/src/components/digital/digitalPanelViews'
-import type { DigitalReference } from '../../../src/shared/agent/ui/references'
+import { DigitalReferenceMenu } from '../../../src/renderer/src/components/digital'
+import type { DigitalReference } from '../../../src/shared/agent/ui'
 import { renderDom } from './render'
 
 const REFS: DigitalReference[] = [

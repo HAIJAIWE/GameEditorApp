@@ -2,8 +2,8 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { PluginHost } from '../../../src/shared/plugin/host'
-import { HostPanel } from '../../../src/renderer/src/plugins/host/HostPanel'
-import { defineShortcutsPlugin } from '../../../src/renderer/src/plugins/ux/shortcutsPlugin'
+import { HostPanel } from '../../../src/renderer/src/plugins/host'
+import { defineShortcutsPlugin } from '../../../src/renderer/src/plugins/ux'
 import { installMbApi, renderDom, type RenderResult } from './render'
 
 let view: RenderResult | null = null

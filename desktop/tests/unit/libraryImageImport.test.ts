@@ -4,7 +4,7 @@ import {
   LIBRARY_IMAGES_DIRNAME,
   planLibraryImageName,
   toLibraryRelativePath
-} from '../../src/shared/util/io/libraryImageImport'
+} from '../../src/shared/util/io'
 
 /** 入库文件名的纯逻辑（不碰 fs） */
 describe('planLibraryImageName', () => {

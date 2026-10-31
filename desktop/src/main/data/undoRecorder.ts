@@ -11,7 +11,7 @@
  *   仅整段 resolve 才把 entry 从 undo 栈移入 redo 栈，失败保留历史（E8）。
  */
 
-import { buildRedoStep, buildReverseStep, leafEntries, UndoStack, type UndoEntry, type UndoStep, type UndoSkip } from '../../shared/util/system/undoStack'
+import { buildRedoStep, buildReverseStep, leafEntries, UndoStack, type UndoEntry, type UndoStep, type UndoSkip } from '../../shared/util/system'
 import type { ItemRecord } from '../../shared/types'
 import type { UndoResult, UndoState } from '../../shared/ipc'
 

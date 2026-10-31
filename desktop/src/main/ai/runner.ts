@@ -23,9 +23,9 @@
  *   （eslint 规则 7 已机器化），领域细节一律经参数注入。
  */
 
-import { estimateTokens, type LlmTaskType } from '../../shared/agent/runtime/budget'
-import type { LlmUsage } from '../../shared/config/llm/llmConfig'
-import type { AgentRunStats } from '../../shared/agent/observability/observability'
+import { estimateTokens, type LlmTaskType } from '../../shared/agent/runtime'
+import type { LlmUsage } from '../../shared/config/llm'
+import type { AgentRunStats } from '../../shared/agent/observability'
 import type { LlmCallOptions } from '../llm/client'
 import { runSingleShotTask } from '../agent/execution/runTask'
 

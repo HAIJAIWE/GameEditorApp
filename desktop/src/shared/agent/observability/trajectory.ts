@@ -9,7 +9,7 @@
  * 单独成模块的原因与 `toolDetail.ts` 相同：分组与计数是纯函数，组件只负责画。
  */
 
-import type { DigitalPanelState, DigitalStep } from '../ui/panel'
+import type { DigitalPanelState, DigitalStep } from '../ui'
 
 /** 轨迹里的一行步骤（只保留展示需要的字段，不透传整个事件） */
 export interface TrajectoryStepRow {

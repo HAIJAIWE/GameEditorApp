@@ -7,7 +7,7 @@
 
 import { z } from 'zod'
 
-import { ADJUST_MODES, BATCH_OP_KINDS } from '../../util/data/dataTableOps'
+import { ADJUST_MODES, BATCH_OP_KINDS } from '../../util/data'
 
 export const listItemsInputSchema = z.object({
   type: z.string().min(1)

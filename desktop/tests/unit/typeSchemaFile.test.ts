@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import { dataTypeDefSchema } from '../../src/shared/schema/adapters/schemasDataTypeSchema'
-import { BUILTIN_DATA_TYPES } from '../../src/shared/schema/core/typeSchema'
-import { parseTypeSchemaFile, serializeTypeSchema, validateTypeSchema } from '../../src/shared/schema/adapters/typeSchemaFile'
-import { TYPE_TEMPLATES, buildNewTypeDraft } from '../../src/shared/schema/core/typeTemplates'
+import { dataTypeDefSchema } from '../../src/shared/schema/adapters'
+import { BUILTIN_DATA_TYPES } from '../../src/shared/schema/core'
+import { parseTypeSchemaFile, serializeTypeSchema, validateTypeSchema } from '../../src/shared/schema/adapters'
+import { TYPE_TEMPLATES, buildNewTypeDraft } from '../../src/shared/schema/core'
 import type { DataTypeDef } from '../../src/shared/types'
 
 describe('字段结构文件格式', () => {

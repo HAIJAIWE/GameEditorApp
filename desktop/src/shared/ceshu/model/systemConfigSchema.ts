@@ -1,5 +1,5 @@
-import type { SystemConfigFieldDef } from '../reference/ceshuConstants'
-import * as OPT from '../reference/ceshuOptionLabels'
+import type { SystemConfigFieldDef } from '../reference'
+import * as OPT from '../reference'
 
 /**
  * 13 个游戏系统的标准 config 字段定义。

@@ -1,6 +1,6 @@
-import { CESHU_CHAPTER_FIELDS } from '../fields/ceshuFields'
-import type { CeshuDocument } from '../reference/ceshuConstants'
-import { visibleChaptersForDoc } from '../model/ceshuModel'
+import { CESHU_CHAPTER_FIELDS } from '../fields'
+import type { CeshuDocument } from '../reference'
+import { visibleChaptersForDoc } from '../model'
 
 /**
  * 原型过期判定（2026-10-26）。

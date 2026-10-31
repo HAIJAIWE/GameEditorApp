@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react'
 
-import LucideIcon from '../common/LucideIcon'
+import { LucideIcon } from '../common'
 
 /**
  * 可折叠分区卡片（条目编辑器字段分组用）。

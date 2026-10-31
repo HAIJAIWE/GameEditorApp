@@ -1,8 +1,8 @@
 import type { DataQualityVerdict } from '../../types'
-import { isPlainObject } from '../model/ceshuModel'
-import type { CeshuDocument } from '../reference/ceshuConstants'
+import { isPlainObject } from '../model'
+import type { CeshuDocument } from '../reference'
 import type { DataTypeDef } from '../../types'
-import type { LlmUsage } from '../../config/llm/llmConfig'
+import type { LlmUsage } from '../../config/llm'
 
 /**
  * AI 生成候选游戏数据纯逻辑（自 旧版 `core/agent/skills/ceshu_skill_generate::_ai_generate_data`

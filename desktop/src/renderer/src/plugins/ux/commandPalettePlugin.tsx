@@ -5,14 +5,14 @@ import {
   filterPaletteItems,
   movePaletteIndex,
   type PaletteItem
-} from '../../../../shared/agent/tools/commandPalette'
-import { CONVERSATION_STORE_KEY, createConversationStoreDecl } from '../../../../shared/agent/conversation/conversationStore'
-import type { DigitalPanelState } from '../../../../shared/agent/ui/panel'
+} from '../../../../shared/agent/tools'
+import { CONVERSATION_STORE_KEY, createConversationStoreDecl } from '../../../../shared/agent/conversation'
+import type { DigitalPanelState } from '../../../../shared/agent/ui'
 import type { PluginHost } from '../../../../shared/plugin/host'
 import type { PluginManifest } from '../../../../shared/plugin/types'
 import { createStoreInstance } from '../../../../shared/plugin/slotRegistry'
-import { openPalette, subscribePalette } from '../context/paletteBus'
-import { registerSlotComponent } from '../host/reactBindings'
+import { openPalette, subscribePalette } from '../context'
+import { registerSlotComponent } from '../host'
 
 /**
  * 全局命令面板（⌘K / Ctrl+K，借 dsh `ui-commands` 的交互设计、本地重写）。

@@ -1,5 +1,5 @@
-import { CHAPTER_KEYS, CHAPTER_LABELS, type ChapterKey } from '../reference/ceshuConstants'
-import { CESHU_CHAPTER_FIELDS } from '../fields/ceshuFields'
+import { CHAPTER_KEYS, CHAPTER_LABELS, type ChapterKey } from '../reference'
+import { CESHU_CHAPTER_FIELDS } from '../fields'
 
 /**
  * 从校验文案里解析出该问题所属章节（用于「点击跳转」）。

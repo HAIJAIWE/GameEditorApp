@@ -14,7 +14,7 @@
  */
 
 // 仅类型引用（`import type` 在编译期擦除）⇒ 不构成与 ceshuTasks 的运行时循环依赖
-import type { CeshuTaskPlan } from '../workflow/ceshuTasks'
+import type { CeshuTaskPlan } from '../workflow'
 
 /** 文档信息段：封面信息，不占章号 */
 export const META_CHAPTER_KEY = 'meta'

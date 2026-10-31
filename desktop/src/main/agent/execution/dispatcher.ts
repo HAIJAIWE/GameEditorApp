@@ -29,7 +29,7 @@ import {
   type SkillProtocol,
   type SkillResult,
   type ToolFunctionSchema
-} from '../../../shared/agent/config/protocol'
+} from '../../../shared/agent/config'
 
 /** 模糊索引中使用的别名（仅覆盖已注册技能的相关概念） */
 const FUZZY_ALIASES: Record<string, string> = {

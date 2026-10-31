@@ -2,7 +2,7 @@ import {
   TYPE_TEMPLATE_NAMES,
   TYPE_TEMPLATES,
   type TemplateSectionSuggestion
-} from '../../../../shared/schema/core/typeTemplates'
+} from '../../../../shared/schema/core'
 import type { DataTypeDef, TypeFieldDef } from '../../../../shared/types'
 
 /**

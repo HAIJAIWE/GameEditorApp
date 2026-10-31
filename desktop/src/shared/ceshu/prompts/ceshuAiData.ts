@@ -16,7 +16,7 @@
  * 「核心选择 / 数值与可达性」的追问按品类走 `reviewProbeFor()`，不得在逻辑层写死品类分支。
  */
 
-import type { ChapterKey } from '../reference/ceshuConstants'
+import type { ChapterKey } from '../reference'
 
 /* ---- 子智能体路由 ---- */
 

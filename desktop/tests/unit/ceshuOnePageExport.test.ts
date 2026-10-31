@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest'
 import { renderCeshuDeliverableMarkdown } from '../../src/main/ceshu/export/doc/markdown'
 import { renderCeshuOnePageMarkdown } from '../../src/main/ceshu/export/content/onepage'
 import { renderCeshuTasksMarkdown } from '../../src/main/ceshu/export/delivery/tasks'
-import { CESHU_EXPORT_FORMATS, CESHU_FORMAT_EXTENSIONS } from '../../src/shared/ceshu/reference/ceshuConstants'
-import { createDefaultCeshu } from '../../src/shared/ceshu/model/ceshuModel'
+import { CESHU_EXPORT_FORMATS, CESHU_FORMAT_EXTENSIONS } from '../../src/shared/ceshu/reference'
+import { createDefaultCeshu } from '../../src/shared/ceshu/model'
 
 /**
  * 一页式导出（2026 对齐）：与 UI「一页总览」同口径——必填全列（空→待填）、非必填只列已填、

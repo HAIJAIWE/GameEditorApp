@@ -1,7 +1,7 @@
-import { CHAPTER_LABELS, isChapterKey, type CeshuDocument, type ChapterData, type ChapterKey } from '../reference/ceshuConstants'
-import { CESHU_CHAPTER_FIELDS, fieldLabelOf } from '../fields/ceshuFields'
-import { isPlainObject } from '../model/ceshuModel'
-import { parseLlmJson } from '../../util/object/parseLlmJson'
+import { CHAPTER_LABELS, isChapterKey, type CeshuDocument, type ChapterData, type ChapterKey } from '../reference'
+import { CESHU_CHAPTER_FIELDS, fieldLabelOf } from '../fields'
+import { isPlainObject } from '../model'
+import { parseLlmJson } from '../../util/object'
 
 /**
  * 「导入 AI 结果」的纯逻辑：把外部 AI 返回的字段增量 JSON 解析成可预览、可应用的补丁。

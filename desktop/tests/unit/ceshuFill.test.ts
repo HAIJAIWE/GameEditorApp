@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
-import type { CeshuDocument } from '../../src/shared/ceshu/reference/ceshuConstants'
-import { autoFillRequiredFields } from '../../src/shared/ceshu/workflow/ceshuFill'
-import { createDefaultCeshu } from '../../src/shared/ceshu/model/ceshuModel'
+import type { CeshuDocument } from '../../src/shared/ceshu/reference'
+import { autoFillRequiredFields } from '../../src/shared/ceshu/workflow'
+import { createDefaultCeshu } from '../../src/shared/ceshu/model'
 
 function makeDoc(name = '填充测试'): CeshuDocument {
   return createDefaultCeshu({ scope: 'full', name })

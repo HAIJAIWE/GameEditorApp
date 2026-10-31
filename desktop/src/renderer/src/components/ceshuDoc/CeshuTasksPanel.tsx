@@ -1,16 +1,16 @@
 import { useState } from 'react'
 
-import type { CeshuDocument } from '../../../../shared/ceshu/reference/ceshuConstants'
+import type { CeshuDocument } from '../../../../shared/ceshu/reference'
 import {
   CESHU_ROLE_LABELS,
   CESHU_ROLE_ORDER,
   CESHU_TASK_PRIORITIES,
   collectRoleTasks,
   type CeshuRole
-} from '../../../../shared/ceshu/workflow/ceshuTasks'
-import { countTaskPlan } from '../../../../shared/ceshu/prompts/ceshuTaskPrompt'
-import { CHAPTER_LABELS } from '../../../../shared/ceshu/reference/ceshuConstants'
-import { toErrorMessage } from '../../../../shared/util/system/errors'
+} from '../../../../shared/ceshu/workflow'
+import { countTaskPlan } from '../../../../shared/ceshu/prompts'
+import { CHAPTER_LABELS } from '../../../../shared/ceshu/reference'
+import { toErrorMessage } from '../../../../shared/util/system'
 
 /**
  * 岗位任务（三栏布局「岗位任务」标签）。

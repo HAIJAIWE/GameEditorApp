@@ -1,8 +1,8 @@
 import { useState } from 'react'
 
-import { buildAutoImageInfo, autoFillLabel, mergeImageTagsResult } from '../../../../shared/util/field/fieldAiAssist'
+import { buildAutoImageInfo, autoFillLabel, mergeImageTagsResult } from '../../../../shared/util/field'
 import type { ItemRecord, TypeFieldDef } from '../../../../shared/types'
-import LazyImage from '../common/LazyImage'
+import { LazyImage } from '../common'
 import { itemNameOf } from '../itemFormUtils'
 
 interface FieldControlProps {

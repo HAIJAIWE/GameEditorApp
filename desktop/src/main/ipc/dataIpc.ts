@@ -7,7 +7,7 @@ import {
   previewImportInputSchema,
   applyImportInputSchema,
   dataSnapshotInputSchema
-} from '../../shared/schema/adapters/schemasDataImportExport'
+} from '../../shared/schema/adapters'
 import {
   listItemsInputSchema,
   createItemInputSchema,
@@ -17,8 +17,8 @@ import {
   deleteManyInputSchema,
   clearAllInputSchema,
   referencesInputSchema
-} from '../../shared/schema/adapters/schemasDataItems'
-import { buildReferenceReport } from '../../shared/util/search/references'
+} from '../../shared/schema/adapters'
+import { buildReferenceReport } from '../../shared/util/search'
 import { importLegacyDataFile } from '../data/legacyImport'
 import { exportLegacyDataFile } from '../data/legacyExport'
 import { applyParsedImport, exportCsvFiles, importCsvFile, parseCsvImport } from '../data/csvIO'

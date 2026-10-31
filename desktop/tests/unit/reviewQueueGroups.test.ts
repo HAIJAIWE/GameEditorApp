@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { groupReviewQueue, type ReviewQueueItem } from '../../src/renderer/src/components/ceshu/reviewQueueGroups'
+import { groupReviewQueue, type ReviewQueueItem } from '../../src/renderer/src/components/ceshu'
 
 /** 造一条待审字段（字段名不参与分组，仅为可读性） */
 function item(chapter: ReviewQueueItem['chapter'], fieldKey = 'f'): ReviewQueueItem {

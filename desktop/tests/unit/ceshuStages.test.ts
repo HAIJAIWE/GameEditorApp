@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { CHAPTER_KEYS } from '../../src/shared/ceshu/reference/ceshuConstants'
-import { CESHU_CHAPTER_FIELDS } from '../../src/shared/ceshu/fields/ceshuFields'
+import { CHAPTER_KEYS } from '../../src/shared/ceshu/reference'
+import { CESHU_CHAPTER_FIELDS } from '../../src/shared/ceshu/fields'
 import {
   CESHU_MACHINE_DATA_FIELDS,
   CESHU_STAGE_CHAPTERS,
@@ -11,7 +11,7 @@ import {
   isChapterVisibleInStage,
   isMachineDataField,
   stageOfChapter
-} from '../../src/shared/ceshu/workflow/ceshuStages'
+} from '../../src/shared/ceshu/workflow'
 
 /**
  * 阶段分层守卫（2026-10-26 反向验证后落地）：

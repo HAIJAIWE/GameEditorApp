@@ -1,4 +1,4 @@
-import { CHAPTER_KEYS, type CeshuDocument, type CeshuFieldDef } from '../reference/ceshuConstants'
+import { CHAPTER_KEYS, type CeshuDocument, type CeshuFieldDef } from '../reference'
 import { CESHU_CHAPTER_FIELDS } from './ceshuFields'
 import { fieldStatusOf, type ChapterFieldStatus, type FieldReviewStatus } from './ceshuFieldStatus'
 

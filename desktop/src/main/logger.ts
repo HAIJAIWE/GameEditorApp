@@ -13,7 +13,7 @@ import { existsSync, mkdirSync, renameSync, statSync, appendFileSync, unlinkSync
 import { join } from 'node:path'
 
 import type { AppLogInput, LogLevel } from '../shared/types'
-import { setLogSink } from '../shared/util/system/logger'
+import { setLogSink } from '../shared/util/system'
 
 const LOGGER_NAME = 'GameEditorApp'
 

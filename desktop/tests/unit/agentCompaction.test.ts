@@ -14,12 +14,12 @@ import {
   codePointLength,
   pruneText,
   pruneToolResult
-} from '../../src/shared/agent/compaction/prune'
-import { cutBalanced, pairingDelta, safeTailCount } from '../../src/shared/agent/compaction/pairing'
-import { resolvePressureBudget } from '../../src/shared/agent/compaction/pressure'
-import { compactHistory, estimateTokensOf } from '../../src/shared/agent/compaction/compact'
-import { clipToolResult } from '../../src/shared/agent/brain/context'
-import type { BrainMessage } from '../../src/shared/agent/runtime/brainMessages'
+} from '../../src/shared/agent/compaction'
+import { cutBalanced, pairingDelta, safeTailCount } from '../../src/shared/agent/compaction'
+import { resolvePressureBudget } from '../../src/shared/agent/compaction'
+import { compactHistory, estimateTokensOf } from '../../src/shared/agent/compaction'
+import { clipToolResult } from '../../src/shared/agent/brain'
+import type { BrainMessage } from '../../src/shared/agent/runtime'
 
 const big = (tag: string) => `${tag}-${'x'.repeat(6000)}`
 

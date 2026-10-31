@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { orderHeadersWithId, RECORD_ID_KEY } from '../../src/shared/util/id/recordHeaders'
+import { orderHeadersWithId, RECORD_ID_KEY } from '../../src/shared/util/id'
 
 /**
  * 导出表头排序：`id` 必须排首列。

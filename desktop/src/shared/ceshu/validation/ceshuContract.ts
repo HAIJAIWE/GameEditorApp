@@ -1,7 +1,7 @@
-import { CHAPTER_LABELS, type CeshuDocument } from '../reference/ceshuConstants'
-import { fieldColumns } from '../fields/ceshuFields'
-import { checkLedger, checkPrototypeAcceptanceResults, checkTestCaseList } from '../notes/ceshuEvidence'
-import { deriveRulesetId, getGddScope } from '../model/ceshuModel'
+import { CHAPTER_LABELS, type CeshuDocument } from '../reference'
+import { fieldColumns } from '../fields'
+import { checkLedger, checkPrototypeAcceptanceResults, checkTestCaseList } from '../notes'
+import { deriveRulesetId, getGddScope } from '../model'
 import {
   evaluateAssertions,
   evaluateExpression,
@@ -9,8 +9,8 @@ import {
   parseParameterNames,
   type AssertionResult
 } from './ceshuNumericAssert'
-import { splitRow, toRowStrings } from '../workflow/ceshuPipeRows'
-import { readText } from '../../util/io/readText'
+import { splitRow, toRowStrings } from '../workflow'
+import { readText } from '../../util/io'
 
 /**
  * 设计契约（design contract）——把「散落在 24 章里的可验证承诺」抽成一份机读契约。

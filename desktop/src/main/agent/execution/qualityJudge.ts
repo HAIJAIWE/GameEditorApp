@@ -1,5 +1,5 @@
 import { LlmClient, type LlmCallOptions } from '../../llm/client'
-import { parseLlmJson } from '../../../shared/util/object/parseLlmJson'
+import { parseLlmJson } from '../../../shared/util/object'
 import { isAbortError } from '../../../shared/abort'
 import type { LlmJudgeVerdict } from '../../../shared/types'
 

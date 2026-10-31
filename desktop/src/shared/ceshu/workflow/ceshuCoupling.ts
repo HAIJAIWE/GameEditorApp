@@ -1,6 +1,6 @@
-import { chapterOrdinalCn, type CeshuDocument, type ChapterKey } from '../reference/ceshuConstants'
-import { fieldLabelOf } from '../fields/ceshuFields'
-import { isFilledValue, visibleChaptersForDoc } from '../model/ceshuModel'
+import { chapterOrdinalCn, type CeshuDocument, type ChapterKey } from '../reference'
+import { fieldLabelOf } from '../fields'
+import { isFilledValue, visibleChaptersForDoc } from '../model'
 
 /**
  * 字段联动检查（可开发性缺口）。

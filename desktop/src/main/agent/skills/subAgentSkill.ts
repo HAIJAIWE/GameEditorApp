@@ -1,4 +1,4 @@
-import type { SkillProtocol, SkillResult } from '../../../shared/agent/config/protocol'
+import type { SkillProtocol, SkillResult } from '../../../shared/agent/config'
 
 /**
  * 子智能体工具（Slice 19）：**标记技能**。

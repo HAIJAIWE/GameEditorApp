@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 
-import { CHAPTER_KEYS, CHAPTER_LABELS, type ChapterKey } from '../../../../shared/ceshu/reference/ceshuConstants'
-import { countNotesByChapter, filterNotes, notePreview, type CeshuNote } from '../../../../shared/ceshu/notes/ceshuNotes'
-import { toErrorMessage } from '../../../../shared/util/system/errors'
+import { CHAPTER_KEYS, CHAPTER_LABELS, type ChapterKey } from '../../../../shared/ceshu/reference'
+import { countNotesByChapter, filterNotes, notePreview, type CeshuNote } from '../../../../shared/ceshu/notes'
+import { toErrorMessage } from '../../../../shared/util/system'
 
 /**
  * 章节笔记面板：

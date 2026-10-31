@@ -1,38 +1,19 @@
 import { PluginHost } from '../../../../shared/plugin/host'
-import { createPluginLoader } from '../../../../shared/plugin/loader'
 import { MAIN_VIEW_STORE_KEY, createMainViewStoreDecl } from '../../../../shared/plugin/mainViewStore'
-import { defineAppActionsPlugin } from '../ux/appActionsPlugin'
-import { defineCeshuMenusPlugin } from '../ceshu/ceshuMenusPlugin'
-import { defineCeshuPlugin } from '../ceshu/ceshuPlugin'
-import { defineCeshuViewsPlugin } from '../ceshu/ceshuViewsPlugin'
-import { defineCommandPalettePlugin } from '../ux/commandPalettePlugin'
-import { defineCoreViewsPlugin } from '../panels/coreViewsPlugin'
-import { defineDataPanelsPlugin } from '../panels/dataPanelsPlugin'
-import { defineDemoPlugin } from '../ux/demoPlugin'
-import { defineEntryPanelsPlugin } from '../panels/entryPanelsPlugin'
-import { defineMaintenancePanelsPlugin } from '../panels/maintenancePanelsPlugin'
-import { defineMcpConfigPlugin } from '../panels/mcpConfigPlugin'
-import { defineMenusPlugin } from '../ux/menusPlugin'
-import { defineNavigationPlugin } from '../ux/navigationPlugin'
-import { defineOnboardingPlugin } from '../ux/onboardingPlugin'
-import { definePluginMarketPlugin } from '../ux/pluginMarketPlugin'
-import { defineSessionPlugin } from '../session/sessionPlugin'
-import { defineSessionHistoryPlugin } from '../session/sessionHistoryPlugin'
-import { defineAutoReviewPlugin } from '../ux/autoReviewPlugin'
-import { defineRecentChangesPlugin } from '../panels/recentChangesPlugin'
-import { defineReferencesPlugin } from '../panels/referencesPlugin'
-import { defineShellPanelsPlugin } from '../panels/shellPanelsPlugin'
-import { defineShortcutsPlugin } from '../ux/shortcutsPlugin'
-import { defineStatisticsPlugin } from '../panels/statisticsPlugin'
-import { defineUtilityPanelsPlugin } from '../panels/utilityPanelsPlugin'
-import { createLocalStorageInstalledStore, pruneObsoleteSources } from './installedPluginStore'
+import { createLocalStorageInstalledStore } from './installedPluginStore'
 
 /**
  * 宿主单例：整个渲染进程共享一个 PluginHost。
- * 模块加载即幂等注册内置插件（ceshu 受保护核心 + demo 示例），App 只需 import 本模块。
  *
  * 这是「万物插件化」的脊柱：未来任何新能力都走 `pluginHost.register(manifest)`，
  * 不再硬编码进 App/MenuBar/CeshuView。
+ *
+ * ⚠️ 本模块**只放单例本身**，不放内置插件的注册——注册在 `renderer/src/plugins/builtins.ts`
+ * （组合根）。原因：注册要 import `../ux` `../panels` `../ceshu` `../session` 四个能力入口，
+ * 而这四个目录里的模块（如 `ux/shortcutsPlugin`）又 import `../context`。把注册放在本模块，
+ * 会形成「context → ux → context」的强连通分量，且注册在**模块顶层**执行，于是
+ * `context` 被从 ux 侧首次进入时，ux 尚未求值完，`defineShortcutsPlugin` 等绑定是 undefined
+ * （实测：`defineShortcutsPlugin is not a function`）。组合根放在 `plugins/` 根上就没有这条回边。
  */
 export const pluginHost = new PluginHost()
 
@@ -48,66 +29,3 @@ pluginHost.declareStore(MAIN_VIEW_STORE_KEY, createMainViewStoreDecl())
  * 重启后由 `autoLoadInstalled()` 经 loader 重新加载。
  */
 export const installedPluginStore = createLocalStorageInstalledStore()
-
-/**
- * cordis 式运行时加载器（Slice 44）。静态打包的可选插件走 `factory:` 映射；
- * 未来外部 bundle 走 `link:/file:/registry:`。
- */
-export const pluginLoader = createPluginLoader({
-  'plugin-market': () => definePluginMarketPlugin(pluginHost, pluginLoader, installedPluginStore),
-  'session': () => defineSessionPlugin(pluginHost),
-  'session-history': () => defineSessionHistoryPlugin(pluginHost),
-  'auto-review': () => defineAutoReviewPlugin(pluginHost),
-  'recent-changes': () => defineRecentChangesPlugin(pluginHost),
-  'command-palette': () => defineCommandPalettePlugin(pluginHost)
-})
-
-let registered = false
-
-export function registerBuiltinPlugins(): void {
-  if (registered) return
-  registered = true
-  pluginHost.register(defineCeshuPlugin())
-  pluginHost.register(defineDemoPlugin(pluginHost))
-  pluginHost.register(defineShortcutsPlugin(pluginHost))
-  pluginHost.register(defineStatisticsPlugin(pluginHost))
-  pluginHost.register(defineReferencesPlugin(pluginHost))
-  pluginHost.register(defineUtilityPanelsPlugin(pluginHost))
-  pluginHost.register(defineDataPanelsPlugin(pluginHost))
-  pluginHost.register(defineMaintenancePanelsPlugin(pluginHost))
-  pluginHost.register(defineEntryPanelsPlugin(pluginHost))
-  pluginHost.register(defineShellPanelsPlugin(pluginHost))
-  pluginHost.register(defineOnboardingPlugin(pluginHost))
-  pluginHost.register(defineAppActionsPlugin(pluginHost))
-  pluginHost.register(defineMenusPlugin(pluginHost))
-  pluginHost.register(defineNavigationPlugin(pluginHost))
-  pluginHost.register(defineCeshuViewsPlugin())
-  pluginHost.register(defineCeshuMenusPlugin(pluginHost))
-  pluginHost.register(defineMcpConfigPlugin(pluginHost))
-  pluginHost.register(defineCoreViewsPlugin())
-}
-
-registerBuiltinPlugins()
-
-/**
- * 插件市场入口经 `PluginLoader` 异步加载（验证 cordis 式运行时加载路径），
- * 同时重新加载上次通过市场安装的插件（installedPluginStore 记录的 source）。
- * 失败仅把对应占位标 `status:'error'`，不阻塞宿主。
- */
-void pluginHost.loadPlugin(pluginLoader, 'factory:plugin-market')
-void pluginHost.loadPlugin(pluginLoader, 'factory:session')
-void pluginHost.loadPlugin(pluginLoader, 'factory:session-history')
-void pluginHost.loadPlugin(pluginLoader, 'factory:auto-review')
-void pluginHost.loadPlugin(pluginLoader, 'factory:recent-changes')
-void pluginHost.loadPlugin(pluginLoader, 'factory:command-palette')
-/**
- * 迁移（Slice 51）：`agent-team` / `trajectory` 已合并为 `session`。
- * 清掉可能残留在 localStorage 的旧 source——否则启动时加载一个已不存在的 factory，
- * 会在插件列表里留下一个无意义的 error 占位（`loadPlugin` 不抛，但状态是 error）。
- */
-const installedSources = installedPluginStore.load()
-const liveSources = pruneObsoleteSources(installedSources)
-if (liveSources.length !== installedSources.length) installedPluginStore.save(liveSources)
-for (const source of liveSources) {
-  void pluginHost.loadPlugin(pluginLoader, source)
-}

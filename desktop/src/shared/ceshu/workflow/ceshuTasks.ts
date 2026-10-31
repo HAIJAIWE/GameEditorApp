@@ -1,7 +1,7 @@
-import { CHAPTER_LABELS, CHAPTER_REQUIRED_FIELDS, type CeshuDocument, type ChapterKey } from '../reference/ceshuConstants'
-import { CESHU_CHAPTER_FIELDS } from '../fields/ceshuFields'
-import { displayFieldValue } from '../fields/ceshuFieldDisplay'
-import { visibleChaptersForDoc } from '../model/ceshuModel'
+import { CHAPTER_LABELS, CHAPTER_REQUIRED_FIELDS, type CeshuDocument, type ChapterKey } from '../reference'
+import { CESHU_CHAPTER_FIELDS } from '../fields'
+import { displayFieldValue } from '../fields'
+import { visibleChaptersForDoc } from '../model'
 
 /**
  * 岗位任务（单源）：`main/ceshu/export/tasks.ts`（导出 Markdown）与

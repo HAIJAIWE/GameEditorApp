@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { resolveAgentTier, resolveAgentTransport } from '../../src/main/agent/transport/agentTransport'
 import { OllamaChatTransport } from '../../src/main/agent/transport/ollamaTransport'
 import { buildChatCompletionsUrl, OpenAiChatTransport } from '../../src/main/agent/transport/openAiTransport'
-import { DEFAULT_LLM_CONFIG, LLM_DEFAULT_NUM_CTX, type StoredLlmConfig } from '../../src/shared/config/llm/llmConfig'
+import { DEFAULT_LLM_CONFIG, LLM_DEFAULT_NUM_CTX, type StoredLlmConfig } from '../../src/shared/config/llm'
 
 /**
  * M3 档位路由：云端传输层（OpenAI 兼容工具调用）+ 传输层解析。

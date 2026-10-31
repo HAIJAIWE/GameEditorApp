@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { createDefaultCeshu } from '../../src/shared/ceshu/model/ceshuModel'
-import { buildProjectFolder, projectFilesToDoc, projectFolderName } from '../../src/shared/ceshu/workflow/ceshuProjectFolder'
+import { createDefaultCeshu } from '../../src/shared/ceshu/model'
+import { buildProjectFolder, projectFilesToDoc, projectFolderName } from '../../src/shared/ceshu/workflow'
 
 /**
  * 项目文件夹构建器：一份策划书 → config.json + design/<章>.md + tasks/<岗位>.md。

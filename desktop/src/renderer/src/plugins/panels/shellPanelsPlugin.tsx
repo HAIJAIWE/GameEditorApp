@@ -1,8 +1,8 @@
 import type { PluginHost } from '../../../../shared/plugin/host'
 import type { PluginManifest } from '../../../../shared/plugin/types'
-import AboutPanel from '../../components/common/AboutPanel'
-import PluginsPanel from '../../components/common/PluginsPanel'
-import { registerReactBinding, type PanelBindingProps } from '../host/reactBindings'
+import { AboutPanel } from '../../components/common'
+import { PluginsPanel } from '../../components/common'
+import { registerReactBinding, type PanelBindingProps } from '../host'
 
 /**
  * 外壳类面板 → 插件化第八切片的收尾两件（B 方案 Slice 8 前置）。

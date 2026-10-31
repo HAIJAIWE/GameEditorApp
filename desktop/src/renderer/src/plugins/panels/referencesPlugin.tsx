@@ -1,8 +1,8 @@
 import type { PluginHost } from '../../../../shared/plugin/host'
 import type { PluginManifest } from '../../../../shared/plugin/types'
-import ReferencesPanel, { type ReferenceTarget } from '../../components/ceshuField/ReferencesPanel'
-import { useAppContext } from '../host/appContext'
-import { registerReactBinding, type PanelBindingProps } from '../host/reactBindings'
+import { ReferencesPanel, type ReferenceTarget } from '../../components/ceshuField'
+import { useAppContext } from '../host'
+import { registerReactBinding, type PanelBindingProps } from '../host'
 
 /**
  * 数据关联预览 → 插件化第三切片（B 方案 Slice 3）。

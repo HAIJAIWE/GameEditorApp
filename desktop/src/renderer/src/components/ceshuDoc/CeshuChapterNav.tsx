@@ -3,17 +3,17 @@ import {
   MODULE_CHAPTERS,
   contentChapterCount,
   type ChapterKey
-} from '../../../../shared/ceshu/reference/ceshuConstants'
-import type { AiGeneratedMap } from '../../../../shared/ceshu/prompts/ceshuAiMark'
+} from '../../../../shared/ceshu/reference'
+import type { AiGeneratedMap } from '../../../../shared/ceshu/prompts'
 import {
   CESHU_STAGE_LABELS,
   CESHU_STAGE_ORDER,
   type CeshuStage
-} from '../../../../shared/ceshu/workflow/ceshuStages'
+} from '../../../../shared/ceshu/workflow'
 import type { PluginHost } from '../../../../shared/plugin/host'
 
-import { ViewMount } from '../../plugins/host/ViewMount'
-import { CESHU_CHAPTERNAV_MOUNT, type CeshuViewContextValue } from '../../plugins/ceshu/ceshuViewContext'
+import { ViewMount } from '../../plugins/host'
+import { CESHU_CHAPTERNAV_MOUNT, type CeshuViewContextValue } from '../../plugins/ceshu'
 import { ARTIFACTS, type ArtifactKey } from './ceshuArtifacts'
 
 /**

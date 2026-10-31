@@ -2,8 +2,8 @@ import { randomUUID } from 'node:crypto'
 import { readFile, rename, writeFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 
-import { getTypeByLegacyKey } from '../../shared/schema/core/typeSchema'
-import { orderHeadersWithId, RECORD_ID_KEY } from '../../shared/util/id/recordHeaders'
+import { getTypeByLegacyKey } from '../../shared/schema/core'
+import { orderHeadersWithId, RECORD_ID_KEY } from '../../shared/util/id'
 import type { ParsedImport } from './importSession'
 import type {
   CsvExportSummary,

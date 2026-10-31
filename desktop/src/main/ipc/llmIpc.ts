@@ -4,7 +4,7 @@ import {
   llmStatusInputSchema,
   llmGenerateInputSchema,
   llmTestConnectionInputSchema
-} from '../../shared/schema/adapters/schemasDataLlm'
+} from '../../shared/schema/adapters'
 
 export function registerLlmIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm: LlmShared): void {
   const { llmClient } = deps

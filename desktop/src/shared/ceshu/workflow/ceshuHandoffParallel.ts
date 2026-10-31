@@ -1,4 +1,4 @@
-import type { CeshuDocument } from '../reference/ceshuConstants'
+import type { CeshuDocument } from '../reference'
 import { handoffVolumeFolderName } from './ceshuHandoffPaths'
 import { planHandoffDocs, type HandoffRenderContext } from './ceshuHandoffPlan'
 import type { HandoffVolume, HandoffVolumeId } from './ceshuHandoffTypes'

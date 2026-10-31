@@ -12,7 +12,7 @@
  * 索引侧配 `embedding.json` 版本校验：换模型会自动重建索引，避免「维度/语义不一致」。
  */
 
-import { embedText } from '../../../shared/agent/conversation/memory'
+import { embedText } from '../../../shared/agent/conversation'
 
 export interface EmbeddingProvider {
   /** 模型标识（写进索引版本文件；换 id 必重建索引） */

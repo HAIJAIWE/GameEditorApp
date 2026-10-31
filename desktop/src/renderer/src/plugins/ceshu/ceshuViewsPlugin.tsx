@@ -1,14 +1,14 @@
-import type { ChapterKey } from '../../../../shared/ceshu/reference/ceshuConstants'
+import type { ChapterKey } from '../../../../shared/ceshu/reference'
 import type { PluginManifest } from '../../../../shared/plugin/types'
-import AiDataGenPanel from '../../components/agent/AiDataGenPanel'
-import AiFullGeneratePanel from '../../components/agent/AiFullGeneratePanel'
-import AiReviewPanel from '../../components/agent/AiReviewPanel'
-import CeshuMachineDataPanel from '../../components/ceshuDoc/CeshuMachineDataPanel'
-import CeshuPrototypePanel from '../../components/ceshuDoc/CeshuPrototypePanel'
-import CeshuTasksPanel from '../../components/ceshuDoc/CeshuTasksPanel'
-import ChapterNotesPanel from '../../components/ceshuField/ChapterNotesPanel'
-import CeshuDataRefsPanel from '../../components/ceshu/CeshuDataRefsPanel'
-import { ChangelogPanel, ReadinessPanel, ValidatePanel } from '../../components/ceshu/CeshuReportPanels'
+import { AiDataGenPanel } from '../../components/agent'
+import { AiFullGeneratePanel } from '../../components/agent'
+import { AiReviewPanel } from '../../components/agent'
+import { CeshuMachineDataPanel } from '../../components/ceshuDoc'
+import { CeshuPrototypePanel } from '../../components/ceshuDoc'
+import { CeshuTasksPanel } from '../../components/ceshuDoc'
+import { ChapterNotesPanel } from '../../components/ceshuField'
+import { CeshuDataRefsPanel } from '../../components/ceshu'
+import { ChangelogPanel, ReadinessPanel, ValidatePanel } from '../../components/ceshu'
 import {
   ConsumePromptOverlay,
   DeriveOverlay,
@@ -16,15 +16,15 @@ import {
   MigrationOverlay,
   ModulePickerOverlay,
   ReviewQueueOverlay
-} from '../../components/ceshu/EditorOverlays'
-import FieldImpactPanel from '../../components/ceshu/FieldImpactPanel'
-import HealthPanel from '../../components/ceshu/HealthPanel'
-import RoutePanel from '../../components/ceshu/RoutePanel'
-import PresetMarketPanel from '../../components/common/PresetMarketPanel'
-import SystemConfirmPanel from '../../components/common/SystemConfirmPanel'
-import TemplateEditorPanel from '../../components/ceshuType/TemplateEditorPanel'
-import VersionDiffPanel from '../../components/data/VersionDiffPanel'
-import VersionTimelinePanel from '../../components/data/VersionTimelinePanel'
+} from '../../components/ceshu'
+import { FieldImpactPanel } from '../../components/ceshu'
+import { HealthPanel } from '../../components/ceshu'
+import { RoutePanel } from '../../components/ceshu'
+import { PresetMarketPanel } from '../../components/common'
+import { SystemConfirmPanel } from '../../components/common'
+import { TemplateEditorPanel } from '../../components/ceshuType'
+import { VersionDiffPanel } from '../../components/data'
+import { VersionTimelinePanel } from '../../components/data'
 import {
   CESHU_ARTIFACT_MOUNT,
   CESHU_CHAPTERNAV_MOUNT,
@@ -33,7 +33,7 @@ import {
   CESHU_VIEW_MOUNT,
   useCeshuView
 } from './ceshuViewContext'
-import { registerReactBinding, type PanelBindingProps } from '../host/reactBindings'
+import { registerReactBinding, type PanelBindingProps } from '../host'
 
 /**
  * 编辑器内视图插件化（B 方案 Slice 11/12/13）。

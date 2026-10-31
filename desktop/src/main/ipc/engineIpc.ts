@@ -1,8 +1,8 @@
 import type { IpcHandlerDeps, IpcRegistrar } from '../ipc'
-import { engineExportInputSchema } from '../../shared/schema/adapters/schemasDataEngineExport'
+import { engineExportInputSchema } from '../../shared/schema/adapters'
 import { exportEngineData, type EngineExportResult } from '../engineExport/exporter'
 import { copyImagesForExport, detectMissingImages } from '../exportImagesCopy'
-import { log } from '../../shared/util/system/logger'
+import { log } from '../../shared/util/system'
 
 export function registerEngineIpc(deps: IpcHandlerDeps, handle: IpcRegistrar): void {
   const { dataService, typeSchemaStore, libraryManager } = deps

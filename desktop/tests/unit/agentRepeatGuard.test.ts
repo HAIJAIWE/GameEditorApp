@@ -13,7 +13,7 @@ import {
   previewArguments,
   validateThresholds,
   wildcardToRegExp
-} from '../../src/shared/agent/guard/repeatCall'
+} from '../../src/shared/agent/guard'
 
 describe('参数规范化（链键）', () => {
   it('属性顺序不同视为同一次调用（深度排序）', () => {

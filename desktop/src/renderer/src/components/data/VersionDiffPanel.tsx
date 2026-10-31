@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-import type { CeshuSummary } from '../../../../shared/ceshu/reference/ceshuConstants'
+import type { CeshuSummary } from '../../../../shared/ceshu/reference'
 import {
   DIFF_DISPLAY,
   buildVersionDiffMarkdown,
@@ -10,9 +10,9 @@ import {
   type CeshuChapterDiff,
   type CeshuVersionDiff,
   type CeshuVersionFieldDiff
-} from '../../../../shared/ceshu/workflow/ceshuDiff'
-import { formatLocalTimestamp } from '../../../../shared/ceshu/model/ceshuModel'
-import { toErrorMessage } from '../../../../shared/util/system/errors'
+} from '../../../../shared/ceshu/workflow'
+import { formatLocalTimestamp } from '../../../../shared/ceshu/model'
+import { toErrorMessage } from '../../../../shared/util/system'
 
 /**
  * 版本对比面板：

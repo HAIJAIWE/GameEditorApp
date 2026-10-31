@@ -1,5 +1,5 @@
-import type { DigitalSubagent } from '../../../shared/agent/ui/panel'
-import type { BrainEvent } from '../../../shared/agent/brain/types'
+import type { DigitalSubagent } from '../../../shared/agent/ui'
+import type { BrainEvent } from '../../../shared/agent/brain'
 
 /**
  * 子智能体共享 store（「会话」页签的子智能体分区 / 后续可复用）。

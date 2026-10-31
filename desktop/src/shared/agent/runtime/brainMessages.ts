@@ -3,8 +3,8 @@
  * 由 `brain.ts` 再导出，外部 `import { ... } from '../brain'` 站点保持不变。
  */
 
-import type { SkillExecutionContext, SkillResult } from '../config/protocol'
-import type { LlmUsage } from '../../config/llm/llmConfig'
+import type { SkillExecutionContext, SkillResult } from '../config'
+import type { LlmUsage } from '../../config/llm'
 
 /* ---- 消息与传输层 ---- */
 

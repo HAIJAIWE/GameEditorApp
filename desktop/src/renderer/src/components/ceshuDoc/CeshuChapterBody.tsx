@@ -1,14 +1,14 @@
-import type { CeshuDocument, ChapterData, ChapterKey } from '../../../../shared/ceshu/reference/ceshuConstants'
-import type { CeshuStage } from '../../../../shared/ceshu/workflow/ceshuStages'
-import type { FieldAction } from '../../../../shared/ceshu/fields/ceshuFieldAction'
-import type { ChapterFieldStatus, FieldReviewStatus } from '../../../../shared/ceshu/fields/ceshuFieldStatus'
-import type { CeshuAiGenerateResult } from '../../../../shared/ceshu/prompts/ceshuAi'
+import type { CeshuDocument, ChapterData, ChapterKey } from '../../../../shared/ceshu/reference'
+import type { CeshuStage } from '../../../../shared/ceshu/workflow'
+import type { FieldAction } from '../../../../shared/ceshu/fields'
+import type { ChapterFieldStatus, FieldReviewStatus } from '../../../../shared/ceshu/fields'
+import type { CeshuAiGenerateResult } from '../../../../shared/ceshu/prompts'
 import type { PluginHost } from '../../../../shared/plugin/host'
 
-import ChapterForm from '../ceshuField/ChapterForm'
+import { ChapterForm } from '../ceshuField'
 import CeshuOverview from './CeshuOverview'
-import { ViewMount } from '../../plugins/host/ViewMount'
-import { CESHU_ARTIFACT_MOUNT, type CeshuViewContextValue } from '../../plugins/ceshu/ceshuViewContext'
+import { ViewMount } from '../../plugins/host'
+import { CESHU_ARTIFACT_MOUNT, type CeshuViewContextValue } from '../../plugins/ceshu'
 import type { ArtifactKey } from './ceshuArtifacts'
 
 /**

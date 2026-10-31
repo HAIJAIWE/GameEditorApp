@@ -1,7 +1,7 @@
-import { CHAPTER_LABELS, type CeshuDocument } from '../reference/ceshuConstants'
-import { fieldColumns } from '../fields/ceshuFields'
-import { normalizeAcceptanceResult } from '../notes/ceshuEvidence'
-import { EPSILON, column, splitRow, toRowStrings } from '../workflow/ceshuPipeRows'
+import { CHAPTER_LABELS, type CeshuDocument } from '../reference'
+import { fieldColumns } from '../fields'
+import { normalizeAcceptanceResult } from '../notes'
+import { EPSILON, column, splitRow, toRowStrings } from '../workflow'
 
 /**
  * 数值断言执行器 —— 把 `numeric.numeric_assertions` 从「文档字段」升级为「可复算检查」。

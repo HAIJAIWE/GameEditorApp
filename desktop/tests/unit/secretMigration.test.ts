@@ -4,10 +4,10 @@ import {
   migrateLegacyApiKey,
   readLegacyImageGenApiKey,
   stripLegacyImageGenApiKey
-} from '../../src/shared/config/secrets/secretMigration'
-import { IMAGE_GEN_CONFIG_KEY } from '../../src/shared/config/llm/imageGenConfig'
-import { SECRET_NAMES } from '../../src/shared/config/secrets/secretNames'
-import type { StorageLike } from '../../src/shared/config/settings/settingsStore'
+} from '../../src/shared/config/secrets'
+import { IMAGE_GEN_CONFIG_KEY } from '../../src/shared/config/llm'
+import { SECRET_NAMES } from '../../src/shared/config/secrets'
+import type { StorageLike } from '../../src/shared/config/settings'
 
 /** 内存版 StorageLike（Node 下无 localStorage） */
 function fakeStorage(initial: Record<string, string> = {}): StorageLike & { data: Map<string, string> } {

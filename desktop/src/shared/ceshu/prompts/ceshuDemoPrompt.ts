@@ -1,7 +1,7 @@
-import type { CeshuDocument } from '../reference/ceshuConstants'
-import { fieldColumns } from '../fields/ceshuFields'
-import { column, toRowStrings } from '../workflow/ceshuPipeRows'
-import { readText } from '../../util/io/readText'
+import type { CeshuDocument } from '../reference'
+import { fieldColumns } from '../fields'
+import { column, toRowStrings } from '../workflow'
+import { readText } from '../../util/io'
 
 /**
  * Demo 生成提示词构建（文档 → 单文件可玩 HTML）。

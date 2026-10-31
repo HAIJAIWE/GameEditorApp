@@ -1,4 +1,4 @@
-import type { ChapterKey } from '../reference/ceshuConstants'
+import type { ChapterKey } from '../reference'
 import { docsOfVolume } from './ceshuHandoffDocs'
 import type { HandoffAcceptance, HandoffDocField, HandoffVolume, HandoffVolumeId } from './ceshuHandoffTypes'
 

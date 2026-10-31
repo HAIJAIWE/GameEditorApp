@@ -6,7 +6,7 @@
  */
 
 import type { AgentEvalVerdict } from '../../../shared/agent/brain'
-import { CHAPTER_KEYS, CHAPTER_NAMES } from '../../../shared/ceshu/reference/ceshuConstants'
+import { CHAPTER_KEYS, CHAPTER_NAMES } from '../../../shared/ceshu/reference'
 
 /**
  * 域上下文块（F8 / DD-18）：把本项目的策划书章节结构作为常驻 grounding 注入，

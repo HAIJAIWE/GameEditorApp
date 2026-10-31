@@ -4,11 +4,11 @@ import {
   fieldTemplateNameInputSchema,
   fieldTemplateSaveInputSchema,
   fieldIdSuggestInputSchema
-} from '../../shared/schema/adapters/schemasDataTypeSchema'
-import { TYPE_TEMPLATE_NAMES } from '../../shared/schema/core/typeTemplates'
-import { buildFieldIdPrompt, parseFieldIdCandidates } from '../../shared/util/id/fieldIdAi'
+} from '../../shared/schema/adapters'
+import { TYPE_TEMPLATE_NAMES } from '../../shared/schema/core'
+import { buildFieldIdPrompt, parseFieldIdCandidates } from '../../shared/util/id'
 import { runSingleShotTask } from '../agent/execution/runTask'
-import { estimateTokens } from '../../shared/agent/runtime/budget'
+import { estimateTokens } from '../../shared/agent/runtime'
 
 export function registerSchemaIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm: LlmShared): void {
   const { typeSchemaStore, fieldTemplates, llmClient } = deps

@@ -6,8 +6,8 @@ import {
   guessMimeType,
   planAttachmentName,
   type DigitalAttachment
-} from '../shared/util/io/libraryAttachments'
-import { log } from '../shared/util/system/logger'
+} from '../shared/util/io'
+import { log } from '../shared/util/system'
 
 /** 入库结果：成功带元数据，失败带中文原因（不抛） */
 export type AttachmentImportResult =

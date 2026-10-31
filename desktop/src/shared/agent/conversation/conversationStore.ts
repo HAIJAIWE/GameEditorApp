@@ -15,7 +15,7 @@
 
 import type { SlotStoreDecl } from '../../plugin/types'
 import type { BrainEvent } from '../brain'
-import type { DigitalAttachment } from '../../util/io/libraryAttachments'
+import type { DigitalAttachment } from '../../util/io'
 import {
   hydrateFromSession,
   initialDigitalPanelState,
@@ -24,7 +24,7 @@ import {
   resolveInteraction,
   submitUserMessage,
   type DigitalPanelState
-} from '../ui/panel'
+} from '../ui'
 
 /** 对话状态的写入口（原 `DigitalPanel` 内的本地 Action，搬到这里以便跨插件复用） */
 export type ConversationAction =

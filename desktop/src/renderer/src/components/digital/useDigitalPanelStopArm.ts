@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 
-import { toErrorMessage } from '../../../../shared/util/system/errors'
+import { toErrorMessage } from '../../../../shared/util/system'
 
 /**
  * 「停止本轮」的两段式二次确认（对齐 dsh JobView 的两段式 kill：先 arm 再确认）。

@@ -17,9 +17,9 @@
  */
 
 import type { DataTypeDef, QualityGateVerdict } from '../../../shared/types'
-import type { ChapterData, ChapterKey, CeshuDocument } from '../../../shared/ceshu/reference/ceshuConstants'
-import type { FieldAction } from '../../../shared/ceshu/fields/ceshuFieldAction'
-import type { LlmUsage } from '../../../shared/config/llm/llmConfig'
+import type { ChapterData, ChapterKey, CeshuDocument } from '../../../shared/ceshu/reference'
+import type { FieldAction } from '../../../shared/ceshu/fields'
+import type { LlmUsage } from '../../../shared/config/llm'
 import {
   buildChapterPrompt,
   buildReviewPrompts,
@@ -28,10 +28,10 @@ import {
   parseReviewResponse,
   finalizeReview,
   type CeshuReviewPayload
-} from '../../../shared/ceshu/prompts/ceshuAi'
-import { buildCloneDecomposePrompt, parseCloneDecompose } from '../../../shared/ceshu/prompts/ceshuClonePrompt'
-import { buildRoleTaskPrompt, parseRoleTaskPlan, taskRolesForDoc } from '../../../shared/ceshu/prompts/ceshuTaskPrompt'
-import type { CeshuRole, CeshuTaskPlan } from '../../../shared/ceshu/workflow/ceshuTasks'
+} from '../../../shared/ceshu/prompts'
+import { buildCloneDecomposePrompt, parseCloneDecompose } from '../../../shared/ceshu/prompts'
+import { buildRoleTaskPrompt, parseRoleTaskPlan, taskRolesForDoc } from '../../../shared/ceshu/prompts'
+import type { CeshuRole, CeshuTaskPlan } from '../../../shared/ceshu/workflow'
 import {
   DATA_GEN_ERROR_EMPTY,
   DATA_GEN_ERROR_NO_TYPE,
@@ -42,11 +42,11 @@ import {
   normalizeDataGenCandidates,
   resolveSelectedDataTypes,
   type CeshuDataGenResult
-} from '../../../shared/ceshu/data/ceshuDataGen'
-import { computeChapterProgress } from '../../../shared/ceshu/model/ceshuModel'
-import { validateCeshu } from '../../../shared/ceshu/validation/ceshuValidation'
-import { parseLlmJson } from '../../../shared/util/object/parseLlmJson'
-import { applyJudge, evaluateChapterDraft, evaluateDataCandidates } from '../../../shared/agent/runtime/qualityGate'
+} from '../../../shared/ceshu/data'
+import { computeChapterProgress } from '../../../shared/ceshu/model'
+import { validateCeshu } from '../../../shared/ceshu/validation'
+import { parseLlmJson } from '../../../shared/util/object'
+import { applyJudge, evaluateChapterDraft, evaluateDataCandidates } from '../../../shared/agent/runtime'
 import { runLlmJudge } from '../../agent/execution/qualityJudge'
 import { runAiTask, type AiGeneratePort, type AiLlmPort } from '../../ai/runner'
 

@@ -1,7 +1,7 @@
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { formatLocalTimestamp } from '../../shared/ceshu/model/ceshuModel'
+import { formatLocalTimestamp } from '../../shared/ceshu/model'
 import {
   createNote,
   deleteNoteIn,
@@ -10,7 +10,7 @@ import {
   serializeNotesFile,
   updateNoteIn,
   type CeshuNote
-} from '../../shared/ceshu/notes/ceshuNotes'
+} from '../../shared/ceshu/notes'
 
 /**
  * 章节笔记存储：每份策划书一个 JSON 文件（<dir>/<ceshuId>.json，结构 {"notes": [...]}），

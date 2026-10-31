@@ -6,8 +6,8 @@ import { describe, expect, it } from 'vitest'
 
 import { CeshuManager } from '../../src/main/ceshu/manager'
 import { CeshuStorage } from '../../src/main/ceshu/storage'
-import { buildChangelogEntry, computeCeshuDiff, nextVersionLabel } from '../../src/shared/ceshu/workflow/ceshuDiff'
-import { createDefaultCeshu } from '../../src/shared/ceshu/model/ceshuModel'
+import { buildChangelogEntry, computeCeshuDiff, nextVersionLabel } from '../../src/shared/ceshu/workflow'
+import { createDefaultCeshu } from '../../src/shared/ceshu/model'
 
 function makeDir(): string {
   return mkdtempSync(join(tmpdir(), 'mb-ceshu-versions-'))

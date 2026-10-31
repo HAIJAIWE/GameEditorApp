@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 
-import { parseDigitalCommands, type DigitalCommand } from '../../../../shared/agent/tools/commands'
-import { parseDigitalReferences, type DigitalReference } from '../../../../shared/agent/ui/references'
+import { parseDigitalCommands, type DigitalCommand } from '../../../../shared/agent/tools'
+import { parseDigitalReferences, type DigitalReference } from '../../../../shared/agent/ui'
 
 /**
  * 输入框的两套前缀菜单：`/` 斜杠命令 与 `@` 数据表引用（互斥，共用同一个高亮索引）。

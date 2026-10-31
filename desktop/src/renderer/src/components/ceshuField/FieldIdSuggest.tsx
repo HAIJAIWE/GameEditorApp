@@ -1,5 +1,5 @@
-import type { FieldIdSuggestion } from '../../../../shared/util/id/fieldId'
-import type { IdSuggestState } from '../ceshuType/TypeEditorPanel'
+import type { FieldIdSuggestion } from '../../../../shared/util/id'
+import type { IdSuggestState } from '../ceshuType'
 
 interface FieldIdSuggestProps {
   /** 当前展开「字段 ID 候选」的状态（调用方已保证 index 与本行一致） */

@@ -13,9 +13,9 @@ import {
   withCollapsed,
   withDismissed,
   withStepCompleted
-} from '../../src/shared/config/settings/onboarding'
-import type { OnboardingState } from '../../src/shared/config/settings/onboarding'
-import type { StorageLike } from '../../src/shared/config/settings/settingsStore'
+} from '../../src/shared/config/settings'
+import type { OnboardingState } from '../../src/shared/config/settings'
+import type { StorageLike } from '../../src/shared/config/settings'
 
 /** 内存假 storage，绝不碰真实 localStorage（与 visibleTypes.test.ts 同款注入模式） */
 class FakeStorage implements StorageLike {

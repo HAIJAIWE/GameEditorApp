@@ -8,8 +8,8 @@
  * 三者都是纯函数（或只依赖纯函数），可独立单测。
  */
 
-import type { BrainMessage } from '../runtime/brainMessages'
-import type { AgentRunTier } from '../observability/observability'
+import type { BrainMessage } from '../runtime'
+import type { AgentRunTier } from '../observability'
 import { compactHistory } from '../compaction'
 import { pruneText } from '../compaction'
 import type { AgentEvalVerdict } from './types'

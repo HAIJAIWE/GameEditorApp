@@ -21,8 +21,8 @@
  * 工具数一旦增长（接 MCP / 补技能）即有硬闸；② 让**提示词按档位给出口径**（本地=显式选、云端=可软路由）。
  */
 
-import { getToolCatalogLine, type SkillProtocol } from '../config/protocol'
-import type { AgentRunTier } from '../observability/observability'
+import { getToolCatalogLine, type SkillProtocol } from '../config'
+import type { AgentRunTier } from '../observability'
 
 /* ---- 场景分组（DD-3） ---- */
 
