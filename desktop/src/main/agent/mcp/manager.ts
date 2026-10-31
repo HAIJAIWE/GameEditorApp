@@ -36,6 +36,24 @@ export class McpManager {
   /** 配置文件路径（`connectFromFile` 时记下；配置 UI 读写它） */
   private configPath: string | null = null
 
+  /** 握手超时：防止某个 MCP 服务器无响应时，整个 `connect`（在 app.whenReady 时连）被无限挂起 */
+  private static readonly HANDSHAKE_TIMEOUT_MS = 10_000
+
+  /** 给 Promise 套一个超时（超时即 reject）；原 Promise 不被取消，仅清理定时器避免泄漏 */
+  private static withTimeout<T>(promise: Promise<T>, label: string): Promise<T> {
+    let timer: ReturnType<typeof setTimeout> | undefined
+    // 用 Promise<T> 而非 Promise<never>：new Promise<never> 会让 Promise.race 的泛型推定出错（TS2345）
+    const timeout = new Promise<T>((_resolve, reject) => {
+      timer = setTimeout(
+        () => reject(new Error(`${label} 超时（${McpManager.HANDSHAKE_TIMEOUT_MS}ms）`)),
+        McpManager.HANDSHAKE_TIMEOUT_MS
+      )
+    })
+    return Promise.race([promise, timeout]).finally(() => {
+      if (timer !== undefined) clearTimeout(timer)
+    })
+  }
+
   /** 连上配置里的全部服务器并发现工具（只连一次；重复调用无操作） */
   async connect(config: McpConfig): Promise<void> {
     if (this.connected) return
@@ -45,17 +63,21 @@ export class McpManager {
     for (const [server, serverConfig] of Object.entries(config.mcpServers)) {
       const transport = createTransport(serverConfig)
       if (transport === null) continue
+      let client: McpClient | null = null
       try {
-        const client = new McpClient(server, transport)
-        await client.initialize()
-        const tools = await client.listTools()
+        client = new McpClient(server, transport)
+        await McpManager.withTimeout(client.initialize(), `server "${server}" 握手`)
+        const tools = await McpManager.withTimeout(client.listTools(), `server "${server}" 列工具`)
         this.clients.set(server, client)
+        // 已登记到 this.clients，交给 close() 在关闭时统一回收；catch 不再关它
+        client = null
         // 按服务器配置（显式 risk）或工具名启发式，算出每个工具的风险
         for (const tool of tools) {
           this.tools.push({ tool, risk: mcpToolRisk(tool.name, serverConfig.risk) })
         }
       } catch (error) {
-        // 单个服务器失败不影响其他服务器与 agent 本体
+        // 单个服务器失败/超时不影响其他服务器与 agent 本体；未成功登记的客户端在此关闭，避免 stdio 子进程残留
+        if (client !== null) client.close()
         console.error(`[MCP] server "${server}" 连接失败：`, error instanceof Error ? error.message : String(error))
       }
     }
