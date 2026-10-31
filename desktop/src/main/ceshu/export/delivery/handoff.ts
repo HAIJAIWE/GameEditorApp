@@ -3,18 +3,16 @@ import { dirname, join } from 'node:path'
 
 import type { CeshuDocument } from '../../../../shared/ceshu/reference/ceshuConstants'
 import { buildContract } from '../../../../shared/ceshu/validation/ceshuContract'
+import { handoffVolumeIndexPath } from '../../../../shared/ceshu/workflow/ceshuHandoffPaths'
+import { buildHandoffPlan, planHandoffDocs, type HandoffRenderContext } from '../../../../shared/ceshu/workflow/ceshuHandoffPlan'
+import { renderHandoffDoc } from '../../../../shared/ceshu/workflow/ceshuHandoffRenderDoc'
 import {
-  HANDOFF_VOLUMES,
-  buildHandoffPlan,
-  handoffVolumeIndexPath,
-  planHandoffDocs,
-  renderHandoffDoc,
   renderHandoffIndex,
   renderHandoffManifest,
   renderHandoffRouteMarkdown,
-  renderHandoffVolumeIndex,
-  type HandoffRenderContext
-} from '../../../../shared/ceshu/workflow/ceshuHandoff'
+  renderHandoffVolumeIndex
+} from '../../../../shared/ceshu/workflow/ceshuHandoffRenderIndex'
+import { HANDOFF_VOLUMES } from '../../../../shared/ceshu/workflow/ceshuHandoffVolumes'
 import type { DataTypeDef, ItemRecord } from '../../../../shared/types'
 import { buildJsonSnapshot } from '../../../data/snapshotExport'
 

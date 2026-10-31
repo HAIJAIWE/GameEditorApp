@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 
 import { buildHandoffFiles, handoffFolderName } from '../../src/main/ceshu/export/delivery/handoff'
 import type { CeshuDocument } from '../../src/shared/ceshu/reference/ceshuConstants'
-import { HANDOFF_VOLUMES, handoffVolumeIndexPath, planHandoffDocs } from '../../src/shared/ceshu/workflow/ceshuHandoff'
+import { handoffVolumeIndexPath } from '../../src/shared/ceshu/workflow/ceshuHandoffPaths'
+import { planHandoffDocs } from '../../src/shared/ceshu/workflow/ceshuHandoffPlan'
+import { HANDOFF_VOLUMES } from '../../src/shared/ceshu/workflow/ceshuHandoffVolumes'
 import { createDefaultCeshu } from '../../src/shared/ceshu/model/ceshuModel'
 import type { DataTypeDef, ItemRecord } from '../../src/shared/types'
 

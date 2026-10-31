@@ -3,29 +3,26 @@ import { describe, expect, it } from 'vitest'
 import { renderCeshuMarkdown } from '../../src/main/ceshu/export/doc/markdown'
 import type { CeshuDocument } from '../../src/shared/ceshu/reference/ceshuConstants'
 import { CESHU_CHAPTER_FIELDS } from '../../src/shared/ceshu/fields/ceshuFields'
+import { HANDOFF_DOCS, docsOfVolume } from '../../src/shared/ceshu/workflow/ceshuHandoffDocs'
+import { analyzeParallelism } from '../../src/shared/ceshu/workflow/ceshuHandoffParallel'
+import { handoffVolumeFolderName, handoffVolumeIndexPath } from '../../src/shared/ceshu/workflow/ceshuHandoffPaths'
 import {
-  HANDOFF_DOCS,
-  HANDOFF_VOLUMES,
-  HANDOFF_ROLE_LABELS,
   buildHandoffPlan,
-  buildRoleIndex,
-  docRoles,
-  docsOfVolume,
-  handoffVolumeFolderName,
-  handoffVolumeIndexPath,
-  planHandoffDocs,
   docLayer,
-  acceptanceCheck,
-  acceptanceText,
-  analyzeParallelism,
-  renderHandoffDoc,
-  renderHandoffIndex,
-  renderHandoffHealthMarkdown,
-  renderHandoffRouteMarkdown,
-  renderHandoffManifest,
-  renderHandoffVolumeIndex,
+  planHandoffDocs,
   resolveHandoffGenre
-} from '../../src/shared/ceshu/workflow/ceshuHandoff'
+} from '../../src/shared/ceshu/workflow/ceshuHandoffPlan'
+import { renderHandoffDoc } from '../../src/shared/ceshu/workflow/ceshuHandoffRenderDoc'
+import {
+  renderHandoffHealthMarkdown,
+  renderHandoffIndex,
+  renderHandoffManifest,
+  renderHandoffRouteMarkdown,
+  renderHandoffVolumeIndex
+} from '../../src/shared/ceshu/workflow/ceshuHandoffRenderIndex'
+import { buildRoleIndex, docRoles, HANDOFF_ROLE_LABELS } from '../../src/shared/ceshu/workflow/ceshuHandoffRoles'
+import { acceptanceCheck, acceptanceText } from '../../src/shared/ceshu/workflow/ceshuHandoffTypes'
+import { HANDOFF_VOLUMES } from '../../src/shared/ceshu/workflow/ceshuHandoffVolumes'
 import { buildHandoffFiles } from '../../src/main/ceshu/export/delivery/handoff'
 import { createDefaultCeshu } from '../../src/shared/ceshu/model/ceshuModel'
 import { SYSTEM_CONFIG_SCHEMA } from '../../src/shared/ceshu/model/systemConfigSchema'

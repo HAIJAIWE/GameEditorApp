@@ -1,12 +1,8 @@
 import type { CeshuDocument, ChapterKey } from '../reference/ceshuConstants'
 import { CESHU_CHAPTER_FIELDS, fieldColumns, fieldLabelOf } from '../fields/ceshuFields'
-import {
-  HANDOFF_DOCS,
-  acceptanceCheck,
-  acceptanceText,
-  planHandoffDocs,
-  type HandoffAcceptanceCheck
-} from './ceshuHandoff'
+import { HANDOFF_DOCS } from './ceshuHandoffDocs'
+import { planHandoffDocs } from './ceshuHandoffPlan'
+import { acceptanceCheck, acceptanceText, type HandoffAcceptanceCheck } from './ceshuHandoffTypes'
 import { toRowStrings } from './ceshuPipeRows'
 
 /**

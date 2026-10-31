@@ -6,7 +6,7 @@ import { FIELD_ACTION_LABELS, type FieldAction } from '../../../../shared/ceshu/
 import { isPlainObject } from '../../../../shared/ceshu/model/ceshuModel'
 import { CESHU_CHAPTER_FIELDS, resolveFieldMeta } from '../../../../shared/ceshu/fields/ceshuFields'
 import { isMachineDataField } from '../../../../shared/ceshu/workflow/ceshuStages'
-import { HANDOFF_DOCS } from '../../../../shared/ceshu/workflow/ceshuHandoff'
+import { HANDOFF_DOCS } from '../../../../shared/ceshu/workflow/ceshuHandoffDocs'
 import type { ChapterFieldStatus, FieldReviewStatus } from '../../../../shared/ceshu/fields/ceshuFieldStatus'
 import { countFieldStatuses, formatFieldStatusSummary } from '../../../../shared/ceshu/fields/ceshuFieldStatusStats'
 import {

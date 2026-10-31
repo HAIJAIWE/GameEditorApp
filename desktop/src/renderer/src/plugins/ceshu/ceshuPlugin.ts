@@ -4,7 +4,7 @@ import { computeReadiness } from '../../../../shared/ceshu/readiness/ceshuReadin
 import {
   renderHandoffHealthMarkdown,
   renderHandoffRouteMarkdown
-} from '../../../../shared/ceshu/workflow/ceshuHandoff'
+} from '../../../../shared/ceshu/workflow/ceshuHandoffRenderIndex'
 
 /**
  * 策划书子系统作为「第一个插件」注册进宿主。
