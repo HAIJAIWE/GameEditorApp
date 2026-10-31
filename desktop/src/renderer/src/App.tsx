@@ -6,6 +6,7 @@ import type { AppInfo, DataTypeDef } from '../../shared/types'
 import { applyTheme, loadTheme, saveTheme, type ThemeMode } from '../../shared/config/settings'
 
 import { type PreviewJumpTarget } from './components/ceshu'
+import { APP_SHORTCUTS_STATUS_TEXT, matchShortcut } from '../../shared/util/ui'
 import { SlotOutlet } from './plugins/host'
 import { defineDigitalPanelPlugin } from './plugins/session'
 import { MenuBar } from './components/layout'
@@ -274,20 +275,17 @@ export default function App() {
   }, [theme])
 
   // 键盘快捷键：Ctrl/Cmd+Z 撤销；Ctrl/Cmd+Shift+Z 或 Ctrl+Y 重做（输入框内不拦截，保留本地撤销）
+  // 键位判定来自清单 `matchShortcut`（shared/util/ui/shortcuts.ts），此处只负责派发动作。
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
       const target = event.target as HTMLElement | null
       const tag = target?.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA' || target?.isContentEditable === true) return
-      if (!(event.ctrlKey || event.metaKey)) return
-      const key = event.key.toLowerCase()
-      if (key === 'z' && !event.shiftKey) {
-        event.preventDefault()
-        void performUndo()
-      } else if ((key === 'z' && event.shiftKey) || key === 'y') {
-        event.preventDefault()
-        void performRedo()
-      }
+      const action = matchShortcut(event)
+      if (action === null) return
+      event.preventDefault()
+      if (action === 'undo') void performUndo()
+      else void performRedo()
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
@@ -760,13 +758,13 @@ export default function App() {
               {theme === 'dark' ? '☀️ 浅色' : '🌙 深色'}
             </button>
             {/*
-              快捷键提示。
-              **只列 TS 真实注册的快捷键**：旧版 提示含 `Ctrl+S保存`，但 TS 的「保存」是
+              快捷键提示：文本由清单 `APP_SHORTCUTS` 派生（见 shared/util/ui/shortcuts.ts），
+              不在此手写 —— 只列 TS 真实注册的键。旧版 提示含 `Ctrl+S保存`，但 TS 的「保存」是
               章节草稿级、刻意不做整文档保存（见 roadmap E30 的诚实边界），没有 `Ctrl+S`
               —— 照抄提示文案等于给一个按了没反应的键做广告，故省。
             */}
             <span className="statusbar-hint" data-testid="statusbar-shortcuts">
-              Ctrl+Z 撤销 · Ctrl+Y 重做
+              {APP_SHORTCUTS_STATUS_TEXT}
             </span>
           </footer>
         </div>

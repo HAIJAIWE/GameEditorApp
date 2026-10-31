@@ -1,173 +1,128 @@
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
-
 import { describe, expect, it } from 'vitest'
 
-import { APP_SHORTCUTS } from '../../src/shared/util/ui'
+import {
+  APP_SHORTCUTS,
+  APP_SHORTCUTS_STATUS_TEXT,
+  matchShortcut,
+  type ShortcutAction
+} from '../../src/shared/util/ui'
 
 /**
- * 快捷键清单与**实际注册**的一致性守护测试。
+ * 快捷键清单（`src/shared/util/ui/shortcuts.ts`）的**行为**测试。
  *
- * ## 为什么必须有这个测试
- * `src/shared/util/shortcuts.ts` 是一份**手写清单**，而真正的注册在
- * `src/renderer/src/App.tsx` 的 keydown handler 里。两处各写各的，迟早漂移：
- * - 有人加了新快捷键但忘了更新面板 → 面板漏了一个键（用户按了没反应也不知道去哪看）；
- * - 有人把面板里的键抄成 旧版 的 35 条 → 32 个「按了没反应」的键被当承诺做广告。
+ * ## 机制：清单是唯一事实源，漂移在结构上不可能发生
+ * 以前这里是读 `App.tsx` 源码文本、用正则做「清单 ↔ 代码」双向校验 —— 那是脆耦合：
+ * 只要有人重排/改写那个 effect（哪怕行为完全不变），测试就会红。
  *
- * 本测试做**双向**校验（读源码文本的轻量一致性检查，不做 AST 解析——
- *  `App.tsx` 的 handler 结构简单，文本匹配足够且不会因格式变动而脆）：
+ * 现在三处都从清单派生，没有任何一处手写键位：
+ * - **实现**：`App.tsx` 的 keydown effect 调 `matchShortcut(event)`，按返回的 action 派发
+ *   （本文件直接断言 `matchShortcut` 的输入/输出，不碰源码文本）；
+ * - **状态栏**：渲染 `APP_SHORTCUTS_STATUS_TEXT`（本文件断言它由清单派生的结果）；
+ * - **参考面板**：遍历 `APP_SHORTCUTS`。
  *
- * 1. **清单 → 代码**：每条清单项都能在 `App.tsx` 里找到它对应的**注册表达式**；
- * 2. **代码 → 清单**：`App.tsx` 的 keydown handler 里出现的每个键组合，
- *    都必须在本清单里出现（防「加了键忘了加面板」）。
- *
- * ⚠️ 匹配依赖 `App.tsx` keydown handler 的写法：若有人重写那个 handler（例如换成
- * `Ctrl+Alt+Z`），本测试会红 —— **那是正确行为**：那时必须同步更新
- * `shared/util/shortcuts.ts` 的清单（否则面板内容会与真实注册不一致）。
+ * 于是「面板说有、按了没反应」这类漂移不再需要测试去比对两份文本 —— 只剩一份。
+ * 这里保留的断言都是**结构与行为**：清单规模、字段完整、动作取值域，
+ * 以及「清单里出现的每个动作都必须真的能被某个按键触发」。
  */
 
-/** 读取 `App.tsx` 源码（相对 cwd，vitest 在 `desktop/` 下运行） */
-function readAppSource(): string {
-  const candidates = [
-    resolve(process.cwd(), 'src', 'renderer', 'src', 'App.tsx'),
-    resolve(process.cwd(), 'desktop', 'src', 'renderer', 'src', 'App.tsx')
-  ]
-  for (const path of candidates) {
-    try {
-      return readFileSync(path, 'utf-8')
-    } catch {
-      /* 试下一个候选路径 */
-    }
+type ShortcutInput = Parameters<typeof matchShortcut>[0]
+
+/** 构造一次按键输入（修饰键默认全 false；`altKey` 只是额外噪声，实现不看它） */
+function key(
+  k: string,
+  modifiers: Partial<Pick<ShortcutInput, 'ctrlKey' | 'metaKey' | 'shiftKey'>> & { altKey?: boolean } = {}
+): ShortcutInput & { altKey?: boolean } {
+  return {
+    key: k,
+    ctrlKey: modifiers.ctrlKey ?? false,
+    metaKey: modifiers.metaKey ?? false,
+    shiftKey: modifiers.shiftKey ?? false,
+    altKey: modifiers.altKey
   }
-  throw new Error(`找不到 App.tsx（尝试过：${candidates.join(' / ')}）`)
 }
 
-/**
- * 抽出 keydown handler 的那一段（从 `const onKeyDown = (event: KeyboardEvent)` 起
- * 到该 effect 结束），避免误匹配到别的 `addEventListener('keydown', ...)`。
- */
-function extractShortcutHandler(source: string): string {
-  const anchor = "// 键盘快捷键"
-  const anchorIndex = source.indexOf(anchor)
-  expect(anchorIndex, 'App.tsx 里找不到「// 键盘快捷键」注释锚点').toBeGreaterThan(-1)
-  const start = source.indexOf('const onKeyDown = (event: KeyboardEvent)', anchorIndex)
-  expect(start, 'App.tsx 里找不到快捷键的 onKeyDown 处理函数').toBeGreaterThan(-1)
-  const end = source.indexOf('}, [performUndo, performRedo])', start)
-  expect(end, 'App.tsx 里找不到快捷键 effect 的结尾').toBeGreaterThan(-1)
-  return source.slice(start, end)
-}
+describe('matchShortcut：按键 → 动作', () => {
+  it('Ctrl+Z 撤销', () => {
+    expect(matchShortcut(key('z', { ctrlKey: true }))).toBe('undo')
+  })
 
-/**
- * 清单项 → 必须出现在 handler 里的注册片段。
- *
- * 这张表是「清单与代码之间的契约」：新增快捷键时必须同时补上它的注册片段，
- * 否则本测试在「清单 → 代码」这一步就红。
- */
-const REQUIRED_REGISTRATION_SNIPPETS: Record<string, readonly string[]> = {
-  'Ctrl+Z': ["key === 'z' && !event.shiftKey", 'void performUndo()'],
-  'Ctrl+Shift+Z': ["(key === 'z' && event.shiftKey) || key === 'y'", 'void performRedo()'],
-  'Ctrl+Y': ["(key === 'z' && event.shiftKey) || key === 'y'", 'void performRedo()']
-}
+  it('Cmd+Z（metaKey）同样撤销 —— macOS 与 Ctrl 同权', () => {
+    expect(matchShortcut(key('z', { metaKey: true }))).toBe('undo')
+  })
 
-describe('快捷键清单（shared/util/shortcuts.ts）', () => {
-  it('每条都在 App.tsx 里找到对应的实际注册', () => {
-    const handler = extractShortcutHandler(readAppSource())
+  it('Ctrl+Shift+Z 重做', () => {
+    expect(matchShortcut(key('z', { ctrlKey: true, shiftKey: true }))).toBe('redo')
+  })
+
+  it('Ctrl+Y 重做（第二入口）', () => {
+    expect(matchShortcut(key('y', { ctrlKey: true }))).toBe('redo')
+  })
+
+  it('裸 Z（无 Ctrl/Meta）不拦截，交还给输入框与浏览器', () => {
+    expect(matchShortcut(key('z'))).toBeNull()
+  })
+
+  it('大写 Z（Shift 未按下但 key 为大写）也识别为撤销', () => {
+    expect(matchShortcut(key('Z', { ctrlKey: true }))).toBe('undo')
+  })
+
+  it('Ctrl+Alt+Z 仍按 Ctrl+Z 处理（与历史内联实现一致：判定不看 altKey）', () => {
+    // 刻意保持与迁移前逐字等价：AltGr 在部分键盘布局上会同时置位 ctrlKey+altKey，
+    // 若这里返回 null，那些布局下撤销会静默失效。
+    expect(matchShortcut(key('z', { ctrlKey: true, altKey: true }))).toBe('undo')
+  })
+
+  it('其它键 / 其它修饰组合返回 null', () => {
+    expect(matchShortcut(key('x', { ctrlKey: true }))).toBeNull()
+    expect(matchShortcut(key('s', { ctrlKey: true }))).toBeNull()
+    expect(matchShortcut(key('a', { metaKey: true, shiftKey: true }))).toBeNull()
+    expect(matchShortcut(key('y', { shiftKey: true }))).toBeNull()
+  })
+})
+
+describe('快捷键清单（shared/util/ui/shortcuts.ts）', () => {
+  it('规模：就是 3 条真实注册的绑定（不是旧版 35 条的移植）', () => {
+    expect(APP_SHORTCUTS).toHaveLength(3)
+  })
+
+  it('字段完整：每条都有键 / 动作 / 说明', () => {
     for (const shortcut of APP_SHORTCUTS) {
-      const snippets = REQUIRED_REGISTRATION_SNIPPETS[shortcut.keys]
-      expect(snippets, `快捷键 ${shortcut.keys} 没有登记注册片段（新增快捷键需同步补这张表）`).toBeDefined()
-      for (const snippet of snippets ?? []) {
-        expect(handler.includes(snippet), `快捷键 ${shortcut.keys} 的注册片段「${snippet}」未出现在 keydown handler`).toBe(true)
-      }
+      expect(shortcut.keys, '快捷键缺 keys').not.toBe('')
+      expect(['undo', 'redo'], `快捷键 ${shortcut.keys} 的 action 越界`).toContain(shortcut.action)
+      expect(shortcut.description, `快捷键 ${shortcut.keys} 缺 description`).not.toBe('')
     }
   })
 
-  it('反向：App.tsx handler 里判定的每个键都必须已在清单中（防止加了键忘了更新面板）', () => {
-    const handler = extractShortcutHandler(readAppSource())
-
-    // 从 handler 源码里**实际抽出**被判定的键位字母（形如 `key === 'z'`），
-    // 而不是硬编码一张表 —— 硬编码的话，往 handler 里新加一个键就不会被发现。
-    const judged = [...handler.matchAll(/key === '([a-z])'/g)].map((m) => m[1] as string)
-    expect(judged.length, '没从 keydown handler 里解析出任何键位判定（handler 结构变了？）').toBeGreaterThan(0)
-
-    // 清单里每个键位字母（去掉 Ctrl/Shift 等修饰前缀后的末段）
-    const listedLetters = new Set(
-      APP_SHORTCUTS.map((shortcut) => {
-        const parts = shortcut.keys.split('+')
-        return parts[parts.length - 1]?.toLowerCase() ?? ''
-      })
-    )
-
-    const unlisted = [...new Set(judged)].filter((letter) => !listedLetters.has(letter))
-    expect(
-      unlisted,
-      `App.tsx 的 keydown handler 判定了这些键，但 shared/util/shortcuts.ts 清单里没有：${unlisted.join('、')}。` +
-        '请把它补进清单，否则用户在「快捷键参考」里看不到这个键。'
-    ).toEqual([])
-  })
-
-  it('不含 旧版 独有、TS 未注册的键（不得照抄 shortcuts 的 35 条）', () => {
-    const keys = APP_SHORTCUTS.map((s) => s.keys)
-    // 逐个点名 旧版 DEFAULT_SHORTCUTS 里最容易被误抄、且 TS 侧确无实现的键
-    const pyOnlyKeys = [
-      'Ctrl+S', // 整文档保存（TS 刻意不做）
-      'Ctrl+O', // 打开文件（TS 的「打开」走菜单，无全局键）
-      'Ctrl+N',
-      'Ctrl+Shift+S',
-      'Ctrl+W',
-      'Alt+F4',
-      'Ctrl+X',
-      'Ctrl+C',
-      'Ctrl+V',
-      'Ctrl+A',
-      'Ctrl+F',
-      'Ctrl+H',
-      'Delete',
-      'Ctrl+D',
-      'F5',
-      'F2',
-      'Ctrl+Shift+F',
-      'F7',
-      'Ctrl+E',
-      'Ctrl+I',
-      'Ctrl+=',
-      'Ctrl+-',
-      'Ctrl+0',
-      'F11',
-      'Ctrl+T',
-      'Ctrl+Space',
-      'Ctrl+Shift+Space',
-      'Ctrl+1',
-      'Ctrl+2',
-      'Ctrl+,',
-      'Ctrl+PageUp',
-      'Ctrl+PageDown'
-    ]
-    for (const key of pyOnlyKeys) {
-      expect(keys, `清单不应出现 TS 未注册的键：${key}`).not.toContain(key)
-    }
-  })
-
-  it('不含 Escape', () => {
+  it('不含 Escape（交互键，不属命令键清单）', () => {
     expect(APP_SHORTCUTS.map((s) => s.keys)).not.toContain('Escape')
   })
 
-  it('规模与字段完整：3 条入口，每条都有键 / 动作 / 说明', () => {
-    expect(APP_SHORTCUTS).toHaveLength(3)
+  it('清单里出现的每个动作都真的能被某个按键触发（无「按了没反应」的条目）', () => {
+    const triggered = new Set<ShortcutAction>()
+    const samples: ShortcutInput[] = [
+      key('z', { ctrlKey: true }),
+      key('z', { ctrlKey: true, shiftKey: true }),
+      key('y', { ctrlKey: true })
+    ]
+    for (const sample of samples) {
+      const action = matchShortcut(sample)
+      if (action !== null) triggered.add(action)
+    }
     for (const shortcut of APP_SHORTCUTS) {
-      expect(shortcut.keys).not.toBe('')
-      expect(['undo', 'redo']).toContain(shortcut.action)
-      expect(shortcut.description).not.toBe('')
+      expect(
+        triggered.has(shortcut.action),
+        `动作 ${shortcut.action}（${shortcut.keys}）没有对应的按键实现`
+      ).toBe(true)
     }
   })
 
-  it('与状态栏快捷键提示一致（两处都只列真实注册的键）', () => {
-    // App.tsx 的 statusbar-shortcuts 写死「Ctrl+Z 撤销 · Ctrl+Y 重做」，
-    // 这里断言它的两条键都在清单里，避免状态栏与面板说法不一致。
-    const source = readAppSource()
-    const statusbarMatch = source.match(/data-testid="statusbar-shortcuts">\s*([\s\S]*?)\s*<\/span>/)
-    expect(statusbarMatch, '找不到状态栏快捷键提示').not.toBeNull()
-    const listed = new Set(APP_SHORTCUTS.map((s) => s.keys))
-    expect(listed.has('Ctrl+Z')).toBe(true)
-    expect(listed.has('Ctrl+Y')).toBe(true)
+  it('每个动作恰有一个 primary 代表（状态栏只有一行）', () => {
+    const actions = new Set(APP_SHORTCUTS.map((s) => s.action))
+    const primaries = APP_SHORTCUTS.filter((s) => s.primary === true)
+    expect(primaries.map((s) => s.action).sort()).toEqual([...actions].sort())
+  })
+
+  it('状态栏提示由清单派生，渲染文本保持原样', () => {
+    expect(APP_SHORTCUTS_STATUS_TEXT).toBe('Ctrl+Z 撤销 · Ctrl+Y 重做')
   })
 })

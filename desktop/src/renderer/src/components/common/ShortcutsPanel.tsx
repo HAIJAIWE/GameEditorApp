@@ -6,7 +6,7 @@ import { APP_SHORTCUTS } from '../../../../shared/util/ui'
  *
  * ## 与 旧版 的关键差异（**不是漏做，是有意的**）
  * 旧版 按 6 个分类（file/edit/data/view/ai/navigation）列出 `common/shortcuts` 的
- * **35 条**快捷键；TS 侧**只列真实注册的 3 条**（见 `shared/util/shortcuts.ts` 的说明）。
+ * **35 条**快捷键；TS 侧**只列真实注册的 3 条**（见 `shared/util/ui/shortcuts.ts` 的说明）。
  * 照抄那 35 条会给 32 个「按了没反应」的键做广告 —— 与状态栏快捷键提示同一取舍。
  * 因此本面板**不分组**（3 条全属 `edit`，分组标题行反而是噪声）。
  *
