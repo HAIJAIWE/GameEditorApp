@@ -330,11 +330,15 @@ export function buildHandoffPlan(doc: CeshuDocument): HandoffVolumeStatus[] {
     const docs = planned
       .filter((item) => item.volume.id === volume.id)
       .map((item) => buildDocStatus(doc, item, errors, context))
+    // 卷门禁只看「适用」文档：不适用（如本作未启用相关系统）的文档既不计入「待补」也不计入「已完成」。
+    // 否则全 N/A 的卷会因无关共享字段被填实而误报「✅ 可开工」——卷目录/总纲会显示可开工，
+    // 但卷内每份文档都是「— 不适用」，自相矛盾。
+    const applicableDocs = docs.filter((status) => status.applicable)
     const seen = new Set<string>()
     const missing: HandoffVolumeStatus['missing'] = []
     let total = 0
     let filled = 0
-    for (const status of docs) {
+    for (const status of applicableDocs) {
       for (const item of status.missing) {
         const id = `${item.chapter}.${item.field}`
         if (seen.has(id)) continue
@@ -344,7 +348,7 @@ export function buildHandoffPlan(doc: CeshuDocument): HandoffVolumeStatus[] {
       total += status.fieldTotal
       filled += status.fieldFilled
     }
-    const blockers = docs.flatMap((status) => status.blockers)
+    const blockers = applicableDocs.flatMap((status) => status.blockers)
     return {
       volume,
       docs,
@@ -352,7 +356,7 @@ export function buildHandoffPlan(doc: CeshuDocument): HandoffVolumeStatus[] {
       keyFieldFilled: filled,
       missing,
       blockers,
-      ready: total > 0 && filled === total && blockers.length === 0
+      ready: applicableDocs.length > 0 && total > 0 && filled === total && blockers.length === 0
     }
   }).filter((status) => status.docs.length > 0)
 }

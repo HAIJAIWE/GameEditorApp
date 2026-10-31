@@ -804,6 +804,27 @@ describe('buildHandoffPlan：门禁', () => {
     expect(equip.systemsEnabled).toEqual(['equipment'])
     expect(equip.applicable).toBe(true)
   })
+
+  it('卷门禁不计入「不适用」文档：全 N/A 的卷不得误报可开工', () => {
+    const doc = makeDoc() // 默认系统未启用 ⇒ 系统卷文档全部不适用
+    // 复现「无关共享字段被填实」的条件：把系统卷里不适用文档引用的字段都填实，但保持系统未启用
+    const systemsVolume = buildHandoffPlan(doc).find((status) => status.volume.id === 'systems')!
+    for (const status of systemsVolume.docs) {
+      if (status.applicable) continue
+      for (const field of status.doc.fields) {
+        const chapter = doc[field.chapter] as Record<string, unknown> | undefined
+        if (chapter === undefined) {
+          ;(doc as unknown as Record<string, unknown>)[field.chapter] = { [field.field]: '已填' }
+        } else {
+          chapter[field.field] = '已填'
+        }
+      }
+    }
+    const after = buildHandoffPlan(doc).find((status) => status.volume.id === 'systems')!
+    expect(after.docs.every((status) => !status.applicable)).toBe(true)
+    // 关键不变量：不适用文档再怎么填实，卷也不得误报「✅ 可开工」
+    expect(after.ready).toBe(false)
+  })
 })
 
 describe('renderHandoffDoc：单份文档', () => {
