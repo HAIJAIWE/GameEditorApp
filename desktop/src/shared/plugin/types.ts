@@ -304,6 +304,12 @@ export interface PluginManifest {
    * 抛错则标记 `status:'error'` 并**不崩溃宿主**（借 dsh "A broken bundle cannot be enabled"）。
    */
   activate?: () => void | Promise<void>
+  /**
+   * 可选停用钩子（activate 的对称操作）。禁用插件前调用，清理 activate 建立的副作用
+   * （事件订阅、服务注册、定时器等）。抛错**不阻止禁用**——只记录到控制台（非致命，
+   * 与 activate 失败同定力），用户关闭插件的意图应始终被尊重。
+   */
+  deactivate?: () => void | Promise<void>
   capabilities: PluginCapability[]
 }
 

@@ -3,7 +3,6 @@ import { useCallback, useEffect, useMemo, useState, useSyncExternalStore, type C
 import { MIDDLE_TAB_KEY, loadStoredTab, saveStoredTab } from '../../../../shared/config/settings'
 import type { PluginHost } from '../../../../shared/plugin/host'
 import { MAIN_VIEW_STORE_KEY, createMainViewStoreDecl, type MainViewState } from '../../../../shared/plugin/mainViewStore'
-import { createStoreInstance } from '../../../../shared/plugin/slotRegistry'
 import type { PluginMainViewCapability } from '../../../../shared/plugin/types'
 import {
   EMPTY_MAIN_VIEW_CONTEXT,
@@ -111,7 +110,7 @@ export function MainViewMount({
    * 宿主未声明 store 时退回同声明的本地实例，挂载器不会因为「没人声明」而崩。
    */
   const mainViewStore = useMemo(
-    () => host.slotStore<MainViewState>(MAIN_VIEW_STORE_KEY) ?? createStoreInstance(createMainViewStoreDecl()),
+    () => host.slotStore<MainViewState>(MAIN_VIEW_STORE_KEY) ?? host.declareStore(MAIN_VIEW_STORE_KEY, createMainViewStoreDecl()),
     [host]
   )
   const activeId = useSyncExternalStore(mainViewStore.subscribe, mainViewStore.getSnapshot).activeId

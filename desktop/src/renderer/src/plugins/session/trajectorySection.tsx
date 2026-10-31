@@ -10,7 +10,6 @@ import {
   type TrajectoryStepRow
 } from '../../../../shared/agent/observability'
 import type { PluginHost } from '../../../../shared/plugin/host'
-import { createStoreInstance } from '../../../../shared/plugin/slotRegistry'
 
 /**
  * 「会话」页签的轨迹分区（`ui-trajectory` 的本土移植，B 路线）。
@@ -28,7 +27,7 @@ export function TrajectorySection({ host }: { host: PluginHost }): ReactElement 
   const conversationStore = useMemo(
     () =>
       host.slotStore<DigitalPanelState>(CONVERSATION_STORE_KEY) ??
-      createStoreInstance(createConversationStoreDecl()),
+        host.declareStore(CONVERSATION_STORE_KEY, createConversationStoreDecl()),
     [host]
   )
   const state = useSyncExternalStore(conversationStore.subscribe, conversationStore.getSnapshot)

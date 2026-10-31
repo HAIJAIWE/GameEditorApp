@@ -3,7 +3,6 @@ import { useMemo, useSyncExternalStore, type ReactElement } from 'react'
 import { CONVERSATION_STORE_KEY, createConversationStoreDecl } from '../../../../shared/agent/conversation'
 import type { DigitalPanelState } from '../../../../shared/agent/ui'
 import type { PluginHost } from '../../../../shared/plugin/host'
-import { createStoreInstance } from '../../../../shared/plugin/slotRegistry'
 import type { PluginManifest } from '../../../../shared/plugin/types'
 import { AgentTeamSection } from './agentTeamSection'
 import { TrajectorySection } from './trajectorySection'
@@ -64,7 +63,7 @@ function SessionMainView({ host }: { host: PluginHost }): ReactElement {
   const conversationStore = useMemo(
     () =>
       host.slotStore<DigitalPanelState>(CONVERSATION_STORE_KEY) ??
-      createStoreInstance(createConversationStoreDecl()),
+        host.declareStore(CONVERSATION_STORE_KEY, createConversationStoreDecl()),
     [host]
   )
   const state = useSyncExternalStore(conversationStore.subscribe, conversationStore.getSnapshot)

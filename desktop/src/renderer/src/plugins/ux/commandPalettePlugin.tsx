@@ -10,7 +10,6 @@ import { CONVERSATION_STORE_KEY, createConversationStoreDecl } from '../../../..
 import type { DigitalPanelState } from '../../../../shared/agent/ui'
 import type { PluginHost } from '../../../../shared/plugin/host'
 import type { PluginManifest } from '../../../../shared/plugin/types'
-import { createStoreInstance } from '../../../../shared/plugin/slotRegistry'
 import { openPalette, subscribePalette } from '../context'
 import { registerSlotComponent } from '../host'
 
@@ -222,7 +221,7 @@ export function CommandPalette({ host }: { host: PluginHost }): ReactElement | n
   const conversationStore = useMemo(
     () =>
       host.slotStore<DigitalPanelState>(CONVERSATION_STORE_KEY) ??
-      createStoreInstance(createConversationStoreDecl()),
+        host.declareStore(CONVERSATION_STORE_KEY, createConversationStoreDecl()),
     [host]
   )
   const conversation = useSyncExternalStore(conversationStore.subscribe, conversationStore.getSnapshot)

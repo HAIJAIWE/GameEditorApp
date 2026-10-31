@@ -86,12 +86,20 @@ registerBuiltinPlugins()
  * 同时重新加载上次通过市场安装的插件（installedPluginStore 记录的 source）。
  * 失败仅把对应占位标 `status:'error'`，不阻塞宿主。
  */
-void pluginHost.loadPlugin(pluginLoader, 'factory:plugin-market')
-void pluginHost.loadPlugin(pluginLoader, 'factory:session')
-void pluginHost.loadPlugin(pluginLoader, 'factory:session-history')
-void pluginHost.loadPlugin(pluginLoader, 'factory:auto-review')
-void pluginHost.loadPlugin(pluginLoader, 'factory:recent-changes')
-void pluginHost.loadPlugin(pluginLoader, 'factory:command-palette')
+// 核心插件经 PluginLoader 异步加载（验证 cordis 式运行时加载路径）。
+// loadPlugin 加载失败会向上抛错（占位已标 status:'error'），这里 catch 住避免成为 unhandled rejection。
+const loadBuiltin = (source: string): void => {
+  void pluginHost.loadPlugin(pluginLoader, source).catch((err) =>
+    console.error(`[builtins] 核心插件加载失败（source=${source}）：`, err)
+  )
+}
+
+loadBuiltin('factory:plugin-market')
+loadBuiltin('factory:session')
+loadBuiltin('factory:session-history')
+loadBuiltin('factory:auto-review')
+loadBuiltin('factory:recent-changes')
+loadBuiltin('factory:command-palette')
 
 /**
  * 迁移（Slice 51）：`agent-team` / `trajectory` 已合并为 `session`。
@@ -102,5 +110,5 @@ const installedSources = installedPluginStore.load()
 const liveSources = pruneObsoleteSources(installedSources)
 if (liveSources.length !== installedSources.length) installedPluginStore.save(liveSources)
 for (const source of liveSources) {
-  void pluginHost.loadPlugin(pluginLoader, source)
+  loadBuiltin(source)
 }

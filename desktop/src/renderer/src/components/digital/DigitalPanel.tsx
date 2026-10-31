@@ -57,7 +57,6 @@ import {
   createConversationStoreDecl,
   type ConversationAction
 } from '../../../../shared/agent/conversation'
-import { createStoreInstance } from '../../../../shared/plugin/slotRegistry'
 import { toErrorMessage } from '../../../../shared/util/system'
 import { AGENT_PRESETS, DEFAULT_PRESET_ID, presetLabel } from '../../../../shared/agent/config'
 import { LLM_PROVIDER_PRESETS } from '../../../../shared/config/llm'
@@ -120,7 +119,7 @@ export default function DigitalPanel({
   const conversationStore = useMemo(
     () =>
       pluginHost.slotStore<DigitalPanelState>(CONVERSATION_STORE_KEY) ??
-      createStoreInstance(createConversationStoreDecl()),
+        pluginHost.declareStore(CONVERSATION_STORE_KEY, createConversationStoreDecl()),
     []
   )
   const state = useSyncExternalStore(conversationStore.subscribe, conversationStore.getSnapshot)

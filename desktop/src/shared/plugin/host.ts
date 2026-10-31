@@ -133,18 +133,8 @@ export class PluginHost {
     if (record.enabled) this.installSlotsOrMarkError(record)
     this.emit()
 
-    // 启动钩子：失败标 error，宿主不崩（dsh 风格非致命激活）
-    if (record.status === 'enabled' && manifest.activate !== undefined) {
-      try {
-        void manifest.activate()
-      } catch (err) {
-        record.status = 'error'
-        record.error = err instanceof Error ? err.message : String(err)
-        record.enabled = false
-        record.activatedAt = null
-        this.emit()
-      }
-    }
+    // 启动钩子：失败标 error，宿主不崩（dsh 风格非致命激活）；异步失败也经 .catch 捕获
+    this.fireActivate(manifest, record)
   }
 
   /**
@@ -175,7 +165,14 @@ export class PluginHost {
       const manifest = await loader.load(source)
       if (manifest.id !== source) {
         if (this.plugins.has(manifest.id)) {
-          this.plugins.delete(source)
+          // 冲突：保留已注册的插件，把本次加载占位标为 error 并向上抛出，让调用方（插件市场）感知失败
+          const placeholderRec = this.plugins.get(source)
+          if (placeholderRec !== undefined) {
+            placeholderRec.status = 'error'
+            placeholderRec.error = `plugin "${manifest.id}" already registered`
+            placeholderRec.enabled = false
+            placeholderRec.activatedAt = null
+          }
           throw new Error(`plugin "${manifest.id}" already registered`)
         }
         this.plugins.delete(source)
@@ -190,17 +187,8 @@ export class PluginHost {
       record.status = overriddenDisabled ? 'disabled' : 'enabled'
       record.activatedAt = overriddenDisabled ? null : Date.now()
       if (record.enabled) this.installSlotsOrMarkError(record)
-      // 启动钩子：失败标 error，宿主不崩（dsh 风格非致命激活）
-      if (record.status === 'enabled' && manifest.activate !== undefined) {
-        try {
-          void manifest.activate()
-        } catch (err) {
-          record.status = 'error'
-          record.error = err instanceof Error ? err.message : String(err)
-          record.enabled = false
-          record.activatedAt = null
-        }
-      }
+      // 启动钩子：失败标 error，宿主不崩（dsh 风格非致命激活）；异步失败也经 .catch 捕获
+      this.fireActivate(manifest, record)
       this.emit()
     } catch (err) {
       const rec = this.plugins.get(source)
@@ -211,6 +199,8 @@ export class PluginHost {
         rec.activatedAt = null
         this.emit()
       }
+      // 向上抛出，让调用方（插件市场）感知加载失败，而非静默 no-op
+      throw err
     }
   }
 
@@ -224,6 +214,10 @@ export class PluginHost {
       plugin.status = 'enabled'
       plugin.activatedAt = Date.now()
       this.installSlotsOrMarkError(plugin)
+      // 重跑启动钩子（activate 的对称操作；禁用→启用后接线需重建）。
+      // 若 manifest 无 deactivate，则 disable 时不清理副作用，此处重跑可能与既有接线重复——
+      // 插件若担心重复，应在 activate 内做幂等，或提供 deactivate 钩子自行清理。
+      this.fireActivate(plugin.manifest, plugin)
       this.saveOverrides()
       this.emit()
     }
@@ -242,6 +236,8 @@ export class PluginHost {
       plugin.enabled = false
       plugin.status = 'disabled'
       plugin.activatedAt = null
+      // 先清理 activate 建立的副作用（事件订阅/服务注册/定时器），再卸载 slot
+      this.fireDeactivate(plugin.manifest, plugin)
       this.uninstallSlots(id)
       const active = this.activePanel()
       if (active !== null && this.panelOwner(active.id) === id) {
@@ -446,6 +442,57 @@ export class PluginHost {
     }
   }
 
+  /* ---- 钩子执行（activate / deactivate，非致命） ---- */
+
+  /**
+   * 激活失败标记（非致命，与 installSlots 失败同定力）：标 error、关启用、清激活时间、广播。
+   * 同步抛错与异步 reject 都汇入此处，避免 unhandled rejection 与「半初始化却显示 enabled」。
+   */
+  private markActivateError(record: RegisteredPlugin, err: unknown): void {
+    record.status = 'error'
+    record.error = err instanceof Error ? err.message : String(err)
+    record.enabled = false
+    record.activatedAt = null
+    this.emit()
+  }
+
+  /**
+   * 非致命启动：同步执行 `activate`；异步 reject 经 `.catch` 标记 error（不阻塞调用方）。
+   * `register` 是同步签名、`enable` 也同步调用，故不在此 await，错误已在 markActivateError 内记录。
+   */
+  private fireActivate(manifest: PluginManifest, record: RegisteredPlugin): void {
+    if (manifest.activate === undefined) return
+    try {
+      const result = manifest.activate()
+      if (result instanceof Promise) {
+        result.catch((err) => this.markActivateError(record, err))
+      }
+    } catch (err) {
+      this.markActivateError(record, err)
+    }
+  }
+
+  /**
+   * 非致命停用：禁用前清理 `activate` 建立的副作用。失败只记录、不阻断禁用
+   * （用户要关插件，不应因 deactivate 抛错而卡住）。
+   */
+  private fireDeactivate(manifest: PluginManifest, record: RegisteredPlugin): void {
+    if (manifest.deactivate === undefined) return
+    try {
+      const result = manifest.deactivate()
+      if (result instanceof Promise) {
+        result.catch((err) => this.logHookError('deactivate', record, err))
+      }
+    } catch (err) {
+      this.logHookError('deactivate', record, err)
+    }
+  }
+
+  /** 钩子失败的调试日志（非致命：仅记录，不改动插件状态）。 */
+  private logHookError(hook: string, record: RegisteredPlugin, err: unknown): void {
+    console.error(`[plugin ${record.manifest.id}] ${hook} 钩子出错：`, err)
+  }
+
   /* ---- Slot 内核（借 dsh ui-slots） ---- */
 
   /** 安装某插件的全部 slot 能力；任一失败则回滚已安装的（异常向上抛，由调用方标 error）。 */
@@ -586,6 +633,21 @@ export class PluginHost {
   /** 取根级 store；未声明返回 null（不做隐式创建——避免「谁先读谁定义」）。 */
   slotStore<S = unknown>(key: string): SlotStoreInstance<S> | null {
     return (this.slotRegistry.storeOfKey(key) as SlotStoreInstance<S> | undefined) ?? null
+  }
+
+  /**
+   * 取根级 store；缺失则用声明方同款 decl **幂等声明**一个（而非 `createStoreInstance` 造孤立实例）。
+   *
+   * 原 `slotStore(key) ?? createStoreInstance(decl)` 的隐患：若消费方在声明方挂载前读取，
+   * `createStoreInstance` 会造一个**不在注册表**的新实例，与声明方后来造的实例**分叉**，
+   * 导致跨组件状态静默错乱。`declareStore` 幂等——同一 key 重复调用返回既有实例，
+   * 因此无论谁先调用，最终都只有**一个**共享实例，根除分叉。
+   * （正常顺序下声明方先声明，`slotStore` 直接命中，此处不会触发。）
+   */
+  requireStore<S>(key: string, decl: SlotStoreDecl<S>): SlotStoreInstance<S> {
+    const existing = this.slotStore<S>(key)
+    if (existing !== null) return existing
+    return this.declareStore(key, decl)
   }
 
   /**
