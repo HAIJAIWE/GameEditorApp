@@ -81,6 +81,31 @@ export interface McpCallResult {
   isError?: boolean
 }
 
+/** 服务器在 `initialize` 响应里声明的协议能力（对齐 dsh `getServerCapabilities`） */
+export interface McpServerCapabilities {
+  /** 资源能力（resources/list|templates/list|read）；存在即代表服务器提供资源 */
+  resources?: { listChanged?: boolean; subscribe?: boolean }
+  tools?: { listChanged?: boolean }
+  prompts?: { listChanged?: boolean }
+}
+
+/** `resources/list` 返回 */
+export interface McpResourceListResult {
+  resources: Array<{ uri: string; name: string; description?: string; mimeType?: string; size?: number }>
+  nextCursor?: string
+}
+
+/** `resources/templates/list` 返回 */
+export interface McpResourceTemplateListResult {
+  resourceTemplates: Array<{ uriTemplate: string; name: string; description?: string; mimeType?: string }>
+  nextCursor?: string
+}
+
+/** `resources/read` 返回（content 块为文本或二进制 blob） */
+export interface McpResourceReadResult {
+  contents: Array<{ uri: string; mimeType?: string; text?: string; blob?: string }>
+}
+
 /** 允许准入的图像 MIME（对齐 dsh 的图像准入白名单） */
 export const MCP_ALLOWED_IMAGE_MIME = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif'])
 

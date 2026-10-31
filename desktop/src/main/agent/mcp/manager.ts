@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises'
 
-import { mcpToolId, mcpToolRisk, mcpToolToSkill, type McpCallTool } from '../../../shared/agent/mcp'
+import { mcpToolId, mcpToolRisk, mcpToolToSkill, mcpResourceSkills, type McpCallTool } from '../../../shared/agent/mcp'
 import { clearDynamicToolRisk, setDynamicToolRisk, type RiskLevel } from '../../../shared/agent/config'
 import { setMaxToolsOverride } from '../../../shared/agent/tools'
 import { McpClient, truncateInstruction } from '../../../shared/agent/mcp'
@@ -42,6 +42,8 @@ interface ServerConnection {
    * （否则会双释放一个代际、或泄漏另一个代际的工具）。链上的回调再以 generation 守卫判定是否生效。
    */
   syncChain: Promise<void>
+  /** 本服务器已注册的资源工具 id（仅在该服务器声明 resources 能力时非空），断开时一并注销 */
+  resourceSkills: string[]
   closed: boolean
 }
 
@@ -109,6 +111,7 @@ export class McpManager {
         reconnectAttempts: 0,
         reconnectTimer: null,
         syncChain: Promise.resolve(),
+        resourceSkills: [],
         closed: false
       }
       this.connections.set(server, conn)
@@ -141,6 +144,12 @@ export class McpManager {
           clearDynamicToolRisk(id)
         }
         conn.tools = []
+        // 一并注销该服务器已注册的资源工具（若有）
+        for (const id of conn.resourceSkills) {
+          this.dispatcher?.unregister(id)
+          clearDynamicToolRisk(id)
+        }
+        conn.resourceSkills = []
         this.scheduleReconnect(server)
       })
     }
@@ -152,7 +161,7 @@ export class McpManager {
     })
 
     try {
-      const instructions = await McpManager.withTimeout(client.initialize(), `server "${server}" 握手`)
+      const { instructions } = await McpManager.withTimeout(client.initialize(), `server "${server}" 握手`)
       const tools = await McpManager.withTimeout(client.listTools(), `server "${server}" 列工具`)
       // 连接期间已被关闭或重建（generation 变了）→ 丢弃本次结果，回收资源
       if (conn.closed || conn.generation !== generation) {
@@ -168,6 +177,7 @@ export class McpManager {
       this.enqueueSync(server, generation, () => {
         conn.tools = nextTools
         this.registerToolSet(server, generation, nextTools)
+        this.registerResourceSkills(server, generation, client)
       })
       console.log(`[MCP] server "${server}" 已连接，${nextTools.length} 个工具`)
     } catch (error) {
@@ -201,6 +211,31 @@ export class McpManager {
       setDynamicToolRisk(mcpToolId(tool.server, tool.name), risk)
       this.dispatcher.register(mcpToolToSkill(tool, callTool))
     }
+  }
+
+  /**
+   * 若服务器声明了 resources 能力，把三个资源技能（list / list_templates / read）注册进 dispatcher
+   * （对齐 dsh mcp-resources 的 `list_mcp_resources` / `list_mcp_resource_templates` / `read_mcp_resource`）。
+   * 资源技能在连接级注册一次（不随工具列表变更），断开时由 `conn.resourceSkills` 一并注销。
+   */
+  private registerResourceSkills(server: string, generation: number, client: McpClient): void {
+    const conn = this.connections.get(server)
+    if (conn === undefined || conn.closed || conn.generation !== generation || this.dispatcher === null) return
+    if (!client.hasResources()) return
+    const skills = mcpResourceSkills(server, (op, params) => {
+      const c = this.connections.get(server)?.client
+      if (c === undefined || c === null) throw new Error(`MCP server "${server}" 未连接`)
+      if (op === 'list') return c.listResources(params.cursor)
+      if (op === 'templates') return c.listResourceTemplates(params.cursor)
+      return c.readResource(params.uri ?? '')
+    })
+    const ids: string[] = []
+    for (const skill of skills) {
+      setDynamicToolRisk(skill.id, mcpToolRisk(skill.id, conn.config.risk))
+      this.dispatcher.register(skill)
+      ids.push(skill.id)
+    }
+    conn.resourceSkills = ids
   }
 
   /**
@@ -291,11 +326,14 @@ export class McpManager {
     await this.connect(config)
   }
 
-  /** 绑定当前 dispatcher（库切换重建后需重新 attach），并注册已连接的工具 */
+  /** 绑定当前 dispatcher（库切换重建后需重新 attach），并注册已连接的工具与资源技能 */
   attach(dispatcher: SkillDispatcher): void {
     this.dispatcher = dispatcher
     for (const [server, conn] of this.connections) {
-      if (conn.client !== null) this.registerServer(server, conn.generation)
+      if (conn.client !== null) {
+        this.registerServer(server, conn.generation)
+        if (conn.client !== null) this.registerResourceSkills(server, conn.generation, conn.client)
+      }
     }
   }
 

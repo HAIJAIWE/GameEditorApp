@@ -1,5 +1,13 @@
 import { RISK_LEVEL, type RiskLevel, type SkillProtocol, type SkillResult } from '../config'
-import type { McpCallResult, McpContentBlock, McpRiskLevel, McpToolInfo } from './types'
+import type {
+  McpCallResult,
+  McpContentBlock,
+  McpRequestOptions,
+  McpResourceReadResult,
+  McpRiskLevel,
+  McpToolInfo
+} from './types'
+import { MCP_ALLOWED_IMAGE_MIME } from './types'
 
 /**
  * MCP 工具 → `SkillProtocol` 的**纯桥接**（Slice 18）。
@@ -134,4 +142,93 @@ export function mcpToolToSkill(tool: McpToolInfo, callTool: McpCallTool): SkillP
       }
     }
   }
+}
+
+/** 资源操作类型（对应 dsh 的三个资源工具） */
+export type McpResourceOp = 'list' | 'templates' | 'read'
+
+/** 单个资源操作的调用入口：`call(op, params)` 返回协议原始结果；由 manager 注入 client 方法 */
+export type McpResourceCall = (
+  op: McpResourceOp,
+  params: { cursor?: string; uri?: string },
+  options?: McpRequestOptions
+) => Promise<unknown>
+
+/**
+ * 为某台服务器生成三个资源技能（对齐 dsh mcp-resources 的 `list_mcp_resources` /
+ * `list_mcp_resource_templates` / `read_mcp_resource`）。仅在该服务器声明 resources 能力时注册。
+ *
+ * - 列表类：返回 JSON 文本（dsh 用 `resource-list` 渲染，二进制不进模型历史）；
+ * - 读取类：文本块直接拼接；二进制 `blob` 仅保留描述（不进模型历史），但若为图像则走 vision 链路（data URL）。
+ */
+export function mcpResourceSkills(server: string, call: McpResourceCall): SkillProtocol[] {
+  const idPrefix = `${MCP_TOOL_PREFIX}${server}.`
+  const listSkill = (op: 'list' | 'templates'): SkillProtocol => {
+    const isTemplates = op === 'templates'
+    return {
+      id: isTemplates ? `${idPrefix}list_resource_templates` : `${idPrefix}list_resources`,
+      description: isTemplates
+        ? `列出 MCP 服务器 ${server} 的资源 URI 模板（参数化资源）。`
+        : `列出 MCP 服务器 ${server} 提供的资源（文档/数据/上下文），返回 {uri,name,...} 列表。`,
+      version: '0.1.0',
+      parametersSchema: {
+        type: 'object',
+        properties: { cursor: { type: 'string', description: '分页游标（取上一次结果的 nextCursor）' } },
+        required: []
+      },
+      tags: ['mcp', server, 'resource'],
+      async execute(params: Record<string, unknown>): Promise<SkillResult> {
+        try {
+          const cursor = typeof params.cursor === 'string' ? params.cursor : undefined
+          const result = (await call(op, { cursor })) as unknown
+          return { success: true, message: `MCP server: ${server}\n${JSON.stringify(result, null, 2)}`, data: result }
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error)
+          return { success: false, message: `MCP 资源列举失败：${message}`, error: message }
+        }
+      }
+    }
+  }
+  const readSkill: SkillProtocol = {
+    id: `${idPrefix}read_resource`,
+    description: `从 MCP 服务器 ${server} 读取指定 URI 的资源内容（文本或二进制）。`,
+    version: '0.1.0',
+    parametersSchema: {
+      type: 'object',
+      properties: { uri: { type: 'string', description: '资源 URI' } },
+      required: ['uri']
+    },
+    tags: ['mcp', server, 'resource'],
+    async execute(params: Record<string, unknown>): Promise<SkillResult> {
+      const uri = typeof params.uri === 'string' ? params.uri : ''
+      try {
+        const result = (await call('read', { uri })) as McpResourceReadResult
+        const parts: string[] = []
+        const images: string[] = []
+        for (const content of result.contents) {
+          if (typeof content.text === 'string') {
+            parts.push(`[${content.uri}] ${content.text}`)
+          } else if (typeof content.blob === 'string') {
+            // 二进制：不把 base64 灌进模型历史，仅保留描述（对齐 dsh renderResourceResult）
+            parts.push(`[${content.uri}] 二进制资源（${content.mimeType ?? 'unknown'}，base64 ${content.blob.length} 字符）`)
+            if (content.mimeType !== undefined && MCP_ALLOWED_IMAGE_MIME.has(content.mimeType)) {
+              images.push(`data:${content.mimeType};base64,${content.blob}`)
+            }
+          } else {
+            parts.push(`[${content.uri}] 空资源`)
+          }
+        }
+        return {
+          success: true,
+          message: parts.join('\n'),
+          data: result,
+          ...(images.length > 0 ? { images } : {})
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        return { success: false, message: `MCP 资源读取失败：${message}`, error: message }
+      }
+    }
+  }
+  return [listSkill('list'), listSkill('templates'), readSkill]
 }

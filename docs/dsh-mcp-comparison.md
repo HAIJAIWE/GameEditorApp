@@ -156,12 +156,18 @@ async callTool(name, args) {
 | 6 | `CallToolResult` schema 校验      | 严格                                  | 严格（`parseCallToolResult` 抛错 fail-closed）                           | ✅ 已补齐 2026-10-31 | —   |
 | 7 | 图像准入 → 附件/vision                | 有                                   | `SkillResult.images` → `BrainMessage.images`（传输层按视觉模型能力下发）         | ✅ 已补齐 2026-10-31 | —   |
 | 8 | instructions 截断 / serverName 校验 | 有                                   | `MCP_MAX_INSTRUCTION_BYTES=32768` 截断 + `SERVER_NAME_PATTERN` 跳过非法键 | ✅ 已补齐 2026-10-31 | —   |
+| 9 | 协议版本协商                        | `versionNegotiation:{mode:'auto'}`（广播最新版由服务器回选） | 写死 `2024-11-05` → **改为广播最新稳定版 `2025-06-18`** | ✅ 已补齐 2026-11-01 | —   |
+| 10 | 子进程环境隔离                      | `scrubbedParentEnv()` 剥离凭证形 env | `{...process.env,...config.env}` 全量继承 → **`scrubChildEnv()` 剥离 `AWS_/GCP_/AZURE_/TOKEN/SECRET/...` 后再叠加 `config.env`** | ✅ 已补齐 2026-11-01 | —   |
+| 11 | 工具注册交换串行化                  | `syncChain` Promise 链，所有 listTools/重同步交换原子化（防双释放/泄漏） | 各路径各自 register/unregister，仅 generation 守卫 → **新增 per-server `syncChain`，初始注册/重同步/断开注销全部入队串行 + generation 守卫** | ✅ 已补齐 2026-11-01 | —   |
+| 12 | **Resources 资源能力**             | `mcp-resources` 子系统：`list_mcp_resources` / `list_mcp_resource_templates` / `read_mcp_resource` 三工具 + `resources/list` / `resources/templates/list` / `resources/read`，`listable` 能力门控 + `{signal,timeout}` | **已实现**：`McpClient` 加 `listResources`/`listResourceTemplates`/`readResource` + `capabilities` 门控；`bridge.mcpResourceSkills` 生成 `mcp.<server>.list_resources` / `list_resource_templates` / `read_resource` 三技能；仅服务器声明 `resources` 能力时注册，断开一并注销；二进制 `blob` 不进模型历史（图像走 vision） | ✅ 已补齐 2026-11-01 | —   |
 
 ### 建议落地顺序
 
 1. **（已做）逐调用超时 60s** —— 低成本高价值，防止工具调用永久挂起。
 2. **（已做）连接监督器 + `listChanged` 重同步** —— `McpManager` 重构为「每台服务器一个 `ServerConnection` + 监督器」：`onDisconnect` 触发有界指数退避重连（generation 隔离避免旧连接回调污染）；服务器推 `notifications/tools/list_changed` 触发 `tools/list` 重拉并增量注册/注销。保持「桥接成技能」出口不变。详见下方 §9。
 3. **（已做）工具名规范化 + SHA 后缀 / `CallToolResult` 严格校验 / 图像准入 → vision / `serverName` 校验 + `instructions` 截断** —— 四项防御性补齐，见 §4/§5/§6 与新测试 `tests/unit/mcpGaps.test.ts`。
+4. **（已做 2026-11-01，深入读 dsh 源码后补齐）**—— 通读 dsh `packages/mcp/mcp-client`（connection/transport/tools/server-context/index 五文件）与 `packages/mcp/mcp-resources`，逐项比对发现三处真实差距并补齐：① 协议版本协商（广播最新版 `2025-06-18`，对齐 `versionNegotiation:auto`）；② 子进程环境隔离（`scrubChildEnv()` 剥离凭证形 env，对齐 `scrubbedParentEnv`）；③ 工具注册交换串行化（per-server `syncChain`，对齐 dsh `connection.syncChain`，杜绝并发 `list_changed` 交错导致的工具泄漏/双释放）。验证：`tests/unit/mcpSupervisor.test.ts` 现 5 条（新增并发串行化回归），`typecheck`/`lint`/`build` 全绿。
+5. **（已做 2026-11-01）Resources 资源能力** —— 对齐 dsh `mcp-resources`：`McpClient.initialize()` 取回并保存服务器 `capabilities`，新增 `listResources` / `listResourceTemplates` / `readResource`（带逐调用超时 + fail-closed 校验）；`bridge.mcpResourceSkills(server, call)` 生成三个资源技能 `mcp.<server>.list_resources` / `list_resource_templates` / `read_resource`，由 `McpManager.registerResourceSkills` 在服务器**声明 `resources` 能力时**注册（对齐 dsh `listable` 门控），断开时随 `conn.resourceSkills` 一并注销。二进制 `blob` 不灌进模型历史（仅描述；图像 MIME 走 vision data URL），对齐 dsh `renderResourceResult`。新增单测：client 5 条（capabilities 门控 / list / templates / read / 畸形 fail-closed）+ supervisor 2 条（声明能力注册三技能并断开注销 / 未声明不注册）；全量 **3508 通过·6 跳过**。
 
 ---
 

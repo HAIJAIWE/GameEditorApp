@@ -1,5 +1,15 @@
 import type { JsonObjectSchema } from '../config'
-import type { McpCallResult, McpContentBlock, McpToolInfo, McpTransport } from './types'
+import type {
+  McpCallResult,
+  McpContentBlock,
+  McpResourceListResult,
+  McpResourceReadResult,
+  McpResourceTemplateListResult,
+  McpServerCapabilities,
+  McpToolInfo,
+  McpTransport,
+  McpRequestOptions
+} from './types'
 import { MCP_ALLOWED_IMAGE_MIME, MCP_MAX_INSTRUCTION_BYTES } from './types'
 
 /**
@@ -23,6 +33,9 @@ const PROTOCOL_VERSION = '2025-06-18'
 const DEFAULT_CALL_TIMEOUT_MS = 60_000
 
 export class McpClient {
+  /** 握手后从服务器取回的能力声明（决定是否暴露资源工具等）；未握手为 undefined */
+  private capabilities: McpServerCapabilities | undefined
+
   constructor(
     private readonly server: string,
     private readonly transport: McpTransport,
@@ -36,15 +49,32 @@ export class McpClient {
     }
   }
 
-  /** 握手：`initialize` 请求 + `notifications/initialized` 通知；返回服务器 `instructions`（若无则 undefined） */
-  async initialize(): Promise<string | undefined> {
+  /** 握手后服务器声明的能力（用于能力门控，对齐 dsh `getServerCapabilities`） */
+  serverCapabilities(): McpServerCapabilities | undefined {
+    return this.capabilities
+  }
+
+  /** 服务器是否声明了 resources 能力（决定是否注册资源工具，对齐 dsh 的 `listable` 门控） */
+  hasResources(): boolean {
+    return this.capabilities?.resources !== undefined
+  }
+
+  /** 握手：`initialize` 请求 + `notifications/initialized` 通知；取回 `instructions` 与 `capabilities` */
+  async initialize(): Promise<{ instructions: string | undefined; capabilities: McpServerCapabilities | undefined }> {
     const result = (await this.transport.request('initialize', {
       protocolVersion: PROTOCOL_VERSION,
       capabilities: {},
       clientInfo: { name: 'mb-desktop', version: '0.1.0' }
-    })) as { instructions?: unknown }
+    })) as { instructions?: unknown; capabilities?: unknown }
     this.transport.notify('notifications/initialized')
-    return typeof result?.instructions === 'string' ? result.instructions : undefined
+    this.capabilities =
+      result.capabilities !== undefined && typeof result.capabilities === 'object'
+        ? (result.capabilities as McpServerCapabilities)
+        : undefined
+    return {
+      instructions: typeof result?.instructions === 'string' ? result.instructions : undefined,
+      capabilities: this.capabilities
+    }
   }
 
   /** 发现工具；形状不合法（无 name）的跳过 */
@@ -76,6 +106,36 @@ export class McpClient {
 
   close(): void {
     this.transport.close()
+  }
+
+  /** 列出服务器资源（对齐 dsh `resources/list`）；仅当 `hasResources()` 为真时调用 */
+  async listResources(cursor?: string, options?: McpRequestOptions): Promise<McpResourceListResult> {
+    const raw = await this.withCallTimeout(
+      this.transport.request('resources/list', cursor !== undefined ? { cursor } : undefined, {
+        timeoutMs: this.callTimeoutMs,
+        ...options
+      })
+    )
+    return parseResourceList(raw)
+  }
+
+  /** 列出服务器资源 URI 模板（对齐 dsh `resources/templates/list`） */
+  async listResourceTemplates(cursor?: string, options?: McpRequestOptions): Promise<McpResourceTemplateListResult> {
+    const raw = await this.withCallTimeout(
+      this.transport.request('resources/templates/list', cursor !== undefined ? { cursor } : undefined, {
+        timeoutMs: this.callTimeoutMs,
+        ...options
+      })
+    )
+    return parseResourceTemplateList(raw)
+  }
+
+  /** 读取指定 URI 的资源（对齐 dsh `resources/read`）；二进制 blob 原样带回，由上层决定是否入模型 */
+  async readResource(uri: string, options?: McpRequestOptions): Promise<McpResourceReadResult> {
+    const raw = await this.withCallTimeout(
+      this.transport.request('resources/read', { uri }, { timeoutMs: this.callTimeoutMs, ...options })
+    )
+    return parseResourceRead(raw)
   }
 
   /**
@@ -156,4 +216,74 @@ export function truncateInstruction(instructions: string): string {
   return instructions.length > MCP_MAX_INSTRUCTION_BYTES
     ? instructions.slice(0, MCP_MAX_INSTRUCTION_BYTES)
     : instructions
+}
+
+/**
+ * 严格校验 `resources/list` 返回（对齐 dsh 对资源结果的 fail-closed 处理）。
+ * 非法（非对象 / resources 非数组 / 资源项缺 uri 或 name）直接抛错。
+ */
+function parseResourceList(raw: unknown): McpResourceListResult {
+  if (raw === null || typeof raw !== 'object') throw new Error('MCP resources/list 返回非对象结果')
+  const obj = raw as Record<string, unknown>
+  if (obj.resources !== undefined && !Array.isArray(obj.resources)) {
+    throw new Error('MCP resources/list 返回的 resources 不是数组')
+  }
+  const resources = (Array.isArray(obj.resources) ? obj.resources : []).map((item, index) => {
+    if (item === null || typeof item !== 'object') throw new Error(`MCP resources/list resources[${index}] 不是对象`)
+    const r = item as Record<string, unknown>
+    if (typeof r.uri !== 'string' || typeof r.name !== 'string') {
+      throw new Error(`MCP resources/list resources[${index}] 缺 uri 或 name`)
+    }
+    return {
+      uri: r.uri,
+      name: r.name,
+      ...(typeof r.description === 'string' ? { description: r.description } : {}),
+      ...(typeof r.mimeType === 'string' ? { mimeType: r.mimeType } : {}),
+      ...(typeof r.size === 'number' ? { size: r.size } : {})
+    }
+  })
+  return { resources, ...(typeof obj.nextCursor === 'string' ? { nextCursor: obj.nextCursor } : {}) }
+}
+
+/** 严格校验 `resources/templates/list` 返回 */
+function parseResourceTemplateList(raw: unknown): McpResourceTemplateListResult {
+  if (raw === null || typeof raw !== 'object') throw new Error('MCP resources/templates/list 返回非对象结果')
+  const obj = raw as Record<string, unknown>
+  if (obj.resourceTemplates !== undefined && !Array.isArray(obj.resourceTemplates)) {
+    throw new Error('MCP resources/templates/list 返回的 resourceTemplates 不是数组')
+  }
+  const resourceTemplates = (Array.isArray(obj.resourceTemplates) ? obj.resourceTemplates : []).map((item, index) => {
+    if (item === null || typeof item !== 'object') throw new Error(`MCP resourceTemplates[${index}] 不是对象`)
+    const r = item as Record<string, unknown>
+    if (typeof r.uriTemplate !== 'string' || typeof r.name !== 'string') {
+      throw new Error(`MCP resourceTemplates[${index}] 缺 uriTemplate 或 name`)
+    }
+    return {
+      uriTemplate: r.uriTemplate,
+      name: r.name,
+      ...(typeof r.description === 'string' ? { description: r.description } : {}),
+      ...(typeof r.mimeType === 'string' ? { mimeType: r.mimeType } : {})
+    }
+  })
+  return { resourceTemplates, ...(typeof obj.nextCursor === 'string' ? { nextCursor: obj.nextCursor } : {}) }
+}
+
+/** 严格校验 `resources/read` 返回；二进制 blob 原样保留 */
+function parseResourceRead(raw: unknown): McpResourceReadResult {
+  if (raw === null || typeof raw !== 'object') throw new Error('MCP resources/read 返回非对象结果')
+  const obj = raw as Record<string, unknown>
+  if (obj.contents !== undefined && !Array.isArray(obj.contents)) {
+    throw new Error('MCP resources/read 返回的 contents 不是数组')
+  }
+  const contents = (Array.isArray(obj.contents) ? obj.contents : []).map((item, index) => {
+    if (item === null || typeof item !== 'object') throw new Error(`MCP resources/read contents[${index}] 不是对象`)
+    const c = item as Record<string, unknown>
+    if (typeof c.uri !== 'string') throw new Error(`MCP resources/read contents[${index}] 缺 uri`)
+    const out: { uri: string; mimeType?: string; text?: string; blob?: string } = { uri: c.uri }
+    if (typeof c.mimeType === 'string') out.mimeType = c.mimeType
+    if (typeof c.text === 'string') out.text = c.text
+    if (typeof c.blob === 'string') out.blob = c.blob
+    return out
+  })
+  return { contents }
 }

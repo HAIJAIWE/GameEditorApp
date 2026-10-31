@@ -182,4 +182,35 @@ describe('McpManager 连接监督器', () => {
     expect(dispatcher.unregistered.has('mcp.srv.b')).toBe(true)
     expect(manager.toolCount()).toBe(1)
   })
+
+  it('声明 resources 能力的服务器注册三个资源技能，断开后一并注销', async () => {
+    const transport = new SupervisedTransport((method) => {
+      if (method === 'initialize') return { capabilities: { resources: {} } }
+      if (method === 'tools/list') return { tools: [{ name: 'a', description: '', inputSchema: { type: 'object' } }] }
+      return {}
+    })
+    manager.setTransportFactory(() => transport)
+    await manager.connect({ mcpServers: { srv: { command: 'x' } } })
+    await flush()
+    expect(dispatcher.registered.has('mcp.srv.list_resources')).toBe(true)
+    expect(dispatcher.registered.has('mcp.srv.list_resource_templates')).toBe(true)
+    expect(dispatcher.registered.has('mcp.srv.read_resource')).toBe(true)
+
+    transport.simulateDisconnect()
+    expect(dispatcher.unregistered.has('mcp.srv.list_resources')).toBe(true)
+    expect(dispatcher.unregistered.has('mcp.srv.read_resource')).toBe(true)
+  })
+
+  it('未声明 resources 能力的服务器不注册资源技能', async () => {
+    const transport = new SupervisedTransport((method) => {
+      if (method === 'initialize') return { capabilities: {} }
+      if (method === 'tools/list') return { tools: [{ name: 'a', description: '', inputSchema: { type: 'object' } }] }
+      return {}
+    })
+    manager.setTransportFactory(() => transport)
+    await manager.connect({ mcpServers: { srv: { command: 'x' } } })
+    await flush()
+    expect(dispatcher.registered.has('mcp.srv.list_resources')).toBe(false)
+    expect(dispatcher.registered.has('mcp.srv.read_resource')).toBe(false)
+  })
 })

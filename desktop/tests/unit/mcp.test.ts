@@ -172,6 +172,63 @@ describe('McpClient', () => {
     const client = new McpClient('fs', hanging, 40)
     await expect(client.callTool('read_file', {})).rejects.toThrow(/超时/)
   })
+
+  it('initialize 取回 capabilities，hasResources 反映 resources 能力门控', async () => {
+    const withRes = new FakeTransport(() => ({ capabilities: { resources: {} } }))
+    const c1 = new McpClient('fs', withRes)
+    const r1 = await c1.initialize()
+    expect(r1.instructions).toBeUndefined()
+    expect(r1.capabilities).toEqual({ resources: {} })
+    expect(c1.hasResources()).toBe(true)
+
+    const noRes = new FakeTransport(() => ({ capabilities: {} }))
+    const c2 = new McpClient('fs', noRes)
+    await c2.initialize()
+    expect(c2.hasResources()).toBe(false)
+  })
+
+  it('listResources 转发 resources/list 并解析，携带逐调用超时', async () => {
+    const transport = new FakeTransport((method) => {
+      if (method === 'resources/list') return { resources: [{ uri: 'file:///a', name: 'A' }], nextCursor: 'c1' }
+      return {}
+    })
+    const client = new McpClient('fs', transport, 1000)
+    const res = await client.listResources()
+    expect(res).toEqual({ resources: [{ uri: 'file:///a', name: 'A' }], nextCursor: 'c1' })
+    const req = transport.requests.find((request) => request.method === 'resources/list')
+    expect(req?.params).toBeUndefined()
+    expect(req?.options?.timeoutMs).toBe(1000)
+  })
+
+  it('listResourceTemplates 转发 resources/templates/list', async () => {
+    const transport = new FakeTransport((method) => {
+      if (method === 'resources/templates/list') {
+        return { resourceTemplates: [{ uriTemplate: 'file:///{p}', name: 'T' }] }
+      }
+      return {}
+    })
+    const client = new McpClient('fs', transport)
+    const res = await client.listResourceTemplates()
+    expect(res.resourceTemplates).toEqual([{ uriTemplate: 'file:///{p}', name: 'T' }])
+  })
+
+  it('readResource 转发 resources/read，blob 原样保留', async () => {
+    const transport = new FakeTransport((method) => {
+      if (method === 'resources/read') return { contents: [{ uri: 'u', mimeType: 'image/png', blob: 'BASE64' }] }
+      return {}
+    })
+    const client = new McpClient('fs', transport)
+    const res = await client.readResource('u')
+    expect(res.contents).toEqual([{ uri: 'u', mimeType: 'image/png', blob: 'BASE64' }])
+    const req = transport.requests.find((request) => request.method === 'resources/read')
+    expect(req?.params).toEqual({ uri: 'u' })
+  })
+
+  it('listResources 畸形返回（资源项缺 uri）抛错 fail-closed', async () => {
+    const transport = new FakeTransport(() => ({ resources: [{ name: 'no-uri' }] }))
+    const client = new McpClient('fs', transport)
+    await expect(client.listResources()).rejects.toThrow(/uri/)
+  })
 })
 
 /* ------------------------------ 传输层超时 ------------------------------ */
