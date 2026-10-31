@@ -1,5 +1,5 @@
 import { RISK_LEVEL, type RiskLevel, type SkillProtocol, type SkillResult } from '../config'
-import type { McpCallResult, McpRiskLevel, McpToolInfo } from './types'
+import type { McpCallResult, McpContentBlock, McpRiskLevel, McpToolInfo } from './types'
 
 /**
  * MCP 工具 → `SkillProtocol` 的**纯桥接**（Slice 18）。
@@ -47,8 +47,46 @@ export function mcpToolRisk(toolName: string, configured?: McpRiskLevel): RiskLe
 /** MCP 工具 id 前缀（`mcp.<server>.<tool>`），便于分组与风险映射识别 */
 export const MCP_TOOL_PREFIX = 'mcp.'
 
+/** 工具名单个字符上限（对齐 dsh 的 64-char cap） */
+const TOOL_NAME_MAX = 64
+
+/**
+ * 非加密确定性哈希（仅用于截断/规范化后去重，避免工具名碰撞）。
+ * dsh 用 SHA-256；我们取同步 64 位 FNV-1a 凑 12 位十六进制，以兼容主/渲染进程且无需异步。
+ */
+function shortHash(input: string): string {
+  let h = 0x811c9dc5
+  for (let i = 0; i < input.length; i++) {
+    h ^= input.charCodeAt(i)
+    h = Math.imul(h, 0x01000193)
+  }
+  const a = h >>> 0
+  let h2 = 0x1000193 ^ input.length
+  for (let i = input.length - 1; i >= 0; i--) {
+    h2 ^= input.charCodeAt(i)
+    h2 = Math.imul(h2, 0x01000193)
+  }
+  const b = h2 >>> 0
+  const combined = (BigInt(a) << 32n) | BigInt(b)
+  return combined.toString(16).padStart(16, '0').slice(0, 12)
+}
+
+/**
+ * 规范化 MCP 工具名（对齐 dsh tools.ts 的命名归一）：
+ * - 非 `[A-Za-z0-9_-]` 统一替换为 `_`；
+ * - 超过 64 字符截断；
+ * - 若规范化 / 截断**改变了原名**，追加 `_<12位短哈希>` 后缀保证唯一（防碰撞）。
+ * 仅影响工具 id 展示与路由键；实际 `callTool` 仍用服务器原始名，故不影响调用正确性。
+ */
+export function normalizeMcpToolName(raw: string): string {
+  const sanitized = raw.replace(/[^A-Za-z0-9_-]/g, '_')
+  if (sanitized === raw && sanitized.length <= TOOL_NAME_MAX) return sanitized
+  const base = sanitized.slice(0, TOOL_NAME_MAX)
+  return `${base}_${shortHash(raw)}`
+}
+
 export function mcpToolId(server: string, tool: string): string {
-  return `${MCP_TOOL_PREFIX}${server}.${tool}`
+  return `${MCP_TOOL_PREFIX}${server}.${normalizeMcpToolName(tool)}`
 }
 
 /** 调 MCP 工具的函数（由 manager 注入，通常是 `(s,t,a) => client(s).callTool(t,a)`） */
@@ -76,11 +114,19 @@ export function mcpToolToSkill(tool: McpToolInfo, callTool: McpCallTool): SkillP
           .map((item) => item.text as string)
           .join('\n')
           .trim()
+        // 图像准入（对齐 dsh tools.ts）：image 块转 data URL，回灌 vision 链路
+        const images = (result.content ?? [])
+          .filter(
+            (item): item is McpContentBlock =>
+              item.type === 'image' && typeof item.data === 'string' && item.data.trim() !== '' && typeof item.mimeType === 'string'
+          )
+          .map((item) => `data:${item.mimeType};base64,${item.data}`)
         const failed = result.isError === true
         return {
           success: !failed,
           message: text !== '' ? text : failed ? 'MCP 工具返回错误' : '（MCP 工具无文本输出）',
-          data: result
+          data: result,
+          ...(images.length > 0 ? { images } : {})
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)

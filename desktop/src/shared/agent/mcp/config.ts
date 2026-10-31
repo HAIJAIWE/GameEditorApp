@@ -2,6 +2,9 @@ import type { McpConfig, McpRiskLevel, McpServerConfig } from './types'
 
 const RISK_VALUES: readonly McpRiskLevel[] = ['read', 'write', 'filesystem', 'network', 'system']
 
+/** 服务器名约束（对齐 dsh 的 `serverName` 正则 `[A-Za-z0-9_-]{1,32}`）：非法则跳过该服务器 */
+const SERVER_NAME_PATTERN = /^[A-Za-z0-9_-]{1,32}$/
+
 function isMcpRiskLevel(value: unknown): value is McpRiskLevel {
   return typeof value === 'string' && (RISK_VALUES as readonly string[]).includes(value)
 }
@@ -19,6 +22,7 @@ export function parseMcpConfig(raw: unknown): McpConfig {
 
   const out: Record<string, McpServerConfig> = {}
   for (const [name, value] of Object.entries(servers as Record<string, unknown>)) {
+    if (!SERVER_NAME_PATTERN.test(name)) continue // 服务器名非法：跳过（容错优先）
     const cfg = parseServer(value)
     if (cfg !== null) out[name] = cfg
   }

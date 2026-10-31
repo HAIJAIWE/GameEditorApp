@@ -393,17 +393,19 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
     call: { id: string; name: string; arguments: Record<string, unknown> },
     resolved: string,
     action: string
-  ): Promise<{ text: string; success: boolean }> => {
+  ): Promise<{ text: string; success: boolean; images?: string[] }> => {
     // 子智能体工具：不执行技能，改为**异步启动**子循环（立即返回 started subagent <id>）
     if (subAgentTool !== '' && resolved === subAgentTool) {
       return spawnSubAgent(call)
     }
     let text: string
     let success: boolean
+    let images: string[] | undefined
     try {
       const result = await runner.execute(resolved, call.arguments, context)
       success = result.success
       text = formatToolResult(result)
+      images = result.images
       // 技能要求交互（确认破坏性动作 / 提问澄清）→ 暂停并等用户回答
       if (isSkillInteraction(result.interaction)) {
         const settled = await settleInteraction(result.interaction, resolved, action, call.arguments)
@@ -432,7 +434,7 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
     if (repeatReminder !== null) {
       messages.push({ role: 'user', content: repeatReminder })
     }
-    return { text, success }
+    return { text, success, ...(images !== undefined && images.length > 0 ? { images } : {}) }
   }
 
   // 上一轮实际使用的模型：用于按「模型真实上下文窗口」推导压缩阈值（首轮为空 → 由档位兜底）
@@ -810,7 +812,7 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
         context.dangerConfirmed = { tool: resolved, action }
       }
 
-      const { text, success } = await runTool(call, resolved, action)
+      const { text, success, images } = await runTool(call, resolved, action)
       results.push(text)
       emit({
         type: 'step_done',
@@ -819,7 +821,7 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
         success,
         args: toolArgsText(call.arguments)
       })
-      messages.push(buildToolMessage(call.id, resolved, text))
+      messages.push(buildToolMessage(call.id, resolved, text, images))
     }
 
     // 本批因取消而中止 → 立刻收敛，不再进入下一轮（也不会再花一次 LLM 调用）

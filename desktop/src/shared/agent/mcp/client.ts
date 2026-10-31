@@ -1,5 +1,6 @@
 import type { JsonObjectSchema } from '../config'
-import type { McpCallResult, McpToolInfo, McpTransport } from './types'
+import type { McpCallResult, McpContentBlock, McpToolInfo, McpTransport } from './types'
+import { MCP_ALLOWED_IMAGE_MIME, MCP_MAX_INSTRUCTION_BYTES } from './types'
 
 /**
  * MCP 客户端（协议层，宿主无关，传输层注入）。
@@ -31,14 +32,15 @@ export class McpClient {
     }
   }
 
-  /** 握手：`initialize` 请求 + `notifications/initialized` 通知 */
-  async initialize(): Promise<void> {
-    await this.transport.request('initialize', {
+  /** 握手：`initialize` 请求 + `notifications/initialized` 通知；返回服务器 `instructions`（若无则 undefined） */
+  async initialize(): Promise<string | undefined> {
+    const result = (await this.transport.request('initialize', {
       protocolVersion: PROTOCOL_VERSION,
       capabilities: {},
       clientInfo: { name: 'mb-desktop', version: '0.1.0' }
-    })
+    })) as { instructions?: unknown }
     this.transport.notify('notifications/initialized')
+    return typeof result?.instructions === 'string' ? result.instructions : undefined
   }
 
   /** 发现工具；形状不合法（无 name）的跳过 */
@@ -60,18 +62,12 @@ export class McpClient {
     return out
   }
 
-  /** 调用工具；结果只保留 `content` 与 `isError`。带逐调用超时（默认 60s，见 `DEFAULT_CALL_TIMEOUT_MS`） */
+  /** 调用工具；严格校验 `CallToolResult` 形状（对齐 dsh 的 schema 校验），带逐调用超时（默认 60s） */
   async callTool(name: string, args: Record<string, unknown>): Promise<McpCallResult> {
-    const result = (await this.withCallTimeout(
+    const raw = await this.withCallTimeout(
       this.transport.request('tools/call', { name, arguments: args }, { timeoutMs: this.callTimeoutMs })
-    )) as {
-      content?: unknown
-      isError?: unknown
-    }
-    return {
-      content: Array.isArray(result?.content) ? (result.content as McpCallResult['content']) : [],
-      isError: result?.isError === true
-    }
+    )
+    return parseCallToolResult(raw)
   }
 
   close(): void {
@@ -108,4 +104,52 @@ function normalizeSchema(raw: unknown): JsonObjectSchema {
     }
   }
   return { type: 'object', properties: {} }
+}
+
+/**
+ * 严格校验 `tools/call` 返回（对齐 dsh 的 `CallToolResult` schema 校验）。
+ * 不合法（非对象 / content 非数组 / 块缺 type / 图像块缺 data 或 MIME 不支持）直接抛错，
+ * 由 `mcpToolToSkill` 的 try/catch 收敛为 `success:false`（不把畸形响应透传给 Brain 循环）。
+ */
+function parseCallToolResult(raw: unknown): McpCallResult {
+  if (raw === null || typeof raw !== 'object') {
+    throw new Error('MCP tools/call 返回非对象结果')
+  }
+  const obj = raw as Record<string, unknown>
+  const content = obj.content
+  if (content !== undefined && !Array.isArray(content)) {
+    throw new Error('MCP tools/call 返回的 content 不是数组')
+  }
+  const blocks: McpContentBlock[] = Array.isArray(content)
+    ? content.map((item, index) => {
+        if (item === null || typeof item !== 'object') {
+          throw new Error(`MCP tools/call content[${index}] 不是对象`)
+        }
+        const block = item as Record<string, unknown>
+        if (typeof block.type !== 'string') {
+          throw new Error(`MCP tools/call content[${index}] 缺 type 字段`)
+        }
+        const out: McpContentBlock = { type: block.type }
+        if (typeof block.text === 'string') out.text = block.text
+        if (typeof block.data === 'string') out.data = block.data
+        if (typeof block.mimeType === 'string') out.mimeType = block.mimeType
+        if (out.type === 'image') {
+          if (out.data === undefined || out.data.trim() === '') {
+            throw new Error(`MCP tools/call content[${index}] 图像块缺 data`)
+          }
+          if (out.mimeType === undefined || !MCP_ALLOWED_IMAGE_MIME.has(out.mimeType)) {
+            throw new Error(`MCP tools/call content[${index}] 图像 MIME 不支持：${String(out.mimeType)}`)
+          }
+        }
+        return out
+      })
+    : []
+  return { content: blocks, isError: obj.isError === true }
+}
+
+/** 服务器 instructions 截断（对齐 dsh `maxInstructionBytes = 32768`） */
+export function truncateInstruction(instructions: string): string {
+  return instructions.length > MCP_MAX_INSTRUCTION_BYTES
+    ? instructions.slice(0, MCP_MAX_INSTRUCTION_BYTES)
+    : instructions
 }

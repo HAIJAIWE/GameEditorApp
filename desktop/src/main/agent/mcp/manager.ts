@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises'
 import { mcpToolId, mcpToolRisk, mcpToolToSkill, type McpCallTool } from '../../../shared/agent/mcp'
 import { clearDynamicToolRisk, setDynamicToolRisk, type RiskLevel } from '../../../shared/agent/config'
 import { setMaxToolsOverride } from '../../../shared/agent/tools'
-import { McpClient } from '../../../shared/agent/mcp'
+import { McpClient, truncateInstruction } from '../../../shared/agent/mcp'
 import { parseMcpConfig } from '../../../shared/agent/mcp'
 import type { McpConfig, McpServerConfig, McpToolInfo, McpTransport } from '../../../shared/agent/mcp'
 import type { SkillDispatcher } from '../execution/dispatcher'
@@ -30,6 +30,8 @@ interface ServerConnection {
    */
   generation: number
   tools: Array<{ tool: McpToolInfo; risk: RiskLevel }>
+  /** 服务器 instructions（握手时取回，截断到 `MCP_MAX_INSTRUCTION_BYTES`），供上层注入系统提示 */
+  instructions: string
   /** 已尝试重连次数（成功一次即清零，故对冷启动慢的服务器也能撑过退避窗口） */
   reconnectAttempts: number
   /** 待执行的重连定时器（去重：同一服务器同时只挂一个） */
@@ -97,6 +99,7 @@ export class McpManager {
         client: null,
         generation: 0,
         tools: [],
+        instructions: '',
         reconnectAttempts: 0,
         reconnectTimer: null,
         closed: false
@@ -140,7 +143,7 @@ export class McpManager {
     })
 
     try {
-      await McpManager.withTimeout(client.initialize(), `server "${server}" 握手`)
+      const instructions = await McpManager.withTimeout(client.initialize(), `server "${server}" 握手`)
       const tools = await McpManager.withTimeout(client.listTools(), `server "${server}" 列工具`)
       // 连接期间已被关闭或重建（generation 变了）→ 丢弃本次结果，回收资源
       if (conn.closed || conn.generation !== generation) {
@@ -150,6 +153,7 @@ export class McpManager {
       conn.transport = transport
       conn.client = client
       conn.tools = tools.map((tool) => ({ tool, risk: mcpToolRisk(tool.name, conn.config.risk) }))
+      conn.instructions = truncateInstruction(typeof instructions === 'string' ? instructions : '')
       conn.reconnectAttempts = 0
       this.registerServer(server, generation)
       console.log(`[MCP] server "${server}" 已连接，${conn.tools.length} 个工具`)
@@ -258,6 +262,11 @@ export class McpManager {
     let n = 0
     for (const conn of this.connections.values()) n += conn.tools.length
     return n
+  }
+
+  /** 某服务器的 instructions（握手时取回并截断到 32768 字节；无则空串），供上层注入系统提示 */
+  serverInstructions(server: string): string {
+    return this.connections.get(server)?.instructions ?? ''
   }
 
   close(): void {

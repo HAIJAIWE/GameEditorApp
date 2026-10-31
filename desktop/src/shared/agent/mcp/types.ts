@@ -63,11 +63,29 @@ export interface McpToolInfo {
   inputSchema: JsonObjectSchema
 }
 
-/** `tools/call` 的返回（只取文本内容做消息；其余原样带回 `data`） */
+/** `tools/call` 返回里的单个内容块（文本 / 图像 / 其他类型） */
+export interface McpContentBlock {
+  /** 块类型，如 `text` / `image` / `resource` */
+  type: string
+  /** 文本块内容（type==='text'） */
+  text?: string
+  /** 图像块（type==='image'）：规范化 base64 原文 */
+  data?: string
+  /** 图像块 MIME，如 `image/png` */
+  mimeType?: string
+}
+
+/** `tools/call` 的返回（文本/图像块在 `content`；其余原样带回 `data`） */
 export interface McpCallResult {
-  content: Array<{ type: string; text?: string }>
+  content: McpContentBlock[]
   isError?: boolean
 }
+
+/** 允许准入的图像 MIME（对齐 dsh 的图像准入白名单） */
+export const MCP_ALLOWED_IMAGE_MIME = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif'])
+
+/** 服务器 instructions 截断上限（字节，对齐 dsh `maxInstructionBytes = 32768`） */
+export const MCP_MAX_INSTRUCTION_BYTES = 32768
 
 /** `request` 的可选控制项（逐调用超时 / 中断信号；对齐 dsh 的 `toolCallTimeoutMs`） */
 export interface McpRequestOptions {

@@ -196,6 +196,8 @@ export interface SkillResult {
   message: string
   data?: unknown
   error?: string
+  /** 图像结果（data URL，如 `data:image/png;base64,...`），回灌 vision 链路；传输层按模型能力决定是否下发 */
+  images?: string[]
   /** 需要与用户交互（确认/提问）；由 Brain 循环暂停并等待回答 */
   interaction?: SkillInteraction
 }

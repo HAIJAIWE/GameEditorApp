@@ -107,9 +107,15 @@ export function buildAssistantMessage(reply: BrainLlmReply): BrainMessage {
   return message
 }
 
-/** 构造 tool 结果消息（协议要求与 tool_call id 一一对应） */
-export function buildToolMessage(toolCallId: string, toolName: string, content: string): BrainMessage {
-  return { role: 'tool', tool_call_id: toolCallId, name: toolName, content }
+/** 构造 tool 结果消息（协议要求与 tool_call id 一一对应）。images 可选，用于把工具产出的图像回灌 vision 链路 */
+export function buildToolMessage(toolCallId: string, toolName: string, content: string, images?: string[]): BrainMessage {
+  return {
+    role: 'tool',
+    tool_call_id: toolCallId,
+    name: toolName,
+    content,
+    ...(images !== undefined && images.length > 0 ? { images } : {})
+  }
 }
 
 /** 兜底答复：取首个非空结果 */

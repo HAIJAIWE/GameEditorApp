@@ -84,7 +84,8 @@ MCP server ──stdio JSON-RPC──▶ McpClient ──tools/list──▶ Mcp
 - 配置解析（容错，stdio/http 二选一 + `risk`）+ 应用级单例 + 库级注册
 - **MCP 配置 UI**（Slice 20）：工具菜单「MCP 配置」→ `McpConfigPanel` 编辑 `mcp.json`，保存后 `mcp:setConfig` 写盘并**重连**
 - **风险分级**（Slice 20）：动态风险表 + 每服务器 `risk` 档 + 工具名启发式（shell/write/delete→SYSTEM 需二次确认；read/list→READ_ONLY）
-- 单测：`mcp.test.ts` 17 条 + `mcpSupervisor.test.ts` 4 条（配置/桥/客户端/超时/监督器/重同步/重连）；dsh 对照见 [`dsh-mcp-comparison.md`](./dsh-mcp-comparison.md)
+- **dsh 四项防御性补齐**：① 工具名规范化 `normalizeMcpToolName`（脏字符→`_`，截断 64，改动时追加 12 位 FNV-1a 十六进制后缀）；② `CallToolResult` 严格 schema 校验（`parseCallToolResult` fail-closed）；③ 图像准入 → `SkillResult.images` → `BrainMessage.images`（传输层按视觉模型能力下发）；④ `serverName` 校验（`SERVER_NAME_PATTERN` 跳过非法键）+ `instructions` 截断（`MCP_MAX_INSTRUCTION_BYTES=32768`，经 `serverInstructions` 暴露）
+- 单测：`mcp.test.ts` 17 条 + `mcpSupervisor.test.ts` 4 条 + `mcpGaps.test.ts` 15 条（共 36 条：配置/桥/客户端/超时/监督器/重同步/重连/命名/校验/图像/vision/serverName）；dsh 对照见 [`dsh-mcp-comparison.md`](./dsh-mcp-comparison.md)
 
 **未做（后续）**
 - ~~**工具面限量**~~ → **已可配置**（Slice 21）：MCP 配置顶层 `"maxTools": N` 调高上限（默认 8/15，`setMaxToolsOverride`）
@@ -93,7 +94,7 @@ MCP server ──stdio JSON-RPC──▶ McpClient ──tools/list──▶ Mcp
 ## 6. 验证
 
 ```bash
-npx vitest run tests/unit/mcp.test.ts tests/unit/mcpSupervisor.test.ts   # 21 条
+npx vitest run tests/unit/mcp.test.ts tests/unit/mcpSupervisor.test.ts tests/unit/mcpGaps.test.ts   # 36 条
 npm run typecheck && npx eslint src/shared/agent/mcp src/main/agent/mcp
 env -u NODE_OPTIONS npm run build
 ```
