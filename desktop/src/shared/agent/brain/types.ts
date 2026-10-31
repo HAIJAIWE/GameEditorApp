@@ -10,6 +10,7 @@ import type { SkillExecutionContext, SkillInteraction } from '../config'
 import type { BrainLlmTransport, BrainToolRunner, BrainMessage } from '../runtime'
 import type { LlmUsage } from '../../config/llm'
 import type { AgentRunStats, AgentRunTier } from '../observability'
+import type { CompactSummarizer } from '../compaction'
 
 /* ---- 事件 ---- */
 
@@ -254,6 +255,12 @@ export interface RunBrainLoopOptions {
    * 用于「从事件日志恢复会话」——由 `deriveMessagesFromTurns` 重建后传入。
    */
   initialMessages?: BrainMessage[]
+  /**
+   * 上下文压缩摘要器（对齐 dsh `compaction-basic` 的 `summarize` 钩子）。
+   * 提供时：历史超压力阈值后用它生成**结构化 checkpoint** 替代模板摘要；
+   * 未提供（默认）或摘要失败时，回落既有模板压缩——零行为变化。
+   */
+  compactSummarizer?: CompactSummarizer
   /**
    * 子智能体启动回调：拿到 `childId` 与该子循环的 `inbox`，可后续 `push` 消息
    * （即 dsh 的 `sendMessage` 对运行中子级的「插话」）；`stopChild` 用于**单独停止**

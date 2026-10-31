@@ -6,5 +6,12 @@ export { PRUNE_MARKER, PRUNE_PRESETS, codePointLength, pruneText, pruneToolResul
 export type { PruneOptions } from './prune'
 export { CLOUD_TIER_THRESHOLD, LOCAL_ASSUMED_WINDOW, LOCAL_TIER_THRESHOLD, RETAIN_RATIO, THRESHOLD_RATIO, resolvePressureBudget } from './pressure'
 export type { PressureBudget } from './pressure'
-export { compactHistory, estimateTokensOf } from './compact'
-export type { CompactOptions, CompactResult } from './compact'
+export {
+  buildCompactedMessages,
+  compactHistory,
+  estimateTokensOf,
+  planCompaction,
+  shouldCompact
+} from './compact'
+export type { CompactOptions, CompactResult, CompactSummarizer, CompactionPlan } from './compact'
+export { COMPACTION_INSTRUCTION, createCompactSummarizer } from './summarizer'

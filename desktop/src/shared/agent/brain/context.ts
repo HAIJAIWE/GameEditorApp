@@ -10,8 +10,9 @@
 
 import type { BrainMessage } from '../runtime'
 import type { AgentRunTier } from '../observability'
-import { compactHistory } from '../compaction'
+import { buildCompactedMessages, compactHistory, planCompaction } from '../compaction'
 import { pruneText } from '../compaction'
+import type { CompactSummarizer } from '../compaction'
 import type { AgentEvalVerdict } from './types'
 
 /** 安全调用评估器：任何异常都降级为 null（不阻断循环） */
@@ -58,4 +59,29 @@ export function maybeResetContext(
   model?: string,
 ): BrainMessage[] {
   return compactHistory(messages, { tier, model }).messages
+}
+
+/**
+ * 上下文重置（LLM 摘要版，对齐 dsh `compaction-basic`）：压力超阈值时优先用
+ * `summarizer` 生成结构化 checkpoint；**摘要失败一律回落模板压缩**，绝不因压缩失败中断循环。
+ * 未提供 `summarizer` 时与 `maybeResetContext` 行为完全一致（零行为变化）。
+ */
+export async function maybeResetContextAsync(
+  messages: BrainMessage[],
+  tier: AgentRunTier,
+  model: string | undefined,
+  summarizer: CompactSummarizer | undefined,
+  signal: AbortSignal,
+): Promise<BrainMessage[]> {
+  if (summarizer === undefined) return maybeResetContext(messages, tier, model)
+  const plan = planCompaction(messages, { tier, model })
+  if (plan === null) return messages
+  try {
+    const summary = await summarizer({ messages, dropped: plan.dropped }, signal)
+    const content = `## 上下文交接摘要（LLM 生成，前 ${plan.dropped.length} 条已压缩，防目标漂移）\n${summary}`
+    return buildCompactedMessages(plan, content)
+  } catch {
+    // 摘要失败 → 回落模板压缩（压缩是「尽力而为」，不能成为新的失败面）
+    return maybeResetContext(messages, tier, model)
+  }
 }

@@ -44,5 +44,5 @@ export type {
   SubAgentProvider,
   SubAgentTask
 } from './types'
-export { clipToolResult, maybeResetContext, safeRunEvaluator } from './context'
+export { clipToolResult, maybeResetContext, maybeResetContextAsync, safeRunEvaluator } from './context'
 export { runBrainLoop } from './loop'

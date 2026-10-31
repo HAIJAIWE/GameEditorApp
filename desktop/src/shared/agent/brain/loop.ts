@@ -43,7 +43,7 @@ import {
   type RunBrainLoopOptions,
   type SubAgentProvider
 } from './types'
-import { clipToolResult, maybeResetContext, safeRunEvaluator } from './context'
+import { clipToolResult, maybeResetContextAsync, safeRunEvaluator } from './context'
 import { RepeatCallGuard } from '../guard'
 import { isAbortError } from '../../abort'
 
@@ -455,8 +455,15 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
     for (const content of inbox.drain()) {
       messages.push({ role: 'user', content })
     }
-    // F5 上下文重置（DD-8）：历史过长时压缩续跑，防本地 4B context rot / 目标漂移
-    messages = maybeResetContext(messages, tier, lastTurnModel)
+    // F5 上下文重置（DD-8）：历史过长时压缩续跑，防本地 4B context rot / 目标漂移。
+    // 提供 `compactSummarizer` 时走 LLM 结构化摘要（对齐 dsh compaction-basic），失败回落模板。
+    messages = await maybeResetContextAsync(
+      messages,
+      tier,
+      lastTurnModel,
+      options.compactSummarizer,
+      controller.signal
+    )
     emit({ type: 'step_start', order: iteration, tool: 'llm_think' })
 
     let reply: BrainLlmReply

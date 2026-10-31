@@ -19,6 +19,7 @@ import {
   type BrainToolRunner
 } from '../../../shared/agent/brain'
 import { deriveMessagesFromTurns } from '../../../shared/agent/conversation'
+import { createCompactSummarizer } from '../../../shared/agent/compaction'
 import { buildSystemPrompts } from '../../../shared/agent/ui'
 import { presetLabel, presetPersona } from '../../../shared/agent/config'
 import { buildPersonalizedContext } from '../../../shared/agent/config'
@@ -367,6 +368,9 @@ export class AgentBrainService {
         : {}),
       // 本轮图片（data URL）：只在本轮发给模型，不落盘
       ...(inputImages !== undefined ? { inputImages } : {}),
+      // 上下文压缩摘要器（对齐 dsh compaction-basic）：云端档用 LLM 生成结构化 checkpoint；
+      // 本地档保持零成本模板压缩（本地 4B 摘要质量与延迟都不划算）。摘要失败自动回落模板。
+      ...(tier === 'cloud' ? { compactSummarizer: createCompactSummarizer(transport) } : {}),
       // 不显式兜底：让循环按档位取默认（云端 12 / 本地 6）。显式传值会盖掉 tier-aware 默认。
       ...(this.deps.maxTurns !== undefined ? { maxTurns: this.deps.maxTurns } : {}),
       ...(this.deps.maxToolCalls !== undefined ? { maxToolCalls: this.deps.maxToolCalls } : {}),

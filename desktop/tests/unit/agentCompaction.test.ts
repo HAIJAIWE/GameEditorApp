@@ -18,7 +18,8 @@ import {
 import { cutBalanced, pairingDelta, safeTailCount } from '../../src/shared/agent/compaction'
 import { resolvePressureBudget } from '../../src/shared/agent/compaction'
 import { compactHistory, estimateTokensOf } from '../../src/shared/agent/compaction'
-import { clipToolResult } from '../../src/shared/agent/brain'
+import { buildCompactedMessages, createCompactSummarizer, planCompaction } from '../../src/shared/agent/compaction'
+import { clipToolResult, maybeResetContext, maybeResetContextAsync } from '../../src/shared/agent/brain'
 import type { BrainMessage } from '../../src/shared/agent/runtime'
 
 const big = (tag: string) => `${tag}-${'x'.repeat(6000)}`
@@ -179,5 +180,127 @@ describe('clipToolResult 回归（保留尾部）', () => {
 
   it('短结果不受影响', () => {
     expect(clipToolResult('很短', 300)).toBe('很短')
+  })
+})
+
+/* ---- LLM 压缩（对齐 dsh compaction-basic）：拆分 / 构建 / 摘要器 / 异步回落 ---- */
+
+describe('planCompaction / buildCompactedMessages', () => {
+  it('未达阈值 → null', () => {
+    const messages: BrainMessage[] = [
+      { role: 'system', content: 'sys' },
+      { role: 'user', content: 'hi' },
+      { role: 'assistant', content: 'yo' }
+    ]
+    expect(planCompaction(messages, { tier: 'local' })).toBeNull()
+  })
+
+  it('达阈值 → 拆分 system / dropped / recent，且 recent 配对安全', () => {
+    const messages: BrainMessage[] = [
+      { role: 'system', content: 'sys' },
+      { role: 'user', content: big('u1') },
+      assistantWithTool(big('a1')),
+      toolResultOf(big('t1')),
+      { role: 'assistant', content: big('a2') }
+    ]
+    const plan = planCompaction(messages, { tier: 'local' })
+    expect(plan).not.toBeNull()
+    expect(plan?.systemMessages).toHaveLength(1)
+    expect(plan?.dropped.length).toBeGreaterThan(0)
+    expect(plan?.recent.length).toBeGreaterThanOrEqual(2)
+    // dropped + recent 恰好等于非 system 全部（不丢不重）
+    expect((plan?.dropped.length ?? 0) + (plan?.recent.length ?? 0)).toBe(messages.length - 1)
+  })
+
+  it('buildCompactedMessages：system 前缀 + 摘要 + recent', () => {
+    const plan = {
+      systemMessages: [{ role: 'system' as const, content: 'sys' }],
+      dropped: [{ role: 'user' as const, content: 'old' }],
+      recent: [{ role: 'assistant' as const, content: 'new' }]
+    }
+    const built = buildCompactedMessages(plan, '## 摘要\nX')
+    expect(built).toHaveLength(3)
+    expect(built[0]).toEqual({ role: 'system', content: 'sys' })
+    expect(built[1]).toEqual({ role: 'system', content: '## 摘要\nX' })
+    expect(built[2]).toEqual({ role: 'assistant', content: 'new' })
+  })
+})
+
+describe('maybeResetContextAsync', () => {
+  const messages = (): BrainMessage[] => [
+    { role: 'system', content: 'sys' },
+    { role: 'user', content: big('u1') },
+    { role: 'assistant', content: big('a1') },
+    { role: 'user', content: big('u2') },
+    { role: 'assistant', content: big('a2') }
+  ]
+  const signal = new AbortController().signal
+
+  it('无 summarizer → 与模板压缩一致', async () => {
+    const out = await maybeResetContextAsync(messages(), 'local', undefined, undefined, signal)
+    expect(out).toEqual(maybeResetContext(messages(), 'local', undefined))
+  })
+
+  it('有 summarizer → 用其文本作 checkpoint', async () => {
+    const out = await maybeResetContextAsync(messages(), 'local', undefined, async () => 'LLM摘要', signal)
+    const summary = out.find((m) => m.role === 'system' && m.content.includes('LLM摘要'))
+    expect(summary).toBeDefined()
+    expect(summary?.content).toContain('LLM 生成')
+  })
+
+  it('summarizer 抛错 → 回落模板（不中断）', async () => {
+    const out = await maybeResetContextAsync(
+      messages(),
+      'local',
+      undefined,
+      async () => {
+        throw new Error('boom')
+      },
+      signal
+    )
+    expect(out).toEqual(maybeResetContext(messages(), 'local', undefined))
+  })
+
+  it('未达阈值 → 原样返回（不调用 summarizer）', async () => {
+    let called = false
+    const small: BrainMessage[] = [
+      { role: 'system', content: 'sys' },
+      { role: 'user', content: 'hi' },
+      { role: 'assistant', content: 'yo' }
+    ]
+    const out = await maybeResetContextAsync(small, 'local', undefined, async () => {
+      called = true
+      return 'x'
+    }, signal)
+    expect(out).toBe(small)
+    expect(called).toBe(false)
+  })
+})
+
+describe('createCompactSummarizer', () => {
+  it('把被压缩区 + 摘要指令发给传输层，返回其文本', async () => {
+    const requests: Array<{ messages: BrainMessage[] }> = []
+    const transport = {
+      async complete(request: { messages: BrainMessage[] }) {
+        requests.push(request)
+        return { content: '## 主要请求与意图\n- 测试', finishReason: 'stop', toolCalls: [], usage: undefined }
+      }
+    }
+    const summarizer = createCompactSummarizer(transport as never)
+    const dropped: BrainMessage[] = [{ role: 'user', content: 'old' }]
+    const text = await summarizer({ messages: dropped, dropped }, new AbortController().signal)
+    expect(text).toContain('主要请求与意图')
+    expect(requests[0]?.messages[0]).toEqual({ role: 'user', content: 'old' })
+    expect(requests[0]?.messages.at(-1)?.content).toContain('上下文压缩引擎')
+  })
+
+  it('空摘要 → 抛错（由上层回落模板）', async () => {
+    const transport = {
+      async complete() {
+        return { content: '   ', finishReason: 'stop', toolCalls: [], usage: undefined }
+      }
+    }
+    const summarizer = createCompactSummarizer(transport as never)
+    await expect(summarizer({ messages: [], dropped: [] }, new AbortController().signal)).rejects.toThrow(/为空/)
   })
 })
