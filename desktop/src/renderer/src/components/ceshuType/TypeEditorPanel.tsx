@@ -6,17 +6,18 @@ import {
   FIELD_ID_AI_ERROR_EMPTY_LABEL,
   FIELD_ID_AI_ERROR_NO_CANDIDATE
 } from '../../../../shared/util/id/fieldIdAi'
-import { FIELD_TYPE_LABELS, FIELD_TYPES, validateTypeSchema } from '../../../../shared/schema/adapters/typeSchemaFile'
+import { validateTypeSchema } from '../../../../shared/schema/adapters/typeSchemaFile'
 import {
   TYPE_TEMPLATE_NAMES,
   TYPE_TEMPLATE_SECTIONS,
   TYPE_TEMPLATES,
   buildNewTypeDraft
 } from '../../../../shared/schema/core/typeTemplates'
-import type { DataTypeDef, FieldType, TypeFieldDef, TypeSectionDef } from '../../../../shared/types'
+import type { DataTypeDef, TypeFieldDef, TypeSectionDef } from '../../../../shared/types'
 
-import { refOptions, parseOptionalNumber } from '../typeEditorUtils'
-import FieldIdSuggest from '../ceshuField/FieldIdSuggest'
+import { TypeSideList, TypeEditorHeader } from './TypeEditorChrome'
+import { TypePropsSection } from './TypePropsSection'
+import { TypeFieldList } from './TypeFieldList'
 
 /**
  * 数据表字段结构编辑器：
@@ -26,6 +27,12 @@ import FieldIdSuggest from '../ceshuField/FieldIdSuggest'
  * - 字段 ID 生成：两条独立路子 —— **英译**（术语表，`shared/fieldId.ts`）+ **拼音**（`shared/pinyinFieldId.ts`）
  * - 新建类型的 ID：随中文名自动填拼音
  * 明确未迁移：布局分区编辑、AI 推荐字段/分析数据/联网参考（属 AI 域，见 roadmap E42/E56）。
+ *
+ * 展示层已拆成三块独立组件（本文件只留草稿状态与动作编排）：
+ * - `TypeEditorChrome`：左栏类型列表 + 顶部动作条；
+ * - `TypePropsSection`：类型属性（ID/名称/颜色/模板/确认条）；
+ * - `TypeFieldList`：字段列表（按字段类型分支的附加列 + ID 候选条）。
+ * 拆的是 JSX 结构，DOM / className / data-testid / 非受控输入的 `key` 全部原样保留。
  */
 
 interface TypeEditorPanelProps {
@@ -408,383 +415,57 @@ export default function TypeEditorPanel({ types, initialTypeId, onSaved, onClose
 
   return (
     <div className="te-layout" data-testid="type-editor-panel">
-      <aside className="te-side">
-        <div className="form-label">数据类型（{draft.length}）</div>
-        <button type="button" className="btn" data-testid="te-new-type" onClick={addType}>
-          新建类型
-        </button>
-        <div className="te-type-list">
-          {draft.map((def, index) => (
-            <button
-              key={index}
-              type="button"
-              className={`type-tab${def.id === selectedId ? ' active' : ''}`}
-              data-testid="te-type-tab"
-              onClick={() => setSelectedId(def.id)}
-            >
-              <span className="type-dot" style={{ background: def.color || '#607D8B' }} />
-              <span className="item-name">{def.name || def.id || '未命名类型'}</span>
-              <span className="item-meta">{def.formFields.length} 字段</span>
-            </button>
-          ))}
-        </div>
-      </aside>
+      <TypeSideList draft={draft} selectedId={selectedId} onSelect={setSelectedId} onAddType={addType} />
 
       <div className="te-main">
-        <div className="changelog-header">
-          <span className="chapter-form-title">字段结构编辑器</span>
-          <div className="editor-actions">
-            <button type="button" className="btn" data-testid="te-reset" disabled={saving} onClick={handleReset}>
-              重置
-            </button>
-            <button
-              type="button"
-              className="btn primary"
-              data-testid="te-save"
-              disabled={saving || !current}
-              onClick={() => void handleSave()}
-            >
-              保存结构
-            </button>
-            <button type="button" className="btn" data-testid="te-close" disabled={saving} onClick={onClose}>
-              关闭
-            </button>
-          </div>
-        </div>
+        <TypeEditorHeader
+          saving={saving}
+          canSave={current !== null}
+          onReset={handleReset}
+          onSave={() => void handleSave()}
+          onClose={onClose}
+        />
 
         {current ? (
           <>
-            <div className="changelog-entry">
-              <div className="form-label">类型属性</div>
-              <div className="ai-gen-row">
-                <span className="form-label">类型 ID</span>
-                <input
-                  className="form-input"
-                  data-testid="te-type-id"
-                  value={current.id}
-                  readOnly={baseIds.has(current.id)}
-                  title={baseIds.has(current.id) ? '既有类型的 ID 不可修改（存量条目按 ID 关联）' : ''}
-                  onChange={(event) => editTypeId(event.target.value)}
-                />
-                <span className="form-label">中文名</span>
-                <input
-                  className="form-input"
-                  data-testid="te-type-name"
-                  value={current.name}
-                  onChange={(event) => updateTypeName(event.target.value)}
-                />
-              </div>
-              <div className="ai-gen-row">
-                <span className="form-label">复数键</span>
-                <input
-                  className="form-input"
-                  data-testid="te-type-plural"
-                  value={current.pluralKey}
-                  onChange={(event) => updateType({ pluralKey: event.target.value })}
-                />
-                <span className="form-label">颜色</span>
-                <input
-                  className="form-input te-col-color"
-                  data-testid="te-type-color"
-                  value={current.color}
-                  maxLength={40}
-                  placeholder="#RRGGBB"
-                  onChange={(event) => updateType({ color: event.target.value })}
-                />
-                <span className="type-dot" style={{ background: current.color || '#607D8B' }} />
-                <button
-                  type="button"
-                  className="btn danger"
-                  data-testid="te-delete-type"
-                  disabled={draft.length <= 1}
-                  onClick={removeType}
-                >
-                  删除类型
-                </button>
-              </div>
-              <div className="ai-gen-row">
-                <span className="form-label">字段模板</span>
-                <select
-                  className="form-select"
-                  data-testid="te-template"
-                  value={templateName}
-                  onChange={(event) => setTemplateName(event.target.value)}
-                >
-                  <optgroup label="内置模板">
-                    {TYPE_TEMPLATE_NAMES.map((name) => (
-                      <option key={name} value={name}>
-                        {/* 带字段数：光看名字不知道会得到多少字段，也就无法判断是否值得替换 */}
-                        {name}（{TYPE_TEMPLATES[name]?.length ?? 0} 字段）
-                      </option>
-                    ))}
-                  </optgroup>
-                  {customTemplates.length > 0 && (
-                    <optgroup label="自定义模板">
-                      {customTemplates.map((name) => (
-                        <option key={name} value={name}>
-                          {name}
-                        </option>
-                      ))}
-                    </optgroup>
-                  )}
-                </select>
-                <button
-                  type="button"
-                  className="btn"
-                  data-testid="te-apply-template"
-                  onClick={() => void applyTemplate()}
-                >
-                  应用模板（替换全部字段）
-                </button>
-                <button type="button" className="btn" data-testid="te-add-field" onClick={addField}>
-                  添加字段
-                </button>
-              </div>
-              {/*
-                建议分区：套用模板后字段会变长，尤其 hp/atk/def 这类战斗数值很容易被并进「基础信息」。
-                这里预览模板建议的分组；**应用模板时会把它们写进类型的 `sections`**，
-                保存后条目表单即按此分区渲染（优先级高于内置 FORM_GROUPS）。
-              */}
-              {templateSections !== null && (
-                <div className="form-hint-row" data-testid="te-template-sections">
-                  <span>
-                    建议分区：
-                    {templateSections
-                      .map((section) => `${section.icon} ${section.title}（${section.fields.join(' / ')}）`)
-                      .join(' ｜ ')}
-                    <span className="item-meta"> （应用模板后条目表单将按此分区渲染）</span>
-                  </span>
-                </div>
-              )}
-              {/*
-                替换确认：列出会被「藏起来」的字段（数据仍在文件里，只是界面上不再显示）。
-                这不是删数据，但用户视角等同于数据消失，所以必须先讲清楚再动手。
-              */}
-              {pendingTemplate !== null && current && (
-                <div className="form-hint-row" data-testid="te-template-confirm">
-                  <span>
-                    模板「{pendingTemplate.name}」不含当前类型的{' '}
-                    {current.formFields
-                      .filter((field) => !new Set(pendingTemplate.fields.map((next) => next.name)).has(field.name))
-                      .map((field) => field.label.replace(/:?\s*$/, ''))
-                      .join('、')}
-                    {' '}字段。这些字段已填的数据**仍保存在文件里**，但界面上不再显示，也无法再编辑。
-                  </span>
-                  <div className="form-hint-actions">
-                    <button
-                      type="button"
-                      className="btn danger"
-                      data-testid="te-template-confirm-apply"
-                      onClick={() => commitTemplateReplace(pendingTemplate.name, pendingTemplate.fields)}
-                    >
-                      确认替换
-                    </button>
-                    <button
-                      type="button"
-                      className="btn"
-                      data-testid="te-template-confirm-cancel"
-                      onClick={() => setPendingTemplate(null)}
-                    >
-                      取消
-                    </button>
-                  </div>
-                </div>
-              )}
-              <div className="ai-gen-row">
-                <input
-                  className="form-input"
-                  data-testid="te-template-name"
-                  value={newTemplateName}
-                  placeholder="模板名称"
-                  onChange={(event) => setNewTemplateName(event.target.value)}
-                />
-                <button
-                  type="button"
-                  className="btn"
-                  data-testid="te-save-template"
-                  onClick={() => void saveAsTemplate()}
-                >
-                  保存当前为模板
-                </button>
-                <button
-                  type="button"
-                  className="btn danger"
-                  data-testid="te-delete-template"
-                  disabled={isBuiltinTemplate}
-                  title={isBuiltinTemplate ? '内置模板不允许删除' : undefined}
-                  onClick={() => void deleteTemplate()}
-                >
-                  删除模板
-                </button>
-              </div>
-            </div>
+            <TypePropsSection
+              current={current}
+              draft={draft}
+              baseIds={baseIds}
+              templateName={templateName}
+              templateSections={templateSections}
+              customTemplates={customTemplates}
+              newTemplateName={newTemplateName}
+              pendingTemplate={pendingTemplate}
+              isBuiltinTemplate={isBuiltinTemplate}
+              onEditTypeId={editTypeId}
+              onUpdateName={updateTypeName}
+              onUpdate={updateType}
+              onRemoveType={removeType}
+              onTemplateNameChange={setTemplateName}
+              onApplyTemplate={() => void applyTemplate()}
+              onAddField={addField}
+              onConfirmTemplate={commitTemplateReplace}
+              onCancelTemplate={() => setPendingTemplate(null)}
+              onNewTemplateNameChange={setNewTemplateName}
+              onSaveAsTemplate={() => void saveAsTemplate()}
+              onDeleteTemplate={() => void deleteTemplate()}
+            />
 
-            <div className="changelog-entry">
-              <div className="form-label">字段列表（{current.formFields.length}）</div>
-              {current.formFields.map((field, index) => {
-                    const isIdField = field.name === 'id'
-                return (
-                  <div className={`te-field-row${isIdField ? ' locked' : ''}`} key={index} data-testid={`te-field-${index}`}>
-                    <input
-                      className="form-input te-col-name"
-                      data-testid={`te-field-name-${index}`}
-                      value={field.name}
-                      readOnly={isIdField}
-                      title={isIdField ? 'id 字段为系统字段，不可改名/删除' : '字段名（英文/数字/下划线）'}
-                      onChange={(event) => updateField(index, { name: event.target.value })}
-                    />
-                    <button
-                      type="button"
-                      className="btn slim"
-                      data-testid={`te-field-generate-${index}`}
-                      disabled={isIdField}
-                      title="由中文显示名生成字段 ID（不覆盖已填内容，先给候选）"
-                      onClick={() => requestIdSuggestions(index)}
-                    >
-                      生成
-                    </button>
-                    <button
-                      type="button"
-                      className="btn slim"
-                      data-testid={`te-field-pinyin-${index}`}
-                      disabled={isIdField}
-                      title="中文→拼音（如「攻击力」→ gong_ji_li），任意汉字可用；不覆盖已填内容"
-                      onClick={() => requestPinyinSuggestions(index)}
-                    >
-                      拼音
-                    </button>
-                    <input
-                      className="form-input te-col-label"
-                      data-testid={`te-field-label-${index}`}
-                      value={field.label}
-                      onChange={(event) => updateField(index, { label: event.target.value })}
-                    />
-                    <select
-                      className="form-select te-col-type"
-                      data-testid={`te-field-type-${index}`}
-                      value={field.type}
-                      disabled={isIdField}
-                      onChange={(event) => updateField(index, { type: event.target.value as FieldType })}
-                    >
-                      {FIELD_TYPES.map((type) => (
-                        <option key={type} value={type}>
-                          {FIELD_TYPE_LABELS[type]}
-                        </option>
-                      ))}
-                    </select>
-                    <label className="ai-gen-check">
-                      <input
-                        type="checkbox"
-                        data-testid={`te-field-editable-${index}`}
-                        checked={field.editable}
-                        disabled={isIdField}
-                        onChange={(event) => updateField(index, { editable: event.target.checked })}
-                      />
-                      可编辑
-                    </label>
-
-                    {(field.type === 'combobox' || field.type === 'template') && (
-                      <input
-                        className="form-input te-col-values"
-                        data-testid={`te-field-values-${index}`}
-                        key={`values-${selectedId}-${index}-${resetToken}`}
-                        defaultValue={(field.values ?? []).join(', ')}
-                        placeholder="可选值（逗号分隔）"
-                        onChange={(event) =>
-                          updateField(index, {
-                            values: event.target.value
-                              .split(/[,，]/)
-                              .map((part) => part.trim())
-                              .filter(Boolean)
-                          })
-                        }
-                      />
-                    )}
-
-                    {(field.type === 'spinbox' || field.type === 'double_spin') && (
-                      <span className="te-col-range">
-                        <input
-                          className="form-input te-col-num"
-                          data-testid={`te-field-from-${index}`}
-                          key={`from-${selectedId}-${index}-${resetToken}`}
-                          defaultValue={field.from ?? ''}
-                          placeholder="下限"
-                          onChange={(event) => updateField(index, { from: parseOptionalNumber(event.target.value) })}
-                        />
-                        <input
-                          className="form-input te-col-num"
-                          data-testid={`te-field-to-${index}`}
-                          key={`to-${selectedId}-${index}-${resetToken}`}
-                          defaultValue={field.to ?? ''}
-                          placeholder="上限"
-                          onChange={(event) => updateField(index, { to: parseOptionalNumber(event.target.value) })}
-                        />
-                      </span>
-                    )}
-
-                    {field.type === 'multiselect' && (
-                      <select
-                        className="form-select te-col-ref"
-                        data-testid={`te-field-ref-${index}`}
-                        value={field.refType ?? ''}
-                        onChange={(event) => updateField(index, { refType: event.target.value || undefined })}
-                      >
-                        <option value="">（无引用）</option>
-                        {refOptions(draft, field.refType).map((type) => (
-                          <option key={type.id} value={type.pluralKey}>
-                            {type.name}（{type.pluralKey}）
-                          </option>
-                        ))}
-                      </select>
-                    )}
-
-                    <span className="te-field-buttons">
-                      <button
-                        type="button"
-                        className="btn slim"
-                        data-testid={`te-field-up-${index}`}
-                        disabled={index === 0 || isIdField}
-                        title="上移"
-                        onClick={() => moveField(index, -1)}
-                      >
-                        ↑
-                      </button>
-                      <button
-                        type="button"
-                        className="btn slim"
-                        data-testid={`te-field-down-${index}`}
-                        disabled={index === current.formFields.length - 1 || field.name === 'id'}
-                        title="下移"
-                        onClick={() => moveField(index, 1)}
-                      >
-                        ↓
-                      </button>
-                      <button
-                        type="button"
-                        className="btn slim danger"
-                        data-testid={`te-field-remove-${index}`}
-                        disabled={isIdField}
-                        title={isIdField ? 'id 字段不可删除' : '删除字段'}
-                        onClick={() => removeField(index)}
-                      >
-                        ✕
-                      </button>
-                    </span>
-                    {idSuggest?.index === index && (
-                      <FieldIdSuggest
-                        suggest={idSuggest}
-                        index={index}
-                        onApplyName={(id) => {
-                          updateField(index, { name: id })
-                          setIdSuggest(null)
-                        }}
-                        onRequestAi={() => void requestAiSuggestions(index)}
-                      />
-                    )}
-                  </div>
-                )
-              })}
-            </div>
+            <TypeFieldList
+              current={current}
+              draft={draft}
+              selectedId={selectedId}
+              resetToken={resetToken}
+              idSuggest={idSuggest}
+              onUpdateField={updateField}
+              onGenerate={requestIdSuggestions}
+              onPinyin={requestPinyinSuggestions}
+              onClearSuggest={() => setIdSuggest(null)}
+              onRequestAiSuggestions={(index) => void requestAiSuggestions(index)}
+              onMoveField={moveField}
+              onRemoveField={removeField}
+            />
           </>
         ) : (
           <div className="empty">请在左侧选择类型，或点「新建类型」</div>

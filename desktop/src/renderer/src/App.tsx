@@ -21,9 +21,10 @@ import { setHostUi } from './plugins/host/hostBridge'
 import { setAppIoPort } from './plugins/context/appActionsIo'
 import { setMenuStateProvider } from './plugins/context/menuState'
 import { HostPanel } from './plugins/host/HostPanel'
-import { CollapseIcon, ExpandIcon } from './components/common/FullscreenIcons'
-import { MainViewMount, type AppMainTab } from './plugins/host/MainViewMount'
+import { type AppMainTab } from './plugins/host/MainViewMount'
 import { AppContextProvider } from './plugins/host/appContext'
+import { AiDock } from './components/layout/AiDock'
+import { AppPanelOverlay } from './components/layout/AppPanelOverlay'
 
 /**
  * 智能体面板收编为 `app.rightPanel` slot 的默认占据者（Slice 46）。
@@ -688,21 +689,13 @@ export default function App() {
             {panelId !== null ? (
               /* 全局面板占满「中栏 + 停靠区」：面板里多是表格/表单，中栏那 400~500px 撑不开
                  （实测装备预览的 Buff 列表会被压成 0 高）。与改版前的可用宽度保持一致。 */
-              <div className="panel-overlay">
-                <div className="panel-overlay-header">
-                  <span className="chapter-form-title">{panelTitle}</span>
-                  <button type="button" className="btn" data-testid="panel-close" onClick={() => closePanel()}>
-                    关闭
-                  </button>
-                </div>
-                <div className="panel-overlay-body">
-                  {/* 面板自供给通道：此子树内的面板可经 useAppContext() 取共享状态；
-                      渲染只认 panelId —— 23 case 的 switch 已随 Slice 8a 删除 */}
-                  <AppContextProvider value={appContextValue}>
-                    <HostPanel host={pluginHost} panelId={panelId} onClose={closePanel} />
-                  </AppContextProvider>
-                </div>
-              </div>
+              <AppPanelOverlay panelTitle={panelTitle} onClose={closePanel}>
+                {/* 面板自供给通道：此子树内的面板可经 useAppContext() 取共享状态；
+                    渲染只认 panelId —— 23 case 的 switch 已随 Slice 8a 删除 */}
+                <AppContextProvider value={appContextValue}>
+                  <HostPanel host={pluginHost} panelId={panelId} onClose={closePanel} />
+                </AppContextProvider>
+              </AppPanelOverlay>
             ) : (
               <>
             {/* 全屏停靠区时中栏让位（`hidden` 而非卸载：对话滚动/草稿不丢） */}
@@ -716,46 +709,16 @@ export default function App() {
                 ownerProps={{ onOpenCapabilities: () => runCommand('agentEditor.open') }}
               />
             </div>
-            {/* 右栏拖拽分隔条：拖动改宽，双击复位；全屏时没有「宽」可调，不渲染 */}
-            {!dockFullscreen && (
-              <div
-                className="ai-dock-resizer"
-                role="separator"
-                aria-orientation="vertical"
-                aria-label="调整 AI 停靠栏宽度"
-                title="拖拽调整宽度，双击复位"
-                data-testid="ai-dock-resizer"
-                onMouseDown={startDockResize}
-                onDoubleClick={resetDockWidth}
-              />
-            )}
-            <aside
-              className={`ai-dock${dockFullscreen ? ' is-fullscreen' : ''}`}
-              // 全屏宽度由 CSS 接管（flex 铺满），不再写死像素
-              style={dockFullscreen ? undefined : { width: aiDockWidth }}
-              data-testid="ai-dock"
-            >
-              {/* 右栏 = 停靠面板（对齐 dsh 的 rightbar）：策划书 / 数据编辑 / 代码编辑 /
-                  浏览器 / 会话都在这条页签里；中栏留给对话。 */}
-              <MainViewMount
-                host={pluginHost}
-                appTabs={appTabs}
-                context={mainViewContextValue}
-                actions={
-                  <button
-                    type="button"
-                    className="middle-tab-action"
-                    data-testid="dock-fullscreen"
-                    aria-pressed={dockFullscreen}
-                    aria-label={dockFullscreen ? '退出全屏' : '停靠区全屏'}
-                    title={dockFullscreen ? '退出全屏（Esc）' : '停靠区全屏'}
-                    onClick={() => setDockFullscreen((value) => !value)}
-                  >
-                    {dockFullscreen ? <CollapseIcon /> : <ExpandIcon />}
-                  </button>
-                }
-              />
-            </aside>
+            <AiDock
+              fullscreen={dockFullscreen}
+              width={aiDockWidth}
+              host={pluginHost}
+              appTabs={appTabs}
+              context={mainViewContextValue}
+              onToggleFullscreen={() => setDockFullscreen((value) => !value)}
+              onResizeStart={startDockResize}
+              onResetWidth={resetDockWidth}
+            />
               </>
             )}
           </div>
