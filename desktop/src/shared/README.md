@@ -212,8 +212,31 @@ for(const [n,fp,code] of [
 - **`ipc` `schemas` `schemasData*` `types` `systemConfigSchema`**：契约基础设施（Q1）。
   2026-10-31 把 1038 行的 `schema/adapters/schemasData.ts` 按业务域拆成 18 个
   `schemasData<域>.ts`（条目 / 导入导出 / 引擎导出 / 类型 schema / 属性 / 策划书 3 件 /
-  智能体 / 附件 / LLM / 密钥 / 图像 / 库 / 备份 / 笔记 / 模板 / 应用），导出名一字未改；
-  消费者直接指向具体文件，`core/schemas` 与 `adapters/index` 两个再导出桶随之删除。
+  智能体 / 附件 / LLM / 密钥 / 图像 / 库 / 备份 / 笔记 / 模板 / 应用），导出名一字未改。
+  **消费者改为走能力入口**（见下节），不直接深插到 `schemasData<域>.ts`。
+
+### 3.1 能力文件夹 = 有入口 + 有护栏（2026-10-31）
+
+每个能力子包（`util/{id,object,search,field,data,datetime,io,ui,system}`、`ceshu/*`、
+`agent/*`、`config/*`、`schema/{core,adapters}`、`ceshuSchema/*` 等）都**自带 `index.ts` 入口**，
+外部一律 `import ... from '<pkg>/<folder>'`，**不得深插到目录内的某个文件**。
+
+三个条件缺一不可（我们为此付过两次学费）：
+
+1. **有入口** —— 文件夹是一个有公开 API 的单元，不只是"文件按主题放一起"。
+2. **有人走** —— 消费者真的从入口 import。若没人走，入口就是死代码
+   （2026-10-30 曾因"没人 import"删掉 64 个入口，但没人 import 的真正原因是
+   **从没把消费者改过来** —— 那是把症状当病因）。
+3. **有护栏** —— `eslint.config.mjs` 的 `CAPABILITY_FOLDERS` 清单 + 独立规则
+   禁止深插。没有它，入口一定会再烂回去。
+
+⚠️ **入口写法**：默认 `export * from './X'`；但若该目录**处在循环依赖上**，
+`export *` 会丢失导出快照（实测导致 462 个单测失败），此时必须改为**显式命名导出**。
+
+> 注意：这是**分类方式**，不是 dsh 的包模型 —— 我们**不加** `package.json`、
+> 不做可独立发布的包。代价是走入口会让 tree-shaking 粒度变粗
+> （renderer 产物约 +5.7%），这是换取边界清晰度的成本。
+
 - **`aiSeedPrompt` `glossaryTerms`**：应用级引导 / 业务术语数据表——留根理由见各文件头注释，
   后续如出现域归属争议再议。（`formSections` 曾在此列：条目表单分区布局，2026-10-13 随表单
   拉平为 旧版 旧版扁平 `QFormLayout` 而删除，标签术语替换直连 `config/gameStyle.ts`。）

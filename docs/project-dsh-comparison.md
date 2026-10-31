@@ -37,6 +37,7 @@
 | UI | `client/` 下 60+ 个 `ui-*` 包，**CSS Modules** 逐组件 | `renderer/src/components/` 10 个子包 + `plugins/` 6 个子包，全局 `styles.css` + 自有令牌 |
 | 测试 | 包内 `tests/*.spec.ts(x)` | 集中 `desktop/tests/unit/`（300 文件 / 3432 例）+ `tests/e2e/`（Playwright） |
 | 包的粒度 | 2–1925 文件，**无上限**（见 `dsh-ui-comparison.md` §1.1） | 拆后最大子包 15 文件（比 dsh 还细） |
+| **能力边界** | `package.json` 的 `exports` 由模块系统强制 | **每能力文件夹有 `index.ts` 入口 + eslint `CAPABILITY_FOLDERS` 禁深插**（2026-10-31）。这是**分类方式**，不是包模型：不加 `package.json`、不做可发布包。代价：走入口使 tree-shaking 变粗（renderer 产物 +5.7%） |
 
 > 结构性差异（每包 `package.json`、`src`/`src/client` 双层出口、CSS Modules）均为**有意不照搬**，理由见 `dsh-ui-comparison.md` §3「不抄什么」与 §5 硬约束。
 
