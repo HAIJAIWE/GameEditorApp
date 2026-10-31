@@ -225,7 +225,8 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
   })
   /*
    * 设计 ↔ 数据表核对：策划书「所需数据表」（tech.data_tables）vs 数据编辑器里的实际表。
-   * 这里只负责把两侧凑齐（文档 + SQLite 现状），判断逻辑在 shared/ceshuDataTableCheck（纯函数）。
+   * 这里只负责把两侧凑齐（文档 + SQLite 现状）；判断逻辑在 `shared/ceshu/data` 的
+   * `checkDataTablePlan`（纯函数），实际表现状由下方 `readDataTableActual` 汇总。
    */
   /** 数据编辑器现状摘要（核对与补齐共用，避免两处各写一份统计口径） */
   const readDataTableActual = (types: readonly DataTypeDef[]): DataTableActual[] =>

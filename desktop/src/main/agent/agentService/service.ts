@@ -396,18 +396,18 @@ export class AgentBrainService {
         plain[newUserIndex] = { ...plain[newUserIndex], attachments: options.attachments }
       }
       // 会话落盘失败不阻塞本轮答复（原子写 + 串行队列已在 store 内保证）
-      await this.deps.sessionStore.save(plain).catch(() => undefined)
+      await this.deps.sessionStore.save(plain).catch((err) => console.error('[chat] 会话快照落盘失败（尽力而为，不阻塞本轮答复）:', err))
       // F11 观测闭环：落盘本次运行统计，供跨会话成本汇总 / 超预算自动降级（DD-5b 真降级）
-      await this.deps.sessionStore.recordRunStats(result.stats).catch(() => undefined)
+      await this.deps.sessionStore.recordRunStats(result.stats).catch((err) => console.error('[chat] 运行统计落盘失败:', err))
       // Slice 29：事件日志 append-only（审计/回放；与快照分开，只追加不覆盖）
       await this.deps.sessionStore
         .recordEvents(result.events, { sessionId: context.sessionId })
-        .catch(() => undefined)
+        .catch((err) => console.error('[chat] 事件日志落盘失败（审计/回放受损）:', err))
       // Slice 34：追加本轮消息增量（append-only 会话历史，供 resumeHistory 重建）
       // 增量 = 去掉系统提示词与已恢复的历史，只留本轮新增（user 输入 + assistant/tool …）
       await this.deps.sessionStore
         .appendTurn(context.sessionId, plain.slice(newUserIndex))
-        .catch(() => undefined)
+        .catch((err) => console.error('[chat] 会话历史增量落盘失败（resumeHistory 受损）:', err))
       // F1/DD-5b 护栏级：云端档超预算记一次指标（真降级待补）
       if (tier === 'cloud') {
         const est = estimateTokens(systemPrompts.join('\n') + '\n' + input)
@@ -415,7 +415,7 @@ export class AgentBrainService {
         if (status.over) {
           await this.deps.sessionStore
             .recordMetric('budget_over', { estimated: est, budget: status.budget })
-            .catch(() => undefined)
+            .catch((err) => console.error('[chat] 预算超支指标落盘失败:', err))
         }
       }
     }
