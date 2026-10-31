@@ -31,6 +31,8 @@ export interface DigitalStep {
   success?: boolean
   /** 本次调用的原始参数文本（仅 kind='tool'；事件没带就为空） */
   args?: string
+  /** 工具返回的图像（data URL，仅 kind='tool'；来自 `SkillResult.images`，聊天卡内联缩略图） */
+  images?: string[]
 }
 
 export interface DigitalMessage {
@@ -206,7 +208,8 @@ export function reduceBrainEvent(state: DigitalPanelState, event: BrainEvent): D
             status: event.success ? 'done' : 'failed',
             result: event.result,
             success: event.success,
-            args: event.args
+            args: event.args,
+            ...(event.images !== undefined && event.images.length > 0 ? { images: event.images } : {})
           }
         ]
       }

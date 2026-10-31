@@ -64,3 +64,33 @@ describe('工具卡 · diff 增删行数', () => {
     await view.cleanup()
   })
 })
+
+/**
+ * 工具返回的图像（来自 `SkillResult.images`，data URL）：聊天卡内联缩略图条，
+ * 对齐 dsh `ui-tool` 的 `tool.call.images` 槽。点击缩略图经 `AttachmentLightbox` 全屏查看。
+ */
+describe('工具卡 · 图像缩略图条（对齐 dsh tool.call.images）', () => {
+  it('step.images 渲染缩略图条，点击打开 lightbox', async () => {
+    const images = ['data:image/png;base64,AAA', 'data:image/png;base64,BBB']
+    const view = await renderDom(<DigitalStepList steps={[step({ images })]} />)
+    const strip = view.byTestId('digital-step-images')
+    expect(strip).not.toBeNull()
+    const thumbs = view.queryAll('[data-testid="digital-step-image-thumb"]')
+    expect(thumbs).toHaveLength(2)
+    expect(thumbs[0]?.querySelector('img')?.getAttribute('src')).toBe(images[0])
+    // 默认不渲染 lightbox
+    expect(view.query('[data-testid="digital-lightbox"]')).toBeNull()
+    // 点击缩略图打开 lightbox，且显示对应原图
+    await view.click(thumbs[0] as HTMLElement)
+    const lb = view.query('[data-testid="digital-lightbox"]')
+    expect(lb).not.toBeNull()
+    expect(lb?.querySelector('.digital-lightbox-img')?.getAttribute('src')).toBe(images[0])
+    await view.cleanup()
+  })
+
+  it('无图像的步不渲染缩略图条（形状保持干净）', async () => {
+    const view = await renderDom(<DigitalStepList steps={[step({ result: 'ok' })]} />)
+    expect(view.query('[data-testid="digital-step-images"]')).toBeNull()
+    await view.cleanup()
+  })
+})

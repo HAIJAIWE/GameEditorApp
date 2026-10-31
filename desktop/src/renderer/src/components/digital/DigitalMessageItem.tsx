@@ -426,7 +426,7 @@ function ImageAttachment({
 }
 
 /** 原图 lightbox：Escape / 点遮罩 / 关闭按钮都收起；点图片本身不关 */
-function AttachmentLightbox({
+export function AttachmentLightbox({
   src,
   alt,
   onClose

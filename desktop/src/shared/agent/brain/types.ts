@@ -58,6 +58,11 @@ export type BrainEvent =
        * 拿不到参数时省略该字段（不要编造 `{}`，否则卡片会显示一个假参数段）。
        */
       args?: string
+      /**
+       * 工具返回的图像（data URL，来自 `SkillResult.images`）。面板据此在工具卡里
+       * 内联渲染缩略图条（对齐 dsh `ui-tool` 的 `tool.call.images` 槽）。无图像时省略。
+       */
+      images?: string[]
     }
   /** 子智能体生命周期（Slice 38）：启动 / 完成，供面板展示子任务列表 */
   | { type: 'subagent_started'; id: string; task: string }

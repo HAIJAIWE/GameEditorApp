@@ -601,7 +601,11 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
      */
     const prelaunched = new Map<
       number,
-      { resolved: string; action: string; promise: Promise<{ text: string; success: boolean }> }
+      {
+        resolved: string
+        action: string
+        promise: Promise<{ text: string; success: boolean; images?: string[] }>
+      }
     >()
     if (parallelToolCalls) {
       // 简单信号量：最多 maxToolConcurrency 个并发，避免一次拉爆外部工具（MCP/网络）
@@ -677,14 +681,15 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
       const pre = prelaunched.get(index)
       if (pre !== undefined) {
         resolvedAny = true
-        const { text, success } = await pre.promise
+        const { text, success, images } = await pre.promise
         results.push(text)
         emit({
           type: 'step_done',
           tool: pre.resolved,
           result: text,
           success,
-          args: toolArgsText(call.arguments)
+          args: toolArgsText(call.arguments),
+          ...(images !== undefined && images.length > 0 ? { images } : {})
         })
         messages.push(buildToolMessage(call.id, pre.resolved, text))
         continue
@@ -819,7 +824,8 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
         tool: resolved,
         result: text,
         success,
-        args: toolArgsText(call.arguments)
+        args: toolArgsText(call.arguments),
+        ...(images !== undefined && images.length > 0 ? { images } : {})
       })
       messages.push(buildToolMessage(call.id, resolved, text, images))
     }

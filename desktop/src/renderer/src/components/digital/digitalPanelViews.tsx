@@ -11,6 +11,7 @@ import {
   type DigitalPanelState,
   type DigitalStep
 } from '../../../../shared/agent/ui'
+import { AttachmentLightbox } from './DigitalMessageItem'
 
 /** 风险等级 → 中文档位（审批卡展示用） */
 const RISK_LABELS: Record<number, string> = {
@@ -223,9 +224,12 @@ function argsSummary(text: string): string {
 function ToolStepCard({ step, resolveView }: { step: DigitalStep; resolveView?: ToolViewResolver }) {
   const [expanded, setExpanded] = useState(true)
   const [argsOpen, setArgsOpen] = useState(false)
+  // 工具返回的图像（来自 SkillResult.images，data URL）：聊天卡内联缩略图条（对齐 dsh `tool.call.images` 槽）
+  const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null)
+  const images = step.images ?? []
   const args = formatToolArgs(step.args)
   const hasResult = step.result !== undefined && step.result !== ''
-  const hasBody = hasResult || args.text !== ''
+  const hasBody = hasResult || args.text !== '' || images.length > 0
   // 插件 keyed slot 优先，其次内置按工具名分派
   const view = resolveView?.(step.tool) ?? resolveToolView(step.tool)
   const variant = toolVariant(step.tool)
@@ -317,7 +321,29 @@ function ToolStepCard({ step, resolveView }: { step: DigitalStep; resolveView?: 
               )}
             </>
           )}
+          {images.length > 0 && (
+            <>
+              <span className="digital-step-body-label">图像</span>
+              <div className="digital-step-images" data-testid="digital-step-images">
+                {images.map((src, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    className="digital-step-image-thumb"
+                    data-testid="digital-step-image-thumb"
+                    aria-label={`查看工具返回的图像 ${index + 1}`}
+                    onClick={() => setLightbox({ src, alt: `工具返回的图像 ${index + 1}` })}
+                  >
+                    <img src={src} alt={`工具返回的图像 ${index + 1}`} />
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
+      )}
+      {lightbox !== null && (
+        <AttachmentLightbox src={lightbox.src} alt={lightbox.alt} onClose={() => setLightbox(null)} />
       )}
     </li>
   )

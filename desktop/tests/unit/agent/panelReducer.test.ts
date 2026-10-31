@@ -48,6 +48,32 @@ describe('reduceBrainEvent：本轮收尾落定步骤', () => {
     expect(failed.steps.every((step) => step.status === 'failed')).toBe(true)
   })
 
+  it('step_done 带 images 时透传到工具步（聊天卡内联图像，对齐 dsh tool.call.images）', () => {
+    const next = reduceBrainEvent(
+      initialDigitalPanelState,
+      {
+        type: 'step_done',
+        tool: 'mcp.fs.read_image',
+        success: true,
+        result: 'ok',
+        images: ['data:image/png;base64,AAA', 'data:image/png;base64,BBB']
+      } as never
+    )
+    expect(next.steps.at(-1)).toMatchObject({
+      tool: 'mcp.fs.read_image',
+      status: 'done',
+      images: ['data:image/png;base64,AAA', 'data:image/png;base64,BBB']
+    })
+  })
+
+  it('step_done 不带 images 时步内无 images 字段（形状保持干净）', () => {
+    const next = reduceBrainEvent(
+      initialDigitalPanelState,
+      { type: 'step_done', tool: 'system.write', success: true, result: 'ok' } as never
+    )
+    expect(next.steps.at(-1)).not.toHaveProperty('images')
+  })
+
   it('没有 running 步骤时返回同一数组（不做无意义的重建）', () => {
     const state = reduceBrainEvent(initialDigitalPanelState, { type: 'done', text: 'x' } as never)
     expect(state.steps).toBe(initialDigitalPanelState.steps)
