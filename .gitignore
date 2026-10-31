@@ -84,12 +84,19 @@ desktop/electron.vite.config.*.mjs
 
 # 本地运行产物：错位生成的嵌套库目录（如 cwd 不对时落出的 GameEditorApp/…/libraries）
 GameEditorApp/
-# spike 试跑输出（docx/pptx 样例），仅本地验证用
-spikes/out/
+# spike 试跑输出（docx/pptx 样例）与目录本身，仅本地验证用
+spikes/
 
 # 依赖目录
 node_modules/
 
 # 第三方源码参考（dsh / deepseek-harness 仅作设计参考阅读，不进本仓库）
 deepseek-harness-master/
+
+# 本地运行数据（开发期库 / 草稿 / 设置 / 模板；应用运行时生成，不属于源码）
+# 内含 data/libraries/{初始库,默认库,default,...}，约 1MB
+data/
+
+# Trae IDE 本地配置（空目录/规则，不参与版本管理）
+.trae/
 
