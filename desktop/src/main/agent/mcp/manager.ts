@@ -269,6 +269,22 @@ export class McpManager {
     return this.connections.get(server)?.instructions ?? ''
   }
 
+  /**
+   * 已连接且带 instructions 的服务器，按 dsh `connection.ts` 的格式产出系统提示词块：
+   * `### MCP server: <name>\n\n<instructions>`。
+   * 对齐 dsh `server-context.ts` 把 instructions 注入 `systemPrompt.section({ name: 'mcp:<server>' })`
+   * ——instructions 是**模型可见文本**（不是 UI 面板），随每次构建系统提示词重注入。
+   * 无 instructions 的服务器不产生块（避免空段污染提示词）。
+   */
+  serverInstructionBlocks(): string[] {
+    const blocks: string[] = []
+    for (const [server, conn] of this.connections) {
+      if (conn.instructions.trim() === '') continue
+      blocks.push(`### MCP server: ${server}\n\n${conn.instructions}`)
+    }
+    return blocks
+  }
+
   close(): void {
     for (const conn of this.connections.values()) {
       conn.closed = true

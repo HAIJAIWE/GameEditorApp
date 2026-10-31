@@ -39,6 +39,7 @@ import { resolveAgentTier, resolveAgentTransport } from '../transport/agentTrans
 import { buildDomainContextBlock, defaultDialogueEvaluator } from './domainContext'
 import { buildMemoryBlock } from './memory'
 import { isPreReviewEnabled, makePreExecReview } from './preReview'
+import { mcpManager } from '../mcp/manager'
 import type { AgentBrainServiceDeps, AgentChatOptions } from './types'
 
 /** 云端对话档的 token 预算（F1/DD-5b 护栏级，保守粗估；超预算仅记录指标，不阻断） */
@@ -305,6 +306,15 @@ export class AgentBrainService {
     // 历史附件（恢复会话时）：只给路径，不重放内容——避免上下文随历史膨胀；需要时智能体按路径读取
     const historyAttachmentBlock = buildHistoryAttachmentBlock(priorMessages, resolveAttachmentPath)
     if (historyAttachmentBlock !== null) extraBlocks.push(historyAttachmentBlock)
+    /*
+     * MCP 服务器 instructions（对齐 dsh `server-context.ts`）：把已连接且带 instructions 的
+     * 服务器的提示文本注入系统提示词（格式 `### MCP server: <name>\n\n<text>`），让模型知道
+     * 该 MCP 服务器的用途/约定。instructions 是**模型可见文本**，不是 UI 面板；随每次构建重注入。
+     * 仅含非空 instructions 的服务器，避免空段污染提示词。
+     */
+    for (const block of mcpManager.serverInstructionBlocks()) {
+      extraBlocks.push(block)
+    }
     /*
      * 图片 vision（对齐 dsh：图片发给模型）：仅当模型**可能**支持视觉时才把本轮图片 data URL 发给模型；
      * 不支持时在提示词里如实说明「图片仅提供路径」，不做假。

@@ -172,4 +172,34 @@ describe('8. serverName 校验 + instructions 截断（对齐 dsh）', () => {
     expect(manager.serverInstructions('srv')).toBe('use me')
     manager.close()
   })
+
+  it('serverInstructionBlocks 把已连接且带 instructions 的服务器拼成系统提示词块（对齐 dsh connection.ts 格式）', async () => {
+    const transport = new FakeTransport((method) => {
+      if (method === 'initialize') return { instructions: 'use the filesystem tool for I/O' }
+      if (method === 'tools/list') return { tools: [{ name: 'a', description: '', inputSchema: { type: 'object' } }] }
+      return {}
+    })
+    const manager = new McpManager()
+    manager.setTransportFactory(() => transport)
+    manager.attach({ register: () => true, unregister: () => true } as unknown as SkillDispatcher)
+    await manager.connect({ mcpServers: { srv: { command: 'x' } } })
+    await new Promise((r) => setTimeout(r, 10))
+    expect(manager.serverInstructionBlocks()).toEqual(['### MCP server: srv\n\nuse the filesystem tool for I/O'])
+    manager.close()
+  })
+
+  it('serverInstructionBlocks 跳过无 instructions 的服务器（避免空段污染提示词）', async () => {
+    const transport = new FakeTransport((method) => {
+      if (method === 'initialize') return {}
+      if (method === 'tools/list') return { tools: [{ name: 'a', description: '', inputSchema: { type: 'object' } }] }
+      return {}
+    })
+    const manager = new McpManager()
+    manager.setTransportFactory(() => transport)
+    manager.attach({ register: () => true, unregister: () => true } as unknown as SkillDispatcher)
+    await manager.connect({ mcpServers: { srv: { command: 'x' } } })
+    await new Promise((r) => setTimeout(r, 10))
+    expect(manager.serverInstructionBlocks()).toEqual([])
+    manager.close()
+  })
 })

@@ -126,7 +126,7 @@ async callTool(name, args) {
 |---|---|---|
 | 配置形态 | `mcpServers`（`command`/`url`/`headers`/`env`） | 同构，`userData/mcp.json` 可直接搬 |
 | 每服务器风险档 | 无显式档位（靠工具名/schema） | 有：配置 `risk` 或工具名启发式（shell/write/delete→SYSTEM 需二次确认；read/list→READ_ONLY） |
-| instructions 截断 | `maxInstructionBytes=32768` | **`truncateInstruction` 截断到 `MCP_MAX_INSTRUCTION_BYTES=32768`**，握手取回后经 `McpManager.serverInstructions(server)` 暴露 |
+| instructions 截断 | `maxInstructionBytes=32768` | **`truncateInstruction` 截断到 `MCP_MAX_INSTRUCTION_BYTES=32768`**，并经 `McpManager.serverInstructionBlocks()` 注入系统提示词（格式 `### MCP server: <name>\n\n<text>`），对齐 dsh `server-context.ts` 的 `systemPrompt.section` |
 | serverName 校验 | `[A-Za-z0-9_-]{1,32}` | **`SERVER_NAME_PATTERN = /^[A-Za-z0-9_-]{1,32}$/`**，`parseMcpConfig` 直接跳过不匹配的键（容错） |
 
 我们的**风险分级**反而比 dsh 更贴合「审批门」需求（dsh 没有我们这套 `RISK_LEVEL` + 二次确认机制），这是桥接成 `SkillProtocol` 带来的红利。
@@ -175,7 +175,8 @@ npx vitest run                                # 全量 3494 通过 / 6 跳过（
 - `desktop/src/shared/agent/brain/loop.ts` —— `runTool` 透传 `images` 到工具消息。
 - `desktop/src/main/agent/mcp/stdioTransport.ts` —— `request` 支持超时/中断，pending 带 cleanup；`handleLine` 路由服务器通知；`failAll` 在真实断开时触发 `onDisconnect`。
 - `desktop/src/main/agent/mcp/streamableHttpTransport.ts` —— `fetch` 走 `AbortController`，超时 abort + `cause` 保留；`readSse` 路由服务器推送通知。
-- `desktop/src/main/agent/mcp/manager.ts` —— **重构为「每台服务器一个 `ServerConnection` + 监督器」**：generation 隔离 + 有界指数退避重连（500→30000、maxAttempts=10）+ `listChanged` 重同步（增量注册/注销）；`serverInstructions(server)` 暴露截断后的 instructions。
+- `desktop/src/main/agent/mcp/manager.ts` —— **重构为「每台服务器一个 `ServerConnection` + 监督器」**：generation 隔离 + 有界指数退避重连（500→30000、maxAttempts=10）+ `listChanged` 重同步（增量注册/注销）；`serverInstructions(server)` 暴露截断后的 instructions；`serverInstructionBlocks()` 按 dsh 格式产出系统提示词块。
+- `desktop/src/main/agent/agentService/service.ts` —— `chat()` 构建系统提示词时，经 `mcpManager.serverInstructionBlocks()` 把已连接且带 instructions 的 MCP 服务器提示文本注入 `extraBlocks`（对齐 dsh `server-context.ts` 的 prompt 注入；instructions 是模型可见文本，非 UI 面板）。
 - `desktop/tests/unit/mcp.test.ts` —— 17 条（含 3 条超时，含真实 stdio 子进程）。
 - `desktop/tests/unit/mcpSupervisor.test.ts` —— 4 条（连接注册 / listChanged 重同步 / 断开立即注销 / 退避重连，假传输层）。
 - `desktop/tests/unit/mcpGaps.test.ts` —— 15 条（工具名规范化 / schema 校验 / 图像准入 / serverName 校验 + instructions 截断）。
