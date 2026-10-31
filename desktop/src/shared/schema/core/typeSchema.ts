@@ -1,12 +1,10 @@
 /**
  * 内置数据类型 schema 的查询纯函数层。
- * 数据表（12 种内置类型 `BUILTIN_DATA_TYPES`）已拆分至 `typeSchemaData.ts`；本文件只放
- * 按传入 `types` 列表工作的两个纯查询函数，`BUILTIN_DATA_TYPES` 经 `export *` 再导出，
- * 外部 `import { BUILTIN_DATA_TYPES, getTypeById, getTypeByLegacyKey } from './typeSchema'` 不变。
+ * 数据表（12 种内置类型 `BUILTIN_DATA_TYPES`）在 `adapters/typeSchemaData.ts`，本文件只放
+ * 按传入 `types` 列表工作的两个纯查询函数，**不再转发 adapters 的任何符号**。
  */
 
 import type { DataTypeDef } from '../../types'
-export * from '../adapters'
 
 /** 按类型 id 查找（types 为运行期 schema 列表） */
 export function getTypeById(types: DataTypeDef[], id: string): DataTypeDef | undefined {

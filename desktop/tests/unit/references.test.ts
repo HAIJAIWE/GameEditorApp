@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { buildReferenceReport, parseReferenceTokens, referenceFieldsOf } from '../../src/shared/util/search'
-import { BUILTIN_DATA_TYPES } from '../../src/shared/schema/core'
+import { BUILTIN_DATA_TYPES } from '../../src/shared/schema/adapters'
 import type { DataTypeDef, ItemRecord } from '../../src/shared/types'
 
 function record(type: string, id: string, data: Record<string, unknown>): ItemRecord {

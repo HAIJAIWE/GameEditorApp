@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 
-import { buildFormulaFromCoeffs, initialEntries } from '../../../../shared/util/data'
+import { buildFormulaFromCoeffs, initialEntries } from '../../../../shared/util/formula'
 
 /**
  * 系数公式编辑器。

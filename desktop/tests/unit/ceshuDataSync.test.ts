@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { CeshuDataSync } from '../../src/main/ceshu/dataSync'
 import { createDefaultCeshu } from '../../src/shared/ceshu/model'
-import { BUILTIN_DATA_TYPES } from '../../src/shared/schema/core'
+import { BUILTIN_DATA_TYPES } from '../../src/shared/schema/adapters'
 import type { CeshuDocument, SystemEntry } from '../../src/shared/ceshu/reference'
 import type { DataTypeDef, ItemRecord } from '../../src/shared/types'
 

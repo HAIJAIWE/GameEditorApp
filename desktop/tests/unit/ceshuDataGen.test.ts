@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { BUILTIN_DATA_TYPES } from '../../src/shared/schema/core'
+import { BUILTIN_DATA_TYPES } from '../../src/shared/schema/adapters'
 import {
   DATA_GEN_DEFAULT_COUNT,
   DATA_GEN_ERROR_EMPTY,

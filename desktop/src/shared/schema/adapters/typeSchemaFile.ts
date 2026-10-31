@@ -1,4 +1,4 @@
-import { BUILTIN_DATA_TYPES } from '../core'
+import { BUILTIN_DATA_TYPES } from './typeSchemaData'
 import type { DataTypeDef, FieldType, TypeFieldDef, TypeSectionDef } from '../../types'
 
 /**

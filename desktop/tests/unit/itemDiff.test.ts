@@ -7,7 +7,7 @@ import {
   diffValues,
   summarizeDiff,
   type DiffEntry
-} from '../../src/shared/util/data'
+} from '../../src/shared/util/diff'
 import type { ItemRecord } from '../../src/shared/types'
 
 function rec(

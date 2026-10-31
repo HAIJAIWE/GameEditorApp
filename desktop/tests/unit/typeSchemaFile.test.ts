@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { dataTypeDefSchema } from '../../src/shared/schema/adapters'
-import { BUILTIN_DATA_TYPES } from '../../src/shared/schema/core'
+import { BUILTIN_DATA_TYPES, dataTypeDefSchema } from '../../src/shared/schema/adapters'
 import { parseTypeSchemaFile, serializeTypeSchema, validateTypeSchema } from '../../src/shared/schema/adapters'
 import { TYPE_TEMPLATES, buildNewTypeDraft } from '../../src/shared/schema/core'
 import type { DataTypeDef } from '../../src/shared/types'

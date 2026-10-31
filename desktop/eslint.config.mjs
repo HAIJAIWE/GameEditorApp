@@ -23,6 +23,8 @@ const CAPABILITY_FOLDERS = [
   'src/shared/util/search',
   'src/shared/util/field',
   'src/shared/util/data',
+  'src/shared/util/formula',
+  'src/shared/util/diff',
   'src/shared/util/datetime',
   'src/shared/util/io',
   'src/shared/util/ui',

@@ -7,7 +7,7 @@ import {
   type DiffLeaf,
   type ItemDiffType,
   type LibraryDiffGroup
-} from '../../../../shared/util/data'
+} from '../../../../shared/util/diff'
 import {
   SETTINGS_KEYS,
   readJsonSetting,
@@ -23,7 +23,7 @@ import type { ItemRecord } from '../../../../shared/types'
  * - 旧版 的 `data_diff_dialog` 执行 `DataDiff.compare({}, {...})`，拿空 dict 与
  *   当前数据比，永远只输出「全部新增」，且 TS 侧没有备份/历史存储（那是另一切片）。
  * - 本面板改为「用户手动设基线 → 与基线对比」，基线缓存在 localStorage，
- *   真正做双侧 diff（引擎见 `shared/itemDiff.ts`）。
+ *   真正做双侧 diff（引擎见 `shared/util/diff`）。
  */
 
 const BASELINE_KEY = SETTINGS_KEYS.dataDiffBaseline
