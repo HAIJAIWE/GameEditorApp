@@ -69,6 +69,14 @@ export interface McpCallResult {
   isError?: boolean
 }
 
+/** `request` 的可选控制项（逐调用超时 / 中断信号；对齐 dsh 的 `toolCallTimeoutMs`） */
+export interface McpRequestOptions {
+  /** 逐调用超时（ms）；省略 = 不设超时（由上层兜底或永不超时）。默认 60_000 见 `McpClient` */
+  timeoutMs?: number
+  /** 外部传入的中断信号；与 `timeoutMs` 同时生效，任一触发即取消本次请求（用于未来主动取消） */
+  signal?: AbortSignal
+}
+
 /**
  * JSON-RPC 传输层抽象（可注入，便于用假传输层单测）。
  * - `request`：发请求并等对应 id 的响应（成功取 result，失败 reject）；
@@ -76,7 +84,7 @@ export interface McpCallResult {
  * - `close`：关闭连接/子进程。
  */
 export interface McpTransport {
-  request(method: string, params?: unknown): Promise<unknown>
+  request(method: string, params?: unknown, options?: McpRequestOptions): Promise<unknown>
   notify(method: string, params?: unknown): void
   close(): void
 }

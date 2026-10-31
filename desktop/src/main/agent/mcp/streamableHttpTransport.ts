@@ -1,4 +1,4 @@
-import type { McpTransport } from '../../../shared/agent/mcp'
+import type { McpRequestOptions, McpTransport } from '../../../shared/agent/mcp'
 
 /**
  * MCP **Streamable HTTP** 传输层（Slice 18b）。
@@ -26,23 +26,55 @@ export class StreamableHttpTransport implements McpTransport {
     private readonly headers: Record<string, string> = {}
   ) {}
 
-  async request(method: string, params?: unknown): Promise<unknown> {
+  async request(method: string, params?: unknown, options?: McpRequestOptions): Promise<unknown> {
     if (this.closed) throw new Error('MCP transport closed')
     const id = this.nextId
     this.nextId += 1
     const body = JSON.stringify({ jsonrpc: '2.0', id, method, ...(params !== undefined ? { params } : {}) })
-    const response = await fetch(this.url, { method: 'POST', headers: this.buildHeaders(), body })
 
-    const sessionId = response.headers.get('mcp-session-id')
-    if (sessionId !== null) this.sessionId = sessionId
-    if (!response.ok) throw new Error(`MCP HTTP ${response.status} ${response.statusText}`)
+    // 逐调用超时：用 AbortController 包裹（可同时叠加外部 signal）；超时即 abort 掉在途 fetch / SSE 流
+    let signal: AbortSignal | undefined = options?.signal
+    let controller: AbortController | undefined
+    let abortTimer: ReturnType<typeof setTimeout> | undefined
+    if (options?.timeoutMs !== undefined) {
+      const ctrl = new AbortController()
+      controller = ctrl
+      signal = ctrl.signal
+      if (options.signal !== undefined) {
+        const external = options.signal
+        if (external.aborted) ctrl.abort()
+        else external.addEventListener('abort', () => ctrl.abort(), { once: true })
+      }
+      abortTimer = setTimeout(() => ctrl.abort(), options.timeoutMs)
+    }
 
-    const contentType = response.headers.get('content-type') ?? ''
-    if (contentType.includes('text/event-stream')) return this.readSse(response, id)
+    try {
+      const response = await fetch(this.url, {
+        method: 'POST',
+        headers: this.buildHeaders(),
+        body,
+        signal
+      })
 
-    const reply = (await response.json()) as JsonRpcReply
-    if (reply.error !== undefined) throw new Error(reply.error.message)
-    return reply.result
+      const sessionId = response.headers.get('mcp-session-id')
+      if (sessionId !== null) this.sessionId = sessionId
+      if (!response.ok) throw new Error(`MCP HTTP ${response.status} ${response.statusText}`)
+
+      const contentType = response.headers.get('content-type') ?? ''
+      if (contentType.includes('text/event-stream')) return await this.readSse(response, id)
+
+      const reply = (await response.json()) as JsonRpcReply
+      if (reply.error !== undefined) throw new Error(reply.error.message)
+      return reply.result
+    } catch (error) {
+      // abort 既可能来自我们的超时定时器，也可能来自外部 signal：统一收敛为超时/中断错误
+      if (controller !== undefined && controller.signal.aborted) {
+        throw new Error(`MCP 调用超时（${options?.timeoutMs ?? 0}ms）`, { cause: error })
+      }
+      throw error
+    } finally {
+      if (abortTimer !== undefined) clearTimeout(abortTimer)
+    }
   }
 
   notify(method: string, params?: unknown): void {

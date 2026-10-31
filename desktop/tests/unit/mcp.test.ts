@@ -7,7 +7,8 @@ import { describe, expect, it } from 'vitest'
 import { mcpToolId, mcpToolRisk, mcpToolToSkill } from '../../src/shared/agent/mcp'
 import { McpClient } from '../../src/shared/agent/mcp'
 import { parseMcpConfig } from '../../src/shared/agent/mcp'
-import type { McpTransport } from '../../src/shared/agent/mcp'
+import type { McpRequestOptions, McpTransport } from '../../src/shared/agent/mcp'
+import { StdioMcpTransport } from '../../src/main/agent/mcp/stdioTransport'
 import { RISK_LEVEL, clearDynamicToolRisk, resolveRiskLevel, setDynamicToolRisk } from '../../src/shared/agent/config'
 
 /* ------------------------------- 配置解析 ------------------------------- */
@@ -103,11 +104,11 @@ describe('mcpToolToSkill', () => {
 /* ------------------------------ 协议客户端 ------------------------------ */
 
 class FakeTransport implements McpTransport {
-  readonly requests: Array<{ method: string; params?: unknown }> = []
+  readonly requests: Array<{ method: string; params?: unknown; options?: McpRequestOptions }> = []
   readonly notifications: Array<{ method: string; params?: unknown }> = []
   constructor(private readonly handler: (method: string, params?: unknown) => unknown) {}
-  async request(method: string, params?: unknown): Promise<unknown> {
-    this.requests.push({ method, params })
+  async request(method: string, params?: unknown, options?: McpRequestOptions): Promise<unknown> {
+    this.requests.push({ method, params, options })
     return this.handler(method, params)
   }
   notify(method: string, params?: unknown): void {
@@ -151,6 +152,41 @@ describe('McpClient', () => {
     expect(result).toEqual({ content: [{ type: 'text', text: 'ok' }], isError: false })
     const call = transport.requests.find((request) => request.method === 'tools/call')
     expect(call?.params).toEqual({ name: 'read_file', arguments: { path: '/a' } })
+  })
+
+  it('callTool 把默认 60s 超时透传给传输层', async () => {
+    const transport = new FakeTransport(() => ({ content: [] }))
+    const client = new McpClient('fs', transport)
+    await client.callTool('read_file', {})
+    const call = transport.requests.find((request) => request.method === 'tools/call')
+    expect(call?.options?.timeoutMs).toBe(60_000)
+  })
+
+  it('callTool 超时（传输层不响应时 reject 而非永久挂起）', async () => {
+    // 永不 resolve 的传输层，配合构造时覆写的短超时，验证客户端不会无限挂起
+    const hanging: McpTransport = {
+      request: () => new Promise<unknown>(() => undefined),
+      notify: () => undefined,
+      close: () => undefined
+    }
+    const client = new McpClient('fs', hanging, 40)
+    await expect(client.callTool('read_file', {})).rejects.toThrow(/超时/)
+  })
+})
+
+/* ------------------------------ 传输层超时 ------------------------------ */
+
+describe('StdioMcpTransport 超时', () => {
+  it('服务器不响应时 request 按超时 reject（不永久挂起），并回收子进程', async () => {
+    // 拉起一个只保持 stdin 打开、永不输出 JSON-RPC 响应的 node 进程
+    const transport = new StdioMcpTransport({ command: 'node', args: ['-e', 'process.stdin.resume()'] })
+    try {
+      await expect(
+        transport.request('tools/call', { name: 'x' }, { timeoutMs: 50 })
+      ).rejects.toThrow(/超时/)
+    } finally {
+      transport.close()
+    }
   })
 })
 

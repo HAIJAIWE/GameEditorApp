@@ -11,10 +11,18 @@ import type { McpCallResult, McpToolInfo, McpTransport } from './types'
 /** 我们支持的 MCP 协议版本（与主流客户端一致） */
 const PROTOCOL_VERSION = '2024-11-05'
 
+/**
+ * 工具调用默认超时（ms），对齐 dsh 的 `DEFAULT_TOOL_CALL_TIMEOUT_MS = 60_000`。
+ * 仅约束「握手之后」的 `tools/call`；握手本身另有 `McpManager.HANDSHAKE_TIMEOUT_MS`（10s）约束。
+ */
+const DEFAULT_CALL_TIMEOUT_MS = 60_000
+
 export class McpClient {
   constructor(
     private readonly server: string,
-    private readonly transport: McpTransport
+    private readonly transport: McpTransport,
+    /** 逐调用超时（ms）；可在构造时覆写（单测用小值），默认 60s */
+    private readonly callTimeoutMs: number = DEFAULT_CALL_TIMEOUT_MS
   ) {}
 
   /** 握手：`initialize` 请求 + `notifications/initialized` 通知 */
@@ -46,9 +54,11 @@ export class McpClient {
     return out
   }
 
-  /** 调用工具；结果只保留 `content` 与 `isError` */
+  /** 调用工具；结果只保留 `content` 与 `isError`。带逐调用超时（默认 60s，见 `DEFAULT_CALL_TIMEOUT_MS`） */
   async callTool(name: string, args: Record<string, unknown>): Promise<McpCallResult> {
-    const result = (await this.transport.request('tools/call', { name, arguments: args })) as {
+    const result = (await this.withCallTimeout(
+      this.transport.request('tools/call', { name, arguments: args }, { timeoutMs: this.callTimeoutMs })
+    )) as {
       content?: unknown
       isError?: unknown
     }
@@ -60,6 +70,24 @@ export class McpClient {
 
   close(): void {
     this.transport.close()
+  }
+
+  /**
+   * 给工具调用 Promise 套超时（默认 `callTimeoutMs`）。
+   * 即便传输层忘记/不支持 `timeoutMs`，客户端也保证失败闭合（对齐 dsh 的 fail-closed）。
+   * 原 Promise 不被取消，仅清理定时器避免泄漏；传输层自身的 `timeoutMs` 仍负责回收其内部状态（stdio 的 pending / http 的 fetch）。
+   */
+  private withCallTimeout<T>(promise: Promise<T>): Promise<T> {
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const timeout = new Promise<T>((_resolve, reject) => {
+      timer = setTimeout(
+        () => reject(new Error(`MCP 工具调用超时（${this.callTimeoutMs}ms）`)),
+        this.callTimeoutMs
+      )
+    })
+    return Promise.race([promise, timeout]).finally(() => {
+      if (timer !== undefined) clearTimeout(timer)
+    })
   }
 }
 

@@ -1,6 +1,6 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 
-import type { McpTransport, StdioServerConfig } from '../../../shared/agent/mcp'
+import type { McpRequestOptions, McpTransport, StdioServerConfig } from '../../../shared/agent/mcp'
 
 /**
  * MCP stdio 传输层：拉起子进程，用**行分隔 JSON-RPC** 通信。
@@ -16,9 +16,16 @@ interface JsonRpcResponse {
   error?: { code: number; message: string }
 }
 
+interface Pending {
+  resolve: (value: unknown) => void
+  reject: (error: Error) => void
+  /** 清理本次请求挂着的定时器 / abort 监听，避免泄漏 */
+  cleanup: () => void
+}
+
 export class StdioMcpTransport implements McpTransport {
   private readonly child: ChildProcessWithoutNullStreams
-  private readonly pending = new Map<number, { resolve: (value: unknown) => void; reject: (error: Error) => void }>()
+  private readonly pending = new Map<number, Pending>()
   private nextId = 1
   private buffer = ''
   private closed = false
@@ -36,13 +43,56 @@ export class StdioMcpTransport implements McpTransport {
     this.child.on('error', (error) => this.failAll(error))
   }
 
-  request(method: string, params?: unknown): Promise<unknown> {
+  request(method: string, params?: unknown, options?: McpRequestOptions): Promise<unknown> {
     if (this.closed) return Promise.reject(new Error('MCP transport closed'))
     const id = this.nextId
     this.nextId += 1
     const payload = JSON.stringify({ jsonrpc: '2.0', id, method, ...(params !== undefined ? { params } : {}) })
     return new Promise((resolve, reject) => {
-      this.pending.set(id, { resolve, reject })
+      let timer: ReturnType<typeof setTimeout> | undefined
+      const clearTimer = (): void => {
+        if (timer !== undefined) {
+          clearTimeout(timer)
+          timer = undefined
+        }
+      }
+      const onAbort = (): void => {
+        this.pending.delete(id)
+        clearTimer()
+        reject(new Error('MCP 调用被中断'))
+      }
+      let removeAbort: (() => void) | undefined
+      if (options?.signal !== undefined) {
+        const signal = options.signal
+        if (signal.aborted) onAbort()
+        else {
+          signal.addEventListener('abort', onAbort, { once: true })
+          removeAbort = () => signal.removeEventListener('abort', onAbort)
+        }
+      }
+      if (options?.timeoutMs !== undefined) {
+        timer = setTimeout(() => {
+          this.pending.delete(id)
+          if (removeAbort !== undefined) removeAbort()
+          reject(new Error(`MCP 调用超时（${options.timeoutMs}ms）`))
+        }, options.timeoutMs)
+      }
+      this.pending.set(id, {
+        resolve: (value) => {
+          clearTimer()
+          if (removeAbort !== undefined) removeAbort()
+          resolve(value)
+        },
+        reject: (error) => {
+          clearTimer()
+          if (removeAbort !== undefined) removeAbort()
+          reject(error)
+        },
+        cleanup: () => {
+          clearTimer()
+          if (removeAbort !== undefined) removeAbort()
+        }
+      })
       this.child.stdin.write(`${payload}\n`)
     })
   }
@@ -81,6 +131,7 @@ export class StdioMcpTransport implements McpTransport {
     const pending = this.pending.get(message.id)
     if (pending === undefined) return
     this.pending.delete(message.id)
+    pending.cleanup()
     if (message.error !== undefined) pending.reject(new Error(message.error.message))
     else pending.resolve(message.result)
   }
@@ -88,7 +139,10 @@ export class StdioMcpTransport implements McpTransport {
   private failAll(error: Error): void {
     if (this.closed && this.pending.size === 0) return
     this.closed = true
-    for (const pending of this.pending.values()) pending.reject(error)
+    for (const pending of this.pending.values()) {
+      pending.cleanup()
+      pending.reject(error)
+    }
     this.pending.clear()
   }
 }
