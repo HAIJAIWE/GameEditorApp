@@ -9,6 +9,24 @@ import type { McpRequestOptions, McpTransport, StdioServerConfig } from '../../.
  * 子进程退出/报错时，把所有在途请求 reject，避免调用方永久挂起。
  */
 
+/**
+ * 凭证形环境变量键（子进程继承前剥离），对齐 dsh 的 `scrubbedParentEnv()`。
+ * 保守匹配、误删风险低：云厂商前缀 + 常见密钥/令牌后缀。dsh 也是「剥离凭证形 + 陈旧 DSH_* 名」后再把配置 env 叠加上去。
+ */
+const SECRET_ENV_PATTERN =
+  /^(?:AWS_|GCP_|AZURE_|DSH_|KUBE_|VAULT_)|(?:API[_-]?KEY|PRIVATE[_-]?KEY|SECRET|PASSWORD|PASSWD|TOKEN|CREDENTIAL|ACCESS[_-]?KEY)/i
+
+/** 继承当前进程环境，但剥离凭证形键，避免把宿主机的密钥泄漏给 MCP 子进程；配置 env 后续再叠加其上 */
+function scrubChildEnv(): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const [key, value] of Object.entries(process.env)) {
+    if (value === undefined) continue
+    if (SECRET_ENV_PATTERN.test(key)) continue
+    out[key] = value
+  }
+  return out
+}
+
 interface JsonRpcResponse {
   jsonrpc: '2.0'
   id?: number
@@ -35,7 +53,8 @@ export class StdioMcpTransport implements McpTransport {
   constructor(config: StdioServerConfig) {
     // 不显式传 stdio：默认即 ['pipe','pipe','pipe']，且类型为 ChildProcessWithoutNullStreams（流非空）
     this.child = spawn(config.command, config.args ?? [], {
-      env: { ...process.env, ...(config.env ?? {}) }
+      // 继承（已剥离凭证）环境 + 叠加服务器配置 env（对齐 dsh：scrubbedParentEnv 之上再 merge 配置 env）
+      env: { ...scrubChildEnv(), ...(config.env ?? {}) }
     })
     this.child.stdout.setEncoding('utf8')
     this.child.stdout.on('data', (chunk: string) => this.onData(chunk))

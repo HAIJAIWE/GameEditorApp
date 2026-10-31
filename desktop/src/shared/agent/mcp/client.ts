@@ -9,8 +9,12 @@ import { MCP_ALLOWED_IMAGE_MIME, MCP_MAX_INSTRUCTION_BYTES } from './types'
  * 真正的字节流（stdio 子进程 / SSE）在 `McpTransport` 实现里，故这里可用假传输层完整单测。
  */
 
-/** 我们支持的 MCP 协议版本（与主流客户端一致） */
-const PROTOCOL_VERSION = '2024-11-05'
+/**
+ * 我们广播的 MCP 协议版本。
+ * 对齐 dsh 的 `versionNegotiation: { mode: 'auto' }`：广播**最新稳定版**，由服务器回选其支持的最高版本
+ * （MCP 规范：服务器在 `initialize` 响应里给出它实际要用的版本）。写死旧版会让只讲新版协议的服务器握手失败。
+ */
+const PROTOCOL_VERSION = '2025-06-18'
 
 /**
  * 工具调用默认超时（ms），对齐 dsh 的 `DEFAULT_TOOL_CALL_TIMEOUT_MS = 60_000`。

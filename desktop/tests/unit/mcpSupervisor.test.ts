@@ -152,4 +152,34 @@ describe('McpManager 连接监督器', () => {
       vi.useRealTimers()
     }
   })
+
+  it('并发 list_changed 经 syncChain 串行化，不泄漏旧工具', async () => {
+    // 第 0 次 tools/list（初始连接）→ [a]；随后两次 list_changed 并发触发，
+    // 第 1 次返回 [b]，第 2 次返回 [c]。经 syncChain 串行后交换顺序执行：
+    // 先以 [a] 为基准注销 a 注册 b，再以 [b] 为基准注销 b 注册 c。最终只残留 c，无泄漏。
+    let call = 0
+    const toolsForCall = (): { tools: Array<{ name: string; description: string; inputSchema: object }> } => {
+      const t = call++
+      const name = t === 0 ? 'a' : t === 1 ? 'b' : 'c'
+      return { tools: [{ name, description: '', inputSchema: { type: 'object' } }] }
+    }
+    const transport = new SupervisedTransport((method) => {
+      if (method === 'tools/list') return toolsForCall()
+      if (method === 'initialize') return {}
+      return {}
+    })
+    manager.setTransportFactory(() => transport)
+    await manager.connect({ mcpServers: { srv: { command: 'x' } } })
+    await flush()
+    expect(dispatcher.registered.has('mcp.srv.a')).toBe(true)
+
+    transport.emitNotification('notifications/tools/list_changed')
+    transport.emitNotification('notifications/tools/list_changed')
+    await flush()
+
+    expect(dispatcher.registered.has('mcp.srv.c')).toBe(true)
+    expect(dispatcher.unregistered.has('mcp.srv.a')).toBe(true)
+    expect(dispatcher.unregistered.has('mcp.srv.b')).toBe(true)
+    expect(manager.toolCount()).toBe(1)
+  })
 })

@@ -36,6 +36,12 @@ interface ServerConnection {
   reconnectAttempts: number
   /** 待执行的重连定时器（去重：同一服务器同时只挂一个） */
   reconnectTimer: ReturnType<typeof setTimeout> | null
+  /**
+   * 工具注册交换串行化链（对齐 dsh connection 的 `syncChain`）。
+   * 所有「注销旧工具 / 注册新工具」的交换都入队此链，避免两次 listTools/重同步的交换交错
+   * （否则会双释放一个代际、或泄漏另一个代际的工具）。链上的回调再以 generation 守卫判定是否生效。
+   */
+  syncChain: Promise<void>
   closed: boolean
 }
 
@@ -102,6 +108,7 @@ export class McpManager {
         instructions: '',
         reconnectAttempts: 0,
         reconnectTimer: null,
+        syncChain: Promise.resolve(),
         closed: false
       }
       this.connections.set(server, conn)
@@ -123,6 +130,8 @@ export class McpManager {
     if (transport.onDisconnect !== undefined) {
       transport.onDisconnect((error) => {
         if (conn.closed || conn.generation !== generation) return
+        // 让本代际失效：自增 generation，使任何在途的 listTools/重同步交换在链上被判为过期而跳过
+        conn.generation += 1
         console.error(`[MCP] server "${server}" 连接断开：`, error.message)
         conn.client = null
         conn.transport = null
@@ -152,11 +161,15 @@ export class McpManager {
       }
       conn.transport = transport
       conn.client = client
-      conn.tools = tools.map((tool) => ({ tool, risk: mcpToolRisk(tool.name, conn.config.risk) }))
+      const nextTools = tools.map((tool) => ({ tool, risk: mcpToolRisk(tool.name, conn.config.risk) }))
       conn.instructions = truncateInstruction(typeof instructions === 'string' ? instructions : '')
       conn.reconnectAttempts = 0
-      this.registerServer(server, generation)
-      console.log(`[MCP] server "${server}" 已连接，${conn.tools.length} 个工具`)
+      // 注册交换入队 syncChain（代际守卫 + 串行化），与重同步/断开注销互斥
+      this.enqueueSync(server, generation, () => {
+        conn.tools = nextTools
+        this.registerToolSet(server, generation, nextTools)
+      })
+      console.log(`[MCP] server "${server}" 已连接，${nextTools.length} 个工具`)
     } catch (error) {
       transport.close()
       if (conn.closed || conn.generation !== generation) return
@@ -165,8 +178,18 @@ export class McpManager {
     }
   }
 
-  /** 把某台服务器的当前工具注册进 dispatcher（generation 校验保证只注册最新结果） */
+  /**
+   * 把某台服务器的当前工具注册进 dispatcher（generation 校验保证只注册最新结果）。
+   * 由 `syncChain` 交换回调与 `attach` 复用。
+   */
   private registerServer(server: string, generation: number): void {
+    const conn = this.connections.get(server)
+    if (conn === undefined) return
+    this.registerToolSet(server, generation, conn.tools)
+  }
+
+  /** 把一组工具注册进 dispatcher（代际守卫 + 构造 callTool 闭包） */
+  private registerToolSet(server: string, generation: number, tools: Array<{ tool: McpToolInfo; risk: RiskLevel }>): void {
     const conn = this.connections.get(server)
     if (conn === undefined || conn.closed || conn.generation !== generation || this.dispatcher === null) return
     const callTool: McpCallTool = async (s, tool, args) => {
@@ -174,13 +197,29 @@ export class McpManager {
       if (c === undefined || c.client === null) throw new Error(`MCP server "${s}" 未连接`)
       return c.client.callTool(tool, args)
     }
-    for (const { tool, risk } of conn.tools) {
+    for (const { tool, risk } of tools) {
       setDynamicToolRisk(mcpToolId(tool.server, tool.name), risk)
       this.dispatcher.register(mcpToolToSkill(tool, callTool))
     }
   }
 
-  /** `list_changed` 触发：重新列工具，增量注册新增/变更项、注销消失项（generation 守卫） */
+  /**
+   * 把一次「工具注册交换」入队到本服务器的 `syncChain`（对齐 dsh connection 的 `enqueueSync`）。
+   * 串行化保证两个 listTools/重同步交换不会交错其「注销旧/注册新」阶段；
+   * 链上回调再以 `generation` 守卫判定是否仍生效，使过期代际的交换静默跳过。
+   */
+  private enqueueSync(server: string, generation: number, swap: () => void): void {
+    const conn = this.connections.get(server)
+    if (conn === undefined) return
+    const run = conn.syncChain.then(() => {
+      if (conn.closed || conn.generation !== generation) return
+      swap()
+    })
+    // 链尾需存活于失败的交换之后；入队方自行负责上报
+    conn.syncChain = run.catch(() => {})
+  }
+
+  /** `list_changed` 触发：重新列工具，增量注册新增/变更项、注销消失项（代际守卫 + syncChain 串行化） */
   private async resyncServer(server: string, generation: number): Promise<void> {
     const conn = this.connections.get(server)
     if (conn === undefined || conn.closed || conn.generation !== generation || conn.client === null) return
@@ -189,17 +228,20 @@ export class McpManager {
       if (conn.closed || conn.generation !== generation || conn.client === null) return
       const next = tools.map((tool) => ({ tool, risk: mcpToolRisk(tool.name, conn.config.risk) }))
       const nextIds = new Set(next.map(({ tool }) => mcpToolId(tool.server, tool.name)))
-      // 注销已消失的工具（避免工具面残留死工具）
-      for (const { tool } of conn.tools) {
-        const id = mcpToolId(tool.server, tool.name)
-        if (!nextIds.has(id)) {
-          this.dispatcher?.unregister(id)
-          clearDynamicToolRisk(id)
+      // 交换入队 syncChain：与初始注册 / 断开注销互斥，避免并发 list_changed 交错导致工具泄漏
+      this.enqueueSync(server, generation, () => {
+        // 注销已消失的工具（以交换时刻的 conn.tools 为准，正确处理多次重同步的链式 diff）
+        for (const { tool } of conn.tools) {
+          const id = mcpToolId(tool.server, tool.name)
+          if (!nextIds.has(id)) {
+            this.dispatcher?.unregister(id)
+            clearDynamicToolRisk(id)
+          }
         }
-      }
-      conn.tools = next
-      this.registerServer(server, generation)
-      console.log(`[MCP] server "${server}" 工具已重同步，${conn.tools.length} 个工具`)
+        conn.tools = next
+        this.registerToolSet(server, generation, next)
+      })
+      console.log(`[MCP] server "${server}" 工具已重同步，${next.length} 个工具`)
     } catch (error) {
       // 重同步失败不重建连接（仅工具列表未更新），下次 list_changed 再试
       console.error(`[MCP] server "${server}" 工具重同步失败：`, error instanceof Error ? error.message : String(error))
