@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { createItemInputSchema, deleteItemInputSchema, listItemsInputSchema } from '../../src/shared/schema/core/schemas'
+import {
+  createItemInputSchema,
+  deleteItemInputSchema,
+  listItemsInputSchema
+} from '../../src/shared/schema/adapters/schemasDataItems'
 
 describe('IPC 契约 schema', () => {
   it('listItems 需要非空 type', () => {

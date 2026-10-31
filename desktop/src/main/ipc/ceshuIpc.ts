@@ -1,17 +1,11 @@
 import type { IpcHandlerDeps, IpcRegistrar, LlmShared } from '../ipc'
 import {
-  ceshuAiGenerateInputSchema,
-  ceshuAiGenerateFieldInputSchema,
   ceshuApplyPresetInputSchema,
-  ceshuChangelogExportInputSchema,
   ceshuCloneDecomposeInputSchema,
   ceshuConfirmSystemsInputSchema,
   ceshuCreateInputSchema,
-  ceshuDataGenInputSchema,
   ceshuDeleteInputSchema,
   ceshuDeriveInputSchema,
-  ceshuDiffExportInputSchema,
-  ceshuDiffInputSchema,
   ceshuExportInputSchema,
   ceshuExportProjectInputSchema,
   ceshuOpenProjectInputSchema,
@@ -23,22 +17,36 @@ import {
   ceshuGetInputSchema,
   ceshuMigrateFieldSplitsInputSchema,
   ceshuRenameInputSchema,
-  ceshuReviewExportInputSchema,
   ceshuSaveChapterInputSchema,
+  ceshuSyncDataInputSchema
+} from '../../shared/schema/adapters/schemasDataCeshu'
+import {
+  ceshuAiGenerateInputSchema,
+  ceshuAiGenerateFieldInputSchema,
+  ceshuDataGenInputSchema
+} from '../../shared/schema/adapters/schemasDataCeshuAi'
+import {
+  ceshuChangelogExportInputSchema,
+  ceshuDiffExportInputSchema,
+  ceshuDiffInputSchema,
+  ceshuReviewExportInputSchema,
   ceshuReadinessExportInputSchema,
-  ceshuSyncDataInputSchema,
-  ceshuValidationExportInputSchema,
+  ceshuValidationExportInputSchema
+} from '../../shared/schema/adapters/schemasDataCeshuReports'
+import {
   notesAddInputSchema,
   notesDeleteInputSchema,
   notesListInputSchema,
-  notesUpdateInputSchema,
+  notesUpdateInputSchema
+} from '../../shared/schema/adapters/schemasDataNotes'
+import {
   templatesDeleteInputSchema,
   templatesExportInputSchema,
   templatesImportInputSchema,
   templatesListInputSchema,
   templatesSaveInputSchema,
   templatesUpdateInputSchema
-} from '../../shared/schema/core/schemas'
+} from '../../shared/schema/adapters/schemasDataTemplates'
 import { CHAPTER_LABELS, isChapterKey, type ChapterKey, type SystemEntry } from '../../shared/ceshu/reference/ceshuConstants'
 import type { DataTypeDef } from '../../shared/types'
 import { CESHU_CHAPTER_FIELDS } from '../../shared/ceshu/fields/ceshuFields'

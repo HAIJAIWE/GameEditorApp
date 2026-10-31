@@ -1,5 +1,8 @@
 import type { IpcHandlerDeps, IpcRegistrar } from '../ipc'
-import { secretNameInputSchema, setSecretInputSchema } from '../../shared/schema/core/schemas'
+import {
+  secretNameInputSchema,
+  setSecretInputSchema
+} from '../../shared/schema/adapters/schemasDataSecret'
 import { isValidSecretName } from '../settings/secretStore'
 
 export function registerSettingsIpc(deps: IpcHandlerDeps, handle: IpcRegistrar): void {

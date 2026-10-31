@@ -1,14 +1,34 @@
 import type {
+  AgentChatInput,
+  TaskCancelInput,
+  AgentExecuteToolInput,
+  AgentDraftLoadInput,
+  AgentDraftSaveInput,
+  AgentDeliveriesInput,
+  AgentFeedbackInput,
+  AgentInteractionResponseInput,
+  AgentSubagentSendInput,
+  AgentSubagentStopInput
+} from './schema/adapters/schemasDataAgent'
+import type {
+  WindowModeInput,
+  AppViewActionInput,
+  FsListDirInput,
+  FsReadFileInput
+} from './schema/adapters/schemasDataApp'
+import type {
   AttrGameConfigExportInput,
   AttrJsonDialogInput,
   AttrSystemJsonExportInput,
   AttrSystemJsonImportInput,
-  AttrSystemSaveInput,
+  AttrSystemSaveInput
+} from './schema/adapters/schemasDataAttr'
+import type {
   BackupCreateInput,
   BackupDeleteInput,
-  BackupRestoreInput,
-  BatchUpdateInput,
-  CeshuAiGenerateInput,
+  BackupRestoreInput
+} from './schema/adapters/schemasDataBackup'
+import type {
   CeshuCloneDecomposeInput,
   CeshuExportProjectInput,
   CeshuOpenProjectInput,
@@ -21,75 +41,88 @@ import type {
   CeshuConfirmSystemsInput,
   CeshuSyncDataInput,
   CeshuChooseExportFileInput,
-  CreateItemInput,
-  ReportFileDialogInput,
   CeshuCreateInput,
   CeshuMigrateFieldSplitsInput,
   CeshuDeleteInput,
   CeshuDeriveInput,
+  CeshuExportInput,
+  CeshuSaveChapterInput,
+  CeshuRenameInput
+} from './schema/adapters/schemasDataCeshu'
+import type {
+  CeshuAiGenerateInput,
+  CeshuDataGenInput
+} from './schema/adapters/schemasDataCeshuAi'
+import type {
+  ReportFileDialogInput,
   CeshuDiffExportInput,
   CeshuDiffInput,
   CeshuReadinessExportInput,
   CeshuValidationExportInput,
   CeshuChangelogExportInput,
-  CeshuExportInput,
-  ClearAllInput,
-  FieldTemplateNameInput,
-  FieldTemplateSaveInput,
-  CeshuReviewExportInput,
-  CeshuSaveChapterInput,
-  DeleteManyInput,
+  CeshuReviewExportInput
+} from './schema/adapters/schemasDataCeshuReports'
+import type {
   EngineExportInput,
-  ExportDirInput,
+  EngineExportFileDialogInput
+} from './schema/adapters/schemasDataEngineExport'
+import type {
   ImageGenInput,
+  DeleteImagesInput,
+  ImageReadByPathInput
+} from './schema/adapters/schemasDataImage'
+import type {
+  ExportDirInput,
   ExportLegacyInput,
   ImportDataFileInput,
   PreviewImportInput,
   ApplyImportInput,
   ImportLegacyInput,
-  NotesAddInput,
-  NotesDeleteInput,
-  NotesListInput,
-  NotesUpdateInput,
-  ReferencesInput,
-  CeshuRenameInput,
-  AgentChatInput,
-  TaskCancelInput,
-  AgentExecuteToolInput,
-  AgentDraftLoadInput,
-  DeleteImagesInput,
-  LlmGenerateInput,
-  ImageReadByPathInput,
-  LlmConfigureInput,
-  AgentDraftSaveInput,
-  AgentFeedbackInput,
-  AgentInteractionResponseInput,
-  AgentSubagentSendInput,
-  AgentSubagentStopInput,
-  EngineExportFileDialogInput,
   DataSnapshotInput,
-  DataSnapshotFileDialogInput,
-  FieldIdSuggestInput,
+  DataSnapshotFileDialogInput
+} from './schema/adapters/schemasDataImportExport'
+import type {
+  BatchUpdateInput,
+  CreateItemInput,
+  ClearAllInput,
+  DeleteManyInput,
+  ReferencesInput
+} from './schema/adapters/schemasDataItems'
+import type {
   LibraryCreateInput,
   LibraryNameInput,
   LibraryRemoveInput,
-  LibraryRenameInput,
-  SchemaSaveInput,
-  CeshuDataGenInput,
+  LibraryRenameInput
+} from './schema/adapters/schemasDataLibrary'
+import type {
+  LlmGenerateInput,
+  LlmConfigureInput
+} from './schema/adapters/schemasDataLlm'
+import type {
+  NotesAddInput,
+  NotesDeleteInput,
+  NotesListInput,
+  NotesUpdateInput
+} from './schema/adapters/schemasDataNotes'
+import type {
   SecretNameInput,
-  SetSecretInput,
+  SetSecretInput
+} from './schema/adapters/schemasDataSecret'
+import type {
   TemplateJsonDialogInput,
   TemplatesDeleteInput,
   TemplatesExportInput,
   TemplatesImportInput,
   TemplatesListInput,
   TemplatesSaveInput,
-  TemplatesUpdateInput,
-  WindowModeInput,
-  AppViewActionInput,
-  FsListDirInput,
-  FsReadFileInput
-} from './schema/core/schemas'
+  TemplatesUpdateInput
+} from './schema/adapters/schemasDataTemplates'
+import type {
+  FieldTemplateNameInput,
+  FieldTemplateSaveInput,
+  FieldIdSuggestInput,
+  SchemaSaveInput
+} from './schema/adapters/schemasDataTypeSchema'
 import type {
   AppInfo,
   AppLogInput,
@@ -110,7 +143,11 @@ import type { AgentRunStats } from './agent/observability/observability'
 import type { DraftSummary, SessionInfo, SessionTurnSummary } from './agent/conversation/session'
 import type { OperationRecord } from './agent/observability/operationLog'
 import type { JsonObjectSchema, SkillResult } from './agent/config/protocol'
-import type { AgentDeliveriesInput, AttachmentsAddInput, AttachmentsOpenInput, AttachmentsReadImageInput } from './schema/core/schemas'
+import type {
+  AttachmentsAddInput,
+  AttachmentsOpenInput,
+  AttachmentsReadImageInput
+} from './schema/adapters/schemasDataAttachments'
 import type { DigitalAttachment } from './util/io/libraryAttachments'
 import type { DeliveryRecord } from './agent/observability/deliveryLog'
 import type { CeshuChangelog, CeshuVersionDiff } from './ceshu/workflow/ceshuDiff'

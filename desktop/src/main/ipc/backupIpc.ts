@@ -1,6 +1,10 @@
 import { join } from 'node:path'
 import type { IpcHandlerDeps, IpcRegistrar } from '../ipc'
-import { backupCreateInputSchema, backupRestoreInputSchema, backupDeleteInputSchema } from '../../shared/schema/core/schemas'
+import {
+  backupCreateInputSchema,
+  backupRestoreInputSchema,
+  backupDeleteInputSchema
+} from '../../shared/schema/adapters/schemasDataBackup'
 import { listBackups, deleteBackupFile } from '../backup/backupStore'
 import { createLibraryBackup, restoreLibraryBackup } from '../backup/restore'
 

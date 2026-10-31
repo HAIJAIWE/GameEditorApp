@@ -10,7 +10,7 @@
  */
 
 import type { IpcHandlerDeps, IpcRegistrar } from '../ipc'
-import { taskCancelInputSchema } from '../../shared/schema/core/schemas'
+import { taskCancelInputSchema } from '../../shared/schema/adapters/schemasDataAgent'
 import { taskRegistry } from '../task/taskRegistry'
 
 export function registerTaskIpc(_deps: IpcHandlerDeps, handle: IpcRegistrar): void {

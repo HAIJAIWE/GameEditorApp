@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
 
 import {
-  CESHU_EXPORT_FORMATS,
   CESHU_FORMAT_LABELS,
   CHAPTER_LABELS,
   MODULE_CHAPTERS,
-  contentChapterCount,
   enabledModuleChapters,
   type CeshuDocument,
   type CeshuExportFormat,
@@ -22,8 +20,6 @@ import {
 } from '../../../../shared/ceshu/model/ceshuModel'
 import type { CeshuChangelog } from '../../../../shared/ceshu/workflow/ceshuDiff'
 import {
-  CESHU_STAGE_LABELS,
-  CESHU_STAGE_ORDER,
   isChapterVisibleInStage,
   type CeshuStage
 } from '../../../../shared/ceshu/workflow/ceshuStages'
@@ -44,36 +40,26 @@ import type { CeshuAiGenerateResult } from '../../../../shared/ceshu/prompts/ces
 import type { PluginHost } from '../../../../shared/plugin/host'
 import type { DataTypeDef } from '../../../../shared/types'
 
-import ChapterForm from '../ceshuField/ChapterForm'
-import CeshuOverview from './CeshuOverview'
-import CeshuAgentPanel from './CeshuAgentPanel'
 import CeshuDataPreview, { type PreviewJumpTarget } from '../ceshu/CeshuDataPreview'
+import CeshuAgentPanel from './CeshuAgentPanel'
 import { collectPendingReviewFields } from '../ceshu/reviewQueueData'
-import LucideIcon from '../common/LucideIcon'
 import { ViewMount } from '../../plugins/host/ViewMount'
-import { MenuMount } from '../../plugins/host/MenuMount'
 import { setCeshuEditorBridge } from '../../plugins/ceshu/ceshuEditorBridge'
 import {
   CESHU_ARTIFACT_MOUNT,
-  CESHU_CHAPTERNAV_MOUNT,
   CESHU_CONTENT_MOUNT,
   CESHU_TOOLBAR_MOUNT,
   CESHU_VIEW_MOUNT,
   type CeshuViewContextValue
 } from '../../plugins/ceshu/ceshuViewContext'
 import { toErrorMessage } from '../ceshuViewUtils'
+import CeshuToolbar from './CeshuToolbar'
+import CeshuChapterNav from './CeshuChapterNav'
+import CeshuChapterBody from './CeshuChapterBody'
+import type { ArtifactKey } from './ceshuArtifacts'
 
 /** 数据栏展开状态的 localStorage 键（`'0'` = 收起，其它/缺失 = 展开） */
 const PREVIEW_OPEN_KEY = 'mb.ceshu.previewOpen'
-
-/** 左栏「产出物」切换（2026-10-26 三栏布局：左=产出物+大纲，中=工作区，右=智能体） */
-const ARTIFACTS = [
-  { key: 'doc', label: '设计文档' },
-  { key: 'prototype', label: '原型预览' },
-  { key: 'data', label: '数据 / 机读' },
-  { key: 'tasks', label: '岗位任务' }
-] as const
-type ArtifactKey = (typeof ARTIFACTS)[number]['key']
 
 interface CeshuViewProps {
   ceshuId: string | null
@@ -399,6 +385,18 @@ export default function CeshuView({
     } catch {
       /* 视图插件未启用：静默，不打断编辑器 */
     }
+  }
+
+  /** 切产出物：`'doc'` 无对应视图（章节表单本体），关掉产出物视图即可；其余打开 `${key}.view` */
+  const handleSelectArtifact = (key: ArtifactKey): void => {
+    if (key === 'doc') host.closeView(CESHU_ARTIFACT_MOUNT)
+    else openEditorView(`${key}.view`)
+  }
+
+  /** 点章节：切章并退出「一页总览」（总览是只读摘要，切章意味着要继续编辑） */
+  const handleSelectChapter = (chapter: ChapterKey): void => {
+    setActiveChapter(chapter)
+    setViewMode('edit')
   }
 
   /** 「AI 生成、待核对」的章节集合 —— 章节列表据此画小圆点 */
@@ -890,99 +888,27 @@ export default function CeshuView({
 
   return (
     <div className="ceshu-view">
-      <header className="toolbar">
-        <button
-          type="button"
-          className="btn"
-          data-testid="ceshu-back"
-          title="返回策划书首页"
-          onClick={onBack}
-        >
-          <LucideIcon name="chevron-left" size={18} />
-          返回
-        </button>
-        <h1>{gameName}</h1>
-        <span className="item-meta" data-testid="ceshu-version">
-          {doc.version_label}
-          {doc.is_active ? ' ★ 激活' : ' · 未激活'}
-        </span>
-        <span className="item-meta">
-          档位：
-          {scope === 'lite'
-            ? `标准版（${contentChapterCount('lite')} 章）`
-            : `专业版（${contentChapterCount('full')} 章）`}
-        </span>
-        <span className="item-meta" data-testid="ceshu-total-progress">
-          总进度 {Math.round((progress.total ?? 0) * 100)}%
-        </span>
-        {!doc.is_active && (
-          <button type="button" className="btn" data-testid="ceshu-set-active" disabled={busy} onClick={() => void handleSetActive()}>
-            设为激活
-          </button>
-        )}
-        <button type="button" className="btn accent-outline" data-testid="ceshu-validate" disabled={busy} onClick={() => void handleValidate()}>
-          校验
-        </button>
-        {/* 全局审阅入口：跨章列出 AI 草稿字段，逐条接受 / 跳转 */}
-        <button
-          type="button"
-          className={`btn${pendingReviewFields.length > 0 ? ' accent-outline' : ''}`}
-          data-testid="ceshu-review-toggle"
-          disabled={busy}
-          title="跨章列出 AI 草稿字段，逐条接受"
-          onClick={() => openEditorView('review.view')}
-        >
-          待审 {pendingReviewFields.length}
-        </button>
-        {/*
-          数据栏开关。布局心智：**左栏 + 中间 = 工作区，右栏 = 智能体**。
-          数据预览属于工作区的一部分（写文档时要对照数据），但它不该和智能体并排抢宽度 ——
-          写正文时把它收起来，表单立刻拿回 44% 的宽度。
-          状态持久化：这是「工作姿势」偏好，每次重开都要重新点会很烦。
-        */}
-        <button
-          type="button"
-          className="btn"
-          data-testid="ceshu-preview-toggle"
-          aria-pressed={previewOpen}
-          title={previewOpen ? '收起数据栏，让章节表单占满工作区' : '展开数据栏（对照角色/技能等数据）'}
-          onClick={togglePreview}
-        >
-          {previewOpen ? '收起数据' : '数据栏'}
-        </button>
-        <button type="button" className="btn accent-outline" data-testid="ceshu-ai-full" disabled={busy} onClick={() => openEditorView('aiFull.view')}>
-          AI 一键生成
-        </button>
-        <button
-          type="button"
-          className="btn accent-outline"
-          data-testid="ceshu-ai-datagen"
-          disabled={busy}
-          onClick={() => {
-            // 工具栏入口是「全局生成」：不传参数，面板默认全选
-            openEditorView('aiDataGen.view')
-          }}
-        >
-          AI 生成数据
-        </button>
-        {/* 「更多 ▸」菜单（Slice 16）：结构与动作由 ceshuMenusPlugin 声明，MenuMount 在此渲染 */}
-        <MenuMount host={host} mount="ceshu.toolbar" busy={busy} />
-        <select
-          className="form-select export-format"
-          data-testid="export-format"
-          value={exportFormat}
-          onChange={(event) => setExportFormat(event.target.value as CeshuExportFormat)}
-        >
-          {CESHU_EXPORT_FORMATS.map((format) => (
-            <option key={format} value={format}>
-              {CESHU_FORMAT_LABELS[format]}
-            </option>
-          ))}
-        </select>
-        <button type="button" className="btn accent-outline" data-testid="ceshu-export" disabled={busy} onClick={() => void handleExport()}>
-          导出
-        </button>
-      </header>
+      <CeshuToolbar
+        gameName={gameName}
+        versionLabel={doc.version_label}
+        isActive={doc.is_active}
+        scope={scope}
+        totalPct={Math.round((progress.total ?? 0) * 100)}
+        busy={busy}
+        pendingReviewCount={pendingReviewFields.length}
+        previewOpen={previewOpen}
+        exportFormat={exportFormat}
+        host={host}
+        onBack={onBack}
+        onSetActive={() => void handleSetActive()}
+        onValidate={() => void handleValidate()}
+        onOpenReview={() => openEditorView('review.view')}
+        onTogglePreview={togglePreview}
+        onOpenAiFull={() => openEditorView('aiFull.view')}
+        onOpenAiDataGen={() => openEditorView('aiDataGen.view')}
+        onExportFormatChange={setExportFormat}
+        onExport={() => void handleExport()}
+      />
 
       {/* 派生新版本内联弹层（Slice 15）：原位置挂载，定位不变 */}
       <ViewMount host={host} mount={CESHU_TOOLBAR_MOUNT} context={viewContext} />
@@ -1006,154 +932,45 @@ export default function CeshuView({
              */}
             <ViewMount host={host} mount={CESHU_VIEW_MOUNT} context={viewContext} />
             <div className="ceshu-pane-row">
-            <div className="chapter-nav">
-              {/* 产出物切换：设计文档 / 原型预览 / 数据·机读 / 岗位任务 */}
-              <div className="artifact-switch" role="group" aria-label="产出物">
-                {ARTIFACTS.map((item) => (
-                  <button
-                    key={item.key}
-                    type="button"
-                    data-testid={`artifact-${item.key}`}
-                    className={`artifact-btn${activeArtifact === item.key ? ' active' : ''}`}
-                    onClick={() => {
-                      if (item.key === 'doc') host.closeView(CESHU_ARTIFACT_MOUNT)
-                      else openEditorView(`${item.key}.view`)
-                    }}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-              {activeArtifact === 'doc' ? (
-                <>
-              {/*
-                阶段筛选（默认「全部」= 原行为）。用途：立项阶段只需要 7 章，
-                24 章全铺开是劝退主因（库内文档填写率 1%–13%，见
-                docs/ceshu-field-necessity.md）。这里只做筛选，不隐藏数据。
-              */}
-              <div className="chapter-stage-filter" role="group" aria-label="按阶段筛选章节">
-                <button
-                  type="button"
-                  data-testid="stage-filter-all"
-                  className={`chapter-stage-btn${stageFilter === 'all' ? ' active' : ''}`}
-                  onClick={() => setStageFilter('all')}
-                >
-                  全部
-                </button>
-                {CESHU_STAGE_ORDER.map((stage) => (
-                  <button
-                    key={stage}
-                    type="button"
-                    data-testid={`stage-filter-${stage}`}
-                    className={`chapter-stage-btn${stageFilter === stage ? ' active' : ''}`}
-                    title={`只看「${CESHU_STAGE_LABELS[stage]}」阶段及更早的章节`}
-                    onClick={() => setStageFilter(stage)}
-                  >
-                    {CESHU_STAGE_LABELS[stage]}
-                  </button>
-                ))}
-              </div>
-              <button
-                type="button"
-                data-testid="module-picker-toggle"
-                className="chapter-stage-btn module-picker-toggle"
-                title="勾选要做的系统模块（通用底座恒有）"
-                onClick={() => openEditorView('modulePicker.view')}
-              >
-                系统模块 {enabledModuleChapters(doc).length}/{MODULE_CHAPTERS.length}
-              </button>
-              {/* 系统模块勾选气泡（Slice 15）：原位置挂载，定位不变 */}
-              <ViewMount host={host} mount={CESHU_CHAPTERNAV_MOUNT} context={viewContext} />
-              <button
-                type="button"
-                data-testid="view-mode-toggle"
-                className={`chapter-stage-btn overview-toggle${viewMode === 'overview' ? ' active' : ''}`}
-                title="把当前阶段压成一页只读摘要（2026 主流：一页讲清 → 分层展开）"
-                onClick={() => setViewMode((mode) => (mode === 'overview' ? 'edit' : 'overview'))}
-              >
-                {viewMode === 'overview' ? '返回编辑' : '一页总览'}
-              </button>
-              {visibleByStage.map((key) => {
-                const pct = Math.round((progress[key] ?? 0) * 100)
-                // 完成度三色阈值与 旧版 `chapter_panel::set_progress` 一致（<50 / 50-79 / >=80）
-                const level = pct >= 80 ? 'hi' : pct >= 50 ? 'mid' : 'low'
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    data-testid="chapter-tab"
-                    className={`chapter-tab${key === activeChapter ? ' active' : ''}`}
-                    onClick={() => {
-                      setActiveChapter(key)
-                      setViewMode('edit')
-                    }}
-                  >
-                    <span className="chapter-tab-label">{CHAPTER_LABELS[key]}</span>
-                    {/*
-                      「待核对」圆点：AI 刚生成、人还没看过。点了「保存本章」即消失。
-                      视觉上不用文字 —— 章节导航里多出的两个字会比圆点更吵。
-                    */}
-                    {aiMarks[key] !== undefined && (
-                      <span className="chapter-tab-ai" title="AI 生成，待核对" data-testid={`chapter-ai-${key}`} />
-                    )}
-                    <span
-                      className="chapter-progress"
-                      title={`完成度 ${pct}%`}
-                      role="progressbar"
-                      aria-valuenow={pct}
-                      aria-valuemin={0}
-                      aria-valuemax={100}
-                    >
-                      <span className={`chapter-progress-fill ${level}`} style={{ width: `${pct}%` }} />
-                      {/* 视觉隐藏但保留在文本里：E2E `ceshu.spec.ts:63` 断言 toContainText('50%') */}
-                      <span className="sr-only">{pct}%</span>
-                    </span>
-                  </button>
-                )
-              })}
-              {scope === 'lite' && (
-                <div className="chapter-nav-hint">
-                  标准版仅含基础 {contentChapterCount('lite')} 章；在「文档信息」中可切换为专业版{' '}
-                  {contentChapterCount('full')} 章
-                </div>
-              )}
-                </>
-              ) : (
-                <div className="chapter-nav-hint" data-testid="artifact-nav-hint">
-                  「{ARTIFACTS.find((item) => item.key === activeArtifact)?.label}」的目录将在这里
-                </div>
-              )}
-            </div>
+            <CeshuChapterNav
+              activeArtifact={activeArtifact}
+              onSelectArtifact={handleSelectArtifact}
+              stageFilter={stageFilter}
+              onStageFilterChange={setStageFilter}
+              enabledModuleCount={enabledModuleChapters(doc).length}
+              onOpenModulePicker={() => openEditorView('modulePicker.view')}
+              viewMode={viewMode}
+              onToggleViewMode={() => setViewMode((mode) => (mode === 'overview' ? 'edit' : 'overview'))}
+              chapters={visibleByStage}
+              progress={progress}
+              activeChapter={activeChapter}
+              aiMarks={aiMarks}
+              onSelectChapter={handleSelectChapter}
+              scope={scope}
+              host={host}
+              viewContext={viewContext}
+            />
 
-            <div className="chapter-body">
-              {activeArtifact !== 'doc' ? (
-                <ViewMount host={host} mount={CESHU_ARTIFACT_MOUNT} context={viewContext} />
-              ) : viewMode === 'overview' ? (
-                <CeshuOverview
-                  doc={doc}
-                  stage={stageFilter === 'all' ? 'concept' : stageFilter}
-                  progress={progress}
-                />
-              ) : (
-                <ChapterForm
-                  key={`${doc.ceshu_id}:${activeChapter}`}
-                  chapter={activeChapter}
-                  data={doc[activeChapter]}
-                  busy={busy}
-                  gameName={gameName}
-                  onSave={handleSave}
-                  onAiGenerate={handleAiGenerate}
-                  onAiGenerateField={handleAiGenerateField}
-                  fieldStatus={fieldStatusOf(doc.meta, activeChapter)}
-                  onFieldStatus={handleFieldStatus}
-                  /* 只在目标章与当前章一致时下发：切章后 ChapterForm 会重挂，目标必须跟着换 */
-                  focusField={fieldJump?.chapter === activeChapter ? fieldJump.field : undefined}
-                  onFocusConsumed={() => setFieldJump(null)}
-                  /* 「改这里会影响什么」：面板在宿主渲染，ChapterForm 只负责发信号 */
-                  onShowImpact={(chapter, field) => openEditorView('fieldImpact.view', { chapter, field })}
-                />
-              )}
-            </div>
+            <CeshuChapterBody
+              activeArtifact={activeArtifact}
+              viewMode={viewMode}
+              doc={doc}
+              stageFilter={stageFilter}
+              progress={progress}
+              activeChapter={activeChapter}
+              busy={busy}
+              gameName={gameName}
+              fieldJump={fieldJump}
+              onFocusConsumed={() => setFieldJump(null)}
+              onSave={handleSave}
+              onFieldStatus={handleFieldStatus}
+              fieldStatus={fieldStatusOf(doc.meta, activeChapter)}
+              onAiGenerate={handleAiGenerate}
+              onAiGenerateField={handleAiGenerateField}
+              onShowImpact={(chapter, field) => openEditorView('fieldImpact.view', { chapter, field })}
+              host={host}
+              viewContext={viewContext}
+            />
 
             {/*
               数据栏属于**工作区**（左栏 + 中间），不是和右侧智能体并列的第四栏。

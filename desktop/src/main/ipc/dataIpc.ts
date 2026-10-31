@@ -1,13 +1,5 @@
 import type { IpcHandlerDeps, IpcRegistrar } from '../ipc'
 import {
-  listItemsInputSchema,
-  createItemInputSchema,
-  updateItemInputSchema,
-  deleteItemInputSchema,
-  batchUpdateInputSchema,
-  deleteManyInputSchema,
-  clearAllInputSchema,
-  referencesInputSchema,
   importLegacyInputSchema,
   exportLegacyInputSchema,
   exportDirInputSchema,
@@ -15,7 +7,17 @@ import {
   previewImportInputSchema,
   applyImportInputSchema,
   dataSnapshotInputSchema
-} from '../../shared/schema/core/schemas'
+} from '../../shared/schema/adapters/schemasDataImportExport'
+import {
+  listItemsInputSchema,
+  createItemInputSchema,
+  updateItemInputSchema,
+  deleteItemInputSchema,
+  batchUpdateInputSchema,
+  deleteManyInputSchema,
+  clearAllInputSchema,
+  referencesInputSchema
+} from '../../shared/schema/adapters/schemasDataItems'
 import { buildReferenceReport } from '../../shared/util/search/references'
 import { importLegacyDataFile } from '../data/legacyImport'
 import { exportLegacyDataFile } from '../data/legacyExport'

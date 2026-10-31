@@ -209,7 +209,11 @@ for(const [n,fp,code] of [
 - **`attrSystem`**：同理（main 的 attrSystemStore / attrSystemJsonFile /
   attrGameConfigExport 依赖模型与拓扑排序），求值引擎已按域纯度下沉 domain/attr/。
 - **`type*` 4 个**：类型系统元模型，main/renderer 双向共享的契约性质。
-- **`ipc` `schemas` `schemasData` `types` `systemConfigSchema`**：契约基础设施（Q1）。
+- **`ipc` `schemas` `schemasData*` `types` `systemConfigSchema`**：契约基础设施（Q1）。
+  2026-10-31 把 1038 行的 `schema/adapters/schemasData.ts` 按业务域拆成 18 个
+  `schemasData<域>.ts`（条目 / 导入导出 / 引擎导出 / 类型 schema / 属性 / 策划书 3 件 /
+  智能体 / 附件 / LLM / 密钥 / 图像 / 库 / 备份 / 笔记 / 模板 / 应用），导出名一字未改；
+  消费者直接指向具体文件，`core/schemas` 与 `adapters/index` 两个再导出桶随之删除。
 - **`aiSeedPrompt` `glossaryTerms`**：应用级引导 / 业务术语数据表——留根理由见各文件头注释，
   后续如出现域归属争议再议。（`formSections` 曾在此列：条目表单分区布局，2026-10-13 随表单
   拉平为 旧版 旧版扁平 `QFormLayout` 而删除，标签术语替换直连 `config/gameStyle.ts`。）

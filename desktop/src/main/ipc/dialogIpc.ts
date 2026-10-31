@@ -2,13 +2,11 @@ import { BrowserWindow, dialog, type OpenDialogOptions, type SaveDialogOptions }
 import { readFileSync } from 'node:fs'
 import type { IpcHandlerDeps, IpcRegistrar } from '../ipc'
 import { importImageIntoLibrary } from '../imageImport'
-import {
-  ceshuChooseExportFileInputSchema,
-  reportFileDialogInputSchema,
-  engineExportFileDialogInputSchema,
-  templateJsonDialogInputSchema,
-  dataSnapshotFileDialogInputSchema
-} from '../../shared/schema/core/schemas'
+import { ceshuChooseExportFileInputSchema } from '../../shared/schema/adapters/schemasDataCeshu'
+import { reportFileDialogInputSchema } from '../../shared/schema/adapters/schemasDataCeshuReports'
+import { engineExportFileDialogInputSchema } from '../../shared/schema/adapters/schemasDataEngineExport'
+import { dataSnapshotFileDialogInputSchema } from '../../shared/schema/adapters/schemasDataImportExport'
+import { templateJsonDialogInputSchema } from '../../shared/schema/adapters/schemasDataTemplates'
 import { CESHU_FORMAT_EXTENSIONS, CESHU_FORMAT_LABELS } from '../../shared/ceshu/reference/ceshuConstants'
 import { buildImagePreviewDataUrl } from '../../shared/util/io/imagePreview'
 import { log } from '../../shared/util/system/logger'
