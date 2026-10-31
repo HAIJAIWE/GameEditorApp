@@ -79,11 +79,12 @@ MCP server ──stdio JSON-RPC──▶ McpClient ──tools/list──▶ Mcp
 - **两种传输**：stdio 子进程 + Streamable HTTP（`application/json` 与 SSE 两种响应）
 - `initialize`/`tools/list`/`tools/call`
 - **逐调用超时 60s（对齐 dsh 的 `DEFAULT_TOOL_CALL_TIMEOUT_MS`）**：客户端层 `withCallTimeout` 失败闭合 + 传输层 `AbortController`（http）/ pending 清理（stdio），握手另有独立 10s 短超时
+- **连接监督器（对齐 dsh `connection.ts`）**：`McpManager` 重构为「每台服务器一个 `ServerConnection` + 监督器」——stdio 进程崩溃经 `onDisconnect` 触发**有界指数退避重连**（`500×2^n` 封顶 30s、`maxAttempts=10`、generation 隔离防旧连接污染）；服务器推 `notifications/tools/list_changed` 触发 **`tools/list` 重同步**（增量注册/注销，工具面实时更新）；HTTP 无持久连接故不自动重连
 - 工具 → 技能桥（文本内容拼接、`isError`→`success`、异常收敛）
 - 配置解析（容错，stdio/http 二选一 + `risk`）+ 应用级单例 + 库级注册
 - **MCP 配置 UI**（Slice 20）：工具菜单「MCP 配置」→ `McpConfigPanel` 编辑 `mcp.json`，保存后 `mcp:setConfig` 写盘并**重连**
 - **风险分级**（Slice 20）：动态风险表 + 每服务器 `risk` 档 + 工具名启发式（shell/write/delete→SYSTEM 需二次确认；read/list→READ_ONLY）
-- 单测：`mcp.test.ts` 17 条（配置/桥/客户端/超时/风险分级）；dsh 对照见 [`dsh-mcp-comparison.md`](./dsh-mcp-comparison.md)
+- 单测：`mcp.test.ts` 17 条 + `mcpSupervisor.test.ts` 4 条（配置/桥/客户端/超时/监督器/重同步/重连）；dsh 对照见 [`dsh-mcp-comparison.md`](./dsh-mcp-comparison.md)
 
 **未做（后续）**
 - ~~**工具面限量**~~ → **已可配置**（Slice 21）：MCP 配置顶层 `"maxTools": N` 调高上限（默认 8/15，`setMaxToolsOverride`）
@@ -92,7 +93,7 @@ MCP server ──stdio JSON-RPC──▶ McpClient ──tools/list──▶ Mcp
 ## 6. 验证
 
 ```bash
-npx vitest run tests/unit/mcp.test.ts   # 17 条
+npx vitest run tests/unit/mcp.test.ts tests/unit/mcpSupervisor.test.ts   # 21 条
 npm run typecheck && npx eslint src/shared/agent/mcp src/main/agent/mcp
 env -u NODE_OPTIONS npm run build
 ```

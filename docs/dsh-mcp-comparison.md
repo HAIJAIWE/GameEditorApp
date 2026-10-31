@@ -134,8 +134,8 @@ async callTool(name, args) {
 |---|---|---|---|---|---|
 | 1 | 逐调用超时 | 60s（AbortSignal → SDK） | **60s（客户端 + 传输双层）** | ✅ 已补齐 2026-10-31 | — |
 | 2 | 握手超时 | SDK `requestTimeout` | 10s（更严） | ✅ 已有 | — |
-| 3 | 连接监督器 / 重连退避 | generation + 有界指数退避 + `maxAttempts` | 无 | ❌ 缺口 | 中（非核心闭环） |
-| 4 | `listChanged` 自动重同步 | 有 | 仅手动 `reload` | ❌ 缺口 | 中 |
+| 3 | 连接监督器 / 重连退避 | generation + 有界指数退避 + `maxAttempts` | **generation 隔离 + 有界指数退避（500→30000）+ maxAttempts=10** | ✅ 已补齐 2026-10-31 | — |
+| 4 | `listChanged` 自动重同步 | 有 | **通知驱动 `tools/list` 重拉 + 增量注册/注销** | ✅ 已补齐 2026-10-31 | — |
 | 5 | 工具名规范化 + SHA 后缀 | 有 | 点分隔直透 | ⚠️ 可接受 | 低 |
 | 6 | `CallToolResult` schema 校验 | 严格 | 宽松（只取 content） | ⚠️ 可接受 | 低 |
 | 7 | 图像准入 → 附件/vision | 有 | 无（图像被丢弃） | ❌ 缺口 | 低 |
@@ -143,7 +143,7 @@ async callTool(name, args) {
 
 ### 建议落地顺序
 1. **（已做）逐调用超时 60s** —— 低成本高价值，防止工具调用永久挂起。
-2. **连接监督器 + `listChanged` 重同步** —— 提升 MCP 健壮性，建议作为后续独立 slice（可参考 `connection.ts` 的 generation/退避模型，但保持我们「桥接成技能」的出口不变）。
+2. **（已做）连接监督器 + `listChanged` 重同步** —— `McpManager` 重构为「每台服务器一个 `ServerConnection` + 监督器」：`onDisconnect` 触发有界指数退避重连（generation 隔离避免旧连接回调污染）；服务器推 `notifications/tools/list_changed` 触发 `tools/list` 重拉并增量注册/注销。保持「桥接成技能」出口不变。详见下方 §9。
 3. **图像准入** —— 仅当要接视觉类 MCP 服务器时再做。
 4. **工具名 SHA 后缀 / schema 校验 / instructions 截断** —— 防御性增强，按需补。
 
@@ -160,8 +160,19 @@ npx vitest run                         # 全量 3475 通过 / 6 跳过（基线 
 ```
 
 涉及文件：
-- `desktop/src/shared/agent/mcp/types.ts` —— 新增 `McpRequestOptions`（`timeoutMs` / `signal`），`McpTransport.request` 加可选第三参。
-- `desktop/src/shared/agent/mcp/client.ts` —— `DEFAULT_CALL_TIMEOUT_MS=60_000` + `withCallTimeout` 失败闭合。
-- `desktop/src/main/agent/mcp/stdioTransport.ts` —— `request` 支持超时/中断，pending 带 cleanup。
-- `desktop/src/main/agent/mcp/streamableHttpTransport.ts` —— `fetch` 走 `AbortController`，超时 abort + `cause` 保留。
-- `desktop/tests/unit/mcp.test.ts` —— 新增 3 条超时测试（含真实 stdio 子进程）。
+- `desktop/src/shared/agent/mcp/types.ts` —— 新增 `McpRequestOptions`（`timeoutMs` / `signal`），`McpTransport.request` 加可选第三参；`McpTransport` 加可选 `onNotification` / `onDisconnect` 钩子。
+- `desktop/src/shared/agent/mcp/client.ts` —— `DEFAULT_CALL_TIMEOUT_MS=60_000` + `withCallTimeout` 失败闭合；构造时转发 `onNotification`。
+- `desktop/src/main/agent/mcp/stdioTransport.ts` —— `request` 支持超时/中断，pending 带 cleanup；`handleLine` 路由服务器通知；`failAll` 在真实断开时触发 `onDisconnect`。
+- `desktop/src/main/agent/mcp/streamableHttpTransport.ts` —— `fetch` 走 `AbortController`，超时 abort + `cause` 保留；`readSse` 路由服务器推送通知。
+- `desktop/src/main/agent/mcp/manager.ts` —— **重构为「每台服务器一个 `ServerConnection` + 监督器」**：generation 隔离 + 有界指数退避重连（500→30000、maxAttempts=10）+ `listChanged` 重同步（增量注册/注销）。
+- `desktop/tests/unit/mcp.test.ts` —— 17 条（含 3 条超时，含真实 stdio 子进程）。
+- `desktop/tests/unit/mcpSupervisor.test.ts` —— 4 条（连接注册 / listChanged 重同步 / 断开立即注销 / 退避重连，假传输层）。
+
+## 9. 连接监督器设计要点（2026-10-31 补齐）
+
+- **`ServerConnection` 粒度**：每台服务器一条记录，独立 `generation` / `reconnectAttempts` / `reconnectTimer`。`connect` 不再 await 单台（失败隔离，单台慢/挂不影响其他与 agent 本体）。
+- **generation 隔离**（对齐 dsh）：每次（重）连接 `generation += 1`；握手 / 列工具 / 重同步的异步结果都带 generation 校验，过期结果一律丢弃，杜绝旧连接回调污染新连接。
+- **`onDisconnect` 自愈**：stdio 进程崩溃 → `failAll` 触发 `onDisconnect` → 立即把该服务器工具失效（注销 + 清动态风险 + `toolCount` 归零，避免调用挂起/空响）→ 安排重连。HTTP 无持久连接，故不实现 `onDisconnect`（不自动重连）。
+- **有界指数退避**：`delay = min(30000, 500 × 2^attempts)`；成功一次即 `reconnectAttempts=0`（对冷启动慢的服务器可撑过 ~100s 退避窗口）；达 `maxAttempts=10` 停止并告警。同一服务器同时只挂一个重连定时器（去重）。
+- **`listChanged` 重同步**：服务器推 `notifications/tools/list_changed` → 重新 `tools/list`（带 10s 握手超时兜底）→ 与旧工具集 diff：消失的注销、新增/变更的注册。generation 守卫保证只应用最新结果。
+- **保留的「桥接成技能」出口不变**：重连/重同步后仍是 `mcpToolToSkill` 注册进 `SkillDispatcher`，工具面/审批/日志零改动复用。

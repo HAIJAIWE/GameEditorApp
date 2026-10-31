@@ -19,30 +19,55 @@ function createTransport(config: McpServerConfig): McpTransport | null {
   return null
 }
 
+/** 单个 MCP 服务器的连接状态（监督器管理的最小单元） */
+interface ServerConnection {
+  config: McpServerConfig
+  transport: McpTransport | null
+  client: McpClient | null
+  /**
+   * 代数：每次（重）连接 +1。异步结果（握手 / 列工具 / 重同步）都带 generation 校验，
+   * 过期的旧结果一律丢弃，避免旧连接回调污染已重建的新连接（对齐 dsh 的 generation 隔离）。
+   */
+  generation: number
+  tools: Array<{ tool: McpToolInfo; risk: RiskLevel }>
+  /** 已尝试重连次数（成功一次即清零，故对冷启动慢的服务器也能撑过退避窗口） */
+  reconnectAttempts: number
+  /** 待执行的重连定时器（去重：同一服务器同时只挂一个） */
+  reconnectTimer: ReturnType<typeof setTimeout> | null
+  closed: boolean
+}
+
 /**
- * MCP 管理器（Slice 18，主进程单例）。
+ * MCP 管理器（Slice 18，主进程单例）+ **连接监督器**。
  *
- * 生命周期：**连接是应用级的**（`app.whenReady` 时连一次），**注册是库级的**（`buildStores`
- * 每次重建 dispatcher 都要重新 `attach` 并注册）。这样切库不会重拉子进程，也不会丢 MCP 工具。
+ * 生命周期：
+ * - **连接是应用级的**（`app.whenReady` 时连一次），每台服务器独立、失败隔离；
+ * - **注册是库级的**（`buildStores` 每次重建 dispatcher 都要重新 `attach` 并注册）；
+ * - **自愈**：stdio 进程崩溃 → `onDisconnect` 触发 → 有界指数退避重连（最多 10 次）；
+ * - **工具热更新**：服务器推 `notifications/tools/list_changed` → 重新 `listTools` 并增量注册/注销。
  *
- * 失败隔离：单个服务器起不来只跳过它，不影响其他服务器与 agent 本体。
+ * 设计取向：MCP 工具**桥接成 `SkillProtocol`** 进既有 `SkillDispatcher`，工具面/档位限量/审批门/操作日志零改动复用。
  */
 export class McpManager {
-  private readonly clients = new Map<string, McpClient>()
-  /** 已发现的工具 + 各自的风险等级（风险在注册时写进动态风险表） */
-  private tools: Array<{ tool: McpToolInfo; risk: RiskLevel }> = []
+  private readonly connections = new Map<string, ServerConnection>()
   private dispatcher: SkillDispatcher | null = null
   private connected = false
   /** 配置文件路径（`connectFromFile` 时记下；配置 UI 读写它） */
   private configPath: string | null = null
+  /** 传输层工厂（可注入，便于测试用假传输层） */
+  private transportFactory: (config: McpServerConfig) => McpTransport | null = createTransport
 
   /** 握手超时：防止某个 MCP 服务器无响应时，整个 `connect`（在 app.whenReady 时连）被无限挂起 */
   private static readonly HANDSHAKE_TIMEOUT_MS = 10_000
+  /** 重连退避（对齐 dsh connection 监督器）：初始 500ms，指数翻倍，封顶 30000ms */
+  private static readonly RECONNECT_INITIAL_DELAY_MS = 500
+  private static readonly RECONNECT_MAX_DELAY_MS = 30_000
+  /** 重连上限：达到后停止自动重连（成功一次即清零） */
+  private static readonly RECONNECT_MAX_ATTEMPTS = 10
 
   /** 给 Promise 套一个超时（超时即 reject）；原 Promise 不被取消，仅清理定时器避免泄漏 */
   private static withTimeout<T>(promise: Promise<T>, label: string): Promise<T> {
     let timer: ReturnType<typeof setTimeout> | undefined
-    // 用 Promise<T> 而非 Promise<never>：new Promise<never> 会让 Promise.race 的泛型推定出错（TS2345）
     const timeout = new Promise<T>((_resolve, reject) => {
       timer = setTimeout(
         () => reject(new Error(`${label} 超时（${McpManager.HANDSHAKE_TIMEOUT_MS}ms）`)),
@@ -54,34 +79,148 @@ export class McpManager {
     })
   }
 
-  /** 连上配置里的全部服务器并发现工具（只连一次；重复调用无操作） */
+  /** 测试用：注入假传输层，避免单测真拉子进程 */
+  setTransportFactory(factory: (config: McpServerConfig) => McpTransport | null): void {
+    this.transportFactory = factory
+  }
+
+  /** 连上配置里的全部服务器并发现工具（只连一次；重复调用无操作）。不 await 单台，失败隔离 */
   async connect(config: McpConfig): Promise<void> {
     if (this.connected) return
     this.connected = true
     // 工具面上限覆写（配置顶层 maxTools）：MCP 工具多了可调高，否则沿用 8/15
     setMaxToolsOverride(config.maxTools ?? null)
     for (const [server, serverConfig] of Object.entries(config.mcpServers)) {
-      const transport = createTransport(serverConfig)
-      if (transport === null) continue
-      let client: McpClient | null = null
-      try {
-        client = new McpClient(server, transport)
-        await McpManager.withTimeout(client.initialize(), `server "${server}" 握手`)
-        const tools = await McpManager.withTimeout(client.listTools(), `server "${server}" 列工具`)
-        this.clients.set(server, client)
-        // 已登记到 this.clients，交给 close() 在关闭时统一回收；catch 不再关它
-        client = null
-        // 按服务器配置（显式 risk）或工具名启发式，算出每个工具的风险
-        for (const tool of tools) {
-          this.tools.push({ tool, risk: mcpToolRisk(tool.name, serverConfig.risk) })
-        }
-      } catch (error) {
-        // 单个服务器失败/超时不影响其他服务器与 agent 本体；未成功登记的客户端在此关闭，避免 stdio 子进程残留
-        if (client !== null) client.close()
-        console.error(`[MCP] server "${server}" 连接失败：`, error instanceof Error ? error.message : String(error))
+      const conn: ServerConnection = {
+        config: serverConfig,
+        transport: null,
+        client: null,
+        generation: 0,
+        tools: [],
+        reconnectAttempts: 0,
+        reconnectTimer: null,
+        closed: false
       }
+      this.connections.set(server, conn)
+      // 不 await：单台服务器慢/挂不影响其他服务器与 agent 本体
+      void this.connectServer(server)
     }
-    this.registerAll()
+  }
+
+  /** （重）连接单台服务器；成功即注册工具，失败/断开即安排重连。generation 保证过期结果被丢弃 */
+  private async connectServer(server: string): Promise<void> {
+    const conn = this.connections.get(server)
+    if (conn === undefined || conn.closed) return
+    conn.generation += 1
+    const generation = conn.generation
+    const transport = this.transportFactory(conn.config)
+    if (transport === null) return
+
+    // 进程崩溃/流错误 → 立即让本服务器工具失效并安排重连
+    if (transport.onDisconnect !== undefined) {
+      transport.onDisconnect((error) => {
+        if (conn.closed || conn.generation !== generation) return
+        console.error(`[MCP] server "${server}" 连接断开：`, error.message)
+        conn.client = null
+        conn.transport = null
+        for (const { tool } of conn.tools) {
+          const id = mcpToolId(tool.server, tool.name)
+          this.dispatcher?.unregister(id)
+          clearDynamicToolRisk(id)
+        }
+        conn.tools = []
+        this.scheduleReconnect(server)
+      })
+    }
+
+    const client = new McpClient(server, transport, undefined, (method) => {
+      if (method === 'notifications/tools/list_changed' && !conn.closed && conn.generation === generation) {
+        void this.resyncServer(server, generation)
+      }
+    })
+
+    try {
+      await McpManager.withTimeout(client.initialize(), `server "${server}" 握手`)
+      const tools = await McpManager.withTimeout(client.listTools(), `server "${server}" 列工具`)
+      // 连接期间已被关闭或重建（generation 变了）→ 丢弃本次结果，回收资源
+      if (conn.closed || conn.generation !== generation) {
+        transport.close()
+        return
+      }
+      conn.transport = transport
+      conn.client = client
+      conn.tools = tools.map((tool) => ({ tool, risk: mcpToolRisk(tool.name, conn.config.risk) }))
+      conn.reconnectAttempts = 0
+      this.registerServer(server, generation)
+      console.log(`[MCP] server "${server}" 已连接，${conn.tools.length} 个工具`)
+    } catch (error) {
+      transport.close()
+      if (conn.closed || conn.generation !== generation) return
+      console.error(`[MCP] server "${server}" 连接失败：`, error instanceof Error ? error.message : String(error))
+      this.scheduleReconnect(server)
+    }
+  }
+
+  /** 把某台服务器的当前工具注册进 dispatcher（generation 校验保证只注册最新结果） */
+  private registerServer(server: string, generation: number): void {
+    const conn = this.connections.get(server)
+    if (conn === undefined || conn.closed || conn.generation !== generation || this.dispatcher === null) return
+    const callTool: McpCallTool = async (s, tool, args) => {
+      const c = this.connections.get(s)
+      if (c === undefined || c.client === null) throw new Error(`MCP server "${s}" 未连接`)
+      return c.client.callTool(tool, args)
+    }
+    for (const { tool, risk } of conn.tools) {
+      setDynamicToolRisk(mcpToolId(tool.server, tool.name), risk)
+      this.dispatcher.register(mcpToolToSkill(tool, callTool))
+    }
+  }
+
+  /** `list_changed` 触发：重新列工具，增量注册新增/变更项、注销消失项（generation 守卫） */
+  private async resyncServer(server: string, generation: number): Promise<void> {
+    const conn = this.connections.get(server)
+    if (conn === undefined || conn.closed || conn.generation !== generation || conn.client === null) return
+    try {
+      const tools = await McpManager.withTimeout(conn.client.listTools(), `server "${server}" 工具重同步`)
+      if (conn.closed || conn.generation !== generation || conn.client === null) return
+      const next = tools.map((tool) => ({ tool, risk: mcpToolRisk(tool.name, conn.config.risk) }))
+      const nextIds = new Set(next.map(({ tool }) => mcpToolId(tool.server, tool.name)))
+      // 注销已消失的工具（避免工具面残留死工具）
+      for (const { tool } of conn.tools) {
+        const id = mcpToolId(tool.server, tool.name)
+        if (!nextIds.has(id)) {
+          this.dispatcher?.unregister(id)
+          clearDynamicToolRisk(id)
+        }
+      }
+      conn.tools = next
+      this.registerServer(server, generation)
+      console.log(`[MCP] server "${server}" 工具已重同步，${conn.tools.length} 个工具`)
+    } catch (error) {
+      // 重同步失败不重建连接（仅工具列表未更新），下次 list_changed 再试
+      console.error(`[MCP] server "${server}" 工具重同步失败：`, error instanceof Error ? error.message : String(error))
+    }
+  }
+
+  /** 安排重连：有界指数退避（初始 500ms × 2^attempts，封顶 30s），同一服务器同时只挂一个定时器 */
+  private scheduleReconnect(server: string): void {
+    const conn = this.connections.get(server)
+    if (conn === undefined || conn.closed) return
+    if (conn.reconnectTimer !== null) return // 已有待执行重连，避免重复定时器
+    if (conn.reconnectAttempts >= McpManager.RECONNECT_MAX_ATTEMPTS) {
+      console.error(`[MCP] server "${server}" 重连次数超限（${McpManager.RECONNECT_MAX_ATTEMPTS}），停止自动重连`)
+      return
+    }
+    const delay = Math.min(
+      McpManager.RECONNECT_MAX_DELAY_MS,
+      McpManager.RECONNECT_INITIAL_DELAY_MS * 2 ** conn.reconnectAttempts
+    )
+    conn.reconnectAttempts += 1
+    console.log(`[MCP] server "${server}" 将在 ${delay}ms 后重连（第 ${conn.reconnectAttempts} 次）`)
+    conn.reconnectTimer = setTimeout(() => {
+      conn.reconnectTimer = null
+      void this.connectServer(server)
+    }, delay)
   }
 
   /** 从配置文件读取并连接；文件缺失/格式错 = 不启用 MCP（静默） */
@@ -106,39 +245,35 @@ export class McpManager {
     await this.connect(config)
   }
 
-  /** 绑定当前 dispatcher（库切换重建后需重新 attach），并注册已发现的工具 */
+  /** 绑定当前 dispatcher（库切换重建后需重新 attach），并注册已连接的工具 */
   attach(dispatcher: SkillDispatcher): void {
     this.dispatcher = dispatcher
-    this.registerAll()
+    for (const [server, conn] of this.connections) {
+      if (conn.client !== null) this.registerServer(server, conn.generation)
+    }
   }
 
   /** 已发现的 MCP 工具数（供插件中心/诊断展示） */
   toolCount(): number {
-    return this.tools.length
+    let n = 0
+    for (const conn of this.connections.values()) n += conn.tools.length
+    return n
   }
 
   close(): void {
-    for (const { tool } of this.tools) clearDynamicToolRisk(mcpToolId(tool.server, tool.name))
-    for (const client of this.clients.values()) client.close()
-    this.clients.clear()
-    this.tools = []
+    for (const conn of this.connections.values()) {
+      conn.closed = true
+      if (conn.reconnectTimer !== null) {
+        clearTimeout(conn.reconnectTimer)
+        conn.reconnectTimer = null
+      }
+      for (const { tool } of conn.tools) clearDynamicToolRisk(mcpToolId(tool.server, tool.name))
+      if (conn.transport !== null) conn.transport.close()
+    }
+    this.connections.clear()
+    this.dispatcher = null
     this.connected = false
     setMaxToolsOverride(null) // 恢复按档位默认上限
-  }
-
-  private registerAll(): void {
-    if (this.dispatcher === null) return
-    const callTool: McpCallTool = async (server, tool, args) => {
-      const client = this.clients.get(server)
-      if (client === undefined) throw new Error(`MCP server "${server}" 未连接`)
-      return client.callTool(tool, args)
-    }
-    for (const { tool, risk } of this.tools) {
-      // 动态风险表：MCP 工具是运行时的，静态 TOOL_RISK_MAP 覆盖不到
-      setDynamicToolRisk(mcpToolId(tool.server, tool.name), risk)
-      // 重复注册（同一 dispatcher 二次 attach）返回 false，无害
-      this.dispatcher.register(mcpToolToSkill(tool, callTool))
-    }
   }
 }
 

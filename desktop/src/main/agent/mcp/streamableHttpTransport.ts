@@ -12,6 +12,8 @@ import type { McpRequestOptions, McpTransport } from '../../../shared/agent/mcp'
 
 interface JsonRpcReply {
   id?: number
+  method?: string
+  params?: unknown
   result?: unknown
   error?: { message: string }
 }
@@ -20,6 +22,7 @@ export class StreamableHttpTransport implements McpTransport {
   private nextId = 1
   private sessionId: string | null = null
   private closed = false
+  private notificationListener?: (method: string, params?: unknown) => void
 
   constructor(
     private readonly url: string,
@@ -90,6 +93,10 @@ export class StreamableHttpTransport implements McpTransport {
     this.closed = true
   }
 
+  onNotification(listener: (method: string, params?: unknown) => void): void {
+    this.notificationListener = listener
+  }
+
   private buildHeaders(): Record<string, string> {
     return {
       'Content-Type': 'application/json',
@@ -122,11 +129,15 @@ export class StreamableHttpTransport implements McpTransport {
             } catch {
               message = null
             }
-            if (message !== null && message.id === id) {
-              await reader.cancel().catch(() => undefined)
-              if (message.error !== undefined) throw new Error(message.error.message)
-              return message.result
-            }
+          if (message !== null && message.id === id) {
+            await reader.cancel().catch(() => undefined)
+            if (message.error !== undefined) throw new Error(message.error.message)
+            return message.result
+          }
+          // 服务器主动推送的通知（无 id，如 notifications/tools/list_changed）：路由给监听者
+          if (message !== null && message.method !== undefined && message.id === undefined) {
+            this.notificationListener?.(message.method, message.params)
+          }
           }
         }
         newline = buffer.indexOf('\n')

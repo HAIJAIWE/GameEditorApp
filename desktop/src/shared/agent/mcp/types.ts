@@ -87,4 +87,14 @@ export interface McpTransport {
   request(method: string, params?: unknown, options?: McpRequestOptions): Promise<unknown>
   notify(method: string, params?: unknown): void
   close(): void
+  /**
+   * 注册「服务器 → 本端」通知的监听（如 `notifications/tools/list_changed`）。
+   * 可选：传输层不支持时省略实现（如当前 HTTP 走请求/响应，无持久 SSE 推送）。
+   */
+  onNotification?(listener: (method: string, params?: unknown) => void): void
+  /**
+   * 注册连接断开（进程退出 / 流错误）的监听，用于自动重连。
+   * 可选：传输层不感知断开时省略（如 HTTP 无持久连接，故不实现）。
+   */
+  onDisconnect?(listener: (error: Error) => void): void
 }

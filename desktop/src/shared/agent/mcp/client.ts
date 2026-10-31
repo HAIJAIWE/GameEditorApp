@@ -22,8 +22,14 @@ export class McpClient {
     private readonly server: string,
     private readonly transport: McpTransport,
     /** 逐调用超时（ms）；可在构造时覆写（单测用小值），默认 60s */
-    private readonly callTimeoutMs: number = DEFAULT_CALL_TIMEOUT_MS
-  ) {}
+    private readonly callTimeoutMs: number = DEFAULT_CALL_TIMEOUT_MS,
+    /** 服务器→本端通知的转发回调（如 `notifications/tools/list_changed`）；传输层不支持则永不触发 */
+    onNotification?: (method: string, params?: unknown) => void
+  ) {
+    if (onNotification !== undefined && transport.onNotification !== undefined) {
+      transport.onNotification((method, params) => onNotification(method, params))
+    }
+  }
 
   /** 握手：`initialize` 请求 + `notifications/initialized` 通知 */
   async initialize(): Promise<void> {

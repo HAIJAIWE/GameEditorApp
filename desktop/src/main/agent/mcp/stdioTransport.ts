@@ -29,6 +29,8 @@ export class StdioMcpTransport implements McpTransport {
   private nextId = 1
   private buffer = ''
   private closed = false
+  private notificationListener?: (method: string, params?: unknown) => void
+  private disconnectListener?: (error: Error) => void
 
   constructor(config: StdioServerConfig) {
     // 不显式传 stdio：默认即 ['pipe','pipe','pipe']，且类型为 ChildProcessWithoutNullStreams（流非空）
@@ -109,6 +111,14 @@ export class StdioMcpTransport implements McpTransport {
     this.child.kill()
   }
 
+  onNotification(listener: (method: string, params?: unknown) => void): void {
+    this.notificationListener = listener
+  }
+
+  onDisconnect(listener: (error: Error) => void): void {
+    this.disconnectListener = listener
+  }
+
   private onData(chunk: string): void {
     this.buffer += chunk
     let newline = this.buffer.indexOf('\n')
@@ -127,7 +137,14 @@ export class StdioMcpTransport implements McpTransport {
     } catch {
       return // 非 JSON 行（服务器日志混入）直接忽略
     }
-    if (typeof message.id !== 'number') return // 服务器通知，本客户端不消费
+    if (typeof message.id !== 'number') {
+      // 服务器通知（无 id，如 notifications/tools/list_changed）：路由给监听者
+      if (this.notificationListener !== undefined) {
+        const note = message as unknown as { method?: unknown; params?: unknown }
+        if (typeof note.method === 'string') this.notificationListener(note.method, note.params)
+      }
+      return
+    }
     const pending = this.pending.get(message.id)
     if (pending === undefined) return
     this.pending.delete(message.id)
@@ -138,11 +155,14 @@ export class StdioMcpTransport implements McpTransport {
 
   private failAll(error: Error): void {
     if (this.closed && this.pending.size === 0) return
+    const wasClosed = this.closed
     this.closed = true
     for (const pending of this.pending.values()) {
       pending.cleanup()
       pending.reject(error)
     }
     this.pending.clear()
+    // 仅当是真实断开（exit/error 触发）而非我们主动 close 时，才通知上层重连
+    if (!wasClosed && this.disconnectListener !== undefined) this.disconnectListener(error)
   }
 }
