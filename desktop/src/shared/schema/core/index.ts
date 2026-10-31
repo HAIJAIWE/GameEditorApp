@@ -1,5 +1,5 @@
 /**
- * shared/schema/core 能力入口。
+ * shared/schema/core —— 数据类型 schema 核心：表单分组布局、新类型模板、内置类型定义，并汇总再导出全部输入 schema。
  *
  * 外部一律从这里 import（`.../core`），不要再深插目录内文件。
  */

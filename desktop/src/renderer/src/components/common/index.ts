@@ -1,5 +1,5 @@
 /**
- * components/common 能力入口。
+ * components/common —— 通用面板与控件：设置/关于/插件/引导/快捷键/预设市场、库切换、高级搜索、懒加载图片与图标、Toast 宿主。
  *
  * 外部一律从这里 import（`.../common`），不要再深插目录内文件。
  */

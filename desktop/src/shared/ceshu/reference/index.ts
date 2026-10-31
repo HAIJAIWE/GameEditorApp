@@ -1,5 +1,5 @@
 /**
- * shared/ceshu/reference 能力入口。
+ * shared/ceshu/reference —— 策划书静态参考数据：章节键/标签/必填、下拉选项标签、混合玩法预设、术语冲突检测、参考 GDD 对比、章节模板（内置+自定义）与默认章节。
  *
  * 外部一律从这里 import（`.../reference`），不要再深插目录内文件。
  *

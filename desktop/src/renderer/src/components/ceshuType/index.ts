@@ -1,5 +1,5 @@
 /**
- * components/ceshuType 能力入口。
+ * components/ceshuType —— 数据类型 schema 编辑器：类型列表与属性/可见性、字段列表、模板与关键词模板、统计与竞品图表。
  *
  * 外部一律从这里 import（`.../ceshuType`），不要再深插目录内文件。
  */

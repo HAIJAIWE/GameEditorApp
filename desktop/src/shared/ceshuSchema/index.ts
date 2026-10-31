@@ -1,4 +1,6 @@
 /**
+ * shared/ceshuSchema —— 24 章策划书 schema 聚合：`CHAPTER_SCHEMAS` 与 `FIELD_SPLITS`，按章查字段/契约/拆分/默认/模板的唯一入口。
+ *
  * 档 4 合并产物的中央聚合（2026-10-24）。
  *
  * 每个章的全部元数据（字段 / 契约 / 拆分 / 默认 / 模板）已收进 `ceshuSchema/<章>.ts`，

@@ -1,5 +1,5 @@
 /**
- * shared/ceshu/readiness 能力入口。
+ * shared/ceshu/readiness —— 就绪度评估：按阶段计算章节填充度、汇总就绪报告并给出缺口提示。
  *
  * 外部一律从这里 import（`.../readiness`），不要再深插目录内文件。
  */

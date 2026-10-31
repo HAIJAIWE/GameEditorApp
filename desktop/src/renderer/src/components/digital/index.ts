@@ -1,5 +1,5 @@
 /**
- * components/digital 能力入口。
+ * components/digital —— 数字员工（AI 会话）面板：消息/交付/变更卡片、附件与草稿、命令与 @ 引用菜单、审批与步骤列表，以及面板状态 hooks。
  *
  * 外部一律从这里 import（`.../digital`），不要再深插目录内文件。
  */

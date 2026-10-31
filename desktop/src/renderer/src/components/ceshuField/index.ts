@@ -1,5 +1,5 @@
 /**
- * components/ceshuField 能力入口。
+ * components/ceshuField —— 章节表单的字段级控件：字段控件与章节表单、条目表单、引用面板与关系图、系统编辑器、字段 ID 建议。
  *
  * 外部一律从这里 import（`.../ceshuField`），不要再深插目录内文件。
  */

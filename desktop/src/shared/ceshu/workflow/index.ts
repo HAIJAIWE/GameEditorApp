@@ -1,5 +1,5 @@
 /**
- * shared/ceshu/workflow 能力入口。
+ * shared/ceshu/workflow —— 开发交接工作流：交接文档分层与计划、阶段可见性、交接包渲染、耦合检查、版本 diff、字段影响与文本重叠、角色任务、项目文件夹导出。
  *
  * 外部一律从这里 import（`.../workflow`），不要再深插目录内文件。
  */

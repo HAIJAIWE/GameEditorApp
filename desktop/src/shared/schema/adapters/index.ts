@@ -1,5 +1,5 @@
 /**
- * shared/schema/adapters 能力入口。
+ * shared/schema/adapters —— IPC 入参 zod schema 总表：agent/app/附件/备份/策划书/数据/生图/导入导出/LLM/笔记/密钥/模板等各通道的校验 schema 与类型，以及数据类型 schema 的序列化与校验。
  *
  * 外部一律从这里 import（`.../adapters`），不要再深插目录内文件。
  */

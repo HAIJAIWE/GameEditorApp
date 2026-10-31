@@ -1,4 +1,6 @@
 /**
+ * main/agent/agentService —— Agent 大脑服务装配：会话选项类型、域 grounding 与默认评估器、记忆块注入、dispatcher 工具运行器。
+ *
  * agentService 包对外桶（保持 `brainService.ts` 原有公共 API 不变）。
  *
  * - `types`         ：AgentChatOptions / AgentBrainServiceDeps

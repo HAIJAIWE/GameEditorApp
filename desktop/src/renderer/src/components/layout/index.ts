@@ -1,5 +1,5 @@
 /**
- * components/layout 能力入口。
+ * components/layout —— 应用外壳布局：菜单栏、侧栏、右侧 AI 停靠栏、面板浮层。
  *
  * 外部一律从这里 import（`.../layout`），不要再深插目录内文件。
  */

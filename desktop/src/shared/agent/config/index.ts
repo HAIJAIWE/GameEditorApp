@@ -1,5 +1,5 @@
 /**
- * shared/agent/config 能力入口。
+ * shared/agent/config —— Agent 协议与配置：技能协议/风险分级与权限校验、工具目录与 JSON Schema 转换、预设人格、用户偏好提取。
  *
  * 外部一律从这里 import（`.../config`），不要再深插目录内文件。
  */

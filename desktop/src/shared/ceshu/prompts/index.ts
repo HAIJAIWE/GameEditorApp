@@ -1,5 +1,5 @@
 /**
- * shared/ceshu/prompts 能力入口。
+ * shared/ceshu/prompts —— 策划书 AI 提示词：章节/整篇生成与对抗式审阅提示词、风格与品类档案、AI 生成标记、克隆拆解、任务计划与系统确认。
  *
  * 外部一律从这里 import（`.../prompts`），不要再深插目录内文件。
  */

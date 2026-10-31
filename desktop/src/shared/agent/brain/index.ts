@@ -1,4 +1,6 @@
 /**
+ * shared/agent/brain —— Agent 大脑主循环：事件/选项/结果契约、工具结果截断与上下文重置、评估器安全调用、runBrainLoop。
+ *
  * Brain 包对外桶（保持 `brain.ts` 原有公共 API 不变）。
  *
  * - `types`   ：事件 / 选项 / 结果契约与常量

@@ -1,5 +1,5 @@
 /**
- * shared/ceshu/validation 能力入口。
+ * shared/ceshu/validation —— 策划书校验：校验消息分级分组、字数与内容质量分析、设计契约构建与比对、数值断言求值、整体校验与跳转定位。
  *
  * 外部一律从这里 import（`.../validation`），不要再深插目录内文件。
  */

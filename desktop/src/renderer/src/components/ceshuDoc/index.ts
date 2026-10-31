@@ -1,5 +1,5 @@
 /**
- * components/ceshuDoc 能力入口。
+ * components/ceshuDoc —— 策划书文档主视图：章节导航与正文、工具栏、首页卡片、模块选择、机器数据与原型面板。
  *
  * 外部一律从这里 import（`.../ceshuDoc`），不要再深插目录内文件。
  */

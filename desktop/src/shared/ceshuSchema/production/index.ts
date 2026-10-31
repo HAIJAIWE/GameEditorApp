@@ -1,5 +1,5 @@
 /**
- * shared/ceshuSchema/production 能力入口。
+ * shared/ceshuSchema/production —— 生产章 schema：元信息、市场分析、MVP、商业化、上线运营、发行六章的字段/契约/拆分/默认/模板。
  *
  * 外部一律从这里 import（`.../production`），不要再深插目录内文件。
  */

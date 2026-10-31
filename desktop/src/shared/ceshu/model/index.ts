@@ -1,5 +1,5 @@
 /**
- * shared/ceshu/model 能力入口。
+ * shared/ceshu/model —— 策划书文档模型：默认文档构造、章节进度与可见章节、ID/时间戳派生、文档归一化、系统配置 schema。
  *
  * 外部一律从这里 import（`.../model`），不要再深插目录内文件。
  */
