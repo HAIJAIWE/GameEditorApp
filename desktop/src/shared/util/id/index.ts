@@ -1,5 +1,0 @@
-export * from './fieldId'
-export * from './fieldIdAi'
-export * from './itemId'
-export * from './pinyinFieldId'
-export * from './recordHeaders'

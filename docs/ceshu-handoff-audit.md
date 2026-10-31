@@ -138,7 +138,7 @@
 ## 6. 已落地：`handoff` 开发交接包（分卷施工图）
 
 > 状态：2026-10-27 已实现（不是建议了）。入口：编辑器「更多 ▸ 导出开发交接包」→ 选目录。
-> 代码：`shared/ceshuHandoff.ts`（分卷模型与渲染）+ `main/ceshu/export/handoff.ts`（装箱落盘）+ `ceshu:exportHandoff` 通道。
+> 代码：`shared/ceshu/workflow/ceshuHandoff*.ts`（分卷模型与渲染；2026-10-31 由原 2753 行的单文件 `ceshuHandoff.ts` 拆成 11 个单职责模块：Types/Docs/Volumes/Paths/Plan/Roles/Parallel/Markdown/RenderSections/RenderDoc/RenderIndex）+ `main/ceshu/export/delivery/handoff.ts`（装箱落盘）+ `ceshu:exportHandoff` 通道。
 
 **为什么不是「再导一份 Markdown」**：全文 1.3 万字丢给编码智能体会平均用力（市场分析和伤害公式同等重要）。
 交接包把同一份文档重排成 **6 卷施工图**，每卷自带门禁与验收，可逐卷派工：
