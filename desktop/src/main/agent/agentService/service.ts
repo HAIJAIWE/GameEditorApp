@@ -40,6 +40,7 @@ import { extractLearnings } from '../store/memoryStore'
 import type { SkillDispatcher } from '../execution/dispatcher'
 import { resolveAgentTier, resolveAgentTransport } from '../transport/agentTransport'
 import { buildDomainContextBlock, buildTimeContextBlock, defaultDialogueEvaluator } from './domainContext'
+import { buildProjectInstructionsBlock } from './projectInstructions'
 import { buildMemoryBlock } from './memory'
 import { isPreReviewEnabled, makePreExecReview } from './preReview'
 import { mcpManager } from '../mcp/manager'
@@ -326,6 +327,13 @@ export class AgentBrainService {
     extraBlocks.push(buildDomainContextBlock())
     // 当前时间（对齐 dsh time-context）：让模型知道「今天」，不靠猜日期
     extraBlocks.push(buildTimeContextBlock(new Date()))
+    // 项目约定（对齐 dsh agent-instructions）：库级 AGENTS.md 常驻注入（有界截断）
+    if (this.deps.projectInstructions !== undefined) {
+      const content = await this.deps.projectInstructions()
+      if (content !== null && content.trim() !== '') {
+        extraBlocks.push(buildProjectInstructionsBlock(content))
+      }
+    }
     // 个性化片段：偏好来自历史反馈，冷启动为空时不注入
     if (this.deps.preferences) {
       const prefBlock = buildPersonalizedContext(this.deps.preferences.getAll())

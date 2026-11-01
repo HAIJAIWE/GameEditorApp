@@ -64,6 +64,7 @@ function buildSubAgentProvider(): { subAgentProvider?: SubAgentProvider } {
 
 import { AgentApprovalBroker } from './agent/execution/approvalBroker'
 import { AgentBrainService, createDispatcherToolRunner } from './agent/brain/brainService'
+import { readProjectInstructions } from './agent/agentService/projectInstructions'
 import { OperationLogStore } from './agent/store/operationLogStore'
 import { DeliveryLogStore } from './agent/store/deliveryLogStore'
 import { createRecordingToolRunner } from './agent/ops/operationRecorder'
@@ -205,6 +206,8 @@ export function buildStores(libDir: string): AppStores {
       // F3：显式配置 MB_MEMORY_EMBED_MODEL 时走真实 embedding；否则回落到确定性哈希
       memoryStore: new AgentMemoryStore(agentDir, { embedder: createOllamaEmbeddingProvider() }),
       preferences: personalization.preferences,
+      // 项目约定（对齐 dsh agent-instructions）：库级 AGENTS.md 常驻注入
+      projectInstructions: () => readProjectInstructions(libDir),
       runner,
       // Slice 31/33：子智能体 provider（远程 URL > CLI > 进程内 spawn，见 buildSubAgentProvider）
       ...buildSubAgentProvider(),

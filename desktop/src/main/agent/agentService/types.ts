@@ -122,4 +122,9 @@ export interface AgentBrainServiceDeps {
   subAgentProvider?: SubAgentProvider
   /** 沙箱策略（缺省 `workspace-write`）；`read-only` 会拒绝外部 CLI 子智能体 */
   sandboxPolicy?: SandboxPolicy
+  /**
+   * 项目约定文件读取（对齐 dsh `agent-instructions`）：返回库级 `AGENTS.md` 内容，
+   * 非空则作为常驻系统提示词注入。缺省不注入。
+   */
+  projectInstructions?: () => Promise<string | null>
 }
