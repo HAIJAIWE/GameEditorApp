@@ -56,7 +56,8 @@ describe('M3 分组表与档位预算', () => {
       'tool.rollback_ai_changes',
       'tool.ask_user',
       'system.session_search',
-      'system.todo_write'
+      'system.todo_write',
+      'system.present_plan'
     ]) {
       expect(TOOL_GROUP_MAP[id]).toBeDefined()
     }

@@ -896,6 +896,11 @@ export default function DigitalPanel({
                     {index + 1}. {question.prompt}
                     {question.multiSelect === true ? '（可多选）' : ''}
                   </div>
+                  {question.detail !== undefined && (
+                    <pre className="digital-interaction-detail" data-testid="digital-multi-detail">
+                      {question.detail}
+                    </pre>
+                  )}
                   {question.options !== undefined && question.options.length > 0 ? (
                     <div className="editor-actions">
                       {question.options.map((option) => {
@@ -946,6 +951,11 @@ export default function DigitalPanel({
             </div>
           ) : (
             <>
+              {state.interaction.interaction.detail !== undefined && (
+                <pre className="digital-interaction-detail" data-testid="digital-interaction-detail">
+                  {state.interaction.interaction.detail}
+                </pre>
+              )}
               <div className="digital-input-row">
                 <input
                   className="form-input"

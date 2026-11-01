@@ -175,6 +175,11 @@ export interface SkillInteractionQuestion {
   options?: readonly SkillInteractionOption[]
   /** 是否可多选 */
   multiSelect?: boolean
+  /**
+   * 详情正文（如计划 markdown），展示在问题上方供用户审阅。
+   * 渲染层以等宽块呈现，不解析为富文本——避免把模型生成的 markdown 当 UI 注入。
+   */
+  detail?: string
 }
 
 export interface SkillInteraction {
@@ -188,6 +193,11 @@ export interface SkillInteraction {
   options?: readonly SkillInteractionOption[]
   /** kind === 'question' 的多问题列表 */
   questions?: readonly SkillInteractionQuestion[]
+  /**
+   * 详情正文（如计划 markdown），展示在问题上方供用户审阅。
+   * 对应 dsh `exit_plan_mode` 把完整计划作为参数传给 `user-questions` 的 `detail` 字段。
+   */
+  detail?: string
 }
 
 /** 技能执行结果 */

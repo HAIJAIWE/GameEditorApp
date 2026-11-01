@@ -205,6 +205,11 @@ dsh 用 **cordis** 做插件组合，profile 是 YAML 补丁层（`bundles` + `c
 > **已落地（Slice 36，2026-10-28）**：**ACP 子智能体 provider**——`createAcpSubAgentProvider`（ACP v1：JSON-RPC 2.0 + ndjson；`initialize`→`session/new`→`session/prompt`，累积 `session/update` 的 `agent_message_chunk`，自动应答 `session/request_permission`，`session/cancel` 取消）。`MB_SUBAGENT_ACP` 启用；优先级 **远程 > ACP > CLI > 进程内**。
 >
 > **已落地（Slice 40，2026-10-28）**：**子智能体「继续对话」后端能力 → UI 接通**（C 片收尾）。① `loop.ts` 给每个子智能体**独立 `AbortController`**，`onSubAgentSpawned(childId, inbox, stopChild)` 额外暴露 `stopChild`（只 abort 子级，父级取消时经监听器级联 abort）；② `AgentBrainService` 加**本轮注册表** `childId → { inbox, stop }`，`chat()` 开始清空、`subagent_done` 时摘除，公开 `sendToSubagent` / `stopSubagent`；③ IPC `agent:subagentSend` / `agent:subagentStop` + preload + `MbApi`；④ 面板 `DigitalSubagentList` 对**运行中**子智能体显示「插话输入 + 停止」，停止后乐观标记「已停止」。**诚实边界**：仅对「本轮仍注册」的子智能体有效；已完成/跨轮返回 `ok:false`（面板不提示）；「插话」对进程内 spawn 子循环即时生效（子循环每轮 drain 自己的 inbox），外部 provider 是否消费 inbox 由其实现决定。
+>
+> **已落地（2026-11-01，技能级能力，对应 dsh 三个包）**：
+> - `system.todo_write`（对齐 dsh `tool-todo`）：整表替换 + 三态 + 默认单 in_progress；清单作为工具结果进 messages，模型下一轮可见。
+> - `compaction` 升级为 **LLM 结构化 checkpoint**（对齐 dsh `compaction-basic`）：云端档超压力阈值时调 `createCompactSummarizer` 生成 8 段交接摘要，失败回落模板；`maybeResetContextAsync` 统一入口。
+> - `system.present_plan`（对齐 dsh `plan-mode` 的 `exit_plan_mode` 审阅流）：模型动手前把 `# 标题` 起头的 markdown 计划经 `SkillInteraction.detail` 交用户审阅，`批准并执行 / 需要修改` 二选一；**不引入会话级只读 plan 模式开关**（产品已有独立 Plan 工作模式，避免冲突），改为轻量门禁。渲染层 `SkillInteraction`/`SkillInteractionQuestion` 新增可选 `detail` 字段（等宽块展示长文本，不解析为富文本）。
 
 ---
 

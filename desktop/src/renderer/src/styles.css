@@ -7333,6 +7333,23 @@ button.ref-row:hover {
   line-height: 1.6;
 }
 
+/* 计划审阅等交互详情：等宽块展示长文本（如 markdown 计划），不解析为富文本 */
+.digital-interaction-detail {
+  margin: 8px 0 4px;
+  padding: 10px 12px;
+  max-height: 320px;
+  overflow: auto;
+  border: 0.5px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  background: var(--sidebar-fill);
+  color: var(--text);
+  font-family: var(--mono-font, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: calc(12px * var(--ui-font-scale) * 13/13);
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .digital-multi-form {
   display: flex;
   flex-direction: column;
