@@ -38,6 +38,12 @@ export function registerTechDocIpc(deps: IpcHandlerDeps, handle: IpcRegistrar): 
     return { ok: true }
   })
 
+  handle('techDoc:delete', techDocNameInputSchema, async (req) => {
+    const result = await run({ action: 'delete', name: req.name })
+    if (!result.success) throw new Error(result.error ?? result.message)
+    return { ok: true }
+  })
+
   handle('techDoc:export', techDocNameInputSchema, async (req) => {
     const read = await run({ action: 'read', name: req.name })
     if (!read.success) throw new Error(read.error ?? read.message)

@@ -79,6 +79,8 @@ export interface MbApi {
     read(req: IpcContract['techDoc:read']['req']): Promise<IpcContract['techDoc:read']['res']>
     /** 保存全文 */
     write(req: IpcContract['techDoc:write']['req']): Promise<IpcContract['techDoc:write']['res']>
+    /** 删除文档 */
+    delete(req: IpcContract['techDoc:delete']['req']): Promise<IpcContract['techDoc:delete']['res']>
     /** 导出为 .md */
     export(req: IpcContract['techDoc:export']['req']): Promise<IpcContract['techDoc:export']['res']>
   }

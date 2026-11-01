@@ -80,6 +80,7 @@ const api: MbApi = {
     outline: () => invoke('techDoc:outline', undefined),
     read: (req) => invoke('techDoc:read', req),
     write: (req) => invoke('techDoc:write', req),
+    delete: (req) => invoke('techDoc:delete', req),
     export: (req) => invoke('techDoc:export', req)
   },
   attrSystem: {

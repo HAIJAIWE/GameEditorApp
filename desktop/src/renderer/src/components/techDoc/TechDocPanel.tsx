@@ -15,6 +15,7 @@ interface TechDocApi {
   outline(): Promise<{ content: string }>
   read(req: { name: string }): Promise<{ content: string }>
   write(req: { name: string; content: string }): Promise<{ ok: boolean }>
+  delete(req: { name: string }): Promise<{ ok: boolean }>
   export(req: { name: string }): Promise<{ path: string | null }>
 }
 
@@ -56,6 +57,7 @@ export function TechDocPanel() {
   const [error, setError] = useState('')
   const [mode, setMode] = useState<Mode>('edit')
   const [scrollTick, setScrollTick] = useState(0)
+  const [deleteArmed, setDeleteArmed] = useState(false)
 
   const previewRef = useRef<HTMLDivElement>(null)
   const scrollTargetRef = useRef<number | null>(null)
@@ -113,6 +115,7 @@ export function TechDocPanel() {
         setDirty(false)
         setNotice('')
         setError('')
+        setDeleteArmed(false)
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err))
       }
@@ -162,6 +165,23 @@ export function TechDocPanel() {
       setError(err instanceof Error ? err.message : String(err))
     }
   }, [api, active])
+
+  /** 删除当前文档（两步确认：先 arm 再确认） */
+  const removeDoc = useCallback(async (): Promise<void> => {
+    if (api === undefined || active === null) return
+    try {
+      await api.delete({ name: active })
+      setDeleteArmed(false)
+      setActive(null)
+      setContent('')
+      setDirty(false)
+      setNotice('已删除')
+      setError('')
+      await refresh()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    }
+  }, [api, active, refresh])
 
   /** 点击章节大纲：切预览并滚动到该标题 */
   const jumpToHeading = useCallback((index: number): void => {
@@ -264,6 +284,17 @@ export function TechDocPanel() {
               </button>
               <button type="button" className="btn" data-testid="techdoc-export" onClick={() => void exportDoc()}>
                 导出
+              </button>
+              <button
+                type="button"
+                className={`btn${deleteArmed ? ' danger' : ''}`}
+                data-testid="techdoc-delete"
+                onClick={() => {
+                  if (deleteArmed) void removeDoc()
+                  else setDeleteArmed(true)
+                }}
+              >
+                {deleteArmed ? '确认删除' : '删除'}
               </button>
             </div>
             {notice !== '' && <div className="techdoc-notice" data-testid="techdoc-notice">{notice}</div>}

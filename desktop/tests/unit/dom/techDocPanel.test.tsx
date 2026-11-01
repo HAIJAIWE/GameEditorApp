@@ -120,6 +120,37 @@ describe('技术设计文档面板', () => {
     await view.cleanup()
   })
 
+  it('删除：两步确认后调用 delete 并清空', async () => {
+    let docs = ['battle']
+    stub = installMbApi({
+      overrides: {
+        'techDoc.list': () => ({ docs }),
+        'techDoc.read': () => ({ content: '# 战斗系统' }),
+        'techDoc.outline': () => ({ content: '' }),
+        'techDoc.write': () => ({ ok: true }),
+        'techDoc.delete': () => {
+          docs = []
+          return { ok: true }
+        },
+        'techDoc.export': () => ({ path: null })
+      }
+    })
+    const view = await renderDom(<TechDocPanel />)
+    await view.flush()
+    await view.click(view.byTestId('techdoc-item'))
+    await view.flush()
+
+    await view.click(view.byTestId('techdoc-delete'))
+    await view.flush()
+    expect(view.text()).toContain('确认删除')
+
+    await view.click(view.byTestId('techdoc-delete'))
+    await view.flush()
+    expect(stub?.calls).toContain('techDoc.delete')
+    expect(view.query('[data-testid="techdoc-textarea"]')).toBeNull()
+    await view.cleanup()
+  })
+
   it('无 techDoc 接口时给出提示', async () => {
     // 不安装 mbApi → window.mbApi 为 undefined
     const view = await renderDom(<TechDocPanel />)

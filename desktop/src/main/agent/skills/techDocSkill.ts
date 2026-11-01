@@ -13,13 +13,13 @@
  * 风险：outline/read/list = READ_ONLY；write = DATA_WRITE（走审批）。
  */
 
-import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, readdir, unlink, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 import type { SkillProtocol, SkillResult } from '../../../shared/agent/config'
 import { techDocOutline } from '../../../shared/agent/techDoc/techDocSchema'
 
-const ACTIONS = ['outline', 'read', 'write', 'list'] as const
+const ACTIONS = ['outline', 'read', 'write', 'list', 'delete'] as const
 
 /** 单篇文档上限（字符） */
 export const TECH_DOC_MAX_CHARS = 200_000
@@ -74,6 +74,15 @@ export function createTechDocSkill(options: TechDocSkillOptions): SkillProtocol 
     }
     const path = join(root, `${name}.md`)
 
+    if (action === 'delete') {
+      try {
+        await unlink(path)
+        return { success: true, message: `已删除 ${name}`, data: { name } }
+      } catch {
+        return fail(`未找到文档：${name}`, 'ENOTFOUND')
+      }
+    }
+
     if (action === 'read') {
       try {
         const content = await readFile(path, 'utf8')
@@ -102,7 +111,7 @@ export function createTechDocSkill(options: TechDocSkillOptions): SkillProtocol 
     id: 'system.tech_doc',
     description:
       '技术设计文档（怎么实现，区别于策划书 GDD）：outline=返回标准章节大纲与写作指引 / '
-      + 'write=按 name 保存整篇 markdown / read=读取 / list=列出。文档存 <库>/tech/<name>.md。',
+      + 'write=按 name 保存整篇 markdown / read=读取 / list=列出 / delete=删除。文档存 <库>/tech/<name>.md。',
     version: '0.1.0',
     parametersSchema: {
       type: 'object',

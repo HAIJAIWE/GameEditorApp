@@ -61,6 +61,18 @@ describe('system.tech_doc（技术设计文档）', () => {
     expect(list.message).toContain('b')
   })
 
+  it('delete 删除已有文档；不存在 → ENOTFOUND', async () => {
+    const run = skill()
+    await run({ action: 'write', name: 'gone', content: '# G' })
+    expect((await run({ action: 'delete', name: 'gone' })).success).toBe(true)
+    const list = await run({ action: 'list' })
+    expect(list.message).not.toContain('gone')
+
+    const missing = await run({ action: 'delete', name: 'gone' })
+    expect(missing.success).toBe(false)
+    expect(missing.error).toBe('ENOTFOUND')
+  })
+
   it('read 不存在 → ENOTFOUND', async () => {
     const result = await skill()({ action: 'read', name: 'nope' })
     expect(result.success).toBe(false)

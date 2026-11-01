@@ -391,6 +391,8 @@ export interface IpcContract {
   'techDoc:read': { req: TechDocNameInput; res: { content: string } }
   /** 技术设计文档：保存全文 */
   'techDoc:write': { req: TechDocWriteInput; res: { ok: boolean } }
+  /** 技术设计文档：删除 */
+  'techDoc:delete': { req: TechDocNameInput; res: { ok: boolean } }
   /** 技术设计文档：导出为 .md（取消返回 null） */
   'techDoc:export': { req: TechDocNameInput; res: { path: string | null } }
   /** 技术设计文档：标准大纲（新建时预填） */
