@@ -127,4 +127,9 @@ export interface AgentBrainServiceDeps {
    * 非空则作为常驻系统提示词注入。缺省不注入。
    */
   projectInstructions?: () => Promise<string | null>
+  /**
+   * 超长工具输出落盘（对齐 dsh `spill`）：写文件并返回「预览 + 引用」。
+   * 缺省回落截断。
+   */
+  spill?: (toolName: string, text: string) => string
 }

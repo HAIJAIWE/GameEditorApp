@@ -417,7 +417,12 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
       text = `执行失败: ${error instanceof Error ? error.message : String(error)}`
     }
     // F6 工具结果尺寸闸（本地档窄上下文，超长输出截断）+ F10 per-tool 重试预算
-    text = clipToolResult(text, tier === 'local' ? 1500 : 4000)
+    // 有 spill 钩子时优先落盘（完整内容可再用 file_ops 读），否则纯截断
+    const clipLimit = tier === 'local' ? 1500 : 4000
+    text =
+      options.spill !== undefined && text.length > clipLimit
+        ? options.spill(resolved, text)
+        : clipToolResult(text, clipLimit)
     const fKey = `${resolved}/${action}`
     if (!success) {
       const fc = (failCount.get(fKey) ?? 0) + 1

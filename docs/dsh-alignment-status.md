@@ -48,6 +48,7 @@ dsh 的 **52 个包组**里，与「agent 能力面」相关且**可移植、有
 | `attachment` | 附件（name/mime/bytes，不落路径） | 早期 |
 | `telemetry` | 操作日志（改动/交付） | 早期 |
 | `experimental`（auto-review） | `preExecReview` LLM 预审 | 早期 |
+| `spill` | 超长工具输出落盘 `.mb-spill/` + 头部预览 + 引用（可再用 `file_ops` 读） | 本轮 |
 
 ## 二、agent 能力面 —— 部分 / 最小档
 
@@ -57,7 +58,6 @@ dsh 的 **52 个包组**里，与「agent 能力面」相关且**可移植、有
 | `schedule` | `system.schedule`（提醒：到点弹通知） | 不是 cron 调度器：**不自动跑 agent**（无头运行处理不了审批） | `11f3e2e` |
 | `web`（搜索） | 仅 `fetch` | 搜索需外部 provider（API key），未做 | `98fcce0` |
 | `document`（PDF） | docx/pptx/xlsx/文本 | **PDF 明确 `EUNSUPPORTED`**（需额外库） | `1682029` |
-| `spill` | 工具结果按长度截断（clip） | 未把超长输出落盘再引用 | 早期 |
 
 ## 三、有意不做
 

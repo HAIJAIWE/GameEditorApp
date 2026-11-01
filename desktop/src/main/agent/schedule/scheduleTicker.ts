@@ -6,7 +6,6 @@
  */
 
 import { join } from 'node:path'
-import { Notification } from 'electron'
 
 import { ScheduleStore, type ScheduleTask } from './scheduleStore'
 
@@ -16,11 +15,15 @@ export const SCHEDULE_TICK_MS = 30_000
 let timer: NodeJS.Timeout | null = null
 
 function defaultNotify(task: ScheduleTask): void {
-  try {
-    new Notification({ title: '墨白 · 定时提醒', body: task.prompt }).show()
-  } catch {
-    // 无通知能力（如无 GUI 环境）时静默
-  }
+  // 懒加载 electron：保持本模块图不依赖 electron（stores 的「无 electron」约定）
+  void (async () => {
+    try {
+      const { Notification } = await import('electron')
+      new Notification({ title: '墨白 · 定时提醒', body: task.prompt }).show()
+    } catch {
+      // 无通知能力（如无 GUI 环境）时静默
+    }
+  })()
 }
 
 /** 初始化（或切库重置）ticker：清旧 interval，起新的 */

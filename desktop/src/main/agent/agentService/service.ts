@@ -445,6 +445,8 @@ export class AgentBrainService {
       ...(this.deps.maxToolCalls !== undefined ? { maxToolCalls: this.deps.maxToolCalls } : {}),
       ...(this.deps.wallClockMs !== undefined ? { wallClockMs: this.deps.wallClockMs } : {}),
       ...(requestApproval ? { requestApproval } : {}),
+      // 超长工具输出落盘（对齐 dsh spill）：宿主注入写文件实现
+      ...(this.deps.spill !== undefined ? { spill: this.deps.spill } : {}),
       // #27 执行预审：本次选项 > 缺省 provider > 开关打开时现场构造（见上方 preExecReview）
       ...(preExecReview ? { preExecReview } : {}),
       ...(options.requestInteraction ? { requestInteraction: options.requestInteraction } : {}),

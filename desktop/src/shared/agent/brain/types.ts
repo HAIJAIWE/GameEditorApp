@@ -262,6 +262,12 @@ export interface RunBrainLoopOptions {
    */
   compactSummarizer?: CompactSummarizer
   /**
+   * **超长工具输出落盘（对齐 dsh `spill`）**：工具结果超过尺寸闸时，先用它把完整内容写文件、
+   * 返回「头部预览 + 文件引用」替代纯截断；未提供则回落 `clipToolResult` 截断。
+   * 由宿主注入（`shared` 层不碰文件系统）。
+   */
+  spill?: (toolName: string, text: string) => string
+  /**
    * 子智能体启动回调：拿到 `childId` 与该子循环的 `inbox`，可后续 `push` 消息
    * （即 dsh 的 `sendMessage` 对运行中子级的「插话」）；`stopChild` 用于**单独停止**
    * 该子智能体（只 abort 它自己，不牵连父循环）。

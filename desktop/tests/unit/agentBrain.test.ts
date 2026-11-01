@@ -1717,3 +1717,37 @@ describe('子智能体 provider seam（多后端）', () => {
     expect(notice).toBeDefined()
   })
 })
+
+describe('runBrainLoop：spill（超长工具结果落盘）', () => {
+  it('有 spill 钩子时落盘替代截断', async () => {
+    const longText = 'x'.repeat(5000)
+    const transport = scripted([toolCall('c1', 'system.game_data', { action: 'list' }), FINAL])
+    const runner = makeRunner({ result: { success: true, message: longText } })
+    const spilled: number[] = []
+    const result = await runBrainLoop({
+      input: 'x',
+      systemPrompts: [],
+      transport,
+      runner,
+      tier: 'cloud',
+      spill: (_tool, text) => {
+        spilled.push(text.length)
+        return `SPILLED:${text.length}`
+      }
+    })
+    expect(spilled).toEqual([5000])
+    const done = result.events.find((event) => event.type === 'step_done')
+    const doneResult = done !== undefined && done.type === 'step_done' ? done.result : ''
+    expect(doneResult).toContain('SPILLED:5000')
+  })
+
+  it('无 spill 钩子时回落截断（长度受闸）', async () => {
+    const longText = 'y'.repeat(9000)
+    const transport = scripted([toolCall('c1', 'system.game_data', { action: 'list' }), FINAL])
+    const runner = makeRunner({ result: { success: true, message: longText } })
+    const result = await runBrainLoop({ input: 'x', systemPrompts: [], transport, runner, tier: 'cloud' })
+    const done = result.events.find((event) => event.type === 'step_done')
+    const doneResult = done !== undefined && done.type === 'step_done' ? done.result : ''
+    expect(doneResult.length).toBeLessThan(5000)
+  })
+})
