@@ -20,6 +20,21 @@
     "paths": {
       "@mobai/shared/*": ["../../packages/shared/src/*"],
       "@mobai/agent-core/*": ["../../packages/agent-core/src/*"],
+      "@mobai/client-ui": ["../../packages/client-ui/src/index.ts"],
+      "@mobai/client-ui/*": ["../../packages/client-ui/src/*"],
+      // `react` 出现在**主进程** program 里，是因为本 program 的 include 含 tests 全量，
+      // 而单测会 import 渲染层的组件入口（plugins/host → @mobai/client-ui）。
+      // 包内文件在 packages/ 下，从那儿向上找不到 apps/desktop/node_modules/react，
+      // 故与 zod / pinyin-pro 同一处理：显式指向 app 的 node_modules。
+      // （主进程代码仍然不能凭此直接 import react——那属于分层问题，eslint 另有约束。）
+      // `react` 必须显式映射到 @types/react 的**声明文件**：本 program 的 include 含
+      // tests 全量，单测会 import 渲染层入口（plugins/host → @mobai/client-ui），
+      // 于是 packages/client-ui/src/*.tsx 被拉进来。而 `react` 包不自带 .d.ts，
+      // 类型靠"沿导入方目录向上找 node_modules/@types/react"兜底 —— 从 packages/
+      // 往上走到仓库根（没有 @types），整片 JSX 就退化成隐式 any（TS7026/TS7016）。
+      // typeRoots 只管"全局自动包含"，管不到这条按导入方解析的兜底，故只能显式指。
+      "react": ["./node_modules/@types/react/index.d.ts"],
+      "react/jsx-runtime": ["./node_modules/@types/react/jsx-runtime.d.ts"],
       "zod": ["./node_modules/zod"],
       "pinyin-pro": ["./node_modules/pinyin-pro"],
       "quickjs-emscripten": ["./node_modules/quickjs-emscripten"],

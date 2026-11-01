@@ -2,7 +2,7 @@ import { useCallback, useMemo, useSyncExternalStore, type ComponentType } from '
 
 import type { PluginHost } from '@mobai/shared/plugin/host'
 import { CeshuViewProvider, type CeshuViewContextValue } from '../ceshu'
-import { getReactBinding, renderUiNode, uiOf, type PanelBindingProps } from './reactBindings'
+import { getReactBinding, renderUiNode, uiOf, type PanelBindingProps } from '@mobai/client-ui'
 
 /** 模块级稳定组件：把按 view id 查到的 React 绑定渲染出来（规避 react-hooks/static-components） */
 function BoundView({ component: Bound, onClose, close, params }: {

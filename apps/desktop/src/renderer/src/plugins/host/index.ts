@@ -11,11 +11,18 @@ export { MainViewMount } from './MainViewMount'
 export type { AppMainTab } from './MainViewMount'
 export { MenuMount } from './MenuMount'
 export { ViewMount } from './ViewMount'
-export { AppContextProvider, useAppContext } from './appContext'
-export type { AppContextValue } from './appContext'
+export { AppContextProvider, useAppContext } from '@mobai/client-ui'
+export type { AppContextValue } from '@mobai/client-ui'
 export { EMPTY_MAIN_VIEW_CONTEXT, MainViewProvider, useMainViewContext } from './mainViewContext'
 export type { MainViewContextValue } from './mainViewContext'
-export { getReactBinding, getSlotComponent, registerReactBinding, registerSlotComponent, renderUiNode, uiOf } from './reactBindings'
-export type { PanelBindingProps } from './reactBindings'
-export { SlotOutlet } from './slotOutlet'
-export type { SlotOutletProps } from './slotOutlet'
+export {
+  getReactBinding,
+  getSlotComponent,
+  registerReactBinding,
+  registerSlotComponent,
+  renderUiNode,
+  uiOf
+} from '@mobai/client-ui'
+export type { PanelBindingProps } from '@mobai/client-ui'
+export { SlotOutlet } from '@mobai/client-ui'
+export type { SlotOutletProps } from '@mobai/client-ui'

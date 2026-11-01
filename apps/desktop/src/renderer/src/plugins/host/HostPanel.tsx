@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useSyncExternalStore, type ComponentType } from 'react'
 
 import type { PluginHost } from '@mobai/shared/plugin/host'
-import { getReactBinding, renderUiNode, uiOf, type PanelBindingProps } from './reactBindings'
+import { getReactBinding, renderUiNode, uiOf, type PanelBindingProps } from '@mobai/client-ui'
 
 /** 模块级稳定组件：把按 panel id 查到的宿主侧 React 绑定渲染出来。
  *  组件作为 prop 传入，避免在渲染期赋值组件变量触发 react-hooks/static-components。 */

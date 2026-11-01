@@ -189,7 +189,9 @@ export default tseslint.config(
     }
   },
   {
-    files: ['apps/desktop/src/renderer/**/*.{ts,tsx}'],
+    // `packages/client-ui` 是**渲染层**代码（React + DOM），只是位置在包目录里，
+    // 故与 renderer 同一套 globals / react-hooks 规则。
+    files: ['apps/desktop/src/renderer/**/*.{ts,tsx}', 'packages/client-ui/src/**/*.{ts,tsx}'],
     languageOptions: {
       globals: globals.browser
     },

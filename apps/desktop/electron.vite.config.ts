@@ -23,8 +23,17 @@ import type { Plugin } from 'vite'
 const sharedAlias = {
   '@mobai/shared': fileURLToPath(new URL('../../packages/shared/src', import.meta.url)),
   '@mobai/agent-core': fileURLToPath(new URL('../../packages/agent-core/src', import.meta.url)),
+  '@mobai/client-ui': fileURLToPath(new URL('../../packages/client-ui/src', import.meta.url)),
   zod: fileURLToPath(new URL('./node_modules/zod', import.meta.url)),
-  'pinyin-pro': fileURLToPath(new URL('./node_modules/pinyin-pro', import.meta.url))
+  'pinyin-pro': fileURLToPath(new URL('./node_modules/pinyin-pro', import.meta.url)),
+  /*
+   * react / react-dom 必须指向 app 的 node_modules：`packages/client-ui/src` 里的
+   * .tsx 从自身位置向上找 `react` 会走到仓库根（那里没有），且即便找到了也会是
+   * **第二份 React** —— hooks 状态错乱（Invalid hook call）。别名顺带覆盖
+   * `react/jsx-runtime`（Vite 的字符串别名按「前缀 + /」匹配）。
+   */
+  react: fileURLToPath(new URL('./node_modules/react', import.meta.url)),
+  'react-dom': fileURLToPath(new URL('./node_modules/react-dom', import.meta.url))
 }
 
 /**

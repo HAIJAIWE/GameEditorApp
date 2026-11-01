@@ -19,6 +19,13 @@
     "forceConsistentCasingInFileNames": true,
     "paths": {
       "@mobai/shared/*": ["../../packages/shared/src/*"],
+      "@mobai/client-ui": ["../../packages/client-ui/src/index.ts"],
+      "@mobai/client-ui/*": ["../../packages/client-ui/src/*"],
+      // 与 tsconfig.node.json 同因：`react` 不自带 .d.ts，类型靠"沿导入方目录向上找
+      // node_modules/@types/react"兜底；client-ui 的 .tsx 在 packages/ 下，向上到仓库根
+      // 就断了，故显式指向 app 的 @types 声明文件。
+      "react": ["./node_modules/@types/react/index.d.ts"],
+      "react/jsx-runtime": ["./node_modules/@types/react/jsx-runtime.d.ts"],
       "zod": ["./node_modules/zod"],
       "pinyin-pro": ["./node_modules/pinyin-pro"]
     }

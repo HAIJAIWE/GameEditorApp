@@ -1,7 +1,8 @@
-import { readdirSync, readFileSync } from 'node:fs'
-import { join, relative, resolve, sep } from 'node:path'
+import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
+
+import { scanPackage } from './packageBoundary'
 
 /**
  * 包边界守卫：`packages/agent-core` **不得反向依赖 app**。
@@ -14,86 +15,30 @@ import { describe, expect, it } from 'vitest'
  *
  * 后来这 5 处换成了 `ports.ts` 的端口，`@app` 别名也一并删掉（现在写了就解析不了）。
  * 但"删掉别名"只挡住 `@app/*` 一种写法，挡不住 `../../../apps/desktop/src/main/...`
- * 这种相对路径逃逸。本文件把**两个方向**都钉死，让边界从"约定"变成"用例"。
+ * 这种相对路径逃逸。本文件把两个方向都钉死，让边界从"约定"变成"用例"。
  *
- * ## 判据（两条，都不看具体文件名，只看方向）
- * 1. 不出现 `@app` 前缀的模块说明符；
- * 2. 相对路径解析后必须仍在 `packages/agent-core/src` 内。
- *
- * 第三方依赖（electron / better-sqlite3 / vectra / exceljs / jszip / quickjs）**不拦**：
- * 那是"向下"依赖 npm 包，不构成包间循环，属于宿主集成层的既定事实。
- * 端口清单见 `packages/agent-core/src/ports.ts`。
+ * 扫描逻辑与 `client-ui` 共用 `./packageBoundary`（复制两份必然漂移）。
  */
 
-const HERE = fileURLToPath(new URL('.', import.meta.url))
-/** `apps/desktop/tests/unit/` → 仓库根 → `packages/agent-core/src` */
-const PKG_SRC = resolve(HERE, '../../../../packages/agent-core/src')
-
-/** 收集包内全部 `.ts`（递归；无子包/无 symlink，不需要防环） */
-function collectTs(dir: string): string[] {
-  const out: string[] = []
-  for (const entry of readdirSync(dir, { withFileTypes: true })) {
-    const full = join(dir, entry.name)
-    if (entry.isDirectory()) out.push(...collectTs(full))
-    else if (entry.isFile() && entry.name.endsWith('.ts')) out.push(full)
-  }
-  return out
-}
-
-/**
- * 抽取一个文件里的模块说明符。
- *
- * 覆盖三种写法（包内实际出现的全部形态）：
- * - `import x from '…'` / `export … from '…'`（静态）
- * - `import '…'`（副作用）
- * - `import('…')`（动态，含类型位置的 `import('…')`）
- */
-function specifiersOf(source: string): string[] {
-  const found: string[] = []
-  const patterns = [
-    /\bfrom\s*['"]([^'"]+)['"]/g,
-    /\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
-    /^\s*import\s+['"]([^'"]+)['"]/gm
-  ]
-  for (const pattern of patterns) {
-    for (const match of source.matchAll(pattern)) {
-      if (match[1] !== undefined) found.push(match[1])
-    }
-  }
-  return found
-}
+const PKG_SRC = resolve(fileURLToPath(new URL('.', import.meta.url)), '../../../../packages/agent-core/src')
 
 describe('agent-core 包边界：不得反向依赖 app', () => {
-  const files = collectTs(PKG_SRC)
+  const scan = scanPackage(PKG_SRC)
 
   it('扫描范围非空（防止守卫因路径写错而静默通过）', () => {
-    expect(files.length).toBeGreaterThan(50)
+    expect(scan.files.length).toBeGreaterThan(50)
   })
 
   it('不存在 `@app` 前缀的模块说明符', () => {
-    const offenders: string[] = []
-    for (const file of files) {
-      for (const spec of specifiersOf(readFileSync(file, 'utf8'))) {
-        if (spec === '@app' || spec.startsWith('@app/')) {
-          offenders.push(`${relative(PKG_SRC, file)} → ${spec}`)
-        }
-      }
-    }
-    expect(offenders).toEqual([])
+    expect(scan.hostAliases).toEqual([])
   })
 
   it('相对路径不得逃出 packages/agent-core/src', () => {
-    const offenders: string[] = []
-    for (const file of files) {
-      for (const spec of specifiersOf(readFileSync(file, 'utf8'))) {
-        if (!spec.startsWith('.')) continue
-        const target = resolve(file, '..', spec)
-        if (target !== PKG_SRC && !target.startsWith(PKG_SRC + sep)) {
-          offenders.push(`${relative(PKG_SRC, file)} → ${spec}`)
-        }
-      }
-    }
-    expect(offenders).toEqual([])
+    expect(scan.escapes).toEqual([])
+  })
+
+  it('只允许依赖 @mobai/shared（不得反向引 @mobai/client-ui 等上层包）', () => {
+    expect(scan.mobai).toEqual(['@mobai/shared'])
   })
 
   /**
@@ -113,7 +58,7 @@ describe('agent-core 包边界：不得反向依赖 app', () => {
    * postinstall 与 electron-builder 的打包假设）。清单的权威落点就是本条用例。
    */
   it('第三方依赖面是显式清单（新增需有意为之）', () => {
-    const allowed = [
+    expect(scan.external).toEqual([
       'better-sqlite3',
       'electron',
       'exceljs',
@@ -121,15 +66,6 @@ describe('agent-core 包边界：不得反向依赖 app', () => {
       'pdfjs-dist',
       'quickjs-emscripten',
       'vectra'
-    ]
-    const found = new Set<string>()
-    for (const file of files) {
-      for (const spec of specifiersOf(readFileSync(file, 'utf8'))) {
-        if (spec.startsWith('.') || spec.startsWith('node:') || spec.startsWith('@mobai/')) continue
-        // 取包名（`@scope/name` 取两段，其余取首段）
-        found.add(spec.startsWith('@') ? spec.split('/').slice(0, 2).join('/') : (spec.split('/')[0] ?? spec))
-      }
-    }
-    expect([...found].sort()).toEqual(allowed)
+    ])
   })
 })

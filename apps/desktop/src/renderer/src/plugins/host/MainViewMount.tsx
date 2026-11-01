@@ -9,7 +9,7 @@ import {
   MainViewProvider,
   type MainViewContextValue
 } from './mainViewContext'
-import { getReactBinding, renderUiNode, uiOf, type PanelBindingProps } from './reactBindings'
+import { getReactBinding, renderUiNode, uiOf, type PanelBindingProps } from '@mobai/client-ui'
 
 /**
  * App 主区页签挂载器（Slice 22）。

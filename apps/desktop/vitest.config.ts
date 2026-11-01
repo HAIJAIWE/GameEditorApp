@@ -15,8 +15,12 @@ export default defineConfig({
     alias: {
       '@mobai/shared': fileURLToPath(new URL('../../packages/shared/src', import.meta.url)),
       '@mobai/agent-core': fileURLToPath(new URL('../../packages/agent-core/src', import.meta.url)),
+      '@mobai/client-ui': fileURLToPath(new URL('../../packages/client-ui/src', import.meta.url)),
       zod: fileURLToPath(new URL('./node_modules/zod', import.meta.url)),
       'pinyin-pro': fileURLToPath(new URL('./node_modules/pinyin-pro', import.meta.url)),
+      // 包内 .tsx 的 react 也必须收敛到 app 这一份，否则 hooks 会拿到第二个 React
+      react: fileURLToPath(new URL('./node_modules/react', import.meta.url)),
+      'react-dom': fileURLToPath(new URL('./node_modules/react-dom', import.meta.url)),
       'quickjs-emscripten': fileURLToPath(new URL('./node_modules/quickjs-emscripten', import.meta.url)),
       vectra: fileURLToPath(new URL('./node_modules/vectra', import.meta.url)),
       jszip: fileURLToPath(new URL('./node_modules/jszip', import.meta.url)),
