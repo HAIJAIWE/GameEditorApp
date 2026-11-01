@@ -75,6 +75,8 @@ import { createTodoSkill } from './agent/skills/todoSkill'
 import { createPresentPlanSkill } from './agent/skills/presentPlanSkill'
 import { createGoalSkill } from './agent/skills/goalSkill'
 import { createJobSkill } from './agent/skills/jobSkill'
+import { createFileOpsSkill } from './agent/skills/fileOpsSkill'
+import { createShellSkill } from './agent/skills/shellSkill'
 import { createCliSubAgentProvider } from './agent/subagent/subagentCli'
 import { createRemoteSubAgentProvider } from './agent/subagent/subagentRemote'
 import { createAcpSubAgentProvider } from './agent/subagent/subagentAcp'
@@ -183,6 +185,12 @@ export function buildStores(libDir: string): AppStores {
   dispatcher.register(createGoalSkill())
   // 后台任务观测/取消（对齐 dsh tool-jobs）：list/status/cancel 异步子智能体
   dispatcher.register(createJobSkill())
+  // 编程能力（对齐 dsh fs-sandbox + shell）：工作区 = <库>/code（MB_WORKSPACE 可覆盖），
+  // 受沙箱策略约束（MB_SANDBOX_POLICY=read-only 时只读/禁命令）。
+  const workspaceRoot = process.env.MB_WORKSPACE ?? join(libDir, 'code')
+  const workspacePolicy = process.env.MB_SANDBOX_POLICY === 'read-only' ? 'read-only' : 'workspace-write'
+  dispatcher.register(createFileOpsSkill({ root: workspaceRoot, policy: workspacePolicy }))
+  dispatcher.register(createShellSkill({ root: workspaceRoot, policy: workspacePolicy }))
   // 用户偏好 / 反馈：随库隔离，构造时即从磁盘加载；偏好注入系统提示词（见 brainService）
   const personalization = createPersonalizationStores(agentDir)
 

@@ -60,7 +60,9 @@ export const TOOL_GROUP_MAP: Readonly<Record<string, ToolGroupId>> = {
   'system.todo_write': 'system',
   'system.present_plan': 'system',
   'system.goal': 'system',
-  'system.job': 'system'
+  'system.job': 'system',
+  'system.file_ops': 'system',
+  'system.shell': 'system'
 }
 
 /** 未登记工具的兜底分组（保守归到「系统与协作」） */
