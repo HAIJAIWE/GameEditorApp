@@ -1,3 +1,4 @@
+import type { MessageKey } from '@mobai/shared/i18n'
 import type { PluginHost } from '@mobai/shared/plugin/host'
 import type { PluginManifest, PluginMenuItem } from '@mobai/shared/plugin/types'
 
@@ -6,21 +7,24 @@ import type { PluginManifest, PluginMenuItem } from '@mobai/shared/plugin/types'
  *
  * 以前 `MenuBar.tsx` 里内嵌一棵 6 菜单的静态树（35 个条目 + 子菜单 + 分隔符），
  * App 另持有一张 35 项的动作映射表。现在**菜单结构本身**也是插件声明的：
- * 一个 manifest 带 6 个 `menu` 能力，条目只写「label + command id」。
+ * 一个 manifest 带 6 个 `menu` 能力，条目只写「文案键 + command id」。
  *
  * 三个设计点：
- * 1. **合并**：同一 `menu` 标题的多个能力由宿主合并（未来某个插件要往「工具」里加一项，
- *    自己声明 `menu:'工具'` 即可，不用改这里）。
+ * 1. **合并**：同一 `menuKey` 的多个能力由宿主合并（未来某个插件要往「工具」里加一项，
+ *    自己声明 `menuKey:'menu.tools'` 即可，不用改这里）。
  * 2. **禁用态**：`undo` / `redo` 用 `disabledWhen` 声明「按宿主状态判」，状态由
  *    `menuState.ts` 注入——manifest 保持可序列化。
  * 3. **同实现多标签**：`打开` 与 `导入 JSON`、`保存` 与 `导出 JSON` 历史上就是同一对 handler
  *    （见 MenuBar 旧注释），这里指向同一命令，**不趁机改语义**。
+ *
+ * 文案走 `labelKey` / `menuKey`（不是中文字面量）：渲染层用 `t(key)` 翻译，
+ * 切语言即时生效。`label` / `menu` 只留给不接 i18n 的外部插件做回退。
  */
 
 const sep: PluginMenuItem = { label: '—' }
 
-function item(label: string, command: string, testid: string, disabledWhen?: string): PluginMenuItem {
-  return { label, command, testid, disabledWhen }
+function item(labelKey: MessageKey, command: string, testid: string, disabledWhen?: string): PluginMenuItem {
+  return { labelKey, command, testid, disabledWhen }
 }
 
 export function defineMenusPlugin(_host: PluginHost): PluginManifest {
@@ -28,95 +32,95 @@ export function defineMenusPlugin(_host: PluginHost): PluginManifest {
     id: 'menus',
     name: 'menus',
     version: '0.1.0',
-    description: '菜单结构（文件 / 编辑 / 工具 / 视图 / 设置 / 帮助）',
+    description: 'Menu structure (File / Edit / Tools / View / Settings / Help)',
     meta: {
-      label: '菜单',
+      label: 'Menus',
       icon: '📋',
-      description: '把顶层菜单与条目声明成 menu 能力，App 不再持有动作映射表'
+      description: 'Declares top-level menus and items as menu capabilities; App no longer holds an action map'
     },
     capabilities: [
       {
         kind: 'menu',
         id: 'menu.file',
-        menu: '文件',
+        menuKey: 'menu.file',
         order: 10,
         items: [
-          item('打开', 'app.io.open', 'menuitem-file-open'),
-          item('保存', 'app.io.save', 'menuitem-file-save'),
+          item('menu.file.open', 'app.io.open', 'menuitem-file-open'),
+          item('menu.file.save', 'app.io.save', 'menuitem-file-save'),
           sep,
           {
-            label: '导入',
+            labelKey: 'menu.file.import',
             items: [
-              item('导入 JSON', 'app.io.open', 'menuitem-file-importJson'),
-              item('导入 CSV', 'app.io.importCsv', 'menuitem-file-importCsv'),
-              item('导入 Excel', 'app.io.importExcel', 'menuitem-file-importExcel'),
+              item('menu.file.importJson', 'app.io.open', 'menuitem-file-importJson'),
+              item('menu.file.importCsv', 'app.io.importCsv', 'menuitem-file-importCsv'),
+              item('menu.file.importExcel', 'app.io.importExcel', 'menuitem-file-importExcel'),
               sep,
-              item('批量导入', 'app.io.batchImport', 'menuitem-file-batchImport')
+              item('menu.file.batchImport', 'app.io.batchImport', 'menuitem-file-batchImport')
             ]
           },
           {
-            label: '导出',
+            labelKey: 'menu.file.export',
             items: [
-              item('导出 JSON', 'app.io.save', 'menuitem-file-exportJson'),
-              item('导出 CSV', 'app.io.exportCsv', 'menuitem-file-exportCsv'),
-              item('导出 Excel', 'app.io.exportExcel', 'menuitem-file-exportExcel'),
+              item('menu.file.exportJson', 'app.io.save', 'menuitem-file-exportJson'),
+              item('menu.file.exportCsv', 'app.io.exportCsv', 'menuitem-file-exportCsv'),
+              item('menu.file.exportExcel', 'app.io.exportExcel', 'menuitem-file-exportExcel'),
               sep,
-              item('批量导出', 'app.io.batchExport', 'menuitem-file-batchExport'),
-              item('批量编辑', 'batch.open', 'menuitem-file-batchEdit'),
+              item('menu.file.batchExport', 'app.io.batchExport', 'menuitem-file-batchExport'),
+              item('menu.file.batchEdit', 'batch.open', 'menuitem-file-batchEdit'),
               sep,
-              item('导出游戏数据', 'app.io.save', 'menuitem-file-exportGameData'),
+              item('menu.file.exportGameData', 'app.io.save', 'menuitem-file-exportGameData'),
               sep,
-              item('导出为 Lua 格式', 'app.io.engineExport.lua', 'menuitem-file-exportLua'),
-              item('导出为 Unity 格式', 'app.io.engineExport.unity', 'menuitem-file-exportUnity'),
-              item('导出为 Unreal 格式', 'app.io.engineExport.unreal', 'menuitem-file-exportUnreal'),
-              item('导出为 Godot 格式', 'app.io.engineExport.godot', 'menuitem-file-exportGodot'),
-              item('导出为 Cocos2d 格式', 'app.io.engineExport.cocos2d', 'menuitem-file-exportCocos'),
+              item('menu.file.exportLua', 'app.io.engineExport.lua', 'menuitem-file-exportLua'),
+              item('menu.file.exportUnity', 'app.io.engineExport.unity', 'menuitem-file-exportUnity'),
+              item('menu.file.exportUnreal', 'app.io.engineExport.unreal', 'menuitem-file-exportUnreal'),
+              item('menu.file.exportGodot', 'app.io.engineExport.godot', 'menuitem-file-exportGodot'),
+              item('menu.file.exportCocos', 'app.io.engineExport.cocos2d', 'menuitem-file-exportCocos'),
               sep,
-              item('导出数据快照 (JSON)', 'app.io.snapshot.json', 'menuitem-file-exportSnapshotJson'),
-              item('导出数据快照 (CSV)', 'app.io.snapshot.csv', 'menuitem-file-exportSnapshotCsv'),
+              item('menu.file.snapshotJson', 'app.io.snapshot.json', 'menuitem-file-exportSnapshotJson'),
+              item('menu.file.snapshotCsv', 'app.io.snapshot.csv', 'menuitem-file-exportSnapshotCsv'),
               sep,
-              item('游戏数据预览', 'gameDataPreview.open', 'menuitem-file-gameDataPreview')
+              item('menu.file.gameDataPreview', 'gameDataPreview.open', 'menuitem-file-gameDataPreview')
             ]
           },
           sep,
-          item('备份管理', 'backup.open', 'menuitem-file-backup'),
+          item('menu.file.backup', 'backup.open', 'menuitem-file-backup'),
           sep,
-          item('退出', 'app.quit', 'menuitem-file-quit')
+          item('menu.file.quit', 'app.quit', 'menuitem-file-quit')
         ]
       },
       {
         kind: 'menu',
         id: 'menu.edit',
-        menu: '编辑',
+        menuKey: 'menu.edit',
         order: 20,
         items: [
-          item('撤销 (Ctrl+Z)', 'app.undo', 'menuitem-edit-undo', 'undo'),
-          item('重做 (Ctrl+Y)', 'app.redo', 'menuitem-edit-redo', 'redo'),
+          item('menu.edit.undo', 'app.undo', 'menuitem-edit-undo', 'undo'),
+          item('menu.edit.redo', 'app.redo', 'menuitem-edit-redo', 'redo'),
           sep,
-          item('模板管理', 'typeEditor.open', 'menuitem-edit-templateManager'),
+          item('menu.edit.templateManager', 'typeEditor.open', 'menuitem-edit-templateManager'),
           sep,
-          item('清空所有数据', 'clearAll.open', 'menuitem-edit-clearAll')
+          item('menu.edit.clearAll', 'clearAll.open', 'menuitem-edit-clearAll')
         ]
       },
       {
         kind: 'menu',
         id: 'menu.tools',
-        menu: '工具',
+        menuKey: 'menu.tools',
         order: 30,
         items: [
-          item('快速创建向导', 'quickCreate.open', 'menuitem-tools-quickCreate'),
-          item('批量修改数据', 'batch.open', 'menuitem-tools-batchEdit'),
-          item('数据关联预览', 'references.open', 'menuitem-tools-references'),
+          item('menu.tools.quickCreate', 'quickCreate.open', 'menuitem-tools-quickCreate'),
+          item('menu.tools.batchEdit', 'batch.open', 'menuitem-tools-batchEdit'),
+          item('menu.tools.references', 'references.open', 'menuitem-tools-references'),
           sep,
-          item('关系图', 'relationGraph.open', 'menuitem-tools-relationGraph'),
-          item('数据对比', 'dataDiff.open', 'menuitem-tools-dataDiff'),
+          item('menu.tools.relationGraph', 'relationGraph.open', 'menuitem-tools-relationGraph'),
+          item('menu.tools.dataDiff', 'dataDiff.open', 'menuitem-tools-dataDiff'),
           sep,
           {
-            label: '数据分析',
+            labelKey: 'menu.tools.dataAnalysis',
             items: [
-              item('属性分布图表', 'attributeChart.open', 'menuitem-tools-attributeChart'),
-              item('平衡性分析工具', 'statistics.open', 'menuitem-tools-balance'),
-              item('游戏数据统计', 'statistics.open', 'menuitem-tools-stats')
+              item('menu.tools.attributeChart', 'attributeChart.open', 'menuitem-tools-attributeChart'),
+              item('menu.tools.balance', 'statistics.open', 'menuitem-tools-balance'),
+              item('menu.tools.stats', 'statistics.open', 'menuitem-tools-stats')
             ]
           },
           /*
@@ -125,47 +129,47 @@ export function defineMenusPlugin(_host: PluginHost): PluginManifest {
            * 能力面已由 `references` + `relationGraph` 覆盖。**不保留占位项**。
            */
           sep,
-          item('属性系统编辑器', 'attrSystem.open', 'menuitem-tools-attrSystem'),
-          item('字段结构编辑器', 'typeEditor.open', 'menuitem-tools-fieldEditor'),
-          item('高级搜索', 'advancedSearch.open', 'menuitem-tools-advancedSearch'),
-          item('AI 生图', 'imageGen.open', 'menuitem-tools-imageGen'),
-          item('清理未使用图片', 'cleanupImages.open', 'menuitem-tools-cleanupUnusedImages'),
-          item('关键词模板配置', 'keywordTemplates.open', 'menuitem-tools-keywordTemplates'),
+          item('menu.tools.attrSystem', 'attrSystem.open', 'menuitem-tools-attrSystem'),
+          item('menu.tools.fieldEditor', 'typeEditor.open', 'menuitem-tools-fieldEditor'),
+          item('menu.tools.advancedSearch', 'advancedSearch.open', 'menuitem-tools-advancedSearch'),
+          item('menu.tools.imageGen', 'imageGen.open', 'menuitem-tools-imageGen'),
+          item('menu.tools.cleanupUnusedImages', 'cleanupImages.open', 'menuitem-tools-cleanupUnusedImages'),
+          item('menu.tools.keywordTemplates', 'keywordTemplates.open', 'menuitem-tools-keywordTemplates'),
           sep,
-          item('MCP 配置', 'mcpConfig.open', 'menuitem-tools-mcpConfig')
+          item('menu.tools.mcpConfig', 'mcpConfig.open', 'menuitem-tools-mcpConfig')
         ]
       },
       {
         kind: 'menu',
         id: 'menu.view',
-        menu: '视图',
+        menuKey: 'menu.view',
         order: 40,
         items: [
-          item('放大', 'app.zoomIn', 'menuitem-view-zoomIn'),
-          item('缩小', 'app.zoomOut', 'menuitem-view-zoomOut'),
-          item('重置缩放', 'app.zoomReset', 'menuitem-view-zoomReset'),
+          item('menu.view.zoomIn', 'app.zoomIn', 'menuitem-view-zoomIn'),
+          item('menu.view.zoomOut', 'app.zoomOut', 'menuitem-view-zoomOut'),
+          item('menu.view.zoomReset', 'app.zoomReset', 'menuitem-view-zoomReset'),
           sep,
-          item('重新加载', 'app.reload', 'menuitem-view-reload'),
-          item('开发者工具', 'app.toggleDevTools', 'menuitem-view-devtools')
+          item('menu.view.reload', 'app.reload', 'menuitem-view-reload'),
+          item('menu.view.devtools', 'app.toggleDevTools', 'menuitem-view-devtools')
         ]
       },
       {
         kind: 'menu',
         id: 'menu.settings',
-        menu: '设置',
+        menuKey: 'menu.settings',
         order: 50,
-        items: [item('打开设置...', 'settings.open', 'menuitem-settings-open')]
+        items: [item('menu.settings.open', 'settings.open', 'menuitem-settings-open')]
       },
       {
         kind: 'menu',
         id: 'menu.help',
-        menu: '帮助',
+        menuKey: 'menu.help',
         order: 60,
         items: [
-          item('快速入门', 'onboarding.open', 'menuitem-help-onboarding'),
-          item('快捷键参考', 'shortcuts.open', 'menuitem-help-shortcuts'),
+          item('menu.help.onboarding', 'onboarding.open', 'menuitem-help-onboarding'),
+          item('menu.help.shortcuts', 'shortcuts.open', 'menuitem-help-shortcuts'),
           sep,
-          item('关于墨白编辑器', 'about.open', 'menuitem-help-about')
+          item('menu.help.about', 'about.open', 'menuitem-help-about')
         ]
       }
     ]

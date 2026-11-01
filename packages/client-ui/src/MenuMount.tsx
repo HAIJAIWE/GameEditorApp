@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'reac
 import type { PluginHost } from '@mobai/shared/plugin/host'
 import type { PluginMenuItem } from '@mobai/shared/plugin/types'
 import LucideIcon from './LucideIcon'
+import { useT } from './i18n'
 
 /**
  * 菜单挂载点（Slice 16）：把插件声明的 `menu` 能力渲染成宿主某位置的**下拉菜单**。
@@ -20,6 +21,7 @@ export function MenuMount({ host, mount, busy = false }: {
   mount: string
   busy?: boolean
 }) {
+  const t = useT()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const subscribe = useMemo(() => (onChange: () => void) => host.subscribe(onChange), [host])
@@ -80,16 +82,16 @@ export function MenuMount({ host, mount, busy = false }: {
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
       >
-        更多
+        {t('common.more')}
         <LucideIcon name="chevron-down" size={14} />
       </button>
       {open && (
         <div className="toolbar-more-menu" role="menu" data-testid="ceshu-more-menu">
           {groups.map((group, groupIndex) => (
             <div className="toolbar-more-group" key={groupIndex}>
-              {group.map((item) => (
+              {group.map((item, itemIndex) => (
                 <button
-                  key={item.testid ?? item.label}
+                  key={item.testid ?? item.labelKey ?? item.label ?? itemIndex}
                   type="button"
                   role="menuitem"
                   className="toolbar-more-item"
@@ -99,7 +101,7 @@ export function MenuMount({ host, mount, busy = false }: {
                     if (item.command !== undefined) run(item.command)
                   }}
                 >
-                  {item.label}
+                  {item.labelKey !== undefined ? t(item.labelKey) : item.label ?? ''}
                 </button>
               ))}
             </div>

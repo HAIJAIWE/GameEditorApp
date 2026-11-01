@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 
 import { useT } from '@mobai/client-ui'
+import type { MessageKey } from '@mobai/shared/i18n'
 import type { PluginHost } from '@mobai/shared/plugin/host'
 import type { PluginMenuItem } from '@mobai/shared/plugin/types'
 import { isMenuDisabled } from '../../plugins/context'
@@ -55,13 +56,18 @@ export default function MenuBar({ host }: MenuBarProps) {
   )
 
   /** 顶层菜单：按 order 排序（host.menus() 已排），同标题合并条目；记下首个能力的 id 供 testid 用 */
-  const merged = new Map<string, { id: string; items: PluginMenuItem[] }>()
+  type MergedMenu = { id: string; title?: string; menuKey?: MessageKey; items: PluginMenuItem[] }
+  const merged = new Map<string, MergedMenu>()
   for (const capability of host.menus()) {
-    const existing = merged.get(capability.menu)
-    if (existing === undefined) merged.set(capability.menu, { id: capability.id, items: [...capability.items] })
-    else existing.items.push(...capability.items)
+    const mergeKey = capability.menuKey ?? capability.menu ?? capability.id
+    const existing = merged.get(mergeKey)
+    if (existing === undefined) {
+      merged.set(mergeKey, { id: capability.id, title: capability.menu, menuKey: capability.menuKey, items: [...capability.items] })
+    } else {
+      existing.items.push(...capability.items)
+    }
   }
-  const menus = [...merged.entries()].map(([title, value]) => ({ title, id: value.id, items: value.items }))
+  const menus = [...merged.values()]
 
   useEffect(() => {
     if (openIndex === null) return undefined
@@ -99,14 +105,14 @@ export default function MenuBar({ host }: MenuBarProps) {
         if (item.command !== undefined) runCommand(item.command)
       }}
     >
-      {item.label}
+      {item.labelKey !== undefined ? t(item.labelKey) : item.label ?? ''}
     </button>
   )
 
   return (
     <div className="menubar" ref={barRef}>
       {menus.map((menu, idx) => (
-        <div className="menu" key={menu.title}>
+        <div className="menu" key={menu.id}>
           <button
             type="button"
             className={`menu-title${openIndex === idx ? ' open' : ''}`}
@@ -116,7 +122,7 @@ export default function MenuBar({ host }: MenuBarProps) {
               if (openIndex !== null) setOpenIndex(idx)
             }}
           >
-            {menu.title}
+            {menu.menuKey !== undefined ? t(menu.menuKey) : menu.title ?? ''}
           </button>
           {openIndex === idx && (
             <div className="menu-dropdown" role="menu">
@@ -125,7 +131,9 @@ export default function MenuBar({ host }: MenuBarProps) {
                 if (node.items !== undefined) {
                   return (
                     <div className="menu-submenu" key={nIdx}>
-                      <div className="menu-submenu-label">{node.label}</div>
+                      <div className="menu-submenu-label">
+                        {node.labelKey !== undefined ? t(node.labelKey) : node.label ?? ''}
+                      </div>
                       <div className="menu-submenu-items">
                         {node.items.map((sub, sIdx) =>
                           isSeparator(sub) ? (

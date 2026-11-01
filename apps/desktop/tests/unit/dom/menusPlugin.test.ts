@@ -54,7 +54,14 @@ describe('菜单结构插件（Slice 9：菜单由插件声明）', () => {
   it('六个顶层菜单按 order 排列', () => {
     const host = new PluginHost()
     host.register(defineMenusPlugin(host))
-    expect(host.menus().map((menu) => menu.menu)).toEqual(['文件', '编辑', '工具', '视图', '设置', '帮助'])
+    expect(host.menus().map((menu) => menu.menuKey)).toEqual([
+      'menu.file',
+      'menu.edit',
+      'menu.tools',
+      'menu.view',
+      'menu.settings',
+      'menu.help'
+    ])
   })
 
   it('同标题的菜单能力由宿主合并（未来插件可自己往「工具」里加项）', () => {
@@ -68,14 +75,14 @@ describe('菜单结构插件（Slice 9：菜单由插件声明）', () => {
         {
           kind: 'menu',
           id: 'menu.tools.extra',
-          menu: '工具',
+          menuKey: 'menu.tools',
           order: 31,
           items: [{ label: '外部工具', command: 'demo.panel.open', testid: 'menuitem-tools-extra' }]
         }
       ]
     })
 
-    const tools = host.menus().filter((menu) => menu.menu === '工具')
+    const tools = host.menus().filter((menu) => menu.menuKey === 'menu.tools')
     expect(tools).toHaveLength(2)
     // 宿主按 order 排序：内置工具菜单（30）在前，扩展（31）在后
     expect(tools[0]?.id).toBe('menu.tools')
@@ -90,7 +97,7 @@ describe('菜单结构插件（Slice 9：菜单由插件声明）', () => {
     for (const menu of host.menus()) {
       walk(menu.items, (item) => {
         if (item.command !== undefined && !commandIds.has(item.command)) {
-          missing.push(`${menu.menu} → ${item.label} → ${item.command}`)
+          missing.push(`${menu.menuKey ?? menu.menu} → ${item.labelKey ?? item.label} → ${item.command}`)
         }
       })
     }
@@ -101,7 +108,7 @@ describe('菜单结构插件（Slice 9：菜单由插件声明）', () => {
   it('撤销/重做用 disabledWhen 声明禁用条件，而不是写死 disabled', () => {
     const host = new PluginHost()
     host.register(defineMenusPlugin(host))
-    const edit = host.menus().find((menu) => menu.menu === '编辑')!
+    const edit = host.menus().find((menu) => menu.menuKey === 'menu.edit')!
 
     const undo = edit.items.find((item) => item.command === 'app.undo')!
     const redo = edit.items.find((item) => item.command === 'app.redo')!

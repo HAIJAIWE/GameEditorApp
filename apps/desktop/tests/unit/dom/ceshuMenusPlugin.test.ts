@@ -43,7 +43,7 @@ describe('编辑器「更多」菜单插件（Slice 16）', () => {
     const ids = new Set(host.commands().map((command) => command.id))
     const missing: string[] = []
     for (const item of host.menus('ceshu.toolbar')[0].items) {
-      if (item.command !== undefined && !ids.has(item.command)) missing.push(item.label)
+      if (item.command !== undefined && !ids.has(item.command)) missing.push(item.label ?? item.command)
     }
     expect(missing).toEqual([])
   })

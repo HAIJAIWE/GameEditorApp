@@ -11,6 +11,8 @@
  * （Unity 用同构 C# 类、CLI 用 Go struct，字段一一对应即可）。
  */
 
+import type { MessageKey } from '../i18n'
+
 /**
  * 可序列化的 UI 描述树（最低公共分母）。
  * 任何宿主实现一个几十行的小渲染器就能画：React→JSX、CLI→文本、引擎 IMGUI→控件、webview→HTML。
@@ -61,7 +63,13 @@ export interface PluginServiceCapability {
  *   由宿主注册的判定函数决定禁用——这样「撤销是否可用」这类状态不必进 manifest。
  */
 export interface PluginMenuItem {
-  label: string
+  /** 回退文案（未提供 `labelKey` 的插件用它；纯文本，不翻译） */
+  label?: string
+  /**
+   * 文案键（优先于 `label`）：渲染层用 `t(labelKey)` 翻译。
+   * 跨语言可读的条目应只给键，`label` 留给不接 i18n 的外部插件。
+   */
+  labelKey?: MessageKey
   command?: string
   items?: PluginMenuItem[]
   /** 稳定测试锚点（E2E 用） */
@@ -78,8 +86,10 @@ export interface PluginMenuItem {
 export interface PluginMenuCapability {
   kind: 'menu'
   id: string
-  /** 顶层菜单标题（如「文件」）；同名合并 */
-  menu: string
+  /** 顶层菜单标题回退文案（如「文件」）；与 `menuKey` 同名合并 */
+  menu?: string
+  /** 顶层菜单标题键（优先于 `menu`）；渲染层用 `t(menuKey)` 翻译 */
+  menuKey?: MessageKey
   /** 顶层菜单排序，小在前 */
   order: number
   /**
