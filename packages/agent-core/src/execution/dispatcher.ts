@@ -37,6 +37,7 @@ import {
   toToolDefinition,
   type ToolExecutionMode
 } from '@mobai/shared/agent/toolRuntime'
+import { createDshGuardPolicy } from '../dsh/dshGuardPolicy'
 
 /** 模糊索引中使用的别名（仅覆盖已注册技能的相关概念） */
 const FUZZY_ALIASES: Record<string, string> = {
@@ -145,6 +146,8 @@ export class SkillDispatcher {
     this.maxAllowedRisk = options.maxAllowedRisk ?? RISK_LEVEL.SYSTEM
     // 超时策略是流水线的第一层：只有声明了 `timeoutMs` 的工具才会被 arm deadline
     this.pipeline.use(createTimeoutPolicy((name) => this.tools.get(name)))
+    // dsh 的 `repeat-tool-reminder` 以 cordis 插件形式跑在本进程（惰性加载、失败降级）
+    this.pipeline.use(createDshGuardPolicy())
   }
 
   register(skill: SkillProtocol): boolean {

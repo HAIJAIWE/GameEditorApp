@@ -1,7 +1,9 @@
 # dsh 能力对齐状态表（墨白可视化编辑）
 
 > **口径**：本表对齐的是 dsh（`D:/GameEditorApp/deepseek-harness-master`）的**能力**，不是 vendoring 它的代码。
-> 我们走 B 路线：读 dsh 源码 → 抽设计 → 用 React/TS 重写；仓库**零 dsh 依赖**。
+> 主线仍是 B 路线：读 dsh 源码 → 抽设计 → 用 React/TS 重写。
+> **2026-11-02 修订**：解除"零 dsh 依赖"——允许以 npm 依赖在其原生 cordis 运行时里**进程内**跑
+> dsh 插件（首个：`guard/repeat-tool-reminder`，见 `packages/agent-core/src/dsh/`）。
 > 维护约定：新增/调整一个 dsh 能力时，**同步更新本表**（含 commit 与测试）。
 
 ## 结论

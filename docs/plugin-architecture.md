@@ -13,8 +13,15 @@
 把应用改造成 **dsh 式万物插件化**：产品能力（面板、菜单动作、服务）由插件自供给，
 经统一 `PluginHost` 注册 / 发现 / 渲染，而不是硬编码在 `App.tsx` 的 switch 与 `MenuBar` 里。
 
-**关键定位（用户拍板）**：dsh 只是**设计参考**，不是运行时、不 vendoring 源码。
-契约必须**宿主无关**，未来其他项目（CLI / 游戏引擎 / 别的 Electron 应用）能复用同一接口。
+**关键定位（用户拍板，2026-11-02 修订）**：dsh 仍是**设计参考**（不 vendoring 源码），
+但**允许以 npm 依赖的方式在其原生运行时（cordis）里进程内运行它的插件**——
+原先"仓库零 dsh 依赖"的约束已解除。边界仍然清晰：
+- **UI 契约**必须宿主无关（`shared/plugin/types.ts` 不 import React，UI 用可序列化 `UiNode`），
+  未来其他项目（CLI / 游戏引擎 / 别的 Electron 应用）能复用同一接口；
+- **dsh 插件**只允许出现在 `packages/agent-core/src/dsh/`（宿主集成层），不得进入 `shared`。
+
+首个落地：`guard/repeat-tool-reminder` 以 cordis 插件形式跑在我们的
+`ToolExecutionPipeline` 上（`agent-core/src/dsh/cordisHost.ts`），零服务依赖。
 
 两条硬约束：
 1. **共享契约零框架依赖**：`shared/plugin/types.ts` 不 import React，UI 用可序列化 `UiNode`。

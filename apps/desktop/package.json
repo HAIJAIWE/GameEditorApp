@@ -20,6 +20,10 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@deepseek-ai/cordis": "^4.0.5",
+    "@deepseek-ai/dsh-llm": "^0.0.1-rc.3",
+    "@deepseek-ai/dsh-repeat-tool-reminder": "^0.2.2-alpha.2",
+    "@deepseek-ai/schemastery": "^3.18.1-rc.1",
     "better-sqlite3": "^13.0.3",
     "docx": "^9.8.1",
     "exceljs": "^4.4.0",

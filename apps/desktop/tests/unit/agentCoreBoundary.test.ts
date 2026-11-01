@@ -44,7 +44,7 @@ describe('agent-core 包边界：不得反向依赖 app', () => {
   /**
    * 第三方依赖面 = 显式清单。
    *
-   * 这 7 个是"宿主集成层"的既定事实（为什么不能清掉见 `ports.ts` 与提交说明），
+   * 这 9 个是"宿主集成层"的既定事实（为什么不能清掉见 `ports.ts` 与提交说明），
    * 但它们**必须是有意为之**：新增一个运行时依赖意味着包又长出一条外部腿，
    * 应当先想清楚是留在包内、还是收进 `shared`。所以这里不写"至少包含"，
    * 而是**全等**——多一个就红，让"顺手 import 个 lodash"在 CI 就停下。
@@ -59,6 +59,9 @@ describe('agent-core 包边界：不得反向依赖 app', () => {
    */
   it('第三方依赖面是显式清单（新增需有意为之）', () => {
     expect(scan.external).toEqual([
+      // dsh 插件运行时：cordis 宿主 + repeat-tool-reminder（2026-11-02 放开"零 dsh 依赖"后新增）
+      '@deepseek-ai/cordis',
+      '@deepseek-ai/dsh-repeat-tool-reminder',
       'better-sqlite3',
       'electron',
       'exceljs',

@@ -1,7 +1,13 @@
+import { createRequire } from 'node:module'
+import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import react from '@vitejs/plugin-react'
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
 import type { Plugin } from 'vite'
+
+/** 按 Node 解析结果定位依赖目录（npm hoist 会把它在 `apps/desktop/node_modules` 与根之间挪） */
+const nodeRequire = createRequire(import.meta.url)
+const pkgDir = (specifier: string): string => dirname(nodeRequire.resolve(`${specifier}/package.json`))
 
 /**
  * 共享包（`packages/shared` / `packages/agent-core`）走路径别名，不打进 apps/desktop 的相对路径。
@@ -24,7 +30,7 @@ const sharedAlias = {
   '@mobai/shared': fileURLToPath(new URL('../../packages/shared/src', import.meta.url)),
   '@mobai/agent-core': fileURLToPath(new URL('../../packages/agent-core/src', import.meta.url)),
   '@mobai/client-ui': fileURLToPath(new URL('../../packages/client-ui/src', import.meta.url)),
-  zod: fileURLToPath(new URL('./node_modules/zod', import.meta.url)),
+  zod: pkgDir('zod'),
   'pinyin-pro': fileURLToPath(new URL('./node_modules/pinyin-pro', import.meta.url)),
   /*
    * react / react-dom 必须指向 app 的 node_modules：`packages/client-ui/src` 里的

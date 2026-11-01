@@ -1,5 +1,11 @@
+import { createRequire } from 'node:module'
+import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vitest/config'
+
+/** 按 Node 解析结果定位依赖目录（npm hoist 会把它在 `apps/desktop/node_modules` 与根之间挪） */
+const nodeRequire = createRequire(import.meta.url)
+const pkgDir = (specifier: string): string => dirname(nodeRequire.resolve(`${specifier}/package.json`))
 
 export default defineConfig({
   resolve: {
@@ -16,7 +22,7 @@ export default defineConfig({
       '@mobai/shared': fileURLToPath(new URL('../../packages/shared/src', import.meta.url)),
       '@mobai/agent-core': fileURLToPath(new URL('../../packages/agent-core/src', import.meta.url)),
       '@mobai/client-ui': fileURLToPath(new URL('../../packages/client-ui/src', import.meta.url)),
-      zod: fileURLToPath(new URL('./node_modules/zod', import.meta.url)),
+      zod: pkgDir('zod'),
       'pinyin-pro': fileURLToPath(new URL('./node_modules/pinyin-pro', import.meta.url)),
       // 包内 .tsx 的 react 也必须收敛到 app 这一份，否则 hooks 会拿到第二个 React
       react: fileURLToPath(new URL('./node_modules/react', import.meta.url)),
