@@ -42,6 +42,7 @@ export const TOOL_RISK_MAP: Record<string, RiskLevel | Record<string, RiskLevel>
     move: RISK_LEVEL.FILE_SYSTEM
   },
   'system.shell': RISK_LEVEL.SYSTEM,
+  'system.lsp': RISK_LEVEL.READ_ONLY,
   'system.code': RISK_LEVEL.SYSTEM,
   'system.scheduler': RISK_LEVEL.SYSTEM,
   'system.web_search': RISK_LEVEL.NETWORK,

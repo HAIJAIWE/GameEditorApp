@@ -78,6 +78,8 @@ import { createJobSkill } from './agent/skills/jobSkill'
 import { createFileOpsSkill } from './agent/skills/fileOpsSkill'
 import { createShellSkill } from './agent/skills/shellSkill'
 import { getWorkspaceRoot, initWorkspace } from './agent/workspace/workspaceStore'
+import { createLspSkill } from './agent/skills/lspSkill'
+import { createLspServerResolver } from './agent/lsp/lspConfig'
 import { createCliSubAgentProvider } from './agent/subagent/subagentCli'
 import { createRemoteSubAgentProvider } from './agent/subagent/subagentRemote'
 import { createAcpSubAgentProvider } from './agent/subagent/subagentAcp'
@@ -194,6 +196,8 @@ export function buildStores(libDir: string): AppStores {
   dispatcher.register(
     createShellSkill({ root: getWorkspaceRoot, policy: workspacePolicy, libraryDir: () => libDir })
   )
+  // LSP 代码导航（对齐 dsh tool-lsp）：语言服务器由用户经 <库>/lsp.json 自备
+  dispatcher.register(createLspSkill({ root: getWorkspaceRoot, resolveServer: createLspServerResolver(libDir) }))
   // 用户偏好 / 反馈：随库隔离，构造时即从磁盘加载；偏好注入系统提示词（见 brainService）
   const personalization = createPersonalizationStores(agentDir)
 
