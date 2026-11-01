@@ -28,7 +28,7 @@ dsh 的 **52 个包组**里，与「agent 能力面」相关且**可移植、有
 | `terminal` | `system.terminal`（持久会话，非 PTY） | `6b7ab42` |
 | `ssh` | `system.ssh`（薄包装） | `b62fba1` |
 | `lsp` | `system.lsp`（definition/references/implementation/hover） | `e901459` |
-| `web` | `system.web_fetch`（SSRF 防护 + HTML→文本） | `98fcce0` |
+| `web` | `system.web_fetch`（SSRF 防护 + HTML→文本）+ `system.web_search`（DuckDuckGo HTML，免 key） | `98fcce0` / 本轮 |
 | `document` | `system.document`（docx/pptx/xlsx/文本） | `1682029` |
 | `workflow` | `system.workflow`（有界步骤序列，每步过审批） | `53474b0` |
 | `ptc-runtime` | `system.ptc`（QuickJS asyncify + `callTool`） | `812328d` |
@@ -56,7 +56,6 @@ dsh 的 **52 个包组**里，与「agent 能力面」相关且**可移植、有
 |---|---|---|---|
 | `browser-use` | `system.browser`（`open` 打开 URL） | 无 Playwright：不点击/不填表/不截图/不取文本 | `11f3e2e` |
 | `schedule` | `system.schedule`（提醒：到点弹通知） | 不是 cron 调度器：**不自动跑 agent**（无头运行处理不了审批） | `11f3e2e` |
-| `web`（搜索） | 仅 `fetch` | 搜索需外部 provider（API key），未做 | `98fcce0` |
 | `document`（PDF） | docx/pptx/xlsx/文本 | **PDF 明确 `EUNSUPPORTED`**（需额外库） | `1682029` |
 
 ## 三、有意不做

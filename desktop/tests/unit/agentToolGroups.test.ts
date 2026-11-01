@@ -71,7 +71,8 @@ describe('M3 分组表与档位预算', () => {
       'system.workflow',
       'system.ptc',
       'system.browser',
-      'system.schedule'
+      'system.schedule',
+      'system.web_search'
     ]
     for (const id of registered) {
       expect(TOOL_GROUP_MAP[id]).toBeDefined()
