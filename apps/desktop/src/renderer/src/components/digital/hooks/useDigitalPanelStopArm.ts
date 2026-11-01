@@ -1,6 +1,8 @@
 import { useCallback, useRef, useState } from 'react'
 
+import { translate } from '@mobai/shared/i18n'
 import { toErrorMessage } from '@mobai/shared/util/system'
+import { getLocalePreference } from '../../../localePreference'
 
 /**
  * 「停止本轮」的两段式二次确认（对齐 dsh JobView 的两段式 kill：先 arm 再确认）。
@@ -48,7 +50,7 @@ export function useDigitalPanelStopArm({
     void window.mbApi.task
       .cancel(runId === null ? {} : { taskId: runId })
       .then((result) => {
-        if (!result.cancelled) setNotice('本轮已结束，无需停止')
+        if (!result.cancelled) setNotice(translate(getLocalePreference(), 'agent.stop.noop'))
       })
       .catch((error: unknown) => {
         setLocalError(toErrorMessage(error))

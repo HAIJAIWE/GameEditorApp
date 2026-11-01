@@ -1,5 +1,6 @@
 import type { ReactElement } from 'react'
 
+import { useT } from '@mobai/client-ui'
 import type { DigitalPanelState, DigitalStep } from '@mobai/shared/agent/ui'
 
 /**
@@ -13,11 +14,11 @@ import type { DigitalPanelState, DigitalStep } from '@mobai/shared/agent/ui'
  * 我们还没有 plan 模式，所以不做假的计划审批，只做**执行进度**的可见化。
  */
 
-const STATUS_BADGE: Record<'running' | 'done' | 'failed', string> = {
-  running: '进行中',
-  done: '已完成',
-  failed: '有失败'
-}
+const STATUS_BADGE_KEYS = {
+  running: 'agent.plan.running',
+  done: 'agent.plan.done',
+  failed: 'agent.plan.failed'
+} as const
 
 /** 前导图标（16px 内联 SVG，零依赖）：三条横线 + 勾选位，暗示「清单进度」 */
 function PlanIcon(): ReactElement {
@@ -45,6 +46,7 @@ export function DigitalRunPlan({
   /** 有值时卡片底部出现「查看步骤」：展开下方的执行步骤列表（进度条只给概览，细节仍在列表里） */
   onExpand?: () => void
 }): ReactElement | null {
+  const t = useT()
   if (steps.length === 0) return null
 
   const total = steps.length
@@ -62,11 +64,11 @@ export function DigitalRunPlan({
         <span className="digital-run-plan-icon" aria-hidden="true">
           <PlanIcon />
         </span>
-        <span className="digital-run-plan-title">本轮进度</span>
+        <span className="digital-run-plan-title">{t('agent.plan.title')}</span>
         <span className="digital-run-plan-count" data-testid="digital-run-plan-count">
           {done}/{total}
         </span>
-        <span className={`digital-run-plan-badge badge-${badge}`}>{STATUS_BADGE[badge]}</span>
+        <span className={`digital-run-plan-badge badge-${badge}`}>{t(STATUS_BADGE_KEYS[badge])}</span>
       </div>
 
       <div
@@ -75,7 +77,11 @@ export function DigitalRunPlan({
         aria-valuemin={0}
         aria-valuemax={total}
         aria-valuenow={done}
-        aria-label={`本轮进度：${done}/${total} 步完成${failed > 0 ? `，${failed} 步失败` : ''}`}
+        aria-label={t('agent.plan.aria', {
+          done,
+          total,
+          failed: failed > 0 ? t('agent.plan.ariaFailed', { n: failed }) : ''
+        })}
       >
         {steps.map((step, index) => (
           <span
@@ -90,12 +96,13 @@ export function DigitalRunPlan({
 
       {runningStep !== undefined && (
         <div className="digital-run-plan-current" data-testid="digital-run-plan-current">
-          正在执行：<code>{runningStep.tool}</code>
+          {t('agent.plan.current')}
+          <code>{runningStep.tool}</code>
         </div>
       )}
       {failed > 0 && runningStep === undefined && (
         <div className="digital-run-plan-current is-error" data-testid="digital-run-plan-failed">
-          {failed} 步失败（展开执行步骤查看原因）
+          {t('agent.plan.failedHint', { n: failed })}
         </div>
       )}
       {onExpand !== undefined && (
@@ -105,7 +112,7 @@ export function DigitalRunPlan({
           data-testid="digital-run-plan-expand"
           onClick={onExpand}
         >
-          查看步骤
+          {t('agent.plan.viewSteps')}
         </button>
       )}
     </div>

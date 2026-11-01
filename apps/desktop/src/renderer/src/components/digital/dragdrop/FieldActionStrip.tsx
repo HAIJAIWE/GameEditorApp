@@ -1,3 +1,5 @@
+import { useT } from '@mobai/client-ui'
+import type { MessageKey } from '@mobai/shared/i18n'
 import { CHAPTER_LABELS } from '@mobai/shared/ceshu/reference'
 import {
   FIELD_ACTIONS,
@@ -12,10 +14,10 @@ import {
 } from '../../../ceshuFieldFocus'
 
 /** 字段审核状态徽标（与 ChapterForm 的徽标同词） */
-const STATUS_BADGES: Record<FieldReviewStatus, string> = {
-  ai_draft: 'AI 草稿',
-  human_edited: '人改',
-  approved: '已批准'
+const STATUS_BADGE_KEYS: Record<FieldReviewStatus, MessageKey> = {
+  ai_draft: 'agent.field.aiDraft',
+  human_edited: 'agent.field.humanEdited',
+  approved: 'agent.field.approved'
 }
 
 /**
@@ -26,12 +28,13 @@ const STATUS_BADGES: Record<FieldReviewStatus, string> = {
  * 结果回填到表单草稿（标记 AI 草稿待审），人核对后保存。
  */
 export default function FieldActionStrip() {
+  const t = useT()
   const { active, busy } = useCeshuFieldFocus()
 
   if (active === null) {
     return (
       <div className="field-action-strip empty" data-testid="field-action-strip-empty">
-        <span className="item-meta">点击中间编辑器的任意字段，可在这里对它局部重生成</span>
+        <span className="item-meta">{t('agent.field.emptyHint')}</span>
       </div>
     )
   }
@@ -44,10 +47,10 @@ export default function FieldActionStrip() {
         </span>
         {active.status !== undefined && (
           <span className={`field-badge ${active.status}`} data-testid="field-action-strip-status">
-            {STATUS_BADGES[active.status]}
+            {t(STATUS_BADGE_KEYS[active.status])}
           </span>
         )}
-        {busy && <span className="item-meta">生成中…</span>}
+        {busy && <span className="item-meta">{t('agent.field.busy')}</span>}
       </div>
       <div className="field-action-strip-actions">
         {FIELD_ACTIONS.map((action) => (

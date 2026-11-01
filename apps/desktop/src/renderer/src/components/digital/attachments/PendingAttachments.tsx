@@ -1,5 +1,6 @@
 import type { ReactElement } from 'react'
 
+import { useT } from '@mobai/client-ui'
 import { LucideIcon } from '../../common'
 import {
   attachmentExtension,
@@ -26,6 +27,7 @@ export function PendingAttachments({
   /** 正在把选中的文件复制进库：显示不确定进度（不画假百分比） */
   adding?: boolean
 }): ReactElement | null {
+  const t = useT()
   if (attachments.length === 0 && !adding) return null
   return (
     <div className="dsh-attachment-chips" data-testid="digital-attachments">
@@ -39,7 +41,7 @@ export function PendingAttachments({
       {adding && (
         <span className="dsh-attachment-chip dsh-attachment-adding" data-testid="digital-attachment-adding">
           <span className="dsh-attachment-thumb-loading" aria-hidden="true" />
-          导入中…
+          {t('agent.attach.importing')}
         </span>
       )}
     </div>
@@ -54,13 +56,14 @@ function metaOf(file: DigitalAttachment): string {
 }
 
 function RemoveButton({ name, onRemove }: { name: string; onRemove: (name: string) => void }): ReactElement {
+  const t = useT()
   return (
     <button
       type="button"
       className="dsh-attachment-remove"
       data-testid="digital-attachment-remove"
-      aria-label="移除附件"
-      title="移除附件"
+      aria-label={t('agent.attach.remove')}
+      title={t('agent.attach.remove')}
       onClick={() => onRemove(name)}
     >
       <LucideIcon name="x" size={12} />

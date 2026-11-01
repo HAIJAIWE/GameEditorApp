@@ -1,4 +1,6 @@
 import { createContext, memo, useContext, type ReactElement, type ReactNode } from 'react'
+
+import { useT } from '@mobai/client-ui'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
@@ -54,6 +56,7 @@ function CodeRenderer({
   className?: string
   children?: ReactNode
 }): ReactElement {
+  const t = useT()
   const inFence = useContext(InFenceContext)
   const onOpenFile = useContext(OnOpenFileContext)
   const text = String(children).replace(/\n$/, '')
@@ -63,7 +66,7 @@ function CodeRenderer({
         type="button"
         className="chat-file-link"
         data-testid="chat-file-link"
-        title={`在代码面板打开 ${text}`}
+        title={t('agent.chat.openInCode', { path: text })}
         onClick={() => onOpenFile(text)}
       >
         {text}

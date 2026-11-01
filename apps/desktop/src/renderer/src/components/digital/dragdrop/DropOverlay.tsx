@@ -1,6 +1,8 @@
 import { createPortal } from 'react-dom'
 import type { ReactElement } from 'react'
 
+import { useT } from '@mobai/client-ui'
+
 /**
  * 全屏投放邀请（对齐 dsh `ui-attachment` 的 `DropOverlay` / DragMask）。
  *
@@ -12,6 +14,7 @@ import type { ReactElement } from 'react'
  * `disabled`（智能体运行中）时换成「禁止」插图并去掉限制说明——与 dsh 一致。
  */
 export function DropOverlay({ disabled }: { disabled: boolean }): ReactElement {
+  const t = useT()
   return createPortal(
     <div className="digital-drop-mask" data-testid="digital-drop-overlay" role="status">
       <div className="digital-drop-wrap">
@@ -19,9 +22,9 @@ export function DropOverlay({ disabled }: { disabled: boolean }): ReactElement {
           <Illustration disabled={disabled} />
         </div>
         <div className="digital-drop-title">
-          {disabled ? '智能体运行中，暂不能添加附件' : '松开以添加附件'}
+          {disabled ? t('agent.drop.disabled') : t('agent.drop.release')}
         </div>
-        {!disabled && <div className="digital-drop-desc">支持任意文件，会复制进当前库</div>}
+        {!disabled && <div className="digital-drop-desc">{t('agent.drop.desc')}</div>}
       </div>
     </div>,
     document.body

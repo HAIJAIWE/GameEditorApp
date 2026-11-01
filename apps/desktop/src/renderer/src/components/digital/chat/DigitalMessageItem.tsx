@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react'
 
+import { useT } from '@mobai/client-ui'
 import ChatMarkdown from './ChatMarkdown'
 import { useAttachmentImage } from '../attachments/useAttachmentImage'
 import { formatAttachmentSize, type DigitalAttachment } from '@mobai/shared/util/io'
@@ -163,6 +164,8 @@ export function DigitalMessageItem({
   const [feedbackBusy, setFeedbackBusy] = useState(false)
   const [feedbackError, setFeedbackError] = useState<string | null>(null)
 
+  const t = useT()
+
   /** 图片 lightbox：非空时全屏查看原图；opener 用于关闭后把焦点还给缩略图 */
   const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null)
   const lightboxOpener = useRef<HTMLElement | null>(null)
@@ -205,12 +208,12 @@ export function DigitalMessageItem({
         setFeedbackComment('')
       })
       .catch(() => {
-        setFeedbackError('反馈提交失败，请重试')
+        setFeedbackError(t('agent.feedback.error'))
       })
       .finally(() => {
         setFeedbackBusy(false)
       })
-  }, [feedbackRating, feedbackComment, onFeedback])
+  }, [feedbackRating, feedbackComment, onFeedback, t])
 
   const showFeedback = role === 'assistant' && !streaming && onFeedback !== undefined
 
@@ -260,8 +263,8 @@ export function DigitalMessageItem({
           type="button"
           className="digital-message-action"
           data-testid="digital-message-copy"
-          aria-label={copied ? '已复制' : '复制消息'}
-          title={copied ? '已复制' : '复制消息'}
+          aria-label={copied ? t('agent.msg.copied') : t('agent.msg.copy')}
+          title={copied ? t('agent.msg.copied') : t('agent.msg.copy')}
           onClick={handleCopy}
         >
           {copied ? <CopiedIcon /> : <CopyIcon />}
@@ -273,8 +276,8 @@ export function DigitalMessageItem({
               className="digital-message-action digital-message-feedback"
               data-testid="digital-feedback-up"
               data-active={recordedRating === RATING_UP ? 'true' : undefined}
-              aria-label={recordedRating === RATING_UP ? '已标记有帮助' : '标记有帮助'}
-              title={recordedRating === RATING_UP ? '已标记有帮助' : '标记有帮助'}
+              aria-label={recordedRating === RATING_UP ? t('agent.msg.helpfulOn') : t('agent.msg.helpful')}
+              title={recordedRating === RATING_UP ? t('agent.msg.helpfulOn') : t('agent.msg.helpful')}
               onClick={() => openFeedback(RATING_UP)}
             >
               <ThumbUpIcon />
@@ -284,8 +287,8 @@ export function DigitalMessageItem({
               className="digital-message-action digital-message-feedback"
               data-testid="digital-feedback-down"
               data-active={recordedRating === RATING_DOWN ? 'true' : undefined}
-              aria-label={recordedRating === RATING_DOWN ? '已标记没帮助' : '标记没帮助'}
-              title={recordedRating === RATING_DOWN ? '已标记没帮助' : '标记没帮助'}
+              aria-label={recordedRating === RATING_DOWN ? t('agent.msg.unhelpfulOn') : t('agent.msg.unhelpful')}
+              title={recordedRating === RATING_DOWN ? t('agent.msg.unhelpfulOn') : t('agent.msg.unhelpful')}
               onClick={() => openFeedback(RATING_DOWN)}
             >
               <ThumbDownIcon />
@@ -303,8 +306,8 @@ export function DigitalMessageItem({
             rows={2}
             placeholder={
               feedbackRating === RATING_UP
-                ? '哪里有帮助？（可选，会记成偏好）'
-                : '哪里不对？（可选）'
+                ? t('agent.feedback.placeholderHelpful')
+                : t('agent.feedback.placeholderUnhelpful')
             }
             value={feedbackComment}
             onChange={(event) => setFeedbackComment(event.target.value)}
@@ -314,8 +317,8 @@ export function DigitalMessageItem({
               type="button"
               className="digital-message-action"
               data-testid="digital-feedback-submit"
-              aria-label="提交反馈"
-              title="提交反馈"
+              aria-label={t('agent.feedback.submit')}
+              title={t('agent.feedback.submit')}
               disabled={feedbackBusy}
               onClick={submitFeedback}
             >
@@ -325,8 +328,8 @@ export function DigitalMessageItem({
               type="button"
               className="digital-message-action"
               data-testid="digital-feedback-cancel"
-              aria-label="取消"
-              title="取消"
+              aria-label={t('agent.interaction.cancel')}
+              title={t('agent.interaction.cancel')}
               onClick={closeFeedback}
             >
               <XIcon />
@@ -399,6 +402,7 @@ function ImageAttachment({
 }): ReactElement {
   // 父级按 `file.name` 作 key，路径变化会重挂组件；读图逻辑复用共享 hook。
   const { src, failed } = useAttachmentImage(file.name)
+  const t = useT()
 
   if (failed) {
     return <FileAttachmentChip file={file} {...(onOpenFile !== undefined ? { onOpen: onOpenFile } : {})} />
@@ -411,7 +415,7 @@ function ImageAttachment({
       data-testid="digital-message-image"
       data-variant={variant}
       title={file.name}
-      aria-label={`打开图片 ${file.name}`}
+      aria-label={t('agent.image.open', { name: file.name })}
       onClick={(event) => {
         if (src !== null) onOpenImage(src, file.name, event.currentTarget)
       }}
@@ -435,6 +439,7 @@ export function AttachmentLightbox({
   alt: string
   onClose: () => void
 }): ReactElement {
+  const t = useT()
   useEffect(() => {
     const onKey = (event: KeyboardEvent): void => {
       if (event.key === 'Escape') onClose()
@@ -449,15 +454,15 @@ export function AttachmentLightbox({
       data-testid="digital-lightbox"
       role="dialog"
       aria-modal="true"
-      aria-label={`查看图片 ${alt}`}
+      aria-label={t('agent.lightbox.aria', { alt })}
       onClick={onClose}
     >
       <button
         type="button"
         className="digital-lightbox-close"
         data-testid="digital-lightbox-close"
-        aria-label="关闭"
-        title="关闭（Esc）"
+        aria-label={t('common.close')}
+        title={t('agent.lightbox.close')}
         onClick={(event) => {
           event.stopPropagation()
           onClose()

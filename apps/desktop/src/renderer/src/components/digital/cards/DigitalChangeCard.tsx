@@ -1,6 +1,8 @@
 import { useState, type ReactElement } from 'react'
 
+import { useT } from '@mobai/client-ui'
 import type { OperationRecord } from '@mobai/shared/agent/observability'
+import type { MessageKey } from '@mobai/shared/i18n'
 
 /**
  * 对话内联「本轮改动」卡（dsh deliverables 卡的本土对应物）。
@@ -17,12 +19,10 @@ import type { OperationRecord } from '@mobai/shared/agent/observability'
 /** 折叠前显示的行数（对齐 dsh `ChangedFiles` 的 COLLAPSED_ROWS） */
 const COLLAPSED_ROWS = 4
 
-const EMPTY_TEXT = '暂无改动记录（智能体尚未修改数据）'
-
-const OP_LABELS: Record<OperationRecord['opType'], string> = {
-  create: '新建',
-  update: '修改',
-  delete: '删除'
+const OP_LABEL_KEYS: Record<OperationRecord['opType'], MessageKey> = {
+  create: 'agent.op.create',
+  update: 'agent.op.update',
+  delete: 'agent.op.delete'
 }
 
 /** 操作徽标 / 统计项的顺序（新建 → 修改 → 删除，与用户的心理顺序一致） */
@@ -64,6 +64,7 @@ export function DigitalChangeList({
   empty?: string
   loading?: boolean
 }): ReactElement {
+  const t = useT()
   const [expanded, setExpanded] = useState(false)
   const foldable = changes.length > COLLAPSED_ROWS
   const rows = foldable && !expanded ? changes.slice(0, COLLAPSED_ROWS) : changes
@@ -71,12 +72,12 @@ export function DigitalChangeList({
   if (changes.length === 0) {
     return (
       <p className="digital-change-empty" data-loading={loading === true ? 'true' : undefined}>
-        {empty ?? EMPTY_TEXT}
+        {empty ?? t('agent.change.empty')}
       </p>
     )
   }
 
-  const title = changes.length === 1 ? `改动「${changes[0].itemName}」` : `改动 ${changes.length} 项`
+  const title = changes.length === 1 ? t('agent.change.one', { name: changes[0].itemName }) : t('agent.change.many', { n: changes.length })
 
   return (
     <div className="digital-change-body" data-loading={loading === true ? 'true' : undefined}>
@@ -87,7 +88,7 @@ export function DigitalChangeList({
           <span className="digital-change-stat">
             {OP_ORDER.filter((op) => countOf(changes, op) > 0).map((op) => (
               <span key={op} className={`digital-change-stat-item digital-change-stat-${OP_CLASS[op]}`}>
-                {OP_LABELS[op]} {countOf(changes, op)}
+                {t(OP_LABEL_KEYS[op])} {countOf(changes, op)}
               </span>
             ))}
           </span>
@@ -102,7 +103,7 @@ export function DigitalChangeList({
             data-testid="digital-change-row"
             data-op={change.opType}
           >
-            <span className={`digital-change-op op-${change.opType}`}>{OP_LABELS[change.opType]}</span>
+            <span className={`digital-change-op op-${change.opType}`}>{t(OP_LABEL_KEYS[change.opType])}</span>
             <span className="digital-change-name" title={change.itemName}>
               {change.itemName}
             </span>
@@ -121,7 +122,7 @@ export function DigitalChangeList({
           aria-expanded={expanded}
           onClick={() => setExpanded((value) => !value)}
         >
-          {expanded ? '收起 ▴' : `全部 ${changes.length} 项 ▾`}
+          {expanded ? `${t('agent.change.collapse')} ▴` : `${t('agent.change.expand', { n: changes.length })} ▾`}
         </button>
       )}
     </div>
@@ -147,6 +148,7 @@ export function DigitalChangeCard({
   /** 有值时卡头右侧出现「查看全部」（跳「最近改动」面板） */
   onOpenAll?: () => void
 }): ReactElement | null {
+  const t = useT()
   if (changes.length === 0) return null
 
   return (
@@ -157,10 +159,10 @@ export function DigitalChangeCard({
       data-since={since ?? undefined}
     >
       <div className="digital-change-card-head">
-        <span className="home-section-label">本次改动</span>
+        <span className="home-section-label">{t('agent.change.cardTitle')}</span>
         {onOpenAll !== undefined && (
           <button type="button" className="btn-link digital-change-all" onClick={onOpenAll}>
-            查看全部
+            {t('agent.change.viewAll')}
           </button>
         )}
       </div>

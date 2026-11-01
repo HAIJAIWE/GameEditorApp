@@ -1,6 +1,8 @@
 import { useState, type ReactNode } from 'react'
 
+import { useT } from '@mobai/client-ui'
 import { LucideIcon } from '../../common'
+import { type MessageKey, type TranslateParams } from '@mobai/shared/i18n'
 import type { LucideIconName } from '@mobai/shared/util/ui'
 import { diffRows, diffTotals, errorSummary, formatToolArgs } from '@mobai/shared/agent/tools'
 import { type DigitalPanelState, type DigitalStep } from '@mobai/shared/agent/ui'
@@ -135,14 +137,17 @@ function ToolIcon({ variant }: { variant: ToolVariant }) {
 }
 
 /** 折叠态摘要：think/batch 给固定文案，tool 取结果首行（失败时取错误行），截断 */
-function stepSummary(step: DigitalStep): string {
-  if (step.kind === 'think') return step.status === 'running' ? '思考中…' : ''
-  if (step.kind === 'batch') return step.status === 'running' ? '并行执行中…' : ''
+function stepSummary(step: DigitalStep, t: TFn): string {
+  if (step.kind === 'think') return step.status === 'running' ? t('agent.step.thinking') : ''
+  if (step.kind === 'batch') return step.status === 'running' ? t('agent.step.parallel') : ''
   // 失败行挑「像错误」的那行（首行常常只是 `Command failed with exit code 1`）
   const first = step.status === 'failed' ? errorSummary(step.result) : ((step.result ?? '').trim().split('\n')[0] ?? '')
   if (first === '') return ''
   return first.length > 56 ? `${first.slice(0, 56)}…` : first
 }
+
+/** 绑定语言的便捷类型（与 `translate.translator` 返回值一致） */
+type TFn = (key: MessageKey, params?: TranslateParams) => string
 
 /** 参数摘要：美化后的 JSON 多行，摘要必须是单行，故把空白折成一个空格 */
 function argsSummary(text: string): string {
@@ -167,8 +172,9 @@ function ToolStepCard({ step, resolveView }: { step: DigitalStep; resolveView?: 
   const hasBody = hasResult || args.text !== '' || images.length > 0
   // 插件 keyed slot 优先，其次内置按工具名分派
   const view = resolveView?.(step.tool) ?? resolveToolView(step.tool)
+  const t = useT()
   const variant = toolVariant(step.tool)
-  const summary = stepSummary(step)
+  const summary = stepSummary(step, t)
   const diff = hasResult ? diffRows(step.result) : null
   // 行头的 `+N −M`（借 dsh ToolRow 的 diffAdded/diffRemoved）：折叠时也能看出改了多少
   const totals = diff !== null ? diffTotals(diff) : null
@@ -207,9 +213,9 @@ function ToolStepCard({ step, resolveView }: { step: DigitalStep; resolveView?: 
         )}
         <span className={`digital-step-status digital-step-status-${step.status}`}>
           {step.status === 'running' && <span className="digital-step-dot" aria-hidden="true" />}
-          {step.status === 'running' ? <span className="is-shimmer">执行中</span> : null}
-          {step.status === 'done' ? '完成' : null}
-          {step.status === 'failed' ? '失败' : null}
+          {step.status === 'running' ? <span className="is-shimmer">{t('agent.step.running')}</span> : null}
+          {step.status === 'done' ? t('agent.step.done') : null}
+          {step.status === 'failed' ? t('agent.step.failed') : null}
         </span>
         {hasBody && (
           <span className="digital-step-chevron" aria-hidden="true">
@@ -227,7 +233,7 @@ function ToolStepCard({ step, resolveView }: { step: DigitalStep; resolveView?: 
                 aria-expanded={argsOpen}
                 onClick={() => setArgsOpen((value) => !value)}
               >
-                <span className="digital-step-body-label">参数</span>
+                <span className="digital-step-body-label">{t('agent.step.argsLabel')}</span>
                 {!argsOpen && <span className="digital-step-args-summary">{argsSummary(args.text)}</span>}
                 <span className="digital-step-chevron" aria-hidden="true">
                   {argsOpen ? '▾' : '▸'}
@@ -242,7 +248,7 @@ function ToolStepCard({ step, resolveView }: { step: DigitalStep; resolveView?: 
           )}
           {hasResult && (
             <>
-              <span className="digital-step-body-label">输出</span>
+              <span className="digital-step-body-label">{t('agent.step.outputLabel')}</span>
               {diff !== null ? (
                 <pre className="digital-step-diff" data-testid="digital-step-diff">
                   {diff.map((row, index) => (
@@ -258,7 +264,7 @@ function ToolStepCard({ step, resolveView }: { step: DigitalStep; resolveView?: 
           )}
           {images.length > 0 && (
             <>
-              <span className="digital-step-body-label">图像</span>
+              <span className="digital-step-body-label">{t('agent.step.imagesLabel')}</span>
               <div className="digital-step-images" data-testid="digital-step-images">
                 {images.map((src, index) => (
                   <button
@@ -266,10 +272,10 @@ function ToolStepCard({ step, resolveView }: { step: DigitalStep; resolveView?: 
                     type="button"
                     className="digital-step-image-thumb"
                     data-testid="digital-step-image-thumb"
-                    aria-label={`查看工具返回的图像 ${index + 1}`}
-                    onClick={() => setLightbox({ src, alt: `工具返回的图像 ${index + 1}` })}
+                    aria-label={t('agent.step.toolImage', { n: index + 1 })}
+                    onClick={() => setLightbox({ src, alt: t('agent.step.toolImage', { n: index + 1 }) })}
                   >
-                    <img src={src} alt={`工具返回的图像 ${index + 1}`} />
+                    <img src={src} alt={t('agent.step.toolImage', { n: index + 1 })} />
                   </button>
                 ))}
               </div>
@@ -294,6 +300,7 @@ function TurnGroup({
   steps: DigitalStep[]
   resolveView?: ToolViewResolver
 }) {
+  const t = useT()
   const [expanded, setExpanded] = useState(true)
   const failed = steps.some((step) => step.status === 'failed')
   return (
@@ -304,9 +311,9 @@ function TurnGroup({
         aria-expanded={expanded}
         onClick={() => setExpanded((value) => !value)}
       >
-        <span className="digital-turn-label">第 {turn + 1} 轮</span>
+        <span className="digital-turn-label">{t('agent.step.turn', { n: turn + 1 })}</span>
         <span className="item-meta">
-          {steps.length} 步{failed ? ' · 有失败' : ''}
+          {t('agent.step.turnMeta', { n: steps.length, failed: failed ? t('agent.step.turnMetaFailed') : '' })}
         </span>
         <span className="digital-step-chevron" aria-hidden="true">
           {expanded ? '▾' : '▸'}

@@ -1,5 +1,6 @@
 import { useState, type ReactElement } from 'react'
 
+import { useT } from '@mobai/client-ui'
 import type { DeliveryRecord } from '@mobai/shared/agent/observability'
 import { attachmentExtension, formatAttachmentSize } from '@mobai/shared/util/io'
 
@@ -26,19 +27,19 @@ export function DigitalDeliveryCard({
    */
   onOpen?: (path: string) => void
 }): ReactElement | null {
+  const t = useT()
   const [expanded, setExpanded] = useState(false)
   if (deliveries.length === 0) return null
   const foldable = deliveries.length > COLLAPSED_DELIVERIES
   const rows = foldable && !expanded ? deliveries.slice(0, COLLAPSED_DELIVERIES) : deliveries
+  const title = deliveries.length === 1 ? t('agent.delivery.one') : t('agent.delivery.many', { n: deliveries.length })
   return (
     <div className="digital-delivery-card" data-testid="digital-delivery-card" data-count={deliveries.length}>
       <div className="digital-delivery-head">
         <span className="digital-delivery-tile" aria-hidden="true">
           {TILE_ICON}
         </span>
-        <span className="digital-delivery-title">
-          {deliveries.length === 1 ? '交付 1 个文件' : `交付 ${deliveries.length} 个文件`}
-        </span>
+        <span className="digital-delivery-title">{title}</span>
       </div>
       <ul className="digital-delivery-list">
         {rows.map((file) => {
@@ -74,7 +75,7 @@ export function DigitalDeliveryCard({
           aria-expanded={expanded}
           onClick={() => setExpanded((value) => !value)}
         >
-          {expanded ? '收起 ▴' : `全部 ${deliveries.length} 个文件 ▾`}
+          {expanded ? `${t('agent.change.collapse')} ▴` : `${t('agent.delivery.expand', { n: deliveries.length })} ▾`}
         </button>
       )}
     </div>

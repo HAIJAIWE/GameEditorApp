@@ -1,3 +1,4 @@
+import { useT } from '@mobai/client-ui'
 import { JOB_STATUS_LABELS, type JobRecord } from '@mobai/shared/agent/jobs/jobRegistry'
 
 /** 已运行秒数（保留 1 位） */
@@ -18,12 +19,14 @@ export function DigitalJobList({
   jobs: JobRecord[]
   onCancel?: (id: string) => void
 }) {
+  const t = useT()
   if (jobs.length === 0) return null
   const running = jobs.filter((job) => job.status === 'running').length
+  const inner = running > 0 ? t('agent.jobs.runningInner', { running, total: jobs.length }) : t('agent.jobs.totalInner', { total: jobs.length })
   return (
     <div className="digital-jobs" data-testid="digital-jobs">
       <div className="home-section-label">
-        后台任务（{running > 0 ? `${running} 运行中 / ` : ''}共 {jobs.length}）
+        {t('agent.jobs.title', { inner })}
       </div>
       <ul className="digital-job-list">
         {jobs.map((job) => (
@@ -45,7 +48,7 @@ export function DigitalJobList({
                   data-testid="digital-job-cancel"
                   onClick={() => onCancel(job.id)}
                 >
-                  取消
+                  {t('agent.jobs.cancel')}
                 </button>
               )}
             </div>

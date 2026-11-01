@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, type ReactElement } from 'react'
 
+import { useT } from '@mobai/client-ui'
+import type { MessageKey } from '@mobai/shared/i18n'
 import { LucideIcon } from '../../common'
 import { SHORTCUTS, type ShortcutEntry } from './shortcutsData'
 
@@ -11,14 +13,15 @@ import { SHORTCUTS, type ShortcutEntry } from './shortcutsData'
  * 没有可改写的键位注册表，做录制就是假按钮）。Esc / 点遮罩 / 关闭按钮都能收起。
  */
 
-const GROUP_LABELS: Record<ShortcutEntry['group'], string> = {
-  composer: '输入框',
-  app: '全局'
+const GROUP_LABEL_KEYS: Record<ShortcutEntry['group'], MessageKey> = {
+  composer: 'agent.shortcuts.composer',
+  app: 'agent.shortcuts.app'
 }
 
 const GROUPS: ShortcutEntry['group'][] = ['composer', 'app']
 
 export function ShortcutsDialog({ onClose }: { onClose: () => void }): ReactElement {
+  const t = useT()
   const [query, setQuery] = useState('')
   const searchRef = useRef<HTMLInputElement>(null)
 
@@ -41,7 +44,8 @@ export function ShortcutsDialog({ onClose }: { onClose: () => void }): ReactElem
       ? SHORTCUTS
       : SHORTCUTS.filter(
           (shortcut) =>
-            shortcut.label.toLowerCase().includes(normalized) || shortcut.keys.toLowerCase().includes(normalized)
+            t(shortcut.labelKey).toLowerCase().includes(normalized) ||
+            shortcut.keys.toLowerCase().includes(normalized)
         )
 
   return (
@@ -49,17 +53,17 @@ export function ShortcutsDialog({ onClose }: { onClose: () => void }): ReactElem
       <div
         className="digital-shortcuts-card"
         role="dialog"
-        aria-label="键盘快捷键"
+        aria-label={t('agent.shortcuts')}
         onClick={(event) => event.stopPropagation()}
       >
         <div className="digital-shortcuts-head">
-          <span className="digital-shortcuts-title">键盘快捷键</span>
+          <span className="digital-shortcuts-title">{t('agent.shortcuts')}</span>
           <button
             type="button"
             className="btn slim"
             data-testid="digital-shortcuts-close"
-            aria-label="关闭"
-            title="关闭（Esc）"
+            aria-label={t('common.close')}
+            title={t('agent.lightbox.close')}
             onClick={onClose}
           >
             <LucideIcon name="x" size={14} />
@@ -69,14 +73,14 @@ export function ShortcutsDialog({ onClose }: { onClose: () => void }): ReactElem
           ref={searchRef}
           className="form-input digital-shortcuts-search"
           data-testid="digital-shortcuts-search"
-          placeholder="搜索动作或按键…"
+          placeholder={t('agent.shortcuts.search')}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          aria-label="搜索快捷键"
+          aria-label={t('agent.shortcuts.searchAria')}
         />
         {matches.length === 0 ? (
           <p className="digital-shortcuts-empty" data-testid="digital-shortcuts-empty">
-            没有匹配的快捷键
+            {t('agent.shortcuts.empty')}
           </p>
         ) : (
           GROUPS.map((group) => {
@@ -84,11 +88,11 @@ export function ShortcutsDialog({ onClose }: { onClose: () => void }): ReactElem
             if (rows.length === 0) return null
             return (
               <div className="digital-shortcuts-group" key={group}>
-                <div className="digital-shortcuts-group-label">{GROUP_LABELS[group]}</div>
+                <div className="digital-shortcuts-group-label">{t(GROUP_LABEL_KEYS[group])}</div>
                 <dl className="digital-shortcuts-list">
                   {rows.map((shortcut) => (
                     <div className="digital-shortcuts-row" key={shortcut.id} data-testid="digital-shortcut-row">
-                      <dt>{shortcut.label}</dt>
+                      <dt>{t(shortcut.labelKey)}</dt>
                       <dd>
                         <kbd className="digital-shortcut-key">{shortcut.keys}</kbd>
                       </dd>
@@ -99,7 +103,7 @@ export function ShortcutsDialog({ onClose }: { onClose: () => void }): ReactElem
             )
           })
         )}
-        <p className="digital-shortcuts-note">macOS 上 Ctrl 对应 ⌘。</p>
+        <p className="digital-shortcuts-note">{t('agent.shortcuts.note')}</p>
       </div>
     </div>
   )

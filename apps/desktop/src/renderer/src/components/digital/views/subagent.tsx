@@ -1,5 +1,6 @@
 import { useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
 import { LucideIcon } from '../../common'
 import type { DigitalPanelState } from '@mobai/shared/agent/ui'
 
@@ -17,6 +18,7 @@ function SubagentControls({
   onSteer: (id: string, content: string) => void
   onStop: (id: string) => void
 }) {
+  const t = useT()
   const [text, setText] = useState('')
   const submit = (): void => {
     const content = text.trim()
@@ -29,7 +31,7 @@ function SubagentControls({
       <input
         className="form-input digital-subagent-input"
         data-testid="digital-subagent-input"
-        placeholder="给子智能体插话…"
+        placeholder={t('agent.subagent.steerPlaceholder')}
         value={text}
         onChange={(event) => setText(event.target.value)}
         onKeyDown={(event) => {
@@ -43,10 +45,10 @@ function SubagentControls({
         disabled={text.trim() === ''}
         onClick={submit}
       >
-        插话
+        {t('agent.subagent.steer')}
       </button>
       <button type="button" className="btn slim" data-testid="digital-subagent-stop" onClick={() => onStop(id)}>
-        停止
+        {t('agent.subagent.stop')}
       </button>
     </div>
   )
@@ -65,10 +67,11 @@ export function DigitalSubagentList({
   onSteer?: (id: string, content: string) => void
   onStop?: (id: string) => void
 }) {
+  const t = useT()
   if (subagents.length === 0) return null
   return (
     <div className="digital-subagents" data-testid="digital-subagents">
-      <div className="home-section-label">子智能体（{subagents.length}）</div>
+      <div className="home-section-label">{t('agent.subagent.heading', { n: subagents.length })}</div>
       <ul className="digital-subagent-list">
         {subagents.map((sub) => (
           <li
@@ -80,7 +83,7 @@ export function DigitalSubagentList({
             <span className="digital-subagent-id">{sub.id}</span>
             <span className="digital-subagent-task">{sub.task}</span>
             <span className="item-meta">
-              {sub.status === 'running' ? '执行中…' : sub.status === 'done' ? <LucideIcon name="check" size={12} /> : <LucideIcon name="x" size={12} />}
+              {sub.status === 'running' ? t('agent.subagent.running') : sub.status === 'done' ? <LucideIcon name="check" size={12} /> : <LucideIcon name="x" size={12} />}
             </span>
             {sub.result !== undefined && sub.result !== '' && (
               <div className="digital-subagent-result">{sub.result}</div>

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 
+import { useT } from '@mobai/client-ui'
+import type { MessageKey } from '@mobai/shared/i18n'
 import { defaultDraftName } from '@mobai/shared/agent/conversation'
 
 import { DigitalChangeCard } from '../cards/DigitalChangeCard'
@@ -75,20 +77,20 @@ import { LLM_PROVIDER_PRESETS } from '@mobai/shared/config/llm'
  * 停止二次确认、斜杠命令/@引用、人机协作答复、本轮产物），本文件只留装配与 JSX。
  */
 
-const STATUS_LABELS: Record<DigitalPanelState['status'], string> = {
-  idle: '待命',
-  thinking: '思考中…',
-  waiting_approval: '等待确认',
-  waiting_input: '等待回答',
-  done: '已完成',
-  error: '出错'
+const STATUS_LABEL_KEYS: Record<DigitalPanelState['status'], MessageKey> = {
+  idle: 'agent.status.idle',
+  thinking: 'agent.thinking',
+  waiting_approval: 'agent.status.waitingApproval',
+  waiting_input: 'agent.status.waitingInput',
+  done: 'agent.status.done',
+  error: 'agent.status.error'
 }
 
 /** M3：档位标识（与 `turn_stats.tier` 同源；让用户一眼看出本轮走云端还是本地） */
-const TIER_LABELS: Record<AgentRunTier, string> = {
-  cloud: '云端',
-  local: '本地',
-  unconfigured: '未配置'
+const TIER_LABEL_KEYS: Record<AgentRunTier, MessageKey> = {
+  cloud: 'agent.tier.cloud',
+  local: 'agent.tier.local',
+  unconfigured: 'agent.tier.unconfigured'
 }
 /** 档位对应的 Lucide 图标（零 emoji，对齐 dsh 的图标化表达） */
 const TIER_ICONS: Record<AgentRunTier, LucideIconName> = {
@@ -135,6 +137,7 @@ export default function DigitalPanel({
   )
   const api = useMemo(() => (window.mbApi as unknown as { agent: ChatApi }).agent, [])
   const running = isRunning(state)
+  const t = useT()
   const [input, setInput] = useState('')
   /**
    * 本轮目标（对齐 dsh GoalBar）：输入框上方目标条里的一句话，随每次发送一起发给主进程，
@@ -516,26 +519,26 @@ export default function DigitalPanel({
    */
   type CommandWithRun = DigitalCommand & { run: () => void }
   const COMMANDS: CommandWithRun[] = [
-    { id: 'new', label: '新建对话', hint: '清空当前记录，开始新对话（可重新选择智能体预设）', run: () => setConfirmNewChat(true) },
+    { id: 'new', label: t('agent.cmd.new'), hint: t('agent.cmd.newHint'), run: () => setConfirmNewChat(true) },
     {
       id: 'drafts',
-      label: '草稿管理',
-      hint: '保存 / 恢复对话草稿',
+      label: t('agent.cmd.drafts'),
+      hint: t('agent.cmd.draftsHint'),
       run: () => openDraftMenu()
     },
     {
       id: 'capabilities',
-      label: '能力清单',
-      hint: '查看工具与风险等级',
+      label: t('agent.cmd.capabilities'),
+      hint: t('agent.cmd.capabilitiesHint'),
       enabled: onOpenCapabilities !== undefined,
       run: () => onOpenCapabilities?.()
     },
-    { id: 'clear', label: '清空输入', hint: '只清空输入框，不发送', run: () => setInput('') },
+    { id: 'clear', label: t('agent.cmd.clear'), hint: t('agent.cmd.clearHint'), run: () => setInput('') },
     {
       id: 'help',
-      label: '帮助',
-      hint: '斜杠命令与发送方式',
-      run: () => setNotice('输入 / 打开命令；直接输入文字则发送给智能体。')
+      label: t('agent.cmd.help'),
+      hint: t('agent.cmd.helpHint'),
+      run: () => setNotice(t('agent.cmd.helpText'))
     }
   ]
   const {
@@ -556,7 +559,7 @@ export default function DigitalPanel({
       <div className="changelog-header">
         <span className="chapter-form-title">
           <LucideIcon name="bot" size={16} />
-          智能体
+          {t('agent.title')}
         </span>
         {/* 运行中/已有对话：预设只读显示（借 dsh AgentPresetLabel，会话级锁定）；
             改预设请走「新建对话」——空态会重新出现预设选择（借 dsh AgentPresetSeat）。 */}
@@ -564,14 +567,14 @@ export default function DigitalPanel({
           <span
             className="digital-preset-chip"
             data-testid="digital-preset-chip"
-            title={`本对话的智能体预设：${presetLabel(preset)}（新建对话可更改）`}
+            title={t('agent.preset.chipTitle', { label: presetLabel(preset) })}
           >
             {presetLabel(preset)}
           </span>
         )}
         <div className="editor-actions">
           <span className="item-meta" data-testid="digital-status">
-            {STATUS_LABELS[state.status]}
+            {t(STATUS_LABEL_KEYS[state.status])}
           </span>
 
           {/* 「新建对话」。
@@ -583,8 +586,8 @@ export default function DigitalPanel({
             type="button"
             className="btn slim"
             data-testid="digital-clear"
-            title="新建对话（清空当前记录）"
-            aria-label="新建对话（清空当前记录）"
+            title={t('agent.newChat.hint')}
+            aria-label={t('agent.newChat.hint')}
             onClick={() => setConfirmNewChat(true)}
           >
             <LucideIcon name="trash" size={14} />
@@ -597,8 +600,8 @@ export default function DigitalPanel({
               type="button"
               className="btn slim"
               data-testid="digital-draft"
-              title="草稿管理（保存 / 恢复对话）"
-              aria-label="草稿管理（保存 / 恢复对话）"
+              title={t('agent.draft.menu')}
+              aria-label={t('agent.draft.menu')}
               aria-haspopup="menu"
               aria-expanded={draftMenuOpen}
               onClick={toggleDraftMenu}
@@ -624,15 +627,15 @@ export default function DigitalPanel({
                       disabled={draftBusy}
                       onClick={() => void handleSaveDraft()}
                     >
-                      保存为草稿
+                      {t('agent.draft.save')}
                     </button>
                   </div>
                 </div>
                 <div className="toolbar-more-group">
-                  <div className="digital-draft-list-label">最近草稿</div>
+                  <div className="digital-draft-list-label">{t('agent.draft.recent')}</div>
                   {drafts.length === 0 ? (
                     <div className="item-meta" data-testid="digital-draft-empty">
-                      暂无草稿
+                      {t('agent.draft.empty')}
                     </div>
                   ) : (
                     drafts.map((draft) => (
@@ -644,7 +647,8 @@ export default function DigitalPanel({
                         data-testid="digital-draft-load"
                         onClick={() => void handleLoadDraft(draft.path)}
                       >
-                        {draft.name}（{draft.time} · {draft.messageCount} 条）
+                        {draft.name}
+                        {t('agent.draft.entryMeta', { time: draft.time, count: draft.messageCount })}
                       </button>
                     ))
                   )}
@@ -657,8 +661,8 @@ export default function DigitalPanel({
               type="button"
               className="btn slim"
               data-testid="digital-capabilities"
-              title="查看智能体能力清单（工具与风险等级）"
-              aria-label="查看智能体能力清单（工具与风险等级）"
+              title={t('agent.capabilities')}
+              aria-label={t('agent.capabilities')}
               onClick={onOpenCapabilities}
             >
               <LucideIcon name="clipboard" size={14} />
@@ -668,8 +672,8 @@ export default function DigitalPanel({
             type="button"
             className="btn slim"
             data-testid="digital-shortcuts"
-            title="键盘快捷键"
-            aria-label="键盘快捷键"
+            title={t('agent.shortcuts')}
+            aria-label={t('agent.shortcuts')}
             onClick={() => setShortcutsOpen(true)}
           >
             <LucideIcon name="info" size={14} />
@@ -679,7 +683,7 @@ export default function DigitalPanel({
 
       {/* 中栏子页签（对齐 dsh：标题行下方 对话 / 轨迹；dsh 还有「上下文」，
           但 token 用量我们只有 totalTokens 一个数，撑不起那一屏，宁缺勿造） */}
-      <nav className="conv-tabs" data-testid="conv-tabs" aria-label="对话视图">
+      <nav className="conv-tabs" data-testid="conv-tabs" aria-label={t('agent.tabs.aria')}>
         <button
           type="button"
           className={`conv-tab${centerTab === 'chat' ? ' active' : ''}`}
@@ -687,7 +691,7 @@ export default function DigitalPanel({
           aria-current={centerTab === 'chat' ? 'page' : undefined}
           onClick={() => setCenterTab('chat')}
         >
-          对话
+          {t('agent.tab.chat')}
         </button>
         <button
           type="button"
@@ -696,7 +700,7 @@ export default function DigitalPanel({
           aria-current={centerTab === 'trajectory' ? 'page' : undefined}
           onClick={() => setCenterTab('trajectory')}
         >
-          轨迹
+          {t('agent.tab.trajectory')}
         </button>
       </nav>
 
@@ -704,14 +708,14 @@ export default function DigitalPanel({
         <div className="conv-trajectory" data-testid="conv-trajectory">
           {state.runStats.turns > 0 ? (
             <div className="conv-trajectory-summary">
-              <span>{state.runStats.turns} 轮</span>
-              <span>{state.steps.length} 步</span>
-              <span>{state.runStats.toolCalls} 次工具</span>
+              <span>{t('agent.traj.turns', { n: state.runStats.turns })}</span>
+              <span>{t('agent.traj.steps', { n: state.steps.length })}</span>
+              <span>{t('agent.traj.tools', { n: state.runStats.toolCalls })}</span>
               <span>{state.runStats.totalTokens} token</span>
               <span>{state.runStats.latencyMs} ms</span>
             </div>
           ) : (
-            <p className="conv-trajectory-empty">这一轮还没有执行记录。</p>
+            <p className="conv-trajectory-empty">{t('agent.traj.empty')}</p>
           )}
           {state.steps.length > 0 && (
             <DigitalStepList steps={state.steps} resolveView={resolveToolViewFromPlugins} />
@@ -733,9 +737,9 @@ export default function DigitalPanel({
 
       {sessionHint !== null && (
         <div className="notice-banner inline" data-testid="digital-session-prompt">
-          检测到上次会话（{sessionHint.messageCount} 条消息，{sessionHint.savedAt}）
+          {t('agent.session.detected', { count: sessionHint.messageCount, savedAt: sessionHint.savedAt })}
           <button type="button" className="btn slim" data-testid="digital-session-restore" onClick={handleRestore}>
-            恢复
+            {t('agent.session.restore')}
           </button>
           <button
             type="button"
@@ -743,7 +747,7 @@ export default function DigitalPanel({
             data-testid="digital-session-dismiss"
             onClick={() => setSessionHint(null)}
           >
-            忽略
+            {t('agent.session.dismiss')}
           </button>
         </div>
       )}
@@ -789,14 +793,14 @@ export default function DigitalPanel({
             {/* 开新对话入口（借 dsh AgentPresetSeat）：选预设 → 开聊后锁定为只读 */}
             <div className="digital-preset-seat">
               <label className="home-section-label" htmlFor="digital-preset">
-                选择智能体预设
+                {t('agent.preset.select')}
               </label>
               <select
                 id="digital-preset"
                 className="form-input digital-preset"
                 data-testid="digital-preset"
                 value={preset}
-                title={`智能体预设：${presetLabel(preset)}`}
+                title={t('agent.preset.title', { label: presetLabel(preset) })}
                 onChange={(event) => changePreset(event.target.value)}
               >
                 {AGENT_PRESETS.map((option) => (
@@ -806,7 +810,7 @@ export default function DigitalPanel({
                 ))}
               </select>
             </div>
-            <div className="empty">描述你想做的事，我会调用工具完成（例如「列出所有角色数据」）。</div>
+            <div className="empty">{t('agent.emptyHint')}</div>
           </>
         )}
       </div>
@@ -829,7 +833,7 @@ export default function DigitalPanel({
             data-testid="digital-steps-toggle"
             onClick={() => setStepsOpen((open) => !open)}
           >
-            {stepsOpen ? '收起执行步骤' : `展开执行步骤（${state.steps.length}）`}
+            {stepsOpen ? t('agent.steps.collapse') : t('agent.steps.expand', { n: state.steps.length })}
           </button>
           {stepsOpen && <DigitalStepList steps={state.steps} resolveView={resolveToolViewFromPlugins} />}
         </div>
@@ -837,11 +841,12 @@ export default function DigitalPanel({
 
       {state.runStats.turns > 0 && (
         <div className="digital-run-stats" data-testid="digital-run-stats">
-          <span className="home-section-label">本次消耗</span>
+          <span className="home-section-label">{t('agent.runStats.title')}</span>
           <span className="item-meta">
-            <LucideIcon name={TIER_ICONS[state.runStats.tier]} size={13} /> {TIER_LABELS[state.runStats.tier]} · {state.runStats.turns} 轮 · {state.runStats.totalTokens}{' '}
-            token · {state.runStats.latencyMs} ms
-            {state.runStats.toolCalls > 0 ? ` · ${state.runStats.toolCalls} 次工具` : ''}
+            <LucideIcon name={TIER_ICONS[state.runStats.tier]} size={13} />{' '}
+            {t(TIER_LABEL_KEYS[state.runStats.tier])} · {t('agent.traj.turns', { n: state.runStats.turns })} ·{' '}
+            {state.runStats.totalTokens} token · {state.runStats.latencyMs} ms
+            {state.runStats.toolCalls > 0 ? t('agent.runStats.tools', { n: state.runStats.toolCalls }) : ''}
           </span>
         </div>
       )}
@@ -849,9 +854,9 @@ export default function DigitalPanel({
       {/* F7 未配置引导：档位诚实化为 unconfigured 后，明确告知当前走本地 + 给出配置路径 */}
       {state.runStats.tier === 'unconfigured' && (
         <div className="digital-run-stats" data-testid="digital-tier-hint" role="status">
-          <span className="home-section-label">提示</span>
+          <span className="home-section-label">{t('agent.tierHint.title')}</span>
           <span className="item-meta">
-            未配置云端模型，当前走本地 Ollama。到「设置 → AI 模型服务」选择服务商并填 Key，或保持本地（保密模式）。
+            {t('agent.tierHint.body')}
           </span>
         </div>
       )}
@@ -868,10 +873,10 @@ export default function DigitalPanel({
         <div className="digital-approval" data-testid="digital-interaction">
           <div className="form-label">
             <LucideIcon name={state.interaction.interaction.kind === 'confirm' ? 'alert-triangle' : 'info'} size={14} />
-            {state.interaction.interaction.kind === 'confirm' ? '操作确认' : '需要你澄清'}
+            {state.interaction.interaction.kind === 'confirm' ? t('agent.interaction.confirm') : t('agent.interaction.clarify')}
           </div>
           <div className="item-meta">
-            {state.interaction.tool} · {state.interaction.action || '(未指定)'}
+            {state.interaction.tool} · {state.interaction.action || t('agent.interaction.unspecified')}
           </div>
           <div className="digital-interaction-prompt" data-testid="digital-interaction-prompt">
             {state.interaction.interaction.prompt}
@@ -885,7 +890,7 @@ export default function DigitalPanel({
                 data-testid="digital-interaction-approve"
                 onClick={() => handleInteraction({ approved: true })}
               >
-                确认执行
+                {t('agent.interaction.approve')}
               </button>
               <button
                 type="button"
@@ -893,7 +898,7 @@ export default function DigitalPanel({
                 data-testid="digital-interaction-reject"
                 onClick={() => handleInteraction({ approved: false })}
               >
-                取消
+                {t('agent.interaction.cancel')}
               </button>
             </div>
           ) : isMultiQuestion(state.interaction.interaction) ? (
@@ -907,7 +912,7 @@ export default function DigitalPanel({
                 >
                   <div className="digital-interaction-prompt">
                     {index + 1}. {question.prompt}
-                    {question.multiSelect === true ? '（可多选）' : ''}
+                    {question.multiSelect === true ? t('agent.interaction.multi') : ''}
                   </div>
                   {question.detail !== undefined && (
                     <pre className="digital-interaction-detail" data-testid="digital-multi-detail">
@@ -937,7 +942,7 @@ export default function DigitalPanel({
                     <input
                       className="form-input"
                       data-testid="digital-multi-input"
-                      placeholder="输入回答…"
+                      placeholder={t('agent.interaction.inputPlaceholder')}
                       value={multiText[index] ?? ''}
                       onChange={(event) =>
                         setMultiText((current) => {
@@ -958,7 +963,7 @@ export default function DigitalPanel({
                   disabled={!multiReady}
                   onClick={submitMultiAnswers}
                 >
-                  提交全部回答
+                  {t('agent.interaction.submitAll')}
                 </button>
               </div>
             </div>
@@ -973,7 +978,7 @@ export default function DigitalPanel({
                 <input
                   className="form-input"
                   data-testid="digital-interaction-input"
-                  placeholder="输入你的回答…"
+                  placeholder={t('agent.interaction.inputPlaceholder')}
                   value={interactionAnswer}
                   onChange={(event) => setInteractionAnswer(event.target.value)}
                   onKeyDown={(event) => {
@@ -989,7 +994,7 @@ export default function DigitalPanel({
                   disabled={interactionAnswer.trim() === ''}
                   onClick={() => handleInteraction({ answer: interactionAnswer })}
                 >
-                  提交
+                  {t('agent.interaction.submit')}
                 </button>
               </div>
               {(state.interaction.interaction.options ?? []).length > 0 && (
@@ -1048,7 +1053,7 @@ export default function DigitalPanel({
               type="text"
               className="dsh-goal-input"
               data-testid="digital-goal-input"
-              placeholder="本轮目标（可选，随对话一起发给智能体）"
+              placeholder={t('agent.composer.goal')}
               value={goal}
               disabled={running}
               onChange={(event) => setGoal(event.target.value)}
@@ -1068,7 +1073,7 @@ export default function DigitalPanel({
             className="dsh-composer-input"
             data-testid="digital-input"
             rows={1}
-            placeholder="和智能体说点什么…（/ 命令，@ 引用数据表）"
+            placeholder={t('agent.composer.input')}
             value={input}
             disabled={running}
             onChange={(event) => onInputChange(event.target.value)}
@@ -1084,8 +1089,8 @@ export default function DigitalPanel({
                   type="button"
                   className="dsh-composer-icon"
                   data-testid="digital-composer-add"
-                  title="添加上下文（引用数据表 / 斜杠命令）"
-                  aria-label="添加上下文"
+                  title={t('agent.composer.addContext')}
+                  aria-label={t('agent.composer.addContextLabel')}
                   aria-haspopup="menu"
                   aria-expanded={plusMenuOpen}
                   onClick={() => setPlusMenuOpen((open) => !open)}
@@ -1108,7 +1113,7 @@ export default function DigitalPanel({
                       }}
                     >
                       <LucideIcon name="database" size={14} />
-                      引用数据表
+                      {t('agent.composer.reference')}
                       <span className="dsh-composer-menu-hint">@</span>
                     </button>
                     <button
@@ -1123,7 +1128,7 @@ export default function DigitalPanel({
                       }}
                     >
                       <LucideIcon name="zap" size={14} />
-                      斜杠命令
+                      {t('agent.composer.command')}
                       <span className="dsh-composer-menu-hint">/</span>
                     </button>
                     <button
@@ -1137,16 +1142,16 @@ export default function DigitalPanel({
                       }}
                     >
                       <LucideIcon name="upload" size={14} />
-                      上传文件
+                      {t('agent.composer.upload')}
                     </button>
                   </div>
                 )}
               </div>
               <span
                 className="dsh-composer-chip dsh-composer-chip-static"
-                title="当前权限模式：完全权限（主智能体工具全开，后端无可切换开关）"
+                title={t('agent.composer.permTitle')}
               >
-                <span className="dsh-composer-chip-label">完全权限</span>
+                <span className="dsh-composer-chip-label">{t('agent.composer.fullPermission')}</span>
               </span>
             </div>
 
@@ -1156,18 +1161,21 @@ export default function DigitalPanel({
                   type="button"
                   className="dsh-composer-chip dsh-composer-chip-button"
                   data-testid="digital-composer-model"
-                  title={`当前模型：${currentModel || '未选择'}（${LLM_PROVIDER_PRESETS[currentProvider]?.label ?? currentProvider}）`}
+                  title={t('agent.composer.modelTitle', {
+                    model: currentModel || t('agent.composer.noModel'),
+                    provider: LLM_PROVIDER_PRESETS[currentProvider]?.label ?? currentProvider
+                  })}
                   aria-haspopup="menu"
                   aria-expanded={modelMenuOpen}
                   onClick={onModelTriggerClick}
                 >
-                  <span className="dsh-composer-chip-label">{currentModel || '未选择模型'}</span>
+                  <span className="dsh-composer-chip-label">{currentModel || t('agent.composer.noModel')}</span>
                   <LucideIcon name="chevron-down" size={12} />
                 </button>
                 {modelMenuOpen && (
                   <div className="dsh-composer-menu" role="menu" data-testid="digital-model-menu">
                     {availableModels.length === 0 ? (
-                      <div className="dsh-composer-menu-empty">无可切换模型</div>
+                      <div className="dsh-composer-menu-empty">{t('agent.composer.noModels')}</div>
                     ) : (
                       availableModels.map((m) => (
                         <button
@@ -1194,8 +1202,8 @@ export default function DigitalPanel({
                 type="button"
                 className="dsh-composer-icon"
                 data-testid="digital-composer-mic"
-                title="语音输入（未实现）"
-                aria-label="语音输入（未实现）"
+                title={t('agent.composer.mic')}
+                aria-label={t('agent.composer.mic')}
                 aria-disabled="true"
                 onClick={() => undefined}
               >
@@ -1208,8 +1216,8 @@ export default function DigitalPanel({
                   className={`dsh-composer-icon dsh-composer-stop${stopArmed ? ' dsh-composer-stop-armed' : ''}`}
                   data-testid="digital-stop"
                   data-armed={stopArmed ? 'true' : 'false'}
-                  title={stopArmed ? '再点一次即可停止本轮' : '停止本轮（已产出的结果会保留）'}
-                  aria-label={stopArmed ? '确认停止' : '停止'}
+                  title={stopArmed ? t('agent.composer.stopArmed') : t('agent.composer.stop')}
+                  aria-label={stopArmed ? t('agent.composer.stopConfirm') : t('agent.stop')}
                   onClick={onStopClick}
                 >
                   {stopArmed ? (
@@ -1223,8 +1231,8 @@ export default function DigitalPanel({
                 type="button"
                 className="dsh-composer-send"
                 data-testid="digital-send"
-                title="发送（Enter）"
-                aria-label="发送"
+                title={t('agent.composer.send')}
+                aria-label={t('agent.send')}
                 disabled={running || input.trim() === '' || commandOpen || referenceOpen}
                 onClick={handleSend}
               >
@@ -1244,8 +1252,12 @@ export default function DigitalPanel({
               completion={state.runStats.completionTokens}
               model={currentModel}
             />
-            {state.runStats.turns} 轮 · {state.steps.length} 步 · {state.runStats.totalTokens} tok ·{' '}
-            {state.runStats.latencyMs} ms
+            {t('agent.composer.stats', {
+              turns: state.runStats.turns,
+              steps: state.steps.length,
+              tokens: state.runStats.totalTokens,
+              ms: state.runStats.latencyMs
+            })}
           </div>
         )}
       </div>
@@ -1272,14 +1284,14 @@ export default function DigitalPanel({
           <div
             className="dsh-confirm-card"
             role="alertdialog"
-            aria-label="确认新建对话"
+            aria-label={t('agent.newChat.confirmAria')}
             onClick={(event) => event.stopPropagation()}
           >
             <div className="dsh-confirm-title">
               <LucideIcon name="alert-triangle" size={14} />
-              新建对话
+              {t('agent.newChat')}
             </div>
-            <p className="dsh-confirm-text">当前对话记录将被清空且无法恢复。确定要开始新对话吗？</p>
+            <p className="dsh-confirm-text">{t('agent.newChat.body')}</p>
             <div className="editor-actions">
               <button
                 type="button"
@@ -1290,7 +1302,7 @@ export default function DigitalPanel({
                   void handleNewChat()
                 }}
               >
-                清空并新建
+                {t('agent.newChat.confirm')}
               </button>
               <button
                 type="button"
@@ -1298,7 +1310,7 @@ export default function DigitalPanel({
                 data-testid="digital-newchat-cancel"
                 onClick={() => setConfirmNewChat(false)}
               >
-                取消
+                {t('agent.interaction.cancel')}
               </button>
             </div>
           </div>

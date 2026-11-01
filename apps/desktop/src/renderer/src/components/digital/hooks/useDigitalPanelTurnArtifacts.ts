@@ -54,7 +54,7 @@ export function useDigitalPanelTurnArtifacts({
           setDeliveries(deliveriesRes.deliveries)
         }
       } catch (error: unknown) {
-        console.warn('读取本轮改动/交付失败（不影响对话）：', error)
+        console.warn('Failed to read this run\'s changes/deliveries (chat unaffected):', error)
       }
     })()
     return () => {

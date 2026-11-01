@@ -2,7 +2,9 @@ import { useRef, useState } from 'react'
 
 import type { DraftSummary } from '@mobai/shared/agent/conversation'
 import type { ConversationAction } from '@mobai/shared/agent/conversation'
+import { translate } from '@mobai/shared/i18n'
 import { toErrorMessage } from '@mobai/shared/util/system'
+import { getLocalePreference } from '../../../localePreference'
 import type { ChatApi } from '../api/digitalPanelApi'
 
 /**
@@ -68,7 +70,7 @@ export function useDigitalPanelDrafts({
       const saved = await api.draftSave({ name: draftName.trim() })
       setDraftName('')
       setDrafts(await api.draftList())
-      setNotice(`草稿已保存：${saved.name}`)
+      setNotice(translate(getLocalePreference(), 'agent.draft.saved', { name: saved.name }))
     } catch (error: unknown) {
       setLocalError(toErrorMessage(error))
     } finally {
@@ -83,7 +85,7 @@ export function useDigitalPanelDrafts({
     try {
       const draft = await api.draftLoad({ path })
       dispatch({ kind: 'hydrate', history: draft.messages })
-      setNotice(`已恢复草稿：${draft.name}`)
+      setNotice(translate(getLocalePreference(), 'agent.draft.restored', { name: draft.name }))
     } catch (error: unknown) {
       setLocalError(toErrorMessage(error))
     }

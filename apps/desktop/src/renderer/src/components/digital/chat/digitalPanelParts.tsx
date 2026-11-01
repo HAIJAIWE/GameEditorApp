@@ -1,6 +1,11 @@
 import { useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
 import { modelContextWindow } from '@mobai/shared/config/llm'
+import { type MessageKey, type TranslateParams } from '@mobai/shared/i18n'
+
+/** 绑定语言的便捷类型（与 `translate.translator` 返回值一致） */
+type TFn = (key: MessageKey, params?: TranslateParams) => string
 
 /**
  * 智能体面板的尾部展示件（从 `DigitalPanel.tsx` 原样搬出）。
@@ -10,11 +15,11 @@ import { modelContextWindow } from '@mobai/shared/config/llm'
  */
 
 /** 秒 → 「12 秒」/「1 分 05 秒」（状态行用，不带毫秒——那是 runStats 的活） */
-function formatElapsed(sec: number): string {
-  if (sec < 60) return `${sec} 秒`
+function formatElapsed(sec: number, t: TFn): string {
+  if (sec < 60) return t('agent.elapsed.sec', { n: sec })
   const minutes = Math.floor(sec / 60)
   const rest = sec % 60
-  return rest === 0 ? `${minutes} 分` : `${minutes} 分 ${String(rest).padStart(2, '0')} 秒`
+  return rest === 0 ? t('agent.elapsed.min', { n: minutes }) : t('agent.elapsed.minSec', { n: minutes, m: String(rest).padStart(2, '0') })
 }
 
 /**
@@ -32,19 +37,19 @@ export function ConversationRunStatus({
   elapsedSec: number
   latencyMs: number
 }): React.JSX.Element | null {
+  const t = useT()
   // 空闲/出错不显示：出错有专门的错误条（`digital-error`），这里再报一遍是噪音
   if (status === 'idle' || status === 'error') return null
-
   const thinking = status === 'thinking'
   const text = thinking
-    ? `深度求索中，用时 ${formatElapsed(elapsedSec)}…`
+    ? t('agent.thinkingWithTime', { time: formatElapsed(elapsedSec, t) })
     : status === 'waiting_approval'
-      ? '等待你确认'
+      ? t('agent.wait.confirm')
       : status === 'waiting_input'
-        ? '等待你回答'
+        ? t('agent.wait.input')
         : latencyMs > 0
-          ? `已完成分析 · 用时 ${formatElapsed(Math.round(latencyMs / 1000))}`
-          : '已完成分析'
+          ? t('agent.done.analyzedWithTime', { time: formatElapsed(Math.round(latencyMs / 1000), t) })
+          : t('agent.done.analyzed')
 
   return (
     <div className={`conv-status conv-status-${status}`} data-testid="conv-status" role="status">
@@ -73,6 +78,7 @@ export function ContextMeter({
   completion: number
   model: string
 }): React.JSX.Element {
+  const t = useT()
   const ctx = modelContextWindow(model)
   const pct = ctx > 0 ? Math.min(1, total / ctx) : 0
   const [hover, setHover] = useState(false)
@@ -81,7 +87,7 @@ export function ContextMeter({
   const radius = 9
   const circumference = 2 * Math.PI * radius
   const fmt = (n: number): string => (n >= 1000 ? `${(n / 1000).toFixed(n < 10000 ? 1 : 0)}k` : String(n))
-  const title = `上下文用量 ${Math.round(pct * 100)}% · ${fmt(total)} / ${fmt(ctx)} tok`
+  const title = t('agent.context.title', { pct: Math.round(pct * 100), total: fmt(total), ctx: fmt(ctx) })
   return (
     <span
       className="dsh-context-meter"
@@ -108,23 +114,23 @@ export function ContextMeter({
       {hover && (
         <span className="dsh-context-meter-pop" role="tooltip">
           <div>
-            <span>总用量</span>
+            <span>{t('agent.context.total')}</span>
             <b>{total} tok</b>
           </div>
           <div>
-            <span>输入</span>
+            <span>{t('agent.context.input')}</span>
             <b>{prompt}</b>
           </div>
           <div>
-            <span>输出</span>
+            <span>{t('agent.context.output')}</span>
             <b>{completion}</b>
           </div>
           <div>
-            <span>上下文窗口</span>
+            <span>{t('agent.context.window')}</span>
             <b>{ctx}</b>
           </div>
           <div>
-            <span>占用</span>
+            <span>{t('agent.context.occupied')}</span>
             <b>{Math.round(pct * 100)}%</b>
           </div>
         </span>
