@@ -8,8 +8,10 @@ import type {
   AgentFeedbackInput,
   AgentInteractionResponseInput,
   AgentSubagentSendInput,
-  AgentSubagentStopInput
+  AgentSubagentStopInput,
+  AgentJobCancelInput
 } from './schema/adapters'
+import type { JobRecord } from './agent/jobs/jobRegistry'
 import type {
   WindowModeInput,
   AppViewActionInput,
@@ -373,6 +375,10 @@ export interface IpcContract {
   'agent:subagentSend': { req: AgentSubagentSendInput; res: { ok: boolean } }
   /** 单独停止某个运行中的子智能体（不牵连父循环） */
   'agent:subagentStop': { req: AgentSubagentStopInput; res: { ok: boolean } }
+  /** 后台任务列表（跨轮历史；运行中优先）——面板「后台任务」区读取 */
+  'agent:jobList': { req: undefined; res: { jobs: JobRecord[] } }
+  /** 按跨轮唯一 jobId 取消后台任务 */
+  'agent:jobCancel': { req: AgentJobCancelInput; res: { ok: boolean } }
   'agent:sessionInfo': { req: undefined; res: SessionInfo }
   'agent:sessionRestore': { req: undefined; res: { messages: Array<Record<string, unknown>> } }
   'agent:sessionClear': { req: undefined; res: { cleared: boolean } }

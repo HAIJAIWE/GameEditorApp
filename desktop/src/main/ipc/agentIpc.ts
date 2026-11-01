@@ -13,6 +13,7 @@ import {
   agentDeliveriesInputSchema,
   agentSubagentSendInputSchema,
   agentSubagentStopInputSchema,
+  agentJobCancelInputSchema,
   mcpSetConfigInputSchema
 } from '../../shared/schema/adapters'
 import { parseMcpConfig } from '../../shared/agent/mcp'
@@ -116,6 +117,11 @@ export function registerAgentIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
   }))
   handle('agent:subagentStop', agentSubagentStopInputSchema, (req) => ({
     ok: agentBrain.stopSubagent(req.id)
+  }))
+  // 后台任务（对齐 dsh jobs）：面板读取跨轮历史 / 按 jobId 取消运行中的任务
+  handle('agent:jobList', undefined, () => ({ jobs: agentBrain.listJobs() }))
+  handle('agent:jobCancel', agentJobCancelInputSchema, (req) => ({
+    ok: agentBrain.cancelJob(req.id)
   }))
   handle('agent:sessionInfo', undefined, () => agentSessionStore.info())
   handle('agent:sessionRestore', undefined, () => {

@@ -5961,6 +5961,90 @@ button.ref-row:hover {
   padding-top: 6px;
 }
 
+/* 后台任务列表（对齐 dsh ui-jobs 的读法） */
+.digital-jobs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-top: 1px solid var(--border);
+  padding-top: 6px;
+}
+
+.digital-job-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.digital-job {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.digital-job-head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.digital-job-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.digital-job-detail {
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 72px;
+  overflow: auto;
+}
+
+/* 运行中：不确定态进度条（dsh 的 progress 行在我们这里多为空，故用动效表示「进行中」） */
+.digital-job-progress {
+  position: relative;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--bg-selected);
+  overflow: hidden;
+}
+
+.digital-job-progress-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 40%;
+  border-radius: 2px;
+  background: var(--accent, #4176e6);
+  animation: digital-job-indeterminate 1.4s ease-in-out infinite;
+}
+
+@keyframes digital-job-indeterminate {
+  0% {
+    left: -40%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .digital-job-progress-bar {
+    animation: none;
+    width: 100%;
+    opacity: 0.5;
+  }
+}
+
 .digital-subagent-list {
   margin: 0;
   padding: 0;

@@ -23,6 +23,7 @@ import './composer.css'
 import {
   DigitalApproval,
   DigitalCommandMenu,
+  DigitalJobList,
   DigitalReferenceMenu,
   DigitalStepList,
   DigitalSubagentList,
@@ -30,6 +31,7 @@ import {
 } from './digitalPanelViews'
 import { ContextMeter, ConversationRunStatus } from './digitalPanelParts'
 import type { ChatApi } from './digitalPanelApi'
+import { useDigitalJobs } from './useDigitalJobs'
 import { useDigitalPanelAttachments } from './useDigitalPanelAttachments'
 import { useDigitalPanelCommands } from './useDigitalPanelCommands'
 import { useDigitalPanelDrafts } from './useDigitalPanelDrafts'
@@ -229,6 +231,9 @@ export default function DigitalPanel({
     beginTurn,
     reset: resetTurnArtifacts
   } = useDigitalPanelTurnArtifacts({ status: state.status, api })
+
+  // 后台任务（对齐 dsh ui-jobs）：跨轮历史 + 运行中状态轮询；取消经 IPC
+  const { jobs, cancel: cancelJob } = useDigitalJobs(api)
 
   const tasks = useMemo(() => summarizeToolTasks(state.steps), [state.steps])
   /** 是否已有对话（用于区分「开新对话」空态与「运行中/历史」态：预设在空态可选，之后只读） */
@@ -807,6 +812,8 @@ export default function DigitalPanel({
         onSteer={handleSubagentSteer}
         onStop={handleSubagentStop}
       />
+
+      <DigitalJobList jobs={jobs} onCancel={cancelJob} />
 
       {state.steps.length > 0 && (
         <div className="digital-steps" data-testid="digital-steps">

@@ -119,6 +119,11 @@ export const agentSubagentStopInputSchema = z.object({
   id: z.string().min(1).max(64)
 })
 
+/** Agent 后台任务：按跨轮唯一 jobId 取消（如 `t3:sub_1`） */
+export const agentJobCancelInputSchema = z.object({
+  id: z.string().min(1).max(80)
+})
+
 /**
  * 取消某个长任务（对话循环 / 单发 AI 生成都走这一条）。
  * 缺省 `taskId` ⇒ 取消该窗口当前活跃的那一笔（面板上只有一个停止按钮时的自然语义）。
@@ -147,6 +152,7 @@ export type AgentInteractionResponseInput = z.infer<typeof agentInteractionRespo
 export type AgentChatInput = z.infer<typeof agentChatInputSchema>
 export type AgentSubagentSendInput = z.infer<typeof agentSubagentSendInputSchema>
 export type AgentSubagentStopInput = z.infer<typeof agentSubagentStopInputSchema>
+export type AgentJobCancelInput = z.infer<typeof agentJobCancelInputSchema>
 export type TaskCancelInput = z.infer<typeof taskCancelInputSchema>
 export type AgentExecuteToolInput = z.infer<typeof agentExecuteToolInputSchema>
 export type AgentFeedbackInput = z.infer<typeof agentFeedbackInputSchema>

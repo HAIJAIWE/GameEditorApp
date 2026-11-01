@@ -2,6 +2,7 @@ import type { DraftSummary } from '../../../../shared/agent/conversation'
 import type { OperationRecord } from '../../../../shared/agent/observability'
 import type { DeliveryRecord } from '../../../../shared/agent/observability'
 import type { DigitalAttachment } from '../../../../shared/util/io'
+import type { JobRecord } from '../../../../shared/agent/jobs/jobRegistry'
 
 /**
  * 智能体面板用到的 IPC 面（`window.mbApi.agent`）。
@@ -36,6 +37,10 @@ export interface ChatApi {
   subagentSend: (req: { id: string; content: string }) => Promise<{ ok: boolean }>
   /** 单独停止某个运行中的子智能体（不牵连父循环） */
   subagentStop: (req: { id: string }) => Promise<{ ok: boolean }>
+  /** 后台任务列表（跨轮历史；运行中优先） */
+  jobList: () => Promise<{ jobs: JobRecord[] }>
+  /** 按跨轮唯一 jobId 取消后台任务 */
+  jobCancel: (req: { id: string }) => Promise<{ ok: boolean }>
   sessionInfo: () => Promise<{ hasSession: boolean; messageCount: number; savedAt: string }>
   sessionRestore: () => Promise<{ messages: Array<{ role?: unknown; content?: unknown }> }>
   sessionClear: () => Promise<{ cleared: boolean }>

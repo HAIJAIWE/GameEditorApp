@@ -213,11 +213,19 @@ export class AgentBrainService {
 
   /**
    * 后台任务注册表（对齐 dsh `jobs`）：把异步子智能体提升为可查询/可取消的一等任务。
-   * 由 `subagent_started` / `subagent_done` 事件喂入；`system.job` 技能经 context 读取/取消。
-   * 与 `subagents` 一样**每轮清空**——子智能体 id 是每轮本地自增，跨轮会撞 id；
-   * 跨轮任务历史属后续增强。
+   * 由 `subagent_started` / `subagent_done` 事件喂入；`system.job` 技能与面板经 IPC 读取/取消。
+   *
+   * **跨轮保留**（面板要显示历史）：子智能体 id 是每轮本地自增（`sub_1` 会撞），
+   * 故注册表用**跨轮唯一 id** `t<turn>:<childId>`；`childToJob`/`jobToChild` 每轮清空
+   * （取消只对当前轮运行中的任务有意义，已结算任务取消返回 false）。
    */
   private readonly jobRegistry = new JobRegistry()
+  /** 当前轮次号（每 `chat()` +1，用于生成跨轮唯一的任务 id） */
+  private turnSeq = 0
+  /** 本轮 childId → jobId（`subagent_done` / `stopSubagent` 据此定位任务；每轮清空） */
+  private readonly childToJob = new Map<string, string>()
+  /** jobId → childId（`cancelJob` 据此找到要 abort 的子智能体；每轮清空） */
+  private readonly jobToChild = new Map<string, string>()
 
   /**
    * 生成会话 id。**本刀的回滚范围是单次对话轮次**（一次 `chat()` 内的全部数据变更）——
@@ -253,8 +261,21 @@ export class AgentBrainService {
     const entry = this.subagents.get(id)
     if (entry === undefined) return false
     entry.stop()
-    this.jobRegistry.settle(id, 'killed', '用户取消')
+    const jobId = this.childToJob.get(id)
+    if (jobId !== undefined) this.jobRegistry.settle(jobId, 'killed', '用户取消')
     return true
+  }
+
+  /** 列出后台任务（跨轮历史；运行中优先）——面板经 `agent:jobList` 读取 */
+  listJobs(): ReturnType<JobRegistry['list']> {
+    return this.jobRegistry.list()
+  }
+
+  /** 按任务 id 取消（面板 / system.job）：映射到本轮 childId 后 abort 子智能体 */
+  cancelJob(jobId: string): boolean {
+    const childId = this.jobToChild.get(jobId)
+    if (childId === undefined) return false
+    return this.stopSubagent(childId)
   }
 
   /** 选本次调用的传输层：注入的固定层优先，否则由配置解析（M3 档位路由） */
@@ -271,18 +292,20 @@ export class AgentBrainService {
     const tier = resolveAgentTier(options.config)
     const transport = this.resolveTransport(options)
     const face = buildToolFace(this.deps.dispatcher.list(), tier, options.explicitTools)
-    // 新一轮：清空上一轮子智能体 / 后台任务注册表（见字段注释的 id 碰撞说明）
+    // 新一轮：清空子智能体注册表与 id 映射（后台任务注册表**跨轮保留**，供面板显示历史）
     this.subagents.clear()
-    this.jobRegistry.clear()
+    this.childToJob.clear()
+    this.jobToChild.clear()
+    this.turnSeq += 1
 
     // E3-2：为本次对话轮次补一个会话 id，使操作记录器与回滚技能能按「这一轮」分组
     const context: SkillExecutionContext = { ...(options.context ?? {}) }
     if (typeof context.sessionId !== 'string' || context.sessionId.trim() === '') {
       context.sessionId = this.nextSessionId()
     }
-    // 后台任务观测面（system.job）：注册表 + 取消回调，经 context 交给技能
+    // 后台任务观测面（system.job）：注册表 + 按 jobId 取消的回调，经 context 交给技能
     context.jobRegistry = this.jobRegistry
-    context.jobCancel = (id: string) => this.stopSubagent(id)
+    context.jobCancel = (id: string) => this.cancelJob(id)
     // Slice 34：从轮次日志恢复历史（需调用方传稳定 sessionId；无历史则为空）
     const priorMessages =
       options.resumeHistory === true && this.deps.sessionStore !== undefined
@@ -417,16 +440,19 @@ export class AgentBrainService {
       // 事件包装**始终安装**：子智能体收量即从注册表摘除（只留运行中的条目）。
       // 不能只在调用方传了 onEvent 时才装——否则无 onEvent 的调用（测试/内嵌）会留下陈旧条目。
       onEvent: (payload: BrainEvent): void => {
-        // 后台任务注册表（对齐 dsh jobs）：子智能体启动/完成即登记/结算
+        // 后台任务注册表（对齐 dsh jobs）：子智能体启动/完成即登记/结算（跨轮唯一 id）
         if (payload.type === 'subagent_started') {
-          this.jobRegistry.register({ id: payload.id, kind: 'subagent', label: payload.task })
+          const jobId = `t${this.turnSeq}:${payload.id}`
+          this.jobRegistry.register({ id: jobId, kind: 'subagent', label: payload.task })
+          this.childToJob.set(payload.id, jobId)
+          this.jobToChild.set(jobId, payload.id)
         } else if (payload.type === 'subagent_done') {
           this.subagents.delete(payload.id)
-          this.jobRegistry.settle(
-            payload.id,
-            payload.success ? 'completed' : 'failed',
-            payload.text
-          )
+          const jobId = this.childToJob.get(payload.id)
+          if (jobId !== undefined) {
+            this.jobRegistry.settle(jobId, payload.success ? 'completed' : 'failed', payload.text)
+            this.childToJob.delete(payload.id)
+          }
         }
         options.onEvent?.(payload)
       },
