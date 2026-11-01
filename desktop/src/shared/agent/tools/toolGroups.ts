@@ -64,7 +64,8 @@ export const TOOL_GROUP_MAP: Readonly<Record<string, ToolGroupId>> = {
   'system.file_ops': 'system',
   'system.shell': 'system',
   'system.lsp': 'system',
-  'system.tech_doc': 'system'
+  'system.tech_doc': 'system',
+  'system.web_fetch': 'system'
 }
 
 /** 未登记工具的兜底分组（保守归到「系统与协作」） */

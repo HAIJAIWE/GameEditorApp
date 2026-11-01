@@ -81,6 +81,7 @@ import { getWorkspaceRoot, initWorkspace } from './agent/workspace/workspaceStor
 import { createLspSkill } from './agent/skills/lspSkill'
 import { createLspServerResolver } from './agent/lsp/lspConfig'
 import { createTechDocSkill } from './agent/skills/techDocSkill'
+import { createWebSkill } from './agent/skills/webSkill'
 import { createCliSubAgentProvider } from './agent/subagent/subagentCli'
 import { createRemoteSubAgentProvider } from './agent/subagent/subagentRemote'
 import { createAcpSubAgentProvider } from './agent/subagent/subagentAcp'
@@ -201,6 +202,8 @@ export function buildStores(libDir: string): AppStores {
   dispatcher.register(createLspSkill({ root: getWorkspaceRoot, resolveServer: createLspServerResolver(libDir) }))
   // 技术设计文档（GDD 之外的工程文档）：存 <库>/tech/<name>.md
   dispatcher.register(createTechDocSkill({ root: () => join(libDir, 'tech') }))
+  // 网页抓取（对齐 dsh web-fetch-http）：SSRF 防护 + HTML→文本 + 超时/体积上限
+  dispatcher.register(createWebSkill())
   // 用户偏好 / 反馈：随库隔离，构造时即从磁盘加载；偏好注入系统提示词（见 brainService）
   const personalization = createPersonalizationStores(agentDir)
 
