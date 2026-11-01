@@ -13,6 +13,7 @@ import { registerAttachmentsIpc } from './ipc/attachmentsIpc'
 import { registerShellIpc } from './ipc/shellIpc'
 import { registerLlmIpc } from './ipc/llmIpc'
 import { registerAgentIpc } from './ipc/agentIpc'
+import { registerTechDocIpc } from './ipc/techDocIpc'
 import { registerTaskIpc } from './ipc/taskIpc'
 import { registerLibraryIpc } from './ipc/libraryIpc'
 import { registerSchemaIpc } from './ipc/schemaIpc'
@@ -107,6 +108,7 @@ export function registerIpcHandlers(deps: IpcHandlerDeps): void {
   registerShellIpc(deps, handle)
   registerLlmIpc(deps, handle, llm)
   registerAgentIpc(deps, handle, llm)
+  registerTechDocIpc(deps, handle)
   registerTaskIpc(deps, handle)
   registerLibraryIpc(deps, handle)
   registerSchemaIpc(deps, handle, llm)

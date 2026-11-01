@@ -7730,6 +7730,117 @@ button.ref-row:hover {
 
 /* ---- 代码面板（只读查看器） ---- */
 
+/* 技术设计文档面板（主区页签） */
+.techdoc {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  font-size: 13px;
+}
+
+.techdoc-list {
+  display: flex;
+  flex-direction: column;
+  width: 240px;
+  min-width: 160px;
+  min-height: 0;
+  border-right: 0.5px solid var(--border);
+  padding: 8px;
+  gap: 8px;
+}
+
+.techdoc-list-head {
+  display: flex;
+  gap: 6px;
+}
+
+.techdoc-list-head .form-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.techdoc-list-items {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.techdoc-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.techdoc-item:hover {
+  background: rgba(38, 49, 72, 0.06);
+}
+
+.techdoc-item.active {
+  background: var(--bg-selected);
+}
+
+.techdoc-editor {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  padding: 8px 12px;
+  gap: 8px;
+}
+
+.techdoc-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.techdoc-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.techdoc-textarea {
+  flex: 1;
+  min-height: 0;
+  resize: none;
+  padding: 10px 12px;
+  border: 0.5px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  background: var(--sidebar-fill);
+  color: var(--text);
+  font-family: var(--mono-font, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.techdoc-notice {
+  color: var(--text-muted);
+}
+
+.techdoc-error {
+  color: #c0392b;
+}
+
 .code-panel {
   display: grid;
   grid-template-columns: minmax(200px, 280px) 1fr;

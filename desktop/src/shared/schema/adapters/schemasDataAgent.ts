@@ -124,6 +124,17 @@ export const agentJobCancelInputSchema = z.object({
   id: z.string().min(1).max(80)
 })
 
+/** 技术设计文档：文档名 */
+export const techDocNameInputSchema = z.object({
+  name: z.string().min(1).max(120)
+})
+
+/** 技术设计文档：写入（name + markdown） */
+export const techDocWriteInputSchema = z.object({
+  name: z.string().min(1).max(120),
+  content: z.string().max(200_000)
+})
+
 /**
  * 取消某个长任务（对话循环 / 单发 AI 生成都走这一条）。
  * 缺省 `taskId` ⇒ 取消该窗口当前活跃的那一笔（面板上只有一个停止按钮时的自然语义）。
@@ -153,6 +164,8 @@ export type AgentChatInput = z.infer<typeof agentChatInputSchema>
 export type AgentSubagentSendInput = z.infer<typeof agentSubagentSendInputSchema>
 export type AgentSubagentStopInput = z.infer<typeof agentSubagentStopInputSchema>
 export type AgentJobCancelInput = z.infer<typeof agentJobCancelInputSchema>
+export type TechDocNameInput = z.infer<typeof techDocNameInputSchema>
+export type TechDocWriteInput = z.infer<typeof techDocWriteInputSchema>
 export type TaskCancelInput = z.infer<typeof taskCancelInputSchema>
 export type AgentExecuteToolInput = z.infer<typeof agentExecuteToolInputSchema>
 export type AgentFeedbackInput = z.infer<typeof agentFeedbackInputSchema>

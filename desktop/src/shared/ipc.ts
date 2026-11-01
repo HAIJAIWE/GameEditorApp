@@ -9,7 +9,9 @@ import type {
   AgentInteractionResponseInput,
   AgentSubagentSendInput,
   AgentSubagentStopInput,
-  AgentJobCancelInput
+  AgentJobCancelInput,
+  TechDocNameInput,
+  TechDocWriteInput
 } from './schema/adapters'
 import type { JobRecord } from './agent/jobs/jobRegistry'
 import type {
@@ -383,6 +385,16 @@ export interface IpcContract {
   'agent:getWorkspace': { req: undefined; res: { root: string } }
   /** 代码工作区：弹出目录选择并设置（取消则 root 不变，cancelled=true） */
   'agent:chooseWorkspace': { req: undefined; res: { root: string; cancelled: boolean } }
+  /** 技术设计文档：列出已有文档名 */
+  'techDoc:list': { req: undefined; res: { docs: string[] } }
+  /** 技术设计文档：读取全文 */
+  'techDoc:read': { req: TechDocNameInput; res: { content: string } }
+  /** 技术设计文档：保存全文 */
+  'techDoc:write': { req: TechDocWriteInput; res: { ok: boolean } }
+  /** 技术设计文档：导出为 .md（取消返回 null） */
+  'techDoc:export': { req: TechDocNameInput; res: { path: string | null } }
+  /** 技术设计文档：标准大纲（新建时预填） */
+  'techDoc:outline': { req: undefined; res: { content: string } }
   'agent:sessionInfo': { req: undefined; res: SessionInfo }
   'agent:sessionRestore': { req: undefined; res: { messages: Array<Record<string, unknown>> } }
   'agent:sessionClear': { req: undefined; res: { cleared: boolean } }

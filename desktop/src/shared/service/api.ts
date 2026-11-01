@@ -70,6 +70,19 @@ export interface MbApi {
     setConfig(req: IpcContract['mcp:setConfig']['req']): Promise<IpcContract['mcp:setConfig']['res']>
   }
 
+  techDoc: {
+    /** 列出技术设计文档 */
+    list(): Promise<IpcContract['techDoc:list']['res']>
+    /** 标准大纲（新建预填） */
+    outline(): Promise<IpcContract['techDoc:outline']['res']>
+    /** 读取全文 */
+    read(req: IpcContract['techDoc:read']['req']): Promise<IpcContract['techDoc:read']['res']>
+    /** 保存全文 */
+    write(req: IpcContract['techDoc:write']['req']): Promise<IpcContract['techDoc:write']['res']>
+    /** 导出为 .md */
+    export(req: IpcContract['techDoc:export']['req']): Promise<IpcContract['techDoc:export']['res']>
+  }
+
   library: {
     list(): Promise<IpcContract['library:list']['res']>
     create(req: IpcContract['library:create']['req']): Promise<IpcContract['library:create']['res']>

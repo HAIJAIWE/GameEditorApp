@@ -4,8 +4,8 @@
  * 外部一律从这里 import（`.../adapters`），不要再深插目录内文件。
  */
 
-export { agentApprovalResponseInputSchema, agentChatInputSchema, agentDeliveriesInputSchema, agentDraftLoadInputSchema, agentDraftSaveInputSchema, agentExecuteToolInputSchema, agentFeedbackInputSchema, agentInteractionResponseInputSchema, agentJobCancelInputSchema, agentRecentChangesInputSchema, agentSubagentSendInputSchema, agentSubagentStopInputSchema, mcpSetConfigInputSchema, taskCancelInputSchema } from './schemasDataAgent'
-export type { AgentApprovalResponseInput, AgentChatInput, AgentDeliveriesInput, AgentDraftLoadInput, AgentDraftSaveInput, AgentExecuteToolInput, AgentFeedbackInput, AgentInteractionResponseInput, AgentJobCancelInput, AgentSubagentSendInput, AgentSubagentStopInput, TaskCancelInput } from './schemasDataAgent'
+export { agentApprovalResponseInputSchema, agentChatInputSchema, agentDeliveriesInputSchema, agentDraftLoadInputSchema, agentDraftSaveInputSchema, agentExecuteToolInputSchema, agentFeedbackInputSchema, agentInteractionResponseInputSchema, agentJobCancelInputSchema, agentRecentChangesInputSchema, agentSubagentSendInputSchema, agentSubagentStopInputSchema, mcpSetConfigInputSchema, taskCancelInputSchema, techDocNameInputSchema, techDocWriteInputSchema } from './schemasDataAgent'
+export type { AgentApprovalResponseInput, AgentChatInput, AgentDeliveriesInput, AgentDraftLoadInput, AgentDraftSaveInput, AgentExecuteToolInput, AgentFeedbackInput, AgentInteractionResponseInput, AgentJobCancelInput, AgentSubagentSendInput, AgentSubagentStopInput, TaskCancelInput, TechDocNameInput, TechDocWriteInput } from './schemasDataAgent'
 export { appLogInputSchema, appViewActionInputSchema, appViewActionSchema, fsListDirInputSchema, fsReadFileInputSchema, windowModeInputSchema } from './schemasDataApp'
 export type { AppViewActionInput, FsListDirInput, FsReadFileInput, WindowModeInput } from './schemasDataApp'
 export { attachmentsAddInputSchema, attachmentsOpenInputSchema, attachmentsReadImageInputSchema, shellOpenPathInputSchema } from './schemasDataAttachments'

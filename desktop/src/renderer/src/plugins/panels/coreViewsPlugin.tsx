@@ -4,6 +4,7 @@ import { CeshuHomePanel } from '../../components/ceshuDoc'
 import { CeshuView } from '../../components/ceshuDoc'
 import { CodePanel } from '../../components/browser'
 import { DataEditorPanel } from '../../components/data'
+import { TechDocPanel } from '../../components/techDoc/TechDocPanel'
 import { useMainViewContext } from '../host'
 import { registerReactBinding } from '../host'
 
@@ -78,6 +79,7 @@ function EditorMainView() {
 export function defineCoreViewsPlugin(): PluginManifest {
   registerReactBinding('editor.mainView', EditorMainView)
   registerReactBinding('data.mainView', DataMainView)
+  registerReactBinding('techDoc.mainView', TechDocPanel)
   registerReactBinding('code.mainView', CodeMainView)
   registerReactBinding('browser.mainView', BrowserMainView)
 
@@ -109,6 +111,15 @@ export function defineCoreViewsPlugin(): PluginManifest {
         order: 10,
         lazy: true,
         ui: { type: 'text', text: '数据编辑' }
+      },
+      {
+        kind: 'mainView',
+        id: 'techDoc.mainView',
+        label: '技术设计',
+        title: '技术设计文档（怎么实现：架构 / 模块 / 数据模型 / 接口 / 时序）',
+        order: 20,
+        lazy: true,
+        ui: { type: 'text', text: '技术设计' }
       },
       {
         kind: 'mainView',

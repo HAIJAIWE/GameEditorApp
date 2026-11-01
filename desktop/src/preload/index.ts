@@ -75,6 +75,13 @@ const api: MbApi = {
     getConfig: () => invoke('mcp:getConfig', undefined),
     setConfig: (req) => invoke('mcp:setConfig', req)
   },
+  techDoc: {
+    list: () => invoke('techDoc:list', undefined),
+    outline: () => invoke('techDoc:outline', undefined),
+    read: (req) => invoke('techDoc:read', req),
+    write: (req) => invoke('techDoc:write', req),
+    export: (req) => invoke('techDoc:export', req)
+  },
   attrSystem: {
     get: () => invoke('attrSystem:get', undefined),
     save: (req) => invoke('attrSystem:save', req),
