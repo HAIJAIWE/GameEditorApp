@@ -87,6 +87,9 @@ import { createTerminalSkill } from './agent/skills/terminalSkill'
 import { createSshSkill } from './agent/skills/sshSkill'
 import { createWorkflowSkill } from './agent/skills/workflowSkill'
 import { createPtcSkill } from './agent/skills/ptcSkill'
+import { createBrowserSkill } from './agent/skills/browserSkill'
+import { createScheduleSkill } from './agent/skills/scheduleSkill'
+import { initScheduleTicker } from './agent/schedule/scheduleTicker'
 import { createCliSubAgentProvider } from './agent/subagent/subagentCli'
 import { createRemoteSubAgentProvider } from './agent/subagent/subagentRemote'
 import { createAcpSubAgentProvider } from './agent/subagent/subagentAcp'
@@ -227,6 +230,10 @@ export function buildStores(libDir: string): AppStores {
       executeGated: (tool, params, ctx) => dispatcher.executeGated(tool, params, ctx)
     })
   )
+  // 打开 URL（browser-use 最小档）+ 定时提醒（schedule 的提醒子集）
+  dispatcher.register(createBrowserSkill())
+  initScheduleTicker(libDir)
+  dispatcher.register(createScheduleSkill({ filePath: join(libDir, 'schedule.json') }))
   // 用户偏好 / 反馈：随库隔离，构造时即从磁盘加载；偏好注入系统提示词（见 brainService）
   const personalization = createPersonalizationStores(agentDir)
 
