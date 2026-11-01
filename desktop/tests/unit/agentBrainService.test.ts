@@ -29,7 +29,13 @@ import { DEFAULT_LLM_CONFIG, type StoredLlmConfig } from '../../src/shared/confi
  */
 
 function makeSkill(id: string, description: string): SkillProtocol {
-  return { id, description, version: '1.0.0', execute: () => ({ success: true, message: 'ok' }) }
+  return {
+    id,
+    description,
+    version: '1.0.0',
+    parametersSchema: { type: 'object', properties: {} },
+    execute: () => ({ success: true, message: 'ok' })
+  }
 }
 
 function makeDispatcher(): SkillDispatcher {

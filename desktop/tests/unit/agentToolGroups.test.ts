@@ -30,6 +30,7 @@ function makeSkill(id: string, description = '描述'): SkillProtocol {
     id,
     description,
     version: '1.0.0',
+    parametersSchema: { type: 'object', properties: {} },
     execute: () => ({ success: true, message: '' })
   }
 }

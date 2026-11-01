@@ -220,25 +220,9 @@ describe('agent 协议：JSON Schema 与工具描述', () => {
     expect(schema.parameters.required).toEqual(['action'])
   })
 
-  it('toJsonSchema：无 parametersSchema 时由 parameters 列表生成', () => {
-    const fromList: SkillProtocol = {
-      id: 'system.list',
-      description: '列表式',
-      version: '1.0.0',
-      parameters: [
-        { name: 'name', type: 'string', description: '名称', required: true },
-        { name: 'limit', type: 'integer', description: '上限', default: 10, minimum: 1, maximum: 100 }
-      ],
-      execute: () => ({ success: true, message: 'ok' })
-    }
-    const schema = toJsonSchema(fromList)
-    expect(schema.parameters.required).toEqual(['name'])
-    expect(schema.parameters.properties.limit).toMatchObject({
-      type: 'integer',
-      default: 10,
-      minimum: 1,
-      maximum: 100
-    })
+  it('toJsonSchema：参数单源（parametersSchema 原样直出，无旧列表回退）', () => {
+    const schema = toJsonSchema(stub)
+    expect(schema.parameters).toBe(stub.parametersSchema)
   })
 
   it('toFunctionCallingTools：补 `{type:"function"}` 外层，且不改动内层字段', () => {

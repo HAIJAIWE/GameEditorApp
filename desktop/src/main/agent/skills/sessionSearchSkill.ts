@@ -27,18 +27,20 @@ export function createSessionSearchSkill(deps: { sessionStore: AgentSessionStore
     description:
       '检索本库历史会话（SQLite FTS5 全文索引，只读）。action=search 按关键词搜索；action=read 读取指定会话消息；action=list 列出最近会话。开始任务前可用它回顾以往做过的工作。',
     version: '0.1.0',
-    parameters: [
-      {
-        name: 'action',
-        type: 'string',
-        description: '动作：search（搜索）/ read（读取会话）/ list（列出最近会话）',
-        required: true,
-        enum: [...ACTIONS]
+    parametersSchema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          enum: [...ACTIONS],
+          description: '动作：search（搜索）/ read（读取会话）/ list（列出最近会话）'
+        },
+        query: { type: 'string', description: 'search 的检索词（可多词，空白分隔，OR 语义）' },
+        session_id: { type: 'string', description: 'read 的目标会话 id（search/list 结果里带）' },
+        limit: { type: 'integer', minimum: 1, maximum: 200, description: '返回条数上限（默认 20，最大 200）' }
       },
-      { name: 'query', type: 'string', description: 'search 的检索词（可多词，空白分隔，OR 语义）', required: false },
-      { name: 'session_id', type: 'string', description: 'read 的目标会话 id（search/list 结果里带）', required: false },
-      { name: 'limit', type: 'integer', description: '返回条数上限（默认 20，最大 200）', required: false, minimum: 1, maximum: 200 }
-    ],
+      required: ['action']
+    },
     async execute(params, ctx): Promise<SkillResult> {
       const action = typeof params.action === 'string' ? params.action.trim() : ''
 

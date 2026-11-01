@@ -16,14 +16,13 @@ export function createSubAgentSkill(): SkillProtocol {
     description:
       '把一个可独立完成的子任务交给子智能体处理：它会独立跑一轮（有自己的上下文），返回结果摘要。适合拆解大任务、并行调研。',
     version: '0.1.0',
-    parameters: [
-      {
-        name: 'task',
-        type: 'string',
-        description: '交给子智能体的子任务描述（要具体、可独立完成）',
-        required: true
-      }
-    ],
+    parametersSchema: {
+      type: 'object',
+      properties: {
+        task: { type: 'string', description: '交给子智能体的子任务描述（要具体、可独立完成）' }
+      },
+      required: ['task']
+    },
     tags: ['agent', 'delegate'],
     execute: (): SkillResult => ({
       success: false,

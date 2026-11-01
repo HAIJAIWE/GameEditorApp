@@ -127,22 +127,6 @@ export function checkPermission(
 
 /* ---- 技能协议 ---- */
 
-/** 参数定义 */
-export interface SkillParameter {
-  name: string
-  /** JSON Schema 基础类型：string / integer / number / boolean / array / object */
-  type: string
-  description: string
-  required?: boolean
-  default?: unknown
-  enum?: readonly unknown[]
-  example?: unknown
-  minimum?: number
-  maximum?: number
-  /** type=array 时的元素类型 */
-  items?: string
-}
-
 /** 工具执行上下文 */
 export interface SkillExecutionContext {
   /**
@@ -218,10 +202,8 @@ export interface SkillProtocol {
   id: string
   description: string
   version: string
-  /** 参数定义（当未提供 parametersSchema 时用于生成 JSON Schema） */
-  parameters?: SkillParameter[]
-  /** 直出 JSON Schema */
-  parametersSchema?: JsonObjectSchema
+  /** 参数定义：**唯一真源**，JSON Schema（object 根）；对齐 dsh 的 input schema */
+  parametersSchema: JsonObjectSchema
   tags?: readonly string[]
   /** 依赖的同批工具 id */
   dependsOn?: readonly string[]
@@ -265,26 +247,9 @@ export interface ToolFunctionSchema {
   parameters: JsonObjectSchema
 }
 
-/** 技能工具描述 */
+/** 技能工具描述（参数直出 `parametersSchema`，单源无回退） */
 export function toJsonSchema(skill: SkillProtocol): ToolFunctionSchema {
-  if (skill.parametersSchema) {
-    return { name: skill.id, description: skill.description, parameters: skill.parametersSchema }
-  }
-  const properties: Record<string, JsonSchemaProperty> = {}
-  const required: string[] = []
-  for (const param of skill.parameters ?? []) {
-    if (param.name === '') continue
-    const prop: JsonSchemaProperty = { type: param.type, description: param.description }
-    if (param.enum) prop.enum = param.enum
-    if (param.default !== undefined) prop.default = param.default
-    if (param.example !== undefined) prop.example = param.example
-    if (param.minimum !== undefined) prop.minimum = param.minimum
-    if (param.maximum !== undefined) prop.maximum = param.maximum
-    if (param.items) prop.items = { type: param.items }
-    properties[param.name] = prop
-    if (param.required) required.push(param.name)
-  }
-  return { name: skill.id, description: skill.description, parameters: { type: 'object', properties, required } }
+  return { name: skill.id, description: skill.description, parameters: skill.parametersSchema }
 }
 
 /**
