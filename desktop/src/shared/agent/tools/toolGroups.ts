@@ -58,7 +58,8 @@ export const TOOL_GROUP_MAP: Readonly<Record<string, ToolGroupId>> = {
   'tool.spawn_subagent': 'system',
   'system.session_search': 'system',
   'system.todo_write': 'system',
-  'system.present_plan': 'system'
+  'system.present_plan': 'system',
+  'system.goal': 'system'
 }
 
 /** 未登记工具的兜底分组（保守归到「系统与协作」） */

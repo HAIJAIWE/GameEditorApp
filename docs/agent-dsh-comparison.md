@@ -210,6 +210,7 @@ dsh 用 **cordis** 做插件组合，profile 是 YAML 补丁层（`bundles` + `c
 > - `system.todo_write`（对齐 dsh `tool-todo`）：整表替换 + 三态 + 默认单 in_progress；清单作为工具结果进 messages，模型下一轮可见。
 > - `compaction` 升级为 **LLM 结构化 checkpoint**（对齐 dsh `compaction-basic`）：云端档超压力阈值时调 `createCompactSummarizer` 生成 8 段交接摘要，失败回落模板；`maybeResetContextAsync` 统一入口。
 > - `system.present_plan`（对齐 dsh `plan-mode` 的 `exit_plan_mode` 审阅流）：模型动手前把 `# 标题` 起头的 markdown 计划经 `SkillInteraction.detail` 交用户审阅，`批准并执行 / 需要修改` 二选一；**不引入会话级只读 plan 模式开关**（产品已有独立 Plan 工作模式，避免冲突），改为轻量门禁。渲染层 `SkillInteraction`/`SkillInteractionQuestion` 新增可选 `detail` 字段（等宽块展示长文本，不解析为富文本）。
+> - `system.goal`（对齐 dsh `goal` + `tool-goal`）：目标生命周期管理（create/edit/pause/resume/complete/block/clear）+ 阶段 + 轮次上限 `maxRounds`。服务层把活跃目标的「目标 + 阶段 + 轮次进度」注入 `【本轮目标】` 提示词，并把循环 `maxTurns` 钳到 `maxRounds`（dsh `maxGoalRounds` 的轮次安全闸）。**v1 内存态**（非事件溯源投影），状态作为工具结果进 messages；不做 goal-round-driver 自动续跑。
 
 ---
 

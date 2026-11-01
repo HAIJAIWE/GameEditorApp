@@ -20,6 +20,7 @@ import {
 } from '../../../shared/agent/brain'
 import { deriveMessagesFromTurns } from '../../../shared/agent/conversation'
 import { createCompactSummarizer } from '../../../shared/agent/compaction'
+import { formatGoalStatus, goalStore } from '../../../shared/agent/goal/goalStore'
 import { buildSystemPrompts } from '../../../shared/agent/ui'
 import { presetLabel, presetPersona } from '../../../shared/agent/config'
 import { buildPersonalizedContext } from '../../../shared/agent/config'
@@ -274,6 +275,11 @@ export class AgentBrainService {
         ? deriveMessagesFromTurns(this.deps.sessionStore.readTurns(context.sessionId))
         : []
 
+    // 结构化目标（对齐 dsh goal）：活跃时把目标 + 阶段 + 轮次进度注入提示词，并把循环
+    // maxTurns 钳到 maxRounds（轮次安全闸）；否则回落自由文本 options.goal。
+    const activeGoal = goalStore.get(context.sessionId)
+    if (activeGoal !== null) goalStore.bumpRound(context.sessionId)
+
     const memoryBlock = await buildMemoryBlock(this.deps.memoryStore, input)
     // 附件只存叶子名，提示词里要绝对路径时按活跃库目录解析（stores 注入；测试可不注入）
     const resolveAttachmentPath: ResolveAttachmentPath = (name) => this.deps.resolveAttachmentPath?.(name)
@@ -296,7 +302,9 @@ export class AgentBrainService {
     }
     // 本轮目标（对齐 dsh GoalBar）：用户填的一句话，作为意图锚点注入系统提示词。
     // 不强制模型遵守，也不阻断对话；空串/未传视为未填。每次 chat 都重注入 ⇒ 跨轮持续生效。
-    if (options.goal !== undefined && options.goal.trim() !== '') {
+    if (activeGoal !== null) {
+      extraBlocks.push(`【本轮目标】${formatGoalStatus(activeGoal)}`)
+    } else if (options.goal !== undefined && options.goal.trim() !== '') {
       extraBlocks.push(`【本轮目标】${options.goal.trim()}`)
     }
     // 附件（对齐 dsh `FileAttachmentRef`）：**只给名称/路径/大小，不内联内容**——
@@ -371,8 +379,13 @@ export class AgentBrainService {
       // 上下文压缩摘要器（对齐 dsh compaction-basic）：云端档用 LLM 生成结构化 checkpoint；
       // 本地档保持零成本模板压缩（本地 4B 摘要质量与延迟都不划算）。摘要失败自动回落模板。
       ...(tier === 'cloud' ? { compactSummarizer: createCompactSummarizer(transport) } : {}),
-      // 不显式兜底：让循环按档位取默认（云端 12 / 本地 6）。显式传值会盖掉 tier-aware 默认。
-      ...(this.deps.maxTurns !== undefined ? { maxTurns: this.deps.maxTurns } : {}),
+      // 不显式兜底：让循环按档位取默认（云端 12 / 本地 6）。显式传值会盖掉 tier-aware 默认；
+      // 活跃目标存在时，把 maxTurns 钳到其 maxRounds（dsh maxGoalRounds 的轮次安全闸）。
+      ...(this.deps.maxTurns !== undefined
+        ? { maxTurns: this.deps.maxTurns }
+        : activeGoal !== null
+          ? { maxTurns: activeGoal.maxRounds }
+          : {}),
       ...(this.deps.maxToolCalls !== undefined ? { maxToolCalls: this.deps.maxToolCalls } : {}),
       ...(this.deps.wallClockMs !== undefined ? { wallClockMs: this.deps.wallClockMs } : {}),
       ...(requestApproval ? { requestApproval } : {}),

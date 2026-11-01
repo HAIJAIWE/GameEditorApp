@@ -49,7 +49,7 @@ describe('M3 分组表与档位预算', () => {
 
   it('已注册工具全部登记分组（防漏登记漂移）', () => {
     // 与 `main/stores.ts::buildStores` 注册的技能一一对应；新增技能须同步登记本表
-    for (const id of [
+    const registered = [
       'system.game_data',
       'system.ceshu',
       'system.code',
@@ -57,8 +57,10 @@ describe('M3 分组表与档位预算', () => {
       'tool.ask_user',
       'system.session_search',
       'system.todo_write',
-      'system.present_plan'
-    ]) {
+      'system.present_plan',
+      'system.goal'
+    ]
+    for (const id of registered) {
       expect(TOOL_GROUP_MAP[id]).toBeDefined()
     }
   })

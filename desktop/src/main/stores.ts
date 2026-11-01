@@ -72,6 +72,7 @@ import { createSessionSearchSkill } from './agent/skills/sessionSearchSkill'
 import { createSubAgentSkill } from './agent/skills/subAgentSkill'
 import { createTodoSkill } from './agent/skills/todoSkill'
 import { createPresentPlanSkill } from './agent/skills/presentPlanSkill'
+import { createGoalSkill } from './agent/skills/goalSkill'
 import { createCliSubAgentProvider } from './agent/subagent/subagentCli'
 import { createRemoteSubAgentProvider } from './agent/subagent/subagentRemote'
 import { createAcpSubAgentProvider } from './agent/subagent/subagentAcp'
@@ -176,6 +177,8 @@ export function buildStores(libDir: string): AppStores {
   dispatcher.register(createTodoSkill())
   // 计划审阅（对齐 dsh plan-mode 的 exit_plan_mode）：动手前把完整计划交用户批准
   dispatcher.register(createPresentPlanSkill())
+  // 目标生命周期（对齐 dsh goal）：长任务维护明确目标 + 阶段 + 轮次上限
+  dispatcher.register(createGoalSkill())
   // 用户偏好 / 反馈：随库隔离，构造时即从磁盘加载；偏好注入系统提示词（见 brainService）
   const personalization = createPersonalizationStores(agentDir)
 
