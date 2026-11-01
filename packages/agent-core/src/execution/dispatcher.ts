@@ -142,12 +142,18 @@ export class SkillDispatcher {
    *
    * 改前该字段存了却从不读取（`riskCeiling` getter 也无调用点）：形似安全策略、实则零守卫。
    */
-  constructor(options: { maxAllowedRisk?: RiskLevel } = {}) {
+  constructor(options: { maxAllowedRisk?: RiskLevel; dshGuard?: boolean } = {}) {
     this.maxAllowedRisk = options.maxAllowedRisk ?? RISK_LEVEL.SYSTEM
     // 超时策略是流水线的第一层：只有声明了 `timeoutMs` 的工具才会被 arm deadline
     this.pipeline.use(createTimeoutPolicy((name) => this.tools.get(name)))
-    // dsh 的 `repeat-tool-reminder` 以 cordis 插件形式跑在本进程（惰性加载、失败降级）
-    this.pipeline.use(createDshGuardPolicy())
+    /*
+     * dsh 的 `repeat-tool-reminder`（cordis 插件，进程内）。
+     *
+     * **默认关闭**：循环里已有 `RepeatCallGuard`（`brain/loop.ts`，按轮创建）——它中文、
+     * 每轮自动重置、且把提醒作为 **user 消息**注入（位置比塞进工具输出更好）。
+     * 两套同时开会对同一次重复**提醒两次**。这里保留开关，用于对比实验或将来替换。
+     */
+    if (options.dshGuard === true) this.pipeline.use(createDshGuardPolicy())
   }
 
   register(skill: SkillProtocol): boolean {

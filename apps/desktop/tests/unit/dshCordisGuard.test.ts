@@ -27,7 +27,7 @@ function echoSkill(): SkillProtocol {
 
 describe('dsh 插件进程内运行（cordis 宿主）', () => {
   it('第 3 次相同调用收到 dsh repeat-tool-reminder 的提醒（已本地化为中文）', async () => {
-    const dispatcher = new SkillDispatcher()
+    const dispatcher = new SkillDispatcher({ dshGuard: true })
     dispatcher.register(echoSkill())
     // 独立 sessionId：链键按会话隔离，避免与其它用例串
     const ctx = { sessionId: 'dsh-guard-test-basic' }
@@ -45,7 +45,7 @@ describe('dsh 插件进程内运行（cordis 宿主）', () => {
   })
 
   it('第 5 次（后续阈值）给出中文详细提醒（点名工具 + 次数）', async () => {
-    const dispatcher = new SkillDispatcher()
+    const dispatcher = new SkillDispatcher({ dshGuard: true })
     dispatcher.register(echoSkill())
     const ctx = { sessionId: 'dsh-guard-test-detailed' }
 
@@ -60,7 +60,7 @@ describe('dsh 插件进程内运行（cordis 宿主）', () => {
   })
 
   it('参数变化会重置链（检测的是连续重复，不是累计重复）', async () => {
-    const dispatcher = new SkillDispatcher()
+    const dispatcher = new SkillDispatcher({ dshGuard: true })
     dispatcher.register(echoSkill())
     const ctx = { sessionId: 'dsh-guard-test-reset' }
 
@@ -70,5 +70,17 @@ describe('dsh 插件进程内运行（cordis 宿主）', () => {
     const changed = await dispatcher.execute('demo.echo', { text: 'b' }, ctx)
 
     expect(changed.message).toBe('echo:b')
+  })
+
+  it('默认不启用 dsh 守卫（循环里已有 RepeatCallGuard，双开会重复提醒）', async () => {
+    const dispatcher = new SkillDispatcher()
+    dispatcher.register(echoSkill())
+    const ctx = { sessionId: 'dsh-guard-default-off' }
+
+    await dispatcher.execute('demo.echo', { text: 'z' }, ctx)
+    await dispatcher.execute('demo.echo', { text: 'z' }, ctx)
+    const third = await dispatcher.execute('demo.echo', { text: 'z' }, ctx)
+
+    expect(third.message).toBe('echo:z')
   })
 })
