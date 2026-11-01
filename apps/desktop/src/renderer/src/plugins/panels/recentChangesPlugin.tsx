@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactElement } from 'react'
 
+import { useT } from '@mobai/client-ui'
 import type { PluginHost } from '@mobai/shared/plugin/host'
 import type { PluginManifest } from '@mobai/shared/plugin/types'
 import type { OperationRecord } from '@mobai/shared/agent/observability'
@@ -21,13 +22,20 @@ export function defineRecentChangesPlugin(_host: PluginHost): PluginManifest {
     id: 'recent-changes',
     name: 'recent-changes',
     version: '0.1.0',
-    description: '最近改动：查看智能体最近修改的数据（来自操作日志）',
-    meta: { label: '最近改动', icon: 'pencil' },
+    description: 'Recent changes: data the agent modified (from the operation log)',
+    meta: {
+      label: 'Recent changes',
+      labelKey: 'plugin.recentChanges.label',
+      icon: 'pencil',
+      description: 'Recent data changes made by the agent (from the operation log)',
+      descriptionKey: 'plugin.recentChanges.desc'
+    },
     capabilities: [
       {
         kind: 'command',
         id: 'recentChanges.open',
-        label: '最近改动',
+        label: 'Recent changes',
+        labelKey: 'plugin.recentChanges.label',
         run: () => _host.openPanel('recentChanges.panel')
       },
       {
@@ -36,12 +44,19 @@ export function defineRecentChangesPlugin(_host: PluginHost): PluginManifest {
         order: 930,
         items: [{ key: 'recent-changes', labelKey: 'nav.recentChanges', icon: 'pencil', command: 'recentChanges.open' }]
       },
-      { kind: 'panel', id: 'recentChanges.panel', title: '最近改动', ui: { type: 'text', text: '最近改动' } }
+      {
+        kind: 'panel',
+        id: 'recentChanges.panel',
+        title: 'Recent changes',
+        titleKey: 'plugin.recentChanges.label',
+        ui: { type: 'text', text: 'Recent changes' }
+      }
     ]
   }
 }
 
 function RecentChangesPanel({ onClose }: PanelBindingProps): ReactElement {
+  const t = useT()
   const [changes, setChanges] = useState<OperationRecord[]>([])
   // 首次挂载即加载，故 loading 初值为 true；`load` 的 setState 都在 await 之后（避免 effect 内同步 setState）
   const [loading, setLoading] = useState(true)
@@ -85,18 +100,20 @@ function RecentChangesPanel({ onClose }: PanelBindingProps): ReactElement {
   return (
     <div className="panel recent-changes">
       <div className="panel-header">
-        <h3>最近改动</h3>
+        <h3>{t('plugin.recentChanges.label')}</h3>
         <div className="recent-changes-actions">
           <button type="button" className="btn" disabled={loading} onClick={refresh}>
-            {loading ? '刷新中…' : '刷新'}
+            {loading ? t('recentChanges.refreshing') : t('recentChanges.refresh')}
           </button>
           <button type="button" className="btn" onClick={onClose}>
-            关闭
+            {t('common.close')}
           </button>
         </div>
       </div>
 
-      {error !== null && <p className="recent-changes-error">读取失败：{error}</p>}
+      {error !== null && (
+        <p className="recent-changes-error">{t('recentChanges.readFailed', { error })}</p>
+      )}
       {/* 行渲染统一在 DigitalChangeList（与对话内联改动卡共用），此处只负责取数与刷新 */}
       <DigitalChangeList changes={changes} loading={loading} />
     </div>

@@ -31,36 +31,42 @@ export function defineShellPanelsPlugin(host: PluginHost): PluginManifest {
     id: 'shell-panels',
     name: 'shell-panels',
     version: '0.1.0',
-    description: '外壳面板包（关于 / 插件中心）',
+    description: 'Shell panels (about / plugin center)',
     meta: {
-      label: '外壳面板',
+      label: 'Shell panels',
+      labelKey: 'plugin.shell.label',
       icon: '🪟',
-      description: '关于与插件中心：一个走打开参数，一个是自举的管理面'
+      description: 'About and plugin center: one takes panel params, one is a self-hosted admin surface',
+      descriptionKey: 'plugin.shell.desc'
     },
     capabilities: [
       {
         kind: 'command',
         id: 'about.open',
-        label: '关于',
+        label: 'About',
+        labelKey: 'plugin.shell.aboutLabel',
         run: () => host.openPanel('about.panel')
       },
       {
         kind: 'panel',
         id: 'about.panel',
-        title: '关于墨白编辑器',
-        ui: { type: 'text', text: '版本、许可与致谢' }
+        title: 'About Mobai Editor',
+        titleKey: 'plugin.shell.aboutTitle',
+        ui: { type: 'text', text: 'Version, license and credits' }
       },
       {
         kind: 'command',
         id: 'plugins.open',
-        label: '插件中心',
+        label: 'Plugin center',
+        labelKey: 'plugin.shell.pluginsLabel',
         run: () => host.openPanel('plugins.panel')
       },
       {
         kind: 'panel',
         id: 'plugins.panel',
-        title: '插件中心',
-        ui: { type: 'text', text: '已注册插件清单（启用 / 禁用 / 面板预览）' }
+        title: 'Plugin center',
+        titleKey: 'plugin.shell.pluginsLabel',
+        ui: { type: 'text', text: 'Registered plugins (enable / disable / panel preview)' }
       }
     ]
   }
