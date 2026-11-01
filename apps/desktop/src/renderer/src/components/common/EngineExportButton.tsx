@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
+
 /**
  * 引擎代码导出入口（E2）：数据视图工具条上的按钮。
  * 流程：选保存路径（主进程 SaveDialog）→ 主进程渲染 Lua 数据模块并原子落盘 → 回报路径与字节数。
@@ -21,6 +23,7 @@ interface EngineApi {
 }
 
 export default function EngineExportButton() {
+  const t = useT()
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -35,7 +38,7 @@ export default function EngineExportButton() {
       const picked = await api.dialog.chooseEngineExportFile({ defaultName: 'GameData' })
       if (picked.path === null) return
       const result = await api.engine.exportData({ engine: 'lua', path: picked.path })
-      setMessage(`已导出 ${result.filePath}（${result.bytes} 字节）`)
+      setMessage(t('engine.export.done', { path: result.filePath, bytes: result.bytes }))
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : String(failure))
     } finally {
@@ -52,7 +55,7 @@ export default function EngineExportButton() {
         disabled={busy}
         onClick={() => void handleExport()}
       >
-        导出引擎代码（Lua）
+        {t('engine.export.lua')}
       </button>
       {message !== null && (
         <span className="item-meta" data-testid="export-engine-message">

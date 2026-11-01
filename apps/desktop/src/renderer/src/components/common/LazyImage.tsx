@@ -1,12 +1,11 @@
 import { useEffect, useSyncExternalStore } from 'react'
 
+import { useT } from '@mobai/client-ui'
 import {
   buildCacheKey,
   ensureCached,
   estimateImageBytes,
   getImageCacheSnapshot,
-  IMAGE_LOADING_TEXT,
-  IMAGE_PLACEHOLDER_TEXT,
   isLoadableImagePath,
   subscribeImageCache
 } from '@mobai/shared/util/io'
@@ -49,9 +48,11 @@ export default function LazyImage({
   path,
   width = 100,
   height = 100,
-  alt = '图片预览',
+  alt,
   className
 }: LazyImageProps) {
+  const t = useT()
+  const altText = alt ?? t('common.image.alt')
   // 快照返回**稳定引用**（globalCache 单例），否则 useSyncExternalStore 会无限重渲染
   const cache = useSyncExternalStore(subscribeImageCache, getImageCacheSnapshot, getImageCacheSnapshot)
 
@@ -73,7 +74,7 @@ export default function LazyImage({
   if (key === '') {
     return (
       <div className="image-lazy image-lazy-empty" data-testid="image-lazy-empty">
-        {IMAGE_PLACEHOLDER_TEXT}
+        {t('common.image.none')}
       </div>
     )
   }
@@ -82,7 +83,7 @@ export default function LazyImage({
   if (hit !== undefined && hit.src === '') {
     return (
       <div className="image-lazy image-lazy-error" data-testid="image-lazy-error">
-        {reasonOf(hit)}
+        {reasonOf(hit, t('common.image.unavailable'))}
       </div>
     )
   }
@@ -91,7 +92,7 @@ export default function LazyImage({
   if (hit === undefined) {
     return (
       <div className="image-lazy image-lazy-loading" data-testid="image-lazy-loading">
-        {IMAGE_LOADING_TEXT}
+        {t('common.loading')}
       </div>
     )
   }
@@ -101,7 +102,7 @@ export default function LazyImage({
       className={`image-lazy${className !== undefined && className !== '' ? ` ${className}` : ''}`}
       data-testid="image-lazy"
       src={hit.src}
-      alt={alt}
+      alt={altText}
       width={width}
       height={height}
       decoding="async"
@@ -111,6 +112,6 @@ export default function LazyImage({
 }
 
 /** 失败文案：优先用缓存里的原因，兜底通用文案 */
-function reasonOf(entry: { reason: string | null }): string {
-  return entry.reason ?? '图片不可用'
+function reasonOf(entry: { reason: string | null }, fallback: string): string {
+  return entry.reason ?? fallback
 }

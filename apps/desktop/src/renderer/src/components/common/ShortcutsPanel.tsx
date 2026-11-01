@@ -1,3 +1,4 @@
+import { useT } from '@mobai/client-ui'
 import { APP_SHORTCUTS } from '@mobai/shared/util/ui'
 
 /**
@@ -16,12 +17,13 @@ import { APP_SHORTCUTS } from '@mobai/shared/util/ui'
  * 不自造一套。浮层头部已有统一的「关闭」按钮，故本组件**不接收 `onClose`**。
  */
 export default function ShortcutsPanel() {
+  const t = useT()
   return (
     <div className="editor" data-testid="shortcuts-panel">
       <div className="editor-header">
         <div className="editor-title">
-          快捷键参考
-          <small>仅列出本应用实际注册的快捷键（共 {APP_SHORTCUTS.length} 条）</small>
+          {t('shortcuts.title')}
+          <small>{t('shortcuts.subtitle', { count: APP_SHORTCUTS.length })}</small>
         </div>
       </div>
 
@@ -30,9 +32,9 @@ export default function ShortcutsPanel() {
           <table className="score-table" data-testid="shortcuts-table">
             <thead>
               <tr>
-                <th>快捷键</th>
-                <th>操作</th>
-                <th>说明</th>
+                <th>{t('shortcuts.col.keys')}</th>
+                <th>{t('shortcuts.col.action')}</th>
+                <th>{t('shortcuts.col.description')}</th>
               </tr>
             </thead>
             <tbody>
@@ -47,9 +49,7 @@ export default function ShortcutsPanel() {
           </table>
         </div>
 
-        <div className="item-meta">
-          输入框内不拦截这些组合键，保留文本框自身的撤销行为；macOS 下 Cmd 等效于 Ctrl。
-        </div>
+        <div className="item-meta">{t('shortcuts.note')}</div>
       </div>
     </div>
   )

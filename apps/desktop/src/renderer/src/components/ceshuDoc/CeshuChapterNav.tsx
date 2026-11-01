@@ -14,6 +14,7 @@ import type { PluginHost } from '@mobai/shared/plugin/host'
 
 import { ViewMount } from '../../plugins/host'
 import { CESHU_CHAPTERNAV_MOUNT, CeshuViewProvider, type CeshuViewContextValue } from '../../plugins/ceshu'
+import { useT } from '@mobai/client-ui'
 import { ARTIFACTS, type ArtifactKey } from './ceshuArtifacts'
 
 /**
@@ -64,10 +65,11 @@ export default function CeshuChapterNav({
   host,
   viewContext
 }: CeshuChapterNavProps) {
+  const t = useT()
   return (
     <div className="chapter-nav">
       {/* 产出物切换：设计文档 / 原型预览 / 数据·机读 / 岗位任务 */}
-      <div className="artifact-switch" role="group" aria-label="产出物">
+      <div className="artifact-switch" role="group" aria-label={t('ceshu.artifact.groupLabel')}>
         {ARTIFACTS.map((item) => (
           <button
             key={item.key}
@@ -76,7 +78,7 @@ export default function CeshuChapterNav({
             className={`artifact-btn${activeArtifact === item.key ? ' active' : ''}`}
             onClick={() => onSelectArtifact(item.key)}
           >
-            {item.label}
+            {t(item.labelKey)}
           </button>
         ))}
       </div>
@@ -173,7 +175,12 @@ export default function CeshuChapterNav({
         </>
       ) : (
         <div className="chapter-nav-hint" data-testid="artifact-nav-hint">
-          「{ARTIFACTS.find((item) => item.key === activeArtifact)?.label}」的目录将在这里
+          「
+          {(() => {
+            const active = ARTIFACTS.find((item) => item.key === activeArtifact)
+            return active === undefined ? '' : t(active.labelKey)
+          })()}
+          」的目录将在这里
         </div>
       )}
     </div>

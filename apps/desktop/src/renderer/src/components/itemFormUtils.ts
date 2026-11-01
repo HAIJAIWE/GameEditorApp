@@ -3,6 +3,8 @@ import { attrPanelToRows, defaultAttrPanelRows, rowsToAttrPanel, type AttrPanelR
 import { canParseAsDropTable, normalizeDropEntries, serializeDropEntries, type DropEntry } from '@mobai/shared/util/data'
 import { canParseAsRefTable, normalizeRefEntries, serializeRefEntries, type ReferenceEntry } from '@mobai/shared/util/search'
 import type { ItemRecord, TypeFieldDef } from '@mobai/shared/types'
+import { translate } from '@mobai/shared/i18n'
+import { getLocalePreference } from '../localePreference'
 
 export function usesJsonEditor(field: TypeFieldDef, value: unknown): boolean {
   if (field.type === 'droptable') return !canParseAsDropTable(value)
@@ -83,7 +85,7 @@ export function buildPayload(
       try {
         payload[name] = JSON.parse(raw)
       } catch {
-        throw new Error(`字段「${field.label}」不是合法 JSON`)
+        throw new Error(translate(getLocalePreference(), 'field.jsonInvalid', { field: field.label }))
       }
       continue
     }
@@ -94,7 +96,7 @@ export function buildPayload(
       }
       const numeric = Number(raw)
       if (!Number.isFinite(numeric)) {
-        throw new Error(`字段「${field.label}」需要数字`)
+        throw new Error(translate(getLocalePreference(), 'field.numberRequired', { field: field.label }))
       }
       payload[name] = numeric
       continue

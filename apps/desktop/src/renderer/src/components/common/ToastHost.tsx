@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react'
 
+import { useT } from '@mobai/client-ui'
 import { dismissToast, getToasts, subscribeToasts } from '@mobai/shared/util/ui'
 
 /**
@@ -19,6 +20,7 @@ import { dismissToast, getToasts, subscribeToasts } from '@mobai/shared/util/ui'
  * 且**不打断**用户当前操作（polite 而非 assertive）。
  */
 export default function ToastHost() {
+  const t = useT()
   const toasts = useSyncExternalStore(subscribeToasts, getToasts, getToasts)
 
   if (toasts.length === 0) return null
@@ -37,7 +39,7 @@ export default function ToastHost() {
             type="button"
             className="toast-close"
             data-testid="toast-close"
-            aria-label="关闭提示"
+            aria-label={t('common.toast.close')}
             onClick={() => dismissToast(toast.id)}
           >
             ×

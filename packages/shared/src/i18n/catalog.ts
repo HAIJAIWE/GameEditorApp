@@ -37,6 +37,61 @@ export const zh = {
   'common.empty': '暂无内容',
   'common.failed': '失败',
   'common.done': '完成',
+  'common.toast.close': '关闭提示',
+  'common.image.alt': '图片预览',
+  'common.image.none': '无图片',
+  'common.image.unavailable': '图片不可用',
+
+  // —— 数据编辑器 ——
+  'data.editor.emptyTypes': '当前库没有数据类型，请先在「工具 → 类型编辑器」创建',
+  'data.editor.typesHead': '数据类型',
+
+  // —— 字段 AI 起草按钮 ——
+  'agent.fieldAi.busy': 'AI生成中，请稍候...',
+  'agent.fieldAi.disabled': '该字段不可由 AI 起草',
+  'agent.fieldAi.fill': 'AI帮我填：{field}',
+
+  // —— 策划书：系统模块勾选 ——
+  'ceshu.modulePicker.core': '通用底座（恒有）',
+  'ceshu.modulePicker.modules': '系统模块（勾选启用）',
+  'ceshu.chart.competitiveAlt': '竞品象限图（横轴创新度，纵轴完成度）',
+
+  // —— 引擎导出 ——
+  'engine.export.done': '已导出 {path}（{bytes} 字节）',
+  'engine.export.lua': '导出引擎代码（Lua）',
+
+  // —— 关于面板 ——
+  'about.appName': '墨白可视化编辑器',
+  'about.readingVersion': '正在读取版本…',
+  'about.version': '版本 {version}',
+  'about.tagline': '面向游戏开发者的数据配置与策划工具平台',
+  'about.features': '内置 Agent 系统 · 属性计算引擎 · 策划书编辑器',
+  'about.engines': '支持 Unity / Unreal / Godot / Cocos2d 引擎导出',
+
+  // —— 快捷键参考面板 ——
+  'shortcuts.title': '快捷键参考',
+  'shortcuts.subtitle': '仅列出本应用实际注册的快捷键（共 {count} 条）',
+  'shortcuts.col.keys': '快捷键',
+  'shortcuts.col.action': '操作',
+  'shortcuts.col.description': '说明',
+  'shortcuts.note': '输入框内不拦截这些组合键，保留文本框自身的撤销行为；macOS 下 Cmd 等效于 Ctrl。',
+
+  // —— 策划书：产出物切换 / 一页总览 ——
+  'ceshu.artifact.doc': '设计文档',
+  'ceshu.artifact.prototype': '原型预览',
+  'ceshu.artifact.data': '数据 / 机读',
+  'ceshu.artifact.tasks': '岗位任务',
+  'ceshu.artifact.groupLabel': '产出物',
+  'ceshu.overview.title': '一页总览 · {stage}',
+  'ceshu.overview.summary': '共 {chapters} 章 · 必填已填 {filled}/{total}（{pct}%）',
+  'ceshu.overview.gap': ' · 还差 {count} 项必填',
+  'ceshu.overview.empty': '（本章暂无可展示的正文内容）',
+  'ceshu.overview.pending': '（待填）',
+  'ceshu.overview.machine': '另有 {count} 项机读数据（不计入完成度）',
+
+  // —— 表单字段校验 ——
+  'field.jsonInvalid': '字段「{field}」不是合法 JSON',
+  'field.numberRequired': '字段「{field}」需要数字',
 
   // —— 设置 ——
   'settings.title': '设置',
@@ -515,6 +570,62 @@ export const en: Record<MessageKey, string> = {
   'common.empty': 'Nothing here yet',
   'common.failed': 'Failed',
   'common.done': 'Done',
+  'common.toast.close': 'Close notification',
+  'common.image.alt': 'Image preview',
+  'common.image.none': 'No image',
+  'common.image.unavailable': 'Image unavailable',
+
+  // —— Data editor ——
+  'data.editor.emptyTypes': 'No data types in this library yet. Create one in Tools → Type Editor.',
+  'data.editor.typesHead': 'Data types',
+
+  // —— Field AI draft button ——
+  'agent.fieldAi.busy': 'AI generating, please wait…',
+  'agent.fieldAi.disabled': 'This field cannot be drafted by AI',
+  'agent.fieldAi.fill': 'Fill with AI: {field}',
+
+  // —— Design doc: system module picker ——
+  'ceshu.modulePicker.core': 'Universal core (always on)',
+  'ceshu.modulePicker.modules': 'System modules (toggle to enable)',
+  'ceshu.chart.competitiveAlt': 'Competitive quadrant chart (x: innovation, y: completeness)',
+
+  // —— Engine export ——
+  'engine.export.done': 'Exported {path} ({bytes} bytes)',
+  'engine.export.lua': 'Export engine code (Lua)',
+
+  // —— About panel ——
+  'about.appName': 'Mobai Visual Editor',
+  'about.readingVersion': 'Reading version…',
+  'about.version': 'Version {version}',
+  'about.tagline': 'A data configuration and game design platform for game developers',
+  'about.features': 'Built-in Agent · Attribute engine · Design document editor',
+  'about.engines': 'Exports to Unity / Unreal / Godot / Cocos2d',
+
+  // —— Shortcuts panel ——
+  'shortcuts.title': 'Keyboard shortcuts',
+  'shortcuts.subtitle': 'Only shortcuts actually registered in this app ({count})',
+  'shortcuts.col.keys': 'Shortcut',
+  'shortcuts.col.action': 'Action',
+  'shortcuts.col.description': 'Description',
+  'shortcuts.note':
+    'These combos are not intercepted inside inputs, so the text box keeps its own undo; on macOS Cmd equals Ctrl.',
+
+  // —— Design doc: artifacts / one-page overview ——
+  'ceshu.artifact.doc': 'Design doc',
+  'ceshu.artifact.prototype': 'Prototype',
+  'ceshu.artifact.data': 'Data / machine-readable',
+  'ceshu.artifact.tasks': 'Role tasks',
+  'ceshu.artifact.groupLabel': 'Artifacts',
+  'ceshu.overview.title': 'One-page overview · {stage}',
+  'ceshu.overview.summary': '{chapters} chapters · required filled {filled}/{total} ({pct}%)',
+  'ceshu.overview.gap': ' · {count} required still missing',
+  'ceshu.overview.empty': '(No body content to show for this chapter yet)',
+  'ceshu.overview.pending': '(To fill)',
+  'ceshu.overview.machine': '{count} machine-readable items (not counted toward completeness)',
+
+  // —— Form field validation ——
+  'field.jsonInvalid': 'Field "{field}" is not valid JSON',
+  'field.numberRequired': 'Field "{field}" requires a number',
 
   'settings.title': 'Settings',
   'settings.language': 'Language',

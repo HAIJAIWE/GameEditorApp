@@ -5,10 +5,10 @@
  * `'doc'` 例外——它没有对应视图，渲染章节表单本体。
  */
 export const ARTIFACTS = [
-  { key: 'doc', label: '设计文档' },
-  { key: 'prototype', label: '原型预览' },
-  { key: 'data', label: '数据 / 机读' },
-  { key: 'tasks', label: '岗位任务' }
+  { key: 'doc', label: 'Design doc', labelKey: 'ceshu.artifact.doc' },
+  { key: 'prototype', label: 'Prototype', labelKey: 'ceshu.artifact.prototype' },
+  { key: 'data', label: 'Data / machine-readable', labelKey: 'ceshu.artifact.data' },
+  { key: 'tasks', label: 'Role tasks', labelKey: 'ceshu.artifact.tasks' }
 ] as const
 
 export type ArtifactKey = (typeof ARTIFACTS)[number]['key']

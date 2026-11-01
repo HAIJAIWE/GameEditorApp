@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
 import DataEditorTab from './DataEditorTab'
 import type { ReferenceTarget } from '../ceshuField'
 import type { DataTypeDef } from '@mobai/shared/types'
@@ -41,6 +42,7 @@ export default function DataEditorPanel({
   onEditType,
   onShowReferences
 }: DataEditorPanelProps): React.JSX.Element {
+  const t = useT()
   const [activeType, setActiveType] = useState<string>(() => {
     const stored = readSetting(ACTIVE_TYPE_KEY)
     return stored !== null && types.some((t) => t.id === stored) ? stored : (types[0]?.id ?? '')
@@ -60,7 +62,7 @@ export default function DataEditorPanel({
   if (sortedTypes.length === 0) {
     return (
       <div className="data-editor-panel" data-testid="data-editor-panel">
-        <div className="data-editor-empty">当前库没有数据类型，请先在「工具 → 类型编辑器」创建</div>
+        <div className="data-editor-empty">{t('data.editor.emptyTypes')}</div>
       </div>
     )
   }
@@ -69,7 +71,7 @@ export default function DataEditorPanel({
     <div className="data-editor-panel" data-testid="data-editor-panel">
       {/* 左：全部数据类型（不依赖策划书启用状态） */}
       <aside className="data-editor-types" data-testid="data-editor-types">
-        <div className="data-editor-types-head">数据类型</div>
+        <div className="data-editor-types-head">{t('data.editor.typesHead')}</div>
         <div className="data-editor-types-body">
           {sortedTypes.map((type) => (
             <button

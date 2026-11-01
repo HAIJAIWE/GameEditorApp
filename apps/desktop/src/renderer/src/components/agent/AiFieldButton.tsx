@@ -15,6 +15,8 @@
  *   ⇒ 60 秒兜底随之**上移到发起方**（`ChapterForm`），见那里的 `AI_FIELD_SAFETY_MS`。
  * - 尺寸/配色交给 CSS（`.ai-field-btn`），不内联样式（对齐项目既有做法）。
  */
+import { useT } from '@mobai/client-ui'
+
 interface AiFieldButtonProps {
   /** 是否正在生成（禁用 + 提示文案切换） */
   busy: boolean
@@ -29,12 +31,13 @@ interface AiFieldButtonProps {
 }
 
 export function AiFieldButton({ busy, onFill, fieldLabel, disabled = false, disabledHint }: AiFieldButtonProps) {
+  const t = useT()
   const blocked = busy || disabled
   const title = busy
-    ? 'AI生成中，请稍候...'
+    ? t('agent.fieldAi.busy')
     : disabled
-      ? (disabledHint ?? '该字段不可由 AI 起草')
-      : `AI帮我填：${fieldLabel}`
+      ? (disabledHint ?? t('agent.fieldAi.disabled'))
+      : t('agent.fieldAi.fill', { field: fieldLabel })
   return (
     <button
       type="button"

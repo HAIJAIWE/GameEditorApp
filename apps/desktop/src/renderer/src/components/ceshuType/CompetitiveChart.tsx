@@ -1,3 +1,4 @@
+import { useT } from '@mobai/client-ui'
 import {
   CHART_HEIGHT,
   CHART_MARGIN,
@@ -19,6 +20,7 @@ interface CompetitiveChartProps {
 }
 
 export default function CompetitiveChart({ competitors }: CompetitiveChartProps) {
+  const t = useT()
   const points = normalizeCompetitors(competitors)
   const { xs, ys } = chartGridPositions()
 
@@ -28,7 +30,7 @@ export default function CompetitiveChart({ competitors }: CompetitiveChartProps)
       data-testid="competitive-chart"
       viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
       role="img"
-      aria-label="竞品象限图（横轴创新度，纵轴完成度）"
+      aria-label={t('ceshu.chart.competitiveAlt')}
     >
       {xs.map((x) => (
         <line

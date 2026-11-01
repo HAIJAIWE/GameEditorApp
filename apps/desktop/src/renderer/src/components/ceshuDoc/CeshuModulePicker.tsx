@@ -1,3 +1,4 @@
+import { useT } from '@mobai/client-ui'
 import {
   CHAPTER_LABELS,
   MODULE_CHAPTERS,
@@ -21,6 +22,7 @@ interface CeshuModulePickerProps {
 }
 
 export default function CeshuModulePicker({ doc, onToggle, onClose }: CeshuModulePickerProps) {
+  const t = useT()
   const enabled = new Set(enabledModuleChapters(doc))
 
   return (
@@ -28,12 +30,12 @@ export default function CeshuModulePicker({ doc, onToggle, onClose }: CeshuModul
       {onClose !== undefined && (
         <div className="module-picker-actions">
           <button type="button" className="btn slim" data-testid="module-picker-close" onClick={onClose}>
-            关闭
+            {t('common.close')}
           </button>
         </div>
       )}
       <div className="module-picker-core">
-        <div className="module-picker-title">通用底座（恒有）</div>
+        <div className="module-picker-title">{t('ceshu.modulePicker.core')}</div>
         <div className="module-picker-chips">
           {UNIVERSAL_CORE_CHAPTERS.map((chapter) => (
             <span key={chapter} className="module-chip core">
@@ -43,7 +45,7 @@ export default function CeshuModulePicker({ doc, onToggle, onClose }: CeshuModul
         </div>
       </div>
       <div className="module-picker-modules">
-        <div className="module-picker-title">系统模块（勾选启用）</div>
+        <div className="module-picker-title">{t('ceshu.modulePicker.modules')}</div>
         <div className="module-picker-list">
           {MODULE_CHAPTERS.map((chapter) => (
             <label key={chapter} className="module-check">

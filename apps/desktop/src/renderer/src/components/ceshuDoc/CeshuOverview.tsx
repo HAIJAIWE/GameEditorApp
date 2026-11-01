@@ -1,3 +1,4 @@
+import { useT } from '@mobai/client-ui'
 import {
   CHAPTER_LABELS,
   CHAPTER_REQUIRED_FIELDS,
@@ -35,6 +36,7 @@ interface OverviewRow {
 }
 
 export default function CeshuOverview({ doc, stage, progress }: CeshuOverviewProps) {
+  const t = useT()
   const visible = new Set(visibleChaptersForDoc(doc))
   const chapters = chaptersUpToStage(stage).filter((chapter) => visible.has(chapter))
 
@@ -70,11 +72,18 @@ export default function CeshuOverview({ doc, stage, progress }: CeshuOverviewPro
   return (
     <div className="ceshu-overview" data-testid="ceshu-overview">
       <header className="overview-head">
-        <h2 className="overview-title">一页总览 · {CESHU_STAGE_LABELS[stage]}</h2>
+        <h2 className="overview-title">{t('ceshu.overview.title', { stage: CESHU_STAGE_LABELS[stage] })}</h2>
         <p className="overview-summary">
-          共 {chapters.length} 章 · 必填已填 {requiredFilled}/{requiredTotal}（{overall}%）
+          {t('ceshu.overview.summary', {
+            chapters: chapters.length,
+            filled: requiredFilled,
+            total: requiredTotal,
+            pct: overall
+          })}
           {requiredTotal - requiredFilled > 0 && (
-            <span className="overview-gap"> · 还差 {requiredTotal - requiredFilled} 项必填</span>
+            <span className="overview-gap">
+              {t('ceshu.overview.gap', { count: requiredTotal - requiredFilled })}
+            </span>
           )}
         </p>
       </header>
@@ -88,7 +97,7 @@ export default function CeshuOverview({ doc, stage, progress }: CeshuOverviewPro
             </span>
           </h3>
           {section.rows.length === 0 ? (
-            <p className="overview-empty-note">（本章暂无可展示的正文内容）</p>
+            <p className="overview-empty-note">{t('ceshu.overview.empty')}</p>
           ) : (
             <dl className="overview-fields">
               {section.rows.map((row) => (
@@ -98,14 +107,16 @@ export default function CeshuOverview({ doc, stage, progress }: CeshuOverviewPro
                     {row.required ? ' *' : ''}
                   </dt>
                   <dd className={`overview-field-value${row.filled ? '' : ' empty'}`}>
-                    {row.filled ? row.value : '（待填）'}
+                    {row.filled ? row.value : t('ceshu.overview.pending')}
                   </dd>
                 </div>
               ))}
             </dl>
           )}
           {section.machineCount > 0 && (
-            <p className="overview-machine-note">另有 {section.machineCount} 项机读数据（不计入完成度）</p>
+            <p className="overview-machine-note">
+              {t('ceshu.overview.machine', { count: section.machineCount })}
+            </p>
           )}
         </section>
       ))}

@@ -9,32 +9,37 @@
  * 故本组件**不接收 `onClose`**；只渲染内容。
  */
 
+import { useT } from '@mobai/client-ui'
+
 interface AboutPanelProps {
   /** 应用版本（来自 `app:info`；null = 尚未读到，展示占位文案而非假版本号） */
   version: string | null
 }
 
 export default function AboutPanel({ version }: AboutPanelProps) {
+  const t = useT()
   return (
     <div className="editor" data-testid="about-panel">
       <div className="editor-header">
         <div className="editor-title">
-          墨白可视化编辑器
-          <small data-testid="about-panel-version">{version === null ? '正在读取版本…' : `版本 ${version}`}</small>
+          {t('about.appName')}
+          <small data-testid="about-panel-version">
+            {version === null ? t('about.readingVersion') : t('about.version', { version })}
+          </small>
         </div>
       </div>
 
       <div className="editor-body">
         {/* 旧版 用 <hr> 分隔正文与落款；此处用两个 changelog-entry 分块，视觉层次等价 */}
         <div className="changelog-entry">
-          <div>面向游戏开发者的数据配置与策划工具平台</div>
+          <div>{t('about.tagline')}</div>
         </div>
 
         <div className="changelog-entry">
           <div className="item-meta">
-            内置 Agent 系统 · 属性计算引擎 · 策划书编辑器
+            {t('about.features')}
             <br />
-            支持 Unity / Unreal / Godot / Cocos2d 引擎导出
+            {t('about.engines')}
           </div>
         </div>
       </div>
