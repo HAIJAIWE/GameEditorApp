@@ -146,7 +146,7 @@ import type { BrainEvent } from './agent/brain'
 import type { AgentRunStats } from './agent/observability'
 import type { DraftSummary, SessionInfo, SessionTurnSummary } from './agent/conversation'
 import type { OperationRecord } from './agent/observability'
-import type { JsonObjectSchema, SkillResult } from './agent/config'
+import type { JsonObjectSchema, PermissionMode, SkillResult } from './agent/config'
 import type {
   AttachmentsAddInput,
   AttachmentsOpenInput,
@@ -381,6 +381,10 @@ export interface IpcContract {
   'agent:jobList': { req: undefined; res: { jobs: JobRecord[] } }
   /** 按跨轮唯一 jobId 取消后台任务 */
   'agent:jobCancel': { req: AgentJobCancelInput; res: { ok: boolean } }
+  /** 读取当前权限档位（dsh 式 read-only / ask / full） */
+  'agent:getPermissionMode': { req: undefined; res: { mode: PermissionMode } }
+  /** 设置并持久化权限档位（实时生效：调度器硬上限 + 循环确认门都读它） */
+  'agent:setPermissionMode': { req: { mode: PermissionMode }; res: { ok: boolean; error?: string } }
   /** 代码工作区：读取当前根目录 */
   'agent:getWorkspace': { req: undefined; res: { root: string } }
   /** 代码工作区：弹出目录选择并设置（取消则 root 不变，cancelled=true） */

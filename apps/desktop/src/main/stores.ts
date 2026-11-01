@@ -96,6 +96,7 @@ import { initScheduleTicker } from '@mobai/agent-core/schedule/scheduleTicker'
 import { createCliSubAgentProvider } from '@mobai/agent-core/subagent/subagentCli'
 import { createRemoteSubAgentProvider } from '@mobai/agent-core/subagent/subagentRemote'
 import { createAcpSubAgentProvider } from '@mobai/agent-core/subagent/subagentAcp'
+import { permissionPolicyHolder } from '@mobai/shared/agent/config'
 import type { SubAgentProvider } from '@mobai/shared/agent/brain'
 import { mcpManager } from '@mobai/agent-core/mcp/manager'
 import { AgentMemoryStore } from '@mobai/agent-core/store/memoryStore'
@@ -170,8 +171,11 @@ export function buildStores(libDir: string): AppStores {
   const ceshu = new CeshuManager(new CeshuStorage(join(libDir, 'ceshu')))
   const schema = new TypeSchemaStore(join(libDir, 'type_schema.json'))
 
-  // Agent 技能调度器：注册内置技能，服务在构造时注入
-  const dispatcher = new SkillDispatcher()
+  // Agent 技能调度器：注册内置技能，服务在构造时注入。
+  // 风险硬上限走「实时读取共享持有者」的闭包，权限档位在运行中切换即生效（无需重建 store）。
+  const dispatcher = new SkillDispatcher({
+    maxAllowedRisk: () => permissionPolicyHolder.current.maxAllowedRisk
+  })
   dispatcher.register(createGameDataSkill({ dataService: data, typeSchemaStore: schema }))
   dispatcher.register(
     createCeshuSkill({

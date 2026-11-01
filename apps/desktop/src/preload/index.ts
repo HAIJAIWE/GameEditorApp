@@ -62,6 +62,11 @@ const api: MbApi = {
     /** 最近交付（交付日志）：可按 `since` / `conversationId` 收窄 */
     deliveries: (req: { limit?: number; since?: number; conversationId?: string }) =>
       invoke('agent:deliveries', req),
+    /** 读取当前权限档位（dsh 式 readOnly / ask / full） */
+    getPermissionMode: () => invoke('agent:getPermissionMode', undefined),
+    /** 设置并持久化权限档位（实时生效：调度器硬上限 + 循环确认门都读它） */
+    setPermissionMode: (req: { mode: import('@mobai/shared/agent/config').PermissionMode }) =>
+      invoke('agent:setPermissionMode', req),
     /** 订阅主进程推送的事件流；返回取消订阅函数 */
     onEvent: (handler: (event: unknown) => void): (() => void) => {
       const listener = (_event: unknown, payload: unknown): void => handler(payload)

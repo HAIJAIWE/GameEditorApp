@@ -25,6 +25,7 @@ import { registerEngineIpc } from './ipc/engineIpc'
 import { registerCeshuIpc } from './ipc/ceshuIpc'
 import { registerBackupIpc } from './ipc/backupIpc'
 import { registerFsIpc } from './ipc/fsIpc'
+import { registerPermissionIpc } from './ipc/permissionIpc'
 
 export interface IpcHandlerDeps {
   dataService: import('./data/service').DataService
@@ -120,6 +121,7 @@ export function registerIpcHandlers(deps: IpcHandlerDeps): void {
   registerCeshuIpc(deps, handle, llm)
   registerBackupIpc(deps, handle)
   registerFsIpc(deps, handle)
+  registerPermissionIpc(deps, handle)
 }
 
 /** 已注册的 IPC 通道（A2-1 切换库重建 store 时需要先全部注销再注册） */

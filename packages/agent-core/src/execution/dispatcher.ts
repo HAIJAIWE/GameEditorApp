@@ -120,7 +120,7 @@ export class SkillDispatcher {
   private descIndex = new Map<string, string>()
   /** id 片段 + 显式别名索引（**强**）：命中即用，优先级高于 `descIndex` */
   private aliasIndex = new Map<string, string>()
-  private readonly maxAllowedRisk: RiskLevel
+  private readonly getMaxAllowedRisk: () => RiskLevel
   /**
    * dsh 形状的工具运行时（`@mobai/shared/agent/toolRuntime`）。
    *
@@ -142,8 +142,12 @@ export class SkillDispatcher {
    *
    * 改前该字段存了却从不读取（`riskCeiling` getter 也无调用点）：形似安全策略、实则零守卫。
    */
-  constructor(options: { maxAllowedRisk?: RiskLevel } = {}) {
-    this.maxAllowedRisk = options.maxAllowedRisk ?? RISK_LEVEL.SYSTEM
+  constructor(options: { maxAllowedRisk?: RiskLevel | (() => RiskLevel) } = {}) {
+    const configured = options.maxAllowedRisk
+    this.getMaxAllowedRisk = (): RiskLevel => {
+      if (typeof configured === 'function') return configured()
+      return configured ?? RISK_LEVEL.SYSTEM
+    }
     // 超时策略是流水线的第一层：只有声明了 `timeoutMs` 的工具才会被 arm deadline
     this.pipeline.use(createTimeoutPolicy((name) => this.tools.get(name)))
     /*
@@ -312,7 +316,7 @@ export class SkillDispatcher {
     // 权限判定统一走 `protocol.checkPermission`（显式禁止 → 硬上限 → 危险确认 三段）。
     // 改前这里是 `resolveRiskLevel(...) >= RISK_LEVEL.SYSTEM` 的手写判定 + 一个从不读取的
     // `maxAllowedRisk` 字段 ⇒ 「限制工具/动作」这一整档能力在调度器层不可达。
-    const check = checkPermission(resolved, action, { maxAllowedRisk: this.maxAllowedRisk })
+    const check = checkPermission(resolved, action, { maxAllowedRisk: this.getMaxAllowedRisk() })
     if (!check.allowed) {
       return {
         success: false,
@@ -371,7 +375,7 @@ export class SkillDispatcher {
     if (resolved === null) return this.execute(toolName, params, ctx)
     const fixed = fixParams(resolved, params)
     const action = typeof fixed.action === 'string' ? fixed.action : ''
-    const check = checkPermission(resolved, action, { maxAllowedRisk: this.maxAllowedRisk })
+    const check = checkPermission(resolved, action, { maxAllowedRisk: this.getMaxAllowedRisk() })
 
     // 只有「需要确认且未超上限」才走审批；超上限由 execute 统一报错
     if (check.allowed && check.needsConfirmation) {
@@ -393,6 +397,6 @@ export class SkillDispatcher {
 
   /** 当前允许的最大风险（只读；策略判定统一走 `checkPermission`） */
   get riskCeiling(): RiskLevel {
-    return this.maxAllowedRisk
+    return this.getMaxAllowedRisk()
   }
 }

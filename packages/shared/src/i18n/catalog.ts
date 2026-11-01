@@ -133,12 +133,25 @@ export const zh = {
   'agent.composer.modelTitle': '当前模型：{model}（{provider}）',
   'agent.composer.noModel': '未选择模型',
   'agent.composer.noModels': '无可切换模型',
+  'agent.composer.providerTitle': '服务商',
+  'agent.composer.modelListTitle': '模型',
   'agent.composer.mic': '语音输入（未实现）',
   'agent.composer.stopArmed': '再点一次即可停止本轮',
   'agent.composer.stop': '停止本轮（已产出的结果会保留）',
   'agent.composer.stopConfirm': '确认停止',
   'agent.composer.send': '发送（Enter）',
   'agent.composer.stats': '{turns} 轮 · {steps} 步 · {tokens} tok · {ms} ms',
+
+  // —— 智能体面板：权限档位（dsh 式 readOnly / ask / full，走真后端）——
+  'agent.permission.title': '权限档位',
+  'agent.permission.menuTitle': '切换权限档位（即时生效）',
+  'agent.permission.chip': '权限：{mode}',
+  'agent.permission.readOnly': '只读',
+  'agent.permission.readOnlyDesc': '拒绝一切写入 / 文件 / 网络 / 系统操作',
+  'agent.permission.ask': '询问',
+  'agent.permission.askDesc': '放开全部能力，但写操作前先征求确认',
+  'agent.permission.full': '完全',
+  'agent.permission.fullDesc': '全部能力，仅系统级操作需确认',
 
   // —— 智能体面板：斜杠命令菜单 ——
   'agent.cmd.new': '新建对话',
@@ -596,12 +609,25 @@ export const en: Record<MessageKey, string> = {
   'agent.composer.modelTitle': 'Current model: {model} ({provider})',
   'agent.composer.noModel': 'No model selected',
   'agent.composer.noModels': 'No switchable models',
+  'agent.composer.providerTitle': 'Provider',
+  'agent.composer.modelListTitle': 'Model',
   'agent.composer.mic': 'Voice input (not implemented)',
   'agent.composer.stopArmed': 'Click again to stop this run',
   'agent.composer.stop': 'Stop this run (results kept)',
   'agent.composer.stopConfirm': 'Confirm stop',
   'agent.composer.send': 'Send (Enter)',
   'agent.composer.stats': '{turns} turns · {steps} steps · {tokens} tok · {ms} ms',
+
+  // —— Agent panel: permission modes (dsh-style readOnly / ask / full, real backend) ——
+  'agent.permission.title': 'Permission',
+  'agent.permission.menuTitle': 'Switch permission mode (applies instantly)',
+  'agent.permission.chip': 'Permission: {mode}',
+  'agent.permission.readOnly': 'Read only',
+  'agent.permission.readOnlyDesc': 'Reject all writes / file / network / system actions',
+  'agent.permission.ask': 'Ask',
+  'agent.permission.askDesc': 'All capabilities, but confirm before any write',
+  'agent.permission.full': 'Full',
+  'agent.permission.fullDesc': 'All capabilities, only system-level actions need confirm',
 
   // —— Agent panel: slash command menu ——
   'agent.cmd.new': 'New chat',

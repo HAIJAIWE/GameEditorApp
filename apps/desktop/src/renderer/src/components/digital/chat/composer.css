@@ -379,6 +379,63 @@
   color: var(--text-muted);
   font-size: calc(12px * var(--ui-font-scale));
 }
+/* 权限档位菜单：含两行（标题 + 说明），比模型菜单宽 */
+.dsh-composer-menu-wide {
+  min-width: 248px;
+}
+.dsh-composer-menu-item-wide {
+  flex-direction: column;
+  align-items: flex-start;
+  height: auto;
+  gap: 2px;
+  padding: 6px 8px;
+}
+.dsh-composer-menu-item-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.dsh-composer-menu-item-desc {
+  color: var(--text-muted);
+  font-size: calc(12px * var(--ui-font-scale));
+  line-height: 1.35;
+  white-space: normal;
+}
+/* 服务商切换行（对齐 dsh 的 provider 切换）：可横向滚动的 chip 组 */
+.dsh-composer-menu-section-label {
+  padding: 2px 8px 4px;
+  color: var(--text-muted);
+  font-size: calc(12px * var(--ui-font-scale));
+}
+.dsh-composer-provider-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0 6px 4px;
+}
+.dsh-composer-provider-chip {
+  flex: 0 0 auto;
+  padding: 3px 8px;
+  border: 0.5px solid var(--border);
+  border-radius: 999px;
+  background: none;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: calc(12px * var(--ui-font-scale));
+  cursor: pointer;
+}
+.dsh-composer-provider-chip:hover {
+  background: var(--bg-hover);
+}
+.dsh-composer-provider-chip[data-selected='true'] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.dsh-composer-menu-sep {
+  height: 0.5px;
+  margin: 4px 8px;
+  background: var(--border);
+}
 
 /*
  * 菜单遮罩（对齐 dsh `bg-overlay`）：菜单打开时盖一层极淡的 scrim，点它即关闭。

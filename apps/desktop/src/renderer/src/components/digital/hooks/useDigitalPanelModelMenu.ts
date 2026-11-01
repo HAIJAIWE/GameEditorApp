@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 
 import { LLM_PROVIDER_PRESETS, loadLlmConfig, saveLlmConfig } from '@mobai/shared/config/llm'
 import type { LlmProvider } from '@mobai/shared/config/llm'
@@ -18,8 +18,12 @@ export interface DigitalPanelModelMenu {
   availableModels: string[]
   currentModel: string
   currentProvider: LlmProvider
+  /** 可选服务商清单（来自 LLM_PROVIDER_PRESETS 的 key） */
+  availableProviders: LlmProvider[]
   loadModels: () => Promise<void>
   chooseModel: (model: string) => Promise<void>
+  /** 切换服务商：写入默认模型 + 推主进程镜像，后续调用即生效（对齐 dsh 的 provider 切换） */
+  chooseProvider: (provider: LlmProvider) => Promise<void>
   close: () => void
   /** 触发器点击：未展开时先拉清单再展开 */
   onTriggerClick: () => Promise<void>
@@ -35,6 +39,10 @@ export function useDigitalPanelModelMenu(): DigitalPanelModelMenu {
   const [currentProvider, setCurrentProvider] = useState<LlmProvider>(() => {
     try { return loadLlmConfig().provider } catch { return 'ollama' }
   })
+  const availableProviders = useMemo<LlmProvider[]>(
+    () => Object.keys(LLM_PROVIDER_PRESETS) as LlmProvider[],
+    []
+  )
 
   /**
    * 打开模型下拉时拉取可选项：预设清单（离线安全）打底，Ollama 再叠加本机已装模型。
@@ -71,6 +79,23 @@ export function useDigitalPanelModelMenu(): DigitalPanelModelMenu {
     setOpen(false)
   }, [])
 
+  /** 切换服务商：重置为该服务商的默认模型（preset.models[0]）+ 推主进程镜像 */
+  const chooseProvider = useCallback(async (provider: LlmProvider): Promise<void> => {
+    const cfg = loadLlmConfig()
+    const preset = LLM_PROVIDER_PRESETS[provider]
+    const defaultModel = preset?.models[0] ?? ''
+    const next = { ...cfg, provider, model: defaultModel }
+    saveLlmConfig(next)
+    try {
+      await window.mbApi.llm.configure({ config: next })
+    } catch {
+      /* 镜像推送尽力而为；本地配置已落盘 */
+    }
+    setCurrentProvider(provider)
+    setCurrentModel(defaultModel)
+    setOpen(false)
+  }, [])
+
   const close = useCallback((): void => {
     setOpen(false)
   }, [])
@@ -86,8 +111,10 @@ export function useDigitalPanelModelMenu(): DigitalPanelModelMenu {
     availableModels,
     currentModel,
     currentProvider,
+    availableProviders,
     loadModels,
     chooseModel,
+    chooseProvider,
     close,
     onTriggerClick
   }

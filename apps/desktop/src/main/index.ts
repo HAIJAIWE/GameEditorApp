@@ -10,6 +10,7 @@ import { LibraryManager } from './library/manager'
 import { migrateFlatToLibraries } from './library/migrate'
 import { INITIAL_LIBRARY_NAME } from './library/store'
 import { buildStores, type AppStores } from './stores'
+import { initPermissionMode } from './ipc/permissionIpc'
 import { mcpManager } from '@mobai/agent-core/mcp/manager'
 import { getSecretStore } from './settings/secretStoreInstance'
 import { disposeTray, registerShortcuts, setupTray, unregisterShortcuts } from './tray'
@@ -237,6 +238,9 @@ app.whenReady().then(async () => {
 
   const libraryManager = new LibraryManager(userDataDir)
   await libraryManager.ensureReady()
+  // 权限档位（dsh 式 readOnly / ask / full）：从 userData 灌入进程级共享持有者，
+  // 调度器硬上限 + 循环确认门实时读它（无需重建 store / 重开会话即生效）。
+  await initPermissionMode()
   activateLibrary(libraryManager)
 
   // MCP（Slice 18）：应用级连接一次；有 userData/mcp.json 才启用，无则静默不启用。

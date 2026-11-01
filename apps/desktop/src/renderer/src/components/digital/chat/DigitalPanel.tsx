@@ -41,6 +41,7 @@ import { useDigitalPanelCommands } from '../commands/useDigitalPanelCommands'
 import { useDigitalPanelDrafts } from '../hooks/useDigitalPanelDrafts'
 import { useDigitalPanelInteraction } from '../hooks/useDigitalPanelInteraction'
 import { useDigitalPanelModelMenu } from '../hooks/useDigitalPanelModelMenu'
+import { PermissionMenu } from './PermissionMenu'
 import { useDigitalPanelStopArm } from '../hooks/useDigitalPanelStopArm'
 import { useDigitalPanelTurnArtifacts } from '../hooks/useDigitalPanelTurnArtifacts'
 import type { DigitalCommand } from '@mobai/shared/agent/tools'
@@ -218,7 +219,9 @@ export default function DigitalPanel({
     availableModels,
     currentModel,
     currentProvider,
+    availableProviders,
     chooseModel,
+    chooseProvider,
     close: closeModelMenu,
     onTriggerClick: onModelTriggerClick
   } = useDigitalPanelModelMenu()
@@ -1154,12 +1157,7 @@ export default function DigitalPanel({
                   </div>
                 )}
               </div>
-              <span
-                className="dsh-composer-chip dsh-composer-chip-static"
-                title={t('agent.composer.permTitle')}
-              >
-                <span className="dsh-composer-chip-label">{t('agent.composer.fullPermission')}</span>
-              </span>
+              <PermissionMenu />
             </div>
 
             <div className="dsh-composer-group">
@@ -1180,7 +1178,26 @@ export default function DigitalPanel({
                   <LucideIcon name="chevron-down" size={12} />
                 </button>
                 {modelMenuOpen && (
-                  <div className="dsh-composer-menu" role="menu" data-testid="digital-model-menu">
+                  <div className="dsh-composer-menu dsh-composer-menu-wide" role="menu" data-testid="digital-model-menu">
+                    <div className="dsh-composer-menu-section-label">{t('agent.composer.providerTitle')}</div>
+                    <div className="dsh-composer-provider-row">
+                      {availableProviders.map((p) => (
+                        <button
+                          key={p}
+                          type="button"
+                          role="menuitem"
+                          className="dsh-composer-provider-chip"
+                          data-testid="digital-provider-item"
+                          data-provider={p}
+                          data-selected={p === currentProvider ? 'true' : 'false'}
+                          onClick={() => { void chooseProvider(p) }}
+                        >
+                          {LLM_PROVIDER_PRESETS[p]?.label ?? p}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="dsh-composer-menu-sep" />
+                    <div className="dsh-composer-menu-section-label">{t('agent.composer.modelListTitle')}</div>
                     {availableModels.length === 0 ? (
                       <div className="dsh-composer-menu-empty">{t('agent.composer.noModels')}</div>
                     ) : (

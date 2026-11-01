@@ -28,10 +28,10 @@ import { buildPersonalizedContext } from '@mobai/shared/agent/config'
 import { formatAttachmentSize, type DigitalAttachment } from '@mobai/shared/util/io'
 import { resolveVisionSupport } from '@mobai/shared/util/ui'
 import {
-  RISK_LEVEL,
   resolveRiskLevel,
   toFunctionCallingTools,
   toJsonSchema,
+  permissionPolicyHolder,
   type SkillExecutionContext
 } from '@mobai/shared/agent/config'
 import { buildToolFace } from '@mobai/shared/agent/tools'
@@ -195,7 +195,10 @@ function buildHistoryAttachmentBlock(
 export function createDispatcherToolRunner(dispatcher: SkillDispatcher): BrainToolRunner {
   return {
     resolve: (toolName) => dispatcher.fuzzyMatch(toolName),
-    needsConfirmation: (toolName, action) => resolveRiskLevel(toolName, action) >= RISK_LEVEL.SYSTEM,
+    // 确认门阈值跟着权限档位实时走（只读=几乎不弹、询问=任何非只读都弹、完全=仅 SYSTEM 弹）。
+    // 之前写死 `>= SYSTEM`，权限档位切了也不生效；现在读共享持有者，运行中切换即时生效。
+    needsConfirmation: (toolName, action) =>
+      resolveRiskLevel(toolName, action) >= permissionPolicyHolder.current.confirmThreshold,
     execute: (toolName, params, ctx) => dispatcher.execute(toolName, params, ctx)
   }
 }

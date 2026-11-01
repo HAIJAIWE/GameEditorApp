@@ -59,6 +59,10 @@ export interface MbApi {
     recentChanges(req: IpcContract['agent:recentChanges']['req']): Promise<IpcContract['agent:recentChanges']['res']>
     /** 最近交付（交付日志）：Agent 显式交付的文件（新→旧） */
     deliveries(req: IpcContract['agent:deliveries']['req']): Promise<IpcContract['agent:deliveries']['res']>
+    /** 读取当前权限档位（dsh 式 readOnly / ask / full） */
+    getPermissionMode(): Promise<IpcContract['agent:getPermissionMode']['res']>
+    /** 设置并持久化权限档位（实时生效：调度器硬上限 + 循环确认门都读它） */
+    setPermissionMode(req: IpcContract['agent:setPermissionMode']['req']): Promise<IpcContract['agent:setPermissionMode']['res']>
     /** 订阅主进程推送的事件流；返回取消订阅函数 */
     onEvent(handler: (event: unknown) => void): () => void
   }
