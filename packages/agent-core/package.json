@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "墨白 agent 内核与宿主集成：brain 循环 / 技能调度 / 各内置技能 / 会话与记忆（可依赖 electron·sqlite·vectra 等 npm 包；禁止反向 import app，宿主能力一律经 src/ports.ts 端口注入）",
+  "description": "墨白 agent 内核与宿主集成：brain 循环 / 技能调度 / 各内置技能 / 会话与记忆（禁止反向 import app，宿主能力一律经 src/ports.ts 端口注入；第三方依赖清单见 apps/desktop/tests/unit/agentCoreBoundary.test.ts，此处刻意不声明以免 npm hoist 打断 electron postinstall）",
   "exports": {
     "./*": "./src/*"
   }

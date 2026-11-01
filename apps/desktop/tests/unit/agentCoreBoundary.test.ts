@@ -95,4 +95,41 @@ describe('agent-core 包边界：不得反向依赖 app', () => {
     }
     expect(offenders).toEqual([])
   })
+
+  /**
+   * 第三方依赖面 = 显式清单。
+   *
+   * 这 7 个是"宿主集成层"的既定事实（为什么不能清掉见 `ports.ts` 与提交说明），
+   * 但它们**必须是有意为之**：新增一个运行时依赖意味着包又长出一条外部腿，
+   * 应当先想清楚是留在包内、还是收进 `shared`。所以这里不写"至少包含"，
+   * 而是**全等**——多一个就红，让"顺手 import 个 lodash"在 CI 就停下。
+   *
+   * 本条第一次写就抓到一个漏项：`documentSkill` 里那句
+   * `await import('pdfjs-dist/legacy/build/pdf.mjs')`（动态 import，扫 `from '…'`
+   * 的粗糙 grep 看不见）。这正是"清单要机器守、不能靠人列"的理由。
+   *
+   * 注意：`packages/agent-core/package.json` **刻意不声明**这些依赖
+   * （声明会让 npm 把它们 hoist 到仓库根，打断 apps/desktop 的 electron
+   * postinstall 与 electron-builder 的打包假设）。清单的权威落点就是本条用例。
+   */
+  it('第三方依赖面是显式清单（新增需有意为之）', () => {
+    const allowed = [
+      'better-sqlite3',
+      'electron',
+      'exceljs',
+      'jszip',
+      'pdfjs-dist',
+      'quickjs-emscripten',
+      'vectra'
+    ]
+    const found = new Set<string>()
+    for (const file of files) {
+      for (const spec of specifiersOf(readFileSync(file, 'utf8'))) {
+        if (spec.startsWith('.') || spec.startsWith('node:') || spec.startsWith('@mobai/')) continue
+        // 取包名（`@scope/name` 取两段，其余取首段）
+        found.add(spec.startsWith('@') ? spec.split('/').slice(0, 2).join('/') : (spec.split('/')[0] ?? spec))
+      }
+    }
+    expect([...found].sort()).toEqual(allowed)
+  })
 })
