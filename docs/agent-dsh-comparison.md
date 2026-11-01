@@ -211,6 +211,7 @@ dsh 用 **cordis** 做插件组合，profile 是 YAML 补丁层（`bundles` + `c
 > - `compaction` 升级为 **LLM 结构化 checkpoint**（对齐 dsh `compaction-basic`）：云端档超压力阈值时调 `createCompactSummarizer` 生成 8 段交接摘要，失败回落模板；`maybeResetContextAsync` 统一入口。
 > - `system.present_plan`（对齐 dsh `plan-mode` 的 `exit_plan_mode` 审阅流）：模型动手前把 `# 标题` 起头的 markdown 计划经 `SkillInteraction.detail` 交用户审阅，`批准并执行 / 需要修改` 二选一；**不引入会话级只读 plan 模式开关**（产品已有独立 Plan 工作模式，避免冲突），改为轻量门禁。渲染层 `SkillInteraction`/`SkillInteractionQuestion` 新增可选 `detail` 字段（等宽块展示长文本，不解析为富文本）。
 > - `system.goal`（对齐 dsh `goal` + `tool-goal`）：目标生命周期管理（create/edit/pause/resume/complete/block/clear）+ 阶段 + 轮次上限 `maxRounds`。服务层把活跃目标的「目标 + 阶段 + 轮次进度」注入 `【本轮目标】` 提示词，并把循环 `maxTurns` 钳到 `maxRounds`（dsh `maxGoalRounds` 的轮次安全闸）。**v1 内存态**（非事件溯源投影），状态作为工具结果进 messages；不做 goal-round-driver 自动续跑。
+> - `system.job` + `JobRegistry`（对齐 dsh `jobs` + `tool-jobs` 的注册表 seam）：把**异步子智能体**提升为可查询/可取消的一等后台任务。服务侧把 `subagent_started`/`subagent_done` 事件喂进进程内 `JobRegistry`（有界输出尾部 + 进度 + 状态），`system.job` 技能经 `SkillExecutionContext` 注入的 `jobRegistry`/`jobCancel` 做 `list`/`status`/`cancel`。**简化边界**：不做 dsh 的输出环 offset/lossy、owner 隔离、spill 文件、`JobSpec.run` 生产者 seam；无独立 `ui-jobs` 面板（运行中子智能体仍由既有面板列表呈现），任务注册表**每轮清空**（子智能体 id 每轮自增，跨轮会撞）。
 
 ---
 

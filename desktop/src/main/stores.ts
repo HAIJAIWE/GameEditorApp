@@ -73,6 +73,7 @@ import { createSubAgentSkill } from './agent/skills/subAgentSkill'
 import { createTodoSkill } from './agent/skills/todoSkill'
 import { createPresentPlanSkill } from './agent/skills/presentPlanSkill'
 import { createGoalSkill } from './agent/skills/goalSkill'
+import { createJobSkill } from './agent/skills/jobSkill'
 import { createCliSubAgentProvider } from './agent/subagent/subagentCli'
 import { createRemoteSubAgentProvider } from './agent/subagent/subagentRemote'
 import { createAcpSubAgentProvider } from './agent/subagent/subagentAcp'
@@ -179,6 +180,8 @@ export function buildStores(libDir: string): AppStores {
   dispatcher.register(createPresentPlanSkill())
   // 目标生命周期（对齐 dsh goal）：长任务维护明确目标 + 阶段 + 轮次上限
   dispatcher.register(createGoalSkill())
+  // 后台任务观测/取消（对齐 dsh tool-jobs）：list/status/cancel 异步子智能体
+  dispatcher.register(createJobSkill())
   // 用户偏好 / 反馈：随库隔离，构造时即从磁盘加载；偏好注入系统提示词（见 brainService）
   const personalization = createPersonalizationStores(agentDir)
 

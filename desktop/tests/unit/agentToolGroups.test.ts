@@ -58,7 +58,8 @@ describe('M3 分组表与档位预算', () => {
       'system.session_search',
       'system.todo_write',
       'system.present_plan',
-      'system.goal'
+      'system.goal',
+      'system.job'
     ]
     for (const id of registered) {
       expect(TOOL_GROUP_MAP[id]).toBeDefined()

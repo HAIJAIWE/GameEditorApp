@@ -21,6 +21,7 @@ import {
 import { deriveMessagesFromTurns } from '../../../shared/agent/conversation'
 import { createCompactSummarizer } from '../../../shared/agent/compaction'
 import { formatGoalStatus, goalStore } from '../../../shared/agent/goal/goalStore'
+import { JobRegistry } from '../../../shared/agent/jobs/jobRegistry'
 import { buildSystemPrompts } from '../../../shared/agent/ui'
 import { presetLabel, presetPersona } from '../../../shared/agent/config'
 import { buildPersonalizedContext } from '../../../shared/agent/config'
@@ -211,6 +212,14 @@ export class AgentBrainService {
   private readonly subagents = new Map<string, { inbox: BrainInbox; stop: () => void }>()
 
   /**
+   * 后台任务注册表（对齐 dsh `jobs`）：把异步子智能体提升为可查询/可取消的一等任务。
+   * 由 `subagent_started` / `subagent_done` 事件喂入；`system.job` 技能经 context 读取/取消。
+   * 与 `subagents` 一样**每轮清空**——子智能体 id 是每轮本地自增，跨轮会撞 id；
+   * 跨轮任务历史属后续增强。
+   */
+  private readonly jobRegistry = new JobRegistry()
+
+  /**
    * 生成会话 id。**本刀的回滚范围是单次对话轮次**（一次 `chat()` 内的全部数据变更）——
    * 取最小爆炸半径：宁可只撤销「刚才那一下」，也不误伤更早的改动。
    * 跨轮次的会话级回滚需会话 id 持久化，属后续工作。
@@ -244,6 +253,7 @@ export class AgentBrainService {
     const entry = this.subagents.get(id)
     if (entry === undefined) return false
     entry.stop()
+    this.jobRegistry.settle(id, 'killed', '用户取消')
     return true
   }
 
@@ -261,14 +271,18 @@ export class AgentBrainService {
     const tier = resolveAgentTier(options.config)
     const transport = this.resolveTransport(options)
     const face = buildToolFace(this.deps.dispatcher.list(), tier, options.explicitTools)
-    // 新一轮：清空上一轮子智能体注册表（见字段注释的 id 碰撞说明）
+    // 新一轮：清空上一轮子智能体 / 后台任务注册表（见字段注释的 id 碰撞说明）
     this.subagents.clear()
+    this.jobRegistry.clear()
 
     // E3-2：为本次对话轮次补一个会话 id，使操作记录器与回滚技能能按「这一轮」分组
     const context: SkillExecutionContext = { ...(options.context ?? {}) }
     if (typeof context.sessionId !== 'string' || context.sessionId.trim() === '') {
       context.sessionId = this.nextSessionId()
     }
+    // 后台任务观测面（system.job）：注册表 + 取消回调，经 context 交给技能
+    context.jobRegistry = this.jobRegistry
+    context.jobCancel = (id: string) => this.stopSubagent(id)
     // Slice 34：从轮次日志恢复历史（需调用方传稳定 sessionId；无历史则为空）
     const priorMessages =
       options.resumeHistory === true && this.deps.sessionStore !== undefined
@@ -403,7 +417,17 @@ export class AgentBrainService {
       // 事件包装**始终安装**：子智能体收量即从注册表摘除（只留运行中的条目）。
       // 不能只在调用方传了 onEvent 时才装——否则无 onEvent 的调用（测试/内嵌）会留下陈旧条目。
       onEvent: (payload: BrainEvent): void => {
-        if (payload.type === 'subagent_done') this.subagents.delete(payload.id)
+        // 后台任务注册表（对齐 dsh jobs）：子智能体启动/完成即登记/结算
+        if (payload.type === 'subagent_started') {
+          this.jobRegistry.register({ id: payload.id, kind: 'subagent', label: payload.task })
+        } else if (payload.type === 'subagent_done') {
+          this.subagents.delete(payload.id)
+          this.jobRegistry.settle(
+            payload.id,
+            payload.success ? 'completed' : 'failed',
+            payload.text
+          )
+        }
         options.onEvent?.(payload)
       },
       ...(options.signal ? { signal: options.signal } : {}),
