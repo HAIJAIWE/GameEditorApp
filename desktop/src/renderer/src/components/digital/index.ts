@@ -3,7 +3,8 @@
  *
  * 按 UI 能力分子目录（对齐 dsh `packages/client/ui-*` 的「一能力一文件夹」）：
  * - `chat/`       对话主体（DigitalPanel / 消息 / markdown / 运行状态）
- * - `views/`      面板内各类列表（审批 / 命令菜单 / 任务 / 步骤 / 子智能体 / 后台任务 / 工作区）
+ * - `views/`      面板内各类列表，已按能力拆文件：`approval` / `steps`(digitalPanelViews) /
+ *                 `subagent` / `jobs` / `workspace` / `menus` / `tasks`
  * - `attachments/`附件（待发送 chip / 读图 hook / 附件 hook）
  * - `commands/`   斜杠命令与快捷键
  * - `cards/`      交付卡 / 改动卡
