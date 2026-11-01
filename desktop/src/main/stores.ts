@@ -86,6 +86,7 @@ import { createDocumentSkill } from './agent/skills/documentSkill'
 import { createTerminalSkill } from './agent/skills/terminalSkill'
 import { createSshSkill } from './agent/skills/sshSkill'
 import { createWorkflowSkill } from './agent/skills/workflowSkill'
+import { createPtcSkill } from './agent/skills/ptcSkill'
 import { createCliSubAgentProvider } from './agent/subagent/subagentCli'
 import { createRemoteSubAgentProvider } from './agent/subagent/subagentRemote'
 import { createAcpSubAgentProvider } from './agent/subagent/subagentAcp'
@@ -217,6 +218,12 @@ export function buildStores(libDir: string): AppStores {
   // 工作流（对齐 dsh workflow 的有界子集）：顺序执行步骤，每步经 executeGated 过审批
   dispatcher.register(
     createWorkflowSkill({
+      executeGated: (tool, params, ctx) => dispatcher.executeGated(tool, params, ctx)
+    })
+  )
+  // 程序化工具调用（对齐 dsh ptc-runtime）：QuickJS 异步运行时 + callTool（每次过审批）
+  dispatcher.register(
+    createPtcSkill({
       executeGated: (tool, params, ctx) => dispatcher.executeGated(tool, params, ctx)
     })
   )

@@ -69,7 +69,8 @@ export const TOOL_GROUP_MAP: Readonly<Record<string, ToolGroupId>> = {
   'system.document': 'system',
   'system.terminal': 'system',
   'system.ssh': 'system',
-  'system.workflow': 'system'
+  'system.workflow': 'system',
+  'system.ptc': 'system'
 }
 
 /** 未登记工具的兜底分组（保守归到「系统与协作」） */
