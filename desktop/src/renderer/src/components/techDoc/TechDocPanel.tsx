@@ -1,11 +1,14 @@
 /**
- * 技术设计文档面板（主区页签）：列表 + 预览/编辑 + 导出。
+ * 技术设计文档面板（主区页签）：列表 + 章节大纲 + 编辑/预览 + 导出。
  *
  * 数据经 `window.mbApi.techDoc`（主进程复用 `system.tech_doc` 技能，存 `<库>/tech/<name>.md`）。
- * 纯产品 UI：新建时预填标准 9 章大纲，编辑后保存，可导出为 .md。
+ * 编辑用 textarea；预览复用数字员工气泡的 `ChatMarkdown`（GFM + 语法高亮）；
+ * 章节大纲从 markdown 标题提取，点击切到预览并滚动到对应标题。
  */
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+
+import { ChatMarkdown } from '../digital'
 
 interface TechDocApi {
   list(): Promise<{ docs: string[] }>
@@ -25,6 +28,23 @@ function stripFirstHeading(outline: string): string {
   return outline.replace(/^#[^\n]*\n+/, '').trimStart()
 }
 
+interface Heading {
+  level: number
+  text: string
+}
+
+/** 从 markdown 提取标题（`#`~`######`），顺序与预览里的 h1~h6 一致 */
+export function parseHeadings(content: string): Heading[] {
+  const result: Heading[] = []
+  for (const line of content.split('\n')) {
+    const match = /^(#{1,6})\s+(.*\S)\s*$/.exec(line)
+    if (match !== null) result.push({ level: match[1].length, text: match[2] })
+  }
+  return result
+}
+
+type Mode = 'edit' | 'preview'
+
 export function TechDocPanel() {
   const api = getApi()
   const [docs, setDocs] = useState<string[]>([])
@@ -34,6 +54,13 @@ export function TechDocPanel() {
   const [newName, setNewName] = useState('')
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
+  const [mode, setMode] = useState<Mode>('edit')
+  const [scrollTick, setScrollTick] = useState(0)
+
+  const previewRef = useRef<HTMLDivElement>(null)
+  const scrollTargetRef = useRef<number | null>(null)
+
+  const headings = useMemo(() => parseHeadings(content), [content])
 
   const refresh = useCallback(async (): Promise<void> => {
     if (api === undefined) return
@@ -61,6 +88,20 @@ export function TechDocPanel() {
       cancelled = true
     }
   }, [api])
+
+  // 点击大纲后：预览渲染完成再滚动到目标标题（只操作 DOM，不在 effect 内 setState）
+  useEffect(() => {
+    if (mode !== 'preview') return
+    const target = scrollTargetRef.current
+    if (target === null) return
+    scrollTargetRef.current = null
+    const container = previewRef.current
+    if (container === null) return
+    const node = container.querySelectorAll('h1, h2, h3, h4, h5, h6')[target]
+    if (node !== undefined && typeof node.scrollIntoView === 'function') {
+      node.scrollIntoView({ block: 'start' })
+    }
+  }, [mode, scrollTick])
 
   const openDoc = useCallback(
     async (name: string): Promise<void> => {
@@ -122,6 +163,13 @@ export function TechDocPanel() {
     }
   }, [api, active])
 
+  /** 点击章节大纲：切预览并滚动到该标题 */
+  const jumpToHeading = useCallback((index: number): void => {
+    scrollTargetRef.current = index
+    setMode('preview')
+    setScrollTick((n) => n + 1)
+  }, [])
+
   if (api === undefined) {
     return <div className="empty">当前环境未提供技术设计文档接口。</div>
   }
@@ -163,6 +211,24 @@ export function TechDocPanel() {
             ))}
           </ul>
         )}
+        {headings.length > 0 && (
+          <div className="techdoc-outline" data-testid="techdoc-outline">
+            <div className="home-section-label">章节</div>
+            {headings.map((heading, index) => (
+              <button
+                key={`${index}-${heading.text}`}
+                type="button"
+                className="techdoc-outline-item"
+                data-testid="techdoc-outline-item"
+                data-level={heading.level}
+                style={{ paddingLeft: `${8 + (heading.level - 1) * 10}px` }}
+                onClick={() => jumpToHeading(index)}
+              >
+                {heading.text}
+              </button>
+            ))}
+          </div>
+        )}
       </aside>
 
       <section className="techdoc-editor">
@@ -175,6 +241,24 @@ export function TechDocPanel() {
                 {active}
                 {dirty ? ' *' : ''}
               </span>
+              <div className="techdoc-modes" role="group" aria-label="编辑模式">
+                <button
+                  type="button"
+                  className={`btn${mode === 'edit' ? ' primary' : ''}`}
+                  data-testid="techdoc-mode-edit"
+                  onClick={() => setMode('edit')}
+                >
+                  编辑
+                </button>
+                <button
+                  type="button"
+                  className={`btn${mode === 'preview' ? ' primary' : ''}`}
+                  data-testid="techdoc-mode-preview"
+                  onClick={() => setMode('preview')}
+                >
+                  预览
+                </button>
+              </div>
               <button type="button" className="btn" data-testid="techdoc-save" onClick={() => void save()}>
                 保存
               </button>
@@ -184,15 +268,21 @@ export function TechDocPanel() {
             </div>
             {notice !== '' && <div className="techdoc-notice" data-testid="techdoc-notice">{notice}</div>}
             {error !== '' && <div className="techdoc-error" data-testid="techdoc-error">{error}</div>}
-            <textarea
-              className="techdoc-textarea"
-              data-testid="techdoc-textarea"
-              value={content}
-              onChange={(event) => {
-                setContent(event.target.value)
-                setDirty(true)
-              }}
-            />
+            {mode === 'edit' ? (
+              <textarea
+                className="techdoc-textarea"
+                data-testid="techdoc-textarea"
+                value={content}
+                onChange={(event) => {
+                  setContent(event.target.value)
+                  setDirty(true)
+                }}
+              />
+            ) : (
+              <div className="techdoc-preview" data-testid="techdoc-preview" ref={previewRef}>
+                <ChatMarkdown text={content} />
+              </div>
+            )}
           </>
         )}
       </section>
