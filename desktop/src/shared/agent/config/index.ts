@@ -4,6 +4,8 @@
  * 外部一律从这里 import（`.../config`），不要再深插目录内文件。
  */
 
+export { SKILL_ERRORS } from './errorCodes'
+export type { SkillErrorCode } from './errorCodes'
 export { PREFERENCE_KEYWORDS, buildPersonalizedContext, extractPreferences } from './personalization'
 export type { FeedbackRecord } from './personalization'
 export { AGENT_PRESETS, DEFAULT_PRESET_ID, PRESET_PERSONA, presetLabel, presetPersona } from './presets'

@@ -16,6 +16,7 @@
 import { mkdir, readFile, readdir, unlink, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
+import { SKILL_ERRORS } from '../../../shared/agent/config'
 import type { SkillProtocol, SkillResult } from '../../../shared/agent/config'
 import { techDocOutline } from '../../../shared/agent/techDoc/techDocSchema'
 
@@ -49,7 +50,7 @@ export function createTechDocSkill(options: TechDocSkillOptions): SkillProtocol 
   async function run(params: Record<string, unknown>): Promise<SkillResult> {
     const action = typeof params.action === 'string' ? params.action : ''
     if (!ACTIONS.includes(action as (typeof ACTIONS)[number])) {
-      return fail(`未知 action: ${action}（支持 ${ACTIONS.join(' / ')}）`, 'EBADACTION')
+      return fail(`未知 action: ${action}（支持 ${ACTIONS.join(' / ')}）`, SKILL_ERRORS.BAD_ACTION)
     }
     const root = options.root()
 
@@ -70,7 +71,7 @@ export function createTechDocSkill(options: TechDocSkillOptions): SkillProtocol 
 
     const name = typeof params.name === 'string' ? params.name.trim() : ''
     if (!isSafeDocName(name)) {
-      return fail('name 非法（不能为空、不能含路径分隔符或 <>:"|?*）', 'EBADNAME')
+      return fail('name 非法（不能为空、不能含路径分隔符或 <>:"|?*）', SKILL_ERRORS.BAD_NAME)
     }
     const path = join(root, `${name}.md`)
 
@@ -79,7 +80,7 @@ export function createTechDocSkill(options: TechDocSkillOptions): SkillProtocol 
         await unlink(path)
         return { success: true, message: `已删除 ${name}`, data: { name } }
       } catch {
-        return fail(`未找到文档：${name}`, 'ENOTFOUND')
+        return fail(`未找到文档：${name}`, SKILL_ERRORS.NOT_FOUND)
       }
     }
 
@@ -88,22 +89,22 @@ export function createTechDocSkill(options: TechDocSkillOptions): SkillProtocol 
         const content = await readFile(path, 'utf8')
         return { success: true, message: content, data: { name } }
       } catch {
-        return fail(`未找到文档：${name}`, 'ENOTFOUND')
+        return fail(`未找到文档：${name}`, SKILL_ERRORS.NOT_FOUND)
       }
     }
 
     // write
     const content = typeof params.content === 'string' ? params.content : ''
-    if (content.trim() === '') return fail('content 不能为空', 'EBADARG')
+    if (content.trim() === '') return fail('content 不能为空', SKILL_ERRORS.BAD_ARG)
     if (content.length > TECH_DOC_MAX_CHARS) {
-      return fail(`content 超过上限 ${TECH_DOC_MAX_CHARS} 字符`, 'ETOOBIG')
+      return fail(`content 超过上限 ${TECH_DOC_MAX_CHARS} 字符`, SKILL_ERRORS.TOO_BIG)
     }
     try {
       await mkdir(root, { recursive: true })
       await writeFile(path, content, 'utf8')
       return { success: true, message: `已保存技术设计文档 ${name}（${content.length} 字符）`, data: { name } }
     } catch (error) {
-      return fail(error instanceof Error ? error.message : String(error), 'EWRITE')
+      return fail(error instanceof Error ? error.message : String(error), SKILL_ERRORS.WRITE)
     }
   }
 

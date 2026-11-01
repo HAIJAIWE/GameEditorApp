@@ -12,6 +12,7 @@
 
 import { spawn, type ChildProcess } from 'node:child_process'
 
+import { SKILL_ERRORS } from '../../../shared/agent/config'
 import type { SkillProtocol, SkillResult } from '../../../shared/agent/config'
 
 /** read 默认等待（毫秒） */
@@ -109,13 +110,13 @@ export function createTerminalSkill(options: TerminalSkillOptions): SkillProtoco
     } catch (error) {
       child = null
       exited = true
-      return fail(error instanceof Error ? error.message : String(error), 'ESPAWN')
+      return fail(error instanceof Error ? error.message : String(error), SKILL_ERRORS.SPAWN)
     }
   }
 
   function send(input: string): SkillResult {
-    if (child === null || exited) return fail('会话未启动或已退出，请先 start', 'ENOSESSION')
-    if (input.trim() === '') return fail('input 不能为空', 'EBADARG')
+    if (child === null || exited) return fail('会话未启动或已退出，请先 start', SKILL_ERRORS.NO_SESSION)
+    if (input.trim() === '') return fail('input 不能为空', SKILL_ERRORS.BAD_ARG)
     child.stdin?.write(input.endsWith('\n') ? input : `${input}\n`)
     return { success: true, message: '已发送' }
   }
@@ -134,7 +135,7 @@ export function createTerminalSkill(options: TerminalSkillOptions): SkillProtoco
       return { success: true, message: '会话已终止' }
     }
     if (action === 'read') {
-      if (child === null) return fail('会话未启动，请先 start', 'ENOSESSION')
+      if (child === null) return fail('会话未启动，请先 start', SKILL_ERRORS.NO_SESSION)
       await delay(clampWait(params.wait_ms))
       const text = drain()
       return { success: true, message: text === '' ? '（暂无新输出）' : text, data: { running: !exited } }
@@ -146,7 +147,7 @@ export function createTerminalSkill(options: TerminalSkillOptions): SkillProtoco
         data: { running: child !== null && !exited }
       }
     }
-    return fail(`未知 action: ${action}（支持 start/send/read/stop/status）`, 'EBADACTION')
+    return fail(`未知 action: ${action}（支持 start/send/read/stop/status）`, SKILL_ERRORS.BAD_ACTION)
   }
 
   return {

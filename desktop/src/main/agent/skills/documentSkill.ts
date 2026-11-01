@@ -16,6 +16,7 @@ import { extname } from 'node:path'
 import ExcelJS from 'exceljs'
 import JSZip from 'jszip'
 
+import { SKILL_ERRORS } from '../../../shared/agent/config'
 import type { SkillProtocol, SkillResult } from '../../../shared/agent/config'
 import { resolveInsideRoot } from './fsContainment'
 
@@ -127,26 +128,26 @@ export function createDocumentSkill(options: DocumentSkillOptions): SkillProtoco
   async function run(params: Record<string, unknown>): Promise<SkillResult> {
     const action = typeof params.action === 'string' ? params.action : ''
     if (action !== 'read') {
-      return fail(`未知 action: ${action}（当前仅支持 read）`, 'EBADACTION')
+      return fail(`未知 action: ${action}（当前仅支持 read）`, SKILL_ERRORS.BAD_ACTION)
     }
     const relPath = typeof params.path === 'string' ? params.path : ''
     let abs: string
     try {
       abs = await resolveInsideRoot(options.root(), relPath)
     } catch (error) {
-      return fail(error instanceof Error ? error.message : String(error), 'EESCAPE')
+      return fail(error instanceof Error ? error.message : String(error), SKILL_ERRORS.ESCAPE)
     }
 
     let size: number
     try {
       const info = await stat(abs)
-      if (!info.isFile()) return fail('目标是目录，请给文件路径', 'EISDIR')
+      if (!info.isFile()) return fail('目标是目录，请给文件路径', SKILL_ERRORS.IS_DIR)
       size = info.size
     } catch {
-      return fail(`未找到文件：${relPath}`, 'ENOTFOUND')
+      return fail(`未找到文件：${relPath}`, SKILL_ERRORS.NOT_FOUND)
     }
     if (size > DOCUMENT_MAX_BYTES) {
-      return fail(`文件过大（${size} 字节，上限 ${DOCUMENT_MAX_BYTES}）`, 'ETOOBIG')
+      return fail(`文件过大（${size} 字节，上限 ${DOCUMENT_MAX_BYTES}）`, SKILL_ERRORS.TOO_BIG)
     }
 
     const ext = extname(abs).toLowerCase()
@@ -175,10 +176,10 @@ export function createDocumentSkill(options: DocumentSkillOptions): SkillProtoco
       } else if (ext === '.pdf') {
         text = await pdfToText(await readFile(abs))
       } else {
-        return fail(`不支持的文档类型：${ext === '' ? '无扩展名' : ext}`, 'EUNSUPPORTED')
+        return fail(`不支持的文档类型：${ext === '' ? '无扩展名' : ext}`, SKILL_ERRORS.UNSUPPORTED)
       }
     } catch (error) {
-      return fail(error instanceof Error ? error.message : String(error), 'EPARSE')
+      return fail(error instanceof Error ? error.message : String(error), SKILL_ERRORS.PARSE)
     }
 
     const truncated = text.length > DOCUMENT_MAX_CHARS

@@ -19,6 +19,7 @@ import { spawn, type ChildProcess } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 
+import { SKILL_ERRORS } from '../../../shared/agent/config'
 import type { SkillProtocol, SkillResult } from '../../../shared/agent/config'
 import { withReadOnlyDirs } from '../ops/windowsSandbox'
 import { resolveInsideRoot } from './fsContainment'
@@ -148,10 +149,10 @@ function runCommand(command: string, cwd: string, timeoutMs: number): Promise<Sh
 
 function formatResult(outcome: ShellOutcome): SkillResult {
   if (outcome.timedOut) {
-    return { success: false, message: '命令超时已被终止（含子进程）', error: 'ETIMEDOUT' }
+    return { success: false, message: '命令超时已被终止（含子进程）', error: SKILL_ERRORS.TIMEOUT }
   }
   if (outcome.error !== undefined) {
-    return { success: false, message: `命令执行失败：${outcome.error}`, error: 'ESPAWN' }
+    return { success: false, message: `命令执行失败：${outcome.error}`, error: SKILL_ERRORS.SPAWN }
   }
   const parts: string[] = [`退出码：${outcome.exitCode}`]
   if (outcome.stdout.trim() !== '') parts.push(`stdout:\n${capOutput(outcome.stdout)}`)
@@ -174,14 +175,14 @@ export function createShellSkill(options: ShellSkillOptions): SkillProtocol {
   async function run(params: Record<string, unknown>): Promise<SkillResult> {
     const action = typeof params.action === 'string' ? params.action : ''
     if (action !== 'run') {
-      return { success: false, message: `未知 action: ${action}`, error: 'EBADACTION' }
+      return { success: false, message: `未知 action: ${action}`, error: SKILL_ERRORS.BAD_ACTION }
     }
     if (policy === 'read-only') {
-      return { success: false, message: '沙箱为 read-only，拒绝执行命令', error: 'FS_SANDBOX_DENIED' }
+      return { success: false, message: '沙箱为 read-only，拒绝执行命令', error: SKILL_ERRORS.SANDBOX_DENIED }
     }
     const command = typeof params.command === 'string' ? params.command : ''
     if (command.trim() === '') {
-      return { success: false, message: '缺少 command 参数', error: 'EBADARG' }
+      return { success: false, message: '缺少 command 参数', error: SKILL_ERRORS.BAD_ARG }
     }
     const timeout = clampTimeout(params.timeout_ms)
     const cwd =
@@ -195,7 +196,7 @@ export function createShellSkill(options: ShellSkillOptions): SkillProtocol {
       return formatResult(outcome)
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
-      return { success: false, message: `命令执行失败：${message}`, error: 'ESPAWN' }
+      return { success: false, message: `命令执行失败：${message}`, error: SKILL_ERRORS.SPAWN }
     }
   }
 

@@ -8,6 +8,7 @@
  * 禁止嵌套 workflow（防递归）。
  */
 
+import { SKILL_ERRORS } from '../../../shared/agent/config'
 import type { SkillExecutionContext, SkillProtocol, SkillResult } from '../../../shared/agent/config'
 
 /** 单次 workflow 的步骤上限 */
@@ -51,14 +52,14 @@ export function createWorkflowSkill(options: WorkflowSkillOptions): SkillProtoco
   async function run(params: Record<string, unknown>, ctx: SkillExecutionContext): Promise<SkillResult> {
     const action = typeof params.action === 'string' ? params.action : ''
     if (action !== 'run') {
-      return fail(`未知 action: ${action}（当前仅支持 run）`, 'EBADACTION')
+      return fail(`未知 action: ${action}（当前仅支持 run）`, SKILL_ERRORS.BAD_ACTION)
     }
     const steps = parseSteps(params.steps)
     if (steps === null) {
-      return fail(`steps 必须是非空数组（最多 ${WORKFLOW_MAX_STEPS} 步，每步含 tool）`, 'EBADARG')
+      return fail(`steps 必须是非空数组（最多 ${WORKFLOW_MAX_STEPS} 步，每步含 tool）`, SKILL_ERRORS.BAD_ARG)
     }
     if (steps.some((step) => step.tool === 'system.workflow')) {
-      return fail('禁止嵌套 workflow', 'ENESTED')
+      return fail('禁止嵌套 workflow', SKILL_ERRORS.NESTED)
     }
 
     const continueOnError = params.continue_on_error === true
@@ -85,7 +86,7 @@ export function createWorkflowSkill(options: WorkflowSkillOptions): SkillProtoco
     return {
       success: failedAt === null,
       message: `${header}\n${lines.join('\n')}`,
-      ...(failedAt === null ? {} : { error: 'ESTEPFAILED' }),
+      ...(failedAt === null ? {} : { error: SKILL_ERRORS.STEP_FAILED }),
       data: { results, failedAt }
     }
   }

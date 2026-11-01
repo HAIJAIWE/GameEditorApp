@@ -7,6 +7,7 @@
  * 风险：add/remove = DATA_WRITE；list = READ_ONLY。
  */
 
+import { SKILL_ERRORS } from '../../../shared/agent/config'
 import type { SkillProtocol, SkillResult } from '../../../shared/agent/config'
 import { ScheduleStore } from '../schedule/scheduleStore'
 
@@ -33,7 +34,7 @@ export function createScheduleSkill(options: ScheduleSkillOptions): SkillProtoco
   async function run(params: Record<string, unknown>): Promise<SkillResult> {
     const action = typeof params.action === 'string' ? params.action : ''
     if (!ACTIONS.includes(action as (typeof ACTIONS)[number])) {
-      return fail(`未知 action: ${action}（支持 ${ACTIONS.join(' / ')}）`, 'EBADACTION')
+      return fail(`未知 action: ${action}（支持 ${ACTIONS.join(' / ')}）`, SKILL_ERRORS.BAD_ACTION)
     }
 
     if (action === 'list') {
@@ -48,10 +49,10 @@ export function createScheduleSkill(options: ScheduleSkillOptions): SkillProtoco
 
     if (action === 'remove') {
       const id = typeof params.id === 'string' ? params.id.trim() : ''
-      if (id === '') return fail('缺少 id', 'EBADARG')
+      if (id === '') return fail('缺少 id', SKILL_ERRORS.BAD_ARG)
       return store.remove(id)
         ? { success: true, message: `已删除 ${id}` }
-        : fail(`未找到 ${id}`, 'ENOTFOUND')
+        : fail(`未找到 ${id}`, SKILL_ERRORS.NOT_FOUND)
     }
 
     // add
@@ -72,7 +73,7 @@ export function createScheduleSkill(options: ScheduleSkillOptions): SkillProtoco
       })
       return { success: true, message: `已添加提醒 ${task.id}（${task.at}）`, data: { task } }
     } catch (error) {
-      return fail(error instanceof Error ? error.message : String(error), 'EADD')
+      return fail(error instanceof Error ? error.message : String(error), SKILL_ERRORS.ADD)
     }
   }
 

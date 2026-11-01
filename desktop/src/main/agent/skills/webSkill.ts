@@ -13,6 +13,7 @@
  * 说明：**搜索**需要外部 provider（API key），本版本不做；只做抓取。
  */
 
+import { SKILL_ERRORS } from '../../../shared/agent/config'
 import type { SkillProtocol, SkillResult } from '../../../shared/agent/config'
 
 /** 默认超时（毫秒） */
@@ -94,22 +95,22 @@ export function createWebSkill(options: WebSkillOptions = {}): SkillProtocol {
   async function run(params: Record<string, unknown>): Promise<SkillResult> {
     const action = typeof params.action === 'string' ? params.action : ''
     if (action !== 'fetch') {
-      return fail(`未知 action: ${action}（当前仅支持 fetch；搜索需外部 provider）`, 'EBADACTION')
+      return fail(`未知 action: ${action}（当前仅支持 fetch；搜索需外部 provider）`, SKILL_ERRORS.BAD_ACTION)
     }
     const rawUrl = typeof params.url === 'string' ? params.url.trim() : ''
-    if (rawUrl === '') return fail('缺少 url 参数', 'EBADARG')
+    if (rawUrl === '') return fail('缺少 url 参数', SKILL_ERRORS.BAD_ARG)
 
     let url: URL
     try {
       url = new URL(rawUrl)
     } catch {
-      return fail(`非法 URL：${rawUrl}`, 'EBADURL')
+      return fail(`非法 URL：${rawUrl}`, SKILL_ERRORS.BAD_URL)
     }
     if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-      return fail(`只支持 http/https（收到 ${url.protocol}）`, 'EBADPROTOCOL')
+      return fail(`只支持 http/https（收到 ${url.protocol}）`, SKILL_ERRORS.BAD_PROTOCOL)
     }
     if (!allowPrivate && isPrivateHost(url.hostname)) {
-      return fail(`拒绝访问内网/本机地址：${url.hostname}（SSRF 防护）`, 'EBLOCKED')
+      return fail(`拒绝访问内网/本机地址：${url.hostname}（SSRF 防护）`, SKILL_ERRORS.BLOCKED)
     }
 
     const timeoutMs = clampTimeout(params.timeout_ms)
@@ -123,7 +124,7 @@ export function createWebSkill(options: WebSkillOptions = {}): SkillProtocol {
         headers: { 'user-agent': 'mb-agent/1.0 (+desktop)' }
       })
       if (!response.ok) {
-        return fail(`HTTP ${response.status} ${response.statusText}`.trim(), 'EHTTP')
+        return fail(`HTTP ${response.status} ${response.statusText}`.trim(), SKILL_ERRORS.HTTP)
       }
       const contentType = response.headers.get('content-type') ?? ''
       const buffer = Buffer.from(await response.arrayBuffer())
@@ -147,8 +148,8 @@ export function createWebSkill(options: WebSkillOptions = {}): SkillProtocol {
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
-      if (controller.signal.aborted) return fail(`请求超时（${timeoutMs}ms）`, 'ETIMEDOUT')
-      return fail(message, 'EFETCH')
+      if (controller.signal.aborted) return fail(`请求超时（${timeoutMs}ms）`, SKILL_ERRORS.TIMEOUT)
+      return fail(message, SKILL_ERRORS.FETCH)
     } finally {
       clearTimeout(timer)
     }

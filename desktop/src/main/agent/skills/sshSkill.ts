@@ -9,6 +9,7 @@
 
 import { spawn } from 'node:child_process'
 
+import { SKILL_ERRORS } from '../../../shared/agent/config'
 import type { SkillProtocol, SkillResult } from '../../../shared/agent/config'
 
 /** 默认超时（毫秒） */
@@ -56,12 +57,12 @@ function fail(message: string, error: string): SkillResult {
 export function createSshSkill(): SkillProtocol {
   async function run(params: Record<string, unknown>): Promise<SkillResult> {
     const action = typeof params.action === 'string' ? params.action : ''
-    if (action !== 'run') return fail(`未知 action: ${action}（当前仅支持 run）`, 'EBADACTION')
+    if (action !== 'run') return fail(`未知 action: ${action}（当前仅支持 run）`, SKILL_ERRORS.BAD_ACTION)
 
     const target = typeof params.target === 'string' ? params.target.trim() : ''
     const command = typeof params.command === 'string' ? params.command : ''
-    if (target === '') return fail('缺少 target（user@host 或 host）', 'EBADARG')
-    if (command.trim() === '') return fail('缺少 command', 'EBADARG')
+    if (target === '') return fail('缺少 target（user@host 或 host）', SKILL_ERRORS.BAD_ARG)
+    if (command.trim() === '') return fail('缺少 command', SKILL_ERRORS.BAD_ARG)
 
     const portRaw = params.port
     const port = typeof portRaw === 'number' ? portRaw : undefined
@@ -82,7 +83,7 @@ export function createSshSkill(): SkillProtocol {
       try {
         child = spawn('ssh', args, { windowsHide: true })
       } catch (error) {
-        finish(fail(error instanceof Error ? error.message : String(error), 'ESPAWN'))
+        finish(fail(error instanceof Error ? error.message : String(error), SKILL_ERRORS.SPAWN))
         return
       }
       const timer = setTimeout(() => {
@@ -91,7 +92,7 @@ export function createSshSkill(): SkillProtocol {
         } catch {
           // 已退出
         }
-        finish(fail(`执行超时（${timeout}ms）`, 'ETIMEDOUT'))
+        finish(fail(`执行超时（${timeout}ms）`, SKILL_ERRORS.TIMEOUT))
       }, timeout)
 
       child.stdout?.on('data', (chunk: Buffer) => {
@@ -102,7 +103,7 @@ export function createSshSkill(): SkillProtocol {
       })
       child.on('error', (error: Error) => {
         clearTimeout(timer)
-        finish(fail(error.message, 'ESPAWN'))
+        finish(fail(error.message, SKILL_ERRORS.SPAWN))
       })
       child.on('close', (code: number | null) => {
         clearTimeout(timer)

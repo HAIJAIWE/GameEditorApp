@@ -14,6 +14,7 @@ import { spawn } from 'node:child_process'
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 
+import { SKILL_ERRORS } from '../../../shared/agent/config'
 import type { SkillProtocol, SkillResult } from '../../../shared/agent/config'
 
 const ACTIONS = ['screenshot', 'click', 'type', 'key'] as const
@@ -131,10 +132,10 @@ export function createComputerSkill(options: ComputerSkillOptions): SkillProtoco
   async function run(params: Record<string, unknown>): Promise<SkillResult> {
     const action = typeof params.action === 'string' ? params.action : ''
     if (!ACTIONS.includes(action as (typeof ACTIONS)[number])) {
-      return fail(`未知 action: ${action}（支持 ${ACTIONS.join(' / ')}）`, 'EBADACTION')
+      return fail(`未知 action: ${action}（支持 ${ACTIONS.join(' / ')}）`, SKILL_ERRORS.BAD_ACTION)
     }
     if (process.platform !== 'win32') {
-      return fail('computer-use 目前仅支持 Windows', 'EUNSUPPORTED')
+      return fail('computer-use 目前仅支持 Windows', SKILL_ERRORS.UNSUPPORTED)
     }
 
     let script: string
@@ -148,24 +149,24 @@ export function createComputerSkill(options: ComputerSkillOptions): SkillProtoco
     } else if (action === 'click') {
       const x = typeof params.x === 'number' ? params.x : Number.parseInt(String(params.x ?? ''), 10)
       const y = typeof params.y === 'number' ? params.y : Number.parseInt(String(params.y ?? ''), 10)
-      if (!Number.isFinite(x) || !Number.isFinite(y)) return fail('click 需要数字 x/y', 'EBADARG')
+      if (!Number.isFinite(x) || !Number.isFinite(y)) return fail('click 需要数字 x/y', SKILL_ERRORS.BAD_ARG)
       script = buildClickScript(Math.trunc(x), Math.trunc(y))
       message = `已点击 (${Math.trunc(x)}, ${Math.trunc(y)})`
     } else if (action === 'type') {
       const text = typeof params.text === 'string' ? params.text : ''
-      if (text === '') return fail('type 需要 text', 'EBADARG')
+      if (text === '') return fail('type 需要 text', SKILL_ERRORS.BAD_ARG)
       script = buildTypeScript(text)
       message = `已输入 ${text.length} 字符`
     } else {
       const keys = typeof params.keys === 'string' ? params.keys : ''
-      if (keys === '') return fail('key 需要 keys（SendKeys 语法，如 ^c / {ENTER}）', 'EBADARG')
+      if (keys === '') return fail('key 需要 keys（SendKeys 语法，如 ^c / {ENTER}）', SKILL_ERRORS.BAD_ARG)
       script = buildTypeScript(keys, true)
       message = `已发送按键：${keys}`
     }
 
     const result = await runScript(script)
     if (result.code !== 0) {
-      return fail(`脚本退出码 ${result.code}${result.stderr !== '' ? `：${result.stderr.slice(0, 300)}` : ''}`, 'ESCRIPT')
+      return fail(`脚本退出码 ${result.code}${result.stderr !== '' ? `：${result.stderr.slice(0, 300)}` : ''}`, SKILL_ERRORS.SCRIPT)
     }
     return { success: true, message, data: { action } }
   }

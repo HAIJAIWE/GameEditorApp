@@ -9,6 +9,7 @@
  * 安全：固定外部 host（SSRF 面小）；风险 NETWORK（审批）；超时 + 结果条数上限。
  */
 
+import { SKILL_ERRORS } from '../../../shared/agent/config'
 import type { SkillProtocol, SkillResult } from '../../../shared/agent/config'
 import { htmlToText } from './webSkill'
 
@@ -96,9 +97,9 @@ export function createWebSearchSkill(options: WebSearchSkillOptions = {}): Skill
 
   async function run(params: Record<string, unknown>): Promise<SkillResult> {
     const action = typeof params.action === 'string' ? params.action : ''
-    if (action !== 'search') return fail(`未知 action: ${action}（当前仅支持 search）`, 'EBADACTION')
+    if (action !== 'search') return fail(`未知 action: ${action}（当前仅支持 search）`, SKILL_ERRORS.BAD_ACTION)
     const query = typeof params.query === 'string' ? params.query.trim() : ''
-    if (query === '') return fail('缺少 query', 'EBADARG')
+    if (query === '') return fail('缺少 query', SKILL_ERRORS.BAD_ARG)
 
     const limit = clampLimit(params.limit)
     const timeoutMs = clampTimeout(params.timeout_ms)
@@ -117,7 +118,7 @@ export function createWebSearchSkill(options: WebSearchSkillOptions = {}): Skill
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36'
         }
       })
-      if (!response.ok) return fail(`HTTP ${response.status}`, 'EHTTP')
+      if (!response.ok) return fail(`HTTP ${response.status}`, SKILL_ERRORS.HTTP)
       const html = await response.text()
       const results = parseDuckDuckGoHtml(html, limit)
       if (results.length === 0) {
@@ -133,8 +134,8 @@ export function createWebSearchSkill(options: WebSearchSkillOptions = {}): Skill
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
-      if (controller.signal.aborted) return fail(`搜索超时（${timeoutMs}ms）`, 'ETIMEDOUT')
-      return fail(message, 'ESEARCH')
+      if (controller.signal.aborted) return fail(`搜索超时（${timeoutMs}ms）`, SKILL_ERRORS.TIMEOUT)
+      return fail(message, SKILL_ERRORS.SEARCH)
     } finally {
       clearTimeout(timer)
     }

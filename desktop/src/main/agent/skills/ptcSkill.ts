@@ -15,6 +15,7 @@
 
 import { newAsyncContext } from 'quickjs-emscripten'
 
+import { SKILL_ERRORS } from '../../../shared/agent/config'
 import type { SkillExecutionContext, SkillProtocol, SkillResult } from '../../../shared/agent/config'
 
 /** 默认超时（毫秒） */
@@ -73,9 +74,9 @@ function wrapScript(code: string): string {
 export function createPtcSkill(options: PtcSkillOptions): SkillProtocol {
   async function run(params: Record<string, unknown>, ctx: SkillExecutionContext): Promise<SkillResult> {
     const action = typeof params.action === 'string' ? params.action : ''
-    if (action !== 'run') return fail(`未知 action: ${action}（当前仅支持 run）`, 'EBADACTION')
+    if (action !== 'run') return fail(`未知 action: ${action}（当前仅支持 run）`, SKILL_ERRORS.BAD_ACTION)
     const code = typeof params.code === 'string' ? params.code : ''
-    if (code.trim() === '') return fail('缺少 code', 'EBADARG')
+    if (code.trim() === '') return fail('缺少 code', SKILL_ERRORS.BAD_ARG)
 
     const timeoutMs = clamp(params.timeout_ms, PTC_DEFAULT_TIMEOUT_MS, PTC_MAX_TIMEOUT_MS)
     const maxCalls = clamp(params.max_calls, PTC_DEFAULT_MAX_CALLS, PTC_MAX_CALLS)
@@ -98,12 +99,12 @@ export function createPtcSkill(options: PtcSkillOptions): SkillProtocol {
         callCount += 1
         if (callCount > maxCalls) {
           return context.newString(
-            JSON.stringify({ success: false, error: 'E_TOO_MANY_CALLS', message: `超过 ${maxCalls} 次工具调用` })
+            JSON.stringify({ success: false, error: SKILL_ERRORS.TOO_MANY_CALLS, message: `超过 ${maxCalls} 次工具调用` })
           )
         }
         const name = context.getString(nameHandle)
         if (name === 'system.ptc') {
-          return context.newString(JSON.stringify({ success: false, error: 'E_NESTED', message: '禁止嵌套 ptc' }))
+          return context.newString(JSON.stringify({ success: false, error: SKILL_ERRORS.NESTED_PTC, message: '禁止嵌套 ptc' }))
         }
         let callParams: Record<string, unknown> = {}
         try {
@@ -128,7 +129,7 @@ export function createPtcSkill(options: PtcSkillOptions): SkillProtocol {
       return { success: true, message: capped, data: { calls: callCount } }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
-      return fail(timedOut ? `执行超时（${timeoutMs}ms）` : message, 'EPTC')
+      return fail(timedOut ? `执行超时（${timeoutMs}ms）` : message, SKILL_ERRORS.PTC)
     } finally {
       context.dispose()
     }

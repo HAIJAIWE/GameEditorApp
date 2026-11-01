@@ -13,6 +13,7 @@
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 
+import { SKILL_ERRORS } from '../../../shared/agent/config'
 import type { SkillProtocol, SkillResult } from '../../../shared/agent/config'
 
 /** 输出上限（字符） */
@@ -72,11 +73,11 @@ export function createBrowserSkill(options: BrowserSkillOptions = {}): SkillProt
   async function run(params: Record<string, unknown>): Promise<SkillResult> {
     const action = typeof params.action === 'string' ? params.action : ''
     if (!ACTIONS.includes(action as (typeof ACTIONS)[number])) {
-      return fail(`未知 action: ${action}（支持 ${ACTIONS.join(' / ')}）`, 'EBADACTION')
+      return fail(`未知 action: ${action}（支持 ${ACTIONS.join(' / ')}）`, SKILL_ERRORS.BAD_ACTION)
     }
     const url = typeof params.url === 'string' ? params.url.trim() : ''
-    if (url === '') return fail('缺少 url', 'EBADARG')
-    if (!isOpenableUrl(url)) return fail(`只支持 http/https 的合法 URL：${url}`, 'EBADURL')
+    if (url === '') return fail('缺少 url', SKILL_ERRORS.BAD_ARG)
+    if (!isOpenableUrl(url)) return fail(`只支持 http/https 的合法 URL：${url}`, SKILL_ERRORS.BAD_URL)
 
     try {
       if (action === 'open') {
@@ -92,7 +93,7 @@ export function createBrowserSkill(options: BrowserSkillOptions = {}): SkillProt
 
       if (action === 'eval') {
         const code = typeof params.code === 'string' ? params.code : ''
-        if (code.trim() === '') return fail('eval 需要 code', 'EBADARG')
+        if (code.trim() === '') return fail('eval 需要 code', SKILL_ERRORS.BAD_ARG)
         const result = await evalPage(url, code)
         const json = typeof result === 'string' ? result : JSON.stringify(result)
         return { success: true, message: cap(json), data: { result } }
@@ -100,14 +101,14 @@ export function createBrowserSkill(options: BrowserSkillOptions = {}): SkillProt
 
       // screenshot
       const root = options.root?.() ?? ''
-      if (root === '') return fail('未配置截图目录', 'EBADARG')
+      if (root === '') return fail('未配置截图目录', SKILL_ERRORS.BAD_ARG)
       const dir = join(root, '.mb-shots')
       mkdirSync(dir, { recursive: true })
       const fileName = `${Date.now()}-browser.png`
       await screenshotPage(url, join(dir, fileName))
       return { success: true, message: `已截图：.mb-shots/${fileName}（相对工作区）`, data: { file: fileName } }
     } catch (error) {
-      return fail(error instanceof Error ? error.message : String(error), 'EBROWSER')
+      return fail(error instanceof Error ? error.message : String(error), SKILL_ERRORS.BROWSER)
     }
   }
 

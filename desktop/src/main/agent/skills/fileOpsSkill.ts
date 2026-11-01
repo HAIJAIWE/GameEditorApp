@@ -19,6 +19,7 @@
 import { copyFile, mkdir, readFile, readdir, rename, rm, stat, unlink, writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
 
+import { SKILL_ERRORS } from '../../../shared/agent/config'
 import type { SkillProtocol, SkillResult } from '../../../shared/agent/config'
 import { PathEscapeError, resolveInsideRoot } from './fsContainment'
 
@@ -59,7 +60,7 @@ export function createFileOpsSkill(options: FileOpsSkillOptions): SkillProtocol 
     const abs = await resolveInsideRoot(rootFn(), asString(params.path))
     const info = await stat(abs)
     if (info.isDirectory()) {
-      return { success: false, message: '目标是目录，请用 list 查看目录内容', error: 'EISDIR' }
+      return { success: false, message: '目标是目录，请用 list 查看目录内容', error: SKILL_ERRORS.IS_DIR }
     }
     const raw = await readFile(abs, 'utf8')
     const truncated = raw.length > FILE_READ_MAX_CHARS
@@ -90,7 +91,7 @@ export function createFileOpsSkill(options: FileOpsSkillOptions): SkillProtocol 
     const abs = await resolveInsideRoot(rootFn(), asString(params.path))
     const content = asString(params.content)
     if (content.length > FILE_WRITE_MAX_CHARS) {
-      return { success: false, message: `写入内容超过上限 ${FILE_WRITE_MAX_CHARS} 字符`, error: 'ETOOBIG' }
+      return { success: false, message: `写入内容超过上限 ${FILE_WRITE_MAX_CHARS} 字符`, error: SKILL_ERRORS.TOO_BIG }
     }
     await mkdir(dirname(abs), { recursive: true })
     await writeFile(abs, content, 'utf8')
@@ -105,13 +106,13 @@ export function createFileOpsSkill(options: FileOpsSkillOptions): SkillProtocol 
     const abs = await resolveInsideRoot(rootFn(), asString(params.path))
     const oldText = asString(params.old_text)
     const newText = asString(params.new_text)
-    if (oldText === '') return { success: false, message: 'edit 需要 old_text', error: 'EBADARG' }
+    if (oldText === '') return { success: false, message: 'edit 需要 old_text', error: SKILL_ERRORS.BAD_ARG }
     const raw = await readFile(abs, 'utf8')
     const first = raw.indexOf(oldText)
-    if (first < 0) return { success: false, message: `未找到待替换文本（${params.path}）`, error: 'ENOTFOUND' }
+    if (first < 0) return { success: false, message: `未找到待替换文本（${params.path}）`, error: SKILL_ERRORS.NOT_FOUND }
     const second = raw.indexOf(oldText, first + oldText.length)
     if (second >= 0) {
-      return { success: false, message: '待替换文本出现多次，请提供更长的唯一上下文', error: 'EAMBIGUOUS' }
+      return { success: false, message: '待替换文本出现多次，请提供更长的唯一上下文', error: SKILL_ERRORS.AMBIGUOUS }
     }
     const next = raw.slice(0, first) + newText + raw.slice(first + oldText.length)
     await writeFile(abs, next, 'utf8')
@@ -123,7 +124,7 @@ export function createFileOpsSkill(options: FileOpsSkillOptions): SkillProtocol 
     const info = await stat(abs)
     if (info.isDirectory()) {
       if (params.recursive !== true) {
-        return { success: false, message: '目标是目录，删除需显式 recursive: true', error: 'EISDIR' }
+        return { success: false, message: '目标是目录，删除需显式 recursive: true', error: SKILL_ERRORS.IS_DIR }
       }
       await rm(abs, { recursive: true, force: true })
     } else {
@@ -154,11 +155,11 @@ export function createFileOpsSkill(options: FileOpsSkillOptions): SkillProtocol 
   async function run(params: Record<string, unknown>): Promise<SkillResult> {
     const action = asString(params.action)
     if (!READ_ACTIONS.has(action) && !MUTATING_ACTIONS.has(action)) {
-      return { success: false, message: `未知 action: ${action}`, error: 'EBADACTION' }
+      return { success: false, message: `未知 action: ${action}`, error: SKILL_ERRORS.BAD_ACTION }
     }
     // 沙箱：只读模式拒绝一切变更
     if (policy === 'read-only' && MUTATING_ACTIONS.has(action)) {
-      return { success: false, message: `沙箱为 read-only，拒绝 ${action}`, error: 'FS_SANDBOX_DENIED' }
+      return { success: false, message: `沙箱为 read-only，拒绝 ${action}`, error: SKILL_ERRORS.SANDBOX_DENIED }
     }
     try {
       switch (action) {
@@ -179,7 +180,7 @@ export function createFileOpsSkill(options: FileOpsSkillOptions): SkillProtocol 
         case 'move':
           return await transferAction(params, true)
         default:
-          return { success: false, message: `未实现的 action: ${action}`, error: 'EBADACTION' }
+          return { success: false, message: `未实现的 action: ${action}`, error: SKILL_ERRORS.BAD_ACTION }
       }
     } catch (error) {
       if (error instanceof PathEscapeError) return fail(error)

@@ -13,6 +13,7 @@ import { readFile } from 'node:fs/promises'
 import { extname } from 'node:path'
 import { pathToFileURL, fileURLToPath } from 'node:url'
 
+import { SKILL_ERRORS } from '../../../shared/agent/config'
 import type { SkillProtocol, SkillResult } from '../../../shared/agent/config'
 import { LspClient, type LspServerSpec } from '../lsp/lspClient'
 import { resolveInsideRoot } from './fsContainment'
@@ -133,32 +134,32 @@ export function createLspSkill(options: LspSkillOptions): SkillProtocol {
   async function run(params: Record<string, unknown>): Promise<SkillResult> {
     const action = typeof params.action === 'string' ? params.action : ''
     if (!ACTIONS.includes(action as LspAction)) {
-      return fail(`未知 action: ${action}（支持 ${ACTIONS.join(' / ')}）`, 'EBADACTION')
+      return fail(`未知 action: ${action}（支持 ${ACTIONS.join(' / ')}）`, SKILL_ERRORS.BAD_ACTION)
     }
     const line = typeof params.line === 'number' ? params.line : Number.parseInt(String(params.line ?? ''), 10)
     const character =
       typeof params.character === 'number' ? params.character : Number.parseInt(String(params.character ?? ''), 10)
     if (!Number.isInteger(line) || line < 1 || !Number.isInteger(character) || character < 1) {
-      return fail('line / character 必须是 ≥1 的整数（1-based）', 'EBADARG')
+      return fail('line / character 必须是 ≥1 的整数（1-based）', SKILL_ERRORS.BAD_ARG)
     }
 
     let abs: string
     try {
       abs = await resolveInsideRoot(options.root(), typeof params.path === 'string' ? params.path : '')
     } catch (error) {
-      return fail(error instanceof Error ? error.message : String(error), 'EESCAPE')
+      return fail(error instanceof Error ? error.message : String(error), SKILL_ERRORS.ESCAPE)
     }
 
     const spec = options.resolveServer(abs)
     if (spec === null) {
-      return fail(`该文件类型未配置语言服务器（在 <库>/lsp.json 声明 ${extname(abs) || '该扩展名'} 的服务器）`, 'ENOSERVER')
+      return fail(`该文件类型未配置语言服务器（在 <库>/lsp.json 声明 ${extname(abs) || '该扩展名'} 的服务器）`, SKILL_ERRORS.NO_SERVER)
     }
 
     let content: string
     try {
       content = await readFile(abs, 'utf8')
     } catch (error) {
-      return fail(error instanceof Error ? error.message : String(error), 'EREAD')
+      return fail(error instanceof Error ? error.message : String(error), SKILL_ERRORS.READ)
     }
 
     const uri = pathToFileURL(abs).toString()
@@ -188,7 +189,7 @@ export function createLspSkill(options: LspSkillOptions): SkillProtocol {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       const stderr = client.stderrText()
-      return fail(stderr === '' ? message : `${message}\n${stderr.slice(0, 500)}`, 'ELSP')
+      return fail(stderr === '' ? message : `${message}\n${stderr.slice(0, 500)}`, SKILL_ERRORS.LSP)
     } finally {
       await client.stop()
     }
