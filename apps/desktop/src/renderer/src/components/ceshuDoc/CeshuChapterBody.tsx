@@ -8,7 +8,7 @@ import type { PluginHost } from '@mobai/shared/plugin/host'
 import { ChapterForm } from '../ceshuField'
 import CeshuOverview from './CeshuOverview'
 import { ViewMount } from '../../plugins/host'
-import { CESHU_ARTIFACT_MOUNT, type CeshuViewContextValue } from '../../plugins/ceshu'
+import { CESHU_ARTIFACT_MOUNT, CeshuViewProvider, type CeshuViewContextValue } from '../../plugins/ceshu'
 import type { ArtifactKey } from './ceshuArtifacts'
 
 /**
@@ -74,7 +74,7 @@ export default function CeshuChapterBody({
   return (
     <div className="chapter-body">
       {activeArtifact !== 'doc' ? (
-        <ViewMount host={host} mount={CESHU_ARTIFACT_MOUNT} context={viewContext} />
+        <ViewMount host={host} mount={CESHU_ARTIFACT_MOUNT} provider={CeshuViewProvider} context={viewContext} />
       ) : viewMode === 'overview' ? (
         <CeshuOverview
           doc={doc}

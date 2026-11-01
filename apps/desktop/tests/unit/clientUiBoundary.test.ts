@@ -7,16 +7,18 @@ import { scanPackage } from './packageBoundary'
 /**
  * 包边界守卫：`packages/client-ui` 必须是**宿主无关**的 UI 内核。
  *
- * ## 为什么（A2 阶段 1）
- * 从 `plugins/host` 搬出来的三个模块（插槽出口 / React 绑定注册 / 应用上下文）
- * 之所以能搬，唯一理由是它们**只依赖 react 与 `@mobai/shared` 的类型**。
- * 这个性质不会被编译器强制：随手 `import { pluginHost } from '.../plugins/context'`
- * 一样能编译通过，然后这个包就变成了"位置在 packages 里的 app 代码"（A3 已验证过的死路）。
+ * ## 为什么（A2 阶段 1/2）
+ * 从 `plugins/host` 与 `components/common` 搬出来的模块之所以能搬，唯一理由是它们
+ * **只依赖 react 与 `@mobai/shared` 的类型**。这个性质不会被编译器强制：随手
+ * `import { pluginHost } from '.../plugins/context'` 一样能编译通过，然后这个包就变成了
+ * "位置在 packages 里的 app 代码"（A3 已验证过的死路）。
  *
- * 所以用三条判据钉住：
+ * 所以用四条判据钉住：
  * 1. 相对路径不得逃出 `packages/client-ui/src`；
- * 2. 只允许 `@mobai/shared`（不得引 `@mobai/agent-core`——UI 不该依赖 agent 内核）；
- * 3. 第三方只有 `react` / `react-dom`。
+ * 2. 只允许 `@mobai/shared`（不得引 `@mobai/agent-core`——UI 不该依赖 agent 内核；
+ *    也不得引自己 `@mobai/client-ui`，包内一律相对导入）；
+ * 3. 第三方只有 `react`；
+ * 4. 无宿主别名 `@app`。
  *
  * 注意：判据是"包内文件的 import 方向"，**不**限制 app 反向依赖本包
  * （app → client-ui 是允许且必然的方向）。

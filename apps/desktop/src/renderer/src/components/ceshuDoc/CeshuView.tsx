@@ -44,7 +44,7 @@ import { CeshuDataPreview, type PreviewJumpTarget } from '../ceshu'
 import CeshuAgentPanel from './CeshuAgentPanel'
 import { collectPendingReviewFields } from '../ceshu'
 import { ViewMount } from '../../plugins/host'
-import { setCeshuEditorBridge } from '../../plugins/ceshu'
+import { CeshuViewProvider, setCeshuEditorBridge } from '../../plugins/ceshu'
 import {
   CESHU_ARTIFACT_MOUNT,
   CESHU_CONTENT_MOUNT,
@@ -911,7 +911,7 @@ export default function CeshuView({
       />
 
       {/* 派生新版本内联弹层（Slice 15）：原位置挂载，定位不变 */}
-      <ViewMount host={host} mount={CESHU_TOOLBAR_MOUNT} context={viewContext} />
+      <ViewMount host={host} mount={CESHU_TOOLBAR_MOUNT} provider={CeshuViewProvider} context={viewContext} />
 
       {error && <div className="error-banner">{error}</div>}
       {notice && <div className="notice-banner">{notice}</div>}
@@ -923,14 +923,14 @@ export default function CeshuView({
          * 激活时**替换**整个内容区（不是叠浮层）；无激活时渲染默认编辑器内容。
          */}
         {contentViewId !== null ? (
-          <ViewMount host={host} mount={CESHU_CONTENT_MOUNT} context={viewContext} />
+          <ViewMount host={host} mount={CESHU_CONTENT_MOUNT} provider={CeshuViewProvider} context={viewContext} />
         ) : (
           <>
             {/*
              * 编辑器内视图挂载点（Slice 11–14）：浮层（路线/体检/影响面/迁移/消费提示词/审阅队列/导入）
              * 不再内联渲染，改为插件 `view` 能力，由 ViewMount 在这里渲染——**CeshuView 保持挂载**。
              */}
-            <ViewMount host={host} mount={CESHU_VIEW_MOUNT} context={viewContext} />
+            <ViewMount host={host} mount={CESHU_VIEW_MOUNT} provider={CeshuViewProvider} context={viewContext} />
             <div className="ceshu-pane-row">
             <CeshuChapterNav
               activeArtifact={activeArtifact}

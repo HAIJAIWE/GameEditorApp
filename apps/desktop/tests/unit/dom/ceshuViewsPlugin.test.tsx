@@ -20,7 +20,7 @@ import {
   CESHU_VIEW_MOUNT,
   type CeshuViewContextValue
 } from '../../../src/renderer/src/plugins/ceshu'
-import { defineCeshuViewsPlugin } from '../../../src/renderer/src/plugins/ceshu'
+import { CeshuViewProvider, defineCeshuViewsPlugin } from '../../../src/renderer/src/plugins/ceshu'
 import { getReactBinding } from '../../../src/renderer/src/plugins/host'
 import { ViewMount } from '../../../src/renderer/src/plugins/host'
 import { createDefaultCeshu } from '@mobai/shared/ceshu/model'
@@ -172,7 +172,7 @@ describe('编辑器内视图插件（Slice 11/12/13：view 挂载点 + 内容槽
 
   it('浮层 ViewMount：开发路线出现、关闭后消失', async () => {
     const host = hostWithPlugin()
-    view = await renderDom(<ViewMount host={host} mount={CESHU_VIEW_MOUNT} context={ctx()} />)
+    view = await renderDom(<ViewMount host={host} mount={CESHU_VIEW_MOUNT} provider={CeshuViewProvider} context={ctx()} />)
     expect(view.query('[data-testid="route-panel"]')).toBeNull()
 
     await act(async () => {
@@ -190,7 +190,7 @@ describe('编辑器内视图插件（Slice 11/12/13：view 挂载点 + 内容槽
 
   it('影响面视图按打开参数定位字段', async () => {
     const host = hostWithPlugin()
-    view = await renderDom(<ViewMount host={host} mount={CESHU_VIEW_MOUNT} context={ctx()} />)
+    view = await renderDom(<ViewMount host={host} mount={CESHU_VIEW_MOUNT} provider={CeshuViewProvider} context={ctx()} />)
 
     await act(async () => {
       host.openView('fieldImpact.view', { chapter: 'meta', field: 'positioning' })
@@ -202,7 +202,7 @@ describe('编辑器内视图插件（Slice 11/12/13：view 挂载点 + 内容槽
   it('内容槽 ViewMount：版本对比替换内容区、关闭后消失', async () => {
     api = installMbApi()
     const host = hostWithPlugin()
-    view = await renderDom(<ViewMount host={host} mount={CESHU_CONTENT_MOUNT} context={ctx()} />)
+    view = await renderDom(<ViewMount host={host} mount={CESHU_CONTENT_MOUNT} provider={CeshuViewProvider} context={ctx()} />)
     expect(view.query('[data-testid="diff-panel"]')).toBeNull()
 
     await act(async () => {

@@ -10,8 +10,10 @@ export { CollapseIcon, ExpandIcon } from './FullscreenIcons'
 export { default as LibraryBar } from './LibraryBar'
 export { default as AdvancedSearchPanel } from './AdvancedSearchPanel'
 export { default as LazyImage } from './LazyImage'
-export type { LucideIconProps } from './LucideIcon'
-export { default as LucideIcon } from './LucideIcon'
+// 图标渲染已下沉到 `packages/client-ui`（宿主无关，只吃 shared 的图标表）。
+// 这里保留 re-export，既有 `from '../common'` 的调用点不用改。
+export type { LucideIconProps } from '@mobai/client-ui'
+export { LucideIcon } from '@mobai/client-ui'
 export { default as OnboardingPanel } from './OnboardingPanel'
 export { default as PluginsPanel } from './PluginsPanel'
 export { default as PresetMarketPanel } from './PresetMarketPanel'

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
-import LucideIcon from './LucideIcon'
+import { LucideIcon } from '@mobai/client-ui'
 
 /**
  * 库条（A2-2）：新建 / 重命名 / 删除 / 切换活跃库。

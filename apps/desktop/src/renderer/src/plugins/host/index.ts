@@ -6,11 +6,11 @@
 
 export { getActiveCeshuId, notify, openPanel, setHomeVisible, setHostUi } from './hostBridge'
 export type { HostUiBridge } from './hostBridge'
-export { HostPanel } from './HostPanel'
+// 三个挂载点已下沉到 `packages/client-ui`（只认 `PluginHost` 接口，不读单例）。
+// 这里保留 re-export，既有 `from '.../plugins/host'` 的调用点不用改。
+export { HostPanel, MenuMount, ViewMount } from '@mobai/client-ui'
 export { MainViewMount } from './MainViewMount'
 export type { AppMainTab } from './MainViewMount'
-export { MenuMount } from './MenuMount'
-export { ViewMount } from './ViewMount'
 export { AppContextProvider, useAppContext } from '@mobai/client-ui'
 export type { AppContextValue } from '@mobai/client-ui'
 export { EMPTY_MAIN_VIEW_CONTEXT, MainViewProvider, useMainViewContext } from './mainViewContext'

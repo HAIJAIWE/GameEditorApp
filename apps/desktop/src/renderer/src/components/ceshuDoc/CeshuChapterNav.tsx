@@ -13,7 +13,7 @@ import {
 import type { PluginHost } from '@mobai/shared/plugin/host'
 
 import { ViewMount } from '../../plugins/host'
-import { CESHU_CHAPTERNAV_MOUNT, type CeshuViewContextValue } from '../../plugins/ceshu'
+import { CESHU_CHAPTERNAV_MOUNT, CeshuViewProvider, type CeshuViewContextValue } from '../../plugins/ceshu'
 import { ARTIFACTS, type ArtifactKey } from './ceshuArtifacts'
 
 /**
@@ -119,7 +119,7 @@ export default function CeshuChapterNav({
         系统模块 {enabledModuleCount}/{MODULE_CHAPTERS.length}
       </button>
       {/* 系统模块勾选气泡（Slice 15）：原位置挂载，定位不变 */}
-      <ViewMount host={host} mount={CESHU_CHAPTERNAV_MOUNT} context={viewContext} />
+      <ViewMount host={host} mount={CESHU_CHAPTERNAV_MOUNT} provider={CeshuViewProvider} context={viewContext} />
       <button
         type="button"
         data-testid="view-mode-toggle"
