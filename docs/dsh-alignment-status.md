@@ -29,7 +29,7 @@ dsh 的 **52 个包组**里，与「agent 能力面」相关且**可移植、有
 | `ssh` | `system.ssh`（薄包装） | `b62fba1` |
 | `lsp` | `system.lsp`（definition/references/implementation/hover） | `e901459` |
 | `web` | `system.web_fetch`（SSRF 防护 + HTML→文本）+ `system.web_search`（DuckDuckGo HTML，免 key） | `98fcce0` / 本轮 |
-| `document` | `system.document`（docx/pptx/xlsx/文本） | `1682029` |
+| `document` | `system.document`（docx/pptx/xlsx/**pdf**/文本） | `1682029` / 本轮 |
 | `workflow` | `system.workflow`（有界步骤序列，每步过审批） | `53474b0` |
 | `ptc-runtime` | `system.ptc`（QuickJS asyncify + `callTool`） | `812328d` |
 | `mcp` | stdio + Streamable HTTP、Resources、连接监督、逐调用超时 | `3c159ef` / `1fd8e46` / `9d2057c` |
@@ -49,6 +49,7 @@ dsh 的 **52 个包组**里，与「agent 能力面」相关且**可移植、有
 | `telemetry` | 操作日志（改动/交付） | 早期 |
 | `experimental`（auto-review） | `preExecReview` LLM 预审 | 早期 |
 | `spill` | 超长工具输出落盘 `.mb-spill/` + 头部预览 + 引用（可再用 `file_ops` 读） | 本轮 |
+| `computer-use` | `system.computer`（Windows：screenshot / click / type / key，SYSTEM 每次审批） | 本轮 |
 
 ## 二、agent 能力面 —— 部分 / 最小档
 
@@ -56,13 +57,11 @@ dsh 的 **52 个包组**里，与「agent 能力面」相关且**可移植、有
 |---|---|---|---|
 | `browser-use` | `system.browser`（`open` 打开 URL） | 无 Playwright：不点击/不填表/不截图/不取文本 | `11f3e2e` |
 | `schedule` | `system.schedule`（提醒：到点弹通知） | 不是 cron 调度器：**不自动跑 agent**（无头运行处理不了审批） | `11f3e2e` |
-| `document`（PDF） | docx/pptx/xlsx/文本 | **PDF 明确 `EUNSUPPORTED`**（需额外库） | `1682029` |
 
 ## 三、有意不做
 
 | dsh 包组 | 原因 |
 |---|---|
-| `computer-use` | 桌面 GUI 控制（截屏 + 鼠标键盘）：风险最高、单用户桌面产品收益不明 |
 | `workflow`（完整引擎） | 只做有界步骤序列；完整 DAG 引擎与 agent 循环重复 |
 | `schedule`（cron） | 需常驻调度器 + 持久化 + UI，属产品功能而非能力移植 |
 

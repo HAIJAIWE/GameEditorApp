@@ -90,6 +90,7 @@ import { createWorkflowSkill } from './agent/skills/workflowSkill'
 import { createPtcSkill } from './agent/skills/ptcSkill'
 import { createBrowserSkill } from './agent/skills/browserSkill'
 import { createWebSearchSkill } from './agent/skills/webSearchSkill'
+import { createComputerSkill } from './agent/skills/computerSkill'
 import { createScheduleSkill } from './agent/skills/scheduleSkill'
 import { initScheduleTicker } from './agent/schedule/scheduleTicker'
 import { createCliSubAgentProvider } from './agent/subagent/subagentCli'
@@ -235,6 +236,8 @@ export function buildStores(libDir: string): AppStores {
   // 网页搜索（DuckDuckGo HTML，免 key）+ 打开 URL（browser-use 最小档）
   dispatcher.register(createWebSearchSkill())
   dispatcher.register(createBrowserSkill())
+  // 桌面控制（Windows 系统脚本）：截屏/点击/输入——SYSTEM 风险，每次审批
+  dispatcher.register(createComputerSkill({ root: getWorkspaceRoot }))
   initScheduleTicker(libDir)
   dispatcher.register(createScheduleSkill({ filePath: join(libDir, 'schedule.json') }))
   // 用户偏好 / 反馈：随库隔离，构造时即从磁盘加载；偏好注入系统提示词（见 brainService）

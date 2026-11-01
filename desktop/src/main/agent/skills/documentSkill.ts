@@ -59,6 +59,47 @@ export function pptxSlideToText(xml: string): string {
   return decodeEntities(parts.join(' ')).trim()
 }
 
+/* pdfjs-dist 的最小类型（避免依赖其 .d.mts 的解析，动态 import 后强转） */
+interface PdfTextItem {
+  str?: string
+}
+interface PdfPage {
+  getTextContent(): Promise<{ items: PdfTextItem[] }>
+  cleanup(): void
+}
+interface PdfDocument {
+  numPages: number
+  getPage(pageNumber: number): Promise<PdfPage>
+}
+interface PdfLoadingTask {
+  promise: Promise<PdfDocument>
+  destroy(): Promise<void>
+}
+interface PdfjsModule {
+  getDocument(options: { data: Uint8Array; useSystemFonts?: boolean; isEvalSupported?: boolean }): PdfLoadingTask
+}
+
+/** PDF → 文本（逐页取 textContent；用 legacy 构建，Node 可用） */
+export async function pdfToText(buffer: Buffer): Promise<string> {
+  const pdfjs = (await import('pdfjs-dist/legacy/build/pdf.mjs')) as unknown as PdfjsModule
+  // 销毁要落在 loading task 上（PDFDocumentProxy 在 v6 没有 destroy）
+  const task = pdfjs.getDocument({ data: new Uint8Array(buffer), useSystemFonts: true, isEvalSupported: false })
+  const doc = await task.promise
+  try {
+    const parts: string[] = []
+    for (let pageNumber = 1; pageNumber <= doc.numPages; pageNumber += 1) {
+      const page = await doc.getPage(pageNumber)
+      const content = await page.getTextContent()
+      const text = content.items.map((item) => item.str ?? '').join(' ').replace(/\s+/g, ' ').trim()
+      parts.push(`## 第 ${pageNumber} 页\n${text}`)
+      page.cleanup()
+    }
+    return parts.join('\n\n')
+  } finally {
+    await task.destroy()
+  }
+}
+
 async function xlsxToText(buffer: Buffer): Promise<string> {
   const workbook = new ExcelJS.Workbook()
   // exceljs 的 Buffer 类型与 Node 的 Buffer<ArrayBufferLike> 泛型不兼容，运行时同一对象
@@ -132,7 +173,7 @@ export function createDocumentSkill(options: DocumentSkillOptions): SkillProtoco
       } else if (ext === '.xlsx') {
         text = await xlsxToText(await readFile(abs))
       } else if (ext === '.pdf') {
-        return fail('PDF 解析需要额外库，暂不支持（可先转成 docx/txt 再读）', 'EUNSUPPORTED')
+        text = await pdfToText(await readFile(abs))
       } else {
         return fail(`不支持的文档类型：${ext === '' ? '无扩展名' : ext}`, 'EUNSUPPORTED')
       }
@@ -152,8 +193,8 @@ export function createDocumentSkill(options: DocumentSkillOptions): SkillProtoco
   return {
     id: 'system.document',
     description:
-      '读取工作区内的文档并转成纯文本：docx / pptx / xlsx / txt / md / json / csv / yaml。'
-      + '用于导入已有策划书/资料。PDF 暂不支持（需转 docx/txt）。',
+      '读取工作区内的文档并转成纯文本：docx / pptx / xlsx / pdf / txt / md / json / csv / yaml。'
+      + '用于导入已有策划书/资料。',
     version: '0.1.0',
     parametersSchema: {
       type: 'object',

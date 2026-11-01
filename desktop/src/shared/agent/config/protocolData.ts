@@ -45,6 +45,7 @@ export const TOOL_RISK_MAP: Record<string, RiskLevel | Record<string, RiskLevel>
   'system.terminal': RISK_LEVEL.SYSTEM,
   'system.ssh': RISK_LEVEL.SYSTEM,
   'system.ptc': RISK_LEVEL.SYSTEM,
+  'system.computer': RISK_LEVEL.SYSTEM,
   'system.schedule': {
     add: RISK_LEVEL.DATA_WRITE,
     list: RISK_LEVEL.READ_ONLY,

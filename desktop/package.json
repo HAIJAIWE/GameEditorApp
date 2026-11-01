@@ -25,6 +25,7 @@
     "exceljs": "^4.4.0",
     "jszip": "^3.10.2",
     "ollama": "^0.6.4",
+    "pdfjs-dist": "^6.4.299",
     "pinyin-pro": "^3.29.4",
     "pptxgenjs": "^4.0.1",
     "quickjs-emscripten": "^0.32.0",
