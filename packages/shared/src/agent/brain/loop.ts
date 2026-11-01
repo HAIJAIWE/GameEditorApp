@@ -648,6 +648,10 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
         const normalizedAction = fixParams(resolved, call.arguments).action
         const action = typeof normalizedAction === 'string' ? normalizedAction : ''
         if (runner.needsConfirmation(resolved, action)) continue
+        // fail-closed 并发（对齐 dsh）：只预启动「显式声明并发安全」的工具；
+        // 未实现 `executionMode` 的运行器保持旧行为（不擅自收紧）。
+        const mode = runner.executionMode?.(resolved, call.arguments)
+        if (mode !== undefined && mode.kind !== 'parallel') continue
         prelaunched.set(index, {
           resolved,
           action,

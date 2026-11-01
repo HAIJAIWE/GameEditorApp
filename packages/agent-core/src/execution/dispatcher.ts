@@ -30,6 +30,13 @@ import {
   type SkillResult,
   type ToolFunctionSchema
 } from '@mobai/shared/agent/config'
+import {
+  ToolsService,
+  ToolExecutionPipeline,
+  createTimeoutPolicy,
+  toToolDefinition,
+  type ToolExecutionMode
+} from '@mobai/shared/agent/toolRuntime'
 
 /** 模糊索引中使用的别名（仅覆盖已注册技能的相关概念） */
 const FUZZY_ALIASES: Record<string, string> = {
@@ -113,6 +120,14 @@ export class SkillDispatcher {
   /** id 片段 + 显式别名索引（**强**）：命中即用，优先级高于 `descIndex` */
   private aliasIndex = new Map<string, string>()
   private readonly maxAllowedRisk: RiskLevel
+  /**
+   * dsh 形状的工具运行时（`@mobai/shared/agent/toolRuntime`）。
+   *
+   * 与技能注册表**同源**：`register()` 时把技能适配成 `ToolDefinition` 同步进来，
+   * 执行统一走 `pipeline`（参数无损快照/冻结 → 策略链 → canonical 输出校验 → render）。
+   */
+  private readonly tools = new ToolsService()
+  private readonly pipeline = new ToolExecutionPipeline(this.tools)
 
   /**
    * @param options.maxAllowedRisk 风险**硬上限**（配置式禁止，超过即拒绝、连确认都不能放行）。
@@ -128,17 +143,26 @@ export class SkillDispatcher {
    */
   constructor(options: { maxAllowedRisk?: RiskLevel } = {}) {
     this.maxAllowedRisk = options.maxAllowedRisk ?? RISK_LEVEL.SYSTEM
+    // 超时策略是流水线的第一层：只有声明了 `timeoutMs` 的工具才会被 arm deadline
+    this.pipeline.use(createTimeoutPolicy((name) => this.tools.get(name)))
   }
 
   register(skill: SkillProtocol): boolean {
     const ok = this.registry.register(skill)
-    if (ok) this.buildFuzzyIndex()
+    if (ok) {
+      // 同一份注册同步进工具运行时（适配层负责补 canonical 输出 / 展示投影 / 执行器元数据）
+      this.tools.register(toToolDefinition(skill))
+      this.buildFuzzyIndex()
+    }
     return ok
   }
 
   unregister(id: string): boolean {
     const ok = this.registry.unregister(id)
-    if (ok) this.buildFuzzyIndex()
+    if (ok) {
+      this.tools.unregister(id)
+      this.buildFuzzyIndex()
+    }
     return ok
   }
 
@@ -156,8 +180,21 @@ export class SkillDispatcher {
 
   clear(): void {
     this.registry.clear()
+    this.tools.clear()
     this.descIndex.clear()
     this.aliasIndex.clear()
+  }
+
+  /**
+   * 并发分类（fail-closed）：供 Brain 循环的并行预启动判断。
+   *
+   * 只有技能显式声明 `isConcurrencySafe` 且**精确返回 `true`** 才 parallel；
+   * 其余一律 exclusive（与 dsh `ToolExecutionPipeline.executionMode` 同义）。
+   * @param toolName - 已解析的工具名
+   * @param args - 已修正的参数
+   */
+  executionMode(toolName: string, args: Record<string, unknown>): ToolExecutionMode {
+    return this.pipeline.executionMode({ name: toolName, arguments: args })
   }
 
   /** 供 A1-2 组装提示词用——**全量多行**描述，含参数明细 */
@@ -290,12 +327,20 @@ export class SkillDispatcher {
       fixed.confirm = true
     }
 
-    try {
-      const raw = await skill.execute(fixed, ctx)
-      return normalizeSkillResult(raw)
-    } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : String(error), message: '' }
+    // 统一走工具运行时：无损快照/冻结 → 策略链（超时）→ canonical 输出校验 → render。
+    // 技能抛错不再需要这里 catch——流水线会把任何异常收敛成结构化失败结果。
+    const candidateSignal = ctx.signal
+    const signal = candidateSignal instanceof AbortSignal ? candidateSignal : undefined
+    const execution = await this.pipeline.execute({
+      name: resolved,
+      arguments: fixed,
+      ...(signal !== undefined ? { signal } : {}),
+      hostContext: ctx
+    })
+    if (execution.isError) {
+      return { success: false, error: execution.error.message, message: '' }
     }
+    return normalizeSkillResult(execution.value)
   }
 
   /**

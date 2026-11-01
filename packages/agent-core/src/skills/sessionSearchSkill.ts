@@ -24,6 +24,8 @@ export function createSessionSearchSkill(deps: { sessionStore: AgentSessionStore
 
   return {
     id: 'system.session_search',
+    // 只读检索（SQLite FTS5）：与兄弟调用并发安全（fail-closed 契约里显式 opt-in）
+    isConcurrencySafe: () => true,
     description:
       '检索本库历史会话（SQLite FTS5 全文索引，只读）。action=search 按关键词搜索；action=read 读取指定会话消息；action=list 列出最近会话。开始任务前可用它回顾以往做过的工作。',
     version: '0.1.0',

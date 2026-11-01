@@ -72,6 +72,14 @@ export interface BrainToolRunner {
   resolve(toolName: string): string | null
   /** 该 (工具, 操作) 是否需要用户二次确认 */
   needsConfirmation(toolName: string, action: string): boolean
+  /**
+   * 并发分类（可选，对齐 dsh `ToolExecutionPipeline.executionMode`）。
+   *
+   * 只有声明并发安全的工具才允许被并行预启动；未实现时循环保持既有行为。
+   * @param toolName - 已解析的工具名
+   * @param params - 已修正的参数
+   */
+  executionMode?(toolName: string, params: Record<string, unknown>): { kind: 'exclusive' } | { kind: 'parallel' }
   execute(toolName: string, params: Record<string, unknown>, ctx: SkillExecutionContext): Promise<SkillResult>
 }
 

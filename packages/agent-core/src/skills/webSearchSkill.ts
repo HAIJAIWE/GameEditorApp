@@ -143,6 +143,8 @@ export function createWebSearchSkill(options: WebSearchSkillOptions = {}): Skill
 
   return {
     id: 'system.web_search',
+    // 只读搜索（无副作用）：可与其他只读调用并发
+    isConcurrencySafe: () => true,
     description:
       '网页搜索（DuckDuckGo HTML，免 key）：返回标题 / 链接 / 摘要。'
       + '需要更稳结果可配置自建 provider。仅搜索，抓正文用 system.web_fetch。',

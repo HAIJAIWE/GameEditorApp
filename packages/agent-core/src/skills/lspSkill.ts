@@ -197,6 +197,8 @@ export function createLspSkill(options: LspSkillOptions): SkillProtocol {
 
   return {
     id: 'system.lsp',
+    // 纯导航（definition/references/implementation/hover）：只读，可并发
+    isConcurrencySafe: () => true,
     description:
       '精确代码导航（只读）：definition=跳转定义 / references=查找引用（含声明）/ '
       + 'implementation=查找实现 / hover=悬停文档。坐标为 1-based 行列。'

@@ -209,6 +209,18 @@ export interface SkillProtocol {
   dependsOn?: readonly string[]
   /** 语义标记：涉及 GUI 主线程（TS 侧无硬约束，仅供面板/调度排序参考） */
   requiresMainThread?: boolean
+  /**
+   * 协作式超时预算（毫秒，对齐 dsh `ToolDefinition.timeoutMs`）。
+   * 声明它 = 承诺转发 `ctx.signal` 并在 abort 后到达静止；由工具运行时的超时策略执行。
+   * **永不发给模型**（`ToolsService.schemas()` 只白名单 name/description/parameters）。
+   */
+  timeoutMs?: number
+  /**
+   * 与兄弟调用并发的纯分类器（对齐 dsh `ToolDefinition.isConcurrencySafe`）。
+   * **只有精确返回 `true` 才并行**；省略/抛错/非 true 一律独占（fail-closed）。
+   * 永不发给模型。
+   */
+  isConcurrencySafe?: (args: Record<string, unknown>) => boolean
   execute(params: Record<string, unknown>, ctx: SkillExecutionContext): SkillResult | Promise<SkillResult>
 }
 
