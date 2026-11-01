@@ -50,20 +50,19 @@ dsh 的 **52 个包组**里，与「agent 能力面」相关且**可移植、有
 | `experimental`（auto-review） | `preExecReview` LLM 预审 | 早期 |
 | `spill` | 超长工具输出落盘 `.mb-spill/` + 头部预览 + 引用（可再用 `file_ops` 读） | 本轮 |
 | `computer-use` | `system.computer`（Windows：screenshot / click / type / key，SYSTEM 每次审批） | 本轮 |
+| `browser-use` | `system.browser`（open / read / eval / screenshot，隐藏 BrowserWindow 驱动，**不用 Playwright**） | 本轮 |
+| `schedule` | `system.schedule`（提醒 + **cron 表达式**：`*/5 * * * *` 等，到点弹通知） | 本轮 |
 
 ## 二、agent 能力面 —— 部分 / 最小档
 
 | dsh 包组 | 我们做到哪 | 差在哪 | 参考 |
 |---|---|---|---|
-| `browser-use` | `system.browser`（`open` 打开 URL） | 无 Playwright：不点击/不填表/不截图/不取文本 | `11f3e2e` |
-| `schedule` | `system.schedule`（提醒：到点弹通知） | 不是 cron 调度器：**不自动跑 agent**（无头运行处理不了审批） | `11f3e2e` |
 
 ## 三、有意不做
 
 | dsh 包组 | 原因 |
 |---|---|
 | `workflow`（完整引擎） | 只做有界步骤序列；完整 DAG 引擎与 agent 循环重复 |
-| `schedule`（cron） | 需常驻调度器 + 持久化 + UI，属产品功能而非能力移植 |
 
 ## 四、宿主 / 基础设施（不搬 dsh 包，本产品自有实现）
 

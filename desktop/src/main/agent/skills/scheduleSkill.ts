@@ -61,12 +61,14 @@ export function createScheduleSkill(options: ScheduleSkillOptions): SkillProtoco
     const delayMs = typeof delayRaw === 'number' ? delayRaw : undefined
     const repeatRaw = params.repeat_ms
     const repeatMs = typeof repeatRaw === 'number' ? repeatRaw : undefined
+    const cron = typeof params.cron === 'string' ? params.cron : undefined
     try {
       const task = store.add({
         prompt,
         ...(at !== undefined ? { at } : {}),
         ...(delayMs !== undefined ? { delayMs } : {}),
-        ...(repeatMs !== undefined ? { repeatMs } : {})
+        ...(repeatMs !== undefined ? { repeatMs } : {}),
+        ...(cron !== undefined ? { cron } : {})
       })
       return { success: true, message: `已添加提醒 ${task.id}（${task.at}）`, data: { task } }
     } catch (error) {
@@ -78,7 +80,7 @@ export function createScheduleSkill(options: ScheduleSkillOptions): SkillProtoco
     id: 'system.schedule',
     description:
       '定时提醒（到点弹系统通知，不自动跑 agent）：add=新增 / list=列出 / remove=删除。'
-      + 'add 用 at(ISO 时间) 或 delay_ms(相对毫秒)，可选 repeat_ms 重复。存 <库>/schedule.json。',
+      + 'add 用 cron(5 字段，分 时 日 月 周) 或 at(ISO) / delay_ms(相对毫秒)，可选 repeat_ms。存 <库>/schedule.json。',
     version: '0.1.0',
     parametersSchema: {
       type: 'object',
@@ -88,6 +90,7 @@ export function createScheduleSkill(options: ScheduleSkillOptions): SkillProtoco
         at: { type: 'string', description: 'add 时的 ISO 时间（如 2026-11-02T09:00:00+08:00）' },
         delay_ms: { type: 'integer', description: 'add 时的相对延迟（毫秒），与 at 二选一' },
         repeat_ms: { type: 'integer', description: '重复间隔（毫秒），可选' },
+        cron: { type: 'string', description: '5 字段 cron（分 时 日 月 周），如 "*/5 * * * *"' },
         id: { type: 'string', description: 'remove 时的任务 id' }
       },
       required: ['action']

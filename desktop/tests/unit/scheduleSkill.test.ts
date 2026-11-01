@@ -37,6 +37,12 @@ describe('system.schedule（提醒子集）', () => {
     expect(after.message).toContain('没有定时提醒')
   })
 
+  it('add 支持 cron 表达式', async () => {
+    const result = await skill()({ action: 'add', prompt: '每5分', cron: '*/5 * * * *' })
+    expect(result.success).toBe(true)
+    expect((result.data as { task: { cron: string } }).task.cron).toBe('*/5 * * * *')
+  })
+
   it('list 空', async () => {
     expect((await skill()({ action: 'list' })).message).toContain('没有定时提醒')
   })

@@ -56,7 +56,13 @@ export const TOOL_RISK_MAP: Record<string, RiskLevel | Record<string, RiskLevel>
   'system.scheduler': RISK_LEVEL.SYSTEM,
   'system.web_search': RISK_LEVEL.NETWORK,
   'system.web_fetch': RISK_LEVEL.NETWORK,
-  'system.browser': RISK_LEVEL.NETWORK,
+  'system.browser': {
+    open: RISK_LEVEL.NETWORK,
+    read: RISK_LEVEL.NETWORK,
+    screenshot: RISK_LEVEL.NETWORK,
+    // 页面执行任意 JS（点击/填表）——最高危
+    eval: RISK_LEVEL.SYSTEM
+  },
   'system.vision': RISK_LEVEL.NETWORK,
   'system.tts': RISK_LEVEL.NETWORK,
   'system.speech_input': RISK_LEVEL.NETWORK,

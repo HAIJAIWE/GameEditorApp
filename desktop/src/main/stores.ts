@@ -235,7 +235,7 @@ export function buildStores(libDir: string): AppStores {
   )
   // 网页搜索（DuckDuckGo HTML，免 key）+ 打开 URL（browser-use 最小档）
   dispatcher.register(createWebSearchSkill())
-  dispatcher.register(createBrowserSkill())
+  dispatcher.register(createBrowserSkill({ root: getWorkspaceRoot }))
   // 桌面控制（Windows 系统脚本）：截屏/点击/输入——SYSTEM 风险，每次审批
   dispatcher.register(createComputerSkill({ root: getWorkspaceRoot }))
   initScheduleTicker(libDir)

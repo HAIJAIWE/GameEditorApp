@@ -10,6 +10,8 @@
 
 import { readFileSync, writeFileSync } from 'node:fs'
 
+import { nextCronTime, parseCron } from './cron'
+
 /** 一条定时提醒 */
 export interface ScheduleTask {
   id: string
@@ -18,6 +20,8 @@ export interface ScheduleTask {
   at: string
   /** 重复间隔（毫秒）；缺省/0 = 一次性 */
   repeatMs?: number
+  /** cron 表达式（5 字段）；提供时按 cron 推进，优先于 repeatMs */
+  cron?: string
   /** 一次性任务已触发时间（ISO） */
   firedAt?: string
 }
@@ -65,24 +69,34 @@ export class ScheduleStore {
     return readTasks(this.filePath)
   }
 
-  /** 新增一条提醒；`at` 传 ISO 或 `delayMs` 相对毫秒 */
-  add(input: { prompt: string; at?: string; delayMs?: number; repeatMs?: number }): ScheduleTask {
+  /** 新增一条提醒；`cron`（5 字段）或 `at`（ISO）/ `delayMs`（相对毫秒）三选一 */
+  add(input: { prompt: string; at?: string; delayMs?: number; repeatMs?: number; cron?: string }): ScheduleTask {
     const prompt = input.prompt.trim()
     if (prompt === '') throw new Error('prompt 不能为空')
+
+    const cron = input.cron?.trim()
     let at: string
-    if (input.at !== undefined && input.at !== '') {
+    if (cron !== undefined && cron !== '') {
+      const fields = parseCron(cron)
+      if (fields === null) throw new Error(`cron 非法：${cron}`)
+      const next = nextCronTime(fields, Date.now())
+      if (next === null) throw new Error(`cron 一年内无匹配：${cron}`)
+      at = new Date(next).toISOString()
+    } else if (input.at !== undefined && input.at !== '') {
       const parsed = Date.parse(input.at)
       if (Number.isNaN(parsed)) throw new Error(`at 不是合法时间：${input.at}`)
       at = new Date(parsed).toISOString()
     } else if (input.delayMs !== undefined && Number.isFinite(input.delayMs) && input.delayMs > 0) {
       at = new Date(Date.now() + input.delayMs).toISOString()
     } else {
-      throw new Error('需要 at（ISO 时间）或 delay_ms（相对毫秒）')
+      throw new Error('需要 cron / at（ISO 时间）/ delay_ms（相对毫秒）')
     }
+
     const task: ScheduleTask = {
       id: nextId(),
       prompt,
       at,
+      ...(cron !== undefined && cron !== '' ? { cron } : {}),
       ...(input.repeatMs !== undefined && input.repeatMs > 0 ? { repeatMs: input.repeatMs } : {})
     }
     const tasks = readTasks(this.filePath)
@@ -116,7 +130,12 @@ export class ScheduleStore {
       notify(task)
       fired.push(task)
       changed = true
-      if (task.repeatMs !== undefined && task.repeatMs > 0) {
+      if (task.cron !== undefined) {
+        const fields = parseCron(task.cron)
+        const next = fields === null ? null : nextCronTime(fields, now)
+        if (next === null) task.firedAt = new Date(now).toISOString()
+        else task.at = new Date(next).toISOString()
+      } else if (task.repeatMs !== undefined && task.repeatMs > 0) {
         task.at = new Date(now + task.repeatMs).toISOString()
       } else {
         task.firedAt = new Date(now).toISOString()

@@ -1,3 +1,4 @@
+import { writeFileSync } from 'node:fs'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -61,6 +62,30 @@ describe('ScheduleStore', () => {
     const after = store.list().find((t) => t.id === task.id)
     expect(after?.firedAt).toBeUndefined()
     expect(Date.parse(after?.at ?? '')).toBeGreaterThan(now)
+  })
+
+  it('cron：add 计算下次；tick 后推进到下一次', () => {
+    const task = store.add({ prompt: '每5分', cron: '*/5 * * * *' })
+    expect(task.cron).toBe('*/5 * * * *')
+    expect(Date.parse(task.at)).toBeGreaterThan(Date.now())
+
+    // 直接改文件把任务改成「已到期」，验证 tick 按 cron 推进
+    writeFileSync(
+      join(dir, 'schedule.json'),
+      JSON.stringify({
+        tasks: [{ id: 'c1', prompt: 'cron', at: new Date(Date.now() - 1000).toISOString(), cron: '*/5 * * * *' }]
+      }),
+      'utf8'
+    )
+    const fired = store.tick(Date.now(), () => undefined)
+    expect(fired).toHaveLength(1)
+    const after = store.list()[0]
+    expect(after?.firedAt).toBeUndefined()
+    expect(Date.parse(after?.at ?? '')).toBeGreaterThan(Date.now())
+  })
+
+  it('非法 cron → add 抛错', () => {
+    expect(() => store.add({ prompt: 'x', cron: 'bad' })).toThrow()
   })
 
   it('未到期不触发', () => {
