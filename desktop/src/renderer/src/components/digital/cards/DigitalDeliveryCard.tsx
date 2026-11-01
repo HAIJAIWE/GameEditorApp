@@ -1,7 +1,7 @@
 import { useState, type ReactElement } from 'react'
 
-import type { DeliveryRecord } from '../../../../shared/agent/observability'
-import { attachmentExtension, formatAttachmentSize } from '../../../../shared/util/io'
+import type { DeliveryRecord } from '../../../../../shared/agent/observability'
+import { attachmentExtension, formatAttachmentSize } from '../../../../../shared/util/io'
 
 /** 折叠前显示的行数（对齐 dsh `Deliverables` 的 COLLAPSED_PRESENTED_COUNT） */
 const COLLAPSED_DELIVERIES = 4

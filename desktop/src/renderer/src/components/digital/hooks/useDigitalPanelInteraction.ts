@@ -1,9 +1,9 @@
 import { useState } from 'react'
 
-import { isAnswerComplete, type DigitalPanelState } from '../../../../shared/agent/ui'
-import type { ConversationAction } from '../../../../shared/agent/conversation'
-import { toErrorMessage } from '../../../../shared/util/system'
-import type { ChatApi } from './digitalPanelApi'
+import { isAnswerComplete, type DigitalPanelState } from '../../../../../shared/agent/ui'
+import type { ConversationAction } from '../../../../../shared/agent/conversation'
+import { toErrorMessage } from '../../../../../shared/util/system'
+import type { ChatApi } from '../api/digitalPanelApi'
 
 /**
  * 人机协作答复簇：确认破坏性动作 / 回答提问（含多问题逐题作答）。

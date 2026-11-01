@@ -1,15 +1,15 @@
-import { CHAPTER_LABELS } from '../../../../shared/ceshu/reference'
+import { CHAPTER_LABELS } from '../../../../../shared/ceshu/reference'
 import {
   FIELD_ACTIONS,
   FIELD_ACTION_LABELS,
   FIELD_ACTION_TITLES
-} from '../../../../shared/ceshu/fields'
-import type { FieldReviewStatus } from '../../../../shared/ceshu/fields'
+} from '../../../../../shared/ceshu/fields'
+import type { FieldReviewStatus } from '../../../../../shared/ceshu/fields'
 import {
   requestFieldAction,
   useCeshuFieldFocus,
   type ActiveCeshuField
-} from '../../ceshuFieldFocus'
+} from '../../../ceshuFieldFocus'
 
 /** 字段审核状态徽标（与 ChapterForm 的徽标同词） */
 const STATUS_BADGES: Record<FieldReviewStatus, string> = {

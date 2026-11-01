@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import type { OperationRecord } from '../../../../shared/agent/observability'
-import type { DeliveryRecord } from '../../../../shared/agent/observability'
-import type { DigitalPanelState } from '../../../../shared/agent/ui'
-import type { ChatApi } from './digitalPanelApi'
+import type { OperationRecord } from '../../../../../shared/agent/observability'
+import type { DeliveryRecord } from '../../../../../shared/agent/observability'
+import type { DigitalPanelState } from '../../../../../shared/agent/ui'
+import type { ChatApi } from '../api/digitalPanelApi'
 
 /**
  * 「本轮产物」簇：运行结束后一次性拉取本轮的改动（操作日志）与交付文件（交付日志）。

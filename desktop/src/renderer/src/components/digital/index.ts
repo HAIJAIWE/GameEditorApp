@@ -1,39 +1,52 @@
 /**
- * components/digital —— 数字员工（AI 会话）面板：消息/交付/变更卡片、附件与草稿、命令与 @ 引用菜单、审批与步骤列表，以及面板状态 hooks。
+ * components/digital —— 数字员工（AI 会话）面板。
  *
- * 外部一律从这里 import（`.../digital`），不要再深插目录内文件。
+ * 按 UI 能力分子目录（对齐 dsh `packages/client/ui-*` 的「一能力一文件夹」）：
+ * - `chat/`       对话主体（DigitalPanel / 消息 / markdown / 运行状态）
+ * - `views/`      面板内各类列表（审批 / 命令菜单 / 任务 / 步骤 / 子智能体 / 后台任务 / 工作区）
+ * - `attachments/`附件（待发送 chip / 读图 hook / 附件 hook）
+ * - `commands/`   斜杠命令与快捷键
+ * - `cards/`      交付卡 / 改动卡
+ * - `jobs/`       后台任务轮询 hook
+ * - `workspace/`  代码工作区 hook
+ * - `runplan/`    运行计划进度条
+ * - `dragdrop/`   拖拽遮罩 / 字段操作条
+ * - `hooks/`      其余面板状态 hooks
+ * - `api/`        面板 IPC 契约类型
+ *
+ * 外部一律从这里 import（`.../digital`），不要再深插子目录。
  */
 
-export type { ChatMarkdownProps } from './ChatMarkdown'
-export { default as ChatMarkdown } from './ChatMarkdown'
-export { DropOverlay } from './DropOverlay'
-export { SHORTCUTS } from './shortcutsData'
-export type { ShortcutEntry } from './shortcutsData'
-export { useAttachmentImage } from './useAttachmentImage'
-export { DigitalChangeCard, DigitalChangeList, formatTime } from './DigitalChangeCard'
-export { DigitalDeliveryCard } from './DigitalDeliveryCard'
-export { DigitalMessageItem, copyToClipboard } from './DigitalMessageItem'
-export type { DigitalMessageItemProps } from './DigitalMessageItem'
-export { default as DigitalPanel } from './DigitalPanel'
-export { DigitalRunPlan } from './DigitalRunPlan'
-export { default as FieldActionStrip } from './FieldActionStrip'
-export { PendingAttachments } from './PendingAttachments'
-export { ShortcutsDialog } from './ShortcutsDialog'
-export type { ChatApi } from './digitalPanelApi'
-export { ContextMeter, ConversationRunStatus } from './digitalPanelParts'
-export { DigitalApproval, DigitalCommandMenu, DigitalJobList, DigitalReferenceMenu, DigitalStepList, DigitalSubagentList, DigitalTaskList, DigitalWorkspaceBar } from './digitalPanelViews'
-export type { ToolViewResolver } from './digitalPanelViews'
-export { useDigitalPanelAttachments } from './useDigitalPanelAttachments'
-export type { DigitalPanelAttachments } from './useDigitalPanelAttachments'
-export { useDigitalPanelCommands } from './useDigitalPanelCommands'
-export type { DigitalPanelCommands } from './useDigitalPanelCommands'
-export { useDigitalPanelDrafts } from './useDigitalPanelDrafts'
-export type { DigitalPanelDrafts } from './useDigitalPanelDrafts'
-export { useDigitalPanelInteraction } from './useDigitalPanelInteraction'
-export type { DigitalPanelInteraction } from './useDigitalPanelInteraction'
-export { useDigitalPanelModelMenu } from './useDigitalPanelModelMenu'
-export type { DigitalPanelModelMenu } from './useDigitalPanelModelMenu'
-export { useDigitalPanelStopArm } from './useDigitalPanelStopArm'
-export type { DigitalPanelStopArm } from './useDigitalPanelStopArm'
-export { useDigitalPanelTurnArtifacts } from './useDigitalPanelTurnArtifacts'
-export type { DigitalPanelTurnArtifacts } from './useDigitalPanelTurnArtifacts'
+export type { ChatMarkdownProps } from './chat/ChatMarkdown'
+export { default as ChatMarkdown } from './chat/ChatMarkdown'
+export { DropOverlay } from './dragdrop/DropOverlay'
+export { SHORTCUTS } from './commands/shortcutsData'
+export type { ShortcutEntry } from './commands/shortcutsData'
+export { useAttachmentImage } from './attachments/useAttachmentImage'
+export { DigitalChangeCard, DigitalChangeList, formatTime } from './cards/DigitalChangeCard'
+export { DigitalDeliveryCard } from './cards/DigitalDeliveryCard'
+export { DigitalMessageItem, copyToClipboard } from './chat/DigitalMessageItem'
+export type { DigitalMessageItemProps } from './chat/DigitalMessageItem'
+export { default as DigitalPanel } from './chat/DigitalPanel'
+export { DigitalRunPlan } from './runplan/DigitalRunPlan'
+export { default as FieldActionStrip } from './dragdrop/FieldActionStrip'
+export { PendingAttachments } from './attachments/PendingAttachments'
+export { ShortcutsDialog } from './commands/ShortcutsDialog'
+export type { ChatApi } from './api/digitalPanelApi'
+export { ContextMeter, ConversationRunStatus } from './chat/digitalPanelParts'
+export { DigitalApproval, DigitalCommandMenu, DigitalJobList, DigitalReferenceMenu, DigitalStepList, DigitalSubagentList, DigitalTaskList, DigitalWorkspaceBar } from './views/digitalPanelViews'
+export type { ToolViewResolver } from './views/digitalPanelViews'
+export { useDigitalPanelAttachments } from './attachments/useDigitalPanelAttachments'
+export type { DigitalPanelAttachments } from './attachments/useDigitalPanelAttachments'
+export { useDigitalPanelCommands } from './commands/useDigitalPanelCommands'
+export type { DigitalPanelCommands } from './commands/useDigitalPanelCommands'
+export { useDigitalPanelDrafts } from './hooks/useDigitalPanelDrafts'
+export type { DigitalPanelDrafts } from './hooks/useDigitalPanelDrafts'
+export { useDigitalPanelInteraction } from './hooks/useDigitalPanelInteraction'
+export type { DigitalPanelInteraction } from './hooks/useDigitalPanelInteraction'
+export { useDigitalPanelModelMenu } from './hooks/useDigitalPanelModelMenu'
+export type { DigitalPanelModelMenu } from './hooks/useDigitalPanelModelMenu'
+export { useDigitalPanelStopArm } from './hooks/useDigitalPanelStopArm'
+export type { DigitalPanelStopArm } from './hooks/useDigitalPanelStopArm'
+export { useDigitalPanelTurnArtifacts } from './hooks/useDigitalPanelTurnArtifacts'
+export type { DigitalPanelTurnArtifacts } from './hooks/useDigitalPanelTurnArtifacts'

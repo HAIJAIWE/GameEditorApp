@@ -1,11 +1,11 @@
 import type { ReactElement } from 'react'
 
-import { LucideIcon } from '../common'
+import { LucideIcon } from '../../common'
 import {
   attachmentExtension,
   formatAttachmentSize,
   type DigitalAttachment
-} from '../../../../shared/util/io'
+} from '../../../../../shared/util/io'
 import { useAttachmentImage } from './useAttachmentImage'
 
 /**

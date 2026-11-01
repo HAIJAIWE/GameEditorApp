@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 
-import type { JobRecord } from '../../../../shared/agent/jobs/jobRegistry'
-import type { ChatApi } from './digitalPanelApi'
+import type { JobRecord } from '../../../../../shared/agent/jobs/jobRegistry'
+import type { ChatApi } from '../api/digitalPanelApi'
 
 /** 后台任务轮询间隔（ms）：跨轮历史 + 运行中状态，2s 足够且不吵 */
 const JOB_POLL_MS = 2000

@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react'
 
 import ChatMarkdown from './ChatMarkdown'
-import { useAttachmentImage } from './useAttachmentImage'
-import { formatAttachmentSize, type DigitalAttachment } from '../../../../shared/util/io'
+import { useAttachmentImage } from '../attachments/useAttachmentImage'
+import { formatAttachmentSize, type DigitalAttachment } from '../../../../../shared/util/io'
 
 export interface DigitalMessageItemProps {
   role: 'user' | 'assistant'

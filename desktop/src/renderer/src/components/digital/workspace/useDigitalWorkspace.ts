@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 
-import type { ChatApi } from './digitalPanelApi'
+import type { ChatApi } from '../api/digitalPanelApi'
 
 /**
  * 代码工作区数据 hook（对齐 dsh fs-sandbox 的 `cwd`）。

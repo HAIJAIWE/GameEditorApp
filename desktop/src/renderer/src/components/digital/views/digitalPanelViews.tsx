@@ -1,18 +1,18 @@
 import { useState, type ReactNode } from 'react'
 
-import { LucideIcon } from '../common'
-import type { LucideIconName } from '../../../../shared/util/ui'
-import { RISK_LEVEL, resolveRiskLevel } from '../../../../shared/agent/config'
-import type { DigitalCommand } from '../../../../shared/agent/tools'
-import type { DigitalReference } from '../../../../shared/agent/ui'
-import { diffRows, diffTotals, errorSummary, formatToolArgs } from '../../../../shared/agent/tools'
+import { LucideIcon } from '../../common'
+import type { LucideIconName } from '../../../../../shared/util/ui'
+import { RISK_LEVEL, resolveRiskLevel } from '../../../../../shared/agent/config'
+import type { DigitalCommand } from '../../../../../shared/agent/tools'
+import type { DigitalReference } from '../../../../../shared/agent/ui'
+import { diffRows, diffTotals, errorSummary, formatToolArgs } from '../../../../../shared/agent/tools'
 import {
   summarizeToolTasks,
   type DigitalPanelState,
   type DigitalStep
-} from '../../../../shared/agent/ui'
-import { JOB_STATUS_LABELS, type JobRecord } from '../../../../shared/agent/jobs/jobRegistry'
-import { AttachmentLightbox } from './DigitalMessageItem'
+} from '../../../../../shared/agent/ui'
+import { JOB_STATUS_LABELS, type JobRecord } from '../../../../../shared/agent/jobs/jobRegistry'
+import { AttachmentLightbox } from '../chat/DigitalMessageItem'
 
 /** 风险等级 → 中文档位（审批卡展示用） */
 const RISK_LABELS: Record<number, string> = {

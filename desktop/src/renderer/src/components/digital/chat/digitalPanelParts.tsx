@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-import { modelContextWindow } from '../../../../shared/config/llm'
+import { modelContextWindow } from '../../../../../shared/config/llm'
 
 /**
  * 智能体面板的尾部展示件（从 `DigitalPanel.tsx` 原样搬出）。

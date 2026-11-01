@@ -1,8 +1,8 @@
-import type { DraftSummary } from '../../../../shared/agent/conversation'
-import type { OperationRecord } from '../../../../shared/agent/observability'
-import type { DeliveryRecord } from '../../../../shared/agent/observability'
-import type { DigitalAttachment } from '../../../../shared/util/io'
-import type { JobRecord } from '../../../../shared/agent/jobs/jobRegistry'
+import type { DraftSummary } from '../../../../../shared/agent/conversation'
+import type { OperationRecord } from '../../../../../shared/agent/observability'
+import type { DeliveryRecord } from '../../../../../shared/agent/observability'
+import type { DigitalAttachment } from '../../../../../shared/util/io'
+import type { JobRecord } from '../../../../../shared/agent/jobs/jobRegistry'
 
 /**
  * 智能体面板用到的 IPC 面（`window.mbApi.agent`）。

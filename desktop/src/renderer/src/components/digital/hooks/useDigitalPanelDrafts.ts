@@ -1,9 +1,9 @@
 import { useRef, useState } from 'react'
 
-import type { DraftSummary } from '../../../../shared/agent/conversation'
-import type { ConversationAction } from '../../../../shared/agent/conversation'
-import { toErrorMessage } from '../../../../shared/util/system'
-import type { ChatApi } from './digitalPanelApi'
+import type { DraftSummary } from '../../../../../shared/agent/conversation'
+import type { ConversationAction } from '../../../../../shared/agent/conversation'
+import { toErrorMessage } from '../../../../../shared/util/system'
+import type { ChatApi } from '../api/digitalPanelApi'
 
 /**
  * 「草稿管理」下拉簇：保存当前对话为草稿 / 从最近草稿恢复（上限 5 条）。
