@@ -210,6 +210,7 @@ export const zh = {
   'agent.jobs.runningInner': '{running} 运行中 / 共 {total}',
   'agent.jobs.totalInner': '共 {total}',
   'agent.jobs.cancel': '取消',
+  'agent.jobs.cancelConfirm': '确认停止',
   'agent.tasks.title': '任务',
 
   // —— 智能体面板：改动卡 / 交付卡 ——
@@ -672,6 +673,7 @@ export const en: Record<MessageKey, string> = {
   'agent.jobs.runningInner': '{running} running / total {total}',
   'agent.jobs.totalInner': 'total {total}',
   'agent.jobs.cancel': 'Cancel',
+  'agent.jobs.cancelConfirm': 'Confirm stop',
   'agent.tasks.title': 'Tasks',
 
   // —— Agent panel: change card / delivery card ——

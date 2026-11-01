@@ -24,7 +24,7 @@ describe('后台任务面板（对齐 dsh ui-jobs）', () => {
     await view.cleanup()
   })
 
-  it('运行中：显示进度条与取消按钮，点击取消回调 jobId', async () => {
+  it('运行中：显示进度条与取消按钮', async () => {
     const onCancel = vi.fn()
     const view = await renderDom(
       <DigitalJobList jobs={[job({ id: 't2:sub_3', label: '整理数据' })]} onCancel={onCancel} />
@@ -32,6 +32,21 @@ describe('后台任务面板（对齐 dsh ui-jobs）', () => {
     expect(view.byTestId('digital-jobs')).toBeTruthy()
     expect(view.byTestId('digital-job-progress')).toBeTruthy()
     expect(view.text()).toContain('整理数据')
+    await view.cleanup()
+  })
+
+  it('两击停止：第一次进入待确认态，第二次才真正取消', async () => {
+    const onCancel = vi.fn()
+    const view = await renderDom(
+      <DigitalJobList jobs={[job({ id: 't2:sub_3', label: '整理数据' })]} onCancel={onCancel} />
+    )
+    const cancel = view.byTestId('digital-job-cancel')
+    // 第一击：进入待确认（armed），但还没真正取消
+    await view.click(cancel)
+    expect(onCancel).not.toHaveBeenCalled()
+    expect(view.byTestId('digital-job-cancel').getAttribute('data-armed')).toBe('true')
+    expect(view.text()).toContain('确认停止')
+    // 第二击：在待确认窗口内，真正取消
     await view.click(view.byTestId('digital-job-cancel'))
     expect(onCancel).toHaveBeenCalledWith('t2:sub_3')
     await view.cleanup()
