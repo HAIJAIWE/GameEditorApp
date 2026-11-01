@@ -47,3 +47,34 @@ export async function withReadOnlyDir<T>(dir: string, fn: () => Promise<T>): Pro
     await restoreWrite(dir)
   }
 }
+
+/**
+ * 在「多目录只读」ACL 下执行 `fn`（对齐 `withReadOnlyDir`，但保护多个目录），
+ * **无论成功失败都恢复**；单个目录加 ACE 失败（不存在/无权限）跳过，不阻断其余。
+ *
+ * 用途：shell 跑命令期间保护游戏库的 data/ceshu/design，使越界的写命令无法破坏库。
+ * 非 Windows 直接执行 `fn`（无 icacls，不做 ACL 硬化）。
+ */
+export async function withReadOnlyDirs<T>(dirs: readonly string[], fn: () => Promise<T>): Promise<T> {
+  if (!isAclSandboxSupported() || dirs.length === 0) return fn()
+  const applied: string[] = []
+  try {
+    for (const dir of dirs) {
+      try {
+        await denyWrite(dir)
+        applied.push(dir)
+      } catch {
+        // 目录不存在 / 无权限：跳过该目录，不阻断
+      }
+    }
+    return await fn()
+  } finally {
+    for (const dir of applied) {
+      try {
+        await restoreWrite(dir)
+      } catch {
+        // 恢复失败不抛出（尽力而为）
+      }
+    }
+  }
+}

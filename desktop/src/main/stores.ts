@@ -191,7 +191,9 @@ export function buildStores(libDir: string): AppStores {
   initWorkspace(libDir)
   const workspacePolicy = process.env.MB_SANDBOX_POLICY === 'read-only' ? 'read-only' : 'workspace-write'
   dispatcher.register(createFileOpsSkill({ root: getWorkspaceRoot, policy: workspacePolicy }))
-  dispatcher.register(createShellSkill({ root: getWorkspaceRoot, policy: workspacePolicy }))
+  dispatcher.register(
+    createShellSkill({ root: getWorkspaceRoot, policy: workspacePolicy, libraryDir: () => libDir })
+  )
   // 用户偏好 / 反馈：随库隔离，构造时即从磁盘加载；偏好注入系统提示词（见 brainService）
   const personalization = createPersonalizationStores(agentDir)
 
