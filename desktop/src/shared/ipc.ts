@@ -379,6 +379,10 @@ export interface IpcContract {
   'agent:jobList': { req: undefined; res: { jobs: JobRecord[] } }
   /** 按跨轮唯一 jobId 取消后台任务 */
   'agent:jobCancel': { req: AgentJobCancelInput; res: { ok: boolean } }
+  /** 代码工作区：读取当前根目录 */
+  'agent:getWorkspace': { req: undefined; res: { root: string } }
+  /** 代码工作区：弹出目录选择并设置（取消则 root 不变，cancelled=true） */
+  'agent:chooseWorkspace': { req: undefined; res: { root: string; cancelled: boolean } }
   'agent:sessionInfo': { req: undefined; res: SessionInfo }
   'agent:sessionRestore': { req: undefined; res: { messages: Array<Record<string, unknown>> } }
   'agent:sessionClear': { req: undefined; res: { cleared: boolean } }

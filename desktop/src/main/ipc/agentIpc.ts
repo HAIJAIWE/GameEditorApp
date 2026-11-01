@@ -1,6 +1,8 @@
 import { readFile, writeFile } from 'node:fs/promises'
+import { BrowserWindow, dialog, type OpenDialogOptions } from 'electron'
 
 import type { IpcHandlerDeps, IpcRegistrar, LlmShared } from '../ipc'
+import { getWorkspaceRoot, setWorkspaceRoot } from '../agent/workspace/workspaceStore'
 import {
   agentApprovalResponseInputSchema,
   agentChatInputSchema,
@@ -123,6 +125,20 @@ export function registerAgentIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
   handle('agent:jobCancel', agentJobCancelInputSchema, (req) => ({
     ok: agentBrain.cancelJob(req.id)
   }))
+  // 代码工作区（对齐 dsh fs-sandbox 的 cwd）：读取 / 弹目录选择并设置
+  handle('agent:getWorkspace', undefined, () => ({ root: getWorkspaceRoot() }))
+  handle('agent:chooseWorkspace', undefined, async () => {
+    const options: OpenDialogOptions = {
+      title: '选择代码工作区',
+      properties: ['openDirectory', 'createDirectory']
+    }
+    const focused = BrowserWindow.getFocusedWindow()
+    const result = focused ? await dialog.showOpenDialog(focused, options) : await dialog.showOpenDialog(options)
+    if (result.canceled || result.filePaths.length === 0) {
+      return { root: getWorkspaceRoot(), cancelled: true }
+    }
+    return { root: setWorkspaceRoot(result.filePaths[0] ?? null), cancelled: false }
+  })
   handle('agent:sessionInfo', undefined, () => agentSessionStore.info())
   handle('agent:sessionRestore', undefined, () => {
     const snapshot = agentSessionStore.tryRestore()

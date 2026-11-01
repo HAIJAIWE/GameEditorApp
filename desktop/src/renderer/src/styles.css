@@ -5961,6 +5961,26 @@ button.ref-row:hover {
   padding-top: 6px;
 }
 
+/* 代码工作区栏（对齐 dsh fs-sandbox cwd） */
+.digital-workspace {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  border-top: 1px solid var(--border);
+  padding-top: 6px;
+  font-size: calc(13px * var(--ui-font-scale) * 12/13);
+}
+
+.digital-workspace-path {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+  font-family: var(--mono-font, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+}
+
 /* 后台任务列表（对齐 dsh ui-jobs 的读法） */
 .digital-jobs {
   display: flex;

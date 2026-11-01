@@ -41,6 +41,10 @@ export interface ChatApi {
   jobList: () => Promise<{ jobs: JobRecord[] }>
   /** 按跨轮唯一 jobId 取消后台任务 */
   jobCancel: (req: { id: string }) => Promise<{ ok: boolean }>
+  /** 代码工作区：读取当前根目录 */
+  getWorkspace: () => Promise<{ root: string }>
+  /** 代码工作区：弹目录选择并设置 */
+  chooseWorkspace: () => Promise<{ root: string; cancelled: boolean }>
   sessionInfo: () => Promise<{ hasSession: boolean; messageCount: number; savedAt: string }>
   sessionRestore: () => Promise<{ messages: Array<{ role?: unknown; content?: unknown }> }>
   sessionClear: () => Promise<{ cleared: boolean }>

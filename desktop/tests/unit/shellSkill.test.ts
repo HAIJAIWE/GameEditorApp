@@ -19,7 +19,7 @@ afterEach(async () => {
 type R = { success: boolean; message: string; error?: string; data?: unknown }
 
 function skill(policy?: 'read-only' | 'workspace-write') {
-  const s = createShellSkill({ root, ...(policy ? { policy } : {}) })
+  const s = createShellSkill({ root: () => root, ...(policy ? { policy } : {}) })
   return (params: Record<string, unknown>): Promise<R> => s.execute(params, {}) as Promise<R>
 }
 

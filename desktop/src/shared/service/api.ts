@@ -34,6 +34,10 @@ export interface MbApi {
     jobList(): Promise<IpcContract['agent:jobList']['res']>
     /** 按跨轮唯一 jobId 取消后台任务 */
     jobCancel(req: IpcContract['agent:jobCancel']['req']): Promise<IpcContract['agent:jobCancel']['res']>
+    /** 代码工作区：读取当前根目录 */
+    getWorkspace(): Promise<IpcContract['agent:getWorkspace']['res']>
+    /** 代码工作区：弹目录选择并设置 */
+    chooseWorkspace(): Promise<IpcContract['agent:chooseWorkspace']['res']>
     sessionInfo(): Promise<IpcContract['agent:sessionInfo']['res']>
     sessionRestore(): Promise<IpcContract['agent:sessionRestore']['res']>
     sessionClear(): Promise<IpcContract['agent:sessionClear']['res']>

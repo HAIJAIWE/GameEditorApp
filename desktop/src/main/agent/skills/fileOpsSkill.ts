@@ -32,8 +32,8 @@ export const FILE_LIST_MAX_ENTRIES = 500
 export type FileOpsPolicy = 'read-only' | 'workspace-write'
 
 export interface FileOpsSkillOptions {
-  /** 工作区根目录（绝对路径） */
-  root: string
+  /** 工作区根目录（动态读取，支持运行时切换） */
+  root: () => string
   /** 沙箱策略（缺省 workspace-write） */
   policy?: FileOpsPolicy
 }
@@ -52,11 +52,11 @@ function fail(error: unknown): SkillResult {
 }
 
 export function createFileOpsSkill(options: FileOpsSkillOptions): SkillProtocol {
-  const root = options.root
+  const rootFn = options.root
   const policy: FileOpsPolicy = options.policy ?? 'workspace-write'
 
   async function readAction(params: Record<string, unknown>): Promise<SkillResult> {
-    const abs = await resolveInsideRoot(root, asString(params.path))
+    const abs = await resolveInsideRoot(rootFn(), asString(params.path))
     const info = await stat(abs)
     if (info.isDirectory()) {
       return { success: false, message: '目标是目录，请用 list 查看目录内容', error: 'EISDIR' }
@@ -74,7 +74,7 @@ export function createFileOpsSkill(options: FileOpsSkillOptions): SkillProtocol 
   }
 
   async function listAction(params: Record<string, unknown>): Promise<SkillResult> {
-    const abs = await resolveInsideRoot(root, asString(params.path) === '' ? '.' : asString(params.path))
+    const abs = await resolveInsideRoot(rootFn(), asString(params.path) === '' ? '.' : asString(params.path))
     const entries = await readdir(abs, { withFileTypes: true })
     const shown = entries.slice(0, FILE_LIST_MAX_ENTRIES)
     const lines = shown.map((entry) => `${entry.isDirectory() ? '[D]' : '[F]'} ${entry.name}`)
@@ -87,7 +87,7 @@ export function createFileOpsSkill(options: FileOpsSkillOptions): SkillProtocol 
   }
 
   async function writeAction(params: Record<string, unknown>): Promise<SkillResult> {
-    const abs = await resolveInsideRoot(root, asString(params.path))
+    const abs = await resolveInsideRoot(rootFn(), asString(params.path))
     const content = asString(params.content)
     if (content.length > FILE_WRITE_MAX_CHARS) {
       return { success: false, message: `写入内容超过上限 ${FILE_WRITE_MAX_CHARS} 字符`, error: 'ETOOBIG' }
@@ -102,7 +102,7 @@ export function createFileOpsSkill(options: FileOpsSkillOptions): SkillProtocol 
   }
 
   async function editAction(params: Record<string, unknown>): Promise<SkillResult> {
-    const abs = await resolveInsideRoot(root, asString(params.path))
+    const abs = await resolveInsideRoot(rootFn(), asString(params.path))
     const oldText = asString(params.old_text)
     const newText = asString(params.new_text)
     if (oldText === '') return { success: false, message: 'edit 需要 old_text', error: 'EBADARG' }
@@ -119,7 +119,7 @@ export function createFileOpsSkill(options: FileOpsSkillOptions): SkillProtocol 
   }
 
   async function deleteAction(params: Record<string, unknown>): Promise<SkillResult> {
-    const abs = await resolveInsideRoot(root, asString(params.path))
+    const abs = await resolveInsideRoot(rootFn(), asString(params.path))
     const info = await stat(abs)
     if (info.isDirectory()) {
       if (params.recursive !== true) {
@@ -133,14 +133,14 @@ export function createFileOpsSkill(options: FileOpsSkillOptions): SkillProtocol 
   }
 
   async function mkdirAction(params: Record<string, unknown>): Promise<SkillResult> {
-    const abs = await resolveInsideRoot(root, asString(params.path))
+    const abs = await resolveInsideRoot(rootFn(), asString(params.path))
     await mkdir(abs, { recursive: true })
     return { success: true, message: `已创建目录 ${params.path}`, data: { path: params.path } }
   }
 
   async function transferAction(params: Record<string, unknown>, move: boolean): Promise<SkillResult> {
-    const from = await resolveInsideRoot(root, asString(params.from))
-    const to = await resolveInsideRoot(root, asString(params.to))
+    const from = await resolveInsideRoot(rootFn(), asString(params.from))
+    const to = await resolveInsideRoot(rootFn(), asString(params.to))
     await mkdir(dirname(to), { recursive: true })
     if (move) await rename(from, to)
     else await copyFile(from, to)

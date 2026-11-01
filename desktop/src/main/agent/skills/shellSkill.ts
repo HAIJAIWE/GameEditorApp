@@ -30,8 +30,8 @@ export const SHELL_MAX_BUFFER = 4 * 1024 * 1024
 export const SHELL_OUTPUT_MAX_CHARS = 200_000
 
 export interface ShellSkillOptions {
-  /** 工作区根目录（绝对路径） */
-  root: string
+  /** 工作区根目录（动态读取，支持运行时切换） */
+  root: () => string
   /** 沙箱策略（缺省 workspace-write） */
   policy?: FileOpsPolicy
 }
@@ -59,7 +59,7 @@ function formatResult(stdout: string, stderr: string, exitCode: number): SkillRe
 }
 
 export function createShellSkill(options: ShellSkillOptions): SkillProtocol {
-  const root = options.root
+  const rootFn = options.root
   const policy: FileOpsPolicy = options.policy ?? 'workspace-write'
 
   async function run(params: Record<string, unknown>): Promise<SkillResult> {
@@ -78,8 +78,8 @@ export function createShellSkill(options: ShellSkillOptions): SkillProtocol {
     // 可选子目录：仍须位于工作区内
     const cwd =
       typeof params.cwd === 'string' && params.cwd.trim() !== ''
-        ? await resolveInsideRoot(root, params.cwd)
-        : root
+        ? await resolveInsideRoot(rootFn(), params.cwd)
+        : rootFn()
 
     try {
       const { stdout, stderr } = await execAsync(command, {
