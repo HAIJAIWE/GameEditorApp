@@ -26,7 +26,7 @@ function echoSkill(): SkillProtocol {
 }
 
 describe('dsh 插件进程内运行（cordis 宿主）', () => {
-  it('第 3 次相同调用收到 dsh repeat-tool-reminder 的提醒', async () => {
+  it('第 3 次相同调用收到 dsh repeat-tool-reminder 的提醒（已本地化为中文）', async () => {
     const dispatcher = new SkillDispatcher()
     dispatcher.register(echoSkill())
     // 独立 sessionId：链键按会话隔离，避免与其它用例串
@@ -38,9 +38,25 @@ describe('dsh 插件进程内运行（cordis 宿主）', () => {
 
     expect(first.message).toBe('echo:x')
     expect(second.message).toBe('echo:x')
-    // dsh 的 GENTLE_REMINDER 原文
-    expect(third.message).toContain('repeating the exact same tool call')
+    // dsh 原文是英文，策略层映射成我们的中文温和提醒
+    expect(third.message).toContain('你正在用完全相同的参数重复调用同一个工具')
+    expect(third.message).not.toContain('repeating the exact same tool call')
     expect(third.success).toBe(true)
+  })
+
+  it('第 5 次（后续阈值）给出中文详细提醒（点名工具 + 次数）', async () => {
+    const dispatcher = new SkillDispatcher()
+    dispatcher.register(echoSkill())
+    const ctx = { sessionId: 'dsh-guard-test-detailed' }
+
+    for (let index = 0; index < 4; index += 1) {
+      await dispatcher.execute('demo.echo', { text: 'y' }, ctx)
+    }
+    const fifth = await dispatcher.execute('demo.echo', { text: 'y' }, ctx)
+
+    expect(fifth.message).toContain('检测到重复工具调用')
+    expect(fifth.message).toContain('工具：demo.echo')
+    expect(fifth.message).toContain('连续调用次数：5')
   })
 
   it('参数变化会重置链（检测的是连续重复，不是累计重复）', async () => {

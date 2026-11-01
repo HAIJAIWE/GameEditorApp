@@ -11,8 +11,29 @@
  * @module agent-core/dsh/dshGuardPolicy
  */
 
+import { GENTLE_REMINDER, detailedReminder } from '@mobai/shared/agent/guard'
 import type { ToolExecutionResult, ToolPolicy } from '@mobai/shared/agent/toolRuntime'
 import type { DshCordisHost } from './cordisHost'
+
+/**
+ * 把 dsh 插件的**英文原文**映射回我们的中文文案。
+ *
+ * dsh 的 `repeat-tool-reminder` 把两条提醒硬编码成英文（没有 i18n 钩子），而本产品是
+ * 中文优先。这里按**已固定版本**的两条已知格式做映射；匹配不到就原样返回（不吞内容）。
+ * 用例直接断言真实插件输出，插件一旦改文案，测试会先红。
+ * @param text - 插件返回的单条提醒
+ */
+export function localizeReminder(text: string): string {
+  // 温和提醒（首个阈值）
+  if (text.includes('You are repeating the exact same tool call')) return GENTLE_REMINDER
+  // 详细提醒（后续阈值）：点名工具 + 连续次数 + 参数
+  if (!text.startsWith('Repeated tool call detected:')) return text
+  const tool = /- tool: (.+)/.exec(text)?.[1]?.trim()
+  const count = Number(/- consecutive_calls: (\d+)/.exec(text)?.[1] ?? '0')
+  const args = /- arguments: (.+)/.exec(text)?.[1]?.trim()
+  if (tool === undefined || count <= 0 || args === undefined) return text
+  return detailedReminder(tool, count, args)
+}
 
 let hostPromise: Promise<DshCordisHost | null> | null = null
 let warned = false
@@ -68,7 +89,7 @@ export function createDshGuardPolicy(): ToolPolicy {
     })
     if (reminders.length === 0) return result
 
-    const text = reminders.join('\n\n')
+    const text = reminders.map(localizeReminder).join('\n\n')
     const value = result.value
     if (value === null || typeof value !== 'object' || Array.isArray(value)) return result
     const record = value as Record<string, unknown>
