@@ -68,7 +68,9 @@ function majorOf(version: string): number | null {
 function isPluginSidebarItem(value: unknown): value is PluginSidebarItem {
   if (value === null || typeof value !== 'object') return false
   const record = value as Record<string, unknown>
-  return typeof record.key === 'string' && typeof record.label === 'string' && typeof record.icon === 'string'
+  // `label` 与 `labelKey` 二选一即可（前者是回退文案，后者是 i18n 键）
+  const hasLabel = typeof record.label === 'string' || typeof record.labelKey === 'string'
+  return typeof record.key === 'string' && hasLabel && typeof record.icon === 'string'
 }
 
 export class PluginHost {

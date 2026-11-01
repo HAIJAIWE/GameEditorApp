@@ -111,6 +111,24 @@ describe('PluginHost slot 集成', () => {
     expect(host.slotSidebarItems().map((item) => item.key)).toEqual(['home', 'data'])
   })
 
+  it('只给 labelKey（不写 label）的侧栏项也能被认领（i18n 回归守卫）', () => {
+    const host = new PluginHost()
+    host.register(
+      manifest('navI18n', [
+        {
+          kind: 'sidebar',
+          id: 'navI18n.sidebar',
+          order: 100,
+          items: [{ key: 'home', labelKey: 'nav.ceshu', icon: 'book-open', command: 'nav.home' }]
+        }
+      ])
+    )
+    // 曾经 `isPluginSidebarItem` 硬要求 `label` 是 string，只给 labelKey 的项会被静默丢弃 → 侧栏变空
+    expect(host.slotSidebarItems().map((item) => item.key)).toEqual(['home'])
+    expect(host.slotSidebarItems()[0]?.labelKey).toBe('nav.ceshu')
+    expect(host.sidebarItems().map((item) => item.key)).toEqual(['home'])
+  })
+
   it('toolView 能力桥接进 tool.call.toolview keyed slot（order 大者胜）', () => {
     const host = new PluginHost()
     host.register(

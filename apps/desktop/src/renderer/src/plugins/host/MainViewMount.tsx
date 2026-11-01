@@ -9,7 +9,8 @@ import {
   MainViewProvider,
   type MainViewContextValue
 } from './mainViewContext'
-import { getReactBinding, renderUiNode, uiOf, type PanelBindingProps } from '@mobai/client-ui'
+import { getReactBinding, renderUiNode, uiOf, useT, type PanelBindingProps } from '@mobai/client-ui'
+import type { MessageKey } from '@mobai/shared/i18n'
 
 /**
  * App 主区页签挂载器（Slice 22）。
@@ -35,8 +36,10 @@ export interface AppMainTab {
 
 interface MergedTab {
   id: string
-  label: string
+  label?: string
+  labelKey?: MessageKey
   title?: string
+  titleKey?: MessageKey
   order: number
   lazy: boolean
   render?: () => ReactNode
@@ -67,7 +70,9 @@ function buildMerged(appTabs: AppMainTab[], pluginViews: PluginMainViewCapabilit
     out.push({
       id: view.id,
       label: view.label,
+      labelKey: view.labelKey,
       title: view.title,
+      titleKey: view.titleKey,
       order: view.order ?? 0,
       lazy: view.lazy ?? false,
       plugin: view
@@ -89,6 +94,7 @@ export function MainViewMount({
   /** 页签条右端的附加动作（如停靠区全屏开关）；不传则无 */
   actions?: ReactNode
 }) {
+  const t = useT()
   const subscribe = useMemo(() => (onChange: () => void) => host.subscribe(onChange), [host])
   // 订阅版本号（稳定数值快照）以在插件增删/禁用后重渲染；列表在下方按最新宿主状态重算。
   // 不能直接拿 `host.mainViews()` 当快照：它每次返回新数组，身份抖动会导致无限重渲染。
@@ -140,18 +146,18 @@ export function MainViewMount({
 
   return (
     <MainViewProvider value={context}>
-      <nav className="middle-tabs" data-testid="middle-tabs" aria-label="中间窗口页签">
+      <nav className="middle-tabs" data-testid="middle-tabs" aria-label={t('layout.tabs.aria')}>
         {merged.map((tab) => (
           <button
             key={tab.id}
             type="button"
             className={`middle-tab${effectiveActive === tab.id ? ' active' : ''}`}
-            title={tab.title}
+            title={tab.titleKey !== undefined ? t(tab.titleKey) : tab.title}
             aria-current={effectiveActive === tab.id}
             data-testid={`middle-tab-${tab.id}`}
             onClick={() => switchTo(tab.id)}
           >
-            {tab.label}
+            {tab.labelKey !== undefined ? t(tab.labelKey) : tab.label ?? ''}
           </button>
         ))}
         {actions !== undefined && <div className="middle-tabs-actions">{actions}</div>}

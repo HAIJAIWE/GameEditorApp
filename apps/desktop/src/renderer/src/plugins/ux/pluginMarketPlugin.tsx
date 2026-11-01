@@ -43,7 +43,7 @@ export function definePluginMarketPlugin(
         kind: 'sidebar',
         id: 'pluginMarket.sidebar',
         order: 900,
-        items: [{ key: 'plugin-market', label: '插件市场', icon: 'sparkles', command: 'pluginMarket.open' }]
+        items: [{ key: 'plugin-market', labelKey: 'nav.pluginMarket', icon: 'sparkles', command: 'pluginMarket.open' }]
       },
       {
         kind: 'panel',

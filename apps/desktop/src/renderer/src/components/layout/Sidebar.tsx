@@ -116,6 +116,7 @@ export default function Sidebar({
     // 图标优先当**线性图标名**解析（dsh 的语言：统一 16px 单色）；
     // 解析不到才回退成原字符串（插件可能仍传 emoji，不让它瞎掉）。
     const iconName = resolveIconName(item.icon)
+    const label = item.labelKey !== undefined ? t(item.labelKey) : item.label ?? ''
     return (
       <button
         key={item.key}
@@ -123,14 +124,14 @@ export default function Sidebar({
         className={`sidebar-item${isActive ? ' active' : ''}`}
         data-testid={testid}
         // 收起时只剩图标，标题（悬浮提示）就是唯一说明
-        title={item.label}
+        title={label}
         aria-current={isActive ? 'page' : undefined}
         onClick={() => onActivate(item)}
       >
         <span className="sidebar-icon" aria-hidden>
           {iconName !== null ? <LucideIcon name={iconName} size={16} /> : item.icon}
         </span>
-        <span className="sidebar-label">{item.label}</span>
+        <span className="sidebar-label">{label}</span>
       </button>
     )
   }

@@ -133,10 +133,14 @@ export interface PluginViewCapability {
 export interface PluginMainViewCapability {
   kind: 'mainView'
   id: string
-  /** 页签短标签（顶部空间有限） */
-  label: string
-  /** 悬浮说明 */
+  /** 页签短标签回退文案（未提供 `labelKey` 时用） */
+  label?: string
+  /** 页签短标签键（优先于 `label`） */
+  labelKey?: MessageKey
+  /** 悬浮说明回退文案 */
   title?: string
+  /** 悬浮说明键（优先于 `title`） */
+  titleKey?: MessageKey
   /** 页签顺序，小在前 */
   order?: number
   /** 首访才挂载（重视图，如代码/浏览器）；缺省 false = 常驻挂载 */
@@ -163,7 +167,10 @@ export interface PluginMainViewCapability {
 export interface PluginSidebarItem {
   /** 稳定 id：用作 E2E 锚点 `sidebar-<key>` 与「当前浮层高亮」判定 */
   key: string
-  label: string
+  /** 回退文案（未提供 `labelKey` 时用；纯文本，不翻译） */
+  label?: string
+  /** 文案键（优先于 `label`）：渲染层用 `t(labelKey)` 翻译 */
+  labelKey?: MessageKey
   icon: string
   /** 点击触发的 command 能力 id（如 `nav.home`）。与 `panel` 二选一 */
   command?: string

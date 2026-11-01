@@ -37,7 +37,7 @@ export function defineSessionHistoryPlugin(_host: PluginHost): PluginManifest {
         kind: 'sidebar',
         id: 'sessionHistory.sidebar',
         order: 910,
-        items: [{ key: 'session-history', label: '会话历史', icon: 'clock', command: 'sessionHistory.open' }]
+        items: [{ key: 'session-history', labelKey: 'nav.sessionHistory', icon: 'clock', command: 'sessionHistory.open' }]
       },
       {
         kind: 'panel',

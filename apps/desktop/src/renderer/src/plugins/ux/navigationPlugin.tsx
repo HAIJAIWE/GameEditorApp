@@ -19,14 +19,14 @@ import { notify, setHomeVisible } from '../host'
 export function defineNavigationPlugin(host: PluginHost): PluginManifest {
   /** 侧栏条目：key 固定（E2E 锚点 `sidebar-<key>`），结构全部来自插件 */
   const SIDEBAR_ITEMS: PluginSidebarItem[] = [
-    { key: 'home', label: '策划书', icon: 'book-open', command: 'nav.home' },
-    { key: 'plugins', label: '插件中心', icon: 'package', panel: 'plugins.panel' },
-    { key: 'relationGraph', label: '关系图', icon: 'link', panel: 'relationGraph.panel' },
-    { key: 'advancedSearch', label: '高级搜索', icon: 'search', panel: 'advancedSearch.panel' },
-    { key: 'stats', label: '统计', icon: 'target', panel: 'statistics.panel' },
-    { key: 'settings', label: '设置', icon: 'settings', panel: 'settings.panel' },
-    { key: 'about', label: '关于', icon: 'info', panel: 'about.panel' },
-    { key: 'agent', label: '智能体', icon: 'bot', command: 'nav.agent' }
+    { key: 'home', labelKey: 'nav.ceshu', icon: 'book-open', command: 'nav.home' },
+    { key: 'plugins', labelKey: 'nav.plugins', icon: 'package', panel: 'plugins.panel' },
+    { key: 'relationGraph', labelKey: 'nav.relationGraph', icon: 'link', panel: 'relationGraph.panel' },
+    { key: 'advancedSearch', labelKey: 'nav.advancedSearch', icon: 'search', panel: 'advancedSearch.panel' },
+    { key: 'stats', labelKey: 'nav.stats', icon: 'target', panel: 'statistics.panel' },
+    { key: 'settings', labelKey: 'nav.settings', icon: 'settings', panel: 'settings.panel' },
+    { key: 'about', labelKey: 'nav.about', icon: 'info', panel: 'about.panel' },
+    { key: 'agent', labelKey: 'agent.title', icon: 'bot', command: 'nav.agent' }
   ]
 
   return {

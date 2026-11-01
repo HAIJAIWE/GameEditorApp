@@ -97,8 +97,8 @@ export function defineCoreViewsPlugin(): PluginManifest {
       {
         kind: 'mainView',
         id: 'editor.mainView',
-        label: '策划书',
-        title: '策划书编辑器（游戏设计文档：24 章 / AI 生成 / 校验评分）',
+        labelKey: 'view.ceshu',
+        titleKey: 'view.ceshu.title',
         order: 0,
         lazy: false,
         ui: { type: 'text', text: '策划书' }
@@ -106,8 +106,8 @@ export function defineCoreViewsPlugin(): PluginManifest {
       {
         kind: 'mainView',
         id: 'data.mainView',
-        label: '数据编辑',
-        title: '数据编辑器（角色/怪物/技能等纯数据，直连 SQLite）',
+        labelKey: 'view.data',
+        titleKey: 'view.data.title',
         order: 10,
         lazy: true,
         ui: { type: 'text', text: '数据编辑' }
@@ -115,8 +115,8 @@ export function defineCoreViewsPlugin(): PluginManifest {
       {
         kind: 'mainView',
         id: 'techDoc.mainView',
-        label: '技术设计',
-        title: '技术设计文档（怎么实现：架构 / 模块 / 数据模型 / 接口 / 时序）',
+        labelKey: 'view.techDoc',
+        titleKey: 'view.techDoc.title',
         order: 20,
         lazy: true,
         ui: { type: 'text', text: '技术设计' }
@@ -124,8 +124,8 @@ export function defineCoreViewsPlugin(): PluginManifest {
       {
         kind: 'mainView',
         id: 'code.mainView',
-        label: '代码编辑',
-        title: '代码查看（只读）',
+        labelKey: 'view.code',
+        titleKey: 'view.code.title',
         order: 30,
         lazy: true,
         ui: { type: 'text', text: '代码编辑' }
@@ -133,8 +133,8 @@ export function defineCoreViewsPlugin(): PluginManifest {
       {
         kind: 'mainView',
         id: 'browser.mainView',
-        label: '浏览器',
-        title: '内置浏览器（预览 Demo / 查资料）',
+        labelKey: 'view.browser',
+        titleKey: 'view.browser.title',
         order: 40,
         lazy: true,
         ui: { type: 'text', text: '浏览器' }

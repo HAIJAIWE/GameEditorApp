@@ -35,7 +35,7 @@ describe('会话页签', () => {
     expect(manifest.capabilities[0]).toMatchObject({
       kind: 'mainView',
       id: 'session.mainView',
-      label: '会话',
+      labelKey: 'view.session',
       order: 50,
       lazy: true
     })

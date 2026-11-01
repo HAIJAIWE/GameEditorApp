@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactElement } from 'react'
 
+import { useT } from '@mobai/client-ui'
 import {
   buildPaletteItems,
   filterPaletteItems,
@@ -209,6 +210,7 @@ export function CommandPalette({ host }: { host: PluginHost }): ReactElement | n
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
+  const t = useT()
 
   // 能力列表每次调用都是新数组，不能直接当 uSES 快照；订阅宿主版本号，render 里重算
   const subscribeHost = useMemo(() => (onChange: () => void) => host.subscribe(onChange), [host])
@@ -239,7 +241,10 @@ export function CommandPalette({ host }: { host: PluginHost }): ReactElement | n
       mainViews: host
         .mainViews()
         .filter((view) => view.host !== 'rightbar')
-        .map((view) => ({ id: view.id, label: view.label }))
+        .map((view) => ({
+          id: view.id,
+          label: view.labelKey !== undefined ? t(view.labelKey) : view.label ?? ''
+        }))
     })
     return [
       ...flattened.map((item) => ({
@@ -258,7 +263,7 @@ export function CommandPalette({ host }: { host: PluginHost }): ReactElement | n
         }
       }
     ]
-  }, [host, version, conversationStore])
+  }, [host, version, conversationStore, t])
 
   const filtered = useMemo(() => filterPaletteItems(items, query), [items, query])
   // 条目数可能在打开期间变化（插件被启用/禁用），高亮索引要夹回有效范围

@@ -39,8 +39,8 @@ export function defineSessionPlugin(host: PluginHost): PluginManifest {
       {
         kind: 'mainView',
         id: 'session.mainView',
-        label: '会话',
-        title: '会话：主对话摘要 + 子智能体 + 轨迹',
+        labelKey: 'view.session',
+        titleKey: 'view.session.title',
         order: 50,
         lazy: true,
         ui: { type: 'text', text: '会话' }

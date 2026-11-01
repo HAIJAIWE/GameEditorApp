@@ -38,7 +38,7 @@ export function defineAutoReviewPlugin(_host: PluginHost): PluginManifest {
         kind: 'sidebar',
         id: 'autoReview.sidebar',
         order: 920,
-        items: [{ key: 'auto-review', label: '执行预审', icon: 'shield', command: 'autoReview.open' }]
+        items: [{ key: 'auto-review', labelKey: 'nav.autoReview', icon: 'shield', command: 'autoReview.open' }]
       },
       {
         kind: 'panel',

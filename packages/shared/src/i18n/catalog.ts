@@ -307,6 +307,34 @@ export const zh = {
   'layout.dock.exitFullscreen': '退出全屏',
   'layout.dock.fullscreen': '停靠区全屏',
   'layout.dock.exitFullscreenEsc': '退出全屏（Esc）',
+  'layout.tabs.aria': '中间窗口页签',
+
+  // —— 侧栏导航项 ——
+  'nav.ceshu': '策划书',
+  'nav.plugins': '插件中心',
+  'nav.relationGraph': '关系图',
+  'nav.advancedSearch': '高级搜索',
+  'nav.stats': '统计',
+  'nav.settings': '设置',
+  'nav.about': '关于',
+  'nav.pluginMarket': '插件市场',
+  'nav.recentChanges': '最近改动',
+  'nav.sessionHistory': '会话历史',
+  'nav.autoReview': '执行预审',
+
+  // —— 主区页签 ——
+  'view.ceshu': '策划书',
+  'view.data': '数据编辑',
+  'view.techDoc': '技术设计',
+  'view.code': '代码编辑',
+  'view.browser': '浏览器',
+  'view.session': '会话',
+  'view.ceshu.title': '策划书编辑器（游戏设计文档：24 章 / AI 生成 / 校验评分）',
+  'view.data.title': '数据编辑器（角色/怪物/技能等纯数据，直连 SQLite）',
+  'view.techDoc.title': '技术设计文档（怎么实现：架构 / 模块 / 数据模型 / 接口 / 时序）',
+  'view.code.title': '代码查看（只读）',
+  'view.browser.title': '内置浏览器（预览 Demo / 查资料）',
+  'view.session.title': '会话：主对话摘要 + 子智能体 + 轨迹',
 
   // —— 菜单：顶层 ——
   'menu.file': '文件',
@@ -738,6 +766,34 @@ export const en: Record<MessageKey, string> = {
   'layout.dock.exitFullscreen': 'Exit fullscreen',
   'layout.dock.fullscreen': 'Fullscreen dock',
   'layout.dock.exitFullscreenEsc': 'Exit fullscreen (Esc)',
+  'layout.tabs.aria': 'Workspace tabs',
+
+  // —— Sidebar nav items ——
+  'nav.ceshu': 'Design docs',
+  'nav.plugins': 'Plugins',
+  'nav.relationGraph': 'Relation graph',
+  'nav.advancedSearch': 'Advanced search',
+  'nav.stats': 'Statistics',
+  'nav.settings': 'Settings',
+  'nav.about': 'About',
+  'nav.pluginMarket': 'Plugin market',
+  'nav.recentChanges': 'Recent changes',
+  'nav.sessionHistory': 'Session history',
+  'nav.autoReview': 'Pre-execution review',
+
+  // —— Main-view tabs ——
+  'view.ceshu': 'Design docs',
+  'view.data': 'Data editor',
+  'view.techDoc': 'Tech design',
+  'view.code': 'Code editor',
+  'view.browser': 'Browser',
+  'view.session': 'Session',
+  'view.ceshu.title': 'Design-doc editor (game design doc: 24 chapters / AI generation / validation score)',
+  'view.data.title': 'Data editor (characters/monsters/skills and other pure data, straight to SQLite)',
+  'view.techDoc.title': 'Tech design doc (how to build it: architecture / modules / data model / APIs / sequences)',
+  'view.code.title': 'Code viewer (read-only)',
+  'view.browser.title': 'Built-in browser (preview a demo / look things up)',
+  'view.session.title': 'Session: main chat summary + sub-agents + trajectory',
 
   // —— Menu: top-level ——
   'menu.file': 'File',
