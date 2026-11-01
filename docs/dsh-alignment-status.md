@@ -2,8 +2,9 @@
 
 > **口径**：本表对齐的是 dsh（`D:/GameEditorApp/deepseek-harness-master`）的**能力**，不是 vendoring 它的代码。
 > 主线仍是 B 路线：读 dsh 源码 → 抽设计 → 用 React/TS 重写。
-> **2026-11-02 修订**：解除"零 dsh 依赖"——允许以 npm 依赖在其原生 cordis 运行时里**进程内**跑
-> dsh 插件（首个：`guard/repeat-tool-reminder`，见 `packages/agent-core/src/dsh/`）。
+> **2026-11-02 修订（二次）**：用户拍板"不搬 dsh 插件" → 已**退役** `packages/agent-core/src/dsh/`（cordis 适配器）；
+> `repeat-tool-reminder` 改为**原生化**跑在我们的 `toolRuntime`（`createRepeatToolReminderGuard` 挂进 `ToolExecutionPipeline.usePostExecGuard`），
+> 不再依赖 cordis 运行时。agent-core 第三方依赖清单同步移除 `@deepseek-ai/cordis` 与 `@deepseek-ai/dsh-repeat-tool-reminder`。
 > 维护约定：新增/调整一个 dsh 能力时，**同步更新本表**（含 commit 与测试）。
 
 ## 结论
@@ -50,8 +51,9 @@ dsh 的 **52 个包组**里，与「agent 能力面（后端）」相关且**可
 | `session-query` | `system.session_search`（FTS5，search/read/list） | `33f2b95` 等 |
 | `subagent` | `system.spawn_subagent` + 多 provider | 早期 Slice 31 |
 | `skill` | `SkillDispatcher` / `SkillProtocol` | 早期 |
-| `guard` | repeat-guard / 权限判定 | 早期 |
+| `guard` | 原生 `ToolPostExecGuard`（`createRepeatToolReminderGuard`，按 sessionId 隔离、只提醒不否决）+ 权限判定 | 本轮（原生 post-exec 守卫） |
 | `interaction` | `ask_user` + 审批 broker | 早期 |
+| `ui-secret-mask` | `maskSecrets()`（`packages/shared/src/util/security/secretMask.ts`）+ DigitalPanel 发送前脱敏 + `t('agent.secretMasked')` 提示；密钥不进 LLM 上下文 | 本轮 |
 | `deliverables` | 交付日志 + 内联交付卡 | 早期 |
 | `feedback` | 评分 → 偏好库 | 早期 |
 | `preset` | `AGENT_PRESETS` | 早期 |
@@ -89,7 +91,7 @@ dsh 的 **52 个包组**里，与「agent 能力面（后端）」相关且**可
 
 ```bash
 # 在仓库根
-npm run test        # 单测（基线：3746 通过 / 6 跳过）
+npm run test        # 单测（基线：3833 通过 / 6 跳过）
 npm run typecheck   # tsc ×3
 npm run lint        # eslint（0 警告，覆盖 app + shared + agent-core + client-ui）
 env -u NODE_OPTIONS npm run build

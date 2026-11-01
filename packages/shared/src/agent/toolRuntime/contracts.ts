@@ -86,6 +86,11 @@ export interface ToolExecutionSuccess {
   /** canonical 值（已通过 `output.schema`） */
   value: JsonValue
   meta?: JsonValue
+  /**
+   * 执行后守卫产出的**建议性上下文**（如「你正在重复调用同一工具」提醒）。
+   * 与 dsh `tools/post-execute` 瀑布的 `additionalContexts` 同义：只提示、绝不改写或否决结果。
+   */
+  advisoryContexts?: string[]
 }
 
 /** 失败结果 */
@@ -94,6 +99,8 @@ export interface ToolExecutionFailure {
   content: ContentBlock[]
   error: ToolErrorInfo
   value?: undefined
+  /** 同 `ToolExecutionSuccess.advisoryContexts`：失败结果一般不应附加提醒（见 `ToolPostExecGuard` 约定） */
+  advisoryContexts?: string[]
 }
 
 export type ToolExecutionResult = ToolExecutionSuccess | ToolExecutionFailure
@@ -103,6 +110,20 @@ export type PreToolDecision = { kind: 'allow' } | { kind: 'deny'; reason: string
 
 /** 执行后的决定：保留或替换结果 */
 export type PostToolDecision = { kind: 'keep' } | { kind: 'replace'; result: ToolExecutionResult }
+
+/**
+ * 执行后守卫（对齐 dsh `tools/post-execute` 瀑布的插件）。
+ *
+ * 与 dsh 同源的硬约束：**只读取、绝不改写**执行结果，也**不否决**调用——
+ * 它只能产出「建议性上下文」（`advisoryContexts`），由循环决定如何呈现给模型
+ * （通常作为一条 user 消息紧跟在工具结果之后）。失败结果不应返回提醒（模型该看的是错误本身）。
+ */
+export interface ToolPostExecGuard {
+  /** 守卫唯一 id（用于去重 / 调试） */
+  readonly id: string
+  /** 评估一次执行，返回 0..n 条建议性提醒文本 */
+  evaluate(exec: ToolExecution, result: ToolExecutionResult): string[] | Promise<string[]>
+}
 
 /** 并发调度模式：**只有精确声明安全才是 parallel**（fail-closed） */
 export type ToolExecutionMode = { kind: 'exclusive' } | { kind: 'parallel' }

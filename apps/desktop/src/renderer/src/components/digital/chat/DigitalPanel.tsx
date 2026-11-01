@@ -64,6 +64,8 @@ import {
   type ConversationAction
 } from '@mobai/shared/agent/conversation'
 import { toErrorMessage } from '@mobai/shared/util/system'
+import { maskSecrets } from '@mobai/shared/util/security/secretMask'
+import { showToast } from '@mobai/shared/util/ui'
 import { AGENT_PRESETS, DEFAULT_PRESET_ID, presetLabel } from '@mobai/shared/agent/config'
 import { LLM_PROVIDER_PRESETS } from '@mobai/shared/config/llm'
 
@@ -345,6 +347,10 @@ export default function DigitalPanel({
     (raw: string): void => {
       const text = raw.trim()
       if (text === '' || running) return
+      // 凭据遮挡（对齐 dsh `ui-secret-mask`）：发送前脱敏，密钥不进 LLM 上下文；
+      // 脱敏后的文本既发给模型、也显示在用户气泡里（用户能看到密钥已被遮挡）。
+      const { text: safeText, count } = maskSecrets(text)
+      if (count > 0) showToast(t('agent.secretMasked', { count }), { kind: 'default' })
       // 新一轮开始：解除上一轮可能残留的「停止确认态」，避免新按钮一出现就是红色警告
       disarmStop()
       setLocalError(null)
@@ -353,14 +359,14 @@ export default function DigitalPanel({
       beginTurn()
       // 附件随本轮一起走：先记进用户消息（气泡上显示），再发给主进程注入上下文；发完清空
       const sentAttachments = attachments.length > 0 ? attachments : undefined
-      dispatch({ kind: 'submit', text, ...(sentAttachments !== undefined ? { attachments: sentAttachments } : {}) })
+      dispatch({ kind: 'submit', text: safeText, ...(sentAttachments !== undefined ? { attachments: sentAttachments } : {}) })
       clearAttachments()
       // 本轮 runId：取消时据此精确定位（主进程也按窗口兜底，双保险）
       const runId = `run_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
       activeRunId.current = runId
       void api
         .chat({
-          input: text,
+          input: safeText,
           runId,
           preset,
           goal,
@@ -375,6 +381,7 @@ export default function DigitalPanel({
     },
     [
       running,
+      t,
       api,
       preset,
       goal,

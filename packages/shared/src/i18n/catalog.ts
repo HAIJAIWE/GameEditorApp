@@ -289,6 +289,9 @@ export const zh = {
   // —— 智能体面板：正文文件链接 ——
   'agent.chat.openInCode': '在代码面板打开 {path}',
 
+  // —— 智能体面板：凭据遮挡提示 ——
+  'agent.secretMasked': '已遮挡 {count} 处密钥',
+
   // —— 布局：菜单栏 / 侧栏 / 停靠栏 ——
   'app.brand': '墨白',
   'layout.currentLibrary': '当前库',
@@ -747,6 +750,8 @@ export const en: Record<MessageKey, string> = {
 
   // —— Agent panel: chat file link ——
   'agent.chat.openInCode': 'Open {path} in the code panel',
+
+  'agent.secretMasked': 'Masked {count} secret(s)',
 
   // —— Layout: menubar / sidebar / dock ——
   'app.brand': 'Mobai',

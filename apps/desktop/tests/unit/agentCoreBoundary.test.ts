@@ -59,9 +59,8 @@ describe('agent-core 包边界：不得反向依赖 app', () => {
    */
   it('第三方依赖面是显式清单（新增需有意为之）', () => {
     expect(scan.external).toEqual([
-      // dsh 插件运行时：cordis 宿主 + repeat-tool-reminder（2026-11-02 放开"零 dsh 依赖"后新增）
-      '@deepseek-ai/cordis',
-      '@deepseek-ai/dsh-repeat-tool-reminder',
+      // 注：2026-11 退役 cordis 适配器后，@deepseek-ai/cordis 与 @deepseek-ai/dsh-repeat-tool-reminder
+      // 已不再被 agent-core 引用（重复调用提醒改为跑在我们的原生 toolRuntime 守卫上），故从清单移除。
       'better-sqlite3',
       'electron',
       'exceljs',

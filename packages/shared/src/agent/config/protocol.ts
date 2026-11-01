@@ -190,6 +190,11 @@ export interface SkillResult {
   message: string
   data?: unknown
   error?: string
+  /**
+   * 执行后守卫产出的**建议性上下文**（如「你正在重复调用同一工具」提醒）。
+   * 由循环决定如何呈现（通常作为紧跟工具结果之后的 user 消息）。只提示、不改写结果。
+   */
+  advisoryContexts?: string[]
   /** 图像结果（data URL，如 `data:image/png;base64,...`），回灌 vision 链路；传输层按模型能力决定是否下发 */
   images?: string[]
   /** 需要与用户交互（确认/提问）；由 Brain 循环暂停并等待回答 */

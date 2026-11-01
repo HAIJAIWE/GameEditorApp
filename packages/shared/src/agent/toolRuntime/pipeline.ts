@@ -20,6 +20,7 @@ import {
   type ToolExecutionFailure,
   type ToolExecutionMode,
   type ToolExecutionResult,
+  type ToolPostExecGuard,
   type ToolRunContext
 } from './contracts'
 import { validateJsonSchemaValue } from './jsonSchema'
@@ -66,6 +67,8 @@ function abortedResult(): ToolExecutionFailure {
 /** 共享调用流水线 */
 export class ToolExecutionPipeline {
   private readonly policies: ToolPolicy[] = []
+  /** 执行后守卫（对齐 dsh `tools/post-execute` 瀑布）；只收集建议性上下文，绝不改写/否决结果 */
+  private readonly postExecGuards: ToolPostExecGuard[] = []
 
   constructor(private readonly tools: ToolsService) {}
 
@@ -79,6 +82,19 @@ export class ToolExecutionPipeline {
     return () => {
       const index = this.policies.indexOf(policy)
       if (index >= 0) this.policies.splice(index, 1)
+    }
+  }
+
+  /**
+   * 挂一个执行后守卫（如重复调用提醒）。
+   * @param guard - 守卫（接收已执行结果与执行身份，返回建议性上下文）
+   * @returns 卸载函数
+   */
+  usePostExecGuard(guard: ToolPostExecGuard): () => void {
+    this.postExecGuards.push(guard)
+    return () => {
+      const index = this.postExecGuards.indexOf(guard)
+      if (index >= 0) this.postExecGuards.splice(index, 1)
     }
   }
 
@@ -148,6 +164,25 @@ export class ToolExecutionPipeline {
       } catch {
         // finalizer 契约要求不抛；真抛了也绝不能影响结果
       }
+    }
+
+    // post-execute 守卫（对齐 dsh `tools/post-execute` 瀑布）：只收集建议性上下文，绝不改写结果。
+    // 任一守卫抛错都不影响主结果——守卫是辅助提示，不是执行链路的一环。
+    if (this.postExecGuards.length > 0) {
+      const advisory: string[] = []
+      for (const guard of this.postExecGuards) {
+        try {
+          const contexts = await guard.evaluate(exec, result)
+          if (Array.isArray(contexts)) {
+            for (const context of contexts) {
+              if (typeof context === 'string' && context.length > 0) advisory.push(context)
+            }
+          }
+        } catch {
+          // 守卫失败绝不能影响主结果
+        }
+      }
+      if (advisory.length > 0) result = { ...result, advisoryContexts: advisory }
     }
     return result
   }
