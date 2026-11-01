@@ -83,6 +83,7 @@ import { createLspServerResolver } from './agent/lsp/lspConfig'
 import { createTechDocSkill } from './agent/skills/techDocSkill'
 import { createWebSkill } from './agent/skills/webSkill'
 import { createDocumentSkill } from './agent/skills/documentSkill'
+import { createTerminalSkill } from './agent/skills/terminalSkill'
 import { createCliSubAgentProvider } from './agent/subagent/subagentCli'
 import { createRemoteSubAgentProvider } from './agent/subagent/subagentRemote'
 import { createAcpSubAgentProvider } from './agent/subagent/subagentAcp'
@@ -207,6 +208,8 @@ export function buildStores(libDir: string): AppStores {
   dispatcher.register(createWebSkill())
   // 文档解析（对齐 dsh document）：docx/pptx/xlsx/文本 → 纯文本（工作区内）
   dispatcher.register(createDocumentSkill({ root: getWorkspaceRoot }))
+  // 持久终端（对齐 dsh terminal）：start/send/read/stop 的常驻 shell 会话
+  dispatcher.register(createTerminalSkill({ root: getWorkspaceRoot }))
   // 用户偏好 / 反馈：随库隔离，构造时即从磁盘加载；偏好注入系统提示词（见 brainService）
   const personalization = createPersonalizationStores(agentDir)
 
