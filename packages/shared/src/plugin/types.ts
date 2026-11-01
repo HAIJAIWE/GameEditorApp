@@ -36,7 +36,10 @@ export function isUiNode(value: unknown): value is UiNode {
 export interface PluginCommandCapability {
   kind: 'command'
   id: string
+  /** 回退文案（未提供 `labelKey` 的插件用它；纯文本，不翻译） */
   label: string
+  /** 文案键（优先于 `label`）：渲染层用 `t(labelKey)` 翻译 */
+  labelKey?: MessageKey
   run: () => void | Promise<void>
 }
 
@@ -44,7 +47,10 @@ export interface PluginCommandCapability {
 export interface PluginPanelCapability {
   kind: 'panel'
   id: string
+  /** 浮层标题回退文案（未提供 `titleKey` 时用） */
   title: string
+  /** 浮层标题键（优先于 `title`）：渲染层用 `t(titleKey)` 翻译 */
+  titleKey?: MessageKey
   ui: UiNode | (() => UiNode)
 }
 
@@ -112,7 +118,10 @@ export interface PluginMenuCapability {
 export interface PluginViewCapability {
   kind: 'view'
   id: string
+  /** 回退文案（未提供 `labelKey` 时用） */
   label: string
+  /** 文案键（优先于 `label`）：渲染层用 `t(labelKey)` 翻译 */
+  labelKey?: MessageKey
   /** 挂载点名称（如 `'ceshu.overlay'`）；省略 = 未指定挂载点，宿主不渲染 */
   mount?: string
   /** 同一挂载点内的排序，小在前 */
@@ -293,8 +302,12 @@ export type PluginCapabilityKind = PluginCapability['kind']
 export interface PluginManifestMeta {
   /** 清单展示短名；省略回退到 `name` */
   label?: string
+  /** 展示短名键（优先于 `label`）：渲染层用 `t(labelKey)` 翻译 */
+  labelKey?: MessageKey
   /** 清单展示描述；省略回退到 `description` */
   description?: string
+  /** 展示描述键（优先于 `description`） */
+  descriptionKey?: MessageKey
   /** 图标标识（emoji 或图标名）；宿主自行解释，缺失则不画图标 */
   icon?: string
 }

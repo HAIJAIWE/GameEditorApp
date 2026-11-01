@@ -20,20 +20,28 @@ export function defineMcpConfigPlugin(host: PluginHost): PluginManifest {
     id: 'mcp-config',
     name: 'mcp-config',
     version: '0.1.0',
-    description: 'MCP 配置面板（读写 userData/mcp.json，保存后重连）',
-    meta: { label: 'MCP 配置', icon: '🔌', description: '配置外部 MCP 服务器（stdio / http）' },
+    description: 'MCP config panel (reads/writes userData/mcp.json, reconnects on save)',
+    meta: {
+      label: 'MCP config',
+      labelKey: 'plugin.mcp.label',
+      icon: '🔌',
+      description: 'Configure external MCP servers (stdio / http)',
+      descriptionKey: 'plugin.mcp.desc'
+    },
     capabilities: [
       {
         kind: 'command',
         id: 'mcpConfig.open',
-        label: 'MCP 配置',
+        label: 'MCP config',
+        labelKey: 'plugin.mcp.label',
         run: () => host.openPanel('mcpConfig.panel')
       },
       {
         kind: 'panel',
         id: 'mcpConfig.panel',
-        title: 'MCP 配置',
-        ui: { type: 'text', text: '编辑 userData/mcp.json 并保存重连' }
+        title: 'MCP config',
+        titleKey: 'plugin.mcp.label',
+        ui: { type: 'text', text: 'Edit userData/mcp.json and reconnect on save' }
       }
     ]
   }

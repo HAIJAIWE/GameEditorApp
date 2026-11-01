@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type MouseEvent as ReactMouseEvent } from 'react'
 
+import { useT } from '@mobai/client-ui'
+
 import type { CeshuSummary } from '@mobai/shared/ceshu/reference'
 import { loadGameStyle, normalizeGameStyleId, saveGameStyle } from '@mobai/shared/config/game'
 import type { AppInfo, DataTypeDef } from '@mobai/shared/types'
@@ -60,6 +62,7 @@ const CLEARS_PARAMS_ON_OPEN = new Set(['typeEditor.panel', 'quickCreate.panel', 
  * - 底部状态栏（版本 / 类型数 / 数据库路径 / 主题切换）常驻。
  */
 export default function App() {
+  const t = useT()
   const [info, setInfo] = useState<AppInfo | null>(null)
   const [types, setTypes] = useState<DataTypeDef[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -667,7 +670,13 @@ export default function App() {
    * 浮层头部标题：由 `panel` 能力自带（插件声明 `title`），App 不再维护 23 项标题表。
    * 插件被禁用时能力列表里查不到，回退到 id 本身（比空白可读）。
    */
-  const panelTitle = pluginHost.panels().find((capability) => capability.id === panelId)?.title ?? panelId
+  const panelCapability = pluginHost.panels().find((capability) => capability.id === panelId)
+  const panelTitle =
+    panelCapability === undefined
+      ? (panelId ?? '')
+      : panelCapability.titleKey !== undefined
+        ? t(panelCapability.titleKey)
+        : panelCapability.title
 
   return (
     <div className="app">

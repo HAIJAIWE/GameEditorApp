@@ -1,5 +1,6 @@
 import { useEffect, useState, type ComponentType } from 'react'
 
+import { useT } from '@mobai/client-ui'
 import type { PluginHost } from '@mobai/shared/plugin/host'
 import type { PluginServiceCapability } from '@mobai/shared/plugin/types'
 import { getReactBinding, renderUiNode, uiOf, type PanelBindingProps } from '../../plugins/host'
@@ -40,6 +41,7 @@ function statusLabel(status: 'enabled' | 'disabled' | 'error' | 'loading'): stri
  * 本面板不持有插件逻辑——所有行为委托给传入的 `host`，换宿主实例或测试用空 host 也能直接渲染。
  */
 export default function PluginsPanel({ host, onClose }: { host: PluginHost; onClose: () => void }) {
+  const t = useT()
   const [, force] = useState(0)
   const [serviceResults, setServiceResults] = useState<Record<string, string>>({})
 
@@ -60,8 +62,12 @@ export default function PluginsPanel({ host, onClose }: { host: PluginHost; onCl
       <ul className="plugins-list">
         {host.list().map((plugin) => {
           const meta = plugin.manifest.meta
-          const label = meta?.label ?? plugin.manifest.name
-          const desc = meta?.description ?? plugin.manifest.description
+          const label =
+            meta?.labelKey !== undefined ? t(meta.labelKey) : (meta?.label ?? plugin.manifest.name)
+          const desc =
+            meta?.descriptionKey !== undefined
+              ? t(meta.descriptionKey)
+              : (meta?.description ?? plugin.manifest.description)
           const isError = plugin.status === 'error'
           return (
             <li key={plugin.manifest.id} className="plugin-item" data-testid={`plugin-${plugin.manifest.id}`}>

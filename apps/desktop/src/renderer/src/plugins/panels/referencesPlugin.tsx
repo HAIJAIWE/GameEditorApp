@@ -38,25 +38,29 @@ export function defineReferencesPlugin(host: PluginHost): PluginManifest {
     id: 'references',
     name: 'references',
     version: '0.1.0',
-    description: '数据关联预览：被谁引用 / 引用了谁 / 相似数据',
+    description: 'Data references: referenced by / references / similar data',
     meta: {
-      label: '数据关联预览',
+      label: 'Data references',
+      labelKey: 'plugin.references.label',
       icon: '🔗',
-      description: '经宿主渲染 + 打开参数自供给目标条目（Slice 3 样例）'
+      description: 'Host-rendered; the opened target comes from panel params (Slice 3 sample)',
+      descriptionKey: 'plugin.references.desc'
     },
     capabilities: [
       {
         kind: 'command',
         id: 'references.open',
-        label: '数据关联预览',
+        label: 'Data references',
+        labelKey: 'plugin.references.label',
         // 沿用已预置的参数（最近一次定位到的条目）；无参数时面板自身不渲染空壳
         run: () => host.openPanel('references.panel')
       },
       {
         kind: 'panel',
         id: 'references.panel',
-        title: '数据关联预览',
-        ui: { type: 'text', text: '被谁引用 / 引用了谁 / 相似数据' }
+        title: 'Data references',
+        titleKey: 'plugin.references.label',
+        ui: { type: 'text', text: 'Referenced by / references / similar data' }
       }
     ]
   }

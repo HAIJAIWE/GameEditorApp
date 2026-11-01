@@ -33,36 +33,42 @@ export function defineMaintenancePanelsPlugin(host: PluginHost): PluginManifest 
     id: 'maintenance-panels',
     name: 'maintenance-panels',
     version: '0.1.0',
-    description: '维护面板包（备份恢复 / 清空数据），动作经 appContext 自供给',
+    description: 'Maintenance panels (backup & restore / clear data); actions come from appContext',
     meta: {
-      label: '数据维护',
+      label: 'Data maintenance',
+      labelKey: 'plugin.maintenance.label',
       icon: '🧹',
-      description: '2 个依赖动作的面板，经宿主渲染 + appContext 自供给'
+      description: 'Two action-driven panels, host-rendered + appContext-supplied',
+      descriptionKey: 'plugin.maintenance.desc'
     },
     capabilities: [
       {
         kind: 'command',
         id: 'backup.open',
-        label: '备份与恢复',
+        label: 'Backup & restore',
+        labelKey: 'plugin.maintenance.backupLabel',
         run: () => host.openPanel('backup.panel')
       },
       {
         kind: 'panel',
         id: 'backup.panel',
-        title: '备份与恢复',
-        ui: { type: 'text', text: '导出备份包 / 从备份恢复' }
+        title: 'Backup & restore',
+        titleKey: 'plugin.maintenance.backupLabel',
+        ui: { type: 'text', text: 'Export a backup / restore from backup' }
       },
       {
         kind: 'command',
         id: 'clearAll.open',
-        label: '清空数据',
+        label: 'Clear data',
+        labelKey: 'plugin.maintenance.clearLabel',
         run: () => host.openPanel('clearAll.panel')
       },
       {
         kind: 'panel',
         id: 'clearAll.panel',
-        title: '清空数据',
-        ui: { type: 'text', text: '清空当前库的全部数据（可撤销）' }
+        title: 'Clear data',
+        titleKey: 'plugin.maintenance.clearLabel',
+        ui: { type: 'text', text: 'Clear all data in this library (undoable)' }
       }
     ]
   }

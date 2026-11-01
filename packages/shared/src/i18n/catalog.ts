@@ -93,6 +93,20 @@ export const zh = {
   'field.jsonInvalid': '字段「{field}」不是合法 JSON',
   'field.numberRequired': '字段「{field}」需要数字',
 
+  // —— 插件清单：面板簇 ——
+  'plugin.statistics.label': '数据统计',
+  'plugin.statistics.desc': '数据统计与平衡性分析',
+  'plugin.mcp.label': 'MCP 配置',
+  'plugin.mcp.desc': '配置外部 MCP 服务器（stdio / http）',
+  'plugin.references.label': '数据关联预览',
+  'plugin.references.desc': '被谁引用 / 引用了谁 / 相似数据',
+  'plugin.maintenance.label': '数据维护',
+  'plugin.maintenance.desc': '备份恢复 / 清空数据',
+  'plugin.maintenance.backupLabel': '备份与恢复',
+  'plugin.maintenance.backupDesc': '导出备份包 / 从备份恢复',
+  'plugin.maintenance.clearLabel': '清空数据',
+  'plugin.maintenance.clearDesc': '清空当前库的全部数据（可撤销）',
+
   // —— 设置 ——
   'settings.title': '设置',
   'settings.language': '语言',
@@ -626,6 +640,20 @@ export const en: Record<MessageKey, string> = {
   // —— Form field validation ——
   'field.jsonInvalid': 'Field "{field}" is not valid JSON',
   'field.numberRequired': 'Field "{field}" requires a number',
+
+  // —— Plugin manifests: panel cluster ——
+  'plugin.statistics.label': 'Statistics',
+  'plugin.statistics.desc': 'Data statistics and balance analysis',
+  'plugin.mcp.label': 'MCP config',
+  'plugin.mcp.desc': 'Configure external MCP servers (stdio / http)',
+  'plugin.references.label': 'Data references',
+  'plugin.references.desc': 'Referenced by / references / similar data',
+  'plugin.maintenance.label': 'Data maintenance',
+  'plugin.maintenance.desc': 'Backup & restore / clear data',
+  'plugin.maintenance.backupLabel': 'Backup & restore',
+  'plugin.maintenance.backupDesc': 'Export a backup / restore from backup',
+  'plugin.maintenance.clearLabel': 'Clear data',
+  'plugin.maintenance.clearDesc': 'Clear all data in this library (undoable)',
 
   'settings.title': 'Settings',
   'settings.language': 'Language',

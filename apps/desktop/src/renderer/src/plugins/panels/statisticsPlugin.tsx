@@ -18,15 +18,29 @@ export function defineStatisticsPlugin(host: PluginHost): PluginManifest {
     id: 'statistics',
     name: 'statistics',
     version: '0.1.0',
-    description: '数据统计与平衡性分析',
+    description: 'Statistics',
     meta: {
-      label: '数据统计',
+      label: 'Statistics',
+      labelKey: 'plugin.statistics.label',
       icon: '📊',
-      description: '数据统计与平衡性分析（经宿主渲染 + appContext 自供给 types）'
+      description: 'Statistics & balance analysis (host-rendered + appContext supplies types)',
+      descriptionKey: 'plugin.statistics.desc'
     },
     capabilities: [
-      { kind: 'command', id: 'statistics.open', label: '数据统计', run: () => host.openPanel('statistics.panel') },
-      { kind: 'panel', id: 'statistics.panel', title: '数据统计', ui: { type: 'text', text: '数据统计与平衡性分析' } }
+      {
+        kind: 'command',
+        id: 'statistics.open',
+        label: 'Statistics',
+        labelKey: 'plugin.statistics.label',
+        run: () => host.openPanel('statistics.panel')
+      },
+      {
+        kind: 'panel',
+        id: 'statistics.panel',
+        title: 'Statistics',
+        titleKey: 'plugin.statistics.label',
+        ui: { type: 'text', text: 'Statistics' }
+      }
     ]
   }
 }

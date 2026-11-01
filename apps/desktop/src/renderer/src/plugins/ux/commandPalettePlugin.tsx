@@ -232,8 +232,14 @@ export function CommandPalette({ host }: { host: PluginHost }): ReactElement | n
     // 显式引用版本号：能力增删后必须重算条目（`host.commands()` 每次都是新数组，不能当快照）
     void version
     const flattened = buildPaletteItems({
-      commands: host.commands(),
-      panels: host.panels(),
+      commands: host.commands().map((command) => ({
+        id: command.id,
+        label: command.labelKey !== undefined ? t(command.labelKey) : command.label
+      })),
+      panels: host.panels().map((panel) => ({
+        id: panel.id,
+        title: panel.titleKey !== undefined ? t(panel.titleKey) : panel.title
+      })),
       // 页签清单：插件 `mainView` 能力（策划书/数据/代码/浏览器都已迁成 mainView，
       // App 的 `appTabs` 逃生口当前为空；将来有内联页签时再由 App 经 ownerProps 追加）。
       // 右栏页签（`host: 'rightbar'`，如「会话」）不在此列：它不由主区页签条渲染，
