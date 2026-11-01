@@ -54,6 +54,12 @@ export const TOOL_RISK_MAP: Record<string, RiskLevel | Record<string, RiskLevel>
   'system.image_analyze': RISK_LEVEL.NETWORK,
   'system.image_gen': RISK_LEVEL.NETWORK,
   'system.ceshu': RISK_LEVEL.DATA_WRITE,
+  'system.tech_doc': {
+    outline: RISK_LEVEL.READ_ONLY,
+    read: RISK_LEVEL.READ_ONLY,
+    list: RISK_LEVEL.READ_ONLY,
+    write: RISK_LEVEL.DATA_WRITE
+  },
   'system.workflow': RISK_LEVEL.DATA_WRITE,
   'system.visualization': RISK_LEVEL.DATA_WRITE,
   'system.ui_preview': RISK_LEVEL.DATA_WRITE,
