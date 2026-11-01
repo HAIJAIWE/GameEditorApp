@@ -277,6 +277,42 @@ export class SkillDispatcher {
     }
   }
 
+  /**
+   * 带审批的工具执行（审批下沉）：给「技能内部再调工具」用（如 `system.workflow`）。
+   *
+   * 与 `execute` 的区别：目标工具风险 ≥ SYSTEM 时，先经 `ctx.requestApproval` 询问；
+   * **没有审批通道 ⇒ fail-closed**（`APPROVAL_REQUIRED`），绝不裸执行——堵住「技能内调工具绕过审批」。
+   * 循环的顶层调用仍走 `execute`（审批已在循环层完成），避免双重询问。
+   */
+  async executeGated(
+    toolName: string,
+    params: Record<string, unknown> | undefined,
+    ctx: SkillExecutionContext = {}
+  ): Promise<SkillResult> {
+    const resolved = this.fuzzyMatch(toolName)
+    if (resolved === null) return this.execute(toolName, params, ctx)
+    const fixed = fixParams(resolved, params)
+    const action = typeof fixed.action === 'string' ? fixed.action : ''
+    const check = checkPermission(resolved, action, { maxAllowedRisk: this.maxAllowedRisk })
+
+    // 只有「需要确认且未超上限」才走审批；超上限由 execute 统一报错
+    if (check.allowed && check.needsConfirmation) {
+      const approver = ctx.requestApproval as
+        | ((tool: string, params: Record<string, unknown>) => Promise<boolean>)
+        | undefined
+      if (typeof approver !== 'function') {
+        return { success: false, error: 'APPROVAL_REQUIRED', message: '子步骤需要审批，但当前无审批通道' }
+      }
+      const approved = await approver(resolved, params ?? {})
+      if (!approved) {
+        return { success: false, error: 'APPROVAL_DENIED', message: `用户拒绝执行 ${resolved}` }
+      }
+      // 注入一次性令牌，让 execute 内部的 SYSTEM 门放行（execute 会就地消费并置空）
+      return this.execute(toolName, params, { ...ctx, dangerConfirmed: { tool: resolved, action } })
+    }
+    return this.execute(toolName, params, ctx)
+  }
+
   /** 当前允许的最大风险（只读；策略判定统一走 `checkPermission`） */
   get riskCeiling(): RiskLevel {
     return this.maxAllowedRisk

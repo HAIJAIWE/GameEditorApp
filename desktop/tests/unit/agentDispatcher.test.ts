@@ -319,3 +319,62 @@ describe('SkillDispatcher：confirm 只认可信令牌（不认模型参数）',
     expect(ctx.dangerConfirmed).not.toBeNull()
   })
 })
+
+describe('SkillDispatcher.executeGated（审批下沉）', () => {
+  function makeGated() {
+    const dispatcher = new SkillDispatcher()
+    let calls = 0
+    dispatcher.register(
+      makeSkill({
+        id: 'system.shell',
+        execute: () => {
+          calls += 1
+          return { success: true, message: 'ran' }
+        }
+      })
+    )
+    dispatcher.register(
+      makeSkill({
+        id: 'system.ceshu',
+        execute: () => {
+          calls += 1
+          return { success: true, message: 'ran' }
+        }
+      })
+    )
+    return { dispatcher, calls: () => calls }
+  }
+
+  it('SYSTEM 工具无审批通道 → APPROVAL_REQUIRED 且不执行', async () => {
+    const { dispatcher, calls } = makeGated()
+    const result = await dispatcher.executeGated('system.shell', { action: 'run' }, {})
+    expect(result.success).toBe(false)
+    expect(result.error).toBe('APPROVAL_REQUIRED')
+    expect(calls()).toBe(0)
+  })
+
+  it('用户拒绝 → APPROVAL_DENIED 且不执行', async () => {
+    const { dispatcher, calls } = makeGated()
+    const result = await dispatcher.executeGated('system.shell', { action: 'run' }, {
+      requestApproval: async () => false
+    })
+    expect(result.error).toBe('APPROVAL_DENIED')
+    expect(calls()).toBe(0)
+  })
+
+  it('用户批准 → 执行', async () => {
+    const { dispatcher, calls } = makeGated()
+    const result = await dispatcher.executeGated('system.shell', { action: 'run' }, {
+      requestApproval: async () => true
+    })
+    expect(result.success).toBe(true)
+    expect(calls()).toBe(1)
+  })
+
+  it('非 SYSTEM 工具无需审批', async () => {
+    const { dispatcher, calls } = makeGated()
+    const result = await dispatcher.executeGated('system.ceshu', { action: 'list' }, {})
+    expect(result.success).toBe(true)
+    expect(calls()).toBe(1)
+  })
+})

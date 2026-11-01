@@ -67,7 +67,8 @@ describe('M3 分组表与档位预算', () => {
       'system.web_fetch',
       'system.document',
       'system.terminal',
-      'system.ssh'
+      'system.ssh',
+      'system.workflow'
     ]
     for (const id of registered) {
       expect(TOOL_GROUP_MAP[id]).toBeDefined()

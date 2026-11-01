@@ -307,6 +307,15 @@ export class AgentBrainService {
     // 后台任务观测面（system.job）：注册表 + 按 jobId 取消的回调，经 context 交给技能
     context.jobRegistry = this.jobRegistry
     context.jobCancel = (id: string) => this.cancelJob(id)
+    // 审批下沉（对齐 dsh 的「工具调用统一过门」）：把本轮的审批通道交给技能，
+    // 使「技能内部再调工具」（如 system.workflow）也能过审批，而不是裸执行绕过。
+    const approver = options.requestApproval ?? this.deps.requestApproval
+    if (approver !== undefined) {
+      context.requestApproval = async (tool: string, params: Record<string, unknown>): Promise<boolean> => {
+        const requestId = options.newRequestId?.() ?? `step_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+        return approver({ requestId, tool, action: '', params })
+      }
+    }
     // Slice 34：从轮次日志恢复历史（需调用方传稳定 sessionId；无历史则为空）
     const priorMessages =
       options.resumeHistory === true && this.deps.sessionStore !== undefined
