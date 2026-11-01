@@ -1,0 +1,10 @@
+{
+  "name": "@mobai/shared",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "墨白跨层共享：领域模型、agent 协议/技能契约、IPC 契约、schema、工具函数（零 Electron 依赖）",
+  "exports": {
+    "./*": "./src/*"
+  }
+}
