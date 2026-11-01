@@ -17,7 +17,7 @@ const PROJECT_ROOT = path.dirname(fileURLToPath(import.meta.url))
  * ⚠️ 只用「能力子包」目录，不含包根（`shared/util`、`shared/ceshu`、`components` 等）。
  */
 /** 共享包根（monorepo：packages/shared） */
-const SHARED_ROOT = path.resolve(PROJECT_ROOT, '../../packages/shared/src')
+const SHARED_ROOT = path.resolve(PROJECT_ROOT, 'packages/shared/src')
 
 /** 把 import 说明符解析为绝对路径；非本项目内的（第三方/裸模块）返回 null */
 function resolveSpecifier(spec, importerDir) {
@@ -43,24 +43,24 @@ const SHARED_CAPABILITY_FOLDERS = [
 
 /** 渲染层的能力文件夹（相对 apps/desktop） */
 const RENDERER_CAPABILITY_FOLDERS = [
-  'src/renderer/src/components/ceshuDoc',
-  'src/renderer/src/components/ceshuField',
-  'src/renderer/src/components/ceshuType',
-  'src/renderer/src/components/ceshu',
-  'src/renderer/src/components/digital',
-  'src/renderer/src/components/attr',
-  'src/renderer/src/components/data',
-  'src/renderer/src/components/agent',
-  'src/renderer/src/components/backup',
-  'src/renderer/src/components/browser',
-  'src/renderer/src/components/common',
-  'src/renderer/src/components/layout',
-  'src/renderer/src/plugins/host',
-  'src/renderer/src/plugins/context',
-  'src/renderer/src/plugins/ceshu',
-  'src/renderer/src/plugins/session',
-  'src/renderer/src/plugins/panels',
-  'src/renderer/src/plugins/ux'
+  'apps/desktop/src/renderer/src/components/ceshuDoc',
+  'apps/desktop/src/renderer/src/components/ceshuField',
+  'apps/desktop/src/renderer/src/components/ceshuType',
+  'apps/desktop/src/renderer/src/components/ceshu',
+  'apps/desktop/src/renderer/src/components/digital',
+  'apps/desktop/src/renderer/src/components/attr',
+  'apps/desktop/src/renderer/src/components/data',
+  'apps/desktop/src/renderer/src/components/agent',
+  'apps/desktop/src/renderer/src/components/backup',
+  'apps/desktop/src/renderer/src/components/browser',
+  'apps/desktop/src/renderer/src/components/common',
+  'apps/desktop/src/renderer/src/components/layout',
+  'apps/desktop/src/renderer/src/plugins/host',
+  'apps/desktop/src/renderer/src/plugins/context',
+  'apps/desktop/src/renderer/src/plugins/ceshu',
+  'apps/desktop/src/renderer/src/plugins/session',
+  'apps/desktop/src/renderer/src/plugins/panels',
+  'apps/desktop/src/renderer/src/plugins/ux'
 ].map((dir) => path.resolve(PROJECT_ROOT, dir))
 
 const CAPABILITY_FOLDERS = [...SHARED_CAPABILITY_FOLDERS, ...RENDERER_CAPABILITY_FOLDERS]
@@ -128,7 +128,7 @@ const noDeepCapabilityImport = {
 
 export default tseslint.config(
   {
-    ignores: ['out/**', 'dist/**', 'node_modules/**', 'playwright-report/**', 'test-results/**']
+    ignores: ['apps/desktop/out/**', 'apps/desktop/dist/**', 'node_modules/**', 'apps/desktop/playwright-report/**', 'apps/desktop/test-results/**']
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
@@ -138,34 +138,34 @@ export default tseslint.config(
     }
   },
   {
-    files: ['src/main/**/*.ts', 'src/preload/**/*.ts', 'src/shared/**/*.ts', 'tests/**/*.ts', '*.ts'],
+    files: ['apps/desktop/src/main/**/*.ts', 'apps/desktop/src/preload/**/*.ts', 'packages/shared/src/**/*.ts', 'apps/desktop/tests/**/*.ts', 'apps/desktop/*.ts'],
     languageOptions: {
       globals: globals.node
     }
   },
   {
-    files: ['spikes/**/*.mjs'],
+    files: ['apps/desktop/spikes/**/*.mjs'],
     languageOptions: {
       globals: globals.node
     }
   },
   {
     // 测试夹具（Node 子进程，被 ACP provider 等 spawn）
-    files: ['tests/fixtures/**/*.mjs'],
+    files: ['apps/desktop/tests/fixtures/**/*.mjs'],
     languageOptions: {
       globals: globals.node
     }
   },
   {
     // 浏览器预览工具（Node 跑静态服务器 + 注入 window.mbApi 桩 + Edge 截图驱动）
-    files: ['preview/**/*.mjs', 'preview/**/*.js'],
+    files: ['apps/desktop/preview/**/*.mjs', 'apps/desktop/preview/**/*.js'],
     languageOptions: {
       globals: { ...globals.node, ...globals.browser }
     }
   },
   {
     // 一次性脚本（Node CommonJS，用 require/__dirname）
-    files: ['scripts/**/*.cjs'],
+    files: ['apps/desktop/scripts/**/*.cjs'],
     languageOptions: {
       globals: globals.node,
       sourceType: 'commonjs'
@@ -176,20 +176,20 @@ export default tseslint.config(
   },
   {
     // ESM 脚本（Node 22+；WebSocket 是全局的，CDP 驱动脚本要用）
-    files: ['scripts/**/*.mjs'],
+    files: ['apps/desktop/scripts/**/*.mjs'],
     languageOptions: {
       globals: { ...globals.node, WebSocket: 'readonly' }
     }
   },
   {
     // 浏览器驱动脚本（Demo 验收 / SVG 转图）：Node 驱动 + page.evaluate 里的浏览器上下文
-    files: ['scripts/demoAcceptance.mjs', 'scripts/svgToImage.mjs'],
+    files: ['apps/desktop/scripts/demoAcceptance.mjs', 'apps/desktop/scripts/svgToImage.mjs'],
     languageOptions: {
       globals: { ...globals.node, ...globals.browser, WebSocket: 'readonly' }
     }
   },
   {
-    files: ['src/renderer/**/*.{ts,tsx}'],
+    files: ['apps/desktop/src/renderer/**/*.{ts,tsx}'],
     languageOptions: {
       globals: globals.browser
     },
@@ -220,7 +220,7 @@ export default tseslint.config(
     { dir: 'type', peers: ['ceshu', 'attr', 'agent'] },
     { dir: 'agent', peers: ['ceshu', 'attr', 'type'] }
   ].map(({ dir, peers }) => ({
-    files: [`src/shared/domain/${dir}/**/*.ts`],
+    files: [`packages/shared/src/domain/${dir}/**/*.ts`],
     rules: {
       'no-restricted-imports': [
         'error',
@@ -244,7 +244,7 @@ export default tseslint.config(
   })),
   // 规则 2：util 是纯工具层，禁止依赖任何业务域
   {
-    files: ['src/shared/util/**/*.ts'],
+    files: ['packages/shared/src/util/**/*.ts'],
     rules: {
       'no-restricted-imports': [
         'error',
@@ -261,7 +261,7 @@ export default tseslint.config(
   },
   // 规则 3：config 只负责设置持久化，禁止依赖任何业务域
   {
-    files: ['src/shared/config/**/*.ts'],
+    files: ['packages/shared/src/config/**/*.ts'],
     rules: {
       'no-restricted-imports': [
         'error',
@@ -283,7 +283,7 @@ export default tseslint.config(
   // 尚未归区的历史平铺文件（`shared/ceshuModel.ts` 等）不在本规则约束范围内——
   // 它们属于渐进式迁移的存量，等迁入 `domain/` 后自动纳入本规则。
   {
-    files: ['src/main/**/*.ts'],
+    files: ['apps/desktop/src/main/**/*.ts'],
     rules: {
       'no-restricted-imports': [
         'error',
@@ -292,7 +292,7 @@ export default tseslint.config(
             {
               group: ['**/shared/domain/**'],
               message:
-                'src/main/ 禁止直接 import 业务域（shared/domain/**）；请通过 shared/api.ts 契约门面调用。'
+                'apps/desktop/src/main/ 禁止直接 import 业务域（shared/domain/**）；请通过 shared/api.ts 契约门面调用。'
             }
           ]
         }
@@ -313,7 +313,7 @@ export default tseslint.config(
   // ⚠️ 覆盖警告：flat config 同名规则**整体覆盖**而非合并，本条会盖掉规则 4 对
   // skills 文件的配置，故此处必须重复声明 `**/shared/domain/**`，否则规则 4 在这批文件上失效。
   {
-    files: ['src/main/agent/skills/**/*.ts'],
+    files: ['apps/desktop/src/main/agent/skills/**/*.ts'],
     rules: {
       'no-restricted-imports': [
         'error',
@@ -322,7 +322,7 @@ export default tseslint.config(
             {
               group: ['**/shared/domain/**'],
               message:
-                'src/main/ 禁止直接 import 业务域（shared/domain/**）；请通过 shared/api.ts 契约门面调用。'
+                'apps/desktop/src/main/ 禁止直接 import 业务域（shared/domain/**）；请通过 shared/api.ts 契约门面调用。'
             },
             {
               group: [
@@ -358,7 +358,7 @@ export default tseslint.config(
   // ⚠️ 覆盖警告：同规则 5，flat config 同名规则**整体覆盖**，本条会盖掉规则 4 对
   // ai/ 文件的配置，故必须重复声明 `**/shared/domain/**`。
   {
-    files: ['src/main/ai/**/*.ts'],
+    files: ['apps/desktop/src/main/ai/**/*.ts'],
     rules: {
       'no-restricted-imports': [
         'error',
@@ -367,7 +367,7 @@ export default tseslint.config(
             {
               group: ['**/shared/domain/**'],
               message:
-                'src/main/ 禁止直接 import 业务域（shared/domain/**）；请通过 shared/api.ts 契约门面调用。'
+                'apps/desktop/src/main/ 禁止直接 import 业务域（shared/domain/**）；请通过 shared/api.ts 契约门面调用。'
             },
             {
               group: ['**/ceshu/**', '**/data/**'],
@@ -394,7 +394,7 @@ export default tseslint.config(
   // ⚠️ 锚定：pattern 匹配原始字符串且 minimatch 默认不匹配点开头的段，根文件的形态是
   // `./domain/<域>/x`，必须显式写 `./domain/**`（`**/domain/**` 兜底防 `../domain` 变体）。
   {
-    files: ['src/shared/*.ts'],
+    files: ['packages/shared/src/*.ts'],
     rules: {
       'no-restricted-imports': [
         'error',

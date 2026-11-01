@@ -7,12 +7,19 @@
     "apps/*",
     "packages/*"
   ],
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.11.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.13.0",
+    "typescript-eslint": "^8.71.0"
+  },
   "scripts": {
     "dev": "npm --prefix apps/desktop run dev",
     "build": "npm --prefix apps/desktop run build",
     "test": "npm --prefix apps/desktop run test",
     "typecheck": "npm --prefix apps/desktop run typecheck",
-    "lint": "npm --prefix apps/desktop run lint",
+    "lint": "node apps/desktop/node_modules/eslint/bin/eslint.js apps/desktop/src apps/desktop/tests apps/desktop/scripts packages/shared/src",
     "e2e": "npm --prefix apps/desktop run e2e"
   }
 }

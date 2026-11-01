@@ -11,7 +11,7 @@
     "build": "electron-vite build",
     "dist": "electron-vite build && electron-builder",
     "preview": "electron-vite preview",
-    "lint": "eslint .",
+    "lint": "npm --prefix ../.. run lint",
     "typecheck": "tsc --noEmit -p tsconfig.node.json --composite false && tsc --noEmit -p tsconfig.web.json --composite false && tsc --noEmit -p tsconfig.test-dom.json",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
