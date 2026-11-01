@@ -61,6 +61,9 @@ export const TOOL_RISK_MAP: Record<string, RiskLevel | Record<string, RiskLevel>
     write: RISK_LEVEL.DATA_WRITE,
     delete: RISK_LEVEL.DATA_WRITE
   },
+  'system.document': {
+    read: RISK_LEVEL.READ_ONLY
+  },
   'system.workflow': RISK_LEVEL.DATA_WRITE,
   'system.visualization': RISK_LEVEL.DATA_WRITE,
   'system.ui_preview': RISK_LEVEL.DATA_WRITE,
