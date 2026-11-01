@@ -84,6 +84,7 @@ import { createTechDocSkill } from './agent/skills/techDocSkill'
 import { createWebSkill } from './agent/skills/webSkill'
 import { createDocumentSkill } from './agent/skills/documentSkill'
 import { createTerminalSkill } from './agent/skills/terminalSkill'
+import { createSshSkill } from './agent/skills/sshSkill'
 import { createCliSubAgentProvider } from './agent/subagent/subagentCli'
 import { createRemoteSubAgentProvider } from './agent/subagent/subagentRemote'
 import { createAcpSubAgentProvider } from './agent/subagent/subagentAcp'
@@ -210,6 +211,8 @@ export function buildStores(libDir: string): AppStores {
   dispatcher.register(createDocumentSkill({ root: getWorkspaceRoot }))
   // 持久终端（对齐 dsh terminal）：start/send/read/stop 的常驻 shell 会话
   dispatcher.register(createTerminalSkill({ root: getWorkspaceRoot }))
+  // 远程执行（对齐 dsh ssh）：薄包装 ssh 命令（BatchMode，非交互）
+  dispatcher.register(createSshSkill())
   // 用户偏好 / 反馈：随库隔离，构造时即从磁盘加载；偏好注入系统提示词（见 brainService）
   const personalization = createPersonalizationStores(agentDir)
 
