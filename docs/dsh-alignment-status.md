@@ -6,8 +6,19 @@
 
 ## 结论
 
-dsh 的 **52 个包组**里，与「agent 能力面」相关且**可移植、有价值**的项已全部落地；
-宿主/基础设施类由本产品自有实现承载；**唯一有意不做的是 `computer-use`**（桌面 GUI 控制）。
+dsh 的 **52 个包组**里，与「agent 能力面（后端）」相关且**可移植、有价值**的项已全部落地；
+宿主/基础设施类由本产品自有实现承载。
+
+**前端不是"对齐 dsh 的 66 个 `ui-*` 包"，而是按本产品需要自有实现**（详见 `docs/dsh-ui-comparison.md`）。
+差异最大的三处，先在这里说清，免得读表时误判：
+
+| 项 | 我们 | dsh | 性质 |
+|---|---|---|---|
+| `computer-use` | `system.computer` 仅 Windows 最小档（screenshot/click/type/key） | 完整桌面控制（含 drag/scroll/多屏） | 能力档位差，不是没做 |
+| 前端覆盖面 | 对话/工具卡/改动卡/交付卡/运行计划/任务/子agent/审批/附件/轨迹/主题/消息反馈/插件市场 | 66 个 `ui-*` 子包（含 11 个 settings 分区、目录选择器、i18n 等） | 自有实现，非一一对应 |
+| i18n | 无（仅中文） | 每个包 `.i18n.yaml` + 多语 README | 有意不做 |
+
+> 校准时间：2026-11-01（A1/A1.5/A2/A3 之后）。表中数字以**代码**为准，不以旧表为准。
 
 ---
 
@@ -75,13 +86,18 @@ dsh 的 **52 个包组**里，与「agent 能力面」相关且**可移植、有
 ## 五、如何验证
 
 ```bash
-cd desktop
-npm run test        # 单测（基线：3706 通过 / 6 跳过）
+# 在仓库根
+npm run test        # 单测（基线：3746 通过 / 6 跳过）
 npm run typecheck   # tsc ×3
-npm run lint        # eslint（0 警告）
+npm run lint        # eslint（0 警告，覆盖 app + shared + agent-core + client-ui）
 env -u NODE_OPTIONS npm run build
-env -u ELECTRON_RUN_AS_NODE npx playwright test   # e2e
+
+# e2e 在 apps/desktop 下（别用 npx：会命中 npx 缓存里另一份 playwright）
+cd apps/desktop && env -u ELECTRON_RUN_AS_NODE node node_modules/@playwright/test/cli.js test
 ```
+
+技能总数以 `apps/desktop/src/main/stores.ts` 的 `dispatcher.register(...)` 段为准（当前 **25** 个）；
+工具面在 e2e 里有两处写死清单（全量 25 / 本地档 8），加技能时两处都要改。
 
 ## 六、相关文档
 

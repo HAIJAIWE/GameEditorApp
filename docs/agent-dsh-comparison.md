@@ -96,7 +96,11 @@ dsh 用 **cordis** 做插件组合，profile 是 YAML 补丁层（`bundles` + `c
 
 ## 3. 本项目现状（准确参数）
 
-| 项 | 现状 | 位置 |
+> ⚠️ **本表是 2026-10 的设计期快照**，Slice 18–36 之后多项已被超越（技能 6→25、
+> 插话已实现、会话改 append-only、并行默认开）。**当前状态以 `docs/dsh-alignment-status.md` 为准**；
+> 下表保留是为了记录"当时的差距判断"如何驱动后续切片。
+
+| 项 | 现状（2026-10 快照） | 位置 |
 |---|---|---|
 | 循环 | `runBrainLoop`：推理→工具→反思；`maxTurns` 默认 **6**；`wallClockMs` 默认 **120s** | `shared/agent/brain/loop.ts` |
 | 取消 | 内部 controller + 外部 signal 转发；**abort 在途 HTTP**（不只下一轮检查） | 同上 |
@@ -104,12 +108,12 @@ dsh 用 **cordis** 做插件组合，profile 是 YAML 补丁层（`bundles` + `c
 | 失败计数 | 同工具同动作连续失败 ≥**3** → 注入 `[STOP]`（比 dsh 更硬） | 同上 |
 | 子智能体 | `tool.spawn_subagent`：**同步递归** `runBrainLoop`（独立消息、同工具面），结果包「子智能体结果：…」回灌；**depth ≤ 1**；子循环 `maxTurns:3` / 墙钟 ≤60s | 同上 |
 | 分发/审批 | `SkillDispatcher`：注册/模糊匹配/**审批门**/权限；单令牌 `dangerConfirmed`（故审批不并行） | `main/agent/dispatcher.ts` |
-| 技能 | 6 个：ceshu / code / gameData / rollback / askUser / spawn_subagent | `main/agent/skills/` |
+| 技能 | 6 个（**现已 25 个**，见 stores.ts） | `packages/agent-core/src/skills/` |
 | 工具面 | 档位限量（本地 8 / 云端 15），MCP 配置可 `maxTools` 覆写 | `shared/agent/toolGroups.ts` |
 | 风险分级 | 动态风险表 + 名称启发式（shell/write/delete→SYSTEM） | `shared/agent/protocol.ts` |
 | MCP | stdio + Streamable HTTP；工具→SkillProtocol；配置 UI | `shared/agent/mcp/`、`main/agent/mcp/` |
-| 会话 | `messages` 数组（内存）+ session store（非 append-only 事件日志） | `shared/agent/brain/`、`main/agent/` |
-| 插话 | 无 | — |
+| 会话 | ~~内存 messages~~ → 现已 `turns.jsonl` 追加式（`AgentSessionStore`） | `agent-core/src/session/` |
+| 插话 | ~~无~~ → 现已实现进程内 inbox（每轮前 drain 注入 user 消息） | `shared/agent/brain/loop.ts` |
 
 ---
 
