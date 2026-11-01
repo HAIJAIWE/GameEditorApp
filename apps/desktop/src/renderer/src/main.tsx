@@ -1,7 +1,10 @@
-import { StrictMode } from 'react'
+import { StrictMode, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 
+import { LocaleProvider } from '@mobai/client-ui'
+
 import App from './App'
+import { useLocalePreference } from './localePreference'
 import { pushLlmConfigMirror } from './llmBootstrap'
 import { applyFontSize, loadFontSize } from '@mobai/shared/config/settings'
 import { applyTheme, loadTheme } from '@mobai/shared/config/settings'
@@ -30,6 +33,20 @@ if (!container) {
 
 createRoot(container).render(
   <StrictMode>
-    <App />
+    <LocaleRoot>
+      <App />
+    </LocaleRoot>
   </StrictMode>
 )
+
+/**
+ * 语言提供者：把模块级偏好（`localePreference.ts`）桥成 React context。
+ *
+ * 放在根节点而不是 App 内部：设置面板只是**改**语言的一方，改完要靠根节点重渲染
+ * 整棵树——如果 Provider 在 App 里、订阅也在 App 里，就得把 locale 一路下传，
+ * 迟早漏接（漏接的表现是"设置改了、界面不动"）。
+ */
+function LocaleRoot({ children }: { children: ReactNode }) {
+  const locale = useLocalePreference()
+  return <LocaleProvider locale={locale}>{children}</LocaleProvider>
+}

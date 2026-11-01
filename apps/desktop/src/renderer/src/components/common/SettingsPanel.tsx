@@ -18,6 +18,7 @@ import {
   type StoredLlmConfig
 } from '@mobai/shared/config/llm'
 import { SECRET_NAMES } from '@mobai/shared/config/secrets'
+import { LOCALES, LOCALE_LABELS, type Locale } from '@mobai/shared/i18n'
 import { resolveVisionSupport, type VisionMode } from '@mobai/shared/util/ui'
 import {
   applyFontSize,
@@ -36,17 +37,26 @@ import {
   THEME_OPTIONS,
   type ThemeMode
 } from '@mobai/shared/config/settings'
+import { useLocale, useT } from '@mobai/client-ui'
+
+import { setLocalePreference } from '../../localePreference'
 
 /**
  * 设置面板。
  *
- * 旧版 是 4 页签（通用 / AI / 编辑器 / 工具）的 QDialog。TS 侧做**四项**：
- * 字体大小 / 主题 / 删除时确认（前三项，`shared/settingsPreferences.ts`）+ 
+ * 旧版 是 4 页签（通用 / AI / 编辑器 / 工具）的 QDialog。TS 侧做**五项**：
+ * 语言 / 字体大小 / 主题 / 删除时确认（`shared/settingsPreferences.ts`）+
  * **AI 模型服务**（E41 新增，`shared/llmConfig.ts`，对齐 `ui/dialogs/api_config` 基础设置页）。
- * 仍**刻意不做**：语言下拉（无 i18n 框架）、自动保存（TS 侧无此功能）、
- * 界面布局（IA 已重写为无侧栏单栈）、工具页开关（未核实消费者）、
- * 视觉模型页（TS 侧无视觉模型消费者）、技能生成模板偏好（属策划内容域，职责错位）。
- * **宁可少做，不做假控件。**
+ * 仍**刻意不做**：自动保存（TS 侧无此功能）、界面布局（IA 已重写为无侧栏单栈）、
+ * 工具页开关（未核实消费者）、视觉模型页（TS 侧无视觉模型消费者）、
+ * 技能生成模板偏好（属策划内容域，职责错位）。**宁可少做，不做假控件。**
+ *
+ * ## i18n（A2 之后新增）
+ * 本面板是**第一个**完成中英迁移的界面：所有可见文案走 `t('settings.…')`，
+ * 文案表在 `shared/i18n/catalog.ts`（英文表缺键 tsc 会红）。
+ * 语言开关就放在这里——它自己也得是双语的，否则切到 English 后开关本身看不懂。
+ * 已知残留：`llmSetupGuide()`（shared 生成的未配置引导）仍返回中文，
+ * 属下一批迁移（`shared/config/llm` 的文案要改成返回键）。
  *
  * ## AI 模型服务（E41）
  * 非敏感字段走 `shared/llmConfig.ts`（localStorage `mb.llmConfig`），
@@ -54,15 +64,17 @@ import {
  * 走 `settings:setSecret` → safeStorage 加密盘（`shared/secretNames.ts` 的 `llmApiKey`），
  * 渲染层永不持有也不回显长期明文。
  *
- * ## 前三项各自的状态来源（读写全部委托 `shared/settingsPreferences`，组件只管渲染）
+ * ## 偏好项各自的状态来源（读写全部委托 `shared/settingsPreferences`，组件只管渲染）
  * - **字体大小**：`loadFontSize` 惰性初值 → `saveFontSize` 落盘 + `applyFontSize` **立即生效**
  * - **主题**：委托 `theme.ts`（唯一真源），面板只提供二选一入口
  * - **删除时确认**：`loadConfirmDelete` 惰性初值 → `saveConfirmDelete`，消费者 `BatchEditPanel`
+ * - **语言**：`localePreference.ts`（模块级 store + `useSyncExternalStore`），
+ *   改完由根节点的 `LocaleProvider` 触发整棵树重渲染
  *
  * ## 交互约定
  * - **不接收 `onClose`**：浮层头部已有统一的「关闭」按钮（同 `GameDataPreviewPanel`/
  *   `ClearAllPanel`），多传一个 prop 只会被 eslint 判为未使用参数。
- * - **偏好即时保存、无「确定/取消」**：这三项都是可逆的低风险偏好。主题与字号都是
+ * - **偏好即时保存、无「确定/取消」**：这几项都是可逆的低风险偏好。主题与字号都是
  *   当场预览，若要支持「取消」就得额外存一份草稿态，属过度开发。
  * - **字号输入用草稿态提交**（`draft`）：允许用户打到一半（空串/半截数字）不被立即
  *   纠回；失焦或回车才提交。派生值用惰性表达式，无 effect 同步 setState。
@@ -72,7 +84,10 @@ import {
 type FontSizeDraft = { editing: false } | { editing: true; text: string }
 
 export default function SettingsPanel() {
-  /* ---- 三项偏好：惰性初值（useState 的函数形式，避免每次渲染都读一遍 storage） ---- */
+  const t = useT()
+  const locale = useLocale()
+
+  /* ---- 偏好：惰性初值（useState 的函数形式，避免每次渲染都读一遍 storage） ---- */
   const [fontSize, setFontSize] = useState<number>(() => loadFontSize())
   const [theme, setTheme] = useState<ThemeMode>(() => loadTheme())
   const [confirmDelete, setConfirmDelete] = useState<boolean>(() => loadConfirmDelete())
@@ -105,6 +120,11 @@ export default function SettingsPanel() {
     saveBlockExportMissingImages(next)
   }
 
+  /** 语言：落盘 + 广播（`localePreference` 通知根节点重渲染整棵树） */
+  const handleLocaleChange = (next: Locale): void => {
+    setLocalePreference(next)
+  }
+
   /* ---- LLM 服务商配置 ---- */
   const [llm, setLlm] = useState<StoredLlmConfig>(() => loadLlmConfig())
   const [llmKeyDraft, setLlmKeyDraft] = useState('')
@@ -112,7 +132,7 @@ export default function SettingsPanel() {
   const [llmKeySaved, setLlmKeySaved] = useState(false)
   /*
    * M0「默认档位纠正」：AI 配置四态的引导内容。
-   * 惰性初值（与本文件其余 4 个 `useState(() => ...)` 同风格）：避免每次渲染都读一遍 storage。
+   * 惰性初值（与本文件其余 `useState(() => ...)` 同风格）：避免每次渲染都读一遍 storage。
    * ⚠️ `llmSetupGuide` 的 `hasStored` 是**入参**（shared 层刻意不读 storage，依赖注入以便测试），
    * 所以这里必须自己调 `hasStoredLlmConfig()` 再传进去，不能只传 `loadLlmConfig()`。
    */
@@ -130,7 +150,7 @@ export default function SettingsPanel() {
     setLlm(next)
     setLlmNotice(null)
     if (!saved) {
-      setLlmNotice('配置保存失败：浏览器存储不可用')
+      setLlmNotice(t('settings.noticeSaveFailed'))
       return
     }
     /*
@@ -140,9 +160,7 @@ export default function SettingsPanel() {
      * 存储写失败时配置根本没落盘，此时若刷新引导会把「没存上」显示成「已生效」。
      */
     setSetupGuide(llmSetupGuide(next, hasStoredLlmConfig()))
-    void window.mbApi.llm
-      .configure({ config: next })
-      .catch(() => setLlmNotice('已保存到本地，但推送给主进程失败，AI 调用可能仍用旧配置'))
+    void window.mbApi.llm.configure({ config: next }).catch(() => setLlmNotice(t('settings.noticePushFailed')))
   }
 
   /** 切服务商：带出该服务商的预设地址与首个模型 */
@@ -160,7 +178,7 @@ export default function SettingsPanel() {
   const saveLlmKey = async (): Promise<void> => {
     const plaintext = llmKeyDraft.trim()
     if (plaintext === '') {
-      setLlmNotice('请先填写 API Key')
+      setLlmNotice(t('settings.noticeKeyRequired'))
       return
     }
     const res = await window.mbApi.settings.setSecret({
@@ -168,12 +186,14 @@ export default function SettingsPanel() {
       plaintext
     })
     if (!res.ok) {
-      setLlmNotice(`API Key 保存失败：${res.error ?? '未知原因'}`)
+      setLlmNotice(
+        t('settings.noticeKeySaveFailed', { reason: res.error ?? t('settings.noticeUnknownReason') })
+      )
       return
     }
     setLlmKeyDraft('')
     setLlmKeySaved(true)
-    setLlmNotice('API Key 已存入系统钥匙串（加密落盘，不写入浏览器存储）')
+    setLlmNotice(t('settings.noticeKeySaved'))
   }
 
   /**
@@ -196,15 +216,15 @@ export default function SettingsPanel() {
       // 渲染层首次调用 `llm:status`（此前该 IPC 通道从未被渲染层用过）
       const st = await window.mbApi.llm.status()
       if (st.available) {
-        setLlmNotice(`本地可用（${st.models.length} 个模型）`)
+        setLlmNotice(t('settings.noticeLocalAvailable', { count: st.models.length }))
       } else if (st.models.length > 0) {
-        setLlmNotice('本地 Ollama 未启动')
+        setLlmNotice(t('settings.noticeOllamaNotRunning'))
       } else {
-        setLlmNotice('已开启保密模式，但本地还没有模型，请先在命令行执行 ollama pull <model 或 qwen3:8b> 拉取模型')
+        setLlmNotice(t('settings.noticeNoModel'))
       }
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err)
-      setLlmNotice(`已保存配置，但无法连接本地 Ollama：${reason}，请确认已启动（ollama serve）`)
+      setLlmNotice(t('settings.noticeOllamaUnreachable', { reason }))
     } finally {
       setLlmProbing(false)
     }
@@ -216,10 +236,15 @@ export default function SettingsPanel() {
     setLlmTesting(true)
     try {
       const res = await window.mbApi.llm.testConnection()
-      setLlmNotice(`${res.ok ? '连接成功' : '连接失败'}：${res.message}`)
+      setLlmNotice(
+        t('settings.noticeTestResult', {
+          status: res.ok ? t('settings.noticeTestOk') : t('settings.noticeTestFail'),
+          message: res.message
+        })
+      )
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err)
-      setLlmNotice(`测试连接异常：${reason}`)
+      setLlmNotice(t('settings.noticeTestError', { reason }))
     } finally {
       setLlmTesting(false)
     }
@@ -229,43 +254,68 @@ export default function SettingsPanel() {
     <div className="editor" data-testid="settings-panel">
       <div className="editor-header">
         <div className="editor-title">
-          设置
-          <small>偏好即时生效并自动保存，无需点确定</small>
+          {t('settings.title')}
+          <small>{t('settings.subtitle')}</small>
         </div>
       </div>
 
       <div className="editor-body">
         <div className="form-section">
           <div className="form-section-head">
-            <span className="form-section-title">通用设置</span>
+            <span className="form-section-title">{t('settings.sectionGeneral')}</span>
           </div>
           <div className="form-section-body">
+            {/* 语言：改完立即生效（根节点的 LocaleProvider 触发整棵树重渲染） */}
+            <div className="form-row">
+              <label className="form-label" htmlFor="settings-language">
+                {t('settings.language')}
+              </label>
+              <select
+                id="settings-language"
+                className="form-select"
+                data-testid="settings-language"
+                value={locale}
+                onChange={(event) => handleLocaleChange(event.target.value as Locale)}
+              >
+                {LOCALES.map((item) => (
+                  <option key={item} value={item}>
+                    {LOCALE_LABELS[item]}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="item-meta" data-testid="settings-language-hint">
+              {t('settings.languageHint')}
+              {locale !== 'zh' && <> {t('settings.languageBeta')}</>}
+            </div>
+
             {/* 主题：TS 只有浅/深两档（见 theme.ts 的「有意不做：不做多套主题」） */}
             <div className="form-row">
-              <span className="form-label">主题</span>
+              <span className="form-label">{t('settings.theme')}</span>
               <select
                 className="form-select"
                 data-testid="settings-theme"
-                aria-label="主题"
+                aria-label={t('settings.theme')}
                 value={theme}
                 onChange={(event) => handleThemeChange(event.target.value as ThemeMode)}
               >
                 {THEME_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
-                    {option.label}
+                    {option.value === 'dark' ? t('settings.themeDark') : t('settings.themeLight')}
                   </option>
                 ))}
               </select>
             </div>
             <div className="item-meta" data-testid="settings-theme-current">
-              当前：{theme === 'dark' ? '深色' : '浅色'}
-              
+              {t('settings.themeCurrent', {
+                name: theme === 'dark' ? t('settings.themeDark') : t('settings.themeLight')
+              })}
             </div>
 
             {/* 字体大小：立即生效 */}
             <div className="form-row">
               <label className="form-label" htmlFor="settings-font-size">
-                字体大小
+                {t('settings.fontSize')}
               </label>
               <input
                 id="settings-font-size"
@@ -285,13 +335,14 @@ export default function SettingsPanel() {
               <span className="form-label">px</span>
             </div>
             <div className="item-meta" data-testid="settings-font-size-hint">
-              范围 {MIN_FONT_SIZE}–{MAX_FONT_SIZE}px，默认 {DEFAULT_FONT_SIZE}px。
-              <b>立即生效</b>（改的是全站 CSS 缩放系数，无需重启）—— 旧版 侧受 Qt 限制才需重启。
+              {t('settings.fontSizeHint', { min: MIN_FONT_SIZE, max: MAX_FONT_SIZE, def: DEFAULT_FONT_SIZE })}
+              <b>{t('settings.immediate')}</b>
+              {t('settings.fontSizeHintTail')}
             </div>
 
             {/* 删除时确认：默认开启；关闭后删除直接执行，必须如实告知破坏性 */}
             <div className="form-row">
-              <span className="form-label">确认删除</span>
+              <span className="form-label">{t('settings.confirmDelete')}</span>
               <label className="ai-gen-check" htmlFor="settings-confirm-delete">
                 <input
                   id="settings-confirm-delete"
@@ -300,22 +351,24 @@ export default function SettingsPanel() {
                   checked={confirmDelete}
                   onChange={(event) => handleConfirmDeleteChange(event.target.checked)}
                 />
-                删除时确认
+                {t('settings.confirmDeleteLabel')}
               </label>
             </div>
             {confirmDelete ? (
               <div className="item-meta" data-testid="settings-confirm-delete-hint">
-                已开启：批量删除会先出现「确认删除 / 取消」两个按钮，点错还有退路。
+                {t('settings.confirmDeleteOn')}
               </div>
             ) : (
               <div className="danger-hint" data-testid="settings-confirm-delete-danger">
-                已关闭：批量删除将<b>直接执行且不再二次确认</b>，点错无法撤回。
+                {t('settings.confirmDeleteOffPrefix')}
+                <b>{t('settings.confirmDeleteOffStrong')}</b>
+                {t('settings.confirmDeleteOffSuffix')}
               </div>
             )}
 
             {/* 导出时图片缺失则阻断：默认关闭（保持旧行为）；开启后缺图直接报错不落盘 */}
             <div className="form-row">
-              <span className="form-label">导出阻断</span>
+              <span className="form-label">{t('settings.blockExport')}</span>
               <label className="ai-gen-check" htmlFor="settings-block-export-missing">
                 <input
                   id="settings-block-export-missing"
@@ -324,16 +377,16 @@ export default function SettingsPanel() {
                   checked={blockExportMissing}
                   onChange={(event) => handleBlockExportMissingChange(event.target.checked)}
                 />
-                导出时图片缺失则阻断
+                {t('settings.blockExportLabel')}
               </label>
             </div>
             {blockExportMissing ? (
               <div className="item-meta" data-testid="settings-block-export-missing-hint">
-                已开启：导出引擎数据前若发现引用的库内图片缺失，会直接报错、不写文件，避免导出错漏的半成品。
+                {t('settings.blockExportOn')}
               </div>
             ) : (
               <div className="item-meta" data-testid="settings-block-export-missing-off">
-                已关闭：拷得到的图片照常带出，找不到的只告警不阻断（保持旧行为）。
+                {t('settings.blockExportOff')}
               </div>
             )}
           </div>
@@ -341,7 +394,7 @@ export default function SettingsPanel() {
 
         {/* ---- LLM 服务商配置 ---- */}
         <div className="form-section" data-testid="settings-llm">
-          <strong>AI 模型服务</strong>
+          <strong>{t('settings.llmSection')}</strong>
 
           {/*
             M0 未配置引导块。位置在「AI 模型服务」标题之后、「启用 API」复选框之前 ——
@@ -350,6 +403,8 @@ export default function SettingsPanel() {
             `check-option` 同为块级流式排布，不改动任何既有元素的相对位置。
             ⚠️ `body` 含 `\n`（三步说明），必须靠 `whiteSpace: 'pre-line'` 渲染换行；
             直接塞进普通 div 会把三行压成一行糊掉。
+            ⚠️ 已知残留：这段文案由 `shared/config/llm` 的 `llmSetupGuide()` 生成，仍是中文，
+            属下一批 i18n 迁移（要改成返回文案键）。
           */}
           {setupGuide.showGuide && (
             <div className="notice-banner inline" data-testid="llm-setup-guide">
@@ -365,7 +420,7 @@ export default function SettingsPanel() {
                   disabled={llmProbing}
                   onClick={() => void enableConfidential()}
                 >
-                  🔒 一键启用保密模式
+                  {t('settings.llmEnableConfidential')}
                 </button>
               )}
             </div>
@@ -382,7 +437,7 @@ export default function SettingsPanel() {
               checked={llm.enabled}
               onChange={(e) => commitLlm({ ...llm, enabled: e.target.checked })}
             />
-            启用 API
+            {t('settings.llmEnable')}
           </label>
 
           {/* DD-0b 保密模式：显式开关，开启后强制本地 Ollama，与云端档并列而非隐藏 */}
@@ -392,17 +447,19 @@ export default function SettingsPanel() {
               checked={llm.confidential}
               onChange={(e) => commitLlm({ ...llm, confidential: e.target.checked })}
             />
-            🔒 保密模式（数据不出本机）
+            {t('settings.llmConfidential')}
           </label>
           {llm.confidential && (
             <div className="item-meta" data-testid="llm-confidential-notice">
-              已开启保密模式：所有 AI 调用强制走本地 Ollama，<b>数据不出本机</b>，不会向任何云端服务商发送数据。
+              {t('settings.llmConfidentialNoticePrefix')}
+              <b>{t('settings.llmConfidentialNoticeStrong')}</b>
+              {t('settings.llmConfidentialNoticeSuffix')}
             </div>
           )}
 
           <div className="form-row">
             <label className="form-label" htmlFor="llm-provider">
-              API 服务
+              {t('settings.llmProvider')}
             </label>
             <div className="form-field">
               <select
@@ -431,7 +488,9 @@ export default function SettingsPanel() {
                   id="llm-api-key"
                   type="password"
                   data-testid="llm-api-key"
-                  placeholder={llmKeySaved ? '已存入钥匙串（不回显）' : '请输入 API Key'}
+                  placeholder={
+                    llmKeySaved ? t('settings.llmKeyPlaceholderSaved') : t('settings.llmKeyPlaceholderEmpty')
+                  }
                   value={llmKeyDraft}
                   onChange={(e) => {
                     setLlmKeyDraft(e.target.value)
@@ -439,18 +498,16 @@ export default function SettingsPanel() {
                   }}
                 />
                 <button type="button" className="btn" data-testid="llm-save-key" onClick={() => void saveLlmKey()}>
-                  保存到钥匙串
+                  {t('settings.llmSaveKey')}
                 </button>
-                <div className="item-meta">
-                  密钥经 Electron safeStorage 加密落盘，不写入浏览器存储，渲染层也不回显。
-                </div>
+                <div className="item-meta">{t('settings.llmKeyHint')}</div>
               </div>
             </div>
           )}
 
           <div className="form-row">
             <label className="form-label" htmlFor="llm-base-url">
-              接口地址
+              {t('settings.llmBaseUrl')}
             </label>
             <div className="form-field">
               <input
@@ -462,14 +519,14 @@ export default function SettingsPanel() {
                 onChange={(e) => commitLlm({ ...llm, baseUrl: e.target.value })}
               />
               <div className="item-meta" data-testid="llm-base-url-effective">
-                实际生效：{resolveLlmBaseUrl(llm)}
+                {t('settings.llmBaseUrlEffective', { url: resolveLlmBaseUrl(llm) })}
               </div>
             </div>
           </div>
 
           <div className="form-row">
             <label className="form-label" htmlFor="llm-model">
-              模型
+              {t('settings.llmModel')}
             </label>
             <div className="form-field">
               <input
@@ -494,7 +551,7 @@ export default function SettingsPanel() {
           */}
           <div className="form-row">
             <label className="form-label" htmlFor="llm-vision">
-              视觉输入
+              {t('settings.llmVision')}
             </label>
             <div className="form-field">
               <select
@@ -503,21 +560,21 @@ export default function SettingsPanel() {
                 value={llm.vision}
                 onChange={(e) => commitLlm({ ...llm, vision: e.target.value as VisionMode })}
               >
-                <option value="auto">自动（按模型名判断）</option>
-                <option value="on">强制发送图片</option>
-                <option value="off">不发送图片</option>
+                <option value="auto">{t('settings.llmVisionAuto')}</option>
+                <option value="on">{t('settings.llmVisionOn')}</option>
+                <option value="off">{t('settings.llmVisionOff')}</option>
               </select>
               <div className="item-meta" data-testid="llm-vision-effective">
                 {resolveVisionSupport(llm.model, llm.vision)
-                  ? '当前判定：会把图片附件发给模型（受 4 张 / 20MB 上限约束）。'
-                  : '当前判定：不发送图片，仅把附件路径告诉智能体（需要时它自己按路径读）。'}
+                  ? t('settings.llmVisionYes')
+                  : t('settings.llmVisionNo')}
               </div>
             </div>
           </div>
 
           <div className="form-row">
             <label className="form-label" htmlFor="llm-temperature">
-              温度
+              {t('settings.llmTemperature')}
             </label>
             <div className="form-field">
               <input
@@ -535,7 +592,7 @@ export default function SettingsPanel() {
 
           <div className="form-row">
             <label className="form-label" htmlFor="llm-max-tokens">
-              最大令牌
+              {t('settings.llmMaxTokens')}
             </label>
             <div className="form-field">
               <input
@@ -559,7 +616,7 @@ export default function SettingsPanel() {
                 disabled={llmTesting}
                 onClick={() => void handleTestConnection()}
               >
-                {llmTesting ? '测试中…' : '测试连接'}
+                {llmTesting ? t('settings.llmTesting') : t('settings.llmTest')}
               </button>
             </div>
           </div>
@@ -572,15 +629,14 @@ export default function SettingsPanel() {
 
           {effectiveProvider(llm) === 'claude' && (
             <div className="danger-hint" data-testid="llm-claude-unsupported">
-              Claude 走 Anthropic Messages API，与 OpenAI 协议不兼容，本版暂未接入调用。
+              {t('settings.llmClaudeUnsupported')}
             </div>
           )}
         </div>
 
         {/* ---- 范围外项目：显式列出并说明为何不做（静默省略会让用户以为漏做了） ---- */}
         <div className="item-meta" data-testid="settings-out-of-scope">
-          本版未提供：语言（无多语言框架）、自动保存（本应用无自动保存）、界面布局（已固定为单栏工作区）、
-          视觉模型配置（TS 侧无视觉模型消费者）、技能生成模板偏好（属策划内容域，见上）。
+          {t('settings.outOfScope')}
         </div>
       </div>
     </div>
