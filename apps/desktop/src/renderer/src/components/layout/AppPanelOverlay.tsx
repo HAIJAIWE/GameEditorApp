@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react'
 
+import { useT } from '@mobai/client-ui'
+
 /**
  * 全局面板浮层（中栏 + 停靠区整体被面板占据）。
  *
@@ -22,12 +24,13 @@ export function AppPanelOverlay({
   /** 面板本体（App 侧包好 `AppContextProvider`） */
   children: ReactNode
 }) {
+  const t = useT()
   return (
     <div className="panel-overlay">
       <div className="panel-overlay-header">
         <span className="chapter-form-title">{panelTitle}</span>
         <button type="button" className="btn" data-testid="panel-close" onClick={() => onClose()}>
-          关闭
+          {t('common.close')}
         </button>
       </div>
       <div className="panel-overlay-body">{children}</div>

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
 import type { CeshuSummary } from '@mobai/shared/ceshu/reference'
 import type { PluginSidebarItem } from '@mobai/shared/plugin/types'
 import { resolveIconName } from '@mobai/shared/util/ui'
@@ -62,6 +63,7 @@ export default function Sidebar({
   activeCeshuId?: string | null
   onOpenCeshu?: (id: string) => void
 }) {
+  const t = useT()
   const [collapsed, setCollapsed] = useState<boolean>(() => loadCollapsed())
   /**
    * 「更多」默认收起：默认状态下界面上只有 4 项，视觉与 dsh 一致；
@@ -138,7 +140,7 @@ export default function Sidebar({
       className={`sidebar${collapsed ? ' collapsed' : ''}`}
       data-testid="sidebar"
       data-collapsed={collapsed}
-      aria-label="主导航"
+      aria-label={t('layout.nav.aria')}
     >
       <div className="sidebar-head">
         <button
@@ -146,14 +148,14 @@ export default function Sidebar({
           className="sidebar-toggle"
           data-testid="sidebar-toggle"
           aria-expanded={!collapsed}
-          title={collapsed ? '展开侧栏（Ctrl+B）' : '收起侧栏（Ctrl+B）'}
+          title={collapsed ? t('layout.sidebar.expand') : t('layout.sidebar.collapse')}
           onClick={toggle}
         >
           <span className="sidebar-icon" aria-hidden>
             {collapsed ? <LucideIcon name="chevron-right" size={16} /> : <LucideIcon name="chevron-left" size={16} />}
           </span>
         </button>
-        {!collapsed && <span className="sidebar-brand">墨白</span>}
+        {!collapsed && <span className="sidebar-brand">{t('app.brand')}</span>}
       </div>
 
       {/* 顶部主操作（dsh「＋ 新会话」的位置） */}
@@ -162,11 +164,11 @@ export default function Sidebar({
           type="button"
           className="sidebar-primary"
           data-testid="sidebar-new-ceshu"
-          title="新建策划书"
+          title={t('layout.newCeshu')}
           onClick={onNewCeshu}
         >
           <LucideIcon name="plus" size={16} />
-          {!collapsed && <span>新建策划书</span>}
+          {!collapsed && <span>{t('layout.newCeshu')}</span>}
         </button>
       )}
 
@@ -183,13 +185,13 @@ export default function Sidebar({
               data-testid="sidebar-more"
               aria-expanded={moreOpen}
               aria-controls={moreOpen ? 'sidebar-more-items' : undefined}
-              title={moreOpen ? '收起更多' : '更多'}
+              title={moreOpen ? t('layout.more.collapse') : t('layout.more')}
               onClick={() => setMoreOpen((open) => !open)}
             >
               <span className="sidebar-icon" aria-hidden>
                 {moreOpen ? <LucideIcon name="chevron-down" size={16} /> : <LucideIcon name="chevron-right" size={16} />}
               </span>
-              <span className="sidebar-label">更多</span>
+              <span className="sidebar-label">{t('layout.more')}</span>
             </button>
             {/* 收起时不渲染，避免隐藏项还能被 Tab 聚焦到（display:none 的按钮在部分
                 浏览器里仍会被读屏枚举），也让测试只在展开后才找得到溢出项。 */}
@@ -206,11 +208,11 @@ export default function Sidebar({
       {!collapsed && (
         <div className="sidebar-section">
           <div className="sidebar-section-head">
-            <span>工作区</span>
+            <span>{t('layout.workspace')}</span>
             <span className="sidebar-section-count">{ceshuList.length}</span>
           </div>
           {ceshuList.length === 0 ? (
-            <p className="sidebar-empty">还没有策划书</p>
+            <p className="sidebar-empty">{t('layout.workspace.empty')}</p>
           ) : (
             <ul className="sidebar-list">
               {ceshuList.map((doc) => (
@@ -219,14 +221,14 @@ export default function Sidebar({
                     type="button"
                     className={`sidebar-item${doc.id === activeCeshuId ? ' active' : ''}`}
                     data-testid={`sidebar-ceshu-${doc.id}`}
-                    title={doc.gameName || '未命名策划书'}
+                    title={doc.gameName || t('layout.ceshu.untitled')}
                     aria-current={doc.id === activeCeshuId ? 'page' : undefined}
                     onClick={() => onOpenCeshu?.(doc.id)}
                   >
                     <span className="sidebar-icon" aria-hidden>
                       <LucideIcon name="file-text" size={16} />
                     </span>
-                    <span className="sidebar-label">{doc.gameName || '未命名策划书'}</span>
+                    <span className="sidebar-label">{doc.gameName || t('layout.ceshu.untitled')}</span>
                   </button>
                 </li>
               ))}

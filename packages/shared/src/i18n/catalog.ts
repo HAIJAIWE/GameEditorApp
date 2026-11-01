@@ -289,6 +289,25 @@ export const zh = {
   // —— 智能体面板：正文文件链接 ——
   'agent.chat.openInCode': '在代码面板打开 {path}',
 
+  // —— 布局：菜单栏 / 侧栏 / 停靠栏 ——
+  'app.brand': '墨白',
+  'layout.currentLibrary': '当前库',
+  'layout.focusAi': '聚焦右侧智能体对话输入框',
+  'layout.nav.aria': '主导航',
+  'layout.sidebar.expand': '展开侧栏（Ctrl+B）',
+  'layout.sidebar.collapse': '收起侧栏（Ctrl+B）',
+  'layout.newCeshu': '新建策划书',
+  'layout.more': '更多',
+  'layout.more.collapse': '收起更多',
+  'layout.workspace': '工作区',
+  'layout.workspace.empty': '还没有策划书',
+  'layout.ceshu.untitled': '未命名策划书',
+  'layout.dock.resizerAria': '调整 AI 停靠栏宽度',
+  'layout.dock.resizerTitle': '拖拽调整宽度，双击复位',
+  'layout.dock.exitFullscreen': '退出全屏',
+  'layout.dock.fullscreen': '停靠区全屏',
+  'layout.dock.exitFullscreenEsc': '退出全屏（Esc）',
+
   // —— 设置：通用 ——
   'settings.subtitle': '偏好即时生效并自动保存，无需点确定',
   'settings.sectionGeneral': '通用设置',
@@ -631,6 +650,25 @@ export const en: Record<MessageKey, string> = {
 
   // —— Agent panel: chat file link ——
   'agent.chat.openInCode': 'Open {path} in the code panel',
+
+  // —— Layout: menubar / sidebar / dock ——
+  'app.brand': 'Mobai',
+  'layout.currentLibrary': 'Library',
+  'layout.focusAi': 'Focus the agent input on the right',
+  'layout.nav.aria': 'Main navigation',
+  'layout.sidebar.expand': 'Expand sidebar (Ctrl+B)',
+  'layout.sidebar.collapse': 'Collapse sidebar (Ctrl+B)',
+  'layout.newCeshu': 'New design doc',
+  'layout.more': 'More',
+  'layout.more.collapse': 'Show less',
+  'layout.workspace': 'Workspace',
+  'layout.workspace.empty': 'No design docs yet',
+  'layout.ceshu.untitled': 'Untitled design doc',
+  'layout.dock.resizerAria': 'Resize the AI dock',
+  'layout.dock.resizerTitle': 'Drag to resize, double-click to reset',
+  'layout.dock.exitFullscreen': 'Exit fullscreen',
+  'layout.dock.fullscreen': 'Fullscreen dock',
+  'layout.dock.exitFullscreenEsc': 'Exit fullscreen (Esc)',
 
   'settings.subtitle': 'Changes apply and save automatically — no OK button',
   'settings.sectionGeneral': 'General',

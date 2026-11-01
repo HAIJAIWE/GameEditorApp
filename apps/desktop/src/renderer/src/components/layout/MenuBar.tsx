@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 
+import { useT } from '@mobai/client-ui'
 import type { PluginHost } from '@mobai/shared/plugin/host'
 import type { PluginMenuItem } from '@mobai/shared/plugin/types'
 import { isMenuDisabled } from '../../plugins/context'
@@ -25,14 +26,13 @@ interface MenuBarProps {
   host: PluginHost
 }
 
-/** 顶层菜单标题 → 稳定测试锚点（E2E 依赖；未列出的标题回落到 `menu-title-<title>`） */
-const MENU_TITLE_TESTIDS: Record<string, string> = {
-  文件: 'menu-title-file',
-  编辑: 'menu-title-edit',
-  工具: 'menu-title-tools',
-  视图: 'menu-title-view',
-  设置: 'menu-title-settings',
-  帮助: 'menu-title-help'
+/**
+ * 顶层菜单的稳定测试锚点：由能力 id 派生（`menu.file` → `menu-title-file`），
+ * **与菜单标题文案无关**——标题将来要翻译，testid 不能跟着变（e2e 全指着它）。
+ * 不再用「中文标题 → testid」的映射表：那张表把界面语言焊死在测试锚点里。
+ */
+function menuTestId(menuId: string): string {
+  return `menu-title-${menuId.replace(/^menu\./, '')}`
 }
 
 /** 分隔符在契约里是「既没有 command 也没有 items」的条目 */
@@ -41,6 +41,7 @@ function isSeparator(item: PluginMenuItem): boolean {
 }
 
 export default function MenuBar({ host }: MenuBarProps) {
+  const t = useT()
   const [openIndex, setOpenIndex] = useState<number | null>(null)
   const barRef = useRef<HTMLDivElement>(null)
 
@@ -53,14 +54,14 @@ export default function MenuBar({ host }: MenuBarProps) {
       .join('|')
   )
 
-  /** 顶层菜单：按 order 排序（host.menus() 已排），同标题合并条目 */
-  const merged = new Map<string, PluginMenuItem[]>()
+  /** 顶层菜单：按 order 排序（host.menus() 已排），同标题合并条目；记下首个能力的 id 供 testid 用 */
+  const merged = new Map<string, { id: string; items: PluginMenuItem[] }>()
   for (const capability of host.menus()) {
     const existing = merged.get(capability.menu)
-    if (existing === undefined) merged.set(capability.menu, [...capability.items])
-    else existing.push(...capability.items)
+    if (existing === undefined) merged.set(capability.menu, { id: capability.id, items: [...capability.items] })
+    else existing.items.push(...capability.items)
   }
-  const menus = [...merged.entries()].map(([title, items]) => ({ title, items }))
+  const menus = [...merged.entries()].map(([title, value]) => ({ title, id: value.id, items: value.items }))
 
   useEffect(() => {
     if (openIndex === null) return undefined
@@ -109,7 +110,7 @@ export default function MenuBar({ host }: MenuBarProps) {
           <button
             type="button"
             className={`menu-title${openIndex === idx ? ' open' : ''}`}
-            data-testid={MENU_TITLE_TESTIDS[menu.title] ?? `menu-title-${menu.title}`}
+            data-testid={menuTestId(menu.id)}
             onClick={() => setOpenIndex(openIndex === idx ? null : idx)}
             onMouseEnter={() => {
               if (openIndex !== null) setOpenIndex(idx)
@@ -146,7 +147,7 @@ export default function MenuBar({ host }: MenuBarProps) {
 
       {/* 右侧角部件：库标签 + 库条 + 设置/智能体/AI */}
       <div className="menubar-right">
-        <span className="menubar-label">当前库</span>
+        <span className="menubar-label">{t('layout.currentLibrary')}</span>
         <LibraryBar />
         {/* 库操作与应用级动作分组：一条 1px 细线，避免 7 个控件连成一排 */}
         <span className="menubar-divider" aria-hidden="true" />
@@ -154,8 +155,8 @@ export default function MenuBar({ host }: MenuBarProps) {
           type="button"
           className="btn slim icon"
           data-testid="menubar-settings"
-          aria-label="设置"
-          title="设置"
+          aria-label={t('settings.title')}
+          title={t('settings.title')}
           onClick={() => runCommand('settings.open')}
         >
           <LucideIcon name="settings" size={16} />
@@ -164,11 +165,11 @@ export default function MenuBar({ host }: MenuBarProps) {
           type="button"
           className="btn slim primary"
           data-testid="menubar-ai"
-          title="聚焦右侧智能体对话输入框"
+          title={t('layout.focusAi')}
           onClick={() => runCommand('app.focusAi')}
         >
           <LucideIcon name="bot" size={16} />
-          智能体
+          {t('agent.title')}
         </button>
       </div>
     </div>

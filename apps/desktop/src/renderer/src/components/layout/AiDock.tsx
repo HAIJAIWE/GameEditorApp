@@ -1,5 +1,6 @@
 import { type MouseEvent as ReactMouseEvent } from 'react'
 
+import { useT } from '@mobai/client-ui'
 import type { PluginHost } from '@mobai/shared/plugin/host'
 import { CollapseIcon, ExpandIcon } from '../common'
 import { MainViewMount, type AppMainTab } from '../../plugins/host'
@@ -41,6 +42,7 @@ export function AiDock({
   /** 双击分隔条：宽度复位 */
   onResetWidth: () => void
 }) {
+  const t = useT()
   return (
     <>
       {/* 右栏拖拽分隔条：拖动改宽，双击复位；全屏时没有「宽」可调，不渲染 */}
@@ -49,8 +51,8 @@ export function AiDock({
           className="ai-dock-resizer"
           role="separator"
           aria-orientation="vertical"
-          aria-label="调整 AI 停靠栏宽度"
-          title="拖拽调整宽度，双击复位"
+          aria-label={t('layout.dock.resizerAria')}
+          title={t('layout.dock.resizerTitle')}
           data-testid="ai-dock-resizer"
           onMouseDown={onResizeStart}
           onDoubleClick={onResetWidth}
@@ -74,8 +76,8 @@ export function AiDock({
               className="middle-tab-action"
               data-testid="dock-fullscreen"
               aria-pressed={fullscreen}
-              aria-label={fullscreen ? '退出全屏' : '停靠区全屏'}
-              title={fullscreen ? '退出全屏（Esc）' : '停靠区全屏'}
+              aria-label={fullscreen ? t('layout.dock.exitFullscreen') : t('layout.dock.fullscreen')}
+              title={fullscreen ? t('layout.dock.exitFullscreenEsc') : t('layout.dock.fullscreen')}
               onClick={onToggleFullscreen}
             >
               {fullscreen ? <CollapseIcon /> : <ExpandIcon />}
