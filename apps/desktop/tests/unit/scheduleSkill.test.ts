@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { createScheduleSkill } from '../../src/main/agent/skills/scheduleSkill'
+import { createScheduleSkill } from '@mobai/agent-core/skills/scheduleSkill'
 
 let dir = ''
 

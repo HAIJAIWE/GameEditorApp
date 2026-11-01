@@ -10,7 +10,7 @@ import {
   getWorkspaceRoot,
   initWorkspace,
   setWorkspaceRoot
-} from '../../src/main/agent/workspace/workspaceStore'
+} from '@mobai/agent-core/workspace/workspaceStore'
 
 let dir = ''
 

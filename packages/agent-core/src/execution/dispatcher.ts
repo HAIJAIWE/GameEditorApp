@@ -101,7 +101,17 @@ export class SkillRegistry {
 /** 技能调度器：注册 + 解析 + 安全门 + 结构化错误 */
 export class SkillDispatcher {
   private readonly registry = new SkillRegistry()
-  private fuzzyIndex = new Map<string, string>()
+  /**
+   * 描述词派生索引（**弱**）：从 `skill.description` 前几个词切出来的键。
+   *
+   * 只为兜住"模型说了个人话、恰好和描述里的某个词对上"的场景，**不得压过显式别名**。
+   * 曾经它和显式别名同处一个 Map，于是 `策划书` 被 `system.tech_doc` 的描述
+   * （"…区别于策划书 GDD…"）整段包含，按"键最长者胜"抢走了解析结果——
+   * 用户说"策划书"却拿到技术设计文档。见下方 `fuzzyMatch` 的两级查找。
+   */
+  private descIndex = new Map<string, string>()
+  /** id 片段 + 显式别名索引（**强**）：命中即用，优先级高于 `descIndex` */
+  private aliasIndex = new Map<string, string>()
   private readonly maxAllowedRisk: RiskLevel
 
   /**
@@ -146,7 +156,8 @@ export class SkillDispatcher {
 
   clear(): void {
     this.registry.clear()
-    this.fuzzyIndex.clear()
+    this.descIndex.clear()
+    this.aliasIndex.clear()
   }
 
   /** 供 A1-2 组装提示词用——**全量多行**描述，含参数明细 */
@@ -181,39 +192,49 @@ export class SkillDispatcher {
 
   /** 把技能 id 与描述切成模糊索引键（>=3 字符的 id 片段 / >=4 字符的描述词） */
   private buildFuzzyIndex(): void {
-    const index = new Map<string, string>()
+    const alias = new Map<string, string>()
+    const desc = new Map<string, string>()
     for (const skill of this.registry.list()) {
       for (const token of skill.id.replace(/^system\./, '').replace(/[._]/g, ' ').split(/\s+/)) {
-        if (token.length >= 3 && !index.has(token.toLowerCase())) index.set(token.toLowerCase(), skill.id)
+        if (token.length >= 3 && !alias.has(token.toLowerCase())) alias.set(token.toLowerCase(), skill.id)
       }
       const descWords = skill.description.toLowerCase().split(/[\s、，,。:：]+/)
       for (const word of descWords.slice(0, 10)) {
-        if (word.length >= 4 && !index.has(word)) index.set(word, skill.id)
+        if (word.length >= 4 && !desc.has(word)) desc.set(word, skill.id)
       }
     }
     for (const [key, toolId] of Object.entries(FUZZY_ALIASES)) {
-      if (this.registry.get(toolId) !== undefined && !index.has(key)) index.set(key, toolId)
+      if (this.registry.get(toolId) !== undefined && !alias.has(key)) alias.set(key, toolId)
     }
-    this.fuzzyIndex = index
+    this.aliasIndex = alias
+    this.descIndex = desc
   }
 
-  /**
-   * 名称解析：精确 → 索引包含匹配，取「键最长」为最佳。
-   * 无可解析目标返回 null。
-   */
-  fuzzyMatch(name: string): string | null {
-    if (name === '') return null
-    const needle = name.toLowerCase().trim()
-    if (this.registry.get(needle) !== undefined) return needle
-
+  /** 在一张索引上做「包含匹配」，取键最长者为最佳；无候选返回 null */
+  private static bestIn(index: Map<string, string>, needle: string): string | null {
     const candidates: Array<{ score: number; mapped: string }> = []
-    for (const [key, mapped] of this.fuzzyIndex) {
+    for (const [key, mapped] of index) {
       if (needle.includes(key)) candidates.push({ score: key.length, mapped })
       else if (key.includes(needle)) candidates.push({ score: Math.floor(key.length / 2), mapped })
     }
     if (candidates.length === 0) return null
     candidates.sort((a, b) => b.score - a.score)
     return candidates[0]?.mapped ?? null
+  }
+
+  /**
+   * 名称解析：精确 → **显式别名/id 片段** → 描述词。
+   *
+   * 两级查找是刻意的（见 `descIndex` 的注释）：描述是**给模型读的自然语言**，
+   * 里面会提到别的技能名（"区别于策划书 GDD"），拿它当解析依据天然会误伤。
+   * 故显式别名一旦命中就不再往下走；只有显式索引完全无候选时才让描述词兜底。
+   */
+  fuzzyMatch(name: string): string | null {
+    if (name === '') return null
+    const needle = name.toLowerCase().trim()
+    if (this.registry.get(needle) !== undefined) return needle
+
+    return SkillDispatcher.bestIn(this.aliasIndex, needle) ?? SkillDispatcher.bestIn(this.descIndex, needle)
   }
 
   /**

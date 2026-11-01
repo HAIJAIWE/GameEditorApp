@@ -3,7 +3,7 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { createTodoSkill, formatTodoList, normalizeTodoList } from '../../src/main/agent/skills/todoSkill'
+import { createTodoSkill, formatTodoList, normalizeTodoList } from '@mobai/agent-core/skills/todoSkill'
 
 describe('normalizeTodoList', () => {
   it('规范化合法清单（去空白、保留顺序）', () => {

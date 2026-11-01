@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildTimeContextBlock } from '../../src/main/agent/agentService/domainContext'
+import { buildTimeContextBlock } from '@mobai/agent-core/agentService/domainContext'
 
 describe('buildTimeContextBlock（对齐 dsh time-context）', () => {
   it('输出日期、时间与星期', () => {

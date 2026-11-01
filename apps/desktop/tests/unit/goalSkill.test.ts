@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { createGoalSkill } from '../../src/main/agent/skills/goalSkill'
+import { createGoalSkill } from '@mobai/agent-core/skills/goalSkill'
 import { goalStore } from '@mobai/shared/agent/goal/goalStore'
 
 const skill = createGoalSkill()

@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { isPathUnder, PathEscapeError, resolveInsideRoot } from '../../src/main/agent/skills/fsContainment'
+import { isPathUnder, PathEscapeError, resolveInsideRoot } from '@mobai/agent-core/skills/fsContainment'
 
 let root = ''
 

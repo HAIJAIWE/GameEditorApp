@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { AgentApprovalBroker } from '../../src/main/agent/execution/approvalBroker'
+import { AgentApprovalBroker } from '@mobai/agent-core/execution/approvalBroker'
 
 describe('AgentApprovalBroker：危险操作审批中转', () => {
   it('nextId 递增且不重复', () => {

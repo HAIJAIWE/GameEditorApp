@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { nextCronTime, parseCron } from '../../src/main/agent/schedule/cron'
+import { nextCronTime, parseCron } from '@mobai/agent-core/schedule/cron'
 
 describe('parseCron（5 字段）', () => {
   it('*/n 展开分钟集合', () => {

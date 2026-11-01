@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { createLspServerResolver, LSP_CONFIG_FILE } from '../../src/main/agent/lsp/lspConfig'
+import { createLspServerResolver, LSP_CONFIG_FILE } from '@mobai/agent-core/lsp/lspConfig'
 
 let dir = ''
 

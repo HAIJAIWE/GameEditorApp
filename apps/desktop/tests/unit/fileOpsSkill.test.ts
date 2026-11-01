@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { createFileOpsSkill } from '../../src/main/agent/skills/fileOpsSkill'
+import { createFileOpsSkill } from '@mobai/agent-core/skills/fileOpsSkill'
 
 let root = ''
 

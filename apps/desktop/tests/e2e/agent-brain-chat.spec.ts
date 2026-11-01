@@ -193,6 +193,7 @@ test('Agent Brain 循环：桩服务返回工具调用 → 执行工具 → 流�
       'system.code',
       'system.game_data',
       'system.session_search',
+      'system.todo_write',
       'tool.ask_user',
       'tool.rollback_ai_changes',
       'tool.spawn_subagent'

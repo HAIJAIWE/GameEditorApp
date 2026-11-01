@@ -368,6 +368,38 @@ export interface LlmUsage {
   totalTokens: number
 }
 
+/**
+ * 一次 LLM 调用的入参（**跨层契约**）。
+ *
+ * 放在 shared 而不是 `main/llm/client.ts`：这份形状同时被主进程客户端
+ * （`LlmClient.generate`）和 `packages/agent-core` 的 judge 端口使用。
+ * 留在 app 侧会让包必须反向 import app（A3 拆包时正是这 3 个字段卡住的），
+ * 复制一份又会漂移——故按"单源"放这里，app 侧只做 re-export。
+ *
+ * 设计取舍（为什么非敏感配置由渲染层每次带上来）见 `main/llm/client.ts` 的说明。
+ */
+export interface LlmCallOptions {
+  /**
+   * 渲染层传来的非敏感配置。
+   *
+   * ⚠️ `undefined` 的语义是「**用户从没配置过**」（`llmSetupState` 的
+   * `never-configured`），刻意与「配了但 `enabled: false`」分开：
+   * 前者要**引导去配置**（`generate()` 抛 `notConfigured`），
+   * 后者只需一句纯提示（`validateLlmConfig` 报 `disabled`）。
+   */
+  config?: StoredLlmConfig
+  /** 主进程从 safeStorage 解密出的 Key；缺省空串 */
+  apiKey?: string
+  /**
+   * 调用方取消信号（来自 `task:cancel` 的登记表）。
+   *
+   * 与内置的生成超时**叠加**（`AbortSignal.any`）：任一方触发都会中断在途请求。
+   * 两者语义不同 —— 超时是失败兜底（`TimeoutError`，报「请求超时，可重试」），
+   * 取消是用户意图（`AbortError`，报 `TASK_CANCELLED_MESSAGE`，面板按「已停止」展示）。
+   */
+  signal?: AbortSignal
+}
+
 export const LLM_CONFIG_KEY = 'mb.llmConfig'
 
 /**

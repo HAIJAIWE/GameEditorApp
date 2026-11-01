@@ -10,7 +10,7 @@
  * （这也是 A1-4 遗留的「审批端到端拦截」得以补齐的原因）。
  */
 
-import { runInSandbox } from '../../security/jsSandbox'
+import { runInSandbox } from '../security/jsSandbox'
 import type { SkillExecutionContext, SkillProtocol, SkillResult } from '@mobai/shared/agent/config'
 
 /** 默认执行超时（毫秒） */

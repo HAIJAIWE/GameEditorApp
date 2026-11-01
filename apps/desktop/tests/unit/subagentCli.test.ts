@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { createCliSubAgentProvider } from '../../src/main/agent/subagent/subagentCli'
+import { createCliSubAgentProvider } from '@mobai/agent-core/subagent/subagentCli'
 import type { SubAgentTask } from '@mobai/shared/agent/brain'
 
 function makeTask(text: string, sandboxPolicy: SubAgentTask['sandboxPolicy'] = 'workspace-write'): SubAgentTask {

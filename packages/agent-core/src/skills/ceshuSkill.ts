@@ -27,7 +27,7 @@ import {
   type GddScope
 } from '@mobai/shared/ceshu/reference'
 import type { SkillExecutionContext, SkillProtocol, SkillResult } from '@mobai/shared/agent/config'
-import type { CeshuManager } from '../../ceshu/manager'
+import type { CeshuStorePort } from '../ports'
 
 const ACTIONS = ['list', 'get', 'create', 'update', 'delete', 'export'] as const
 
@@ -37,7 +37,12 @@ const DEFAULT_SCOPE: GddScope = 'full'
 const DEFAULT_EXPORT_FORMAT: CeshuExportFormat = 'markdown'
 
 export interface CeshuSkillDeps {
-  ceshuManager: CeshuManager
+  /**
+   * 策划书服务（宿主实现：`CeshuManager`）。
+   *
+   * 只声明技能用到的 5 个方法（见 `ports.ts`），故宿主类无需任何改造即可满足。
+   */
+  ceshuManager: CeshuStorePort
   /** 导出管道（不注入则 `export` 动作不可用）；由 `main/index.ts` 注入以避免技能直接依赖导出模块 */
   exportDocument?: (
     doc: CeshuDocument,

@@ -4,7 +4,7 @@ import {
   isPreReviewEnabled,
   makePreExecReview,
   setPreReviewEnabled
-} from '../../src/main/agent/agentService/preReview'
+} from '@mobai/agent-core/agentService/preReview'
 import type { BrainLlmRequest, BrainLlmReply, BrainLlmTransport } from '@mobai/shared/agent/brain'
 
 /** 桩传输层：固定返回一段 content，并记录请求（便于断言 system 策略确实下发） */

@@ -5,7 +5,7 @@ import {
   createWebSearchSkill,
   decodeDdgUrl,
   parseDuckDuckGoHtml
-} from '../../src/main/agent/skills/webSearchSkill'
+} from '@mobai/agent-core/skills/webSearchSkill'
 
 const RESULTS_HTML = `
 <html><body>

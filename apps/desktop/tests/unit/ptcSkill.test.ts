@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { createPtcSkill } from '../../src/main/agent/skills/ptcSkill'
+import { createPtcSkill } from '@mobai/agent-core/skills/ptcSkill'
 
 interface Call {
   tool: string

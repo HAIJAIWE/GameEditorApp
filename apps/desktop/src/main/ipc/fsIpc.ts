@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs'
 import { readdir, stat } from 'node:fs/promises'
 import { readFile } from 'node:fs/promises'
 import { dirname, isAbsolute, join } from 'node:path'
@@ -34,10 +35,36 @@ const MAX_FILE_BYTES = 512 * 1024
 /** 二进制探测窗口：前 8KB 出现 NUL 即判二进制（UTF-8 文本不含 NUL） */
 const BINARY_SNIFF_BYTES = 8 * 1024
 
-/** 默认根目录：dev 下取 app 目录的父目录（仓库根），生产取 app 目录的父目录 */
+/**
+ * 默认根目录。
+ *
+ * - **生产**：`app.getAppPath()` = `<resources>/app.asar` ⇒ 取其父目录（安装目录），
+ *   语义是"应用旁边那堆文件"，保持不变。
+ * - **开发**：原先直接取父目录，前提是"app 目录的父目录 = 仓库根"。
+ *   转 monorepo 后 app 落在 `apps/desktop`，父目录成了 `apps/`——那里没有 README/源码，
+ *   代码面板默认打开一个近乎空的目录（e2e `code-panel-tabs` 因此红灯）。
+ *   故 dev 下改为**向上找 `.git`** 定位仓库根（最多 6 层，兼容 `apps/desktop` 这种嵌套）；
+ *   找不到就退回原行为，不对非 git 工作副本做任何假设。
+ */
 function resolveDefaultRoot(): string {
-  // app.getAppPath() dev=D:\...\desktop，prod=<resources>/app.asar
-  return dirname(app.getAppPath())
+  const appPath = app.getAppPath()
+  if (!app.isPackaged) {
+    const repoRoot = findRepoRoot(appPath)
+    if (repoRoot !== null) return repoRoot
+  }
+  return dirname(appPath)
+}
+
+/** 从 `from` 向上逐级找含 `.git` 的目录（`.git` 可能是目录，也可能是 worktree 的文件） */
+function findRepoRoot(from: string): string | null {
+  let dir = from
+  for (let depth = 0; depth < 6; depth += 1) {
+    if (existsSync(join(dir, '.git'))) return dir
+    const parent = dirname(dir)
+    if (parent === dir) break
+    dir = parent
+  }
+  return null
 }
 
 /** 目录名噪音过滤：版本控制/依赖/缓存目录不进树（用户仍可通过绝对路径进入） */

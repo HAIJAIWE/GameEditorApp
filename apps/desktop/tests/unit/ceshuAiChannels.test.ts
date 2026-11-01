@@ -25,9 +25,10 @@ import {
  * ## 边界说明
  * - 只测 handler 层编排（是否调 LLM、调几次、返回什么、错误怎么走），不测提示词文案
  *   （那是 `shared/ceshuAi` 的职责，另有测试）。
- * - `runLlmJudge` 用模块级 `new LlmClient()`，不可注入；此处让 `llmCallOptions` 返回
- *   无 `config` 的对象，`runLlmJudge` 便按降级铁律直接返回 `null`（**不触网**），
- *   于是 `quality` 只剩确定性门的结论 —— 这正是「judge 失败不阻断正文」的实测形态。
+ * - `runLlmJudge` 的客户端由宿主装配（A3 端口化，见 `agent-core/src/ports.ts`）；
+ *   本文件**不装配**，此处让 `llmCallOptions` 返回无 `config` 的对象，`runLlmJudge`
+ *   便按降级铁律直接返回 `null`（**不触网**），于是 `quality` 只剩确定性门的结论
+ *   —— 这正是「judge 失败不阻断正文」的实测形态。
  */
 
 interface GenerateCall {

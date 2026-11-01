@@ -37,13 +37,13 @@ export interface IpcHandlerDeps {
   attrSystemStore: import('./attr/attrSystemStore').AttrSystemStore
   llmClient: import('./llm/client').LlmClient
   dataSync: import('./ceshu/dataSync').CeshuDataSync
-  agentDispatcher: import('./agent/execution/dispatcher').SkillDispatcher
-  agentBrain: import('./agent/brain/brainService').AgentBrainService
-  agentSessionStore: import('./agent/session/sessionStore').AgentSessionStore
-  agentFeedback: import('./agent/store/preferenceStore').FeedbackStore
-  agentOperationLog: import('./agent/store/operationLogStore').OperationLogStore
-  agentDeliveryLog: import('./agent/store/deliveryLogStore').DeliveryLogStore
-  approvalBroker: import('./agent/execution/approvalBroker').AgentApprovalBroker
+  agentDispatcher: import('@mobai/agent-core/execution/dispatcher').SkillDispatcher
+  agentBrain: import('@mobai/agent-core/brain/brainService').AgentBrainService
+  agentSessionStore: import('@mobai/agent-core/session/sessionStore').AgentSessionStore
+  agentFeedback: import('@mobai/agent-core/store/preferenceStore').FeedbackStore
+  agentOperationLog: import('@mobai/agent-core/store/operationLogStore').OperationLogStore
+  agentDeliveryLog: import('@mobai/agent-core/store/deliveryLogStore').DeliveryLogStore
+  approvalBroker: import('@mobai/agent-core/execution/approvalBroker').AgentApprovalBroker
   libraryManager: import('./library/manager').LibraryManager
   /**
    * 系统钥匙串（`safeStorage` 加密的 API Key 存储）。

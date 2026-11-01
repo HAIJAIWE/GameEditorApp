@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import { createRecordingToolRunner, locateItem } from '../../src/main/agent/ops/operationRecorder'
-import { OperationLogStore } from '../../src/main/agent/store/operationLogStore'
-import { DeliveryLogStore } from '../../src/main/agent/store/deliveryLogStore'
-import { createRollbackSkill, type RollbackDataPort } from '../../src/main/agent/skills/rollbackSkill'
+import { createRecordingToolRunner, locateItem } from '@mobai/agent-core/ops/operationRecorder'
+import { OperationLogStore } from '@mobai/agent-core/store/operationLogStore'
+import { DeliveryLogStore } from '@mobai/agent-core/store/deliveryLogStore'
+import { createRollbackSkill, type RollbackDataPort } from '@mobai/agent-core/skills/rollbackSkill'
 import type { BrainToolRunner } from '@mobai/shared/agent/brain'
 import type { SkillResult } from '@mobai/shared/agent/config'
 

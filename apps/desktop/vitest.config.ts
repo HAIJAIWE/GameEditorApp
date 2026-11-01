@@ -3,10 +3,27 @@ import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
   resolve: {
+    /**
+     * 测试环境的解析别名。
+     *
+     * - `@mobai/*`：两个包都在 `apps/desktop` 之外，没有别名 vitest 找不到（包内只导出源码）。
+     * - 其余运行时依赖：**测试不 externalize**，同一个包可能被 shared / agent-core / app
+     *   各解析出一份（类型实例不互认、native 模块重复初始化）。显式收敛到 app 的
+     *   node_modules 才是单实例——生产构建由 `externalizeDepsPlugin()` 负责同一件事，
+     *   见 `electron.vite.config.ts` 的说明。
+     */
     alias: {
       '@mobai/shared': fileURLToPath(new URL('../../packages/shared/src', import.meta.url)),
+      '@mobai/agent-core': fileURLToPath(new URL('../../packages/agent-core/src', import.meta.url)),
       zod: fileURLToPath(new URL('./node_modules/zod', import.meta.url)),
-      'pinyin-pro': fileURLToPath(new URL('./node_modules/pinyin-pro', import.meta.url))
+      'pinyin-pro': fileURLToPath(new URL('./node_modules/pinyin-pro', import.meta.url)),
+      'quickjs-emscripten': fileURLToPath(new URL('./node_modules/quickjs-emscripten', import.meta.url)),
+      vectra: fileURLToPath(new URL('./node_modules/vectra', import.meta.url)),
+      jszip: fileURLToPath(new URL('./node_modules/jszip', import.meta.url)),
+      exceljs: fileURLToPath(new URL('./node_modules/exceljs', import.meta.url)),
+      'better-sqlite3': fileURLToPath(new URL('./node_modules/better-sqlite3', import.meta.url)),
+      'pdfjs-dist': fileURLToPath(new URL('./node_modules/pdfjs-dist', import.meta.url)),
+      electron: fileURLToPath(new URL('./node_modules/electron', import.meta.url))
     }
   },
   /**

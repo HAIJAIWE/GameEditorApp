@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { createBrowserSkill, isOpenableUrl } from '../../src/main/agent/skills/browserSkill'
+import { createBrowserSkill, isOpenableUrl } from '@mobai/agent-core/skills/browserSkill'
 
 type R = { success: boolean; message: string; error?: string; data?: unknown }
 

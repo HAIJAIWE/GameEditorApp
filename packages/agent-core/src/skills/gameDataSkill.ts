@@ -15,8 +15,7 @@
 
 import type { SkillExecutionContext, SkillProtocol, SkillResult } from '@mobai/shared/agent/config'
 import type { BatchOp } from '@mobai/shared/util/data'
-import type { DataService } from '../../data/service'
-import type { TypeSchemaStore } from '../../schema/store'
+import type { ItemStorePort, TypeSchemaPort } from '../ports'
 import type { ItemRecord } from '@mobai/shared/types'
 
 const ACTIONS = ['list_types', 'list', 'query', 'create', 'update', 'delete', 'batch_create', 'batch_update'] as const
@@ -34,8 +33,10 @@ interface ResolvedType {
 }
 
 export function createGameDataSkill(deps: {
-  dataService: DataService
-  typeSchemaStore: TypeSchemaStore
+  /** 条目读写口（宿主实现：`DataService`），只声明技能用到的方法 */
+  dataService: ItemStorePort
+  /** 类型表口（宿主实现：`TypeSchemaStore`），只读 */
+  typeSchemaStore: TypeSchemaPort
 }): SkillProtocol {
   const { dataService, typeSchemaStore } = deps
 

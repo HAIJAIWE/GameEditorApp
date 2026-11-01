@@ -1,7 +1,8 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { LlmClient } from '../../src/main/llm/client'
-import { runLlmJudge } from '../../src/main/agent/execution/qualityJudge'
+import { runLlmJudge } from '@mobai/agent-core/execution/qualityJudge'
+import { configureLlmJudge } from '@mobai/agent-core/ports'
 import type { LlmCallOptions } from '../../src/main/llm/client'
 
 /**
@@ -23,6 +24,13 @@ function abortError(): Error {
   err.name = 'AbortError'
   return err
 }
+
+beforeEach(() => {
+  // A3 端口化后 judge 客户端由宿主装配（生产环境在 `stores.ts` 的 buildStores 里做）。
+  // 这里装配**真实** `LlmClient`，各用例仍对 `LlmClient.prototype.generate` 打桩——
+  // 保证「取消/降级」判定走的是真实客户端的那条路径，而不是替身。
+  configureLlmJudge(new LlmClient())
+})
 
 afterEach(() => {
   vi.restoreAllMocks()
@@ -52,6 +60,14 @@ describe('runLlmJudge：取消必须抛、业务失败才降级', () => {
   it('未配置（config undefined）⇒ 直接 null，且不发起任何模型调用', async () => {
     const spy = vi.spyOn(LlmClient.prototype, 'generate')
     await expect(runLlmJudge({} as LlmCallOptions, 'meta', { a: 1 })).resolves.toBeNull()
+    expect(spy).not.toHaveBeenCalled()
+  })
+
+  it('未装配客户端 ⇒ 降级 null（端口化后的既定退化：judge 不可用不阻断正文）', async () => {
+    // 包不再自己 `new LlmClient()`；宿主没装配就没有 judge。走「业务失败」同一条降级路径。
+    configureLlmJudge(undefined)
+    const spy = vi.spyOn(LlmClient.prototype, 'generate')
+    await expect(runLlmJudge(configuredOpts, 'meta', { a: 1 })).resolves.toBeNull()
     expect(spy).not.toHaveBeenCalled()
   })
 

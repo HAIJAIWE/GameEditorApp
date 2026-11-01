@@ -4,9 +4,9 @@ import { join } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { AgentBrainService } from '../../src/main/agent/brain/brainService'
-import type { AgentSessionStore } from '../../src/main/agent/session/sessionStore'
-import { SkillDispatcher } from '../../src/main/agent/execution/dispatcher'
+import { AgentBrainService } from '@mobai/agent-core/brain/brainService'
+import type { AgentSessionStore } from '@mobai/agent-core/session/sessionStore'
+import { SkillDispatcher } from '@mobai/agent-core/execution/dispatcher'
 import type {
   BrainInbox,
   BrainLlmRequest,

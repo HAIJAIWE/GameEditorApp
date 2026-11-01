@@ -19,8 +19,16 @@
     "forceConsistentCasingInFileNames": true,
     "paths": {
       "@mobai/shared/*": ["../../packages/shared/src/*"],
+      "@mobai/agent-core/*": ["../../packages/agent-core/src/*"],
       "zod": ["./node_modules/zod"],
-      "pinyin-pro": ["./node_modules/pinyin-pro"]
+      "pinyin-pro": ["./node_modules/pinyin-pro"],
+      "quickjs-emscripten": ["./node_modules/quickjs-emscripten"],
+      "vectra": ["./node_modules/vectra"],
+      "jszip": ["./node_modules/jszip"],
+      "exceljs": ["./node_modules/exceljs"],
+      "better-sqlite3": ["./node_modules/@types/better-sqlite3"],
+      "pdfjs-dist/*": ["./node_modules/pdfjs-dist/*"],
+      "electron": ["./node_modules/electron"]
     }
   },
   "include": [

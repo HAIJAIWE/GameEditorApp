@@ -9,7 +9,7 @@ import {
   buildTypeScript,
   createComputerSkill,
   escapeSendKeys
-} from '../../src/main/agent/skills/computerSkill'
+} from '@mobai/agent-core/skills/computerSkill'
 
 let dir = ''
 

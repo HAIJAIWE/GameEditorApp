@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { resolveAgentTier, resolveAgentTransport } from '../../src/main/agent/transport/agentTransport'
-import { OllamaChatTransport } from '../../src/main/agent/transport/ollamaTransport'
-import { buildChatCompletionsUrl, OpenAiChatTransport } from '../../src/main/agent/transport/openAiTransport'
+import { resolveAgentTier, resolveAgentTransport } from '@mobai/agent-core/transport/agentTransport'
+import { OllamaChatTransport } from '@mobai/agent-core/transport/ollamaTransport'
+import { buildChatCompletionsUrl, OpenAiChatTransport } from '@mobai/agent-core/transport/openAiTransport'
 import { DEFAULT_LLM_CONFIG, LLM_DEFAULT_NUM_CTX, type StoredLlmConfig } from '@mobai/shared/config/llm'
 
 /**

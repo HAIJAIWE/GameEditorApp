@@ -42,15 +42,38 @@ test('Agent 技能调度：listTools + 只读技能执行 + 结构化错误', as
     // 1) listTools：内置技能清单 + 提示词描述
     // ⚠️ 这里是**有意写死**的清单守卫：新增/删除技能必须同步改此处，让「工具面变化」在 e2e 层显式可见。
     // （历史教训：断言曾停留在只有 2 个技能的年代，后续补了 code / ask_user / rollback 后一直红灯无人察。）
+    //
+    // ⚠️ 本清单是**全量注册表**（`listTools` 不过档位过滤）；Brain 循环真正下发给模型的
+    // 是**按档位截断后的子集**，那个子集由 `agent-brain-chat.spec.ts` 单独钉。
+    // 两处会一起变，但变的原因不同（这里是"注册了什么"，那里是"档位给多少"），故不合并。
+    // 单一事实源 = `apps/desktop/src/main/stores.ts` 的 `dispatcher.register(...)` 段。
     const meta = (await window.evaluate(async () => {
       const api = (globalThis as unknown as { mbApi: AgentApi }).mbApi
       return api.agent.listTools()
     })) as { description: string; tools: Array<{ name: string }> }
     expect(meta.tools.map((tool) => tool.name).sort()).toEqual([
+      'system.browser',
       'system.ceshu',
       'system.code',
+      'system.computer',
+      'system.document',
+      'system.file_ops',
       'system.game_data',
+      'system.goal',
+      'system.job',
+      'system.lsp',
+      'system.present_plan',
+      'system.ptc',
+      'system.schedule',
       'system.session_search',
+      'system.shell',
+      'system.ssh',
+      'system.tech_doc',
+      'system.terminal',
+      'system.todo_write',
+      'system.web_fetch',
+      'system.web_search',
+      'system.workflow',
       'tool.ask_user',
       'tool.rollback_ai_changes',
       'tool.spawn_subagent'

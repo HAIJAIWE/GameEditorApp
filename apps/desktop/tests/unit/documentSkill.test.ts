@@ -9,7 +9,7 @@ import {
   createDocumentSkill,
   docxToText,
   pptxSlideToText
-} from '../../src/main/agent/skills/documentSkill'
+} from '@mobai/agent-core/skills/documentSkill'
 
 let dir = ''
 

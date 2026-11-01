@@ -7,7 +7,7 @@ import {
 } from '@mobai/shared/schema/adapters'
 import { TYPE_TEMPLATE_NAMES } from '@mobai/shared/schema/core'
 import { buildFieldIdPrompt, parseFieldIdCandidates } from '@mobai/shared/util/id'
-import { runSingleShotTask } from '../agent/execution/runTask'
+import { runSingleShotTask } from '@mobai/agent-core/execution/runTask'
 import { estimateTokens } from '@mobai/shared/agent/runtime'
 
 export function registerSchemaIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm: LlmShared): void {

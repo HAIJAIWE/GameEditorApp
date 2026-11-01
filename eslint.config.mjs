@@ -138,7 +138,7 @@ export default tseslint.config(
     }
   },
   {
-    files: ['apps/desktop/src/main/**/*.ts', 'apps/desktop/src/preload/**/*.ts', 'packages/shared/src/**/*.ts', 'apps/desktop/tests/**/*.ts', 'apps/desktop/*.ts'],
+    files: ['apps/desktop/src/main/**/*.ts', 'apps/desktop/src/preload/**/*.ts', 'packages/shared/src/**/*.ts', 'packages/agent-core/src/**/*.ts', 'apps/desktop/tests/**/*.ts', 'apps/desktop/*.ts'],
     languageOptions: {
       globals: globals.node
     }
@@ -283,7 +283,7 @@ export default tseslint.config(
   // 尚未归区的历史平铺文件（`shared/ceshuModel.ts` 等）不在本规则约束范围内——
   // 它们属于渐进式迁移的存量，等迁入 `domain/` 后自动纳入本规则。
   {
-    files: ['apps/desktop/src/main/**/*.ts'],
+    files: ['apps/desktop/src/main/**/*.ts', 'packages/agent-core/src/**/*.ts'],
     rules: {
       'no-restricted-imports': [
         'error',
@@ -313,7 +313,7 @@ export default tseslint.config(
   // ⚠️ 覆盖警告：flat config 同名规则**整体覆盖**而非合并，本条会盖掉规则 4 对
   // skills 文件的配置，故此处必须重复声明 `**/shared/domain/**`，否则规则 4 在这批文件上失效。
   {
-    files: ['apps/desktop/src/main/agent/skills/**/*.ts'],
+    files: ['packages/agent-core/src/skills/**/*.ts'],
     rules: {
       'no-restricted-imports': [
         'error',

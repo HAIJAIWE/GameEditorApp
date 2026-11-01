@@ -1,4 +1,5 @@
-import { LlmClient, type LlmCallOptions } from '../../llm/client'
+import type { LlmCallOptions } from '@mobai/shared/config/llm'
+import { llmJudge } from '../ports'
 import { parseLlmJson } from '@mobai/shared/util/object'
 import { isAbortError } from '@mobai/shared/abort'
 import type { LlmJudgeVerdict } from '@mobai/shared/types'
@@ -9,8 +10,13 @@ import type { LlmJudgeVerdict } from '@mobai/shared/types'
  * ## 职责分工（与 `shared/agent/qualityGate.ts` 配合）
  * - `qualityGate.ts::evaluateChapterDraft`：确定性门（validateCeshu + 立项完成度），
  *   纯同步、不调 LLM、可单测 —— 这是**主**结论。
- * - 本模块 `runLlmJudge`：**辅助**维度（毒性/可读性/创意），必须由 main 层发起 LLM 调用
+ * - 本模块 `runLlmJudge`：**辅助**维度（毒性/可读性/创意），必须由宿主发起 LLM 调用
  *   （shared 层禁 import main，铁律），结果再交给 `applyJudge` 合并进 verdict。
+ *
+ * ## 客户端从哪来（A3 端口化）
+ * 原实现 `new LlmClient()` 直接 import app 的客户端，等于包反向依赖宿主。
+ * 现在只认 `ports.ts` 的 `LlmJudgePort`，由 `stores.ts` 调 `configureLlmJudge` 装配。
+ * 未装配 ⇒ 本模块**降级为 `null`**（与"业务失败"同一条路径），不阻断正文生成。
  *
  * ## 保密合规（DD-0b）
  * judge 复用与正文生成**同一份** `callOpts`（含 `StoredLlmConfig`），
@@ -25,8 +31,6 @@ import type { LlmJudgeVerdict } from '@mobai/shared/types'
  * 让整次单发生成如实报「已停止」——否则正文已白跑、面板却显示成功（判官这步
  * 最长可占满 180s 超时窗口，不抛等于让停止按钮失灵）。
  */
-
-const judgeClient = new LlmClient()
 
 const JUDGE_SYSTEM = [
   '你是游戏策划案的辅助审阅专家，对 AI 生成的单个章节内容做轻量评审。',
@@ -95,7 +99,10 @@ export async function runLlmJudge(
 ): Promise<LlmJudgeVerdict | null> {
   try {
     if (callOpts.config === undefined) return null
-    const { content } = await judgeClient.generate(JUDGE_SYSTEM, buildJudgePrompt(chapter, fields), {
+    // 未装配客户端 = judge 不可用，走与「业务失败」同一条降级路径
+    const client = llmJudge()
+    if (client === undefined) return null
+    const { content } = await client.generate(JUDGE_SYSTEM, buildJudgePrompt(chapter, fields), {
       ...callOpts,
       ...(signal !== undefined ? { signal } : {})
     })

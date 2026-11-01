@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { runInSandbox } from '../../src/main/security/jsSandbox'
+import { runInSandbox } from '@mobai/agent-core/security/jsSandbox'
 
 /**
  * JS 沙箱预演测试（Phase 1）：

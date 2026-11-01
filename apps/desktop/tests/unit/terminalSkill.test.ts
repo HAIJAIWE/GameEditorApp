@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { createTerminalSkill } from '../../src/main/agent/skills/terminalSkill'
+import { createTerminalSkill } from '@mobai/agent-core/skills/terminalSkill'
 
 const FIXTURE = fileURLToPath(new URL('../fixtures/echoShell.mjs', import.meta.url))
 

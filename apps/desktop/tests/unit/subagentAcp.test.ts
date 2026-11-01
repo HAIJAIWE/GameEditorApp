@@ -2,7 +2,7 @@ import { fileURLToPath } from 'node:url'
 
 import { describe, expect, it } from 'vitest'
 
-import { createAcpSubAgentProvider } from '../../src/main/agent/subagent/subagentAcp'
+import { createAcpSubAgentProvider } from '@mobai/agent-core/subagent/subagentAcp'
 import type { SubAgentTask } from '@mobai/shared/agent/brain'
 
 function makeTask(text: string, sandboxPolicy: SubAgentTask['sandboxPolicy'] = 'workspace-write'): SubAgentTask {

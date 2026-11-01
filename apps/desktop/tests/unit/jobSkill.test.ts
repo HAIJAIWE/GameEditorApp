@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createJobSkill } from '../../src/main/agent/skills/jobSkill'
+import { createJobSkill } from '@mobai/agent-core/skills/jobSkill'
 import { JobRegistry } from '@mobai/shared/agent/jobs/jobRegistry'
 
 const skill = createJobSkill()

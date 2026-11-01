@@ -4,8 +4,8 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { McpManager } from '../../src/main/agent/mcp/manager'
-import type { SkillDispatcher } from '../../src/main/agent/execution/dispatcher'
+import { McpManager } from '@mobai/agent-core/mcp/manager'
+import type { SkillDispatcher } from '@mobai/agent-core/execution/dispatcher'
 import type { McpTransport } from '@mobai/shared/agent/mcp'
 
 /** 可注入的假传输层：能模拟 list_changed 通知与进程断开 */

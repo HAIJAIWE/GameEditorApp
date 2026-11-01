@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { OperationLogStore } from '../../src/main/agent/store/operationLogStore'
+import { OperationLogStore } from '@mobai/agent-core/store/operationLogStore'
 import type { OperationRecord } from '@mobai/shared/agent/observability'
 
 function record(n: number, overrides: Partial<OperationRecord> = {}): OperationRecord {

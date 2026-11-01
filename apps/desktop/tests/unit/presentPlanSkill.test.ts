@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createPresentPlanSkill } from '../../src/main/agent/skills/presentPlanSkill'
+import { createPresentPlanSkill } from '@mobai/agent-core/skills/presentPlanSkill'
 
 const skill = createPresentPlanSkill()
 

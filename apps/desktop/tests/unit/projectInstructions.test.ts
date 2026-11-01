@@ -8,7 +8,7 @@ import {
   MAX_PROJECT_INSTRUCTIONS_CHARS,
   PROJECT_INSTRUCTIONS_FILE,
   readProjectInstructions
-} from '../../src/main/agent/agentService/projectInstructions'
+} from '@mobai/agent-core/agentService/projectInstructions'
 
 let dir = ''
 

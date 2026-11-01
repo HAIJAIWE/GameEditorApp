@@ -47,7 +47,7 @@ import { computeChapterProgress } from '@mobai/shared/ceshu/model'
 import { validateCeshu } from '@mobai/shared/ceshu/validation'
 import { parseLlmJson } from '@mobai/shared/util/object'
 import { applyJudge, evaluateChapterDraft, evaluateDataCandidates } from '@mobai/shared/agent/runtime'
-import { runLlmJudge } from '../../agent/execution/qualityJudge'
+import { runLlmJudge } from '@mobai/agent-core/execution/qualityJudge'
 import { runAiTask, type AiGeneratePort, type AiLlmPort } from '../../ai/runner'
 
 /** 四路任务共用的两个外部端口（配置门面 + 生成客户端） */

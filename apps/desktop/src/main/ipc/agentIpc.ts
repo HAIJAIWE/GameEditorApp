@@ -2,7 +2,7 @@ import { readFile, writeFile } from 'node:fs/promises'
 import { BrowserWindow, dialog, type OpenDialogOptions } from 'electron'
 
 import type { IpcHandlerDeps, IpcRegistrar, LlmShared } from '../ipc'
-import { getWorkspaceRoot, setWorkspaceRoot } from '../agent/workspace/workspaceStore'
+import { getWorkspaceRoot, setWorkspaceRoot } from '@mobai/agent-core/workspace/workspaceStore'
 import {
   agentApprovalResponseInputSchema,
   agentChatInputSchema,
@@ -19,10 +19,10 @@ import {
   mcpSetConfigInputSchema
 } from '@mobai/shared/schema/adapters'
 import { parseMcpConfig } from '@mobai/shared/agent/mcp'
-import { mcpManager } from '../agent/mcp/manager'
+import { mcpManager } from '@mobai/agent-core/mcp/manager'
 import { DEFAULT_INTERACTION_TIMEOUT_MS } from '@mobai/shared/agent/brain'
-import { isPreReviewEnabled, setPreReviewEnabled } from '../agent/agentService/preReview'
-import type { AgentInteractionAnswer } from '../agent/execution/approvalBroker'
+import { isPreReviewEnabled, setPreReviewEnabled } from '@mobai/agent-core/agentService/preReview'
+import type { AgentInteractionAnswer } from '@mobai/agent-core/execution/approvalBroker'
 import { withTask } from '../task/taskRegistry'
 
 export function registerAgentIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm: LlmShared): void {

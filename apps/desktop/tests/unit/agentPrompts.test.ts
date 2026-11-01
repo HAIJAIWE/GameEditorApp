@@ -13,7 +13,7 @@ import {
   getToolCatalogLine,
   type SkillProtocol
 } from '@mobai/shared/agent/config'
-import { SkillDispatcher } from '../../src/main/agent/execution/dispatcher'
+import { SkillDispatcher } from '@mobai/agent-core/execution/dispatcher'
 
 function makeSkill(id: string, description = '示例技能'): SkillProtocol {
   return {

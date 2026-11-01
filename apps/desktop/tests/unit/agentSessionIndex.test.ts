@@ -4,9 +4,9 @@ import { join } from 'node:path'
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { AgentSessionStore } from '../../src/main/agent/session/sessionStore'
-import { SessionSearchIndex } from '../../src/main/agent/session/sessionIndex'
-import { createSessionSearchSkill } from '../../src/main/agent/skills/sessionSearchSkill'
+import { AgentSessionStore } from '@mobai/agent-core/session/sessionStore'
+import { SessionSearchIndex } from '@mobai/agent-core/session/sessionIndex'
+import { createSessionSearchSkill } from '@mobai/agent-core/skills/sessionSearchSkill'
 
 let dir: string
 let store: AgentSessionStore

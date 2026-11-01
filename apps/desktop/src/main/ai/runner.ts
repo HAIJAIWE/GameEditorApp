@@ -27,7 +27,7 @@ import { estimateTokens, type LlmTaskType } from '@mobai/shared/agent/runtime'
 import type { LlmUsage } from '@mobai/shared/config/llm'
 import type { AgentRunStats } from '@mobai/shared/agent/observability'
 import type { LlmCallOptions } from '../llm/client'
-import { runSingleShotTask } from '../agent/execution/runTask'
+import { runSingleShotTask } from '@mobai/agent-core/execution/runTask'
 
 /** 主进程侧的 LLM 配置门面（对应 `ipc.ts::LlmShared`，此处只声明本模块用到的两个方法） */
 export interface AiLlmPort {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { encodeLspMessage, LspMessageReader } from '../../src/main/agent/lsp/framing'
+import { encodeLspMessage, LspMessageReader } from '@mobai/agent-core/lsp/framing'
 
 describe('LSP 分帧（Content-Length）', () => {
   it('encode 生成 Content-Length + body（按字节计）', () => {

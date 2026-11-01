@@ -4,7 +4,7 @@ import { join } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { AgentMemoryStore } from '../../src/main/agent/store/memoryStore'
+import { AgentMemoryStore } from '@mobai/agent-core/store/memoryStore'
 import { MEMORY_DIMS, embedText } from '@mobai/shared/agent/conversation'
 
 function makeDir(): string {

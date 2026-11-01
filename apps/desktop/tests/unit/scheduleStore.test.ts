@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { ScheduleStore, type ScheduleTask } from '../../src/main/agent/schedule/scheduleStore'
+import { ScheduleStore, type ScheduleTask } from '@mobai/agent-core/schedule/scheduleStore'
 
 let dir = ''
 let store: ScheduleStore

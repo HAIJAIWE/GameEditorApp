@@ -14,7 +14,7 @@
 import { llmConfirmReason } from '@mobai/shared/agent/config'
 import type { LlmTaskType } from '@mobai/shared/agent/runtime'
 import type { LlmUsage } from '@mobai/shared/config/llm'
-import { taskRegistry } from '../../task/taskRegistry'
+import { taskTickets } from '../ports'
 import {
   accumulateTurn,
   emptyAgentRunStats,
@@ -119,12 +119,16 @@ export async function runSingleShotTask<T>(spec: SingleShotTaskSpec<T>): Promise
   }
   const startedAt = Date.now()
   // 取消归属：登记后由 panel 的「停止」经 `task:cancel` 打断；`finally` 保证注销
-  const ticket = spec.senderId !== undefined ? taskRegistry().begin(spec.senderId) : undefined
+  // 取消表由宿主装配（`configureTaskTickets`）；未装配时退化为「不可取消」，
+  // 任务照常跑完——单测不必构造取消表，app 漏装配会让「停止」失灵，故装配点与
+  // `taskRegistry()` 放在同一处（`stores.ts`）。
+  const tickets = taskTickets()
+  const ticket = spec.senderId !== undefined && tickets !== undefined ? tickets.begin(spec.senderId) : undefined
   let output: SingleShotRunOutput<T>
   try {
     output = await spec.run(ticket?.signal)
   } finally {
-    if (ticket !== undefined) taskRegistry().end(ticket.taskId, ticket.signal)
+    if (ticket !== undefined) tickets?.end(ticket.taskId, ticket.signal)
   }
   const latencyMs = Date.now() - startedAt
   const tier: AgentRunTier = spec.isCloud ? 'cloud' : 'local'

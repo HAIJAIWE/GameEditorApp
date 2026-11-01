@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { buildSshArgs, createSshSkill } from '../../src/main/agent/skills/sshSkill'
+import { buildSshArgs, createSshSkill } from '@mobai/agent-core/skills/sshSkill'
 
 type R = { success: boolean; message: string; error?: string }
 

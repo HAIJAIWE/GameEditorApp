@@ -8,7 +8,7 @@ import { mcpToolId, mcpToolRisk, mcpToolToSkill } from '@mobai/shared/agent/mcp'
 import { McpClient } from '@mobai/shared/agent/mcp'
 import { parseMcpConfig } from '@mobai/shared/agent/mcp'
 import type { McpRequestOptions, McpTransport } from '@mobai/shared/agent/mcp'
-import { StdioMcpTransport } from '../../src/main/agent/mcp/stdioTransport'
+import { StdioMcpTransport } from '@mobai/agent-core/mcp/stdioTransport'
 import { RISK_LEVEL, clearDynamicToolRisk, resolveRiskLevel, setDynamicToolRisk } from '@mobai/shared/agent/config'
 
 /* ------------------------------- 配置解析 ------------------------------- */

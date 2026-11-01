@@ -63,51 +63,51 @@ function buildSubAgentProvider(): { subAgentProvider?: SubAgentProvider } {
   return {}
 }
 
-import { AgentApprovalBroker } from './agent/execution/approvalBroker'
-import { AgentBrainService, createDispatcherToolRunner } from './agent/brain/brainService'
-import { readProjectInstructions } from './agent/agentService/projectInstructions'
-import { OperationLogStore } from './agent/store/operationLogStore'
-import { DeliveryLogStore } from './agent/store/deliveryLogStore'
-import { createRecordingToolRunner } from './agent/ops/operationRecorder'
-import { createRollbackSkill } from './agent/skills/rollbackSkill'
-import { createSessionSearchSkill } from './agent/skills/sessionSearchSkill'
-import { createSubAgentSkill } from './agent/skills/subAgentSkill'
-import { createTodoSkill } from './agent/skills/todoSkill'
-import { createPresentPlanSkill } from './agent/skills/presentPlanSkill'
-import { createGoalSkill } from './agent/skills/goalSkill'
-import { createJobSkill } from './agent/skills/jobSkill'
-import { createFileOpsSkill } from './agent/skills/fileOpsSkill'
-import { createShellSkill } from './agent/skills/shellSkill'
-import { getWorkspaceRoot, initWorkspace } from './agent/workspace/workspaceStore'
-import { createLspSkill } from './agent/skills/lspSkill'
-import { createLspServerResolver } from './agent/lsp/lspConfig'
-import { createTechDocSkill } from './agent/skills/techDocSkill'
-import { createWebSkill } from './agent/skills/webSkill'
-import { createDocumentSkill } from './agent/skills/documentSkill'
-import { createTerminalSkill } from './agent/skills/terminalSkill'
-import { createSshSkill } from './agent/skills/sshSkill'
-import { createWorkflowSkill } from './agent/skills/workflowSkill'
-import { createPtcSkill } from './agent/skills/ptcSkill'
-import { createBrowserSkill } from './agent/skills/browserSkill'
-import { createWebSearchSkill } from './agent/skills/webSearchSkill'
-import { createComputerSkill } from './agent/skills/computerSkill'
-import { createScheduleSkill } from './agent/skills/scheduleSkill'
-import { initScheduleTicker } from './agent/schedule/scheduleTicker'
-import { createCliSubAgentProvider } from './agent/subagent/subagentCli'
-import { createRemoteSubAgentProvider } from './agent/subagent/subagentRemote'
-import { createAcpSubAgentProvider } from './agent/subagent/subagentAcp'
+import { AgentApprovalBroker } from '@mobai/agent-core/execution/approvalBroker'
+import { AgentBrainService, createDispatcherToolRunner } from '@mobai/agent-core/brain/brainService'
+import { readProjectInstructions } from '@mobai/agent-core/agentService/projectInstructions'
+import { OperationLogStore } from '@mobai/agent-core/store/operationLogStore'
+import { DeliveryLogStore } from '@mobai/agent-core/store/deliveryLogStore'
+import { createRecordingToolRunner } from '@mobai/agent-core/ops/operationRecorder'
+import { createRollbackSkill } from '@mobai/agent-core/skills/rollbackSkill'
+import { createSessionSearchSkill } from '@mobai/agent-core/skills/sessionSearchSkill'
+import { createSubAgentSkill } from '@mobai/agent-core/skills/subAgentSkill'
+import { createTodoSkill } from '@mobai/agent-core/skills/todoSkill'
+import { createPresentPlanSkill } from '@mobai/agent-core/skills/presentPlanSkill'
+import { createGoalSkill } from '@mobai/agent-core/skills/goalSkill'
+import { createJobSkill } from '@mobai/agent-core/skills/jobSkill'
+import { createFileOpsSkill } from '@mobai/agent-core/skills/fileOpsSkill'
+import { createShellSkill } from '@mobai/agent-core/skills/shellSkill'
+import { getWorkspaceRoot, initWorkspace } from '@mobai/agent-core/workspace/workspaceStore'
+import { createLspSkill } from '@mobai/agent-core/skills/lspSkill'
+import { createLspServerResolver } from '@mobai/agent-core/lsp/lspConfig'
+import { createTechDocSkill } from '@mobai/agent-core/skills/techDocSkill'
+import { createWebSkill } from '@mobai/agent-core/skills/webSkill'
+import { createDocumentSkill } from '@mobai/agent-core/skills/documentSkill'
+import { createTerminalSkill } from '@mobai/agent-core/skills/terminalSkill'
+import { createSshSkill } from '@mobai/agent-core/skills/sshSkill'
+import { createWorkflowSkill } from '@mobai/agent-core/skills/workflowSkill'
+import { createPtcSkill } from '@mobai/agent-core/skills/ptcSkill'
+import { createBrowserSkill } from '@mobai/agent-core/skills/browserSkill'
+import { createWebSearchSkill } from '@mobai/agent-core/skills/webSearchSkill'
+import { createComputerSkill } from '@mobai/agent-core/skills/computerSkill'
+import { createScheduleSkill } from '@mobai/agent-core/skills/scheduleSkill'
+import { initScheduleTicker } from '@mobai/agent-core/schedule/scheduleTicker'
+import { createCliSubAgentProvider } from '@mobai/agent-core/subagent/subagentCli'
+import { createRemoteSubAgentProvider } from '@mobai/agent-core/subagent/subagentRemote'
+import { createAcpSubAgentProvider } from '@mobai/agent-core/subagent/subagentAcp'
 import type { SubAgentProvider } from '@mobai/shared/agent/brain'
-import { mcpManager } from './agent/mcp/manager'
-import { AgentMemoryStore } from './agent/store/memoryStore'
-import { createOllamaEmbeddingProvider } from './agent/brain/embedding'
-import { createPersonalizationStores } from './agent/store/preferenceStore'
-import type { FeedbackStore, PreferenceStore } from './agent/store/preferenceStore'
-import { AgentSessionStore } from './agent/session/sessionStore'
-import { SkillDispatcher } from './agent/execution/dispatcher'
-import { createAskUserSkill } from './agent/skills/askUserSkill'
-import { createCeshuSkill } from './agent/skills/ceshuSkill'
-import { createCodeSkill } from './agent/skills/codeSkill'
-import { createGameDataSkill } from './agent/skills/gameDataSkill'
+import { mcpManager } from '@mobai/agent-core/mcp/manager'
+import { AgentMemoryStore } from '@mobai/agent-core/store/memoryStore'
+import { createOllamaEmbeddingProvider } from '@mobai/agent-core/brain/embedding'
+import { createPersonalizationStores } from '@mobai/agent-core/store/preferenceStore'
+import type { FeedbackStore, PreferenceStore } from '@mobai/agent-core/store/preferenceStore'
+import { AgentSessionStore } from '@mobai/agent-core/session/sessionStore'
+import { SkillDispatcher } from '@mobai/agent-core/execution/dispatcher'
+import { createAskUserSkill } from '@mobai/agent-core/skills/askUserSkill'
+import { createCeshuSkill } from '@mobai/agent-core/skills/ceshuSkill'
+import { createCodeSkill } from '@mobai/agent-core/skills/codeSkill'
+import { createGameDataSkill } from '@mobai/agent-core/skills/gameDataSkill'
 import { AttrSystemStore } from './attr/attrSystemStore'
 import { exportCeshuDocument } from './ceshu/export/exporter'
 import { CeshuDataSync } from './ceshu/dataSync'
@@ -119,6 +119,8 @@ import { DataService } from './data/service'
 import { UndoRecorder } from './data/undoRecorder'
 import { SqliteItemsRepository } from './data/sqliteRepo'
 import { LlmClient } from './llm/client'
+import { taskRegistry } from './task/taskRegistry'
+import { configureLlmJudge, configureTaskTickets } from '@mobai/agent-core/ports'
 import { TypeSchemaStore } from './schema/store'
 import { FieldTemplateStore } from './schema/fieldTemplateStore'
 
@@ -152,6 +154,16 @@ export interface AppStores {
 export function buildStores(libDir: string): AppStores {
   const dbPath = join(libDir, 'mb-editor.db')
   const data = new DataService(new SqliteItemsRepository(dbPath))
+  /*
+   * A3 宿主端口装配：`agent-core` 不再 import app（否则包与 app 循环依赖）。
+   * 两个进程级单例在这里注入——
+   * - 取消表：单发 AI 靠它响应面板「停止」，漏装配 ⇒ 停止按钮静默失灵；
+   * - LLM 客户端：judge 靠它评审，漏装配 ⇒ judge 静默降级为不可用。
+   * 都在 `buildStores` 里做（切库重建时幂等重设），与各自的单例同处一块便于对照。
+   */
+  configureTaskTickets(taskRegistry())
+  const llmClient = new LlmClient()
+  configureLlmJudge(llmClient)
   // 撤销记录器随活跃库重建；库切换时 buildStores 重新执行 → 旧栈随对象丢弃而清空（E7）
   const undoRecorder = new UndoRecorder(data)
   data.attachUndoRecorder(undoRecorder)
@@ -287,6 +299,6 @@ export function buildStores(libDir: string): AppStores {
     agentOperationLog: operationLog,
     agentDeliveryLog: deliveryLog,
     approvalBroker: new AgentApprovalBroker(),
-    llmClient: new LlmClient()
+    llmClient
   }
 }

@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { createLspSkill } from '../../src/main/agent/skills/lspSkill'
+import { createLspSkill } from '@mobai/agent-core/skills/lspSkill'
 
 const FIXTURE = fileURLToPath(new URL('../fixtures/fakeLspServer.mjs', import.meta.url))
 

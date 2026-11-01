@@ -10,8 +10,8 @@ import { describe, expect, it } from 'vitest'
 import { normalizeMcpToolName, mcpToolToSkill, mcpToolId, parseMcpConfig, McpClient } from '@mobai/shared/agent/mcp'
 import { buildToolMessage } from '@mobai/shared/agent/runtime'
 import type { McpTransport } from '@mobai/shared/agent/mcp'
-import { McpManager } from '../../src/main/agent/mcp/manager'
-import type { SkillDispatcher } from '../../src/main/agent/execution/dispatcher'
+import { McpManager } from '@mobai/agent-core/mcp/manager'
+import type { SkillDispatcher } from '@mobai/agent-core/execution/dispatcher'
 
 /** 最小假传输层：request 由 handler 驱动，支持 initialize/tools/call */
 class FakeTransport implements McpTransport {

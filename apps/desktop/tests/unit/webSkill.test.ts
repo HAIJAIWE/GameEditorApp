@@ -1,7 +1,7 @@
 import { createServer, type Server } from 'node:http'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { createWebSkill, htmlToText, isPrivateHost } from '../../src/main/agent/skills/webSkill'
+import { createWebSkill, htmlToText, isPrivateHost } from '@mobai/agent-core/skills/webSkill'
 
 let server: Server
 let base = ''

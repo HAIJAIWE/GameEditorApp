@@ -1,7 +1,8 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 
 import { TaskRegistry, taskRegistry, withTask } from '../../src/main/task/taskRegistry'
-import { runSingleShotTask } from '../../src/main/agent/execution/runTask'
+import { runSingleShotTask } from '@mobai/agent-core/execution/runTask'
+import { configureTaskTickets } from '@mobai/agent-core/ports'
 
 /*
  * 取消表的语义（对话循环与单发 AI 共用）。
@@ -158,6 +159,12 @@ describe('withTask：登记/注销配对不能靠调用点自觉', () => {
 })
 
 describe('runSingleShotTask：取消归属由 harness 负责', () => {
+  // A3 端口化：harness 不再 import app 的取消表，改由宿主装配（生产环境在 `buildStores`）。
+  // 这里装配真实的进程级单例，断言才能验证「面板停止真的能命中」这条链路。
+  beforeEach(() => {
+    configureTaskTickets(taskRegistry())
+  })
+
   it('传 senderId ⇒ 运行期间该窗口可取消；结束后自动注销（不留陈旧 controller）', async () => {
     const registry = taskRegistry()
     let signalSeen: AbortSignal | undefined
@@ -188,6 +195,25 @@ describe('runSingleShotTask：取消归属由 harness 负责', () => {
       isCloud: false,
       estimatedTokens: 10,
       taskType: 'chapter',
+      run: async (signal) => {
+        expect(signal).toBeUndefined()
+        expect(registry.size).toBe(0)
+        return { value: 'x' }
+      }
+    })
+  })
+
+  it('未装配取消表 ⇒ 即使传了 senderId 也不登记、不传 signal（既定退化，不是漏网）', async () => {
+    // 这是端口化引入的**显式**退化：包不再能自己拿到取消表，宿主没装配就没有取消能力。
+    // 钉住它，是为了让「app 忘了 configureTaskTickets」表现为这条用例的对照面，
+    // 而不是运行期才发现停止按钮失灵。
+    configureTaskTickets(undefined)
+    const registry = taskRegistry()
+    await runSingleShotTask({
+      isCloud: false,
+      estimatedTokens: 10,
+      taskType: 'chapter',
+      senderId: 4242,
       run: async (signal) => {
         expect(signal).toBeUndefined()
         expect(registry.size).toBe(0)

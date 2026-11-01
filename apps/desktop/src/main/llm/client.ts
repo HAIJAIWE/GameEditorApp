@@ -8,6 +8,7 @@ import {
   resolveLlmBaseUrl,
   TASK_CANCELLED_MESSAGE,
   validateLlmConfig,
+  type LlmCallOptions,
   type LlmProvider,
   type LlmUsage,
   type StoredLlmConfig
@@ -107,36 +108,17 @@ function toOllamaHost(baseUrl: string): string {
 }
 
 /**
- * 读取「本次调用」的配置。
+ * `LlmCallOptions` 的**类型**在 `shared/config/llm`（跨层契约：judge 端口也用同一份）。
+ * 这里 re-export，保持既有 `import type { LlmCallOptions } from '.../llm/client'` 不变。
  *
- * ## 为什么不注入读取函数、也不读 localStorage
+ * ## 为什么配置由渲染层每次带上来（不注入读取函数、也不读 localStorage）
  * 主进程**没有 localStorage**（那是渲染进程的存储），而配置文件刻意存 localStorage
  * （与 `imageGenConfig` 同一套 `mb.` 设置体系）。所以沿用 E22 既定纪律
  * （见 `main/ipc.ts:618-621` 的注释）：
  * **渲染层每次请求带上非敏感配置 → 主进程注入从 safeStorage 解密出的 Key**。
  * 好处是渲染层**永不持有长期明文 Key**，即便被 XSS 也拿不到。
  */
-export interface LlmCallOptions {
-  /**
-   * 渲染层传来的非敏感配置。
-   *
-   * ⚠️ `undefined` 的语义是「**用户从没配置过**」（`llmSetupState` 的
-   * `never-configured`），刻意与「配了但 `enabled: false`」分开：
-   * 前者要**引导去配置**（`generate()` 抛 `notConfigured`），
-   * 后者只需一句纯提示（`validateLlmConfig` 报 `disabled`）。
-   */
-  config?: StoredLlmConfig
-  /** 主进程从 safeStorage 解密出的 Key；缺省空串 */
-  apiKey?: string
-  /**
-   * 调用方取消信号（来自 `task:cancel` 的登记表）。
-   *
-   * 与内置的生成超时**叠加**（`AbortSignal.any`）：任一方触发都会中断在途请求。
-   * 两者语义不同 —— 超时是失败兜底（`TimeoutError`，报「请求超时，可重试」），
-   * 取消是用户意图（`AbortError`，报 `TASK_CANCELLED_MESSAGE`，面板按「已停止」展示）。
-   */
-  signal?: AbortSignal
-}
+export type { LlmCallOptions }
 
 /** 某 provider 是否走 OpenAI 兼容协议 */
 function isOpenAiCompatible(provider: LlmProvider): boolean {

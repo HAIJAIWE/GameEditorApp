@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { SkillDispatcher } from '../../src/main/agent/execution/dispatcher'
-import { createCodeSkill } from '../../src/main/agent/skills/codeSkill'
+import { SkillDispatcher } from '@mobai/agent-core/execution/dispatcher'
+import { createCodeSkill } from '@mobai/agent-core/skills/codeSkill'
 import { RISK_LEVEL, resolveRiskLevel } from '@mobai/shared/agent/config'
 
 /**

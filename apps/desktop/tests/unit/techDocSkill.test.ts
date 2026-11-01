@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { createTechDocSkill, isSafeDocName } from '../../src/main/agent/skills/techDocSkill'
+import { createTechDocSkill, isSafeDocName } from '@mobai/agent-core/skills/techDocSkill'
 
 let dir = ''
 

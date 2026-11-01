@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { createWorkflowSkill } from '../../src/main/agent/skills/workflowSkill'
+import { createWorkflowSkill } from '@mobai/agent-core/skills/workflowSkill'
 
 interface Call {
   tool: string

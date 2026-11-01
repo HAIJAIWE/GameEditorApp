@@ -4,7 +4,7 @@ import { join } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { AgentSessionStore } from '../../src/main/agent/session/sessionStore'
+import { AgentSessionStore } from '@mobai/agent-core/session/sessionStore'
 import {
   DRAFT_LIST_LIMIT,
   buildDraftFile,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { SkillDispatcher, SkillRegistry } from '../../src/main/agent/execution/dispatcher'
+import { SkillDispatcher, SkillRegistry } from '@mobai/agent-core/execution/dispatcher'
 import { RISK_LEVEL, type SkillProtocol } from '@mobai/shared/agent/config'
 
 function makeSkill(overrides: Partial<SkillProtocol> & Pick<SkillProtocol, 'id'>): SkillProtocol {
@@ -72,6 +72,27 @@ describe('SkillDispatcher：名称解析', () => {
     // shell 未注册 → 其模糊别名 'system.file_ops' 等也不应生效
     expect(dispatcher.fuzzyMatch('file_ops')).toBeNull()
     expect(dispatcher.fuzzyMatch('ceshu')).toBe('system.ceshu')
+  })
+
+  it('回归：别的技能**描述里提到**「策划书」不得抢走解析（描述词不得压过显式别名）', () => {
+    /*
+     * 真实事故：`system.tech_doc` 的描述写着「技术设计文档（怎么实现，**区别于策划书** GDD）」。
+     * 描述词切分后整段成了索引键，`策划书` 被它 `key.includes(needle)` 命中，
+     * 按"键最长者胜"（整段长度 > 别名的 3）抢走解析 ⇒ 用户说"策划书"拿到技术设计文档。
+     * e2e `agent-execute-tool.spec.ts` 第 5 步因此红灯。
+     */
+    const dispatcher = new SkillDispatcher()
+    dispatcher.register(makeSkill({ id: 'system.ceshu', description: '策划书 GDD 读写' }))
+    dispatcher.register(
+      makeSkill({
+        id: 'system.tech_doc',
+        description: '技术设计文档（怎么实现，区别于策划书 GDD）：outline 返回章节大纲'
+      })
+    )
+    // 显式别名优先：即便 tech_doc 的描述更长、且完整包含「策划书」
+    expect(dispatcher.fuzzyMatch('策划书')).toBe('system.ceshu')
+    // 描述词兜底仍然有效（显式索引无候选时才走描述）
+    expect(dispatcher.fuzzyMatch('技术设计文档')).toBe('system.tech_doc')
   })
 })
 
