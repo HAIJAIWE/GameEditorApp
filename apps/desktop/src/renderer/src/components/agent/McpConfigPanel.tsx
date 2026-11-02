@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
+
 /**
  * MCP 配置面板（Slice 20）：编辑 `userData/mcp.json` 的原始 JSON，保存后主进程写盘并**重连**。
  *
@@ -7,6 +9,7 @@ import { useEffect, useState } from 'react'
  * 文本框零学习成本、支持任意字段（stdio/http/risk），也便于用户从别处（如 dsh）整段粘贴。
  */
 export default function McpConfigPanel({ onClose }: { onClose: () => void }) {
+  const t = useT()
   const [content, setContent] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -34,9 +37,9 @@ export default function McpConfigPanel({ onClose }: { onClose: () => void }) {
     try {
       const result = await window.mbApi.mcp.setConfig({ content })
       if (!result.ok) {
-        setError(result.error ?? '保存失败')
+        setError(result.error ?? t('mcpConfig.saveFailed'))
       } else {
-        setNotice(`已保存并重连：${result.count ?? 0} 个 MCP 服务器`)
+        setNotice(t('mcpConfig.saved', { count: result.count ?? 0 }))
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -49,18 +52,21 @@ export default function McpConfigPanel({ onClose }: { onClose: () => void }) {
     <div className="editor" data-testid="mcp-config-panel">
       <div className="editor-header">
         <div className="editor-title">
-          MCP 配置
-          <small>编辑 userData/mcp.json（stdio: command/args/env；http: url/headers；可选 risk）</small>
+          {t('mcpConfig.title')}
+          <small>{t('mcpConfig.subtitle')}</small>
         </div>
         <button type="button" className="btn slim" data-testid="mcp-config-close" onClick={onClose}>
-          关闭
+          {t('common.close')}
         </button>
       </div>
       <div className="editor-body">
         <div className="item-meta">
-          保存后会自动重连。示例：stdio 用 {'{ "command": "npx", "args": ["-y", "某个-mcp-server"] }'}；
-          远程用 {'{ "url": "https://…", "headers": {…} }'}。没有服务器就留 {'{ "mcpServers": {} }'}。
-          工具多了可在顶层加 {'"maxTools": 24'} 调高工具面上限（默认本地 8 / 云端 15）。
+          {t('mcpConfig.hint', {
+            stdio: '{ "command": "npx", "args": ["-y", "some-mcp-server"] }',
+            http: '{ "url": "https://…", "headers": {…} }',
+            empty: '{ "mcpServers": {} }',
+            maxTools: '"maxTools": 24'
+          })}
         </div>
         <textarea
           className="form-textarea"
@@ -91,7 +97,7 @@ export default function McpConfigPanel({ onClose }: { onClose: () => void }) {
             disabled={busy}
             onClick={() => void handleSave()}
           >
-            保存并重连
+            {t('mcpConfig.save')}
           </button>
         </div>
       </div>

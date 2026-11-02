@@ -863,7 +863,30 @@ export const zh = {
   'onboardingPanel.sectionSubtitle': '选择一个操作快速开始，或查看数据概览',
   'onboardingPanel.statsTitle': '📊 数据概览',
   'onboardingPanel.openStats': '游戏数据统计',
-  'onboardingPanel.noTypes': '当前尚无数据类型定义，请先在「字段结构编辑器」中新增类型。'
+  'onboardingPanel.noTypes': '当前尚无数据类型定义，请先在「字段结构编辑器」中新增类型。',
+  // —— 通用组件：MCP 配置 / 智能体编辑器 ——
+  'mcpConfig.title': 'MCP 配置',
+  'mcpConfig.subtitle': '编辑 userData/mcp.json（stdio: command/args/env；http: url/headers；可选 risk）',
+  'mcpConfig.hint': '保存后会自动重连。示例：stdio 用 {stdio}；远程用 {http}。没有服务器就留 {empty}。工具多了可在顶层加 {maxTools} 调高工具面上限（默认本地 8 / 云端 15）。',
+  'mcpConfig.save': '保存并重连',
+  'mcpConfig.saveFailed': '保存失败',
+  'mcpConfig.saved': '已保存并重连：{count} 个 MCP 服务器',
+  'agentEditor.title': '智能体可用能力',
+  'agentEditor.loading': '正在读取调度器已注册技能…',
+  'agentEditor.loadFailed': '读取失败',
+  'agentEditor.searchPlaceholder': '搜索工具名 / 描述 / 动作…',
+  'agentEditor.onlyRisky': '只看需二次确认',
+  'agentEditor.error': '读取工具清单失败：{message}',
+  'agentEditor.empty': '调度器当前没有注册任何技能，AI 助手无法调用工具。',
+  'agentEditor.toolsTitle': '工具清单',
+  'agentEditor.filtered': '（筛选出 {visible} / {total}）',
+  'agentEditor.noMatch': '没有匹配的工具。',
+  'agentEditor.noDesc': '（该技能未提供描述）',
+  'agentEditor.maxRisk': '最高风险 {risk}',
+  'agentEditor.needsConfirm': ' · 需二次确认',
+  'agentEditor.actions': '动作：',
+  'agentEditor.params': '参数：',
+  'agentEditor.scopeNote': '本面板只展示调度器当前真实注册的工具与风险等级。旧版 侧的「团队 & 智能体管理」（团队增删改、成员勾选、成员级提示词与工具覆盖、自定义智能体、团队/个人模式切换）在 TS 侧尚无数据层与消费者，故未移植——详见 src/shared/agentEditor.ts 顶部的范围判定表。'
 } as const
 
 /** 全部文案键（以中文表为准） */
@@ -1714,7 +1737,30 @@ export const en: Record<MessageKey, string> = {
   'onboardingPanel.sectionSubtitle': 'Pick an action to get started quickly, or view the data overview',
   'onboardingPanel.statsTitle': '📊 Data overview',
   'onboardingPanel.openStats': 'Game data statistics',
-  'onboardingPanel.noTypes': 'No data types defined yet — add one in the Field structure editor first.'
+  'onboardingPanel.noTypes': 'No data types defined yet — add one in the Field structure editor first.',
+  // —— Shared components: MCP config / agent editor ——
+  'mcpConfig.title': 'MCP config',
+  'mcpConfig.subtitle': 'Edit userData/mcp.json (stdio: command/args/env; http: url/headers; optional risk)',
+  'mcpConfig.hint': 'It reconnects automatically after saving. Example: stdio uses {stdio}; remote uses {http}. With no servers, leave {empty}. If you have many tools, add {maxTools} at the top level to raise the tool-surface cap (default 8 local / 15 cloud).',
+  'mcpConfig.save': 'Save & reconnect',
+  'mcpConfig.saveFailed': 'Save failed',
+  'mcpConfig.saved': 'Saved and reconnected: {count} MCP servers',
+  'agentEditor.title': 'Agent available capabilities',
+  'agentEditor.loading': 'Reading dispatcher-registered skills…',
+  'agentEditor.loadFailed': 'Failed to read',
+  'agentEditor.searchPlaceholder': 'Search tool name / description / action…',
+  'agentEditor.onlyRisky': 'Only needs-confirmation',
+  'agentEditor.error': 'Failed to read tool list: {message}',
+  'agentEditor.empty': 'The dispatcher has no registered skills; the AI assistant cannot call tools.',
+  'agentEditor.toolsTitle': 'Tool list',
+  'agentEditor.filtered': ' (filtered {visible} / {total})',
+  'agentEditor.noMatch': 'No matching tools.',
+  'agentEditor.noDesc': '(this skill provides no description)',
+  'agentEditor.maxRisk': 'max risk {risk}',
+  'agentEditor.needsConfirm': ' · needs confirmation',
+  'agentEditor.actions': 'Actions:',
+  'agentEditor.params': 'Params:',
+  'agentEditor.scopeNote': 'This panel only shows the tools and risk levels actually registered in the dispatcher right now. The legacy "Team & agent management" (team CRUD, member selection, per-member prompts and tool overrides, custom agents, team/personal mode switch) has no data layer or consumer on the TS side, so it is not ported — see the scope table at the top of src/shared/agentEditor.ts.'
 }
 
 /** 按语言取表 */

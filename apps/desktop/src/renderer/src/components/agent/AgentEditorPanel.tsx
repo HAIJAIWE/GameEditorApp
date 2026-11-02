@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
 import {
   buildToolCatalog,
   emptyToolCatalog,
@@ -47,6 +48,7 @@ type LoadState =
   | { status: 'ready'; catalog: ToolCatalog }
 
 export default function AgentEditorPanel() {
+  const t = useT()
   const [state, setState] = useState<LoadState>({ status: 'loading' })
   const [query, setQuery] = useState('')
   const [onlyRisky, setOnlyRisky] = useState(false)
@@ -78,12 +80,12 @@ export default function AgentEditorPanel() {
     <div className="changelog-panel" data-testid="agent-editor-panel">
       <div className="changelog-header">
         <div className="editor-title">
-          智能体可用能力
+          {t('agentEditor.title')}
           <small data-testid="agent-editor-summary">
             {state.status === 'loading'
-              ? '正在读取调度器已注册技能…'
+              ? t('agentEditor.loading')
               : state.status === 'error'
-                ? '读取失败'
+                ? t('agentEditor.loadFailed')
                 : summarizeCatalog(state.catalog)}
           </small>
         </div>
@@ -93,28 +95,28 @@ export default function AgentEditorPanel() {
         <input
           className="form-input search-input"
           type="search"
-          placeholder="搜索工具名 / 描述 / 动作…"
+          placeholder={t('agentEditor.searchPlaceholder')}
           value={query}
           data-testid="agent-editor-search"
           onChange={(event) => setQuery(event.target.value)}
         />
         <label className="check-option" data-testid="agent-editor-only-risky">
           <input type="checkbox" checked={onlyRisky} onChange={(event) => setOnlyRisky(event.target.checked)} />
-          只看需二次确认
+          {t('agentEditor.onlyRisky')}
         </label>
       </div>
 
-      {state.status === 'loading' && <div className="empty">正在读取调度器已注册技能…</div>}
+      {state.status === 'loading' && <div className="empty">{t('agentEditor.loading')}</div>}
 
       {state.status === 'error' && (
         <div className="form-error" data-testid="agent-editor-error">
-          读取工具清单失败：{state.message}
+          {t('agentEditor.error', { message: state.message })}
         </div>
       )}
 
       {state.status === 'ready' && catalog.toolCount === 0 && (
         <div className="empty" data-testid="agent-editor-empty">
-          调度器当前没有注册任何技能，AI 助手无法调用工具。
+          {t('agentEditor.empty')}
         </div>
       )}
 
@@ -122,28 +124,28 @@ export default function AgentEditorPanel() {
         <div className="form-section" data-testid="agent-editor-tools">
           <div className="form-section-head">
             <span className="form-section-title">
-              工具清单
-              {filtered && `（筛选出 ${visible.length} / ${catalog.toolCount}）`}
+              {t('agentEditor.toolsTitle')}
+              {filtered && t('agentEditor.filtered', { visible: visible.length, total: catalog.toolCount })}
             </span>
           </div>
           <div className="form-section-body">
             {visible.length === 0 ? (
               <div className="empty" data-testid="agent-editor-no-match">
-                没有匹配的工具。
+                {t('agentEditor.noMatch')}
               </div>
             ) : (
               visible.map((tool) => (
                 <div className="form-row" key={tool.id} data-testid={`agent-editor-tool-${tool.id}`}>
                   <div className="form-label">{tool.id}</div>
                   <div className="desc-field">
-                    {tool.description !== '' ? tool.description : '（该技能未提供描述）'}
+                    {tool.description !== '' ? tool.description : t('agentEditor.noDesc')}
                     <div className="item-meta">
-                      {tool.namespaceLabel} · 最高风险 {tool.highestRiskLabel}
-                      {tool.needsConfirmation ? ' · 需二次确认' : ''}
+                      {tool.namespaceLabel} · {t('agentEditor.maxRisk', { risk: tool.highestRiskLabel })}
+                      {tool.needsConfirmation ? t('agentEditor.needsConfirm') : ''}
                     </div>
                     {tool.actions.length > 0 && (
                       <div className="item-meta" data-testid={`agent-editor-actions-${tool.id}`}>
-                        动作：
+                        {t('agentEditor.actions')}
                         {tool.actions.map((action) => (
                           <span
                             key={action.action}
@@ -158,7 +160,7 @@ export default function AgentEditorPanel() {
                     )}
                     {tool.params.length > 0 && (
                       <div className="item-meta">
-                        参数：
+                        {t('agentEditor.params')}
                         {tool.params.map((param) => (
                           <span key={param.name} data-testid={`agent-editor-param-${tool.id}-${param.name}`}>
                             {param.required ? `${param.name}*` : param.name}
@@ -176,10 +178,7 @@ export default function AgentEditorPanel() {
       )}
 
       <div className="notice-banner" data-testid="agent-editor-scope-note">
-        本面板只展示调度器<strong>当前真实注册</strong>的工具与风险等级。
-        旧版 侧的「团队 & 智能体管理」（团队增删改、成员勾选、成员级提示词与工具覆盖、自定义智能体、
-        团队/个人模式切换）在 TS 侧尚无数据层与消费者，故未移植——详见
-        <code> src/shared/agentEditor.ts </code>顶部的范围判定表。
+        {t('agentEditor.scopeNote')}
       </div>
     </div>
   )
