@@ -1,11 +1,13 @@
 import { createContext, useContext, type ReactNode } from 'react'
 
 import type { CeshuDocument, ChapterKey } from '@mobai/shared/ceshu/reference'
+import { translate } from '@mobai/shared/i18n'
 import type { CeshuChangelog } from '@mobai/shared/ceshu/workflow'
 import type { FieldReviewStatus } from '@mobai/shared/ceshu/fields'
 import type { CeshuPatchItem } from '@mobai/shared/ceshu/data'
 import type { CeshuReadinessReport } from '@mobai/shared/ceshu/readiness'
 import type { DataTypeDef } from '@mobai/shared/types'
+import { getLocalePreference } from '../../localePreference'
 
 /**
  * 编辑器（CeshuView）向**内部视图**下发的上下文。
@@ -94,7 +96,7 @@ export function CeshuViewProvider({
 export function useCeshuView(): CeshuViewContextValue {
   const ctx = useContext(CeshuViewContext)
   if (ctx === null) {
-    throw new Error('useCeshuView 必须在 ViewMount 子树内使用')
+    throw new Error(translate(getLocalePreference(), 'ceshuView.outsideProvider'))
   }
   return ctx
 }

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
+
 import {
   collectLeaves,
   diffLibraries,
@@ -14,7 +16,11 @@ import {
   removeSetting,
   writeJsonSetting
 } from '@mobai/shared/config/settings'
+import type { MessageKey } from '@mobai/shared/i18n'
+import { translate } from '@mobai/shared/i18n'
 import type { ItemRecord } from '@mobai/shared/types'
+
+import { getLocalePreference } from '../../localePreference'
 
 /**
  * 数据对比面板（当前数据 vs 用户手动设定的基线）。
@@ -46,14 +52,14 @@ function saveBaseline(items: ItemRecord[] | null): void {
   }
   if (!writeJsonSetting(BASELINE_KEY, items)) {
     baselineWriteFailed = true
-    console.warn('数据对比：基线写入失败（localStorage 不可用或已满）')
+    console.warn(translate(getLocalePreference(), 'dataDiff.baselineWriteFailed'))
   }
 }
 
-const DIFF_LABELS: Record<ItemDiffType, string> = {
-  added: '新增',
-  removed: '删除',
-  modified: '修改'
+const DIFF_LABELS: Record<ItemDiffType, MessageKey> = {
+  added: 'dataDiff.labelAdded',
+  removed: 'dataDiff.labelRemoved',
+  modified: 'dataDiff.labelModified'
 }
 
 /** 值预览：JSON.stringify 后截断到 ~60 字符 */
@@ -82,6 +88,7 @@ interface DataDiffPanelProps {
 }
 
 export default function DataDiffPanel({ onClose }: DataDiffPanelProps) {
+  const t = useT()
   const [items, setItems] = useState<ItemRecord[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [baseline, setBaseline] = useState<ItemRecord[] | null>(() => loadBaseline())
@@ -112,20 +119,20 @@ export default function DataDiffPanel({ onClose }: DataDiffPanelProps) {
     if (items === null) return
     saveBaseline(items)
     if (baselineWriteFailed) {
-      setNotice('基线保存失败：浏览器存储不可用')
+      setNotice(t('dataDiff.baselineSaveFailed'))
       return
     }
     setBaseline(items)
     setGroups(null)
-    setNotice(`已设当前 ${items.length} 条数据为基线`)
-  }, [items])
+    setNotice(t('dataDiff.baselineSaved', { n: items.length }))
+  }, [items, t])
 
   const handleClearBaseline = useCallback((): void => {
     saveBaseline(null)
     setBaseline(null)
     setGroups(null)
-    setNotice('已清除基线')
-  }, [])
+    setNotice(t('dataDiff.baselineCleared'))
+  }, [t])
 
   const handleRun = useCallback((): void => {
     if (items === null || baseline === null) return
@@ -133,25 +140,27 @@ export default function DataDiffPanel({ onClose }: DataDiffPanelProps) {
     setNotice(null)
   }, [items, baseline])
 
-  const currentCount = items === null ? '读取中' : items.length
+  const currentCount = items === null ? t('dataDiff.reading') : items.length
 
   return (
     <div className="editor" data-testid="data-diff-panel">
       <div className="editor-header">
         <div className="editor-title">
-          数据对比
-          <small>当前 vs 基线</small>
+          {t('dataDiff.title')}
+          <small>{t('dataDiff.subtitle')}</small>
         </div>
       </div>
 
       <div className="editor-body">
         <div className="qc-stat-total" data-testid="dd-counts">
-          当前条目数：{currentCount} ·{' '}
-          {baseline === null ? '尚未设置基线' : `基线条目数：${baseline.length}`}
+          {t('dataDiff.currentCount', {
+            n: currentCount,
+            baseline: baseline === null ? t('dataDiff.noBaseline') : t('dataDiff.baselineCount', { n: baseline.length })
+          })}
         </div>
 
-        {error !== null && <div className="empty">读取数据失败：{error}</div>}
-        {items === null && error === null && <div className="empty">正在读取数据…</div>}
+        {error !== null && <div className="empty">{t('dataDiff.loadFailed', { reason: error })}</div>}
+        {items === null && error === null && <div className="empty">{t('dataDiff.loading')}</div>}
         {notice !== null && (
           <div className="item-meta" data-testid="dd-notice" style={{ marginTop: 6 }}>
             {notice}
@@ -161,12 +170,12 @@ export default function DataDiffPanel({ onClose }: DataDiffPanelProps) {
         {groups !== null && (
           <>
             <div className="qc-stat-total" data-testid="dd-summary">
-              +新增 {stats.added} · −删除 {stats.removed} · ~修改 {stats.modified}
+              {t('dataDiff.summary', { added: stats.added, removed: stats.removed, modified: stats.modified })}
             </div>
 
             {leafCount === 0 ? (
               <div className="empty" data-testid="dd-identical">
-                与基线完全一致
+                {t('dataDiff.identical')}
               </div>
             ) : (
               groups.map((group) => {
@@ -178,7 +187,7 @@ export default function DataDiffPanel({ onClose }: DataDiffPanelProps) {
                       data-testid="dd-group"
                       style={{ textAlign: 'left' }}
                     >
-                      {group.type}（{groupLeaves.length} 处变更）
+                      {t('dataDiff.group', { type: group.type, n: groupLeaves.length })}
                     </div>
                     {groupLeaves.map((leaf, index) => (
                       <div
@@ -189,7 +198,10 @@ export default function DataDiffPanel({ onClose }: DataDiffPanelProps) {
                       >
                         <span className="ref-row-main">{leaf.path}</span>
                         <span className="item-meta">
-                          {DIFF_LABELS[leaf.diffType]}：{describeLeaf(leaf)}
+                          {t('dataDiff.leafLine', {
+                            label: t(DIFF_LABELS[leaf.diffType]),
+                            detail: describeLeaf(leaf)
+                          })}
                         </span>
                       </div>
                     ))}
@@ -209,7 +221,7 @@ export default function DataDiffPanel({ onClose }: DataDiffPanelProps) {
           onClick={handleSetBaseline}
           disabled={items === null}
         >
-          设当前为基线
+          {t('dataDiff.setBaseline')}
         </button>
         <button
           type="button"
@@ -218,7 +230,7 @@ export default function DataDiffPanel({ onClose }: DataDiffPanelProps) {
           onClick={handleRun}
           disabled={baseline === null || items === null}
         >
-          与基线对比
+          {t('dataDiff.run')}
         </button>
         <button
           type="button"
@@ -227,10 +239,10 @@ export default function DataDiffPanel({ onClose }: DataDiffPanelProps) {
           onClick={handleClearBaseline}
           disabled={baseline === null}
         >
-          清除基线
+          {t('dataDiff.clearBaseline')}
         </button>
         <button type="button" className="btn" onClick={onClose}>
-          关闭
+          {t('common.close')}
         </button>
       </div>
     </div>

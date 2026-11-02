@@ -1,10 +1,12 @@
 import { createContext, useContext, type ReactNode } from 'react'
 
 import type { CeshuSummary } from '@mobai/shared/ceshu/reference'
+import { translate } from '@mobai/shared/i18n'
 import { PluginHost } from '@mobai/shared/plugin/host'
 import type { DataTypeDef } from '@mobai/shared/types'
 import type { PreviewJumpTarget } from '../../components/ceshu'
 import type { ReferenceTarget } from '../../components/ceshuField'
+import { getLocalePreference } from '../../localePreference'
 
 /**
  * 主区视图共享状态（Slice 23/24）。
@@ -91,6 +93,6 @@ export function MainViewProvider({ value, children }: {
 /** 取主区共享状态；必须在 `<MainViewProvider>` 内调用（缺失即抛错，避免静默拿空数据）。 */
 export function useMainViewContext(): MainViewContextValue {
   const ctx = useContext(MainViewContext)
-  if (ctx === null) throw new Error('useMainViewContext 必须在 <MainViewProvider> 内使用')
+  if (ctx === null) throw new Error(translate(getLocalePreference(), 'mainView.outsideProvider'))
   return ctx
 }

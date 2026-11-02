@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
+
 import type { CeshuSummary } from '@mobai/shared/ceshu/reference'
 import {
   TIMELINE_COLORS,
@@ -35,6 +37,7 @@ function arrowHead(toX: number, toY: number): string {
 }
 
 export default function VersionTimelinePanel({ ceshuId, currentId, onSelect, onClose }: VersionTimelinePanelProps) {
+  const t = useT()
   const [versions, setVersions] = useState<CeshuSummary[] | null>(null)
   const [selectedId, setSelectedId] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -63,7 +66,7 @@ export default function VersionTimelinePanel({ ceshuId, currentId, onSelect, onC
   return (
     <div className="changelog-panel" data-testid="timeline-panel">
       <div className="changelog-header">
-        <span className="chapter-form-title">🕒 版本时间线</span>
+        <span className="chapter-form-title">{t('timeline.title')}</span>
         <div className="editor-actions">
           <button
             type="button"
@@ -76,15 +79,15 @@ export default function VersionTimelinePanel({ ceshuId, currentId, onSelect, onC
               onClose()
             }}
           >
-            切换到此版本
+            {t('timeline.switchTo')}
           </button>
           <button type="button" className="btn" data-testid="timeline-close" onClick={onClose}>
-            关闭
+            {t('common.close')}
           </button>
         </div>
       </div>
 
-      <div className="item-meta">横向时间线展示同版本链下的所有版本。绿色=激活，蓝色=主策划，灰蓝=子版本。</div>
+      <div className="item-meta">{t('timeline.hint')}</div>
 
       <div className="timeline-legend" data-testid="timeline-legend">
         {TIMELINE_LEGEND.map((item) => (
@@ -102,9 +105,9 @@ export default function VersionTimelinePanel({ ceshuId, currentId, onSelect, onC
       )}
 
       {!versions ? (
-        <div className="empty">正在加载版本链…</div>
+        <div className="empty">{t('timeline.loading')}</div>
       ) : layout.nodes.length === 0 ? (
-        <div className="empty">（无版本数据）</div>
+        <div className="empty">{t('timeline.noVersions')}</div>
       ) : (
         <>
           <div className="timeline-canvas" data-testid="timeline-canvas">
@@ -112,7 +115,7 @@ export default function VersionTimelinePanel({ ceshuId, currentId, onSelect, onC
               width={layout.sceneWidth}
               height={layout.sceneHeight}
               role="img"
-              aria-label="版本时间线"
+              aria-label={t('timeline.aria')}
               data-testid="timeline-svg"
             >
               {/* 主轴（虚线） */}
@@ -176,18 +179,18 @@ export default function VersionTimelinePanel({ ceshuId, currentId, onSelect, onC
 
           <div className="timeline-detail" data-testid="timeline-detail">
             <span className="timeline-detail-title" data-testid="timeline-detail-title">
-              {detail?.title ?? '版本详情'}
+              {detail?.title ?? t('timeline.detailFallback')}
             </span>
             {detail ? (
               <>
-                <span>版本号: {detail.versionLabel}</span>
-                <span>名称: {detail.name}</span>
-                <span>更新时间: {detail.updated}</span>
-                <span>完成进度: {detail.progressPercent}%</span>
-                <span>版本说明: {detail.note}</span>
+                <span>{t('timeline.versionLabel', { label: detail.versionLabel })}</span>
+                <span>{t('timeline.nameLabel', { name: detail.name })}</span>
+                <span>{t('timeline.updatedLabel', { updated: detail.updated })}</span>
+                <span>{t('timeline.progressLabel', { percent: detail.progressPercent })}</span>
+                <span>{t('timeline.noteLabel', { note: detail.note })}</span>
               </>
             ) : (
-              <span>（点击时间线上的节点查看版本详情）</span>
+              <span>{t('timeline.clickNode')}</span>
             )}
           </div>
         </>

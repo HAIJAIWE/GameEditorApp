@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
+
 import {
   buildCountConstraintMessage,
   exceedsCountConstraint,
@@ -111,6 +113,7 @@ export default function DataEditorTab({
   onAiGenerate,
   countConstraint = null
 }: DataEditorTabProps) {
+  const t = useT()
   const [items, setItems] = useState<ItemRecord[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [query, setQuery] = useState('')
@@ -247,7 +250,7 @@ export default function DataEditorTab({
       await reload()
       onDataChanged?.()
       // 对齐 旧版 data_tab 的「删除成功」toast（原先这里删完**没有任何反馈**）
-      showToast('已删除', { kind: 'success' })
+      showToast(t('dataTab.deleted'), { kind: 'success' })
     } catch (err) {
       setDeleteTarget(null)
       setError(toErrorMessage(err))
@@ -264,7 +267,7 @@ export default function DataEditorTab({
       const created = await window.mbApi.data.createItem({ type, data: payload })
       await reload()
       setSelectedId(created.id)
-      showToast(`已复制：${String(created.data.name ?? created.id)}`, { kind: 'success' })
+      showToast(t('dataTab.duplicated', { name: String(created.data.name ?? created.id) }), { kind: 'success' })
       onDataChanged?.()
     } catch (err) {
       setError(toErrorMessage(err))
@@ -295,7 +298,7 @@ export default function DataEditorTab({
       await window.mbApi.data.updateItem({ id, data: next })
       await reload()
       setSelectedId(id)
-      showToast(`已重命名为：${String(next.name)}`, { kind: 'success' })
+      showToast(t('dataTab.renamed', { name: String(next.name) }), { kind: 'success' })
       onDataChanged?.()
     } catch (err) {
       setError(toErrorMessage(err))
@@ -304,7 +307,7 @@ export default function DataEditorTab({
 
   /** 表单保存完成：重载列表并提示（ItemForm 自身已完成 updateItem 落盘） */
   const handleSaved = (updated: ItemRecord): void => {
-    showToast(`已保存：${String(updated.data.name ?? updated.id)}`, { kind: 'success' })
+    showToast(t('dataTab.saved', { name: String(updated.data.name ?? updated.id) }), { kind: 'success' })
     void reload()
     onDataChanged?.()
   }
@@ -316,7 +319,7 @@ export default function DataEditorTab({
   const handleDuplicated = async (created: ItemRecord): Promise<void> => {
     await reload()
     setSelectedId(created.id)
-    showToast(`已复制：${String(created.data.name ?? created.id)}`, { kind: 'success' })
+    showToast(t('dataTab.duplicated', { name: String(created.data.name ?? created.id) }), { kind: 'success' })
     onDataChanged?.()
   }
 
@@ -335,7 +338,7 @@ export default function DataEditorTab({
             data-testid="ceshu-data-count-continue"
             onClick={() => void handleCreate()}
           >
-            继续创建
+            {t('dataTab.continueCreate')}
           </button>
           <button
             type="button"
@@ -343,7 +346,7 @@ export default function DataEditorTab({
             data-testid="ceshu-data-count-cancel"
             onClick={() => setCountWarning(null)}
           >
-            取消
+            {t('common.cancel')}
           </button>
         </div>
       )}
@@ -351,7 +354,7 @@ export default function DataEditorTab({
       {deleteTarget !== null && (
         <div className="count-warning" data-testid="ceshu-data-delete-confirm">
           <span className="count-warning-text">
-            确定删除「{String(deleteTarget.data.name ?? deleteTarget.id)}」？此操作不可撤销
+            {t('dataTab.confirmDelete', { name: String(deleteTarget.data.name ?? deleteTarget.id) })}
           </span>
           <button
             type="button"
@@ -359,7 +362,7 @@ export default function DataEditorTab({
             data-testid="ceshu-data-delete-confirm-yes"
             onClick={() => void confirmDelete()}
           >
-            删除
+            {t('common.delete')}
           </button>
           <button
             type="button"
@@ -367,7 +370,7 @@ export default function DataEditorTab({
             data-testid="ceshu-data-delete-confirm-no"
             onClick={() => setDeleteTarget(null)}
           >
-            取消
+            {t('common.cancel')}
           </button>
         </div>
       )}
@@ -379,7 +382,7 @@ export default function DataEditorTab({
               className="form-input search-input"
               data-testid="ceshu-data-search"
               value={query}
-              placeholder="搜索 名称 / 描述 / ID（空格分词）"
+              placeholder={t('dataTab.searchPlaceholder')}
               onChange={(event) => setQuery(event.target.value)}
             />
             <button
@@ -390,10 +393,10 @@ export default function DataEditorTab({
               onClick={() => void handleCreate()}
             >
               <LucideIcon name="plus" size={14} />
-              新建
+              {t('dataTab.newItem')}
             </button>
             <span className="item-meta">
-              显示 {filteredItems.length} / {items.length} 条
+              {t('dataTab.countShown', { shown: filteredItems.length, total: items.length })}
             </span>
           </div>
 
@@ -412,11 +415,11 @@ export default function DataEditorTab({
           >
             {items.length === 0 ? (
               <div className="empty" data-testid="ceshu-data-empty">
-                暂无数据，点击「新建」创建第一条
+                {t('dataTab.empty')}
               </div>
             ) : filteredItems.length === 0 ? (
               <div className="empty" data-testid="ceshu-data-empty">
-                没有匹配「{debouncedQuery}」的数据
+                {t('dataTab.noMatch', { query: debouncedQuery })}
               </div>
             ) : (
               filteredItems.map((item) => (
@@ -469,7 +472,7 @@ export default function DataEditorTab({
                       {item.aiGeneratedAt !== undefined && (
                         <span
                           className="item-row-ai"
-                          title="AI 生成，待核对（保存该条目即消除）"
+                          title={t('dataTab.aiPendingTitle')}
                           data-testid={`item-ai-${item.id}`}
                         />
                       )}
@@ -498,7 +501,7 @@ export default function DataEditorTab({
             onDuplicated={(created) => void handleDuplicated(created)}
           />
         ) : (
-          <div className="empty">请选择或新建一条数据</div>
+          <div className="empty">{t('dataTab.selectHint')}</div>
         )}
       </div>
 
@@ -516,7 +519,7 @@ export default function DataEditorTab({
             data-testid="ceshu-data-menu-rename"
             onClick={() => startRename(menu.id)}
           >
-            重命名
+            {t('dataTab.menuRename')}
           </button>
           <button
             type="button"
@@ -527,7 +530,7 @@ export default function DataEditorTab({
               setMenu(null)
             }}
           >
-            编辑
+            {t('dataTab.menuEdit')}
           </button>
           <button
             type="button"
@@ -538,7 +541,7 @@ export default function DataEditorTab({
               void handleDuplicate(menu.id)
             }}
           >
-            复制
+            {t('dataTab.menuCopy')}
           </button>
           <button
             type="button"
@@ -549,7 +552,7 @@ export default function DataEditorTab({
               requestDelete(menu.id)
             }}
           >
-            删除
+            {t('common.delete')}
           </button>
         </div>
       )}

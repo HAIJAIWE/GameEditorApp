@@ -1,6 +1,9 @@
 import { createContext, useContext, type ReactNode } from 'react'
 
+import { translate } from '@mobai/shared/i18n'
 import type { DataTypeDef } from '@mobai/shared/types'
+
+import { useLocale } from './i18n'
 
 /**
  * 应用级共享状态（宿主注入，面板自供给）。
@@ -47,6 +50,7 @@ export function AppContextProvider({ value, children }: {
 /** 取应用级共享状态；必须在 `<AppContextProvider>` 内调用（缺失即抛错，避免静默拿到空数据）。 */
 export function useAppContext(): AppContextValue {
   const ctx = useContext(AppContext)
-  if (ctx === null) throw new Error('useAppContext 必须在 <AppContextProvider> 内使用')
+  const locale = useLocale()
+  if (ctx === null) throw new Error(translate(locale, 'appContext.outsideProvider'))
   return ctx
 }

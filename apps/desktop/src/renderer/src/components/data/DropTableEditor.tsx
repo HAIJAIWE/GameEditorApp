@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
+
 import {
   clampDropCount,
   clampDropRate,
@@ -38,6 +40,7 @@ interface Candidate {
 }
 
 export default function DropTableEditor({ fieldName, entries, onChange }: DropTableEditorProps) {
+  const t = useT()
   const sourceTypeId = useMemo(() => dropSourceTypeId(fieldName), [fieldName])
   const sourceLabel = useMemo(() => dropSourceLabel(fieldName), [fieldName])
 
@@ -112,7 +115,7 @@ export default function DropTableEditor({ fieldName, entries, onChange }: DropTa
   return (
     <div className="ref-drop" id={`field-${fieldName}`} data-testid={`field-${fieldName}`}>
       <div className="ref-drop-head">
-        <span className="ref-drop-title">{sourceLabel}掉落表：</span>
+        <span className="ref-drop-title">{t('drop.title', { source: sourceLabel })}</span>
         <div className="ref-drop-actions">
           <button
             type="button"
@@ -120,7 +123,7 @@ export default function DropTableEditor({ fieldName, entries, onChange }: DropTa
             data-testid={`droptable-${fieldName}-add`}
             onClick={() => setPickerOpen(true)}
           >
-            + 添加掉落
+            {t('drop.add')}
           </button>
           <button
             type="button"
@@ -129,29 +132,29 @@ export default function DropTableEditor({ fieldName, entries, onChange }: DropTa
             disabled={selectedRow < 0}
             onClick={removeSelected}
           >
-            - 删除选中
+            {t('drop.remove')}
           </button>
         </div>
       </div>
 
       {loadError !== null && (
         <div className="form-error" data-testid={`droptable-${fieldName}-error`}>
-          候选条目加载失败：{loadError}
+          {t('drop.loadFailed', { reason: loadError })}
         </div>
       )}
 
       {entries.length === 0 ? (
         <div className="ref-drop-empty" data-testid={`droptable-${fieldName}-empty`}>
-          暂无掉落，点击「+ 添加掉落」
+          {t('drop.empty')}
         </div>
       ) : (
         <table className="ref-drop-table" data-testid={`droptable-${fieldName}-table`}>
           <thead>
             <tr>
-              <th>名称</th>
-              <th className="ref-drop-num-col">掉率(%):</th>
-              <th className="ref-drop-num-col">最小:</th>
-              <th className="ref-drop-num-col">最大:</th>
+              <th>{t('drop.colName')}</th>
+              <th className="ref-drop-num-col">{t('drop.colRate')}</th>
+              <th className="ref-drop-num-col">{t('drop.colMin')}</th>
+              <th className="ref-drop-num-col">{t('drop.colMax')}</th>
             </tr>
           </thead>
           <tbody>
@@ -213,13 +216,13 @@ export default function DropTableEditor({ fieldName, entries, onChange }: DropTa
           <input
             className="form-input"
             data-testid={`droptable-${fieldName}-search`}
-            placeholder={`搜索${sourceLabel}名称...`}
+            placeholder={t('drop.searchPlaceholder', { source: sourceLabel })}
             value={pickerSearch}
             onChange={(event) => setPickerSearch(event.target.value)}
           />
           <div className="ref-drop-candidates">
             {filtered.length === 0 ? (
-              <div className="ref-drop-empty">无匹配条目</div>
+              <div className="ref-drop-empty">{t('drop.noMatch')}</div>
             ) : (
               filtered.map((c, index) => (
                 <button
@@ -236,7 +239,7 @@ export default function DropTableEditor({ fieldName, entries, onChange }: DropTa
           </div>
           <div className="ref-drop-picker-foot">
             <label>
-              掉率(%):
+              {t('drop.colRate')}
               <input
                 className="form-input ref-drop-num"
                 data-testid={`droptable-${fieldName}-picker-rate`}
@@ -248,7 +251,7 @@ export default function DropTableEditor({ fieldName, entries, onChange }: DropTa
               />
             </label>
             <label>
-              数量:
+              {t('drop.countLabel')}
               <input
                 className="form-input ref-drop-num"
                 data-testid={`droptable-${fieldName}-picker-min`}
@@ -276,7 +279,7 @@ export default function DropTableEditor({ fieldName, entries, onChange }: DropTa
               disabled={pickerName === ''}
               onClick={confirmPicker}
             >
-              确定
+              {t('common.ok')}
             </button>
             <button
               type="button"
@@ -284,7 +287,7 @@ export default function DropTableEditor({ fieldName, entries, onChange }: DropTa
               data-testid={`droptable-${fieldName}-cancel`}
               onClick={resetPicker}
             >
-              取消
+              {t('common.cancel')}
             </button>
           </div>
         </div>

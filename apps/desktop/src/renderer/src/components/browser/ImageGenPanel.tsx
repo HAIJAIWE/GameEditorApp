@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import { useT } from '@mobai/client-ui'
-import type { MessageKey } from '@mobai/shared/i18n'
+import { translate, type MessageKey } from '@mobai/shared/i18n'
 import type { ImageGenConfig } from '@mobai/shared/config/llm'
 import { loadImageGenConfig, saveImageGenConfig } from '@mobai/shared/config/llm'
 import type { StoredImageGenConfig, StoredProvider } from '@mobai/shared/config/llm'
 import { SECRET_NAMES } from '@mobai/shared/config/secrets'
 import { migrateLegacyApiKey, readLegacyImageGenApiKey } from '@mobai/shared/config/secrets'
+
+import { getLocalePreference } from '../../localePreference'
 
 /**
  * AI 生图面板。
@@ -84,9 +86,9 @@ export default function ImageGenPanel({ onClose }: ImageGenPanelProps) {
       )
       if (cancelled) return
       if (migration.migrated) {
-        setStatus(t('imageGen.migrated'))
+        setStatus(translate(getLocalePreference(), 'imageGen.migrated'))
       } else if (migration.reason === 'secret-write-failed' || migration.reason === 'invalid-legacy-key') {
-        setError(migration.error ?? t('imageGen.migrateFailed'))
+        setError(migration.error ?? translate(getLocalePreference(), 'imageGen.migrateFailed'))
       }
       const has = await window.mbApi.settings.hasSecret({ name: SECRET_NAMES.imageGenApiKey })
       if (cancelled) return

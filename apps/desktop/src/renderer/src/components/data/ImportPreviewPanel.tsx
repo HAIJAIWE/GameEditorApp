@@ -1,6 +1,12 @@
 import { useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
+
+import type { MessageKey, TranslateParams } from '@mobai/shared/i18n'
 import type { DataTypeDef, ImportFieldChange, ImportPreview, ImportSummary } from '@mobai/shared/types'
+
+/** `useT()` 返回的翻译函数签名（供模块级纯函数复用） */
+type TranslateFn = (key: MessageKey, params?: TranslateParams) => string
 
 /**
  * 导入预览（确认后才落库）。
@@ -22,14 +28,18 @@ interface ImportPreviewPanelProps {
 }
 
 /** 单元格值 → 可读文本（空值要能看出来，对象别显示成 [object Object]） */
-function formatValue(value: unknown): string {
-  if (value === undefined || value === null || value === '') return '(空)'
-  if (Array.isArray(value)) return value.length === 0 ? '(空)' : value.map((item) => String(item)).join('、')
+function formatValue(value: unknown, t: TranslateFn): string {
+  if (value === undefined || value === null || value === '') return t('importPreview.empty')
+  if (Array.isArray(value)) {
+    return value.length === 0
+      ? t('importPreview.empty')
+      : value.map((item) => String(item)).join(t('importPreview.listSeparator'))
+  }
   if (typeof value === 'object') {
     try {
       return JSON.stringify(value)
     } catch {
-      return '(无法显示)'
+      return t('importPreview.unrenderable')
     }
   }
   return String(value)
@@ -47,6 +57,7 @@ export default function ImportPreviewPanel({
   onApplied,
   onCancel
 }: ImportPreviewPanelProps) {
+  const t = useT()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -74,42 +85,45 @@ export default function ImportPreviewPanel({
     <div className="editor" data-testid="import-preview-panel">
       <div className="editor-header">
         <div className="editor-title">
-          导入预览
+          {t('importPreview.title')}
           <small>{fileNameOf(preview.filePath)}</small>
         </div>
       </div>
 
       <div className="editor-body">
         <div className="import-preview-stats" data-testid="import-preview-stats">
-          <span className="import-stat create">新增 {preview.createCount}</span>
-          <span className="import-stat update">修改 {preview.updateCount}</span>
-          <span className="import-stat">未变 {preview.unchangedCount}</span>
-          <span className="import-stat">跳过 {preview.skipped}</span>
+          <span className="import-stat create">{t('importPreview.statCreate', { n: preview.createCount })}</span>
+          <span className="import-stat update">{t('importPreview.statUpdate', { n: preview.updateCount })}</span>
+          <span className="import-stat">{t('importPreview.statUnchanged', { n: preview.unchangedCount })}</span>
+          <span className="import-stat">{t('importPreview.statSkipped', { n: preview.skipped })}</span>
         </div>
 
         {preview.missingIdSources.length > 0 && (
           <div className="error-banner" data-testid="import-preview-missing-id">
-            {preview.missingIdSources.slice(0, 4).join('、')} 没有 id 列，已全部按「新增」导入——
-            若本想修改已有数据，会变成重复项。建议从系统重新导出模板再填。
+            {t('importPreview.missingId', {
+              sources: preview.missingIdSources.slice(0, 4).join(t('importPreview.listSeparator'))
+            })}
           </div>
         )}
 
         {Object.keys(preview.unknownTypes).length > 0 && (
           <div className="form-hint" data-testid="import-preview-unknown">
-            未收录类型（数据仍会入库）：{Object.keys(preview.unknownTypes).join('、')}
+            {t('importPreview.unknownTypes', {
+              keys: Object.keys(preview.unknownTypes).join(t('importPreview.listSeparator'))
+            })}
           </div>
         )}
 
         {!hasChanges ? (
           <div className="artifact-placeholder" data-testid="import-preview-nochange">
-            <p>文件内容与库内完全一致，导入不会产生任何变化。</p>
+            <p>{t('importPreview.noChange')}</p>
           </div>
         ) : (
           <div className="import-preview-list" data-testid="import-preview-list">
             {preview.records.map((record) => (
               <div key={`${record.kind}-${record.type}-${record.businessId}-${record.name}`} className="import-preview-row">
                 <div className="import-preview-head">
-                  <span className={`import-tag ${record.kind}`}>{record.kind === 'create' ? '新增' : '修改'}</span>
+                  <span className={`import-tag ${record.kind}`}>{record.kind === 'create' ? t('importPreview.tagCreate') : t('importPreview.tagUpdate')}</span>
                   <span className="import-preview-type">{typeLabel(record.type)}</span>
                   <span className="import-preview-name">{record.name}</span>
                   {record.businessId !== '' && <span className="item-meta">id {record.businessId}</span>}
@@ -119,9 +133,9 @@ export default function ImportPreviewPanel({
                     {record.changes.map((change: ImportFieldChange) => (
                       <li key={change.key} className="import-change">
                         <span className="import-change-field">{fieldLabel(record.type, change.key)}</span>
-                        <span className="import-change-before">{formatValue(change.before)}</span>
+                        <span className="import-change-before">{formatValue(change.before, t)}</span>
                         <span className="import-change-arrow">→</span>
-                        <span className="import-change-after">{formatValue(change.after)}</span>
+                        <span className="import-change-after">{formatValue(change.after, t)}</span>
                       </li>
                     ))}
                   </ul>
@@ -130,7 +144,7 @@ export default function ImportPreviewPanel({
             ))}
             {preview.truncated && (
               <div className="form-hint" data-testid="import-preview-truncated">
-                变更太多，仅列出前 {preview.records.length} 条；确认后其余变更同样会写入。
+                {t('importPreview.truncated', { n: preview.records.length })}
               </div>
             )}
           </div>
@@ -151,10 +165,10 @@ export default function ImportPreviewPanel({
           disabled={busy}
           onClick={() => void handleApply()}
         >
-          {busy ? '导入中…' : hasChanges ? '确认导入' : '仍然导入'}
+          {busy ? t('importPreview.applying') : hasChanges ? t('importPreview.confirm') : t('importPreview.importAnyway')}
         </button>
         <button type="button" className="btn" data-testid="import-preview-cancel" disabled={busy} onClick={onCancel}>
-          取消
+          {t('common.cancel')}
         </button>
       </div>
     </div>

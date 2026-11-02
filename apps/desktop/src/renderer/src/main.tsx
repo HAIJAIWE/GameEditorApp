@@ -2,9 +2,10 @@ import { StrictMode, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 
 import { LocaleProvider } from '@mobai/client-ui'
+import { translate } from '@mobai/shared/i18n'
 
 import App from './App'
-import { useLocalePreference } from './localePreference'
+import { getLocalePreference, useLocalePreference } from './localePreference'
 import { pushLlmConfigMirror } from './llmBootstrap'
 import { applyFontSize, loadFontSize } from '@mobai/shared/config/settings'
 import { applyTheme, loadTheme } from '@mobai/shared/config/settings'
@@ -28,7 +29,7 @@ void pushLlmConfigMirror()
 
 const container = document.getElementById('root')
 if (!container) {
-  throw new Error('缺少 #root 挂载节点')
+  throw new Error(translate(getLocalePreference(), 'common.rootMissing'))
 }
 
 createRoot(container).render(

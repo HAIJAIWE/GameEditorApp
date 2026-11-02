@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
+
 import type { CeshuSummary } from '@mobai/shared/ceshu/reference'
+import { translate } from '@mobai/shared/i18n'
 import {
   DIFF_DISPLAY,
   buildVersionDiffMarkdown,
@@ -13,6 +16,8 @@ import {
 } from '@mobai/shared/ceshu/workflow'
 import { formatLocalTimestamp } from '@mobai/shared/ceshu/model'
 import { toErrorMessage } from '@mobai/shared/util/system'
+
+import { getLocalePreference } from '../../localePreference'
 
 /**
  * 版本对比面板：
@@ -27,7 +32,11 @@ interface VersionDiffPanelProps {
 }
 
 function versionLabelOf(summary: CeshuSummary): string {
-  return `${summary.versionLabel} - ${summary.gameName || '未命名'}${summary.isActive ? ' ★激活' : ''}`
+  return translate(getLocalePreference(), 'versionDiff.versionLabel', {
+    label: summary.versionLabel,
+    name: summary.gameName || translate(getLocalePreference(), 'versionDiff.unnamed'),
+    active: summary.isActive ? translate(getLocalePreference(), 'versionDiff.activeSuffix') : ''
+  })
 }
 
 function changedFieldsOf(chapter: CeshuChapterDiff): CeshuVersionFieldDiff[] {
@@ -35,6 +44,7 @@ function changedFieldsOf(chapter: CeshuChapterDiff): CeshuVersionFieldDiff[] {
 }
 
 export default function VersionDiffPanel({ ceshuId, onClose }: VersionDiffPanelProps) {
+  const t = useT()
   const [versions, setVersions] = useState<CeshuSummary[] | null>(null)
   const [oldId, setOldId] = useState('')
   const [newId, setNewId] = useState('')
@@ -97,12 +107,15 @@ export default function VersionDiffPanel({ ceshuId, onClose }: VersionDiffPanelP
       setNotice(null)
       const chosen = await window.mbApi.dialog.chooseCeshuExportFile({
         format: 'markdown',
-        defaultName: `版本对比-${diff.old_version_label}-${diff.new_version_label}`
+        defaultName: t('versionDiff.exportDefaultName', {
+          old: diff.old_version_label,
+          next: diff.new_version_label
+        })
       })
       if (!chosen.path) return
       const markdown = buildVersionDiffMarkdown(diff, formatLocalTimestamp())
       const exported = await window.mbApi.ceshu.exportDiffReport({ path: chosen.path, content: markdown })
-      setNotice(`对比报告已导出：${exported.filePath}`)
+      setNotice(t('versionDiff.exported', { path: exported.filePath }))
     } catch (err) {
       setError(toErrorMessage(err))
     }
@@ -118,7 +131,7 @@ export default function VersionDiffPanel({ ceshuId, onClose }: VersionDiffPanelP
   return (
     <div className="changelog-panel" data-testid="diff-panel">
       <div className="changelog-header">
-        <span className="chapter-form-title">版本对比（Diff 两个版本）</span>
+        <span className="chapter-form-title">{t('versionDiff.title')}</span>
         <div className="editor-actions">
           <button
             type="button"
@@ -127,13 +140,13 @@ export default function VersionDiffPanel({ ceshuId, onClose }: VersionDiffPanelP
             disabled={!canCompare}
             onClick={() => void handleCompare()}
           >
-            {busy ? '对比中…' : '开始对比'}
+            {busy ? t('versionDiff.comparing') : t('versionDiff.compare')}
           </button>
           <button type="button" className="btn" data-testid="diff-export" disabled={!diff} onClick={() => void handleExport()}>
-            导出 Markdown
+            {t('versionDiff.exportMarkdown')}
           </button>
           <button type="button" className="btn" data-testid="diff-close" onClick={onClose}>
-            关闭
+            {t('common.close')}
           </button>
         </div>
       </div>
@@ -150,48 +163,61 @@ export default function VersionDiffPanel({ ceshuId, onClose }: VersionDiffPanelP
       )}
 
       <div className="diff-selectors" data-testid="diff-selectors">
-        <span className="form-label">旧版本</span>
+        <span className="form-label">{t('versionDiff.oldVersion')}</span>
         <select
           className="form-select"
           data-testid="diff-old"
           value={oldId}
           onChange={(event) => setOldId(event.target.value)}
         >
-          <option value="">请选择</option>
+          <option value="">{t('versionDiff.selectPlaceholder')}</option>
           {(versions ?? []).map((version) => (
             <option key={version.id} value={version.id}>
               {versionLabelOf(version)}
             </option>
           ))}
         </select>
-        <span className="form-label">新版本</span>
+        <span className="form-label">{t('versionDiff.newVersion')}</span>
         <select
           className="form-select"
           data-testid="diff-new"
           value={newId}
           onChange={(event) => setNewId(event.target.value)}
         >
-          <option value="">请选择</option>
+          <option value="">{t('versionDiff.selectPlaceholder')}</option>
           {(versions ?? []).map((version) => (
             <option key={version.id} value={version.id}>
               {versionLabelOf(version)}
             </option>
           ))}
         </select>
-        {(versions?.length ?? 0) < 2 && <span className="item-meta">版本链只有一份文档，暂无可对比对象</span>}
+        {(versions?.length ?? 0) < 2 && (
+          <span className="item-meta">{t('versionDiff.onlyOne')}</span>
+        )}
       </div>
 
       {!diff ? (
-        <div className="empty">选择两个不同的版本后点击「开始对比」</div>
+        <div className="empty">{t('versionDiff.pickTwo')}</div>
       ) : (
         <>
           <div className="diff-stats" data-testid="diff-stats">
-            📊 对比: {diff.old_version_label} → {diff.new_version_label} |
-            <span style={{ color: DIFF_DISPLAY.added.color }}> ✚ 新增 {diff.total_added}</span>
-            <span style={{ color: DIFF_DISPLAY.removed.color }}> ✖ 删除 {diff.total_removed}</span>
-            <span style={{ color: DIFF_DISPLAY.modified.color }}> ✎ 修改 {diff.total_modified}</span>
-            <span style={{ color: DIFF_DISPLAY.unchanged.color }}> 未变 {diff.total_unchanged}</span> | 变更率{' '}
-            {changeRate.toFixed(1)}%
+            {t('versionDiff.statsPrefix', {
+              old: diff.old_version_label,
+              next: diff.new_version_label
+            })}
+            <span style={{ color: DIFF_DISPLAY.added.color }}>
+              {t('versionDiff.statAdded', { n: diff.total_added })}
+            </span>
+            <span style={{ color: DIFF_DISPLAY.removed.color }}>
+              {t('versionDiff.statRemoved', { n: diff.total_removed })}
+            </span>
+            <span style={{ color: DIFF_DISPLAY.modified.color }}>
+              {t('versionDiff.statModified', { n: diff.total_modified })}
+            </span>
+            <span style={{ color: DIFF_DISPLAY.unchanged.color }}>
+              {t('versionDiff.statUnchanged', { n: diff.total_unchanged })}
+            </span>
+            {t('versionDiff.changeRate', { rate: changeRate.toFixed(1) })}
           </div>
 
           <div className="diff-body">
@@ -211,7 +237,7 @@ export default function VersionDiffPanel({ ceshuId, onClose }: VersionDiffPanelP
                   >
                     <span className="diff-chapter-label">{chapter.chapter_label}</span>
                     <span className="diff-chapter-count" data-testid="diff-chapter-count">
-                      {changes > 0 ? `${changes} 处变更` : '未变'}
+                      {changes > 0 ? t('versionDiff.chapterChanges', { n: changes }) : t('versionDiff.chapterUnchanged')}
                     </span>
                   </button>
                 )
@@ -220,15 +246,15 @@ export default function VersionDiffPanel({ ceshuId, onClose }: VersionDiffPanelP
 
             <div className="diff-fields">
               {changedFields.length === 0 ? (
-                <div className="empty">该章节无变更</div>
+                <div className="empty">{t('versionDiff.noChanges')}</div>
               ) : (
                 <table className="score-table">
                   <thead>
                     <tr>
-                      <th>字段</th>
-                      <th>旧值</th>
-                      <th>新值</th>
-                      <th>类型</th>
+                      <th>{t('versionDiff.colField')}</th>
+                      <th>{t('versionDiff.colOld')}</th>
+                      <th>{t('versionDiff.colNew')}</th>
+                      <th>{t('versionDiff.colType')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -258,10 +284,10 @@ export default function VersionDiffPanel({ ceshuId, onClose }: VersionDiffPanelP
                       {DIFF_DISPLAY[selectedField.diff_type].text}
                     </span>
                   </div>
-                  <div className="form-label">旧值</div>
-                  <pre className="diff-detail-value">{formatDiffValue(selectedField.old_value) || '(空)'}</pre>
-                  <div className="form-label">新值</div>
-                  <pre className="diff-detail-value">{formatDiffValue(selectedField.new_value) || '(空)'}</pre>
+                  <div className="form-label">{t('versionDiff.oldValue')}</div>
+                  <pre className="diff-detail-value">{formatDiffValue(selectedField.old_value) || t('versionDiff.empty')}</pre>
+                  <div className="form-label">{t('versionDiff.newValue')}</div>
+                  <pre className="diff-detail-value">{formatDiffValue(selectedField.new_value) || t('versionDiff.empty')}</pre>
                 </div>
               )}
             </div>

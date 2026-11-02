@@ -19,7 +19,7 @@ import {
   type CeshuPatchParseResult
 } from '@mobai/shared/ceshu/data'
 import { migrationSplitTitle, pendingSplitCount, planCeshuMigration } from '@mobai/shared/ceshu/data'
-import { REVIEW_QUEUE_KEY_HINT, resolveReviewQueueKey } from '../../reviewQueueKeys'
+import { resolveReviewQueueKey, reviewQueueKeyHint } from '../../reviewQueueKeys'
 import { CeshuModulePicker } from '../ceshuDoc'
 import { cursorAfterAccept } from './reviewQueueAdvance'
 import { collectPendingReviewFields } from './reviewQueueData'
@@ -306,7 +306,7 @@ export function ReviewQueueOverlay({ doc, onFieldStatus, onApproveAllPending, on
         )}
         {pending.length > 0 && (
           <div className="review-key-hint item-meta" data-testid="review-key-hint">
-            {REVIEW_QUEUE_KEY_HINT}
+            {reviewQueueKeyHint()}
           </div>
         )}
       </div>

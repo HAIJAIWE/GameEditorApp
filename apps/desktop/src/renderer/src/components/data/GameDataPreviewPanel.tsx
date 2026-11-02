@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
+
 import { buildGameDataPreview } from '@mobai/shared/domain/ceshu/gameDataPreview'
 import type { DataTypeDef, ItemRecord } from '@mobai/shared/types'
 import { toErrorMessage } from '@mobai/shared/util/system'
@@ -20,6 +22,7 @@ import { toErrorMessage } from '@mobai/shared/util/system'
 type PreviewState = { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready'; text: string; bucketCount: number; itemCount: number; totalChars: number }
 
 export default function GameDataPreviewPanel() {
+  const t = useT()
   const [state, setState] = useState<PreviewState>({ status: 'loading' })
 
   // 面板每次打开都重新拉全量数据（用户可能刚在数据编辑器里改过）
@@ -48,30 +51,36 @@ export default function GameDataPreviewPanel() {
   const scale = useMemo(() => {
     if (state.status !== 'ready') return null
     const mb = state.totalChars / 1024 / 1024
-    const sizeText = mb >= 1 ? `${mb.toFixed(2)} MB 字符` : `${state.totalChars.toLocaleString('en-US')} 字符`
+    const sizeText =
+      mb >= 1
+        ? t('gameData.sizeMb', { mb: mb.toFixed(2) })
+        : t('gameData.sizeChars', { chars: state.totalChars.toLocaleString('en-US') })
     return {
       sizeText,
-      fullText: state.totalChars > 50_000 ? '（已渲染全量，未截断）' : ''
+      fullText: state.totalChars > 50_000 ? t('gameData.fullRendered') : ''
     }
-  }, [state])
+  }, [state, t])
 
   return (
     <div className="editor" data-testid="game-data-preview-panel">
       <div className="editor-header">
         <div className="editor-title">
-          游戏数据预览
+          {t('gameData.title')}
           <small>
             {scale === null
-              ? '正在读取全库数据…'
-              : `${state.status === 'ready' ? state.bucketCount : 0} 个类型 · ${
-                  state.status === 'ready' ? state.itemCount : 0
-                } 条条目 · ${scale.sizeText} ${scale.fullText}`.trim()}
+              ? t('gameData.loading')
+              : t('gameData.scaleSummary', {
+                  buckets: state.status === 'ready' ? state.bucketCount : 0,
+                  items: state.status === 'ready' ? state.itemCount : 0,
+                  size: scale.sizeText,
+                  full: scale.fullText
+                }).trim()}
           </small>
         </div>
       </div>
 
       <div className="editor-body">
-        {state.status === 'loading' && <div className="empty">正在读取全库数据…</div>}
+        {state.status === 'loading' && <div className="empty">{t('gameData.loading')}</div>}
         {state.status === 'error' && (
           <div className="form-error" data-testid="game-data-preview-error">
             {state.message}
@@ -80,7 +89,7 @@ export default function GameDataPreviewPanel() {
         {state.status === 'ready' &&
           (state.itemCount === 0 ? (
             <div className="empty" data-testid="game-data-preview-empty">
-              当前库没有数据，先在数据编辑器里新建条目。
+              {t('gameData.empty')}
             </div>
           ) : (
             <pre className="game-data-preview-text" data-testid="game-data-preview-text">

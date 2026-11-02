@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { REVIEW_QUEUE_KEY_HINT, resolveReviewQueueKey } from '../../src/renderer/src/reviewQueueKeys'
+import { resolveReviewQueueKey, reviewQueueKeyHint } from '../../src/renderer/src/reviewQueueKeys'
 
 function resolve(key: string, extra: Partial<Parameters<typeof resolveReviewQueueKey>[0]> = {}) {
   return resolveReviewQueueKey({ key, queueLength: 3, ...extra })
@@ -51,10 +51,10 @@ describe('resolveReviewQueueKey：审阅队列快捷键解析', () => {
   })
 
   it('提示文案与键位一致（含全部五个动作）', () => {
-    expect(REVIEW_QUEUE_KEY_HINT).toContain('j')
-    expect(REVIEW_QUEUE_KEY_HINT).toContain('k')
-    expect(REVIEW_QUEUE_KEY_HINT).toContain('a')
-    expect(REVIEW_QUEUE_KEY_HINT).toContain('v')
-    expect(REVIEW_QUEUE_KEY_HINT).toContain('Esc')
+    expect(reviewQueueKeyHint()).toContain('j')
+    expect(reviewQueueKeyHint()).toContain('k')
+    expect(reviewQueueKeyHint()).toContain('a')
+    expect(reviewQueueKeyHint()).toContain('v')
+    expect(reviewQueueKeyHint()).toContain('Esc')
   })
 })

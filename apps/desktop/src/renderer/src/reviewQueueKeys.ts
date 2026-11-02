@@ -12,6 +12,10 @@
  * - Esc 关闭浮层。
  */
 
+import { translate } from '@mobai/shared/i18n'
+
+import { getLocalePreference } from './localePreference'
+
 export type ReviewQueueAction = 'next' | 'prev' | 'accept' | 'goto' | 'close'
 
 export interface ReviewQueueKeyInput {
@@ -48,4 +52,6 @@ export function resolveReviewQueueKey(input: ReviewQueueKeyInput): ReviewQueueAc
 }
 
 /** 快捷键提示文案（面板底部展示；与 KEY_MAP 同源，避免漂移） */
-export const REVIEW_QUEUE_KEY_HINT = 'j / ↓ 下一条 · k / ↑ 上一条 · a 接受 · v 查看 · Esc 关闭'
+export function reviewQueueKeyHint(): string {
+  return translate(getLocalePreference(), 'reviewQueue.keyHint')
+}

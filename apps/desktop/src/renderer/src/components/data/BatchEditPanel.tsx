@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
+
 import {
   ADJUST_MODES,
   ADJUST_MODE_LABELS,
@@ -44,6 +46,7 @@ export default function BatchEditPanel({
   onApplied,
   onClose
 }: BatchEditPanelProps) {
+  const t = useT()
   /** 外部是否提供了选中项（true 时沿用传入选中，false 时面板自选整类型范围） */
   const externalSelection = selectedIds.length > 0
   /** 自选作用类型：初始取传入 type（不在 types 中则回退到第一个类型） */
@@ -135,15 +138,15 @@ export default function BatchEditPanel({
     if (op === 'delete_selected') return
     // 与 旧版 _on_apply 的告警条件一致：追加/标签要求内容非空；其余要求选中字段
     if (effectiveField === '') {
-      setErrors(['请选择字段'])
+      setErrors([t('batch.selectField')])
       return
     }
     if (op === 'append_value' && value === '') {
-      setErrors(['请填写追加内容'])
+      setErrors([t('batch.needAppend')])
       return
     }
     if (op === 'add_tag' && value === '') {
-      setErrors(['请填写标签内容'])
+      setErrors([t('batch.needTag')])
       return
     }
     setBusy(true)
@@ -153,10 +156,10 @@ export default function BatchEditPanel({
         ids: effectiveIds,
         op: { kind: op, field: effectiveField, value, separator, mode, adjust: clampInt(adjustText) }
       })
-      const parts = [`已处理 ${summary.affected} 项`]
-      if (summary.skipped > 0) parts.push(`${summary.skipped} 项非数值已跳过`)
-      if (summary.missing > 0) parts.push(`${summary.missing} 项已不存在`)
-      onApplied(`批量操作完成：${parts.join('，')}`)
+      const parts = [t('batch.processed', { n: summary.affected })]
+      if (summary.skipped > 0) parts.push(t('batch.skippedNonNumeric', { n: summary.skipped }))
+      if (summary.missing > 0) parts.push(t('batch.missing', { n: summary.missing }))
+      onApplied(t('batch.applyDone', { detail: parts.join(t('batch.listSeparator')) }))
     } catch (error) {
       setErrors([error instanceof Error ? error.message : String(error)])
     } finally {
@@ -169,9 +172,9 @@ export default function BatchEditPanel({
     setBusy(true)
     try {
       const summary = await window.mbApi.data.deleteMany({ ids: effectiveIds })
-      const parts = [`已删除 ${summary.deleted} 项`]
-      if (summary.missing > 0) parts.push(`${summary.missing} 项已不存在`)
-      onApplied(`批量删除完成：${parts.join('，')}`)
+      const parts = [t('batch.deletedItem', { n: summary.deleted })]
+      if (summary.missing > 0) parts.push(t('batch.missing', { n: summary.missing }))
+      onApplied(t('batch.deleteDone', { detail: parts.join(t('batch.listSeparator')) }))
     } catch (error) {
       setErrors([error instanceof Error ? error.message : String(error)])
     } finally {
@@ -180,13 +183,15 @@ export default function BatchEditPanel({
   }
 
   const scopeLabel = scopeDef?.name ?? effectiveType
-  const scopeSummary = externalSelection ? `作用范围：选中 ${effectiveCount} 项` : `作用范围：全部 ${effectiveCount} 项`
+  const scopeSummary = externalSelection
+    ? t('batch.scopeSelected', { n: effectiveCount })
+    : t('batch.scopeAll', { n: effectiveCount })
 
   return (
     <aside className="editor" data-testid="batch-panel">
       <div className="editor-header">
         <div className="editor-title">
-          批量操作
+          {t('batch.title')}
           <small>
             {scopeLabel} · {scopeSummary}
           </small>
@@ -197,7 +202,7 @@ export default function BatchEditPanel({
         {!externalSelection && (
           <div className="form-row">
             <label className="form-label" htmlFor="batch-type">
-              作用类型
+              {t('batch.scopeType')}
             </label>
             <select
               id="batch-type"
@@ -214,14 +219,14 @@ export default function BatchEditPanel({
               ))}
             </select>
             <div className="item-meta" data-testid="batch-scope-hint">
-              {effectiveCount === 0 ? '该类型暂无数据' : `该类型共 ${effectiveCount} 项，将对全部条目生效`}
+              {effectiveCount === 0 ? t('batch.emptyType') : t('batch.typeCount', { n: effectiveCount })}
             </div>
           </div>
         )}
 
         <div className="form-row">
           <label className="form-label" htmlFor="batch-op">
-            操作
+            {t('batch.op')}
           </label>
           <select
             id="batch-op"
@@ -236,14 +241,14 @@ export default function BatchEditPanel({
                 {BATCH_OP_LABELS[kind]}
               </option>
             ))}
-            <option value="delete_selected">删除作用范围内条目</option>
+            <option value="delete_selected">{t('batch.deleteOp')}</option>
           </select>
         </div>
 
         {op !== 'delete_selected' && (
           <div className="form-row">
             <label className="form-label" htmlFor="batch-field">
-              字段
+              {t('batch.field')}
             </label>
             <select
               id="batch-field"
@@ -265,7 +270,7 @@ export default function BatchEditPanel({
         {op === 'set_value' && (
           <div className="form-row">
             <label className="form-label" htmlFor="batch-value">
-              值（可为空）
+              {t('batch.valueOptional')}
             </label>
             <input
               id="batch-value"
@@ -273,7 +278,7 @@ export default function BatchEditPanel({
               data-testid="batch-value"
               value={value}
               disabled={busy}
-              placeholder="输入新的字段值"
+              placeholder={t('batch.valuePlaceholder')}
               onChange={(event) => setValue(event.target.value)}
             />
           </div>
@@ -283,7 +288,7 @@ export default function BatchEditPanel({
           <>
             <div className="form-row">
               <label className="form-label" htmlFor="batch-value">
-                追加内容
+                {t('batch.appendContent')}
               </label>
               <input
                 id="batch-value"
@@ -291,13 +296,13 @@ export default function BatchEditPanel({
                 data-testid="batch-value"
                 value={value}
                 disabled={busy}
-                placeholder="追加到字段末尾"
+                placeholder={t('batch.appendPlaceholder')}
                 onChange={(event) => setValue(event.target.value)}
               />
             </div>
             <div className="form-row">
               <label className="form-label" htmlFor="batch-sep">
-                分隔符
+                {t('batch.separator')}
               </label>
               <input
                 id="batch-sep"
@@ -315,7 +320,7 @@ export default function BatchEditPanel({
           <>
             <div className="form-row">
               <label className="form-label" htmlFor="batch-mode">
-                模式
+                {t('batch.mode')}
               </label>
               <select
                 id="batch-mode"
@@ -334,7 +339,7 @@ export default function BatchEditPanel({
             </div>
             <div className="form-row">
               <label className="form-label" htmlFor="batch-adjust">
-                调整量
+                {t('batch.adjust')}
               </label>
               <input
                 id="batch-adjust"
@@ -349,14 +354,14 @@ export default function BatchEditPanel({
                 onChange={(event) => setAdjustText(event.target.value)}
               />
             </div>
-            <div className="item-meta">数值按「去掉 % 后解析」处理；非数值的条目会自动跳过。</div>
+            <div className="item-meta">{t('batch.adjustHint')}</div>
           </>
         )}
 
         {op === 'add_tag' && (
           <div className="form-row">
             <label className="form-label" htmlFor="batch-value">
-              标签
+              {t('batch.tag')}
             </label>
             <input
               id="batch-value"
@@ -364,7 +369,7 @@ export default function BatchEditPanel({
               data-testid="batch-value"
               value={value}
               disabled={busy}
-              placeholder="输入标签内容"
+              placeholder={t('batch.tagPlaceholder')}
               onChange={(event) => setValue(event.target.value)}
             />
           </div>
@@ -373,11 +378,12 @@ export default function BatchEditPanel({
         {op === 'delete_selected' && (
           <div className="form-row">
             <div className="danger-hint" data-testid="batch-delete-hint">
-              将删除作用范围内的 {effectiveCount} 项数据，此操作不可撤销！
+              {t('batch.deleteHint', { n: effectiveCount })}
               {confirmDelete ? null : (
                 <>
                   <br />
-                  <b>「删除时确认」已关闭</b>：点击后立即删除，不再二次确认。
+                  <b>{t('batch.confirmOff')}</b>
+                  {t('batch.confirmOffSuffix')}
                 </>
               )}
             </div>
@@ -404,10 +410,10 @@ export default function BatchEditPanel({
                 disabled={busy || effectiveCount === 0}
                 onClick={() => void handleDelete()}
               >
-                确认删除 {effectiveCount} 项
+                {t('batch.confirmDelete', { n: effectiveCount })}
               </button>
               <button type="button" className="btn" disabled={busy} onClick={() => setDeleteConfirm(false)}>
-                取消
+                {t('common.cancel')}
               </button>
             </>
           ) : (
@@ -418,7 +424,7 @@ export default function BatchEditPanel({
               disabled={busy || effectiveCount === 0}
               onClick={() => handleDeleteClick()}
             >
-              删除作用范围内条目
+              {t('batch.deleteOp')}
             </button>
           )
         ) : (
@@ -429,11 +435,11 @@ export default function BatchEditPanel({
             disabled={busy || effectiveCount === 0}
             onClick={() => void handleApply()}
           >
-            应用（{effectiveCount} 项）
+            {t('batch.apply', { n: effectiveCount })}
           </button>
         )}
         <button type="button" className="btn" data-testid="batch-close" disabled={busy} onClick={onClose}>
-          关闭
+          {t('common.close')}
         </button>
       </div>
     </aside>
