@@ -8,6 +8,8 @@ import { GameDataPreviewPanel } from '../../components/data'
 import { ImageGenPanel } from '../../components/browser'
 import { KeywordTemplatePanel } from '../../components/ceshuType'
 import { SettingsPanel } from '../../components/common'
+import { translate } from '@mobai/shared/i18n'
+import { getLocalePreference } from '../../localePreference'
 import { registerReactBinding } from '../host'
 
 /**
@@ -36,108 +38,124 @@ export function defineUtilityPanelsPlugin(host: PluginHost): PluginManifest {
     id: 'utility-panels',
     name: 'utility-panels',
     version: '0.1.0',
-    description: '低风险工具面板包（设置 / 图片清理 / 关键词模板 / 智能体编辑 / 数据预览 / 属性系统 / 数据差异 / 生图）',
+    description: 'Low-risk utility panels (settings / image cleanup / keyword templates / agent editor / data preview / attribute system / data diff / image generation)',
     meta: {
-      label: '工具面板',
+      labelKey: 'utilityPanels.metaLabel',
       icon: '🧰',
-      description: '8 个不依赖 App 状态的面板，经宿主渲染（bundle 形态样例）'
+      descriptionKey: 'utilityPanels.metaDescription'
     },
     capabilities: [
       {
         kind: 'command',
         id: 'settings.open',
-        label: '设置',
+        label: 'Settings',
+        labelKey: 'utilityPanels.settings',
         run: () => host.openPanel('settings.panel')
       },
       {
         kind: 'panel',
         id: 'settings.panel',
-        title: '设置',
-        ui: { type: 'text', text: '模型接入、主题与本地偏好' }
+        title: 'Settings',
+        titleKey: 'utilityPanels.settings',
+        ui: { type: 'text', text: translate(getLocalePreference(), 'utilityPanels.settingsUi') }
       },
       {
         kind: 'command',
         id: 'cleanupImages.open',
-        label: '清理未引用图片',
+        label: 'Clean unused images',
+        labelKey: 'utilityPanels.cleanupImages',
         run: () => host.openPanel('cleanupImages.panel')
       },
       {
         kind: 'panel',
         id: 'cleanupImages.panel',
-        title: '清理未引用图片',
-        ui: { type: 'text', text: '扫描库内未被引用的图片并清理' }
+        title: 'Clean unused images',
+        titleKey: 'utilityPanels.cleanupImages',
+        ui: { type: 'text', text: translate(getLocalePreference(), 'utilityPanels.cleanupImagesUi') }
       },
       {
         kind: 'command',
         id: 'keywordTemplates.open',
-        label: '关键词模板',
+        label: 'Keyword templates',
+        labelKey: 'utilityPanels.keywordTemplates',
         run: () => host.openPanel('keywordTemplates.panel')
       },
       {
         kind: 'panel',
         id: 'keywordTemplates.panel',
-        title: '关键词模板',
-        ui: { type: 'text', text: '按类型维护 AI 生成用的关键词模板' }
+        title: 'Keyword templates',
+        titleKey: 'utilityPanels.keywordTemplates',
+        ui: { type: 'text', text: translate(getLocalePreference(), 'utilityPanels.keywordTemplatesUi') }
       },
       {
         kind: 'command',
         id: 'agentEditor.open',
-        label: '智能体编辑',
+        label: 'Agent editor',
+        labelKey: 'utilityPanels.agentEditor',
         run: () => host.openPanel('agentEditor.panel')
       },
       {
         kind: 'panel',
         id: 'agentEditor.panel',
-        title: '智能体编辑',
-        ui: { type: 'text', text: '查看与调整各岗位智能体的设定' }
+        title: 'Agent editor',
+        titleKey: 'utilityPanels.agentEditor',
+        ui: { type: 'text', text: translate(getLocalePreference(), 'utilityPanels.agentEditorUi') }
       },
       {
         kind: 'command',
         id: 'gameDataPreview.open',
-        label: '游戏数据预览',
+        label: 'Game data preview',
+        labelKey: 'utilityPanels.gameDataPreview',
         run: () => host.openPanel('gameDataPreview.panel')
       },
       {
         kind: 'panel',
         id: 'gameDataPreview.panel',
-        title: '游戏数据预览',
-        ui: { type: 'text', text: '导出前的数据落盘预览' }
+        title: 'Game data preview',
+        titleKey: 'utilityPanels.gameDataPreview',
+        ui: { type: 'text', text: translate(getLocalePreference(), 'utilityPanels.gameDataPreviewUi') }
       },
       {
         kind: 'command',
         id: 'attrSystem.open',
-        label: '属性系统',
+        label: 'Attribute system',
+        labelKey: 'utilityPanels.attrSystem',
         run: () => host.openPanel('attrSystem.panel')
       },
       {
         kind: 'panel',
         id: 'attrSystem.panel',
-        title: '属性系统',
-        ui: { type: 'text', text: '属性公式、成长曲线与战力计算' }
+        title: 'Attribute system',
+        titleKey: 'utilityPanels.attrSystem',
+        ui: { type: 'text', text: translate(getLocalePreference(), 'utilityPanels.attrSystemUi') }
       },
       {
         kind: 'command',
         id: 'dataDiff.open',
-        label: '数据差异',
+        label: 'Data diff',
+        labelKey: 'utilityPanels.dataDiff',
         run: () => host.openPanel('dataDiff.panel')
       },
       {
         kind: 'panel',
         id: 'dataDiff.panel',
-        title: '数据差异',
-        ui: { type: 'text', text: '库内数据与策划书快照的差异对比' }
+        title: 'Data diff',
+        titleKey: 'utilityPanels.dataDiff',
+        ui: { type: 'text', text: translate(getLocalePreference(), 'utilityPanels.dataDiffUi') }
       },
       {
         kind: 'command',
         id: 'imageGen.open',
-        label: 'AI 生图',
+        label: 'AI image generation',
+        labelKey: 'utilityPanels.imageGen',
         run: () => host.openPanel('imageGen.panel')
       },
       {
         kind: 'panel',
         id: 'imageGen.panel',
-        title: 'AI 生图',
-        ui: { type: 'text', text: '按提示词生成美术参考图' }
+        title: 'AI image generation',
+        titleKey: 'utilityPanels.imageGen',
+        ui: { type: 'text', text: translate(getLocalePreference(), 'utilityPanels.imageGenUi') }
       }
     ]
   }

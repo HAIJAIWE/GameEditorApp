@@ -1,5 +1,7 @@
 import type { PluginHost } from '@mobai/shared/plugin/host'
 import type { PluginManifest } from '@mobai/shared/plugin/types'
+import { translate } from '@mobai/shared/i18n'
+import { getLocalePreference } from '../../localePreference'
 import { AdvancedSearchPanel } from '../../components/common'
 import { AttributeChartPanel } from '../../components/attr'
 import { RelationGraphPanel } from '../../components/ceshuField'
@@ -41,48 +43,54 @@ export function defineDataPanelsPlugin(host: PluginHost): PluginManifest {
     id: 'data-panels',
     name: 'data-panels',
     version: '0.1.0',
-    description: '数据浏览面板包（高级搜索 / 关系图 / 属性图表），共享状态经 appContext 自供给',
+    description: 'Data browsing panels (advanced search / relation graph / attribute chart) with shared state via appContext',
     meta: {
-      label: '数据浏览',
+      labelKey: 'dataPanels.metaLabel',
       icon: '🔍',
-      description: '3 个只依赖 types + handleJump 的面板，经宿主渲染 + appContext 自供给'
+      descriptionKey: 'dataPanels.metaDescription'
     },
     capabilities: [
       {
         kind: 'command',
         id: 'advancedSearch.open',
-        label: '高级搜索',
+        label: 'Advanced search',
+        labelKey: 'dataPanels.advancedSearch',
         run: () => host.openPanel('advancedSearch.panel')
       },
       {
         kind: 'panel',
         id: 'advancedSearch.panel',
-        title: '高级搜索',
-        ui: { type: 'text', text: '跨类型按关键词/字段检索条目并跳转' }
+        title: 'Advanced search',
+        titleKey: 'dataPanels.advancedSearch',
+        ui: { type: 'text', text: translate(getLocalePreference(), 'dataPanels.advancedSearchUi') }
       },
       {
         kind: 'command',
         id: 'relationGraph.open',
-        label: '关系图',
+        label: 'Relation graph',
+        labelKey: 'dataPanels.relationGraph',
         run: () => host.openPanel('relationGraph.panel')
       },
       {
         kind: 'panel',
         id: 'relationGraph.panel',
-        title: '关系图',
-        ui: { type: 'text', text: '以某条目为中心的引用关系图' }
+        title: 'Relation graph',
+        titleKey: 'dataPanels.relationGraph',
+        ui: { type: 'text', text: translate(getLocalePreference(), 'dataPanels.relationGraphUi') }
       },
       {
         kind: 'command',
         id: 'attributeChart.open',
-        label: '属性图表',
+        label: 'Attribute chart',
+        labelKey: 'dataPanels.attributeChart',
         run: () => host.openPanel('attributeChart.panel')
       },
       {
         kind: 'panel',
         id: 'attributeChart.panel',
-        title: '属性图表',
-        ui: { type: 'text', text: '各类型的数值字段分布' }
+        title: 'Attribute chart',
+        titleKey: 'dataPanels.attributeChart',
+        ui: { type: 'text', text: translate(getLocalePreference(), 'dataPanels.attributeChartUi') }
       }
     ]
   }

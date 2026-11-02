@@ -1,10 +1,12 @@
 import type { PluginManifest } from '@mobai/shared/plugin/types'
+import { translate } from '@mobai/shared/i18n'
 import { BrowserPanel } from '../../components/browser'
 import { CeshuHomePanel } from '../../components/ceshuDoc'
 import { CeshuView } from '../../components/ceshuDoc'
 import { CodePanel } from '../../components/browser'
 import { DataEditorPanel } from '../../components/data'
 import { TechDocPanel } from '../../components/techDoc/TechDocPanel'
+import { getLocalePreference } from '../../localePreference'
 import { useMainViewContext } from '../host'
 import { registerReactBinding } from '../host'
 
@@ -87,11 +89,11 @@ export function defineCoreViewsPlugin(): PluginManifest {
     id: 'core-views',
     name: 'core-views',
     version: '0.1.0',
-    description: 'App 主区页签：策划书 / 数据 / 代码 / 浏览器',
+    description: 'App main-view tabs: design docs / data / code / browser',
     meta: {
-      label: '主区视图',
+      labelKey: 'coreViews.metaLabel',
       icon: '🗂️',
-      description: '中间页签里的策划书、数据、代码与浏览器'
+      descriptionKey: 'coreViews.metaDescription'
     },
     capabilities: [
       {
@@ -101,7 +103,7 @@ export function defineCoreViewsPlugin(): PluginManifest {
         titleKey: 'view.ceshu.title',
         order: 0,
         lazy: false,
-        ui: { type: 'text', text: '策划书' }
+        ui: { type: 'text', text: translate(getLocalePreference(), 'view.ceshu') }
       },
       {
         kind: 'mainView',
@@ -110,7 +112,7 @@ export function defineCoreViewsPlugin(): PluginManifest {
         titleKey: 'view.data.title',
         order: 10,
         lazy: true,
-        ui: { type: 'text', text: '数据编辑' }
+        ui: { type: 'text', text: translate(getLocalePreference(), 'view.data') }
       },
       {
         kind: 'mainView',
@@ -119,7 +121,7 @@ export function defineCoreViewsPlugin(): PluginManifest {
         titleKey: 'view.techDoc.title',
         order: 20,
         lazy: true,
-        ui: { type: 'text', text: '技术设计' }
+        ui: { type: 'text', text: translate(getLocalePreference(), 'view.techDoc') }
       },
       {
         kind: 'mainView',
@@ -128,7 +130,7 @@ export function defineCoreViewsPlugin(): PluginManifest {
         titleKey: 'view.code.title',
         order: 30,
         lazy: true,
-        ui: { type: 'text', text: '代码编辑' }
+        ui: { type: 'text', text: translate(getLocalePreference(), 'view.code') }
       },
       {
         kind: 'mainView',
@@ -137,7 +139,7 @@ export function defineCoreViewsPlugin(): PluginManifest {
         titleKey: 'view.browser.title',
         order: 40,
         lazy: true,
-        ui: { type: 'text', text: '浏览器' }
+        ui: { type: 'text', text: translate(getLocalePreference(), 'view.browser') }
       }
     ]
   }

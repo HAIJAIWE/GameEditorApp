@@ -2,6 +2,8 @@ import type { PluginHost } from '@mobai/shared/plugin/host'
 import type { PluginManifest } from '@mobai/shared/plugin/types'
 import type { ImportPreview } from '@mobai/shared/types'
 import { formatImportSummary } from '../../appUtils'
+import { translate } from '@mobai/shared/i18n'
+import { getLocalePreference } from '../../localePreference'
 import { BatchEditPanel } from '../../components/data'
 import { ImportPreviewPanel } from '../../components/data'
 import { QuickCreatePanel } from '../../components/common'
@@ -139,54 +141,61 @@ export function defineEntryPanelsPlugin(host: PluginHost): PluginManifest {
     id: 'entry-panels',
     name: 'entry-panels',
     version: '0.1.0',
-    description: '数据录入/编辑面板包（字段结构 / 快速创建 / 批量编辑 / 导入预览），参数经宿主携带',
+    description: 'Data entry/edit panels (field structure / quick create / batch edit / import preview) with params carried by the host',
     meta: {
-      label: '数据录入',
+      labelKey: 'entryPanels.metaLabel',
       icon: '✍️',
-      description: '4 个带打开参数的面板，经宿主渲染 + 参数自供给（Slice 7）'
+      descriptionKey: 'entryPanels.metaDescription'
     },
     capabilities: [
       {
         kind: 'command',
         id: 'typeEditor.open',
-        label: '字段结构编辑器',
+        label: 'Field structure editor',
+        labelKey: 'entryPanels.typeEditor',
         run: () => host.openPanel('typeEditor.panel')
       },
       {
         kind: 'panel',
         id: 'typeEditor.panel',
-        title: '字段结构编辑器',
-        ui: { type: 'text', text: '编辑各数据类型的字段结构' }
+        title: 'Field structure editor',
+        titleKey: 'entryPanels.typeEditor',
+        ui: { type: 'text', text: translate(getLocalePreference(), 'entryPanels.typeEditorUi') }
       },
       {
         kind: 'command',
         id: 'quickCreate.open',
-        label: '快速创建',
+        label: 'Quick create',
+        labelKey: 'entryPanels.quickCreate',
         run: () => host.openPanel('quickCreate.panel')
       },
       {
         kind: 'panel',
         id: 'quickCreate.panel',
-        title: '快速创建',
-        ui: { type: 'text', text: '按模板快速新建条目' }
+        title: 'Quick create',
+        titleKey: 'entryPanels.quickCreate',
+        ui: { type: 'text', text: translate(getLocalePreference(), 'entryPanels.quickCreateUi') }
       },
       {
         kind: 'command',
         id: 'batch.open',
-        label: '批量编辑',
+        label: 'Batch edit',
+        labelKey: 'entryPanels.batch',
         run: () => host.openPanel('batch.panel')
       },
       {
         kind: 'panel',
         id: 'batch.panel',
-        title: '批量编辑',
-        ui: { type: 'text', text: '批量改数值 / 批量删除' }
+        title: 'Batch edit',
+        titleKey: 'entryPanels.batch',
+        ui: { type: 'text', text: translate(getLocalePreference(), 'entryPanels.batchUi') }
       },
       {
         kind: 'panel',
         id: 'importPreview.panel',
-        title: '导入预览',
-        ui: { type: 'text', text: '确认导入内容后再落盘' }
+        title: 'Import preview',
+        titleKey: 'entryPanels.importPreview',
+        ui: { type: 'text', text: translate(getLocalePreference(), 'entryPanels.importPreviewUi') }
       }
     ]
   }
