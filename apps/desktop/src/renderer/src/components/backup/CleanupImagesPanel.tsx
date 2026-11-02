@@ -165,7 +165,7 @@ export default function CleanupImagesPanel() {
         setConfirming(false)
       })
       .finally(() => setBusy(false))
-  }, [fetchScan, state])
+  }, [fetchScan, state, t])
 
   const scan = state.status === 'ready' ? state.scan : null
   const preview = scan !== null ? previewUnused(scan.unused) : null

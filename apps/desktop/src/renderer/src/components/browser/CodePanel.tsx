@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
+import { translate } from '@mobai/shared/i18n'
 import { LucideIcon } from '../common'
 import { subscribeCodeViewRequest, takeCodeViewRequest } from '../../plugins/context'
+import { getLocalePreference } from '../../localePreference'
 import { baseNameOf, formatBytes, isCodeFile, sortEntries, tokenizeCode } from '../../utils/codeView'
 import type { FsDirEntry } from '@mobai/shared/ipc'
 import './code-panel.css'
@@ -38,6 +41,7 @@ interface FileBuffer {
 }
 
 export default function CodePanel(): React.JSX.Element {
+  const t = useT()
   const [root, setRoot] = useState<string>('')
   const [tree, setTree] = useState<TreeNode>({ path: '', loading: true, entries: null, error: null })
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set())
@@ -60,7 +64,7 @@ export default function CodePanel(): React.JSX.Element {
     void window.mbApi.fs.listDir({ path }).then((res) => {
       setTree({ path: res.path, loading: false, entries: sortEntries(res.entries), error: null })
     }).catch(() => {
-      setTree({ path, loading: false, entries: [], error: '无法读取该目录' })
+      setTree({ path, loading: false, entries: [], error: translate(getLocalePreference(), 'codePanel.readDirFailed') })
     })
   }, [])
 
@@ -81,7 +85,8 @@ export default function CodePanel(): React.JSX.Element {
         loadDir(res.root)
       })
       .catch(() => {
-        if (!cancelled) setTree((prev) => ({ ...prev, loading: false, error: '无法获取默认目录' }))
+        if (!cancelled)
+          setTree((prev) => ({ ...prev, loading: false, error: translate(getLocalePreference(), 'codePanel.appRootFailed') }))
       })
     return () => {
       cancelled = true
@@ -110,7 +115,7 @@ export default function CodePanel(): React.JSX.Element {
         contentRef.current?.scrollTo({ top: 0 })
       })
     }).catch(() => {
-      putBuffer(path, { text: '', reason: '读取失败', bytes: 0 })
+      putBuffer(path, { text: '', reason: translate(getLocalePreference(), 'codePanel.readFailed'), bytes: 0 })
     })
   }, [putBuffer])
 
@@ -204,11 +209,11 @@ export default function CodePanel(): React.JSX.Element {
       {/* 左：文件树 */}
       <aside className="code-tree" data-testid="code-tree">
         <div className="code-tree-head">
-          <span className="code-tree-title">文件</span>
+          <span className="code-tree-title">{t('codePanel.dirTitle')}</span>
           <button
             type="button"
             className="btn slim"
-            title="向上一级"
+            title={t('codePanel.upTitle')}
             data-testid="code-tree-up"
             onClick={() => {
               const parent = parentOf(tree.path || root)
@@ -223,7 +228,7 @@ export default function CodePanel(): React.JSX.Element {
             className="code-path-input"
             data-testid="code-path-input"
             value={pathInput}
-            placeholder="绝对路径，回车跳转"
+            placeholder={t('codePanel.pathPlaceholder')}
             onChange={(e) => setPathInput(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') gotoPath()
@@ -231,10 +236,10 @@ export default function CodePanel(): React.JSX.Element {
           />
         </div>
         <div className="code-tree-body">
-          {tree.loading && <div className="code-tree-hint">读取中…</div>}
+          {tree.loading && <div className="code-tree-hint">{t('codePanel.loading')}</div>}
           {tree.error !== null && <div className="code-tree-hint error">{tree.error}</div>}
           {!tree.loading && tree.entries !== null && tree.entries.length === 0 && (
-            <div className="code-tree-hint">空目录（或条目超出 500 条上限被截断）</div>
+            <div className="code-tree-hint">{t('codePanel.emptyDir')}</div>
           )}
           {!tree.loading &&
             tree.entries?.map((entry) => {
@@ -263,7 +268,7 @@ export default function CodePanel(): React.JSX.Element {
                   type="button"
                   className={`code-tree-row file${activePath === full ? ' active' : ''}`}
                   onClick={() => openFile(full)}
-                  title={`${full}（${formatBytes(entry.size)}）`}
+                  title={t('codePanel.fileTitle', { path: full, size: formatBytes(entry.size) })}
                 >
                   <span className="code-tree-icon">·</span>
                   <span className="code-tree-name">{entry.name}</span>
@@ -286,15 +291,15 @@ export default function CodePanel(): React.JSX.Element {
               <button
                 type="button"
                 className="code-tab-close"
-                title="关闭"
-                aria-label={`关闭 ${baseNameOf(path)}`}
+                title={t('codePanel.closeTab')}
+                aria-label={t('codePanel.closeTabAria', { name: baseNameOf(path) })}
                 onClick={() => closeFile(path)}
               >
                 <LucideIcon name="x" size={12} />
               </button>
             </div>
           ))}
-          <button type="button" className="code-tab-add" disabled title="新建文件（本面板只读，暂未实现）">
+          <button type="button" className="code-tab-add" disabled title={t('codePanel.newFileTitle')}>
             <LucideIcon name="plus" size={14} />
           </button>
         </div>
@@ -303,7 +308,7 @@ export default function CodePanel(): React.JSX.Element {
         <div className="code-breadcrumb" data-testid="code-breadcrumb">
           <span className="code-crumb-path" title={activePath || tree.path}>
             {crumb.length === 0
-              ? '（未加载）'
+              ? t('codePanel.unloaded')
               : crumb.map((segment, index) => (
                   <span key={`${index}-${segment}`} className={`code-crumb-seg${index === crumb.length - 1 ? ' last' : ''}`}>
                     {index > 0 && <span className="code-crumb-sep">/</span>}
@@ -313,30 +318,30 @@ export default function CodePanel(): React.JSX.Element {
           </span>
           {content !== null && content.reason === null && (
             <span className="code-crumb-meta">
-              {lineCount} 行 · {formatBytes(content.bytes)}
+              {t('codePanel.meta', { lines: lineCount, size: formatBytes(content.bytes) })}
             </span>
           )}
           {activePath !== '' && (
-            <span className="code-crumb-badge" title="本面板只读，不提供编辑保存">
-              只读
+            <span className="code-crumb-badge" title={t('codePanel.readonlyTitle')}>
+              {t('codePanel.readonlyBadge')}
             </span>
           )}
           <span className="code-crumb-tools">
-            <button type="button" className="code-tool" disabled title="代码视图切换（暂未实现）">
+            <button type="button" className="code-tool" disabled title={t('codePanel.viewSwitchTitle')}>
               <LucideIcon name="file-text" size={14} />
             </button>
             <button
               type="button"
               className="code-tool"
               disabled={activePath === ''}
-              title="重新读取当前文件"
+              title={t('codePanel.reloadTitle')}
               onClick={() => {
                 if (activePath !== '') readFile(activePath)
               }}
             >
               <LucideIcon name="refresh" size={14} />
             </button>
-            <button type="button" className="code-tool" disabled title="更多操作（暂未实现）">
+            <button type="button" className="code-tool" disabled title={t('codePanel.moreTitle')}>
               <LucideIcon name="chevron-down" size={14} />
             </button>
           </span>
@@ -344,12 +349,12 @@ export default function CodePanel(): React.JSX.Element {
 
         {activePath === '' ? (
           <div className="code-view-empty">
-            <p>从左侧选择一个代码文件</p>
-            <p className="code-view-empty-sub">只读查看 · 支持 ts/tsx/js/json/md/html/css/py/lua 等文本格式</p>
+            <p>{t('codePanel.pickFile')}</p>
+            <p className="code-view-empty-sub">{t('codePanel.pickFileSub')}</p>
           </div>
         ) : (
           <>
-            {content === null && <div className="code-view-empty">读取中…</div>}
+            {content === null && <div className="code-view-empty">{t('codePanel.loading')}</div>}
             {content !== null && content.reason !== null && (
               <div className="code-view-empty error" data-testid="code-view-reason">
                 {content.reason}
@@ -391,20 +396,22 @@ function DirChildren({
   onToggle: (path: string) => void
   onOpenFile: (path: string) => void
 }): React.JSX.Element {
+  const t = useT()
   const [state, setState] = useState<TreeNode>({ path, loading: true, entries: null, error: null })
   useEffect(() => {
     let cancelled = false
     void window.mbApi.fs.listDir({ path }).then((res) => {
       if (!cancelled) setState({ path: res.path, loading: false, entries: sortEntries(res.entries), error: null })
     }).catch(() => {
-      if (!cancelled) setState({ path, loading: false, entries: [], error: '无法读取' })
+      if (!cancelled)
+        setState({ path, loading: false, entries: [], error: translate(getLocalePreference(), 'codePanel.readDirFailedShort') })
     })
     return () => {
       cancelled = true
     }
   }, [path])
 
-  if (state.loading) return <div className="code-tree-hint indent">读取中…</div>
+  if (state.loading) return <div className="code-tree-hint indent">{t('codePanel.loading')}</div>
   if (state.error !== null) return <div className="code-tree-hint indent error">{state.error}</div>
   return (
     <>
@@ -414,7 +421,7 @@ function DirChildren({
           if (depth >= 6) {
             return (
               <div key={full} className="code-tree-hint indent" title={full}>
-                {entry.name}（过深，未展开）
+                {t('codePanel.dirTooDeep', { name: entry.name })}
               </div>
             )
           }
@@ -438,7 +445,7 @@ function DirChildren({
         }
         if (!isCodeFile(entry.name)) return null
         return (
-          <button key={full} type="button" className="code-tree-row file" onClick={() => onOpenFile(full)} title={`${full}（${formatBytes(entry.size)}）`}>
+          <button key={full} type="button" className="code-tree-row file" onClick={() => onOpenFile(full)} title={t('codePanel.fileTitle', { path: full, size: formatBytes(entry.size) })}>
             <span className="code-tree-icon">·</span>
             <span className="code-tree-name">{entry.name}</span>
             <span className="code-tree-size">{formatBytes(entry.size)}</span>

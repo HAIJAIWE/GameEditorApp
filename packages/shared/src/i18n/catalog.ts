@@ -1126,7 +1126,31 @@ export const zh = {
   'cleanupImages.notWired': '清理功能尚未接线，无法删除',
   'cleanupImages.processing': '处理中…',
   'cleanupImages.rescan': '重新扫描',
-  'cleanupImages.start': '清理未使用图片…'
+  'cleanupImages.start': '清理未使用图片…',
+  // —— 通用组件：代码查看器 ——
+  'codePanel.dirTitle': '文件',
+  'codePanel.upTitle': '向上一级',
+  'codePanel.pathPlaceholder': '绝对路径，回车跳转',
+  'codePanel.loading': '读取中…',
+  'codePanel.emptyDir': '空目录（或条目超出 500 条上限被截断）',
+  'codePanel.readDirFailed': '无法读取该目录',
+  'codePanel.appRootFailed': '无法获取默认目录',
+  'codePanel.readFailed': '读取失败',
+  'codePanel.closeTab': '关闭',
+  'codePanel.closeTabAria': '关闭 {name}',
+  'codePanel.newFileTitle': '新建文件（本面板只读，暂未实现）',
+  'codePanel.unloaded': '（未加载）',
+  'codePanel.meta': '{lines} 行 · {size}',
+  'codePanel.readonlyBadge': '只读',
+  'codePanel.readonlyTitle': '本面板只读，不提供编辑保存',
+  'codePanel.viewSwitchTitle': '代码视图切换（暂未实现）',
+  'codePanel.reloadTitle': '重新读取当前文件',
+  'codePanel.moreTitle': '更多操作（暂未实现）',
+  'codePanel.pickFile': '从左侧选择一个代码文件',
+  'codePanel.pickFileSub': '只读查看 · 支持 ts/tsx/js/json/md/html/css/py/lua 等文本格式',
+  'codePanel.fileTitle': '{path}（{size}）',
+  'codePanel.dirTooDeep': '{name}（过深，未展开）',
+  'codePanel.readDirFailedShort': '无法读取'
 } as const
 
 /** 全部文案键（以中文表为准） */
@@ -2240,7 +2264,31 @@ export const en: Record<MessageKey, string> = {
   'cleanupImages.notWired': 'Cleanup is not wired up yet; cannot delete',
   'cleanupImages.processing': 'Processing…',
   'cleanupImages.rescan': 'Rescan',
-  'cleanupImages.start': 'Clean unused images…'
+  'cleanupImages.start': 'Clean unused images…',
+  // —— Shared components: code viewer ——
+  'codePanel.dirTitle': 'Files',
+  'codePanel.upTitle': 'Up one level',
+  'codePanel.pathPlaceholder': 'Absolute path, Enter to jump',
+  'codePanel.loading': 'Loading…',
+  'codePanel.emptyDir': 'Empty directory (or more than 500 entries truncated)',
+  'codePanel.readDirFailed': 'Cannot read this directory',
+  'codePanel.appRootFailed': 'Cannot get the default directory',
+  'codePanel.readFailed': 'Read failed',
+  'codePanel.closeTab': 'Close',
+  'codePanel.closeTabAria': 'Close {name}',
+  'codePanel.newFileTitle': 'New file (this panel is read-only, not implemented)',
+  'codePanel.unloaded': '(not loaded)',
+  'codePanel.meta': '{lines} lines · {size}',
+  'codePanel.readonlyBadge': 'Read-only',
+  'codePanel.readonlyTitle': 'This panel is read-only; no edit/save',
+  'codePanel.viewSwitchTitle': 'Code view switch (not implemented)',
+  'codePanel.reloadTitle': 'Reload the current file',
+  'codePanel.moreTitle': 'More actions (not implemented)',
+  'codePanel.pickFile': 'Pick a code file on the left',
+  'codePanel.pickFileSub': 'Read-only view · supports ts/tsx/js/json/md/html/css/py/lua and other text formats',
+  'codePanel.fileTitle': '{path} ({size})',
+  'codePanel.dirTooDeep': '{name} (too deep, not expanded)',
+  'codePanel.readDirFailedShort': 'Cannot read'
 }
 
 /** 按语言取表 */
