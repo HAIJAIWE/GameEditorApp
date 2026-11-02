@@ -1,5 +1,7 @@
 import type { PluginHost } from '@mobai/shared/plugin/host'
 import type { PluginManifest } from '@mobai/shared/plugin/types'
+import { translate } from '@mobai/shared/i18n'
+import { getLocalePreference } from '../../localePreference'
 import { OnboardingPanel } from '../../components/common'
 import { useAppContext } from '../host'
 import { getActiveCeshuId, notify, openPanel, setHomeVisible } from '../host'
@@ -65,75 +67,108 @@ export function defineOnboardingPlugin(host: PluginHost): PluginManifest {
     id: 'onboarding',
     name: 'onboarding',
     version: '0.1.0',
-    description: '快速入门引导 + 引导动作命令（12 个 nav.* command）',
+    description: 'Quick start guide + guide action commands (12 nav.* commands)',
     meta: {
-      label: '快速入门',
+      labelKey: 'onboarding.metaLabel',
       icon: '🚀',
-      description: '按现有 schema 生成引导卡，点击后由 nav.* 命令完成导航'
+      descriptionKey: 'onboarding.metaDescription'
     },
     capabilities: [
       {
         kind: 'command',
         id: 'onboarding.open',
-        label: '快速入门',
+        label: 'Quick start',
+        labelKey: 'onboarding.metaLabel',
         run: () => host.openPanel('onboarding.panel')
       },
       {
         kind: 'panel',
         id: 'onboarding.panel',
-        title: '快速入门',
-        ui: { type: 'text', text: '五步引导：建条目 / 设计数据 / 写策划书 / 用 AI' }
+        title: 'Quick start',
+        titleKey: 'onboarding.metaLabel',
+        ui: { type: 'text', text: translate(getLocalePreference(), 'onboarding.panelText') }
       },
       // —— 引导动作：全部是导航，故统一 nav.* 前缀 ——
-      { kind: 'command', id: 'nav.createRole', label: '创建角色', run: quickCreateFor('role') },
-      { kind: 'command', id: 'nav.createMonster', label: '创建怪物', run: quickCreateFor('monster') },
-      { kind: 'command', id: 'nav.createSkill', label: '创建技能', run: quickCreateFor('skill') },
-      { kind: 'command', id: 'nav.createEquip', label: '创建装备', run: quickCreateFor('equip') },
+      {
+        kind: 'command',
+        id: 'nav.createRole',
+        label: 'Create role',
+        labelKey: 'onboarding.cmd.createRole',
+        run: quickCreateFor('role')
+      },
+      {
+        kind: 'command',
+        id: 'nav.createMonster',
+        label: 'Create monster',
+        labelKey: 'onboarding.cmd.createMonster',
+        run: quickCreateFor('monster')
+      },
+      {
+        kind: 'command',
+        id: 'nav.createSkill',
+        label: 'Create skill',
+        labelKey: 'onboarding.cmd.createSkill',
+        run: quickCreateFor('skill')
+      },
+      {
+        kind: 'command',
+        id: 'nav.createEquip',
+        label: 'Create equipment',
+        labelKey: 'onboarding.cmd.createEquip',
+        run: quickCreateFor('equip')
+      },
       {
         kind: 'command',
         id: 'nav.batchCreate',
-        label: '批量创建',
+        label: 'Batch create',
+        labelKey: 'onboarding.cmd.batchCreate',
         // 守卫（schema 为空时只提示、不开空面板）在 App 的 openPanel 里，桥接过去即可
         run: () => openPanel('batch.panel')
       },
       {
         kind: 'command',
         id: 'nav.viewRelations',
-        label: '查看关联',
+        label: 'View relations',
+        labelKey: 'onboarding.cmd.viewRelations',
         run: () => openPanel('relationGraph.panel')
       },
       {
         kind: 'command',
         id: 'nav.fieldEditor',
-        label: '字段结构编辑器',
+        label: 'Field structure editor',
+        labelKey: 'onboarding.cmd.fieldEditor',
         run: () => openPanel('typeEditor.panel')
       },
       {
         kind: 'command',
         id: 'nav.stats',
-        label: '数据统计',
+        label: 'Data statistics',
+        labelKey: 'onboarding.cmd.stats',
         run: () => openPanel('statistics.panel')
       },
       {
         kind: 'command',
         id: 'nav.library',
-        label: '切换游戏库',
-        run: () => notify('在界面右上角「当前库」处可切换或新建游戏库')
+        label: 'Switch game library',
+        labelKey: 'onboarding.cmd.library',
+        run: () => notify(translate(getLocalePreference(), 'onboarding.notify.library'))
       },
       {
         kind: 'command',
         id: 'nav.ai',
-        label: '智能体',
-        run: () => notify('智能体在界面右侧常驻栏，直接输入即可')
+        label: 'Agent',
+        labelKey: 'onboarding.cmd.ai',
+        run: () => notify(translate(getLocalePreference(), 'onboarding.notify.ai'))
       },
       {
         kind: 'command',
         id: 'nav.dataDesign',
-        label: '去设计游戏数据',
+        label: 'Design game data',
+        labelKey: 'onboarding.cmd.dataDesign',
         run: () => {
           // 没有打开的策划书就没数据可设计：提示并回首页（原 App 分支的同一语义）
           if (getActiveCeshuId() === null) {
-            notify('请先打开一本策划书…')
+            notify(translate(getLocalePreference(), 'onboarding.notify.noCeshu'))
             setHomeVisible(true)
             return
           }
@@ -143,7 +178,8 @@ export function defineOnboardingPlugin(host: PluginHost): PluginManifest {
       {
         kind: 'command',
         id: 'nav.ceshu',
-        label: '去写策划书',
+        label: 'Write design docs',
+        labelKey: 'onboarding.cmd.ceshu',
         run: () => setHomeVisible(true)
       }
     ]

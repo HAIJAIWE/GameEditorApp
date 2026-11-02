@@ -1,7 +1,10 @@
 import { useEffect, useState, type ReactElement } from 'react'
 
+import { useT } from '@mobai/client-ui'
 import type { PluginHost } from '@mobai/shared/plugin/host'
 import type { PluginManifest } from '@mobai/shared/plugin/types'
+import { translate } from '@mobai/shared/i18n'
+import { getLocalePreference } from '../../localePreference'
 import { registerReactBinding, type PanelBindingProps } from '../host'
 
 /**
@@ -21,17 +24,18 @@ export function defineAutoReviewPlugin(_host: PluginHost): PluginManifest {
     id: 'auto-review',
     name: 'auto-review',
     version: '0.1.0',
-    description: '执行预审：工具执行前由当前模型做风险判读（allow 直接执行 / deny 走人工或终局）',
+    description: 'Pre-execution review: the current model judges risk before a tool runs (allow runs directly / deny goes to manual or outright reject)',
     meta: {
-      label: '执行预审',
+      labelKey: 'agent.autoReview.metaLabel',
       icon: 'shield',
-      description: '高危工具执行前的模型风险判读开关（dsh Auto 语义）'
+      descriptionKey: 'agent.autoReview.metaDescription'
     },
     capabilities: [
       {
         kind: 'command',
         id: 'autoReview.open',
-        label: '执行预审',
+        label: 'Pre-execution review',
+        labelKey: 'agent.autoReview.metaLabel',
         run: () => _host.openPanel('autoReview.panel')
       },
       {
@@ -43,8 +47,9 @@ export function defineAutoReviewPlugin(_host: PluginHost): PluginManifest {
       {
         kind: 'panel',
         id: 'autoReview.panel',
-        title: '执行预审',
-        ui: { type: 'text', text: '执行预审' }
+        title: 'Pre-execution review',
+        titleKey: 'agent.autoReview.metaLabel',
+        ui: { type: 'text', text: translate(getLocalePreference(), 'agent.autoReview.metaLabel') }
       },
       {
         // 暴露给其它代码的查询/切换接口（与开关面板同源）
@@ -77,6 +82,7 @@ function AutoReviewPanel(props: PanelBindingProps): ReactElement {
   const { onClose } = props
   const [enabled, setEnabled] = useState(reviewEnabled)
   const [synced, setSynced] = useState(false)
+  const t = useT()
 
   // 打开面板时从主进程同步真实状态（避免与其它入口不一致）
   useEffect(() => {
@@ -110,9 +116,9 @@ function AutoReviewPanel(props: PanelBindingProps): ReactElement {
   return (
     <div className="panel auto-review">
       <div className="panel-header">
-        <h3>执行预审</h3>
+        <h3>{t('agent.autoReview.metaLabel')}</h3>
         <button type="button" className="btn" onClick={onClose}>
-          关闭
+          {t('common.close')}
         </button>
       </div>
 
@@ -124,24 +130,20 @@ function AutoReviewPanel(props: PanelBindingProps): ReactElement {
             disabled={!synced}
             onChange={(event) => void toggle(event.target.checked)}
           />
-          <span>启用执行预审</span>
+          <span>{t('agent.autoReview.enable')}</span>
         </label>
-        <span className={`auto-review-status ${enabled ? 'on' : 'off'}`}>{enabled ? '已开启' : '已关闭'}</span>
+        <span className={`auto-review-status ${enabled ? 'on' : 'off'}`}>
+          {enabled ? t('agent.autoReview.on') : t('agent.autoReview.off')}
+        </span>
       </div>
 
-      <p className="auto-review-hint">
-        开启后，<b>高危工具</b>（静态风险 ≥ SYSTEM，如 shell / code / scheduler）在执行前会先由
-        <b>当前模型</b>做一次风险判读：
-      </p>
+      <p className="auto-review-hint">{t('agent.autoReview.hintLead')}</p>
       <ul className="auto-review-hint">
-        <li>判定 <b>allow</b> → 直接执行（顶替人工审批）；</li>
-        <li>判定 <b>deny</b> → 审批策略为 <code>ask</code> 时转人工审批，<code>never</code> 时终局拒绝；</li>
-        <li>判读失败或输出不合规 → 直接拒绝（fail-closed，绝不执行）。</li>
+        <li>{t('agent.autoReview.ruleAllow')}</li>
+        <li>{t('agent.autoReview.ruleDeny')}</li>
+        <li>{t('agent.autoReview.ruleFail')}</li>
       </ul>
-      <p className="auto-review-hint">
-        这是 dsh 的 Auto 语义：模型可能放行不安全操作或误拒有用操作，且每次高危调用会多花一次模型请求。
-        <code>ask</code> 模式下人类仍是最终闸。
-      </p>
+      <p className="auto-review-hint">{t('agent.autoReview.hintFooter')}</p>
     </div>
   )
 }
