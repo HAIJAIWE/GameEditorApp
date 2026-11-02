@@ -1,9 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
+
 import {
+  DESC_SYSTEM_PROMPT,
   buildDescContext,
   buildDescPrompt,
-  buildImageTagsPrompt
+  buildImageGenPrompt,
+  buildImageTagsPrompt,
+  withFieldTarget
 } from '@mobai/shared/util/field'
 import type { ImageGenConfig } from '@mobai/shared/config/llm'
 import { loadImageGenConfig } from '@mobai/shared/config/llm'
@@ -84,6 +89,7 @@ export default function ItemForm({
   onDuplicated,
   onDelete
 }: ItemFormProps) {
+  const t = useT()
   const [draft, setDraft] = useState<Record<string, unknown>>(() => buildInitialDraft(item.data, fields, item.type))
   const [saving, setSaving] = useState(false)
   const [localError, setLocalError] = useState<string | null>(null)
@@ -170,7 +176,7 @@ export default function ItemForm({
    * 本地 ollama 的 system 段参与「格式遵循」，拆开后角色约束更稳；
    * **user prompt 的正文逐字照抄 旧版**（见 `buildDescPrompt`），两边的提示词不打架。
    */
-  const SYSTEM_PROMPT_TEXT = '你是一位游戏文案创作专家，擅长用精炼、有感染力的中文写出令人印象深刻的游戏描述。'
+  const SYSTEM_PROMPT_TEXT = DESC_SYSTEM_PROMPT
 
   /** 当前条目所属类型的中文名 */
   const typeLabel = types.find((definition) => definition.id === item.type)?.name ?? item.type
@@ -209,10 +215,10 @@ export default function ItemForm({
     }
     const context = buildDescContext(typeLabel, draft)
     // 字段标签进上下文：同类型里 desc / content 语义不同（描述 vs 正文），模型得知道写哪个
-    const prompt = `${buildDescPrompt(typeLabel, context)}\n【本次要填的字段】${fieldLabel}`
+    const prompt = withFieldTarget(buildDescPrompt(typeLabel, context), fieldLabel)
     const reply = await api.llm.generate({ system: SYSTEM_PROMPT_TEXT, prompt })
     const text = reply.content.trim()
-    if (text === '') throw new Error('AI 未返回内容，请重试或检查本地模型')
+    if (text === '') throw new Error(t('itemForm.aiEmpty'))
     // 已有内容时追加而不是覆盖：用户手写的前半段不该被一键抹掉
     return currentText === '' ? text : `${currentText}\n${text}`
   }
@@ -236,7 +242,7 @@ export default function ItemForm({
     // （见 main/ipc.ts 的 image:generate handler）—— 渲染层永远碰不到明文。
     const stored = loadImageGenConfig()
     const hasKey = await api.settings.hasSecret({ name: SECRET_NAMES.imageGenApiKey })
-    if (!hasKey.has) throw new Error('请先在「AI 生图」面板里配置 API Key')
+    if (!hasKey.has) throw new Error(t('itemForm.imageNeedApiKey'))
     const config: ImageGenConfig = {
       enabled: true,
       provider: stored.provider,
@@ -251,10 +257,10 @@ export default function ItemForm({
      */
     const { dir } = await api.images.libraryDir()
     const subject = currentItemName()
-    const prompt = subject === '' ? `为${fieldLabel}生成一张配图` : `为「${subject}」生成一张配图（${fieldLabel}）`
+    const prompt = buildImageGenPrompt(subject, fieldLabel)
     const result = await api.image.generate({ config, prompt, saveDir: dir })
     if (!result.ok) throw new Error(result.error)
-    return `配图已保存：${result.path}`
+    return t('itemForm.imageSaved', { path: result.path })
   }
 
   /** 「AI分析」：把图片路径交给模型提取标签 */
@@ -267,7 +273,7 @@ export default function ItemForm({
       prompt: buildImageTagsPrompt(imagePath)
     })
     const text = reply.content.trim()
-    if (text === '') throw new Error('AI 未返回内容，请重试或检查本地模型')
+    if (text === '') throw new Error(t('itemForm.aiEmpty'))
     return text
   }
 
@@ -426,11 +432,13 @@ export default function ItemForm({
         {fields.length < 5 && onEditType !== undefined && (
           <div className="form-hint-row" data-testid="item-form-few-fields">
             <span>
-              这个类型只有 {fields.length} 个字段，所以只有 {formLayout.sections.length} 个分区。
-              不同玩法需要的字段不同，可在「字段结构编辑器」里套用模板（RPG角色 / 卡牌TCG / 策略SLG单位 等）。
+              {t('itemForm.fewFields', {
+                fields: fields.length,
+                sections: formLayout.sections.length
+              })}
             </span>
             <button type="button" className="btn slim" onClick={() => onEditType(item.type)}>
-              配置字段
+              {t('itemForm.configureFields')}
             </button>
           </div>
         )}
@@ -454,10 +462,10 @@ export default function ItemForm({
 
       <div className="editor-actions">
         <button type="button" className="btn" disabled={saving} onClick={handleReset}>
-          重置
+          {t('itemForm.reset')}
         </button>
         <button type="button" className="btn primary" disabled={saving} onClick={() => void handleSave()}>
-          保存
+          {t('common.save')}
         </button>
         {onDelete !== undefined && (
           <button
@@ -468,7 +476,7 @@ export default function ItemForm({
             onClick={onDelete}
           >
             <LucideIcon name="trash" size={14} />
-            删除
+            {t('common.delete')}
           </button>
         )}
         <button
@@ -478,7 +486,7 @@ export default function ItemForm({
           disabled={saving}
           onClick={() => void handleDuplicate()}
         >
-          复制
+          {t('itemForm.duplicate')}
         </button>
         {onAiGenerate !== undefined && (
           <button
@@ -488,7 +496,7 @@ export default function ItemForm({
             onClick={() => onAiGenerate(item.type)}
           >
             <LucideIcon name="bot" size={14} />
-            AI 生成
+            {t('itemForm.aiGenerate')}
           </button>
         )}
         {/*
@@ -505,7 +513,7 @@ export default function ItemForm({
               aria-expanded={moreOpen}
               onClick={() => setMoreOpen((open) => !open)}
             >
-              更多
+              {t('common.more')}
               <LucideIcon name="chevron-down" size={14} />
             </button>
             {moreOpen && (
@@ -522,7 +530,7 @@ export default function ItemForm({
                       }}
                     >
                       <LucideIcon name="settings" size={14} />
-                      编辑当前类型字段结构
+                      {t('itemForm.editTypeFields')}
                     </button>
                   </div>
                 )}
@@ -542,7 +550,7 @@ export default function ItemForm({
                       }}
                     >
                       <LucideIcon name="link" size={14} />
-                      查看此项的引用关系
+                      {t('itemForm.showReferences')}
                     </button>
                   </div>
                 )}

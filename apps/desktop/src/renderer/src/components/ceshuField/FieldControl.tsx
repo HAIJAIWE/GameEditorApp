@@ -1,5 +1,7 @@
 import { useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
+
 import { buildAutoImageInfo, autoFillLabel, mergeImageTagsResult } from '@mobai/shared/util/field'
 import type { ItemRecord, TypeFieldDef } from '@mobai/shared/types'
 import { LazyImage } from '../common'
@@ -57,6 +59,7 @@ export function FieldControl({
   itemName = '',
   dialogOptions = []
 }: FieldControlProps) {
+  const t = useT()
   const testId = `field-${field.name}`
   const [picking, setPicking] = useState(false)
   /**
@@ -126,7 +129,7 @@ export function FieldControl({
           disabled={!field.editable}
           onChange={(event) => onChange(event.target.value)}
         >
-          <option value="">（空）</option>
+          <option value="">{t('fieldControl.emptyOption')}</option>
           {[...extras, ...options].map((option) => (
             <option key={option} value={option}>
               {option}
@@ -152,7 +155,7 @@ export function FieldControl({
             className="form-input"
             data-testid={testId}
             list={listId}
-            placeholder="从模板里挑一个，或直接写自己的"
+            placeholder={t('fieldControl.templatePlaceholder')}
             value={current}
             readOnly={!field.editable}
             onChange={(event) => {
@@ -188,7 +191,7 @@ export function FieldControl({
           type="text"
           className="form-input"
           data-testid={testId}
-          placeholder="多个标签用逗号分隔"
+          placeholder={t('fieldControl.tagsPlaceholder')}
           value={current}
           readOnly={!field.editable}
           onChange={(event) => onChange(event.target.value)}
@@ -233,13 +236,13 @@ export function FieldControl({
             data-testid={`${testId}-pick`}
             disabled={picking || !field.editable}
             onClick={pick}
-            title={hasImage ? '点击更换图片' : '点击选择图片'}
-            aria-label={hasImage ? '更换图片' : '选择图片'}
+            title={hasImage ? t('fieldControl.replaceImageTitle') : t('fieldControl.pickImageTitle')}
+            aria-label={hasImage ? t('fieldControl.replaceImageAria') : t('fieldControl.pickImageAria')}
           >
             {picking ? (
-              <span className="image-picker-hint">读取中…</span>
+              <span className="image-picker-hint">{t('fieldControl.reading')}</span>
             ) : hasImage ? (
-              <LazyImage path={current} width={120} height={120} alt="图片预览" className="image-picker-img" />
+              <LazyImage path={current} width={120} height={120} alt={t('common.image.alt')} className="image-picker-img" />
             ) : (
               <span className="image-picker-plus" aria-hidden="true">
                 +
@@ -249,7 +252,7 @@ export function FieldControl({
           <div className="image-field-foot">
             {hasImage ? (
               <>
-                <span className="image-field-tip">点击方框可更换</span>
+                <span className="image-field-tip">{t('fieldControl.tipReplace')}</span>
                 <input
                   id={testId}
                   type="text"
@@ -267,7 +270,7 @@ export function FieldControl({
                * 故保留为不可见的值载体。
                */
               <>
-                <span className="image-field-tip">点击「+」选择图片</span>
+                <span className="image-field-tip">{t('fieldControl.tipPick')}</span>
                 <input
                   id={testId}
                   type="text"
@@ -304,7 +307,7 @@ export function FieldControl({
               className="btn slim"
               data-testid={`${testId}-auto-fill`}
               disabled={!field.editable}
-              title="按条目名称填入占位描述（纯模板，不调用 AI）"
+              title={t('fieldControl.autoFillDescTitle')}
               onClick={() => onChange(buildAutoImageInfo(itemName, '').desc)}
             >
               {autoFillLabel()}
@@ -344,7 +347,7 @@ export function FieldControl({
                 className="btn slim accent-outline"
                 data-testid={`${testId}-ai-generate`}
                 disabled={locked || aiBusy !== null}
-                title="按本表单已有的其它字段作为上下文，生成一段 50-100 字的描述"
+                title={t('fieldControl.descTitle')}
                 onClick={() =>
                   void runAi(
                     'desc',
@@ -353,14 +356,14 @@ export function FieldControl({
                   )
                 }
               >
-                {aiBusy === 'desc' ? '生成中…' : 'AI生成'}
+                {aiBusy === 'desc' ? t('fieldControl.generating') : t('fieldControl.aiGenerate')}
               </button>
               <button
                 type="button"
                 className="btn slim"
                 data-testid={`${testId}-ai-image`}
                 disabled={locked || aiBusy !== null}
-                title="用「AI生图」面板的同一套通道，按本条目名称与描述生成一张配图"
+                title={t('fieldControl.imageTitle')}
                 onClick={() =>
                   void runAi(
                     'image',
@@ -369,7 +372,7 @@ export function FieldControl({
                   )
                 }
               >
-                {aiBusy === 'image' ? '生图中…' : 'AI生图'}
+                {aiBusy === 'image' ? t('fieldControl.generatingImage') : t('fieldControl.aiImage')}
               </button>
               {aiError !== null && (
                 <span className="form-hint field-ai-error" data-testid={`${testId}-ai-error`}>
@@ -399,7 +402,7 @@ export function FieldControl({
             type="text"
             className="form-input"
             data-testid={testId}
-            placeholder="多个标签用逗号分隔"
+            placeholder={t('fieldControl.tagsPlaceholder')}
             value={current}
             readOnly={locked}
             onChange={(event) => onChange(event.target.value)}
@@ -410,7 +413,7 @@ export function FieldControl({
               className="btn slim"
               data-testid={`${testId}-auto-fill`}
               disabled={locked}
-              title="按条目名称填入占位标签与描述（纯模板，不调用 AI）"
+              title={t('fieldControl.autoFillTagsTitle')}
               onClick={() => onChange(buildAutoImageInfo(itemName, '').tags)}
             >
               {autoFillLabel()}
@@ -422,19 +425,19 @@ export function FieldControl({
               disabled={locked || aiBusy !== null || (imagePath ?? '') === ''}
               title={
                 (imagePath ?? '') === ''
-                  ? '请先选择一张图片'
-                  : '让模型读取图片路径并提取视觉标签（追加到现有标签后）'
+                  ? t('fieldControl.needImageFirst')
+                  : t('fieldControl.analyzeTitle')
               }
               onClick={() => {
                 const path = imagePath ?? ''
                 void runAi(
                   'analyze',
-                  () => (aiAssist === undefined ? Promise.reject(new Error('AI 能力不可用')) : aiAssist.analyzeImageTags(path)),
+                  () => (aiAssist === undefined ? Promise.reject(new Error(t('fieldControl.aiUnavailable'))) : aiAssist.analyzeImageTags(path)),
                   (result) => onChange(mergeImageTagsResult(current, result))
                 )
               }}
             >
-              {aiBusy === 'analyze' ? '分析中…' : 'AI分析'}
+              {aiBusy === 'analyze' ? t('fieldControl.analyzing') : t('fieldControl.aiAnalyze')}
             </button>
             {aiError !== null && (
               <span className="form-hint field-ai-error" data-testid={`${testId}-ai-error`}>
@@ -464,12 +467,12 @@ export function FieldControl({
             data-testid={testId}
             value={current}
             disabled={locked || !hasOptions}
-            title={hasOptions ? undefined : '没有可用的对话数据，请先在「对话」类型中创建数据'}
+            title={hasOptions ? undefined : t('fieldControl.noDialogsTitle')}
             onChange={(event) => onChange(event.target.value)}
           >
-            <option value="">（未选择）</option>
+            <option value="">{t('fieldControl.dialogUnselected')}</option>
             {/* 值指向已被删除的对话时保留原值可见（不静默清空），与 旧版 的只读框行为一致 */}
-            {current !== '' && !known && <option value={current}>{current}（已失效）</option>}
+            {current !== '' && !known && <option value={current}>{t('fieldControl.dialogStale', { id: current })}</option>}
             {dialogOptions.map((entry) => (
               <option key={entry.id} value={entry.id}>
                 {entry.id} — {itemNameOf(entry)}
@@ -478,7 +481,7 @@ export function FieldControl({
           </select>
           {!hasOptions && (
             <span className="form-hint" data-testid={`${testId}-empty`}>
-              没有可用的对话数据，请先在「对话」类型中创建数据
+              {t('fieldControl.noDialogsTitle')}
             </span>
           )}
         </div>

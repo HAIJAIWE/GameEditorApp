@@ -96,6 +96,34 @@ ${context}
 直接输出中文描述文本，不要用引号包裹。`
 }
 
+/**
+ * 字段级 AI 生成的 **system 提示词**（角色约束单独成段，本地模型格式遵循更稳）。
+ *
+ * 正文与 `buildDescPrompt` 的【角色】段一致：一处是 system、一处是 user prompt，
+ * 刻意拆开是为了让 ollama 这类小模型把「格式要求」与「内容要求」分开看。
+ */
+export const DESC_SYSTEM_PROMPT =
+  '你是一位游戏文案创作专家，擅长用精炼、有感染力的中文写出令人印象深刻的游戏描述。'
+
+/**
+ * 在 desc 提示词末尾补一句「本次要填的字段」。
+ *
+ * 同类型里 `desc` / `content` 语义不同（描述 vs 正文），不点明字段名模型会写错。
+ */
+export function withFieldTarget(prompt: string, fieldLabel: string): string {
+  return `${prompt}\n【本次要填的字段】${fieldLabel}`
+}
+
+/**
+ * 「AI生图」的提示词：有条目名时带上引号与字段名，否则退化成「为<字段>生成一张配图」。
+ *
+ * 与 旧版 的 `_on_ai_image` 不同，这里是真的会去生图（旧版 只是零能力桩）。
+ */
+export function buildImageGenPrompt(subject: string, fieldLabel: string): string {
+  const trimmed = subject.trim()
+  return trimmed === '' ? `为${fieldLabel}生成一张配图` : `为「${trimmed}」生成一张配图（${fieldLabel}）`
+}
+
 /* ============================================================
    二、图片字段的「自动生成」（**纯字符串模板，不调 AI**）
    ============================================================ */

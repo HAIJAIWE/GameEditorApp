@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
+
 import { CHAPTER_KEYS, CHAPTER_LABELS, type ChapterKey } from '@mobai/shared/ceshu/reference'
 import { countNotesByChapter, filterNotes, notePreview, type CeshuNote } from '@mobai/shared/ceshu/notes'
 import { toErrorMessage } from '@mobai/shared/util/system'
@@ -18,6 +20,7 @@ interface ChapterNotesPanelProps {
 }
 
 export default function ChapterNotesPanel({ ceshuId, onClose }: ChapterNotesPanelProps) {
+  const t = useT()
   const [notes, setNotes] = useState<CeshuNote[] | null>(null)
   const [chapterFilter, setChapterFilter] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -78,7 +81,7 @@ export default function ChapterNotesPanel({ ceshuId, onClose }: ChapterNotesPane
       setAuthor(created.author)
       setContent('')
       setConfirmDelete(false)
-      setNotice(`已新建笔记（${CHAPTER_LABELS[targetChapter]}），填写后点击「保存」`)
+      setNotice(t('notes.created', { chapter: CHAPTER_LABELS[targetChapter] }))
     } catch (err) {
       setError(toErrorMessage(err))
     } finally {
@@ -88,7 +91,7 @@ export default function ChapterNotesPanel({ ceshuId, onClose }: ChapterNotesPane
 
   const handleSave = async (): Promise<void> => {
     if (!selectedId) {
-      setError('请先选择或新建一条笔记')
+      setError(t('notes.needSelection'))
       return
     }
     setBusy(true)
@@ -104,7 +107,7 @@ export default function ChapterNotesPanel({ ceshuId, onClose }: ChapterNotesPane
       await refresh(updated.id)
       setAuthor(updated.author)
       setContent(updated.content)
-      setNotice('笔记已保存')
+      setNotice(t('notes.saved'))
     } catch (err) {
       setError(toErrorMessage(err))
     } finally {
@@ -124,7 +127,7 @@ export default function ChapterNotesPanel({ ceshuId, onClose }: ChapterNotesPane
       setAuthor('')
       setContent('')
       setConfirmDelete(false)
-      setNotice(result.deleted ? '笔记已删除' : '笔记不存在，可能已被删除')
+      setNotice(result.deleted ? t('notes.deleted') : t('notes.deleteMissing'))
     } catch (err) {
       setError(toErrorMessage(err))
     } finally {
@@ -136,11 +139,11 @@ export default function ChapterNotesPanel({ ceshuId, onClose }: ChapterNotesPane
     <div className="changelog-panel" data-testid="notes-panel">
       <div className="changelog-header">
         <span className="chapter-form-title">
-          章节笔记{notes ? `（共 ${notes.length} 条）` : ''}
+          {notes ? t('notes.titleWithCount', { n: notes.length }) : t('notes.title')}
         </span>
         <div className="editor-actions">
           <button type="button" className="btn" data-testid="notes-add" disabled={busy} onClick={() => void handleAdd()}>
-            新建笔记
+            {t('notes.add')}
           </button>
           <button
             type="button"
@@ -149,7 +152,7 @@ export default function ChapterNotesPanel({ ceshuId, onClose }: ChapterNotesPane
             disabled={busy || !selectedId}
             onClick={() => void handleSave()}
           >
-            保存
+            {t('common.save')}
           </button>
           {confirmDelete ? (
             <button
@@ -159,7 +162,7 @@ export default function ChapterNotesPanel({ ceshuId, onClose }: ChapterNotesPane
               disabled={busy}
               onClick={() => void handleDelete()}
             >
-              确认删除
+              {t('notes.confirmDelete')}
             </button>
           ) : (
             <button
@@ -169,11 +172,11 @@ export default function ChapterNotesPanel({ ceshuId, onClose }: ChapterNotesPane
               disabled={busy || !selectedId}
               onClick={() => setConfirmDelete(true)}
             >
-              删除
+              {t('common.delete')}
             </button>
           )}
           <button type="button" className="btn" data-testid="notes-close" onClick={onClose}>
-            关闭
+            {t('common.close')}
           </button>
         </div>
       </div>
@@ -191,14 +194,14 @@ export default function ChapterNotesPanel({ ceshuId, onClose }: ChapterNotesPane
 
       <div className="notes-body">
         <div className="notes-side">
-          <span className="form-label">章节筛选</span>
+          <span className="form-label">{t('notes.chapterFilter')}</span>
           <select
             className="form-select"
             data-testid="notes-filter"
             value={chapterFilter}
             onChange={(event) => setChapterFilter(event.target.value)}
           >
-            <option value="">全部章节</option>
+            <option value="">{t('notes.allChapters')}</option>
             {CHAPTER_KEYS.map((key) => (
               <option key={key} value={key}>
                 {CHAPTER_LABELS[key]}
@@ -208,9 +211,9 @@ export default function ChapterNotesPanel({ ceshuId, onClose }: ChapterNotesPane
 
           <div className="notes-list">
             {notes === null ? (
-              <div className="empty">正在加载笔记…</div>
+              <div className="empty">{t('notes.loading')}</div>
             ) : listed.length === 0 ? (
-              <div className="empty">暂无笔记，点击「新建笔记」开始记录</div>
+              <div className="empty">{t('notes.empty')}</div>
             ) : (
               listed.map((note) => {
                 const label = CHAPTER_LABELS[note.chapter_key as ChapterKey] ?? note.chapter_key
@@ -227,7 +230,7 @@ export default function ChapterNotesPanel({ ceshuId, onClose }: ChapterNotesPane
                     <span className="notes-item-title">
                       [{label}] (×{count})
                     </span>
-                    <span className="notes-item-preview">{preview || '(空)'}</span>
+                    <span className="notes-item-preview">{preview || t('notes.previewEmpty')}</span>
                     <span className="notes-item-meta">
                       {note.author} · {note.updated_at || note.created_at}
                     </span>
@@ -240,18 +243,18 @@ export default function ChapterNotesPanel({ ceshuId, onClose }: ChapterNotesPane
 
         <div className="notes-editor">
           <div className="notes-editor-row">
-            <span className="form-label">章节</span>
+            <span className="form-label">{t('notes.chapter')}</span>
             <span className="item-meta" data-testid="notes-chapter">
               {CHAPTER_LABELS[(current?.chapter_key as ChapterKey) ?? targetChapter] ??
                 (current?.chapter_key ?? targetChapter)}
-              {current ? '' : '（新建归属）'}
+              {current ? '' : t('notes.newOwnership')}
             </span>
-            <span className="form-label">作者</span>
+            <span className="form-label">{t('notes.author')}</span>
             <input
               className="form-input"
               data-testid="notes-author"
               value={author}
-              placeholder="作者名（缺省 anonymous）"
+              placeholder={t('notes.authorPlaceholder')}
               onChange={(event) => setAuthor(event.target.value)}
             />
           </div>
@@ -259,13 +262,13 @@ export default function ChapterNotesPanel({ ceshuId, onClose }: ChapterNotesPane
             className="form-textarea notes-content"
             data-testid="notes-content"
             value={content}
-            placeholder="在此输入笔记内容（设计想法、修改记录、讨论要点）…"
+            placeholder={t('notes.contentPlaceholder')}
             onChange={(event) => setContent(event.target.value)}
           />
           <div className="item-meta" data-testid="notes-status">
             {selectedId
-              ? `编辑中：${current?.updated_at || ''}`
-              : '未选择笔记（可先「新建笔记」，或从左侧选择一条）'}
+              ? t('notes.editing', { time: current?.updated_at || '' })
+              : t('notes.noSelection')}
           </div>
         </div>
       </div>

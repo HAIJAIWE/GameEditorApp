@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
+
 import { CHAPTER_LABELS, type CeshuFieldDef, type ChapterData, type ChapterKey } from '@mobai/shared/ceshu/reference'
 import type { CeshuAiGenerateResult } from '@mobai/shared/ceshu/prompts'
 import { FIELD_ACTION_LABELS, type FieldAction } from '@mobai/shared/ceshu/fields'
@@ -90,6 +92,7 @@ export default function ChapterForm({
   onFocusConsumed,
   onShowImpact
 }: ChapterFormProps) {
+  const t = useT()
   /** 本章字段定义（useMemo：`CESHU_CHAPTER_FIELDS[chapter]` 每次渲染都是新数组，
    *  不进 memo 会让下游 useCallback 的依赖每渲染都变，告警 + 回调失效） */
   const fields = useMemo(() => CESHU_CHAPTER_FIELDS[chapter] ?? [], [chapter])
@@ -293,7 +296,11 @@ export default function ChapterForm({
     }
     setPickerOpen(false)
     setFormNotice(
-      `已应用模板「${template.name}」（${TEMPLATE_APPLY_MODE_SHORT_LABELS[mode]}）：共 ${countTemplateFields(merged)} 个字段，请检查后点「保存本章」`
+      t('chapterForm.templateApplied', {
+        name: template.name,
+        mode: TEMPLATE_APPLY_MODE_SHORT_LABELS[mode],
+        count: countTemplateFields(merged)
+      })
     )
   }
 
@@ -322,7 +329,7 @@ export default function ChapterForm({
       const count = Object.keys(patch).length
       if (count === 0) {
         setFormError(
-          onlyEmpty ? '本章没有可补全的空字段（或 AI 输出无法解析）' : 'AI 未返回可应用的字段（请检查本地模型输出）'
+          onlyEmpty ? t('chapterForm.noEmptyFields') : t('chapterForm.aiNoFields')
         )
         return
       }
@@ -337,7 +344,7 @@ export default function ChapterForm({
           /* 忽略 */
         }
       }
-      setFormNotice(`AI 已生成 ${count} 个字段${result.model ? `（模型 ${result.model}）` : ''}，请检查后点「保存本章」`)
+      setFormNotice(t('chapterForm.aiGenerated', { count, model: result.model ? t('chapterForm.modelSuffix', { model: result.model }) : '' }))
     } catch (error) {
       setFormError(error instanceof Error ? error.message : String(error))
     } finally {
@@ -372,7 +379,7 @@ export default function ChapterForm({
           raw === '' ||
           (Array.isArray(raw) && raw.length === 0)
         ) {
-          setFormError(`AI 未返回「${def?.label ?? fieldKey}」的可应用内容（请检查本地模型输出）`)
+          setFormError(t('chapterForm.aiFieldEmpty', { label: def?.label ?? fieldKey }))
           return
         }
         setInputs((prev) => ({ ...prev, [fieldKey]: fieldValueToInput(def, raw) }))
@@ -384,9 +391,7 @@ export default function ChapterForm({
           }
         }
         const actionLabel = action !== undefined ? FIELD_ACTION_LABELS[action] : 'AI'
-        setFormNotice(
-          `AI 已${actionLabel}「${def.label}」${result.model ? `（模型 ${result.model}）` : ''}，请检查后点「保存本章」`
-        )
+        setFormNotice(t('chapterForm.aiFieldDone', { action: actionLabel, label: def.label, model: result.model ? t('chapterForm.modelSuffix', { model: result.model }) : '' }))
       } catch (error) {
         setFormError(error instanceof Error ? error.message : String(error))
       } finally {
@@ -395,7 +400,7 @@ export default function ChapterForm({
         setCeshuFieldBusy(false)
       }
     },
-    [chapter, fields, onAiGenerateField, onFieldStatus]
+    [chapter, fields, onAiGenerateField, onFieldStatus, t]
   )
 
   /*
@@ -468,28 +473,28 @@ export default function ChapterForm({
             busy={fieldBusy === field.key}
             fieldLabel={field.label}
             disabled={!meta.aiDraftable}
-            disabledHint="该字段由人确定，不交给 AI 起草"
+            disabledHint={t('chapterForm.humanOnlyHint')}
             onFill={() => void handleAiFillField(field.key)}
           />
         </div>
         {/* 协作契约：必填 / 人定 / 人审要点 —— 只在有信息时出现，不打扰默认字段 */}
         {(meta.required || !meta.aiDraftable || meta.reviewHint !== '' || status !== undefined || showImpact) && (
           <div className="field-contract" data-testid="field-contract">
-            {status === 'ai_draft' && <span className="field-badge ai-draft">AI 草稿</span>}
-            {status === 'human_edited' && <span className="field-badge human-edited">人改</span>}
-            {status === 'approved' && <span className="field-badge approved">已批准</span>}
-            {meta.required && <span className="field-badge required">必填</span>}
-            {!meta.aiDraftable && <span className="field-badge human">人定</span>}
+            {status === 'ai_draft' && <span className="field-badge ai-draft">{t('chapterForm.badgeAiDraft')}</span>}
+            {status === 'human_edited' && <span className="field-badge human-edited">{t('chapterForm.badgeHumanEdited')}</span>}
+            {status === 'approved' && <span className="field-badge approved">{t('chapterForm.badgeApproved')}</span>}
+            {meta.required && <span className="field-badge required">{t('chapterForm.badgeRequired')}</span>}
+            {!meta.aiDraftable && <span className="field-badge human">{t('chapterForm.badgeHuman')}</span>}
             {meta.reviewHint !== '' && <span className="item-meta">{meta.reviewHint}</span>}
             {showImpact && (
               <button
                 type="button"
                 className="btn slim"
                 data-testid="field-impact"
-                title="改这个字段会影响哪些交接文档 / 断言 / 同源字段"
+                title={t('chapterForm.impactTitle')}
                 onClick={() => onShowImpact?.(chapter, field.key)}
               >
-                影响面
+                {t('chapterForm.impact')}
               </button>
             )}
             {status === 'ai_draft' && onFieldStatus !== undefined && (
@@ -505,7 +510,7 @@ export default function ChapterForm({
                   if (next !== null) focusFieldBlock(next)
                 }}
               >
-                接受
+                {t('chapterForm.accept')}
               </button>
             )}
           </div>
@@ -521,7 +526,7 @@ export default function ChapterForm({
         {/* 审核进展一眼可见：不必逐字段往下翻徽标（全零时 statusSummary 为空串，不渲染） */}
         {statusSummary !== '' && (
           <>
-            本章：
+            {t('chapterForm.thisChapter')}
             {firstPendingField !== null ? (
               /* 有 AI 草稿时摘要即入口：点一下直接到第一个待审字段 */
               <button type="button" className="btn-link" data-testid="field-status-summary" onClick={jumpToFirstPending}>
@@ -535,7 +540,7 @@ export default function ChapterForm({
           </>
         )}
         <span className="chapter-form-ai">
-          {aiBusy && <span className="item-meta">AI 生成中…</span>}
+          {aiBusy && <span className="item-meta">{t('chapterForm.aiBusy')}</span>}
           {chapter !== 'systems' && (
             <>
               <button
@@ -545,7 +550,7 @@ export default function ChapterForm({
                 disabled={aiBusy}
                 onClick={() => void handleAiGenerate(false)}
               >
-                AI 生成本章
+                {t('chapterForm.aiGenerateChapter')}
               </button>
               <button
                 type="button"
@@ -554,7 +559,7 @@ export default function ChapterForm({
                 disabled={aiBusy}
                 onClick={() => void handleAiGenerate(true)}
               >
-                AI 补全空白
+                {t('chapterForm.aiFillEmpty')}
               </button>
             </>
           )}
@@ -565,7 +570,7 @@ export default function ChapterForm({
             disabled={aiBusy}
             onClick={() => setPickerOpen((open) => !open)}
           >
-            {pickerOpen ? '返回表单' : '模板库'}
+            {pickerOpen ? t('chapterForm.backToForm') : t('chapterForm.templateLibrary')}
           </button>
         </span>
       </div>
@@ -574,10 +579,10 @@ export default function ChapterForm({
       {pendingCount > 0 && onFieldStatus !== undefined && (
         <div className="form-hint-row" data-testid="field-review-banner">
           <span>
-            本章有 <b>{pendingCount}</b> 个字段是 AI 草稿：逐字段点「接受」，或直接改完保存（保存即视为核对过）。
+            {t('chapterForm.reviewBanner', { n: pendingCount })}
           </span>
           <button type="button" className="btn slim" data-testid="field-accept-all" onClick={() => void approveAllPending()}>
-            全部接受
+            {t('chapterForm.acceptAll')}
           </button>
         </div>
       )}
@@ -591,14 +596,14 @@ export default function ChapterForm({
             type="search"
             className="field-search-input"
             data-testid="field-search"
-            placeholder={`搜索字段（本章共 ${fields.length} 个）`}
+            placeholder={t('chapterForm.searchPlaceholder', { n: fields.length })}
             value={fieldQuery}
             onChange={(event) => setFieldQuery(event.target.value)}
           />
           {fieldQuery.trim() !== '' && (
             <>
               <span className="item-meta" data-testid="field-search-count">
-                匹配 {visibleFields.matched}/{fields.length}
+                {t('chapterForm.searchCount', { matched: visibleFields.matched, total: fields.length })}
               </span>
               <button
                 type="button"
@@ -606,7 +611,7 @@ export default function ChapterForm({
                 data-testid="field-search-clear"
                 onClick={() => setFieldQuery('')}
               >
-                清空
+                {t('chapterForm.searchClear')}
               </button>
             </>
           )}
@@ -626,9 +631,9 @@ export default function ChapterForm({
       ) : visibleFields.matched === 0 ? (
         /* 搜不到时给明确出口：不然看起来像「这一章没字段」 */
         <div className="empty" data-testid="field-search-empty">
-          没有匹配「{fieldQuery.trim()}」的字段
+          {t('chapterForm.searchEmpty', { query: fieldQuery.trim() })}
           <button type="button" className="btn slim" data-testid="field-search-empty-clear" onClick={() => setFieldQuery('')}>
-            清空搜索
+            {t('chapterForm.searchEmptyClear')}
           </button>
         </div>
       ) : (
@@ -636,9 +641,9 @@ export default function ChapterForm({
           {visibleFields.body.map(renderFieldBlock)}
           {visibleFields.machine.length > 0 && (
             <div className="field-group-head" data-testid="machine-data-group">
-              <div className="field-group-title">验收 / 机读数据</div>
+              <div className="field-group-title">{t('chapterForm.machineGroup')}</div>
               <div className="field-group-hint">
-                这些字段是给机器判的（对账、断言、证据核对），不计入完成度；立项阶段可以先留空。
+                {t('chapterForm.machineGroupHint')}
               </div>
             </div>
           )}
@@ -649,7 +654,7 @@ export default function ChapterForm({
       {/* 第二章：竞品象限图 */}
       {chapter === 'vision' && !pickerOpen && (
         <div className="competitive-chart-block">
-          <span className="form-label">竞品象限图（横轴=创新度，纵轴=完成度）</span>
+          <span className="form-label">{t('chapterForm.competitiveChart')}</span>
           <CompetitiveChart competitors={(draftData ?? data).competitive_analysis} />
         </div>
       )}
@@ -662,7 +667,7 @@ export default function ChapterForm({
 
       <div className="editor-actions">
         <button type="button" className="btn primary" data-testid="chapter-save" disabled={busy} onClick={() => void handleSave()}>
-          保存本章
+          {t('chapterForm.saveChapter')}
         </button>
       </div>
     </div>

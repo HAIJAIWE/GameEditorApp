@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
+
+import type { MessageKey } from '@mobai/shared/i18n'
 import type { ReferenceReport } from '@mobai/shared/util/search'
 import type { DataTypeDef } from '@mobai/shared/types'
 
@@ -26,6 +29,7 @@ interface ReferencesPanelProps {
 }
 
 export default function ReferencesPanel({ target, types, onJump, onClose }: ReferencesPanelProps) {
+  const t = useT()
   // 报告与其归属条目 id 一起存放：id 不匹配即视为「加载中」，避免在 effect 内同步清空状态
   const [state, setState] = useState<{ id: string; report: ReferenceReport | null; error: string | null }>({
     id: '',
@@ -54,13 +58,13 @@ export default function ReferencesPanel({ target, types, onJump, onClose }: Refe
   const error = state.id === target.id ? state.error : null
 
   const typeName = (typeId: string | null): string =>
-    typeId === null ? '未知类型' : (types.find((def) => def.id === typeId)?.name ?? typeId)
+    typeId === null ? t('refPanel.unknownType') : (types.find((def) => def.id === typeId)?.name ?? typeId)
 
   return (
     <aside className="editor" data-testid="references-panel">
       <div className="editor-header">
         <div className="editor-title">
-          引用关系
+          {t('refPanel.title')}
           <small>
             {target.name} · {typeName(target.type)}
           </small>
@@ -71,10 +75,10 @@ export default function ReferencesPanel({ target, types, onJump, onClose }: Refe
         <div className="ref-tabs">
           {(
             [
-              ['referencedBy', '被谁引用', report?.referencedBy.length ?? 0],
-              ['references', '引用了谁', report?.references.length ?? 0],
-              ['similar', '相似数据', report?.similar.length ?? 0]
-            ] as Array<[RefTab, string, number]>
+              ['referencedBy', 'refPanel.tabReferencedBy', report?.referencedBy.length ?? 0],
+              ['references', 'refPanel.tabReferences', report?.references.length ?? 0],
+              ['similar', 'refPanel.tabSimilar', report?.similar.length ?? 0]
+            ] as Array<[RefTab, MessageKey, number]>
           ).map(([key, label, count]) => (
             <button
               key={key}
@@ -83,18 +87,18 @@ export default function ReferencesPanel({ target, types, onJump, onClose }: Refe
               data-testid={`ref-tab-${key}`}
               onClick={() => setTab(key)}
             >
-              {label}（{count}）
+              {t('refPanel.tabLabel', { label: t(label), n: count })}
             </button>
           ))}
         </div>
 
         {error && <div className="form-error">{error}</div>}
-        {!report && !error && <div className="empty">正在分析引用关系…</div>}
+        {!report && !error && <div className="empty">{t('refPanel.loading')}</div>}
 
         {report && tab === 'referencedBy' && (
           report.referencedBy.length === 0 ? (
             <div className="empty" data-testid="ref-empty">
-              暂无其他数据引用本条
+              {t('refPanel.noReferencedBy')}
             </div>
           ) : (
             report.referencedBy.map((row, index) => (
@@ -103,12 +107,12 @@ export default function ReferencesPanel({ target, types, onJump, onClose }: Refe
                 type="button"
                 className="ref-row"
                 data-testid="ref-row"
-                title="点击跳转到该条目"
+                title={t('refPanel.jumpHint')}
                 onClick={() => onJump(row.type, row.itemId, row.itemName)}
               >
                 <span className="ref-row-main">{row.itemName}</span>
                 <span className="item-meta">
-                  {typeName(row.type)} · 字段 {row.field}
+                  {t('refPanel.rowMeta', { type: typeName(row.type), field: row.field })}
                 </span>
               </button>
             ))
@@ -118,7 +122,7 @@ export default function ReferencesPanel({ target, types, onJump, onClose }: Refe
         {report && tab === 'references' && (
           report.references.length === 0 ? (
             <div className="empty" data-testid="ref-empty">
-              本条目未引用其他数据
+              {t('refPanel.noReferences')}
             </div>
           ) : (
             report.references.map((row, index) =>
@@ -128,18 +132,18 @@ export default function ReferencesPanel({ target, types, onJump, onClose }: Refe
                   type="button"
                   className="ref-row"
                   data-testid="ref-row"
-                  title="点击跳转到该条目"
+                  title={t('refPanel.jumpHint')}
                   onClick={() => onJump(row.targetType ?? '', row.targetId, row.targetName ?? row.raw)}
                 >
                   <span className="ref-row-main">{row.targetName}</span>
                   <span className="item-meta">
-                    字段 {row.field} · {typeName(row.targetType)}
+                    {t('refPanel.rowMetaReversed', { field: row.field, type: typeName(row.targetType) })}
                   </span>
                 </button>
               ) : (
                 <div className="ref-row dangling" key={`${row.field}:${row.targetId}:${index}`} data-testid="ref-dangling">
-                  <span className="ref-row-main">未解析：{row.raw}</span>
-                  <span className="item-meta">字段 {row.field} · 目标可能已删除，或填写的是名称而非 ID</span>
+                  <span className="ref-row-main">{t('refPanel.unresolved', { raw: row.raw })}</span>
+                  <span className="item-meta">{t('refPanel.danglingMeta', { field: row.field })}</span>
                 </div>
               )
             )
@@ -149,7 +153,7 @@ export default function ReferencesPanel({ target, types, onJump, onClose }: Refe
         {report && tab === 'similar' && (
           report.similar.length === 0 ? (
             <div className="empty" data-testid="ref-empty">
-              暂无相似数据（同类型且共有非空字段 ≥ 2 才会列出）
+              {t('refPanel.noSimilar')}
             </div>
           ) : (
             report.similar.map((row) => (
@@ -158,12 +162,15 @@ export default function ReferencesPanel({ target, types, onJump, onClose }: Refe
                 type="button"
                 className="ref-row"
                 data-testid="ref-row"
-                title="点击跳转到该条目"
+                title={t('refPanel.jumpHint')}
                 onClick={() => onJump(target.type, row.itemId, row.itemName)}
               >
                 <span className="ref-row-main">{row.itemName}</span>
                 <span className="item-meta">
-                  相似度 {row.similarity}% · 共同字段 {row.commonFields.join('、')}
+                  {t('refPanel.similarMeta', {
+                    percent: row.similarity,
+                    fields: row.commonFields.join(t('refPanel.listSeparator'))
+                  })}
                 </span>
               </button>
             ))
@@ -173,7 +180,7 @@ export default function ReferencesPanel({ target, types, onJump, onClose }: Refe
 
       <div className="editor-actions">
         <button type="button" className="btn" data-testid="references-close" onClick={onClose}>
-          关闭
+          {t('common.close')}
         </button>
       </div>
     </aside>

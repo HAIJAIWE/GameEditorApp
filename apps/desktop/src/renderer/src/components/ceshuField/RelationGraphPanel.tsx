@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
+
 import { UNKNOWN_TYPE_COLOR, buildRelationRows, buildSubjectDetailLine, itemDisplayName } from '@mobai/shared/util/search'
 import type { DataTypeDef, ItemRecord } from '@mobai/shared/types'
 
@@ -24,6 +26,7 @@ interface RelationGraphPanelProps {
 }
 
 export default function RelationGraphPanel({ types, onJump }: RelationGraphPanelProps) {
+  const t = useT()
   const [items, setItems] = useState<ItemRecord[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   /** 用户显式选过的类型 / 主体；为 null 时按「第一个」派生（不在 effect 里同步 setState） */
@@ -73,15 +76,15 @@ export default function RelationGraphPanel({ types, onJump }: RelationGraphPanel
     <div className="editor" data-testid="relation-graph-panel">
       <div className="editor-header">
         <div className="editor-title">
-          关系图
-          <small>浏览某条数据引用了哪些其他数据</small>
+          {t('relation.title')}
+          <small>{t('relation.subtitle')}</small>
         </div>
       </div>
 
       <div className="editor-body">
         <div className="rg-picker">
           <label className="rg-picker-field">
-            类型:
+            {t('relation.typeLabel')}
             <select
               className="rg-select"
               data-testid="relation-type-select"
@@ -96,7 +99,7 @@ export default function RelationGraphPanel({ types, onJump }: RelationGraphPanel
             </select>
           </label>
           <label className="rg-picker-field">
-            主体:
+            {t('relation.subjectLabel')}
             <select
               className="rg-select wide"
               data-testid="relation-subject-select"
@@ -112,22 +115,22 @@ export default function RelationGraphPanel({ types, onJump }: RelationGraphPanel
             </select>
           </label>
           <button type="button" className="btn slim" data-testid="relation-refresh" onClick={handleRefresh}>
-            刷新
+            {t('relation.refresh')}
           </button>
         </div>
 
         {error !== null && <div className="error-banner">{error}</div>}
-        {items === null && error === null && <div className="empty">正在读取数据…</div>}
+        {items === null && error === null && <div className="empty">{t('relation.loading')}</div>}
 
         {items !== null && types.length === 0 && (
           <div className="empty" data-testid="relation-empty">
-            当前没有可用的数据类型（schema 为空），请先在「字段结构编辑器」中新增类型
+            {t('relation.noTypes')}
           </div>
         )}
 
         {items !== null && types.length > 0 && subjects.length === 0 && (
           <div className="empty" data-testid="relation-empty">
-            该类型暂无数据
+            {t('relation.noSubjects')}
           </div>
         )}
 
@@ -147,22 +150,22 @@ export default function RelationGraphPanel({ types, onJump }: RelationGraphPanel
             </div>
 
             <div className="rg-relations-title">
-              {rows.length > 0 ? `关联数据 (${rows.length} 项)` : '关联数据（无）'}
+              {rows.length > 0 ? t('relation.rowsTitle', { n: rows.length }) : t('relation.rowsTitleEmpty')}
             </div>
 
             {rows.length === 0 ? (
               <div className="empty" data-testid="relation-rows-empty">
-                该主体没有可解析的关联数据
+                {t('relation.noRows')}
               </div>
             ) : (
               <table className="rg-table" data-testid="relation-table">
                 <thead>
                   <tr>
-                    <th>来源字段</th>
-                    <th>关联名称</th>
-                    <th>类型</th>
-                    <th>ID</th>
-                    <th>描述</th>
+                    <th>{t('relation.colField')}</th>
+                    <th>{t('relation.colName')}</th>
+                    <th>{t('relation.colType')}</th>
+                    <th>{t('relation.colId')}</th>
+                    <th>{t('relation.colDetail')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -173,7 +176,7 @@ export default function RelationGraphPanel({ types, onJump }: RelationGraphPanel
                         key={`${row.field}:${row.targetId ?? row.name}:${index}`}
                         className={jumpable ? 'rg-row' : 'rg-row dangling'}
                         data-testid={jumpable ? 'relation-row' : 'relation-row-dangling'}
-                        title={jumpable ? '双击跳转到该条目' : '未解析到目标条目'}
+                        title={jumpable ? t('relation.jumpHint') : t('relation.danglingHint')}
                         onDoubleClick={() => {
                           if (row.typeId !== null && row.targetId !== null) {
                             onJump(row.typeId, row.targetId, row.name)

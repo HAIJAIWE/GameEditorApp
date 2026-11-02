@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
+
 import {
   clampRefLevel,
   REF_LEVEL_MAX,
@@ -45,6 +47,7 @@ function nameOf(item: { id: string; data: Record<string, unknown> }): string {
 }
 
 export default function RefTableEditor({ fieldName, refType, types, entries, onChange }: RefTableEditorProps) {
+  const t = useT()
   const sourceTypeId = useMemo(() => resolveRefTypeId(refType, types), [refType, types])
   const label = useMemo(() => refTypeDisplayName(refType, types), [refType, types])
 
@@ -83,7 +86,7 @@ export default function RefTableEditor({ fieldName, refType, types, entries, onC
 
   const displayName = (entry: ReferenceEntry): string => {
     if (entry.id !== undefined) return nameById.get(entry.id) ?? entry.name ?? entry.id
-    return entry.name ?? '（未命名）'
+    return entry.name ?? t('refTable.unnamed')
   }
 
   const updateLevel = (index: number, raw: string): void => {
@@ -117,7 +120,7 @@ export default function RefTableEditor({ fieldName, refType, types, entries, onC
   return (
     <div className="ref-drop" id={`field-${fieldName}`} data-testid={`field-${fieldName}`}>
       <div className="ref-drop-head">
-        <span className="ref-drop-title">{label}列表：</span>
+        <span className="ref-drop-title">{t('refTable.title', { label })}</span>
         <div className="ref-drop-actions">
           <button
             type="button"
@@ -125,7 +128,7 @@ export default function RefTableEditor({ fieldName, refType, types, entries, onC
             data-testid={`reftable-${fieldName}-add`}
             onClick={() => setPickerOpen(true)}
           >
-            + 添加{label}
+            {t('refTable.add', { label })}
           </button>
           <button
             type="button"
@@ -134,32 +137,32 @@ export default function RefTableEditor({ fieldName, refType, types, entries, onC
             disabled={selectedRow < 0}
             onClick={removeSelected}
           >
-            - 删除选中
+            {t('refTable.remove')}
           </button>
         </div>
       </div>
 
       {sourceTypeId === null && (
         <div className="form-error" data-testid={`reftable-${fieldName}-badtype`}>
-          引用类型「{refType}」不存在，请检查字段定义
+          {t('refTable.badRefType', { refType })}
         </div>
       )}
       {loadError !== null && (
         <div className="form-error" data-testid={`reftable-${fieldName}-error`}>
-          候选条目加载失败：{loadError}
+          {t('refTable.loadFailed', { reason: loadError })}
         </div>
       )}
 
       {entries.length === 0 ? (
         <div className="ref-drop-empty" data-testid={`reftable-${fieldName}-empty`}>
-          暂无{label}，点击「+ 添加{label}」
+          {t('refTable.empty', { label })}
         </div>
       ) : (
         <table className="ref-drop-table" data-testid={`reftable-${fieldName}-table`}>
           <thead>
             <tr>
-              <th>名称</th>
-              <th className="ref-drop-level-col">等级:</th>
+              <th>{t('refTable.colName')}</th>
+              <th className="ref-drop-level-col">{t('refTable.colLevel')}</th>
             </tr>
           </thead>
           <tbody>
@@ -194,13 +197,13 @@ export default function RefTableEditor({ fieldName, refType, types, entries, onC
           <input
             className="form-input"
             data-testid={`reftable-${fieldName}-search`}
-            placeholder={`搜索${label}名称...`}
+            placeholder={t('refTable.searchPlaceholder', { label })}
             value={pickerSearch}
             onChange={(event) => setPickerSearch(event.target.value)}
           />
           <div className="ref-drop-candidates">
             {filtered.length === 0 ? (
-              <div className="ref-drop-empty">无匹配条目</div>
+              <div className="ref-drop-empty">{t('refTable.noMatch')}</div>
             ) : (
               filtered.map((c) => (
                 <button
@@ -218,7 +221,7 @@ export default function RefTableEditor({ fieldName, refType, types, entries, onC
           </div>
           <div className="ref-drop-picker-foot">
             <label>
-              等级:
+              {t('refTable.colLevel')}
               <input
                 className="form-input ref-drop-level"
                 data-testid={`reftable-${fieldName}-picker-level`}
@@ -236,7 +239,7 @@ export default function RefTableEditor({ fieldName, refType, types, entries, onC
               disabled={pickerId === ''}
               onClick={confirmPicker}
             >
-              确定
+              {t('common.ok')}
             </button>
             <button
               type="button"
@@ -244,7 +247,7 @@ export default function RefTableEditor({ fieldName, refType, types, entries, onC
               data-testid={`reftable-${fieldName}-cancel`}
               onClick={cancelPicker}
             >
-              取消
+              {t('common.cancel')}
             </button>
           </div>
         </div>
