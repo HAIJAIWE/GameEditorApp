@@ -1104,7 +1104,29 @@ export const zh = {
   'backup.loading': '正在读取备份列表…',
   'backup.empty': '暂无备份，点击「创建备份」',
   'backup.restore': '恢复',
-  'backup.delete': '删除'
+  'backup.delete': '删除',
+  // —— 通用组件：清理未使用图片 ——
+  'cleanupImages.title': '清理未使用图片',
+  'cleanupImages.subtitle': '扫描数据里没有任何引用的图片文件',
+  'cleanupImages.hint': '只扫描 {exts} 格式；数据里 image / icon / avatar / img 四个字段引用到的图片会被视为「已使用」。',
+  'cleanupImages.loading': '正在扫描图片目录与数据引用…',
+  'cleanupImages.unwired': '清理未使用图片尚未接线（需要主进程提供图片目录扫描与删除能力）。',
+  'cleanupImages.scanError': '扫描失败：{message}',
+  'cleanupImages.scanResult': '扫描结果',
+  'cleanupImages.clean': '没有未使用的图片，无需清理。',
+  'cleanupImages.warning1': '将删除 {count} 个未被任何数据引用的图片文件（扫描目录：{dir}）。',
+  'cleanupImages.warning2': '删除文件不可撤销，也不会进入撤销栈（Ctrl+Z 找不回）。如果这些图片是手工放进去、还没来得及在数据里引用的，请先取消并备份。',
+  'cleanupImages.pendingList': '待删清单',
+  'cleanupImages.more': '还有 {count} 条未显示',
+  'cleanupImages.confirmPrompt': '确认删除这 {count} 个文件？',
+  'cleanupImages.confirm': '确认删除',
+  'cleanupImages.cancel': '取消',
+  'cleanupImages.result': '已删除 {deleted}/{total} 张未使用的图片。',
+  'cleanupImages.failures': '以下 {count} 个文件删除失败：',
+  'cleanupImages.notWired': '清理功能尚未接线，无法删除',
+  'cleanupImages.processing': '处理中…',
+  'cleanupImages.rescan': '重新扫描',
+  'cleanupImages.start': '清理未使用图片…'
 } as const
 
 /** 全部文案键（以中文表为准） */
@@ -2196,7 +2218,29 @@ export const en: Record<MessageKey, string> = {
   'backup.loading': 'Reading backup list…',
   'backup.empty': 'No backups yet; click "Create backup"',
   'backup.restore': 'Restore',
-  'backup.delete': 'Delete'
+  'backup.delete': 'Delete',
+  // —— Shared components: clean unused images ——
+  'cleanupImages.title': 'Clean unused images',
+  'cleanupImages.subtitle': 'Scan for image files not referenced anywhere in the data',
+  'cleanupImages.hint': 'Only scans {exts} formats; images referenced by the image / icon / avatar / img fields in the data are treated as "used".',
+  'cleanupImages.loading': 'Scanning the image directory and data references…',
+  'cleanupImages.unwired': 'Unused-image cleanup is not wired up yet (the main process must provide image directory scanning and deletion).',
+  'cleanupImages.scanError': 'Scan failed: {message}',
+  'cleanupImages.scanResult': 'Scan result',
+  'cleanupImages.clean': 'No unused images; nothing to clean.',
+  'cleanupImages.warning1': 'This will delete {count} image files not referenced by any data (scan directory: {dir}).',
+  'cleanupImages.warning2': 'Deleting files is irreversible and is not recorded in the undo stack (Ctrl+Z cannot recover it). If these images were added manually and not yet referenced in the data, cancel and back up first.',
+  'cleanupImages.pendingList': 'Pending deletion',
+  'cleanupImages.more': '{count} more not shown',
+  'cleanupImages.confirmPrompt': 'Delete these {count} files?',
+  'cleanupImages.confirm': 'Confirm delete',
+  'cleanupImages.cancel': 'Cancel',
+  'cleanupImages.result': 'Deleted {deleted}/{total} unused images.',
+  'cleanupImages.failures': 'The following {count} files failed to delete:',
+  'cleanupImages.notWired': 'Cleanup is not wired up yet; cannot delete',
+  'cleanupImages.processing': 'Processing…',
+  'cleanupImages.rescan': 'Rescan',
+  'cleanupImages.start': 'Clean unused images…'
 }
 
 /** 按语言取表 */

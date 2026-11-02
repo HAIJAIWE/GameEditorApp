@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
 import {
   IMAGE_EXTENSIONS,
   collectReferencedImagePaths,
@@ -82,6 +83,7 @@ type ScanState =
   | { status: 'unwired' }
 
 export default function CleanupImagesPanel() {
+  const t = useT()
   const [state, setState] = useState<ScanState>({ status: 'loading' })
   const [confirming, setConfirming] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -140,7 +142,7 @@ export default function CleanupImagesPanel() {
   const handleDelete = useCallback((): void => {
     const api = probeImagesApi()
     if (api === null || state.status !== 'ready') {
-      setError('清理功能尚未接线，无法删除')
+      setError(t('cleanupImages.notWired'))
       return
     }
     const targets = state.scan.unused
@@ -150,7 +152,7 @@ export default function CleanupImagesPanel() {
       .deleteImages({ paths: targets, confirm: true })
       .then((res) => {
         // 与 旧版 同一口径：如实报「成功数/总数」，失败条目逐条列出
-        setResult(`已删除 ${res.deleted}/${targets.length} 张未使用的图片。`)
+        setResult(t('cleanupImages.result', { deleted: res.deleted, total: targets.length }))
         setFailures(res.failed)
         setConfirming(false)
         // 删除后**重扫**而不是本地推算：文件系统的真实结果只有主进程知道
@@ -172,56 +174,53 @@ export default function CleanupImagesPanel() {
     <div className="editor" data-testid="cleanup-images-panel">
       <div className="editor-header">
         <div className="editor-title">
-          清理未使用图片
-          <small>扫描数据里没有任何引用的图片文件</small>
+          {t('cleanupImages.title')}
+          <small>{t('cleanupImages.subtitle')}</small>
         </div>
       </div>
 
       <div className="editor-body">
-        <div className="form-hint">
-          只扫描 {IMAGE_EXTENSIONS.join(' / ')} 格式；数据里{' '}
-          <code>image</code> / <code>icon</code> / <code>avatar</code> / <code>img</code>{' '}
-          四个字段引用到的图片会被视为「已使用」。
-        </div>
+        <div className="form-hint">{t('cleanupImages.hint', { exts: IMAGE_EXTENSIONS.join(' / ') })}</div>
 
-        {state.status === 'loading' && <div className="empty">正在扫描图片目录与数据引用…</div>}
+        {state.status === 'loading' && <div className="empty">{t('cleanupImages.loading')}</div>}
 
         {state.status === 'unwired' && (
           <div className="empty" data-testid="cleanup-images-unwired">
-            清理未使用图片尚未接线（需要主进程提供图片目录扫描与删除能力）。
+            {t('cleanupImages.unwired')}
           </div>
         )}
 
         {state.status === 'error' && (
           <div className="form-error" data-testid="cleanup-images-scan-error">
-            扫描失败：{state.message}
+            {t('cleanupImages.scanError', { message: state.message })}
           </div>
         )}
 
         {scan !== null && preview !== null && (
           <>
             <div className="form-row">
-              <span className="form-label">扫描结果</span>
+              <span className="form-label">{t('cleanupImages.scanResult')}</span>
               <span data-testid="cleanup-images-summary">{summarizeScan(scan)}</span>
             </div>
 
             {scan.unused.length === 0 ? (
               <div className="empty" data-testid="cleanup-images-clean">
-                没有未使用的图片，无需清理。
+                {t('cleanupImages.clean')}
               </div>
             ) : (
               <>
                 {/* 破坏性操作的风险提示（与 ClearAllPanel 的 delete 确认同一条样式类） */}
                 <div className="danger-hint" data-testid="cleanup-images-warning">
-                  将删除 {scan.unused.length} 个未被任何数据引用的图片文件
-                  （扫描目录：{state.status === 'ready' ? state.dir : ''}）。
+                  {t('cleanupImages.warning1', {
+                    count: scan.unused.length,
+                    dir: state.status === 'ready' ? state.dir : ''
+                  })}
                   <br />
-                  <b>删除文件不可撤销</b>，也不会进入撤销栈（Ctrl+Z 找不回）。
-                  如果这些图片是手工放进去、还没来得及在数据里引用的，请先取消并备份。
+                  {t('cleanupImages.warning2')}
                 </div>
 
                 <div className="form-row">
-                  <span className="form-label">待删清单</span>
+                  <span className="form-label">{t('cleanupImages.pendingList')}</span>
                   <div style={{ maxHeight: 220, overflow: 'auto' }}>
                     {preview.shown.map((path) => (
                       <div key={path} data-testid="cleanup-images-item" style={{ wordBreak: 'break-all' }}>
@@ -230,7 +229,7 @@ export default function CleanupImagesPanel() {
                     ))}
                     {preview.hiddenCount > 0 && (
                       <div className="form-hint" data-testid="cleanup-images-more">
-                        还有 {preview.hiddenCount} 条未显示
+                        {t('cleanupImages.more', { count: preview.hiddenCount })}
                       </div>
                     )}
                   </div>
@@ -238,7 +237,7 @@ export default function CleanupImagesPanel() {
 
                 {confirming && (
                   <div className="form-row" data-testid="cleanup-images-confirm">
-                    <span className="form-label">确认删除这 {scan.unused.length} 个文件？</span>
+                    <span className="form-label">{t('cleanupImages.confirmPrompt', { count: scan.unused.length })}</span>
                     <button
                       type="button"
                       className="btn danger"
@@ -246,7 +245,7 @@ export default function CleanupImagesPanel() {
                       disabled={busy}
                       onClick={handleDelete}
                     >
-                      确认删除
+                      {t('cleanupImages.confirm')}
                     </button>
                     <button
                       type="button"
@@ -255,7 +254,7 @@ export default function CleanupImagesPanel() {
                       disabled={busy}
                       onClick={() => setConfirming(false)}
                     >
-                      取消
+                      {t('cleanupImages.cancel')}
                     </button>
                   </div>
                 )}
@@ -271,7 +270,7 @@ export default function CleanupImagesPanel() {
         )}
         {failures.length > 0 && (
           <div className="form-error" data-testid="cleanup-images-failures">
-            以下 {failures.length} 个文件删除失败：
+            {t('cleanupImages.failures', { count: failures.length })}
             <br />
             {failures.map((path) => (
               <div key={path} style={{ wordBreak: 'break-all' }}>
@@ -295,7 +294,7 @@ export default function CleanupImagesPanel() {
           disabled={busy || state.status === 'loading'}
           onClick={handleScan}
         >
-          {busy ? '处理中…' : '重新扫描'}
+          {busy ? t('cleanupImages.processing') : t('cleanupImages.rescan')}
         </button>
         {!confirming && (
           <button
@@ -305,7 +304,7 @@ export default function CleanupImagesPanel() {
             disabled={busy || scan === null || scan.unused.length === 0}
             onClick={() => setConfirming(true)}
           >
-            清理未使用图片…
+            {t('cleanupImages.start')}
           </button>
         )}
       </div>
