@@ -1043,7 +1043,23 @@ export const zh = {
   'attrPanel.formulaPlaceholder': '=力量*10 或 数字',
   'attrPanel.builderTitle': '用系数配置公式',
   'attrPanel.removeTitle': '删除该行',
-  'attrPanel.customCategory': '自定义'
+  'attrPanel.customCategory': '自定义',
+  // —— 通用组件：装备预览 ——
+  'equipPreview.slotError': '「{name}」的部位「{slot}」不在可放置槽位（{slots}）',
+  'equipPreview.slotEmpty': '未填',
+  'equipPreview.tabEquip': '装备（{n}）',
+  'equipPreview.tabBuff': 'Buff（{n}）',
+  'equipPreview.noEquip': '暂无装备数据（可在数据表中添加）',
+  'equipPreview.noBuff': '暂无 Buff 数据（可在数据表中添加）',
+  'equipPreview.baseTitle': '基础值（预览输入）',
+  'equipPreview.slotsTitle': '装备槽（点击左侧装备放入，✕ 卸下）',
+  'equipPreview.unequip': '卸下',
+  'equipPreview.notEquipped': '未装备',
+  'equipPreview.buffsTitle': '已激活 Buff（点击左侧 Buff 添加，可重复）',
+  'equipPreview.noBuffs': '未激活 Buff',
+  'equipPreview.remove': '移除',
+  'equipPreview.compareTitle': '属性对比（基础 → 装备/Buff 后）',
+  'equipPreview.cycle': '属性系统存在循环依赖：{cycle}，无法计算'
 } as const
 
 /** 全部文案键（以中文表为准） */
@@ -2074,7 +2090,23 @@ export const en: Record<MessageKey, string> = {
   'attrPanel.formulaPlaceholder': '=Strength*10 or a number',
   'attrPanel.builderTitle': 'Configure formula with coefficients',
   'attrPanel.removeTitle': 'Delete this row',
-  'attrPanel.customCategory': 'Custom'
+  'attrPanel.customCategory': 'Custom',
+  // —— Shared components: equipment preview ——
+  'equipPreview.slotError': 'Item "{name}" has slot "{slot}", which is not a placeable slot ({slots})',
+  'equipPreview.slotEmpty': 'empty',
+  'equipPreview.tabEquip': 'Equipment ({n})',
+  'equipPreview.tabBuff': 'Buff ({n})',
+  'equipPreview.noEquip': 'No equipment data (add some in the data table)',
+  'equipPreview.noBuff': 'No Buff data (add some in the data table)',
+  'equipPreview.baseTitle': 'Base values (preview input)',
+  'equipPreview.slotsTitle': 'Equipment slots (click equipment on the left to place, ✕ to remove)',
+  'equipPreview.unequip': 'Unequip',
+  'equipPreview.notEquipped': 'Not equipped',
+  'equipPreview.buffsTitle': 'Active Buffs (click Buffs on the left to add, repeatable)',
+  'equipPreview.noBuffs': 'No active Buffs',
+  'equipPreview.remove': 'Remove',
+  'equipPreview.compareTitle': 'Attribute comparison (base → after equipment/Buff)',
+  'equipPreview.cycle': 'The attribute system has a circular dependency: {cycle}; cannot compute'
 }
 
 /** 按语言取表 */

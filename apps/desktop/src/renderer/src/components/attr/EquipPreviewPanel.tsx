@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
 import {
   buffRecordToItem,
   computeEquipComparison,
@@ -30,6 +31,7 @@ interface LoadedItems {
 }
 
 export default function EquipPreviewPanel({ system }: EquipPreviewPanelProps) {
+  const t = useT()
   const [items, setItems] = useState<LoadedItems>({ equips: [], buffs: [], error: null, loaded: false })
   const [tab, setTab] = useState<'equip' | 'buff'>('equip')
   const [equipped, setEquipped] = useState<Record<string, EquipPreviewItem>>({})
@@ -88,7 +90,13 @@ export default function EquipPreviewPanel({ system }: EquipPreviewPanelProps) {
   const placeEquip = (item: EquipPreviewItem): void => {
     setMessage(null)
     if (!EQUIP_SLOTS.includes(item.slot)) {
-      setMessage(`「${item.name}」的部位「${item.slot || '未填'}」不在可放置槽位（${EQUIP_SLOTS.join(' / ')}）`)
+      setMessage(
+        t('equipPreview.slotError', {
+          name: item.name,
+          slot: item.slot || t('equipPreview.slotEmpty'),
+          slots: EQUIP_SLOTS.join(' / ')
+        })
+      )
       return
     }
     setEquipped((prev) => ({ ...prev, [item.slot]: item }))
@@ -130,7 +138,7 @@ export default function EquipPreviewPanel({ system }: EquipPreviewPanelProps) {
               data-testid="equip-tab-equip"
               onClick={() => setTab('equip')}
             >
-              装备（{items.equips.length}）
+              {t('equipPreview.tabEquip', { n: items.equips.length })}
             </button>
             <button
               type="button"
@@ -138,12 +146,12 @@ export default function EquipPreviewPanel({ system }: EquipPreviewPanelProps) {
               data-testid="equip-tab-buff"
               onClick={() => setTab('buff')}
             >
-              Buff（{items.buffs.length}）
+              {t('equipPreview.tabBuff', { n: items.buffs.length })}
             </button>
           </div>
           {items.error && <div className="form-error">{items.error}</div>}
           {items.loaded && list.length === 0 && (
-            <div className="empty">{tab === 'equip' ? '暂无装备数据（可在数据表中添加）' : '暂无 Buff 数据（可在数据表中添加）'}</div>
+            <div className="empty">{tab === 'equip' ? t('equipPreview.noEquip') : t('equipPreview.noBuff')}</div>
           )}
           {list.map((item) => (
             <button
@@ -162,7 +170,7 @@ export default function EquipPreviewPanel({ system }: EquipPreviewPanelProps) {
 
         <div className="equip-preview-inspector">
           <div className="attr-live-section">
-            <div className="attr-live-title">基础值（预览输入）</div>
+            <div className="attr-live-title">{t('equipPreview.baseTitle')}</div>
             {baseNames.map((name) => (
               <div className="attr-live-row" key={name}>
                 <span className="attr-live-name">{system.attributes[name].displayName}</span>
@@ -179,7 +187,7 @@ export default function EquipPreviewPanel({ system }: EquipPreviewPanelProps) {
           </div>
 
           <div className="attr-live-section">
-            <div className="attr-live-title">装备槽（点击左侧装备放入，✕ 卸下）</div>
+            <div className="attr-live-title">{t('equipPreview.slotsTitle')}</div>
             {EQUIP_SLOTS.map((slot) => (
               <div className="equip-slot-row" key={slot} data-testid={`equip-slot-${slot}`}>
                 <span className="equip-slot-name">{slot}</span>
@@ -190,22 +198,22 @@ export default function EquipPreviewPanel({ system }: EquipPreviewPanelProps) {
                       type="button"
                       className="btn slim danger"
                       data-testid={`equip-unequip-${slot}`}
-                      title="卸下"
+                      title={t('equipPreview.unequip')}
                       onClick={() => removeEquip(slot)}
                     >
                       ✕
                     </button>
                   </>
                 ) : (
-                  <span className="item-meta">未装备</span>
+                  <span className="item-meta">{t('equipPreview.notEquipped')}</span>
                 )}
               </div>
             ))}
           </div>
 
           <div className="attr-live-section">
-            <div className="attr-live-title">已激活 Buff（点击左侧 Buff 添加，可重复）</div>
-            {activeBuffs.length === 0 && <div className="item-meta">未激活 Buff</div>}
+            <div className="attr-live-title">{t('equipPreview.buffsTitle')}</div>
+            {activeBuffs.length === 0 && <div className="item-meta">{t('equipPreview.noBuffs')}</div>}
             {activeBuffs.map((buff, index) => (
               <div className="equip-slot-row" key={`${buff.itemId}:${index}`} data-testid={`equip-buff-${index}`}>
                 <span className="equip-slot-item">{buff.name}</span>
@@ -214,7 +222,7 @@ export default function EquipPreviewPanel({ system }: EquipPreviewPanelProps) {
                   type="button"
                   className="btn slim danger"
                   data-testid={`equip-buff-remove-${index}`}
-                  title="移除"
+                  title={t('equipPreview.remove')}
                   onClick={() => setActiveBuffs((prev) => prev.filter((_, current) => current !== index))}
                 >
                   ✕
@@ -232,9 +240,9 @@ export default function EquipPreviewPanel({ system }: EquipPreviewPanelProps) {
       </div>
 
       <div className="attr-live-section">
-        <div className="attr-live-title">属性对比（基础 → 装备/Buff 后）</div>
+        <div className="attr-live-title">{t('equipPreview.compareTitle')}</div>
         {comparison.cycle && (
-          <div className="form-error">属性系统存在循环依赖：{comparison.cycle.join(' → ')}，无法计算</div>
+          <div className="form-error">{t('equipPreview.cycle', { cycle: comparison.cycle.join(' → ') })}</div>
         )}
         <div className="equip-compare">
           {comparison.rows.map((row) => (
