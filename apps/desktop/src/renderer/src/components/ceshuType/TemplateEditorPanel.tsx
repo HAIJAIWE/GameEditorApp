@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
+
 import { CHAPTER_KEYS, CHAPTER_LABELS, type CeshuDocument, type ChapterKey } from '@mobai/shared/ceshu/reference'
 import {
   TEMPLATE_NAME_REQUIRED_ERROR,
@@ -65,6 +67,7 @@ export default function TemplateEditorPanel({
   onApplied,
   onClose
 }: TemplateEditorPanelProps) {
+  const t = useT()
   const [customTemplates, setCustomTemplates] = useState<CeshuCustomTemplate[]>([])
   const [filter, setFilter] = useState<string>(currentChapter)
   const [keyword, setKeyword] = useState('')
@@ -121,7 +124,10 @@ export default function TemplateEditorPanel({
       entries.push({
         key: `custom:${item.id}`,
         source: 'custom',
-        label: `[自定义] ${item.name || '未命名'}${item.chapter_key ? `  (${templateChapterLabel(item.chapter_key)})` : ''}`,
+        label: t('templateEditor.customLabel', {
+          name: item.name || t('templateEditor.unnamed'),
+          chapter: item.chapter_key ? `  (${templateChapterLabel(item.chapter_key)})` : ''
+        }),
         template: {
           name: item.name,
           description: item.description,
@@ -142,7 +148,10 @@ export default function TemplateEditorPanel({
       entries.push({
         key: `builtin:${hit.chapterKey}:${hit.template.name}`,
         source: 'builtin',
-        label: `[内置] ${hit.template.name || '未命名'}  (${templateChapterLabel(hit.chapterKey)})`,
+        label: t('templateEditor.builtinLabel', {
+          name: hit.template.name || t('templateEditor.unnamed'),
+          chapter: templateChapterLabel(hit.chapterKey)
+        }),
         template: hit.template,
         chapterKey: hit.chapterKey,
         customId: '',
@@ -173,7 +182,7 @@ export default function TemplateEditorPanel({
     const data = doc[target as ChapterKey]
     setDataText(stringifyData(data))
     if (!name.trim()) {
-      setName(`${templateChapterLabel(target)} 模板`)
+      setName(t('templateEditor.defaultName', { chapter: templateChapterLabel(target) }))
     }
   }
 
@@ -184,7 +193,7 @@ export default function TemplateEditorPanel({
     const data = parseDataText()
     if (!data) return
     if (!chapterKey) {
-      setError('请选择具体章节（不能为全局）')
+      setError(t('templateEditor.needChapter'))
       return
     }
     setBusy(true)
@@ -193,7 +202,7 @@ export default function TemplateEditorPanel({
       const merged = mergeTemplateByMode(existing, data, 'overwrite')
       const updated = await window.mbApi.ceshu.saveChapter({ id: ceshuId, chapter: chapterKey, data: merged })
       onApplied(updated, chapterKey as ChapterKey)
-      setNotice(`模板数据已应用到「${templateChapterLabel(chapterKey)}」（已写入文档）`)
+      setNotice(t('templateEditor.applied', { chapter: templateChapterLabel(chapterKey) }))
     } catch (err) {
       setError(toErrorMessage(err))
     } finally {
@@ -220,7 +229,7 @@ export default function TemplateEditorPanel({
 
   const handleLoadCurrentFor = (target: string): void => {
     setDataText(stringifyData(doc[target as ChapterKey]))
-    setName(`${templateChapterLabel(target)} 模板`)
+    setName(t('templateEditor.defaultName', { chapter: templateChapterLabel(target) }))
   }
 
   /** 保存：选中自定义 → 更新；否则（含内置「另存为」）→ 新建 */
@@ -247,11 +256,11 @@ export default function TemplateEditorPanel({
           sourceGame
         })
         if (!result.updated) {
-          setError('更新失败：模板可能已被删除')
+          setError(t('templateEditor.updateFailed'))
           return
         }
         await loadCustomTemplates()
-        setNotice(`模板「${name.trim()}」已更新。`)
+        setNotice(t('templateEditor.updated', { name: name.trim() }))
       } else {
         const created = await window.mbApi.ceshu.templates.save({
           name,
@@ -265,7 +274,7 @@ export default function TemplateEditorPanel({
         setSelectedSource('custom')
         setSelectedId(created.id)
         await loadCustomTemplates()
-        setNotice(`模板「${created.name}」已保存。`)
+        setNotice(t('templateEditor.saved', { name: created.name }))
       }
     } catch (err) {
       setError(toErrorMessage(err))
@@ -279,21 +288,21 @@ export default function TemplateEditorPanel({
     setError(null)
     setNotice(null)
     if (!selectedId || selectedSource !== 'custom') {
-      setError('请先选择一个自定义模板')
+      setError(t('templateEditor.needCustomSelected'))
       return
     }
     setBusy(true)
     try {
       const result = await window.mbApi.ceshu.templates.remove({ id: selectedId })
       if (!result.deleted) {
-        setError('删除失败：模板可能已被删除')
+        setError(t('templateEditor.deleteFailed'))
         return
       }
       await loadCustomTemplates()
       setDeleting(false)
       handleNew()
       // 放在 handleNew 之后：新建会清空提示
-      setNotice('模板已删除。')
+      setNotice(t('templateEditor.deleted'))
     } catch (err) {
       setError(toErrorMessage(err))
     } finally {
@@ -313,7 +322,7 @@ export default function TemplateEditorPanel({
       if (!chosen.path) return
       setBusy(true)
       const result = await window.mbApi.ceshu.templates.exportAll({ path: chosen.path })
-      setNotice(`已导出 ${result.count} 个模板到 ${result.filePath}`)
+      setNotice(t('templateEditor.exported', { n: result.count, path: result.filePath }))
     } catch (err) {
       setError(toErrorMessage(err))
     } finally {
@@ -331,7 +340,7 @@ export default function TemplateEditorPanel({
       setBusy(true)
       const result = await window.mbApi.ceshu.templates.importAll({ path: chosen.path, overwrite })
       await loadCustomTemplates()
-      setNotice(`已导入 ${result.imported} 个模板（跳过 ${result.skipped} 个）。`)
+      setNotice(t('templateEditor.imported', { n: result.imported, skipped: result.skipped }))
     } catch (err) {
       setError(toErrorMessage(err))
     } finally {
@@ -347,11 +356,11 @@ export default function TemplateEditorPanel({
     try {
       parsed = JSON.parse(text)
     } catch (err) {
-      setError(`JSON 格式错误: ${toErrorMessage(err)}`)
+      setError(t('templateEditor.jsonInvalid', { reason: toErrorMessage(err) }))
       return null
     }
     if (!isPlainObject(parsed)) {
-      setError('数据必须是 JSON 对象')
+      setError(t('templateEditor.needJsonObject'))
       return null
     }
     return parsed
@@ -360,16 +369,16 @@ export default function TemplateEditorPanel({
   return (
     <div className="changelog-panel" data-testid="template-editor-panel">
       <div className="changelog-header">
-        <span className="chapter-form-title">📚 GDD 模板编辑器</span>
+        <span className="chapter-form-title">{t('templateEditor.title')}</span>
         <div className="editor-actions">
           <button type="button" className="btn" data-testid="editor-close" onClick={onClose}>
-            关闭
+            {t('common.close')}
           </button>
         </div>
       </div>
 
       <div className="item-meta">
-        把当前章节保存为可复用的自定义模板，或浏览内置范例。自定义模板独立存储，不会与内置模板混淆。
+        {t('templateEditor.intro')}
       </div>
 
       {error && (
@@ -384,7 +393,7 @@ export default function TemplateEditorPanel({
       )}
 
       <div className="template-filters">
-        <span className="form-label">章节</span>
+        <span className="form-label">{t('templateEditor.chapterLabel')}</span>
         <select
           className="form-select"
           data-testid="editor-filter"
@@ -394,25 +403,25 @@ export default function TemplateEditorPanel({
             setDeleting(false)
           }}
         >
-          <option value="">全部章节</option>
-          <option value="__custom__">仅自定义</option>
-          <option value="__builtin__">仅内置</option>
+          <option value="">{t('templateEditor.allChapters')}</option>
+          <option value="__custom__">{t('templateEditor.customOnly')}</option>
+          <option value="__builtin__">{t('templateEditor.builtinOnly')}</option>
           {CHAPTER_KEYS.map((key) => (
             <option key={key} value={key}>
               {CHAPTER_LABELS[key]}
             </option>
           ))}
         </select>
-        <span className="form-label">搜索</span>
+        <span className="form-label">{t('templateEditor.searchLabel')}</span>
         <input
           className="form-input"
           data-testid="editor-search"
-          placeholder="按名称/描述/标签搜索..."
+          placeholder={t('templateEditor.searchPlaceholder')}
           value={keyword}
           onChange={(event) => setKeyword(event.target.value)}
         />
         <span className="item-meta" data-testid="editor-count">
-          {entries.length} 个模板
+          {t('template.count', { n: entries.length })}
         </span>
       </div>
 
@@ -420,7 +429,7 @@ export default function TemplateEditorPanel({
         <div className="template-list" data-testid="editor-list">
           {entries.length === 0 ? (
             <div className="empty" data-testid="editor-empty">
-              (无匹配模板)
+              {t('template.empty')}
             </div>
           ) : (
             entries.map((entry) => (
@@ -442,22 +451,22 @@ export default function TemplateEditorPanel({
 
         <div className="template-editor-form">
           <div className="template-save-row">
-            <span className="form-label">名称</span>
+            <span className="form-label">{t('templateEditor.nameLabel')}</span>
             <input
               className="form-input"
               data-testid="editor-name"
-              placeholder="模板名称（必填）"
+              placeholder={t('templateEditor.namePlaceholder')}
               value={name}
               onChange={(event) => setName(event.target.value)}
             />
-            <span className="form-label">章节</span>
+            <span className="form-label">{t('templateEditor.chapterLabel')}</span>
             <select
               className="form-select"
               data-testid="editor-chapter"
               value={chapterKey}
               onChange={(event) => setChapterKey(event.target.value)}
             >
-              <option value="">(全局)</option>
+              <option value="">{t('templateEditor.globalOption')}</option>
               {CHAPTER_KEYS.map((key) => (
                 <option key={key} value={key}>
                   {CHAPTER_LABELS[key]}
@@ -467,36 +476,36 @@ export default function TemplateEditorPanel({
           </div>
 
           <div className="template-save-row">
-            <span className="form-label">描述</span>
+            <span className="form-label">{t('templateEditor.descLabel')}</span>
             <input
               className="form-input"
               data-testid="editor-description"
-              placeholder="一句话描述模板用途"
+              placeholder={t('templateEditor.descPlaceholder')}
               value={description}
               onChange={(event) => setDescription(event.target.value)}
             />
           </div>
 
           <div className="template-save-row">
-            <span className="form-label">标签</span>
+            <span className="form-label">{t('templateEditor.tagsLabel')}</span>
             <input
               className="form-input"
               data-testid="editor-tags"
-              placeholder="逗号分隔，如: 仙侠, RPG, 开放世界"
+              placeholder={t('templateEditor.tagsPlaceholder')}
               value={tagsText}
               onChange={(event) => setTagsText(event.target.value)}
             />
-            <span className="form-label">来源</span>
+            <span className="form-label">{t('templateEditor.sourceLabel')}</span>
             <input
               className="form-input"
               data-testid="editor-source"
-              placeholder="来源游戏名（可选）"
+              placeholder={t('templateEditor.sourcePlaceholder')}
               value={sourceGame}
               onChange={(event) => setSourceGame(event.target.value)}
             />
           </div>
 
-          <span className="form-label">数据预览（JSON，可编辑）</span>
+          <span className="form-label">{t('templateEditor.dataLabel')}</span>
           <textarea
             className="form-textarea template-editor-data"
             data-testid="editor-data"
@@ -506,7 +515,7 @@ export default function TemplateEditorPanel({
 
           <div className="editor-actions">
             <button type="button" className="btn" data-testid="editor-load-current" onClick={handleLoadCurrent}>
-              从当前章节加载
+              {t('templateEditor.loadCurrent')}
             </button>
             <button
               type="button"
@@ -515,7 +524,7 @@ export default function TemplateEditorPanel({
               disabled={busy}
               onClick={() => void handleApplyCurrent()}
             >
-              应用到该章节
+              {t('templateEditor.applyCurrent')}
             </button>
           </div>
 
@@ -527,7 +536,7 @@ export default function TemplateEditorPanel({
               disabled={busy}
               onClick={handleNew}
             >
-              新建
+              {t('templateEditor.newBtn')}
             </button>
             <button
               type="button"
@@ -536,7 +545,7 @@ export default function TemplateEditorPanel({
               disabled={busy}
               onClick={() => void handleSave()}
             >
-              {selectedSource === 'builtin' ? '另存为自定义' : '保存'}
+              {selectedSource === 'builtin' ? t('templateEditor.saveAsCustom') : t('templateEditor.save')}
             </button>
             {deleting ? (
               <>
@@ -547,10 +556,10 @@ export default function TemplateEditorPanel({
                   disabled={busy}
                   onClick={() => void handleDelete()}
                 >
-                  确认删除
+                  {t('templateEditor.deleteConfirm')}
                 </button>
                 <button type="button" className="btn" data-testid="editor-delete-cancel" onClick={() => setDeleting(false)}>
-                  取消
+                  {t('common.cancel')}
                 </button>
               </>
             ) : (
@@ -561,15 +570,15 @@ export default function TemplateEditorPanel({
                 disabled={busy || !selectedId || selectedSource !== 'custom'}
                 onClick={() => setDeleting(true)}
               >
-                删除
+                {t('common.delete')}
               </button>
             )}
             <span className="template-editor-sep" />
             <button type="button" className="btn" data-testid="editor-export" disabled={busy} onClick={() => void handleExport()}>
-              导出
+              {t('templateEditor.exportBtn')}
             </button>
             <button type="button" className="btn" data-testid="editor-import" disabled={busy} onClick={() => void handleImport()}>
-              导入
+              {t('templateEditor.importBtn')}
             </button>
             <label className="check-option">
               <input
@@ -578,16 +587,19 @@ export default function TemplateEditorPanel({
                 checked={overwrite}
                 onChange={(event) => setOverwrite(event.target.checked)}
               />
-              覆盖同 ID 模板
+              {t('templateEditor.overwrite')}
             </label>
           </div>
 
           {selectedEntry && (
             <div className="item-meta" data-testid="editor-selected">
-              当前选中：{selectedEntry.label}（来源：{selectedEntry.source === 'custom' ? '自定义' : '内置'}）
+              {t('templateEditor.selected', {
+                label: selectedEntry.label,
+                source: selectedEntry.source === 'custom' ? t('templatePicker.badgeCustom') : t('templatePicker.badgeBuiltin')
+              })}
             </div>
           )}
-          {gameName && <div className="item-meta">来源游戏：{gameName}</div>}
+          {gameName && <div className="item-meta">{t('templateEditor.sourceGame', { game: gameName })}</div>}
         </div>
       </div>
     </div>

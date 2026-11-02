@@ -4,6 +4,8 @@ import {
 } from '@mobai/shared/schema/adapters'
 import type { DataTypeDef, FieldType, TypeFieldDef } from '@mobai/shared/types'
 
+import { useT } from '@mobai/client-ui'
+
 import { FieldIdSuggest } from '../ceshuField'
 import { parseOptionalNumber, refOptions } from '../typeEditorUtils'
 import type { IdSuggestState } from './TypeEditorPanel'
@@ -59,9 +61,10 @@ export function TypeFieldList({
   onMoveField: (index: number, delta: -1 | 1) => void
   onRemoveField: (index: number) => void
 }) {
+  const t = useT()
   return (
     <div className="changelog-entry">
-      <div className="form-label">字段列表（{current.formFields.length}）</div>
+      <div className="form-label">{t('typeField.listTitle', { n: current.formFields.length })}</div>
       {current.formFields.map((field, index) => {
         const isIdField = field.name === 'id'
         return (
@@ -71,7 +74,7 @@ export function TypeFieldList({
               data-testid={`te-field-name-${index}`}
               value={field.name}
               readOnly={isIdField}
-              title={isIdField ? 'id 字段为系统字段，不可改名/删除' : '字段名（英文/数字/下划线）'}
+              title={isIdField ? t('typeField.idLocked') : t('typeField.nameHint')}
               onChange={(event) => onUpdateField(index, { name: event.target.value })}
             />
             <button
@@ -79,20 +82,20 @@ export function TypeFieldList({
               className="btn slim"
               data-testid={`te-field-generate-${index}`}
               disabled={isIdField}
-              title="由中文显示名生成字段 ID（不覆盖已填内容，先给候选）"
+              title={t('typeField.generateTitle')}
               onClick={() => onGenerate(index)}
             >
-              生成
+              {t('typeField.generate')}
             </button>
             <button
               type="button"
               className="btn slim"
               data-testid={`te-field-pinyin-${index}`}
               disabled={isIdField}
-              title="中文→拼音（如「攻击力」→ gong_ji_li），任意汉字可用；不覆盖已填内容"
+              title={t('typeField.pinyinTitle')}
               onClick={() => onPinyin(index)}
             >
-              拼音
+              {t('typeField.pinyin')}
             </button>
             <input
               className="form-input te-col-label"
@@ -121,7 +124,7 @@ export function TypeFieldList({
                 disabled={isIdField}
                 onChange={(event) => onUpdateField(index, { editable: event.target.checked })}
               />
-              可编辑
+              {t('typeField.editable')}
             </label>
 
             {(field.type === 'combobox' || field.type === 'template') && (
@@ -130,7 +133,7 @@ export function TypeFieldList({
                 data-testid={`te-field-values-${index}`}
                 key={`values-${selectedId}-${index}-${resetToken}`}
                 defaultValue={(field.values ?? []).join(', ')}
-                placeholder="可选值（逗号分隔）"
+                placeholder={t('typeField.valuesPlaceholder')}
                 onChange={(event) =>
                   onUpdateField(index, {
                     values: event.target.value
@@ -149,7 +152,7 @@ export function TypeFieldList({
                   data-testid={`te-field-from-${index}`}
                   key={`from-${selectedId}-${index}-${resetToken}`}
                   defaultValue={field.from ?? ''}
-                  placeholder="下限"
+                  placeholder={t('typeField.fromPlaceholder')}
                   onChange={(event) => onUpdateField(index, { from: parseOptionalNumber(event.target.value) })}
                 />
                 <input
@@ -157,7 +160,7 @@ export function TypeFieldList({
                   data-testid={`te-field-to-${index}`}
                   key={`to-${selectedId}-${index}-${resetToken}`}
                   defaultValue={field.to ?? ''}
-                  placeholder="上限"
+                  placeholder={t('typeField.toPlaceholder')}
                   onChange={(event) => onUpdateField(index, { to: parseOptionalNumber(event.target.value) })}
                 />
               </span>
@@ -170,7 +173,7 @@ export function TypeFieldList({
                 value={field.refType ?? ''}
                 onChange={(event) => onUpdateField(index, { refType: event.target.value || undefined })}
               >
-                <option value="">（无引用）</option>
+                <option value="">{t('typeField.noRef')}</option>
                 {refOptions(draft, field.refType).map((type) => (
                   <option key={type.id} value={type.pluralKey}>
                     {type.name}（{type.pluralKey}）
@@ -185,7 +188,7 @@ export function TypeFieldList({
                 className="btn slim"
                 data-testid={`te-field-up-${index}`}
                 disabled={index === 0 || isIdField}
-                title="上移"
+                title={t('typeField.moveUp')}
                 onClick={() => onMoveField(index, -1)}
               >
                 ↑
@@ -195,7 +198,7 @@ export function TypeFieldList({
                 className="btn slim"
                 data-testid={`te-field-down-${index}`}
                 disabled={index === current.formFields.length - 1 || field.name === 'id'}
-                title="下移"
+                title={t('typeField.moveDown')}
                 onClick={() => onMoveField(index, 1)}
               >
                 ↓
@@ -205,7 +208,7 @@ export function TypeFieldList({
                 className="btn slim danger"
                 data-testid={`te-field-remove-${index}`}
                 disabled={isIdField}
-                title={isIdField ? 'id 字段不可删除' : '删除字段'}
+                title={isIdField ? t('typeField.idNoDelete') : t('typeField.removeField')}
                 onClick={() => onRemoveField(index)}
               >
                 ✕

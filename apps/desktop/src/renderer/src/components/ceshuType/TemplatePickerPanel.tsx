@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
+
 import { CHAPTER_KEYS, CHAPTER_LABELS, type ChapterKey } from '@mobai/shared/ceshu/reference'
 import {
   isValidCustomTemplateName,
@@ -59,6 +61,7 @@ export default function TemplatePickerPanel({
   onApply,
   onClose
 }: TemplatePickerPanelProps) {
+  const t = useT()
   const [chapterFilter, setChapterFilter] = useState<string>(chapter)
   const [keyword, setKeyword] = useState('')
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all')
@@ -150,7 +153,7 @@ export default function TemplatePickerPanel({
       setSaveName('')
       setSaveDescription('')
       setSaveTags('')
-      setNotice(`已保存为自定义模板「${created.name}」`)
+      setNotice(t('templatePicker.saved', { name: created.name }))
     } catch (err) {
       setError(toErrorMessage(err))
     } finally {
@@ -166,9 +169,9 @@ export default function TemplatePickerPanel({
       const result = await window.mbApi.ceshu.templates.remove({ id: templateId })
       if (result.deleted) {
         setCustomTemplates((prev) => prev.filter((item) => item.id !== templateId))
-        setNotice('已删除自定义模板')
+        setNotice(t('templatePicker.deleted'))
       } else {
-        setError('自定义模板不存在，可能已被删除')
+        setError(t('templatePicker.deleteMissing'))
       }
       setDeletingId('')
     } catch (err) {
@@ -179,7 +182,7 @@ export default function TemplatePickerPanel({
   return (
     <div className="changelog-panel" data-testid="template-panel">
       <div className="changelog-header">
-        <span className="chapter-form-title">📚 章节模板库</span>
+        <span className="chapter-form-title">{t('templatePicker.title')}</span>
         <div className="editor-actions">
           <button
             type="button"
@@ -190,7 +193,7 @@ export default function TemplatePickerPanel({
               setNotice(null)
             }}
           >
-            {saveOpen ? '取消另存' : '另存为模板'}
+            {saveOpen ? t('templatePicker.cancelSave') : t('templatePicker.saveAs')}
           </button>
           <button
             type="button"
@@ -202,15 +205,15 @@ export default function TemplatePickerPanel({
               setConfirming(true)
             }}
           >
-            应用模板
+            {t('templatePicker.apply')}
           </button>
           <button type="button" className="btn" data-testid="template-close" onClick={onClose}>
-            关闭
+            {t('common.close')}
           </button>
         </div>
       </div>
 
-      <div className="item-meta">每章预置 3-5 个高质量范例，支持搜索与一键应用。应用前可预览内容。</div>
+      <div className="item-meta">{t('templatePicker.intro')}</div>
 
       {error && (
         <div className="form-error" data-testid="template-error">
@@ -226,15 +229,15 @@ export default function TemplatePickerPanel({
       {saveOpen && (
         <div className="template-save-form" data-testid="template-save-form">
           <div className="template-save-row">
-            <span className="form-label">模板名称</span>
+            <span className="form-label">{t('templatePicker.nameLabel')}</span>
             <input
               className="form-input"
               data-testid="template-save-name"
-              placeholder="例如：我的仙侠元信息模板"
+              placeholder={t('templatePicker.namePlaceholder')}
               value={saveName}
               onChange={(event) => setSaveName(event.target.value)}
             />
-            <span className="form-label">归属</span>
+            <span className="form-label">{t('templatePicker.scopeLabel')}</span>
             <select
               className="form-select"
               data-testid="template-save-scope"
@@ -242,30 +245,32 @@ export default function TemplatePickerPanel({
               onChange={(event) => setSaveScope(event.target.value as 'chapter' | 'global')}
             >
               <option value="chapter">{CHAPTER_LABELS[chapter]}</option>
-              <option value="global">全局（所有章节）</option>
+              <option value="global">{t('templatePicker.scopeGlobal')}</option>
             </select>
           </div>
           <div className="template-save-row">
-            <span className="form-label">描述</span>
+            <span className="form-label">{t('templatePicker.descLabel')}</span>
             <input
               className="form-input"
               data-testid="template-save-description"
-              placeholder="可选"
+              placeholder={t('templatePicker.descPlaceholder')}
               value={saveDescription}
               onChange={(event) => setSaveDescription(event.target.value)}
             />
-            <span className="form-label">标签</span>
+            <span className="form-label">{t('templatePicker.tagsLabel')}</span>
             <input
               className="form-input"
               data-testid="template-save-tags"
-              placeholder="逗号分隔，例如：仙侠, 元信息"
+              placeholder={t('templatePicker.tagsPlaceholder')}
               value={saveTags}
               onChange={(event) => setSaveTags(event.target.value)}
             />
           </div>
           <div className="template-save-row">
             <span className="item-meta" data-testid="template-save-summary">
-              将把当前章节草稿存为模板{gameName ? `（来源：${gameName}）` : ''}，之后可在列表中一键套用
+              {t('templatePicker.saveSummary', {
+                source: gameName ? t('templatePicker.saveSummarySource', { game: gameName }) : ''
+              })}
             </span>
             <button
               type="button"
@@ -274,10 +279,10 @@ export default function TemplatePickerPanel({
               disabled={!canSave}
               onClick={() => void handleSaveTemplate()}
             >
-              {saveBusy ? '保存中…' : '保存模板'}
+              {saveBusy ? t('templatePicker.saving') : t('templatePicker.saveConfirm')}
             </button>
             <button type="button" className="btn" data-testid="template-save-cancel" onClick={() => setSaveOpen(false)}>
-              取消
+              {t('common.cancel')}
             </button>
           </div>
         </div>
@@ -286,8 +291,11 @@ export default function TemplatePickerPanel({
       {confirming && selectedTemplate && (
         <div className="template-confirm" data-testid="template-confirm">
           <span data-testid="template-confirm-text">
-            将应用模板「{selectedTemplate.name}」到「{templateChapterLabel(selected?.chapterKey ?? chapter)}
-            」，应用模式：{TEMPLATE_APPLY_MODE_LABELS[mode]}。是否继续？
+            {t('templatePicker.applyConfirm', {
+              name: selectedTemplate.name,
+              chapter: templateChapterLabel(selected?.chapterKey ?? chapter),
+              mode: TEMPLATE_APPLY_MODE_LABELS[mode]
+            })}
           </span>
           <button
             type="button"
@@ -298,16 +306,16 @@ export default function TemplatePickerPanel({
               onApply(selectedTemplate, mode)
             }}
           >
-            确认应用
+            {t('templatePicker.confirmApply')}
           </button>
           <button type="button" className="btn" data-testid="template-apply-cancel" onClick={() => setConfirming(false)}>
-            取消
+            {t('common.cancel')}
           </button>
         </div>
       )}
 
       <div className="template-filters">
-        <span className="form-label">章节</span>
+        <span className="form-label">{t('templatePicker.chapterLabel')}</span>
         <select
           className="form-select"
           data-testid="template-chapter"
@@ -317,14 +325,14 @@ export default function TemplatePickerPanel({
             resetSelection()
           }}
         >
-          <option value="">全部章节</option>
+          <option value="">{t('templatePicker.allChapters')}</option>
           {CHAPTER_KEYS.map((key) => (
             <option key={key} value={key}>
               {CHAPTER_LABELS[key]}
             </option>
           ))}
         </select>
-        <span className="form-label">来源</span>
+        <span className="form-label">{t('templatePicker.sourceLabel')}</span>
         <select
           className="form-select template-source"
           data-testid="template-source"
@@ -334,15 +342,15 @@ export default function TemplatePickerPanel({
             resetSelection()
           }}
         >
-          <option value="all">全部来源</option>
-          <option value="builtin">仅内置</option>
-          <option value="custom">仅自定义</option>
+          <option value="all">{t('templatePicker.sourceAll')}</option>
+          <option value="builtin">{t('templatePicker.sourceBuiltin')}</option>
+          <option value="custom">{t('templatePicker.sourceCustom')}</option>
         </select>
-        <span className="form-label">搜索</span>
+        <span className="form-label">{t('templatePicker.searchLabel')}</span>
         <input
           className="form-input"
           data-testid="template-search"
-          placeholder="按名称/描述/标签搜索..."
+          placeholder={t('templatePicker.searchPlaceholder')}
           value={keyword}
           onChange={(event) => {
             setKeyword(event.target.value)
@@ -350,7 +358,7 @@ export default function TemplatePickerPanel({
           }}
         />
         <span className="item-meta" data-testid="template-count">
-          {entries.length} 个模板
+          {t('template.count', { n: entries.length })}
         </span>
       </div>
 
@@ -358,7 +366,7 @@ export default function TemplatePickerPanel({
         <div className="template-list" data-testid="template-list">
           {entries.length === 0 ? (
             <div className="empty" data-testid="template-empty">
-              (无匹配模板)
+              {t('template.empty')}
             </div>
           ) : (
             entries.map((entry, index) => (
@@ -379,9 +387,11 @@ export default function TemplatePickerPanel({
                 >
                   <span className="template-item-title">
                     <span className={`template-badge ${entry.source}`} data-testid="template-badge">
-                      {entry.source === 'custom' ? '自定义' : '内置'}
+                      {entry.source === 'custom' ? t('templatePicker.badgeCustom') : t('templatePicker.badgeBuiltin')}
                     </span>
-                    [{entry.source === 'custom' && entry.chapterKey === 'global' ? '全局' : templateChapterLabel(entry.chapterKey)}]{' '}
+                    [{entry.source === 'custom' && entry.chapterKey === 'global'
+                      ? t('templatePicker.global')
+                      : templateChapterLabel(entry.chapterKey)}]{' '}
                     {entry.template.name}
                   </span>
                   {entry.template.tags.length > 0 && (
@@ -397,7 +407,7 @@ export default function TemplatePickerPanel({
                         data-testid="template-delete-confirm"
                         onClick={() => void handleDeleteTemplate(entry.customId)}
                       >
-                        确认删除
+                        {t('templatePicker.deleteConfirm')}
                       </button>
                       <button
                         type="button"
@@ -405,7 +415,7 @@ export default function TemplatePickerPanel({
                         data-testid="template-delete-cancel"
                         onClick={() => setDeletingId('')}
                       >
-                        取消
+                        {t('common.cancel')}
                       </button>
                     </span>
                   ) : (
@@ -416,7 +426,7 @@ export default function TemplatePickerPanel({
                         data-testid="template-delete"
                         onClick={() => setDeletingId(entry.customId)}
                       >
-                        删除
+                        {t('common.delete')}
                       </button>
                     </span>
                   ))}
@@ -427,11 +437,13 @@ export default function TemplatePickerPanel({
 
         <div className="template-preview" data-testid="template-preview">
           {!selectedTemplate ? (
-            <div className="empty">选择左侧模板查看预览…</div>
+            <div className="empty">{t('templatePicker.previewEmpty')}</div>
           ) : (
             <>
               <div className="template-preview-title" data-testid="template-preview-title">
-                [{selected?.chapterKey === 'global' ? '全局' : templateChapterLabel(selected?.chapterKey ?? chapter)}]{' '}
+                [{selected?.chapterKey === 'global'
+                  ? t('templatePicker.global')
+                  : templateChapterLabel(selected?.chapterKey ?? chapter)}]{' '}
                 {selectedTemplate.name}
               </div>
               {selectedTemplate.description && <div className="item-meta">{selectedTemplate.description}</div>}
@@ -444,7 +456,7 @@ export default function TemplatePickerPanel({
                   ))}
                 </div>
               )}
-              <div className="form-label">模板内容</div>
+              <div className="form-label">{t('templatePicker.contentLabel')}</div>
               {previewRows.length === 0 ? (
                 <div className="item-meta" data-testid="template-no-data">
                   {selectedTemplate.note ?? TEMPLATE_NO_DATA_HINT}
@@ -468,7 +480,7 @@ export default function TemplatePickerPanel({
       </div>
 
       <div className="template-mode-row">
-        <span className="form-label">应用模式</span>
+        <span className="form-label">{t('templatePicker.modeLabel')}</span>
         <select
           className="form-select"
           data-testid="template-mode"

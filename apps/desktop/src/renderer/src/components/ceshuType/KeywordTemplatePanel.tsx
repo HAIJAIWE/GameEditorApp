@@ -1,5 +1,7 @@
 import { useCallback, useMemo, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
+
 import {
   KEYWORD_TEMPLATES_SETTING_KEY,
   KEYWORD_TEMPLATE_TYPE_OPTIONS,
@@ -52,6 +54,7 @@ function loadSavedTemplates(): KeywordTemplates {
 }
 
 export default function KeywordTemplatePanel() {
+  const t = useT()
   const [templates, setTemplates] = useState<KeywordTemplates>(loadSavedTemplates)
   const [activeType, setActiveType] = useState<KeywordTemplateType>(KEYWORD_TEMPLATE_TYPE_OPTIONS[0].value)
   /** 编辑框内容与「已保存值」分离：切类型时丢弃草稿的行为对齐 旧版（直接换文本） */
@@ -77,12 +80,12 @@ export default function KeywordTemplatePanel() {
   const handleSave = useCallback((): void => {
     const next = withTemplateText(templates, activeType, draft)
     if (!writeSetting(KEYWORD_TEMPLATES_SETTING_KEY, serializeKeywordTemplates(next))) {
-      setStatus({ kind: 'error', message: '保存失败：浏览器本地存储不可用或已写满' })
+      setStatus({ kind: 'error', message: t('keywordTemplate.saveFailed') })
       return
     }
     setTemplates(next)
     setStatus({ kind: 'saved' })
-  }, [activeType, draft, templates])
+  }, [activeType, draft, templates, t])
 
   const handleReset = useCallback((): void => {
     // 旧版 的 reset_template() 只回填编辑框、不落盘；这里保持同一语义
@@ -95,29 +98,29 @@ export default function KeywordTemplatePanel() {
       case 'idle':
         return null
       case 'saved':
-        return `${keywordTemplateTypeLabel(activeType)}模板已保存！`
+        return t('keywordTemplate.savedNotice', { type: keywordTemplateTypeLabel(activeType) })
       case 'reset':
-        return `${keywordTemplateTypeLabel(status.type)}模板已重置为默认！`
+        return t('keywordTemplate.resetNotice', { type: keywordTemplateTypeLabel(status.type) })
       case 'error':
         return status.message
     }
-  }, [status, activeType])
+  }, [status, activeType, t])
 
   return (
     <div className="editor" data-testid="keyword-template-panel">
       <div className="editor-header">
         <div className="editor-title">
-          关键词模板配置
-          <small>配置AI生成内容时使用的关键词模板</small>
+          {t('keywordTemplate.title')}
+          <small>{t('keywordTemplate.subtitle')}</small>
         </div>
       </div>
 
       <div className="editor-body">
-        <div className="form-hint">这些模板会用于提示AI生成更符合游戏风格的内容。</div>
+        <div className="form-hint">{t('keywordTemplate.hint')}</div>
 
         <div className="form-row">
           <label className="form-label" htmlFor="keyword-template-type">
-            数据类型：
+            {t('keywordTemplate.typeLabel')}
           </label>
           <select
             id="keyword-template-type"
@@ -136,7 +139,7 @@ export default function KeywordTemplatePanel() {
 
         <div className="form-row">
           <label className="form-label" htmlFor="keyword-template-text">
-            模板内容
+            {t('keywordTemplate.contentLabel')}
           </label>
           <textarea
             id="keyword-template-text"
@@ -144,14 +147,18 @@ export default function KeywordTemplatePanel() {
             data-testid="keyword-template-text"
             rows={18}
             value={draft}
-            placeholder="在此输入关键词模板..."
+            placeholder={t('keywordTemplate.placeholder')}
             onChange={(e) => setDraft(e.target.value)}
           />
         </div>
 
         <div className="form-row">
           <span className="form-hint" data-testid="keyword-template-state">
-            {dirty ? '有未保存的修改' : edited ? '当前内容已保存（与默认模板不同）' : '当前内容为默认模板'}
+            {dirty
+              ? t('keywordTemplate.stateDirty')
+              : edited
+                ? t('keywordTemplate.stateEdited')
+                : t('keywordTemplate.stateDefault')}
           </span>
         </div>
 
@@ -162,7 +169,7 @@ export default function KeywordTemplatePanel() {
         )}
         {status.kind === 'reset' && (
           <div className="form-hint" data-testid="keyword-template-reset-hint">
-            重置只把编辑框恢复成默认内容，尚未落盘——确认无误后请点「💾 保存」。
+            {t('keywordTemplate.resetHint')}
           </div>
         )}
       </div>
@@ -175,7 +182,7 @@ export default function KeywordTemplatePanel() {
           disabled={!dirty}
           onClick={handleSave}
         >
-          💾 保存
+          {t('keywordTemplate.save')}
         </button>
         <button
           type="button"
@@ -183,7 +190,7 @@ export default function KeywordTemplatePanel() {
           data-testid="keyword-template-reset"
           onClick={handleReset}
         >
-          🔄 重置默认
+          {t('keywordTemplate.reset')}
         </button>
       </div>
     </div>

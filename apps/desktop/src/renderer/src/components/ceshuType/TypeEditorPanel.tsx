@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
+
 import { suggestFieldIds, type FieldIdSuggestion, type SuggestFieldIdResult } from '@mobai/shared/util/id'
 import { chineseToPinyin, suggestPinyinFieldId } from '@mobai/shared/util/id'
 import {
@@ -58,6 +60,7 @@ export interface IdSuggestState {
 }
 
 export default function TypeEditorPanel({ types, initialTypeId, onSaved, onClose }: TypeEditorPanelProps) {
+  const t = useT()
   const [draft, setDraft] = useState<DataTypeDef[]>(() => structuredClone(types))
   const [selectedId, setSelectedId] = useState<string>(() =>
     initialTypeId !== undefined && types.some((def) => def.id === initialTypeId)
@@ -161,7 +164,10 @@ export default function TypeEditorPanel({ types, initialTypeId, onSaved, onClose
     let index = 1
     while (used.has(`field_${index}`)) index++
     updateType({
-      formFields: [...current.formFields, { name: `field_${index}`, label: '新字段:', type: 'entry', editable: true }]
+      formFields: [
+        ...current.formFields,
+        { name: `field_${index}`, label: t('typeEditor.newFieldLabel'), type: 'entry', editable: true }
+      ]
     })
   }
 
@@ -288,7 +294,7 @@ export default function TypeEditorPanel({ types, initialTypeId, onSaved, onClose
     try {
       const { fields } = await window.mbApi.schema.getFieldTemplate({ name: templateName })
       if (fields === null) {
-        setErrors([`模板「${templateName}」不存在`])
+        setErrors([t('typeEditor.templateMissing', { name: templateName })])
         return
       }
       requestTemplateReplace(templateName, fields)
@@ -327,7 +333,7 @@ export default function TypeEditorPanel({ types, initialTypeId, onSaved, onClose
     updateType({ formFields: fields, sections })
     bumpReset()
     setPendingTemplate(null)
-    setNotice(`已应用模板「${name}」${suggestion ? '并填入建议分区' : ''}（尚未保存）`)
+    setNotice(t('typeEditor.templateApplied', { name, suggestion: suggestion ? t('typeEditor.templateSuggestion') : '' }))
   }
 
   /** 把当前类型的字段存为自定义模板 */
@@ -335,14 +341,14 @@ export default function TypeEditorPanel({ types, initialTypeId, onSaved, onClose
     if (!current) return
     const name = newTemplateName.trim()
     if (name === '') {
-      setErrors(['请填写模板名称'])
+      setErrors([t('typeEditor.templateNameRequired')])
       return
     }
     try {
       await window.mbApi.schema.saveFieldTemplate({ name, fields: current.formFields })
       setCustomTemplates((prev) => (prev.includes(name) ? prev : [...prev, name].sort((a, b) => a.localeCompare(b, 'zh-CN'))))
       setNewTemplateName('')
-      setNotice(`模板「${name}」已保存`)
+      setNotice(t('typeEditor.templateSaved', { name }))
     } catch (error) {
       setErrors([error instanceof Error ? error.message : String(error)])
     }
@@ -354,12 +360,12 @@ export default function TypeEditorPanel({ types, initialTypeId, onSaved, onClose
     try {
       const { deleted } = await window.mbApi.schema.deleteFieldTemplate({ name: templateName })
       if (!deleted) {
-        setErrors([`模板「${templateName}」不存在`])
+        setErrors([t('typeEditor.templateMissing', { name: templateName })])
         return
       }
       setCustomTemplates((prev) => prev.filter((name) => name !== templateName))
       setTemplateName(TYPE_TEMPLATE_NAMES[0] ?? '')
-      setNotice(`模板「${templateName}」已删除`)
+      setNotice(t('typeEditor.templateDeleted', { name: templateName }))
     } catch (error) {
       setErrors([error instanceof Error ? error.message : String(error)])
     }
@@ -370,7 +376,7 @@ export default function TypeEditorPanel({ types, initialTypeId, onSaved, onClose
     setDraft((prev) => [...prev, created])
     setSelectedId(created.id)
     bumpReset()
-    setNotice('已新建类型，请修改类型 ID 与名称后保存')
+    setNotice(t('typeEditor.typeCreated'))
   }
 
   const removeType = (): void => {
@@ -396,7 +402,7 @@ export default function TypeEditorPanel({ types, initialTypeId, onSaved, onClose
       const saved = await window.mbApi.schema.save({ types: draft })
       setDraft(structuredClone(saved))
       bumpReset()
-      setNotice('字段结构已保存，数据表表单已同步更新')
+      setNotice(t('typeEditor.saved'))
       onSaved(saved)
     } catch (error) {
       setErrors([error instanceof Error ? error.message : String(error)])
@@ -468,7 +474,7 @@ export default function TypeEditorPanel({ types, initialTypeId, onSaved, onClose
             />
           </>
         ) : (
-          <div className="empty">请在左侧选择类型，或点「新建类型」</div>
+          <div className="empty">{t('typeEditor.pickType')}</div>
         )}
 
         {errors.length > 0 && (

@@ -5,6 +5,8 @@ import {
 } from '@mobai/shared/schema/core'
 import type { DataTypeDef, TypeFieldDef } from '@mobai/shared/types'
 
+import { useT } from '@mobai/client-ui'
+
 /**
  * 「类型属性」整块（类型 ID / 中文名 / 复数键 / 颜色 / 字段模板 / 模板确认条 / 自定义模板）。
  *
@@ -75,20 +77,21 @@ export function TypePropsSection({
   onSaveAsTemplate: () => void
   onDeleteTemplate: () => void
 }) {
+  const t = useT()
   return (
     <div className="changelog-entry">
-      <div className="form-label">类型属性</div>
+      <div className="form-label">{t('typeProps.title')}</div>
       <div className="ai-gen-row">
-        <span className="form-label">类型 ID</span>
+        <span className="form-label">{t('typeProps.typeId')}</span>
         <input
           className="form-input"
           data-testid="te-type-id"
           value={current.id}
           readOnly={baseIds.has(current.id)}
-          title={baseIds.has(current.id) ? '既有类型的 ID 不可修改（存量条目按 ID 关联）' : ''}
+          title={baseIds.has(current.id) ? t('typeProps.typeIdLocked') : ''}
           onChange={(event) => onEditTypeId(event.target.value)}
         />
-        <span className="form-label">中文名</span>
+        <span className="form-label">{t('typeProps.displayName')}</span>
         <input
           className="form-input"
           data-testid="te-type-name"
@@ -97,14 +100,14 @@ export function TypePropsSection({
         />
       </div>
       <div className="ai-gen-row">
-        <span className="form-label">复数键</span>
+        <span className="form-label">{t('typeProps.pluralKey')}</span>
         <input
           className="form-input"
           data-testid="te-type-plural"
           value={current.pluralKey}
           onChange={(event) => onUpdate({ pluralKey: event.target.value })}
         />
-        <span className="form-label">颜色</span>
+        <span className="form-label">{t('typeProps.color')}</span>
         <input
           className="form-input te-col-color"
           data-testid="te-type-color"
@@ -121,27 +124,27 @@ export function TypePropsSection({
           disabled={draft.length <= 1}
           onClick={onRemoveType}
         >
-          删除类型
+          {t('typeProps.removeType')}
         </button>
       </div>
       <div className="ai-gen-row">
-        <span className="form-label">字段模板</span>
+        <span className="form-label">{t('typeProps.fieldTemplate')}</span>
         <select
           className="form-select"
           data-testid="te-template"
           value={templateName}
           onChange={(event) => onTemplateNameChange(event.target.value)}
         >
-          <optgroup label="内置模板">
+          <optgroup label={t('typeProps.builtinTemplates')}>
             {TYPE_TEMPLATE_NAMES.map((name) => (
               <option key={name} value={name}>
                 {/* 带字段数：光看名字不知道会得到多少字段，也就无法判断是否值得替换 */}
-                {name}（{TYPE_TEMPLATES[name]?.length ?? 0} 字段）
+                {t('typeProps.templateOption', { name, n: TYPE_TEMPLATES[name]?.length ?? 0 })}
               </option>
             ))}
           </optgroup>
           {customTemplates.length > 0 && (
-            <optgroup label="自定义模板">
+            <optgroup label={t('typeProps.customTemplates')}>
               {customTemplates.map((name) => (
                 <option key={name} value={name}>
                   {name}
@@ -151,10 +154,10 @@ export function TypePropsSection({
           )}
         </select>
         <button type="button" className="btn" data-testid="te-apply-template" onClick={onApplyTemplate}>
-          应用模板（替换全部字段）
+          {t('typeProps.applyTemplate')}
         </button>
         <button type="button" className="btn" data-testid="te-add-field" onClick={onAddField}>
-          添加字段
+          {t('typeProps.addField')}
         </button>
       </div>
       {/*
@@ -165,11 +168,11 @@ export function TypePropsSection({
       {templateSections !== null && (
         <div className="form-hint-row" data-testid="te-template-sections">
           <span>
-            建议分区：
+            {t('typeProps.suggestedSections')}
             {templateSections
-              .map((section) => `${section.icon} ${section.title}（${section.fields.join(' / ')}）`)
-              .join(' ｜ ')}
-            <span className="item-meta"> （应用模板后条目表单将按此分区渲染）</span>
+              .map((section) => `${section.icon} ${section.title}${t('typeProps.sectionSuffix', { fields: section.fields.join(' / ') })}`)
+              .join(t('typeProps.sectionSeparator'))}
+            <span className="item-meta"> {t('typeProps.sectionHint')}</span>
           </span>
         </div>
       )}
@@ -180,12 +183,12 @@ export function TypePropsSection({
       {pendingTemplate !== null && (
         <div className="form-hint-row" data-testid="te-template-confirm">
           <span>
-            模板「{pendingTemplate.name}」不含当前类型的{' '}
+            {t('typeProps.confirmTemplateBefore', { name: pendingTemplate.name })}
             {current.formFields
               .filter((field) => !new Set(pendingTemplate.fields.map((next) => next.name)).has(field.name))
               .map((field) => field.label.replace(/:?\s*$/, ''))
-              .join('、')}
-            {' '}字段。这些字段已填的数据**仍保存在文件里**，但界面上不再显示，也无法再编辑。
+              .join(t('typeProps.listSeparator'))}
+            {t('typeProps.confirmTemplateAfter')}
           </span>
           <div className="form-hint-actions">
             <button
@@ -194,10 +197,10 @@ export function TypePropsSection({
               data-testid="te-template-confirm-apply"
               onClick={() => onConfirmTemplate(pendingTemplate.name, pendingTemplate.fields)}
             >
-              确认替换
+              {t('typeProps.confirmReplace')}
             </button>
             <button type="button" className="btn" data-testid="te-template-confirm-cancel" onClick={onCancelTemplate}>
-              取消
+              {t('common.cancel')}
             </button>
           </div>
         </div>
@@ -207,21 +210,21 @@ export function TypePropsSection({
           className="form-input"
           data-testid="te-template-name"
           value={newTemplateName}
-          placeholder="模板名称"
+          placeholder={t('typeProps.templateNamePlaceholder')}
           onChange={(event) => onNewTemplateNameChange(event.target.value)}
         />
         <button type="button" className="btn" data-testid="te-save-template" onClick={onSaveAsTemplate}>
-          保存当前为模板
+          {t('typeProps.saveAsTemplate')}
         </button>
         <button
           type="button"
           className="btn danger"
           data-testid="te-delete-template"
           disabled={isBuiltinTemplate}
-          title={isBuiltinTemplate ? '内置模板不允许删除' : undefined}
+          title={isBuiltinTemplate ? t('typeProps.builtinNoDelete') : undefined}
           onClick={onDeleteTemplate}
         >
-          删除模板
+          {t('typeProps.deleteTemplate')}
         </button>
       </div>
     </div>

@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
+
 import {
   BALANCE_VERDICT_LABELS,
   assessBalance,
@@ -31,6 +33,7 @@ interface StatisticsPanelProps {
 type Tab = 'overview' | 'balance'
 
 export default function StatisticsPanel({ onClose }: StatisticsPanelProps) {
+  const t = useT()
   // 自供给：数据类型定义经 appContext 取用，不再由 App 以 props 下发（B 方案 Slice 2）
   const { types } = useAppContext()
   const [tab, setTab] = useState<Tab>('overview')
@@ -83,8 +86,8 @@ export default function StatisticsPanel({ onClose }: StatisticsPanelProps) {
     <div className="editor" data-testid="stats-panel">
       <div className="editor-header">
         <div className="editor-title">
-          数据统计
-          <small>共 {total} 条数据</small>
+          {t('stats.title')}
+          <small>{t('stats.subtitle', { n: total })}</small>
         </div>
       </div>
 
@@ -96,7 +99,7 @@ export default function StatisticsPanel({ onClose }: StatisticsPanelProps) {
             data-testid="stats-tab-overview"
             onClick={() => setTab('overview')}
           >
-            数据概览
+            {t('stats.tabOverview')}
           </button>
           <button
             type="button"
@@ -104,18 +107,18 @@ export default function StatisticsPanel({ onClose }: StatisticsPanelProps) {
             data-testid="stats-tab-balance"
             onClick={() => setTab('balance')}
           >
-            平衡性分析
+            {t('stats.tabBalance')}
           </button>
         </div>
 
         {error !== null && <div className="error-banner">{error}</div>}
-        {items === null && error === null && <div className="empty">正在统计…</div>}
+        {items === null && error === null && <div className="empty">{t('stats.loading')}</div>}
 
         {items !== null && tab === 'overview' && (
           <>
             {total === 0 ? (
               <div className="empty" data-testid="stats-empty">
-                暂无数据，先创建一些条目再来统计
+                {t('stats.empty')}
               </div>
             ) : (
               <div className="qc-stat-list" data-testid="stats-overview">
@@ -136,7 +139,7 @@ export default function StatisticsPanel({ onClose }: StatisticsPanelProps) {
                     </div>
                   ))}
                 <div className="qc-stat-total" data-testid="stats-total">
-                  总数据量：{total} 项
+                  {t('stats.total', { n: total })}
                 </div>
               </div>
             )}
@@ -147,13 +150,13 @@ export default function StatisticsPanel({ onClose }: StatisticsPanelProps) {
           <>
             {balanceTypes.length === 0 ? (
               <div className="empty" data-testid="stats-no-balance">
-                当前 schema 没有可用于平衡性分析的数值字段
+                {t('stats.noBalance')}
               </div>
             ) : (
               <>
                 <div className="form-row">
                   <label className="form-label" htmlFor="stats-balance-type">
-                    分析类型
+                    {t('stats.balanceType')}
                   </label>
                   <select
                     id="stats-balance-type"
@@ -172,16 +175,16 @@ export default function StatisticsPanel({ onClose }: StatisticsPanelProps) {
 
                 {balanceItems.length === 0 ? (
                   <div className="empty" data-testid="stats-no-items">
-                    没有{balanceDef?.name ?? ''}数据
+                    {t('stats.noItems', { name: balanceDef?.name ?? '' })}
                   </div>
                 ) : summaries.length === 0 ? (
                   <div className="empty" data-testid="stats-no-numeric">
-                    没有有效的数值数据（字段为空或不可解析为数字）
+                    {t('stats.noNumeric')}
                   </div>
                 ) : (
                   <div className="qc-stat-list" data-testid="stats-balance">
                     <div className="qc-stat-total">
-                      {balanceDef?.name}总数：{balanceItems.length}
+                      {t('stats.balanceTotal', { name: balanceDef?.name ?? '', n: balanceItems.length })}
                     </div>
                     {summaries.map((summary) => {
                       const verdict = assessBalance(summary.std, summary.avg)
@@ -189,13 +192,13 @@ export default function StatisticsPanel({ onClose }: StatisticsPanelProps) {
                         <div key={summary.field} className="qc-summary" data-testid="stats-summary">
                           <div className="qc-summary-title">{summary.label}</div>
                           <div className="qc-summary-grid">
-                            <span>样本</span>
+                            <span>{t('stats.sample')}</span>
                             <span>{summary.count}</span>
-                            <span>平均</span>
+                            <span>{t('stats.avg')}</span>
                             <span data-testid="stats-avg">{summary.avg.toFixed(2)}</span>
-                            <span>标准差</span>
+                            <span>{t('stats.std')}</span>
                             <span>{summary.std.toFixed(2)}</span>
-                            <span>范围</span>
+                            <span>{t('stats.range')}</span>
                             <span>
                               {summary.min.toFixed(2)} - {summary.max.toFixed(2)}
                             </span>
@@ -204,7 +207,7 @@ export default function StatisticsPanel({ onClose }: StatisticsPanelProps) {
                             className={`qc-verdict ${verdict}`}
                             data-testid="stats-verdict"
                           >
-                            平衡性评估：{BALANCE_VERDICT_LABELS[verdict]}
+                            {t('stats.verdict', { label: BALANCE_VERDICT_LABELS[verdict] })}
                           </div>
                         </div>
                       )
@@ -219,7 +222,7 @@ export default function StatisticsPanel({ onClose }: StatisticsPanelProps) {
 
       <div className="editor-actions">
         <button type="button" className="btn" onClick={onClose}>
-          关闭
+          {t('common.close')}
         </button>
       </div>
     </div>
