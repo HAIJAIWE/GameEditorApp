@@ -1186,7 +1186,32 @@ export const zh = {
   'imageGen.needConfig': '请先配置 API Key（在上方输入后点「保存到钥匙串」）',
   'imageGen.needDir': '请先选择保存目录',
   'imageGen.generatingStatus': '生成中…（云端 API 请求可能需要数十秒）',
-  'imageGen.saved': '已保存到：{path}'
+  'imageGen.saved': '已保存到：{path}',
+  // —— 策划书字段控件 / 字段 ID 候选 / 类型可见性 / 类型编辑器外框 ——
+  'field.jsonInvalidLabel': '「{label}」不是合法的 JSON',
+  'field.pipeListPlaceholder': '每行一条：{columns}',
+  'field.jsonFormat': 'JSON 格式',
+  'field.unset': '（未设置）',
+  'fieldId.candidates': '候选：',
+  'fieldId.pinyin': '拼音：',
+  'fieldId.renamed': '（原为 {name}，已重名故加后缀）',
+  'fieldId.skippedLead': '术语表未收录：',
+  'fieldId.skippedTail': '（可点「拼音」或手动补全）',
+  'fieldId.aiTitle': '让 AI 给几个候选（需本地 Ollama；AI 只提案，点选后才写入）',
+  'fieldId.aiLoading': 'AI 生成中…',
+  'fieldId.aiSuggest': 'AI 候选',
+  'typeVisibility.title': '选择显示的数据类型',
+  'typeVisibility.hint': '勾选要显示的数据类型；未勾选的类型不会丢失数据，只是不在列表中显示',
+  'typeVisibility.selectAll': '全选',
+  'typeVisibility.clear': '清空',
+  'typeVisibility.count': '已选择 {n}/{total} 个类型',
+  'typeEditorChrome.typeList': '数据类型（{n}）',
+  'typeEditorChrome.newType': '新建类型',
+  'typeEditorChrome.unnamed': '未命名类型',
+  'typeEditorChrome.fieldCount': '{n} 字段',
+  'typeEditorChrome.title': '字段结构编辑器',
+  'typeEditorChrome.reset': '重置',
+  'typeEditorChrome.save': '保存结构'
 } as const
 
 /** 全部文案键（以中文表为准） */
@@ -2360,7 +2385,32 @@ export const en: Record<MessageKey, string> = {
   'imageGen.needConfig': 'Configure an API key first (enter it above and click "Save to keychain")',
   'imageGen.needDir': 'Choose a save directory first',
   'imageGen.generatingStatus': 'Generating… (cloud API requests may take tens of seconds)',
-  'imageGen.saved': 'Saved to: {path}'
+  'imageGen.saved': 'Saved to: {path}',
+  // —— Design doc field control / field ID suggestions / type visibility / type editor chrome ——
+  'field.jsonInvalidLabel': '"{label}" is not valid JSON',
+  'field.pipeListPlaceholder': 'One per line: {columns}',
+  'field.jsonFormat': 'JSON format',
+  'field.unset': '(not set)',
+  'fieldId.candidates': 'Candidates:',
+  'fieldId.pinyin': 'Pinyin:',
+  'fieldId.renamed': ' (originally {name}, suffixed due to a duplicate)',
+  'fieldId.skippedLead': 'Not in glossary:',
+  'fieldId.skippedTail': ' (click "Pinyin" or complete manually)',
+  'fieldId.aiTitle': 'Ask AI for a few candidates (requires local Ollama; AI only proposes, writes only after you pick)',
+  'fieldId.aiLoading': 'AI generating…',
+  'fieldId.aiSuggest': 'AI candidates',
+  'typeVisibility.title': 'Choose data types to show',
+  'typeVisibility.hint': 'Check the data types to show; unchecked types keep their data, they are just hidden from the list',
+  'typeVisibility.selectAll': 'Select all',
+  'typeVisibility.clear': 'Clear',
+  'typeVisibility.count': '{n}/{total} types selected',
+  'typeEditorChrome.typeList': 'Data types ({n})',
+  'typeEditorChrome.newType': 'New type',
+  'typeEditorChrome.unnamed': 'Unnamed type',
+  'typeEditorChrome.fieldCount': '{n} fields',
+  'typeEditorChrome.title': 'Field structure editor',
+  'typeEditorChrome.reset': 'Reset',
+  'typeEditorChrome.save': 'Save structure'
 }
 
 /** 按语言取表 */

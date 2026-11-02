@@ -1,3 +1,4 @@
+import { useT } from '@mobai/client-ui'
 import type { FieldIdSuggestion } from '@mobai/shared/util/id'
 import type { IdSuggestState } from '../ceshuType'
 
@@ -22,12 +23,13 @@ function aiOnlyOf(state: IdSuggestState): FieldIdSuggestion[] {
  * 单一职责：展示候选、让用户点选应用；所有状态变更都通过回调回传父组件。
  */
 export default function FieldIdSuggest({ suggest, index, onApplyName, onRequestAi }: FieldIdSuggestProps) {
+  const t = useT()
   const aiOnly = aiOnlyOf(suggest)
   return (
     <div className="te-id-suggest" data-testid={`te-id-suggest-${index}`}>
       {suggest.rule.suggestions.length > 0 && (
         <>
-          <span className="te-id-suggest-label">候选：</span>
+          <span className="te-id-suggest-label">{t('fieldId.candidates')}</span>
           {suggest.rule.suggestions.map((suggestion) => (
             <button
               type="button"
@@ -51,7 +53,7 @@ export default function FieldIdSuggest({ suggest, index, onApplyName, onRequestA
 
       {suggest.pinyin !== null && suggest.pinyin.suggestions.length > 0 && (
         <>
-          <span className="te-id-suggest-label">拼音：</span>
+          <span className="te-id-suggest-label">{t('fieldId.pinyin')}</span>
           {suggest.pinyin.suggestions.map((suggestion) => (
             <button
               type="button"
@@ -87,14 +89,14 @@ export default function FieldIdSuggest({ suggest, index, onApplyName, onRequestA
 
       {suggest.rule.suggestions.some((s) => s.renamedFrom !== null) && (
         <span className="te-id-suggest-note" data-testid={`te-id-suggest-renamed-${index}`}>
-          （原为 {suggest.rule.suggestions[0]?.renamedFrom}，已重名故加后缀）
+          {t('fieldId.renamed', { name: suggest.rule.suggestions[0]?.renamedFrom ?? '' })}
         </span>
       )}
       {suggest.rule.suggestions[0]?.skipped.length ? (
         <span className="te-id-suggest-note" data-testid={`te-id-suggest-skipped-${index}`}>
-          术语表未收录：
+          {t('fieldId.skippedLead')}
           {suggest.rule.suggestions[0]?.skipped.join('、')}
-          （可点「拼音」或手动补全）
+          {t('fieldId.skippedTail')}
         </span>
       ) : null}
 
@@ -103,10 +105,10 @@ export default function FieldIdSuggest({ suggest, index, onApplyName, onRequestA
         className="btn slim"
         data-testid={`te-id-suggest-ai-${index}`}
         disabled={suggest.aiLoading}
-        title="让 AI 给几个候选（需本地 Ollama；AI 只提案，点选后才写入）"
+        title={t('fieldId.aiTitle')}
         onClick={onRequestAi}
       >
-        {suggest.aiLoading ? 'AI 生成中…' : 'AI 候选'}
+        {suggest.aiLoading ? t('fieldId.aiLoading') : t('fieldId.aiSuggest')}
       </button>
       {suggest.aiError !== null && (
         <span className="te-id-suggest-error" data-testid={`te-id-suggest-ai-error-${index}`}>

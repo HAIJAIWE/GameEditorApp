@@ -1,3 +1,4 @@
+import { useT } from '@mobai/client-ui'
 import type { DataTypeDef } from '@mobai/shared/types'
 
 /**
@@ -24,11 +25,12 @@ export function TypeSideList({
   onSelect: (id: string) => void
   onAddType: () => void
 }) {
+  const t = useT()
   return (
     <aside className="te-side">
-      <div className="form-label">数据类型（{draft.length}）</div>
+      <div className="form-label">{t('typeEditorChrome.typeList', { n: draft.length })}</div>
       <button type="button" className="btn" data-testid="te-new-type" onClick={onAddType}>
-        新建类型
+        {t('typeEditorChrome.newType')}
       </button>
       <div className="te-type-list">
         {draft.map((def, index) => (
@@ -40,8 +42,8 @@ export function TypeSideList({
             onClick={() => onSelect(def.id)}
           >
             <span className="type-dot" style={{ background: def.color || '#607D8B' }} />
-            <span className="item-name">{def.name || def.id || '未命名类型'}</span>
-            <span className="item-meta">{def.formFields.length} 字段</span>
+            <span className="item-name">{def.name || def.id || t('typeEditorChrome.unnamed')}</span>
+            <span className="item-meta">{t('typeEditorChrome.fieldCount', { n: def.formFields.length })}</span>
           </button>
         ))}
       </div>
@@ -65,12 +67,13 @@ export function TypeEditorHeader({
   onSave: () => void
   onClose: () => void
 }) {
+  const t = useT()
   return (
     <div className="changelog-header">
-      <span className="chapter-form-title">字段结构编辑器</span>
+      <span className="chapter-form-title">{t('typeEditorChrome.title')}</span>
       <div className="editor-actions">
         <button type="button" className="btn" data-testid="te-reset" disabled={saving} onClick={onReset}>
-          重置
+          {t('typeEditorChrome.reset')}
         </button>
         <button
           type="button"
@@ -79,10 +82,10 @@ export function TypeEditorHeader({
           disabled={saving || !canSave}
           onClick={onSave}
         >
-          保存结构
+          {t('typeEditorChrome.save')}
         </button>
         <button type="button" className="btn" data-testid="te-close" disabled={saving} onClick={onClose}>
-          关闭
+          {t('common.close')}
         </button>
       </div>
     </div>

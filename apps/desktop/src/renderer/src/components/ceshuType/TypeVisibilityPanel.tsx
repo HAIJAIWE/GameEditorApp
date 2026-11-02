@@ -1,5 +1,6 @@
 import { useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
 import type { DataTypeDef } from '@mobai/shared/types'
 import { resolveVisibilityResult } from '@mobai/shared/config/game'
 
@@ -26,6 +27,7 @@ export default function TypeVisibilityPanel({
   onConfirm,
   onClose
 }: TypeVisibilityPanelProps) {
+  const t = useT()
   const allIds = types.map((def) => def.id)
   // 初始勾选：null → 全勾；否则按 value 勾（只认 allIds 内的 id）
   const [checked, setChecked] = useState<Set<string>>(() => {
@@ -46,13 +48,11 @@ export default function TypeVisibilityPanel({
   return (
     <div className="editor" data-testid="type-visibility-panel">
       <div className="editor-header">
-        <div className="editor-title">选择显示的数据类型</div>
+        <div className="editor-title">{t('typeVisibility.title')}</div>
       </div>
 
       <div className="editor-body">
-        <div className="form-label">
-          勾选要显示的数据类型；未勾选的类型不会丢失数据，只是不在列表中显示
-        </div>
+        <div className="form-label">{t('typeVisibility.hint')}</div>
 
         <div style={{ display: 'flex', gap: 8 }}>
           <button
@@ -61,7 +61,7 @@ export default function TypeVisibilityPanel({
             data-testid="tv-select-all"
             onClick={() => setChecked(new Set(allIds))}
           >
-            全选
+            {t('typeVisibility.selectAll')}
           </button>
           <button
             type="button"
@@ -69,7 +69,7 @@ export default function TypeVisibilityPanel({
             data-testid="tv-clear"
             onClick={() => setChecked(new Set<string>())}
           >
-            清空
+            {t('typeVisibility.clear')}
           </button>
         </div>
 
@@ -88,7 +88,7 @@ export default function TypeVisibilityPanel({
         </div>
 
         <div className="form-label" data-testid="tv-count">
-          已选择 {checked.size}/{allIds.length} 个类型
+          {t('typeVisibility.count', { n: checked.size, total: allIds.length })}
         </div>
       </div>
 
@@ -99,10 +99,10 @@ export default function TypeVisibilityPanel({
           data-testid="tv-confirm"
           onClick={() => onConfirm(resolveVisibilityResult([...checked], allIds))}
         >
-          确定
+          {t('common.ok')}
         </button>
         <button type="button" className="btn" data-testid="tv-cancel" onClick={onClose}>
-          取消
+          {t('common.cancel')}
         </button>
       </div>
     </div>

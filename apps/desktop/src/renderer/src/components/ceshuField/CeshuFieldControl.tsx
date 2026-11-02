@@ -1,6 +1,9 @@
 import { useEffect, useRef } from 'react'
 
+import { useT } from '@mobai/client-ui'
+import { translate } from '@mobai/shared/i18n'
 import type { CeshuColumnDef, CeshuFieldDef } from '@mobai/shared/ceshu/reference'
+import { getLocalePreference } from '../../localePreference'
 
 /**
  * 策划书通用字段控件：由字段 schema（kind）驱动渲染，
@@ -129,7 +132,7 @@ export function inputToFieldValue(field: CeshuFieldDef, input: FieldInput): unkn
       try {
         return JSON.parse(text)
       } catch {
-        throw new Error(`「${field.label}」不是合法的 JSON`)
+        throw new Error(translate(getLocalePreference(), 'field.jsonInvalidLabel', { label: field.label }))
       }
     }
     default:
@@ -138,15 +141,16 @@ export function inputToFieldValue(field: CeshuFieldDef, input: FieldInput): unkn
 }
 
 export function CeshuFieldControl({ field, value, onChange, testId }: FieldControlProps) {
+  const t = useT()
   const id = testId ?? `ceshu-field-${field.key}`
 
   if (field.kind === 'textarea' || field.kind === 'stringList' || field.kind === 'pipeList' || field.kind === 'json') {
     const placeholder =
       field.placeholder ??
       (field.kind === 'pipeList'
-        ? `每行一条：${(field.columns ?? []).map((column) => column.label).join(' | ')}`
+        ? t('field.pipeListPlaceholder', { columns: (field.columns ?? []).map((column) => column.label).join(' | ') })
         : field.kind === 'json'
-          ? 'JSON 格式'
+          ? t('field.jsonFormat')
           : '')
     return (
       <div className="form-row">
@@ -196,7 +200,7 @@ export function CeshuFieldControl({ field, value, onChange, testId }: FieldContr
           value={String(value)}
           onChange={(event) => onChange(event.target.value)}
         >
-          <option value="">（未设置）</option>
+          <option value="">{t('field.unset')}</option>
           {(field.values ?? []).map((option) => (
             <option key={option} value={option}>
               {field.optionLabels?.[option] ?? option}
