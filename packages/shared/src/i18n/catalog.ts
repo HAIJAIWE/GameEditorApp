@@ -670,7 +670,15 @@ export const zh = {
   'agent.autoReview.ruleAllow': '判定 allow → 直接执行（顶替人工审批）；',
   'agent.autoReview.ruleDeny': '判定 deny → 审批策略为 ask 时转人工审批，never 时终局拒绝；',
   'agent.autoReview.ruleFail': '判读失败或输出不合规 → 直接拒绝（fail-closed，绝不执行）。',
-  'agent.autoReview.hintFooter': '这是 dsh 的 Auto 语义：模型可能放行不安全操作或误拒有用操作，且每次高危调用会多花一次模型请求。ask 模式下人类仍是最终闸。'
+  'agent.autoReview.hintFooter': '这是 dsh 的 Auto 语义：模型可能放行不安全操作或误拒有用操作，且每次高危调用会多花一次模型请求。ask 模式下人类仍是最终闸。',
+  // 插件市场条目 / 策划书子系统
+  'pluginMarket.entry.sessionHistory': '会话历史检索：列出草稿/历史事件，按内容搜索',
+  'pluginMarket.entry.autoReview': '执行预审：工具执行前由模型做风险预审（approve/reject/reason）',
+  'pluginMarket.entry.recentChanges': '最近改动：查看智能体最近修改的数据（来自操作日志）',
+  'pluginMarket.entry.commandPalette': '命令面板：⌘K 搜索并执行命令 / 打开面板',
+  'pluginMarket.entry.session': '会话：主对话摘要、子智能体看板与会话轨迹（同一份状态）',
+  'ceshu.metaLabel': '策划书子系统',
+  'ceshu.metaDescription': '设计文档生成 + 开发交接路线（完备度 / 路线 / 体检服务）'
 } as const
 
 /** 全部文案键（以中文表为准） */
@@ -1328,7 +1336,15 @@ export const en: Record<MessageKey, string> = {
   'agent.autoReview.ruleAllow': 'Verdict allow → run directly (replaces manual approval);',
   'agent.autoReview.ruleDeny': 'Verdict deny → with approval policy ask, escalate to manual approval; with never, reject outright;',
   'agent.autoReview.ruleFail': 'Judgment failure or malformed output → reject outright (fail-closed, never run).',
-  'agent.autoReview.hintFooter': 'This is dsh Auto semantics: the model may let unsafe operations through or wrongly reject useful ones, and each high-risk call costs an extra model request. Under ask, humans remain the final gate.'
+  'agent.autoReview.hintFooter': 'This is dsh Auto semantics: the model may let unsafe operations through or wrongly reject useful ones, and each high-risk call costs an extra model request. Under ask, humans remain the final gate.',
+  // Plugin market entries / design docs subsystem
+  'pluginMarket.entry.sessionHistory': 'Session history search: list drafts/history events and search by content',
+  'pluginMarket.entry.autoReview': 'Pre-execution review: the model pre-judges risk before a tool runs (approve/reject/reason)',
+  'pluginMarket.entry.recentChanges': 'Recent changes: view data the agent recently modified (from the operation log)',
+  'pluginMarket.entry.commandPalette': 'Command palette: ⌘K to search and run commands / open panels',
+  'pluginMarket.entry.session': 'Session: main conversation summary, sub-agent board and session trajectory (same state)',
+  'ceshu.metaLabel': 'Design docs subsystem',
+  'ceshu.metaDescription': 'Design doc generation + development handoff route (readiness / route / health services)'
 }
 
 /** 按语言取表 */

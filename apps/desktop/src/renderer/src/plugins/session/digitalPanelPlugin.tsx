@@ -5,7 +5,9 @@ import { createConversationService } from '@mobai/shared/agent/conversation'
 import type { DigitalPanelState } from '@mobai/shared/agent/ui'
 import type { PluginHost } from '@mobai/shared/plugin/host'
 import type { PluginManifest } from '@mobai/shared/plugin/types'
+import { translate } from '@mobai/shared/i18n'
 import { DigitalPanel } from '../../components/digital'
+import { getLocalePreference } from '../../localePreference'
 import { registerSlotComponent } from '../host'
 
 /**
@@ -31,8 +33,8 @@ export function defineDigitalPanelPlugin(_host: PluginHost): PluginManifest {
     id: 'digital-panel',
     name: 'digital-panel',
     version: '0.1.0',
-    description: '智能体面板（右栏 app.rightPanel 的默认占据者）',
-    meta: { label: '智能体', icon: '🤖' },
+    description: 'Agent panel (default occupant of the right-hand app.rightPanel)',
+    meta: { labelKey: 'agent.title', icon: '🤖' },
     protected: true,
     capabilities: [
       {
@@ -40,7 +42,7 @@ export function defineDigitalPanelPlugin(_host: PluginHost): PluginManifest {
         id: 'digitalPanel.slot',
         key: 'app.rightPanel',
         component: 'digital.panel',
-        ui: { type: 'text', text: '智能体' }
+        ui: { type: 'text', text: translate(getLocalePreference(), 'agent.title') }
       },
       {
         // 对外服务面：插件清单里可见、可 invoke，不必知道 store key 与内部类型

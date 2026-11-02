@@ -90,7 +90,7 @@ registerBuiltinPlugins()
 // loadPlugin 加载失败会向上抛错（占位已标 status:'error'），这里 catch 住避免成为 unhandled rejection。
 const loadBuiltin = (source: string): void => {
   void pluginHost.loadPlugin(pluginLoader, source).catch((err) =>
-    console.error(`[builtins] 核心插件加载失败（source=${source}）：`, err)
+    console.error(`[builtins] core plugin failed to load (source=${source}):`, err)
   )
 }
 

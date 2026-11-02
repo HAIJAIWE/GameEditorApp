@@ -20,8 +20,8 @@ export function defineCeshuPlugin(): PluginManifest {
     id: 'ceshu',
     name: 'ceshu',
     version: '0.1.0',
-    description: '设计文档生成 + 开发交接路线（首个插件化子系统）',
-    meta: { label: '策划书子系统', icon: '📘', description: '设计文档生成 + 开发交接路线（完备度 / 路线 / 体检服务）' },
+    description: 'Design doc generation + development handoff route (first pluginized subsystem)',
+    meta: { labelKey: 'ceshu.metaLabel', icon: '📘', descriptionKey: 'ceshu.metaDescription' },
     protected: true,
     capabilities: [
       {

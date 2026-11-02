@@ -367,6 +367,8 @@ export interface PluginMarketEntry {
   name: string
   version: string
   description?: string
+  /** 展示描述键（优先于 `description`）：渲染层用 `t(descriptionKey)` 翻译 */
+  descriptionKey?: MessageKey
   /** 分发源（market UI 据此调用 loader 安装） */
   source: PluginSource
   /** 分层：核心 / 可选 / 实验（借 dsh 的 tiers） */

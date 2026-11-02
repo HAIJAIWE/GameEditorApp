@@ -158,7 +158,9 @@ function PluginMarketPanel(props: PluginMarketProps): ReactElement {
                   <span className="plugin-market-name">
                     {entry.icon ?? '🔌'} {entry.name}
                   </span>
-                  <span className="plugin-market-desc">{entry.description ?? ''}</span>
+                  <span className="plugin-market-desc">
+                    {entry.descriptionKey !== undefined ? t(entry.descriptionKey) : (entry.description ?? '')}
+                  </span>
                   {existing ? (
                     <span className={`plugin-market-status status-${existing.status}`}>
                       {statusLabel(existing.status, t)}

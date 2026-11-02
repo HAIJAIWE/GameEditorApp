@@ -6,13 +6,16 @@ import type { PluginMarketEntry } from '@mobai/shared/plugin/types'
  * 当前 `ready:true` 仅 plugin-market 自身——它由 builtins 经 `PluginLoader` 加载，
  * 作为市场入口。其余 3 个 dsh 有用实验能力的插槽先占位、标 `ready:false`（即将推出），
  * 各自探路验证通过后再翻 `ready:true` 并补上对应 `factory:<id>`。
+ *
+ * 文案走 `descriptionKey`（渲染层 `t(key)` 翻译），`description` 仅作英文回退。
  */
 export const marketRegistry: PluginMarketEntry[] = [
   {
     id: 'plugin-market',
     name: 'plugin-market',
     version: '0.1.0',
-    description: '插件市场：浏览、启用/禁用、按需安装可选能力',
+    description: 'Plugin market: browse, enable/disable, install optional capabilities on demand',
+    descriptionKey: 'pluginMarket.description',
     source: 'factory:plugin-market',
     tier: 'core',
     ready: true,
@@ -23,7 +26,8 @@ export const marketRegistry: PluginMarketEntry[] = [
     id: 'session-history',
     name: 'session-history',
     version: '0.1.0',
-    description: '会话历史检索：列出草稿/历史事件，按内容搜索',
+    description: 'Session history search: list drafts/history events, search by content',
+    descriptionKey: 'pluginMarket.entry.sessionHistory',
     source: 'factory:session-history',
     tier: 'optional',
     ready: true,
@@ -34,7 +38,8 @@ export const marketRegistry: PluginMarketEntry[] = [
     id: 'auto-review',
     name: 'auto-review',
     version: '0.1.0',
-    description: '执行预审：工具执行前由模型做风险预审（approve/reject/reason）',
+    description: 'Pre-execution review: model pre-judges risk before a tool runs (approve/reject/reason)',
+    descriptionKey: 'pluginMarket.entry.autoReview',
     source: 'factory:auto-review',
     tier: 'experimental',
     ready: true,
@@ -44,7 +49,8 @@ export const marketRegistry: PluginMarketEntry[] = [
     id: 'recent-changes',
     name: 'recent-changes',
     version: '0.1.0',
-    description: '最近改动：查看智能体最近修改的数据（来自操作日志）',
+    description: 'Recent changes: view data the agent recently modified (from the operation log)',
+    descriptionKey: 'pluginMarket.entry.recentChanges',
     source: 'factory:recent-changes',
     tier: 'optional',
     ready: true,
@@ -54,7 +60,8 @@ export const marketRegistry: PluginMarketEntry[] = [
     id: 'command-palette',
     name: 'command-palette',
     version: '0.1.0',
-    description: '命令面板：⌘K 搜索并执行命令 / 打开面板',
+    description: 'Command palette: ⌘K to search and run commands / open panels',
+    descriptionKey: 'pluginMarket.entry.commandPalette',
     source: 'factory:command-palette',
     tier: 'core',
     ready: true,
@@ -64,7 +71,8 @@ export const marketRegistry: PluginMarketEntry[] = [
     id: 'session',
     name: 'session',
     version: '0.1.0',
-    description: '会话：主对话摘要、子智能体看板与会话轨迹（同一份状态）',
+    description: 'Session: main conversation summary, sub-agent board and session trajectory (same state)',
+    descriptionKey: 'pluginMarket.entry.session',
     source: 'factory:session',
     tier: 'core',
     ready: true,
