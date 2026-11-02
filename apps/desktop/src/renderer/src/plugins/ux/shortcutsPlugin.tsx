@@ -1,5 +1,7 @@
 import type { PluginHost } from '@mobai/shared/plugin/host'
 import type { PluginManifest } from '@mobai/shared/plugin/types'
+import { translate } from '@mobai/shared/i18n'
+import { getLocalePreference } from '../../localePreference'
 import { registerReactBinding } from '../host'
 import { ShortcutsPanel } from '../../components/common'
 
@@ -17,11 +19,23 @@ export function defineShortcutsPlugin(host: PluginHost): PluginManifest {
     id: 'shortcuts',
     name: 'shortcuts',
     version: '0.1.0',
-    description: '快捷键参考面板',
-    meta: { label: '快捷键参考', icon: '⌨', description: '快捷键参考（插件化首切片，经宿主渲染）' },
+    description: 'Keyboard shortcuts reference panel',
+    meta: { labelKey: 'shortcuts.metaLabel', icon: '⌨', descriptionKey: 'shortcuts.metaDescription' },
     capabilities: [
-      { kind: 'command', id: 'shortcuts.open', label: '快捷键参考', run: () => host.openPanel('shortcuts.panel') },
-      { kind: 'panel', id: 'shortcuts.panel', title: '快捷键参考', ui: { type: 'text', text: '快捷键参考面板' } }
+      {
+        kind: 'command',
+        id: 'shortcuts.open',
+        label: 'Keyboard shortcuts',
+        labelKey: 'shortcuts.metaLabel',
+        run: () => host.openPanel('shortcuts.panel')
+      },
+      {
+        kind: 'panel',
+        id: 'shortcuts.panel',
+        title: 'Keyboard shortcuts',
+        titleKey: 'shortcuts.metaLabel',
+        ui: { type: 'text', text: translate(getLocalePreference(), 'shortcuts.panelText') }
+      }
     ]
   }
 }

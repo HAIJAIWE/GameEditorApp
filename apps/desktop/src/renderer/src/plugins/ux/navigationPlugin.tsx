@@ -1,5 +1,7 @@
 import type { PluginHost } from '@mobai/shared/plugin/host'
 import type { PluginManifest, PluginSidebarItem } from '@mobai/shared/plugin/types'
+import { translate } from '@mobai/shared/i18n'
+import { getLocalePreference } from '../../localePreference'
 import { notify, setHomeVisible } from '../host'
 
 /**
@@ -33,17 +35,18 @@ export function defineNavigationPlugin(host: PluginHost): PluginManifest {
     id: 'navigation',
     name: 'navigation',
     version: '0.1.0',
-    description: '左侧主导航栏（侧栏条目由插件声明）+ 首页/智能体导航命令',
+    description: 'Left main navigation (sidebar items declared by plugins) + home/agent commands',
     meta: {
-      label: '主导航',
+      labelKey: 'nav.metaLabel',
       icon: '🧭',
-      description: '侧栏条目与首页/智能体导航命令'
+      descriptionKey: 'nav.metaDescription'
     },
     capabilities: [
       {
         kind: 'command',
         id: 'nav.home',
-        label: '回策划书首页',
+        label: 'Back to design docs home',
+        labelKey: 'nav.home',
         // 与旧 handleSidebar 的 home 分支完全一致：显首页 + 关浮层
         run: () => {
           setHomeVisible(true)
@@ -53,7 +56,8 @@ export function defineNavigationPlugin(host: PluginHost): PluginManifest {
       {
         kind: 'command',
         id: 'nav.agent',
-        label: '聚焦智能体',
+        label: 'Focus agent',
+        labelKey: 'nav.agent',
         // 与旧 handleSidebar 的 agent 分支一致：可用则聚焦输入框，否则提示
         run: () => {
           const input = document.querySelector<HTMLInputElement>('[data-testid="digital-input"]')
@@ -62,7 +66,7 @@ export function defineNavigationPlugin(host: PluginHost): PluginManifest {
             input.focus()
             return
           }
-          notify('智能体在右侧常驻；当前对话运行中，输入框暂不可用')
+          notify(translate(getLocalePreference(), 'agent.digitalUnavailable'))
         }
       },
       {

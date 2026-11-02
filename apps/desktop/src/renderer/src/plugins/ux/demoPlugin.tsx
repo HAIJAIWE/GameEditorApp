@@ -1,7 +1,10 @@
 import type { ComponentType } from 'react'
 
+import { useT } from '@mobai/client-ui'
 import type { PluginHost } from '@mobai/shared/plugin/host'
 import type { PluginManifest, UiNode } from '@mobai/shared/plugin/types'
+import { translate } from '@mobai/shared/i18n'
+import { getLocalePreference } from '../../localePreference'
 import { registerReactBinding } from '../host'
 
 /**
@@ -15,47 +18,56 @@ import { registerReactBinding } from '../host'
  * 关键：manifest 里没有 React 类型。React 宿主读 `demoReactBindings` 拿到富组件；
  * CLI / 引擎宿主忽略绑定，直接渲染 `ui`。这正是「任意宿主都能接」的落地方式。
  */
-
-const demoUi: UiNode = {
-  type: 'container',
-  children: [
-    { type: 'text', text: '这是「示例插件」提供的面板（声明式 UI，任意宿主都能渲染）。' },
-    { type: 'text', text: 'React 宿主会用富绑定渲染带「禁用本插件」按钮的版本。' }
-  ]
-}
-
 export function defineDemoPlugin(host: PluginHost): PluginManifest {
+  // 声明式 ui 是给非 React 宿主的回退（React 宿主走富绑定），在注册时按当前语言烘焙。
+  const demoUi: UiNode = {
+    type: 'container',
+    children: [
+      { type: 'text', text: translate(getLocalePreference(), 'demo.ui.text1') },
+      { type: 'text', text: translate(getLocalePreference(), 'demo.ui.text2') }
+    ]
+  }
+
   // 富 UI 作为可选绑定在此注册（宿主相关）。非 React 宿主忽略，回退到 demoUi。
-  const DemoPanel: ComponentType<{ onClose: () => void }> = ({ onClose }) => (
-    <div className="demo-plugin-panel" data-testid="demo-plugin-panel">
-      <p>这是「示例插件」提供的面板。它证明了插件可以贡献独立浮层。</p>
-      <p>点击下方按钮禁用本插件：宿主会把它从清单移除，并关闭此面板（dsh 风格 disable）。</p>
-      <button
-        type="button"
-        className="btn"
-        data-testid="demo-disable"
-        onClick={() => {
-          host.disable('demo')
-          onClose()
-        }}
-      >
-        禁用示例插件
-      </button>
-    </div>
-  )
+  const DemoPanel: ComponentType<{ onClose: () => void }> = ({ onClose }) => {
+    const t = useT()
+    return (
+      <div className="demo-plugin-panel" data-testid="demo-plugin-panel">
+        <p>{t('demo.panel.p1')}</p>
+        <p>{t('demo.panel.p2')}</p>
+        <button
+          type="button"
+          className="btn"
+          data-testid="demo-disable"
+          onClick={() => {
+            host.disable('demo')
+            onClose()
+          }}
+        >
+          {t('demo.panel.disable')}
+        </button>
+      </div>
+    )
+  }
   registerReactBinding('demo-panel', DemoPanel)
 
   return {
     id: 'demo',
     name: 'demo',
     version: '0.0.1',
-    description: '证明插件契约端到端可用（命令 / 面板 / 服务），且 manifest 零框架依赖',
-    meta: { label: '示例插件', icon: '🧩', description: '端到端示例：命令 / 面板 / 服务，且 manifest 零框架依赖' },
+    description: 'Proves the plugin contract works end-to-end (command / panel / service) with a framework-free manifest',
+    meta: { labelKey: 'demo.metaLabel', icon: '🧩', descriptionKey: 'demo.metaDescription' },
     engines: { host: '0.1.0' },
     capabilities: [
-      { kind: 'command', id: 'demo.open', label: '插件示例', run: () => host.openPanel('demo-panel') },
-      { kind: 'panel', id: 'demo-panel', title: '示例插件面板', ui: demoUi },
-      { kind: 'service', id: 'demo.ping', invoke: () => '你好，来自示例插件' }
+      {
+        kind: 'command',
+        id: 'demo.open',
+        label: 'Plugin demo',
+        labelKey: 'demo.commandLabel',
+        run: () => host.openPanel('demo-panel')
+      },
+      { kind: 'panel', id: 'demo-panel', title: 'Demo plugin panel', titleKey: 'demo.panelTitle', ui: demoUi },
+      { kind: 'service', id: 'demo.ping', invoke: () => translate(getLocalePreference(), 'demo.ping') }
     ]
   }
 }

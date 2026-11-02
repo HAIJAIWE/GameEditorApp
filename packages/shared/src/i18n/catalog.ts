@@ -571,7 +571,49 @@ export const zh = {
   'settings.noticeTestOk': '连接成功',
   'settings.noticeTestFail': '连接失败',
   'settings.noticeTestResult': '{status}：{message}',
-  'settings.noticeTestError': '测试连接异常：{reason}'
+  'settings.noticeTestError': '测试连接异常：{reason}',
+
+  // —— 插件：UX 交互（plugins/ux）——
+  // 主导航
+  'nav.home': '回策划书首页',
+  'nav.agent': '聚焦智能体',
+  'nav.metaLabel': '主导航',
+  'nav.metaDescription': '侧栏条目与首页/智能体导航命令',
+  'nav.description': '左侧主导航栏（侧栏条目由插件声明）+ 首页/智能体导航命令',
+  'agent.digitalUnavailable': '智能体在右侧常驻；当前对话运行中，输入框暂不可用',
+  // 示例插件
+  'demo.description': '证明插件契约端到端可用（命令 / 面板 / 服务），且 manifest 零框架依赖',
+  'demo.metaLabel': '示例插件',
+  'demo.metaDescription': '端到端示例：命令 / 面板 / 服务，且 manifest 零框架依赖',
+  'demo.commandLabel': '插件示例',
+  'demo.panelTitle': '示例插件面板',
+  'demo.ui.text1': '这是「示例插件」提供的面板（声明式 UI，任意宿主都能渲染）。',
+  'demo.ui.text2': 'React 宿主会用富绑定渲染带「禁用本插件」按钮的版本。',
+  'demo.panel.p1': '这是「示例插件」提供的面板。它证明了插件可以贡献独立浮层。',
+  'demo.panel.p2': '点击下方按钮禁用本插件：宿主会把它从清单移除，并关闭此面板（dsh 风格 disable）。',
+  'demo.panel.disable': '禁用示例插件',
+  'demo.ping': '你好，来自示例插件',
+  // 插件市场
+  'pluginMarket.description': '插件市场：浏览、启用/禁用、按需安装可选能力',
+  'pluginMarket.metaLabel': '插件市场',
+  'pluginMarket.metaDescription': '浏览与启停插件，按需安装可选能力（cordis 式运行时加载）',
+  'pluginMarket.registered': '已注册（{count}）',
+  'pluginMarket.optional': '可选 / 实验能力',
+  'pluginMarket.disable': '禁用',
+  'pluginMarket.enable': '启用',
+  'pluginMarket.installing': '安装中…',
+  'pluginMarket.install': '安装并启用',
+  'pluginMarket.soon': '即将推出',
+  'pluginMarket.hint': '核心插件受保护，不可禁用。可选能力经 PluginLoader 运行时加载（cordis 式动态加载）。',
+  'pluginMarket.status.enabled': '已启用',
+  'pluginMarket.status.disabled': '已禁用',
+  'pluginMarket.status.error': '加载失败',
+  'pluginMarket.status.loading': '加载中',
+  // 快捷键参考
+  'shortcuts.description': '快捷键参考面板',
+  'shortcuts.metaLabel': '快捷键参考',
+  'shortcuts.metaDescription': '快捷键参考（插件化首切片，经宿主渲染）',
+  'shortcuts.panelText': '快捷键参考面板'
 } as const
 
 /** 全部文案键（以中文表为准） */
@@ -1130,7 +1172,49 @@ export const en: Record<MessageKey, string> = {
   'settings.noticeTestOk': 'Connected',
   'settings.noticeTestFail': 'Connection failed',
   'settings.noticeTestResult': '{status}: {message}',
-  'settings.noticeTestError': 'Connection test error: {reason}'
+  'settings.noticeTestError': 'Connection test error: {reason}',
+
+  // —— Plugin UX interactions (plugins/ux) ——
+  // Main navigation
+  'nav.home': 'Back to design docs home',
+  'nav.agent': 'Focus agent',
+  'nav.metaLabel': 'Navigation',
+  'nav.metaDescription': 'Sidebar items and home/agent navigation commands',
+  'nav.description': 'Left main navigation (sidebar items declared by plugins) + home/agent commands',
+  'agent.digitalUnavailable': 'The agent lives on the right; the input is unavailable while a conversation is running',
+  // Demo plugin
+  'demo.description': 'Proves the plugin contract works end-to-end (command / panel / service) with a framework-free manifest',
+  'demo.metaLabel': 'Demo plugin',
+  'demo.metaDescription': 'End-to-end example: command / panel / service with a framework-free manifest',
+  'demo.commandLabel': 'Plugin demo',
+  'demo.panelTitle': 'Demo plugin panel',
+  'demo.ui.text1': 'This panel is provided by the "Demo plugin" (declarative UI, renderable by any host).',
+  'demo.ui.text2': 'A React host renders a rich version with a "Disable this plugin" button.',
+  'demo.panel.p1': 'This panel is provided by the "Demo plugin". It proves plugins can contribute standalone overlays.',
+  'demo.panel.p2': 'Click the button below to disable this plugin: the host removes it from the list and closes this panel (dsh-style disable).',
+  'demo.panel.disable': 'Disable demo plugin',
+  'demo.ping': 'Hello from the demo plugin',
+  // Plugin market
+  'pluginMarket.description': 'Plugin market: browse, enable/disable, install optional capabilities on demand',
+  'pluginMarket.metaLabel': 'Plugin market',
+  'pluginMarket.metaDescription': 'Browse and toggle plugins, install optional capabilities on demand (cordis-style runtime loading)',
+  'pluginMarket.registered': 'Registered ({count})',
+  'pluginMarket.optional': 'Optional / experimental',
+  'pluginMarket.disable': 'Disable',
+  'pluginMarket.enable': 'Enable',
+  'pluginMarket.installing': 'Installing…',
+  'pluginMarket.install': 'Install & enable',
+  'pluginMarket.soon': 'Coming soon',
+  'pluginMarket.hint': 'Core plugins are protected and cannot be disabled. Optional capabilities are loaded at runtime via PluginLoader (cordis-style dynamic loading).',
+  'pluginMarket.status.enabled': 'Enabled',
+  'pluginMarket.status.disabled': 'Disabled',
+  'pluginMarket.status.error': 'Load failed',
+  'pluginMarket.status.loading': 'Loading',
+  // Keyboard shortcuts
+  'shortcuts.description': 'Keyboard shortcuts reference panel',
+  'shortcuts.metaLabel': 'Keyboard shortcuts',
+  'shortcuts.metaDescription': 'Keyboard shortcuts reference (first pluginization slice, host-rendered)',
+  'shortcuts.panelText': 'Keyboard shortcuts reference panel'
 }
 
 /** 按语言取表 */
