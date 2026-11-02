@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
 import {
   SEARCH_ALL_FIELDS,
   SEARCH_ALL_TYPES,
@@ -32,6 +33,7 @@ function itemDisplayName(item: ItemRecord): string {
 }
 
 export default function AdvancedSearchPanel({ types, onJump, onClose }: AdvancedSearchPanelProps) {
+  const t = useT()
   const [items, setItems] = useState<ItemRecord[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [keyword, setKeyword] = useState('')
@@ -67,29 +69,29 @@ export default function AdvancedSearchPanel({ types, onJump, onClose }: Advanced
     <aside className="editor" data-testid="advanced-search-panel">
       <div className="editor-header">
         <div className="editor-title">
-          高级搜索
-          <small>跨类型按字段检索</small>
+          {t('nav.advancedSearch')}
+          <small>{t('advancedSearch.subtitle')}</small>
         </div>
       </div>
 
       <div className="editor-body">
         <div className="form-row">
           <label className="form-label" htmlFor="adv-search-keyword">
-            关键词
+            {t('advancedSearch.keyword')}
           </label>
           <input
             id="adv-search-keyword"
             className="form-input"
             data-testid="adv-search-keyword"
             value={keyword}
-            placeholder="空格分隔多个词（须全部命中）"
+            placeholder={t('advancedSearch.keywordPlaceholder')}
             onChange={(event) => setKeyword(event.target.value)}
           />
         </div>
 
         <div className="form-row">
           <label className="form-label" htmlFor="adv-search-type">
-            类型
+            {t('advancedSearch.typeLabel')}
           </label>
           <select
             id="adv-search-type"
@@ -98,7 +100,7 @@ export default function AdvancedSearchPanel({ types, onJump, onClose }: Advanced
             value={typeFilter}
             onChange={(event) => setTypeFilter(event.target.value)}
           >
-            <option value={SEARCH_ALL_TYPES}>全部类型</option>
+            <option value={SEARCH_ALL_TYPES}>{t('advancedSearch.allTypes')}</option>
             {types.map((def) => (
               <option key={def.id} value={def.id}>
                 {def.name}
@@ -109,7 +111,7 @@ export default function AdvancedSearchPanel({ types, onJump, onClose }: Advanced
 
         <div className="form-row">
           <label className="form-label" htmlFor="adv-search-field">
-            字段
+            {t('advancedSearch.fieldLabel')}
           </label>
           <select
             id="adv-search-field"
@@ -118,7 +120,7 @@ export default function AdvancedSearchPanel({ types, onJump, onClose }: Advanced
             value={fieldFilter}
             onChange={(event) => setFieldFilter(event.target.value)}
           >
-            <option value={SEARCH_ALL_FIELDS}>全部字段</option>
+            <option value={SEARCH_ALL_FIELDS}>{t('advancedSearch.allFields')}</option>
             {SEARCH_FIELD_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
@@ -129,25 +131,27 @@ export default function AdvancedSearchPanel({ types, onJump, onClose }: Advanced
 
         {error !== null && <div className="error-banner">{error}</div>}
 
-        {items === null && error === null && <div className="empty">正在加载数据…</div>}
+        {items === null && error === null && <div className="empty">{t('advancedSearch.loading')}</div>}
 
         {items !== null && trimmed === '' && (
           <div className="empty" data-testid="adv-search-hint">
-            请输入关键词开始搜索
+            {t('advancedSearch.hint')}
           </div>
         )}
 
         {items !== null && trimmed !== '' && (
           <>
             <div className="qc-stat-total" data-testid="adv-search-count">
-              命中 {results.length} 条
-              {typeFilter !== SEARCH_ALL_TYPES ? ` · 限「${typeName(typeFilter)}」` : ''}
-              {fieldFilter !== SEARCH_ALL_FIELDS ? ` · 限「${fieldLabel(fieldFilter)}」字段` : ''}
+              {t('advancedSearch.count', { n: results.length })}
+              {typeFilter !== SEARCH_ALL_TYPES ? t('advancedSearch.limitType', { name: typeName(typeFilter) }) : ''}
+              {fieldFilter !== SEARCH_ALL_FIELDS
+                ? t('advancedSearch.limitField', { name: fieldLabel(fieldFilter) })
+                : ''}
             </div>
 
             {results.length === 0 ? (
               <div className="empty" data-testid="adv-search-empty">
-                没有匹配「{trimmed}」的数据
+                {t('advancedSearch.noMatch', { keyword: trimmed })}
               </div>
             ) : (
               <div className="adv-search-results">
@@ -163,7 +167,7 @@ export default function AdvancedSearchPanel({ types, onJump, onClose }: Advanced
                       type="button"
                       className="ref-row"
                       data-testid="adv-search-row"
-                      title="点击跳转到该条目"
+                      title={t('advancedSearch.jumpTitle')}
                       onClick={() => onJump(item.type, item.id, itemDisplayName(item))}
                     >
                       <span className="ref-row-main">{itemDisplayName(item)}</span>
@@ -181,7 +185,7 @@ export default function AdvancedSearchPanel({ types, onJump, onClose }: Advanced
 
       <div className="editor-actions">
         <button type="button" className="btn" data-testid="advanced-search-close" onClick={onClose}>
-          关闭
+          {t('common.close')}
         </button>
       </div>
     </aside>

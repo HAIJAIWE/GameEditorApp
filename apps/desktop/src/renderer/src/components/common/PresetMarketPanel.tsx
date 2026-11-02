@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
 import { SYSTEM_LABELS, type CeshuDocument } from '@mobai/shared/ceshu/reference'
 import {
   HYBRID_GAMEPLAY_PRESETS,
@@ -25,6 +26,7 @@ interface PresetMarketPanelProps {
 }
 
 export default function PresetMarketPanel({ ceshuId, onApplied, onClose }: PresetMarketPanelProps) {
+  const t = useT()
   const [keyword, setKeyword] = useState('')
   const [pendingKey, setPendingKey] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -42,7 +44,7 @@ export default function PresetMarketPanel({ ceshuId, onApplied, onClose }: Prese
     try {
       const result = await window.mbApi.ceshu.applyPreset({ id: ceshuId, presetKey })
       setPendingKey(null)
-      setNotice(`已应用预设【${result.presetLabel}】，新启用 ${result.enabledCount} 个游戏系统（已保存）。`)
+      setNotice(t('presetMarket.applied', { label: result.presetLabel, count: result.enabledCount }))
       onApplied(result.doc, result.enabledCount, result.presetLabel)
     } catch (err) {
       setError(toErrorMessage(err))
@@ -54,17 +56,15 @@ export default function PresetMarketPanel({ ceshuId, onApplied, onClose }: Prese
   return (
     <div className="changelog-panel" data-testid="preset-market-panel">
       <div className="changelog-header">
-        <span className="chapter-form-title">🎨 混合玩法预设市场</span>
+        <span className="chapter-form-title">{t('presetMarket.title')}</span>
         <div className="editor-actions">
           <button type="button" className="btn" data-testid="preset-close" onClick={onClose}>
-            关闭
+            {t('common.close')}
           </button>
         </div>
       </div>
 
-      <div className="item-meta">
-        共 {PRESET_KEYS.length} 个工业级预设 · 点击卡片即可应用到当前策划书
-      </div>
+      <div className="item-meta">{t('presetMarket.count', { n: PRESET_KEYS.length })}</div>
 
       {error && (
         <div className="form-error" data-testid="preset-error">
@@ -80,7 +80,7 @@ export default function PresetMarketPanel({ ceshuId, onApplied, onClose }: Prese
       <input
         className="form-input preset-search"
         data-testid="preset-search"
-        placeholder="🔍 搜索预设（按名称/风格/模块类型）..."
+        placeholder={t('presetMarket.searchPlaceholder')}
         value={keyword}
         onChange={(event) => {
           setKeyword(event.target.value)
@@ -90,17 +90,17 @@ export default function PresetMarketPanel({ ceshuId, onApplied, onClose }: Prese
 
       {pendingKey && pending && (
         <div className="preset-confirm" data-testid="preset-confirm-box">
-          <div className="form-label">将应用预设【{pending.label}】</div>
+          <div className="form-label">{t('presetMarket.applyPending', { label: pending.label })}</div>
           <div className="item-meta">
-            风格：{pending.style} · 模块：{pending.moduleType}
+            {t('presetMarket.styleModule', { style: pending.style, module: pending.moduleType })}
           </div>
-          <div className="form-label">将启用以下 {pending.recommendedSystems.length} 个游戏系统：</div>
+          <div className="form-label">{t('presetMarket.enableSystems', { n: pending.recommendedSystems.length })}</div>
           <ul className="preset-confirm-list">
             {pending.recommendedSystems.map((system) => (
               <li key={system}>✓ {SYSTEM_LABELS[system] ?? system}</li>
             ))}
           </ul>
-          <div className="item-meta">已启用的系统不会被关闭，预设系统将被开启。</div>
+          <div className="item-meta">{t('presetMarket.notClose')}</div>
           <div className="editor-actions">
             <button
               type="button"
@@ -109,10 +109,10 @@ export default function PresetMarketPanel({ ceshuId, onApplied, onClose }: Prese
               disabled={busy}
               onClick={() => void handleApply(pendingKey)}
             >
-              {busy ? '应用中…' : '确定应用'}
+              {busy ? t('presetMarket.applying') : t('presetMarket.confirm')}
             </button>
             <button type="button" className="btn" data-testid="preset-cancel" disabled={busy} onClick={() => setPendingKey(null)}>
-              取消
+              {t('presetMarket.cancel')}
             </button>
           </div>
         </div>
@@ -120,7 +120,7 @@ export default function PresetMarketPanel({ ceshuId, onApplied, onClose }: Prese
 
       {entries.length === 0 ? (
         <div className="empty" data-testid="preset-empty">
-          未找到匹配 &apos;{keyword}&apos; 的预设
+          {t('presetMarket.empty', { keyword })}
         </div>
       ) : (
         <div className="preset-grid" data-testid="preset-grid">
@@ -144,12 +144,12 @@ export default function PresetMarketPanel({ ceshuId, onApplied, onClose }: Prese
               )}
               {entry.recommendedSystems.length > 0 && (
                 <div className="preset-systems" data-testid="preset-systems">
-                  ⚙ 推荐系统: {formatRecommendedSystems(entry)}
+                  {t('presetMarket.recommendedSystems', { list: formatRecommendedSystems(entry) })}
                 </div>
               )}
               {entry.secondaryModules.length > 0 && (
                 <div className="preset-secondary" data-testid="preset-secondary">
-                  🔗 副模块: {formatSecondaryModules(entry)}
+                  {t('presetMarket.secondaryModules', { list: formatSecondaryModules(entry) })}
                 </div>
               )}
               <div className="editor-actions">
@@ -164,7 +164,7 @@ export default function PresetMarketPanel({ ceshuId, onApplied, onClose }: Prese
                     setPendingKey(entry.key)
                   }}
                 >
-                  应用此预设
+                  {t('presetMarket.apply')}
                 </button>
               </div>
             </div>
