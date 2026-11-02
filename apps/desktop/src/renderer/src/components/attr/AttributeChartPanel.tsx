@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
 import { numericFieldNames } from '@mobai/shared/util/data'
 import {
   barPercent,
@@ -36,6 +37,7 @@ interface AttributeChartPanelProps {
 }
 
 export default function AttributeChartPanel({ types }: AttributeChartPanelProps) {
+  const t = useT()
   const [items, setItems] = useState<ItemRecord[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [typeId, setTypeId] = useState('')
@@ -96,8 +98,8 @@ export default function AttributeChartPanel({ types }: AttributeChartPanelProps)
     <div className="editor" data-testid="attribute-chart-panel">
       <div className="editor-header">
         <div className="editor-title">
-          属性分布图表
-          <small>按 schema 自动发现数值字段 · 降序 Top 20</small>
+          {t('attributeChart.title')}
+          <small>{t('attributeChart.subtitle')}</small>
         </div>
       </div>
 
@@ -106,7 +108,7 @@ export default function AttributeChartPanel({ types }: AttributeChartPanelProps)
 
         {chartTypes.length === 0 && items !== null && error === null && (
           <div className="empty" data-testid="chart-no-numeric-type">
-            当前 schema 里没有任何类型带数值字段（spinbox），无法画分布图。
+            {t('attributeChart.noNumericType')}
           </div>
         )}
 
@@ -114,7 +116,7 @@ export default function AttributeChartPanel({ types }: AttributeChartPanelProps)
           <>
             <div className="form-row">
               <label className="form-label" htmlFor="chart-type">
-                数据类型
+                {t('attributeChart.typeLabel')}
               </label>
               <div className="form-field">
                 <select
@@ -134,7 +136,7 @@ export default function AttributeChartPanel({ types }: AttributeChartPanelProps)
 
             <div className="form-row">
               <label className="form-label" htmlFor="chart-field">
-                属性
+                {t('attributeChart.fieldLabel')}
               </label>
               <div className="form-field">
                 <select
@@ -152,17 +154,17 @@ export default function AttributeChartPanel({ types }: AttributeChartPanelProps)
               </div>
             </div>
 
-            {items === null && error === null && <div className="empty">正在读取数据…</div>}
+            {items === null && error === null && <div className="empty">{t('attributeChart.loading')}</div>}
 
             {items !== null && rows.length === 0 && (
               <div className="empty" data-testid="chart-no-items">
-                该类型下还没有任何条目。
+                {t('attributeChart.noItems')}
               </div>
             )}
 
             {chart !== null && chart.data.length === 0 && rows.length > 0 && (
               <div className="empty" data-testid="chart-no-values">
-                没有可用的「{effectiveField}」数值 —— 该字段可能只填了非数字内容。
+                {t('attributeChart.noValues', { field: effectiveField })}
               </div>
             )}
 
@@ -188,24 +190,22 @@ export default function AttributeChartPanel({ types }: AttributeChartPanelProps)
 
                 {chart.truncated > 0 && (
                   <div className="empty" data-testid="chart-truncated">
-                    还有 {chart.truncated} 条未显示（只画前 {chart.shown} 条）
+                    {t('attributeChart.truncated', { count: chart.truncated, shown: chart.shown })}
                   </div>
                 )}
 
                 <div className="form-section" data-testid="chart-stats">
-                  <strong>统计信息</strong>
-                  <div>数据点数量：{chart.stats.count}</div>
-                  <div>最小值：{formatChartValue(chart.stats.min)}</div>
-                  <div>最大值：{formatChartValue(chart.stats.max)}</div>
-                  <div>平均值：{chart.stats.avg.toFixed(1)}</div>
-                  <div>总和：{formatChartValue(chart.stats.sum)}</div>
+                  <strong>{t('attributeChart.statsTitle')}</strong>
+                  <div>{t('attributeChart.statCount', { n: chart.stats.count })}</div>
+                  <div>{t('attributeChart.statMin', { v: formatChartValue(chart.stats.min) })}</div>
+                  <div>{t('attributeChart.statMax', { v: formatChartValue(chart.stats.max) })}</div>
+                  <div>{t('attributeChart.statAvg', { v: chart.stats.avg.toFixed(1) })}</div>
+                  <div>{t('attributeChart.statSum', { v: formatChartValue(chart.stats.sum) })}</div>
                 </div>
               </>
             )}
 
-            <div className="notice-banner">
-              提示：导出 CSV 后可用 Excel / 电子表格生成专业图表。
-            </div>
+            <div className="notice-banner">{t('attributeChart.hint')}</div>
           </>
         )}
       </div>

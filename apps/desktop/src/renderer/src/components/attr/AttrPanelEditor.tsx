@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
 import {
   ATTR_PANEL_CATEGORY_SUGGESTIONS,
   ATTR_PANEL_QUICK_ADD,
@@ -28,6 +29,7 @@ interface AttrPanelEditorProps {
 }
 
 export default function AttrPanelEditor({ fieldName, typeId, rows, onChange }: AttrPanelEditorProps) {
+  const t = useT()
   const templates = ATTR_PANEL_TEMPLATES[typeId] ?? null
   const templateNames = templates ? Object.keys(templates) : []
   const evaluation = useMemo(() => evaluateAttrPanel(rows), [rows])
@@ -80,7 +82,7 @@ export default function AttrPanelEditor({ fieldName, typeId, rows, onChange }: A
             value=""
             onChange={(event) => loadTemplate(event.target.value)}
           >
-            <option value="">载入模板…</option>
+            <option value="">{t('attrPanel.loadTemplate')}</option>
             {templateNames.map((name) => (
               <option key={name} value={name}>
                 {name}
@@ -94,7 +96,7 @@ export default function AttrPanelEditor({ fieldName, typeId, rows, onChange }: A
           value=""
           onChange={(event) => quickAdd(event.target.value)}
         >
-          <option value="">快速添加…</option>
+          <option value="">{t('attrPanel.quickAdd')}</option>
           {ATTR_PANEL_QUICK_ADD.map((item) => (
             <option key={item.name} value={item.name}>
               {item.name}
@@ -105,19 +107,19 @@ export default function AttrPanelEditor({ fieldName, typeId, rows, onChange }: A
           type="button"
           className="btn slim"
           data-testid={testId('add')}
-          onClick={() => onChange([...rows, { name: '', category: '自定义', formula: '=0' }])}
+          onClick={() => onChange([...rows, { name: '', category: t('attrPanel.customCategory'), formula: '=0' }])}
         >
-          添加行
+          {t('attrPanel.addRow')}
         </button>
       </div>
 
-      {rows.length === 0 && <div className="attr-list-empty">暂无属性行，可从模板载入或添加行</div>}
+      {rows.length === 0 && <div className="attr-list-empty">{t('attrPanel.empty')}</div>}
       {rows.length > 0 && (
         <div className="attr-panel-head">
-          <span className="attr-panel-category">类别</span>
-          <span className="attr-panel-name">属性名称</span>
-          <span className="attr-panel-formula">公式</span>
-          <span className="attr-panel-result">结果</span>
+          <span className="attr-panel-category">{t('attrPanel.colCategory')}</span>
+          <span className="attr-panel-name">{t('attrPanel.colName')}</span>
+          <span className="attr-panel-formula">{t('attrPanel.colFormula')}</span>
+          <span className="attr-panel-result">{t('attrPanel.colResult')}</span>
           <span className="attr-panel-remove" />
         </div>
       )}
@@ -134,7 +136,7 @@ export default function AttrPanelEditor({ fieldName, typeId, rows, onChange }: A
             className="form-input attr-panel-name"
             data-testid={testId(`name-${index}`)}
             list={listId('names')}
-            placeholder="属性名称"
+            placeholder={t('attrPanel.namePlaceholder')}
             value={String(row.name ?? '')}
             onChange={(event) => updateRow(index, { name: event.target.value })}
           />
@@ -142,7 +144,7 @@ export default function AttrPanelEditor({ fieldName, typeId, rows, onChange }: A
             <input
               className="form-input attr-panel-formula"
               data-testid={testId(`formula-${index}`)}
-              placeholder="=力量*10 或 数字"
+              placeholder={t('attrPanel.formulaPlaceholder')}
               value={String(row.formula ?? '')}
               onChange={(event) => updateRow(index, { formula: event.target.value })}
             />
@@ -150,7 +152,7 @@ export default function AttrPanelEditor({ fieldName, typeId, rows, onChange }: A
               type="button"
               className="btn slim attr-panel-builder-toggle"
               data-testid={testId(`formula-builder-toggle-${index}`)}
-              title="用系数配置公式"
+              title={t('attrPanel.builderTitle')}
               onClick={() => setBuilderRow(builderRow === index ? null : index)}
             >
               ƒx
@@ -166,7 +168,7 @@ export default function AttrPanelEditor({ fieldName, typeId, rows, onChange }: A
             type="button"
             className="btn slim danger attr-panel-remove"
             data-testid={testId(`remove-${index}`)}
-            title="删除该行"
+            title={t('attrPanel.removeTitle')}
             onClick={() => onChange(rows.filter((_, current) => current !== index))}
           >
             ✕
