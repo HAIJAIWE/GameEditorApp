@@ -1,5 +1,7 @@
 import { useMemo, type ReactElement } from 'react'
 
+import { useT } from '@mobai/client-ui'
+
 import { CHAPTER_LABELS, type CeshuDocument, type ChapterKey } from '@mobai/shared/ceshu/reference'
 import { fieldLabelOf } from '@mobai/shared/ceshu/fields'
 import { analyzeFieldImpact } from '@mobai/shared/ceshu/workflow'
@@ -32,6 +34,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 export default function FieldImpactPanel({ doc, chapter, field, onClose }: Props): ReactElement {
+  const t = useT()
   const impact = useMemo(() => analyzeFieldImpact(doc, chapter, field), [doc, chapter, field])
   const direct = impact.docs.filter((item) => item.relation === 'direct')
   const downstream = impact.docs.filter((item) => item.relation === 'downstream')
@@ -40,9 +43,9 @@ export default function FieldImpactPanel({ doc, chapter, field, onClose }: Props
     <div className="review-overlay" data-testid="field-impact-overlay" onClick={onClose}>
       <div className="review-panel" data-testid="field-impact-panel" onClick={(event) => event.stopPropagation()}>
         <div className="review-panel-header">
-          <span>改「{impact.label}」会影响什么</span>
+          <span>{t('fieldImpact.title', { label: impact.label })}</span>
           <button type="button" className="btn slim" data-testid="field-impact-close" onClick={onClose}>
-            关闭
+            {t('common.close')}
           </button>
         </div>
 
@@ -50,9 +53,9 @@ export default function FieldImpactPanel({ doc, chapter, field, onClose }: Props
           {CHAPTER_LABELS[chapter]} · <code>{impact.field}</code>
         </div>
 
-        <Section title="必须改（直接引用）">
+        <Section title={t('fieldImpact.mustChange')}>
           {direct.length === 0 ? (
-            <div className="item-meta">没有交接文档直接引用这个字段。</div>
+            <div className="item-meta">{t('fieldImpact.noneDirect')}</div>
           ) : (
             <ul className="impact-list">
               {direct.map((item) => (
@@ -65,7 +68,7 @@ export default function FieldImpactPanel({ doc, chapter, field, onClose }: Props
         </Section>
 
         {downstream.length > 0 && (
-          <Section title="复核即可（下游）">
+          <Section title={t('fieldImpact.reviewOnly')}>
             <ul className="impact-list">
               {downstream.map((item) => (
                 <li key={item.id}>
@@ -77,11 +80,13 @@ export default function FieldImpactPanel({ doc, chapter, field, onClose }: Props
         )}
 
         {impact.assertions.length > 0 && (
-          <Section title="会失效的数值断言">
+          <Section title={t('fieldImpact.brokenAssertions')}>
             <ul className="impact-list">
               {impact.assertions.map((item) => (
                 <li key={`${item.claim}-${item.expr}`}>
-                  {item.claim}：<code>{item.expr}</code>（命中：{item.hit}）
+                  {t('fieldImpact.assertionClaim', { claim: item.claim })}
+                  <code>{item.expr}</code>
+                  {t('fieldImpact.assertionHit', { hit: item.hit })}
                 </li>
               ))}
             </ul>
@@ -89,7 +94,7 @@ export default function FieldImpactPanel({ doc, chapter, field, onClose }: Props
         )}
 
         {impact.splitFields.length > 0 && (
-          <Section title="同源字段（通常要一起改）">
+          <Section title={t('fieldImpact.siblingFields')}>
             <ul className="impact-list">
               {impact.splitFields.map((key) => (
                 <li key={key}>
@@ -101,19 +106,19 @@ export default function FieldImpactPanel({ doc, chapter, field, onClose }: Props
         )}
 
         {impact.affectsData && (
-          <Section title="数据侧">
-            <div className="item-meta">会改变数据表结构：需要重新生成 schema.json 与 data/snapshot.json。</div>
+          <Section title={t('fieldImpact.dataSide')}>
+            <div className="item-meta">{t('fieldImpact.dataSideHint')}</div>
           </Section>
         )}
 
         {impact.acceptance.length > 0 && (
-          <Section title="会重新判定的验收条目">
+          <Section title={t('fieldImpact.acceptance')}>
             <ul className="impact-list">
               {impact.acceptance.map((item) => (
                 <li key={`${item.docId}-${item.text}`}>
                   {item.text}
-                  {item.check === 'assertion' && <span className="field-badge">断言</span>}
-                  {item.check === 'test' && <span className="field-badge">自动测试</span>}
+                  {item.check === 'assertion' && <span className="field-badge">{t('fieldImpact.badgeAssertion')}</span>}
+                  {item.check === 'test' && <span className="field-badge">{t('fieldImpact.badgeTest')}</span>}
                 </li>
               ))}
             </ul>

@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
+
 import type { CeshuChapters } from '@mobai/shared/ceshu/reference'
 import {
   buildRefOverview,
@@ -50,6 +52,7 @@ interface CeshuDataRefsPanelProps {
  * `panel → 宿主 setJumpTarget` 的接线（独立立项，不在本轮范围）。
  */
 export default function CeshuDataRefsPanel({ chapters, types, onClose }: CeshuDataRefsPanelProps) {
+  const t = useT()
   const [items, setItems] = useState<ItemRecord[] | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -75,40 +78,42 @@ export default function CeshuDataRefsPanel({ chapters, types, onClose }: CeshuDa
     <div className="editor" data-testid="ceshu-datarefs-panel">
       <div className="editor-header">
         <div className="editor-title">
-          数据引用概览
-          <small>正文里用 @data[role.atk] 引用数据表，这里显示实时值</small>
+          {t('dataRefs.title')}
+          <small>{t('dataRefs.subtitle')}</small>
         </div>
         {onClose !== undefined && (
           <button type="button" className="btn slim" data-testid="datarefs-close" onClick={onClose}>
-            关闭
+            {t('common.close')}
           </button>
         )}
       </div>
 
       <div className="editor-body">
         {error !== null && <div className="error-banner">{error}</div>}
-        {items === null && error === null && <div className="empty">正在读取数据…</div>}
+        {items === null && error === null && <div className="empty">{t('dataRefs.loading')}</div>}
 
         {overview !== null && overview.total === 0 && (
           <div className="empty" data-testid="datarefs-empty">
-            当前策划书中没有使用 @data[...] 引用。
+            {t('dataRefs.emptyLine1')}
             <br />
-            在任意文本框中输入 <code>@data[type_key.field_name]</code> 即可引用数据。
+            {t('dataRefs.emptyLine2Before')} <code>@data[type_key.field_name]</code>{' '}
+            {t('dataRefs.emptyLine2After')}
             <br />
-            示例：<code>@data[role.atk]</code> 或 <code>@data[skill.fireball.damage]</code>
+            {t('dataRefs.emptyExample')} <code>@data[role.atk]</code> {t('dataRefs.or')}{' '}
+            <code>@data[skill.fireball.damage]</code>
           </div>
         )}
 
         {overview !== null && overview.total > 0 && (
           <>
             <div className="item-meta" data-testid="datarefs-summary">
-              共 {overview.total} 个引用（有效 {overview.resolved}/{overview.total}）
+              {t('dataRefs.summary', { total: overview.total, resolved: overview.resolved })}
             </div>
 
             {overview.groups.map((group) => (
               <div className="form-section" key={group.typeKey} data-testid={`datarefs-group-${group.typeKey}`}>
                 <strong>
-                  {group.typeKey}（{group.refs.length} 个引用）
+                  {t('dataRefs.groupTitle', { type: group.typeKey, n: group.refs.length })}
                 </strong>
                 {group.refs.map((ref, i) => (
                   <div

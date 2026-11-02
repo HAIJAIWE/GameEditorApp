@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
+
 import { CHAPTER_LABELS } from '@mobai/shared/ceshu/reference'
 import type { CeshuChapters, EnabledEditor } from '@mobai/shared/ceshu/reference'
 import { findCountConstraint } from '@mobai/shared/util/data'
+import type { MessageKey, TranslateParams } from '@mobai/shared/i18n'
 import type { DataTypeDef } from '@mobai/shared/types'
 
 import { DataEditorTab } from '../data'
@@ -55,10 +58,12 @@ interface CeshuDataPreviewProps {
  * 现为第四章），而 typecheck / eslint / vitest 全绿也抓不到——没有任何断言读它，只能靠截图发现
  * ⇒ 现由 `ceshuChapterLabelDrift.test.ts` 守卫。
  */
-const EMPTY_HINT =
-  '设计游戏数据前，先启用游戏系统\n\n' +
-  `数据编辑器由策划书驱动：在左侧「${CHAPTER_LABELS.systems}」\n` +
-  '勾选要做的系统后，对应的数据编辑器就会出现在这里。'
+/** `useT()` 返回的翻译函数签名（供模块级纯函数复用） */
+type TranslateFn = (key: MessageKey, params?: TranslateParams) => string
+
+function emptyHint(t: TranslateFn): string {
+  return t('dataPreview.emptyHint', { systems: CHAPTER_LABELS.systems })
+}
 
 /**
  * 策划书内嵌数据预览面板。
@@ -85,6 +90,7 @@ export default function CeshuDataPreview({
   onJumpHandled,
   onJumpMissed
 }: CeshuDataPreviewProps) {
+  const t = useT()
   const [activeKey, setActiveKey] = useState<string | null>(null)
   /** 「📊 数据引用」标签是否选中（与系统标签互斥） */
   const [showRefs, setShowRefs] = useState(false)
@@ -153,17 +159,17 @@ export default function CeshuDataPreview({
             onJumpHandled?.()
           }}
         >
-          📊 数据引用
+          {t('dataPreview.refsTab')}
         </button>
         {activeEditor !== null && !showRefs && (
           <button
             type="button"
             data-testid="ceshu-preview-expand"
             className="ceshu-preview-tab"
-            title="展开为整窗数据编辑器"
+            title={t('dataPreview.expandTitle')}
             onClick={() => setExpanded(true)}
           >
-            ⛶ 展开
+            {t('dataPreview.expand')}
           </button>
         )}
       </div>
@@ -171,15 +177,15 @@ export default function CeshuDataPreview({
       <div className="ceshu-preview-body">
         {isEmpty ? (
           <div className="ceshu-preview-empty">
-            <div>{EMPTY_HINT}</div>
+            <div>{emptyHint(t)}</div>
             <button
               type="button"
               className="btn"
               data-testid="ceshu-preview-goto-systems"
-              title={`跳转到${CHAPTER_LABELS.systems}，勾选游戏系统后对应的数据编辑器会出现在这里`}
+              title={t('dataPreview.gotoSystemsTitle', { systems: CHAPTER_LABELS.systems })}
               onClick={() => onGotoSystems?.()}
             >
-              去「{CHAPTER_LABELS.systems}」勾选
+              {t('dataPreview.gotoSystems', { systems: CHAPTER_LABELS.systems })}
             </button>
           </div>
         ) : showRefs ? (
@@ -208,15 +214,15 @@ export default function CeshuDataPreview({
       {expanded && activeEditor !== null && (
         <div className="ceshu-data-overlay" data-testid="ceshu-data-overlay">
           <div className="ceshu-data-overlay-head">
-            <span className="ceshu-data-overlay-title">{activeEditor.name} · 数据编辑器</span>
-            <span className="item-meta">整窗展开态 · Esc 收起</span>
+            <span className="ceshu-data-overlay-title">{t('dataPreview.overlayTitle', { name: activeEditor.name })}</span>
+            <span className="item-meta">{t('dataPreview.overlayMeta')}</span>
             <button
               type="button"
               className="btn"
               data-testid="ceshu-data-overlay-close"
               onClick={() => setExpanded(false)}
             >
-              收起
+              {t('dataPreview.collapse')}
             </button>
           </div>
           <div className="ceshu-data-overlay-body">

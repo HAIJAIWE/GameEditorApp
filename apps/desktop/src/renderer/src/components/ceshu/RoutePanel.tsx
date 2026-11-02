@@ -1,5 +1,7 @@
 import { useMemo, type ReactElement } from 'react'
 
+import { useT } from '@mobai/client-ui'
+
 import type { CeshuDocument } from '@mobai/shared/ceshu/reference'
 import { analyzeParallelism } from '@mobai/shared/ceshu/workflow'
 import { buildHandoffPlan, planHandoffDocs } from '@mobai/shared/ceshu/workflow'
@@ -18,6 +20,7 @@ interface Props {
 }
 
 export default function RoutePanel({ doc, onClose }: Props): ReactElement {
+  const t = useT()
   const planned = useMemo(() => planHandoffDocs(doc), [doc])
   const plan = useMemo(() => buildHandoffPlan(doc), [doc])
   const parallelism = useMemo(() => analyzeParallelism(doc, { plan, planned }), [doc, plan, planned])
@@ -30,25 +33,31 @@ export default function RoutePanel({ doc, onClose }: Props): ReactElement {
     <div className="review-overlay" data-testid="route-overlay" onClick={onClose}>
       <div className="review-panel" data-testid="route-panel" onClick={(event) => event.stopPropagation()}>
         <div className="review-panel-header">
-          <span>开发路线</span>
+          <span>{t('route.title')}</span>
           <button type="button" className="btn slim" data-testid="route-close" onClick={onClose}>
-            关闭
+            {t('common.close')}
           </button>
         </div>
 
         <div className="item-meta">
-          共 {planned.length} 份文档 / {parallelism.waves.length} 波
+          {t('route.summary', { docs: planned.length, waves: parallelism.waves.length })}
           {parallelism.parallelGroups.length > 0 &&
-            ` ｜ 可并行：${parallelism.parallelGroups.map((group) => group.join(' + ')).join('；')}`}
+            t('route.parallel', {
+              groups: parallelism.parallelGroups.map((group) => group.join(' + ')).join(t('route.groupSeparator'))
+            })}
         </div>
         <div className="item-meta">
-          开工第一份：<code>{planned[0]?.path ?? '—'}</code>
+          {t('route.firstDoc')}
+          <code>{planned[0]?.path ?? '—'}</code>
         </div>
 
         {parallelism.waves.map((wave) => (
           <div className="impact-section" key={wave.index}>
             <h4>
-              第 {wave.index + 1} 波 · {wave.volumes.map((volume) => volume.folder).join('、')}
+              {t('route.waveTitle', {
+                n: wave.index + 1,
+                folders: wave.volumes.map((volume) => volume.folder).join(t('route.listSeparator'))
+              })}
             </h4>
             <ul className="impact-list">
               {wave.docs.map((path) => {
@@ -59,9 +68,13 @@ export default function RoutePanel({ doc, onClose }: Props): ReactElement {
                 const gate =
                   status === undefined
                     ? ''
-                    : `（字段 ${status.fieldFilled}/${status.fieldTotal}${
-                        status.blockers.length > 0 ? `，问题 ${status.blockers.length}` : ''
-                      }）`
+                    : status.blockers.length > 0
+                      ? t('route.gateWithBlockers', {
+                          filled: status.fieldFilled,
+                          total: status.fieldTotal,
+                          blockers: status.blockers.length
+                        })
+                      : t('route.gate', { filled: status.fieldFilled, total: status.fieldTotal })
                 return (
                   <li key={path}>
                     {mark} <code>{path}</code>
@@ -75,11 +88,12 @@ export default function RoutePanel({ doc, onClose }: Props): ReactElement {
 
         {parallelism.conflicts.length > 0 && (
           <div className="impact-section">
-            <h4>并行前先约口径（跨卷共享字段）</h4>
+            <h4>{t('route.conflictsTitle')}</h4>
             <ul className="impact-list">
               {parallelism.conflicts.slice(0, 8).map((conflict) => (
                 <li key={`${conflict.a}-${conflict.b}`}>
-                  <code>{conflict.a}</code> ↔ <code>{conflict.b}</code>：{conflict.fields.join('、')}
+                  <code>{conflict.a}</code> ↔ <code>{conflict.b}</code>
+                  {t('route.conflictFields', { fields: conflict.fields.join(t('route.listSeparator')) })}
                 </li>
               ))}
             </ul>

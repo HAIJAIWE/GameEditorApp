@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState, type ReactElement } from 'react'
 
+import { useT } from '@mobai/client-ui'
+
 import { buildCeshuBundle } from '@mobai/shared/ceshu/workflow'
 import {
   BUNDLE_CONSUME_TASKS,
@@ -41,13 +43,14 @@ export function MigrationOverlay({ doc, busy, onRun, onClose }: {
   onRun: () => void
   onClose: () => void
 }): ReactElement {
+  const t = useT()
   const plan = planCeshuMigration(doc)
   const pending = pendingSplitCount(doc)
   return (
     <div className="review-overlay" data-testid="migration-overlay" onClick={onClose}>
       <div className="review-panel" data-testid="migration-panel" onClick={(event) => event.stopPropagation()}>
         <div className="review-panel-header">
-          <span>迁移预览</span>
+          <span>{t('overlay.migrationTitle')}</span>
           <button
             type="button"
             className="btn primary slim"
@@ -55,23 +58,23 @@ export function MigrationOverlay({ doc, busy, onRun, onClose }: {
             disabled={busy || pending === 0}
             onClick={onRun}
           >
-            执行迁移（{pending}）
+            {t('overlay.migrationRun', { n: pending })}
           </button>
           <button type="button" className="btn slim" onClick={onClose}>
-            关闭
+            {t('common.close')}
           </button>
         </div>
         <div className="item-meta">
-          迁移**幂等且非破坏**：把大段文本拆成「要点 + 补充」，原文保留，确认无误后可手动清空旧字段。
+          {t('overlay.migrationHint')}
         </div>
         {plan.splits.length === 0 && plan.overlaps.length === 0 ? (
-          <div className="item-meta">没有需要迁移的字段。</div>
+          <div className="item-meta">{t('overlay.migrationNone')}</div>
         ) : (
           <div className="review-list">
             {plan.splits.map((item) => (
               <div className="migration-item" key={`split:${item.chapter}:${item.fieldKey}`} data-testid="migration-split">
                 <div className="migration-title">{migrationSplitTitle(item)}</div>
-                <div className="item-meta">拆成：要点列表（{item.points.length} 条）+ 补充说明</div>
+                <div className="item-meta">{t('overlay.migrationSplit', { n: item.points.length })}</div>
                 <ul className="migration-points">
                   {item.points.map((point, index) => (
                     <li key={index}>{point}</li>
@@ -79,7 +82,7 @@ export function MigrationOverlay({ doc, busy, onRun, onClose }: {
                 </ul>
                 {item.notes !== '' && (
                   <div className="item-meta">
-                    补充：{item.notes.slice(0, 120)}
+                    {t('overlay.migrationNotes', { notes: item.notes.slice(0, 120) })}
                     {item.notes.length > 120 ? '…' : ''}
                   </div>
                 )}
@@ -88,10 +91,10 @@ export function MigrationOverlay({ doc, busy, onRun, onClose }: {
             {plan.overlaps.map((item) => (
               <div className="migration-item" key={`overlap:${item.chapter}`} data-testid="migration-overlap">
                 <div className="migration-title">
-                  {CHAPTER_LABELS[item.chapter]} · 重叠字段
+                  {t('overlay.migrationOverlap', { chapter: CHAPTER_LABELS[item.chapter] })}
                   {item.duplicated && (
                     <span className="field-badge duplicate" data-testid="migration-overlap-duplicated">
-                      已重复 {Math.round(item.similarity * 100)}%
+                      {t('overlay.migrationDuplicated', { pct: Math.round(item.similarity * 100) })}
                     </span>
                   )}
                 </div>
@@ -112,15 +115,16 @@ export function ConsumePromptOverlay({ doc, onClose }: {
   doc: CeshuDocument
   onClose: () => void
 }): ReactElement {
+  const t = useT()
   const [consumeTask, setConsumeTask] = useState<BundleConsumeTask>('draft')
   const prompt = buildBundleConsumePrompt(buildCeshuBundle(doc), consumeTask)
   return (
     <div className="review-overlay" data-testid="consume-overlay" onClick={onClose}>
       <div className="review-panel" data-testid="consume-panel" onClick={(event) => event.stopPropagation()}>
         <div className="review-panel-header">
-          <span>AI 消费提示词</span>
+          <span>{t('overlay.consumeTitle')}</span>
           <button type="button" className="btn slim" onClick={onClose}>
-            关闭
+            {t('common.close')}
           </button>
         </div>
         <div className="item-meta">{BUNDLE_CONSUME_USAGE}</div>
@@ -159,6 +163,7 @@ export function ReviewQueueOverlay({ doc, onFieldStatus, onApproveAllPending, on
   onJumpField: (chapter: ChapterKey, field: string) => void
   onClose: () => void
 }): ReactElement {
+  const t = useT()
   // doc 在浮层打开期间不变（模态），用 useMemo 稳定引用，避免键盘 effect 每次渲染重挂
   const pending = useMemo(() => collectPendingReviewFields(doc), [doc])
   const reviewGroups = useMemo(() => groupReviewQueue(pending), [pending])
@@ -226,7 +231,7 @@ export function ReviewQueueOverlay({ doc, onFieldStatus, onApproveAllPending, on
     <div className="review-overlay" data-testid="review-overlay" onClick={onClose}>
       <div className="review-panel" data-testid="review-panel" onClick={(event) => event.stopPropagation()}>
         <div className="review-panel-header">
-          <span>待审字段：{pending.length} 个</span>
+          <span>{t('overlay.reviewTitle', { n: pending.length })}</span>
           <button
             type="button"
             className="btn primary slim"
@@ -234,14 +239,14 @@ export function ReviewQueueOverlay({ doc, onFieldStatus, onApproveAllPending, on
             disabled={pending.length === 0}
             onClick={onApproveAllPending}
           >
-            全部接受
+            {t('overlay.reviewAcceptAll')}
           </button>
           <button type="button" className="btn slim" onClick={onClose}>
-            关闭
+            {t('common.close')}
           </button>
         </div>
         {pending.length === 0 ? (
-          <div className="item-meta">没有待审字段。AI 生成后会出现在这里。</div>
+          <div className="item-meta">{t('overlay.reviewNone')}</div>
         ) : (
           <div className="review-list">
             {reviewGroups.map((group) => {
@@ -284,7 +289,7 @@ export function ReviewQueueOverlay({ doc, onFieldStatus, onApproveAllPending, on
                             onClose()
                           }}
                         >
-                          查看
+                          {t('overlay.reviewView')}
                         </button>
                         <button
                           type="button"
@@ -295,7 +300,7 @@ export function ReviewQueueOverlay({ doc, onFieldStatus, onApproveAllPending, on
                             onFieldStatus(item.chapter, { [item.fieldKey]: 'approved' })
                           }}
                         >
-                          接受
+                          {t('overlay.reviewAccept')}
                         </button>
                       </div>
                     ))}
@@ -324,6 +329,7 @@ export function ImportOverlay({ doc, busy, onApplyImport, onJumpChapter, onClose
   onJumpChapter: (chapter: ChapterKey) => void
   onClose: () => void
 }): ReactElement {
+  const t = useT()
   const [importRaw, setImportRaw] = useState('')
   const [importResult, setImportResult] = useState<CeshuPatchParseResult | null>(null)
   const [issueResult, setIssueResult] = useState<CeshuIssueParseResult | null>(null)
@@ -351,7 +357,7 @@ export function ImportOverlay({ doc, busy, onApplyImport, onJumpChapter, onClose
     <div className="review-overlay" data-testid="import-overlay" onClick={onClose}>
       <div className="review-panel" data-testid="import-panel" onClick={(event) => event.stopPropagation()}>
         <div className="review-panel-header">
-          <span>导入 AI 结果</span>
+          <span>{t('overlay.importTitle')}</span>
           <button
             type="button"
             className="btn primary slim"
@@ -359,21 +365,18 @@ export function ImportOverlay({ doc, busy, onApplyImport, onJumpChapter, onClose
             disabled={busy || changed.length === 0}
             onClick={() => void handleApply()}
           >
-            应用（{changed.length}）
+            {t('overlay.importApply', { n: changed.length })}
           </button>
           <button type="button" className="btn slim" onClick={onClose}>
-            关闭
+            {t('common.close')}
           </button>
         </div>
-        <div className="item-meta">
-          粘贴外部 AI 返回的字段增量（形如 {'{"章节": {"字段": 值}}'}，允许带 markdown 代码块）。
-          空值不会覆盖已有内容；应用后这些字段标为「AI 草稿」待审。
-        </div>
+        <div className="item-meta">{t('overlay.importHint')}</div>
         <textarea
           className="form-textarea"
           data-testid="import-raw"
           rows={8}
-          placeholder='{"meta": {"positioning": "一句话定位"}}'
+          placeholder={t('overlay.importPlaceholder')}
           value={importRaw}
           onChange={(event) => {
             setImportRaw(event.target.value)
@@ -383,7 +386,7 @@ export function ImportOverlay({ doc, busy, onApplyImport, onJumpChapter, onClose
         />
         <div className="field-action-strip-actions">
           <button type="button" className="btn slim" data-testid="import-parse" disabled={busy} onClick={handleParseImport}>
-            解析预览
+            {t('overlay.importParse')}
           </button>
         </div>
         {importResult !== null && (
@@ -409,7 +412,7 @@ export function ImportOverlay({ doc, busy, onApplyImport, onJumpChapter, onClose
                     <span className="item-meta">
                       {item.changed
                         ? `${previewPatchValue(item.previous, 30)} → ${previewPatchValue(item.value, 30)}`
-                        : '（无变化）'}
+                        : t('overlay.importNoChange')}
                     </span>
                   </div>
                 ))}
@@ -420,7 +423,7 @@ export function ImportOverlay({ doc, busy, onApplyImport, onJumpChapter, onClose
         {issueResult !== null && (
           <>
             <div className="item-meta">
-              这是审阅结果：共 {issueResult.issues.length} 条问题，逐条修改即可（本面板不自动改文档）
+              {t('overlay.issueSummary', { n: issueResult.issues.length })}
             </div>
             <div className="review-list" data-testid="import-issues">
               {issueResult.issues.map((issue, index) => {
@@ -432,7 +435,8 @@ export function ImportOverlay({ doc, busy, onApplyImport, onJumpChapter, onClose
                     </span>
                     <span className="review-field">{issue.field}</span>
                     <span className="item-meta">
-                      [{issue.severity}] {issue.message} —— 建议：{issue.suggestion}
+                      [{issue.severity}] {issue.message}
+                      {t('overlay.issueSuggestion', { suggestion: issue.suggestion })}
                     </span>
                   </>
                 )
@@ -476,22 +480,23 @@ export function DeriveOverlay({ busy, onDerive, onClose }: {
   onDerive: (note: string) => void
   onClose: () => void
 }): ReactElement {
+  const t = useT()
   const [note, setNote] = useState('')
   return (
     <div className="derive-panel">
-      <span className="form-label">新版本说明（可留空）</span>
+      <span className="form-label">{t('overlay.deriveNote')}</span>
       <input
         className="form-input"
         data-testid="derive-note"
         value={note}
-        placeholder="本次迭代改了什么"
+        placeholder={t('overlay.deriveNotePlaceholder')}
         onChange={(event) => setNote(event.target.value)}
       />
       <button type="button" className="btn primary" data-testid="derive-confirm" disabled={busy} onClick={() => onDerive(note)}>
-        确认派生
+        {t('overlay.deriveConfirm')}
       </button>
       <button type="button" className="btn" onClick={onClose}>
-        取消
+        {t('common.cancel')}
       </button>
     </div>
   )

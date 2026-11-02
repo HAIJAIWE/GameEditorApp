@@ -1,5 +1,7 @@
 import { useMemo, type ReactElement } from 'react'
 
+import { useT } from '@mobai/client-ui'
+
 import type { CeshuDocument } from '@mobai/shared/ceshu/reference'
 import { findCouplingGaps } from '@mobai/shared/ceshu/workflow'
 import { analyzeParallelism } from '@mobai/shared/ceshu/workflow'
@@ -25,6 +27,7 @@ function pctOf(filled: number, total: number): number {
 }
 
 export default function HealthPanel({ doc, onClose }: Props): ReactElement {
+  const t = useT()
   const planned = useMemo(() => planHandoffDocs(doc), [doc])
   const plan = useMemo(() => buildHandoffPlan(doc), [doc])
   const parallelism = useMemo(() => analyzeParallelism(doc, { plan, planned }), [doc, plan, planned])
@@ -44,39 +47,46 @@ export default function HealthPanel({ doc, onClose }: Props): ReactElement {
     <div className="review-overlay" data-testid="health-overlay" onClick={onClose}>
       <div className="review-panel" data-testid="health-panel" onClick={(event) => event.stopPropagation()}>
         <div className="review-panel-header">
-          <span>开发交接体检</span>
+          <span>{t('health.title')}</span>
           <button type="button" className="btn slim" data-testid="health-close" onClick={onClose}>
-            关闭
+            {t('common.close')}
           </button>
         </div>
 
         <div className="item-meta">
-          一句话判据：<strong>这份包现在能不能一路做完</strong>
+          {t('health.verdict')}
+          <strong>{t('health.verdictStrong')}</strong>
         </div>
 
         <div className="impact-section">
-          <h4>设计完成度 · {pct}%</h4>
+          <h4>{t('health.completeness', { pct })}</h4>
           <div className="item-meta">
-            必填 {filled}/{readiness.total_required} ｜ 立项 {pctOf(readiness.concept.required_filled, readiness.concept.required_total)}% ｜ 研发{' '}
-            {pctOf(readiness.production.required_filled, readiness.production.required_total)}% ｜ 发行{' '}
-            {pctOf(readiness.release.required_filled, readiness.release.required_total)}%
+            {t('health.requiredLine', {
+              filled,
+              total: readiness.total_required,
+              concept: pctOf(readiness.concept.required_filled, readiness.concept.required_total),
+              production: pctOf(readiness.production.required_filled, readiness.production.required_total),
+              release: pctOf(readiness.release.required_filled, readiness.release.required_total)
+            })}
           </div>
         </div>
 
         <div className="impact-section">
-          <h4>交接门禁</h4>
+          <h4>{t('health.gates')}</h4>
           <div className="item-meta">
-            ✅ 可开工 {readyCount} ｜ ⏳ 待补 {blockedCount} ｜ — 不适用 {naCount}
+            {t('health.gateSummary', { ready: readyCount, blocked: blockedCount, na: naCount })}
           </div>
           {blocked.length > 0 && (
             <ul className="impact-list">
               {blocked.slice(0, 12).map((item) => {
                 const reasons: string[] = []
-                if (item.fieldFilled < item.fieldTotal) reasons.push(`缺 ${item.fieldTotal - item.fieldFilled} 字段`)
-                if (item.blockers.length > 0) reasons.push(`问题 ${item.blockers.length}`)
+                if (item.fieldFilled < item.fieldTotal)
+                  reasons.push(t('health.gateReasonMissing', { n: item.fieldTotal - item.fieldFilled }))
+                if (item.blockers.length > 0) reasons.push(t('health.gateReasonBlockers', { n: item.blockers.length }))
                 return (
                   <li key={item.path}>
-                    ⏳ <code>{item.path}</code> — {item.doc.title}（{reasons.join('，')}）
+                    ⏳ <code>{item.path}</code> — {item.doc.title}
+                    {t('health.gateSuffix', { reasons: reasons.join(t('health.listSeparator')) })}
                   </li>
                 )
               })}
@@ -85,17 +95,20 @@ export default function HealthPanel({ doc, onClose }: Props): ReactElement {
         </div>
 
         <div className="impact-section">
-          <h4>并行机会</h4>
+          <h4>{t('health.parallel')}</h4>
           <div className="item-meta">
-            {parallelism.waves.length} 波
+            {t('health.waves', { n: parallelism.waves.length })}
             {parallelism.parallelGroups.length > 0 &&
-              ` ｜ 可并行：${parallelism.parallelGroups.map((group) => group.join(' + ')).join('、')}`}
+              t('health.parallelGroups', {
+                groups: parallelism.parallelGroups.map((group) => group.join(' + ')).join(t('health.listSeparator'))
+              })}
           </div>
           {parallelism.conflicts.length > 0 && (
             <ul className="impact-list">
               {parallelism.conflicts.slice(0, 8).map((conflict) => (
                 <li key={`${conflict.a}-${conflict.b}`}>
-                  <code>{conflict.a}</code> ↔ <code>{conflict.b}</code>：{conflict.fields.join('、')}
+                  <code>{conflict.a}</code> ↔ <code>{conflict.b}</code>
+                  {t('health.conflictFields', { fields: conflict.fields.join(t('health.listSeparator')) })}
                 </li>
               ))}
             </ul>
@@ -103,14 +116,14 @@ export default function HealthPanel({ doc, onClose }: Props): ReactElement {
         </div>
 
         <div className="impact-section">
-          <h4>可开发性缺口 · {gaps.length} 个</h4>
+          <h4>{t('health.gaps', { n: gaps.length })}</h4>
           {gaps.length === 0 ? (
-            <div className="item-meta">无——填了的地方都能开工。</div>
+            <div className="item-meta">{t('health.noGaps')}</div>
           ) : (
             <ul className="impact-list">
               {gaps.map((gap) => (
                 <li key={`${gap.chapter}-${gap.field}`}>
-                  {gap.because}已填，但「{gap.label}」为空——{gap.why}
+                  {t('health.gapLine', { because: gap.because, label: gap.label, why: gap.why })}
                 </li>
               ))}
             </ul>
@@ -118,7 +131,7 @@ export default function HealthPanel({ doc, onClose }: Props): ReactElement {
         </div>
 
         <div className="impact-section">
-          <h4>下一步</h4>
+          <h4>{t('health.nextSteps')}</h4>
           <ul className="impact-list">
             {readiness.next_steps.map((step, index) => (
               <li key={index}>{step}</li>

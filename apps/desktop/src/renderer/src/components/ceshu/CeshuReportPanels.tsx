@@ -1,3 +1,5 @@
+import { useT } from '@mobai/client-ui'
+
 import type { ChapterKey } from '@mobai/shared/ceshu/reference'
 import type { CeshuChangelog } from '@mobai/shared/ceshu/workflow'
 import { fieldLabelOf } from '@mobai/shared/ceshu/fields'
@@ -37,10 +39,11 @@ export function ChangelogPanel({
   onExport: (format: 'md' | 'html' | 'text') => void
   onClose: () => void
 }) {
+  const t = useT()
   return (
     <div className="changelog-panel" data-testid="changelog-panel">
       <div className="changelog-header">
-        <span className="chapter-form-title">变更记录（{changelog.entries.length} 次版本变更）</span>
+        <span className="chapter-form-title">{t('report.changelogTitle', { n: changelog.entries.length })}</span>
         <div className="editor-actions">
           <button
             type="button"
@@ -49,7 +52,7 @@ export function ChangelogPanel({
             disabled={changelog.entries.length === 0}
             onClick={() => onExport('md')}
           >
-            导出 Markdown
+            {t('report.exportMarkdown')}
           </button>
           <button
             type="button"
@@ -58,7 +61,7 @@ export function ChangelogPanel({
             disabled={changelog.entries.length === 0}
             onClick={() => onExport('html')}
           >
-            导出 HTML
+            {t('report.exportHtml')}
           </button>
           <button
             type="button"
@@ -67,15 +70,15 @@ export function ChangelogPanel({
             disabled={changelog.entries.length === 0}
             onClick={() => onExport('text')}
           >
-            导出 Text
+            {t('report.exportText')}
           </button>
           <button type="button" className="btn" data-testid="changelog-close" onClick={onClose}>
-            关闭
+            {t('common.close')}
           </button>
         </div>
       </div>
       {changelog.entries.length === 0 ? (
-        <div className="empty">暂无变更记录（版本链只有一份文档时无对比对象）</div>
+        <div className="empty">{t('report.changelogEmpty')}</div>
       ) : (
         changelog.entries.map((entry) => (
           <div className="changelog-entry" key={`${entry.version}:${entry.date}`}>
@@ -123,6 +126,7 @@ export function ValidatePanel({
    */
   onJumpField?: (chapter: ChapterKey, field: string) => void
 }) {
+  const t = useT()
   const groups = groupValidationMessages(validateErrors)
   const summary = summarizeValidation(validateErrors)
   return (
@@ -130,19 +134,21 @@ export function ValidatePanel({
       <div className="changelog-header">
         <span className="chapter-form-title">
           {/* 标题保留「个问题」字样：既有 e2e（ceshu-validate-readiness.spec.ts）以此断言面板已出结果 */}
-          数据校验{validateErrors.length > 0 ? `（${validateErrors.length} 个问题：${summary}）` : ''}
+          {validateErrors.length > 0
+            ? t('report.validateTitleWithIssues', { n: validateErrors.length, summary })
+            : t('report.validateTitle')}
         </span>
         <div className="editor-actions">
           <button type="button" className="btn" data-testid="validate-export" onClick={onExport}>
-            导出校验报告
+            {t('report.exportValidation')}
           </button>
           <button type="button" className="btn" data-testid="validate-close" onClick={onClose}>
-            关闭
+            {t('common.close')}
           </button>
         </div>
       </div>
       {validateErrors.length === 0 ? (
-        <div className="empty">✅ 所有校验通过，未发现错误</div>
+        <div className="empty">{t('report.validateOk')}</div>
       ) : (
         <div className="changelog-entry">
           {groups.map((group) => (
@@ -154,8 +160,12 @@ export function ValidatePanel({
               data-kind={group.kind}
             >
               <div className="validate-group-title">
-                {group.severity === 'error' ? '⛔' : '⚠'} {VALIDATION_SEVERITY_LABELS[group.severity]} · {group.label}（
-                {group.items.length}）
+                {group.severity === 'error' ? '⛔' : '⚠'}{' '}
+                {t('report.groupTitle', {
+                  severity: VALIDATION_SEVERITY_LABELS[group.severity],
+                  label: group.label,
+                  n: group.items.length
+                })}
               </div>
               {group.items.map((item, index) => {
                 // 先解析出「章 + 字段」：能定位到字段就跳字段（更省事），否则退化成只跳章；
@@ -238,11 +248,12 @@ export function ReadinessPanel({
    */
   onJumpField?: (chapter: ChapterKey, field: string) => void
 }) {
+  const t = useT()
   const pct = (value: number): string => `${Math.round(value * 100)}%`
   return (
     <div className="changelog-panel" data-testid="readiness-panel">
       <div className="changelog-header">
-        <span className="chapter-form-title">完备度</span>
+        <span className="chapter-form-title">{t('report.readinessTitle')}</span>
         <div className="editor-actions">
           <button
             type="button"
@@ -251,43 +262,59 @@ export function ReadinessPanel({
             disabled={!readiness}
             onClick={onExport}
           >
-            导出完备度报告
+            {t('report.exportReadiness')}
           </button>
           <button type="button" className="btn" data-testid="readiness-close" onClick={onClose}>
-            关闭
+            {t('common.close')}
           </button>
         </div>
       </div>
       {!readiness ? (
-        <div className="empty">正在统计…</div>
+        <div className="empty">{t('report.readinessLoading')}</div>
       ) : (
         <>
           <div className="changelog-entry">
             <div className="score-total">
               <span className="score-total-value">{pct(readiness.concept.ratio)}</span>
               <span className="score-total-grade">
-                立项必填 {readiness.concept.required_filled}/{readiness.concept.required_total}
+                {t('report.conceptRequired', {
+                  filled: readiness.concept.required_filled,
+                  total: readiness.concept.required_total
+                })}
               </span>
             </div>
             <div className="score-dimensions">
               <span>
-                立项 {readiness.concept.required_filled}/{readiness.concept.required_total}
+                {t('report.concept', {
+                  filled: readiness.concept.required_filled,
+                  total: readiness.concept.required_total
+                })}
               </span>
               <span>
-                研发 {readiness.production.required_filled}/{readiness.production.required_total}
+                {t('report.production', {
+                  filled: readiness.production.required_filled,
+                  total: readiness.production.required_total
+                })}
               </span>
               <span>
-                发行 {readiness.release.required_filled}/{readiness.release.required_total}
+                {t('report.release', {
+                  filled: readiness.release.required_filled,
+                  total: readiness.release.required_total
+                })}
               </span>
             </div>
             <div className="item-meta">
-              全文必填 {readiness.total_required - readiness.total_missing}/{readiness.total_required}（
-              {pct(readiness.total_ratio)}），还差 {readiness.total_missing} 项
+              {t('report.totalRequired', {
+                filled: readiness.total_required - readiness.total_missing,
+                total: readiness.total_required,
+                pct: pct(readiness.total_ratio),
+                missing: readiness.total_missing
+              })}
             </div>
           </div>
 
           <div className="changelog-entry">
-            <div className="form-label">下一步</div>
+            <div className="form-label">{t('report.nextSteps')}</div>
             {readiness.next_steps.map((step, index) => (
               <div key={`${index}:${step}`} className="score-suggestion">
                 {step}
@@ -297,16 +324,16 @@ export function ReadinessPanel({
 
           <div className="changelog-entry">
             <div className="form-label">
-              逐章缺口（按缺口数降序，优先补多的{onJumpField !== undefined ? '；点字段名直接跳过去' : ''}）
+              {onJumpField !== undefined ? t('report.chapterGapsWithJump') : t('report.chapterGaps')}
             </div>
             <table className="score-table">
               <thead>
                 <tr>
-                  <th>章节</th>
-                  <th>必填</th>
-                  <th>字数</th>
-                  <th>完成度</th>
-                  <th>缺失必填</th>
+                  <th>{t('report.colChapter')}</th>
+                  <th>{t('report.colRequired')}</th>
+                  <th>{t('report.colWords')}</th>
+                  <th>{t('report.colCompletion')}</th>
+                  <th>{t('report.colMissing')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -325,7 +352,7 @@ export function ReadinessPanel({
                           ? '—'
                           : chapter.missing_required.map((field, index) => (
                               <span key={field}>
-                                {index > 0 && '、'}
+                                {index > 0 && t('report.listSeparator')}
                                 {onJumpField === undefined ? (
                                   /* 中文标签优先：裸 key（positioning / core_fantasy）人读起来要二次翻译 */
                                   fieldLabelOf(chapter.chapter_key, field)
@@ -352,16 +379,16 @@ export function ReadinessPanel({
 
           {readiness.references.length > 0 && (
             <div className="changelog-entry" data-testid="readiness-references">
-              <div className="form-label">参照文档对比（有出处）</div>
-              <div className="item-meta">只比立项阶段同一批必填字段；合成样例已标注，不可当行业基准</div>
+              <div className="form-label">{t('report.referencesTitle')}</div>
+              <div className="item-meta">{t('report.referencesHint')}</div>
               <table className="score-table">
                 <thead>
                   <tr>
-                    <th>参照文档</th>
-                    <th>出处类型</th>
-                    <th>覆盖</th>
-                    <th>你的覆盖</th>
-                    <th>差距</th>
+                    <th>{t('report.colReference')}</th>
+                    <th>{t('report.colSourceKind')}</th>
+                    <th>{t('report.colCoverage')}</th>
+                    <th>{t('report.colYourCoverage')}</th>
+                    <th>{t('report.colDelta')}</th>
                   </tr>
                 </thead>
                 <tbody>
