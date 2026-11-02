@@ -24,11 +24,11 @@ function PluginActiveRenderer({ component: Bound, onClose, close, params }: {
 const SELF_PANEL_ID = 'plugins.panel'
 
 /** 状态徽标文案（dsh 风格：启用 / 禁用 / 错误 / 加载中） */
-function statusLabel(status: 'enabled' | 'disabled' | 'error' | 'loading'): string {
-  if (status === 'enabled') return '已启用'
-  if (status === 'disabled') return '已禁用'
-  if (status === 'loading') return '加载中'
-  return '错误'
+function statusLabel(status: 'enabled' | 'disabled' | 'error' | 'loading', t: ReturnType<typeof useT>): string {
+  if (status === 'enabled') return t('pluginsPanel.status.enabled')
+  if (status === 'disabled') return t('pluginsPanel.status.disabled')
+  if (status === 'loading') return t('pluginsPanel.status.loading')
+  return t('pluginsPanel.status.error')
 }
 
 /**
@@ -57,7 +57,7 @@ export default function PluginsPanel({ host, onClose }: { host: PluginHost; onCl
 
   return (
     <div className="plugins-panel" data-testid="plugins-panel">
-      <p data-testid="plugins-count">已注册 {host.list().length} 个插件（dsh 风格清单 + 启用/禁用）。</p>
+      <p data-testid="plugins-count">{t('pluginsPanel.count', { n: host.list().length })}</p>
 
       <ul className="plugins-list">
         {host.list().map((plugin) => {
@@ -74,8 +74,10 @@ export default function PluginsPanel({ host, onClose }: { host: PluginHost; onCl
               <div className="plugin-head">
                 {meta?.icon !== undefined && <span className="plugin-icon" aria-hidden>{meta.icon}</span>}
                 <strong>{label}</strong> v{plugin.manifest.version}
-                {plugin.manifest.protected === true && <span className="plugin-badge">受保护</span>}
-                <span className={`plugin-state plugin-state-${plugin.status}`}>{statusLabel(plugin.status)}</span>
+                {plugin.manifest.protected === true && (
+                  <span className="plugin-badge">{t('pluginsPanel.protected')}</span>
+                )}
+                <span className={`plugin-state plugin-state-${plugin.status}`}>{statusLabel(plugin.status, t)}</span>
               </div>
               {desc !== undefined && <div className="plugin-desc item-meta">{desc}</div>}
               {isError && plugin.error !== undefined && (
@@ -90,7 +92,7 @@ export default function PluginsPanel({ host, onClose }: { host: PluginHost; onCl
                     disabled={plugin.manifest.protected === true}
                     onClick={() => host.disable(plugin.manifest.id)}
                   >
-                    禁用
+                    {t('pluginsPanel.disable')}
                   </button>
                 )}
                 {plugin.status === 'disabled' && (
@@ -100,12 +102,12 @@ export default function PluginsPanel({ host, onClose }: { host: PluginHost; onCl
                     data-testid={`plugin-enable-${plugin.manifest.id}`}
                     onClick={() => host.enable(plugin.manifest.id)}
                   >
-                    启用
+                    {t('pluginsPanel.enable')}
                   </button>
                 )}
                 {isError && (
                   <span className="plugin-hint" data-testid={`plugin-broken-${plugin.manifest.id}`}>
-                    损坏，不可启用
+                    {t('pluginsPanel.broken')}
                   </span>
                 )}
               </div>
@@ -121,7 +123,7 @@ export default function PluginsPanel({ host, onClose }: { host: PluginHost; onCl
                         disabled={plugin.status !== 'enabled'}
                         onClick={() => host.openPanel(capability.id)}
                       >
-                        打开
+                        {t('pluginsPanel.open')}
                       </button>
                     )}
                     {capability.kind === 'command' && (
@@ -132,7 +134,7 @@ export default function PluginsPanel({ host, onClose }: { host: PluginHost; onCl
                         disabled={plugin.status !== 'enabled'}
                         onClick={() => void capability.run()}
                       >
-                        运行
+                        {t('pluginsPanel.run')}
                       </button>
                     )}
                     {capability.kind === 'service' && (
@@ -143,7 +145,7 @@ export default function PluginsPanel({ host, onClose }: { host: PluginHost; onCl
                         disabled={plugin.status !== 'enabled'}
                         onClick={() => runService(capability)}
                       >
-                        调用
+                        {t('pluginsPanel.call')}
                       </button>
                     )}
                     {capability.kind === 'service' && serviceResults[capability.id] !== undefined && (
@@ -181,7 +183,7 @@ export default function PluginsPanel({ host, onClose }: { host: PluginHost; onCl
       )}
 
       <button type="button" className="btn" data-testid="plugins-close" onClick={onClose}>
-        关闭
+        {t('common.close')}
       </button>
     </div>
   )

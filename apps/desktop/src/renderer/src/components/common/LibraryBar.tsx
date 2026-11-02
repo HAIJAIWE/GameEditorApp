@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
-import { LucideIcon } from '@mobai/client-ui'
+import { LucideIcon, useT } from '@mobai/client-ui'
 
 /**
  * 库条（A2-2）：新建 / 重命名 / 删除 / 切换活跃库。
@@ -46,6 +46,7 @@ const NAME_MAX = 40
 type EditingMode = 'create' | 'rename' | null
 
 export default function LibraryBar() {
+  const t = useT()
   const [libraries, setLibraries] = useState<LibraryEntryShape[]>([])
   const [active, setActive] = useState('')
   const [mode, setMode] = useState<EditingMode>(null)
@@ -169,7 +170,7 @@ export default function LibraryBar() {
           {libraries.map((item) => (
             <option key={item.name} value={item.name}>
               {item.name}
-              {item.isInitial ? '（初始）' : ''}
+              {item.isInitial ? t('library.initial') : ''}
             </option>
           ))}
         </select>
@@ -183,8 +184,8 @@ export default function LibraryBar() {
           type="button"
           className="btn slim icon"
           data-testid="library-create"
-          aria-label="新建库"
-          title="新建库"
+          aria-label={t('library.createLabel')}
+          title={t('library.createLabel')}
           disabled={busy}
           onClick={() => startEdit('create')}
         >
@@ -194,8 +195,8 @@ export default function LibraryBar() {
           type="button"
           className="btn slim icon"
           data-testid="library-rename"
-          aria-label="重命名库"
-          title="重命名库"
+          aria-label={t('library.renameLabel')}
+          title={t('library.renameLabel')}
           disabled={busy || current === undefined}
           onClick={() => startEdit('rename')}
         >
@@ -205,10 +206,10 @@ export default function LibraryBar() {
           type="button"
           className="btn slim icon danger"
           data-testid="library-remove"
-          aria-label="删除库"
+          aria-label={t('library.removeLabel')}
           // 初始库禁删（主进程同样会拒绝，这里只是不给无效入口）
           disabled={busy || current === undefined || current.isInitial}
-          title={current?.isInitial === true ? '初始库不可删除' : '删除库'}
+          title={current?.isInitial === true ? t('library.initialNoDelete') : t('library.removeLabel')}
           onClick={handleRemove}
         >
           <LucideIcon name="trash" size={16} />
@@ -218,7 +219,7 @@ export default function LibraryBar() {
       {/* 整库删除二次确认：删除会抹掉该库全部策划书/数据/图片，且**不进撤销栈** */}
       {confirmingRemove && current !== undefined && (
         <div className="library-bar-edit" data-testid="library-remove-confirm">
-          <span className="form-label">确认删除库「{current.name}」？其全部策划书 / 数据 / 图片将被永久删除，且不可撤销。</span>
+          <span className="form-label">{t('library.removeConfirm', { name: current.name })}</span>
           <button
             type="button"
             className="btn slim danger"
@@ -226,7 +227,7 @@ export default function LibraryBar() {
             disabled={busy}
             onClick={confirmRemove}
           >
-            确认删除
+            {t('library.confirmDelete')}
           </button>
           <button
             type="button"
@@ -235,7 +236,7 @@ export default function LibraryBar() {
             disabled={busy}
             onClick={cancelRemove}
           >
-            取消
+            {t('library.cancel')}
           </button>
         </div>
       )}
@@ -245,7 +246,7 @@ export default function LibraryBar() {
           <input
             className="form-input"
             data-testid="library-name-input"
-            placeholder={mode === 'create' ? '新库名（如 项目 A）' : '新名称'}
+            placeholder={mode === 'create' ? t('library.createPlaceholder') : t('library.renamePlaceholder')}
             value={draft}
             maxLength={NAME_MAX}
             onChange={(event) => setDraft(event.target.value)}
@@ -261,10 +262,10 @@ export default function LibraryBar() {
             disabled={!canSubmit}
             onClick={handleSubmit}
           >
-            {mode === 'create' ? '创建' : '确认'}
+            {mode === 'create' ? t('library.create') : t('library.confirm')}
           </button>
           <button type="button" className="btn slim" data-testid="library-name-cancel" onClick={() => setMode(null)}>
-            取消
+            {t('library.cancel')}
           </button>
         </div>
       )}

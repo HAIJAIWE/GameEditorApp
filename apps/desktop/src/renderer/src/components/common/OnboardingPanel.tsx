@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
 import { countByType, type TypeCountRow } from '@mobai/shared/util/data'
 import {
   ONBOARDING_STEPS,
@@ -49,6 +50,7 @@ interface OnboardingPanelProps {
 }
 
 export default function OnboardingPanel({ types, onAction, onClose }: OnboardingPanelProps) {
+  const t = useT()
   const [state, setState] = useState<OnboardingState>(loadOnboardingState)
   const [items, setItems] = useState<ItemRecord[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -119,12 +121,12 @@ export default function OnboardingPanel({ types, onAction, onClose }: Onboarding
             className="onboarding-collapse"
             data-testid="onboarding-collapse"
             aria-expanded={!state.collapsed}
-            title={state.collapsed ? '展开引导步骤' : '收起引导步骤'}
+            title={state.collapsed ? t('onboardingPanel.expandTitle') : t('onboardingPanel.collapseTitle')}
             onClick={handleToggleCollapsed}
           >
             {state.collapsed ? '▶' : '▼'}
           </button>
-          <span className="onboarding-heading">🚀 快速入门</span>
+          <span className="onboarding-heading">{t('onboardingPanel.heading')}</span>
           <span className="onboarding-progress" data-testid="onboarding-progress">
             {progressLabel(state)}
           </span>
@@ -132,7 +134,7 @@ export default function OnboardingPanel({ types, onAction, onClose }: Onboarding
             type="button"
             className="onboarding-dismiss"
             data-testid="onboarding-dismiss"
-            title="关闭快速入门（可通过「帮助 → 快速入门」重新打开）"
+            title={t('onboardingPanel.dismissTitle')}
             onClick={handleDismiss}
           >
             ✕
@@ -143,7 +145,7 @@ export default function OnboardingPanel({ types, onAction, onClose }: Onboarding
       <div className="editor-body">
         {error !== null && (
           <div className="item-meta onboarding-error" role="alert">
-            数据概览加载失败：{error}
+            {t('onboardingPanel.error', { message: error })}
           </div>
         )}
 
@@ -177,7 +179,7 @@ export default function OnboardingPanel({ types, onAction, onClose }: Onboarding
                       data-testid="onboarding-step-start"
                       onClick={() => handleStepStart(index, step.id)}
                     >
-                      开始
+                      {t('onboardingPanel.start')}
                     </button>
                   )}
                 </div>
@@ -187,8 +189,8 @@ export default function OnboardingPanel({ types, onAction, onClose }: Onboarding
         )}
 
         <div className="onboarding-section">
-          <div className="onboarding-section-title">今天想做什么？</div>
-          <div className="item-meta onboarding-subtitle">选择一个操作快速开始，或查看数据概览</div>
+          <div className="onboarding-section-title">{t('onboardingPanel.sectionTitle')}</div>
+          <div className="item-meta onboarding-subtitle">{t('onboardingPanel.sectionSubtitle')}</div>
           <div
             className="onboarding-quick"
             style={{ gridTemplateColumns: `repeat(${STEPS_PER_ROW}, minmax(0, 1fr))` }}
@@ -213,18 +215,18 @@ export default function OnboardingPanel({ types, onAction, onClose }: Onboarding
 
         <div className="onboarding-section">
           <div className="onboarding-section-title onboarding-stats-head">
-            <span>📊 数据概览</span>
+            <span>{t('onboardingPanel.statsTitle')}</span>
             <button
               type="button"
               className="onboarding-link"
               data-testid="onboarding-open-stats"
               onClick={() => onAction('stats', '')}
             >
-              游戏数据统计
+              {t('onboardingPanel.openStats')}
             </button>
           </div>
           {types.length === 0 ? (
-            <div className="item-meta">当前尚无数据类型定义，请先在「字段结构编辑器」中新增类型。</div>
+            <div className="item-meta">{t('onboardingPanel.noTypes')}</div>
           ) : (
             <div
               className="onboarding-stats"
