@@ -1,5 +1,6 @@
 import { useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
 import {
   ADVERSARIAL_LEVEL_LABELS,
   buildReviewMarkdown,
@@ -32,6 +33,7 @@ function levelClass(level: AdversarialFinding['level']): string {
 }
 
 export default function AiReviewPanel({ ceshuId, gameName, onClose }: AiReviewPanelProps) {
+  const t = useT()
   const [status, setStatus] = useState<'idle' | 'running' | 'done' | 'failed'>('idle')
   const [result, setResult] = useState<CeshuAiReviewResult | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -69,12 +71,12 @@ export default function AiReviewPanel({ ceshuId, gameName, onClose }: AiReviewPa
       setNotice(null)
       const chosen = await window.mbApi.dialog.chooseCeshuExportFile({
         format: 'markdown',
-        defaultName: `${gameName}-成稿反审报告`
+        defaultName: t('aiReview.exportName', { game: gameName })
       })
       if (!chosen.path) return
       const markdown = buildReviewMarkdown(gameName, formatLocalTimestamp(), result)
       const exported = await window.mbApi.ceshu.exportReviewReport({ path: chosen.path, content: markdown })
-      setNotice(`反审报告已导出：${exported.filePath}`)
+      setNotice(t('aiReview.exported', { path: exported.filePath }))
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     }
@@ -83,16 +85,16 @@ export default function AiReviewPanel({ ceshuId, gameName, onClose }: AiReviewPa
   const counts = countFindings(result?.findings ?? [])
   const verdict = result?.parsed
     ? counts.blockers > 0
-      ? `${counts.blockers} 项阻塞，需修订后再交付`
+      ? t('aiReview.verdictBlockers', { count: counts.blockers })
       : counts.suggestions > 0
-        ? `无阻塞，${counts.suggestions} 项建议`
-        : '未发现问题'
+        ? t('aiReview.verdictSuggestions', { count: counts.suggestions })
+        : t('aiReview.verdictClean')
     : ''
 
   return (
     <div className="changelog-panel" data-testid="ai-review-panel">
       <div className="changelog-header">
-        <span className="chapter-form-title">成稿反审（7 项核查 + 阻塞/建议分级）</span>
+        <span className="chapter-form-title">{t('aiReview.title')}</span>
         <div className="editor-actions">
           <button
             type="button"
@@ -101,11 +103,11 @@ export default function AiReviewPanel({ ceshuId, gameName, onClose }: AiReviewPa
             disabled={status === 'running'}
             onClick={() => void handleStart()}
           >
-            {status === 'running' ? '反审中…' : '开始反审'}
+            {status === 'running' ? t('aiReview.running') : t('aiReview.start')}
           </button>
           {status === 'running' && (
             <button type="button" className="btn" data-testid="ai-review-stop" onClick={stopIntent.markStop}>
-              停止
+              {t('aiReview.stop')}
             </button>
           )}
           <button
@@ -115,33 +117,33 @@ export default function AiReviewPanel({ ceshuId, gameName, onClose }: AiReviewPa
             disabled={!result?.parsed}
             onClick={() => void handleExport()}
           >
-            导出 Markdown
+            {t('aiReview.export')}
           </button>
           <button type="button" className="btn" data-testid="ai-review-close" onClick={onClose}>
-            关闭
+            {t('common.close')}
           </button>
         </div>
       </div>
 
       <div className="item-meta" data-testid="ai-review-context">
         《{gameName}》
-        {result?.genreLabel ? ` · 品类：${result.genreLabel}` : ''}
-        {result?.rulesetId ? ` · 规则集：${result.rulesetId}` : ''}
+        {result?.genreLabel ? t('aiReview.genreSuffix', { label: result.genreLabel }) : ''}
+        {result?.rulesetId ? t('aiReview.rulesetSuffix', { id: result.rulesetId }) : ''}
         {verdict ? ` · ${verdict}` : ''}
       </div>
       {status === 'running' && (
         <div className="changelog-entry" data-testid="ai-review-status">
-          正在按本品类追问做反审，请稍候…
+          {t('aiReview.statusRunning')}
         </div>
       )}
       {status === 'done' && (
         <div className="changelog-entry" data-testid="ai-review-status">
-          ✅ 反审完成
+          {t('aiReview.statusDone')}
         </div>
       )}
       {stopped && (
         <div className="notice-banner inline" data-testid="ai-review-stopped">
-          已停止本次反审（未产生结果，可重新开始）
+          {t('aiReview.stopped')}
         </div>
       )}
       {status === 'failed' && (
@@ -158,7 +160,7 @@ export default function AiReviewPanel({ ceshuId, gameName, onClose }: AiReviewPa
       {result?.parsed && (
         <>
           <div className="changelog-entry">
-            <div className="form-label">反审核查项</div>
+            <div className="form-label">{t('aiReview.checksTitle')}</div>
             {result.findings.map((finding) => {
               const level = levelClass(finding.level)
               return (
@@ -168,7 +170,9 @@ export default function AiReviewPanel({ ceshuId, gameName, onClose }: AiReviewPa
                   </span>
                   <div className="review-check-body">
                     <span className="review-check-label">{finding.label}</span>
-                    {finding.probe && <div className="review-check-probe">追问：{finding.probe}</div>}
+                    {finding.probe && (
+                      <div className="review-check-probe">{t('aiReview.probe', { text: finding.probe })}</div>
+                    )}
                     {finding.evidence && <div className="review-check-evidence">{finding.evidence}</div>}
                   </div>
                 </div>
@@ -177,11 +181,11 @@ export default function AiReviewPanel({ ceshuId, gameName, onClose }: AiReviewPa
           </div>
 
           <div className="changelog-entry">
-            <div className="form-label">总体结论</div>
-            <div data-testid="ai-review-overall">{result.overall || '（无）'}</div>
+            <div className="form-label">{t('aiReview.overallTitle')}</div>
+            <div data-testid="ai-review-overall">{result.overall || t('aiReview.none')}</div>
           </div>
           <div className="changelog-entry">
-            <div className="form-label">Top 3 改进建议</div>
+            <div className="form-label">{t('aiReview.suggestionsTitle')}</div>
             {result.suggestions.map((suggestion, index) => (
               <div
                 className="score-suggestion"
@@ -193,15 +197,18 @@ export default function AiReviewPanel({ ceshuId, gameName, onClose }: AiReviewPa
             ))}
           </div>
           <div className="item-meta" data-testid="ai-review-meta">
-            完成进度 {Math.round(result.progressTotal * 100)}% · 内置校验问题 {result.validationCount} 个 · 模型{' '}
-            {result.model || '—'}
+            {t('aiReview.meta', {
+              progress: Math.round(result.progressTotal * 100),
+              count: result.validationCount,
+              model: result.model || '—'
+            })}
           </div>
         </>
       )}
 
       {result && !result.parsed && (
         <div className="changelog-entry" data-testid="ai-review-raw">
-          <div className="form-label">AI 返回内容解析失败，原始回复如下（可重试）：</div>
+          <div className="form-label">{t('aiReview.rawTitle')}</div>
           <pre className="attr-live-process">{result.rawText}</pre>
         </div>
       )}

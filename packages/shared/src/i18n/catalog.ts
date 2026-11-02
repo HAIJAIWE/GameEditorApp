@@ -886,7 +886,30 @@ export const zh = {
   'agentEditor.needsConfirm': ' · 需二次确认',
   'agentEditor.actions': '动作：',
   'agentEditor.params': '参数：',
-  'agentEditor.scopeNote': '本面板只展示调度器当前真实注册的工具与风险等级。旧版 侧的「团队 & 智能体管理」（团队增删改、成员勾选、成员级提示词与工具覆盖、自定义智能体、团队/个人模式切换）在 TS 侧尚无数据层与消费者，故未移植——详见 src/shared/agentEditor.ts 顶部的范围判定表。'
+  'agentEditor.scopeNote': '本面板只展示调度器当前真实注册的工具与风险等级。旧版 侧的「团队 & 智能体管理」（团队增删改、成员勾选、成员级提示词与工具覆盖、自定义智能体、团队/个人模式切换）在 TS 侧尚无数据层与消费者，故未移植——详见 src/shared/agentEditor.ts 顶部的范围判定表。',
+  // —— 通用组件：成稿反审 ——
+  'aiReview.title': '成稿反审（7 项核查 + 阻塞/建议分级）',
+  'aiReview.running': '反审中…',
+  'aiReview.start': '开始反审',
+  'aiReview.stop': '停止',
+  'aiReview.export': '导出 Markdown',
+  'aiReview.genreSuffix': ' · 品类：{label}',
+  'aiReview.rulesetSuffix': ' · 规则集：{id}',
+  'aiReview.verdictBlockers': '{count} 项阻塞，需修订后再交付',
+  'aiReview.verdictSuggestions': '无阻塞，{count} 项建议',
+  'aiReview.verdictClean': '未发现问题',
+  'aiReview.statusRunning': '正在按本品类追问做反审，请稍候…',
+  'aiReview.statusDone': '✅ 反审完成',
+  'aiReview.stopped': '已停止本次反审（未产生结果，可重新开始）',
+  'aiReview.checksTitle': '反审核查项',
+  'aiReview.probe': '追问：{text}',
+  'aiReview.overallTitle': '总体结论',
+  'aiReview.none': '（无）',
+  'aiReview.suggestionsTitle': 'Top 3 改进建议',
+  'aiReview.meta': '完成进度 {progress}% · 内置校验问题 {count} 个 · 模型 {model}',
+  'aiReview.rawTitle': 'AI 返回内容解析失败，原始回复如下（可重试）：',
+  'aiReview.exported': '反审报告已导出：{path}',
+  'aiReview.exportName': '{game}-成稿反审报告'
 } as const
 
 /** 全部文案键（以中文表为准） */
@@ -1760,7 +1783,30 @@ export const en: Record<MessageKey, string> = {
   'agentEditor.needsConfirm': ' · needs confirmation',
   'agentEditor.actions': 'Actions:',
   'agentEditor.params': 'Params:',
-  'agentEditor.scopeNote': 'This panel only shows the tools and risk levels actually registered in the dispatcher right now. The legacy "Team & agent management" (team CRUD, member selection, per-member prompts and tool overrides, custom agents, team/personal mode switch) has no data layer or consumer on the TS side, so it is not ported — see the scope table at the top of src/shared/agentEditor.ts.'
+  'agentEditor.scopeNote': 'This panel only shows the tools and risk levels actually registered in the dispatcher right now. The legacy "Team & agent management" (team CRUD, member selection, per-member prompts and tool overrides, custom agents, team/personal mode switch) has no data layer or consumer on the TS side, so it is not ported — see the scope table at the top of src/shared/agentEditor.ts.',
+  // —— Shared components: final review ——
+  'aiReview.title': 'Final review (7-item check + blocker/suggestion grading)',
+  'aiReview.running': 'Reviewing…',
+  'aiReview.start': 'Start review',
+  'aiReview.stop': 'Stop',
+  'aiReview.export': 'Export Markdown',
+  'aiReview.genreSuffix': ' · Genre: {label}',
+  'aiReview.rulesetSuffix': ' · Ruleset: {id}',
+  'aiReview.verdictBlockers': '{count} blockers — revise before delivery',
+  'aiReview.verdictSuggestions': 'No blockers, {count} suggestions',
+  'aiReview.verdictClean': 'No issues found',
+  'aiReview.statusRunning': 'Reviewing against this genre probes, please wait…',
+  'aiReview.statusDone': '✅ Review complete',
+  'aiReview.stopped': 'Review stopped (no result produced, you can start again)',
+  'aiReview.checksTitle': 'Review checks',
+  'aiReview.probe': 'Probe: {text}',
+  'aiReview.overallTitle': 'Overall conclusion',
+  'aiReview.none': '(none)',
+  'aiReview.suggestionsTitle': 'Top 3 improvement suggestions',
+  'aiReview.meta': 'Progress {progress}% · built-in validation issues {count} · model {model}',
+  'aiReview.rawTitle': 'Failed to parse the AI response; raw reply below (you can retry):',
+  'aiReview.exported': 'Review report exported: {path}',
+  'aiReview.exportName': '{game}-final-review-report'
 }
 
 /** 按语言取表 */

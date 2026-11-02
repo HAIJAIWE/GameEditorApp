@@ -37,7 +37,7 @@ const SCAN_ROOTS = [
  *
  * 迁移一个文件 → 把这个数字减 1 并提交；想新增硬编码中文 → 先迁掉一个。
  */
-const BASELINE = 72
+const BASELINE = 71
 
 const CJK = /[\u4e00-\u9fa5]/u
 
