@@ -1,7 +1,9 @@
 import { useMemo, useSyncExternalStore } from 'react'
 
+import { useT } from '@mobai/client-ui'
 import { CONVERSATION_STORE_KEY, createConversationStoreDecl } from '@mobai/shared/agent/conversation'
 import type { DigitalPanelState } from '@mobai/shared/agent/ui'
+import type { MessageKey } from '@mobai/shared/i18n'
 import type { PluginHost } from '@mobai/shared/plugin/host'
 import { getSubagentsSnapshot, stopSubagent, subscribeSubagents } from '../../agent/subagentStore'
 
@@ -18,6 +20,7 @@ import { getSubagentsSnapshot, stopSubagent, subscribeSubagents } from '../../ag
  * 避免「团队协作」与「轨迹」各带一套标题，合并后重复。
  */
 export function AgentTeamSection({ host }: { host: PluginHost }) {
+  const t = useT()
   const subagents = useSyncExternalStore(subscribeSubagents, getSubagentsSnapshot)
   const running = subagents.filter((sub) => sub.status === 'running')
 
@@ -36,23 +39,23 @@ export function AgentTeamSection({ host }: { host: PluginHost }) {
   return (
     <div className="agent-team">
       <section className="agent-team-conversation" data-testid="agent-team-conversation">
-        <h3>主对话</h3>
+        <h3>{t('agentTeam.mainTitle')}</h3>
         <dl className="agent-team-facts">
           <div>
-            <dt>状态</dt>
-            <dd data-testid="agent-team-conversation-status">{CONVERSATION_STATUS[conversation.status]}</dd>
+            <dt>{t('agentTeam.status')}</dt>
+            <dd data-testid="agent-team-conversation-status">{t(CONVERSATION_STATUS[conversation.status])}</dd>
           </div>
           <div>
-            <dt>消息</dt>
-            <dd>{conversation.messages.length} 条</dd>
+            <dt>{t('agentTeam.messages')}</dt>
+            <dd>{t('agentTeam.messagesCount', { n: conversation.messages.length })}</dd>
           </div>
           <div>
-            <dt>执行步骤</dt>
-            <dd>{conversation.steps.length} 步</dd>
+            <dt>{t('agentTeam.steps')}</dt>
+            <dd>{t('agentTeam.stepsCount', { n: conversation.steps.length })}</dd>
           </div>
         </dl>
         {lastTextShort === '' ? (
-          <p className="agent-team-empty">主对话还没有助手回复。</p>
+          <p className="agent-team-empty">{t('agentTeam.noReply')}</p>
         ) : (
           <p className="agent-team-last" data-testid="agent-team-conversation-last">
             {lastTextShort}
@@ -62,23 +65,20 @@ export function AgentTeamSection({ host }: { host: PluginHost }) {
 
       <section className="agent-team-board">
         <h3>
-          共享任务看板
+          {t('agentTeam.boardTitle')}
           <span className="agent-team-count">
-            {running.length} 运行中 / 共 {subagents.length}
+            {t('agentTeam.count', { running: running.length, total: subagents.length })}
           </span>
         </h3>
         {subagents.length === 0 ? (
-          <p className="agent-team-empty">
-            当前没有运行中的子智能体。在智能体对话里触发并行 / 派生子任务（如多智能体协作、批量生成）时，
-            这里会实时显示每个子智能体的任务与状态。
-          </p>
+          <p className="agent-team-empty">{t('agentTeam.empty')}</p>
         ) : (
           <ul className="agent-team-list">
             {subagents.map((sub) => (
               <li key={sub.id} className={`agent-team-card status-${sub.status}`}>
                 <div className="agent-team-card-head">
                   <span className="agent-team-task">{sub.task}</span>
-                  <span className={`agent-team-badge badge-${sub.status}`}>{statusLabel(sub.status)}</span>
+                  <span className={`agent-team-badge badge-${sub.status}`}>{statusLabel(sub.status, t)}</span>
                 </div>
                 <div className="agent-team-meta">
                   <code className="agent-team-id">{sub.id}</code>
@@ -86,7 +86,7 @@ export function AgentTeamSection({ host }: { host: PluginHost }) {
                 </div>
                 {sub.status === 'running' && (
                   <button type="button" className="btn slim" onClick={() => void stopSubagent(sub.id)}>
-                    停止
+                    {t('agentTeam.stop')}
                   </button>
                 )}
               </li>
@@ -99,23 +99,23 @@ export function AgentTeamSection({ host }: { host: PluginHost }) {
 }
 
 /** 主对话状态的中文标签（与智能体面板同口径） */
-const CONVERSATION_STATUS: Record<DigitalPanelState['status'], string> = {
-  idle: '待命',
-  thinking: '思考中…',
-  waiting_approval: '等待确认',
-  waiting_input: '等待回答',
-  done: '已完成',
-  error: '出错'
+const CONVERSATION_STATUS: Record<DigitalPanelState['status'], MessageKey> = {
+  idle: 'agent.status.idle',
+  thinking: 'agent.status.thinking',
+  waiting_approval: 'agent.status.waitingApproval',
+  waiting_input: 'agent.status.waitingInput',
+  done: 'agent.status.done',
+  error: 'agent.status.error'
 }
 
-function statusLabel(status: string): string {
+function statusLabel(status: string, t: (key: MessageKey) => string): string {
   switch (status) {
     case 'running':
-      return '运行中'
+      return t('agentTeam.subStatus.running')
     case 'done':
-      return '已完成'
+      return t('agentTeam.subStatus.done')
     case 'failed':
-      return '已失败'
+      return t('agentTeam.subStatus.failed')
     default:
       return status
   }

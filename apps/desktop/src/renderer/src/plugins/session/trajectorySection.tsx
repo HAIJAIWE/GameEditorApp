@@ -1,5 +1,6 @@
 import { useMemo, useSyncExternalStore, type ReactElement } from 'react'
 
+import { useT } from '@mobai/client-ui'
 import { CONVERSATION_STORE_KEY, createConversationStoreDecl } from '@mobai/shared/agent/conversation'
 import type { DigitalPanelState } from '@mobai/shared/agent/ui'
 import { formatToolArgs, diffRows } from '@mobai/shared/agent/tools'
@@ -9,6 +10,7 @@ import {
   type TrajectoryModel,
   type TrajectoryStepRow
 } from '@mobai/shared/agent/observability'
+import type { MessageKey } from '@mobai/shared/i18n'
 import type { PluginHost } from '@mobai/shared/plugin/host'
 
 /**
@@ -34,38 +36,39 @@ export function TrajectorySection({ host }: { host: PluginHost }): ReactElement 
   const model: TrajectoryModel = useMemo(() => buildTrajectory(state), [state])
   const { overview, turns, messages } = model
   const latency = formatLatency(overview.latencyMs)
+  const t = useT()
 
   return (
     <div className="trajectory" data-testid="trajectory">
       <section className="trajectory-overview" data-testid="trajectory-overview">
-        <Fact label="轮次" value={String(overview.turnCount)} testId="trajectory-turns" />
-        <Fact label="步骤" value={String(overview.stepCount)} testId="trajectory-steps" />
+        <Fact label={t('trajectory.fact.turns')} value={String(overview.turnCount)} testId="trajectory-turns" />
+        <Fact label={t('trajectory.fact.steps')} value={String(overview.stepCount)} testId="trajectory-steps" />
         <Fact
-          label="失败"
+          label={t('trajectory.fact.failed')}
           value={String(overview.failedCount)}
           tone={overview.failedCount > 0 ? 'error' : undefined}
           testId="trajectory-failed"
         />
-        <Fact label="消息" value={String(overview.messageCount)} />
-        <Fact label="子智能体" value={String(overview.runningSubagents)} />
-        {overview.totalTokens > 0 && <Fact label="Token" value={String(overview.totalTokens)} />}
-        {latency !== '' && <Fact label="耗时" value={latency} />}
-        {overview.model !== '' && <Fact label="模型" value={overview.model} />}
+        <Fact label={t('trajectory.fact.messages')} value={String(overview.messageCount)} />
+        <Fact label={t('trajectory.fact.subagents')} value={String(overview.runningSubagents)} />
+        {overview.totalTokens > 0 && <Fact label={t('trajectory.fact.token')} value={String(overview.totalTokens)} />}
+        {latency !== '' && <Fact label={t('trajectory.fact.latency')} value={latency} />}
+        {overview.model !== '' && <Fact label={t('trajectory.fact.model')} value={overview.model} />}
       </section>
 
       {turns.length === 0 ? (
         <p className="trajectory-empty" data-testid="trajectory-empty">
-          还没有执行记录。在智能体对话里发起一次任务后，这里会按轮次列出每一步。
+          {t('trajectory.empty')}
         </p>
       ) : (
-        <section className="trajectory-turns" aria-label="按轮次的执行步骤">
+        <section className="trajectory-turns" aria-label={t('trajectory.turnsAria')}>
           {turns.map((turn) => (
             <div className="trajectory-turn" key={turn.order} data-testid="trajectory-turn" data-order={turn.order}>
               <div className="trajectory-turn-head">
-                <span className="trajectory-turn-title">第 {turn.order + 1} 轮</span>
+                <span className="trajectory-turn-title">{t('trajectory.turnTitle', { n: turn.order + 1 })}</span>
                 <span className="trajectory-turn-meta">
-                  {turn.steps.length} 步
-                  {turn.failed > 0 ? ` · ${turn.failed} 失败` : ''}
+                  {t('trajectory.stepsCount', { n: turn.steps.length })}
+                  {turn.failed > 0 ? t('trajectory.failedCount', { n: turn.failed }) : ''}
                 </span>
               </div>
               <ol className="trajectory-rows">
@@ -105,8 +108,8 @@ export function TrajectorySection({ host }: { host: PluginHost }): ReactElement 
       )}
 
       {messages.length > 0 && (
-        <section className="trajectory-messages" aria-label="消息序列">
-          <h3>消息</h3>
+        <section className="trajectory-messages" aria-label={t('trajectory.messagesAria')}>
+          <h3>{t('trajectory.messagesTitle')}</h3>
           <ul className="trajectory-message-list">
             {messages.map((message, index) => (
               <li
@@ -115,7 +118,7 @@ export function TrajectorySection({ host }: { host: PluginHost }): ReactElement 
                 data-testid="trajectory-message"
                 data-role={message.role}
               >
-                <span className="trajectory-message-role">{ROLE_LABELS[message.role]}</span>
+                <span className="trajectory-message-role">{t(ROLE_LABELS[message.role])}</span>
                 <span className="trajectory-message-text">{message.text}</span>
               </li>
             ))}
@@ -126,15 +129,15 @@ export function TrajectorySection({ host }: { host: PluginHost }): ReactElement 
   )
 }
 
-const KIND_LABELS: Record<'think' | 'batch' | 'tool', string> = {
-  think: '思考',
-  batch: '并行',
-  tool: '工具'
+const KIND_LABELS: Record<'think' | 'batch' | 'tool', MessageKey> = {
+  think: 'trajectory.kind.think',
+  batch: 'trajectory.kind.batch',
+  tool: 'trajectory.kind.tool'
 }
 
-const ROLE_LABELS: Record<'user' | 'assistant', string> = {
-  user: '你',
-  assistant: '智能体'
+const ROLE_LABELS: Record<'user' | 'assistant', MessageKey> = {
+  user: 'trajectory.role.user',
+  assistant: 'trajectory.role.assistant'
 }
 
 function Fact({
@@ -166,14 +169,19 @@ function hasDetail(row: TrajectoryStepRow): boolean {
 
 /** 行内单元格：序号 / 类型 / 工具名 / 摘要 / 状态（行本身既可能是 `div` 也可能是 `<summary>`） */
 function TrajectoryRowCells({ row }: { row: TrajectoryStepRow }): ReactElement {
+  const t = useT()
   return (
     <>
       <span className="trajectory-row-index">{row.index + 1}</span>
-      <span className={`trajectory-row-kind kind-${row.kind}`}>{KIND_LABELS[row.kind]}</span>
+      <span className={`trajectory-row-kind kind-${row.kind}`}>{t(KIND_LABELS[row.kind])}</span>
       <span className="trajectory-row-tool">{row.tool}</span>
       {row.summary !== '' && <span className="trajectory-row-summary">{row.summary}</span>}
       <span className={`trajectory-row-status badge-${row.status}`}>
-        {row.status === 'running' ? '执行中' : row.status === 'done' ? '完成' : '失败'}
+        {row.status === 'running'
+          ? t('trajectory.status.running')
+          : row.status === 'done'
+            ? t('trajectory.status.done')
+            : t('trajectory.status.failed')}
       </span>
     </>
   )
@@ -186,24 +194,25 @@ function TrajectoryRowCells({ row }: { row: TrajectoryStepRow }): ReactElement {
  * 同一条工具调用在两个视图里不该有不同的「是不是 diff」判断。
  */
 function TrajectoryRowDetail({ row }: { row: TrajectoryStepRow }): ReactElement {
+  const t = useT()
   const args = formatToolArgs(row.args)
   const diff = row.result === '' ? null : diffRows(row.result)
   const output =
     row.result.length > DETAIL_OUTPUT_LIMIT
-      ? `${row.result.slice(0, DETAIL_OUTPUT_LIMIT)}\n…（已截断）`
+      ? `${row.result.slice(0, DETAIL_OUTPUT_LIMIT)}\n${t('trajectory.truncated')}`
       : row.result
 
   return (
     <>
       {args.text !== '' && (
         <div className="trajectory-detail-block">
-          <span className="trajectory-detail-label">参数</span>
+          <span className="trajectory-detail-label">{t('trajectory.detail.args')}</span>
           <pre className="trajectory-detail-pre">{args.text}</pre>
         </div>
       )}
       {row.result !== '' && (
         <div className="trajectory-detail-block">
-          <span className="trajectory-detail-label">输出</span>
+          <span className="trajectory-detail-label">{t('trajectory.detail.output')}</span>
           {diff !== null ? (
             <pre className="trajectory-detail-pre trajectory-detail-diff">
               {diff.map((line, index) => (

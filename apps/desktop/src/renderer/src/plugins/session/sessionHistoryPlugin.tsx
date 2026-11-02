@@ -1,5 +1,8 @@
 import { useEffect, useState, type ReactElement } from 'react'
 
+import { useT } from '@mobai/client-ui'
+import { translate } from '@mobai/shared/i18n'
+import { getLocalePreference } from '../../localePreference'
 import type { PluginHost } from '@mobai/shared/plugin/host'
 import type { PluginManifest } from '@mobai/shared/plugin/types'
 import { registerReactBinding, type PanelBindingProps } from '../host'
@@ -20,17 +23,18 @@ export function defineSessionHistoryPlugin(_host: PluginHost): PluginManifest {
     id: 'session-history',
     name: 'session-history',
     version: '0.1.0',
-    description: '会话历史检索：列出会话/草稿，按内容搜索，点击草稿只读回看',
+    description: 'Session history search: list sessions/drafts, search by content, review drafts read-only',
     meta: {
-      label: '会话历史',
+      labelKey: 'nav.sessionHistory',
       icon: 'clock',
-      description: '检索历史会话与草稿，按内容搜索并回看'
+      descriptionKey: 'sessionHistory.metaDescription'
     },
     capabilities: [
       {
         kind: 'command',
         id: 'sessionHistory.open',
-        label: '会话历史',
+        label: 'Session history',
+        labelKey: 'nav.sessionHistory',
         run: () => _host.openPanel('sessionHistory.panel')
       },
       {
@@ -42,8 +46,9 @@ export function defineSessionHistoryPlugin(_host: PluginHost): PluginManifest {
       {
         kind: 'panel',
         id: 'sessionHistory.panel',
-        title: '会话历史',
-        ui: { type: 'text', text: '会话历史' }
+        title: 'Session history',
+        titleKey: 'nav.sessionHistory',
+        ui: { type: 'text', text: translate(getLocalePreference(), 'nav.sessionHistory') }
       }
     ]
   }
@@ -67,6 +72,7 @@ interface SessionItem {
 
 function SessionHistoryPanel(props: PanelBindingProps): ReactElement {
   const { onClose } = props
+  const t = useT()
   const [query, setQuery] = useState('')
   const [sessions, setSessions] = useState<SessionItem[]>([])
   const [drafts, setDrafts] = useState<DraftItem[]>([])
@@ -112,34 +118,38 @@ function SessionHistoryPanel(props: PanelBindingProps): ReactElement {
   return (
     <div className="panel session-history">
       <div className="panel-header">
-        <h3>会话历史</h3>
+        <h3>{t('nav.sessionHistory')}</h3>
         <button type="button" className="btn" onClick={onClose}>
-          关闭
+          {t('common.close')}
         </button>
       </div>
 
       <div className="session-history-search">
         <input
           type="search"
-          placeholder="搜索会话内容 / 草稿名…"
+          placeholder={t('sessionHistory.placeholder')}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
-        {loading && <span className="session-history-loading">加载中…</span>}
+        {loading && <span className="session-history-loading">{t('common.loading')}</span>}
       </div>
 
       <div className="session-history-body">
         <section>
-          <h4>历史会话（{sessions.length}）</h4>
+          <h4>{t('sessionHistory.sessionsHead', { n: sessions.length })}</h4>
           {sessions.length === 0 ? (
-            <p className="session-history-empty">暂无历史会话记录</p>
+            <p className="session-history-empty">{t('sessionHistory.noSessions')}</p>
           ) : (
             <ul className="session-history-list">
               {sessions.map((s) => (
                 <li key={s.sessionId} className="session-history-item">
                   <span className="session-history-title">{s.title}</span>
                   <span className="session-history-meta">
-                    {s.messageCount} 条 · {s.turnCount} 轮 · {formatActivity(s.lastActivity)}
+                    {t('sessionHistory.sessionMeta', {
+                      messages: s.messageCount,
+                      turns: s.turnCount,
+                      time: formatActivity(s.lastActivity)
+                    })}
                   </span>
                   <span className="session-history-snippet">{s.firstMessage.slice(0, 80)}</span>
                 </li>
@@ -149,9 +159,9 @@ function SessionHistoryPanel(props: PanelBindingProps): ReactElement {
         </section>
 
         <section>
-          <h4>草稿（{drafts.length}）</h4>
+          <h4>{t('sessionHistory.draftsHead', { n: drafts.length })}</h4>
           {drafts.length === 0 ? (
-            <p className="session-history-empty">暂无草稿</p>
+            <p className="session-history-empty">{t('sessionHistory.noDrafts')}</p>
           ) : (
             <ul className="session-history-list">
               {drafts.map((d) => (
@@ -160,7 +170,7 @@ function SessionHistoryPanel(props: PanelBindingProps): ReactElement {
                     {d.name}
                   </button>
                   <span className="session-history-meta">
-                    {d.time} · {d.messageCount} 条
+                    {t('sessionHistory.draftMeta', { time: d.time, messages: d.messageCount })}
                   </span>
                 </li>
               ))}
@@ -170,9 +180,9 @@ function SessionHistoryPanel(props: PanelBindingProps): ReactElement {
 
         {detail && (
           <section className="session-history-detail">
-            <h4>草稿回看：{detail.name}</h4>
+            <h4>{t('sessionHistory.detailHead', { name: detail.name })}</h4>
             <button type="button" className="btn" onClick={() => setDetail(null)}>
-              收起
+              {t('sessionHistory.collapse')}
             </button>
             <ol className="session-history-messages">
               {detail.messages.map((message, index) => (
