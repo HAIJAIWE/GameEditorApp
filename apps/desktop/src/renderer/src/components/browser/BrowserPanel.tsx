@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
+import { translate } from '@mobai/shared/i18n'
 import { normalizeUrlInput } from '../../utils/urlInput'
+import { getLocalePreference } from '../../localePreference'
 
 /**
  * 浏览器面板（中间窗口「浏览器」页签）——内嵌 webview。
@@ -24,6 +27,7 @@ interface BrowserPanelProps {
 }
 
 export default function BrowserPanel({ initialUrl = HOME_HINT }: BrowserPanelProps): React.JSX.Element {
+  const t = useT()
   const [input, setInput] = useState(initialUrl === HOME_HINT ? '' : initialUrl)
   const [src, setSrc] = useState(initialUrl)
   const [status, setStatus] = useState('')
@@ -38,11 +42,18 @@ export default function BrowserPanel({ initialUrl = HOME_HINT }: BrowserPanelPro
   useEffect(() => {
     const el = webviewRef.current
     if (el === null) return
-    const onStart = (): void => setStatus('加载中…')
+    const onStart = (): void => setStatus(translate(getLocalePreference(), 'browser.loading'))
     const onStop = (): void => setStatus('')
     const onFail = (event: Event): void => {
       const carrier = event as unknown as { errorDescription?: string; detail?: { errorDescription?: string } }
-      setStatus(`加载失败：${carrier.errorDescription ?? carrier.detail?.errorDescription ?? '未知错误'}`)
+      setStatus(
+        translate(getLocalePreference(), 'browser.loadFailed', {
+          message:
+            carrier.errorDescription ??
+            carrier.detail?.errorDescription ??
+            translate(getLocalePreference(), 'browser.unknownError')
+        })
+      )
     }
     el.addEventListener('did-start-loading', onStart)
     el.addEventListener('did-stop-loading', onStop)
@@ -73,7 +84,7 @@ export default function BrowserPanel({ initialUrl = HOME_HINT }: BrowserPanelPro
         <button
           type="button"
           className="btn slim"
-          title="后退"
+          title={t('browser.back')}
           data-testid="browser-back"
           onClick={() => webviewRef.current?.goBack()}
         >
@@ -82,7 +93,7 @@ export default function BrowserPanel({ initialUrl = HOME_HINT }: BrowserPanelPro
         <button
           type="button"
           className="btn slim"
-          title="前进"
+          title={t('browser.forward')}
           data-testid="browser-forward"
           onClick={() => webviewRef.current?.goForward()}
         >
@@ -91,7 +102,7 @@ export default function BrowserPanel({ initialUrl = HOME_HINT }: BrowserPanelPro
         <button
           type="button"
           className="btn slim"
-          title="刷新"
+          title={t('browser.reload')}
           data-testid="browser-reload"
           onClick={() => webviewRef.current?.reload()}
         >
@@ -100,7 +111,7 @@ export default function BrowserPanel({ initialUrl = HOME_HINT }: BrowserPanelPro
         <button
           type="button"
           className="btn slim"
-          title="主页（空白页）"
+          title={t('browser.home')}
           data-testid="browser-home"
           onClick={() => {
             setInput('')
@@ -113,17 +124,17 @@ export default function BrowserPanel({ initialUrl = HOME_HINT }: BrowserPanelPro
           className="browser-url"
           data-testid="browser-url"
           value={input}
-          placeholder="输入网址或本地文件路径（C:\\...\\demo.html），回车打开"
+          placeholder={t('browser.urlPlaceholder')}
           onChange={(e) => setInput(e.target.value)}
         />
       </form>
       {src === HOME_HINT ? (
         <div className="browser-empty" data-testid="browser-empty">
-          <p>内置浏览器</p>
+          <p>{t('browser.title')}</p>
           <p className="browser-empty-sub">
-            输入网址打开网页，或粘贴本地 HTML Demo 路径直接预览
+            {t('browser.emptyHint')}
             <br />
-            例：D:\GameEditorApp\docs\demo.html
+            {t('browser.emptyExample')}
           </p>
         </div>
       ) : (

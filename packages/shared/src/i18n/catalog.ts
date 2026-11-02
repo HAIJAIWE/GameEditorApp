@@ -1059,7 +1059,31 @@ export const zh = {
   'equipPreview.noBuffs': '未激活 Buff',
   'equipPreview.remove': '移除',
   'equipPreview.compareTitle': '属性对比（基础 → 装备/Buff 后）',
-  'equipPreview.cycle': '属性系统存在循环依赖：{cycle}，无法计算'
+  'equipPreview.cycle': '属性系统存在循环依赖：{cycle}，无法计算',
+  // —— 通用组件：内置浏览器 / 清空数据 ——
+  'browser.loading': '加载中…',
+  'browser.loadFailed': '加载失败：{message}',
+  'browser.unknownError': '未知错误',
+  'browser.back': '后退',
+  'browser.forward': '前进',
+  'browser.reload': '刷新',
+  'browser.home': '主页（空白页）',
+  'browser.urlPlaceholder': '输入网址或本地文件路径（C:\\...\\demo.html），回车打开',
+  'browser.title': '内置浏览器',
+  'browser.emptyHint': '输入网址打开网页，或粘贴本地 HTML Demo 路径直接预览',
+  'browser.emptyExample': '例：D:\\GameEditorApp\\docs\\demo.html',
+  'clearAll.title': '清空所有数据',
+  'clearAll.subtitle': '删除当前库全部条目（可撤销）',
+  'clearAll.loading': '正在统计全库数据条数…',
+  'clearAll.countError': '读取数据条数失败：{message}',
+  'clearAll.empty': '当前库没有任何数据，无需清空。',
+  'clearAll.warning1': '将删除当前库全部 {total} 条数据（跨所有数据类型）。',
+  'clearAll.warning2': '正在编辑的条目表单里未保存的修改会一并丢失，且保存按钮之后会因条目已不存在而报错。',
+  'clearAll.warning3': '删除会整批记入撤销栈，可用 Ctrl+Z 找回；但关闭应用后撤销历史不再保留。',
+  'clearAll.confirmPrompt': '确认清空 {total} 条数据？',
+  'clearAll.confirm': '确认清空',
+  'clearAll.cancel': '取消',
+  'clearAll.start': '清空所有数据…'
 } as const
 
 /** 全部文案键（以中文表为准） */
@@ -2106,7 +2130,31 @@ export const en: Record<MessageKey, string> = {
   'equipPreview.noBuffs': 'No active Buffs',
   'equipPreview.remove': 'Remove',
   'equipPreview.compareTitle': 'Attribute comparison (base → after equipment/Buff)',
-  'equipPreview.cycle': 'The attribute system has a circular dependency: {cycle}; cannot compute'
+  'equipPreview.cycle': 'The attribute system has a circular dependency: {cycle}; cannot compute',
+  // —— Shared components: built-in browser / clear data ——
+  'browser.loading': 'Loading…',
+  'browser.loadFailed': 'Load failed: {message}',
+  'browser.unknownError': 'unknown error',
+  'browser.back': 'Back',
+  'browser.forward': 'Forward',
+  'browser.reload': 'Reload',
+  'browser.home': 'Home (blank page)',
+  'browser.urlPlaceholder': 'Enter a URL or local file path (C:\\...\\demo.html), press Enter to open',
+  'browser.title': 'Built-in browser',
+  'browser.emptyHint': 'Enter a URL to open a web page, or paste a local HTML demo path to preview it',
+  'browser.emptyExample': 'e.g. D:\\GameEditorApp\\docs\\demo.html',
+  'clearAll.title': 'Clear all data',
+  'clearAll.subtitle': 'Delete all items in the current library (undoable)',
+  'clearAll.loading': 'Counting all library data…',
+  'clearAll.countError': 'Failed to read data count: {message}',
+  'clearAll.empty': 'The current library has no data; nothing to clear.',
+  'clearAll.warning1': 'This will delete all {total} items in the current library (across all data types).',
+  'clearAll.warning2': 'Unsaved edits in the item form you are currently editing will also be lost, and the save button will later fail because the item no longer exists.',
+  'clearAll.warning3': 'The deletion is recorded as one undo entry and can be recovered with Ctrl+Z; but the undo history is not kept after the app closes.',
+  'clearAll.confirmPrompt': 'Clear {total} items?',
+  'clearAll.confirm': 'Clear',
+  'clearAll.cancel': 'Cancel',
+  'clearAll.start': 'Clear all data…'
 }
 
 /** 按语言取表 */

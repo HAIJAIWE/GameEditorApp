@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
+
+import { useT } from '@mobai/client-ui'
 import { toErrorMessage } from '@mobai/shared/util/system'
 
 /**
@@ -31,6 +33,7 @@ interface ClearAllPanelProps {
 type CountState = { status: 'loading' } | { status: 'ready'; total: number } | { status: 'error'; message: string }
 
 export default function ClearAllPanel({ onCleared }: ClearAllPanelProps) {
+  const t = useT()
   const [count, setCount] = useState<CountState>({ status: 'loading' })
   const [confirming, setConfirming] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -72,38 +75,38 @@ export default function ClearAllPanel({ onCleared }: ClearAllPanelProps) {
     <div className="editor" data-testid="clearall-panel">
       <div className="editor-header">
         <div className="editor-title">
-          清空所有数据
-          <small>删除当前库全部条目（可撤销）</small>
+          {t('clearAll.title')}
+          <small>{t('clearAll.subtitle')}</small>
         </div>
       </div>
 
       <div className="editor-body">
-        {count.status === 'loading' && <div className="empty">正在统计全库数据条数…</div>}
+        {count.status === 'loading' && <div className="empty">{t('clearAll.loading')}</div>}
         {count.status === 'error' && (
           <div className="form-error" data-testid="clearall-count-error">
-            读取数据条数失败：{count.message}
+            {t('clearAll.countError', { message: count.message })}
           </div>
         )}
 
         {count.status === 'ready' &&
           (total === 0 ? (
             <div className="empty" data-testid="clearall-empty">
-              当前库没有任何数据，无需清空。
+              {t('clearAll.empty')}
             </div>
           ) : (
             <>
               {/* 破坏性操作的风险提示（与 BatchEditPanel 的 delete_selected 同一条样式类） */}
               <div className="danger-hint" data-testid="clearall-warning">
-                将删除当前库全部 {total} 条数据（跨所有数据类型）。
+                {t('clearAll.warning1', { total: total ?? 0 })}
                 <br />
-                正在编辑的条目表单里<b>未保存</b>的修改会一并丢失，且保存按钮之后会因条目已不存在而报错。
+                {t('clearAll.warning2')}
                 <br />
-                删除会整批记入撤销栈，可用 Ctrl+Z 找回；但关闭应用后撤销历史不再保留。
+                {t('clearAll.warning3')}
               </div>
 
               {confirming && (
                 <div className="form-row" data-testid="clearall-confirm">
-                  <span className="form-label">确认清空 {total} 条数据？</span>
+                  <span className="form-label">{t('clearAll.confirmPrompt', { total: total ?? 0 })}</span>
                   <button
                     type="button"
                     className="btn danger"
@@ -111,7 +114,7 @@ export default function ClearAllPanel({ onCleared }: ClearAllPanelProps) {
                     disabled={busy}
                     onClick={() => void handleClear()}
                   >
-                    确认清空
+                    {t('clearAll.confirm')}
                   </button>
                   <button
                     type="button"
@@ -120,7 +123,7 @@ export default function ClearAllPanel({ onCleared }: ClearAllPanelProps) {
                     disabled={busy}
                     onClick={() => setConfirming(false)}
                   >
-                    取消
+                    {t('clearAll.cancel')}
                   </button>
                 </div>
               )}
@@ -143,7 +146,7 @@ export default function ClearAllPanel({ onCleared }: ClearAllPanelProps) {
             disabled={busy || count.status !== 'ready' || total === 0}
             onClick={() => setConfirming(true)}
           >
-            清空所有数据…
+            {t('clearAll.start')}
           </button>
         </div>
       )}
