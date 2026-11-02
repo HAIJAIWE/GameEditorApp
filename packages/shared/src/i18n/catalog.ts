@@ -986,7 +986,34 @@ export const zh = {
   'aiFull.summaryStoppedFailed': '，失败 {count} 章',
   'aiFull.summaryFailed': '本次完成 {succeeded} 章，失败 {failed} 章；可点「重试失败章节」补齐，或直接「全部应用并保存」。',
   'aiFull.summaryDone': '本次完成 {succeeded} 章，可点「全部应用并保存」写入当前策划书。',
-  'aiFull.applied': '已应用并保存 {count} 章到当前策划书。'
+  'aiFull.applied': '已应用并保存 {count} 章到当前策划书。',
+  // —— 通用组件：属性编辑 ——
+  'attrFormula.title': '系数公式编辑器',
+  'attrFormula.hint': '设置「力量 = 10」表示 1 点力量增加 10 点{name}；系数为 0 的属性不写入公式',
+  'attrFormula.hintNoName': '请先填写属性名称，再配置系数',
+  'attrFormula.clear': '清空',
+  'attrFormula.cancel': '取消',
+  'attrFormula.apply': '应用',
+  'attrLive.baseTitle': '基础属性（输入数值）',
+  'attrLive.bonusTitle': '外部加成预览（装备固定加成 / Buff 百分比）',
+  'attrLive.equipLabel': '装备 +X',
+  'attrLive.buffLabel': 'Buff +%',
+  'attrLive.resultTitle': '计算结果（派生 / 战斗属性）',
+  'attrLive.cycle': '属性系统存在循环依赖：{cycle}，无法计算',
+  'attrLive.processTitle': '计算过程',
+  'attrLive.reset': '重置数值',
+  'attrTable.empty': '暂无属性行，点击下方「添加行」',
+  'attrTable.namePlaceholder': '属性名称（可自由输入）',
+  'attrTable.valuePlaceholder': '数值',
+  'attrTable.removeTitle': '删除该行',
+  'attrTable.addRow': '添加行',
+  'attrTable.calcTitle': '计算预览（以列表行为输入，按属性系统计算）',
+  'attrTable.loading': '正在加载属性系统…',
+  'attrTable.calcHint': '添加属性行后显示计算预览',
+  'attrTable.cycle': '属性系统存在循环依赖：{cycle}，无法计算',
+  'attrTable.sourceInput': '输入',
+  'attrTable.sourceCalc': '计算',
+  'attrTable.unknown': '未收录的属性名（不参与计算）：{names}'
 } as const
 
 /** 全部文案键（以中文表为准） */
@@ -1960,7 +1987,34 @@ export const en: Record<MessageKey, string> = {
   'aiFull.summaryStoppedFailed': ', {count} failed',
   'aiFull.summaryFailed': '{succeeded} chapters completed, {failed} failed; click "Retry failed chapters" to fill in, or "Apply all & save" directly.',
   'aiFull.summaryDone': '{succeeded} chapters completed; click "Apply all & save" to write into the current design doc.',
-  'aiFull.applied': 'Applied and saved {count} chapters to the current design doc.'
+  'aiFull.applied': 'Applied and saved {count} chapters to the current design doc.',
+  // —— Shared components: attribute editing ——
+  'attrFormula.title': 'Coefficient formula editor',
+  'attrFormula.hint': 'Setting "Strength = 10" means 1 point of Strength adds 10 points of {name}; attributes with coefficient 0 are not written into the formula',
+  'attrFormula.hintNoName': 'Enter an attribute name first, then configure coefficients',
+  'attrFormula.clear': 'Clear',
+  'attrFormula.cancel': 'Cancel',
+  'attrFormula.apply': 'Apply',
+  'attrLive.baseTitle': 'Base attributes (enter values)',
+  'attrLive.bonusTitle': 'External bonus preview (equipment flat bonus / Buff percentage)',
+  'attrLive.equipLabel': 'Equip +X',
+  'attrLive.buffLabel': 'Buff +%',
+  'attrLive.resultTitle': 'Computed results (derived / combat attributes)',
+  'attrLive.cycle': 'The attribute system has a circular dependency: {cycle}; cannot compute',
+  'attrLive.processTitle': 'Computation process',
+  'attrLive.reset': 'Reset values',
+  'attrTable.empty': 'No attribute rows yet; click "Add row" below',
+  'attrTable.namePlaceholder': 'Attribute name (free input)',
+  'attrTable.valuePlaceholder': 'Value',
+  'attrTable.removeTitle': 'Delete this row',
+  'attrTable.addRow': 'Add row',
+  'attrTable.calcTitle': 'Calculation preview (rows as input, computed by the attribute system)',
+  'attrTable.loading': 'Loading attribute system…',
+  'attrTable.calcHint': 'Add attribute rows to see the calculation preview',
+  'attrTable.cycle': 'The attribute system has a circular dependency: {cycle}; cannot compute',
+  'attrTable.sourceInput': 'Input',
+  'attrTable.sourceCalc': 'Computed',
+  'attrTable.unknown': 'Unrecognized attribute names (excluded from calculation): {names}'
 }
 
 /** 按语言取表 */

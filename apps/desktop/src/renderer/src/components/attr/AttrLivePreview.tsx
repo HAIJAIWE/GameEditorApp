@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
 import { baseAttrNames, computeLivePreview, derivedAndCombatNames } from '@mobai/shared/domain/attr/attrPreview'
 import type { AttrSystem } from '@mobai/shared/attrSystem'
 
@@ -16,6 +17,7 @@ interface AttrLivePreviewProps {
 }
 
 export default function AttrLivePreview({ system }: AttrLivePreviewProps) {
+  const t = useT()
   const [baseOverrides, setBaseOverrides] = useState<Record<string, number>>({})
   const [equipBonuses, setEquipBonuses] = useState<Record<string, number>>({})
   const [buffBonuses, setBuffBonuses] = useState<Record<string, number>>({})
@@ -78,7 +80,7 @@ export default function AttrLivePreview({ system }: AttrLivePreviewProps) {
   return (
     <div className="attr-live">
       <div className="attr-live-section">
-        <div className="attr-live-title">基础属性（输入数值）</div>
+        <div className="attr-live-title">{t('attrLive.baseTitle')}</div>
         {baseNames.map((name) => (
           <div className="attr-live-row" key={name}>
             <span className="attr-live-name">{system.attributes[name].displayName}</span>
@@ -96,11 +98,11 @@ export default function AttrLivePreview({ system }: AttrLivePreviewProps) {
       </div>
 
       <div className="attr-live-section">
-        <div className="attr-live-title">外部加成预览（装备固定加成 / Buff 百分比）</div>
+        <div className="attr-live-title">{t('attrLive.bonusTitle')}</div>
         <div className="attr-live-row">
           <span className="attr-live-name" />
-          <span className="attr-live-bonus-label">装备 +X</span>
-          <span className="attr-live-bonus-label">Buff +%</span>
+          <span className="attr-live-bonus-label">{t('attrLive.equipLabel')}</span>
+          <span className="attr-live-bonus-label">{t('attrLive.buffLabel')}</span>
         </div>
         {baseNames.map((name) => (
           <div className="attr-live-row" key={name}>
@@ -131,9 +133,9 @@ export default function AttrLivePreview({ system }: AttrLivePreviewProps) {
       </div>
 
       <div className="attr-live-section">
-        <div className="attr-live-title">计算结果（派生 / 战斗属性）</div>
+        <div className="attr-live-title">{t('attrLive.resultTitle')}</div>
         {preview.cycle && (
-          <div className="form-error">属性系统存在循环依赖：{preview.cycle.join(' → ')}，无法计算</div>
+          <div className="form-error">{t('attrLive.cycle', { cycle: preview.cycle.join(' → ') })}</div>
         )}
         <div className="attr-live-results">
           {resultNames.map((name) => (
@@ -151,7 +153,7 @@ export default function AttrLivePreview({ system }: AttrLivePreviewProps) {
       </div>
 
       <div className="attr-live-section">
-        <div className="attr-live-title">计算过程</div>
+        <div className="attr-live-title">{t('attrLive.processTitle')}</div>
         <pre className="attr-live-process" data-testid="live-process">
           {preview.processLines.join('\n')}
         </pre>
@@ -159,7 +161,7 @@ export default function AttrLivePreview({ system }: AttrLivePreviewProps) {
 
       <div className="editor-actions">
         <button type="button" className="btn" data-testid="live-reset" onClick={handleReset}>
-          重置数值
+          {t('attrLive.reset')}
         </button>
       </div>
     </div>

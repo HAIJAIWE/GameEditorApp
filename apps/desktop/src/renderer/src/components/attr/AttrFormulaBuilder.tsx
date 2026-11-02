@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
 import { buildFormulaFromCoeffs, initialEntries } from '@mobai/shared/util/formula'
 
 /**
@@ -44,6 +45,7 @@ export default function AttrFormulaBuilder({
   onApply,
   onClose
 }: AttrFormulaBuilderProps) {
+  const t = useT()
   const testId = (suffix: string): string => `field-${fieldName}-formula-builder-${rowIndex}-${suffix}`
 
   // 挂载时一次性初始化：之后用户改动不再被 props 覆盖（父组件不会在编辑中回写本行公式）
@@ -64,12 +66,11 @@ export default function AttrFormulaBuilder({
   return (
     <div className="attr-panel-builder" data-testid={testId('panel')}>
       <div className="attr-panel-builder-title">
-        系数公式编辑器{derivedName ? ` · ${derivedName}` : ''}
+        {t('attrFormula.title')}
+        {derivedName ? ` · ${derivedName}` : ''}
       </div>
       <div className="attr-panel-builder-hint">
-        {derivedName
-          ? `设置「力量 = 10」表示 1 点力量增加 10 点${derivedName}；系数为 0 的属性不写入公式`
-          : '请先填写属性名称，再配置系数'}
+        {derivedName ? t('attrFormula.hint', { name: derivedName }) : t('attrFormula.hintNoName')}
       </div>
 
       {initial.warning && (
@@ -108,10 +109,10 @@ export default function AttrFormulaBuilder({
           data-testid={testId('clear')}
           onClick={() => setRows((current) => current.map((row) => ({ ...row, text: '0' })))}
         >
-          清空
+          {t('attrFormula.clear')}
         </button>
         <button type="button" className="btn slim" data-testid={testId('cancel')} onClick={onClose}>
-          取消
+          {t('attrFormula.cancel')}
         </button>
         <button
           type="button"
@@ -122,7 +123,7 @@ export default function AttrFormulaBuilder({
             onClose()
           }}
         >
-          应用
+          {t('attrFormula.apply')}
         </button>
       </div>
     </div>
