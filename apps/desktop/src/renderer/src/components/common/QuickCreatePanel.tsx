@@ -1,5 +1,6 @@
 import { useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
 import {
   filterQuickCreateTypes,
   listQuickCreateTemplates,
@@ -29,6 +30,7 @@ interface QuickCreatePanelProps {
 }
 
 export default function QuickCreatePanel({ type, types, onCreated, onClose }: QuickCreatePanelProps) {
+  const t = useT()
   // 只列 schema 里存在且有模板的类型
   const selectableTypes = filterQuickCreateTypes(types.map((def) => def.id))
   const [activeType, setActiveType] = useState(() =>
@@ -52,7 +54,13 @@ export default function QuickCreatePanel({ type, types, onCreated, onClose }: Qu
     setError(null)
     try {
       await window.mbApi.data.createItem({ type: activeType, data: { ...selected.defaults } })
-      onCreated(`已按模板「${selected.name}」创建${quickCreateTypeLabel(activeType)}「${selected.defaults.name ?? ''}」`)
+      onCreated(
+        t('quickCreate.created', {
+          template: selected.name,
+          type: quickCreateTypeLabel(activeType),
+          name: selected.defaults.name ?? ''
+        })
+      )
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {
@@ -64,15 +72,15 @@ export default function QuickCreatePanel({ type, types, onCreated, onClose }: Qu
     <div className="editor" data-testid="qc-panel">
       <div className="editor-header">
         <div className="editor-title">
-          快速创建
-          <small>选模板后一键生成条目，字段值可再编辑</small>
+          {t('quickCreate.title')}
+          <small>{t('quickCreate.subtitle')}</small>
         </div>
       </div>
 
       <div className="editor-body">
         <div className="form-row">
           <label className="form-label" htmlFor="qc-type">
-            数据类型
+            {t('quickCreate.typeLabel')}
           </label>
           <select
             id="qc-type"
@@ -92,10 +100,10 @@ export default function QuickCreatePanel({ type, types, onCreated, onClose }: Qu
 
         {selectableTypes.length === 0 ? (
           <div className="empty" data-testid="qc-no-type">
-            当前 schema 没有可套用模板的数据类型
+            {t('quickCreate.noType')}
           </div>
         ) : templates.length === 0 ? (
-          <div className="empty">该类型暂无模板</div>
+          <div className="empty">{t('quickCreate.noTemplates')}</div>
         ) : (
           <div className="qc-grid">
             {templates.map((tpl) => (
@@ -116,11 +124,11 @@ export default function QuickCreatePanel({ type, types, onCreated, onClose }: Qu
 
         {selected !== null && (
           <div className="qc-preview">
-            <div className="qc-preview-title">将按以下初始值创建</div>
+            <div className="qc-preview-title">{t('quickCreate.previewTitle')}</div>
             {Object.entries(selected.defaults).map(([key, value]) => (
               <div key={key} className="qc-preview-row">
                 <span className="qc-preview-key">{key}</span>
-                <span className="qc-preview-value">{value === '' ? '（空）' : value}</span>
+                <span className="qc-preview-value">{value === '' ? t('quickCreate.empty') : value}</span>
               </div>
             ))}
           </div>
@@ -137,10 +145,10 @@ export default function QuickCreatePanel({ type, types, onCreated, onClose }: Qu
           disabled={busy || selected === null}
           onClick={() => void create()}
         >
-          {busy ? '创建中…' : '创建'}
+          {busy ? t('quickCreate.creating') : t('quickCreate.create')}
         </button>
         <button type="button" className="btn" disabled={busy} onClick={onClose}>
-          关闭
+          {t('common.close')}
         </button>
       </div>
     </div>

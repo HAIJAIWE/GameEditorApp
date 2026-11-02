@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
 import {
   formatFieldsPreview,
   type SystemConfirmCustom
@@ -44,6 +45,7 @@ function toRow(key: string, entry: SystemEntry): RowView {
  * 确认后写回 systems 章并自动触发数据同步（注册启用系统的数据结构）。
  */
 export default function SystemConfirmPanel({ ceshuId, onApplied, onClose }: SystemConfirmPanelProps) {
+  const t = useT()
   const [doc, setDoc] = useState<CeshuDocument | null>(null)
   const [checked, setChecked] = useState<Record<string, boolean>>({})
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
@@ -108,7 +110,7 @@ export default function SystemConfirmPanel({ ceshuId, onApplied, onClose }: Syst
     const name = customInput.trim()
     if (!name) return
     if (name in checked || customRows.some((row) => row.key === name)) {
-      setError(`系统「${name}」已存在`)
+      setError(t('systemConfirm.exists', { name }))
       return
     }
     setError(null)
@@ -118,7 +120,7 @@ export default function SystemConfirmPanel({ ceshuId, onApplied, onClose }: Syst
       dataType: name,
       enabled: true,
       aiReason: '',
-      note: '自定义系统',
+      note: t('systemConfirm.customNote'),
       isCustom: true
     }
     setCustomRows((prev) => [...prev, row])
@@ -136,7 +138,13 @@ export default function SystemConfirmPanel({ ceshuId, onApplied, onClose }: Syst
       const customSystems: SystemConfirmCustom[] = customRows.map((row) => ({ key: row.key, name: row.name }))
       const result = await window.mbApi.ceshu.confirmSystems({ id: ceshuId, enabledKeys, customSystems })
       setDoc(result.doc)
-      setNotice(`已确认游戏系统：启用 ${result.enabledCount} 个${result.addedCustom > 0 ? `（新增自定义 ${result.addedCustom} 个）` : ''}`)
+      setNotice(
+        t('systemConfirm.confirmed', {
+          count: result.enabledCount,
+          extra:
+            result.addedCustom > 0 ? t('systemConfirm.confirmedExtra', { count: result.addedCustom }) : ''
+        })
+      )
       onApplied(result.doc, result.enabledCount, result.addedCustom)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -148,7 +156,7 @@ export default function SystemConfirmPanel({ ceshuId, onApplied, onClose }: Syst
   if (!doc) {
     return (
       <div className="system-confirm-panel" data-testid="system-confirm-panel">
-        <div className="empty">正在加载系统配置…</div>
+        <div className="empty">{t('systemConfirm.loading')}</div>
       </div>
     )
   }
@@ -156,12 +164,12 @@ export default function SystemConfirmPanel({ ceshuId, onApplied, onClose }: Syst
   return (
     <div className="system-confirm-panel" data-testid="system-confirm-panel">
       <div className="changelog-header">
-        <span className="chapter-form-title">确认游戏系统 + 字段架构预览</span>
+        <span className="chapter-form-title">{t('systemConfirm.title')}</span>
         <button type="button" className="btn" data-testid="system-confirm-close" disabled={busy} onClick={onClose}>
-          关闭
+          {t('common.close')}
         </button>
       </div>
-      <p className="form-hint">勾选启用你需要的游戏系统，可展开查看标准字段架构；也可新增自定义系统。确认后将写回策划书并注册对应数据结构。</p>
+      <p className="form-hint">{t('systemConfirm.hint')}</p>
 
       {error && <div className="error-banner">{error}</div>}
       {notice && <div className="notice-banner">{notice}</div>}
@@ -186,7 +194,7 @@ export default function SystemConfirmPanel({ ceshuId, onApplied, onClose }: Syst
                   </span>
                 </label>
                 {row.aiReason && <span className="system-reason">💡 {row.aiReason}</span>}
-                {row.isCustom && <span className="system-tag">自定义</span>}
+                {row.isCustom && <span className="system-tag">{t('systemConfirm.customTag')}</span>}
               </div>
               {!row.isCustom && preview && (
                 <div className="system-preview">
@@ -196,7 +204,7 @@ export default function SystemConfirmPanel({ ceshuId, onApplied, onClose }: Syst
                     data-testid={`sys-toggle-${row.key}`}
                     onClick={() => handleToggleExpand(row.key)}
                   >
-                    {expanded[row.key] ? '收起字段架构' : '展开字段架构'}
+                    {expanded[row.key] ? t('systemConfirm.collapse') : t('systemConfirm.expand')}
                   </button>
                   {expanded[row.key] && (
                     <pre className="system-fields" data-testid={`sys-fields-${row.key}`}>
@@ -219,7 +227,7 @@ export default function SystemConfirmPanel({ ceshuId, onApplied, onClose }: Syst
         <input
           className="form-input"
           data-testid="sys-custom-input"
-          placeholder="新增自定义系统名称（如 tower_defense）…"
+          placeholder={t('systemConfirm.customPlaceholder')}
           value={customInput}
           onChange={(event) => setCustomInput(event.target.value)}
           onKeyDown={(event) => {
@@ -227,7 +235,7 @@ export default function SystemConfirmPanel({ ceshuId, onApplied, onClose }: Syst
           }}
         />
         <button type="button" className="btn" data-testid="sys-add-custom" disabled={busy} onClick={() => handleAddCustom()}>
-          + 添加
+          {t('systemConfirm.add')}
         </button>
       </div>
 
@@ -239,10 +247,10 @@ export default function SystemConfirmPanel({ ceshuId, onApplied, onClose }: Syst
           disabled={busy}
           onClick={() => void handleConfirm()}
         >
-          ✅ 确认生成
+          {t('systemConfirm.confirm')}
         </button>
         <button type="button" className="btn" data-testid="sys-cancel" disabled={busy} onClick={onClose}>
-          取消
+          {t('systemConfirm.cancel')}
         </button>
       </div>
     </div>

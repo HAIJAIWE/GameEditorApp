@@ -772,7 +772,32 @@ export const zh = {
   'utilityPanels.dataDiff': '数据差异',
   'utilityPanels.dataDiffUi': '库内数据与策划书快照的差异对比',
   'utilityPanels.imageGen': 'AI 生图',
-  'utilityPanels.imageGenUi': '按提示词生成美术参考图'
+  'utilityPanels.imageGenUi': '按提示词生成美术参考图',
+  // —— 通用组件：快速创建 / 系统确认 ——
+  'quickCreate.title': '快速创建',
+  'quickCreate.subtitle': '选模板后一键生成条目，字段值可再编辑',
+  'quickCreate.typeLabel': '数据类型',
+  'quickCreate.noType': '当前 schema 没有可套用模板的数据类型',
+  'quickCreate.noTemplates': '该类型暂无模板',
+  'quickCreate.previewTitle': '将按以下初始值创建',
+  'quickCreate.empty': '（空）',
+  'quickCreate.creating': '创建中…',
+  'quickCreate.create': '创建',
+  'quickCreate.created': '已按模板「{template}」创建{type}「{name}」',
+  'systemConfirm.title': '确认游戏系统 + 字段架构预览',
+  'systemConfirm.hint': '勾选启用你需要的游戏系统，可展开查看标准字段架构；也可新增自定义系统。确认后将写回策划书并注册对应数据结构。',
+  'systemConfirm.loading': '正在加载系统配置…',
+  'systemConfirm.customPlaceholder': '新增自定义系统名称（如 tower_defense）…',
+  'systemConfirm.add': '+ 添加',
+  'systemConfirm.confirm': '✅ 确认生成',
+  'systemConfirm.cancel': '取消',
+  'systemConfirm.exists': '系统「{name}」已存在',
+  'systemConfirm.customNote': '自定义系统',
+  'systemConfirm.customTag': '自定义',
+  'systemConfirm.expand': '展开字段架构',
+  'systemConfirm.collapse': '收起字段架构',
+  'systemConfirm.confirmed': '已确认游戏系统：启用 {count} 个{extra}',
+  'systemConfirm.confirmedExtra': '（新增自定义 {count} 个）'
 } as const
 
 /** 全部文案键（以中文表为准） */
@@ -1532,7 +1557,32 @@ export const en: Record<MessageKey, string> = {
   'utilityPanels.dataDiff': 'Data diff',
   'utilityPanels.dataDiffUi': 'Diff between library data and design doc snapshot',
   'utilityPanels.imageGen': 'AI image generation',
-  'utilityPanels.imageGenUi': 'Generate art reference images from prompts'
+  'utilityPanels.imageGenUi': 'Generate art reference images from prompts',
+  // —— Shared components: quick create / system confirm ——
+  'quickCreate.title': 'Quick create',
+  'quickCreate.subtitle': 'Pick a template to create an item in one click; field values stay editable',
+  'quickCreate.typeLabel': 'Data type',
+  'quickCreate.noType': 'The current schema has no data types with templates',
+  'quickCreate.noTemplates': 'No templates for this type',
+  'quickCreate.previewTitle': 'Will be created with these initial values',
+  'quickCreate.empty': '(empty)',
+  'quickCreate.creating': 'Creating…',
+  'quickCreate.create': 'Create',
+  'quickCreate.created': 'Created {type} "{name}" from template "{template}"',
+  'systemConfirm.title': 'Confirm game systems + field structure preview',
+  'systemConfirm.hint': 'Check the game systems you need and expand to view the standard field structure; you can also add custom systems. On confirm, it writes back to the design doc and registers the data structures.',
+  'systemConfirm.loading': 'Loading system config…',
+  'systemConfirm.customPlaceholder': 'New custom system name (e.g. tower_defense)…',
+  'systemConfirm.add': '+ Add',
+  'systemConfirm.confirm': '✅ Confirm',
+  'systemConfirm.cancel': 'Cancel',
+  'systemConfirm.exists': 'System "{name}" already exists',
+  'systemConfirm.customNote': 'Custom system',
+  'systemConfirm.customTag': 'Custom',
+  'systemConfirm.expand': 'Expand field structure',
+  'systemConfirm.collapse': 'Collapse field structure',
+  'systemConfirm.confirmed': 'Confirmed game systems: {count} enabled{extra}',
+  'systemConfirm.confirmedExtra': ' ({count} custom added)'
 }
 
 /** 按语言取表 */
