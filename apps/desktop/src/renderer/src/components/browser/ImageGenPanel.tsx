@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
+import type { MessageKey } from '@mobai/shared/i18n'
 import type { ImageGenConfig } from '@mobai/shared/config/llm'
 import { loadImageGenConfig, saveImageGenConfig } from '@mobai/shared/config/llm'
 import type { StoredImageGenConfig, StoredProvider } from '@mobai/shared/config/llm'
@@ -29,11 +31,11 @@ import { migrateLegacyApiKey, readLegacyImageGenApiKey } from '@mobai/shared/con
  * - 落盘目录由用户经原生对话框选择。
  */
 
-const PROVIDER_LABELS: Readonly<Record<StoredProvider, string>> = {
-  openai: 'OpenAI（dall-e-3）',
-  qwen: '通义千问（DashScope）',
-  doubao: '豆包（火山方舟 Ark）',
-  generic: '自定义兼容端点'
+const PROVIDER_LABELS: Readonly<Record<StoredProvider, MessageKey>> = {
+  openai: 'imageGen.provider.openai',
+  qwen: 'imageGen.provider.qwen',
+  doubao: 'imageGen.provider.doubao',
+  generic: 'imageGen.provider.generic'
 }
 
 interface ImageGenPanelProps {
@@ -41,6 +43,7 @@ interface ImageGenPanelProps {
 }
 
 export default function ImageGenPanel({ onClose }: ImageGenPanelProps) {
+  const t = useT()
   // 挂载时读一次持久化配置（不含 apiKey）
   const [config, setConfig] = useState<StoredImageGenConfig>(() => loadImageGenConfig())
   const [prompt, setPrompt] = useState('')
@@ -81,9 +84,9 @@ export default function ImageGenPanel({ onClose }: ImageGenPanelProps) {
       )
       if (cancelled) return
       if (migration.migrated) {
-        setStatus('已将旧版本保存在本地的 API Key 迁移到系统钥匙串，并清除了本地明文')
+        setStatus(t('imageGen.migrated'))
       } else if (migration.reason === 'secret-write-failed' || migration.reason === 'invalid-legacy-key') {
-        setError(migration.error ?? '旧版 API Key 迁移失败，请重新输入并保存')
+        setError(migration.error ?? t('imageGen.migrateFailed'))
       }
       const has = await window.mbApi.settings.hasSecret({ name: SECRET_NAMES.imageGenApiKey })
       if (cancelled) return
@@ -104,7 +107,7 @@ export default function ImageGenPanel({ onClose }: ImageGenPanelProps) {
     setError(null)
     const plaintext = apiKeyDraft.trim()
     if (plaintext === '') {
-      setError('请先输入 API Key')
+      setError(t('imageGen.needApiKey'))
       return
     }
     setBusy(true)
@@ -117,9 +120,9 @@ export default function ImageGenPanel({ onClose }: ImageGenPanelProps) {
         // 明文即刻从内存清掉，不留在任何 state / 存储里
         setApiKeyDraft('')
         setHasSecret(true)
-        setStatus('API Key 已保存到系统钥匙串（主进程加密落盘，渲染层不再留存明文）')
+        setStatus(t('imageGen.apiKeySaved'))
       } else {
-        setError(res.error ?? '保存 API Key 失败')
+        setError(res.error ?? t('imageGen.apiKeySaveFailed'))
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -136,9 +139,9 @@ export default function ImageGenPanel({ onClose }: ImageGenPanelProps) {
       if (res.ok) {
         setApiKeyDraft('')
         setHasSecret(false)
-        setStatus('已删除钥匙串中的 API Key')
+        setStatus(t('imageGen.apiKeyDeleted'))
       } else {
-        setError(res.error ?? '删除 API Key 失败')
+        setError(res.error ?? t('imageGen.apiKeyDeleteFailed'))
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -155,7 +158,7 @@ export default function ImageGenPanel({ onClose }: ImageGenPanelProps) {
         return
       }
       setSaveDir(result.path)
-      setStatus(`保存目录：${result.path}`)
+      setStatus(t('imageGen.saveDirSet', { path: result.path }))
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     }
@@ -168,7 +171,7 @@ export default function ImageGenPanel({ onClose }: ImageGenPanelProps) {
 
     const promptText = prompt.trim()
     if (promptText === '') {
-      setError('请先填写图片描述')
+      setError(t('imageGen.needPrompt'))
       return
     }
     // 兜底再问一次钥匙串：用户可能刚在另一个窗口删过
@@ -180,12 +183,12 @@ export default function ImageGenPanel({ onClose }: ImageGenPanelProps) {
         configured = false
       }
       if (configured === false) {
-        setError('请先配置 API Key（在上方输入后点「保存到钥匙串」）')
+        setError(t('imageGen.needConfig'))
         return
       }
     }
     if (saveDir.trim() === '') {
-      setError('请先选择保存目录')
+      setError(t('imageGen.needDir'))
       return
     }
 
@@ -199,7 +202,7 @@ export default function ImageGenPanel({ onClose }: ImageGenPanelProps) {
     }
 
     setBusy(true)
-    setStatus('生成中…（云端 API 请求可能需要数十秒）')
+    setStatus(t('imageGen.generatingStatus'))
     try {
       const result = await window.mbApi.image.generate({
         config: request,
@@ -209,7 +212,7 @@ export default function ImageGenPanel({ onClose }: ImageGenPanelProps) {
       if (result.ok) {
         setPreviewUrl(result.url)
         setSavedPath(result.path)
-        setStatus(`已保存到：${result.path}`)
+        setStatus(t('imageGen.saved', { path: result.path }))
       } else {
         setStatus(null)
         setError(result.error)
@@ -223,24 +226,28 @@ export default function ImageGenPanel({ onClose }: ImageGenPanelProps) {
   }
 
   const secretStateLabel =
-    hasSecret === null ? '检查中…' : hasSecret ? '已配置（保存在系统钥匙串）' : '未配置'
+    hasSecret === null
+      ? t('imageGen.secret.checking')
+      : hasSecret
+        ? t('imageGen.secret.configured')
+        : t('imageGen.secret.unconfigured')
 
   return (
     <div className="editor" data-testid="image-gen-panel">
       <div className="editor-header">
         <div className="editor-title">
-          AI 生图
-          <small>调用云端图像 API 生成并落盘</small>
+          {t('imageGen.title')}
+          <small>{t('imageGen.subtitle')}</small>
         </div>
         <button type="button" className="btn slim" onClick={onClose}>
-          关闭
+          {t('common.close')}
         </button>
       </div>
 
       <div className="editor-body">
         <div className="form-row">
           <label className="form-label" htmlFor="image-gen-provider">
-            服务商
+            {t('imageGen.providerLabel')}
           </label>
           <select
             id="image-gen-provider"
@@ -251,7 +258,7 @@ export default function ImageGenPanel({ onClose }: ImageGenPanelProps) {
           >
             {(Object.keys(PROVIDER_LABELS) as StoredProvider[]).map((id) => (
               <option key={id} value={id}>
-                {PROVIDER_LABELS[id]}
+                {t(PROVIDER_LABELS[id])}
               </option>
             ))}
           </select>
@@ -267,11 +274,11 @@ export default function ImageGenPanel({ onClose }: ImageGenPanelProps) {
             data-testid="image-gen-apikey"
             type="password"
             value={apiKeyDraft}
-            placeholder="sk-…（保存到系统钥匙串，保存后本框会被清空）"
+            placeholder={t('imageGen.apiKeyPlaceholder')}
             onChange={(e) => setApiKeyDraft(e.target.value)}
           />
           <span className="form-hint" data-testid="image-gen-secret-state">
-            钥匙串状态：{secretStateLabel}
+            {t('imageGen.secretState', { state: secretStateLabel })}
           </span>
         </div>
 
@@ -283,7 +290,7 @@ export default function ImageGenPanel({ onClose }: ImageGenPanelProps) {
             disabled={busy}
             onClick={() => void handleSaveApiKey()}
           >
-            保存到钥匙串
+            {t('imageGen.saveApiKey')}
           </button>
           <button
             type="button"
@@ -292,20 +299,20 @@ export default function ImageGenPanel({ onClose }: ImageGenPanelProps) {
             disabled={busy || hasSecret !== true}
             onClick={() => void handleDeleteApiKey()}
           >
-            清除钥匙串中的 Key
+            {t('imageGen.clearApiKey')}
           </button>
         </div>
 
         <div className="form-row">
           <label className="form-label" htmlFor="image-gen-model">
-            模型（可选）
+            {t('imageGen.modelLabel')}
           </label>
           <input
             id="image-gen-model"
             className="form-input"
             data-testid="image-gen-model"
             value={config.model}
-            placeholder="留空则用服务商默认模型"
+            placeholder={t('imageGen.modelPlaceholder')}
             onChange={(e) => update('model', e.target.value)}
           />
         </div>
@@ -328,7 +335,7 @@ export default function ImageGenPanel({ onClose }: ImageGenPanelProps) {
 
         <div className="form-row">
           <label className="form-label" htmlFor="image-gen-prompt">
-            图片描述
+            {t('imageGen.promptLabel')}
           </label>
           <textarea
             id="image-gen-prompt"
@@ -336,7 +343,7 @@ export default function ImageGenPanel({ onClose }: ImageGenPanelProps) {
             data-testid="image-gen-prompt"
             rows={4}
             value={prompt}
-            placeholder="越具体越好：主体 / 服装 / 姿势 / 背景 / 光线 / 视角"
+            placeholder={t('imageGen.promptPlaceholder')}
             onChange={(e) => setPrompt(e.target.value)}
           />
         </div>
@@ -349,7 +356,7 @@ export default function ImageGenPanel({ onClose }: ImageGenPanelProps) {
             disabled={busy}
             onClick={() => void handleChooseDir()}
           >
-            选择保存目录
+            {t('imageGen.chooseDir')}
           </button>
           <button
             type="button"
@@ -358,7 +365,7 @@ export default function ImageGenPanel({ onClose }: ImageGenPanelProps) {
             disabled={busy}
             onClick={() => void handleGenerate()}
           >
-            {busy ? '生成中…' : '生成图片'}
+            {busy ? t('imageGen.generating') : t('imageGen.generate')}
           </button>
         </div>
 
@@ -379,7 +386,7 @@ export default function ImageGenPanel({ onClose }: ImageGenPanelProps) {
               className="image-gen-preview"
               data-testid="image-gen-preview"
               src={previewUrl}
-              alt="生成的图片预览"
+              alt={t('imageGen.previewAlt')}
             />
           </div>
         )}
