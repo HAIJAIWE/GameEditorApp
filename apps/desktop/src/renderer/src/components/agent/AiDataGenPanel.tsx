@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
 import {
   DATA_GEN_DEFAULT_COUNT,
   DATA_GEN_MAX_COUNT,
@@ -41,6 +42,7 @@ export default function AiDataGenPanel({
   initialInstruction,
   onClose
 }: AiDataGenPanelProps) {
+  const t = useT()
   const stopIntent = useStopIntent()
   const [types, setTypes] = useState<DataTypeDef[]>([])
   const [checkedTypeIds, setCheckedTypeIds] = useState<string[]>([])
@@ -134,7 +136,7 @@ export default function AiDataGenPanel({
       setQuality(null)
       // 用户点了停止 ⇒ 预期结果，按提示展示；不是故障
       if (stopIntent.wasStopped()) {
-        setNotice('已停止本次生成（未产生候选数据，可重新生成）')
+        setNotice(t('aiDataGen.stopped'))
         return
       }
       setError(toErrorMessage(err))
@@ -175,7 +177,7 @@ export default function AiDataGenPanel({
       })
     }
     if (rows.length === 0) {
-      setError('请先在预览中勾选要导入的条目。')
+      setError(t('aiDataGen.noChecked'))
       return
     }
     setImporting(true)
@@ -192,11 +194,15 @@ export default function AiDataGenPanel({
           await window.mbApi.data.createItem({ type: row.type, data: row.data, aiGeneratedAt })
           imported += 1
         } catch (err) {
-          failures.push(`${String(row.data['name'] ?? '未命名')}: ${toErrorMessage(err)}`)
+          failures.push(`${String(row.data['name'] ?? t('aiDataGen.unnamed'))}: ${toErrorMessage(err)}`)
         }
       }
-      const message = `已导入 ${imported} 条数据。`
-      setNotice(failures.length > 0 ? `${message}\n${failures.length} 条失败（如 ${failures[0]}）` : message)
+      const message = t('aiDataGen.imported', { n: imported })
+      setNotice(
+        failures.length > 0
+          ? t('aiDataGen.importFailed', { message, n: failures.length, example: failures[0] })
+          : message
+      )
     } finally {
       setImporting(false)
     }
@@ -205,17 +211,15 @@ export default function AiDataGenPanel({
   return (
     <div className="changelog-panel" data-testid="datagen-panel">
       <div className="changelog-header">
-        <span className="chapter-form-title">🤖 AI 数据生成（候选 + 人工审批）</span>
+        <span className="chapter-form-title">{t('aiDataGen.title')}</span>
         <div className="editor-actions">
           <button type="button" className="btn" data-testid="datagen-close" onClick={onClose}>
-            关闭
+            {t('common.close')}
           </button>
         </div>
       </div>
 
-      <div className="item-meta">
-        根据当前策划书的数值/系统章设定，AI 生成候选游戏数据；下方预览中人工勾选后才会导入数据表。
-      </div>
+      <div className="item-meta">{t('aiDataGen.hint')}</div>
 
       {error && (
         <div className="form-error" data-testid="datagen-error">
@@ -230,7 +234,7 @@ export default function AiDataGenPanel({
       {/* v0.5 DD-19（数据半边）：候选的确定性质量门结论 —— 数量约束（硬）+ 平衡性（建议） */}
       {quality && (
         <div className="datagen-quality" data-testid="datagen-quality">
-          <p className="datagen-quality-title">质量门：{quality.summary}</p>
+          <p className="datagen-quality-title">{t('aiDataGen.qualityGate', { summary: quality.summary })}</p>
           {quality.issues.length > 0 && (
             <ul className="datagen-quality-issues">
               {quality.issues.map((issue, index) => (
@@ -252,7 +256,7 @@ export default function AiDataGenPanel({
         return (
           <div className="datagen-cost" data-testid="datagen-cost">
             <span className="datagen-cost-label">
-              本次花费 {result.usage.totalTokens} token（预算 {budget}）
+              {t('aiDataGen.cost', { tokens: result.usage.totalTokens, budget })}
             </span>
             <div className="budget-bar">
               <div
@@ -265,7 +269,7 @@ export default function AiDataGenPanel({
       })()}
 
       <div className="datagen-types" data-testid="datagen-types">
-        <span className="form-label">生成的数据类型</span>
+        <span className="form-label">{t('aiDataGen.typesLabel')}</span>
         <div className="datagen-type-grid">
           {types.map((type) => (
             <label className="check-option" key={type.id}>
@@ -286,7 +290,7 @@ export default function AiDataGenPanel({
       </div>
 
       <div className="template-save-row">
-        <span className="form-label">每类数量</span>
+        <span className="form-label">{t('aiDataGen.countLabel')}</span>
         <input
           className="form-input datagen-count"
           data-testid="datagen-count"
@@ -296,11 +300,11 @@ export default function AiDataGenPanel({
           value={count}
           onChange={(event) => setCount(Number(event.target.value))}
         />
-        <span className="form-label">补充要求</span>
+        <span className="form-label">{t('aiDataGen.instructionLabel')}</span>
         <input
           className="form-input"
           data-testid="datagen-instruction"
-          placeholder="可选，如：全部为 1-10 级新手内容，技能带冷却时间"
+          placeholder={t('aiDataGen.instructionPlaceholder')}
           value={instruction}
           onChange={(event) => setInstruction(event.target.value)}
         />
@@ -311,17 +315,17 @@ export default function AiDataGenPanel({
           disabled={busy}
           onClick={() => void handleGenerate()}
         >
-          {busy ? '生成中…' : '生成候选'}
+          {busy ? t('aiDataGen.generating') : t('aiDataGen.generate')}
         </button>
         {busy && (
           <button type="button" className="btn" data-testid="datagen-stop" onClick={stopIntent.markStop}>
-            停止
+            {t('aiDataGen.stop')}
           </button>
         )}
         {confirming && (
           <div className="form-row" data-testid="datagen-confirm">
             <span className="form-label">
-              将调用云端模型生成 {count} 条候选（超过 {LLM_BULK_COUNT_THRESHOLD} 条），token 消耗较高，确认生成？
+              {t('aiDataGen.confirmPrompt', { count, threshold: LLM_BULK_COUNT_THRESHOLD })}
             </span>
             <button
               type="button"
@@ -330,7 +334,7 @@ export default function AiDataGenPanel({
               disabled={busy}
               onClick={() => void handleGenerate()}
             >
-              确认生成
+              {t('aiDataGen.confirmGenerate')}
             </button>
             <button
               type="button"
@@ -338,7 +342,7 @@ export default function AiDataGenPanel({
               data-testid="datagen-confirm-no"
               onClick={() => setConfirming(false)}
             >
-              取消
+              {t('aiDataGen.cancel')}
             </button>
           </div>
         )}
@@ -346,7 +350,7 @@ export default function AiDataGenPanel({
 
       {!result ? (
         <div className="empty" data-testid="datagen-status">
-          尚未生成。选择类型后点击「生成候选」开始。
+          {t('aiDataGen.emptyStatus')}
         </div>
       ) : (
         <>
@@ -359,18 +363,18 @@ export default function AiDataGenPanel({
                 data-testid="datagen-tab"
                 onClick={() => setActiveTab(key)}
               >
-                {key}（{(result.candidates[key] ?? []).length}）
+                {t('aiDataGen.tabCount', { name: key, count: (result.candidates[key] ?? []).length })}
               </button>
             ))}
             <span className="item-meta" data-testid="datagen-status">
               {result.summary}
-              {result.model ? `（模型 ${result.model}）` : ''}
+              {result.model ? t('aiDataGen.modelSuffix', { model: result.model }) : ''}
             </span>
           </div>
 
           <div className="datagen-list" data-testid="datagen-list">
             {activeItems.length === 0 ? (
-              <div className="empty">该分类暂无候选</div>
+              <div className="empty">{t('aiDataGen.noCandidates')}</div>
             ) : (
               activeItems.map((item, index) => (
                 <label className="check-option datagen-item" key={`${activeTab}-${index}`}>
@@ -394,10 +398,10 @@ export default function AiDataGenPanel({
 
           <div className="editor-actions">
             <button type="button" className="btn" data-testid="datagen-select-all" onClick={handleToggleSelectAll}>
-              全选 / 取消全选
+              {t('aiDataGen.selectAll')}
             </button>
             <span className="item-meta" data-testid="datagen-checked-count">
-              已勾选 {checkedCount} 条
+              {t('aiDataGen.checkedCount', { n: checkedCount })}
             </span>
             <button
               type="button"
@@ -406,7 +410,7 @@ export default function AiDataGenPanel({
               disabled={importing || checkedCount === 0}
               onClick={() => void handleImport()}
             >
-              {importing ? '导入中…' : `导入勾选（${checkedCount}）`}
+              {importing ? t('aiDataGen.importing') : t('aiDataGen.import', { n: checkedCount })}
             </button>
           </div>
 
@@ -414,7 +418,11 @@ export default function AiDataGenPanel({
           {importConfirming && (
             <div className="form-row" data-testid="datagen-import-confirm">
               <span className="form-label">
-                质量门检出 {quality?.issues.length ?? 0} 处问题（如：{quality?.issues[0]?.message}），仍要导入勾选的 {checkedCount} 条？
+                {t('aiDataGen.importConfirm', {
+                  issues: quality?.issues.length ?? 0,
+                  example: quality?.issues[0]?.message ?? '',
+                  count: checkedCount
+                })}
               </span>
               <button
                 type="button"
@@ -423,7 +431,7 @@ export default function AiDataGenPanel({
                 disabled={importing}
                 onClick={() => void handleImport()}
               >
-                仍要导入
+                {t('aiDataGen.importConfirmYes')}
               </button>
               <button
                 type="button"
@@ -431,7 +439,7 @@ export default function AiDataGenPanel({
                 data-testid="datagen-import-confirm-no"
                 onClick={() => setImportConfirming(false)}
               >
-                取消
+                {t('aiDataGen.cancel')}
               </button>
             </div>
           )}
