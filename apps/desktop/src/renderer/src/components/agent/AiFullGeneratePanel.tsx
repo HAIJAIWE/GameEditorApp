@@ -1,5 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
+import type { MessageKey } from '@mobai/shared/i18n'
 import {
   CHAPTER_LABELS,
   GDD_SCOPE_FULL,
@@ -32,11 +34,11 @@ import { readText } from '@mobai/shared/util/io'
 
 type ChapterStatus = 'pending' | 'running' | 'done' | 'failed'
 
-const STATUS_LABELS: Record<ChapterStatus, string> = {
-  pending: '待生成',
-  running: '生成中',
-  done: '已完成',
-  failed: '失败'
+const STATUS_LABELS: Record<ChapterStatus, MessageKey> = {
+  pending: 'aiFull.status.pending',
+  running: 'aiFull.status.running',
+  done: 'aiFull.status.done',
+  failed: 'aiFull.status.failed'
 }
 
 interface AiFullGeneratePanelProps {
@@ -51,12 +53,13 @@ interface AiFullGeneratePanelProps {
 }
 
 export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }: AiFullGeneratePanelProps) {
+  const t = useT()
   const [gameName, setGameName] = useState(() => readText(doc.meta.game_name))
   const [gameType, setGameType] = useState(() => {
     const value = readText(doc.meta.game_type)
     return FULL_GEN_GAME_TYPES.includes(value) ? value : 'RPG'
   })
-  const [style, setStyle] = useState('仙侠')
+  const [style, setStyle] = useState(() => FULL_GEN_STYLES[0] ?? '')
   const [businessModel, setBusinessModel] = useState('F2P')
   const [references, setReferences] = useState('')
   const [platforms, setPlatforms] = useState<string[]>(['PC'])
@@ -123,7 +126,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
           confirmed: true
         })
         if (Object.keys(response.fields).length === 0) {
-          throw new Error('AI 未返回有效内容')
+          throw new Error(t('aiFull.errNoContent'))
         }
         draftResults[chapter] = response.fields
         // v1.0 DD-19 剩余项：收集每章 judge（确定性门已含在 response.quality，judge 是其辅助维度）
@@ -149,7 +152,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
         failed++
         if (succeeded === 0) {
           // 首章即失败：大概率本地模型服务不可用，不再逐个重试后续章节
-          setSummary(`生成中断：${message}`)
+          setSummary(t('aiFull.summaryInterrupted', { message }))
           setRunning(false)
           return
         }
@@ -157,13 +160,18 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
     }
     setRunning(false)
     if (stopRef.current) {
-      setSummary(`已停止生成：本次完成 ${succeeded} 章${failed > 0 ? `，失败 ${failed} 章` : ''}`)
+      setSummary(
+        t('aiFull.summaryStopped', {
+          succeeded,
+          extra: failed > 0 ? t('aiFull.summaryStoppedFailed', { count: failed }) : ''
+        })
+      )
       return
     }
     if (failed > 0) {
-      setSummary(`本次完成 ${succeeded} 章，失败 ${failed} 章；可点「重试失败章节」补齐，或直接「全部应用并保存」。`)
+      setSummary(t('aiFull.summaryFailed', { succeeded, failed }))
     } else {
-      setSummary(`本次完成 ${succeeded} 章，可点「全部应用并保存」写入当前策划书。`)
+      setSummary(t('aiFull.summaryDone', { succeeded }))
     }
   }
 
@@ -175,7 +183,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
   const handleStart = async (): Promise<void> => {
     setPanelError(null)
     if (!description.trim()) {
-      setPanelError('请填写简要描述，便于 AI 生成有针对性的内容。')
+      setPanelError(t('aiFull.errNoDesc'))
       return
     }
     if (!confirming) {
@@ -229,7 +237,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
       resultsRef.current = {}
       setResults({})
       setStatuses({})
-      setSummary(`已应用并保存 ${chapters.length} 章到当前策划书。`)
+      setSummary(t('aiFull.applied', { count: chapters.length }))
       onApplied(updated, chapters)
     } catch (error) {
       setPanelError(toErrorMessage(error))
@@ -245,25 +253,25 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
   return (
     <div className="changelog-panel" data-testid="ai-full-panel">
       <div className="changelog-header">
-        <span className="chapter-form-title">AI 一键生成完整策划书</span>
+        <span className="chapter-form-title">{t('aiFull.title')}</span>
         <button type="button" className="btn" data-testid="ai-full-close" disabled={locked} onClick={onClose}>
-          关闭
+          {t('common.close')}
         </button>
       </div>
 
       <div className="changelog-entry">
-        <div className="form-label">项目信息（填写简要描述，AI 将按依赖顺序逐章生成）</div>
+        <div className="form-label">{t('aiFull.projectInfo')}</div>
         <div className="ai-gen-row">
-          <span className="form-label">游戏名称</span>
+          <span className="form-label">{t('aiFull.gameName')}</span>
           <input
             className="form-input"
             data-testid="ai-full-name"
             value={gameName}
             disabled={locked}
-            placeholder="如：星河战记"
+            placeholder={t('aiFull.namePlaceholder')}
             onChange={(event) => setGameName(event.target.value)}
           />
-          <span className="form-label">游戏类型</span>
+          <span className="form-label">{t('aiFull.gameType')}</span>
           <select
             className="form-select"
             data-testid="ai-full-type"
@@ -279,7 +287,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
           </select>
         </div>
         <div className="ai-gen-row">
-          <span className="form-label">风格</span>
+          <span className="form-label">{t('aiFull.style')}</span>
           <select
             className="form-select"
             data-testid="ai-full-style"
@@ -293,7 +301,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
               </option>
             ))}
           </select>
-          <span className="form-label">商业模式</span>
+          <span className="form-label">{t('aiFull.businessModel')}</span>
           <select
             className="form-select"
             data-testid="ai-full-biz"
@@ -309,18 +317,18 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
           </select>
         </div>
         <div className="ai-gen-row">
-          <span className="form-label">参考游戏</span>
+          <span className="form-label">{t('aiFull.references')}</span>
           <input
             className="form-input"
             data-testid="ai-full-refs"
             value={references}
             disabled={locked}
-            placeholder="可选，逗号分隔，如：原神, 艾尔登法环"
+            placeholder={t('aiFull.refsPlaceholder')}
             onChange={(event) => setReferences(event.target.value)}
           />
         </div>
         <div className="ai-gen-row">
-          <span className="form-label">目标平台</span>
+          <span className="form-label">{t('aiFull.platforms')}</span>
           {FULL_GEN_PLATFORMS.map((platform) => (
             <label className="ai-gen-check" key={platform}>
               <input
@@ -335,21 +343,21 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
           ))}
         </div>
         <div className="ai-gen-block">
-          <span className="form-label">简要描述（3-5 句话描述游戏概念）</span>
+          <span className="form-label">{t('aiFull.descLabel')}</span>
           <textarea
             className="form-input"
             data-testid="ai-full-desc"
             rows={4}
             value={description}
             disabled={locked}
-            placeholder="例：一款仙侠题材的开放世界 RPG，玩家扮演修真者探索三界，通过修炼境界、收集法宝对抗魔族入侵。"
+            placeholder={t('aiFull.descPlaceholder')}
             onChange={(event) => setDescription(event.target.value)}
           />
         </div>
       </div>
 
       <div className="changelog-entry">
-        <div className="form-label">生成范围</div>
+        <div className="form-label">{t('aiFull.scope')}</div>
         <div className="ai-gen-row">
           <label className="ai-gen-check">
             <input
@@ -360,7 +368,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
               disabled={locked}
               onChange={() => setScope(GDD_SCOPE_LITE)}
             />
-            标准版（文档信息 + {contentChapterCount(GDD_SCOPE_LITE)} 章）
+            {t('aiFull.scopeLite', { count: contentChapterCount(GDD_SCOPE_LITE) })}
           </label>
           <label className="ai-gen-check">
             <input
@@ -371,7 +379,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
               disabled={locked}
               onChange={() => setScope(GDD_SCOPE_FULL)}
             />
-            专业版（文档信息 + {contentChapterCount(GDD_SCOPE_FULL)} 章）
+            {t('aiFull.scopeFull', { count: contentChapterCount(GDD_SCOPE_FULL) })}
           </label>
           <label className="ai-gen-check">
             <input
@@ -381,7 +389,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
               disabled={locked || scope === GDD_SCOPE_LITE}
               onChange={(event) => setIncludeMarket(event.target.checked)}
             />
-            含市场分析
+            {t('aiFull.includeMarket')}
           </label>
           <label className="ai-gen-check">
             <input
@@ -391,27 +399,27 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
               disabled={locked || scope === GDD_SCOPE_LITE}
               onChange={(event) => setIncludeRisk(event.target.checked)}
             />
-            含风险评估
+            {t('aiFull.includeRisk')}
           </label>
         </div>
       </div>
 
       <div className="changelog-entry">
-        <div className="form-label">生成进度（共 {plan.order.length} 章，按依赖顺序生成）</div>
+        <div className="form-label">{t('aiFull.progress', { count: plan.order.length })}</div>
         <div data-testid="ai-full-progress">
           {plan.order.map((chapter) => {
             const status = statuses[chapter] ?? 'pending'
             return (
               <div className={`ai-gen-status ${status}`} key={chapter} data-testid={`ai-full-status-${chapter}`}>
                 <span className="ai-gen-status-label">{CHAPTER_LABELS[chapter]}</span>
-                <span className={`ai-gen-status-value ${status}`}>{STATUS_LABELS[status]}</span>
+                <span className={`ai-gen-status-value ${status}`}>{t(STATUS_LABELS[status])}</span>
                 {status === 'done' && judges[chapter] && (
                   <span
                     className={`ai-full-judge-badge ${judges[chapter]!.toxicity}`}
                     data-testid={`ai-full-judge-${chapter}`}
                   >
-                    judge：{judges[chapter]!.toxicity === 'flagged' ? '⚠合规风险' : '合规'}
-                    {judges[chapter]!.score > 0 ? ` / ${judges[chapter]!.score}分` : ''}
+                    {t(judges[chapter]!.toxicity === 'flagged' ? 'aiFull.judgeFlagged' : 'aiFull.judgeOk')}
+                    {judges[chapter]!.score > 0 ? t('aiFull.judgeScore', { score: judges[chapter]!.score }) : ''}
                   </span>
                 )}
                 {errors[chapter] && <span className="ai-gen-status-error">{errors[chapter]}</span>}
@@ -425,7 +433,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
         {confirming && (
           <div className="form-row" data-testid="ai-full-confirm">
             <span className="form-label">
-              整篇生成将连续调用 {plan.order.length} 次云端模型，耗时较长且 token 消耗较高，确认开始？
+              {t('aiFull.confirmPrompt', { count: plan.order.length })}
             </span>
             <button
               type="button"
@@ -434,7 +442,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
               disabled={locked}
               onClick={() => void handleStart()}
             >
-              确认生成
+              {t('aiFull.confirmGenerate')}
             </button>
             <button
               type="button"
@@ -442,7 +450,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
               data-testid="ai-full-confirm-no"
               onClick={() => setConfirming(false)}
             >
-              取消
+              {t('aiFull.cancel')}
             </button>
           </div>
         )}
@@ -453,7 +461,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
           disabled={locked}
           onClick={() => void handleStart()}
         >
-          开始生成
+          {t('aiFull.start')}
         </button>
         {running && (
           <button
@@ -467,7 +475,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
               void window.mbApi.task.cancel({})
             }}
           >
-            停止
+            {t('aiFull.stop')}
           </button>
         )}
         <button
@@ -477,7 +485,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
           disabled={locked || failedChapters.length === 0}
           onClick={() => void handleRetry()}
         >
-          重试失败章节
+          {t('aiFull.retry')}
         </button>
         <button
           type="button"
@@ -486,7 +494,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
           disabled={locked || appliedCount === 0}
           onClick={() => void handleApply()}
         >
-          全部应用并保存
+          {t('aiFull.apply')}
         </button>
       </div>
 
@@ -507,7 +515,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
         return (
           <div className="datagen-cost" data-testid="ai-full-cost">
             <span className="datagen-cost-label">
-              本次花费 {usageTotal} token（预算 {budget}）
+              {t('aiFull.cost', { tokens: usageTotal, budget })}
             </span>
             <div className="budget-bar">
               <div
@@ -529,7 +537,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
           return (
             <div className="ai-full-judge" data-testid="ai-full-judge">
               <span className="ai-full-judge-note">
-                本次 {entries.length} 章均未获得 judge 评审（评审调用失败/降级），不影响主生成。
+                {t('aiFull.judgeNote', { count: entries.length })}
               </span>
             </div>
           )
@@ -544,15 +552,20 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
           .map((chapter) => CHAPTER_LABELS[chapter])
         return (
           <div className="ai-full-judge" data-testid="ai-full-judge">
-            <div className="ai-full-judge-head">AI 辅助评审（judge · 仅供参考，不覆盖确定性质量门）</div>
+            <div className="ai-full-judge-head">{t('aiFull.judgeHead')}</div>
             {flaggedChapters.length > 0 && (
               <div className="ai-full-judge-warn">
-                ⚠️ {flaggedChapters.length} 章被判存在合规风险：{flaggedChapters.join('、')}，建议人工复核后再发布
+                {t('aiFull.judgeWarn', { count: flaggedChapters.length, chapters: flaggedChapters.join('、') })}
               </div>
             )}
             <div className="ai-full-judge-stats">
-              可读性均值 {avgReadability}/10 · 创意均值 {avgCreativity}/10 · 已评审 {judged.length}/{entries.length} 章
-              {unjudged > 0 ? `（${unjudged} 章未获评审）` : ''}
+              {t('aiFull.judgeStats', {
+                readability: avgReadability,
+                creativity: avgCreativity,
+                judged: judged.length,
+                total: entries.length
+              })}
+              {unjudged > 0 ? t('aiFull.judgeUnjudged', { count: unjudged }) : ''}
             </div>
           </div>
         )
