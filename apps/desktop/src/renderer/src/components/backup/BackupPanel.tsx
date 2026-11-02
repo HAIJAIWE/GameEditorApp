@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
 import type { BackupEntry, RestoreOutcome } from '@mobai/shared/util/io'
 
 /**
@@ -30,6 +31,7 @@ function formatTime(iso: string): string {
 }
 
 export default function BackupPanel({ onRestored, onClose }: BackupPanelProps) {
+  const t = useT()
   const [entries, setEntries] = useState<BackupEntry[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
@@ -68,7 +70,7 @@ export default function BackupPanel({ onRestored, onClose }: BackupPanelProps) {
       const trimmed = label.trim()
       const entry = await window.mbApi.backup.create(trimmed === '' ? {} : { label: trimmed })
       setLabel('')
-      setNotice(`已创建备份：${entry.name}（${formatSize(entry.sizeBytes)}）`)
+      setNotice(t('backup.created', { name: entry.name, size: formatSize(entry.sizeBytes) }))
       await reload()
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -85,12 +87,15 @@ export default function BackupPanel({ onRestored, onClose }: BackupPanelProps) {
       const outcome: RestoreOutcome = await window.mbApi.backup.restore({ name, confirm: true })
       if (outcome.restored) {
         setNotice(
-          `已从 ${name} 恢复 ${outcome.totalItems} 条数据` +
-            (outcome.preBackup === null ? '' : `；恢复前已自动备份为 ${outcome.preBackup}`)
+          t('backup.restored', {
+            name,
+            count: outcome.totalItems,
+            extra: outcome.preBackup === null ? '' : t('backup.restoredExtra', { path: outcome.preBackup })
+          })
         )
         onRestored()
       } else {
-        setError(`恢复失败：${outcome.error ?? '未知原因'}`)
+        setError(t('backup.restoreFailed', { reason: outcome.error ?? t('backup.unknownReason') }))
       }
       await reload()
     } catch (err) {
@@ -106,7 +111,7 @@ export default function BackupPanel({ onRestored, onClose }: BackupPanelProps) {
     setNotice(null)
     try {
       await window.mbApi.backup.remove({ name, confirm: true })
-      setNotice(`已删除备份：${name}（软删除，文件改名为 .deleted）`)
+      setNotice(t('backup.deleted', { name }))
       await reload()
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -119,22 +124,22 @@ export default function BackupPanel({ onRestored, onClose }: BackupPanelProps) {
     <div className="editor" data-testid="backup-panel">
       <div className="editor-header">
         <div className="editor-title">
-          数据备份
-          <small>整个活跃库的快照</small>
+          {t('backup.title')}
+          <small>{t('backup.subtitle')}</small>
         </div>
       </div>
 
       <div className="editor-body">
         <div className="form-row">
           <label className="form-label" htmlFor="backup-label">
-            备份标签（可选）
+            {t('backup.labelLabel')}
           </label>
           <input
             id="backup-label"
             className="form-input"
             data-testid="backup-label"
             value={label}
-            placeholder="如 before-balance；留空则只用时间戳"
+            placeholder={t('backup.labelPlaceholder')}
             disabled={busy}
             onChange={(event) => setLabel(event.target.value)}
           />
@@ -147,7 +152,7 @@ export default function BackupPanel({ onRestored, onClose }: BackupPanelProps) {
           disabled={busy}
           onClick={() => void handleCreate()}
         >
-          创建备份
+          {t('backup.create')}
         </button>
 
         {error !== null && <div className="error-banner">{error}</div>}
@@ -161,8 +166,8 @@ export default function BackupPanel({ onRestored, onClose }: BackupPanelProps) {
           <div className="form-row" data-testid="backup-confirm">
             <span className="form-label">
               {pending.action === 'restore'
-                ? `确认用 ${pending.name} 覆盖当前数据？会先自动备份当前状态。`
-                : `确认删除 ${pending.name}？`}
+                ? t('backup.confirmRestore', { name: pending.name })
+                : t('backup.confirmDelete', { name: pending.name })}
             </span>
             <button
               type="button"
@@ -173,7 +178,7 @@ export default function BackupPanel({ onRestored, onClose }: BackupPanelProps) {
                 void (pending.action === 'restore' ? handleRestore(pending.name) : handleDelete(pending.name))
               }
             >
-              {pending.action === 'restore' ? '确认恢复' : '确认删除'}
+              {pending.action === 'restore' ? t('backup.confirmRestoreBtn') : t('backup.confirmDeleteBtn')}
             </button>
             <button
               type="button"
@@ -182,15 +187,15 @@ export default function BackupPanel({ onRestored, onClose }: BackupPanelProps) {
               disabled={busy}
               onClick={() => setPending(null)}
             >
-              取消
+              {t('backup.cancel')}
             </button>
           </div>
         )}
 
-        {entries === null && error === null && <div className="empty">正在读取备份列表…</div>}
+        {entries === null && error === null && <div className="empty">{t('backup.loading')}</div>}
         {entries !== null && entries.length === 0 && (
           <div className="empty" data-testid="backup-empty">
-            暂无备份，点击「创建备份」
+            {t('backup.empty')}
           </div>
         )}
 
@@ -209,7 +214,7 @@ export default function BackupPanel({ onRestored, onClose }: BackupPanelProps) {
                   disabled={busy}
                   onClick={() => setPending({ action: 'restore', name: entry.name })}
                 >
-                  恢复
+                  {t('backup.restore')}
                 </button>
                 <button
                   type="button"
@@ -218,7 +223,7 @@ export default function BackupPanel({ onRestored, onClose }: BackupPanelProps) {
                   disabled={busy}
                   onClick={() => setPending({ action: 'delete', name: entry.name })}
                 >
-                  删除
+                  {t('backup.delete')}
                 </button>
               </span>
             </div>
@@ -227,7 +232,7 @@ export default function BackupPanel({ onRestored, onClose }: BackupPanelProps) {
 
       <div className="editor-actions">
         <button type="button" className="btn" onClick={onClose}>
-          关闭
+          {t('common.close')}
         </button>
       </div>
     </div>

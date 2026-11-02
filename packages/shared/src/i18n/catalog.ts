@@ -1083,7 +1083,28 @@ export const zh = {
   'clearAll.confirmPrompt': '确认清空 {total} 条数据？',
   'clearAll.confirm': '确认清空',
   'clearAll.cancel': '取消',
-  'clearAll.start': '清空所有数据…'
+  'clearAll.start': '清空所有数据…',
+  // —— 通用组件：数据备份 ——
+  'backup.title': '数据备份',
+  'backup.subtitle': '整个活跃库的快照',
+  'backup.labelLabel': '备份标签（可选）',
+  'backup.labelPlaceholder': '如 before-balance；留空则只用时间戳',
+  'backup.create': '创建备份',
+  'backup.created': '已创建备份：{name}（{size}）',
+  'backup.restored': '已从 {name} 恢复 {count} 条数据{extra}',
+  'backup.restoredExtra': '；恢复前已自动备份为 {path}',
+  'backup.restoreFailed': '恢复失败：{reason}',
+  'backup.unknownReason': '未知原因',
+  'backup.deleted': '已删除备份：{name}（软删除，文件改名为 .deleted）',
+  'backup.confirmRestore': '确认用 {name} 覆盖当前数据？会先自动备份当前状态。',
+  'backup.confirmDelete': '确认删除 {name}？',
+  'backup.confirmRestoreBtn': '确认恢复',
+  'backup.confirmDeleteBtn': '确认删除',
+  'backup.cancel': '取消',
+  'backup.loading': '正在读取备份列表…',
+  'backup.empty': '暂无备份，点击「创建备份」',
+  'backup.restore': '恢复',
+  'backup.delete': '删除'
 } as const
 
 /** 全部文案键（以中文表为准） */
@@ -2154,7 +2175,28 @@ export const en: Record<MessageKey, string> = {
   'clearAll.confirmPrompt': 'Clear {total} items?',
   'clearAll.confirm': 'Clear',
   'clearAll.cancel': 'Cancel',
-  'clearAll.start': 'Clear all data…'
+  'clearAll.start': 'Clear all data…',
+  // —— Shared components: data backup ——
+  'backup.title': 'Data backup',
+  'backup.subtitle': 'Snapshot of the entire active library',
+  'backup.labelLabel': 'Backup label (optional)',
+  'backup.labelPlaceholder': 'e.g. before-balance; leave blank to use only a timestamp',
+  'backup.create': 'Create backup',
+  'backup.created': 'Backup created: {name} ({size})',
+  'backup.restored': 'Restored {count} items from {name}{extra}',
+  'backup.restoredExtra': '; current state was auto-backed up as {path} before restoring',
+  'backup.restoreFailed': 'Restore failed: {reason}',
+  'backup.unknownReason': 'unknown reason',
+  'backup.deleted': 'Backup deleted: {name} (soft delete, file renamed to .deleted)',
+  'backup.confirmRestore': 'Overwrite current data with {name}? Current state will be backed up first.',
+  'backup.confirmDelete': 'Delete {name}?',
+  'backup.confirmRestoreBtn': 'Confirm restore',
+  'backup.confirmDeleteBtn': 'Confirm delete',
+  'backup.cancel': 'Cancel',
+  'backup.loading': 'Reading backup list…',
+  'backup.empty': 'No backups yet; click "Create backup"',
+  'backup.restore': 'Restore',
+  'backup.delete': 'Delete'
 }
 
 /** 按语言取表 */
