@@ -47,6 +47,7 @@ export function renderCeshuNarrative(doc: CeshuDocument): string {
     renderHome(doc),
     renderWalkthrough(doc),
     renderArchitecture(doc),
+    renderVision(doc),
     renderMechanics(doc),
     renderNumeric(doc),
     renderMvp(doc),
@@ -98,6 +99,19 @@ function renderArchitecture(doc: CeshuDocument): string {
   const systems = renderSystemsTable(doc.systems)
   if (systems.length > 0) lines.push('', '### 游戏系统', '', ...systems)
   return lines.length > 1 ? lines.join('\n') : ''
+}
+
+function renderVision(doc: CeshuDocument): string {
+  // 首页已抽走的定位/画像/愿景/支柱不在此重复；这里补上 vision 章其余字段，
+  // 否则 differentiation / business_model / competitive_analysis 会被静默丢弃
+  const homeVision = new Set(
+    HOME_FIELDS.filter(([chapter]) => chapter === 'vision').map(([, field]) => field)
+  )
+  const entries = orderedFieldEntries('vision', doc.vision).filter(([field]) => !homeVision.has(field))
+  if (entries.length === 0) return ''
+  const lines = ['## 产品愿景']
+  for (const [field, value] of entries) lines.push('', ...renderField('vision', field, value))
+  return lines.join('\n')
 }
 
 function renderMechanics(doc: CeshuDocument): string {

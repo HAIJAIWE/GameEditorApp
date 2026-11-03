@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { renderCeshuMarkdown } from '../../src/main/ceshu/export/doc/markdown'
+import { renderCeshuMarkdown, renderCeshuDeliverableMarkdown } from '../../src/main/ceshu/export/doc/markdown'
+import { renderCeshuNarrative } from '../../src/main/ceshu/export/content/narrative'
 import { CHAPTER_KEYS, type CeshuDocument, type ChapterKey } from '@mobai/shared/ceshu/reference'
 import { CESHU_CHAPTER_FIELDS } from '@mobai/shared/ceshu/fields'
 import { createDefaultCeshu } from '@mobai/shared/ceshu/model'
@@ -78,5 +79,35 @@ describe('策划书导出：编辑器字段 ↔ 生成文档 对拍', () => {
 
     const markdown = renderCeshuMarkdown(doc)
     expect(markdown).not.toContain('**伤害公式**')
+  })
+
+  /**
+   * 把字段保全不变式从 markdown 扩到其余「整本文档」格式。
+   * narrative / deliverable 与 markdown 共用 `orderedFieldEntries` 全章渲染路径，
+   * 但仍可能被各自的选择性段落（narrative 的首页/走读/架构/机制段、deliverable 的摘要段）
+   * 漏掉字段——这里专门守住「非机读字段一个不漏」。
+   * 机读字段由 markdown 的「附录：验收与机读数据」单独覆盖，此处不重复（curated 格式本就只展子集）。
+   */
+  it('narrative：每个非机读 schema 字段都进文档（一个不漏）', () => {
+    const doc = createDefaultCeshu({ scope: 'full', name: 'narrative 对拍样本' })
+    const plan = fillEveryField(doc)
+    const out = renderCeshuNarrative(doc)
+    const missing = plan
+      .filter(({ chapter, key }) => !isMachineDataField(chapter, key))
+      .filter(({ chapter, key }) => out.indexOf(marker(chapter, key)) < 0)
+      .map(({ chapter, key }) => `${chapter}.${key}`)
+    // 失败时直接给出具体字段名
+    expect(missing).toEqual([])
+  })
+
+  it('deliverable：每个非机读 schema 字段都进文档（一个不漏）', () => {
+    const doc = createDefaultCeshu({ scope: 'full', name: 'deliverable 对拍样本' })
+    const plan = fillEveryField(doc)
+    const out = renderCeshuDeliverableMarkdown(doc)
+    const missing = plan
+      .filter(({ chapter, key }) => !isMachineDataField(chapter, key))
+      .filter(({ chapter, key }) => out.indexOf(marker(chapter, key)) < 0)
+      .map(({ chapter, key }) => `${chapter}.${key}`)
+    expect(missing).toEqual([])
   })
 })
