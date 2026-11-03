@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
+
 import { toErrorMessage } from '../appUtils'
 
 
@@ -33,6 +35,7 @@ export interface UseUndoRedo {
 }
 
 export function useUndoRedo(setNotice: (msg: string | null) => void, setError: (msg: string | null) => void): UseUndoRedo {
+  const t = useT()
   const [undoUi, setUndoUi] = useState<UndoUiState>({
     canUndo: false,
     canRedo: false,
@@ -60,16 +63,29 @@ export function useUndoRedo(setNotice: (msg: string | null) => void, setError: (
       const state = await window.mbApi.data.undoState()
       setUndoUi(state)
       const parts: string[] = []
-      if (result.applied > 0) parts.push(`已撤销 ${result.applied} 项`)
-      else if (result.failed.length === 0 && result.skipped.length === 0) parts.push('没有可撤销的操作')
-      if (result.failed.length > 0) parts.push(`${result.failed.length} 项失败：${result.failed.map((f) => f.name).join('、')}`)
+      if (result.applied > 0) parts.push(t('undo.applied', { n: result.applied }))
+      else if (result.failed.length === 0 && result.skipped.length === 0) parts.push(t('undo.nothing'))
+      if (result.failed.length > 0)
+        parts.push(
+          t('undo.failed', {
+            n: result.failed.length,
+            names: result.failed.map((f) => f.name).join(t('undo.listSeparator'))
+          })
+        )
       if (result.skipped.length > 0)
-        parts.push(`${result.skipped.length} 项跳过：${result.skipped.map((s) => `${s.name}（${s.reason}）`).join('、')}`)
-      setNotice(parts.join('。') || '已撤销')
+        parts.push(
+          t('undo.skipped', {
+            n: result.skipped.length,
+            items: result.skipped
+              .map((s) => t('undo.skippedItem', { name: s.name, reason: s.reason }))
+              .join(t('undo.listSeparator'))
+          })
+        )
+      setNotice(parts.join(t('undo.partSeparator')) || t('undo.done'))
     } catch (err) {
       setError(toErrorMessage(err))
     }
-  }, [setNotice, setError])
+  }, [setNotice, setError, t])
 
   /** 重做：对称于撤销 */
   const performRedo = useCallback(async (): Promise<void> => {
@@ -78,16 +94,29 @@ export function useUndoRedo(setNotice: (msg: string | null) => void, setError: (
       const state = await window.mbApi.data.undoState()
       setUndoUi(state)
       const parts: string[] = []
-      if (result.applied > 0) parts.push(`已重做 ${result.applied} 项`)
-      else if (result.failed.length === 0 && result.skipped.length === 0) parts.push('没有可重做的操作')
-      if (result.failed.length > 0) parts.push(`${result.failed.length} 项失败：${result.failed.map((f) => f.name).join('、')}`)
+      if (result.applied > 0) parts.push(t('redo.applied', { n: result.applied }))
+      else if (result.failed.length === 0 && result.skipped.length === 0) parts.push(t('redo.nothing'))
+      if (result.failed.length > 0)
+        parts.push(
+          t('undo.failed', {
+            n: result.failed.length,
+            names: result.failed.map((f) => f.name).join(t('undo.listSeparator'))
+          })
+        )
       if (result.skipped.length > 0)
-        parts.push(`${result.skipped.length} 项跳过：${result.skipped.map((s) => `${s.name}（${s.reason}）`).join('、')}`)
-      setNotice(parts.join('。') || '已重做')
+        parts.push(
+          t('undo.skipped', {
+            n: result.skipped.length,
+            items: result.skipped
+              .map((s) => t('undo.skippedItem', { name: s.name, reason: s.reason }))
+              .join(t('undo.listSeparator'))
+          })
+        )
+      setNotice(parts.join(t('undo.partSeparator')) || t('redo.done'))
     } catch (err) {
       setError(toErrorMessage(err))
     }
-  }, [setNotice, setError])
+  }, [setNotice, setError, t])
 
   return { undoUi, refreshUndo, performUndo, performRedo }
 }

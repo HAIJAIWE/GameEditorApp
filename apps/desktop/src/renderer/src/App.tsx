@@ -213,7 +213,9 @@ export default function App() {
       .list()
       .then((snapshot) => {
         if (cancelled) return
-        document.title = snapshot.active ? `${snapshot.active} · 墨白可视化编辑` : '墨白可视化编辑'
+        document.title = snapshot.active
+          ? t('app.windowTitle', { name: snapshot.active })
+          : t('app.windowTitleNoName')
       })
       .catch(() => {
         // 标题只是锦上添花，读取失败保持默认
@@ -221,7 +223,7 @@ export default function App() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [t])
 
   const [ceshuList, setCeshuList] = useState<CeshuSummary[]>([])
   const [activeCeshuId, setActiveCeshuId] = useState<string | null>(null)
@@ -400,11 +402,11 @@ export default function App() {
   const handleDataCleared = useCallback(
     (deleted: number): void => {
       setDataEpoch((prev) => prev + 1)
-      setNotice(`数据已清空：删除 ${deleted} 条（可按 Ctrl+Z 撤销）`)
+      setNotice(t('app.dataCleared', { n: deleted }))
       closePanel()
       refreshUndo()
     },
-    [refreshUndo]
+    [refreshUndo, t]
   )
 
   /**
@@ -416,7 +418,7 @@ export default function App() {
    */
   const openPanel = useCallback((panel: string, params?: unknown): void => {
     if ((panel === 'quickCreate.panel' || panel === 'batch.panel') && firstType === null) {
-      setNotice('当前没有可用的数据类型（schema 为空），请先在「字段结构编辑器」中新增类型')
+      setNotice(t('app.noTypes'))
       return
     }
     if (
@@ -424,7 +426,7 @@ export default function App() {
       params === undefined &&
       pluginHost.panelParams('references.panel') === undefined
     ) {
-      setNotice('请先在「高级搜索」中搜索并点击一条结果完成定位，随后即可查看其引用关系')
+      setNotice(t('app.referencesNeedTarget'))
       // 高级搜索没有守卫，直接走宿主（不自递归：递归会让 openPanel 无法包成 useCallback）
       pluginHost.openPanel('advancedSearch.panel')
       return
@@ -442,9 +444,9 @@ export default function App() {
       }
     } catch {
       // 插件被禁用时 host 会拒绝：给可理解的提示，而不是抛到用户脸上
-      setNotice('该面板所属插件未启用，可在「插件中心」重新启用')
+      setNotice(t('app.panelPluginDisabled'))
     }
-  }, [firstType, info, setNotice])
+  }, [firstType, info, setNotice, t])
 
   /**
    * 派发插件命令（Slice 8b）：菜单里「纯导航」类动作不再自己 `setPanel`，改调插件声明的
@@ -456,7 +458,7 @@ export default function App() {
   const runCommand = (commandId: string): void => {
     const command = pluginHost.commands().find((capability) => capability.id === commandId)
     if (command === undefined) {
-      setNotice('该命令所属插件未启用，可在「插件中心」重新启用')
+      setNotice(t('app.commandPluginDisabled'))
       return
     }
     void command.run()
@@ -529,8 +531,8 @@ export default function App() {
 
   /** 跳转未命中：目标类型不在当前策划书启用的游戏系统里，给出可理解的提示 */
   const handleJumpMissed = useCallback((name: string): void => {
-    setNotice(`该条目「${name}」所属的数据类型未在当前策划书启用的游戏系统中，无法定位`)
-  }, [])
+    setNotice(t('app.jumpMissed', { name }))
+  }, [t])
 
   /**
    * 注：原先这里有一个 `notImplemented(label)` 轻提示，供「点了只报尚未实现」的菜单占位项复用。
@@ -740,31 +742,31 @@ export default function App() {
           <footer className="statusbar">
             {info ? (
               <>
-                <span>版本 {info.version}</span>
-                <span>类型 {types.length} 种</span>
-                <span>数据：SQLite（{info.dbPath}）</span>
+                <span>{t('app.statusVersion', { version: info.version })}</span>
+                <span>{t('app.statusTypes', { n: types.length })}</span>
+                <span>{t('app.statusDb', { path: info.dbPath })}</span>
                 <button
                   type="button"
                   className="btn slim"
                   data-testid="plugins-open"
-                  title="插件中心：查看已注册插件（dsh 风格清单 + 启用/禁用）"
+                  title={t('app.pluginsButtonTitle')}
                   onClick={() => openPanel('plugins.panel')}
                 >
-                  插件
+                  {t('app.pluginsButton')}
                 </button>
               </>
             ) : (
-              <span>正在读取应用信息…</span>
+              <span>{t('app.readingInfo')}</span>
             )}
             <button
               type="button"
               className="btn slim"
               data-testid="theme-toggle"
               style={{ marginLeft: 'auto' }}
-              title="切换深色 / 浅色主题（偏好会自动保存）"
+              title={t('app.themeToggleTitle')}
               onClick={() => toggleTheme()}
             >
-              {theme === 'dark' ? '☀️ 浅色' : '🌙 深色'}
+              {theme === 'dark' ? t('app.themeToLight') : t('app.themeToDark')}
             </button>
             {/*
               快捷键提示：文本由清单 `APP_SHORTCUTS` 派生（见 shared/util/ui/shortcuts.ts），

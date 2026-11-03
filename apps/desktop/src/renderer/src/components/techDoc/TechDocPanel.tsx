@@ -8,6 +8,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
+
 import { ChatMarkdown } from '../digital'
 
 interface TechDocApi {
@@ -47,6 +49,7 @@ export function parseHeadings(content: string): Heading[] {
 type Mode = 'edit' | 'preview'
 
 export function TechDocPanel() {
+  const t = useT()
   const api = getApi()
   const [docs, setDocs] = useState<string[]>([])
   const [active, setActive] = useState<string | null>(null)
@@ -135,36 +138,36 @@ export function TechDocPanel() {
       setActive(name)
       setContent(initial)
       setDirty(false)
-      setNotice('已新建')
+      setNotice(t('techDoc.created'))
       setError('')
       await refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     }
-  }, [api, newName, refresh])
+  }, [api, newName, refresh, t])
 
   const save = useCallback(async (): Promise<void> => {
     if (api === undefined || active === null) return
     try {
       await api.write({ name: active, content })
       setDirty(false)
-      setNotice('已保存')
+      setNotice(t('techDoc.saved'))
       setError('')
       await refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     }
-  }, [api, active, content, refresh])
+  }, [api, active, content, refresh, t])
 
   const exportDoc = useCallback(async (): Promise<void> => {
     if (api === undefined || active === null) return
     try {
       const result = await api.export({ name: active })
-      if (result.path !== null) setNotice(`已导出：${result.path}`)
+      if (result.path !== null) setNotice(t('techDoc.exported', { path: result.path }))
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     }
-  }, [api, active])
+  }, [api, active, t])
 
   /** 删除当前文档（两步确认：先 arm 再确认） */
   const removeDoc = useCallback(async (): Promise<void> => {
@@ -175,13 +178,13 @@ export function TechDocPanel() {
       setActive(null)
       setContent('')
       setDirty(false)
-      setNotice('已删除')
+      setNotice(t('techDoc.deleted'))
       setError('')
       await refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     }
-  }, [api, active, refresh])
+  }, [api, active, refresh, t])
 
   /** 点击章节大纲：切预览并滚动到该标题 */
   const jumpToHeading = useCallback((index: number): void => {
@@ -191,7 +194,7 @@ export function TechDocPanel() {
   }, [])
 
   if (api === undefined) {
-    return <div className="empty">当前环境未提供技术设计文档接口。</div>
+    return <div className="empty">{t('techDoc.noApi')}</div>
   }
 
   return (
@@ -201,7 +204,7 @@ export function TechDocPanel() {
           <input
             className="form-input"
             data-testid="techdoc-new-name"
-            placeholder="新文档名"
+            placeholder={t('techDoc.newNamePlaceholder')}
             value={newName}
             onChange={(event) => setNewName(event.target.value)}
             onKeyDown={(event) => {
@@ -209,11 +212,11 @@ export function TechDocPanel() {
             }}
           />
           <button type="button" className="btn primary" data-testid="techdoc-create" onClick={() => void createDoc()}>
-            新建
+            {t('techDoc.create')}
           </button>
         </div>
         {docs.length === 0 ? (
-          <div className="empty">还没有技术设计文档</div>
+          <div className="empty">{t('techDoc.empty')}</div>
         ) : (
           <ul className="techdoc-list-items">
             {docs.map((name) => (
@@ -233,7 +236,7 @@ export function TechDocPanel() {
         )}
         {headings.length > 0 && (
           <div className="techdoc-outline" data-testid="techdoc-outline">
-            <div className="home-section-label">章节</div>
+            <div className="home-section-label">{t('techDoc.outline')}</div>
             {headings.map((heading, index) => (
               <button
                 key={`${index}-${heading.text}`}
@@ -253,7 +256,7 @@ export function TechDocPanel() {
 
       <section className="techdoc-editor">
         {active === null ? (
-          <div className="empty">选择左侧文档，或新建一个技术设计文档</div>
+          <div className="empty">{t('techDoc.pickDoc')}</div>
         ) : (
           <>
             <div className="techdoc-toolbar">
@@ -261,14 +264,14 @@ export function TechDocPanel() {
                 {active}
                 {dirty ? ' *' : ''}
               </span>
-              <div className="techdoc-modes" role="group" aria-label="编辑模式">
+              <div className="techdoc-modes" role="group" aria-label={t('techDoc.modeGroup')}>
                 <button
                   type="button"
                   className={`btn${mode === 'edit' ? ' primary' : ''}`}
                   data-testid="techdoc-mode-edit"
                   onClick={() => setMode('edit')}
                 >
-                  编辑
+                  {t('techDoc.edit')}
                 </button>
                 <button
                   type="button"
@@ -276,14 +279,14 @@ export function TechDocPanel() {
                   data-testid="techdoc-mode-preview"
                   onClick={() => setMode('preview')}
                 >
-                  预览
+                  {t('techDoc.preview')}
                 </button>
               </div>
               <button type="button" className="btn" data-testid="techdoc-save" onClick={() => void save()}>
-                保存
+                {t('common.save')}
               </button>
               <button type="button" className="btn" data-testid="techdoc-export" onClick={() => void exportDoc()}>
-                导出
+                {t('techDoc.export')}
               </button>
               <button
                 type="button"
@@ -294,7 +297,7 @@ export function TechDocPanel() {
                   else setDeleteArmed(true)
                 }}
               >
-                {deleteArmed ? '确认删除' : '删除'}
+                {deleteArmed ? t('techDoc.confirmDelete') : t('common.delete')}
               </button>
             </div>
             {notice !== '' && <div className="techdoc-notice" data-testid="techdoc-notice">{notice}</div>}

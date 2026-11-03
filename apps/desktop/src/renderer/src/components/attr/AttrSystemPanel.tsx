@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
+
 import {
   ATTR_TYPES,
   ATTR_TYPE_LABELS,
@@ -31,6 +33,7 @@ interface AttrSystemPanelProps {
 }
 
 export default function AttrSystemPanel({ onClose }: AttrSystemPanelProps) {
+  const t = useT()
   const [baseline, setBaseline] = useState<AttrSystem | null>(null)
   const [draft, setDraft] = useState<AttrSystem | null>(null)
   // 公式原始文本（编辑中可能暂时非法，不覆盖草稿里的上一个合法公式）
@@ -151,8 +154,8 @@ export default function AttrSystemPanel({ onClose }: AttrSystemPanelProps) {
     if (!draft) return
     const used = new Set(Object.keys(draft.attributes))
     let index = 1
-    while (used.has(`新属性${index}`)) index++
-    const name = `新属性${index}`
+    while (used.has(t('attrPanel.newAttrName', { n: index }))) index++
+    const name = t('attrPanel.newAttrName', { n: index })
     const created: AttrDefinition = {
       name,
       type: 'derived',
@@ -174,7 +177,12 @@ export default function AttrSystemPanel({ onClose }: AttrSystemPanelProps) {
       .filter(([key, attr]) => key !== name && name in attr.formula.coefficients)
       .map(([key]) => key)
     if (dependents.length > 0) {
-      setErrors([`属性「${name}」被 ${dependents.join('、')} 的公式依赖，不能删除`])
+      setErrors([
+        t('attrPanel.deleteBlocked', {
+          name,
+          dependents: dependents.join(t('attrPanel.listSeparator'))
+        })
+      ])
       return
     }
     const attributes: Record<string, AttrDefinition> = {}
@@ -224,9 +232,9 @@ export default function AttrSystemPanel({ onClose }: AttrSystemPanelProps) {
 
   /** 保存 / 导出共用的校验问题清单（非法公式 + 领域校验） */
   const collectProblems = (): string[] => {
-    if (!draft) return ['属性系统尚未加载']
+    if (!draft) return [t('attrPanel.notLoaded')]
     return [
-      ...invalidFormulas.map((name) => `属性「${name}」的公式无法解析（需形如 "= 力量*10 + 体质*20"）`),
+      ...invalidFormulas.map((name) => t('attrPanel.formulaInvalid', { name })),
       ...validateAttrSystem(draft)
     ]
   }
@@ -245,7 +253,7 @@ export default function AttrSystemPanel({ onClose }: AttrSystemPanelProps) {
       const saved = await window.mbApi.attrSystem.save({ system: draft })
       setBaseline(saved)
       applySystem(saved)
-      setNotice('属性系统已保存，示例值已按新公式重算')
+      setNotice(t('attrPanel.saved'))
     } catch (error) {
       setErrors([error instanceof Error ? error.message : String(error)])
     } finally {
@@ -268,7 +276,7 @@ export default function AttrSystemPanel({ onClose }: AttrSystemPanelProps) {
       if (!chosen.path) return
       setBusy(true)
       const result = await window.mbApi.attrSystem.exportGameConfig({ path: chosen.path, system: draft })
-      setNotice(`游戏配置已导出：${result.filePath}`)
+      setNotice(t('attrPanel.gameConfigExported', { path: result.filePath }))
     } catch (error) {
       setErrors([error instanceof Error ? error.message : String(error)])
     } finally {
@@ -286,7 +294,7 @@ export default function AttrSystemPanel({ onClose }: AttrSystemPanelProps) {
       if (!chosen.path) return
       setBusy(true)
       const result = await window.mbApi.attrSystem.exportJson({ path: chosen.path, system: draft })
-      setNotice(`属性系统已导出：${result.filePath}`)
+      setNotice(t('attrPanel.jsonExported', { path: result.filePath }))
     } catch (error) {
       setErrors([error instanceof Error ? error.message : String(error)])
     } finally {
@@ -307,8 +315,12 @@ export default function AttrSystemPanel({ onClose }: AttrSystemPanelProps) {
       const count = Object.keys(result.system.attributes).length
       setNotice(
         result.warnings.length > 0
-          ? `已导入 ${count} 个属性，其中 ${result.warnings.length} 条已修正：${result.warnings.join('；')}（请检查后点击「保存」生效）`
-          : `已导入 ${count} 个属性，请检查后点击「保存」生效`
+          ? t('attrPanel.importedWithWarnings', {
+              n: count,
+              warnings: result.warnings.length,
+              details: result.warnings.join(t('attrPanel.warningSeparator'))
+            })
+          : t('attrPanel.imported', { n: count })
       )
     } catch (error) {
       setErrors([error instanceof Error ? error.message : String(error)])
@@ -326,14 +338,14 @@ export default function AttrSystemPanel({ onClose }: AttrSystemPanelProps) {
 
   const handleLoadDefault = (): void => {
     setErrors([])
-    setNotice('已载入内置默认属性系统（尚未保存）')
+    setNotice(t('attrPanel.defaultLoaded'))
     applySystem(createDefaultAttrSystem())
   }
 
   return (
     <div className="changelog-panel" data-testid="attr-system-panel">
       <div className="changelog-header">
-        <span className="chapter-form-title">属性系统编辑器</span>
+        <span className="chapter-form-title">{t('attrPanel.title')}</span>
         <div className="editor-actions">
           <button
             type="button"
@@ -342,7 +354,7 @@ export default function AttrSystemPanel({ onClose }: AttrSystemPanelProps) {
             disabled={busy}
             onClick={() => setView('list')}
           >
-            属性列表
+            {t('attrPanel.tabList')}
           </button>
           <button
             type="button"
@@ -351,7 +363,7 @@ export default function AttrSystemPanel({ onClose }: AttrSystemPanelProps) {
             disabled={busy}
             onClick={() => setView('matrix')}
           >
-            关系矩阵
+            {t('attrPanel.tabMatrix')}
           </button>
           <button
             type="button"
@@ -360,7 +372,7 @@ export default function AttrSystemPanel({ onClose }: AttrSystemPanelProps) {
             disabled={busy}
             onClick={() => setView('live')}
           >
-            实时预览
+            {t('attrPanel.tabLive')}
           </button>
           <button
             type="button"
@@ -369,13 +381,13 @@ export default function AttrSystemPanel({ onClose }: AttrSystemPanelProps) {
             disabled={busy}
             onClick={() => setView('equip')}
           >
-            装备预览
+            {t('attrPanel.tabEquip')}
           </button>
           <button type="button" className="btn" data-testid="attr-default" disabled={busy} onClick={handleLoadDefault}>
-            恢复默认
+            {t('attrPanel.loadDefault')}
           </button>
           <button type="button" className="btn" disabled={busy} onClick={handleReset}>
-            重置
+            {t('attrPanel.reset')}
           </button>
           <button
             type="button"
@@ -384,7 +396,7 @@ export default function AttrSystemPanel({ onClose }: AttrSystemPanelProps) {
             disabled={busy || !draft}
             onClick={() => void handleExportGameConfig()}
           >
-            导出游戏配置
+            {t('attrPanel.exportGameConfig')}
           </button>
           <button
             type="button"
@@ -393,7 +405,7 @@ export default function AttrSystemPanel({ onClose }: AttrSystemPanelProps) {
             disabled={busy || !draft}
             onClick={() => void handleImportJson()}
           >
-            导入 JSON
+            {t('attrPanel.importJson')}
           </button>
           <button
             type="button"
@@ -402,7 +414,7 @@ export default function AttrSystemPanel({ onClose }: AttrSystemPanelProps) {
             disabled={busy || !draft}
             onClick={() => void handleExportJson()}
           >
-            导出 JSON
+            {t('attrPanel.exportJson')}
           </button>
           <button
             type="button"
@@ -411,10 +423,10 @@ export default function AttrSystemPanel({ onClose }: AttrSystemPanelProps) {
             disabled={busy || !draft}
             onClick={() => void handleSave()}
           >
-            保存
+            {t('common.save')}
           </button>
           <button type="button" className="btn" data-testid="attr-close" disabled={busy} onClick={onClose}>
-            关闭
+            {t('common.close')}
           </button>
         </div>
       </div>
@@ -422,19 +434,19 @@ export default function AttrSystemPanel({ onClose }: AttrSystemPanelProps) {
       {view === 'list' ? (
         <div className="changelog-entry">
           <div className="form-label">
-            属性列表（{entries.length}）· 公式为系数式（如 "= 力量*10 + 体质*20"）· 示例值按基础属性默认值计算
+            {t('attrPanel.listHeader', { n: entries.length })}
           </div>
 
           <div className="attr-head">
-            <span className="attr-name">属性名</span>
-            <span className="attr-display">显示名</span>
-            <span className="attr-type">类型</span>
-            <span className="attr-category">分类</span>
-            <span className="attr-num">默认值</span>
-            <span className="attr-num">最小值</span>
-            <span className="attr-num">上限</span>
-            <span className="attr-formula">公式</span>
-            <span className="attr-preview">示例值</span>
+            <span className="attr-name">{t('attrPanel.colName')}</span>
+            <span className="attr-display">{t('attrPanel.colDisplay')}</span>
+            <span className="attr-type">{t('attrPanel.colType')}</span>
+            <span className="attr-category">{t('attrPanel.colCategory')}</span>
+            <span className="attr-num">{t('attrPanel.colDefault')}</span>
+            <span className="attr-num">{t('attrPanel.colMin')}</span>
+            <span className="attr-num">{t('attrPanel.colMax')}</span>
+            <span className="attr-formula">{t('attrPanel.colFormula')}</span>
+            <span className="attr-preview">{t('attrPanel.colPreview')}</span>
             <span className="attr-actions" />
           </div>
 
@@ -498,7 +510,7 @@ export default function AttrSystemPanel({ onClose }: AttrSystemPanelProps) {
                   data-testid={`attr-max-${index}`}
                   type="number"
                   defaultValue={attr.maxValue ?? ''}
-                  placeholder="无"
+                  placeholder={t('attrPanel.noValuePlaceholder')}
                   onChange={(event) => changeNumber(name, 'maxValue', event.target.value)}
                 />
                 <input
@@ -513,14 +525,14 @@ export default function AttrSystemPanel({ onClose }: AttrSystemPanelProps) {
                 <span className="attr-actions">
                   {invalid && (
                     <span className="attr-invalid" data-testid={`attr-invalid-${index}`}>
-                      公式无法解析
+                      {t('attrPanel.formulaInvalidShort')}
                     </span>
                   )}
                   <button
                     type="button"
                     className="btn slim danger"
                     data-testid={`attr-remove-${index}`}
-                    title="删除属性"
+                    title={t('attrPanel.removeAttrTitle')}
                     onClick={() => removeAttr(name)}
                   >
                     ✕
@@ -532,19 +544,19 @@ export default function AttrSystemPanel({ onClose }: AttrSystemPanelProps) {
 
           <div className="editor-actions">
             <button type="button" className="btn" data-testid="attr-add" disabled={busy || !draft} onClick={addAttr}>
-              添加属性
+              {t('attrPanel.addAttr')}
             </button>
           </div>
         </div>
       ) : view === 'matrix' ? (
         <div className="changelog-entry" data-testid="attr-matrix">
           <div className="form-label">
-            关系矩阵（行=派生/战斗属性，列=基础属性）· 修改单元格系数即同步公式（0 表示无关系）· 示例值实时联动
+            {t('attrPanel.matrixHeader')}
           </div>
 
           <div className="attr-matrix-toolbar">
             <label className="form-label" htmlFor="attr-matrix-filter">
-              筛选:
+              {t('attrPanel.filterLabel')}
             </label>
             <select
               id="attr-matrix-filter"
@@ -553,9 +565,9 @@ export default function AttrSystemPanel({ onClose }: AttrSystemPanelProps) {
               value={matrixFilter}
               onChange={(event) => setMatrixFilter(event.target.value as 'all' | 'derived' | 'combat')}
             >
-              <option value="all">全部（派生 + 战斗）</option>
-              <option value="derived">派生属性</option>
-              <option value="combat">战斗属性</option>
+              <option value="all">{t('attrPanel.filterAll')}</option>
+              <option value="derived">{t('attrPanel.filterDerived')}</option>
+              <option value="combat">{t('attrPanel.filterCombat')}</option>
             </select>
             <button
               type="button"
@@ -564,21 +576,21 @@ export default function AttrSystemPanel({ onClose }: AttrSystemPanelProps) {
               disabled={busy || !draft}
               onClick={handleClearCoefficients}
             >
-              清空系数
+              {t('attrPanel.clearCoefficients')}
             </button>
             <span className="item-meta" data-testid="matrix-summary">
-              {matrixRowNames.length} 行 × {baseAttrNames.length} 列
+              {t('attrPanel.matrixSummary', { rows: matrixRowNames.length, cols: baseAttrNames.length })}
             </span>
           </div>
 
           {matrixRowNames.length === 0 || baseAttrNames.length === 0 ? (
-            <div className="empty">暂无可展示的属性关系（需要基础属性与派生/战斗属性）</div>
+            <div className="empty">{t('attrPanel.matrixEmpty')}</div>
           ) : (
             <div className="attr-matrix-scroll">
               <table className="attr-matrix">
                 <thead>
                   <tr>
-                    <th className="attr-matrix-corner">属性</th>
+                    <th className="attr-matrix-corner">{t('attrPanel.matrixCorner')}</th>
                     {baseAttrNames.map((baseName) => (
                       <th key={baseName}>{baseName}</th>
                     ))}
@@ -608,16 +620,16 @@ export default function AttrSystemPanel({ onClose }: AttrSystemPanelProps) {
           )}
 
           <div className="attr-matrix-hint">
-            点击单元格修改系数会自动更新对应公式与示例值（0 = 不写入公式）；「清空系数」作用于当前筛选出的行
+            {t('attrPanel.matrixHint')}
           </div>
         </div>
       ) : view === 'live' ? (
         <div className="changelog-entry" data-testid="attr-live">
-          {draft ? <AttrLivePreview system={draft} /> : <div className="empty">正在加载属性系统…</div>}
+          {draft ? <AttrLivePreview system={draft} /> : <div className="empty">{t('attrPanel.loading')}</div>}
         </div>
       ) : (
         <div className="changelog-entry" data-testid="attr-equip">
-          {draft ? <EquipPreviewPanel system={draft} /> : <div className="empty">正在加载属性系统…</div>}
+          {draft ? <EquipPreviewPanel system={draft} /> : <div className="empty">{t('attrPanel.loading')}</div>}
         </div>
       )}
 

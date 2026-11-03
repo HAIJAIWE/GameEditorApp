@@ -1,4 +1,6 @@
 import { formatImportSummary, toErrorMessage } from '../../appUtils'
+import { getLocalePreference } from '../../localePreference'
+import { translate } from '@mobai/shared/i18n'
 import type { EngineExportInput } from '@mobai/shared/schema/adapters'
 import type { DataSnapshotFormat } from '@mobai/shared/schema/adapters'
 import type { ImportPreview } from '@mobai/shared/types'
@@ -78,7 +80,7 @@ export async function exportJson(): Promise<void> {
     const chosen = await window.mbApi.dialog.chooseSaveJsonFile()
     if (!chosen.path) return
     const summary = await window.mbApi.data.exportLegacy({ path: chosen.path })
-    port?.notify(`已导出 ${summary.totalItems} 条数据：${summary.filePath}`)
+    port?.notify(translate(getLocalePreference(), 'io.exportedItems', { n: summary.totalItems, path: summary.filePath }))
   } catch (err) {
     port?.error(toErrorMessage(err))
   }
@@ -107,7 +109,13 @@ export async function exportCsv(): Promise<void> {
     const chosen = await window.mbApi.dialog.chooseExportDir()
     if (!chosen.path) return
     const summary = await window.mbApi.data.exportCsv({ dir: chosen.path })
-    port?.notify(`已导出 ${summary.files.length} 个 CSV 文件（共 ${summary.totalItems} 条）到 ${summary.dir}`)
+    port?.notify(
+      translate(getLocalePreference(), 'io.exportedCsv', {
+        files: summary.files.length,
+        items: summary.totalItems,
+        dir: summary.dir
+      })
+    )
   } catch (err) {
     port?.error(toErrorMessage(err))
   }
@@ -132,7 +140,7 @@ export async function exportExcel(): Promise<void> {
     const chosen = await window.mbApi.dialog.chooseExportDir()
     if (!chosen.path) return
     const summary = await window.mbApi.data.exportExcel({ dir: chosen.path })
-    port?.notify(`已导出 ${summary.totalItems} 条数据：${summary.filePath}`)
+    port?.notify(translate(getLocalePreference(), 'io.exportedItems', { n: summary.totalItems, path: summary.filePath }))
   } catch (err) {
     port?.error(toErrorMessage(err))
   }
@@ -204,7 +212,13 @@ export async function exportSnapshot(format: DataSnapshotFormat): Promise<void> 
     const result = await window.mbApi.data.exportSnapshot({ path: picked.path, format })
     const label = format === 'csv' ? 'CSV' : 'JSON'
     port?.notify(
-      `已导出数据快照（${label}）：${result.filePath}（${result.itemCount} 条数据 / ${result.typeCount} 种类型 / ${result.bytes} 字节）`
+      translate(getLocalePreference(), 'io.exportedSnapshot', {
+        label,
+        path: result.filePath,
+        items: result.itemCount,
+        types: result.typeCount,
+        bytes: result.bytes
+      })
     )
   } catch (err) {
     port?.error(toErrorMessage(err))
