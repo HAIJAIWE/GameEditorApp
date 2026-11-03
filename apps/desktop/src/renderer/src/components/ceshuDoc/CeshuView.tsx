@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
 
+import { useT } from '@mobai/client-ui'
 import {
   CESHU_FORMAT_LABELS,
   CHAPTER_LABELS,
@@ -117,6 +118,7 @@ export default function CeshuView({
   onShowReferences,
   host
 }: CeshuViewProps) {
+  const t = useT()
   const [doc, setDoc] = useState<CeshuDocument | null>(null)
   const [activeChapter, setActiveChapter] = useState<ChapterKey>('meta')
   /**
@@ -219,20 +221,20 @@ export default function CeshuView({
   /** AI 生成本章：走 IPC 调本地模型（ollama），返回清洗后的字段供表单填入草稿 */
   const handleAiGenerate = useCallback(
     async (chapter: ChapterKey, onlyEmpty: boolean): Promise<CeshuAiGenerateResult> => {
-      if (!ceshuId) throw new Error('未选择策划书')
+      if (!ceshuId) throw new Error(t('ceshuView.noDocSelected'))
       return window.mbApi.ceshu.aiGenerateChapter({ id: ceshuId, chapter, onlyEmpty })
     },
-    [ceshuId]
+    [ceshuId, t]
   )
 
   /** AI 生成单个字段（E62）：走 IPC 调本地模型，返回清洗后的字段供表单回填。
    *  `action` 为局部重生成动作（停靠栏快捷操作），透传给主进程注入提示词 */
   const handleAiGenerateField = useCallback(
     async (chapter: ChapterKey, field: string, action?: FieldAction): Promise<CeshuAiGenerateResult> => {
-      if (!ceshuId) throw new Error('未选择策划书')
+      if (!ceshuId) throw new Error(t('ceshuView.noDocSelected'))
       return window.mbApi.ceshu.aiGenerateField({ id: ceshuId, chapter, field, action })
     },
-    [ceshuId]
+    [ceshuId, t]
   )
 
   /** 保存章节：同时清除该章的「待核对」标记（人已经动过这一章了） */
@@ -247,7 +249,7 @@ export default function CeshuView({
       try {
         const updated = await window.mbApi.ceshu.saveChapter({ id: ceshuId, chapter, data })
         setDoc(updated)
-        setNotice(`已保存：${CHAPTER_LABELS[chapter]}`)
+        setNotice(t('ceshuView.savedChapter', { chapter: CHAPTER_LABELS[chapter] }))
         setError(null)
         /*
          * 一次 meta 写盘同时完成两件事：
@@ -269,7 +271,7 @@ export default function CeshuView({
         setBusy(false)
       }
     },
-    [ceshuId, onChanged]
+    [ceshuId, onChanged, t]
   )
 
   /** 字段级状态写入（「接受」/ AI 草稿标记）：单独走一次 meta 保存 */
@@ -340,7 +342,7 @@ export default function CeshuView({
   if (!ceshuId) {
     return (
       <div className="ceshu-view">
-        <div className="empty">请选择或新建策划书</div>
+        <div className="empty">{t('ceshuView.pickDoc')}</div>
       </div>
     )
   }
@@ -361,14 +363,14 @@ export default function CeshuView({
             {error}
           </div>
           <button type="button" className="btn" data-testid="ceshu-load-error-back" onClick={onBack}>
-            返回
+            {t('common.back')}
           </button>
         </div>
       )
     }
     return (
       <div className="ceshu-view">
-        <div className="empty">正在加载策划书…</div>
+        <div className="empty">{t('ceshuView.loading')}</div>
       </div>
     )
   }
@@ -439,8 +441,8 @@ export default function CeshuView({
   const progress = computeChapterProgress(doc, stageFilter === 'all' ? undefined : stageFilter)
   /** 由第四章游戏系统派生的启用编辑器（内嵌数据预览面板据此渲染标签页） */
   const enabledEditors = computeEnabledEditors(doc)
-  const gameName = typeof doc.meta.game_name === 'string' && doc.meta.game_name ? doc.meta.game_name : '未命名策划书'
-  const gameType = typeof doc.meta.game_type === 'string' && doc.meta.game_type ? doc.meta.game_type : '未知'
+  const gameName = typeof doc.meta.game_name === 'string' && doc.meta.game_name ? doc.meta.game_name : t('ceshuView.untitled')
+  const gameType = typeof doc.meta.game_type === 'string' && doc.meta.game_type ? doc.meta.game_type : t('ceshuView.unknownType')
 
   /**
    * 标准「忙碌动作」模板：清错 → 置忙 → 执行 → 失败转中文错误 → 解忙。
@@ -482,9 +484,14 @@ export default function CeshuView({
       const result = await window.mbApi.ceshu.export({ id: doc.ceshu_id, format: exportFormat, path: chosen.path })
       if (result.files !== undefined && result.files.length > 1) {
         // 双轨：一次导出多份产物，逐条列出路径
-        setNotice(`已导出${result.files.length} 份产物：${result.files.map((file) => file.path).join(' + ')}`)
+        setNotice(
+          t('ceshuView.exportedFiles', {
+            n: result.files.length,
+            paths: result.files.map((file) => file.path).join(' + ')
+          })
+        )
       } else {
-        setNotice(`已导出（${CESHU_FORMAT_LABELS[result.format]}）：${result.filePath}`)
+        setNotice(t('ceshuView.exported', { format: CESHU_FORMAT_LABELS[result.format], path: result.filePath }))
       }
     } catch (err) {
       setError(toErrorMessage(err))
@@ -502,7 +509,7 @@ export default function CeshuView({
       if (chosen.path === null) return
       setBusy(true)
       const result = await window.mbApi.ceshu.exportProjectFolder({ id: doc.ceshu_id, path: chosen.path })
-      setNotice(`已导出项目文件夹：${result.dir}（${result.files.length} 个文件）`)
+      setNotice(t('ceshuView.exportedProject', { dir: result.dir, n: result.files.length }))
     } catch (err) {
       setError(toErrorMessage(err))
     } finally {
@@ -524,7 +531,7 @@ export default function CeshuView({
       setBusy(true)
       const result = await window.mbApi.ceshu.exportHandoff({ id: doc.ceshu_id, path: chosen.path })
       setNotice(
-        `已导出开发交接包：${result.dir}（${result.files.length} 个文件，先看 README.md 的分卷顺序）`
+        t('ceshuView.exportedHandoff', { dir: result.dir, n: result.files.length })
       )
     } catch (err) {
       setError(toErrorMessage(err))
@@ -539,7 +546,7 @@ export default function CeshuView({
       async () => {
         const created = await window.mbApi.ceshu.derive({ id: doc.ceshu_id, note })
         host.closeView(CESHU_TOOLBAR_MOUNT)
-        setNotice(`已派生新版本 ${created.version_label}（默认未激活，可点「设为激活」）`)
+        setNotice(t('ceshuView.derived', { version: created.version_label }))
         onChanged()
         onSelect(created.ceshu_id)
       },
@@ -553,7 +560,7 @@ export default function CeshuView({
       async () => {
         const updated = await window.mbApi.ceshu.setActive({ id: doc.ceshu_id })
         setDoc(updated)
-        setNotice(`已激活版本：${updated.version_label}`)
+        setNotice(t('ceshuView.activated', { version: updated.version_label }))
         onChanged()
       },
       { clearNotice: true }
@@ -607,12 +614,12 @@ export default function CeshuView({
       setNotice(null)
       const chosen = await window.mbApi.dialog.chooseCeshuExportFile({
         format: 'markdown',
-        defaultName: `${gameName}-完备度报告`
+        defaultName: t('ceshuView.readinessFileName', { name: gameName })
       })
       if (!chosen.path) return
       const markdown = buildReadinessReportMarkdown(gameName, gameType, readiness, formatLocalTimestamp())
       const exported = await window.mbApi.ceshu.exportReadinessReport({ path: chosen.path, content: markdown })
-      setNotice(`完备度报告已导出：${exported.filePath}`)
+      setNotice(t('ceshuView.readinessExported', { path: exported.filePath }))
     } catch (err) {
       setError(toErrorMessage(err))
     }
@@ -626,9 +633,9 @@ export default function CeshuView({
       // 文件名安全化：保留字母/数字/._-
       const safeName = [...gameName].filter((ch) => /[\p{L}\p{N}._-]/u.test(ch)).join('') || 'ceshu'
       const chosen = await window.mbApi.dialog.chooseReportFile({
-        defaultName: `${safeName}_${doc.version_label || 'v1.0'}_校验报告`,
+        defaultName: t('ceshuView.validationFileName', { name: safeName, version: doc.version_label || 'v1.0' }),
         extension: '.md',
-        label: 'Markdown 文件'
+        label: t('ceshuView.fileLabelMarkdown')
       })
       if (!chosen.path) return
       const markdown = buildValidationReportMarkdown(
@@ -639,7 +646,7 @@ export default function CeshuView({
         progress
       )
       const exported = await window.mbApi.ceshu.exportValidationReport({ path: chosen.path, content: markdown })
-      setNotice(`校验报告已导出：${exported.filePath}`)
+      setNotice(t('ceshuView.validationExported', { path: exported.filePath }))
     } catch (err) {
       setError(toErrorMessage(err))
     }
@@ -653,10 +660,10 @@ export default function CeshuView({
       setNotice(null)
       const spec =
         format === 'html'
-          ? { content: buildChangelogHtml(changelog), extension: '.html', label: 'HTML 文件' }
+          ? { content: buildChangelogHtml(changelog), extension: '.html', label: t('ceshuView.fileLabelHtml') }
           : format === 'text'
-            ? { content: buildChangelogText(changelog), extension: '.txt', label: '文本文件' }
-            : { content: buildChangelogMarkdown(changelog), extension: '.md', label: 'Markdown 文件' }
+            ? { content: buildChangelogText(changelog), extension: '.txt', label: t('ceshuView.fileLabelText') }
+            : { content: buildChangelogMarkdown(changelog), extension: '.md', label: t('ceshuView.fileLabelMarkdown') }
       const chosen = await window.mbApi.dialog.chooseReportFile({
         defaultName: 'changelog',
         extension: spec.extension,
@@ -664,7 +671,7 @@ export default function CeshuView({
       })
       if (!chosen.path) return
       const exported = await window.mbApi.ceshu.exportChangelogReport({ path: chosen.path, content: spec.content })
-      setNotice(`变更日志已导出：${exported.filePath}`)
+      setNotice(t('ceshuView.changelogExported', { path: exported.filePath }))
     } catch (err) {
       setError(toErrorMessage(err))
     }
@@ -679,8 +686,8 @@ export default function CeshuView({
    */
   const handleAiApplied = async (updated: CeshuDocument, chapters: readonly ChapterKey[]): Promise<void> => {
     setDoc(updated)
-    const names = chapters.map((chapter) => CHAPTER_LABELS[chapter]).join('、')
-    setNotice(`AI 生成内容已保存：${chapters.length} 章（${names}）。已标记为待核对，逐章看过即可。`)
+    const names = chapters.map((chapter) => CHAPTER_LABELS[chapter]).join(t('ceshuView.listSeparator'))
+    setNotice(t('ceshuView.aiApplied', { n: chapters.length, names }))
     onChanged()
 
     // 标记要落盘：只用组件内 state 的话，重开应用就丢了，那「待核对」就没意义
@@ -701,7 +708,7 @@ export default function CeshuView({
   /** 模板编辑器「应用到该章节」完成：更新当前文档并刷新列表（进度可能变化） */
   const handleTemplateApplied = (updated: CeshuDocument, chapter: ChapterKey): void => {
     setDoc(updated)
-    setNotice(`模板数据已应用到「${CHAPTER_LABELS[chapter]}」`)
+    setNotice(t('ceshuView.templateApplied', { chapter: CHAPTER_LABELS[chapter] }))
     onChanged()
   }
 
@@ -716,7 +723,9 @@ export default function CeshuView({
     try {
       const result = await window.mbApi.ceshu.autoFill({ id: ceshuId })
       setDoc(result.doc)
-      setNotice(result.filled > 0 ? `已补全 ${result.filled} 个空白字段` : '没有需要补全的空白字段')
+      setNotice(
+        result.filled > 0 ? t('ceshuView.autofillDone', { n: result.filled }) : t('ceshuView.autofillNone')
+      )
       if (result.filled > 0) onChanged()
       setError(null)
     } catch (err) {
@@ -739,13 +748,13 @@ export default function CeshuView({
       if (result.migrated.length > 0) {
         const names = result.migrated
           .map((item) => `${CHAPTER_LABELS[item.chapter]}·${item.fieldKey}`)
-          .join('、')
+          .join(t('ceshuView.listSeparator'))
         setNotice(
-          `已迁移 ${result.migrated.length} 个字段（${names}）。原文已保留，确认新字段无误后可清空旧字段。`
+          t('ceshuView.migrated', { n: result.migrated.length, names })
         )
         onChanged()
       } else {
-        setNotice('没有需要迁移的字段')
+        setNotice(t('ceshuView.migratedNone'))
       }
     } catch (err) {
       setError(toErrorMessage(err))
@@ -782,7 +791,7 @@ export default function CeshuView({
           latest = await window.mbApi.ceshu.saveChapter({ id: ceshuId, chapter: 'meta', data: meta })
         }
         setDoc(latest)
-        setNotice(`已导入 ${applied} 个字段（标记为 AI 草稿，待审）`)
+        setNotice(t('ceshuView.imported', { n: applied }))
         onChanged()
         ok = true
       },
@@ -814,21 +823,25 @@ export default function CeshuView({
       latest = await window.mbApi.ceshu.saveChapter({ id: ceshuId, chapter: 'meta', data: meta })
     }
     setDoc(latest)
-    setNotice(`智能体已改 ${changed.length} 个字段（标记为 AI 草稿，待审）`)
+    setNotice(t('ceshuView.agentPatched', { n: changed.length }))
     onChanged()
   }
 
   /** 预设市场应用完成：systems/meta 已在主进程写盘，更新文档并刷新侧边栏 */
   const handlePresetApplied = (updated: CeshuDocument, enabledCount: number, presetLabel: string): void => {
     setDoc(updated)
-    setNotice(`已应用预设【${presetLabel}】，新启用 ${enabledCount} 个游戏系统`)
+    setNotice(t('ceshuView.presetApplied', { label: presetLabel, n: enabledCount }))
     onChanged()
   }
 
   /** 系统确认完成：systems 已写盘 + 数据同步已触发，更新文档并刷新侧边栏 */
   const handleSystemConfirmed = (updated: CeshuDocument, enabledCount: number, addedCustom: number): void => {
     setDoc(updated)
-    setNotice(`已确认游戏系统：启用 ${enabledCount} 个${addedCustom > 0 ? `（新增自定义 ${addedCustom} 个）` : ''}`)
+    setNotice(
+      addedCustom > 0
+        ? t('ceshuView.systemConfirmedCustom', { n: enabledCount, custom: addedCustom })
+        : t('ceshuView.systemConfirmed', { n: enabledCount })
+    )
     onChanged()
   }
 

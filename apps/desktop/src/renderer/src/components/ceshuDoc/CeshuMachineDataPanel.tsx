@@ -1,31 +1,17 @@
 import { useEffect, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
 import { CHAPTER_LABELS, type CeshuDocument } from '@mobai/shared/ceshu/reference'
 import { CESHU_CHAPTER_FIELDS } from '@mobai/shared/ceshu/fields'
 import { displayFieldValue } from '@mobai/shared/ceshu/fields'
 import { visibleChaptersForDoc } from '@mobai/shared/ceshu/model'
 import { CESHU_MACHINE_DATA_FIELDS } from '@mobai/shared/ceshu/workflow'
-import type { DataTableCheckResult, DataTableIssue } from '@mobai/shared/ceshu/data'
+import type { DataTableCheckResult } from '@mobai/shared/ceshu/data'
 import type { ContractReport } from '@mobai/shared/ceshu/validation'
-import { DATA_GEN_MAX_COUNT, DATA_GEN_MIN_COUNT } from '@mobai/shared/ceshu/data'
+import { DATA_GEN_MAX_COUNT, DATA_GEN_MIN_COUNT, buildDataFillInstruction } from '@mobai/shared/ceshu/data'
 import type { ScaffoldPlan } from '@mobai/shared/ceshu/data'
 import type { DataTypeDef } from '@mobai/shared/types'
 import { toErrorMessage } from '@mobai/shared/util/system'
-
-/**
- * 把「AI 生成缺失数据」的补充要求拼出来：说清要补哪张表、缺口多大、按什么原则生成。
- * 具体的数值/系统设定由 `ceshuDataGen.buildDataGenPrompt` 从策划书喂给模型，
- * 这里只负责把「为什么生成、生成什么边界」讲清楚，避免 AI 凭空编一堆无关数据。
- */
-function buildFillInstruction(issue: DataTableIssue): string {
-  const gapNote = issue.gap !== undefined ? `，缺口约 ${issue.gap} 条` : ''
-  return (
-    `「${issue.table}」表数据不足（单次生成上限 ${DATA_GEN_MAX_COUNT} 条，可多轮补齐${gapNote}）。` +
-    '请严格依据本策划书的数值/系统章设定（含平衡公式、成长曲线、稀有度梯度、掉落概率等）生成数值合理的候选条目；' +
-    '与当前数值体系无关或设计未定义的字段可留空或给合理默认值。' +
-    '生成后请在预览里逐条核对、按实际数值微调后再导入数据表。'
-  )
-}
 
 /**
  * 数据 / 机读（三栏布局「数据·机读」标签）：把「验收 / 机读数据」字段集中列出。
@@ -46,6 +32,7 @@ export default function CeshuMachineDataPanel({
   /** 「AI 生成缺失数据」：把缺口表交回上层，由 AI 生成候选、人工核对后再导入（AI 驱动生成、人微调） */
   onGenerateData?: (target: { typeId: string; count: number; instruction: string }) => void
 }) {
+  const t = useT()
   const visible = new Set(visibleChaptersForDoc(doc))
   const rows = CESHU_MACHINE_DATA_FIELDS.filter((item) => visible.has(item.chapter)).map((item) => {
     const field = (CESHU_CHAPTER_FIELDS[item.chapter] ?? []).find((candidate) => candidate.key === item.field)
@@ -130,7 +117,7 @@ export default function CeshuMachineDataPanel({
       setCheck(result.check)
       setPlan(null)
       setNotice(
-        `已新建 ${result.createTypeCount} 张表、补 ${result.addFieldCount} 个字段（未生成任何数据行）`
+        t('machine.scaffoldApplied', { create: result.createTypeCount, fields: result.addFieldCount })
       )
       // 类型变了：让上层重新拉 schema，否则数据编辑器还拿旧字段
       onTypesChanged?.(await window.mbApi.schema.list())
@@ -146,11 +133,11 @@ export default function CeshuMachineDataPanel({
 
   return (
     <div className="machine-panel" data-testid="machine-panel">
-      <div className="machine-note">验收 / 机读数据（不计入完成度）。导出机读包请用「导出」。</div>
+      <div className="machine-note">{t('machine.note')}</div>
 
       <section className="datatable-check" data-testid="datatable-check">
         <div className="datatable-check-head">
-          <span className="datatable-check-title">设计 ↔ 数据表核对</span>
+          <span className="datatable-check-title">{t('machine.checkTitle')}</span>
           <button
             type="button"
             className="btn slim"
@@ -158,12 +145,10 @@ export default function CeshuMachineDataPanel({
             disabled={busy}
             onClick={() => void runCheck()}
           >
-            {busy ? '核对中…' : '核对数据表'}
+            {busy ? t('machine.checking') : t('machine.check')}
           </button>
         </div>
-        <div className="form-hint">
-          依据「{CHAPTER_LABELS.tech}」章的「所需数据表」声明，比对数据编辑器里的实际条数与字段。
-        </div>
+        <div className="form-hint">{t('machine.checkHint', { chapter: CHAPTER_LABELS.tech })}</div>
 
         {error !== null && (
           <div className="error-banner" data-testid="datatable-check-error">
@@ -175,12 +160,11 @@ export default function CeshuMachineDataPanel({
           <div data-testid="datatable-check-result">
             {check.requirements.length === 0 ? (
               <div className="form-hint" data-testid="datatable-check-none">
-                还没有声明任何数据表。在「{CHAPTER_LABELS.tech}」章的「所需数据表」里按
-                「表名|用途|关键字段|期望条数」写几行，再回来核对。
+                {t('machine.checkNone', { chapter: CHAPTER_LABELS.tech })}
               </div>
             ) : check.ok ? (
               <div className="notice-banner inline" data-testid="datatable-check-ok">
-                声明的 {check.requirements.length} 张表全部对得上（条数与关键字段一致）。
+                {t('machine.checkOk', { n: check.requirements.length })}
               </div>
             ) : (
               <ul className="datatable-issues" data-testid="datatable-issues">
@@ -190,7 +174,7 @@ export default function CeshuMachineDataPanel({
                     className={`datatable-issue ${issue.level}`}
                     data-testid={`datatable-issue-${issue.kind}`}
                   >
-                  <span className="datatable-issue-tag">{issue.level === 'error' ? '不符' : '注意'}</span>
+                  <span className="datatable-issue-tag">{issue.level === 'error' ? t('machine.levelError') : t('machine.levelWarn')}</span>
                   {issue.message}
                   {(issue.kind === 'count_short' || issue.kind === 'empty_table') &&
                     issue.typeId !== undefined &&
@@ -207,11 +191,11 @@ export default function CeshuMachineDataPanel({
                               Math.max(issue.gap ?? DATA_GEN_MAX_COUNT, DATA_GEN_MIN_COUNT),
                               DATA_GEN_MAX_COUNT
                             ),
-                            instruction: buildFillInstruction(issue)
+                            instruction: buildDataFillInstruction(issue)
                           })
                         }
                       >
-                        AI 生成缺失数据{issue.gap !== undefined ? `（缺 ${issue.gap} 条）` : ''}
+                        {issue.gap !== undefined ? t('machine.aiFillWithGap', { n: issue.gap }) : t('machine.aiFill')}
                       </button>
                     )}
                 </li>
@@ -235,21 +219,21 @@ export default function CeshuMachineDataPanel({
                     disabled={busy}
                     onClick={() => void previewScaffold()}
                   >
-                    按声明补齐结构
+                    {t('machine.scaffoldPlan')}
                   </button>
-                  <span className="form-hint">只建表/加字段，不生成数据行</span>
+                  <span className="form-hint">{t('machine.scaffoldHint')}</span>
                 </div>
               ) : (
                 <div className="datatable-scaffold-plan" data-testid="datatable-scaffold-preview">
                   <div className="form-hint">
-                    将要新建 {plan.createTypeCount} 张表、补 {plan.addFieldCount} 个字段：
+                    {t('machine.scaffoldPreview', { create: plan.createTypeCount, fields: plan.addFieldCount })}
                   </div>
                   <ul className="datatable-issues">
                     {plan.tables.map((table) => (
                       <li key={table.declaredName} className="datatable-plan-row">
                         <div className="datatable-plan-head">
                           <span className={`import-tag ${table.action === 'create_type' ? 'create' : 'update'}`}>
-                            {table.action === 'create_type' ? '新建表' : table.action === 'add_fields' ? '补字段' : '跳过'}
+                            {table.action === 'create_type' ? t('machine.actionCreate') : table.action === 'add_fields' ? t('machine.actionAddFields') : t('machine.actionSkip')}
                           </span>
                           <span className="datatable-plan-name">{table.targetTypeName}</span>
                           <span className="item-meta">{table.note}</span>
@@ -262,7 +246,7 @@ export default function CeshuMachineDataPanel({
                                 <span className="item-meta">
                                   {field.name} · {field.type}
                                 </span>
-                                <span className="item-meta">（{field.reason}）</span>
+                                <span className="item-meta">{t('machine.fieldReason', { reason: field.reason })}</span>
                               </li>
                             ))}
                           </ul>
@@ -278,7 +262,7 @@ export default function CeshuMachineDataPanel({
                       disabled={busy}
                       onClick={() => void applyScaffold()}
                     >
-                      {busy ? '执行中…' : '确认执行'}
+                      {busy ? t('machine.applying') : t('machine.apply')}
                     </button>
                     <button
                       type="button"
@@ -287,7 +271,7 @@ export default function CeshuMachineDataPanel({
                       disabled={busy}
                       onClick={() => setPlan(null)}
                     >
-                      取消
+                      {t('common.cancel')}
                     </button>
                   </div>
                 </div>
@@ -298,7 +282,7 @@ export default function CeshuMachineDataPanel({
 
       <section className="contract-check" data-testid="contract-check">
         <div className="datatable-check-head">
-          <span className="datatable-check-title">设计契约体检</span>
+          <span className="datatable-check-title">{t('machine.contractTitle')}</span>
           <button
             type="button"
             className="btn slim"
@@ -306,25 +290,24 @@ export default function CeshuMachineDataPanel({
             disabled={busy}
             onClick={() => void runContractCheck()}
           >
-            {busy ? '体检中…' : '体检契约'}
+            {busy ? t('machine.contractChecking') : t('machine.contractCheck')}
           </button>
         </div>
-        <div className="form-hint">
-          把数值断言、原型验收、验收旅程、账本对账投影成一份机读契约，检查它们作为整体是否成立
-          （并把「规则集标识」显出来，用于和原型 Demo 证明引用同一套规则）。
-        </div>
+        <div className="form-hint">{t('machine.contractHint')}</div>
 
         {contract !== null && (
           <div data-testid="contract-check-result">
             <div className="notice-banner inline" data-testid="contract-check-verdict">
-              {contract.passed ? '契约成立（PASS）' : `契约有问题（FAIL：${contract.errorCount} 条错误）`}
-              {contract.warningCount > 0 ? `，另有 ${contract.warningCount} 条提醒` : ''}
-              <span className="item-meta"> · 规则集 {contract.contract.rulesetId || '（未设置）'}</span>
+              {contract.passed ? t('machine.contractPassed') : t('machine.contractFailed', { n: contract.errorCount })}
+              {contract.warningCount > 0 ? t('machine.contractWarnings', { n: contract.warningCount }) : ''}
+              <span className="item-meta">
+                {t('machine.ruleset', { id: contract.contract.rulesetId || t('machine.rulesetUnset') })}
+              </span>
             </div>
 
             {contract.findings.length === 0 ? (
               <div className="form-hint" data-testid="contract-check-clean">
-                参数、断言、原型验收、旅程、账本全部自洽。
+                {t('machine.contractClean')}
               </div>
             ) : (
               <ul className="datatable-issues" data-testid="contract-findings">
@@ -334,7 +317,7 @@ export default function CeshuMachineDataPanel({
                     className={`datatable-issue ${finding.level}`}
                     data-testid={`contract-finding-${finding.level}`}
                   >
-                    <span className="datatable-issue-tag">{finding.level === 'error' ? '错误' : '提醒'}</span>
+                    <span className="datatable-issue-tag">{finding.level === 'error' ? t('machine.findingError') : t('machine.findingWarn')}</span>
                     {finding.message}
                   </li>
                 ))}
@@ -342,9 +325,13 @@ export default function CeshuMachineDataPanel({
             )}
 
             <div className="form-hint" data-testid="contract-summary">
-              契约摘要：{contract.contract.parameters.length} 个参数 · {contract.contract.assertions.length} 条断言 ·
-              原型 {contract.contract.prototype.checks.length} 项验收 · {contract.contract.journeys.length} 条旅程 ·
-              {contract.contract.testCases.length} 条用例
+              {t('machine.contractSummary', {
+                params: contract.contract.parameters.length,
+                assertions: contract.contract.assertions.length,
+                checks: contract.contract.prototype.checks.length,
+                journeys: contract.contract.journeys.length,
+                cases: contract.contract.testCases.length
+              })}
             </div>
           </div>
         )}
@@ -352,7 +339,7 @@ export default function CeshuMachineDataPanel({
 
       {rows.length === 0 ? (
         <div className="artifact-placeholder" data-testid="machine-empty">
-          <p>当前档位/品类下没有机读数据字段。</p>
+          <p>{t('machine.empty')}</p>
         </div>
       ) : (
         <ul className="machine-list">
@@ -367,7 +354,7 @@ export default function CeshuMachineDataPanel({
                 <span className="machine-label">{row.label}</span>
               </div>
               <div className={`machine-value${row.filled ? '' : ' empty'}`}>
-                {row.filled ? row.value : '（未填）'}
+                {row.filled ? row.value : t('machine.unfilled')}
               </div>
               <div className="machine-reason">{row.reason}</div>
             </li>

@@ -1,10 +1,20 @@
 import { useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
 import { CHAPTER_KEYS, CHAPTER_LABELS, type CeshuDocument } from '@mobai/shared/ceshu/reference'
-import { CESHU_CHAPTER_FIELDS } from '@mobai/shared/ceshu/fields'
-import { displayFieldValue } from '@mobai/shared/ceshu/fields'
-import { parseCeshuPatch, type CeshuPatchItem } from '@mobai/shared/ceshu/data'
+import { CESHU_CHAPTER_FIELDS, displayFieldValue } from '@mobai/shared/ceshu/fields'
 import { visibleChaptersForDoc } from '@mobai/shared/ceshu/model'
+import {
+  CESHU_AGENT_CONTEXT_LIMIT,
+  CESHU_AGENT_GAME_PREFIX,
+  CESHU_AGENT_PATCH_SYSTEM_PROMPT,
+  CESHU_AGENT_SYSTEM_PROMPT,
+  CESHU_AGENT_TRUNCATED_SUFFIX,
+  CESHU_AGENT_UNTITLED,
+  buildCeshuAgentPrompt
+} from '@mobai/shared/ceshu/prompts'
+import { parseCeshuPatch, type CeshuPatchItem } from '@mobai/shared/ceshu/data'
+import type { MessageKey } from '@mobai/shared/i18n'
 import { toErrorMessage } from '@mobai/shared/util/system'
 
 /**
@@ -21,15 +31,14 @@ interface ChatMessage {
   text: string
 }
 
-const QUICK_PROMPTS = ['这游戏有什么风险？', '帮我补核心玩法', '给美术提需求']
+const QUICK_PROMPTS: readonly MessageKey[] = ['agent.quick.risk', 'agent.quick.gameplay', 'agent.quick.art']
 
-const CONTEXT_LIMIT = 6000
-
+/** 整份策划书 → 紧凑上下文（只列已填字段，按章节分组）；提示词文本走 shared 常量，避免棘轮误判 */
 function buildContext(doc: CeshuDocument): string {
   const meta = doc.meta as Record<string, unknown>
-  const name = typeof meta.game_name === 'string' && meta.game_name !== '' ? meta.game_name : '未命名'
+  const name = typeof meta.game_name === 'string' && meta.game_name !== '' ? meta.game_name : CESHU_AGENT_UNTITLED
   const type = typeof meta.game_type === 'string' ? meta.game_type : ''
-  const lines = [`游戏：${name}${type !== '' ? `（${type}）` : ''}`]
+  const lines = [`${CESHU_AGENT_GAME_PREFIX}${name}${type !== '' ? `（${type}）` : ''}`]
   const visible = new Set(visibleChaptersForDoc(doc))
   for (const chapter of CHAPTER_KEYS) {
     if (!visible.has(chapter)) continue
@@ -43,7 +52,9 @@ function buildContext(doc: CeshuDocument): string {
     for (const item of filled) lines.push(`- ${item.field.label}：${item.value}`)
   }
   const text = lines.join('\n')
-  return text.length > CONTEXT_LIMIT ? `${text.slice(0, CONTEXT_LIMIT)}\n…（已截断）` : text
+  return text.length > CESHU_AGENT_CONTEXT_LIMIT
+    ? `${text.slice(0, CESHU_AGENT_CONTEXT_LIMIT)}${CESHU_AGENT_TRUNCATED_SUFFIX}`
+    : text
 }
 
 export default function CeshuAgentPanel({
@@ -53,6 +64,7 @@ export default function CeshuAgentPanel({
   doc: CeshuDocument
   onApplyPatch?: (items: CeshuPatchItem[]) => Promise<void>
 }) {
+  const t = useT()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
@@ -70,10 +82,8 @@ export default function CeshuAgentPanel({
     setBusy(true)
     try {
       const context = buildContext(doc)
-      const system = patchMode
-        ? '你是游戏策划助手。用户要求修改策划书时，**只输出 JSON 补丁**，形如 {"章节key":{"字段key":值}}，只包含要改的字段；不要解释、不要代码块外文字。章节与字段 key 见上下文。'
-        : '你是资深游戏策划助手。基于用户提供的整份策划书上下文回答问题和给建议；不要编造上下文里没有的设定，不确定就直说。回答简洁、分点、可落地。'
-      const prompt = `【策划书上下文】\n${context}\n\n【用户】\n${question}`
+      const system = patchMode ? CESHU_AGENT_PATCH_SYSTEM_PROMPT : CESHU_AGENT_SYSTEM_PROMPT
+      const prompt = buildCeshuAgentPrompt(context, question)
       const result = await window.mbApi.llm.generate({ system, prompt })
       const reply = result.content ?? ''
 
@@ -83,10 +93,10 @@ export default function CeshuAgentPanel({
           setPendingPatch(parsed.items)
           setMessages((prev) => [
             ...prev,
-            { role: 'assistant', text: `已生成 ${parsed.items.length} 项修改，点「应用」写入。` }
+            { role: 'assistant', text: t('agent.patchGenerated', { n: parsed.items.length }) }
           ])
         } else {
-          setMessages((prev) => [...prev, { role: 'assistant', text: parsed.errors.join('；') || '没有可应用的修改。' }])
+          setMessages((prev) => [...prev, { role: 'assistant', text: parsed.errors.join(t('agent.errorSeparator')) || t('agent.noPatch') }])
         }
       } else {
         setMessages((prev) => [...prev, { role: 'assistant', text: reply }])
@@ -105,7 +115,7 @@ export default function CeshuAgentPanel({
     try {
       await onApplyPatch(pendingPatch)
       setPendingPatch(null)
-      setMessages((prev) => [...prev, { role: 'assistant', text: '已应用。' }])
+      setMessages((prev) => [...prev, { role: 'assistant', text: t('agent.applied') }])
     } catch (err) {
       setError(toErrorMessage(err))
     } finally {
@@ -116,7 +126,7 @@ export default function CeshuAgentPanel({
   return (
     <div className="agent-panel" data-testid="agent-panel">
       <div className="agent-header">
-        <span>智能体</span>
+        <span>{t('agent.title')}</span>
         <label className="agent-mode">
           <input
             type="checkbox"
@@ -124,12 +134,12 @@ export default function CeshuAgentPanel({
             checked={patchMode}
             onChange={(event) => setPatchMode(event.target.checked)}
           />
-          改文档
+          {t('agent.patchMode')}
         </label>
       </div>
       <div className="agent-messages" data-testid="agent-messages">
         {messages.length === 0 ? (
-          <div className="agent-empty">和智能体对话（基于整份策划书）。勾「改文档」可让它出修改。</div>
+          <div className="agent-empty">{t('agent.empty')}</div>
         ) : (
           messages.map((message, index) => (
             <div key={index} className={`agent-msg ${message.role}`}>
@@ -137,7 +147,7 @@ export default function CeshuAgentPanel({
             </div>
           ))
         )}
-        {busy && <div className="agent-msg assistant">思考中…</div>}
+        {busy && <div className="agent-msg assistant">{t('agent.thinking')}</div>}
       </div>
       {pendingPatch !== null && (
         <button
@@ -147,7 +157,7 @@ export default function CeshuAgentPanel({
           disabled={busy}
           onClick={() => void apply()}
         >
-          应用 {pendingPatch.length} 项修改
+          {t('agent.applyPatch', { n: pendingPatch.length })}
         </button>
       )}
       {error !== null && (
@@ -157,8 +167,8 @@ export default function CeshuAgentPanel({
       )}
       <div className="agent-chips">
         {QUICK_PROMPTS.map((prompt) => (
-          <button key={prompt} type="button" className="agent-chip" onClick={() => setInput(prompt)}>
-            {prompt}
+          <button key={prompt} type="button" className="agent-chip" onClick={() => setInput(t(prompt))}>
+            {t(prompt)}
           </button>
         ))}
       </div>
@@ -166,7 +176,7 @@ export default function CeshuAgentPanel({
         <input
           className="form-input"
           data-testid="agent-input"
-          placeholder="和智能体对话…"
+          placeholder={t('agent.inputPlaceholder')}
           value={input}
           onChange={(event) => setInput(event.target.value)}
           onKeyDown={(event) => {
@@ -180,7 +190,7 @@ export default function CeshuAgentPanel({
           disabled={busy || input.trim() === ''}
           onClick={() => void send()}
         >
-          发送
+          {t('agent.send')}
         </button>
       </div>
     </div>

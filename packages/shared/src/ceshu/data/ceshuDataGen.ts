@@ -3,6 +3,7 @@ import { isPlainObject } from '../model'
 import type { CeshuDocument } from '../reference'
 import type { DataTypeDef } from '../../types'
 import type { LlmUsage } from '../../config/llm'
+import type { DataTableIssue } from './ceshuDataTableCheck'
 
 /**
  * AI 生成候选游戏数据纯逻辑（自 旧版 `core/agent/skills/ceshu_skill_generate::_ai_generate_data`
@@ -247,4 +248,19 @@ export function buildDataGenSummaryMessage(generatedCounts: Record<string, numbe
     .map(([key, value]) => `${key}:${value}`)
     .join('、')
   return `已生成 ${total} 条候选数据（${detail}），请人工勾选导入。`
+}
+
+/**
+ * 把「AI 生成缺失数据」的补充要求拼出来：说清要补哪张表、缺口多大、按什么原则生成。
+ * 具体的数值/系统设定由 `buildDataGenPrompt` 从策划书喂给模型，这里只负责把
+ * 「为什么生成、生成什么边界」讲清楚，避免 AI 凭空编一堆无关数据。
+ */
+export function buildDataFillInstruction(issue: DataTableIssue): string {
+  const gapNote = issue.gap !== undefined ? `，缺口约 ${issue.gap} 条` : ''
+  return (
+    `「${issue.table}」表数据不足（单次生成上限 ${DATA_GEN_MAX_COUNT} 条，可多轮补齐${gapNote}）。` +
+    '请严格依据本策划书的数值/系统章设定（含平衡公式、成长曲线、稀有度梯度、掉落概率等）生成数值合理的候选条目；' +
+    '与当前数值体系无关或设计未定义的字段可留空或给合理默认值。' +
+    '生成后请在预览里逐条核对、按实际数值微调后再导入数据表。'
+  )
 }

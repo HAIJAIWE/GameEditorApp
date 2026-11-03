@@ -27,7 +27,7 @@ describe('编辑器「更多」菜单插件（Slice 16）', () => {
     const host = hostWithMenus()
     expect(host.menus()).toEqual([]) // 默认 'app' 下没有它
     expect(host.menus('ceshu.toolbar')).toHaveLength(1)
-    expect(host.menus('ceshu.toolbar')[0].menu).toBe('更多')
+    expect(host.menus('ceshu.toolbar')[0].menuKey).toBe('common.more')
   })
 
   it('18 个菜单项 + 3 个分隔符（4 组）', () => {
@@ -43,7 +43,7 @@ describe('编辑器「更多」菜单插件（Slice 16）', () => {
     const ids = new Set(host.commands().map((command) => command.id))
     const missing: string[] = []
     for (const item of host.menus('ceshu.toolbar')[0].items) {
-      if (item.command !== undefined && !ids.has(item.command)) missing.push(item.label ?? item.command)
+      if (item.command !== undefined && !ids.has(item.command)) missing.push(item.labelKey ?? item.label ?? item.command)
     }
     expect(missing).toEqual([])
   })

@@ -4,7 +4,7 @@
  * 外部一律从这里 import（`.../data`），不要再深插目录内文件。
  */
 
-export { DATA_GEN_BACKGROUND_MAX_LENGTH, DATA_GEN_DEFAULT_COUNT, DATA_GEN_ERROR_EMPTY, DATA_GEN_ERROR_NO_TYPE, DATA_GEN_ERROR_UNPARSABLE, DATA_GEN_FIELD_HINT_LIMIT, DATA_GEN_MAX_COUNT, DATA_GEN_MIN_COUNT, DATA_GEN_NO_BACKGROUND, DATA_GEN_SYSTEM_NAME_LIMIT, buildDataGenBackground, buildDataGenPrompt, buildDataGenSummaryMessage, buildDataGenTypeHints, clampDataGenCount, dataTypeFieldHints, normalizeDataGenCandidates, resolveSelectedDataTypes, summarizeCandidateItem } from './ceshuDataGen'
+export { DATA_GEN_BACKGROUND_MAX_LENGTH, DATA_GEN_DEFAULT_COUNT, DATA_GEN_ERROR_EMPTY, DATA_GEN_ERROR_NO_TYPE, DATA_GEN_ERROR_UNPARSABLE, DATA_GEN_FIELD_HINT_LIMIT, DATA_GEN_MAX_COUNT, DATA_GEN_MIN_COUNT, DATA_GEN_NO_BACKGROUND, DATA_GEN_SYSTEM_NAME_LIMIT, buildDataFillInstruction, buildDataGenBackground, buildDataGenPrompt, buildDataGenSummaryMessage, buildDataGenTypeHints, clampDataGenCount, dataTypeFieldHints, normalizeDataGenCandidates, resolveSelectedDataTypes, summarizeCandidateItem } from './ceshuDataGen'
 export type { CeshuDataGenResult, DataGenCandidates, DataGenPrompt, NormalizedCandidates, SelectedDataType } from './ceshuDataGen'
 export { checkDataTablePlan, parseDataTableRequirements, parseExpectedCount, readDataTableRows, resolveDataTable } from './ceshuDataTableCheck'
 export type { DataTableActual, DataTableCheckResult, DataTableIssue, DataTableIssueKind, DataTableRequirement, ResolvedTable } from './ceshuDataTableCheck'

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
 import type { CeshuSummary } from '@mobai/shared/ceshu/reference'
 import {
   RECENT_LIMIT,
@@ -47,6 +48,7 @@ export default function CeshuHomePanel({
   onChanged,
   onDeleted
 }: CeshuHomePanelProps) {
+  const t = useT()
   const [keyword, setKeyword] = useState('')
   /** 只看有待审的策划书（纯展示层过滤，不影响搜索逻辑） */
   const [pendingOnly, setPendingOnly] = useState(false)
@@ -110,14 +112,14 @@ export default function CeshuHomePanel({
     void run(async () => {
       const doc = await window.mbApi.ceshu.create({ name: '', scope: 'full' })
       onOpen(doc.ceshu_id)
-      return '已新建空白策划书'
+      return t('home.created')
     })
 
   /** 复刻/想法入口：参考游戏名 → AI 拆出「立项一页」→ 新建文档并打开 */
   const handleClone = (): void =>
     void run(async () => {
       const gameName = cloneName.trim()
-      if (gameName === '') throw new Error('请填写参考游戏名或你的点子')
+      if (gameName === '') throw new Error(t('home.cloneNameRequired'))
       const { doc } = await window.mbApi.ceshu.cloneDecompose({
         gameName,
         ...(cloneType.trim() !== '' ? { gameType: cloneType.trim() } : {})
@@ -126,7 +128,7 @@ export default function CeshuHomePanel({
       setCloneOpen(false)
       setCloneName('')
       setCloneType('')
-      return '已生成「立项一页」'
+      return t('home.cloneGenerated')
     })
 
   /**
@@ -144,7 +146,7 @@ export default function CeshuHomePanel({
       const name = typeof doc.meta.game_name === 'string' ? doc.meta.game_name : ''
       onChanged()
       onOpen(doc.ceshu_id)
-      setNotice(`已打开项目文件夹${name === '' ? '' : `：${name}`}`)
+      setNotice(name === '' ? t('home.projectOpened') : t('home.projectOpenedNamed', { name }))
     } catch (err) {
       setError(toErrorMessage(err))
     } finally {
@@ -157,31 +159,31 @@ export default function CeshuHomePanel({
       const doc = await window.mbApi.ceshu.duplicate({ id })
       const name = typeof doc.meta.game_name === 'string' ? doc.meta.game_name : ''
       onOpen(doc.ceshu_id)
-      return `已复制为「${name}」`
+      return t('home.duplicated', { name })
     })
 
   const handleRename = (id: string): void =>
     void run(async () => {
       const name = actionText.trim()
-      if (!name) throw new Error('新名称不能为空')
+      if (!name) throw new Error(t('home.renameRequired'))
       await window.mbApi.ceshu.rename({ id, name })
-      return `已重命名为「${name}」`
+      return t('home.renamed', { name })
     })
 
   const handleDerive = (id: string): void =>
     void run(async () => {
       const doc = await window.mbApi.ceshu.derive({ id, note: actionText.trim() })
       onOpen(doc.ceshu_id)
-      return `已派生新版本 ${doc.version_label}`
+      return t('home.derived', { version: doc.version_label })
     })
 
   const handleDelete = (id: string): void =>
     void run(async () => {
       // `confirm` 是契约层要求的显式确认（此处必然来自用户点了「确认删除」）
       const result = await window.mbApi.ceshu.remove({ id, confirm: true })
-      if (!result.deleted) throw new Error('策划书不存在，可能已被删除')
+      if (!result.deleted) throw new Error(t('home.deleteMissing'))
       onDeleted(id)
-      return '已删除策划书'
+      return t('home.deleted')
     })
 
   return (
@@ -189,7 +191,7 @@ export default function CeshuHomePanel({
       <div className="changelog-header">
         <span className="chapter-form-title">
           <LucideIcon name="book-open" size={18} />
-          策划书
+          {t('home.title')}
         </span>
         <div className="editor-actions">
           <button
@@ -200,7 +202,7 @@ export default function CeshuHomePanel({
             onClick={handleCreateBlank}
           >
             <LucideIcon name="plus" size={16} />
-            空白策划书
+            {t('home.newBlank')}
           </button>
           <button
             type="button"
@@ -215,24 +217,24 @@ export default function CeshuHomePanel({
               setCopySourceId(summaries[0]?.id ?? '')
             }}
           >
-            从已有复制…
+            {t('home.copyFromExisting')}
           </button>
           <button
             type="button"
             className="btn"
             data-testid="home-open-folder"
             disabled={busy}
-            title="打开一个已有的项目文件夹（一个游戏一个文件夹：config.json + design/ + data/ + tasks/）"
+            title={t('home.openFolderTitle')}
             onClick={() => void handleOpenProjectFolder()}
           >
-            打开项目文件夹…
+            {t('home.openFolder')}
           </button>
           <button
             type="button"
             className="btn"
             data-testid="home-clone-open"
             disabled={busy}
-            title="给一个参考游戏名或点子，AI 拆成「立项一页」"
+            title={t('home.cloneOpenTitle')}
             onClick={() => {
               setAction(null)
               setError(null)
@@ -242,13 +244,13 @@ export default function CeshuHomePanel({
             }}
           >
             <LucideIcon name="sparkles" size={16} />
-            从想法/复刻…
+            {t('home.cloneOpen')}
           </button>
         </div>
       </div>
 
       <div className="item-meta">
-        共 {summaries.length} 份策划书 · 点击卡片打开编辑
+        {t('home.countSummary', { n: summaries.length })}
       </div>
 
       {error && (
@@ -272,7 +274,10 @@ export default function CeshuHomePanel({
           >
             {summaries.map((item) => (
               <option key={item.id} value={item.id}>
-                {item.gameName || '未命名'}（{item.versionLabel || 'v1.0'}）
+                {t('home.copyOption', {
+                  name: item.gameName || t('home.untitled'),
+                  version: item.versionLabel || 'v1.0'
+                })}
               </option>
             ))}
           </select>
@@ -283,10 +288,10 @@ export default function CeshuHomePanel({
             disabled={busy || !copySourceId}
             onClick={() => handleDuplicate(copySourceId)}
           >
-            复制为独立副本
+            {t('home.copyConfirm')}
           </button>
           <button type="button" className="btn" data-testid="home-copy-cancel" disabled={busy} onClick={closeAction}>
-            取消
+            {t('common.cancel')}
           </button>
         </div>
       )}
@@ -296,14 +301,14 @@ export default function CeshuHomePanel({
           <input
             className="form-input"
             data-testid="home-clone-name"
-            placeholder="参考游戏名或你的点子，如：吸血鬼幸存者 / 猫咪经营邮局"
+            placeholder={t('home.cloneNamePlaceholder')}
             value={cloneName}
             onChange={(event) => setCloneName(event.target.value)}
           />
           <input
             className="form-input"
             data-testid="home-clone-type"
-            placeholder="品类（可选），如 Roguelike / SLG"
+            placeholder={t('home.cloneTypePlaceholder')}
             value={cloneType}
             onChange={(event) => setCloneType(event.target.value)}
           />
@@ -314,7 +319,7 @@ export default function CeshuHomePanel({
             disabled={busy || cloneName.trim() === ''}
             onClick={handleClone}
           >
-            {busy ? '生成中…' : '生成立项一页'}
+            {busy ? t('home.generating') : t('home.generate')}
           </button>
           <button
             type="button"
@@ -323,7 +328,7 @@ export default function CeshuHomePanel({
             disabled={busy}
             onClick={() => setCloneOpen(false)}
           >
-            取消
+            {t('common.cancel')}
           </button>
         </div>
       )}
@@ -333,7 +338,7 @@ export default function CeshuHomePanel({
         <input
           className="form-input home-search"
           data-testid="home-search"
-          placeholder="搜索策划书"
+          placeholder={t('home.searchPlaceholder')}
           value={keyword}
           onChange={(event) => setKeyword(event.target.value)}
         />
@@ -344,16 +349,16 @@ export default function CeshuHomePanel({
           className={`btn slim${pendingOnly ? ' accent-outline' : ''}`}
           data-testid="home-pending-filter"
           aria-pressed={pendingOnly}
-          title="只显示还有 AI 草稿待审的策划书"
+          title={t('home.pendingOnlyTitle')}
           onClick={() => setPendingOnly((value) => !value)}
         >
-          只看待审
+          {t('home.pendingOnly')}
         </button>
       </div>
 
       {recents.length > 0 && (
         <div className="home-recent" data-testid="home-recent">
-          <span className="home-section-label">最近打开</span>
+          <span className="home-section-label">{t('home.recent')}</span>
           {recents.map((item) => (
             <button
               key={item.id}
@@ -362,23 +367,21 @@ export default function CeshuHomePanel({
               data-testid="home-recent-item"
               onClick={() => onOpen(item.id)}
             >
-              {(item.gameName || '未命名').slice(0, 12)}
+              {(item.gameName || t('home.untitled')).slice(0, 12)}
             </button>
           ))}
         </div>
       )}
 
-      <span className="home-section-label">全部策划书</span>
+      <span className="home-section-label">{t('home.all')}</span>
 
       {pendingEmpty ? (
         <div className="empty" data-testid="home-pending-empty">
-          没有待审的策划书
+          {t('home.pendingEmpty')}
         </div>
       ) : visibleCards.length === 0 ? (
         <div className="empty" data-testid="home-empty">
-          {summaries.length === 0
-            ? '暂无策划书，点右上角「空白策划书」新建，或「打开项目文件夹…」导入已有项目'
-            : `未找到匹配 '${keyword}' 的策划书`}
+          {summaries.length === 0 ? t('home.emptyAll') : t('home.emptySearch', { keyword })}
         </div>
       ) : (
         <div className="home-grid" data-testid="home-grid">
@@ -415,7 +418,7 @@ export default function CeshuHomePanel({
                     <span className="home-card-progress-fill" style={{ width: `${clampPercent(card.progressPercent)}%` }} />
                   </span>
                   {card.pendingCount > 0 && (
-                    <span className="item-meta" data-testid="home-card-pending">待审 {card.pendingCount}</span>
+                    <span className="item-meta" data-testid="home-card-pending">{t('toolbar.pendingReview', { n: card.pendingCount })}</span>
                   )}
                 </button>
 
@@ -427,7 +430,7 @@ export default function CeshuHomePanel({
                     disabled={busy}
                     onClick={() => beginAction({ kind: 'rename', id: card.id }, card.title)}
                   >
-                    重命名
+                    {t('home.rename')}
                   </button>
                   <button
                     type="button"
@@ -436,7 +439,7 @@ export default function CeshuHomePanel({
                     disabled={busy}
                     onClick={() => handleDuplicate(card.id)}
                   >
-                    复制
+                    {t('common.copy')}
                   </button>
                   <button
                     type="button"
@@ -445,7 +448,7 @@ export default function CeshuHomePanel({
                     disabled={busy}
                     onClick={() => beginAction({ kind: 'derive', id: card.id })}
                   >
-                    派生
+                    {t('home.derive')}
                   </button>
                   <button
                     type="button"
@@ -454,7 +457,7 @@ export default function CeshuHomePanel({
                     disabled={busy}
                     onClick={() => beginAction({ kind: 'delete', id: card.id })}
                   >
-                    删除
+                    {t('common.delete')}
                   </button>
                 </div>
 
@@ -473,10 +476,10 @@ export default function CeshuHomePanel({
                       disabled={busy}
                       onClick={() => handleRename(card.id)}
                     >
-                      保存
+                      {t('common.save')}
                     </button>
                     <button type="button" className="btn slim" data-testid="home-rename-cancel" onClick={closeAction}>
-                      取消
+                      {t('common.cancel')}
                     </button>
                   </div>
                 )}
@@ -486,7 +489,7 @@ export default function CeshuHomePanel({
                     <input
                       className="form-input"
                       data-testid="home-derive-input"
-                      placeholder="本次迭代说明（可留空）"
+                      placeholder={t('home.deriveNotePlaceholder')}
                       value={actionText}
                       onChange={(event) => setActionText(event.target.value)}
                     />
@@ -497,17 +500,17 @@ export default function CeshuHomePanel({
                       disabled={busy}
                       onClick={() => handleDerive(card.id)}
                     >
-                      派生
+                      {t('home.derive')}
                     </button>
                     <button type="button" className="btn slim" data-testid="home-derive-cancel" onClick={closeAction}>
-                      取消
+                      {t('common.cancel')}
                     </button>
                   </div>
                 )}
 
                 {current === 'delete' && (
                   <div className="home-card-inline" data-testid="home-delete-box">
-                    <span className="form-hint">删除「{card.title}」？此操作不可撤销。</span>
+                    <span className="form-hint">{t('home.deleteConfirm', { title: card.title })}</span>
                     <button
                       type="button"
                       className="btn danger slim"
@@ -515,10 +518,10 @@ export default function CeshuHomePanel({
                       disabled={busy}
                       onClick={() => handleDelete(card.id)}
                     >
-                      确认删除
+                      {t('home.deleteConfirmBtn')}
                     </button>
                     <button type="button" className="btn slim" data-testid="home-delete-cancel" onClick={closeAction}>
-                      取消
+                      {t('common.cancel')}
                     </button>
                   </div>
                 )}
