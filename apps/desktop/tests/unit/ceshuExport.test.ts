@@ -8,6 +8,7 @@ import { exportCeshuDocument } from '../../src/main/ceshu/export/exporter'
 import { renderCeshuHtml } from '../../src/main/ceshu/export/doc/html'
 import { renderCeshuMarkdown } from '../../src/main/ceshu/export/doc/markdown'
 import { renderCeshuNarrative } from '../../src/main/ceshu/export/content/narrative'
+import { renderCeshuHomepage } from '../../src/main/ceshu/export/content/homepage'
 import { CHAPTER_LABELS, type CeshuDocument } from '@mobai/shared/ceshu/reference'
 import { setFieldStatuses } from '@mobai/shared/ceshu/fields'
 import { createDefaultCeshu } from '@mobai/shared/ceshu/model'
@@ -227,5 +228,48 @@ describe('策划书导出：成品可读性', () => {
     expect(md).toContain('### 120 秒走读')
     expect(md).toContain('### 三层循环')
     expect(md).toContain('| 层级 | 关注问题 | 玩家动作 | 系统变化 | 反馈 | 传递物 |') // columns → 真表格
+  })
+})
+
+/**
+ * 设计首页导出（GDD 改造 L1-2，2026-11-03）：聚合定位/目标玩家/核心幻想/设计支柱（表）/循环/非目标，
+ * 区别于 narrative（首页+走读+架构+机制+…+附录）与 onepage（按章必填清单），只产出这一页首页。
+ */
+describe('策划书导出：设计首页（L1-2）', () => {
+  it('聚合首页字段，且不含叙事版的其他段落', () => {
+    const doc = makeDoc()
+    doc.meta.positioning = '一句话定位'
+    doc.vision.design_vision = '核心幻想'
+    doc.vision.design_pillars = [
+      { pillar: '深度战斗', ruling: '操作上限高', anti: '不做自动战斗' }
+    ]
+    doc.meta.non_goals = ['不做 PVP']
+
+    const md = renderCeshuHomepage(doc)
+
+    expect(md.startsWith('# 《测试游戏》· 设计首页')).toBe(true)
+    expect(md).toContain('> 版本: v1.0 | 类型: RPG')
+    expect(md).toContain('**一句话定位**: 一句话定位')
+    expect(md).toContain('**设计愿景**: 核心幻想')
+    // 设计支柱按 columns 渲染成真表格
+    expect(md).toContain('| 支柱 | 裁决 | 反例（明确不做） |')
+    expect(md).toContain('| 深度战斗 | 操作上限高 | 不做自动战斗 |')
+    expect(md).toContain('**范围与非目标**:')
+    expect(md).toContain('不做 PVP')
+    // 与 narrative 区分：不含走读/架构/机制/附录等后续段
+    expect(md).not.toContain('## 玩法走读')
+    expect(md).not.toContain('## 附录')
+  })
+
+  it('经导出管道写盘（homepage → .md）', async () => {
+    const dir = makeDir()
+    const result = await exportCeshuDocument(makeDoc(), 'homepage', join(dir, 'home'))
+    expect(result.filePath).toBe(join(dir, 'home.md'))
+    expect(readFileSync(result.filePath, 'utf8')).toContain('# 《测试游戏》· 设计首页')
+  })
+
+  it('字段全空仍产出带标题的首页（不抛错）', () => {
+    const md = renderCeshuHomepage(makeDoc())
+    expect(md.startsWith('# 《测试游戏》· 设计首页')).toBe(true)
   })
 })
