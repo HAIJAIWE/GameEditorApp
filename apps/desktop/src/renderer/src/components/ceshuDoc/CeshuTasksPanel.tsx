@@ -1,5 +1,6 @@
 import { useState } from 'react'
 
+import { useT } from '@mobai/client-ui'
 import type { CeshuDocument } from '@mobai/shared/ceshu/reference'
 import {
   CESHU_ROLE_LABELS,
@@ -29,6 +30,7 @@ export default function CeshuTasksPanel({
   /** 生成完成后把最新文档交回上层（保存后的 doc） */
   onDocUpdated?: (doc: CeshuDocument) => void
 }) {
+  const t = useT()
   const [role, setRole] = useState<CeshuRole>('programmer')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -46,7 +48,7 @@ export default function CeshuTasksPanel({
       const result = await window.mbApi.ceshu.aiGenerateTasks({ id: doc.ceshu_id })
       onDocUpdated?.(result.doc)
       const count = countTaskPlan(result.plan)
-      setNotice(count === 0 ? 'AI 没拆出任务：先补一些设计内容再试' : `已生成 ${count} 条岗位任务`)
+      setNotice(count === 0 ? t('tasks.noTasks') : t('tasks.generated', { n: count }))
     } catch (err) {
       setError(toErrorMessage(err))
     } finally {
@@ -57,7 +59,7 @@ export default function CeshuTasksPanel({
   return (
     <div className="tasks-panel" data-testid="tasks-panel">
       <div className="tasks-toolbar">
-        <div className="tasks-role-switch" role="group" aria-label="岗位">
+        <div className="tasks-role-switch" role="group" aria-label={t('tasks.roleGroupLabel')}>
           {CESHU_ROLE_ORDER.map((item) => (
             <button
               key={item}
@@ -75,10 +77,10 @@ export default function CeshuTasksPanel({
           className="btn primary slim"
           data-testid="tasks-generate"
           disabled={busy}
-          title="读整份策划书，拆成各岗位可执行的任务（会覆盖上次生成的结果）"
+          title={t('tasks.generateTitle')}
           onClick={() => void handleGenerate()}
         >
-          {busy ? '拆解中…' : total > 0 ? '重新生成任务' : 'AI 生成任务'}
+          {busy ? t('tasks.generating') : total > 0 ? t('tasks.regenerate') : t('tasks.generate')}
         </button>
       </div>
 
@@ -101,7 +103,7 @@ export default function CeshuTasksPanel({
             return (
               <div key={priority} className="tasks-section" data-testid={`tasks-plan-${priority}`}>
                 <div className="tasks-section-title">
-                  {priority}（{group.length} 项）
+                  {t('tasks.priorityCount', { priority, n: group.length })}
                 </div>
                 <ul className="tasks-list">
                   {group.map((task, index) => (
@@ -121,19 +123,18 @@ export default function CeshuTasksPanel({
         </div>
       ) : sections.length === 0 ? (
         <div className="artifact-placeholder" data-testid="tasks-empty">
-          <p>该岗位暂无相关任务。</p>
-          <p className="form-hint">点右上角「AI 生成任务」让 AI 从整份文档拆出可执行动作。</p>
+          <p>{t('tasks.emptyTitle')}</p>
+          <p className="form-hint">{t('tasks.emptyHint')}</p>
         </div>
       ) : (
         <div className="tasks-sections" data-testid="tasks-derived">
           <div className="tasks-derived-hint" data-testid="tasks-derived-hint">
-            以下是「按章字段清单」——它是文档写了什么的索引，还不是这个岗位要干的活。
-            点「AI 生成任务」把它拆成可执行动作。
+            {t('tasks.derivedHint')}
           </div>
           {sections.map((section) => (
             <div key={section.chapter} className="tasks-section" data-testid={`tasks-section-${section.chapter}`}>
               <div className="tasks-section-title">
-                {section.label}（{section.items.length} 项）
+                {t('tasks.sectionCount', { label: section.label, n: section.items.length })}
               </div>
               <ul className="tasks-list">
                 {section.items.map((item) => (
@@ -141,7 +142,7 @@ export default function CeshuTasksPanel({
                     <span className="tasks-check" aria-hidden="true" />
                     <span className="tasks-label">{item.label}</span>
                     <span className={`tasks-value${item.filled ? '' : ' empty'}`}>
-                      {item.filled ? item.value : '（待补）'}
+                      {item.filled ? item.value : t('tasks.pendingValue')}
                     </span>
                   </li>
                 ))}

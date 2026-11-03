@@ -89,14 +89,14 @@ export default function CeshuChapterNav({
         24 章全铺开是劝退主因（库内文档填写率 1%–13%，见
         docs/ceshu-field-necessity.md）。这里只做筛选，不隐藏数据。
       */}
-      <div className="chapter-stage-filter" role="group" aria-label="按阶段筛选章节">
+      <div className="chapter-stage-filter" role="group" aria-label={t('chapterNav.stageFilterLabel')}>
         <button
           type="button"
           data-testid="stage-filter-all"
           className={`chapter-stage-btn${stageFilter === 'all' ? ' active' : ''}`}
           onClick={() => onStageFilterChange('all')}
         >
-          全部
+          {t('chapterNav.stageAll')}
         </button>
         {CESHU_STAGE_ORDER.map((stage) => (
           <button
@@ -104,7 +104,7 @@ export default function CeshuChapterNav({
             type="button"
             data-testid={`stage-filter-${stage}`}
             className={`chapter-stage-btn${stageFilter === stage ? ' active' : ''}`}
-            title={`只看「${CESHU_STAGE_LABELS[stage]}」阶段及更早的章节`}
+            title={t('chapterNav.stageFilterTitle', { stage: CESHU_STAGE_LABELS[stage] })}
             onClick={() => onStageFilterChange(stage)}
           >
             {CESHU_STAGE_LABELS[stage]}
@@ -115,10 +115,10 @@ export default function CeshuChapterNav({
         type="button"
         data-testid="module-picker-toggle"
         className="chapter-stage-btn module-picker-toggle"
-        title="勾选要做的系统模块（通用底座恒有）"
+        title={t('chapterNav.modulePickerTitle')}
         onClick={onOpenModulePicker}
       >
-        系统模块 {enabledModuleCount}/{MODULE_CHAPTERS.length}
+        {t('chapterNav.moduleCount', { enabled: enabledModuleCount, total: MODULE_CHAPTERS.length })}
       </button>
       {/* 系统模块勾选气泡（Slice 15）：原位置挂载，定位不变 */}
       <ViewMount host={host} mount={CESHU_CHAPTERNAV_MOUNT} provider={CeshuViewProvider} context={viewContext} />
@@ -126,10 +126,10 @@ export default function CeshuChapterNav({
         type="button"
         data-testid="view-mode-toggle"
         className={`chapter-stage-btn overview-toggle${viewMode === 'overview' ? ' active' : ''}`}
-        title="把当前阶段压成一页只读摘要（2026 主流：一页讲清 → 分层展开）"
+        title={t('chapterNav.overviewTitle')}
         onClick={onToggleViewMode}
       >
-        {viewMode === 'overview' ? '返回编辑' : '一页总览'}
+        {viewMode === 'overview' ? t('chapterNav.backToEdit') : t('chapterNav.overview')}
       </button>
       {chapters.map((key) => {
         const pct = Math.round((progress[key] ?? 0) * 100)
@@ -149,11 +149,11 @@ export default function CeshuChapterNav({
               视觉上不用文字 —— 章节导航里多出的两个字会比圆点更吵。
             */}
             {aiMarks[key] !== undefined && (
-              <span className="chapter-tab-ai" title="AI 生成，待核对" data-testid={`chapter-ai-${key}`} />
+              <span className="chapter-tab-ai" title={t('chapterNav.aiPendingTitle')} data-testid={`chapter-ai-${key}`} />
             )}
             <span
               className="chapter-progress"
-              title={`完成度 ${pct}%`}
+              title={t('chapterNav.progressTitle', { pct })}
               role="progressbar"
               aria-valuenow={pct}
               aria-valuemin={0}
@@ -168,19 +168,18 @@ export default function CeshuChapterNav({
       })}
       {scope === 'lite' && (
         <div className="chapter-nav-hint">
-          标准版仅含基础 {contentChapterCount('lite')} 章；在「文档信息」中可切换为专业版{' '}
-          {contentChapterCount('full')} 章
+          {t('chapterNav.liteHint', { lite: contentChapterCount('lite'), full: contentChapterCount('full') })}
         </div>
       )}
         </>
       ) : (
         <div className="chapter-nav-hint" data-testid="artifact-nav-hint">
-          「
-          {(() => {
-            const active = ARTIFACTS.find((item) => item.key === activeArtifact)
-            return active === undefined ? '' : t(active.labelKey)
-          })()}
-          」的目录将在这里
+          {t('chapterNav.artifactDirHint', {
+            name: (() => {
+              const active = ARTIFACTS.find((item) => item.key === activeArtifact)
+              return active === undefined ? '' : t(active.labelKey)
+            })()
+          })}
         </div>
       )}
     </div>

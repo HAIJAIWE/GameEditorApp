@@ -1,3 +1,4 @@
+import { useT } from '@mobai/client-ui'
 import {
   CESHU_EXPORT_FORMATS,
   CESHU_FORMAT_LABELS,
@@ -66,39 +67,40 @@ export default function CeshuToolbar({
   onExportFormatChange,
   onExport
 }: CeshuToolbarProps) {
+  const t = useT()
   return (
     <header className="toolbar">
       <button
         type="button"
         className="btn"
         data-testid="ceshu-back"
-        title="返回策划书首页"
+        title={t('toolbar.backTitle')}
         onClick={onBack}
       >
         <LucideIcon name="chevron-left" size={18} />
-        返回
+        {t('toolbar.back')}
       </button>
       <h1>{gameName}</h1>
       <span className="item-meta" data-testid="ceshu-version">
         {versionLabel}
-        {isActive ? ' ★ 激活' : ' · 未激活'}
+        {isActive ? t('toolbar.active') : t('toolbar.inactive')}
       </span>
       <span className="item-meta">
-        档位：
+        {t('toolbar.scopeLabel')}
         {scope === 'lite'
-          ? `标准版（${contentChapterCount('lite')} 章）`
-          : `专业版（${contentChapterCount('full')} 章）`}
+          ? t('toolbar.scopeLite', { n: contentChapterCount('lite') })
+          : t('toolbar.scopeFull', { n: contentChapterCount('full') })}
       </span>
       <span className="item-meta" data-testid="ceshu-total-progress">
-        总进度 {totalPct}%
+        {t('toolbar.totalProgress', { pct: totalPct })}
       </span>
       {!isActive && (
         <button type="button" className="btn" data-testid="ceshu-set-active" disabled={busy} onClick={onSetActive}>
-          设为激活
+          {t('toolbar.setActive')}
         </button>
       )}
       <button type="button" className="btn accent-outline" data-testid="ceshu-validate" disabled={busy} onClick={onValidate}>
-        校验
+        {t('toolbar.validate')}
       </button>
       {/* 全局审阅入口：跨章列出 AI 草稿字段，逐条接受 / 跳转 */}
       <button
@@ -106,10 +108,10 @@ export default function CeshuToolbar({
         className={`btn${pendingReviewCount > 0 ? ' accent-outline' : ''}`}
         data-testid="ceshu-review-toggle"
         disabled={busy}
-        title="跨章列出 AI 草稿字段，逐条接受"
+        title={t('toolbar.reviewTitle')}
         onClick={onOpenReview}
       >
-        待审 {pendingReviewCount}
+        {t('toolbar.pendingReview', { n: pendingReviewCount })}
       </button>
       {/*
         数据栏开关。布局心智：**左栏 + 中间 = 工作区，右栏 = 智能体**。
@@ -122,13 +124,13 @@ export default function CeshuToolbar({
         className="btn"
         data-testid="ceshu-preview-toggle"
         aria-pressed={previewOpen}
-        title={previewOpen ? '收起数据栏，让章节表单占满工作区' : '展开数据栏（对照角色/技能等数据）'}
+        title={previewOpen ? t('toolbar.previewHideTitle') : t('toolbar.previewShowTitle')}
         onClick={onTogglePreview}
       >
-        {previewOpen ? '收起数据' : '数据栏'}
+        {previewOpen ? t('toolbar.previewHide') : t('toolbar.previewShow')}
       </button>
       <button type="button" className="btn accent-outline" data-testid="ceshu-ai-full" disabled={busy} onClick={onOpenAiFull}>
-        AI 一键生成
+        {t('toolbar.aiFull')}
       </button>
       <button
         type="button"
@@ -137,7 +139,7 @@ export default function CeshuToolbar({
         disabled={busy}
         onClick={onOpenAiDataGen}
       >
-        AI 生成数据
+        {t('toolbar.aiDataGen')}
       </button>
       {/* 「更多 ▸」菜单（Slice 16）：结构与动作由 ceshuMenusPlugin 声明，MenuMount 在此渲染 */}
       <MenuMount host={host} mount="ceshu.toolbar" busy={busy} />
@@ -154,7 +156,7 @@ export default function CeshuToolbar({
         ))}
       </select>
       <button type="button" className="btn accent-outline" data-testid="ceshu-export" disabled={busy} onClick={onExport}>
-        导出
+        {t('toolbar.export')}
       </button>
     </header>
   )
