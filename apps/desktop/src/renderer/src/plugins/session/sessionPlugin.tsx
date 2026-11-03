@@ -1,7 +1,9 @@
 import { useMemo, useSyncExternalStore, type ReactElement } from 'react'
 
+import { useT } from '@mobai/client-ui'
 import { CONVERSATION_STORE_KEY, createConversationStoreDecl } from '@mobai/shared/agent/conversation'
 import type { DigitalPanelState } from '@mobai/shared/agent/ui'
+import type { MessageKey } from '@mobai/shared/i18n'
 import type { PluginHost } from '@mobai/shared/plugin/host'
 import type { PluginManifest } from '@mobai/shared/plugin/types'
 import { AgentTeamSection } from './agentTeamSection'
@@ -30,11 +32,11 @@ export function defineSessionPlugin(host: PluginHost): PluginManifest {
     id: 'session',
     name: 'session',
     version: '0.1.0',
-    description: '会话：主对话摘要、子智能体看板与会话轨迹（同一份状态）',
+    description: 'Session: main conversation summary, sub-agent board and trajectory (one shared state)',
     meta: {
-      label: '会话',
+      labelKey: 'view.session',
       icon: 'book-open',
-      description: '主对话摘要 + 子智能体看板 + 轨迹，都读同一份 conversation.state'
+      descriptionKey: 'session.metaDescription'
     },
     capabilities: [
       {
@@ -44,22 +46,23 @@ export function defineSessionPlugin(host: PluginHost): PluginManifest {
         titleKey: 'view.session.title',
         order: 50,
         lazy: true,
-        ui: { type: 'text', text: '会话' }
+        ui: { type: 'text', text: 'Session' }
       }
     ]
   }
 }
 
-const STATUS_LABELS: Record<DigitalPanelState['status'], string> = {
-  idle: '待命',
-  thinking: '思考中…',
-  waiting_approval: '等待确认',
-  waiting_input: '等待回答',
-  done: '已完成',
-  error: '出错'
+const STATUS_LABELS: Record<DigitalPanelState['status'], MessageKey> = {
+  idle: 'session.status.idle',
+  thinking: 'session.status.thinking',
+  waiting_approval: 'session.status.waitingApproval',
+  waiting_input: 'session.status.waitingInput',
+  done: 'session.status.done',
+  error: 'session.status.error'
 }
 
 function SessionMainView({ host }: { host: PluginHost }): ReactElement {
+  const t = useT()
   // 只取顶层状态（标题右侧的总状态）；分区各自订阅同一 store，互不依赖
   const conversationStore = useMemo(
     () =>
@@ -72,9 +75,9 @@ function SessionMainView({ host }: { host: PluginHost }): ReactElement {
   return (
     <div className="session" data-testid="session">
       <header className="session-header">
-        <h2>会话</h2>
+        <h2>{t('view.session')}</h2>
         <span className="session-status" data-testid="session-status">
-          {STATUS_LABELS[state.status]}
+          {t(STATUS_LABELS[state.status])}
         </span>
       </header>
 
@@ -83,13 +86,11 @@ function SessionMainView({ host }: { host: PluginHost }): ReactElement {
       <JobBoardSection host={host} />
 
       <section className="session-block" data-testid="session-block-trajectory">
-        <h3 className="session-block-title">轨迹</h3>
+        <h3 className="session-block-title">{t('session.trajectory')}</h3>
         <TrajectorySection host={host} />
       </section>
 
-      <p className="session-hint">
-        三个分区与右侧「智能体」面板同源（同一个 `conversation.state`），这里只读，不发起任何操作。
-      </p>
+      <p className="session-hint">{t('session.hint')}</p>
     </div>
   )
 }

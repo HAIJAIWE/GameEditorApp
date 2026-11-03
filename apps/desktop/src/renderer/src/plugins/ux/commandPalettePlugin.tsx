@@ -9,6 +9,7 @@ import {
 } from '@mobai/shared/agent/tools'
 import { CONVERSATION_STORE_KEY, createConversationStoreDecl } from '@mobai/shared/agent/conversation'
 import type { DigitalPanelState } from '@mobai/shared/agent/ui'
+import type { MessageKey } from '@mobai/shared/i18n'
 import type { PluginHost } from '@mobai/shared/plugin/host'
 import type { PluginManifest } from '@mobai/shared/plugin/types'
 import { openPalette, subscribePalette } from '../context'
@@ -28,14 +29,22 @@ import { registerSlotComponent } from '../host'
  * 面板挂在根级 slot `app.overlay` 上，空 slot 时 `SlotOutlet` 渲染 null，不挡鼠标。
  */
 
-/** 对话状态的中文标签（与 `DigitalPanel` 的 `STATUS_LABELS` 同口径，但那是组件私有，不复用以免耦合） */
-const STATUS_LABELS: Record<DigitalPanelState['status'], string> = {
-  idle: '待命',
-  thinking: '思考中…',
-  waiting_approval: '等待确认',
-  waiting_input: '等待回答',
-  done: '已完成',
-  error: '出错'
+/** 对话状态文案键（与 `DigitalPanel` 的 `STATUS_LABELS` 同口径，但那是组件私有，不复用以免耦合） */
+const STATUS_LABELS: Record<DigitalPanelState['status'], MessageKey> = {
+  idle: 'session.status.idle',
+  thinking: 'session.status.thinking',
+  waiting_approval: 'session.status.waitingApproval',
+  waiting_input: 'session.status.waitingInput',
+  done: 'session.status.done',
+  error: 'session.status.error'
+}
+
+/** 分组标识 → 展示文案键（逻辑层只认符号 id，翻译在渲染层做） */
+const GROUP_KEYS: Record<PaletteItem['group'], MessageKey> = {
+  command: 'palette.group.command',
+  panel: 'palette.group.panel',
+  mainView: 'palette.group.mainView',
+  conversation: 'palette.group.conversation'
 }
 
 export function defineCommandPalettePlugin(host: PluginHost): PluginManifest {
@@ -45,13 +54,14 @@ export function defineCommandPalettePlugin(host: PluginHost): PluginManifest {
     id: 'command-palette',
     name: 'command-palette',
     version: '0.1.0',
-    description: '命令面板：⌘K 搜索并执行命令 / 打开面板',
-    meta: { label: '命令面板', icon: '⌘' },
+    description: 'Command palette: search and run commands / open panels with Cmd+K',
+    meta: { labelKey: 'palette.metaLabel', icon: '⌘' },
     capabilities: [
       {
         kind: 'command',
         id: 'palette.open',
-        label: '命令面板',
+        label: 'Command palette',
+        labelKey: 'palette.title',
         run: () => {
           openPalette()
         }
@@ -61,7 +71,7 @@ export function defineCommandPalettePlugin(host: PluginHost): PluginManifest {
         id: 'commandPalette.slot',
         key: 'app.overlay',
         component: 'command.palette',
-        ui: { type: 'text', text: '命令面板' }
+        ui: { type: 'text', text: 'Command palette' }
       }
     ]
   }
@@ -74,16 +84,16 @@ export function defineCommandPalettePlugin(host: PluginHost): PluginManifest {
  * 页签条与命令面板因此共享同一个真相源，从面板切页与点页签等价。
  */
 function runItem(host: PluginHost, item: PaletteItem): void {
-  if (item.group === '命令') {
+  if (item.group === 'command') {
     const command = host.commands().find((capability) => capability.id === item.id)
     if (command !== undefined) void command.run()
     return
   }
-  if (item.group === '面板') {
+  if (item.group === 'panel') {
     host.openPanel(item.id)
     return
   }
-  if (item.group === '页签') {
+  if (item.group === 'mainView') {
     host.openMainView(item.id)
   }
 }
@@ -114,6 +124,7 @@ export function CommandPaletteView({
   onClose,
   statusText
 }: CommandPaletteViewProps): ReactElement {
+  const t = useT()
   const listRef = useRef<HTMLDivElement | null>(null)
 
   // 输入框保持焦点时浏览器不会把高亮行滚进视野，这里手动滚一次
@@ -126,7 +137,7 @@ export function CommandPaletteView({
   }, [activeIndex, items])
 
   // 分组：按首次出现顺序建桶（条目本身已是「命令 → 面板 → 对话」的顺序）
-  const groups = new Map<string, Array<{ item: PaletteItem; index: number }>>()
+  const groups = new Map<PaletteItem['group'], Array<{ item: PaletteItem; index: number }>>()
   items.forEach((item, index) => {
     const bucket = groups.get(item.group)
     if (bucket === undefined) groups.set(item.group, [{ item, index }])
@@ -140,7 +151,7 @@ export function CommandPaletteView({
         data-testid="command-palette"
         role="dialog"
         aria-modal="true"
-        aria-label="命令面板"
+        aria-label={t('palette.title')}
         onClick={(event) => {
           // 卡片内的点击不该冒到遮罩（否则点条目会把面板一起关掉）
           event.stopPropagation()
@@ -151,24 +162,24 @@ export function CommandPaletteView({
           data-testid="command-palette-input"
           type="text"
           value={query}
-          placeholder="搜索命令或面板…"
-          aria-label="搜索命令"
+          placeholder={t('palette.searchPlaceholder')}
+          aria-label={t('palette.searchLabel')}
           autoFocus
           onChange={(event) => {
             onQuery(event.currentTarget.value)
           }}
         />
 
-        <div className="command-palette-list" role="listbox" aria-label="命令列表" ref={listRef}>
+        <div className="command-palette-list" role="listbox" aria-label={t('palette.listLabel')} ref={listRef}>
           {items.length === 0 ? (
             <div className="command-palette-empty" data-testid="command-palette-empty">
-              没有匹配的命令
+              {t('palette.empty')}
             </div>
           ) : (
             [...groups].map(([group, entries]) => (
               <div key={group} className="command-palette-group-wrap" role="presentation">
                 <div className="command-palette-group" role="presentation">
-                  {group}
+                  {t(GROUP_KEYS[group])}
                 </div>
                 {entries.map(({ item, index }) => (
                   <div
@@ -193,7 +204,7 @@ export function CommandPaletteView({
 
         <div className="command-palette-hint">
           <span>{statusText}</span>
-          <span>↑↓ 选择 · Enter 执行 · Esc 关闭</span>
+          <span>{t('palette.hint')}</span>
         </div>
       </div>
     </div>
@@ -261,9 +272,9 @@ export function CommandPalette({ host }: { host: PluginHost }): ReactElement | n
       })),
       {
         id: 'conversation.clear',
-        label: '清空对话',
+        label: t('palette.clearConversation'),
         hint: 'conversation.clear',
-        group: '对话',
+        group: 'conversation',
         run: () => {
           conversationStore.actions.reset()
         }
@@ -325,7 +336,10 @@ export function CommandPalette({ host }: { host: PluginHost }): ReactElement | n
 
   if (!open) return null
 
-  const statusText = `对话：${STATUS_LABELS[conversation.status]} · ${conversation.messages.length} 条消息`
+  const statusText = t('palette.statusText', {
+    status: t(STATUS_LABELS[conversation.status]),
+    n: conversation.messages.length
+  })
   return (
     <CommandPaletteView
       items={filtered}

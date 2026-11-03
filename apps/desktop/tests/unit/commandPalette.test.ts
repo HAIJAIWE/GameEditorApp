@@ -8,7 +8,7 @@ import {
 } from '@mobai/shared/agent/tools'
 
 /** 造条目的最小工厂（测试只关心 id/label/group，run 不参与断言） */
-function item(id: string, label: string, group: PaletteItem['group'] = '命令'): PaletteItem {
+function item(id: string, label: string, group: PaletteItem['group'] = 'command'): PaletteItem {
   return { id, label, group, run: () => undefined }
 }
 
@@ -31,7 +31,7 @@ describe('命令面板纯逻辑', () => {
         'code.mainView'
       ])
       expect(items.map((entry) => entry.label)).toEqual(['数据统计', 'app.save', '数据统计', '代码编辑'])
-      expect(items.map((entry) => entry.group)).toEqual(['命令', '命令', '面板', '页签'])
+      expect(items.map((entry) => entry.group)).toEqual(['command', 'command', 'panel', 'mainView'])
     })
 
     it('按 id 去重：同一 id 只留第一条（保留先到者的 label 与分组）', () => {
@@ -46,7 +46,7 @@ describe('命令面板纯逻辑', () => {
 
       expect(items).toHaveLength(1)
       expect(items[0]?.label).toBe('先到的命令')
-      expect(items[0]?.group).toBe('命令')
+      expect(items[0]?.group).toBe('command')
     })
   })
 

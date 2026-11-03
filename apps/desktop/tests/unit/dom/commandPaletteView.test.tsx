@@ -16,14 +16,14 @@ import { PluginHost } from '@mobai/shared/plugin/host'
  * 这里只喂 props：条目数、选中态、空态、点击回调。
  */
 
-function item(id: string, label: string, group: PaletteItem['group'] = '命令'): PaletteItem {
+function item(id: string, label: string, group: PaletteItem['group'] = 'command'): PaletteItem {
   return { id, label, group, run: () => undefined }
 }
 
 const items: PaletteItem[] = [
   item('app.save', '保存'),
   item('statistics.open', '数据统计'),
-  item('statistics.panel', '数据统计', '面板')
+  item('statistics.panel', '数据统计', 'panel')
 ]
 
 function viewProps(overrides: Partial<CommandPaletteViewProps> = {}): CommandPaletteViewProps {

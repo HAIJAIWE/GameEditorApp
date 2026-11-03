@@ -287,42 +287,42 @@ export function defineCeshuViewsPlugin(): PluginManifest {
     id: 'ceshu-views',
     name: 'ceshu-views',
     version: '0.1.0',
-    description: 'CeshuView 内部视图：浮层（ceshu.overlay）+ 内容槽（ceshu.content）',
+    description: 'CeshuView internal views: overlays (ceshu.overlay) + content slot (ceshu.content)',
     meta: {
-      label: '编辑器内视图',
+      labelKey: 'ceshuViews.metaLabel',
       icon: '🧱',
-      description: '挂在编辑器内部、不卸载编辑器的浮层与内容视图'
+      descriptionKey: 'ceshuViews.metaDescription'
     },
     capabilities: [
       // 浮层挂载点（叠在编辑器之上）
-      { kind: 'view', id: 'route.view', label: '开发路线', mount: CESHU_VIEW_MOUNT, order: 10, ui: { type: 'text', text: '开发路线' } },
-      { kind: 'view', id: 'health.view', label: '开发体检', mount: CESHU_VIEW_MOUNT, order: 20, ui: { type: 'text', text: '开发体检' } },
-      { kind: 'view', id: 'fieldImpact.view', label: '字段影响面', mount: CESHU_VIEW_MOUNT, order: 30, ui: { type: 'text', text: '字段影响面' } },
-      { kind: 'view', id: 'migration.view', label: '迁移预览', mount: CESHU_VIEW_MOUNT, order: 40, ui: { type: 'text', text: '迁移预览' } },
-      { kind: 'view', id: 'consume.view', label: 'AI 消费提示词', mount: CESHU_VIEW_MOUNT, order: 50, ui: { type: 'text', text: 'AI 消费提示词' } },
-      { kind: 'view', id: 'review.view', label: '全局审阅队列', mount: CESHU_VIEW_MOUNT, order: 60, ui: { type: 'text', text: '全局审阅队列' } },
-      { kind: 'view', id: 'import.view', label: '导入 AI 结果', mount: CESHU_VIEW_MOUNT, order: 70, ui: { type: 'text', text: '导入 AI 结果' } },
+      { kind: 'view', id: 'route.view', label: 'Development roadmap', labelKey: 'ceshuView.route', mount: CESHU_VIEW_MOUNT, order: 10, ui: { type: 'text', text: 'Development roadmap' } },
+      { kind: 'view', id: 'health.view', label: 'Development health check', labelKey: 'ceshuView.health', mount: CESHU_VIEW_MOUNT, order: 20, ui: { type: 'text', text: 'Development health check' } },
+      { kind: 'view', id: 'fieldImpact.view', label: 'Field impact', labelKey: 'ceshuView.fieldImpact', mount: CESHU_VIEW_MOUNT, order: 30, ui: { type: 'text', text: 'Field impact' } },
+      { kind: 'view', id: 'migration.view', label: 'Migration preview', labelKey: 'ceshuView.migration', mount: CESHU_VIEW_MOUNT, order: 40, ui: { type: 'text', text: 'Migration preview' } },
+      { kind: 'view', id: 'consume.view', label: 'AI consume prompt', labelKey: 'ceshuView.consume', mount: CESHU_VIEW_MOUNT, order: 50, ui: { type: 'text', text: 'AI consume prompt' } },
+      { kind: 'view', id: 'review.view', label: 'Global review queue', labelKey: 'ceshuView.review', mount: CESHU_VIEW_MOUNT, order: 60, ui: { type: 'text', text: 'Global review queue' } },
+      { kind: 'view', id: 'import.view', label: 'Import AI result', labelKey: 'ceshuView.import', mount: CESHU_VIEW_MOUNT, order: 70, ui: { type: 'text', text: 'Import AI result' } },
       // 内联弹层 / 气泡挂载点（保持原有定位）
-      { kind: 'view', id: 'derive.view', label: '派生新版本', mount: CESHU_TOOLBAR_MOUNT, order: 10, ui: { type: 'text', text: '派生新版本' } },
-      { kind: 'view', id: 'modulePicker.view', label: '系统模块', mount: CESHU_CHAPTERNAV_MOUNT, order: 10, ui: { type: 'text', text: '系统模块' } },
+      { kind: 'view', id: 'derive.view', label: 'Derive new version', labelKey: 'ceshuView.derive', mount: CESHU_TOOLBAR_MOUNT, order: 10, ui: { type: 'text', text: 'Derive new version' } },
+      { kind: 'view', id: 'modulePicker.view', label: 'System modules', labelKey: 'ceshuView.modulePicker', mount: CESHU_CHAPTERNAV_MOUNT, order: 10, ui: { type: 'text', text: 'System modules' } },
       // 产出物页签挂载点
-      { kind: 'view', id: 'prototype.view', label: '原型预览', mount: CESHU_ARTIFACT_MOUNT, order: 10, ui: { type: 'text', text: '原型预览' } },
-      { kind: 'view', id: 'data.view', label: '数据/机读', mount: CESHU_ARTIFACT_MOUNT, order: 20, ui: { type: 'text', text: '数据/机读' } },
-      { kind: 'view', id: 'tasks.view', label: '岗位任务', mount: CESHU_ARTIFACT_MOUNT, order: 30, ui: { type: 'text', text: '岗位任务' } },
+      { kind: 'view', id: 'prototype.view', label: 'Prototype preview', labelKey: 'ceshuView.prototype', mount: CESHU_ARTIFACT_MOUNT, order: 10, ui: { type: 'text', text: 'Prototype preview' } },
+      { kind: 'view', id: 'data.view', label: 'Data / machine-readable', labelKey: 'ceshuView.data', mount: CESHU_ARTIFACT_MOUNT, order: 20, ui: { type: 'text', text: 'Data / machine-readable' } },
+      { kind: 'view', id: 'tasks.view', label: 'Role tasks', labelKey: 'ceshuView.tasks', mount: CESHU_ARTIFACT_MOUNT, order: 30, ui: { type: 'text', text: 'Role tasks' } },
       // 内容槽挂载点（替换编辑器内容区）
-      { kind: 'view', id: 'diff.view', label: '版本对比', mount: CESHU_CONTENT_MOUNT, order: 10, ui: { type: 'text', text: '版本对比' } },
-      { kind: 'view', id: 'timeline.view', label: '版本时间线', mount: CESHU_CONTENT_MOUNT, order: 20, ui: { type: 'text', text: '版本时间线' } },
-      { kind: 'view', id: 'changelog.view', label: '变更记录', mount: CESHU_CONTENT_MOUNT, order: 30, ui: { type: 'text', text: '变更记录' } },
-      { kind: 'view', id: 'validate.view', label: '校验', mount: CESHU_CONTENT_MOUNT, order: 40, ui: { type: 'text', text: '校验' } },
-      { kind: 'view', id: 'readiness.view', label: '完备度', mount: CESHU_CONTENT_MOUNT, order: 50, ui: { type: 'text', text: '完备度' } },
-      { kind: 'view', id: 'notes.view', label: '笔记', mount: CESHU_CONTENT_MOUNT, order: 60, ui: { type: 'text', text: '笔记' } },
-      { kind: 'view', id: 'dataRefs.view', label: '数据引用', mount: CESHU_CONTENT_MOUNT, order: 70, ui: { type: 'text', text: '数据引用' } },
-      { kind: 'view', id: 'aiReview.view', label: 'AI 审阅', mount: CESHU_CONTENT_MOUNT, order: 80, ui: { type: 'text', text: 'AI 审阅' } },
-      { kind: 'view', id: 'aiFull.view', label: 'AI 全文生成', mount: CESHU_CONTENT_MOUNT, order: 90, ui: { type: 'text', text: 'AI 全文生成' } },
-      { kind: 'view', id: 'aiDataGen.view', label: 'AI 数据生成', mount: CESHU_CONTENT_MOUNT, order: 100, ui: { type: 'text', text: 'AI 数据生成' } },
-      { kind: 'view', id: 'presetMarket.view', label: '预设市场', mount: CESHU_CONTENT_MOUNT, order: 110, ui: { type: 'text', text: '预设市场' } },
-      { kind: 'view', id: 'systemConfirm.view', label: '系统确认', mount: CESHU_CONTENT_MOUNT, order: 120, ui: { type: 'text', text: '系统确认' } },
-      { kind: 'view', id: 'templateEditor.view', label: '模板编辑器', mount: CESHU_CONTENT_MOUNT, order: 130, ui: { type: 'text', text: '模板编辑器' } }
+      { kind: 'view', id: 'diff.view', label: 'Version diff', labelKey: 'ceshuView.diff', mount: CESHU_CONTENT_MOUNT, order: 10, ui: { type: 'text', text: 'Version diff' } },
+      { kind: 'view', id: 'timeline.view', label: 'Version timeline', labelKey: 'ceshuView.timeline', mount: CESHU_CONTENT_MOUNT, order: 20, ui: { type: 'text', text: 'Version timeline' } },
+      { kind: 'view', id: 'changelog.view', label: 'Changelog', labelKey: 'ceshuView.changelog', mount: CESHU_CONTENT_MOUNT, order: 30, ui: { type: 'text', text: 'Changelog' } },
+      { kind: 'view', id: 'validate.view', label: 'Validate', labelKey: 'ceshuView.validate', mount: CESHU_CONTENT_MOUNT, order: 40, ui: { type: 'text', text: 'Validate' } },
+      { kind: 'view', id: 'readiness.view', label: 'Readiness', labelKey: 'ceshuView.readiness', mount: CESHU_CONTENT_MOUNT, order: 50, ui: { type: 'text', text: 'Readiness' } },
+      { kind: 'view', id: 'notes.view', label: 'Notes', labelKey: 'ceshuView.notes', mount: CESHU_CONTENT_MOUNT, order: 60, ui: { type: 'text', text: 'Notes' } },
+      { kind: 'view', id: 'dataRefs.view', label: 'Data references', labelKey: 'ceshuView.dataRefs', mount: CESHU_CONTENT_MOUNT, order: 70, ui: { type: 'text', text: 'Data references' } },
+      { kind: 'view', id: 'aiReview.view', label: 'AI review', labelKey: 'ceshuView.aiReview', mount: CESHU_CONTENT_MOUNT, order: 80, ui: { type: 'text', text: 'AI review' } },
+      { kind: 'view', id: 'aiFull.view', label: 'AI full-text generation', labelKey: 'ceshuView.aiFull', mount: CESHU_CONTENT_MOUNT, order: 90, ui: { type: 'text', text: 'AI full-text generation' } },
+      { kind: 'view', id: 'aiDataGen.view', label: 'AI data generation', labelKey: 'ceshuView.aiDataGen', mount: CESHU_CONTENT_MOUNT, order: 100, ui: { type: 'text', text: 'AI data generation' } },
+      { kind: 'view', id: 'presetMarket.view', label: 'Preset market', labelKey: 'ceshuView.presetMarket', mount: CESHU_CONTENT_MOUNT, order: 110, ui: { type: 'text', text: 'Preset market' } },
+      { kind: 'view', id: 'systemConfirm.view', label: 'System confirmation', labelKey: 'ceshuView.systemConfirm', mount: CESHU_CONTENT_MOUNT, order: 120, ui: { type: 'text', text: 'System confirmation' } },
+      { kind: 'view', id: 'templateEditor.view', label: 'Template editor', labelKey: 'ceshuView.templateEditor', mount: CESHU_CONTENT_MOUNT, order: 130, ui: { type: 'text', text: 'Template editor' } }
     ]
   }
 }

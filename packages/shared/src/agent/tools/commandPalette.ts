@@ -21,7 +21,11 @@ export interface PaletteItem {
   label: string
   /** 行尾的次要信息（这里用能力 id，便于用户确认「点的是哪一个」） */
   hint?: string
-  group: '命令' | '面板' | '页签' | '对话'
+  /**
+   * 分组标识（**符号**，不是展示文案）：渲染层用 `GROUP_KEYS` 映射到 i18n 键再翻译。
+   * 用符号而不是中文，是为了让逻辑层与语言解耦——比较/分组只认稳定 id。
+   */
+  group: 'command' | 'panel' | 'mainView' | 'conversation'
   run: () => void
 }
 
@@ -49,9 +53,9 @@ export function buildPaletteItems(sources: PaletteSources): PaletteItem[] {
     out.push({ id, label: label === undefined || label === '' ? id : label, hint: id, group, run: NOOP })
   }
 
-  for (const command of sources.commands) push(command.id, command.label, '命令')
-  for (const panel of sources.panels) push(panel.id, panel.title, '面板')
-  for (const view of sources.mainViews) push(view.id, view.label, '页签')
+  for (const command of sources.commands) push(command.id, command.label, 'command')
+  for (const panel of sources.panels) push(panel.id, panel.title, 'panel')
+  for (const view of sources.mainViews) push(view.id, view.label, 'mainView')
   return out
 }
 
