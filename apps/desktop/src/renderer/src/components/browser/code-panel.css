@@ -23,7 +23,7 @@
   flex: 0 0 auto;
   height: 32px;
   background: var(--bg-panel);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 0.5px solid var(--border);
   /* 文件开多了横向滚，不换行（换行会把代码区往下顶） */
   overflow-x: auto;
   overflow-y: hidden;
@@ -38,14 +38,16 @@
   flex: 0 0 auto;
   max-width: 220px;
   padding: 0 4px 0 10px;
-  border-right: 1px solid var(--border);
+  border-right: 0.5px solid var(--border);
   color: var(--text-secondary);
   font-size: calc(13px * var(--ui-font-scale));
 }
 
-.code-tab:hover {
-  background: var(--bg-hover);
-  color: var(--text);
+@media (hover: hover) {
+  .code-tab:hover {
+    background: var(--bg-hover);
+    color: var(--text);
+  }
 }
 
 .code-tab.active {
@@ -94,14 +96,20 @@
   opacity: 0;
 }
 
-.code-tab:hover .code-tab-close,
+@media (hover: hover) {
+  .code-tab:hover .code-tab-close {
+    opacity: 1;
+  }
+}
 .code-tab.active .code-tab-close {
   opacity: 1;
 }
 
-.code-tab-close:hover {
-  background: var(--bg-selected);
-  color: var(--text);
+@media (hover: hover) {
+  .code-tab-close:hover {
+    background: var(--bg-selected);
+    color: var(--text);
+  }
 }
 
 .code-tab-add {
@@ -133,7 +141,7 @@
   padding: 4px 6px 4px 12px;
   background: var(--bg-panel);
   border-top: none;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 0.5px solid var(--border);
   color: var(--text-muted);
   font-size: calc(12px * var(--ui-font-scale));
   white-space: nowrap;
@@ -166,7 +174,7 @@
 
 .code-crumb-badge {
   padding: 0 6px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: 999px;
   corner-shape: round;
   color: var(--text-secondary);
@@ -193,9 +201,11 @@
   cursor: pointer;
 }
 
-.code-tool:hover:not(:disabled) {
-  background: var(--bg-hover);
-  color: var(--text);
+@media (hover: hover) {
+  .code-tool:hover:not(:disabled) {
+    background: var(--bg-hover);
+    color: var(--text);
+  }
 }
 
 .code-tool:disabled {

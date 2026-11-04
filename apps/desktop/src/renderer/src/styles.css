@@ -484,9 +484,11 @@ body {
   cursor: pointer;
   font-size: 14px;
 }
-.sidebar-toggle:hover {
-  background: var(--bg-hover);
-  color: var(--text);
+@media (hover: hover) {
+  .sidebar-toggle:hover {
+    background: var(--bg-hover);
+    color: var(--text);
+  }
 }
 .sidebar.collapsed .sidebar-toggle {
   margin: 0 auto 6px;
@@ -512,9 +514,11 @@ body {
   transition: background 120ms ease, color 120ms ease;
 }
 
-.sidebar-item:hover {
-  background: var(--bg-hover);
-  color: var(--text);
+@media (hover: hover) {
+  .sidebar-item:hover {
+    background: var(--bg-hover);
+    color: var(--text);
+  }
 }
 
 /* 选中态：dsh 用填充底 + 主文字色，不用描边（描边在 14px 文字旁显得吵） */
@@ -560,7 +564,7 @@ body {
   /* min-height（而非固定 height）：角部件内的库下拉/按钮较高时仍能完整显示 */
   min-height: 36px;
   padding: 0 6px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 0.5px solid var(--border);
   background: var(--bg-panel);
 }
 
@@ -616,7 +620,11 @@ body {
   cursor: pointer;
 }
 
-.menu-title:hover,
+@media (hover: hover) {
+  .menu-title:hover {
+    background: var(--bg-hover);
+  }
+}
 .menu-title.open {
   background: var(--bg-hover);
 }
@@ -628,7 +636,7 @@ body {
   z-index: 100;
   min-width: 200px;
   padding: 4px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-panel);
   box-shadow: 0 8px 24px var(--elevation-ink-dropdown);
@@ -648,8 +656,10 @@ body {
   cursor: pointer;
 }
 
-.menu-item:hover:not(:disabled) {
-  background: var(--bg-hover);
+@media (hover: hover) {
+  .menu-item:hover:not(:disabled) {
+    background: var(--bg-hover);
+  }
 }
 
 .menu-item:disabled {
@@ -704,9 +714,11 @@ body {
   flex-shrink: 0;
 }
 
-.type-tab:hover {
-  background: var(--bg-hover);
-  color: var(--text);
+@media (hover: hover) {
+  .type-tab:hover {
+    background: var(--bg-hover);
+    color: var(--text);
+  }
 }
 
 .type-tab.active {
@@ -757,7 +769,7 @@ body {
   justify-content: space-between;
   gap: 12px;
   padding: 10px 20px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 0.5px solid var(--border);
 }
 
 .panel-overlay-body {
@@ -800,7 +812,7 @@ body {
   min-width: 300px;
   /* 不设 max-width：与 旧版「自由拖动、无上限」一致 */
   flex: 0 0 auto;
-  border-left: 1px solid var(--border);
+  border-left: 0.5px solid var(--border);
   background: var(--bg-panel);
   /* 不能裁：停靠区里装的编辑器有自己的「更多」下拉，overflow:hidden 会把菜单裁掉，
      点击点落到容器上（e2e 报「ai-dock intercepts pointer events」）。全屏态单独裁。 */
@@ -829,7 +841,11 @@ body {
   transition: background 120ms ease;
 }
 
-.ai-dock-resizer:hover,
+@media (hover: hover) {
+  .ai-dock-resizer:hover {
+    background: var(--border);
+  }
+}
 .ai-dock-resizer:active {
   background: var(--border);
 }
@@ -843,7 +859,7 @@ body {
   flex-wrap: wrap;
   gap: 12px;
   padding: 16px 20px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 0.5px solid var(--border);
 }
 
 .toolbar h1 {
@@ -876,8 +892,10 @@ body {
   white-space: nowrap;
 }
 
-.btn:hover:not(:disabled) {
-  background: var(--bg-hover);
+@media (hover: hover) {
+  .btn:hover:not(:disabled) {
+    background: var(--bg-hover);
+  }
 }
 
 .btn:active:not(:disabled) {
@@ -891,8 +909,10 @@ body {
   color: var(--ink-on-solid);
   font-weight: 500;
 }
-.btn.primary:hover:not(:disabled) {
-  background: var(--solid-btn-hover);
+@media (hover: hover) {
+  .btn.primary:hover:not(:disabled) {
+    background: var(--solid-btn-hover);
+  }
 }
 
 /*
@@ -908,8 +928,10 @@ body {
   color: var(--accent);
 }
 
-.btn.accent-outline:hover:not(:disabled) {
-  background: var(--bg-hover);
+@media (hover: hover) {
+  .btn.accent-outline:hover:not(:disabled) {
+    background: var(--bg-hover);
+  }
 }
 
 .btn:disabled {
@@ -985,8 +1007,10 @@ body {
   cursor: pointer;
 }
 
-.item-row:hover {
-  background: var(--bg-hover);
+@media (hover: hover) {
+  .item-row:hover {
+    background: var(--bg-hover);
+  }
 }
 
 /* 选中：0.5px 品牌色内描边 + 极淡品牌底色（不用整块蓝底，行内文字保持可读） */
@@ -1021,7 +1045,7 @@ body {
   min-height: 34px;
   padding: 6px 8px;
   border: none;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 0.5px solid var(--border);
   border-radius: 0;
   background: transparent;
 }
@@ -1060,7 +1084,7 @@ body {
   gap: 2px;
   min-width: 104px;
   padding: 4px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-panel);
   box-shadow: 0 6px 18px var(--elevation-ink-context);
@@ -1101,14 +1125,14 @@ body {
   flex-direction: column;
   width: 400px;
   flex-shrink: 0;
-  border-left: 1px solid var(--border);
+  border-left: 0.5px solid var(--border);
   background: var(--bg-panel);
   overflow: hidden;
 }
 
 .editor-header {
   padding: 12px 16px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 0.5px solid var(--border);
 }
 
 .editor-title {
@@ -1139,7 +1163,7 @@ body {
 /* ---- 条目编辑器分区（对应 旧版 CollapsibleSection + FIELD_GROUPS） ---- */
 
 .form-section {
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-panel);
 }
@@ -1159,8 +1183,10 @@ body {
   cursor: pointer;
 }
 
-.form-section-head:hover {
-  background: var(--bg-hover);
+@media (hover: hover) {
+  .form-section-head:hover {
+    background: var(--bg-hover);
+  }
 }
 
 .form-section-icon {
@@ -1182,7 +1208,7 @@ body {
   flex-direction: column;
   gap: 10px;
   padding: 8px 10px 10px;
-  border-top: 1px solid var(--border);
+  border-top: 0.5px solid var(--border);
 }
 
 /*
@@ -1398,7 +1424,7 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-panel);
   color: var(--text-secondary);
@@ -1409,9 +1435,11 @@ body {
   user-select: none;
 }
 
-.ai-field-btn:hover:not(:disabled) {
-  border-color: var(--accent);
-  color: var(--accent);
+@media (hover: hover) {
+  .ai-field-btn:hover:not(:disabled) {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
 }
 
 /* busy / 禁用：对应 旧版 `set_busy(True)` 的「禁用按钮 + 等待光标」 */
@@ -1488,7 +1516,7 @@ body {
   padding: 6px 0;
   margin-bottom: 4px;
   background: var(--bg-panel);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 0.5px solid var(--border);
 }
 
 .field-search-input {
@@ -1498,7 +1526,7 @@ body {
   font-size: calc(12px * var(--ui-font-scale));
   color: var(--text);
   background: var(--bg);
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius-sm);
 }
 
@@ -1529,7 +1557,7 @@ body {
 .field-badge {
   display: inline-block;
   padding: 0 6px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius-xs);
   font-size: calc(12px * var(--ui-font-scale));
   line-height: 17px;
@@ -1585,7 +1613,7 @@ body {
   max-height: 70vh;
   overflow: auto;
   padding: 14px 16px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-panel);
   box-shadow: 0 8px 30px var(--elevation-ink-panel);
@@ -1636,7 +1664,7 @@ body {
   align-items: center;
   gap: 10px;
   padding: 6px 8px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius-sm);
 }
 
@@ -1671,8 +1699,10 @@ body {
   text-align: left;
 }
 
-.review-group-head:hover {
-  color: var(--text-primary);
+@media (hover: hover) {
+  .review-group-head:hover {
+    color: var(--text-primary);
+  }
 }
 
 .review-group-caret {
@@ -1706,7 +1736,7 @@ body {
   flex-direction: column;
   gap: 4px;
   padding: 8px 10px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius-sm);
 }
 
@@ -1778,7 +1808,7 @@ body {
   margin: 0;
   padding: 12px 14px;
   overflow: auto;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg);
   color: var(--text);
@@ -1816,9 +1846,11 @@ body {
   cursor: pointer;
 }
 
-.image-picker:hover:not(:disabled) {
-  border-color: var(--accent);
-  color: var(--accent);
+@media (hover: hover) {
+  .image-picker:hover:not(:disabled) {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
 }
 
 .image-picker:disabled {
@@ -1870,15 +1902,17 @@ body {
   text-overflow: ellipsis;
 }
 
-.image-field-path:hover {
-  border-color: var(--border);
+@media (hover: hover) {
+  .image-field-path:hover {
+    border-color: var(--border);
+  }
 }
 
 /* LazyImage（图片字段预览，对齐 旧版 LazyImageLabel 的「无图片 / 加载中... / 到位」三态） */
 .image-lazy {
   align-self: flex-start;
   max-width: 100%;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg);
   object-fit: contain;
@@ -1960,7 +1994,7 @@ body {
   flex-wrap: wrap;
   justify-content: flex-end;
   padding: 12px 16px;
-  border-top: 1px solid var(--border);
+  border-top: 0.5px solid var(--border);
 }
 
 .item-name {
@@ -2006,7 +2040,7 @@ body {
   align-items: center;
   gap: 16px;
   padding: 4px 20px;
-  border-top: 1px solid var(--border);
+  border-top: 0.5px solid var(--border);
   background: var(--bg);
   color: var(--text-muted);
   font-size: calc(13px * var(--ui-font-scale) * 12/13);
@@ -2042,7 +2076,7 @@ body {
   flex-shrink: 0;
   overflow: auto;
   padding: 12px;
-  border-right: 1px solid var(--border);
+  border-right: 0.5px solid var(--border);
   background: var(--bg-panel);
 }
 
@@ -2062,7 +2096,7 @@ body {
   flex: 1 1 auto;
   min-width: 40px;
   padding: 3px 6px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--bg-panel);
   color: var(--text-muted);
@@ -2070,9 +2104,11 @@ body {
   cursor: pointer;
 }
 
-.chapter-stage-btn:hover {
-  border-color: var(--accent);
-  color: var(--text);
+@media (hover: hover) {
+  .chapter-stage-btn:hover {
+    border-color: var(--accent);
+    color: var(--text);
+  }
 }
 
 .chapter-stage-btn.active {
@@ -2106,7 +2142,7 @@ body {
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-left: 3px solid var(--accent);
   border-radius: var(--radius-md);
   background: var(--bg-panel);
@@ -2129,9 +2165,11 @@ body {
   background: var(--accent);
 }
 
-.chapter-tab:hover {
-  background: var(--accent-light);
-  color: var(--text);
+@media (hover: hover) {
+  .chapter-tab:hover {
+    background: var(--accent-light);
+    color: var(--text);
+  }
 }
 
 .chapter-tab.active {
@@ -2220,7 +2258,7 @@ body {
   color: var(--text);
 }
 .overview-head {
-  border-bottom: 1px solid var(--border);
+  border-bottom: 0.5px solid var(--border);
   padding-bottom: 10px;
 }
 .overview-title {
@@ -2237,7 +2275,7 @@ body {
   color: var(--text-muted);
 }
 .overview-chapter {
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 10px 14px;
   background: var(--bg-panel);
@@ -2323,7 +2361,7 @@ body {
   font-size: 12px;
   padding: 4px 8px;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   background: var(--bg-panel);
   color: var(--text-secondary);
   cursor: pointer;
@@ -2373,7 +2411,7 @@ body {
   flex: 1;
   width: 100%;
   min-height: 320px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--ink-on-solid);
 }
@@ -2386,7 +2424,7 @@ body {
   flex-direction: column;
   gap: 8px;
   padding: 10px 12px;
-  border-left: 1px solid var(--border);
+  border-left: 0.5px solid var(--border);
   background: var(--bg-panel);
   min-height: 0;
 }
@@ -2437,7 +2475,7 @@ body {
   padding: 3px 8px;
   border-radius: 999px;
   corner-shape: round;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   background: var(--bg-panel);
   color: var(--text-muted);
   cursor: pointer;
@@ -2548,7 +2586,7 @@ body {
 .tasks-check {
   width: 12px;
   height: 12px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius-xs);
   flex: none;
 }
@@ -2587,7 +2625,7 @@ body {
   gap: 10px;
 }
 .machine-item {
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 8px 10px;
   display: flex;
@@ -2622,7 +2660,7 @@ body {
 /* ---- 系统模块勾选（通用底座恒有 + 可选系统模块）---- */
 .module-picker {
   margin-top: 6px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 8px 10px;
   background: var(--bg-panel);
@@ -2650,7 +2688,7 @@ body {
   color: var(--text-secondary);
 }
 .module-chip.core {
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
 }
 .module-picker-list {
   display: grid;
@@ -2701,8 +2739,10 @@ body {
   text-decoration: underline dotted;
 }
 
-.chapter-form-title .btn-link:hover {
-  text-decoration-style: solid;
+@media (hover: hover) {
+  .chapter-form-title .btn-link:hover {
+    text-decoration-style: solid;
+  }
 }
 
 .chapter-form-ai {
@@ -2764,7 +2804,7 @@ body {
   max-width: 100%;
   max-height: 420px;
   object-fit: contain;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-panel);
 }
@@ -2778,7 +2818,7 @@ body {
 }
 
 .system-row {
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   padding: 10px 12px;
   background: var(--bg-panel);
@@ -2797,7 +2837,7 @@ body {
   gap: 10px;
   margin-top: 10px;
   padding-top: 10px;
-  border-top: 1px solid var(--border);
+  border-top: 0.5px solid var(--border);
 }
 
 .check-group {
@@ -2832,7 +2872,7 @@ body {
   z-index: 300;
   min-width: 190px;
   padding: 4px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-panel);
   box-shadow: 0 8px 24px var(--elevation-ink-dropdown);
@@ -2866,7 +2906,7 @@ body {
 .toolbar-more-group + .toolbar-more-group {
   margin-top: 4px;
   padding-top: 4px;
-  border-top: 1px solid var(--border);
+  border-top: 0.5px solid var(--border);
 }
 
 .toolbar-more-item {
@@ -2883,8 +2923,10 @@ body {
   cursor: pointer;
 }
 
-.toolbar-more-item:hover {
-  background: var(--bg-hover);
+@media (hover: hover) {
+  .toolbar-more-item:hover {
+    background: var(--bg-hover);
+  }
 }
 
 .toolbar-more-item:disabled {
@@ -2911,7 +2953,7 @@ body {
   align-items: center;
   gap: 8px;
   padding: 10px 20px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 0.5px solid var(--border);
   background: var(--bg-panel);
 }
 
@@ -2937,7 +2979,7 @@ body {
 }
 
 .changelog-entry {
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   padding: 12px 14px;
   background: var(--bg-panel);
@@ -3009,15 +3051,17 @@ body {
   font: inherit;
 }
 
-.validate-line-link:hover {
-  color: var(--accent);
-  text-decoration: underline;
+@media (hover: hover) {
+  .validate-line-link:hover {
+    color: var(--accent);
+    text-decoration: underline;
+  }
 }
 
 /* 导入问题条目：可定位时整行是按钮，hover 提示可点 */
 .review-row-link {
   width: 100%;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   background: transparent;
   color: inherit;
   font: inherit;
@@ -3025,8 +3069,10 @@ body {
   cursor: pointer;
 }
 
-.review-row-link:hover {
-  border-color: var(--accent);
+@media (hover: hover) {
+  .review-row-link:hover {
+    border-color: var(--accent);
+  }
 }
 
 .score-total {
@@ -3065,7 +3111,7 @@ body {
 
 .score-table th,
 .score-table td {
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   padding: 4px 8px;
   font-size: calc(13px * var(--ui-font-scale) * 12/13);
   text-align: left;
@@ -3161,7 +3207,7 @@ body {
 
 .checklist-category {
   padding: 8px 10px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-panel);
   color: var(--text);
@@ -3193,7 +3239,7 @@ body {
   align-items: flex-start;
   gap: 10px;
   padding: 10px 12px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-panel);
 }
@@ -3292,7 +3338,7 @@ body {
   justify-content: space-between;
   gap: 8px;
   padding: 6px 10px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-panel);
   color: var(--text);
@@ -3334,7 +3380,7 @@ body {
 }
 
 .diff-detail {
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   padding: 10px 12px;
   background: var(--bg-panel);
@@ -3387,7 +3433,7 @@ body {
   flex-direction: column;
   gap: 2px;
   padding: 8px 10px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-panel);
   color: var(--text);
@@ -3502,7 +3548,7 @@ body {
 
 .deps-node {
   padding: 3px 8px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-panel);
   font-size: calc(13px * var(--ui-font-scale) * 11/13);
@@ -3608,7 +3654,7 @@ body {
   width: 190px;
   flex-shrink: 0;
   padding: 12px;
-  border-right: 1px solid var(--border);
+  border-right: 0.5px solid var(--border);
   overflow: auto;
 }
 
@@ -3634,7 +3680,7 @@ body {
   flex-wrap: wrap;
   gap: 6px;
   padding: 4px 0;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 0.5px solid var(--border);
 }
 
 .te-field-row:last-child {
@@ -3726,7 +3772,7 @@ body {
 .ref-tab {
   flex: 1;
   padding: 6px 4px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: transparent;
   color: var(--text-muted);
@@ -3746,7 +3792,7 @@ body {
   gap: 2px;
   width: 100%;
   padding: 8px 10px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-panel);
   color: var(--text);
@@ -3754,8 +3800,10 @@ body {
   cursor: pointer;
 }
 
-button.ref-row:hover {
-  border-color: var(--accent);
+@media (hover: hover) {
+  button.ref-row:hover {
+    border-color: var(--accent);
+  }
 }
 
 .ref-row.dangling {
@@ -3793,7 +3841,7 @@ button.ref-row:hover {
   /* 窄容器（浮层面板正文可窄至 380px）内允许压缩，不撑破父级 */
   max-width: 100%;
   padding: 4px 6px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-panel);
   color: var(--text);
@@ -3834,7 +3882,7 @@ button.ref-row:hover {
 .rg-table {
   width: 100%;
   border-collapse: collapse;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   font-size: calc(13px * var(--ui-font-scale) * 12/13);
   table-layout: fixed;
 }
@@ -3850,7 +3898,7 @@ button.ref-row:hover {
 
 .rg-table td {
   padding: 6px 8px;
-  border-top: 1px solid var(--divider);
+  border-top: 0.5px solid var(--divider);
   color: var(--text);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -3866,8 +3914,10 @@ button.ref-row:hover {
   cursor: pointer;
 }
 
-.rg-row:hover {
-  background: var(--bg-hover);
+@media (hover: hover) {
+  .rg-row:hover {
+    background: var(--bg-hover);
+  }
 }
 
 .rg-row.dangling {
@@ -3893,7 +3943,7 @@ button.ref-row:hover {
   flex-wrap: wrap;
   gap: 6px;
   padding: 4px 0;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 0.5px solid var(--border);
 }
 
 .attr-head {
@@ -4023,7 +4073,7 @@ button.ref-row:hover {
 .ref-drop-table th,
 .ref-drop-table td {
   padding: 3px 6px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   text-align: left;
 }
 
@@ -4052,7 +4102,7 @@ button.ref-row:hover {
   flex-direction: column;
   gap: 6px;
   padding: 8px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-panel);
 }
@@ -4071,7 +4121,7 @@ button.ref-row:hover {
   justify-content: space-between;
   gap: 8px;
   padding: 4px 8px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius-xs);
   background: var(--bg);
   color: var(--text);
@@ -4080,8 +4130,10 @@ button.ref-row:hover {
   cursor: pointer;
 }
 
-.ref-drop-candidate:hover {
-  background: var(--bg-hover);
+@media (hover: hover) {
+  .ref-drop-candidate:hover {
+    background: var(--bg-hover);
+  }
 }
 
 .ref-drop-candidate.selected {
@@ -4109,7 +4161,7 @@ button.ref-row:hover {
 
 .attr-calc {
   padding: 8px 10px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg);
 }
@@ -4143,7 +4195,7 @@ button.ref-row:hover {
 
 .attr-calc-source {
   padding: 0 6px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text-muted);
   font-size: calc(13px * var(--ui-font-scale) * 11/13);
@@ -4194,7 +4246,7 @@ button.ref-row:hover {
   flex-wrap: wrap;
   gap: 6px;
   padding: 4px 0;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 0.5px solid var(--border);
 }
 
 .attr-panel-head {
@@ -4263,7 +4315,7 @@ button.ref-row:hover {
   margin: 6px 0 2px;
   padding: 8px 10px;
   background: var(--bg-panel);
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
 }
 
@@ -4326,7 +4378,7 @@ button.ref-row:hover {
   text-overflow: ellipsis;
   white-space: nowrap;
   background: var(--bg);
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius-xs);
 }
 
@@ -4346,7 +4398,7 @@ button.ref-row:hover {
 .attr-matrix-scroll {
   max-height: 56vh;
   overflow: auto;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
 }
 
@@ -4359,7 +4411,7 @@ button.ref-row:hover {
 .attr-matrix th,
 .attr-matrix td {
   padding: 2px 4px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
 
@@ -4411,7 +4463,7 @@ button.ref-row:hover {
   flex-direction: column;
   gap: 6px;
   padding: 10px 12px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg);
 }
@@ -4476,7 +4528,7 @@ button.ref-row:hover {
 .attr-live-process {
   margin: 0;
   padding: 8px 10px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-panel);
   color: var(--text);
@@ -4509,7 +4561,7 @@ button.ref-row:hover {
   max-height: 480px;
   overflow: auto;
   padding: 8px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg);
 }
@@ -4525,7 +4577,7 @@ button.ref-row:hover {
   align-items: center;
   gap: 8px;
   padding: 6px 8px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-panel);
   color: var(--text);
@@ -4535,8 +4587,10 @@ button.ref-row:hover {
   cursor: pointer;
 }
 
-.equip-preview-item:hover {
-  border-color: var(--accent);
+@media (hover: hover) {
+  .equip-preview-item:hover {
+    border-color: var(--accent);
+  }
 }
 
 .equip-preview-item-name {
@@ -4635,7 +4689,7 @@ button.ref-row:hover {
   align-items: flex-start;
   gap: 10px;
   padding: 6px 0;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 0.5px solid var(--border);
 }
 
 .review-check-row:last-child {
@@ -4711,14 +4765,16 @@ button.ref-row:hover {
   flex-direction: column;
   gap: 6px;
   padding: 12px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-panel);
 }
 
-.preset-card:hover {
-  border-color: var(--accent);
-  background: var(--bg-hover);
+@media (hover: hover) {
+  .preset-card:hover {
+    border-color: var(--accent);
+    background: var(--bg-hover);
+  }
 }
 
 .preset-card-head {
@@ -4922,7 +4978,7 @@ button.ref-row:hover {
   display: flex;
   flex-direction: column;
   gap: 20px;
-  border-top: 1px solid var(--border);
+  border-top: 0.5px solid var(--border);
 }
 
 /* 最近打开 */
@@ -4990,7 +5046,7 @@ button.ref-row:hover {
   flex-direction: column;
   gap: 6px;
   padding: 12px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-panel);
 }
@@ -5032,7 +5088,7 @@ button.ref-row:hover {
 }
 
 .home-badge-type {
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   color: var(--text-muted);
 }
 
@@ -5100,7 +5156,7 @@ button.ref-row:hover {
   width: 100%;
   max-width: 480px;
   height: auto;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-panel);
 }
@@ -5144,7 +5200,7 @@ button.ref-row:hover {
 .timeline-canvas {
   overflow: auto;
   padding: 4px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg);
 }
@@ -5158,7 +5214,7 @@ button.ref-row:hover {
   flex-direction: column;
   gap: 4px;
   padding: 12px 14px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-panel);
   color: var(--text);
@@ -5215,7 +5271,7 @@ button.ref-row:hover {
   max-height: 420px;
   overflow: auto;
   padding: 8px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg);
 }
@@ -5225,13 +5281,15 @@ button.ref-row:hover {
   align-items: flex-start;
   gap: 4px;
   padding: 6px 8px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-panel);
 }
 
-.template-item:hover {
-  border-color: var(--accent);
+@media (hover: hover) {
+  .template-item:hover {
+    border-color: var(--accent);
+  }
 }
 
 .template-item.active {
@@ -5284,7 +5342,7 @@ button.ref-row:hover {
   flex-direction: column;
   gap: 6px;
   padding: 10px 12px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-panel);
 }
@@ -5333,7 +5391,7 @@ button.ref-row:hover {
 
 .datagen-tab {
   padding: 4px 10px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-panel);
   color: var(--text);
@@ -5342,8 +5400,10 @@ button.ref-row:hover {
   cursor: pointer;
 }
 
-.datagen-tab:hover {
-  border-color: var(--accent);
+@media (hover: hover) {
+  .datagen-tab:hover {
+    border-color: var(--accent);
+  }
 }
 
 .datagen-tab.active {
@@ -5360,7 +5420,7 @@ button.ref-row:hover {
   max-height: 320px;
   overflow: auto;
   padding: 8px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg);
 }
@@ -5373,7 +5433,7 @@ button.ref-row:hover {
 .datagen-quality {
   margin: 0;
   padding: 10px 12px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg);
   font-size: calc(13px * var(--ui-font-scale) * 1.0);
@@ -5401,7 +5461,7 @@ button.ref-row:hover {
 .datagen-cost {
   margin: 0;
   padding: 8px 12px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg);
   font-size: calc(13px * var(--ui-font-scale) * 1.0);
@@ -5430,7 +5490,7 @@ button.ref-row:hover {
 .ai-full-judge {
   margin: 0;
   padding: 10px 12px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg);
   font-size: calc(13px * var(--ui-font-scale) * 1.0);
@@ -5458,7 +5518,7 @@ button.ref-row:hover {
   padding: 1px 6px;
   border-radius: var(--radius-xs);
   font-size: calc(12px * var(--ui-font-scale) * 1.0);
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
 }
 .ai-full-judge-badge.safe {
   color: var(--success);
@@ -5526,7 +5586,7 @@ button.ref-row:hover {
   max-height: 420px;
   overflow: auto;
   padding: 8px 10px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg);
 }
@@ -5601,7 +5661,7 @@ button.ref-row:hover {
   font-weight: 600;
   color: var(--text);
   background: var(--bg-panel);
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: 999px;
   corner-shape: round;
   white-space: nowrap;
@@ -5613,7 +5673,7 @@ button.ref-row:hover {
   flex-direction: column;
   gap: 4px;
   padding: 8px 10px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-panel);
 }
@@ -5633,7 +5693,7 @@ button.ref-row:hover {
   flex-direction: column;
   gap: 6px;
   padding: 8px 10px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-panel);
 }
@@ -5729,9 +5789,11 @@ button.ref-row:hover {
   font-size: calc(12px * var(--ui-font-scale));
   cursor: pointer;
 }
-.digital-attachment-chip:hover {
-  background: var(--bg-hover);
-  color: var(--text);
+@media (hover: hover) {
+  .digital-attachment-chip:hover {
+    background: var(--bg-hover);
+    color: var(--text);
+  }
 }
 .digital-attachment-chip svg {
   flex: none;
@@ -5762,9 +5824,11 @@ button.ref-row:hover {
   color: var(--text-muted);
   cursor: pointer;
 }
-.dsh-attachment-remove:hover {
-  background: color-mix(in srgb, var(--text-muted) 16%, transparent);
-  color: var(--text);
+@media (hover: hover) {
+  .dsh-attachment-remove:hover {
+    background: color-mix(in srgb, var(--text-muted) 16%, transparent);
+    color: var(--text);
+  }
 }
 
 /* composer 待发送区的图片缩略图：24px 方块嵌在 chip 里（对齐 dsh draft rail 的缩略图思路） */
@@ -5884,8 +5948,10 @@ button.ref-row:hover {
   color: var(--ink-on-solid);
   cursor: pointer;
 }
-.digital-lightbox-close:hover {
-  background: var(--on-dark-hover);
+@media (hover: hover) {
+  .digital-lightbox-close:hover {
+    background: var(--on-dark-hover);
+  }
 }
 
 .digital-message-body {
@@ -5922,7 +5988,11 @@ button.ref-row:hover {
   transition: opacity 120ms ease;
 }
 
-.digital-message-item:hover .digital-message-actions,
+@media (hover: hover) {
+  .digital-message-item:hover .digital-message-actions {
+    opacity: 1;
+  }
+}
 .digital-message-item:focus-within .digital-message-actions {
   opacity: 1;
 }
@@ -5941,19 +6011,23 @@ button.ref-row:hover {
   cursor: pointer;
 }
 
-.digital-message-action:hover {
-  /* 用 --text-muted 混出浅底：仓库没有 --fg 令牌，写错会让整条声明失效（悬停无反馈） */
-  background: color-mix(in srgb, var(--text-muted) 12%, transparent);
-  color: var(--text);
+@media (hover: hover) {
+  .digital-message-action:hover {
+    /* 用 --text-muted 混出浅底：仓库没有 --fg 令牌，写错会让整条声明失效（悬停无反馈） */
+    background: color-mix(in srgb, var(--text-muted) 12%, transparent);
+    color: var(--text);
+  }
 }
 
 /* 已记录的反馈评分：按钮保持强调色（对齐 dsh「recorded rating 常显填充」），不靠 hover 才看见 */
 .digital-message-feedback[data-active='true'] {
   color: var(--accent);
 }
-.digital-message-feedback[data-active='true']:hover {
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
-  color: var(--accent);
+@media (hover: hover) {
+  .digital-message-feedback[data-active='true']:hover {
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    color: var(--accent);
+  }
 }
 
 /* 反馈补充说明框：评分后展开、可选；收起时不渲染（不污染消息 innerText） */
@@ -6028,9 +6102,11 @@ button.ref-row:hover {
   font-size: inherit;
   cursor: pointer;
 }
-.chat-file-link:hover {
-  background: color-mix(in srgb, var(--accent) 20%, transparent);
-  text-decoration: underline;
+@media (hover: hover) {
+  .chat-file-link:hover {
+    background: color-mix(in srgb, var(--accent) 20%, transparent);
+    text-decoration: underline;
+  }
 }
 
 .digital-message-body .markdown-body p {
@@ -6080,7 +6156,7 @@ button.ref-row:hover {
 
 .digital-message-body .markdown-body th,
 .digital-message-body .markdown-body td {
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   padding: 6px 8px;
 }
 
@@ -6099,7 +6175,7 @@ button.ref-row:hover {
 .digital-message-body .markdown-body hr {
   margin: 12px 0;
   border: none;
-  border-top: 1px solid var(--border);
+  border-top: 0.5px solid var(--border);
 }
 
 .digital-message-body .markdown-body a {
@@ -6126,7 +6202,7 @@ button.ref-row:hover {
   padding: 10px;
   max-height: 320px;
   overflow: auto;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--cell-bg);
   color: var(--text);
@@ -6233,7 +6309,7 @@ button.ref-row:hover {
   gap: 4px;
   max-height: 220px;
   overflow-y: auto;
-  border-top: 1px solid var(--border);
+  border-top: 0.5px solid var(--border);
   padding-top: 6px;
 }
 
@@ -6295,7 +6371,7 @@ button.ref-row:hover {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  border-top: 1px solid var(--border);
+  border-top: 0.5px solid var(--border);
   padding-top: 6px;
 }
 
@@ -6304,7 +6380,7 @@ button.ref-row:hover {
   display: flex;
   align-items: baseline;
   gap: 6px;
-  border-top: 1px solid var(--border);
+  border-top: 0.5px solid var(--border);
   padding-top: 6px;
   font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
@@ -6324,7 +6400,7 @@ button.ref-row:hover {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  border-top: 1px solid var(--border);
+  border-top: 0.5px solid var(--border);
   padding-top: 6px;
 }
 
@@ -6466,8 +6542,10 @@ button.ref-row:hover {
   cursor: pointer;
 }
 
-.digital-step-head:hover {
-  color: var(--text);
+@media (hover: hover) {
+  .digital-step-head:hover {
+    color: var(--text);
+  }
 }
 
 .digital-step-icon {
@@ -6580,8 +6658,10 @@ button.ref-row:hover {
   cursor: pointer;
 }
 
-.digital-step-args-toggle:hover {
-  color: var(--text);
+@media (hover: hover) {
+  .digital-step-args-toggle:hover {
+    color: var(--text);
+  }
 }
 
 .digital-step-args-toggle .digital-step-body-label {
@@ -6661,7 +6741,7 @@ button.ref-row:hover {
 
 .digital-step-image-thumb {
   padding: 0;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius-sm);
   background: transparent;
   width: 72px;
@@ -6677,8 +6757,10 @@ button.ref-row:hover {
   display: block;
 }
 
-.digital-step-image-thumb:hover {
-  border-color: var(--accent);
+@media (hover: hover) {
+  .digital-step-image-thumb:hover {
+    border-color: var(--accent);
+  }
 }
 
 /* M1 观测：本轮运行消耗行（轮数 / token / 耗时 / 工具次数） */
@@ -6686,7 +6768,7 @@ button.ref-row:hover {
   display: flex;
   align-items: baseline;
   gap: 8px;
-  border-top: 1px solid var(--border);
+  border-top: 0.5px solid var(--border);
   padding-top: 6px;
   color: var(--text-muted);
   font-size: calc(13px * var(--ui-font-scale) * 11/13);
@@ -6694,7 +6776,7 @@ button.ref-row:hover {
 
 /* M0.5 终止闸：命中计数闸时的诚实提示（本次为部分结果） */
 .digital-terminated {
-  border-top: 1px solid var(--border);
+  border-top: 0.5px solid var(--border);
   padding-top: 6px;
   color: var(--warning);
   font-size: calc(13px * var(--ui-font-scale) * 12/13);
@@ -6742,7 +6824,7 @@ button.ref-row:hover {
 
 .digital-risk-badge {
   padding: 0 6px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: 999px;
   corner-shape: round;
   font-size: calc(13px * var(--ui-font-scale) * 11/13);
@@ -6785,7 +6867,7 @@ button.ref-row:hover {
   flex-direction: column;
   gap: 2px;
   margin-bottom: 6px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--bg);
   padding: 4px;
@@ -6807,7 +6889,11 @@ button.ref-row:hover {
   cursor: pointer;
 }
 
-.digital-command-item:hover,
+@media (hover: hover) {
+  .digital-command-item:hover {
+    background: var(--surface-active);
+  }
+}
 .digital-command-item.active {
   background: var(--surface-active);
 }
@@ -6824,7 +6910,7 @@ button.ref-row:hover {
   flex-direction: column;
   gap: 6px;
   padding: 8px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 0.5px solid var(--border);
 }
 
 .library-bar-row {
@@ -6866,7 +6952,7 @@ button.ref-row:hover {
   width: 100%;
   text-align: left;
   padding: 10px 12px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-panel);
   color: inherit;
@@ -6874,8 +6960,10 @@ button.ref-row:hover {
   cursor: pointer;
 }
 
-.qc-card:hover:not(:disabled) {
-  border-color: var(--accent);
+@media (hover: hover) {
+  .qc-card:hover:not(:disabled) {
+    border-color: var(--accent);
+  }
 }
 
 .qc-card.selected {
@@ -6901,7 +6989,7 @@ button.ref-row:hover {
 .qc-preview {
   margin-top: 14px;
   padding: 10px 12px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-panel);
 }
@@ -6938,7 +7026,7 @@ button.ref-row:hover {
 
 .qc-tab {
   padding: 6px 12px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-panel);
   color: inherit;
@@ -6992,14 +7080,14 @@ button.ref-row:hover {
 .qc-stat-total {
   margin-top: 6px;
   padding-top: 8px;
-  border-top: 1px solid var(--border);
+  border-top: 0.5px solid var(--border);
   font-size: calc(13px * var(--ui-font-scale) * 12/13);
   color: var(--text-muted);
 }
 
 .qc-summary {
   padding: 10px 12px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-panel);
 }
@@ -7062,7 +7150,7 @@ button.ref-row:hover {
   min-width: 260px;
   flex-shrink: 0;
   min-height: 0;
-  border-left: 1px solid var(--border);
+  border-left: 0.5px solid var(--border);
   background: var(--bg-panel);
 }
 
@@ -7086,7 +7174,7 @@ button.ref-row:hover {
   align-items: center;
   gap: 10px;
   padding: 8px 12px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 0.5px solid var(--border);
 }
 
 .ceshu-data-overlay-title {
@@ -7115,13 +7203,13 @@ button.ref-row:hover {
   flex-wrap: wrap;
   gap: 4px;
   padding: 8px 10px 0;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 0.5px solid var(--border);
 }
 
 /* 标签样式对齐 .chapter-tab（同视觉权重；胶囊按钮） */
 .ceshu-preview-tab {
   padding: 4px 10px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius-xs);
   background: transparent;
   color: var(--text-muted);
@@ -7129,9 +7217,11 @@ button.ref-row:hover {
   cursor: pointer;
 }
 
-.ceshu-preview-tab:hover {
-  background: var(--bg-hover);
-  color: var(--text);
+@media (hover: hover) {
+  .ceshu-preview-tab:hover {
+    background: var(--bg-hover);
+    color: var(--text);
+  }
 }
 
 .ceshu-preview-tab.active {
@@ -7217,7 +7307,7 @@ button.ref-row:hover {
   align-items: center;
   gap: 5px;
   padding: 3px 9px 3px 4px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: 999px;
   corner-shape: round;
   background: var(--accent-bg);
@@ -7294,7 +7384,7 @@ button.ref-row:hover {
   width: auto;
   flex: 1 1 0;
   min-width: 0;
-  border-left: 1px solid var(--border);
+  border-left: 0.5px solid var(--border);
   border-top: none;
 }
 
@@ -7343,7 +7433,7 @@ button.ref-row:hover {
   border-radius: var(--radius-sm);
   background: var(--bg-panel);
   color: var(--text);
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   box-shadow: 0 6px 18px var(--elevation-ink-toast);
   font-size: 13px;
   line-height: 1.45;
@@ -7380,8 +7470,10 @@ button.ref-row:hover {
   padding: 0 2px;
 }
 
-.toast-close:hover {
-  opacity: 1;
+@media (hover: hover) {
+  .toast-close:hover {
+    opacity: 1;
+  }
 }
 
 @keyframes toast-in {
@@ -7423,10 +7515,12 @@ button.ref-row:hover {
   border-radius: var(--radius);
 }
 
-.onboarding-collapse:hover,
-.onboarding-dismiss:hover {
-  background: var(--accent-soft);
-  color: var(--accent);
+@media (hover: hover) {
+  .onboarding-collapse:hover,
+  .onboarding-dismiss:hover {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
 }
 
 .onboarding-heading {
@@ -7464,7 +7558,7 @@ button.ref-row:hover {
   flex-direction: column;
   gap: 6px;
   padding: 10px 12px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-panel);
 }
@@ -7542,7 +7636,7 @@ button.ref-row:hover {
   flex-direction: column;
   gap: 2px;
   padding: 10px 12px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-panel);
   cursor: pointer;
@@ -7551,9 +7645,11 @@ button.ref-row:hover {
   font: inherit;
 }
 
-.onboarding-quick-card:hover {
-  border-color: var(--accent);
-  background: var(--accent-bg);
+@media (hover: hover) {
+  .onboarding-quick-card:hover {
+    border-color: var(--accent);
+    background: var(--accent-bg);
+  }
 }
 
 .onboarding-quick-icon {
@@ -7587,8 +7683,10 @@ button.ref-row:hover {
   border-radius: var(--radius);
 }
 
-.onboarding-link:hover {
-  background: var(--accent-soft);
+@media (hover: hover) {
+  .onboarding-link:hover {
+    background: var(--accent-soft);
+  }
 }
 
 /* 数据概览卡 4 列（与 TS 侧 STATS_PER_ROW 一致） */
@@ -7602,7 +7700,7 @@ button.ref-row:hover {
   align-items: center;
   gap: 2px;
   padding: 10px 12px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-panel);
 }
@@ -7647,7 +7745,7 @@ button.ref-row:hover {
   flex-direction: column;
   gap: 8px;
   padding: 12px 14px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-panel);
 }
@@ -7704,7 +7802,7 @@ button.ref-row:hover {
 .system-fields {
   margin: 0;
   padding: 10px 12px;
-  border: 1px solid var(--divider);
+  border: 0.5px solid var(--divider);
   border-radius: var(--radius);
   background: var(--cell-bg);
   color: var(--text-secondary);
@@ -7726,8 +7824,10 @@ button.ref-row:hover {
   font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
 
-.btn-link:hover {
-  text-decoration: underline;
+@media (hover: hover) {
+  .btn-link:hover {
+    text-decoration: underline;
+  }
 }
 
 .custom-system-row {
@@ -7809,7 +7909,7 @@ button.ref-row:hover {
   flex-direction: column;
   gap: 6px;
   padding: 10px 12px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-panel);
 }
@@ -7826,7 +7926,7 @@ button.ref-row:hover {
   align-items: center;
   gap: 10px;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--divider);
+  border-bottom: 0.5px solid var(--divider);
 }
 
 .settings-section-title {
@@ -7853,7 +7953,7 @@ button.ref-row:hover {
   align-items: center;
   gap: 24px;
   padding: 12px 0;
-  border-top: 1px solid var(--divider);
+  border-top: 0.5px solid var(--divider);
 }
 
 .settings-row:first-child {
@@ -7957,13 +8057,13 @@ button.ref-row:hover {
 .settings-subgroup {
   margin: 0 0 6px 8px;
   padding: 0 14px;
-  border: 1px solid var(--divider);
+  border: 0.5px solid var(--divider);
   border-radius: var(--radius);
   background: var(--cell-bg);
 }
 
 .settings-subgroup .settings-row {
-  border-top: 1px solid var(--divider);
+  border-top: 0.5px solid var(--divider);
 }
 
 .settings-subgroup .settings-row:first-child {
@@ -7977,7 +8077,7 @@ button.ref-row:hover {
   align-items: center;
   gap: 2px;
   padding: 2px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: 999px;
   corner-shape: round;
   background: var(--cell-bg);
@@ -7999,8 +8099,10 @@ button.ref-row:hover {
   transition: background 0.15s ease, color 0.15s ease;
 }
 
-.segmented-btn:hover {
-  color: var(--text);
+@media (hover: hover) {
+  .segmented-btn:hover {
+    color: var(--text);
+  }
 }
 
 .segmented-btn.active {
@@ -8043,9 +8145,11 @@ button.ref-row:hover {
   white-space: nowrap;
 }
 
-.middle-tab:hover {
-  color: var(--text);
-  background: var(--bg-hover);
+@media (hover: hover) {
+  .middle-tab:hover {
+    color: var(--text);
+    background: var(--bg-hover);
+  }
 }
 
 .middle-tab.active {
@@ -8134,8 +8238,10 @@ button.ref-row:hover {
   white-space: nowrap;
 }
 
-.techdoc-item:hover {
-  background: var(--bg-hover);
+@media (hover: hover) {
+  .techdoc-item:hover {
+    background: var(--bg-hover);
+  }
 }
 
 .techdoc-item.active {
@@ -8166,9 +8272,11 @@ button.ref-row:hover {
   font-size: 12px;
 }
 
-.techdoc-outline-item:hover {
-  background: var(--bg-hover);
-  color: var(--text);
+@media (hover: hover) {
+  .techdoc-outline-item:hover {
+    background: var(--bg-hover);
+    color: var(--text);
+  }
 }
 
 .techdoc-modes {
@@ -8246,7 +8354,7 @@ button.ref-row:hover {
   grid-row: 1 / span 2;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--border);
+  border-right: 0.5px solid var(--border);
   background: var(--bg-panel);
   min-height: 0;
   overflow: hidden;
@@ -8257,7 +8365,7 @@ button.ref-row:hover {
   align-items: center;
   justify-content: space-between;
   padding: 6px 8px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 0.5px solid var(--border);
 }
 
 .code-tree-title {
@@ -8268,14 +8376,14 @@ button.ref-row:hover {
 
 .code-pathbar {
   padding: 6px 8px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 0.5px solid var(--border);
 }
 
 .code-path-input {
   width: 100%;
   box-sizing: border-box;
   padding: 4px 8px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg);
   color: var(--text);
@@ -8303,8 +8411,10 @@ button.ref-row:hover {
   white-space: nowrap;
 }
 
-.code-tree-row:hover {
-  background: var(--bg-hover);
+@media (hover: hover) {
+  .code-tree-row:hover {
+    background: var(--bg-hover);
+  }
 }
 
 .code-tree-row.active {
@@ -8362,7 +8472,7 @@ button.ref-row:hover {
   align-items: center;
   gap: 10px;
   padding: 6px 12px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 0.5px solid var(--border);
   background: var(--bg-panel);
 }
 
@@ -8379,7 +8489,7 @@ button.ref-row:hover {
 .code-view-badge {
   margin-left: auto;
   padding: 1px 8px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: 999px;
   corner-shape: round;
   color: var(--text-secondary);
@@ -8425,7 +8535,7 @@ button.ref-row:hover {
 .code-breadcrumb {
   grid-column: 2;
   padding: 2px 12px;
-  border-top: 1px solid var(--border);
+  border-top: 0.5px solid var(--border);
   color: var(--text-secondary);
   font-size: 11px;
   white-space: nowrap;
@@ -8447,7 +8557,7 @@ button.ref-row:hover {
   align-items: center;
   gap: 6px;
   padding: 6px 8px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 0.5px solid var(--border);
   background: var(--bg-panel);
   flex: 0 0 auto;
 }
@@ -8456,7 +8566,7 @@ button.ref-row:hover {
   flex: 1;
   min-width: 0;
   padding: 5px 10px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg);
   color: var(--text);
@@ -8488,7 +8598,7 @@ button.ref-row:hover {
 
 .browser-status {
   padding: 3px 12px;
-  border-top: 1px solid var(--border);
+  border-top: 0.5px solid var(--border);
   color: var(--text-secondary);
   font-size: 11.5px;
   flex: 0 0 auto;
@@ -8507,7 +8617,7 @@ button.ref-row:hover {
 .data-editor-types {
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--border);
+  border-right: 0.5px solid var(--border);
   background: var(--bg-panel);
   min-height: 0;
   overflow: hidden;
@@ -8515,7 +8625,7 @@ button.ref-row:hover {
 
 .data-editor-types-head {
   padding: 8px 12px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 0.5px solid var(--border);
   font-weight: 600;
   font-size: 12px;
   color: var(--text-secondary);
@@ -8545,9 +8655,11 @@ button.ref-row:hover {
   text-overflow: ellipsis;
 }
 
-.data-editor-type:hover {
-  background: var(--bg-hover);
-  color: var(--text);
+@media (hover: hover) {
+  .data-editor-type:hover {
+    background: var(--bg-hover);
+    color: var(--text);
+  }
 }
 
 .data-editor-type.active {
@@ -8603,7 +8715,7 @@ button.ref-row:hover {
   min-height: 0;
 }
 .import-preview-row {
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 8px 10px;
 }
@@ -8675,7 +8787,7 @@ button.ref-row:hover {
   flex-direction: column;
   gap: 6px;
   padding: 10px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--surface-quiet);
 }
@@ -8684,7 +8796,7 @@ button.ref-row:hover {
   flex-direction: column;
   gap: 6px;
   padding: 10px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--surface-quiet);
 }
@@ -8794,7 +8906,7 @@ button.ref-row:hover {
   align-items: center;
   gap: 12px;
   padding: 8px 10px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--surface-dark-card);
 }
@@ -8913,7 +9025,7 @@ button.ref-row:hover {
   gap: 8px;
 }
 .agent-team-card {
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 10px 12px;
   background: var(--surface-dark-card);
@@ -8991,7 +9103,7 @@ button.ref-row:hover {
 .session-history-search input {
   flex: 1;
   padding: 8px 10px;
-  border: 1px solid var(--border-legacy-strong);
+  border: 0.5px solid var(--border-legacy-strong);
   border-radius: var(--radius-sm);
   font-size: 14px;
 }
@@ -9017,7 +9129,7 @@ button.ref-row:hover {
   flex-direction: column;
   gap: 2px;
   padding: 8px 10px;
-  border: 1px solid var(--border-legacy);
+  border: 0.5px solid var(--border-legacy);
   border-radius: var(--radius-sm);
   background: var(--bg-subtle);
 }
@@ -9049,7 +9161,7 @@ button.ref-row:hover {
   color: var(--text-muted);
 }
 .session-history-detail {
-  border-top: 1px solid var(--border-legacy);
+  border-top: 0.5px solid var(--border-legacy);
   padding-top: 12px;
 }
 .session-history-messages {
@@ -9120,7 +9232,7 @@ button.ref-row:hover {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-panel);
   overflow: hidden;
@@ -9132,7 +9244,7 @@ button.ref-row:hover {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-panel);
   overflow: hidden;
@@ -9183,8 +9295,10 @@ button.ref-row:hover {
   text-align: left;
   cursor: pointer;
 }
-.digital-delivery-file:hover {
-  background: var(--bg-hover);
+@media (hover: hover) {
+  .digital-delivery-file:hover {
+    background: var(--bg-hover);
+  }
 }
 .digital-delivery-file svg {
   flex: none;
@@ -9214,8 +9328,10 @@ button.ref-row:hover {
   font-size: calc(12px * var(--ui-font-scale));
   cursor: pointer;
 }
-.digital-delivery-toggle:hover {
-  color: var(--text);
+@media (hover: hover) {
+  .digital-delivery-toggle:hover {
+    color: var(--text);
+  }
 }
 
 .digital-change-card-head {
@@ -9245,7 +9361,7 @@ button.ref-row:hover {
   place-items: center;
   width: 32px;
   height: 32px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--accent-bg);
   color: var(--accent);
@@ -9290,7 +9406,7 @@ button.ref-row:hover {
   margin: 0;
   padding: 0;
   list-style: none;
-  border-top: 1px solid var(--divider);
+  border-top: 0.5px solid var(--divider);
 }
 
 .digital-change-row {
@@ -9299,7 +9415,7 @@ button.ref-row:hover {
   gap: 8px;
   min-width: 0;
   padding: 7px 12px;
-  border-top: 1px solid var(--divider);
+  border-top: 0.5px solid var(--divider);
   color: var(--text-secondary);
   font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
@@ -9354,7 +9470,7 @@ button.ref-row:hover {
   margin: 0;
   padding: 8px 12px;
   border: 0;
-  border-top: 1px solid var(--divider);
+  border-top: 0.5px solid var(--divider);
   background: transparent;
   color: var(--text-muted);
   font: inherit;
@@ -9362,9 +9478,11 @@ button.ref-row:hover {
   text-align: left;
   cursor: pointer;
 }
-.digital-change-toggle:hover {
-  background: var(--bg-hover);
-  color: var(--text-secondary);
+@media (hover: hover) {
+  .digital-change-toggle:hover {
+    background: var(--bg-hover);
+    color: var(--text-secondary);
+  }
 }
 
 .digital-change-empty {
@@ -9405,7 +9523,7 @@ button.ref-row:hover {
   width: 560px;
   max-width: calc(100vw - 32px);
   overflow: hidden;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-panel);
   box-shadow: 0 16px 40px var(--elevation-ink-dropdown);
@@ -9414,7 +9532,7 @@ button.ref-row:hover {
 .command-palette-input {
   margin: 8px 8px 4px;
   padding: 8px 10px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--cell-bg);
   color: var(--text);
@@ -9484,7 +9602,7 @@ button.ref-row:hover {
   justify-content: space-between;
   gap: 12px;
   padding: 6px 10px;
-  border-top: 1px solid var(--divider);
+  border-top: 0.5px solid var(--divider);
   color: var(--text-muted);
   font-size: calc(11px * var(--ui-font-scale));
 }
@@ -9497,7 +9615,7 @@ button.ref-row:hover {
   flex-direction: column;
   gap: 6px;
   padding: 8px 10px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-panel);
 }
@@ -9608,8 +9726,10 @@ button.ref-row:hover {
   font-size: calc(13px * var(--ui-font-scale) * 11/13);
   cursor: pointer;
 }
-.digital-run-plan-expand:hover {
-  text-decoration: underline;
+@media (hover: hover) {
+  .digital-run-plan-expand:hover {
+    text-decoration: underline;
+  }
 }
 
 /* ── 会话轨迹（借 dsh ui-trajectory 的「按轮次事件表 + 概览」） ── */
@@ -9642,7 +9762,7 @@ button.ref-row:hover {
   flex-wrap: wrap;
   gap: 8px 24px;
   padding: 10px 12px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-panel);
 }
@@ -9670,7 +9790,7 @@ button.ref-row:hover {
   gap: 10px;
 }
 .trajectory-turn {
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-panel);
   overflow: hidden;
@@ -9681,7 +9801,7 @@ button.ref-row:hover {
   justify-content: space-between;
   gap: 8px;
   padding: 8px 12px;
-  border-bottom: 1px solid var(--divider);
+  border-bottom: 0.5px solid var(--divider);
 }
 .trajectory-turn-title {
   color: var(--text-secondary);
@@ -9704,16 +9824,18 @@ button.ref-row:hover {
   gap: 8px;
   min-width: 0;
   padding: 6px 12px;
-  border-top: 1px solid var(--divider);
+  border-top: 0.5px solid var(--divider);
   font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
 .trajectory-row:first-child {
   border-top: 0;
 }
-/* dsh 轨迹表行 hover 用 neutral `interactive-bg-hover`（非蓝色），这里复用主题令牌，
-   四套主题各自的 --bg-hover 都偏中性，保证深色/暖调/夜色下也可见。 */
-.trajectory-row:hover {
-  background: var(--bg-hover);
+@media (hover: hover) {
+  /* dsh 轨迹表行 hover 用 neutral `interactive-bg-hover`（非蓝色），这里复用主题令牌，
+     四套主题各自的 --bg-hover 都偏中性，保证深色/暖调/夜色下也可见。 */
+  .trajectory-row:hover {
+    background: var(--bg-hover);
+  }
 }
 /*
  * 轨迹表「选中行」= 正在查看详情的那一行（`<details>` 展开态）。
@@ -9834,7 +9956,7 @@ button.ref-row:hover {
 
 /* 轨迹行详情（原生 <details>）：行本身是 summary，展开后给参数/输出 */
 .trajectory-row-item {
-  border-top: 1px solid var(--divider);
+  border-top: 0.5px solid var(--divider);
 }
 .trajectory-row-item:first-child {
   border-top: 0;
@@ -9850,8 +9972,10 @@ button.ref-row:hover {
 .trajectory-row-item .trajectory-row {
   border-top: 0;
 }
-.trajectory-row-details > summary:hover {
-  background: var(--bg-hover);
+@media (hover: hover) {
+  .trajectory-row-details > summary:hover {
+    background: var(--bg-hover);
+  }
 }
 .trajectory-row-details[open] > summary {
   background: var(--bg-hover);
@@ -9877,7 +10001,7 @@ button.ref-row:hover {
 .trajectory-detail-pre {
   margin: 0;
   padding: 6px 8px;
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--bg-panel);
   color: var(--text-secondary);
@@ -9983,8 +10107,10 @@ button.ref-row:hover {
   cursor: pointer;
   white-space: nowrap;
 }
-.rightbar-tab:hover {
-  color: var(--text);
+@media (hover: hover) {
+  .rightbar-tab:hover {
+    color: var(--text);
+  }
 }
 .rightbar-tab.active {
   color: var(--text);
@@ -10036,9 +10162,11 @@ button.ref-row:hover {
   color: var(--text-muted);
   cursor: pointer;
 }
-.rightbar-fullscreen:hover {
-  background: var(--bg-hover);
-  color: var(--text);
+@media (hover: hover) {
+  .rightbar-fullscreen:hover {
+    background: var(--bg-hover);
+    color: var(--text);
+  }
 }
 .rightbar-fullscreen[aria-pressed='true'] {
   color: var(--accent);
@@ -10059,11 +10187,17 @@ button.ref-row:hover {
 .digital-step-diff-total .is-del {
   transition: color 120ms ease;
 }
-.digital-step-head:hover .digital-step-diff-total .is-add,
+@media (hover: hover) {
+  .digital-step-head:hover .digital-step-diff-total .is-add {
+    color: var(--change-create);
+  }
+  .digital-step-head:hover .digital-step-diff-total .is-del {
+    color: var(--change-delete);
+  }
+}
 .digital-step-head[aria-expanded='true'] .digital-step-diff-total .is-add {
   color: var(--change-create);
 }
-.digital-step-head:hover .digital-step-diff-total .is-del,
 .digital-step-head[aria-expanded='true'] .digital-step-diff-total .is-del {
   color: var(--change-delete);
 }
@@ -10183,9 +10317,11 @@ button.ref-row:hover {
   color: var(--text-muted);
   cursor: pointer;
 }
-.middle-tab-action:hover {
-  background: var(--bg-hover);
-  color: var(--text);
+@media (hover: hover) {
+  .middle-tab-action:hover {
+    background: var(--bg-hover);
+    color: var(--text);
+  }
 }
 .middle-tab-action[aria-pressed='true'] {
   color: var(--accent);
@@ -10226,8 +10362,10 @@ button.ref-row:hover {
   cursor: pointer;
   white-space: nowrap;
 }
-.sidebar-primary:hover {
-  background: var(--bg-hover);
+@media (hover: hover) {
+  .sidebar-primary:hover {
+    background: var(--bg-hover);
+  }
 }
 .sidebar.collapsed .sidebar-primary {
   padding: 0;
@@ -10297,8 +10435,10 @@ button.ref-row:hover {
   cursor: pointer;
   white-space: nowrap;
 }
-.conv-tab:hover {
-  color: var(--text);
+@media (hover: hover) {
+  .conv-tab:hover {
+    color: var(--text);
+  }
 }
 .conv-tab.active {
   color: var(--text);

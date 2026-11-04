@@ -157,8 +157,10 @@
   cursor: pointer;
 }
 
-.dsh-composer-icon:hover {
-  background: var(--bg-hover);
+@media (hover: hover) {
+  .dsh-composer-icon:hover {
+    background: var(--bg-hover);
+  }
 }
 
 /* 静态 chip：只显示不展开（附件面板 / 权限下拉 / 模型切换都还没有对应能力，不做假下拉） */
@@ -194,8 +196,10 @@
   transition: background-color 0.12s ease;
 }
 
-.dsh-composer-send:hover:not(:disabled) {
-  background: var(--accent-hover);
+@media (hover: hover) {
+  .dsh-composer-send:hover:not(:disabled) {
+    background: var(--accent-hover);
+  }
 }
 
 .dsh-composer-send:disabled {
@@ -206,7 +210,7 @@
 
 /* 停止：运行中与发送键并排，用描边区分「这不是发送」 */
 .dsh-composer-stop {
-  border: 1px solid var(--border);
+  border: 0.5px solid var(--border);
   border-radius: 50%;
   corner-shape: round;
   width: 30px;
@@ -338,8 +342,10 @@
   cursor: pointer;
   white-space: nowrap;
 }
-.dsh-composer-menu-item:hover {
-  background: var(--bg-hover);
+@media (hover: hover) {
+  .dsh-composer-menu-item:hover {
+    background: var(--bg-hover);
+  }
 }
 /* 触发符右对齐：让用户知道「我填的是 @ 还是 /」 */
 .dsh-composer-menu-hint {
@@ -357,8 +363,10 @@
   cursor: pointer;
   color: var(--text-secondary);
 }
-.dsh-composer-chip-button:hover {
-  background: var(--bg-hover);
+@media (hover: hover) {
+  .dsh-composer-chip-button:hover {
+    background: var(--bg-hover);
+  }
 }
 /* 权限 chip：纯展示，不可点（后端无可切换开关） */
 .dsh-composer-chip-static {
@@ -428,8 +436,10 @@
   font-size: calc(12px * var(--ui-font-scale));
   cursor: pointer;
 }
-.dsh-composer-provider-chip:hover {
-  background: var(--bg-hover);
+@media (hover: hover) {
+  .dsh-composer-provider-chip:hover {
+    background: var(--bg-hover);
+  }
 }
 .dsh-composer-provider-chip[data-selected='true'] {
   border-color: var(--accent);

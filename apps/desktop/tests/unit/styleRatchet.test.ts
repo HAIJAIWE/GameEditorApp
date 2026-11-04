@@ -7,17 +7,16 @@ import { describe, expect, it } from 'vitest'
  * 样式守卫：把 dsh `ui-theme` 那几张自动 spec（radius / corner-shape /
  * elevation / hover / 发丝线 / menu）里能在墨白静态校验的部分落成测试。
  *
- * ## 12 项检查的构成
- * **6 条硬约束（恒 0，回升即回归）**
+ * ## 12 项检查的构成（8 硬约束 + 4 自检，**已无棘轮**）
+ * **8 条硬约束（恒 0，回升即回归）**
  * 1. 全圆声明必须配对 `corner-shape: round`
  * 2. 组件区不得写死 px 圆角（走 `--radius-*`）
  * 3. 组件区不得写死裸字面颜色（走语义 token）
  * 4. `box-shadow` 不得写死颜色（走 `--elevation-ink-*` / `--mask-*`）
  * 5. 不得引用未定义的 token（曾查出 10 个假 token / 24 处，已全修）
  * 6. hover 查询不得用 `any-hover` 或 hover+pointer 混合条件
- * **2 条棘轮（只许降）**
- * 7. 裸 `:hover`（未包 `@media (hover: hover)`）≤ 75
- * 8. 中性实线边框宽于 0.5px 的块 ≤ 178
+ * 7. 裸 `:hover` 必须包在 `@media (hover: hover)` 内（75 → 0）
+ * 8. 中性实线边框必须是 0.5px 发丝线（170 → 0；2px+ 强调线豁免）
  * **4 条自检 / 对价**
  * 9. 扫描范围非空（防路径写错静默通过）
  * 10. hljs 色板豁免有对价（dark 覆盖必须仍在）
@@ -72,18 +71,14 @@ const CSS_ROOT = 'apps/desktop/src/renderer/src'
  */
 
 /**
- * hover 规范存量（2026-11-04 实测）：`any-hover` 与「hover + pointer 混合查询」
- * 已是 0（硬约束）；裸 `:hover` 还有 75 处 —— 触屏会残留悬停态，需逐步包进
- * `@media (hover: hover)`，只许降。
+ * hover 与发丝线的收敛记录（2026-11-04）：
+ * - 裸 `:hover` 从 75 降到 **0**：67 个纯 hover 块整块包进 `@media (hover: hover)`，
+ *   7 个「hover + 非 hover 状态」的混合选择器手工拆成两块（hover 进 media，
+ *   `:active` / `.open` / `:focus-within` / `[aria-expanded]` 留在外面）。
+ * - 中性 1px 边框从 170 降到 **0**：统一改 0.5px 发丝线；2px / 3px 的单边粗线是
+ *   **有意强调**（引用块缩进、选中指示），判据豁免。
+ * 两项都已归零，下方改为硬约束，不再需要棘轮。
  */
-const BASELINE_BARE_HOVER = 75
-
-/**
- * 中性实线边框宽于 0.5px 的块数（2026-11-04 实测 178）。dsh `web-styling.md:30`
- * 要求中性 `--dsw-alias-border-*` 一律 0.5px（Chromium 画成一个设备像素），
- * 墨白只在新增组件上做到，全站未收敛。设棘轮只许降，不一次改完（178 处视觉面太大）。
- */
-const BASELINE_WIDE_HAIRLINE = 178
 
 const FULL_ROUND = /^(?:50%|100%|999px|9999px)$/u
 const COLOR_LITERAL = /#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(/u
@@ -230,11 +225,11 @@ const hoverStats = sheets.reduce(
   { bare: 0, mixed: 0, anyHover: 0 }
 )
 
-/** 中性实线边框 >0.5px 的规则块（dsh `web-styling.md:30` 要求 0.5px 发丝线）。 */
-const wideHairlineBlocks = blocks.filter((block) =>
+/** 中性实线边框仍是 1px 的规则块（dsh 要求 0.5px 发丝线；2px+ 单边粗线是强调，豁免）。 */
+const onePixelBorders = blocks.filter((block) =>
   [...block.body.matchAll(
     /border(?:-(?:top|right|bottom|left))?\s*:\s*(\d+(?:\.\d+)?)px\s+solid\s+var\(\s*--(?:border|divider)[^)]*\)/gu
-  )].some((match) => Number(match[1]) > 0.5)
+  )].some((match) => Number(match[1]) === 1)
 )
 
 function describeSample(items: CssBlock[]): string {
@@ -313,21 +308,21 @@ describe('样式守卫（对齐 dsh radius / corner-shape / elevation / hover / 
     ).toBe(0)
   })
 
-  it(`裸 :hover 不得超过基线 ${BASELINE_BARE_HOVER}（只许降）`, () => {
+  it('裸 :hover 必须包在 @media (hover: hover) 内（硬约束）', () => {
     expect(
       hoverStats.bare,
-      `${hoverStats.bare} 处 :hover 不在 @media (hover: hover) 内（基线 ${BASELINE_BARE_HOVER}）。\n` +
-        `触屏会残留悬停态；包裹一处就把基线减一。`
-    ).toBeLessThanOrEqual(BASELINE_BARE_HOVER)
+      `${hoverStats.bare} 处 :hover 不在 @media (hover: hover) 内。\n` +
+        `触屏会残留悬停态；纯 hover 块整块包 media，混合选择器拆成两块。`
+    ).toBe(0)
   })
 
-  it(`中性实线边框宽于 0.5px 的块不得超过基线 ${BASELINE_WIDE_HAIRLINE}（只许降）`, () => {
+  it('中性实线边框必须是 0.5px 发丝线（硬约束）', () => {
     expect(
-      wideHairlineBlocks.length,
-      `${wideHairlineBlocks.length} 个块的中性边框不是 0.5px 发丝线（基线 ${BASELINE_WIDE_HAIRLINE}）。\n` +
-        `dsh web-styling.md:30：中性 --border* 一律 0.5px（Chromium 画成一个设备像素）。\n` +
-        `前几个：\n${describeSample(wideHairlineBlocks)}`
-    ).toBeLessThanOrEqual(BASELINE_WIDE_HAIRLINE)
+      onePixelBorders.length,
+      `${onePixelBorders.length} 个块的中性边框仍是 1px。\n` +
+        `dsh web-styling.md:30：中性 --border* 一律 0.5px（Chromium 画成一个设备像素）；` +
+        `2px+ 单边粗线是强调，豁免。\n前几个：\n${describeSample(onePixelBorders)}`
+    ).toBe(0)
   })
 
   it('dsh 令牌阶梯与新增别名不得被删', () => {
