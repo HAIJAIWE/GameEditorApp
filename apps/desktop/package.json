@@ -14,6 +14,7 @@
     "lint": "npm --prefix ../.. run lint",
     "typecheck": "tsc --noEmit -p tsconfig.node.json --composite false && tsc --noEmit -p tsconfig.web.json --composite false && tsc --noEmit -p tsconfig.test-dom.json",
     "test": "vitest run",
+    "test:components": "vitest run tests/unit/dom",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "pretest:e2e": "npm run build",

@@ -168,3 +168,33 @@ describe('MenuBar：菜单项派发命令', () => {
     expect(calls).toEqual(['settings.open', 'app.focusAi'])
   })
 })
+
+describe('MenuBar：键帽与 aria-keyshortcuts（dsh ShortcutKeys 形态）', () => {
+  it('撤销/重做带规范名 aria-keyshortcuts 与键帽，键帽整块 aria-hidden', async () => {
+    await mount()
+    await view!.click(view!.byTestId('menu-title-edit'))
+
+    const undo = view!.byTestId('menuitem-edit-undo')
+    // aria 用规范名 Control（读屏念得出）；界面上显示的是 Ctrl
+    expect(undo.getAttribute('aria-keyshortcuts')).toBe('Control+Z')
+    expect([...undo.querySelectorAll('.shortcut-key')].map((node) => node.textContent)).toEqual([
+      'Ctrl',
+      'Z'
+    ])
+    // 键帽是纯视觉，语义由 aria-keyshortcuts 承担——两者都让读屏读会念两遍
+    expect(undo.querySelector('.shortcut-keys')?.getAttribute('aria-hidden')).toBe('true')
+
+    expect(view!.byTestId('menuitem-edit-redo').getAttribute('aria-keyshortcuts')).toBe(
+      'Control+Shift+Z'
+    )
+  })
+
+  it('没有快捷键的菜单项不渲染键帽、也不带 aria-keyshortcuts', async () => {
+    await mount()
+    await view!.click(view!.byTestId('menu-title-edit'))
+
+    const templateManager = view!.byTestId('menuitem-edit-templateManager')
+    expect(templateManager.getAttribute('aria-keyshortcuts')).toBeNull()
+    expect(templateManager.querySelector('.shortcut-keys')).toBeNull()
+  })
+})
