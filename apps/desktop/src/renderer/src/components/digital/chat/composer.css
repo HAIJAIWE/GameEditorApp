@@ -187,6 +187,7 @@
   padding: 0;
   border: 0;
   border-radius: 50%;
+  corner-shape: round;
   background: var(--accent);
   color: #fff;
   cursor: pointer;
@@ -207,6 +208,7 @@
 .dsh-composer-stop {
   border: 1px solid var(--border);
   border-radius: 50%;
+  corner-shape: round;
   width: 30px;
   height: 30px;
 }
@@ -225,6 +227,7 @@
   border: 2px solid color-mix(in srgb, var(--text-secondary) 30%, transparent);
   border-top-color: var(--accent);
   border-radius: 50%;
+  corner-shape: round;
   animation: dsh-spin 0.7s linear infinite;
 }
 @keyframes dsh-spin {
@@ -418,6 +421,7 @@
   padding: 3px 8px;
   border: 0.5px solid var(--border);
   border-radius: 999px;
+  corner-shape: round;
   background: none;
   color: var(--text-secondary);
   font: inherit;

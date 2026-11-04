@@ -168,6 +168,7 @@
   padding: 0 6px;
   border: 1px solid var(--border);
   border-radius: 999px;
+  corner-shape: round;
   color: var(--text-secondary);
 }
 

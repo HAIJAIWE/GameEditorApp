@@ -1,6 +1,12 @@
 import { useMemo, useRef, useState, type ReactElement } from 'react'
 
 import { useT } from '@mobai/client-ui'
+import {
+  CESHU_HOME_ACTIONS,
+  homeGuideActions,
+  showHomeActionDescriptions,
+  type CeshuHomeActionId
+} from '@mobai/shared/ceshu/homeActions'
 import type { CeshuSummary } from '@mobai/shared/ceshu/reference'
 import {
   RECENT_LIMIT,
@@ -220,6 +226,38 @@ export default function CeshuHomePanel({
       return t('home.deleted')
     })
 
+  /**
+   * 注册表 → 运行时绑定：胶囊的静态契约（标签/图标/testid/描述）来自 shared 的
+   * `CESHU_HOME_ACTIONS`，这里只把它们接到组件状态与 IPC 上。新增一个门只需
+   * 改注册表 + 在此补一条 handler，不再复制粘贴整段 JSX（对齐 dsh 的 guide entries）。
+   */
+  const actionHandlers: Record<CeshuHomeActionId, () => void> = {
+    blank: handleCreateBlank,
+    copy: () => {
+      setAction(null)
+      setError(null)
+      setNotice(null)
+      setCopyPickerOpen((open) => !open)
+      setCopySourceId(summaries[0]?.id ?? '')
+    },
+    clone: () => {
+      setAction(null)
+      setError(null)
+      setNotice(null)
+      setCopyPickerOpen(false)
+      setCloneOpen((open) => !open)
+    },
+    folder: () => void handleOpenProjectFolder(),
+    library: () => libraryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+  /** 只有展开内联表单的门需要 aria-expanded；其余不渲染该属性。 */
+  const expandedActions: Partial<Record<CeshuHomeActionId, boolean>> = {
+    copy: copyPickerOpen,
+    clone: cloneOpen
+  }
+  /** dsh `MAX_DESCRIBED_ENTRIES`：门 ≤4 时显示 11px 描述，多了就整体收起保持轻量。 */
+  const describeActions = showHomeActionDescriptions(homeGuideActions().length)
+
   return (
     <div className="changelog-panel" data-testid="ceshu-home-panel">
       <div className="home-shell">
@@ -231,70 +269,26 @@ export default function CeshuHomePanel({
 
           <div className="home-quick">
             <div className="home-actions">
-              <button
-                type="button"
-                className="home-action-card"
-                data-testid="home-new-blank"
-                disabled={busy}
-                onClick={handleCreateBlank}
-              >
-                <span className="home-action-icon"><LucideIcon name="plus" size={22} /></span>
-                <span className="home-action-label">{t('home.newBlank')}</span>
-              </button>
-              <button
-                type="button"
-                className="home-action-card"
-                data-testid="home-new-copy"
-                disabled={busy}
-                aria-expanded={copyPickerOpen}
-                onClick={() => {
-                  setAction(null)
-                  setError(null)
-                  setNotice(null)
-                  setCopyPickerOpen((open) => !open)
-                  setCopySourceId(summaries[0]?.id ?? '')
-                }}
-              >
-                <span className="home-action-icon"><LucideIcon name="file-text" size={22} /></span>
-                <span className="home-action-label">{t('home.copyFromExisting')}</span>
-              </button>
-              <button
-                type="button"
-                className="home-action-card"
-                data-testid="home-clone-open"
-                disabled={busy}
-                aria-expanded={cloneOpen}
-                onClick={() => {
-                  setAction(null)
-                  setError(null)
-                  setNotice(null)
-                  setCopyPickerOpen(false)
-                  setCloneOpen((open) => !open)
-                }}
-              >
-                <span className="home-action-icon"><LucideIcon name="sparkles" size={22} /></span>
-                <span className="home-action-label">{t('home.cloneOpen')}</span>
-              </button>
-              <button
-                type="button"
-                className="home-action-card"
-                data-testid="home-open-folder"
-                disabled={busy}
-                title={t('home.openFolderTitle')}
-                onClick={() => void handleOpenProjectFolder()}
-              >
-                <span className="home-action-icon"><LucideIcon name="folder" size={22} /></span>
-                <span className="home-action-label">{t('home.openFolder')}</span>
-              </button>
-              <button
-                type="button"
-                className="home-action-card"
-                data-testid="home-browse-library"
-                onClick={() => libraryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-              >
-                <span className="home-action-icon"><LucideIcon name="book-open" size={22} /></span>
-                <span className="home-action-label">{t('home.all')}</span>
-              </button>
+              {CESHU_HOME_ACTIONS.map((def) => (
+                <button
+                  key={def.id}
+                  type="button"
+                  className="home-action-card"
+                  data-testid={def.testId}
+                  disabled={def.busySensitive && busy}
+                  aria-expanded={expandedActions[def.id]}
+                  title={def.titleKey === undefined ? undefined : t(def.titleKey)}
+                  onClick={actionHandlers[def.id]}
+                >
+                  <span className="home-action-icon"><LucideIcon name={def.icon} size={22} /></span>
+                  <span className="home-action-text">
+                    <span className="home-action-label">{t(def.labelKey)}</span>
+                    {describeActions && def.descriptionKey !== undefined && (
+                      <span className="home-action-description">{t(def.descriptionKey)}</span>
+                    )}
+                  </span>
+                </button>
+              ))}
             </div>
 
             {copyPickerOpen && (
