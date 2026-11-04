@@ -470,8 +470,10 @@ export const zh = {
   'menu.file.quit': '退出',
 
   // —— 菜单：编辑 ——
-  'menu.edit.undo': '撤销 (Ctrl+Z)',
-  'menu.edit.redo': '重做 (Ctrl+Y)',
+  // 键位不再写进文案：菜单项右侧由 ShortcutKeys 画键帽（事实源 APP_SHORTCUTS），
+  // 这里再写一遍会显示成「撤销 (Ctrl+Z) Ctrl+Z」。
+  'menu.edit.undo': '撤销',
+  'menu.edit.redo': '重做',
   'menu.edit.templateManager': '模板管理',
   'menu.edit.clearAll': '清空所有数据',
 
@@ -2630,8 +2632,8 @@ export const en: Record<MessageKey, string> = {
   'menu.file.quit': 'Quit',
 
   // —— Menu: Edit ——
-  'menu.edit.undo': 'Undo (Ctrl+Z)',
-  'menu.edit.redo': 'Redo (Ctrl+Y)',
+  'menu.edit.undo': 'Undo',
+  'menu.edit.redo': 'Redo',
   'menu.edit.templateManager': 'Template manager',
   'menu.edit.clearAll': 'Clear all data',
 

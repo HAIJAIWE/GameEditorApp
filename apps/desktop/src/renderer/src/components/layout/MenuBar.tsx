@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 
-import { useT } from '@mobai/client-ui'
+import { ShortcutKeys, useT } from '@mobai/client-ui'
 import type { MessageKey } from '@mobai/shared/i18n'
+import { APP_SHORTCUTS, shortcutAria } from '@mobai/shared/util/ui'
 import type { PluginHost } from '@mobai/shared/plugin/host'
 import type { PluginMenuItem } from '@mobai/shared/plugin/types'
 import { isMenuDisabled } from '../../plugins/context'
@@ -39,6 +40,16 @@ function menuTestId(menuId: string): string {
 /** 分隔符在契约里是「既没有 command 也没有 items」的条目 */
 function isSeparator(item: PluginMenuItem): boolean {
   return item.command === undefined && item.items === undefined
+}
+
+/**
+ * 菜单项命令 → 快捷键条目。全局命令用 `app.<action>` 命名（见 `appActionsPlugin`），
+ * 键位事实源是 `APP_SHORTCUTS`——这里只做 id 到条目的映射，不重复写键位。
+ */
+function shortcutOfCommand(command: string | undefined) {
+  if (command === undefined || !command.startsWith('app.')) return undefined
+  const action = command.slice('app.'.length)
+  return APP_SHORTCUTS.find((entry) => entry.action === action)
 }
 
 export default function MenuBar({ host }: MenuBarProps) {
@@ -94,20 +105,28 @@ export default function MenuBar({ host }: MenuBarProps) {
     setOpenIndex(null)
   }
 
-  const renderItem = (item: PluginMenuItem, key: number) => (
-    <button
-      type="button"
-      key={key}
-      className="menu-item"
-      data-testid={item.testid}
-      disabled={isMenuDisabled(item.disabledWhen)}
-      onClick={() => {
-        if (item.command !== undefined) runCommand(item.command)
-      }}
-    >
-      {item.labelKey !== undefined ? t(item.labelKey) : item.label ?? ''}
-    </button>
-  )
+  const renderItem = (item: PluginMenuItem, key: number) => {
+    const shortcut = shortcutOfCommand(item.command)
+    return (
+      <button
+        type="button"
+        key={key}
+        className="menu-item"
+        data-testid={item.testid}
+        disabled={isMenuDisabled(item.disabledWhen)}
+        // 读屏用规范名（Control/Shift/Meta）；右侧键帽是 aria-hidden 的纯视觉
+        aria-keyshortcuts={shortcut === undefined ? undefined : shortcutAria(shortcut.keys)}
+        onClick={() => {
+          if (item.command !== undefined) runCommand(item.command)
+        }}
+      >
+        <span className="menu-item-label">
+          {item.labelKey !== undefined ? t(item.labelKey) : item.label ?? ''}
+        </span>
+        {shortcut !== undefined && <ShortcutKeys keys={shortcut.keys} />}
+      </button>
+    )
+  }
 
   return (
     <div className="menubar" ref={barRef}>

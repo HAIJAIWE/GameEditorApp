@@ -77,6 +77,28 @@ export function matchShortcut(input: {
   return null
 }
 
+/**
+ * 把展示用键位串转成 `aria-keyshortcuts` 的可读形式。
+ *
+ * 规范用 `Control` / `Alt` / `Shift` / `Meta` 四个名字（对齐 dsh `shortcuts/src/binding.ts`），
+ * 而界面上习惯写 `Ctrl`。两者不能混用，否则读屏软件念不出来。
+ * 例：`'Ctrl+Shift+Z'` → `'Control+Shift+Z'`。
+ */
+export function shortcutAria(keys: string): string {
+  return keys
+    .split('+')
+    .map((part) => part.trim())
+    .map((part) => {
+      const lower = part.toLowerCase()
+      if (lower === 'ctrl' || lower === 'control') return 'Control'
+      if (lower === 'alt' || lower === 'option') return 'Alt'
+      if (lower === 'shift') return 'Shift'
+      if (lower === 'meta' || lower === 'cmd' || lower === 'command') return 'Meta'
+      return part
+    })
+    .join('+')
+}
+
 /** 动作在状态栏里的短名（`description` 是面板用的长句，塞不进状态栏） */
 const ACTION_SHORT_LABELS: Record<ShortcutAction, string> = {
   undo: '撤销',
