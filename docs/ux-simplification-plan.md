@@ -89,7 +89,8 @@
   —— 均为有意的产品等价替换，已记在 `CeshuHomePanel.tsx` 文件头。
 - 已对齐：令牌层（`--radius-*` 六档、`--border-card/strong`、`--watermark-ink`、
   `--elevation-ink-*` / `--mask-*`、`corner-shape: superellipse(1.5)`）、引导屏形态、
-  胶囊注册表与 chain 替换缝、样式守卫 `apps/desktop/tests/unit/styleRatchet.test.ts`（9 项全恒 0 硬约束）。
+  胶囊注册表与 chain 替换缝、样式守卫 `apps/desktop/tests/unit/styleRatchet.test.ts`
+  （12 项 = 6 条硬约束恒 0 + 2 条棘轮〔裸 `:hover` 75、中性 1px 边框 178〕+ 4 条自检/对价）。
 - 有意差异：dsh 的极淡 elevation 三件套与 `MenuSurface` 材质未照搬（会造成视觉倒退），
   理由见守卫文件头「诚实边界」。
 

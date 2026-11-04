@@ -7,13 +7,22 @@ import { describe, expect, it } from 'vitest'
  * 样式守卫：把 dsh `ui-theme` 那几张自动 spec（radius / corner-shape /
  * elevation / hover / 发丝线 / menu）里能在墨白静态校验的部分落成测试。
  *
- * - **圆角、全圆配对、投影墨色是硬约束**（恒 0）：字面 px 圆角已全量收敛为
- *   `--radius-*`，全圆声明已配对 `corner-shape: round`，投影墨色走
- *   `--elevation-ink-*`。这三项一旦回升就是回归，不需要棘轮。
- * - **组件区字面颜色已升为硬约束**（恒 0）：最后 48 块 / 40 个值按 dsh
- *   `web-styling.md:11` 的「组件局部契约」收成精确等价的语义 token。
- * - **未定义 token 名是硬约束**（恒 0）：10 个假 token / 24 处已全部修复，
- *   并清掉 37 行已定义 token 的死 fallback，详见 `undefinedTokenNames` 上方注释。
+ * ## 12 项检查的构成
+ * **6 条硬约束（恒 0，回升即回归）**
+ * 1. 全圆声明必须配对 `corner-shape: round`
+ * 2. 组件区不得写死 px 圆角（走 `--radius-*`）
+ * 3. 组件区不得写死裸字面颜色（走语义 token）
+ * 4. `box-shadow` 不得写死颜色（走 `--elevation-ink-*` / `--mask-*`）
+ * 5. 不得引用未定义的 token（曾查出 10 个假 token / 24 处，已全修）
+ * 6. hover 查询不得用 `any-hover` 或 hover+pointer 混合条件
+ * **2 条棘轮（只许降）**
+ * 7. 裸 `:hover`（未包 `@media (hover: hover)`）≤ 75
+ * 8. 中性实线边框宽于 0.5px 的块 ≤ 178
+ * **4 条自检 / 对价**
+ * 9. 扫描范围非空（防路径写错静默通过）
+ * 10. hljs 色板豁免有对价（dark 覆盖必须仍在）
+ * 11. 作用域局部 token 的 fallback 不得丢失（回归守卫）
+ * 12. dsh 令牌阶梯与新增别名不得被删
  *
  * ## 两类刻意豁免（都带对价测试，不是放宽标准）
  * 1. `highlight.js` 自包含词法色板：`.hljs*` 有完整的浅色基 +
@@ -23,7 +32,7 @@ import { describe, expect, it } from 'vitest'
  * 2. `var(--x, #fallback)` 里的 fallback 字面量：组件主值已经走 token，
  *    fallback 只是防御值，不算「组件写死颜色」。但 fallback 引用的 token
  *    **若从未定义**，说明该处其实一直在用 fallback、完全不随主题切换，
- *    这是真 bug，另由「未定义 token 名」棘轮锁住不许新增。
+ *    这是真 bug，另由「不得引用未定义的 token」**硬约束**（恒 0）锁住。
  *
  * ## 诚实边界
  * - **elevation 只覆盖了「投影墨色必须走 token」这一条**。dsh 的
