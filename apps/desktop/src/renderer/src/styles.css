@@ -98,8 +98,15 @@
   --radius: var(--radius-sm);
 
   /* dsh 发丝线分层：--border 对应 border-l2（常规描边），
-     --border-card 对应 border-l3（独立卡片描边，配 0.5px 发丝线）。 */
+     --border-card 对应 border-l3（独立卡片描边，配 0.5px 发丝线），
+     --border-strong 对应 border-l4（强调描边 / 输入框）。 */
   --border-card: rgba(0, 0, 0, 0.12);
+  --border-strong: rgba(0, 0, 0, 0.16);
+
+  /* 深底 / accent 底上的前景字与白色实心小控件（开关圆点、原型框）。
+     这些**刻意不随主题反演**：底本身就是深/accent 色，反演会失去对比。
+     单列一个语义 token 表达这个决定，避免组件里散落 #fff 被误当成待迁移债。 */
+  --ink-on-solid: #ffffff;
 
   /* dsh .hero 罗盘水印刻意取纯灰静态斜坡（浅 neutral-200 / 深 neutral-700），
      不用 --dsw-alias-label-*：bluish 色偏在 56px 线稿上会显出来。 */
@@ -120,9 +127,9 @@
 /* ---- dsh 令牌分层：独立卡片描边 + 罗盘水印纯灰墨，四主题各自解析 ----
    单独成块，不侵入各主题原有的变量表（那些表对齐的是旧版主题色值）。
    --border-card 比 --border 深一档；深色档取 dsh 深色 border-l3 的 0.16 白。 */
-[data-theme='dark']  { --border-card: rgba(255, 255, 255, 0.16); --watermark-ink: #3c3c3d; }
-[data-theme='warm']  { --border-card: #ddd6d0; --watermark-ink: #e7e2dd; }
-[data-theme='night'] { --border-card: #3a333c; --watermark-ink: #3c3c3d; }
+[data-theme='dark']  { --border-card: rgba(255, 255, 255, 0.16); --border-strong: rgba(255, 255, 255, 0.2); --watermark-ink: #3c3c3d; }
+[data-theme='warm']  { --border-card: #ddd6d0; --border-strong: #d6d0ca; --watermark-ink: #e7e2dd; }
+[data-theme='night'] { --border-card: #3a333c; --border-strong: #443b45; --watermark-ink: #3c3c3d; }
 
 /* dsh corner-shape.css：支持 superellipse 的引擎上，所有圆角走
    superellipse(1.5) 平滑曲线（介于圆弧与 squircle 之间）；corner-shape 不继承，
@@ -331,7 +338,7 @@ body {
   flex-direction: column;
   gap: 2px;
   padding: 6px 8px;
-  border-right: 0.5px solid rgba(0, 0, 0, 0.12);
+  border-right: 0.5px solid var(--border-card);
   background: var(--sidebar-fill);
   color: var(--text);
   font-size: 14px;
@@ -755,7 +762,7 @@ body {
 }
 
 .btn:hover:not(:disabled) {
-  background: rgba(38, 49, 72, 0.06);
+  background: var(--bg-hover);
 }
 
 .btn:active:not(:disabled) {
@@ -766,7 +773,7 @@ body {
 .btn.primary {
   background: #0f1115;
   box-shadow: none;
-  color: #fff;
+  color: var(--ink-on-solid);
   font-weight: 500;
 }
 .btn.primary:hover:not(:disabled) {
@@ -787,7 +794,7 @@ body {
 }
 
 .btn.accent-outline:hover:not(:disabled) {
-  background: rgba(38, 49, 72, 0.06);
+  background: var(--bg-hover);
 }
 
 .btn:disabled {
@@ -1613,7 +1620,7 @@ body {
 .form-textarea {
   width: 100%;
   padding: 0 10px;
-  border: 0.5px solid rgba(0, 0, 0, 0.16);
+  border: 0.5px solid var(--border-strong);
   border-radius: var(--radius-md);
   background: var(--bg-panel);
   color: var(--text);
@@ -2248,7 +2255,7 @@ body {
   min-height: 320px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: #ffffff;
+  background: var(--ink-on-solid);
 }
 
 /* ---- 右栏智能体 ---- */
@@ -2375,11 +2382,11 @@ body {
   letter-spacing: 0.02em;
 }
 .tasks-priority.priority-P0 {
-  color: #fff;
+  color: var(--ink-on-solid);
   background: var(--danger, #d9534f);
 }
 .tasks-priority.priority-P1 {
-  color: #fff;
+  color: var(--ink-on-solid);
   background: var(--accent, #4a7dff);
 }
 .tasks-priority.priority-P2 {
@@ -4528,17 +4535,17 @@ button.ref-row:hover {
 }
 
 .review-check-badge.blocker {
-  color: #fff;
+  color: var(--ink-on-solid);
   background: var(--danger);
 }
 
 .review-check-badge.suggestion {
-  color: #fff;
+  color: var(--ink-on-solid);
   background: var(--warning);
 }
 
 .review-check-badge.pass {
-  color: #fff;
+  color: var(--ink-on-solid);
   background: var(--success);
 }
 
@@ -5754,7 +5761,7 @@ button.ref-row:hover {
   border: 0;
   border-radius: var(--radius-sm);
   background: rgba(255, 255, 255, 0.12);
-  color: #fff;
+  color: var(--ink-on-solid);
   cursor: pointer;
 }
 .digital-lightbox-close:hover {
@@ -6255,7 +6262,7 @@ button.ref-row:hover {
   height: 100%;
   width: 40%;
   border-radius: var(--radius-xs);
-  background: var(--accent, #4176e6);
+  background: var(--accent, var(--accent));
   animation: digital-job-indeterminate 1.4s ease-in-out infinite;
 }
 
@@ -6551,7 +6558,7 @@ button.ref-row:hover {
 }
 
 .digital-step-image-thumb:hover {
-  border-color: var(--accent, #4176e6);
+  border-color: var(--accent, var(--accent));
 }
 
 /* M1 观测：本轮运行消耗行（轮数 / token / 耗时 / 工具次数） */
@@ -7361,7 +7368,7 @@ button.ref-row:hover {
   flex-shrink: 0;
   border-radius: var(--radius-md);
   background: var(--accent);
-  color: #fff;
+  color: var(--ink-on-solid);
   font-size: calc(13px * var(--ui-font-scale) * 12/13);
   font-weight: 700;
   line-height: 1;
@@ -7660,7 +7667,7 @@ button.ref-row:hover {
   padding: 10px 12px;
   max-height: 320px;
   overflow: auto;
-  border: 0.5px solid rgba(0, 0, 0, 0.1);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--sidebar-fill);
   color: var(--text);
@@ -7808,7 +7815,7 @@ button.ref-row:hover {
   height: 17px;
   border-radius: 50%;
   corner-shape: round;
-  background: #ffffff;
+  background: var(--ink-on-solid);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
   transition: transform 0.15s ease;
 }
@@ -7899,7 +7906,7 @@ button.ref-row:hover {
   align-items: stretch;
   gap: 2px;
   padding: 0 8px;
-  border-bottom: 0.5px solid rgba(0, 0, 0, 0.12);
+  border-bottom: 0.5px solid var(--border-card);
   background: var(--bg-panel);
   flex: 0 0 auto;
 }
@@ -7918,7 +7925,7 @@ button.ref-row:hover {
 
 .middle-tab:hover {
   color: var(--text);
-  background: rgba(38, 49, 72, 0.06);
+  background: var(--bg-hover);
 }
 
 .middle-tab.active {
@@ -8008,7 +8015,7 @@ button.ref-row:hover {
 }
 
 .techdoc-item:hover {
-  background: rgba(38, 49, 72, 0.06);
+  background: var(--bg-hover);
 }
 
 .techdoc-item.active {
@@ -8040,7 +8047,7 @@ button.ref-row:hover {
 }
 
 .techdoc-outline-item:hover {
-  background: rgba(38, 49, 72, 0.06);
+  background: var(--bg-hover);
   color: var(--text);
 }
 
@@ -8054,7 +8061,7 @@ button.ref-row:hover {
   min-height: 0;
   overflow: auto;
   padding: 10px 12px;
-  border: 0.5px solid rgba(0, 0, 0, 0.1);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--sidebar-fill);
 }
@@ -8089,7 +8096,7 @@ button.ref-row:hover {
   min-height: 0;
   resize: none;
   padding: 10px 12px;
-  border: 0.5px solid rgba(0, 0, 0, 0.1);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--sidebar-fill);
   color: var(--text);
@@ -8495,11 +8502,11 @@ button.ref-row:hover {
   border-radius: var(--radius-xs);
 }
 .import-tag.create {
-  color: #fff;
+  color: var(--ink-on-solid);
   background: #4caf50;
 }
 .import-tag.update {
-  color: #fff;
+  color: var(--ink-on-solid);
   background: var(--accent, #4a7dff);
 }
 .import-preview-type {
@@ -8602,7 +8609,7 @@ button.ref-row:hover {
   border-radius: var(--radius-xs);
 }
 .datatable-issue.error .datatable-issue-tag {
-  color: #fff;
+  color: var(--ink-on-solid);
   background: var(--danger, #d9534f);
 }
 .datatable-issue.warn .datatable-issue-tag {
@@ -9839,7 +9846,7 @@ button.ref-row:hover {
   align-items: stretch;
   gap: 2px;
   padding: 0 8px;
-  border-bottom: 0.5px solid rgba(0, 0, 0, 0.12);
+  border-bottom: 0.5px solid var(--border-card);
   overflow-x: auto;
 }
 /* 与主区页签同一套语言：36px 高、14px 字、文字色 + 2px 下划线 */
@@ -10023,7 +10030,7 @@ button.ref-row:hover {
   min-height: 44px;
   padding: 0 10px;
   background: var(--sidebar-fill);
-  border-bottom: 0.5px solid rgba(0, 0, 0, 0.12);
+  border-bottom: 0.5px solid var(--border-card);
 }
 
 /* ── dsh 三栏改版：中栏=对话、右栏=停靠面板 ── */
@@ -10156,7 +10163,7 @@ button.ref-row:hover {
   gap: 2px;
   flex: none;
   padding: 0 14px;
-  border-bottom: 0.5px solid rgba(0, 0, 0, 0.12);
+  border-bottom: 0.5px solid var(--border-card);
 }
 .conv-tab {
   height: 32px;

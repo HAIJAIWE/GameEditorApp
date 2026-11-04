@@ -10,9 +10,11 @@ import { describe, expect, it } from 'vitest'
  * - **圆角与全圆是硬约束**（恒 0）：全部 124 处字面 px 圆角已按
  *   `docs/ui-radius.zh.md` 的用途档收敛为 `--radius-*`，30 处全圆声明已配对
  *   `corner-shape: round`。这两项一旦回升就是回归，不需要棘轮。
- * - **组件区字面颜色仍是棘轮**（只许降）：136 块 / 80 个不同值是迁移期存量，
- *   其中不少字面色在深色主题下刻意不随主题变化（accent 前景、专用底），
- *   逐类建语义 token + 四主题值需要单独一轮，不能刷数字式替换。
+ * - **组件区字面颜色仍是棘轮**（只许降）：已从 136 收敛到 114（本轮把浅色档
+ *   值精确等价的中性交互色换成 `--bg-hover` / `--border` / `--border-card` /
+ *   `--border-strong` / `--accent`，并把刻意不随主题反演的恒白前景收进
+ *   `--ink-on-solid`）。剩余多是 hljs 色板、暗色卡片与阴影遮罩，
+ *   逐类建语义 token + 四主题值需要继续分轮，不能刷数字式替换。
  *   与 `i18nCoverage.test.ts` 同范式：修一块就把 BASELINE 减一。
  *
  * ## 诚实边界
@@ -32,10 +34,12 @@ const REPO_ROOT = resolve(HERE, '../../../..')
 const CSS_ROOT = 'apps/desktop/src/renderer/src'
 
 /**
- * 组件区字面颜色存量基线（2026-11-04 实测）：修掉一块就减一，新增前先还债。
- * 圆角已全量收敛为 token，改由硬约束锁死，不再需要棘轮。
+ * 组件区字面颜色存量基线（2026-11-04 实测）：**136 -> 114**（本轮按「浅色档值
+ * 精确等价 + 语义明确」收敛 31 处声明 / 22 个块）。修掉一块就减一，新增前先还债。
+ * 剩余主要是 hljs 词法色板、插件市场暗色卡片、阴影/遮罩与专用语义色——各有
+ * 独立主题机制或需逐类建 token，不能盲换，见当日日志。
  */
-const BASELINE_LITERAL_COLOR = 136
+const BASELINE_LITERAL_COLOR = 114
 const FULL_ROUND = /^(?:50%|100%|999px|9999px)$/u
 const COLOR_LITERAL = /#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(/u
 
