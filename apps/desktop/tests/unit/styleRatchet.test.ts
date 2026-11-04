@@ -11,7 +11,8 @@ import { describe, expect, it } from 'vitest'
  *   `--radius-*`，全圆声明已配对 `corner-shape: round`，投影墨色走
  *   `--elevation-ink-*`。这三项一旦回升就是回归，不需要棘轮。
  * - **组件区字面颜色是棘轮**（只许降）：见 `BASELINE_LITERAL_COLOR`。
- * - **未定义 token 名是棘轮**（只许降）：见 `BASELINE_UNDEFINED_TOKEN`。
+ * - **未定义 token 名已从棘轮升级为硬约束**（恒 0）：10 个假 token / 24 处
+ *   使用已全部修复，详见 `undefinedTokenNames` 上方注释。
  *
  * ## 两类刻意豁免（都带对价测试，不是放宽标准）
  * 1. `highlight.js` 自包含词法色板：`.hljs*` 有完整的浅色基 +
@@ -45,21 +46,21 @@ const CSS_ROOT = 'apps/desktop/src/renderer/src'
 
 /**
  * 组件区字面颜色存量基线（2026-11-04 实测）：**136 -> 114 -> 94 -> 48**。
- * 前三轮是实际迁移（中性交互色 22 块、投影/遮罩墨色 20 块）；本轮 -46 来自
+ * 前三轮是实际迁移（中性交互色 22 块、投影/遮罩墨色 20 块）；-46 来自
  * **修正两类误报**（hljs 自带主题色板、var() fallback 字面量），不是迁移成绩，
- * 所以 48 才是真实债数。剩余主要是插件市场/智能体团队暗色卡片与专用语义色，
- * 需逐类建 token，不能盲换。修掉一块就减一，新增前先还债。
+ * 所以 48 才是真实债数。修掉 24 处未定义 token 后该数**不变**（那些 fallback
+ * 本就被豁免），别误以为没生效。剩余主要是插件市场/智能体团队暗色卡片与
+ * 专用语义色，需逐类建 token，不能盲换。修掉一块就减一，新增前先还债。
  */
 const BASELINE_LITERAL_COLOR = 48
 
 /**
- * 「引用了但从未定义」的 token 名数量（2026-11-04 实测 10 个）：
- * --bg-elevated / --bg-subtle / --border-color / --font-mono / --hover-bg /
- * --mono-font / --panel-bg / --surface / --surface-2 / --text-tertiary。
- * 这些 `var(--x, fallback)` 里的 fallback 一直生效，导致相关位置不随主题切换。
- * 逐个修掉一个就把基线减一；**严禁新增**这类假 token。
+ * 「引用了但从未定义」的 token 名曾查出 10 个（--bg-elevated / --bg-subtle /
+ * --border-color / --font-mono / --hover-bg / --mono-font / --panel-bg /
+ * --surface / --surface-2 / --text-tertiary，共 24 处使用），fallback 一直生效、
+ * 相关位置完全不随主题切换。现已全部修复：8 处直接改用已有 var()、5 处统一到
+ * --font-code、11 处建语义 token 并在 dark/night 覆盖。下面是**硬约束**，恒为 0。
  */
-const BASELINE_UNDEFINED_TOKEN = 10
 
 const FULL_ROUND = /^(?:50%|100%|999px|9999px)$/u
 const COLOR_LITERAL = /#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(/u
@@ -223,13 +224,13 @@ describe('样式守卫棘轮（对齐 dsh radius / corner-shape / elevation spec
     ).toBeGreaterThanOrEqual(8)
   })
 
-  it(`未定义 token 名不得超过基线 ${BASELINE_UNDEFINED_TOKEN}（严禁新增假 token）`, () => {
+  it('不得引用未定义的 token（硬约束，恒为 0）', () => {
     expect(
       undefinedTokenNames.size,
-      `还有 ${undefinedTokenNames.size} 个 var(--x, fallback) 引用了从未定义的 token（基线 ${BASELINE_UNDEFINED_TOKEN}）。\n` +
-        `这些位置的 fallback 一直生效、完全不随主题切换。修掉一个就把基线减一。\n` +
+      `${undefinedTokenNames.size} 个 var(--x, fallback) 引用了从未定义的 token。\n` +
+        `这些位置的 fallback 会一直生效、完全不随主题切换。\n` +
         `清单：${[...undefinedTokenNames].sort().join(', ')}`
-    ).toBeLessThanOrEqual(BASELINE_UNDEFINED_TOKEN)
+    ).toBe(0)
   })
 
   it('dsh 令牌阶梯与新增别名不得被删', () => {
@@ -237,7 +238,8 @@ describe('样式守卫棘轮（对齐 dsh radius / corner-shape / elevation spec
     for (const token of [
       '--radius-xs', '--radius-sm', '--radius-md', '--radius-lg', '--radius-xl', '--radius-panel',
       '--border-card', '--border-strong', '--watermark-ink', '--ink-on-solid',
-      '--elevation-ink-dropdown', '--mask-backdrop'
+      '--elevation-ink-dropdown', '--mask-backdrop',
+      '--font-code', '--surface-dark-card', '--surface-quiet', '--border-legacy', '--syntax-comment'
     ]) {
       expect(rootSheet?.source, `缺少令牌 ${token}`).toContain(`${token}:`)
     }

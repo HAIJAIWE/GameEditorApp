@@ -219,7 +219,7 @@
   margin: 0;
   padding-top: var(--code-pad-y);
   padding-bottom: var(--code-pad-y);
-  font-family: var(--font-mono, Consolas, 'Courier New', monospace);
+  font-family: var(--font-code);
   font-size: var(--code-font-size);
   line-height: var(--code-line-height);
 }

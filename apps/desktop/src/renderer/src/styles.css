@@ -129,6 +129,22 @@
   --mask-subtle: rgba(15, 17, 21, 0.04);
   --mask-lightbox: rgba(15, 17, 21, 0.82);
 
+  /* ---- 修复「引用了却从未定义」的假 token（24 处） ----
+     原先写成 var(--xxx, fallback) 但 --xxx 没有定义，fallback 一直生效、
+     这些位置完全不随主题切换（深色档还在用 #eee 边框 / #fafafa 底）。
+     浅色档值刻意与旧 fallback 精确等价 => 默认主题零视觉变化；
+     dark/night 在下方覆盖为对应深色值，才算真正修好。
+     --surface-dark-card 是例外：插件市场/团队卡刻意用暗底，不随主题反演。 */
+  --font-code: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --surface-quiet: rgba(127, 127, 127, 0.06);
+  --surface-quiet-strong: rgba(127, 127, 127, 0.08);
+  --surface-active: rgba(127, 127, 127, 0.14);
+  --syntax-comment: #6a9955;
+  --surface-dark-card: #1c1c22;
+  --border-legacy: #eeeeee;
+  --border-legacy-strong: #cccccc;
+  --bg-subtle: #fafafa;
+
   /* dsh .hero 罗盘水印刻意取纯灰静态斜坡（浅 neutral-200 / 深 neutral-700），
      不用 --dsw-alias-label-*：bluish 色偏在 56px 线稿上会显出来。 */
   --watermark-ink: #e5e5e5;
@@ -148,9 +164,35 @@
 /* ---- dsh 令牌分层：独立卡片描边 + 罗盘水印纯灰墨，四主题各自解析 ----
    单独成块，不侵入各主题原有的变量表（那些表对齐的是旧版主题色值）。
    --border-card 比 --border 深一档；深色档取 dsh 深色 border-l3 的 0.16 白。 */
-[data-theme='dark']  { --border-card: rgba(255, 255, 255, 0.16); --border-strong: rgba(255, 255, 255, 0.2); --watermark-ink: #3c3c3d; }
-[data-theme='warm']  { --border-card: #ddd6d0; --border-strong: #d6d0ca; --watermark-ink: #e7e2dd; }
-[data-theme='night'] { --border-card: #3a333c; --border-strong: #443b45; --watermark-ink: #3c3c3d; }
+[data-theme='dark'] {
+  --border-card: rgba(255, 255, 255, 0.16);
+  --border-strong: rgba(255, 255, 255, 0.2);
+  --watermark-ink: #3c3c3d;
+  --surface-quiet: rgba(255, 255, 255, 0.06);
+  --surface-quiet-strong: rgba(255, 255, 255, 0.08);
+  --surface-active: rgba(255, 255, 255, 0.14);
+  --syntax-comment: #7cb27a;
+  --border-legacy: rgba(255, 255, 255, 0.12);
+  --border-legacy-strong: rgba(255, 255, 255, 0.2);
+  --bg-subtle: #1b1e24;
+}
+[data-theme='warm'] {
+  --border-card: #ddd6d0;
+  --border-strong: #d6d0ca;
+  --watermark-ink: #e7e2dd;
+}
+[data-theme='night'] {
+  --border-card: #3a333c;
+  --border-strong: #443b45;
+  --watermark-ink: #3c3c3d;
+  --surface-quiet: rgba(255, 255, 255, 0.06);
+  --surface-quiet-strong: rgba(255, 255, 255, 0.08);
+  --surface-active: rgba(255, 255, 255, 0.14);
+  --syntax-comment: #7cb27a;
+  --border-legacy: rgba(255, 255, 255, 0.12);
+  --border-legacy-strong: rgba(255, 255, 255, 0.2);
+  --bg-subtle: #1f1a1f;
+}
 
 /* dsh corner-shape.css：支持 superellipse 的引擎上，所有圆角走
    superellipse(1.5) 平滑曲线（介于圆弧与 squircle 之间）；corner-shape 不继承，
@@ -2388,7 +2430,7 @@ body {
 .tasks-derived-hint {
   font-size: 12px;
   color: var(--text-muted);
-  background: var(--surface-2, rgba(127, 127, 127, 0.08));
+  background: var(--surface-quiet-strong);
   border-left: 2px solid var(--border);
   padding: 6px 10px;
   border-radius: var(--radius-xs);
@@ -5276,7 +5318,7 @@ button.ref-row:hover {
   padding: 10px 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: var(--bg-elevated, var(--bg));
+  background: var(--bg);
   font-size: calc(13px * var(--ui-font-scale) * 1.0);
 }
 .datagen-quality-title {
@@ -5304,7 +5346,7 @@ button.ref-row:hover {
   padding: 8px 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: var(--bg-elevated, var(--bg));
+  background: var(--bg);
   font-size: calc(13px * var(--ui-font-scale) * 1.0);
 }
 .datagen-cost-label {
@@ -5333,7 +5375,7 @@ button.ref-row:hover {
   padding: 10px 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: var(--bg-elevated, var(--bg));
+  background: var(--bg);
   font-size: calc(13px * var(--ui-font-scale) * 1.0);
 }
 .ai-full-judge-head {
@@ -6217,7 +6259,7 @@ button.ref-row:hover {
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--text-muted);
-  font-family: var(--mono-font, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-family: var(--font-code);
 }
 
 /* 后台任务列表（对齐 dsh ui-jobs 的读法） */
@@ -6688,7 +6730,7 @@ button.ref-row:hover {
   margin-bottom: 6px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: var(--panel-bg, var(--bg));
+  background: var(--bg);
   padding: 4px;
   max-height: 220px;
   overflow-y: auto;
@@ -6710,7 +6752,7 @@ button.ref-row:hover {
 
 .digital-command-item:hover,
 .digital-command-item.active {
-  background: var(--hover-bg, rgba(127, 127, 127, 0.14));
+  background: var(--surface-active);
 }
 
 .digital-command-label {
@@ -7692,7 +7734,7 @@ button.ref-row:hover {
   border-radius: var(--radius-sm);
   background: var(--sidebar-fill);
   color: var(--text);
-  font-family: var(--mono-font, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-family: var(--font-code);
   font-size: calc(12px * var(--ui-font-scale) * 13/13);
   line-height: 1.55;
   white-space: pre-wrap;
@@ -8121,7 +8163,7 @@ button.ref-row:hover {
   border-radius: var(--radius-sm);
   background: var(--sidebar-fill);
   color: var(--text);
-  font-family: var(--mono-font, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-family: var(--font-code);
   font-size: 12px;
   line-height: 1.6;
 }
@@ -8232,7 +8274,7 @@ button.ref-row:hover {
 
 .code-tree-size {
   flex: 0 0 auto;
-  color: var(--text-tertiary, var(--text-secondary));
+  color: var(--text-secondary);
   font-size: 11px;
 }
 
@@ -8299,7 +8341,7 @@ button.ref-row:hover {
 
 .code-view-empty-sub {
   font-size: 12px;
-  color: var(--text-tertiary, var(--text-secondary));
+  color: var(--text-secondary);
 }
 
 .code-view-empty.error {
@@ -8311,14 +8353,14 @@ button.ref-row:hover {
   margin: 0;
   padding: 12px 16px;
   overflow: auto;
-  font-family: var(--font-mono, Consolas, monospace);
+  font-family: var(--font-code);
   font-size: 12.5px;
   line-height: 1.6;
   white-space: pre;
   tab-size: 2;
 }
 
-.tok-comment { color: var(--text-tertiary, #6a9955); font-style: italic; }
+.tok-comment { color: var(--syntax-comment); font-style: italic; }
 .tok-string { color: #ce9178; }
 .tok-number { color: #b5cea8; }
 .tok-keyword { color: #569cd6; font-weight: 600; }
@@ -8327,7 +8369,7 @@ button.ref-row:hover {
   grid-column: 2;
   padding: 2px 12px;
   border-top: 1px solid var(--border);
-  color: var(--text-tertiary, var(--text-secondary));
+  color: var(--text-secondary);
   font-size: 11px;
   white-space: nowrap;
   overflow: hidden;
@@ -8384,7 +8426,7 @@ button.ref-row:hover {
   font-size: 12px;
   text-align: center;
   line-height: 1.8;
-  color: var(--text-tertiary, var(--text-secondary));
+  color: var(--text-secondary);
 }
 
 .browser-status {
@@ -8578,7 +8620,7 @@ button.ref-row:hover {
   padding: 10px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: var(--surface-2, rgba(127, 127, 127, 0.06));
+  background: var(--surface-quiet);
 }
 .contract-check {
   display: flex;
@@ -8587,7 +8629,7 @@ button.ref-row:hover {
   padding: 10px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: var(--surface-2, rgba(127, 127, 127, 0.06));
+  background: var(--surface-quiet);
 }
 .datatable-check-head {
   display: flex;
@@ -8695,9 +8737,9 @@ button.ref-row:hover {
   align-items: center;
   gap: 12px;
   padding: 8px 10px;
-  border: 1px solid var(--border, #2a2a33);
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: var(--surface, #1c1c22);
+  background: var(--surface-dark-card);
 }
 .plugin-market-name {
   font-weight: 600;
@@ -8814,10 +8856,10 @@ button.ref-row:hover {
   gap: 8px;
 }
 .agent-team-card {
-  border: 1px solid var(--border, #2a2a33);
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 10px 12px;
-  background: var(--surface, #1c1c22);
+  background: var(--surface-dark-card);
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -8892,7 +8934,7 @@ button.ref-row:hover {
 .session-history-search input {
   flex: 1;
   padding: 8px 10px;
-  border: 1px solid var(--border-color, #ccc);
+  border: 1px solid var(--border-legacy-strong);
   border-radius: var(--radius-sm);
   font-size: 14px;
 }
@@ -8918,9 +8960,9 @@ button.ref-row:hover {
   flex-direction: column;
   gap: 2px;
   padding: 8px 10px;
-  border: 1px solid var(--border-color, #eee);
+  border: 1px solid var(--border-legacy);
   border-radius: var(--radius-sm);
-  background: var(--bg-subtle, #fafafa);
+  background: var(--bg-subtle);
 }
 .session-history-title {
   font-weight: 600;
@@ -8950,7 +8992,7 @@ button.ref-row:hover {
   color: var(--text-muted);
 }
 .session-history-detail {
-  border-top: 1px solid var(--border-color, #eee);
+  border-top: 1px solid var(--border-legacy);
   padding-top: 12px;
 }
 .session-history-messages {
