@@ -10535,3 +10535,20 @@ body {
     animation: none;
   }
 }
+
+/* ── 焦点环（对齐 dsh `ui-theme/src/styles/focus.css`）──
+   只给「键盘焦点」画 2px 环；指针点击由 input-modality 抑制，避免鼠标点按钮
+   也闪一圈。可编辑控件（`:read-write`）不抑制，保留输入定位感。
+   故意只设 color / width、**不设 style**：自己写了 `outline: none` 的控件仍保持 none
+   （dsh 注释：fallback 只给色与标准宽度，不给样式）。 */
+:root {
+  --focus-ring-width: 2px;
+}
+:focus-visible {
+  outline-color: var(--focus-ring-color, var(--accent));
+  outline-width: var(--focus-ring-width);
+}
+html[data-input-modality='pointer'] body :focus-visible:not(:read-write) {
+  --focus-ring-color: transparent;
+  outline-color: transparent;
+}

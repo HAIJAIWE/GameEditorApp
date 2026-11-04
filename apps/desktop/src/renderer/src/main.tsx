@@ -5,12 +5,17 @@ import { LocaleProvider } from '@mobai/client-ui'
 import { translate } from '@mobai/shared/i18n'
 
 import App from './App'
+import { installInputModalityTracking } from './inputModality'
 import { getLocalePreference, useLocalePreference } from './localePreference'
 import { pushLlmConfigMirror } from './llmBootstrap'
 import { applyFontSize, loadFontSize } from '@mobai/shared/config/settings'
 import { applyTheme, loadTheme } from '@mobai/shared/config/settings'
 
 import './styles.css'
+
+// 输入模态跟踪：指针点击抑制焦点环、键盘导航恢复（dsh input-modality 机制）。
+// 纯 DOM 监听、无 React 依赖，必须在首帧前装好——否则第一次点击会先闪一下环。
+installInputModalityTracking()
 
 // 渲染前先应用主题，避免浅色偏好用户启动时闪一下深色
 applyTheme(loadTheme())

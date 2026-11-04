@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest'
  * 样式守卫：把 dsh `ui-theme` 那几张自动 spec（radius / corner-shape /
  * elevation / hover / 发丝线 / menu）里能在墨白静态校验的部分落成测试。
  *
- * ## 12 项检查的构成（8 硬约束 + 4 自检，**已无棘轮**）
+ * ## 13 项检查的构成（8 硬约束 + 5 自检，**已无棘轮**）
  * **8 条硬约束（恒 0，回升即回归）**
  * 1. 全圆声明必须配对 `corner-shape: round`
  * 2. 组件区不得写死 px 圆角（走 `--radius-*`）
@@ -22,6 +22,7 @@ import { describe, expect, it } from 'vitest'
  * 10. hljs 色板豁免有对价（dark 覆盖必须仍在）
  * 11. 作用域局部 token 的 fallback 不得丢失（回归守卫）
  * 12. dsh 令牌阶梯与新增别名不得被删
+ * 13. 焦点环与输入模态抑制规则不得被删（a11y：键盘用户必须看得见焦点）
  *
  * ## 两类刻意豁免（都带对价测试，不是放宽标准）
  * 1. `highlight.js` 自包含词法色板：`.hljs*` 有完整的浅色基 +
@@ -323,6 +324,17 @@ describe('样式守卫（对齐 dsh radius / corner-shape / elevation / hover / 
         `dsh web-styling.md:30：中性 --border* 一律 0.5px（Chromium 画成一个设备像素）；` +
         `2px+ 单边粗线是强调，豁免。\n前几个：\n${describeSample(onePixelBorders)}`
     ).toBe(0)
+  })
+
+  it('焦点环与输入模态抑制规则不得被删（a11y）', () => {
+    const src = rootSheet?.source ?? ''
+    // 键盘焦点必须可见：全局 :focus-visible 环 + 2px 宽度 token
+    expect(src, '缺少 --focus-ring-width').toContain('--focus-ring-width')
+    expect(src, '缺少全局 :focus-visible 规则').toMatch(/:focus-visible\s*\{/u)
+    // 指针模态抑制（只抑制环，不放宽到可编辑控件）
+    expect(src, '缺少 input-modality 抑制规则').toContain(
+      "html[data-input-modality='pointer'] body :focus-visible:not(:read-write)"
+    )
   })
 
   it('dsh 令牌阶梯与新增别名不得被删', () => {
