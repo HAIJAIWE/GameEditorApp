@@ -353,6 +353,8 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
         controller.signal.removeEventListener('abort', onParentAbort)
       })
     pendingSubagents.set(childId, promise)
+    // 落账：跨轮冷恢复的数据源。进程退出后宿主据 `running` 记录把状态标为 interrupted。
+    options.subagentLedger?.recordStart({ id: childId, task, startedAt: Date.now() })
     emit({ type: 'subagent_started', id: childId, task })
     // 暴露 handle 给调用方：拿到 childId + inbox 即可对运行中的子智能体「插话」，
     // 拿到 stopChild 即可「单独停止」它（父级继续跑，不被牵连）。
@@ -380,6 +382,7 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
           : `子智能体执行失败：${outcome?.status === 'rejected' ? String(outcome.reason) : '未知错误'}`
       const success = outcome !== undefined && outcome.status === 'fulfilled' ? outcome.value.success : false
       results.push(text)
+      options.subagentLedger?.recordEnd(childId, { success, text, endedAt: Date.now() })
       emit({ type: 'subagent_done', id: childId, success, text })
       messages.push({ role: 'user', content: `子智能体 ${childId} 完成通知：${text}` })
     }

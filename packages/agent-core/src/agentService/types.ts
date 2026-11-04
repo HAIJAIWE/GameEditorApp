@@ -11,7 +11,8 @@ import type {
   BrainToolRunner,
   PreExecReviewFn,
   SandboxPolicy,
-  SubAgentProvider
+  SubAgentProvider,
+  SubagentLedgerPort
 } from '@mobai/shared/agent/brain'
 import type { SkillExecutionContext } from '@mobai/shared/agent/config'
 import type { DigitalAttachment } from '@mobai/shared/util/io'
@@ -120,6 +121,11 @@ export interface AgentBrainServiceDeps {
    * 注入 CLI/远程 provider 即可把子任务交给外部后端（见 `subagentCli.ts`）。
    */
   subAgentProvider?: SubAgentProvider
+  /**
+   * 子智能体账本（跨轮冷恢复）：loop 在启动/完成时埋账，这里负责落盘 + 启动时对账。
+   * 未注入则子任务记录只活在内存里（与本轮改动前一致）。
+   */
+  subagentLedger?: SubagentLedgerPort
   /** 沙箱策略（缺省 `workspace-write`）；`read-only` 会拒绝外部 CLI 子智能体 */
   sandboxPolicy?: SandboxPolicy
   /**

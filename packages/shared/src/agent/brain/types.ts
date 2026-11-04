@@ -11,6 +11,7 @@ import type { BrainLlmTransport, BrainToolRunner, BrainMessage } from '../runtim
 import type { LlmUsage } from '../../config/llm'
 import type { AgentRunStats, AgentRunTier } from '../observability'
 import type { CompactSummarizer } from '../compaction'
+import type { SubagentLedgerPort } from './subagents'
 
 /* ---- 事件 ---- */
 
@@ -273,6 +274,11 @@ export interface RunBrainLoopOptions {
    * 该子智能体（只 abort 它自己，不牵连父循环）。
    */
   onSubAgentSpawned?: (childId: string, inbox: BrainInbox, stopChild: () => void) => void
+  /**
+   * 子智能体账本（跨轮冷恢复）：启动/完成时各埋一笔，宿主负责落盘。
+   * 未提供则退化为「只在内存里」——与本轮改动前行为一致。
+   */
+  subagentLedger?: SubagentLedgerPort
   /** 审批请求 id 生成器（默认进程内自增；测试可注入确定性实现） */
   newRequestId?: () => string
   /** 等待用户答复的超时（毫秒）；超时按「未确认/未答复」处理，0 表示不超时 */

@@ -424,6 +424,9 @@ export class AgentBrainService {
       // F4 评估闭环：云端档挂默认评估器（确定性底线检查，不阻断）；本地 4B 一般不挂
       ...(tier === 'cloud' ? { evaluator: defaultDialogueEvaluator } : {}),
       // Slice 31：外部子智能体 provider（CLI/远程）；缺省由循环用进程内 spawn
+      ...(this.deps.subagentLedger !== undefined
+        ? { subagentLedger: this.deps.subagentLedger }
+        : {}),
       ...(this.deps.subAgentProvider !== undefined
         ? { subAgentProvider: this.deps.subAgentProvider }
         : {}),

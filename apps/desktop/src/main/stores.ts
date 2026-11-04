@@ -68,6 +68,7 @@ import { AgentBrainService, createDispatcherToolRunner } from '@mobai/agent-core
 import { readProjectInstructions } from '@mobai/agent-core/agentService/projectInstructions'
 import { OperationLogStore } from '@mobai/agent-core/store/operationLogStore'
 import { DeliveryLogStore } from '@mobai/agent-core/store/deliveryLogStore'
+import { createSubagentLedgerStore } from '@mobai/agent-core/store/subagentLedgerStore'
 import { createRecordingToolRunner } from '@mobai/agent-core/ops/operationRecorder'
 import { createRollbackSkill } from '@mobai/agent-core/skills/rollbackSkill'
 import { createSessionSearchSkill } from '@mobai/agent-core/skills/sessionSearchSkill'
@@ -259,6 +260,12 @@ export function buildStores(libDir: string): AppStores {
   // 用户偏好 / 反馈：随库隔离，构造时即从磁盘加载；偏好注入系统提示词（见 brainService）
   const personalization = createPersonalizationStores(agentDir)
 
+  // 子智能体账本（跨轮冷恢复）：与 memory 同放在 agentDir，切库不丢历史。
+  // 冷启动/切库时先对账：上一条命里 `running` 的子任务在本进程不可能还活着 ——
+  // 一律标 `interrupted` 留档（保留 task，供 UI 提示「上次被中断」并重新派发）。
+  const subagentLedger = createSubagentLedgerStore(join(agentDir, 'subagents.json'))
+  subagentLedger.reconcile()
+
   return {
     dbPath,
     dataService: data,
@@ -294,6 +301,8 @@ export function buildStores(libDir: string): AppStores {
       runner,
       // Slice 31/33：子智能体 provider（远程 URL > CLI > 进程内 spawn，见 buildSubAgentProvider）
       ...buildSubAgentProvider(),
+      // 跨轮冷恢复：子任务启动/完成都落账，进程重启后可对账出「上次被中断」的记录
+      subagentLedger: subagentLedger.port,
       // Slice 32：沙箱策略（MB_SANDBOX_POLICY=read-only 时拒绝外部 CLI 子智能体）
       ...(process.env.MB_SANDBOX_POLICY === 'read-only' ? { sandboxPolicy: 'read-only' as const } : {})
     }),

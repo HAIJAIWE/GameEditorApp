@@ -44,5 +44,12 @@ export type {
   SubAgentProvider,
   SubAgentTask
 } from './types'
+export { SUBAGENT_LEDGER_LIMIT, reconcileInterrupted, trimLedger } from './subagents'
+export type {
+  ReconcileResult,
+  SubagentLedgerPort,
+  SubagentRecord,
+  SubagentStatus
+} from './subagents'
 export { clipToolResult, maybeResetContext, maybeResetContextAsync, safeRunEvaluator } from './context'
 export { runBrainLoop } from './loop'
