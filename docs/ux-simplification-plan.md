@@ -71,13 +71,25 @@
 
 ## 六、dsh UI 对齐结论（2026-11-04）
 
+- **唯一准绳**：以 dsh 源码 `GuideBody.tsx` / `GuideBody.module.css` / `GuideTitle.tsx`
+  为准。用户早期凭印象描述的「6 个方形瓦片网格 / 2×3 网格」在 dsh 全仓无对应实现，
+  2026-11-04 已拍板「看 dsh 的就行，以前的话就不管了」——**旧截图与旧印象不再作为改造依据**。
+  当前「56px 罗盘水印 + 单列 380px 胶囊」即最终形态，不再接受旧截图翻案。
 - 真值来源：`deepseek-harness-master/.../ui-sidebar-right/src/client/tabs/guide/GuideBody.tsx`
   + `GuideBody.module.css`（**不是** `apps/desktop/src/client/welcome*.tsx`，那是 OAuth 登录窗）。
 - 规格：单列 380px 胶囊 / R20 / 0.5px 发丝边 / min-height 56px / 26px 不染色图标 /
   14px 常规字 / hover 只换背景；56px 罗盘水印；整屏零可见文字；`MAX_DESCRIBED_ENTRIES=4`。
+- **逐项核对（2026-11-04）**：`.guide` 单列居中 + `::after{flex:0 1 10%}` 上提 5%、
+  `.hero` 纯灰水印、`.entry` 全部几何与材质、hover 包在 `@media (hover:hover)` 内且只换背景、
+  `.entryIcon/entryText/entryTitle/entryDescription` 的尺寸字号行高与 ellipsis、
+  描述阈值 `≤4`、整屏零可见文字 —— **均与源码真值一致**。
+  差异仅剩：`min-height: calc(100vh - 130px)`（父链高度由 flex 分配，写 100% 会退化成 auto）、
+  第 5 枚胶囊是库锚点（dsh 是「更多工具」菜单）、库管理区滚动下沉、
+  复制/复刻用胶囊下方内联表单、无 `ShortcutKeys` 键帽与 More/pin 菜单
+  —— 均为有意的产品等价替换，已记在 `CeshuHomePanel.tsx` 文件头。
 - 已对齐：令牌层（`--radius-*` 六档、`--border-card/strong`、`--watermark-ink`、
   `--elevation-ink-*` / `--mask-*`、`corner-shape: superellipse(1.5)`）、引导屏形态、
-  胶囊注册表与 chain 替换缝、样式守卫 `apps/desktop/tests/unit/styleRatchet.test.ts`（8 项全硬约束）。
+  胶囊注册表与 chain 替换缝、样式守卫 `apps/desktop/tests/unit/styleRatchet.test.ts`（9 项全恒 0 硬约束）。
 - 有意差异：dsh 的极淡 elevation 三件套与 `MenuSurface` 材质未照搬（会造成视觉倒退），
   理由见守卫文件头「诚实边界」。
 
