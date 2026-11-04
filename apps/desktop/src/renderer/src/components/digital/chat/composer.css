@@ -28,7 +28,7 @@
   padding: 10px 12px;
   border: 0.5px solid var(--border-strong);
   border-radius: var(--radius-md);
-  background: var(--bg-panel, #fff);
+  background: var(--bg-panel);
   transition: border-color 0.12s ease;
 }
 
@@ -214,9 +214,9 @@
 }
 /* 停止「确认态」（二次确认已 arm）：描边转强调色，提示「再点一次即停止」 */
 .dsh-composer-stop-armed {
-  border-color: var(--change-delete, #e5484d);
-  color: var(--change-delete, #e5484d);
-  background: color-mix(in srgb, var(--change-delete, #e5484d) 10%, transparent);
+  border-color: var(--change-delete);
+  color: var(--change-delete);
+  background: color-mix(in srgb, var(--change-delete) 10%, transparent);
 }
 /* 运行中：发送键位置显示旋转 spinner（对齐 dsh InputState.phase 'sending'），
    明确「本轮正在跑、不是卡死」。spinner 用强调色圆环 + 旋转动画。 */

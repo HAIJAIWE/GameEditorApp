@@ -10,9 +10,10 @@ import { describe, expect, it } from 'vitest'
  * - **圆角、全圆配对、投影墨色是硬约束**（恒 0）：字面 px 圆角已全量收敛为
  *   `--radius-*`，全圆声明已配对 `corner-shape: round`，投影墨色走
  *   `--elevation-ink-*`。这三项一旦回升就是回归，不需要棘轮。
- * - **组件区字面颜色是棘轮**（只许降）：见 `BASELINE_LITERAL_COLOR`。
- * - **未定义 token 名已从棘轮升级为硬约束**（恒 0）：10 个假 token / 24 处
- *   使用已全部修复，详见 `undefinedTokenNames` 上方注释。
+ * - **组件区字面颜色已升为硬约束**（恒 0）：最后 48 块 / 40 个值按 dsh
+ *   `web-styling.md:11` 的「组件局部契约」收成精确等价的语义 token。
+ * - **未定义 token 名是硬约束**（恒 0）：10 个假 token / 24 处已全部修复，
+ *   并清掉 37 行已定义 token 的死 fallback，详见 `undefinedTokenNames` 上方注释。
  *
  * ## 两类刻意豁免（都带对价测试，不是放宽标准）
  * 1. `highlight.js` 自包含词法色板：`.hljs*` 有完整的浅色基 +
@@ -45,14 +46,13 @@ const REPO_ROOT = resolve(HERE, '../../../..')
 const CSS_ROOT = 'apps/desktop/src/renderer/src'
 
 /**
- * 组件区字面颜色存量基线（2026-11-04 实测）：**136 -> 114 -> 94 -> 48**。
+ * 组件区字面颜色收敛史（2026-11-04）：**136 -> 114 -> 94 -> 48 -> 0**。
  * 前三轮是实际迁移（中性交互色 22 块、投影/遮罩墨色 20 块）；-46 来自
- * **修正两类误报**（hljs 自带主题色板、var() fallback 字面量），不是迁移成绩，
- * 所以 48 才是真实债数。修掉 24 处未定义 token 后该数**不变**（那些 fallback
- * 本就被豁免），别误以为没生效。剩余主要是插件市场/智能体团队暗色卡片与
- * 专用语义色，需逐类建 token，不能盲换。修掉一块就减一，新增前先还债。
+ * **修正两类误报**（hljs 自带主题色板、var() fallback 字面量），不是迁移成绩；
+ * 最后 48 块 / 40 个值按用途收成专用语义 token（状态色板 / 语法色板 /
+ * 字段步骤 ink / 按钮中性填充），每档值与原字面量精确等价、零视觉变化。
+ * 已归零，下方改为硬约束，不再需要棘轮。
  */
-const BASELINE_LITERAL_COLOR = 48
 
 /**
  * 「引用了但从未定义」的 token 名曾查出 10 个（--bg-elevated / --bg-subtle /
@@ -208,12 +208,13 @@ describe('样式守卫棘轮（对齐 dsh radius / corner-shape / elevation spec
     ).toBe(0)
   })
 
-  it(`组件区字面颜色不得超过基线 ${BASELINE_LITERAL_COLOR}（只许降不许升）`, () => {
+  it('组件区不得写死颜色（一律走语义 token，硬约束）', () => {
     expect(
       literalColorBlocks.length,
-      `还有 ${literalColorBlocks.length} 个非令牌区规则块写了字面颜色（基线 ${BASELINE_LITERAL_COLOR}）。\n` +
-        `请改用语义 var()；迁移一块就把基线减一。\n前几个：\n${describeSample(literalColorBlocks)}`
-    ).toBeLessThanOrEqual(BASELINE_LITERAL_COLOR)
+      `${literalColorBlocks.length} 个规则块仍写了裸字面颜色。\n` +
+        `按 dsh tokens-only 改用语义 var()；专用色见 :root 的专用语义色组。\n` +
+        `前几个：\n${describeSample(literalColorBlocks)}`
+    ).toBe(0)
   })
 
   it('hljs 色板豁免有对价：浅色基与 dark 覆盖必须同时存在', () => {
@@ -233,13 +234,20 @@ describe('样式守卫棘轮（对齐 dsh radius / corner-shape / elevation spec
     ).toBe(0)
   })
 
+  it('作用域局部 token 的 fallback 不得丢失（回归守卫）', () => {
+    // --item-form-control-max 只在 [data-testid='ceshu-data-overlay'] 作用域定义（1fr），
+    // 嵌入态继承不到，必须保留 360px fallback；曾因「全仓见过定义」被批量简化而回归。
+    expect(rootSheet?.source).toContain('var(--item-form-control-max, 360px)')
+  })
+
   it('dsh 令牌阶梯与新增别名不得被删', () => {
     expect(rootSheet, 'styles.css 必须存在').toBeDefined()
     for (const token of [
       '--radius-xs', '--radius-sm', '--radius-md', '--radius-lg', '--radius-xl', '--radius-panel',
       '--border-card', '--border-strong', '--watermark-ink', '--ink-on-solid',
       '--elevation-ink-dropdown', '--mask-backdrop',
-      '--font-code', '--surface-dark-card', '--surface-quiet', '--border-legacy', '--syntax-comment'
+      '--font-code', '--surface-dark-card', '--surface-quiet', '--border-legacy', '--syntax-comment',
+      '--status-ok-bg', '--syntax-string', '--ink-ai-draft', '--solid-btn-bg'
     ]) {
       expect(rootSheet?.source, `缺少令牌 ${token}`).toContain(`${token}:`)
     }
