@@ -35,6 +35,12 @@ export type ConversationAction =
   | { kind: 'hydrate'; history: Array<{ role?: unknown; content?: unknown }> }
   /** 子智能体被用户停止：乐观标记（真实 subagent_done 随后会再覆盖一次，幂等） */
   | { kind: 'subagentStop'; id: string }
+  /**
+   * 跨分区「预填输入框」：会话页签里点「重新派发」把子任务描述送进 composer。
+   * 只写入待消费的文本，**不直接发送** —— 用户仍可编辑，再自己按发送。
+   * 消费方（面板）读完即置 `null`。
+   */
+  | { kind: 'prefill'; text: string | null }
 
 /**
  * 对话状态归约（纯函数）：与面板此前的本地 reducer 逐字等价，
@@ -55,6 +61,9 @@ export function reduceConversation(state: DigitalPanelState, action: Conversatio
     case 'subagentStop':
       // 复用 subagent_done 的归约：立即给出「已停止」反馈，避免按钮点击后无响应
       return reduceBrainEvent(state, { type: 'subagent_done', id: action.id, success: false, text: '已停止' })
+    case 'prefill':
+      // 只改预填槽，不动消息/状态 —— 发送与否由用户决定
+      return { ...state, prefill: action.text }
     default:
       return state
   }

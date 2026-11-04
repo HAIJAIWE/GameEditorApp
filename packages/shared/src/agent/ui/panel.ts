@@ -86,6 +86,11 @@ export interface DigitalPanelState {
   interaction: DigitalInteraction | null
   status: DigitalStatus
   error: string | null
+  /**
+   * 待消费的输入框预填（跨分区「重新派发」用）。
+   * 面板读到非空值时填入 composer 并立刻清回 `null`；不参与发送逻辑。
+   */
+  prefill?: string | null
   /** 自增序号（生成稳定的消息 id） */
   seq: number
   /** M1 观测：本轮运行的累计消耗（每次新发送时重置） */

@@ -715,6 +715,7 @@ export const zh = {
   // 团队
   'agentTeam.interruptedTitle': '上次中断的子任务',
   'agentTeam.interruptedHint': '应用退出时没跑完（记录已保留）',
+  'agentTeam.redispatch': '重新派发',
   'agentTeam.mainTitle': '主对话',
   'agentTeam.status': '状态',
   'agentTeam.messages': '消息',
@@ -2879,6 +2880,7 @@ export const en: Record<MessageKey, string> = {
   // Team
   'agentTeam.interruptedTitle': 'Interrupted subagents',
   'agentTeam.interruptedHint': 'Exited before finishing (record kept)',
+  'agentTeam.redispatch': 'Re-dispatch',
   'agentTeam.mainTitle': 'Main conversation',
   'agentTeam.status': 'Status',
   'agentTeam.messages': 'Messages',

@@ -143,6 +143,22 @@ export default function DigitalPanel({
   const t = useT()
   const [input, setInput] = useState('')
   /**
+   * 跨分区「重新派发」：会话页签把被中断子任务的 task 写进 store 的 `prefill`，
+   * 这里填进输入框后**立刻清空槽位**（否则重挂载会重复填入）。
+   * 只预填、不发送 —— 用户仍可改文案再自己按发送。
+   */
+  useEffect(() => {
+    const pending = state.prefill
+    if (pending === undefined || pending === null) return
+    // 下一拍再填：effect 里同步 setState 会触发级联渲染（react-hooks/set-state-in-effect），
+    // 而预填本来就不需要与首帧同帧完成，用户感知不到这一拍。
+    const timer = setTimeout(() => {
+      setInput(pending)
+      dispatch({ kind: 'prefill', text: null })
+    }, 0)
+    return () => clearTimeout(timer)
+  }, [state.prefill, dispatch])
+  /**
    * 本轮目标（对齐 dsh GoalBar）：输入框上方目标条里的一句话，随每次发送一起发给主进程，
    * 注入为系统提示词的「本轮目标」。跨轮持续生效（目标条不清空，除非新建对话）；
    * 空串视为未填。用本地 state（与 `preset`/`input` 同列），不进面板 reducer——

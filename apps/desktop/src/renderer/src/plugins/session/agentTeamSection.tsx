@@ -79,6 +79,17 @@ export function AgentTeamSection({ host }: { host: PluginHost }) {
               >
                 <span className="agent-team-task">{record.task}</span>
                 <span className="agent-team-count">{t('agentTeam.interruptedHint')}</span>
+                <button
+                  type="button"
+                  className="btn slim"
+                  data-testid="agent-team-redispatch"
+                  onClick={() => {
+                    // 只把任务写进 composer 的预填槽，不直接发送：用户仍可改文案
+                    conversationStore.actions.dispatch({ kind: 'prefill', text: record.task })
+                  }}
+                >
+                  {t('agentTeam.redispatch')}
+                </button>
               </li>
             ))}
           </ul>

@@ -86,6 +86,32 @@ describe('会话 · 跨轮冷恢复（子智能体账本）', () => {
     }
   })
 
+  it('点「重新派发」只把任务写进 prefill 槽，不直接发送', async () => {
+    const api = installMbApi({
+      overrides: {
+        'agent.subagentLedger': () => ({
+          records: [
+            { id: 'sub_1', task: '调研竞品定价', status: 'interrupted', startedAt: 1000 }
+          ]
+        })
+      }
+    })
+    try {
+      const host = new PluginHost()
+      const store = host.declareStore(CONVERSATION_STORE_KEY, createConversationStoreDecl())
+      const result = await renderTeam(host)
+      await result.flush()
+
+      await result.click(result.byTestId('agent-team-redispatch'))
+      expect(store.getSnapshot().prefill).toBe('调研竞品定价')
+      // 关键：只是预填，没替用户把消息发出去
+      expect(store.getSnapshot().messages).toHaveLength(0)
+      await result.cleanup()
+    } finally {
+      api.restore()
+    }
+  })
+
   it('完全没有记录时不渲染该分区（避免首屏噪音）', async () => {
     const api = installMbApi({
       overrides: { 'agent.subagentLedger': () => ({ records: [] }) }
