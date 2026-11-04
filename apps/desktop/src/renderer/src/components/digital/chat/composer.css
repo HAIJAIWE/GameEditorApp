@@ -319,10 +319,12 @@
   padding: 4px;
   border: 0.5px solid var(--border);
   border-radius: var(--radius-md);
-  /* dsh 的浮层是「轻玻璃」：半透表面 + 背景模糊 + 浅描边 + 柔和投影，而不是纯白卡片 */
-  background: color-mix(in srgb, var(--bg-panel) 90%, transparent);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  /* dsh 的浮层是「轻玻璃」：半透表面 + 背景模糊 + 浅描边 + 柔和投影，而不是纯白卡片。
+     参数统一到 styles.css 的 --menu-surface-fill / --menu-backdrop-filter（四主题各自解析），
+     不再本地下写一份 90% + blur(8px)。 */
+  background: var(--menu-surface-fill);
+  backdrop-filter: var(--menu-backdrop-filter);
+  -webkit-backdrop-filter: var(--menu-backdrop-filter);
   box-shadow: 0 8px 24px var(--elevation-ink-menu);
 }
 .dsh-composer-menu-item {

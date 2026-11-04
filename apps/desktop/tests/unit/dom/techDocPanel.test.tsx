@@ -1,11 +1,19 @@
 // @vitest-environment jsdom
 import { act } from 'react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { parseHeadings, TechDocPanel } from '../../../src/renderer/src/components/techDoc/TechDocPanel'
 import { installMbApi, renderDom } from './render'
 
 let stub: ReturnType<typeof installMbApi> | null = null
+
+beforeEach(() => {
+  // 本仓 vitest 用 `isolate: false`（为规避 worker 启动超时，见 vitest.config 注释），
+  // 同一 worker 里前一个测试文件可能把 `window.mbApi` 留在这里。
+  // 下面有一条用例断言「没有 mbApi」的分支，必须先清干净 —— 否则它偶发拿到
+  // 上一个文件残留的桩，显示空态而不是「未提供接口」，成为长期 flaky。
+  delete (window as unknown as { mbApi?: unknown }).mbApi
+})
 
 afterEach(() => {
   stub?.restore()

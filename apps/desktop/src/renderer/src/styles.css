@@ -150,6 +150,16 @@
   --mask-subtle: rgba(15, 17, 21, 0.04);
   --mask-lightbox: rgba(15, 17, 21, 0.82);
 
+  /* ---- 菜单材质（对齐 dsh `MenuSurface`：半透表面 + backdrop-filter）----
+     墨白此前只有「数字员工」的 composer 菜单是轻玻璃（90% + blur 8px），
+     其余下拉都是纯色卡片。这里统一成一套 token，参数取 dsh 的
+     `--dsw-menu-backdrop-filter`（blur 40px + saturate 150%）。
+     **不透明度取 0.72 而不是 dsh 的 0.58**：dsh 靠 macOS vibrancy 垫底，
+     墨白是页面内 blur，透太多在复杂底图上会糊字。
+     不支持 backdrop-filter 或用户要求减少透明时，回落到不透明 --bg-panel（见文件末尾）。 */
+  --menu-surface-fill: rgba(248, 249, 250, 0.72);
+  --menu-backdrop-filter: blur(40px) saturate(150%);
+
   /* ---- 修复「引用了却从未定义」的假 token（24 处） ----
      原先写成 var(--xxx, fallback) 但 --xxx 没有定义，fallback 一直生效、
      这些位置完全不随主题切换（深色档还在用 #eee 边框 / #fafafa 底）。
@@ -246,11 +256,13 @@
   --border-legacy: rgba(255, 255, 255, 0.12);
   --border-legacy-strong: rgba(255, 255, 255, 0.2);
   --bg-subtle: #1b1e24;
+  --menu-surface-fill: rgba(38, 41, 48, 0.72);
 }
 [data-theme='warm'] {
   --border-card: #ddd6d0;
   --border-strong: #d6d0ca;
   --watermark-ink: #e7e2dd;
+  --menu-surface-fill: rgba(250, 247, 244, 0.74);
 }
 [data-theme='night'] {
   --border-card: #3a333c;
@@ -263,6 +275,7 @@
   --border-legacy: rgba(255, 255, 255, 0.12);
   --border-legacy-strong: rgba(255, 255, 255, 0.2);
   --bg-subtle: #1f1a1f;
+  --menu-surface-fill: rgba(36, 31, 38, 0.74);
 }
 
 /* dsh corner-shape.css：支持 superellipse 的引擎上，所有圆角走
@@ -657,7 +670,10 @@ body {
   padding: 4px;
   border: 0.5px solid var(--border);
   border-radius: var(--radius);
-  background: var(--bg-panel);
+  /* 菜单材质（对齐 dsh MenuSurface）：半透表面 + 背景模糊；不支持时回落见文件末尾 */
+  background: var(--menu-surface-fill);
+  backdrop-filter: var(--menu-backdrop-filter);
+  -webkit-backdrop-filter: var(--menu-backdrop-filter);
   box-shadow: 0 8px 24px var(--elevation-ink-dropdown);
 }
 
@@ -1141,7 +1157,10 @@ body {
   padding: 4px;
   border: 0.5px solid var(--border);
   border-radius: var(--radius);
-  background: var(--bg-panel);
+  /* 菜单材质（对齐 dsh MenuSurface）：半透表面 + 背景模糊；不支持时回落见文件末尾 */
+  background: var(--menu-surface-fill);
+  backdrop-filter: var(--menu-backdrop-filter);
+  -webkit-backdrop-filter: var(--menu-backdrop-filter);
   box-shadow: 0 6px 18px var(--elevation-ink-context);
 }
 
@@ -2929,7 +2948,10 @@ body {
   padding: 4px;
   border: 0.5px solid var(--border);
   border-radius: var(--radius);
-  background: var(--bg-panel);
+  /* 菜单材质（对齐 dsh MenuSurface）：半透表面 + 背景模糊；不支持时回落见文件末尾 */
+  background: var(--menu-surface-fill);
+  backdrop-filter: var(--menu-backdrop-filter);
+  -webkit-backdrop-filter: var(--menu-backdrop-filter);
   box-shadow: 0 8px 24px var(--elevation-ink-dropdown);
 }
 
@@ -10606,4 +10628,26 @@ body {
 html[data-input-modality='pointer'] body :focus-visible:not(:read-write) {
   --focus-ring-color: transparent;
   outline-color: transparent;
+}
+
+/* ── 菜单材质回落（dsh `MenuSurface` 的两条兜底）──
+   1) 引擎不支持 backdrop-filter：回到不透明底 —— 否则 0.72 的半透会糊字；
+   2) 用户系统开「减少透明度」：同样回到不透明底（dsh 也有这条门控）。 */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .menu-dropdown,
+  .toolbar-more-menu,
+  .row-context-menu,
+  .dsh-composer-menu {
+    background: var(--bg-panel);
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .menu-dropdown,
+  .toolbar-more-menu,
+  .row-context-menu,
+  .dsh-composer-menu {
+    background: var(--bg-panel);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
 }
