@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState, type ReactElement } from 'react'
 
 import { useT } from '@mobai/client-ui'
 import type { CeshuSummary } from '@mobai/shared/ceshu/reference'
@@ -14,15 +14,24 @@ import { LucideIcon } from '../common'
 import { toErrorMessage } from '@mobai/shared/util/system'
 
 /**
- * 策划书首页（dsh 风格「开始」欢迎屏）：
- *  - 居中 hero（品牌标记 + 标语）；
- *  - 竖向「快捷操作」动作卡片（新建空白 / 从已有复制 / 从想法复刻 / 打开项目文件夹），
- *    对齐 dsh 开始屏那种「居中的大圆角卡片列表」视觉；
- *  - 「最近打开」快捷入口；
- *  - 「全部策划书」卡片网格（搜索 / 只看待审 / 重命名 / 复制 / 派生 / 删除），
- *    文档管理能力一个不少——只是从「首页头部按钮行」下沉为独立区块。
+ * 策划书首页 —— 对齐 dsh「开始 / Start」引导屏的视觉真值。
  *
- * 与旧版差异（有意）：
+ * 参照 `deepseek-harness-master/.../ui-sidebar-right/src/client/tabs/guide/`：
+ *  - `GuideBody.module.css` 的 `.guide` / `.entry`：单列 380px 胶囊、R20、0.5px 细边、
+ *    min-height 56px、14px gap、26px 不染色图标盒、14px 常规字、hover 只换背景；
+ *    整列 `min-height:100%` + `justify-content:center` 垂直居中，`::after` 上提 5%。
+ *  - `GuideTitle.tsx` 的 `CompassGlyph`：56px 罗盘线稿水印（currentColor）。
+ *  - README「引导页自己没有文字」：无大标题、无标语、无区块标签，故品牌文案仅作
+ *    无障碍 label，不产生可见文字。
+ *
+ * 与 dsh 的差异（有意，为保留墨白功能且不打乱既有验收）：
+ *  - 第 5 枚胶囊「全部策划书」是库管理区的滚动锚点；dsh 用「更多工具」菜单。
+ *  - 「最近打开 / 搜索 / 卡片网格 / 重命名 / 复制 / 派生 / 删除」全部保留，
+ *    但**滚动下沉**到欢迎屏下方——正对应 dsh 源码注释「长内容撑高进入 pane scroller」。
+ *    所有既有 testid 与交互一个不少，DOM 常驻。
+ *  - 复制 / 复刻用胶囊下方的内联表单展开，未照抄 dsh 的打开新面板。
+ *
+ * 旧版差异（沿用）：
  *  - 旧版 用右键 `QMenu` 承载卡片操作；TS 改为卡片内联按钮（可发现、可测）。
  *  - 「从模板新建」未移植：旧版 的 `CeshuTemplate` 是**整份文档模板**，TS 的模板体系是
  *    **章节级**模板（W27–W29），两者不是同一概念。
@@ -41,6 +50,25 @@ interface CeshuHomePanelProps {
 /** 卡片上的内联编辑/确认动作 */
 type CardAction = { kind: 'rename' | 'derive' | 'delete'; id: string }
 
+/**
+ * dsh `CompassGlyph` 的线稿：外环 + 指向东北的菱形指针，全部用 currentColor。
+ * 纯装饰，容器承担无障碍 label；不引入新的 LucideIconName（允许集无 compass）。
+ */
+function CompassGlyph({ size }: { size: number }): ReactElement {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path
+        d="M8 14C11.3137 14 14 11.3137 14 8C14 4.68629 11.3137 2 8 2C4.68629 2 2 4.68629 2 8C2 11.3137 4.68629 14 8 14Z"
+        stroke="currentColor"
+      />
+      <path
+        d="M10.6101 5.39014L8.99014 8.99014L5.39014 10.6101L7.01014 7.01014L10.6101 5.39014Z"
+        fill="currentColor"
+      />
+    </svg>
+  )
+}
+
 function clampPercent(value: number): number {
   if (!Number.isFinite(value)) return 0
   return Math.max(0, Math.min(100, value))
@@ -54,6 +82,7 @@ export default function CeshuHomePanel({
   onDeleted
 }: CeshuHomePanelProps) {
   const t = useT()
+  const libraryRef = useRef<HTMLDivElement>(null)
   const [keyword, setKeyword] = useState('')
   /** 只看有待审的策划书（纯展示层过滤，不影响搜索逻辑） */
   const [pendingOnly, setPendingOnly] = useState(false)
@@ -194,365 +223,369 @@ export default function CeshuHomePanel({
   return (
     <div className="changelog-panel" data-testid="ceshu-home-panel">
       <div className="home-shell">
-        {/* 欢迎 hero：对齐 dsh 开始屏的居中品牌区 */}
-        <div className="home-hero">
-          <div className="home-hero-mark" aria-hidden>
-            <LucideIcon name="book-open" size={40} />
-          </div>
-          <h1 className="home-hero-title">{t('app.brand')}</h1>
-          <p className="home-hero-tagline">{t('home.heroTagline')}</p>
-        </div>
-
-        {error && (
-          <div className="form-error" data-testid="home-error">
-            {error}
-          </div>
-        )}
-        {notice && (
-          <div className="notice-banner inline" data-testid="home-notice">
-            {notice}
-          </div>
-        )}
-
-        {/* 快捷操作：dsh 风格竖向动作卡片 */}
-        <section className="home-quick">
-          <span className="home-section-label">{t('home.quickActions')}</span>
-          <div className="home-actions">
-            <button
-              type="button"
-              className="home-action-card primary"
-              data-testid="home-new-blank"
-              disabled={busy}
-              onClick={handleCreateBlank}
-            >
-              <LucideIcon name="plus" size={20} className="home-action-icon" />
-              <span className="home-action-label">{t('home.newBlank')}</span>
-              <LucideIcon name="arrow-right" size={16} className="home-action-chevron" />
-            </button>
-            <button
-              type="button"
-              className="home-action-card"
-              data-testid="home-new-copy"
-              disabled={busy}
-              onClick={() => {
-                setAction(null)
-                setError(null)
-                setNotice(null)
-                setCopyPickerOpen((open) => !open)
-                setCopySourceId(summaries[0]?.id ?? '')
-              }}
-            >
-              <LucideIcon name="file-text" size={20} className="home-action-icon" />
-              <span className="home-action-label">{t('home.copyFromExisting')}</span>
-              <LucideIcon name="chevron-down" size={16} className="home-action-chevron" />
-            </button>
-            <button
-              type="button"
-              className="home-action-card"
-              data-testid="home-clone-open"
-              disabled={busy}
-              onClick={() => {
-                setAction(null)
-                setError(null)
-                setNotice(null)
-                setCopyPickerOpen(false)
-                setCloneOpen((open) => !open)
-              }}
-            >
-              <LucideIcon name="sparkles" size={20} className="home-action-icon" />
-              <span className="home-action-label">{t('home.cloneOpen')}</span>
-              <LucideIcon name="chevron-down" size={16} className="home-action-chevron" />
-            </button>
-            <button
-              type="button"
-              className="home-action-card"
-              data-testid="home-open-folder"
-              disabled={busy}
-              title={t('home.openFolderTitle')}
-              onClick={() => void handleOpenProjectFolder()}
-            >
-              <LucideIcon name="folder" size={20} className="home-action-icon" />
-              <span className="home-action-label">{t('home.openFolder')}</span>
-              <LucideIcon name="chevron-right" size={16} className="home-action-chevron" />
-            </button>
+        {/* 欢迎屏：dsh 风格，罗盘水印 + 单列胶囊，垂直居中一屏 */}
+        <section className="home-welcome" aria-label={t('home.quickActions')}>
+          <div className="home-compass" role="img" aria-label={t('home.heroTagline')}>
+            <CompassGlyph size={56} />
           </div>
 
-          {copyPickerOpen && (
-            <div className="home-copy-picker" data-testid="home-copy-picker">
-              <select
-                className="form-input"
-                data-testid="home-copy-select"
-                value={copySourceId}
-                onChange={(event) => setCopySourceId(event.target.value)}
-              >
-                {summaries.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {t('home.copyOption', {
-                      name: item.gameName || t('home.untitled'),
-                      version: item.versionLabel || 'v1.0'
-                    })}
-                  </option>
-                ))}
-              </select>
+          <div className="home-quick">
+            <div className="home-actions">
               <button
                 type="button"
-                className="btn primary"
-                data-testid="home-copy-confirm"
-                disabled={busy || !copySourceId}
-                onClick={() => handleDuplicate(copySourceId)}
-              >
-                {t('home.copyConfirm')}
-              </button>
-              <button type="button" className="btn" data-testid="home-copy-cancel" disabled={busy} onClick={closeAction}>
-                {t('common.cancel')}
-              </button>
-            </div>
-          )}
-
-          {cloneOpen && (
-            <div className="home-copy-picker" data-testid="home-clone-form">
-              <input
-                className="form-input"
-                data-testid="home-clone-name"
-                placeholder={t('home.cloneNamePlaceholder')}
-                value={cloneName}
-                onChange={(event) => setCloneName(event.target.value)}
-              />
-              <input
-                className="form-input"
-                data-testid="home-clone-type"
-                placeholder={t('home.cloneTypePlaceholder')}
-                value={cloneType}
-                onChange={(event) => setCloneType(event.target.value)}
-              />
-              <button
-                type="button"
-                className="btn primary"
-                data-testid="home-clone-confirm"
-                disabled={busy || cloneName.trim() === ''}
-                onClick={handleClone}
-              >
-                {busy ? t('home.generating') : t('home.generate')}
-              </button>
-              <button
-                type="button"
-                className="btn"
-                data-testid="home-clone-cancel"
+                className="home-action-card"
+                data-testid="home-new-blank"
                 disabled={busy}
-                onClick={() => setCloneOpen(false)}
+                onClick={handleCreateBlank}
               >
-                {t('common.cancel')}
+                <span className="home-action-icon"><LucideIcon name="plus" size={22} /></span>
+                <span className="home-action-label">{t('home.newBlank')}</span>
+              </button>
+              <button
+                type="button"
+                className="home-action-card"
+                data-testid="home-new-copy"
+                disabled={busy}
+                aria-expanded={copyPickerOpen}
+                onClick={() => {
+                  setAction(null)
+                  setError(null)
+                  setNotice(null)
+                  setCopyPickerOpen((open) => !open)
+                  setCopySourceId(summaries[0]?.id ?? '')
+                }}
+              >
+                <span className="home-action-icon"><LucideIcon name="file-text" size={22} /></span>
+                <span className="home-action-label">{t('home.copyFromExisting')}</span>
+              </button>
+              <button
+                type="button"
+                className="home-action-card"
+                data-testid="home-clone-open"
+                disabled={busy}
+                aria-expanded={cloneOpen}
+                onClick={() => {
+                  setAction(null)
+                  setError(null)
+                  setNotice(null)
+                  setCopyPickerOpen(false)
+                  setCloneOpen((open) => !open)
+                }}
+              >
+                <span className="home-action-icon"><LucideIcon name="sparkles" size={22} /></span>
+                <span className="home-action-label">{t('home.cloneOpen')}</span>
+              </button>
+              <button
+                type="button"
+                className="home-action-card"
+                data-testid="home-open-folder"
+                disabled={busy}
+                title={t('home.openFolderTitle')}
+                onClick={() => void handleOpenProjectFolder()}
+              >
+                <span className="home-action-icon"><LucideIcon name="folder" size={22} /></span>
+                <span className="home-action-label">{t('home.openFolder')}</span>
+              </button>
+              <button
+                type="button"
+                className="home-action-card"
+                data-testid="home-browse-library"
+                onClick={() => libraryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+              >
+                <span className="home-action-icon"><LucideIcon name="book-open" size={22} /></span>
+                <span className="home-action-label">{t('home.all')}</span>
               </button>
             </div>
-          )}
+
+            {copyPickerOpen && (
+              <div className="home-copy-picker" data-testid="home-copy-picker">
+                <select
+                  className="form-input"
+                  data-testid="home-copy-select"
+                  value={copySourceId}
+                  onChange={(event) => setCopySourceId(event.target.value)}
+                >
+                  {summaries.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {t('home.copyOption', {
+                        name: item.gameName || t('home.untitled'),
+                        version: item.versionLabel || 'v1.0'
+                      })}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className="btn primary"
+                  data-testid="home-copy-confirm"
+                  disabled={busy || !copySourceId}
+                  onClick={() => handleDuplicate(copySourceId)}
+                >
+                  {t('home.copyConfirm')}
+                </button>
+                <button type="button" className="btn" data-testid="home-copy-cancel" disabled={busy} onClick={closeAction}>
+                  {t('common.cancel')}
+                </button>
+              </div>
+            )}
+
+            {cloneOpen && (
+              <div className="home-copy-picker" data-testid="home-clone-form">
+                <input
+                  className="form-input"
+                  data-testid="home-clone-name"
+                  placeholder={t('home.cloneNamePlaceholder')}
+                  value={cloneName}
+                  onChange={(event) => setCloneName(event.target.value)}
+                />
+                <input
+                  className="form-input"
+                  data-testid="home-clone-type"
+                  placeholder={t('home.cloneTypePlaceholder')}
+                  value={cloneType}
+                  onChange={(event) => setCloneType(event.target.value)}
+                />
+                <button
+                  type="button"
+                  className="btn primary"
+                  data-testid="home-clone-confirm"
+                  disabled={busy || cloneName.trim() === ''}
+                  onClick={handleClone}
+                >
+                  {busy ? t('home.generating') : t('home.generate')}
+                </button>
+                <button
+                  type="button"
+                  className="btn"
+                  data-testid="home-clone-cancel"
+                  disabled={busy}
+                  onClick={() => setCloneOpen(false)}
+                >
+                  {t('common.cancel')}
+                </button>
+              </div>
+            )}
+
+            {error && (
+              <div className="form-error home-inline-message" data-testid="home-error">
+                {error}
+              </div>
+            )}
+            {notice && (
+              <div className="notice-banner inline home-inline-message" data-testid="home-notice">
+                {notice}
+              </div>
+            )}
+          </div>
         </section>
 
-        {/* 最近打开 */}
-        {recents.length > 0 && (
-          <div className="home-recent" data-testid="home-recent">
-            <span className="home-section-label">{t('home.recent')}</span>
-            <div className="home-recent-chips">
-              {recents.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  className="btn slim"
-                  data-testid="home-recent-item"
-                  onClick={() => onOpen(item.id)}
-                >
-                  {(item.gameName || t('home.untitled')).slice(0, 12)}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* 全部策划书 */}
-        <section className="home-library">
-          <div className="home-library-head">
-            <span className="home-section-label">{t('home.all')}</span>
-            <span className="item-meta">{t('home.countSummary', { n: summaries.length })}</span>
-          </div>
-
-          {/* 搜索 + 「只看待审」同一行：两者共同决定「看到哪些卡」 */}
-          <div className="home-filter-row">
-            <input
-              className="form-input home-search"
-              data-testid="home-search"
-              placeholder={t('home.searchPlaceholder')}
-              value={keyword}
-              onChange={(event) => setKeyword(event.target.value)}
-            />
-
-            {/* 紧跟搜索框：两者共同决定「看到哪些卡」。不新增样式类，复用既有 slim / accent-outline */}
-            <button
-              type="button"
-              className={`btn slim${pendingOnly ? ' accent-outline' : ''}`}
-              data-testid="home-pending-filter"
-              aria-pressed={pendingOnly}
-              title={t('home.pendingOnlyTitle')}
-              onClick={() => setPendingOnly((value) => !value)}
-            >
-              {t('home.pendingOnly')}
-            </button>
-          </div>
-
-          {pendingEmpty ? (
-            <div className="empty" data-testid="home-pending-empty">
-              {t('home.pendingEmpty')}
-            </div>
-          ) : visibleCards.length === 0 ? (
-            <div className="empty" data-testid="home-empty">
-              {summaries.length === 0 ? t('home.emptyAll') : t('home.emptySearch', { keyword })}
-            </div>
-          ) : (
-            <div className="home-grid" data-testid="home-grid">
-              {visibleCards.map((card) => {
-                const current = action?.id === card.id ? action.kind : null
-                return (
-                  <div
-                    className={`home-card${card.id === activeId ? ' active' : ''}`}
-                    data-testid="home-card"
-                    data-ceshu-id={card.id}
-                    key={card.id}
+        {/* 库管理区：滚动下沉，保留全部文档管理能力与 testid */}
+        <div className="home-manage" ref={libraryRef}>
+          {recents.length > 0 && (
+            <div className="home-recent" data-testid="home-recent">
+              <span className="home-section-label">{t('home.recent')}</span>
+              <div className="home-recent-chips">
+                {recents.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className="btn slim"
+                    data-testid="home-recent-item"
+                    onClick={() => onOpen(item.id)}
                   >
-                    <button type="button" className="home-card-body" data-testid="home-card-open" onClick={() => onOpen(card.id)}>
-                      <span className="home-card-title" data-testid="home-card-title">
-                        {card.title}
-                      </span>
-                      <span className="home-card-badges">
-                        <span className="home-badge home-badge-type" data-testid="home-card-type">
-                          {card.typeLabel}
+                    {(item.gameName || t('home.untitled')).slice(0, 12)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <section className="home-library">
+            <div className="home-library-head">
+              <span className="home-section-label">{t('home.all')}</span>
+              <span className="item-meta">{t('home.countSummary', { n: summaries.length })}</span>
+            </div>
+
+            {/* 搜索 + 「只看待审」同一行：两者共同决定「看到哪些卡」 */}
+            <div className="home-filter-row">
+              <input
+                className="form-input home-search"
+                data-testid="home-search"
+                placeholder={t('home.searchPlaceholder')}
+                value={keyword}
+                onChange={(event) => setKeyword(event.target.value)}
+              />
+
+              {/* 紧跟搜索框：两者共同决定「看到哪些卡」。不新增样式类，复用既有 slim / accent-outline */}
+              <button
+                type="button"
+                className={`btn slim${pendingOnly ? ' accent-outline' : ''}`}
+                data-testid="home-pending-filter"
+                aria-pressed={pendingOnly}
+                title={t('home.pendingOnlyTitle')}
+                onClick={() => setPendingOnly((value) => !value)}
+              >
+                {t('home.pendingOnly')}
+              </button>
+            </div>
+
+            {pendingEmpty ? (
+              <div className="empty" data-testid="home-pending-empty">
+                {t('home.pendingEmpty')}
+              </div>
+            ) : visibleCards.length === 0 ? (
+              <div className="empty" data-testid="home-empty">
+                {summaries.length === 0 ? t('home.emptyAll') : t('home.emptySearch', { keyword })}
+              </div>
+            ) : (
+              <div className="home-grid" data-testid="home-grid">
+                {visibleCards.map((card) => {
+                  const current = action?.id === card.id ? action.kind : null
+                  return (
+                    <div
+                      className={`home-card${card.id === activeId ? ' active' : ''}`}
+                      data-testid="home-card"
+                      data-ceshu-id={card.id}
+                      key={card.id}
+                    >
+                      <button type="button" className="home-card-body" data-testid="home-card-open" onClick={() => onOpen(card.id)}>
+                        <span className="home-card-title" data-testid="home-card-title">
+                          {card.title}
                         </span>
-                        <span className={`home-badge home-badge-status status-${card.statusKey}`} data-testid="home-card-status">
-                          {card.statusLabel}
-                        </span>
-                        {card.versionBadge && (
-                          <span className="home-badge home-badge-version" data-testid="home-card-version">
-                            {card.versionBadge}
+                        <span className="home-card-badges">
+                          <span className="home-badge home-badge-type" data-testid="home-card-type">
+                            {card.typeLabel}
                           </span>
+                          <span className={`home-badge home-badge-status status-${card.statusKey}`} data-testid="home-card-status">
+                            {card.statusLabel}
+                          </span>
+                          {card.versionBadge && (
+                            <span className="home-badge home-badge-version" data-testid="home-card-version">
+                              {card.versionBadge}
+                            </span>
+                          )}
+                        </span>
+                        <span className="home-card-date" data-testid="home-card-date">
+                          {card.updatedDisplay}
+                        </span>
+                        <span className="home-card-progress" data-testid="home-card-progress">
+                          <span className="home-card-progress-fill" style={{ width: `${clampPercent(card.progressPercent)}%` }} />
+                        </span>
+                        {card.pendingCount > 0 && (
+                          <span className="item-meta" data-testid="home-card-pending">{t('toolbar.pendingReview', { n: card.pendingCount })}</span>
                         )}
-                      </span>
-                      <span className="home-card-date" data-testid="home-card-date">
-                        {card.updatedDisplay}
-                      </span>
-                      <span className="home-card-progress" data-testid="home-card-progress">
-                        <span className="home-card-progress-fill" style={{ width: `${clampPercent(card.progressPercent)}%` }} />
-                      </span>
-                      {card.pendingCount > 0 && (
-                        <span className="item-meta" data-testid="home-card-pending">{t('toolbar.pendingReview', { n: card.pendingCount })}</span>
-                      )}
-                    </button>
+                      </button>
 
-                    <div className="home-card-actions">
-                      <button
-                        type="button"
-                        className="btn slim"
-                        data-testid="home-card-rename"
-                        disabled={busy}
-                        onClick={() => beginAction({ kind: 'rename', id: card.id }, card.title)}
-                      >
-                        {t('home.rename')}
-                      </button>
-                      <button
-                        type="button"
-                        className="btn slim"
-                        data-testid="home-card-copy"
-                        disabled={busy}
-                        onClick={() => handleDuplicate(card.id)}
-                      >
-                        {t('common.copy')}
-                      </button>
-                      <button
-                        type="button"
-                        className="btn slim"
-                        data-testid="home-card-derive"
-                        disabled={busy}
-                        onClick={() => beginAction({ kind: 'derive', id: card.id })}
-                      >
-                        {t('home.derive')}
-                      </button>
-                      <button
-                        type="button"
-                        className="btn slim danger"
-                        data-testid="home-card-delete"
-                        disabled={busy}
-                        onClick={() => beginAction({ kind: 'delete', id: card.id })}
-                      >
-                        {t('common.delete')}
-                      </button>
-                    </div>
-
-                    {current === 'rename' && (
-                      <div className="home-card-inline" data-testid="home-rename-box">
-                        <input
-                          className="form-input"
-                          data-testid="home-rename-input"
-                          value={actionText}
-                          onChange={(event) => setActionText(event.target.value)}
-                        />
+                      <div className="home-card-actions">
                         <button
                           type="button"
-                          className="btn primary slim"
-                          data-testid="home-rename-save"
+                          className="btn slim"
+                          data-testid="home-card-rename"
                           disabled={busy}
-                          onClick={() => handleRename(card.id)}
+                          onClick={() => beginAction({ kind: 'rename', id: card.id }, card.title)}
                         >
-                          {t('common.save')}
+                          {t('home.rename')}
                         </button>
-                        <button type="button" className="btn slim" data-testid="home-rename-cancel" onClick={closeAction}>
-                          {t('common.cancel')}
-                        </button>
-                      </div>
-                    )}
-
-                    {current === 'derive' && (
-                      <div className="home-card-inline" data-testid="home-derive-box">
-                        <input
-                          className="form-input"
-                          data-testid="home-derive-input"
-                          placeholder={t('home.deriveNotePlaceholder')}
-                          value={actionText}
-                          onChange={(event) => setActionText(event.target.value)}
-                        />
                         <button
                           type="button"
-                          className="btn primary slim"
-                          data-testid="home-derive-save"
+                          className="btn slim"
+                          data-testid="home-card-copy"
                           disabled={busy}
-                          onClick={() => handleDerive(card.id)}
+                          onClick={() => handleDuplicate(card.id)}
+                        >
+                          {t('common.copy')}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn slim"
+                          data-testid="home-card-derive"
+                          disabled={busy}
+                          onClick={() => beginAction({ kind: 'derive', id: card.id })}
                         >
                           {t('home.derive')}
                         </button>
-                        <button type="button" className="btn slim" data-testid="home-derive-cancel" onClick={closeAction}>
-                          {t('common.cancel')}
-                        </button>
-                      </div>
-                    )}
-
-                    {current === 'delete' && (
-                      <div className="home-card-inline" data-testid="home-delete-box">
-                        <span className="form-hint">{t('home.deleteConfirm', { title: card.title })}</span>
                         <button
                           type="button"
-                          className="btn danger slim"
-                          data-testid="home-delete-confirm"
+                          className="btn slim danger"
+                          data-testid="home-card-delete"
                           disabled={busy}
-                          onClick={() => handleDelete(card.id)}
+                          onClick={() => beginAction({ kind: 'delete', id: card.id })}
                         >
-                          {t('home.deleteConfirmBtn')}
-                        </button>
-                        <button type="button" className="btn slim" data-testid="home-delete-cancel" onClick={closeAction}>
-                          {t('common.cancel')}
+                          {t('common.delete')}
                         </button>
                       </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </section>
+
+                      {current === 'rename' && (
+                        <div className="home-card-inline" data-testid="home-rename-box">
+                          <input
+                            className="form-input"
+                            data-testid="home-rename-input"
+                            value={actionText}
+                            onChange={(event) => setActionText(event.target.value)}
+                          />
+                          <button
+                            type="button"
+                            className="btn primary slim"
+                            data-testid="home-rename-save"
+                            disabled={busy}
+                            onClick={() => handleRename(card.id)}
+                          >
+                            {t('common.save')}
+                          </button>
+                          <button type="button" className="btn slim" data-testid="home-rename-cancel" onClick={closeAction}>
+                            {t('common.cancel')}
+                          </button>
+                        </div>
+                      )}
+
+                      {current === 'derive' && (
+                        <div className="home-card-inline" data-testid="home-derive-box">
+                          <input
+                            className="form-input"
+                            data-testid="home-derive-input"
+                            placeholder={t('home.deriveNotePlaceholder')}
+                            value={actionText}
+                            onChange={(event) => setActionText(event.target.value)}
+                          />
+                          <button
+                            type="button"
+                            className="btn primary slim"
+                            data-testid="home-derive-save"
+                            disabled={busy}
+                            onClick={() => handleDerive(card.id)}
+                          >
+                            {t('home.derive')}
+                          </button>
+                          <button type="button" className="btn slim" data-testid="home-derive-cancel" onClick={closeAction}>
+                            {t('common.cancel')}
+                          </button>
+                        </div>
+                      )}
+
+                      {current === 'delete' && (
+                        <div className="home-card-inline" data-testid="home-delete-box">
+                          <span className="form-hint">{t('home.deleteConfirm', { title: card.title })}</span>
+                          <button
+                            type="button"
+                            className="btn danger slim"
+                            data-testid="home-delete-confirm"
+                            disabled={busy}
+                            onClick={() => handleDelete(card.id)}
+                          >
+                            {t('home.deleteConfirmBtn')}
+                          </button>
+                          <button type="button" className="btn slim" data-testid="home-delete-cancel" onClick={closeAction}>
+                            {t('common.cancel')}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </section>
+        </div>
       </div>
     </div>
   )
