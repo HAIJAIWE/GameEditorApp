@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -94,5 +94,59 @@ describe('system.file_ops（对齐 dsh tool-fs + fs-sandbox）', () => {
   it('未知 action 拒绝', async () => {
     const run = skill()
     expect((await run({ action: 'frob' })).success).toBe(false)
+  })
+})
+
+/**
+ * 读后写版本闸（对齐 dsh `fs-observation-policy`）。
+ *
+ * 为什么必须有：`edit` / `write` 是整文件落盘。若用户在编辑器里改过同一文件，
+ * agent 的写入会**静默踩掉**用户改动 —— 这是真实的数据丢失，鼠标用户永远看不到。
+ */
+describe('读后写版本闸', () => {
+  it('未读就 edit 被拒绝（提示先 read）', async () => {
+    await writeFile(join(root, 'a.txt'), 'hello', 'utf8') // 外部预置，skill 没见过
+    const run = skill()
+    const edit = await run({ action: 'edit', path: 'a.txt', old_text: 'hello', new_text: 'hi' })
+    expect(edit.success).toBe(false)
+    expect(edit.error).toBe('not_read')
+  })
+
+  it('未读就覆盖已存在文件被拒绝', async () => {
+    await writeFile(join(root, 'a.txt'), 'hello', 'utf8')
+    const run = skill()
+    const write = await run({ action: 'write', path: 'a.txt', content: 'replaced' })
+    expect(write.success).toBe(false)
+    expect(write.error).toBe('not_read')
+  })
+
+  it('read → edit 正常通过（不影响既有用法）', async () => {
+    await writeFile(join(root, 'a.txt'), 'hello', 'utf8')
+    const run = skill()
+    await run({ action: 'read', path: 'a.txt' })
+    const edit = await run({ action: 'edit', path: 'a.txt', old_text: 'hello', new_text: 'hi' })
+    expect(edit.success).toBe(true)
+    expect(await readFile(join(root, 'a.txt'), 'utf8')).toBe('hi')
+  })
+
+  it('读完之后文件被外部修改 → 拒绝，提示重新读', async () => {
+    await writeFile(join(root, 'a.txt'), 'hello', 'utf8')
+    const run = skill()
+    await run({ action: 'read', path: 'a.txt' })
+    // 模拟用户在编辑器里改了同一文件
+    await writeFile(join(root, 'a.txt'), 'changed by user', 'utf8')
+    const edit = await run({ action: 'edit', path: 'a.txt', old_text: 'changed', new_text: 'x' })
+    expect(edit.success).toBe(false)
+    expect(edit.error).toBe('stale_file')
+    // 关键：用户的改动没被覆盖
+    expect(await readFile(join(root, 'a.txt'), 'utf8')).toBe('changed by user')
+  })
+
+  it('write 到新路径不拦（首次落盘），且写入后可用于后续 edit', async () => {
+    const run = skill()
+    expect((await run({ action: 'write', path: 'new.txt', content: 'a' })).success).toBe(true)
+    // 自己写的文件算「已知内容」，可以直接 edit
+    const edit = await run({ action: 'edit', path: 'new.txt', old_text: 'a', new_text: 'b' })
+    expect(edit.success).toBe(true)
   })
 })

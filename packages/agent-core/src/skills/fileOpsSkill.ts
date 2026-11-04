@@ -56,6 +56,33 @@ export function createFileOpsSkill(options: FileOpsSkillOptions): SkillProtocol 
   const rootFn = options.root
   const policy: FileOpsPolicy = options.policy ?? 'workspace-write'
 
+  /**
+   * **读后写版本闸**（对齐 dsh `fs/fs-observation-policy` 的 read-before-write）。
+   *
+   * 解决的问题：`edit` / `write` 直接落盘。如果用户在编辑器或别的进程里改过同一文件，
+   * agent 的写入会**静默踩掉**用户改动 —— 这是真实的数据丢失，不是风格问题。
+   *
+   * 规则：
+   * - 写**已存在**的文件前必须有读记录（否则拒绝，提示先 `read`）；
+   * - 读记录之后文件又变了（mtime/size 不符）→ 拒绝，提示重新读。
+   * - `write` 到**不存在**的路径是新建，不拦（否则第一次落盘永远做不了）。
+   *
+   * 版本用 `mtimeMs + size` 而不是内容 hash：一次 `stat` 就够。
+   * 极端情况（同毫秒同尺寸改写）会漏判，但 dsh 的版本闸也是时间戳级，不追求字节级。
+   *
+   * 作用域是**单个 skill 实例**（即一次会话），跨会话不继承 —— 新会话本就该重新读。
+   */
+  const observed = new Map<string, string>()
+
+  async function versionOf(abs: string): Promise<string | null> {
+    try {
+      const info = await stat(abs)
+      return `${info.mtimeMs}:${info.size}`
+    } catch {
+      return null
+    }
+  }
+
   async function readAction(params: Record<string, unknown>): Promise<SkillResult> {
     const abs = await resolveInsideRoot(rootFn(), asString(params.path))
     const info = await stat(abs)
@@ -63,6 +90,8 @@ export function createFileOpsSkill(options: FileOpsSkillOptions): SkillProtocol 
       return { success: false, message: '目标是目录，请用 list 查看目录内容', error: SKILL_ERRORS.IS_DIR }
     }
     const raw = await readFile(abs, 'utf8')
+    // 登记读到的版本：后续 write/edit 用它判断「读完之后有没有被别人改过」
+    observed.set(abs, `${info.mtimeMs}:${info.size}`)
     const truncated = raw.length > FILE_READ_MAX_CHARS
     const content = truncated ? raw.slice(0, FILE_READ_MAX_CHARS) : raw
     return {
@@ -93,8 +122,28 @@ export function createFileOpsSkill(options: FileOpsSkillOptions): SkillProtocol 
     if (content.length > FILE_WRITE_MAX_CHARS) {
       return { success: false, message: `写入内容超过上限 ${FILE_WRITE_MAX_CHARS} 字符`, error: SKILL_ERRORS.TOO_BIG }
     }
+    // 读后写闸：覆盖已存在的文件必须先读、且读后没被别人改过
+    const current = await versionOf(abs)
+    if (current !== null) {
+      const seen = observed.get(abs)
+      if (seen === undefined) {
+        return {
+          success: false,
+          message: `拒绝覆盖 ${params.path}：本会话还没读过这个文件。请先 read 确认内容再写入（避免踩掉别处的改动）。`,
+          error: 'not_read'
+        }
+      }
+      if (seen !== current) {
+        return {
+          success: false,
+          message: `拒绝覆盖 ${params.path}：文件在你读过之后被外部修改了。请重新 read 后再写入。`,
+          error: 'stale_file'
+        }
+      }
+    }
     await mkdir(dirname(abs), { recursive: true })
     await writeFile(abs, content, 'utf8')
+    observed.set(abs, (await versionOf(abs)) ?? '')
     return {
       success: true,
       message: `已写入 ${params.path}（${content.length} 字符）`,
@@ -107,6 +156,23 @@ export function createFileOpsSkill(options: FileOpsSkillOptions): SkillProtocol 
     const oldText = asString(params.old_text)
     const newText = asString(params.new_text)
     if (oldText === '') return { success: false, message: 'edit 需要 old_text', error: SKILL_ERRORS.BAD_ARG }
+    // 读后写闸：edit 会整文件回写，必须先读、且读后没被别人改过
+    const current = await versionOf(abs)
+    const seen = observed.get(abs)
+    if (seen === undefined) {
+      return {
+        success: false,
+        message: `拒绝编辑 ${params.path}：本会话还没读过这个文件。请先 read 再 edit（避免踩掉别处的改动）。`,
+        error: 'not_read'
+      }
+    }
+    if (current !== null && seen !== current) {
+      return {
+        success: false,
+        message: `拒绝编辑 ${params.path}：文件在你读过之后被外部修改了。请重新 read 后再 edit。`,
+        error: 'stale_file'
+      }
+    }
     const raw = await readFile(abs, 'utf8')
     const first = raw.indexOf(oldText)
     if (first < 0) return { success: false, message: `未找到待替换文本（${params.path}）`, error: SKILL_ERRORS.NOT_FOUND }
@@ -116,6 +182,7 @@ export function createFileOpsSkill(options: FileOpsSkillOptions): SkillProtocol 
     }
     const next = raw.slice(0, first) + newText + raw.slice(first + oldText.length)
     await writeFile(abs, next, 'utf8')
+    observed.set(abs, (await versionOf(abs)) ?? '')
     return { success: true, message: `已编辑 ${params.path}`, data: { path: params.path } }
   }
 
