@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactElement } from 'react'
 
-import { useT } from '@mobai/client-ui'
+import { useModalLayer, useT } from '@mobai/client-ui'
 import {
   buildPaletteItems,
   filterPaletteItems,
@@ -126,6 +126,13 @@ export function CommandPaletteView({
 }: CommandPaletteViewProps): ReactElement {
   const t = useT()
   const listRef = useRef<HTMLDivElement | null>(null)
+  const cardRef = useRef<HTMLDivElement | null>(null)
+  const inputRef = useRef<HTMLInputElement | null>(null)
+
+  // 焦点契约：打开聚焦搜索框、Tab 在卡片内循环、关闭归还焦点。
+  // Esc 由 hook 在**捕获阶段**处理；本组件 document 级的 Escape case 保留 ——
+  // 两次 setOpen(false) 幂等，删掉反而让「Esc 只在面板内生效」这个前提变脆。
+  useModalLayer({ open: true, onClose, containerRef: cardRef, initialFocusRef: inputRef })
 
   // 输入框保持焦点时浏览器不会把高亮行滚进视野，这里手动滚一次
   useEffect(() => {
@@ -147,23 +154,28 @@ export function CommandPaletteView({
   return (
     <div className="command-palette-backdrop" onClick={onClose}>
       <div
+        ref={cardRef}
         className="command-palette"
         data-testid="command-palette"
         role="dialog"
         aria-modal="true"
         aria-label={t('palette.title')}
+        tabIndex={-1}
         onClick={(event) => {
           // 卡片内的点击不该冒到遮罩（否则点条目会把面板一起关掉）
           event.stopPropagation()
         }}
       >
         <input
+          ref={inputRef}
           className="command-palette-input"
           data-testid="command-palette-input"
           type="text"
           value={query}
           placeholder={t('palette.searchPlaceholder')}
           aria-label={t('palette.searchLabel')}
+          // 保留 autoFocus：hook 的聚焦在 effect 里，两者都指向同一个输入框，
+          // 但 autoFocus 能保证「首帧就有光标」，避免一闪。
           autoFocus
           onChange={(event) => {
             onQuery(event.currentTarget.value)
