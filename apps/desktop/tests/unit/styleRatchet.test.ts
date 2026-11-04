@@ -4,28 +4,26 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
 /**
- * 样式守卫**棘轮**：把 dsh `ui-theme` 那四张自动 spec（radius / corner-shape /
- * elevation / menu）里能在墨白静态校验的两条，落成「只许降不许升」的数字。
+ * 样式守卫：把 dsh `ui-theme` 那四张自动 spec（radius / corner-shape /
+ * elevation / menu）里能在墨白静态校验的两条落成测试。
  *
- * ## 为什么是棘轮而不是全绿才算完
- * `styles.css` 有一万多行为迁移期存量：51 处非阶梯字面圆角、组件区若干字面颜色。
- * 要求一次清零等于永远不开始；而没有守卫的渐进迁移一定会反弹。与
- * `i18nCoverage.test.ts` 同一范式：修一处就把 BASELINE 减一，想写新的字面量
- * 必须先还掉一笔旧债。
+ * - **圆角与全圆是硬约束**（恒 0）：全部 124 处字面 px 圆角已按
+ *   `docs/ui-radius.zh.md` 的用途档收敛为 `--radius-*`，30 处全圆声明已配对
+ *   `corner-shape: round`。这两项一旦回升就是回归，不需要棘轮。
+ * - **组件区字面颜色仍是棘轮**（只许降）：136 块 / 80 个不同值是迁移期存量，
+ *   其中不少字面色在深色主题下刻意不随主题变化（accent 前景、专用底），
+ *   逐类建语义 token + 四主题值需要单独一轮，不能刷数字式替换。
+ *   与 `i18nCoverage.test.ts` 同范式：修一块就把 BASELINE 减一。
  *
- * ## 与 dsh 的对应关系
- * - `docs/ui-radius.zh.md:30-41`：圆角按用途取 R4/8/12/16/20/28，禁止 10/14/18/24
- *   一类局部数值 → 对应「非阶梯字面圆角」。
- * - `ui-theme/src/styles/corner-shape.css`：全圆/胶囊声明必须与
- *   `corner-shape: round` 配对，否则 superellipse(1.5) 会把圆压成方圆形
- *   → 对应「未配对全圆」硬约束（本轮已清零，BASELINE 恒为 0）。
- * - elevation / menu 两张 spec 依赖 `--dsw-elevation-*` 与 `MenuSurface` 材质，
- *   墨白尚无对应概念，不在本守卫范围，勿假装覆盖。
+ * ## 诚实边界
+ * elevation / menu 两张 spec 依赖 `--dsw-elevation-*` 与 `MenuSurface` 材质，
+ * 墨白尚无对应概念，不在本守卫范围，勿假装覆盖。
  *
  * ## 判据（刻意宽松）
  * - 先剥注释，再按最内层 `{...}` 切规则块；不解析选择器特异性、不展开嵌套。
  * - `:root` / `[data-theme=...]` 是**令牌定义区**，允许字面颜色（这正是它们的工作）。
- * - 只认 `<N>px` 形式的字面圆角；`var()` / `calc()` / `%` / 关键字一律放行。
+ * - 只认 `<N>px` 形式的字面圆角；`0` 直角与 `50%/999px` 全圆是例外，
+ *   `var()` / `calc()` / `%` / 关键字一律放行。
  * - 只数「违规块」不数「违规声明」：数字越精细越容易被无意义改动刷分。
  */
 
@@ -34,15 +32,10 @@ const REPO_ROOT = resolve(HERE, '../../../..')
 const CSS_ROOT = 'apps/desktop/src/renderer/src'
 
 /**
- * 存量基线（2026-11-04 实测）：修掉一处就减一，新增字面量前先还债。
- * 59 个非阶梯字面圆角块 / 136 个组件区字面颜色块是迁移期存量——注意这正说明
- * 墨白「tokens only」只在 :root 令牌层成立，组件区尚未收敛；守卫先锁住不恶化。
+ * 组件区字面颜色存量基线（2026-11-04 实测）：修掉一块就减一，新增前先还债。
+ * 圆角已全量收敛为 token，改由硬约束锁死，不再需要棘轮。
  */
-const BASELINE_LITERAL_RADIUS = 59
 const BASELINE_LITERAL_COLOR = 136
-
-/** dsh `base.css` 的圆角阶梯；0 是直角，999px/50% 是全圆例外。 */
-const RADIUS_STEPS = new Set(['0px', '4px', '8px', '12px', '16px', '20px', '28px'])
 const FULL_ROUND = /^(?:50%|100%|999px|9999px)$/u
 const COLOR_LITERAL = /#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(/u
 
@@ -105,7 +98,9 @@ const sheets = files.map((file) => ({
 const blocks = sheets.flatMap((sheet) => blocksOf(sheet.source, sheet.file))
 
 const literalRadiusBlocks = blocks.filter((block) =>
-  radiusDeclarations(block.body).some((value) => !RADIUS_STEPS.has(value) && !FULL_ROUND.test(value))
+  radiusDeclarations(block.body).some(
+    (value) => !FULL_ROUND.test(value) && value !== '0px' && value !== '0'
+  )
 )
 const unpairedRoundBlocks = blocks.filter(
   (block) => isFullRoundBlock(block.body) && !/corner-shape\s*:\s*round/u.test(block.body)
@@ -132,13 +127,13 @@ describe('样式守卫棘轮（对齐 dsh radius / corner-shape spec）', () => 
     ).toBe(0)
   })
 
-  it(`非阶梯字面圆角不得超过基线 ${BASELINE_LITERAL_RADIUS}（只许降不许升）`, () => {
+  it('组件区不得写死 px 圆角（一律走 --radius-* token，硬约束）', () => {
     expect(
       literalRadiusBlocks.length,
-      `还有 ${literalRadiusBlocks.length} 个规则块写了非阶梯字面圆角（基线 ${BASELINE_LITERAL_RADIUS}）。\n` +
-        `请改用 --radius-xs/sm/md/lg/xl/panel；迁移一块就把基线减一。\n` +
+      `${literalRadiusBlocks.length} 个规则块仍写了字面 px 圆角。\n` +
+        `按 dsh ui-radius 规范改用 --radius-xs/sm/md/lg/xl/panel；0 直角与全圆是例外。\n` +
         `前几个：\n${describeSample(literalRadiusBlocks)}`
-    ).toBeLessThanOrEqual(BASELINE_LITERAL_RADIUS)
+    ).toBe(0)
   })
 
   it(`组件区字面颜色不得超过基线 ${BASELINE_LITERAL_COLOR}（只许降不许升）`, () => {

@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState, type ReactElement } from 'react'
 
-import { useT } from '@mobai/client-ui'
+import { SlotOutlet, useT } from '@mobai/client-ui'
+import type { PluginHost } from '@mobai/shared/plugin/host'
 import {
   CESHU_HOME_ACTIONS,
   homeGuideActions,
@@ -51,6 +52,12 @@ interface CeshuHomePanelProps {
   onChanged: () => void
   /** 某份策划书被删除（上层据此清掉已失效的选中态） */
   onDeleted: (id: string) => void
+  /**
+   * 插件宿主：有值时开放 `ceshu.home.guide` chain 替换缝，允许插件整体接管引导体。
+   * 经 `MainViewContext` 以 prop 注入（不 import plugins/context 单例，避免与
+   * coreViewsPlugin 形成模块环）；未注入时直接渲染内置胶囊门。
+   */
+  host?: PluginHost
 }
 
 /** 卡片上的内联编辑/确认动作 */
@@ -85,7 +92,8 @@ export default function CeshuHomePanel({
   activeId,
   onOpen,
   onChanged,
-  onDeleted
+  onDeleted,
+  host
 }: CeshuHomePanelProps) {
   const t = useT()
   const libraryRef = useRef<HTMLDivElement>(null)
@@ -258,10 +266,8 @@ export default function CeshuHomePanel({
   /** dsh `MAX_DESCRIBED_ENTRIES`：门 ≤4 时显示 11px 描述，多了就整体收起保持轻量。 */
   const describeActions = showHomeActionDescriptions(homeGuideActions().length)
 
-  return (
-    <div className="changelog-panel" data-testid="ceshu-home-panel">
-      <div className="home-shell">
-        {/* 欢迎屏：dsh 风格，罗盘水印 + 单列胶囊，垂直居中一屏 */}
+  /** 内置引导体：chain 缝无赢家时回落渲染（对齐 dsh `ShippedGuide` fallback）。 */
+  const welcome = (
         <section className="home-welcome" aria-label={t('home.quickActions')}>
           <div className="home-compass" role="img" aria-label={t('home.heroTagline')}>
             <CompassGlyph size={56} />
@@ -372,6 +378,16 @@ export default function CeshuHomePanel({
             )}
           </div>
         </section>
+  )
+
+  return (
+    <div className="changelog-panel" data-testid="ceshu-home-panel">
+      <div className="home-shell">
+        {/* 引导体替换缝：插件往 `ceshu.home.guide` 注册 chain 项即可整体接管；
+            无注册项时回落内置胶囊门，默认 UI 与全部 testid 不变。 */}
+        {host === undefined ? welcome : (
+          <SlotOutlet host={host} slotKey="ceshu.home.guide" empty={welcome} />
+        )}
 
         {/* 库管理区：滚动下沉，保留全部文档管理能力与 testid */}
         <div className="home-manage" ref={libraryRef}>

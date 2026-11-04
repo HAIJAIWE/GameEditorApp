@@ -7,6 +7,7 @@ import {
   showHomeActionDescriptions
 } from '@mobai/shared/ceshu/homeActions'
 import { CATALOGS } from '@mobai/shared/i18n'
+import { ROOT_SLOT_DECLARATIONS } from '@mobai/shared/plugin/slotRegistry'
 
 /**
  * 首页「开始」引导屏动作注册表（对齐 dsh GuideBody 的 guide entries 层）。
@@ -54,6 +55,11 @@ describe('ceshu home action registry', () => {
       expect(action.descriptionKey).toBeUndefined()
       expect(action.busySensitive).toBe(false)
     }
+  })
+
+  it('引导体 chain 替换缝已在根级声明（对齐 dsh sidebar.right.tab.guide）', () => {
+    const declaration = ROOT_SLOT_DECLARATIONS.find((item) => item.key === 'ceshu.home.guide')
+    expect(declaration?.spec.kind).toBe('chain')
   })
 
   it('所有文案键在 zh / en 两份目录里都存在', () => {

@@ -88,7 +88,10 @@ export const ROOT_SLOT_DECLARATIONS: ReadonlyArray<{ key: string; spec: SlotSpec
   // 全屏浮层（命令面板等）：single，空时 SlotOutlet 渲染 null，不占布局也不挡鼠标
   { key: 'app.overlay', spec: { kind: 'single' } },
   { key: 'conversation.composer', spec: { kind: 'chain' } },
-  { key: 'tool.call.toolview', spec: { kind: 'keyed' } }
+  { key: 'tool.call.toolview', spec: { kind: 'keyed' } },
+  // 策划书首页「开始」引导体的替换缝（对齐 dsh `sidebar.right.tab.guide`）：
+  // chain 选举，插件注册带 select 的条目即可整体接管；无赢家时渲染层回落内置胶囊门。
+  { key: 'ceshu.home.guide', spec: { kind: 'chain' } }
 ]
 
 /** 比较优先级：越小越优先；同优先级先注册者胜（返回 <0 表示 a 更优） */

@@ -54,6 +54,7 @@ function EditorMainView() {
         onOpen={ctx.onOpenCeshu}
         onChanged={ctx.onReloadCeshuList}
         onDeleted={ctx.onDeleteCeshu}
+        host={ctx.host}
       />
     )
   }

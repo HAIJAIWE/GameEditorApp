@@ -356,7 +356,7 @@ body {
   height: 28px;
   margin-bottom: 6px;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
@@ -379,7 +379,7 @@ body {
   height: 36px;
   padding: 0 8px;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
@@ -517,7 +517,7 @@ body {
   width: 100%;
   padding: 6px 12px;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   background: transparent;
   color: var(--text);
   font-size: calc(13px * var(--ui-font-scale) * 1.0);
@@ -743,7 +743,7 @@ body {
   height: 36px;
   padding: 0 14px;
   border: 0;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: transparent;
   box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.12);
   color: var(--text);
@@ -858,7 +858,7 @@ body {
   gap: 12px;
   padding: 8px 12px;
   border: 0.5px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: var(--bg-panel);
   cursor: pointer;
 }
@@ -1272,7 +1272,7 @@ body {
   align-items: center;
   justify-content: center;
   border: 1px solid var(--border);
-  border-radius: 13px;
+  border-radius: var(--radius-md);
   background: var(--bg-panel);
   color: var(--text-secondary);
   font-size: calc(10px * var(--ui-font-scale));
@@ -1372,7 +1372,7 @@ body {
   color: var(--text);
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
 }
 
 .field-search-input:focus {
@@ -1386,7 +1386,7 @@ body {
  */
 .field-block-flash,
 .field-block[data-flash='true'] {
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   box-shadow: 0 0 0 2px var(--accent);
   transition: box-shadow 0.2s ease;
 }
@@ -1403,7 +1403,7 @@ body {
   display: inline-block;
   padding: 0 6px;
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   font-size: calc(12px * var(--ui-font-scale));
   line-height: 17px;
   color: var(--text-muted);
@@ -1459,7 +1459,7 @@ body {
   overflow: auto;
   padding: 14px 16px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: var(--bg-panel);
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
 }
@@ -1510,7 +1510,7 @@ body {
   gap: 10px;
   padding: 6px 8px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
 }
 
 /* 键盘光标所在行（审阅队列快捷键的视觉反馈） */
@@ -1580,7 +1580,7 @@ body {
   gap: 4px;
   padding: 8px 10px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
 }
 
 .migration-title {
@@ -1614,7 +1614,7 @@ body {
   width: 100%;
   padding: 0 10px;
   border: 0.5px solid rgba(0, 0, 0, 0.16);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--bg-panel);
   color: var(--text);
   font: inherit;
@@ -1936,7 +1936,7 @@ body {
   min-width: 40px;
   padding: 3px 6px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: var(--bg-panel);
   color: var(--text-muted);
   font-size: calc(11px * var(--ui-font-scale));
@@ -1981,7 +1981,7 @@ body {
   padding: 10px 14px;
   border: 1px solid var(--border);
   border-left: 3px solid var(--accent);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: var(--bg-panel);
   color: var(--text);
   text-align: left;
@@ -2030,7 +2030,7 @@ body {
   width: 60px;
   /* 6px 在浅色轨道上几乎读不出「有没有进度」；8px 仍属迷你条，但三色档能一眼分辨 */
   height: 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   background: var(--border);
   overflow: hidden;
 }
@@ -2038,7 +2038,7 @@ body {
 .chapter-progress-fill {
   display: block;
   height: 100%;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   background: var(--progress-low);
 }
 
@@ -2111,7 +2111,7 @@ body {
 }
 .overview-chapter {
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 10px 14px;
   background: var(--bg-panel);
 }
@@ -2195,7 +2195,7 @@ body {
 .artifact-btn {
   font-size: 12px;
   padding: 4px 8px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--bg-panel);
   color: var(--text-secondary);
@@ -2247,7 +2247,7 @@ body {
   width: 100%;
   min-height: 320px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: #ffffff;
 }
 
@@ -2284,7 +2284,7 @@ body {
   font-size: 13px;
   line-height: 1.5;
   padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -2363,7 +2363,7 @@ body {
   background: var(--surface-2, rgba(127, 127, 127, 0.08));
   border-left: 2px solid var(--border);
   padding: 6px 10px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   line-height: 1.5;
 }
 .tasks-priority {
@@ -2371,7 +2371,7 @@ body {
   font-size: 11px;
   font-weight: 700;
   padding: 1px 6px;
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
   letter-spacing: 0.02em;
 }
 .tasks-priority.priority-P0 {
@@ -2422,7 +2422,7 @@ body {
   width: 12px;
   height: 12px;
   border: 1px solid var(--border);
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
   flex: none;
 }
 .tasks-label {
@@ -2461,7 +2461,7 @@ body {
 }
 .machine-item {
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 8px 10px;
   display: flex;
   flex-direction: column;
@@ -2496,7 +2496,7 @@ body {
 .module-picker {
   margin-top: 6px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 8px 10px;
   background: var(--bg-panel);
   display: flex;
@@ -2747,7 +2747,7 @@ body {
   width: 100%;
   padding: 7px 12px;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   background: transparent;
   color: var(--text);
   font-size: calc(13px * var(--ui-font-scale) * 1.0);
@@ -2995,14 +2995,14 @@ body {
 
 .checklist-progress {
   height: 14px;
-  border-radius: 7px;
+  border-radius: var(--radius-sm);
   background: var(--bg-hover);
   overflow: hidden;
 }
 
 .checklist-progress-fill {
   height: 100%;
-  border-radius: 7px;
+  border-radius: var(--radius-sm);
 }
 
 .checklist-progress-fill.ready {
@@ -3078,7 +3078,7 @@ body {
   justify-content: center;
   width: 26px;
   height: 26px;
-  border-radius: 13px;
+  border-radius: var(--radius-md);
   font-size: calc(13px * var(--ui-font-scale) * 1.0);
 }
 
@@ -3110,7 +3110,7 @@ body {
 .checklist-item-badge {
   flex-shrink: 0;
   padding: 2px 6px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   font-size: calc(13px * var(--ui-font-scale) * 10/13);
 }
 
@@ -3322,14 +3322,14 @@ body {
 .wordstats-progress {
   height: 18px;
   margin-top: 6px;
-  border-radius: 9px;
+  border-radius: var(--radius-sm);
   background: var(--bg-hover);
   overflow: hidden;
 }
 
 .wordstats-progress-fill {
   height: 100%;
-  border-radius: 9px;
+  border-radius: var(--radius-sm);
 }
 
 .wordstats-progress-fill.hi {
@@ -3376,7 +3376,7 @@ body {
 .deps-node {
   padding: 3px 8px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: var(--bg-panel);
   font-size: calc(13px * var(--ui-font-scale) * 11/13);
 }
@@ -3583,7 +3583,7 @@ body {
 .btn.slim {
   height: 28px;
   padding: 0 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   font-size: calc(12px * var(--ui-font-scale));
   line-height: 18px;
 }
@@ -3945,7 +3945,7 @@ button.ref-row:hover {
   gap: 8px;
   padding: 4px 8px;
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   background: var(--bg);
   color: var(--text);
   font-size: calc(13px * var(--ui-font-scale) * 12/13);
@@ -4017,7 +4017,7 @@ button.ref-row:hover {
 .attr-calc-source {
   padding: 0 6px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   color: var(--text-muted);
   font-size: calc(13px * var(--ui-font-scale) * 11/13);
 }
@@ -4156,7 +4156,7 @@ button.ref-row:hover {
   font-size: calc(13px * var(--ui-font-scale) * 12/13);
   background: var(--bg);
   border: 1px solid var(--danger);
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
 }
 
 .attr-panel-builder-rows {
@@ -4200,7 +4200,7 @@ button.ref-row:hover {
   white-space: nowrap;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
 }
 
 /* ---- 属性关系矩阵（属性系统编辑器） ---- */
@@ -4519,7 +4519,7 @@ button.ref-row:hover {
   flex-shrink: 0;
   min-width: 44px;
   padding: 2px 8px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   text-align: center;
   font-size: calc(12px * var(--ui-font-scale) * 12/13);
   font-weight: 600;
@@ -4608,7 +4608,7 @@ button.ref-row:hover {
 
 .preset-badge {
   padding: 2px 8px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   color: var(--btn-text);
   font-size: calc(13px * var(--ui-font-scale) * 10/13);
   font-weight: 700;
@@ -4899,7 +4899,7 @@ button.ref-row:hover {
 
 .home-badge {
   padding: 2px 8px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   font-size: calc(13px * var(--ui-font-scale) * 10/13);
   font-weight: 700;
 }
@@ -4928,7 +4928,7 @@ button.ref-row:hover {
   display: block;
   width: 100%;
   height: 6px;
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
   background: var(--bg-hover);
   overflow: hidden;
 }
@@ -5285,13 +5285,13 @@ button.ref-row:hover {
 }
 .budget-bar {
   height: 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   background: var(--bg, #eee);
   overflow: hidden;
 }
 .budget-bar-fill {
   height: 100%;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   transition: width 0.2s ease;
 }
 .budget-bar-fill.level-free { background: var(--accent, #0ea5e9); }
@@ -5329,7 +5329,7 @@ button.ref-row:hover {
 .ai-full-judge-badge {
   margin-left: 8px;
   padding: 1px 6px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   font-size: calc(12px * var(--ui-font-scale) * 1.0);
   border: 1px solid var(--border);
 }
@@ -5572,7 +5572,7 @@ button.ref-row:hover {
 
 .digital-message-bubble {
   padding: 8px 12px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: var(--accent);
   color: var(--btn-text);
   white-space: pre-wrap;
@@ -5595,7 +5595,7 @@ button.ref-row:hover {
   max-width: 100%;
   padding: 3px 8px;
   border: 0.5px solid var(--border);
-  border-radius: 7px;
+  border-radius: var(--radius-sm);
   background: var(--bg-panel);
   color: var(--text-secondary);
   font: inherit;
@@ -5630,7 +5630,7 @@ button.ref-row:hover {
   margin-left: 1px;
   padding: 0;
   border: 0;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
@@ -5648,7 +5648,7 @@ button.ref-row:hover {
   width: 24px;
   height: 24px;
   flex: none;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   overflow: hidden;
   background: var(--bg-hover);
 }
@@ -5679,7 +5679,7 @@ button.ref-row:hover {
   justify-content: center;
   padding: 0;
   border: 0.5px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--bg-hover);
   overflow: hidden;
   cursor: zoom-in;
@@ -5737,7 +5737,7 @@ button.ref-row:hover {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
   cursor: default;
 }
@@ -5752,7 +5752,7 @@ button.ref-row:hover {
   height: 32px;
   padding: 0;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: rgba(255, 255, 255, 0.12);
   color: #fff;
   cursor: pointer;
@@ -5808,7 +5808,7 @@ button.ref-row:hover {
   height: 24px;
   padding: 4px;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
@@ -5837,7 +5837,7 @@ button.ref-row:hover {
   margin-top: 6px;
   padding: 8px;
   border: 0.5px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--bg-panel);
 }
 .digital-feedback-comment {
@@ -5845,7 +5845,7 @@ button.ref-row:hover {
   min-height: 40px;
   padding: 6px 8px;
   border: 0.5px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text);
   font-family: inherit;
@@ -5894,7 +5894,7 @@ button.ref-row:hover {
   display: inline;
   padding: 0 3px;
   border: 0;
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
   background: color-mix(in srgb, var(--accent) 10%, transparent);
   color: var(--accent);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -5987,7 +5987,7 @@ button.ref-row:hover {
 
 .digital-message-body .markdown-body code {
   padding: 1px 4px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   background: var(--cell-bg);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
   font-size: 0.92em;
@@ -6000,7 +6000,7 @@ button.ref-row:hover {
   max-height: 320px;
   overflow: auto;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--cell-bg);
   color: var(--text);
   font-size: calc(12px * var(--ui-font-scale) * 12/13);
@@ -6243,7 +6243,7 @@ button.ref-row:hover {
 .digital-job-progress {
   position: relative;
   height: 3px;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   background: var(--bg-selected);
   overflow: hidden;
 }
@@ -6254,7 +6254,7 @@ button.ref-row:hover {
   left: 0;
   height: 100%;
   width: 40%;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   background: var(--accent, #4176e6);
   animation: digital-job-indeterminate 1.4s ease-in-out infinite;
 }
@@ -6421,7 +6421,7 @@ button.ref-row:hover {
 .digital-step-code {
   margin: 4px 0 0;
   padding: 6px 8px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: rgba(127, 127, 127, 0.08);
   color: var(--text-muted);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -6476,7 +6476,7 @@ button.ref-row:hover {
 .digital-step-args-pre {
   margin: 4px 0 0;
   padding: 6px 8px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: rgba(127, 127, 127, 0.08);
   color: var(--text-muted);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -6491,7 +6491,7 @@ button.ref-row:hover {
 .digital-step-diff {
   margin: 4px 0 0;
   padding: 4px 0;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: rgba(127, 127, 127, 0.06);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: calc(13px * var(--ui-font-scale) * 12/13);
@@ -6535,7 +6535,7 @@ button.ref-row:hover {
 .digital-step-image-thumb {
   padding: 0;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: transparent;
   width: 72px;
   height: 72px;
@@ -6659,7 +6659,7 @@ button.ref-row:hover {
   gap: 2px;
   margin-bottom: 6px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: var(--panel-bg, var(--bg));
   padding: 4px;
   max-height: 220px;
@@ -6673,7 +6673,7 @@ button.ref-row:hover {
   width: 100%;
   padding: 4px 8px;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   background: transparent;
   color: var(--text);
   text-align: left;
@@ -6845,7 +6845,7 @@ button.ref-row:hover {
 .qc-stat-bar {
   flex: 1;
   height: 10px;
-  border-radius: 5px;
+  border-radius: var(--radius-xs);
   background: var(--border);
   overflow: hidden;
 }
@@ -6995,7 +6995,7 @@ button.ref-row:hover {
 .ceshu-preview-tab {
   padding: 4px 10px;
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   background: transparent;
   color: var(--text-muted);
   font-size: calc(13px * var(--ui-font-scale) * 12/13);
@@ -7213,7 +7213,7 @@ button.ref-row:hover {
   gap: 10px;
   max-width: 420px;
   padding: 10px 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--bg-panel);
   color: var(--text);
   border: 1px solid var(--border);
@@ -7359,7 +7359,7 @@ button.ref-row:hover {
   width: 24px;
   height: 24px;
   flex-shrink: 0;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--accent);
   color: #fff;
   font-size: calc(13px * var(--ui-font-scale) * 12/13);
@@ -7661,7 +7661,7 @@ button.ref-row:hover {
   max-height: 320px;
   overflow: auto;
   border: 0.5px solid rgba(0, 0, 0, 0.1);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--sidebar-fill);
   color: var(--text);
   font-family: var(--mono-font, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
@@ -7998,7 +7998,7 @@ button.ref-row:hover {
   text-align: left;
   padding: 6px 8px;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text);
   cursor: pointer;
@@ -8032,7 +8032,7 @@ button.ref-row:hover {
   color: var(--text-muted);
   cursor: pointer;
   padding: 3px 8px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -8055,7 +8055,7 @@ button.ref-row:hover {
   overflow: auto;
   padding: 10px 12px;
   border: 0.5px solid rgba(0, 0, 0, 0.1);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--sidebar-fill);
 }
 
@@ -8090,7 +8090,7 @@ button.ref-row:hover {
   resize: none;
   padding: 10px 12px;
   border: 0.5px solid rgba(0, 0, 0, 0.1);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--sidebar-fill);
   color: var(--text);
   font-family: var(--mono-font, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
@@ -8407,7 +8407,7 @@ button.ref-row:hover {
   padding: 0 10px;
   height: 30px;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-secondary);
   font-size: calc(13px * var(--ui-font-scale));
@@ -8455,7 +8455,7 @@ button.ref-row:hover {
 .import-stat {
   font-size: 12px;
   padding: 2px 8px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: var(--border);
   color: var(--text-secondary);
 }
@@ -8477,7 +8477,7 @@ button.ref-row:hover {
 }
 .import-preview-row {
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   padding: 8px 10px;
 }
 .import-preview-head {
@@ -8492,7 +8492,7 @@ button.ref-row:hover {
   font-size: 11px;
   font-weight: 700;
   padding: 1px 6px;
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
 }
 .import-tag.create {
   color: #fff;
@@ -8549,7 +8549,7 @@ button.ref-row:hover {
   gap: 6px;
   padding: 10px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: var(--surface-2, rgba(127, 127, 127, 0.06));
 }
 .contract-check {
@@ -8558,7 +8558,7 @@ button.ref-row:hover {
   gap: 6px;
   padding: 10px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: var(--surface-2, rgba(127, 127, 127, 0.06));
 }
 .datatable-check-head {
@@ -8599,7 +8599,7 @@ button.ref-row:hover {
   font-size: 11px;
   font-weight: 700;
   padding: 0 5px;
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
 }
 .datatable-issue.error .datatable-issue-tag {
   color: #fff;
@@ -8668,7 +8668,7 @@ button.ref-row:hover {
   gap: 12px;
   padding: 8px 10px;
   border: 1px solid var(--border, #2a2a33);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--surface, #1c1c22);
 }
 .plugin-market-name {
@@ -8764,7 +8764,7 @@ button.ref-row:hover {
   margin: 0;
   padding: 8px 10px;
   border-left: 3px solid var(--border);
-  border-radius: 0 6px 6px 0;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   background: var(--cell-bg);
   color: var(--text-secondary);
   font-size: calc(13px * var(--ui-font-scale) * 12/13);
@@ -8787,7 +8787,7 @@ button.ref-row:hover {
 }
 .agent-team-card {
   border: 1px solid var(--border, #2a2a33);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 10px 12px;
   background: var(--surface, #1c1c22);
   display: flex;
@@ -8834,7 +8834,7 @@ button.ref-row:hover {
   font-family: monospace;
   background: #111;
   padding: 1px 6px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
 }
 .agent-team-result {
   overflow: hidden;
@@ -8865,7 +8865,7 @@ button.ref-row:hover {
   flex: 1;
   padding: 8px 10px;
   border: 1px solid var(--border-color, #ccc);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   font-size: 14px;
 }
 .session-history-loading {
@@ -8891,7 +8891,7 @@ button.ref-row:hover {
   gap: 2px;
   padding: 8px 10px;
   border: 1px solid var(--border-color, #eee);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: var(--bg-subtle, #fafafa);
 }
 .session-history-title {
@@ -8994,7 +8994,7 @@ button.ref-row:hover {
   flex-direction: column;
   min-width: 0;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: var(--bg-panel);
   overflow: hidden;
 }
@@ -9006,7 +9006,7 @@ button.ref-row:hover {
   flex-direction: column;
   min-width: 0;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: var(--bg-panel);
   overflow: hidden;
 }
@@ -9024,7 +9024,7 @@ button.ref-row:hover {
   justify-content: center;
   width: 28px;
   height: 28px;
-  border-radius: 7px;
+  border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--accent) 12%, transparent);
   color: var(--accent);
 }
@@ -9048,7 +9048,7 @@ button.ref-row:hover {
   width: 100%;
   padding: 6px 8px;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text);
   font: inherit;
@@ -9119,7 +9119,7 @@ button.ref-row:hover {
   width: 32px;
   height: 32px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--accent-bg);
   color: var(--accent);
 }
@@ -9183,7 +9183,7 @@ button.ref-row:hover {
 .digital-change-op {
   flex: none;
   padding: 1px 6px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   background: color-mix(in srgb, var(--change-update) 12%, transparent);
   color: var(--change-update);
   font-size: calc(13px * var(--ui-font-scale) * 11/13);
@@ -9279,7 +9279,7 @@ button.ref-row:hover {
   max-width: calc(100vw - 32px);
   overflow: hidden;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--bg-panel);
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
 }
@@ -9288,7 +9288,7 @@ button.ref-row:hover {
   margin: 8px 8px 4px;
   padding: 8px 10px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--cell-bg);
   color: var(--text);
   font: inherit;
@@ -9317,7 +9317,7 @@ button.ref-row:hover {
   align-items: baseline;
   gap: 8px;
   padding: 6px 8px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   color: var(--text);
   font-size: calc(13px * var(--ui-font-scale));
   cursor: pointer;
@@ -9371,7 +9371,7 @@ button.ref-row:hover {
   gap: 6px;
   padding: 8px 10px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: var(--bg-panel);
 }
 
@@ -9407,7 +9407,7 @@ button.ref-row:hover {
 .digital-run-plan-badge {
   flex: none;
   padding: 1px 6px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   font-size: calc(13px * var(--ui-font-scale) * 11/13);
   font-weight: 600;
 }
@@ -9434,7 +9434,7 @@ button.ref-row:hover {
 .digital-run-plan-segment {
   flex: 1 1 0;
   min-width: 4px;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   background: var(--divider);
 }
 .digital-run-plan-segment.segment-done {
@@ -9516,7 +9516,7 @@ button.ref-row:hover {
   gap: 8px 24px;
   padding: 10px 12px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: var(--bg-panel);
 }
 .trajectory-fact {
@@ -9544,7 +9544,7 @@ button.ref-row:hover {
 }
 .trajectory-turn {
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: var(--bg-panel);
   overflow: hidden;
 }
@@ -9608,7 +9608,7 @@ button.ref-row:hover {
 .trajectory-row-kind {
   flex: none;
   padding: 1px 6px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   background: color-mix(in srgb, var(--text-muted) 12%, transparent);
   color: var(--text-muted);
   font-size: calc(13px * var(--ui-font-scale) * 11/13);
@@ -9633,7 +9633,7 @@ button.ref-row:hover {
 .trajectory-row-status {
   flex: none;
   padding: 1px 6px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   font-size: calc(13px * var(--ui-font-scale) * 11/13);
   font-weight: 600;
 }
@@ -9668,7 +9668,7 @@ button.ref-row:hover {
   gap: 8px;
   padding: 6px 10px;
   border-left: 3px solid var(--border);
-  border-radius: 0 6px 6px 0;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   background: var(--cell-bg);
   font-size: calc(13px * var(--ui-font-scale) * 12/13);
   line-height: 1.6;
@@ -9751,7 +9751,7 @@ button.ref-row:hover {
   margin: 0;
   padding: 6px 8px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: var(--bg-panel);
   color: var(--text-secondary);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -9904,7 +9904,7 @@ button.ref-row:hover {
   margin-left: auto;
   padding: 3px 6px;
   border: 0;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   background: none;
   color: var(--text-muted);
   cursor: pointer;
@@ -10051,7 +10051,7 @@ button.ref-row:hover {
   width: 28px;
   height: 28px;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: none;
   color: var(--text-muted);
   cursor: pointer;
@@ -10091,7 +10091,7 @@ button.ref-row:hover {
   margin: 4px 0 10px;
   padding: 0 10px;
   border: 0;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.12);
   background: transparent;
   color: var(--text);
