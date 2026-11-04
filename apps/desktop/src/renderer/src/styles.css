@@ -108,6 +108,27 @@
      单列一个语义 token 表达这个决定，避免组件里散落 #fff 被误当成待迁移债。 */
   --ink-on-solid: #ffffff;
 
+  /* ---- elevation / mask 投影墨色 ----
+     对齐 dsh `gradient-shadow-text.css` 的分层思路（按用途分档、组件只写
+     `box-shadow: <几何> var(--elevation-ink-*)`），但**保留墨白现有的投影强度**：
+     dsh 是 0.03~0.05 的极淡柔光 + 0.5px 描边第一层，墨白是 0.12~0.4 的实投影，
+     直接照抄会让浮层失去分离感。这里每档值都与替换前的字面量精确等价
+     —— 本轮只把「散落的字面色」收成「有名字、四主题可分别调整的语义墨」，
+     零视觉变化；将来若要向 dsh 的极淡 elevation 靠拢，改这里一处即可。
+     遮罩同理：蒙层刻意是深色、不随主题反演。 */
+  --elevation-ink-button: rgba(0, 0, 0, 0.12);
+  --elevation-ink-menu: rgba(0, 0, 0, 0.16);
+  --elevation-ink-context: rgba(0, 0, 0, 0.18);
+  --elevation-ink-card: rgba(0, 0, 0, 0.24);
+  --elevation-ink-panel: rgba(0, 0, 0, 0.25);
+  --elevation-ink-dropdown: rgba(0, 0, 0, 0.28);
+  --elevation-ink-strong: rgba(0, 0, 0, 0.4);
+  --elevation-ink-toast: rgba(15, 23, 42, 0.14);
+  --mask-overlay: rgba(15, 17, 21, 0.28);
+  --mask-backdrop: rgba(0, 0, 0, 0.35);
+  --mask-subtle: rgba(15, 17, 21, 0.04);
+  --mask-lightbox: rgba(15, 17, 21, 0.82);
+
   /* dsh .hero 罗盘水印刻意取纯灰静态斜坡（浅 neutral-200 / 深 neutral-700），
      不用 --dsw-alias-label-*：bluish 色偏在 56px 线稿上会显出来。 */
   --watermark-ink: #e5e5e5;
@@ -516,7 +537,7 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-panel);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 8px 24px var(--elevation-ink-dropdown);
 }
 
 .menu-item {
@@ -752,7 +773,7 @@ body {
   border: 0;
   border-radius: var(--radius-md);
   background: transparent;
-  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.12);
+  box-shadow: inset 0 0 0 0.5px var(--elevation-ink-button);
   color: var(--text);
   font-size: calc(14px * var(--ui-font-scale));
   line-height: 22px;
@@ -948,7 +969,7 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-panel);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 6px 18px var(--elevation-ink-context);
 }
 
 /*
@@ -1457,7 +1478,7 @@ body {
   align-items: flex-start;
   justify-content: center;
   padding-top: 72px;
-  background: rgba(0, 0, 0, 0.35);
+  background: var(--mask-backdrop);
 }
 
 .review-panel {
@@ -1468,7 +1489,7 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-panel);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 8px 30px var(--elevation-ink-panel);
 }
 
 .review-panel-header {
@@ -2715,7 +2736,7 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-panel);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 8px 24px var(--elevation-ink-dropdown);
 }
 
 /* AI 停靠栏在窗口最右侧，下拉必须靠右对齐，否则 left:0 会顶出屏幕右缘 */
@@ -5737,7 +5758,7 @@ button.ref-row:hover {
   align-items: center;
   justify-content: center;
   padding: 32px;
-  background: rgba(15, 17, 21, 0.82);
+  background: var(--mask-lightbox);
   cursor: zoom-out;
 }
 .digital-lightbox-img {
@@ -5745,7 +5766,7 @@ button.ref-row:hover {
   max-height: 100%;
   object-fit: contain;
   border-radius: var(--radius-sm);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 16px 48px var(--elevation-ink-strong);
   cursor: default;
 }
 .digital-lightbox-close {
@@ -7224,7 +7245,7 @@ button.ref-row:hover {
   background: var(--bg-panel);
   color: var(--text);
   border: 1px solid var(--border);
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.14);
+  box-shadow: 0 6px 18px var(--elevation-ink-toast);
   font-size: 13px;
   line-height: 1.45;
   animation: toast-in 160ms ease-out;
@@ -7816,7 +7837,7 @@ button.ref-row:hover {
   border-radius: 50%;
   corner-shape: round;
   background: var(--ink-on-solid);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 1px 2px var(--elevation-ink-panel);
   transition: transform 0.15s ease;
 }
 
@@ -9275,7 +9296,7 @@ button.ref-row:hover {
   justify-content: center;
   align-items: flex-start;
   padding-top: 12vh;
-  background: rgba(0, 0, 0, 0.35);
+  background: var(--mask-backdrop);
 }
 
 .command-palette {
@@ -9288,7 +9309,7 @@ button.ref-row:hover {
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-panel);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 16px 40px var(--elevation-ink-dropdown);
 }
 
 .command-palette-input {
@@ -10099,7 +10120,7 @@ button.ref-row:hover {
   padding: 0 10px;
   border: 0;
   border-radius: var(--radius-md);
-  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.12);
+  box-shadow: inset 0 0 0 0.5px var(--elevation-ink-button);
   background: transparent;
   color: var(--text);
   font-size: 14px;

@@ -319,7 +319,7 @@
   background: color-mix(in srgb, var(--bg-panel) 90%, transparent);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  box-shadow: 0 8px 24px var(--elevation-ink-menu);
 }
 .dsh-composer-menu-item {
   display: flex;
@@ -450,7 +450,7 @@
   position: fixed;
   inset: 0;
   z-index: 38;
-  background: rgba(15, 17, 21, 0.04);
+  background: var(--mask-subtle);
 }
 
 /* 令牌环（ContextMeter）：输入区统计行里的圆环进度，直径 22px */
@@ -478,7 +478,7 @@
   border: 0.5px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-panel);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  box-shadow: 0 8px 24px var(--elevation-ink-menu);
   font-size: calc(12px * var(--ui-font-scale));
   color: var(--text-secondary);
 }
@@ -502,7 +502,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(15, 17, 21, 0.28);
+  background: var(--mask-overlay);
 }
 .dsh-confirm-card {
   width: min(360px, 86vw);
@@ -510,7 +510,7 @@
   border: 0.5px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-panel);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.24);
+  box-shadow: 0 16px 48px var(--elevation-ink-card);
 }
 .dsh-confirm-title {
   display: flex;
@@ -538,7 +538,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(15, 17, 21, 0.28);
+  background: var(--mask-overlay);
 }
 .digital-shortcuts-card {
   width: min(420px, 88vw);
@@ -548,7 +548,7 @@
   border: 0.5px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-panel);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.24);
+  box-shadow: 0 16px 48px var(--elevation-ink-card);
 }
 .digital-shortcuts-head {
   display: flex;

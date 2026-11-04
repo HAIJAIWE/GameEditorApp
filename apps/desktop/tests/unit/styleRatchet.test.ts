@@ -10,16 +10,22 @@ import { describe, expect, it } from 'vitest'
  * - **圆角与全圆是硬约束**（恒 0）：全部 124 处字面 px 圆角已按
  *   `docs/ui-radius.zh.md` 的用途档收敛为 `--radius-*`，30 处全圆声明已配对
  *   `corner-shape: round`。这两项一旦回升就是回归，不需要棘轮。
- * - **组件区字面颜色仍是棘轮**（只许降）：已从 136 收敛到 114（本轮把浅色档
- *   值精确等价的中性交互色换成 `--bg-hover` / `--border` / `--border-card` /
- *   `--border-strong` / `--accent`，并把刻意不随主题反演的恒白前景收进
- *   `--ink-on-solid`）。剩余多是 hljs 色板、暗色卡片与阴影遮罩，
- *   逐类建语义 token + 四主题值需要继续分轮，不能刷数字式替换。
+ * - **组件区字面颜色仍是棘轮**（只许降）：已从 136 收敛到 94。先换掉浅色档值
+ *   精确等价的中性交互色（`--bg-hover` / `--border` / `--border-card` /
+ *   `--border-strong` / `--accent`）与恒白前景（`--ink-on-solid`），再把投影/遮罩
+ *   墨色收进 `--elevation-ink-*` / `--mask-*`。剩余是 hljs 色板、插件市场暗色
+ *   卡片与专用语义色，逐类建 token 需继续分轮，不能刷数字式替换。
  *   与 `i18nCoverage.test.ts` 同范式：修一块就把 BASELINE 减一。
  *
  * ## 诚实边界
- * elevation / menu 两张 spec 依赖 `--dsw-elevation-*` 与 `MenuSurface` 材质，
- * 墨白尚无对应概念，不在本守卫范围，勿假装覆盖。
+ * - **elevation 只覆盖了「投影墨色必须走 token」这一条**（dsh `gradient-shadow-text.css`
+ *   的分层思路）。dsh 的 `--dsw-elevation-panel/prominent/soft` 三件套是
+ *   `0.5px 发丝描边 + 0.03~0.05 极淡柔光`，且要求 elevated 表面 `border: 0`；
+ *   墨白现有的是 `0.12~0.4` 实投影，硬套会让浮层失去分离感。本轮保留原强度，
+ *   只把散落的字面色收成有名字的语义墨（零视觉变化），**未**引入三件套与
+ *   `border: 0` 配对检查，别假装完全对齐。
+ * - menu spec 依赖 `MenuSurface` 材质与 `--dsw-menu-surface-fill`，墨白无对应概念，
+ *   不在本守卫范围。
  *
  * ## 判据（刻意宽松）
  * - 先剥注释，再按最内层 `{...}` 切规则块；不解析选择器特异性、不展开嵌套。
@@ -34,12 +40,13 @@ const REPO_ROOT = resolve(HERE, '../../../..')
 const CSS_ROOT = 'apps/desktop/src/renderer/src'
 
 /**
- * 组件区字面颜色存量基线（2026-11-04 实测）：**136 -> 114**（本轮按「浅色档值
- * 精确等价 + 语义明确」收敛 31 处声明 / 22 个块）。修掉一块就减一，新增前先还债。
- * 剩余主要是 hljs 词法色板、插件市场暗色卡片、阴影/遮罩与专用语义色——各有
- * 独立主题机制或需逐类建 token，不能盲换，见当日日志。
+ * 组件区字面颜色存量基线（2026-11-04 实测）：**136 -> 114 -> 94**。
+ * 第一轮按「浅色档值精确等价」收敛中性交互色 31 处声明 / 22 块；
+ * 第二轮把投影与遮罩墨色收进 --elevation-ink-* / --mask-*，再降 20 块。
+ * 修掉一块就减一，新增前先还债。剩余主要是 hljs 词法色板、插件市场暗色卡片
+ * 与专用语义色——各有独立主题机制或需逐类建 token，不能盲换，见当日日志。
  */
-const BASELINE_LITERAL_COLOR = 114
+const BASELINE_LITERAL_COLOR = 94
 const FULL_ROUND = /^(?:50%|100%|999px|9999px)$/u
 const COLOR_LITERAL = /#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(/u
 
@@ -112,12 +119,21 @@ const unpairedRoundBlocks = blocks.filter(
 const literalColorBlocks = blocks.filter(
   (block) => !isTokenBlock(block.selector) && COLOR_LITERAL.test(block.body)
 )
+/**
+ * dsh elevation spec 里能静态校验的那一条：投影的**墨色**必须走语义 token，
+ * 不许在组件里写死 rgba/hex；几何（offset/blur/spread）仍归组件所有。
+ * 未覆盖的部分见文件头「诚实边界」。
+ */
+const literalShadowBlocks = blocks.filter((block) =>
+  [...block.body.matchAll(/box-shadow\s*:\s*([^;}]+)/gu)]
+    .some((match) => COLOR_LITERAL.test(match[1]))
+)
 
 function describeSample(items: CssBlock[]): string {
   return items.slice(0, 8).map((block) => `${block.file} { ${block.selector} }`).join('\n')
 }
 
-describe('样式守卫棘轮（对齐 dsh radius / corner-shape spec）', () => {
+describe('样式守卫棘轮（对齐 dsh radius / corner-shape / elevation spec）', () => {
   it('扫描范围非空（防止路径写错导致守卫静默通过）', () => {
     expect(files.length).toBeGreaterThanOrEqual(1)
     expect(blocks.length).toBeGreaterThan(200)
@@ -128,6 +144,15 @@ describe('样式守卫棘轮（对齐 dsh radius / corner-shape spec）', () => 
       unpairedRoundBlocks.length,
       `${unpairedRoundBlocks.length} 个规则块的全圆声明未配对 corner-shape: round。\n` +
         `superellipse(1.5) 会把圆压成方圆形。前几个：\n${describeSample(unpairedRoundBlocks)}`
+    ).toBe(0)
+  })
+
+  it('box-shadow 不得写死颜色（走 --elevation-ink-* token，硬约束）', () => {
+    expect(
+      literalShadowBlocks.length,
+      `${literalShadowBlocks.length} 个规则块的投影仍写了字面颜色。\n` +
+        `按 dsh elevation 规范把墨色改为 --elevation-ink-* / --mask-*，几何部分保持原样。\n` +
+        `前几个：\n${describeSample(literalShadowBlocks)}`
     ).toBe(0)
   })
 
@@ -153,7 +178,8 @@ describe('样式守卫棘轮（对齐 dsh radius / corner-shape spec）', () => 
     expect(rootSheet, 'styles.css 必须存在').toBeDefined()
     for (const token of [
       '--radius-xs', '--radius-sm', '--radius-md', '--radius-lg', '--radius-xl', '--radius-panel',
-      '--border-card', '--watermark-ink'
+      '--border-card', '--border-strong', '--watermark-ink', '--ink-on-solid',
+      '--elevation-ink-dropdown', '--mask-backdrop'
     ]) {
       expect(rootSheet?.source, `缺少令牌 ${token}`).toContain(`${token}:`)
     }
