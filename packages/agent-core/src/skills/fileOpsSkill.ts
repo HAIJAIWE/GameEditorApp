@@ -16,8 +16,9 @@
  * 更保守（避免读到任意系统文件）。
  */
 
+import type { Dirent } from 'node:fs'
 import { copyFile, mkdir, readFile, readdir, rename, rm, stat, unlink, writeFile } from 'node:fs/promises'
-import { dirname } from 'node:path'
+import { dirname, join, relative } from 'node:path'
 
 import { SKILL_ERRORS } from '@mobai/shared/agent/config'
 import type { SkillProtocol, SkillResult } from '@mobai/shared/agent/config'
@@ -39,7 +40,76 @@ export interface FileOpsSkillOptions {
   policy?: FileOpsPolicy
 }
 
-const READ_ACTIONS = new Set(['read', 'list'])
+/* ---- 检索（grep / glob）：对齐 dsh `fs/tool-fs-search` 的可用子集 ---- */
+
+/** 单次检索的结果上限（超过就截断并明说，别让 agent 以为扫全了） */
+export const FILE_SEARCH_MAX_RESULTS = 200
+/** 扫描文件数上限：大仓里 grep 整个 node_modules 会把一轮对话卡死 */
+const FILE_SEARCH_MAX_FILES = 4000
+/** 单文件字节上限：跳过超大文件（日志/打包产物），它们几乎不是要找的 */
+const FILE_SEARCH_MAX_BYTES = 512 * 1024
+/** 这些目录不扫：依赖 / 版本库 / 构建产物，命中它们只会淹没真正结果 */
+const FILE_SEARCH_SKIP_DIRS = new Set([
+  'node_modules',
+  '.git',
+  'dist',
+  'out',
+  'coverage',
+  '.cache',
+  '.mb-spill'
+])
+
+/** 递归遍历文件（跳过 SKIP_DIRS 与点目录）；目录读不动就跳过整棵子树，不中断检索。 */
+async function* walkFiles(dir: string): AsyncGenerator<string> {
+  let entries: Dirent[]
+  try {
+    entries = await readdir(dir, { withFileTypes: true })
+  } catch {
+    return
+  }
+  for (const entry of entries) {
+    const full = join(dir, entry.name)
+    if (entry.isDirectory()) {
+      if (FILE_SEARCH_SKIP_DIRS.has(entry.name) || entry.name.startsWith('.')) continue
+      yield* walkFiles(full)
+    } else if (entry.isFile()) {
+      yield full
+    }
+  }
+}
+
+/**
+ * 极简 glob → 正则：支持 `**`（跨目录）、`*`（单段）、`?`（单字符）。
+ * 不引 micromatch 之类的依赖 —— 这三个符号覆盖了 agent 的绝大多数用法。
+ */
+function globToRegExp(pattern: string): RegExp {
+  const normalized = pattern.replace(/\\/gu, '/')
+  let out = '^'
+  for (let i = 0; i < normalized.length; i += 1) {
+    const ch = normalized[i] as string
+    if (ch === '*') {
+      if (normalized[i + 1] === '*') {
+        if (normalized[i + 2] === '/') {
+          // `**/` 匹配任意层（含零层）
+          out += '(?:.*/)?'
+          i += 2
+        } else {
+          out += '.*'
+          i += 1
+        }
+      } else {
+        out += '[^/]*'
+      }
+    } else if (ch === '?') {
+      out += '[^/]'
+    } else {
+      out += ch.replace(/[.+^${}()|[\]\\]/gu, '\\$&')
+    }
+  }
+  return new RegExp(`${out}$`, 'iu')
+}
+
+const READ_ACTIONS = new Set(['read', 'list', 'grep', 'glob'])
 const MUTATING_ACTIONS = new Set(['write', 'edit', 'delete', 'mkdir', 'copy', 'move'])
 
 function asString(value: unknown): string {
@@ -113,6 +183,98 @@ export function createFileOpsSkill(options: FileOpsSkillOptions): SkillProtocol 
       success: true,
       message: `目录 ${asString(params.path) || '.'}（${entries.length} 项）：\n${lines.join('\n')}${more}`,
       data: { path: params.path, count: entries.length }
+    }
+  }
+
+  /** grep：按正则逐行搜内容，返回 `路径:行号: 片段`（结果与扫描量都设上限） */
+  async function grepAction(params: Record<string, unknown>): Promise<SkillResult> {
+    const pattern = asString(params.pattern)
+    if (pattern === '') {
+      return { success: false, message: 'grep 需要 pattern', error: SKILL_ERRORS.BAD_ARG }
+    }
+    const base = await resolveInsideRoot(
+      rootFn(),
+      asString(params.path) === '' ? '.' : asString(params.path)
+    )
+    let regex: RegExp
+    try {
+      regex = new RegExp(pattern, params.caseSensitive === true ? '' : 'iu')
+    } catch {
+      return { success: false, message: `正则无效：${pattern}`, error: SKILL_ERRORS.BAD_ARG }
+    }
+
+    const hits: string[] = []
+    let files = 0
+    let truncated = false
+    for await (const file of walkFiles(base)) {
+      files += 1
+      if (files > FILE_SEARCH_MAX_FILES) {
+        truncated = true
+        break
+      }
+      const info = await stat(file).catch(() => null)
+      if (info === null || info.size > FILE_SEARCH_MAX_BYTES) continue
+      const text = await readFile(file, 'utf8').catch(() => null)
+      if (text === null || text.includes('\u0000')) continue // 读不了 / 二进制
+      const lines = text.split('\n')
+      for (let index = 0; index < lines.length; index += 1) {
+        const line = lines[index] ?? ''
+        if (!regex.test(line)) continue
+        const where = relative(rootFn(), file).replace(/\\/gu, '/')
+        hits.push(`${where}:${index + 1}: ${line.trim().slice(0, 200)}`)
+        if (hits.length >= FILE_SEARCH_MAX_RESULTS) {
+          truncated = true
+          break
+        }
+      }
+      if (truncated) break
+    }
+    return {
+      success: true,
+      message:
+        hits.length === 0
+          ? `未匹配到 /${pattern}/（扫描 ${files} 个文件）`
+          : `匹配 ${hits.length} 处${truncated ? '（结果已截断）' : ''}：\n${hits.join('\n')}`,
+      data: { pattern, hits: hits.length, files, truncated }
+    }
+  }
+
+  /** glob：按路径模式列文件（相对工作区根，`/` 分隔） */
+  async function globAction(params: Record<string, unknown>): Promise<SkillResult> {
+    const pattern = asString(params.pattern)
+    if (pattern === '') {
+      return { success: false, message: 'glob 需要 pattern', error: SKILL_ERRORS.BAD_ARG }
+    }
+    const base = await resolveInsideRoot(
+      rootFn(),
+      asString(params.path) === '' ? '.' : asString(params.path)
+    )
+    const regex = globToRegExp(pattern)
+
+    const matches: string[] = []
+    let files = 0
+    let truncated = false
+    for await (const file of walkFiles(base)) {
+      files += 1
+      if (files > FILE_SEARCH_MAX_FILES) {
+        truncated = true
+        break
+      }
+      const where = relative(rootFn(), file).replace(/\\/gu, '/')
+      if (!regex.test(where)) continue
+      matches.push(where)
+      if (matches.length >= FILE_SEARCH_MAX_RESULTS) {
+        truncated = true
+        break
+      }
+    }
+    return {
+      success: true,
+      message:
+        matches.length === 0
+          ? `未匹配到 ${pattern}（扫描 ${files} 个文件）`
+          : `匹配 ${matches.length} 个文件${truncated ? '（结果已截断）' : ''}：\n${matches.join('\n')}`,
+      data: { pattern, files: matches.length, truncated }
     }
   }
 
@@ -234,6 +396,10 @@ export function createFileOpsSkill(options: FileOpsSkillOptions): SkillProtocol 
           return await readAction(params)
         case 'list':
           return await listAction(params)
+        case 'grep':
+          return await grepAction(params)
+        case 'glob':
+          return await globAction(params)
         case 'write':
           return await writeAction(params)
         case 'edit':
@@ -259,6 +425,7 @@ export function createFileOpsSkill(options: FileOpsSkillOptions): SkillProtocol 
     id: 'system.file_ops',
     description:
       '在工作区内读写文件：read（读文本）/ list（列目录）/ write（写文件，自动建父目录）/ '
+      + 'grep（按正则搜内容，返回 路径:行号:片段）/ glob（按 **/*.ts 这类模式列文件）/ '
       + 'edit（用唯一 old_text 替换为 new_text）/ delete（删除，目录需 recursive）/ '
       + 'mkdir / copy / move。所有路径必须位于工作区内。',
     version: '0.1.0',
@@ -267,9 +434,14 @@ export function createFileOpsSkill(options: FileOpsSkillOptions): SkillProtocol 
       properties: {
         action: {
           type: 'string',
-          enum: ['read', 'list', 'write', 'edit', 'delete', 'mkdir', 'copy', 'move'],
+          enum: ['read', 'list', 'grep', 'glob', 'write', 'edit', 'delete', 'mkdir', 'copy', 'move'],
           description: '操作类型'
         },
+        pattern: {
+          type: 'string',
+          description: 'grep 的正则 / glob 的路径模式（如 `**/*.ts`，支持 ** * ?）'
+        },
+        caseSensitive: { type: 'boolean', description: 'grep 是否区分大小写（默认不区分）' },
         path: { type: 'string', description: '目标路径（相对工作区根；read/list/write/edit/delete/mkdir 用）' },
         content: { type: 'string', description: 'write 的文件内容' },
         old_text: { type: 'string', description: 'edit 的待替换文本（须唯一出现）' },

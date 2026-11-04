@@ -34,6 +34,9 @@ export const TOOL_RISK_MAP: Record<string, RiskLevel | Record<string, RiskLevel>
   'system.file_ops': {
     read: RISK_LEVEL.READ_ONLY,
     list: RISK_LEVEL.READ_ONLY,
+    // 检索是只读：与 read/list 同级，不该让 agent 每次搜文件都过审批门
+    grep: RISK_LEVEL.READ_ONLY,
+    glob: RISK_LEVEL.READ_ONLY,
     write: RISK_LEVEL.FILE_SYSTEM,
     delete: RISK_LEVEL.FILE_SYSTEM,
     edit: RISK_LEVEL.FILE_SYSTEM,

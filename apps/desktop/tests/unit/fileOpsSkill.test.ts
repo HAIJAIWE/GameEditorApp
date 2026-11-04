@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { createFileOpsSkill } from '@mobai/agent-core/skills/fileOpsSkill'
+import { SKILL_ERRORS } from '@mobai/shared/agent/config'
 
 let root = ''
 
@@ -148,5 +149,63 @@ describe('读后写版本闸', () => {
     // 自己写的文件算「已知内容」，可以直接 edit
     const edit = await run({ action: 'edit', path: 'new.txt', old_text: 'a', new_text: 'b' })
     expect(edit.success).toBe(true)
+  })
+})
+
+/**
+ * grep / glob（对齐 dsh `fs/tool-fs-search` 的可用子集）。
+ *
+ * 守三件事：**能按内容找到东西**、**不扫 node_modules 之类的噪声**、
+ * 以及**正则有错时如实报错**（而不是静默返回空结果让 agent 以为文件里没有）。
+ */
+describe('grep / glob 检索', () => {
+  it('grep 命中「路径:行号」，默认不区分大小写', async () => {
+    const run = skill()
+    await run({ action: 'write', path: 'src/a.ts', content: 'const Foo = 1\nconst bar = 2' })
+    await run({ action: 'write', path: 'src/b.ts', content: '// foo 在注释里' })
+
+    const hit = await run({ action: 'grep', pattern: 'foo' })
+    expect(hit.success).toBe(true)
+    expect(hit.message).toContain('src/a.ts:1')
+    expect(hit.message).toContain('src/b.ts:1')
+  })
+
+  it('grep 不扫 node_modules（否则结果会被依赖淹没）', async () => {
+    const run = skill()
+    await run({ action: 'write', path: 'node_modules/x/index.js', content: 'TARGET' })
+    await run({ action: 'write', path: 'src/ok.ts', content: 'TARGET' })
+
+    const hit = await run({ action: 'grep', pattern: 'TARGET' })
+    expect(hit.message).toContain('src/ok.ts')
+    expect(hit.message).not.toContain('node_modules')
+  })
+
+  it('grep 正则非法时如实报错（不静默返回空）', async () => {
+    const run = skill()
+    const hit = await run({ action: 'grep', pattern: '([' })
+    expect(hit.success).toBe(false)
+    expect(hit.error).toBe(SKILL_ERRORS.BAD_ARG)
+  })
+
+  it('glob 的 ** 跨目录匹配', async () => {
+    const run = skill()
+    await run({ action: 'write', path: 'a.ts', content: '' })
+    await run({ action: 'write', path: 'deep/b.ts', content: '' })
+    await run({ action: 'write', path: 'c.md', content: '' })
+
+    const found = await run({ action: 'glob', pattern: '**/*.ts' })
+    expect(found.message).toContain('a.ts')
+    expect(found.message).toContain('deep/b.ts')
+    expect(found.message).not.toContain('c.md')
+  })
+
+  it('glob 的单段 * 不跨目录', async () => {
+    const run = skill()
+    await run({ action: 'write', path: 'src/x.ts', content: '' })
+    await run({ action: 'write', path: 'src/deep/y.ts', content: '' })
+
+    const found = await run({ action: 'glob', pattern: 'src/*.ts' })
+    expect(found.message).toContain('src/x.ts')
+    expect(found.message).not.toContain('deep/y.ts')
   })
 })
