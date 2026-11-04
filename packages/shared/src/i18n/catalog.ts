@@ -389,6 +389,7 @@ export const zh = {
 
   // —— 布局：菜单栏 / 侧栏 / 停靠栏 ——
   'app.brand': '墨白',
+  'app.languageToggle': '切换语言',
   'layout.currentLibrary': '当前库',
   'layout.focusAi': '聚焦右侧智能体对话输入框',
   'layout.nav.aria': '主导航',
@@ -2544,6 +2545,7 @@ export const en: Record<MessageKey, string> = {
 
   // —— Layout: menubar / sidebar / dock ——
   'app.brand': 'Mobai',
+  'app.languageToggle': 'Switch language',
   'layout.currentLibrary': 'Library',
   'layout.focusAi': 'Focus the agent input on the right',
   'layout.nav.aria': 'Main navigation',

@@ -1,11 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type MouseEvent as ReactMouseEvent } from 'react'
 
-import { useT } from '@mobai/client-ui'
+import { LocaleProvider } from '@mobai/client-ui'
 
 import type { CeshuSummary } from '@mobai/shared/ceshu/reference'
 import { loadGameStyle, normalizeGameStyleId, saveGameStyle } from '@mobai/shared/config/game'
 import type { AppInfo, DataTypeDef } from '@mobai/shared/types'
 import { applyTheme, loadTheme, saveTheme, type ThemeMode } from '@mobai/shared/config/settings'
+import {
+  LOCALE_LABELS,
+  LOCALE_STORAGE_KEY,
+  nextLocale,
+  normalizeLocale,
+  translate,
+  type Locale,
+  type MessageKey,
+  type TranslateParams
+} from '@mobai/shared/i18n'
 
 import { type PreviewJumpTarget } from './components/ceshu'
 import { APP_SHORTCUTS_STATUS_TEXT, matchShortcut } from '@mobai/shared/util/ui'
@@ -62,7 +72,16 @@ const CLEARS_PARAMS_ON_OPEN = new Set(['typeEditor.panel', 'quickCreate.panel', 
  * - 底部状态栏（版本 / 类型数 / 数据库路径 / 主题切换）常驻。
  */
 export default function App() {
-  const t = useT()
+  /** 界面语言：持久化在 localStorage（mb.locale），启动时预读取；切换即整站重渲染 */
+  const [locale, setLocale] = useState<Locale>(() => normalizeLocale(localStorage.getItem(LOCALE_STORAGE_KEY)))
+  /**
+   * 翻译函数：绑定到 `locale` 状态（而非 `useT` 的 context 默认），
+   * 这样 App 自身（状态栏 / 提示）与子树里的 `useT()` 都跟着 `locale` 切——单一来源。
+   */
+  const t = useCallback(
+    (key: MessageKey, params?: TranslateParams) => translate(locale, key, params),
+    [locale]
+  )
   const [info, setInfo] = useState<AppInfo | null>(null)
   const [types, setTypes] = useState<DataTypeDef[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -389,6 +408,19 @@ export default function App() {
     })
   }, [])
 
+  /** 切换界面语言（中 ⇄ 英），持久化到 localStorage 并由 LocaleProvider 触发整站重渲染 */
+  const toggleLocale = useCallback((): void => {
+    setLocale((prev) => {
+      const next = nextLocale(prev)
+      try {
+        localStorage.setItem(LOCALE_STORAGE_KEY, next)
+      } catch {
+        // 隐私模式/配额不足不影响切换
+      }
+      return next
+    })
+  }, [])
+
   /**
    * 「清空所有数据」完成后的刷新。
    *
@@ -681,6 +713,7 @@ export default function App() {
         : panelCapability.title
 
   return (
+    <LocaleProvider locale={locale}>
     <div className="app">
       <MenuBar host={pluginHost} />
       <div className="app-body">
@@ -761,6 +794,15 @@ export default function App() {
             <button
               type="button"
               className="btn slim"
+              data-testid="language-toggle"
+              title={t('app.languageToggle')}
+              onClick={() => toggleLocale()}
+            >
+              {LOCALE_LABELS[nextLocale(locale)]}
+            </button>
+            <button
+              type="button"
+              className="btn slim"
               data-testid="theme-toggle"
               style={{ marginLeft: 'auto' }}
               title={t('app.themeToggleTitle')}
@@ -781,5 +823,6 @@ export default function App() {
         </div>
       </div>
     </div>
+    </LocaleProvider>
   )
 }
