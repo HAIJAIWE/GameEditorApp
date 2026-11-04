@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 
 /**
  * 样式守卫：把 dsh `ui-theme` 那几张自动 spec（radius / corner-shape /
- * elevation / menu）里能在墨白静态校验的部分落成测试。
+ * elevation / hover / 发丝线 / menu）里能在墨白静态校验的部分落成测试。
  *
  * - **圆角、全圆配对、投影墨色是硬约束**（恒 0）：字面 px 圆角已全量收敛为
  *   `--radius-*`，全圆声明已配对 `corner-shape: round`，投影墨色走
@@ -61,6 +61,20 @@ const CSS_ROOT = 'apps/desktop/src/renderer/src'
  * 相关位置完全不随主题切换。现已全部修复：8 处直接改用已有 var()、5 处统一到
  * --font-code、11 处建语义 token 并在 dark/night 覆盖。下面是**硬约束**，恒为 0。
  */
+
+/**
+ * hover 规范存量（2026-11-04 实测）：`any-hover` 与「hover + pointer 混合查询」
+ * 已是 0（硬约束）；裸 `:hover` 还有 75 处 —— 触屏会残留悬停态，需逐步包进
+ * `@media (hover: hover)`，只许降。
+ */
+const BASELINE_BARE_HOVER = 75
+
+/**
+ * 中性实线边框宽于 0.5px 的块数（2026-11-04 实测 178）。dsh `web-styling.md:30`
+ * 要求中性 `--dsw-alias-border-*` 一律 0.5px（Chromium 画成一个设备像素），
+ * 墨白只在新增组件上做到，全站未收敛。设棘轮只许降，不一次改完（178 处视觉面太大）。
+ */
+const BASELINE_WIDE_HAIRLINE = 178
 
 const FULL_ROUND = /^(?:50%|100%|999px|9999px)$/u
 const COLOR_LITERAL = /#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(/u
@@ -172,11 +186,53 @@ const hljsBlocks = blocks.filter((block) => isPaletteBlock(block.selector))
 const rootSheet = sheets.find((sheet) => sheet.file.endsWith('styles.css'))
 const darkHljsRules = (rootSheet?.source.match(/\[data-theme="dark"\][^{]*\.hljs/gu) ?? []).length
 
+/** @media 条件块区间（括号深度匹配），用于判断 `:hover` 是否真被 hover 查询包住。 */
+function mediaBlocksOf(source: string): Array<{ start: number; end: number; condition: string }> {
+  const out: Array<{ start: number; end: number; condition: string }> = []
+  for (const match of source.matchAll(/@media([^{]*)\{/gu)) {
+    const open = (match.index ?? 0) + match[0].length - 1
+    let depth = 1
+    let i = open + 1
+    while (i < source.length && depth > 0) {
+      if (source[i] === '{') depth++
+      else if (source[i] === '}') depth--
+      i++
+    }
+    out.push({ start: open, end: i, condition: match[1] })
+  }
+  return out
+}
+
+const PURE_HOVER_MEDIA = /^\s*\(\s*hover\s*:\s*hover\s*\)\s*$/u
+const hoverStats = sheets.reduce(
+  (acc, sheet) => {
+    const media = mediaBlocksOf(sheet.source)
+    const pureRanges = media.filter((block) => PURE_HOVER_MEDIA.test(block.condition))
+    acc.mixed += media.filter(
+      (block) => /hover/u.test(block.condition) && /pointer|coarse|fine/u.test(block.condition)
+    ).length
+    acc.anyHover += (sheet.source.match(/any-hover/gu) ?? []).length
+    for (const match of sheet.source.matchAll(/:hover\b/gu)) {
+      const at = match.index ?? 0
+      if (!pureRanges.some((range) => at > range.start && at < range.end)) acc.bare += 1
+    }
+    return acc
+  },
+  { bare: 0, mixed: 0, anyHover: 0 }
+)
+
+/** 中性实线边框 >0.5px 的规则块（dsh `web-styling.md:30` 要求 0.5px 发丝线）。 */
+const wideHairlineBlocks = blocks.filter((block) =>
+  [...block.body.matchAll(
+    /border(?:-(?:top|right|bottom|left))?\s*:\s*(\d+(?:\.\d+)?)px\s+solid\s+var\(\s*--(?:border|divider)[^)]*\)/gu
+  )].some((match) => Number(match[1]) > 0.5)
+)
+
 function describeSample(items: CssBlock[]): string {
   return items.slice(0, 8).map((block) => `${block.file} { ${block.selector} }`).join('\n')
 }
 
-describe('样式守卫棘轮（对齐 dsh radius / corner-shape / elevation spec）', () => {
+describe('样式守卫（对齐 dsh radius / corner-shape / elevation / hover / 发丝线 spec）', () => {
   it('扫描范围非空（防止路径写错导致守卫静默通过）', () => {
     expect(files.length).toBeGreaterThanOrEqual(1)
     expect(blocks.length).toBeGreaterThan(200)
@@ -238,6 +294,31 @@ describe('样式守卫棘轮（对齐 dsh radius / corner-shape / elevation spec
     // --item-form-control-max 只在 [data-testid='ceshu-data-overlay'] 作用域定义（1fr），
     // 嵌入态继承不到，必须保留 360px fallback；曾因「全仓见过定义」被批量简化而回归。
     expect(rootSheet?.source).toContain('var(--item-form-control-max, 360px)')
+  })
+
+  it('hover 查询不得用 any-hover 或 hover+pointer 混合条件（硬约束）', () => {
+    expect(
+      hoverStats.anyHover + hoverStats.mixed,
+      `any-hover ${hoverStats.anyHover} 处 / 混合查询 ${hoverStats.mixed} 处。\n` +
+        `按 dsh hover-styles spec：只能单独用 (hover: hover) 或 (hover: none)。`
+    ).toBe(0)
+  })
+
+  it(`裸 :hover 不得超过基线 ${BASELINE_BARE_HOVER}（只许降）`, () => {
+    expect(
+      hoverStats.bare,
+      `${hoverStats.bare} 处 :hover 不在 @media (hover: hover) 内（基线 ${BASELINE_BARE_HOVER}）。\n` +
+        `触屏会残留悬停态；包裹一处就把基线减一。`
+    ).toBeLessThanOrEqual(BASELINE_BARE_HOVER)
+  })
+
+  it(`中性实线边框宽于 0.5px 的块不得超过基线 ${BASELINE_WIDE_HAIRLINE}（只许降）`, () => {
+    expect(
+      wideHairlineBlocks.length,
+      `${wideHairlineBlocks.length} 个块的中性边框不是 0.5px 发丝线（基线 ${BASELINE_WIDE_HAIRLINE}）。\n` +
+        `dsh web-styling.md:30：中性 --border* 一律 0.5px（Chromium 画成一个设备像素）。\n` +
+        `前几个：\n${describeSample(wideHairlineBlocks)}`
+    ).toBeLessThanOrEqual(BASELINE_WIDE_HAIRLINE)
   })
 
   it('dsh 令牌阶梯与新增别名不得被删', () => {
