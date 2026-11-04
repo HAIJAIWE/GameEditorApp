@@ -85,7 +85,25 @@
   --tooltip-bg: #1e293b;
   --tooltip-fg: #bae6fd;
 
-  --radius: 8px;
+  /* dsh 统一圆角阶梯（docs/ui-radius.md）：按用途选档，不写局部字面圆角。
+     R4 小细节 / R8 紧凑控件 / R12 标准控件(H32–40) / R16 大控件与多行 cell /
+     R20 独立内容卡片（引导入口、设置卡片）/ R28 主容器与对话框。
+     --radius 保持为全站既有控件默认档 R8，历史引用零回归。 */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-panel: 28px;
+  --radius: var(--radius-sm);
+
+  /* dsh 发丝线分层：--border 对应 border-l2（常规描边），
+     --border-card 对应 border-l3（独立卡片描边，配 0.5px 发丝线）。 */
+  --border-card: rgba(0, 0, 0, 0.12);
+
+  /* dsh .hero 罗盘水印刻意取纯灰静态斜坡（浅 neutral-200 / 深 neutral-700），
+     不用 --dsw-alias-label-*：bluish 色偏在 56px 线稿上会显出来。 */
+  --watermark-ink: #e5e5e5;
 
   /*
    * 改动卡三色（新建 / 修改 / 删除）。
@@ -97,6 +115,23 @@
   --change-create: #15803d;
   --change-update: #475569;
   --change-delete: #b91c1c;
+}
+
+/* ---- dsh 令牌分层：独立卡片描边 + 罗盘水印纯灰墨，四主题各自解析 ----
+   单独成块，不侵入各主题原有的变量表（那些表对齐的是旧版主题色值）。
+   --border-card 比 --border 深一档；深色档取 dsh 深色 border-l3 的 0.16 白。 */
+[data-theme='dark']  { --border-card: rgba(255, 255, 255, 0.16); --watermark-ink: #3c3c3d; }
+[data-theme='warm']  { --border-card: #ddd6d0; --watermark-ink: #e7e2dd; }
+[data-theme='night'] { --border-card: #3a333c; --watermark-ink: #3c3c3d; }
+
+/* dsh corner-shape.css：支持 superellipse 的引擎上，所有圆角走
+   superellipse(1.5) 平滑曲线（介于圆弧与 squircle 之间）；corner-shape 不继承，
+   故用通配选择器连同伪元素一起下发。不支持的引擎保持普通圆弧 —— 渐进增强、零回归。
+   本表当前无 50%/999px 全圆声明，无需配对 corner-shape: round；日后新增全圆
+   元素须在其自身规则内配对，否则圆会被压成方圆形。 */
+@supports (corner-shape: superellipse(1.5)) {
+  :root { --corner-shape: superellipse(1.5); }
+  *, *::before, *::after { corner-shape: var(--corner-shape); }
 }
 
 /* ---- 深色档覆盖（沿用 :root 的令牌结构；整站换肤无需改任何规则） ---- */
@@ -4641,12 +4676,12 @@ button.ref-row:hover {
   flex: 0 1 10%;
 }
 
-/* 56px 罗盘线稿水印：弱化纯灰墨，四主题安全（不跟随 accent 蓝/绿/橙/紫） */
+/* 56px 罗盘线稿水印：dsh .hero 用纯灰静态斜坡（--watermark-ink），
+   不跟随 accent 蓝/绿/橙/紫，也不叠 opacity（dsh 直接给一档更浅的灰）。 */
 .home-compass {
   display: flex;
   margin-bottom: 16px;
-  color: var(--text-muted);
-  opacity: 0.55;
+  color: var(--watermark-ink);
 }
 
 .home-quick {
@@ -4675,8 +4710,8 @@ button.ref-row:hover {
   max-width: 100%;
   min-height: 56px;
   padding: 14px 20px;
-  border: 0.5px solid var(--border);
-  border-radius: 20px;
+  border: 0.5px solid var(--border-card);
+  border-radius: var(--radius-xl);
   background: var(--bg-panel);
   color: var(--text);
   cursor: pointer;
