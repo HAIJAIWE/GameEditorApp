@@ -4609,7 +4609,146 @@ button.ref-row:hover {
   font-size: calc(13px * var(--ui-font-scale) * 12/13);
 }
 
-/* ---- 策划书首页（W34：卡片视图） ---- */
+/* ---- 策划书首页（dsh 风格「开始」欢迎屏） ---- */
+
+/* 居中容器：hero + 快捷操作 + 最近 + 全部策划书，整列居中、限宽 */
+.home-shell {
+  width: 100%;
+  max-width: 880px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding: 24px 0 40px;
+}
+
+/* 欢迎 hero：居中品牌区（对齐 dsh 开始屏） */
+.home-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+  padding: 12px 0 4px;
+}
+
+.home-hero-mark {
+  width: 84px;
+  height: 84px;
+  border-radius: 24px;
+  display: grid;
+  place-items: center;
+  background: var(--accent-bg);
+  color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--border);
+  margin-bottom: 4px;
+}
+
+.home-hero-title {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--text);
+}
+
+.home-hero-tagline {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+/* 快捷操作：dsh 风格竖向大圆角动作卡片 */
+.home-quick {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.home-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.home-action-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg-panel);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.05s ease;
+}
+
+.home-action-card:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--bg-hover);
+}
+
+.home-action-card:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+/* 主操作：左侧 accent 条 + accent 描边（主题安全，避免白字配浅色 accent 的对比问题） */
+.home-action-card.primary {
+  border-color: var(--accent);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.home-action-icon {
+  flex: 0 0 auto;
+  color: var(--accent);
+}
+
+.home-action-label {
+  flex: 1 1 auto;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.home-action-chevron {
+  flex: 0 0 auto;
+  color: var(--text-muted);
+}
+
+/* 内联的复制 / 复刻表单：缩进到动作卡下方 */
+.home-quick .home-copy-picker {
+  margin: 0 0 0 6px;
+}
+
+/* 最近打开 */
+.home-recent {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.home-recent-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* 全部策划书 */
+.home-library {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.home-library-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
 
 .home-search {
   width: 100%;
@@ -4629,14 +4768,6 @@ button.ref-row:hover {
   width: auto;
   min-width: 0;
   margin: 0;
-}
-
-.home-recent {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 8px;
 }
 
 .home-section-label {
