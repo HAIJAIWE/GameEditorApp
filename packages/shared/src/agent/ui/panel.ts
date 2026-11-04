@@ -177,6 +177,9 @@ export function reduceBrainEvent(state: DigitalPanelState, event: BrainEvent): D
     }
     case 'stream_chunk':
       return { ...state, streaming: state.streaming + event.text }
+    case 'stream_reset':
+      // 重试前的清屏：不改变消息与状态，只把本轮流出的半截文本抹掉
+      return { ...state, streaming: '' }
     case 'stream_done':
       return { ...state, streaming: event.fullText }
     case 'approval_required':

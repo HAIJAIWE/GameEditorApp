@@ -65,6 +65,26 @@ import { isAbortError } from '../../abort'
 /** 子智能体并发上限（对齐 dsh `maxActiveSubagents` 默认 8） */
 const MAX_ACTIVE_SUBAGENTS = 8
 
+/**
+ * 模型请求重试（对齐 dsh `llm/llm-retry` 的「同 step 重放」）。
+ *
+ * 解决的问题：一次瞬时网络抖动（ECONNRESET / 5xx / 超时）就让整轮对话中断，
+ * 用户得重新发一遍。重试用**同样的 messages 再问一次**，不产生重复的 user 消息。
+ *
+ * 只重试「网络层抖动」；4xx / 鉴权 / 参数错误重试只是浪费时间和配额，直接失败。
+ * 取消与墙钟超时一律不重试 —— 那是用户意图，不是故障。
+ */
+const MAX_TRANSPORT_RETRIES = 2
+const TRANSPORT_RETRY_BASE_MS = 800
+
+/** 白名单判断：宁可漏判（不重试），也不误重试 4xx */
+function isRetryableTransportError(error: unknown): boolean {
+  const text = error instanceof Error ? `${error.name} ${error.message}` : String(error)
+  return /ECONNRESET|ETIMEDOUT|EPIPE|ENOTFOUND|EAI_AGAIN|socket hang up|fetch failed|network error|timed out|timeout|\b50[0-9]\b/iu.test(
+    text
+  )
+}
+
 /** 进程内收件箱（简单队列；dsh inbox 的最小实现） */
 function createInbox(): BrainInbox {
   const queue: string[] = []
@@ -389,6 +409,46 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
     return true
   }
 
+  /**
+   * 带指数退避的模型调用：**同 step 重放**（messages 原样再问一次）。
+   * 重试前先发 `stream_reset` 清掉本轮已流出的半截文本 —— 否则 UI 会看到
+   * 「旧前半段 + 新前半段」叠在一起，直到 `stream_done` 才被全文覆盖。
+   */
+  const maxRetries = options.transportRetry?.maxRetries ?? MAX_TRANSPORT_RETRIES
+  const retryBaseMs = options.transportRetry?.baseDelayMs ?? TRANSPORT_RETRY_BASE_MS
+
+  const completeWithRetry = async (
+    request: Parameters<typeof transport.complete>[0]
+  ): Promise<Awaited<ReturnType<typeof transport.complete>>> => {
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        return await transport.complete(request)
+      } catch (error) {
+        if (controller.signal.aborted || isAbortError(error)) throw error
+        if (attempt >= maxRetries || !isRetryableTransportError(error)) throw error
+
+        const delay = retryBaseMs * 2 ** attempt
+        emit({ type: 'stream_reset' })
+        console.warn(
+          `[brain] 模型请求失败，${delay}ms 后重试（第 ${attempt + 1}/${maxRetries} 次）：`,
+          error instanceof Error ? error.message : String(error)
+        )
+        // 退避期间也要能被取消：abort 立即 resolve，下一轮 transport 调用会抛 abort
+        await new Promise<void>((resolve) => {
+          const timer = setTimeout(resolve, delay)
+          controller.signal.addEventListener(
+            'abort',
+            () => {
+              clearTimeout(timer)
+              resolve()
+            },
+            { once: true }
+          )
+        })
+      }
+    }
+  }
+
   const runTool = async (
     call: { id: string; name: string; arguments: Record<string, unknown> },
     resolved: string,
@@ -492,7 +552,7 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
           }, budget)
         : undefined
     try {
-      reply = await transport.complete({
+      reply = await completeWithRetry({
         messages: [...messages],
         tools,
         signal: controller.signal,

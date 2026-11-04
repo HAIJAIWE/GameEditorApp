@@ -33,6 +33,14 @@ export type BrainStopReason =
 export type BrainEvent =
   | { type: 'step_start'; order: number; tool: string }
   | { type: 'stream_chunk'; text: string }
+  /**
+   * 清空本轮已流出的文本（重试前发）。
+   *
+   * 为什么需要：模型请求失败后重试是**同 step 重放**，最终 `stream_done` 会用全文覆盖，
+   * 但重试**进行中** UI 会看到「旧前半段 + 新前半段」叠着。发出本事件让消费方清空，
+   * 用户看到的是「正在重试」，而不是一段越来越乱的字。
+   */
+  | { type: 'stream_reset' }
   | { type: 'stream_done'; fullText: string }
   | {
       type: 'approval_required'
@@ -279,6 +287,11 @@ export interface RunBrainLoopOptions {
    * 未提供则退化为「只在内存里」——与本轮改动前行为一致。
    */
   subagentLedger?: SubagentLedgerPort
+  /**
+   * 模型请求重试参数（缺省 2 次 / 800ms 起指数退避）。
+   * 可注入是为了**可测**：测试传 `baseDelayMs: 0` 就不用真的等 1.6 秒。
+   */
+  transportRetry?: { maxRetries?: number; baseDelayMs?: number }
   /** 审批请求 id 生成器（默认进程内自增；测试可注入确定性实现） */
   newRequestId?: () => string
   /** 等待用户答复的超时（毫秒）；超时按「未确认/未答复」处理，0 表示不超时 */

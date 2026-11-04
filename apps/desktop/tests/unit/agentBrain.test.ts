@@ -1751,3 +1751,72 @@ describe('runBrainLoop：spill（超长工具结果落盘）', () => {
     expect(doneResult.length).toBeLessThan(5000)
   })
 })
+
+/**
+ * 模型请求重试（对齐 dsh `llm/llm-retry` 的同 step 重放）。
+ *
+ * 守两件事：**网络抖动不该中断整轮**；**重放不是重发**（user 消息不能变两份）。
+ * 另守一条边界：4xx / 鉴权错误不重试，否则只是浪费配额。
+ */
+describe('模型请求重试', () => {
+  /** 前 `failures` 次抛错，之后返回 FINAL */
+  function flaky(failures: number, error: Error) {
+    let attempts = 0
+    const transport: BrainLlmTransport = {
+      complete: async () => {
+        attempts += 1
+        if (attempts <= failures) throw error
+        return FINAL
+      }
+    }
+    return { transport, attempts: () => attempts }
+  }
+
+  it('瞬时网络错误重试后成功，user 消息不重复', async () => {
+    const { transport, attempts } = flaky(1, new Error('read ECONNRESET'))
+    const result = await runBrainLoop({
+      input: '你好',
+      systemPrompts: [],
+      transport,
+      runner: makeRunner(),
+      transportRetry: { baseDelayMs: 0 }
+    })
+
+    expect(attempts()).toBe(2)
+    expect(result.completed).toBe(true)
+    // 重放不是重发：user 消息只有一条
+    expect(result.messages.filter((message) => message.role === 'user')).toHaveLength(1)
+    // 重试前清过屏，否则 UI 会看到两段半截文本叠加
+    expect(types(result.events)).toContain('stream_reset')
+  })
+
+  it('4xx / 鉴权错误不重试，立即失败', async () => {
+    const { transport, attempts } = flaky(99, new Error('401 Unauthorized'))
+    const result = await runBrainLoop({
+      input: '你好',
+      systemPrompts: [],
+      transport,
+      runner: makeRunner(),
+      transportRetry: { baseDelayMs: 0 }
+    })
+
+    expect(attempts()).toBe(1)
+    expect(result.completed).toBe(false)
+    expect(result.stopReason).toBe('transport_error')
+  })
+
+  it('重试耗尽后仍报 transport_error（1 + maxRetries 次尝试）', async () => {
+    const { transport, attempts } = flaky(99, new Error('connect ETIMEDOUT'))
+    const result = await runBrainLoop({
+      input: '你好',
+      systemPrompts: [],
+      transport,
+      runner: makeRunner(),
+      transportRetry: { maxRetries: 2, baseDelayMs: 0 }
+    })
+
+    expect(attempts()).toBe(3)
+    expect(result.completed).toBe(false)
+    expect(result.stopReason).toBe('transport_error')
+  })
+})
