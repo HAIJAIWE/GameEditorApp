@@ -30,6 +30,8 @@ export interface MbApi {
     subagentSend(req: IpcContract['agent:subagentSend']['req']): Promise<IpcContract['agent:subagentSend']['res']>
     /** 单独停止某个运行中的子智能体（不牵连父循环） */
     subagentStop(req: IpcContract['agent:subagentStop']['req']): Promise<IpcContract['agent:subagentStop']['res']>
+    /** 子智能体账本（跨轮冷恢复）：新→旧；`interrupted` 表示上一条命里没跑完 */
+    subagentLedger(): Promise<IpcContract['agent:subagentLedger']['res']>
     /** 后台任务列表（跨轮历史；运行中优先） */
     jobList(): Promise<IpcContract['agent:jobList']['res']>
     /** 按跨轮唯一 jobId 取消后台任务 */

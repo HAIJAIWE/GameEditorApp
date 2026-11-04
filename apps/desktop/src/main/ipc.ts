@@ -44,6 +44,7 @@ export interface IpcHandlerDeps {
   agentFeedback: import('@mobai/agent-core/store/preferenceStore').FeedbackStore
   agentOperationLog: import('@mobai/agent-core/store/operationLogStore').OperationLogStore
   agentDeliveryLog: import('@mobai/agent-core/store/deliveryLogStore').DeliveryLogStore
+  agentSubagentLedger: import('@mobai/agent-core/store/subagentLedgerStore').SubagentLedgerStore
   approvalBroker: import('@mobai/agent-core/execution/approvalBroker').AgentApprovalBroker
   libraryManager: import('./library/manager').LibraryManager
   /**

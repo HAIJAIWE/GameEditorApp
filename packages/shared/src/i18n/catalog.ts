@@ -713,6 +713,8 @@ export const zh = {
   'trajectory.detail.output': '输出',
   'trajectory.truncated': '…（已截断）',
   // 团队
+  'agentTeam.interruptedTitle': '上次中断的子任务',
+  'agentTeam.interruptedHint': '应用退出时没跑完（记录已保留）',
   'agentTeam.mainTitle': '主对话',
   'agentTeam.status': '状态',
   'agentTeam.messages': '消息',
@@ -2875,6 +2877,8 @@ export const en: Record<MessageKey, string> = {
   'trajectory.detail.output': 'Output',
   'trajectory.truncated': '…(truncated)',
   // Team
+  'agentTeam.interruptedTitle': 'Interrupted subagents',
+  'agentTeam.interruptedHint': 'Exited before finishing (record kept)',
   'agentTeam.mainTitle': 'Main conversation',
   'agentTeam.status': 'Status',
   'agentTeam.messages': 'Messages',

@@ -1,6 +1,7 @@
-import { useMemo, useSyncExternalStore } from 'react'
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 
 import { useT } from '@mobai/client-ui'
+import type { SubagentRecord } from '@mobai/shared/agent/brain'
 import { CONVERSATION_STORE_KEY, createConversationStoreDecl } from '@mobai/shared/agent/conversation'
 import type { DigitalPanelState } from '@mobai/shared/agent/ui'
 import type { MessageKey } from '@mobai/shared/i18n'
@@ -24,6 +25,34 @@ export function AgentTeamSection({ host }: { host: PluginHost }) {
   const subagents = useSyncExternalStore(subscribeSubagents, getSubagentsSnapshot)
   const running = subagents.filter((sub) => sub.status === 'running')
 
+  /**
+   * 跨轮冷恢复：读账本里被中断的子任务（上个进程退出时没跑完的）。
+   * 挂载时读一次即可 —— 账本只由 loop 埋点写入，本页不产生新记录。
+   * 读失败一律忽略：账本是可观测性设施，不能让整个分区因此空白。
+   */
+  const [interrupted, setInterrupted] = useState<SubagentRecord[]>([])
+  useEffect(() => {
+    // 账本通道由 preload 注入。单测（jsdom 无 mbApi）与未来的 Web 宿主都可能没有 ——
+    // 缺了就静默跳过，不让一个可观测性分区把整页拖空。
+    type LedgerBridge = {
+      agent?: { subagentLedger?: () => Promise<{ records: SubagentRecord[] }> }
+    }
+    const ledger = (window.mbApi as unknown as LedgerBridge | undefined)?.agent?.subagentLedger
+    if (typeof ledger !== 'function') return
+
+    let cancelled = false
+    void ledger()
+      .then((result) => {
+        if (cancelled) return
+        const records = Array.isArray(result?.records) ? result.records : []
+        setInterrupted(records.filter((record) => record.status === 'interrupted'))
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   // 根级 store：与智能体面板同源；宿主未声明时退回本地实例（页面不至于整块空白）
   const conversationStore = useMemo(
     () =>
@@ -38,6 +67,24 @@ export function AgentTeamSection({ host }: { host: PluginHost }) {
 
   return (
     <div className="agent-team">
+      {interrupted.length > 0 && (
+        <section className="agent-team-interrupted" data-testid="agent-team-interrupted">
+          <h3>{t('agentTeam.interruptedTitle')}</h3>
+          <ul className="agent-team-list">
+            {interrupted.map((record) => (
+              <li
+                className="agent-team-card"
+                key={record.id}
+                data-testid="agent-team-interrupted-item"
+              >
+                <span className="agent-team-task">{record.task}</span>
+                <span className="agent-team-count">{t('agentTeam.interruptedHint')}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <section className="agent-team-conversation" data-testid="agent-team-conversation">
         <h3>{t('agentTeam.mainTitle')}</h3>
         <dl className="agent-team-facts">

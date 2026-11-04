@@ -26,11 +26,16 @@ import type { AgentInteractionAnswer } from '@mobai/agent-core/execution/approva
 import { withTask } from '../task/taskRegistry'
 
 export function registerAgentIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm: LlmShared): void {
-  const { agentDispatcher, agentBrain, approvalBroker, agentSessionStore, agentFeedback, agentOperationLog, agentDeliveryLog } = deps
+  const { agentDispatcher, agentBrain, approvalBroker, agentSessionStore, agentFeedback, agentOperationLog, agentDeliveryLog, agentSubagentLedger } = deps
   // Agent 技能调度：listTools 供提示词/面板展示，executeTool 走统一调度与安全门
   handle('agent:listTools', undefined, () => ({
     description: agentDispatcher.toolsDescription(),
     tools: agentDispatcher.toolsJsonSchema()
+  }))
+  // 子智能体账本（跨轮冷恢复）：只读最近记录，新→旧。
+  // `interrupted` 由 main 启动时 reconcile 标记，面板据此提示「上次没跑完」。
+  handle('agent:subagentLedger', undefined, () => ({
+    records: agentSubagentLedger.list()
   }))
   handle('agent:executeTool', agentExecuteToolInputSchema, (req) =>
     agentDispatcher.execute(req.tool, req.params, {})

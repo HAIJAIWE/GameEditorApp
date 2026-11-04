@@ -7,7 +7,7 @@ import {
   createConversationStoreDecl
 } from '@mobai/shared/agent/conversation'
 import { PluginHost } from '@mobai/shared/plugin/host'
-import { renderDom } from './render'
+import { installMbApi, renderDom } from './render'
 
 /**
  * 「会话」页签的主对话摘要分区：读根级 store `conversation.state`。
@@ -56,5 +56,47 @@ describe('会话 · 主对话摘要', () => {
     expect(text).toHaveLength(121) // 120 字 + 省略号
     expect(text.endsWith('…')).toBe(true)
     await result.cleanup()
+  })
+})
+
+describe('会话 · 跨轮冷恢复（子智能体账本）', () => {
+  it('账本里有 interrupted 记录时显示任务描述', async () => {
+    const api = installMbApi({
+      overrides: {
+        'agent.subagentLedger': () => ({
+          records: [
+            {
+              id: 'sub_1',
+              task: '调研竞品定价',
+              status: 'interrupted',
+              startedAt: 1000,
+              endedAt: 2000
+            }
+          ]
+        })
+      }
+    })
+    try {
+      const result = await renderTeam(new PluginHost())
+      await result.flush()
+      expect(result.byTestId('agent-team-interrupted').textContent).toContain('调研竞品定价')
+      await result.cleanup()
+    } finally {
+      api.restore()
+    }
+  })
+
+  it('完全没有记录时不渲染该分区（避免首屏噪音）', async () => {
+    const api = installMbApi({
+      overrides: { 'agent.subagentLedger': () => ({ records: [] }) }
+    })
+    try {
+      const result = await renderTeam(new PluginHost())
+      await result.flush()
+      expect(result.query('[data-testid="agent-team-interrupted"]')).toBeNull()
+      await result.cleanup()
+    } finally {
+      api.restore()
+    }
   })
 })

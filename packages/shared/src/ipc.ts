@@ -142,7 +142,7 @@ import type {
 } from './types'
 import type { ChapterKey, CeshuDocument, CeshuExportResult, CeshuSummary } from './ceshu/reference'
 import type { FieldAction } from './ceshu/fields'
-import type { BrainEvent } from './agent/brain'
+import type { BrainEvent, SubagentRecord } from './agent/brain'
 import type { AgentRunStats } from './agent/observability'
 import type { DraftSummary, SessionInfo, SessionTurnSummary } from './agent/conversation'
 import type { OperationRecord } from './agent/observability'
@@ -377,6 +377,12 @@ export interface IpcContract {
   'agent:subagentSend': { req: AgentSubagentSendInput; res: { ok: boolean } }
   /** 单独停止某个运行中的子智能体（不牵连父循环） */
   'agent:subagentStop': { req: AgentSubagentStopInput; res: { ok: boolean } }
+  /**
+   * 子智能体账本（跨轮冷恢复）：最近若干条记录，新→旧。
+   * `interrupted` 表示「上一条命里没跑完」——进程退出时运行态只在内存里，
+   * 重启后由 main 侧 reconcile 标记，面板据此提示。
+   */
+  'agent:subagentLedger': { req: undefined; res: { records: SubagentRecord[] } }
   /** 后台任务列表（跨轮历史；运行中优先）——面板「后台任务」区读取 */
   'agent:jobList': { req: undefined; res: { jobs: JobRecord[] } }
   /** 按跨轮唯一 jobId 取消后台任务 */

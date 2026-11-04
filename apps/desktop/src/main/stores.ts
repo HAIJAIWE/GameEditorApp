@@ -68,7 +68,10 @@ import { AgentBrainService, createDispatcherToolRunner } from '@mobai/agent-core
 import { readProjectInstructions } from '@mobai/agent-core/agentService/projectInstructions'
 import { OperationLogStore } from '@mobai/agent-core/store/operationLogStore'
 import { DeliveryLogStore } from '@mobai/agent-core/store/deliveryLogStore'
-import { createSubagentLedgerStore } from '@mobai/agent-core/store/subagentLedgerStore'
+import {
+  createSubagentLedgerStore,
+  type SubagentLedgerStore
+} from '@mobai/agent-core/store/subagentLedgerStore'
 import { createRecordingToolRunner } from '@mobai/agent-core/ops/operationRecorder'
 import { createRollbackSkill } from '@mobai/agent-core/skills/rollbackSkill'
 import { createSessionSearchSkill } from '@mobai/agent-core/skills/sessionSearchSkill'
@@ -148,6 +151,8 @@ export interface AppStores {
   agentOperationLog: OperationLogStore
   /** 交付日志（Agent 显式交付的文件，供对话内联交付卡） */
   agentDeliveryLog: DeliveryLogStore
+  /** 子智能体账本（跨轮冷恢复）：冷启动已对账，IPC 只读 */
+  agentSubagentLedger: SubagentLedgerStore
   approvalBroker: AgentApprovalBroker
   llmClient: LlmClient
 }
@@ -307,6 +312,8 @@ export function buildStores(libDir: string): AppStores {
       ...(process.env.MB_SANDBOX_POLICY === 'read-only' ? { sandboxPolicy: 'read-only' as const } : {})
     }),
     agentSessionStore: sessionStore,
+    /** 子智能体账本（跨轮冷恢复）：IPC `agent:subagentLedger` 读它 */
+    agentSubagentLedger: subagentLedger,
     agentPreferences: personalization.preferences,
     agentFeedback: personalization.feedback,
     agentOperationLog: operationLog,
