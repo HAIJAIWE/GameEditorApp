@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest'
 
 import {
   APP_SHORTCUTS,
-  APP_SHORTCUTS_STATUS_TEXT,
+  SHORTCUT_CATALOG,
   matchShortcut,
+  shortcutsStatusText,
   type ShortcutAction
 } from '@mobai/shared/util/ui'
 
@@ -17,7 +18,7 @@ import {
  * 现在三处都从清单派生，没有任何一处手写键位：
  * - **实现**：`App.tsx` 的 keydown effect 调 `matchShortcut(event)`，按返回的 action 派发
  *   （本文件直接断言 `matchShortcut` 的输入/输出，不碰源码文本）；
- * - **状态栏**：渲染 `APP_SHORTCUTS_STATUS_TEXT`（本文件断言它由清单派生的结果）；
+ * - **状态栏**：渲染 `shortcutsStatusText(t)`（本文件断言它由清单 primary 条目派生）；
  * - **参考面板**：遍历 `APP_SHORTCUTS`。
  *
  * 于是「面板说有、按了没反应」这类漂移不再需要测试去比对两份文本 —— 只剩一份。
@@ -85,11 +86,12 @@ describe('快捷键清单（shared/util/ui/shortcuts.ts）', () => {
     expect(APP_SHORTCUTS).toHaveLength(3)
   })
 
-  it('字段完整：每条都有键 / 动作 / 说明', () => {
+  it('字段完整：每条都有键 / 动作 / 字典键', () => {
     for (const shortcut of APP_SHORTCUTS) {
       expect(shortcut.keys, '快捷键缺 keys').not.toBe('')
       expect(['undo', 'redo'], `快捷键 ${shortcut.keys} 的 action 越界`).toContain(shortcut.action)
-      expect(shortcut.description, `快捷键 ${shortcut.keys} 缺 description`).not.toBe('')
+      // 文案走字典而不是写死中文：这样切英文时状态栏与面板都会跟随
+      expect(shortcut.labelKey, `快捷键 ${shortcut.keys} 缺 labelKey`).not.toBe('')
     }
   })
 
@@ -122,7 +124,25 @@ describe('快捷键清单（shared/util/ui/shortcuts.ts）', () => {
     expect(primaries.map((s) => s.action).sort()).toEqual([...actions].sort())
   })
 
-  it('状态栏提示由清单派生，渲染文本保持原样', () => {
-    expect(APP_SHORTCUTS_STATUS_TEXT).toBe('Ctrl+Z 撤销 · Ctrl+Y 重做')
+  it('状态栏提示由清单 primary 条目派生（键位来自清单、文案走字典）', () => {
+    // 用「原样返回键名」的假 t：断言结构与顺序，不把中文文案焊死在测试里
+    expect(shortcutsStatusText((key) => key)).toBe(
+      'Ctrl+Z agent.shortcut.undo · Ctrl+Y agent.shortcut.redo'
+    )
   })
+})
+
+describe('全量清单（SHORTCUT_CATALOG，合并后的唯一事实源）', () => {
+  it('id 唯一，两个分组都存在', () => {
+    const ids = SHORTCUT_CATALOG.map((entry) => entry.id)
+    expect(new Set(ids).size).toBe(ids.length)
+    expect(new Set(SHORTCUT_CATALOG.map((entry) => entry.group))).toEqual(
+      new Set(['composer', 'app'])
+    )
+  })
+
+  it('APP_SHORTCUTS 是 catalog 里带 action 的派生视图（不是第二份清单）', () => {
+    expect(APP_SHORTCUTS).toEqual(SHORTCUT_CATALOG.filter((entry) => entry.action !== undefined))
+  })
+
 })

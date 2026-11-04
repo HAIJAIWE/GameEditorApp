@@ -367,7 +367,8 @@ export const zh = {
   'agent.shortcut.close': '关闭菜单 / 弹层',
   'agent.shortcut.sidebar': '切换侧栏',
   'agent.shortcut.undo': '撤销',
-  'agent.shortcut.redo': '重做（或 Ctrl + Y）',
+  // 键位由清单 + 键帽展示，文案里不再重复（否则弹窗会显示「重做（或 Ctrl + Y）Ctrl+Shift+Z」）
+  'agent.shortcut.redo': '重做',
 
   // —— 智能体面板：字段动作条 ——
   'agent.field.aiDraft': 'AI 草稿',
@@ -2530,7 +2531,7 @@ export const en: Record<MessageKey, string> = {
   'agent.shortcut.close': 'Close menu / popover',
   'agent.shortcut.sidebar': 'Toggle sidebar',
   'agent.shortcut.undo': 'Undo',
-  'agent.shortcut.redo': 'Redo (or Ctrl + Y)',
+  'agent.shortcut.redo': 'Redo',
 
   // —— Agent panel: field action strip ——
   'agent.field.aiDraft': 'AI draft',

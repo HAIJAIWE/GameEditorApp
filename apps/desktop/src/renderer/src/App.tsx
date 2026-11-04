@@ -18,7 +18,7 @@ import {
 } from '@mobai/shared/i18n'
 
 import { type PreviewJumpTarget } from './components/ceshu'
-import { APP_SHORTCUTS_STATUS_TEXT, matchShortcut } from '@mobai/shared/util/ui'
+import { matchShortcut, shortcutsStatusText } from '@mobai/shared/util/ui'
 import { SlotOutlet } from './plugins/host'
 import { defineDigitalPanelPlugin } from './plugins/session'
 import { MenuBar } from './components/layout'
@@ -817,7 +817,7 @@ export default function App() {
               —— 照抄提示文案等于给一个按了没反应的键做广告，故省。
             */}
             <span className="statusbar-hint" data-testid="statusbar-shortcuts">
-              {APP_SHORTCUTS_STATUS_TEXT}
+              {shortcutsStatusText(t)}
             </span>
           </footer>
         </div>

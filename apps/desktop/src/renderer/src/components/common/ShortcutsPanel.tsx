@@ -39,10 +39,10 @@ export default function ShortcutsPanel() {
             </thead>
             <tbody>
               {APP_SHORTCUTS.map((shortcut) => (
-                <tr key={shortcut.keys} data-testid="shortcuts-row">
+                <tr key={shortcut.id} data-testid="shortcuts-row">
                   <td>{shortcut.keys}</td>
                   <td>{shortcut.action}</td>
-                  <td>{shortcut.description}</td>
+                  <td>{t(shortcut.labelKey)}</td>
                 </tr>
               ))}
             </tbody>

@@ -2,8 +2,8 @@ import { useEffect, useRef, useState, type ReactElement } from 'react'
 
 import { useT } from '@mobai/client-ui'
 import type { MessageKey } from '@mobai/shared/i18n'
+import { SHORTCUT_CATALOG, type ShortcutEntry } from '@mobai/shared/util/ui'
 import { LucideIcon } from '../../common'
-import { SHORTCUTS, type ShortcutEntry } from './shortcutsData'
 
 /**
  * 键盘快捷键参考弹窗（对齐 dsh `ui-shortcuts` 的**只读子集**）。
@@ -41,8 +41,8 @@ export function ShortcutsDialog({ onClose }: { onClose: () => void }): ReactElem
   const normalized = query.trim().toLowerCase()
   const matches =
     normalized === ''
-      ? SHORTCUTS
-      : SHORTCUTS.filter(
+      ? SHORTCUT_CATALOG
+      : SHORTCUT_CATALOG.filter(
           (shortcut) =>
             t(shortcut.labelKey).toLowerCase().includes(normalized) ||
             shortcut.keys.toLowerCase().includes(normalized)

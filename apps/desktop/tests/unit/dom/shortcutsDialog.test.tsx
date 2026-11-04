@@ -15,7 +15,7 @@ describe('键盘快捷键弹窗', () => {
     expect(rows.length).toBeGreaterThanOrEqual(8)
     expect(rendered.text()).toContain('发送消息')
     expect(rendered.text()).toContain('切换侧栏')
-    expect(rendered.text()).toContain('Ctrl + Z')
+    expect(rendered.text()).toContain('Ctrl+Z')
     await rendered.cleanup()
   })
 
@@ -23,7 +23,7 @@ describe('键盘快捷键弹窗', () => {
     const rendered = await renderDom(<ShortcutsDialog onClose={() => undefined} />)
     const search = rendered.byTestId('digital-shortcuts-search')
 
-    await rendered.change(search, 'Ctrl + Z')
+    await rendered.change(search, 'Ctrl+Z')
     const rows = rendered.queryAll('[data-testid="digital-shortcut-row"]')
     expect(rows).toHaveLength(1)
     expect(rows[0]?.textContent).toContain('撤销')

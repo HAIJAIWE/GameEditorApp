@@ -21,8 +21,10 @@
 export type { ChatMarkdownProps } from './chat/ChatMarkdown'
 export { default as ChatMarkdown } from './chat/ChatMarkdown'
 export { DropOverlay } from './dragdrop/DropOverlay'
-export { SHORTCUTS } from './commands/shortcutsData'
-export type { ShortcutEntry } from './commands/shortcutsData'
+// 快捷键清单已合并到 shared 的单一事实源（`SHORTCUT_CATALOG`）。
+// 这里保留旧名 re-export，避免既有 `from '.../digital'` 的调用点被迫改动。
+export { SHORTCUT_CATALOG as SHORTCUTS } from '@mobai/shared/util/ui'
+export type { ShortcutEntry } from '@mobai/shared/util/ui'
 export { useAttachmentImage } from './attachments/useAttachmentImage'
 export { DigitalChangeCard, DigitalChangeList, formatTime } from './cards/DigitalChangeCard'
 export { DigitalDeliveryCard } from './cards/DigitalDeliveryCard'
