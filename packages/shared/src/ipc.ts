@@ -383,6 +383,11 @@ export interface IpcContract {
    * 重启后由 main 侧 reconcile 标记，面板据此提示。
    */
   'agent:subagentLedger': { req: undefined; res: { records: SubagentRecord[] } }
+  /**
+   * 运行中插话（对齐 dsh Steer）：把补充指令投进当前轮次的收件箱。
+   * 没有活跃轮次时 `accepted: false`，调用方应改走正常 `agent:chat`。
+   */
+  'agent:steer': { req: { text: string }; res: { accepted: boolean } }
   /** 后台任务列表（跨轮历史；运行中优先）——面板「后台任务」区读取 */
   'agent:jobList': { req: undefined; res: { jobs: JobRecord[] } }
   /** 按跨轮唯一 jobId 取消后台任务 */

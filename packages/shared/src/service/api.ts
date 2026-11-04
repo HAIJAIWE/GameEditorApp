@@ -32,6 +32,8 @@ export interface MbApi {
     subagentStop(req: IpcContract['agent:subagentStop']['req']): Promise<IpcContract['agent:subagentStop']['res']>
     /** 子智能体账本（跨轮冷恢复）：新→旧；`interrupted` 表示上一条命里没跑完 */
     subagentLedger(): Promise<IpcContract['agent:subagentLedger']['res']>
+    /** 运行中插话（dsh Steer）：有活跃轮次时投进收件箱，否则 `accepted: false` */
+    steer(req: IpcContract['agent:steer']['req']): Promise<IpcContract['agent:steer']['res']>
     /** 后台任务列表（跨轮历史；运行中优先） */
     jobList(): Promise<IpcContract['agent:jobList']['res']>
     /** 按跨轮唯一 jobId 取消后台任务 */

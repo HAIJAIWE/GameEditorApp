@@ -40,6 +40,7 @@ const api: MbApi = {
     subagentSend: (req) => invoke('agent:subagentSend', req),
     subagentStop: (req) => invoke('agent:subagentStop', req),
     subagentLedger: () => invoke('agent:subagentLedger', undefined),
+    steer: (req) => invoke('agent:steer', req),
     jobList: () => invoke('agent:jobList', undefined),
     jobCancel: (req) => invoke('agent:jobCancel', req),
     getWorkspace: () => invoke('agent:getWorkspace', undefined),

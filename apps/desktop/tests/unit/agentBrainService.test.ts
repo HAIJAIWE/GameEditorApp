@@ -534,3 +534,24 @@ describe('AgentBrainService：子智能体注册表（继续对话）', () => {
     expect(service.stopSubagent('nope')).toBe(false)
   })
 })
+
+/**
+ * 主会话插话（对齐 dsh Steer）：`steer()` 只在 `chat()` 执行期间有效。
+ *
+ * 守的是**生命周期**而不是时序：空闲时和一轮结束后都必须返回 false —— 否则消息
+ * 会被推进一个没人 drain 的收件箱（死信箱），用户以为发了、agent 永远看不到。
+ */
+describe('运行中插话（steer）', () => {
+  it('没有活跃轮次时返回 false（不吞消息）', () => {
+    const { transport } = spawnThenFinalTransport()
+    const service = new AgentBrainService({ dispatcher: makeDispatcher(), transport })
+    expect(service.steer('补充指令')).toBe(false)
+  })
+
+  it('一轮结束后关闭通道：steer 返回 false', async () => {
+    const { transport } = spawnThenFinalTransport()
+    const service = new AgentBrainService({ dispatcher: makeDispatcher(), transport })
+    await service.chat('你好')
+    expect(service.steer('迟到的补充')).toBe(false)
+  })
+})

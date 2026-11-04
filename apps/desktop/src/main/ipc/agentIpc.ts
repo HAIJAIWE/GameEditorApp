@@ -13,6 +13,7 @@ import {
   agentDraftSaveInputSchema,
   agentRecentChangesInputSchema,
   agentDeliveriesInputSchema,
+  agentSteerInputSchema,
   agentSubagentSendInputSchema,
   agentSubagentStopInputSchema,
   agentJobCancelInputSchema,
@@ -36,6 +37,11 @@ export function registerAgentIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
   // `interrupted` 由 main 启动时 reconcile 标记，面板据此提示「上次没跑完」。
   handle('agent:subagentLedger', undefined, () => ({
     records: agentSubagentLedger.list()
+  }))
+  // 运行中插话（dsh Steer）：投进当前轮次收件箱，下一轮 LLM 调用前注入为 user 消息。
+  // 没有活跃轮次时返回 accepted=false，渲染层据此改走正常发送。
+  handle('agent:steer', agentSteerInputSchema, (req) => ({
+    accepted: agentBrain.steer(req.text)
   }))
   handle('agent:executeTool', agentExecuteToolInputSchema, (req) =>
     agentDispatcher.execute(req.tool, req.params, {})

@@ -86,7 +86,14 @@ function isRetryableTransportError(error: unknown): boolean {
 }
 
 /** 进程内收件箱（简单队列；dsh inbox 的最小实现） */
-function createInbox(): BrainInbox {
+/**
+ * 运行中收件箱（dsh inbox / Steer 的载体）。
+ *
+ * 宿主在每轮 `chat` 时建一个、传给 `runBrainLoop`，并保留句柄：
+ * 用户在 agent 跑长任务时发的消息经它 `push`，循环在每个 LLM 调用前 `drain`，
+ * 注入为 user 消息 —— 无需中断当前轮，也无需用户「取消再重发」。
+ */
+export function createInbox(): BrainInbox {
   const queue: string[] = []
   return {
     push: (content: string): void => {

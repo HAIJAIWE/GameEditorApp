@@ -52,4 +52,4 @@ export type {
   SubagentStatus
 } from './subagents'
 export { clipToolResult, maybeResetContext, maybeResetContextAsync, safeRunEvaluator } from './context'
-export { runBrainLoop } from './loop'
+export { createInbox, runBrainLoop } from './loop'

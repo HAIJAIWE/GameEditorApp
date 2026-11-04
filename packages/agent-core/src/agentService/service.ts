@@ -10,6 +10,7 @@
 import { readFile } from 'node:fs/promises'
 
 import {
+  createInbox,
   runBrainLoop,
   type BrainEvent,
   type BrainInbox,
@@ -216,6 +217,28 @@ export class AgentBrainService {
   private readonly subagents = new Map<string, { inbox: BrainInbox; stop: () => void }>()
 
   /**
+   * **主会话的运行中收件箱**（对齐 dsh inbox / Steer）。
+   *
+   * 只在 `chat()` 执行期间非空：用户在 agent 跑长任务时发的补充消息经 `steer()`
+   * push 进来，`runBrainLoop` 在每个 LLM 调用前 drain，注入为 user 消息 ——
+   * 用户不必「取消再重发」，已完成的工具结果也不会丢。
+   *
+   * 与 `subagents` 里那些 childInbox 的区别：那些是**子智能体各自**的收件箱
+   * （`agent:subagentSend`），这个是**父循环**的。
+   */
+  private mainInbox: BrainInbox | null = null
+
+  /**
+   * 运行中插话：把补充指令投进当前轮次的收件箱。
+   * @returns 是否投递成功（没有活跃轮次时返回 false，调用方应改走正常 `chat`）
+   */
+  steer(text: string): boolean {
+    if (this.mainInbox === null || text.trim() === '') return false
+    this.mainInbox.push(text)
+    return true
+  }
+
+  /**
    * 后台任务注册表（对齐 dsh `jobs`）：把异步子智能体提升为可查询/可取消的一等任务。
    * 由 `subagent_started` / `subagent_done` 事件喂入；`system.job` 技能与面板经 IPC 读取/取消。
    *
@@ -298,6 +321,8 @@ export class AgentBrainService {
     const face = buildToolFace(this.deps.dispatcher.list(), tier, options.explicitTools)
     // 新一轮：清空子智能体注册表与 id 映射（后台任务注册表**跨轮保留**，供面板显示历史）
     this.subagents.clear()
+    // 主会话收件箱：本轮的「插话」通道（`steer()` 投递，loop 每个 LLM 调用前 drain）
+    this.mainInbox = createInbox()
     this.childToJob.clear()
     this.jobToChild.clear()
     this.turnSeq += 1
@@ -482,8 +507,12 @@ export class AgentBrainService {
         options.onEvent?.(payload)
       },
       ...(options.signal ? { signal: options.signal } : {}),
+      // 主会话收件箱：用户运行中经 `steer()` 投递的补充指令，在下一轮 LLM 调用前注入
+      ...(this.mainInbox !== null ? { inbox: this.mainInbox } : {}),
       context
     })
+    // 本轮结束：关闭「插话」通道（此后 `steer()` 返回 false，调用方应改走正常 chat）
+    this.mainInbox = null
 
     if (this.deps.sessionStore) {
       /*

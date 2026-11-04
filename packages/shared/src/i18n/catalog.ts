@@ -387,6 +387,8 @@ export const zh = {
 
   // —— 智能体面板：凭据遮挡提示 ——
   'agent.secretMasked': '已遮挡 {count} 处密钥',
+  'agent.steer.sent': '已作为补充指令发送（下一次模型调用前生效）',
+  'agent.steer.rejected': '这一轮刚结束，请重新发送',
 
   // —— 布局：菜单栏 / 侧栏 / 停靠栏 ——
   'app.brand': '墨白',
@@ -2552,6 +2554,8 @@ export const en: Record<MessageKey, string> = {
   'agent.chat.openInCode': 'Open {path} in the code panel',
 
   'agent.secretMasked': 'Masked {count} secret(s)',
+  'agent.steer.sent': 'Sent as a follow-up (applies before the next model call)',
+  'agent.steer.rejected': 'This turn just ended — please send again',
 
   // —— Layout: menubar / sidebar / dock ——
   'app.brand': 'Mobai',

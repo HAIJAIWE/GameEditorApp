@@ -365,7 +365,25 @@ export default function DigitalPanel({
   const submitText = useCallback(
     (raw: string): void => {
       const text = raw.trim()
-      if (text === '' || running) return
+      if (text === '') return
+      if (running) {
+        // 运行中 = 插话（对齐 dsh Steer）：投进当前轮次收件箱，
+        // 循环在下一轮 LLM 调用前注入为 user 消息 —— 不用「取消再重发」，
+        // 已完成的工具结果也不丢。本轮刚结束时 accepted=false，明确让用户重发，
+        // 而不是假装已发送（那是把丢消息伪装成成功）。
+        void api
+          .steer({ text })
+          .then((result) => {
+            if (result.accepted) {
+              setInput('')
+              showToast(t('agent.steer.sent'))
+            } else {
+              showToast(t('agent.steer.rejected'))
+            }
+          })
+          .catch(() => showToast(t('agent.steer.rejected')))
+        return
+      }
       // 凭据遮挡（对齐 dsh `ui-secret-mask`）：发送前脱敏，密钥不进 LLM 上下文；
       // 脱敏后的文本既发给模型、也显示在用户气泡里（用户能看到密钥已被遮挡）。
       const { text: safeText, count } = maskSecrets(text)

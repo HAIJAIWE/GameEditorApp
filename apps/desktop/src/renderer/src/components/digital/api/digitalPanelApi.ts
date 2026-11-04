@@ -12,6 +12,12 @@ import type { JobRecord } from '@mobai/shared/agent/jobs/jobRegistry'
  */
 export interface ChatApi {
   /**
+   * 运行中插话（对齐 dsh Steer）：把补充指令投进当前轮次的收件箱，
+   * 循环在下一轮 LLM 调用前注入为 user 消息 —— 不用「取消再重发」，
+   * 已完成的工具结果也不丢。没有活跃轮次时 `accepted: false`。
+   */
+  steer: (req: { text: string }) => Promise<{ accepted: boolean }>
+  /**
    * 发送一段对话。
    * `preset` 为智能体预设 id（借 dsh agent-preset 设计）；主进程 `agent.chat` 当前
    * 读取 `input`/`runId`，`preset` 为 **[PLACEHOLDER]** —— 后端消费预设做角色路由的接线待补，

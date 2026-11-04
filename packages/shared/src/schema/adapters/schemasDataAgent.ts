@@ -109,6 +109,10 @@ export const agentChatInputSchema = z.object({
 })
 
 /** Agent Brain：对运行中的子智能体「插话」（push 一条消息进它的收件箱） */
+/** 运行中插话（dsh Steer）：补充给当前轮次的一条指令 */
+export const agentSteerInputSchema = z.object({
+  text: z.string().min(1)
+})
 export const agentSubagentSendInputSchema = z.object({
   id: z.string().min(1).max(64),
   content: z.string().min(1).max(4000)
