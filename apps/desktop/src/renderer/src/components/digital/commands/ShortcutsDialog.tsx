@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState, type ReactElement } from 'react'
+import { useRef, useState, type ReactElement } from 'react'
 
-import { useT } from '@mobai/client-ui'
+import { useModalLayer, useT } from '@mobai/client-ui'
 import type { MessageKey } from '@mobai/shared/i18n'
 import { SHORTCUT_CATALOG, type ShortcutEntry } from '@mobai/shared/util/ui'
 import { LucideIcon } from '../../common'
@@ -24,19 +24,11 @@ export function ShortcutsDialog({ onClose }: { onClose: () => void }): ReactElem
   const t = useT()
   const [query, setQuery] = useState('')
   const searchRef = useRef<HTMLInputElement>(null)
+  const cardRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') onClose()
-    }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [onClose])
-
-  // 打开即聚焦搜索框（对齐 dsh Reference 的 focusRequest）
-  useEffect(() => {
-    searchRef.current?.focus()
-  }, [])
+  // 焦点契约（对齐 dsh Reference）：Esc 关闭、打开即聚焦搜索框、
+  // Tab 在卡片内循环、关闭把焦点还给来源。此前这三个行为一个都没有。
+  useModalLayer({ open: true, onClose, containerRef: cardRef, initialFocusRef: searchRef })
 
   const normalized = query.trim().toLowerCase()
   const matches =
@@ -51,9 +43,11 @@ export function ShortcutsDialog({ onClose }: { onClose: () => void }): ReactElem
   return (
     <div className="digital-shortcuts-overlay" data-testid="digital-shortcuts-overlay" onClick={onClose}>
       <div
+        ref={cardRef}
         className="digital-shortcuts-card"
         role="dialog"
         aria-label={t('agent.shortcuts')}
+        tabIndex={-1}
         onClick={(event) => event.stopPropagation()}
       >
         <div className="digital-shortcuts-head">
