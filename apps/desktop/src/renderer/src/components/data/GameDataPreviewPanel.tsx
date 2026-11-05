@@ -6,6 +6,8 @@ import { buildGameDataPreview } from '@mobai/shared/domain/ceshu/gameDataPreview
 import type { DataTypeDef, ItemRecord } from '@mobai/shared/types'
 import { toErrorMessage } from '@mobai/shared/util/system'
 
+import { PanelShell, StateView } from '../common'
+
 /**
  * 游戏数据预览面板（对齐 旧版 `src/features/engine_export::show_game_data_preview`，
  * 菜单入口 `ui/menus:69`「文件 → 导出 → 游戏数据预览」）。
@@ -62,41 +64,33 @@ export default function GameDataPreviewPanel() {
   }, [state, t])
 
   return (
-    <div className="editor" data-testid="game-data-preview-panel">
-      <div className="editor-header">
-        <div className="editor-title">
-          {t('gameData.title')}
-          <small>
-            {scale === null
-              ? t('gameData.loading')
-              : t('gameData.scaleSummary', {
-                  buckets: state.status === 'ready' ? state.bucketCount : 0,
-                  items: state.status === 'ready' ? state.itemCount : 0,
-                  size: scale.sizeText,
-                  full: scale.fullText
-                }).trim()}
-          </small>
-        </div>
-      </div>
-
-      <div className="editor-body">
-        {state.status === 'loading' && <div className="empty">{t('gameData.loading')}</div>}
+    <PanelShell
+      testId="game-data-preview-panel"
+      toolbar={
+        <span className="item-meta">
+          {scale === null
+            ? t('gameData.loading')
+            : t('gameData.scaleSummary', {
+                buckets: state.status === 'ready' ? state.bucketCount : 0,
+                items: state.status === 'ready' ? state.itemCount : 0,
+                size: scale.sizeText,
+                full: scale.fullText
+              }).trim()}
+        </span>
+      }
+    >
+        {state.status === 'loading' && <StateView kind="loading" title={t('gameData.loading')} />}
         {state.status === 'error' && (
-          <div className="form-error" data-testid="game-data-preview-error">
-            {state.message}
-          </div>
+          <StateView kind="error" testId="game-data-preview-error" description={state.message} />
         )}
         {state.status === 'ready' &&
           (state.itemCount === 0 ? (
-            <div className="empty" data-testid="game-data-preview-empty">
-              {t('gameData.empty')}
-            </div>
+            <StateView kind="empty" testId="game-data-preview-empty" title={t('gameData.empty')} />
           ) : (
             <pre className="game-data-preview-text" data-testid="game-data-preview-text">
               {state.text}
             </pre>
           ))}
-      </div>
-    </div>
+    </PanelShell>
   )
 }

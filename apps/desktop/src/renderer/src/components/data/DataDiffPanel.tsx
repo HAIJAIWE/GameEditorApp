@@ -21,6 +21,7 @@ import { translate } from '@mobai/shared/i18n'
 import type { ItemRecord } from '@mobai/shared/types'
 
 import { getLocalePreference } from '../../localePreference'
+import { PanelShell, StateView } from '../common'
 
 /**
  * 数据对比面板（当前数据 vs 用户手动设定的基线）。
@@ -143,15 +144,44 @@ export default function DataDiffPanel({ onClose }: DataDiffPanelProps) {
   const currentCount = items === null ? t('dataDiff.reading') : items.length
 
   return (
-    <div className="editor" data-testid="data-diff-panel">
-      <div className="editor-header">
-        <div className="editor-title">
-          {t('dataDiff.title')}
-          <small>{t('dataDiff.subtitle')}</small>
-        </div>
-      </div>
-
-      <div className="editor-body">
+    <PanelShell
+      testId="data-diff-panel"
+      toolbar={<span className="item-meta">{t('dataDiff.subtitle')}</span>}
+      footer={
+        <>
+          <button
+            type="button"
+            className="btn"
+            data-testid="dd-set-baseline"
+            onClick={handleSetBaseline}
+            disabled={items === null}
+          >
+            {t('dataDiff.setBaseline')}
+          </button>
+          <button
+            type="button"
+            className="btn"
+            data-testid="dd-run"
+            onClick={handleRun}
+            disabled={baseline === null || items === null}
+          >
+            {t('dataDiff.run')}
+          </button>
+          <button
+            type="button"
+            className="btn"
+            data-testid="dd-clear-baseline"
+            onClick={handleClearBaseline}
+            disabled={baseline === null}
+          >
+            {t('dataDiff.clearBaseline')}
+          </button>
+          <button type="button" className="btn" onClick={onClose}>
+            {t('common.close')}
+          </button>
+        </>
+      }
+    >
         <div className="qc-stat-total" data-testid="dd-counts">
           {t('dataDiff.currentCount', {
             n: currentCount,
@@ -159,8 +189,10 @@ export default function DataDiffPanel({ onClose }: DataDiffPanelProps) {
           })}
         </div>
 
-        {error !== null && <div className="empty">{t('dataDiff.loadFailed', { reason: error })}</div>}
-        {items === null && error === null && <div className="empty">{t('dataDiff.loading')}</div>}
+        {error !== null && (
+          <StateView kind="error" description={t('dataDiff.loadFailed', { reason: error })} />
+        )}
+        {items === null && error === null && <StateView kind="loading" title={t('dataDiff.loading')} />}
         {notice !== null && (
           <div className="item-meta" data-testid="dd-notice" style={{ marginTop: 6 }}>
             {notice}
@@ -174,9 +206,7 @@ export default function DataDiffPanel({ onClose }: DataDiffPanelProps) {
             </div>
 
             {leafCount === 0 ? (
-              <div className="empty" data-testid="dd-identical">
-                {t('dataDiff.identical')}
-              </div>
+              <StateView kind="empty" testId="dd-identical" title={t('dataDiff.identical')} />
             ) : (
               groups.map((group) => {
                 const groupLeaves = collectLeaves(group.entries)
@@ -211,40 +241,6 @@ export default function DataDiffPanel({ onClose }: DataDiffPanelProps) {
             )}
           </>
         )}
-      </div>
-
-      <div className="editor-actions">
-        <button
-          type="button"
-          className="btn"
-          data-testid="dd-set-baseline"
-          onClick={handleSetBaseline}
-          disabled={items === null}
-        >
-          {t('dataDiff.setBaseline')}
-        </button>
-        <button
-          type="button"
-          className="btn"
-          data-testid="dd-run"
-          onClick={handleRun}
-          disabled={baseline === null || items === null}
-        >
-          {t('dataDiff.run')}
-        </button>
-        <button
-          type="button"
-          className="btn"
-          data-testid="dd-clear-baseline"
-          onClick={handleClearBaseline}
-          disabled={baseline === null}
-        >
-          {t('dataDiff.clearBaseline')}
-        </button>
-        <button type="button" className="btn" onClick={onClose}>
-          {t('common.close')}
-        </button>
-      </div>
-    </div>
+    </PanelShell>
   )
 }

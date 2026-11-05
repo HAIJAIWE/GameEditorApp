@@ -5,6 +5,8 @@ import { useT } from '@mobai/client-ui'
 import { UNKNOWN_TYPE_COLOR, buildRelationRows, buildSubjectDetailLine, itemDisplayName } from '@mobai/shared/util/search'
 import type { DataTypeDef, ItemRecord } from '@mobai/shared/types'
 
+import { PanelShell, StateView } from '../common'
+
 /**
  * 关系图面板（迁移自 旧版 `ui/widgets/relation_graph::RelationTablePanel`，
  * 经 `ui/main_window::_show_relation_graph` 由「工具 → 关系图」菜单打开）。
@@ -73,15 +75,10 @@ export default function RelationGraphPanel({ types, onJump }: RelationGraphPanel
   }, [])
 
   return (
-    <div className="editor" data-testid="relation-graph-panel">
-      <div className="editor-header">
-        <div className="editor-title">
-          {t('relation.title')}
-          <small>{t('relation.subtitle')}</small>
-        </div>
-      </div>
-
-      <div className="editor-body">
+    <PanelShell
+      testId="relation-graph-panel"
+      toolbar={<span className="item-meta">{t('relation.subtitle')}</span>}
+    >
         <div className="rg-picker">
           <label className="rg-picker-field">
             {t('relation.typeLabel')}
@@ -120,18 +117,14 @@ export default function RelationGraphPanel({ types, onJump }: RelationGraphPanel
         </div>
 
         {error !== null && <div className="error-banner">{error}</div>}
-        {items === null && error === null && <div className="empty">{t('relation.loading')}</div>}
+        {items === null && error === null && <StateView kind="loading" title={t('relation.loading')} />}
 
         {items !== null && types.length === 0 && (
-          <div className="empty" data-testid="relation-empty">
-            {t('relation.noTypes')}
-          </div>
+          <StateView kind="empty" testId="relation-empty" title={t('relation.noTypes')} />
         )}
 
         {items !== null && types.length > 0 && subjects.length === 0 && (
-          <div className="empty" data-testid="relation-empty">
-            {t('relation.noSubjects')}
-          </div>
+          <StateView kind="empty" testId="relation-empty" title={t('relation.noSubjects')} />
         )}
 
         {subject !== null && (
@@ -154,9 +147,7 @@ export default function RelationGraphPanel({ types, onJump }: RelationGraphPanel
             </div>
 
             {rows.length === 0 ? (
-              <div className="empty" data-testid="relation-rows-empty">
-                {t('relation.noRows')}
-              </div>
+              <StateView kind="empty" testId="relation-rows-empty" title={t('relation.noRows')} />
             ) : (
               <table className="rg-table" data-testid="relation-table">
                 <thead>
@@ -196,7 +187,6 @@ export default function RelationGraphPanel({ types, onJump }: RelationGraphPanel
             )}
           </>
         )}
-      </div>
-    </div>
+    </PanelShell>
   )
 }

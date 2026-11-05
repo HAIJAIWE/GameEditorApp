@@ -10,6 +10,9 @@ import {
 } from '@mobai/shared/util/search'
 import type { DataTypeDef, ItemRecord } from '@mobai/shared/types'
 
+import PanelShell from './PanelShell'
+import StateView from './StateView'
+
 /**
  * 高级搜索面板。
  *
@@ -66,15 +69,15 @@ export default function AdvancedSearchPanel({ types, onJump, onClose }: Advanced
   )
 
   return (
-    <aside className="editor" data-testid="advanced-search-panel">
-      <div className="editor-header">
-        <div className="editor-title">
-          {t('nav.advancedSearch')}
-          <small>{t('advancedSearch.subtitle')}</small>
-        </div>
-      </div>
-
-      <div className="editor-body">
+    <PanelShell
+      testId="advanced-search-panel"
+      toolbar={<span className="item-meta">{t('advancedSearch.subtitle')}</span>}
+      footer={
+        <button type="button" className="btn" data-testid="advanced-search-close" onClick={onClose}>
+          {t('common.close')}
+        </button>
+      }
+    >
         <div className="form-row">
           <label className="form-label" htmlFor="adv-search-keyword">
             {t('advancedSearch.keyword')}
@@ -131,12 +134,10 @@ export default function AdvancedSearchPanel({ types, onJump, onClose }: Advanced
 
         {error !== null && <div className="error-banner">{error}</div>}
 
-        {items === null && error === null && <div className="empty">{t('advancedSearch.loading')}</div>}
+        {items === null && error === null && <StateView kind="loading" title={t('advancedSearch.loading')} />}
 
         {items !== null && trimmed === '' && (
-          <div className="empty" data-testid="adv-search-hint">
-            {t('advancedSearch.hint')}
-          </div>
+          <StateView kind="empty" testId="adv-search-hint" title={t('advancedSearch.hint')} />
         )}
 
         {items !== null && trimmed !== '' && (
@@ -150,9 +151,11 @@ export default function AdvancedSearchPanel({ types, onJump, onClose }: Advanced
             </div>
 
             {results.length === 0 ? (
-              <div className="empty" data-testid="adv-search-empty">
-                {t('advancedSearch.noMatch', { keyword: trimmed })}
-              </div>
+              <StateView
+                kind="empty"
+                testId="adv-search-empty"
+                title={t('advancedSearch.noMatch', { keyword: trimmed })}
+              />
             ) : (
               <div className="adv-search-results">
                 {results.map((item) => {
@@ -181,14 +184,7 @@ export default function AdvancedSearchPanel({ types, onJump, onClose }: Advanced
             )}
           </>
         )}
-      </div>
-
-      <div className="editor-actions">
-        <button type="button" className="btn" data-testid="advanced-search-close" onClick={onClose}>
-          {t('common.close')}
-        </button>
-      </div>
-    </aside>
+    </PanelShell>
   )
 }
 

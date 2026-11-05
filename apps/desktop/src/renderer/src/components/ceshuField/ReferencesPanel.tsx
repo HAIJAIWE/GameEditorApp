@@ -6,6 +6,8 @@ import type { MessageKey } from '@mobai/shared/i18n'
 import type { ReferenceReport } from '@mobai/shared/util/search'
 import type { DataTypeDef } from '@mobai/shared/types'
 
+import { PanelShell, StateView } from '../common'
+
 /**
  * 引用关系面板：
  * 被谁引用（全库反向扫描）/ 引用了谁（按 id 精确解析，悬空 token 显示原文）/ 相似数据（同类型字段重合度）。
@@ -61,17 +63,19 @@ export default function ReferencesPanel({ target, types, onJump, onClose }: Refe
     typeId === null ? t('refPanel.unknownType') : (types.find((def) => def.id === typeId)?.name ?? typeId)
 
   return (
-    <aside className="editor" data-testid="references-panel">
-      <div className="editor-header">
-        <div className="editor-title">
-          {t('refPanel.title')}
-          <small>
-            {target.name} · {typeName(target.type)}
-          </small>
-        </div>
-      </div>
-
-      <div className="editor-body">
+    <PanelShell
+      testId="references-panel"
+      toolbar={
+        <span className="item-meta">
+          {target.name} · {typeName(target.type)}
+        </span>
+      }
+      footer={
+        <button type="button" className="btn" data-testid="references-close" onClick={onClose}>
+          {t('common.close')}
+        </button>
+      }
+    >
         <div className="ref-tabs">
           {(
             [
@@ -92,14 +96,12 @@ export default function ReferencesPanel({ target, types, onJump, onClose }: Refe
           ))}
         </div>
 
-        {error && <div className="form-error">{error}</div>}
-        {!report && !error && <div className="empty">{t('refPanel.loading')}</div>}
+        {error && <StateView kind="error" description={error} />}
+        {!report && !error && <StateView kind="loading" title={t('refPanel.loading')} />}
 
         {report && tab === 'referencedBy' && (
           report.referencedBy.length === 0 ? (
-            <div className="empty" data-testid="ref-empty">
-              {t('refPanel.noReferencedBy')}
-            </div>
+            <StateView kind="empty" testId="ref-empty" title={t('refPanel.noReferencedBy')} />
           ) : (
             report.referencedBy.map((row, index) => (
               <button
@@ -121,9 +123,7 @@ export default function ReferencesPanel({ target, types, onJump, onClose }: Refe
 
         {report && tab === 'references' && (
           report.references.length === 0 ? (
-            <div className="empty" data-testid="ref-empty">
-              {t('refPanel.noReferences')}
-            </div>
+            <StateView kind="empty" testId="ref-empty" title={t('refPanel.noReferences')} />
           ) : (
             report.references.map((row, index) =>
               row.resolved ? (
@@ -152,9 +152,7 @@ export default function ReferencesPanel({ target, types, onJump, onClose }: Refe
 
         {report && tab === 'similar' && (
           report.similar.length === 0 ? (
-            <div className="empty" data-testid="ref-empty">
-              {t('refPanel.noSimilar')}
-            </div>
+            <StateView kind="empty" testId="ref-empty" title={t('refPanel.noSimilar')} />
           ) : (
             report.similar.map((row) => (
               <button
@@ -176,13 +174,6 @@ export default function ReferencesPanel({ target, types, onJump, onClose }: Refe
             ))
           )
         )}
-      </div>
-
-      <div className="editor-actions">
-        <button type="button" className="btn" data-testid="references-close" onClick={onClose}>
-          {t('common.close')}
-        </button>
-      </div>
-    </aside>
+    </PanelShell>
   )
 }
