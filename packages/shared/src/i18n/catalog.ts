@@ -1895,6 +1895,7 @@ export const zh = {
   // —— 技术设计文档 ——
   'techDoc.created': '已新建',
   'techDoc.saved': '已保存',
+  'techDoc.unsaved': '有未保存修改',
   'techDoc.exported': '已导出：{path}',
   'techDoc.deleted': '已删除',
   'techDoc.noApi': '当前环境未提供技术设计文档接口。',
@@ -4093,6 +4094,7 @@ export const en: Record<MessageKey, string> = {
   // —— Tech design docs ——
   'techDoc.created': 'Created',
   'techDoc.saved': 'Saved',
+  'techDoc.unsaved': 'Unsaved changes',
   'techDoc.exported': 'Exported: {path}',
   'techDoc.deleted': 'Deleted',
   'techDoc.noApi': 'The tech design document API is not available in this environment.',

@@ -2153,6 +2153,11 @@ body {
   font-size: var(--text-12);
 }
 
+/* 技术设计文档：保存状态（与章节表单同一套语义） */
+.techdoc-dirty.is-dirty {
+  color: var(--warning);
+}
+
 /* 「已保存 / 未保存」状态贴左，主操作按钮仍在右侧 */
 .chapter-save-state {
   margin-right: auto;

@@ -11,6 +11,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useT } from '@mobai/client-ui'
 
 import { ChatMarkdown } from '../digital'
+import { StateView } from '../common'
 
 interface TechDocApi {
   list(): Promise<{ docs: string[] }>
@@ -52,6 +53,8 @@ export function TechDocPanel() {
   const t = useT()
   const api = getApi()
   const [docs, setDocs] = useState<string[]>([])
+  /** 首屏加载中：`docs` 初始 `[]`，不分「加载中 / 真的没有」会先闪一下「暂无文档」 */
+  const [loading, setLoading] = useState(true)
   const [active, setActive] = useState<string | null>(null)
   const [content, setContent] = useState('')
   const [dirty, setDirty] = useState(false)
@@ -84,9 +87,15 @@ export function TechDocPanel() {
     void (async () => {
       try {
         const result = await api.list()
-        if (!cancelled) setDocs(result.docs)
+        if (!cancelled) {
+          setDocs(result.docs)
+          setLoading(false)
+        }
       } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : String(err))
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : String(err))
+          setLoading(false)
+        }
       }
     })()
     return () => {
@@ -194,7 +203,7 @@ export function TechDocPanel() {
   }, [])
 
   if (api === undefined) {
-    return <div className="empty">{t('techDoc.noApi')}</div>
+    return <StateView kind="error" title={t('techDoc.noApi')} />
   }
 
   return (
@@ -215,8 +224,10 @@ export function TechDocPanel() {
             {t('techDoc.create')}
           </button>
         </div>
-        {docs.length === 0 ? (
-          <div className="empty">{t('techDoc.empty')}</div>
+        {loading ? (
+          <StateView kind="loading" />
+        ) : docs.length === 0 ? (
+          <StateView kind="empty" title={t('techDoc.empty')} />
         ) : (
           <ul className="techdoc-list-items">
             {docs.map((name) => (
@@ -256,13 +267,20 @@ export function TechDocPanel() {
 
       <section className="techdoc-editor">
         {active === null ? (
-          <div className="empty">{t('techDoc.pickDoc')}</div>
+          <StateView kind="empty" title={t('techDoc.pickDoc')} />
         ) : (
           <>
             <div className="techdoc-toolbar">
               <span className="techdoc-title" data-testid="techdoc-title">
                 {active}
                 {dirty ? ' *' : ''}
+              </span>
+              <span
+                className={`item-meta techdoc-dirty${dirty ? ' is-dirty' : ''}`}
+                data-testid="techdoc-dirty"
+                data-dirty={dirty ? 'true' : 'false'}
+              >
+                {dirty ? t('techDoc.unsaved') : t('techDoc.saved')}
               </span>
               <div className="techdoc-modes" role="group" aria-label={t('techDoc.modeGroup')}>
                 <button

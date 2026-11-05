@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { useT } from '@mobai/client-ui'
 import { translate } from '@mobai/shared/i18n'
-import { LucideIcon } from '../common'
+import { LucideIcon, StateView } from '../common'
 import { subscribeCodeViewRequest, takeCodeViewRequest } from '../../plugins/context'
 import { getLocalePreference } from '../../localePreference'
 import { baseNameOf, formatBytes, isCodeFile, sortEntries, tokenizeCode } from '../../utils/codeView'
@@ -348,17 +348,12 @@ export default function CodePanel(): React.JSX.Element {
         </div>
 
         {activePath === '' ? (
-          <div className="code-view-empty">
-            <p>{t('codePanel.pickFile')}</p>
-            <p className="code-view-empty-sub">{t('codePanel.pickFileSub')}</p>
-          </div>
+          <StateView kind="empty" title={t('codePanel.pickFile')} description={t('codePanel.pickFileSub')} />
         ) : (
           <>
-            {content === null && <div className="code-view-empty">{t('codePanel.loading')}</div>}
+            {content === null && <StateView kind="loading" title={t('codePanel.loading')} />}
             {content !== null && content.reason !== null && (
-              <div className="code-view-empty error" data-testid="code-view-reason">
-                {content.reason}
-              </div>
+              <StateView kind="error" testId="code-view-reason" description={content.reason} />
             )}
             {content !== null && content.reason === null && (
               /* 行号槽与代码同处一个滚动容器，才能保证逐行对齐 + 横向滚动时行号仍可见 */

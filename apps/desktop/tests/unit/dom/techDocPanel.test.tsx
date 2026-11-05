@@ -159,6 +159,24 @@ describe('技术设计文档面板', () => {
     await view.cleanup()
   })
 
+  it('加载中显示「加载中」而不是「还没有技术设计文档」（Phase C3）', async () => {
+    let resolveList: (value: unknown) => void = () => undefined
+    const pending = new Promise((resolve) => {
+      resolveList = resolve
+    })
+    stub = installMbApi({ overrides: { 'techDoc.list': () => pending } })
+    const view = await renderDom(<TechDocPanel />)
+
+    // 请求未回：必须是加载态，不能把「正在读」显示成「没有」
+    expect(view.text()).toContain('加载中')
+    expect(view.text()).not.toContain('还没有技术设计文档')
+
+    resolveList({ docs: ['battle'] })
+    await view.flush()
+    expect(view.text()).toContain('battle')
+    await view.cleanup()
+  })
+
   it('无 techDoc 接口时给出提示', async () => {
     // 不安装 mbApi → window.mbApi 为 undefined
     const view = await renderDom(<TechDocPanel />)
