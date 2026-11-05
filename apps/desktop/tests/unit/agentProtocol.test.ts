@@ -7,6 +7,7 @@ import {
   RISK_LEVEL,
   TOOL_RISK_MAP,
   checkPermission,
+  declaredActionsOf,
   fixParams,
   getToolCatalogLine,
   getToolDescription,
@@ -154,6 +155,25 @@ describe('agent 协议：参数修正', () => {
     expect(fixParams('system.game_data', { action: 'ADD_ITEM' }).action).toBe('create')
     expect(fixParams('system.game_data', { action: '查询' }).action).toBe('query')
     expect(fixParams('system.game_data', { action: 'List' }).action).toBe('list')
+  })
+
+  it('fixParams：工具自己声明的 action 不被别名表改写', () => {
+    // 回归：`ACTION_ALIASES` 有 add → create，而 `system.schedule` 的一等 action 就叫 add。
+    // 不看声明就改写，会让「加提醒」永远报未知 action（真实踩过的坑）。
+    const declared = ['add', 'list', 'remove']
+    expect(fixParams('system.schedule', { action: 'add' }, declared).action).toBe('add')
+    expect(fixParams('system.schedule', { action: 'ADD' }, declared).action).toBe('add')
+    // 未声明的仍走别名（数据类技能靠它容错）
+    expect(fixParams('system.schedule', { action: '新增' }, declared).action).toBe('create')
+    // 没传声明时保持旧行为
+    expect(fixParams('system.schedule', { action: 'add' }).action).toBe('create')
+  })
+
+  it('declaredActionsOf：从参数 schema 读 action 枚举', () => {
+    expect(declaredActionsOf({ type: 'object', properties: { action: { type: 'string', enum: ['add', 'list'] } } }))
+      .toEqual(['add', 'list'])
+    expect(declaredActionsOf({ type: 'object', properties: { action: { type: 'string' } } })).toEqual([])
+    expect(declaredActionsOf({ type: 'object', properties: {} })).toEqual([])
   })
 
   it('inferAction：按工具与参数形态推断', () => {

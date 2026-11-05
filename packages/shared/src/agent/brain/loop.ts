@@ -9,7 +9,15 @@
  * approval_required? → step_done* → … → done
  */
 
-import { fixParams, isSkillInteraction, resolveRiskLevel, type SkillExecutionContext, type SkillInteraction } from '../config'
+import {
+  declaredActionsOf,
+  fixParams,
+  isSkillInteraction,
+  resolveRiskLevel,
+  type JsonObjectSchema,
+  type SkillExecutionContext,
+  type SkillInteraction
+} from '../config'
 import {
   buildAssistantMessage,
   buildToolMessage,
@@ -154,6 +162,24 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
   // 沙箱策略（对齐 dsh）：缺省 workspace-write（本项目 agent 本来就要写策划书/数据）
   const sandboxPolicy = options.sandboxPolicy ?? 'workspace-write'
   const tools = options.tools ?? []
+
+  /**
+   * 工具自己声明的 action 枚举（从下发给模型的 Function Calling schema 里读）。
+   *
+   * `fixParams` 的全局别名表把 `add` 改写成 `create` —— 对数据类技能是容错，
+   * 但对「action 就叫 add」的技能（`system.schedule`）会把**合法值改坏**，
+   * 结果技能报「未知 action」。所以归一化前必须先看工具声明了什么。
+   */
+  const declaredActionsFor = (toolName: string): readonly string[] => {
+    // `options.tools` 有意是 `unknown[]`（shared 不绑定线格式），这里按结构收窄
+    for (const entry of tools) {
+      const fn = (entry as { function?: { name?: unknown; parameters?: unknown } } | null)?.function
+      if (fn?.name !== toolName) continue
+      const parameters = fn.parameters as JsonObjectSchema | undefined
+      return parameters === undefined ? [] : declaredActionsOf(parameters)
+    }
+    return []
+  }
 
   const events: BrainEvent[] = []
   const emit = (event: BrainEvent): void => {
@@ -803,7 +829,7 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
         if (call === undefined) continue
         const resolved = runner.resolve(call.name)
         if (resolved === null) continue
-        const normalizedAction = fixParams(resolved, call.arguments).action
+        const normalizedAction = fixParams(resolved, call.arguments, declaredActionsFor(resolved)).action
         const action = typeof normalizedAction === 'string' ? normalizedAction : ''
         if (runner.needsConfirmation(resolved, action)) continue
         // fail-closed 并发（对齐 dsh）：只预启动「显式声明并发安全」的工具；
@@ -891,7 +917,7 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
       // dispatcher 执行前会 `fixParams`（action 别名归一 + 缺失推断），若这里用原始 action，
       // 模型输出别名时（`system.code` 的 `run`/`exec`/`执行` → 归一为 `execute`），
       // 用户即使批准，令牌仍会被 dispatcher 的 `confirmed.action === action` 比对拒绝。
-      const normalizedAction = fixParams(resolved, call.arguments).action
+      const normalizedAction = fixParams(resolved, call.arguments, declaredActionsFor(resolved)).action
       const action = typeof normalizedAction === 'string' ? normalizedAction : ''
       if (runner.needsConfirmation(resolved, action)) {
         // 执行预审（#27，对齐 dsh Auto）：先由模型判读；allow ⇒ 直接执行（顶替人工），

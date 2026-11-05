@@ -19,6 +19,7 @@
 import {
   RISK_LEVEL,
   checkPermission,
+  declaredActionsOf,
   fixParams,
   getToolCatalogLine,
   getToolDescription,
@@ -305,7 +306,9 @@ export class SkillDispatcher {
       return { success: false, error: `未注册技能: ${resolved}`, message: '' }
     }
 
-    const fixed = fixParams(resolved, params)
+    // 把技能**自己声明**的 action 交给 fixParams：全局别名表里 `add → create`
+    // 会把 `system.schedule` 这类「action 就叫 add」的技能改坏（详见 fixParams 注释）
+    const fixed = fixParams(resolved, params, declaredActionsOf(skill.parametersSchema))
     const action = typeof fixed.action === 'string' ? fixed.action : ''
 
     // 信任边界：模型**永远不能自带 confirm**。`fixParams` 会把 confirmed/sure 别名归一成 confirm，
@@ -373,7 +376,12 @@ export class SkillDispatcher {
   ): Promise<SkillResult> {
     const resolved = this.fuzzyMatch(toolName)
     if (resolved === null) return this.execute(toolName, params, ctx)
-    const fixed = fixParams(resolved, params)
+    const skill = this.registry.get(resolved)
+    const fixed = fixParams(
+      resolved,
+      params,
+      skill === undefined ? undefined : declaredActionsOf(skill.parametersSchema)
+    )
     const action = typeof fixed.action === 'string' ? fixed.action : ''
     const check = checkPermission(resolved, action, { maxAllowedRisk: this.getMaxAllowedRisk() })
 

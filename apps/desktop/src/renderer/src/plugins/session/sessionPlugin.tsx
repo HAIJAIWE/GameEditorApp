@@ -9,6 +9,7 @@ import type { PluginManifest } from '@mobai/shared/plugin/types'
 import { AgentTeamSection } from './agentTeamSection'
 import { TrajectorySection } from './trajectorySection'
 import { JobBoardSection } from './jobBoardSection'
+import { ScheduleSection } from './scheduleSection'
 import { registerReactBinding } from '../host'
 
 /**
@@ -84,6 +85,8 @@ function SessionMainView({ host }: { host: PluginHost }): ReactElement {
       <AgentTeamSection host={host} />
 
       <JobBoardSection host={host} />
+
+      <ScheduleSection host={host} />
 
       <section className="session-block" data-testid="session-block-trajectory">
         <h3 className="session-block-title">{t('session.trajectory')}</h3>

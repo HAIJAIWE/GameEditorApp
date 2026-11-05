@@ -15,6 +15,7 @@ import { registerLlmIpc } from './ipc/llmIpc'
 import { registerAgentIpc } from './ipc/agentIpc'
 import { registerTechDocIpc } from './ipc/techDocIpc'
 import { registerTaskIpc } from './ipc/taskIpc'
+import { registerScheduleIpc } from './ipc/scheduleIpc'
 import { registerLibraryIpc } from './ipc/libraryIpc'
 import { registerSchemaIpc } from './ipc/schemaIpc'
 import { registerAttrIpc } from './ipc/attrIpc'
@@ -45,6 +46,8 @@ export interface IpcHandlerDeps {
   agentOperationLog: import('@mobai/agent-core/store/operationLogStore').OperationLogStore
   agentDeliveryLog: import('@mobai/agent-core/store/deliveryLogStore').DeliveryLogStore
   agentSubagentLedger: import('@mobai/agent-core/store/subagentLedgerStore').SubagentLedgerStore
+  /** 定时提醒（`<库>/schedule.json`）：与 `system.schedule` 技能共用同一份文件 */
+  scheduleStore: import('@mobai/agent-core/schedule/scheduleStore').ScheduleStore
   approvalBroker: import('@mobai/agent-core/execution/approvalBroker').AgentApprovalBroker
   libraryManager: import('./library/manager').LibraryManager
   /**
@@ -112,6 +115,7 @@ export function registerIpcHandlers(deps: IpcHandlerDeps): void {
   registerAgentIpc(deps, handle, llm)
   registerTechDocIpc(deps, handle)
   registerTaskIpc(deps, handle)
+  registerScheduleIpc(deps, handle)
   registerLibraryIpc(deps, handle)
   registerSchemaIpc(deps, handle, llm)
   registerAttrIpc(deps, handle)

@@ -147,6 +147,11 @@ export const taskCancelInputSchema = z.object({
   taskId: z.string().min(1).max(64).optional()
 })
 
+/** 删除一条定时提醒（id 由 `system.schedule add` 生成） */
+export const scheduleRemoveInputSchema = z.object({
+  id: z.string().min(1).max(128)
+})
+
 /** Agent 技能调度：执行工具（tool 为技能 id 或可模糊解析的别名） */
 export const agentExecuteToolInputSchema = z.object({
   tool: z.string().min(1).max(80),
@@ -171,5 +176,6 @@ export type AgentJobCancelInput = z.infer<typeof agentJobCancelInputSchema>
 export type TechDocNameInput = z.infer<typeof techDocNameInputSchema>
 export type TechDocWriteInput = z.infer<typeof techDocWriteInputSchema>
 export type TaskCancelInput = z.infer<typeof taskCancelInputSchema>
+export type ScheduleRemoveInput = z.infer<typeof scheduleRemoveInputSchema>
 export type AgentExecuteToolInput = z.infer<typeof agentExecuteToolInputSchema>
 export type AgentFeedbackInput = z.infer<typeof agentFeedbackInputSchema>

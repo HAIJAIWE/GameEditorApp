@@ -97,6 +97,7 @@ import { createWebSearchSkill } from '@mobai/agent-core/skills/webSearchSkill'
 import { createComputerSkill } from '@mobai/agent-core/skills/computerSkill'
 import { createScheduleSkill } from '@mobai/agent-core/skills/scheduleSkill'
 import { initScheduleTicker } from '@mobai/agent-core/schedule/scheduleTicker'
+import { ScheduleStore } from '@mobai/agent-core/schedule/scheduleStore'
 import { createCliSubAgentProvider } from '@mobai/agent-core/subagent/subagentCli'
 import { createRemoteSubAgentProvider } from '@mobai/agent-core/subagent/subagentRemote'
 import { createAcpSubAgentProvider } from '@mobai/agent-core/subagent/subagentAcp'
@@ -153,6 +154,8 @@ export interface AppStores {
   agentDeliveryLog: DeliveryLogStore
   /** 子智能体账本（跨轮冷恢复）：冷启动已对账，IPC 只读 */
   agentSubagentLedger: SubagentLedgerStore
+  /** 定时提醒：与 `system.schedule` 技能、ticker 共用 `<库>/schedule.json` */
+  scheduleStore: ScheduleStore
   approvalBroker: AgentApprovalBroker
   llmClient: LlmClient
 }
@@ -261,6 +264,9 @@ export function buildStores(libDir: string): AppStores {
   // 桌面控制（Windows 系统脚本）：截屏/点击/输入——SYSTEM 风险，每次审批
   dispatcher.register(createComputerSkill({ root: getWorkspaceRoot }))
   initScheduleTicker(libDir)
+  // 定时提醒：技能、ticker、IPC 三处各持一个 store，共用同一份 `<库>/schedule.json`。
+  // store 无内存缓存、每次现读现写，所以并发操作同一文件是安全的（见 scheduleStore.ts 顶部）。
+  const scheduleStore = new ScheduleStore(join(libDir, 'schedule.json'))
   dispatcher.register(createScheduleSkill({ filePath: join(libDir, 'schedule.json') }))
   // 用户偏好 / 反馈：随库隔离，构造时即从磁盘加载；偏好注入系统提示词（见 brainService）
   const personalization = createPersonalizationStores(agentDir)
@@ -312,6 +318,7 @@ export function buildStores(libDir: string): AppStores {
     agentSessionStore: sessionStore,
     /** 子智能体账本（跨轮冷恢复）：IPC `agent:subagentLedger` 读它 */
     agentSubagentLedger: subagentLedger,
+    scheduleStore,
     agentPreferences: personalization.preferences,
     agentFeedback: personalization.feedback,
     agentOperationLog: operationLog,

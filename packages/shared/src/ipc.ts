@@ -14,6 +14,7 @@ import type {
   TechDocWriteInput
 } from './schema/adapters'
 import type { JobRecord } from './agent/jobs/jobRegistry'
+import type { ScheduleTaskView } from './agent/schedule'
 import type {
   WindowModeInput,
   AppViewActionInput,
@@ -371,6 +372,16 @@ export interface IpcContract {
    * 分散成多条只会各自漂移。实现见 `main/task/taskRegistry.ts`。
    */
   'task:cancel': { req: TaskCancelInput; res: { cancelled: boolean } }
+  /**
+   * 定时提醒（`system.schedule` 的界面侧）。此前只能让智能体自己加/删，
+   * 用户在界面上**完全看不到**已有提醒 —— 这两条让「看得见 + 可删」成立。
+   *
+   * 新增仍走对话（"每天 9 点提醒我喝水"）：cron / 相对时间让模型算比让用户填表单更顺，
+   * 而且技能本来就已支持；这里只补观测面。
+   */
+  'schedule:list': { req: undefined; res: { tasks: ScheduleTaskView[] } }
+  /** 删除一条提醒；`ok:false` = 没找到（已被删），不是错误 */
+  'schedule:remove': { req: { id: string }; res: { ok: boolean } }
   'agent:approvalResponse': { req: { requestId: string; approved: boolean }; res: { ok: boolean } }
   'agent:interactionResponse': { req: AgentInteractionResponseInput; res: { ok: boolean } }
   /** 子智能体「继续对话」：对运行中的子智能体插话（push 消息进它的收件箱） */

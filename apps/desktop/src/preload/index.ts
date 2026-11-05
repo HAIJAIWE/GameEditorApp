@@ -16,6 +16,10 @@ const api: MbApi = {
   task: {
     cancel: (req) => invoke('task:cancel', req)
   },
+  schedule: {
+    list: () => invoke('schedule:list', undefined),
+    remove: (req) => invoke('schedule:remove', req)
+  },
   app: {
     info: () => invoke('app:info', undefined),
     log: (req) => invoke('app:log', req),

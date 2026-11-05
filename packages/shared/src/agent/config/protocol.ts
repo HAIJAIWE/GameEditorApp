@@ -464,12 +464,38 @@ export function inferAction(toolId: string, params: Record<string, unknown>): st
  * 1) action 别名归一（含中文）；2) 缺失 action 按工具推断；3) 参数别名收敛到规范名。
  * 输入不被修改，返回新对象。
  */
-export function fixParams(toolId: string, rawParams: Record<string, unknown> | undefined): Record<string, unknown> {
+/**
+ * 从参数 schema 里读出声明的 action 枚举（没有 action 或没有 enum 时返回空数组）。
+ *
+ * 用途见 `fixParams` 的 `declaredActions`：别名表是全局的，必须先知道「这个工具
+ * 自己认哪些 action」，否则会把合法的 action 改坏。
+ */
+export function declaredActionsOf(schema: JsonObjectSchema): readonly string[] {
+  const values = schema.properties.action?.enum
+  if (!Array.isArray(values)) return []
+  return values.filter((value): value is string => typeof value === 'string')
+}
+
+/**
+ * 归一化工具参数。
+ *
+ * @param declaredActions - 该工具**自己声明**的 action 枚举。给了就优先认它：
+ *   别名表里 `add → create` 是为了容错数据类技能（模型把 create 说成 add），
+ *   但 `system.schedule` 的一等 action 就叫 `add` —— 全局改写会把合法值改成 `create`，
+ *   让技能报「未知 action」。这是真实踩过的坑（提醒功能整条不可用）。
+ *   未给（旧调用点）时保持原行为。
+ */
+export function fixParams(
+  toolId: string,
+  rawParams: Record<string, unknown> | undefined,
+  declaredActions?: readonly string[]
+): Record<string, unknown> {
   const params: Record<string, unknown> = { ...(rawParams ?? {}) }
 
   if (typeof params.action === 'string' && params.action !== '') {
     const key = params.action.toLowerCase()
-    params.action = ACTION_ALIASES[key] ?? key
+    // 工具声明了这个 action ⇒ 它是合法值，不参与别名改写
+    params.action = declaredActions?.includes(key) === true ? key : ACTION_ALIASES[key] ?? key
   }
 
   const inferred = inferAction(toolId, params)

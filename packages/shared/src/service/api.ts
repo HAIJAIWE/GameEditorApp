@@ -9,6 +9,11 @@ export interface MbApi {
   task: {
     cancel(req: IpcContract['task:cancel']['req']): Promise<IpcContract['task:cancel']['res']>
   }
+  schedule: {
+    /** 定时提醒列表（新→旧由主进程决定；`firedAt` 有值表示已响过） */
+    list(): Promise<IpcContract['schedule:list']['res']>
+    remove(req: IpcContract['schedule:remove']['req']): Promise<IpcContract['schedule:remove']['res']>
+  }
   app: {
     info(): Promise<IpcContract['app:info']['res']>
     log(req: IpcContract['app:log']['req']): Promise<IpcContract['app:log']['res']>

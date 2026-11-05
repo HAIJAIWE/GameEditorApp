@@ -10128,6 +10128,60 @@ body {
   font-size: 15px;
   font-weight: 600;
 }
+/* 定时提醒（会话页签）：一行一条，删除按钮靠右；正文单行截断，时间放第二行 */
+.session-schedule-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.session-schedule-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-panel);
+}
+.session-schedule-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.session-schedule-prompt {
+  overflow: hidden;
+  color: var(--text);
+  font-size: var(--text-13);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.session-schedule-meta {
+  color: var(--text-muted);
+  font-size: var(--text-11);
+}
+.session-schedule-delete {
+  flex: none;
+  height: 22px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: var(--text-11);
+  cursor: pointer;
+}
+@media (hover: hover) {
+  .session-schedule-delete:hover {
+    background: var(--danger-bg);
+    color: var(--danger);
+  }
+}
 
 /*
  * 两个分区原本是独立页签，各自 height:100% + overflow:auto + padding（自己滚动）。
