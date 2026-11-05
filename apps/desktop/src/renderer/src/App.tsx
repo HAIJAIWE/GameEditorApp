@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type MouseEvent as ReactMouseEvent } from 'react'
 
-import { LocaleProvider } from '@mobai/client-ui'
+import { useLocale } from '@mobai/client-ui'
 
 import type { CeshuSummary } from '@mobai/shared/ceshu/reference'
 import { loadGameStyle, normalizeGameStyleId, saveGameStyle } from '@mobai/shared/config/game'
@@ -8,11 +8,8 @@ import type { AppInfo, DataTypeDef } from '@mobai/shared/types'
 import { applyTheme, loadTheme, saveTheme, type ThemeMode } from '@mobai/shared/config/settings'
 import {
   LOCALE_LABELS,
-  LOCALE_STORAGE_KEY,
   nextLocale,
-  normalizeLocale,
   translate,
-  type Locale,
   type MessageKey,
   type TranslateParams
 } from '@mobai/shared/i18n'
@@ -28,6 +25,7 @@ import type { PluginSidebarItem } from '@mobai/shared/plugin/types'
 import { ToastHost } from './components/common'
 import { useUndoRedo } from './hooks/useAppActions'
 import { toErrorMessage } from './appUtils'
+import { setLocalePreference } from './localePreference'
 import { clampDockWidth, defaultDockWidth, loadAiDockWidth, saveAiDockWidth } from './dockWidth'
 import { pluginHost } from './plugins/context'
 // 组合根（内置插件注册 + 插件市场加载）在 plugins/builtins.ts，靠这条副作用 import 触发；
@@ -72,11 +70,16 @@ const CLEARS_PARAMS_ON_OPEN = new Set(['typeEditor.panel', 'quickCreate.panel', 
  * - 底部状态栏（版本 / 类型数 / 数据库路径 / 主题切换）常驻。
  */
 export default function App() {
-  /** 界面语言：持久化在 localStorage（mb.locale），启动时预读取；切换即整站重渲染 */
-  const [locale, setLocale] = useState<Locale>(() => normalizeLocale(localStorage.getItem(LOCALE_STORAGE_KEY)))
   /**
-   * 翻译函数：绑定到 `locale` 状态（而非 `useT` 的 context 默认），
-   * 这样 App 自身（状态栏 / 提示）与子树里的 `useT()` 都跟着 `locale` 切——单一来源。
+   * 界面语言：唯一来源是根节点的 `LocaleProvider`（`main.tsx` 的 `LocaleRoot` 订阅
+   * `localePreference` 模块级 store，切换即整站重渲染）。App 不再持有重复的 locale
+   * 状态、也不再包第二层 Provider——否则会把外层的响应式源盖死，导致设置面板里的语言
+   * 下拉「选了又弹回、界面不变」。这里只从 context 读当前值。
+   */
+  const locale = useLocale()
+  /**
+   * 翻译函数：绑定到 `locale`（来自 context），App 自身（状态栏 / 提示）与子树里的
+   * `useT()` 都跟着 `locale` 切——单一来源。
    */
   const t = useCallback(
     (key: MessageKey, params?: TranslateParams) => translate(locale, key, params),
@@ -408,18 +411,10 @@ export default function App() {
     })
   }, [])
 
-  /** 切换界面语言（中 ⇄ 英），持久化到 localStorage 并由 LocaleProvider 触发整站重渲染 */
+  /** 切换界面语言（中 ⇄ 英）：走 `localePreference` 唯一真源（落盘 + 通知根节点重渲染整棵子树） */
   const toggleLocale = useCallback((): void => {
-    setLocale((prev) => {
-      const next = nextLocale(prev)
-      try {
-        localStorage.setItem(LOCALE_STORAGE_KEY, next)
-      } catch {
-        // 隐私模式/配额不足不影响切换
-      }
-      return next
-    })
-  }, [])
+    setLocalePreference(nextLocale(locale))
+  }, [locale])
 
   /**
    * 「清空所有数据」完成后的刷新。
@@ -713,7 +708,6 @@ export default function App() {
         : panelCapability.title
 
   return (
-    <LocaleProvider locale={locale}>
     <div className="app">
       <MenuBar host={pluginHost} />
       <div className="app-body">
@@ -823,6 +817,5 @@ export default function App() {
         </div>
       </div>
     </div>
-    </LocaleProvider>
   )
 }
