@@ -6775,6 +6775,90 @@ body {
   overflow: auto;
 }
 
+/* JSON 树形视图（工具输出 / 审批参数）：层级折叠 + 节点上限 + 原文切换 */
+.json-tree {
+  min-width: 0;
+}
+.json-tree-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 4px;
+}
+.json-tree-mode {
+  padding: 2px 8px;
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--text-11);
+  cursor: pointer;
+}
+.json-tree-body {
+  max-height: 240px;
+  overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--text-11);
+}
+.json-tree-toggle,
+.json-tree-leaf {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  padding: 1px 2px;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--text-11);
+  text-align: left;
+}
+.json-tree-toggle {
+  cursor: pointer;
+}
+.json-tree-caret {
+  flex: none;
+  width: 10px;
+  color: var(--text-muted);
+}
+.json-tree-key {
+  color: var(--text);
+  word-break: break-all;
+}
+.json-tree-summary {
+  color: var(--text-muted);
+}
+.json-tree-value {
+  word-break: break-all;
+}
+.json-tree-value-string {
+  color: var(--syntax-comment);
+}
+.json-tree-value-number {
+  color: var(--accent);
+}
+.json-tree-value-boolean {
+  color: var(--danger);
+}
+.json-tree-value-null {
+  color: var(--text-muted);
+}
+.json-tree-more,
+.json-tree-note {
+  color: var(--text-muted);
+  font-size: var(--text-11);
+}
+@media (hover: hover) {
+  .json-tree-mode:hover {
+    color: var(--text);
+  }
+  .json-tree-toggle:hover {
+    background: var(--bg-hover);
+  }
+}
+
 /* 参数段（借 dsh ui-tool ToolDetails 的分段思路）：左侧细边框，默认折叠、摘要单行省略 */
 .digital-step-args {
   margin: 2px 0 6px;

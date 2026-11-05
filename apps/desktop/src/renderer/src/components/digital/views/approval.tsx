@@ -1,5 +1,6 @@
 import { useT } from '@mobai/client-ui'
 import { LucideIcon } from '../../common'
+import { JsonTree } from './JsonTree'
 import { RISK_LEVEL, resolveRiskLevel } from '@mobai/shared/agent/config'
 import type { DigitalPanelState } from '@mobai/shared/agent/ui'
 import type { MessageKey } from '@mobai/shared/i18n'
@@ -38,7 +39,7 @@ export function DigitalApproval({
       </div>
       <details className="digital-approval-details" open>
         <summary className="item-meta">{t('agent.approval.params')}</summary>
-        <pre className="digital-approval-params">{JSON.stringify(approval.params, null, 2)}</pre>
+        <JsonTree value={approval.params} rawClassName="digital-approval-params" />
       </details>
       <div className="item-meta">{t('agent.approval.note')}</div>
       <div className="editor-actions">

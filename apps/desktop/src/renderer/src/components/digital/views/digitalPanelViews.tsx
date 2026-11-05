@@ -7,6 +7,7 @@ import type { LucideIconName } from '@mobai/shared/util/ui'
 import { diffRows, diffTotals, errorSummary, formatToolArgs } from '@mobai/shared/agent/tools'
 import { type DigitalPanelState, type DigitalStep } from '@mobai/shared/agent/ui'
 import { AttachmentLightbox } from '../chat/DigitalMessageItem'
+import { JsonTree } from './JsonTree'
 
 /** 步骤图标（按 kind）：让「思考 / 批量 / 工具」一眼可分（Lucide 单色线稿，零 emoji） */
 const STEP_ICONS: Record<DigitalStep['kind'], LucideIconName> = {
@@ -38,7 +39,8 @@ function jsonView(step: DigitalStep): ReactNode {
   const raw = step.result ?? ''
   try {
     const parsed: unknown = JSON.parse(raw)
-    return <pre className="digital-step-code">{JSON.stringify(parsed, null, 2)}</pre>
+    // 树形折叠 + 节点上限：MCP 工具可能回几百 KB JSON，全量 stringify 会卡住渲染
+    return <JsonTree value={parsed} rawClassName="digital-step-code" />
   } catch {
     return textView(step)
   }
