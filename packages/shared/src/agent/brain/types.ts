@@ -12,6 +12,7 @@ import type { LlmUsage } from '../../config/llm'
 import type { AgentRunStats, AgentRunTier } from '../observability'
 import type { CompactSummarizer } from '../compaction'
 import type { SubagentLedgerPort } from './subagents'
+import type { JsonSchemaNode } from '../toolRuntime/jsonSchema'
 
 /* ---- 事件 ---- */
 
@@ -197,12 +198,24 @@ export interface SubAgentTask {
   inbox: BrainInbox
   /** 沙箱策略：外部后端应据此拒绝写操作（CLI provider 在 read-only 下直接拒绝运行） */
   sandboxPolicy: SandboxPolicy
+  /**
+   * 结构化输出 schema（可选）：提供时子智能体被要求以符合它的 JSON 对象作为最终答复。
+   * provider 负责把 `structuredInstruction` 拼进任务描述；校验与重试由父循环统一做。
+   */
+  outputSchema?: JsonSchemaNode
+  /**
+   * 修复重试上下文：父循环第二次派发同一任务时填（上次输出 + 违规点），
+   * provider 应把它拼成更明确的指令。缺省表示首次派发。
+   */
+  repair?: { previous: string; reason: string }
 }
 
 /** 子智能体执行结果 */
 export interface SubAgentOutcome {
   text: string
   success: boolean
+  /** 通过 schema 校验的结构化结果；未要求结构化或校验失败时缺省 */
+  structured?: unknown
 }
 
 /**

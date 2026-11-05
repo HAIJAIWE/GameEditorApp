@@ -27,6 +27,14 @@ import {
   type AgentRunTier
 } from '../observability'
 import {
+  checkStructuredReply,
+  coerceOutputSchema,
+  renderStructured,
+  structuredInstruction,
+  structuredRepairPrompt
+} from './subagentStructured'
+import type { JsonSchemaNode } from '../toolRuntime/jsonSchema'
+import {
   CLOUD_MAX_TURNS,
   CLOUD_TOOL_CONCURRENCY,
   CLOUD_WALL_CLOCK_MS,
@@ -41,7 +49,9 @@ import {
   type BrainStopReason,
   type PreExecReviewVerdict,
   type RunBrainLoopOptions,
-  type SubAgentProvider
+  type SubAgentOutcome,
+  type SubAgentProvider,
+  type SubAgentTask
 } from './types'
 import { clipToolResult, maybeResetContextAsync, safeRunEvaluator } from './context'
 import { isAbortError } from '../../abort'
@@ -317,15 +327,22 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
    *   **完成通知**注入父对话（`user` 消息），父级据此继续下一轮。
    * - `depth` 限制最多 1 层（防无限递归）；并发上限 `MAX_ACTIVE_SUBAGENTS`（dsh 默认 8）。
    */
-  const pendingSubagents = new Map<string, Promise<{ text: string; success: boolean }>>()
+  const pendingSubagents = new Map<string, Promise<SubAgentOutcome>>()
   let subAgentSeq = 0
 
   /** 默认 provider：进程内 spawn（递归 runBrainLoop）；外部后端可经 `subAgentProvider` 替换 */
   const defaultSubAgentProvider: SubAgentProvider = {
     id: 'spawn',
-    run: async ({ task, depth: childDepth, signal, inbox: childInbox }) => {
+    run: async ({ task, depth: childDepth, signal, inbox: childInbox, outputSchema, repair }) => {
+      // 结构化输出：首次派发拼约束；修复重试拼「上次输出 + 违规点」
+      const childInput =
+        outputSchema !== undefined && repair !== undefined
+          ? structuredRepairPrompt(task, repair.previous, repair.reason, outputSchema)
+          : outputSchema !== undefined
+            ? `${task}${structuredInstruction(outputSchema)}`
+            : task
       const sub = await runBrainLoop({
-        input: task,
+        input: childInput,
         systemPrompts,
         transport,
         runner,
@@ -339,10 +356,52 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
         parallelToolCalls,
         inbox: childInbox
       })
-      return { text: `子智能体结果：${sub.text}`, success: sub.completed }
+      // 结构化模式下不能加前缀：父侧要解析纯 JSON（虽然有容错，但别给自己添乱）
+      return {
+        text: outputSchema !== undefined ? sub.text : `子智能体结果：${sub.text}`,
+        success: sub.completed
+      }
     }
   }
   const subAgentProvider = options.subAgentProvider ?? defaultSubAgentProvider
+
+  /**
+   * 跑一次子任务；要求结构化输出时解析 + 校验，不合规**重试一次**。
+   *
+   * 只有进程内 provider（`id === 'spawn'`）才重试：CLI / 远程 / ACP 重跑一次是
+   * 真的再起一个进程，代价高且行为不可控 —— 那种情况校验不过就如实判失败、
+   * 保留原文，不假装拿到了结构化结果。
+   */
+  const runSubAgentTask = async (
+    spec: SubAgentTask,
+    schema: JsonSchemaNode | undefined
+  ): Promise<SubAgentOutcome> => {
+    const first = await subAgentProvider.run(spec)
+    if (schema === undefined || !first.success) return first
+    const checked = checkStructuredReply(first.text, schema)
+    if (checked.ok) {
+      return { ...first, text: renderStructured(checked.value), structured: checked.value }
+    }
+    const reason = `${checked.violation.path} ${checked.violation.message}`
+    if (subAgentProvider.id !== 'spawn') {
+      return {
+        text: `子智能体未按要求返回结构化结果（${reason}）。\n原始输出：${first.text}`,
+        success: false
+      }
+    }
+    const repaired = await subAgentProvider.run({ ...spec, repair: { previous: first.text, reason } })
+    if (!repaired.success) return repaired
+    const second = checkStructuredReply(repaired.text, schema)
+    if (second.ok) {
+      return { ...repaired, text: renderStructured(second.value), structured: second.value }
+    }
+    return {
+      text:
+        `子智能体两次都未返回符合 schema 的结果（重试后：${second.violation.path} ${second.violation.message}）。\n`
+        + `第一次输出：${first.text}\n第二次输出：${repaired.text}`,
+      success: false
+    }
+  }
 
   const spawnSubAgent = (call: { arguments: Record<string, unknown> }): { text: string; success: boolean } => {
     if (depth >= 1) {
@@ -358,6 +417,16 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
     if (task === '') {
       return { text: '[STOP] 子智能体缺少 task 参数', success: false }
     }
+    // 结构化输出（可选）：schema 不可用就**当场拒绝派发**，不要带着坏 schema 硬跑
+    const rawSchema = call.arguments.output_schema
+    const outputSchema =
+      rawSchema === undefined || rawSchema === null ? undefined : coerceOutputSchema(rawSchema)
+    if (rawSchema !== undefined && rawSchema !== null && outputSchema === null) {
+      return {
+        text: '[STOP] output_schema 必须是 type=object 的 JSON Schema 对象（properties/required 可选）',
+        success: false
+      }
+    }
     const childId = `sub_${++subAgentSeq}`
     // 每个子智能体有自己的收件箱：外部可经 onSubAgentSpawned 拿到它并 push 消息（sendMessage / 插话）
     const childInbox = createInbox()
@@ -368,8 +437,20 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
     const onParentAbort = (): void => childAbort.abort()
     controller.signal.addEventListener('abort', onParentAbort, { once: true })
     // 交给 provider 执行（默认进程内 spawn；外部后端只需实现 SubAgentProvider）
-    const promise = subAgentProvider
-      .run({ task, depth: depth + 1, signal: childAbort.signal, inbox: childInbox, sandboxPolicy })
+    const spec: SubAgentTask = {
+      // 外部 provider（CLI / 远程 / ACP）不读 `outputSchema` 字段，只能靠 task 文本传达；
+      // 不拼进这里的话，「远程子智能体 + output_schema」必然校验失败。
+      task:
+        outputSchema !== undefined && outputSchema !== null && subAgentProvider.id !== 'spawn'
+          ? `${task}${structuredInstruction(outputSchema)}`
+          : task,
+      depth: depth + 1,
+      signal: childAbort.signal,
+      inbox: childInbox,
+      sandboxPolicy,
+      ...(outputSchema !== undefined && outputSchema !== null ? { outputSchema } : {})
+    }
+    const promise = runSubAgentTask(spec, outputSchema ?? undefined)
       .catch((error: unknown) => ({
         text: `子智能体执行失败：${error instanceof Error ? error.message : String(error)}`,
         success: false

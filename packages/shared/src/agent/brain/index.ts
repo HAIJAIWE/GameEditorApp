@@ -52,4 +52,13 @@ export type {
   SubagentStatus
 } from './subagents'
 export { clipToolResult, maybeResetContext, maybeResetContextAsync, safeRunEvaluator } from './context'
+export {
+  checkStructuredReply,
+  coerceOutputSchema,
+  parseStructuredReply,
+  renderStructured,
+  structuredInstruction,
+  structuredRepairPrompt
+} from './subagentStructured'
+export type { StructuredCheck, StructuredParse } from './subagentStructured'
 export { createInbox, runBrainLoop } from './loop'

@@ -1868,6 +1868,9 @@ describe('onSubAgentSettled（job_output 的防死锁前提）', () => {
     })
 
     await blocked // 父循环已卡在第二个工具里，drain 还没机会跑
+    // 结算链本身是 async（provider → runSubAgentTask → catch → finally → then），
+    // 排空微任务队列再断言，否则断言的是「链跑到第几层」而不是「有没有结算」
+    await new Promise((resolve) => setTimeout(resolve, 0))
     expect(settled).toHaveLength(1)
     expect(doneEvents).toHaveLength(0)
 
@@ -1876,5 +1879,150 @@ describe('onSubAgentSettled（job_output 的防死锁前提）', () => {
     expect(result.completed).toBe(true)
     expect(doneEvents).toHaveLength(1)
     expect(doneEvents[0]).toBe(settled[0])
+  })
+})
+
+describe('子智能体结构化输出（output_schema）', () => {
+  const outputSchema = {
+    type: 'object',
+    properties: { title: { type: 'string' } },
+    required: ['title']
+  }
+
+  /** 只回 spawn 的子任务，其余返回 null（避免误解析） */
+  const spawnRunner = (): BrainToolRunner => ({
+    resolve: (name) => (name === 'tool.spawn_subagent' ? name : null),
+    needsConfirmation: () => false,
+    execute: async () => ({ success: true, message: 'ok' })
+  })
+
+  const spawnOnce = (args: Record<string, unknown> = {}): BrainLlmReply[] => [
+    toolCall('s1', 'tool.spawn_subagent', { task: '写第一章', ...args }),
+    FINAL
+  ]
+
+  function noticeOf(messages: Array<{ role: string; content?: string | null }>): string {
+    return messages
+      .filter((message) => message.role === 'user' || message.role === 'tool')
+      .map((message) => message.content ?? '')
+      .join('\n')
+  }
+
+  it('合规 JSON → 通过校验，完成通知里是可读的 json 块', async () => {
+    const provider: SubAgentProvider = {
+      id: 'spawn',
+      run: async () => ({ text: '{"title":"第一章"}', success: true })
+    }
+    const result = await runBrainLoop({
+      input: 'x',
+      systemPrompts: [],
+      transport: scripted(spawnOnce({ output_schema: outputSchema })),
+      runner: spawnRunner(),
+      subAgentProvider: provider
+    })
+    const notice = noticeOf(result.messages)
+    expect(notice).toContain('已通过 schema 校验')
+    expect(notice).toContain('"title": "第一章"')
+  })
+
+  it('首次输出散文 → 带违规点重试一次，第二次合规', async () => {
+    const seen: string[] = []
+    const provider: SubAgentProvider = {
+      id: 'spawn',
+      run: async (task) => {
+        seen.push(task.repair === undefined ? 'first' : 'repair')
+        return seen.length === 1
+          ? { text: '我写好了第一章。', success: true }
+          : { text: '{"title":"第一章"}', success: true }
+      }
+    }
+    const result = await runBrainLoop({
+      input: 'x',
+      systemPrompts: [],
+      transport: scripted(spawnOnce({ output_schema: outputSchema })),
+      runner: spawnRunner(),
+      subAgentProvider: provider
+    })
+    expect(seen).toEqual(['first', 'repair'])
+    expect(noticeOf(result.messages)).toContain('已通过 schema 校验')
+  })
+
+  it('两次都不合规 → 判失败并保留两次原文，不假装成功', async () => {
+    const provider: SubAgentProvider = {
+      id: 'spawn',
+      run: async () => ({ text: '还是散文', success: true })
+    }
+    const result = await runBrainLoop({
+      input: 'x',
+      systemPrompts: [],
+      transport: scripted(spawnOnce({ output_schema: outputSchema })),
+      runner: spawnRunner(),
+      subAgentProvider: provider
+    })
+    const done = result.events.find((event) => event.type === 'subagent_done')
+    expect(done !== undefined && done.type === 'subagent_done' && done.success).toBe(false)
+    const notice = noticeOf(result.messages)
+    expect(notice).toContain('两次都未返回符合 schema 的结果')
+    expect(notice).toContain('还是散文')
+  })
+
+  it('外部 provider（非进程内）不合规 → 不重试，直接判失败', async () => {
+    let calls = 0
+    const tasks: string[] = []
+    const provider: SubAgentProvider = {
+      id: 'cli',
+      run: async (task) => {
+        calls += 1
+        tasks.push(task.task)
+        return { text: '散文', success: true }
+      }
+    }
+    await runBrainLoop({
+      input: 'x',
+      systemPrompts: [],
+      transport: scripted(spawnOnce({ output_schema: outputSchema })),
+      runner: spawnRunner(),
+      subAgentProvider: provider
+    })
+    expect(calls).toBe(1)
+    // 外部 provider 不读 outputSchema 字段，约束必须拼进 task 文本才传得到
+    expect(tasks[0]).toContain('结构化输出要求')
+    expect(tasks[0]).toContain('"title"')
+  })
+
+  it('output_schema 不是 object schema → 当场拒绝派发，不调用 provider', async () => {
+    let calls = 0
+    const provider: SubAgentProvider = {
+      id: 'spawn',
+      run: async () => {
+        calls += 1
+        return { text: '{"title":"x"}', success: true }
+      }
+    }
+    const result = await runBrainLoop({
+      input: 'x',
+      systemPrompts: [],
+      transport: scripted(spawnOnce({ output_schema: { type: 'string' } })),
+      runner: spawnRunner(),
+      subAgentProvider: provider
+    })
+    expect(calls).toBe(0)
+    expect(noticeOf(result.messages)).toContain('output_schema 必须是 type=object')
+  })
+
+  it('不传 output_schema 时行为不变：完成通知仍是「子智能体结果」文本', async () => {
+    const provider: SubAgentProvider = {
+      id: 'spawn',
+      run: async () => ({ text: '普通结果', success: true })
+    }
+    const result = await runBrainLoop({
+      input: 'x',
+      systemPrompts: [],
+      transport: scripted(spawnOnce()),
+      runner: spawnRunner(),
+      subAgentProvider: provider
+    })
+    expect(noticeOf(result.messages)).toContain('普通结果')
+    expect(noticeOf(result.messages)).not.toContain('已通过 schema 校验')
   })
 })
