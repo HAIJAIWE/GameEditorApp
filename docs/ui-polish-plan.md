@@ -198,7 +198,7 @@ cd apps/desktop && env -u ELECTRON_RUN_AS_NODE node node_modules/@playwright/tes
 | A2 `StateView` | ✅ 完成（`35366671`） | empty / loading / error；错误 `role=alert` |
 | A3 分批迁移 | 🔄 进行中（25/27） | 已迁移：About / SessionHistory / Settings / Backup / CleanupImages / Statistics / AttributeChart / RelationGraph / AdvancedSearch / GameDataPreview / DataDiff / References / KeywordTemplate / McpConfig / ImageGen / AgentEditor / Shortcuts / Plugins / Onboarding / PluginMarket / AutoReview / RecentChanges / QuickCreate / BatchEdit / ImportPreview；剩余：TypeEditorPanel（双栏布局）、AttrSystemPanel（11 键动作栏）——均需单独设计 |
 | B 窗口职责收敛 | 🔄 初版完成（`3d304caf`） | `docs/window-map.md`：职责表 + 入口矩阵；P1-2 假入口已修；P1-1/P2-1/P2-2 待产品决策 |
-| C 主视图体验 | 🔄 C1 完成（`54f7c7bc`） | 数据编辑器：加载态 + ↑↓ 导航 + 滚动条稳定；C2 策划书编辑器待做 |
+| C 主视图体验 | 🔄 C1/C2 完成（`54f7c7bc` / `fcb43606`） | C1 数据编辑器：加载态 + ↑↓ 导航 + 滚动条稳定；C2 策划书：章节表单保存状态；C3 代码/浏览器/技术设计待做 |
 | D 对话工具卡 | ⬜ 未开始 | 一致性回归 |
 | E 一致性与可达性 | ⬜ 未开始 | 令牌 / 键盘 / 窄窗 / i18n 残留 |
 
