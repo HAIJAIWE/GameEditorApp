@@ -332,6 +332,11 @@ export class AgentBrainService {
     if (typeof context.sessionId !== 'string' || context.sessionId.trim() === '') {
       context.sessionId = this.nextSessionId()
     }
+    // 把本轮取消信号带给技能：`system.job wait` 靠它在用户点停止时立刻退出，
+    // 而不是空耗到自己的超时。此前 dispatcher 读 `ctx.signal` 但 loop 没注入，恒为 undefined。
+    if (context.signal === undefined && options.signal !== undefined) {
+      context.signal = options.signal
+    }
     // 后台任务观测面（system.job）：注册表 + 按 jobId 取消的回调，经 context 交给技能
     context.jobRegistry = this.jobRegistry
     context.jobCancel = (id: string) => this.cancelJob(id)
@@ -486,6 +491,15 @@ export class AgentBrainService {
       // 渲染层经 IPC 即可对运行中子智能体插话 / 单独停止（不牵连父循环）。
       onSubAgentSpawned: (childId, inbox, stopChild) => {
         this.subagents.set(childId, { inbox, stop: stopChild })
+      },
+      // 子任务 promise 一 settle 就结算注册表（不等父循环收量）。否则 `system.job wait`
+      // 会把父循环堵在工具调用里，永远走不到 emit subagent_done 的收量点 ⇒ 死锁。
+      // 顺带把输出尾部填上：此前 settle 只把结果写进 detail，output 一直是空的。
+      onSubAgentSettled: (childId, outcome) => {
+        const jobId = this.childToJob.get(childId)
+        if (jobId === undefined) return
+        this.jobRegistry.append(jobId, outcome.text)
+        this.jobRegistry.settle(jobId, outcome.success ? 'completed' : 'failed', outcome.success ? undefined : outcome.text)
       },
       // 事件包装**始终安装**：子智能体收量即从注册表摘除（只留运行中的条目）。
       // 不能只在调用方传了 onEvent 时才装——否则无 onEvent 的调用（测试/内嵌）会留下陈旧条目。

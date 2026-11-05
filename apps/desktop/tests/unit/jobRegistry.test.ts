@@ -71,3 +71,67 @@ describe('JobRegistry（对齐 dsh jobs 注册表 seam）', () => {
     expect(line).toContain('生成第 1 章')
   })
 })
+
+describe('JobRegistry.waitFor（job_output 的等待原语）', () => {
+  it('已终态立即返回 settled，不挂起', async () => {
+    const reg = new JobRegistry()
+    reg.register({ id: 'j1', kind: 'subagent', label: 'x' })
+    reg.settle('j1', 'completed')
+    const outcome = await reg.waitFor('j1', { timeoutMs: 10_000 })
+    expect(outcome.kind).toBe('settled')
+    expect(outcome.job?.status).toBe('completed')
+  })
+
+  it('任务不存在 → missing', async () => {
+    const reg = new JobRegistry()
+    const outcome = await reg.waitFor('nope', { timeoutMs: 10_000 })
+    expect(outcome).toEqual({ kind: 'missing', job: null })
+  })
+
+  it('settle 唤醒等待者，多个等待者同时收到', async () => {
+    const reg = new JobRegistry()
+    reg.register({ id: 'j1', kind: 'subagent', label: 'x' })
+    const first = reg.waitFor('j1', { timeoutMs: 10_000 })
+    const second = reg.waitFor('j1', { timeoutMs: 10_000 })
+    reg.append('j1', '子任务结果')
+    reg.settle('j1', 'completed')
+    const [a, b] = await Promise.all([first, second])
+    expect(a.kind).toBe('settled')
+    expect(b.kind).toBe('settled')
+    expect(a.job?.output).toBe('子任务结果')
+  })
+
+  it('超时返回 timeout + 当下 running 快照', async () => {
+    const reg = new JobRegistry()
+    reg.register({ id: 'j1', kind: 'subagent', label: 'x' })
+    const outcome = await reg.waitFor('j1', { timeoutMs: 5 })
+    expect(outcome.kind).toBe('timeout')
+    expect(outcome.job?.status).toBe('running')
+  })
+
+  it('abort 立刻打断等待', async () => {
+    const reg = new JobRegistry()
+    reg.register({ id: 'j1', kind: 'subagent', label: 'x' })
+    const controller = new AbortController()
+    const pending = reg.waitFor('j1', { timeoutMs: 10_000, signal: controller.signal })
+    controller.abort()
+    expect((await pending).kind).toBe('aborted')
+  })
+
+  it('已经 abort 的 signal 直接返回 aborted', async () => {
+    const reg = new JobRegistry()
+    reg.register({ id: 'j1', kind: 'subagent', label: 'x' })
+    const controller = new AbortController()
+    controller.abort()
+    const outcome = await reg.waitFor('j1', { timeoutMs: 10_000, signal: controller.signal })
+    expect(outcome.kind).toBe('aborted')
+  })
+
+  it('等待期间 clear → missing（不会挂到超时）', async () => {
+    const reg = new JobRegistry()
+    reg.register({ id: 'j1', kind: 'subagent', label: 'x' })
+    const pending = reg.waitFor('j1', { timeoutMs: 10_000 })
+    reg.clear()
+    expect(await pending).toEqual({ kind: 'missing', job: null })
+  })
+})

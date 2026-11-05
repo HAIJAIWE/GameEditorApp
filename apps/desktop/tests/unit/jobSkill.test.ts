@@ -76,3 +76,61 @@ describe('system.job 技能（对齐 dsh tool-jobs）', () => {
     expect(result.success).toBe(false)
   })
 })
+
+describe('system.job wait（阻塞等待，不轮询）', () => {
+  it('任务已终态 → 立即返回结果与输出尾部', async () => {
+    const reg = new JobRegistry()
+    reg.register({ id: 'j1', kind: 'subagent', label: '写简介' })
+    reg.append('j1', '子任务结果')
+    reg.settle('j1', 'completed')
+    const result = await call({ action: 'wait', id: 'j1' }, { jobRegistry: reg })
+    expect(result.success).toBe(true)
+    expect(result.message).toContain('已结束')
+    expect(result.message).toContain('子任务结果')
+  })
+
+  it('等待期间被 settle → 拿到终态，而不是等到超时', async () => {
+    const reg = new JobRegistry()
+    reg.register({ id: 'j1', kind: 'subagent', label: '写简介' })
+    const pending = call({ action: 'wait', id: 'j1', timeout_ms: 10_000 }, { jobRegistry: reg })
+    setTimeout(() => reg.settle('j1', 'failed', '子智能体报错'), 5)
+    const result = await pending
+    expect(result.success).toBe(true)
+    expect(result.message).toContain('失败')
+    expect(result.message).toContain('子智能体报错')
+    const data = result.data as { job: { status: string }; timedOut?: boolean }
+    expect(data.job.status).toBe('failed')
+    expect(data.timedOut).toBeUndefined()
+  })
+
+  it('超时不算失败：如实说「仍未结束」并带当前进度', async () => {
+    const reg = new JobRegistry()
+    reg.register({ id: 'j1', kind: 'subagent', label: '写简介' })
+    reg.setProgress('j1', '已完成 2/5')
+    const result = await call({ action: 'wait', id: 'j1', timeout_ms: 1 }, { jobRegistry: reg })
+    expect(result.success).toBe(true)
+    expect(result.message).toContain('仍未结束')
+    expect(result.message).toContain('已完成 2/5')
+    expect((result.data as { timedOut?: boolean }).timedOut).toBe(true)
+  })
+
+  it('用户取消 → 明确报「已取消」，不伪装成超时', async () => {
+    const reg = new JobRegistry()
+    reg.register({ id: 'j1', kind: 'subagent', label: '写简介' })
+    const controller = new AbortController()
+    const pending = call(
+      { action: 'wait', id: 'j1', timeout_ms: 10_000 },
+      { jobRegistry: reg, signal: controller.signal }
+    )
+    controller.abort()
+    const result = await pending
+    expect(result.success).toBe(false)
+    expect(result.error).toContain('已取消')
+  })
+
+  it('wait 缺 id → 拒绝；未找到任务也拒绝', async () => {
+    const reg = new JobRegistry()
+    expect((await call({ action: 'wait' }, { jobRegistry: reg })).success).toBe(false)
+    expect((await call({ action: 'wait', id: 'nope' }, { jobRegistry: reg })).success).toBe(false)
+  })
+})

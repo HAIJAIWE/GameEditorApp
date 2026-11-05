@@ -283,6 +283,15 @@ export interface RunBrainLoopOptions {
    */
   onSubAgentSpawned?: (childId: string, inbox: BrainInbox, stopChild: () => void) => void
   /**
+   * 子智能体**完成即通知**（promise settle 时触发，不等父循环 `drainSubAgents`）。
+   *
+   * 为什么必须独立：`subagent_done` 事件只在收量阶段 emit，而收量发生在 finalize ——
+   * 若工具里阻塞等待后台任务，父循环走到不了收量，注册表永远不会结算 ⇒ 死锁。
+   * 宿主用它即时结算 job 注册表 / 唤醒等待者；`subagent_done` 仍负责 UI 与完成通知注入。
+   * 未提供则退化为旧行为（只在收量时结算），不影响既有调用方。
+   */
+  onSubAgentSettled?: (childId: string, outcome: { success: boolean; text: string }) => void
+  /**
    * 子智能体账本（跨轮冷恢复）：启动/完成时各埋一笔，宿主负责落盘。
    * 未提供则退化为「只在内存里」——与本轮改动前行为一致。
    */

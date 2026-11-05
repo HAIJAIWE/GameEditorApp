@@ -1820,3 +1820,61 @@ describe('模型请求重试', () => {
     expect(result.stopReason).toBe('transport_error')
   })
 })
+
+describe('onSubAgentSettled（job_output 的防死锁前提）', () => {
+  it('父循环卡在工具里时即结算，不等 finalize 的 drainSubAgents', async () => {
+    // 场景：`system.job wait` 这类工具会阻塞父循环。若结算只挂在 drain 里，
+    // 父循环永远走不到 drain ⇒ 任务永远 running ⇒ wait 死锁。
+    let notifyBlocked!: () => void
+    const blocked = new Promise<void>((resolve) => {
+      notifyBlocked = resolve
+    })
+    let releaseGate!: () => void
+    const gate = new Promise<void>((resolve) => {
+      releaseGate = resolve
+    })
+    const runner: BrainToolRunner = {
+      resolve: (name) => (name === 'tool.spawn_subagent' || name === 'system.ping' ? name : null),
+      needsConfirmation: () => false,
+      execute: async (tool) => {
+        if (tool === 'system.ping') {
+          notifyBlocked()
+          await gate
+        }
+        return { success: true, message: 'ok' }
+      }
+    }
+    const transport = scripted([
+      toolCall('s1', 'tool.spawn_subagent', { task: '子任务' }),
+      toolCall('s2', 'system.ping'),
+      FINAL
+    ])
+    const provider: SubAgentProvider = {
+      id: 'stub',
+      run: async () => ({ text: '子任务结果', success: true })
+    }
+    const settled: string[] = []
+    const doneEvents: string[] = []
+    const loop = runBrainLoop({
+      input: 'x',
+      systemPrompts: [],
+      transport,
+      runner,
+      subAgentProvider: provider,
+      onSubAgentSettled: (childId) => settled.push(childId),
+      onEvent: (event) => {
+        if (event.type === 'subagent_done') doneEvents.push(event.id)
+      }
+    })
+
+    await blocked // 父循环已卡在第二个工具里，drain 还没机会跑
+    expect(settled).toHaveLength(1)
+    expect(doneEvents).toHaveLength(0)
+
+    releaseGate()
+    const result = await loop
+    expect(result.completed).toBe(true)
+    expect(doneEvents).toHaveLength(1)
+    expect(doneEvents[0]).toBe(settled[0])
+  })
+})

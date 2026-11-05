@@ -1,29 +1,39 @@
 /**
- * `system.job` 内置技能（对齐 dsh `tool-jobs` 的读取/取消能力）。
+ * `system.job` 内置技能（对齐 dsh `tool-jobs` 的读取/等待/取消能力）。
  *
- * 让智能体在长回合里查看、检查、取消**后台子智能体任务**——不阻塞当前轮次即可
- * 掌握后台工作进度（list / status / cancel）。真正的「启动」由既有 `spawn_subagent`
+ * 让智能体查看、等待、取消**后台子智能体任务**。真正的「启动」由既有 `spawn_subagent`
  * 完成（异步 activation），本技能只做**观测与取消**，与 dsh 把「启动」交给生产者、
  * 把「读取/取消」交给 `tool-jobs` 的分工一致。
  *
+ * `wait` 是唯一会阻塞的动作：等到任务终态或超时（默认 30s，上限 120s）。
+ * 超时**不算失败**，会带着当前快照如实返回，供模型决定继续等还是先做别的 ——
+ * 这样「派出去再收结果」不必靠反复轮询 list/status 猜。
+ *
  * 依赖由服务层经 `SkillExecutionContext` 注入：
- * - `jobRegistry`：进程内 `JobRegistry`（子智能体 start/done 事件喂入）
+ * - `jobRegistry`：进程内 `JobRegistry`（子智能体 promise 完成时即时结算）
  * - `jobCancel(id)`：请求取消某任务（返回是否找到）
+ * - `signal`（可选）：本轮取消信号，用户点停止时立刻打断等待
  */
 
 import type { SkillExecutionContext, SkillProtocol, SkillResult } from '@mobai/shared/agent/config'
 import {
   formatJobLine,
+  JOB_STATUS_LABELS,
+  JOB_WAIT_DEFAULT_MS,
   type JobRecord,
   type JobRegistry
 } from '@mobai/shared/agent/jobs/jobRegistry'
 
-const ACTIONS = ['list', 'status', 'cancel'] as const
+const ACTIONS = ['list', 'status', 'wait', 'cancel'] as const
+/** 等待上限：不让一次工具调用把整轮对话无限挂住 */
+const WAIT_MAX_MS = 120_000
+const WAIT_MIN_MS = 500
 
 /** 技能运行时需要的注入面（服务层塞进 context） */
 interface JobContext {
   jobRegistry?: JobRegistry
   jobCancel?: (id: string) => boolean
+  signal?: AbortSignal
 }
 
 function renderDetail(job: JobRecord): string {
@@ -34,7 +44,7 @@ function renderDetail(job: JobRecord): string {
 }
 
 export function createJobSkill(): SkillProtocol {
-  function run(params: Record<string, unknown>, context: SkillExecutionContext): SkillResult {
+  async function run(params: Record<string, unknown>, context: SkillExecutionContext): Promise<SkillResult> {
     const ctx = context as unknown as JobContext
     const action = typeof params.action === 'string' ? params.action : ''
     if (!ACTIONS.includes(action as (typeof ACTIONS)[number])) {
@@ -64,6 +74,39 @@ export function createJobSkill(): SkillProtocol {
       return { success: true, message: renderDetail(job), data: { job } }
     }
 
+    if (action === 'wait') {
+      const signal = ctx.signal instanceof AbortSignal ? ctx.signal : undefined
+      const raw = typeof params.timeout_ms === 'number' && Number.isFinite(params.timeout_ms)
+        ? params.timeout_ms
+        : JOB_WAIT_DEFAULT_MS
+      const timeoutMs = Math.min(WAIT_MAX_MS, Math.max(WAIT_MIN_MS, Math.trunc(raw)))
+      const outcome = await registry.waitFor(id, {
+        timeoutMs,
+        ...(signal !== undefined ? { signal } : {})
+      })
+      if (outcome.kind === 'missing') {
+        return { success: false, error: `任务 ${id} 已不在注册表中（可能被裁剪）`, message: '' }
+      }
+      if (outcome.kind === 'aborted') {
+        return { success: false, error: `等待任务 ${id} 已取消`, message: '' }
+      }
+      const settled = outcome.job
+      const label = JOB_STATUS_LABELS[settled.status]
+      if (outcome.kind === 'timeout') {
+        return {
+          success: true,
+          message: `等待 ${(timeoutMs / 1000).toFixed(0)} 秒后任务 ${id} 仍未结束（当前${label}）。\n`
+            + `${renderDetail(settled)}\n可再次 wait 继续等，或先做别的事。`,
+          data: { job: settled, timedOut: true }
+        }
+      }
+      return {
+        success: true,
+        message: `任务 ${id} 已结束（${label}）\n${renderDetail(settled)}`,
+        data: { job: settled }
+      }
+    }
+
     // cancel
     if (job.status !== 'running') {
       return { success: true, message: `任务 ${id} 已处于终态（${job.status}），无需取消。`, data: { job } }
@@ -78,14 +121,22 @@ export function createJobSkill(): SkillProtocol {
   return {
     id: 'system.job',
     description:
-      '查看与管理后台任务（子智能体）：list=列出全部（运行中优先）/ status=查看某任务详情与输出尾部 / cancel=取消运行中的任务。'
-      + '启动后台任务用 spawn_subagent（不阻塞当前轮次）。',
-    version: '0.1.0',
+      '查看与管理后台任务（子智能体）：list=列出全部（运行中优先）/ status=查看某任务详情与输出尾部 / '
+      + 'wait=阻塞等待任务结束（默认 30 秒，timeout_ms 可调，超时不算失败、返回当前进度）/ '
+      + 'cancel=取消运行中的任务。启动后台任务用 spawn_subagent（不阻塞当前轮次）；'
+      + '需要它的结果时用 wait，不要反复轮询 list。',
+    version: '0.2.0',
     parametersSchema: {
       type: 'object',
       properties: {
         action: { type: 'string', enum: [...ACTIONS], description: '操作类型' },
-        id: { type: 'string', description: 'status/cancel 时的任务 id' }
+        id: { type: 'string', description: 'status/wait/cancel 时的任务 id' },
+        timeout_ms: {
+          type: 'number',
+          description: 'wait 的最长等待毫秒数（默认 30000，上限 120000）',
+          minimum: WAIT_MIN_MS,
+          maximum: WAIT_MAX_MS
+        }
       },
       required: ['action']
     },

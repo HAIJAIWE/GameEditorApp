@@ -380,6 +380,14 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
         controller.signal.removeEventListener('abort', onParentAbort)
       })
     pendingSubagents.set(childId, promise)
+    // 完成即通知宿主，**不挂到 drainSubAgents**：后者只在 finalize 阶段跑，
+    // 工具里若等待后台任务（`system.job wait`）就再也走不到那里，注册表会永远 running。
+    // promise 已 catch 过（必定 fulfilled）；再挂 catch 是防回调自身抛错变成 unhandled。
+    void promise
+      .then((outcome) => {
+        options.onSubAgentSettled?.(childId, { success: outcome.success, text: outcome.text })
+      })
+      .catch(() => undefined)
     // 落账：跨轮冷恢复的数据源。进程退出后宿主据 `running` 记录把状态标为 interrupted。
     options.subagentLedger?.recordStart({ id: childId, task, startedAt: Date.now() })
     emit({ type: 'subagent_started', id: childId, task })

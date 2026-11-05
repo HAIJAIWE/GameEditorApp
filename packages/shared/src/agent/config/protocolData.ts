@@ -44,6 +44,14 @@ export const TOOL_RISK_MAP: Record<string, RiskLevel | Record<string, RiskLevel>
     copy: RISK_LEVEL.FILE_SYSTEM,
     move: RISK_LEVEL.FILE_SYSTEM
   },
+  'system.job': {
+    // 观测与等待都是只读：此前整张表没登记 system.job，list/status 也跟着落默认的
+    // DATA_WRITE（「询问」档下每看一眼后台任务都要弹确认），wait 更不该被审批门挡住。
+    list: RISK_LEVEL.READ_ONLY,
+    status: RISK_LEVEL.READ_ONLY,
+    wait: RISK_LEVEL.READ_ONLY,
+    cancel: RISK_LEVEL.DATA_WRITE
+  },
   'system.shell': RISK_LEVEL.SYSTEM,
   'system.terminal': RISK_LEVEL.SYSTEM,
   'system.ssh': RISK_LEVEL.SYSTEM,
