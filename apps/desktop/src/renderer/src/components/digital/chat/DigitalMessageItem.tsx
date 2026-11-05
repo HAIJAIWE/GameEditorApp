@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react'
 
-import { useT } from '@mobai/client-ui'
+import { LucideIcon, useT } from '@mobai/client-ui'
 import ChatMarkdown from './ChatMarkdown'
 import { useAttachmentImage } from '../attachments/useAttachmentImage'
 import { formatAttachmentSize, type DigitalAttachment } from '@mobai/shared/util/io'
@@ -17,6 +17,15 @@ export interface DigitalMessageItemProps {
    * rating：5 = 有帮助，1 = 没帮助（与 `agent:feedback` 的 1–5 契约对齐）。
    */
   onFeedback?: (input: { rating: number; comment: string }) => Promise<void> | void
+  /**
+   * 用户消息「重新提问 / 编辑后重发」：把文本交给面板走完整发送链路。
+   *
+   * 语义是**追加一个新问题**，不是「改写历史重放」——会话历史是 append-only 审计日志，
+   * 截断重放要么破坏审计、要么得重写 jsonl，代价远大于收益。传入才渲染这两个按钮。
+   */
+  onRequery?: (text: string) => void
+  /** 运行中禁用（此时 `submitText` 走的是插话，不该被"重试"按钮悄悄复用） */
+  requeryDisabled?: boolean
   /** 用户消息附带的文件（对齐 dsh ui-attachment 的诚实子集）；点开用系统程序打开 */
   attachments?: DigitalAttachment[]
   onOpenAttachment?: (path: string) => void
@@ -149,11 +158,16 @@ export function DigitalMessageItem({
   text,
   streaming = false,
   onFeedback,
+  onRequery,
+  requeryDisabled = false,
   attachments,
   onOpenAttachment,
   onOpenFile
 }: DigitalMessageItemProps): ReactElement {
   const [copied, setCopied] = useState(false)
+  /** 用户消息内联编辑：不打开时完全不占版面 */
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState('')
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   /** 反馈表单：0 = 未打开；5/1 = 当前选中的评分 */
@@ -216,6 +230,21 @@ export function DigitalMessageItem({
   }, [feedbackRating, feedbackComment, onFeedback, t])
 
   const showFeedback = role === 'assistant' && !streaming && onFeedback !== undefined
+  const showRequery = role === 'user' && !streaming && onRequery !== undefined
+
+  const startEdit = useCallback((): void => {
+    setDraft(text)
+    setEditing(true)
+  }, [text])
+
+  const cancelEdit = useCallback((): void => setEditing(false), [])
+
+  const sendEdit = useCallback((): void => {
+    const next = draft.trim()
+    if (next === '') return
+    setEditing(false)
+    onRequery?.(next)
+  }, [draft, onRequery])
 
   return (
     // 流式条目沿用旧 testid（e2e 按 digital-streaming 做 toContainText / toHaveCount(0)）
@@ -226,8 +255,49 @@ export function DigitalMessageItem({
     >
       {role === 'user' ? (
         <>
-          <div className="digital-message-bubble">{text}</div>
-          {attachments !== undefined && attachments.length > 0 && (
+          {editing ? (
+            <div className="digital-message-edit" data-testid="digital-message-editor">
+              <textarea
+                className="digital-message-edit-input"
+                data-testid="digital-message-edit-input"
+                value={draft}
+                aria-label={t('agent.msg.editLabel')}
+                rows={3}
+                onChange={(event) => setDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  // Enter 发送、Shift+Enter 换行、Esc 取消：与 composer 的手感一致
+                  if (event.key === 'Escape') cancelEdit()
+                  if (event.key === 'Enter' && !event.shiftKey) {
+                    event.preventDefault()
+                    sendEdit()
+                  }
+                }}
+                autoFocus
+              />
+              <div className="digital-message-edit-actions">
+                <button
+                  type="button"
+                  className="digital-message-edit-cancel"
+                  data-testid="digital-message-edit-cancel"
+                  onClick={cancelEdit}
+                >
+                  {t('agent.msg.editCancel')}
+                </button>
+                <button
+                  type="button"
+                  className="digital-message-edit-send"
+                  data-testid="digital-message-edit-send"
+                  disabled={draft.trim() === ''}
+                  onClick={sendEdit}
+                >
+                  {t('agent.msg.editSend')}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="digital-message-bubble">{text}</div>
+          )}
+          {!editing && attachments !== undefined && attachments.length > 0 && (
             <div className="digital-message-attachments" data-testid="digital-message-attachments">
               {attachments.map((file) =>
                 isImageAttachment(file) ? (
@@ -269,6 +339,32 @@ export function DigitalMessageItem({
         >
           {copied ? <CopiedIcon /> : <CopyIcon />}
         </button>
+        {showRequery && !editing && (
+          <>
+            <button
+              type="button"
+              className="digital-message-action"
+              data-testid="digital-message-retry"
+              aria-label={t('agent.msg.retry')}
+              title={t('agent.msg.retry')}
+              disabled={requeryDisabled}
+              onClick={() => onRequery?.(text)}
+            >
+              <LucideIcon name="refresh" size={14} />
+            </button>
+            <button
+              type="button"
+              className="digital-message-action"
+              data-testid="digital-message-edit"
+              aria-label={t('agent.msg.edit')}
+              title={t('agent.msg.edit')}
+              disabled={requeryDisabled}
+              onClick={startEdit}
+            >
+              <LucideIcon name="edit" size={14} />
+            </button>
+          </>
+        )}
         {showFeedback && (
           <>
             <button

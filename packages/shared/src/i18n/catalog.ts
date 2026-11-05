@@ -331,6 +331,11 @@ export const zh = {
   // —— 智能体面板：消息 / 反馈 / 灯箱 ——
   'agent.msg.copied': '已复制',
   'agent.msg.copy': '复制消息',
+  'agent.msg.retry': '重新提问（按这条再问一次）',
+  'agent.msg.edit': '编辑后重发',
+  'agent.msg.editLabel': '编辑这条提问',
+  'agent.msg.editSend': '发送',
+  'agent.msg.editCancel': '取消',
   'agent.msg.helpful': '标记有帮助',
   'agent.msg.helpfulOn': '已标记有帮助',
   'agent.msg.unhelpful': '标记没帮助',
@@ -2513,6 +2518,11 @@ export const en: Record<MessageKey, string> = {
   // —— Agent panel: messages / feedback / lightbox ——
   'agent.msg.copied': 'Copied',
   'agent.msg.copy': 'Copy message',
+  'agent.msg.retry': 'Ask again (send this prompt once more)',
+  'agent.msg.edit': 'Edit and resend',
+  'agent.msg.editLabel': 'Edit this prompt',
+  'agent.msg.editSend': 'Send',
+  'agent.msg.editCancel': 'Cancel',
   'agent.msg.helpful': 'Mark helpful',
   'agent.msg.helpfulOn': 'Marked helpful',
   'agent.msg.unhelpful': 'Mark unhelpful',

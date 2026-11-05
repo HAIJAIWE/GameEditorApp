@@ -153,6 +153,10 @@ test('智能体面板：桩服务驱动一轮「思考 → 工具 → 结果」�
 
     // 用户气泡立即出现，状态进入思考
     await expect(window.getByTestId('digital-message').filter({ hasText: '看看有哪些数据类型' })).toHaveCount(1)
+    // 用户消息动作行：确认 DigitalPanel 真的把 onRequery 接上了（组件单测证明不了这一层）
+    const userBubble = window.getByTestId('digital-message').filter({ hasText: '看看有哪些数据类型' })
+    await expect(userBubble.getByTestId('digital-message-retry')).toHaveCount(1)
+    await expect(userBubble.getByTestId('digital-message-edit')).toHaveCount(1)
     await expect(window.getByTestId('digital-status')).toHaveText('思考中…')
     // 状态行：运行中要报「深度求索中，用时 …」（dsh 的那一行）
     await expect(window.getByTestId('conv-status')).toContainText('深度求索中')

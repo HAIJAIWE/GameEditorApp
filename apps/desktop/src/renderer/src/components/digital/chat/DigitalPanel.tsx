@@ -817,6 +817,11 @@ export default function DigitalPanel({
               {...(message.role === 'assistant'
                 ? { onFeedback: (input: { rating: number; comment: string }) => api.feedback({ rating: input.rating, comment: input.comment }) }
                 : {})}
+              // 用户消息可「重新提问 / 编辑后重发」：直接复用发送链路（追加新问题，
+              // 不改 append-only 的历史）。running 时禁用，避免被当成插话。
+              {...(message.role === 'user'
+                ? { onRequery: submitText, requeryDisabled: running }
+                : {})}
             />
           ))}
         {/* 本轮改动卡：对话流内、紧跟助手消息之后、流式气泡之前；空列表不渲染任何 DOM */}
