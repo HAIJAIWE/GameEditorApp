@@ -1118,6 +1118,8 @@ body {
   gap: 8px;
   min-width: 0;
   overflow: auto;
+  /* 滚动条出现/消失时不让列表宽度跳一下（条目多时尤其明显） */
+  scrollbar-gutter: stable;
   padding: 12px 20px;
 }
 

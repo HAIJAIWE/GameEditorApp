@@ -13,7 +13,7 @@ import { showToast } from '@mobai/shared/util/ui'
 import type { DataTypeDef, ItemRecord, TypeFieldDef } from '@mobai/shared/types'
 
 import { ItemForm } from '../ceshuField'
-import { LucideIcon } from '../common'
+import { LucideIcon, StateView } from '../common'
 import { toErrorMessage } from '@mobai/shared/util/system'
 
 interface DataEditorTabProps {
@@ -119,6 +119,12 @@ export default function DataEditorTab({
   const [query, setQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
   const [busy, setBusy] = useState(false)
+  /**
+   * 首次加载中。`items` 初始是 `[]`，若不分「加载中」与「真的没有」，
+   * 用户打开页签会先看到「暂无数据」再突然变成列表——这正是 Phase A 修过的
+   * 「静默降级」同类问题。只在挂载 effect 里置位，`reload()`（增删改后）不置位，避免闪烁。
+   */
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   /** 超限确认横幅正文（非空 = 正在等待用户确认是否继续创建） */
   const [countWarning, setCountWarning] = useState<string | null>(null)
@@ -159,12 +165,15 @@ export default function DataEditorTab({
         if (cancelled) return
         setItems(list)
         setError(null)
+        setLoading(false)
         if (initialSelectedId !== undefined && list.some((item) => item.id === initialSelectedId)) {
           setSelectedId(initialSelectedId)
         }
       })
       .catch((err: unknown) => {
-        if (!cancelled) setError(toErrorMessage(err))
+        if (cancelled) return
+        setError(toErrorMessage(err))
+        setLoading(false)
       })
     return () => {
       cancelled = true
@@ -182,7 +191,11 @@ export default function DataEditorTab({
   // 
   useEffect(() => {
     if (selectedId === null) return
-    listRef.current?.querySelector('.item-row.selected')?.scrollIntoView({ block: 'nearest' })
+    const row = listRef.current?.querySelector('.item-row.selected')
+    // jsdom 未实现 scrollIntoView（DOM 测试会直接抛错）；运行时再判一次
+    if (row instanceof HTMLElement && typeof row.scrollIntoView === 'function') {
+      row.scrollIntoView({ block: 'nearest' })
+    }
   }, [selectedId])
 
   // 右键菜单开着时，点击别处 / 失焦 / Esc 关闭（事件监听里的 setState 不属于「渲染期副作用」）
@@ -410,17 +423,37 @@ export default function DataEditorTab({
               if (event.key === 'F2' && selectedId !== null) {
                 event.preventDefault()
                 startRename(selectedId)
+                return
+              }
+              // ↑/↓ 在「筛选后」的列表里移动选中项；选中变化后由既有 effect 滚入可视区。
+              // 不处理 Enter：Enter 在表单里是提交，列表上贸然接管会与表单语义冲突。
+              if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                if (filteredItems.length === 0) return
+                event.preventDefault()
+                const currentIndex = filteredItems.findIndex((item) => item.id === selectedId)
+                const nextIndex =
+                  currentIndex < 0
+                    ? 0
+                    : Math.min(
+                        filteredItems.length - 1,
+                        Math.max(0, currentIndex + (event.key === 'ArrowDown' ? 1 : -1))
+                      )
+                const next = filteredItems[nextIndex]
+                if (next !== undefined) setSelectedId(next.id)
               }
             }}
           >
-            {items.length === 0 ? (
-              <div className="empty" data-testid="ceshu-data-empty">
-                {t('dataTab.empty')}
-              </div>
+            {loading ? (
+              <StateView kind="loading" />
+            ) : items.length === 0 ? (
+              // 加载失败时顶部已有 error-banner，不再重复画「暂无数据」（那会把失败伪装成空）
+              error === null ? <StateView kind="empty" testId="ceshu-data-empty" title={t('dataTab.empty')} /> : null
             ) : filteredItems.length === 0 ? (
-              <div className="empty" data-testid="ceshu-data-empty">
-                {t('dataTab.noMatch', { query: debouncedQuery })}
-              </div>
+              <StateView
+                kind="empty"
+                testId="ceshu-data-empty"
+                title={t('dataTab.noMatch', { query: debouncedQuery })}
+              />
             ) : (
               filteredItems.map((item) => (
                 <div
