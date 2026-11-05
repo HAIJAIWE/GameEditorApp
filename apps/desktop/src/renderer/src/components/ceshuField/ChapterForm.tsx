@@ -166,6 +166,19 @@ export default function ChapterForm({
   /** 高亮定时器 id：卸载时清掉，避免对已卸载组件调用 setState 的告警 */
   const flashTimerRef = useRef<number | null>(null)
 
+  /**
+   * 「有未保存修改」：与保存时同一判据（`sameInput` 比字段输入 + 系统草稿 + 模板草稿）。
+   * 用户改完不保存就切章，回来能一眼看出哪些章还没落盘 —— 此前只有点「保存本章」
+   * 才知道有没有存，切走再回来完全看不出来。
+   */
+  const baselineInputs = useMemo(() => buildInputs(fields, data), [fields, data])
+  const fieldDirty = useMemo(
+    () => fields.some((field) => !sameInput(inputs[field.key], baselineInputs[field.key])),
+    [fields, inputs, baselineInputs]
+  )
+  const systemsDirty = chapter === 'systems' && JSON.stringify(systemsDraft) !== JSON.stringify(data)
+  const dirty = draftData !== null || fieldDirty || systemsDirty
+
   /** 汇总当前表单数据：systems 用系统草稿，其余在 data（或模板草稿）上按 schema 覆盖字段 */
   const collectChapterData = (): ChapterData => {
     if (chapter === 'systems') return systemsDraft
@@ -666,6 +679,13 @@ export default function ChapterForm({
       )}
 
       <div className="editor-actions">
+        <span
+          className={`item-meta chapter-save-state${dirty ? ' is-dirty' : ''}`}
+          data-testid="chapter-save-state"
+          data-dirty={dirty ? 'true' : 'false'}
+        >
+          {busy ? t('chapterForm.saving') : dirty ? t('chapterForm.unsaved') : t('chapterForm.saved')}
+        </span>
         <button type="button" className="btn primary" data-testid="chapter-save" disabled={busy} onClick={() => void handleSave()}>
           {t('chapterForm.saveChapter')}
         </button>

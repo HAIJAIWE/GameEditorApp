@@ -332,3 +332,27 @@ describe('ChapterForm：字段级局部重生成（停靠栏桥）', () => {
     expect(seen).toEqual([{ chapter: 'meta', field: 'positioning', action: undefined }])
   })
 })
+
+describe('ChapterForm：保存状态（Phase C2）', () => {
+  it('初始「已保存」，改字段后变「有未保存修改」', async () => {
+    await mount()
+
+    const state = view!.byTestId('chapter-save-state')
+    expect(state.textContent).toBe('已保存')
+    expect(state.getAttribute('data-dirty')).toBe('false')
+
+    // 改一个正文字段。按元素自身原型取 value setter（input / textarea 都适用，
+    // 不写死 HTMLTextAreaElement —— `positioning` 的 kind 可能是 text）。
+    const control = view!.byTestId('ceshu-field-positioning')
+    const setter = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(control) as object, 'value')?.set
+    expect(typeof setter).toBe('function')
+    await act(async () => {
+      setter!.call(control, '改过的定位')
+      control.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    await view!.flush()
+
+    expect(view!.byTestId('chapter-save-state').textContent).toBe('有未保存修改')
+    expect(view!.byTestId('chapter-save-state').getAttribute('data-dirty')).toBe('true')
+  })
+})

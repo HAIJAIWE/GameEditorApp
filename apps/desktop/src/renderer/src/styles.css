@@ -2153,6 +2153,15 @@ body {
   font-size: var(--text-12);
 }
 
+/* 「已保存 / 未保存」状态贴左，主操作按钮仍在右侧 */
+.chapter-save-state {
+  margin-right: auto;
+}
+
+.chapter-save-state.is-dirty {
+  color: var(--warning);
+}
+
 .editor-actions {
   display: flex;
   gap: 8px;

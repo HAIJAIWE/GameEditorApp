@@ -1552,6 +1552,9 @@ export const zh = {
   'chapterForm.machineGroupHint': '这些字段是给机器判的（对账、断言、证据核对），不计入完成度；立项阶段可以先留空。',
   'chapterForm.competitiveChart': '竞品象限图（横轴=创新度，纵轴=完成度）',
   'chapterForm.saveChapter': '保存本章',
+  'chapterForm.unsaved': '有未保存修改',
+  'chapterForm.saved': '已保存',
+  'chapterForm.saving': '保存中…',
   // —— 开发路线 ——
   'route.title': '开发路线',
   'route.summary': '共 {docs} 份文档 / {waves} 波',
@@ -3744,6 +3747,9 @@ export const en: Record<MessageKey, string> = {
   'chapterForm.machineGroupHint': 'These fields are for machine checks (reconciliation, assertions, evidence). They do not count toward completeness and may stay empty during setup.',
   'chapterForm.competitiveChart': 'Competitive quadrant (x = innovation, y = completeness)',
   'chapterForm.saveChapter': 'Save chapter',
+  'chapterForm.unsaved': 'Unsaved changes',
+  'chapterForm.saved': 'Saved',
+  'chapterForm.saving': 'Saving…',
   // —— Development route ——
   'route.title': 'Development route',
   'route.summary': '{docs} docs / {waves} waves',
