@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 
 import { useT } from '@mobai/client-ui'
 
+import { PanelShell } from '../common'
+
 /**
  * MCP 配置面板（Slice 20）：编辑 `userData/mcp.json` 的原始 JSON，保存后主进程写盘并**重连**。
  *
@@ -49,17 +51,26 @@ export default function McpConfigPanel({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="editor" data-testid="mcp-config-panel">
-      <div className="editor-header">
-        <div className="editor-title">
-          {t('mcpConfig.title')}
-          <small>{t('mcpConfig.subtitle')}</small>
-        </div>
-        <button type="button" className="btn slim" data-testid="mcp-config-close" onClick={onClose}>
-          {t('common.close')}
-        </button>
-      </div>
-      <div className="editor-body">
+    <PanelShell
+      testId="mcp-config-panel"
+      toolbar={<span className="item-meta">{t('mcpConfig.subtitle')}</span>}
+      footer={
+        <>
+          <button type="button" className="btn" data-testid="mcp-config-close" onClick={onClose}>
+            {t('common.close')}
+          </button>
+          <button
+            type="button"
+            className="btn primary"
+            data-testid="mcp-config-save"
+            disabled={busy}
+            onClick={() => void handleSave()}
+          >
+            {t('mcpConfig.save')}
+          </button>
+        </>
+      }
+    >
         <div className="item-meta">
           {t('mcpConfig.hint', {
             stdio: '{ "command": "npx", "args": ["-y", "some-mcp-server"] }',
@@ -89,18 +100,6 @@ export default function McpConfigPanel({ onClose }: { onClose: () => void }) {
             {notice}
           </div>
         )}
-        <div className="field-action-strip-actions">
-          <button
-            type="button"
-            className="btn primary"
-            data-testid="mcp-config-save"
-            disabled={busy}
-            onClick={() => void handleSave()}
-          >
-            {t('mcpConfig.save')}
-          </button>
-        </div>
-      </div>
-    </div>
+    </PanelShell>
   )
 }

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import { useT } from '@mobai/client-ui'
+
+import { PanelShell } from '../common'
 import { translate, type MessageKey } from '@mobai/shared/i18n'
 import type { ImageGenConfig } from '@mobai/shared/config/llm'
 import { loadImageGenConfig, saveImageGenConfig } from '@mobai/shared/config/llm'
@@ -235,18 +237,15 @@ export default function ImageGenPanel({ onClose }: ImageGenPanelProps) {
         : t('imageGen.secret.unconfigured')
 
   return (
-    <div className="editor" data-testid="image-gen-panel">
-      <div className="editor-header">
-        <div className="editor-title">
-          {t('imageGen.title')}
-          <small>{t('imageGen.subtitle')}</small>
-        </div>
-        <button type="button" className="btn slim" onClick={onClose}>
+    <PanelShell
+      testId="image-gen-panel"
+      toolbar={<span className="item-meta">{t('imageGen.subtitle')}</span>}
+      footer={
+        <button type="button" className="btn" onClick={onClose}>
           {t('common.close')}
         </button>
-      </div>
-
-      <div className="editor-body">
+      }
+    >
         <div className="form-row">
           <label className="form-label" htmlFor="image-gen-provider">
             {t('imageGen.providerLabel')}
@@ -402,7 +401,6 @@ export default function ImageGenPanel({ onClose }: ImageGenPanelProps) {
             />
           </div>
         )}
-      </div>
-    </div>
+    </PanelShell>
   )
 }

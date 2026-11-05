@@ -2,6 +2,8 @@ import { useCallback, useMemo, useState } from 'react'
 
 import { useT } from '@mobai/client-ui'
 
+import { PanelShell } from '../common'
+
 import {
   KEYWORD_TEMPLATES_SETTING_KEY,
   KEYWORD_TEMPLATE_TYPE_OPTIONS,
@@ -107,15 +109,26 @@ export default function KeywordTemplatePanel() {
   }, [status, activeType, t])
 
   return (
-    <div className="editor" data-testid="keyword-template-panel">
-      <div className="editor-header">
-        <div className="editor-title">
-          {t('keywordTemplate.title')}
-          <small>{t('keywordTemplate.subtitle')}</small>
-        </div>
-      </div>
-
-      <div className="editor-body">
+    <PanelShell
+      testId="keyword-template-panel"
+      toolbar={<span className="item-meta">{t('keywordTemplate.subtitle')}</span>}
+      footer={
+        <>
+          <button
+            type="button"
+            className="btn primary"
+            data-testid="keyword-template-save"
+            disabled={!dirty}
+            onClick={handleSave}
+          >
+            {t('keywordTemplate.save')}
+          </button>
+          <button type="button" className="btn" data-testid="keyword-template-reset" onClick={handleReset}>
+            {t('keywordTemplate.reset')}
+          </button>
+        </>
+      }
+    >
         <div className="form-hint">{t('keywordTemplate.hint')}</div>
 
         <div className="form-row">
@@ -172,27 +185,6 @@ export default function KeywordTemplatePanel() {
             {t('keywordTemplate.resetHint')}
           </div>
         )}
-      </div>
-
-      <div className="editor-actions">
-        <button
-          type="button"
-          className="btn primary"
-          data-testid="keyword-template-save"
-          disabled={!dirty}
-          onClick={handleSave}
-        >
-          {t('keywordTemplate.save')}
-        </button>
-        <button
-          type="button"
-          className="btn"
-          data-testid="keyword-template-reset"
-          onClick={handleReset}
-        >
-          {t('keywordTemplate.reset')}
-        </button>
-      </div>
-    </div>
+    </PanelShell>
   )
 }

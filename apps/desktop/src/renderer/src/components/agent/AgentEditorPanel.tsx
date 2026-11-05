@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import { useT } from '@mobai/client-ui'
+
+import { PanelShell, StateView } from '../common'
 import {
   buildToolCatalog,
   emptyToolCatalog,
@@ -77,20 +79,18 @@ export default function AgentEditorPanel() {
   const filtered = visible.length !== catalog.tools.length
 
   return (
-    <div className="changelog-panel" data-testid="agent-editor-panel">
-      <div className="changelog-header">
-        <div className="editor-title">
-          {t('agentEditor.title')}
-          <small data-testid="agent-editor-summary">
-            {state.status === 'loading'
-              ? t('agentEditor.loading')
-              : state.status === 'error'
-                ? t('agentEditor.loadFailed')
-                : summarizeCatalog(state.catalog)}
-          </small>
-        </div>
-      </div>
-
+    <PanelShell
+      testId="agent-editor-panel"
+      toolbar={
+        <span className="item-meta" data-testid="agent-editor-summary">
+          {state.status === 'loading'
+            ? t('agentEditor.loading')
+            : state.status === 'error'
+              ? t('agentEditor.loadFailed')
+              : summarizeCatalog(state.catalog)}
+        </span>
+      }
+    >
       <div className="list-toolbar">
         <input
           className="form-input search-input"
@@ -106,18 +106,18 @@ export default function AgentEditorPanel() {
         </label>
       </div>
 
-      {state.status === 'loading' && <div className="empty">{t('agentEditor.loading')}</div>}
+      {state.status === 'loading' && <StateView kind="loading" title={t('agentEditor.loading')} />}
 
       {state.status === 'error' && (
-        <div className="form-error" data-testid="agent-editor-error">
-          {t('agentEditor.error', { message: state.message })}
-        </div>
+        <StateView
+          kind="error"
+          testId="agent-editor-error"
+          description={t('agentEditor.error', { message: state.message })}
+        />
       )}
 
       {state.status === 'ready' && catalog.toolCount === 0 && (
-        <div className="empty" data-testid="agent-editor-empty">
-          {t('agentEditor.empty')}
-        </div>
+        <StateView kind="empty" testId="agent-editor-empty" title={t('agentEditor.empty')} />
       )}
 
       {state.status === 'ready' && catalog.toolCount > 0 && (
@@ -130,9 +130,7 @@ export default function AgentEditorPanel() {
           </div>
           <div className="form-section-body">
             {visible.length === 0 ? (
-              <div className="empty" data-testid="agent-editor-no-match">
-                {t('agentEditor.noMatch')}
-              </div>
+              <StateView kind="empty" testId="agent-editor-no-match" title={t('agentEditor.noMatch')} />
             ) : (
               visible.map((tool) => (
                 <div className="form-row" key={tool.id} data-testid={`agent-editor-tool-${tool.id}`}>
@@ -180,6 +178,6 @@ export default function AgentEditorPanel() {
       <div className="notice-banner" data-testid="agent-editor-scope-note">
         {t('agentEditor.scopeNote')}
       </div>
-    </div>
+    </PanelShell>
   )
 }
