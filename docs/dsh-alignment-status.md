@@ -131,7 +131,7 @@ UI、SQLite、IPC 与全局状态，无法对自己降权后继续工作。硬�
 
 ```bash
 # 在仓库根
-npm run test        # 单测（基线：3980 通过 / 6 跳过，361 个文件）
+npm run test        # 单测（基线：3985 通过 / 6 跳过，361 个文件）
 npm run typecheck   # tsc ×3
 npm run lint        # eslint（0 警告，覆盖 app + shared + agent-core + client-ui）
 env -u NODE_OPTIONS npm run build
