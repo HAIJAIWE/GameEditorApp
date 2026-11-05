@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 
 import { useT } from '@mobai/client-ui'
 
+import { PanelShell } from '../common'
+
 import {
   ADJUST_MODES,
   ADJUST_MODE_LABELS,
@@ -188,17 +190,59 @@ export default function BatchEditPanel({
     : t('batch.scopeAll', { n: effectiveCount })
 
   return (
-    <aside className="editor" data-testid="batch-panel">
-      <div className="editor-header">
-        <div className="editor-title">
-          {t('batch.title')}
-          <small>
-            {scopeLabel} · {scopeSummary}
-          </small>
-        </div>
-      </div>
-
-      <div className="editor-body">
+    <PanelShell
+      testId="batch-panel"
+      toolbar={
+        <span className="item-meta">
+          {scopeLabel} · {scopeSummary}
+        </span>
+      }
+      footer={
+        <>
+          {op === 'delete_selected' ? (
+            deleteConfirm ? (
+              <>
+                <button
+                  type="button"
+                  className="btn danger"
+                  data-testid="batch-delete-confirm"
+                  disabled={busy || effectiveCount === 0}
+                  onClick={() => void handleDelete()}
+                >
+                  {t('batch.confirmDelete', { n: effectiveCount })}
+                </button>
+                <button type="button" className="btn" disabled={busy} onClick={() => setDeleteConfirm(false)}>
+                  {t('common.cancel')}
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                className="btn danger"
+                data-testid="batch-delete"
+                disabled={busy || effectiveCount === 0}
+                onClick={() => handleDeleteClick()}
+              >
+                {t('batch.deleteOp')}
+              </button>
+            )
+          ) : (
+            <button
+              type="button"
+              className="btn primary"
+              data-testid="batch-apply"
+              disabled={busy || effectiveCount === 0}
+              onClick={() => void handleApply()}
+            >
+              {t('batch.apply', { n: effectiveCount })}
+            </button>
+          )}
+          <button type="button" className="btn" data-testid="batch-close" disabled={busy} onClick={onClose}>
+            {t('common.close')}
+          </button>
+        </>
+      }
+    >
         {!externalSelection && (
           <div className="form-row">
             <label className="form-label" htmlFor="batch-type">
@@ -397,52 +441,7 @@ export default function BatchEditPanel({
             ))}
           </div>
         )}
-      </div>
-
-      <div className="editor-actions">
-        {op === 'delete_selected' ? (
-          deleteConfirm ? (
-            <>
-              <button
-                type="button"
-                className="btn danger"
-                data-testid="batch-delete-confirm"
-                disabled={busy || effectiveCount === 0}
-                onClick={() => void handleDelete()}
-              >
-                {t('batch.confirmDelete', { n: effectiveCount })}
-              </button>
-              <button type="button" className="btn" disabled={busy} onClick={() => setDeleteConfirm(false)}>
-                {t('common.cancel')}
-              </button>
-            </>
-          ) : (
-            <button
-              type="button"
-              className="btn danger"
-              data-testid="batch-delete"
-              disabled={busy || effectiveCount === 0}
-              onClick={() => handleDeleteClick()}
-            >
-              {t('batch.deleteOp')}
-            </button>
-          )
-        ) : (
-          <button
-            type="button"
-            className="btn primary"
-            data-testid="batch-apply"
-            disabled={busy || effectiveCount === 0}
-            onClick={() => void handleApply()}
-          >
-            {t('batch.apply', { n: effectiveCount })}
-          </button>
-        )}
-        <button type="button" className="btn" data-testid="batch-close" disabled={busy} onClick={onClose}>
-          {t('common.close')}
-        </button>
-      </div>
-    </aside>
+    </PanelShell>
   )
 }
 

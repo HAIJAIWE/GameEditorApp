@@ -1,6 +1,9 @@
 import { useState } from 'react'
 
 import { useT } from '@mobai/client-ui'
+
+import PanelShell from './PanelShell'
+import StateView from './StateView'
 import {
   filterQuickCreateTypes,
   listQuickCreateTemplates,
@@ -69,15 +72,26 @@ export default function QuickCreatePanel({ type, types, onCreated, onClose }: Qu
   }
 
   return (
-    <div className="editor" data-testid="qc-panel">
-      <div className="editor-header">
-        <div className="editor-title">
-          {t('quickCreate.title')}
-          <small>{t('quickCreate.subtitle')}</small>
-        </div>
-      </div>
-
-      <div className="editor-body">
+    <PanelShell
+      testId="qc-panel"
+      toolbar={<span className="item-meta">{t('quickCreate.subtitle')}</span>}
+      footer={
+        <>
+          <button
+            type="button"
+            className="btn primary"
+            data-testid="qc-create"
+            disabled={busy || selected === null}
+            onClick={() => void create()}
+          >
+            {busy ? t('quickCreate.creating') : t('quickCreate.create')}
+          </button>
+          <button type="button" className="btn" disabled={busy} onClick={onClose}>
+            {t('common.close')}
+          </button>
+        </>
+      }
+    >
         <div className="form-row">
           <label className="form-label" htmlFor="qc-type">
             {t('quickCreate.typeLabel')}
@@ -99,11 +113,9 @@ export default function QuickCreatePanel({ type, types, onCreated, onClose }: Qu
         </div>
 
         {selectableTypes.length === 0 ? (
-          <div className="empty" data-testid="qc-no-type">
-            {t('quickCreate.noType')}
-          </div>
+          <StateView kind="empty" testId="qc-no-type" title={t('quickCreate.noType')} />
         ) : templates.length === 0 ? (
-          <div className="empty">{t('quickCreate.noTemplates')}</div>
+          <StateView kind="empty" title={t('quickCreate.noTemplates')} />
         ) : (
           <div className="qc-grid">
             {templates.map((tpl) => (
@@ -135,22 +147,6 @@ export default function QuickCreatePanel({ type, types, onCreated, onClose }: Qu
         )}
 
         {error !== null && <div className="error-banner">{error}</div>}
-      </div>
-
-      <div className="editor-actions">
-        <button
-          type="button"
-          className="btn primary"
-          data-testid="qc-create"
-          disabled={busy || selected === null}
-          onClick={() => void create()}
-        >
-          {busy ? t('quickCreate.creating') : t('quickCreate.create')}
-        </button>
-        <button type="button" className="btn" disabled={busy} onClick={onClose}>
-          {t('common.close')}
-        </button>
-      </div>
-    </div>
+    </PanelShell>
   )
 }

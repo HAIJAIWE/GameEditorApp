@@ -2,6 +2,8 @@ import { useState } from 'react'
 
 import { useT } from '@mobai/client-ui'
 
+import { PanelShell } from '../common'
+
 import type { MessageKey, TranslateParams } from '@mobai/shared/i18n'
 import type { DataTypeDef, ImportFieldChange, ImportPreview, ImportSummary } from '@mobai/shared/types'
 
@@ -82,15 +84,26 @@ export default function ImportPreviewPanel({
   }
 
   return (
-    <div className="editor" data-testid="import-preview-panel">
-      <div className="editor-header">
-        <div className="editor-title">
-          {t('importPreview.title')}
-          <small>{fileNameOf(preview.filePath)}</small>
-        </div>
-      </div>
-
-      <div className="editor-body">
+    <PanelShell
+      testId="import-preview-panel"
+      toolbar={<span className="item-meta">{fileNameOf(preview.filePath)}</span>}
+      footer={
+        <>
+          <button
+            type="button"
+            className="btn primary"
+            data-testid="import-preview-apply"
+            disabled={busy}
+            onClick={() => void handleApply()}
+          >
+            {busy ? t('importPreview.applying') : hasChanges ? t('importPreview.confirm') : t('importPreview.importAnyway')}
+          </button>
+          <button type="button" className="btn" data-testid="import-preview-cancel" disabled={busy} onClick={onCancel}>
+            {t('common.cancel')}
+          </button>
+        </>
+      }
+    >
         <div className="import-preview-stats" data-testid="import-preview-stats">
           <span className="import-stat create">{t('importPreview.statCreate', { n: preview.createCount })}</span>
           <span className="import-stat update">{t('importPreview.statUpdate', { n: preview.updateCount })}</span>
@@ -155,22 +168,6 @@ export default function ImportPreviewPanel({
             {error}
           </div>
         )}
-      </div>
-
-      <div className="editor-actions">
-        <button
-          type="button"
-          className="btn primary"
-          data-testid="import-preview-apply"
-          disabled={busy}
-          onClick={() => void handleApply()}
-        >
-          {busy ? t('importPreview.applying') : hasChanges ? t('importPreview.confirm') : t('importPreview.importAnyway')}
-        </button>
-        <button type="button" className="btn" data-testid="import-preview-cancel" disabled={busy} onClick={onCancel}>
-          {t('common.cancel')}
-        </button>
-      </div>
-    </div>
+    </PanelShell>
   )
 }
