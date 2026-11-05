@@ -196,7 +196,7 @@ cd apps/desktop && env -u ELECTRON_RUN_AS_NODE node node_modules/@playwright/tes
 |---|---|---|
 | A1 `PanelShell` | ✅ 完成（`35366671`） | 工具条 + 可滚动正文 + 固定底栏；不画标题/关闭 |
 | A2 `StateView` | ✅ 完成（`35366671`） | empty / loading / error；错误 `role=alert` |
-| A3 分批迁移 | 🔄 进行中（12/27） | 已迁移：About / SessionHistory / Settings / Backup / CleanupImages / Statistics / AttributeChart / RelationGraph / AdvancedSearch / GameDataPreview / DataDiff / References；待迁移：工具组 → 外壳组 → 录入编辑组 |
+| A3 分批迁移 | 🔄 进行中（16/27） | 已迁移：About / SessionHistory / Settings / Backup / CleanupImages / Statistics / AttributeChart / RelationGraph / AdvancedSearch / GameDataPreview / DataDiff / References / KeywordTemplate / McpConfig / ImageGen / AgentEditor；待迁移：外壳组 → 录入编辑组 → AttrSystemPanel（自定义动作栏，单独处理） |
 | B 窗口职责收敛 | ⬜ 未开始 | 入口矩阵与职责表 |
 | C 主视图体验 | ⬜ 未开始 | 数据编辑器 / 策划书编辑器优先 |
 | D 对话工具卡 | ⬜ 未开始 | 一致性回归 |
