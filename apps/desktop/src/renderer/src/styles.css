@@ -897,6 +897,13 @@ body {
   border-bottom: 0.5px solid var(--border);
 }
 
+/* 工具条里的一组控件（视图切换等）：左对齐成组，不被 space-between 拉散 */
+.panel-shell-toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .panel-shell-body {
   display: flex;
   flex: 1;

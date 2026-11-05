@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 
 import { useT } from '@mobai/client-ui'
 
+import { PanelShell } from '../common'
+
 import {
   ATTR_TYPES,
   ATTR_TYPE_LABELS,
@@ -343,10 +345,10 @@ export default function AttrSystemPanel({ onClose }: AttrSystemPanelProps) {
   }
 
   return (
-    <div className="changelog-panel" data-testid="attr-system-panel">
-      <div className="changelog-header">
-        <span className="chapter-form-title">{t('attrPanel.title')}</span>
-        <div className="editor-actions">
+    <PanelShell
+      testId="attr-system-panel"
+      toolbar={
+        <div className="panel-shell-toolbar-group">
           <button
             type="button"
             className={`btn${view === 'list' ? ' primary' : ''}`}
@@ -383,6 +385,10 @@ export default function AttrSystemPanel({ onClose }: AttrSystemPanelProps) {
           >
             {t('attrPanel.tabEquip')}
           </button>
+        </div>
+      }
+      footer={
+        <>
           <button type="button" className="btn" data-testid="attr-default" disabled={busy} onClick={handleLoadDefault}>
             {t('attrPanel.loadDefault')}
           </button>
@@ -428,8 +434,9 @@ export default function AttrSystemPanel({ onClose }: AttrSystemPanelProps) {
           <button type="button" className="btn" data-testid="attr-close" disabled={busy} onClick={onClose}>
             {t('common.close')}
           </button>
-        </div>
-      </div>
+        </>
+      }
+    >
 
       {view === 'list' ? (
         <div className="changelog-entry">
@@ -645,6 +652,6 @@ export default function AttrSystemPanel({ onClose }: AttrSystemPanelProps) {
           {notice}
         </div>
       )}
-    </div>
+    </PanelShell>
   )
 }

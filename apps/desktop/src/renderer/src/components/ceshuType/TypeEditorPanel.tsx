@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 
 import { useT } from '@mobai/client-ui'
 
+import { StateView } from '../common'
+
 import { suggestFieldIds, type FieldIdSuggestion, type SuggestFieldIdResult } from '@mobai/shared/util/id'
 import { chineseToPinyin, suggestPinyinFieldId } from '@mobai/shared/util/id'
 import {
@@ -474,7 +476,7 @@ export default function TypeEditorPanel({ types, initialTypeId, onSaved, onClose
             />
           </>
         ) : (
-          <div className="empty">{t('typeEditor.pickType')}</div>
+          <StateView kind="empty" title={t('typeEditor.pickType')} />
         )}
 
         {errors.length > 0 && (
