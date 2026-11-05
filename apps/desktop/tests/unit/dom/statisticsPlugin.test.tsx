@@ -58,4 +58,22 @@ describe('状态化面板经宿主渲染 + appContext 自供给（B 方案 Slice
     command!.run()
     expect(host.activePanel()?.id).toBe('statistics.panel')
   })
+
+  it('「平衡性分析」入口带 tab 参数，直接落到 balance 页签（不是假入口）', async () => {
+    const host = new PluginHost()
+    host.register(defineStatisticsPlugin(host))
+    api = installMbApi({ overrides: { 'data.listAll': () => ITEMS } })
+
+    // 菜单「平衡性分析工具」走 statistics.openBalance → 带 tab 参数打开
+    host.openPanel('statistics.panel', { tab: 'balance' })
+    view = await renderDom(
+      <AppContextProvider value={appContextValue({ types: TYPES })}>
+        <HostPanel host={host} panelId="statistics.panel" onClose={() => undefined} />
+      </AppContextProvider>
+    )
+
+    expect(view.byTestId('stats-tab-balance').className).toContain('active')
+    // TYPES 没有数值字段 ⇒ 平衡性页签显示「无可分析类型」，证明确实落在 balance
+    expect(view.query('[data-testid="stats-no-balance"]')).not.toBeNull()
+  })
 })

@@ -119,7 +119,7 @@ export function defineMenusPlugin(_host: PluginHost): PluginManifest {
             labelKey: 'menu.tools.dataAnalysis',
             items: [
               item('menu.tools.attributeChart', 'attributeChart.open', 'menuitem-tools-attributeChart'),
-              item('menu.tools.balance', 'statistics.open', 'menuitem-tools-balance'),
+              item('menu.tools.balance', 'statistics.openBalance', 'menuitem-tools-balance'),
               item('menu.tools.stats', 'statistics.open', 'menuitem-tools-stats')
             ]
           },

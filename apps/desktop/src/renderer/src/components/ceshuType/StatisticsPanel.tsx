@@ -29,15 +29,20 @@ import { useAppContext } from '../../plugins/host'
 interface StatisticsPanelProps {
   /** 面板关闭（宿主 `HostPanel` 统一下发的面板生命周期契约） */
   onClose: () => void
+  /**
+   * 初始页签：菜单「平衡性分析」直接落到 `balance`，避免两个入口打开同一个默认页签
+   * （那会让「平衡性分析」变成假入口）。默认 `overview`。
+   */
+  initialTab?: Tab
 }
 
 type Tab = 'overview' | 'balance'
 
-export default function StatisticsPanel({ onClose }: StatisticsPanelProps) {
+export default function StatisticsPanel({ onClose, initialTab = 'overview' }: StatisticsPanelProps) {
   const t = useT()
   // 自供给：数据类型定义经 appContext 取用，不再由 App 以 props 下发（B 方案 Slice 2）
   const { types } = useAppContext()
-  const [tab, setTab] = useState<Tab>('overview')
+  const [tab, setTab] = useState<Tab>(initialTab)
   const [items, setItems] = useState<ItemRecord[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [balanceType, setBalanceType] = useState('')

@@ -1,6 +1,6 @@
 import type { PluginHost } from '@mobai/shared/plugin/host'
 import type { PluginManifest } from '@mobai/shared/plugin/types'
-import { registerReactBinding } from '../host'
+import { registerReactBinding, type PanelBindingProps } from '../host'
 import { StatisticsPanel } from '../../components/ceshuType'
 
 /**
@@ -13,7 +13,13 @@ import { StatisticsPanel } from '../../components/ceshuType'
 export function defineStatisticsPlugin(host: PluginHost): PluginManifest {
   // 富 UI 作为可选绑定外置（宿主侧）；CLI / 引擎宿主回退到声明式 ui。
   // onClose 由宿主 `HostPanel` 下发（面板生命周期契约），绑定负责转发
-  registerReactBinding('statistics.panel', ({ onClose }) => <StatisticsPanel onClose={onClose} />)
+  registerReactBinding('statistics.panel', ({ onClose, params }: PanelBindingProps) => {
+    const raw = typeof params === 'object' && params !== null ? (params as { tab?: unknown }) : {}
+    const initialTab = raw.tab === 'balance' ? 'balance' : 'overview'
+    // key：两个菜单入口（游戏数据统计 / 平衡性分析工具）切换时强制重挂，
+    // 否则已挂载的实例会保留上一次的页签，「平衡性分析」就又变成假入口。
+    return <StatisticsPanel key={initialTab} onClose={onClose} initialTab={initialTab} />
+  })
   return {
     id: 'statistics',
     name: 'statistics',
@@ -33,6 +39,14 @@ export function defineStatisticsPlugin(host: PluginHost): PluginManifest {
         label: 'Statistics',
         labelKey: 'plugin.statistics.label',
         run: () => host.openPanel('statistics.panel')
+      },
+      {
+        kind: 'command',
+        id: 'statistics.openBalance',
+        label: 'Balance analysis',
+        labelKey: 'menu.tools.balance',
+        // 与 `statistics.open` 区分：带 tab 参数直接落到「平衡性」页签
+        run: () => host.openPanel('statistics.panel', { tab: 'balance' })
       },
       {
         kind: 'panel',
