@@ -873,6 +873,91 @@ body {
 }
 
 /*
+ * 统一面板内容外壳（Phase A）：工具条 + 可滚动正文 + 固定底栏。
+ *
+ * 边界：浮层（`.panel-overlay`）负责窗口标题与关闭；本外壳**不画标题、不画关闭**，
+ * 避免当前「浮层标题 + 面板自己再画一遍标题/关闭」的双重外壳。
+ * 约束：只用令牌（颜色 / 字号 / 发丝线），满足 `styleRatchet` 守卫。
+ */
+.panel-shell {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.panel-shell-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 20px;
+  border-bottom: 0.5px solid var(--border);
+}
+
+.panel-shell-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  min-height: 0;
+  padding: 12px 20px;
+}
+
+/* 只有显式声明滚动的正文才 `overflow:auto`，否则交给内容自己管 */
+.panel-shell-body[data-scroll='true'] {
+  overflow: auto;
+}
+
+.panel-shell-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 20px;
+  border-top: 0.5px solid var(--border);
+}
+
+/*
+ * 三态（空 / 加载 / 错误）：统一居中块，替代各面板各写各的裸 `<p>`。
+ * 错误态标题用 `--danger`，让「读失败」与「确实没有」一眼可分。
+ */
+.state-view {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 120px;
+  padding: 24px;
+  text-align: center;
+}
+
+.state-view-title {
+  color: var(--text);
+  font-size: var(--text-14);
+  font-weight: 600;
+}
+
+.state-view-desc {
+  max-width: 42em;
+  color: var(--text-muted);
+  font-size: var(--text-13);
+}
+
+.state-view-error .state-view-title {
+  color: var(--danger);
+}
+
+.state-view-action {
+  margin-top: 4px;
+}
+
+/*
  * AI 对话停靠栏：常驻右栏，默认约 1/4 宽（旧版 默认 75:25）。
  * `resize: horizontal` 提供原生拖拽调宽（需 overflow 非 visible）。
  */
