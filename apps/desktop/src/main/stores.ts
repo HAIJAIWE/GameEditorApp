@@ -8,7 +8,6 @@
  * 各 store 不再自己算路径，统一由库服务给出的 `libDir` 派生。
  */
 
-import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 /**
@@ -68,6 +67,7 @@ import { AgentBrainService, createDispatcherToolRunner } from '@mobai/agent-core
 import { readProjectInstructions } from '@mobai/agent-core/agentService/projectInstructions'
 import { OperationLogStore } from '@mobai/agent-core/store/operationLogStore'
 import { DeliveryLogStore } from '@mobai/agent-core/store/deliveryLogStore'
+import { createSpillWriter } from '@mobai/agent-core/store/spillStore'
 import {
   createSubagentLedgerStore,
   type SubagentLedgerStore
@@ -271,6 +271,11 @@ export function buildStores(libDir: string): AppStores {
   const subagentLedger = createSubagentLedgerStore(join(agentDir, 'subagents.json'))
   subagentLedger.reconcile()
 
+  // 超长工具输出落盘：头尾保留 + 单文件上限 + 数量/时间双清理。
+  // 启动时先扫一次（上次退出后遗留的堆积不等到下一次超长输出才清）。
+  const spillWriter = createSpillWriter({ dir: () => join(getWorkspaceRoot(), '.mb-spill') })
+  spillWriter.prune()
+
   return {
     dbPath,
     dataService: data,
@@ -293,16 +298,9 @@ export function buildStores(libDir: string): AppStores {
       preferences: personalization.preferences,
       // 项目约定（对齐 dsh agent-instructions）：库级 AGENTS.md 常驻注入
       projectInstructions: () => readProjectInstructions(libDir),
-      // 超长工具输出落盘（对齐 dsh spill）：写进工作区 `.mb-spill/`，file_ops 可再读
-      spill: (tool, text) => {
-        const dir = join(getWorkspaceRoot(), '.mb-spill')
-        mkdirSync(dir, { recursive: true })
-        const safe = tool.replace(/[^\w.-]/g, '_')
-        const fileName = `${Date.now()}-${safe}.txt`
-        writeFileSync(join(dir, fileName), text, 'utf8')
-        const head = text.slice(0, 800)
-        return `${head}\n\n…[输出过长（${text.length} 字符），完整内容已落盘：.mb-spill/${fileName}（相对工作区）。可用 system.file_ops read 读取]`
-      },
+      // 超长工具输出落盘（对齐 dsh spill）：写进工作区 `.mb-spill/`，file_ops 可再读。
+      // 头尾都给模型（结论/堆栈常在末尾），并按数量与时间清扫历史文件。
+      spill: spillWriter.write,
       runner,
       // Slice 31/33：子智能体 provider（远程 URL > CLI > 进程内 spawn，见 buildSubAgentProvider）
       ...buildSubAgentProvider(),
