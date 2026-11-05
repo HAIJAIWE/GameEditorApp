@@ -3,7 +3,7 @@ import { useEffect, useState, type ReactElement } from 'react'
 import { useT } from '@mobai/client-ui'
 import type { PluginHost } from '@mobai/shared/plugin/host'
 import type { PluginManifest } from '@mobai/shared/plugin/types'
-import type { OperationRecord } from '@mobai/shared/agent/observability'
+import type { RecentChangeView } from '@mobai/shared/agent/observability'
 import { DigitalChangeList } from '../../components/digital'
 import { registerReactBinding, type PanelBindingProps } from '../host'
 
@@ -57,7 +57,7 @@ export function defineRecentChangesPlugin(_host: PluginHost): PluginManifest {
 
 function RecentChangesPanel({ onClose }: PanelBindingProps): ReactElement {
   const t = useT()
-  const [changes, setChanges] = useState<OperationRecord[]>([])
+  const [changes, setChanges] = useState<RecentChangeView[]>([])
   // 首次挂载即加载，故 loading 初值为 true；`load` 的 setState 都在 await 之后（避免 effect 内同步 setState）
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

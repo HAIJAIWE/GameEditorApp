@@ -146,7 +146,7 @@ import type { FieldAction } from './ceshu/fields'
 import type { BrainEvent, SubagentRecord } from './agent/brain'
 import type { AgentRunStats } from './agent/observability'
 import type { DraftSummary, SessionInfo, SessionTurnSummary } from './agent/conversation'
-import type { OperationRecord } from './agent/observability'
+import type { RecentChangeView } from './agent/observability'
 import type { JsonObjectSchema, PermissionMode, SkillResult } from './agent/config'
 import type {
   AttachmentsAddInput,
@@ -447,7 +447,8 @@ export interface IpcContract {
    */
   'agent:recentChanges': {
     req: { limit?: number; since?: number; conversationId?: string }
-    res: { changes: OperationRecord[] }
+    /** 只发展示投影：`before/after` 回滚快照不出主进程，`itemName` 已脱敏 */
+    res: { changes: RecentChangeView[] }
   }
   /**
    * 最近交付（交付日志）：Agent 显式交付给用户的文件（目前来自 `system.ceshu` 的 export）。

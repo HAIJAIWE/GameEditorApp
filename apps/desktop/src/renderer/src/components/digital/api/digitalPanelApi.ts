@@ -1,5 +1,5 @@
 import type { DraftSummary } from '@mobai/shared/agent/conversation'
-import type { OperationRecord } from '@mobai/shared/agent/observability'
+import type { RecentChangeView } from '@mobai/shared/agent/observability'
 import type { DeliveryRecord } from '@mobai/shared/agent/observability'
 import type { DigitalAttachment } from '@mobai/shared/util/io'
 import type { JobRecord } from '@mobai/shared/agent/jobs/jobRegistry'
@@ -62,7 +62,7 @@ export interface ChatApi {
     limit?: number
     since?: number
     conversationId?: string
-  }) => Promise<{ changes: OperationRecord[] }>
+  }) => Promise<{ changes: RecentChangeView[] }>
   /** 本轮交付的文件（交付日志）：供对话内联交付卡展示 */
   deliveries: (req: {
     limit?: number

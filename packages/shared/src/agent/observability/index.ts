@@ -7,4 +7,5 @@
 export * from './deliveryLog'
 export * from './observability'
 export * from './operationLog'
+export * from './recentChanges'
 export * from './trajectory'

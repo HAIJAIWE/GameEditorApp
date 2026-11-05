@@ -1,7 +1,7 @@
 import { useState, type ReactElement } from 'react'
 
 import { useT } from '@mobai/client-ui'
-import type { OperationRecord } from '@mobai/shared/agent/observability'
+import type { RecentChangeView } from '@mobai/shared/agent/observability'
 import type { MessageKey } from '@mobai/shared/i18n'
 
 /**
@@ -19,16 +19,16 @@ import type { MessageKey } from '@mobai/shared/i18n'
 /** 折叠前显示的行数（对齐 dsh `ChangedFiles` 的 COLLAPSED_ROWS） */
 const COLLAPSED_ROWS = 4
 
-const OP_LABEL_KEYS: Record<OperationRecord['opType'], MessageKey> = {
+const OP_LABEL_KEYS: Record<RecentChangeView['opType'], MessageKey> = {
   create: 'agent.op.create',
   update: 'agent.op.update',
   delete: 'agent.op.delete'
 }
 
 /** 操作徽标 / 统计项的顺序（新建 → 修改 → 删除，与用户的心理顺序一致） */
-const OP_ORDER: OperationRecord['opType'][] = ['create', 'update', 'delete']
+const OP_ORDER: RecentChangeView['opType'][] = ['create', 'update', 'delete']
 
-const OP_CLASS: Record<OperationRecord['opType'], string> = {
+const OP_CLASS: Record<RecentChangeView['opType'], string> = {
   create: 'create',
   update: 'update',
   delete: 'delete'
@@ -60,7 +60,7 @@ export function DigitalChangeList({
   empty,
   loading
 }: {
-  changes: readonly OperationRecord[]
+  changes: readonly RecentChangeView[]
   empty?: string
   loading?: boolean
 }): ReactElement {
@@ -104,7 +104,14 @@ export function DigitalChangeList({
             data-op={change.opType}
           >
             <span className={`digital-change-op op-${change.opType}`}>{t(OP_LABEL_KEYS[change.opType])}</span>
-            <span className="digital-change-name" title={change.itemName}>
+            <span
+              className="digital-change-name"
+              title={
+                change.maskedCount !== undefined && change.maskedCount > 0
+                  ? `${change.itemName} · ${t('agent.secretMasked', { count: change.maskedCount })}`
+                  : change.itemName
+              }
+            >
               {change.itemName}
             </span>
             <span className="digital-change-meta">
@@ -141,7 +148,7 @@ export function DigitalChangeCard({
   since,
   onOpenAll
 }: {
-  changes: readonly OperationRecord[]
+  changes: readonly RecentChangeView[]
   loading?: boolean
   /** 本轮开始时间（毫秒）；只作调试锚点，不参与展示逻辑 */
   since?: number | null
@@ -171,7 +178,7 @@ export function DigitalChangeCard({
   )
 }
 
-function countOf(changes: readonly OperationRecord[], op: OperationRecord['opType']): number {
+function countOf(changes: readonly RecentChangeView[], op: RecentChangeView['opType']): number {
   return changes.filter((change) => change.opType === op).length
 }
 

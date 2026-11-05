@@ -25,6 +25,7 @@ import { DEFAULT_INTERACTION_TIMEOUT_MS } from '@mobai/shared/agent/brain'
 import { isPreReviewEnabled, setPreReviewEnabled } from '@mobai/agent-core/agentService/preReview'
 import type { AgentInteractionAnswer } from '@mobai/agent-core/execution/approvalBroker'
 import { withTask } from '../task/taskRegistry'
+import { toRecentChangeViews } from '@mobai/shared/agent/observability'
 
 export function registerAgentIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm: LlmShared): void {
   const { agentDispatcher, agentBrain, approvalBroker, agentSessionStore, agentFeedback, agentOperationLog, agentDeliveryLog, agentSubagentLedger } = deps
@@ -180,10 +181,13 @@ export function registerAgentIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
   handle('agent:getPreReviewEnabled', undefined, () => ({ enabled: isPreReviewEnabled() }))
   // 最近改动（操作日志）：最近的数据变更记录（新→旧），供「最近改动」面板与对话内联改动卡
   handle('agent:recentChanges', agentRecentChangesInputSchema, (req) => ({
-    changes: agentOperationLog.listRecentFiltered(req?.limit, {
-      since: req?.since,
-      conversationId: req?.conversationId
-    })
+    // 展示投影：before/after 回滚快照留在主进程，itemName 出口脱敏（见 toRecentChangeViews）
+    changes: toRecentChangeViews(
+      agentOperationLog.listRecentFiltered(req?.limit, {
+        since: req?.since,
+        conversationId: req?.conversationId
+      })
+    )
   }))
   // 最近交付（交付日志）：Agent 显式交付的文件，供对话内联交付卡展示
   handle('agent:deliveries', agentDeliveriesInputSchema, (req) => ({
