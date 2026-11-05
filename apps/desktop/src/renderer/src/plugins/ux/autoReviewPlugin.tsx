@@ -5,6 +5,7 @@ import type { PluginHost } from '@mobai/shared/plugin/host'
 import type { PluginManifest } from '@mobai/shared/plugin/types'
 import { translate } from '@mobai/shared/i18n'
 import { getLocalePreference } from '../../localePreference'
+import { PanelShell } from '../../components/common'
 import { registerReactBinding, type PanelBindingProps } from '../host'
 
 /**
@@ -114,14 +115,14 @@ function AutoReviewPanel(props: PanelBindingProps): ReactElement {
   }
 
   return (
-    <div className="panel auto-review">
-      <div className="panel-header">
-        <h3>{t('agent.autoReview.metaLabel')}</h3>
+    <PanelShell
+      testId="auto-review-panel"
+      footer={
         <button type="button" className="btn" onClick={onClose}>
           {t('common.close')}
         </button>
-      </div>
-
+      }
+    >
       <div className="auto-review-toggle">
         <label>
           <input
@@ -144,6 +145,6 @@ function AutoReviewPanel(props: PanelBindingProps): ReactElement {
         <li>{t('agent.autoReview.ruleFail')}</li>
       </ul>
       <p className="auto-review-hint">{t('agent.autoReview.hintFooter')}</p>
-    </div>
+    </PanelShell>
   )
 }

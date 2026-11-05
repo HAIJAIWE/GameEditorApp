@@ -7810,6 +7810,15 @@ body {
   white-space: normal;
 }
 
+/* Phase A：快速入门头迁入 `PanelShell` 工具条后，`.editor-title` 不再存在，
+ * 用等价规则保住折叠/标题/进度/关闭的横向对齐。 */
+.panel-shell-toolbar .onboarding-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: normal;
+}
+
 .onboarding-collapse,
 .onboarding-dismiss {
   border: none;

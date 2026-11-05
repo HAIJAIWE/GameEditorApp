@@ -1,6 +1,8 @@
 import { useSyncExternalStore, useState, type ReactElement } from 'react'
 
 import { useT } from '@mobai/client-ui'
+
+import { PanelShell } from '../../components/common'
 import type { PluginHost } from '@mobai/shared/plugin/host'
 import type { PluginLoader, PluginManifest, PluginMarketEntry, PluginSource } from '@mobai/shared/plugin/types'
 import { translate } from '@mobai/shared/i18n'
@@ -113,14 +115,14 @@ function PluginMarketPanel(props: PluginMarketProps): ReactElement {
   }
 
   return (
-    <div className="panel plugin-market">
-      <div className="panel-header">
-        <h3>{t('pluginMarket.metaLabel')}</h3>
+    <PanelShell
+      testId="plugin-market-panel"
+      footer={
         <button type="button" className="btn" onClick={onClose}>
           {t('common.close')}
         </button>
-      </div>
-
+      }
+    >
       <section>
         <h4>{t('pluginMarket.registered', { count: registered.length })}</h4>
         <ul className="plugin-market-list">
@@ -184,7 +186,7 @@ function PluginMarketPanel(props: PluginMarketProps): ReactElement {
       </section>
 
       <p className="plugin-market-hint">{t('pluginMarket.hint')}</p>
-    </div>
+    </PanelShell>
   )
 }
 

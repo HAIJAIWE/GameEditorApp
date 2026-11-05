@@ -5,6 +5,7 @@ import type { PluginHost } from '@mobai/shared/plugin/host'
 import type { PluginManifest } from '@mobai/shared/plugin/types'
 import type { RecentChangeView } from '@mobai/shared/agent/observability'
 import { DigitalChangeList } from '../../components/digital'
+import { PanelShell } from '../../components/common'
 import { registerReactBinding, type PanelBindingProps } from '../host'
 
 /**
@@ -98,24 +99,24 @@ function RecentChangesPanel({ onClose }: PanelBindingProps): ReactElement {
   }
 
   return (
-    <div className="panel recent-changes">
-      <div className="panel-header">
-        <h3>{t('plugin.recentChanges.label')}</h3>
-        <div className="recent-changes-actions">
-          <button type="button" className="btn" disabled={loading} onClick={refresh}>
-            {loading ? t('recentChanges.refreshing') : t('recentChanges.refresh')}
-          </button>
-          <button type="button" className="btn" onClick={onClose}>
-            {t('common.close')}
-          </button>
-        </div>
-      </div>
-
+    <PanelShell
+      testId="recent-changes-panel"
+      toolbar={
+        <button type="button" className="btn" disabled={loading} onClick={refresh}>
+          {loading ? t('recentChanges.refreshing') : t('recentChanges.refresh')}
+        </button>
+      }
+      footer={
+        <button type="button" className="btn" onClick={onClose}>
+          {t('common.close')}
+        </button>
+      }
+    >
       {error !== null && (
         <p className="recent-changes-error">{t('recentChanges.readFailed', { error })}</p>
       )}
       {/* 行渲染统一在 DigitalChangeList（与对话内联改动卡共用），此处只负责取数与刷新 */}
       <DigitalChangeList changes={changes} loading={loading} />
-    </div>
+    </PanelShell>
   )
 }

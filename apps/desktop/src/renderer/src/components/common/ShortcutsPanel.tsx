@@ -1,6 +1,8 @@
 import { useT } from '@mobai/client-ui'
 import { APP_SHORTCUTS } from '@mobai/shared/util/ui'
 
+import PanelShell from './PanelShell'
+
 /**
  * 快捷键参考面板（对齐 旧版 `ui/shortcuts_dialog::ShortcutsDialog`，
  * 菜单入口 `帮助 → 快捷键参考`）。
@@ -19,15 +21,10 @@ import { APP_SHORTCUTS } from '@mobai/shared/util/ui'
 export default function ShortcutsPanel() {
   const t = useT()
   return (
-    <div className="editor" data-testid="shortcuts-panel">
-      <div className="editor-header">
-        <div className="editor-title">
-          {t('shortcuts.title')}
-          <small>{t('shortcuts.subtitle', { count: APP_SHORTCUTS.length })}</small>
-        </div>
-      </div>
-
-      <div className="editor-body">
+    <PanelShell
+      testId="shortcuts-panel"
+      toolbar={<span className="item-meta">{t('shortcuts.subtitle', { count: APP_SHORTCUTS.length })}</span>}
+    >
         <div className="changelog-entry">
           <table className="score-table" data-testid="shortcuts-table">
             <thead>
@@ -50,7 +47,6 @@ export default function ShortcutsPanel() {
         </div>
 
         <div className="item-meta">{t('shortcuts.note')}</div>
-      </div>
-    </div>
+    </PanelShell>
   )
 }

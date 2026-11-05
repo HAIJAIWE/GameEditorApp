@@ -1,6 +1,8 @@
 import { useEffect, useState, type ComponentType } from 'react'
 
 import { useT } from '@mobai/client-ui'
+
+import PanelShell from './PanelShell'
 import type { PluginHost } from '@mobai/shared/plugin/host'
 import type { PluginServiceCapability } from '@mobai/shared/plugin/types'
 import { getReactBinding, renderUiNode, uiOf, type PanelBindingProps } from '../../plugins/host'
@@ -56,9 +58,15 @@ export default function PluginsPanel({ host, onClose }: { host: PluginHost; onCl
   }
 
   return (
-    <div className="plugins-panel" data-testid="plugins-panel">
-      <p data-testid="plugins-count">{t('pluginsPanel.count', { n: host.list().length })}</p>
-
+    <PanelShell
+      testId="plugins-panel"
+      toolbar={<span data-testid="plugins-count">{t('pluginsPanel.count', { n: host.list().length })}</span>}
+      footer={
+        <button type="button" className="btn" data-testid="plugins-close" onClick={onClose}>
+          {t('common.close')}
+        </button>
+      }
+    >
       <ul className="plugins-list">
         {host.list().map((plugin) => {
           const meta = plugin.manifest.meta
@@ -182,9 +190,6 @@ export default function PluginsPanel({ host, onClose }: { host: PluginHost; onCl
         </div>
       )}
 
-      <button type="button" className="btn" data-testid="plugins-close" onClick={onClose}>
-        {t('common.close')}
-      </button>
-    </div>
+    </PanelShell>
   )
 }

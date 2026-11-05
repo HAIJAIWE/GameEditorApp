@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { useT } from '@mobai/client-ui'
 import { countByType, type TypeCountRow } from '@mobai/shared/util/data'
+
+import PanelShell from './PanelShell'
 import {
   ONBOARDING_STEPS,
   QUICK_ACTIONS,
@@ -113,9 +115,11 @@ export default function OnboardingPanel({ types, onAction, onClose }: Onboarding
   }
 
   return (
-    <div className="editor onboarding" data-testid="onboarding-panel">
-      <div className="editor-header">
-        <div className="editor-title onboarding-head">
+    <PanelShell
+      testId="onboarding-panel"
+      className="onboarding"
+      toolbar={
+        <div className="onboarding-head">
           <button
             type="button"
             className="onboarding-collapse"
@@ -140,9 +144,8 @@ export default function OnboardingPanel({ types, onAction, onClose }: Onboarding
             ✕
           </button>
         </div>
-      </div>
-
-      <div className="editor-body">
+      }
+    >
         {error !== null && (
           <div className="item-meta onboarding-error" role="alert">
             {t('onboardingPanel.error', { message: error })}
@@ -246,7 +249,6 @@ export default function OnboardingPanel({ types, onAction, onClose }: Onboarding
             </div>
           )}
         </div>
-      </div>
-    </div>
+    </PanelShell>
   )
 }
