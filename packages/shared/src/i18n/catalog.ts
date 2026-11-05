@@ -233,6 +233,12 @@ export const zh = {
   'agent.permission.askDesc': '放开全部能力，但写操作前先征求确认',
   'agent.permission.full': '完全',
   'agent.permission.fullDesc': '全部能力，仅系统级操作需确认',
+  'agent.permission.riskTitle': '开启完全访问？',
+  'agent.permission.riskBody':
+    '完全访问下，智能体删除文件、运行命令等操作不再逐次询问，只有系统级高危操作会被硬拦截。',
+  'agent.permission.riskAck': '我已了解风险',
+  'agent.permission.riskConfirm': '仍要开启',
+  'agent.permission.riskCancel': '取消',
 
   // —— 智能体面板：斜杠命令菜单 ——
   'agent.cmd.new': '新建对话',
@@ -2402,6 +2408,12 @@ export const en: Record<MessageKey, string> = {
   'agent.permission.askDesc': 'All capabilities, but confirm before any write',
   'agent.permission.full': 'Full',
   'agent.permission.fullDesc': 'All capabilities, only system-level actions need confirm',
+  'agent.permission.riskTitle': 'Enable full access?',
+  'agent.permission.riskBody':
+    'With full access the agent will no longer ask before deleting files or running commands; only system-level high-risk actions are hard-blocked.',
+  'agent.permission.riskAck': 'I understand the risk',
+  'agent.permission.riskConfirm': 'Enable anyway',
+  'agent.permission.riskCancel': 'Cancel',
 
   // —— Agent panel: slash command menu ——
   'agent.cmd.new': 'New chat',

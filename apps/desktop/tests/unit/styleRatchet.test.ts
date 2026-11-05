@@ -23,7 +23,8 @@ import { describe, expect, it } from 'vitest'
  * 11. 作用域局部 token 的 fallback 不得丢失（回归守卫）
  * 12. dsh 令牌阶梯与新增别名不得被删
  * 13. 焦点环与输入模态抑制规则不得被删（a11y：键盘用户必须看得见焦点）
- * 14. 字号必须走 `--text-*` 档位（不得再手写 `calc(13px * … * k)`；`* 1.1` 例外）
+ * 14. 字号必须走 `--text-*` 档位（不得再手写 `font-size: calc(<N>px * var(--ui-font-scale))`；
+ *     非 1 因子如 `* 1.1` / `* 12/13` 例外，因为整数档位里没有对应值）
  *
  * ## 两类刻意豁免（都带对价测试，不是放宽标准）
  * 1. `highlight.js` 自包含词法色板：`.hljs*` 有完整的浅色基 +
@@ -235,13 +236,28 @@ const onePixelBorders = blocks.filter((block) =>
 )
 
 /**
- * 仍手写 `calc(13px * var(--ui-font-scale) * k)` 的块（应改用 `--text-*` 档位）。
- * 唯一例外是 `* 1.1` —— 14.3px 的展示字号，整数档位里没有对应值。
+ * 仍手写 `font-size: calc(<N>px * var(--ui-font-scale)[ * k])` 的块（应改用 `--text-*` 档位）。
+ *
+ * 判定按**因子**而不是按基准像素：
+ * - 无因子 / `* 1.0` / `* 13/13` ⇒ 与 `var(--text-N)` 数学等价，必须 token 化；
+ * - `* 1.1`、`* 12/13` 这类非 1 因子 ⇒ 整数档位里没有对应值，保留原式。
+ *
+ * 为什么改成按语义匹配：上一版正则只认 `calc(13px * ... * k)`，于是
+ * `calc(12px * var(--ui-font-scale))` 这种**原生基准写法整类漏网**（实际漏了 50 处，
+ * 直到本轮排查才发现）。守卫按字面量写就会这样，必须按结构匹配。
  */
+const FONT_CALC_RE = /font-size:\s*calc\((\d+)px\s*\*\s*var\(--ui-font-scale\)(\s*\*\s*([\d./]+))?\)/gu
+
+function hasLegacyFontCalc(body: string): boolean {
+  for (const match of body.matchAll(FONT_CALC_RE)) {
+    const factor = match[3]
+    if (factor === undefined || factor === '1.0' || factor === '13/13') return true
+  }
+  return false
+}
+
 const legacyFontCalcBlocks = blocks.filter(
-  (block) =>
-    !isTokenBlock(block.selector) &&
-    /calc\(13px \* var\(--ui-font-scale\) \* (?!1\.1\))/u.test(block.body)
+  (block) => !isTokenBlock(block.selector) && hasLegacyFontCalc(block.body)
 )
 
 function describeSample(items: CssBlock[]): string {
@@ -351,8 +367,9 @@ describe('样式守卫（对齐 dsh radius / corner-shape / elevation / hover / 
   it('字号必须走 --text-* 档位（硬约束）', () => {
     expect(
       legacyFontCalcBlocks.length,
-      `${legacyFontCalcBlocks.length} 个块仍手写 calc(13px * var(--ui-font-scale) * k)。\n` +
-        `改用 --text-9/10/11/12/13/14/15/16/18/20 档位（\`* 1.1\` 的 14.3px 是唯一例外）。\n` +
+      `${legacyFontCalcBlocks.length} 个块仍手写 font-size: calc(<N>px * var(--ui-font-scale))。\n` +
+        `改用 --text-9/10/11/12/13/14/15/16/18/20 档位；\n` +
+        `非 1 因子（\`* 1.1\` 的 14.3px、\`* 12/13\` 等无整数档对应）允许保留。\n` +
         `前几个：\n${describeSample(legacyFontCalcBlocks)}`
     ).toBe(0)
   })
