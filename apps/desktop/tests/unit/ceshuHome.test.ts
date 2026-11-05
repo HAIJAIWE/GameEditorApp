@@ -8,6 +8,7 @@ import {
   buildCeshuCards,
   buildDuplicateName,
   ceshuCardTitle,
+  ceshuPlatformLabel,
   ceshuProgressPercent,
   ceshuStatusLabel,
   ceshuTypeLabel,
@@ -32,6 +33,7 @@ function summary(overrides: Partial<CeshuSummary> = {}): CeshuSummary {
     createdAt: '2026-10-01 09:00:00',
     versionNote: '',
     gameType: 'rpg',
+    platform: [],
     status: 'draft',
     ...overrides
   }
@@ -57,6 +59,13 @@ describe('ceshuHome 文案与徽章', () => {
     expect(ceshuCardTitle('有名字')).toBe('有名字')
     expect(ceshuTypeLabel('')).toBe('未分类')
     expect(ceshuTypeLabel('rpg')).toBe('rpg')
+  })
+
+  it('平台标签：多平台用「 · 」连接，空/非数组返回空串', () => {
+    expect(ceshuPlatformLabel(['PC', '移动端'])).toBe('PC · 移动端')
+    expect(ceshuPlatformLabel(['PC', '移动端', '主机'])).toBe('PC · 移动端 · 主机')
+    expect(ceshuPlatformLabel([])).toBe('')
+    expect(ceshuPlatformLabel(undefined as unknown as string[])).toBe('')
   })
 
   it('更新时间显示：超过 16 字符截断，短于等于 16 原样', () => {
@@ -93,6 +102,7 @@ describe('ceshuHome 卡片视图模型', () => {
       id: 'id-1',
       title: '未命名',
       typeLabel: '未分类',
+      platformLabel: '',
       statusKey: 'final',
       statusLabel: '已确认',
       versionBadge: 'v1.0 (主) ★',
@@ -103,6 +113,13 @@ describe('ceshuHome 卡片视图模型', () => {
       isActive: true,
       searchKey: '未命名'
     })
+  })
+
+  it('buildCeshuCard：平台标签随 meta.platform 透传', () => {
+    const card = buildCeshuCard(summary({ platform: ['PC', '移动端'] }))
+    expect(card.platformLabel).toBe('PC · 移动端')
+    const empty = buildCeshuCard(summary({ platform: [] }))
+    expect(empty.platformLabel).toBe('')
   })
 
   it('buildCeshuCard：有父版本时 isMain=false', () => {

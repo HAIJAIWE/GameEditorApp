@@ -34,6 +34,7 @@ function summary(overrides: Partial<CeshuSummary> = {}): CeshuSummary {
     createdAt: '2026-10-01 09:00:00',
     versionNote: '',
     gameType: 'rpg',
+    platform: [],
     status: 'draft',
     ...overrides
   }
@@ -71,6 +72,18 @@ describe('CeshuHomePanel：卡片待审徽标', () => {
     const badges = rendered.queryAll('[data-testid="home-card-pending"]')
     expect(badges).toHaveLength(1)
     expect(badges[0]?.textContent).toBe('待审 2')
+  })
+})
+
+describe('CeshuHomePanel：卡片平台徽标', () => {
+  it('多平台时用「 · 」连接并显示', async () => {
+    const rendered = await renderPanel([summary({ id: 'a', platform: ['PC', '移动端'] })])
+    expect(rendered.byTestId('home-card-platform').textContent).toBe('PC · 移动端')
+  })
+
+  it('未指定平台时不显示徽标', async () => {
+    const rendered = await renderPanel([summary({ id: 'a', platform: [] })])
+    expect(rendered.query('[data-testid="home-card-platform"]')).toBeNull()
   })
 })
 

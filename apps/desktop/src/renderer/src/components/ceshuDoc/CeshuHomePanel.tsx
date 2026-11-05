@@ -466,6 +466,11 @@ export default function CeshuHomePanel({
                           <span className="home-badge home-badge-type" data-testid="home-card-type">
                             {card.typeLabel}
                           </span>
+                          {card.platformLabel && (
+                            <span className="home-badge home-badge-platform" data-testid="home-card-platform">
+                              {card.platformLabel}
+                            </span>
+                          )}
                           <span className={`home-badge home-badge-status status-${card.statusKey}`} data-testid="home-card-status">
                             {card.statusLabel}
                           </span>

@@ -5281,6 +5281,11 @@ body {
   color: var(--text-muted);
 }
 
+.home-badge-platform {
+  border: 0.5px solid var(--border-card);
+  color: var(--text-secondary);
+}
+
 .home-badge-status {
   background: var(--bg-hover);
   color: var(--text-muted);

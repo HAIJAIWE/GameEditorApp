@@ -49,6 +49,12 @@ export function ceshuTypeLabel(gameType: string): string {
   return gameType === '' ? UNCATEGORIZED_TYPE : gameType
 }
 
+/** 平台标签：多平台用「 · 」连接；空数组或非数组返回空串（徽标不显示） */
+export function ceshuPlatformLabel(platform: string[]): string {
+  if (!Array.isArray(platform) || platform.length === 0) return ''
+  return platform.filter((p) => typeof p === 'string' && p !== '').join(' · ')
+}
+
 /** 更新时间显示：超过 16 字符截断 */
 /**
  * 更新时间显示：超过 16 字符截断。
@@ -89,6 +95,8 @@ export interface CeshuCardView {
   title: string
   /** 类型标签（空回退「未分类」） */
   typeLabel: string
+  /** 平台标签（多平台用「 · 」连接；空数组时为空串，徽标不显示） */
+  platformLabel: string
   /** 状态原文（用于徽章配色） */
   statusKey: string
   /** 状态标签（未知状态原样） */
@@ -114,6 +122,7 @@ export function buildCeshuCard(summary: CeshuSummary): CeshuCardView {
     id: summary.id,
     title,
     typeLabel: ceshuTypeLabel(summary.gameType),
+    platformLabel: ceshuPlatformLabel(summary.platform),
     statusKey: summary.status,
     statusLabel: ceshuStatusLabel(summary.status),
     versionBadge: ceshuVersionBadge(summary),

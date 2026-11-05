@@ -281,6 +281,7 @@ export class CeshuManager {
     const gameName = doc.meta.game_name
     const gameType = doc.meta.game_type
     const status = doc.meta.status
+    const platform = doc.meta.platform
     return {
       id: doc.ceshu_id,
       gameName: typeof gameName === 'string' ? gameName : '',
@@ -293,6 +294,7 @@ export class CeshuManager {
       createdAt: doc.created_at,
       versionNote: doc.version_note,
       gameType: typeof gameType === 'string' ? gameType : '',
+      platform: Array.isArray(platform) ? platform.filter((p) => typeof p === 'string') : [],
       status: typeof status === 'string' && status !== '' ? status : 'draft',
       // 首页卡片用：不打开文档也能看出「还有多少 AI 草稿没审」
       pendingCount: countDocPendingFields(doc)
