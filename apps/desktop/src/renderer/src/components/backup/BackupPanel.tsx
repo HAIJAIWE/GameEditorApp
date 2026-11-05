@@ -3,6 +3,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { useT } from '@mobai/client-ui'
 import type { BackupEntry, RestoreOutcome } from '@mobai/shared/util/io'
 
+import { PanelShell, StateView } from '../common'
+
 /**
  * 数据备份面板。
  *
@@ -121,120 +123,111 @@ export default function BackupPanel({ onRestored, onClose }: BackupPanelProps) {
   }
 
   return (
-    <div className="editor" data-testid="backup-panel">
-      <div className="editor-header">
-        <div className="editor-title">
-          {t('backup.title')}
-          <small>{t('backup.subtitle')}</small>
-        </div>
-      </div>
-
-      <div className="editor-body">
-        <div className="form-row">
-          <label className="form-label" htmlFor="backup-label">
-            {t('backup.labelLabel')}
-          </label>
-          <input
-            id="backup-label"
-            className="form-input"
-            data-testid="backup-label"
-            value={label}
-            placeholder={t('backup.labelPlaceholder')}
-            disabled={busy}
-            onChange={(event) => setLabel(event.target.value)}
-          />
-        </div>
-
-        <button
-          type="button"
-          className="btn primary"
-          data-testid="backup-create"
-          disabled={busy}
-          onClick={() => void handleCreate()}
-        >
-          {t('backup.create')}
-        </button>
-
-        {error !== null && <div className="error-banner">{error}</div>}
-        {notice !== null && (
-          <div className="notice-banner" data-testid="backup-notice">
-            {notice}
-          </div>
-        )}
-
-        {pending !== null && (
-          <div className="form-row" data-testid="backup-confirm">
-            <span className="form-label">
-              {pending.action === 'restore'
-                ? t('backup.confirmRestore', { name: pending.name })
-                : t('backup.confirmDelete', { name: pending.name })}
-            </span>
-            <button
-              type="button"
-              className="btn danger"
-              data-testid="backup-confirm-yes"
-              disabled={busy}
-              onClick={() =>
-                void (pending.action === 'restore' ? handleRestore(pending.name) : handleDelete(pending.name))
-              }
-            >
-              {pending.action === 'restore' ? t('backup.confirmRestoreBtn') : t('backup.confirmDeleteBtn')}
-            </button>
-            <button
-              type="button"
-              className="btn"
-              data-testid="backup-confirm-no"
-              disabled={busy}
-              onClick={() => setPending(null)}
-            >
-              {t('backup.cancel')}
-            </button>
-          </div>
-        )}
-
-        {entries === null && error === null && <div className="empty">{t('backup.loading')}</div>}
-        {entries !== null && entries.length === 0 && (
-          <div className="empty" data-testid="backup-empty">
-            {t('backup.empty')}
-          </div>
-        )}
-
-        {entries !== null &&
-          entries.map((entry) => (
-            <div className="ref-row" data-testid="backup-row" key={entry.name} style={{ cursor: 'default' }}>
-              <span className="ref-row-main">{entry.name}</span>
-              <span className="item-meta">
-                {formatTime(entry.createdAt)} · {formatSize(entry.sizeBytes)}
-              </span>
-              <span style={{ display: 'flex', gap: 6, marginTop: 4 }}>
-                <button
-                  type="button"
-                  className="btn"
-                  data-testid="backup-restore"
-                  disabled={busy}
-                  onClick={() => setPending({ action: 'restore', name: entry.name })}
-                >
-                  {t('backup.restore')}
-                </button>
-                <button
-                  type="button"
-                  className="btn danger"
-                  data-testid="backup-delete"
-                  disabled={busy}
-                  onClick={() => setPending({ action: 'delete', name: entry.name })}
-                >
-                  {t('backup.delete')}
-                </button>
-              </span>
-            </div>
-          ))}
-      </div>
-
-      <div className="editor-actions">
+    <PanelShell
+      testId="backup-panel"
+      toolbar={<span className="item-meta">{t('backup.subtitle')}</span>}
+      footer={
         <button type="button" className="btn" onClick={onClose}>
           {t('common.close')}
         </button>
+      }
+    >
+      <div className="form-row">
+        <label className="form-label" htmlFor="backup-label">
+          {t('backup.labelLabel')}
+        </label>
+        <input
+          id="backup-label"
+          className="form-input"
+          data-testid="backup-label"
+          value={label}
+          placeholder={t('backup.labelPlaceholder')}
+          disabled={busy}
+          onChange={(event) => setLabel(event.target.value)}
+        />
       </div>
-    </div>
+
+      <button
+        type="button"
+        className="btn primary"
+        data-testid="backup-create"
+        disabled={busy}
+        onClick={() => void handleCreate()}
+      >
+        {t('backup.create')}
+      </button>
+
+      {error !== null && <div className="error-banner">{error}</div>}
+      {notice !== null && (
+        <div className="notice-banner" data-testid="backup-notice">
+          {notice}
+        </div>
+      )}
+
+      {pending !== null && (
+        <div className="form-row" data-testid="backup-confirm">
+          <span className="form-label">
+            {pending.action === 'restore'
+              ? t('backup.confirmRestore', { name: pending.name })
+              : t('backup.confirmDelete', { name: pending.name })}
+          </span>
+          <button
+            type="button"
+            className="btn danger"
+            data-testid="backup-confirm-yes"
+            disabled={busy}
+            onClick={() =>
+              void (pending.action === 'restore' ? handleRestore(pending.name) : handleDelete(pending.name))
+            }
+          >
+            {pending.action === 'restore' ? t('backup.confirmRestoreBtn') : t('backup.confirmDeleteBtn')}
+          </button>
+          <button
+            type="button"
+            className="btn"
+            data-testid="backup-confirm-no"
+            disabled={busy}
+            onClick={() => setPending(null)}
+          >
+            {t('backup.cancel')}
+          </button>
+        </div>
+      )}
+
+      {entries === null && error === null && <StateView kind="loading" />}
+      {entries !== null && entries.length === 0 && (
+        <StateView kind="empty" testId="backup-empty" title={t('backup.empty')} />
+      )}
+
+      {entries !== null &&
+        entries.map((entry) => (
+          <div className="ref-row" data-testid="backup-row" key={entry.name} style={{ cursor: 'default' }}>
+            <span className="ref-row-main">{entry.name}</span>
+            <span className="item-meta">
+              {formatTime(entry.createdAt)} · {formatSize(entry.sizeBytes)}
+            </span>
+            <span style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+              <button
+                type="button"
+                className="btn"
+                data-testid="backup-restore"
+                disabled={busy}
+                onClick={() => setPending({ action: 'restore', name: entry.name })}
+              >
+                {t('backup.restore')}
+              </button>
+              <button
+                type="button"
+                className="btn danger"
+                data-testid="backup-delete"
+                disabled={busy}
+                onClick={() => setPending({ action: 'delete', name: entry.name })}
+              >
+                {t('backup.delete')}
+              </button>
+            </span>
+          </div>
+        ))}
+    </PanelShell>
   )
 }

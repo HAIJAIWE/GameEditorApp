@@ -10,6 +10,8 @@ import {
 } from '@mobai/shared/domain/attr/attributeChart'
 import type { DataTypeDef, ItemRecord } from '@mobai/shared/types'
 
+import { PanelShell, StateView } from '../common'
+
 /**
  * 属性分布图表面板。
  *
@@ -95,21 +97,14 @@ export default function AttributeChartPanel({ types }: AttributeChartPanelProps)
   const max = chart?.stats.max ?? 0
 
   return (
-    <div className="editor" data-testid="attribute-chart-panel">
-      <div className="editor-header">
-        <div className="editor-title">
-          {t('attributeChart.title')}
-          <small>{t('attributeChart.subtitle')}</small>
-        </div>
-      </div>
-
-      <div className="editor-body">
+    <PanelShell
+      testId="attribute-chart-panel"
+      toolbar={<span className="item-meta">{t('attributeChart.subtitle')}</span>}
+    >
         {error !== null && <div className="error-banner">{error}</div>}
 
         {chartTypes.length === 0 && items !== null && error === null && (
-          <div className="empty" data-testid="chart-no-numeric-type">
-            {t('attributeChart.noNumericType')}
-          </div>
+          <StateView kind="empty" testId="chart-no-numeric-type" title={t('attributeChart.noNumericType')} />
         )}
 
         {chartTypes.length > 0 && (
@@ -154,18 +149,18 @@ export default function AttributeChartPanel({ types }: AttributeChartPanelProps)
               </div>
             </div>
 
-            {items === null && error === null && <div className="empty">{t('attributeChart.loading')}</div>}
+            {items === null && error === null && <StateView kind="loading" title={t('attributeChart.loading')} />}
 
             {items !== null && rows.length === 0 && (
-              <div className="empty" data-testid="chart-no-items">
-                {t('attributeChart.noItems')}
-              </div>
+              <StateView kind="empty" testId="chart-no-items" title={t('attributeChart.noItems')} />
             )}
 
             {chart !== null && chart.data.length === 0 && rows.length > 0 && (
-              <div className="empty" data-testid="chart-no-values">
-                {t('attributeChart.noValues', { field: effectiveField })}
-              </div>
+              <StateView
+                kind="empty"
+                testId="chart-no-values"
+                title={t('attributeChart.noValues', { field: effectiveField })}
+              />
             )}
 
             {chart !== null && chart.data.length > 0 && (
@@ -208,7 +203,6 @@ export default function AttributeChartPanel({ types }: AttributeChartPanelProps)
             <div className="notice-banner">{t('attributeChart.hint')}</div>
           </>
         )}
-      </div>
-    </div>
+    </PanelShell>
   )
 }

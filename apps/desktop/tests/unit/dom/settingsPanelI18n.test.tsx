@@ -29,14 +29,15 @@ afterEach(async () => {
 })
 
 describe('SettingsPanel i18n', () => {
-  it('中文：标题/分节/语言项都是中文，语言下拉选中 zh', async () => {
+  it('中文：副标题/分节/语言项都是中文，语言下拉选中 zh', async () => {
     view = await renderDom(
       <LocaleProvider locale="zh">
         <SettingsPanel />
       </LocaleProvider>
     )
     const text = view.byTestId('settings-panel').textContent ?? ''
-    expect(text).toContain('设置')
+    // 窗口标题由浮层（AppPanelOverlay）负责，面板内不再重复；这里断言副标题与分节
+    expect(text).toContain('偏好即时生效')
     expect(text).toContain('通用设置')
     expect(text).toContain('AI 模型服务')
     expect((view.byTestId('settings-language') as HTMLSelectElement).value).toBe('zh')
@@ -45,14 +46,14 @@ describe('SettingsPanel i18n', () => {
     expect(english?.textContent).toBe('English')
   })
 
-  it('英文：标题/分节换英文，且不再出现中文分节名', async () => {
+  it('英文：副标题/分节换英文，且不再出现中文分节名', async () => {
     view = await renderDom(
       <LocaleProvider locale="en">
         <SettingsPanel />
       </LocaleProvider>
     )
     const text = view.byTestId('settings-panel').textContent ?? ''
-    expect(text).toContain('Settings')
+    expect(text).toContain('Changes apply and save automatically')
     expect(text).toContain('General')
     expect(text).toContain('AI model service')
     expect(text).not.toContain('通用设置')

@@ -11,6 +11,8 @@ import {
 import type { UnusedImageScan } from '@mobai/shared/util/io'
 import { toErrorMessage } from '@mobai/shared/util/system'
 
+import { PanelShell, StateView } from '../common'
+
 /**
  * 清理未使用图片面板（对齐 旧版 `src/features/advanced:373-431` 的
  * `cleanup_unused_images`，入口 `menus:110`「工具 → 清理未使用图片」
@@ -171,29 +173,49 @@ export default function CleanupImagesPanel() {
   const preview = scan !== null ? previewUnused(scan.unused) : null
 
   return (
-    <div className="editor" data-testid="cleanup-images-panel">
-      <div className="editor-header">
-        <div className="editor-title">
-          {t('cleanupImages.title')}
-          <small>{t('cleanupImages.subtitle')}</small>
-        </div>
-      </div>
-
-      <div className="editor-body">
+    <PanelShell
+      testId="cleanup-images-panel"
+      toolbar={<span className="item-meta">{t('cleanupImages.subtitle')}</span>}
+      footer={
+        <>
+          <button
+            type="button"
+            className="btn"
+            data-testid="cleanup-images-rescan"
+            disabled={busy || state.status === 'loading'}
+            onClick={handleScan}
+          >
+            {busy ? t('cleanupImages.processing') : t('cleanupImages.rescan')}
+          </button>
+          {!confirming && (
+            <button
+              type="button"
+              className="btn danger"
+              data-testid="cleanup-images-start"
+              disabled={busy || scan === null || scan.unused.length === 0}
+              onClick={() => setConfirming(true)}
+            >
+              {t('cleanupImages.start')}
+            </button>
+          )}
+        </>
+      }
+    >
+      <>
         <div className="form-hint">{t('cleanupImages.hint', { exts: IMAGE_EXTENSIONS.join(' / ') })}</div>
 
-        {state.status === 'loading' && <div className="empty">{t('cleanupImages.loading')}</div>}
+        {state.status === 'loading' && <StateView kind="loading" title={t('cleanupImages.loading')} />}
 
         {state.status === 'unwired' && (
-          <div className="empty" data-testid="cleanup-images-unwired">
-            {t('cleanupImages.unwired')}
-          </div>
+          <StateView kind="empty" testId="cleanup-images-unwired" title={t('cleanupImages.unwired')} />
         )}
 
         {state.status === 'error' && (
-          <div className="form-error" data-testid="cleanup-images-scan-error">
-            {t('cleanupImages.scanError', { message: state.message })}
-          </div>
+          <StateView
+            kind="error"
+            testId="cleanup-images-scan-error"
+            description={t('cleanupImages.scanError', { message: state.message })}
+          />
         )}
 
         {scan !== null && preview !== null && (
@@ -284,30 +306,7 @@ export default function CleanupImagesPanel() {
             {error}
           </div>
         )}
-      </div>
-
-      <div className="editor-actions">
-        <button
-          type="button"
-          className="btn"
-          data-testid="cleanup-images-rescan"
-          disabled={busy || state.status === 'loading'}
-          onClick={handleScan}
-        >
-          {busy ? t('cleanupImages.processing') : t('cleanupImages.rescan')}
-        </button>
-        {!confirming && (
-          <button
-            type="button"
-            className="btn danger"
-            data-testid="cleanup-images-start"
-            disabled={busy || scan === null || scan.unused.length === 0}
-            onClick={() => setConfirming(true)}
-          >
-            {t('cleanupImages.start')}
-          </button>
-        )}
-      </div>
-    </div>
+      </>
+    </PanelShell>
   )
 }

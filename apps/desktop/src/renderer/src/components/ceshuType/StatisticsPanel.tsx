@@ -11,6 +11,7 @@ import {
   type NumericSummary
 } from '@mobai/shared/util/data'
 import type { ItemRecord } from '@mobai/shared/types'
+import { PanelShell, StateView } from '../common'
 import { useAppContext } from '../../plugins/host'
 
 /**
@@ -83,43 +84,44 @@ export default function StatisticsPanel({ onClose }: StatisticsPanelProps) {
   }, [balanceDef, balanceItems])
 
   return (
-    <div className="editor" data-testid="stats-panel">
-      <div className="editor-header">
-        <div className="editor-title">
-          {t('stats.title')}
-          <small>{t('stats.subtitle', { n: total })}</small>
-        </div>
-      </div>
-
-      <div className="editor-body">
-        <div className="qc-tabs">
-          <button
-            type="button"
-            className={`qc-tab${tab === 'overview' ? ' active' : ''}`}
-            data-testid="stats-tab-overview"
-            onClick={() => setTab('overview')}
-          >
-            {t('stats.tabOverview')}
-          </button>
-          <button
-            type="button"
-            className={`qc-tab${tab === 'balance' ? ' active' : ''}`}
-            data-testid="stats-tab-balance"
-            onClick={() => setTab('balance')}
-          >
-            {t('stats.tabBalance')}
-          </button>
-        </div>
-
+    <PanelShell
+      testId="stats-panel"
+      toolbar={
+        <>
+          <div className="qc-tabs">
+            <button
+              type="button"
+              className={`qc-tab${tab === 'overview' ? ' active' : ''}`}
+              data-testid="stats-tab-overview"
+              onClick={() => setTab('overview')}
+            >
+              {t('stats.tabOverview')}
+            </button>
+            <button
+              type="button"
+              className={`qc-tab${tab === 'balance' ? ' active' : ''}`}
+              data-testid="stats-tab-balance"
+              onClick={() => setTab('balance')}
+            >
+              {t('stats.tabBalance')}
+            </button>
+          </div>
+          <span className="item-meta">{t('stats.subtitle', { n: total })}</span>
+        </>
+      }
+      footer={
+        <button type="button" className="btn" onClick={onClose}>
+          {t('common.close')}
+        </button>
+      }
+    >
         {error !== null && <div className="error-banner">{error}</div>}
-        {items === null && error === null && <div className="empty">{t('stats.loading')}</div>}
+        {items === null && error === null && <StateView kind="loading" />}
 
         {items !== null && tab === 'overview' && (
           <>
             {total === 0 ? (
-              <div className="empty" data-testid="stats-empty">
-                {t('stats.empty')}
-              </div>
+              <StateView kind="empty" testId="stats-empty" title={t('stats.empty')} />
             ) : (
               <div className="qc-stat-list" data-testid="stats-overview">
                 {rows
@@ -149,9 +151,7 @@ export default function StatisticsPanel({ onClose }: StatisticsPanelProps) {
         {items !== null && tab === 'balance' && (
           <>
             {balanceTypes.length === 0 ? (
-              <div className="empty" data-testid="stats-no-balance">
-                {t('stats.noBalance')}
-              </div>
+              <StateView kind="empty" testId="stats-no-balance" title={t('stats.noBalance')} />
             ) : (
               <>
                 <div className="form-row">
@@ -174,13 +174,13 @@ export default function StatisticsPanel({ onClose }: StatisticsPanelProps) {
                 </div>
 
                 {balanceItems.length === 0 ? (
-                  <div className="empty" data-testid="stats-no-items">
-                    {t('stats.noItems', { name: balanceDef?.name ?? '' })}
-                  </div>
+                  <StateView
+                    kind="empty"
+                    testId="stats-no-items"
+                    title={t('stats.noItems', { name: balanceDef?.name ?? '' })}
+                  />
                 ) : summaries.length === 0 ? (
-                  <div className="empty" data-testid="stats-no-numeric">
-                    {t('stats.noNumeric')}
-                  </div>
+                  <StateView kind="empty" testId="stats-no-numeric" title={t('stats.noNumeric')} />
                 ) : (
                   <div className="qc-stat-list" data-testid="stats-balance">
                     <div className="qc-stat-total">
@@ -218,13 +218,6 @@ export default function StatisticsPanel({ onClose }: StatisticsPanelProps) {
             )}
           </>
         )}
-      </div>
-
-      <div className="editor-actions">
-        <button type="button" className="btn" onClick={onClose}>
-          {t('common.close')}
-        </button>
-      </div>
-    </div>
+    </PanelShell>
   )
 }

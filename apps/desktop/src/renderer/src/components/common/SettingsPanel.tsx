@@ -40,6 +40,7 @@ import {
 import { useLocale, useT } from '@mobai/client-ui'
 
 import { setLocalePreference } from '../../localePreference'
+import PanelShell from './PanelShell'
 
 /**
  * 设置面板。
@@ -251,15 +252,10 @@ export default function SettingsPanel() {
   }
 
   return (
-    <div className="editor" data-testid="settings-panel">
-      <div className="editor-header">
-        <div className="editor-title">
-          {t('settings.title')}
-          <small>{t('settings.subtitle')}</small>
-        </div>
-      </div>
-
-      <div className="editor-body">
+    <PanelShell
+      testId="settings-panel"
+      toolbar={<span className="item-meta">{t('settings.subtitle')}</span>}
+    >
         <div className="form-section">
           <div className="form-section-head">
             <span className="form-section-title">{t('settings.sectionGeneral')}</span>
@@ -638,7 +634,6 @@ export default function SettingsPanel() {
         <div className="item-meta" data-testid="settings-out-of-scope">
           {t('settings.outOfScope')}
         </div>
-      </div>
-    </div>
+    </PanelShell>
   )
 }
