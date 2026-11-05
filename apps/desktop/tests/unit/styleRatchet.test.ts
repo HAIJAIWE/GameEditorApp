@@ -285,13 +285,26 @@ const FIXED_FONT_SIZES: ReadonlyArray<{ selector: string; px: string }> = [
   { selector: '.browser-status', px: '11.5' }
 ]
 
+/**
+ * 选择器是否**精确**命中白名单项。
+ *
+ * 不能用 `selector.includes(...)`：`.image-picker-plus-large { font-size: 30px }`
+ * 会被 `.image-picker-plus` 的子串匹配放行。这里按组合符 / 伪类拆词后全等比较，
+ * 既能让 `.x:hover` 命中 `.x`，也不会让 `.x-large` 蹭到 `.x` 的白名单。
+ */
+function selectorHasExact(selector: string, allowed: string): boolean {
+  return selector
+    .split(/[\s,>+~:[\]()]+/u)
+    .some((part) => part.trim() === allowed)
+}
+
 const literalFontBlocks = blocks.filter((block) => {
   if (isTokenBlock(block.selector)) return false
   const literals = [...block.body.matchAll(/font-size: ([0-9.]+)px(?= *;)/gu)]
   return literals.some(
     (match) =>
       !FIXED_FONT_SIZES.some(
-        (allow) => block.selector.includes(allow.selector) && match[1] === allow.px
+        (allow) => selectorHasExact(block.selector, allow.selector) && match[1] === allow.px
       )
   )
 })
@@ -426,6 +439,12 @@ describe('样式守卫（对齐 dsh radius / corner-shape / elevation / hover / 
         `刻意固定的 ${allow.selector} ${allow.px}px 不见了：请同步清理 FIXED_FONT_SIZES 白名单`
       ).toContain(`font-size: ${allow.px}px`)
     }
+
+    // 白名单匹配方式的自检：必须精确命中，不能被兄弟选择器蹭到
+    expect(selectorHasExact('.image-picker-plus', '.image-picker-plus')).toBe(true)
+    expect(selectorHasExact('.image-picker-plus:hover', '.image-picker-plus')).toBe(true)
+    expect(selectorHasExact('div .image-picker-plus', '.image-picker-plus')).toBe(true)
+    expect(selectorHasExact('.image-picker-plus-large', '.image-picker-plus')).toBe(false)
   })
 
   it('dsh 令牌阶梯与新增别名不得被删', () => {

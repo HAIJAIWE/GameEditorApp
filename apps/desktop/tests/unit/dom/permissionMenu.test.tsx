@@ -108,6 +108,22 @@ describe('权限档位 · 提权风险确认', () => {
     await view.cleanup()
   })
 
+  it('setPermissionMode 失败时回滚到主进程真实档位', async () => {
+    api = installMbApi({
+      overrides: {
+        'agent.getPermissionMode': () => ({ mode: 'readOnly' }),
+        'agent.setPermissionMode': () => {
+          throw new Error('ipc down')
+        }
+      }
+    })
+    const view = await openMenu()
+    await view.click(itemOf(view, 'ask'))
+    // 乐观改到 ask，落盘失败后必须拉回真实值，而不是停在一个没生效的档位上
+    expect(view.byTestId('digital-permission-menu').textContent).toContain('只读')
+    await view.cleanup()
+  })
+
   it('已经是 full 时再点 full 不弹确认', async () => {
     api = stubMode('full')
     const view = await openMenu()

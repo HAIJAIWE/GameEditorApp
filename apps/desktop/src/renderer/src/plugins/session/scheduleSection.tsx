@@ -36,9 +36,21 @@ function formatAt(at: string): string {
   return Number.isNaN(date.getTime()) ? at : date.toLocaleString()
 }
 
-export function ScheduleSection(_props: { host: PluginHost }): ReactElement | null {
+export function ScheduleSection({
+  host: _host,
+  refreshKey = 0
+}: {
+  host: PluginHost
+  /**
+   * 对话状态的自增序号（父组件已订阅 `conversation.state`）。
+   * 页签是 lazy 挂载后**常驻不卸载**的，只靠挂载时拉一次会导致
+   * 「让智能体加了个提醒，界面却一直不出现」，故每轮对话变化就重拉。
+   */
+  refreshKey?: number
+}): ReactElement | null {
   const t = useT()
   const [tasks, setTasks] = useState<ScheduleTaskView[]>([])
+  const [reload, setReload] = useState(0)
 
   useEffect(() => {
     const api = bridge()
@@ -53,7 +65,7 @@ export function ScheduleSection(_props: { host: PluginHost }): ReactElement | nu
     return () => {
       alive = false
     }
-  }, [])
+  }, [refreshKey, reload])
 
   const remove = useCallback((id: string): void => {
     const api = bridge()
@@ -73,7 +85,17 @@ export function ScheduleSection(_props: { host: PluginHost }): ReactElement | nu
 
   return (
     <section className="session-block" data-testid="session-block-schedule">
-      <h3 className="session-block-title">{t('session.schedule')}</h3>
+      <div className="session-schedule-head">
+        <h3 className="session-block-title">{t('session.schedule')}</h3>
+        <button
+          type="button"
+          className="session-schedule-refresh"
+          data-testid="session-schedule-refresh"
+          onClick={() => setReload((value) => value + 1)}
+        >
+          {t('session.scheduleRefresh')}
+        </button>
+      </div>
       <ul className="session-schedule-list">
         {tasks.map((task) => {
           const meta: string[] = [formatAt(task.at)]

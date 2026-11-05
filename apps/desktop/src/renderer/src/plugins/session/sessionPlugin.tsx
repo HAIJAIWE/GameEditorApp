@@ -86,7 +86,8 @@ function SessionMainView({ host }: { host: PluginHost }): ReactElement {
 
       <JobBoardSection host={host} />
 
-      <ScheduleSection host={host} />
+      {/* seq 每轮对话自增：session 页签是 lazy 挂载后常驻的，靠它触发提醒列表重拉 */}
+      <ScheduleSection host={host} refreshKey={state.seq} />
 
       <section className="session-block" data-testid="session-block-trajectory">
         <h3 className="session-block-title">{t('session.trajectory')}</h3>

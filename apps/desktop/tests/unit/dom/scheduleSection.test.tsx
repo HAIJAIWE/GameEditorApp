@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { ScheduleSection } from '../../../src/renderer/src/plugins/session'
 import { PluginHost } from '@mobai/shared/plugin/host'
@@ -80,6 +80,39 @@ describe('会话 · 定时提醒', () => {
     expect(text).toContain('cron */30 * * * *')
     expect(text).toContain('每 2 分钟')
     expect(text).toContain('已触发')
+    await view.cleanup()
+  })
+
+  it('对话轮次变化（refreshKey）时自动重拉：agent 刚加的提醒能出现', async () => {
+    let listed: ScheduleTaskView[] = []
+    api = installMbApi({
+      overrides: {
+        'schedule.list': () => ({ tasks: listed }),
+        'schedule.remove': () => ({ ok: true })
+      }
+    })
+    const view = await renderSection()
+    expect(view.query('[data-testid="session-block-schedule"]')).toBeNull()
+
+    // 模拟「用户让智能体加了一条提醒」：数据变了、seq 自增
+    listed = [ONE]
+    await view.rerender(<ScheduleSection host={new PluginHost()} refreshKey={1} />)
+    expect(view.query('[data-testid="session-schedule-item"]')).not.toBeNull()
+    await view.cleanup()
+  })
+
+  it('刷新按钮手动重拉', async () => {
+    let listed: ScheduleTaskView[] = [ONE]
+    const list = vi.fn(() => ({ tasks: listed }))
+    api = installMbApi({
+      overrides: { 'schedule.list': list, 'schedule.remove': () => ({ ok: true }) }
+    })
+    const view = await renderSection()
+    const callsBefore = list.mock.calls.length
+    listed = []
+    await view.click(view.byTestId('session-schedule-refresh'))
+    expect(list.mock.calls.length).toBeGreaterThan(callsBefore)
+    expect(view.query('[data-testid="session-schedule-item"]')).toBeNull()
     await view.cleanup()
   })
 

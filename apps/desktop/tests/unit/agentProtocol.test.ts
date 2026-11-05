@@ -152,9 +152,10 @@ describe('agent 协议：参数修正', () => {
   })
 
   it('fixParams：action 别名归一（大小写不敏感）', () => {
-    expect(fixParams('system.game_data', { action: 'ADD_ITEM' }).action).toBe('create')
-    expect(fixParams('system.game_data', { action: '查询' }).action).toBe('query')
-    expect(fixParams('system.game_data', { action: 'List' }).action).toBe('list')
+    // 传 [] = 确知「没有 action 声明」，走全局别名容错
+    expect(fixParams('system.game_data', { action: 'ADD_ITEM' }, []).action).toBe('create')
+    expect(fixParams('system.game_data', { action: '查询' }, []).action).toBe('query')
+    expect(fixParams('system.game_data', { action: 'List' }, []).action).toBe('list')
   })
 
   it('fixParams：工具自己声明的 action 不被别名表改写', () => {
@@ -165,8 +166,9 @@ describe('agent 协议：参数修正', () => {
     expect(fixParams('system.schedule', { action: 'ADD' }, declared).action).toBe('add')
     // 未声明的仍走别名（数据类技能靠它容错）
     expect(fixParams('system.schedule', { action: '新增' }, declared).action).toBe('create')
-    // 没传声明时保持旧行为
-    expect(fixParams('system.schedule', { action: 'add' }).action).toBe('create')
+    // 没传声明 = 声明未知：只小写归一，不猜别名（防 schedule.add 被改成 create）
+    expect(fixParams('system.schedule', { action: 'add' }).action).toBe('add')
+    expect(fixParams('system.game_data', { action: 'ADD_ITEM' }).action).toBe('add_item')
   })
 
   it('declaredActionsOf：从参数 schema 读 action 枚举', () => {

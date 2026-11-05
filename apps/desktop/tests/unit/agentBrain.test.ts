@@ -75,6 +75,41 @@ function toolCall(id: string, name: string, args: Record<string, unknown> = {}):
 
 const FINAL: BrainLlmReply = { content: '这是最终答复', toolCalls: [], finishReason: 'stop' }
 
+/**
+ * 测试用最小工具面：`fixParams` 需要读工具自己声明的 action 枚举，
+ * 才敢做别名归一（否则宁可放行也不猜）。这里只声明规范值，
+ * 让 `exec` / `执行` 这类口语别名走别名表。
+ */
+const shellTools = [
+  {
+    type: 'function',
+    function: {
+      name: 'system.shell',
+      description: 'shell',
+      parameters: {
+        type: 'object',
+        properties: { action: { type: 'string', enum: ['run'] } },
+        required: ['action']
+      }
+    }
+  }
+]
+
+const codeTools = [
+  {
+    type: 'function',
+    function: {
+      name: 'system.code',
+      description: 'code',
+      parameters: {
+        type: 'object',
+        properties: { action: { type: 'string', enum: ['execute'] } },
+        required: ['action']
+      }
+    }
+  }
+]
+
 /* ---- 纯辅助函数 ---- */
 
 describe('brain 辅助函数', () => {
@@ -275,7 +310,7 @@ describe('runBrainLoop：分支与兜底', () => {
   it('危险操作无审批通道 → 一律拒绝执行并回灌 [STOP]；拒绝后继续循环（不误判为不可解析）', async () => {
     const transport = scripted([toolCall('c1', 'system.shell', { action: 'exec' }), FINAL])
     const runner = makeRunner({ dangerous: () => true })
-    const result = await runBrainLoop({ input: 'x', systemPrompts: [], transport, runner })
+    const result = await runBrainLoop({ input: 'x', systemPrompts: [], transport, runner, tools: shellTools })
 
     expect(types(result.events)).toContain('approval_required')
     const approval = result.events.find((event) => event.type === 'approval_required')
@@ -322,6 +357,7 @@ describe('runBrainLoop：分支与兜底', () => {
       systemPrompts: [],
       transport,
       runner,
+      tools: shellTools,
       context,
       requestApproval: (request) => {
         approvals.push(`${request.requestId}:${request.tool}/${request.action}`)
@@ -1166,7 +1202,12 @@ describe('runBrainLoop：审查修复回归', () => {
       resolve: (name) => name,
       needsConfirmation: (tool, action) => resolveRiskLevel(tool, action) >= RISK_LEVEL.SYSTEM,
       execute: async (tool, params, ctx) => {
-        const fixed = fixParams(tool, params)
+        // 贴近真实 dispatcher：它总是把「技能声明的 action 枚举」交给 fixParams
+        const declared: Record<string, readonly string[]> = {
+          'system.code': ['execute'],
+          'system.shell': ['run']
+        }
+        const fixed = fixParams(tool, params, declared[tool] ?? [])
         const action = typeof fixed.action === 'string' ? fixed.action : ''
         const token = ctx.dangerConfirmed
         seen.push({ action, token: token === null || token === undefined ? undefined : token.action })
@@ -1196,6 +1237,7 @@ describe('runBrainLoop：审查修复回归', () => {
       systemPrompts: [],
       transport,
       runner: gate,
+      tools: codeTools,
       requestApproval: () => true
     })
 
@@ -2024,5 +2066,74 @@ describe('子智能体结构化输出（output_schema）', () => {
     })
     expect(noticeOf(result.messages)).toContain('普通结果')
     expect(noticeOf(result.messages)).not.toContain('已通过 schema 校验')
+  })
+})
+
+describe('loop 路径的 action 别名保护（fixParams 回归）', () => {
+  /**
+   * `system.schedule` 的一等 action 叫 `add`，而全局 `ACTION_ALIASES` 有 `add → create`。
+   * 之前只在 dispatcher 路径修过并端到端验证，loop 路径靠 `options.tools` 读声明，
+   * 没有测试钉住 —— 一旦调用方忘了传 tools，这个 bug 会静默复现。
+   */
+  const scheduleTools = [
+    {
+      type: 'function',
+      function: {
+        name: 'system.schedule',
+        description: 'schedule',
+        parameters: {
+          type: 'object',
+          properties: { action: { type: 'string', enum: ['add', 'list', 'remove'] } },
+          required: ['action']
+        }
+      }
+    }
+  ]
+
+  it('传 tools 时，声明里的 add 不被别名为 create', async () => {
+    const seen: string[] = []
+    const runner: BrainToolRunner = {
+      resolve: (name) => (name === 'system.schedule' ? name : null),
+      needsConfirmation: (_tool, action) => {
+        seen.push(action)
+        return false
+      },
+      execute: async () => ({ success: true, message: 'ok' })
+    }
+    await runBrainLoop({
+      input: 'x',
+      systemPrompts: [],
+      runner,
+      tools: scheduleTools,
+      transport: scripted([
+        toolCall('s1', 'system.schedule', { action: 'add', prompt: '提醒', delay_ms: 1000 }),
+        FINAL
+      ])
+    })
+    expect(seen).toContain('add')
+    expect(seen).not.toContain('create')
+  })
+
+  it('不传 tools 时也不猜别名：声明未知则保守放行', async () => {
+    const seen: string[] = []
+    const runner: BrainToolRunner = {
+      resolve: (name) => (name === 'system.schedule' ? name : null),
+      needsConfirmation: (_tool, action) => {
+        seen.push(action)
+        return false
+      },
+      execute: async () => ({ success: true, message: 'ok' })
+    }
+    await runBrainLoop({
+      input: 'x',
+      systemPrompts: [],
+      runner,
+      transport: scripted([
+        toolCall('s1', 'system.schedule', { action: 'add', prompt: '提醒', delay_ms: 1000 }),
+        FINAL
+      ])
+    })
+    expect(seen).toContain('add')
+    expect(seen).not.toContain('create')
   })
 })

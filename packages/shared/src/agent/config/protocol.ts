@@ -479,11 +479,14 @@ export function declaredActionsOf(schema: JsonObjectSchema): readonly string[] {
 /**
  * 归一化工具参数。
  *
- * @param declaredActions - 该工具**自己声明**的 action 枚举。给了就优先认它：
+ * @param declaredActions - 该工具**自己声明**的 action 枚举（`[]` 表示确知没有声明）。
  *   别名表里 `add → create` 是为了容错数据类技能（模型把 create 说成 add），
  *   但 `system.schedule` 的一等 action 就叫 `add` —— 全局改写会把合法值改成 `create`，
  *   让技能报「未知 action」。这是真实踩过的坑（提醒功能整条不可用）。
- *   未给（旧调用点）时保持原行为。
+ *
+ *   **`undefined` = 拿不到声明**，此时一律只做小写归一、**不猜别名**：
+ *   误改一个合法 action 比漏容错一个口语别名更糟，宁可让技能自己报「未知 action」，
+ *   也不能静默把 `add` 换成 `create`。这条兜底让「调用方忘了传 tools」不再导致 bug 复现。
  */
 export function fixParams(
   toolId: string,
@@ -494,8 +497,12 @@ export function fixParams(
 
   if (typeof params.action === 'string' && params.action !== '') {
     const key = params.action.toLowerCase()
-    // 工具声明了这个 action ⇒ 它是合法值，不参与别名改写
-    params.action = declaredActions?.includes(key) === true ? key : ACTION_ALIASES[key] ?? key
+    params.action =
+      declaredActions === undefined
+        ? key
+        : declaredActions.includes(key)
+          ? key
+          : ACTION_ALIASES[key] ?? key
   }
 
   const inferred = inferAction(toolId, params)

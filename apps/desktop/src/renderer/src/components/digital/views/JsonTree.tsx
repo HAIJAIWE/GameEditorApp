@@ -61,10 +61,15 @@ function valueKind(value: unknown): string {
 /** 纯函数：按当前展开集合把 JSON 展平成可渲染的行，超过上限就停 */
 function buildRows(value: unknown, open: ReadonlySet<string>, maxNodes: number): Row[] {
   const rows: Row[] = []
+  // 模块级纯函数，不受 React 编译规则（render 期间禁止重赋值）约束，用标志位即可。
+  // 之前写成「每次超限都 rows.some(...)」是 O(n×maxNodes)：10 万键的对象要扫两千万次。
+  let hitLimit = false
   const visit = (key: string | null, node: unknown, path: string, depth: number): void => {
+    if (hitLimit) return
     if (rows.length >= maxNodes) {
+      hitLimit = true
       // 只留一行提示，后续节点直接丢弃 —— DOM 不会随 JSON 体积线性膨胀
-      if (!rows.some((row) => row.kind === 'more')) rows.push({ kind: 'more', path: `${path}.more` })
+      rows.push({ kind: 'more', path: `${path}.more` })
       return
     }
     if (!isContainer(node)) {

@@ -170,7 +170,10 @@ export async function runBrainLoop(options: RunBrainLoopOptions): Promise<BrainR
    * 但对「action 就叫 add」的技能（`system.schedule`）会把**合法值改坏**，
    * 结果技能报「未知 action」。所以归一化前必须先看工具声明了什么。
    */
-  const declaredActionsFor = (toolName: string): readonly string[] => {
+  const declaredActionsFor = (toolName: string): readonly string[] | undefined => {
+    // 没拿到下发 schema ⇒ 声明未知（返回 undefined），fixParams 会保守地不猜别名。
+    // 不要退化成 []：那等于「确知没有任何 action 声明」，会把 add 别名成 create。
+    if (tools.length === 0) return undefined
     // `options.tools` 有意是 `unknown[]`（shared 不绑定线格式），这里按结构收窄
     for (const entry of tools) {
       const fn = (entry as { function?: { name?: unknown; parameters?: unknown } } | null)?.function

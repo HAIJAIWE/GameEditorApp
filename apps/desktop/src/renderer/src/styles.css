@@ -10274,6 +10274,30 @@ body {
   font-weight: 600;
 }
 /* 定时提醒（会话页签）：一行一条，删除按钮靠右；正文单行截断，时间放第二行 */
+.session-schedule-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.session-schedule-refresh {
+  flex: none;
+  height: 22px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: var(--text-11);
+  cursor: pointer;
+}
+@media (hover: hover) {
+  .session-schedule-refresh:hover {
+    background: var(--bg-hover);
+    color: var(--text);
+  }
+}
 .session-schedule-list {
   display: flex;
   flex-direction: column;

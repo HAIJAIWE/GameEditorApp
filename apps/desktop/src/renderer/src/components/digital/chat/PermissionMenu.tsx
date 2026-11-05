@@ -29,22 +29,29 @@ export function PermissionMenu(): ReactElement {
   const [confirming, setConfirming] = useState(false)
   const [acked, setAcked] = useState(false)
   const ref = useRef<HTMLDivElement | null>(null)
+  const alive = useRef(true)
 
-  // 挂载即拉当前档位（主进程已从 userData 灌入共享持有者）
-  useEffect(() => {
-    let alive = true
-    void window.mbApi.agent
+  /** 从主进程拉真实档位；UI 永远不信任自己乐观设的值 */
+  const loadMode = useCallback((): void => {
+    const api = (window as unknown as { mbApi?: { agent?: { getPermissionMode(): Promise<{ mode: PermissionMode }> } } })
+      .mbApi?.agent
+    if (api === undefined) return
+    void api
       .getPermissionMode()
       .then((res) => {
-        if (alive) setMode(res.mode)
+        if (alive.current) setMode(res.mode)
       })
       .catch(() => {
-        /* 拉取失败回落默认 full（与持有者默认值一致） */
+        /* 拉取失败保持当前 UI 态（与持有者默认值一致），不弹错误 */
       })
-    return () => {
-      alive = false
-    }
   }, [])
+
+  useEffect(() => {
+    loadMode()
+    return () => {
+      alive.current = false
+    }
+  }, [loadMode])
 
   const close = useCallback((): void => {
     setOpen(false)
@@ -78,9 +85,11 @@ export function PermissionMenu(): ReactElement {
     try {
       await window.mbApi.agent.setPermissionMode({ mode: next })
     } catch {
-      /* IPC 失败保留 UI 态；下次打开会重新拉取主进程真实值 */
+      // 落盘失败：立刻拉回主进程真实档位。否则 UI 会一直停在一个根本没生效的值上，
+      // 而这个组件不重挂载、打开菜单也不会自动重拉 —— 光靠注释说「下次会重拉」是不成立的。
+      loadMode()
     }
-  }, [])
+  }, [loadMode])
 
   const choose = useCallback(
     (next: PermissionMode): void => {
@@ -108,7 +117,11 @@ export function PermissionMenu(): ReactElement {
         aria-expanded={open}
         onClick={() => {
           if (open) close()
-          else setOpen(true)
+          else {
+            // 打开即对一次账：主进程的档位可能被别处（设置面板 / 另一个窗口）改过
+            loadMode()
+            setOpen(true)
+          }
         }}
       >
         <span className="dsh-composer-chip-label">

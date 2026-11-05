@@ -242,7 +242,13 @@ export interface RunBrainLoopOptions {
   systemPrompts: string[]
   transport: BrainLlmTransport
   runner: BrainToolRunner
-  /** 暴露给 LLM 的工具 JSON Schema 列表（通常来自 `SkillDispatcher.toolsJsonSchema()`） */
+  /**
+   * 暴露给 LLM 的工具 JSON Schema 列表（通常来自 `SkillDispatcher.toolsJsonSchema()`）。
+   *
+   * ⚠️ 不只是发给模型：循环还用它读「工具自己声明的 action 枚举」交给 `fixParams`，
+   * 免得全局别名把合法 action 改坏（`system.schedule` 的 `add` 就被 `add→create` 坑过）。
+   * 省略时该保护失效，除非确实不需要工具语义，否则调用方应始终传入。
+   */
   tools?: unknown[]
   /**
    * 生效档位（M3 档位路由）：由调用方经 `resolveLlmTier(config)` 解析后注入，
