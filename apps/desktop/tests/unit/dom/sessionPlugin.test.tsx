@@ -49,7 +49,8 @@ describe('会话页签', () => {
     const result = await renderSession(host)
     // 外壳
     expect(result.byTestId('session')).toBeTruthy()
-    // 主对话摘要分区
+    // 主对话摘要分区（Phase C4：统一包在 session-block 里，与定时/轨迹同一层级）
+    expect(result.byTestId('session-block-agent-team')).toBeTruthy()
     expect(result.byTestId('agent-team-conversation')).toBeTruthy()
     // 轨迹分区（含概览与空态）
     expect(result.byTestId('session-block-trajectory')).toBeTruthy()

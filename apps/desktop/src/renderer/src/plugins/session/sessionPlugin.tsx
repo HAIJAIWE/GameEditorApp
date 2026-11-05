@@ -82,7 +82,10 @@ function SessionMainView({ host }: { host: PluginHost }): ReactElement {
         </span>
       </header>
 
-      <AgentTeamSection host={host} />
+      <section className="session-block" data-testid="session-block-agent-team">
+        <h3 className="session-block-title">{t('session.agentTeam')}</h3>
+        <AgentTeamSection host={host} />
+      </section>
 
       <JobBoardSection host={host} />
 
