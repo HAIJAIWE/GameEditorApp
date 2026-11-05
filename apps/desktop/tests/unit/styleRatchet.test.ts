@@ -7,8 +7,9 @@ import { describe, expect, it } from 'vitest'
  * 样式守卫：把 dsh `ui-theme` 那几张自动 spec（radius / corner-shape /
  * elevation / hover / 发丝线 / menu）里能在墨白静态校验的部分落成测试。
  *
- * ## 14 项检查的构成（9 硬约束 + 5 自检，**已无棘轮**）
- * **8 条硬约束（恒 0，回升即回归）**
+ * ## 15 项检查的构成（10 硬约束 + 5 自检，**已无棘轮**）
+ * 按用例顺序编号：1–8 与 14–15 是硬约束（恒 0，回升即回归），9–13 是自检 / 对价。
+ * **硬约束 1–8**
  * 1. 全圆声明必须配对 `corner-shape: round`
  * 2. 组件区不得写死 px 圆角（走 `--radius-*`）
  * 3. 组件区不得写死裸字面颜色（走语义 token）
@@ -17,7 +18,7 @@ import { describe, expect, it } from 'vitest'
  * 6. hover 查询不得用 `any-hover` 或 hover+pointer 混合条件
  * 7. 裸 `:hover` 必须包在 `@media (hover: hover)` 内（75 → 0）
  * 8. 中性实线边框必须是 0.5px 发丝线（170 → 0；2px+ 强调线豁免）
- * **4 条自检 / 对价**
+ * **自检 / 对价 9–13**
  * 9. 扫描范围非空（防路径写错静默通过）
  * 10. hljs 色板豁免有对价（dark 覆盖必须仍在）
  * 11. 作用域局部 token 的 fallback 不得丢失（回归守卫）
@@ -25,6 +26,10 @@ import { describe, expect, it } from 'vitest'
  * 13. 焦点环与输入模态抑制规则不得被删（a11y：键盘用户必须看得见焦点）
  * 14. 字号必须走 `--text-*` 档位（不得再手写 `font-size: calc(<N>px * var(--ui-font-scale))`；
  *     非 1 因子如 `* 1.1` / `* 12/13` 例外，因为整数档位里没有对应值）
+ * 15. 字号不得写死裸 px（必须跟随 `--ui-font-scale`）：本仓字号是设置面板里
+ *     用户可调的（10–21px = scale 0.77–1.62），写死的那部分不会跟着变，
+ *     界面会出现「一半放大一半不动」。6 处刻意固定的展示型字号走白名单，
+ *     白名单带对价：删了对应声明就要同步删白名单，否则测试红。
  *
  * ## 两类刻意豁免（都带对价测试，不是放宽标准）
  * 1. `highlight.js` 自包含词法色板：`.hljs*` 有完整的浅色基 +
@@ -260,6 +265,37 @@ const legacyFontCalcBlocks = blocks.filter(
   (block) => !isTokenBlock(block.selector) && hasLegacyFontCalc(block.body)
 )
 
+/**
+ * 15. 裸 px 字号（`font-size: 12px` 这种）不跟随 `--ui-font-scale`。
+ *
+ * 本仓字号在设置面板里可调（10–21px ⇒ scale 0.77–1.62），写死的部分不会跟着变：
+ * 调大字号时界面会「一半放大、一半不动」。所以组件文字一律走 `--text-N`。
+ *
+ * 白名单 6 处是**刻意固定**，不是遗留债：
+ * - 30/32/36px：图标与评分大数字，跟随缩放会破坏对齐；
+ * - 12.5/11.5px：等宽代码区与状态栏的半档字号，没有整数档对应。
+ * 白名单有对价：下面的用例会断言这 6 处仍在，删了声明就得同步删白名单。
+ */
+const FIXED_FONT_SIZES: ReadonlyArray<{ selector: string; px: string }> = [
+  { selector: '.image-picker-plus', px: '30' },
+  { selector: '.score-total-value', px: '32' },
+  { selector: '.checklist-score', px: '36' },
+  { selector: '.code-content', px: '12.5' },
+  { selector: '.browser-url', px: '12.5' },
+  { selector: '.browser-status', px: '11.5' }
+]
+
+const literalFontBlocks = blocks.filter((block) => {
+  if (isTokenBlock(block.selector)) return false
+  const literals = [...block.body.matchAll(/font-size: ([0-9.]+)px(?= *;)/gu)]
+  return literals.some(
+    (match) =>
+      !FIXED_FONT_SIZES.some(
+        (allow) => block.selector.includes(allow.selector) && match[1] === allow.px
+      )
+  )
+})
+
 function describeSample(items: CssBlock[]): string {
   return items.slice(0, 8).map((block) => `${block.file} { ${block.selector} }`).join('\n')
 }
@@ -372,6 +408,24 @@ describe('样式守卫（对齐 dsh radius / corner-shape / elevation / hover / 
         `非 1 因子（\`* 1.1\` 的 14.3px、\`* 12/13\` 等无整数档对应）允许保留。\n` +
         `前几个：\n${describeSample(legacyFontCalcBlocks)}`
     ).toBe(0)
+  })
+
+  it('字号不得写死裸 px（必须跟随 --ui-font-scale）', () => {
+    expect(
+      literalFontBlocks.length,
+      `${literalFontBlocks.length} 个块把字号写死成 px，用户调字号时它们不会跟着变。\n` +
+        `改用 --text-9/10/11/12/13/14/15/16/18/20；刻意固定的 6 处走白名单。\n` +
+        `前几个：\n${describeSample(literalFontBlocks)}`
+    ).toBe(0)
+
+    // 白名单对价：删掉声明就要同步删白名单，否则豁免会变成永不失效的死配置
+    const allCss = files.map((file) => readFileSync(file, 'utf8')).join('\n')
+    for (const allow of FIXED_FONT_SIZES) {
+      expect(
+        allCss,
+        `刻意固定的 ${allow.selector} ${allow.px}px 不见了：请同步清理 FIXED_FONT_SIZES 白名单`
+      ).toContain(`font-size: ${allow.px}px`)
+    }
   })
 
   it('dsh 令牌阶梯与新增别名不得被删', () => {
