@@ -66,10 +66,10 @@ export function defineMenusPlugin(_host: PluginHost): PluginManifest {
               item('menu.file.exportExcel', 'app.io.exportExcel', 'menuitem-file-exportExcel'),
               sep,
               item('menu.file.batchExport', 'app.io.batchExport', 'menuitem-file-batchExport'),
-              item('menu.file.batchEdit', 'batch.open', 'menuitem-file-batchEdit'),
               sep,
-              item('menu.file.exportGameData', 'app.io.save', 'menuitem-file-exportGameData'),
-              sep,
+              // 「批量编辑」不属于导出动作 → 只保留「工具 → 批量编辑」。
+              // 「导出游戏数据」与「导出 JSON」实现相同（都是 app.io.save → exportJson）
+              // → 删除误导性重复项；若将来要真正导出运行态游戏数据，应新增独立命令。
               item('menu.file.exportLua', 'app.io.engineExport.lua', 'menuitem-file-exportLua'),
               item('menu.file.exportUnity', 'app.io.engineExport.unity', 'menuitem-file-exportUnity'),
               item('menu.file.exportUnreal', 'app.io.engineExport.unreal', 'menuitem-file-exportUnreal'),
@@ -97,8 +97,8 @@ export function defineMenusPlugin(_host: PluginHost): PluginManifest {
           item('menu.edit.undo', 'app.undo', 'menuitem-edit-undo', 'undo'),
           item('menu.edit.redo', 'app.redo', 'menuitem-edit-redo', 'redo'),
           sep,
-          item('menu.edit.templateManager', 'typeEditor.open', 'menuitem-edit-templateManager'),
-          sep,
+          // 「模板管理」与「工具 → 字段结构编辑器」是同一面板（typeEditor.open）→
+          // 只保留工具菜单里的那一个，避免两个名字指同一窗口。
           item('menu.edit.clearAll', 'clearAll.open', 'menuitem-edit-clearAll')
         ]
       },

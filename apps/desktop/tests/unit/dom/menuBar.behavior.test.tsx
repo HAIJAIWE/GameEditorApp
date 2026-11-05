@@ -193,8 +193,8 @@ describe('MenuBar：键帽与 aria-keyshortcuts（dsh ShortcutKeys 形态）', (
     await mount()
     await view!.click(view!.byTestId('menu-title-edit'))
 
-    const templateManager = view!.byTestId('menuitem-edit-templateManager')
-    expect(templateManager.getAttribute('aria-keyshortcuts')).toBeNull()
-    expect(templateManager.querySelector('.shortcut-keys')).toBeNull()
+    const clearAll = view!.byTestId('menuitem-edit-clearAll')
+    expect(clearAll.getAttribute('aria-keyshortcuts')).toBeNull()
+    expect(clearAll.querySelector('.shortcut-keys')).toBeNull()
   })
 })
