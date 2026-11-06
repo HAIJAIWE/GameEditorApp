@@ -52,12 +52,14 @@ export interface SpecRole {
   label: string
 }
 
-/** 可选模块：一组可整体开关的章（如应用的 AI 模型层、游戏的市场/商业化） */
+/** 可选模块：一组可整体开关的章（如应用的 AI 模型层；游戏侧为逐章模块） */
 export interface SpecModule {
   key: string
   label: string
   /** 默认是否启用；缺省 false（方向轻、按需开启） */
   defaultOn: boolean
+  /** 该模块包含的章 key（游戏侧一个模块即一章；应用侧一组） */
+  chapters: readonly string[]
 }
 
 /** 一套文档规格 */

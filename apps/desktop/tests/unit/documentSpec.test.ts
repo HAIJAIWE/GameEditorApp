@@ -6,6 +6,7 @@ import {
   CHAPTER_NAMES,
   CHAPTER_PARTS,
   CHAPTER_REQUIRED_FIELDS,
+  MODULE_CHAPTERS,
   NUMBERED_CHAPTER_KEYS
 } from '@mobai/shared/ceshu/reference'
 import { AGENT_DISPLAY, CHAPTER_AGENT_MAP, CHAPTER_GENERATION_HINTS } from '@mobai/shared/ceshu/prompts'
@@ -161,8 +162,22 @@ describe('规格即模板：结构校验与方向/细节分层', () => {
 
   it('应用 AI 模型层是可选模块，四章都归属它', () => {
     expect(APP_SPEC.modules.map((m) => m.key)).toContain('ai_layer')
-    expect(APP_SPEC.modules.find((m) => m.key === 'ai_layer')?.defaultOn).toBe(false)
+    const module = APP_SPEC.modules.find((m) => m.key === 'ai_layer')
+    expect(module?.defaultOn).toBe(false)
+    expect([...(module?.chapters ?? [])]).toEqual(['model_card', 'data_sheet', 'system_card', 'eval_redteam'])
     const aiChapters = APP_SPEC.chapters.filter((c) => c.module === 'ai_layer').map((c) => c.key)
     expect(aiChapters).toEqual(['model_card', 'data_sheet', 'system_card', 'eval_redteam'])
+  })
+
+  it('游戏侧可选模块 = 系统模块章逐章登记（defaultOn true，与现状一致）', () => {
+    expect(GAME_SPEC.modules.length).toBe(MODULE_CHAPTERS.length)
+    for (const module of GAME_SPEC.modules) {
+      expect(module.defaultOn).toBe(true)
+      expect([...module.chapters]).toEqual([module.key])
+    }
+    // 市场 / 商业化 / 运营 本来就在可选模块里（与模块选择器一致）
+    for (const key of ['market_analysis', 'monetization', 'live_ops']) {
+      expect(GAME_SPEC.modules.map((m) => m.key)).toContain(key)
+    }
   })
 })

@@ -50,8 +50,16 @@ export function validateDocumentSpec(spec: DocumentSpec): string[] {
     }
   }
   for (const module of spec.modules) {
-    if (!spec.chapters.some((chapter) => chapter.module === module.key)) {
-      errors.push(`模块 ${module.key} 没有任何章`)
+    if (module.chapters.length === 0) errors.push(`模块 ${module.key} 没有任何章`)
+    for (const key of module.chapters) {
+      if (!keySet.has(key)) errors.push(`模块 ${module.key} 引用了不存在的章 ${key}`)
+    }
+  }
+  for (const chapter of spec.chapters) {
+    if (chapter.module === undefined) continue
+    const module = spec.modules.find((item) => item.key === chapter.module)
+    if (module !== undefined && !module.chapters.includes(chapter.key)) {
+      errors.push(`章 ${chapter.key} 声明模块 ${chapter.module}，但该模块未列出它`)
     }
   }
   for (const [role, chapters] of Object.entries(spec.roleChapters)) {

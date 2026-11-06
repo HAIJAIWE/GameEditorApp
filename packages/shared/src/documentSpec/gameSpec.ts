@@ -13,6 +13,7 @@ import {
   CHAPTER_REQUIRED_FIELDS,
   LITE_CHAPTER_KEYS,
   META_CHAPTER_KEY,
+  MODULE_CHAPTERS,
   NUMBERED_CHAPTER_KEYS,
   type ChapterKey
 } from '../ceshu/reference'
@@ -73,8 +74,14 @@ export const GAME_SPEC: DocumentSpec = {
   agentPrompts: agentPromptsById(),
   roles: CESHU_ROLE_ORDER.map((key) => ({ key, label: CESHU_ROLE_LABELS[key] })),
   roleChapters: ROLE_CHAPTERS as Readonly<Record<string, readonly string[]>>,
-  // 游戏暂不设可选模块（市场/商业化/运营设为可选是后续步骤）
-  modules: [],
+  // 游戏侧的可选 = 「系统模块章」逐章开关（meta.enabled_modules，值是章 key）；
+  // 这里如实登记，defaultOn=true 与现状一致（缺省全开，老文档零变化）
+  modules: MODULE_CHAPTERS.map((key) => ({
+    key,
+    label: CHAPTER_LABELS[key],
+    defaultOn: true,
+    chapters: [key]
+  })),
   // 游戏档不隐藏任何主区页签
   hiddenMainViewIds: [],
   systemDocNoun: '游戏策划书',

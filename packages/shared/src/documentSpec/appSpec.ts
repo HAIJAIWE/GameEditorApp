@@ -88,7 +88,7 @@ export const APP_SPEC: DocumentSpec = {
   agentPrompts: APP_AGENT_PROMPTS,
   roles: APP_ROLES,
   roleChapters: APP_ROLE_CHAPTERS,
-  modules: [{ key: 'ai_layer', label: 'AI 模型层', defaultOn: false }],
+  modules: [{ key: 'ai_layer', label: 'AI 模型层', defaultOn: false, chapters: APP_AI_LAYER_KEYS }],
   // 应用档不启用游戏数据编辑（角色/怪物/技能对软件设计无意义）
   hiddenMainViewIds: ['data.mainView'],
   systemDocNoun: APP_SYSTEM_DOC_NOUN,
