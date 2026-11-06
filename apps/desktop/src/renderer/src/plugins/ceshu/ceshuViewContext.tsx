@@ -66,7 +66,7 @@ export interface CeshuViewContextValue {
   onGenerateData: (target: { typeId: string | null; count?: number; instruction?: string }) => void
 
   /** 子面板把「应用后」的文档回传给编辑器（AI 生成 / 模板 / 预设 / 系统确认） */
-  onAiApplied: (updated: CeshuDocument, chapters: readonly ChapterKey[]) => void
+  onAiApplied: (updated: CeshuDocument, chapters: readonly string[]) => void
   onTemplateApplied: (updated: CeshuDocument, chapter: ChapterKey) => void
   onPresetApplied: (updated: CeshuDocument, enabledCount: number, presetLabel: string) => void
   onSystemConfirmed: (updated: CeshuDocument, enabledCount: number, addedCustom: number) => void

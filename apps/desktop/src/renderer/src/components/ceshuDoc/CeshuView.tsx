@@ -686,9 +686,9 @@ export default function CeshuView({
    * 标记写进 `meta.ai_generated`（见 `shared/ceshuAiMark.ts`）。人点「保存本章」
    * 或「已核对」即清除该章标记 —— 这正是「AI 生成 → 人扫一遍」工作流的进度。
    */
-  const handleAiApplied = async (updated: CeshuDocument, chapters: readonly ChapterKey[]): Promise<void> => {
+  const handleAiApplied = async (updated: CeshuDocument, chapters: readonly string[]): Promise<void> => {
     setDoc(updated)
-    const names = chapters.map((chapter) => CHAPTER_LABELS[chapter]).join(t('ceshuView.listSeparator'))
+    const names = chapters.map((chapter) => chapterLabelForDoc(updated, chapter)).join(t('ceshuView.listSeparator'))
     setNotice(t('ceshuView.aiApplied', { n: chapters.length, names }))
     onChanged()
 

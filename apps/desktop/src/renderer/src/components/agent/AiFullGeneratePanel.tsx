@@ -3,13 +3,11 @@ import { useMemo, useRef, useState } from 'react'
 import { useT } from '@mobai/client-ui'
 import type { MessageKey } from '@mobai/shared/i18n'
 import {
-  CHAPTER_LABELS,
   GDD_SCOPE_FULL,
   GDD_SCOPE_LITE,
   contentChapterCount,
   type CeshuDocument,
   type ChapterData,
-  type ChapterKey,
   type GddScope
 } from '@mobai/shared/ceshu/reference'
 import {
@@ -20,7 +18,7 @@ import {
   buildFullGeneratePlan,
   type FullGeneratePlan
 } from '@mobai/shared/ceshu/prompts'
-import { getGddScope, isPlainObject } from '@mobai/shared/ceshu/model'
+import { chapterDataForDoc, chapterLabelForDoc, getDocKind, getGddScope, isPlainObject } from '@mobai/shared/ceshu/model'
 import { evaluateBudget, taskBudget } from '@mobai/shared/agent/runtime'
 import type { LlmJudgeVerdict } from '@mobai/shared/types'
 import { toErrorMessage } from '@mobai/shared/util/system'
@@ -48,7 +46,7 @@ interface AiFullGeneratePanelProps {
    * 应用完成。`chapters` 是**实际写入的章节 key 列表**（不只是数量）——
    * 宿主要据此把这几章标成「AI 生成、待核对」，用户才好扫读。
    */
-  onApplied: (updated: CeshuDocument, chapters: readonly ChapterKey[]) => void
+  onApplied: (updated: CeshuDocument, chapters: readonly string[]) => void
   onClose: () => void
 }
 
@@ -67,11 +65,11 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
   const [scope, setScope] = useState<GddScope>(() => getGddScope(doc))
   const [includeMarket, setIncludeMarket] = useState(true)
   const [includeRisk, setIncludeRisk] = useState(true)
-  const [statuses, setStatuses] = useState<Partial<Record<ChapterKey, ChapterStatus>>>({})
-  const [errors, setErrors] = useState<Partial<Record<ChapterKey, string>>>({})
-  const [results, setResults] = useState<Partial<Record<ChapterKey, ChapterData>>>({})
+  const [statuses, setStatuses] = useState<Partial<Record<string, ChapterStatus>>>({})
+  const [errors, setErrors] = useState<Partial<Record<string, string>>>({})
+  const [results, setResults] = useState<Partial<Record<string, ChapterData>>>({})
   /** 每章 LLM-as-Judge 辅助结论（v1.0 DD-19 剩余项）；null = 该章未获评审（调用失败/降级） */
-  const [judges, setJudges] = useState<Partial<Record<ChapterKey, LlmJudgeVerdict | null>>>({})
+  const [judges, setJudges] = useState<Partial<Record<string, LlmJudgeVerdict | null>>>({})
   const [running, setRunning] = useState(false)
   const [applying, setApplying] = useState(false)
   const [summary, setSummary] = useState<string | null>(null)
@@ -81,16 +79,23 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
   /** 整篇生成的内联确认态（v0.5 DD-17：大范围云端调用需先确认） */
   const [confirming, setConfirming] = useState(false)
   const stopRef = useRef(false)
-  const resultsRef = useRef<Partial<Record<ChapterKey, ChapterData>>>({})
-  const judgesRef = useRef<Partial<Record<ChapterKey, LlmJudgeVerdict | null>>>({})
+  const resultsRef = useRef<Partial<Record<string, ChapterData>>>({})
+  const judgesRef = useRef<Partial<Record<string, LlmJudgeVerdict | null>>>({})
 
+  const docKind = getDocKind(doc)
+  const isApp = docKind === 'application'
   const plan = useMemo(
     () =>
       buildFullGeneratePlan(
         { gameName, gameType, style, description, references, platforms, businessModel },
-        { scope, includeMarket: includeMarket && scope === GDD_SCOPE_FULL, includeRisk: includeRisk && scope === GDD_SCOPE_FULL }
+        {
+          scope,
+          includeMarket: includeMarket && scope === GDD_SCOPE_FULL,
+          includeRisk: includeRisk && scope === GDD_SCOPE_FULL,
+          docKind
+        }
       ),
-    [gameName, gameType, style, description, references, platforms, businessModel, scope, includeMarket, includeRisk]
+    [gameName, gameType, style, description, references, platforms, businessModel, scope, includeMarket, includeRisk, docKind]
   )
 
   const failedChapters = plan.order.filter((chapter) => statuses[chapter] === 'failed')
@@ -98,15 +103,15 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
   const locked = running || applying
 
   /** 逐章生成：单章失败记录并继续；首章即失败（本地服务不可用等）中断并汇总 */
-  const runChapters = async (targets: ChapterKey[]): Promise<void> => {
+  const runChapters = async (targets: readonly string[]): Promise<void> => {
     if (targets.length === 0) return
     setRunning(true)
     setPanelError(null)
     setSummary(null)
     setUsageTotal(0)
     stopRef.current = false
-    const draftResults: Partial<Record<ChapterKey, ChapterData>> = { ...resultsRef.current }
-    const draftJudges: Partial<Record<ChapterKey, LlmJudgeVerdict | null>> = { ...judgesRef.current }
+    const draftResults: Partial<Record<string, ChapterData>> = { ...resultsRef.current }
+    const draftJudges: Partial<Record<string, LlmJudgeVerdict | null>> = { ...judgesRef.current }
     let succeeded = 0
     let failed = 0
     let usageAcc = 0
@@ -143,7 +148,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
       } catch (error) {
         // 用户点了停止 ⇒ 这一章是被主动中断的，不是失败：状态还原、不计入 failed
         if (stopRef.current) {
-          setStatuses((prev) => ({ ...prev, [chapter]: 'idle' }))
+          setStatuses((prev) => ({ ...prev, [chapter]: 'pending' }))
           break
         }
         const message = toErrorMessage(error)
@@ -196,7 +201,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
     judgesRef.current = {}
     setJudges({})
     setErrors({})
-    const initial: Partial<Record<ChapterKey, ChapterStatus>> = {}
+    const initial: Partial<Record<string, ChapterStatus>> = {}
     for (const chapter of plan.order) initial[chapter] = 'pending'
     setStatuses(initial)
     await runChapters(plan.order)
@@ -221,10 +226,13 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
         if (chapter === 'meta') {
           data = { ...updated.meta, ...plan.metaSeed, ...generated }
           data.gdd_scope = updated.meta.gdd_scope
+          // 应用档 meta 的字段表里含 doc_kind（人定字段），AI 整章生成可能写出 'game'。
+          // 一键生成不该把用户选的档位悄悄改回游戏档，这里显式保留。
+          if (isApp) data.doc_kind = updated.meta.doc_kind
         } else if (chapter === 'systems') {
           data = mergeSystems(updated.systems, generated)
         } else {
-          data = { ...updated[chapter], ...generated }
+          data = { ...chapterDataForDoc(updated, chapter), ...generated }
         }
         updated = await window.mbApi.ceshu.saveChapter({
           id: ceshuId,
@@ -253,7 +261,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
   return (
     <div className="changelog-panel" data-testid="ai-full-panel">
       <div className="changelog-header">
-        <span className="chapter-form-title">{t('aiFull.title')}</span>
+        <span className="chapter-form-title">{t(isApp ? 'aiFull.appTitle' : 'aiFull.title')}</span>
         <button type="button" className="btn" data-testid="ai-full-close" disabled={locked} onClick={onClose}>
           {t('common.close')}
         </button>
@@ -262,71 +270,79 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
       <div className="changelog-entry">
         <div className="form-label">{t('aiFull.projectInfo')}</div>
         <div className="ai-gen-row">
-          <span className="form-label">{t('aiFull.gameName')}</span>
+          <span className="form-label">{t(isApp ? 'aiFull.projectName' : 'aiFull.gameName')}</span>
           <input
             className="form-input"
             data-testid="ai-full-name"
             value={gameName}
             disabled={locked}
-            placeholder={t('aiFull.namePlaceholder')}
+            placeholder={t(isApp ? 'aiFull.appNamePlaceholder' : 'aiFull.namePlaceholder')}
             onChange={(event) => setGameName(event.target.value)}
           />
-          <span className="form-label">{t('aiFull.gameType')}</span>
-          <select
-            className="form-select"
-            data-testid="ai-full-type"
-            value={gameType}
-            disabled={locked}
-            onChange={(event) => setGameType(event.target.value)}
-          >
-            {FULL_GEN_GAME_TYPES.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
+          {!isApp && (
+            <>
+              <span className="form-label">{t('aiFull.gameType')}</span>
+              <select
+                className="form-select"
+                data-testid="ai-full-type"
+                value={gameType}
+                disabled={locked}
+                onChange={(event) => setGameType(event.target.value)}
+              >
+                {FULL_GEN_GAME_TYPES.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
         </div>
-        <div className="ai-gen-row">
-          <span className="form-label">{t('aiFull.style')}</span>
-          <select
-            className="form-select"
-            data-testid="ai-full-style"
-            value={style}
-            disabled={locked}
-            onChange={(event) => setStyle(event.target.value)}
-          >
-            {FULL_GEN_STYLES.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
-          <span className="form-label">{t('aiFull.businessModel')}</span>
-          <select
-            className="form-select"
-            data-testid="ai-full-biz"
-            value={businessModel}
-            disabled={locked}
-            onChange={(event) => setBusinessModel(event.target.value)}
-          >
-            {FULL_GEN_BUSINESS_MODELS.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="ai-gen-row">
-          <span className="form-label">{t('aiFull.references')}</span>
-          <input
-            className="form-input"
-            data-testid="ai-full-refs"
-            value={references}
-            disabled={locked}
-            placeholder={t('aiFull.refsPlaceholder')}
-            onChange={(event) => setReferences(event.target.value)}
-          />
-        </div>
+        {!isApp && (
+          <>
+            <div className="ai-gen-row">
+              <span className="form-label">{t('aiFull.style')}</span>
+              <select
+                className="form-select"
+                data-testid="ai-full-style"
+                value={style}
+                disabled={locked}
+                onChange={(event) => setStyle(event.target.value)}
+              >
+                {FULL_GEN_STYLES.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
+              <span className="form-label">{t('aiFull.businessModel')}</span>
+              <select
+                className="form-select"
+                data-testid="ai-full-biz"
+                value={businessModel}
+                disabled={locked}
+                onChange={(event) => setBusinessModel(event.target.value)}
+              >
+                {FULL_GEN_BUSINESS_MODELS.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="ai-gen-row">
+              <span className="form-label">{t('aiFull.references')}</span>
+              <input
+                className="form-input"
+                data-testid="ai-full-refs"
+                value={references}
+                disabled={locked}
+                placeholder={t('aiFull.refsPlaceholder')}
+                onChange={(event) => setReferences(event.target.value)}
+              />
+            </div>
+          </>
+        )}
         <div className="ai-gen-row">
           <span className="form-label">{t('aiFull.platforms')}</span>
           {FULL_GEN_PLATFORMS.map((platform) => (
@@ -343,19 +359,21 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
           ))}
         </div>
         <div className="ai-gen-block">
-          <span className="form-label">{t('aiFull.descLabel')}</span>
+          <span className="form-label">{t(isApp ? 'aiFull.appDescLabel' : 'aiFull.descLabel')}</span>
           <textarea
             className="form-input"
             data-testid="ai-full-desc"
             rows={4}
             value={description}
             disabled={locked}
-            placeholder={t('aiFull.descPlaceholder')}
+            placeholder={t(isApp ? 'aiFull.appDescPlaceholder' : 'aiFull.descPlaceholder')}
             onChange={(event) => setDescription(event.target.value)}
           />
         </div>
       </div>
 
+      {/* 档位/市场/风险是游戏研发流程概念；应用档固定铺 SDD 全章，无需这些开关 */}
+      {!isApp && (
       <div className="changelog-entry">
         <div className="form-label">{t('aiFull.scope')}</div>
         <div className="ai-gen-row">
@@ -403,6 +421,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
           </label>
         </div>
       </div>
+      )}
 
       <div className="changelog-entry">
         <div className="form-label">{t('aiFull.progress', { count: plan.order.length })}</div>
@@ -411,7 +430,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
             const status = statuses[chapter] ?? 'pending'
             return (
               <div className={`ai-gen-status ${status}`} key={chapter} data-testid={`ai-full-status-${chapter}`}>
-                <span className="ai-gen-status-label">{CHAPTER_LABELS[chapter]}</span>
+                <span className="ai-gen-status-label">{chapterLabelForDoc(doc, chapter)}</span>
                 <span className={`ai-gen-status-value ${status}`}>{t(STATUS_LABELS[status])}</span>
                 {status === 'done' && judges[chapter] && (
                   <span
@@ -549,7 +568,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
         const unjudged = entries.length - judged.length
         const flaggedChapters = plan.order
           .filter((chapter) => judges[chapter]?.toxicity === 'flagged')
-          .map((chapter) => CHAPTER_LABELS[chapter])
+          .map((chapter) => chapterLabelForDoc(doc, chapter))
         return (
           <div className="ai-full-judge" data-testid="ai-full-judge">
             <div className="ai-full-judge-head">{t('aiFull.judgeHead')}</div>
@@ -577,7 +596,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
 /** 草稿载荷：已生成章节 + meta 种子（meta 种子在先，生成结果覆盖），供后续章节提示词上下文 */
 function buildDraftPayload(
   plan: FullGeneratePlan,
-  results: Partial<Record<ChapterKey, ChapterData>>
+  results: Partial<Record<string, ChapterData>>
 ): Record<string, ChapterData> {
   const draft: Record<string, ChapterData> = {}
   for (const [key, value] of Object.entries(results)) {
@@ -598,7 +617,7 @@ function mergeSystems(current: ChapterData, generated: ChapterData): ChapterData
   return merged
 }
 
-function withoutKey<T>(record: Partial<Record<ChapterKey, T>>, key: ChapterKey): Partial<Record<ChapterKey, T>> {
+function withoutKey<T>(record: Partial<Record<string, T>>, key: string): Partial<Record<string, T>> {
   const next = { ...record }
   delete next[key]
   return next

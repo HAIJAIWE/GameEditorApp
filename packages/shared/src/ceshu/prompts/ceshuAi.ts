@@ -21,14 +21,17 @@ import {
   isChapterAllowedForDoc,
   isPlainObject,
   requiredFieldsForDoc,
-  visibleChaptersForDoc
+  visibleChaptersForDoc,
+  type DocKind
 } from '../model'
 // ⚠️ 只能从 appSchema 取应用档元数据，不能 import documentSpec：
 // gameSpec.ts 顶层会 import ceshu/prompts 桶构造 GAME_SPEC，反向依赖会成环，
 // 顶层常量未初始化就被读（实测 `Cannot read properties of undefined`）。
 import {
+  APP_CHAPTER_KEYS,
   APP_AGENT_DISPLAY,
   APP_AGENT_PROMPTS,
+  APP_CHAPTER_LABELS,
   APP_REVIEW_ROLE_NOUN,
   APP_SYSTEM_DOC_NOUN,
   appChapterAi
@@ -413,8 +416,9 @@ export function buildMetaSeed(input: FullGenerateInput): ChapterData {
 /** 全量生成计划（渲染层驱动逐章生成用：顺序 + 每章定制提示 + meta 种子） */
 export interface FullGeneratePlan {
   scope: GddScope
-  order: ChapterKey[]
-  chapterPrompts: Partial<Record<ChapterKey, string>>
+  /** 章 key 用 string：应用档章不属于 ChapterKey 联合类型 */
+  order: readonly string[]
+  chapterPrompts: Readonly<Record<string, string>>
   metaSeed: ChapterData
   /** 风格 key（如 xianxia，用于提示词术语表与文档 style 写回） */
   styleKey: string
@@ -441,9 +445,22 @@ export function normalizeFullGenerateInput(raw: FullGenerateFormInput): FullGene
  */
 export function buildFullGeneratePlan(
   raw: FullGenerateFormInput,
-  options: { scope: GddScope; includeMarket: boolean; includeRisk: boolean }
+  options: { scope: GddScope; includeMarket: boolean; includeRisk: boolean; docKind?: DocKind }
 ): FullGeneratePlan {
   const input = normalizeFullGenerateInput(raw)
+  // 应用档：SDD 全章表，不做游戏档的 lite/market/risk 裁剪，也不写游戏风格/品类 key。
+  // 游戏档（docKind 缺省）走原来的 buildChapterOrder 路径，逐字节零回归。
+  if (options.docKind === 'application') {
+    const order: readonly string[] = [...APP_CHAPTER_KEYS]
+    return {
+      scope: options.scope,
+      order,
+      chapterPrompts: buildChapterPrompts(input, order, 'application'),
+      metaSeed: buildAppMetaSeed(input),
+      styleKey: '',
+      typeKey: ''
+    }
+  }
   let order = buildChapterOrder(options.includeMarket, options.includeRisk)
   if (options.scope === GDD_SCOPE_LITE) {
     const base = new Set<string>(BASE_CHAPTER_KEYS)
@@ -456,6 +473,32 @@ export function buildFullGeneratePlan(
     metaSeed: buildMetaSeed(input),
     styleKey: mapStyleLabelToKey(input.style),
     typeKey: mapTypeLabelToKey(input.gameType)
+  }
+}
+
+/**
+ * 一键生成表单的平台是游戏档中文枚举（PC/移动端/主机/Web），
+ * 应用档 `meta.platform` 用的是规格 key（desktop/mobile/web）。
+ * 这里做一次归一，避免把「移动端」这种显示标签写进应用档数据。
+ */
+const GAME_PLATFORM_TO_APP: Readonly<Record<string, string>> = {
+  PC: 'desktop',
+  移动端: 'mobile',
+  主机: 'desktop',
+  Web: 'web'
+}
+
+/** 应用档文档信息段种子：项目名 / 平台 / 定位，不写游戏类型与风格标签 */
+function buildAppMetaSeed(input: FullGenerateInput): ChapterData {
+  const platform = [...new Set(
+    input.platforms
+      .map((item) => GAME_PLATFORM_TO_APP[item] ?? item)
+      .filter((item) => item === 'desktop' || item === 'mobile' || item === 'web')
+  )]
+  return {
+    project_name: input.gameName,
+    platform,
+    positioning: ''
   }
 }
 
@@ -529,17 +572,26 @@ export function buildKeywordConstraintBlock(input: FullGenerateInput): string {
  */
 export function buildChapterPrompts(
   input: FullGenerateInput,
-  order: ChapterKey[]
-): Partial<Record<ChapterKey, string>> {
-  const userInputText = buildUserInputLines(input).join('\n')
-  const keywordBlock = buildKeywordConstraintBlock(input)
-  const prompts: Partial<Record<ChapterKey, string>> = {}
+  order: readonly string[],
+  docKind?: DocKind
+): Readonly<Record<string, string>> {
+  const isApp = docKind === 'application'
+  const userInputText = (isApp ? buildAppUserInputLines(input) : buildUserInputLines(input)).join('\n')
+  // 风格术语表 / 品类关键词 / 平台·商业硬约束全是游戏口径，应用档不下发这一整块。
+  const keywordBlock = isApp ? '' : buildKeywordConstraintBlock(input)
+  const prompts: Record<string, string> = {}
   for (const chapter of order) {
+    const label = isApp ? APP_CHAPTER_LABELS[chapter] : CHAPTER_LABELS[chapter as ChapterKey]
+    const requirement = isApp
+      ? [APP_AGENT_PROMPTS[appChapterAi(chapter).agentId], appChapterAi(chapter).aiHint]
+          .filter((part) => part !== undefined && part !== '')
+          .join('\n')
+      : CHAPTER_GENERATION_HINTS[chapter as ChapterKey]
     prompts[chapter] =
-      `【章节】${CHAPTER_LABELS[chapter]}\n` +
+      `【章节】${label}\n` +
       `【用户输入】\n${userInputText || '(无)'}\n` +
-      `【关键词与硬约束】\n${keywordBlock || '(无)'}\n` +
-      `【生成要求】${CHAPTER_GENERATION_HINTS[chapter]}\n` +
+      (isApp ? '' : `【关键词与硬约束】\n${keywordBlock || '(无)'}\n`) +
+      `【生成要求】${requirement}\n` +
       '输出 JSON，键为字段名，值为生成内容；只输出 JSON。'
   }
   return prompts
@@ -574,6 +626,16 @@ function buildUserInputLines(input: FullGenerateInput): string[] {
   if (input.references.length > 0) lines.push(`参考游戏: ${input.references.join(', ')}`)
   if (input.platforms.length > 0) lines.push(`目标平台: ${input.platforms.join(', ')}`)
   if (input.businessModel) lines.push(`商业模式: ${input.businessModel}`)
+  return lines
+}
+
+/** 应用档全量生成的输入行：不出现「游戏类型 / 风格 / 商业模式 / 参考游戏」 */
+function buildAppUserInputLines(input: FullGenerateInput): string[] {
+  const lines: string[] = []
+  if (input.gameName) lines.push(`项目名称: ${input.gameName}`)
+  if (input.description) lines.push(`需求描述: ${input.description}`)
+  if (input.references.length > 0) lines.push(`参考产品: ${input.references.join(', ')}`)
+  if (input.platforms.length > 0) lines.push(`目标平台: ${input.platforms.join(', ')}`)
   return lines
 }
 

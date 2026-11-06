@@ -41,7 +41,7 @@ export function readAiGenerated(meta: ChapterData): AiGeneratedMap {
 /** 标记这些章节为「AI 生成、待核对」（保留其它章节已有的标记，不覆盖时间戳） */
 export function markAiGenerated(
   meta: ChapterData,
-  chapters: readonly ChapterKey[],
+  chapters: readonly string[],
   now: string
 ): ChapterData {
   const merged: AiGeneratedMap = { ...readAiGenerated(meta) }
