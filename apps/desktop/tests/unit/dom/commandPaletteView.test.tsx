@@ -10,6 +10,7 @@ import {
 } from '../../../src/renderer/src/plugins/ux'
 import type { PaletteItem } from '@mobai/shared/agent/tools'
 import { PluginHost } from '@mobai/shared/plugin/host'
+import { getHiddenMainViewIds, setHiddenMainViewIds } from '../../../src/renderer/src/plugins/context'
 
 /**
  * 命令面板的**展示层**契约（容器负责键盘/宿主接线，无法在 Node 下测）。
@@ -129,5 +130,35 @@ describe('CommandPalette（容器）', () => {
     expect(result.query('[data-testid="command-palette"]')).toBeNull()
 
     await result.cleanup()
+  })
+
+  it('应用档隐藏清单生效：命令面板不列「数据编辑」（不留点了跳不过去的假入口）', async () => {
+    const previous = getHiddenMainViewIds()
+    const host = new PluginHost()
+    host.register({
+      id: 'test-views',
+      name: 'test-views',
+      version: '0.1.0',
+      capabilities: [
+        { kind: 'mainView', id: 'editor.mainView', label: '策划书', order: 0, ui: { type: 'text', text: '策划书' } },
+        { kind: 'mainView', id: 'data.mainView', label: '数据编辑', order: 10, ui: { type: 'text', text: '数据编辑' } }
+      ]
+    })
+
+    setHiddenMainViewIds(['data.mainView'])
+    const result = await renderDom(<CommandPalette host={host} />)
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }))
+    })
+    await result.flush()
+
+    const ids = result
+      .queryAll('[data-testid="command-palette-item"]')
+      .map((row) => row.getAttribute('data-id'))
+    expect(ids).toContain('editor.mainView')
+    expect(ids).not.toContain('data.mainView')
+
+    await result.cleanup()
+    setHiddenMainViewIds([...previous])
   })
 })

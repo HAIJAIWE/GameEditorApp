@@ -119,6 +119,24 @@ export function getGameType(doc: CeshuDocument): string {
   return isPlainObject(meta) && typeof meta.game_type === 'string' ? meta.game_type : ''
 }
 
+/** 文档类型：游戏 / 应用（应用档不启用游戏数据编辑，见 meta.doc_kind 注释） */
+export const DOC_KINDS = ['game', 'application'] as const
+export type DocKind = (typeof DOC_KINDS)[number]
+
+/**
+ * 读取文档类型（meta.doc_kind，缺省 `game`）。
+ * 只有显式 `application` 才降级为应用档——老文档/脏值一律按游戏处理，避免误伤。
+ */
+export function getDocKind(doc: CeshuDocument): DocKind {
+  const meta = doc.meta
+  return isPlainObject(meta) && meta.doc_kind === 'application' ? 'application' : 'game'
+}
+
+/** 该文档是否需要游戏数据编辑（应用档不需要） */
+export function needsGameDataEditor(doc: CeshuDocument): boolean {
+  return getDocKind(doc) !== 'application'
+}
+
 /**
  * 规则集标识（设计契约的锚点，见 `CeshuDocument.ruleset_id` 注释）。
  *
@@ -185,12 +203,23 @@ export function computeChapterProgress(doc: CeshuDocument, stage?: CeshuStage): 
   return progress
 }
 
-/** 更新单章（meta 章保留既有档位；刷新 updated_at 与 enabled_editors），返回新对象 */
+/**
+ * 更新单章（meta 章保留既有档位；刷新 updated_at 与 enabled_editors），返回新对象。
+ *
+ * `doc_kind` 与 `gdd_scope` 同为**控制字段**（不是内容）：AI 整章生成会把它列进字段清单，
+ * 但模型可能漏写或写出非法值，那会把用户选的「应用档」悄悄改回游戏档 / 塞进脏值。
+ * 这里只允许显式合法的 `game` / `application` 覆盖，其余一律保留旧档位。
+ */
 export function withChapter(doc: CeshuDocument, chapter: ChapterKey, data: ChapterData): CeshuDocument {
   const next: CeshuDocument = { ...doc }
   if (chapter === 'meta') {
     const scope = doc.meta.gdd_scope
-    next.meta = isGddScope(scope) && data.gdd_scope === undefined ? { ...data, gdd_scope: scope } : data
+    const withScope = isGddScope(scope) && data.gdd_scope === undefined ? { ...data, gdd_scope: scope } : data
+    const nextKind = withScope.doc_kind
+    next.meta =
+      nextKind === 'game' || nextKind === 'application'
+        ? withScope
+        : { ...withScope, doc_kind: getDocKind(doc) }
   } else {
     next[chapter] = data
   }

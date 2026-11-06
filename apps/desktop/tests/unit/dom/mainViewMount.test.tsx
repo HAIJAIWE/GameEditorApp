@@ -2,9 +2,10 @@
 import { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
+import type { CeshuSummary } from '@mobai/shared/ceshu/reference'
 import type { PluginManifest } from '@mobai/shared/plugin/types'
 import { PluginHost } from '@mobai/shared/plugin/host'
-import { MainViewMount, type AppMainTab } from '../../../src/renderer/src/plugins/host'
+import { EMPTY_MAIN_VIEW_CONTEXT, MainViewMount, type AppMainTab } from '../../../src/renderer/src/plugins/host'
 import { defineCoreViewsPlugin } from '../../../src/renderer/src/plugins/panels'
 import { getReactBinding, registerReactBinding } from '../../../src/renderer/src/plugins/host'
 import { renderDom, type RenderResult } from './render'
@@ -135,5 +136,68 @@ describe('主区视图挂载器（Slice 22）', () => {
     // 主区页签条只有内联页签 + 主区视图；右栏视图既不出页签、也不渲染内容
     expect(view.query('[data-testid="middle-tab-test.rightbar"]')).toBeNull()
     expect(view.query('[data-testid="rightbar-body"]')).toBeNull()
+  })
+})
+
+function summary(overrides: Partial<CeshuSummary> = {}): CeshuSummary {
+  return {
+    id: 'id-1',
+    gameName: '应用',
+    scope: 'full',
+    versionLabel: 'v1.0',
+    updatedAt: '2026-11-06 10:00:00',
+    progress: 0.1,
+    pendingCount: 0,
+    parentId: '',
+    isActive: true,
+    createdAt: '2026-11-06 09:00:00',
+    versionNote: '',
+    gameType: '',
+    docKind: 'game',
+    platform: [],
+    status: 'draft',
+    ...overrides
+  }
+}
+
+/** 提供 `data.mainView` 的假宿主：挂载器按文档档位决定是否保留该页签 */
+function makeDataHost(): PluginHost {
+  const host = new PluginHost()
+  host.register({
+    id: 'test-data-views',
+    name: 'test-data-views',
+    version: '0.1.0',
+    capabilities: [
+      { kind: 'mainView', id: 'test.home', label: '首页', order: 0, lazy: false, ui: { type: 'text', text: '首页' } },
+      { kind: 'mainView', id: 'data.mainView', label: '数据', order: 10, lazy: true, ui: { type: 'text', text: '数据' } }
+    ]
+  })
+  return host
+}
+
+describe('主区视图：应用档不显示游戏数据编辑页签', () => {
+  it('应用档文档激活时隐藏 data.mainView；游戏档保留', async () => {
+    const appDoc = summary({ id: 'app-1', docKind: 'application' })
+    view = await renderDom(
+      <MainViewMount
+        host={makeDataHost()}
+        appTabs={[]}
+        context={{ ...EMPTY_MAIN_VIEW_CONTEXT, ceshuList: [appDoc], activeCeshuId: 'app-1' }}
+      />
+    )
+    expect(view.query('[data-testid="middle-tab-data.mainView"]')).toBeNull()
+    expect(view.byTestId('middle-tab-test.home')).toBeTruthy()
+    await view.cleanup()
+    view = null
+
+    const gameDoc = summary({ id: 'game-1', docKind: 'game' })
+    view = await renderDom(
+      <MainViewMount
+        host={makeDataHost()}
+        appTabs={[]}
+        context={{ ...EMPTY_MAIN_VIEW_CONTEXT, ceshuList: [gameDoc], activeCeshuId: 'game-1' }}
+      />
+    )
+    expect(view.byTestId('middle-tab-data.mainView')).toBeTruthy()
   })
 })

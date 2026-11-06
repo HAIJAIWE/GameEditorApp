@@ -3,7 +3,7 @@ import { buildChangelogEntry, compareVersionLabels, nextVersionLabel, type Ceshu
 import { countDocPendingFields } from '@mobai/shared/ceshu/fields'
 import { autoFillRequiredFields } from '@mobai/shared/ceshu/workflow'
 import { buildDuplicateName } from '@mobai/shared/ceshu/notes'
-import { computeChapterProgress, computeEnabledEditors, createCeshuId, createDefaultCeshu, formatLocalTimestamp, getGddScope, withChapter } from '@mobai/shared/ceshu/model'
+import { computeChapterProgress, computeEnabledEditors, createCeshuId, createDefaultCeshu, formatLocalTimestamp, getDocKind, getGddScope, withChapter } from '@mobai/shared/ceshu/model'
 import { migrateCeshuFieldSplits } from '@mobai/shared/ceshu/data'
 import { buildPresetApplication } from '@mobai/shared/ceshu/reference'
 import { fingerprintCeshuDesign } from '@mobai/shared/ceshu/workflow'
@@ -294,6 +294,7 @@ export class CeshuManager {
       createdAt: doc.created_at,
       versionNote: doc.version_note,
       gameType: typeof gameType === 'string' ? gameType : '',
+      docKind: getDocKind(doc),
       platform: Array.isArray(platform) ? platform.filter((p) => typeof p === 'string') : [],
       status: typeof status === 'string' && status !== '' ? status : 'draft',
       // 首页卡片用：不打开文档也能看出「还有多少 AI 草稿没审」

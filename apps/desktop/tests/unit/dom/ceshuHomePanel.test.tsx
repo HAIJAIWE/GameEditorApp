@@ -34,6 +34,7 @@ function summary(overrides: Partial<CeshuSummary> = {}): CeshuSummary {
     createdAt: '2026-10-01 09:00:00',
     versionNote: '',
     gameType: 'rpg',
+    docKind: 'game',
     platform: [],
     status: 'draft',
     ...overrides

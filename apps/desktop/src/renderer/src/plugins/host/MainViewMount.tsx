@@ -11,6 +11,7 @@ import {
 } from './mainViewContext'
 import { getReactBinding, renderUiNode, uiOf, useT, type PanelBindingProps } from '@mobai/client-ui'
 import type { MessageKey } from '@mobai/shared/i18n'
+import { hiddenMainViewIdsForDocKind } from '../context'
 
 /**
  * App 主区页签挂载器（Slice 22）。
@@ -100,12 +101,20 @@ export function MainViewMount({
   // 不能直接拿 `host.mainViews()` 当快照：它每次返回新数组，身份抖动会导致无限重渲染。
   useSyncExternalStore(subscribe, () => host.getVersion())
 
+  /*
+   * 应用档（meta.doc_kind = application）不启用游戏数据编辑：
+   * 「数据编辑」页签是角色/怪物/技能等游戏数据的入口，纯应用无此概念。
+   * 规则与 App/命令面板共享 `hiddenMainViewIdsForDocKind`，避免三处各写一套。
+   */
+  const activeDocKind = context.ceshuList.find((item) => item.id === context.activeCeshuId)?.docKind
+  const hiddenViewIds = hiddenMainViewIdsForDocKind(activeDocKind)
+
   // 只认领 `host: 'main'`（缺省）——`rightbar` 的 mainView 由 `RightBarTabs` 渲染，
   // 否则「会话」会同时出现在主区页签条和右栏，出现两个入口。
   const merged = buildMerged(
     appTabs,
     host.mainViews().filter((view) => view.host !== 'rightbar')
-  )
+  ).filter((tab) => !hiddenViewIds.includes(tab.id))
   const validIds = new Set(merged.map((tab) => tab.id))
   const firstId = merged[0]?.id ?? ''
   const initialId = loadStoredTab(MIDDLE_TAB_KEY, validIds, firstId)

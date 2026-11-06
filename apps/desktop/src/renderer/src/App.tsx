@@ -27,7 +27,7 @@ import { useUndoRedo } from './hooks/useAppActions'
 import { toErrorMessage } from './appUtils'
 import { setLocalePreference } from './localePreference'
 import { clampDockWidth, defaultDockWidth, loadAiDockWidth, saveAiDockWidth } from './dockWidth'
-import { pluginHost } from './plugins/context'
+import { hiddenMainViewIdsForDocKind, pluginHost, setHiddenMainViewIds } from './plugins/context'
 // 组合根（内置插件注册 + 插件市场加载）在 plugins/builtins.ts，靠这条副作用 import 触发；
 // 必须在下面 `pluginHost.get('digital-panel')` 之前——ES import 先于模块体执行。
 import './plugins/builtins'
@@ -251,6 +251,16 @@ export default function App() {
   const [activeCeshuId, setActiveCeshuId] = useState<string | null>(null)
   /** 策划书首页卡片视图：默认落在首页 */
   const [ceshuHomeVisible, setCeshuHomeVisible] = useState(true)
+
+  /**
+   * 当前文档档位 → 隐藏页签清单，写进模块级通道供命令面板订阅。
+   * 页签条自己从 MainViewContext 算（无时序差），这里只负责让 ⌘K 的枚举与页签条一致：
+   * 应用档不列「数据编辑」，否则会留下点了跳不过去的假入口。
+   */
+  useEffect(() => {
+    const docKind = ceshuList.find((item) => item.id === activeCeshuId)?.docKind
+    setHiddenMainViewIds(hiddenMainViewIdsForDocKind(docKind))
+  }, [ceshuList, activeCeshuId])
 
   /**
    * 活跃游戏风格 id（术语风格）。用于条目表单的字段标签术语替换

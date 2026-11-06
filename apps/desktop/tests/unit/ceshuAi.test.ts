@@ -182,6 +182,7 @@ describe('AI 生成：整章提示词组装', () => {
     // 字段清单 = 字段表 ∪ 数据键（schema 权威；顺序以字段表为准）
     expect(built.fields).toEqual([
       'game_name',
+      'doc_kind',
       'game_type',
       'game_type_tags',
       'platform',

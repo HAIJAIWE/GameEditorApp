@@ -12,6 +12,7 @@ import { displayFieldValue } from '../fields'
 import {
   computeEnabledEditors,
   createDefaultCeshu,
+  getDocKind,
   getGameType,
   getGddScope,
   visibleChaptersForDoc
@@ -127,6 +128,9 @@ export function buildProjectFolder(doc: CeshuDocument): ProjectFolder {  const f
      */
     ruleset_id: doc.ruleset_id ?? '',
     game_name: typeof meta.game_name === 'string' ? meta.game_name : '',
+    // 文档类型（游戏/应用）跟着项目走：丢了它，导入回去会被当成游戏档，
+    // 又冒出「数据编辑」页签与游戏数据字段（应用档刻意不启用）。
+    doc_kind: getDocKind(doc),
     game_type: getGameType(doc),
     platform: meta.platform ?? [],
     positioning: typeof meta.positioning === 'string' ? meta.positioning : '',
@@ -203,6 +207,8 @@ export function projectFilesToDoc(files: Record<string, string>): CeshuDocument 
       if (typeof config[key] === 'string') meta[key] = config[key]
     }
     if (Array.isArray(config.platform)) meta.platform = config.platform
+    // 老导出的文件夹没有 doc_kind ⇒ 保留 createDefaultCeshu 的 'game'（向后兼容）
+    if (config.doc_kind === 'game' || config.doc_kind === 'application') meta.doc_kind = config.doc_kind
     if (config.gdd_scope === 'lite' || config.gdd_scope === 'full') meta.gdd_scope = config.gdd_scope
     if (Array.isArray(config.enabled_modules)) meta.enabled_modules = config.enabled_modules
 

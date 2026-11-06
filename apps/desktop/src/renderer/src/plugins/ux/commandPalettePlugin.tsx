@@ -12,7 +12,7 @@ import type { DigitalPanelState } from '@mobai/shared/agent/ui'
 import type { MessageKey } from '@mobai/shared/i18n'
 import type { PluginHost } from '@mobai/shared/plugin/host'
 import type { PluginManifest } from '@mobai/shared/plugin/types'
-import { openPalette, subscribePalette } from '../context'
+import { getHiddenMainViewIds, openPalette, subscribeHiddenMainViewIds, subscribePalette } from '../context'
 import { registerSlotComponent } from '../host'
 
 /**
@@ -251,6 +251,10 @@ export function CommandPalette({ host }: { host: PluginHost }): ReactElement | n
   )
   const conversation = useSyncExternalStore(conversationStore.subscribe, conversationStore.getSnapshot)
 
+  // 与页签条共享隐藏清单：应用档不列「数据编辑」，避免点了跳不过去的假入口
+  const subscribeHidden = useMemo(() => subscribeHiddenMainViewIds, [])
+  const hiddenViewIds = useSyncExternalStore(subscribeHidden, getHiddenMainViewIds)
+
   const items = useMemo<PaletteItem[]>(() => {
     // 显式引用版本号：能力增删后必须重算条目（`host.commands()` 每次都是新数组，不能当快照）
     void version
@@ -269,7 +273,7 @@ export function CommandPalette({ host }: { host: PluginHost }): ReactElement | n
       // 列进来会变成一条点了没反应的命令。
       mainViews: host
         .mainViews()
-        .filter((view) => view.host !== 'rightbar')
+        .filter((view) => view.host !== 'rightbar' && !hiddenViewIds.has(view.id))
         .map((view) => ({
           id: view.id,
           label: view.labelKey !== undefined ? t(view.labelKey) : view.label ?? ''
@@ -292,7 +296,7 @@ export function CommandPalette({ host }: { host: PluginHost }): ReactElement | n
         }
       }
     ]
-  }, [host, version, conversationStore, t])
+  }, [host, version, conversationStore, hiddenViewIds, t])
 
   const filtered = useMemo(() => filterPaletteItems(items, query), [items, query])
   // 条目数可能在打开期间变化（插件被启用/禁用），高亮索引要夹回有效范围

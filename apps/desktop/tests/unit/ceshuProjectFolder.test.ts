@@ -45,6 +45,38 @@ describe('项目文件夹 buildProjectFolder', () => {
     expect(parsed.enabled_modules).toEqual(['combat', 'numeric'])
   })
 
+  it('应用档 doc_kind 与平台随 config.json 往返（导出再导入不会变回游戏档）', () => {
+    const doc = createDefaultCeshu({ scope: 'full', name: '效率工具' })
+    ;(doc.meta as Record<string, unknown>).doc_kind = 'application'
+    ;(doc.meta as Record<string, unknown>).platform = ['PC', '移动端']
+    const { files } = buildProjectFolder(doc)
+    const parsed = JSON.parse(files['config.json']) as { doc_kind: string; platform: string[] }
+    expect(parsed.doc_kind).toBe('application')
+    expect(parsed.platform).toEqual(['PC', '移动端'])
+
+    const restored = projectFilesToDoc(files)
+    expect(restored.meta.doc_kind).toBe('application')
+    expect(restored.meta.platform).toEqual(['PC', '移动端'])
+  })
+
+  it('老导出的 config 无 doc_kind ⇒ 回填默认游戏档（向后兼容）', () => {
+    const doc = createDefaultCeshu({ scope: 'full', name: '旧项目' })
+    const { files } = buildProjectFolder(doc)
+    const config = JSON.parse(files['config.json']) as Record<string, unknown>
+    delete config.doc_kind
+    files['config.json'] = JSON.stringify(config)
+    expect(projectFilesToDoc(files).meta.doc_kind).toBe('game')
+  })
+
+  it('非法 doc_kind 不回填（脏值不污染文档）', () => {
+    const doc = createDefaultCeshu({ scope: 'full', name: '脏值' })
+    const { files } = buildProjectFolder(doc)
+    const config = JSON.parse(files['config.json']) as Record<string, unknown>
+    config.doc_kind = 'unknown-kind'
+    files['config.json'] = JSON.stringify(config)
+    expect(projectFilesToDoc(files).meta.doc_kind).toBe('game')
+  })
+
   it('无损往返：doc → 文件夹 → doc，文字进 design、数值进 data', () => {
     const doc = createDefaultCeshu({ scope: 'full', name: '星海计划' })
     doc.meta.positioning = '一句话定位'

@@ -17,6 +17,24 @@ export const META_FIELDS: CeshuFieldDef[] = [
     aiDraftable: false,
     reviewHint: '确认名称是否最终确定'
   },
+  /*
+   * 2026-11-06 应用开发：区分「游戏」与「应用（非游戏软件）」。
+   * 一个游戏是一个应用，但应用不一定有战斗/角色/怪物等游戏数据 —— 应用档
+   * 不启用游戏数据编辑（数据页签按此档位隐藏），只保留设计文档与平台选择。
+   * 缺省 game，老文档零迁移。
+   */
+  {
+    key: 'doc_kind',
+    label: '文档类型',
+    kind: 'combo',
+    aiDraftable: false,
+    values: ['game', 'application'],
+    optionLabels: {
+      game: '游戏',
+      application: '应用'
+    },
+    reviewHint: '是否为游戏项目；纯工具类应用选「应用」（不启用游戏数据编辑）'
+  },
   {
     key: 'game_type',
     label: '游戏类型',
@@ -216,6 +234,7 @@ export const META_FIELDS: CeshuFieldDef[] = [
 
 export const META_DEFAULTS: ChapterData = {
   game_name: '',
+  doc_kind: 'game',
   game_type: '',
   game_type_tags: [],
   platform: [],

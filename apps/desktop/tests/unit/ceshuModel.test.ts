@@ -128,6 +128,19 @@ describe('策划书模型（W3 第一切片）', () => {
     expect(savedSystems.enabled_editors).toEqual([{ key: 'battle', name: '战斗', data_type: 'battle' }])
   })
 
+  it('withChapter：meta 的 doc_kind 只允许合法值覆盖，AI 漏写/乱写时保留旧档位', () => {
+    const app = createDefaultCeshu({ scope: 'full' })
+    ;(app.meta as Record<string, unknown>).doc_kind = 'application'
+
+    // AI 整章生成漏写档位 ⇒ 仍是应用档
+    expect(withChapter(app, 'meta', { game_name: '新名字' }).meta.doc_kind).toBe('application')
+    // AI 写出非法值 ⇒ 不污染文档
+    const dirty = { game_name: '新名字', doc_kind: 'unknown' } as unknown as Record<string, unknown>
+    expect(withChapter(app, 'meta', dirty).meta.doc_kind).toBe('application')
+    // 用户在表单里显式切换 ⇒ 允许
+    expect(withChapter(app, 'meta', { doc_kind: 'game' }).meta.doc_kind).toBe('game')
+  })
+
   it('computeEnabledEditors：沿用自定义 name 与 data_type', () => {
     const doc: CeshuDocument = createDefaultCeshu({ scope: 'full' })
     doc.systems.battle = { enabled: true, name: '自定义战斗名', data_type: 'custom_battle', config: {} }
