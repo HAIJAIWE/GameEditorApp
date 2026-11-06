@@ -15,6 +15,7 @@
 
 | 提交 | 内容 |
 |---|---|
+| `b6cabfc6` | JSON 模板覆盖层：zod 严格校验 + 标签/顺序/模块开关，`specForDoc` 文档感知应用 |
 | `a32e003a` | 模板版本化：`meta.template_version` 写入/读盘补齐/读 API；AI 不生成系统字段 |
 | `28bc8e8a` | 模块选择器加分组一键开关与「最小核心」预设 |
 | `b40469bc` | 应用章表合并：data_model+api+integration→data_interface，security→横切关注点分区 |
@@ -112,7 +113,7 @@ npm run lint
 cd apps/desktop && npm run build
 ```
 
-当前基线：**tsc×3 / lint / 4155 单测 / build 全绿**。
+当前基线：**tsc×3 / lint / 4167 单测 / build 全绿**。
 
 保护性测试（新增）：
 - `documentSpec.test.ts`：模板结构校验、方向/细节分层、模块登记。
@@ -136,9 +137,13 @@ cd apps/desktop && npm run build
   - 新建写 `TEMPLATE_VERSION`（对齐 GAME_SPEC/APP_SPEC 的 `2026.11`）；老文档 `normalizeCeshu` 读盘补齐；读 API `templateVersionForDoc` 永不返回 undefined。
   - 作为**系统控制字段**：不进 meta 表单、AI 整章生成不列（`NON_AI_GENERATED_KEYS`）、`withChapter` 保存时保留旧值。
 - 应用可选模块 UI 已在「文档信息」以 `optional_modules` 多选呈现；可再优化为带说明的开关。
-- 可选：JSON 模板覆盖层（zod 校验后 merge，仅允许改标签/顺序/模块开关）。
+- ✅ JSON 模板覆盖层（提交 `b6cabfc6`）：`meta.template_overlay` 携带一份 JSON，仅覆盖「标签 / 顺序 / 模块默认开关」。
+  - `applyTemplateOverlay`：zod 严格模式（未知键拒绝）+ 顺序必须是原集合的排列 + 引用必须存在 + `kind` 必须匹配；不合法整份拒绝，绝不半应用；重排后章号/标签重新派生。
+  - `specForDoc` 文档感知：有覆盖层则应用，损坏则 fail-soft 退回基础规格（导出/交接包不因坏 JSON 失败）。
+  - 未做（留 P2）：模板编辑 UI 与「从文件加载」入口；当前覆盖层只能经文档 JSON 导入携带。
 
 ### P2（打磨）
+- 模板覆盖层编辑 UI / 「从文件加载」入口（当前覆盖层只能经文档 JSON 携带；核心校验与应用已就绪）。
 - 分组标题去掉中文序号（现为「一、二、」）。
 - 按目标行业（SaaS / 游戏 / AI）各取 5 份真实项目文档二次核对章表。
 - 应用/游戏原型可加"导出为文件/预览大图"等体验。
