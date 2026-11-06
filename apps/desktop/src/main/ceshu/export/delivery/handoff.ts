@@ -19,6 +19,7 @@ import { buildJsonSnapshot } from '../../../data/snapshotExport'
 import { getDocKind } from '@mobai/shared/ceshu/model'
 import { renderCeshuBundleJson } from './bundle'
 import { renderCeshuMarkdown } from '../doc/markdown'
+import { buildAppHandoffFiles } from './appHandoff'
 
 /**
  * **开发交接包**（handoff）导出。
@@ -61,6 +62,10 @@ export interface HandoffExtras {
 
 /** 组装包内全部文件：`相对路径 → 内容`（纯函数，不落盘，便于单测） */
 export function buildHandoffFiles(doc: CeshuDocument, extras: HandoffExtras): Record<string, string> {
+  // 应用档走 SDD 章节式交接包：游戏的 7 卷 11 文档分卷 / 品类裁剪 / 11 个游戏角色
+  // 对软件设计毫无意义，硬套只会产出「伤害公式」式假内容。游戏档完全走下面的原路径。
+  if (getDocKind(doc) === 'application') return buildAppHandoffFiles(doc, extras)
+
   const files: Record<string, string> = {}
 
   // 预算一次：全量校验 + 文档规划，传给每份渲染（否则 N 份文档各跑一遍 = O(N²)）
@@ -82,11 +87,9 @@ export function buildHandoffFiles(doc: CeshuDocument, extras: HandoffExtras): Re
     files[item.path] = renderHandoffDoc(doc, item, extras.generatedAt, context)
   }
 
-  const isApp = getDocKind(doc) === 'application'
-  const gddLead = isApp
-    ? '> 本文件是**完整软件设计文档**（人读 / 检索）。**实现请看分卷文档**，按编号顺序做。\n\n'
-    : '> 本文件是**完整策划书**（人读 / 检索）。**实现请看分卷文档**（00-架构 … 06-研发），按编号顺序做。\n\n'
-  files['gdd.md'] = gddLead + renderCeshuMarkdown(doc)
+  files['gdd.md'] =
+    '> 本文件是**完整策划书**（人读 / 检索）。**实现请看分卷文档**（00-架构 … 06-研发），按编号顺序做。\n\n' +
+    renderCeshuMarkdown(doc)
   files['bundle.json'] = renderCeshuBundleJson(doc)
   files['contract.json'] = `${JSON.stringify(buildContract(doc), null, 2)}\n`
 
