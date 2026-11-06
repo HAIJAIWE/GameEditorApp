@@ -88,7 +88,7 @@ describe('应用档：章导航与表单按 SDD 规格渲染', () => {
   it('点 SDD 编号章可切换，表单标题随之变成该章标签', async () => {
     const doc = makeAppDoc()
     const rendered = await mount(doc)
-    const numberedKey = visibleChaptersForDoc(doc).find((key) => APP_CHAPTER_LABELS[key]?.includes('章'))
+    const numberedKey = visibleChaptersForDoc(doc).find((key) => key !== 'meta')
     expect(numberedKey).toBeDefined()
 
     const tabs = Array.from(rendered.container.querySelectorAll<HTMLButtonElement>('[data-testid="chapter-tab"]'))
