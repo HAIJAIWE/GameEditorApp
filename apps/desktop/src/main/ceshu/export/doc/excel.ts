@@ -4,7 +4,14 @@ import { CHAPTER_KEYS, CHAPTER_LABELS, type CeshuDocument, type ChapterData } fr
 import { CESHU_CHAPTER_FIELDS } from '@mobai/shared/ceshu/fields'
 import { fieldStatusOf } from '@mobai/shared/ceshu/fields'
 import { countFieldStatuses, formatFieldStatusSummary } from '@mobai/shared/ceshu/fields'
-import { computeChapterProgress, isPlainObject } from '@mobai/shared/ceshu/model'
+import {
+  chapterFieldsForDoc,
+  chapterLabelForDoc,
+  computeChapterProgress,
+  getDocKind,
+  isPlainObject,
+  visibleChaptersForDoc
+} from '@mobai/shared/ceshu/model'
 import { validateCeshu } from '@mobai/shared/ceshu/validation'
 import {
   groupValidationMessages,
@@ -12,7 +19,7 @@ import {
   type ValidationSeverity
 } from '@mobai/shared/ceshu/validation'
 
-import { classifySystems, formatFieldValue } from '../common'
+import { chapterDataForDocExport, classifySystems, formatFieldValue, pipeTableForDoc } from '../common'
 import { readText } from '@mobai/shared/util/io'
 
 /**
@@ -33,6 +40,7 @@ type CellValue = string | number | boolean | null
 
 /** 构建工作簿（纯内存，便于单测直接断言单元格） */
 export function buildExcelWorkbook(doc: CeshuDocument): ExcelJS.Workbook {
+  if (getDocKind(doc) === 'application') return buildAppExcelWorkbook(doc)
   const workbook = new ExcelJS.Workbook()
   writeOverviewSheet(workbook, doc)
   writeSystemsSheet(workbook, doc)
@@ -313,5 +321,86 @@ function chapterOf(doc: CeshuDocument, key: 'numeric' | 'story' | 'mvp' | 'risk_
 function readConfig(data: ChapterData): Record<string, unknown> {
   const config = data['config']
   return isPlainObject(config) ? config : {}
+}
+
+/* ---- 应用档 SDD 工作簿 ---- */
+
+/**
+ * 应用档 Excel：不再套用游戏 8 表（系统配置/角色/NPC/竞品…），改为按 SDD 章节组织。
+ * 7 个 Sheet：概览 / 功能清单 / 用户角色 / 接口契约 / 里程碑 / 风险 / 校验报告。
+ * 校验报告复用以 `validateCeshu`（已按档位分派必填校验，且本函数自带 try/catch）。
+ */
+function buildAppExcelWorkbook(doc: CeshuDocument): ExcelJS.Workbook {
+  const workbook = new ExcelJS.Workbook()
+  writeAppOverviewSheet(workbook, doc)
+  writeAppPipeSheet(workbook, '功能清单', doc, 'features', 'feature_list', ['模块', '功能点', '验收条件'])
+  writeAppPipeSheet(workbook, '用户角色', doc, 'users', 'personas', ['角色', '使用场景', '核心痛点', '完成标准'])
+  writeAppPipeSheet(workbook, '接口契约', doc, 'api', 'endpoints', ['接口', '方法/通道', '入参', '出参', '幂等'])
+  writeAppPipeSheet(workbook, '里程碑', doc, 'milestones', 'milestones', ['里程碑', '可交付成果', '依赖'])
+  writeAppPipeSheet(workbook, '风险', doc, 'risks', 'risk_register', ['风险', '影响', '应对', '负责人'])
+  writeValidationSheet(workbook, doc)
+  return workbook
+}
+
+/** 概览：项目名/平台/版本 + 16 章完成度 + 审核进度（应用档字段口径） */
+function writeAppOverviewSheet(workbook: ExcelJS.Workbook, doc: CeshuDocument): void {
+  const meta = doc.meta
+  const projectName = readText(meta.project_name) || readText(meta.game_name)
+  const platform = Array.isArray(meta.platform)
+    ? meta.platform.filter((item): item is string => typeof item === 'string').join('、')
+    : ''
+  const progress = computeChapterProgress(doc)
+  const rows: CellValue[][] = [
+    ['项目名称', projectName || '未命名软件设计文档'],
+    ['目标平台', platform || '—'],
+    ['版本标签', doc.version_label || 'v1.0'],
+    ['版本号', doc.version],
+    ['创建时间', doc.created_at],
+    ['更新时间', doc.updated_at],
+    ['总完成度', coerceNumeric(`${progress.total ?? 0}`)]
+  ]
+  for (const key of visibleChaptersForDoc(doc)) {
+    rows.push([chapterLabelForDoc(doc, key), coerceNumeric(`${progress[key] ?? 0}`)])
+  }
+
+  /*
+   * 审核进度：Excel 常被转发给同事看，收件人没有应用可查状态，
+   * 故直接写进概览。口径与界面上方摘要一致（countFieldStatuses 只统计 schema 内字段）。
+   */
+  const perChapter = visibleChaptersForDoc(doc).map((chapter) => ({
+    chapter,
+    counts: countFieldStatuses(fieldStatusOf(doc.meta, chapter), chapterFieldsForDoc(doc, chapter))
+  }))
+  const totals = { ai_draft: 0, human_edited: 0, approved: 0 }
+  for (const { counts } of perChapter) {
+    totals.ai_draft += counts.ai_draft
+    totals.human_edited += counts.human_edited
+    totals.approved += counts.approved
+  }
+  const hasRecord = totals.ai_draft + totals.human_edited + totals.approved > 0
+  rows.push(['审核进度', hasRecord ? formatFieldStatusSummary(totals) : '无审核记录'])
+  for (const { chapter, counts } of perChapter) {
+    if (counts.ai_draft > 0) rows.push([`待审字段（${chapterLabelForDoc(doc, chapter)}）`, counts.ai_draft])
+  }
+
+  writeSheet(workbook, '概览', ['项目', '值'], rows)
+}
+
+/** pipeList 字段 → 一个 Sheet：列取自字段定义，空单元格留空 */
+function writeAppPipeSheet(
+  workbook: ExcelJS.Workbook,
+  name: string,
+  doc: CeshuDocument,
+  chapter: string,
+  fieldKey: string,
+  fallbackHeaders: string[]
+): void {
+  const data = chapterDataForDocExport(doc, chapter)
+  const table = pipeTableForDoc(doc, chapter, fieldKey, data[fieldKey])
+  const rows = table
+    ? table.rows.map((row) => row.map((value) => (value === '' || value === undefined ? null : value)))
+    : []
+  const headers = table ? table.headers : fallbackHeaders
+  writeSheet(workbook, name, headers, rows)
 }
 

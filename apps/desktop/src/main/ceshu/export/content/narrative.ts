@@ -5,7 +5,7 @@ import {
   type ChapterData,
   type ChapterKey
 } from '@mobai/shared/ceshu/reference'
-import { formatLocalTimestamp, getGameType, getGddScope, deriveRulesetId } from '@mobai/shared/ceshu/model'
+import { deriveRulesetId, formatLocalTimestamp, getDocKind, getGameType, getGddScope } from '@mobai/shared/ceshu/model'
 import {
   chapterHeading,
   classifySystems,
@@ -16,6 +16,7 @@ import {
   pipeTable,
   visibleChapterEntries
 } from '../common'
+import { renderAppNarrative } from './appNarrative'
 
 /**
  * 叙事版导出：把 24 章的字段重排成「设计首页 → 走读 → 架构 → 机制 → 数值 → MVP → 原型 → 变更」，
@@ -43,6 +44,7 @@ const MECHANIC_CHAPTERS: readonly ChapterKey[] = ['gameplay', 'combat', 'systems
 const NARRATIVE_CHAPTERS = new Set<ChapterKey>(['meta', 'vision', 'numeric', 'mvp', ...MECHANIC_CHAPTERS])
 
 export function renderCeshuNarrative(doc: CeshuDocument): string {
+  if (getDocKind(doc) === 'application') return renderAppNarrative(doc)
   const blocks = [
     renderHome(doc),
     renderWalkthrough(doc),
