@@ -112,6 +112,7 @@ describe('ceshuHome 卡片视图模型', () => {
       pendingCount: 0,
       isMain: true,
       isActive: true,
+      docKind: 'game',
       searchKey: '未命名'
     })
   })
@@ -166,6 +167,34 @@ describe('ceshuHome 搜索与最近打开', () => {
     expect(RECENT_LIMIT).toBe(5)
     // 不改动入参顺序
     expect(list.map((s) => s.id)).toEqual(['old', 'new', 'mid'])
+  })
+})
+
+describe('ceshuHome 按档位筛选', () => {
+  const cards = buildCeshuCards([
+    summary({ id: 'a', docKind: 'game' }),
+    summary({ id: 'b', docKind: 'application' }),
+    summary({ id: 'c', docKind: 'game' })
+  ])
+
+  it('filterCeshuCards：docKind 默认 all 返回全部', () => {
+    expect(filterCeshuCards(cards, '').map((c) => c.id)).toEqual(['a', 'b', 'c'])
+  })
+
+  it('filterCeshuCards：docKind=game 只保留游戏档', () => {
+    expect(filterCeshuCards(cards, '', 'game').map((c) => c.id)).toEqual(['a', 'c'])
+  })
+
+  it('filterCeshuCards：docKind=application 只保留应用档', () => {
+    expect(filterCeshuCards(cards, '', 'application').map((c) => c.id)).toEqual(['b'])
+  })
+
+  it('filterCeshuCards：关键词与档位可叠加', () => {
+    const mixed = buildCeshuCards([
+      summary({ id: 'a', gameName: 'Alpha', docKind: 'game' }),
+      summary({ id: 'b', gameName: 'Alpha App', docKind: 'application' })
+    ])
+    expect(filterCeshuCards(mixed, 'alpha', 'application').map((c) => c.id)).toEqual(['b'])
   })
 })
 

@@ -130,3 +130,53 @@ describe('CeshuHomePanel：「只看待审」筛选', () => {
     expect(rendered.query('[data-testid="home-pending-empty"]')).toBeNull()
   })
 })
+
+describe('CeshuHomePanel：按文档档位筛选', () => {
+  it('按「应用」只留应用档卡，再点一次恢复全部', async () => {
+    const rendered = await renderPanel([
+      summary({ id: 'a', docKind: 'game' }),
+      summary({ id: 'b', docKind: 'application' }),
+      summary({ id: 'c', docKind: 'game' })
+    ])
+    expect(rendered.queryAll('[data-testid="home-card"]')).toHaveLength(3)
+    expect(rendered.byTestId('home-dockind-all').getAttribute('aria-pressed')).toBe('true')
+
+    const appBtn = rendered.byTestId('home-dockind-app')
+    await rendered.click(appBtn)
+    expect(appBtn.getAttribute('aria-pressed')).toBe('true')
+    const kept = rendered.queryAll('[data-testid="home-card"]')
+    expect(kept).toHaveLength(1)
+    expect(kept[0]?.getAttribute('data-ceshu-id')).toBe('b')
+
+    await rendered.click(appBtn)
+    expect(appBtn.getAttribute('aria-pressed')).toBe('false')
+    expect(rendered.queryAll('[data-testid="home-card"]')).toHaveLength(3)
+  })
+
+  it('按「游戏」只留游戏档卡', async () => {
+    const rendered = await renderPanel([
+      summary({ id: 'a', docKind: 'game' }),
+      summary({ id: 'b', docKind: 'application' }),
+      summary({ id: 'c', docKind: 'game' })
+    ])
+    const gameBtn = rendered.byTestId('home-dockind-game')
+    await rendered.click(gameBtn)
+    expect(gameBtn.getAttribute('aria-pressed')).toBe('true')
+    const kept = rendered.queryAll('[data-testid="home-card"]')
+    expect(kept).toHaveLength(2)
+    expect(kept.map((card) => card.getAttribute('data-ceshu-id'))).toEqual(['a', 'c'])
+  })
+
+  it('档位筛选与「只看待审」可叠加', async () => {
+    const rendered = await renderPanel([
+      summary({ id: 'a', docKind: 'game', pendingCount: 2 }),
+      summary({ id: 'b', docKind: 'application', pendingCount: 1 }),
+      summary({ id: 'c', docKind: 'game', pendingCount: 0 })
+    ])
+    await rendered.click(rendered.byTestId('home-dockind-game'))
+    await rendered.click(rendered.byTestId('home-pending-filter'))
+    const kept = rendered.queryAll('[data-testid="home-card"]')
+    expect(kept).toHaveLength(1)
+    expect(kept[0]?.getAttribute('data-ceshu-id')).toBe('a')
+  })
+})

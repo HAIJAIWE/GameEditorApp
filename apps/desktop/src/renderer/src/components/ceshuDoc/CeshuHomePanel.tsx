@@ -9,6 +9,7 @@ import {
   type CeshuHomeActionId
 } from '@mobai/shared/ceshu/homeActions'
 import type { CeshuSummary } from '@mobai/shared/ceshu/reference'
+import type { DocKind } from '@mobai/shared/ceshu/model'
 import {
   RECENT_LIMIT,
   buildCeshuCards,
@@ -100,6 +101,7 @@ export default function CeshuHomePanel({
   const [keyword, setKeyword] = useState('')
   /** 只看有待审的策划书（纯展示层过滤，不影响搜索逻辑） */
   const [pendingOnly, setPendingOnly] = useState(false)
+  const [docKindFilter, setDocKindFilter] = useState<DocKind | 'all'>('all')
   const [action, setAction] = useState<CardAction | null>(null)
   const [actionText, setActionText] = useState('')
   const [copyPickerOpen, setCopyPickerOpen] = useState(false)
@@ -114,8 +116,8 @@ export default function CeshuHomePanel({
   const cards = useMemo(() => buildCeshuCards(summaries), [summaries])
   // 搜索过滤在前、待审过滤在后：先缩小到用户搜的范围，再看里面哪些还有待审
   const visibleCards = useMemo(
-    () => filterPendingCards(filterCeshuCards(cards, keyword), pendingOnly),
-    [cards, keyword, pendingOnly]
+    () => filterPendingCards(filterCeshuCards(cards, keyword, docKindFilter), pendingOnly),
+    [cards, keyword, docKindFilter, pendingOnly]
   )
   /**
    * 「只看待审」专属空态：列表本身有内容、只是没有待审项。
@@ -437,6 +439,27 @@ export default function CeshuHomePanel({
               >
                 {t('home.pendingOnly')}
               </button>
+              <button
+                type="button"
+                className={`btn slim${docKindFilter === 'all' ? ' accent-outline' : ''}`}
+                data-testid="home-dockind-all"
+                aria-pressed={docKindFilter === 'all'}
+                onClick={() => setDocKindFilter('all')}
+              >{t('home.docKindAll')}</button>
+              <button
+                type="button"
+                className={`btn slim${docKindFilter === 'game' ? ' accent-outline' : ''}`}
+                data-testid="home-dockind-game"
+                aria-pressed={docKindFilter === 'game'}
+                onClick={() => setDocKindFilter((prev) => (prev === 'game' ? 'all' : 'game'))}
+              >{t('home.docKindGame')}</button>
+              <button
+                type="button"
+                className={`btn slim${docKindFilter === 'application' ? ' accent-outline' : ''}`}
+                data-testid="home-dockind-app"
+                aria-pressed={docKindFilter === 'application'}
+                onClick={() => setDocKindFilter((prev) => (prev === 'application' ? 'all' : 'application'))}
+              >{t('home.docKindApp')}</button>
             </div>
 
             {pendingEmpty ? (

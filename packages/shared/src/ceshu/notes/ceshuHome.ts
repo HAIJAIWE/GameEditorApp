@@ -9,6 +9,7 @@
  *    `meta.get("game_name", "未命名")`，键存在但为空串时会产出「 (副本)」这种空名怪值。
  */
 
+import type { DocKind } from '../model'
 import type { CeshuSummary } from '../reference'
 
 /** 策划书状态标签 */
@@ -111,6 +112,8 @@ export interface CeshuCardView {
   pendingCount: number
   isMain: boolean
   isActive: boolean
+  /** 文档档位（游戏 / 应用），用于首页按档位筛选 */
+  docKind: DocKind
   /** 搜索键：标题小写（搜索不区分大小写） */
   searchKey: string
 }
@@ -131,6 +134,7 @@ export function buildCeshuCard(summary: CeshuSummary): CeshuCardView {
     pendingCount: summary.pendingCount,
     isMain: summary.parentId === '',
     isActive: summary.isActive,
+    docKind: summary.docKind,
     searchKey: title.toLowerCase()
   }
 }
@@ -140,11 +144,19 @@ export function buildCeshuCards(summaries: CeshuSummary[]): CeshuCardView[] {
   return summaries.map((summary) => buildCeshuCard(summary))
 }
 
-/** 按标题不区分大小写子串过滤 */
-export function filterCeshuCards(cards: CeshuCardView[], keyword: string): CeshuCardView[] {
+/**
+ * 按标题不区分大小写子串过滤；docKind 传具体档位时再按档位收窄（'all' 不过滤）。
+ * 新增 docKind 参数保持默认 'all'，既有调用（不传第三参）行为不变。
+ */
+export function filterCeshuCards(
+  cards: CeshuCardView[],
+  keyword: string,
+  docKind: DocKind | 'all' = 'all'
+): CeshuCardView[] {
   const needle = keyword.trim().toLowerCase()
-  if (needle === '') return cards
-  return cards.filter((card) => card.searchKey.includes(needle))
+  const matched = needle === '' ? cards : cards.filter((card) => card.searchKey.includes(needle))
+  if (docKind === 'all') return matched
+  return matched.filter((card) => card.docKind === docKind)
 }
 
 /**
