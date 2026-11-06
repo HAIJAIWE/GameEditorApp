@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   contentChapterCountsForDoc,
   createDefaultCeshu,
+  enabledModulesForDoc,
   getDocKind,
   visibleChaptersForDoc
 } from '@mobai/shared/ceshu/model'
@@ -65,8 +66,7 @@ describe('应用档：可选 AI 模型层（ai_enabled）', () => {
   })
 })
 
-describe('阶段轴：档位与章数（游戏零回归）', () => {
-  it('contentChapterCountsForDoc：游戏 9/23、应用 6/16、应用含 AI 7/20', () => {
+describe('阶段轴：档位与章数（游戏零回归）', () => {  it('contentChapterCountsForDoc：游戏 9/23、应用 6/16、应用含 AI 7/20', () => {
     expect(contentChapterCountsForDoc(doc('game', 'full'))).toEqual({ lite: 9, full: 23 })
     expect(contentChapterCountsForDoc(doc('application', 'full'))).toEqual({ lite: 6, full: 16 })
     expect(contentChapterCountsForDoc(withAi(doc('application', 'full')))).toEqual({ lite: 7, full: 20 })
@@ -82,5 +82,28 @@ describe('阶段轴：档位与章数（游戏零回归）', () => {
     const liteDoc = doc('application', 'lite')
     expect(getDocKind(liteDoc)).toBe('application')
     expect(liteDoc.meta.gdd_scope).toBe('lite')
+  })
+})
+
+describe('可选模块：enabled_modules（通用机制，兼容 ai_enabled）', () => {
+  it('enabled_modules 含 ai_layer 等价于勾选 AI 模型层', () => {
+    const d = doc('application', 'full')
+    ;(d.meta as Record<string, unknown>).enabled_modules = ['ai_layer']
+    expect(visibleChaptersForDoc(d)).toHaveLength(21) // meta + 16 + 4
+  })
+
+  it('未启用的模块不参与可见章', () => {
+    expect(visibleChaptersForDoc(doc('application', 'full'))).toHaveLength(17) // meta + 16
+  })
+
+  it('enabledModulesForDoc 兼容旧 ai_enabled，且不重复', () => {
+    const d = doc('application', 'full')
+    ;(d.meta as Record<string, unknown>).ai_enabled = true
+    ;(d.meta as Record<string, unknown>).enabled_modules = ['ai_layer']
+    expect(enabledModulesForDoc(d)).toEqual(['ai_layer'])
+
+    const legacy = doc('application', 'full')
+    ;(legacy.meta as Record<string, unknown>).ai_enabled = true
+    expect(enabledModulesForDoc(legacy)).toEqual(['ai_layer'])
   })
 })

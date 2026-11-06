@@ -37,8 +37,22 @@ export function isSoftwareDoc(doc: CeshuDocument): boolean {
   return getDocKind(doc) !== 'game'
 }
 
+/**
+ * 已启用的可选模块（`meta.enabled_modules`）。
+ *
+ * 兼容旧字段：`meta.ai_enabled === true` 等价于启用 `ai_layer` 模块
+ * （AI 模型层曾是唯一的可选模块，先落成通用字段、旧数据不迁移）。
+ */
+export function enabledModulesForDoc(doc: CeshuDocument): readonly string[] {
+  const meta = doc.meta
+  if (!isPlainObject(meta)) return []
+  const raw = meta.enabled_modules
+  const modules = Array.isArray(raw) ? raw.filter((item): item is string => typeof item === 'string') : []
+  if (meta.ai_enabled === true && !modules.includes('ai_layer')) return [...modules, 'ai_layer']
+  return modules
+}
+
 /** 应用文档是否启用「AI 模型层」四章（模型卡 / 数据表 / 系统卡 / 评测与红队） */
 export function aiEnabledForDoc(doc: CeshuDocument): boolean {
-  const meta = doc.meta
-  return isPlainObject(meta) && meta.ai_enabled === true
+  return enabledModulesForDoc(doc).includes('ai_layer')
 }

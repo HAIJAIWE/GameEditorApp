@@ -154,7 +154,7 @@ export function getGameType(doc: CeshuDocument): string {
 }
 
 // 档位判定已抽到 `./docKind`（切断 ceshuModel ↔ chapterView 循环），此处 re-export 保持 API 不变
-export { DOC_KINDS, aiEnabledForDoc, getDocKind, isSoftwareDoc, needsGameDataEditor } from './docKind'
+export { DOC_KINDS, aiEnabledForDoc, enabledModulesForDoc, getDocKind, isSoftwareDoc, needsGameDataEditor } from './docKind'
 export type { DocKind } from './docKind'
 
 /**
