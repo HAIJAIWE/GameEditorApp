@@ -8,7 +8,7 @@
  * 假入口 —— 与 `docs/window-map.md` P1-2 是同一类问题。
  *
  * 分工：
- * - 规则由 `hiddenMainViewIdsForDocKind` **单点定义**，页签条与 App 都调它；
+ * - **规则归 `DocumentSpec` 所有**（`hiddenMainViewIdsForKind`），本模块只转发；
  * - App 把结果写进本模块；命令面板用 `useSyncExternalStore` 订阅；
  * - 页签条不订阅（它自己有 context，直接算，避免首帧 Effect 时序导致页签闪现）。
  *
@@ -16,16 +16,17 @@
  */
 
 import type { DocKind } from '@mobai/shared/ceshu/model'
+import { hiddenMainViewIdsForKind } from '@mobai/shared/documentSpec'
 
-/** 游戏数据编辑页签（角色/怪物/技能等，纯应用档不适用） */
+/** 游戏数据编辑页签（角色/怪物/技能等，纯应用档不适用；规格层也用这个 id） */
 export const GAME_DATA_VIEW_ID = 'data.mainView'
 
 /**
- * 档位 → 需要隐藏的主区页签 id。
- * 只有显式 `application` 才隐藏；`undefined`（首页 / 无激活文档）按游戏档处理，零变化。
+ * 档位 → 需要隐藏的主区页签 id。**委托规格层**，避免规则在两处各写一套。
+ * 只有显式 `application` 才隐藏；`undefined`（首页 / 无激活文档）回落游戏档，零变化。
  */
 export function hiddenMainViewIdsForDocKind(docKind: DocKind | undefined): readonly string[] {
-  return docKind === 'application' ? [GAME_DATA_VIEW_ID] : []
+  return hiddenMainViewIdsForKind(docKind)
 }
 
 let snapshot: ReadonlySet<string> = new Set<string>()

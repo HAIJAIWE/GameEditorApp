@@ -38,7 +38,8 @@ const SHARED_CAPABILITY_FOLDERS = [
   'config/llm', 'config/game', 'config/settings', 'config/secrets',
   'schema/core', 'schema/adapters',
   'ceshuSchema/design', 'ceshuSchema/systems', 'ceshuSchema/production',
-  'ceshuSchema/quality', 'ceshuSchema/core'
+  'ceshuSchema/quality', 'ceshuSchema/core',
+  'documentSpec'
 ].map((dir) => path.resolve(SHARED_ROOT, dir))
 
 /** 渲染层的能力文件夹（相对 apps/desktop） */
