@@ -7,19 +7,23 @@
 import type { CeshuDocument } from '../ceshu/reference'
 import { getDocKind } from '../ceshu/model'
 import { APP_SPEC } from './appSpec'
+import { AI_SPEC } from './aiSpec'
 import { GAME_SPEC } from './gameSpec'
 import type { DocumentSpec, DocumentSpecKind } from './types'
 
 export type { DocumentSpec, DocumentSpecKind, SpecChapter, SpecPart, SpecRole } from './types'
 export { APP_SPEC, APP_PARTS, APP_META_KEY, APP_AGENT_DISPLAY, APP_AGENT_PROMPTS, APP_ROLES } from './appSpec'
+export { AI_SPEC, AI_PARTS, AI_META_KEY, AI_AGENT_DISPLAY, AI_AGENT_PROMPTS, AI_ROLES } from './aiSpec'
 export { GAME_SPEC } from './gameSpec'
 
 /** 全部已注册规格（顺序稳定，供枚举 UI 用） */
-export const DOCUMENT_SPECS: readonly DocumentSpec[] = [GAME_SPEC, APP_SPEC]
+export const DOCUMENT_SPECS: readonly DocumentSpec[] = [GAME_SPEC, APP_SPEC, AI_SPEC]
 
 /** 按档位取规格；未注册的档位一律回落游戏档（老文档 / 脏值零回归） */
 export function specForKind(kind: DocumentSpecKind | undefined): DocumentSpec {
-  return kind === 'application' ? APP_SPEC : GAME_SPEC
+  if (kind === 'application') return APP_SPEC
+  if (kind === 'ai') return AI_SPEC
+  return GAME_SPEC
 }
 
 /** 按文档取规格（唯一应该被消费方调用的入口） */

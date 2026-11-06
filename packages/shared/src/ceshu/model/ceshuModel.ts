@@ -16,6 +16,7 @@ import { createDefaultChapters } from '../reference'
 import { getStyle, inferStyleFromText } from '../../config/game'
 import { migrateV4ToV5, needsV4Migration } from '../data'
 import { createAppDefaultChapters, APP_CHAPTER_KEYS } from '../../appSchema'
+import { createAiDefaultChapters, AI_CHAPTER_KEYS } from '../../aiSchema'
 import { getDocKind, type DocKind } from './docKind'
 import { chapterDataForDoc, requiredFieldsForDoc } from './chapterView'
 import { isChapterVisibleInStage, type CeshuStage } from '../workflow'
@@ -55,9 +56,15 @@ export function createDefaultCeshu(options: {
   if (options.name) {
     chapters.meta.game_name = options.name
   }
-  const isApp = options.docKind === 'application'
+  const kind = options.docKind ?? 'game'
+  const isApp = kind === 'application'
+  const isAi = kind === 'ai'
   if (isApp) {
     chapters.meta.doc_kind = 'application'
+    if (options.name) chapters.meta.project_name = options.name
+  }
+  if (isAi) {
+    chapters.meta.doc_kind = 'ai'
     if (options.name) chapters.meta.project_name = options.name
   }
   const doc: CeshuDocument = {
@@ -72,7 +79,7 @@ export function createDefaultCeshu(options: {
     style: '',
     module_type: '',
     ...chapters,
-    ...(isApp ? createAppDefaultChapters(chapters.meta) : {}),
+    ...(isApp ? createAppDefaultChapters(chapters.meta) : isAi ? createAiDefaultChapters(chapters.meta) : {}),
     enabled_editors: [],
     editor_configs: {}
   }
@@ -124,11 +131,13 @@ export function normalizeCeshu(raw: unknown): CeshuDocument {
    * 但**磁盘里缺某一章时不会有任何默认值**，导出/进度会看到 undefined。
    * 这里按规格补缺失章的空默认值（只补不覆盖）。游戏档完全不走这段。
    */
-  if (getDocKind(base) === 'application') {
+  if (getDocKind(base) === 'application' || getDocKind(base) === 'ai') {
+    const readKind = getDocKind(base)
     const target = base as unknown as Record<string, unknown>
-    for (const [key, defaults] of Object.entries(createAppDefaultChapters())) {
+    const defaults = readKind === 'ai' ? createAiDefaultChapters() : createAppDefaultChapters()
+    for (const [key, chapterDefaults] of Object.entries(defaults)) {
       if (key === 'meta') continue // meta 已由游戏默认值 + source.meta 合成，不能覆盖
-      if (!isPlainObject(target[key])) target[key] = defaults
+      if (!isPlainObject(target[key])) target[key] = chapterDefaults
     }
   }
   // ruleset_id 由上面的「未知键保留」循环带过来（它不是 base 的属性）；派生值不在
@@ -178,7 +187,9 @@ export function deriveRulesetId(doc: CeshuDocument): string {
  * `CHAPTER_LABELS` 等游戏常量。
  */
 export function visibleChaptersForDoc(doc: CeshuDocument): readonly string[] {
-  if (getDocKind(doc) === 'application') return APP_CHAPTER_KEYS
+  const kind = getDocKind(doc)
+  if (kind === 'application') return APP_CHAPTER_KEYS
+  if (kind === 'ai') return AI_CHAPTER_KEYS
   return visibleChapterKeys(getGddScope(doc), getGameType(doc), enabledModuleChapters(doc))
 }
 
@@ -233,7 +244,7 @@ export function computeChapterProgress(doc: CeshuDocument, stage?: CeshuStage): 
    * 不传时保持原行为（全部可见章）。应用档不做阶段筛选（阶段是游戏研发流程概念），
    * 所有章都计入；游戏档逐项保持既有行为。
    */
-  const counted = stage === undefined || getDocKind(doc) === 'application'
+  const counted = stage === undefined || getDocKind(doc) !== 'game'
     ? visible
     : visible.filter((key) => isChapterVisibleInStage(key as ChapterKey, stage))
   const sum = counted.reduce((acc, key) => acc + progress[key], 0)
@@ -257,7 +268,7 @@ export function withChapter(doc: CeshuDocument, chapter: string, data: ChapterDa
     const withScope = isGddScope(scope) && data.gdd_scope === undefined ? { ...data, gdd_scope: scope } : data
     const nextKind = withScope.doc_kind
     next.meta =
-      nextKind === 'game' || nextKind === 'application'
+      nextKind === 'game' || nextKind === 'application' || nextKind === 'ai'
         ? withScope
         : { ...withScope, doc_kind: getDocKind(doc) }
   } else {

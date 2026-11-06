@@ -8,20 +8,22 @@
 import type { CeshuDocument } from '../reference'
 import { isPlainObject } from '../../util/object'
 
-/** 文档类型：游戏 / 应用（应用档不启用游戏数据编辑，见 meta.doc_kind 注释） */
-export const DOC_KINDS = ['game', 'application'] as const
+/** 文档类型：游戏 / 应用 / AI 产品设计（应用与 AI 档不启用游戏数据编辑，见 meta.doc_kind） */
+export const DOC_KINDS = ['game', 'application', 'ai'] as const
 export type DocKind = (typeof DOC_KINDS)[number]
 
 /**
  * 读取文档类型（meta.doc_kind，缺省 `game`）。
- * 只有显式 `application` 才降级为应用档——老文档 / 脏值一律按游戏处理。
+ * 只有显式 `application` / `ai` 才进入对应档——老文档 / 脏值一律按游戏处理（零回归）。
  */
 export function getDocKind(doc: CeshuDocument): DocKind {
   const meta = doc.meta
-  return isPlainObject(meta) && meta.doc_kind === 'application' ? 'application' : 'game'
+  if (!isPlainObject(meta)) return 'game'
+  const kind = meta.doc_kind
+  return kind === 'ai' ? 'ai' : kind === 'application' ? 'application' : 'game'
 }
 
-/** 该文档是否需要游戏数据编辑（应用档不需要） */
+/** 该文档是否需要游戏数据编辑（仅游戏档需要；应用与 AI 档都不需要） */
 export function needsGameDataEditor(doc: CeshuDocument): boolean {
-  return getDocKind(doc) !== 'application'
+  return getDocKind(doc) === 'game'
 }

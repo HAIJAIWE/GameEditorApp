@@ -178,7 +178,29 @@ AI 角色：产品经理 / 交互设计师 / 系统架构师 / 前端 / 后端 /
 
 ---
 
-## 七、相关文档
+## 七、第三种文档（AI 档）——地基已落（2026-11-07）
+
+调研结论（AI / 应用 / 游戏三领域文档体系）支持把 AI 作为**第三档位**：AI 产品本质是软件产品，软件设计部分沿用应用 SDD 的字段语义，但独有「模型层四章」（模型卡 / 数据表 / 系统卡 / 评测与红队）——Model Cards / Data Sheets / System Cards / Eval 是 ML 界标准化产物，应用 SDD 装不下。
+
+**矩阵口径**：文档 = 领域（游戏 / 应用 / AI）× 阶段（方向 / 细节 / 试玩）。领域决定章表（`DocKind`）；阶段决定范围与产出形态（`gdd_scope` 的 lite/full、`prototype`）。AI 档先把「领域」这一列立起来。
+
+**第 1 步（已完成）——章表与分派地基**：
+- 新增 `aiSchema/`（20 章 = meta + 软件 16 + 模型层 4）与 `documentSpec/aiSpec.ts`；
+- `DOC_KINDS` / `DocumentSpecKind` / `DOCUMENT_SPECS` / `specForKind` 均已含 `ai`；
+- `getDocKind` / `needsGameDataEditor` 认 `ai`；`chapterView` 六个 `xxxForDoc` 函数按 `ai` 分派；
+- `ceshuModel`：新建 / 读盘补默认章、`visibleChaptersForDoc`、进度（不分阶段）、`withChapter` 均接 `ai`；
+- `CeshuSummary.docKind` 放宽到含 `ai`；`documentSpec.test.ts` 补 AI 独立性守卫（7 项）；
+- 游戏 / 应用：全量 4128 单测零回归。
+
+**待接（端到端仍走游戏分支，按应用档同样节奏后续推进）**：
+- 导出（docx / html / pptx / markdown / excel / narrative / onepage / handoff / tasks）里的 `getDocKind(doc) === 'application'` 判断需泛化为「非游戏」；
+- AI 提示词（`ceshuAi.ts` / `ceshuTaskPrompt.ts`）按 `ai` 取 `AI_*` 元数据；
+- 岗位（`ceshuTasks`）改用 `AI_ROLES` / `AI_ROLE_CHAPTERS`；
+- 首页档位筛选加「AI」按钮 + i18n；`AiFullGeneratePanel` / `CeshuOverview` / `CeshuView` 的档位判断。
+
+---
+
+## 八、相关文档
 
 - `docs/ceshu-project-folder.md` —— 项目文件夹规范
 - `docs/window-map.md` —— 窗口职责与入口矩阵（假入口判据）

@@ -483,8 +483,8 @@ export interface CeshuSummary {
   versionNote: string
   /** 游戏类型（meta.game_type，首页卡片类型标签用；空串表示未分类） */
   gameType: string
-  /** 文档类型（meta.doc_kind；application 档不显示游戏数据编辑页签，缺省 game） */
-  docKind: 'game' | 'application'
+  /** 文档类型（meta.doc_kind；application / ai 档不显示游戏数据编辑页签，缺省 game） */
+  docKind: 'game' | 'application' | 'ai'
   /** 目标平台（meta.platform，首页卡片平台徽标用；空数组表示未指定） */
   platform: string[]
   /** 文档状态（meta.status，首页卡片状态徽章用；缺省 "draft"） */

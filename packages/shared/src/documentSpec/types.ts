@@ -16,7 +16,7 @@
  */
 
 /** 档位标识：与 `meta.doc_kind` 同值 */
-export type DocumentSpecKind = 'game' | 'application'
+export type DocumentSpecKind = 'game' | 'application' | 'ai'
 
 /** 规格内一章的元数据 */
 export interface SpecChapter {
