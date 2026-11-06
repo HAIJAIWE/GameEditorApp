@@ -15,6 +15,8 @@
 
 | 提交 | 内容 |
 |---|---|
+| `a32e003a` | 模板版本化：`meta.template_version` 写入/读盘补齐/读 API；AI 不生成系统字段 |
+| `28bc8e8a` | 模块选择器加分组一键开关与「最小核心」预设 |
 | `b40469bc` | 应用章表合并：data_model+api+integration→data_interface，security→横切关注点分区 |
 | `4dab41bd` | 阶段轴：方向版(lite)/细节版(full) 泛化到应用与 AI |
 | `23bdf032` | 新建时选游戏/应用（AI 不单列）；Excel 补 AI 模型层 sheet |
@@ -110,7 +112,7 @@ npm run lint
 cd apps/desktop && npm run build
 ```
 
-当前基线：**tsc×3 / lint / 4145 单测 / build 全绿**。
+当前基线：**tsc×3 / lint / 4155 单测 / build 全绿**。
 
 保护性测试（新增）：
 - `documentSpec.test.ts`：模板结构校验、方向/细节分层、模块登记。
@@ -128,8 +130,11 @@ cd apps/desktop && npm run build
   - 四道闸全绿：tsc×3 / lint / 4145 单测 / build。应用基础章 18→16，可见章 19/23→17/21（含 AI）。
 
 ### P1（体验/能力）
-- 模块选择器：**一键分组开关**（现在只有分组展示）与「最小核心」预设。
-- `meta.template_version` 写入与读取（模板版本化的最小实现）。
+- ✅ 模块选择器：**一键分组开关** + 「最小核心」预设（提交 `28bc8e8a`）。
+  - 分组/预设走新增的批量 `onSetModules(chapters)` 一次写盘，顺带修掉「逐章 `onToggle` 读旧 `doc.meta` 互相覆盖」的隐患。
+- ✅ `meta.template_version` 写入与读取（模板版本化最小实现，提交 `a32e003a`）。
+  - 新建写 `TEMPLATE_VERSION`（对齐 GAME_SPEC/APP_SPEC 的 `2026.11`）；老文档 `normalizeCeshu` 读盘补齐；读 API `templateVersionForDoc` 永不返回 undefined。
+  - 作为**系统控制字段**：不进 meta 表单、AI 整章生成不列（`NON_AI_GENERATED_KEYS`）、`withChapter` 保存时保留旧值。
 - 应用可选模块 UI 已在「文档信息」以 `optional_modules` 多选呈现；可再优化为带说明的开关。
 - 可选：JSON 模板覆盖层（zod 校验后 merge，仅允许改标签/顺序/模块开关）。
 
