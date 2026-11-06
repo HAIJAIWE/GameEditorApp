@@ -135,16 +135,16 @@ export function normalizeCeshu(raw: unknown): CeshuDocument {
   }
   /*
    * 一次性迁移：老文档用 `meta.ai_enabled` 表示「含 AI 模型层」，现在统一为
-   * `meta.enabled_modules`。读盘时转换并**删除旧字段**——之后内存/磁盘只存在
+   * `meta.optional_modules`。读盘时转换并**删除旧字段**——之后内存/磁盘只存在
    * 一个事实源（下次保存即固化），读取端不必长期双读。
    */
   const migratedMeta = base.meta as Record<string, unknown>
   if (migratedMeta.ai_enabled === true) {
-    const existing = Array.isArray(migratedMeta.enabled_modules)
-      ? migratedMeta.enabled_modules.filter((item): item is string => typeof item === 'string')
+    const existing = Array.isArray(migratedMeta.optional_modules)
+      ? migratedMeta.optional_modules.filter((item): item is string => typeof item === 'string')
       : []
     if (!existing.includes('ai_layer')) existing.push('ai_layer')
-    migratedMeta.enabled_modules = existing
+    migratedMeta.optional_modules = existing
     delete migratedMeta.ai_enabled
   }
   // ruleset_id 由上面的「未知键保留」循环带过来（它不是 base 的属性）；派生值不在
@@ -168,7 +168,7 @@ export function getGameType(doc: CeshuDocument): string {
 }
 
 // 档位判定已抽到 `./docKind`（切断 ceshuModel ↔ chapterView 循环），此处 re-export 保持 API 不变
-export { DOC_KINDS, aiEnabledForDoc, enabledModulesForDoc, getDocKind, isSoftwareDoc, needsGameDataEditor } from './docKind'
+export { DOC_KINDS, aiEnabledForDoc, getDocKind, isSoftwareDoc, needsGameDataEditor, optionalModulesForDoc } from './docKind'
 export type { DocKind } from './docKind'
 
 /**

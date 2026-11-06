@@ -43,7 +43,7 @@ describe('应用档：岗位规格化层', () => {
     // 应用岗位不应映射到任何游戏章
     for (const role of taskRolesForDoc(doc)) {
       for (const chapter of roleChaptersForDoc(doc, role)) {
-        // AI 模型层章仅在 enabled_modules 含 ai_layer 时可见，不属于「游戏章」
+        // AI 模型层章仅在 optional_modules 含 ai_layer 时可见，不属于「游戏章」
         if (APP_AI_LAYER_KEYS.includes(chapter)) continue
         expect(visibleChaptersForDoc(doc)).toContain(chapter)
       }

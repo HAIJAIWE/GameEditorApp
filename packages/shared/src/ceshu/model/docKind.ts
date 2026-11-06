@@ -10,7 +10,7 @@ import { isPlainObject } from '../../util/object'
 
 /**
  * 文档类型：游戏 / 应用。**只有两种模式**——AI 产品属于「应用」，其模型层四章
- * 是应用文档的可选章节（见 `meta.enabled_modules`），不再单列一种档位。
+ * 是应用文档的可选章节（见 `meta.optional_modules`），不再单列一种档位。
  */
 export const DOC_KINDS = ['game', 'application'] as const
 export type DocKind = (typeof DOC_KINDS)[number]
@@ -38,19 +38,20 @@ export function isSoftwareDoc(doc: CeshuDocument): boolean {
 }
 
 /**
- * 已启用的可选模块（`meta.enabled_modules`）。
+ * 已启用的**可选模块**（`meta.optional_modules`，值是模块 id 如 `ai_layer`）。
  *
- * **单一事实源**：旧字段 `ai_enabled` 由 `normalizeCeshu` 在**读盘时一次性迁移**成
- * `enabled_modules`，读取端不再做双字段兼容（避免长期双读的债）。
+ * ⚠️ 不要和游戏的 `meta.enabled_modules` 混用：后者是「启用哪些**模块章**」，
+ * 值是章 key（见 `enabledModuleChapters`）。两者语义不同，故用不同字段。
+ * 旧字段 `ai_enabled` 由 `normalizeCeshu` 读盘时一次性迁移到本字段。
  */
-export function enabledModulesForDoc(doc: CeshuDocument): readonly string[] {
+export function optionalModulesForDoc(doc: CeshuDocument): readonly string[] {
   const meta = doc.meta
   if (!isPlainObject(meta)) return []
-  const raw = meta.enabled_modules
+  const raw = meta.optional_modules
   return Array.isArray(raw) ? raw.filter((item): item is string => typeof item === 'string') : []
 }
 
 /** 应用文档是否启用「AI 模型层」四章（模型卡 / 数据表 / 系统卡 / 评测与红队） */
 export function aiEnabledForDoc(doc: CeshuDocument): boolean {
-  return enabledModulesForDoc(doc).includes('ai_layer')
+  return optionalModulesForDoc(doc).includes('ai_layer')
 }
