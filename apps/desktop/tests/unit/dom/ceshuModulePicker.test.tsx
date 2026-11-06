@@ -40,4 +40,16 @@ describe('CeshuModulePicker：系统模块勾选', () => {
     await view!.click(view!.byTestId('module-toggle-economy'))
     expect(onToggle).toHaveBeenCalledWith('economy', true)
   })
+
+  it('按分区分组显示，且不丢任何模块章', async () => {
+    api = installMbApi()
+    const doc = createDefaultCeshu({ scope: 'full' })
+    view = await renderDom(<CeshuModulePicker doc={doc} onToggle={() => {}} />)
+    for (const part of ['core', 'production', 'expansion']) {
+      expect(view!.byTestId(`module-group-${part}`)).toBeTruthy()
+    }
+    for (const chapter of MODULE_CHAPTERS) {
+      expect(view!.byTestId(`module-toggle-${chapter}`)).toBeTruthy()
+    }
+  })
 })

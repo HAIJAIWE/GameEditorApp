@@ -1,6 +1,7 @@
 import { useT } from '@mobai/client-ui'
 import {
   CHAPTER_LABELS,
+  CHAPTER_PARTS,
   MODULE_CHAPTERS,
   UNIVERSAL_CORE_CHAPTERS,
   enabledModuleChapters,
@@ -46,19 +47,29 @@ export default function CeshuModulePicker({ doc, onToggle, onClose }: CeshuModul
       </div>
       <div className="module-picker-modules">
         <div className="module-picker-title">{t('ceshu.modulePicker.modules')}</div>
-        <div className="module-picker-list">
-          {MODULE_CHAPTERS.map((chapter) => (
-            <label key={chapter} className="module-check">
-              <input
-                type="checkbox"
-                data-testid={`module-toggle-${chapter}`}
-                checked={enabled.has(chapter)}
-                onChange={(event) => onToggle(chapter, event.target.checked)}
-              />
-              <span>{CHAPTER_LABELS[chapter]}</span>
-            </label>
-          ))}
-        </div>
+        {/* 按分区把可选模块分组显示（章节多时一长列难找）；testid 仍是 `module-toggle-<章>`，行为不变 */}
+        {CHAPTER_PARTS.map((part) => {
+          const chapters = part.chapters.filter((chapter) => MODULE_CHAPTERS.includes(chapter))
+          if (chapters.length === 0) return null
+          return (
+            <div key={part.key} className="module-group" data-testid={`module-group-${part.key}`}>
+              <div className="module-picker-title">{part.label}</div>
+              <div className="module-picker-list">
+                {chapters.map((chapter) => (
+                  <label key={chapter} className="module-check">
+                    <input
+                      type="checkbox"
+                      data-testid={`module-toggle-${chapter}`}
+                      checked={enabled.has(chapter)}
+                      onChange={(event) => onToggle(chapter, event.target.checked)}
+                    />
+                    <span>{CHAPTER_LABELS[chapter]}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )
+        })}
       </div>
     </div>
   )
