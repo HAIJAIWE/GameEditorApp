@@ -217,6 +217,21 @@ export function templateVersionForDoc(doc: CeshuDocument): string {
   return typeof raw === 'string' && raw !== '' ? raw : TEMPLATE_VERSION
 }
 
+/**
+ * 读取文档携带的模板覆盖层（`meta.template_overlay`）。
+ *
+ * 覆盖层是一份 JSON（标签 / 顺序 / 模块默认开关），校验与应用在
+ * `documentSpec/templateOverlay.applyTemplateOverlay`。此处只负责「取出原始对象」，
+ * 不做校验——校验失败的处理策略属于调用方（导出 fail-soft / 模板编辑 UI 报错）。
+ * 缺失或非对象一律返回 `undefined`（= 不覆盖）。
+ */
+export function templateOverlayForDoc(doc: CeshuDocument): unknown {
+  const meta = doc.meta
+  if (!isPlainObject(meta)) return undefined
+  const raw = meta.template_overlay
+  return isPlainObject(raw) ? raw : undefined
+}
+
 // 档位判定已抽到 `./docKind`（切断 ceshuModel ↔ chapterView 循环），此处 re-export 保持 API 不变
 export { DOC_KINDS, aiEnabledForDoc, getDocKind, isSoftwareDoc, needsGameDataEditor, optionalModulesForDoc } from './docKind'
 export type { DocKind } from './docKind'

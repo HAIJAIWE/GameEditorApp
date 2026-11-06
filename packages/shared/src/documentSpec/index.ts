@@ -5,14 +5,17 @@
  * 路线 A「统一内核 + 双规格」的第一层：先有注册表与分派，后续各消费方逐层接入。
  */
 import type { CeshuDocument } from '../ceshu/reference'
-import { getDocKind } from '../ceshu/model'
+import { getDocKind, templateOverlayForDoc } from '../ceshu/model'
 import { APP_SPEC } from './appSpec'
 import { GAME_SPEC } from './gameSpec'
+import { applyTemplateOverlay } from './templateOverlay'
 import type { DocumentSpec, DocumentSpecKind } from './types'
 
 export type { DocumentSpec, DocumentSpecKind, SpecChapter, SpecPart, SpecRole } from './types'
 export { APP_SPEC, APP_PARTS, APP_META_KEY, APP_AGENT_DISPLAY, APP_AGENT_PROMPTS, APP_ROLES } from './appSpec'
 export { GAME_SPEC } from './gameSpec'
+export { applyTemplateOverlay, templateOverlayKind, templateOverlaySchema } from './templateOverlay'
+export type { TemplateOverlay } from './templateOverlay'
 
 /** 全部已注册规格（顺序稳定，供枚举 UI 用） */
 export const DOCUMENT_SPECS: readonly DocumentSpec[] = [GAME_SPEC, APP_SPEC]
@@ -83,9 +86,25 @@ export function specForKind(kind: DocumentSpecKind | undefined): DocumentSpec {
   return kind === 'application' ? APP_SPEC : GAME_SPEC
 }
 
-/** 按文档取规格（唯一应该被消费方调用的入口） */
+/**
+ * 按文档取规格（唯一应该被消费方调用的入口）。
+ *
+ * 若文档携带 `meta.template_overlay`（JSON 模板覆盖层），在此应用：只覆盖
+ * 标签 / 顺序 / 模块默认开关，章 key 与字段契约不变。
+ *
+ * **fail-soft**：覆盖层损坏时退回基础规格而不是抛错——导出 / 交接包不能因为
+ * 一份坏 JSON 整体失败。需要把校验错误暴露给用户的路径（模板编辑 UI）应直接
+ * 调用 `applyTemplateOverlay`，让异常冒泡。
+ */
 export function specForDoc(doc: CeshuDocument): DocumentSpec {
-  return specForKind(getDocKind(doc))
+  const base = specForKind(getDocKind(doc))
+  const overlay = templateOverlayForDoc(doc)
+  if (overlay === undefined) return base
+  try {
+    return applyTemplateOverlay(base, overlay)
+  } catch {
+    return base
+  }
 }
 
 /** 按档位取隐藏的主区页签（替代散落的隐藏规则，规则归规格所有） */
