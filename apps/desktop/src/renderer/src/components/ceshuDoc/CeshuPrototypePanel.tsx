@@ -2,7 +2,8 @@ import { useState } from 'react'
 
 import { useT } from '@mobai/client-ui'
 import type { CeshuDocument } from '@mobai/shared/ceshu/reference'
-import { buildDemoPrompt } from '@mobai/shared/ceshu/prompts'
+import { buildAppPrototypePrompt, buildDemoPrompt } from '@mobai/shared/ceshu/prompts'
+import { getDocKind } from '@mobai/shared/ceshu/model'
 import { isPrototypeStale } from '@mobai/shared/ceshu/workflow'
 import { toErrorMessage } from '@mobai/shared/util/system'
 
@@ -36,6 +37,7 @@ export default function CeshuPrototypePanel({
   const t = useT()
   // 已保存的原型直接显示：打开项目就能看到上次生成的成果，不用再花钱
   const saved = doc.demo_html ?? ''
+  const isApp = getDocKind(doc) === 'application'
   // 用「草稿 + 归属 id」而不是裸 state：切换文档时草稿自动失效，回落到该文档已保存的原型
   const [draft, setDraft] = useState<{ id: string; html: string } | null>(null)
   const html = draft !== null && draft.id === doc.ceshu_id ? draft.html : saved
@@ -50,7 +52,10 @@ export default function CeshuPrototypePanel({
     setError(null)
     setNotice(null)
     try {
-      const { system, prompt } = buildDemoPrompt(doc)
+      // 游戏档出「可玩 Demo」，应用档出「可点击界面原型」——同一面板、同一落盘字段
+      const { system, prompt } = getDocKind(doc) === 'application'
+        ? buildAppPrototypePrompt(doc)
+        : buildDemoPrompt(doc)
       const result = await window.mbApi.llm.generate({ system, prompt })
       const next = stripCodeFence(result.content ?? '')
       if (!/<html[\s>]/i.test(next)) {
@@ -82,9 +87,9 @@ export default function CeshuPrototypePanel({
           disabled={busy}
           onClick={() => void generate()}
         >
-          {busy ? t('prototype.generating') : html === '' ? t('prototype.generate') : t('prototype.regenerate')}
+          {busy ? t('prototype.generating') : html === '' ? (isApp ? t('prototype.generateApp') : t('prototype.generate')) : t('prototype.regenerate')}
         </button>
-        <span className="prototype-hint">{t('prototype.hint')}</span>
+        <span className="prototype-hint">{isApp ? t('prototype.hintApp') : t('prototype.hint')}</span>
       </div>
       {error !== null && (
         <div className="form-error" data-testid="prototype-error">
@@ -104,7 +109,7 @@ export default function CeshuPrototypePanel({
       {html === '' ? (
         <div className="artifact-placeholder" data-testid="prototype-empty">
           <div className="artifact-placeholder-title">{t('prototype.emptyTitle')}</div>
-          <p>{t('prototype.emptyHint')}</p>
+          <p>{isApp ? t('prototype.emptyHintApp') : t('prototype.emptyHint')}</p>
         </div>
       ) : (
         <iframe

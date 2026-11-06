@@ -16,6 +16,8 @@ export { CLONE_CONCEPT_CHAPTERS, applyCloneDecompose, buildCloneDecomposePrompt,
 export type { CloneDecomposeInput } from './ceshuClonePrompt'
 export { buildDemoPrompt } from './ceshuDemoPrompt'
 export type { DemoPromptResult } from './ceshuDemoPrompt'
+export { buildAppPrototypePrompt } from './ceshuAppPrototypePrompt'
+export type { AppPrototypePromptResult } from './ceshuAppPrototypePrompt'
 export { FIELDS_PREVIEW_LIMIT, buildSystemConfirmResult, formatFieldsPreview, systemDisplayName } from './ceshuSystemConfirm'
 export type { SystemConfirmCustom, SystemConfirmResult } from './ceshuSystemConfirm'
 export { TASK_DIGEST_LIMIT, TASK_PER_ROLE_LIMIT, buildRoleTaskPrompt, buildTaskDigest, countTaskPlan, isEmptyTaskPlan, parseRoleTaskPlan, taskRolesForDoc } from './ceshuTaskPrompt'

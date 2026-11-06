@@ -26,6 +26,10 @@ function makeDoc(): CeshuDocument {
   return createDefaultCeshu({ scope: 'full', name: '星海计划' })
 }
 
+function makeAppDoc(): CeshuDocument {
+  return createDefaultCeshu({ scope: 'full', docKind: 'application', name: '团队看板' })
+}
+
 const DEMO = '<html><body>hi</body></html>'
 
 describe('CeshuPrototypePanel：生成', () => {
@@ -146,5 +150,24 @@ describe('CeshuPrototypePanel：原型过期提示', () => {
     api = installMbApi()
     view = await renderDom(<CeshuPrototypePanel doc={doc} />)
     expect(view!.query('[data-testid="prototype-stale"]')).toBeNull()
+  })
+})
+
+describe('CeshuPrototypePanel：应用档走界面原型提示词', () => {
+  it('应用文档生成时用 buildAppPrototypePrompt（界面原型），而非可玩 Demo', async () => {
+    let captured: { prompt?: string; system?: string } | null = null
+    api = installMbApi({
+      overrides: {
+        'llm.generate': (req: unknown) => {
+          captured = req as { prompt?: string; system?: string }
+          return { model: 'fake', content: DEMO }
+        },
+        'ceshu.saveDemo': () => ({ doc: { ...makeAppDoc(), demo_html: DEMO } })
+      }
+    })
+    view = await renderDom(<CeshuPrototypePanel doc={makeAppDoc()} />)
+    await view!.click(view!.byTestId('prototype-generate'))
+    expect(captured!.prompt ?? '').toContain('界面原型')
+    expect(captured!.prompt ?? '').not.toContain('可玩 HTML Demo')
   })
 })
