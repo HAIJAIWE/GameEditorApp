@@ -39,7 +39,7 @@ const SHARED_CAPABILITY_FOLDERS = [
   'schema/core', 'schema/adapters',
   'ceshuSchema/design', 'ceshuSchema/systems', 'ceshuSchema/production',
   'ceshuSchema/quality', 'ceshuSchema/core',
-  'documentSpec'
+  'documentSpec', 'appSchema'
 ].map((dir) => path.resolve(SHARED_ROOT, dir))
 
 /** 渲染层的能力文件夹（相对 apps/desktop） */

@@ -10,6 +10,7 @@
  * 每章的字段 schema 尚未落地（见 docs/app-development-plan.md 分阶段计划），
  * 本文件先钉死「有哪些章、叫什么、谁写」这份结构契约。
  */
+import { appRequiredFields, APP_CHAPTER_FIELDS } from '../appSchema'
 import type { DocumentSpec, SpecChapter, SpecPart } from './types'
 
 /** 文档信息段 key（不占章号） */
@@ -60,96 +61,83 @@ export const APP_ROLES: readonly { key: string; label: string }[] = [
   { key: 'devops', label: '运维' }
 ]
 
-/** 章名 + AI 角色 + 生成要求（章号由分区位置派生，不在此手写） */
+/**
+ * 章名 + AI 角色 + 生成要求（章号由分区位置派生，不在此手写）。
+ * **必填字段不在这里声明**：由 `appRequiredFields(key)` 从 `appSchema` 派生，
+ * 字段表是唯一事实源，避免两边各写一份必填清单并悄悄漂移。
+ */
 interface AppChapterDef {
   key: string
   name: string
   agentId: string
   aiHint: string
-  requiredFields: readonly string[]
 }
 
 const CHAPTER_DEFS: readonly AppChapterDef[] = [
   {
     key: 'overview', name: '项目概述', agentId: 'product_manager',
     aiHint: '一句话说清这个应用解决谁的问题、和现有方案有何不同；给出 2-3 条成功指标。',
-    requiredFields: ['problem', 'value_proposition', 'success_metrics']
   },
   {
     key: 'users', name: '用户与场景', agentId: 'product_manager',
     aiHint: '列出 2-4 类目标用户与各自的核心使用场景，写清触发时机与完成标准。',
-    requiredFields: ['personas', 'scenarios']
   },
   {
     key: 'scope', name: '范围与非目标', agentId: 'product_manager',
     aiHint: '明确本期做什么、明确不做什么；非目标要给出边界，禁止「暂不做」这类无边界表述。',
-    requiredFields: ['in_scope', 'non_goals']
   },
   {
     key: 'features', name: '功能规格', agentId: 'product_manager',
     aiHint: '按模块列功能点与验收条件，每条可判定；标注优先级与依赖关系。',
-    requiredFields: ['feature_list', 'priorities']
   },
   {
     key: 'flows', name: '核心流程与状态', agentId: 'ux_designer',
     aiHint: '给出主流程步骤与关键状态机，覆盖失败分支与回退路径。',
-    requiredFields: ['main_flow', 'state_machine']
   },
   {
     // 章 key 刻意不叫 `uiux`：那是游戏 GDD 的章 key，同名会让文档数据被两套规格解释成不同内容
     key: 'interaction', name: '交互与界面', agentId: 'ux_designer',
     aiHint: '描述信息架构、页面结构、导航与关键交互，覆盖加载/空/错三态与响应式策略。',
-    requiredFields: ['information_architecture', 'screens', 'states']
   },
   {
     key: 'architecture', name: '技术架构', agentId: 'architect',
     aiHint: '模块划分、依赖方向、技术选型理由与被否决方案；说明扩展点与未提前实现的部分。',
-    requiredFields: ['modules', 'tech_choices', 'alternatives']
   },
   {
     key: 'data_model', name: '数据模型', agentId: 'data_engineer',
     aiHint: '实体、字段、关系与生命周期；说明存储选型、迁移与一致性策略。',
-    requiredFields: ['entities', 'storage', 'migration']
   },
   {
     key: 'api', name: '接口契约', agentId: 'backend',
     aiHint: '按接口列路径/入参/出参/错误码/幂等性；内部模块边界也一并写清。',
-    requiredFields: ['endpoints', 'error_codes']
   },
   {
     key: 'integration', name: '第三方与集成', agentId: 'backend',
     aiHint: '列出外部依赖、认证方式、配额与降级方案；标清单点故障。',
-    requiredFields: ['dependencies', 'fallbacks']
   },
   {
     key: 'nonfunctional', name: '非功能需求', agentId: 'architect',
     aiHint: '性能预算、兼容矩阵（桌面/移动/浏览器）、可用性与可访问性，指标要可测。',
-    requiredFields: ['performance_budget', 'compatibility', 'accessibility']
   },
   {
     key: 'security', name: '安全与隐私', agentId: 'security',
     aiHint: '认证授权模型、数据分级、敏感信息处理与威胁模型；写清合规边界。',
-    requiredFields: ['auth_model', 'data_classification', 'threats']
   },
   {
     key: 'testing', name: '测试与质量', agentId: 'qa',
     aiHint: '分层测试策略、关键用例与验收条件、回归范围与上线门禁。',
-    requiredFields: ['test_strategy', 'acceptance', 'release_gate']
   },
   {
     key: 'release', name: '发布与运维', agentId: 'devops',
     aiHint: '部署形态、灰度策略、监控指标、告警阈值与回滚路径。',
-    requiredFields: ['deployment', 'rollout', 'monitoring', 'rollback']
   },
   {
     key: 'milestones', name: '里程碑与资源', agentId: 'tech_lead',
     aiHint: '按可交付成果拆里程碑，标注依赖、人力与关键假设。',
-    requiredFields: ['milestones', 'resources']
   },
   {
     key: 'risks', name: '风险与取舍', agentId: 'tech_lead',
     aiHint: '列风险登记表与应对，并写清关键决策的候选方案、否决理由与结论。',
-    requiredFields: ['risk_register', 'decisions']
   }
 ]
 
@@ -160,16 +148,25 @@ const CN = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十'
 const NUMBERED_KEYS: readonly string[] = APP_PARTS.flatMap((part) => [...part.chapters])
 const CHAPTER_KEYS: readonly string[] = [APP_META_KEY, ...NUMBERED_KEYS]
 
+/** 规格章表必须与 appSchema 字段表一一对应（缺一章就抛错，避免规格与内容脱节） */
+for (const key of CHAPTER_KEYS) {
+  if ((APP_CHAPTER_FIELDS[key] ?? []).length === 0) {
+    throw new Error(`应用规格的章在 appSchema 里没有字段定义: ${key}`)
+  }
+}
+
 function chaptersForSpec(): SpecChapter[] {
   const defs = new Map(CHAPTER_DEFS.map((def) => [def.key, def]))
   return CHAPTER_KEYS.map((key) => {
     const part = APP_PARTS.find((candidate) => candidate.chapters.includes(key))
     const index = NUMBERED_KEYS.indexOf(key)
+    // 必填字段一律由 appSchema 派生：字段表是唯一事实源
+    const requiredFields = appRequiredFields(key)
     if (key === APP_META_KEY) {
       return {
         key, name: '文档信息', label: '文档信息', part: 'meta',
         aiHint: '整理项目名称、目标平台、文档状态与保密级别。',
-        agentId: 'tech_lead', requiredFields: ['project_name', 'platform']
+        agentId: 'tech_lead', requiredFields
       }
     }
     const def = defs.get(key)
@@ -182,7 +179,7 @@ function chaptersForSpec(): SpecChapter[] {
       part: part?.key ?? '',
       aiHint: def.aiHint,
       agentId: def.agentId,
-      requiredFields: def.requiredFields
+      requiredFields
     }
   })
 }

@@ -15,6 +15,7 @@ import {
 import { createDefaultChapters } from '../reference'
 import { getStyle, inferStyleFromText } from '../../config/game'
 import { migrateV4ToV5, needsV4Migration } from '../data'
+import { createAppDefaultChapters } from '../../appSchema'
 import { isChapterVisibleInStage, type CeshuStage } from '../workflow'
 import { formatLocalTimestamp } from '../../util/datetime'
 import { isPlainObject } from '../../util/object'
@@ -33,13 +34,29 @@ export function createCeshuId(): string {
   return globalThis.crypto.randomUUID().replace(/-/g, '').slice(0, 8)
 }
 
-/** 新建策划书：文档信息 + 全部章节默认值 + 档位写入 meta.gdd_scope */
-export function createDefaultCeshu(options: { scope: GddScope; name?: string }): CeshuDocument {
+/**
+ * 新建策划书：文档信息 + 全部章节默认值 + 档位写入 meta.gdd_scope。
+ *
+ * `docKind` 缺省 `game` ⇒ 行为与改动前逐字节一致（73 个调用方零回归）。
+ * 显式 `application` 时额外挂上 SDD 16 章的默认值，并把档位写进 meta；
+ * 游戏 24 章仍作为兼容底座保留（196 个消费方假设它们存在），
+ * 由后续 `visibleChaptersForDoc` 分派决定哪些章真正参与导出/校验/进度。
+ */
+export function createDefaultCeshu(options: {
+  scope: GddScope
+  name?: string
+  docKind?: DocKind
+}): CeshuDocument {
   const now = formatLocalTimestamp()
   const chapters = createDefaultChapters()
   chapters.meta.gdd_scope = options.scope
   if (options.name) {
     chapters.meta.game_name = options.name
+  }
+  const isApp = options.docKind === 'application'
+  if (isApp) {
+    chapters.meta.doc_kind = 'application'
+    if (options.name) chapters.meta.project_name = options.name
   }
   const doc: CeshuDocument = {
     version: '5.0',
@@ -53,6 +70,7 @@ export function createDefaultCeshu(options: { scope: GddScope; name?: string }):
     style: '',
     module_type: '',
     ...chapters,
+    ...(isApp ? createAppDefaultChapters(chapters.meta) : {}),
     enabled_editors: [],
     editor_configs: {}
   }
@@ -98,6 +116,18 @@ export function normalizeCeshu(raw: unknown): CeshuDocument {
     if (key in base) continue
     const target = base as unknown as Record<string, unknown>
     target[key] = value
+  }
+  /*
+   * 应用档读盘补齐：应用 16 章不属于 `CHAPTER_KEYS`，靠上面的「未知键保留」回来，
+   * 但**磁盘里缺某一章时不会有任何默认值**，导出/进度会看到 undefined。
+   * 这里按规格补缺失章的空默认值（只补不覆盖）。游戏档完全不走这段。
+   */
+  if (getDocKind(base) === 'application') {
+    const target = base as unknown as Record<string, unknown>
+    for (const [key, defaults] of Object.entries(createAppDefaultChapters())) {
+      if (key === 'meta') continue // meta 已由游戏默认值 + source.meta 合成，不能覆盖
+      if (!isPlainObject(target[key])) target[key] = defaults
+    }
   }
   // ruleset_id 由上面的「未知键保留」循环带过来（它不是 base 的属性）；派生值不在
   // 这里现算——否则老文档一保存就被塞进派生结果，用户改 ceshu_id 时旧值会诈尸成「显式值」
