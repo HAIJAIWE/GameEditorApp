@@ -81,7 +81,7 @@ export function buildTaskDigest(doc: CeshuDocument, limit: number = TASK_DIGEST_
     used += block.length
   }
   return lines.length === 0
-    ? getDocKind(doc) === 'application'
+    ? getDocKind(doc) !== 'game'
       ? '（这份软件设计文档还没有任何已填内容）'
       : '（这份策划书还没有任何已填内容）'
     : lines.join('\n\n')
@@ -106,7 +106,7 @@ export function buildRoleTaskPrompt(
   doc: CeshuDocument,
   roles: readonly string[] = taskRolesForDoc(doc)
 ): { system: string; prompt: string } {
-  const isApp = getDocKind(doc) === 'application'
+  const isApp = getDocKind(doc) !== 'game'
   // 显式传 roles（IPC 允许任意字符串数组）时按该档位白名单过滤，
   // 避免脏 key 混进 JSON 骨架；缺省就用该档位全量岗位。
   const allowed = new Set(specTaskRolesForDoc(doc))

@@ -5,16 +5,10 @@ import {
   taskRoleLabelForDoc,
   taskRolesForDoc
 } from '@mobai/shared/ceshu/workflow'
-import { deriveRulesetId, visibleChaptersForDoc } from '@mobai/shared/ceshu/model'
-import {
-  APP_CHAPTER_LABELS,
-  APP_META_KEY,
-  APP_PARTS,
-  APP_ROLE_CHAPTERS,
-  appChapterAi,
-  appPartDisplayName,
-  appPartOf
-} from '@mobai/shared/appSchema'
+import { deriveRulesetId, getDocKind, visibleChaptersForDoc } from '@mobai/shared/ceshu/model'
+import { specForDoc, type DocumentSpec } from '@mobai/shared/documentSpec'
+import { APP_ROLE_CHAPTERS } from '@mobai/shared/appSchema'
+import { AI_ROLE_CHAPTERS } from '@mobai/shared/aiSchema'
 import type { DataTypeDef, ItemRecord } from '@mobai/shared/types'
 import { buildJsonSnapshot } from '../../../data/snapshotExport'
 
@@ -52,6 +46,17 @@ import { renderCeshuMarkdown } from '../doc/markdown'
 
 const CN = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十'] as const
 
+/** 岗位 → 相关章：应用 / AI 各有一套映射（章节 key 相同但语义由规格分派） */
+function roleChaptersOf(doc: CeshuDocument): Readonly<Record<string, readonly string[]>> {
+  return getDocKind(doc) === 'ai' ? AI_ROLE_CHAPTERS : APP_ROLE_CHAPTERS
+}
+
+/** 章 → 负责 agent / 生成要求（来自规格，应用与 AI 通用） */
+function chapterAiOf(spec: DocumentSpec, key: string): { agentId: string; aiHint: string } {
+  const chapter = spec.chapters.find((item) => item.key === key)
+  return { agentId: chapter?.agentId ?? '', aiHint: chapter?.aiHint ?? '' }
+}
+
 function projectName(doc: CeshuDocument): string {
   const meta = doc.meta as Record<string, unknown>
   const raw = typeof meta.project_name === 'string' && meta.project_name.trim() !== ''
@@ -67,16 +72,17 @@ function platformText(doc: CeshuDocument): string {
     : ''
 }
 
-/** 章节目录（按 SDD 分区，章号连续） */
+/** 章节目录（按规格分区，章号连续） */
 function chapterDirectory(doc: CeshuDocument): string {
+  const spec = specForDoc(doc)
   const visible = new Set(visibleChaptersForDoc(doc))
   const lines: string[] = []
-  APP_PARTS.forEach((part, index) => {
+  spec.parts.forEach((part, index) => {
     const chapters = part.chapters.filter((key) => visible.has(key))
     if (chapters.length === 0) return
     lines.push(`### ${CN[index] ?? index + 1}、${part.label}`, '')
     for (const key of chapters) {
-      lines.push(`- [${APP_CHAPTER_LABELS[key] ?? key}](design/${key}.md) · 负责：${appChapterAi(key).agentId}`)
+      lines.push(`- [${spec.chapterLabels[key] ?? key}](design/${key}.md) · 负责：${chapterAiOf(spec, key).agentId}`)
     }
     lines.push('')
   })
@@ -85,10 +91,12 @@ function chapterDirectory(doc: CeshuDocument): string {
 
 /** 岗位责任表 */
 function roleTable(doc: CeshuDocument): string {
+  const spec = specForDoc(doc)
+  const roleChapters = roleChaptersOf(doc)
   const lines = ['| 岗位 | 任务清单 | 主要依据章 |', '|------|----------|------------|']
   for (const role of taskRolesForDoc(doc)) {
-    const chapters = (APP_ROLE_CHAPTERS[role] ?? [])
-      .map((key) => APP_CHAPTER_LABELS[key] ?? key)
+    const chapters = (roleChapters[role] ?? [])
+      .map((key) => spec.chapterLabels[key] ?? key)
       .join('、')
     lines.push(`| ${taskRoleLabelForDoc(doc, role)} | [tasks/${role}.md](tasks/${role}.md) | ${chapters || '—'} |`)
   }
@@ -96,11 +104,12 @@ function roleTable(doc: CeshuDocument): string {
 }
 
 function renderReadme(doc: CeshuDocument, generatedAt: string): string {
+  const spec = specForDoc(doc)
   const platform = platformText(doc)
   return [
-    `# ${projectName(doc)} · 开发交接包（软件设计文档）`,
+    `# ${projectName(doc)} · 开发交接包（${spec.label}）`,
     '',
-    `> 文档类型: 软件设计文档（SDD） | 生成时间: ${generatedAt}`,
+    `> 文档类型: ${spec.label} | 生成时间: ${generatedAt}`,
     ...(platform !== '' ? [`> 目标平台: ${platform}`] : []),
     '',
     '本包把同一份软件设计文档**按分区与岗位重排**，供开发团队按章派工、逐章验收。',
@@ -134,33 +143,35 @@ function renderReadme(doc: CeshuDocument, generatedAt: string): string {
 
 /** 机读清单：给外部 agent 调度用，形状稳定、不含游戏专属字段 */
 function renderManifest(doc: CeshuDocument, generatedAt: string): string {
+  const spec = specForDoc(doc)
+  const roleChapters = roleChaptersOf(doc)
   const visible = visibleChaptersForDoc(doc)
-  const parts = APP_PARTS.map((part, index) => ({
+  const parts = spec.parts.map((part, index) => ({
     key: part.key,
     label: part.label,
-    displayName: appPartDisplayName(part),
+    displayName: `${CN[index] ?? index + 1}、${part.label}`,
     order: index + 1,
     chapters: part.chapters.filter((key) => visible.includes(key))
   }))
   const chapters = visible.map((key, index) => ({
     key,
-    label: APP_CHAPTER_LABELS[key] ?? key,
-    part: key === APP_META_KEY ? 'meta' : appPartOf(key),
+    label: spec.chapterLabels[key] ?? key,
+    part: spec.parts.find((part) => part.chapters.includes(key))?.key ?? (key === spec.metaKey ? 'meta' : ''),
     order: index,
-    agentId: appChapterAi(key).agentId,
-    aiHint: appChapterAi(key).aiHint,
+    agentId: chapterAiOf(spec, key).agentId,
+    aiHint: chapterAiOf(spec, key).aiHint,
     file: `design/${key}.md`
   }))
   const roles = taskRolesForDoc(doc).map((key) => ({
     key,
     label: taskRoleLabelForDoc(doc, key),
     taskFile: `tasks/${key}.md`,
-    chapters: APP_ROLE_CHAPTERS[key] ?? []
+    chapters: roleChapters[key] ?? []
   }))
   return `${JSON.stringify({
     schema: 'mb-app-handoff/v1',
-    docKind: 'application',
-    docNoun: '软件设计文档',
+    docKind: spec.kind,
+    docNoun: spec.systemDocNoun,
     generatedAt,
     projectName: projectName(doc),
     platform: platformText(doc),
@@ -174,14 +185,16 @@ function renderManifest(doc: CeshuDocument, generatedAt: string): string {
 
 /** 开发路线：按分区顺序，标注每章负责人与验收锚点 */
 function renderRoute(doc: CeshuDocument): string {
+  const spec = specForDoc(doc)
   const visible = new Set(visibleChaptersForDoc(doc))
   const lines = [`# ${projectName(doc)} · 开发路线`, '', '按分区顺序推进；每章的「完成」= 必填字段填齐且可判定。', '']
-  APP_PARTS.forEach((part, index) => {
+  spec.parts.forEach((part, index) => {
     const chapters = part.chapters.filter((key) => visible.has(key))
     if (chapters.length === 0) return
     lines.push(`## ${CN[index] ?? index + 1}、${part.label}`, '')
     for (const key of chapters) {
-      lines.push(`- [${APP_CHAPTER_LABELS[key] ?? key}](design/${key}.md) — 负责：${appChapterAi(key).agentId}；要求：${appChapterAi(key).aiHint}`)
+      const ai = chapterAiOf(spec, key)
+      lines.push(`- [${spec.chapterLabels[key] ?? key}](design/${key}.md) — 负责：${ai.agentId}；要求：${ai.aiHint}`)
     }
     lines.push('')
   })

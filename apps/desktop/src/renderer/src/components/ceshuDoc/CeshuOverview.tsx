@@ -40,9 +40,9 @@ interface OverviewRow {
 export default function CeshuOverview({ doc, stage, progress }: CeshuOverviewProps) {
   const t = useT()
   const visible = visibleChaptersForDoc(doc)
-  // 阶段是游戏研发流程概念：应用档不做阶段裁剪，直接铺 SDD 全章。
+  // 阶段是游戏研发流程概念：软件档（应用 / AI）不做阶段裁剪，直接铺全章。
   const chapters: readonly string[] =
-    getDocKind(doc) === 'application'
+    getDocKind(doc) !== 'game'
       ? visible
       : chaptersUpToStage(stage).filter((chapter) => visible.includes(chapter))
 

@@ -11,6 +11,7 @@ import {
 // ⚠️ 只能从 appSchema 取应用档岗位元数据，不能 import documentSpec：
 // gameSpec.ts 顶层 import ceshu/workflow（就会回到本文件）构成循环。
 import { APP_ROLE_CHAPTERS, APP_ROLES } from '../../appSchema'
+import { AI_ROLE_CHAPTERS, AI_ROLES } from '../../aiSchema'
 
 /**
  * 岗位任务（单源）：`main/ceshu/export/tasks.ts`（导出 Markdown）与
@@ -46,20 +47,29 @@ export const ROLE_CHAPTERS: Record<CeshuRole, readonly ChapterKey[]> = {
  * 应用档返回 APP_ROLES（产品/前端/后端/测试/运维）。
  */
 export function taskRolesForDoc(doc: CeshuDocument): readonly string[] {
-  return getDocKind(doc) === 'application' ? APP_ROLES.map((item) => item.key) : CESHU_ROLE_ORDER
+  const kind = getDocKind(doc)
+  if (kind === 'application') return APP_ROLES.map((item) => item.key)
+  if (kind === 'ai') return AI_ROLES.map((item) => item.key)
+  return CESHU_ROLE_ORDER
 }
 
-/** 岗位显示名：应用档走 APP_ROLES，游戏档走 CESHU_ROLE_LABELS */
+/** 岗位显示名：应用档走 APP_ROLES，AI 档走 AI_ROLES，游戏档走 CESHU_ROLE_LABELS */
 export function taskRoleLabelForDoc(doc: CeshuDocument, role: string): string {
-  if (getDocKind(doc) === 'application') {
+  const kind = getDocKind(doc)
+  if (kind === 'application') {
     return APP_ROLES.find((item) => item.key === role)?.label ?? role
+  }
+  if (kind === 'ai') {
+    return AI_ROLES.find((item) => item.key === role)?.label ?? role
   }
   return (CESHU_ROLE_LABELS as Record<string, string>)[role] ?? role
 }
 
-/** 岗位 → 相关章：应用档走 APP_ROLE_CHAPTERS，游戏档走 ROLE_CHAPTERS */
+/** 岗位 → 相关章：应用档走 APP_ROLE_CHAPTERS，AI 档走 AI_ROLE_CHAPTERS，游戏档走 ROLE_CHAPTERS */
 export function roleChaptersForDoc(doc: CeshuDocument, role: string): readonly string[] {
-  if (getDocKind(doc) === 'application') return APP_ROLE_CHAPTERS[role] ?? []
+  const kind = getDocKind(doc)
+  if (kind === 'application') return APP_ROLE_CHAPTERS[role] ?? []
+  if (kind === 'ai') return AI_ROLE_CHAPTERS[role] ?? []
   return (ROLE_CHAPTERS as Record<string, readonly string[]>)[role] ?? []
 }
 

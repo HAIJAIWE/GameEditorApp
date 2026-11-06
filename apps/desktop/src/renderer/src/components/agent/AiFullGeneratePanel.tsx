@@ -83,7 +83,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
   const judgesRef = useRef<Partial<Record<string, LlmJudgeVerdict | null>>>({})
 
   const docKind = getDocKind(doc)
-  const isApp = docKind === 'application'
+  const isApp = docKind !== 'game'
   const plan = useMemo(
     () =>
       buildFullGeneratePlan(

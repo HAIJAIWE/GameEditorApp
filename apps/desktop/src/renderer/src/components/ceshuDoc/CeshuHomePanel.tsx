@@ -460,6 +460,13 @@ export default function CeshuHomePanel({
                 aria-pressed={docKindFilter === 'application'}
                 onClick={() => setDocKindFilter((prev) => (prev === 'application' ? 'all' : 'application'))}
               >{t('home.docKindApp')}</button>
+              <button
+                type="button"
+                className={`btn slim${docKindFilter === 'ai' ? ' accent-outline' : ''}`}
+                data-testid="home-dockind-ai"
+                aria-pressed={docKindFilter === 'ai'}
+                onClick={() => setDocKindFilter((prev) => (prev === 'ai' ? 'all' : 'ai'))}
+              >{t('home.docKindAi')}</button>
             </div>
 
             {pendingEmpty ? (

@@ -5,7 +5,7 @@ import {
   chapterFieldsForDoc,
   chapterLabelForDoc,
   computeChapterProgress,
-  getDocKind,
+  isSoftwareDoc,
   requiredFieldsForDoc,
   visibleChaptersForDoc
 } from '@mobai/shared/ceshu/model'
@@ -24,7 +24,7 @@ export function renderOnePageSummary(doc: CeshuDocument, level: 2 | 3 = 2): stri
   const visible = visibleChaptersForDoc(doc)
   // 阶段是游戏研发流程概念：应用档不做阶段裁剪，直接铺 SDD 全章。
   const chapters: readonly string[] =
-    getDocKind(doc) === 'application'
+    isSoftwareDoc(doc)
       ? visible
       : chaptersUpToStage(stage).filter((chapter) => visible.includes(chapter))
   const progress = computeChapterProgress(doc)

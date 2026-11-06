@@ -7,7 +7,7 @@ import {
 } from '@mobai/shared/ceshu/reference'
 import { fieldStatusOf } from '@mobai/shared/ceshu/fields'
 import { countFieldStatuses, formatFieldStatusSummary } from '@mobai/shared/ceshu/fields'
-import { chapterFieldsForDoc, chapterLabelForDoc, computeChapterProgress, formatLocalTimestamp, getDocKind, isPlainObject, visibleChaptersForDoc } from '@mobai/shared/ceshu/model'
+import { chapterFieldsForDoc, chapterLabelForDoc, computeChapterProgress, formatLocalTimestamp, isPlainObject, isSoftwareDoc, visibleChaptersForDoc } from '@mobai/shared/ceshu/model'
 import {
   EMPTY_PLACEHOLDER,
   chapterDataForDocExport,
@@ -138,13 +138,13 @@ function reviewProgressLines(doc: CeshuDocument): string[] {
 export async function renderCeshuPptx(doc: CeshuDocument): Promise<Buffer> {
   const pptx = new PptxGenJS()
   pptx.layout = 'LAYOUT_WIDE'
-  pptx.title = getDocKind(doc) === 'application'
+  pptx.title = isSoftwareDoc(doc)
     ? (typeof doc.meta.project_name === 'string' && doc.meta.project_name.trim() ? doc.meta.project_name : '未命名软件设计文档')
     : asText(doc.meta.game_name) === EMPTY_PLACEHOLDER ? '未命名策划书' : String(doc.meta.game_name)
   pptx.author = 'GameEditorApp'
 
   const meta = doc.meta
-  const isApp = getDocKind(doc) === 'application'
+  const isApp = isSoftwareDoc(doc)
   const rawName = isApp
     ? (typeof meta.project_name === 'string' && meta.project_name.trim() ? meta.project_name : meta.game_name)
     : meta.game_name

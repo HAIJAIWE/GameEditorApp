@@ -192,11 +192,16 @@ AI 角色：产品经理 / 交互设计师 / 系统架构师 / 前端 / 后端 /
 - `CeshuSummary.docKind` 放宽到含 `ai`；`documentSpec.test.ts` 补 AI 独立性守卫（7 项）；
 - 游戏 / 应用：全量 4128 单测零回归。
 
-**待接（端到端仍走游戏分支，按应用档同样节奏后续推进）**：
-- 导出（docx / html / pptx / markdown / excel / narrative / onepage / handoff / tasks）里的 `getDocKind(doc) === 'application'` 判断需泛化为「非游戏」；
-- AI 提示词（`ceshuAi.ts` / `ceshuTaskPrompt.ts`）按 `ai` 取 `AI_*` 元数据；
-- 岗位（`ceshuTasks`）改用 `AI_ROLES` / `AI_ROLE_CHAPTERS`；
-- 首页档位筛选加「AI」按钮 + i18n；`AiFullGeneratePanel` / `CeshuOverview` / `CeshuView` 的档位判断。
+**第 2 步（已完成）——端到端接入**：
+- 新增 `isSoftwareDoc(doc)`（判据统一为「非游戏」），导出层 9 个文件（docx / html / pptx / markdown / excel / narrative / onepage / handoff / tasks）与 `export/common` 全部改用它，AI 文档按 SDD 口径导出；
+- `appHandoff.ts` 由写死 `APP_*` 改为按 `specForDoc(doc)` 取分区 / 标签 / agent / 岗位章，AI 交接包带上模型层四章，`index.json` 标 `docKind: ai`；
+- AI 提示词（`ceshuAi.ts` 的 agent / 单章 / 全量 / 反审、`ceshuTaskPrompt.ts`）按 `ai` 取 `AI_*` 元数据（角色、措辞、章序）；
+- 岗位（`ceshuTasks`）用 `AI_ROLES` / `AI_ROLE_CHAPTERS`；机读包 / 项目文件夹 / 完备度同按档位分派；
+- 首页档位筛选加「AI」按钮 + i18n；`AiFullGeneratePanel` / `CeshuOverview` / `CeshuView` 档位判断改「非游戏」；
+- 新增 `aiDoc.test.ts` 6 项端到端守卫（章表 / 章号 / 必填 / 读盘 / 保存保持档位 / 交接包含模型卡）；
+- 全量 **4134** 单测零回归。
+
+**仍待（后续）**：Excel 导出对 AI 的模型层四章可补独立 sheet（当前走软件通用表，不串章但未专列）；「新建时直接选档位」、阶段轴（方向 / 细节 / 试玩）泛化仍按矩阵口径后续推进。
 
 ---
 

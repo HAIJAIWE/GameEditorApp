@@ -3,7 +3,7 @@ import {
 } from '@mobai/shared/ceshu/reference'
 import { fieldStatusOf } from '@mobai/shared/ceshu/fields'
 import { countFieldStatuses, formatFieldStatusSummary } from '@mobai/shared/ceshu/fields'
-import { chapterFieldsForDoc, chapterLabelForDoc, computeChapterProgress, formatLocalTimestamp, getDocKind, visibleChaptersForDoc } from '@mobai/shared/ceshu/model'
+import { chapterFieldsForDoc, chapterLabelForDoc, computeChapterProgress, formatLocalTimestamp, isSoftwareDoc, visibleChaptersForDoc } from '@mobai/shared/ceshu/model'
 import { renderDocDiagrams } from '../content/diagrams'
 
 import {
@@ -29,7 +29,7 @@ import {
 
 export function renderCeshuHtml(doc: CeshuDocument): string {
   const today = formatLocalTimestamp().slice(0, 10)
-  const isApp = getDocKind(doc) === 'application'
+  const isApp = isSoftwareDoc(doc)
   const gameName = (isApp
     ? readString(doc.meta.project_name) || readString(doc.meta.game_name)
     : readString(doc.meta.game_name)) || (isApp ? '未命名软件设计文档' : '未命名策划书')
@@ -66,7 +66,7 @@ function renderHeader(doc: CeshuDocument, gameName: string, today: string): stri
   const platform = Array.isArray(doc.meta.platform)
     ? doc.meta.platform.filter((item): item is string => typeof item === 'string').join('、')
     : ''
-  const isAppDoc = getDocKind(doc) === 'application'
+  const isAppDoc = isSoftwareDoc(doc)
   const gameType = isAppDoc ? platform || EMPTY_PLACEHOLDER : readString(doc.meta.game_type) || EMPTY_PLACEHOLDER
   const positioning = readString(doc.meta.positioning) || EMPTY_PLACEHOLDER
   return [
@@ -87,7 +87,7 @@ function renderHeader(doc: CeshuDocument, gameName: string, today: string): stri
 function renderDiagrams(doc: CeshuDocument): string {
   // 核心循环 / 状态机 / 成长曲线都是游戏专属图示；应用档即使兼容底座里留着
   // 游戏章数据也不该在 SDD 里画出这些图。
-  if (getDocKind(doc) === 'application') return ''
+  if (isSoftwareDoc(doc)) return ''
   const { coreLoop, stateMachine, growthChart } = renderDocDiagrams(doc)
   if (coreLoop === null && stateMachine === null && growthChart === null) return ''
   const parts: string[] = ['<section class="diagrams">', '<h2>图示</h2>']

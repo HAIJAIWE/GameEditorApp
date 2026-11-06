@@ -21,7 +21,7 @@ import {
 } from '@mobai/shared/ceshu/reference'
 import { fieldStatusOf } from '@mobai/shared/ceshu/fields'
 import { countFieldStatuses, formatFieldStatusSummary } from '@mobai/shared/ceshu/fields'
-import { chapterFieldsForDoc, chapterLabelForDoc, computeChapterProgress, formatLocalTimestamp, getDocKind, isPlainObject, visibleChaptersForDoc } from '@mobai/shared/ceshu/model'
+import { chapterFieldsForDoc, chapterLabelForDoc, computeChapterProgress, formatLocalTimestamp, isPlainObject, isSoftwareDoc, visibleChaptersForDoc } from '@mobai/shared/ceshu/model'
 import {
   EMPTY_PLACEHOLDER,
   chapterDataForDocExport,
@@ -221,7 +221,7 @@ function renderMachineAppendix(doc: CeshuDocument): Array<Paragraph | Table> {
 /** docx 渲染器：返回文档 Buffer（写盘由上层 exporter 负责） */
 export async function renderCeshuDocx(doc: CeshuDocument): Promise<Buffer> {
   const meta = doc.meta
-  const isApp = getDocKind(doc) === 'application'
+  const isApp = isSoftwareDoc(doc)
   const rawName = isApp
     ? (typeof meta.project_name === 'string' && meta.project_name.trim() ? meta.project_name : meta.game_name)
     : meta.game_name

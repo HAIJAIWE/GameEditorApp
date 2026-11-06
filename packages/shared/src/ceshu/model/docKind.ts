@@ -27,3 +27,14 @@ export function getDocKind(doc: CeshuDocument): DocKind {
 export function needsGameDataEditor(doc: CeshuDocument): boolean {
   return getDocKind(doc) === 'game'
 }
+
+/**
+ * 是否「非游戏」软件类文档（应用 / AI）。
+ *
+ * 导出 / 交接包 / 岗位 / AI 提示词里有大量「游戏走一套、软件走另一套」的分支，
+ * 判据应统一为「不是游戏」而非「显式 == application」——否则 AI 档会悄悄落进游戏分支。
+ * 应用与 AI 的差异由章表分派（`chapterView` / `specForDoc`）承担，这里只分「软件 / 游戏」。
+ */
+export function isSoftwareDoc(doc: CeshuDocument): boolean {
+  return getDocKind(doc) !== 'game'
+}

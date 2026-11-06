@@ -5,7 +5,7 @@ import {
   type ChapterData,
   type ChapterKey
 } from '@mobai/shared/ceshu/reference'
-import { deriveRulesetId, formatLocalTimestamp, getDocKind, getGameType, getGddScope } from '@mobai/shared/ceshu/model'
+import { deriveRulesetId, formatLocalTimestamp, getGameType, getGddScope, isSoftwareDoc } from '@mobai/shared/ceshu/model'
 import {
   chapterHeading,
   classifySystems,
@@ -44,7 +44,7 @@ const MECHANIC_CHAPTERS: readonly ChapterKey[] = ['gameplay', 'combat', 'systems
 const NARRATIVE_CHAPTERS = new Set<ChapterKey>(['meta', 'vision', 'numeric', 'mvp', ...MECHANIC_CHAPTERS])
 
 export function renderCeshuNarrative(doc: CeshuDocument): string {
-  if (getDocKind(doc) === 'application') return renderAppNarrative(doc)
+  if (isSoftwareDoc(doc)) return renderAppNarrative(doc)
   const blocks = [
     renderHome(doc),
     renderWalkthrough(doc),

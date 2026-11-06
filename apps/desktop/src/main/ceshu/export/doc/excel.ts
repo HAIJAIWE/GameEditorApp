@@ -8,7 +8,7 @@ import {
   chapterFieldsForDoc,
   chapterLabelForDoc,
   computeChapterProgress,
-  getDocKind,
+  isSoftwareDoc,
   isPlainObject,
   visibleChaptersForDoc
 } from '@mobai/shared/ceshu/model'
@@ -40,7 +40,7 @@ type CellValue = string | number | boolean | null
 
 /** 构建工作簿（纯内存，便于单测直接断言单元格） */
 export function buildExcelWorkbook(doc: CeshuDocument): ExcelJS.Workbook {
-  if (getDocKind(doc) === 'application') return buildAppExcelWorkbook(doc)
+  if (isSoftwareDoc(doc)) return buildAppExcelWorkbook(doc)
   const workbook = new ExcelJS.Workbook()
   writeOverviewSheet(workbook, doc)
   writeSystemsSheet(workbook, doc)

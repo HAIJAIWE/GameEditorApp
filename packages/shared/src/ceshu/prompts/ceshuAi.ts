@@ -36,6 +36,38 @@ import {
   APP_SYSTEM_DOC_NOUN,
   appChapterAi
 } from '../../appSchema'
+import {
+  AI_AGENT_DISPLAY,
+  AI_AGENT_PROMPTS,
+  AI_CHAPTER_LABELS,
+  AI_NUMBERED_KEYS,
+  AI_REVIEW_ROLE_NOUN,
+  AI_SYSTEM_DOC_NOUN,
+  aiChapterAi
+} from '../../aiSchema'
+
+/** 软件档（应用 / AI）共用取数：差异只在章表 / 角色 / 措辞，分支收口在此 */
+function softwareLabels(kind: DocKind): Readonly<Record<string, string>> {
+  return kind === 'ai' ? AI_CHAPTER_LABELS : APP_CHAPTER_LABELS
+}
+function softwareAgentPrompts(kind: DocKind): Readonly<Record<string, string>> {
+  return kind === 'ai' ? AI_AGENT_PROMPTS : APP_AGENT_PROMPTS
+}
+function softwareAgentDisplay(kind: DocKind): Readonly<Record<string, string>> {
+  return kind === 'ai' ? AI_AGENT_DISPLAY : APP_AGENT_DISPLAY
+}
+function softwareChapterAi(kind: DocKind, chapter: string): { agentId: string; aiHint: string } {
+  return kind === 'ai' ? aiChapterAi(chapter) : appChapterAi(chapter)
+}
+function softwareDocNoun(kind: DocKind): string {
+  return kind === 'ai' ? AI_SYSTEM_DOC_NOUN : APP_SYSTEM_DOC_NOUN
+}
+function softwareReviewRole(kind: DocKind): string {
+  return kind === 'ai' ? AI_REVIEW_ROLE_NOUN : APP_REVIEW_ROLE_NOUN
+}
+function softwareOrder(kind: DocKind): readonly string[] {
+  return kind === 'ai' ? AI_NUMBERED_KEYS : APP_CHAPTER_KEYS
+}
 import { readText } from '../../util/io'
 import { parseLlmJson } from '../../util/object'
 import {
@@ -96,16 +128,19 @@ export function agentForChapter(chapter: ChapterKey): ChapterAgent {
  *   生成要求，展示名/角色提示语来自 `APP_AGENT_DISPLAY/PROMPTS`。
  */
 export function agentForDocChapter(doc: CeshuDocument, chapter: string): ChapterAgent {
-  if (getDocKind(doc) !== 'application') return agentForChapter(chapter as ChapterKey)
-  const meta = appChapterAi(chapter)
-  const agentId = meta.agentId
-  const rolePrompt = APP_AGENT_PROMPTS[agentId] ?? '请协助完善当前章节内容。'
-  const chapterHint = meta.aiHint
-  return {
-    agentId,
-    displayName: APP_AGENT_DISPLAY[agentId] ?? agentId,
-    agentPrompt: chapterHint === '' ? rolePrompt : `${rolePrompt}\n本章生成要求：${chapterHint}`
+  const kind = getDocKind(doc)
+  if (kind !== 'game') {
+    const meta = softwareChapterAi(kind, chapter)
+    const agentId = meta.agentId
+    const rolePrompt = softwareAgentPrompts(kind)[agentId] ?? '请协助完善当前章节内容。'
+    const chapterHint = meta.aiHint
+    return {
+      agentId,
+      displayName: softwareAgentDisplay(kind)[agentId] ?? agentId,
+      agentPrompt: chapterHint === '' ? rolePrompt : `${rolePrompt}\n本章生成要求：${chapterHint}`
+    }
   }
+  return agentForChapter(chapter as ChapterKey)
 }
 
 export function getStyleGlossary(style: string): string {
@@ -165,7 +200,8 @@ export function buildChapterPrompt(
   const onlyFields = options.onlyFields
   // 游戏分支的每一段文本都保持原样（逐字节零回归）；应用分支改走规格的
   // 角色 / 措辞 / 字段表 / 写作规范。所有分派都在这里收口，不散到下游。
-  const isApp = getDocKind(doc) === 'application'
+  const docKind = getDocKind(doc)
+  const isApp = docKind !== 'game'
   const agent = agentForDocChapter(doc, chapter)
   const chapterData = chapterDataForDoc(doc, chapter)
   const allKeys = chapterGenerationKeys(doc, chapter, chapterData)
@@ -218,7 +254,7 @@ export function buildChapterPrompt(
 
   // 章名：游戏档沿用章 key（system / 导语里的原文不能变），应用档用规格的中文标签
   const chapterName = isApp ? chapterLabelForDoc(doc, chapter) : chapter
-  const docNoun = isApp ? APP_SYSTEM_DOC_NOUN : '游戏策划书'
+  const docNoun = isApp ? softwareDocNoun(docKind) : '游戏策划书'
   const docWord = isApp ? docNoun : '策划书'
 
   const system =
@@ -450,12 +486,13 @@ export function buildFullGeneratePlan(
   const input = normalizeFullGenerateInput(raw)
   // 应用档：SDD 全章表，不做游戏档的 lite/market/risk 裁剪，也不写游戏风格/品类 key。
   // 游戏档（docKind 缺省）走原来的 buildChapterOrder 路径，逐字节零回归。
-  if (options.docKind === 'application') {
-    const order: readonly string[] = [...APP_CHAPTER_KEYS]
+  if (options.docKind === 'application' || options.docKind === 'ai') {
+    const kind = options.docKind
+    const order: readonly string[] = [...softwareOrder(kind)]
     return {
       scope: options.scope,
       order,
-      chapterPrompts: buildChapterPrompts(input, order, 'application'),
+      chapterPrompts: buildChapterPrompts(input, order, kind),
       metaSeed: buildAppMetaSeed(input),
       styleKey: '',
       typeKey: ''
@@ -575,15 +612,19 @@ export function buildChapterPrompts(
   order: readonly string[],
   docKind?: DocKind
 ): Readonly<Record<string, string>> {
-  const isApp = docKind === 'application'
+  const kind: DocKind = docKind ?? 'game'
+  const isApp = kind !== 'game'
   const userInputText = (isApp ? buildAppUserInputLines(input) : buildUserInputLines(input)).join('\n')
-  // 风格术语表 / 品类关键词 / 平台·商业硬约束全是游戏口径，应用档不下发这一整块。
+  // 风格术语表 / 品类关键词 / 平台·商业硬约束全是游戏口径，软件档不下发这一整块。
   const keywordBlock = isApp ? '' : buildKeywordConstraintBlock(input)
   const prompts: Record<string, string> = {}
+  const labels = isApp ? softwareLabels(kind) : undefined
+  const agentPrompts = isApp ? softwareAgentPrompts(kind) : undefined
   for (const chapter of order) {
-    const label = isApp ? APP_CHAPTER_LABELS[chapter] : CHAPTER_LABELS[chapter as ChapterKey]
-    const requirement = isApp
-      ? [APP_AGENT_PROMPTS[appChapterAi(chapter).agentId], appChapterAi(chapter).aiHint]
+    const label = isApp ? (labels?.[chapter] ?? chapter) : CHAPTER_LABELS[chapter as ChapterKey]
+    const meta = isApp ? softwareChapterAi(kind, chapter) : undefined
+    const requirement = isApp && meta !== undefined
+      ? [agentPrompts?.[meta.agentId], meta.aiHint]
           .filter((part) => part !== undefined && part !== '')
           .join('\n')
       : CHAPTER_GENERATION_HINTS[chapter as ChapterKey]
@@ -697,7 +738,7 @@ export function buildReviewSummary(doc: CeshuDocument): string {
   const parts: string[] = []
   // 游戏档保持 CHAPTER_KEYS / CHAPTER_LABELS / doc[key] 原路径（逐字节零回归）；
   // 应用档遍历自己的可见章，否则只能看到共用的 meta 段，反审会拿到一份空摘要。
-  const isApp = getDocKind(doc) === 'application'
+  const isApp = getDocKind(doc) !== 'game'
   const keys: readonly string[] = isApp ? visibleChaptersForDoc(doc) : CHAPTER_KEYS
   for (const key of keys) {
     const chapterData: unknown = isApp ? chapterDataForDoc(doc, key) : doc[key as ChapterKey]
@@ -724,9 +765,10 @@ export function buildReviewPrompts(
    * 检查项样例从 ADVERSARIAL_CHECK_KEYS / LABELS 派生，追问从 reviewProbeFor(品类) 取：
    * 新增/改名一项只改 ceshuAiData 一处，提示词与面板自动跟上——避免双处维护。
    */
-  const isApp = getDocKind(doc) === 'application'
+  const docKind = getDocKind(doc)
+  const isApp = docKind !== 'game'
   const genre = genreReviewProfile(getGameType(doc))
-  const reviewRole = isApp ? APP_REVIEW_ROLE_NOUN : '资深游戏策划'
+  const reviewRole = isApp ? softwareReviewRole(docKind) : '资深游戏策划'
   const checkLines = ADVERSARIAL_CHECK_KEYS.map(
     (key, index) =>
       `    {"key":"${key}","label":"${ADVERSARIAL_CHECK_LABELS[key]}","level":"pass|suggestion|blocker","evidence":"依据：引用文档里的哪句话/哪个数字，或说明未发现问题"}${
@@ -742,7 +784,7 @@ export function buildReviewPrompts(
   const system = [
     `你是${reviewRole}，正在对一份**成稿**做反审（审查与写作分离）：不要框「好不好」，只回答「有没有必须修的」。`,
     isApp
-      ? `文档类型：${APP_SYSTEM_DOC_NOUN}。以下每一项按下面的追问重点核查，结论只能是 pass / suggestion / blocker 三选一：`
+      ? `文档类型：${softwareDocNoun(docKind)}。以下每一项按下面的追问重点核查，结论只能是 pass / suggestion / blocker 三选一：`
       : `本品类：${genre.label}。以下每一项按本品类的追问重点核查，结论只能是 pass / suggestion / blocker 三选一：`,
     isApp
       ? '  · blocker = 存在必须修的问题（接口契约不一致、状态机不闭合、指标口径冲突、跨章结论矛盾）'
@@ -761,13 +803,13 @@ export function buildReviewPrompts(
   ].join('\n')
 
   const prompt =
-    `请对以下${isApp ? APP_SYSTEM_DOC_NOUN : '策划书'}做 ${ADVERSARIAL_CHECK_KEYS.length} 项成稿反审。逐项按下面的追问核查：\n\n` +
+    `请对以下${isApp ? softwareDocNoun(docKind) : '策划书'}做 ${ADVERSARIAL_CHECK_KEYS.length} 项成稿反审。逐项按下面的追问核查：\n\n` +
     `${probeLines.join('\n')}\n\n` +
-    `【待审${isApp ? APP_SYSTEM_DOC_NOUN : '策划书'}】\n${buildReviewSummary(doc)}\n\n` +
+    `【待审${isApp ? softwareDocNoun(docKind) : '策划书'}】\n${buildReviewSummary(doc)}\n\n` +
     `完成进度: ${Math.round(input.progressTotal * 100)}%\n` +
     `内置校验问题数: ${input.validationCount}\n` +
     (isApp
-      ? `文档类型: ${APP_SYSTEM_DOC_NOUN}（按软件设计口径反审）, 目标平台: ${
+      ? `文档类型: ${softwareDocNoun(docKind)}（按软件设计口径反审）, 目标平台: ${
           Array.isArray(doc.meta.platform) ? doc.meta.platform.join('、') : '未指定'
         }\n` +
         `规则集标识: ${deriveRulesetId(doc)}（接口契约/数据模型/测试用例/原型应引用同一标识）`
@@ -822,11 +864,12 @@ export function parseReviewResponse(content: string): CeshuReviewPayload {
  * 提示词里下发的追问**逐字一致**（同源于 `reviewProbeFor`）。
  */
 export function finalizeReview(payload: CeshuReviewPayload, doc: CeshuDocument): CeshuReviewPayload {
-  const isApp = getDocKind(doc) === 'application'
+  const docKind = getDocKind(doc)
+  const isApp = docKind !== 'game'
   const genre = genreReviewProfile(getGameType(doc))
   return {
     ...payload,
-    genreLabel: isApp ? APP_SYSTEM_DOC_NOUN : genre.label,
+    genreLabel: isApp ? softwareDocNoun(docKind) : genre.label,
     rulesetId: deriveRulesetId(doc),
     findings: payload.findings.map((finding) => ({
       ...finding,

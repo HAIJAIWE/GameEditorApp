@@ -412,7 +412,7 @@ export default function CeshuView({
    * 但**始终保留当前章**——否则从校验报告/评审队列跳过来时右侧会空白。
    */
   const visibleByStage =
-    stageFilter === 'all' || getDocKind(doc) === 'application'
+    stageFilter === 'all' || getDocKind(doc) !== 'game'
       ? visible
       : visible.filter((key) => isChapterVisibleInStage(key as ChapterKey, stageFilter) || key === activeChapter)
   /**

@@ -44,8 +44,8 @@ export * from './ceshuReadinessData'
 
 /** 该章在该文档下是否参与完备度（品类适用 + 模块启用）——与可见章口径一致 */
 function chapterCounts(chapter: string, doc: CeshuDocument, gameType: string): boolean {
-  // 品类 / 系统模块是游戏概念，应用档不做这两层过滤（章表已由规格决定）
-  if (getDocKind(doc) === 'application') return true
+  // 品类 / 系统模块是游戏概念，软件档（应用 / AI）不做这两层过滤（章表已由规格决定）
+  if (getDocKind(doc) !== 'game') return true
   const key = chapter as ChapterKey
   return chapterApplicableToGenre(key, gameType) && isChapterEnabled(key, doc)
 }

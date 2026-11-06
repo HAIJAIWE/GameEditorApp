@@ -16,7 +16,7 @@ import { HANDOFF_VOLUMES } from '@mobai/shared/ceshu/workflow'
 import type { DataTypeDef, ItemRecord } from '@mobai/shared/types'
 import { buildJsonSnapshot } from '../../../data/snapshotExport'
 
-import { getDocKind } from '@mobai/shared/ceshu/model'
+import { isSoftwareDoc } from '@mobai/shared/ceshu/model'
 import { renderCeshuBundleJson } from './bundle'
 import { renderCeshuMarkdown } from '../doc/markdown'
 import { buildAppHandoffFiles } from './appHandoff'
@@ -64,7 +64,7 @@ export interface HandoffExtras {
 export function buildHandoffFiles(doc: CeshuDocument, extras: HandoffExtras): Record<string, string> {
   // 应用档走 SDD 章节式交接包：游戏的 7 卷 11 文档分卷 / 品类裁剪 / 11 个游戏角色
   // 对软件设计毫无意义，硬套只会产出「伤害公式」式假内容。游戏档完全走下面的原路径。
-  if (getDocKind(doc) === 'application') return buildAppHandoffFiles(doc, extras)
+  if (isSoftwareDoc(doc)) return buildAppHandoffFiles(doc, extras)
 
   const files: Record<string, string> = {}
 
@@ -111,7 +111,7 @@ export function buildHandoffFiles(doc: CeshuDocument, extras: HandoffExtras): Re
 
 /** 目录名：`<项目名>-交接包`（去掉文件名非法字符，空名回退） */
 export function handoffFolderName(doc: CeshuDocument): string {
-  const isApp = getDocKind(doc) === 'application'
+  const isApp = isSoftwareDoc(doc)
   const raw = isApp
     ? String(doc.meta.project_name ?? '').trim() || String(doc.meta.game_name ?? '').trim()
     : String(doc.meta.game_name ?? '').trim()

@@ -15,10 +15,10 @@ import {
   chapterDataForDoc,
   chapterFieldsForDoc,
   chapterLabelForDoc,
-  getDocKind,
   getGameType,
   getGddScope,
   isPlainObject,
+  isSoftwareDoc,
   visibleChaptersForDoc
 } from '@mobai/shared/ceshu/model'
 import { splitRow, toRows } from '@mobai/shared/ceshu/workflow'
@@ -227,7 +227,8 @@ export interface DocChapterEntry {
 }
 
 function isAppDoc(doc: CeshuDocument): boolean {
-  return getDocKind(doc) === 'application'
+  // AI 档也走 SDD 式章节/字段导出，故判据为「非游戏」而非「显式 == application」
+  return isSoftwareDoc(doc)
 }
 
 /** 字段定义：游戏档 CESHU_CHAPTER_FIELDS / 应用档 APP_CHAPTER_FIELDS */

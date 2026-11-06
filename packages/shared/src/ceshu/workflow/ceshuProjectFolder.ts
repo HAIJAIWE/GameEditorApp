@@ -212,8 +212,9 @@ export function projectFilesToDoc(files: Record<string, string>): CeshuDocument 
   const rawConfig = files['config.json'] !== undefined
     ? (JSON.parse(files['config.json']) as Record<string, unknown>)
     : {}
-  const isApp = rawConfig.doc_kind === 'application'
-  const doc = createDefaultCeshu({ scope: 'full', docKind: isApp ? 'application' : 'game' })
+  const rawKind = rawConfig.doc_kind
+  const docKind = rawKind === 'ai' ? 'ai' : rawKind === 'application' ? 'application' : 'game'
+  const doc = createDefaultCeshu({ scope: 'full', docKind })
   const chapterKeysOfDoc = new Set<string>(visibleChaptersForDoc(doc))
 
   if (files['config.json'] !== undefined) {
@@ -224,7 +225,7 @@ export function projectFilesToDoc(files: Record<string, string>): CeshuDocument 
     }
     if (Array.isArray(config.platform)) meta.platform = config.platform
     // 老导出的文件夹没有 doc_kind ⇒ 保留 createDefaultCeshu 的 'game'（向后兼容）
-    if (config.doc_kind === 'game' || config.doc_kind === 'application') meta.doc_kind = config.doc_kind
+    if (config.doc_kind === 'game' || config.doc_kind === 'application' || config.doc_kind === 'ai') meta.doc_kind = config.doc_kind
     if (config.gdd_scope === 'lite' || config.gdd_scope === 'full') meta.gdd_scope = config.gdd_scope
     if (Array.isArray(config.enabled_modules)) meta.enabled_modules = config.enabled_modules
 

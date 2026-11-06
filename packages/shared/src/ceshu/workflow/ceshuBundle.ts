@@ -12,6 +12,7 @@ import {
 import { resolveFieldMeta } from '../fields'
 import { fieldStatusOf } from '../fields'
 import { APP_CHAPTER_KEYS } from '../../appSchema'
+import { AI_CHAPTER_KEYS } from '../../aiSchema'
 import { validateCeshu } from '../validation'
 
 /**
@@ -94,7 +95,8 @@ export function buildCeshuBundle(doc: CeshuDocument, options: BuildBundleOptions
   const visible = new Set(visibleChaptersForDoc(doc))
   // 章序表按档位分派：游戏档沿用 CHAPTER_KEYS（index = 全局位置 +1，逐字节零回归）；
   // 应用档用 SDD 章表（章号连续、独立命名空间）。两边都只用 visible 过滤实际参与的章。
-  const chapterKeys: readonly string[] = getDocKind(doc) === 'application' ? APP_CHAPTER_KEYS : CHAPTER_KEYS
+  const bundleKind = getDocKind(doc)
+  const chapterKeys: readonly string[] = bundleKind === 'application' ? APP_CHAPTER_KEYS : bundleKind === 'ai' ? AI_CHAPTER_KEYS : CHAPTER_KEYS
   const chapters: CeshuBundleChapter[] = []
   for (const [position, key] of chapterKeys.entries()) {
     if (!visible.has(key)) continue

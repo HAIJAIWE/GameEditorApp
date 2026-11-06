@@ -5,7 +5,7 @@ import {
   chapterFieldsForDoc,
   chapterLabelForDoc,
   formatLocalTimestamp,
-  getDocKind,
+  isSoftwareDoc,
   visibleChaptersForDoc
 } from '@mobai/shared/ceshu/model'
 import { validateCeshu } from '@mobai/shared/ceshu/validation'
@@ -69,7 +69,7 @@ export function renderCeshuDeliverableMarkdown(doc: CeshuDocument): string {
 
 /** 文档头部：标题 + 元信息引用块 */
 function renderHeader(doc: CeshuDocument, today: string): string {
-  const isApp = getDocKind(doc) === 'application'
+  const isApp = isSoftwareDoc(doc)
   const rawName = isApp
     ? readString(doc.meta.project_name) || readString(doc.meta.game_name)
     : readString(doc.meta.game_name)
