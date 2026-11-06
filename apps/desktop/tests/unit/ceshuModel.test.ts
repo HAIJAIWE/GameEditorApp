@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { CHAPTER_KEYS, type CeshuDocument } from '@mobai/shared/ceshu/reference'
+import { CHAPTER_KEYS, TEMPLATE_VERSION, type CeshuDocument } from '@mobai/shared/ceshu/reference'
 import {
   computeChapterProgress,
   computeEnabledEditors,
@@ -11,6 +11,7 @@ import {
   isFilledValue,
   normalizeCeshu,
   resolveDocGameStyle,
+  templateVersionForDoc,
   withChapter
 } from '@mobai/shared/ceshu/model'
 
@@ -27,6 +28,7 @@ describe('策划书模型（W3 第一切片）', () => {
     expect(Object.values(doc.systems).every((entry) => (entry as { enabled: boolean }).enabled === false)).toBe(true)
     expect(doc.meta.gdd_scope).toBe('full')
     expect(doc.meta.version).toBe('0.1.0')
+    expect(doc.meta.template_version).toBe(TEMPLATE_VERSION)
     expect(doc.enabled_editors).toEqual([])
     for (const key of CHAPTER_KEYS) {
       expect(doc[key]).toBeTypeOf('object')
@@ -66,6 +68,8 @@ describe('策划书模型（W3 第一切片）', () => {
     expect((doc as unknown as Record<string, unknown>).custom_future_key).toEqual({ foo: 1 })
     expect(doc.enabled_editors).toHaveLength(1)
     expect(getGddScope(doc)).toBe('full')
+    // 老文档没有 template_version ⇒ 读盘补齐为当前模板版本
+    expect(doc.meta.template_version).toBe(TEMPLATE_VERSION)
   })
 
   it('normalizeCeshu：缺失 gdd_scope 时档位回退为 full', () => {
@@ -165,6 +169,48 @@ describe('策划书模型（W3 第一切片）', () => {
     expect(isEmptyRequiredValue([])).toBe(true)
     expect(isEmptyRequiredValue(0)).toBe(true)
     expect(isEmptyRequiredValue('x')).toBe(false)
+  })
+})
+
+describe('template_version：模板版本写入 / 读盘补齐 / 读取兜底', () => {
+  it('createDefaultCeshu：游戏与应用档都写入当前模板版本', () => {
+    expect(createDefaultCeshu({ scope: 'full' }).meta.template_version).toBe(TEMPLATE_VERSION)
+    expect(createDefaultCeshu({ scope: 'full', docKind: 'application' }).meta.template_version).toBe(TEMPLATE_VERSION)
+  })
+
+  it('normalizeCeshu：老文档缺失 template_version 时补齐', () => {
+    const doc = normalizeCeshu({ meta: { game_name: '旧策划书' } })
+    expect(doc.meta.template_version).toBe(TEMPLATE_VERSION)
+  })
+
+  it('normalizeCeshu：已有 template_version 时原样保留（不覆盖）', () => {
+    const doc = normalizeCeshu({ meta: { game_name: '旧策划书', template_version: '2025.01' } })
+    expect(doc.meta.template_version).toBe('2025.01')
+  })
+
+  it('normalizeCeshu：template_version 非字符串（脏值）时补齐为当前版本', () => {
+    const doc = normalizeCeshu({ meta: { game_name: '旧策划书', template_version: 123 } })
+    expect(doc.meta.template_version).toBe(TEMPLATE_VERSION)
+  })
+
+  it('templateVersionForDoc：读到文档值；缺失 / 空串 / 非字符串时回落到当前版本', () => {
+    const doc = createDefaultCeshu({ scope: 'full' })
+    expect(templateVersionForDoc(doc)).toBe(TEMPLATE_VERSION)
+
+    doc.meta.template_version = '2024.09'
+    expect(templateVersionForDoc(doc)).toBe('2024.09')
+
+    doc.meta.template_version = ''
+    expect(templateVersionForDoc(doc)).toBe(TEMPLATE_VERSION)
+
+    doc.meta.template_version = 42
+    expect(templateVersionForDoc(doc)).toBe(TEMPLATE_VERSION)
+  })
+
+  it('withChapter：meta 保存时缺失 template_version 保留旧值（系统字段不被清空）', () => {
+    const doc = createDefaultCeshu({ scope: 'full' })
+    const saved = withChapter(doc, 'meta', { game_name: '新名字' })
+    expect(saved.meta.template_version).toBe(TEMPLATE_VERSION)
   })
 })
 

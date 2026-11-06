@@ -2,6 +2,7 @@ import {
   CHAPTER_KEYS,
   GDD_SCOPE_FULL,
   SYSTEM_LABELS,
+  TEMPLATE_VERSION,
   contentChapterCount,
   enabledModuleChapters,
   isChapterKey,
@@ -62,6 +63,9 @@ export function createDefaultCeshu(options: {
     chapters.meta.doc_kind = 'application'
     if (options.name) chapters.meta.project_name = options.name
   }
+  // 模板版本：新建文档写入，对齐 documentSpec 中 GAME_SPEC / APP_SPEC 的 version。
+  // 作为系统控制字段（非用户可编辑内容），落盘时不进 meta 表单 schema，避免用户/AI 误改。
+  chapters.meta.template_version = TEMPLATE_VERSION
   const doc: CeshuDocument = {
     version: '5.0',
     ceshu_id: createCeshuId(),
@@ -166,6 +170,16 @@ export function normalizeCeshu(raw: unknown): CeshuDocument {
       for (const key of legacy) delete baseRecord[key]
     }
   }
+  /*
+   * 一次性补齐：老文档没有 `meta.template_version` 字段时，读盘补上 `TEMPLATE_VERSION`。
+   * 与上面各迁移块不同，这里不是「旧值转换」而是「缺失给默认」，下次保存即固化。
+   */
+  {
+    const metaRecord = base.meta as Record<string, unknown>
+    if (typeof metaRecord.template_version !== 'string' || metaRecord.template_version === '') {
+      metaRecord.template_version = TEMPLATE_VERSION
+    }
+  }
   // ruleset_id 由上面的「未知键保留」循环带过来（它不是 base 的属性）；派生值不在
   // 这里现算——否则老文档一保存就被塞进派生结果，用户改 ceshu_id 时旧值会诈尸成「显式值」
   return base
@@ -184,6 +198,23 @@ export function getGddScope(doc: CeshuDocument): GddScope {
 export function getGameType(doc: CeshuDocument): string {
   const meta = doc.meta
   return isPlainObject(meta) && typeof meta.game_type === 'string' ? meta.game_type : ''
+}
+
+/**
+ * 读取文档的模板版本（`meta.template_version`）。
+ *
+ * 新建文档由 `createDefaultCeshu` 写入、老文档由 `normalizeCeshu` 读盘补齐，故正常文档
+ * 已带该字段；本函数只做「读取 + 兜底」：缺失 / 非法时回落到 `TEMPLATE_VERSION`
+ * （当前 spec 版本），保证调用方永远拿到有效值，不至于渲染出 `undefined`。
+ *
+ * 放在 `ceshuModel` 而非 `docKind` 的原因：`docKind` 是零运行时依赖的叶子模块
+ * （为切断 `ceshuModel ↔ chapterView` 环），不能引入 `reference` 的运行时值；
+ * 而本模块本就同时依赖 `reference` 与 `docKind`。
+ */
+export function templateVersionForDoc(doc: CeshuDocument): string {
+  const meta = doc.meta
+  const raw = isPlainObject(meta) ? meta.template_version : undefined
+  return typeof raw === 'string' && raw !== '' ? raw : TEMPLATE_VERSION
 }
 
 // 档位判定已抽到 `./docKind`（切断 ceshuModel ↔ chapterView 循环），此处 re-export 保持 API 不变
@@ -312,11 +343,23 @@ export function withChapter(doc: CeshuDocument, chapter: string, data: ChapterDa
   if (chapter === 'meta') {
     const scope = doc.meta.gdd_scope
     const withScope = isGddScope(scope) && data.gdd_scope === undefined ? { ...data, gdd_scope: scope } : data
-    const nextKind = withScope.doc_kind
+    /*
+     * `template_version` 同为**系统控制字段**（模板版本锚点，见 `TEMPLATE_VERSION`）：
+     * AI 整章生成与表单都不会产出它。这里在缺失 / 非法时保留旧值，避免整章生成、
+     * 旧版表单保存或第三方写入把版本号清空——那会让「老文档按当前模板读」的判定悄悄失效。
+     */
+    const prevVersion = doc.meta.template_version
+    const withVersion =
+      typeof withScope.template_version === 'string' && withScope.template_version !== ''
+        ? withScope
+        : typeof prevVersion === 'string' && prevVersion !== ''
+          ? { ...withScope, template_version: prevVersion }
+          : withScope
+    const nextKind = withVersion.doc_kind
     next.meta =
       nextKind === 'game' || nextKind === 'application'
-        ? withScope
-        : { ...withScope, doc_kind: getDocKind(doc) }
+        ? withVersion
+        : { ...withVersion, doc_kind: getDocKind(doc) }
   } else {
     // 应用章不在 CeshuDocument 的编译期章表里，走宽松索引写入
     ;(next as unknown as Record<string, ChapterData>)[chapter] = data

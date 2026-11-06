@@ -61,6 +61,9 @@ export const NUMBERED_CHAPTER_KEYS: readonly NumberedChapterKey[] = CHAPTER_PART
 
 export const CHAPTER_KEYS: readonly ChapterKey[] = [META_CHAPTER_KEY, ...NUMBERED_CHAPTER_KEYS]
 
+/** 模板版本：与 `documentSpec` 中 GAME_SPEC / APP_SPEC 的 version 保持一致。新建文档写入 meta.template_version，老文档读盘补齐 */
+export const TEMPLATE_VERSION = '2026.11'
+
 /** 章节中文名（`CHAPTER_LABELS` 与章号由它 + 数组位置派生） */
 export const CHAPTER_NAMES: Record<ChapterKey, string> = {
   meta: '文档信息',

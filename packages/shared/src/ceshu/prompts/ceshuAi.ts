@@ -136,6 +136,15 @@ export function getStyleGlossary(style: string): string {
 /* ---- 整章提示词组装 ---- */
 
 /**
+ * 系统控制字段：只由数据层写入（如模板版本锚点），AI 整章生成时**不得列入字段清单**。
+ * 否则模型会试图编造 / 改动系统元数据；`template_version` 尤其——它是文档格式的锚点，
+ * 被 AI 改写会让「老文档按新模板读」的判定失效。
+ * 与 `doc_kind` 不同：后者在字段表里（AI 可见、写盘由 `withChapter` 守卫），
+ * 本集合里的键连字段表都不进。
+ */
+const NON_AI_GENERATED_KEYS: ReadonlySet<string> = new Set(['template_version'])
+
+/**
  * 整章生成的字段清单 = **字段表（schema，权威）∪ 文档数据键**（点路径键取首段）。
  *
  * ⚠️ 不能只用 `Object.keys(chapterData)`：doc 数据来自 defaults，**可选字段与
@@ -145,13 +154,15 @@ export function getStyleGlossary(style: string): string {
  * 生成清单必须以它为准；解析侧 `filterGeneratedFields` 早已是同一套并集逻辑，
  * 此处对齐。点路径取首段（user_personas.primary → user_personas）与数据键的
  * 嵌套对象形态对齐。
+ *
+ * 末位剔除 `NON_AI_GENERATED_KEYS`（系统控制字段）：它们随数据键进并集，但不该被生成。
  */
 function chapterGenerationKeys(doc: CeshuDocument, chapter: string, chapterData: Record<string, unknown>): string[] {
   const merged: string[] = chapterFieldsForDoc(doc, chapter).map((field) => field.key.split('.')[0])
   for (const key of Object.keys(chapterData)) {
     if (!merged.includes(key)) merged.push(key)
   }
-  return merged
+  return merged.filter((key) => !NON_AI_GENERATED_KEYS.has(key))
 }
 
 export interface ChapterPromptResult {
