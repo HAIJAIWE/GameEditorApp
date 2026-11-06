@@ -1,26 +1,22 @@
 import PptxGenJS from 'pptxgenjs'
 
 import {
-  CHAPTER_KEYS,
-  CHAPTER_LABELS,
   SYSTEM_LABELS,
-  enabledModuleChapters,
   type CeshuDocument,
   type ChapterData,
-  type ChapterKey
 } from '@mobai/shared/ceshu/reference'
 import { fieldStatusOf } from '@mobai/shared/ceshu/fields'
 import { countFieldStatuses, formatFieldStatusSummary } from '@mobai/shared/ceshu/fields'
-import { CESHU_CHAPTER_FIELDS } from '@mobai/shared/ceshu/fields'
-import { computeChapterProgress, formatLocalTimestamp, getGameType, getGddScope, isPlainObject } from '@mobai/shared/ceshu/model'
+import { chapterFieldsForDoc, chapterLabelForDoc, computeChapterProgress, formatLocalTimestamp, getDocKind, isPlainObject, visibleChaptersForDoc } from '@mobai/shared/ceshu/model'
 import {
   EMPTY_PLACEHOLDER,
-  chapterHeading,
+  chapterDataForDocExport,
+  chapterHeadingForDoc,
   classifySystems,
-  fieldLabel,
+  fieldLabelForDoc,
   formatFieldValue,
-  orderedFieldEntries,
-  visibleChapterEntries
+  orderedFieldEntriesForDoc,
+  visibleChapterEntriesForDoc
 } from '../common'
 
 /**
@@ -52,13 +48,13 @@ function systemName(sysId: string, sysData: ChapterData): string {
 }
 
 /** 普通章节正文：字段名一行 + 多行值（bullet 用 "• "） */
-function chapterBodyText(key: ChapterKey, data: ChapterData): string {
-  const fields = orderedFieldEntries(key, data)
+function chapterBodyText(doc: CeshuDocument, key: string, data: ChapterData): string {
+  const fields = orderedFieldEntriesForDoc(doc, key, data)
   if (fields.length === 0) return '(本章暂无内容)'
 
   const lines: string[] = []
   for (const [fieldKey, value] of fields) {
-    lines.push(`${fieldLabel(key, fieldKey)}:`)
+    lines.push(`${fieldLabelForDoc(doc, key, fieldKey)}:`)
     const formatted = formatFieldValue(value, { bullet: '• ' })
     for (const line of formatted.split('\n')) {
       if (line.trim() === '') continue
@@ -125,14 +121,14 @@ function systemsConfigSummary(data: ChapterData): string {
 function reviewProgressLines(doc: CeshuDocument): string[] {
   const total = { ai_draft: 0, human_edited: 0, approved: 0 }
   const pendingChapters: string[] = []
-  for (const chapter of CHAPTER_KEYS) {
-    const counts = countFieldStatuses(fieldStatusOf(doc.meta, chapter), CESHU_CHAPTER_FIELDS[chapter] ?? [])
+  for (const chapter of visibleChaptersForDoc(doc)) {
+    const counts = countFieldStatuses(fieldStatusOf(doc.meta, chapter), chapterFieldsForDoc(doc, chapter))
     total.ai_draft += counts.ai_draft
     total.human_edited += counts.human_edited
     total.approved += counts.approved
     // 只列还有待审的章：已批准/人改的章不需要催人
     if (counts.ai_draft > 0) {
-      pendingChapters.push(`${CHAPTER_LABELS[chapter]}：${counts.ai_draft} 待审`)
+      pendingChapters.push(`${chapterLabelForDoc(doc, chapter)}：${counts.ai_draft} 待审`)
     }
   }
   return [`全文档：${formatFieldStatusSummary(total) || '无审核记录'}`, ...pendingChapters]
@@ -142,13 +138,24 @@ function reviewProgressLines(doc: CeshuDocument): string[] {
 export async function renderCeshuPptx(doc: CeshuDocument): Promise<Buffer> {
   const pptx = new PptxGenJS()
   pptx.layout = 'LAYOUT_WIDE'
-  pptx.title = asText(doc.meta.game_name) === EMPTY_PLACEHOLDER ? '未命名策划书' : String(doc.meta.game_name)
+  pptx.title = getDocKind(doc) === 'application'
+    ? (typeof doc.meta.project_name === 'string' && doc.meta.project_name.trim() ? doc.meta.project_name : '未命名软件设计文档')
+    : asText(doc.meta.game_name) === EMPTY_PLACEHOLDER ? '未命名策划书' : String(doc.meta.game_name)
   pptx.author = 'GameEditorApp'
 
   const meta = doc.meta
-  const gameName = typeof meta.game_name === 'string' && meta.game_name.trim() ? meta.game_name : '未命名策划书'
+  const isApp = getDocKind(doc) === 'application'
+  const rawName = isApp
+    ? (typeof meta.project_name === 'string' && meta.project_name.trim() ? meta.project_name : meta.game_name)
+    : meta.game_name
+  const gameName = typeof rawName === 'string' && rawName.trim() ? rawName : (isApp ? '未命名软件设计文档' : '未命名策划书')
   const date = formatLocalTimestamp().slice(0, 10)
-  const subtitle = `版本: ${doc.version_label} | 类型: ${asText(meta.game_type)} | 日期: ${date}`
+  const platform = Array.isArray(meta.platform)
+    ? meta.platform.filter((item): item is string => typeof item === 'string').join('、')
+    : ''
+  const subtitle = isApp
+    ? `版本: ${doc.version_label} | 平台: ${platform || EMPTY_PLACEHOLDER} | 日期: ${date}`
+    : `版本: ${doc.version_label} | 类型: ${asText(meta.game_type)} | 日期: ${date}`
 
   // 第 1 页：封面
   const cover = pptx.addSlide()
@@ -176,11 +183,11 @@ export async function renderCeshuPptx(doc: CeshuDocument): Promise<Buffer> {
   })
 
   // 每章一页
-  const entries = visibleChapterEntries(getGddScope(doc), getGameType(doc), enabledModuleChapters(doc))
+  const entries = visibleChapterEntriesForDoc(doc)
   for (const entry of entries) {
     const slide = pptx.addSlide()
     slide.background = { color: COLORS.bg }
-    slide.addText(chapterHeading(entry), {
+    slide.addText(chapterHeadingForDoc(doc, entry), {
       x: 0.5,
       y: 0.35,
       w: 12.3,
@@ -191,7 +198,7 @@ export async function renderCeshuPptx(doc: CeshuDocument): Promise<Buffer> {
       fontFace: FONT
     })
 
-    const data = doc[entry.key]
+    const data = chapterDataForDocExport(doc, entry.key)
     if (entry.key === 'systems') {
       slide.addTable(systemsTableRows(data), {
         x: 0.5,
@@ -219,7 +226,7 @@ export async function renderCeshuPptx(doc: CeshuDocument): Promise<Buffer> {
       continue
     }
 
-    slide.addText(truncate(chapterBodyText(entry.key, data)), {
+    slide.addText(truncate(chapterBodyText(doc, entry.key, data)), {
       x: 0.5,
       y: 1.3,
       w: 12.3,
@@ -259,7 +266,7 @@ export async function renderCeshuPptx(doc: CeshuDocument): Promise<Buffer> {
 
   // 末页：章节完成度
   const progress = computeChapterProgress(doc)
-  const progressLines = entries.map((entry) => `${CHAPTER_LABELS[entry.key]}: ${Math.round((progress[entry.key] ?? 0) * 100)}%`)
+  const progressLines = entries.map((entry) => `${chapterLabelForDoc(doc, entry.key)}: ${Math.round((progress[entry.key] ?? 0) * 100)}%`)
   progressLines.push('', `总进度: ${Math.round((progress.total ?? 0) * 100)}%`)
 
   const progressSlide = pptx.addSlide()

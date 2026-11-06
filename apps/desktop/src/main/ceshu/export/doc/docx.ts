@@ -15,29 +15,25 @@ import {
 } from 'docx'
 
 import {
-  CHAPTER_KEYS,
-  CHAPTER_LABELS,
   SYSTEM_LABELS,
-  enabledModuleChapters,
   type CeshuDocument,
   type ChapterData,
-  type ChapterKey
 } from '@mobai/shared/ceshu/reference'
 import { fieldStatusOf } from '@mobai/shared/ceshu/fields'
 import { countFieldStatuses, formatFieldStatusSummary } from '@mobai/shared/ceshu/fields'
-import { CESHU_CHAPTER_FIELDS } from '@mobai/shared/ceshu/fields'
-import { computeChapterProgress, formatLocalTimestamp, getGameType, getGddScope, isPlainObject } from '@mobai/shared/ceshu/model'
+import { chapterFieldsForDoc, chapterLabelForDoc, computeChapterProgress, formatLocalTimestamp, getDocKind, isPlainObject, visibleChaptersForDoc } from '@mobai/shared/ceshu/model'
 import {
   EMPTY_PLACEHOLDER,
-  chapterHeading,
+  chapterDataForDocExport,
+  chapterHeadingForDoc,
   classifySystems,
-  fieldLabel,
+  fieldLabelForDoc,
   formatFieldValue,
   isEmptyValue,
-  machineFieldEntries,
-  orderedFieldEntries,
-  pipeTable,
-  visibleChapterEntries,
+  machineFieldEntriesForDoc,
+  orderedFieldEntriesForDoc,
+  pipeTableForDoc,
+  visibleChapterEntriesForDoc,
   type PipeTable
 } from '../common'
 
@@ -155,14 +151,14 @@ function renderReviewProgress(doc: CeshuDocument): Paragraph[] {
   const blocks: Paragraph[] = [headingParagraph('附录：审核进度', HeadingLevel.HEADING_2)]
   const total = { ai_draft: 0, human_edited: 0, approved: 0 }
   const pendingChapters: string[] = []
-  for (const chapter of CHAPTER_KEYS) {
-    const counts = countFieldStatuses(fieldStatusOf(doc.meta, chapter), CESHU_CHAPTER_FIELDS[chapter] ?? [])
+  for (const chapter of visibleChaptersForDoc(doc)) {
+    const counts = countFieldStatuses(fieldStatusOf(doc.meta, chapter), chapterFieldsForDoc(doc, chapter))
     total.ai_draft += counts.ai_draft
     total.human_edited += counts.human_edited
     total.approved += counts.approved
     // 只列还有待审的章：已批准/人改的章不需要催人，列出来只会稀释注意力
     if (counts.ai_draft > 0) {
-      pendingChapters.push(`${CHAPTER_LABELS[chapter]}：${counts.ai_draft} 待审`)
+      pendingChapters.push(`${chapterLabelForDoc(doc, chapter)}：${counts.ai_draft} 待审`)
     }
   }
   blocks.push(bodyParagraph(`全文档：${formatFieldStatusSummary(total) || '无审核记录'}`))
@@ -196,9 +192,9 @@ function pipeTableToDocx(table: PipeTable): Table {
 }
 
 /** 单个字段 → 段落/表格（pipeList 有列定义时渲染成真表格，否则回落成文本段落） */
-function fieldBlock(chapter: ChapterKey, fieldKey: string, value: unknown): Array<Paragraph | Table> {
-  const label = fieldLabel(chapter, fieldKey)
-  const table = pipeTable(chapter, fieldKey, value)
+function fieldBlock(doc: CeshuDocument, chapter: string, fieldKey: string, value: unknown): Array<Paragraph | Table> {
+  const label = fieldLabelForDoc(doc, chapter, fieldKey)
+  const table = pipeTableForDoc(doc, chapter, fieldKey, value)
   if (table !== null) return [fieldLabelParagraph(label), pipeTableToDocx(table)]
   return fieldParagraphs(label, value)
 }
@@ -207,17 +203,17 @@ function fieldBlock(chapter: ChapterKey, fieldKey: string, value: unknown): Arra
 function renderMachineAppendix(doc: CeshuDocument): Array<Paragraph | Table> {
   const blocks: Array<Paragraph | Table> = []
   let any = false
-  for (const entry of visibleChapterEntries(getGddScope(doc), getGameType(doc), enabledModuleChapters(doc))) {
-    const data = doc[entry.key]
+  for (const entry of visibleChapterEntriesForDoc(doc)) {
+    const data = chapterDataForDocExport(doc, entry.key)
     if (!data) continue
-    const machine = machineFieldEntries(entry.key, data)
+    const machine = machineFieldEntriesForDoc(doc, entry.key, data)
     if (machine.length === 0) continue
     if (!any) {
       blocks.push(headingParagraph('附录：验收与机读数据', HeadingLevel.HEADING_2))
       any = true
     }
-    blocks.push(headingParagraph(chapterHeading(entry), HeadingLevel.HEADING_3))
-    for (const [fieldKey, value] of machine) blocks.push(...fieldBlock(entry.key, fieldKey, value))
+    blocks.push(headingParagraph(chapterHeadingForDoc(doc, entry), HeadingLevel.HEADING_3))
+    for (const [fieldKey, value] of machine) blocks.push(...fieldBlock(doc, entry.key, fieldKey, value))
   }
   return blocks
 }
@@ -225,15 +221,23 @@ function renderMachineAppendix(doc: CeshuDocument): Array<Paragraph | Table> {
 /** docx 渲染器：返回文档 Buffer（写盘由上层 exporter 负责） */
 export async function renderCeshuDocx(doc: CeshuDocument): Promise<Buffer> {
   const meta = doc.meta
+  const isApp = getDocKind(doc) === 'application'
+  const rawName = isApp
+    ? (typeof meta.project_name === 'string' && meta.project_name.trim() ? meta.project_name : meta.game_name)
+    : meta.game_name
   const gameName =
-    typeof meta.game_name === 'string' && meta.game_name.trim() ? meta.game_name : '未命名策划书'
-  const gameType =
-    typeof meta.game_type === 'string' && meta.game_type.trim() ? meta.game_type : EMPTY_PLACEHOLDER
+    typeof rawName === 'string' && rawName.trim() ? rawName : (isApp ? '未命名软件设计文档' : '未命名策划书')
+  const platform = Array.isArray(meta.platform)
+    ? meta.platform.filter((item): item is string => typeof item === 'string').join('、')
+    : ''
+  const gameType = isApp
+    ? platform || EMPTY_PLACEHOLDER
+    : typeof meta.game_type === 'string' && meta.game_type.trim() ? meta.game_type : EMPTY_PLACEHOLDER
   const positioning =
     typeof meta.positioning === 'string' && meta.positioning.trim() ? meta.positioning : EMPTY_PLACEHOLDER
   const date = formatLocalTimestamp().slice(0, 10)
 
-  const entries = visibleChapterEntries(getGddScope(doc), getGameType(doc), enabledModuleChapters(doc))
+  const entries = visibleChapterEntriesForDoc(doc)
 
   // 正文：目录域 → 章节 → 机读附录 → 内部附录（审核进度 / 完成度）
   const children: Array<Paragraph | Table> = [
@@ -251,18 +255,18 @@ export async function renderCeshuDocx(doc: CeshuDocument): Promise<Buffer> {
   ]
 
   for (const entry of entries) {
-    children.push(headingParagraph(chapterHeading(entry), HeadingLevel.HEADING_2))
-    const data = doc[entry.key]
+    children.push(headingParagraph(chapterHeadingForDoc(doc, entry), HeadingLevel.HEADING_2))
+    const data = chapterDataForDocExport(doc, entry.key)
     if (entry.key === 'systems') {
       children.push(systemsTable(data), ...enabledSystemDetails(data))
       continue
     }
-    const fields = data ? orderedFieldEntries(entry.key, data) : []
+    const fields = data ? orderedFieldEntriesForDoc(doc, entry.key, data) : []
     if (fields.length === 0) {
       children.push(bodyParagraph('(本章暂无内容)'))
       continue
     }
-    for (const [fieldKey, value] of fields) children.push(...fieldBlock(entry.key, fieldKey, value))
+    for (const [fieldKey, value] of fields) children.push(...fieldBlock(doc, entry.key, fieldKey, value))
   }
 
   // 附录：验收与机读数据（机读表格集中在此，不切碎正文）
@@ -276,7 +280,7 @@ export async function renderCeshuDocx(doc: CeshuDocument): Promise<Buffer> {
   children.push(headingParagraph('附录：章节完成度', HeadingLevel.HEADING_2))
   for (const entry of entries) {
     const percent = Math.round((progress[entry.key] ?? 0) * 100)
-    children.push(bodyParagraph(`${CHAPTER_LABELS[entry.key]}: ${percent}%`))
+    children.push(bodyParagraph(`${chapterLabelForDoc(doc, entry.key)}: ${percent}%`))
   }
   children.push(bodyParagraph(`总进度: ${Math.round((progress.total ?? 0) * 100)}%`))
 

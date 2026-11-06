@@ -1,29 +1,25 @@
 import {
-  CHAPTER_KEYS,
-  CHAPTER_LABELS,
-  enabledModuleChapters,
   type CeshuDocument,
-  type ChapterKey
 } from '@mobai/shared/ceshu/reference'
 import { fieldStatusOf } from '@mobai/shared/ceshu/fields'
 import { countFieldStatuses, formatFieldStatusSummary } from '@mobai/shared/ceshu/fields'
-import { CESHU_CHAPTER_FIELDS } from '@mobai/shared/ceshu/fields'
-import { computeChapterProgress, formatLocalTimestamp, getGameType, getGddScope } from '@mobai/shared/ceshu/model'
+import { chapterFieldsForDoc, chapterLabelForDoc, computeChapterProgress, formatLocalTimestamp, getDocKind, visibleChaptersForDoc } from '@mobai/shared/ceshu/model'
 import { renderDocDiagrams } from '../content/diagrams'
 
 import {
   EMPTY_PLACEHOLDER,
   chapterAnchor,
-  chapterHeading,
+  chapterDataForDocExport,
+  chapterHeadingForDoc,
   classifySystems,
-  fieldLabel,
+  fieldLabelForDoc,
   formatFieldValue,
   isEmptyValue,
-  machineFieldEntries,
-  orderedFieldEntries,
-  pipeTable,
-  visibleChapterEntries,
-  type VisibleChapterEntry
+  machineFieldEntriesForDoc,
+  orderedFieldEntriesForDoc,
+  pipeTableForDoc,
+  visibleChapterEntriesForDoc,
+  type DocChapterEntry
 } from '../common'
 
 /**
@@ -33,13 +29,15 @@ import {
 
 export function renderCeshuHtml(doc: CeshuDocument): string {
   const today = formatLocalTimestamp().slice(0, 10)
-  const gameName = readString(doc.meta.game_name) || '未命名策划书'
-  const scope = getGddScope(doc)
-  const entries = visibleChapterEntries(scope, getGameType(doc), enabledModuleChapters(doc))
+  const isApp = getDocKind(doc) === 'application'
+  const gameName = (isApp
+    ? readString(doc.meta.project_name) || readString(doc.meta.game_name)
+    : readString(doc.meta.game_name)) || (isApp ? '未命名软件设计文档' : '未命名策划书')
+  const entries = visibleChapterEntriesForDoc(doc)
 
   const body: string[] = []
   body.push(renderHeader(doc, gameName, today))
-  body.push(renderToc(entries))
+  body.push(renderToc(doc, entries))
   body.push(renderDiagrams(doc))
   for (const entry of entries) {
     body.push(renderChapter(doc, entry))
@@ -65,7 +63,11 @@ export function renderCeshuHtml(doc: CeshuDocument): string {
 
 function renderHeader(doc: CeshuDocument, gameName: string, today: string): string {
   const versionLabel = doc.version_label || 'v1.0'
-  const gameType = readString(doc.meta.game_type) || EMPTY_PLACEHOLDER
+  const platform = Array.isArray(doc.meta.platform)
+    ? doc.meta.platform.filter((item): item is string => typeof item === 'string').join('、')
+    : ''
+  const isAppDoc = getDocKind(doc) === 'application'
+  const gameType = isAppDoc ? platform || EMPTY_PLACEHOLDER : readString(doc.meta.game_type) || EMPTY_PLACEHOLDER
   const positioning = readString(doc.meta.positioning) || EMPTY_PLACEHOLDER
   return [
     '<header class="doc-header">',
@@ -83,6 +85,9 @@ function renderHeader(doc: CeshuDocument, gameName: string, today: string): stri
  * 无数据时整段不渲染（不输出空图或占位）。
  */
 function renderDiagrams(doc: CeshuDocument): string {
+  // 核心循环 / 状态机 / 成长曲线都是游戏专属图示；应用档即使兼容底座里留着
+  // 游戏章数据也不该在 SDD 里画出这些图。
+  if (getDocKind(doc) === 'application') return ''
   const { coreLoop, stateMachine, growthChart } = renderDocDiagrams(doc)
   if (coreLoop === null && stateMachine === null && growthChart === null) return ''
   const parts: string[] = ['<section class="diagrams">', '<h2>图示</h2>']
@@ -93,34 +98,34 @@ function renderDiagrams(doc: CeshuDocument): string {
   return parts.join('\n')
 }
 
-function renderToc(entries: VisibleChapterEntry[]): string {
+function renderToc(doc: CeshuDocument, entries: DocChapterEntry[]): string {
   const items = entries
-    .map((entry) => `<li><a href="#${chapterAnchor(entry.index)}">${escapeHtml(chapterHeading(entry))}</a></li>`)
+    .map((entry) => `<li><a href="#${chapterAnchor(entry.index)}">${escapeHtml(chapterHeadingForDoc(doc, entry))}</a></li>`)
     .join('')
   return `<nav class="toc"><h2>目录</h2><ol>${items}</ol></nav>`
 }
 
-function renderChapter(doc: CeshuDocument, entry: VisibleChapterEntry): string {
-  const heading = `<h2 id="${chapterAnchor(entry.index)}">${escapeHtml(chapterHeading(entry))}</h2>`
-  const data = doc[entry.key]
+function renderChapter(doc: CeshuDocument, entry: DocChapterEntry): string {
+  const heading = `<h2 id="${chapterAnchor(entry.index)}">${escapeHtml(chapterHeadingForDoc(doc, entry))}</h2>`
+  const data = chapterDataForDocExport(doc, entry.key)
 
   if (entry.key === 'systems') {
     return `<section class="chapter">${heading}\n${renderSystems(data)}</section>`
   }
 
-  const entries = data ? orderedFieldEntries(entry.key, data) : []
+  const entries = data ? orderedFieldEntriesForDoc(doc, entry.key, data) : []
   if (entries.length === 0) {
     return `<section class="chapter">${heading}\n<p class="empty">(本章暂无内容)</p></section>`
   }
 
-  const fields = entries.map(([fieldKey, value]) => renderFieldBlock(entry.key, fieldKey, value)).join('\n')
+  const fields = entries.map(([fieldKey, value]) => renderFieldBlock(doc, entry.key, fieldKey, value)).join('\n')
   return `<section class="chapter">${heading}\n${fields}</section>`
 }
 
 /** 单个字段 → HTML（pipeList 有列定义时渲染成真表格，否则回落成等宽文本块） */
-function renderFieldBlock(chapter: ChapterKey, fieldKey: string, value: unknown): string {
-  const label = escapeHtml(fieldLabel(chapter, fieldKey))
-  const table = pipeTable(chapter, fieldKey, value)
+function renderFieldBlock(doc: CeshuDocument, chapter: string, fieldKey: string, value: unknown): string {
+  const label = escapeHtml(fieldLabelForDoc(doc, chapter, fieldKey))
+  const table = pipeTableForDoc(doc, chapter, fieldKey, value)
   if (table !== null) {
     const head = `<thead><tr>${table.headers.map((header) => `<th>${escapeHtml(header)}</th>`).join('')}</tr></thead>`
     const body = `<tbody>${table.rows
@@ -135,13 +140,13 @@ function renderFieldBlock(chapter: ChapterKey, fieldKey: string, value: unknown)
 /** 附录：验收与机读数据（正文只留人读字段，机读表格集中在此） */
 function renderMachineAppendix(doc: CeshuDocument): string {
   const groups: string[] = []
-  for (const entry of visibleChapterEntries(getGddScope(doc), getGameType(doc), enabledModuleChapters(doc))) {
-    const data = doc[entry.key]
+  for (const entry of visibleChapterEntriesForDoc(doc)) {
+    const data = chapterDataForDocExport(doc, entry.key)
     if (!data) continue
-    const machine = machineFieldEntries(entry.key, data)
+    const machine = machineFieldEntriesForDoc(doc, entry.key, data)
     if (machine.length === 0) continue
-    const blocks = machine.map(([fieldKey, value]) => renderFieldBlock(entry.key, fieldKey, value)).join('\n')
-    groups.push(`<div class="appendix-group"><h3>${escapeHtml(chapterHeading(entry))}</h3>${blocks}</div>`)
+    const blocks = machine.map(([fieldKey, value]) => renderFieldBlock(doc, entry.key, fieldKey, value)).join('\n')
+    groups.push(`<div class="appendix-group"><h3>${escapeHtml(chapterHeadingForDoc(doc, entry))}</h3>${blocks}</div>`)
   }
   if (groups.length === 0) return ''
   return ['<section class="chapter appendix">', '<h2>附录：验收与机读数据</h2>', ...groups, '</section>'].join('\n')
@@ -191,14 +196,14 @@ function renderSystems(data: Record<string, unknown> | undefined): string {
 function renderReviewProgress(doc: CeshuDocument): string {
   const total = { ai_draft: 0, human_edited: 0, approved: 0 }
   const pending: string[] = []
-  for (const chapter of CHAPTER_KEYS) {
-    const counts = countFieldStatuses(fieldStatusOf(doc.meta, chapter), CESHU_CHAPTER_FIELDS[chapter] ?? [])
+  for (const chapter of visibleChaptersForDoc(doc)) {
+    const counts = countFieldStatuses(fieldStatusOf(doc.meta, chapter), chapterFieldsForDoc(doc, chapter))
     total.ai_draft += counts.ai_draft
     total.human_edited += counts.human_edited
     total.approved += counts.approved
     // 只列还有待审的章：已批准/人改的章不需要催人，列出来只会稀释注意力
     if (counts.ai_draft > 0) {
-      pending.push(`<li>${escapeHtml(CHAPTER_LABELS[chapter])}：${counts.ai_draft} 待审</li>`)
+      pending.push(`<li>${escapeHtml(chapterLabelForDoc(doc, chapter))}：${counts.ai_draft} 待审</li>`)
     }
   }
   const summary = formatFieldStatusSummary(total)
@@ -210,12 +215,12 @@ function renderReviewProgress(doc: CeshuDocument): string {
   ].join('\n')
 }
 
-function renderProgressReport(doc: CeshuDocument, entries: VisibleChapterEntry[]): string {
+function renderProgressReport(doc: CeshuDocument, entries: DocChapterEntry[]): string {
   const progress = computeChapterProgress(doc)
   const rows = entries
     .map((entry) => {
       const percent = Math.round((progress[entry.key] ?? 0) * 100)
-      return `<tr><td>${escapeHtml(CHAPTER_LABELS[entry.key])}</td><td>${percent}%</td></tr>`
+      return `<tr><td>${escapeHtml(chapterLabelForDoc(doc, entry.key))}</td><td>${percent}%</td></tr>`
     })
     .join('')
   const total = Math.round((progress.total ?? 0) * 100)
