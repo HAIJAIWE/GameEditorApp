@@ -13,14 +13,18 @@
 import {
   APP_AGENT_DISPLAY,
   APP_AGENT_PROMPTS,
+  APP_AI_LAYER_KEYS,
   APP_CHAPTER_FIELDS,
   APP_CHAPTER_KEYS,
   APP_CHAPTER_LABELS,
   APP_CHAPTER_NAMES,
+  APP_LITE_NUMBERED_KEYS,
+  APP_META_AI_HINT,
   APP_META_KEY,
   APP_NUMBERED_KEYS,
   APP_PARTS,
   APP_REVIEW_ROLE_NOUN,
+  APP_ROLE_CHAPTERS,
   APP_ROLES,
   APP_SYSTEM_DOC_NOUN,
   appChapterAi,
@@ -60,13 +64,18 @@ function chaptersForSpec(): SpecChapter[] {
       part: key === APP_META_KEY ? 'meta' : appPartOf(key),
       aiHint: ai.aiHint,
       agentId: ai.agentId,
-      requiredFields
+      requiredFields,
+      // 方向版(lite) = 6 个核心章；其余归细节版
+      stage: (APP_LITE_NUMBERED_KEYS as readonly string[]).includes(key) ? 'core' : 'detail',
+      // AI 模型层四章挂在可选模块下
+      ...((APP_AI_LAYER_KEYS as readonly string[]).includes(key) ? { module: 'ai_layer' } : {})
     }
   })
 }
 
 export const APP_SPEC: DocumentSpec = {
   kind: 'application',
+  version: '2026.11',
   label: '软件设计文档',
   shortLabel: '应用',
   metaKey: APP_META_KEY,
@@ -78,8 +87,11 @@ export const APP_SPEC: DocumentSpec = {
   agentDisplay: APP_AGENT_DISPLAY,
   agentPrompts: APP_AGENT_PROMPTS,
   roles: APP_ROLES,
+  roleChapters: APP_ROLE_CHAPTERS,
+  modules: [{ key: 'ai_layer', label: 'AI 模型层', defaultOn: false }],
   // 应用档不启用游戏数据编辑（角色/怪物/技能对软件设计无意义）
   hiddenMainViewIds: ['data.mainView'],
   systemDocNoun: APP_SYSTEM_DOC_NOUN,
-  reviewRoleNoun: APP_REVIEW_ROLE_NOUN
+  reviewRoleNoun: APP_REVIEW_ROLE_NOUN,
+  metaHint: APP_META_AI_HINT
 }

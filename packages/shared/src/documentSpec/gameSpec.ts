@@ -11,6 +11,7 @@ import {
   CHAPTER_NAMES,
   CHAPTER_PARTS,
   CHAPTER_REQUIRED_FIELDS,
+  LITE_CHAPTER_KEYS,
   META_CHAPTER_KEY,
   NUMBERED_CHAPTER_KEYS,
   type ChapterKey
@@ -21,7 +22,7 @@ import {
   CHAPTER_AGENT_PROMPTS,
   CHAPTER_GENERATION_HINTS
 } from '../ceshu/prompts'
-import { CESHU_ROLE_LABELS, CESHU_ROLE_ORDER } from '../ceshu/workflow'
+import { CESHU_ROLE_LABELS, CESHU_ROLE_ORDER, ROLE_CHAPTERS } from '../ceshu/workflow'
 import type { DocumentSpec, SpecChapter, SpecPart } from './types'
 
 /** 章节提示语按「agentId → 提示语」转写（游戏侧一个 agent 可管多章，取首章提示语） */
@@ -51,12 +52,15 @@ const chapters: SpecChapter[] = CHAPTER_KEYS.map((key) => {
     part: part?.key ?? 'meta',
     aiHint: CHAPTER_GENERATION_HINTS[key] ?? '',
     agentId: CHAPTER_AGENT_MAP[key],
-    requiredFields: CHAPTER_REQUIRED_FIELDS[key] ?? []
+    requiredFields: CHAPTER_REQUIRED_FIELDS[key] ?? [],
+    // 方向版(lite) = 前 9 章；其余归细节版。游戏暂不设可选模块
+    stage: (LITE_CHAPTER_KEYS as readonly string[]).includes(key) ? 'core' : 'detail'
   }
 })
 
 export const GAME_SPEC: DocumentSpec = {
   kind: 'game',
+  version: '2026.11',
   label: '游戏策划书',
   shortLabel: '游戏',
   metaKey: META_CHAPTER_KEY,
@@ -68,8 +72,12 @@ export const GAME_SPEC: DocumentSpec = {
   agentDisplay: AGENT_DISPLAY,
   agentPrompts: agentPromptsById(),
   roles: CESHU_ROLE_ORDER.map((key) => ({ key, label: CESHU_ROLE_LABELS[key] })),
+  roleChapters: ROLE_CHAPTERS as Readonly<Record<string, readonly string[]>>,
+  // 游戏暂不设可选模块（市场/商业化/运营设为可选是后续步骤）
+  modules: [],
   // 游戏档不隐藏任何主区页签
   hiddenMainViewIds: [],
   systemDocNoun: '游戏策划书',
-  reviewRoleNoun: '资深游戏策划'
+  reviewRoleNoun: '资深游戏策划',
+  metaHint: '整理书名、品类、平台、一句话定位等基本信息。'
 }

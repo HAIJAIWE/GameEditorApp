@@ -18,7 +18,8 @@ import {
   hiddenMainViewIdsForKind,
   specChapterNumber,
   specForDoc,
-  specForKind
+  specForKind,
+  validateDocumentSpec
 } from '@mobai/shared/documentSpec'
 import { hiddenMainViewIdsForDocKind } from '../../src/renderer/src/plugins/context'
 
@@ -134,5 +135,34 @@ describe('规格层与渲染层隐藏规则不漂移', () => {
     for (const kind of ['game', 'application', undefined] as const) {
       expect([...hiddenMainViewIdsForKind(kind)]).toEqual([...hiddenMainViewIdsForDocKind(kind)])
     }
+  })
+})
+
+describe('规格即模板：结构校验与方向/细节分层', () => {
+  it('两份规格都通过结构校验（章唯一 / 分区覆盖 / 模块与岗位引用有效）', () => {
+    expect(validateDocumentSpec(GAME_SPEC)).toEqual([])
+    expect(validateDocumentSpec(APP_SPEC)).toEqual([])
+  })
+
+  it('每份规格都声明版本 / metaHint / 岗位→章映射', () => {
+    for (const spec of DOCUMENT_SPECS) {
+      expect(spec.version).toMatch(/^\d{4}\.\d{2}$/)
+      expect(spec.metaHint.length).toBeGreaterThan(0)
+      expect(Object.keys(spec.roleChapters).length).toBe(spec.roles.length)
+    }
+  })
+
+  it('方向版只含 core 章：游戏 9、应用 6', () => {
+    const gameCore = GAME_SPEC.chapters.filter((c) => c.stage === 'core' && c.key !== GAME_SPEC.metaKey)
+    const appCore = APP_SPEC.chapters.filter((c) => c.stage === 'core' && c.key !== APP_SPEC.metaKey)
+    expect(gameCore.length).toBe(9)
+    expect(appCore.length).toBe(6)
+  })
+
+  it('应用 AI 模型层是可选模块，四章都归属它', () => {
+    expect(APP_SPEC.modules.map((m) => m.key)).toContain('ai_layer')
+    expect(APP_SPEC.modules.find((m) => m.key === 'ai_layer')?.defaultOn).toBe(false)
+    const aiChapters = APP_SPEC.chapters.filter((c) => c.module === 'ai_layer').map((c) => c.key)
+    expect(aiChapters).toEqual(['model_card', 'data_sheet', 'system_card', 'eval_redteam'])
   })
 })

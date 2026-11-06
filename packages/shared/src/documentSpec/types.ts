@@ -33,6 +33,10 @@ export interface SpecChapter {
   agentId: string
   /** 必填字段（供进度 / 校验；本阶段为规格声明，尚未接入消费方） */
   requiredFields: readonly string[]
+  /** 方向版(core) / 细节版(detail)：lite 只铺 core，full 为 core + 已启用模块的 detail 章 */
+  stage: 'core' | 'detail'
+  /** 可选模块 key；缺省为核心章。启用该模块后，其 detail 章才进入可见章 */
+  module?: string
 }
 
 /** 规格内的分区（章号由 parts 顺序派生，保证连续） */
@@ -48,9 +52,19 @@ export interface SpecRole {
   label: string
 }
 
+/** 可选模块：一组可整体开关的章（如应用的 AI 模型层、游戏的市场/商业化） */
+export interface SpecModule {
+  key: string
+  label: string
+  /** 默认是否启用；缺省 false（方向轻、按需开启） */
+  defaultOn: boolean
+}
+
 /** 一套文档规格 */
 export interface DocumentSpec {
   kind: DocumentSpecKind
+  /** 模板版本（如 `2026.11`）；文档记录后，可据此判断/迁移 */
+  version: string
   /** 文档类型显示名，如「游戏策划书」「软件设计文档」 */
   label: string
   /** 短名，用于按钮 / 徽标 */
@@ -73,10 +87,16 @@ export interface DocumentSpec {
   agentPrompts: Readonly<Record<string, string>>
   /** 岗位角色 */
   roles: readonly SpecRole[]
+  /** 岗位 → 相关章（岗位任务 / 交接包用） */
+  roleChapters: Readonly<Record<string, readonly string[]>>
+  /** 可选模块（核心 + 可选 的"可选"部分） */
+  modules: readonly SpecModule[]
   /** 该档位要隐藏的主区页签 id（游戏档为空） */
   hiddenMainViewIds: readonly string[]
   /** 整章 / 补全生成时 system 里的文档类型措辞 */
   systemDocNoun: string
   /** 成稿反审的角色措辞 */
   reviewRoleNoun: string
+  /** 文档信息段的生成要求（meta 段不占章号，单独声明） */
+  metaHint: string
 }
