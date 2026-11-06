@@ -234,8 +234,7 @@ export default function CeshuView({
   const handleAiGenerateField = useCallback(
     async (chapter: string, field: string, action?: FieldAction): Promise<CeshuAiGenerateResult> => {
       if (!ceshuId) throw new Error(t('ceshuView.noDocSelected'))
-      // AI 字段生成仍是游戏专属链路（第 4 步分派），此处收敛成 ChapterKey 保持既有契约
-      return window.mbApi.ceshu.aiGenerateField({ id: ceshuId, chapter: chapter as ChapterKey, field, action })
+      return window.mbApi.ceshu.aiGenerateField({ id: ceshuId, chapter, field, action })
     },
     [ceshuId, t]
   )

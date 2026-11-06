@@ -1,5 +1,5 @@
-import { isChapterKey, type ChapterData, type CeshuDocument } from '../../ceshu/reference'
-import { computeChapterProgress, withChapter } from '../../ceshu/model'
+import { type ChapterData, type CeshuDocument } from '../../ceshu/reference'
+import { chapterDataForDoc, computeChapterProgress, isChapterAllowedForDoc, withChapter } from '../../ceshu/model'
 import { categorizeValidationError } from '../../domain/ceshu/ceshuReports'
 import { validateCeshu } from '../../ceshu/validation'
 import { findCountConstraint, exceedsCountConstraint } from '../../util/data'
@@ -72,17 +72,18 @@ function pct(value: number): string {
  * 评估「把 `fields` 应用进 `base` 的 `chapter` 章节」这一动作的质量变化。
  *
  * `fields` 会与章节现有内容**合并**（生成值覆盖同名键），与 UI 点击"应用"的语义一致。
- * 章节 key 非法时返回 `null`（调用方通常已在 IPC 层用 `isChapterKey` 校验过）。
+ * 章节 key 不属于该文档允许的章时返回 `null`（与 IPC 层共用 `isChapterAllowedForDoc`）。
  */
 export function evaluateChapterDraft(
   base: CeshuDocument,
   chapter: string,
   fields: Record<string, unknown>
 ): QualityGateVerdict | null {
-  if (!isChapterKey(chapter)) return null
+  // 应用章也享有确定性质量门（validateCeshu / computeChapterProgress 均已按档位规格化）；
+  // 规则与 IPC 边界共用 isChapterAllowedForDoc，游戏档行为逐项不变。
+  if (!isChapterAllowedForDoc(base, chapter)) return null
 
-  const current = base[chapter] as ChapterData | undefined
-  const merged: ChapterData = { ...(current ?? {}), ...fields }
+  const merged: ChapterData = { ...chapterDataForDoc(base, chapter), ...fields }
   const afterDoc = withChapter(base, chapter, merged)
 
   const beforeErrors = validateCeshu(base)

@@ -3,19 +3,42 @@ import {
   CHAPTER_KEYS,
   CHAPTER_LABELS,
   GDD_SCOPE_LITE,
-  isChapterKey,
   type CeshuDocument,
   type ChapterData,
   type ChapterKey,
   type GddScope
 } from '../reference'
 import type { LlmUsage } from '../../config/llm'
-import { CESHU_CHAPTER_FIELDS, resolveFieldMeta } from '../fields'
+import { resolveFieldMeta } from '../fields'
 import type { QualityGateVerdict } from '../../types'
-import { isPlainObject, getGameType, deriveRulesetId } from '../model'
+import {
+  chapterDataForDoc,
+  chapterFieldsForDoc,
+  chapterLabelForDoc,
+  deriveRulesetId,
+  getDocKind,
+  getGameType,
+  isChapterAllowedForDoc,
+  isPlainObject,
+  requiredFieldsForDoc,
+  visibleChaptersForDoc
+} from '../model'
+// ⚠️ 只能从 appSchema 取应用档元数据，不能 import documentSpec：
+// gameSpec.ts 顶层会 import ceshu/prompts 桶构造 GAME_SPEC，反向依赖会成环，
+// 顶层常量未初始化就被读（实测 `Cannot read properties of undefined`）。
+import {
+  APP_AGENT_DISPLAY,
+  APP_AGENT_PROMPTS,
+  APP_REVIEW_ROLE_NOUN,
+  APP_SYSTEM_DOC_NOUN,
+  appChapterAi
+} from '../../appSchema'
 import { readText } from '../../util/io'
 import { parseLlmJson } from '../../util/object'
 import {
+  APP_ADVERSARIAL_CHECK_PROBES,
+  APP_REQUIREMENTS_FULL,
+  APP_REQUIREMENTS_ONLY_EMPTY,
   CHAPTER_AGENT_MAP,
   AGENT_DISPLAY,
   CHAPTER_AGENT_PROMPTS,
@@ -62,6 +85,26 @@ export function agentForChapter(chapter: ChapterKey): ChapterAgent {
   }
 }
 
+/**
+ * 按文档档位取章节子智能体（路线 A 第 4 步的 AI 分派点）。
+ * - **游戏档原样委托 `agentForChapter`**：一个 agent 管多章、章级提示语不同，
+ *   直接换成「agentId → 首章提示语」会改变输出，硬约束是逐字节零回归。
+ * - **应用档走 appSchema 的 AI 元数据**：`appChapterAi(key)` 给出 agentId 与本章
+ *   生成要求，展示名/角色提示语来自 `APP_AGENT_DISPLAY/PROMPTS`。
+ */
+export function agentForDocChapter(doc: CeshuDocument, chapter: string): ChapterAgent {
+  if (getDocKind(doc) !== 'application') return agentForChapter(chapter as ChapterKey)
+  const meta = appChapterAi(chapter)
+  const agentId = meta.agentId
+  const rolePrompt = APP_AGENT_PROMPTS[agentId] ?? '请协助完善当前章节内容。'
+  const chapterHint = meta.aiHint
+  return {
+    agentId,
+    displayName: APP_AGENT_DISPLAY[agentId] ?? agentId,
+    agentPrompt: chapterHint === '' ? rolePrompt : `${rolePrompt}\n本章生成要求：${chapterHint}`
+  }
+}
+
 export function getStyleGlossary(style: string): string {
   if (!style) return ''
   return STYLE_GLOSSARIES[style] ?? ''
@@ -80,8 +123,8 @@ export function getStyleGlossary(style: string): string {
  * 此处对齐。点路径取首段（user_personas.primary → user_personas）与数据键的
  * 嵌套对象形态对齐。
  */
-function chapterGenerationKeys(chapter: ChapterKey, chapterData: Record<string, unknown>): string[] {
-  const merged: string[] = (CESHU_CHAPTER_FIELDS[chapter] ?? []).map((field) => field.key.split('.')[0])
+function chapterGenerationKeys(doc: CeshuDocument, chapter: string, chapterData: Record<string, unknown>): string[] {
+  const merged: string[] = chapterFieldsForDoc(doc, chapter).map((field) => field.key.split('.')[0])
   for (const key of Object.keys(chapterData)) {
     if (!merged.includes(key)) merged.push(key)
   }
@@ -112,14 +155,17 @@ export interface ChapterPromptOptions {
 
 export function buildChapterPrompt(
   doc: CeshuDocument,
-  chapter: ChapterKey,
+  chapter: string,
   options: ChapterPromptOptions = {}
 ): ChapterPromptResult {
   const onlyEmpty = options.onlyEmpty === true
   const onlyFields = options.onlyFields
-  const agent = agentForChapter(chapter)
-  const chapterData = doc[chapter]
-  const allKeys = chapterGenerationKeys(chapter, chapterData)
+  // 游戏分支的每一段文本都保持原样（逐字节零回归）；应用分支改走规格的
+  // 角色 / 措辞 / 字段表 / 写作规范。所有分派都在这里收口，不散到下游。
+  const isApp = getDocKind(doc) === 'application'
+  const agent = agentForDocChapter(doc, chapter)
+  const chapterData = chapterDataForDoc(doc, chapter)
+  const allKeys = chapterGenerationKeys(doc, chapter, chapterData)
   const fields =
     onlyFields && onlyFields.length > 0
       ? onlyFields
@@ -137,17 +183,28 @@ export function buildChapterPrompt(
     .map((key) => `- ${key}: ${String(chapterData[key])}`)
     .join('\n')
 
-  // 上下文：游戏名称 / 类型 / 定位 / 风格术语表
+  // 上下文：游戏档=游戏名称/类型/定位/风格术语表；应用档=项目名称/目标平台/一句话定位
+  // （风格术语表是游戏风格词库，对软件设计毫无意义，应用档不下发）
   const contextLines: string[] = []
   const meta = doc.meta
   const gameName = readText(meta.game_name)
   const gameType = readText(meta.game_type)
   const positioning = readText(meta.positioning)
-  if (gameName) contextLines.push(`游戏名称: ${gameName}`)
-  if (gameType) contextLines.push(`游戏类型: ${gameType}`)
-  if (positioning) contextLines.push(`市场定位: ${positioning}`)
+  if (isApp) {
+    const projectName = readText(meta.project_name) || gameName
+    const platform = Array.isArray(meta.platform)
+      ? meta.platform.filter((item): item is string => typeof item === 'string').join('、')
+      : ''
+    if (projectName) contextLines.push(`项目名称: ${projectName}`)
+    if (platform !== '') contextLines.push(`目标平台: ${platform}`)
+    if (positioning) contextLines.push(`一句话定位: ${positioning}`)
+  } else {
+    if (gameName) contextLines.push(`游戏名称: ${gameName}`)
+    if (gameType) contextLines.push(`游戏类型: ${gameType}`)
+    if (positioning) contextLines.push(`市场定位: ${positioning}`)
+  }
   const style = options.styleOverride || doc.style
-  if (style) {
+  if (!isApp && style) {
     const glossary = getStyleGlossary(style)
     if (glossary) {
       contextLines.push(`风格: ${style}`)
@@ -156,17 +213,22 @@ export function buildChapterPrompt(
   }
   const contextText = contextLines.length > 0 ? contextLines.join('\n') : '(无上下文)'
 
+  // 章名：游戏档沿用章 key（system / 导语里的原文不能变），应用档用规格的中文标签
+  const chapterName = isApp ? chapterLabelForDoc(doc, chapter) : chapter
+  const docNoun = isApp ? APP_SYSTEM_DOC_NOUN : '游戏策划书'
+  const docWord = isApp ? docNoun : '策划书'
+
   const system =
     onlyFields && onlyFields.length > 0
-      ? `你是${agent.displayName}，正在协助编写游戏策划书的${chapter}章节。请仅生成下面列出的字段。输出格式为 JSON，键为字段名，值为生成内容。只输出 JSON，不要加任何解释或 markdown 标记。`
+      ? `你是${agent.displayName}，正在协助编写${docNoun}的${chapterName}章节。请仅生成下面列出的字段。输出格式为 JSON，键为字段名，值为生成内容。只输出 JSON，不要加任何解释或 markdown 标记。`
       : onlyEmpty
-        ? `你是${agent.displayName}，正在协助编写游戏策划书的${chapter}章节。请仅补全下面列出的空字段。输出格式为 JSON，键为字段名，值为生成内容。只输出 JSON，不要加任何解释或 markdown 标记。`
-        : `你是${agent.displayName}，正在协助编写游戏策划书的${chapter}章节。请生成该章节的完整内容，包括所有字段。输出格式为 JSON，键为字段名，值为生成内容（字符串或简单结构）。只输出 JSON，不要加任何解释或 markdown 标记。`
+        ? `你是${agent.displayName}，正在协助编写${docNoun}的${chapterName}章节。请仅补全下面列出的空字段。输出格式为 JSON，键为字段名，值为生成内容。只输出 JSON，不要加任何解释或 markdown 标记。`
+        : `你是${agent.displayName}，正在协助编写${docNoun}的${chapterName}章节。请生成该章节的完整内容，包括所有字段。输出格式为 JSON，键为字段名，值为生成内容（字符串或简单结构）。只输出 JSON，不要加任何解释或 markdown 标记。`
 
   const promptLead =
     onlyFields && onlyFields.length > 0
-      ? `请为策划书「${chapter}」章节生成以下单个字段。\n`
-      : `请为策划书「${chapter}」整章生成内容。\n`
+      ? `请为${docWord}「${chapterName}」章节生成以下单个字段。\n`
+      : `请为${docWord}「${chapterName}」整章生成内容。\n`
   let prompt =
     promptLead +
     `章节提示: ${agent.agentPrompt}\n\n` +
@@ -178,12 +240,12 @@ export function buildChapterPrompt(
    * 「AI 写了一堆、人不知道该看哪」。整章生成不加，避免提示词膨胀。
    */
   if (onlyFields && onlyFields.length > 0) {
-    const defs = CESHU_CHAPTER_FIELDS[chapter] ?? []
+    const defs = chapterFieldsForDoc(doc, chapter)
     const hintLines: string[] = []
     for (const key of onlyFields) {
       const def = defs.find((field) => field.key === key)
       if (def === undefined) continue
-      const meta = resolveFieldMeta(chapter, def)
+      const meta = resolveFieldMeta(chapter, def, requiredFieldsForDoc(doc, chapter))
       const parts: string[] = []
       if (meta.aiHint) parts.push(`AI 目标: ${meta.aiHint}`)
       if (meta.reviewHint) parts.push(`人审要点: ${meta.reviewHint}`)
@@ -204,7 +266,13 @@ export function buildChapterPrompt(
   if (existingContent) {
     prompt += `已有非空内容（请保留并补充其他字段）:\n${existingContent}\n\n`
   }
-  prompt += onlyEmpty ? REQUIREMENTS_ONLY_EMPTY : REQUIREMENTS_FULL
+  prompt += isApp
+    ? onlyEmpty
+      ? APP_REQUIREMENTS_ONLY_EMPTY
+      : APP_REQUIREMENTS_FULL
+    : onlyEmpty
+      ? REQUIREMENTS_ONLY_EMPTY
+      : REQUIREMENTS_FULL
   if (options.extraPrompt) {
     prompt += `\n\n${options.extraPrompt}`
   }
@@ -238,12 +306,12 @@ export interface CeshuAiGenerateResult {
  */
 export function filterGeneratedFields(
   doc: CeshuDocument,
-  chapter: ChapterKey,
+  chapter: string,
   parsed: Record<string, unknown>
 ): Record<string, unknown> {
   const allowed = new Set<string>()
-  for (const field of CESHU_CHAPTER_FIELDS[chapter] ?? []) allowed.add(field.key)
-  for (const key of Object.keys(doc[chapter])) allowed.add(key)
+  for (const field of chapterFieldsForDoc(doc, chapter)) allowed.add(field.key)
+  for (const key of Object.keys(chapterDataForDoc(doc, chapter))) allowed.add(key)
   const heads = new Set([...allowed].map((key) => key.split('.')[0]))
 
   const result: Record<string, unknown> = {}
@@ -483,9 +551,11 @@ export function buildChapterPrompts(
  */
 export function mergeChapterDraft(doc: CeshuDocument, draft: Record<string, ChapterData>): CeshuDocument {
   const next: CeshuDocument = { ...doc }
+  // 与 IPC 边界共用 isChapterAllowedForDoc：应用章 draft 不再被过滤，游戏档逐项不变。
+  const target = next as unknown as Record<string, ChapterData>
   for (const [key, value] of Object.entries(draft)) {
-    if (!isChapterKey(key)) continue
-    next[key] = { ...next[key], ...value }
+    if (!isChapterAllowedForDoc(doc, key)) continue
+    target[key] = { ...chapterDataForDoc(next, key), ...value }
   }
   return next
 }
@@ -563,19 +633,24 @@ export function countFindings(findings: readonly AdversarialFinding[]): { blocke
 /** 章节填充摘要 */
 export function buildReviewSummary(doc: CeshuDocument): string {
   const parts: string[] = []
-  for (const key of CHAPTER_KEYS) {
-    const chapterData: unknown = doc[key]
+  // 游戏档保持 CHAPTER_KEYS / CHAPTER_LABELS / doc[key] 原路径（逐字节零回归）；
+  // 应用档遍历自己的可见章，否则只能看到共用的 meta 段，反审会拿到一份空摘要。
+  const isApp = getDocKind(doc) === 'application'
+  const keys: readonly string[] = isApp ? visibleChaptersForDoc(doc) : CHAPTER_KEYS
+  for (const key of keys) {
+    const chapterData: unknown = isApp ? chapterDataForDoc(doc, key) : doc[key as ChapterKey]
     if (!isPlainObject(chapterData)) continue
     const filled = Object.entries(chapterData).filter(
       ([, value]) => (typeof value === 'string' && value !== '') || (typeof value === 'number' && value !== 0)
     )
     if (filled.length === 0) continue
+    const label = isApp ? chapterLabelForDoc(doc, key) : CHAPTER_LABELS[key as ChapterKey]
     parts.push(
-      `【${CHAPTER_LABELS[key]}】` +
+      `【${label}】` +
         filled.map(([field, value]) => `${field}: ${String(value).slice(0, 60)}`).join(' / ')
     )
   }
-  return parts.length > 0 ? parts.join('\n') : '(策划书内容为空)'
+  return parts.length > 0 ? parts.join('\n') : (isApp ? '(软件设计文档内容为空)' : '(策划书内容为空)')
 }
 
 /** 反审提示词（成稿反审：7 项三级判定 + 品类追问，要求严格 JSON 输出） */
@@ -587,7 +662,9 @@ export function buildReviewPrompts(
    * 检查项样例从 ADVERSARIAL_CHECK_KEYS / LABELS 派生，追问从 reviewProbeFor(品类) 取：
    * 新增/改名一项只改 ceshuAiData 一处，提示词与面板自动跟上——避免双处维护。
    */
+  const isApp = getDocKind(doc) === 'application'
   const genre = genreReviewProfile(getGameType(doc))
+  const reviewRole = isApp ? APP_REVIEW_ROLE_NOUN : '资深游戏策划'
   const checkLines = ADVERSARIAL_CHECK_KEYS.map(
     (key, index) =>
       `    {"key":"${key}","label":"${ADVERSARIAL_CHECK_LABELS[key]}","level":"pass|suggestion|blocker","evidence":"依据：引用文档里的哪句话/哪个数字，或说明未发现问题"}${
@@ -595,12 +672,19 @@ export function buildReviewPrompts(
       }`
   )
   const probeLines = ADVERSARIAL_CHECK_KEYS.map(
-    (key, index) => `${index + 1}. 【${ADVERSARIAL_CHECK_LABELS[key]}】${reviewProbeFor(key, genre.key)}`
+    (key, index) =>
+      `${index + 1}. 【${ADVERSARIAL_CHECK_LABELS[key]}】${
+        isApp ? APP_ADVERSARIAL_CHECK_PROBES[key] : reviewProbeFor(key, genre.key)
+      }`
   )
   const system = [
-    '你是资深游戏策划，正在对一份**成稿**做反审（审查与写作分离）：不要框「好不好」，只回答「有没有必须修的」。',
-    `本品类：${genre.label}。以下每一项按本品类的追问重点核查，结论只能是 pass / suggestion / blocker 三选一：`,
-    '  · blocker = 存在必须修的问题（数值算不通、有支配解、规则不闭合、多方口径不一致）',
+    `你是${reviewRole}，正在对一份**成稿**做反审（审查与写作分离）：不要框「好不好」，只回答「有没有必须修的」。`,
+    isApp
+      ? `文档类型：${APP_SYSTEM_DOC_NOUN}。以下每一项按下面的追问重点核查，结论只能是 pass / suggestion / blocker 三选一：`
+      : `本品类：${genre.label}。以下每一项按本品类的追问重点核查，结论只能是 pass / suggestion / blocker 三选一：`,
+    isApp
+      ? '  · blocker = 存在必须修的问题（接口契约不一致、状态机不闭合、指标口径冲突、跨章结论矛盾）'
+      : '  · blocker = 存在必须修的问题（数值算不通、有支配解、规则不闭合、多方口径不一致）',
     '  · suggestion = 可改可不改的改进点',
     '  · pass = 该项未发现问题',
     'JSON 格式如下：',
@@ -615,13 +699,18 @@ export function buildReviewPrompts(
   ].join('\n')
 
   const prompt =
-    `请对以下策划书做 ${ADVERSARIAL_CHECK_KEYS.length} 项成稿反审。逐项按下面的追问核查：\n\n` +
+    `请对以下${isApp ? APP_SYSTEM_DOC_NOUN : '策划书'}做 ${ADVERSARIAL_CHECK_KEYS.length} 项成稿反审。逐项按下面的追问核查：\n\n` +
     `${probeLines.join('\n')}\n\n` +
-    `【待审策划书】\n${buildReviewSummary(doc)}\n\n` +
+    `【待审${isApp ? APP_SYSTEM_DOC_NOUN : '策划书'}】\n${buildReviewSummary(doc)}\n\n` +
     `完成进度: ${Math.round(input.progressTotal * 100)}%\n` +
     `内置校验问题数: ${input.validationCount}\n` +
-    `游戏类型: ${getGameType(doc) || '未指定'}（按「${genre.label}」品类反审）, 风格: ${doc.style || '未指定'}\n` +
-    `规则集标识: ${deriveRulesetId(doc)}（正文/配置/示例/Demo 应引用同一标识）`
+    (isApp
+      ? `文档类型: ${APP_SYSTEM_DOC_NOUN}（按软件设计口径反审）, 目标平台: ${
+          Array.isArray(doc.meta.platform) ? doc.meta.platform.join('、') : '未指定'
+        }\n` +
+        `规则集标识: ${deriveRulesetId(doc)}（接口契约/数据模型/测试用例/原型应引用同一标识）`
+      : `游戏类型: ${getGameType(doc) || '未指定'}（按「${genre.label}」品类反审）, 风格: ${doc.style || '未指定'}\n` +
+        `规则集标识: ${deriveRulesetId(doc)}（正文/配置/示例/Demo 应引用同一标识）`)
 
   return { system, prompt }
 }
@@ -671,14 +760,18 @@ export function parseReviewResponse(content: string): CeshuReviewPayload {
  * 提示词里下发的追问**逐字一致**（同源于 `reviewProbeFor`）。
  */
 export function finalizeReview(payload: CeshuReviewPayload, doc: CeshuDocument): CeshuReviewPayload {
+  const isApp = getDocKind(doc) === 'application'
   const genre = genreReviewProfile(getGameType(doc))
   return {
     ...payload,
-    genreLabel: genre.label,
+    genreLabel: isApp ? APP_SYSTEM_DOC_NOUN : genre.label,
     rulesetId: deriveRulesetId(doc),
     findings: payload.findings.map((finding) => ({
       ...finding,
-      probe: reviewProbeFor(finding.key as AdversarialCheckKey, genre.key)
+      // probe 必须与提示词里下发的追问逐字一致：应用档取 SDD 追问表，游戏档取品类追问
+      probe: isApp
+        ? APP_ADVERSARIAL_CHECK_PROBES[finding.key as AdversarialCheckKey]
+        : reviewProbeFor(finding.key as AdversarialCheckKey, genre.key)
     }))
   }
 }

@@ -3,6 +3,7 @@ import {
   GDD_SCOPE_FULL,
   SYSTEM_LABELS,
   enabledModuleChapters,
+  isChapterKey,
   isGddScope,
   visibleChapterKeys,
   type CeshuDocument,
@@ -179,6 +180,17 @@ export function deriveRulesetId(doc: CeshuDocument): string {
 export function visibleChaptersForDoc(doc: CeshuDocument): readonly string[] {
   if (getDocKind(doc) === 'application') return APP_CHAPTER_KEYS
   return visibleChapterKeys(getGddScope(doc), getGameType(doc), enabledModuleChapters(doc))
+}
+
+/**
+ * 该章 key 是否可写 / 可生成（IPC 边界守卫的唯一规则）。
+ *
+ * 游戏章一律放行（含 lite 档里被隐藏的章 —— 老行为如此，保持零回归）；
+ * 应用章按「该文档实际可见章」放行。既不让应用档的 AI 生成 / 保存被
+ * `isChapterKey` 挡死，也继续拒绝任意脏 key。
+ */
+export function isChapterAllowedForDoc(doc: CeshuDocument, chapter: string): boolean {
+  return isChapterKey(chapter) || visibleChaptersForDoc(doc).includes(chapter)
 }
 
 /**

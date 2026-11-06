@@ -26,3 +26,14 @@ export {
   appPartOf
 } from './table'
 export type { AppPart } from './table'
+export {
+  APP_AGENT_DISPLAY,
+  APP_AGENT_PROMPTS,
+  APP_CHAPTER_AI,
+  APP_META_AI_HINT,
+  APP_REVIEW_ROLE_NOUN,
+  APP_ROLES,
+  APP_SYSTEM_DOC_NOUN,
+  appChapterAi
+} from './ai'
+export type { AppChapterAi } from './ai'

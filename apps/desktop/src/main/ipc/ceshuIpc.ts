@@ -47,10 +47,9 @@ import {
   templatesSaveInputSchema,
   templatesUpdateInputSchema
 } from '@mobai/shared/schema/adapters'
-import { CHAPTER_LABELS, isChapterKey, type ChapterKey, type SystemEntry } from '@mobai/shared/ceshu/reference'
-import { visibleChaptersForDoc } from '@mobai/shared/ceshu/model'
+import { isChapterKey, type SystemEntry } from '@mobai/shared/ceshu/reference'
+import { chapterDataForDoc, chapterFieldsForDoc, chapterLabelForDoc, isChapterAllowedForDoc } from '@mobai/shared/ceshu/model'
 import type { DataTypeDef } from '@mobai/shared/types'
-import { CESHU_CHAPTER_FIELDS } from '@mobai/shared/ceshu/fields'
 import {
   cloneDecomposeTask,
   generateChapterTask,
@@ -97,10 +96,7 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
     return doc
   })
   handle('ceshu:saveChapter', ceshuSaveChapterInputSchema, async (req) => {
-    // 应用章 key 不是 isChapterKey：额外按「该文档实际可见章」放行。
-    // 保留游戏章判断在前，保证游戏档（含 lite 档保存被隐藏章）逐项零回归。
-    const visible = visibleChaptersForDoc(ceshuManager.get(req.id))
-    if (!isChapterKey(req.chapter) && !visible.includes(req.chapter)) {
+    if (!isChapterAllowedForDoc(ceshuManager.get(req.id), req.chapter)) {
       throw new Error(`未知章节：${req.chapter}`)
     }
     const updated = await ceshuManager.saveChapter(req.id, req.chapter, req.data, {
@@ -165,17 +161,17 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
     return computeReadiness(doc, validateCeshu(doc))
   })
   handle('ceshu:aiGenerateChapter', ceshuAiGenerateInputSchema, async (req, event) => {
-    if (!isChapterKey(req.chapter)) {
+    const base = ceshuManager.get(req.id)
+    if (!isChapterAllowedForDoc(base, req.chapter)) {
       throw new Error(`未知章节：${req.chapter}`)
     }
-    // 显式收窄成 const：属性访问的类型收窄不跨入异步调用
-    const chapter: ChapterKey = req.chapter
+    const chapter: string = req.chapter
     // 编排（提示词 / 预算门 / 取消 / 质量门 / 判官）全部在 `main/ceshu/ai/ceshu`，
     // 此处只负责取文档与转交渲染层入参，见该文件顶部说明。
     return generateChapterTask(
       { llm, client: llmClient },
       {
-        base: ceshuManager.get(req.id),
+        base,
         draft: req.fullGenerate?.draft ?? {},
         chapter,
         onlyEmpty: req.onlyEmpty,
@@ -302,18 +298,19 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
     return { doc, plan: task.plan, model: task.model }
   })
   handle('ceshu:aiGenerateField', ceshuAiGenerateFieldInputSchema, async (req, event) => {
-    const chapter = req.chapter
-    if (!isChapterKey(chapter)) {
+    const chapter: string = req.chapter
+    const base = ceshuManager.get(req.id)
+    if (!isChapterAllowedForDoc(base, chapter)) {
       throw new Error(`未知章节：${chapter}`)
     }
-    const base = ceshuManager.get(req.id)
-    // 校验字段属于该章表单（含既有扩展字段），避免把任意字符串喂给 LLM 当字段名
+    // 校验字段属于该章表单（含既有扩展字段），避免把任意字符串喂给 LLM 当字段名。
+    // 应用章的字段表/章数据/章标签一律走规格化查表，游戏档委托既有常量（零回归）。
     const allowedFields = new Set<string>([
-      ...(CESHU_CHAPTER_FIELDS[chapter] ?? []).map((field) => field.key),
-      ...Object.keys(base[chapter])
+      ...chapterFieldsForDoc(base, chapter).map((field) => field.key),
+      ...Object.keys(chapterDataForDoc(base, chapter))
     ])
     if (!allowedFields.has(req.field)) {
-      throw new Error(`字段「${req.field}」不在「${CHAPTER_LABELS[chapter]}」章表单中`)
+      throw new Error(`字段「${req.field}」不在「${chapterLabelForDoc(base, chapter)}」章表单中`)
     }
     return generateFieldTask(
       { llm, client: llmClient },

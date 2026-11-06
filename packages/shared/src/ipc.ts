@@ -520,7 +520,9 @@ export interface IpcContract {
   /** 按字段 AI 填充：
    *  单字段定向生成（非整章），提示词走 `buildChapterPrompt` 的 `onlyFields` 分支；res 复用整章生成结果形状。 */
   'ceshu:aiGenerateField': {
-    req: { id: string; chapter: ChapterKey; field: string; action?: FieldAction }
+    // chapter 用 string：应用章 key 不属于 ChapterKey 联合类型；
+    // 主进程侧按「游戏章 OR 该文档可见章」放行（与 ceshuAiGenerateFieldInputSchema 一致）。
+    req: { id: string; chapter: string; field: string; action?: FieldAction }
     res: CeshuAiGenerateResult
   }
   'ceshu:aiReview': { req: { id: string; confirmed?: boolean }; res: CeshuAiReviewResult }

@@ -64,8 +64,8 @@ export interface GenerateChapterInput {
   /** 落盘的文档（质量门的 before 基准） */
   base: CeshuDocument
   /** 一键生成时把已生成章节作为提示词上下文；单章生成时传 `{}` */
-  draft: Partial<Record<ChapterKey, ChapterData>>
-  chapter: ChapterKey
+  draft: Record<string, ChapterData>
+  chapter: string
   onlyEmpty?: boolean
   styleKey?: string
   extraPrompt?: string
@@ -216,7 +216,7 @@ export async function generateRoleTasksTask(
 
 export interface GenerateFieldInput {
   base: CeshuDocument
-  chapter: ChapterKey
+  chapter: string
   field: string
   /** 局部重生成动作（改写/展开/精简/通俗化）；缺省 = 重新起草 */
   action?: FieldAction
