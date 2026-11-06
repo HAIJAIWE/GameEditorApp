@@ -133,6 +133,20 @@ export function normalizeCeshu(raw: unknown): CeshuDocument {
       if (!isPlainObject(target[key])) target[key] = chapterDefaults
     }
   }
+  /*
+   * 一次性迁移：老文档用 `meta.ai_enabled` 表示「含 AI 模型层」，现在统一为
+   * `meta.enabled_modules`。读盘时转换并**删除旧字段**——之后内存/磁盘只存在
+   * 一个事实源（下次保存即固化），读取端不必长期双读。
+   */
+  const migratedMeta = base.meta as Record<string, unknown>
+  if (migratedMeta.ai_enabled === true) {
+    const existing = Array.isArray(migratedMeta.enabled_modules)
+      ? migratedMeta.enabled_modules.filter((item): item is string => typeof item === 'string')
+      : []
+    if (!existing.includes('ai_layer')) existing.push('ai_layer')
+    migratedMeta.enabled_modules = existing
+    delete migratedMeta.ai_enabled
+  }
   // ruleset_id 由上面的「未知键保留」循环带过来（它不是 base 的属性）；派生值不在
   // 这里现算——否则老文档一保存就被塞进派生结果，用户改 ceshu_id 时旧值会诈尸成「显式值」
   return base

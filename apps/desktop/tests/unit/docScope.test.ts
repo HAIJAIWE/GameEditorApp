@@ -5,19 +5,20 @@ import {
   createDefaultCeshu,
   enabledModulesForDoc,
   getDocKind,
+  normalizeCeshu,
   visibleChaptersForDoc
 } from '@mobai/shared/ceshu/model'
 
 /**
  * 阶段轴（方向版 lite / 细节版 full）+ 应用档可选「AI 模型层」守卫。
- * AI 不是独立档位：勾选 ai_enabled 后，应用文档在末尾追加模型层四章。
+ * AI 不是独立档位：启用 `enabled_modules: ['ai_layer']` 后，应用文档末尾追加模型层四章。
  */
 function doc(kind: 'game' | 'application', scope: 'lite' | 'full') {
   return createDefaultCeshu({ scope, docKind: kind, name: '示例' })
 }
 
 function withAi<T extends ReturnType<typeof doc>>(d: T): T {
-  ;(d.meta as Record<string, unknown>).ai_enabled = true
+  ;(d.meta as Record<string, unknown>).enabled_modules = ['ai_layer']
   return d
 }
 
@@ -48,7 +49,7 @@ describe('阶段轴：应用档 lite/full', () => {
   })
 })
 
-describe('应用档：可选 AI 模型层（ai_enabled）', () => {
+describe('应用档：可选 AI 模型层（enabled_modules）', () => {
   it('勾选后完整版追加模型层四章', () => {
     const full = visibleChaptersForDoc(withAi(doc('application', 'full')))
     for (const key of ['model_card', 'data_sheet', 'system_card', 'eval_redteam']) {
@@ -85,8 +86,8 @@ describe('阶段轴：档位与章数（游戏零回归）', () => {  it('conten
   })
 })
 
-describe('可选模块：enabled_modules（通用机制，兼容 ai_enabled）', () => {
-  it('enabled_modules 含 ai_layer 等价于勾选 AI 模型层', () => {
+describe('可选模块：enabled_modules（单一事实源）', () => {
+  it('enabled_modules 含 ai_layer 等价于启用 AI 模型层', () => {
     const d = doc('application', 'full')
     ;(d.meta as Record<string, unknown>).enabled_modules = ['ai_layer']
     expect(visibleChaptersForDoc(d)).toHaveLength(21) // meta + 16 + 4
@@ -96,14 +97,11 @@ describe('可选模块：enabled_modules（通用机制，兼容 ai_enabled）',
     expect(visibleChaptersForDoc(doc('application', 'full'))).toHaveLength(17) // meta + 16
   })
 
-  it('enabledModulesForDoc 兼容旧 ai_enabled，且不重复', () => {
-    const d = doc('application', 'full')
-    ;(d.meta as Record<string, unknown>).ai_enabled = true
-    ;(d.meta as Record<string, unknown>).enabled_modules = ['ai_layer']
-    expect(enabledModulesForDoc(d)).toEqual(['ai_layer'])
-
+  it('normalizeCeshu 把旧 ai_enabled 一次性迁移为 enabled_modules 并删除旧字段', () => {
     const legacy = doc('application', 'full')
     ;(legacy.meta as Record<string, unknown>).ai_enabled = true
-    expect(enabledModulesForDoc(legacy)).toEqual(['ai_layer'])
+    const normalized = normalizeCeshu(JSON.parse(JSON.stringify(legacy)))
+    expect(enabledModulesForDoc(normalized)).toEqual(['ai_layer'])
+    expect((normalized.meta as Record<string, unknown>).ai_enabled).toBeUndefined()
   })
 })

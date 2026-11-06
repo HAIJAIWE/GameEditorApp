@@ -64,7 +64,7 @@ describe('应用档：查表完全走 SDD', () => {
   const doc = createDefaultCeshu({ scope: 'full', name: '效率工具', docKind: 'application' })
 
   it('章表恰为 SDD 17 章（AI 模型层默认隐藏），且不含游戏章', () => {
-    // AI 模型层四章仅在 ai_enabled 时进入可见章，默认不含
+    // AI 模型层四章仅在 enabled_modules 含 ai_layer 时进入可见章，默认不含
     expect([...chaptersForDoc(doc)]).toEqual([...APP_CHAPTER_KEYS].filter((key) => !APP_AI_LAYER_KEYS.includes(key)))
     for (const key of CHAPTER_KEYS) {
       if (key === 'meta') continue
