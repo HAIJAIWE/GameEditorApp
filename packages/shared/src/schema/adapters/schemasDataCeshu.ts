@@ -51,7 +51,9 @@ export const ceshuOpenProjectInputSchema = z.object({
 /** 岗位任务生成：策划书 id + 可选岗位子集（缺省 = 全部岗位） */
 export const ceshuAiTasksInputSchema = z.object({
   id: z.string().min(1),
-  roles: z.array(z.enum(['programmer', 'artist', 'tester', 'numeric', 'audio'])).optional()
+  // 应用档岗位 key（product/frontend/…）不属于游戏 5 岗枚举；
+  // 改成字符串数组，合法性由 buildRoleTaskPrompt 按该文档档位白名单过滤。
+  roles: z.array(z.string().min(1)).optional()
 })
 
 /** 设计 ↔ 数据表核对：读某份策划书的「所需数据表」并与数据编辑器实际表比对 */

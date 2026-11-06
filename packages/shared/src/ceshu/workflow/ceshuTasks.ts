@@ -1,6 +1,16 @@
 import { CHAPTER_LABELS, type CeshuDocument, type ChapterKey } from '../reference'
 import { displayFieldValue } from '../fields'
-import { chapterDataForDoc, chapterFieldsForDoc, chapterLabelForDoc, requiredFieldsForDoc, visibleChaptersForDoc } from '../model'
+import {
+  chapterDataForDoc,
+  chapterFieldsForDoc,
+  chapterLabelForDoc,
+  getDocKind,
+  requiredFieldsForDoc,
+  visibleChaptersForDoc
+} from '../model'
+// ⚠️ 只能从 appSchema 取应用档岗位元数据，不能 import documentSpec：
+// gameSpec.ts 顶层 import ceshu/workflow（就会回到本文件）构成循环。
+import { APP_ROLE_CHAPTERS, APP_ROLES } from '../../appSchema'
 
 /**
  * 岗位任务（单源）：`main/ceshu/export/tasks.ts`（导出 Markdown）与
@@ -27,6 +37,32 @@ export const ROLE_CHAPTERS: Record<CeshuRole, readonly ChapterKey[]> = {
   audio: ['audio']
 }
 
+/* ------------------------------------------------------------------ */
+/* 规格化岗位查表（路线 A 第 5 步）                                     */
+/* ------------------------------------------------------------------ */
+
+/**
+ * 该文档应有的岗位 key 列表。游戏档逐项返回既有 CESHU_ROLE_ORDER（零回归），
+ * 应用档返回 APP_ROLES（产品/前端/后端/测试/运维）。
+ */
+export function taskRolesForDoc(doc: CeshuDocument): readonly string[] {
+  return getDocKind(doc) === 'application' ? APP_ROLES.map((item) => item.key) : CESHU_ROLE_ORDER
+}
+
+/** 岗位显示名：应用档走 APP_ROLES，游戏档走 CESHU_ROLE_LABELS */
+export function taskRoleLabelForDoc(doc: CeshuDocument, role: string): string {
+  if (getDocKind(doc) === 'application') {
+    return APP_ROLES.find((item) => item.key === role)?.label ?? role
+  }
+  return (CESHU_ROLE_LABELS as Record<string, string>)[role] ?? role
+}
+
+/** 岗位 → 相关章：应用档走 APP_ROLE_CHAPTERS，游戏档走 ROLE_CHAPTERS */
+export function roleChaptersForDoc(doc: CeshuDocument, role: string): readonly string[] {
+  if (getDocKind(doc) === 'application') return APP_ROLE_CHAPTERS[role] ?? []
+  return (ROLE_CHAPTERS as Record<string, readonly string[]>)[role] ?? []
+}
+
 export interface RoleTaskItem {
   key: string
   label: string
@@ -45,7 +81,8 @@ export interface RoleTaskItem {
 export const ROLE_TASK_VALUE_LIMIT = 120
 
 export interface RoleTaskSection {
-  chapter: ChapterKey
+  /** 应用章 key 不属于 ChapterKey 联合类型 */
+  chapter: string
   label: string
   items: RoleTaskItem[]
 }
@@ -75,19 +112,23 @@ export interface CeshuRoleTask {
   source: string
 }
 
-/** 岗位任务计划：只存生成过的岗位，没生成的岗位回落到派生清单 */
-export type CeshuTaskPlan = Partial<Record<CeshuRole, CeshuRoleTask[]>>
+/** 岗位任务计划：只存生成过的岗位，没生成的岗位回落到派生清单。
+ *  key 用 string：应用档岗位不在 CeshuRole 联合类型里；游戏档仍只写 5 个既有 key。 */
+export type CeshuTaskPlan = Partial<Record<string, CeshuRoleTask[]>>
 
 /** 单岗位任务计划 → Markdown 正文（标题由调用方加，与派生清单保持同一形状） */
-export function renderTaskPlanMarkdown(tasks: readonly CeshuRoleTask[]): string {
+export function renderTaskPlanMarkdown(tasks: readonly CeshuRoleTask[], doc?: CeshuDocument): string {
   const lines: string[] = []
   for (const priority of CESHU_TASK_PRIORITIES) {
     const group = tasks.filter((task) => task.priority === priority)
     if (group.length === 0) continue
     lines.push(`### ${priority}（${group.length} 项）`, '')
     for (const task of group) {
-      // 应用章 key 不在 CHAPTER_LABELS 里：回落成 key 本身，避免显示 undefined
-      lines.push(`- [ ] **${task.title}**（依据：${CHAPTER_LABELS[task.source as ChapterKey] ?? task.source}）`)
+      // 传了 doc 就走规格化标签（应用档用 APP_CHAPTER_LABELS）；纯文本场景回落成 key。
+      const label = doc !== undefined
+        ? chapterLabelForDoc(doc, task.source)
+        : CHAPTER_LABELS[task.source as ChapterKey] ?? task.source
+      lines.push(`- [ ] **${task.title}**（依据：${label}）`)
       if (task.detail !== '') lines.push(`      ${task.detail}`)
     }
     lines.push('')
@@ -98,10 +139,10 @@ export function renderTaskPlanMarkdown(tasks: readonly CeshuRoleTask[]): string 
 
 /** 收集某岗位的任务清单（必填或已填的字段；空的必填标待补） */
 /** 单岗位任务 → Markdown（导出 / 项目文件夹共用） */
-export function renderRoleTasksMarkdown(doc: CeshuDocument, role: CeshuRole): string {
+export function renderRoleTasksMarkdown(doc: CeshuDocument, role: string): string {
   // 有 AI 生成的任务就用它——那才是岗位真正要干的活；没有才回落到按章清单
   const planned = doc.task_plan?.[role]
-  if (planned !== undefined && planned.length > 0) return renderTaskPlanMarkdown(planned)
+  if (planned !== undefined && planned.length > 0) return renderTaskPlanMarkdown(planned, doc)
 
   const sections = collectRoleTasks(doc, role)
   const lines: string[] = []
@@ -118,10 +159,10 @@ export function renderRoleTasksMarkdown(doc: CeshuDocument, role: CeshuRole): st
   return `共 ${count} 项\n\n${lines.join('\n')}`.trim()
 }
 
-export function collectRoleTasks(doc: CeshuDocument, role: CeshuRole): RoleTaskSection[] {
+export function collectRoleTasks(doc: CeshuDocument, role: string): RoleTaskSection[] {
   const visible = new Set<string>(visibleChaptersForDoc(doc))
   const sections: RoleTaskSection[] = []
-  for (const chapter of ROLE_CHAPTERS[role]) {
+  for (const chapter of roleChaptersForDoc(doc, role)) {
     if (!visible.has(chapter)) continue
     const fields = chapterFieldsForDoc(doc, chapter)
     const required = new Set(requiredFieldsForDoc(doc, chapter))
@@ -137,7 +178,7 @@ export function collectRoleTasks(doc: CeshuDocument, role: CeshuRole): RoleTaskS
         full.length > ROLE_TASK_VALUE_LIMIT ? `${full.slice(0, ROLE_TASK_VALUE_LIMIT)}…` : full
       items.push({ key: field.key, label: field.label, value, filled, required: isRequired })
     }
-    if (items.length > 0) sections.push({ chapter: chapter as ChapterKey, label: chapterLabelForDoc(doc, chapter), items })
+    if (items.length > 0) sections.push({ chapter, label: chapterLabelForDoc(doc, chapter), items })
   }
   return sections
 }

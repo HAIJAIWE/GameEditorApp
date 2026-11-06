@@ -16,6 +16,7 @@ import { HANDOFF_VOLUMES } from '@mobai/shared/ceshu/workflow'
 import type { DataTypeDef, ItemRecord } from '@mobai/shared/types'
 import { buildJsonSnapshot } from '../../../data/snapshotExport'
 
+import { getDocKind } from '@mobai/shared/ceshu/model'
 import { renderCeshuBundleJson } from './bundle'
 import { renderCeshuMarkdown } from '../doc/markdown'
 
@@ -81,9 +82,11 @@ export function buildHandoffFiles(doc: CeshuDocument, extras: HandoffExtras): Re
     files[item.path] = renderHandoffDoc(doc, item, extras.generatedAt, context)
   }
 
-  files['gdd.md'] =
-    '> 本文件是**完整策划书**（人读 / 检索）。**实现请看分卷文档**（00-架构 … 06-研发），按编号顺序做。\n\n' +
-    renderCeshuMarkdown(doc)
+  const isApp = getDocKind(doc) === 'application'
+  const gddLead = isApp
+    ? '> 本文件是**完整软件设计文档**（人读 / 检索）。**实现请看分卷文档**，按编号顺序做。\n\n'
+    : '> 本文件是**完整策划书**（人读 / 检索）。**实现请看分卷文档**（00-架构 … 06-研发），按编号顺序做。\n\n'
+  files['gdd.md'] = gddLead + renderCeshuMarkdown(doc)
   files['bundle.json'] = renderCeshuBundleJson(doc)
   files['contract.json'] = `${JSON.stringify(buildContract(doc), null, 2)}\n`
 
@@ -103,9 +106,13 @@ export function buildHandoffFiles(doc: CeshuDocument, extras: HandoffExtras): Re
   return files
 }
 
-/** 目录名：`<游戏名>-交接包`（去掉文件名非法字符，空名回退） */
+/** 目录名：`<项目名>-交接包`（去掉文件名非法字符，空名回退） */
 export function handoffFolderName(doc: CeshuDocument): string {
-  const name = String(doc.meta.game_name ?? '').trim() || '未命名游戏'
+  const isApp = getDocKind(doc) === 'application'
+  const raw = isApp
+    ? String(doc.meta.project_name ?? '').trim() || String(doc.meta.game_name ?? '').trim()
+    : String(doc.meta.game_name ?? '').trim()
+  const name = raw || (isApp ? '未命名应用' : '未命名游戏')
   return `${name.replace(/[\\/:*?"<>|]/g, '_')}-交接包`
 }
 

@@ -1,10 +1,10 @@
 import type { CeshuDocument } from '@mobai/shared/ceshu/reference'
 import {
-  CESHU_ROLE_LABELS,
-  CESHU_ROLE_ORDER,
   renderRoleTasksMarkdown,
-  type CeshuRole
+  taskRoleLabelForDoc,
+  taskRolesForDoc
 } from '@mobai/shared/ceshu/workflow'
+import { getDocKind } from '@mobai/shared/ceshu/model'
 
 /**
  * 岗位任务清单（Markdown 导出）。
@@ -19,19 +19,25 @@ export {
   type CeshuRole
 } from '@mobai/shared/ceshu/workflow'
 
-export function renderCeshuRoleTasksMarkdown(doc: CeshuDocument, role: CeshuRole): string {
+export function renderCeshuRoleTasksMarkdown(doc: CeshuDocument, role: string): string {
   return renderRoleTasksMarkdown(doc, role)
 }
 
 export function renderCeshuTasksMarkdown(doc: CeshuDocument): string {
-  const rawName = (doc.meta as Record<string, unknown>).game_name
-  const gameName = typeof rawName === 'string' && rawName.trim() !== '' ? rawName.trim() : '未命名策划书'
+  const isApp = getDocKind(doc) === 'application'
+  const meta = doc.meta as Record<string, unknown>
+  const rawName = isApp
+    ? (typeof meta.project_name === 'string' && meta.project_name.trim() !== '' ? meta.project_name : meta.game_name)
+    : meta.game_name
+  const name = typeof rawName === 'string' && rawName.trim() !== '' ? rawName.trim()
+    : isApp ? '未命名软件设计文档' : '未命名策划书'
+  const roles = taskRolesForDoc(doc)
   const blocks = [
-    `# 《${gameName}》· 岗位任务清单`,
-    `> 按岗位拆分：${CESHU_ROLE_ORDER.map((role) => CESHU_ROLE_LABELS[role]).join(' / ')}`
+    `# 《${name}》· 岗位任务清单`,
+    `> 按岗位拆分：${roles.map((role) => taskRoleLabelForDoc(doc, role)).join(' / ')}`
   ]
-  for (const role of CESHU_ROLE_ORDER) {
-    blocks.push(`## ${CESHU_ROLE_LABELS[role]}任务\n\n${renderCeshuRoleTasksMarkdown(doc, role)}`)
+  for (const role of roles) {
+    blocks.push(`## ${taskRoleLabelForDoc(doc, role)}任务\n\n${renderCeshuRoleTasksMarkdown(doc, role)}`)
   }
   return blocks.join('\n\n---\n\n') + '\n'
 }

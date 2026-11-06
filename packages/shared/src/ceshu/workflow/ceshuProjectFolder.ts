@@ -17,7 +17,7 @@ import {
   getGameType,
   getGddScope
 } from '../model'
-import { CESHU_ROLE_LABELS, CESHU_ROLE_ORDER, renderRoleTasksMarkdown, type CeshuTaskPlan } from './ceshuTasks'
+import { renderRoleTasksMarkdown, taskRoleLabelForDoc, taskRolesForDoc, type CeshuTaskPlan } from './ceshuTasks'
 
 /**
  * 项目文件夹（文件夹 = 工作单元的存储层，2026-10-26）。
@@ -146,7 +146,8 @@ export function buildProjectFolder(doc: CeshuDocument): ProjectFolder {  const f
     editor_configs: doc.editor_configs,
     // 生成原型那一刻的设计指纹：跟着项目走，才能在打开时判断原型是否过期
     demo_source_fingerprint: doc.demo_source_fingerprint ?? '',
-    roles: CESHU_ROLE_ORDER.map((role) => ({ key: role, label: CESHU_ROLE_LABELS[role] }))
+    // 岗位按档位分派：应用档 config 里应是 SDD 岗位，否则导入后任务面板仍是游戏 5 岗
+    roles: taskRolesForDoc(doc).map((role) => ({ key: role, label: taskRoleLabelForDoc(doc, role) }))
   }
   files['config.json'] = `${JSON.stringify(config, null, 2)}\n`
 
@@ -163,8 +164,8 @@ export function buildProjectFolder(doc: CeshuDocument): ProjectFolder {  const f
   if (typeof doc.demo_html === 'string' && doc.demo_html.trim() !== '') {
     files['prototype/demo.html'] = doc.demo_html
   }
-  for (const role of CESHU_ROLE_ORDER) {
-    files[`tasks/${role}.md`] = `# ${CESHU_ROLE_LABELS[role]}任务\n\n${renderRoleTasksMarkdown(doc, role)}\n`
+  for (const role of taskRolesForDoc(doc)) {
+    files[`tasks/${role}.md`] = `# ${taskRoleLabelForDoc(doc, role)}任务\n\n${renderRoleTasksMarkdown(doc, role)}\n`
   }
 
   return { files }

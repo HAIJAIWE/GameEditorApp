@@ -31,7 +31,7 @@ import {
 } from '@mobai/shared/ceshu/prompts'
 import { buildCloneDecomposePrompt, parseCloneDecompose } from '@mobai/shared/ceshu/prompts'
 import { buildRoleTaskPrompt, parseRoleTaskPlan, taskRolesForDoc } from '@mobai/shared/ceshu/prompts'
-import type { CeshuRole, CeshuTaskPlan } from '@mobai/shared/ceshu/workflow'
+import type { CeshuTaskPlan } from '@mobai/shared/ceshu/workflow'
 import {
   DATA_GEN_ERROR_EMPTY,
   DATA_GEN_ERROR_NO_TYPE,
@@ -182,7 +182,7 @@ export async function cloneDecomposeTask(
 export interface GenerateRoleTasksInput {
   base: CeshuDocument
   /** 指定岗位；缺省 = 全部岗位 */
-  roles?: CeshuRole[]
+  roles?: readonly string[]
   senderId?: number
 }
 

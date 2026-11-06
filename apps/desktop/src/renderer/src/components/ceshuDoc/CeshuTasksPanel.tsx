@@ -3,11 +3,10 @@ import { useState } from 'react'
 import { useT } from '@mobai/client-ui'
 import type { CeshuDocument } from '@mobai/shared/ceshu/reference'
 import {
-  CESHU_ROLE_LABELS,
-  CESHU_ROLE_ORDER,
   CESHU_TASK_PRIORITIES,
   collectRoleTasks,
-  type CeshuRole
+  taskRoleLabelForDoc,
+  taskRolesForDoc
 } from '@mobai/shared/ceshu/workflow'
 import { countTaskPlan } from '@mobai/shared/ceshu/prompts'
 import { chapterLabelForDoc } from '@mobai/shared/ceshu/model'
@@ -31,7 +30,10 @@ export default function CeshuTasksPanel({
   onDocUpdated?: (doc: CeshuDocument) => void
 }) {
   const t = useT()
-  const [role, setRole] = useState<CeshuRole>('programmer')
+  // 岗位按档位分派；换文档（档位可能变）时若旧岗位不在新列表里，自动落到首个岗位
+  const roles = taskRolesForDoc(doc)
+  const [selectedRole, setRole] = useState<string>('programmer')
+  const role = roles.includes(selectedRole) ? selectedRole : (roles[0] ?? 'programmer')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
@@ -60,7 +62,7 @@ export default function CeshuTasksPanel({
     <div className="tasks-panel" data-testid="tasks-panel">
       <div className="tasks-toolbar">
         <div className="tasks-role-switch" role="group" aria-label={t('tasks.roleGroupLabel')}>
-          {CESHU_ROLE_ORDER.map((item) => (
+          {roles.map((item) => (
             <button
               key={item}
               type="button"
@@ -68,7 +70,7 @@ export default function CeshuTasksPanel({
               className={`artifact-btn${role === item ? ' active' : ''}`}
               onClick={() => setRole(item)}
             >
-              {CESHU_ROLE_LABELS[item]}
+              {taskRoleLabelForDoc(doc, item)}
             </button>
           ))}
         </div>

@@ -1,8 +1,7 @@
 import {
-  CESHU_ROLE_LABELS,
-  CESHU_ROLE_ORDER,
   CESHU_TASK_PRIORITIES,
-  type CeshuRole,
+  taskRoleLabelForDoc,
+  taskRolesForDoc as specTaskRolesForDoc,
   type CeshuRoleTask,
   type CeshuTaskPlan,
   type CeshuTaskPriority
@@ -81,7 +80,11 @@ export function buildTaskDigest(doc: CeshuDocument, limit: number = TASK_DIGEST_
     lines.push(block)
     used += block.length
   }
-  return lines.length === 0 ? '（这份策划书还没有任何已填内容）' : lines.join('\n\n')
+  return lines.length === 0
+    ? getDocKind(doc) === 'application'
+      ? '（这份软件设计文档还没有任何已填内容）'
+      : '（这份策划书还没有任何已填内容）'
+    : lines.join('\n\n')
 }
 
 /**
@@ -93,44 +96,67 @@ export function buildTaskDigest(doc: CeshuDocument, limit: number = TASK_DIGEST_
  * 与其用不可靠的启发式，不如交给模型：提示词已要求「只拆确实写了的系统」，
  * 没有依据的岗位它会返回空数组，代价只是多几个 token。
  */
-export function taskRolesForDoc(_doc: CeshuDocument): CeshuRole[] {
-  return [...CESHU_ROLE_ORDER]
+export function taskRolesForDoc(doc: CeshuDocument): readonly string[] {
+  // 单一事实源在 ceshuTasks.ts：游戏档 CESHU_ROLE_ORDER（零回归）、应用档 APP_ROLES。
+  return specTaskRolesForDoc(doc)
 }
 
 /** 组岗位任务提示词（system + prompt） */
 export function buildRoleTaskPrompt(
   doc: CeshuDocument,
-  roles: readonly CeshuRole[] = taskRolesForDoc(doc)
+  roles: readonly string[] = taskRolesForDoc(doc)
 ): { system: string; prompt: string } {
+  const isApp = getDocKind(doc) === 'application'
+  // 显式传 roles（IPC 允许任意字符串数组）时按该档位白名单过滤，
+  // 避免脏 key 混进 JSON 骨架；缺省就用该档位全量岗位。
+  const allowed = new Set(specTaskRolesForDoc(doc))
+  const effectiveRoles = roles.filter((role) => allowed.has(role))
   const meta = doc.meta as Record<string, unknown>
-  const gameName = typeof meta.game_name === 'string' && meta.game_name !== '' ? meta.game_name : '未命名项目'
+  const nameRaw = isApp
+    ? (typeof meta.project_name === 'string' && meta.project_name !== '' ? meta.project_name : meta.game_name)
+    : meta.game_name
+  const gameName = typeof nameRaw === 'string' && nameRaw !== '' ? nameRaw : '未命名项目'
   const gameType = typeof meta.game_type === 'string' ? meta.game_type : ''
   const visible = visibleChaptersForDoc(doc)
 
-  const system = [
-    '你是资深游戏制作人。任务：读这份策划书，把它拆成**各岗位可执行的任务清单**。',
-    '必须遵守：',
-    '1. 每条任务必须是**可执行动作**（动词开头：实现/搭建/绘制/配置/编写/接入/联调/铺量），',
-    '   不许出现「理解」「关注」「阅读」「确认某章」这类不是动作的条目；',
-    '2. 任务必须能在策划书里找到依据，`source` 填依据章的 key（只能用下面给出的章 key）；',
-    '3. **不许发明策划书里没有的系统、玩法、界面、道具**——没写就不拆；',
-    `4. 每岗 3-8 条，按优先级分级：P0=不做就没有可玩版本，P1=首个完整版本，P2=打磨优化；`,
-    '5. title ≤ 20 字且只写动作与对象；detail 写清「做什么 + 验收点」≤ 60 字；',
-    '6. 只输出严格 JSON，不要任何解释文字、不要 markdown 代码块以外的内容。'
-  ].join('\n')
+  const system = isApp
+    ? [
+        '你是资深技术负责人。任务：读这份软件设计文档，把它拆成**各岗位可执行的任务清单**。',
+        '必须遵守：',
+        '1. 每条任务必须是**可执行动作**（动词开头：实现/搭建/设计/配置/编写/接入/联调/部署），',
+        '   不许出现「理解」「关注」「阅读」「确认某章」这类不是动作的条目；',
+        '2. 任务必须能在软件设计文档里找到依据，`source` 填依据章的 key（只能用下面给出的章 key）；',
+        '3. **不许发明文档里没有的模块、接口、页面、数据实体**——没写就不拆；',
+        '4. 每岗 3-8 条，按优先级分级：P0=不做就无法交付最小可用版本，P1=首个完整版本，P2=打磨优化；',
+        '5. title ≤ 20 字且只写动作与对象；detail 写清「做什么 + 验收点」≤ 60 字；',
+        '6. 只输出严格 JSON，不要任何解释文字、不要 markdown 代码块以外的内容。'
+      ].join('\n')
+    : [
+        '你是资深游戏制作人。任务：读这份策划书，把它拆成**各岗位可执行的任务清单**。',
+        '必须遵守：',
+        '1. 每条任务必须是**可执行动作**（动词开头：实现/搭建/绘制/配置/编写/接入/联调/铺量），',
+        '   不许出现「理解」「关注」「阅读」「确认某章」这类不是动作的条目；',
+        '2. 任务必须能在策划书里找到依据，`source` 填依据章的 key（只能用下面给出的章 key）；',
+        '3. **不许发明策划书里没有的系统、玩法、界面、道具**——没写就不拆；',
+        `4. 每岗 3-8 条，按优先级分级：P0=不做就没有可玩版本，P1=首个完整版本，P2=打磨优化；`,
+        '5. title ≤ 20 字且只写动作与对象；detail 写清「做什么 + 验收点」≤ 60 字；',
+        '6. 只输出严格 JSON，不要任何解释文字、不要 markdown 代码块以外的内容。'
+      ].join('\n')
 
   const skeleton = Object.fromEntries(
-    roles.map((role) => [
+    effectiveRoles.map((role) => [
       role,
       [{ title: '', detail: '', priority: 'P0', source: visible[0] ?? 'gameplay' }]
     ])
   )
 
   const prompt = [
-    `游戏：${gameName}${gameType === '' ? '' : `（品类：${gameType}）`}`,
+    isApp
+      ? `项目：${gameName}`
+      : `游戏：${gameName}${gameType === '' ? '' : `（品类：${gameType}）`}`,
     `可用章 key：${visible.join(', ')}`,
     '',
-    '策划书摘要：',
+    isApp ? '软件设计文档摘要：' : '策划书摘要：',
     buildTaskDigest(doc),
     '',
     '请严格按下面的 JSON 结构输出（键名不可改；没有任务的岗位给空数组）：',
@@ -139,10 +165,12 @@ export function buildRoleTaskPrompt(
     '```',
     '',
     '要求：',
-    `- 岗位键只能是：${roles.map((role) => `${role}（${CESHU_ROLE_LABELS[role]}）`).join('、')}；`,
+    `- 岗位键只能是：${effectiveRoles.map((role) => `${role}（${taskRoleLabelForDoc(doc, role)}）`).join('、')}；`,
     '- priority 只能是 P0 / P1 / P2；',
     '- source 只能是上面「可用章 key」里的一个；',
-    '- 只拆策划书里确实写了的系统，不要补全成「一个完整游戏应该有什么」。'
+    isApp
+      ? '- 只拆软件设计文档里确实写了的模块，不要补全成「一个完整应用应该有什么」。'
+      : '- 只拆策划书里确实写了的系统，不要补全成「一个完整游戏应该有什么」。'
   ].join('\n')
 
   return { system, prompt }
@@ -176,7 +204,8 @@ export function parseRoleTaskPlan(raw: string, doc: CeshuDocument): CeshuTaskPla
   const visible = new Set(visibleChaptersForDoc(doc))
 
   const plan: CeshuTaskPlan = {}
-  for (const role of CESHU_ROLE_ORDER) {
+  // 白名单按文档档位取：应用档只接受 APP_ROLES 的岗位 key，游戏档仍是 5 个既有岗位
+  for (const role of taskRolesForDoc(doc)) {
     const value = source[role]
     if (!Array.isArray(value)) continue
     const tasks: CeshuRoleTask[] = []

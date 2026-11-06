@@ -48,6 +48,18 @@ export const APP_ROLES: readonly { key: string; label: string }[] = [
   { key: 'devops', label: '运维' }
 ]
 
+/**
+ * 应用档岗位 → 相关 SDD 章（章级映射，实际参与章再由 visibleChaptersForDoc 裁剪）。
+ * 与游戏档 `ROLE_CHAPTERS` 并列，互不引用；章 key 都是 appSchema 命名空间。
+ */
+export const APP_ROLE_CHAPTERS: Readonly<Record<string, readonly string[]>> = {
+  product: ['overview', 'users', 'scope', 'features', 'flows', 'milestones'],
+  frontend: ['features', 'flows', 'interaction', 'nonfunctional'],
+  backend: ['architecture', 'data_model', 'api', 'integration', 'security'],
+  qa: ['testing', 'nonfunctional', 'risks'],
+  devops: ['release', 'nonfunctional', 'security']
+}
+
 /** 整章 / 补全生成时 system 里的文档类型措辞 */
 export const APP_SYSTEM_DOC_NOUN = '软件设计文档'
 

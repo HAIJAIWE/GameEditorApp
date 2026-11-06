@@ -1,15 +1,26 @@
 import {
   CHAPTER_KEYS,
   CHAPTER_LABELS,
+  enabledModuleChapters,
   visibleChapterKeys,
   type CeshuColumnDef,
+  type CeshuDocument,
   type CeshuFieldDef,
   type ChapterData,
   type ChapterKey,
   type GddScope
 } from '@mobai/shared/ceshu/reference'
 import { CESHU_CHAPTER_FIELDS, fieldLabelOf } from '@mobai/shared/ceshu/fields'
-import { isPlainObject } from '@mobai/shared/ceshu/model'
+import {
+  chapterDataForDoc,
+  chapterFieldsForDoc,
+  chapterLabelForDoc,
+  getDocKind,
+  getGameType,
+  getGddScope,
+  isPlainObject,
+  visibleChaptersForDoc
+} from '@mobai/shared/ceshu/model'
 import { splitRow, toRows } from '@mobai/shared/ceshu/workflow'
 import { isMachineDataField } from '@mobai/shared/ceshu/workflow'
 
@@ -201,6 +212,98 @@ export function visibleChapterEntries(
 /** 章节标题文本（如 "4. 第四章·游戏系统设计"；章号取自 `CHAPTER_LABELS`，勿在此硬编码） */
 export function chapterHeading(entry: VisibleChapterEntry): string {
   return `${entry.index}. ${CHAPTER_LABELS[entry.key]}`
+}
+
+/* ------------------------------------------------------------------ */
+/* 规格化章表版本（路线 A 第 5 步：主 Markdown 导出按 docKind 分派）     */
+/* 游戏档一律委托上面的既有函数，逐字节零回归。刻意用独立的 DocChapterEntry， */
+/* 不把 VisibleChapterEntry.key 放宽成 string —— 那会连锁到 docx/html/pptx */
+/* 等另外 5 个导出格式。                                                */
+/* ------------------------------------------------------------------ */
+
+export interface DocChapterEntry {
+  key: string
+  index: number
+}
+
+function isAppDoc(doc: CeshuDocument): boolean {
+  return getDocKind(doc) === 'application'
+}
+
+/** 字段定义：游戏档 CESHU_CHAPTER_FIELDS / 应用档 APP_CHAPTER_FIELDS */
+export function fieldDefForDoc(doc: CeshuDocument, chapter: string, key: string): CeshuFieldDef | undefined {
+  if (isAppDoc(doc)) return chapterFieldsForDoc(doc, chapter).find((field) => field.key === key)
+  return fieldDef(chapter as ChapterKey, key)
+}
+
+/** 字段中文标签（游戏档沿用 fieldLabelOf 的既有回落口径） */
+export function fieldLabelForDoc(doc: CeshuDocument, chapter: string, key: string): string {
+  if (!isAppDoc(doc)) return fieldLabel(chapter as ChapterKey, key)
+  return fieldDefForDoc(doc, chapter, key)?.label ?? key
+}
+
+function schemaOrderForDoc(doc: CeshuDocument, chapter: string): Map<string, number> {
+  if (isAppDoc(doc)) {
+    return new Map(chapterFieldsForDoc(doc, chapter).map((field, index) => [field.key, index]))
+  }
+  return schemaOrder(chapter as ChapterKey)
+}
+
+function orderedKeysForDoc(doc: CeshuDocument, chapter: string, keys: string[]): string[] {
+  const order = schemaOrderForDoc(doc, chapter)
+  return keys.sort((a, b) => (order.get(a) ?? Number.MAX_SAFE_INTEGER) - (order.get(b) ?? Number.MAX_SAFE_INTEGER))
+}
+
+/** 章节正文字段（按 schema 顺序、跳过机读与空值） */
+export function orderedFieldEntriesForDoc(
+  doc: CeshuDocument,
+  chapter: string,
+  data: ChapterData
+): Array<[string, unknown]> {
+  const keys = Object.keys(data).filter(
+    (key) => !isMachineDataField(chapter, key) && !isEmptyValue(data[key])
+  )
+  return orderedKeysForDoc(doc, chapter, keys).map((key) => [key, data[key]] as [string, unknown])
+}
+
+/** 机读/验收字段（应用章不属于游戏机读清单 ⇒ 恒为空） */
+export function machineFieldEntriesForDoc(
+  doc: CeshuDocument,
+  chapter: string,
+  data: ChapterData
+): Array<[string, unknown]> {
+  const keys = Object.keys(data).filter(
+    (key) => isMachineDataField(chapter, key) && !isEmptyValue(data[key])
+  )
+  return orderedKeysForDoc(doc, chapter, keys).map((key) => [key, data[key]] as [string, unknown])
+}
+
+/** pipeList 表格化 */
+export function pipeTableForDoc(doc: CeshuDocument, chapter: string, key: string, value: unknown): PipeTable | null {
+  const field = fieldDefForDoc(doc, chapter, key)
+  if (field?.kind !== 'pipeList' || field.columns === undefined || field.columns.length === 0) return null
+  const rows = pipeRows(value, field.columns)
+  return rows.length > 0 ? { headers: field.columns.map((column) => column.label), rows } : null
+}
+
+/** 该文档参与导出的章（应用档用 SDD 全章表且章号连续，游戏档保持档位×品类裁剪） */
+export function visibleChapterEntriesForDoc(doc: CeshuDocument): DocChapterEntry[] {
+  if (isAppDoc(doc)) {
+    return [...visibleChaptersForDoc(doc)].map((key, index) => ({ key, index: index + 1 }))
+  }
+  return visibleChapterEntries(getGddScope(doc), getGameType(doc), enabledModuleChapters(doc))
+    .map((entry) => ({ key: entry.key as string, index: entry.index }))
+}
+
+/** 章节标题：应用档用 APP_CHAPTER_LABELS，游戏档用 CHAPTER_LABELS */
+export function chapterHeadingForDoc(doc: CeshuDocument, entry: DocChapterEntry): string {
+  if (isAppDoc(doc)) return `${entry.index}. ${chapterLabelForDoc(doc, entry.key)}`
+  return chapterHeading(entry as VisibleChapterEntry)
+}
+
+/** 章节数据（应用章走宽松索引） */
+export function chapterDataForDocExport(doc: CeshuDocument, chapter: string): ChapterData {
+  return chapterDataForDoc(doc, chapter)
 }
 
 /** 章节锚点 id（ch1~ch18） */

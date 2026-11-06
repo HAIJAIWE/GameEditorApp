@@ -1,29 +1,29 @@
-import {
-  CHAPTER_KEYS,
-  CHAPTER_LABELS,
-  enabledModuleChapters,
-  type CeshuDocument,
-  type ChapterKey
-} from '@mobai/shared/ceshu/reference'
+import { type CeshuDocument } from '@mobai/shared/ceshu/reference'
 import { fieldStatusOf } from '@mobai/shared/ceshu/fields'
 import { countFieldStatuses, formatFieldStatusSummary } from '@mobai/shared/ceshu/fields'
-import { CESHU_CHAPTER_FIELDS } from '@mobai/shared/ceshu/fields'
-import { formatLocalTimestamp, getGameType, getGddScope } from '@mobai/shared/ceshu/model'
+import {
+  chapterFieldsForDoc,
+  chapterLabelForDoc,
+  formatLocalTimestamp,
+  getDocKind,
+  visibleChaptersForDoc
+} from '@mobai/shared/ceshu/model'
 import { validateCeshu } from '@mobai/shared/ceshu/validation'
 
 import {
   EMPTY_PLACEHOLDER,
   chapterAnchor,
-  chapterHeading,
+  chapterDataForDocExport,
+  chapterHeadingForDoc,
   classifySystems,
-  fieldLabel,
+  fieldLabelForDoc,
   formatFieldValue,
   isEmptyValue,
-  machineFieldEntries,
-  orderedFieldEntries,
-  pipeTable,
-  visibleChapterEntries,
-  type VisibleChapterEntry
+  machineFieldEntriesForDoc,
+  orderedFieldEntriesForDoc,
+  pipeTableForDoc,
+  visibleChapterEntriesForDoc,
+  type DocChapterEntry
 } from '../common'
 import { renderOnePageSummary } from '../content/onepage'
 
@@ -38,7 +38,7 @@ const MD_SEPARATOR = '\n\n---\n\n'
 export function renderCeshuMarkdown(doc: CeshuDocument): string {
   const today = formatLocalTimestamp().slice(0, 10)
   const blocks: string[] = [renderHeader(doc, today), renderToc(doc)]
-  for (const entry of visibleChapterEntries(getGddScope(doc), getGameType(doc), enabledModuleChapters(doc))) {
+  for (const entry of visibleChapterEntriesForDoc(doc)) {
     blocks.push(renderChapter(doc, entry))
   }
   blocks.push(renderMachineAppendix(doc))
@@ -60,7 +60,7 @@ export function renderCeshuDeliverableMarkdown(doc: CeshuDocument): string {
     `## 一页摘要\n\n${renderOnePageSummary(doc, 3)}`,
     renderToc(doc)
   ]
-  for (const entry of visibleChapterEntries(getGddScope(doc), getGameType(doc), enabledModuleChapters(doc))) {
+  for (const entry of visibleChapterEntriesForDoc(doc)) {
     blocks.push(renderChapter(doc, entry))
   }
   blocks.push(renderMachineAppendix(doc))
@@ -69,14 +69,24 @@ export function renderCeshuDeliverableMarkdown(doc: CeshuDocument): string {
 
 /** 文档头部：标题 + 元信息引用块 */
 function renderHeader(doc: CeshuDocument, today: string): string {
-  const gameName = readString(doc.meta.game_name) || '未命名策划书'
+  const isApp = getDocKind(doc) === 'application'
+  const rawName = isApp
+    ? readString(doc.meta.project_name) || readString(doc.meta.game_name)
+    : readString(doc.meta.game_name)
+  const name = rawName || (isApp ? '未命名软件设计文档' : '未命名策划书')
   const versionLabel = doc.version_label || 'v1.0'
-  const gameType = readString(doc.meta.game_type) || EMPTY_PLACEHOLDER
+  // 应用档没有游戏品类；「类型」这一栏换成目标平台，避免写死游戏口径
+  const platform = Array.isArray(doc.meta.platform)
+    ? doc.meta.platform.filter((item): item is string => typeof item === 'string').join('、')
+    : ''
+  const typeText = isApp
+    ? platform || EMPTY_PLACEHOLDER
+    : readString(doc.meta.game_type) || EMPTY_PLACEHOLDER
   const positioning = readString(doc.meta.positioning) || EMPTY_PLACEHOLDER
   return [
-    `# ${gameName}`,
+    `# ${name}`,
     '',
-    `> 版本: ${versionLabel} | 类型: ${gameType} | 日期: ${today}`,
+    `> 版本: ${versionLabel} | ${isApp ? '平台' : '类型'}: ${typeText} | 日期: ${today}`,
     `> 定位: ${positioning}`,
     ''
   ].join('\n')
@@ -85,35 +95,35 @@ function renderHeader(doc: CeshuDocument, today: string): string {
 /** 目录（带锚点链接） */
 function renderToc(doc: CeshuDocument): string {
   const lines = ['## 目录', '']
-  for (const entry of visibleChapterEntries(getGddScope(doc), getGameType(doc), enabledModuleChapters(doc))) {
-    lines.push(`${entry.index}. [${CHAPTER_LABELS[entry.key]}](#${chapterAnchor(entry.index)})`)
+  for (const entry of visibleChapterEntriesForDoc(doc)) {
+    lines.push(`${entry.index}. [${chapterLabelForDoc(doc, entry.key)}](#${chapterAnchor(entry.index)})`)
   }
   return lines.join('\n')
 }
 
 /** 单章渲染 */
-function renderChapter(doc: CeshuDocument, entry: VisibleChapterEntry): string {
-  const lines = [`<a id="${chapterAnchor(entry.index)}"></a>`, `## ${chapterHeading(entry)}`, '']
-  const data = doc[entry.key]
+function renderChapter(doc: CeshuDocument, entry: DocChapterEntry): string {
+  const lines = [`<a id="${chapterAnchor(entry.index)}"></a>`, `## ${chapterHeadingForDoc(doc, entry)}`, '']
+  const data = chapterDataForDocExport(doc, entry.key)
   if (entry.key === 'systems') {
     lines.push(...renderSystemsTable(data))
     return lines.join('\n')
   }
-  const entries = data ? orderedFieldEntries(entry.key, data) : []
+  const entries = data ? orderedFieldEntriesForDoc(doc, entry.key, data) : []
   if (entries.length === 0) {
     lines.push('(本章暂无内容)')
     return lines.join('\n')
   }
   for (const [fieldKey, value] of entries) {
-    lines.push(...renderFieldBlock(entry.key, fieldKey, value))
+    lines.push(...renderFieldBlock(doc, entry.key, fieldKey, value))
   }
   return lines.join('\n')
 }
 
 /** 单个字段 → Markdown 行（pipeList 有列定义时渲染成真表格，否则回落成文本） */
-function renderFieldBlock(chapter: ChapterKey, fieldKey: string, value: unknown): string[] {
-  const label = fieldLabel(chapter, fieldKey)
-  const table = pipeTable(chapter, fieldKey, value)
+function renderFieldBlock(doc: CeshuDocument, chapter: string, fieldKey: string, value: unknown): string[] {
+  const label = fieldLabelForDoc(doc, chapter, fieldKey)
+  const table = pipeTableForDoc(doc, chapter, fieldKey, value)
   if (table !== null) {
     return [
       `**${label}**:`,
@@ -145,15 +155,15 @@ function mdCell(text: string): string {
 function renderMachineAppendix(doc: CeshuDocument): string {
   const lines = ['## 附录：验收与机读数据', '']
   let any = false
-  for (const entry of visibleChapterEntries(getGddScope(doc), getGameType(doc), enabledModuleChapters(doc))) {
-    const data = doc[entry.key]
+  for (const entry of visibleChapterEntriesForDoc(doc)) {
+    const data = chapterDataForDocExport(doc, entry.key)
     if (!data) continue
-    const machine = machineFieldEntries(entry.key, data)
+    const machine = machineFieldEntriesForDoc(doc, entry.key, data)
     if (machine.length === 0) continue
     any = true
-    lines.push(`### ${chapterHeading(entry)}`)
+    lines.push(`### ${chapterHeadingForDoc(doc, entry)}`)
     for (const [fieldKey, value] of machine) {
-      lines.push(...renderFieldBlock(entry.key, fieldKey, value))
+      lines.push(...renderFieldBlock(doc, entry.key, fieldKey, value))
     }
     lines.push('')
   }
@@ -207,14 +217,14 @@ function renderReviewProgress(doc: CeshuDocument): string {
   const lines = ['## 附录：审核进度', '']
   const total = { ai_draft: 0, human_edited: 0, approved: 0 }
   const pendingChapters: string[] = []
-  for (const chapter of CHAPTER_KEYS) {
-    const counts = countFieldStatuses(fieldStatusOf(doc.meta, chapter), CESHU_CHAPTER_FIELDS[chapter] ?? [])
+  for (const chapter of visibleChaptersForDoc(doc)) {
+    const counts = countFieldStatuses(fieldStatusOf(doc.meta, chapter), chapterFieldsForDoc(doc, chapter))
     total.ai_draft += counts.ai_draft
     total.human_edited += counts.human_edited
     total.approved += counts.approved
     // 只列还有待审的章：已批准/人改的章不需要催人，列出来只会稀释注意力
     if (counts.ai_draft > 0) {
-      pendingChapters.push(`${MD_BULLET}${CHAPTER_LABELS[chapter]}：${counts.ai_draft} 待审`)
+      pendingChapters.push(`${MD_BULLET}${chapterLabelForDoc(doc, chapter)}：${counts.ai_draft} 待审`)
     }
   }
   const summary = formatFieldStatusSummary(total)
