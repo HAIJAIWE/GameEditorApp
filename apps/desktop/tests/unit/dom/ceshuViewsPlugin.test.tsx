@@ -67,6 +67,7 @@ function ctx(overrides: Partial<CeshuViewContextValue> = {}): CeshuViewContextVa
     onApplyImport: async () => false,
     onDerive: () => undefined,
     onToggleModule: () => undefined,
+    onSetModules: () => undefined,
     onDocUpdated: () => undefined,
     onTypesChanged: () => undefined,
     onGenerateData: () => undefined,

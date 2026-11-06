@@ -53,3 +53,49 @@ describe('CeshuModulePicker：系统模块勾选', () => {
     }
   })
 })
+
+describe('CeshuModulePicker：分组开关与预设（onSetModules）', () => {
+  it('传入 onSetModules 时显示分组开关与最小核心预设按钮', async () => {
+    api = installMbApi()
+    const doc = createDefaultCeshu({ scope: 'full' })
+    view = await renderDom(<CeshuModulePicker doc={doc} onToggle={() => {}} onSetModules={() => {}} />)
+    expect(view!.byTestId('module-preset-core')).toBeTruthy()
+    expect(view!.byTestId('module-group-toggle-core')).toBeTruthy()
+    expect(view!.byTestId('module-group-toggle-production')).toBeTruthy()
+    expect(view!.byTestId('module-group-toggle-expansion')).toBeTruthy()
+  })
+
+  it('未传 onSetModules 时不渲染分组开关 / 预设（保持原行为）', async () => {
+    api = installMbApi()
+    const doc = createDefaultCeshu({ scope: 'full' })
+    view = await renderDom(<CeshuModulePicker doc={doc} onToggle={() => {}} />)
+    expect(view!.query('[data-testid="module-preset-core"]')).toBeNull()
+    expect(view!.query('[data-testid="module-group-toggle-core"]')).toBeNull()
+  })
+
+  it('点击分组开关把整组写入 onSetModules（移除该组模块，保留其余）', async () => {
+    api = installMbApi()
+    const doc = createDefaultCeshu({ scope: 'full' })
+    const onSetModules = vi.fn()
+    view = await renderDom(<CeshuModulePicker doc={doc} onToggle={() => {}} onSetModules={onSetModules} />)
+    await view!.click(view!.byTestId('module-group-toggle-production')) // 默认全开 → 关闭本组
+    expect(onSetModules).toHaveBeenCalledTimes(1)
+    const arg = onSetModules.mock.calls[0][0] as string[]
+    expect(arg).toContain('combat')
+    expect(arg).not.toContain('monetization') // 制作与商业组模块被移除
+  })
+
+  it('点击最小核心预设只保留核心设计模块（移除制作与商业 / 扩展设计）', async () => {
+    api = installMbApi()
+    const doc = createDefaultCeshu({ scope: 'full' })
+    const onSetModules = vi.fn()
+    view = await renderDom(<CeshuModulePicker doc={doc} onToggle={() => {}} onSetModules={onSetModules} />)
+    await view!.click(view!.byTestId('module-preset-core'))
+    expect(onSetModules).toHaveBeenCalledTimes(1)
+    const arg = onSetModules.mock.calls[0][0] as string[]
+    expect(arg).toContain('combat')
+    expect(arg).toContain('economy')
+    expect(arg).not.toContain('monetization')
+    expect(arg).not.toContain('live_ops')
+  })
+})

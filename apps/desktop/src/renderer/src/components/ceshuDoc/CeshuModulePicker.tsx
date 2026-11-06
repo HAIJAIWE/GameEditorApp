@@ -18,13 +18,31 @@ import {
 interface CeshuModulePickerProps {
   doc: CeshuDocument
   onToggle: (module: ChapterKey, enabled: boolean) => void
+  /** 批量设置启用模块（分组开关 / 预设用）：一次写盘，避免逐章 onToggle 读脏 doc.meta 互相覆盖 */
+  onSetModules?: (chapters: ChapterKey[]) => void
   /** 关闭（Slice 15 起为内联气泡视图：没有它就关不掉）。省略 = 不画关闭按钮 */
   onClose?: () => void
 }
 
-export default function CeshuModulePicker({ doc, onToggle, onClose }: CeshuModulePickerProps) {
+export default function CeshuModulePicker({ doc, onToggle, onSetModules, onClose }: CeshuModulePickerProps) {
   const t = useT()
   const enabled = new Set(enabledModuleChapters(doc))
+
+  // 最小核心 = 仅核心设计分组的模块章（关闭制作与商业 / 扩展设计）；属产品口径，可按需调整
+  const coreModules: ChapterKey[] = (CHAPTER_PARTS.find((part) => part.key === 'core')?.chapters ?? []).filter(
+    (chapter) => MODULE_CHAPTERS.includes(chapter)
+  )
+  const handlePresetCore = () => {
+    if (onSetModules === undefined) return
+    onSetModules(MODULE_CHAPTERS.filter((chapter) => coreModules.includes(chapter)))
+  }
+  const handleGroupToggle = (chapters: ChapterKey[], allEnabled: boolean) => {
+    if (onSetModules === undefined) return
+    const next = new Set(enabled)
+    if (allEnabled) chapters.forEach((chapter) => next.delete(chapter))
+    else chapters.forEach((chapter) => next.add(chapter))
+    onSetModules(MODULE_CHAPTERS.filter((chapter) => next.has(chapter)))
+  }
 
   return (
     <div className="module-picker" data-testid="module-picker">
@@ -47,13 +65,39 @@ export default function CeshuModulePicker({ doc, onToggle, onClose }: CeshuModul
       </div>
       <div className="module-picker-modules">
         <div className="module-picker-title">{t('ceshu.modulePicker.modules')}</div>
+        {onSetModules !== undefined && (
+          <div className="module-picker-actions">
+            <button
+              type="button"
+              className="btn slim"
+              data-testid="module-preset-core"
+              title={t('ceshu.modulePicker.presetCoreHint')}
+              onClick={handlePresetCore}
+            >
+              {t('ceshu.modulePicker.presetCore')}
+            </button>
+          </div>
+        )}
         {/* 按分区把可选模块分组显示（章节多时一长列难找）；testid 仍是 `module-toggle-<章>`，行为不变 */}
         {CHAPTER_PARTS.map((part) => {
           const chapters = part.chapters.filter((chapter) => MODULE_CHAPTERS.includes(chapter))
           if (chapters.length === 0) return null
+          const groupAllEnabled = chapters.every((chapter) => enabled.has(chapter))
           return (
             <div key={part.key} className="module-group" data-testid={`module-group-${part.key}`}>
-              <div className="module-picker-title">{part.label}</div>
+              <div className="module-picker-title">
+                {part.label}
+                {onSetModules !== undefined && (
+                  <button
+                    type="button"
+                    className="btn slim link"
+                    data-testid={`module-group-toggle-${part.key}`}
+                    onClick={() => handleGroupToggle(chapters, groupAllEnabled)}
+                  >
+                    {groupAllEnabled ? t('ceshu.modulePicker.groupAllOff') : t('ceshu.modulePicker.groupAllOn')}
+                  </button>
+                )}
+              </div>
               <div className="module-picker-list">
                 {chapters.map((chapter) => (
                   <label key={chapter} className="module-check">

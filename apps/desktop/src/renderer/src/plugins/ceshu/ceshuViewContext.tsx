@@ -58,6 +58,8 @@ export interface CeshuViewContextValue {
   onDerive: (note: string) => void
   /** 勾选/取消系统模块（章节列表旁气泡） */
   onToggleModule: (module: ChapterKey, enabled: boolean) => void
+  /** 批量设置启用模块（分组开关 / 预设；一次写盘） */
+  onSetModules: (chapters: ChapterKey[]) => void
   /** 产出物面板回传改后的文档（原型 / 岗位任务） */
   onDocUpdated: (next: CeshuDocument) => void
   /** 数据面板新建/改动类型（刷新宿主类型列表） */

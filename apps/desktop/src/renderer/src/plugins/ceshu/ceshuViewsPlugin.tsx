@@ -112,8 +112,8 @@ export function defineCeshuViewsPlugin(): PluginManifest {
     return <DeriveOverlay busy={busy} onDerive={onDerive} onClose={onClose} />
   }
   function ModulePickerOverlayBound({ onClose }: PanelBindingProps) {
-    const { doc, onToggleModule } = useCeshuView()
-    return <ModulePickerOverlay doc={doc} onToggle={onToggleModule} onClose={onClose} />
+    const { doc, onToggleModule, onSetModules } = useCeshuView()
+    return <ModulePickerOverlay doc={doc} onToggle={onToggleModule} onSetModules={onSetModules} onClose={onClose} />
   }
 
   /* ---------------- 产出物页签挂载点（ceshu.artifact） ---------------- */

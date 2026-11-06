@@ -56,6 +56,10 @@ export const zh = {
   // —— 策划书：系统模块勾选 ——
   'ceshu.modulePicker.core': '通用底座（恒有）',
   'ceshu.modulePicker.modules': '系统模块（勾选启用）',
+  'ceshu.modulePicker.groupAllOn': '开启本组',
+  'ceshu.modulePicker.groupAllOff': '关闭本组',
+  'ceshu.modulePicker.presetCore': '最小核心',
+  'ceshu.modulePicker.presetCoreHint': '仅保留核心设计模块，关闭制作与商业 / 扩展设计',
   'ceshu.chart.competitiveAlt': '竞品象限图（横轴创新度，纵轴完成度）',
 
   // —— 引擎导出 ——
@@ -2274,6 +2278,10 @@ export const en: Record<MessageKey, string> = {
   // —— Design doc: system module picker ——
   'ceshu.modulePicker.core': 'Universal core (always on)',
   'ceshu.modulePicker.modules': 'System modules (toggle to enable)',
+  'ceshu.modulePicker.groupAllOn': 'Enable group',
+  'ceshu.modulePicker.groupAllOff': 'Disable group',
+  'ceshu.modulePicker.presetCore': 'Minimal core',
+  'ceshu.modulePicker.presetCoreHint': 'Keep only core-design modules; turn off production & extended',
   'ceshu.chart.competitiveAlt': 'Competitive quadrant chart (x: innovation, y: completeness)',
 
   // —— Engine export ——

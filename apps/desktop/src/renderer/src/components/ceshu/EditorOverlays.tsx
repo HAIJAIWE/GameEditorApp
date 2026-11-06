@@ -505,10 +505,11 @@ export function DeriveOverlay({ busy, onDerive, onClose }: {
 
 /* ---------------------------- 系统模块勾选气泡 ---------------------------- */
 
-export function ModulePickerOverlay({ doc, onToggle, onClose }: {
+export function ModulePickerOverlay({ doc, onToggle, onSetModules, onClose }: {
   doc: CeshuDocument
   onToggle: (module: ChapterKey, enabled: boolean) => void
+  onSetModules?: (chapters: ChapterKey[]) => void
   onClose: () => void
 }): ReactElement {
-  return <CeshuModulePicker doc={doc} onToggle={onToggle} onClose={onClose} />
+  return <CeshuModulePicker doc={doc} onToggle={onToggle} onSetModules={onSetModules} onClose={onClose} />
 }

@@ -301,6 +301,17 @@ export default function CeshuView({
     [doc, handleSave]
   )
 
+  /** 批量设置启用模块（分组开关 / 预设）：一次写盘，避免逐章 onToggle 读脏 doc.meta 互相覆盖 */
+  const handleSetModules = useCallback(
+    async (chapters: ChapterKey[]): Promise<void> => {
+      if (doc === null) return
+      const wanted = new Set(chapters)
+      const nextModules = MODULE_CHAPTERS.filter((item) => wanted.has(item))
+      await handleSave('meta', { ...doc.meta, enabled_modules: nextModules })
+    },
+    [doc, handleSave]
+  )
+
   /* 审阅队列快捷键（j/k/a/v/Esc）已随浮层迁到 EditorOverlays 的 ReviewQueueOverlay 内。 */
 
   /*
@@ -882,6 +893,7 @@ export default function CeshuView({
     onApplyImport,
     onDerive,
     onToggleModule: handleToggleModule,
+    onSetModules: handleSetModules,
     onDocUpdated: (next) => {
       setDoc(next)
       onChanged()
