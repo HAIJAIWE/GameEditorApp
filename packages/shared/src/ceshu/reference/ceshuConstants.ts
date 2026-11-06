@@ -147,10 +147,16 @@ export function chapterPartOf(key: ChapterKey): ChapterPart | null {
   return CHAPTER_PARTS.find((part) => (part.chapters as readonly ChapterKey[]).includes(key)) ?? null
 }
 
-/** 分区显示名：「一、核心设计」（序号按其在 `CHAPTER_PARTS` 中的位置派生） */
+/**
+ * 分区显示名：**直接用分区标签**，不加中文序号。
+ *
+ * 曾经是「一、核心设计」，与章标签「1. 产品愿景」的阿拉伯数字编号混排，看起来像
+ * 两套互不相干的编号体系（语料库复核也指出「分组标题应去掉中文序号」，见
+ * `docs/template-corpus.md` / `docs/design-doc-templates-research.md`）。
+ * 保留函数而非让调用方直取 `part.label`：分区显示名的口径要单源，将来若再调整只改这里。
+ */
 export function partDisplayName(part: ChapterPart): string {
-  const index = CHAPTER_PARTS.findIndex((candidate) => candidate.key === part.key)
-  return `${CN_NUMERALS[index]}、${part.label}`
+  return part.label
 }
 
 /** 轻量档可见的**编号**章（恒为 `NUMBERED_CHAPTER_KEYS` 的前缀 ⇒ 章号 1..9 不跳号） */

@@ -43,8 +43,6 @@ import { renderCeshuMarkdown } from '../doc/markdown'
  * 与游戏档交接包同源，本文件只负责 SDD 口径的装箱与总纲。
  */
 
-const CN = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十'] as const
-
 /** 岗位 → 相关章（应用口径；AI 已并入应用，模型层章也归应用岗位） */
 function roleChaptersOf(_doc: CeshuDocument): Readonly<Record<string, readonly string[]>> {
   return APP_ROLE_CHAPTERS
@@ -76,10 +74,10 @@ function chapterDirectory(doc: CeshuDocument): string {
   const spec = specForDoc(doc)
   const visible = new Set(visibleChaptersForDoc(doc))
   const lines: string[] = []
-  spec.parts.forEach((part, index) => {
+  spec.parts.forEach((part) => {
     const chapters = part.chapters.filter((key) => visible.has(key))
     if (chapters.length === 0) return
-    lines.push(`### ${CN[index] ?? index + 1}、${part.label}`, '')
+    lines.push(`### ${part.label}`, '')
     for (const key of chapters) {
       lines.push(`- [${spec.chapterLabels[key] ?? key}](design/${key}.md) · 负责：${chapterAiOf(spec, key).agentId}`)
     }
@@ -148,7 +146,7 @@ function renderManifest(doc: CeshuDocument, generatedAt: string): string {
   const parts = spec.parts.map((part, index) => ({
     key: part.key,
     label: part.label,
-    displayName: `${CN[index] ?? index + 1}、${part.label}`,
+    displayName: part.label,
     order: index + 1,
     chapters: part.chapters.filter((key) => visible.includes(key))
   }))
@@ -187,10 +185,10 @@ function renderRoute(doc: CeshuDocument): string {
   const spec = specForDoc(doc)
   const visible = new Set(visibleChaptersForDoc(doc))
   const lines = [`# ${projectName(doc)} · 开发路线`, '', '按分区顺序推进；每章的「完成」= 必填字段填齐且可判定。', '']
-  spec.parts.forEach((part, index) => {
+  spec.parts.forEach((part) => {
     const chapters = part.chapters.filter((key) => visible.has(key))
     if (chapters.length === 0) return
-    lines.push(`## ${CN[index] ?? index + 1}、${part.label}`, '')
+    lines.push(`## ${part.label}`, '')
     for (const key of chapters) {
       const ai = chapterAiOf(spec, key)
       lines.push(`- [${spec.chapterLabels[key] ?? key}](design/${key}.md) — 负责：${ai.agentId}；要求：${ai.aiHint}`)

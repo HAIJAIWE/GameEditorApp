@@ -59,9 +59,6 @@ export const APP_CHAPTER_NAMES: Readonly<Record<string, string>> = {
   eval_redteam: '评测与红队'
 }
 
-const CN = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十',
-  '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十', '二十一', '二十二'] as const
-
 /** 章号从 1 起的编号章（顺序即章号） */
 export const APP_NUMBERED_KEYS: readonly string[] = APP_PARTS.flatMap((part) => [...part.chapters])
 
@@ -97,10 +94,15 @@ export const APP_CHAPTER_LABELS: Readonly<Record<string, string>> = Object.fromE
   })
 )
 
-/** 分区显示名（序号由位置派生） */
+/**
+ * 分区显示名：**直接用分区标签**，不加中文序号。
+ *
+ * 与游戏侧 `partDisplayName` 同口径：章标签是「1. 项目概述」的阿拉伯数字，
+ * 分区再套「一、」会变成两套编号混排（见 `docs/template-corpus.md`）。
+ * 保留函数是为了让分区显示名有单一出口，别处不要自己拼序号。
+ */
 export function appPartDisplayName(part: AppPart): string {
-  const index = APP_PARTS.indexOf(part)
-  return `${CN[index] ?? index + 1}、${part.label}`
+  return part.label
 }
 
 /** 章 → 所属分区 key；meta 返回 'meta' */

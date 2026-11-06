@@ -25,10 +25,6 @@ import {
  * 直接锁死，任何重排/合并/增删章节只要破坏不变式就立刻红灯。
  */
 
-/** 中文数字表（与 ceshuConstants 内部同源；用于核对标签里的章号） */
-// P2 扩展设计 7 章后共 23 个编号章（meta 不占章号），中文数字同步扩展到二十三
-const CN = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十', '二十一', '二十二', '二十三']
-
 describe('策划书常量：顶层结构不变式', () => {
   it('CHAPTER_KEYS = 文档信息段（恒在首位、只出现一次）+ 有章号章节', () => {
     expect(CHAPTER_KEYS[0]).toBe(META_CHAPTER_KEY)
@@ -88,11 +84,12 @@ describe('策划书常量：章号与标签由数组位置派生', () => {
     }
   })
 
-  it('chapterPartOf / partDisplayName：分区归属与中文序号一致', () => {
+  it('chapterPartOf / partDisplayName：分区归属正确，分区显示名不带中文序号', () => {
     expect(chapterPartOf(META_CHAPTER_KEY)).toBeNull()
 
-    CHAPTER_PARTS.forEach((part, index) => {
-      expect(partDisplayName(part)).toBe(`${CN[index]}、${part.label}`)
+    CHAPTER_PARTS.forEach((part) => {
+      // 分区标题直接用标签（与章标签「N. 名称」的阿拉伯数字统一，避免两套编号混排）
+      expect(partDisplayName(part)).toBe(part.label)
       for (const key of part.chapters) {
         expect(chapterPartOf(key)).toBe(part)
       }

@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest'
 import {
   APP_CHAPTER_FIELDS,
   APP_CHAPTER_SCHEMAS,
+  APP_PARTS,
+  appPartDisplayName,
   appRequiredFields,
   createAppDefaultChapters
 } from '@mobai/shared/appSchema'
@@ -130,5 +132,14 @@ describe('读盘归一化：应用章往返不丢', () => {
     const restored = normalizeCeshu({ ceshu_id: 'abcd1234', meta: { game_name: '游戏' } })
     const record = restored as unknown as Record<string, unknown>
     for (const key of APP_SPEC.numberedKeys) expect(record[key], `游戏档误带 ${key}`).toBeUndefined()
+  })
+})
+
+describe('应用分区显示名：不带中文序号（与章标签「N. 名称」统一）', () => {
+  it('appPartDisplayName 直接返回分区标签，不拼「一、二、」', () => {
+    for (const part of APP_PARTS) {
+      expect(appPartDisplayName(part)).toBe(part.label)
+      expect(appPartDisplayName(part)).not.toMatch(/^[一二三四五六七八九十]+、/)
+    }
   })
 })
