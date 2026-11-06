@@ -10,8 +10,6 @@
  */
 
 import {
-  CHAPTER_LABELS,
-  CHAPTER_REQUIRED_FIELDS,
   isChapterEnabled,
   chapterApplicableToGenre,
   type CeshuDocument,
@@ -19,7 +17,16 @@ import {
 } from '../reference'
 import { analyzeChapterQuality, contentQualityIssues } from '../validation'
 import { fieldLabelOf } from '../fields'
-import { computeChapterProgress, getGameType, isFilledValue, visibleChaptersForDoc } from '../model'
+import {
+  chapterDataForDoc,
+  chapterLabelForDoc,
+  computeChapterProgress,
+  getDocKind,
+  getGameType,
+  isFilledValue,
+  requiredFieldsForDoc,
+  visibleChaptersForDoc
+} from '../model'
 import { CESHU_STAGE_LABELS, chaptersUpToStage, type CeshuStage } from '../workflow'
 import { classifyValidationMessage } from '../validation'
 import { countWordsInChapter } from '../validation'
@@ -36,34 +43,38 @@ import { validateCeshu } from '../validation'
 export * from './ceshuReadinessData'
 
 /** 该章在该文档下是否参与完备度（品类适用 + 模块启用）——与可见章口径一致 */
-function chapterCounts(chapter: ChapterKey, doc: CeshuDocument, gameType: string): boolean {
-  return chapterApplicableToGenre(chapter, gameType) && isChapterEnabled(chapter, doc)
+function chapterCounts(chapter: string, doc: CeshuDocument, gameType: string): boolean {
+  // 品类 / 系统模块是游戏概念，应用档不做这两层过滤（章表已由规格决定）
+  if (getDocKind(doc) === 'application') return true
+  const key = chapter as ChapterKey
+  return chapterApplicableToGenre(key, gameType) && isChapterEnabled(key, doc)
 }
 
 /** 统计单章：必填总数 / 已填 / 缺失 / 完成度 / 字数 / 质量提示 */
 function chapterReadiness(
   doc: CeshuDocument,
-  chapter: ChapterKey,
+  chapter: string,
   progress: Record<string, number>
 ): CeshuChapterReadiness {
-  const data = doc[chapter] as Record<string, unknown> | undefined
-  const required = CHAPTER_REQUIRED_FIELDS[chapter] ?? []
+  const data = chapterDataForDoc(doc, chapter)
+  const required = requiredFieldsForDoc(doc, chapter)
   const missing: string[] = []
   let filled = 0
   for (const field of required) {
-    if (isFilledValue(data?.[field])) filled += 1
+    if (isFilledValue(data[field])) filled += 1
     else missing.push(field)
   }
   const wordCount = countWordsInChapter(data)
   const completion = progress[chapter] ?? 0
+  const label = chapterLabelForDoc(doc, chapter)
   const qualityNotes =
-    data === undefined
+    Object.keys(data).length === 0
       ? []
-      : contentQualityIssues(analyzeChapterQuality(data), { chapterLabel: CHAPTER_LABELS[chapter] ?? chapter })
+      : contentQualityIssues(analyzeChapterQuality(data), { chapterLabel: label })
 
   return {
-    chapter_key: chapter,
-    chapter_label: CHAPTER_LABELS[chapter] ?? chapter,
+    chapter_key: chapter as ChapterKey,
+    chapter_label: label,
     required_total: required.length,
     required_filled: filled,
     missing_required: missing,
@@ -76,17 +87,17 @@ function chapterReadiness(
 
 /** 汇总某阶段（累计）的必填覆盖 */
 function stageReadiness(doc: CeshuDocument, stage: CeshuStage, gameType: string): CeshuStageReadiness {
-  const stageChapters = new Set(chaptersUpToStage(stage))
+  const stageChapters = new Set<string>(chaptersUpToStage(stage))
   const counted = visibleChaptersForDoc(doc).filter(
     (chapter) => stageChapters.has(chapter) && chapterCounts(chapter, doc, gameType)
   )
   let total = 0
   let filled = 0
   for (const chapter of counted) {
-    const required = CHAPTER_REQUIRED_FIELDS[chapter] ?? []
-    const data = doc[chapter] as Record<string, unknown> | undefined
+    const required = requiredFieldsForDoc(doc, chapter)
+    const data = chapterDataForDoc(doc, chapter)
     total += required.length
-    for (const field of required) if (isFilledValue(data?.[field])) filled += 1
+    for (const field of required) if (isFilledValue(data[field])) filled += 1
   }
   const ratio = total === 0 ? 1 : Math.round((filled / total) * 100) / 100
   return {
@@ -169,8 +180,8 @@ function buildNextSteps(report: Omit<CeshuReadinessReport, 'next_steps'>, hardEr
 }
 
 /** 该章是否属于立项阶段（用于 next_steps 只点立项缺口） */
-function conceptStageChapter(chapter: ChapterKey): boolean {
-  return chaptersUpToStage('concept').includes(chapter)
+function conceptStageChapter(chapter: string): boolean {
+  return chaptersUpToStage('concept').includes(chapter as ChapterKey)
 }
 
 /**

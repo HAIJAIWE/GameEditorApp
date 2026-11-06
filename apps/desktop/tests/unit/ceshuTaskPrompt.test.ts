@@ -116,7 +116,7 @@ describe('parseRoleTaskPlan', () => {
     expect(task?.priority).toBe('P1')
     expect(task?.source).toBeTypeOf('string')
     // 必须是文档真实可见的章
-    expect(doc[task!.source]).toBeDefined()
+    expect((doc as unknown as Record<string, unknown>)[task!.source]).toBeDefined()
   })
 
   it('每岗条数封顶', () => {

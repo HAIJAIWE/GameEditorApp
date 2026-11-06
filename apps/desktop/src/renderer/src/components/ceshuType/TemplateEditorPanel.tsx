@@ -33,7 +33,7 @@ import { toErrorMessage } from '@mobai/shared/util/system'
 interface TemplateEditorPanelProps {
   ceshuId: string
   doc: CeshuDocument
-  currentChapter: ChapterKey
+  currentChapter: string
   gameName: string
   onApplied: (updated: CeshuDocument, chapterKey: ChapterKey) => void
   onClose: () => void

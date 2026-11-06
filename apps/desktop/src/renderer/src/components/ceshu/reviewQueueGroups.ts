@@ -1,5 +1,3 @@
-import type { ChapterKey } from '@mobai/shared/ceshu/reference'
-
 /**
  * 审阅队列按章节分组的纯逻辑（供 CeshuView 渲染与单测共用）。
  *
@@ -11,13 +9,13 @@ import type { ChapterKey } from '@mobai/shared/ceshu/reference'
  */
 
 export interface ReviewQueueItem {
-  chapter: ChapterKey
+  chapter: string
   fieldKey: string
   fieldLabel: string
 }
 
 export interface ReviewQueueGroup {
-  chapter: ChapterKey
+  chapter: string
   /** 该组第一条在**扁平列表**里的下标（键盘光标仍用扁平下标） */
   startIndex: number
   items: Array<{ item: ReviewQueueItem; flatIndex: number }>

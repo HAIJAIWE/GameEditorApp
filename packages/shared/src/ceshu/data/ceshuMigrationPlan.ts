@@ -97,8 +97,14 @@ export function splitNarrative(text: string, maxPoints = 5): { points: string[];
   return { points: [trimmed], notes: '' }
 }
 
-/** 字段中文标签（单源在 `ceshuFields.fieldLabelOf`，此处保留短名以少改调用点） */
-const fieldLabel = fieldLabelOf
+/**
+ * 字段中文标签（单源在 `ceshuFields.fieldLabelOf`，此处保留短名以少改调用点）。
+ * 与 ceshuImportPatch 同理：本文件经 `data` 桶被 `model` 加载、自身又 import `model`，
+ * 顶层直接取绑定会在循环里拿到 undefined，必须包成函数延迟解析 live binding。
+ */
+function fieldLabel(chapter: ChapterKey, key: string): string {
+  return fieldLabelOf(chapter, key)
+}
 
 function readText(value: unknown): string {
   return typeof value === 'string' ? value : ''

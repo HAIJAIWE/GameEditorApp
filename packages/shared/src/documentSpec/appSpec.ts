@@ -10,20 +10,22 @@
  * 每章的字段 schema 尚未落地（见 docs/app-development-plan.md 分阶段计划），
  * 本文件先钉死「有哪些章、叫什么、谁写」这份结构契约。
  */
-import { appRequiredFields, APP_CHAPTER_FIELDS } from '../appSchema'
-import type { DocumentSpec, SpecChapter, SpecPart } from './types'
+import {
+  APP_CHAPTER_FIELDS,
+  APP_CHAPTER_KEYS,
+  APP_CHAPTER_LABELS,
+  APP_CHAPTER_NAMES,
+  APP_META_KEY,
+  APP_NUMBERED_KEYS,
+  APP_PARTS,
+  appPartOf,
+  appRequiredFields
+} from '../appSchema'
+import type { DocumentSpec, SpecChapter } from './types'
 
-/** 文档信息段 key（不占章号） */
-export const APP_META_KEY = 'meta'
-
-/** 应用档分区（章号唯一事实源） */
-export const APP_PARTS: readonly SpecPart[] = [
-  { key: 'definition', label: '定义与范围', chapters: ['overview', 'users', 'scope'] },
-  { key: 'product', label: '产品设计', chapters: ['features', 'flows', 'interaction'] },
-  { key: 'engineering', label: '技术设计', chapters: ['architecture', 'data_model', 'api', 'integration'] },
-  { key: 'quality', label: '质量与保障', chapters: ['nonfunctional', 'security', 'testing'] },
-  { key: 'delivery', label: '交付与治理', chapters: ['release', 'milestones', 'risks'] }
-] as const
+// 章表 / 标签 / 章号 / 分区的唯一事实源在 `appSchema/table.ts`；
+// 这里 re-export 保持既有对外 API（documentSpec/index.ts 与测试都从这里取）。
+export { APP_META_KEY, APP_PARTS } from '../appSchema'
 
 /** AI 子智能体（应用语义，不含「策划」「数值」「关卡」等游戏角色） */
 export const APP_AGENT_DISPLAY: Readonly<Record<string, string>> = {
@@ -68,88 +70,80 @@ export const APP_ROLES: readonly { key: string; label: string }[] = [
  */
 interface AppChapterDef {
   key: string
-  name: string
   agentId: string
   aiHint: string
 }
 
 const CHAPTER_DEFS: readonly AppChapterDef[] = [
   {
-    key: 'overview', name: '项目概述', agentId: 'product_manager',
+    key: 'overview', agentId: 'product_manager',
     aiHint: '一句话说清这个应用解决谁的问题、和现有方案有何不同；给出 2-3 条成功指标。',
   },
   {
-    key: 'users', name: '用户与场景', agentId: 'product_manager',
+    key: 'users', agentId: 'product_manager',
     aiHint: '列出 2-4 类目标用户与各自的核心使用场景，写清触发时机与完成标准。',
   },
   {
-    key: 'scope', name: '范围与非目标', agentId: 'product_manager',
+    key: 'scope', agentId: 'product_manager',
     aiHint: '明确本期做什么、明确不做什么；非目标要给出边界，禁止「暂不做」这类无边界表述。',
   },
   {
-    key: 'features', name: '功能规格', agentId: 'product_manager',
+    key: 'features', agentId: 'product_manager',
     aiHint: '按模块列功能点与验收条件，每条可判定；标注优先级与依赖关系。',
   },
   {
-    key: 'flows', name: '核心流程与状态', agentId: 'ux_designer',
+    key: 'flows', agentId: 'ux_designer',
     aiHint: '给出主流程步骤与关键状态机，覆盖失败分支与回退路径。',
   },
   {
     // 章 key 刻意不叫 `uiux`：那是游戏 GDD 的章 key，同名会让文档数据被两套规格解释成不同内容
-    key: 'interaction', name: '交互与界面', agentId: 'ux_designer',
+    key: 'interaction', agentId: 'ux_designer',
     aiHint: '描述信息架构、页面结构、导航与关键交互，覆盖加载/空/错三态与响应式策略。',
   },
   {
-    key: 'architecture', name: '技术架构', agentId: 'architect',
+    key: 'architecture', agentId: 'architect',
     aiHint: '模块划分、依赖方向、技术选型理由与被否决方案；说明扩展点与未提前实现的部分。',
   },
   {
-    key: 'data_model', name: '数据模型', agentId: 'data_engineer',
+    key: 'data_model', agentId: 'data_engineer',
     aiHint: '实体、字段、关系与生命周期；说明存储选型、迁移与一致性策略。',
   },
   {
-    key: 'api', name: '接口契约', agentId: 'backend',
+    key: 'api', agentId: 'backend',
     aiHint: '按接口列路径/入参/出参/错误码/幂等性；内部模块边界也一并写清。',
   },
   {
-    key: 'integration', name: '第三方与集成', agentId: 'backend',
+    key: 'integration', agentId: 'backend',
     aiHint: '列出外部依赖、认证方式、配额与降级方案；标清单点故障。',
   },
   {
-    key: 'nonfunctional', name: '非功能需求', agentId: 'architect',
+    key: 'nonfunctional', agentId: 'architect',
     aiHint: '性能预算、兼容矩阵（桌面/移动/浏览器）、可用性与可访问性，指标要可测。',
   },
   {
-    key: 'security', name: '安全与隐私', agentId: 'security',
+    key: 'security', agentId: 'security',
     aiHint: '认证授权模型、数据分级、敏感信息处理与威胁模型；写清合规边界。',
   },
   {
-    key: 'testing', name: '测试与质量', agentId: 'qa',
+    key: 'testing', agentId: 'qa',
     aiHint: '分层测试策略、关键用例与验收条件、回归范围与上线门禁。',
   },
   {
-    key: 'release', name: '发布与运维', agentId: 'devops',
+    key: 'release', agentId: 'devops',
     aiHint: '部署形态、灰度策略、监控指标、告警阈值与回滚路径。',
   },
   {
-    key: 'milestones', name: '里程碑与资源', agentId: 'tech_lead',
+    key: 'milestones', agentId: 'tech_lead',
     aiHint: '按可交付成果拆里程碑，标注依赖、人力与关键假设。',
   },
   {
-    key: 'risks', name: '风险与取舍', agentId: 'tech_lead',
+    key: 'risks', agentId: 'tech_lead',
     aiHint: '列风险登记表与应对，并写清关键决策的候选方案、否决理由与结论。',
   }
 ]
 
-/** 中文数字（章号派生；够用即可） */
-const CN = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十',
-  '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十'] as const
-
-const NUMBERED_KEYS: readonly string[] = APP_PARTS.flatMap((part) => [...part.chapters])
-const CHAPTER_KEYS: readonly string[] = [APP_META_KEY, ...NUMBERED_KEYS]
-
 /** 规格章表必须与 appSchema 字段表一一对应（缺一章就抛错，避免规格与内容脱节） */
-for (const key of CHAPTER_KEYS) {
+for (const key of APP_CHAPTER_KEYS) {
   if ((APP_CHAPTER_FIELDS[key] ?? []).length === 0) {
     throw new Error(`应用规格的章在 appSchema 里没有字段定义: ${key}`)
   }
@@ -157,26 +151,23 @@ for (const key of CHAPTER_KEYS) {
 
 function chaptersForSpec(): SpecChapter[] {
   const defs = new Map(CHAPTER_DEFS.map((def) => [def.key, def]))
-  return CHAPTER_KEYS.map((key) => {
-    const part = APP_PARTS.find((candidate) => candidate.chapters.includes(key))
-    const index = NUMBERED_KEYS.indexOf(key)
-    // 必填字段一律由 appSchema 派生：字段表是唯一事实源
+  return APP_CHAPTER_KEYS.map((key) => {
+    // 标签 / 章号 / 分区 / 必填全部来自 appSchema（唯一事实源），这里只补 AI 元数据
     const requiredFields = appRequiredFields(key)
     if (key === APP_META_KEY) {
       return {
-        key, name: '文档信息', label: '文档信息', part: 'meta',
+        key, name: APP_CHAPTER_NAMES[key], label: APP_CHAPTER_LABELS[key], part: 'meta',
         aiHint: '整理项目名称、目标平台、文档状态与保密级别。',
         agentId: 'tech_lead', requiredFields
       }
     }
     const def = defs.get(key)
     if (def === undefined) throw new Error(`应用规格缺少章定义: ${key}`)
-    const ordinal = CN[index] ?? String(index + 1)
     return {
       key,
-      name: def.name,
-      label: `第${ordinal}章·${def.name}`,
-      part: part?.key ?? '',
+      name: APP_CHAPTER_NAMES[key],
+      label: APP_CHAPTER_LABELS[key],
+      part: appPartOf(key),
       aiHint: def.aiHint,
       agentId: def.agentId,
       requiredFields
@@ -189,11 +180,11 @@ export const APP_SPEC: DocumentSpec = {
   label: '软件设计文档',
   shortLabel: '应用',
   metaKey: APP_META_KEY,
-  numberedKeys: NUMBERED_KEYS,
-  chapterKeys: CHAPTER_KEYS,
+  numberedKeys: APP_NUMBERED_KEYS,
+  chapterKeys: APP_CHAPTER_KEYS,
   parts: APP_PARTS,
   chapters: chaptersForSpec(),
-  chapterLabels: Object.fromEntries(chaptersForSpec().map((c) => [c.key, c.label])),
+  chapterLabels: APP_CHAPTER_LABELS,
   agentDisplay: APP_AGENT_DISPLAY,
   agentPrompts: APP_AGENT_PROMPTS,
   roles: APP_ROLES,

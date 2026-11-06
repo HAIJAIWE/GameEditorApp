@@ -1,7 +1,6 @@
-import { CHAPTER_LABELS, CHAPTER_REQUIRED_FIELDS, type CeshuDocument, type ChapterKey } from '../reference'
-import { CESHU_CHAPTER_FIELDS } from '../fields'
+import { CHAPTER_LABELS, type CeshuDocument, type ChapterKey } from '../reference'
 import { displayFieldValue } from '../fields'
-import { visibleChaptersForDoc } from '../model'
+import { chapterDataForDoc, chapterFieldsForDoc, chapterLabelForDoc, requiredFieldsForDoc, visibleChaptersForDoc } from '../model'
 
 /**
  * 岗位任务（单源）：`main/ceshu/export/tasks.ts`（导出 Markdown）与
@@ -72,8 +71,8 @@ export interface CeshuRoleTask {
   /** 做什么 + 验收点 */
   detail: string
   priority: CeshuTaskPriority
-  /** 依据章（必须是该文档可见章之一） */
-  source: ChapterKey
+  /** 依据章（必须是该文档可见章之一）。用 string：应用章 key 不属于游戏 ChapterKey 联合 */
+  source: string
 }
 
 /** 岗位任务计划：只存生成过的岗位，没生成的岗位回落到派生清单 */
@@ -87,7 +86,8 @@ export function renderTaskPlanMarkdown(tasks: readonly CeshuRoleTask[]): string 
     if (group.length === 0) continue
     lines.push(`### ${priority}（${group.length} 项）`, '')
     for (const task of group) {
-      lines.push(`- [ ] **${task.title}**（依据：${CHAPTER_LABELS[task.source]}）`)
+      // 应用章 key 不在 CHAPTER_LABELS 里：回落成 key 本身，避免显示 undefined
+      lines.push(`- [ ] **${task.title}**（依据：${CHAPTER_LABELS[task.source as ChapterKey] ?? task.source}）`)
       if (task.detail !== '') lines.push(`      ${task.detail}`)
     }
     lines.push('')
@@ -119,13 +119,13 @@ export function renderRoleTasksMarkdown(doc: CeshuDocument, role: CeshuRole): st
 }
 
 export function collectRoleTasks(doc: CeshuDocument, role: CeshuRole): RoleTaskSection[] {
-  const visible = new Set(visibleChaptersForDoc(doc))
+  const visible = new Set<string>(visibleChaptersForDoc(doc))
   const sections: RoleTaskSection[] = []
   for (const chapter of ROLE_CHAPTERS[role]) {
     if (!visible.has(chapter)) continue
-    const fields = CESHU_CHAPTER_FIELDS[chapter] ?? []
-    const required = new Set(CHAPTER_REQUIRED_FIELDS[chapter] ?? [])
-    const data = (doc[chapter] ?? {}) as Record<string, unknown>
+    const fields = chapterFieldsForDoc(doc, chapter)
+    const required = new Set(requiredFieldsForDoc(doc, chapter))
+    const data = chapterDataForDoc(doc, chapter)
     const items: RoleTaskItem[] = []
     for (const field of fields) {
       const isRequired = required.has(field.key)
@@ -137,7 +137,7 @@ export function collectRoleTasks(doc: CeshuDocument, role: CeshuRole): RoleTaskS
         full.length > ROLE_TASK_VALUE_LIMIT ? `${full.slice(0, ROLE_TASK_VALUE_LIMIT)}…` : full
       items.push({ key: field.key, label: field.label, value, filled, required: isRequired })
     }
-    if (items.length > 0) sections.push({ chapter, label: CHAPTER_LABELS[chapter], items })
+    if (items.length > 0) sections.push({ chapter: chapter as ChapterKey, label: chapterLabelForDoc(doc, chapter), items })
   }
   return sections
 }

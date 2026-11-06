@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { createDefaultCeshu } from '@mobai/shared/ceshu/model'
+import { APP_CHAPTER_KEYS, APP_CHAPTER_LABELS } from '@mobai/shared/appSchema'
 import { buildProjectFolder, projectFilesToDoc, projectFolderName } from '@mobai/shared/ceshu/workflow'
 
 /**
@@ -200,5 +201,38 @@ describe('projectFolderName', () => {
   it('纯点号/空格的名字也回落（不能生成 . / .. 这类目录）', () => {
     const doc = createDefaultCeshu({ scope: 'full', name: ' .. ' })
     expect(projectFolderName(doc)).toBe(`ceshu-${doc.ceshu_id}`)
+  })
+})
+
+describe('应用档项目文件夹：导出 SDD 章、导入能还原', () => {
+  it('design/ 下是 17 个应用章，标题用 SDD 标签，且不含游戏章', () => {
+    const doc = createDefaultCeshu({ scope: 'full', name: '效率工具', docKind: 'application' })
+    const { files } = buildProjectFolder(doc)
+    const designs = Object.keys(files).filter((path) => path.startsWith('design/'))
+    expect(designs).toHaveLength(APP_CHAPTER_KEYS.length)
+    expect(designs).toContain('design/architecture.md')
+    expect(designs).toContain('design/risks.md')
+    expect(designs).not.toContain('design/combat.md')
+    expect(files['design/architecture.md']).toContain(APP_CHAPTER_LABELS.architecture)
+  })
+
+  it('导出 → 导入：档位、应用章内容都不丢（不被 isChapterKey 过滤掉）', () => {
+    const doc = createDefaultCeshu({ scope: 'full', name: '往返应用', docKind: 'application' })
+    ;(doc as unknown as Record<string, unknown>).architecture = { modules: [{ module: 'A' }], storage: 'SQLite' }
+    const { files } = buildProjectFolder(doc)
+    const restored = projectFilesToDoc(files)
+    const record = restored as unknown as Record<string, unknown>
+    expect(restored.meta.doc_kind).toBe('application')
+    // 用 toMatchObject：导入会合并 createDefaultCeshu 的默认空数组（既有行为，游戏档同理）
+    expect(record.architecture).toMatchObject({ modules: [{ module: 'A' }], storage: 'SQLite' })
+    for (const key of APP_CHAPTER_KEYS) expect(record[key], `读回丢了 ${key}`).toBeDefined()
+  })
+
+  it('游戏档导出仍只有 24 章（零回归）', () => {
+    const doc = createDefaultCeshu({ scope: 'full', name: '游戏' })
+    const { files } = buildProjectFolder(doc)
+    expect(Object.keys(files).filter((path) => path.startsWith('design/'))).toHaveLength(24)
+    expect(files['design/combat.md']).toBeDefined()
+    expect(files['design/architecture.md']).toBeUndefined()
   })
 })

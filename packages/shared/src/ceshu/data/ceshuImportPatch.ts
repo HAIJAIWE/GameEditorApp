@@ -43,8 +43,17 @@ function isEmptyPatchValue(value: unknown): boolean {
   return false
 }
 
-/** 字段中文标签（单源在 `ceshuFields.fieldLabelOf`，此处保留短名以少改调用点） */
-const fieldLabel = fieldLabelOf
+/**
+ * 字段中文标签（单源在 `ceshuFields.fieldLabelOf`，此处保留短名以少改调用点）。
+ *
+ * 必须包一层函数、不能写成 `const fieldLabel = fieldLabelOf`：本文件经 `data` 桶被
+ * `model` 加载，同时又 `import ... from '../model'`，是一条循环依赖。顶层直接取绑定
+ * 会在求值顺序变化时拿到尚未初始化的 `undefined`（表现为 `fieldLabel is not a function`）；
+ * 包成函数则在实际调用时才解析 live binding，循环里也安全。
+ */
+function fieldLabel(chapter: ChapterKey, key: string): string {
+  return fieldLabelOf(chapter, key)
+}
 
 /** 点路径读取（如 user_personas.primary） */
 function readByPath(data: ChapterData, path: string): unknown {

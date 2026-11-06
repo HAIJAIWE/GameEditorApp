@@ -1,9 +1,10 @@
 import {
-  CHAPTER_LABELS,
   MODULE_CHAPTERS,
   contentChapterCount,
+  type CeshuDocument,
   type ChapterKey
 } from '@mobai/shared/ceshu/reference'
+import { chapterLabelForDoc } from '@mobai/shared/ceshu/model'
 import type { AiGeneratedMap } from '@mobai/shared/ceshu/prompts'
 import {
   CESHU_STAGE_LABELS,
@@ -25,6 +26,8 @@ import { ARTIFACTS, type ArtifactKey } from './ceshuArtifacts'
  * 保证 DOM 结构与拆分前逐字一致。
  */
 interface CeshuChapterNavProps {
+  /** 章标签按 docKind 分派（游戏档 CHAPTER_LABELS、应用档 APP_CHAPTER_LABELS） */
+  doc: CeshuDocument
   activeArtifact: ArtifactKey
   /** 切产出物（`'doc'` 关掉产出物视图，其余打开 `${key}.view`） */
   onSelectArtifact: (key: ArtifactKey) => void
@@ -35,19 +38,20 @@ interface CeshuChapterNavProps {
   onOpenModulePicker: () => void
   viewMode: 'edit' | 'overview'
   onToggleViewMode: () => void
-  /** 阶段筛选后的章节列表（父组件已按阶段 + 当前章过滤） */
-  chapters: readonly ChapterKey[]
+  /** 阶段筛选后的章节列表（父组件已按阶段 + 当前章过滤）；应用章 key 用 string */
+  chapters: readonly string[]
   progress: Record<string, number>
-  activeChapter: ChapterKey
+  activeChapter: string
   aiMarks: AiGeneratedMap
   /** 点章节：切章并退出「一页总览」 */
-  onSelectChapter: (chapter: ChapterKey) => void
+  onSelectChapter: (chapter: string) => void
   scope: 'full' | 'lite'
   host: PluginHost
   viewContext: CeshuViewContextValue
 }
 
 export default function CeshuChapterNav({
+  doc,
   activeArtifact,
   onSelectArtifact,
   stageFilter,
@@ -143,12 +147,12 @@ export default function CeshuChapterNav({
             className={`chapter-tab${key === activeChapter ? ' active' : ''}`}
             onClick={() => onSelectChapter(key)}
           >
-            <span className="chapter-tab-label">{CHAPTER_LABELS[key]}</span>
+            <span className="chapter-tab-label">{chapterLabelForDoc(doc, key)}</span>
             {/*
               「待核对」圆点：AI 刚生成、人还没看过。点了「保存本章」即消失。
               视觉上不用文字 —— 章节导航里多出的两个字会比圆点更吵。
             */}
-            {aiMarks[key] !== undefined && (
+            {aiMarks[key as ChapterKey] !== undefined && (
               <span className="chapter-tab-ai" title={t('chapterNav.aiPendingTitle')} data-testid={`chapter-ai-${key}`} />
             )}
             <span

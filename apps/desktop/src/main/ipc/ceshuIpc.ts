@@ -48,6 +48,7 @@ import {
   templatesUpdateInputSchema
 } from '@mobai/shared/schema/adapters'
 import { CHAPTER_LABELS, isChapterKey, type ChapterKey, type SystemEntry } from '@mobai/shared/ceshu/reference'
+import { visibleChaptersForDoc } from '@mobai/shared/ceshu/model'
 import type { DataTypeDef } from '@mobai/shared/types'
 import { CESHU_CHAPTER_FIELDS } from '@mobai/shared/ceshu/fields'
 import {
@@ -96,7 +97,10 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
     return doc
   })
   handle('ceshu:saveChapter', ceshuSaveChapterInputSchema, async (req) => {
-    if (!isChapterKey(req.chapter)) {
+    // 应用章 key 不是 isChapterKey：额外按「该文档实际可见章」放行。
+    // 保留游戏章判断在前，保证游戏档（含 lite 档保存被隐藏章）逐项零回归。
+    const visible = visibleChaptersForDoc(ceshuManager.get(req.id))
+    if (!isChapterKey(req.chapter) && !visible.includes(req.chapter)) {
       throw new Error(`未知章节：${req.chapter}`)
     }
     const updated = await ceshuManager.saveChapter(req.id, req.chapter, req.data, {

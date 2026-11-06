@@ -1,21 +1,21 @@
 import {
-  CHAPTER_LABELS,
   enabledModuleChapters,
-  isChapterKey,
   type CeshuDocument,
   type CeshuFieldDef,
-  type ChapterData,
-  type ChapterKey
+  type ChapterData
 } from '../reference'
 import { CESHU_CHAPTER_FIELDS } from '../fields'
 import { displayFieldValue } from '../fields'
 import {
+  chapterDataForDoc,
+  chapterFieldsForDoc,
+  chapterLabelForDoc,
+  visibleChaptersForDoc,
   computeEnabledEditors,
   createDefaultCeshu,
   getDocKind,
   getGameType,
-  getGddScope,
-  visibleChaptersForDoc
+  getGddScope
 } from '../model'
 import { CESHU_ROLE_LABELS, CESHU_ROLE_ORDER, renderRoleTasksMarkdown, type CeshuTaskPlan } from './ceshuTasks'
 
@@ -58,10 +58,10 @@ function isEmptyValue(value: unknown): boolean {
   return false
 }
 
-function chapterProseMarkdown(doc: CeshuDocument, chapter: ChapterKey): string {
-  const fields = (CESHU_CHAPTER_FIELDS[chapter] ?? []).filter((field) => !isStructured(field))
-  const data = (doc[chapter] ?? {}) as Record<string, unknown>
-  const lines = [`# ${CHAPTER_LABELS[chapter]}`, '']
+function chapterProseMarkdown(doc: CeshuDocument, chapter: string): string {
+  const fields = chapterFieldsForDoc(doc, chapter).filter((field) => !isStructured(field))
+  const data = chapterDataForDoc(doc, chapter)
+  const lines = [`# ${chapterLabelForDoc(doc, chapter)}`, '']
   for (const field of fields) {
     const value = displayFieldValue(field, data[field.key])
     if (value === '') continue
@@ -77,11 +77,11 @@ function chapterProseMarkdown(doc: CeshuDocument, chapter: ChapterKey): string {
  * 只挑已知结构化字段会让它们在文件夹往返里静默消失。这里按「文字字段进 md、其余进 json」
  * 一刀切，schema 外的键也自然落进 json ⇒ 往返无损。
  */
-function chapterStructuredData(doc: CeshuDocument, chapter: ChapterKey): Record<string, unknown> | null {
+function chapterStructuredData(doc: CeshuDocument, chapter: string): Record<string, unknown> | null {
   const proseKeys = new Set(
-    (CESHU_CHAPTER_FIELDS[chapter] ?? []).filter((field) => !isStructured(field)).map((field) => field.key)
+    chapterFieldsForDoc(doc, chapter).filter((field) => !isStructured(field)).map((field) => field.key)
   )
-  const data = (doc[chapter] ?? {}) as Record<string, unknown>
+  const data = chapterDataForDoc(doc, chapter)
   const out: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(data)) {
     if (proseKeys.has(key)) continue
@@ -170,10 +170,18 @@ export function buildProjectFolder(doc: CeshuDocument): ProjectFolder {  const f
   return { files }
 }
 
-/** 解析 `design/<章>.md` 的 `## 字段标签` 段落 → 字段键值（文字字段） */
-export function parseChapterProse(markdown: string, chapter: ChapterKey): ChapterData {
-  const fields = (CESHU_CHAPTER_FIELDS[chapter] ?? []).filter((field) => !isStructured(field))
-  const labelToKey = new Map(fields.map((field) => [field.label, field.key]))
+/**
+ * 解析 `design/<章>.md` 的 `## 字段标签` 段落 → 字段键值（文字字段）。
+ * `fields` 由调用方按文档规格传入（游戏档 CESHU_CHAPTER_FIELDS、应用档 APP_CHAPTER_FIELDS），
+ * 保持游戏档既有调用逐项一致。
+ */
+export function parseChapterProse(
+  markdown: string,
+  chapter: string,
+  fields: readonly CeshuFieldDef[] = (CESHU_CHAPTER_FIELDS as Record<string, readonly CeshuFieldDef[]>)[chapter] ?? []
+): ChapterData {
+  const proseFields = fields.filter((field) => !isStructured(field))
+  const labelToKey = new Map(proseFields.map((field) => [field.label, field.key]))
   const data: ChapterData = {}
   let key: string | null = null
   let buffer: string[] = []
@@ -198,10 +206,17 @@ export function parseChapterProse(markdown: string, chapter: ChapterKey): Chapte
 
 /** 从文件夹内容还原文档（与 `buildProjectFolder` 无损往返） */
 export function projectFilesToDoc(files: Record<string, string>): CeshuDocument {
-  const doc = createDefaultCeshu({ scope: 'full' })
+  // 先从 config 判档位：应用档的文档必须按应用档构造，否则 design/*.md 会被
+  // `isChapterKey` 全部丢掉，导出再导入就只剩一份空游戏文档。
+  const rawConfig = files['config.json'] !== undefined
+    ? (JSON.parse(files['config.json']) as Record<string, unknown>)
+    : {}
+  const isApp = rawConfig.doc_kind === 'application'
+  const doc = createDefaultCeshu({ scope: 'full', docKind: isApp ? 'application' : 'game' })
+  const chapterKeysOfDoc = new Set<string>(visibleChaptersForDoc(doc))
 
   if (files['config.json'] !== undefined) {
-    const config = JSON.parse(files['config.json']) as Record<string, unknown>
+    const config = rawConfig
     const meta = doc.meta as Record<string, unknown>
     for (const key of ['game_name', 'game_type', 'positioning', 'business_model']) {
       if (typeof config[key] === 'string') meta[key] = config[key]
@@ -258,16 +273,17 @@ export function projectFilesToDoc(files: Record<string, string>): CeshuDocument 
     const prose = /^design\/(.+)\.md$/.exec(path)
     if (prose !== null) {
       const chapter = prose[1]
-      if (!isChapterKey(chapter)) continue
-      target[chapter] = { ...(doc[chapter] as object), ...parseChapterProse(content, chapter) }
+      if (!chapterKeysOfDoc.has(chapter)) continue
+      const existing = chapterDataForDoc(doc, chapter)
+      target[chapter] = { ...existing, ...parseChapterProse(content, chapter, chapterFieldsForDoc(doc, chapter)) }
       continue
     }
     const dataMatch = /^data\/(.+)\.json$/.exec(path)
     if (dataMatch !== null) {
       const chapter = dataMatch[1]
-      if (!isChapterKey(chapter)) continue
+      if (!chapterKeysOfDoc.has(chapter)) continue
       const structured = JSON.parse(content) as Record<string, unknown>
-      target[chapter] = { ...(doc[chapter] as object), ...structured }
+      target[chapter] = { ...chapterDataForDoc(doc, chapter), ...structured }
     }
   }
 

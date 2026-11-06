@@ -1,12 +1,14 @@
 import { useT } from '@mobai/client-ui'
-import {
-  CHAPTER_LABELS,
-  CHAPTER_REQUIRED_FIELDS,
-  type CeshuDocument
-} from '@mobai/shared/ceshu/reference'
-import { CESHU_CHAPTER_FIELDS } from '@mobai/shared/ceshu/fields'
+import { type CeshuDocument } from '@mobai/shared/ceshu/reference'
 import { displayFieldValue } from '@mobai/shared/ceshu/fields'
-import { visibleChaptersForDoc } from '@mobai/shared/ceshu/model'
+import {
+  chapterDataForDoc,
+  chapterFieldsForDoc,
+  chapterLabelForDoc,
+  getDocKind,
+  requiredFieldsForDoc,
+  visibleChaptersForDoc
+} from '@mobai/shared/ceshu/model'
 import { CESHU_STAGE_LABELS, chaptersUpToStage, isMachineDataField, type CeshuStage } from '@mobai/shared/ceshu/workflow'
 
 /**
@@ -37,14 +39,18 @@ interface OverviewRow {
 
 export default function CeshuOverview({ doc, stage, progress }: CeshuOverviewProps) {
   const t = useT()
-  const visible = new Set(visibleChaptersForDoc(doc))
-  const chapters = chaptersUpToStage(stage).filter((chapter) => visible.has(chapter))
+  const visible = visibleChaptersForDoc(doc)
+  // 阶段是游戏研发流程概念：应用档不做阶段裁剪，直接铺 SDD 全章。
+  const chapters: readonly string[] =
+    getDocKind(doc) === 'application'
+      ? visible
+      : chaptersUpToStage(stage).filter((chapter) => visible.includes(chapter))
 
   // 每章算出自己的行与必填计数（纯函数，不在 map 里改外部累加器——否则触发 react-hooks/immutability）
   const sections = chapters.map((chapter) => {
-    const data = (doc[chapter] ?? {}) as Record<string, unknown>
-    const fields = CESHU_CHAPTER_FIELDS[chapter] ?? []
-    const required = new Set(CHAPTER_REQUIRED_FIELDS[chapter] ?? [])
+    const data = chapterDataForDoc(doc, chapter)
+    const fields = chapterFieldsForDoc(doc, chapter)
+    const required = new Set(requiredFieldsForDoc(doc, chapter))
     const bodyFields = fields.filter((field) => !isMachineDataField(chapter, field.key))
     const machineCount = fields.length - bodyFields.length
 
@@ -62,7 +68,7 @@ export default function CeshuOverview({ doc, stage, progress }: CeshuOverviewPro
     const pct = Math.round((progress[chapter] ?? 0) * 100)
     const requiredCount = rows.filter((row) => row.required).length
     const filledRequired = rows.filter((row) => row.required && row.filled).length
-    return { chapter, label: CHAPTER_LABELS[chapter], pct, rows, machineCount, requiredCount, filledRequired }
+    return { chapter, label: chapterLabelForDoc(doc, chapter), pct, rows, machineCount, requiredCount, filledRequired }
   })
 
   const requiredTotal = sections.reduce((sum, section) => sum + section.requiredCount, 0)

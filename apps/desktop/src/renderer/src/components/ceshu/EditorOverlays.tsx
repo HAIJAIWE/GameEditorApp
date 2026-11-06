@@ -11,6 +11,7 @@ import {
   type BundleConsumeTask
 } from '@mobai/shared/ceshu/prompts'
 import { CHAPTER_LABELS, isChapterKey, type CeshuDocument, type ChapterKey } from '@mobai/shared/ceshu/reference'
+import { chapterDataForDoc } from '@mobai/shared/ceshu/model'
 import type { FieldReviewStatus } from '@mobai/shared/ceshu/fields'
 import {
   parseCeshuIssues,
@@ -215,10 +216,10 @@ export function ReviewQueueOverlay({ doc, onFieldStatus, onApproveAllPending, on
       if (current === undefined) return
       if (action === 'accept') {
         setReviewCursor(cursorAfterAccept(cursorIndex, pending.length - 1))
-        onFieldStatus(current.chapter, { [current.fieldKey]: 'approved' })
+        onFieldStatus(current.chapter as ChapterKey, { [current.fieldKey]: 'approved' })
         return
       }
-      onJumpField(current.chapter, current.fieldKey)
+      onJumpField(current.chapter as ChapterKey, current.fieldKey)
       onClose()
     }
     document.addEventListener('keydown', onKeyDown)
@@ -250,7 +251,7 @@ export function ReviewQueueOverlay({ doc, onFieldStatus, onApproveAllPending, on
         ) : (
           <div className="review-list">
             {reviewGroups.map((group) => {
-              const collapsed = collapsedChapters.includes(group.chapter)
+              const collapsed = collapsedChapters.includes(group.chapter as ChapterKey)
               return (
                 <div
                   className="review-group"
@@ -262,9 +263,9 @@ export function ReviewQueueOverlay({ doc, onFieldStatus, onApproveAllPending, on
                     type="button"
                     className="review-group-head"
                     data-testid="review-group-head"
-                    onClick={() => toggleGroup(group.chapter)}
+                    onClick={() => toggleGroup(group.chapter as ChapterKey)}
                   >
-                    {CHAPTER_LABELS[group.chapter]}（{group.items.length}）
+                    {CHAPTER_LABELS[group.chapter as ChapterKey] ?? group.chapter}（{group.items.length}）
                     <span className="review-group-caret">{collapsed ? '▸' : '▾'}</span>
                   </button>
                   {!collapsed &&
@@ -275,17 +276,17 @@ export function ReviewQueueOverlay({ doc, onFieldStatus, onApproveAllPending, on
                         data-testid="review-row"
                         data-current={flatIndex === reviewCursorSafe ? 'true' : 'false'}
                       >
-                        <span className="review-chapter">{CHAPTER_LABELS[item.chapter]}</span>
+                        <span className="review-chapter">{CHAPTER_LABELS[item.chapter as ChapterKey] ?? item.chapter}</span>
                         <span className="review-field">{item.fieldLabel}</span>
                         <span className="review-preview" data-testid="review-preview">
-                          {previewFieldValue(readFieldValue(doc[item.chapter], item.fieldKey))}
+                          {previewFieldValue(readFieldValue(chapterDataForDoc(doc, item.chapter), item.fieldKey))}
                         </span>
                         <button
                           type="button"
                           className="btn slim"
                           data-testid="review-goto"
                           onClick={() => {
-                            onJumpField(item.chapter, item.fieldKey)
+                            onJumpField(item.chapter as ChapterKey, item.fieldKey)
                             onClose()
                           }}
                         >
@@ -297,7 +298,7 @@ export function ReviewQueueOverlay({ doc, onFieldStatus, onApproveAllPending, on
                           data-testid="review-accept"
                           onClick={() => {
                             setReviewCursor(cursorAfterAccept(flatIndex, pending.length - 1))
-                            onFieldStatus(item.chapter, { [item.fieldKey]: 'approved' })
+                            onFieldStatus(item.chapter as ChapterKey, { [item.fieldKey]: 'approved' })
                           }}
                         >
                           {t('overlay.reviewAccept')}

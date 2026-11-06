@@ -2,11 +2,23 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { useT } from '@mobai/client-ui'
 
-import { CHAPTER_LABELS, type CeshuFieldDef, type ChapterData, type ChapterKey } from '@mobai/shared/ceshu/reference'
+import { type CeshuDocument, type CeshuFieldDef, type ChapterData } from '@mobai/shared/ceshu/reference'
 import type { CeshuAiGenerateResult } from '@mobai/shared/ceshu/prompts'
 import { FIELD_ACTION_LABELS, type FieldAction } from '@mobai/shared/ceshu/fields'
-import { isPlainObject } from '@mobai/shared/ceshu/model'
-import { CESHU_CHAPTER_FIELDS, resolveFieldMeta } from '@mobai/shared/ceshu/fields'
+import {
+  chapterFieldsForDoc,
+  chapterLabelForDoc,
+  createDefaultCeshu,
+  isPlainObject,
+  requiredFieldsForDoc
+} from '@mobai/shared/ceshu/model'
+
+/**
+ * 纯表单模式（未传 doc：单测 / 独立挂载）按游戏档查表，保持既有调用方零改动。
+ * 生产路径一律由 CeshuChapterBody 显式传整份文档，按 docKind 分派规格。
+ */
+const FALLBACK_DOC: CeshuDocument = createDefaultCeshu({ scope: 'full' })
+import { resolveFieldMeta } from '@mobai/shared/ceshu/fields'
 import { isMachineDataField } from '@mobai/shared/ceshu/workflow'
 import { HANDOFF_DOCS } from '@mobai/shared/ceshu/workflow'
 import type { ChapterFieldStatus, FieldReviewStatus } from '@mobai/shared/ceshu/fields'
@@ -34,7 +46,9 @@ import SystemsEditor from './SystemsEditor'
 import { TemplatePickerPanel } from '../ceshuType'
 
 interface ChapterFormProps {
-  chapter: ChapterKey
+  /** 整份文档：字段表/标签/必填按 docKind 分派，应用档走 SDD 规格；缺省按游戏档 */
+  doc?: CeshuDocument
+  chapter: string
   data: ChapterData
   busy: boolean
   /** 来源游戏名（自定义模板的 source_game） */
@@ -44,19 +58,19 @@ interface ChapterFormProps {
    * 由上层连同「清 ai_generated」一起合并进 meta，避免多次写盘。
    */
   onSave: (
-    chapter: ChapterKey,
+    chapter: string,
     data: ChapterData,
     statusUpdates?: Record<string, FieldReviewStatus>
   ) => Promise<void>
   /** 本章各字段的审核状态（来自 `meta.field_status`）；缺省视为无记录 */
   fieldStatus?: ChapterFieldStatus
   /** 写入字段状态（「接受」/ AI 草稿标记）；缺省不记录（纯表单模式） */
-  onFieldStatus?: (chapter: ChapterKey, updates: Record<string, FieldReviewStatus>) => Promise<void>
+  onFieldStatus?: (chapter: string, updates: Record<string, FieldReviewStatus>) => Promise<void>
   /** AI 生成本章（onlyEmpty=true 时仅补全空字段）；由上层走 IPC 调本地模型 */
-  onAiGenerate: (chapter: ChapterKey, onlyEmpty: boolean) => Promise<CeshuAiGenerateResult>
+  onAiGenerate: (chapter: string, onlyEmpty: boolean) => Promise<CeshuAiGenerateResult>
   /** AI 生成单个字段（E62）；由上层走 IPC 调本地模型，返回清洗后的字段供回填。
    *  `action` 为局部重生成动作（停靠栏快捷操作发起），见 `ceshuFieldAction.ts` */
-  onAiGenerateField: (chapter: ChapterKey, field: string, action?: FieldAction) => Promise<CeshuAiGenerateResult>
+  onAiGenerateField: (chapter: string, field: string, action?: FieldAction) => Promise<CeshuAiGenerateResult>
   /**
    * 外部要求聚焦的字段 key（校验 / 完备度面板的「跳到字段」）：
    * 挂载或变化时滚到该字段块并短暂高亮，然后由 `onFocusConsumed` 让宿主清掉目标。
@@ -68,7 +82,7 @@ interface ChapterFormProps {
    * 查看字段影响面（「改这里会影响什么」）。面板在宿主渲染——本组件拿不到整份文档，
    * 只负责发信号；缺省则不显示「影响面」按钮（纯表单模式）。
    */
-  onShowImpact?: (chapter: ChapterKey, field: string) => void
+  onShowImpact?: (chapter: string, field: string) => void
 }
 
 /**
@@ -79,6 +93,7 @@ interface ChapterFormProps {
 const AI_FIELD_SAFETY_MS = 60_000
 
 export default function ChapterForm({
+  doc,
   chapter,
   data,
   busy,
@@ -93,9 +108,11 @@ export default function ChapterForm({
   onShowImpact
 }: ChapterFormProps) {
   const t = useT()
-  /** 本章字段定义（useMemo：`CESHU_CHAPTER_FIELDS[chapter]` 每次渲染都是新数组，
-   *  不进 memo 会让下游 useCallback 的依赖每渲染都变，告警 + 回调失效） */
-  const fields = useMemo(() => CESHU_CHAPTER_FIELDS[chapter] ?? [], [chapter])
+  const spec = doc ?? FALLBACK_DOC
+  /** 本章字段定义：按 docKind 取（游戏 CESHU_CHAPTER_FIELDS / 应用 APP_CHAPTER_FIELDS）。
+   *  不进 memo 会让下游 useCallback 的依赖每渲染都变，告警 + 回调失效 */
+  // 规格化函数返回 readonly；本组件下游多处接收 CeshuFieldDef[]（可变），这里做一层浅拷贝。
+  const fields = useMemo<CeshuFieldDef[]>(() => [...chapterFieldsForDoc(spec, chapter)], [spec, chapter])
   /**
    * 只有**被交接文档引用**的字段才显示「影响面」按钮。
    * 没被引用的字段点开只会看到「没有交接文档直接引用」——那是噪音，不如不显示。
@@ -453,7 +470,7 @@ export default function ChapterForm({
    * 而不必把整块 JSX 写两遍（分组头渲染在两次 map 之间）。
    */
   const renderFieldBlock = (field: CeshuFieldDef) => {
-    const meta = resolveFieldMeta(chapter, field)
+    const meta = resolveFieldMeta(chapter, field, requiredFieldsForDoc(spec, chapter))
     const status = fieldStatus?.[field.key]?.status
     const showImpact = onShowImpact !== undefined && impactableFields.has(field.key)
     return (
@@ -535,7 +552,7 @@ export default function ChapterForm({
   return (
     <div className="chapter-form" data-testid="chapter-form">
       <div className="chapter-form-title">
-        <span>{CHAPTER_LABELS[chapter]}</span>
+        <span>{chapterLabelForDoc(spec, chapter)}</span>
         {/* 审核进展一眼可见：不必逐字段往下翻徽标（全零时 statusSummary 为空串，不渲染） */}
         {statusSummary !== '' && (
           <>

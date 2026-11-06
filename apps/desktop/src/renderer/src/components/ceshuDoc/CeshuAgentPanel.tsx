@@ -1,9 +1,9 @@
 import { useState } from 'react'
 
 import { useT } from '@mobai/client-ui'
-import { CHAPTER_KEYS, CHAPTER_LABELS, type CeshuDocument } from '@mobai/shared/ceshu/reference'
-import { CESHU_CHAPTER_FIELDS, displayFieldValue } from '@mobai/shared/ceshu/fields'
-import { visibleChaptersForDoc } from '@mobai/shared/ceshu/model'
+import { type CeshuDocument } from '@mobai/shared/ceshu/reference'
+import { displayFieldValue } from '@mobai/shared/ceshu/fields'
+import { chapterDataForDoc, chapterFieldsForDoc, chapterLabelForDoc, visibleChaptersForDoc } from '@mobai/shared/ceshu/model'
 import {
   CESHU_AGENT_CONTEXT_LIMIT,
   CESHU_AGENT_GAME_PREFIX,
@@ -39,16 +39,15 @@ function buildContext(doc: CeshuDocument): string {
   const name = typeof meta.game_name === 'string' && meta.game_name !== '' ? meta.game_name : CESHU_AGENT_UNTITLED
   const type = typeof meta.game_type === 'string' ? meta.game_type : ''
   const lines = [`${CESHU_AGENT_GAME_PREFIX}${name}${type !== '' ? `（${type}）` : ''}`]
-  const visible = new Set(visibleChaptersForDoc(doc))
-  for (const chapter of CHAPTER_KEYS) {
-    if (!visible.has(chapter)) continue
-    const fields = CESHU_CHAPTER_FIELDS[chapter] ?? []
-    const data = (doc[chapter] ?? {}) as Record<string, unknown>
+  // 直接遍历该文档可见章：应用档章不在 CHAPTER_KEYS 里，用「游戏全章表 ∩ visible」会把它们全丢掉。
+  for (const chapter of visibleChaptersForDoc(doc)) {
+    const fields = chapterFieldsForDoc(doc, chapter)
+    const data = chapterDataForDoc(doc, chapter)
     const filled = fields
       .map((field) => ({ field, value: displayFieldValue(field, data[field.key]) }))
       .filter((item) => item.value !== '')
     if (filled.length === 0) continue
-    lines.push('', `## ${CHAPTER_LABELS[chapter]}`)
+    lines.push('', `## ${chapterLabelForDoc(doc, chapter)}`)
     for (const item of filled) lines.push(`- ${item.field.label}：${item.value}`)
   }
   const text = lines.join('\n')

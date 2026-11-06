@@ -37,7 +37,7 @@ export interface CeshuViewContextValue {
   /** 书名（AI 审阅 / 模板编辑器需要） */
   gameName: string
   /** 当前章节（模板编辑器需要） */
-  currentChapter: ChapterKey
+  currentChapter: string
 
   /** 报告数据：由菜单命令先取好，再打开对应视图 */
   changelog: CeshuChangelog | null

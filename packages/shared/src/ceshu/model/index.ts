@@ -6,4 +6,5 @@
 
 export { computeChapterProgress, computeEnabledEditors, createCeshuId, createDefaultCeshu, deriveRulesetId, formatLocalTimestamp, getDocKind, getGameType, getGddScope, isEmptyRequiredValue, isFilledValue, isPlainObject, needsGameDataEditor, normalizeCeshu, resolveDocGameStyle, visibleChaptersForDoc, withChapter } from './ceshuModel'
 export type { DocKind } from './ceshuModel'
+export { chapterAnchorForDoc, chapterDataForDoc, chapterFieldsForDoc, chapterLabelForDoc, chapterNumberForDoc, narrowChapterKey, requiredFieldsForDoc } from './chapterView'
 export { SYSTEM_CONFIG_SCHEMA } from './systemConfigSchema'

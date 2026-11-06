@@ -1,6 +1,6 @@
 import { useT } from '@mobai/client-ui'
 import type { MessageKey } from '@mobai/shared/i18n'
-import { CHAPTER_LABELS } from '@mobai/shared/ceshu/reference'
+import { CHAPTER_LABELS, type ChapterKey } from '@mobai/shared/ceshu/reference'
 import {
   FIELD_ACTIONS,
   FIELD_ACTION_LABELS,
@@ -73,6 +73,6 @@ export default function FieldActionStrip() {
 
 /** 「章节 · 字段」标题（章节标签缺失时退回 key，保证总有可读名称） */
 function fieldTitle(field: ActiveCeshuField): string {
-  const chapter = CHAPTER_LABELS[field.chapter] ?? field.chapter
+  const chapter = CHAPTER_LABELS[field.chapter as ChapterKey] ?? field.chapter
   return `${chapter} · ${field.label}`
 }

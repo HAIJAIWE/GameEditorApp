@@ -15,12 +15,11 @@
 
 import { useSyncExternalStore } from 'react'
 
-import type { ChapterKey } from '@mobai/shared/ceshu/reference'
 import type { FieldReviewStatus } from '@mobai/shared/ceshu/fields'
 import type { FieldAction } from '@mobai/shared/ceshu/fields'
 
 export interface ActiveCeshuField {
-  chapter: ChapterKey
+  chapter: string
   /** 字段 key（支持点路径，如 user_personas.primary） */
   key: string
   label: string
@@ -31,7 +30,7 @@ export interface ActiveCeshuField {
 }
 
 export interface FieldActionRequest {
-  chapter: ChapterKey
+  chapter: string
   key: string
   action: FieldAction
   /** 每次发起递增：effect 依赖 request 对象 identity，靠 nonce 保证重复点击不丢 */
@@ -92,7 +91,7 @@ export function subscribeFieldRequest(listener: (request: FieldActionRequest) =>
 
 /** 字段获得焦点：更新当前字段（同一字段重复聚焦也刷新 nonce，UI 可据此复位） */
 export function setActiveCeshuField(field: {
-  chapter: ChapterKey
+  chapter: string
   key: string
   label: string
   status?: FieldReviewStatus

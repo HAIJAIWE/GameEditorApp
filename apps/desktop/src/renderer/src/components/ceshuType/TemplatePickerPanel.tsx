@@ -33,7 +33,8 @@ import { toErrorMessage } from '@mobai/shared/util/system'
  */
 
 interface TemplatePickerPanelProps {
-  chapter: ChapterKey
+  /** 应用章 key 不属于 ChapterKey；模板库是游戏专属，应用档仅作显示回落 */
+  chapter: string
   /** 来源游戏名（写入自定义模板的 source_game） */
   gameName: string
   /** 取当前章节草稿数据（另存为模板用） */
@@ -244,7 +245,7 @@ export default function TemplatePickerPanel({
               value={saveScope}
               onChange={(event) => setSaveScope(event.target.value as 'chapter' | 'global')}
             >
-              <option value="chapter">{CHAPTER_LABELS[chapter]}</option>
+              <option value="chapter">{CHAPTER_LABELS[chapter as ChapterKey] ?? chapter}</option>
               <option value="global">{t('templatePicker.scopeGlobal')}</option>
             </select>
           </div>

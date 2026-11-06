@@ -1,6 +1,5 @@
 import {
   CHAPTER_KEYS,
-  CHAPTER_REQUIRED_FIELDS,
   GDD_SCOPE_FULL,
   SYSTEM_LABELS,
   enabledModuleChapters,
@@ -15,7 +14,9 @@ import {
 import { createDefaultChapters } from '../reference'
 import { getStyle, inferStyleFromText } from '../../config/game'
 import { migrateV4ToV5, needsV4Migration } from '../data'
-import { createAppDefaultChapters } from '../../appSchema'
+import { createAppDefaultChapters, APP_CHAPTER_KEYS } from '../../appSchema'
+import { getDocKind, type DocKind } from './docKind'
+import { chapterDataForDoc, requiredFieldsForDoc } from './chapterView'
 import { isChapterVisibleInStage, type CeshuStage } from '../workflow'
 import { formatLocalTimestamp } from '../../util/datetime'
 import { isPlainObject } from '../../util/object'
@@ -149,23 +150,9 @@ export function getGameType(doc: CeshuDocument): string {
   return isPlainObject(meta) && typeof meta.game_type === 'string' ? meta.game_type : ''
 }
 
-/** 文档类型：游戏 / 应用（应用档不启用游戏数据编辑，见 meta.doc_kind 注释） */
-export const DOC_KINDS = ['game', 'application'] as const
-export type DocKind = (typeof DOC_KINDS)[number]
-
-/**
- * 读取文档类型（meta.doc_kind，缺省 `game`）。
- * 只有显式 `application` 才降级为应用档——老文档/脏值一律按游戏处理，避免误伤。
- */
-export function getDocKind(doc: CeshuDocument): DocKind {
-  const meta = doc.meta
-  return isPlainObject(meta) && meta.doc_kind === 'application' ? 'application' : 'game'
-}
-
-/** 该文档是否需要游戏数据编辑（应用档不需要） */
-export function needsGameDataEditor(doc: CeshuDocument): boolean {
-  return getDocKind(doc) !== 'application'
-}
+// 档位判定已抽到 `./docKind`（切断 ceshuModel ↔ chapterView 循环），此处 re-export 保持 API 不变
+export { DOC_KINDS, getDocKind, needsGameDataEditor } from './docKind'
+export type { DocKind } from './docKind'
 
 /**
  * 规则集标识（设计契约的锚点，见 `CeshuDocument.ruleset_id` 注释）。
@@ -181,10 +168,16 @@ export function deriveRulesetId(doc: CeshuDocument): string {
 }
 
 /**
- * 该文档可见的章 = 档位 × 品类 × 启用模块。
- * `enabledModuleChapters` 缺省返回全部模块 ⇒ 老文档行为零变化。
+ * 该文档可见的章（路线 A 第 3 步的分派点）。
+ * - **游戏档**：档位 × 品类 × 启用模块（行为逐项不变，零回归）；
+ * - **应用档**：SDD 全章表（章号连续、独立命名空间）。
+ *
+ * 返回 `string[]` 而非 `ChapterKey[]`：应用章 key 不属于游戏联合类型。
+ * 消费方查标签/字段/必填一律改走 `chapterView.xxxForDoc`，不要直接索引
+ * `CHAPTER_LABELS` 等游戏常量。
  */
-export function visibleChaptersForDoc(doc: CeshuDocument): readonly ChapterKey[] {
+export function visibleChaptersForDoc(doc: CeshuDocument): readonly string[] {
+  if (getDocKind(doc) === 'application') return APP_CHAPTER_KEYS
   return visibleChapterKeys(getGddScope(doc), getGameType(doc), enabledModuleChapters(doc))
 }
 
@@ -207,7 +200,7 @@ export function computeChapterProgress(doc: CeshuDocument, stage?: CeshuStage): 
       progress[key] = entries.length === 0 ? 0 : round2(Math.min(enabled / entries.length, 1))
       continue
     }
-    const required = CHAPTER_REQUIRED_FIELDS[key]
+    const required = requiredFieldsForDoc(doc, key)
     if (required.length === 0) {
       /*
        * 无必填字段的章按「未开始」计（P2：2026-10-23 由 0.5 改为 0）。
@@ -219,15 +212,18 @@ export function computeChapterProgress(doc: CeshuDocument, stage?: CeshuStage): 
       progress[key] = 0
       continue
     }
-    const data = doc[key]
+    const data = chapterDataForDoc(doc, key)
     const filled = required.filter((field) => isFilledValue(data[field])).length
     progress[key] = round2(filled / required.length)
   }
   /*
    * total 的分母：传 `stage` 时只算「截至该阶段」的章——完成度 = 当前阶段，而不是 24 章全量。
-   * 不传时保持原行为（全部可见章）。逐章进度仍对全部可见章计算，避免其他消费方读到 undefined。
+   * 不传时保持原行为（全部可见章）。应用档不做阶段筛选（阶段是游戏研发流程概念），
+   * 所有章都计入；游戏档逐项保持既有行为。
    */
-  const counted = stage === undefined ? visible : visible.filter((key) => isChapterVisibleInStage(key, stage))
+  const counted = stage === undefined || getDocKind(doc) === 'application'
+    ? visible
+    : visible.filter((key) => isChapterVisibleInStage(key as ChapterKey, stage))
   const sum = counted.reduce((acc, key) => acc + progress[key], 0)
   progress.total = counted.length === 0 ? 0 : round2(sum / counted.length)
   return progress
@@ -240,7 +236,9 @@ export function computeChapterProgress(doc: CeshuDocument, stage?: CeshuStage): 
  * 但模型可能漏写或写出非法值，那会把用户选的「应用档」悄悄改回游戏档 / 塞进脏值。
  * 这里只允许显式合法的 `game` / `application` 覆盖，其余一律保留旧档位。
  */
-export function withChapter(doc: CeshuDocument, chapter: ChapterKey, data: ChapterData): CeshuDocument {
+export function withChapter(doc: CeshuDocument, chapter: string, data: ChapterData): CeshuDocument {
+  // chapter 放宽成 string：应用章 key 不属于 ChapterKey 联合类型，但同样要走
+  // 「合并章节 → 刷时间戳 → 重算启用编辑器」这条写盘链路。'meta' 保护分支对两档共用。
   const next: CeshuDocument = { ...doc }
   if (chapter === 'meta') {
     const scope = doc.meta.gdd_scope
@@ -251,7 +249,8 @@ export function withChapter(doc: CeshuDocument, chapter: ChapterKey, data: Chapt
         ? withScope
         : { ...withScope, doc_kind: getDocKind(doc) }
   } else {
-    next[chapter] = data
+    // 应用章不在 CeshuDocument 的编译期章表里，走宽松索引写入
+    ;(next as unknown as Record<string, ChapterData>)[chapter] = data
   }
   next.updated_at = formatLocalTimestamp()
   next.enabled_editors = computeEnabledEditors(next)

@@ -12,9 +12,12 @@ import {
   type ChapterKey
 } from '@mobai/shared/ceshu/reference'
 import {
+  chapterFieldsForDoc,
+  chapterLabelForDoc,
   computeChapterProgress,
   computeEnabledEditors,
   formatLocalTimestamp,
+  getDocKind,
   getGddScope,
   resolveDocGameStyle,
   visibleChaptersForDoc
@@ -35,7 +38,6 @@ import { clearAiGenerated, markAiGenerated, readAiGenerated } from '@mobai/share
 import { fieldStatusOf, setFieldStatuses, type FieldReviewStatus } from '@mobai/shared/ceshu/fields'
 import type { FieldAction } from '@mobai/shared/ceshu/fields'
 import { clearFieldRequest } from '../../ceshuFieldFocus'
-import { CESHU_CHAPTER_FIELDS } from '@mobai/shared/ceshu/fields'
 import { applyCeshuPatch, type CeshuPatchItem } from '@mobai/shared/ceshu/data'
 import type { CeshuAiGenerateResult } from '@mobai/shared/ceshu/prompts'
 import type { PluginHost } from '@mobai/shared/plugin/host'
@@ -120,7 +122,7 @@ export default function CeshuView({
 }: CeshuViewProps) {
   const t = useT()
   const [doc, setDoc] = useState<CeshuDocument | null>(null)
-  const [activeChapter, setActiveChapter] = useState<ChapterKey>('meta')
+  const [activeChapter, setActiveChapter] = useState<string>('meta')
   /**
    * 阶段筛选（2026-10-26，反向验证后的入口分层）：
    * **默认 'concept'（立项 7 章）**——24 章全平铺会把策划书变成 checklist（「不像设计文档」）。
@@ -155,7 +157,7 @@ export default function CeshuView({
    * 与数据栏的 `jumpTarget`（跳到引用）无关：那个跳数据、这个跳表单字段。
    * 消费方是 `ChapterForm` 的 `focusField`：滚过去 + 高亮，然后回调清空（见其注释）。
    */
-  const [fieldJump, setFieldJump] = useState<{ chapter: ChapterKey; field: string } | null>(null)
+  const [fieldJump, setFieldJump] = useState<{ chapter: string; field: string } | null>(null)
   /**
    * 数据栏是否展开（左栏 + 中间 = 工作区，右栏 = 智能体）。
    *
@@ -220,7 +222,7 @@ export default function CeshuView({
 
   /** AI 生成本章：走 IPC 调本地模型（ollama），返回清洗后的字段供表单填入草稿 */
   const handleAiGenerate = useCallback(
-    async (chapter: ChapterKey, onlyEmpty: boolean): Promise<CeshuAiGenerateResult> => {
+    async (chapter: string, onlyEmpty: boolean): Promise<CeshuAiGenerateResult> => {
       if (!ceshuId) throw new Error(t('ceshuView.noDocSelected'))
       return window.mbApi.ceshu.aiGenerateChapter({ id: ceshuId, chapter, onlyEmpty })
     },
@@ -230,9 +232,10 @@ export default function CeshuView({
   /** AI 生成单个字段（E62）：走 IPC 调本地模型，返回清洗后的字段供表单回填。
    *  `action` 为局部重生成动作（停靠栏快捷操作），透传给主进程注入提示词 */
   const handleAiGenerateField = useCallback(
-    async (chapter: ChapterKey, field: string, action?: FieldAction): Promise<CeshuAiGenerateResult> => {
+    async (chapter: string, field: string, action?: FieldAction): Promise<CeshuAiGenerateResult> => {
       if (!ceshuId) throw new Error(t('ceshuView.noDocSelected'))
-      return window.mbApi.ceshu.aiGenerateField({ id: ceshuId, chapter, field, action })
+      // AI 字段生成仍是游戏专属链路（第 4 步分派），此处收敛成 ChapterKey 保持既有契约
+      return window.mbApi.ceshu.aiGenerateField({ id: ceshuId, chapter: chapter as ChapterKey, field, action })
     },
     [ceshuId, t]
   )
@@ -240,7 +243,7 @@ export default function CeshuView({
   /** 保存章节：同时清除该章的「待核对」标记（人已经动过这一章了） */
   const handleSave = useCallback(
     async (
-      chapter: ChapterKey,
+      chapter: string,
       data: ChapterData,
       statusUpdates?: Record<string, FieldReviewStatus>
     ): Promise<void> => {
@@ -249,7 +252,7 @@ export default function CeshuView({
       try {
         const updated = await window.mbApi.ceshu.saveChapter({ id: ceshuId, chapter, data })
         setDoc(updated)
-        setNotice(t('ceshuView.savedChapter', { chapter: CHAPTER_LABELS[chapter] }))
+        setNotice(t('ceshuView.savedChapter', { chapter: chapterLabelForDoc(updated, chapter) }))
         setError(null)
         /*
          * 一次 meta 写盘同时完成两件事：
@@ -276,7 +279,7 @@ export default function CeshuView({
 
   /** 字段级状态写入（「接受」/ AI 草稿标记）：单独走一次 meta 保存 */
   const handleFieldStatus = useCallback(
-    async (chapter: ChapterKey, updates: Record<string, FieldReviewStatus>): Promise<void> => {
+    async (chapter: string, updates: Record<string, FieldReviewStatus>): Promise<void> => {
       if (!ceshuId || doc === null) return
       const nextMeta = setFieldStatuses(doc.meta, chapter, updates, new Date().toISOString())
       if (nextMeta === doc.meta) return
@@ -396,7 +399,7 @@ export default function CeshuView({
   }
 
   /** 点章节：切章并退出「一页总览」（总览是只读摘要，切章意味着要继续编辑） */
-  const handleSelectChapter = (chapter: ChapterKey): void => {
+  const handleSelectChapter = (chapter: string): void => {
     setActiveChapter(chapter)
     setViewMode('edit')
   }
@@ -410,9 +413,9 @@ export default function CeshuView({
    * 但**始终保留当前章**——否则从校验报告/评审队列跳过来时右侧会空白。
    */
   const visibleByStage =
-    stageFilter === 'all'
+    stageFilter === 'all' || getDocKind(doc) === 'application'
       ? visible
-      : visible.filter((key) => isChapterVisibleInStage(key, stageFilter) || key === activeChapter)
+      : visible.filter((key) => isChapterVisibleInStage(key as ChapterKey, stageFilter) || key === activeChapter)
   /**
    * 全局待审字段（跨章）：AI 草稿、尚未接受。
    * 按 `visible` 章节顺序 + 字段定义顺序排列，便于「一条队列」往下扫。
@@ -426,7 +429,7 @@ export default function CeshuView({
     for (const chapter of visible) {
       const statuses = fieldStatusOf(doc.meta, chapter)
       const updates: Record<string, FieldReviewStatus> = {}
-      for (const field of CESHU_CHAPTER_FIELDS[chapter] ?? []) {
+      for (const field of chapterFieldsForDoc(doc, chapter)) {
         if (statuses[field.key]?.status === 'ai_draft') updates[field.key] = 'approved'
       }
       if (Object.keys(updates).length > 0) {
@@ -600,7 +603,7 @@ export default function CeshuView({
    * 三处入口共用（校验面板的必填缺失、完备度面板的逐章缺口、审阅队列的「查看」）——
    * 只跳章等于让人在 32 个字段里再翻一遍，而这三处本来就知道具体是哪个字段。
    */
-  const jumpToField = (chapter: ChapterKey, field: string): void => {
+  const jumpToField = (chapter: string, field: string): void => {
     setActiveChapter(chapter)
     setFieldJump({ chapter, field })
     host.closeView(CESHU_CONTENT_MOUNT)
@@ -946,6 +949,7 @@ export default function CeshuView({
             <ViewMount host={host} mount={CESHU_VIEW_MOUNT} provider={CeshuViewProvider} context={viewContext} />
             <div className="ceshu-pane-row">
             <CeshuChapterNav
+              doc={doc}
               activeArtifact={activeArtifact}
               onSelectArtifact={handleSelectArtifact}
               stageFilter={stageFilter}

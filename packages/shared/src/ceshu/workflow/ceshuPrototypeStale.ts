@@ -1,6 +1,5 @@
-import { CESHU_CHAPTER_FIELDS } from '../fields'
 import type { CeshuDocument } from '../reference'
-import { visibleChaptersForDoc } from '../model'
+import { chapterDataForDoc, chapterFieldsForDoc, visibleChaptersForDoc } from '../model'
 
 /**
  * 原型过期判定（2026-10-26）。
@@ -35,10 +34,10 @@ function hashString(text: string): string {
 export function fingerprintCeshuDesign(doc: CeshuDocument): string {
   const parts: string[] = []
   for (const chapter of visibleChaptersForDoc(doc)) {
-    const data = (doc[chapter] ?? {}) as Record<string, unknown>
+    const data = chapterDataForDoc(doc, chapter)
     // 已知字段键 ∪ schema 外扩展键，统一排序，保证同一内容永远得到同一指纹
     const keys = new Set<string>([
-      ...(CESHU_CHAPTER_FIELDS[chapter] ?? []).map((field) => field.key),
+      ...chapterFieldsForDoc(doc, chapter).map((field) => field.key),
       ...Object.keys(data)
     ])
     for (const key of [...keys].sort()) {

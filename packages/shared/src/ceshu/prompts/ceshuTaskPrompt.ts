@@ -7,10 +7,17 @@ import {
   type CeshuTaskPlan,
   type CeshuTaskPriority
 } from '../workflow'
-import { CHAPTER_LABELS, isChapterKey, type CeshuDocument, type ChapterKey } from '../reference'
-import { CESHU_CHAPTER_FIELDS } from '../fields'
+import { type CeshuDocument, type ChapterKey } from '../reference'
 import { displayFieldValue } from '../fields'
-import { createDefaultCeshu, getGddScope, visibleChaptersForDoc } from '../model'
+import {
+  chapterDataForDoc,
+  chapterFieldsForDoc,
+  chapterLabelForDoc,
+  createDefaultCeshu,
+  getDocKind,
+  getGddScope,
+  visibleChaptersForDoc
+} from '../model'
 import { isMachineDataField } from '../workflow'
 import { parseLlmJson } from '../../util/object'
 
@@ -47,16 +54,16 @@ export const TASK_PER_ROLE_LIMIT = 10
  */
 export function buildTaskDigest(doc: CeshuDocument, limit: number = TASK_DIGEST_LIMIT): string {
   // 拿同档位的默认文档做基线：值等于默认 ⇒ 用户没动过 ⇒ 不算「设计里确定了什么」
-  const baseline = createDefaultCeshu({ scope: getGddScope(doc) })
+  const baseline = createDefaultCeshu({ scope: getGddScope(doc), docKind: getDocKind(doc) })
   const lines: string[] = []
   let used = 0
   for (const chapter of visibleChaptersForDoc(doc)) {
-    const data = (doc[chapter] ?? {}) as Record<string, unknown>
-    const base = (baseline[chapter] ?? {}) as Record<string, unknown>
+    const data = chapterDataForDoc(doc, chapter)
+    const base = chapterDataForDoc(baseline, chapter)
     const chapterLines: string[] = []
-    for (const field of CESHU_CHAPTER_FIELDS[chapter] ?? []) {
+    for (const field of chapterFieldsForDoc(doc, chapter)) {
       // 机读数据（账本/断言/用例）不是设计输入，别占预算
-      if (isMachineDataField(chapter, field.key)) continue
+      if (isMachineDataField(chapter as ChapterKey, field.key)) continue
       if (DIGEST_SKIP_FIELDS.has(field.key)) continue
       const value = displayFieldValue(field, data[field.key]).trim()
       if (value === '') continue
@@ -66,7 +73,7 @@ export function buildTaskDigest(doc: CeshuDocument, limit: number = TASK_DIGEST_
       chapterLines.push(`- ${field.label}：${clipped}`)
     }
     if (chapterLines.length === 0) continue
-    const block = `## ${CHAPTER_LABELS[chapter]}（${chapter}）\n${chapterLines.join('\n')}`
+    const block = `## ${chapterLabelForDoc(doc, chapter)}（${chapter}）\n${chapterLines.join('\n')}`
     if (used + block.length > limit) {
       lines.push('…（后续章节因篇幅省略）')
       break
@@ -141,7 +148,7 @@ export function buildRoleTaskPrompt(
   return { system, prompt }
 }
 
-function normalizeTask(raw: unknown, visible: ReadonlySet<ChapterKey>): CeshuRoleTask | null {
+function normalizeTask(raw: unknown, visible: ReadonlySet<string>): CeshuRoleTask | null {
   if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return null
   const item = raw as Record<string, unknown>
   const title = typeof item.title === 'string' ? item.title.trim() : ''
@@ -153,7 +160,8 @@ function normalizeTask(raw: unknown, visible: ReadonlySet<ChapterKey>): CeshuRol
     : 'P1'
   // source 必须是该文档真实可见的章：AI 编出来的章名会让「依据」变成死链
   const sourceRaw = typeof item.source === 'string' ? item.source.trim() : ''
-  const source: ChapterKey = isChapterKey(sourceRaw) && visible.has(sourceRaw) ? sourceRaw : [...visible][0] ?? 'gameplay'
+  // 只要求是该文档可见章（应用章不属于游戏 ChapterKey，用字符串集合判断）
+  const source: string = visible.has(sourceRaw) ? sourceRaw : [...visible][0] ?? 'gameplay'
   return { title, detail, priority, source }
 }
 

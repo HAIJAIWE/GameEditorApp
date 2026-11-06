@@ -102,6 +102,8 @@ export const CESHU_MACHINE_DATA_FIELDS: readonly MachineDataField[] = [
 ] as const
 
 /** 该字段是否属于机读数据层（供完成度统计与 UI 分组使用） */
-export function isMachineDataField(chapter: ChapterKey, field: string): boolean {
+export function isMachineDataField(chapter: string, field: string): boolean {
+  // 纯字符串比对：应用章 key 命中不了游戏机读清单 ⇒ 恒为 false（应用档无机读数据层）。
+  // 放宽成 string 让规格化章遍历能直接传入，游戏档逐项零回归。
   return CESHU_MACHINE_DATA_FIELDS.some((item) => item.chapter === chapter && item.field === field)
 }

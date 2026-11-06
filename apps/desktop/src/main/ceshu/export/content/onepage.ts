@@ -1,7 +1,14 @@
-import { CHAPTER_LABELS, CHAPTER_REQUIRED_FIELDS, type CeshuDocument } from '@mobai/shared/ceshu/reference'
-import { CESHU_CHAPTER_FIELDS } from '@mobai/shared/ceshu/fields'
+import { type CeshuDocument } from '@mobai/shared/ceshu/reference'
 import { displayFieldValue } from '@mobai/shared/ceshu/fields'
-import { computeChapterProgress, visibleChaptersForDoc } from '@mobai/shared/ceshu/model'
+import {
+  chapterDataForDoc,
+  chapterFieldsForDoc,
+  chapterLabelForDoc,
+  computeChapterProgress,
+  getDocKind,
+  requiredFieldsForDoc,
+  visibleChaptersForDoc
+} from '@mobai/shared/ceshu/model'
 import { CESHU_STAGE_LABELS, chaptersUpToStage, isMachineDataField } from '@mobai/shared/ceshu/workflow'
 
 /**
@@ -13,9 +20,13 @@ import { CESHU_STAGE_LABELS, chaptersUpToStage, isMachineDataField } from '@moba
  * `level` 控制各章小标题的层级：独立一页用 2（`##`），嵌进「交付版」时用 3（`###`）。
  */
 export function renderOnePageSummary(doc: CeshuDocument, level: 2 | 3 = 2): string {
-  const visible = new Set(visibleChaptersForDoc(doc))
   const stage = 'concept' as const
-  const chapters = chaptersUpToStage(stage).filter((chapter) => visible.has(chapter))
+  const visible = visibleChaptersForDoc(doc)
+  // 阶段是游戏研发流程概念：应用档不做阶段裁剪，直接铺 SDD 全章。
+  const chapters: readonly string[] =
+    getDocKind(doc) === 'application'
+      ? visible
+      : chaptersUpToStage(stage).filter((chapter) => visible.includes(chapter))
   const progress = computeChapterProgress(doc)
   const hashes = '#'.repeat(level)
 
@@ -24,9 +35,9 @@ export function renderOnePageSummary(doc: CeshuDocument, level: 2 | 3 = 2): stri
   const sections: string[] = []
 
   for (const chapter of chapters) {
-    const data = (doc[chapter] ?? {}) as Record<string, unknown>
-    const fields = CESHU_CHAPTER_FIELDS[chapter] ?? []
-    const required = new Set(CHAPTER_REQUIRED_FIELDS[chapter] ?? [])
+    const data = chapterDataForDoc(doc, chapter)
+    const fields = chapterFieldsForDoc(doc, chapter)
+    const required = new Set(requiredFieldsForDoc(doc, chapter))
     const bodyFields = fields.filter((field) => !isMachineDataField(chapter, field.key))
     const machineCount = fields.length - bodyFields.length
 
@@ -44,7 +55,7 @@ export function renderOnePageSummary(doc: CeshuDocument, level: 2 | 3 = 2): stri
     }
 
     const pct = Math.round((progress[chapter] ?? 0) * 100)
-    const head = `${hashes} ${CHAPTER_LABELS[chapter]}（${pct}%）`
+    const head = `${hashes} ${chapterLabelForDoc(doc, chapter)}（${pct}%）`
     if (lines.length === 0) {
       sections.push(`${head}\n\n（暂无可展示内容）`)
     } else {
@@ -64,7 +75,9 @@ export function renderOnePageSummary(doc: CeshuDocument, level: 2 | 3 = 2): stri
 
 /** 独立的一页摘要导出（`onepage` 格式）：H1 标题 + 一页摘要正文。 */
 export function renderCeshuOnePageMarkdown(doc: CeshuDocument): string {
-  const rawName = (doc.meta as Record<string, unknown>).game_name
+  const meta = doc.meta as Record<string, unknown>
+  // 应用档把项目名写在 project_name，游戏档在 game_name；两者都取不到才回落。
+  const rawName = typeof meta.game_name === 'string' && meta.game_name.trim() !== '' ? meta.game_name : meta.project_name
   const gameName = typeof rawName === 'string' && rawName.trim() !== '' ? rawName.trim() : '未命名策划书'
   return `# 《${gameName}》· 一页摘要\n\n${renderOnePageSummary(doc, 2)}\n`
 }

@@ -1,4 +1,5 @@
-import type { CeshuDocument, ChapterData, ChapterKey } from '@mobai/shared/ceshu/reference'
+import type { CeshuDocument, ChapterData } from '@mobai/shared/ceshu/reference'
+import { chapterDataForDoc } from '@mobai/shared/ceshu/model'
 import type { CeshuStage } from '@mobai/shared/ceshu/workflow'
 import type { FieldAction } from '@mobai/shared/ceshu/fields'
 import type { ChapterFieldStatus, FieldReviewStatus } from '@mobai/shared/ceshu/fields'
@@ -24,29 +25,29 @@ interface CeshuChapterBodyProps {
   doc: CeshuDocument
   stageFilter: CeshuStage | 'all'
   progress: Record<string, number>
-  activeChapter: ChapterKey
+  activeChapter: string
   busy: boolean
   gameName: string
   /** 「跳到某章的某个字段」目标（校验 / 完备度 / 审阅队列发起） */
-  fieldJump: { chapter: ChapterKey; field: string } | null
+  fieldJump: { chapter: string; field: string } | null
   /** 聚焦已消费：清掉目标，否则同字段第二次点击不会再触发 */
   onFocusConsumed: () => void
   /** 保存本章（含字段状态结算） */
   onSave: (
-    chapter: ChapterKey,
+    chapter: string,
     data: ChapterData,
     statusUpdates?: Record<string, FieldReviewStatus>
   ) => Promise<void>
-  onFieldStatus: (chapter: ChapterKey, updates: Record<string, FieldReviewStatus>) => Promise<void>
+  onFieldStatus: (chapter: string, updates: Record<string, FieldReviewStatus>) => Promise<void>
   fieldStatus: ChapterFieldStatus
-  onAiGenerate: (chapter: ChapterKey, onlyEmpty: boolean) => Promise<CeshuAiGenerateResult>
+  onAiGenerate: (chapter: string, onlyEmpty: boolean) => Promise<CeshuAiGenerateResult>
   onAiGenerateField: (
-    chapter: ChapterKey,
+    chapter: string,
     field: string,
     action?: FieldAction
   ) => Promise<CeshuAiGenerateResult>
   /** 「改这里会影响什么」：面板在宿主渲染，这里只发信号 */
-  onShowImpact: (chapter: ChapterKey, field: string) => void
+  onShowImpact: (chapter: string, field: string) => void
   host: PluginHost
   viewContext: CeshuViewContextValue
 }
@@ -84,8 +85,9 @@ export default function CeshuChapterBody({
       ) : (
         <ChapterForm
           key={`${doc.ceshu_id}:${activeChapter}`}
+          doc={doc}
           chapter={activeChapter}
-          data={doc[activeChapter]}
+          data={chapterDataForDoc(doc, activeChapter)}
           busy={busy}
           gameName={gameName}
           onSave={onSave}

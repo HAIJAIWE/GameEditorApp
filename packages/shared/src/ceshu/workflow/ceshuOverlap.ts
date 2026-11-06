@@ -134,9 +134,15 @@ export function detectTextDuplication(a: string, b: string): TextDuplication {
   return { duplicated: false, similarity, reason: 'none' }
 }
 
-/** 字段标签（schema 内取 label，schema 外回落 key） */
-/** 字段中文标签（单源在 `ceshuFields.fieldLabelOf`，此处保留短名以少改调用点） */
-const fieldLabel = fieldLabelOf
+/**
+ * 字段中文标签（单源在 `ceshuFields.fieldLabelOf`，此处保留短名以少改调用点）。
+ * 与 ceshuImportPatch / ceshuMigrationPlan 同理：本文件 import `model`，而 `model` 又经
+ * `data` / `validation` 间接触达本模块，构成循环；顶层直接取绑定可能拿到 undefined，
+ * 包成函数在实际调用时才解析 live binding。
+ */
+function fieldLabel(chapter: ChapterKey, key: string): string {
+  return fieldLabelOf(chapter, key)
+}
 
 /** 读章节文本字段（非字符串按空处理：列表/表格型字段不参与文本重复判定） */
 function readFieldText(doc: CeshuDocument, chapter: ChapterKey, key: string): string {

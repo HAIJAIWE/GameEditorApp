@@ -10,7 +10,7 @@ import {
   type CeshuRole
 } from '@mobai/shared/ceshu/workflow'
 import { countTaskPlan } from '@mobai/shared/ceshu/prompts'
-import { CHAPTER_LABELS } from '@mobai/shared/ceshu/reference'
+import { chapterLabelForDoc } from '@mobai/shared/ceshu/model'
 import { toErrorMessage } from '@mobai/shared/util/system'
 
 /**
@@ -112,7 +112,7 @@ export default function CeshuTasksPanel({
                       <span className="tasks-label">{task.title}</span>
                       <span className="tasks-value">{task.detail}</span>
                       <span className="tasks-source" data-testid="tasks-plan-source">
-                        {CHAPTER_LABELS[task.source]}
+                        {chapterLabelForDoc(doc, task.source)}
                       </span>
                     </li>
                   ))}

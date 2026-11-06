@@ -20,7 +20,7 @@ import { isPlainObject } from '../model'
 export const AI_GENERATED_KEY = 'ai_generated'
 
 /** 标记表：章节 key → 生成时间（ISO）。时间用于将来做「最近生成」排序，现在只作存在性判据 */
-export type AiGeneratedMap = Partial<Record<ChapterKey, string>>
+export type AiGeneratedMap = Partial<Record<string, string>>
 
 /**
  * 读出标记表。非对象/脏数据一律当空表处理 —— 标记是**辅助信息**，
@@ -52,7 +52,7 @@ export function markAiGenerated(
 }
 
 /** 清除某一章的标记（人核对过、或本人在该章上保存过） */
-export function clearAiGenerated(meta: ChapterData, chapter: ChapterKey): ChapterData {
+export function clearAiGenerated(meta: ChapterData, chapter: string): ChapterData {
   const current = readAiGenerated(meta)
   if (current[chapter] === undefined) return meta // 没有标记就不必回写，避免无意义 saveChapter
   const next: AiGeneratedMap = { ...current }

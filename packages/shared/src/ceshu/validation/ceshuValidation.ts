@@ -1,6 +1,4 @@
 import {
-  CHAPTER_LABELS,
-  CHAPTER_REQUIRED_FIELDS,
   chapterOrdinalCn,
   checkSystemDependencies,
   type ChapterData,
@@ -15,8 +13,15 @@ import {
   contentQualityIssues,
   ANALYSIS_MIN_CHARS as QUALITY_MIN_CHARS
 } from './ceshuContentQuality'
-import { CESHU_CHAPTER_FIELDS } from '../fields'
-import { isEmptyRequiredValue, isPlainObject, visibleChaptersForDoc } from '../model'
+import {
+  chapterDataForDoc,
+  chapterFieldsForDoc,
+  chapterLabelForDoc,
+  isEmptyRequiredValue,
+  isPlainObject,
+  requiredFieldsForDoc,
+  visibleChaptersForDoc
+} from '../model'
 import { buildPrototypeResults, checkDesignClaimsWith, type AssertionResult } from './ceshuNumericAssert'
 // ⚠️ `evaluateAssertions` 故意从**本目录入口**取，而不是 './ceshuNumericAssert'：
 // 守卫测试 `tests/unit/ceshuValidation.checks.test.ts` 用 `vi.spyOn(校验入口, 'evaluateAssertions')`
@@ -91,14 +96,17 @@ function checkRequiredFields(ctx: CeshuCheckContext): string[] {
   // 基础必填字段检查（按档位可见章节：lite 只校验基础 9 章）
   for (const key of visibleChaptersForDoc(doc)) {
     if (key === 'systems') continue // 游戏系统无必填字段
-    const required = CHAPTER_REQUIRED_FIELDS[key]
+    const required = requiredFieldsForDoc(doc, key)
     if (required.length === 0) continue
-    const label = CHAPTER_LABELS[key]
-    const data = doc[key]
-    if (!isPlainObject(data)) {
+    const label = chapterLabelForDoc(doc, key)
+    // 保留「章节缺失/非对象」的防御性判定：chapterDataForDoc 会把非对象归一化成 {}，
+    // 用它就永远测不出格式异常。这里读原始值判断格式，是对象后再用规格化数据读字段。
+    const raw = (doc as unknown as Record<string, unknown>)[key]
+    if (!isPlainObject(raw)) {
       errors.push(`${label}：章节数据格式异常`)
       continue
     }
+    const data = chapterDataForDoc(doc, key)
     for (const field of required) {
       if (isEmptyRequiredValue(data[field])) {
         /*
@@ -107,7 +115,7 @@ function checkRequiredFields(ctx: CeshuCheckContext): string[] {
          * 永远不生成它们 ⇒ 这条错误无法通过生成消除，只能手填，却混在必填缺失里
          * 一起催人。改为「由人确定，尚未填写」——同样醒目，但归入建议检查分组。
          */
-        const fieldDef = (CESHU_CHAPTER_FIELDS[key] ?? []).find((item) => item.key === field)
+        const fieldDef = chapterFieldsForDoc(doc, key).find((item) => item.key === field)
         if (fieldDef !== undefined && fieldDef.aiDraftable === false) {
           errors.push(`${label}：字段 '${field}' 由人确定，尚未填写（AI 不起草，需人工决断）`)
           continue
@@ -278,10 +286,10 @@ function checkContentQuality(ctx: CeshuCheckContext): string[] {
    * （2026-10-23 用 docs/ 161 段真实写作校准，见 ceshuContentQuality 内注释）。
    */
   for (const key of visibleChaptersForDoc(doc)) {
-    const label = CHAPTER_LABELS[key]
-    const data = doc[key]
+    const label = chapterLabelForDoc(doc, key)
+    const data = chapterDataForDoc(doc, key)
     if (!isPlainObject(data)) continue
-    for (const field of CESHU_CHAPTER_FIELDS[key] ?? []) {
+    for (const field of chapterFieldsForDoc(doc, key)) {
       const raw = readQualityText(data, field.key)
       if (raw === null) continue // 非字符串 / 太短：没有分析价值
       const issues = contentQualityIssues(analyzeTextQuality(raw), {

@@ -1,4 +1,4 @@
-import type { ChapterData, ChapterKey } from '../reference'
+import type { ChapterData } from '../reference'
 import { isPlainObject } from '../model'
 
 /**
@@ -31,8 +31,12 @@ export interface FieldStatusEntry {
 
 /** 单章的字段状态表：字段 key → 状态 */
 export type ChapterFieldStatus = Record<string, FieldStatusEntry>
-/** 全文档的字段状态表：章节 key → 单章状态表 */
-export type FieldStatusMap = Partial<Record<ChapterKey, ChapterFieldStatus>>
+/**
+ * 全文档的字段状态表：章节 key → 单章状态表。
+ * 用 `string` 而非 `ChapterKey`：应用章 key 不属于游戏联合类型，
+ * 而磁盘 JSON 本来就是任意章 key（readFieldStatus 逐条校验后写入）。
+ */
+export type FieldStatusMap = Record<string, ChapterFieldStatus>
 
 const VALID_STATUSES: readonly FieldReviewStatus[] = ['ai_draft', 'human_edited', 'approved']
 
@@ -57,19 +61,19 @@ export function readFieldStatus(meta: ChapterData): FieldStatusMap {
       }
     }
     if (Object.keys(fields).length > 0) {
-      result[chapter as ChapterKey] = fields
+      result[chapter] = fields
     }
   }
   return result
 }
 
 /** 取单章的字段状态表（缺省空对象） */
-export function fieldStatusOf(meta: ChapterData, chapter: ChapterKey): ChapterFieldStatus {
+export function fieldStatusOf(meta: ChapterData, chapter: string): ChapterFieldStatus {
   return readFieldStatus(meta)[chapter] ?? {}
 }
 
 /** 取某字段状态；未记录返回 null */
-export function getFieldStatus(meta: ChapterData, chapter: ChapterKey, fieldKey: string): FieldReviewStatus | null {
+export function getFieldStatus(meta: ChapterData, chapter: string, fieldKey: string): FieldReviewStatus | null {
   return readFieldStatus(meta)[chapter]?.[fieldKey]?.status ?? null
 }
 
@@ -79,7 +83,7 @@ export function getFieldStatus(meta: ChapterData, chapter: ChapterKey, fieldKey:
  */
 export function setFieldStatuses(
   meta: ChapterData,
-  chapter: ChapterKey,
+  chapter: string,
   updates: Record<string, FieldReviewStatus>,
   now: string
 ): ChapterData {
@@ -94,7 +98,7 @@ export function setFieldStatuses(
 }
 
 /** 待审字段：状态为 `ai_draft` 的字段（按传入顺序，便于「跳到下一个」） */
-export function pendingFieldKeys(meta: ChapterData, chapter: ChapterKey, fieldKeys: readonly string[]): string[] {
+export function pendingFieldKeys(meta: ChapterData, chapter: string, fieldKeys: readonly string[]): string[] {
   const statuses = readFieldStatus(meta)[chapter] ?? {}
   return fieldKeys.filter((key) => statuses[key]?.status === 'ai_draft')
 }

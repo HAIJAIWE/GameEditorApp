@@ -80,7 +80,7 @@ export class CeshuManager {
   /** 保存单章：读最新文件 → 合并章节 → 刷新时间戳/启用编辑器 → 原子写回 */
   saveChapter(
     id: string,
-    chapter: ChapterKey,
+    chapter: string,
     data: ChapterData,
     docFields: { style?: string; moduleType?: string } = {}
   ): Promise<CeshuDocument> {

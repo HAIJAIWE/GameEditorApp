@@ -1,13 +1,17 @@
+import { CHAPTER_KEYS, type CeshuDocument, type ChapterData } from '../reference'
 import {
-  CHAPTER_KEYS,
-  CHAPTER_LABELS,
-  type CeshuDocument,
-  type ChapterData,
-  type ChapterKey
-} from '../reference'
-import { getGddScope, isPlainObject, visibleChaptersForDoc } from '../model'
-import { CESHU_CHAPTER_FIELDS, resolveFieldMeta } from '../fields'
+  chapterDataForDoc,
+  chapterFieldsForDoc,
+  chapterLabelForDoc,
+  getDocKind,
+  getGddScope,
+  isPlainObject,
+  requiredFieldsForDoc,
+  visibleChaptersForDoc
+} from '../model'
+import { resolveFieldMeta } from '../fields'
 import { fieldStatusOf } from '../fields'
+import { APP_CHAPTER_KEYS } from '../../appSchema'
 import { validateCeshu } from '../validation'
 
 /**
@@ -48,7 +52,8 @@ export interface CeshuBundleField {
 }
 
 export interface CeshuBundleChapter {
-  key: ChapterKey
+  /** 章 key：应用档章不属于 ChapterKey 联合类型，故用 string */
+  key: string
   label: string
   /** 全局章号（1 起，与 Markdown 锚点一致） */
   index: number
@@ -87,12 +92,15 @@ export interface BuildBundleOptions {
 export function buildCeshuBundle(doc: CeshuDocument, options: BuildBundleOptions = {}): CeshuBundle {
   const scope = getGddScope(doc)
   const visible = new Set(visibleChaptersForDoc(doc))
+  // 章序表按档位分派：游戏档沿用 CHAPTER_KEYS（index = 全局位置 +1，逐字节零回归）；
+  // 应用档用 SDD 章表（章号连续、独立命名空间）。两边都只用 visible 过滤实际参与的章。
+  const chapterKeys: readonly string[] = getDocKind(doc) === 'application' ? APP_CHAPTER_KEYS : CHAPTER_KEYS
   const chapters: CeshuBundleChapter[] = []
-  for (const [position, key] of CHAPTER_KEYS.entries()) {
+  for (const [position, key] of chapterKeys.entries()) {
     if (!visible.has(key)) continue
     chapters.push({
       key,
-      label: CHAPTER_LABELS[key],
+      label: chapterLabelForDoc(doc, key),
       index: position + 1,
       fields: buildChapterFields(doc, key)
     })
@@ -129,15 +137,16 @@ export function renderCeshuBundleJson(doc: CeshuDocument, options: BuildBundleOp
 }
 
 /** 单章字段：schema 定义序在前（带契约），数据里的扩展键追加在后（仅键值） */
-function buildChapterFields(doc: CeshuDocument, chapter: ChapterKey): CeshuBundleField[] {
+function buildChapterFields(doc: CeshuDocument, chapter: string): CeshuBundleField[] {
   // 防御：章节数据缺失（桩/老文档缺章、字段被整体删掉）时不应让导出崩溃，
   // 一律按空对象处理——schema 字段仍按契约产出（值为 undefined），只是没有扩展键。
-  const data: ChapterData = isPlainObject(doc[chapter]) ? doc[chapter] : {}
+  const data = chapterDataForDoc(doc, chapter)
   const statusMap = fieldStatusOf(doc.meta, chapter)
+  const fieldDefs = chapterFieldsForDoc(doc, chapter)
   const fields: CeshuBundleField[] = []
 
-  for (const def of CESHU_CHAPTER_FIELDS[chapter] ?? []) {
-    const meta = resolveFieldMeta(chapter, def)
+  for (const def of fieldDefs) {
+    const meta = resolveFieldMeta(chapter, def, requiredFieldsForDoc(doc, chapter))
     const status = statusMap[def.key]?.status
     fields.push({
       key: def.key,
@@ -153,7 +162,7 @@ function buildChapterFields(doc: CeshuDocument, chapter: ChapterKey): CeshuBundl
   }
 
   // 扩展键（模板/旧数据带来的 schema 外字段）：保留值，不编造契约
-  const schemaKeys = new Set((CESHU_CHAPTER_FIELDS[chapter] ?? []).map((def) => def.key.split('.')[0]))
+  const schemaKeys = new Set(fieldDefs.map((def) => def.key.split('.')[0]))
   for (const key of Object.keys(data)) {
     if (schemaKeys.has(key)) continue
     fields.push({ key, label: key, value: data[key] })

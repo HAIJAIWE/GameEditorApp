@@ -23,8 +23,15 @@ export interface ResolvedFieldMeta {
  * - `aiDraftable` 缺省 true（AI 可起草），人定字段显式设 false；
  * - `aiHint` / `reviewHint` 缺省空串。
  */
-export function resolveFieldMeta(chapter: ChapterKey, field: CeshuFieldDef): ResolvedFieldMeta {
-  const requiredKeys = CHAPTER_REQUIRED_FIELDS[chapter] ?? []
+export function resolveFieldMeta(
+  chapter: string,
+  field: CeshuFieldDef,
+  requiredKeysOverride?: readonly string[]
+): ResolvedFieldMeta {
+  // 应用章 key 不属于 ChapterKey：默认查表用宽松索引（未命中即空），
+  // 调用方也可显式传入规格化必填表（见 ceshuBundle）。游戏档逐项零回归。
+  const requiredKeys =
+    requiredKeysOverride ?? (CHAPTER_REQUIRED_FIELDS as Record<string, readonly string[]>)[chapter] ?? []
   return {
     required: field.required ?? requiredKeys.includes(field.key),
     aiDraftable: field.aiDraftable ?? true,
