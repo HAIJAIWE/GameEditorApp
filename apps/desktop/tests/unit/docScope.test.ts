@@ -8,11 +8,16 @@ import {
 } from '@mobai/shared/ceshu/model'
 
 /**
- * 阶段轴（方向版 lite / 细节版 full）守卫：三档都识别 gdd_scope，
- * 方向版只铺核心章，完整版铺全章；章数按档位给出（游戏零回归）。
+ * 阶段轴（方向版 lite / 细节版 full）+ 应用档可选「AI 模型层」守卫。
+ * AI 不是独立档位：勾选 ai_enabled 后，应用文档在末尾追加模型层四章。
  */
-function doc(kind: 'game' | 'application' | 'ai', scope: 'lite' | 'full') {
+function doc(kind: 'game' | 'application', scope: 'lite' | 'full') {
   return createDefaultCeshu({ scope, docKind: kind, name: '示例' })
+}
+
+function withAi<T extends ReturnType<typeof doc>>(d: T): T {
+  ;(d.meta as Record<string, unknown>).ai_enabled = true
+  return d
 }
 
 describe('阶段轴：应用档 lite/full', () => {
@@ -32,30 +37,39 @@ describe('阶段轴：应用档 lite/full', () => {
     expect(full).toContain('api')
     expect(full).toContain('data_model')
   })
+
+  it('未勾选 AI 时，完整版不含模型层四章（不挤占 1–16 章号）', () => {
+    const full = visibleChaptersForDoc(doc('application', 'full'))
+    for (const key of ['model_card', 'data_sheet', 'system_card', 'eval_redteam']) {
+      expect(full).not.toContain(key)
+    }
+    expect(full).toHaveLength(17) // meta + 16
+  })
 })
 
-describe('阶段轴：AI 档 lite/full', () => {
-  it('方向版保留模型卡，去掉其余模型层与实现章', () => {
-    const lite = visibleChaptersForDoc(doc('ai', 'lite'))
-    expect(lite).toContain('model_card')
-    for (const key of ['data_sheet', 'system_card', 'eval_redteam', 'architecture', 'api']) {
-      expect(lite).not.toContain(key)
-    }
-  })
-
-  it('完整版含全部模型层四章', () => {
-    const full = visibleChaptersForDoc(doc('ai', 'full'))
+describe('应用档：可选 AI 模型层（ai_enabled）', () => {
+  it('勾选后完整版追加模型层四章', () => {
+    const full = visibleChaptersForDoc(withAi(doc('application', 'full')))
     for (const key of ['model_card', 'data_sheet', 'system_card', 'eval_redteam']) {
       expect(full).toContain(key)
+    }
+    expect(full).toHaveLength(21) // meta + 16 + 4
+  })
+
+  it('勾选后方向版补一章模型卡，不含其余模型层章', () => {
+    const lite = visibleChaptersForDoc(withAi(doc('application', 'lite')))
+    expect(lite).toContain('model_card')
+    for (const key of ['data_sheet', 'system_card', 'eval_redteam']) {
+      expect(lite).not.toContain(key)
     }
   })
 })
 
 describe('阶段轴：档位与章数（游戏零回归）', () => {
-  it('contentChapterCountsForDoc：游戏 9/23、应用 6/16、AI 7/20', () => {
+  it('contentChapterCountsForDoc：游戏 9/23、应用 6/16、应用含 AI 7/20', () => {
     expect(contentChapterCountsForDoc(doc('game', 'full'))).toEqual({ lite: 9, full: 23 })
     expect(contentChapterCountsForDoc(doc('application', 'full'))).toEqual({ lite: 6, full: 16 })
-    expect(contentChapterCountsForDoc(doc('ai', 'full'))).toEqual({ lite: 7, full: 20 })
+    expect(contentChapterCountsForDoc(withAi(doc('application', 'full')))).toEqual({ lite: 7, full: 20 })
   })
 
   it('游戏 lite 可见章少于 full（沿用既有档位行为）', () => {

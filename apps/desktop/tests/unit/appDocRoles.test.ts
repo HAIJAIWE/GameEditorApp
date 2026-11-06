@@ -12,7 +12,7 @@ import {
 import { buildRoleTaskPrompt, parseRoleTaskPlan } from '@mobai/shared/ceshu/prompts'
 import { buildProjectFolder } from '@mobai/shared/ceshu/workflow'
 import { createDefaultCeshu, visibleChaptersForDoc } from '@mobai/shared/ceshu/model'
-import { APP_CHAPTER_LABELS, APP_ROLES } from '@mobai/shared/appSchema'
+import { APP_AI_LAYER_KEYS, APP_CHAPTER_LABELS, APP_ROLES } from '@mobai/shared/appSchema'
 import { renderCeshuTasksMarkdown } from '../../src/main/ceshu/export/delivery/tasks'
 import { renderCeshuMarkdown } from '../../src/main/ceshu/export/doc/markdown'
 import type { CeshuDocument } from '@mobai/shared/ceshu/reference'
@@ -43,6 +43,8 @@ describe('应用档：岗位规格化层', () => {
     // 应用岗位不应映射到任何游戏章
     for (const role of taskRolesForDoc(doc)) {
       for (const chapter of roleChaptersForDoc(doc, role)) {
+        // AI 模型层章仅在 ai_enabled 时可见，不属于「游戏章」
+        if (APP_AI_LAYER_KEYS.includes(chapter)) continue
         expect(visibleChaptersForDoc(doc)).toContain(chapter)
       }
     }

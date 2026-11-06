@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { createDefaultCeshu } from '@mobai/shared/ceshu/model'
-import { APP_CHAPTER_KEYS, APP_CHAPTER_LABELS } from '@mobai/shared/appSchema'
+import { APP_CHAPTER_KEYS, APP_AI_LAYER_KEYS, APP_CHAPTER_LABELS } from '@mobai/shared/appSchema'
 import { buildProjectFolder, projectFilesToDoc, projectFolderName } from '@mobai/shared/ceshu/workflow'
 
 /**
@@ -209,7 +209,7 @@ describe('应用档项目文件夹：导出 SDD 章、导入能还原', () => {
     const doc = createDefaultCeshu({ scope: 'full', name: '效率工具', docKind: 'application' })
     const { files } = buildProjectFolder(doc)
     const designs = Object.keys(files).filter((path) => path.startsWith('design/'))
-    expect(designs).toHaveLength(APP_CHAPTER_KEYS.length)
+    expect(designs).toHaveLength(APP_CHAPTER_KEYS.filter((key) => !APP_AI_LAYER_KEYS.includes(key)).length)
     expect(designs).toContain('design/architecture.md')
     expect(designs).toContain('design/risks.md')
     expect(designs).not.toContain('design/combat.md')

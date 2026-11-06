@@ -5,10 +5,10 @@ import { CESHU_CHAPTER_FIELDS } from '@mobai/shared/ceshu/fields'
 import { fieldStatusOf } from '@mobai/shared/ceshu/fields'
 import { countFieldStatuses, formatFieldStatusSummary } from '@mobai/shared/ceshu/fields'
 import {
+  aiEnabledForDoc,
   chapterFieldsForDoc,
   chapterLabelForDoc,
   computeChapterProgress,
-  getDocKind,
   isSoftwareDoc,
   isPlainObject,
   visibleChaptersForDoc
@@ -339,8 +339,8 @@ function buildAppExcelWorkbook(doc: CeshuDocument): ExcelJS.Workbook {
   writeAppPipeSheet(workbook, '接口契约', doc, 'api', 'endpoints', ['接口', '方法/通道', '入参', '出参', '幂等'])
   writeAppPipeSheet(workbook, '里程碑', doc, 'milestones', 'milestones', ['里程碑', '可交付成果', '依赖'])
   writeAppPipeSheet(workbook, '风险', doc, 'risks', 'risk_register', ['风险', '影响', '应对', '负责人'])
-  // AI 档额外把模型层四章各落一张表（模型卡 / 数据表 / 系统卡 / 评测与红队）
-  if (getDocKind(doc) === 'ai') {
+  // 应用档勾选「含 AI 模型层」时，把模型层四章各落一张表
+  if (aiEnabledForDoc(doc)) {
     writeAiModelSheet(workbook, doc, '模型卡', 'model_card')
     writeAiModelSheet(workbook, doc, '数据表', 'data_sheet')
     writeAiModelSheet(workbook, doc, '系统卡', 'system_card')

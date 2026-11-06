@@ -36,37 +36,25 @@ import {
   APP_SYSTEM_DOC_NOUN,
   appChapterAi
 } from '../../appSchema'
-import {
-  AI_AGENT_DISPLAY,
-  AI_AGENT_PROMPTS,
-  AI_CHAPTER_LABELS,
-  AI_NUMBERED_KEYS,
-  AI_REVIEW_ROLE_NOUN,
-  AI_SYSTEM_DOC_NOUN,
-  aiChapterAi
-} from '../../aiSchema'
 
-/** 软件档（应用 / AI）共用取数：差异只在章表 / 角色 / 措辞，分支收口在此 */
-function softwareLabels(kind: DocKind): Readonly<Record<string, string>> {
-  return kind === 'ai' ? AI_CHAPTER_LABELS : APP_CHAPTER_LABELS
+/** 应用档取数助手（AI 已并入应用，不再按 ai 分流；保留同名调用点） */
+function softwareLabels(_kind: DocKind): Readonly<Record<string, string>> {
+  return APP_CHAPTER_LABELS
 }
-function softwareAgentPrompts(kind: DocKind): Readonly<Record<string, string>> {
-  return kind === 'ai' ? AI_AGENT_PROMPTS : APP_AGENT_PROMPTS
+function softwareAgentPrompts(_kind: DocKind): Readonly<Record<string, string>> {
+  return APP_AGENT_PROMPTS
 }
-function softwareAgentDisplay(kind: DocKind): Readonly<Record<string, string>> {
-  return kind === 'ai' ? AI_AGENT_DISPLAY : APP_AGENT_DISPLAY
+function softwareChapterAi(_kind: DocKind, chapter: string): { agentId: string; aiHint: string } {
+  return appChapterAi(chapter)
 }
-function softwareChapterAi(kind: DocKind, chapter: string): { agentId: string; aiHint: string } {
-  return kind === 'ai' ? aiChapterAi(chapter) : appChapterAi(chapter)
+function softwareDocNoun(_kind: DocKind): string {
+  return APP_SYSTEM_DOC_NOUN
 }
-function softwareDocNoun(kind: DocKind): string {
-  return kind === 'ai' ? AI_SYSTEM_DOC_NOUN : APP_SYSTEM_DOC_NOUN
+function softwareReviewRole(_kind: DocKind): string {
+  return APP_REVIEW_ROLE_NOUN
 }
-function softwareReviewRole(kind: DocKind): string {
-  return kind === 'ai' ? AI_REVIEW_ROLE_NOUN : APP_REVIEW_ROLE_NOUN
-}
-function softwareOrder(kind: DocKind): readonly string[] {
-  return kind === 'ai' ? AI_NUMBERED_KEYS : APP_CHAPTER_KEYS
+function softwareOrder(_kind: DocKind): readonly string[] {
+  return APP_CHAPTER_KEYS
 }
 import { readText } from '../../util/io'
 import { parseLlmJson } from '../../util/object'
@@ -128,19 +116,16 @@ export function agentForChapter(chapter: ChapterKey): ChapterAgent {
  *   生成要求，展示名/角色提示语来自 `APP_AGENT_DISPLAY/PROMPTS`。
  */
 export function agentForDocChapter(doc: CeshuDocument, chapter: string): ChapterAgent {
-  const kind = getDocKind(doc)
-  if (kind !== 'game') {
-    const meta = softwareChapterAi(kind, chapter)
-    const agentId = meta.agentId
-    const rolePrompt = softwareAgentPrompts(kind)[agentId] ?? '请协助完善当前章节内容。'
-    const chapterHint = meta.aiHint
-    return {
-      agentId,
-      displayName: softwareAgentDisplay(kind)[agentId] ?? agentId,
-      agentPrompt: chapterHint === '' ? rolePrompt : `${rolePrompt}\n本章生成要求：${chapterHint}`
-    }
+  if (getDocKind(doc) !== 'application') return agentForChapter(chapter as ChapterKey)
+  const meta = appChapterAi(chapter)
+  const agentId = meta.agentId
+  const rolePrompt = APP_AGENT_PROMPTS[agentId] ?? '请协助完善当前章节内容。'
+  const chapterHint = meta.aiHint
+  return {
+    agentId,
+    displayName: APP_AGENT_DISPLAY[agentId] ?? agentId,
+    agentPrompt: chapterHint === '' ? rolePrompt : `${rolePrompt}\n本章生成要求：${chapterHint}`
   }
-  return agentForChapter(chapter as ChapterKey)
 }
 
 export function getStyleGlossary(style: string): string {
@@ -486,7 +471,7 @@ export function buildFullGeneratePlan(
   const input = normalizeFullGenerateInput(raw)
   // 应用档：SDD 全章表，不做游戏档的 lite/market/risk 裁剪，也不写游戏风格/品类 key。
   // 游戏档（docKind 缺省）走原来的 buildChapterOrder 路径，逐字节零回归。
-  if (options.docKind === 'application' || options.docKind === 'ai') {
+  if (options.docKind === 'application') {
     const kind = options.docKind
     const order: readonly string[] = [...softwareOrder(kind)]
     return {

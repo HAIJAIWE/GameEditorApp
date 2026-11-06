@@ -48,7 +48,7 @@ describe('应用档：交接包按 SDD 章节重组', () => {
     expect(readme).toContain('效率工具')
     expect(readme).toContain('软件设计文档')
     expect(readme).toContain('desktop')
-    for (const part of APP_PARTS) expect(readme).toContain(part.label)
+    for (const part of APP_PARTS.filter((p) => p.key !== 'ai_layer')) expect(readme).toContain(part.label)
     for (const role of APP_ROLES) expect(readme).toContain(role.label)
     expect(readme).not.toContain('程序')
     expect(readme).not.toContain('美术')
@@ -77,7 +77,7 @@ describe('应用档：交接包按 SDD 章节重组', () => {
   it('开发路线按分区顺序，不用游戏角色措辞', () => {
     const route = files['开发路线.md']
     expect(route).toContain('效率工具')
-    for (const part of APP_PARTS) expect(route).toContain(part.label)
+    for (const part of APP_PARTS.filter((p) => p.key !== 'ai_layer')) expect(route).toContain(part.label)
     expect(route).not.toContain('进引擎')
     expect(route).not.toContain('品类')
   })

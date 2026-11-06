@@ -12,7 +12,6 @@ import { AGENT_DISPLAY, CHAPTER_AGENT_MAP, CHAPTER_GENERATION_HINTS } from '@mob
 import { CESHU_ROLE_LABELS, CESHU_ROLE_ORDER } from '@mobai/shared/ceshu/workflow'
 import { createDefaultCeshu } from '@mobai/shared/ceshu/model'
 import {
-  AI_SPEC,
   APP_SPEC,
   DOCUMENT_SPECS,
   GAME_SPEC,
@@ -108,78 +107,23 @@ describe('应用规格：独立章表、连续章号、无游戏语义', () => {
   })
 })
 
-describe('AI 规格：独立章表、含模型层四章、章号连续', () => {
-  it('章 key 除 meta 外与游戏章表零重叠', () => {
-    const gameKeys = new Set<string>(CHAPTER_KEYS)
-    const overlap = AI_SPEC.chapterKeys.filter((key) => key !== AI_SPEC.metaKey && gameKeys.has(key))
-    expect(overlap).toEqual([])
-  })
-
-  it('章号由自己的 parts 派生，1..N 连续不跳号', () => {
-    const numbers = AI_SPEC.numberedKeys.map((key) => specChapterNumber(AI_SPEC, key))
-    expect(numbers).toEqual(Array.from({ length: numbers.length }, (_, i) => i + 1))
-    expect(specChapterNumber(AI_SPEC, AI_SPEC.metaKey)).toBe(0)
-    expect(AI_SPEC.chapters.filter((c) => c.key !== AI_SPEC.metaKey)).toHaveLength(numbers.length)
-  })
-
-  it('分区覆盖全部编号章且不重复', () => {
-    const fromParts = AI_SPEC.parts.flatMap((p) => [...p.chapters])
-    expect(fromParts).toEqual([...AI_SPEC.numberedKeys])
-    expect(new Set(fromParts).size).toBe(fromParts.length)
-  })
-
-  it('含 AI 独有的模型层四章：模型卡 / 数据表 / 系统卡 / 评测与红队', () => {
-    for (const key of ['model_card', 'data_sheet', 'system_card', 'eval_redteam']) {
-      expect(AI_SPEC.chapterKeys).toContain(key)
-    }
-  })
-
-  it('每章都有 AI 角色与生成要求，角色都能查到展示名', () => {
-    for (const chapter of AI_SPEC.chapters) {
-      expect(chapter.aiHint.length).toBeGreaterThan(0)
-      expect(AI_SPEC.agentDisplay[chapter.agentId]).toBeTruthy()
-      expect(AI_SPEC.agentPrompts[chapter.agentId]).toBeTruthy()
-      expect(chapter.requiredFields.length).toBeGreaterThan(0)
-      expect(AI_SPEC.chapterLabels[chapter.key]).toBe(chapter.label)
-    }
-  })
-
-  it('AI 角色 / 岗位 / 章名不含游戏语义', () => {
-    const text = [
-      ...Object.values(AI_SPEC.agentDisplay),
-      ...AI_SPEC.roles.map((r) => r.label),
-      ...AI_SPEC.chapters.map((c) => c.name)
-    ].join(' ')
-    for (const word of ['策划', '数值', '美术', '关卡', '战斗', '掉落', '伤害']) {
-      expect(text).not.toContain(word)
-    }
-  })
-
-  it('AI 档隐藏游戏数据编辑页签', () => {
-    expect(hiddenMainViewIdsForKind('ai')).toEqual(['data.mainView'])
-  })
-})
-
 describe('规格注册表与分派', () => {
-  it('三个规格已注册，kind 唯一', () => {
-    expect(DOCUMENT_SPECS).toHaveLength(3)
-    expect(new Set(DOCUMENT_SPECS.map((s) => s.kind)).size).toBe(3)
+  it('两个规格已注册，kind 唯一', () => {
+    expect(DOCUMENT_SPECS).toHaveLength(2)
+    expect(new Set(DOCUMENT_SPECS.map((s) => s.kind)).size).toBe(2)
     expect(specForKind('game')).toBe(GAME_SPEC)
     expect(specForKind('application')).toBe(APP_SPEC)
-    expect(specForKind('ai')).toBe(AI_SPEC)
     expect(specForKind(undefined)).toBe(GAME_SPEC)
   })
 
-  it('specForDoc：默认 / 显式游戏 → GAME_SPEC，显式应用 → APP_SPEC，显式 AI → AI_SPEC', () => {
+  it('specForDoc：默认 / 显式游戏 → GAME_SPEC，显式应用 → APP_SPEC', () => {
     const doc = createDefaultCeshu({ scope: 'full' })
     expect(specForDoc(doc)).toBe(GAME_SPEC)
     ;(doc.meta as Record<string, unknown>).doc_kind = 'game'
     expect(specForDoc(doc)).toBe(GAME_SPEC)
     ;(doc.meta as Record<string, unknown>).doc_kind = 'application'
     expect(specForDoc(doc)).toBe(APP_SPEC)
-    ;(doc.meta as Record<string, unknown>).doc_kind = 'ai'
-    expect(specForDoc(doc)).toBe(AI_SPEC)
-    // 脏值回落游戏档（与 getDocKind 的保守语义一致）
+    // 脏值（含旧 ai 值）回落游戏档（与 getDocKind 的保守语义一致）
     ;(doc.meta as Record<string, unknown>).doc_kind = 'unknown'
     expect(specForDoc(doc)).toBe(GAME_SPEC)
   })
@@ -187,7 +131,7 @@ describe('规格注册表与分派', () => {
 
 describe('规格层与渲染层隐藏规则不漂移', () => {
   it('hiddenMainViewIdsForKind 与 mainViewVisibility 的纯函数结果一致', () => {
-    for (const kind of ['game', 'application', 'ai', undefined] as const) {
+    for (const kind of ['game', 'application', undefined] as const) {
       expect([...hiddenMainViewIdsForKind(kind)]).toEqual([...hiddenMainViewIdsForDocKind(kind)])
     }
   })

@@ -16,9 +16,8 @@ import {
 import { createDefaultChapters } from '../reference'
 import { getStyle, inferStyleFromText } from '../../config/game'
 import { migrateV4ToV5, needsV4Migration } from '../data'
-import { createAppDefaultChapters, APP_LITE_KEYS, APP_CHAPTER_KEYS, APP_LITE_NUMBERED_KEYS, APP_NUMBERED_KEYS } from '../../appSchema'
-import { createAiDefaultChapters, AI_CHAPTER_KEYS, AI_LITE_KEYS, AI_LITE_NUMBERED_KEYS, AI_NUMBERED_KEYS } from '../../aiSchema'
-import { getDocKind, type DocKind } from './docKind'
+import { createAppDefaultChapters, APP_AI_LAYER_KEYS, APP_LITE_KEYS, APP_CHAPTER_KEYS, APP_LITE_NUMBERED_KEYS, APP_NUMBERED_KEYS } from '../../appSchema'
+import { aiEnabledForDoc, getDocKind, type DocKind } from './docKind'
 import { chapterDataForDoc, requiredFieldsForDoc } from './chapterView'
 import { isChapterVisibleInStage, type CeshuStage } from '../workflow'
 import { formatLocalTimestamp } from '../../util/datetime'
@@ -59,13 +58,8 @@ export function createDefaultCeshu(options: {
   }
   const kind = options.docKind ?? 'game'
   const isApp = kind === 'application'
-  const isAi = kind === 'ai'
   if (isApp) {
     chapters.meta.doc_kind = 'application'
-    if (options.name) chapters.meta.project_name = options.name
-  }
-  if (isAi) {
-    chapters.meta.doc_kind = 'ai'
     if (options.name) chapters.meta.project_name = options.name
   }
   const doc: CeshuDocument = {
@@ -80,7 +74,7 @@ export function createDefaultCeshu(options: {
     style: '',
     module_type: '',
     ...chapters,
-    ...(isApp ? createAppDefaultChapters(chapters.meta) : isAi ? createAiDefaultChapters(chapters.meta) : {}),
+    ...(isApp ? createAppDefaultChapters(chapters.meta) : {}),
     enabled_editors: [],
     editor_configs: {}
   }
@@ -132,11 +126,9 @@ export function normalizeCeshu(raw: unknown): CeshuDocument {
    * 但**磁盘里缺某一章时不会有任何默认值**，导出/进度会看到 undefined。
    * 这里按规格补缺失章的空默认值（只补不覆盖）。游戏档完全不走这段。
    */
-  if (getDocKind(base) === 'application' || getDocKind(base) === 'ai') {
-    const readKind = getDocKind(base)
+  if (getDocKind(base) === 'application') {
     const target = base as unknown as Record<string, unknown>
-    const defaults = readKind === 'ai' ? createAiDefaultChapters() : createAppDefaultChapters()
-    for (const [key, chapterDefaults] of Object.entries(defaults)) {
+    for (const [key, chapterDefaults] of Object.entries(createAppDefaultChapters())) {
       if (key === 'meta') continue // meta 已由游戏默认值 + source.meta 合成，不能覆盖
       if (!isPlainObject(target[key])) target[key] = chapterDefaults
     }
@@ -162,7 +154,7 @@ export function getGameType(doc: CeshuDocument): string {
 }
 
 // 档位判定已抽到 `./docKind`（切断 ceshuModel ↔ chapterView 循环），此处 re-export 保持 API 不变
-export { DOC_KINDS, getDocKind, isSoftwareDoc, needsGameDataEditor } from './docKind'
+export { DOC_KINDS, aiEnabledForDoc, getDocKind, isSoftwareDoc, needsGameDataEditor } from './docKind'
 export type { DocKind } from './docKind'
 
 /**
@@ -188,22 +180,29 @@ export function deriveRulesetId(doc: CeshuDocument): string {
  * `CHAPTER_LABELS` 等游戏常量。
  */
 export function visibleChaptersForDoc(doc: CeshuDocument): readonly string[] {
-  const kind = getDocKind(doc)
   const scope = getGddScope(doc)
-  // 方向版（lite）对三档一致生效：只铺「定义 + 功能 + 里程碑 + 风险」等核心章
-  if (kind === 'application') return scope === 'lite' ? APP_LITE_KEYS : APP_CHAPTER_KEYS
-  if (kind === 'ai') return scope === 'lite' ? AI_LITE_KEYS : AI_CHAPTER_KEYS
+  if (getDocKind(doc) === 'application') {
+    const base = scope === 'lite' ? APP_LITE_KEYS : APP_CHAPTER_KEYS
+    // 未勾选「含 AI 模型层」：剔除 AI 四章（不挤占 1–16 章号）
+    if (!aiEnabledForDoc(doc)) return base.filter((key) => !APP_AI_LAYER_KEYS.includes(key))
+    // 勾选后：完整版含全部；方向版补一章模型卡（方向阶段至少要说清用什么模型）
+    return scope === 'lite' && !base.includes('model_card') ? [...base, 'model_card'] : base
+  }
   return visibleChapterKeys(scope, getGameType(doc), enabledModuleChapters(doc))
 }
 
 /**
  * 某文档「方向版(lite) / 完整版(full)」各自的内容章数（不含 meta）。
- * 游戏档沿用既有的 `contentChapterCount`（零回归）；应用 / AI 取各自 lite 子集与全章表。
+ * 游戏档沿用既有的 `contentChapterCount`（零回归）；应用档按是否含 AI 模型层增减。
  */
 export function contentChapterCountsForDoc(doc: CeshuDocument): { lite: number; full: number } {
-  const kind = getDocKind(doc)
-  if (kind === 'application') return { lite: APP_LITE_NUMBERED_KEYS.length, full: APP_NUMBERED_KEYS.length }
-  if (kind === 'ai') return { lite: AI_LITE_NUMBERED_KEYS.length, full: AI_NUMBERED_KEYS.length }
+  if (getDocKind(doc) === 'application') {
+    const hasAi = aiEnabledForDoc(doc)
+    return {
+      lite: APP_LITE_NUMBERED_KEYS.length + (hasAi ? 1 : 0),
+      full: APP_NUMBERED_KEYS.length - (hasAi ? 0 : APP_AI_LAYER_KEYS.length)
+    }
+  }
   return { lite: contentChapterCount('lite'), full: contentChapterCount('full') }
 }
 
@@ -282,7 +281,7 @@ export function withChapter(doc: CeshuDocument, chapter: string, data: ChapterDa
     const withScope = isGddScope(scope) && data.gdd_scope === undefined ? { ...data, gdd_scope: scope } : data
     const nextKind = withScope.doc_kind
     next.meta =
-      nextKind === 'game' || nextKind === 'application' || nextKind === 'ai'
+      nextKind === 'game' || nextKind === 'application'
         ? withScope
         : { ...withScope, doc_kind: getDocKind(doc) }
   } else {

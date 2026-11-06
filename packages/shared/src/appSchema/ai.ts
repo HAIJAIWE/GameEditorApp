@@ -55,8 +55,8 @@ export const APP_ROLES: readonly { key: string; label: string }[] = [
 export const APP_ROLE_CHAPTERS: Readonly<Record<string, readonly string[]>> = {
   product: ['overview', 'users', 'scope', 'features', 'flows', 'milestones'],
   frontend: ['features', 'flows', 'interaction', 'nonfunctional'],
-  backend: ['architecture', 'data_model', 'api', 'integration', 'security'],
-  qa: ['testing', 'nonfunctional', 'risks'],
+  backend: ['architecture', 'data_model', 'api', 'integration', 'security', 'model_card', 'data_sheet'],
+  qa: ['testing', 'nonfunctional', 'risks', 'system_card', 'eval_redteam'],
   devops: ['release', 'nonfunctional', 'security']
 }
 
@@ -141,6 +141,23 @@ export const APP_CHAPTER_AI: readonly AppChapterAi[] = [
   {
     key: 'risks', agentId: 'tech_lead',
     aiHint: '列风险登记表与应对，并写清关键决策的候选方案、否决理由与结论。'
+  },
+  // AI 模型层四章（可选）：复用现有角色，只在 AI 提示里加模型风味
+  {
+    key: 'model_card', agentId: 'architect',
+    aiHint: '写清底座模型/服务、能力边界与已知局限（幻觉、长上下文衰减等），版本与调用方式可复现。'
+  },
+  {
+    key: 'data_sheet', agentId: 'data_engineer',
+    aiHint: '说明训练/微调/RAG 数据来源、许可与合规、个人信息处理与偏差审计结论。'
+  },
+  {
+    key: 'system_card', agentId: 'security',
+    aiHint: '描述预期行为边界、内容安全与拒答机制、对齐红线与失效降级（超时/限流/异常）。'
+  },
+  {
+    key: 'eval_redteam', agentId: 'qa',
+    aiHint: '给出可量化的评测指标与目标值，列越狱/提示注入/数据泄露等红队场景与线上监控。'
   }
 ]
 

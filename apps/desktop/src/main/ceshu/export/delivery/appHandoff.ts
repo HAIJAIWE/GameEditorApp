@@ -5,10 +5,9 @@ import {
   taskRoleLabelForDoc,
   taskRolesForDoc
 } from '@mobai/shared/ceshu/workflow'
-import { deriveRulesetId, getDocKind, visibleChaptersForDoc } from '@mobai/shared/ceshu/model'
+import { deriveRulesetId, visibleChaptersForDoc } from '@mobai/shared/ceshu/model'
 import { specForDoc, type DocumentSpec } from '@mobai/shared/documentSpec'
 import { APP_ROLE_CHAPTERS } from '@mobai/shared/appSchema'
-import { AI_ROLE_CHAPTERS } from '@mobai/shared/aiSchema'
 import type { DataTypeDef, ItemRecord } from '@mobai/shared/types'
 import { buildJsonSnapshot } from '../../../data/snapshotExport'
 
@@ -46,9 +45,9 @@ import { renderCeshuMarkdown } from '../doc/markdown'
 
 const CN = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十'] as const
 
-/** 岗位 → 相关章：应用 / AI 各有一套映射（章节 key 相同但语义由规格分派） */
-function roleChaptersOf(doc: CeshuDocument): Readonly<Record<string, readonly string[]>> {
-  return getDocKind(doc) === 'ai' ? AI_ROLE_CHAPTERS : APP_ROLE_CHAPTERS
+/** 岗位 → 相关章（应用口径；AI 已并入应用，模型层章也归应用岗位） */
+function roleChaptersOf(_doc: CeshuDocument): Readonly<Record<string, readonly string[]>> {
+  return APP_ROLE_CHAPTERS
 }
 
 /** 章 → 负责 agent / 生成要求（来自规格，应用与 AI 通用） */

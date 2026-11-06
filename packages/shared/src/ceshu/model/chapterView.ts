@@ -35,54 +35,38 @@ import {
   appChapterNumber,
   appRequiredFields
 } from '../../appSchema'
-import {
-  AI_CHAPTER_FIELDS,
-  AI_CHAPTER_LABELS,
-  aiChapterAnchorOf,
-  aiChapterNumber,
-  aiRequiredFields
-} from '../../aiSchema'
 
 function isApp(doc: CeshuDocument): boolean {
   return getDocKind(doc) === 'application'
 }
 
-function isAiDoc(doc: CeshuDocument): boolean {
-  return getDocKind(doc) === 'ai'
-}
-
-/** 章标签：游戏档用 CHAPTER_LABELS，应用档用 APP_CHAPTER_LABELS，AI 档用 AI_CHAPTER_LABELS */
+/** 章标签：游戏档用 CHAPTER_LABELS，应用档用 APP_CHAPTER_LABELS */
 export function chapterLabelForDoc(doc: CeshuDocument, key: string): string {
   if (isApp(doc)) return APP_CHAPTER_LABELS[key] ?? key
-  if (isAiDoc(doc)) return AI_CHAPTER_LABELS[key] ?? key
   return isChapterKey(key) ? CHAPTER_LABELS[key] : key
 }
 
-/** 章必填字段：游戏档用 CHAPTER_REQUIRED_FIELDS，应用 / AI 档从各自字符表派生 */
+/** 章必填字段：游戏档用 CHAPTER_REQUIRED_FIELDS，应用档从字段表派生 */
 export function requiredFieldsForDoc(doc: CeshuDocument, key: string): readonly string[] {
   if (isApp(doc)) return appRequiredFields(key)
-  if (isAiDoc(doc)) return aiRequiredFields(key)
   return isChapterKey(key) ? (CHAPTER_REQUIRED_FIELDS[key] ?? []) : []
 }
 
-/** 章字段定义：游戏 CESHU_CHAPTER_FIELDS，应用 APP_CHAPTER_FIELDS，AI AI_CHAPTER_FIELDS */
+/** 章字段定义：游戏档用 CESHU_CHAPTER_FIELDS，应用档用 APP_CHAPTER_FIELDS */
 export function chapterFieldsForDoc(doc: CeshuDocument, key: string): readonly CeshuFieldDef[] {
   if (isApp(doc)) return (APP_CHAPTER_FIELDS[key] ?? []) as readonly CeshuFieldDef[]
-  if (isAiDoc(doc)) return (AI_CHAPTER_FIELDS[key] ?? []) as readonly CeshuFieldDef[]
   return isChapterKey(key) ? (CESHU_CHAPTER_FIELDS[key] ?? []) : []
 }
 
-/** 章号：文档信息段为 0；应用 / AI 档由各自分区表派生（连续） */
+/** 章号：文档信息段为 0；应用档由自己的分区表派生（连续） */
 export function chapterNumberForDoc(doc: CeshuDocument, key: string): number {
   if (isApp(doc)) return appChapterNumber(key)
-  if (isAiDoc(doc)) return aiChapterNumber(key)
   return isChapterKey(key) ? chapterNumber(key) : 0
 }
 
 /** 导出锚点：Markdown 目录与交接包「来源」回链必须指同一个锚点 */
 export function chapterAnchorForDoc(doc: CeshuDocument, key: string): string {
   if (isApp(doc)) return appChapterAnchorOf(key)
-  if (isAiDoc(doc)) return aiChapterAnchorOf(key)
   return isChapterKey(key) ? chapterAnchorOf(key) : ''
 }
 

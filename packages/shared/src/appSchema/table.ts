@@ -27,7 +27,9 @@ export const APP_PARTS: readonly AppPart[] = [
   { key: 'product', label: '产品设计', chapters: ['features', 'flows', 'interaction'] },
   { key: 'engineering', label: '技术设计', chapters: ['architecture', 'data_model', 'api', 'integration'] },
   { key: 'quality', label: '质量与保障', chapters: ['nonfunctional', 'security', 'testing'] },
-  { key: 'delivery', label: '交付与治理', chapters: ['release', 'milestones', 'risks'] }
+  { key: 'delivery', label: '交付与治理', chapters: ['release', 'milestones', 'risks'] },
+  // AI 模型层：可选分区，排在 16 章之后（不挤占现有章号），仅在「含 AI 模型层」时可见
+  { key: 'ai_layer', label: 'AI 模型层', chapters: ['model_card', 'data_sheet', 'system_card', 'eval_redteam'] }
 ] as const
 
 /** 章名（不含章号） */
@@ -48,17 +50,24 @@ export const APP_CHAPTER_NAMES: Readonly<Record<string, string>> = {
   testing: '测试与质量',
   release: '发布与运维',
   milestones: '里程碑与资源',
-  risks: '风险与取舍'
+  risks: '风险与取舍',
+  model_card: '模型卡',
+  data_sheet: '数据表',
+  system_card: '系统卡',
+  eval_redteam: '评测与红队'
 }
 
 const CN = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十',
-  '十一', '十二', '十三', '十四', '十五', '十六'] as const
+  '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十'] as const
 
 /** 章号从 1 起的编号章（顺序即章号） */
 export const APP_NUMBERED_KEYS: readonly string[] = APP_PARTS.flatMap((part) => [...part.chapters])
 
 /** 全部章 key（meta 段 + 编号章），顺序即文档顺序 */
 export const APP_CHAPTER_KEYS: readonly string[] = [APP_META_KEY, ...APP_NUMBERED_KEYS]
+
+/** AI 模型层四章（可选，仅「含 AI 模型层」时进入可见章） */
+export const APP_AI_LAYER_KEYS: readonly string[] = ['model_card', 'data_sheet', 'system_card', 'eval_redteam']
 
 /**
  * 方向版（lite）编号章：精简到「定义 + 功能 + 里程碑 + 风险」——

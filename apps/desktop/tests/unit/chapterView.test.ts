@@ -20,6 +20,7 @@ import {
 } from '@mobai/shared/ceshu/model'
 import { createDefaultCeshu } from '@mobai/shared/ceshu/model'
 import {
+  APP_AI_LAYER_KEYS,
   APP_CHAPTER_FIELDS,
   APP_CHAPTER_KEYS,
   APP_CHAPTER_LABELS,
@@ -62,8 +63,9 @@ describe('游戏档：查表结果逐项等于既有常量（零回归）', () =
 describe('应用档：查表完全走 SDD', () => {
   const doc = createDefaultCeshu({ scope: 'full', name: '效率工具', docKind: 'application' })
 
-  it('章表恰为 SDD 17 章，且不含游戏章', () => {
-    expect([...chaptersForDoc(doc)]).toEqual([...APP_CHAPTER_KEYS])
+  it('章表恰为 SDD 17 章（AI 模型层默认隐藏），且不含游戏章', () => {
+    // AI 模型层四章仅在 ai_enabled 时进入可见章，默认不含
+    expect([...chaptersForDoc(doc)]).toEqual([...APP_CHAPTER_KEYS].filter((key) => !APP_AI_LAYER_KEYS.includes(key)))
     for (const key of CHAPTER_KEYS) {
       if (key === 'meta') continue
       expect(chaptersForDoc(doc).includes(key), `误带游戏章 ${key}`).toBe(false)
