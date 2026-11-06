@@ -55,6 +55,15 @@ export const AI_NUMBERED_KEYS: readonly string[] = AI_PARTS.flatMap((part) => [.
 /** 全部章 key（meta 段 + 编号章），顺序即文档顺序 */
 export const AI_CHAPTER_KEYS: readonly string[] = [AI_META_KEY, ...AI_NUMBERED_KEYS]
 
+/**
+ * 方向版（lite）编号章：沿用应用方向版，另保留「模型卡」——AI 产品的方向阶段
+ * 至少要说清用哪个模型、能力边界在哪，否则方向不成立。
+ */
+export const AI_LITE_NUMBERED_KEYS: readonly string[] = ['overview', 'users', 'scope', 'features', 'model_card', 'milestones', 'risks']
+
+/** 方向版（lite）全部章 key（含 meta） */
+export const AI_LITE_KEYS: readonly string[] = [AI_META_KEY, ...AI_LITE_NUMBERED_KEYS]
+
 /** 规格内章号：文档信息段为 0，编号章从 1 起（恒连续） */
 export function aiChapterNumber(key: string): number {
   if (key === AI_META_KEY) return 0

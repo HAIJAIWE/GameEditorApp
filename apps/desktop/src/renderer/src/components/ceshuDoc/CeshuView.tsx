@@ -16,6 +16,7 @@ import {
   chapterLabelForDoc,
   computeChapterProgress,
   computeEnabledEditors,
+  contentChapterCountsForDoc,
   formatLocalTimestamp,
   getDocKind,
   getGddScope,
@@ -908,6 +909,7 @@ export default function CeshuView({
         versionLabel={doc.version_label}
         isActive={doc.is_active}
         scope={scope}
+        scopeCounts={contentChapterCountsForDoc(doc)}
         totalPct={Math.round((progress.total ?? 0) * 100)}
         busy={busy}
         pendingReviewCount={pendingReviewFields.length}

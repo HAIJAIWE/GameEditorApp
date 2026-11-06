@@ -105,6 +105,8 @@ export default function CeshuHomePanel({
   const [action, setAction] = useState<CardAction | null>(null)
   const [actionText, setActionText] = useState('')
   const [blankPickerOpen, setBlankPickerOpen] = useState(false)
+  /** 新建时的文档深度：方向版(精简) / 细节版(完整)；仅对新建生效 */
+  const [blankScope, setBlankScope] = useState<'lite' | 'full'>('full')
   const [copyPickerOpen, setCopyPickerOpen] = useState(false)
   const [copySourceId, setCopySourceId] = useState('')
   const [cloneOpen, setCloneOpen] = useState(false)
@@ -161,7 +163,7 @@ export default function CeshuHomePanel({
 
   const handleCreateBlank = (docKind: 'game' | 'application'): void =>
     void run(async () => {
-      const doc = await window.mbApi.ceshu.create({ name: '', scope: 'full', docKind })
+      const doc = await window.mbApi.ceshu.create({ name: '', scope: blankScope, docKind })
       setBlankPickerOpen(false)
       onOpen(doc.ceshu_id)
       return t('home.created')
@@ -311,6 +313,28 @@ export default function CeshuHomePanel({
 
             {blankPickerOpen && (
               <div className="home-copy-picker" data-testid="home-blank-picker">
+                <div className="home-blank-scope" data-testid="home-blank-scope">
+                  <button
+                    type="button"
+                    className={`btn slim${blankScope === 'lite' ? ' accent-outline' : ''}`}
+                    data-testid="home-blank-scope-lite"
+                    aria-pressed={blankScope === 'lite'}
+                    disabled={busy}
+                    onClick={() => setBlankScope('lite')}
+                  >
+                    {t('home.scopeDirection')}
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn slim${blankScope === 'full' ? ' accent-outline' : ''}`}
+                    data-testid="home-blank-scope-full"
+                    aria-pressed={blankScope === 'full'}
+                    disabled={busy}
+                    onClick={() => setBlankScope('full')}
+                  >
+                    {t('home.scopeDetail')}
+                  </button>
+                </div>
                 <button
                   type="button"
                   className="btn primary"

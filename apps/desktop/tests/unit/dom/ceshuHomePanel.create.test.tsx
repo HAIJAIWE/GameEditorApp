@@ -82,4 +82,21 @@ describe('CeshuHomePanel：新建时选档位', () => {
     expect(view!.query('[data-testid="home-blank-picker"]')).toBeNull()
     expect(api!.calls).not.toContain('ceshu.create')
   })
+
+  it('选「方向版」再建应用 → create 传 scope=lite + docKind=application', async () => {
+    let captured: unknown = null
+    api = installMbApi({
+      overrides: {
+        'ceshu.create': (req: unknown) => {
+          captured = req
+          return { ceshu_id: 'lite-app' }
+        }
+      }
+    })
+    await mount(() => undefined)
+    await view!.click(view!.byTestId('home-new-blank'))
+    await view!.click(view!.byTestId('home-blank-scope-lite'))
+    await view!.click(view!.byTestId('home-blank-app'))
+    expect(captured).toMatchObject({ docKind: 'application', scope: 'lite' })
+  })
 })

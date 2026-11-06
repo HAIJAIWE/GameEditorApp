@@ -60,6 +60,16 @@ export const APP_NUMBERED_KEYS: readonly string[] = APP_PARTS.flatMap((part) => 
 /** 全部章 key（meta 段 + 编号章），顺序即文档顺序 */
 export const APP_CHAPTER_KEYS: readonly string[] = [APP_META_KEY, ...APP_NUMBERED_KEYS]
 
+/**
+ * 方向版（lite）编号章：精简到「定义 + 功能 + 里程碑 + 风险」——
+ * 回答「做什么、给谁、边界、何时交付、有哪些险」，不展开架构/接口/数据等实现细节。
+ * 顺序沿用 APP_PARTS 的章序，保证方向版与完整版章号一致。
+ */
+export const APP_LITE_NUMBERED_KEYS: readonly string[] = ['overview', 'users', 'scope', 'features', 'milestones', 'risks']
+
+/** 方向版（lite）全部章 key（含 meta） */
+export const APP_LITE_KEYS: readonly string[] = [APP_META_KEY, ...APP_LITE_NUMBERED_KEYS]
+
 /** 规格内章号：文档信息段为 0，编号章从 1 起（恒连续） */
 export function appChapterNumber(key: string): number {
   if (key === APP_META_KEY) return 0

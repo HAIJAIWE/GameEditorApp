@@ -24,6 +24,8 @@ interface CeshuToolbarProps {
   isActive: boolean
   /** 文档档位（标准版 / 专业版） */
   scope: 'full' | 'lite'
+  /** 本档「方向版 / 完整版」内容章数；缺省回落游戏章数（兼容旧调用） */
+  scopeCounts?: { lite: number; full: number }
   /** 总进度百分比（已取整） */
   totalPct: number
   busy: boolean
@@ -51,6 +53,7 @@ export default function CeshuToolbar({
   versionLabel,
   isActive,
   scope,
+  scopeCounts,
   totalPct,
   busy,
   pendingReviewCount,
@@ -68,6 +71,8 @@ export default function CeshuToolbar({
   onExport
 }: CeshuToolbarProps) {
   const t = useT()
+  const liteCount = scopeCounts?.lite ?? contentChapterCount('lite')
+  const fullCount = scopeCounts?.full ?? contentChapterCount('full')
   return (
     <header className="toolbar">
       <button
@@ -88,8 +93,8 @@ export default function CeshuToolbar({
       <span className="item-meta">
         {t('toolbar.scopeLabel')}
         {scope === 'lite'
-          ? t('toolbar.scopeLite', { n: contentChapterCount('lite') })
-          : t('toolbar.scopeFull', { n: contentChapterCount('full') })}
+          ? t('toolbar.scopeLite', { n: liteCount })
+          : t('toolbar.scopeFull', { n: fullCount })}
       </span>
       <span className="item-meta" data-testid="ceshu-total-progress">
         {t('toolbar.totalProgress', { pct: totalPct })}

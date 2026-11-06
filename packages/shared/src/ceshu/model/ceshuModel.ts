@@ -2,6 +2,7 @@ import {
   CHAPTER_KEYS,
   GDD_SCOPE_FULL,
   SYSTEM_LABELS,
+  contentChapterCount,
   enabledModuleChapters,
   isChapterKey,
   isGddScope,
@@ -15,8 +16,8 @@ import {
 import { createDefaultChapters } from '../reference'
 import { getStyle, inferStyleFromText } from '../../config/game'
 import { migrateV4ToV5, needsV4Migration } from '../data'
-import { createAppDefaultChapters, APP_CHAPTER_KEYS } from '../../appSchema'
-import { createAiDefaultChapters, AI_CHAPTER_KEYS } from '../../aiSchema'
+import { createAppDefaultChapters, APP_LITE_KEYS, APP_CHAPTER_KEYS, APP_LITE_NUMBERED_KEYS, APP_NUMBERED_KEYS } from '../../appSchema'
+import { createAiDefaultChapters, AI_CHAPTER_KEYS, AI_LITE_KEYS, AI_LITE_NUMBERED_KEYS, AI_NUMBERED_KEYS } from '../../aiSchema'
 import { getDocKind, type DocKind } from './docKind'
 import { chapterDataForDoc, requiredFieldsForDoc } from './chapterView'
 import { isChapterVisibleInStage, type CeshuStage } from '../workflow'
@@ -188,9 +189,22 @@ export function deriveRulesetId(doc: CeshuDocument): string {
  */
 export function visibleChaptersForDoc(doc: CeshuDocument): readonly string[] {
   const kind = getDocKind(doc)
-  if (kind === 'application') return APP_CHAPTER_KEYS
-  if (kind === 'ai') return AI_CHAPTER_KEYS
-  return visibleChapterKeys(getGddScope(doc), getGameType(doc), enabledModuleChapters(doc))
+  const scope = getGddScope(doc)
+  // 方向版（lite）对三档一致生效：只铺「定义 + 功能 + 里程碑 + 风险」等核心章
+  if (kind === 'application') return scope === 'lite' ? APP_LITE_KEYS : APP_CHAPTER_KEYS
+  if (kind === 'ai') return scope === 'lite' ? AI_LITE_KEYS : AI_CHAPTER_KEYS
+  return visibleChapterKeys(scope, getGameType(doc), enabledModuleChapters(doc))
+}
+
+/**
+ * 某文档「方向版(lite) / 完整版(full)」各自的内容章数（不含 meta）。
+ * 游戏档沿用既有的 `contentChapterCount`（零回归）；应用 / AI 取各自 lite 子集与全章表。
+ */
+export function contentChapterCountsForDoc(doc: CeshuDocument): { lite: number; full: number } {
+  const kind = getDocKind(doc)
+  if (kind === 'application') return { lite: APP_LITE_NUMBERED_KEYS.length, full: APP_NUMBERED_KEYS.length }
+  if (kind === 'ai') return { lite: AI_LITE_NUMBERED_KEYS.length, full: AI_NUMBERED_KEYS.length }
+  return { lite: contentChapterCount('lite'), full: contentChapterCount('full') }
 }
 
 /**
