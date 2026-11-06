@@ -21,14 +21,15 @@ export interface AppPart {
   chapters: readonly string[]
 }
 
-/** 应用档分区（章号唯一事实源） */
+/** 应用档分区（章号唯一事实源）——对齐主流设计文档：定义 → 方案 → 数据/接口 → 质量 → 交付 → 附录 */
 export const APP_PARTS: readonly AppPart[] = [
-  { key: 'definition', label: '定义与范围', chapters: ['overview', 'users', 'scope'] },
-  { key: 'product', label: '产品设计', chapters: ['features', 'flows', 'interaction'] },
-  { key: 'engineering', label: '技术设计', chapters: ['architecture', 'data_model', 'api', 'integration'] },
+  { key: 'definition', label: '定义与目标', chapters: ['overview', 'users', 'scope'] },
+  { key: 'solution', label: '方案设计', chapters: ['features', 'flows', 'interaction', 'architecture', 'alternatives'] },
+  { key: 'data_api', label: '数据与接口', chapters: ['data_model', 'api', 'integration'] },
   { key: 'quality', label: '质量与保障', chapters: ['nonfunctional', 'security', 'testing'] },
   { key: 'delivery', label: '交付与治理', chapters: ['release', 'milestones', 'risks'] },
-  // AI 模型层：可选分区，排在 16 章之后（不挤占现有章号），仅在「含 AI 模型层」时可见
+  { key: 'appendix', label: '附录', chapters: ['glossary'] },
+  // AI 模型层：可选分区，排在最后（不挤占现有章号），仅在启用 ai_layer 模块时可见
   { key: 'ai_layer', label: 'AI 模型层', chapters: ['model_card', 'data_sheet', 'system_card', 'eval_redteam'] }
 ] as const
 
@@ -42,6 +43,7 @@ export const APP_CHAPTER_NAMES: Readonly<Record<string, string>> = {
   flows: '核心流程与状态',
   interaction: '交互与界面',
   architecture: '技术架构',
+  alternatives: '替代方案',
   data_model: '数据模型',
   api: '接口契约',
   integration: '第三方与集成',
@@ -51,6 +53,7 @@ export const APP_CHAPTER_NAMES: Readonly<Record<string, string>> = {
   release: '发布与运维',
   milestones: '里程碑与资源',
   risks: '风险与取舍',
+  glossary: '术语表',
   model_card: '模型卡',
   data_sheet: '数据表',
   system_card: '系统卡',
@@ -58,7 +61,7 @@ export const APP_CHAPTER_NAMES: Readonly<Record<string, string>> = {
 }
 
 const CN = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十',
-  '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十'] as const
+  '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十', '二十一', '二十二'] as const
 
 /** 章号从 1 起的编号章（顺序即章号） */
 export const APP_NUMBERED_KEYS: readonly string[] = APP_PARTS.flatMap((part) => [...part.chapters])

@@ -53,7 +53,7 @@ export const APP_ROLES: readonly { key: string; label: string }[] = [
  * 与游戏档 `ROLE_CHAPTERS` 并列，互不引用；章 key 都是 appSchema 命名空间。
  */
 export const APP_ROLE_CHAPTERS: Readonly<Record<string, readonly string[]>> = {
-  product: ['overview', 'users', 'scope', 'features', 'flows', 'milestones'],
+  product: ['overview', 'users', 'scope', 'features', 'flows', 'alternatives', 'milestones', 'glossary'],
   frontend: ['features', 'flows', 'interaction', 'nonfunctional'],
   backend: ['architecture', 'data_model', 'api', 'integration', 'security', 'model_card', 'data_sheet'],
   qa: ['testing', 'nonfunctional', 'risks', 'system_card', 'eval_redteam'],
@@ -107,6 +107,10 @@ export const APP_CHAPTER_AI: readonly AppChapterAi[] = [
     aiHint: '模块划分、依赖方向、技术选型理由与被否决方案；说明扩展点与未提前实现的部分。'
   },
   {
+    key: 'alternatives', agentId: 'architect',
+    aiHint: '列 2-3 个真实候选方案，写清各自优点、缺点与为何不选；再说明选定依据与关键权衡。'
+  },
+  {
     key: 'data_model', agentId: 'data_engineer',
     aiHint: '实体、字段、关系与生命周期；说明存储选型、迁移与一致性策略。'
   },
@@ -141,6 +145,10 @@ export const APP_CHAPTER_AI: readonly AppChapterAi[] = [
   {
     key: 'risks', agentId: 'tech_lead',
     aiHint: '列风险登记表与应对，并写清关键决策的候选方案、否决理由与结论。'
+  },
+  {
+    key: 'glossary', agentId: 'tech_lead',
+    aiHint: '列文档里出现的业务/技术专有名词，每条一句话定义，避免读者误解。'
   },
   // AI 模型层四章（可选）：复用现有角色，只在 AI 提示里加模型风味
   {

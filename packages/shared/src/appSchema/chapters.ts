@@ -297,6 +297,38 @@ const AI_EVAL_REDTEAM_FIELDS: AppField[] = [
   { key: 'monitoring', label: '线上行为监控', kind: 'textarea', aiHint: '说明上线后如何监控输出质量与安全', reviewHint: '监控是否可触发告警与回滚' }
 ]
 
+// ── 决策与附录（对齐 Google design doc / arc42 的「替代方案」「术语表」）──
+
+const ALTERNATIVES_FIELDS: AppField[] = [
+  {
+    key: 'options', label: '候选方案与被否理由', kind: 'pipeList', required: true,
+    columns: [
+      { key: 'option', label: '方案' },
+      { key: 'strength', label: '优点' },
+      { key: 'weakness', label: '缺点' },
+      { key: 'rejected', label: '为何不选' }
+    ],
+    placeholder: '方案|优点|缺点|为何不选',
+    aiHint: '列 2-3 个真实可选方案，逐个写优点、缺点与未选原因；不要写"为了对比而设"的稻草人',
+    reviewHint: '是否列出真实替代方案；未选原因是否具体；有无只列一个方案走过场'
+  },
+  {
+    key: 'decision_basis', label: '选定依据', kind: 'textarea', required: true,
+    aiHint: '说明最终方案为何在目标与约束下最优，点出关键权衡',
+    reviewHint: '是否回到目标/非目标；权衡是否说清'
+  }
+]
+
+const GLOSSARY_FIELDS: AppField[] = [
+  {
+    key: 'terms', label: '术语表', kind: 'pipeList', required: true,
+    columns: [{ key: 'term', label: '术语' }, { key: 'definition', label: '定义' }],
+    placeholder: '术语|定义',
+    aiHint: '列文档里出现的业务/技术专有名词，每条一句话定义',
+    reviewHint: '是否覆盖易误解的词；定义是否一句话说清'
+  }
+]
+
 /** 按章聚合的字段表（顺序与 APP_PARTS 一致） */
 export const APP_CHAPTER_FIELDS: Readonly<Record<string, readonly AppField[]>> = {
   meta: APP_META_FIELDS,
@@ -307,6 +339,7 @@ export const APP_CHAPTER_FIELDS: Readonly<Record<string, readonly AppField[]>> =
   flows: FLOWS_FIELDS,
   interaction: INTERACTION_FIELDS,
   architecture: ARCHITECTURE_FIELDS,
+  alternatives: ALTERNATIVES_FIELDS,
   data_model: DATA_MODEL_FIELDS,
   api: API_FIELDS,
   integration: INTEGRATION_FIELDS,
@@ -316,6 +349,7 @@ export const APP_CHAPTER_FIELDS: Readonly<Record<string, readonly AppField[]>> =
   release: RELEASE_FIELDS,
   milestones: MILESTONES_FIELDS,
   risks: RISKS_FIELDS,
+  glossary: GLOSSARY_FIELDS,
   // AI 模型层四章：仅当文档信息勾选「含 AI 模型层」时才可见（章号排在 16 章之后，不挤占现有章号）
   model_card: AI_MODEL_CARD_FIELDS,
   data_sheet: AI_DATA_SHEET_FIELDS,
