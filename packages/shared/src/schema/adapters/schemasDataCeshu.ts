@@ -14,7 +14,9 @@ import { CESHU_EXPORT_FORMATS } from '../../ceshu/reference'
 
 export const ceshuCreateInputSchema = z.object({
   name: z.string().max(200).default(''),
-  scope: z.enum(['full', 'lite']).default('full')
+  scope: z.enum(['full', 'lite']).default('full'),
+  // 新建只开放「游戏 / 应用」两种模式；AI 不单列（AI 归在这两个模式内，进文档后再切）
+  docKind: z.enum(['game', 'application']).default('game')
 })
 
 /** 复刻拆解：给参考游戏名 + 可选品类，AI 拆成「立项一页」并新建文档 */

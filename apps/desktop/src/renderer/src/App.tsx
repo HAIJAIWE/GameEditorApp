@@ -611,7 +611,7 @@ export default function App() {
   const handleNewCeshu = useCallback((): void => {
     void (async () => {
       try {
-        const doc = await window.mbApi.ceshu.create({ name: '', scope: 'full' })
+        const doc = await window.mbApi.ceshu.create({ name: '', scope: 'full', docKind: 'game' })
         await reloadCeshuList()
         setActiveCeshuId(doc.ceshu_id)
         setCeshuHomeVisible(false)

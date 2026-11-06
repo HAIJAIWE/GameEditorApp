@@ -121,7 +121,7 @@ export function countChapterTemplates(): number {
 
 /** 章节中文标签 */
 export function templateChapterLabel(chapterKey: string): string {
-  return CHAPTER_LABELS[chapterKey as ChapterKey] ?? chapterKey
+  return isChapterKey(chapterKey) ? CHAPTER_LABELS[chapterKey] : chapterKey
 }
 
 /**

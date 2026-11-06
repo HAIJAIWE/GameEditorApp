@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { buildAppHandoffFiles } from '../../src/main/ceshu/export/delivery/appHandoff'
+import { buildExcelWorkbook } from '../../src/main/ceshu/export/doc/excel'
 import {
   chapterLabelForDoc,
   chapterNumberForDoc,
@@ -91,5 +92,13 @@ describe('AI 档：交接包按 SDD 口径（含模型层章）', () => {
     expect(files['README.md']).toContain('AI 产品设计文档')
     // 模型层章有逐章设计文件
     expect(files['design/model_card.md']).toBeTypeOf('string')
+  })
+
+  it('Excel 导出含模型层四章 sheet', () => {
+    const workbook = buildExcelWorkbook(aiDoc())
+    const names = workbook.worksheets.map((sheet) => sheet.name)
+    for (const name of ['模型卡', '数据表', '系统卡', '评测与红队']) {
+      expect(names).toContain(name)
+    }
   })
 })

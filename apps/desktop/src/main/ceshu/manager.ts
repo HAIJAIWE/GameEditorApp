@@ -31,7 +31,7 @@ export class CeshuManager {
     return this.storage.load(id)
   }
 
-  create(options: { scope: GddScope; name?: string }): Promise<CeshuDocument> {
+  create(options: { scope: GddScope; name?: string; docKind?: 'game' | 'application' }): Promise<CeshuDocument> {
     return this.enqueueWrite(() => {
       const doc = createDefaultCeshu(options)
       this.storage.save(doc)

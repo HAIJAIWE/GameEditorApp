@@ -104,6 +104,7 @@ export default function CeshuHomePanel({
   const [docKindFilter, setDocKindFilter] = useState<DocKind | 'all'>('all')
   const [action, setAction] = useState<CardAction | null>(null)
   const [actionText, setActionText] = useState('')
+  const [blankPickerOpen, setBlankPickerOpen] = useState(false)
   const [copyPickerOpen, setCopyPickerOpen] = useState(false)
   const [copySourceId, setCopySourceId] = useState('')
   const [cloneOpen, setCloneOpen] = useState(false)
@@ -158,9 +159,10 @@ export default function CeshuHomePanel({
     }
   }
 
-  const handleCreateBlank = (): void =>
+  const handleCreateBlank = (docKind: 'game' | 'application'): void =>
     void run(async () => {
-      const doc = await window.mbApi.ceshu.create({ name: '', scope: 'full' })
+      const doc = await window.mbApi.ceshu.create({ name: '', scope: 'full', docKind })
+      setBlankPickerOpen(false)
       onOpen(doc.ceshu_id)
       return t('home.created')
     })
@@ -242,7 +244,14 @@ export default function CeshuHomePanel({
    * 改注册表 + 在此补一条 handler，不再复制粘贴整段 JSX（对齐 dsh 的 guide entries）。
    */
   const actionHandlers: Record<CeshuHomeActionId, () => void> = {
-    blank: handleCreateBlank,
+    blank: () => {
+      setAction(null)
+      setError(null)
+      setNotice(null)
+      setCopyPickerOpen(false)
+      setCloneOpen(false)
+      setBlankPickerOpen((open) => !open)
+    },
     copy: () => {
       setAction(null)
       setError(null)
@@ -262,6 +271,7 @@ export default function CeshuHomePanel({
   }
   /** 只有展开内联表单的门需要 aria-expanded；其余不渲染该属性。 */
   const expandedActions: Partial<Record<CeshuHomeActionId, boolean>> = {
+    blank: blankPickerOpen,
     copy: copyPickerOpen,
     clone: cloneOpen
   }
@@ -298,6 +308,38 @@ export default function CeshuHomePanel({
                 </button>
               ))}
             </div>
+
+            {blankPickerOpen && (
+              <div className="home-copy-picker" data-testid="home-blank-picker">
+                <button
+                  type="button"
+                  className="btn primary"
+                  data-testid="home-blank-game"
+                  disabled={busy}
+                  onClick={() => handleCreateBlank('game')}
+                >
+                  {t('home.createGame')}
+                </button>
+                <button
+                  type="button"
+                  className="btn primary"
+                  data-testid="home-blank-app"
+                  disabled={busy}
+                  onClick={() => handleCreateBlank('application')}
+                >
+                  {t('home.createApp')}
+                </button>
+                <button
+                  type="button"
+                  className="btn"
+                  data-testid="home-blank-cancel"
+                  disabled={busy}
+                  onClick={() => setBlankPickerOpen(false)}
+                >
+                  {t('common.cancel')}
+                </button>
+              </div>
+            )}
 
             {copyPickerOpen && (
               <div className="home-copy-picker" data-testid="home-copy-picker">
