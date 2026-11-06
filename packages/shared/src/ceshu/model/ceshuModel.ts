@@ -147,6 +147,25 @@ export function normalizeCeshu(raw: unknown): CeshuDocument {
     migratedMeta.optional_modules = existing
     delete migratedMeta.ai_enabled
   }
+  /*
+   * 一次性迁移：老应用文档把「数据与接口」拆成 data_model / api / integration 三章，
+   * 现已合并为单章 data_interface。读盘时把三章字段合流、删除旧 key，下次保存即固化，
+   * 读取端不必长期双读。若新格式文档已自带 data_interface，旧三章不覆盖它。
+   */
+  {
+    const legacy = ['data_model', 'api', 'integration'] as const
+    const baseRecord = base as unknown as Record<string, unknown>
+    if (legacy.some((key) => isPlainObject(baseRecord[key]))) {
+      const merged: ChapterData = {}
+      for (const key of legacy) {
+        const src = baseRecord[key]
+        if (isPlainObject(src)) Object.assign(merged, src)
+      }
+      const existingDi = baseRecord['data_interface']
+      baseRecord['data_interface'] = isPlainObject(existingDi) ? { ...(existingDi as object), ...merged } : merged
+      for (const key of legacy) delete baseRecord[key]
+    }
+  }
   // ruleset_id 由上面的「未知键保留」循环带过来（它不是 base 的属性）；派生值不在
   // 这里现算——否则老文档一保存就被塞进派生结果，用户改 ceshu_id 时旧值会诈尸成「显式值」
   return base

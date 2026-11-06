@@ -95,7 +95,7 @@ describe('文档构造分派（游戏零回归 / 应用章表齐全）', () => {
     expect(explicit.meta).toEqual(plain.meta)
   })
 
-  it('显式 application：24 章底座 + 16 应用章，档位写进 meta', () => {
+  it('显式 application：24 章底座 + 20 应用章（16 基础 + 4 AI 模型层），档位写进 meta', () => {
     const doc = createDefaultCeshu({ scope: 'full', name: '效率工具', docKind: 'application' })
     const record = doc as unknown as Record<string, unknown>
     for (const key of CHAPTER_KEYS) expect(record[key], `缺游戏兼容底座 ${key}`).toBeDefined()
@@ -109,7 +109,7 @@ describe('文档构造分派（游戏零回归 / 应用章表齐全）', () => {
 })
 
 describe('读盘归一化：应用章往返不丢', () => {
-  it('保存后重新读入，16 应用章都还在（未知键保留 + 缺失补齐）', () => {
+  it('保存后重新读入，20 应用章都还在（含 AI；未知键保留 + 缺失补齐）', () => {
     const doc = createDefaultCeshu({ scope: 'full', name: '往返', docKind: 'application' })
     ;(doc as unknown as Record<string, unknown>).architecture = { modules: [{ module: 'A' }] }
     const restored = normalizeCeshu(JSON.parse(JSON.stringify(doc)))

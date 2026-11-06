@@ -6,9 +6,9 @@
  * 故另写一份按「为什么做 → 做什么 → 怎么做 → 做多好 → 怎么上线」的叙事：
  *
  *   项目概述 → 用户与场景 → 范围与非目标 → 功能与设计 → 技术架构
- *   → 质量与保障 → 交付与治理 → 变更记录
+ *   → 质量与保障 → 横切关注点 → 交付与治理 → 变更记录
  *
- * 覆盖 SDD 全部 16 章（字段同源，不重算）。取数、标签、pipeList 表格全部走
+ * 覆盖 SDD 全部章（基础 16 + AI 模型层 4，字段同源，不重算）。取数、标签、pipeList 表格全部走
  * `common` 的 ForDoc 系列，按文档档位自动跟着应用章表走。
  */
 import { chapterLabelForDoc, formatLocalTimestamp } from '@mobai/shared/ceshu/model'
@@ -28,8 +28,9 @@ export function renderAppNarrative(doc: CeshuDocument): string {
     renderSection(doc, '用户与场景', ['users']),
     renderSection(doc, '范围与非目标', ['scope']),
     renderSection(doc, '功能与设计', ['features', 'flows', 'interaction']),
-    renderSection(doc, '技术架构', ['architecture', 'data_model', 'api', 'integration']),
-    renderSection(doc, '质量与保障', ['nonfunctional', 'security', 'testing']),
+    renderSection(doc, '技术架构', ['architecture', 'data_interface']),
+    renderSection(doc, '质量与保障', ['nonfunctional', 'testing']),
+    renderSection(doc, '横切关注点', ['security']),
     renderSection(doc, '交付与治理', ['release', 'milestones', 'risks']),
     renderAppChangelog(doc)
   ].filter((block) => block.trim() !== '')

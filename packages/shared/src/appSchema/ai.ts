@@ -55,7 +55,7 @@ export const APP_ROLES: readonly { key: string; label: string }[] = [
 export const APP_ROLE_CHAPTERS: Readonly<Record<string, readonly string[]>> = {
   product: ['overview', 'users', 'scope', 'features', 'flows', 'alternatives', 'milestones', 'glossary'],
   frontend: ['features', 'flows', 'interaction', 'nonfunctional'],
-  backend: ['architecture', 'data_model', 'api', 'integration', 'security', 'model_card', 'data_sheet'],
+  backend: ['architecture', 'data_interface', 'security', 'model_card', 'data_sheet'],
   qa: ['testing', 'nonfunctional', 'risks', 'system_card', 'eval_redteam'],
   devops: ['release', 'nonfunctional', 'security']
 }
@@ -111,16 +111,8 @@ export const APP_CHAPTER_AI: readonly AppChapterAi[] = [
     aiHint: '列 2-3 个真实候选方案，写清各自优点、缺点与为何不选；再说明选定依据与关键权衡。'
   },
   {
-    key: 'data_model', agentId: 'data_engineer',
-    aiHint: '实体、字段、关系与生命周期；说明存储选型、迁移与一致性策略。'
-  },
-  {
-    key: 'api', agentId: 'backend',
-    aiHint: '按接口列路径/入参/出参/错误码/幂等性；内部模块边界也一并写清。'
-  },
-  {
-    key: 'integration', agentId: 'backend',
-    aiHint: '列出外部依赖、认证方式、配额与降级方案；标清单点故障。'
+    key: 'data_interface', agentId: 'backend',
+    aiHint: '实体/字段/关系与存储、迁移策略；对外与关键内部接口的路径/入参/出参/错误码/幂等；第三方依赖的认证与配额、降级与单点。'
   },
   {
     key: 'nonfunctional', agentId: 'architect',

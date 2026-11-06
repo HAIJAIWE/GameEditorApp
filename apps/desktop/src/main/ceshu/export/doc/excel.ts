@@ -328,7 +328,7 @@ function readConfig(data: ChapterData): Record<string, unknown> {
 
 /**
  * 应用档 Excel：不再套用游戏 8 表（系统配置/角色/NPC/竞品…），改为按 SDD 章节组织。
- * 7 个 Sheet：概览 / 功能清单 / 用户角色 / 接口契约 / 里程碑 / 风险 / 校验报告。
+ * 7 个 Sheet：概览 / 功能清单 / 用户角色 / 数据与接口 / 里程碑 / 风险 / 校验报告。
  * 校验报告复用以 `validateCeshu`（已按档位分派必填校验，且本函数自带 try/catch）。
  */
 function buildAppExcelWorkbook(doc: CeshuDocument): ExcelJS.Workbook {
@@ -336,7 +336,7 @@ function buildAppExcelWorkbook(doc: CeshuDocument): ExcelJS.Workbook {
   writeAppOverviewSheet(workbook, doc)
   writeAppPipeSheet(workbook, '功能清单', doc, 'features', 'feature_list', ['模块', '功能点', '验收条件'])
   writeAppPipeSheet(workbook, '用户角色', doc, 'users', 'personas', ['角色', '使用场景', '核心痛点', '完成标准'])
-  writeAppPipeSheet(workbook, '接口契约', doc, 'api', 'endpoints', ['接口', '方法/通道', '入参', '出参', '幂等'])
+  writeAppPipeSheet(workbook, '数据与接口', doc, 'data_interface', 'endpoints', ['接口', '方法/通道', '入参', '出参', '幂等'])
   writeAppPipeSheet(workbook, '里程碑', doc, 'milestones', 'milestones', ['里程碑', '可交付成果', '依赖'])
   writeAppPipeSheet(workbook, '风险', doc, 'risks', 'risk_register', ['风险', '影响', '应对', '负责人'])
   // 应用档勾选「含 AI 模型层」时，把模型层四章各落一张表

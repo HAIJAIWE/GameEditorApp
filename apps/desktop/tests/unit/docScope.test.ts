@@ -28,7 +28,7 @@ describe('阶段轴：应用档 lite/full', () => {
     for (const key of ['meta', 'overview', 'users', 'scope', 'features', 'milestones', 'risks']) {
       expect(lite).toContain(key)
     }
-    for (const key of ['architecture', 'api', 'data_model', 'nonfunctional', 'testing']) {
+    for (const key of ['architecture', 'data_interface', 'nonfunctional', 'testing']) {
       expect(lite).not.toContain(key)
     }
   })
@@ -36,8 +36,7 @@ describe('阶段轴：应用档 lite/full', () => {
   it('完整版含全部实现章', () => {
     const full = visibleChaptersForDoc(doc('application', 'full'))
     expect(full).toContain('architecture')
-    expect(full).toContain('api')
-    expect(full).toContain('data_model')
+    expect(full).toContain('data_interface')
   })
 
   it('未勾选 AI 时，完整版不含模型层四章（不挤占 1–16 章号）', () => {
@@ -45,7 +44,7 @@ describe('阶段轴：应用档 lite/full', () => {
     for (const key of ['model_card', 'data_sheet', 'system_card', 'eval_redteam']) {
       expect(full).not.toContain(key)
     }
-    expect(full).toHaveLength(19) // meta + 18
+    expect(full).toHaveLength(17) // meta + 16
   })
 })
 
@@ -55,7 +54,7 @@ describe('应用档：可选 AI 模型层（optional_modules）', () => {
     for (const key of ['model_card', 'data_sheet', 'system_card', 'eval_redteam']) {
       expect(full).toContain(key)
     }
-    expect(full).toHaveLength(23) // meta + 18 + 4
+    expect(full).toHaveLength(21) // meta + 16 + 4
   })
 
   it('勾选后方向版补一章模型卡，不含其余模型层章', () => {
@@ -69,8 +68,8 @@ describe('应用档：可选 AI 模型层（optional_modules）', () => {
 
 describe('阶段轴：档位与章数（游戏零回归）', () => {  it('contentChapterCountsForDoc：游戏 9/23、应用 6/16、应用含 AI 7/20', () => {
     expect(contentChapterCountsForDoc(doc('game', 'full'))).toEqual({ lite: 9, full: 23 })
-    expect(contentChapterCountsForDoc(doc('application', 'full'))).toEqual({ lite: 6, full: 18 })
-    expect(contentChapterCountsForDoc(withAi(doc('application', 'full')))).toEqual({ lite: 7, full: 22 })
+    expect(contentChapterCountsForDoc(doc('application', 'full'))).toEqual({ lite: 6, full: 16 })
+    expect(contentChapterCountsForDoc(withAi(doc('application', 'full')))).toEqual({ lite: 7, full: 20 })
   })
 
   it('游戏 lite 可见章少于 full（沿用既有档位行为）', () => {
@@ -90,11 +89,11 @@ describe('可选模块：optional_modules（单一事实源）', () => {
   it('optional_modules 含 ai_layer 等价于启用 AI 模型层', () => {
     const d = doc('application', 'full')
     ;(d.meta as Record<string, unknown>).optional_modules = ['ai_layer']
-    expect(visibleChaptersForDoc(d)).toHaveLength(23) // meta + 18 + 4
+    expect(visibleChaptersForDoc(d)).toHaveLength(21) // meta + 16 + 4
   })
 
   it('未启用的模块不参与可见章', () => {
-    expect(visibleChaptersForDoc(doc('application', 'full'))).toHaveLength(19) // meta + 18
+    expect(visibleChaptersForDoc(doc('application', 'full'))).toHaveLength(17) // meta + 16
   })
 
   it('normalizeCeshu 把旧 ai_enabled 一次性迁移为 optional_modules 并删除旧字段', () => {

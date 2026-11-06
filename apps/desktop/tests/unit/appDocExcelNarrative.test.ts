@@ -18,7 +18,7 @@ function appDoc(): CeshuDocument {
   d.overview = { problem: '团队信息散落', value_proposition: '一站式聚合', success_metrics: ['日活 1w'] }
   d.users = { personas: [{ name: '项目经理', context: '周会', pain: '找不到结论', goal: '快速对齐' }], scenarios: [] }
   d.features = { feature_list: [{ module: '聚合', feature: '看板', acceptance: '可拖拽' }], priorities: ['P0 看板'], dependencies: [] }
-  d.api = { endpoints: [{ name: 'listTasks', method: 'GET', input: 'projId', output: 'Task[]', idempotent: '是' }], error_codes: [] }
+  d.data_interface = { endpoints: [{ name: 'listTasks', method: 'GET', input: 'projId', output: 'Task[]', idempotent: '是' }], error_codes: [] }
   d.milestones = { milestones: [{ name: 'M1', deliverable: '原型', depends: '' }], resources: [] }
   d.risks = { risk_register: [{ risk: '延期', impact: '高', mitigation: '砍范围', owner: 'PM' }], decisions: [] }
   d.nonfunctional = {
@@ -58,7 +58,7 @@ describe('应用档：Excel 是 SDD 七表', () => {
       '概览',
       '功能清单',
       '用户角色',
-      '接口契约',
+      '数据与接口',
       '里程碑',
       '风险',
       '校验报告'
@@ -77,7 +77,7 @@ describe('应用档：Excel 是 SDD 七表', () => {
     const wb = buildExcelWorkbook(appDoc())
     expect(sheetText(wb, '功能清单')).toContain('看板')
     expect(sheetText(wb, '用户角色')).toContain('项目经理')
-    expect(sheetText(wb, '接口契约')).toContain('listTasks')
+    expect(sheetText(wb, '数据与接口')).toContain('listTasks')
     expect(sheetText(wb, '里程碑')).toContain('M1')
     expect(sheetText(wb, '风险')).toContain('延期')
   })

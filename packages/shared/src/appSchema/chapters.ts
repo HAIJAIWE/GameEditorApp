@@ -131,7 +131,11 @@ const ARCHITECTURE_FIELDS: AppField[] = [
   }
 ]
 
-const DATA_MODEL_FIELDS: AppField[] = [
+/**
+ * 数据与接口（合并原 数据模型 / 接口契约 / 第三方与集成 三章）。
+ * 字段 key 在三章间无冲突，直接合流；老文档由 `normalizeCeshu` 读盘时合并且删旧 key。
+ */
+const DATA_INTERFACE_FIELDS: AppField[] = [
   {
     key: 'entities', label: '实体与字段', kind: 'pipeList', required: true,
     columns: [{ key: 'entity', label: '实体' }, { key: 'fields', label: '关键字段' }, { key: 'relation', label: '关系' }],
@@ -140,10 +144,7 @@ const DATA_MODEL_FIELDS: AppField[] = [
     reviewHint: '是否有缺失的关联；字段类型是否明确'
   },
   { key: 'storage', label: '存储与一致性', kind: 'textarea', required: true, aiHint: '说明存储形态、事务边界与一致性策略', reviewHint: '是否写清并发与失败时的一致性' },
-  { key: 'migration', label: '迁移与演进', kind: 'textarea', required: true, aiHint: '说明 schema 变更的迁移路径与兼容策略', reviewHint: '是否有回滚路径；老数据如何处理' }
-]
-
-const API_FIELDS: AppField[] = [
+  { key: 'migration', label: '迁移与演进', kind: 'textarea', required: true, aiHint: '说明 schema 变更的迁移路径与兼容策略', reviewHint: '是否有回滚路径；老数据如何处理' },
   {
     key: 'endpoints', label: '接口清单', kind: 'pipeList', required: true,
     columns: [{ key: 'name', label: '接口' }, { key: 'method', label: '方法/通道' }, { key: 'input', label: '入参' }, { key: 'output', label: '出参' }, { key: 'idempotent', label: '幂等' }],
@@ -157,10 +158,7 @@ const API_FIELDS: AppField[] = [
     placeholder: '错误码|含义|用户动作',
     aiHint: '列错误码与用户可执行的处理，不要只写「失败」',
     reviewHint: '是否有用户不可理解的码；动作是否可执行'
-  }
-]
-
-const INTEGRATION_FIELDS: AppField[] = [
+  },
   {
     key: 'dependencies', label: '外部依赖', kind: 'pipeList', required: true,
     columns: [{ key: 'service', label: '服务' }, { key: 'purpose', label: '用途' }, { key: 'auth', label: '认证方式' }, { key: 'quota', label: '配额' }],
@@ -340,12 +338,10 @@ export const APP_CHAPTER_FIELDS: Readonly<Record<string, readonly AppField[]>> =
   interaction: INTERACTION_FIELDS,
   architecture: ARCHITECTURE_FIELDS,
   alternatives: ALTERNATIVES_FIELDS,
-  data_model: DATA_MODEL_FIELDS,
-  api: API_FIELDS,
-  integration: INTEGRATION_FIELDS,
+  data_interface: DATA_INTERFACE_FIELDS,
   nonfunctional: NONFUNCTIONAL_FIELDS,
-  security: SECURITY_FIELDS,
   testing: TESTING_FIELDS,
+  security: SECURITY_FIELDS,
   release: RELEASE_FIELDS,
   milestones: MILESTONES_FIELDS,
   risks: RISKS_FIELDS,

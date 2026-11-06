@@ -25,8 +25,9 @@ export interface AppPart {
 export const APP_PARTS: readonly AppPart[] = [
   { key: 'definition', label: '定义与目标', chapters: ['overview', 'users', 'scope'] },
   { key: 'solution', label: '方案设计', chapters: ['features', 'flows', 'interaction', 'architecture', 'alternatives'] },
-  { key: 'data_api', label: '数据与接口', chapters: ['data_model', 'api', 'integration'] },
-  { key: 'quality', label: '质量与保障', chapters: ['nonfunctional', 'security', 'testing'] },
+  { key: 'data_api', label: '数据与接口', chapters: ['data_interface'] },
+  { key: 'quality', label: '质量与保障', chapters: ['nonfunctional', 'testing'] },
+  { key: 'crosscut', label: '横切关注点', chapters: ['security'] },
   { key: 'delivery', label: '交付与治理', chapters: ['release', 'milestones', 'risks'] },
   { key: 'appendix', label: '附录', chapters: ['glossary'] },
   // AI 模型层：可选分区，排在最后（不挤占现有章号），仅在启用 ai_layer 模块时可见
@@ -44,9 +45,7 @@ export const APP_CHAPTER_NAMES: Readonly<Record<string, string>> = {
   interaction: '交互与界面',
   architecture: '技术架构',
   alternatives: '替代方案',
-  data_model: '数据模型',
-  api: '接口契约',
-  integration: '第三方与集成',
+  data_interface: '数据与接口',
   nonfunctional: '非功能需求',
   security: '安全与隐私',
   testing: '测试与质量',
