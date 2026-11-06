@@ -68,6 +68,8 @@ function ctx(overrides: Partial<CeshuViewContextValue> = {}): CeshuViewContextVa
     onDerive: () => undefined,
     onToggleModule: () => undefined,
     onSetModules: () => undefined,
+    onApplyTemplateOverlay: () => undefined,
+    onClearTemplateOverlay: () => undefined,
     onDocUpdated: () => undefined,
     onTypesChanged: () => undefined,
     onGenerateData: () => undefined,
@@ -119,7 +121,7 @@ describe('编辑器内视图插件（Slice 11/12/13：view 挂载点 + 内容槽
     expect(host.views('other.mount')).toEqual([])
   })
 
-  it('25 个 view 都有 React 绑定（否则会退化成占位文本）', () => {
+  it('26 个 view 都有 React 绑定（否则会退化成占位文本）', () => {
     hostWithPlugin()
     const ids = [
       'route.view',
@@ -131,6 +133,7 @@ describe('编辑器内视图插件（Slice 11/12/13：view 挂载点 + 内容槽
       'import.view',
       'derive.view',
       'modulePicker.view',
+      'templateOverlay.view',
       'prototype.view',
       'data.view',
       'tasks.view',

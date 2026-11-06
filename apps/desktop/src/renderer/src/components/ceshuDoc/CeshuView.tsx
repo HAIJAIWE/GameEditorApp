@@ -312,6 +312,23 @@ export default function CeshuView({
     [doc, handleSave]
   )
 
+  /** 应用模板覆盖层：写进 meta.template_overlay（随「文档信息」保存，落盘后可跨会话复现） */
+  const handleApplyTemplateOverlay = useCallback(
+    async (overlay: Record<string, unknown>): Promise<void> => {
+      if (doc === null) return
+      await handleSave('meta', { ...doc.meta, template_overlay: overlay })
+    },
+    [doc, handleSave]
+  )
+
+  /** 清除模板覆盖层：删掉该键（不是写空对象），让文档回到「未自定义」的干净状态 */
+  const handleClearTemplateOverlay = useCallback(async (): Promise<void> => {
+    if (doc === null) return
+    const nextMeta = { ...doc.meta }
+    delete nextMeta.template_overlay
+    await handleSave('meta', nextMeta)
+  }, [doc, handleSave])
+
   /* 审阅队列快捷键（j/k/a/v/Esc）已随浮层迁到 EditorOverlays 的 ReviewQueueOverlay 内。 */
 
   /*
@@ -894,6 +911,8 @@ export default function CeshuView({
     onDerive,
     onToggleModule: handleToggleModule,
     onSetModules: handleSetModules,
+    onApplyTemplateOverlay: handleApplyTemplateOverlay,
+    onClearTemplateOverlay: handleClearTemplateOverlay,
     onDocUpdated: (next) => {
       setDoc(next)
       onChanged()
@@ -969,6 +988,7 @@ export default function CeshuView({
               onStageFilterChange={setStageFilter}
               enabledModuleCount={enabledModuleChapters(doc).length}
               onOpenModulePicker={() => openEditorView('modulePicker.view')}
+              onOpenTemplateOverlay={() => openEditorView('templateOverlay.view')}
               viewMode={viewMode}
               onToggleViewMode={() => setViewMode((mode) => (mode === 'overview' ? 'edit' : 'overview'))}
               chapters={visibleByStage}

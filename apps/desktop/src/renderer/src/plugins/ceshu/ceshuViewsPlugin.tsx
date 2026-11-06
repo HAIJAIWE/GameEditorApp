@@ -6,6 +6,7 @@ import { AiReviewPanel } from '../../components/agent'
 import { CeshuMachineDataPanel } from '../../components/ceshuDoc'
 import { CeshuPrototypePanel } from '../../components/ceshuDoc'
 import { CeshuTasksPanel } from '../../components/ceshuDoc'
+import { CeshuTemplateOverlayPanel } from '../../components/ceshuDoc'
 import { ChapterNotesPanel } from '../../components/ceshuField'
 import { CeshuDataRefsPanel } from '../../components/ceshu'
 import { ChangelogPanel, ReadinessPanel, ValidatePanel } from '../../components/ceshu'
@@ -114,6 +115,17 @@ export function defineCeshuViewsPlugin(): PluginManifest {
   function ModulePickerOverlayBound({ onClose }: PanelBindingProps) {
     const { doc, onToggleModule, onSetModules } = useCeshuView()
     return <ModulePickerOverlay doc={doc} onToggle={onToggleModule} onSetModules={onSetModules} onClose={onClose} />
+  }
+  function TemplateOverlayPanelBound({ onClose }: PanelBindingProps) {
+    const { doc, onApplyTemplateOverlay, onClearTemplateOverlay } = useCeshuView()
+    return (
+      <CeshuTemplateOverlayPanel
+        doc={doc}
+        onApply={onApplyTemplateOverlay}
+        onClear={onClearTemplateOverlay}
+        onClose={onClose}
+      />
+    )
   }
 
   /* ---------------- 产出物页签挂载点（ceshu.artifact） ---------------- */
@@ -266,6 +278,7 @@ export function defineCeshuViewsPlugin(): PluginManifest {
   registerReactBinding('import.view', ImportOverlayBound)
   registerReactBinding('derive.view', DeriveOverlayBound)
   registerReactBinding('modulePicker.view', ModulePickerOverlayBound)
+  registerReactBinding('templateOverlay.view', TemplateOverlayPanelBound)
   registerReactBinding('prototype.view', PrototypePanelBound)
   registerReactBinding('data.view', MachineDataPanelBound)
   registerReactBinding('tasks.view', TasksPanelBound)
@@ -305,6 +318,7 @@ export function defineCeshuViewsPlugin(): PluginManifest {
       // 内联弹层 / 气泡挂载点（保持原有定位）
       { kind: 'view', id: 'derive.view', label: 'Derive new version', labelKey: 'ceshuView.derive', mount: CESHU_TOOLBAR_MOUNT, order: 10, ui: { type: 'text', text: 'Derive new version' } },
       { kind: 'view', id: 'modulePicker.view', label: 'System modules', labelKey: 'ceshuView.modulePicker', mount: CESHU_CHAPTERNAV_MOUNT, order: 10, ui: { type: 'text', text: 'System modules' } },
+      { kind: 'view', id: 'templateOverlay.view', label: 'Template overlay', labelKey: 'ceshuView.templateOverlay', mount: CESHU_CHAPTERNAV_MOUNT, order: 20, ui: { type: 'text', text: 'Template overlay' } },
       // 产出物页签挂载点
       { kind: 'view', id: 'prototype.view', label: 'Prototype preview', labelKey: 'ceshuView.prototype', mount: CESHU_ARTIFACT_MOUNT, order: 10, ui: { type: 'text', text: 'Prototype preview' } },
       { kind: 'view', id: 'data.view', label: 'Data / machine-readable', labelKey: 'ceshuView.data', mount: CESHU_ARTIFACT_MOUNT, order: 20, ui: { type: 'text', text: 'Data / machine-readable' } },

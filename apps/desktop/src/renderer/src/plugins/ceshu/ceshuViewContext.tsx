@@ -60,6 +60,10 @@ export interface CeshuViewContextValue {
   onToggleModule: (module: ChapterKey, enabled: boolean) => void
   /** 批量设置启用模块（分组开关 / 预设；一次写盘） */
   onSetModules: (chapters: ChapterKey[]) => void
+  /** 应用模板覆盖层（写 meta.template_overlay；标签 / 顺序 / 模块默认开关） */
+  onApplyTemplateOverlay: (overlay: Record<string, unknown>) => void
+  /** 清除模板覆盖层（删 meta.template_overlay，回到默认模板） */
+  onClearTemplateOverlay: () => void
   /** 产出物面板回传改后的文档（原型 / 岗位任务） */
   onDocUpdated: (next: CeshuDocument) => void
   /** 数据面板新建/改动类型（刷新宿主类型列表） */

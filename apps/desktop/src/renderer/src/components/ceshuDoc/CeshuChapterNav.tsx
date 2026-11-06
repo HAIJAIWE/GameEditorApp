@@ -36,6 +36,8 @@ interface CeshuChapterNavProps {
   /** 已启用的系统模块数（分母取 `MODULE_CHAPTERS.length`） */
   enabledModuleCount: number
   onOpenModulePicker: () => void
+  /** 打开模板覆盖层编辑器（改标签 / 顺序 / 模块默认开关） */
+  onOpenTemplateOverlay: () => void
   viewMode: 'edit' | 'overview'
   onToggleViewMode: () => void
   /** 阶段筛选后的章节列表（父组件已按阶段 + 当前章过滤）；应用章 key 用 string */
@@ -58,6 +60,7 @@ export default function CeshuChapterNav({
   onStageFilterChange,
   enabledModuleCount,
   onOpenModulePicker,
+  onOpenTemplateOverlay,
   viewMode,
   onToggleViewMode,
   chapters,
@@ -123,6 +126,15 @@ export default function CeshuChapterNav({
         onClick={onOpenModulePicker}
       >
         {t('chapterNav.moduleCount', { enabled: enabledModuleCount, total: MODULE_CHAPTERS.length })}
+      </button>
+      <button
+        type="button"
+        data-testid="template-overlay-toggle"
+        className="chapter-stage-btn template-overlay-toggle"
+        title={t('ceshu.templateOverlay.toggleTitle')}
+        onClick={onOpenTemplateOverlay}
+      >
+        {t('ceshu.templateOverlay.toggle')}
       </button>
       {/* 系统模块勾选气泡（Slice 15）：原位置挂载，定位不变 */}
       <ViewMount host={host} mount={CESHU_CHAPTERNAV_MOUNT} provider={CeshuViewProvider} context={viewContext} />
