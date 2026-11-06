@@ -1,4 +1,4 @@
-import { chapterOrdinalCn, type CeshuDocument, type ChapterKey } from '../reference'
+import { CHAPTER_LABELS, type CeshuDocument, type ChapterKey } from '../reference'
 import { fieldLabelOf } from '../fields'
 import { isPlainObject } from '../model'
 
@@ -174,7 +174,7 @@ export function detectFieldOverlaps(doc: CeshuDocument): FieldOverlap[] {
 /** 校验链的警告文案（与 validateCeshu 其余条目同风格） */
 export function fieldOverlapMessage(item: FieldOverlap): string {
   const where = item.fields
-    .map((field) => `第${chapterOrdinalCn(field.chapter)}章「${field.label}」`)
+    .map((field) => `${CHAPTER_LABELS[field.chapter] ?? field.chapter}「${field.label}」`)
     .join(' 与 ')
   const percent = Math.round(item.similarity * 100)
   return `内容重复警告：${where}重复度 ${percent}% —— ${item.guidance}`

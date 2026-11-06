@@ -209,7 +209,7 @@ export function visibleChapterEntries(
   return CHAPTER_KEYS.map((key, position) => ({ key, index: position + 1 })).filter((entry) => visible.has(entry.key))
 }
 
-/** 章节标题文本（如 "4. 第四章·游戏系统设计"；章号取自 `CHAPTER_LABELS`，勿在此硬编码） */
+/** 章节标题文本（如 "4. 4. 游戏系统设计"；章号取自 `CHAPTER_LABELS`，勿在此硬编码） */
 export function chapterHeading(entry: VisibleChapterEntry): string {
   return `${entry.index}. ${CHAPTER_LABELS[entry.key]}`
 }

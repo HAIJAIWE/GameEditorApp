@@ -376,7 +376,7 @@ export function renderHandoffDoc(
     lines.push(`> 层级：${layerLabel}`)
     /*
      * 来源回链：工程师按「要做的东西」找文档，但设计意图写在「章」里。
-     * 没有这行，从 `03-系统/01-装备与词条.md` 回到「第六章·经济系统设计」要靠人肉翻 24 章；
+     * 没有这行，从 `03-系统/01-装备与词条.md` 回到「6. 经济系统设计」要靠人肉翻 24 章；
      * 有这行，追溯成本是 0，且锚点与 gdd.md 目录共用 `chapterAnchorOf` 同一套口径。
      */
     const sourceChapters = [...docChapters(def)]

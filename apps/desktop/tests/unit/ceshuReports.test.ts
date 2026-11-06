@@ -67,7 +67,7 @@ describe('buildValidationReportMarkdown', () => {
   it('章节完成度状态阈值与 旧版 一致（>=80 ✓ / >=50 ⚠ / 否则 ✗）', () => {
     const md = buildValidationReportMarkdown('G', 'v1.0', 't', [], { meta: 0.8, systems: 0.5, total: 0.6 })
     expect(md).toContain('| 文档信息 | 80% | ✓ |')
-    expect(md).toContain('| 第四章·游戏系统设计 | 50% | ⚠ |')
+    expect(md).toContain('| 4. 游戏系统设计 | 50% | ⚠ |')
   })
 
   it('问题概览：按严重度汇总分组条数，且不干扰既有段落', () => {

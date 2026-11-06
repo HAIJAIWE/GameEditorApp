@@ -133,8 +133,8 @@ describe('fieldOverlapMessage 与 validateCeshu 集成', () => {
     const found = detectFieldOverlaps(doc)
     const message = fieldOverlapMessage(found[0]!)
     expect(message).toContain('内容重复警告')
-    // 文档信息段（meta）不占章号 ⇒ vision 是第一章（chapterOrdinalCn 约定）
-    expect(message).toContain('第一章')
+    // 文档信息段（meta）不占章号 ⇒ vision 是第 1 章
+    expect(message).toContain('1. 产品愿景')
     expect(message).toContain('「设计愿景」')
     expect(message).toContain('「差异化优势」')
     expect(message).toContain('100%')

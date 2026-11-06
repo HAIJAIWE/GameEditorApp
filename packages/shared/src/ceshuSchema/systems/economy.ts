@@ -4,7 +4,7 @@ import type { ChapterSchema } from '../core'
 import { f } from '../core'
 
 /**
- * 第六章·经济系统设计的按章 schema（档 4 合并试点，2026-10-24）。
+ * 6. 经济系统设计的按章 schema（档 4 合并试点，2026-10-24）。
  *
  * 原数据来自三处，现收进单文件：
  * - 字段定义：`ceshuFields.ts` 的 `BASE_CHAPTER_FIELDS.economy`（内联）

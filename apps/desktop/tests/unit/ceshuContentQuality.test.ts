@@ -38,7 +38,7 @@ describe('analyzeTextQuality：基础信号与 0 值保护', () => {
       sentenceCount: 0,
       lineCount: 0
     })
-    expect(contentQualityIssues(signal, { chapterLabel: '第一章·产品愿景' })).toEqual([])
+    expect(contentQualityIssues(signal, { chapterLabel: '1. 产品愿景' })).toEqual([])
   })
 
   it('单行短文本：比率为 0、sentenceCount/lineCount 为 1，不产生 issue', () => {
@@ -50,7 +50,7 @@ describe('analyzeTextQuality：基础信号与 0 值保护', () => {
     expect(signal.charCount).toBe(10)
     expect(signal.sentenceCount).toBe(1)
     expect(signal.lineCount).toBe(1)
-    expect(contentQualityIssues(signal, { chapterLabel: '第一章·产品愿景' })).toEqual([])
+    expect(contentQualityIssues(signal, { chapterLabel: '1. 产品愿景' })).toEqual([])
   })
 
   it('换行同时是行边界与句边界；分号也是句边界', () => {
@@ -97,16 +97,16 @@ describe('空话套话判定：少量不报、密度超标才报', () => {
     const signal = analyzeTextQuality(text)
     expect(signal.cliches).toEqual(['流畅', '爽快'])
     expect(signal.cliches.length / signal.sentenceCount).toBeLessThan(CLICHE_RATE_THRESHOLD)
-    expect(contentQualityIssues(signal, { chapterLabel: '第一章·产品愿景' })).toEqual([])
+    expect(contentQualityIssues(signal, { chapterLabel: '1. 产品愿景' })).toEqual([])
   })
 
   it('命中种数达标（4 种 ≥ 阈值）即报，文案带计数与省略号', () => {
     const signal = analyzeTextQuality('画面精美，操作流畅，体验爽快，整体高品质')
     expect(signal.cliches).toEqual(['精美', '流畅', '爽快', '高品质'])
     expect(signal.cliches.length).toBeGreaterThanOrEqual(CLICHE_COUNT_THRESHOLD)
-    const issues = contentQualityIssues(signal, { chapterLabel: '第一章·产品愿景', fieldName: 'design_vision' })
+    const issues = contentQualityIssues(signal, { chapterLabel: '1. 产品愿景', fieldName: 'design_vision' })
     expect(issues).toEqual([
-      '内容质量提示：第一章·产品愿景 design_vision 命中 4 个空话套话（精美、流畅、爽快…），建议换成具体描述'
+      '内容质量提示：1. 产品愿景 design_vision 命中 4 个空话套话（精美、流畅、爽快…），建议换成具体描述'
     ])
   })
 
@@ -115,23 +115,23 @@ describe('空话套话判定：少量不报、密度超标才报', () => {
     const signal = analyzeTextQuality(text)
     expect(signal.cliches.length).toBe(2)
     expect(signal.cliches.length / signal.sentenceCount).toBeGreaterThan(CLICHE_RATE_THRESHOLD)
-    const issues = contentQualityIssues(signal, { chapterLabel: '第一章·产品愿景' })
+    const issues = contentQualityIssues(signal, { chapterLabel: '1. 产品愿景' })
     expect(issues).toEqual([
-      '内容质量提示：第一章·产品愿景 命中 2 个空话套话（流畅、爽快），建议换成具体描述'
+      '内容质量提示：1. 产品愿景 命中 2 个空话套话（流畅、爽快），建议换成具体描述'
     ])
   })
 
   it('密度边界：1 种 / 5 句 = 0.2 不报；2 种 / 10 句 = 0.2 不报', () => {
     const single = analyzeTextQuality(['手感流畅', '难度 3 档', '时长 10 分钟', '人数 2 人', '关卡 4 个'].join('。'))
     expect(single.cliches.length / single.sentenceCount).toBe(CLICHE_RATE_THRESHOLD)
-    expect(contentQualityIssues(single, { chapterLabel: '第一章·产品愿景' })).toEqual([])
+    expect(contentQualityIssues(single, { chapterLabel: '1. 产品愿景' })).toEqual([])
 
     const double = analyzeTextQuality(
       ['手感流畅', '节奏爽快', '难度 3 档', '时长 10 分钟', '人数 2 人', '关卡 4 个', '武器 5 种', '敌人 12 类', '场景 8 张', '任务 6 条'].join('。')
     )
     expect(double.cliches.length).toBe(2)
     expect(double.cliches.length / double.sentenceCount).toBe(CLICHE_RATE_THRESHOLD)
-    expect(contentQualityIssues(double, { chapterLabel: '第一章·产品愿景' })).toEqual([])
+    expect(contentQualityIssues(double, { chapterLabel: '1. 产品愿景' })).toEqual([])
   })
 
   it('命中去重、按在文本中首次出现的顺序排列', () => {
@@ -145,25 +145,25 @@ describe('超长句判定：50 字边界（2026-10-23 由 40 放宽，校准依�
     const shortOnly = analyzeTextQuality(`${SENTENCE_50}。${SENTENCE_50}。短`)
     expect(shortOnly.sentenceCount).toBe(3)
     expect(shortOnly.longSentenceRate).toBe(0)
-    expect(contentQualityIssues(shortOnly, { chapterLabel: '第一章·产品愿景' })).toEqual([])
+    expect(contentQualityIssues(shortOnly, { chapterLabel: '1. 产品愿景' })).toEqual([])
 
     // 1 长 / 3 句 = 0.33：旧阈值 0.3 会报，新阈值 0.5 不报（人类写作均值就有 0.375）
     const oneLong = analyzeTextQuality(`${SENTENCE_50}。${SENTENCE_51}。短句结尾`)
     expect(oneLong.longSentenceRate).toBeCloseTo(1 / 3, 10)
-    expect(contentQualityIssues(oneLong, { chapterLabel: '第一章·产品愿景' })).toEqual([])
+    expect(contentQualityIssues(oneLong, { chapterLabel: '1. 产品愿景' })).toEqual([])
 
     // 2 长 / 3 句 ≈ 0.67：过半句子都超长才报
     const mostlyLong = analyzeTextQuality(`${SENTENCE_51}。${SENTENCE_51}。短句结尾`)
     expect(mostlyLong.longSentenceRate).toBeCloseTo(2 / 3, 10)
-    expect(contentQualityIssues(mostlyLong, { chapterLabel: '第一章·产品愿景' })).toEqual([
-      `内容质量提示：第一章·产品愿景 长句偏多（>${LONG_SENTENCE_CHARS} 字占 67%），建议拆短`
+    expect(contentQualityIssues(mostlyLong, { chapterLabel: '1. 产品愿景' })).toEqual([
+      `内容质量提示：1. 产品愿景 长句偏多（>${LONG_SENTENCE_CHARS} 字占 67%），建议拆短`
     ])
   })
 
   it('长句率边界：1 长 / 4 句 = 0.25 不报', () => {
     const signal = analyzeTextQuality(`${SENTENCE_51}。短一。短二。短三`)
     expect(signal.longSentenceRate).toBeCloseTo(0.25, 10)
-    expect(contentQualityIssues(signal, { chapterLabel: '第一章·产品愿景' })).toEqual([])
+    expect(contentQualityIssues(signal, { chapterLabel: '1. 产品愿景' })).toEqual([])
   })
 })
 
@@ -172,7 +172,7 @@ describe('列表结构率：signal 仍计算，但不再产出字段级问题（
     const signal = analyzeTextQuality('第一行内容\n第二行内容')
     expect(signal.lineCount).toBe(2)
     expect(signal.listRate).toBe(0)
-    expect(contentQualityIssues(signal, { chapterLabel: '第一章·产品愿景' })).toEqual([])
+    expect(contentQualityIssues(signal, { chapterLabel: '1. 产品愿景' })).toEqual([])
   })
 
   it('「- 」行占比计算正确', () => {
@@ -185,7 +185,7 @@ describe('列表结构率：signal 仍计算，但不再产出字段级问题（
     const signal = analyzeTextQuality('总体概述一段\n战斗系统说明\n成长系统说明\n- 社交系统')
     expect(signal.lineCount).toBe(4)
     expect(signal.listRate).toBeCloseTo(0.25, 10)
-    expect(contentQualityIssues(signal, { chapterLabel: '第一章·产品愿景', fieldName: 'systems' })).toEqual([])
+    expect(contentQualityIssues(signal, { chapterLabel: '1. 产品愿景', fieldName: 'systems' })).toEqual([])
   })
 })
 
@@ -245,10 +245,10 @@ describe('analyzeChapterQuality：章级汇总', () => {
       detail: plainText(23)
     })
     expect(signal.cliches).toEqual(['精美', '流畅', '爽快', '高品质'])
-    const issues = contentQualityIssues(signal, { chapterLabel: '第一章·产品愿景' })
+    const issues = contentQualityIssues(signal, { chapterLabel: '1. 产品愿景' })
     expect(issues.some((i) => i.includes('命中 4 个空话套话'))).toBe(true)
     expect(issues.some((i) => i.includes('缺少可验证的数字或实例'))).toBe(true)
-    expect(issues.every((i) => i.startsWith('内容质量提示：第一章·产品愿景 '))).toBe(true)
+    expect(issues.every((i) => i.startsWith('内容质量提示：1. 产品愿景 '))).toBe(true)
   })
 
   it('空章节 / 无字符串章节：全部信号为 0，无 issue', () => {
@@ -263,7 +263,7 @@ describe('analyzeChapterQuality：章级汇总', () => {
         sentenceCount: 0,
         lineCount: 0
       })
-      expect(contentQualityIssues(signal, { chapterLabel: '第一章·产品愿景' })).toEqual([])
+      expect(contentQualityIssues(signal, { chapterLabel: '1. 产品愿景' })).toEqual([])
     }
   })
 })
@@ -271,11 +271,11 @@ describe('analyzeChapterQuality：章级汇总', () => {
 describe('contentQualityIssues：文案格式', () => {
   it('带 fieldName 拼「章节标签 字段名」，不带时只拼章节标签', () => {
     const signal = analyzeTextQuality('画面精美，操作流畅，体验爽快，整体高品质')
-    const withField = contentQualityIssues(signal, { chapterLabel: '第一章·产品愿景', fieldName: 'design_vision' })
-    expect(withField[0]).toContain('第一章·产品愿景 design_vision')
+    const withField = contentQualityIssues(signal, { chapterLabel: '1. 产品愿景', fieldName: 'design_vision' })
+    expect(withField[0]).toContain('1. 产品愿景 design_vision')
 
-    const withoutField = contentQualityIssues(signal, { chapterLabel: '第一章·产品愿景' })
-    expect(withoutField[0]).toContain('第一章·产品愿景 命中')
+    const withoutField = contentQualityIssues(signal, { chapterLabel: '1. 产品愿景' })
+    expect(withoutField[0]).toContain('1. 产品愿景 命中')
     expect(withoutField[0]).not.toContain('design_vision')
   })
 

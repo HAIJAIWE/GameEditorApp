@@ -78,13 +78,13 @@ describe('策划书常量：章号与标签由数组位置派生', () => {
     expect(numbers).toEqual(numbers.map((_, index) => index + 1))
   })
 
-  it('CHAPTER_LABELS：文档信息段无「第N章·」前缀，其余与章号严格对齐', () => {
+  it('CHAPTER_LABELS：文档信息段无章号前缀，其余用「N. 名称」与章号严格对齐', () => {
     expect(CHAPTER_LABELS.meta).toBe(CHAPTER_NAMES.meta)
     expect(CHAPTER_LABELS.meta.startsWith('第')).toBe(false)
 
     for (const key of NUMBERED_CHAPTER_KEYS) {
       const n = chapterNumber(key)
-      expect(CHAPTER_LABELS[key]).toBe(`第${CN[n - 1]}章·${CHAPTER_NAMES[key]}`)
+      expect(CHAPTER_LABELS[key]).toBe(`${n}. ${CHAPTER_NAMES[key]}`)
     }
   })
 

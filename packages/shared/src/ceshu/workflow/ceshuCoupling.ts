@@ -1,4 +1,4 @@
-import { chapterOrdinalCn, type CeshuDocument, type ChapterKey } from '../reference'
+import { CHAPTER_LABELS, type CeshuDocument, type ChapterKey } from '../reference'
 import { fieldLabelOf } from '../fields'
 import { isFilledValue, visibleChaptersForDoc } from '../model'
 
@@ -161,7 +161,7 @@ export function findCouplingGaps(doc: CeshuDocument): CouplingGap[] {
         chapter: need.chapter,
         field: need.field,
         label: fieldLabelOf(need.chapter, need.field),
-        because: `第${chapterOrdinalCn(rule.when.chapter)}章「${fieldLabelOf(
+        because: `${CHAPTER_LABELS[rule.when.chapter] ?? rule.when.chapter}「${fieldLabelOf(
           rule.when.chapter,
           rule.when.field
         )}」`,

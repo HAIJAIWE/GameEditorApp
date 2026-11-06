@@ -130,12 +130,12 @@ export function chapterOrdinalCn(key: ChapterKey): string {
   return CN_NUMERALS[chapterNumber(key) - 1] ?? ''
 }
 
-/** 章节显示标签：文档信息段无「第N章·」前缀，编号章与章号严格对齐 */
+/** 章节显示标签：文档信息段无前缀，编号章用「N. 名称」编号小节式（对齐主流设计文档模板，不用「第X章」） */
 export const CHAPTER_LABELS: Record<ChapterKey, string> = Object.fromEntries(
   CHAPTER_KEYS.map((key) => {
     const ordinal = chapterNumber(key)
     const name = CHAPTER_NAMES[key]
-    return [key, ordinal === 0 ? name : `第${CN_NUMERALS[ordinal - 1]}章·${name}`]
+    return [key, ordinal === 0 ? name : `${ordinal}. ${name}`]
   })
 ) as Record<ChapterKey, string>
 
