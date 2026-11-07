@@ -209,9 +209,9 @@ export function visibleChapterEntries(
   return CHAPTER_KEYS.map((key, position) => ({ key, index: position + 1 })).filter((entry) => visible.has(entry.key))
 }
 
-/** 章节标题文本（如 "4. 4. 游戏系统设计"；章号取自 `CHAPTER_LABELS`，勿在此硬编码） */
+/** 章节标题文本：纯主题式（如 "游戏系统设计"）；顺序与锚点由数组位置派生，标题本身不带编号 */
 export function chapterHeading(entry: VisibleChapterEntry): string {
-  return `${entry.index}. ${CHAPTER_LABELS[entry.key]}`
+  return CHAPTER_LABELS[entry.key]
 }
 
 /* ------------------------------------------------------------------ */
@@ -296,9 +296,9 @@ export function visibleChapterEntriesForDoc(doc: CeshuDocument): DocChapterEntry
     .map((entry) => ({ key: entry.key as string, index: entry.index }))
 }
 
-/** 章节标题：应用档用 APP_CHAPTER_LABELS，游戏档用 CHAPTER_LABELS */
+/** 章节标题：应用档用 APP_CHAPTER_LABELS，游戏档用 CHAPTER_LABELS（均为纯主题式，不带编号） */
 export function chapterHeadingForDoc(doc: CeshuDocument, entry: DocChapterEntry): string {
-  if (isAppDoc(doc)) return `${entry.index}. ${chapterLabelForDoc(doc, entry.key)}`
+  if (isAppDoc(doc)) return chapterLabelForDoc(doc, entry.key)
   return chapterHeading(entry as VisibleChapterEntry)
 }
 

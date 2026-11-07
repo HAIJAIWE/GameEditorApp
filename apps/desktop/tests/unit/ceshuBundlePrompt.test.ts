@@ -51,7 +51,7 @@ describe('buildBundleConsumePrompt：机读轨消费提示词', () => {
     expect(prompt).toContain('内容重复')
     expect(prompt).toContain('不可执行')
     // 待审草稿清单点名具体字段（章 label 带「第N章·」前缀，与界面一致）
-    expect(prompt).toContain('5. 战斗系统设计 · 伤害公式（damage_formula）')
+    expect(prompt).toContain('战斗系统设计 · 伤害公式（damage_formula）')
     // 输出格式是 issues 结构，不是增量 patch
     expect(prompt).toContain('"issues"')
     expect(prompt).toContain('severity')
@@ -97,7 +97,7 @@ describe('buildBundleConsumePrompt：机读轨消费提示词', () => {
     expect(prompt).toContain('只审待审字段')
     // 两个待审字段都点名（章节 label · 字段 label（key））
     expect(prompt).toContain('文档信息 · 一句话定位（positioning）')
-    expect(prompt).toContain('5. 战斗系统设计 · 技能系统（skill_system）')
+    expect(prompt).toContain('战斗系统设计 · 技能系统（skill_system）')
     // 有 reviewHint 的字段把「人审要点」带进提示词，无 reviewHint 的字段不硬凑
     expect(prompt).toContain('是否一句话能讲清，且不与竞品同质')
     expect(prompt).not.toContain('人审要点：undefined')

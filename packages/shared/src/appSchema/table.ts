@@ -85,13 +85,9 @@ export function appChapterNumber(key: string): number {
   return index < 0 ? 0 : index + 1
 }
 
-/** 完整章标签（含派生章号）；文档信息段无章号。用「N. 名称」编号小节式（对齐主流设计文档模板），不用「第X章」 */
+/** 完整章标签：纯主题式，不编号成章（对齐真实设计/决策文档的小标题写法）；文档信息段即「文档信息」 */
 export const APP_CHAPTER_LABELS: Readonly<Record<string, string>> = Object.fromEntries(
-  APP_CHAPTER_KEYS.map((key) => {
-    const name = APP_CHAPTER_NAMES[key] ?? key
-    const n = appChapterNumber(key)
-    return [key, n === 0 ? name : `${n}. ${name}`]
-  })
+  APP_CHAPTER_KEYS.map((key) => [key, APP_CHAPTER_NAMES[key] ?? key])
 )
 
 /**

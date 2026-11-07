@@ -96,7 +96,7 @@ function renderHeader(doc: CeshuDocument, today: string): string {
 function renderToc(doc: CeshuDocument): string {
   const lines = ['## 目录', '']
   for (const entry of visibleChapterEntriesForDoc(doc)) {
-    lines.push(`${entry.index}. [${chapterLabelForDoc(doc, entry.key)}](#${chapterAnchor(entry.index)})`)
+    lines.push(`- [${chapterLabelForDoc(doc, entry.key)}](#${chapterAnchor(entry.index)})`)
   }
   return lines.join('\n')
 }

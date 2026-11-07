@@ -60,7 +60,7 @@ test('策划书：读取旧版文件 → 新建 → 编辑保存章节 → 磁�
       .click()
 
     // 编辑第五章（战斗）并保存：进度从 0% → 50%
-    const combatTab = window.getByTestId('chapter-tab').filter({ hasText: '5. 战斗系统设计' })
+    const combatTab = window.getByTestId('chapter-tab').filter({ hasText: '战斗系统设计' })
     await combatTab.click()
     await window.getByTestId('ceshu-field-damage_formula').fill('伤害 = 攻击 - 防御')
     await window.getByTestId('chapter-save').click()
@@ -69,7 +69,7 @@ test('策划书：读取旧版文件 → 新建 → 编辑保存章节 → 磁�
     // 第四章（游戏系统）：启用「战斗」并保存。
     // 注意：从首页重进编辑器时 `stageFilter` 会重置回「立项阶段」，而第四章归研发阶段 ⇒ 需再切一次全部。
     await window.getByTestId('stage-filter-all').click()
-    await window.getByTestId('chapter-tab').filter({ hasText: '4. 游戏系统设计' }).click()
+    await window.getByTestId('chapter-tab').filter({ hasText: '游戏系统设计' }).click()
     await window.getByTestId('system-toggle-battle').check()
     await expect(window.getByTestId('system-field-battle-turn_mode')).toBeVisible()
     await window.getByTestId('chapter-save').click()

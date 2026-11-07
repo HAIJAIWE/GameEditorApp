@@ -40,7 +40,7 @@ describe('CeshuTemplateOverlayPanel：模板覆盖层编辑器', () => {
     expect((view.byTestId('template-overlay-input') as HTMLTextAreaElement).value).toBe('{}')
     expect(view.query('[data-testid="template-overlay-clear"]')).toBeNull()
     // 默认模板：第一章是产品愿景
-    expect(view.text()).toContain('1. 产品愿景')
+    expect(view.text()).toContain('产品愿景')
   })
 
   it('非法 JSON：显示解析错误并禁用应用', async () => {
@@ -75,7 +75,7 @@ describe('CeshuTemplateOverlayPanel：模板覆盖层编辑器', () => {
     const overlay = { chapters: [{ key: 'vision', name: '产品愿景与定位' }] }
     await setTextarea(view, JSON.stringify(overlay))
     expect(view.query('[data-testid="template-overlay-error"]')).toBeNull()
-    expect(view.text()).toContain('1. 产品愿景与定位')
+    expect(view.text()).toContain('产品愿景与定位')
 
     await view.click(view.byTestId('template-overlay-apply'))
     expect(onApply).toHaveBeenCalledTimes(1)

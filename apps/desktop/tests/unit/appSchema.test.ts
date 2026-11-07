@@ -135,7 +135,7 @@ describe('读盘归一化：应用章往返不丢', () => {
   })
 })
 
-describe('应用分区显示名：不带中文序号（与章标签「N. 名称」统一）', () => {
+describe('应用分区显示名：不带中文序号（章标签为纯主题式，不混用编号）', () => {
   it('appPartDisplayName 直接返回分区标签，不拼「一、二、」', () => {
     for (const part of APP_PARTS) {
       expect(appPartDisplayName(part)).toBe(part.label)

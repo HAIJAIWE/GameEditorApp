@@ -21,9 +21,9 @@ describe('策划书校验：必填字段', () => {
     expect(errors).toHaveLength(43)
     // game_name 是人定字段（名称须人决）：2026-10-23 起单独措辞，见下方专门用例
     expect(hasError(errors, "文档信息：字段 'game_name' 由人确定，尚未填写")).toBe(true)
-    expect(hasError(errors, "16. 可访问性与本地化：字段 'accessibility_features' 为必填项")).toBe(true)
+    expect(hasError(errors, "可访问性与本地化：字段 'accessibility_features' 为必填项")).toBe(true)
     // 旧版 语义：空字典 {} 不算空（第九章 budget 默认 {}，故不报错）
-    expect(hasError(errors, "11. 资源规划：字段 'budget' 为必填项")).toBe(false)
+    expect(hasError(errors, "资源规划：字段 'budget' 为必填项")).toBe(false)
     expect(hasError(errors, '依赖缺失')).toBe(false)
   })
 
@@ -33,16 +33,16 @@ describe('策划书校验：必填字段', () => {
     // 却混在必填缺失里一起催人。故单独措辞（分组上落「其他（建议检查）」）。
     const doc = makeDoc()
     const errors = validateCeshu(doc)
-    expect(hasError(errors, "10. 技术规格：字段 'engine' 由人确定，尚未填写")).toBe(true)
-    expect(hasError(errors, "2. 世界观与角色：字段 'main_npc_count' 由人确定，尚未填写")).toBe(true)
-    expect(hasError(errors, "10. 技术规格：字段 'engine' 为必填项")).toBe(false)
+    expect(hasError(errors, "技术规格：字段 'engine' 由人确定，尚未填写")).toBe(true)
+    expect(hasError(errors, "世界观与角色：字段 'main_npc_count' 由人确定，尚未填写")).toBe(true)
+    expect(hasError(errors, "技术规格：字段 'engine' 为必填项")).toBe(false)
   })
 
   it('lite 档只校验基础 9 章（22 条）', () => {
     const errors = validateCeshu(makeDoc('lite'))
     expect(errors).toHaveLength(22)
-    expect(hasError(errors, '10. 技术规格')).toBe(false)
-    expect(hasError(errors, '18. 关卡与内容设计')).toBe(false)
+    expect(hasError(errors, '技术规格')).toBe(false)
+    expect(hasError(errors, '关卡与内容设计')).toBe(false)
   })
 
   it('必填字段填满后该项不再报错（空数组与 0 视为未填）', () => {
@@ -65,7 +65,7 @@ describe('策划书校验：章节间一致性（11 项中的关键项）', () =
     expect(hasError(validateCeshu(doc), `一致性冲突：${CHAPTER_LABELS.combat} combat.combat_mode='turn_based'`)).toBe(true)
 
     doc.combat.combat_mode = 'realtime'
-    expect(hasError(validateCeshu(doc), '一致性冲突：12. 市场分析')).toBe(false)
+    expect(hasError(validateCeshu(doc), '一致性冲突：市场分析')).toBe(false)
   })
 
   it('付费模式与 systems.economy.config.payment_system 冲突', () => {
@@ -79,7 +79,7 @@ describe('策划书校验：章节间一致性（11 项中的关键项）', () =
     const doc = makeDoc()
     doc.risk_handling.risk_matrix = ['进度风险']
     doc.resources.risk_matrix = ['技术风险']
-    expect(hasError(validateCeshu(doc), 'TOP 风险未出现在「13. 风险控制」矩阵：技术风险')).toBe(true)
+    expect(hasError(validateCeshu(doc), 'TOP 风险未出现在「风险控制」矩阵：技术风险')).toBe(true)
 
     doc.resources.risk_matrix = ['进度风险']
     expect(hasError(validateCeshu(doc), 'TOP 风险未出现在')).toBe(false)

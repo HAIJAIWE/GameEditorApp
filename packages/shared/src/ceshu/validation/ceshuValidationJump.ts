@@ -5,9 +5,9 @@ import { CESHU_CHAPTER_FIELDS } from '../fields'
  * 从校验文案里解析出该问题所属章节（用于「点击跳转」）。
  *
  * ## 为什么按「文案里的章节显示名」反查
- * `validateCeshu` 的文案是人读的（`1. 产品愿景：字段 'design_vision' 为必填项`），
+ * `validateCeshu` 的文案是人读的（`产品愿景：字段 'design_vision' 为必填项`），
  * 它本身**不携带结构化章节字段**；改造校验输出会牵动导出报告与既有断言。
- * 而文案里的章节显示名恰好由 `CHAPTER_LABELS` 统一派生 ⇒ 反查不会随章号漂移而失效。
+ * 而文案里的章节显示名恰好由 `CHAPTER_LABELS` 统一派生 ⇒ 反查不会随章名/章序调整而失效。
  *
  * ## 规则
  * 在 `CHAPTER_KEYS` 顺序里找文案中**最早出现**的章节显示名；找不到返回 null。
@@ -38,7 +38,7 @@ export interface ValidationJumpTarget {
  *
  * ## 只认 schema 里真实存在的字段
  * 文案里的字段名有两种来源：
- *   1. **必填/人定**类：`1. 产品愿景：字段 'design_vision' 为必填项` —— `design_vision`
+ *   1. **必填/人定**类：`产品愿景：字段 'design_vision' 为必填项` —— `design_vision`
  *      是 schema 里的键，能直接定位到表单里的字段块；
  *   2. **配置/一致性**类：`一致性冲突：… systems.battle.config.turn_mode='实时'` —— 这些键
  *      属于系统配置（`SystemsEditor` 内部），不在 `CESHU_CHAPTER_FIELDS` 里，跳不过去。

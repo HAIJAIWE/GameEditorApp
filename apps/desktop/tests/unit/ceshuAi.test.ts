@@ -435,7 +435,7 @@ describe('AI 全量生成：计划组装', () => {
     const full = buildFullGeneratePlan(form, { scope: 'full', includeMarket: true, includeRisk: true })
     expect(full.order).toHaveLength(24)
     const prompt = full.chapterPrompts.systems ?? ''
-    expect(prompt).toContain('【章节】4. 游戏系统设计')
+    expect(prompt).toContain('【章节】游戏系统设计')
     expect(prompt).toContain('【用户输入】')
     expect(prompt).toContain('游戏名称: 星河战记')
     expect(prompt).toContain('概念描述: 修真者探索三界')

@@ -58,7 +58,7 @@ describe('策划书 docx 渲染器', () => {
     const xml = await readDocxXml(buffer)
 
     expect(xml).toContain('测试游戏')
-    expect(xml).toContain('5. 战斗系统设计')
+    expect(xml).toContain('战斗系统设计')
     expect(xml).toContain('伤害 = 攻击 - 防御')
     expect(xml).toContain('系统')
     expect(xml).toContain('已启用系统配置详情')
@@ -105,7 +105,7 @@ describe('策划书 pptx 渲染器', () => {
     const slides = await readSlideXmls(buffer)
     expect(slides).toHaveLength(24)
     expect(slides.some((xml) => xml.includes('测试游戏'))).toBe(true)
-    expect(slides.some((xml) => xml.includes('5. 战斗系统设计'))).toBe(true)
+    expect(slides.some((xml) => xml.includes('战斗系统设计'))).toBe(true)
   })
 
   it('审核进度：全文档汇总 + 仅列待审章节（口径同 Markdown）', async () => {

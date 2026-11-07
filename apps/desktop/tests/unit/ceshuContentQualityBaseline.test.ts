@@ -46,7 +46,7 @@ describe('内容质量指标：人类写作基线（校准固化，2026-10-23）
   it('人类正常写作样本（多句、有长有短）不触发任何提示', () => {
     for (const sample of HUMAN_SAMPLES) {
       const signal = analyzeTextQuality(sample)
-      expect(contentQualityIssues(signal, { chapterLabel: '1. 产品愿景' }), sample.slice(0, 20)).toEqual([])
+      expect(contentQualityIssues(signal, { chapterLabel: '产品愿景' }), sample.slice(0, 20)).toEqual([])
     }
   })
 
@@ -54,15 +54,15 @@ describe('内容质量指标：人类写作基线（校准固化，2026-10-23）
     const signal = analyzeTextQuality(SINGLE_LONG_SENTENCE)
     expect(signal.sentenceCount).toBe(1)
     expect(signal.longSentenceRate).toBe(1)
-    expect(contentQualityIssues(signal, { chapterLabel: '10. 技术规格' })).toEqual([
-      `内容质量提示：10. 技术规格 长句偏多（>${LONG_SENTENCE_CHARS} 字占 100%），建议拆短`
+    expect(contentQualityIssues(signal, { chapterLabel: '技术规格' })).toEqual([
+      `内容质量提示：技术规格 长句偏多（>${LONG_SENTENCE_CHARS} 字占 100%），建议拆短`
     ])
   })
 
   it('「又长又空」样本必须触发空话提示', () => {
     for (const sample of FLUFF_SAMPLES) {
       const signal = analyzeTextQuality(sample)
-      const issues = contentQualityIssues(signal, { chapterLabel: '1. 产品愿景' })
+      const issues = contentQualityIssues(signal, { chapterLabel: '产品愿景' })
       expect(issues.some((i) => i.includes('空话套话')), sample.slice(0, 20)).toBe(true)
     }
   })

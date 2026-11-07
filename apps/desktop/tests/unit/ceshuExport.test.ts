@@ -35,10 +35,10 @@ describe('策划书导出：Markdown', () => {
 
     expect(markdown.startsWith('# 测试游戏')).toBe(true)
     expect(markdown).toContain('> 版本: v1.0 | 类型: RPG')
-    expect(markdown).toContain('1. [文档信息](#ch1)')
-    expect(markdown).toContain('17. [16. 可访问性与本地化](#ch17)')
+    expect(markdown).toContain('- [文档信息](#ch1)')
+    expect(markdown).toContain('- [可访问性与本地化](#ch17)')
     expect(markdown).toContain('<a id="ch12"></a>')
-    expect(markdown).toContain('## 6. 5. 战斗系统设计')
+    expect(markdown).toContain('## 战斗系统设计')
     // 打磨后：导出用中文字段标签，不再裸露原始 key
     expect(markdown).toContain('**伤害公式**: 伤害 = 攻击 - 防御')
     expect(markdown).toContain('**特色标签**: - 剧情向')
@@ -56,7 +56,7 @@ describe('策划书导出：Markdown', () => {
 
   it('lite 档只导出基础 9 章（序号仍为全局章号）', () => {
     const markdown = renderCeshuMarkdown(makeDoc('lite'))
-    expect(markdown).toContain('10. [9. 音频设计](#ch10)')
+    expect(markdown).toContain('- [音频设计](#ch10)')
     expect(markdown).not.toContain('第十章·市场分析')
     expect(markdown).not.toContain('第十八章·可访问性与本地化')
   })
@@ -97,7 +97,7 @@ describe('策划书导出：HTML', () => {
     expect(html).toContain('<title>测试游戏</title>')
     expect(html).toContain('含 &lt;b&gt;标签&lt;/b&gt; 的定位')
     expect(html).not.toContain('含 <b>标签</b> 的定位')
-    expect(html).toContain('<h2 id="ch6">6. 5. 战斗系统设计</h2>')
+    expect(html).toContain('<h2 id="ch6">战斗系统设计</h2>')
     expect(html).toContain('<td>battle</td><td>✅ 启用</td>')
     expect(html).toContain('附录：章节完成度')
     expect(html).toContain('@media print')

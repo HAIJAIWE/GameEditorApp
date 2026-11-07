@@ -89,7 +89,7 @@ function formatIssues(error: z.ZodError): string {
 /**
  * 把覆盖层应用到基础规格，返回**新的**规格对象（不改入参）。
  *
- * 重排后章号、完整标签（`N. 名称`）、`chapterLabels` 全部重新派生——这是唯一正确做法：
+ * 重排后章序、纯主题式标签、`chapterLabels` 全部重新派生——这是唯一正确做法：
  * 章号是位置的函数，位置变了标签必须跟着变，否则会出现「顺序换了、章号还停在旧位」。
  *
  * 任何不合法输入都抛错（不返回部分结果）。调用方若在「不能失败」的路径上
@@ -161,19 +161,17 @@ export function applyTemplateOverlay(base: DocumentSpec, overlay: unknown): Docu
     }
   })
 
-  // 章序 = 分区展开（章号由位置派生，故顺序即章号）
+  // 章序 = 分区展开（章号由位置派生，故顺序即章号）；但标签为纯主题式，不把章号写进 label
   const numberedKeys = parts.flatMap((part) => [...part.chapters])
   const chapterKeys = [base.metaKey, ...numberedKeys]
-  const numberByKey = new Map(numberedKeys.map((key, index) => [key, index + 1]))
   const baseChapterByKey = new Map(base.chapters.map((chapter) => [chapter.key, chapter]))
 
   const chapters: SpecChapter[] = chapterKeys.map((key) => {
     const baseChapter = baseChapterByKey.get(key)
     if (baseChapter === undefined) throw new Error(`章序引用了不存在的章：${key}`)
     const name = nameByKey.get(key) ?? baseChapter.name
-    const number = numberByKey.get(key) ?? 0
-    // 与 APP_CHAPTER_LABELS / CHAPTER_LABELS 同形：文档信息段无章号，编号章「N. 名称」
-    return { ...baseChapter, name, label: number === 0 ? name : `${number}. ${name}` }
+    // 纯主题式标签（对齐真实文档，不编号成章）；章号/锚点仍由位置派生，不进 label
+    return { ...baseChapter, name, label: name }
   })
 
   const chapterLabels: Record<string, string> = {}

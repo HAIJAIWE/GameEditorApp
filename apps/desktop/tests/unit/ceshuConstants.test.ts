@@ -74,21 +74,22 @@ describe('策划书常量：章号与标签由数组位置派生', () => {
     expect(numbers).toEqual(numbers.map((_, index) => index + 1))
   })
 
-  it('CHAPTER_LABELS：文档信息段无章号前缀，其余用「N. 名称」与章号严格对齐', () => {
-    expect(CHAPTER_LABELS.meta).toBe(CHAPTER_NAMES.meta)
-    expect(CHAPTER_LABELS.meta.startsWith('第')).toBe(false)
-
-    for (const key of NUMBERED_CHAPTER_KEYS) {
-      const n = chapterNumber(key)
-      expect(CHAPTER_LABELS[key]).toBe(`${n}. ${CHAPTER_NAMES[key]}`)
+  it('CHAPTER_LABELS：全部纯主题式（不加「N. 」编号前缀），与 CHAPTER_NAMES 完全一致', () => {
+    // 真实设计/决策文档用主题式小标题（Context / Goals / Design…），不编号成章。
+    // 章号仍由 chapterNumber 派生，但只用于锚点/顺序，不写进显示标签。
+    for (const key of CHAPTER_KEYS) {
+      expect(CHAPTER_LABELS[key]).toBe(CHAPTER_NAMES[key])
+      expect(CHAPTER_LABELS[key].startsWith('第')).toBe(false)
+      expect(/^\d+\.\s/.test(CHAPTER_LABELS[key])).toBe(false)
     }
+    expect(CHAPTER_LABELS.meta).toBe(CHAPTER_NAMES.meta)
   })
 
   it('chapterPartOf / partDisplayName：分区归属正确，分区显示名不带中文序号', () => {
     expect(chapterPartOf(META_CHAPTER_KEY)).toBeNull()
 
     CHAPTER_PARTS.forEach((part) => {
-      // 分区标题直接用标签（与章标签「N. 名称」的阿拉伯数字统一，避免两套编号混排）
+      // 分区标题直接用标签（章标签已改纯主题式，更不该出现两套编号混排）
       expect(partDisplayName(part)).toBe(part.label)
       for (const key of part.chapters) {
         expect(chapterPartOf(key)).toBe(part)

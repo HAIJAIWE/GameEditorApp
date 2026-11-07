@@ -21,8 +21,7 @@ describe('模板覆盖层：标签 / 顺序 / 模块默认开关', () => {
 
   it('章名覆盖：只改显示名，章号沿用原位置', () => {
     const out = applyTemplateOverlay(GAME_SPEC, { chapters: [{ key: 'vision', name: '产品愿景与定位' }] })
-    const n = GAME_SPEC.numberedKeys.indexOf('vision') + 1
-    expect(out.chapterLabels.vision).toBe(`${n}. 产品愿景与定位`)
+    expect(out.chapterLabels.vision).toBe('产品愿景与定位')
     expect(out.chapters.find((chapter) => chapter.key === 'vision')?.name).toBe('产品愿景与定位')
     // 其它章不受影响
     expect(out.chapterLabels.gameplay).toBe(GAME_SPEC.chapterLabels.gameplay)
@@ -37,7 +36,7 @@ describe('模板覆盖层：标签 / 顺序 / 模块默认开关', () => {
     // 核心区首章 = 原末章（audio），章号变成 1
     const firstName = GAME_SPEC.chapters.find((chapter) => chapter.key === reversed[0])?.name
     expect(out.numberedKeys[0]).toBe(reversed[0])
-    expect(out.chapterLabels[reversed[0]]).toBe(`1. ${firstName}`)
+    expect(out.chapterLabels[reversed[0]]).toBe(firstName)
     // 核心区整体仍是前 9 章（lite 范围不变）
     expect(out.numberedKeys.slice(0, reversed.length)).toEqual(reversed)
     // 集合不变（不丢章、不添章）
@@ -117,7 +116,7 @@ describe('specForDoc：文档携带覆盖层时才生效', () => {
     doc.meta.template_overlay = { chapters: [{ key: 'overview', name: '项目背景与目标' }] }
     const spec = specForDoc(doc)
     expect(spec).not.toBe(APP_SPEC)
-    expect(spec.chapterLabels.overview).toBe('1. 项目背景与目标')
+    expect(spec.chapterLabels.overview).toBe('项目背景与目标')
   })
 
   it('覆盖层损坏：fail-soft 退回基础规格（导出不因坏 JSON 失败）', () => {

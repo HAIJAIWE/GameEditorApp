@@ -133,13 +133,14 @@ export function chapterOrdinalCn(key: ChapterKey): string {
   return CN_NUMERALS[chapterNumber(key) - 1] ?? ''
 }
 
-/** 章节显示标签：文档信息段无前缀，编号章用「N. 名称」编号小节式（对齐主流设计文档模板，不用「第X章」） */
+/**
+ * 章节显示标签：**纯主题式**，不编号成章（对齐真实设计/决策文档的小标题写法：
+ * RFC/KEP/Google 设计文档/ADR 都用 Context、Goals、Design 这类主题标题，而非「第 N 章」）。
+ * 长文档（如 23 章 GDD）的导航靠目录顺序 + 三分区（核心设计/制作与商业/扩展设计），不靠章号。
+ * 顺序与锚点 `chN` 由数组位置独立派生（见 `chapterNumber` / `chapterAnchorOf`），与此标签无关。
+ */
 export const CHAPTER_LABELS: Record<ChapterKey, string> = Object.fromEntries(
-  CHAPTER_KEYS.map((key) => {
-    const ordinal = chapterNumber(key)
-    const name = CHAPTER_NAMES[key]
-    return [key, ordinal === 0 ? name : `${ordinal}. ${name}`]
-  })
+  CHAPTER_KEYS.map((key) => [key, CHAPTER_NAMES[key]])
 ) as Record<ChapterKey, string>
 
 /** 该章所属分区；文档信息段返回 null（分区序号见 `partDisplayName`） */
