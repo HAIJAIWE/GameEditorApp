@@ -299,13 +299,15 @@ const AI_DATA_SHEET_FIELDS: AppField[] = [
   { key: 'pii_handling', label: '个人信息处理', kind: 'stringList', aiHint: '列涉及的个人信息、脱敏与留存策略', reviewHint: '是否最小化；留存与删除是否明确' },
   { key: 'bias_audit', label: '偏差审计', kind: 'textarea', aiHint: '说明做了哪些偏差/公平性审计与结论', reviewHint: '是否有可验证的审计而非口头声明' },
   /*
-   * 下面三个字段补的是 Datasheet for Datasets 的 3 个缺组（2026-11-07 复核
+   * 下面四个字段补的是 Datasheet for Datasets 的 4 个缺组（2026-11-07 复核
    * arXiv 1803.09010，见 `docs/template-corpus-verification.md`）：
-   * 采集过程 / 预处理与标注 / 维护与版本——恰好是「出了事能查」的那部分。
-   * 同样先按可选字段加，避免老文档完成度被模板补字段拉低。
+   * 采集过程 / 预处理与标注 / 用途限制 / 维护与版本——恰好是「出了事能查、越界能拦」的那部分。
+   * 论文自己写明问题不具强制性、不适用可跳过，故一律按可选字段加：
+   * 既不拉低老文档完成度，也不逼小项目写不存在的采集流程。
    */
   { key: 'collection_process', label: '采集过程', kind: 'textarea', aiHint: '说明数据如何获取（直接观察/自报/推断）、采集机制与时段，标注是否经伦理审查', reviewHint: '来源是否可追溯；推断得来的标注是否验证过' },
   { key: 'preprocessing', label: '预处理与标注', kind: 'textarea', aiHint: '写清洗、去重、标注规则，以及是否保留原始数据', reviewHint: '规则是否可复现；原始数据是否留存' },
+  { key: 'usage_limits', label: '推荐用途与禁用用途', kind: 'stringList', aiHint: '分别列「可以用于」与「明确不可用于」的场景，禁用的要写理由', reviewHint: '高风险场景有没有明确排除，而不是含糊带过' },
   { key: 'maintenance', label: '维护与版本', kind: 'textarea', aiHint: '写谁维护、更新频率、勘误渠道，以及旧版本如何告知消费者', reviewHint: '是否有负责人与勘误渠道' }
 ]
 

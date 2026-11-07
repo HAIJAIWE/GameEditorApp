@@ -147,7 +147,7 @@ describe('应用分区显示名：不带中文序号（与章标签「N. 名称�
 describe('语料复核带来的字段补充（2026-11-07，见 docs/template-corpus-verification.md）', () => {
   const ADDED: Readonly<Record<string, readonly string[]>> = {
     architecture: ['system_context', 'runtime_units'],
-    data_sheet: ['collection_process', 'preprocessing', 'maintenance'],
+    data_sheet: ['collection_process', 'preprocessing', 'usage_limits', 'maintenance'],
     release: ['compatibility_impact']
   }
 
