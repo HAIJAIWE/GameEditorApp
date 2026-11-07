@@ -69,19 +69,26 @@
 
 ## 五、数据充分性评估（诚实）
 
+> **2026-11-07 复核**：本节 8 项待补源的逐条核验结果见 `template-corpus-verification.md`
+> ——4 项已核（1 PEP / 2 Google 模型卡 / 3 Datasheet / 5 C4）、1 项部分（6 企业 RFC 只有流程证据）、
+> 3 项核不到（4 ISO 付费墙 / 7 中文惯例无公开源 / 8 游戏 Art Bible 无原文）。
+
 **够用**：做**方向判断**（哪些是核心、哪些可选、别做固定大本）。ADR / arc42 / Rust RFC / KEP / Google / GDD 分节均已逐条核对，公共分母可靠。
 
 **还不够**（做最终章表前建议补）：
-1. Python PEP 官方模板分节（未逐条核）；
-2. System Card 的真实结构（OpenAI / Anthropic / Google 各一份）；
-3. Datasheet for Datasets 的 7 节原文；
-4. ISO/IEC/IEEE 29148 SRS 的条款结构（只粗核）；
-5. C4 官方 4 层定义；
-6. 企业 RFC 实例：Oxide RFD、HashiCorp RFC、Sourcegraph RFC、Squarespace RFC；
-7. **中文行业惯例**：国内 PRD / 技术方案评审 / 需求规格的常见结构（本项目面向中文用户，不能只看英文）；
-8. 游戏侧：Art Bible 完整样本、TDD 模板各一份。
+1. ✅ Python PEP 官方模板分节（**已核**：15 节通用清单 + PEP 484 实证 16 节）；
+2. ⚠️ System Card 真实结构（**部分**：Google 模型卡已核 8 节；OpenAI / Anthropic 未取到）；
+3. ✅ Datasheet for Datasets 7 组原文（**已核**，含子问题）；
+4. ❌ ISO/IEC/IEEE 29148 条款结构（**付费墙**，仍只到目录级，勿当逐条证据）；
+5. ✅ C4 官方 4 层 + 3 类补充图（**已核**）；
+6. ⚠️ 企业 RFC 实例：HashiCorp 仓库 404、Sourcegraph 迁 Notion 无正文、Oxide RFD 0001 是**流程**文档
+   ⇒ 只有流程证据，**没有内容模板证据**；
+7. ❌ **中文行业惯例**：国内 PRD / 技术方案评审的常见结构——公开渠道只有文库/CSDN 转存，**无权威源**，本轮不增加条数；
+8. ❌ 游戏侧：Art Bible / TDD 无可核对原文（公开多为二手总结）。
 
-> 判断：**再补 8–10 个权威源即可定稿**，尤其 2、3、7。
+> 判断（2026-11-07 更新）：**决策骨架可以定稿**（PEP 1 / PEP 484 / arc42 / Google design doc 四源交叉）；
+> `data_sheet` 缺 3 组、`architecture` 缺 2 层有标准原文直接支撑，可据此改字段；
+> 4 / 7 / 8 三项**公开渠道拿不到**，只能靠真实项目文档——这必须由有文档的人提供，不是搜索能解决的。
 
 ---
 
