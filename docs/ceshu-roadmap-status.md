@@ -97,9 +97,18 @@ meta.gdd_scope: 'lite' | 'full'         // 方向版 / 细节版
 ### 3.6 章节显示
 
 - 标签：**纯主题式**（如 `功能规格`、`风险控制`），不带「N. 」前缀、也不用「第X章」。
-  - 依据 `docs/template-crosscheck-real-docs.md`：6 个可溯源真实文档（Rust RFC / K8s KEP / Google 设计文档 / MADR ADR / PEP / Model Card）一律用主题式小标题，不编号成章。
   - 章号 `chapterNumber` 仍保留，但只用于**锚点 `chN` / 目录顺序 / lite 范围**等内部结构，不写进显示标签；导出目录为无序列表 `- [名称](#anchor)`。
 - 游戏剧情数据里的「第一章·启程 / 云海篇」是内容，不是标签，保持原样。
+
+> ⚠️ **2026-11-07 证据更正（见 `docs/game-doc-corpus-2026.md`，重收国内 25 + 国际 25 游戏文档）**：
+> 当初「两边都不编号」的依据是 6 个**软件/AI 文档**（RFC/KEP/Google/ADR/PEP/ModelCard），**没有一个游戏 GDD**，
+> 属于把软件文档结论外推到游戏档。真实游戏文档是**两种流派并存**：
+> - 国内传统策划案普遍用「第一章…第八章」+ `1.1` 多级编号（CSDN 2010 策划案、renrendoc 策划书模板、百度文库目录模板等）；
+> - 现代轻量 GDD 用主题式小标题（Nuclino、GDD Concept & Pitch Template PDF 原文、Milanote、Notion）；
+> - 折中派 `openagenticgame-gdd` 用「15 章编号 + 每章独立 md 文件」，自称参考天美/米哈游/腾讯公开资料。
+>
+> ⇒ **应用档去编号有据；游戏档去编号属产品取舍，不能说「符合行业惯例」**。
+> 是否给游戏档恢复可选编号标签，待用户拍板；本轮未改代码。
 
 ---
 
