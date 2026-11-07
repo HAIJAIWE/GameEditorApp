@@ -205,3 +205,35 @@ describe('AiFullGeneratePanel：生成阶段', () => {
     expect(view.query('[data-testid="ai-full-stage"]')).toBeNull()
   })
 })
+
+/** 一页立项预览：生成后显示 draft 合成的一页 pitch，不写盘 */
+describe('AiFullGeneratePanel：一页立项预览', () => {
+  it('立项阶段生成完成后显示预览，内容含已生成章节的字段', async () => {
+    const doc = createDefaultCeshu({ scope: 'full', name: '测试项目' })
+    const generate = vi.fn(async (req: unknown) => ({
+      fields: { placeholder: `内容-${(req as { chapter: string }).chapter}`, design_vision: '星际考古的核心幻想' },
+      quality: verdict(0, 0),
+      usage: { totalTokens: 10 }
+    }))
+    api = installMbApi({ overrides: { 'ceshu.aiGenerateChapter': generate } })
+    view = await renderDom(
+      <AiFullGeneratePanel ceshuId="c1" doc={doc} onApplied={() => {}} onClose={() => {}} />
+    )
+    expect(view.query('[data-testid="ai-full-pitch-body"]')).toBeNull() // 生成前为空
+    await runGeneration(view)
+    const body = view.query('[data-testid="ai-full-pitch-body"]')
+    expect(body, '生成后应显示预览').not.toBeNull()
+    expect(body!.textContent).toContain('星际考古的核心幻想')
+    expect(view.text()).toContain('尚未写盘')
+  })
+
+  it('切到「全量」阶段不显示立项预览', async () => {
+    const doc = createDefaultCeshu({ scope: 'full', name: '测试项目' })
+    api = installMbApi()
+    view = await renderDom(
+      <AiFullGeneratePanel ceshuId="c1" doc={doc} onApplied={() => {}} onClose={() => {}} />
+    )
+    await view.click(view.byTestId('ai-full-stage-full'))
+    expect(view.query('[data-testid="ai-full-pitch"]')).toBeNull()
+  })
+})

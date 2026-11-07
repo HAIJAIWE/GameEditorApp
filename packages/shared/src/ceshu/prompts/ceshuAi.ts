@@ -611,7 +611,13 @@ export function buildFullGeneratePlan(
     }
   }
   let order: ChapterKey[] = buildChapterOrder(options.includeMarket, options.includeRisk)
-  if (options.scope === GDD_SCOPE_LITE) {
+  /*
+   * 阶段（stage）与档位（scope）是两个不同的范围维度，**不可叠乘**：
+   * lite 的 BASE_CHAPTER_KEYS 是「核心设计前 9 章」，而立项 concept 含 mvp（先做什么）
+   * 但不含 story/systems/art/audio。两者取交集会把立项最关键的 mvp 砍掉，只剩 6 章。
+   * ⇒ stage 非 full 时以阶段为准，跳过 lite 裁剪；full 保持旧行为（lite 裁到基础 9 章）。
+   */
+  if (options.scope === GDD_SCOPE_LITE && (options.stage === undefined || options.stage === 'full')) {
     const base = new Set<string>(BASE_CHAPTER_KEYS)
     order = order.filter((chapter) => base.has(chapter))
   }

@@ -18,9 +18,11 @@ import {
   FULL_GEN_PLATFORMS,
   FULL_GEN_STYLES,
   buildFullGeneratePlan,
+  mergeChapterDraft,
   type FullGeneratePlan,
   type GenerateStage
 } from '@mobai/shared/ceshu/prompts'
+import { renderOnePageSummary } from '@mobai/shared/ceshu/export/onePage'
 import { chapterDataForDoc, chapterLabelForDoc, getDocKind, getGddScope, isPlainObject, visibleChaptersForDoc } from '@mobai/shared/ceshu/model'
 import { evaluateBudget, shouldRegenerateChapter, taskBudget } from '@mobai/shared/agent/runtime'
 import type { LlmJudgeVerdict, QualityGateVerdict } from '@mobai/shared/types'
@@ -119,6 +121,20 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
   )
   const appliedCount = plan.order.filter((chapter) => results[chapter] !== undefined).length
   const locked = running || applying
+  /**
+   * 一页立项预览：把本次生成草稿合并进文档后渲染，**不写盘**。
+   * 依据 docs/game-doc-corpus-2026.md：真实 GDD 从一页 pitch 起步；项目已有
+   * `renderOnePageSummary`（与「一页总览 / onepage 导出」同口径），这里接进生成流程。
+   * 只在游戏档 + 立项阶段显示（制作/全量与 SDD 不需要这一页）。
+   */
+  const pitchPreview = useMemo(() => {
+    if (isApp || stage !== 'concept' || appliedCount === 0) return ''
+    const draft: Record<string, ChapterData> = {}
+    for (const [key, value] of Object.entries(results)) {
+      if (value !== undefined) draft[key] = value
+    }
+    return renderOnePageSummary(mergeChapterDraft(doc, draft), 3)
+  }, [isApp, stage, appliedCount, results, doc])
 
   /** 逐章生成：单章失败记录并继续；首章即失败（本地服务不可用等）中断并汇总 */
   const runChapters = async (targets: readonly string[]): Promise<void> => {
@@ -632,6 +648,18 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
           </div>
         )
       })()}
+      {/* 一页立项预览：真实 GDD 从一页 pitch 起步，先在应用前确认方向 */}
+      {!isApp && stage === 'concept' && (
+        <div className="ai-full-judge" data-testid="ai-full-pitch">
+          <div className="ai-full-judge-head">{t('aiFull.pitchHead')}</div>
+          <div className="ai-gen-hint">{t('aiFull.pitchHint')}</div>
+          {pitchPreview === '' ? (
+            <div>{t('aiFull.pitchEmpty')}</div>
+          ) : (
+            <pre className="ai-full-pitch-body" data-testid="ai-full-pitch-body">{pitchPreview}</pre>
+          )}
+        </div>
+      )}
       {/* 确定性质量门主结论：此前只落在 IPC 返回值里，UI 从未使用 ⇒「体检报告出来了不治病」 */}
       {(() => {
         const evaluated = plan.order.filter((chapter) => verdicts[chapter] != null)

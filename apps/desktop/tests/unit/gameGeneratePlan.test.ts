@@ -108,3 +108,29 @@ describe('前文要点按生成顺序取前序（修 P0-1 回归）', () => {
     expect(prompt).toContain('星际考古的核心幻想')
   })
 })
+
+/** stage 与 scope 不可叠乘：lite 的基础 9 章不含 mvp，交集会把立项最关键的「先做什么」砍掉 */
+describe('阶段与档位不叠乘（2026-11-07 修改造引入的 bug）', () => {
+  it('立项 + lite 仍是完整 concept 7 章，含 mvp', () => {
+    const plan = buildFullGeneratePlan(form, {
+      scope: 'lite', includeMarket: false, includeRisk: false, stage: 'concept'
+    })
+    expect(plan.order).toEqual(chaptersUpToStage('concept'))
+    expect(plan.order).toContain('mvp')
+  })
+
+  it('制作 + lite 仍累计到 production，不被基础 9 章截断', () => {
+    const plan = buildFullGeneratePlan(form, {
+      scope: 'lite', includeMarket: false, includeRisk: false, stage: 'production'
+    })
+    expect(plan.order).toContain('systems')
+    expect(plan.order).toContain('art')
+    expect(plan.order.length).toBeGreaterThan(10)
+  })
+
+  it('未指定 stage 时 lite 保持旧行为（基础 9 章 + meta）', () => {
+    const plan = buildFullGeneratePlan(form, { scope: 'lite', includeMarket: true, includeRisk: true })
+    expect(plan.order).toHaveLength(10)
+    expect(plan.order).not.toContain('mvp')
+  })
+})

@@ -12,7 +12,14 @@
 > - P2-5 已用零数据风险方式处理（只改 aiHint/reviewHint 明确分工，不删字段不改必填）。
 >
 > 每条改造都挂「搜到的哪份文档这么说」与「代码里哪处不符」。
-> 四道闸 tsc×3 / lint / 4208 单测 / build 全绿。
+> 四道闸 tsc×3 / lint / **4214 单测** / build 全绿。
+>
+> **追加修复（同日）**：
+> - 阶段与档位**不可叠乘**：`lite` 的基础 9 章不含 `mvp`，与立项 7 章取交集会把
+>   「先做什么」砍掉只剩 6 章。已改为 stage 非 full 时以阶段为准，full 保持旧 lite 行为。
+> - 补齐方案第 3 步承诺的**一页 pitch 预览**：`renderOnePageSummary` 从 main 下沉到
+>   `@mobai/shared/ceshu/export/onePage`（纯逻辑、单一事实源，main 侧 re-export 保持既有 import 零改动），
+>   面板在立项阶段把生成草稿 `mergeChapterDraft` 合成后渲染预览，**不写盘**。
 
 ---
 

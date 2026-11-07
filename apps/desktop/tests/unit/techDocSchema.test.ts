@@ -55,3 +55,16 @@ describe('techDocOutline：GDD 输入映射与回链', () => {
     for (const section of TECH_DOC_SECTIONS) expect(outline).toContain(section.title)
   })
 })
+
+/** onepage 下沉到 shared 后，main 侧 re-export 必须是同一实现（单一事实源） */
+describe('一页摘要单一事实源', () => {
+  it('shared 与 main re-export 产出完全一致', async () => {
+    const shared = await import('@mobai/shared/ceshu/export/onePage')
+    const main = await import('../../src/main/ceshu/export/content/onepage')
+    const { createDefaultCeshu } = await import('@mobai/shared/ceshu/model')
+    const doc = createDefaultCeshu({ scope: 'full', name: '同一份文档' })
+    doc.vision.design_vision = '测试核心幻想'
+    expect(main.renderCeshuOnePageMarkdown(doc)).toBe(shared.renderCeshuOnePageMarkdown(doc))
+    expect(main.renderOnePageSummary(doc)).toBe(shared.renderOnePageSummary(doc))
+  })
+})
