@@ -160,6 +160,13 @@ cd apps/desktop && npm run build
     其中 3 处有原文直接支撑的缺口已补进字段（提交 `b6d16cdc`）。
   - ⚠️ 核不到的三项（ISO 29148 付费墙、中文大厂 PRD、游戏 Art Bible）**公开渠道拿不到原文**，
     必须由有真实文档的人提供；不要再拿文库转存当证据。
+  - ✅ **真实文档对拍已完成（2026-11-07，见 `docs/template-crosscheck-real-docs.md`）**：
+    取 6 个**可公开溯源**的真实决策文档模板/实例（Rust RFC / K8s KEP / Google 设计文档 / MADR ADR /
+    PEP / Model Card），逐章节映射到应用档章表。结论：**决策骨架成立、无需改结构**——
+    出现于 ≥5/6 源的核心关切（背景/方案/替代方案/影响/验收/目标）本档全部覆盖；
+    唯一弱项「开放问题」记为可选候选、暂不实现。`compatibility_impact` / `system_context` /
+    `runtime_units` / Datasheet 四组得到二次背书。
+  - ⚠️ 对拍**不含游戏文档**（GDD/Art Bible 无公开原文），游戏章表仍待真实样本二次核对。
 - 应用/游戏原型可加"导出为文件/预览大图"等体验。
 
 ---
@@ -181,3 +188,5 @@ cd apps/desktop && npm run build
 - `docs/template-corpus.md` —— 中 50 + 英 50 语料清单与跨语言频次
 - `docs/template-architecture-options.md` —— 6 项架构决策对比与推荐
 - `docs/app-development-plan.md` —— 路线 A 应用档推进记录（历史）
+- `docs/template-corpus-verification.md` —— 8 项待补源逐条复核（4 已核 / 1 部分 / 3 核不到）
+- `docs/template-crosscheck-real-docs.md` —— 6 个可溯源真实文档章节对拍（决策骨架成立、无需改结构）
