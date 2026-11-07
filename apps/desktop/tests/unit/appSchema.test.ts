@@ -143,3 +143,27 @@ describe('应用分区显示名：不带中文序号（与章标签「N. 名称�
     }
   })
 })
+
+describe('语料复核带来的字段补充（2026-11-07，见 docs/template-corpus-verification.md）', () => {
+  const ADDED: Readonly<Record<string, readonly string[]>> = {
+    architecture: ['system_context', 'runtime_units'],
+    data_sheet: ['collection_process', 'preprocessing', 'maintenance'],
+    release: ['compatibility_impact']
+  }
+
+  it('字段确实进了 schema（否则规格登记了、编辑器却不渲染）', () => {
+    for (const [chapter, keys] of Object.entries(ADDED)) {
+      const actual = APP_CHAPTER_FIELDS[chapter].map((field) => field.key)
+      for (const key of keys) expect(actual, `${chapter}.${key}`).toContain(key)
+    }
+  })
+
+  it('补充字段一律可选：模板加字段不得抬高老文档的必填门槛', () => {
+    for (const [chapter, keys] of Object.entries(ADDED)) {
+      for (const key of keys) {
+        const field = APP_CHAPTER_FIELDS[chapter].find((item) => item.key === key)
+        expect(field?.required, `${chapter}.${key} 不应是必填`).not.toBe(true)
+      }
+    }
+  })
+})
