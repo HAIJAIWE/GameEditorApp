@@ -9,18 +9,20 @@
 
 | 指标 | 游戏档（`ceshuSchema/*`，31 文件） | 应用档（`appSchema/chapters.ts`） |
 |---|---|---|
-| 内容字段总数 | 326 | **82**（不含 `columns` 列 key） |
-| `aiHint` 覆盖（AI 该产出什么） | 302（**92.6%**） | 74（**90.2%**） |
-| `reviewHint` 覆盖（人审看什么） | 326（**100%**） | 80（**97.6%**） |
+| 内容字段总数 | **352**（TS 运行时，含动态拆分字段） | **82**（不含 `columns` 列 key） |
+| `aiHint` 覆盖（AI 该产出什么） | 328 / 352；**缺的 24 个全是人定字段** | 74（**90.2%**） |
+| `reviewHint` 覆盖（人审看什么） | 全覆盖 | 80（**97.6%**） |
 | `aiDraftable: false`（人定，AI 不编） | 24 | 少量 |
 | 必填 | 由 `CHAPTER_REQUIRED_FIELDS` 派生 | 58 个 `required: true` |
 
-> **2026-11-07 更正**：初版把"含 `key:` 的行"当成字段数（110），实际那是把 pipeList 的 `columns` 列 key 也算进去了。
-> 真实内容字段 82 个，`aiHint` 90.2%。缺的 8 个里 7 个是 **meta 系统字段**（`project_name`/`platform`/`doc_kind`/
-> `optional_modules`/`status`/`confidentiality`/`version`/`date`）——它们由文档信息表单或系统写入，本就不该 AI 起草；
-> 唯一真正的业务字段缺口是发布章的 `compatibility`（已补 aiHint）。
+> **2026-11-07 两次更正**：
+> 1. 初版把"含 `key:` 的行"当成应用字段数（110），实际把 pipeList 的 `columns` 列 key 也算进去了 ⇒ 真实 82 个。
+> 2. 游戏侧"326 字段 / aiHint 92.6%"是**源码文本计数**，未含运行时按拆分规则动态插入的 `xxx_points/notes`。
+>    以 `CESHU_CHAPTER_FIELDS` + `resolveFieldMeta` 在 TS 运行时精确统计得 **352 字段**，
+>    `aiHint` 空 24 个与 `aiDraftable:false` 24 个**完全重合**（`noHintAndDraftable = 0`）——
+>    即"AI 不该起草的字段自然不写 aiHint"，是设计一致而非缺陷。详见 `docs/game-audit.md`。
 
-**判断**：两侧字段契约密度都很高（游戏 92.6% / 应用 90.2% 的 aiHint，reviewHint 接近全覆盖），这是项目最强的资产。原先"应用侧只有 66%"是统计口径错误，不成立。
+**判断**：两侧字段契约密度都很高（游戏内容字段 aiHint 完整覆盖 / 应用 90.2%，reviewHint 接近全覆盖），这是项目最强的资产。原先"应用侧只有 66%"是统计口径错误，不成立。
 
 ---
 
