@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { renderCeshuMarkdown, renderCeshuDeliverableMarkdown } from '../../src/main/ceshu/export/doc/markdown'
 import { renderCeshuNarrative } from '../../src/main/ceshu/export/content/narrative'
-import { CHAPTER_KEYS, type CeshuDocument, type ChapterKey } from '@mobai/shared/ceshu/reference'
+import { CHAPTER_KEYS, MODULE_CHAPTERS, type CeshuDocument, type ChapterKey } from '@mobai/shared/ceshu/reference'
 import { CESHU_CHAPTER_FIELDS } from '@mobai/shared/ceshu/fields'
 import { createDefaultCeshu } from '@mobai/shared/ceshu/model'
 import { isMachineDataField } from '@mobai/shared/ceshu/workflow'
@@ -20,6 +20,16 @@ import { isMachineDataField } from '@mobai/shared/ceshu/workflow'
  */
 
 const APPENDIX_HEADING = '## 附录：验收与机读数据'
+
+/**
+ * 对拍要覆盖**全部** schema 字段 ⇒ 显式启用全部模块。
+ * 新建文档默认会关掉发行期三章（市场分析/商业化/运营活动），
+ * 不显式打开的话这三章的字段不会进导出，对拍会误报「字段被丢弃」。
+ */
+function withAllModules(doc: CeshuDocument): CeshuDocument {
+  doc.meta.enabled_modules = [...MODULE_CHAPTERS]
+  return doc
+}
 
 function marker(chapter: string, key: string): string {
   return `MARK_${chapter}_${key}`
@@ -46,7 +56,7 @@ function fillEveryField(doc: CeshuDocument): Array<{ chapter: ChapterKey; key: s
 
 describe('策划书导出：编辑器字段 ↔ 生成文档 对拍', () => {
   it('每个非空 schema 字段都进文档：人读在正文、机读在附录，一个不漏', () => {
-    const doc = createDefaultCeshu({ scope: 'full', name: '对拍样本' })
+    const doc = withAllModules(createDefaultCeshu({ scope: 'full', name: '对拍样本' }))
     const plan = fillEveryField(doc)
     // 340 字段 - meta/systems 后仍有 300+，数量级本身也是一道防线
     expect(plan.length).toBeGreaterThan(300)
@@ -74,7 +84,7 @@ describe('策划书导出：编辑器字段 ↔ 生成文档 对拍', () => {
   })
 
   it('空字段按设计不输出（这是「前后端看起来不一样」的来源，不是丢字段）', () => {
-    const doc = createDefaultCeshu({ scope: 'full', name: '空字段样本' })
+    const doc = withAllModules(createDefaultCeshu({ scope: 'full', name: '空字段样本' }))
     doc.combat.damage_formula = ''
 
     const markdown = renderCeshuMarkdown(doc)
@@ -89,7 +99,7 @@ describe('策划书导出：编辑器字段 ↔ 生成文档 对拍', () => {
    * 机读字段由 markdown 的「附录：验收与机读数据」单独覆盖，此处不重复（curated 格式本就只展子集）。
    */
   it('narrative：每个非机读 schema 字段都进文档（一个不漏）', () => {
-    const doc = createDefaultCeshu({ scope: 'full', name: 'narrative 对拍样本' })
+    const doc = withAllModules(createDefaultCeshu({ scope: 'full', name: 'narrative 对拍样本' }))
     const plan = fillEveryField(doc)
     const out = renderCeshuNarrative(doc)
     const missing = plan
@@ -101,7 +111,7 @@ describe('策划书导出：编辑器字段 ↔ 生成文档 对拍', () => {
   })
 
   it('deliverable：每个非机读 schema 字段都进文档（一个不漏）', () => {
-    const doc = createDefaultCeshu({ scope: 'full', name: 'deliverable 对拍样本' })
+    const doc = withAllModules(createDefaultCeshu({ scope: 'full', name: 'deliverable 对拍样本' }))
     const plan = fillEveryField(doc)
     const out = renderCeshuDeliverableMarkdown(doc)
     const missing = plan

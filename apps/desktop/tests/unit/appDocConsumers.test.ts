@@ -4,6 +4,7 @@ import { buildCeshuBundle } from '../../src/main/ceshu/export/delivery/bundle'
 import { renderCeshuOnePageMarkdown } from '../../src/main/ceshu/export/content/onepage'
 import {
   CHAPTER_LABELS,
+  MODULE_CHAPTERS,
   type CeshuDocument,
   type ChapterKey
 } from '@mobai/shared/ceshu/reference'
@@ -101,6 +102,8 @@ describe('应用档：可见章消费方产出 SDD 内容', () => {
 describe('游戏档：章表分派后逐项零回归', () => {
   it('机读章章序 / index / 标签仍等于既有常量', () => {
     const doc = createDefaultCeshu({ scope: 'full', name: '测试游戏' })
+    // 新建默认关掉发行期三章；本用例校验「全开时章序/标签零回归」，故显式全开
+    doc.meta.enabled_modules = [...MODULE_CHAPTERS]
     const bundle = buildCeshuBundle(doc)
     expect(bundle.chapters).toHaveLength(24)
     expect(bundle.chapters[0]).toMatchObject({ key: 'meta', label: '文档信息', index: 1 })

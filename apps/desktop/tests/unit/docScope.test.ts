@@ -66,8 +66,8 @@ describe('应用档：可选 AI 模型层（optional_modules）', () => {
   })
 })
 
-describe('阶段轴：档位与章数（游戏零回归）', () => {  it('contentChapterCountsForDoc：游戏 9/23、应用 6/16、应用含 AI 7/20', () => {
-    expect(contentChapterCountsForDoc(doc('game', 'full'))).toEqual({ lite: 9, full: 23 })
+describe('阶段轴：档位与章数（游戏零回归）', () => {  it('contentChapterCountsForDoc：游戏 9/20（默认关发行期三章）、应用 6/16、应用含 AI 7/20', () => {
+    expect(contentChapterCountsForDoc(doc('game', 'full'))).toEqual({ lite: 9, full: 20 })
     expect(contentChapterCountsForDoc(doc('application', 'full'))).toEqual({ lite: 6, full: 16 })
     expect(contentChapterCountsForDoc(withAi(doc('application', 'full')))).toEqual({ lite: 7, full: 20 })
   })

@@ -3,7 +3,7 @@ import {
   GDD_SCOPE_FULL,
   SYSTEM_LABELS,
   TEMPLATE_VERSION,
-  contentChapterCount,
+  defaultEnabledModuleChapters,
   enabledModuleChapters,
   isChapterKey,
   isGddScope,
@@ -62,6 +62,13 @@ export function createDefaultCeshu(options: {
   if (isApp) {
     chapters.meta.doc_kind = 'application'
     if (options.name) chapters.meta.project_name = options.name
+  } else {
+    /*
+     * 新文档默认启用模块：全部模块 − `DEFAULT_DISABLED_MODULE_CHAPTERS`
+     * （市场分析 / 商业化 / 运营活动默认关，按需在模块选择器里开）。
+     * **只在新建时写**：老文档没有该字段仍按「全部模块」读，避免既有章节内容消失。
+     */
+    chapters.meta.enabled_modules = defaultEnabledModuleChapters()
   }
   // 模板版本：新建文档写入，对齐 documentSpec 中 GAME_SPEC / APP_SPEC 的 version。
   // 作为系统控制字段（非用户可编辑内容），落盘时不进 meta 表单 schema，避免用户/AI 误改。
@@ -272,7 +279,11 @@ export function visibleChaptersForDoc(doc: CeshuDocument): readonly string[] {
 
 /**
  * 某文档「方向版(lite) / 完整版(full)」各自的内容章数（不含 meta）。
- * 游戏档沿用既有的 `contentChapterCount`（零回归）；应用档按是否含 AI 模型层增减。
+ *
+ * 游戏档**按该文档实际可见章算**（档位 × 品类 × 启用模块），不再返回固定的
+ * `contentChapterCount`：新文档默认关掉「市场分析/商业化/运营活动」后，
+ * 若仍报 23 章，工具栏徽标就会与章节导航里的实际章数对不上（文案跟着数据腐烂）。
+ * 应用档按是否含 AI 模型层增减。
  */
 export function contentChapterCountsForDoc(doc: CeshuDocument): { lite: number; full: number } {
   if (getDocKind(doc) === 'application') {
@@ -282,7 +293,13 @@ export function contentChapterCountsForDoc(doc: CeshuDocument): { lite: number; 
       full: APP_NUMBERED_KEYS.length - (hasAi ? 0 : APP_AI_LAYER_KEYS.length)
     }
   }
-  return { lite: contentChapterCount('lite'), full: contentChapterCount('full') }
+  const gameType = getGameType(doc)
+  const modules = enabledModuleChapters(doc)
+  // visibleChapterKeys 含 meta，故减 1 得到「内容章数」
+  return {
+    lite: visibleChapterKeys('lite', gameType, modules).length - 1,
+    full: visibleChapterKeys('full', gameType, modules).length - 1
+  }
 }
 
 /**

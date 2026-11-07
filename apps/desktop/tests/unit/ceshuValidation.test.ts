@@ -14,9 +14,11 @@ function hasError(errors: string[], fragment: string): boolean {
 }
 
 describe('策划书校验：必填字段', () => {
-  it('空文档：必填字段逐项报错（49 条，budget 默认 {} 不算空），无依赖错误', () => {
+  it('空文档：必填字段逐项报错（43 条，budget 默认 {} 不算空），无依赖错误', () => {
     const errors = validateCeshu(makeDoc())
-    expect(errors).toHaveLength(49) // P2 后 24 章 47 必填 + 2 条依赖类（与旧口径的差集即新增 14 条）
+    // 新建文档默认关掉「市场分析/商业化/运营活动」三章 ⇒ 它们的 6 个必填不再计入；
+    // 41 个可见章必填 + 2 条依赖类 = 43
+    expect(errors).toHaveLength(43)
     // game_name 是人定字段（名称须人决）：2026-10-23 起单独措辞，见下方专门用例
     expect(hasError(errors, "文档信息：字段 'game_name' 由人确定，尚未填写")).toBe(true)
     expect(hasError(errors, "16. 可访问性与本地化：字段 'accessibility_features' 为必填项")).toBe(true)

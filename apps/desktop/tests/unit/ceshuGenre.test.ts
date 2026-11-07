@@ -2,12 +2,13 @@ import { describe, expect, it } from 'vitest'
 
 import {
   CHAPTER_KEYS,
+  DEFAULT_DISABLED_MODULE_CHAPTERS,
   NON_COMBAT_GAME_TYPES,
   chapterApplicableToGenre,
   gameTypeHasCombat,
   visibleChapterKeys
 } from '@mobai/shared/ceshu/reference'
-import { computeChapterProgress, createDefaultCeshu, getGameType } from '@mobai/shared/ceshu/model'
+import { computeChapterProgress, createDefaultCeshu, getGameType, visibleChaptersForDoc } from '@mobai/shared/ceshu/model'
 import { computeReadiness } from '@mobai/shared/ceshu/readiness'
 
 /**
@@ -70,14 +71,17 @@ describe('品类条件必填：无战斗品类隐藏 combat 章', () => {
     expect(slg.total).toBeGreaterThan(mergeAfter.total)
   })
 
-  it('完备度：无战斗品类少算 combat 章（23 章），含战斗 24 章', () => {
+  it('完备度：无战斗品类少算 combat 章；含战斗多一章（基数随可见章走）', () => {
     const doc = createDefaultCeshu({ scope: 'full' })
     doc.meta.game_type = '模拟经营'
-    expect(computeReadiness(doc).chapters).toHaveLength(CHAPTER_KEYS.length - 1)
+    // 可见章随「档位 × 品类 × 启用模块」变化，用实际可见章数断言，不写死 23/24
+    expect(computeReadiness(doc).chapters).toHaveLength(visibleChaptersForDoc(doc).length)
     expect(computeReadiness(doc).chapters.some((chapter) => chapter.chapter_key === 'combat')).toBe(false)
 
     doc.meta.game_type = 'SLG'
-    expect(computeReadiness(doc).chapters).toHaveLength(CHAPTER_KEYS.length)
+    expect(computeReadiness(doc).chapters).toHaveLength(visibleChaptersForDoc(doc).length)
     expect(computeReadiness(doc).chapters.some((chapter) => chapter.chapter_key === 'combat')).toBe(true)
+    // 含战斗品类恰好多出 combat 一章
+    expect(visibleChaptersForDoc(doc)).toHaveLength(CHAPTER_KEYS.length - DEFAULT_DISABLED_MODULE_CHAPTERS.length)
   })
 })

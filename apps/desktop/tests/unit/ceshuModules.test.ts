@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest'
 
 import {
   CHAPTER_KEYS,
+  DEFAULT_DISABLED_MODULE_CHAPTERS,
   MODULE_CHAPTERS,
   UNIVERSAL_CORE_CHAPTERS,
+  defaultEnabledModuleChapters,
   enabledModuleChapters,
   isChapterEnabled,
   isCoreChapter,
@@ -32,10 +34,24 @@ describe('通用底座 vs 系统模块', () => {
     expect(all.size).toBe(CHAPTER_KEYS.length)
   })
 
-  it('缺省 enabled_modules ⇒ 全部模块（向后兼容）', () => {
+  it('缺省 enabled_modules（老文档）⇒ 全部模块（向后兼容，零回归）', () => {
     const doc = createDefaultCeshu({ scope: 'full' })
+    // 新文档会显式写 enabled_modules；这里模拟「老文档没有该字段」
+    delete (doc.meta as Record<string, unknown>).enabled_modules
     expect(enabledModuleChapters(doc)).toEqual([...MODULE_CHAPTERS])
     for (const chapter of CHAPTER_KEYS) expect(isChapterEnabled(chapter, doc)).toBe(true)
+  })
+
+  it('新建文档默认关掉发行期三章（市场分析 / 商业化 / 运营活动）', () => {
+    const doc = createDefaultCeshu({ scope: 'full' })
+    const enabled = enabledModuleChapters(doc)
+    expect(enabled).toEqual(defaultEnabledModuleChapters())
+    for (const chapter of DEFAULT_DISABLED_MODULE_CHAPTERS) expect(enabled).not.toContain(chapter)
+    // 其余模块仍默认启用，底座恒启用
+    expect(enabled).toContain('combat')
+    expect(enabled).toContain('economy')
+    expect(enabled).toContain('numeric')
+    for (const chapter of UNIVERSAL_CORE_CHAPTERS) expect(isChapterEnabled(chapter, doc)).toBe(true)
   })
 
   it('显式 enabled_modules ⇒ 只启用这些模块，底座恒启用；非法值被过滤', () => {
@@ -70,8 +86,9 @@ describe('通用底座 vs 系统模块', () => {
     for (const chapter of UNIVERSAL_CORE_CHAPTERS) expect(chapter in progress).toBe(true)
   })
 
-  it('visibleChaptersForDoc：缺省全开，显式=底座+模块', () => {
+  it('visibleChaptersForDoc：缺省（老文档）全开，显式=底座+模块', () => {
     const doc = createDefaultCeshu({ scope: 'full' })
+    delete (doc.meta as Record<string, unknown>).enabled_modules // 模拟老文档：无该字段
     expect(visibleChaptersForDoc(doc)).toEqual(CHAPTER_KEYS) // 缺省全开（零变化）
     doc.meta.enabled_modules = ['combat']
     const visible = visibleChaptersForDoc(doc)

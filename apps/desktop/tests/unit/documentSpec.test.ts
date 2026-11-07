@@ -6,6 +6,7 @@ import {
   CHAPTER_NAMES,
   CHAPTER_PARTS,
   CHAPTER_REQUIRED_FIELDS,
+  DEFAULT_DISABLED_MODULE_CHAPTERS,
   MODULE_CHAPTERS,
   NUMBERED_CHAPTER_KEYS
 } from '@mobai/shared/ceshu/reference'
@@ -169,15 +170,16 @@ describe('规格即模板：结构校验与方向/细节分层', () => {
     expect(aiChapters).toEqual(['model_card', 'data_sheet', 'system_card', 'eval_redteam'])
   })
 
-  it('游戏侧可选模块 = 系统模块章逐章登记（defaultOn true，与现状一致）', () => {
+  it('游戏侧可选模块 = 系统模块章逐章登记；发行期三章默认关（与新建默认同源）', () => {
     expect(GAME_SPEC.modules.length).toBe(MODULE_CHAPTERS.length)
     for (const module of GAME_SPEC.modules) {
-      expect(module.defaultOn).toBe(true)
+      expect(module.defaultOn).toBe(!(DEFAULT_DISABLED_MODULE_CHAPTERS as readonly string[]).includes(module.key))
       expect([...module.chapters]).toEqual([module.key])
     }
-    // 市场 / 商业化 / 运营 本来就在可选模块里（与模块选择器一致）
-    for (const key of ['market_analysis', 'monetization', 'live_ops']) {
+    // 市场 / 商业化 / 运营 在可选模块里，但默认不启用（按需开启）
+    for (const key of DEFAULT_DISABLED_MODULE_CHAPTERS) {
       expect(GAME_SPEC.modules.map((m) => m.key)).toContain(key)
+      expect(GAME_SPEC.modules.find((m) => m.key === key)?.defaultOn).toBe(false)
     }
   })
 })

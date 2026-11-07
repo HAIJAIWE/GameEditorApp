@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { createDefaultCeshu } from '@mobai/shared/ceshu/model'
+import { CHAPTER_KEYS, DEFAULT_DISABLED_MODULE_CHAPTERS, defaultEnabledModuleChapters } from '@mobai/shared/ceshu/reference'
 import { APP_CHAPTER_KEYS, APP_AI_LAYER_KEYS, APP_CHAPTER_LABELS } from '@mobai/shared/appSchema'
 import { buildProjectFolder, projectFilesToDoc, projectFolderName } from '@mobai/shared/ceshu/workflow'
 
@@ -26,14 +27,24 @@ describe('项目文件夹 buildProjectFolder', () => {
     expect(files['tasks/programmer.md']).toContain('程序任务')
   })
 
-  it('config.json 是合法 JSON，含档位；未勾选模块时写 null（不物化「全开」）', () => {
+  it('config.json 是合法 JSON，含档位；新建文档写默认启用模块清单', () => {
     const doc = createDefaultCeshu({ scope: 'full', name: 'X' })
     const parsed = JSON.parse(buildProjectFolder(doc).files['config.json']) as {
       gdd_scope: string
       enabled_modules: string[] | null
     }
     expect(parsed.gdd_scope).toBe('full')
-    // 缺省 = 全部模块，但 config 要忠实记录「用户没选过」，而不是列 20 项
+    // 新建即写入默认清单（发行期三章默认关），不再是 null
+    expect(parsed.enabled_modules).toEqual(defaultEnabledModuleChapters())
+  })
+
+  it('老文档没有 enabled_modules 时 config 写 null（不物化「全开」）', () => {
+    const doc = createDefaultCeshu({ scope: 'full', name: 'X' })
+    delete (doc.meta as Record<string, unknown>).enabled_modules
+    const parsed = JSON.parse(buildProjectFolder(doc).files['config.json']) as {
+      gdd_scope: string
+      enabled_modules: string[] | null
+    }
     expect(parsed.enabled_modules).toBeNull()
   })
 
@@ -228,10 +239,12 @@ describe('应用档项目文件夹：导出 SDD 章、导入能还原', () => {
     for (const key of APP_CHAPTER_KEYS) expect(record[key], `读回丢了 ${key}`).toBeDefined()
   })
 
-  it('游戏档导出仍只有 24 章（零回归）', () => {
+  it('游戏档导出可见章 = 全部章 − 默认关闭的发行期三章', () => {
     const doc = createDefaultCeshu({ scope: 'full', name: '游戏' })
     const { files } = buildProjectFolder(doc)
-    expect(Object.keys(files).filter((path) => path.startsWith('design/'))).toHaveLength(24)
+    expect(Object.keys(files).filter((path) => path.startsWith('design/'))).toHaveLength(
+      CHAPTER_KEYS.length - DEFAULT_DISABLED_MODULE_CHAPTERS.length
+    )
     expect(files['design/combat.md']).toBeDefined()
     expect(files['design/architecture.md']).toBeUndefined()
   })

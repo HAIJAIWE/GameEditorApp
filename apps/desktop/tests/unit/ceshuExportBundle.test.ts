@@ -10,7 +10,7 @@ import {
   buildCeshuBundle,
   renderCeshuBundleJson
 } from '../../src/main/ceshu/export/delivery/bundle'
-import type { CeshuDocument } from '@mobai/shared/ceshu/reference'
+import { CHAPTER_KEYS, DEFAULT_DISABLED_MODULE_CHAPTERS, type CeshuDocument } from '@mobai/shared/ceshu/reference'
 import { createDefaultCeshu } from '@mobai/shared/ceshu/model'
 import { setFieldStatuses } from '@mobai/shared/ceshu/fields'
 
@@ -49,9 +49,12 @@ describe('双轨导出·机读轨 JSON 渲染', () => {
       positioning: '一句话定位',
       tags: ['剧情向', '开放世界']
     })
-    expect(bundle.chapters).toHaveLength(24) // P2 后 meta + 23 编号章
+    // 新建默认关掉发行期三章 ⇒ meta + 20 编号章
+    const expectedChapters = CHAPTER_KEYS.length - DEFAULT_DISABLED_MODULE_CHAPTERS.length
+    expect(bundle.chapters).toHaveLength(expectedChapters)
     expect(bundle.chapters[0]).toMatchObject({ key: 'meta', label: '文档信息', index: 1 })
-    expect(bundle.chapters.at(-1)).toMatchObject({ index: 24 })
+    // index 是「在全部章里的位置」（不随可见性重编号），末章仍是第 24 章
+    expect(bundle.chapters.at(-1)).toMatchObject({ index: CHAPTER_KEYS.length })
     expect(bundle.validation.errorCount).toBe(bundle.validation.errors.length)
     // 2 空格缩进 + 结尾换行（Git diff 友好）
     expect(json).toContain('\n  "schema": "mobai-ceshu-bundle/1"')

@@ -136,13 +136,14 @@ export function getStyleGlossary(style: string): string {
 /* ---- 整章提示词组装 ---- */
 
 /**
- * 系统控制字段：只由数据层写入（如模板版本锚点），AI 整章生成时**不得列入字段清单**。
- * 否则模型会试图编造 / 改动系统元数据；`template_version` 尤其——它是文档格式的锚点，
- * 被 AI 改写会让「老文档按新模板读」的判定失效。
+ * 系统控制字段：只由数据层 / 模块选择器写入（模板版本锚点、启用模块清单），
+ * AI 整章生成时**不得列入字段清单**。否则模型会试图编造 / 改动系统元数据：
+ * `template_version` 被改写会让「老文档按新模板读」的判定失效；
+ * `enabled_modules` 被改写会凭空开关章节，让用户已有的章内容「消失」。
  * 与 `doc_kind` 不同：后者在字段表里（AI 可见、写盘由 `withChapter` 守卫），
  * 本集合里的键连字段表都不进。
  */
-const NON_AI_GENERATED_KEYS: ReadonlySet<string> = new Set(['template_version'])
+const NON_AI_GENERATED_KEYS: ReadonlySet<string> = new Set(['template_version', 'enabled_modules'])
 
 /**
  * 整章生成的字段清单 = **字段表（schema，权威）∪ 文档数据键**（点路径键取首段）。

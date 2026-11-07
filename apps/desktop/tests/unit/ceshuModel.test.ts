@@ -12,6 +12,7 @@ import {
   normalizeCeshu,
   resolveDocGameStyle,
   templateVersionForDoc,
+  visibleChaptersForDoc,
   withChapter
 } from '@mobai/shared/ceshu/model'
 
@@ -85,7 +86,8 @@ describe('策划书模型（W3 第一切片）', () => {
   it('computeChapterProgress：必填字段、数组与 0 的真值语义、systems 占比、档位可见章节', () => {
     const doc = createDefaultCeshu({ scope: 'full' })
     const progress = computeChapterProgress(doc)
-    expect(Object.keys(progress)).toHaveLength(CHAPTER_KEYS.length + 1)
+    // 可见章随「档位 × 品类 × 启用模块」变化，不能写死 24 章
+    expect(Object.keys(progress)).toHaveLength(visibleChaptersForDoc(doc).length + 1)
     expect(progress.meta).toBe(0)
     expect(progress.systems).toBe(0)
 

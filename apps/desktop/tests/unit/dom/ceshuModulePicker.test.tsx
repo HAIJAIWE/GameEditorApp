@@ -2,7 +2,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { CeshuModulePicker } from '../../../src/renderer/src/components/ceshuDoc'
-import { CHAPTER_LABELS, MODULE_CHAPTERS, UNIVERSAL_CORE_CHAPTERS } from '@mobai/shared/ceshu/reference'
+import {
+  CHAPTER_LABELS,
+  DEFAULT_DISABLED_MODULE_CHAPTERS,
+  MODULE_CHAPTERS,
+  UNIVERSAL_CORE_CHAPTERS
+} from '@mobai/shared/ceshu/reference'
 import { createDefaultCeshu } from '@mobai/shared/ceshu/model'
 import { installMbApi, renderDom, type RenderResult } from './render'
 
@@ -17,7 +22,7 @@ afterEach(async () => {
 })
 
 describe('CeshuModulePicker：系统模块勾选', () => {
-  it('默认全部模块勾选；通用底座 4 章恒显示', async () => {
+  it('默认按「新建默认」勾选（发行期三章默认关）；通用底座 4 章恒显示', async () => {
     api = installMbApi()
     const doc = createDefaultCeshu({ scope: 'full' })
     view = await renderDom(<CeshuModulePicker doc={doc} onToggle={() => {}} />)
@@ -25,7 +30,8 @@ describe('CeshuModulePicker：系统模块勾选', () => {
     const text = view!.text()
     for (const chapter of UNIVERSAL_CORE_CHAPTERS) expect(text).toContain(CHAPTER_LABELS[chapter])
     for (const chapter of MODULE_CHAPTERS) {
-      expect((view!.byTestId(`module-toggle-${chapter}`) as HTMLInputElement).checked).toBe(true)
+      const expected = !DEFAULT_DISABLED_MODULE_CHAPTERS.includes(chapter)
+      expect((view!.byTestId(`module-toggle-${chapter}`) as HTMLInputElement).checked, chapter).toBe(expected)
     }
   })
 
@@ -76,9 +82,10 @@ describe('CeshuModulePicker：分组开关与预设（onSetModules）', () => {
   it('点击分组开关把整组写入 onSetModules（移除该组模块，保留其余）', async () => {
     api = installMbApi()
     const doc = createDefaultCeshu({ scope: 'full' })
+    doc.meta.enabled_modules = [...MODULE_CHAPTERS] // 先全开，才能测「关闭本组」
     const onSetModules = vi.fn()
     view = await renderDom(<CeshuModulePicker doc={doc} onToggle={() => {}} onSetModules={onSetModules} />)
-    await view!.click(view!.byTestId('module-group-toggle-production')) // 默认全开 → 关闭本组
+    await view!.click(view!.byTestId('module-group-toggle-production')) // 全开 → 关闭本组
     expect(onSetModules).toHaveBeenCalledTimes(1)
     const arg = onSetModules.mock.calls[0][0] as string[]
     expect(arg).toContain('combat')

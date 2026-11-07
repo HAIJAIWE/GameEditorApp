@@ -241,6 +241,31 @@ export function isCoreChapter(chapter: ChapterKey): boolean {
 }
 
 /**
+ * 新文档**默认不启用**的系统模块章。
+ *
+ * 依据模板语料库复核（`docs/template-corpus.md` §D、`docs/design-doc-templates-research.md` §四）：
+ * 游戏 23 章偏多，「市场分析 / 商业化 / 运营活动」属发行期、并非所有项目都需要，
+ * 宜转「按需开启」而不是默认铺满。
+ *
+ * ⚠️ **只影响新建文档的默认值**：`createDefaultCeshu` 会把 `enabled_modules` 显式写成
+ * 「全部模块 − 本表」。老文档没有该字段，仍按「全部模块」读（见 `enabledModuleChapters`），
+ * 因此**老文档零变化**——它们已写好的这三章内容不会消失。
+ */
+export const DEFAULT_DISABLED_MODULE_CHAPTERS: readonly ChapterKey[] = [
+  'market_analysis',
+  'monetization',
+  'live_ops'
+]
+
+/**
+ * 新文档默认启用的模块章 = 全部模块 − `DEFAULT_DISABLED_MODULE_CHAPTERS`。
+ * 顺序沿用 `MODULE_CHAPTERS`（即章序），保证写进 `meta.enabled_modules` 的值稳定可比。
+ */
+export function defaultEnabledModuleChapters(): ChapterKey[] {
+  return MODULE_CHAPTERS.filter((chapter) => !DEFAULT_DISABLED_MODULE_CHAPTERS.includes(chapter))
+}
+
+/**
  * 文档启用的系统模块：
  * - `doc.enabled_modules` 是合法数组 ⇒ 用它（过滤到 MODULE_CHAPTERS 内）；
  * - 缺省 / 非法 ⇒ **全部模块**（向后兼容：老文档行为零变化）。

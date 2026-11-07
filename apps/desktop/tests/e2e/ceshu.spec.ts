@@ -4,7 +4,7 @@ import { join } from 'node:path'
 
 import { expect, test } from '@playwright/test'
 import { launchApp, libraryDir, waitReady } from './helpers/app'
-import { CHAPTER_KEYS } from '@mobai/shared/ceshu/reference'
+import { CHAPTER_KEYS, DEFAULT_DISABLED_MODULE_CHAPTERS } from '@mobai/shared/ceshu/reference'
 
 test('策划书：读取旧版文件 → 新建 → 编辑保存章节 → 磁盘落盘', async () => {
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-ceshu-e2e-'))
@@ -37,11 +37,11 @@ test('策划书：读取旧版文件 → 新建 → 编辑保存章节 → 磁�
     await expect(window.getByTestId('home-card').first()).toContainText
 
     // 新建空白策划书 → 自动进入编辑器。
-    // 章节数**不写死**：专业版章数由 `CHAPTER_KEYS` 派生（2026-10 追加 P2 章后从 17 变 24）；
+    // 章节数**不写死**：专业版可见章 = `CHAPTER_KEYS` − 新建时默认关闭的发行期三章；
     // 且编辑器默认按「立项阶段」筛选只显示 7 章，故先切「全部阶段」再数。
     await window.getByTestId('home-new-blank').click()
     await window.getByTestId('stage-filter-all').click()
-    await expect(window.getByTestId('chapter-tab')).toHaveCount(CHAPTER_KEYS.length)
+    await expect(window.getByTestId('chapter-tab')).toHaveCount(CHAPTER_KEYS.length - DEFAULT_DISABLED_MODULE_CHAPTERS.length)
     await expect(window.getByTestId('chapter-form')).toContainText('文档信息')
 
     // 编辑文档信息并保存

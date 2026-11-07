@@ -11,6 +11,7 @@ import {
   CHAPTER_NAMES,
   CHAPTER_PARTS,
   CHAPTER_REQUIRED_FIELDS,
+  DEFAULT_DISABLED_MODULE_CHAPTERS,
   LITE_CHAPTER_KEYS,
   META_CHAPTER_KEY,
   MODULE_CHAPTERS,
@@ -75,11 +76,12 @@ export const GAME_SPEC: DocumentSpec = {
   roles: CESHU_ROLE_ORDER.map((key) => ({ key, label: CESHU_ROLE_LABELS[key] })),
   roleChapters: ROLE_CHAPTERS as Readonly<Record<string, readonly string[]>>,
   // 游戏侧的可选 = 「系统模块章」逐章开关（meta.enabled_modules，值是章 key）；
-  // 这里如实登记，defaultOn=true 与现状一致（缺省全开，老文档零变化）
+  // 默认值取自 `DEFAULT_DISABLED_MODULE_CHAPTERS`（市场分析/商业化/运营活动默认关），
+  // 与 `createDefaultCeshu` 写入的 enabled_modules 同源，避免规格与实际默认漂移。
   modules: MODULE_CHAPTERS.map((key) => ({
     key,
     label: CHAPTER_LABELS[key],
-    defaultOn: true,
+    defaultOn: !DEFAULT_DISABLED_MODULE_CHAPTERS.includes(key),
     chapters: [key]
   })),
   // 游戏档不隐藏任何主区页签
