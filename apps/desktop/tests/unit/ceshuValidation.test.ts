@@ -79,7 +79,7 @@ describe('策划书校验：章节间一致性（11 项中的关键项）', () =
     const doc = makeDoc()
     doc.risk_handling.risk_matrix = ['进度风险']
     doc.resources.risk_matrix = ['技术风险']
-    expect(hasError(validateCeshu(doc), 'TOP 风险未出现在「风险控制」矩阵：技术风险')).toBe(true)
+    expect(hasError(validateCeshu(doc), 'TOP 风险未出现在「13. 风险控制」矩阵：技术风险')).toBe(true)
 
     doc.resources.risk_matrix = ['进度风险']
     expect(hasError(validateCeshu(doc), 'TOP 风险未出现在')).toBe(false)

@@ -151,7 +151,7 @@ describe('版本对比：字段值格式化与 Markdown 报告', () => {
     expect(markdown).toContain('| game_name | A | B | ✎ 修改 |')
     expect(markdown).toContain('| design_vision |  | a\\|b c | ✚ 新增 |')
     // 未触及章节输出「— 未变」
-    expect(markdown).toContain('### 世界观与角色 — 未变')
+    expect(markdown).toContain('### 2. 世界观与角色 — 未变')
     expect(markdown).toContain('### 文档信息')
     expect(markdown).toContain('新增 0 | 删除 0 | 修改 1 | 未变')
   })

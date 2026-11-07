@@ -250,7 +250,7 @@ describe('角色分派：每份文档都有负责人', () => {
     const planned = planHandoffDocs(doc).find((item) => item.def.id === 'arch-stack')!
     const md = renderHandoffDoc(doc, planned, TS)
     // tech 是「第十章」，但锚点是 ch11（meta 占 ch1）——锚点不能用 chapterNumber 推
-    expect(md).toContain('> 来源：技术规格（gdd.md#ch11）')
+    expect(md).toContain('> 来源：10. 技术规格（gdd.md#ch11）')
   })
 
   it('来源锚点在 gdd.md 里真实存在（目录与回链不脱钩）', () => {

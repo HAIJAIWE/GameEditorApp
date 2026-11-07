@@ -89,8 +89,9 @@ function formatIssues(error: z.ZodError): string {
 /**
  * 把覆盖层应用到基础规格，返回**新的**规格对象（不改入参）。
  *
- * 重排后章序、纯主题式标签、`chapterLabels` 全部重新派生——这是唯一正确做法：
+ * 重排后章序、按档位分派的标签、`chapterLabels` 全部重新派生——这是唯一正确做法：
  * 章号是位置的函数，位置变了标签必须跟着变，否则会出现「顺序换了、章号还停在旧位」。
+ * 游戏档标签编号式、应用档主题式（依据 `docs/game-doc-corpus-2026.md`）。
  *
  * 任何不合法输入都抛错（不返回部分结果）。调用方若在「不能失败」的路径上
  * （如导出），应自行兜底；需要把错误暴露给用户的路径直接让异常冒泡即可。
@@ -161,17 +162,22 @@ export function applyTemplateOverlay(base: DocumentSpec, overlay: unknown): Docu
     }
   })
 
-  // 章序 = 分区展开（章号由位置派生，故顺序即章号）；但标签为纯主题式，不把章号写进 label
+  // 章序 = 分区展开（章号由位置派生，故顺序即章号）
   const numberedKeys = parts.flatMap((part) => [...part.chapters])
   const chapterKeys = [base.metaKey, ...numberedKeys]
+  const numberByKey = new Map(numberedKeys.map((key, index) => [key, index + 1]))
   const baseChapterByKey = new Map(base.chapters.map((chapter) => [chapter.key, chapter]))
+  // 标签按档位分派：游戏档编号式（CHAPTER_LABELS 同形），应用档主题式（APP_CHAPTER_LABELS 同形）。
+  // 依据 docs/game-doc-corpus-2026.md：游戏策划案多数派编号，软件设计文档原文主题式。
+  const numbered = base.kind === 'game'
 
   const chapters: SpecChapter[] = chapterKeys.map((key) => {
     const baseChapter = baseChapterByKey.get(key)
     if (baseChapter === undefined) throw new Error(`章序引用了不存在的章：${key}`)
     const name = nameByKey.get(key) ?? baseChapter.name
-    // 纯主题式标签（对齐真实文档，不编号成章）；章号/锚点仍由位置派生，不进 label
-    return { ...baseChapter, name, label: name }
+    const number = numberByKey.get(key) ?? 0
+    const label = numbered && number > 0 ? `${number}. ${name}` : name
+    return { ...baseChapter, name, label }
   })
 
   const chapterLabels: Record<string, string> = {}

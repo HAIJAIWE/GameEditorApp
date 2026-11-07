@@ -134,13 +134,22 @@ export function chapterOrdinalCn(key: ChapterKey): string {
 }
 
 /**
- * 章节显示标签：**纯主题式**，不编号成章（对齐真实设计/决策文档的小标题写法：
- * RFC/KEP/Google 设计文档/ADR 都用 Context、Goals、Design 这类主题标题，而非「第 N 章」）。
- * 长文档（如 23 章 GDD）的导航靠目录顺序 + 三分区（核心设计/制作与商业/扩展设计），不靠章号。
- * 顺序与锚点 `chN` 由数组位置独立派生（见 `chapterNumber` / `chapterAnchorOf`），与此标签无关。
+ * 章节显示标签（**游戏档**）：编号章用「N. 名称」编号小节式，文档信息段无前缀。
+ *
+ * 依据 `docs/game-doc-corpus-2026.md`（国内 25 + 国际 25 条游戏文档）：
+ * 逐字读过的 11 份里编号派 5 / 主题派 4 / 同页并存 1 / 非模板 1；全 50 条口径 10:3。
+ * 游戏策划案（正式交付物 / 可复制模板）多数用「第一章…第八章」或 `1./a./i.` 多级编号，
+ * 用户拍板「跟多数人习惯」⇒ 恢复编号。分流维度是**文档载体**而非地域：
+ * 应用档（SDD）仍用主题式，依据是 6 个软件文档原文（RFC/KEP/Google/ADR/PEP/ModelCard）。
+ *
+ * 顺序与锚点 `chN` 由数组位置独立派生（见 `chapterNumber` / `chapterAnchorOf`），与标签前缀无关。
  */
 export const CHAPTER_LABELS: Record<ChapterKey, string> = Object.fromEntries(
-  CHAPTER_KEYS.map((key) => [key, CHAPTER_NAMES[key]])
+  CHAPTER_KEYS.map((key) => {
+    const ordinal = chapterNumber(key)
+    const name = CHAPTER_NAMES[key]
+    return [key, ordinal === 0 ? name : `${ordinal}. ${name}`]
+  })
 ) as Record<ChapterKey, string>
 
 /** 该章所属分区；文档信息段返回 null（分区序号见 `partDisplayName`） */

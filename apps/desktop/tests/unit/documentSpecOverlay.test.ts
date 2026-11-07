@@ -21,7 +21,7 @@ describe('模板覆盖层：标签 / 顺序 / 模块默认开关', () => {
 
   it('章名覆盖：只改显示名，章号沿用原位置', () => {
     const out = applyTemplateOverlay(GAME_SPEC, { chapters: [{ key: 'vision', name: '产品愿景与定位' }] })
-    expect(out.chapterLabels.vision).toBe('产品愿景与定位')
+    expect(out.chapterLabels.vision).toBe('1. 产品愿景与定位')
     expect(out.chapters.find((chapter) => chapter.key === 'vision')?.name).toBe('产品愿景与定位')
     // 其它章不受影响
     expect(out.chapterLabels.gameplay).toBe(GAME_SPEC.chapterLabels.gameplay)
@@ -36,7 +36,7 @@ describe('模板覆盖层：标签 / 顺序 / 模块默认开关', () => {
     // 核心区首章 = 原末章（audio），章号变成 1
     const firstName = GAME_SPEC.chapters.find((chapter) => chapter.key === reversed[0])?.name
     expect(out.numberedKeys[0]).toBe(reversed[0])
-    expect(out.chapterLabels[reversed[0]]).toBe(firstName)
+    expect(out.chapterLabels[reversed[0]]).toBe(`1. ${firstName}`)
     // 核心区整体仍是前 9 章（lite 范围不变）
     expect(out.numberedKeys.slice(0, reversed.length)).toEqual(reversed)
     // 集合不变（不丢章、不添章）
@@ -130,5 +130,24 @@ describe('specForDoc：文档携带覆盖层时才生效', () => {
     expect(templateOverlayKind({ kind: 'nope' })).toBeUndefined()
     expect(templateOverlayKind('not-object')).toBeUndefined()
     expect(templateOverlayKind({})).toBeUndefined()
+  })
+})
+
+/** 档位分派：游戏档重排后编号跟随新位置，应用档重排后仍是主题式（2026-11-08） */
+describe('模板覆盖层：标签按档位分派', () => {
+  it('游戏档重排：章号跟随新位置（核心区首章变 1）', () => {
+    const corePart = GAME_SPEC.parts.find((part) => part.key === 'core')
+    const reversed = [...(corePart?.chapters ?? [])].reverse()
+    const out = applyTemplateOverlay(GAME_SPEC, { order: { chapters: { core: reversed } } })
+    const firstName = GAME_SPEC.chapters.find((chapter) => chapter.key === reversed[0])?.name
+    expect(out.chapterLabels[reversed[0]]).toBe(`1. ${firstName}`)
+  })
+
+  it('应用档重排：标签不含编号（软件文档主题式口径）', () => {
+    const out = applyTemplateOverlay(APP_SPEC, { chapters: [{ key: 'overview', name: '项目背景与目标' }] })
+    expect(out.chapterLabels.overview).toBe('项目背景与目标')
+    for (const label of Object.values(out.chapterLabels)) {
+      expect(/^\d+\.\s/.test(label), `${label} 不应带编号`).toBe(false)
+    }
   })
 })

@@ -209,7 +209,11 @@ export function visibleChapterEntries(
   return CHAPTER_KEYS.map((key, position) => ({ key, index: position + 1 })).filter((entry) => visible.has(entry.key))
 }
 
-/** 章节标题文本：纯主题式（如 "游戏系统设计"）；顺序与锚点由数组位置派生，标题本身不带编号 */
+/**
+ * 章节标题文本（游戏档）：直接取 `CHAPTER_LABELS`（已含「N. 」前缀，如 "4. 游戏系统设计"）。
+ * **不再叠加 `entry.index`** —— 历史上两者叠加会产出「4. 4. 游戏系统设计」双号 bug。
+ * 锚点 `chN` 与顺序仍由数组位置独立派生。
+ */
 export function chapterHeading(entry: VisibleChapterEntry): string {
   return CHAPTER_LABELS[entry.key]
 }
@@ -296,7 +300,7 @@ export function visibleChapterEntriesForDoc(doc: CeshuDocument): DocChapterEntry
     .map((entry) => ({ key: entry.key as string, index: entry.index }))
 }
 
-/** 章节标题：应用档用 APP_CHAPTER_LABELS，游戏档用 CHAPTER_LABELS（均为纯主题式，不带编号） */
+/** 章节标题：应用档主题式（APP_CHAPTER_LABELS），游戏档编号式（CHAPTER_LABELS）——按档位分派 */
 export function chapterHeadingForDoc(doc: CeshuDocument, entry: DocChapterEntry): string {
   if (isAppDoc(doc)) return chapterLabelForDoc(doc, entry.key)
   return chapterHeading(entry as VisibleChapterEntry)

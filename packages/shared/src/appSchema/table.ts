@@ -85,7 +85,12 @@ export function appChapterNumber(key: string): number {
   return index < 0 ? 0 : index + 1
 }
 
-/** 完整章标签：纯主题式，不编号成章（对齐真实设计/决策文档的小标题写法）；文档信息段即「文档信息」 */
+/**
+ * 完整章标签（**应用档**）：纯主题式，不编号成章。
+ * 依据 6 个软件文档原文（RFC/KEP/Google 设计文档/ADR/PEP/ModelCard）均用主题式小标题。
+ * 游戏档另用编号式（CHAPTER_LABELS），两档按文档载体分派，见 `docs/game-doc-corpus-2026.md`。
+ * 文档信息段即「文档信息」。
+ */
 export const APP_CHAPTER_LABELS: Readonly<Record<string, string>> = Object.fromEntries(
   APP_CHAPTER_KEYS.map((key) => [key, APP_CHAPTER_NAMES[key] ?? key])
 )

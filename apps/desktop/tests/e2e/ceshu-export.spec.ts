@@ -81,7 +81,7 @@ test('策划书导出：Markdown/HTML/docx/pptx/PDF/Excel 全链路落盘', asyn
     const markdown = readFileSync(join(outDir, 'markdown.md'), 'utf-8')
     expect(markdown).toContain('# E2E 导出游戏')
     // lite 档末章是音频设计（导出序号 = 全量位置，故为 10 而非 9）；技术规格是第十章，lite 不含
-    expect(markdown).toContain('- [音频设计](#ch10)')
+    expect(markdown).toContain('- [9. 音频设计](#ch10)')
     expect(markdown).not.toContain('技术规格')
 
     // HTML：自包含

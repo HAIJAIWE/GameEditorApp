@@ -128,7 +128,7 @@ describe('策划书导出：Excel', () => {
     expect(overview.getRow(10).getCell(1).value).toBe('总完成度')
     expect(typeof overview.getRow(10).getCell(2).value).toBe('number')
     expect(overview.getRow(11).getCell(1).value).toBe('文档信息')
-    expect(overview.getRow(27).getCell(1).value).toBe('可访问性与本地化')
+    expect(overview.getRow(27).getCell(1).value).toBe('16. 可访问性与本地化')
     // 34 行 + 末尾的「审核进度」行（该文档无 field_status，只有汇总行）
     expect(overview.rowCount).toBe(35)
   })

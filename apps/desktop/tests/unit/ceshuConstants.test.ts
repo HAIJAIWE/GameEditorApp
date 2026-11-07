@@ -74,15 +74,15 @@ describe('策划书常量：章号与标签由数组位置派生', () => {
     expect(numbers).toEqual(numbers.map((_, index) => index + 1))
   })
 
-  it('CHAPTER_LABELS：全部纯主题式（不加「N. 」编号前缀），与 CHAPTER_NAMES 完全一致', () => {
-    // 真实设计/决策文档用主题式小标题（Context / Goals / Design…），不编号成章。
-    // 章号仍由 chapterNumber 派生，但只用于锚点/顺序，不写进显示标签。
-    for (const key of CHAPTER_KEYS) {
-      expect(CHAPTER_LABELS[key]).toBe(CHAPTER_NAMES[key])
-      expect(CHAPTER_LABELS[key].startsWith('第')).toBe(false)
-      expect(/^\d+\.\s/.test(CHAPTER_LABELS[key])).toBe(false)
-    }
+  it('CHAPTER_LABELS：游戏档编号章用「N. 名称」，文档信息段无前缀', () => {
+    // 依据 docs/game-doc-corpus-2026.md：游戏策划案多数派用编号章，用户拍板「跟多数人习惯」。
+    // 应用档另用主题式（APP_CHAPTER_LABELS），两档分派，不在此断言。
     expect(CHAPTER_LABELS.meta).toBe(CHAPTER_NAMES.meta)
+    for (const key of NUMBERED_CHAPTER_KEYS) {
+      const n = chapterNumber(key)
+      expect(CHAPTER_LABELS[key], `${key} 标签`).toBe(`${n}. ${CHAPTER_NAMES[key]}`)
+      expect(CHAPTER_LABELS[key].startsWith('第')).toBe(false)
+    }
   })
 
   it('chapterPartOf / partDisplayName：分区归属正确，分区显示名不带中文序号', () => {
