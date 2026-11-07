@@ -9,6 +9,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { useT } from '@mobai/client-ui'
+import { buildTechDocDraft } from '@mobai/shared/agent/techDoc/techDocDraft'
+import type { CeshuDocument } from '@mobai/shared/ceshu/reference'
+import { getActiveCeshuId } from '../../plugins/host'
 
 import { ChatMarkdown } from '../digital'
 import { StateView } from '../common'
@@ -155,6 +158,42 @@ export function TechDocPanel() {
     }
   }, [api, newName, refresh, t])
 
+  /**
+   * 从当前策划书生成 TDD 草稿：把 GDD 素材按 TECH_DOC_GDD_INPUTS 映射填进 9 章。
+   * 零 LLM（纯素材汇集），复用现有 `techDoc:write`；用户再补实现细节或让 AI 展开。
+   */
+  const createFromGdd = useCallback(async (): Promise<void> => {
+    if (api === undefined) return
+    const id = getActiveCeshuId()
+    if (id === null) {
+      setError(t('techDoc.fromGddNoDoc'))
+      return
+    }
+    const name = (newName.trim() || `tech-${id.slice(0, 8)}`).replace(/[\\/]/g, '-')
+    try {
+      const mb = (window as unknown as {
+        mbApi?: { ceshu?: { get(req: { id: string }): Promise<CeshuDocument> } }
+      }).mbApi
+      const doc = await mb?.ceshu?.get({ id })
+      if (doc === undefined) throw new Error(t('techDoc.fromGddNoDoc'))
+      const draft = buildTechDocDraft(doc, name)
+      await api.write({ name, content: draft.markdown })
+      setNewName('')
+      setActive(name)
+      setContent(draft.markdown)
+      setDirty(false)
+      setError('')
+      setNotice(
+        draft.sourcedFields === 0
+          ? t('techDoc.fromGddEmpty')
+          : t('techDoc.fromGddOk', { name, count: draft.sourcedFields })
+      )
+      await refresh()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    }
+  }, [api, newName, refresh, t])
+
   const save = useCallback(async (): Promise<void> => {
     if (api === undefined || active === null) return
     try {
@@ -222,6 +261,14 @@ export function TechDocPanel() {
           />
           <button type="button" className="btn primary" data-testid="techdoc-create" onClick={() => void createDoc()}>
             {t('techDoc.create')}
+          </button>
+          <button
+            type="button"
+            className="btn"
+            data-testid="techdoc-create-from-gdd"
+            onClick={() => void createFromGdd()}
+          >
+            {t('techDoc.createFromGdd')}
           </button>
         </div>
         {loading ? (
@@ -318,8 +365,6 @@ export function TechDocPanel() {
                 {deleteArmed ? t('techDoc.confirmDelete') : t('common.delete')}
               </button>
             </div>
-            {notice !== '' && <div className="techdoc-notice" data-testid="techdoc-notice">{notice}</div>}
-            {error !== '' && <div className="techdoc-error" data-testid="techdoc-error">{error}</div>}
             {mode === 'edit' ? (
               <textarea
                 className="techdoc-textarea"
@@ -338,6 +383,9 @@ export function TechDocPanel() {
           </>
         )}
       </section>
+      {/* 提示条放在顶层：新建/生成失败时 active 仍为 null，旧位置在编辑器区内会看不见 */}
+      {notice !== '' && <div className="techdoc-notice" data-testid="techdoc-notice">{notice}</div>}
+      {error !== '' && <div className="techdoc-error" data-testid="techdoc-error">{error}</div>}
     </div>
   )
 }

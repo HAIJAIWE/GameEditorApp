@@ -15,6 +15,7 @@ import { renderCeshuHtml } from './doc/html'
 import { renderCeshuDeliverableMarkdown, renderCeshuMarkdown } from './doc/markdown'
 import { renderCeshuNarrative } from './content/narrative'
 import { renderCeshuHomepage } from './content/homepage'
+import { renderCeshuArtBible } from './content/artBible'
 import { renderCeshuOnePageMarkdown } from './content/onepage'
 import { renderCeshuPdf } from './doc/pdf'
 import { renderCeshuPptx } from './doc/pptx'
@@ -87,6 +88,8 @@ async function renderContent(
       return renderCeshuNarrative(doc)
     case 'homepage':
       return renderCeshuHomepage(doc)
+    case 'artbible':
+      return renderCeshuArtBible(doc)
     case 'tasks':
       return renderCeshuTasksMarkdown(doc)
     case 'html':

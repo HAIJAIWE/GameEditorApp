@@ -199,3 +199,47 @@ describe('parseHeadings（章节大纲提取）', () => {
     expect(parseHeadings('正文\n#不是标题\n## 是标题')).toEqual([{ level: 2, text: '是标题' }])
   })
 })
+
+/** 从策划书生成 TDD 草稿（2026-11-08，GDD→TDD 链路） */
+describe('技术设计文档面板：从策划书生成草稿', () => {
+  it('无活动文档时给出明确提示，不写入', async () => {
+    const { setHostUi } = await import('../../../src/renderer/src/plugins/host')
+    setHostUi({ notify: () => {}, openPanel: () => {}, setHomeVisible: () => {}, getActiveCeshuId: () => null })
+    stub = installMbApi({ overrides: { 'techDoc.list': () => ({ docs: [] }), 'techDoc.write': () => ({ ok: true }) } })
+    const view = await renderDom(<TechDocPanel />)
+    await view.flush()
+    await view.click(view.byTestId('techdoc-create-from-gdd'))
+    await view.flush()
+    expect(view.text()).toContain('请先在策划书里打开一份文档')
+    setHostUi(null)
+    await view.cleanup()
+  })
+
+  it('有活动文档时按 GDD 素材生成草稿并写入', async () => {
+    const { setHostUi } = await import('../../../src/renderer/src/plugins/host')
+    const { createDefaultCeshu } = await import('@mobai/shared/ceshu/model')
+    const doc = createDefaultCeshu({ scope: 'full', name: '星河战记' })
+    doc.vision.design_vision = '星际考古的核心幻想'
+    setHostUi({ notify: () => {}, openPanel: () => {}, setHomeVisible: () => {}, getActiveCeshuId: () => 'c1' })
+    let written = ''
+    stub = installMbApi({
+      overrides: {
+        'ceshu.get': () => doc,
+        'techDoc.list': () => ({ docs: [] }),
+        'techDoc.write': (req: unknown) => {
+          written = (req as { content: string }).content
+          return { ok: true }
+        }
+      }
+    })
+    const view = await renderDom(<TechDocPanel />)
+    await view.flush()
+    await view.click(view.byTestId('techdoc-create-from-gdd'))
+    await view.flush()
+    expect(written).toContain('星际考古的核心幻想')
+    expect(written).toContain('## 架构总览')
+    expect(written).toContain('## 来源章节')
+    setHostUi(null)
+    await view.cleanup()
+  })
+})
