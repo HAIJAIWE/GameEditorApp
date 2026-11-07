@@ -10,6 +10,7 @@ import {
 } from '../reference'
 import type { LlmUsage } from '../../config/llm'
 import { resolveFieldMeta } from '../fields'
+import { chaptersUpToStage } from '../workflow'
 import type { QualityGateVerdict } from '../../types'
 import {
   chapterDataForDoc,
@@ -186,11 +187,27 @@ const PRIOR_DIGEST_TOTAL_LIMIT = 1400
  * - 每章最多 4 个字段、每值 80 字、整体 ≤1400 字 —— 宁可少给，也不炸上下文；
  * - 空章 / 系统字段跳过；单字段定向生成不注入（目标明确，不需要全局上下文）。
  */
-function buildPriorChaptersDigest(doc: CeshuDocument, chapter: string): string {
-  const order = visibleChaptersForDoc(doc)
+function buildPriorChaptersDigest(
+  doc: CeshuDocument,
+  chapter: string,
+  generationOrder?: readonly string[],
+  generatedChapters?: readonly string[]
+): string {
+  /*
+   * 整篇生成必须按**生成顺序**取前序：buildChapterOrder 与 CHAPTER_PARTS 是两套顺序
+   * （24 章里 11 处位置不同），按章表取会把「还没生成」的章当前文、漏掉已生成的章。
+   * 单章生成 / 旧调用不传 generationOrder ⇒ 回退章表顺序，行为不变。
+   */
+  const order = generationOrder ?? visibleChaptersForDoc(doc)
   const idx = order.indexOf(chapter)
   if (idx <= 0) return ''
-  const prior = order.slice(0, idx).slice(-PRIOR_DIGEST_MAX_CHAPTERS)
+  // 只取「本次生成序列里排在前面」且确实已生成的章。
+  // 默认文档每章带 schema.defaults（非空），光靠内容判断会把未生成章的默认值当前文。
+  const generated = generatedChapters === undefined ? null : new Set(generatedChapters)
+  const prior = order
+    .slice(0, idx)
+    .filter((key) => generated === null || generated.has(key))
+    .slice(-PRIOR_DIGEST_MAX_CHAPTERS)
   const lines: string[] = []
   for (const key of prior) {
     // 文档信息（meta）已在「上下文信息」里给过，不重复塞进前文摘要
@@ -238,6 +255,17 @@ export interface ChapterPromptOptions {
    * 任务指令，让模型按人的诉求重写该字段，而不是重新起草。
    */
   action?: FieldAction
+  /**
+   * 整篇生成的章顺序。前文要点据此只取「本次已生成」的前序章。
+   * 不传时回退 `visibleChaptersForDoc`（章表顺序），供单章生成/旧调用保持原行为。
+   */
+  generationOrder?: readonly string[]
+  /**
+   * 本次整篇生成中**已经生成**的章（通常来自 draft 的 key）。
+   * 前序摘要只从这些章里取，避免把「排在前面但还没生成」的章（含 schema.defaults 默认值）
+   * 当成已写好的前文。不传时回退「按内容非空判断」。
+   */
+  generatedChapters?: readonly string[]
 }
 
 export function buildChapterPrompt(
@@ -326,7 +354,12 @@ export function buildChapterPrompt(
    * 单字段定向生成（onlyFields）不注入——它有明确目标，全局上下文只会干扰。
    */
   if (onlyFields === undefined || onlyFields.length === 0) {
-    const digest = buildPriorChaptersDigest(doc, chapter)
+    const digest = buildPriorChaptersDigest(
+      doc,
+      chapter,
+      options.generationOrder,
+      options.generatedChapters
+    )
     if (digest !== '') prompt += `前文要点（保持前后一致，不要重复已有内容）:\n${digest}\n\n`
   }
   prompt += `该章节需要填充的字段列表:\n${fieldList}\n\n`
@@ -532,13 +565,35 @@ export function normalizeFullGenerateInput(raw: FullGenerateFormInput): FullGene
   }
 }
 
+/** 生成阶段：立项(7章) / 制作(累计到16章) / 全量(24章)，对齐 `CESHU_STAGE_CHAPTERS` */
+export type GenerateStage = 'concept' | 'production' | 'full'
+
+export interface FullGenerateOptions {
+  scope: GddScope
+  includeMarket: boolean
+  includeRisk: boolean
+  docKind?: DocKind
+  /**
+   * 生成阶段（游戏档）。缺省 = 'full'，保持既有 24 章行为零回归。
+   * 依据 docs/game-doc-corpus-2026.md：真实 GDD 从一页 pitch 分阶段长出，
+   * 而非一次成型；项目已有 `chaptersUpToStage` 三阶段章表，这里接上。
+   */
+  stage?: GenerateStage
+  /**
+   * 文档感知的可见章集合（来自 `visibleChapterKeys`，已含 enabled_modules 与品类裁剪）。
+   * 传入后生成章集合 = 生成顺序 ∩ 可见章，避免生成用户已关闭/品类不适用的章。
+   * 缺省 = 不裁剪（兼容旧调用与既有单测）。
+   */
+  visibleChapters?: readonly string[]
+}
+
 /**
  * 组装全量生成计划：章节顺序 + 每章定制提示词 + meta 种子。
- * 轻量档（lite）按基础 9 章裁剪。
+ * 游戏档：生成顺序 ∩ 阶段章表 ∩ 文档可见章；应用档：SDD 全章表（不裁剪）。
  */
 export function buildFullGeneratePlan(
   raw: FullGenerateFormInput,
-  options: { scope: GddScope; includeMarket: boolean; includeRisk: boolean; docKind?: DocKind }
+  options: FullGenerateOptions
 ): FullGeneratePlan {
   const input = normalizeFullGenerateInput(raw)
   // 应用档：SDD 全章表，不做游戏档的 lite/market/risk 裁剪，也不写游戏风格/品类 key。
@@ -555,15 +610,27 @@ export function buildFullGeneratePlan(
       typeKey: ''
     }
   }
-  let order = buildChapterOrder(options.includeMarket, options.includeRisk)
+  let order: ChapterKey[] = buildChapterOrder(options.includeMarket, options.includeRisk)
   if (options.scope === GDD_SCOPE_LITE) {
     const base = new Set<string>(BASE_CHAPTER_KEYS)
     order = order.filter((chapter) => base.has(chapter))
   }
+  // 阶段裁剪：立项只生成 concept 7 章，制作累计到 production，full 不动。
+  // 用 chaptersUpToStage 而不是另造清单，与「一页总览 / 复刻拆解」同口径。
+  if (options.stage !== undefined && options.stage !== 'full') {
+    const stageChapters = new Set<string>(chaptersUpToStage(options.stage))
+    order = order.filter((chapter) => stageChapters.has(chapter))
+  }
+  // 文档感知裁剪：默认关闭的模块章、无战斗品类的 combat 不该被生成。
+  if (options.visibleChapters !== undefined) {
+    const visible = new Set<string>(options.visibleChapters)
+    order = order.filter((chapter) => visible.has(chapter))
+  }
+  const planOrder: readonly string[] = order
   return {
     scope: options.scope,
-    order,
-    chapterPrompts: buildChapterPrompts(input, order),
+    order: planOrder,
+    chapterPrompts: buildChapterPrompts(input, planOrder),
     metaSeed: buildMetaSeed(input),
     styleKey: mapStyleLabelToKey(input.style),
     typeKey: mapTypeLabelToKey(input.gameType)

@@ -3,6 +3,7 @@ import { useMemo, useRef, useState } from 'react'
 import { useT } from '@mobai/client-ui'
 import type { MessageKey } from '@mobai/shared/i18n'
 import {
+  CHAPTER_KEYS,
   GDD_SCOPE_FULL,
   GDD_SCOPE_LITE,
   contentChapterCount,
@@ -10,15 +11,17 @@ import {
   type ChapterData,
   type GddScope
 } from '@mobai/shared/ceshu/reference'
+import { chaptersUpToStage } from '@mobai/shared/ceshu/workflow'
 import {
   FULL_GEN_BUSINESS_MODELS,
   FULL_GEN_GAME_TYPES,
   FULL_GEN_PLATFORMS,
   FULL_GEN_STYLES,
   buildFullGeneratePlan,
-  type FullGeneratePlan
+  type FullGeneratePlan,
+  type GenerateStage
 } from '@mobai/shared/ceshu/prompts'
-import { chapterDataForDoc, chapterLabelForDoc, getDocKind, getGddScope, isPlainObject } from '@mobai/shared/ceshu/model'
+import { chapterDataForDoc, chapterLabelForDoc, getDocKind, getGddScope, isPlainObject, visibleChaptersForDoc } from '@mobai/shared/ceshu/model'
 import { evaluateBudget, shouldRegenerateChapter, taskBudget } from '@mobai/shared/agent/runtime'
 import type { LlmJudgeVerdict, QualityGateVerdict } from '@mobai/shared/types'
 import { toErrorMessage } from '@mobai/shared/util/system'
@@ -63,6 +66,11 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
   const [platforms, setPlatforms] = useState<string[]>(['PC'])
   const [description, setDescription] = useState('')
   const [scope, setScope] = useState<GddScope>(() => getGddScope(doc))
+  /**
+   * 生成阶段：默认立项（真实 GDD 从一页 pitch 分阶段长出来，见 docs/game-doc-corpus-2026.md）。
+   * 全量仍可选，不删既有能力。应用档不显示此选项（SDD 全章表一次生成）。
+   */
+  const [stage, setStage] = useState<GenerateStage>('concept')
   const [includeMarket, setIncludeMarket] = useState(true)
   const [includeRisk, setIncludeRisk] = useState(true)
   const [statuses, setStatuses] = useState<Partial<Record<string, ChapterStatus>>>({})
@@ -95,10 +103,13 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
           scope,
           includeMarket: includeMarket && scope === GDD_SCOPE_FULL,
           includeRisk: includeRisk && scope === GDD_SCOPE_FULL,
-          docKind
+          docKind,
+          // 游戏档按阶段 + 文档可见章裁剪；应用档忽略这两项
+          stage: isApp ? 'full' : stage,
+          visibleChapters: isApp ? undefined : visibleChaptersForDoc(doc)
         }
       ),
-    [gameName, gameType, style, description, references, platforms, businessModel, scope, includeMarket, includeRisk, docKind]
+    [gameName, gameType, style, description, references, platforms, businessModel, scope, includeMarket, includeRisk, docKind, isApp, stage, doc]
   )
 
   const failedChapters = plan.order.filter((chapter) => statuses[chapter] === 'failed')
@@ -141,7 +152,9 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
             fullGenerate: {
               styleKey: plan.styleKey,
               extraPrompt,
-              draft: buildDraftPayload(plan, draftResults)
+              draft: buildDraftPayload(plan, draftResults),
+              // 前文要点按本次生成顺序取前序，不按章表顺序（两者不一致）
+              generationOrder: [...plan.order]
             },
             confirmed: true
           })
@@ -450,6 +463,32 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
             {t('aiFull.includeRisk')}
           </label>
         </div>
+        <div className="form-label" style={{ marginTop: 8 }} data-testid="ai-full-stage-label">
+          {t('aiFull.stage')}
+        </div>
+        <div className="ai-gen-row" data-testid="ai-full-stage">
+          {(['concept', 'production', 'full'] as const).map((value) => (
+            <label className="ai-gen-check" key={value}>
+              <input
+                type="radio"
+                name="ai-full-stage"
+                data-testid={`ai-full-stage-${value}`}
+                checked={stage === value}
+                disabled={locked}
+                onChange={() => setStage(value)}
+              />
+              {t(
+                value === 'concept'
+                  ? 'aiFull.stageConcept'
+                  : value === 'production'
+                    ? 'aiFull.stageProduction'
+                    : 'aiFull.stageFull',
+                { count: stageChapterCount(value) }
+              )}
+            </label>
+          ))}
+        </div>
+        <div className="ai-gen-hint">{t('aiFull.stageHint')}</div>
       </div>
       )}
 
@@ -656,6 +695,12 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
       })()}
     </div>
   )
+}
+
+/** 阶段对应的累计章数（含 meta），只用于 UI 文案；真实裁剪在 buildFullGeneratePlan */
+function stageChapterCount(stage: GenerateStage): number {
+  if (stage === 'full') return CHAPTER_KEYS.length
+  return chaptersUpToStage(stage).length
 }
 
 /** 草稿载荷：已生成章节 + meta 种子（meta 种子在先，生成结果覆盖），供后续章节提示词上下文 */

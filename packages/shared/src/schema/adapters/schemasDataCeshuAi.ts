@@ -19,7 +19,13 @@ export const ceshuAiGenerateInputSchema = z.object({
     .object({
       styleKey: z.string().max(50).default(''),
       extraPrompt: z.string().max(6000).default(''),
-      draft: z.record(z.string(), z.record(z.string(), z.unknown())).default({})
+      draft: z.record(z.string(), z.record(z.string(), z.unknown())).default({}),
+      /**
+       * 本次整篇生成的章顺序（渲染层 plan.order 原样下发）。
+       * 前文要点据此取「本次已生成」的前序章，而不是按章表顺序（两者并不一致，
+       * 见 docs/game-audit.md P0-1）。缺省 = 回退原有章表顺序行为。
+       */
+      generationOrder: z.array(z.string()).max(64).optional()
     })
     .optional(),
   /**

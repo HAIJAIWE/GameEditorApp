@@ -71,6 +71,8 @@ export interface GenerateChapterInput {
   extraPrompt?: string
   /** 整篇 / 一键生成：走 `full` 档并需确认 */
   fullGenerate?: boolean
+  /** 本次生成顺序：前文要点据此取前序章（不传则回退章表顺序） */
+  generationOrder?: readonly string[]
   confirmed?: boolean
   senderId?: number
 }
@@ -98,7 +100,11 @@ export async function generateChapterTask(
   const built = buildChapterPrompt(doc, input.chapter, {
     onlyEmpty: input.onlyEmpty,
     styleOverride: input.styleKey,
-    extraPrompt: input.extraPrompt
+    extraPrompt: input.extraPrompt,
+    generationOrder: input.generationOrder,
+    ...(input.generationOrder !== undefined
+      ? { generatedChapters: Object.keys(input.draft) }
+      : {})
   })
   if (input.onlyEmpty === true && built.fields.length === 0) {
     // 无空字段：不调用 LLM，直接返回空结果（UI 提示「无需补全」）

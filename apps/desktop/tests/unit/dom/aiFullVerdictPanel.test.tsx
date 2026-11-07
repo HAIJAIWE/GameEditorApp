@@ -168,3 +168,40 @@ describe('AiFullGeneratePanel：空字段自动重试（JSON 截断）', () => {
     expect(generate.mock.calls.length).toBe(1)
   })
 })
+
+/** 生成阶段接入：默认立项、阶段可切换、应用档不显示（2026-11-07 改造） */
+describe('AiFullGeneratePanel：生成阶段', () => {
+  it('游戏档默认选中「立项」，进度列表是 concept 累计章而非 24 章', async () => {
+    const doc = createDefaultCeshu({ scope: 'full', name: '测试项目' })
+    api = installMbApi()
+    view = await renderDom(
+      <AiFullGeneratePanel ceshuId="c1" doc={doc} onApplied={() => {}} onClose={() => {}} />
+    )
+    const concept = view.byTestId('ai-full-stage-concept') as HTMLInputElement
+    expect(concept.checked).toBe(true)
+    const rows = view.queryAll('[data-testid^="ai-full-status-"]')
+    expect(rows.length).toBeLessThan(24)
+    expect(rows.length).toBeGreaterThan(0)
+  })
+
+  it('切到「全量」后进度列表变长，且阶段单选可用', async () => {
+    const doc = createDefaultCeshu({ scope: 'full', name: '测试项目' })
+    api = installMbApi()
+    view = await renderDom(
+      <AiFullGeneratePanel ceshuId="c1" doc={doc} onApplied={() => {}} onClose={() => {}} />
+    )
+    const before = view.queryAll('[data-testid^="ai-full-status-"]').length
+    await view.click(view.byTestId('ai-full-stage-full'))
+    const after = view.queryAll('[data-testid^="ai-full-status-"]').length
+    expect(after).toBeGreaterThan(before)
+  })
+
+  it('应用档不显示阶段选择器（SDD 全章表一次生成）', async () => {
+    const doc = createDefaultCeshu({ scope: 'full', name: '测试项目', docKind: 'application' })
+    api = installMbApi()
+    view = await renderDom(
+      <AiFullGeneratePanel ceshuId="c1" doc={doc} onApplied={() => {}} onClose={() => {}} />
+    )
+    expect(view.query('[data-testid="ai-full-stage"]')).toBeNull()
+  })
+})

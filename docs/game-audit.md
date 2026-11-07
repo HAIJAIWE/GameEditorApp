@@ -9,6 +9,10 @@
 
 ---
 
+> **2026-11-07 状态更新**：P0-1、P0-2、P1-3 已修复（见 `docs/game-generation-redesign.md`）；
+> P1-4（combat 先于 systems）、P2-5（milestones 重复）仍未处理，属后续可选清理。
+> 以下保留原始诊断全文，便于追溯。
+
 ## P0-1 生成顺序与章表顺序是两套，且我上轮刚加的「前文要点」选错了前序章
 
 **事实**（`ceshuAi.ts:476` `buildChapterOrder` vs `ceshuConstants.ts:23` `CHAPTER_PARTS`）：

@@ -177,6 +177,7 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
         onlyEmpty: req.onlyEmpty,
         styleKey: req.fullGenerate?.styleKey,
         extraPrompt: req.fullGenerate?.extraPrompt,
+        generationOrder: req.fullGenerate?.generationOrder,
         fullGenerate: req.fullGenerate !== undefined,
         confirmed: req.confirmed === true,
         senderId: event.sender.id
