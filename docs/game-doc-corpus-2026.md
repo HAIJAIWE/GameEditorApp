@@ -2,6 +2,10 @@
 
 > 缘起：用户指出「上一轮去编号的依据全是软件/AI 文档，游戏侧没有原文证据」，要求重搜 50 个、国内国际都收、收到就真的看。
 >
+> ⚠️ **先说清账目**：登记 50 条；初次复核时逐字读过原文 7 个独立文档，用户追问后又补读 4 份 ⇒ **现共 11 个独立文档逐字读过原文**（表格 12 条，含同源拆分）。
+> 其余：23 条只看了搜索摘要、12 条纯线索、3 份 PDF 下载（1 份读成、2 份未读成）。
+> 详见第六节精确复核（2026-11-07）。不要把这 50 条当成「50 份都精读过」。
+>
 > **口径（重要）**：
 > - `已读原文` = 实际抓到文档正文/PDF 文本，逐条看到分节标题；
 > - `已读摘要` = 抓到页面但只拿到目录片段/搜索摘要，未逐节核对；
@@ -19,8 +23,17 @@
 | **现代轻量 GDD（尤其国际/AI 时代）** | GDD Concept & Pitch Template（**已下载 PDF 并提取原文**）、Nuclino（已读原文）、Milanote、Notion 模板、gamedesigndocument.com | **主题式小标题，不编号** |
 | **折中：编号但可拆分** | openagenticgame-gdd（已读原文）：`3_Game Overview.md`…`15_Game Type Adaptation.md`，15 章编号、每章独立文件 | 文件名编号 + 章内 `3.1.1` 多级 |
 
-**结论**：我上轮说「网上不用章节命名」并据此把**游戏档也去编号**，是拿软件文档（RFC/KEP/Google/ADR/PEP/ModelCard）的结论外推，**证据不足**。真实游戏文档里「第 N 章」相当常见；Nuclino 那篇反而是明确反对**僵硬长文档**、主张 live wiki，两者谈的不是同一件事。
-⇒ **去编号对应用档（SDD）有据；对游戏档属于产品取舍，不能说「符合行业惯例」。** 这条要回写进 `docs/ceshu-roadmap-status.md` 与 `docs/template-crosscheck-real-docs.md`。
+**更准确的规律（补读后修正）**：分流维度不是「国内 vs 国际」，而是**文档载体**：
+
+- **正式交付物 / Word·PPT·书籍 / 可复制模板** → 倾向编号（"第一章"、`1./a./i.` 多级），便于评审、引用「见第 4.8 节」；
+- **活文档 / Wiki·Notion·Markdown / 轻量 pitch** → 倾向主题式，便于重组与迭代；
+- 最有说服力的是 `gameindustrycareerguide`：**同一页内**正文用主题式标题，而给读者复制的 *Example outline* 用 `1. Game Overview → a. Core Concept → i. Protagonist(s)` 三级编号。两种形式在同一份指南里并存，取决于用途。
+- `gamedevacademy` 更直接：「this is a list, not an order」「formats are fluid rather than rigid」。
+
+**结论**：我上轮说「网上不用章节命名」并据此把**游戏档也去编号**，是拿软件文档（RFC/KEP/Google/ADR/PEP/ModelCard）的结论外推，**证据不足**。真实游戏文档里编号相当常见；Nuclino 反对的是**僵硬长文档**、主张 live wiki，与"要不要编号"不是同一件事。
+⇒ **去编号对应用档（SDD）有据；对游戏档属于产品取舍，不能说「符合行业惯例」。**
+⇒ 若本项目定位是「活文档 / 可迭代编辑器」，主题式是合理选择；但应作为**明示的产品决策**记录，而不是宣称行业都这样。
+这条已回写进 `docs/ceshu-roadmap-status.md` 与 `docs/template-crosscheck-real-docs.md`。
 
 ---
 
@@ -56,13 +69,13 @@
 | 15 | `aeno.nl/uploads/Art-bible.pdf` | **Art Bible 原文** | art style / stylized 2D&3D / simple clear shapes / natural colors / saturated colors 等 | 已下载；编码型未能提取文本 |
 | 16 | `gamedesigning.org` GDD vs TDD | 文档分工 | GDD=what(concept/gameplay/story/art)；TDD=how(code structure/APIs/system architecture) | 已读原文 |
 | 17 | `nuclino.com` Real-life GDD examples | 实例索引 | 列出 GTA / Fallout BoS2 / Silent Hill 2 三份真实 GDD | 已读原文 |
-| 18 | `gameindustrycareerguide.com/how-to-write-a-game-design-document` | 入门指南 | story→mechanics→art style→economy 概览 | 已读摘要 |
+| 18 | `gameindustrycareerguide.com/how-to-write-a-game-design-document` | 入门指南 | **7 节**：Game Overview / Story / Gameplay / Art and Sound / Level Design / UI / Technical Requirements；**同页两种形式并存**——正文主题式标题，可复制的 Example outline 用 `1.`+`a.`+`i.` 三级编号（原文还有重复编号 `3.` 的笔误）；列出 Grim Fandango / Diablo / GTA / Deus Ex / Bioshock / Doom Bible / Monaco 共 7 份真实 GDD | **已读原文** |
 | 19 | `milanote.com/templates/game-design` | 模板 | concept / mechanics / overall vision | 已读摘要 |
 | 20 | `gamedesigndocument.com` | 一页 GDD | one-page GDD + core loops / scope / systems / economies / living GDD | 已读摘要 |
 | 21 | `abrarshop.com` GDD Kit | 模板套件 | one-page GDD / full GDD / mechanics&level specs / **character bible** / backlog / playtest forms | 已读摘要 |
 | 22 | Notion GDD: Level Design 模板 | 专项模板 | 关卡设计专用 GDD | 已读摘要 |
 | 23 | Milanote / GDD Creator (Steam) | 工具 | sections: story / gameplay / characters / levels / sound / art | 已读摘要 |
-| 24 | `gamedevacademy.org/game-design-tutorial` | 教学 | 明确主张世界设定应**独立成文**，不塞进 GDD | 已读摘要 |
+| 24 | `gamedevacademy.org/game-design-tutorial` | 教学 | **主题式/问题式标题**：What are the Mechanics / Who is the player / What is the story / What will it look like；原文明确「this is a list, not an order」「formats are fluid rather than rigid」；主张完整 world-building **独立成文**，GDD 只留影响设计的故事部分；GDD 不是剧本、不是铁板、不含完整程序脚本 | **已读原文** |
 | 25 | `The Art of Game Design`(Schell) / `Game Engine Architecture`(Gregory) | 专业书 | 目录级参考；Art Bible 为多艺术家协作的一致性文档 | 线索 |
 
 ---
@@ -73,11 +86,11 @@
 |---|---|---|---|---|
 | 1 | CSDN《游戏策划案的格式》(2010) | 策划案模板 | **第一章 游戏概述 … 第八章 功能操作** + `1.1/5.3` 多级编号 + 附录；含 AI/道具/角色/进程/界面 | **已读原文** |
 | 2 | 百度文库《游戏策划文档目录模板》 | 目录模板 | 一、文档介绍 二、项目概述 三、游戏概念 四、游戏机制 五、游戏角色 六、关卡设计 七、游戏系统 八、用户界面 九、美术需求 十、音效需求 十一、开发计划（**中文序号**） | 已读摘要 |
-| 3 | renrendoc《游戏策划书模板_1》 | 策划书 | **第一章:输入文件 第二章:标准规范 第三章:界面设定 第四章:系统设定 第五章:游戏规则 第六章:美工设定 第七章:音响设定** | 已读摘要 |
+| 3 | renrendoc《游戏策划书模板_1》 | 策划书（含 6 套模板） | 模板3：**第一章 输入文件…第七章 音响设定**（含规范文件清单）；模板5：**第一章 概述 `1.1` / 第二章 故事背景 / 第三章 游戏元素 `3.1.1` / 第四章 游戏机制 `4.8.1` / 第五章 人工智能 / 第六章 游戏进程 / 第七章 系统功能 `7.2.12`**；模板1/2/4/6 用「一、二、三」+ `1./2.` 编号 | **已读原文** |
 | 4 | 原创力《游戏设计策划书》 | 策划书 | 第一部分 游戏概述 / 第二部分 游戏背景 / 第三部分 游戏元素 / 第四部分 游戏规则…（`1.1/2.1` 多级） | 已读摘要 |
 | 5 | bilibili《游戏策划案应该怎么写》/《江山》策划案 | 实例 | **第一章:游戏概述 1.1…**；强调少用专有名词 | 已读摘要 |
 | 6 | bilibili《存档｜游戏设计文档 GDD》 | 结构清单 | 1.Introduction 2.Game Overview 3.Gameplay Mechanics 4.Story&Characters 5.Level Design 6.Sound&Music 7.UI&UX 8.Technical Specs 9.Marketing&Monetization 10.Production Plan | **已读原文** |
-| 7 | bilibili《游戏开发文档(GDD) 模板》(2021) | 模板 | 游戏目标 / 亮点 / 目标玩家 / 玩法类型 / 剧情梗概 | 已读摘要 |
+| 7 | bilibili《游戏开发文档(GDD) 模板》(2021) | 模板 | **《通关游戏设计之道》书摘**：封面→GDD大纲→目录→版本记录→游戏目标→剧情梗概→许可和相关→游戏操作→技术需求→开场界面→游戏流程→加载→镜头→HUD→玩家角色/量度/技能/背包→战斗→增强道具→生命值→得分→奖励与经济→关卡→敌人→Boss→NPC→迷你游戏→计费点→DLC→过场动画→音乐音效→附录；**主题式 `#` 标题，不编号**；明确写「技术需求很多内容会放在 TDD 里」 | **已读原文** |
 | 8 | 百度文库《游戏设计文档》 | 概述 | 玩法、系统、美术、技术、运营全覆盖；强调岗位对齐 | 已读摘要 |
 | 9 | 原创力《游戏策划文档范例》(2026) | 范例 | 动态蓝图；核心创意/玩法机制/内容结构/技术需求/团队协作 | 已读摘要 |
 | 10 | 百度文库《游戏策划书标准模板》等 15 篇合集 | 合集 | 同名模板大量转存（同质化，不重复计独立证据） | 线索 |
@@ -127,10 +140,49 @@
 
 ---
 
-## 六、诚实边界 & 别忘了的事
+## 六、诚实边界：到底搜了多少、看了多少（2026-11-07 复核）
 
-- **50 条里真正「已读原文」只有 7 条**（国际 3 + 国内 3 + PDF 1），其余是摘要或线索；中文文库多为转存，不能当权威源。
-- 三份下载的真实 PDF 里，**GDD-template.pdf 成功提取全文**；`grand-theft-auto.pdf`（GTA 1995 真实 GDD）与 `Art-bible.pdf` 是扫描/编码型，环境无 `fitz` 且 pip 安装被终止，**没读到正文**，只标「已下载」。要真正核对需 OCR 或装 PyMuPDF。
+> 用户追问「搜出来多少个文档？看了吗？」后重新逐行核对，修正上一版含糊表述。
+> **上一版说「50 条收到就真的看了」是夸大的**——准确说法是「登记 50 条，其中逐字读过原文 7 个独立文档」。
+
+### 6.1 精确账目（脚本核对表格核验度列）
+
+| 层级 | 数量 | 含义 |
+|---|---|---|
+| 搜索引擎返回结果 | **约 90 条** | 18 次检索 × 每页 5 条；含大量重复与明显无关项（百度图片页、宝可梦画册、大学课程页、Steam 商店页等） |
+| 去重/剔除无关后**登记** | **50 条** | 国内 25 + 国际 25，即第三节/第四节两张表 |
+| 表格标「已读原文」 | **12 条** | **条目数**，含同源拆分（gamedesigning.org、nuclino 各被拆成 2 条）；用户追问后补读 4 份，从 8→12 |
+| → 去重后**逐字读过原文的独立文档** | **11 个** | 见 6.2；此前写「7 个」是补读前的数字 |
+| 表格标「已读摘要」 | **23 条** | 只看了搜索结果摘要/页面片段，**未打开原文逐节核对** |
+| 表格标「线索」 | 12 条 | 只有标题或二手转述，**没打开**，明确不当独立证据 |
+| 表格标「已下载」 | 3 条 | 3 份 PDF 下载到本地；其中 1 份提取全文成功，2 份未读成 |
+| **实际打开/尝试打开过原文的独立源** | **13 个** | 11 个读成 + 2 份下载未读成 PDF |
+
+⇒ **39 条（23 摘要 + 12 线索 + 3 下载条目的其中 2 份未读成）没有逐字读过原文。**
+「50」是**登记条目数**，不是**精读文档数**；两者此前混用，特此更正。
+
+### 6.2 真正逐字读过原文的 11 个独立文档
+
+| # | 文档 | 读到什么 |
+|---|---|---|
+| 1 | `gamedesigning.org/learn/game-design-document` | 8 节编号结构 + GDD/TDD 定义 + 真实 GDD 索引 |
+| 2 | `nuclino.com/articles/game-design-document-template` | 主题式 5 类 + 反对僵硬长文档 + 3 份真实 GDD 链接 |
+| 3 | `github.com/wanghaisheng/openagenticgame-gdd` README-zh | 15 章编号完整目录、每章独立 md、参考大厂声明 |
+| 4 | `gamedesigning.org/.../GDD-template.pdf` | **本地下载并 zlib 提取全文**，14 个主题式字段 |
+| 5 | CSDN《游戏策划案的格式》(2010) | 「第一章…第八章」+ `1.1/5.3` 多级编号原文 |
+| 6 | bilibili《存档｜游戏设计文档 GDD》 | 10 节编号清单（中英对照） |
+| 7 | 机核《别再盲目手搓游戏了》(2026) | GDD/TDD/SDD 三者定义与分工 |
+| 8 | `gameindustrycareerguide.com` GDD 指南 | 7 节结构；**同页并存**主题式正文 + 编号式可复制 outline（`1./a./i.` 三级）；7 份真实 GDD 索引 |
+| 9 | `gamedevacademy.org` GDD 教程 | 主题/问题式四问；明确「list, not an order」「formats are fluid」；world-building 独立成文 |
+| 10 | bilibili《游戏开发文档(GDD)模板》(2021) | 《通关游戏设计之道》书摘，约 35 个 `#` 主题式小节；写明技术需求归入 TDD |
+| 11 | renrendoc《游戏策划书模板_1》 | 含 6 套模板：模板3/5 完整「第一章…第七章 + `1.1/3.1.1/7.2.12` 多级编号」 |
+
+### 6.3 打开过但没读到正文的
+
+- 百度文库《游戏策划文档目录模板》：VIP 墙，只拿到页面外壳与搜索片段（表格里的分节来自搜索摘要，**不是**打开原文读到）。
+- `aeno.nl/uploads/Art-bible.pdf`：非文本响应，WebFetch 拒绝。
+- `github.com/wanghaisheng/openagenticgame-gdd`（仓库首页）：首次 WebFetch 返回空，后改用 raw README 才成功。
+- `grand-theft-auto.pdf`（GTA 1995 真实 GDD）与 `Art-bible.pdf`：扫描/编码型，原生 zlib 提取为乱码；环境无 `fitz`，pip 装 PyMuPDF 两次被 SIGTERM 终止 ⇒ **没读到正文，只标「已下载」**，不冒充已核。
 - **本次结论不修改任何代码/章表**，只登记证据。
 - **待办（别忘了）**：
   1. 把「去编号对游戏档证据不足」回写 `docs/ceshu-roadmap-status.md` 3.6 与 `docs/template-crosscheck-real-docs.md` 边界声明；

@@ -107,7 +107,11 @@ meta.gdd_scope: 'lite' | 'full'         // 方向版 / 细节版
 > - 现代轻量 GDD 用主题式小标题（Nuclino、GDD Concept & Pitch Template PDF 原文、Milanote、Notion）；
 > - 折中派 `openagenticgame-gdd` 用「15 章编号 + 每章独立 md 文件」，自称参考天美/米哈游/腾讯公开资料。
 >
+> ⇒ 分流维度更可能是**文档载体**而非地域：正式交付物/Word·PPT/可复制模板倾向编号
+> （`gameindustrycareerguide` 同一页内正文主题式、附给读者复制的 outline 却是 `1./a./i.` 三级编号），
+> 活文档/Wiki/Notion/轻量 pitch 倾向主题式。
 > ⇒ **应用档去编号有据；游戏档去编号属产品取舍，不能说「符合行业惯例」**。
+> 若定位为「可迭代的活文档编辑器」，主题式是合理选择，但应明示为产品决策。
 > 是否给游戏档恢复可选编号标签，待用户拍板；本轮未改代码。
 
 ---
