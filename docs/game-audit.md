@@ -9,9 +9,18 @@
 
 ---
 
-> **2026-11-07 状态更新**：P0-1、P0-2、P1-3 已修复（见 `docs/game-generation-redesign.md`）；
-> P1-4（combat 先于 systems）、P2-5（milestones 重复）仍未处理，属后续可选清理。
-> 以下保留原始诊断全文，便于追溯。
+> **2026-11-07 状态更新**：
+> - P0-1、P0-2、P1-3 **已修复**（见 `docs/game-generation-redesign.md`）。
+> - **P1-4 判定作废（我上轮误判）**：`ceshuValidation.ts:137-144` 是「两边都填才比不一致」的
+>   双向一致性约束，不是 `systems → combat` 的单向依赖；且 `CESHU_STAGE_CHAPTERS` 里
+>   `combat` 属立项、`systems` 属制作，阶段化后 combat 必然先生成。改造后新增的「前文要点」
+>   按生成顺序取前序，正好把已生成的 combat 传给 systems，一致性已有支撑。⇒ **不改生成顺序**。
+> - P2-5 **已处理（零数据风险版）**：不删字段、不改必填（避免老文档数据孤立/完成度变化），
+>   只在 `tech.milestones` 与 `mvp.milestones` 的 aiHint/reviewHint 里写明分工
+>   （工程量产排期 vs 首个可玩版本验收节点）与「不要重复清单」。彻底合并需数据迁移，属产品决策。
+> - 第 4 步（GDD→TDD 信息层串联）已做：`TECH_DOC_GDD_INPUTS` 9 章映射 + 回链要求。
+>
+> 以下保留原始诊断全文，便于追溯（含已作废的 P1-4 原文，未删改为透明）。
 
 ## P0-1 生成顺序与章表顺序是两套，且我上轮刚加的「前文要点」选错了前序章
 
@@ -66,11 +75,15 @@
 
 ---
 
-## P1-4 生成顺序违反自身声明的依赖关系
+## ~~P1-4 生成顺序违反自身声明的依赖关系~~（已作废，见文首状态更新）
 
-注释称生成按"章节依赖顺序"（`AiFullGeneratePanel.tsx:29`），但 `buildChapterOrder` 把 `combat`（战斗系统设计）排在 `systems`（游戏系统设计）**之前**。而校验里明确存在 `combat.combat_mode` 与 `systems.battle.config.turn_mode` 的一致性约束（`ceshuValidation.ts:137-142`）——战斗模式应该建立在系统设计的回合制决策之上。
+> **此条为我 2026-11-07 的误判，保留原文只为透明**。误判原因：把「双向一致性校验」
+> 读成了「单向依赖」，又没查 `CESHU_STAGE_CHAPTERS` 的阶段归属。实际校验只在两边都填时比不等，
+> 且 `combat` 属立项、`systems` 属制作，阶段化后先 combat 后 systems 是设计使然，不是缺陷。
 
-⇒ 先生成 combat、后生成 systems，等于让下游先定、上游后定，跨章一致性只能靠事后校验报警。配合 P0-1，前文摘要还会把未生成的 systems 当参照。
+~~注释称生成按"章节依赖顺序"（`AiFullGeneratePanel.tsx:29`），但 `buildChapterOrder` 把 `combat`（战斗系统设计）排在 `systems`（游戏系统设计）**之前**。而校验里明确存在 `combat.combat_mode` 与 `systems.battle.config.turn_mode` 的一致性约束（`ceshuValidation.ts:137-142`）——战斗模式应该建立在系统设计的回合制决策之上。~~
+
+~~⇒ 先生成 combat、后生成 systems，等于让下游先定、上游后定，跨章一致性只能靠事后校验报警。配合 P0-1，前文摘要还会把未生成的 systems 当参照。~~
 
 ---
 
