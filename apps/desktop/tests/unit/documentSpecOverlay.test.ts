@@ -151,3 +151,19 @@ describe('模板覆盖层：标签按档位分派', () => {
     }
   })
 })
+
+/** 编辑视图跟随覆盖层标签：specForDoc 是唯一取数口（2026-11-08 P2） */
+describe('specForDoc：编辑视图与导出共用同一份标签', () => {
+  it('有合法覆盖层 → chapterLabels 含自定义章名（CeshuView 注入导航后编辑视图同步）', () => {
+    const doc = createDefaultCeshu({ scope: 'full', name: '测试' })
+    doc.meta.template_overlay = { chapters: [{ key: 'vision', name: '愿景与定位' }] }
+    const spec = specForDoc(doc)
+    expect(spec.chapterLabels.vision).toBe('1. 愿景与定位')
+  })
+
+  it('覆盖层损坏 → fail-soft 回退基础规格，编辑视图不会崩', () => {
+    const doc = createDefaultCeshu({ scope: 'full', name: '测试' })
+    doc.meta.template_overlay = { unknown: true }
+    expect(specForDoc(doc)).toBe(GAME_SPEC)
+  })
+})

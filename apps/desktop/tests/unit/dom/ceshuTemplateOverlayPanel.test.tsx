@@ -110,3 +110,51 @@ describe('CeshuTemplateOverlayPanel：模板覆盖层编辑器', () => {
     expect(onClear).toHaveBeenCalledTimes(1)
   })
 })
+
+/** 从文件加载覆盖层（2026-11-08，P2：此前只能粘贴/编辑 JSON） */
+describe('CeshuTemplateOverlayPanel：从文件加载', () => {
+  it('选中文件后把内容填进 textarea，走既有实时校验', async () => {
+    api = installMbApi({
+      overrides: {
+        'dialog.chooseTemplateJsonFile': () => ({ path: '/tmp/overlay.json' }),
+        'fs.readFile': () => ({
+          content: JSON.stringify({ chapters: [{ key: 'vision', name: '愿景与定位' }] }),
+          reason: null
+        })
+      }
+    })
+    const doc = createDefaultCeshu({ scope: 'full', name: '测试' })
+    view = await renderDom(<CeshuTemplateOverlayPanel doc={doc} onApply={() => {}} onClear={() => {}} onClose={() => {}} />)
+    await view.click(view.byTestId('template-overlay-load-file'))
+    await view.flush()
+    const value = (view.byTestId('template-overlay-input') as HTMLTextAreaElement).value
+    expect(value).toContain('愿景与定位')
+    expect(view.text()).toContain('已从文件加载')
+    // 预览应立即反映新章名（既有的实时校验链路）
+    expect(view.text()).toContain('愿景与定位')
+  })
+
+  it('读取失败时显示错误，不覆盖现有内容', async () => {
+    api = installMbApi({
+      overrides: {
+        'dialog.chooseTemplateJsonFile': () => ({ path: '/tmp/bad.json' }),
+        'fs.readFile': () => ({ content: '', reason: '无法读取文件（不存在或无权限）' })
+      }
+    })
+    const doc = createDefaultCeshu({ scope: 'full', name: '测试' })
+    view = await renderDom(<CeshuTemplateOverlayPanel doc={doc} onApply={() => {}} onClear={() => {}} onClose={() => {}} />)
+    await view.click(view.byTestId('template-overlay-load-file'))
+    await view.flush()
+    expect(view.text()).toContain('读取文件失败')
+    expect((view.byTestId('template-overlay-input') as HTMLTextAreaElement).value).toBe('{}')
+  })
+
+  it('取消选择时不做任何改动', async () => {
+    api = installMbApi({ overrides: { 'dialog.chooseTemplateJsonFile': () => ({ path: null }) } })
+    const doc = createDefaultCeshu({ scope: 'full', name: '测试' })
+    view = await renderDom(<CeshuTemplateOverlayPanel doc={doc} onApply={() => {}} onClear={() => {}} onClose={() => {}} />)
+    await view.click(view.byTestId('template-overlay-load-file'))
+    await view.flush()
+    expect((view.byTestId('template-overlay-input') as HTMLTextAreaElement).value).toBe('{}')
+  })
+})

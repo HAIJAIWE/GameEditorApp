@@ -42,6 +42,13 @@ interface CeshuChapterNavProps {
   onToggleViewMode: () => void
   /** 阶段筛选后的章节列表（父组件已按阶段 + 当前章过滤）；应用章 key 用 string */
   chapters: readonly string[]
+  /**
+   * 文档感知的章标签（来自 `specForDoc(doc).chapterLabels`）。
+   * 传入后编辑视图的章名会跟随交付模板覆盖层，与导出/交接包一致；
+   * 不传则回退 `chapterLabelForDoc`（默认模板），供独立渲染/旧调用零回归。
+   * 覆盖层只改标签与顺序；这里跟随**标签**，不改 `chapters` 的顺序（顺序牵动锚点/进度/activeChapter）。
+   */
+  chapterLabels?: Readonly<Record<string, string>>
   progress: Record<string, number>
   activeChapter: string
   aiMarks: AiGeneratedMap
@@ -64,6 +71,7 @@ export default function CeshuChapterNav({
   viewMode,
   onToggleViewMode,
   chapters,
+  chapterLabels,
   progress,
   activeChapter,
   aiMarks,
@@ -159,7 +167,7 @@ export default function CeshuChapterNav({
             className={`chapter-tab${key === activeChapter ? ' active' : ''}`}
             onClick={() => onSelectChapter(key)}
           >
-            <span className="chapter-tab-label">{chapterLabelForDoc(doc, key)}</span>
+            <span className="chapter-tab-label">{chapterLabels?.[key] ?? chapterLabelForDoc(doc, key)}</span>
             {/*
               「待核对」圆点：AI 刚生成、人还没看过。点了「保存本章」即消失。
               视觉上不用文字 —— 章节导航里多出的两个字会比圆点更吵。

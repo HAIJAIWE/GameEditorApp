@@ -56,6 +56,7 @@ import {
   CESHU_VIEW_MOUNT,
   type CeshuViewContextValue
 } from '../../plugins/ceshu'
+import { specForDoc } from '@mobai/shared/documentSpec'
 import { toErrorMessage } from '../ceshuViewUtils'
 import CeshuToolbar from './CeshuToolbar'
 import CeshuChapterNav from './CeshuChapterNav'
@@ -436,6 +437,12 @@ export default function CeshuView({
   const aiMarks = readAiGenerated(doc.meta)
   const scope = getGddScope(doc)
   const visible = visibleChaptersForDoc(doc)
+  /**
+   * 文档感知的章标签：有合法覆盖层时，`specForDoc` 返回应用后的规格，
+   * 编辑视图章名因此与导出/交接包一致；覆盖层损坏时 fail-soft 退回基础规格。
+   * **只取标签**：顺序仍由 `visibleByStage` 决定，避免覆盖层重排牵动锚点/进度/activeChapter。
+   */
+  const chapterLabels = specForDoc(doc).chapterLabels
   /**
    * 阶段筛选后的章节列表：`all` 为原行为；选了阶段则只留「截至该阶段」的章，
    * 但**始终保留当前章**——否则从校验报告/评审队列跳过来时右侧会空白。
@@ -992,6 +999,7 @@ export default function CeshuView({
               viewMode={viewMode}
               onToggleViewMode={() => setViewMode((mode) => (mode === 'overview' ? 'edit' : 'overview'))}
               chapters={visibleByStage}
+              chapterLabels={chapterLabels}
               progress={progress}
               activeChapter={activeChapter}
               aiMarks={aiMarks}

@@ -12,11 +12,12 @@ import { applyTemplateOverlay, specForKind, type DocumentSpec } from '@mobai/sha
  * `documentSpec/templateOverlay`（zod 严格模式 + 排列校验）。本组件只负责：
  * 编辑 JSON → 实时校验 → 预览导出后的章序与标签 → 应用 / 清除。
  *
- * **作用域说明（重要）**：覆盖层经 `specForDoc(doc)` 生效，当前消费方是
- * 导出 / 交接包（`appHandoff`）。**编辑视图（章节导航）仍用默认模板**——因为
- * `ceshu/model` 被架构约束禁止 import `documentSpec`，编辑器侧的标签/顺序
- * 仍是模块级常量。要把编辑视图也接上，需要先把覆盖层下沉到中性模块再让两侧
- * 共用（见路线 P2），不在本次范围。
+ * **作用域说明（2026-11-08 更新）**：覆盖层经 `specForDoc(doc)` 生效。
+ * - 导出 / 交接包（`appHandoff`）：标签 + 顺序都跟随覆盖层。
+ * - 编辑视图（章节导航）：**标签跟随**——`CeshuView` 在渲染层直接调 `specForDoc(doc)`
+ *   把 `chapterLabels` 注入导航，绕开了「`ceshu/model` 不能 import documentSpec」的环，
+ *   无需下沉中性模块。顺序仍用默认模板（重排会牵动锚点/进度/activeChapter），留后续。
+ * - 应用空对象 `{}` = 无覆盖，按「清除」处理。
  *
  * 为什么用 JSON 文本而不是拖拽排序：覆盖层是**低频、偏专家**的配置，且需要能从
  * 外部复制粘贴；先把「能力可用」打通，可视化编辑器留后续。
@@ -46,6 +47,31 @@ export default function CeshuTemplateOverlayPanel({
   const t = useT()
   const current = templateOverlayForDoc(doc)
   const [text, setText] = useState(() => prettyOverlay(current))
+  const [fileNotice, setFileNotice] = useState('')
+
+  /** 从文件加载覆盖层 JSON：复用既有 dialog + fs IPC，填进 textarea 走同一套实时校验 */
+  const handleLoadFile = async (): Promise<void> => {
+    setFileNotice('')
+    const mb = window as unknown as {
+      mbApi?: {
+        dialog?: { chooseTemplateJsonFile(req: { mode: 'open' }): Promise<{ path: string | null }> }
+        fs?: { readFile(req: { path: string }): Promise<{ content: string; reason: string | null }> }
+      }
+    }
+    try {
+      const chosen = await mb.mbApi?.dialog?.chooseTemplateJsonFile({ mode: 'open' })
+      if (!chosen?.path) return
+      const file = await mb.mbApi?.fs?.readFile({ path: chosen.path })
+      if (file === undefined) throw new Error('fs:readFile unavailable')
+      if (file.reason !== null || file.content === '') {
+        throw new Error(file.reason ?? 'empty file')
+      }
+      setText(file.content)
+      setFileNotice(t('ceshu.templateOverlay.loaded'))
+    } catch (err) {
+      setFileNotice(t('ceshu.templateOverlay.loadFailed', { message: err instanceof Error ? err.message : String(err) }))
+    }
+  }
 
   /**
    * 每次编辑都重新校验 + 生成预览。覆盖层是小对象，成本可忽略；
@@ -104,6 +130,21 @@ export default function CeshuTemplateOverlayPanel({
         </button>
       </div>
       <p className="template-overlay-hint">{t('ceshu.templateOverlay.hint')}</p>
+      <div className="template-overlay-actions">
+        <button
+          type="button"
+          className="btn slim"
+          data-testid="template-overlay-load-file"
+          onClick={() => void handleLoadFile()}
+        >
+          {t('ceshu.templateOverlay.loadFile')}
+        </button>
+        {fileNotice !== '' && (
+          <span className="template-overlay-file-notice" data-testid="template-overlay-file-notice">
+            {fileNotice}
+          </span>
+        )}
+      </div>
       <textarea
         className="template-overlay-input"
         data-testid="template-overlay-input"
