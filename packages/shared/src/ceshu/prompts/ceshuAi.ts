@@ -166,6 +166,58 @@ function chapterGenerationKeys(doc: CeshuDocument, chapter: string, chapterData:
   return merged.filter((key) => !NON_AI_GENERATED_KEYS.has(key))
 }
 
+/* ---- 前文摘要：跨章一致性的上下文，带硬上限 ---- */
+
+/** 前文摘要上限（宁少勿多：跨章一致性 vs. 上下文膨胀的折中） */
+const PRIOR_DIGEST_MAX_CHAPTERS = 6
+const PRIOR_DIGEST_MAX_FIELDS = 4
+const PRIOR_DIGEST_VALUE_LIMIT = 80
+const PRIOR_DIGEST_TOTAL_LIMIT = 1400
+
+/**
+ * 生成「前文要点」：把**当前章之前**已写好的章节压成带上限的摘要，注入生成提示词。
+ *
+ * 为什么需要：整篇生成是逐章串行的，但 `buildChapterPrompt` 此前只读 meta 与当前章，
+ * 后面章节看不到前面的设定 ⇒「战斗模式 / 货币体系 / 里程碑」这类跨章设定容易自相矛盾。
+ * 事后一致性校验只能在生成完之后报警，挡不住矛盾产生。
+ *
+ * 边界：
+ * - 只取**前序章**（章序在当前章之前），不读未来章，避免因果倒置；
+ * - 每章最多 4 个字段、每值 80 字、整体 ≤1400 字 —— 宁可少给，也不炸上下文；
+ * - 空章 / 系统字段跳过；单字段定向生成不注入（目标明确，不需要全局上下文）。
+ */
+function buildPriorChaptersDigest(doc: CeshuDocument, chapter: string): string {
+  const order = visibleChaptersForDoc(doc)
+  const idx = order.indexOf(chapter)
+  if (idx <= 0) return ''
+  const prior = order.slice(0, idx).slice(-PRIOR_DIGEST_MAX_CHAPTERS)
+  const lines: string[] = []
+  for (const key of prior) {
+    // 文档信息（meta）已在「上下文信息」里给过，不重复塞进前文摘要
+    if (key === 'meta') continue
+    const data = chapterDataForDoc(doc, key)
+    if (!isPlainObject(data)) continue
+    const picked: string[] = []
+    for (const [field, value] of Object.entries(data)) {
+      if (NON_AI_GENERATED_KEYS.has(field)) continue
+      if (value === null || value === undefined || value === '') continue
+      if (Array.isArray(value) && value.length === 0) continue
+      // 嵌套对象（系统配置等）不逐层展开：摘要只给结论，不给结构
+      if (typeof value === 'object' && !Array.isArray(value)) continue
+      const text = Array.isArray(value) ? value.map((item) => String(item)).join('、') : String(value)
+      if (text.trim() === '') continue
+      const clipped = text.length > PRIOR_DIGEST_VALUE_LIMIT ? `${text.slice(0, PRIOR_DIGEST_VALUE_LIMIT)}…` : text
+      picked.push(`${field}: ${clipped}`)
+      if (picked.length >= PRIOR_DIGEST_MAX_FIELDS) break
+    }
+    if (picked.length === 0) continue
+    lines.push(`- ${chapterLabelForDoc(doc, key)}：${picked.join('；')}`)
+  }
+  if (lines.length === 0) return ''
+  const text = lines.join('\n')
+  return text.length > PRIOR_DIGEST_TOTAL_LIMIT ? `${text.slice(0, PRIOR_DIGEST_TOTAL_LIMIT)}…` : text
+}
+
 export interface ChapterPromptResult {
   system: string
   prompt: string
@@ -268,8 +320,16 @@ export function buildChapterPrompt(
   let prompt =
     promptLead +
     `章节提示: ${agent.agentPrompt}\n\n` +
-    `上下文信息:\n${contextText}\n\n` +
-    `该章节需要填充的字段列表:\n${fieldList}\n\n`
+    `上下文信息:\n${contextText}\n\n`
+  /*
+   * 跨章一致性：整章 / 仅补空字段生成时带上「前文要点」。
+   * 单字段定向生成（onlyFields）不注入——它有明确目标，全局上下文只会干扰。
+   */
+  if (onlyFields === undefined || onlyFields.length === 0) {
+    const digest = buildPriorChaptersDigest(doc, chapter)
+    if (digest !== '') prompt += `前文要点（保持前后一致，不要重复已有内容）:\n${digest}\n\n`
+  }
+  prompt += `该章节需要填充的字段列表:\n${fieldList}\n\n`
   /*
    * 单字段生成（协作粒度）：把该字段的 `aiHint`（AI 该产出什么）与 `reviewHint`
    * （人审看什么）一并喂给模型 —— 让生成目标和人审标准在同一处对齐，避免

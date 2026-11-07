@@ -200,6 +200,7 @@ const NONFUNCTIONAL_FIELDS: AppField[] = [
     key: 'compatibility', label: '兼容矩阵', kind: 'multiCombo', required: true,
     values: ['windows', 'macos', 'linux', 'ios', 'android', 'web'],
     optionLabels: { windows: 'Windows', macos: 'macOS', linux: 'Linux', ios: 'iOS', android: 'Android', web: 'Web' },
+    aiHint: '按「目标平台」勾选需要支持的端，不要全部勾选；每个勾选的端都要在性能/可访问性里有对应要求',
     reviewHint: '是否与目标平台一致；多端是否真的都能兼顾'
   },
   { key: 'accessibility', label: '可访问性', kind: 'stringList', required: true, aiHint: '列键盘可达、焦点、对比度、读屏等具体要求', reviewHint: '是否具体到可验收；有无遗漏键盘与焦点' },
