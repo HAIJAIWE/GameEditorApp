@@ -6,6 +6,6 @@
 
 export { estimateTaskTokens, estimateTokens, evaluateBudget, taskBudget } from './budget'
 export type { BudgetLevel, BudgetScale, BudgetStatus, LlmTaskType } from './budget'
-export { applyJudge, evaluateChapterDraft, evaluateDataCandidates } from './qualityGate'
+export { applyJudge, evaluateChapterDraft, evaluateDataCandidates, shouldRegenerateChapter } from './qualityGate'
 export { FALLBACK_ANSWER, buildAssistantMessage, buildToolMessage, fallbackAnswer, formatToolResult, parseToolArguments, terminationDetail } from './brainMessages'
 export type { BrainLlmReply, BrainLlmRequest, BrainLlmTransport, BrainMessage, BrainToolCall, BrainToolRunner } from './brainMessages'

@@ -50,10 +50,17 @@
 | LLM judge | `runLlmJudge` 辅助维度，失败降级 `null` | 同上，仅记录 |
 | 成稿反审 | `buildReviewPrompts` + 11 项对抗检查（`ADVERSARIAL_CHECK_PROBES`） | 建议性质，需人工触发 |
 | 预算门 | `estimatedTokens` + `bulk` 确认（云端大范围先确认），`skipBudgetConfirm` 仅 `budget:null` 时跳过 | 是**确认门**，不是硬上限；`usageTotal` 只观测无熔断 |
-| 重试 | **无自动重试** | JSON 截断/解析失败 → 该章直接 `failed` |
-| 空字段补齐 | 有 `onlyEmpty` 能力，但整篇生成只跑一遍 | 无"生成后自动补齐空字段"的二次循环 |
+| 重试 | ~~无自动重试~~ **已落地**：字段解析为空时追加严格 JSON 约束自动重试 1 次 | 服务不可用/取消不重试（不放大故障） |
+| 空字段补齐 | 有 `onlyEmpty` 能力，但整篇生成只跑一遍 | 无"生成后自动补齐空字段"的二次循环（**未做**：会显著增加调用成本，属产品决策） |
 
-**判断**：质量门收集了正确答案（校验前后对比），却没有据此行动。等于体检报告出来了，但不治病。
+**判断**：初版是"体检报告出来了，但不治病"——主结论 `QualityGateVerdict` 算完后前端只取走辅助的 `judge`。
+
+> **2026-11-07 已修**：新增 `shouldRegenerateChapter`（只认净恶化：`errorDelta>0` 或 `completionDelta<0`，
+> 刻意不用 `blocking`——那是整篇口径；也不用 `!improved`——"无变化"在整篇生成里是常态，会满屏误报）。
+> 面板收集主结论 → 净恶化章显示徽标/汇总 → 一键重生成这些章。测试：`agentQualityGate.test.ts`（5 例）+ `aiFullVerdictPanel.test.tsx`（2 例）。
+>
+> **已修（重试）**：「调用成功但字段解析为空」（JSON 截断/格式坏）自动重试 1 次，追加严格 JSON 约束；
+> 服务不可用/网络错/用户取消在 await 处抛错，直接进 catch 不重试。预算门已 `confirmed: true`，不重复弹确认。
 
 ---
 
@@ -85,7 +92,8 @@
 
 1. ~~补应用侧 `aiHint`~~ **已核实为统计口径错误并已收尾**：真实覆盖 90.2%，唯一业务缺口 `compatibility` 已补。
 2. ~~给后章传"前章摘要"~~ **已落地**：`buildPriorChaptersDigest` 取前序章要点，带 4 重上限，排除 meta。
-3. **单章失败自动重试 1-2 次 + 截断检测**：`finish_reason=length` 时按字段拆分重生成，避免整章归零。
+3. ~~单章失败自动重试~~ **已落地**：空字段时追加严格 JSON 约束重试 1 次；服务错误不重试。
+   （未做 `finish_reason=length` 检测：当前 LLM 客户端契约未暴露该字段，需先扩契约。）
 4. **生成后自动补齐循环**：整篇跑完后，对仍为空的必填字段自动跑 `onlyEmpty` 补全（最多 N 轮），把"一次性生成"变成"收敛式生成"。
-5. **让 quality verdict 变成门**：低于阈值时明确提示"建议重生成本章"，而不是静默记录。
+5. ~~让 quality verdict 变成门~~ **已落地**：净恶化章显示徽标 + 汇总 + 一键重生成。
 6. **token 硬上限 + 熔断**：`usageTotal` 超阈值自动停，避免大文档批量生成失控。

@@ -19,8 +19,8 @@ import {
   type FullGeneratePlan
 } from '@mobai/shared/ceshu/prompts'
 import { chapterDataForDoc, chapterLabelForDoc, getDocKind, getGddScope, isPlainObject } from '@mobai/shared/ceshu/model'
-import { evaluateBudget, taskBudget } from '@mobai/shared/agent/runtime'
-import type { LlmJudgeVerdict } from '@mobai/shared/types'
+import { evaluateBudget, shouldRegenerateChapter, taskBudget } from '@mobai/shared/agent/runtime'
+import type { LlmJudgeVerdict, QualityGateVerdict } from '@mobai/shared/types'
 import { toErrorMessage } from '@mobai/shared/util/system'
 import { readText } from '@mobai/shared/util/io'
 
@@ -70,6 +70,8 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
   const [results, setResults] = useState<Partial<Record<string, ChapterData>>>({})
   /** 每章 LLM-as-Judge 辅助结论（v1.0 DD-19 剩余项）；null = 该章未获评审（调用失败/降级） */
   const [judges, setJudges] = useState<Partial<Record<string, LlmJudgeVerdict | null>>>({})
+  /** 每章**确定性质量门主结论**（生成前后校验对比）；此前只落在返回值里、UI 从未使用 */
+  const [verdicts, setVerdicts] = useState<Partial<Record<string, QualityGateVerdict | null>>>({})
   const [running, setRunning] = useState(false)
   const [applying, setApplying] = useState(false)
   const [summary, setSummary] = useState<string | null>(null)
@@ -81,6 +83,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
   const stopRef = useRef(false)
   const resultsRef = useRef<Partial<Record<string, ChapterData>>>({})
   const judgesRef = useRef<Partial<Record<string, LlmJudgeVerdict | null>>>({})
+  const verdictsRef = useRef<Partial<Record<string, QualityGateVerdict | null>>>({})
 
   const docKind = getDocKind(doc)
   const isApp = docKind !== 'game'
@@ -99,6 +102,10 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
   )
 
   const failedChapters = plan.order.filter((chapter) => statuses[chapter] === 'failed')
+  /** 确定性质量门判定为「净恶化」的章：生成后校验错误变多 / 立项完成度倒退 */
+  const regenChapters = plan.order.filter(
+    (chapter) => statuses[chapter] === 'done' && shouldRegenerateChapter(verdicts[chapter] ?? null)
+  )
   const appliedCount = plan.order.filter((chapter) => results[chapter] !== undefined).length
   const locked = running || applying
 
@@ -112,6 +119,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
     stopRef.current = false
     const draftResults: Partial<Record<string, ChapterData>> = { ...resultsRef.current }
     const draftJudges: Partial<Record<string, LlmJudgeVerdict | null>> = { ...judgesRef.current }
+    const draftVerdicts: Partial<Record<string, QualityGateVerdict | null>> = { ...verdictsRef.current }
     let succeeded = 0
     let failed = 0
     let usageAcc = 0
@@ -119,27 +127,42 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
       if (stopRef.current) break
       setStatuses((prev) => ({ ...prev, [chapter]: 'running' }))
       try {
-        const response = await window.mbApi.ceshu.aiGenerateChapter({
-          id: ceshuId,
-          chapter,
-          onlyEmpty: false,
-          fullGenerate: {
-            styleKey: plan.styleKey,
-            extraPrompt: plan.chapterPrompts[chapter] ?? '',
-            draft: buildDraftPayload(plan, draftResults)
-          },
-          confirmed: true
-        })
+        /*
+         * 单次生成（把「空字段重试」收在这里）：
+         * 字段多的章一次整章生成最容易 JSON 被截断 ⇒ 解析出 0 个有效字段 ⇒ 整章归零。
+         * 仅在「调用成功但字段为空」时追加严格 JSON 约束**自动重试 1 次**；
+         * 服务不可用 / 网络错 / 用户取消都在 await 处抛错，直接进 catch，不会重试放大故障。
+         */
+        const generateOnce = async (extraPrompt: string) =>
+          window.mbApi.ceshu.aiGenerateChapter({
+            id: ceshuId,
+            chapter,
+            onlyEmpty: false,
+            fullGenerate: {
+              styleKey: plan.styleKey,
+              extraPrompt,
+              draft: buildDraftPayload(plan, draftResults)
+            },
+            confirmed: true
+          })
+        const basePrompt = plan.chapterPrompts[chapter] ?? ''
+        let response = await generateOnce(basePrompt)
+        if (Object.keys(response.fields).length === 0 && !stopRef.current) {
+          response = await generateOnce(`${basePrompt}\n\n${t('aiFull.retryStrictJson')}`)
+        }
         if (Object.keys(response.fields).length === 0) {
           throw new Error(t('aiFull.errNoContent'))
         }
         draftResults[chapter] = response.fields
-        // v1.0 DD-19 剩余项：收集每章 judge（确定性门已含在 response.quality，judge 是其辅助维度）
+        // v1.0 DD-19 剩余项：judge 是辅助维度；主结论是确定性质量门 response.quality
         draftJudges[chapter] = response.quality?.judge ?? null
+        draftVerdicts[chapter] = response.quality ?? null
         resultsRef.current = { ...draftResults }
         judgesRef.current = { ...draftJudges }
+        verdictsRef.current = { ...draftVerdicts }
         setResults({ ...draftResults })
         setJudges({ ...draftJudges })
+        setVerdicts({ ...draftVerdicts })
         usageAcc += response.usage?.totalTokens ?? 0
         setUsageTotal(usageAcc)
         setStatuses((prev) => ({ ...prev, [chapter]: 'done' }))
@@ -200,6 +223,8 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
     setResults({})
     judgesRef.current = {}
     setJudges({})
+    verdictsRef.current = {}
+    setVerdicts({})
     setErrors({})
     const initial: Partial<Record<string, ChapterStatus>> = {}
     for (const chapter of plan.order) initial[chapter] = 'pending'
@@ -209,6 +234,11 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
 
   const handleRetry = async (): Promise<void> => {
     await runChapters(failedChapters)
+  }
+
+  /** 重生成「确定性质量门判定为净恶化」的章：把主结论从记录变成可行动 */
+  const handleRegen = async (): Promise<void> => {
+    await runChapters(regenChapters)
   }
 
   /** 应用并保存：逐章写入（含 meta 种子与 systems 深合并），首章顺带写回风格/类型 key */
@@ -432,6 +462,15 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
               <div className={`ai-gen-status ${status}`} key={chapter} data-testid={`ai-full-status-${chapter}`}>
                 <span className="ai-gen-status-label">{chapterLabelForDoc(doc, chapter)}</span>
                 <span className={`ai-gen-status-value ${status}`}>{t(STATUS_LABELS[status])}</span>
+                {status === 'done' && shouldRegenerateChapter(verdicts[chapter] ?? null) && (
+                  <span
+                    className="ai-full-judge-badge flagged"
+                    data-testid={`ai-full-verdict-${chapter}`}
+                    title={verdicts[chapter]?.summary ?? ''}
+                  >
+                    {t('aiFull.verdictWorse')}
+                  </span>
+                )}
                 {status === 'done' && judges[chapter] && (
                   <span
                     className={`ai-full-judge-badge ${judges[chapter]!.toxicity}`}
@@ -509,6 +548,15 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
         <button
           type="button"
           className="btn"
+          data-testid="ai-full-regen"
+          disabled={locked || regenChapters.length === 0}
+          onClick={() => void handleRegen()}
+        >
+          {t('aiFull.regen', { count: regenChapters.length })}
+        </button>
+        <button
+          type="button"
+          className="btn"
           data-testid="ai-full-apply"
           disabled={locked || appliedCount === 0}
           onClick={() => void handleApply()}
@@ -542,6 +590,23 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
                 style={{ width: `${Math.min(100, Math.round(status.ratio * 100))}%` }}
               />
             </div>
+          </div>
+        )
+      })()}
+      {/* 确定性质量门主结论：此前只落在 IPC 返回值里，UI 从未使用 ⇒「体检报告出来了不治病」 */}
+      {(() => {
+        const evaluated = plan.order.filter((chapter) => verdicts[chapter] != null)
+        if (evaluated.length === 0) return null
+        const worse = regenChapters.map((chapter) => chapterLabelForDoc(doc, chapter))
+        return (
+          <div className="ai-full-judge" data-testid="ai-full-verdict">
+            <div className="ai-full-judge-head">{t('aiFull.verdictHead', { count: evaluated.length })}</div>
+            {worse.length > 0 && (
+              <div className="ai-full-judge-warn" data-testid="ai-full-verdict-worse">
+                {t('aiFull.verdictWarn', { count: worse.length, chapters: worse.join('、') })}
+              </div>
+            )}
+            {worse.length === 0 && <div>{t('aiFull.verdictOk')}</div>}
           </div>
         )
       })()}

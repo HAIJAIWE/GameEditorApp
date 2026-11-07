@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest'
 import { CHAPTER_LABELS, type CeshuDocument } from '@mobai/shared/ceshu/reference'
 import { createDefaultCeshu } from '@mobai/shared/ceshu/model'
 import { validateCeshu } from '@mobai/shared/ceshu/validation'
-import { applyJudge, evaluateChapterDraft } from '@mobai/shared/agent/runtime'
-import type { LlmJudgeVerdict } from '@mobai/shared/types'
+import { applyJudge, evaluateChapterDraft, shouldRegenerateChapter } from '@mobai/shared/agent/runtime'
+import type { LlmJudgeVerdict, QualityGateVerdict } from '@mobai/shared/types'
 
 /**
  * 策划书 AI 产出的**确定性质量门**（v0.5 DD-19）。
@@ -280,5 +280,49 @@ describe('LLM-as-Judge 辅助维度（v1.0 DD-19 剩余项）', () => {
     const snapshot = JSON.stringify(verdict)
     applyJudge(verdict!, safeJudge())
     expect(JSON.stringify(verdict)).toBe(snapshot)
+  })
+})
+
+/**
+ * shouldRegenerateChapter：把确定性门从「只记录」变成「可行动」的判据。
+ * 刻意只用「净恶化」信号，不把「无变化」误报成需要重生成（整篇生成里那是常态）。
+ */
+describe('shouldRegenerateChapter：净恶化才建议重生成', () => {
+  function verdict(over: Partial<QualityGateVerdict>): QualityGateVerdict {
+    return {
+      chapter: 'vision',
+      beforeErrors: 10,
+      afterErrors: 10,
+      errorDelta: 0,
+      blocking: [],
+      completionBefore: 0.2,
+      completionAfter: 0.2,
+      completionDelta: 0,
+      improved: false,
+      summary: '',
+      judge: null,
+      ...over
+    }
+  }
+
+  it('null（未获质量门结论）不误报', () => {
+    expect(shouldRegenerateChapter(null)).toBe(false)
+  })
+
+  it('校验错误变多 → 建议重生成', () => {
+    expect(shouldRegenerateChapter(verdict({ errorDelta: 2, afterErrors: 12 }))).toBe(true)
+  })
+
+  it('立项完成度倒退 → 建议重生成', () => {
+    expect(shouldRegenerateChapter(verdict({ completionDelta: -0.05, completionAfter: 0.15 }))).toBe(true)
+  })
+
+  it('无变化（improved=false）不误报：整篇生成里大量章本就不影响完成度', () => {
+    expect(shouldRegenerateChapter(verdict({}))).toBe(false)
+  })
+
+  it('有改善 → 不报；blocking 非空也不足以单独判（那是整篇口径）', () => {
+    expect(shouldRegenerateChapter(verdict({ errorDelta: -1, completionDelta: 0.1, improved: true }))).toBe(false)
+    expect(shouldRegenerateChapter(verdict({ blocking: ['某必填缺失'] }))).toBe(false)
   })
 })

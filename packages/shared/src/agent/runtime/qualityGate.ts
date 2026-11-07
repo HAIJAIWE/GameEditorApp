@@ -115,6 +115,26 @@ export function evaluateChapterDraft(
   return { ...verdict, summary: summarize(verdict) }
 }
 
+/**
+ * 单章生成是否需要建议重生成（供 UI 把「确定性质量门」从记录变成行动）。
+ *
+ * ⚠️ **不能用 `blocking` 判单章**：`evaluateChapterDraft` 的 `blocking` 来自
+ * `validateCeshu(afterDoc)` 的**整篇**结果，整篇生成时其它尚未生成的章会贡献大量
+ * 「必填缺失」，拿它判定几乎每章都会被误标。
+ *
+ * 只认**净恶化**这两个干净信号：
+ * - `errorDelta > 0`：这次生成让校验错误变多（通常是引入了一致性冲突）；
+ * - `completionDelta < 0`：立项阶段完成度反而倒退。
+ *
+ * ⚠️ 刻意**不用** `!improved`：整篇生成里很多章本来就不影响立项完成度，
+ * `errorDelta === 0 && completionDelta === 0` 是常态而非问题；把它当「要重生成」
+ * 会几乎每章都误报，把质量门变成噪音。
+ */
+export function shouldRegenerateChapter(verdict: QualityGateVerdict | null): boolean {
+  if (verdict === null) return false
+  return verdict.errorDelta > 0 || verdict.completionDelta < 0
+}
+
 /* ---- 数据侧的确定性门（v0.5 DD-19 的数据半边） ---- */
 
 /** 从候选条目里取出某字段的有效数值（无法解析的跳过，与 `dataStats::toFiniteNumber` 同口径） */
