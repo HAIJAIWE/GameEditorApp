@@ -157,6 +157,11 @@ export function buildImplementationManifest(doc: CeshuDocument): ImplementationM
   return manifest
 }
 
+/** 渲染成 JSON（给程序 / 编码 agent 机读；结构即 ImplementationManifest） */
+export function renderImplementationManifestJson(manifest: ImplementationManifest): string {
+  return JSON.stringify(manifest, null, 2)
+}
+
 /** 渲染成 Markdown（给人看，也给编码 agent 当上下文） */
 export function renderImplementationManifestMarkdown(manifest: ImplementationManifest): string {
   const lines: string[] = []

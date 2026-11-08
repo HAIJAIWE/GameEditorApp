@@ -75,4 +75,18 @@ describe('manifest 导出格式（接入导出管道）', () => {
     expect(text).toContain('实现契约（构建清单）')
     expect(text).toContain('| 状态 | 触发事件 | 结算效果 | 新状态 |')
   })
+
+  it('manifest-json 导出为可解析的机读结构', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'mb-manifest-json-'))
+    const res = await exportCeshuDocument(filledDoc(), 'manifest-json', join(dir, 'impl'))
+    expect(res.filePath.endsWith('.json')).toBe(true)
+    const parsed = JSON.parse(readFileSync(res.filePath, 'utf8')) as {
+      stateMachine: unknown[]
+      buildOrder: unknown[]
+      pending: unknown[]
+    }
+    expect(parsed.stateMachine.length).toBe(2)
+    expect(parsed.buildOrder.length).toBe(4)
+    expect(Array.isArray(parsed.pending)).toBe(true)
+  })
 })

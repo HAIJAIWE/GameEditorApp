@@ -20,7 +20,11 @@ import { renderCeshuOnePageMarkdown } from './content/onepage'
 import { renderCeshuPdf } from './doc/pdf'
 import { renderCeshuPptx } from './doc/pptx'
 import { renderCeshuTasksMarkdown } from './delivery/tasks'
-import { buildImplementationManifest, renderImplementationManifestMarkdown } from '@mobai/shared/ceshu/export/implementationManifest'
+import {
+  buildImplementationManifest,
+  renderImplementationManifestJson,
+  renderImplementationManifestMarkdown
+} from '@mobai/shared/ceshu/export/implementationManifest'
 
 /**
  * 策划书导出管道：按格式渲染 → 临时文件 + rename 原子写 → 返回结果。
@@ -95,6 +99,8 @@ async function renderContent(
       return renderCeshuTasksMarkdown(doc)
     case 'manifest':
       return renderImplementationManifestMarkdown(buildImplementationManifest(doc))
+    case 'manifest-json':
+      return renderImplementationManifestJson(buildImplementationManifest(doc))
     case 'html':
       return renderCeshuHtml(doc)
     case 'docx':
