@@ -16,6 +16,7 @@
 | 提交 | 内容 |
 |---|---|
 | 2026-11-08 | **gameplay 补「设计量化目标」**：`gameplay.design_targets`（指标/目标值/测量方法/验证节点），注册到机读数据层（与 `vision.design_assumptions` 同口径，不挤占叙述完成度、剥离出生成/导出）；补强 gameplay 章可度量短板（`7c30a411`） |
+| 2026-11-08 | **品类适用性裁剪扩展**：`chapterApplicableToGenre` 由「仅剔 combat」扩为 `GENRE_INAPPLICABLE_CHAPTERS` 显式映射表（保守口径：视觉小说/派对剔 `economy`，休闲益智保留）；`e29aa3a0` |
 | 2026-11-08 | **修复 vision 模板孤儿字段**：`vision.user_personas.potential` 此前模板写入却无字段定义（永不显示/导出/编辑），现补为正式第三类画像字段（`c0c1993b`） |
 | 2026-11-08 | **可访问性章可验收化**：新增 `accessibility.acceptance_checks`（检查项/依据/判定方法/责任角色/阻断，optional）；来源为文档团队实跑样本 `docs/samples/ch16-accessibility-sample.md` |
 | 2026-11-08 | **真实 GDD 原文对拍**：GitHub + gamescrye 下载 7 份可读原文，6:1 偏主题式；编号改为文档级可选（`numbering`） |
