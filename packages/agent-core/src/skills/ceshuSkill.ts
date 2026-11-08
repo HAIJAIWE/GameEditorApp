@@ -28,11 +28,12 @@ import {
 } from '@mobai/shared/ceshu/reference'
 import { CESHU_CHAPTER_FIELDS } from '@mobai/shared/ceshu/fields'
 import { chapterDataForDoc, isPlainObject } from '@mobai/shared/ceshu/model'
+import { buildChapterContract } from '@mobai/shared/ceshu/prompts'
 import { validateCeshu } from '@mobai/shared/ceshu/validation'
 import type { SkillExecutionContext, SkillProtocol, SkillResult } from '@mobai/shared/agent/config'
 import type { CeshuStorePort } from '../ports'
 
-const ACTIONS = ['list', 'get', 'create', 'update', 'delete', 'export'] as const
+const ACTIONS = ['list', 'schema', 'get', 'create', 'update', 'delete', 'export'] as const
 
 const DEFAULT_SCOPE: GddScope = 'full'
 
@@ -278,11 +279,39 @@ export function createCeshuSkill(deps: CeshuSkillDeps): SkillProtocol {
     })
   }
 
+  /**
+   * 返回章节字段契约（key / 类型 / 列 / 必填 / 要点），供 Agent 在 update 前确知目标结构，
+   * 而不是只拿到已有值、靠 key 名去猜。只读、不落盘。
+   */
+  function schemaCeshu(params: Record<string, unknown>): SkillResult {
+    const id = typeof params.ceshu_id === 'string' ? params.ceshu_id.trim() : ''
+    if (id === '') return fail('缺少 ceshu_id 参数（schema 需基于一份文档给出可见章与字段）')
+    const rawChapter = typeof params.chapter === 'string' ? params.chapter.trim() : ''
+    if (rawChapter !== '' && !isChapterKey(rawChapter)) {
+      return fail(`未知小节: ${rawChapter}。可用小节: ${CHAPTER_KEYS.join(', ')}`)
+    }
+    try {
+      const doc = ceshuManager.get(id)
+      const chapters = rawChapter !== '' ? [rawChapter] : undefined
+      const contract = buildChapterContract(doc, chapters)
+      if (contract === '') return fail('未生成字段契约（该章可能不适用或字段为空）')
+      return {
+        success: true,
+        message: contract,
+        data: { chapter: rawChapter !== '' ? rawChapter : null, contract }
+      }
+    } catch (error) {
+      return fail(error instanceof Error ? error.message : String(error))
+    }
+  }
+
   function run(params: Record<string, unknown>, _ctx: SkillExecutionContext): Promise<SkillResult> {
     const action = typeof params.action === 'string' ? params.action : ''
     switch (action) {
       case 'list':
         return Promise.resolve(listCeshu(params))
+      case 'schema':
+        return Promise.resolve(schemaCeshu(params))
       case 'get':
         return Promise.resolve(getCeshu(params))
       case 'create':
@@ -300,7 +329,8 @@ export function createCeshuSkill(deps: CeshuSkillDeps): SkillProtocol {
 
   return {
     id: 'system.ceshu',
-    description: '策划书管理: list=列表, get=获取详情, create=创建, update=更新章节, delete=删除（需用户确认）, export=导出文件。',
+    description:
+      '策划书管理: list=列表, schema=取章节字段契约（key/类型/列/必填/要点）, get=获取详情, create=创建, update=更新章节（建议先 schema 拿契约再写）, delete=删除（需用户确认）, export=导出文件。',
     version: '1.0.0',
     parametersSchema: {
       type: 'object',
@@ -308,9 +338,10 @@ export function createCeshuSkill(deps: CeshuSkillDeps): SkillProtocol {
         action: {
           type: 'string',
           enum: ACTIONS,
-          description: '操作类型: list=列表, get=详情, create=创建, update=更新章节, delete=删除, export=导出'
+          description:
+            '操作类型: list=列表, schema=字段契约, get=详情, create=创建, update=更新章节, delete=删除, export=导出'
         },
-        ceshu_id: { type: 'string', description: '策划书 ID（get/update 时必填）' },
+        ceshu_id: { type: 'string', description: '策划书 ID（schema/get/update 时必填）' },
         keyword: { type: 'string', description: '按名称过滤的关键词（list 时使用）' },
         name: { type: 'string', description: '游戏名称（create 时使用，可留空）' },
         scope: {

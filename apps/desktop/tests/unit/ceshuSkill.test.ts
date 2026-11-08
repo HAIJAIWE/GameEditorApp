@@ -79,3 +79,25 @@ describe('system.ceshu 技能 update：白名单 + 合并 + 校验反馈', () =>
     expect(res.message).toMatch(/校验问题/)
   })
 })
+
+describe('system.ceshu 技能 schema：取字段契约', () => {
+  it('返回指定章契约（含 key 与 pipeList 列）', async () => {
+    const port = makePort(createDefaultCeshu({ scope: 'full' }))
+    const res = await run(createCeshuSkill({ ceshuManager: port }), {
+      action: 'schema',
+      ceshu_id: 'd1',
+      chapter: 'gameplay'
+    })
+    expect(res.success).toBe(true)
+    expect(res.message).toContain('【字段契约】')
+    expect(res.message).toContain('core_loop')
+    expect(res.message).toContain('层级|关注问题|玩家动作|系统变化|反馈|传递物')
+  })
+
+  it('缺 ceshu_id 报错', async () => {
+    const port = makePort(createDefaultCeshu({ scope: 'full' }))
+    const res = await run(createCeshuSkill({ ceshuManager: port }), { action: 'schema' })
+    expect(res.success).toBe(false)
+    expect(String(res.error)).toContain('ceshu_id')
+  })
+})
