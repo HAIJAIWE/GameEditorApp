@@ -122,6 +122,14 @@ describe('OpenAiChatTransport：请求与响应契约', () => {
     expect(reply.usage).toBeUndefined()
   })
 
+  it('usage 为 null（部分兼容端点会返回）→ 不崩溃，usage 为 undefined', async () => {
+    stubFetch(jsonResponse({ choices: [{ message: { content: '你好' } }], usage: null }))
+    const transport = new OpenAiChatTransport({ baseUrl: 'https://x/v1', model: 'm', apiKey: 'k' })
+    const reply = await transport.complete({ messages: [], tools: [] })
+    expect(reply.content).toBe('你好')
+    expect(reply.usage).toBeUndefined()
+  })
+
   it('无 API Key 时不带 Authorization 头', async () => {
     const { inits } = stubFetch(jsonResponse({ choices: [{ message: { content: 'ok' } }] }))
     const transport = new OpenAiChatTransport({ baseUrl: 'https://x/v1', model: 'm', apiKey: '' })

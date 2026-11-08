@@ -102,9 +102,9 @@ export function buildChatCompletionsUrl(baseUrl: string): string {
   return `${baseUrl.trim().replace(/\/+$/, '')}/chat/completions`
 }
 
-/** 把单个 chunk 的 usage 映射为 `LlmUsage`（缺字段回落零值） */
+/** 把单个 chunk 的 usage 映射为 `LlmUsage`（缺字段回落零值；端点可能返回 `usage: null`，一并兜住） */
 function mapUsage(usage: OpenAiStreamChunk['usage']): LlmUsage | undefined {
-  if (usage === undefined) return undefined
+  if (!usage) return undefined
   const promptTokens = usage.prompt_tokens ?? 0
   const completionTokens = usage.completion_tokens ?? 0
   const totalTokens = usage.total_tokens ?? promptTokens + completionTokens

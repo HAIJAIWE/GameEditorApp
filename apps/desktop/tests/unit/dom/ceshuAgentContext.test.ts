@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
 
-import { buildAgentContext } from '../../../src/renderer/src/components/ceshuDoc/CeshuAgentPanel'
+import { buildAgentContext } from '../../../src/renderer/src/components/ceshuDoc'
 import { createDefaultCeshu, chapterFieldsForDoc, chapterLabelForDoc, visibleChaptersForDoc } from '@mobai/shared/ceshu/model'
 import { CESHU_AGENT_CONTEXT_LIMIT } from '@mobai/shared/ceshu/prompts'
 import type { ChapterData } from '@mobai/shared/ceshu/reference'

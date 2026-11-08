@@ -17,6 +17,16 @@ import { isAbortError } from '@mobai/shared/abort'
 import { sharedRateLimiter } from '@mobai/shared/util/system'
 
 /**
+ * 推理型模型重试时的「最大令牌」上限。
+ *
+ * 混元 hy3 这类模型会先把 token 花在 `reasoning_content` 上：实测短提示词推理约 2150 token，
+ * 应用真实章节提示词（含风格词表 / 关键词约束 / 字段契约）更长，4000 仍可能被截断；
+ * 而网关 `/v1/models` 声明 `max_output_tokens=100000`，故一次给足 16000（约 7 倍余量），
+ * 避免 1000 → 4000 → 8000 逐级试探把每章拖成多轮往返。仅在上次被判定为「长度截断」时启用。
+ */
+const RETRY_MAX_TOKENS = 16000
+
+/**
  * LLM 客户端。
  *
  * ## 两种传输（刻意区分，不是「所有 provider 都走 ollama 协议」）
@@ -438,9 +448,12 @@ export class LlmClient {
     const url = `${baseUrl}/chat/completions`
     const stop = stopSequences(config)
 
-    let response: Response
-    try {
-      response = await fetch(url, {
+    type OpenAiPayload = {
+      choices?: Array<{ message?: { content?: string }; finish_reason?: string | null }>
+      usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number }
+    }
+    const callOnce = async (maxTokens: number): Promise<OpenAiPayload> => {
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -458,32 +471,62 @@ export class LlmClient {
             { role: 'user', content: prompt }
           ],
           temperature: config.temperature,
-          max_tokens: config.maxTokens,
+          max_tokens: maxTokens,
           stream: false,
           // 停止词（改前只存不发，设置里这一项等于没接线）
           ...(stop.length > 0 ? { stop } : {})
         })
       })
-    } catch (error) {
-      // 超时 ≠ 连不上 ≠ 用户取消：三者文案必须分开，否则用户会去查网络或以为出了故障
-      if (isTimeoutError(error)) throw timeoutError(preset.label)
-      if (isAbortError(error)) throw cancelledError(error)
-      throw new Error(`无法连接 ${preset.label}（${url}）：${error instanceof Error ? error.message : String(error)}`, {
-        cause: error
-      })
+      if (!response.ok) {
+        const detail = await response.text().catch(() => '')
+        throw new Error(`${preset.label} 调用失败（HTTP ${response.status}）：${detail.slice(0, 120)}`)
+      }
+      return (await response.json()) as OpenAiPayload
     }
 
-    if (!response.ok) {
-      const detail = await response.text().catch(() => '')
-      throw new Error(`${preset.label} 调用失败（HTTP ${response.status}）：${detail.slice(0, 120)}`)
+    const fetchPayload = async (maxTokens: number): Promise<OpenAiPayload> => {
+      try {
+        return await callOnce(maxTokens)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        /*
+         * 本机 WorkBuddy 网关在「推理耗尽 max_tokens、正文为空」时不回
+         * 200 + `finish_reason=length`，而是直接 502 + `empty reply ... cut at its length`。
+         * 宁可放大上限重试一次，也不要把「预算太小」当成服务端故障。
+         */
+        if (maxTokens < RETRY_MAX_TOKENS && /502|empty reply|cut at its length|answered nothing/i.test(message)) {
+          return fetchPayload(RETRY_MAX_TOKENS)
+        }
+        // 超时 ≠ 连不上 ≠ 用户取消：三者文案必须分开，否则用户会去查网络或以为出了故障
+        if (isTimeoutError(error)) throw timeoutError(preset.label)
+        if (isAbortError(error)) throw cancelledError(error)
+        throw new Error(`无法连接 ${preset.label}（${url}）：${message}`, { cause: error })
+      }
     }
 
-    const payload = (await response.json()) as {
-      choices?: Array<{ message?: { content?: string } }>
-      usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number }
+    let payload = await fetchPayload(config.maxTokens)
+    const firstChoice = payload.choices?.[0]
+    /*
+     * 也有网关回 200 却 `finish_reason=length` 且正文为空（推理吃光预算）：
+     * 同样放大上限重试一次，避免把「预算太小」误报成「模型名不正确」——真实踩过的坑。
+     */
+    if (
+      (firstChoice?.message?.content ?? '') === '' &&
+      firstChoice?.finish_reason === 'length' &&
+      config.maxTokens < RETRY_MAX_TOKENS
+    ) {
+      payload = await fetchPayload(RETRY_MAX_TOKENS)
     }
-    const content = payload.choices?.[0]?.message?.content ?? ''
+
+    const choice = payload.choices?.[0]
+    const content = choice?.message?.content ?? ''
     if (content === '') {
+      if (choice?.finish_reason === 'length') {
+        throw new Error(
+          `${preset.label} 输出被截断：该模型是推理型，思考耗尽了「最大令牌」（已自动重试到 ${RETRY_MAX_TOKENS} 仍不足）。` +
+            '请在设置里把「最大令牌」调大，或改用非推理模型'
+        )
+      }
       throw new Error(`${preset.label} 返回了空内容（可能被内容策略拦截或模型名不正确）`)
     }
     const u = payload.usage

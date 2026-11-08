@@ -6,7 +6,7 @@
 
 export { ARTIFACTS } from './ceshuArtifacts'
 export type { ArtifactKey } from './ceshuArtifacts'
-export { default as CeshuAgentPanel } from './CeshuAgentPanel'
+export { default as CeshuAgentPanel, buildAgentContext } from './CeshuAgentPanel'
 export { default as CeshuChapterBody } from './CeshuChapterBody'
 export { default as CeshuChapterNav } from './CeshuChapterNav'
 export { default as CeshuHomePanel } from './CeshuHomePanel'

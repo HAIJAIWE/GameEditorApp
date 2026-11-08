@@ -188,3 +188,88 @@ describe('LlmClient：未传配置时按默认服务商分支判定可用性（�
     expect(status.provider).toBe(DEFAULT_LLM_CONFIG.provider)
   })
 })
+
+describe('LlmClient：推理型模型被 max_tokens 截断时的兜底', () => {
+  it('首次 finish_reason=length 且空正文 → 自动放大到 16000 重试并成功', async () => {
+    const bodies: Array<{ max_tokens?: number }> = []
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = (async (_url: string, init: RequestInit) => {
+      const body = JSON.parse(String(init.body)) as { max_tokens?: number }
+      bodies.push(body)
+      const truncated = (body.max_tokens ?? 0) < 16000
+      return new Response(
+        JSON.stringify(
+          truncated
+            ? { choices: [{ message: { content: '' }, finish_reason: 'length' }], usage: null }
+            : { choices: [{ message: { content: '{"ok":true}' }, finish_reason: 'stop' }] }
+        ),
+        { status: 200 }
+      )
+    }) as unknown as typeof fetch
+    try {
+      const client = new LlmClient()
+      const res = await client.generate('s', 'p', {
+        config: cfg({ enabled: true, provider: 'custom', baseUrl: 'http://127.0.0.1:1', model: 'm', maxTokens: 1000 }),
+        apiKey: 'k'
+      })
+      expect(res.content).toBe('{"ok":true}')
+      expect(bodies.length).toBe(2)
+      expect(bodies[1]?.max_tokens).toBe(16000)
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
+  it('两次都被截断 → 抛出「截断 / 最大令牌」的可操作错误（不再甩「模型名不正确」）', async () => {
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = (async () =>
+      new Response(
+        JSON.stringify({ choices: [{ message: { content: '' }, finish_reason: 'length' }], usage: null }),
+        { status: 200 }
+      )) as unknown as typeof fetch
+    try {
+      const client = new LlmClient()
+      await expect(
+        client.generate('s', 'p', {
+          config: cfg({ enabled: true, provider: 'custom', baseUrl: 'http://127.0.0.1:1', model: 'm', maxTokens: 1000 }),
+          apiKey: 'k'
+        })
+      ).rejects.toThrow(/截断|最大令牌/)
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
+  it('网关把「推理超预算」报成 502（empty reply / cut at its length）→ 放大 16000 重试成功', async () => {
+    const bodies: Array<{ max_tokens?: number }> = []
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = (async (_url: string, init: RequestInit) => {
+      const body = JSON.parse(String(init.body)) as { max_tokens?: number }
+      bodies.push(body)
+      if ((body.max_tokens ?? 0) < 16000) {
+        return new Response(
+          JSON.stringify({
+            error: { message: 'WorkBuddy: an empty reply (the model answered nothing; try again) — cut at its length' }
+          }),
+          { status: 502 }
+        )
+      }
+      return new Response(
+        JSON.stringify({ choices: [{ message: { content: '{"ok":true}' }, finish_reason: 'stop' }] }),
+        { status: 200 }
+      )
+    }) as unknown as typeof fetch
+    try {
+      const client = new LlmClient()
+      const res = await client.generate('s', 'p', {
+        config: cfg({ enabled: true, provider: 'custom', baseUrl: 'http://127.0.0.1:1', model: 'm', maxTokens: 1000 }),
+        apiKey: 'k'
+      })
+      expect(res.content).toBe('{"ok":true}')
+      expect(bodies.length).toBe(2)
+      expect(bodies[1]?.max_tokens).toBe(16000)
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+})
