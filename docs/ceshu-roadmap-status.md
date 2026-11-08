@@ -22,6 +22,8 @@
 | 2026-11-08 | **实现契约 / 构建清单**：新增 `buildImplementationManifest` + Markdown 渲染，从 `state_machine`/`systems`/核心循环/`mvp` 验收派生「垂直切片优先」的构建清单，缺失项如实标 pending；附 `docs/samples/implementation-manifest-sample.md` 与 3 项单测（`cc324408`） |
 | 2026-11-08 | **实测：契约→可玩切片**：仅按实现契约实现云海剑歌垂直切片（6 条状态转移 + 半即时战斗 + 伤害原式 + 验收自检），证明契约足以驱动编码 agent 做出可玩切片；见 `docs/samples/implementation-slice-demo.html`（`e421bbfa` / UX 重做 `9a0fbcc6`） |
 | 2026-11-08 | **实现契约接入导出**：`CESHU_EXPORT_FORMATS` 新增 `manifest`，导出菜单/保存对话框/IPC 校验自动生效，用户可一键导出「实现契约/构建清单」（`b9bb6786`） |
+| 2026-11-08 | **契约 JSON 机读格式**：新增 `manifest-json`（.json），给程序/agent 机读结构化契约（`069dfba9`） |
+| 2026-11-08 | **契约喂厚（A）**：派生内容范围（mvp.core_features / level_design 首关）/ 数值约束（numeric 公式·平衡·断言）/ QA 验收准则 / 通用表现基线；构建顺序 4→5 步。并修「带 columns 的 pipeList 存对象行、toRows 漏读」的 bug（改 `toRowStrings`），验收不再丢失（`c8ed1bc1`） |
 | 2026-11-08 | **gameplay 补「设计量化目标」**：`gameplay.design_targets`（指标/目标值/测量方法/验证节点），注册到机读数据层（与 `vision.design_assumptions` 同口径，不挤占叙述完成度、剥离出生成/导出）；补强 gameplay 章可度量短板（`7c30a411`） |
 | 2026-11-08 | **品类适用性裁剪扩展**：`chapterApplicableToGenre` 由「仅剔 combat」扩为 `GENRE_INAPPLICABLE_CHAPTERS` 显式映射表（保守口径：视觉小说/派对剔 `economy`，休闲益智保留）；`e29aa3a0` |
 | 2026-11-08 | **修复 vision 模板孤儿字段**：`vision.user_personas.potential` 此前模板写入却无字段定义（永不显示/导出/编辑），现补为正式第三类画像字段（`c0c1993b`） |
