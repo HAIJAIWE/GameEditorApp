@@ -68,6 +68,30 @@ export const ACCESSIBILITY_FIELDS: CeshuFieldDef[] = [
     reviewHint: '难度是否可调；提示是否可关闭；是否含防眩晕'
   },
   {
+    /*
+     * 2026-11-08 新增（可选）：把「设计原则」落到「可验收条目」。
+     * 依据 docs/samples/ch16-accessibility-sample.md 的实跑产物——真实可访问性章节的价值
+     * 不在描述原则，而在给出「谁用什么工具量、量到多少算过」。原有 10 个字段全是
+     * 描述性 textarea/stringList，没有任何一处能承接验收动作，导致这一章天然不可验收。
+     * 按「补字段一律 optional」加，老文档完成度不受影响。
+     */
+    key: 'acceptance_checks',
+    label: '可访问性验收清单',
+    kind: 'pipeList',
+    columns: [
+      { key: 'check', label: '检查项' },
+      { key: 'basis', label: '依据' },
+      { key: 'method', label: '判定方法' },
+      { key: 'owner', label: '责任角色' },
+      { key: 'blocking', label: '阻断' }
+    ],
+    placeholder: '检查项|依据|判定方法|责任角色|阻断',
+    aiHint:
+      '每条一个可被非专职 QA 执行的验收项：检查项写对象+阈值；依据挂具体编号（如 WCAG 2.2 1.4.3 AA、XAG V3.2 第 104 条、GB/T 37668-2026）；判定方法写「用什么工具量、看什么现象」；责任角色写主责+交叉复核；阻断列填是/否。阈值不确定标 [待填写]，不得编造条款号',
+    reviewHint:
+      '判定方法是否可执行（不能写「评估是否合理」）；依据是否有具体编号而非「符合相关标准」；阻断项是否覆盖纯音频解谜、计时限制、拖拽替代这类高风险面'
+  },
+  {
     key: 'rating_certification',
     label: '分级认证',
     kind: 'stringList',
@@ -156,6 +180,7 @@ export const ACCESSIBILITY_DEFAULTS: ChapterData = {
   color_blind_support: '',
   motor_accessibility: '',
   cognitive_accessibility: '',
+  acceptance_checks: [],
   rating_certification: [],
   compliance_notes: ''
 }

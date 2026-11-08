@@ -34,15 +34,17 @@ import { STORY_TEMPLATES } from '@mobai/shared/ceshuSchema/design'
  * `tech.sync_model`（同步模型）（348 → 351）。
  * 2026-11-06 再 +1（应用开发：区分游戏/应用档，应用档不启用游戏数据编辑）：
  * `meta.doc_kind`（文档类型：游戏/应用）（351 → 352）。
+ * 2026-11-08 再 +1（可访问性章节不可验收）：`accessibility.acceptance_checks`
+ * （验收清单：检查项/依据/判定方法/责任角色/阻断）（352 → 353）。
  * 此后仍按此基线防意外漂移。
  */
-const BASELINE_TOTAL_FIELDS = 352
+const BASELINE_TOTAL_FIELDS = 353
 
 /** 迁移前捕获的每章字段数基线（key 顺序无关，用于深度比较；2026-10-27：tech 15→16、level_design 10→11） */
 const BASELINE_PER_CHAPTER: Record<string, number> = {
   meta: 14, vision: 8, story: 25, gameplay: 13, systems: 0, combat: 33, economy: 20, numeric: 12,
   art: 18, audio: 17, tech: 19, resources: 13, market_analysis: 16, risk_handling: 14, mvp: 18,
-  monetization: 22, accessibility: 22, uiux: 8, level_design: 11, live_ops: 7, analytics: 7,
+  monetization: 22, accessibility: 23, uiux: 8, level_design: 11, live_ops: 7, analytics: 7,
   qa: 10, publishing: 12, performance: 13
 }
 

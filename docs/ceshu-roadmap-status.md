@@ -15,6 +15,7 @@
 
 | 提交 | 内容 |
 |---|---|
+| 2026-11-08 | **可访问性章可验收化**：新增 `accessibility.acceptance_checks`（检查项/依据/判定方法/责任角色/阻断，optional）；来源为文档团队实跑样本 `docs/samples/ch16-accessibility-sample.md` |
 | 2026-11-08 | **真实 GDD 原文对拍**：GitHub + gamescrye 下载 7 份可读原文，6:1 偏主题式；编号改为文档级可选（`numbering`） |
 | 2026-11-08 | **P2 打磨**：编辑视图章名跟随覆盖层 / 覆盖层从文件加载 / 可选模块说明核实已完成 |
 | 2026-11-08 | **两个新交付物**：Art Bible 独立导出格式 + TDD「从策划书生成草稿」入口（零 LLM、素材按 9 章映射汇入） |
@@ -159,7 +160,7 @@ npm run lint
 cd apps/desktop && npm run build
 ```
 
-当前基线：**tsc×3 / lint / 4236 单测 / build 全绿**。
+当前基线：**tsc×3 / lint / 4240 单测 / build 全绿**。
 
 保护性测试（新增）：
 - `documentSpec.test.ts`：模板结构校验、方向/细节分层、模块登记。
