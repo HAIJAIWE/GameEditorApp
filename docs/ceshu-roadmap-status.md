@@ -26,6 +26,7 @@
 | 2026-11-08 | **契约喂厚（A）**：派生内容范围（mvp.core_features / level_design 首关）/ 数值约束（numeric 公式·平衡·断言）/ QA 验收准则 / 通用表现基线；构建顺序 4→5 步。并修「带 columns 的 pipeList 存对象行、toRows 漏读」的 bug（改 `toRowStrings`），验收不再丢失（`c8ed1bc1`） |
 | 2026-11-08 | **厚契约实测 v3**：用喂厚后契约重做垂直切片（3 关 5 敌 + 数值约束 + 表现基线），对比薄契约的产出——内容量与手感均有可见提升（`2feb7895`） |
 | 2026-11-08 | **换品类实测（塔防）**：另起一份塔防文档（烬土守望）派生契约，canvas 实现网格布防/波次/升级/结算；无头模拟验证「满塔赢、零塔输」——证明契约与管线跨品类通用，非只对 RPG 有效（`6c6fb6aa`） |
+| 2026-11-08 | **真实客户端接入推理型模型，修 3 个线上故障**：Playwright 驱动真 Electron 客户端，接 custom/workbuddy-hy3 网关实测——修 `usage:null` 崩溃、推理耗尽 max_tokens 导致空内容、网关用 502 报长度截断；重试上限 16000。修完智能体对话与文档信息章真实生成成功（judge 合规 78 分）。另发现「应用跑构建产物，源码改动必须 build 后才生效」（`bf68f91b`） |
 | 2026-11-08 | **gameplay 补「设计量化目标」**：`gameplay.design_targets`（指标/目标值/测量方法/验证节点），注册到机读数据层（与 `vision.design_assumptions` 同口径，不挤占叙述完成度、剥离出生成/导出）；补强 gameplay 章可度量短板（`7c30a411`） |
 | 2026-11-08 | **品类适用性裁剪扩展**：`chapterApplicableToGenre` 由「仅剔 combat」扩为 `GENRE_INAPPLICABLE_CHAPTERS` 显式映射表（保守口径：视觉小说/派对剔 `economy`，休闲益智保留）；`e29aa3a0` |
 | 2026-11-08 | **修复 vision 模板孤儿字段**：`vision.user_personas.potential` 此前模板写入却无字段定义（永不显示/导出/编辑），现补为正式第三类画像字段（`c0c1993b`） |
