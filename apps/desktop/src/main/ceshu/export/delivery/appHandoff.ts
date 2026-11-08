@@ -27,7 +27,7 @@ import { renderCeshuMarkdown } from '../doc/markdown'
  * ## 包内结构
  * ```
  * <项目名>-交接包/
- *   README.md            # 施工总纲：按 SDD 分区的章节目录 + 岗位责任 + 门禁
+ *   README.md            # 施工总纲：按 SDD 分区的目录 + 岗位责任 + 门禁
  *   开发路线.md          # 按分区的实施顺序与每章负责人
  *   index.json           # 机读清单：档位/分区/章/岗位/源文件（给 agent 调度）
  *   design/<章>.md       # 逐章设计内容（与项目文件夹同源）
@@ -69,7 +69,7 @@ function platformText(doc: CeshuDocument): string {
     : ''
 }
 
-/** 章节目录（按规格分区，章号连续） */
+/** 目录（按规格分区；标题用「目录」而非「章节目录」，与 Markdown 导出一致） */
 function chapterDirectory(doc: CeshuDocument): string {
   const spec = specForDoc(doc)
   const visible = new Set(visibleChaptersForDoc(doc))
@@ -121,7 +121,7 @@ function renderReadme(doc: CeshuDocument, generatedAt: string): string {
     '- `bundle.json` / `contract.json` — 机读字段与契约',
     '- `index.json` — 机读清单（分区/章/岗位/源文件，供 agent 调度）',
     '',
-    '## 章节目录（按分区）',
+    '## 目录（按分区）',
     '',
     chapterDirectory(doc),
     '',
