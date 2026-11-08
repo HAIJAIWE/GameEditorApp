@@ -15,6 +15,7 @@
 
 | 提交 | 内容 |
 |---|---|
+| 2026-11-08 | **真实 GDD 原文对拍**：GitHub + gamescrye 下载 7 份可读原文，6:1 偏主题式；编号改为文档级可选（`numbering`） |
 | 2026-11-08 | **P2 打磨**：编辑视图章名跟随覆盖层 / 覆盖层从文件加载 / 可选模块说明核实已完成 |
 | 2026-11-08 | **两个新交付物**：Art Bible 独立导出格式 + TDD「从策划书生成草稿」入口（零 LLM、素材按 9 章映射汇入） |
 | 2026-11-08 | **章节标签按档位分派**：游戏档恢复编号（跟游戏文档多数派 5:4 / 全量 10:3），应用档保持主题式；用户拍板「跟多数人习惯」 |
@@ -110,7 +111,7 @@ meta.gdd_scope: 'lite' | 'full'         // 方向版 / 细节版
 - 游戏剧情数据里的「第一章·启程 / 云海篇」是内容，不是标签，保持原样。
 - 模板覆盖层 `applyTemplateOverlay` 按 `base.kind` 分派标签，重排后重新派生。
 
-> **决策依据（2026-11-07，见 `docs/game-doc-corpus-2026.md`）**：
+> **决策依据（2026-11-07 模板口径，见 `docs/game-doc-corpus-2026.md`）**：
 > 当初「两边都不编号」的依据是 6 个**软件/AI 文档**（RFC/KEP/Google/ADR/PEP/ModelCard），
 > **没有一个游戏 GDD**，属把软件文档结论外推到游戏档。重收国内 25 + 国际 25 条游戏文档后：
 > 逐字读过的 11 份里**编号派 5 / 主题派 4 / 同页并存 1 / 非模板 1**，全 50 条口径 **10:3**。
@@ -121,7 +122,17 @@ meta.gdd_scope: 'lite' | 'full'         // 方向版 / 细节版
 > ⇒ 分流维度是**文档载体**而非地域：正式交付物/Word·PPT/可复制模板倾向编号，
 > 活文档/Wiki/Notion/轻量 pitch 倾向主题式（`gameindustrycareerguide` 同一页两种并存）。
 > 用户拍板「**跟多数人习惯**」⇒ 游戏档恢复编号，应用档保持主题式（软件文档依据充分）。
-> 两档分派是有意为之，不是漂移；守卫测试按此口径锁定。
+
+> **复核更正（2026-11-08，见 `docs/game-real-gdd-samples.md`）**：上一条统计的把子是**模板**，
+> 不是真实文档。本轮去 GitHub + gamescrye 下载 PDF 原文并提取目录，7 份可读真实 GDD 里
+> **6 份不编号**（DOOM Bible / Planescape Last Rites / An Ant's Life / Saints Row: Undercover /
+> Zombie Island / MGS2 Grand Game Plan），**只有 BooH 一份编号（1./2./a.）**。
+> ⇒ 结论应为：**真实交付物偏主题式，厂商模板偏编号**；两者都有真实理由
+> （模板便于「按 3.2 条填」，交付物靠目录+页码检索，编号反而拖累改序）。
+>
+> 因此不再一刀切：`TemplateOverlay` 新增可选 `numbering: 'numbered' | 'plain'`，
+> 缺省保持现状（游戏编号 / 应用主题式，零回归），要贴真实 GDD 写法就用 `plain`。
+> 导出与编辑视图同走 `specForDoc`，不会两处不一致。守卫测试锁默认值 + 两向切换 + 非法值 fail-soft。
 
 ---
 
@@ -148,7 +159,7 @@ npm run lint
 cd apps/desktop && npm run build
 ```
 
-当前基线：**tsc×3 / lint / 4232 单测 / build 全绿**。
+当前基线：**tsc×3 / lint / 4236 单测 / build 全绿**。
 
 保护性测试（新增）：
 - `documentSpec.test.ts`：模板结构校验、方向/细节分层、模块登记。

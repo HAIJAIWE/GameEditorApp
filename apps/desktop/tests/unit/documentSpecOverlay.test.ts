@@ -167,3 +167,39 @@ describe('specForDoc：编辑视图与导出共用同一份标签', () => {
     expect(specForDoc(doc)).toBe(GAME_SPEC)
   })
 })
+
+/**
+ * 章标题编号可切换（2026-11-08）：真实交付 GDD 6/7 用主题式，模板多为编号，
+ * 两派都有真实理由 ⇒ 默认保持现状（游戏编号/应用主题式），可显式切换。
+ * 依据 docs/game-real-gdd-samples.md。
+ */
+describe('模板覆盖层：numbering 开关', () => {
+  it('游戏档默认编号（不写 numbering 时行为不变）', () => {
+    const out = applyTemplateOverlay(GAME_SPEC, {})
+    expect(out.chapterLabels.vision).toBe('1. 产品愿景')
+  })
+
+  it("游戏档显式 plain：标签去编号，但章序与锚点不变", () => {
+    const numberedSpec = applyTemplateOverlay(GAME_SPEC, {})
+    const plainSpec = applyTemplateOverlay(GAME_SPEC, { numbering: 'plain' })
+    expect(plainSpec.chapterLabels.vision).toBe('产品愿景')
+    expect(plainSpec.chapterLabels.gameplay).toBe('核心玩法')
+    // 章序不受影响（编号只是显示层）
+    expect(plainSpec.chapterKeys).toEqual(numberedSpec.chapterKeys)
+    expect(plainSpec.numberedKeys).toEqual(numberedSpec.numberedKeys)
+    for (const label of Object.values(plainSpec.chapterLabels)) {
+      expect(/^\d+\.\s/.test(label), `${label} 不应带编号`).toBe(false)
+    }
+  })
+
+  it('应用档显式 numbered：标签带编号（对齐策划案模板口径）', () => {
+    const out = applyTemplateOverlay(APP_SPEC, { numbering: 'numbered' })
+    expect(out.chapterLabels.overview).toBe('1. 项目概述')
+  })
+
+  it('非法 numbering 值 → 整体 fail-soft 回退基础规格，不半途生效', () => {
+    const doc = createDefaultCeshu({ scope: 'full', name: '测试' })
+    doc.meta.template_overlay = { numbering: 'roman' }
+    expect(specForDoc(doc)).toBe(GAME_SPEC)
+  })
+})

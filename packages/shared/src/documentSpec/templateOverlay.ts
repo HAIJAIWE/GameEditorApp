@@ -60,7 +60,16 @@ export const templateOverlaySchema = z.strictObject({
     })
     .optional(),
   /** 模块默认开关覆盖 */
-  modules: z.array(moduleOverrideSchema).optional()
+  modules: z.array(moduleOverrideSchema).optional(),
+  /**
+   * 章标题是否带「N. 」编号。缺省按档位：游戏档编号、应用档主题式。
+   *
+   * 之所以做成选项而不是写死：`docs/game-real-gdd-samples.md` 核了 7 份真实 GDD 原文，
+   * 6 份用不编号的主题式标题（DOOM Bible / Planescape / An Ant's Life / Saints Row /
+   * Zombie Island / MGS2），只有 1 份编号（BooH）；而厂商模板与国内策划案模板多为编号
+   * （模板要给人填空，编号便于「按 3.2 条填」）。两派各有真实理由，一刀切任一边都会被反例打。
+   */
+  numbering: z.enum(['numbered', 'plain']).optional()
 })
 
 export type TemplateOverlay = z.infer<typeof templateOverlaySchema>
@@ -168,8 +177,8 @@ export function applyTemplateOverlay(base: DocumentSpec, overlay: unknown): Docu
   const numberByKey = new Map(numberedKeys.map((key, index) => [key, index + 1]))
   const baseChapterByKey = new Map(base.chapters.map((chapter) => [chapter.key, chapter]))
   // 标签按档位分派：游戏档编号式（CHAPTER_LABELS 同形），应用档主题式（APP_CHAPTER_LABELS 同形）。
-  // 依据 docs/game-doc-corpus-2026.md：游戏策划案多数派编号，软件设计文档原文主题式。
-  const numbered = base.kind === 'game'
+  // 依据 docs/game-real-gdd-samples.md：真实交付 GDD 多为主题式，模板多为编号 ⇒ 做成可切换。
+  const numbered = data.numbering === undefined ? base.kind === 'game' : data.numbering === 'numbered'
 
   const chapters: SpecChapter[] = chapterKeys.map((key) => {
     const baseChapter = baseChapterByKey.get(key)
