@@ -1,9 +1,15 @@
+import { mkdtempSync, readFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+
 import { describe, expect, it } from 'vitest'
 
+import { exportCeshuDocument } from '../../src/main/ceshu/export/exporter'
 import {
   buildImplementationManifest,
   renderImplementationManifestMarkdown
 } from '@mobai/shared/ceshu/export/implementationManifest'
+import { CESHU_EXPORT_FORMATS, CESHU_FORMAT_LABELS } from '@mobai/shared/ceshu/reference'
 import { createDefaultCeshu } from '@mobai/shared/ceshu/model'
 
 function filledDoc() {
@@ -55,5 +61,18 @@ describe('buildImplementationManifest（实现契约派生）', () => {
     expect(md).toContain('30 分钟内跑通核心循环')
     expect(md).toContain('### 战斗（battle）')
     expect(md).toContain('垂直切片优先')
+  })
+})
+
+describe('manifest 导出格式（接入导出管道）', () => {
+  it('注册为可导出格式，且导出产物是构建清单', async () => {
+    expect(CESHU_EXPORT_FORMATS).toContain('manifest')
+    expect(CESHU_FORMAT_LABELS.manifest).toContain('实现契约')
+    const dir = mkdtempSync(join(tmpdir(), 'mb-manifest-'))
+    const res = await exportCeshuDocument(filledDoc(), 'manifest', join(dir, 'impl'))
+    expect(res.filePath.endsWith('.md')).toBe(true)
+    const text = readFileSync(res.filePath, 'utf8')
+    expect(text).toContain('实现契约（构建清单）')
+    expect(text).toContain('| 状态 | 触发事件 | 结算效果 | 新状态 |')
   })
 })
