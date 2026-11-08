@@ -26,6 +26,9 @@ import {
   type ChapterKey,
   type GddScope
 } from '@mobai/shared/ceshu/reference'
+import { CESHU_CHAPTER_FIELDS } from '@mobai/shared/ceshu/fields'
+import { chapterDataForDoc, isPlainObject } from '@mobai/shared/ceshu/model'
+import { validateCeshu } from '@mobai/shared/ceshu/validation'
 import type { SkillExecutionContext, SkillProtocol, SkillResult } from '@mobai/shared/agent/config'
 import type { CeshuStorePort } from '../ports'
 
@@ -173,15 +176,39 @@ export function createCeshuSkill(deps: CeshuSkillDeps): SkillProtocol {
         return fail(`未知小节: ${rawChapter}。可用小节: ${CHAPTER_KEYS.join(', ')}`)
       }
       const data = params.data
-      if (data === null || typeof data !== 'object' || Array.isArray(data)) {
+      if (!isPlainObject(data)) {
         return fail('缺少 data 对象（要写入该章节的字段）')
       }
 
       const chapter: ChapterKey = rawChapter
-      const updated = await ceshuManager.saveChapter(id, chapter, data as Record<string, unknown>)
+      const doc = ceshuManager.get(id)
+      const current = chapterDataForDoc(doc, chapter)
+      // 字段白名单：拒未知键，避免 AI 拼错/自造的脏字段落盘（落盘会污染导出与完成度）。
+      const allowed = new Set<string>([
+        ...(CESHU_CHAPTER_FIELDS[chapter] ?? []).map((field) => field.key),
+        ...Object.keys(current)
+      ])
+      const unknown = Object.keys(data).filter((key) => !allowed.has(key))
+      if (unknown.length > 0) {
+        return fail(
+          `「${CHAPTER_LABELS[chapter]}」没有字段：${unknown.join('、')}；可用字段：${[...allowed].join('、')}`
+        )
+      }
+      /*
+       * 合并而非替换：端口契约写的是「合并章节」，但 `withChapter` 实际是整章替换
+       * ⇒ AI 只传部分字段时会把整章其它已填内容抹掉。这里补上合并语义：只覆盖传入字段。
+       */
+      const merged = { ...current, ...(data as Record<string, unknown>) }
+      // 前后校验：把「这次写入让校验问题如何变化」回给模型，作为内容质量的即时信号。
+      const before = validateCeshu(doc).length
+      const updated = await ceshuManager.saveChapter(id, chapter, merged)
+      const after = validateCeshu(updated).length
+      const delta = after - before
+      const deltaText =
+        delta === 0 ? '校验问题不变' : delta < 0 ? `校验问题减少 ${-delta} 个` : `校验问题增加 ${delta} 个，建议复核`
       return {
         success: true,
-        message: `已更新策划书「${gameNameOf(updated)}」的「${CHAPTER_LABELS[chapter]}」`,
+        message: `已更新策划书「${gameNameOf(updated)}」的「${CHAPTER_LABELS[chapter]}」（${deltaText}）`,
         data: updated
       }
     })

@@ -471,7 +471,7 @@ describe('system.ceshu 技能（A1-5 写操作）', () => {
     // 默认章节 meta
     const ok = await skill.execute({ action: 'update', ceshu_id: 'c1', data: { game_name: '改名了' } }, {})
     expect(ok.success).toBe(true)
-    expect(ok.message).toBe('已更新策划书「改名了」的「文档信息」')
+    expect(ok.message).toBe('已更新策划书「改名了」的「文档信息」（校验问题不变）')
   })
 
   it('update：文档不存在时透出存储层中文错误', async () => {
