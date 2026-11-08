@@ -223,9 +223,29 @@ export function gameTypeHasCombat(gameType: unknown): boolean {
   return !NON_COMBAT_GAME_TYPES.has(gameType)
 }
 
-/** 该章在给定游戏类型下是否适用（目前仅 `combat` 条件化；其余章恒适用） */
+/**
+ * 品类 → 不适用章映射（在「无战斗品类剔除 `combat`」之外，按品类进一步剔除的章）。
+ *
+ * 仅收录**高置信**规则，不确定就不剔，避免误伤：
+ * - 视觉小说 / 派对：无经济系统 ⇒ 剔除 `economy`
+ * - 休闲益智虽无战斗，但常有关卡与轻量经济 ⇒ 不剔（保留 `economy` / `level_design`）
+ * - 其余品类暂不加规则
+ *
+ * `combat` 的剔除仍走 `gameTypeHasCombat`（无战斗品类恒无 combat 章），本表只管 combat 之外的章。
+ */
+export const GENRE_INAPPLICABLE_CHAPTERS: Readonly<Record<string, readonly ChapterKey[]>> = {
+  '视觉小说': ['economy'],
+  '派对': ['economy']
+}
+
+/** 该章在给定游戏类型下是否适用（无战斗品类剔 `combat`；映射表再剔经济等） */
 export function chapterApplicableToGenre(chapter: ChapterKey, gameType: unknown): boolean {
-  return chapter !== 'combat' || gameTypeHasCombat(gameType)
+  if (!gameTypeHasCombat(gameType) && chapter === 'combat') return false
+  if (typeof gameType === 'string') {
+    const extra = GENRE_INAPPLICABLE_CHAPTERS[gameType]
+    if (extra !== undefined && (extra as readonly ChapterKey[]).includes(chapter)) return false
+  }
+  return true
 }
 
 /* ---- 通用底座 vs 系统模块（2026-10-26，见 docs/gdd-universal-core.md）---- */

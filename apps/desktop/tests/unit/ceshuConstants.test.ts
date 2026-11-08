@@ -6,11 +6,14 @@ import {
   CHAPTER_NAMES,
   CHAPTER_PARTS,
   CHAPTER_REQUIRED_FIELDS,
+  GENRE_INAPPLICABLE_CHAPTERS,
   LITE_CHAPTER_KEYS,
   META_CHAPTER_KEY,
   NUMBERED_CHAPTER_KEYS,
+  chapterApplicableToGenre,
   chapterNumber,
   chapterPartOf,
+  gameTypeHasCombat,
   partDisplayName,
   visibleChapterKeys,
   type ChapterKey
@@ -130,5 +133,44 @@ describe('策划书常量：档位裁剪（lite 必须是有章号章节的前�
     // lite 是 full 的子集（不存在「lite 可见但 full 不可见」的章节）
     const fullSet = new Set<ChapterKey>(visibleChapterKeys('full'))
     for (const key of visibleChapterKeys('lite')) expect(fullSet.has(key)).toBe(true)
+  })
+})
+
+describe('策划书常量：品类适用性裁剪', () => {
+  it('gameTypeHasCombat：无战斗品类返回 false；战斗品类/缺省/空值保守返回 true', () => {
+    expect(gameTypeHasCombat('视觉小说')).toBe(false)
+    expect(gameTypeHasCombat('模拟经营')).toBe(false)
+    expect(gameTypeHasCombat('RPG')).toBe(true)
+    expect(gameTypeHasCombat('')).toBe(true)
+    expect(gameTypeHasCombat(undefined)).toBe(true)
+  })
+
+  it('chapterApplicableToGenre：无战斗品类剔 combat；视觉小说/派对再剔 economy', () => {
+    // combat：无战斗品类恒不适用，战斗品类适用
+    expect(chapterApplicableToGenre('combat', '视觉小说')).toBe(false)
+    expect(chapterApplicableToGenre('combat', 'RPG')).toBe(true)
+    // economy：视觉小说 / 派对（无经济系统）不适用
+    expect(chapterApplicableToGenre('economy', '视觉小说')).toBe(false)
+    expect(chapterApplicableToGenre('economy', '派对')).toBe(false)
+    // economy：休闲益智虽无战斗但常有关卡与轻量经济 ⇒ 仍适用（不误伤）
+    expect(chapterApplicableToGenre('economy', '休闲益智')).toBe(true)
+    // 缺省/空值保守：一律适用
+    expect(chapterApplicableToGenre('economy', '')).toBe(true)
+    expect(chapterApplicableToGenre('economy', undefined)).toBe(true)
+  })
+
+  it('visibleChapterKeys 传 gameType：视觉小说不含 combat 与 economy，休闲益智含 economy', () => {
+    const vn = visibleChapterKeys('full', '视觉小说')
+    expect(vn).not.toContain('combat')
+    expect(vn).not.toContain('economy')
+    const casual = visibleChapterKeys('full', '休闲益智')
+    expect(casual).not.toContain('combat')
+    expect(casual).toContain('economy')
+  })
+
+  it('GENRE_INAPPLICABLE_CHAPTERS 仅含高置信规则（视觉小说/派对 → economy）', () => {
+    expect(GENRE_INAPPLICABLE_CHAPTERS['视觉小说']).toEqual(['economy'])
+    expect(GENRE_INAPPLICABLE_CHAPTERS['派对']).toEqual(['economy'])
+    expect(GENRE_INAPPLICABLE_CHAPTERS['休闲益智']).toBeUndefined()
   })
 })
