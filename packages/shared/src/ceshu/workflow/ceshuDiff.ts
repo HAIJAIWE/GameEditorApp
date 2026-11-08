@@ -280,7 +280,7 @@ export function buildVersionDiffMarkdown(diff: CeshuVersionDiff, timestamp: stri
     `- 未变字段: ${diff.total_unchanged}`,
     `- 总变更: ${versionDiffTotalChanges(diff)}`,
     '',
-    '## 章节明细',
+    '## 小节明细',
     ''
   ]
   for (const chapter of diff.chapter_diffs) {

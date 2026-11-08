@@ -191,10 +191,10 @@ describe('策划书校验：残缺文档不抛错（防御）', () => {
    * 但外部调用方（AI 草稿、单测、未来的增量编辑）可能传半成品文档——
    * 校验器只负责报告问题，不该自己崩掉。
    */
-  it('缺全部章节时返回「章节数据格式异常」，而不是抛异常', () => {
+  it('缺全部章节时返回「小节数据格式异常」，而不是抛异常', () => {
     const partial = { meta: { game_name: '残缺样本', game_type: 'RPG' } } as unknown as CeshuDocument
     expect(() => validateCeshu(partial)).not.toThrow()
-    expect(validateCeshu(partial).some((item) => item.includes('章节数据格式异常'))).toBe(true)
+    expect(validateCeshu(partial).some((item) => item.includes('小节数据格式异常'))).toBe(true)
   })
 
   it('缺 systems / numeric / qa 章节时跨章一致性与证据类检查不崩', () => {

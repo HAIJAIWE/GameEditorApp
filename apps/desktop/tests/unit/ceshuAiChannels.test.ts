@@ -165,7 +165,7 @@ describe('ceshu:aiGenerateChapter（整章 / 一键生成）', () => {
 
     await expect(
       harness.invoke('ceshu:aiGenerateChapter', { id: 'x', chapter: '不存在的章节' })
-    ).rejects.toThrow('未知章节')
+    ).rejects.toThrow('未知小节')
     expect(harness.calls).toHaveLength(0)
   })
 })

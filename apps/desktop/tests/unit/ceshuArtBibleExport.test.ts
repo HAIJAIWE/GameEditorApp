@@ -28,7 +28,7 @@ describe('renderCeshuArtBible', () => {
     expect(md).toContain('## 美术风格')
     expect(md).toContain('低多边形太空考古')
     expect(md).toContain('主色 #1B2A4A')
-    expect(md).toContain('## 来源章节')
+    expect(md).toContain('## 来源小节')
     expect(md).toContain('gdd.md#ch9') // art 是第 8 章，锚点比章号大 1
   })
 

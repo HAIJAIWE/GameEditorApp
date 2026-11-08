@@ -35,7 +35,7 @@ export const TECH_DOC_SECTIONS: readonly TechDocSection[] = [
   {
     id: 'data-model',
     title: '数据模型',
-    guidance: '核心实体、字段、关系、持久化形态；与 GDD 数据表/策划书章节的映射。'
+    guidance: '核心实体、字段、关系、持久化形态；与 GDD 数据表/策划书小节的映射。'
   },
   {
     id: 'interfaces',
@@ -88,21 +88,21 @@ export const TECH_DOC_GDD_INPUTS: readonly { section: string; chapters: string }
 export function techDocOutline(): string {
   const lines: string[] = ['# 技术设计文档大纲', '']
   lines.push('## 输入：先读策划书（GDD），不要凭空设计', '')
-  lines.push('TDD 回答「怎么实现」，素材取自当前策划书的对应章节：', '')
-  lines.push('| TDD 章节 | 对应 GDD 章节 |')
+  lines.push('TDD 回答「怎么实现」，素材取自当前策划书的对应小节：', '')
+  lines.push('| TDD 小节 | 对应 GDD 小节 |')
   lines.push('|---|---|')
   for (const item of TECH_DOC_GDD_INPUTS) lines.push(`| ${item.section} | ${item.chapters} |`)
   lines.push('')
   lines.push('写作要求：', '')
   lines.push('- 每章给出**可执行的实现细节**，不是复述 GDD 的设计描述；GDD 已写清的只引用、不重抄。')
-  lines.push('- 发现 GDD 与实现冲突或 GDD 缺关键信息时，在「风险与权衡」里列出，并注明需要回写 GDD 的章节。')
-  lines.push('- 在文档末尾写「来源章节」回链：逐条列出引用过的 GDD 章节名，方便双向追溯。')
+  lines.push('- 发现 GDD 与实现冲突或 GDD 缺关键信息时，在「风险与权衡」里列出，并注明需要回写 GDD 的小节。')
+  lines.push('- 在文档末尾写「来源小节」回链：逐条列出引用过的 GDD 小节名，方便双向追溯。')
   lines.push('')
   TECH_DOC_SECTIONS.forEach((section, index) => {
     lines.push(`## ${index + 1}. ${section.title}`)
     lines.push(`> ${section.guidance}`)
     lines.push('')
   })
-  lines.push('按以上章节写作，每章给出可执行的实现细节（不是复述 GDD）。')
+  lines.push('按以上小节写作，每节给出可执行的实现细节（不是复述 GDD）。')
   return lines.join('\n').trimEnd()
 }

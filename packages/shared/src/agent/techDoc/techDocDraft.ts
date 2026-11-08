@@ -71,9 +71,9 @@ export function buildTechDocDraft(doc: CeshuDocument, title: string): TechDocDra
     lines.push('')
   }
 
-  lines.push('## 来源章节', '')
+  lines.push('## 来源小节', '')
   if (sourceChapters.size === 0) {
-    lines.push('（未取到 GDD 素材，请先填写策划书相关章节）', '')
+    lines.push('（未取到 GDD 素材，请先填写策划书相关小节）', '')
   } else {
     for (const label of [...sourceChapters]) lines.push(`- ${label}`)
     lines.push('')

@@ -291,7 +291,7 @@ export function buildReadinessReportMarkdown(
   ]
   for (const step of r.next_steps) lines.push(`- ${step}`)
 
-  lines.push('', '## 逐章缺口', '', '| 章节 | 必填 | 字数 | 完成度 | 缺失必填 |', '|------|------|------|--------|----------|')
+  lines.push('', '## 逐章缺口', '', '| 小节 | 必填 | 字数 | 完成度 | 缺失必填 |', '|------|------|------|--------|----------|')
   for (const chapter of r.chapters) {
     const missing =
       chapter.missing_required.length > 0

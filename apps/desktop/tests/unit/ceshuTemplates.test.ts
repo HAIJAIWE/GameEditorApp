@@ -52,7 +52,7 @@ describe('ceshuTemplates 内置模板库', () => {
     expect(Object.keys(chapterTemplateSummary())).toHaveLength(24)
   })
 
-  it('按章取模板：meta 3 个且顺序固定；未知章节返回空数组', () => {
+  it('按章取模板：meta 3 个且顺序固定；未知小节返回空数组', () => {
     expect(listChapterTemplates('meta').map((item) => item.name)).toEqual([
       '仙侠 RPG 项目样板',
       '科幻射击样板',

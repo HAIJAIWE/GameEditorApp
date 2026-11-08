@@ -16,7 +16,7 @@ describe('classifyValidationMessage：按文案前缀归类', () => {
       kind: 'required',
       kindLabel: '必填缺失'
     })
-    expect(classifyValidationMessage('第三章：章节数据格式异常')).toMatchObject({
+    expect(classifyValidationMessage('第三章：小节数据格式异常')).toMatchObject({
       severity: 'error',
       kind: 'format'
     })

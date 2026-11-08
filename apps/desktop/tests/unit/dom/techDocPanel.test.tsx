@@ -238,7 +238,7 @@ describe('技术设计文档面板：从策划书生成草稿', () => {
     await view.flush()
     expect(written).toContain('星际考古的核心幻想')
     expect(written).toContain('## 架构总览')
-    expect(written).toContain('## 来源章节')
+    expect(written).toContain('## 来源小节')
     setHostUi(null)
     await view.cleanup()
   })

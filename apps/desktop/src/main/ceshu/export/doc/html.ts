@@ -226,8 +226,8 @@ function renderProgressReport(doc: CeshuDocument, entries: DocChapterEntry[]): s
   const total = Math.round((progress.total ?? 0) * 100)
   return [
     '<section class="chapter appendix">',
-    '<h2>附录：章节完成度</h2>',
-    `<table><thead><tr><th>章节</th><th>进度</th></tr></thead><tbody>${rows}<tr><td><strong>总进度</strong></td><td><strong>${total}%</strong></td></tr></tbody></table>`,
+    '<h2>附录：小节完成度</h2>',
+    `<table><thead><tr><th>小节</th><th>进度</th></tr></thead><tbody>${rows}<tr><td><strong>总进度</strong></td><td><strong>${total}%</strong></td></tr></tbody></table>`,
     '</section>'
   ].join('\n')
 }

@@ -49,7 +49,7 @@ function isBlocking(error: string): boolean {
 
 function summarize(verdict: Omit<QualityGateVerdict, 'summary'>): string {
   if (verdict.blocking.length > 0) {
-    return `仍有 ${verdict.blocking.length} 个阻断问题（必填缺失 / 章节间硬冲突），建议先补齐再继续`
+    return `仍有 ${verdict.blocking.length} 个阻断问题（必填缺失 / 小节间硬冲突），建议先补齐再继续`
   }
   if (verdict.errorDelta < 0) {
     return `校验问题减少 ${-verdict.errorDelta} 个，立项完成度 ${pct(verdict.completionBefore)} → ${pct(verdict.completionAfter)}`

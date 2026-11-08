@@ -36,7 +36,7 @@ describe('章节笔记：模型与纯 CRUD', () => {
       author: DEFAULT_NOTE_AUTHOR
     })
     expect(createNote('meta', '正文', '策划A', '2026-10-01 10:00:00').author).toBe('策划A')
-    expect(() => createNote('', '正文', undefined, '2026-10-01 10:00:00')).toThrow('章节不能为空')
+    expect(() => createNote('', '正文', undefined, '2026-10-01 10:00:00')).toThrow('小节不能为空')
   })
 
   it('sortNotes 按创建时间升序（同秒保持插入顺序），filterNotes 可按章节筛选', () => {

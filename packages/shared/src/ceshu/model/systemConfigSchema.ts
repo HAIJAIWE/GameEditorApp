@@ -189,7 +189,7 @@ export const SYSTEM_CONFIG_SCHEMA: Record<string, Record<string, SystemConfigFie
     stage_types: textarea('关卡类型'),
     difficulty_tiers: number('难度档次', 1, 10),
     stage_reward: textarea('关卡奖励'),
-    chapter_system: checkbox('章节系统'),
+    chapter_system: checkbox('小节系统'),
     star_rating: combo('关卡星级', ['none', '1-3star', '1-5star'], OPT.STAR_RATING_LABELS),
     sweep_enabled: checkbox('扫荡功能'),
     energy_system: combo('体力系统', ['none', 'realtime', 'daily_fixed'], OPT.ENERGY_SYSTEM_LABELS),

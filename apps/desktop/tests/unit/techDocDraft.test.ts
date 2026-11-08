@@ -18,7 +18,7 @@ describe('buildTechDocDraft', () => {
       expect(draft.markdown, section.title).toContain(`## ${section.title}`)
     }
     expect(draft.markdown).toContain('输入：先读策划书（GDD）')
-    expect(draft.markdown).toContain('## 来源章节')
+    expect(draft.markdown).toContain('## 来源小节')
   })
 
   it('已填的 GDD 字段被摘进对应 TDD 章节，并标注来源章名', () => {

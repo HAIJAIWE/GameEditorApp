@@ -48,7 +48,7 @@ export const TEMPLATE_APPLY_MODE_SHORT_LABELS: Record<TemplateApplyMode, string>
 }
 
 /** 无数据模板的兜底提示 */
-export const TEMPLATE_NO_DATA_HINT = '(此章节无模板数据)'
+export const TEMPLATE_NO_DATA_HINT = '(此小节无模板数据)'
 
 /** 跨章搜索结果项（保留章节归属，供列表展示） */
 export interface ChapterTemplateHit {

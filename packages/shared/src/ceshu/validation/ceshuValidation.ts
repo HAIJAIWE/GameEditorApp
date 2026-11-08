@@ -102,7 +102,7 @@ function checkRequiredFields(ctx: CeshuCheckContext): string[] {
     // 用它就永远测不出格式异常。这里读原始值判断格式，是对象后再用规格化数据读字段。
     const raw = (doc as unknown as Record<string, unknown>)[key]
     if (!isPlainObject(raw)) {
-      errors.push(`${label}：章节数据格式异常`)
+      errors.push(`${label}：小节数据格式异常`)
       continue
     }
     const data = chapterDataForDoc(doc, key)

@@ -35,7 +35,7 @@ export function createNote(
   now: string
 ): CeshuNote {
   if (!chapterKey) {
-    throw new Error('章节不能为空')
+    throw new Error('小节不能为空')
   }
   return {
     id: createNoteId(),

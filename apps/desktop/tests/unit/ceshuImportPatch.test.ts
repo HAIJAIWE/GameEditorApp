@@ -44,11 +44,11 @@ describe('parseCeshuPatch：解析外部 AI 的增量 JSON', () => {
     expect(result.items[0]?.changed).toBe(false)
   })
 
-  it('未知章节 / 未知字段 → 进 errors 并跳过，不猜', () => {
+  it('未知小节 / 未知字段 → 进 errors 并跳过，不猜', () => {
     const doc = makeDoc()
     const result = parseCeshuPatch('{"不存在的章": {"x": "y"}, "meta": {"nope": "y"}}', doc)
     expect(result.items).toEqual([])
-    expect(result.errors.some((error) => error.includes('未知章节'))).toBe(true)
+    expect(result.errors.some((error) => error.includes('未知小节'))).toBe(true)
     expect(result.errors.some((error) => error.includes('没有字段「nope」'))).toBe(true)
   })
 

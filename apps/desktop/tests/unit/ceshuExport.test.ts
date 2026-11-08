@@ -99,7 +99,7 @@ describe('策划书导出：HTML', () => {
     expect(html).not.toContain('含 <b>标签</b> 的定位')
     expect(html).toContain('<h2 id="ch6">5. 战斗系统设计</h2>')
     expect(html).toContain('<td>battle</td><td>✅ 启用</td>')
-    expect(html).toContain('附录：章节完成度')
+    expect(html).toContain('附录：小节完成度')
     expect(html).toContain('@media print')
   })
 
@@ -120,7 +120,7 @@ describe('策划书导出：HTML', () => {
     // 没有待审的章不出现
     expect(html).not.toContain(`${CHAPTER_LABELS.vision}：`)
     // HTML 里唯一的既有附录是「章节完成度」，审核进度应排在它之前
-    expect(html.indexOf('附录：审核进度')).toBeLessThan(html.indexOf('附录：章节完成度'))
+    expect(html.indexOf('附录：审核进度')).toBeLessThan(html.indexOf('附录：小节完成度'))
   })
 
   it('审核进度附录：无 field_status 时仍输出，写「无审核记录」', () => {

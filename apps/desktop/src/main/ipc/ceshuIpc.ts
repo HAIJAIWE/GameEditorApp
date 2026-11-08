@@ -97,7 +97,7 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
   })
   handle('ceshu:saveChapter', ceshuSaveChapterInputSchema, async (req) => {
     if (!isChapterAllowedForDoc(ceshuManager.get(req.id), req.chapter)) {
-      throw new Error(`未知章节：${req.chapter}`)
+      throw new Error(`未知小节：${req.chapter}`)
     }
     const updated = await ceshuManager.saveChapter(req.id, req.chapter, req.data, {
       style: req.style,
@@ -163,7 +163,7 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
   handle('ceshu:aiGenerateChapter', ceshuAiGenerateInputSchema, async (req, event) => {
     const base = ceshuManager.get(req.id)
     if (!isChapterAllowedForDoc(base, req.chapter)) {
-      throw new Error(`未知章节：${req.chapter}`)
+      throw new Error(`未知小节：${req.chapter}`)
     }
     const chapter: string = req.chapter
     // 编排（提示词 / 预算门 / 取消 / 质量门 / 判官）全部在 `main/ceshu/ai/ceshu`，
@@ -302,7 +302,7 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
     const chapter: string = req.chapter
     const base = ceshuManager.get(req.id)
     if (!isChapterAllowedForDoc(base, chapter)) {
-      throw new Error(`未知章节：${chapter}`)
+      throw new Error(`未知小节：${chapter}`)
     }
     // 校验字段属于该章表单（含既有扩展字段），避免把任意字符串喂给 LLM 当字段名。
     // 应用章的字段表/章数据/章标签一律走规格化查表，游戏档委托既有常量（零回归）。
@@ -385,7 +385,7 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
   handle('ceshu:notes:list', notesListInputSchema, (req) => ceshuNotesStore.list(req.id, req.chapterKey))
   handle('ceshu:notes:add', notesAddInputSchema, (req) => {
     if (!isChapterKey(req.chapterKey)) {
-      throw new Error(`未知章节：${req.chapterKey}`)
+      throw new Error(`未知小节：${req.chapterKey}`)
     }
     return ceshuNotesStore.add(req.id, req.chapterKey, req.content, req.author)
   })
@@ -396,14 +396,14 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
   handle('ceshu:templates:list', templatesListInputSchema, (req) => ceshuTemplateStore.list(req.chapterKey))
   handle('ceshu:templates:save', templatesSaveInputSchema, (req) => {
     if (req.chapterKey && !isChapterKey(req.chapterKey)) {
-      throw new Error(`未知章节：${req.chapterKey}`)
+      throw new Error(`未知小节：${req.chapterKey}`)
     }
     return ceshuTemplateStore.save(req)
   })
   handle('ceshu:templates:delete', templatesDeleteInputSchema, (req) => ceshuTemplateStore.remove(req.id))
   handle('ceshu:templates:update', templatesUpdateInputSchema, (req) => {
     if (req.chapterKey && !isChapterKey(req.chapterKey)) {
-      throw new Error(`未知章节：${req.chapterKey}`)
+      throw new Error(`未知小节：${req.chapterKey}`)
     }
     return ceshuTemplateStore.update(req.id, {
       name: req.name,

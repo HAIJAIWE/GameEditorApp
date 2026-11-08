@@ -27,7 +27,7 @@ export const APP_META_FIELDS: AppField[] = [
     reviewHint: '是否与实际交付形态一致；多平台是否真的都能兼顾'
   },
   { key: 'doc_kind', label: '文档类型', kind: 'combo', aiDraftable: false, values: ['game', 'application'], optionLabels: { game: '游戏', application: '应用' }, reviewHint: '与应用 SDD 一致' },
-  { key: 'optional_modules', label: '可选模块', kind: 'multiCombo', aiDraftable: false, values: ['ai_layer'], optionLabels: { ai_layer: 'AI 模型层' }, reviewHint: '按需开启；开启后对应章节（如模型卡 / 数据表 / 系统卡 / 评测与红队）才会出现在文档里' },
+  { key: 'optional_modules', label: '可选模块', kind: 'multiCombo', aiDraftable: false, values: ['ai_layer'], optionLabels: { ai_layer: 'AI 模型层' }, reviewHint: '按需开启；开启后对应小节（如模型卡 / 数据表 / 系统卡 / 评测与红队）才会出现在文档里' },
   { key: 'positioning', label: '一句话定位', kind: 'text', placeholder: '一句话说清给谁用、解决什么', aiHint: '一句话说清「给谁、解决什么、和谁不一样」', reviewHint: '是否一句话能讲清，且不与竞品同质' },
   { key: 'status', label: '文档状态', kind: 'combo', aiDraftable: false, values: ['draft', 'in_progress', 'review', 'final'], optionLabels: { draft: '草稿', in_progress: '进行中', review: '评审中', final: '定稿' }, reviewHint: '是否与实际进度相符' },
   { key: 'confidentiality', label: '保密级别', kind: 'combo', aiDraftable: false, values: ['internal', 'confidential', 'public'], optionLabels: { internal: '内部', confidential: '保密', public: '公开' }, reviewHint: '是否与分享对象匹配' },

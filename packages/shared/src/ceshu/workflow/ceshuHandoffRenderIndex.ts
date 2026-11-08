@@ -502,7 +502,7 @@ export function renderHandoffIndex(
         : '卷文件夹'
     lines.push(`| ${range} | ${HANDOFF_VOLUMES.length} 个卷文件夹，内含按编号排序的设计文档 |`)
   }
-  lines.push('| `gdd.md` | 完整策划书（人读，含所有章节） |')
+  lines.push('| `gdd.md` | 完整策划书（人读，含所有小节） |')
   lines.push('| `bundle.json` | 机读字段 + 字段契约（给 AI 读） |')
   lines.push('| `contract.json` | 规则集 / 参数 / 断言 / 验收旅程（机器可判） |')
   lines.push('| `schema.json` | 数据表结构（字段名/类型/枚举/上下限；本库有数据表时才有） |')

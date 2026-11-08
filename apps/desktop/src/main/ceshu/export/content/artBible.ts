@@ -66,7 +66,7 @@ export function renderCeshuArtBible(doc: CeshuDocument): string {
     lines.push('')
   }
 
-  lines.push('## 来源章节', '')
+  lines.push('## 来源小节', '')
   lines.push(`- ${chapterLabelForDoc(doc, 'art')}（gdd.md#${chapterAnchorOf('art')}）`)
   lines.push('')
   return lines.join('\n')

@@ -86,7 +86,7 @@ export function parseCeshuPatch(raw: string, doc: CeshuDocument): CeshuPatchPars
 
   const parsed = parseLlmJson(trimmed)
   if (Object.keys(parsed).length === 0) {
-    return { items, errors: ['无法解析为 JSON：请确认粘贴的是 {"章节": {"字段": 值}} 形式的增量'] }
+    return { items, errors: ['无法解析为 JSON：请确认粘贴的是 {"小节": {"字段": 值}} 形式的增量'] }
   }
 
   // 审阅结果（issues）不是可应用补丁：明确引导，避免用户以为坏了
@@ -100,11 +100,11 @@ export function parseCeshuPatch(raw: string, doc: CeshuDocument): CeshuPatchPars
   for (const [rawChapter, chapterValue] of Object.entries(parsed)) {
     const chapterKey = rawChapter.trim()
     if (!isChapterKey(chapterKey)) {
-      errors.push(`未知章节「${chapterKey}」：已跳过`)
+      errors.push(`未知小节「${chapterKey}」：已跳过`)
       continue
     }
     if (!isPlainObject(chapterValue)) {
-      errors.push(`章节「${CHAPTER_LABELS[chapterKey]}」的值不是对象：已跳过`)
+      errors.push(`小节「${CHAPTER_LABELS[chapterKey]}」的值不是对象：已跳过`)
       continue
     }
     const chapterData: ChapterData = doc[chapterKey]

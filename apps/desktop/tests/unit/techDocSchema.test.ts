@@ -46,12 +46,12 @@ describe('techDocOutline：GDD 输入映射与回链', () => {
     }
   })
 
-  it('outline 含输入表、引用/冲突回写与「来源章节」回链要求', () => {
+  it('outline 含输入表、引用/冲突回写与「来源小节」回链要求', () => {
     const outline = techDocOutline()
     expect(outline).toContain('输入：先读策划书（GDD）')
-    expect(outline).toContain('对应 GDD 章节')
-    expect(outline).toContain('需要回写 GDD 的章节')
-    expect(outline).toContain('来源章节')
+    expect(outline).toContain('对应 GDD 小节')
+    expect(outline).toContain('需要回写 GDD 的小节')
+    expect(outline).toContain('来源小节')
     for (const section of TECH_DOC_SECTIONS) expect(outline).toContain(section.title)
   })
 })

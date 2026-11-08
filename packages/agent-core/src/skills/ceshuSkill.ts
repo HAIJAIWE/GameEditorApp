@@ -170,7 +170,7 @@ export function createCeshuSkill(deps: CeshuSkillDeps): SkillProtocol {
 
       const rawChapter = typeof params.chapter === 'string' && params.chapter !== '' ? params.chapter : 'meta'
       if (!isChapterKey(rawChapter)) {
-        return fail(`未知章节: ${rawChapter}。可用章节: ${CHAPTER_KEYS.join(', ')}`)
+        return fail(`未知小节: ${rawChapter}。可用小节: ${CHAPTER_KEYS.join(', ')}`)
       }
       const data = params.data
       if (data === null || typeof data !== 'object' || Array.isArray(data)) {

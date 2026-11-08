@@ -106,7 +106,7 @@ test('章节笔记：IPC 增删改查 + 磁盘落盘 + UI 面板全链路', asyn
     // 未传作者 → 保留原作者
     expect(probe.updatedAuthor).toBe('策划A')
     expect(probe.missingError).toContain('笔记不存在')
-    expect(probe.unknownChapterError).toContain('未知章节')
+    expect(probe.unknownChapterError).toContain('未知小节')
     expect(probe.firstDelete).toBe(true)
     expect(probe.secondDelete).toBe(false)
     expect(probe.remainingCount).toBe(2)

@@ -222,7 +222,7 @@ describe('extractAllRefs：从整本策划书提取 + 去重', () => {
     expect(extractAllRefs(null)).toEqual([])
   })
 
-  it('未知章节键被忽略（只认 CHAPTER_KEYS）', () => {
+  it('未知小节键被忽略（只认 CHAPTER_KEYS）', () => {
     expect(extractAllRefs(chaptersOf({ 不存在的章节: { a: '@data[role.atk]' } }))).toHaveLength(0)
   })
 })

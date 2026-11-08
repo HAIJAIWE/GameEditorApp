@@ -277,7 +277,7 @@ export async function renderCeshuDocx(doc: CeshuDocument): Promise<Buffer> {
 
   // 附录：章节完成度
   const progress = computeChapterProgress(doc)
-  children.push(headingParagraph('附录：章节完成度', HeadingLevel.HEADING_2))
+  children.push(headingParagraph('附录：小节完成度', HeadingLevel.HEADING_2))
   for (const entry of entries) {
     const percent = Math.round((progress[entry.key] ?? 0) * 100)
     children.push(bodyParagraph(`${chapterLabelForDoc(doc, entry.key)}: ${percent}%`))

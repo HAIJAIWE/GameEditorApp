@@ -271,7 +271,7 @@ export async function renderCeshuPptx(doc: CeshuDocument): Promise<Buffer> {
 
   const progressSlide = pptx.addSlide()
   progressSlide.background = { color: COLORS.bg }
-  progressSlide.addText('章节完成度', {
+  progressSlide.addText('小节完成度', {
     x: 0.5,
     y: 0.35,
     w: 12.3,

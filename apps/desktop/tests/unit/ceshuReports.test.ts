@@ -46,7 +46,7 @@ describe('buildValidationReportMarkdown', () => {
     // 问题清单分组标题
     expect(md).toContain('### 🔴 必填字段缺失 (1)')
     expect(md).toContain('### 🔵 依赖缺失 (1)')
-    expect(md).toContain('| 章节 | 完成度 | 状态 |')
+    expect(md).toContain('| 小节 | 完成度 | 状态 |')
   })
 
   it('评分下限 0 与不合格；无错误时输出「校验通过」段', () => {

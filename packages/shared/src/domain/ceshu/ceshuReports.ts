@@ -36,7 +36,7 @@ export function categorizeValidationError(error: string): ValidationCategory {
 /** 分类展示元数据 */
 export const VALIDATION_CATEGORY_META: Record<ValidationCategory, { title: string; icon: string; color: string; tip: string }> = {
   required: { title: '必填字段缺失', icon: '🔴', color: '#e57373', tip: '影响工业级 GDD 完整性，必须修复' },
-  conflict: { title: '一致性冲突', icon: '🟠', color: '#ffb74d', tip: '章节间硬冲突，会导致执行歧义' },
+  conflict: { title: '一致性冲突', icon: '🟠', color: '#ffb74d', tip: '小节间硬冲突，会导致执行歧义' },
   warning: { title: '一致性警告', icon: '🟡', color: '#fff176', tip: '软警告，建议统一以提升一致性' },
   dep: { title: '依赖缺失', icon: '🔵', color: '#64b5f6', tip: '启用的系统依赖未启用，运行时会出错' },
   other: { title: '其他问题', icon: '⚪', color: '#bdbdbd', tip: '未分类问题' }
@@ -142,9 +142,9 @@ export function buildValidationReportMarkdown(
   }
 
   // 章节完成度
-  lines.push('## 章节完成度')
+  lines.push('## 小节完成度')
   lines.push('')
-  lines.push('| 章节 | 完成度 | 状态 |')
+  lines.push('| 小节 | 完成度 | 状态 |')
   lines.push('|------|--------|------|')
   for (const key of CHAPTER_KEYS) {
     const pct = Math.trunc((progress[key] ?? 0) * 100)
@@ -161,8 +161,8 @@ export function buildValidationReportMarkdown(
   } else {
     lines.push('按优先级修复（红 > 橙 > 蓝 > 黄）：')
     lines.push('')
-    lines.push('1. **必填字段**: 优先补全元信息、产品愿景、核心玩法等基础章节')
-    lines.push('2. **一致性冲突**: 章节间硬冲突会导致执行歧义，必须解决')
+    lines.push('1. **必填字段**: 优先补全元信息、产品愿景、核心玩法等基础小节')
+    lines.push('2. **一致性冲突**: 小节间硬冲突会导致执行歧义，必须解决')
     lines.push('3. **依赖缺失**: 启用的系统需补齐依赖系统，否则运行时报错')
     lines.push('4. **一致性警告**: 软警告，建议统一以提升 GDD 一致性')
   }

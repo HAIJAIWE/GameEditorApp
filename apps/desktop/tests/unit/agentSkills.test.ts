@@ -451,7 +451,7 @@ describe('system.ceshu 技能（A1-5 写操作）', () => {
     expect((named.data as { meta: Record<string, unknown> }).meta.tags).toEqual(['a'])
   })
 
-  it('update：写入指定章节；缺 ceshu_id / 未知章节 / 缺 data 给出中文错误', async () => {
+  it('update：写入指定章节；缺 ceshu_id / 未知小节 / 缺 data 给出中文错误', async () => {
     const skill = createCeshuSkill({ ceshuManager: makeCeshuManager(docs) })
 
     const noId = await skill.execute({ action: 'update', data: { game_name: 'x' } }, {})
@@ -459,7 +459,7 @@ describe('system.ceshu 技能（A1-5 写操作）', () => {
 
     const badChapter = await skill.execute({ action: 'update', ceshu_id: 'c1', chapter: 'nope', data: {} }, {})
     expect(badChapter.success).toBe(false)
-    expect(badChapter.error).toContain('未知章节: nope。可用章节: meta, vision')
+    expect(badChapter.error).toContain('未知小节: nope。可用小节: meta, vision')
 
     const noData = await skill.execute({ action: 'update', ceshu_id: 'c1', chapter: 'meta' }, {})
     expect(noData).toEqual({

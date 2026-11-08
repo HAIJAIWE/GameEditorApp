@@ -107,7 +107,7 @@ describe('完备度报告 Markdown', () => {
 
     // 逐章缺口：缺的字段 join('、')，不缺失输出 —
     expect(md).toContain('## 逐章缺口')
-    expect(md).toContain('| 章节 | 必填 | 字数 | 完成度 | 缺失必填 |')
+    expect(md).toContain('| 小节 | 必填 | 字数 | 完成度 | 缺失必填 |')
     expect(md).toContain('| 文档信息 | 4/4 | 120 | 100% | — |')
     // 缺失字段写**中文标签**（2026-10-27）：报告是给人读的，`differentiation` 这种裸 key 得二次翻译
     expect(md).toContain('| 产品愿景 | 1/2 | 30 | 50% | 差异化优势 |')
