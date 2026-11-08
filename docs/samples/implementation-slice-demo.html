@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>云海剑歌 · 垂直切片（由实现契约生成）</title>
+<style>
+  :root {
+    --bg: #0e1512; --panel: #16211c; --panel2: #1c2a23;
+    --ink: #e6f0e9; --muted: #8fa89a; --line: #2a3a31;
+    --jade: #56c596; --gold: #e0b34d; --blood: #d96060; --blue: #5aa9d6;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: radial-gradient(1200px 600px at 50% -10%, #173026, var(--bg));
+    color: var(--ink); font-family: -apple-system, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    min-height: 100vh;
+  }
+  header {
+    padding: 14px 22px; border-bottom: 1px solid var(--line);
+    display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+  }
+  header h1 { font-size: 18px; margin: 0; letter-spacing: 2px; color: var(--gold); }
+  header .sub { color: var(--muted); font-size: 12px; }
+  .wrap { display: grid; grid-template-columns: 260px 1fr 300px; gap: 14px; padding: 16px; }
+  @media (max-width: 900px) { .wrap { grid-template-columns: 1fr; } }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+  .card h2 { font-size: 13px; margin: 0 0 10px; color: var(--muted); font-weight: 600; letter-spacing: 1px; }
+  .row { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; }
+  .row b { color: var(--ink); font-weight: 500; }
+  .bar { height: 8px; background: #0b120f; border-radius: 6px; overflow: hidden; margin: 4px 0 8px; }
+  .bar > i { display: block; height: 100%; width: 0%; transition: width .12s linear; }
+  .hp > i { background: linear-gradient(90deg, #4fae72, #7be0a3); }
+  .mp > i { background: linear-gradient(90deg, #4a7fd6, #7fb4ec); }
+  .atb > i { background: linear-gradient(90deg, #b98a2e, var(--gold)); }
+  .main { min-height: 420px; display: flex; flex-direction: column; }
+  .main .stage { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; }
+  .stage .hint { color: var(--muted); font-size: 13px; line-height: 1.7; }
+  .enemy { font-size: 40px; }
+  .enemy-name { font-size: 14px; color: var(--blood); letter-spacing: 1px; }
+  button {
+    background: var(--panel2); color: var(--ink); border: 1px solid var(--line);
+    border-radius: 9px; padding: 9px 14px; font-size: 13px; cursor: pointer; transition: .15s;
+  }
+  button:hover:not(:disabled) { border-color: var(--jade); color: var(--jade); }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  button.primary { border-color: var(--jade); color: var(--jade); }
+  .btns { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+  .log { height: 150px; overflow-y: auto; font-size: 12px; line-height: 1.7; color: var(--muted); }
+  .log div { border-bottom: 1px dashed #22302a; padding: 2px 0; }
+  .log .good { color: var(--jade); } .log .bad { color: var(--blood); } .log .warn { color: var(--gold); }
+  .check { font-size: 12.5px; padding: 6px 0; border-bottom: 1px dashed #22302a; line-height: 1.6; }
+  .check .tag { font-size: 11px; border-radius: 4px; padding: 1px 6px; margin-right: 6px; }
+  .tag.done { background: rgba(86,197,150,.15); color: var(--jade); border: 1px solid rgba(86,197,150,.4); }
+  .tag.pending { background: rgba(224,179,77,.12); color: var(--gold); border: 1px solid rgba(224,179,77,.35); }
+  .tag.manual { background: rgba(90,169,214,.12); color: var(--blue); border: 1px solid rgba(90,169,214,.35); }
+  .pending li { font-size: 12px; color: var(--muted); line-height: 1.7; }
+  .badge { font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 20px; padding: 1px 9px; }
+  .stat-attr { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; font-size: 12.5px; }
+  .stat-attr span { color: var(--muted); } .stat-attr b { color: var(--ink); float: right; }
+  .toast { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); background: #1d2c25; border: 1px solid var(--jade); color: var(--jade); padding: 8px 16px; border-radius: 8px; font-size: 13px; opacity: 0; transition: .25s; pointer-events: none; }
+  .toast.show { opacity: 1; top: 22px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>云海剑歌</h1>
+  <span class="sub">垂直切片 · 由 docs/samples/implementation-manifest-sample.md 生成（只读该契约，未看 GDD 全文）</span>
+  <span class="badge" id="realmBadge">炼气一层</span>
+</header>
+
+<div class="wrap">
+  <!-- 左：角色 -->
+  <div class="card">
+    <h2>角色</h2>
+    <div class="row"><span>境界</span><b id="sRealm">炼气一层</b></div>
+    <div class="row"><span>等级</span><b id="sLevel">1</b></div>
+    <div class="row" style="margin-top:8px"><span>气血</span><b><span id="sHp">58</span>/<span id="sHpMax">58</span></b></div>
+    <div class="bar hp"><i id="hpBar"></i></div>
+    <div class="row"><span>灵力</span><b><span id="sMp">32</span>/<span id="sMpMax">32</span></b></div>
+    <div class="bar mp"><i id="mpBar"></i></div>
+    <div class="row"><span>灵石</span><b id="sStone">0</b></div>
+    <div class="card" style="background:var(--panel2); margin-top:10px; padding:10px;">
+      <div class="stat-attr">
+        <span>体魄</span><b id="aTi">3</b>
+        <span>灵力</span><b id="aLing">3</b>
+        <span>身法</span><b id="aShen">3</b>
+        <span>悟性</span><b id="aWu">3</b>
+      </div>
+    </div>
+    <p class="hint" style="font-size:11.5px;color:var(--muted);line-height:1.6;margin:10px 0 0">
+      伤害 = 攻击 × 技能倍率 − 防御 × 0.5<br/>（战斗系统契约原式）
+    </p>
+  </div>
+
+  <!-- 中：舞台 -->
+  <div class="card main">
+    <h2>云海 · 修行</h2>
+    <div class="stage" id="stage"></div>
+    <div class="btns" id="actions"></div>
+    <div class="log" id="log" style="margin-top:12px"></div>
+  </div>
+
+  <!-- 右：验收与契约 -->
+  <div class="card">
+    <h2>验收自检（来自契约「验收标准」）</h2>
+    <div class="check"><span class="tag done" id="acc1tag">进行中</span>试玩 30 分钟内跑通核心循环且无阻断 bug<br/><span style="color:var(--muted);font-size:11.5px">核心循环完成：<b id="loopCount">0</b> 次</span></div>
+    <div class="check"><span class="tag manual">需真人</span>5 名测试者各完成 1 次完整突破<br/><span style="color:var(--muted);font-size:11.5px">本 demo 突破成功：<b id="btCount">0</b> 次（单机无法替代 5 人）</span></div>
+    <div class="check"><span class="tag manual">需线上</span>首日崩溃率 &lt;1%，次日留存 ≥35%<br/><span style="color:var(--muted);font-size:11.5px">运营指标，单机 demo 不可验证</span></div>
+    <h2 style="margin-top:16px">空缺与待决策（契约标注）</h2>
+    <ul class="pending" id="pendingList" style="padding-left:16px;margin:0">
+      <li>工程规格（语言/框架/架构/持久化/网络/构建管线）需在实现阶段确定</li>
+      <li>断线重连、存档格式、失败后的接关规则未在契约中定义</li>
+    </ul>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ===== 状态机：严格照契约「状态转移表」的 6 条转移 =====
+  // 主菜单→对局中 / 对局中→战斗中 / 战斗中(胜)→对局中 / 战斗中(败)→失败 / 对局中→突破中 / 突破中(成功)→对局中
+  // 注：失败→主菜单、突破失败→对局中 这两条契约未定义，是我补的（见文末说明）。
+  var STATE = { MENU: "主菜单", EXPLORE: "对局中", BATTLE: "战斗中", DEFEAT: "失败", BREAKTHROUGH: "突破中" };
+  var state = STATE.MENU;
+
+  var player = {
+    realmIndex: 0,
+    level: 1,
+    body: 3, spirit: 3, agility: 3, insight: 3,
+    hp: 58, mp: 32, stone: 0
+  };
+  var REALMS = ["炼气一层","炼气二层","筑基初期","筑基中期","筑基后期","金丹初期","金丹中期","金丹后期"];
+  var MAX_LEVEL = 60;
+
+  var battle = null;       // {enemy, playerBar, enemyBar, waitingPlayer, timer}
+  var loopCount = 0, btCount = 0;
+
+  function $(id){ return document.getElementById(id); }
+  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+  function rnd(a,b){ return Math.floor(a + Math.random()*(b-a+1)); }
+
+  function maxHp(){ return 40 + player.body*6 + (player.realmIndex*10); }
+  function maxMp(){ return 20 + player.spirit*4; }
+  function atk(){ return Math.round(player.spirit*2 + player.level*1.5 + player.realmIndex*3); }
+  function def(){ return player.body + player.realmIndex*2; }
+  function speed(){ return player.agility*4 + 6; }
+  function btRate(){ return clamp(0.35 + player.insight*0.05, 0.35, 0.95); }
+
+  function log(msg, cls){
+    var el = $("log");
+    var d = document.createElement("div");
+    if (cls) d.className = cls;
+    d.textContent = msg;
+    el.appendChild(d);
+    el.scrollTop = el.scrollHeight;
+  }
+  var toastTimer = null;
+  function toast(msg){
+    var el = $("toast"); el.textContent = msg; el.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ el.classList.remove("show"); }, 1400);
+  }
+
+  function syncStats(){
+    var mh = maxHp(), mm = maxMp();
+    player.hp = clamp(player.hp, 0, mh); player.mp = clamp(player.mp, 0, mm);
+    $("sRealm").textContent = REALMS[clamp(player.realmIndex,0,REALMS.length-1)];
+    $("realmBadge").textContent = REALMS[clamp(player.realmIndex,0,REALMS.length-1)];
+    $("sLevel").textContent = player.level;
+    $("sHpMax").textContent = mh; $("sHp").textContent = Math.round(player.hp);
+    $("sMpMax").textContent = mm; $("sMp").textContent = Math.round(player.mp);
+    $("sStone").textContent = player.stone;
+    $("aTi").textContent = player.body; $("aLing").textContent = player.spirit;
+    $("aShen").textContent = player.agility; $("aWu").textContent = player.insight;
+    $("hpBar").style.width = (mh ? (player.hp/mh*100) : 0) + "%";
+    $("mpBar").style.width = (mm ? (player.mp/mm*100) : 0) + "%";
+    $("loopCount").textContent = loopCount;
+    $("btCount").textContent = btCount;
+    var t1 = $("acc1tag");
+    t1.textContent = loopCount >= 1 ? "达成" : "进行中";
+    t1.className = "tag " + (loopCount >= 1 ? "done" : "pending");
+  }
+
+  function setStage(html){ $("stage").innerHTML = html; }
+  function clearActions(){ $("actions").innerHTML = ""; }
+  function btn(label, onclick, primary){
+    var b = document.createElement("button");
+    b.textContent = label;
+    if (primary) b.className = "primary";
+    b.onclick = onclick;
+    $("actions").appendChild(b);
+    return b;
+  }
+
+  // ===== 主菜单 =====
+  function renderMenu(){
+    state = STATE.MENU;
+    stopBattleLoop();
+    setStage('<div class="enemy">⛰️</div><div class="hint">云海缥缈，仙路初开。<br/>你将在这里：探索 → 遭遇 → 战斗 → 掉落 → 打坐突破。</div>');
+    clearActions();
+    btn("开始修行", function(){ gotoExplore(true); }, true);
+    log("【主菜单】待你踏上修行路。");
+  }
+
+  // ===== 对局中（地图/探索）=====
+  function gotoExplore(first){
+    state = STATE.EXPLORE;
+    stopBattleLoop();
+    setStage('<div class="enemy">🗺️</div><div class="hint">云海深处，灵气涌动。<br/>探索可能遇到灵材、功法，也可能惊动妖兽。</div>');
+    clearActions();
+    btn("探索云海", function(){ explore(); }, true);
+    btn("打坐突破", function(){ gotoBreakthrough(); });
+    if (first) log("【对局中】进入云海。当前境界：" + REALMS[player.realmIndex] + "。");
+  }
+
+  function explore(){
+    if (state !== STATE.EXPLORE) return;
+    var r = Math.random();
+    if (r < 0.15) {
+      log("探索时惊动了妖兽！", "warn");
+      startBattle();
+    } else if (r < 0.62) {
+      var g = rnd(3, 8);
+      player.stone += g;
+      log("拾得灵材，获得灵石 ×" + g + "。", "good");
+      syncStats();
+    } else {
+      if (Math.random() < 0.5) {
+        player.insight += 1;
+        log("偶得残卷，悟性 +1。", "good");
+      } else {
+        var e = 4;
+        // 经验简化为等级（上限 60）
+        if (player.level < MAX_LEVEL) { player.level += 1; log("勤修苦练，等级 +1（当前 " + player.level + "）。", "good"); }
+        else log("磨砺心法，收获灵力。", "good");
+        player.mp = maxMp();
+      }
+      syncStats();
+    }
+  }
+
+  // ===== 战斗（半即时·行动条）=====
+  function startBattle(){
+    state = STATE.BATTLE;
+    var lvl = player.realmIndex;
+    battle = {
+      enemy: {
+        name: ["山魈","云蛇","赤瞳狼","石傀"][rnd(0,3)],
+        hp: 24 + lvl*14, hpMax: 24 + lvl*14,
+        atk: 5 + lvl*3 + player.level, def: 2 + lvl*2,
+        speed: 4 + lvl
+      },
+      playerBar: 0, enemyBar: 0, waitingPlayer: false, over: false, timer: null
+    };
+    renderBattle();
+    startBattleLoop();
+    log("遭遇「" + battle.enemy.name + "」！战斗开始。", "warn");
+  }
+
+  function renderBattle(){
+    var e = battle.enemy;
+    var eHp = Math.max(0, Math.round(e.hp));
+    setStage(
+      '<div class="enemy-name">' + e.name + '</div>' +
+      '<div class="enemy">👹</div>' +
+      '<div class="bar hp" style="width:220px"><i style="width:' + (eHp/e.hpMax*100) + '%"></i></div>' +
+      '<div class="hint" style="font-size:12px">敌方气血 ' + eHp + ' / ' + e.hpMax + '</div>' +
+      '<div style="width:260px;margin-top:6px">' +
+        '<div class="hint" style="font-size:11px;color:var(--gold)">你 · 行动条</div>' +
+        '<div class="bar atb"><i id="atbMe" style="width:' + battle.playerBar + '%"></i></div>' +
+        '<div class="hint" style="font-size:11px;color:var(--blood)">' + e.name + ' · 行动条</div>' +
+        '<div class="bar atb"><i id="atbEnemy" style="width:' + battle.enemyBar + '%"></i></div>' +
+      '</div>'
+    );
+    renderBattleActions();
+  }
+
+  function renderBattleActions(){
+    clearActions();
+    var ready = battle && battle.waitingPlayer && !battle.over;
+    var s1 = btn("御剑术 · 灵力4", function(){ useSkill(1.0, 4, "御剑术"); });
+    var s2 = btn("灵爆 · 灵力8", function(){ useSkill(1.8, 8, "灵爆"); });
+    var s0 = btn("普攻", function(){ useSkill(0.8, 0, "普攻"); });
+    [s0, s1, s2].forEach(function(b){ b.disabled = !ready; });
+  }
+
+  function startBattleLoop(){
+    battle.timer = setInterval(function(){
+      if (!battle || battle.over) return;
+      var e = battle.enemy;
+      if (!battle.waitingPlayer) {
+        battle.playerBar = clamp(battle.playerBar + speed()*0.45, 0, 100);
+        if (battle.playerBar >= 100) { battle.waitingPlayer = true; renderBattleActions(); }
+      }
+      battle.enemyBar = clamp(battle.enemyBar + e.speed*0.6, 0, 100);
+      if (battle.enemyBar >= 100) {
+        battle.enemyBar = 0;
+        enemyAttack();
+      }
+      var am = $("atbMe"), ae = $("atbEnemy");
+      if (am) am.style.width = battle.playerBar + "%";
+      if (ae) ae.style.width = battle.enemyBar + "%";
+    }, 100);
+  }
+  function stopBattleLoop(){ if (battle && battle.timer) { clearInterval(battle.timer); battle.timer = null; } }
+
+  function useSkill(mult, cost, name){
+    if (!battle || !battle.waitingPlayer || battle.over) return;
+    if (player.mp < cost) { toast("灵力不足"); return; }
+    player.mp -= cost;
+    // 契约原式：伤害 = 攻击 × 技能倍率 − 防御 × 0.5
+    var dmg = Math.max(1, Math.round(atk() * mult - battle.enemy.def * 0.5));
+    battle.enemy.hp -= dmg;
+    log("你施展「" + name + "」，造成 " + dmg + " 点伤害。", "good");
+    battle.playerBar = 0; battle.waitingPlayer = false;
+    syncStats();
+    if (battle.enemy.hp <= 0) { winBattle(); return; }
+    renderBattle();
+  }
+
+  function enemyAttack(){
+    if (!battle || battle.over) return;
+    var dmg = Math.max(1, Math.round(battle.enemy.atk * 1.0 - def() * 0.5));
+    player.hp -= dmg;
+    log("「" + battle.enemy.name + "」反击，你受到 " + dmg + " 点伤害。", "bad");
+    syncStats();
+    if (player.hp <= 0) { loseBattle(); return; }
+    renderBattle();
+  }
+
+  function winBattle(){
+    battle.over = true; stopBattleLoop();
+    var gain = rnd(5, 12);
+    player.stone += gain;
+    log("击败「" + battle.enemy.name + "」，获得灵石 ×" + gain + "。", "good");
+    loopCount += 1;   // 契约验收：核心循环完成一次
+    syncStats();
+    state = STATE.EXPLORE;
+    setStage('<div class="enemy">✨</div><div class="hint">战斗结束，云海复归平静。<br/>核心循环完成第 ' + loopCount + ' 次。</div>');
+    clearActions();
+    btn("继续探索", function(){ gotoExplore(false); }, true);
+    btn("打坐突破", function(){ gotoBreakthrough(); });
+  }
+
+  function loseBattle(){
+    battle.over = true; stopBattleLoop();
+    player.hp = 0; syncStats();
+    state = STATE.DEFEAT;
+    setStage('<div class="enemy">💀</div><div class="hint">气血耗尽，你倒下了……<br/>（契约未定义「失败→主菜单」，这是实现层补的）</div>');
+    clearActions();
+    btn("重新开始", function(){ resetRun(); }, true);
+    log("你被击败了。", "bad");
+  }
+
+  function resetRun(){
+    player.hp = maxHp(); player.mp = maxMp();
+    gotoExplore(true);
+  }
+
+  // ===== 突破 =====
+  function gotoBreakthrough(){
+    state = STATE.BREAKTHROUGH;
+    stopBattleLoop();
+    var rate = btRate();
+    var cost = 10 + player.realmIndex * 6;
+    setStage(
+      '<div class="enemy">🧘</div>' +
+      '<div class="hint">打坐突破 · 冲击「' + REALMS[clamp(player.realmIndex+1,0,REALMS.length-1)] + '」<br/>' +
+      '成功率：' + Math.round(rate*100) + '%｜消耗灵石：' + cost + '（当前 ' + player.stone + '）</div>'
+    );
+    clearActions();
+    var b = btn("尝试突破", function(){ doBreakthrough(rate, cost); }, true);
+    if (player.stone < cost) { b.disabled = true; toast("灵石不足（需 " + cost + "）"); }
+    btn("返回云海", function(){ gotoExplore(false); });
+  }
+
+  function doBreakthrough(rate, cost){
+    if (state !== STATE.BREAKTHROUGH) return;
+    if (player.stone < cost) { toast("灵石不足"); return; }
+    player.stone -= cost;
+    if (Math.random() < rate) {
+      player.realmIndex = Math.min(player.realmIndex + 1, REALMS.length - 1);
+      player.body += 1; player.spirit += 1; player.agility += 1; player.insight += 1;
+      player.hp = maxHp(); player.mp = maxMp();
+      btCount += 1;
+      log("突破成功！境界提升至「" + REALMS[player.realmIndex] + "」，四维 +1。", "good");
+      syncStats();
+      gotoExplore(false);
+      toast("突破成功");
+    } else {
+      log("突破失败，灵石已耗，暂退一步。（契约未定义「突破失败→对局中」，实现层补的）", "warn");
+      syncStats();
+      gotoExplore(false);
+      toast("突破失败，再试一次");
+    }
+  }
+
+  // ===== 启动 =====
+  player.hp = maxHp(); player.mp = maxMp();
+  syncStats();
+  renderMenu();
+  window.__demo = { getState: function(){ return state; }, getPlayer: function(){ return player; }, getLoop: function(){ return loopCount; }, getBreakthroughs: function(){ return btCount; } };
+})();
+</script>
+</body>
+</html>
