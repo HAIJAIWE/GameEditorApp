@@ -11,7 +11,8 @@ import {
   CESHU_AGENT_SYSTEM_PROMPT,
   CESHU_AGENT_TRUNCATED_SUFFIX,
   CESHU_AGENT_UNTITLED,
-  buildCeshuAgentPrompt
+  buildCeshuAgentPrompt,
+  buildChapterContract
 } from '@mobai/shared/ceshu/prompts'
 import { parseCeshuPatch, type CeshuPatchItem } from '@mobai/shared/ceshu/data'
 import type { MessageKey } from '@mobai/shared/i18n'
@@ -34,11 +35,20 @@ interface ChatMessage {
 const QUICK_PROMPTS: readonly MessageKey[] = ['agent.quick.risk', 'agent.quick.gameplay', 'agent.quick.art']
 
 /** 整份策划书 → 紧凑上下文（只列已填字段，按章节分组）；提示词文本走 shared 常量，避免棘轮误判 */
-function buildContext(doc: CeshuDocument): string {
+function buildContext(doc: CeshuDocument, withContract: boolean): string {
   const meta = doc.meta as Record<string, unknown>
   const name = typeof meta.game_name === 'string' && meta.game_name !== '' ? meta.game_name : CESHU_AGENT_UNTITLED
   const type = typeof meta.game_type === 'string' ? meta.game_type : ''
   const lines = [`${CESHU_AGENT_GAME_PREFIX}${name}${type !== '' ? `（${type}）` : ''}`]
+  /*
+   * 「改文档 / 生成」模式：先下发字段契约（key / 类型 / 列 / 必填 / 要点），让模型知道
+   * 「符合的文档」长什么样，而不是只看到已填值、靠 key 名去猜结构。放在已填内容之前，
+   * 超长截断时优先保留——空文档正是最需要它的时刻。问答模式不下发（保持原有上下文体积）。
+   */
+  if (withContract) {
+    const contract = buildChapterContract(doc, undefined, { maxChars: 3800 })
+    if (contract !== '') lines.push('', contract)
+  }
   // 直接遍历该文档可见章：应用档章不在 CHAPTER_KEYS 里，用「游戏全章表 ∩ visible」会把它们全丢掉。
   for (const chapter of visibleChaptersForDoc(doc)) {
     const fields = chapterFieldsForDoc(doc, chapter)
@@ -80,7 +90,7 @@ export default function CeshuAgentPanel({
     setMessages((prev) => [...prev, { role: 'user', text: question }])
     setBusy(true)
     try {
-      const context = buildContext(doc)
+      const context = buildContext(doc, patchMode)
       const system = patchMode ? CESHU_AGENT_PATCH_SYSTEM_PROMPT : CESHU_AGENT_SYSTEM_PROMPT
       const prompt = buildCeshuAgentPrompt(context, question)
       const result = await window.mbApi.llm.generate({ system, prompt })

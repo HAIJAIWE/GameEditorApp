@@ -409,6 +409,55 @@ export function buildChapterPrompt(
   return { system, prompt, fields }
 }
 
+/**
+ * 生成「字段契约」上下文（对话生成路径用）。
+ *
+ * 为什么需要：对话侧上下文此前只把「已填字段的中文 label + 值」交给模型，空章直接跳过
+ * ⇒ 模型既不知道有哪些字段，也不知道 pipeList 要几列，生成只能靠 key 名猜。
+ * 本函数把目标章的**字段目录**（key / 类型 / 列 / 必填 / aiHint 摘要）整理成紧凑文本，
+ * 供「改文档 / 生成」模式下发，让模型知道「符合的文档」到底长什么样。
+ *
+ * 预算：`maxChars`（默认 3800）内按章累加，整章放不下就停（已加入的保留），避免撑爆
+ * 小模型上下文、也给已填内容留空间。aiHint 按 `hintLimit`（默认 48）截断。
+ */
+export function buildChapterContract(
+  doc: CeshuDocument,
+  chapters?: readonly string[],
+  options: { maxChars?: number; hintLimit?: number } = {}
+): string {
+  const maxChars = options.maxChars ?? 3800
+  const hintLimit = options.hintLimit ?? 48
+  const list = chapters ?? visibleChaptersForDoc(doc)
+  const head = '【字段契约】生成或修改内容必须使用下列 key，并按「类型/列」输出；标「必填」的不能留空'
+  const blocks: string[] = []
+  let used = head.length
+  for (const chapter of list) {
+    const label = chapterLabelForDoc(doc, chapter)
+    const required = new Set(requiredFieldsForDoc(doc, chapter))
+    const chapterLines: string[] = [`## ${label}`]
+    for (const field of chapterFieldsForDoc(doc, chapter)) {
+      const meta = resolveFieldMeta(chapter, field, [...required])
+      let kindText: string = field.kind
+      if (field.kind === 'pipeList' && Array.isArray(field.columns) && field.columns.length > 0) {
+        kindText = `pipeList[${field.columns.map((column) => column.label).join('|')}]`
+      } else if (field.kind === 'stringList') {
+        kindText = 'stringList(每行一项)'
+      }
+      const parts: string[] = [`${field.key}: ${kindText}`]
+      if (required.has(field.key)) parts.push('必填')
+      const hint = (meta.aiHint ?? '').trim()
+      if (hint !== '') parts.push(hint.length > hintLimit ? `${hint.slice(0, hintLimit)}…` : hint)
+      chapterLines.push(`- ${parts.join('｜')}`)
+    }
+    const block = chapterLines.join('\n')
+    if (used + block.length + 1 > maxChars) break
+    blocks.push(block)
+    used += block.length + 1
+  }
+  if (blocks.length === 0) return ''
+  return [head, ...blocks].join('\n')
+}
+
 /* ---- LLM 输出解析与字段清洗 ---- */
 
 export interface CeshuAiGenerateResult {

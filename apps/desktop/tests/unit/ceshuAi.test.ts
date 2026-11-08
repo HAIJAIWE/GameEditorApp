@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   CHAPTER_GENERATION_HINTS,
   agentForChapter,
+  buildChapterContract,
   buildChapterOrder,
   buildChapterPrompt,
   buildChapterPrompts,
@@ -25,6 +26,30 @@ import { parseLlmJson } from '@mobai/shared/util/object'
 import { CHAPTER_KEYS } from '@mobai/shared/ceshu/reference'
 import { CESHU_CHAPTER_FIELDS } from '@mobai/shared/ceshu/fields'
 import { createDefaultCeshu, deriveRulesetId } from '@mobai/shared/ceshu/model'
+
+describe('字段契约（对话生成上下文）', () => {
+  it('列出字段 key、pipeList 列、必填标记', () => {
+    const doc = createDefaultCeshu({ scope: 'full' })
+    const text = buildChapterContract(doc, ['gameplay'])
+    expect(text).toContain('【字段契约】')
+    expect(text).toContain('core_loop')
+    // gameplay 必填含 core_loop ⇒ 该行带「必填」
+    expect(text).toMatch(/core_loop.*必填/)
+    // loop_three_layers 是 6 列 pipeList ⇒ 列名应出现在契约里
+    expect(text).toContain('层级|关注问题|玩家动作|系统变化|反馈|传递物')
+  })
+
+  it('预算不足时返回空串，不硬塞半章', () => {
+    const doc = createDefaultCeshu({ scope: 'full' })
+    expect(buildChapterContract(doc, ['gameplay'], { maxChars: 10 })).toBe('')
+  })
+
+  it('aiHint 按 hintLimit 截断（超长补省略号）', () => {
+    const doc = createDefaultCeshu({ scope: 'full' })
+    const text = buildChapterContract(doc, ['gameplay'], { hintLimit: 6 })
+    expect(text).toContain('…')
+  })
+})
 
 describe('成稿反审（7 项三级判定，2026-10-26 由 5 维度评分改造）', () => {
   it('章节摘要：仅标量真值、【标签】+ key: value、每值截断 60 字', () => {
