@@ -57,6 +57,20 @@ export const GAMEPLAY_FIELDS: CeshuFieldDef[] = [
     reviewHint: '是否为 2-4 个模式；每行是否「名称+一句差异」；差异句能否区分模式而非套话'
   },
   {
+    key: 'design_targets',
+    label: '设计量化目标',
+    kind: 'pipeList',
+    columns: [
+      { key: 'metric', label: '指标' },
+      { key: 'target', label: '目标值' },
+      { key: 'method', label: '测量方法' },
+      { key: 'gate', label: '验证节点' }
+    ],
+    placeholder: '指标|目标值|测量方法|验证节点',
+    aiHint: '登记核心玩法可验证的设计目标：每行一个，写清「指标/目标值/怎么测/在哪个节点验证」（如「单局时长|8-12 分钟|埋点统计|Demo 试玩」「次日留存|≥40%|后台数据|首测」）。没有可量化目标就留空，不要编造',
+    reviewHint: '目标是否可量化、可测量；目标值是否有依据而非拍脑袋；验证节点是否可执行；是否与「核心循环/前30分钟」自洽'
+  },
+  {
     key: 'first_30_min',
     label: '新手体验(前30分钟)',
     kind: 'textarea',

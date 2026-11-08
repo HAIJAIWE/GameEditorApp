@@ -38,13 +38,15 @@ import { STORY_TEMPLATES } from '@mobai/shared/ceshuSchema/design'
  * （验收清单：检查项/依据/判定方法/责任角色/阻断）（352 → 353）。
  * 2026-11-08 再 +1（修复 vision 模板孤儿字段）：`vision.user_personas.potential`
  * （潜在用户，与主要/次要用户并列的第三类画像；此前模板写入却无字段定义，永不显示/导出）（353 → 354）。
+ * 2026-11-08 再 +1（gameplay 补可量化设计目标）：`gameplay.design_targets`
+ * （设计量化目标：指标/目标值/测量方法/验证节点，注册到机读数据层）（354 → 355）。
  * 此后仍按此基线防意外漂移。
  */
-const BASELINE_TOTAL_FIELDS = 354
+const BASELINE_TOTAL_FIELDS = 355
 
 /** 迁移前捕获的每章字段数基线（key 顺序无关，用于深度比较；2026-10-27：tech 15→16、level_design 10→11） */
 const BASELINE_PER_CHAPTER: Record<string, number> = {
-  meta: 14, vision: 9, story: 25, gameplay: 13, systems: 0, combat: 33, economy: 20, numeric: 12,
+  meta: 14, vision: 9, story: 25, gameplay: 14, systems: 0, combat: 33, economy: 20, numeric: 12,
   art: 18, audio: 17, tech: 19, resources: 13, market_analysis: 16, risk_handling: 14, mvp: 18,
   monetization: 22, accessibility: 23, uiux: 8, level_design: 11, live_ops: 7, analytics: 7,
   qa: 10, publishing: 12, performance: 13

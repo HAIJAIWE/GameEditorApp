@@ -93,6 +93,7 @@ export interface MachineDataField {
 
 export const CESHU_MACHINE_DATA_FIELDS: readonly MachineDataField[] = [
   { chapter: 'economy', field: 'ledger', reason: '逐笔对账，校验会求和核对期末期望' },
+  { chapter: 'gameplay', field: 'design_targets', reason: '可验证的设计目标（指标/目标值/测量方法），属机读承诺而非叙述' },
   { chapter: 'qa', field: 'prototype_acceptance', reason: '「实测」类设计主张的证据来源' },
   { chapter: 'numeric', field: 'numeric_assertions', reason: '可复算的数值断言' },
   { chapter: 'numeric', field: 'design_claims', reason: '设计主张 → 证据核对' },
