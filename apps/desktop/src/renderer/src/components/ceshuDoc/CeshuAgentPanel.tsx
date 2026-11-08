@@ -34,33 +34,63 @@ interface ChatMessage {
 
 const QUICK_PROMPTS: readonly MessageKey[] = ['agent.quick.risk', 'agent.quick.gameplay', 'agent.quick.art']
 
-/** 整份策划书 → 紧凑上下文（只列已填字段，按章节分组）；提示词文本走 shared 常量，避免棘轮误判 */
-function buildContext(doc: CeshuDocument, withContract: boolean): string {
+/**
+ * 整份策划书 → 紧凑上下文（按章节分组，只列已填字段）；提示词文本走 shared 常量，避免棘轮误判。
+ *
+ * 预算策略：**按章统一裁剪**，而不是从头硬截断。旧做法把全文顺序拼接后切前 6000 字，
+ * 长文档的靠后章节会被整段截掉——用户问「战斗章怎么样」时模型根本看不到战斗章。
+ * 现在先收集每章内容块，再逐级收窄「每值裁剪长度」直到装进预算，保证**每章都有代表**；
+ * 只有极长文档连最小裁剪都放不下时才兜底硬截断。
+ */
+export function buildAgentContext(doc: CeshuDocument, withContract: boolean): string {
   const meta = doc.meta as Record<string, unknown>
   const name = typeof meta.game_name === 'string' && meta.game_name !== '' ? meta.game_name : CESHU_AGENT_UNTITLED
   const type = typeof meta.game_type === 'string' ? meta.game_type : ''
-  const lines = [`${CESHU_AGENT_GAME_PREFIX}${name}${type !== '' ? `（${type}）` : ''}`]
+  const headLines = [`${CESHU_AGENT_GAME_PREFIX}${name}${type !== '' ? `（${type}）` : ''}`]
   /*
    * 「改文档 / 生成」模式：先下发字段契约（key / 类型 / 列 / 必填 / 要点），让模型知道
-   * 「符合的文档」长什么样，而不是只看到已填值、靠 key 名去猜结构。放在已填内容之前，
-   * 超长截断时优先保留——空文档正是最需要它的时刻。问答模式不下发（保持原有上下文体积）。
+   * 「符合的文档」长什么样，而不是只看到已填值、靠 key 名去猜结构。契约整体保留、不参与裁剪。
    */
   if (withContract) {
     const contract = buildChapterContract(doc, undefined, { maxChars: 3800 })
-    if (contract !== '') lines.push('', contract)
+    if (contract !== '') headLines.push('', contract)
   }
-  // 直接遍历该文档可见章：应用档章不在 CHAPTER_KEYS 里，用「游戏全章表 ∩ visible」会把它们全丢掉。
+
+  // 收集已填章的内容块（应用档章不在 CHAPTER_KEYS 里，必须遍历该文档可见章）
+  const sections: Array<{ label: string; items: Array<{ label: string; value: string }> }> = []
   for (const chapter of visibleChaptersForDoc(doc)) {
     const fields = chapterFieldsForDoc(doc, chapter)
     const data = chapterDataForDoc(doc, chapter)
-    const filled = fields
-      .map((field) => ({ field, value: displayFieldValue(field, data[field.key]) }))
+    const items = fields
+      .map((field) => ({ label: field.label, value: displayFieldValue(field, data[field.key]) }))
       .filter((item) => item.value !== '')
-    if (filled.length === 0) continue
-    lines.push('', `## ${chapterLabelForDoc(doc, chapter)}`)
-    for (const item of filled) lines.push(`- ${item.field.label}：${item.value}`)
+    if (items.length === 0) continue
+    sections.push({ label: chapterLabelForDoc(doc, chapter), items })
   }
-  const text = lines.join('\n')
+
+  const head = headLines.join('\n')
+  const budget = Math.max(0, CESHU_AGENT_CONTEXT_LIMIT - head.length - 2)
+  // 每章等分预算：保证**每一章都分到一段**，而不是从头硬截断让末章消失。
+  // 文档小、总量不超预算时 perChapter 足够大，字段全量保留（零损失）；
+  // 文档满、总量超预算时按章均摊，每章至少保留标题 + 首条字段，长字段按份额裁剪。
+  const perChapter = sections.length > 0 ? Math.floor(budget / sections.length) : budget
+  const body = sections
+    .map((section) => {
+      const parts = [`## ${section.label}`]
+      let used = parts[0].length
+      for (const item of section.items) {
+        const text = item.value.length > perChapter ? `${item.value.slice(0, perChapter)}…` : item.value
+        const line = `- ${item.label}：${text}`
+        // 首条无条件保留（每章都要有内容）；此后再超本份额就停，避免吃掉别章的预算。
+        if (parts.length > 1 && used + line.length + 1 > perChapter) break
+        parts.push(line)
+        used += line.length + 1
+      }
+      return parts.join('\n')
+    })
+    .join('\n\n')
+  const text = sections.length === 0 ? head : `${head}\n\n${body}`
+  // 兜底：极长文档连按章均摊都放不下时才硬截断（此时每章都已有代表，被切的是尾部冗余）
   return text.length > CESHU_AGENT_CONTEXT_LIMIT
     ? `${text.slice(0, CESHU_AGENT_CONTEXT_LIMIT)}${CESHU_AGENT_TRUNCATED_SUFFIX}`
     : text
@@ -90,7 +120,7 @@ export default function CeshuAgentPanel({
     setMessages((prev) => [...prev, { role: 'user', text: question }])
     setBusy(true)
     try {
-      const context = buildContext(doc, patchMode)
+      const context = buildAgentContext(doc, patchMode)
       const system = patchMode ? CESHU_AGENT_PATCH_SYSTEM_PROMPT : CESHU_AGENT_SYSTEM_PROMPT
       const prompt = buildCeshuAgentPrompt(context, question)
       const result = await window.mbApi.llm.generate({ system, prompt })
