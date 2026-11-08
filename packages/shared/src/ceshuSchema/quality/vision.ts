@@ -32,6 +32,13 @@ export const VISION_FIELDS: CeshuFieldDef[] = [
     reviewHint: '差异是否具体（不是「也有年轻人」）；是否说明为何值得一并服务；是否与主要用户画像重叠'
   },
   {
+    key: 'user_personas.potential',
+    label: '潜在用户',
+    kind: 'textarea',
+    aiHint: '当前暂未重点服务、但存在转化可能的群体；写清为何是「潜在」以及未来什么条件下会变为目标用户',
+    reviewHint: '是否区别于主要/次要用户；是否说明转化条件而非空泛描述；与三类画像是否有清晰边界'
+  },
+  {
     key: 'differentiation',
     label: '差异化优势',
     kind: 'textarea',
@@ -79,7 +86,8 @@ export const VISION_DEFAULTS: ChapterData = {
   design_vision: '',
   user_personas: {
     primary: '',
-    secondary: ''
+    secondary: '',
+    potential: ''
   },
   competitive_analysis: [],
   differentiation: '',
