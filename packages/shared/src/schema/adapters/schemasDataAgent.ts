@@ -140,6 +140,22 @@ export const techDocWriteInputSchema = z.object({
 })
 
 /**
+ * 技术设计文档：按节 AI 生成。
+ *
+ * `sectionId` 走 `TECH_DOC_SECTIONS` 的 id（overview / architecture / …），
+ * 传未知值由提示词层用 id 兜底（界面误传不该整节生成失败）。
+ * `confirmed` 是云端档的预算确认开关（DD-17）：`bulk` 不设，按章节档 4000 token 估。
+ */
+export const techDocGenerateInputSchema = z.object({
+  sectionId: z.string().min(1).max(64),
+  /** 当前文档名（可选）：只用于回填「已写完的其它节」的上下文提示 */
+  name: z.string().min(1).max(120).optional(),
+  /** 额外要求（用户手填的一句约束） */
+  extra: z.string().max(2000).optional(),
+  confirmed: z.boolean().optional()
+})
+
+/**
  * 取消某个长任务（对话循环 / 单发 AI 生成都走这一条）。
  * 缺省 `taskId` ⇒ 取消该窗口当前活跃的那一笔（面板上只有一个停止按钮时的自然语义）。
  */
@@ -175,6 +191,7 @@ export type AgentSubagentStopInput = z.infer<typeof agentSubagentStopInputSchema
 export type AgentJobCancelInput = z.infer<typeof agentJobCancelInputSchema>
 export type TechDocNameInput = z.infer<typeof techDocNameInputSchema>
 export type TechDocWriteInput = z.infer<typeof techDocWriteInputSchema>
+export type TechDocGenerateInput = z.infer<typeof techDocGenerateInputSchema>
 export type TaskCancelInput = z.infer<typeof taskCancelInputSchema>
 export type ScheduleRemoveInput = z.infer<typeof scheduleRemoveInputSchema>
 export type AgentExecuteToolInput = z.infer<typeof agentExecuteToolInputSchema>

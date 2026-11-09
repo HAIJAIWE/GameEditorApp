@@ -92,7 +92,8 @@ const api: MbApi = {
     read: (req) => invoke('techDoc:read', req),
     write: (req) => invoke('techDoc:write', req),
     delete: (req) => invoke('techDoc:delete', req),
-    export: (req) => invoke('techDoc:export', req)
+    export: (req) => invoke('techDoc:export', req),
+    generate: (req) => invoke('techDoc:generate', req)
   },
   attrSystem: {
     get: () => invoke('attrSystem:get', undefined),

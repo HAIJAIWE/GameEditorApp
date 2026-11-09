@@ -113,7 +113,7 @@ export function registerIpcHandlers(deps: IpcHandlerDeps): void {
   registerShellIpc(deps, handle)
   registerLlmIpc(deps, handle, llm)
   registerAgentIpc(deps, handle, llm)
-  registerTechDocIpc(deps, handle)
+  registerTechDocIpc(deps, handle, llm)
   registerTaskIpc(deps, handle)
   registerScheduleIpc(deps, handle)
   registerLibraryIpc(deps, handle)

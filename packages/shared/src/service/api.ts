@@ -88,6 +88,8 @@ export interface MbApi {
     list(): Promise<IpcContract['techDoc:list']['res']>
     /** 标准大纲（新建预填） */
     outline(): Promise<IpcContract['techDoc:outline']['res']>
+    /** 按节 AI 生成正文（一次一节；返回本节正文，由渲染层拼进文档） */
+    generate(req: IpcContract['techDoc:generate']['req']): Promise<IpcContract['techDoc:generate']['res']>
     /** 读取全文 */
     read(req: IpcContract['techDoc:read']['req']): Promise<IpcContract['techDoc:read']['res']>
     /** 保存全文 */

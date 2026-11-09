@@ -11,8 +11,10 @@ import type {
   AgentSubagentStopInput,
   AgentJobCancelInput,
   TechDocNameInput,
-  TechDocWriteInput
+  TechDocWriteInput,
+  TechDocGenerateInput
 } from './schema/adapters'
+import type { LlmUsage } from './config/llm'
 import type { JobRecord } from './agent/jobs/jobRegistry'
 import type { ScheduleTaskView } from './agent/schedule'
 import type {
@@ -425,6 +427,17 @@ export interface IpcContract {
   'techDoc:export': { req: TechDocNameInput; res: { path: string | null } }
   /** 技术设计文档：标准大纲（新建时预填） */
   'techDoc:outline': { req: undefined; res: { content: string } }
+  /**
+   * 技术设计文档：按节 AI 生成正文（**一次只生成一节**）。
+   *
+   * 为什么分节：整篇生成时模型会先复述 GDD 再补两句实现，实测正文被压到每节 300 字上下；
+   * 分节生成的提示词只带这一节的素材与写作指引，长度下限才咬得住。
+   * 返回的是**本节正文**，落盘由渲染层用 replaceTechDocSection 拼进当前文档（保留未保存编辑）。
+   */
+  'techDoc:generate': {
+    req: TechDocGenerateInput
+    res: { body: string; sectionId: string; title: string; model: string; usage: LlmUsage | null }
+  }
   'agent:sessionInfo': { req: undefined; res: SessionInfo }
   'agent:sessionRestore': { req: undefined; res: { messages: Array<Record<string, unknown>> } }
   'agent:sessionClear': { req: undefined; res: { cleared: boolean } }

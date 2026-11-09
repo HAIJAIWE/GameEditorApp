@@ -38,6 +38,76 @@ const SECTION_CHAPTER_KEYS: Readonly<Record<string, readonly string[]>> = {
 /** 每章最多摘录的字段数，避免草稿过长 */
 const MAX_FIELDS_PER_SECTION = 8
 
+/**
+ * AI 分节生成时单条素材值的截断长度。
+ *
+ * 草稿是给人看的，AI 生成是给模型看的：一条「数据表」值可能长到几百行 pipeList，
+ * 原样塞进提示词会先吃掉预算、再把真正的写作要求挤到窗口边缘（本仓踩过）。
+ */
+const MAX_MATERIAL_VALUE_CHARS = 600
+
+/** AI 分节生成可用的 GDD 素材条：与草稿同一份映射，但上限更宽 */
+const MAX_AI_MATERIALS_PER_SECTION = 16
+
+/** 给 AI 提示词用的一条素材（与 techDocPrompt 的 TechDocSectionMaterials 同形） */
+export interface TechDocMaterial {
+  label: string
+  chapter: string
+  value: string
+}
+
+/**
+ * 取出某个 TDD 节对应的 GDD 素材（供 **AI 分节生成** 用）。
+ *
+ * 与草稿的区别：上限更宽（16 条 vs 8 条）、单条值截断到 600 字、丢掉空值。
+ * 单条值截断是刻意的：pipeList 字段（数据表 / 数值断言）原样进 prompt 能把预算吃光，
+ * 真正常用的信息（表名、列名、量级）在前 600 字里。
+ */
+export function techDocSectionMaterials(doc: CeshuDocument, sectionId: string): TechDocMaterial[] {
+  const keys = SECTION_CHAPTER_KEYS[sectionId.trim()] ?? []
+  const materials: TechDocMaterial[] = []
+  for (const key of keys) {
+    const fields = chapterFieldsForDoc(doc, key)
+    if (fields.length === 0) continue
+    const data = chapterDataForDoc(doc, key)
+    const chapter = chapterLabelForDoc(doc, key)
+    for (const field of fields) {
+      if (materials.length >= MAX_AI_MATERIALS_PER_SECTION) return materials
+      const value = displayFieldValue(field, data[field.key]).trim()
+      if (value === '') continue
+      materials.push({
+        label: field.label,
+        chapter,
+        value: value.length > MAX_MATERIAL_VALUE_CHARS ? `${value.slice(0, MAX_MATERIAL_VALUE_CHARS)}…` : value
+      })
+    }
+  }
+  return materials
+}
+
+/** 从 TDD 全文按二级标题切出「已写完的其它节」，供分节生成做交叉引用 */
+export function parseTechDocSections(markdown: string): Array<{ title: string; body: string }> {
+  const lines = markdown.split(/\r?\n/)
+  const sections: Array<{ title: string; body: string }> = []
+  let title: string | null = null
+  let body: string[] = []
+  const flush = (): void => {
+    if (title !== null) sections.push({ title, body: body.join('\n').trim() })
+  }
+  for (const line of lines) {
+    const heading = /^##\s+(.*\S)\s*$/.exec(line)
+    if (heading !== null && !line.startsWith('###')) {
+      flush()
+      title = heading[1] ?? ''
+      body = []
+      continue
+    }
+    if (title !== null) body.push(line)
+  }
+  flush()
+  return sections
+}
+
 export function buildTechDocDraft(doc: CeshuDocument, title: string): TechDocDraft {
   const outline = techDocOutline()
   const lines: string[] = [`# ${title}`, '', '> 由策划书素材生成的技术设计文档草稿；实现细节待补。', '']
