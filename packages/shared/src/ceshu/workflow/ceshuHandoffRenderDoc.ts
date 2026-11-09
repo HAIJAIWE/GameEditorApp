@@ -3,7 +3,7 @@ import { GENRE_REVIEW_PROFILES } from '../prompts'
 import { CESHU_CHAPTER_FIELDS, fieldColumns, fieldLabelOf } from '../fields'
 import { isFilledValue } from '../model'
 import { SYSTEM_CONFIG_SCHEMA } from '../model'
-import { column, toRowStrings } from './ceshuPipeRows'
+import { column, splitRow, toRowStrings } from './ceshuPipeRows'
 import { escapeCell, formatScalar } from './ceshuHandoffMarkdown'
 import { handoffVolumeIndexPath, readPath } from './ceshuHandoffPaths'
 import {
@@ -218,10 +218,20 @@ function renderValueOf(chapter: ChapterKey, fieldKey: string, value: unknown): s
   const columns = fieldColumns(chapter, fieldKey)
   if (columns.length > 0 && Array.isArray(value)) {
     const rows = toRowStrings(value, columns)
-    const head = `| ${columns.map((item) => item.label).join(' | ')} |`
-    const sep = `| ${columns.map(() => '---').join(' | ')} |`
-    const body = rows.map((row) => `| ${columns.map((_item, index) => escapeCell(column(row, index))).join(' | ')} |`)
-    return [head, sep, ...body].join('\n')
+    /*
+     * 表格守卫：单元格数必须**与列数相等**才成表（2026-11-09 与导出层 pipeRows 同源缺陷）。
+     *
+     * 现场（真实文档 03-系统/03-经济与掉落.md）：模型把整段话塞进一行（0 个竖线），
+     * 旧实现按索引硬映射 ⇒「第 1 列整段文本、后 2 列全空」的错位表；一行多写列时
+     * 后半列被挤掉。错表比纯文本更危险：它看起来像结构化的，读者不会怀疑。
+     * 判定失败就整字段回落成文本渲染（下一个分支），一个字都不丢。
+     */
+    if (rows.length > 0 && rows.every((row) => splitRow(row).length === columns.length)) {
+      const head = `| ${columns.map((item) => item.label).join(' | ')} |`
+      const sep = `| ${columns.map(() => '---').join(' | ')} |`
+      const body = rows.map((row) => `| ${columns.map((_item, index) => escapeCell(column(row, index))).join(' | ')} |`)
+      return [head, sep, ...body].join('\n')
+    }
   }
   if (Array.isArray(value)) return value.map((item) => `- ${formatScalar(item)}`).join('\n')
   return formatScalar(value)

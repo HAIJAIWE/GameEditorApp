@@ -260,6 +260,24 @@ describe('AI 生成：整章提示词组装', () => {
     expect(built.prompt).toContain('写作规范')
   })
 
+  /*
+   * 2026-11-09 导出实测后补：整章生成从不下发「哪些字段是表、几列、列名」。
+   * 模型于是把 6 列的「三层循环」写成一段话，导出侧列全空（见 ceshuExport 的列错位守卫）。
+   */
+  it('整章模式下发表格字段的列契约（列数 + 列名 + 竖线分隔），无表格字段时零膨胀', () => {
+    const doc = createDefaultCeshu({ scope: 'full' })
+    const gameplay = buildChapterPrompt(doc, 'gameplay')
+    expect(gameplay.prompt).toContain('表格字段写法')
+    expect(gameplay.prompt).toContain('三层循环（loop_three_layers）')
+    expect(gameplay.prompt).toContain('层级 | 关注问题 | 玩家动作 | 系统变化 | 反馈 | 传递物')
+    expect(gameplay.prompt).toContain('设计量化目标（design_targets）')
+
+    // meta 的表格字段只有 alternatives 一个，也只该出现这一条
+    const meta = buildChapterPrompt(doc, 'meta')
+    expect(meta.prompt).toContain('方案取舍（alternatives）')
+    expect(meta.prompt).not.toContain('三层循环')
+  })
+
   it('补全模式：无空字段时字段列表为空（上层不再调用 LLM）', () => {
     const doc = createDefaultCeshu({ scope: 'full' })
     const combat = doc.combat

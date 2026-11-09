@@ -359,6 +359,22 @@ describe('条件文档：由项目事实决定出现（不是品类）', () => {
     expect(md).toContain('| ui.click | sfx_ui_01 | 0.7 | 1 |')
   })
 
+  /*
+   * 回归（2026-11-09 真实文档 03-系统/03-经济与掉落.md）：模型把整段话写进一行、0 个竖线，
+   * 旧实现按索引硬映射 ⇒「第 1 列整段文本、后 2 列全空」的错位表。错表比纯文本更危险：
+   * 它看起来是结构化的，没人会怀疑。判定不成表就整字段回落文本，一个字都不丢。
+   */
+  it('单元格数与列数不符 ⇒ 整字段回落成文本，不产出错位表', () => {
+    const doc = makeDoc()
+    doc.audio.audio_engine = 'Wwise'
+    // 列定义是「事件 | 音效 id | 音量 | 并发上限」4 列，这里一行只有 1 段
+    doc.audio.sfx_events = ['ui.click 点击音 0.7 最多 1 个并发同时播放']
+    const planned = planHandoffDocs(doc).find((item) => item.def.id === 'audio-impl')!
+    const md = renderHandoffDoc(doc, planned, TS)
+    expect(md).not.toContain('| 事件 | 音效 id | 音量 | 并发上限 |')
+    expect(md).toContain('- ui.click 点击音 0.7 最多 1 个并发同时播放')
+  })
+
   it('服务端文档带「网络协议表」（含权威端一列，客户端说了算要被抓出来）', () => {
     const doc = makeDoc()
     doc.tech.online_mode = 'co_op'

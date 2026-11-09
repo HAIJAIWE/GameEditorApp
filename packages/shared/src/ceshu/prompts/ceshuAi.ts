@@ -364,6 +364,26 @@ export function buildChapterPrompt(
   }
   prompt += `该章节需要填充的字段列表:\n${fieldList}\n\n`
   /*
+   * 表格字段（pipeList）的列契约（2026-11-09 导出实测后补）。
+   *
+   * 现场：整章生成只下发英文 key 的逗号串，模型不知道哪些字段是「一行一列」的表格，
+   * 于是把 6 列的「三层循环」写成「- 瞬时层（30秒）：动作…系统变化…反馈…」一整段话，
+   * 导出按索引硬映射 ⇒ 第 1 列塞全文、后 5 列全空（方案取舍 / 货币类型同样错位）。
+   * 这里只补「哪些字段是表、几列、列名、分隔符」，不发 aiHint（避免提示词膨胀）。
+   */
+  const pipeContracts: string[] = []
+  for (const key of fields) {
+    const def = chapterFieldsForDoc(doc, chapter).find((field) => field.key === key)
+    const columns = def?.columns ?? []
+    if (def?.kind !== 'pipeList' || columns.length === 0) continue
+    pipeContracts.push(
+      `- ${def.label}（${key}）：每行一条记录，用竖线分隔 ${columns.length} 列 → ${columns.map((column) => column.label).join(' | ')}`
+    )
+  }
+  if (pipeContracts.length > 0) {
+    prompt += `表格字段写法（一行一条、各列用 | 分隔，列名与列数照抄，不要把整段话塞进一格）:\n${pipeContracts.join('\n')}\n\n`
+  }
+  /*
    * 单字段生成（协作粒度）：把该字段的 `aiHint`（AI 该产出什么）与 `reviewHint`
    * （人审看什么）一并喂给模型 —— 让生成目标和人审标准在同一处对齐，避免
    * 「AI 写了一堆、人不知道该看哪」。整章生成不加，避免提示词膨胀。
