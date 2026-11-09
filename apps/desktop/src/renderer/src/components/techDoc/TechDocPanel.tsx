@@ -371,6 +371,12 @@ export function TechDocPanel() {
       </aside>
 
       <section className="techdoc-editor">
+        {/*
+          提示/错误条必须留在编辑区这一列里：原先挂在 `.techdoc` 顶层，而那是 flex 行容器，
+          它会被当成第三个列项挤在编辑区右侧，窄面板下直接溢出到右侧栏上面（实测遮住按钮）。
+        */}
+        {notice !== '' && <div className="techdoc-notice" data-testid="techdoc-notice">{notice}</div>}
+        {error !== '' && <div className="techdoc-error" data-testid="techdoc-error">{error}</div>}
         {active === null ? (
           <StateView kind="empty" title={t('techDoc.pickDoc')} />
         ) : (
@@ -477,9 +483,6 @@ export function TechDocPanel() {
           </>
         )}
       </section>
-      {/* 提示条放在顶层：新建/生成失败时 active 仍为 null，旧位置在编辑器区内会看不见 */}
-      {notice !== '' && <div className="techdoc-notice" data-testid="techdoc-notice">{notice}</div>}
-      {error !== '' && <div className="techdoc-error" data-testid="techdoc-error">{error}</div>}
     </div>
   )
 }

@@ -2165,6 +2165,12 @@ body {
   color: var(--warning);
 }
 
+/* 「未保存」是个 flex 项，面板窄时默认会被压成竖排单字（实测 4 行）——钉住宽度不收缩 */
+.techdoc-dirty {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
 /* 「已保存 / 未保存」状态贴左，主操作按钮仍在右侧 */
 .chapter-save-state {
   margin-right: auto;
@@ -8532,17 +8538,49 @@ body {
   flex: 1;
   min-height: 0;
   font-size: var(--text-13);
+  /* 按容器宽度收缩，而不是按视口：1400 视口下左栏 + 对话面板 + 右侧会话栏一占，
+     主区中间页签实际只剩 ~360px，240px 的文档列表会把编辑区挤成一条缝。 */
+  container-type: inline-size;
+  /* 窄面板里子元素一律不许把容器撑宽（撑宽后内容会溢出到右侧会话栏上面） */
+  overflow: hidden;
 }
 
 .techdoc-list {
   display: flex;
   flex-direction: column;
+  flex: 0 1 240px;
   width: 240px;
-  min-width: 160px;
+  min-width: 0;
   min-height: 0;
   border-right: 0.5px solid var(--border);
   padding: 8px;
   gap: 8px;
+}
+
+/* 面板窄时把列表压成窄条：仍可切换文档，但不与编辑区抢空间。
+   断点取 720 而不是 520：右栏默认 630 宽（1400 视口下），520 永远不会命中。 */
+@container (max-width: 720px) {
+  .techdoc-list {
+    flex-basis: 124px;
+    width: 124px;
+    padding: 6px;
+    gap: 6px;
+  }
+
+  .techdoc-list-head {
+    flex-wrap: wrap;
+  }
+
+  /* 「要生成的小节」下拉跟着窄面板收缩，别用固定 220px 把编辑区顶出去 */
+  .techdoc-gen-label {
+    display: none;
+  }
+
+  .techdoc-gen-row .form-select {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: none;
+  }
 }
 
 .techdoc-list-head {
@@ -8652,6 +8690,19 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
+  /* 窄面板下按钮换行，而不是把每个按钮压成竖排文字 */
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+/* 面板窄时标题独占一行：否则标题（flex:1）会把每个按钮挤成一行一个 */
+@container (max-width: 720px) {
+  .techdoc-toolbar .techdoc-title {
+    /* min-width 让标题独占整行：只写 flex-basis: 100% 时它仍会被「未保存/保存/导出」压回半行，
+       实测标题与橙色「有未保存修改」叠在一起 */
+    flex: 1 1 100%;
+    min-width: 100%;
+  }
 }
 
 /* 按节生成一行：标签 + 选节下拉 + 生成按钮；与工具栏同宽、独立成行 */
@@ -8696,6 +8747,8 @@ body {
 
 .techdoc-notice {
   color: var(--text-muted);
+  /* 提示语常是「已生成「节名」（N 字），确认后保存」这类长句，窄面板下要能折行 */
+  overflow-wrap: anywhere;
 }
 
 .techdoc-error {
