@@ -125,10 +125,11 @@ test('模板编辑器：列表筛选 → 新建/保存 → 编辑更新 → 应�
       game_name: '模板编辑器E2E'
     })
 
-    // 全局章节 + 非对象 JSON 的错误路径
+    // 全局小节 + 非对象 JSON 的错误路径
+    // （文案早在 8164b9a2 refactor(i18n): 用户可见处「章节」统一改「小节」 时就改了，本断言一直没跟上）
     await window.getByTestId('editor-chapter').selectOption('')
     await window.getByTestId('editor-apply-current').click()
-    await expect(window.getByTestId('editor-error')).toContainText('请选择具体章节（不能为全局）')
+    await expect(window.getByTestId('editor-error')).toContainText('请选择具体小节（不能为全局）')
     await window.getByTestId('editor-chapter').selectOption('meta')
     await window.getByTestId('editor-data').fill('[1, 2]')
     await window.getByTestId('editor-apply-current').click()

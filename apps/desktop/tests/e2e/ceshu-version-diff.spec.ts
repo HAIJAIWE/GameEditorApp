@@ -133,9 +133,12 @@ test('版本对比：派生改字段 → 精确 Diff 计数 + 面板断言 + 导
     expect(probe.totalModified).toBe(1)
     expect(probe.totalAdded).toBe(1)
     expect(probe.totalRemoved).toBe(0)
-    // 默认章节内容确定：meta 扁平 14 键（1 处修改 → 未变 13）、全域 264 键（2 处变更 → 未变 262）
-    expect(probe.metaUnchanged).toBe(13)
-    expect(probe.totalUnchanged).toBe(262)
+    // 默认章节内容确定：meta 比较 17 键（1 处修改 → 未变 16）、全域 268 键（2 处变更 → 未变 266）
+    // ⚠️ 这几个数是 schema 的派生值，schema 一改就会变（meta 在 2026-11-07 起带
+    // enabled_modules + template_version，由 14 键 → 16 键）；本条曾停在 13/262 一直没同步。
+    // 2026-11-09 实测：meta 未变 16、全文档未变 266。
+    expect(probe.metaUnchanged).toBe(16)
+    expect(probe.totalUnchanged).toBe(266)
     expect(probe.gameNameField).toMatchObject({
       field_path: 'meta.game_name',
       old_value: '差异A',
@@ -184,9 +187,9 @@ test('版本对比：派生改字段 → 精确 Diff 计数 + 面板断言 + 导
     await expect(window.getByTestId('diff-field').first()).toContainText('design_vision')
     await expect(window.getByTestId('diff-field').first()).toContainText('✚ 新增')
 
-    // 无变更章节：提示无变更
+    // 无变更小节：提示无变更（文案在 8164b9a2 已把「章节」统一改成「小节」）
     await window.getByTestId('diff-chapter').nth(2).click()
-    await expect(window.getByTestId('diff-panel')).toContainText('该章节无变更')
+    await expect(window.getByTestId('diff-panel')).toContainText('该小节无变更')
 
     await window.getByTestId('diff-close').click()
     await expect(window.getByTestId('diff-panel')).toHaveCount(0)

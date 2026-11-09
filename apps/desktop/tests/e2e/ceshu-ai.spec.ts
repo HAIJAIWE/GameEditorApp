@@ -29,8 +29,9 @@ test('AI 生成：按钮存在；未配置 AI 服务时给出可执行的中文�
     const window = await app.firstWindow()
     await waitReady(window)
 
-    // 新建空白策划书 → 自动进入编辑器
+    // 新建空白 → 先选范围再选「游戏」→ 自动进入编辑器
     await window.getByTestId('home-new-blank').click()
+    await window.getByTestId('home-blank-game').click()
 
     // 章节表单（非 systems 章）应出现两个 AI 按钮
     await expect(window.getByTestId('ai-generate-chapter')).toBeVisible()
@@ -63,8 +64,9 @@ test('AI 一键生成：未配置时首章失败即中断并给出错误汇总�
     const window = await app.firstWindow()
     await waitReady(window)
 
-    // 新建空白策划书 → 自动进入编辑器
+    // 新建空白 → 先选范围再选「游戏」→ 自动进入编辑器
     await window.getByTestId('home-new-blank').click()
+    await window.getByTestId('home-blank-game').click()
 
     // 打开一键生成面板：进度列表按依赖顺序展示（meta 在前）
     await window.getByTestId('ceshu-ai-full').click()

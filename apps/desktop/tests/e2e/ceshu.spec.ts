@@ -40,6 +40,7 @@ test('策划书：读取旧版文件 → 新建 → 编辑保存章节 → 磁�
     // 章节数**不写死**：专业版可见章 = `CHAPTER_KEYS` − 新建时默认关闭的发行期三章；
     // 且编辑器默认按「立项阶段」筛选只显示 7 章，故先切「全部阶段」再数。
     await window.getByTestId('home-new-blank').click()
+    await window.getByTestId('home-blank-game').click()
     await window.getByTestId('stage-filter-all').click()
     await expect(window.getByTestId('chapter-tab')).toHaveCount(CHAPTER_KEYS.length - DEFAULT_DISABLED_MODULE_CHAPTERS.length)
     await expect(window.getByTestId('chapter-form')).toContainText('文档信息')

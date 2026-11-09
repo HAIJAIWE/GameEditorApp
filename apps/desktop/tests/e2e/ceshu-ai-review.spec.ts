@@ -16,6 +16,7 @@ test('成稿反审：面板结构（7 项检查清单）与离线中文错误路
 
     // 新建空白策划书 → 自动进入编辑器
     await window.getByTestId('home-new-blank').click()
+    await window.getByTestId('home-blank-game').click()
 
     // 「ceshu-ai-review」已收进工具栏「更多 ▸」下拉，需先展开再点
     await window.getByTestId('ceshu-more').click()

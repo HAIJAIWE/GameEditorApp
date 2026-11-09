@@ -21,8 +21,9 @@ test('策划书导出 UI：格式选择（6 种）与导出按钮存在', async 
     const window = await app.firstWindow()
     await waitReady(window)
 
-    // 新建空白策划书 → 自动进入编辑器（导出按钮/格式选择在工具栏）
+    // 新建空白 → 先选范围再选「游戏」→ 自动进入编辑器（导出按钮/格式选择在工具栏）
     await window.getByTestId('home-new-blank').click()
+    await window.getByTestId('home-blank-game').click()
     await expect(window.getByTestId('ceshu-export')).toBeVisible()
     // 格式数不写死：由 `CESHU_EXPORT_FORMATS` 派生（当前 11 种，含一页纸/叙事/任务/交接包等）
     await expect(window.getByTestId('export-format').locator('option')).toHaveCount(
@@ -82,7 +83,9 @@ test('策划书导出：Markdown/HTML/docx/pptx/PDF/Excel 全链路落盘', asyn
     expect(markdown).toContain('# E2E 导出游戏')
     // lite 档末章是音频设计（导出序号 = 全量位置，故为 10 而非 9）；技术规格是第十章，lite 不含
     expect(markdown).toContain('- [9. 音频设计](#ch10)')
-    expect(markdown).not.toContain('技术规格')
+    // 断言打在**章标题**上：文档信息章的「已启用模块」会把全部章名列出来（含 10. 技术规格），
+    // 裸子串断言会因此误红（该列表是 2026-11-09 导出本地化改造后新增的正文项）。
+    expect(markdown).not.toContain('## 10. 技术规格')
 
     // HTML：自包含
     const html = readFileSync(join(outDir, 'html.html'), 'utf-8')

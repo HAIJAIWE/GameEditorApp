@@ -94,24 +94,26 @@ test('校验与完备度：IPC 精确结果 + UI 面板展示', async () => {
       }
     })) as ValidateReadinessSetup
 
-    // 新建时已填 game_name，故必填错误 = 48（含「game_type 由人确定」等）
-    expect(setup.emptyErrorCount).toBe(48)
+    // 新建时已填 game_name，故必填错误 = 42（含「game_type 由人确定」等）
+    // ⚠️ 这几个数字是 schema 的派生值：schema 一改（如 2026-11-07「游戏章表默认收敛」、
+    // 2026-11-08 补字段）就得同步；本条曾长期停在 48/45/50，与现网 schema 已不符。
+    expect(setup.emptyErrorCount).toBe(42)
     // 首条错误可能是「必填项」也可能是「由人确定」（人工决断字段）——两者都算未填
     expect(setup.firstError).toMatch(/为必填项|由人确定/)
-    // 空文档：立项 1/16（只有 game_name 有值）、逐章 24 条
+    // 空文档：立项 1/16（只有 game_name 有值）、逐章 21 条（= 当前 schema 的章数）
     expect(setup.emptyConceptFilled).toBe(1)
     expect(setup.emptyConceptTotal).toBe(16)
-    expect(setup.emptyChapterCount).toBe(24)
+    expect(setup.emptyChapterCount).toBe(21)
 
-    // 填满 meta 四必填：错误 45 条，立项 4/16，meta 章 4/4
-    expect(setup.filledErrorCount).toBe(45)
+    // 填满 meta 四必填：错误 39 条，立项 4/16，meta 章 4/4
+    expect(setup.filledErrorCount).toBe(39)
     expect(setup.filledConceptFilled).toBe(4)
     expect(setup.filledConceptTotal).toBe(16)
     expect(setup.filledMetaFilled).toBe(4)
     expect(setup.filledMetaTotal).toBe(4)
-    // 全文分母 50（= CHAPTER_REQUIRED_FIELDS 之和），缺口 50 - 4 = 46
-    expect(setup.filledTotalRequired).toBe(50)
-    expect(setup.filledTotalMissing).toBe(46)
+    // 全文分母 44（= CHAPTER_REQUIRED_FIELDS 之和），缺口 44 - 4 = 40
+    expect(setup.filledTotalRequired).toBe(44)
+    expect(setup.filledTotalMissing).toBe(40)
 
     // 参照库有 5 条，且出处类型如实（真实公开 / 本项目交付 / 合成样例）
     expect(setup.referenceCount).toBe(5)
