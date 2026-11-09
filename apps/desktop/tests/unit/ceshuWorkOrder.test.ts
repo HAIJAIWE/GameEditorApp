@@ -4,10 +4,12 @@ import { createDefaultCeshu } from '@mobai/shared/ceshu/model'
 import type { CeshuDocument } from '@mobai/shared/ceshu/reference'
 import {
   HANDOFF_PROGRESS_FILE,
+  TDD_DIR_HINT,
   buildHandoffPlan,
   buildHandoffWorkOrder,
   parseHandoffProgress,
-  planHandoffDocs
+  planHandoffDocs,
+  resolveTddDocName
 } from '@mobai/shared/ceshu/workflow'
 
 /**
@@ -143,6 +145,46 @@ describe('派工单：该说的都在', () => {
     expect(md).toContain('contract.json > data/snapshot.json')
     expect(md).toContain('system.tech_doc')
     expect(md).toContain('07-工程脚手架.md')
+  })
+
+  it('TDD 这一步讲清「先 outline 建骨架、再逐节生成、一次只生成一节」', () => {
+    const md = order(makeDoc()).markdown
+    // 只给 outline 会让智能体把骨架当成品交差，必须点明正文要逐节生成。
+    expect(md).toContain('action=outline')
+    expect(md).toContain('action=write')
+    expect(md).toContain('骨架')
+    expect(md).toContain('一次只生成一节')
+    // 九节的 sectionId 要真列出来，否则智能体只能自己猜 id。
+    for (const id of ['overview', 'architecture', 'modules', 'data-model', 'interfaces', 'flows', 'dependencies', 'risks', 'milestones']) {
+      expect(md).toContain(id)
+    }
+  })
+
+  it('不传 tddPath 时给出可读的中性落点，不再是 <游戏名> 字面占位符', () => {
+    const md = order(makeDoc()).markdown
+    expect(md).not.toContain('<游戏名>')
+    expect(md).toContain('<库>/' + TDD_DIR_HINT + '/' + resolveTddDocName(makeDoc()) + '.md')
+  })
+
+  it('传 tddPath 时原样写进提示（宿主注入活跃库的真实路径）', () => {
+    const doc = makeDoc()
+    const tddPath = 'E:/tmp/库/tech/测试游戏-TDD.md'
+    const md = buildHandoffWorkOrder(doc, {
+      bundleDir: BUNDLE,
+      workspace: WORKSPACE,
+      tddPath
+    }).markdown
+    expect(md).toContain(tddPath)
+    expect(md).not.toContain('<游戏名>')
+  })
+
+  it('TDD 文档名随项目名变化，且净化掉 system.tech_doc 会拒的字符', () => {
+    const doc = makeDoc()
+    expect(resolveTddDocName(doc)).toBe('测试游戏-TDD')
+    doc.meta.game_name = 'a/b:c'
+    expect(resolveTddDocName(doc)).toBe('a_b_c-TDD')
+    doc.meta.game_name = '   '
+    expect(resolveTddDocName(doc)).toBe('未命名游戏-TDD')
   })
 
   it('本次任务的标题行、开工必读、验收条目（带判定方式）齐备', () => {

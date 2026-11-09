@@ -71,12 +71,14 @@ import {
 import { applyDataTableScaffold, planDataTableScaffold } from '@mobai/shared/ceshu/data'
 import {
   HANDOFF_PROGRESS_FILE,
+  TDD_DIR_HINT,
   annotateHandoffProgress,
   buildHandoffProgressBoard,
   buildHandoffWorkOrder,
   buildVersionDiff,
   parseHandoffProgress,
-  renderHandoffProgressBoardMarkdown
+  renderHandoffProgressBoardMarkdown,
+  resolveTddDocName
 } from '@mobai/shared/ceshu/workflow'
 import { formatLocalTimestamp } from '@mobai/shared/util/datetime'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
@@ -261,9 +263,13 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
       parseDataTableRequirements(readDataTableRows(doc)),
       readDataTableActual(typeSchemaStore.getTypes())
     )
+    // TDD 落点由宿主算：名要过 `system.tech_doc` 的 isSafeDocName（游戏名里的 / : 会被拒），
+    // 路径要指向活跃库的 tech 目录。派工单自己拼只能给出 `<库>/tech/<名>.md` 这种中性说法。
+    const tddPath = join(libraryManager.activeDir(), TDD_DIR_HINT, resolveTddDocName(doc) + '.md')
     const order = buildHandoffWorkOrder(doc, {
       bundleDir,
       workspace,
+      tddPath,
       completed: parseHandoffProgress(progress),
       ...(req.targetPath !== undefined ? { targetPath: req.targetPath } : {}),
       context: { doc, contract, dataTables }

@@ -48,7 +48,7 @@ export type { ProjectFolder } from './ceshuProjectFolder'
 export { fingerprintCeshuDesign, isPrototypeStale } from './ceshuPrototypeStale'
 export { CESHU_ROLE_LABELS, CESHU_ROLE_ORDER, CESHU_TASK_PRIORITIES, ROLE_CHAPTERS, ROLE_TASK_VALUE_LIMIT, collectRoleTasks, renderRoleTasksMarkdown, renderTaskPlanMarkdown, roleChaptersForDoc, taskRoleLabelForDoc, taskRolesForDoc } from './ceshuTasks'
 export type { CeshuRole, CeshuRoleTask, CeshuTaskPlan, CeshuTaskPriority, RoleTaskItem, RoleTaskSection } from './ceshuTasks'
-export { HANDOFF_PROGRESS_FILE, TDD_DIR_HINT, buildHandoffWorkOrder, parseHandoffProgress } from './ceshuHandoffWorkOrder'
+export { HANDOFF_PROGRESS_FILE, TDD_DIR_HINT, buildHandoffWorkOrder, parseHandoffProgress, resolveTddDocName } from './ceshuHandoffWorkOrder'
 export type { WorkOrder, WorkOrderAcceptance, WorkOrderOptions, WorkOrderTarget } from './ceshuHandoffWorkOrder'
 export {
   HANDOFF_PROGRESS_STATE_LABELS,

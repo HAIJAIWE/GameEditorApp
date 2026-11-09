@@ -36,6 +36,19 @@ export const HANDOFF_PROGRESS_FILE = '进度.md'
 /** 技术设计文档的默认落点（`<库>/tech`，由 `system.tech_doc` 技能读写） */
 export const TDD_DIR_HINT = 'tech'
 
+/**
+ * TDD 文档名（`system.tech_doc` 的 `name`，不含扩展名）。
+ *
+ * 与交接包目录名同一套净化规则：`system.tech_doc` 的 `isSafeDocName` 会直接拒绝含
+ * 路径分隔符或 `<>:"|?*` 的名字，而游戏名里出现 `/` `:` 是常见事（合集名、英文名带冒号）。
+ */
+export function resolveTddDocName(doc: CeshuDocument): string {
+  const raw =
+    String(doc.meta.project_name ?? '').trim() || String(doc.meta.game_name ?? '').trim()
+  const base = raw || '未命名游戏'
+  return `${base.replace(/[\\/:*?"<>|]/g, '_')}-TDD`
+}
+
 export interface WorkOrderOptions {
   /** 交接包目录（绝对路径，原样写进提示） */
   bundleDir: string
@@ -43,7 +56,12 @@ export interface WorkOrderOptions {
   workspace: string
   /** 已完成的文档相对路径（从 `进度.md` 读到）；缺省 = 从头开始 */
   completed?: string[]
-  /** TDD 文档路径（`<库>/tech/<名>.md`）；缺省则提示智能体先写一份 */
+  /**
+   * TDD 文档的**绝对落点**（`<活跃库>/tech/<名>.md`）。
+   *
+   * 缺省时正文退回中性说法 `<库>/tech/<名>.md`；文档名恒由 `resolveTddDocName(doc)` 算，
+   * 所以派工单里不会再出现 `<游戏名>` 这种字面占位符。
+   */
   tddPath?: string
   /**
    * 验收现状（契约 / 数据表 / 策划书本体）。
@@ -221,11 +239,40 @@ export function buildHandoffWorkOrder(doc: CeshuDocument, options: WorkOrderOpti
     '1. 读 `index.json`：`sequence` 是施工顺序，`precedence` 是冲突优先级' +
       '（contract.json > data/snapshot.json > 交接文档 > gdd.md > prototype/demo.html）。遇到矛盾按它裁决，不要猜。'
   )
-  const tddPath = options.tddPath ?? '<库>/' + TDD_DIR_HINT + '/<游戏名>-TDD.md'
+  // TDD 这一步要说清三件事，缺一件智能体就会走偏：
+  // ① 文档名与落点（`system.tech_doc` 按 name 落盘，给错名就另起一份新文档）；
+  // ② outline 只给骨架（九节标题 + 写作指引，正文全空），必须逐节生成；
+  // ③ **一次只生成一节** —— 整篇一次调用正是「章越多人越薄」的病根（推理型模型思考吃掉大半 token）。
+  const tddName = resolveTddDocName(doc)
+  const tddPath = options.tddPath ?? '<库>/' + TDD_DIR_HINT + '/' + tddName + '.md'
   lines.push(
-    '2. 先写技术设计文档（TDD）：调用 `system.tech_doc`（action=outline 取 9 章大纲，action=write 落到 `' +
-      tddPath +
-      '`）。TDD 说「怎么实现」，策划书说「是什么」——架构、模块边界、接口签名、数据模型写在 TDD 里。'
+    '2. 先写技术设计文档（TDD）：调用 `system.tech_doc`（action=outline 取 9 节大纲 → action=write 以 `name=' +
+      tddName +
+      '` 落到 `' + tddPath +
+      '`）。TDD 说「怎么实现」，策划书说「是什么」——架构分层、模块边界、接口签名与错误码、数据模型、' +
+      '关键时序、依赖与风险、里程碑验收写在 TDD 里；策划书已有的设计描述不要复述。'
+  )
+  lines.push(
+    '   - outline 给的只是**骨架**（九节标题 + 写作指引，正文全空），正文要逐节补齐。两条路都行：' +
+      '① 人在客户端「技术设计文档」面板里逐节点「AI 生成这一节」；' +
+      '② 由你把智能体预设切到「技术设计工程师」（tech_writer）后逐节写。' +
+      '节序：overview（概述与目标）→ architecture → modules → data-model → interfaces → flows → ' +
+      'dependencies → risks → milestones。'
+  )
+  lines.push(
+    '   - **一次只生成一节**：整篇一次调用会把每节压成三五行，还会被推理过程挤掉大段正文。' +
+      '九节就是九次调用，每节写完、看过、再下一节。'
+  )
+  lines.push(
+    '   - 每节的要求（别降到「一段话」）：每个 `### ` 小节 ≥120 字、整节 ≥600 字；' +
+      '写数据结构与字段类型、函数/接口签名、错误码与边界条件、性能预算；策划书没交代的写「待确认：<问题>」，不要编造。'
+  )
+  lines.push(
+    '   - 写回用 `system.tech_doc`：`write` 是**整篇覆盖**，所以每次先 `read` 全文、把新节替换进去、再 `write`。'
+  )
+  lines.push(
+    '   - 施工时读 TDD 也用 `system.tech_doc` 的 `read`（action=read）。**不要**用 `file_ops` 去读这个路径：' +
+      '文档存在策划库里，而 `file_ops` 被围栏在代码工作区内，越界读会被拒。'
   )
   lines.push('3. 按 `00-架构/07-工程脚手架.md` 建工程骨架，再开始第一份实现。', '')
 

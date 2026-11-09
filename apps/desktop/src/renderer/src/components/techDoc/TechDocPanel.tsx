@@ -11,6 +11,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useT } from '@mobai/client-ui'
 import { buildTechDocDraft } from '@mobai/shared/agent/techDoc/techDocDraft'
 import { replaceTechDocSection } from '@mobai/shared/agent/techDoc/techDocPrompt'
+import { resolveTddDocName } from '@mobai/shared/ceshu/workflow'
 import { TECH_DOC_SECTIONS } from '@mobai/shared/agent/techDoc/techDocSchema'
 import type { CeshuDocument } from '@mobai/shared/ceshu/reference'
 import { getActiveCeshuId } from '../../plugins/host'
@@ -183,13 +184,15 @@ export function TechDocPanel() {
       setError(t('techDoc.fromGddNoDoc'))
       return
     }
-    const name = (newName.trim() || `tech-${id.slice(0, 8)}`).replace(/[\\/]/g, '-')
     try {
       const mb = (window as unknown as {
         mbApi?: { ceshu?: { get(req: { id: string }): Promise<CeshuDocument> } }
       }).mbApi
       const doc = await mb?.ceshu?.get({ id })
       if (doc === undefined) throw new Error(t('techDoc.fromGddNoDoc'))
+      // 默认名与派工单同源（`resolveTddDocName`）：派工单让编码智能体写到 `<游戏名>-TDD`，
+      // 人在这里点「从策划书生成草稿」若另起一个 `tech-xxxx` 就会变成两份文档各写一半。
+      const name = newName.trim() || resolveTddDocName(doc)
       const draft = buildTechDocDraft(doc, name)
       await api.write({ name, content: draft.markdown })
       setNewName('')
