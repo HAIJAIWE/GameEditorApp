@@ -510,8 +510,22 @@ export interface IpcContract {
     req: CeshuWorkOrderInput
     res: {
       markdown: string
+      /**
+       * 本次用的交接包目录（绝对路径）。
+       * 渲染层没传 `bundleDir` 时（施工看板「派这一份」）由主进程反推，
+       * 回传出来是为了提示语能说清「依据的是哪个包」。
+       */
+      bundleDir: string
+      /**
+       * 是否本次就地补导出了交接包。
+       * 施工看板「派这一份」不持有导出目录：目录不存在时主进程当场导出一次
+       * （落在 `<活跃库>/exports/<游戏名>-交接包`），提示语据此说「已就地导出」。
+       */
+      exported: boolean
       /** 本次要做的文档相对路径；适用文档已全部完成时为 null */
       targetPath: string | null
+      /** 调用方点名要派的那份（没指定为 null）；没命中时正文里已说明改派了谁 */
+      requestedPath: string | null
       applicableCount: number
       readyCount: number
       doneCount: number

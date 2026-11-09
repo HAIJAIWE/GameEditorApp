@@ -50,6 +50,14 @@ export interface WorkOrderOptions {
    * 缺省 = 只出判定方式、不给结论（纯函数，不自己去读文档建契约）。
    */
   context?: HandoffAcceptanceContext
+  /**
+   * 指定要派的那一份（交接包内相对路径）。
+   *
+   * 缺省 = 自动挑「适用且未完成里第一份门禁就绪的」。施工看板里点某一份的
+   * 「派这一份」就走这里——用户已经点明了做哪份，不该再让自动选择器替他挑。
+   * 指定的路径不在适用清单里时不静默改派：照旧派自动挑的那份，**并在正文里说明**。
+   */
+  targetPath?: string
 }
 
 export interface WorkOrderAcceptance {
@@ -99,6 +107,8 @@ export interface WorkOrder {
   doneCount: number
   /** 剩余数（适用且未完成） */
   remaining: number
+  /** 调用方指定要派的那一份（没指定为 null）；没命中时正文里会说明改派了谁 */
+  requestedPath: string | null
 }
 
 /** 文档 id → 门禁状态 */
@@ -187,7 +197,11 @@ export function buildHandoffWorkOrder(doc: CeshuDocument, options: WorkOrderOpti
   const applicable = planned.filter((item) => (statuses.get(item.def.id)?.applicable ?? true) !== false)
   const remaining = applicable.filter((item) => !completed.has(item.path))
   const readyRemaining = remaining.filter((item) => statuses.get(item.def.id)?.ready === true)
-  const chosen = readyRemaining[0] ?? remaining[0]
+  // ⓪ 调用方点名的那份优先（看板「派这一份」）。只看适用性，不看「是否已完成」——
+  //    已完成的那份被点名，语义是「按新结论重做这一份」，不该被静默跳过。
+  const requested = (options.targetPath ?? '').trim()
+  const forced = requested === '' ? undefined : applicable.find((item) => item.path === requested)
+  const chosen = forced ?? readyRemaining[0] ?? remaining[0]
   const target =
     chosen === undefined ? null : buildTarget(chosen, statuses.get(chosen.def.id), options.context)
 
@@ -214,6 +228,18 @@ export function buildHandoffWorkOrder(doc: CeshuDocument, options: WorkOrderOpti
       '`）。TDD 说「怎么实现」，策划书说「是什么」——架构、模块边界、接口签名、数据模型写在 TDD 里。'
   )
   lines.push('3. 按 `00-架构/07-工程脚手架.md` 建工程骨架，再开始第一份实现。', '')
+
+  // 指定与命中不一致时**必须说明**：否则用户点了 A 却收到 B 的派工单，会以为点错了。
+  if (requested !== '' && forced === undefined) {
+    lines.push(
+      '> ⚠️ 你指定的 `' + requested + '` 不在本作适用的交接文档里（可能这份对本作不适用，或路径写错了），' +
+        '已改派下面这份。要做指定那份，请先在交接包 `index.json` 里核对它的路径。',
+      ''
+    )
+  }
+  if (forced !== undefined && completed.has(forced.path)) {
+    lines.push('> 说明：这份在 `' + HANDOFF_PROGRESS_FILE + '` 里已记为完成，本次按你的指定重做。', '')
+  }
 
   if (target === null) {
     lines.push('## 本次任务', '')
@@ -282,6 +308,17 @@ export function buildHandoffWorkOrder(doc: CeshuDocument, options: WorkOrderOpti
   lines.push('```', '<文档相对路径> | <完成时间> | <验收结果>', '```', '')
   const examplePath = target?.path ?? '00-架构/01-范围与平台.md'
   lines.push('例：`' + examplePath + ' | 2026-11-09 18:00 | a1 ok / a2 ok`', '')
+  lines.push(
+    '**用 `system.file_ops` 落这一行**（别只在回复里说说）：文件已存在就先 `read` 再 `write` ——' +
+      '`write` 是整文件覆盖，要把新行接在原内容后面；file_ops 带「读后写」版本闸，没读就写会被拒绝。' +
+      '文件不存在则直接 `write` 新建。',
+    ''
+  )
+  lines.push(
+    '这一行是下一轮的**唯一**依据：写了，下一份派工单就跳过它；没写，下一轮还会派同一份——' +
+      '「做完了但没说」在这套流程里等于没做。',
+    ''
+  )
 
   return {
     markdown: lines.join('\n'),
@@ -289,7 +326,8 @@ export function buildHandoffWorkOrder(doc: CeshuDocument, options: WorkOrderOpti
     applicableCount: applicable.length,
     readyCount: applicable.filter((item) => statuses.get(item.def.id)?.ready === true).length,
     doneCount: applicable.length - remaining.length,
-    remaining: remaining.length
+    remaining: remaining.length,
+    requestedPath: requested === '' ? null : requested
   }
 }
 

@@ -51,12 +51,18 @@ export const ceshuOpenProjectInputSchema = z.object({
 })
 
 /**
- * 生成派工单：策划书 id + 已导出的交接包目录（渲染层刚导出拿到的 `dir`）。
- * 主进程据此读工作区与进度记录，产出「开工提示」文本（不落盘、不派活）。
+ * 生成派工单：策划书 id + 交接包目录。
+ *
+ * `bundleDir` 可选：渲染层「让 AI 开工」走的是「刚导出、手上有目录」，直接传；
+ * 施工看板里点某一份「派这一份」时渲染层并不持有目录，缺省由主进程按
+ * `<活跃库>/exports/<游戏名>-交接包` 反推（与 `exportHandoff` 的落点同一公式）。
+ *
+ * `targetPath` 可选：点名要派哪一份（交接包内相对路径）。缺省 = 自动挑下一份。
  */
 export const ceshuWorkOrderInputSchema = z.object({
   id: z.string().min(1),
-  bundleDir: z.string().min(1)
+  bundleDir: z.string().min(1).optional(),
+  targetPath: z.string().min(1).optional()
 })
 
 /**

@@ -16,6 +16,11 @@ export interface CeshuEditorBridge {
   exportHandoff: () => void
   /** 导出交接包 + 生成派工单 + 预填进智能体输入框（一键把活交给编码智能体） */
   startAiDev: () => void
+  /**
+   * 派**指定那一份**（施工看板的「派这一份」）：不重选导出目录，交接包不存在时就地导出。
+   * 与 {@link startAiDev} 的区别只在于目标是从看板上点出来的，不是自动挑的下一份。
+   */
+  startAiDevFor: (path: string) => void
 }
 
 let bridge: CeshuEditorBridge | null = null
@@ -46,4 +51,8 @@ export function editorExportHandoff(): void {
 
 export function editorStartAiDev(): void {
   bridge?.startAiDev()
+}
+
+export function editorStartAiDevFor(path: string): void {
+  bridge?.startAiDevFor(path)
 }

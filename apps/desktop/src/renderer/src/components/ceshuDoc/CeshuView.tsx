@@ -631,6 +631,61 @@ export default function CeshuView({
       setBusy(false)
     }
   }
+  /**
+   * 派**指定那一份**（施工看板每行的「派这一份」）：不弹目录选择框，交接包不在时由主进程就地导出。
+   *
+   * 与 {@link handleStartAiDev} 的差别只有目标来源：这里的目标是用户在看板上点出来的，
+   * 所以点的是「有阻塞的那份」还是「机判没过的那份」都照办；示例路径不适用时主进程会改派，
+   * 并在派工单开头写明原因（这里再提示一句，免得用户以为点错了）。
+   */
+  const handleStartAiDevFor = async (path: string): Promise<void> => {
+    try {
+      setError(null)
+      setNotice(null)
+      setBusy(true)
+      const order = await window.mbApi.ceshu.workOrder({ id: doc.ceshu_id, targetPath: path })
+      const store =
+        host.slotStore<DigitalPanelState>(CONVERSATION_STORE_KEY) ??
+        host.declareStore(CONVERSATION_STORE_KEY, createConversationStoreDecl())
+      store.actions.dispatch({ kind: 'prefill', text: order.markdown })
+      const where = order.exported
+        ? t('ceshuView.aiDevDispatchExported', { dir: order.bundleDir })
+        : t('ceshuView.aiDevDispatchReuse', { dir: order.bundleDir })
+      const acceptance = order.acceptance
+      const acceptanceNote =
+        acceptance === null
+          ? ''
+          : ' ' +
+            t('ceshuView.aiDevAcceptance', {
+              machine: acceptance.machine,
+              pass: acceptance.pass,
+              fail: acceptance.fail,
+              skip: acceptance.skip,
+              unverified: acceptance.unverified
+            })
+      const fallback =
+        order.requestedPath !== null && order.targetPath !== null && order.requestedPath !== order.targetPath
+          ? ' ' + t('ceshuView.aiDevDispatchFallback', { path: order.targetPath })
+          : ''
+      setNotice(
+        where +
+          ' ' +
+          t('ceshuView.aiDevDispatchPrefilled', { path: order.targetPath ?? path }) +
+          acceptanceNote +
+          fallback
+      )
+      const input = document.querySelector<HTMLInputElement>('[data-testid="digital-input"]')
+      if (input !== null && !input.disabled) {
+        input.scrollIntoView({ block: 'nearest' })
+        input.focus()
+      }
+    } catch (err) {
+      setError(toErrorMessage(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
   /** 派生新版本：复制当前版本内容，版本号自动递增，默认未激活（派生弹层经上下文调用） */
   const onDerive = async (note: string): Promise<void> => {
     await runBusy(
@@ -948,7 +1003,8 @@ export default function CeshuView({
     showChangelog: () => void handleShowChangelog(),
     exportProject: () => void handleExportProject(),
     exportHandoff: () => void handleExportHandoff(),
-    startAiDev: () => void handleStartAiDev()
+    startAiDev: () => void handleStartAiDev(),
+    startAiDevFor: (path: string) => void handleStartAiDevFor(path)
   })
 
   /**

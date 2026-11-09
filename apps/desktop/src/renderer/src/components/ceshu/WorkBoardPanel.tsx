@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 import { useT } from '@mobai/client-ui'
 import { toErrorMessage } from '@mobai/shared/util/system'
 
+import { editorStartAiDevFor } from '../../plugins/ceshu'
+
 type Board = Awaited<ReturnType<typeof window.mbApi.ceshu.workOrderProgress>>
 type BoardEntry = Board['entries'][number]
 
@@ -15,6 +17,11 @@ type BoardEntry = Board['entries'][number]
  * 3. **成绩单回写**——一次把机判快照贴进工作区根的 `进度.md`（不动施工记录行）。
  *
  * 口径全部在主进程算（`buildHandoffProgressBoard`），本组件只呈现，不新增判定。
+ *
+ * 派活（每份一行「派这一份」）：走 `editorStartAiDevFor(path)` 编辑器桥 —— 不重选导出目录，
+ * 交接包不在时由主进程就地导出。派工单仍然**只预填、不发送**（用户看过再按发送）。
+ * 之所以逐份给按钮而不是只留「派下一份」：看板里 20 份排着，人常常要先做有阻塞的那份，
+ * 或返工机判没过的那份——自动选择器只会永远挑第一份就绪的。
  * ⚠️ **机判不替人盖章**：状态里的「已完成」只认 `进度.md` 的施工记录（智能体/人自己写的一行），
  * 机器只能**否决**（机判有 fail ⇒ 降级成「需返工」）。否则就退回「AI 自述完成」的老路。
  */
@@ -150,6 +157,20 @@ export default function WorkBoardPanel({ ceshuId, onClose }: { ceshuId: string; 
                   })}
                 </div>
                 <div>{entry.note}</div>
+                <div>
+                  {/* 「不适用」的文档不给按钮：派了也会被改派，只会多绕一圈。 */}
+                  {entry.state !== 'skip' && (
+                    <button
+                      type="button"
+                      className="btn slim"
+                      data-testid="workboard-dispatch"
+                      data-path={entry.path}
+                      onClick={() => editorStartAiDevFor(entry.path)}
+                    >
+                      {t('workBoard.dispatch')}
+                    </button>
+                  )}
+                </div>
                 {entry.failures.length > 0 && (
                   <div>
                     <button

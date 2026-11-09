@@ -86,7 +86,7 @@ import { buildSystemConfirmResult } from '@mobai/shared/ceshu/prompts'
 import { computeReadiness } from '@mobai/shared/ceshu/readiness'
 import { validateCeshu } from '@mobai/shared/ceshu/validation'
 import { exportCeshuDocument } from '../ceshu/export/exporter'
-import { exportHandoff } from '../ceshu/export/delivery/handoff'
+import { exportHandoff, handoffFolderName } from '../ceshu/export/delivery/handoff'
 import { exportProjectFolder } from '../ceshu/export/delivery/projectFolder'
 import { exportTextReportFile } from '../ceshu/reportExport'
 
@@ -98,7 +98,8 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
     typeSchemaStore,
     dataService,
     dataSync,
-    llmClient
+    llmClient,
+    libraryManager
   } = deps
 
   handle('ceshu:list', undefined, () => ceshuManager.list())
@@ -230,8 +231,26 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
   // 派工单：把刚导出的交接包翻译成「编码智能体开工的第一句话」。
   // 只读两处：工作区根的 `进度.md`（上一轮做完没做完）与交接包目录反查工作区。
   // 不派活、不落盘——渲染层拿到 markdown 后预填进智能体输入框，由用户确认再发送。
-  handle('ceshu:workOrder', ceshuWorkOrderInputSchema, (req) => {
+  handle('ceshu:workOrder', ceshuWorkOrderInputSchema, async (req) => {
     const doc = ceshuManager.get(req.id)
+    // 交接包目录：渲染层刚导出过就传进来；施工看板的「派这一份」不持有目录，
+    // 按 exportHandoff 的落点公式反推（<活跃库>/exports/<游戏名>-交接包）。
+    // 反推出的目录不存在 = 这份文档还没导出过交接包 ⇒ 就地补导出一次（落在库里，
+    // 与菜单导出的默认落点同一处），否则派工单会指向一堆不存在的文件。
+    let bundleDir = req.bundleDir ?? ''
+    let exported = false
+    if (bundleDir === '') {
+      const targetDir = join(libraryManager.activeDir(), 'exports')
+      bundleDir = join(targetDir, handoffFolderName(doc))
+      if (!existsSync(bundleDir)) {
+        exportHandoff(doc, targetDir, {
+          generatedAt: formatLocalTimestamp(),
+          types: typeSchemaStore.getTypes(),
+          items: dataService.listAllItems()
+        })
+        exported = true
+      }
+    }
     const workspace = getWorkspaceRoot()
     const progressPath = join(workspace, HANDOFF_PROGRESS_FILE)
     const progress = existsSync(progressPath) ? readFileSync(progressPath, 'utf-8') : ''
@@ -243,14 +262,18 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
       readDataTableActual(typeSchemaStore.getTypes())
     )
     const order = buildHandoffWorkOrder(doc, {
-      bundleDir: req.bundleDir,
+      bundleDir,
       workspace,
       completed: parseHandoffProgress(progress),
+      ...(req.targetPath !== undefined ? { targetPath: req.targetPath } : {}),
       context: { doc, contract, dataTables }
     })
     return {
       markdown: order.markdown,
+      bundleDir,
+      exported,
       targetPath: order.target?.path ?? null,
+      requestedPath: order.requestedPath,
       applicableCount: order.applicableCount,
       readyCount: order.readyCount,
       doneCount: order.doneCount,

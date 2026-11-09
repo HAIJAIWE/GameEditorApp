@@ -4,7 +4,15 @@
  * 外部一律从这里 import（`.../ceshu`），不要再深插目录内文件。
  */
 
-export { editorAutoFill, editorExportHandoff, editorExportProject, editorShowChangelog, editorShowReadiness, setCeshuEditorBridge } from './ceshuEditorBridge'
+export {
+  editorAutoFill,
+  editorExportHandoff,
+  editorExportProject,
+  editorShowChangelog,
+  editorShowReadiness,
+  editorStartAiDevFor,
+  setCeshuEditorBridge
+} from './ceshuEditorBridge'
 export type { CeshuEditorBridge } from './ceshuEditorBridge'
 export { defineCeshuMenusPlugin } from './ceshuMenusPlugin'
 export { defineCeshuPlugin } from './ceshuPlugin'

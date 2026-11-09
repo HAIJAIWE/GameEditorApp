@@ -84,6 +84,52 @@ describe('派工单：选哪一份', () => {
   })
 })
 
+describe('派工单：点哪份派哪份（看板「派这一份」）', () => {
+  function named(doc: CeshuDocument, targetPath: string, completed: string[] = []) {
+    return buildHandoffWorkOrder(doc, {
+      bundleDir: BUNDLE,
+      workspace: WORKSPACE,
+      completed,
+      targetPath
+    })
+  }
+
+  it('点名的那份当选中，哪怕它不是自动选择器会挑的第一份', () => {
+    const doc = makeDoc()
+    const auto = order(doc).target!.path
+    // 挑一份「肯定不是自动会挑的那份」：取适用清单里排在后面的。
+    const paths = planHandoffDocs(doc).map((item) => item.path)
+    const picked = paths[paths.length - 1]
+    expect(picked).not.toBe(auto)
+    const result = named(doc, picked)
+    expect(result.target!.path).toBe(picked)
+    expect(result.requestedPath).toBe(picked)
+  })
+
+  it('点名已完成的那份也照派，并在正文说明「按你的指定重做」', () => {
+    const doc = makeDoc()
+    const picked = planHandoffDocs(doc)[0].path
+    const result = named(doc, picked, [picked])
+    expect(result.target!.path).toBe(picked)
+    expect(result.doneCount).toBe(1)
+    expect(result.markdown).toContain('已记为完成，本次按你的指定重做')
+  })
+
+  it('点名的路径不在适用清单里：不静默改派，正文开头点名说明', () => {
+    const doc = makeDoc()
+    const result = named(doc, '99-不存在/不存在.md')
+    expect(result.requestedPath).toBe('99-不存在/不存在.md')
+    expect(result.target!.path).not.toBe('99-不存在/不存在.md')
+    expect(result.markdown).toContain('不在本作适用的交接文档里')
+    expect(result.markdown).toContain('99-不存在/不存在.md')
+  })
+
+  it('不点名时 requestedPath 为 null，选择逻辑与从前一致', () => {
+    const result = order(makeDoc())
+    expect(result.requestedPath).toBeNull()
+  })
+})
+
 describe('派工单：该说的都在', () => {
   it('写明交接包目录、代码工作区、进度文件名', () => {
     const md = order(makeDoc()).markdown

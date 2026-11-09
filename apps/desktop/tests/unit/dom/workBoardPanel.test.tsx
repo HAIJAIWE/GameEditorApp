@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { WorkBoardPanel } from '../../../src/renderer/src/components/ceshu'
+import { setCeshuEditorBridge } from '../../../src/renderer/src/plugins/ceshu'
 import { installMbApi, renderDom, type RenderResult } from './render'
 
 /**
@@ -131,6 +132,31 @@ describe('施工看板面板', () => {
     view = await renderDom(<WorkBoardPanel ceshuId="dd66f593" onClose={() => undefined} />)
 
     expect(view.text()).toContain('全部做完了')
+  })
+
+  it('每份都带「派这一份」，点了就把该份路径交给编辑器桥（不自己发请求）', async () => {
+    api = installMbApi({ overrides: { 'ceshu.workOrderProgress': () => boardStub() } })
+    const dispatched: string[] = []
+    setCeshuEditorBridge({
+      autoFill: () => undefined,
+      showReadiness: () => undefined,
+      showChangelog: () => undefined,
+      exportProject: () => undefined,
+      exportHandoff: () => undefined,
+      startAiDev: () => undefined,
+      startAiDevFor: (path: string) => dispatched.push(path)
+    })
+    view = await renderDom(<WorkBoardPanel ceshuId="dd66f593" onClose={() => undefined} />)
+
+    const buttons = view.queryAll('[data-testid="workboard-dispatch"]')
+    expect(buttons).toHaveLength(2)
+    expect(buttons[0].getAttribute('data-path')).toBe('00-架构/01-范围与平台.md')
+    expect(buttons[0].textContent).toContain('派这一份')
+
+    await view.click(buttons[1])
+    // 只走桥：面板自己不发 IPC（发请求 + 预填是编辑器视图的事，见 CeshuView.handleStartAiDevFor）
+    expect(dispatched).toEqual(['02-核心玩法/03-战斗与伤害公式.md'])
+    expect(api.calls).not.toContain('ceshu.workOrder')
   })
 
   it('核对失败时出错误条，不白屏', async () => {
