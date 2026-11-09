@@ -197,15 +197,33 @@ Kiczales et al., *Aspect-Oriented Programming*, ECOOP 1997（被引 479）：横
 
 进入新卷的第一份时多读一次卷目录做定位。上下文窗口有限，20+ 份全读会爆，注意力也会被无关内容稀释。
 
-**③ 验收可机判**
+**③ 验收可机判（2026-11-09 升级：判定方式从 3 种扩到 5 种，且真的跑）**
 
 ```ts
-type HandoffAcceptance = string | { text: string; check?: 'assertion' | 'test' | 'manual' }
+type HandoffAcceptanceCheck = 'assertion' | 'data' | 'field' | 'test' | 'manual'
+type HandoffAcceptance =
+  | string
+  | { text: string; check?: HandoffAcceptanceCheck; match?: string; fields?: ReadonlyArray<{ chapter: ChapterKey; field: string }>; how?: string }
 ```
 
-字符串 = 人工判定（既有 30+ 份文档不用改）；对象 = 显式标注。
+字符串 = 人工判定（老包渲染逐字不变、不用改）；对象 = 显式标注。
 `index.json` 里每条验收都有稳定 id（`<docId>-a1`）与 `check`。
-已把 3 条真正能机判的标成 `assertion`（伤害公式一致、断言复算通过 ×2）。
+
+**为什么从 3 种扩到 5 种**：只有 `assertion` 能覆盖数值，而原来的 99 条验收里 94 条是自然语言
+（`manual`）——编码智能体只能「觉得自己做完了」。实测把判定方式扩到五种后，机判占比约 **75%**：
+
+| `check` | 谁来判 | 判什么 | 结论口径 |
+|---|---|---|---|
+| `assertion` | 机器 | 拿 `contract.json` 的断言按 `match` 关键词命中后复算 | pass / fail / skip |
+| `data` | 机器 | 拿「设计 ↔ 数据表核对」比设计里声明的表（在不在、条数、字段） | pass / fail / skip |
+| `field` | 机器 | 拿策划书字段本身核对「这条设计到底写没写」（支持点路径） | pass / fail / skip |
+| `test` | 人/CI | 必须真跑自动化测试 | 恒 `unverified` |
+| `manual` | 人 | 人工判定（`how` 写清怎么验） | 恒 `unverified` |
+
+`test` / `manual` **永不**由机器盖章——否则整条「让 AI 开发」的链路又回到「AI 自述完成」。
+`field` 的 pass 只证明**设计层面**写了，不等于代码按它实现（evidence 里会写明这一点）。
+`match` 用关键词而非断言 id：断言 id（A1/A2）按行序算，插一行就整体错位，写进文档会一改就失效。
+
 
 **④ 冲突裁决优先级**
 

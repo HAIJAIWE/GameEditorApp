@@ -15,6 +15,7 @@
 
 | 提交 | 内容 |
 |---|---|
+| 2026-11-09 | **验收升级：99 条验收从 94 条「人工」降到机判为主**：`HandoffAcceptanceCheck` 由 3 种扩到 5 种（`assertion` / `data` / `field` / `test` / `manual`），38 份交接文档 + 7 卷全部改写成对象形态；新增 `ceshuHandoffAcceptance.ts` 把每条验收**真的判**（assertion 吃 `contract.json` 复算、data 吃设计↔数据表核对、field 吃策划书字段；test/manual 恒 unverified，绝不替 AI 盖章）。派工单逐条带「← 现状：已通过 / 未过 / 待补」，并在「让 AI 开工」提示里交代本次这份的验收现状。实测真实文档 dd66f593：88 条验收 → 机判 48 条（pass 15 / fail 29 / skip 4）、unverified 40 条，机判占比 54.5%；空白夹具 74.7% |
 | 2026-11-08 | **对话生成带字段契约**：新增 `buildChapterContract`，在「改文档」模式把目标章字段目录（key/类型/列/必填/aiHint 摘要）注入上下文，让模型知道「符合的文档」长什么样；问答模式不动（`4c2eb988`） |
 | 2026-11-08 | **对话写回堵数据丢失**：`system.ceshu update` 由整章替换改为「字段白名单 + 合并 + 前后 validateCeshu 对比」，拒脏键、保未传字段、回传校验变化（`c1ac7b89`） |
 | 2026-11-08 | **主聊天 agent 也能取契约**：`system.ceshu` 新增只读 `schema` 动作（复用 `buildChapterContract`），update 前可先按章取字段契约（`6fb1b779`） |
