@@ -58,6 +58,10 @@ test('让 AI 开工：导出交接包 + 派工单预填（不自动发送）', a
 
     // 4. 提示语说明导出位置与份数（提示条在编辑器内，无固定 testid）
     await expect(window.getByText(/派工单已填入右侧输入框/)).toBeVisible()
+
+    // 5. 验收现状也交代清楚（空白文档：field 类验收全是「文档还没写」）
+    //    —— 只报份数不报验收，用户会以为派出去就等于做完了。
+    await expect(window.getByText(/本次这份的验收现状/)).toBeVisible()
   } finally {
     await app.close()
   }

@@ -60,9 +60,17 @@ export const HANDOFF_DOCS: readonly HandoffDoc[] = [
       { chapter: 'meta', field: 'alternatives', why: '记下被否掉的方案与代价，否则实现方会把它们「好心」换回来' }
     ],
     acceptance: [
-      '能一句话说清本作不做什么',
-      '目标平台与输入方式（键鼠/手柄/触屏）已确定',
-      '关键决策写清了被放弃方案的代价（不是「经过考虑」）'
+      { text: '能一句话说清本作不做什么', check: 'field', fields: [{ chapter: 'meta', field: 'non_goals' }] },
+      {
+        text: '目标平台与输入方式（键鼠/手柄/触屏）已确定',
+        check: 'field',
+        fields: [{ chapter: 'meta', field: 'platform' }]
+      },
+      {
+        text: '关键决策写清了被放弃方案的代价（不是「经过考虑」）',
+        check: 'field',
+        fields: [{ chapter: 'meta', field: 'alternatives' }]
+      }
     ]
   },
   {
@@ -75,7 +83,14 @@ export const HANDOFF_DOCS: readonly HandoffDoc[] = [
       { chapter: 'tech', field: 'engine', why: '引擎/框架与版本' },
       { chapter: 'tech', field: 'core_architecture', why: '模块划分与它们怎么通信' }
     ],
-    acceptance: ['工程骨架可编译运行', '模块边界与文档一致（不多也不少）']
+    acceptance: [
+      { text: '工程骨架可编译运行', check: 'test', how: '真跑构建 + 起空场景；出包失败或起不来即未过' },
+      {
+        text: '模块边界与文档一致（不多也不少）',
+        check: 'manual',
+        how: '对照 tech.core_architecture 逐个模块核对目录与依赖：多出来的模块要么补进文档、要么删掉'
+      }
+    ]
   },
   {
     id: 'arch-data',
@@ -85,9 +100,17 @@ export const HANDOFF_DOCS: readonly HandoffDoc[] = [
     purpose: '说清要建哪些表、关键字段是什么、期望多少条——内容从数据来，不从代码来。',
     fields: [{ chapter: 'tech', field: 'data_tables', why: '表名/用途/关键字段/期望条数，决定数据层形状' }],
     acceptance: [
-      '每张表都能按 `data/snapshot.json` 建出来',
-      '代码里没有硬编码的装备/敌人/关卡数据',
-      '新增一条内容只需改数据文件'
+      { text: '每张表都能按 `data/snapshot.json` 建出来', check: 'data' },
+      {
+        text: '代码里没有硬编码的装备/敌人/关卡数据',
+        check: 'manual',
+        how: '在代码里搜装备名/敌人名/关卡号：命中即未过（数据只能从数据文件读）'
+      },
+      {
+        text: '新增一条内容只需改数据文件',
+        check: 'manual',
+        how: '真的加一条内容，只改 data 文件、不改代码、不重编译，看能不能生效'
+      }
     ]
   },
   {
@@ -97,7 +120,15 @@ export const HANDOFF_DOCS: readonly HandoffDoc[] = [
     title: '状态机与场景流程',
     purpose: '把游戏有哪些状态、什么事件触发、切过去要重置什么写死——骨架的主干。',
     fields: [{ chapter: 'gameplay', field: 'state_machine', why: '状态/事件/结算/新状态，一条转移一行' }],
-    acceptance: ['状态机可完整走一圈', '每次转移的结算效果与文档一致', '不存在无法退出的状态']
+    acceptance: [
+      { text: '状态机可完整走一圈', check: 'test', how: '自动化脚本按 gameplay.state_machine 的转移逐条跑，跑不通即未过' },
+      {
+        text: '每次转移的结算效果与文档一致',
+        check: 'manual',
+        how: '对照 gameplay.state_machine 的「结算」列逐条核对代码里的转移处理'
+      },
+      { text: '不存在无法退出的状态', check: 'test', how: '穷举状态表里每个状态，确认都有出边' }
+    ]
   },
   {
     id: 'arch-save',
@@ -106,7 +137,11 @@ export const HANDOFF_DOCS: readonly HandoffDoc[] = [
     title: '存档与兼容',
     purpose: '定死存什么、什么类型、什么时候写、旧档怎么读——升级后读不出旧档是常见事故。',
     fields: [{ chapter: 'tech', field: 'save_format', why: '存档项/类型/写入时机/迁移策略' }],
-    acceptance: ['存档能写能读', '删档回到初始状态', '缺字段的旧档能按默认值读出']
+    acceptance: [
+      { text: '存档能写能读', check: 'test', how: '写档 → 重启 → 读档，进度与写档时一致' },
+      { text: '删档回到初始状态', check: 'test', how: '删掉存档再启动，游戏回到初始状态、不崩' },
+      { text: '缺字段的旧档能按默认值读出', check: 'test', how: '手造一份缺字段的旧档，读入不崩且缺的项取默认值' }
+    ]
   },
   /*
    * 2026-10-27 补：前面讲了「模块边界」（arch-stack）和「从哪下手」（arch-scaffold），
@@ -125,10 +160,22 @@ export const HANDOFF_DOCS: readonly HandoffDoc[] = [
       { chapter: 'tech', field: 'data_tables', why: '表结构决定跨模块的数据契约' }
     ],
     acceptance: [
-      '每个模块都有明确的对外接口（输入 / 输出 / 依赖）',
-      '模块间无循环依赖（数据层 ← 玩法层 ← 界面层）',
-      '关键数据结构有字段与类型（不只是表名）',
-      '错误码 / 异常约定统一'
+      {
+        text: '每个模块都有明确的对外接口（输入 / 输出 / 依赖）',
+        check: 'field',
+        fields: [{ chapter: 'tech', field: 'core_architecture' }]
+      },
+      {
+        text: '模块间无循环依赖（数据层 ← 玩法层 ← 界面层）',
+        check: 'manual',
+        how: '画一次依赖图（或跑依赖检查脚本），出现环即未过'
+      },
+      {
+        text: '关键数据结构有字段与类型（不只是表名）',
+        check: 'field',
+        fields: [{ chapter: 'tech', field: 'data_tables' }]
+      },
+      { text: '错误码 / 异常约定统一', check: 'manual', how: '翻一遍抛错处：错误码是否都来自同一张表、文案是否统一' }
     ]
   },
   /*
@@ -148,10 +195,14 @@ export const HANDOFF_DOCS: readonly HandoffDoc[] = [
       { chapter: 'tech', field: 'third_party_deps', why: '依赖决定要装什么' }
     ],
     acceptance: [
-      '工程可编译运行（空场景能进）',
-      '目录按模块边界划分，无循环依赖（数据层 ← 玩法层 ← 界面层）',
-      '入口点明确（GameMode / Scene / Main）',
-      '数值与配置走数据驱动（不写死在代码里）'
+      { text: '工程可编译运行（空场景能进）', check: 'test', how: '真跑构建 + 起空场景，出包或启动失败即未过' },
+      {
+        text: '目录按模块边界划分，无循环依赖（数据层 ← 玩法层 ← 界面层）',
+        check: 'manual',
+        how: '对照 tech.core_architecture 的模块清单核对目录，并检查依赖方向只有一个'
+      },
+      { text: '入口点明确（GameMode / Scene / Main）', check: 'manual', how: '从仓库根按 README 的启动说明能一路找到入口文件' },
+      { text: '数值与配置走数据驱动（不写死在代码里）', check: 'data' }
     ]
   },
 
@@ -166,7 +217,14 @@ export const HANDOFF_DOCS: readonly HandoffDoc[] = [
       { chapter: 'gameplay', field: 'core_loop_points', why: '循环每一步都要能在代码里找到对应' },
       { chapter: 'gameplay', field: 'playthrough_120s', why: '第一分钟是验收基准，写不清就做不出手感' }
     ],
-    acceptance: ['一局能从头玩到尾', '120 秒走读的每一步都能在实机复现']
+    acceptance: [
+      { text: '一局能从头玩到尾', check: 'test', how: '真跑一局从进场景到结算再回主菜单，中途不卡死不空转' },
+      {
+        text: '120 秒走读的每一步都能在实机复现',
+        check: 'test',
+        how: '照 gameplay.playthrough_120s 的步骤逐条在实机复现，缺一步即未过'
+      }
+    ]
   },
   {
     id: 'core-input',
@@ -178,7 +236,18 @@ export const HANDOFF_DOCS: readonly HandoffDoc[] = [
       { chapter: 'gameplay', field: 'control_scheme', why: '键鼠/手柄/触屏的具体映射' },
       { chapter: 'gameplay', field: 'win_lose_conditions', why: '胜负与失败条件决定结算逻辑' }
     ],
-    acceptance: ['所有操作都有明确输入源', '胜负判定可复现（不是「感觉输了」）']
+    acceptance: [
+      {
+        text: '所有操作都有明确输入源',
+        check: 'field',
+        fields: [{ chapter: 'gameplay', field: 'control_scheme' }]
+      },
+      {
+        text: '胜负判定可复现（不是「感觉输了」）',
+        check: 'field',
+        fields: [{ chapter: 'gameplay', field: 'win_lose_conditions' }]
+      }
+    ]
   },
   {
     id: 'core-combat',
@@ -195,9 +264,17 @@ export const HANDOFF_DOCS: readonly HandoffDoc[] = [
     ],
     acceptance: [
       // 这条能机判：contract.json 的参数表 + 断言复算会直接给结论，不用人肉核对
-      { text: '伤害计算与公式逐项一致', check: 'assertion' },
-      '元素克制有正反例',
-      '单场时长落在目标区间'
+      { text: '伤害计算与公式逐项一致', check: 'assertion', match: '伤害' },
+      {
+        text: '元素克制有正反例',
+        check: 'manual',
+        how: '对每种克制关系各跑一场（克制/被克制各一次），系数与 combat.element_system 一致'
+      },
+      {
+        text: '单场时长落在目标区间',
+        check: 'test',
+        how: '同配置跑 10 场取平均，落在 combat.combat_pace 的目标区间内'
+      }
     ]
   },
   {
@@ -211,7 +288,11 @@ export const HANDOFF_DOCS: readonly HandoffDoc[] = [
       { chapter: 'numeric', field: 'numeric_assertions', why: '可复算断言，跑通即证明数值没走样' }
     ],
     acceptance: [
-      '所有玩法数值来自参数表，代码里没有魔法数字',
+      {
+        text: '所有玩法数值来自参数表，代码里没有魔法数字',
+        check: 'manual',
+        how: '在玩法代码里搜数字字面量：除 0/1 这类结构常量外，命中即未过'
+      },
       { text: '每条断言都能复算通过（容差内）', check: 'assertion' }
     ]
   },
@@ -224,7 +305,15 @@ export const HANDOFF_DOCS: readonly HandoffDoc[] = [
     title: '关卡配置表',
     purpose: '逐关配置（敌人编队/奖励/难度系数/解锁条件）——加关只改表，不改代码。',
     fields: [{ chapter: 'level_design', field: 'level_table', why: '关卡/敌人编队/奖励/难度系数/解锁条件' }],
-    acceptance: ['新增一关只改数据表', '每关配置与文档逐项一致', '首关最简单、Boss 最高']
+    acceptance: [
+      { text: '新增一关只改数据表', check: 'data', match: '关卡' },
+      { text: '每关配置与文档逐项一致', check: 'data', match: '关卡' },
+      {
+        text: '首关最简单、Boss 最高',
+        check: 'manual',
+        how: '照 level_table 的难度系数列排序核对：首关最小、Boss 关最大'
+      }
+    ]
   },
   {
     id: 'content-curve',
@@ -236,7 +325,18 @@ export const HANDOFF_DOCS: readonly HandoffDoc[] = [
       { chapter: 'level_design', field: 'difficulty_curve_points', why: '按阶段递进的难度点' },
       { chapter: 'level_design', field: 'first_levels', why: '首关/前几关的教学目标' }
     ],
-    acceptance: ['难度整体递增且每段有缓冲', '前 3 关各只教一件事']
+    acceptance: [
+      {
+        text: '难度整体递增且每段有缓冲',
+        check: 'field',
+        fields: [{ chapter: 'level_design', field: 'difficulty_curve_points' }]
+      },
+      {
+        text: '前 3 关各只教一件事',
+        check: 'field',
+        fields: [{ chapter: 'level_design', field: 'first_levels' }]
+      }
+    ]
   },
   {
     id: 'content-enemy',
@@ -249,7 +349,14 @@ export const HANDOFF_DOCS: readonly HandoffDoc[] = [
       { chapter: 'story', field: 'enemy_types', why: '敌人种类与行为差异' },
       { chapter: 'combat', field: 'boss_mechanics', why: 'Boss 的阶段与弱点机制' }
     ],
-    acceptance: ['每种敌人有可区分的行为', 'Boss 有阶段与弱点，且可被反制']
+    acceptance: [
+      { text: '每种敌人有可区分的行为', check: 'field', fields: [{ chapter: 'story', field: 'enemy_types' }] },
+      {
+        text: 'Boss 有阶段与弱点，且可被反制',
+        check: 'field',
+        fields: [{ chapter: 'combat', field: 'boss_mechanics' }]
+      }
+    ]
   },
 
   /* ---- 03 系统 ---- */
@@ -265,9 +372,27 @@ export const HANDOFF_DOCS: readonly HandoffDoc[] = [
     ],
     fields: [{ chapter: 'economy', field: 'production_chain', why: '材料 → 装备 → 强化 的生产链' }],
     acceptance: [
-      '装备槽位与品质等级可配置',
-      '强化/镶嵌/附魔规则有明确数值与上限',
-      '词条来源可追到参数表，不散落在代码里'
+      {
+        text: '装备槽位与品质等级可配置',
+        check: 'field',
+        fields: [
+          { chapter: 'systems', field: 'equipment.config.slot_count' },
+          { chapter: 'systems', field: 'item.config.rarity_levels' }
+        ]
+      },
+      {
+        text: '强化/镶嵌/附魔规则有明确数值与上限',
+        check: 'field',
+        fields: [
+          { chapter: 'systems', field: 'equipment.config.enhance_max' },
+          { chapter: 'systems', field: 'equipment.config.enhance_material' }
+        ]
+      },
+      {
+        text: '词条来源可追到参数表，不散落在代码里',
+        check: 'field',
+        fields: [{ chapter: 'economy', field: 'production_chain' }]
+      }
     ]
   },
   {
@@ -284,7 +409,15 @@ export const HANDOFF_DOCS: readonly HandoffDoc[] = [
       { chapter: 'numeric', field: 'growth_curves', why: '等级-属性/经验-等级等曲线形状' },
       { chapter: 'numeric', field: 'core_formulas', why: '成长相关公式（经验需求等）' }
     ],
-    acceptance: ['升级能带来可感知的提升', '满级前不出现数值断崖/爆炸']
+    acceptance: [
+      {
+        text: '升级能带来可感知的提升',
+        check: 'field',
+        fields: [{ chapter: 'numeric', field: 'growth_curves' }]
+      },
+      // 断崖只能靠复算：曲线单调性写成断言（contract.json）才能机判
+      { text: '满级前不出现数值断崖/爆炸', check: 'assertion', match: '成长' }
+    ]
   },
   {
     id: 'sys-economy',
@@ -298,7 +431,14 @@ export const HANDOFF_DOCS: readonly HandoffDoc[] = [
       { chapter: 'economy', field: 'ledger', why: '一笔具体交易的初始/交易/期末，验证闭环' },
       { chapter: 'numeric', field: 'drop_tables', why: '掉落概率与保底' }
     ],
-    acceptance: ['新手前 10 分钟收支与账本一致', '不存在只产出不回收的资源（或已注明）']
+    acceptance: [
+      { text: '新手前 10 分钟收支与账本一致', check: 'field', fields: [{ chapter: 'economy', field: 'ledger' }] },
+      {
+        text: '不存在只产出不回收的资源（或已注明）',
+        check: 'manual',
+        how: '照 economy.ledger 的产出/回收两列逐项配对：每个产出项都要有回收项，或文档里显式注明「本作不做回收」'
+      }
+    ]
   },
   {
     id: 'sys-skill',
@@ -315,7 +455,18 @@ export const HANDOFF_DOCS: readonly HandoffDoc[] = [
       { chapter: 'combat', field: 'skill_system', why: '技能构成与获取/升级路径' },
       { chapter: 'combat', field: 'buff_debuff', why: 'Buff/Debuff 的效果与叠加规则' }
     ],
-    acceptance: ['技能数量与获取路径与文档一致', 'Buff 可叠加/可驱散的规则明确']
+    acceptance: [
+      {
+        text: '技能数量与获取路径与文档一致',
+        check: 'field',
+        fields: [{ chapter: 'combat', field: 'skill_system' }]
+      },
+      {
+        text: 'Buff 可叠加/可驱散的规则明确',
+        check: 'field',
+        fields: [{ chapter: 'combat', field: 'buff_debuff' }]
+      }
+    ]
   },
 
   /* ---- 04 界面 ---- */
@@ -329,7 +480,14 @@ export const HANDOFF_DOCS: readonly HandoffDoc[] = [
       { chapter: 'uiux', field: 'information_architecture', why: '界面层级与常驻入口' },
       { chapter: 'uiux', field: 'core_flows', why: '每个流程的步骤与出口' }
     ],
-    acceptance: ['core_flows 每条都能走到出口', '核心操作 ≤3 步完成']
+    acceptance: [
+      { text: 'core_flows 每条都能走到出口', check: 'field', fields: [{ chapter: 'uiux', field: 'core_flows' }] },
+      {
+        text: '核心操作 ≤3 步完成',
+        check: 'manual',
+        how: '照 uiux.core_flows 数每个流程从进入到完成的步数：超过 3 步即未过（或文档里写明为什么必须更多）'
+      }
+    ]
   },
   {
     id: 'ui-feedback',
@@ -342,7 +500,15 @@ export const HANDOFF_DOCS: readonly HandoffDoc[] = [
       { chapter: 'uiux', field: 'usability_standards', why: '可用性硬指标' },
       { chapter: 'uiux', field: 'key_screens', why: '每屏必须有的元素' }
     ],
-    acceptance: ['所有 ≥3 秒等待有可见进度', '破坏性操作 100% 二次确认', '关键数字首屏可见']
+    acceptance: [
+      { text: '所有 ≥3 秒等待有可见进度', check: 'field', fields: [{ chapter: 'uiux', field: 'feedback_rules' }] },
+      {
+        text: '破坏性操作 100% 二次确认',
+        check: 'field',
+        fields: [{ chapter: 'uiux', field: 'usability_standards' }]
+      },
+      { text: '关键数字首屏可见', check: 'field', fields: [{ chapter: 'uiux', field: 'key_screens' }] }
+    ]
   },
 
   /* ---- 05 打磨 ---- */
@@ -358,8 +524,12 @@ export const HANDOFF_DOCS: readonly HandoffDoc[] = [
       { chapter: 'performance', field: 'target_devices', why: '达标机型的下限' }
     ],
     acceptance: [
-      '最低档机型稳定达标',
-      '包体不超预算',
+      {
+        text: '最低档机型稳定达标',
+        check: 'test',
+        how: '在 target_devices 的最低机型上跑 performance_budget 里 method 列的测法，连续 10 分钟不掉帧'
+      },
+      { text: '包体不超预算', check: 'test', how: '出正式包后量包体，与 performance_budget 的包体上限比' },
       // 能机判：跑 performance_budget 的 method 列那套测法，拿数字比目标值
       { text: '按预算表的测量方法实测，各画质档位达到对应帧率目标', check: 'test' }
     ]
@@ -374,7 +544,17 @@ export const HANDOFF_DOCS: readonly HandoffDoc[] = [
       { chapter: 'analytics', field: 'event_tracking', why: '关键事件与字段' },
       { chapter: 'analytics', field: 'metric_system', why: '指标口径（留存/漏斗/付费）' }
     ],
-    acceptance: ['关键事件能在日志里看到', '指标口径与埋点字段对得上']
+    acceptance: [
+      { text: '关键事件能在日志里看到', check: 'test', how: '跑一遍核心流程，在日志里逐个找到 event_tracking 里的事件名' },
+      {
+        text: '指标口径与埋点字段对得上',
+        check: 'field',
+        fields: [
+          { chapter: 'analytics', field: 'metric_system' },
+          { chapter: 'analytics', field: 'event_tracking' }
+        ]
+      }
+    ]
   },
   {
     id: 'polish-l10n',
@@ -386,7 +566,18 @@ export const HANDOFF_DOCS: readonly HandoffDoc[] = [
       { chapter: 'accessibility', field: 'language_list', why: '首发语言决定文案量与字体' },
       { chapter: 'accessibility', field: 'accessibility_features', why: '字幕/色盲/键位等硬要求' }
     ],
-    acceptance: ['首发语言界面无截断/乱码', '色盲模式下关键信息不丢']
+    acceptance: [
+      {
+        text: '首发语言界面无截断/乱码',
+        check: 'test',
+        how: '用 language_list 里的首发语言把所有界面走一遍，截图比对是否有截断、乱码、溢出'
+      },
+      {
+        text: '色盲模式下关键信息不丢',
+        check: 'test',
+        how: '开色盲模式（或灰度滤镜）后逐屏检查：关键信息不能只靠颜色区分'
+      }
+    ]
   },
 
   /* ---- 品类专属（按 game_type / game_type_tags 命中才出现） ---- */
@@ -401,7 +592,18 @@ export const HANDOFF_DOCS: readonly HandoffDoc[] = [
       { chapter: 'story', field: 'branch_endings', why: '每个结局的达成条件' },
       { chapter: 'story', field: 'character_network', why: '角色关系决定哪些分支可用' }
     ],
-    acceptance: ['每个结局都有可达路径（无死路）', '关键抉择有真实代价，不是伪分支']
+    acceptance: [
+      {
+        text: '每个结局都有可达路径（无死路）',
+        check: 'field',
+        fields: [{ chapter: 'story', field: 'branch_endings' }]
+      },
+      {
+        text: '关键抉择有真实代价，不是伪分支',
+        check: 'manual',
+        how: '挑 3 个关键抉择，各走两遍不同选项：结果必须真的不同（不同结局/不同可达内容），只是换文案不算'
+      }
+    ]
   },
   {
     id: 'content-idle',
@@ -414,7 +616,15 @@ export const HANDOFF_DOCS: readonly HandoffDoc[] = [
       { chapter: 'numeric', field: 'growth_curves', why: '离线收益的增长形状（线性还是指数）' },
       { chapter: 'economy', field: 'economic_goals', why: '回归后的目标与节奏' }
     ],
-    acceptance: ['离线收益系数与在线口径一致（可复算）', '回归时能立刻看到下一步目标']
+    acceptance: [
+      // 系数一致只能复算：离线收益写成断言才机判
+      { text: '离线收益系数与在线口径一致（可复算）', check: 'assertion', match: '离线' },
+      {
+        text: '回归时能立刻看到下一步目标',
+        check: 'manual',
+        how: '挂机 8 小时后回归，进游戏 10 秒内界面上必须能看到「下一步做什么」'
+      }
+    ]
   },
   {
     id: 'sys-gacha',
@@ -425,7 +635,15 @@ export const HANDOFF_DOCS: readonly HandoffDoc[] = [
     purpose: '卡池结构、概率与保底——卡牌品类的养成与付费入口。',
     systems: [{ key: 'gacha', why: '卡池类型/概率/保底规则' }],
     fields: [{ chapter: 'monetization', field: 'iap_design', why: '付费档位与抽卡资源的对应关系' }],
-    acceptance: ['概率与保底可复算（含期望值）', '免费玩家的获取节奏明确']
+    acceptance: [
+      // 概率与保底写进 contract.json 的断言（期望抽数、保底触发）才能机判
+      { text: '概率与保底可复算（含期望值）', check: 'assertion', match: '抽' },
+      {
+        text: '免费玩家的获取节奏明确',
+        check: 'field',
+        fields: [{ chapter: 'monetization', field: 'iap_design' }]
+      }
+    ]
   },
   {
     id: 'sys-social',
@@ -439,7 +657,18 @@ export const HANDOFF_DOCS: readonly HandoffDoc[] = [
       { key: 'competitive', why: '排位、匹配与结算' }
     ],
     fields: [],
-    acceptance: ['联盟权限与协作流程明确', '匹配与结算结果可复现']
+    acceptance: [
+      {
+        text: '联盟权限与协作流程明确',
+        check: 'field',
+        fields: [{ chapter: 'systems', field: 'social.config.guild_max_members' }]
+      },
+      {
+        text: '匹配与结算结果可复现',
+        check: 'manual',
+        how: '同样的 MMR 与同一批对手跑 3 次匹配，段位变化与赛季奖励要和 competitive.config 里的规则一致'
+      }
+    ]
   },
   {
     id: 'sys-sim',
@@ -452,7 +681,15 @@ export const HANDOFF_DOCS: readonly HandoffDoc[] = [
       { chapter: 'economy', field: 'source_sink', why: '资源产出与回收的结构' },
       { chapter: 'economy', field: 'economic_goals', why: '阶段目标与长线节奏' }
     ],
-    acceptance: ['数十小时不出现通胀或枯竭', '阶段目标逐级递进']
+    acceptance: [
+      // 通胀/枯竭只能复算：把产出与消耗速率写成断言（contract.json）才机判
+      { text: '数十小时不出现通胀或枯竭', check: 'assertion', match: '产出' },
+      {
+        text: '阶段目标逐级递进',
+        check: 'field',
+        fields: [{ chapter: 'economy', field: 'economic_goals' }]
+      }
+    ]
   },
   /*
    * 2026-10-27 补：`quest` / `content` / `customization` 三个系统原先没有任何交接文档，
@@ -467,9 +704,25 @@ export const HANDOFF_DOCS: readonly HandoffDoc[] = [
     systems: [{ key: 'quest', why: '任务类型 / 日常周常上限 / 剧情与分支 / 奖励规则' }],
     fields: [],
     acceptance: [
-      '每类任务有接取条件、追踪上限与奖励规则',
-      '剧情 / 支线任务可被数据配置（不写死）',
-      '新手引导能走通到首个核心循环'
+      {
+        text: '每类任务有接取条件、追踪上限与奖励规则',
+        check: 'field',
+        fields: [
+          { chapter: 'systems', field: 'quest.config.quest_types' },
+          { chapter: 'systems', field: 'quest.config.quest_track_limit' },
+          { chapter: 'systems', field: 'quest.config.reward_rule' }
+        ]
+      },
+      {
+        text: '剧情 / 支线任务可被数据配置（不写死）',
+        check: 'manual',
+        how: '真的加一条支线任务：只改数据文件、不改代码，能接取能完成'
+      },
+      {
+        text: '新手引导能走通到首个核心循环',
+        check: 'test',
+        how: '新号从建号一路跑到第一次核心循环（不靠跳引导），全程无卡点'
+      }
     ]
   },
   {
@@ -481,9 +734,27 @@ export const HANDOFF_DOCS: readonly HandoffDoc[] = [
     systems: [{ key: 'content', why: '关卡总数 / 难度档次 / 星级 / 扫荡 / 体力' }],
     fields: [],
     acceptance: [
-      '关卡总数与内容量估算一致',
-      '体力上限 / 恢复速率与付费设计自洽',
-      '扫荡 / 星级规则可配置'
+      {
+        text: '关卡总数与内容量估算一致',
+        check: 'field',
+        fields: [{ chapter: 'systems', field: 'content.config.stage_count' }]
+      },
+      {
+        text: '体力上限 / 恢复速率与付费设计自洽',
+        check: 'field',
+        fields: [
+          { chapter: 'systems', field: 'content.config.energy_cap' },
+          { chapter: 'systems', field: 'content.config.energy_regen' }
+        ]
+      },
+      {
+        text: '扫荡 / 星级规则可配置',
+        check: 'field',
+        fields: [
+          { chapter: 'systems', field: 'content.config.sweep_enabled' },
+          { chapter: 'systems', field: 'content.config.star_rating' }
+        ]
+      }
     ]
   },
   {
@@ -495,9 +766,21 @@ export const HANDOFF_DOCS: readonly HandoffDoc[] = [
     systems: [{ key: 'customization', why: '外观槽位 / 染色 / 坐骑 / 称号 / 宠物' }],
     fields: [],
     acceptance: [
-      '外观槽位与可换部件明确',
-      '外观付费不提供数值优势',
-      '资产规格与美术章一致'
+      {
+        text: '外观槽位与可换部件明确',
+        check: 'field',
+        fields: [{ chapter: 'systems', field: 'customization.config.appearance_slots' }]
+      },
+      {
+        text: '外观付费不提供数值优势',
+        check: 'manual',
+        how: '逐个外观付费点核对：只改外观/表现，不改任何战斗或经济数值'
+      },
+      {
+        text: '资产规格与美术章一致',
+        check: 'field',
+        fields: [{ chapter: 'art', field: 'asset_spec' }]
+      }
     ]
   },
   {
@@ -511,7 +794,20 @@ export const HANDOFF_DOCS: readonly HandoffDoc[] = [
       { chapter: 'level_design', field: 'level_table', why: '波次编队与奖励' },
       { chapter: 'combat', field: 'combat_pace', why: '单波时长决定节奏' }
     ],
-    acceptance: ['每波总血量与可用 DPS 可达（逐波复算）', '漏怪代价与容错明确', '塔位布局有取舍（没有一种塔通吃）']
+    acceptance: [
+      // 逐波复算就是断言：每波总血量 vs 可用 DPS 写成 contract 断言才机判
+      { text: '每波总血量与可用 DPS 可达（逐波复算）', check: 'assertion', match: '波' },
+      {
+        text: '漏怪代价与容错明确',
+        check: 'field',
+        fields: [{ chapter: 'combat', field: 'combat_pace' }]
+      },
+      {
+        text: '塔位布局有取舍（没有一种塔通吃）',
+        check: 'manual',
+        how: '用同一套塔位打 3 张不同地图，确认不存在「一种塔位/一种塔打穿全部」的解法'
+      }
+    ]
   },
   {
     id: 'content-build',
@@ -524,7 +820,18 @@ export const HANDOFF_DOCS: readonly HandoffDoc[] = [
       { chapter: 'economy', field: 'source_sink', why: '采集产出与建造/消耗的对应' },
       { chapter: 'economy', field: 'production_chain', why: '材料 → 部件 → 建筑的加工链' }
     ],
-    acceptance: ['资源循环闭合（采集-消耗-再生产）', '生存压力随进度上升，不是恒定']
+    acceptance: [
+      {
+        text: '资源循环闭合（采集-消耗-再生产）',
+        check: 'field',
+        fields: [{ chapter: 'economy', field: 'source_sink' }]
+      },
+      {
+        text: '生存压力随进度上升，不是恒定',
+        check: 'manual',
+        how: '照 production_chain 的时间轴各阶段跑一次，量压力指标（敌人强度/资源缺口）必须随阶段上升'
+      }
+    ]
   },
   {
     id: 'content-map',
@@ -537,7 +844,18 @@ export const HANDOFF_DOCS: readonly HandoffDoc[] = [
       { chapter: 'story', field: 'geography', why: '区域划分与地形' },
       { chapter: 'level_design', field: 'level_table', why: '兴趣点/据点的配置' }
     ],
-    acceptance: ['兴趣点密度能撑起宣称时长', '不存在「最优跑图顺序」让其余内容作废']
+    acceptance: [
+      {
+        text: '兴趣点密度能撑起宣称时长',
+        check: 'manual',
+        how: '按 level_table 的兴趣点数量除以宣称时长，算出每分钟几个兴趣点；低于同期同类作品即未过'
+      },
+      {
+        text: '不存在「最优跑图顺序」让其余内容作废',
+        check: 'manual',
+        how: '找 3 个不同路线的通关记录对比：不能出现一条路线让别的区域完全没必要去'
+      }
+    ]
   },
 
   /* ---- 条件文档（由项目事实决定是否出现） ---- */
@@ -556,9 +874,21 @@ export const HANDOFF_DOCS: readonly HandoffDoc[] = [
       { chapter: 'tech', field: 'third_party_deps', why: '网络/热更/监控依赖' }
     ],
     acceptance: [
-      '权威端明确（服务端说了算，客户端不改关键数值）',
-      '断线与重连有明确行为（幂等，不会刷资源）',
-      '排行榜/对战的数据一致性可复算',
+      {
+        text: '权威端明确（服务端说了算，客户端不改关键数值）',
+        check: 'field',
+        fields: [{ chapter: 'tech', field: 'online_mode' }]
+      },
+      {
+        text: '断线与重连有明确行为（幂等，不会刷资源）',
+        check: 'field',
+        fields: [{ chapter: 'tech', field: 'sync_model' }]
+      },
+      {
+        text: '排行榜/对战的数据一致性可复算',
+        check: 'manual',
+        how: '同一局结果在客户端与服务端各算一遍，数值必须一致（不一致以服务端为准）'
+      },
       // 能机判：本地多进程 + 弱网注入（200ms RTT / 5% 丢包）跑重连脚本
       { text: '弱网（200 ms RTT / 5% 丢包）下能重连并续局，不刷资源', check: 'test' }
     ]
@@ -580,9 +910,21 @@ export const HANDOFF_DOCS: readonly HandoffDoc[] = [
       { chapter: 'audio', field: 'dynamic_audio', why: '动态分层与切换规则' }
     ],
     acceptance: [
-      '每个交互都能对到一条音效（事件 → 音效）',
-      '同时播放上限与优先级明确，不会爆音',
-      '切场景时音乐淡入淡出符合规范',
+      {
+        text: '每个交互都能对到一条音效（事件 → 音效）',
+        check: 'field',
+        fields: [{ chapter: 'audio', field: 'sfx_events' }]
+      },
+      {
+        text: '同时播放上限与优先级明确，不会爆音',
+        check: 'field',
+        fields: [{ chapter: 'audio', field: 'sfx_list' }]
+      },
+      {
+        text: '切场景时音乐淡入淡出符合规范',
+        check: 'field',
+        fields: [{ chapter: 'audio', field: 'dynamic_audio' }]
+      },
       // 能机判：打日志统计并发数，跟 sfx_events 的 concurrency 列比
       { text: '同屏并发音效数不超过 sfx_events 的并发上限，无爆音', check: 'test' }
     ]
@@ -600,9 +942,24 @@ export const HANDOFF_DOCS: readonly HandoffDoc[] = [
       { chapter: 'performance', field: 'performance_budget', why: '包体/内存预算约束单资产上限' }
     ],
     acceptance: [
-      '每种资产类型都有尺寸与格式（缺失即视为未定，实现方只能自己定）',
-      '命名规则可机读（前缀+用途+序号，不靠中文名找文件）',
-      '导入设置写明（压缩/Atlas/最大尺寸），换平台不重新对一遍'
+      {
+        text: '每种资产类型都有尺寸与格式（缺失即视为未定，实现方只能自己定）',
+        check: 'field',
+        fields: [{ chapter: 'art', field: 'asset_spec' }]
+      },
+      {
+        text: '命名规则可机读（前缀+用途+序号，不靠中文名找文件）',
+        check: 'manual',
+        how: '抽查 10 个资产文件，文件名必须符合 asset_spec 的前缀+用途+序号规则（出现中文名即未过）'
+      },
+      {
+        text: '导入设置写明（压缩/Atlas/最大尺寸），换平台不重新对一遍',
+        check: 'field',
+        fields: [
+          { chapter: 'art', field: 'multi_resolution' },
+          { chapter: 'performance', field: 'performance_budget' }
+        ]
+      }
     ]
   },
 
@@ -620,9 +977,21 @@ export const HANDOFF_DOCS: readonly HandoffDoc[] = [
       { chapter: 'tech', field: 'data_tables', why: '数据层任务从表清单派生' }
     ],
     acceptance: [
-      '任务按「框架 → 玩法 → 系统 → 内容 → 界面 → 打磨」排序',
-      '每条任务标注依赖与可判定交付物',
-      '每条任务能追到一份设计文档'
+      {
+        text: '任务按「框架 → 玩法 → 系统 → 内容 → 界面 → 打磨」排序',
+        check: 'field',
+        fields: [{ chapter: 'tech', field: 'milestones' }]
+      },
+      {
+        text: '每条任务标注依赖与可判定交付物',
+        check: 'manual',
+        how: '逐条任务检查：依赖列不能为空，交付物必须能被别人验收（不是「已完成」这种自述）'
+      },
+      {
+        text: '每条任务能追到一份设计文档',
+        check: 'field',
+        fields: [{ chapter: 'gameplay', field: 'state_machine' }]
+      }
     ]
   }
 ] as const

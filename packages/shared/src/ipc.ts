@@ -515,6 +515,18 @@ export interface IpcContract {
       readyCount: number
       doneCount: number
       remaining: number
+      /**
+       * 本次这份文档的验收现状（机器判定。test / manual 恒 unverified —— 不替 AI 盖章）。
+       * 适用文档已全部完成（没有目标）时为 null。
+       */
+      acceptance: {
+        total: number
+        pass: number
+        fail: number
+        skip: number
+        unverified: number
+        machine: number
+      } | null
     }
   }
   /** 打开项目文件夹（一个游戏一个文件夹）：读目录 → 还原文档 → 在本库落地为项目文件夹 */

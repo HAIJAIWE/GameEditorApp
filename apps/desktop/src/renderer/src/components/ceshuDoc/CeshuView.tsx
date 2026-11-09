@@ -599,12 +599,26 @@ export default function CeshuView({
         host.slotStore<DigitalPanelState>(CONVERSATION_STORE_KEY) ??
         host.declareStore(CONVERSATION_STORE_KEY, createConversationStoreDecl())
       store.actions.dispatch({ kind: 'prefill', text: order.markdown })
+      // 一句话把「已完成的份数」和「这一份的验收现状」一起交代：只报进度不报验收，
+      // 用户会以为派出去就等于做完了（这正是验收升级要治的病）。
+      const acceptance = order.acceptance
+      const acceptanceNote =
+        acceptance === null
+          ? ''
+          : ' ' +
+            t('ceshuView.aiDevAcceptance', {
+              machine: acceptance.machine,
+              pass: acceptance.pass,
+              fail: acceptance.fail,
+              skip: acceptance.skip,
+              unverified: acceptance.unverified
+            })
       setNotice(
         t('ceshuView.aiDevPrefilled', {
           dir: exported.dir,
           done: order.doneCount,
           total: order.applicableCount
-        })
+        }) + acceptanceNote
       )
       const input = document.querySelector<HTMLInputElement>('[data-testid="digital-input"]')
       if (input !== null && !input.disabled) {

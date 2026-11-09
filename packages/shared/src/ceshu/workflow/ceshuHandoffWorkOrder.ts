@@ -1,4 +1,11 @@
 import type { CeshuDocument } from '../reference'
+import {
+  evaluateHandoffAcceptances,
+  summarizeHandoffAcceptances,
+  type HandoffAcceptanceContext,
+  type HandoffAcceptanceResult,
+  type HandoffAcceptanceSummary
+} from './ceshuHandoffAcceptance'
 import { handoffVolumeIndexPath } from './ceshuHandoffPaths'
 import { buildHandoffPlan, planHandoffDocs } from './ceshuHandoffPlan'
 import type { HandoffDocStatus, PlannedHandoffDoc } from './ceshuHandoffPlan'
@@ -38,13 +45,22 @@ export interface WorkOrderOptions {
   completed?: string[]
   /** TDD 文档路径（`<库>/tech/<名>.md`）；缺省则提示智能体先写一份 */
   tddPath?: string
+  /**
+   * 验收现状（契约 / 数据表 / 策划书本体）。
+   * 缺省 = 只出判定方式、不给结论（纯函数，不自己去读文档建契约）。
+   */
+  context?: HandoffAcceptanceContext
 }
 
 export interface WorkOrderAcceptance {
   id: string
   text: string
-  /** assertion / test / manual */
+  /** assertion / data / field / test / manual */
   check: string
+  /** 机器判定给的结论（test / manual 恒为 unverified）；没注入现状时也标 unverified */
+  verdict: string
+  /** 一句话依据：复算了几条、哪条没过、缺哪张表…… */
+  evidence: string
 }
 
 export interface WorkOrderTarget {
@@ -66,6 +82,8 @@ export interface WorkOrderTarget {
   /** 开工必读（与 index.json 的 minimalContext 同源） */
   minimalContext: string[]
   acceptance: WorkOrderAcceptance[]
+  /** 验收结论汇总（机器判定的几条过、几条没过） */
+  verdicts: HandoffAcceptanceSummary | null
   purpose: string
 }
 
@@ -92,9 +110,21 @@ function statusMap(doc: CeshuDocument): Map<string, HandoffDocStatus> {
   return map
 }
 
-function buildTarget(item: PlannedHandoffDoc, status: HandoffDocStatus | undefined): WorkOrderTarget {
+function buildTarget(
+  item: PlannedHandoffDoc,
+  status: HandoffDocStatus | undefined,
+  acceptanceContext: HandoffAcceptanceContext | undefined
+): WorkOrderTarget {
+  // 验收结论：机器判定（assertion / data / field）拿现状真算一遍，test / manual 恒 unverified。
+  const verdictMap = new Map<string, HandoffAcceptanceResult>()
+  let verdicts: HandoffAcceptanceSummary | null = null
+  if (acceptanceContext !== undefined) {
+    const results = evaluateHandoffAcceptances(item.def.id, item.def.acceptance, acceptanceContext)
+    for (const result of results) verdictMap.set(result.id, result)
+    verdicts = summarizeHandoffAcceptances(results)
+  }
   // 与 index.json 的 minimalContext 同源：卷内第一份还要读卷 README，其余只读契约。
-  const context =
+  const readContext =
     item.number === 1 ? [handoffVolumeIndexPath(item.volume), 'contract.json'] : ['contract.json']
   return {
     path: item.path,
@@ -107,18 +137,35 @@ function buildTarget(item: PlannedHandoffDoc, status: HandoffDocStatus | undefin
     fieldTotal: status?.fieldTotal ?? 0,
     missing: (status?.missing ?? []).map((entry) => entry.label),
     blockers: status?.blockers ?? [],
-    minimalContext: context,
-    acceptance: item.def.acceptance.map((entry, index) => ({
-      id: item.def.id + '-a' + String(index + 1),
-      text: acceptanceText(entry),
-      check: acceptanceCheck(entry)
-    })),
+    minimalContext: readContext,
+    acceptance: item.def.acceptance.map((entry, index) => {
+      const id = item.def.id + '-a' + String(index + 1)
+      const verdict = verdictMap.get(id)
+      return {
+        id,
+        text: acceptanceText(entry),
+        check: acceptanceCheck(entry),
+        verdict: verdict?.verdict ?? 'unverified',
+        evidence: verdict?.evidence ?? ''
+      }
+    }),
+    verdicts,
     purpose: item.def.purpose
   }
 }
 
+/** 验收条目后面的「现状」标记（没注入现状时不写，保持老派工单原样） */
+function verdictTag(entry: WorkOrderAcceptance): string {
+  if (entry.verdict === 'pass') return ' ← 现状：已通过（' + entry.evidence + '）'
+  if (entry.verdict === 'fail') return ' ← 现状：**未过**（' + entry.evidence + '）'
+  if (entry.verdict === 'skip') return ' ← 现状：待补（' + entry.evidence + '）'
+  return ''
+}
+
 function checkLabel(check: string): string {
   if (check === 'assertion') return '机器判定：按 contract.json 复算断言'
+  if (check === 'data') return '机器判定：核对声明的数据表建没建、条数与字段够不够'
+  if (check === 'field') return '机器判定：核对策划书里这条设计写没写（不等于实现完成）'
   if (check === 'test') return '自动化测试'
   return '人工判定'
 }
@@ -141,7 +188,8 @@ export function buildHandoffWorkOrder(doc: CeshuDocument, options: WorkOrderOpti
   const remaining = applicable.filter((item) => !completed.has(item.path))
   const readyRemaining = remaining.filter((item) => statuses.get(item.def.id)?.ready === true)
   const chosen = readyRemaining[0] ?? remaining[0]
-  const target = chosen === undefined ? null : buildTarget(chosen, statuses.get(chosen.def.id))
+  const target =
+    chosen === undefined ? null : buildTarget(chosen, statuses.get(chosen.def.id), options.context)
 
   const lines: string[] = []
   const name = String(doc.meta.game_name ?? '').trim() || '未命名游戏'
@@ -201,7 +249,15 @@ export function buildHandoffWorkOrder(doc: CeshuDocument, options: WorkOrderOpti
     if (target.acceptance.length > 0) {
       lines.push('- 验收（做完逐条对照）：')
       for (const entry of target.acceptance) {
-        lines.push('  - [' + entry.check + '] ' + entry.text + '（' + checkLabel(entry.check) + '）')
+        lines.push('  - [' + entry.check + '] ' + entry.text + '（' + checkLabel(entry.check) + '）' + verdictTag(entry))
+      }
+      if (target.verdicts !== null && target.verdicts.machine > 0) {
+        lines.push(
+          '  - 现状快照：机器已判 ' + String(target.verdicts.machine) + ' 条（通过 ' +
+            String(target.verdicts.pass) + ' / 未过 ' + String(target.verdicts.fail) + ' / 待补 ' +
+            String(target.verdicts.skip) + '），其余 ' + String(target.verdicts.unverified) +
+            ' 条要你跑测试或人工确认——**别拿通过的那几条当整份做完了**。'
+        )
       }
     }
     lines.push('')
@@ -213,6 +269,10 @@ export function buildHandoffWorkOrder(doc: CeshuDocument, options: WorkOrderOpti
   lines.push(
     '- 标了 `assertion` / `test` 的验收必须真的跑（断言复算通过 / 测试绿的才算过）；' +
       '标 `manual` 的写清你怎么验的。'
+  )
+  lines.push(
+    '- 标了 `data` / `field` 的验收由机器核对（数据表建没建 / 策划书写没写）：报「已通过」只说明' +
+      '**设计层面**齐了，代码有没有按它实现仍要你用 `test` 或人工补证。'
   )
   lines.push('- 只写代码工作区；不要改交接包，也不要改策划库的 `data` / `ceshu` / `design` 目录。')
   lines.push('')

@@ -226,10 +226,18 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
     const workspace = getWorkspaceRoot()
     const progressPath = join(workspace, HANDOFF_PROGRESS_FILE)
     const progress = existsSync(progressPath) ? readFileSync(progressPath, 'utf-8') : ''
+    // 验收现状：把「这一份现在到底算不算做完」的机器判定来源一起注入，
+    // 派工单才能写「a1 已通过 / a2 未过」，而不是只列 5 种判定方式让人自己猜。
+    const contract = checkContract(doc).contract
+    const dataTables = checkDataTablePlan(
+      parseDataTableRequirements(readDataTableRows(doc)),
+      readDataTableActual(typeSchemaStore.getTypes())
+    )
     const order = buildHandoffWorkOrder(doc, {
       bundleDir: req.bundleDir,
       workspace,
-      completed: parseHandoffProgress(progress)
+      completed: parseHandoffProgress(progress),
+      context: { doc, contract, dataTables }
     })
     return {
       markdown: order.markdown,
@@ -237,7 +245,8 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
       applicableCount: order.applicableCount,
       readyCount: order.readyCount,
       doneCount: order.doneCount,
-      remaining: order.remaining
+      remaining: order.remaining,
+      acceptance: order.target?.verdicts ?? null
     }
   })
   // 打开项目文件夹：读目录 → 还原文档 → 在本库落地为项目文件夹（之后 save 自动走文件夹形态）

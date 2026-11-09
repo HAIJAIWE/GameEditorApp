@@ -545,13 +545,15 @@ describe('机读清单 index.json（给智能体程序化调度）', () => {
     expect(manifest.precedence.length).toBeGreaterThan(0)
   })
 
-  it('验收 id 全局唯一，判定方式只有 assertion / test / manual', () => {
+  it('验收 id 全局唯一，判定方式只有 assertion / data / field / test / manual', () => {
     const manifest = parse(makeDoc())
     const ids = manifest.docs.flatMap((item) => item.acceptance.map((entry) => entry.id))
     expect(ids.length).toBeGreaterThan(0)
     expect(new Set(ids).size).toBe(ids.length)
     for (const item of manifest.docs) {
-      for (const entry of item.acceptance) expect(['assertion', 'test', 'manual']).toContain(entry.check)
+      for (const entry of item.acceptance) {
+        expect(['assertion', 'data', 'field', 'test', 'manual']).toContain(entry.check)
+      }
     }
   })
 
@@ -590,11 +592,26 @@ describe('机读清单 index.json（给智能体程序化调度）', () => {
     expect(machine.length).toBeGreaterThan(0)
   })
 
+  it('机判验收占多数：manual 不再是主要判定方式（2026-11-09 验收升级）', () => {
+    const all = parse(makeDoc()).docs.flatMap((item) => item.acceptance)
+    const machine = all.filter((entry) => entry.check !== 'manual')
+    expect(all.length).toBeGreaterThan(30)
+    expect(machine.length / all.length).toBeGreaterThan(0.5)
+  })
+
   it('验收条目支持显式判定方式，字符串仍按人工判定', () => {
     expect(acceptanceText('能跑')).toBe('能跑')
     expect(acceptanceCheck('能跑')).toBe('manual')
     expect(acceptanceText({ text: '伤害公式复算通过', check: 'assertion' })).toBe('伤害公式复算通过')
     expect(acceptanceCheck({ text: '伤害公式复算通过', check: 'assertion' })).toBe('assertion')
+  })
+
+  it('交接文档里非人工验收标出判定方式，人工验收不加标签（老包逐字不变）', () => {
+    const doc = makeDoc()
+    const planned = planHandoffDocs(doc).find((item) => item.def.id === 'arch-scope')!
+    const md = renderHandoffDoc(doc, planned, TS)
+    expect(md).toContain('（判定：策划书字段）')
+    expect(md).not.toContain('（判定：人工判定）')
   })
 
   it('README 与文档头都写明冲突优先级与最小上下文', () => {

@@ -125,6 +125,66 @@ describe('派工单：该说的都在', () => {
   })
 })
 
+describe('派工单：验收现状（机器判定）', () => {
+  function docWithPositioning(): CeshuDocument {
+    const doc = makeDoc()
+    doc.meta.positioning = '一款仙侠开放世界 RPG'
+    return doc
+  }
+
+  it('注入现状后每条验收带 verdict，且 test 不会被机器判过', () => {
+    const result = buildHandoffWorkOrder(docWithPositioning(), {
+      bundleDir: BUNDLE,
+      workspace: WORKSPACE,
+      context: { doc: docWithPositioning() }
+    })
+    const target = result.target!
+    expect(target.verdicts).not.toBeNull()
+    for (const entry of target.acceptance) {
+      expect(['pass', 'fail', 'skip', 'unverified']).toContain(entry.verdict)
+      if (entry.check === 'test' || entry.check === 'manual') expect(entry.verdict).toBe('unverified')
+    }
+  })
+
+  it('没注入现状时保持老样子：verdicts 为 null、不写「现状」标记', () => {
+    const result = order(makeDoc())
+    expect(result.target!.verdicts).toBeNull()
+    expect(result.markdown).not.toContain('← 现状：')
+  })
+
+  it('机器判过的条数会写进「现状快照」，并提醒别拿通过当整份做完', () => {
+    const result = buildHandoffWorkOrder(docWithPositioning(), {
+      bundleDir: BUNDLE,
+      workspace: WORKSPACE,
+      context: { doc: docWithPositioning() }
+    })
+    const verdicts = result.target!.verdicts!
+    if (verdicts.machine > 0) {
+      expect(result.markdown).toContain('现状快照：机器已判 ' + String(verdicts.machine) + ' 条')
+      expect(result.markdown).toContain('别拿通过的那几条当整份做完了')
+    }
+  })
+
+  it('没过 / 待补的条目在派工单里被点名（不是只打勾）', () => {
+    const result = buildHandoffWorkOrder(makeDoc(), {
+      bundleDir: BUNDLE,
+      workspace: WORKSPACE,
+      context: { doc: makeDoc() }
+    })
+    const target = result.target!
+    const failed = target.acceptance.filter((entry) => entry.verdict === 'fail')
+    if (failed.length > 0) {
+      expect(result.markdown).toContain('← 现状：**未过**')
+    }
+  })
+
+  it('施工纪律写明 data/field 是设计层面判定，不等于实现完成', () => {
+    const md = order(makeDoc()).markdown
+    expect(md).toContain('由机器核对')
+    expect(md).toContain('设计层面')
+  })
+})
+
 describe('进度记录：进度.md 的解析', () => {
   it('只收路径列，忽略标题/空行/分隔线，去掉反引号', () => {
     const md = ['# 进度', '', '---', '`00-架构/01-范围与平台.md` | 2026-11-09 18:00 | a1 ok / a2 ok', '', '01-核心玩法/01-核心循环.md | 2026-11-09 18:30 | 通过'].join('\n')

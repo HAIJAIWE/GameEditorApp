@@ -16,7 +16,13 @@ import {
 } from './ceshuHandoffPlan'
 import { docRoles, HANDOFF_ROLE_LABELS } from './ceshuHandoffRoles'
 import { renderApiContractSection, renderEngineeringWbsSection, renderPerfPlaybookSection, renderScaffoldSection } from './ceshuHandoffRenderSections'
-import { acceptanceCheck, acceptanceText, type HandoffDoc, type HandoffDocSystem } from './ceshuHandoffTypes'
+import {
+  ACCEPTANCE_CHECK_LABELS,
+  acceptanceCheck,
+  acceptanceText,
+  type HandoffDoc,
+  type HandoffDocSystem
+} from './ceshuHandoffTypes'
 import { HANDOFF_VOLUMES } from './ceshuHandoffVolumes'
 
 /**
@@ -473,7 +479,7 @@ export function renderHandoffDoc(
     for (const item of def.acceptance) {
       // 非人工判定才标出来：老文档（全字符串）渲染结果逐字不变，避免无意义 diff
       const check = acceptanceCheck(item)
-      const tag = check === 'assertion' ? '（判定：contract.json 断言）' : check === 'test' ? '（判定：自动化测试）' : ''
+      const tag = check === 'manual' ? '' : `（判定：${ACCEPTANCE_CHECK_LABELS[check]}）`
       lines.push(`- [ ] ${acceptanceText(item)}${tag}`)
     }
     lines.push('')

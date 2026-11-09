@@ -54,19 +54,36 @@ export type HandoffDocLayer = 'baseline' | 'genre' | 'conditional'
 /**
  * 验收条目的判定方式：
  * - `assertion`：挂 `contract.json` 的断言（机器可判，复算通过才算过）；
- * - `test`：自动化测试（脚本/单测）；
+ * - `data`：挂「设计 ↔ 数据表核对」（声明的表建没建、条数与字段够不够）；
+ * - `field`：挂策划书字段本身（这条设计**写没写**，不等于实现了）；
+ * - `test`：自动化测试（脚本/单测/引擎内实测）；
  * - `manual`：人工判定（缺省）。
  *
  * 为什么要有：只有自然语言验收时，编码智能体只能「觉得自己做完了」。
  * 标了判定方式，它才知道该跑断言、跑测试，还是交给人看。
+ * 判定逻辑在 `ceshuHandoffAcceptance`（纯函数，可直接单测）。
  */
-export type HandoffAcceptanceCheck = 'assertion' | 'test' | 'manual'
+export type HandoffAcceptanceCheck = 'assertion' | 'data' | 'field' | 'test' | 'manual'
 
 /**
  * 验收条目：字符串 = 人工判定（保持既有写法不变）；对象 = 显式标注判定方式。
  * 兼容两种形态是为了不让 30 多份文档的 `acceptance` 一次性重写——新写的用对象，老的不用动。
  */
-export type HandoffAcceptance = string | { text: string; check?: HandoffAcceptanceCheck }
+export type HandoffAcceptance =
+  | string
+  | {
+      text: string
+      check?: HandoffAcceptanceCheck
+      /**
+       * `assertion` / `data` 的匹配关键词（如「伤害」「装备表」）。
+       * 缺省 = 全部断言 / 全部声明的表。**不要写断言 id**（A1 会随插行整体错位）。
+       */
+      match?: string
+      /** `field` 要核对的策划书字段（至少一个） */
+      fields?: ReadonlyArray<{ chapter: ChapterKey; field: string }>
+      /** `manual` 的人工判定口径（写清怎么验，避免「我觉得过了」） */
+      how?: string
+    }
 
 /** 验收条目的文字（两种形态统一取文本） */
 export function acceptanceText(item: HandoffAcceptance): string {
@@ -76,6 +93,18 @@ export function acceptanceText(item: HandoffAcceptance): string {
 /** 验收条目的判定方式（字符串缺省人工） */
 export function acceptanceCheck(item: HandoffAcceptance): HandoffAcceptanceCheck {
   return typeof item === 'string' ? 'manual' : (item.check ?? 'manual')
+}
+
+/**
+ * 判定方式的中文标签（交接文档与派工单共用一份，避免两处文案漂移）。
+ *
+ * `manual` 不在表里：人工判定是缺省，文档里不额外标（老文档渲染结果逐字不变）。
+ */
+export const ACCEPTANCE_CHECK_LABELS: Record<Exclude<HandoffAcceptanceCheck, 'manual'>, string> = {
+  assertion: 'contract.json 断言',
+  data: '数据表核对',
+  field: '策划书字段',
+  test: '自动化测试'
 }
 
 /**

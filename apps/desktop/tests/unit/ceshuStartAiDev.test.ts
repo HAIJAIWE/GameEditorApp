@@ -15,7 +15,8 @@ import {
 describe('让 AI 开工：预填而不发送', () => {
   it('prefill 只写待消费的槽，消息列表一条都不加', () => {
     const decl = createConversationStoreDecl()
-    const before = decl.init()
+    const init = decl.init
+    const before = typeof init === 'function' ? init() : init
     const after = reduceConversation(before, { kind: 'prefill', text: '派工单全文' })
     expect(after.prefill).toBe('派工单全文')
     expect(after.messages).toHaveLength(before.messages.length)
@@ -23,7 +24,9 @@ describe('让 AI 开工：预填而不发送', () => {
 
   it('清空 prefill 用 text:null（消费端读完就清，避免重复预填）', () => {
     const decl = createConversationStoreDecl()
-    const state = reduceConversation(decl.init(), { kind: 'prefill', text: '派工单全文' })
+    const init = decl.init
+    const initialState = typeof init === 'function' ? init() : init
+    const state = reduceConversation(initialState, { kind: 'prefill', text: '派工单全文' })
     expect(reduceConversation(state, { kind: 'prefill', text: null }).prefill).toBeNull()
   })
 
