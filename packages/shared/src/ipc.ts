@@ -48,6 +48,7 @@ import type {
   CeshuChooseExportFileInput,
   CeshuCreateInput,
   CeshuMigrateFieldSplitsInput,
+  CeshuWorkOrderInput,
   CeshuDeleteInput,
   CeshuDeriveInput,
   CeshuExportInput,
@@ -500,6 +501,22 @@ export interface IpcContract {
    * + 数据表 schema/快照 + 原型。输入与「导出项目文件夹」同形（id + 目标目录）。
    */
   'ceshu:exportHandoff': { req: CeshuExportProjectInput; res: { dir: string; files: string[] } }
+  /**
+   * 生成**派工单**：把刚导出的交接包翻译成「编码智能体开工的第一句话」。
+   * 纯文本，不派活、不落盘——渲染层拿到后预填进智能体输入框，由用户确认再发送。
+   */
+  'ceshu:workOrder': {
+    req: CeshuWorkOrderInput
+    res: {
+      markdown: string
+      /** 本次要做的文档相对路径；适用文档已全部完成时为 null */
+      targetPath: string | null
+      applicableCount: number
+      readyCount: number
+      doneCount: number
+      remaining: number
+    }
+  }
   /** 打开项目文件夹（一个游戏一个文件夹）：读目录 → 还原文档 → 在本库落地为项目文件夹 */
   'ceshu:openProjectFolder': { req: CeshuOpenProjectInput; res: { doc: CeshuDocument } }
   /** 岗位任务生成：整份文档 → 各岗位可执行任务（覆盖旧计划） */

@@ -308,6 +308,10 @@ export interface MbApi {
     exportHandoff(
       req: IpcContract['ceshu:exportHandoff']['req']
     ): Promise<IpcContract['ceshu:exportHandoff']['res']>
+    /** 生成派工单（把交接包翻译成「开工提示」，供预填进智能体输入框） */
+    workOrder(
+      req: IpcContract['ceshu:workOrder']['req']
+    ): Promise<IpcContract['ceshu:workOrder']['res']>
     /** 打开项目文件夹（一个游戏一个文件夹）：还原文档并落地到本库 */
     openProjectFolder(
       req: IpcContract['ceshu:openProjectFolder']['req']

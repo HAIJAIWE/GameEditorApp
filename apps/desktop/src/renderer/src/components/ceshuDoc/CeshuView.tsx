@@ -41,6 +41,8 @@ import type { FieldAction } from '@mobai/shared/ceshu/fields'
 import { clearFieldRequest } from '../../ceshuFieldFocus'
 import { applyCeshuPatch, type CeshuPatchItem } from '@mobai/shared/ceshu/data'
 import type { CeshuAiGenerateResult } from '@mobai/shared/ceshu/prompts'
+import { CONVERSATION_STORE_KEY, createConversationStoreDecl } from '@mobai/shared/agent/conversation'
+import type { DigitalPanelState } from '@mobai/shared/agent/ui'
 import type { PluginHost } from '@mobai/shared/plugin/host'
 import type { DataTypeDef } from '@mobai/shared/types'
 
@@ -578,6 +580,43 @@ export default function CeshuView({
     }
   }
 
+  /**
+   * 一键交给 AI 开发：导出交接包 → 生成派工单 → 预填进智能体输入框（**不自动发送**）。
+   *
+   * 为什么拆成「导出 + 预填」两步而不是直接派活：派工单里含路径、门禁、验收清单，
+   * 用户需要看一眼（也可能要改「只做这一份」的范围）再按发送；自动发送等于替用户下命令。
+   */
+  const handleStartAiDev = async (): Promise<void> => {
+    try {
+      setError(null)
+      setNotice(null)
+      const chosen = await window.mbApi.dialog.chooseExportDir()
+      if (chosen.path === null) return
+      setBusy(true)
+      const exported = await window.mbApi.ceshu.exportHandoff({ id: doc.ceshu_id, path: chosen.path })
+      const order = await window.mbApi.ceshu.workOrder({ id: doc.ceshu_id, bundleDir: exported.dir })
+      const store =
+        host.slotStore<DigitalPanelState>(CONVERSATION_STORE_KEY) ??
+        host.declareStore(CONVERSATION_STORE_KEY, createConversationStoreDecl())
+      store.actions.dispatch({ kind: 'prefill', text: order.markdown })
+      setNotice(
+        t('ceshuView.aiDevPrefilled', {
+          dir: exported.dir,
+          done: order.doneCount,
+          total: order.applicableCount
+        })
+      )
+      const input = document.querySelector<HTMLInputElement>('[data-testid="digital-input"]')
+      if (input !== null && !input.disabled) {
+        input.scrollIntoView({ block: 'nearest' })
+        input.focus()
+      }
+    } catch (err) {
+      setError(toErrorMessage(err))
+    } finally {
+      setBusy(false)
+    }
+  }
   /** 派生新版本：复制当前版本内容，版本号自动递增，默认未激活（派生弹层经上下文调用） */
   const onDerive = async (note: string): Promise<void> => {
     await runBusy(
@@ -894,7 +933,8 @@ export default function CeshuView({
     showReadiness: () => void handleReadiness(),
     showChangelog: () => void handleShowChangelog(),
     exportProject: () => void handleExportProject(),
-    exportHandoff: () => void handleExportHandoff()
+    exportHandoff: () => void handleExportHandoff(),
+    startAiDev: () => void handleStartAiDev()
   })
 
   /**

@@ -30,11 +30,11 @@ describe('编辑器「更多」菜单插件（Slice 16）', () => {
     expect(host.menus('ceshu.toolbar')[0].menuKey).toBe('common.more')
   })
 
-  it('18 个菜单项 + 3 个分隔符（4 组）', () => {
+  it('19 个菜单项 + 3 个分隔符（4 组）', () => {
     const host = hostWithMenus()
     const items = host.menus('ceshu.toolbar')[0].items
     const real = items.filter((item) => !isSeparator(item))
-    expect(real).toHaveLength(18)
+    expect(real).toHaveLength(19)
     expect(items.length - real.length).toBe(3)
   })
 
@@ -71,6 +71,7 @@ describe('编辑器「更多」菜单插件（Slice 16）', () => {
       'ceshu-import-patch',
       'ceshu-export-project',
       'ceshu-export-handoff',
+      'ceshu-start-ai-dev',
       'ceshu-notes'
     ]) {
       expect(testids.has(id), id).toBe(true)

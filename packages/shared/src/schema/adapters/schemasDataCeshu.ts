@@ -50,6 +50,15 @@ export const ceshuOpenProjectInputSchema = z.object({
   path: z.string().min(1)
 })
 
+/**
+ * 生成派工单：策划书 id + 已导出的交接包目录（渲染层刚导出拿到的 `dir`）。
+ * 主进程据此读工作区与进度记录，产出「开工提示」文本（不落盘、不派活）。
+ */
+export const ceshuWorkOrderInputSchema = z.object({
+  id: z.string().min(1),
+  bundleDir: z.string().min(1)
+})
+
 /** 岗位任务生成：策划书 id + 可选岗位子集（缺省 = 全部岗位） */
 export const ceshuAiTasksInputSchema = z.object({
   id: z.string().min(1),
@@ -89,6 +98,7 @@ export type CeshuMigrateFieldSplitsInput = z.infer<typeof ceshuMigrateFieldSplit
 export type CeshuExportProjectInput = z.infer<typeof ceshuExportProjectInputSchema>
 export type CeshuOpenProjectInput = z.infer<typeof ceshuOpenProjectInputSchema>
 export type CeshuAiTasksInput = z.infer<typeof ceshuAiTasksInputSchema>
+export type CeshuWorkOrderInput = z.infer<typeof ceshuWorkOrderInputSchema>
 export type CeshuCheckDataTablesInput = z.infer<typeof ceshuCheckDataTablesInputSchema>
 export type CeshuCheckContractInput = z.infer<typeof ceshuCheckContractInputSchema>
 export type CeshuScaffoldDataTablesInput = z.infer<typeof ceshuScaffoldDataTablesInputSchema>

@@ -14,6 +14,8 @@ export interface CeshuEditorBridge {
   showChangelog: () => void
   exportProject: () => void
   exportHandoff: () => void
+  /** 导出交接包 + 生成派工单 + 预填进智能体输入框（一键把活交给编码智能体） */
+  startAiDev: () => void
 }
 
 let bridge: CeshuEditorBridge | null = null
@@ -40,4 +42,8 @@ export function editorExportProject(): void {
 
 export function editorExportHandoff(): void {
   bridge?.exportHandoff()
+}
+
+export function editorStartAiDev(): void {
+  bridge?.startAiDev()
 }

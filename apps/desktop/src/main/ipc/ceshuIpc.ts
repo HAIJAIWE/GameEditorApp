@@ -14,6 +14,7 @@ import {
   ceshuCheckContractInputSchema,
   ceshuCheckDataTablesInputSchema,
   ceshuScaffoldDataTablesInputSchema,
+  ceshuWorkOrderInputSchema,
   ceshuGetInputSchema,
   ceshuMigrateFieldSplitsInputSchema,
   ceshuRenameInputSchema,
@@ -67,8 +68,11 @@ import {
   type DataTableActual
 } from '@mobai/shared/ceshu/data'
 import { applyDataTableScaffold, planDataTableScaffold } from '@mobai/shared/ceshu/data'
-import { buildVersionDiff } from '@mobai/shared/ceshu/workflow'
+import { HANDOFF_PROGRESS_FILE, buildHandoffWorkOrder, buildVersionDiff, parseHandoffProgress } from '@mobai/shared/ceshu/workflow'
 import { formatLocalTimestamp } from '@mobai/shared/util/datetime'
+import { existsSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { getWorkspaceRoot } from '@mobai/agent-core/workspace/workspaceStore'
 import { buildSystemConfirmResult } from '@mobai/shared/ceshu/prompts'
 import { computeReadiness } from '@mobai/shared/ceshu/readiness'
 import { validateCeshu } from '@mobai/shared/ceshu/validation'
@@ -213,6 +217,28 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
       types: typeSchemaStore.getTypes(),
       items: dataService.listAllItems()
     })
+  })
+  // 派工单：把刚导出的交接包翻译成「编码智能体开工的第一句话」。
+  // 只读两处：工作区根的 `进度.md`（上一轮做完没做完）与交接包目录反查工作区。
+  // 不派活、不落盘——渲染层拿到 markdown 后预填进智能体输入框，由用户确认再发送。
+  handle('ceshu:workOrder', ceshuWorkOrderInputSchema, (req) => {
+    const doc = ceshuManager.get(req.id)
+    const workspace = getWorkspaceRoot()
+    const progressPath = join(workspace, HANDOFF_PROGRESS_FILE)
+    const progress = existsSync(progressPath) ? readFileSync(progressPath, 'utf-8') : ''
+    const order = buildHandoffWorkOrder(doc, {
+      bundleDir: req.bundleDir,
+      workspace,
+      completed: parseHandoffProgress(progress)
+    })
+    return {
+      markdown: order.markdown,
+      targetPath: order.target?.path ?? null,
+      applicableCount: order.applicableCount,
+      readyCount: order.readyCount,
+      doneCount: order.doneCount,
+      remaining: order.remaining
+    }
   })
   // 打开项目文件夹：读目录 → 还原文档 → 在本库落地为项目文件夹（之后 save 自动走文件夹形态）
   handle('ceshu:openProjectFolder', ceshuOpenProjectInputSchema, async (req) => {
