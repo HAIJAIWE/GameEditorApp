@@ -100,6 +100,7 @@ export const zh = {
   'ceshu.artifact.prototype': '原型预览',
   'ceshu.artifact.data': '数据 / 机读',
   'ceshu.artifact.tasks': '岗位任务',
+  'ceshu.artifact.workboard': '施工看板',
   'ceshu.artifact.groupLabel': '产出物',
   'ceshu.overview.title': '一页总览 · {stage}',
   'ceshu.overview.summary': '共 {sections} 章 · 必填已填 {filled}/{total}（{pct}%）',
@@ -2041,6 +2042,8 @@ export const zh = {
   'chapterNav.progressTitle': '完成度 {pct}%',
   'chapterNav.liteHint': '标准版仅含基础 {lite} 章；在「文档信息」中可切换为专业版 {full} 章',
   'chapterNav.artifactDirHint': '「{name}」的目录将在这里',
+  'chapterNav.workboardHint':
+    '施工看板在中间工作区：逐份看清几十份交接文档做到哪了、下一份做谁、哪些机判没过。点上方「设计文档」回来继续编辑。',
   'tasks.noTasks': 'AI 没拆出任务：先补一些设计内容再试',
   'tasks.generated': '已生成 {n} 条岗位任务',
   'tasks.roleGroupLabel': '岗位',
@@ -2384,6 +2387,7 @@ export const en: Record<MessageKey, string> = {
   'ceshu.artifact.prototype': 'Prototype',
   'ceshu.artifact.data': 'Data / machine-readable',
   'ceshu.artifact.tasks': 'Role tasks',
+  'ceshu.artifact.workboard': 'Work board',
   'ceshu.artifact.groupLabel': 'Artifacts',
   'ceshu.overview.title': 'One-page overview · {stage}',
   'ceshu.overview.summary': '{sections} sections · required filled {filled}/{total} ({pct}%)',
@@ -4326,6 +4330,8 @@ export const en: Record<MessageKey, string> = {
   'chapterNav.progressTitle': 'Progress {pct}%',
   'chapterNav.liteHint': 'The standard edition has only {lite} basic sections; switch to the professional edition ({full} sections) in Document info',
   'chapterNav.artifactDirHint': 'The table of contents for "{name}" will appear here',
+  'chapterNav.workboardHint':
+    'The work board is in the middle workspace: which handoff docs are done, which is next, and what failed the machine check. Click "Design doc" above to return to editing.',
   'tasks.noTasks': 'The AI did not break out any tasks — add some design content first and try again',
   'tasks.generated': 'Generated {n} role tasks',
   'tasks.roleGroupLabel': 'Roles',

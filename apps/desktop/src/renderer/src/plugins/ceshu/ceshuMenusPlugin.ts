@@ -1,5 +1,6 @@
 import type { PluginHost } from '@mobai/shared/plugin/host'
 import type { PluginManifest, PluginMenuItem } from '@mobai/shared/plugin/types'
+import { CESHU_CONTENT_MOUNT } from './ceshuViewContext'
 import {
   editorAutoFill,
   editorExportHandoff,
@@ -25,6 +26,20 @@ export function defineCeshuMenusPlugin(host: PluginHost): PluginManifest {
   const openView = (id: string) => () => {
     try {
       host.openView(id)
+    } catch {
+      /* 视图插件未启用：静默 */
+    }
+  }
+
+  /**
+   * 施工看板是**产出物页签**（`ceshu.artifact`），不是内容槽。
+   * 但菜单可能是在内容槽视图（如变更记录）开着时点的——那时左栏/工作区整块被替换，
+   * 产出物视图即使激活也渲染不出来。所以先把内容槽关掉，再切到产出物页签。
+   */
+  const openWorkBoard = () => {
+    try {
+      host.closeView(CESHU_CONTENT_MOUNT)
+      host.openView('workboard.view')
     } catch {
       /* 视图插件未启用：静默 */
     }
@@ -86,7 +101,7 @@ export function defineCeshuMenusPlugin(host: PluginHost): PluginManifest {
       { kind: 'command', id: 'ceshuMenu.exportProject', label: 'Export project folder', labelKey: 'ceshuMore.exportProject', run: () => editorExportProject() },
       { kind: 'command', id: 'ceshuMenu.exportHandoff', label: 'Export handoff bundle', labelKey: 'ceshuMore.exportHandoff', run: () => editorExportHandoff() },
       { kind: 'command', id: 'ceshuMenu.startAiDev', label: 'Start AI development', labelKey: 'ceshuMore.startAiDev', run: () => editorStartAiDev() },
-      { kind: 'command', id: 'ceshuMenu.workBoard', label: 'Work board', labelKey: 'ceshuMore.workBoard', run: openView('workBoard.view') },
+      { kind: 'command', id: 'ceshuMenu.workBoard', label: 'Work board', labelKey: 'ceshuMore.workBoard', run: openWorkBoard },
       // —— 菜单结构 ——
       { kind: 'menu', id: 'menu.ceshuMore', menuKey: 'common.more', mount: 'ceshu.toolbar', order: 10, items }
     ]

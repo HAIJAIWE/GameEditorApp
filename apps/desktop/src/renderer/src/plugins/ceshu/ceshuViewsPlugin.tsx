@@ -301,7 +301,7 @@ export function defineCeshuViewsPlugin(): PluginManifest {
   registerReactBinding('presetMarket.view', PresetMarketPanelBound)
   registerReactBinding('systemConfirm.view', SystemConfirmPanelBound)
   registerReactBinding('templateEditor.view', TemplateEditorPanelBound)
-  registerReactBinding('workBoard.view', WorkBoardPanelBound)
+  registerReactBinding('workboard.view', WorkBoardPanelBound)
 
   return {
     id: 'ceshu-views',
@@ -344,7 +344,9 @@ export function defineCeshuViewsPlugin(): PluginManifest {
       { kind: 'view', id: 'presetMarket.view', label: 'Preset market', labelKey: 'ceshuView.presetMarket', mount: CESHU_CONTENT_MOUNT, order: 110, ui: { type: 'text', text: 'Preset market' } },
       { kind: 'view', id: 'systemConfirm.view', label: 'System confirmation', labelKey: 'ceshuView.systemConfirm', mount: CESHU_CONTENT_MOUNT, order: 120, ui: { type: 'text', text: 'System confirmation' } },
       { kind: 'view', id: 'templateEditor.view', label: 'Template editor', labelKey: 'ceshuView.templateEditor', mount: CESHU_CONTENT_MOUNT, order: 130, ui: { type: 'text', text: 'Template editor' } },
-      { kind: 'view', id: 'workBoard.view', label: 'Work board', labelKey: 'ceshuView.workBoard', mount: CESHU_CONTENT_MOUNT, order: 140, ui: { type: 'text', text: 'Work board' } }
+      // 施工看板挂**产出物页签**而不是内容槽（2026-11-09）：开着看板时左栏大纲还在，
+      // 点回「设计文档」即可继续编辑——原先走内容槽要整块替换、只能反复开关。
+      { kind: 'view', id: 'workboard.view', label: 'Work board', labelKey: 'ceshuView.workBoard', mount: CESHU_ARTIFACT_MOUNT, order: 40, ui: { type: 'text', text: 'Work board' } }
     ]
   }
 }

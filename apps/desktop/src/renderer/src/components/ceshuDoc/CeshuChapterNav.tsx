@@ -196,6 +196,14 @@ export default function CeshuChapterNav({
         </div>
       )}
         </>
+      ) : activeArtifact === 'workboard' ? (
+        /*
+         * 施工看板（2026-11-09 挂进产出物页签）：它不是"某一份产出物的目录"，
+         * 用「目录将在这里」会误导——这里如实说清看板在哪、怎么回去编辑。
+         */
+        <div className="chapter-nav-hint" data-testid="artifact-nav-hint">
+          {t('chapterNav.workboardHint')}
+        </div>
       ) : (
         <div className="chapter-nav-hint" data-testid="artifact-nav-hint">
           {t('chapterNav.artifactDirHint', {

@@ -16,6 +16,7 @@ import { act } from 'react'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import {
+  CESHU_ARTIFACT_MOUNT,
   CESHU_CONTENT_MOUNT,
   CESHU_VIEW_MOUNT,
   type CeshuViewContextValue
@@ -101,7 +102,7 @@ describe('编辑器内视图插件（Slice 11/12/13：view 挂载点 + 内容槽
     for (const v of host.views(CESHU_VIEW_MOUNT)) expect(v.mount).toBe(CESHU_VIEW_MOUNT)
   })
 
-  it('内容槽挂载点声明 14 个 view（版本对比/时间线/报告/AI/预设/施工看板…）', () => {
+  it('内容槽挂载点声明 13 个 view（版本对比/时间线/报告/AI/预设…）', () => {
     const host = hostWithPlugin()
     expect(host.views(CESHU_CONTENT_MOUNT).map((v) => v.id)).toEqual([
       'diff.view',
@@ -116,10 +117,20 @@ describe('编辑器内视图插件（Slice 11/12/13：view 挂载点 + 内容槽
       'aiDataGen.view',
       'presetMarket.view',
       'systemConfirm.view',
-      'templateEditor.view',
-      'workBoard.view'
+      'templateEditor.view'
     ])
     expect(host.views('other.mount')).toEqual([])
+  })
+
+  it('产出物挂载点声明 4 个 view（原型/数据/岗位任务/施工看板），按 order 排序', () => {
+    const host = hostWithPlugin()
+    expect(host.views(CESHU_ARTIFACT_MOUNT).map((v) => v.id)).toEqual([
+      'prototype.view',
+      'data.view',
+      'tasks.view',
+      'workboard.view'
+    ])
+    for (const v of host.views(CESHU_ARTIFACT_MOUNT)) expect(v.mount).toBe(CESHU_ARTIFACT_MOUNT)
   })
 
   it('27 个 view 都有 React 绑定（否则会退化成占位文本）', () => {
@@ -151,7 +162,7 @@ describe('编辑器内视图插件（Slice 11/12/13：view 挂载点 + 内容槽
       'presetMarket.view',
       'systemConfirm.view',
       'templateEditor.view',
-      'workBoard.view'
+      'workboard.view'
     ]
     for (const id of ids) expect(getReactBinding(id), id).toBeDefined()
   })
