@@ -258,6 +258,22 @@ export const LLM_REQUEST_TIMEOUT_MS = 30_000
 export const LLM_GENERATE_TIMEOUT_MS = 180_000
 
 /**
+ * 单次生成请求的兜底超时（毫秒），随本次「最大令牌」自适应。
+ *
+ * `LLM_GENERATE_TIMEOUT_MS = 180s` 是按 `maxTokens = 1000` + 慢档 10 tok/s 估出来的。
+ * 用户把上限调大（如 8000）或接推理型模型（思考过程也计入 completion tokens）时，
+ * 固定 180 秒会把**正常但慢**的长章节误判成超时，导致一键生成总有几章失败。
+ *
+ * 估算口径：每 token 100ms（10 tok/s 慢档）× 本次上限；下限保留 180s（原行为，
+ * 快失败仍有意义），上限 600s（10 分钟，防止上游真挂死时永久转圈）。
+ * 纯函数，便于单测锁定边界。
+ */
+export function generateTimeoutMs(maxTokens: number): number {
+  const safe = Number.isFinite(maxTokens) && maxTokens > 0 ? maxTokens : 1000
+  return Math.min(600_000, Math.max(LLM_GENERATE_TIMEOUT_MS, Math.round(safe * 100)))
+}
+
+/**
  * 用户主动取消生成时的错误文案（`task:cancel` → abort → 这里）。
  *
  * 语义上**不是故障**：面板据此把状态显示成「已停止」而不是弹红色错误。

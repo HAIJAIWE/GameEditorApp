@@ -5,6 +5,7 @@ import {
   LLM_PROVIDER_PRESETS,
   LLM_GENERATE_TIMEOUT_MS,
   LLM_REQUEST_TIMEOUT_MS,
+  generateTimeoutMs,
   resolveLlmBaseUrl,
   TASK_CANCELLED_MESSAGE,
   validateLlmConfig,
@@ -149,15 +150,15 @@ function isTimeoutError(error: unknown): boolean {
  * 任一方触发都会中断在途请求；二者的错误类型不同（`AbortError` / `TimeoutError`），
  * 由各分支的 catch 分开翻译。
  */
-function withDeadline(caller: AbortSignal | undefined): AbortSignal {
-  const deadline = AbortSignal.timeout(LLM_GENERATE_TIMEOUT_MS)
+function withDeadline(caller: AbortSignal | undefined, timeoutMs: number): AbortSignal {
+  const deadline = AbortSignal.timeout(timeoutMs)
   return caller === undefined ? deadline : AbortSignal.any([deadline, caller])
 }
 
-/** 超时错误（失败兜底语义） */
-function timeoutError(label: string): Error {
+/** 超时错误（失败兜底语义）；秒数按本次实际超时给出，别让 UI 显示一个和等待时长不符的数字 */
+function timeoutError(label: string, timeoutMs: number = LLM_GENERATE_TIMEOUT_MS): Error {
   return new Error(
-    `${label} 请求超时（${Math.round(LLM_GENERATE_TIMEOUT_MS / 1000)} 秒未返回）：已中断本次请求，` +
+    `${label} 请求超时（${Math.round(timeoutMs / 1000)} 秒未返回）：已中断本次请求，` +
       '请重试；若持续超时请检查网络或改用更快的模型'
   )
 }
@@ -341,10 +342,11 @@ export class LlmClient {
     await sharedRateLimiter().acquire('llm')
 
     // 取消信号与内置生成超时叠加：任一方触发都中断在途请求（二者错误语义不同，见 catch）
-    const signal = withDeadline(options.signal)
+    const timeoutMs = generateTimeoutMs(config.maxTokens)
+    const signal = withDeadline(options.signal, timeoutMs)
 
     if (isOpenAiCompatible(config.provider)) {
-      return this.generateOpenAiCompatible(config, system, prompt, signal)
+      return this.generateOpenAiCompatible(config, system, prompt, signal, timeoutMs)
     }
 
     const status = await this.status(options)
@@ -355,7 +357,7 @@ export class LlmClient {
     // 无 `?? ''` 兜底：`status.available === true` 蕴含 `models.length > 0`（见 status 的两个分支），
     // 所以 `status.models[0]` 一定存在；`noUncheckedIndexedAccess` 未开，类型就是 `string`。
     const model = preferred !== '' ? preferred : status.models[0]
-    return this.generateOllama(config, model, system, prompt, signal)
+    return this.generateOllama(config, model, system, prompt, signal, timeoutMs)
   }
 
   /**
@@ -370,7 +372,8 @@ export class LlmClient {
     model: string,
     system: string,
     prompt: string,
-    signal: AbortSignal
+    signal: AbortSignal,
+    timeoutMs: number
   ): Promise<{ model: string; content: string; usage?: LlmUsage }> {
     const host = toOllamaHost(config.baseUrl)
     const stop = stopSequences(config)
@@ -396,7 +399,7 @@ export class LlmClient {
         signal
       })
     } catch (error) {
-      if (isTimeoutError(error)) throw timeoutError('本地 Ollama')
+      if (isTimeoutError(error)) throw timeoutError('本地 Ollama', timeoutMs)
       if (isAbortError(error)) throw cancelledError(error)
       // 连不上 = 本地服务没起；与 `agentTransport` 共用同一文案常量，两处不漂移
       throw new Error(LLM_MESSAGES.ollamaNotRunning(host), { cause: error })
@@ -438,7 +441,8 @@ export class LlmClient {
     config: LlmRuntimeConfig,
     system: string,
     prompt: string,
-    signal: AbortSignal
+    signal: AbortSignal,
+    timeoutMs: number
   ): Promise<{ model: string; content: string; usage?: LlmUsage }> {
     const preset = LLM_PROVIDER_PRESETS[config.provider]
     if (config.model.trim() === '') {
@@ -498,7 +502,7 @@ export class LlmClient {
           return fetchPayload(RETRY_MAX_TOKENS)
         }
         // 超时 ≠ 连不上 ≠ 用户取消：三者文案必须分开，否则用户会去查网络或以为出了故障
-        if (isTimeoutError(error)) throw timeoutError(preset.label)
+        if (isTimeoutError(error)) throw timeoutError(preset.label, timeoutMs)
         if (isAbortError(error)) throw cancelledError(error)
         throw new Error(`无法连接 ${preset.label}（${url}）：${message}`, { cause: error })
       }

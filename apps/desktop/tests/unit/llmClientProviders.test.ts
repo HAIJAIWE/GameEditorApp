@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
 import { LlmClient } from '../../src/main/llm/client'
-import { DEFAULT_LLM_CONFIG, type StoredLlmConfig } from '@mobai/shared/config/llm'
+import {
+  DEFAULT_LLM_CONFIG,
+  generateTimeoutMs,
+  LLM_GENERATE_TIMEOUT_MS,
+  type StoredLlmConfig
+} from '@mobai/shared/config/llm'
 
 /**
  * LlmClient 的**协议分流**测试。
@@ -268,6 +273,41 @@ describe('LlmClient：推理型模型被 max_tokens 截断时的兜底', () => {
       expect(res.content).toBe('{"ok":true}')
       expect(bodies.length).toBe(2)
       expect(bodies[1]?.max_tokens).toBe(16000)
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+})
+
+describe('生成超时随「最大令牌」自适应（推理型模型长章节不再被误判超时）', () => {
+  it('默认 1000 token 保持 180 秒（原行为不回归）', () => {
+    expect(generateTimeoutMs(1000)).toBe(LLM_GENERATE_TIMEOUT_MS)
+    expect(generateTimeoutMs(DEFAULT_LLM_CONFIG.maxTokens)).toBe(180_000)
+  })
+
+  it('大预算按比例放宽，上限 600 秒；非法值回落默认', () => {
+    expect(generateTimeoutMs(8000)).toBe(600_000)
+    expect(generateTimeoutMs(4000)).toBe(400_000)
+    expect(generateTimeoutMs(0)).toBe(180_000)
+    expect(generateTimeoutMs(Number.NaN)).toBe(180_000)
+  })
+
+  it('超时文案显示本次实际秒数（8000 → 600 秒），不是永远 180 秒', async () => {
+    const originalFetch = globalThis.fetch
+    const timeout = new Error('The operation was aborted due to timeout')
+    timeout.name = 'TimeoutError'
+    globalThis.fetch = (async () => {
+      throw timeout
+    }) as unknown as typeof fetch
+    try {
+      const client = new LlmClient()
+      const error = await client
+        .generate('s', 'p', {
+          config: cfg({ enabled: true, provider: 'custom', baseUrl: 'http://127.0.0.1:1', model: 'm', maxTokens: 8000 }),
+          apiKey: 'k'
+        })
+        .catch((failure: unknown) => failure)
+      expect((error as Error).message).toContain('请求超时（600 秒未返回）')
     } finally {
       globalThis.fetch = originalFetch
     }
