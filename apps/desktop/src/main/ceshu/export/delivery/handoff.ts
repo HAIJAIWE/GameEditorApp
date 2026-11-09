@@ -18,7 +18,7 @@ import { buildJsonSnapshot } from '../../../data/snapshotExport'
 
 import { isSoftwareDoc } from '@mobai/shared/ceshu/model'
 import { renderCeshuBundleJson } from './bundle'
-import { renderCeshuMarkdown } from '../doc/markdown'
+import { renderCeshuDeliverableMarkdown } from '../doc/markdown'
 import { buildAppHandoffFiles } from './appHandoff'
 
 /**
@@ -87,9 +87,15 @@ export function buildHandoffFiles(doc: CeshuDocument, extras: HandoffExtras): Re
     files[item.path] = renderHandoffDoc(doc, item, extras.generatedAt, context)
   }
 
+  /*
+   * gdd.md 是**交付件**，不是内部工作版：用 deliverable 口径渲染。
+   * 工作版 renderCeshuMarkdown 末尾带「审核进度 / 数据校验报告」两个内部附录——
+   * 2026-11-09 实测交接包的 gdd.md 里印了 36 条内部报错（「字段 architecture 为必填项」之类），
+   * 编码智能体会把它当成本文档的既知缺陷来"修"，读者也会以为这是一份没写完的文档。
+   */
   files['gdd.md'] =
     '> 本文件是**完整策划书**（人读 / 检索）。**实现请看分卷文档**（00-架构 … 06-研发），按编号顺序做。\n\n' +
-    renderCeshuMarkdown(doc)
+    renderCeshuDeliverableMarkdown(doc)
   files['bundle.json'] = renderCeshuBundleJson(doc)
   files['contract.json'] = `${JSON.stringify(buildContract(doc), null, 2)}\n`
 

@@ -11,17 +11,18 @@ import {
 import { validateCeshu } from '@mobai/shared/ceshu/validation'
 
 import {
+  EMPTY_CHAPTER_NOTICE,
   EMPTY_PLACEHOLDER,
   chapterAnchor,
   chapterDataForDocExport,
   chapterHeadingForDoc,
   classifySystems,
   fieldLabelForDoc,
-  formatFieldValue,
-  isEmptyValue,
+  formatFieldValueForDoc,
   machineFieldEntriesForDoc,
   orderedFieldEntriesForDoc,
   pipeTableForDoc,
+  systemConfigRows,
   visibleChapterEntriesForDoc,
   type DocChapterEntry
 } from '../common'
@@ -111,7 +112,7 @@ function renderChapter(doc: CeshuDocument, entry: DocChapterEntry): string {
   }
   const entries = data ? orderedFieldEntriesForDoc(doc, entry.key, data) : []
   if (entries.length === 0) {
-    lines.push('(本章暂无内容)')
+    lines.push(EMPTY_CHAPTER_NOTICE)
     return lines.join('\n')
   }
   for (const [fieldKey, value] of entries) {
@@ -134,7 +135,7 @@ function renderFieldBlock(doc: CeshuDocument, chapter: string, fieldKey: string,
       ''
     ]
   }
-  const formatted = formatFieldValue(value, { bullet: MD_BULLET })
+  const formatted = formatFieldValueForDoc(doc, chapter, fieldKey, value, { bullet: MD_BULLET })
   if (formatted.includes('\n')) {
     return [`**${label}**:`, ...formatted.split('\n').filter((line) => line.trim() !== '')]
   }
@@ -190,10 +191,12 @@ function renderSystemsTable(data: Record<string, unknown> | undefined): string[]
       const name = readString(systemData.name) || systemId
       lines.push('', `#### ${name} (${systemId})`)
       const config = isRecord(systemData.config) ? systemData.config : {}
-      const configEntries = Object.entries(config).filter(([, value]) => !isEmptyValue(value))
-      if (configEntries.length > 0) {
-        for (const [fieldName, value] of configEntries) {
-          lines.push(`- **${fieldName}**: ${formatFieldValue(value, { bullet: MD_BULLET })}`)
+      const rows = systemConfigRows(systemId, config)
+      if (rows.length > 0) {
+        // 列名/值都已本地化；可选范围附在括号里，读者不用去翻 schema 猜 `turn_based` 有哪些同类
+        for (const row of rows) {
+          const range = row.range ? `（可选：${row.range}）` : ''
+          lines.push(`- **${row.label}**: ${row.value}${range}`)
         }
       } else {
         lines.push('- (无配置)')

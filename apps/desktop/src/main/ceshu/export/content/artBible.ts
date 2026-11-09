@@ -1,8 +1,7 @@
 import type { CeshuDocument } from '@mobai/shared/ceshu/reference'
 import { chapterAnchorOf } from '@mobai/shared/ceshu/reference'
 import { chapterDataForDoc, chapterFieldsForDoc, chapterLabelForDoc } from '@mobai/shared/ceshu/model'
-import { orderedFieldEntriesForDoc, pipeTableForDoc } from '../common'
-import { formatFieldValue } from '../common'
+import { formatFieldValueForDoc, orderedFieldEntriesForDoc, pipeTableForDoc } from '../common'
 
 /**
  * Art Bible（美术圣经）独立交付物。
@@ -51,7 +50,7 @@ export function renderCeshuArtBible(doc: CeshuDocument): string {
       lines.push(`| ${table.headers.map(() => '---').join(' | ')} |`)
       for (const row of table.rows) lines.push(`| ${row.join(' | ')} |`)
     } else {
-      const formatted = formatFieldValue(value, { bullet: '- ' })
+      const formatted = formatFieldValueForDoc(doc, 'art', key, value, { bullet: '- ' })
       lines.push(formatted)
     }
     lines.push('')

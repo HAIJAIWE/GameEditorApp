@@ -23,16 +23,17 @@ import { fieldStatusOf } from '@mobai/shared/ceshu/fields'
 import { countFieldStatuses, formatFieldStatusSummary } from '@mobai/shared/ceshu/fields'
 import { chapterFieldsForDoc, chapterLabelForDoc, computeChapterProgress, formatLocalTimestamp, isPlainObject, isSoftwareDoc, visibleChaptersForDoc } from '@mobai/shared/ceshu/model'
 import {
+  EMPTY_CHAPTER_NOTICE,
   EMPTY_PLACEHOLDER,
   chapterDataForDocExport,
   chapterHeadingForDoc,
   classifySystems,
   fieldLabelForDoc,
-  formatFieldValue,
-  isEmptyValue,
+  formatFieldValueForDoc,
   machineFieldEntriesForDoc,
   orderedFieldEntriesForDoc,
   pipeTableForDoc,
+  systemConfigRows,
   visibleChapterEntriesForDoc,
   type PipeTable
 } from '../common'
@@ -65,8 +66,8 @@ function bodyParagraph(text: string): Paragraph {
 }
 
 /** 字段渲染：`字段名: 值`（字段名加粗），多行值逐行成段并保留缩进/列表前缀 */
-function fieldParagraphs(name: string, value: unknown): Paragraph[] {
-  const lines = formatFieldValue(value, { indent: 0, bullet: '- ' }).split('\n')
+function fieldParagraphs(doc: CeshuDocument, chapter: string, fieldKey: string, name: string, value: unknown): Paragraph[] {
+  const lines = formatFieldValueForDoc(doc, chapter, fieldKey, value, { indent: 0, bullet: '- ' }).split('\n')
   const [first = EMPTY_PLACEHOLDER, ...rest] = lines
   const paragraphs: Paragraph[] = [
     new Paragraph({
@@ -112,26 +113,31 @@ function systemsTable(data: ChapterData): Table {
 }
 
 /** 「已启用系统配置详情」小节：每个启用系统一个 H3，其 config 每字段一行 */
-function enabledSystemDetails(data: ChapterData): Paragraph[] {
+function enabledSystemDetails(data: ChapterData): Array<Paragraph | Table> {
   const [enabled] = classifySystems(data)
   if (enabled.length === 0) return []
 
-  const blocks: Paragraph[] = [headingParagraph('已启用系统配置详情', HeadingLevel.HEADING_3)]
+  const blocks: Array<Paragraph | Table> = [headingParagraph('已启用系统配置详情', HeadingLevel.HEADING_3)]
   for (const [sysId, sysData] of enabled) {
     blocks.push(headingParagraph(`${systemName(sysId, sysData)} (${sysId})`, HeadingLevel.HEADING_3))
     const config = isPlainObject(sysData.config) ? sysData.config : {}
-    const entries = Object.entries(config).filter(([, value]) => !isEmptyValue(value))
-    if (entries.length === 0) {
+    const rows = systemConfigRows(sysId, config)
+    if (rows.length === 0) {
       blocks.push(bodyParagraph('(无配置)'))
       continue
     }
-    for (const [key, value] of entries) {
-      blocks.push(
-        new Paragraph({
-          children: [textRun(`${key}: `, { bold: true }), textRun(formatFieldValue(value))]
-        })
+    // 配置表：中文列名 + 本地化值 + 可选范围（与交接包 renderSystemBlock 同口径）
+    const header = ['配置项', '值', '可选范围'].map(
+      (label) => new TableCell({ children: [new Paragraph({ children: [textRun(label, { bold: true })] })] })
+    )
+    const configRows: TableRow[] = [new TableRow({ children: header })]
+    for (const row of rows) {
+      const cells = [row.label, row.value.replace(/\n+/g, ' / '), row.range].map(
+        (text) => new TableCell({ children: [new Paragraph({ children: [textRun(text)] })] })
       )
+      configRows.push(new TableRow({ children: cells }))
     }
+    blocks.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: configRows }))
   }
   return blocks
 }
@@ -196,7 +202,7 @@ function fieldBlock(doc: CeshuDocument, chapter: string, fieldKey: string, value
   const label = fieldLabelForDoc(doc, chapter, fieldKey)
   const table = pipeTableForDoc(doc, chapter, fieldKey, value)
   if (table !== null) return [fieldLabelParagraph(label), pipeTableToDocx(table)]
-  return fieldParagraphs(label, value)
+  return fieldParagraphs(doc, chapter, fieldKey, label, value)
 }
 
 /** 附录：验收与机读数据（正文只留人读字段，机读表格集中在此） */
@@ -245,7 +251,7 @@ export async function renderCeshuDocx(doc: CeshuDocument): Promise<Buffer> {
     new Paragraph({
       children: [
         new TextRun({
-          text: '（若目录为空，请在 Word 中右键「更新域」或按 F9 刷新页码）',
+          text: '（目录由 Word 打开时自动生成；若某页没有页码，按 F9 刷新域）',
           font: FONT,
           size: 16,
           color: '888888'
@@ -263,7 +269,7 @@ export async function renderCeshuDocx(doc: CeshuDocument): Promise<Buffer> {
     }
     const fields = data ? orderedFieldEntriesForDoc(doc, entry.key, data) : []
     if (fields.length === 0) {
-      children.push(bodyParagraph('(本章暂无内容)'))
+      children.push(bodyParagraph(EMPTY_CHAPTER_NOTICE))
       continue
     }
     for (const [fieldKey, value] of fields) children.push(...fieldBlock(doc, entry.key, fieldKey, value))
@@ -326,6 +332,12 @@ export async function renderCeshuDocx(doc: CeshuDocument): Promise<Buffer> {
   })
 
   const document = new Document({
+    /*
+     * 目录是 Word 的域（TOC field），Packer 只写域代码、不写渲染结果，所以打开前页码是空的。
+     * `features.updateFields` 让 Word 打开文档时自动更新全部域——不设它，用户在实测里看到的是
+     * 一页「目录」标题 + 一行灰字提示，等于没有目录（2026-11-09 真实 docx 导出复核）。
+     */
+    features: { updateFields: true },
     styles: {
       default: {
         document: {

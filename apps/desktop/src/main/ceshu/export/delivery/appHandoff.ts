@@ -12,7 +12,7 @@ import type { DataTypeDef, ItemRecord } from '@mobai/shared/types'
 import { buildJsonSnapshot } from '../../../data/snapshotExport'
 
 import { renderCeshuBundleJson } from './bundle'
-import { renderCeshuMarkdown } from '../doc/markdown'
+import { renderCeshuDeliverableMarkdown } from '../doc/markdown'
 
 /**
  * **应用档开发交接包**（SDD）。
@@ -218,9 +218,10 @@ export function buildAppHandoffFiles(
   files['README.md'] = renderReadme(doc, extras.generatedAt)
   files['index.json'] = renderManifest(doc, extras.generatedAt)
   files['开发路线.md'] = renderRoute(doc)
+  // 与游戏档同口径：交付件不带「审核进度 / 数据校验报告」内部附录
   files['gdd.md'] =
     '> 本文件是**完整软件设计文档**（人读 / 检索）。实现请看 `design/` 逐章正文与 `tasks/` 岗位任务。\n\n' +
-    renderCeshuMarkdown(doc)
+    renderCeshuDeliverableMarkdown(doc)
   files['bundle.json'] = renderCeshuBundleJson(doc)
   files['contract.json'] = `${JSON.stringify(buildContract(doc), null, 2)}\n`
 

@@ -86,6 +86,9 @@ describe('应用档：交接包按 SDD 章节重组', () => {
     expect(files['gdd.md']).toContain('完整软件设计文档')
     expect(files['gdd.md']).toContain('效率工具')
     expect(files['gdd.md']).not.toContain('完整策划书')
+    // 交接包是交付件：内部校验附录（「字段 xx 为必填项」）不进 gdd.md
+    expect(files['gdd.md']).not.toContain('附录：数据校验报告')
+    expect(files['gdd.md']).not.toContain('附录：审核进度')
     expect(files['bundle.json']).toContain('architecture')
     expect(files['contract.json']).toContain('ruleset')
   })
@@ -109,6 +112,8 @@ describe('游戏档：交接包仍走原分卷体系', () => {
     expect(Object.keys(files).some((path) => path.startsWith('00-架构/'))).toBe(true)
     expect(files['gdd.md']).toContain('完整策划书')
     expect(files['gdd.md']).toContain('（00-架构 … 06-研发）')
+    // 游戏档同口径：交付件不带内部校验附录
+    expect(files['gdd.md']).not.toContain('附录：数据校验报告')
     expect(files['index.json']).not.toContain('mb-app-handoff')
   })
 })

@@ -17,7 +17,7 @@ import { readText } from '@mobai/shared/util/io'
 import {
   chapterDataForDocExport,
   fieldLabelForDoc,
-  formatFieldValue,
+  formatFieldValueForDoc,
   orderedFieldEntriesForDoc,
   pipeTableForDoc
 } from '../common'
@@ -93,7 +93,7 @@ function renderField(doc: CeshuDocument, chapter: string, field: string, value: 
       ''
     ]
   }
-  const formatted = formatFieldValue(value)
+  const formatted = formatFieldValueForDoc(doc, chapter, field, value)
   return formatted.includes('\n')
     ? [`**${label}**:`, ...formatted.split('\n').filter((line) => line.trim() !== '')]
     : [`**${label}**: ${formatted}`]

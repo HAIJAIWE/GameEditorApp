@@ -10,10 +10,11 @@ import {
   chapterHeading,
   classifySystems,
   fieldLabel,
-  formatFieldValue,
+  formatFieldValueByKey,
   isEmptyValue,
   orderedFieldEntries,
   pipeTable,
+  readPageFieldValue,
   visibleChapterEntries
 } from '../common'
 import { renderAppNarrative } from './appNarrative'
@@ -68,7 +69,8 @@ function renderHome(doc: CeshuDocument): string {
     `> 版本: ${doc.version_label || 'v1.0'} | 类型: ${readString(doc.meta.game_type) || '—'} | 日期: ${formatLocalTimestamp().slice(0, 10)}`
   ]
   for (const [chapter, field] of HOME_FIELDS) {
-    const value = (doc[chapter] as ChapterData)[field]
+    // 点路径字段（user_personas.primary）与「画像被写成字符串数组」的形态都要能取到值
+    const value = readPageFieldValue(chapter, field, doc[chapter] as ChapterData)
     if (isEmptyValue(value)) continue
     lines.push('', ...renderField(chapter, field, value))
   }
@@ -198,7 +200,7 @@ function renderField(chapter: ChapterKey, field: string, value: unknown): string
       ''
     ]
   }
-  const formatted = formatFieldValue(value)
+  const formatted = formatFieldValueByKey(chapter, field, value)
   return formatted.includes('\n')
     ? [`**${label}**:`, ...formatted.split('\n').filter((line) => line.trim() !== '')]
     : [`**${label}**: ${formatted}`]
@@ -214,7 +216,7 @@ function renderValue(chapter: ChapterKey, field: string, value: unknown): string
       ...table.rows.map((row) => `| ${row.map(mdCell).join(' | ')} |`)
     ]
   }
-  return formatFieldValue(value)
+  return formatFieldValueByKey(chapter, field, value)
     .split('\n')
     .filter((line) => line.trim() !== '')
 }

@@ -9,13 +9,15 @@ import { fieldStatusOf } from '@mobai/shared/ceshu/fields'
 import { countFieldStatuses, formatFieldStatusSummary } from '@mobai/shared/ceshu/fields'
 import { chapterFieldsForDoc, chapterLabelForDoc, computeChapterProgress, formatLocalTimestamp, isPlainObject, isSoftwareDoc, visibleChaptersForDoc } from '@mobai/shared/ceshu/model'
 import {
+  EMPTY_CHAPTER_NOTICE,
   EMPTY_PLACEHOLDER,
   chapterDataForDocExport,
   chapterHeadingForDoc,
   classifySystems,
   fieldLabelForDoc,
-  formatFieldValue,
+  formatFieldValueForDoc,
   orderedFieldEntriesForDoc,
+  systemConfigRows,
   visibleChapterEntriesForDoc
 } from '../common'
 
@@ -50,12 +52,12 @@ function systemName(sysId: string, sysData: ChapterData): string {
 /** 普通章节正文：字段名一行 + 多行值（bullet 用 "• "） */
 function chapterBodyText(doc: CeshuDocument, key: string, data: ChapterData): string {
   const fields = orderedFieldEntriesForDoc(doc, key, data)
-  if (fields.length === 0) return '(本章暂无内容)'
+  if (fields.length === 0) return EMPTY_CHAPTER_NOTICE
 
   const lines: string[] = []
   for (const [fieldKey, value] of fields) {
     lines.push(`${fieldLabelForDoc(doc, key, fieldKey)}:`)
-    const formatted = formatFieldValue(value, { bullet: '• ' })
+    const formatted = formatFieldValueForDoc(doc, key, fieldKey, value, { bullet: '• ' })
     for (const line of formatted.split('\n')) {
       if (line.trim() === '') continue
       lines.push(`  ${line}`)
@@ -63,7 +65,7 @@ function chapterBodyText(doc: CeshuDocument, key: string, data: ChapterData): st
     lines.push('')
   }
   const text = lines.join('\n').trim()
-  return text || '(本章暂无内容)'
+  return text || EMPTY_CHAPTER_NOTICE
 }
 
 /** 截断过长文本，避免单页溢出 */
@@ -94,15 +96,21 @@ function systemsTableRows(data: ChapterData): PptxGenJS.TableRow[] {
   return rows
 }
 
-/** 已启用系统配置一行式摘要（避免溢出） */
+/**
+ * 已启用系统配置一行式摘要（避免溢出）。
+ *
+ * 幻灯片寸土寸金，所以不做交接包那样的三列表格，但**列名必须是中文**：
+ * 早先这里直接印 `turn_mode=turn_based`，投影到大屏上等于让人读数据库字段名。
+ * 可选范围不放（一页放不下），需要完整口径请看 docx/pdf 的配置表。
+ */
 function systemsConfigSummary(data: ChapterData): string {
   const [enabled] = classifySystems(data)
   const lines: string[] = []
   for (const [sysId, sysData] of enabled) {
     const config = isPlainObject(sysData.config) ? sysData.config : {}
-    const pairs = Object.entries(config)
+    const pairs = systemConfigRows(sysId, config)
       .slice(0, 5)
-      .map(([key, value]) => `${key}=${formatFieldValue(value).replace(/\n+/g, ' / ')}`)
+      .map((row) => `${row.label}=${row.value.replace(/\n+/g, ' / ')}`)
     lines.push(`${systemName(sysId, sysData)} (${sysId}): ${pairs.join(', ') || '(无配置)'}`)
   }
   return lines.join('\n')

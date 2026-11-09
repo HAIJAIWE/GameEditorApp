@@ -123,7 +123,9 @@ describe('策划书导出：Excel', () => {
     expect(rowValues(overview, 2)).toEqual(['游戏名称', '表格游戏'])
     expect(rowValues(overview, 3)).toEqual(['游戏类型', 'RPG'])
     expect(rowValues(overview, 4)).toEqual(['版本标签', 'v1.0'])
-    expect(rowValues(overview, 9)).toEqual(['模块类型', ''])
+    // 风格 / 模块类型落中文名（老版印 `xianxia` / `rpg` 裸 key）；本夹具两者都没填 ⇒ 空值符
+    expect(rowValues(overview, 8)).toEqual(['风格', '—'])
+    expect(rowValues(overview, 9)).toEqual(['模块类型', 'RPG'])
     // 总完成度 + 25 章（第 10 行总完成度，其后 24 行章节）
     expect(overview.getRow(10).getCell(1).value).toBe('总完成度')
     expect(typeof overview.getRow(10).getCell(2).value).toBe('number')
@@ -168,12 +170,14 @@ describe('策划书导出：Excel', () => {
     const sheet = sheetOf(workbook, '系统配置')
     const headers = rowValues(sheet, 1).map((value) => String(value))
     expect(headers.slice(0, 3)).toEqual(['系统Key', '系统名称', '状态'])
-    expect(headers).toContain('turn_mode')
+    // 列名用中文 label（老版直接印 config 的英文 key）；值同样本地化
+    expect(headers).toContain('战斗模式')
+    expect(headers).not.toContain('turn_mode')
     // battle 行：状态启用 + turn_mode 值
     const battleRow = rowValues(sheet, 2).map((value) => String(value))
     expect(battleRow[0]).toBe('battle')
     expect(battleRow.slice(0, 3)).toEqual(['battle', '战斗', '启用'])
-    expect(battleRow[headers.indexOf('turn_mode')]).toBe('turn_based')
+    expect(battleRow[headers.indexOf('战斗模式')]).toBe('回合制')
     expect(sheet.rowCount).toBe(14) // 13 个系统 + 标题行
   })
 

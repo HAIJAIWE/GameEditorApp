@@ -7,17 +7,18 @@ import { chapterFieldsForDoc, chapterLabelForDoc, computeChapterProgress, format
 import { renderDocDiagrams } from '../content/diagrams'
 
 import {
+  EMPTY_CHAPTER_NOTICE,
   EMPTY_PLACEHOLDER,
   chapterAnchor,
   chapterDataForDocExport,
   chapterHeadingForDoc,
   classifySystems,
   fieldLabelForDoc,
-  formatFieldValue,
-  isEmptyValue,
+  formatFieldValueForDoc,
   machineFieldEntriesForDoc,
   orderedFieldEntriesForDoc,
   pipeTableForDoc,
+  systemConfigRows,
   visibleChapterEntriesForDoc,
   type DocChapterEntry
 } from '../common'
@@ -115,7 +116,7 @@ function renderChapter(doc: CeshuDocument, entry: DocChapterEntry): string {
 
   const entries = data ? orderedFieldEntriesForDoc(doc, entry.key, data) : []
   if (entries.length === 0) {
-    return `<section class="chapter">${heading}\n<p class="empty">(本章暂无内容)</p></section>`
+    return `<section class="chapter">${heading}\n<p class="empty">${EMPTY_CHAPTER_NOTICE}</p></section>`
   }
 
   const fields = entries.map(([fieldKey, value]) => renderFieldBlock(doc, entry.key, fieldKey, value)).join('\n')
@@ -133,7 +134,7 @@ function renderFieldBlock(doc: CeshuDocument, chapter: string, fieldKey: string,
       .join('')}</tbody>`
     return `<div class="field"><div class="field-label">${label}</div><table>${head}${body}</table></div>`
   }
-  const formatted = formatFieldValue(value, { bullet: '- ' })
+  const formatted = formatFieldValueForDoc(doc, chapter, fieldKey, value, { bullet: '- ' })
   return `<div class="field"><div class="field-label">${label}</div><pre class="field-value">${escapeHtml(formatted)}</pre></div>`
 }
 
@@ -169,11 +170,13 @@ function renderSystems(data: Record<string, unknown> | undefined): string {
     .map(([systemId, systemData]) => {
       const name = readString(systemData.name) || systemId
       const config = isRecord(systemData.config) ? systemData.config : {}
-      const entries = Object.entries(config).filter(([, value]) => !isEmptyValue(value))
+      const rows = systemConfigRows(systemId, config)
       const configHtml =
-        entries.length > 0
+        rows.length > 0
           ? `<pre class="field-value">${escapeHtml(
-              entries.map(([fieldName, value]) => `${fieldName}: ${formatFieldValue(value)}`).join('\n')
+              rows
+                .map((row) => `${row.label}: ${row.value}${row.range ? `（可选：${row.range}）` : ''}`)
+                .join('\n')
             )}</pre>`
           : '<p class="empty">(无配置)</p>'
       return `<h3>${escapeHtml(`${name} (${systemId})`)}</h3>${configHtml}`

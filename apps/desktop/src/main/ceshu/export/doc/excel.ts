@@ -20,7 +20,16 @@ import {
   type ValidationSeverity
 } from '@mobai/shared/ceshu/validation'
 
-import { chapterDataForDocExport, classifySystems, formatFieldValue, pipeTableForDoc } from '../common'
+import {
+  chapterDataForDocExport,
+  classifySystems,
+  formatFieldValueByKey,
+  formatFieldValueForDoc,
+  formatSystemConfigValue,
+  pipeTableForDoc,
+  systemConfigLabel
+} from '../common'
+import { genreLabelOf, styleLabelOf } from '../labelMaps'
 import { readText } from '@mobai/shared/util/io'
 
 /**
@@ -71,8 +80,8 @@ function writeOverviewSheet(workbook: ExcelJS.Workbook, doc: CeshuDocument): voi
     ['版本号', doc.version],
     ['创建时间', doc.created_at],
     ['更新时间', doc.updated_at],
-    ['风格', doc.style],
-    ['模块类型', doc.module_type],
+    ['风格', styleLabelOf(doc.style)],
+    ['模块类型', genreLabelOf(doc.module_type, doc.meta.game_type)],
     ['总完成度', coerceNumeric(`${progress['total'] ?? 0}`)]
   ]
   for (const key of CHAPTER_KEYS) {
@@ -118,16 +127,47 @@ function writeSystemsSheet(workbook: ExcelJS.Workbook, doc: CeshuDocument): void
       if (!allFields.includes(field)) allFields.push(field)
     }
   }
+  // 表头用中文列名（schema 里没有的扩展键回退成 key），撞名的列显式带上归属系统
+  const headers = configColumnHeaders(allFields, allEntries)
   const rows: CellValue[][] = allEntries.map(([systemId, data]) => {
     const config = readConfig(data)
     return [
       systemId,
       readText(data['name']) || systemId,
       data['enabled'] ? '启用' : '未启用',
-      ...allFields.map((field) => formatFieldValue(config[field]))
+      ...allFields.map((field) => formatSystemConfigValue(systemId, field, config[field]))
     ]
   })
-  writeSheet(workbook, '系统配置', ['系统Key', '系统名称', '状态', ...allFields], rows)
+  writeSheet(workbook, '系统配置', ['系统Key', '系统名称', '状态', ...headers], rows)
+}
+
+/**
+ * 系统配置宽表的列名。
+ *
+ * 宽表把 13 个系统的 config 键并成一组列，于是出现两种撞名：
+ * 同一 key 在不同系统语义不同（`team_size` 在 battle 是「队伍人数」、在 social 是「组队人数」），
+ * 不同 key 的中文名相同（item.trade_enabled 与 social.trade_system 都叫「交易系统」）。
+ * 两种都必须在列名里说清归属，否则收表的人会把两列当同一个东西看 ——
+ * 老版这里直接印英文 key，看着「不撞名」只是因为读者不认识它们。
+ */
+function configColumnHeaders(fields: string[], entries: Array<[string, ChapterData]>): string[] {
+  const ownersOf = (field: string): string[] =>
+    entries
+      .filter(([, data]) => Object.hasOwn(readConfig(data), field))
+      .map(([systemId]) => systemId)
+
+  // 第一步：每个键取归属系统里的中文列名；跨系统共用时逐系统标注，读者才知道哪一格归谁
+  const labelled = fields.map((field) => {
+    const owners = ownersOf(field)
+    if (owners.length === 0) return field
+    if (owners.length === 1) return systemConfigLabel(owners[0], field)
+    return owners.map((systemId) => `${systemConfigLabel(systemId, field)}（${systemId}）`).join(' / ')
+  })
+
+  // 第二步：不同 key 的列名仍可能撞（item.trade_enabled 与 social.trade_system 都叫「交易系统」），
+  // 这时再补上原始 key —— 它是唯一能唯一定位一格的东西
+  const duplicated = new Set(labelled.filter((label, index) => labelled.indexOf(label) !== index))
+  return labelled.map((label, index) => (duplicated.has(label) ? `${label}（${fields[index]}）` : label))
 }
 
 /* ---- Sheet 3：数值表 ---- */
@@ -136,7 +176,7 @@ function writeNumericSheet(workbook: ExcelJS.Workbook, doc: CeshuDocument): void
   const rows: CellValue[][] = []
   for (const [key, value] of Object.entries(chapterOf(doc, 'numeric'))) {
     if (Array.isArray(value) || isPlainObject(value)) {
-      rows.push([key, coerceNumeric(formatFieldValue(value))])
+      rows.push([key, coerceNumeric(formatFieldValueByKey('numeric', key, value))])
       continue
     }
     if (typeof value === 'string') {
@@ -359,7 +399,10 @@ function writeAiModelSheet(
 ): void {
   const data = chapterDataForDocExport(doc, chapterKey)
   const fields = chapterFieldsForDoc(doc, chapterKey)
-  const rows: CellValue[][] = fields.map((field) => [field.label, formatFieldValue(data[field.key])])
+  const rows: CellValue[][] = fields.map((field) => [
+    field.label,
+    formatFieldValueForDoc(doc, chapterKey, field.key, data[field.key])
+  ])
   writeSheet(workbook, sheetName, ['字段', '内容'], rows)
 }
 

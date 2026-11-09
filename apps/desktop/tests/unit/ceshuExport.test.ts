@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest'
 
 import { exportCeshuDocument } from '../../src/main/ceshu/export/exporter'
 import { renderCeshuHtml } from '../../src/main/ceshu/export/doc/html'
-import { renderCeshuMarkdown } from '../../src/main/ceshu/export/doc/markdown'
+import { renderCeshuDeliverableMarkdown, renderCeshuMarkdown } from '../../src/main/ceshu/export/doc/markdown'
 import { renderCeshuNarrative } from '../../src/main/ceshu/export/content/narrative'
 import { renderCeshuHomepage } from '../../src/main/ceshu/export/content/homepage'
 import { CHAPTER_LABELS, type CeshuDocument } from '@mobai/shared/ceshu/reference'
@@ -47,7 +47,9 @@ describe('策划书导出：Markdown', () => {
     expect(markdown).toContain('| character | ⬜ 未启用 | character | 角色 |')
     expect(markdown).toContain('### 已启用系统配置详情')
     expect(markdown).toContain('#### 战斗 (battle)')
-    expect(markdown).toContain('- **turn_mode**: turn_based')
+    // 配置详情用中文列名 + 本地化值 + 可选范围（老版直接印 `- **turn_mode**: turn_based`）
+    expect(markdown).toContain('- **战斗模式**: 回合制（可选：回合制 / 即时制 / 半即时制 / 自动战斗 / ATB（行动条） / CTB（回合条） / SRPG 战棋格）')
+    expect(markdown).not.toContain('turn_mode')
     expect(markdown).toContain('## 附录：数据校验报告')
     expect(markdown).toContain('共发现 ')
     expect(markdown).toContain('问题：')
@@ -84,6 +86,19 @@ describe('策划书导出：Markdown', () => {
     const markdown = renderCeshuMarkdown(makeDoc())
     expect(markdown).toContain('## 附录：审核进度')
     expect(markdown).toContain('- 全文档：无审核记录')
+  })
+
+  /*
+   * 交付版是给外部（老板 / 程序 / 发行）看的口径：内部校验报错不能混进去。
+   * 2026-11-09 实测：真实文档的 gdd.md 末尾印了 36 条「字段 xx 为必填项」——
+   * 读者会把它读成「这份文档没写完」，编码 agent 会去"修"一批并不属于它范围的问题。
+   */
+  it('交付版不含内部附录（审核进度 / 数据校验报告）', () => {
+    const markdown = renderCeshuDeliverableMarkdown(makeDoc())
+    expect(markdown).not.toContain('附录：审核进度')
+    expect(markdown).not.toContain('附录：数据校验报告')
+    // 一页摘要仍在（交付版独有的开头）
+    expect(markdown).toContain('## 一页摘要')
   })
 })
 
@@ -166,6 +181,39 @@ describe('策划书导出：成品可读性', () => {
     expect(markdown).toContain('| DAU | 日活跃用户 | 按自然日去重 | 10000 |')
     // 不再是 `- DAU|日活跃用户|...` 这种竖线文本
     expect(markdown).not.toContain('DAU|日活跃用户')
+  })
+
+  /*
+   * 2026-11-09 实测导出的「列错位」回归守卫。
+   *
+   * 现场：模型把 6 列的「三层循环」写成「- 瞬时层（30秒）：动作…系统变化…反馈…」一整段话
+   * （零竖线），旧实现按索引硬映射 ⇒ 第 1 列塞全文、后 5 列全空；另一边「方案取舍」
+   * 多写了一列（5 段 vs 4 列）⇒ 结论被挤掉、整行错位一格。
+   * 修法：单元格数与列数不等即判定「不是表格行」，整字段回落成文本，一个字都不丢。
+   */
+  it('管道行单元格数与列数不等 ⇒ 不渲染表格，回落成文本（不硬塞进第一列）', () => {
+    const doc = makeDoc()
+    doc.gameplay.loop_three_layers = [
+      '- 瞬时层（30秒）：动作-御剑闪避并施放功法；系统变化-气血降10%；反馈-震屏飘字；传递物：灵力换破绽'
+    ]
+    doc.meta.alternatives = ['- 决策：即时制|候选：回合制|不选：断探索流畅|代价：成本高30%|结论：用即时']
+    const markdown = renderCeshuMarkdown(doc)
+
+    // 只有 1 段的行不出表：既没有表头，也没有「整段话占满第一列 + 5 个空格子」
+    expect(markdown).not.toContain('| 层级 | 关注问题 | 玩家动作 | 系统变化 | 反馈 | 传递物 |')
+    expect(markdown).toContain('瞬时层（30秒）')
+    // 5 段 vs 4 列同理：不掉进表格，原文（含被挤掉的那段）完整保留
+    expect(markdown).not.toContain('| 决策 | 候选方案 | 为什么不选 | 结论 |')
+    expect(markdown).toContain('结论：用即时')
+  })
+
+  it('列表项自带「- 」前缀时不叠加成「- - 」', () => {
+    const doc = makeDoc()
+    doc.meta.non_goals = ['- 不开发移动端版本']
+    doc.meta.tags = ['- 剧情向']
+    const markdown = renderCeshuMarkdown(doc)
+    expect(markdown).toContain('**范围与非目标**: - 不开发移动端版本')
+    expect(markdown).not.toContain('- - ')
   })
 
   it('机读字段进「附录：验收与机读数据」，不混进正文章节', () => {

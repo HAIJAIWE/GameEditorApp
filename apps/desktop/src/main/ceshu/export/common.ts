@@ -12,6 +12,7 @@ import {
 } from '@mobai/shared/ceshu/reference'
 import { CESHU_CHAPTER_FIELDS, fieldLabelOf } from '@mobai/shared/ceshu/fields'
 import {
+  SYSTEM_CONFIG_SCHEMA,
   chapterDataForDoc,
   chapterFieldsForDoc,
   chapterLabelForDoc,
@@ -21,8 +22,14 @@ import {
   isSoftwareDoc,
   visibleChaptersForDoc
 } from '@mobai/shared/ceshu/model'
+import { isMachineDataField, readPath } from '@mobai/shared/ceshu/workflow'
 import { splitRow, toRows } from '@mobai/shared/ceshu/workflow'
-import { isMachineDataField } from '@mobai/shared/ceshu/workflow'
+import {
+  expandPersonaEntries,
+  extraKeyLabelFor,
+  extraKeyPlacementFor,
+  formatExtraKeyValue
+} from './extraFieldRules'
 
 /**
  * 导出器公用工具。
@@ -31,6 +38,15 @@ import { isMachineDataField } from '@mobai/shared/ceshu/workflow'
 
 /** 空值显示符 */
 export const EMPTY_PLACEHOLDER = '—'
+
+/**
+ * 整章没生成时的提示（markdown / docx / html / pptx 共用一个常量）。
+ *
+ * 2026-11-09 实测真实导出：22 页 docx 里有 6 页只有半角的 `(本章暂无内容)`，
+ * 既没说明这一章是「没跑过 AI 生成」还是「生成了但写空了」，也没告诉用户下一步该做什么。
+ * 改成全角括号 + 明确动作，并收口到一个常量——原先 4 个渲染器各写一份，措辞已经开始漂。
+ */
+export const EMPTY_CHAPTER_NOTICE = '（本章未生成内容：用 AI 生成补齐这一章后再导出）'
 
 /**
  * 空值判定：null / undefined / 空白字符串 / 空列表 / 空字典。
@@ -75,7 +91,10 @@ export function formatFieldValue(value: unknown, options: FormatFieldOptions = {
             .map(([key, inner]) => `${key}: ${formatScalar(inner)}`)
           return prefix + (parts.length > 0 ? parts.join(' | ') : '(空)')
         }
-        if (typeof item === 'string') return prefix + item
+        if (typeof item === 'string') {
+          // 模型常自带「- 」前缀（2026-11-09 实测导出成品出现「- - 不开发移动端版本」）
+          return prefix + item.replace(/^\s*[-*·•]\s+/, '')
+        }
         return prefix + String(item)
       })
       .join('\n')
@@ -98,6 +117,53 @@ export function formatFieldValue(value: unknown, options: FormatFieldOptions = {
   return String(value)
 }
 
+/**
+ * 枚举码 → 中文文案（按字段定义的 `optionLabels`）。
+ *
+ * 2026-11-09 实测：导出 docx/html/markdown/pptx/excel 时，meta 的
+ * `status` / `confidentiality` / `gdd_scope` 直接印出 `draft` / `internal` / `full`，
+ * 系统配置详情更是整片英文 key（`turn_mode: turn_based`）。字段定义里其实早就有
+ * `optionLabels`，只是一页摘要（packages/shared/src/ceshu/export/onePage.ts）用了
+ * `displayFieldValue`、其余导出格式全都没用 —— 同一份数据两个口径。
+ *
+ * 这里补上导出侧的本地化，且**只在有字段定义时**做：扩展键（schema 外）无法判断语义，
+ * 原样返回比瞎猜安全。
+ */
+function localizedOptionValue(
+  field: Pick<CeshuFieldDef, 'kind' | 'optionLabels'> | undefined,
+  value: unknown
+): unknown {
+  if (field === undefined || field.optionLabels === undefined) return value
+  if ((field.kind === 'combo' || field.kind === 'checkbox') && typeof value === 'string') {
+    return field.optionLabels[value] ?? value
+  }
+  if ((field.kind === 'multiCombo' || field.kind === 'stringList') && Array.isArray(value)) {
+    return value.map((item) => (typeof item === 'string' ? (field.optionLabels?.[item] ?? item) : item))
+  }
+  return value
+}
+
+/** 按**章节 key**取字段定义做本地化后格式化（游戏档 narrative / homepage 等用） */
+export function formatFieldValueByKey(
+  chapterKey: ChapterKey,
+  key: string,
+  value: unknown,
+  options: FormatFieldOptions = {}
+): string {
+  return formatFieldValue(localizedOptionValue(fieldDef(chapterKey, key), value), options)
+}
+
+/** 按**文档档位**取字段定义做本地化后格式化（GDD 与 SDD 章节/字段表不同源） */
+export function formatFieldValueForDoc(
+  doc: CeshuDocument,
+  chapter: string,
+  key: string,
+  value: unknown,
+  options: FormatFieldOptions = {}
+): string {
+  return formatFieldValue(localizedOptionValue(fieldDefForDoc(doc, chapter, key), value), options)
+}
+
 /** 列表内对象的标量显示 */
 function formatScalar(value: unknown): string {
   if (typeof value === 'string') return value
@@ -105,6 +171,58 @@ function formatScalar(value: unknown): string {
   if (typeof value === 'number') return String(value)
   if (isPlainObject(value) || Array.isArray(value)) return JSON.stringify(value)
   return value === null || value === undefined ? EMPTY_PLACEHOLDER : String(value)
+}
+
+/**
+ * 系统配置的一行（已本地化）。
+ *
+ * 口径对齐交接包 `ceshuHandoffRenderDoc.renderSystemBlock`（label + 值 + 可选范围）：
+ * 交接包早就用 `SYSTEM_CONFIG_SCHEMA` 把 `turn_mode` 翻成「战斗模式」、把
+ * `turn_based` 翻成「回合制」，而 GDD 的 docx/html/markdown/pptx/excel 五个导出器
+ * 各自 `Object.entries(config)` 直接印英文 key（2026-11-09 实测成品可见
+ * `turn_mode=turn_based`），读者拿到的是一张只有内部人能看懂的配置表。
+ */
+export interface SystemConfigRow {
+  /** config 里的原始 key（保留给机器读，不要拿去当列名） */
+  key: string
+  /** 中文列名（schema 里没有的扩展键回退成 key） */
+  label: string
+  /** 已本地化的值（多行值保留换行，由渲染器决定怎么摊平） */
+  value: string
+  /** 可选范围（combo 列出全部 optionLabels；number 给区间；其余为空串） */
+  range: string
+}
+
+/** 单个系统配置字段的中文列名 */
+export function systemConfigLabel(systemId: string, key: string): string {
+  return SYSTEM_CONFIG_SCHEMA[systemId]?.[key]?.label ?? key
+}
+
+/** 单个系统配置值的本地化格式化（表格式导出按「系统 × 字段」逐个取用时） */
+export function formatSystemConfigValue(systemId: string, key: string, value: unknown): string {
+  return formatFieldValue(localizedOptionValue(SYSTEM_CONFIG_SCHEMA[systemId]?.[key], value))
+}
+
+/** 已启用系统的配置项 → 本地化行（跳过空值，保持 config 键序） */
+export function systemConfigRows(systemId: string, config: Record<string, unknown>): SystemConfigRow[] {
+  const schema = SYSTEM_CONFIG_SCHEMA[systemId] ?? {}
+  const rows: SystemConfigRow[] = []
+  for (const [key, raw] of Object.entries(config)) {
+    if (isEmptyValue(raw)) continue
+    const def = schema[key]
+    rows.push({
+      key,
+      label: def?.label ?? key,
+      value: formatFieldValue(localizedOptionValue(def, raw)),
+      range:
+        def?.values !== undefined
+          ? def.values.map((item) => def.optionLabels?.[item] ?? item).join(' / ')
+          : def?.from !== undefined
+            ? `${def.from}–${def.to}`
+            : ''
+    })
+  }
+  return rows
 }
 
 /** 系统分组：(已启用, 未启用)，顺序保持数据键序 */
@@ -127,14 +245,24 @@ export function fieldDef(chapterKey: ChapterKey, key: string): CeshuFieldDef | u
   return (CESHU_CHAPTER_FIELDS[chapterKey] ?? []).find((field) => field.key === key)
 }
 
-/** 字段中文标签（schema 外扩展键回退成 key 本身，至少不丢信息） */
+/**
+ * 字段中文标签。
+ *
+ * 优先取导出侧对「schema 外扩展键」的显式标签（extraFieldRules），
+ * 其次取 schema 里的 label；两者都没有才回落成 key 本身（至少不丢信息）。
+ */
 export function fieldLabel(chapterKey: ChapterKey, key: string): string {
-  return fieldLabelOf(chapterKey, key)
+  return extraKeyLabelFor(chapterKey, key) ?? fieldLabelOf(chapterKey, key)
 }
 
 /** schema 阅读顺序索引（schema 外扩展键排到最后） */
 function schemaOrder(chapterKey: ChapterKey): Map<string, number> {
   return new Map((CESHU_CHAPTER_FIELDS[chapterKey] ?? []).map((field, index) => [field.key, index]))
+}
+
+/** 字段在 schema 里的位置（未收录 → 末尾），供点路径字段插回原位 */
+function orderIndexOf(chapterKey: ChapterKey, key: string): number {
+  return schemaOrder(chapterKey).get(key) ?? Number.MAX_SAFE_INTEGER
 }
 
 function bySchemaOrder(chapterKey: ChapterKey, keys: string[]): string[] {
@@ -150,18 +278,114 @@ function bySchemaOrder(chapterKey: ChapterKey, keys: string[]): string[] {
  * 按 schema 顺序、不输出 `—` 空行；机读字段统一进「附录：验收与机读数据」。
  */
 export function orderedFieldEntries(chapterKey: ChapterKey, data: ChapterData): Array<[string, unknown]> {
-  const keys = Object.keys(data).filter(
-    (key) => !isMachineDataField(chapterKey, key) && !isEmptyValue(data[key])
+  return selectFieldEntries(
+    chapterKey,
+    data,
+    undefined,
+    false,
+    (keys) => bySchemaOrder(chapterKey, keys),
+    (key) => orderIndexOf(chapterKey, key)
   )
-  return bySchemaOrder(chapterKey, keys).map((key) => [key, data[key]] as [string, unknown])
 }
 
 /** 机读/验收字段（schema 顺序、跳过空值），供各格式的「附录：验收与机读数据」 */
 export function machineFieldEntries(chapterKey: ChapterKey, data: ChapterData): Array<[string, unknown]> {
-  const keys = Object.keys(data).filter(
-    (key) => isMachineDataField(chapterKey, key) && !isEmptyValue(data[key])
+  return selectFieldEntries(
+    chapterKey,
+    data,
+    undefined,
+    true,
+    (keys) => bySchemaOrder(chapterKey, keys),
+    (key) => orderIndexOf(chapterKey, key)
   )
-  return bySchemaOrder(chapterKey, keys).map((key) => [key, data[key]] as [string, unknown])
+}
+
+/**
+ * 正文/机读字段的统一筛选内核（四个入口共用，避免四份口径漂移）。
+ *
+ * 处理顺序（每一键）：
+ * 1. 空值跳过；
+ * 2. 点路径字段的**数组形态**（`vision.user_personas` 被 AI 写成字符串数组）→ 展开成三条中文标签字段；
+ * 3. schema 外扩展键 → 按 extraFieldRules 的落位分流（body / machine / skip）；
+ * 4. 其余按 `isMachineDataField` 分正文/机读。
+ *
+ * 扩展键与展开出来的画像按「数据原序」插在**所属位置**：点路径字段（`user_personas`）
+ * 紧随它的父键（`design_vision` 之后），其余扩展键排在 schema 字段之后。
+ * 无序追加会让「用户画像」跑到章节末尾，读者以为那是个附录。
+ */
+const DOT_PATH_KEYS_BY_CHAPTER: Record<string, readonly string[]> = {
+  vision: ['user_personas.primary', 'user_personas.secondary', 'user_personas.potential']
+}
+
+function selectFieldEntries(
+  chapter: string,
+  data: ChapterData,
+  doc: CeshuDocument | undefined,
+  machine: boolean,
+  order: (keys: string[]) => string[],
+  indexOf: (key: string) => number
+): Array<[string, unknown]> {
+  const appended: Array<[string, unknown]> = []
+  /** 点路径展开项：`父键: 展开后的键` —— 渲染时插到父键那条之后 */
+  const afterParent = new Map<string, Array<[string, unknown]>>()
+  const plainKeys: string[] = []
+  for (const key of Object.keys(data)) {
+    const value = data[key]
+    if (isEmptyValue(value)) continue
+    const personas = expandPersonaEntries(chapter, key, value)
+    if (personas !== null) {
+      afterParent.set(key, personas)
+      continue
+    }
+    const placement = extraKeyPlacementFor(doc, chapter, key)
+    if (placement !== undefined) {
+      if (placement === 'skip') continue
+      if ((placement === 'machine') !== machine) continue
+      appended.push([key, formatExtraKeyValue(chapter, key, value)])
+      continue
+    }
+    if (isMachineDataField(chapter as ChapterKey, key) !== machine) continue
+    plainKeys.push(key)
+  }
+  let ordered = order(plainKeys).map((key) => [key, data[key]] as [string, unknown])
+  /*
+   * 把点路径展开项插回它们的 schema 位置：`user_personas` 的三个子字段在 schema 里
+   * 紧跟在 `design_vision` 之后，若直接追加到章尾，读者会把「主要用户」当成附录。
+   */
+  for (const [parent, entries] of afterParent) {
+    const anchor = DOT_PATH_KEYS_BY_CHAPTER[chapter]?.find((key) => key.split('.')[0] === parent)
+    const anchorIndex = anchor === undefined ? Number.MAX_SAFE_INTEGER : indexOf(anchor)
+    const at = ordered.findIndex(([key]) => indexOf(key) > anchorIndex)
+    const position = at < 0 ? ordered.length : at
+    ordered = [...ordered.slice(0, position), ...entries, ...ordered.slice(position)]
+  }
+  return [...ordered, ...appended]
+}
+
+/**
+ * 按「章 + 字段」取一个字段的值，供**选择性抽取**的导出（narrative 首页 / homepage）使用。
+ *
+ * 直接 `data[field]` 对点路径字段恒 undefined（`user_personas.primary` 是嵌套对象）；
+ * 而实测 AI 还把 `user_personas` 落成字符串数组，此时嵌套与点路径都不成立，
+ * 只能走 expandPersonaEntries 的槽位还原。三条都试过仍取不到才返回 undefined。
+ */
+export function readPageFieldValue(
+  chapter: ChapterKey,
+  field: string,
+  data: ChapterData | undefined
+): unknown {
+  if (data === undefined) return undefined
+  const direct = data[field]
+  if (!isEmptyValue(direct)) return direct
+  const dotPath = readPath(data, field)
+  if (!isEmptyValue(dotPath)) return dotPath
+  const [head, slot] = field.split('.')
+  if (head === 'user_personas' && slot !== undefined) {
+    const personas = expandPersonaEntries(chapter, head, data[head])
+    const hit = personas?.find(([key]) => key === field)
+    return hit?.[1]
+  }
+  return undefined
 }
 
 /** 表格化后的 pipeList：表头 + 数据行；无 `columns` 或空表返回 null（调用方回落成文本） */
@@ -187,10 +411,24 @@ function pipeRows(value: unknown, columns: readonly CeshuColumnDef[]): string[][
     }
     return rows
   }
-  return toRows(value).map((row) => {
+  const rows: string[][] = []
+  for (const row of toRows(value)) {
     const cells = splitRow(row)
-    return columns.map((_, index) => cells[index] ?? '')
-  })
+    /*
+     * 单元格数必须**与列数相等**才算表格行（2026-11-09 实测导出「列错位」后加的守卫）。
+     *
+     * 现场：模型把整段话写进一行（`- 瞬时层（30秒）：动作/系统变化/反馈…`，含 0 个竖线），
+     * 或在一行里多写了列（`决策|候选|不选|代价|结论` 对 4 列表）。旧实现按索引硬映射：
+     * 前者得到「第 1 列塞全文、后 5 列全空」，后者把「结论」挤掉、表头下面的内容整体错位一格，
+     * 读者拿到的是一张**看不出错**的错表。
+     *
+     * 与其按索引硬猜列（会把 5 段文本压成 4 列，丢一段），不如判定「这行不是表格行」，
+     * 整字段回落到文本渲染（各格式的 pipeTable === null 分支）：一个字都不丢。
+     */
+    if (cells.length !== columns.length) return []
+    rows.push(cells)
+  }
+  return rows
 }
 
 export interface VisibleChapterEntry {
@@ -243,6 +481,8 @@ export function fieldDefForDoc(doc: CeshuDocument, chapter: string, key: string)
 
 /** 字段中文标签（游戏档沿用 fieldLabelOf 的既有回落口径） */
 export function fieldLabelForDoc(doc: CeshuDocument, chapter: string, key: string): string {
+  const extraLabel = extraKeyLabelFor(chapter, key)
+  if (extraLabel !== undefined) return extraLabel
   if (!isAppDoc(doc)) return fieldLabel(chapter as ChapterKey, key)
   return fieldDefForDoc(doc, chapter, key)?.label ?? key
 }
@@ -252,6 +492,10 @@ function schemaOrderForDoc(doc: CeshuDocument, chapter: string): Map<string, num
     return new Map(chapterFieldsForDoc(doc, chapter).map((field, index) => [field.key, index]))
   }
   return schemaOrder(chapter as ChapterKey)
+}
+
+function orderIndexOfForDoc(doc: CeshuDocument, chapter: string, key: string): number {
+  return schemaOrderForDoc(doc, chapter).get(key) ?? Number.MAX_SAFE_INTEGER
 }
 
 function orderedKeysForDoc(doc: CeshuDocument, chapter: string, keys: string[]): string[] {
@@ -265,10 +509,9 @@ export function orderedFieldEntriesForDoc(
   chapter: string,
   data: ChapterData
 ): Array<[string, unknown]> {
-  const keys = Object.keys(data).filter(
-    (key) => !isMachineDataField(chapter, key) && !isEmptyValue(data[key])
+  return selectFieldEntries(chapter, data, doc, false, (keys) => orderedKeysForDoc(doc, chapter, keys), (key) =>
+    orderIndexOfForDoc(doc, chapter, key)
   )
-  return orderedKeysForDoc(doc, chapter, keys).map((key) => [key, data[key]] as [string, unknown])
 }
 
 /** 机读/验收字段（应用章不属于游戏机读清单 ⇒ 恒为空） */
@@ -277,10 +520,9 @@ export function machineFieldEntriesForDoc(
   chapter: string,
   data: ChapterData
 ): Array<[string, unknown]> {
-  const keys = Object.keys(data).filter(
-    (key) => isMachineDataField(chapter, key) && !isEmptyValue(data[key])
+  return selectFieldEntries(chapter, data, doc, true, (keys) => orderedKeysForDoc(doc, chapter, keys), (key) =>
+    orderIndexOfForDoc(doc, chapter, key)
   )
-  return orderedKeysForDoc(doc, chapter, keys).map((key) => [key, data[key]] as [string, unknown])
 }
 
 /** pipeList 表格化 */

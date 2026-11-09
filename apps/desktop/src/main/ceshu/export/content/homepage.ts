@@ -6,9 +6,10 @@ import {
 import { formatLocalTimestamp, deriveRulesetId } from '@mobai/shared/ceshu/model'
 import {
   fieldLabel,
-  formatFieldValue,
+  formatFieldValueByKey,
   isEmptyValue,
-  pipeTable
+  pipeTable,
+  readPageFieldValue
 } from '../common'
 
 /**
@@ -41,7 +42,8 @@ export function renderCeshuHomepage(doc: CeshuDocument): string {
     `> 版本: ${doc.version_label || 'v1.0'} | 类型: ${readString(doc.meta.game_type) || '—'} | 日期: ${formatLocalTimestamp().slice(0, 10)} | 规则集: ${deriveRulesetId(doc)}`
   ]
   for (const [chapter, field] of HOME_FIELDS) {
-    const value = (doc[chapter] as ChapterData)[field]
+    // 与 narrative 首页同口径：点路径 / 字符串数组画像形态都能取到值
+    const value = readPageFieldValue(chapter, field, doc[chapter] as ChapterData)
     if (isEmptyValue(value)) continue
     lines.push('', ...renderField(chapter, field, value))
   }
@@ -62,7 +64,7 @@ function renderField(chapter: ChapterKey, field: string, value: unknown): string
       ''
     ]
   }
-  const formatted = formatFieldValue(value)
+  const formatted = formatFieldValueByKey(chapter, field, value)
   return formatted.includes('\n')
     ? [`**${label}**:`, ...formatted.split('\n').filter((line) => line.trim() !== '')]
     : [`**${label}**: ${formatted}`]

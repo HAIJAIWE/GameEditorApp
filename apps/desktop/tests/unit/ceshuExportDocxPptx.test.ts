@@ -45,6 +45,12 @@ async function readDocxXml(buffer: Buffer): Promise<string> {
   return (await zip.file('word/document.xml')?.async('string')) ?? ''
 }
 
+/** 解包 docx 的 settings.xml（查文档级行为开关，如打开时自动更新域） */
+async function readDocxSettingsXml(buffer: Buffer): Promise<string> {
+  const zip = await JSZip.loadAsync(buffer)
+  return (await zip.file('word/settings.xml')?.async('string')) ?? ''
+}
+
 /** 解包 pptx 并返回各页 XML */
 async function readSlideXmls(buffer: Buffer): Promise<string[]> {
   const zip = await JSZip.loadAsync(buffer)
@@ -91,6 +97,21 @@ describe('策划书 docx 渲染器', () => {
 
     expect(xml).toContain('审核进度')
     expect(xml).toContain('全文档：无审核记录')
+  })
+
+  /*
+   * 目录是 Word 域，Packer 不写渲染结果 ⇒ 不打开 updateFields 的话，22 页文档的第 2 页
+   * 只有「目录」两个字加一行灰字提示（2026-11-09 真实导出复核的结论）。
+   */
+  it('打开文档时自动更新域（否则目录永远是空的）', async () => {
+    const settings = await readDocxSettingsXml(await renderCeshuDocx(createFixture('full')))
+    expect(settings).toContain('updateFields')
+  })
+
+  it('未生成的整章写明确提示，而不是隐形的「暂无内容」', async () => {
+    const xml = await readDocxXml(await renderCeshuDocx(createFixture('full')))
+    expect(xml).toContain('本章未生成内容')
+    expect(xml).not.toContain('(本章暂无内容)')
   })
 })
 
