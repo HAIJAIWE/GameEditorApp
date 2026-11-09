@@ -81,7 +81,7 @@ export default function ChapterNotesPanel({ ceshuId, onClose }: ChapterNotesPane
       setAuthor(created.author)
       setContent('')
       setConfirmDelete(false)
-      setNotice(t('notes.created', { chapter: CHAPTER_LABELS[targetChapter] }))
+      setNotice(t('notes.created', { section: CHAPTER_LABELS[targetChapter] }))
     } catch (err) {
       setError(toErrorMessage(err))
     } finally {

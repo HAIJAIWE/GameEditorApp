@@ -92,7 +92,7 @@ export function MigrationOverlay({ doc, busy, onRun, onClose }: {
             {plan.overlaps.map((item) => (
               <div className="migration-item" key={`overlap:${item.chapter}`} data-testid="migration-overlap">
                 <div className="migration-title">
-                  {t('overlay.migrationOverlap', { chapter: CHAPTER_LABELS[item.chapter] })}
+                  {t('overlay.migrationOverlap', { section: CHAPTER_LABELS[item.chapter] })}
                   {item.duplicated && (
                     <span className="field-badge duplicate" data-testid="migration-overlap-duplicated">
                       {t('overlay.migrationDuplicated', { pct: Math.round(item.similarity * 100) })}

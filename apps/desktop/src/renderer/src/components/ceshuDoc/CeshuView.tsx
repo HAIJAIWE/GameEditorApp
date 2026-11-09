@@ -253,7 +253,7 @@ export default function CeshuView({
       try {
         const updated = await window.mbApi.ceshu.saveChapter({ id: ceshuId, chapter, data })
         setDoc(updated)
-        setNotice(t('ceshuView.savedChapter', { chapter: chapterLabelForDoc(updated, chapter) }))
+        setNotice(t('ceshuView.savedChapter', { section: chapterLabelForDoc(updated, chapter) }))
         setError(null)
         /*
          * 一次 meta 写盘同时完成两件事：
@@ -746,7 +746,7 @@ export default function CeshuView({
   /** 模板编辑器「应用到该章节」完成：更新当前文档并刷新列表（进度可能变化） */
   const handleTemplateApplied = (updated: CeshuDocument, chapter: ChapterKey): void => {
     setDoc(updated)
-    setNotice(t('ceshuView.templateApplied', { chapter: CHAPTER_LABELS[chapter] }))
+    setNotice(t('ceshuView.templateApplied', { section: CHAPTER_LABELS[chapter] }))
     onChanged()
   }
 

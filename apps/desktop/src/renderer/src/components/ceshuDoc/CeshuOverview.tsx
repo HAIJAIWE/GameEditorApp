@@ -81,7 +81,7 @@ export default function CeshuOverview({ doc, stage, progress }: CeshuOverviewPro
         <h2 className="overview-title">{t('ceshu.overview.title', { stage: CESHU_STAGE_LABELS[stage] })}</h2>
         <p className="overview-summary">
           {t('ceshu.overview.summary', {
-            chapters: chapters.length,
+            sections: chapters.length,
             filled: requiredFilled,
             total: requiredTotal,
             pct: overall

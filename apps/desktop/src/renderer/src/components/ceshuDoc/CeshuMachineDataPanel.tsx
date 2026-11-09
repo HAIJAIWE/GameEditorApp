@@ -148,7 +148,7 @@ export default function CeshuMachineDataPanel({
             {busy ? t('machine.checking') : t('machine.check')}
           </button>
         </div>
-        <div className="form-hint">{t('machine.checkHint', { chapter: CHAPTER_LABELS.tech })}</div>
+        <div className="form-hint">{t('machine.checkHint', { section: CHAPTER_LABELS.tech })}</div>
 
         {error !== null && (
           <div className="error-banner" data-testid="datatable-check-error">
@@ -160,7 +160,7 @@ export default function CeshuMachineDataPanel({
           <div data-testid="datatable-check-result">
             {check.requirements.length === 0 ? (
               <div className="form-hint" data-testid="datatable-check-none">
-                {t('machine.checkNone', { chapter: CHAPTER_LABELS.tech })}
+                {t('machine.checkNone', { section: CHAPTER_LABELS.tech })}
               </div>
             ) : check.ok ? (
               <div className="notice-banner inline" data-testid="datatable-check-ok">

@@ -294,7 +294,7 @@ export default function TemplatePickerPanel({
           <span data-testid="template-confirm-text">
             {t('templatePicker.applyConfirm', {
               name: selectedTemplate.name,
-              chapter: templateChapterLabel(selected?.chapterKey ?? chapter),
+              section: templateChapterLabel(selected?.chapterKey ?? chapter),
               mode: TEMPLATE_APPLY_MODE_LABELS[mode]
             })}
           </span>

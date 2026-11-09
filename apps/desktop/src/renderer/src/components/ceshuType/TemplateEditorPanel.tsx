@@ -126,7 +126,7 @@ export default function TemplateEditorPanel({
         source: 'custom',
         label: t('templateEditor.customLabel', {
           name: item.name || t('templateEditor.unnamed'),
-          chapter: item.chapter_key ? `  (${templateChapterLabel(item.chapter_key)})` : ''
+          section: item.chapter_key ? `  (${templateChapterLabel(item.chapter_key)})` : ''
         }),
         template: {
           name: item.name,
@@ -150,7 +150,7 @@ export default function TemplateEditorPanel({
         source: 'builtin',
         label: t('templateEditor.builtinLabel', {
           name: hit.template.name || t('templateEditor.unnamed'),
-          chapter: templateChapterLabel(hit.chapterKey)
+          section: templateChapterLabel(hit.chapterKey)
         }),
         template: hit.template,
         chapterKey: hit.chapterKey,
@@ -182,7 +182,7 @@ export default function TemplateEditorPanel({
     const data = doc[target as ChapterKey]
     setDataText(stringifyData(data))
     if (!name.trim()) {
-      setName(t('templateEditor.defaultName', { chapter: templateChapterLabel(target) }))
+      setName(t('templateEditor.defaultName', { section: templateChapterLabel(target) }))
     }
   }
 
@@ -202,7 +202,7 @@ export default function TemplateEditorPanel({
       const merged = mergeTemplateByMode(existing, data, 'overwrite')
       const updated = await window.mbApi.ceshu.saveChapter({ id: ceshuId, chapter: chapterKey, data: merged })
       onApplied(updated, chapterKey as ChapterKey)
-      setNotice(t('templateEditor.applied', { chapter: templateChapterLabel(chapterKey) }))
+      setNotice(t('templateEditor.applied', { section: templateChapterLabel(chapterKey) }))
     } catch (err) {
       setError(toErrorMessage(err))
     } finally {
@@ -229,7 +229,7 @@ export default function TemplateEditorPanel({
 
   const handleLoadCurrentFor = (target: string): void => {
     setDataText(stringifyData(doc[target as ChapterKey]))
-    setName(t('templateEditor.defaultName', { chapter: templateChapterLabel(target) }))
+    setName(t('templateEditor.defaultName', { section: templateChapterLabel(target) }))
   }
 
   /** 保存：选中自定义 → 更新；否则（含内置「另存为」）→ 新建 */

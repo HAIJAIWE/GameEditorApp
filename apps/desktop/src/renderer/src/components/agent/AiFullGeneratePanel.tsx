@@ -670,7 +670,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
             <div className="ai-full-judge-head">{t('aiFull.verdictHead', { count: evaluated.length })}</div>
             {worse.length > 0 && (
               <div className="ai-full-judge-warn" data-testid="ai-full-verdict-worse">
-                {t('aiFull.verdictWarn', { count: worse.length, chapters: worse.join('、') })}
+                {t('aiFull.verdictWarn', { count: worse.length, sections: worse.join('、') })}
               </div>
             )}
             {worse.length === 0 && <div>{t('aiFull.verdictOk')}</div>}
@@ -706,7 +706,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
             <div className="ai-full-judge-head">{t('aiFull.judgeHead')}</div>
             {flaggedChapters.length > 0 && (
               <div className="ai-full-judge-warn">
-                {t('aiFull.judgeWarn', { count: flaggedChapters.length, chapters: flaggedChapters.join('、') })}
+                {t('aiFull.judgeWarn', { count: flaggedChapters.length, sections: flaggedChapters.join('、') })}
               </div>
             )}
             <div className="ai-full-judge-stats">
