@@ -8654,6 +8654,23 @@ body {
   gap: 8px;
 }
 
+/* 按节生成一行：标签 + 选节下拉 + 生成按钮；与工具栏同宽、独立成行 */
+.techdoc-gen-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.techdoc-gen-label {
+  color: var(--text-muted);
+  font-size: var(--text-12);
+  white-space: nowrap;
+}
+
+.techdoc-gen-row .form-select {
+  max-width: 220px;
+}
+
 .techdoc-title {
   flex: 1;
   min-width: 0;

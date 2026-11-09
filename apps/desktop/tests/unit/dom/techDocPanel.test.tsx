@@ -3,7 +3,7 @@ import { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { parseHeadings, TechDocPanel } from '../../../src/renderer/src/components/techDoc/TechDocPanel'
-import { installMbApi, renderDom } from './render'
+import { flush, installMbApi, renderDom } from './render'
 
 let stub: ReturnType<typeof installMbApi> | null = null
 
@@ -243,3 +243,129 @@ describe('技术设计文档面板：从策划书生成草稿', () => {
     await view.cleanup()
   })
 })
+/** 按节 AI 生成（2026-11-10）：一次只生成一节，生成结果拼进编辑器但不自动保存 */
+describe('技术设计文档面板：按节 AI 生成', () => {
+  it('选中的节与已打开的文档名一起发给主进程，正文拼进编辑器并标记未保存', async () => {
+    const sent: unknown[] = []
+    stub = installMbApi({
+      overrides: {
+        'techDoc.list': () => ({ docs: ['battle'] }),
+        'techDoc.read': () => ({ content: '# battle\n\n## 1. 概述与目标\n\n旧正文' }),
+        'techDoc.outline': () => ({ content: '' }),
+        'techDoc.write': () => ({ ok: true }),
+        'techDoc.export': () => ({ path: null }),
+        'techDoc.generate': (req: unknown) => {
+          sent.push(req)
+          return {
+            body: '### 目标\n\n把战斗做成回合制。',
+            sectionId: 'overview',
+            title: '概述与目标',
+            model: 'stub-model',
+            usage: null
+          }
+        }
+      }
+    })
+    const view = await renderDom(<TechDocPanel />)
+    await view.flush()
+    await view.click(view.byTestId('techdoc-item'))
+    await view.flush()
+
+    await view.click(view.byTestId('techdoc-gen-run'))
+    await view.flush()
+
+    expect(sent).toHaveLength(1)
+    expect(sent[0]).toMatchObject({ sectionId: 'overview', name: 'battle' })
+    const textarea = view.byTestId('techdoc-textarea') as HTMLTextAreaElement
+    expect(textarea.value).toContain('把战斗做成回合制。')
+    // 旧节正文被替换掉（大纲标题带「1. 」序号前缀也要认得），别的节不受影响
+    expect(textarea.value).not.toContain('旧正文')
+    // 不自动写盘：AI 写的节要人看一眼再保存
+    expect(stub?.calls).not.toContain('techDoc.write')
+    expect(view.byTestId('techdoc-dirty').getAttribute('data-dirty')).toBe('true')
+    expect(view.text()).toContain('已生成')
+    await view.cleanup()
+  })
+
+  it('切换目标节会把本节 id 发过去（不是永远发第一节）', async () => {
+    const sent: unknown[] = []
+    stub = installMbApi({
+      overrides: {
+        'techDoc.list': () => ({ docs: ['battle'] }),
+        'techDoc.read': () => ({ content: '# battle' }),
+        'techDoc.outline': () => ({ content: '' }),
+        'techDoc.write': () => ({ ok: true }),
+        'techDoc.export': () => ({ path: null }),
+        'techDoc.generate': (req: unknown) => {
+          sent.push(req)
+          return { body: '正文', sectionId: 'architecture', title: '架构总览', model: '', usage: null }
+        }
+      }
+    })
+    const view = await renderDom(<TechDocPanel />)
+    await view.flush()
+    await view.click(view.byTestId('techdoc-item'))
+    await view.flush()
+
+    await selectValue(view.byTestId('techdoc-gen-section') as HTMLSelectElement, 'architecture')
+    await view.click(view.byTestId('techdoc-gen-run'))
+    await view.flush()
+
+    expect(sent[0]).toMatchObject({ sectionId: 'architecture', name: 'battle' })
+    // 文档里还没有「架构总览」这一节 ⇒ 追加到文末并补标题
+    const textarea = view.byTestId('techdoc-textarea') as HTMLTextAreaElement
+    expect(textarea.value).toContain('## 架构总览')
+    await view.cleanup()
+  })
+
+  it('云端超预算：先提示确认，再点一次才带 confirmed 重发（不静默重发）', async () => {
+    const sent: Array<{ confirmed?: boolean }> = []
+    stub = installMbApi({
+      overrides: {
+        'techDoc.list': () => ({ docs: ['battle'] }),
+        'techDoc.read': () => ({ content: '# battle' }),
+        'techDoc.outline': () => ({ content: '' }),
+        'techDoc.write': () => ({ ok: true }),
+        'techDoc.export': () => ({ path: null }),
+        'techDoc.generate': (req: unknown) => {
+          const body = req as { confirmed?: boolean }
+          sent.push(body)
+          if (body.confirmed !== true) {
+            throw new Error('预计花费约 5000 token（预算 4000），可能超出预算')
+          }
+          return { body: '正文', sectionId: 'overview', title: '概述与目标', model: '', usage: null }
+        }
+      }
+    })
+    const view = await renderDom(<TechDocPanel />)
+    await view.flush()
+    await view.click(view.byTestId('techdoc-item'))
+    await view.flush()
+
+    await view.click(view.byTestId('techdoc-gen-run'))
+    await view.flush()
+    // 第一次：报确认原因，按钮切片确认态；模型没被再调一次
+    expect(sent).toHaveLength(1)
+    expect(sent[0]?.confirmed).toBeUndefined()
+    expect(view.byTestId('techdoc-gen-run').textContent).toContain('确认生成')
+    expect(view.byTestId('techdoc-error').textContent).toContain('再点一次')
+
+    await view.click(view.byTestId('techdoc-gen-run'))
+    await view.flush()
+    expect(sent).toHaveLength(2)
+    expect(sent[1]?.confirmed).toBe(true)
+    const textarea = view.byTestId('techdoc-textarea') as HTMLTextAreaElement
+    expect(textarea.value).toContain('正文')
+    await view.cleanup()
+  })
+})
+
+/** `<select>` 走的是 change 事件，render.tsx 的 change 辅助只针对 input ⇒ 这里单独设值 */
+async function selectValue(select: HTMLSelectElement, value: string): Promise<void> {
+  const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')?.set
+  await act(async () => {
+    setter?.call(select, value)
+    select.dispatchEvent(new Event('change', { bubbles: true }))
+  })
+  await flush()
+}

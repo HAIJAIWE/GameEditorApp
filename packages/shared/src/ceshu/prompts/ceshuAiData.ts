@@ -49,6 +49,7 @@ export const CHAPTER_AGENT_MAP: Record<ChapterKey, string> = {
 }
 
 export const AGENT_DISPLAY: Record<string, string> = {
+  tech_writer: '技术设计工程师',
   game_designer: '策划专家',
   content_writer: '文案写手',
   data_analyst: '数据分析师',

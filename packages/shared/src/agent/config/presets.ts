@@ -34,6 +34,7 @@ export function presetLabel(id: string): string {
  * 仅一句聚焦提示：不重写整个 persona，避免与 `prompts.ts` 的身份骨架重复。
  */
 export const PRESET_PERSONA: Record<string, string> = {
+  tech_writer: '你是资深技术设计工程师，把策划书当既定事实，只回答「怎么实现」：数据结构与字段类型、函数签名与接口、错误码与边界条件、性能预算；不确定的写「待确认」。',
   game_designer: '你是资深游戏系统设计师，聚焦玩法 / 数值 / 战斗 / 经济系统的严谨性、平衡与可达性。',
   content_writer: '你是游戏文案写手，聚焦叙事、世界观与角色台词的质感与一致性。',
   data_analyst: '你是数据分析师，聚焦数值平衡、投放与留存的可量化判断。',

@@ -10,6 +10,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { useT } from '@mobai/client-ui'
 import { buildTechDocDraft } from '@mobai/shared/agent/techDoc/techDocDraft'
+import { replaceTechDocSection } from '@mobai/shared/agent/techDoc/techDocPrompt'
+import { TECH_DOC_SECTIONS } from '@mobai/shared/agent/techDoc/techDocSchema'
 import type { CeshuDocument } from '@mobai/shared/ceshu/reference'
 import { getActiveCeshuId } from '../../plugins/host'
 
@@ -23,6 +25,12 @@ interface TechDocApi {
   write(req: { name: string; content: string }): Promise<{ ok: boolean }>
   delete(req: { name: string }): Promise<{ ok: boolean }>
   export(req: { name: string }): Promise<{ path: string | null }>
+  generate(req: {
+    sectionId: string
+    name?: string
+    extra?: string
+    confirmed?: boolean
+  }): Promise<{ body: string; sectionId: string; title: string; model: string; usage: unknown }>
 }
 
 function getApi(): TechDocApi | undefined {
@@ -67,6 +75,12 @@ export function TechDocPanel() {
   const [mode, setMode] = useState<Mode>('edit')
   const [scrollTick, setScrollTick] = useState(0)
   const [deleteArmed, setDeleteArmed] = useState(false)
+  /** 按节生成：选中的节 id（默认第一节「概述与目标」） */
+  const [genSection, setGenSection] = useState<string>(TECH_DOC_SECTIONS[0]?.id ?? 'overview')
+  /** 按节生成：是否正在等模型返回（生成一节要几十秒，必须锁住按钮并给反馈） */
+  const [generating, setGenerating] = useState(false)
+  /** 云端超预算时先要一次确认（DD-17）；确认态只对「本次点击的节」有效 */
+  const [confirmArmed, setConfirmArmed] = useState(false)
 
   const previewRef = useRef<HTMLDivElement>(null)
   const scrollTargetRef = useRef<number | null>(null)
@@ -194,6 +208,12 @@ export function TechDocPanel() {
     }
   }, [api, newName, refresh, t])
 
+  /** 切换目标节后确认态失效：确认针对的是「刚才那一节的预估花费」，换节要重新问 */
+  const pickSection = useCallback((id: string): void => {
+    setGenSection(id)
+    setConfirmArmed(false)
+  }, [])
+
   const save = useCallback(async (): Promise<void> => {
     if (api === undefined || active === null) return
     try {
@@ -233,6 +253,44 @@ export function TechDocPanel() {
       setError(err instanceof Error ? err.message : String(err))
     }
   }, [api, active, refresh, t])
+
+  /**
+   * 按节 AI 生成：**一次只生成一节**。
+   *
+   * 三个刻意的取舍：
+   * 1. 生成的正文用 `replaceTechDocSection` 拼进**当前编辑器里的内容**（不是磁盘上的），
+   *    这样用户没保存的编辑不会被吞掉；
+   * 2. 拼完只标记 dirty，**不自动写盘**：AI 写的节需要人看一眼再保存；
+   * 3. 云端档超预算时主进程会抛确认原因 —— 原样展示，再点一次「确认生成」带 confirmed 重发。
+   */
+  const generateSection = useCallback(
+    async (confirmed: boolean): Promise<void> => {
+      if (api === undefined || generating) return
+      setGenerating(true)
+      setError('')
+      try {
+        const result = await api.generate({
+          sectionId: genSection,
+          ...(active !== null ? { name: active } : {}),
+          ...(confirmed ? { confirmed: true } : {})
+        })
+        const next = replaceTechDocSection(content, result.title, result.body)
+        setContent(next)
+        setDirty(true)
+        setMode('edit')
+        setNotice(t('techDoc.genDone', { title: result.title, chars: result.body.length }))
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err)
+        // 确认门：把「是否确认」交给用户点，而不是在这里静默重发（等于绕过预算护栏）
+        const needsConfirm = !confirmed && message.includes('token')
+        setConfirmArmed(needsConfirm)
+        setError(needsConfirm ? t('techDoc.genConfirm', { message }) : message)
+      } finally {
+        setGenerating(false)
+      }
+    },
+    [api, active, content, genSection, generating, t]
+  )
 
   /** 点击章节大纲：切预览并滚动到该标题 */
   const jumpToHeading = useCallback((index: number): void => {
@@ -363,6 +421,42 @@ export function TechDocPanel() {
                 }}
               >
                 {deleteArmed ? t('techDoc.confirmDelete') : t('common.delete')}
+              </button>
+            </div>
+            {/*
+              按节生成：一次一节。放在编辑器上方而不是放进工具栏 —— 工具栏已经 5 个按钮，
+              生成还多一个「选哪节」+ 可能的「确认」两步，挤进去会看不清当前在生成哪一节。
+            */}
+            <div className="techdoc-gen-row">
+              <label className="techdoc-gen-label" htmlFor="techdoc-gen-section">
+                {t('techDoc.genSection')}
+              </label>
+              <select
+                id="techdoc-gen-section"
+                className="form-select"
+                data-testid="techdoc-gen-section"
+                value={genSection}
+                onChange={(event) => pickSection(event.target.value)}
+                disabled={generating}
+              >
+                {TECH_DOC_SECTIONS.map((section) => (
+                  <option key={section.id} value={section.id}>
+                    {section.title}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                className={`btn${confirmArmed ? ' primary' : ''}`}
+                data-testid="techdoc-gen-run"
+                disabled={generating}
+                onClick={() => void generateSection(confirmArmed)}
+              >
+                {generating
+                  ? t('techDoc.genRunning')
+                  : confirmArmed
+                    ? t('techDoc.genConfirmRun')
+                    : t('techDoc.genRun')}
               </button>
             </div>
             {mode === 'edit' ? (
