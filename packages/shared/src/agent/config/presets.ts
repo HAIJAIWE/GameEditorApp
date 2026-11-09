@@ -24,6 +24,14 @@ export const AGENT_PRESETS: AgentPreset[] = Object.entries(AGENT_DISPLAY).map(([
 /** 默认预设：通用策划助手（与 AGENT_DISPLAY 的 key 对齐） */
 export const DEFAULT_PRESET_ID = '通用策划助手'
 
+/**
+ * 按交接包施工时该锁定的预设：技术设计工程师（`AGENT_DISPLAY` 的 key）。
+ *
+ * 派工单第 2 条要求「先写 TDD、一次只生成一节」，那一步的视角就是这个角色；
+ * 派活链路（让 AI 开工 / 派这一份）把会话预设切到它，免得用户还得自己去下拉里挑。
+ */
+export const TECH_WRITER_PRESET_ID = 'tech_writer'
+
 export function presetLabel(id: string): string {
   return AGENT_PRESETS.find((preset) => preset.id === id)?.label ?? id
 }

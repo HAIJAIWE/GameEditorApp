@@ -52,6 +52,12 @@ test('让 AI 开工：导出交接包 + 派工单预填（不自动发送）', a
     await expect(input).toHaveValue(/交接包（只读，不要改它）/)
     await expect(input).toHaveValue(/本次任务（只做这一份）/)
     await expect(input).toHaveValue(/进度.md/)
+    // TDD 那一步要给出**活跃库里的真路径**（不是 `<游戏名>` 字面占位符），并说明逐节生成
+    await expect(input).toHaveValue(/-TDD\.md/)
+    await expect(input).toHaveValue(/一次只生成一节/)
+    await expect(input).not.toHaveValue(/<游戏名>/)
+    // 视角也一并切到技术设计工程师（派工单第一步是写 TDD，用通才视角写出来是「一段话」）
+    await expect(window.getByTestId('digital-preset')).toHaveValue('tech_writer')
 
     // 3. 没发送：消息列表内容不变
     await expect(window.getByTestId('digital-messages')).toHaveText(messagesBefore ?? '')

@@ -30,6 +30,23 @@ describe('让 AI 开工：预填而不发送', () => {
     expect(reduceConversation(state, { kind: 'prefill', text: null }).prefill).toBeNull()
   })
 
+  it('预设槽：只写待消费的槽，不改预设本身、动不了消息', () => {
+    const decl = createConversationStoreDecl()
+    const init = decl.init
+    const before = typeof init === 'function' ? init() : init
+    const after = reduceConversation(before, { kind: 'preset', id: 'tech_writer' })
+    expect(after.presetRequest).toBe('tech_writer')
+    expect(after.messages).toHaveLength(before.messages.length)
+  })
+
+  it('预设槽清空用 id:null（消费端读完就清）', () => {
+    const decl = createConversationStoreDecl()
+    const init = decl.init
+    const initialState = typeof init === 'function' ? init() : init
+    const state = reduceConversation(initialState, { kind: 'preset', id: 'tech_writer' })
+    expect(reduceConversation(state, { kind: 'preset', id: null }).presetRequest).toBeNull()
+  })
+
   it('store 声明的 key 与消费方（DigitalPanel）读的是同一个', () => {
     expect(CONVERSATION_STORE_KEY).toBe('conversation.state')
   })

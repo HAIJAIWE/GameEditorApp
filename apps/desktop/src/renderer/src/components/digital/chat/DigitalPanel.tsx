@@ -225,6 +225,20 @@ export default function DigitalPanel({
       /* 忽略：隐私模式等写入失败不打断对话 */
     }
   }
+  /**
+   * 跨分区「切换预设」：派活链路（让 AI 开工 / 派这一份）派的是按交接包施工的活，
+   * 本轮视角该锁在「技术设计工程师」。槽位与 `prefill` 同一套读写约定，读完清回 null。
+   */
+  useEffect(() => {
+    const pending = state.presetRequest
+    if (pending === undefined || pending === null) return
+    const timer = setTimeout(() => {
+      changePreset(pending)
+      dispatch({ kind: 'preset', id: null })
+    }, 0)
+    return () => clearTimeout(timer)
+    // changePreset 只依赖 setPreset（稳定）与 localStorage，不必进依赖表
+  }, [state.presetRequest, dispatch])
   /** 输入框左下「＋」的菜单：把已经存在但藏起来的两个能力（@ 引用 / / 命令）摆到明面上 */
   const [plusMenuOpen, setPlusMenuOpen] = useState(false)
   const plusMenuRef = useRef<HTMLDivElement | null>(null)

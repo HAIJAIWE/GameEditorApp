@@ -91,6 +91,15 @@ export interface DigitalPanelState {
    * 面板读到非空值时填入 composer 并立刻清回 `null`；不参与发送逻辑。
    */
   prefill?: string | null
+  /**
+   * 待消费的智能体预设切换（派活链路用）。
+   *
+   * 「让 AI 开工」派的是按交接包施工的活，本轮视角该锁在「技术设计工程师」；
+   * 但预填只改输入框、改不了预设（预设是面板本地 state + localStorage）。
+   * 于是加这个槽：面板读到非空值时调 `changePreset` 并清回 `null`，
+   * 与 `prefill` 同一套「写槽 → 消费 → 清槽」约定。
+   */
+  presetRequest?: string | null
   /** 自增序号（生成稳定的消息 id） */
   seq: number
   /** M1 观测：本轮运行的累计消耗（每次新发送时重置） */

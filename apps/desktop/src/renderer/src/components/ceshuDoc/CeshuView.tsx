@@ -41,6 +41,7 @@ import type { FieldAction } from '@mobai/shared/ceshu/fields'
 import { clearFieldRequest } from '../../ceshuFieldFocus'
 import { applyCeshuPatch, type CeshuPatchItem } from '@mobai/shared/ceshu/data'
 import type { CeshuAiGenerateResult } from '@mobai/shared/ceshu/prompts'
+import { TECH_WRITER_PRESET_ID } from '@mobai/shared/agent/config'
 import { CONVERSATION_STORE_KEY, createConversationStoreDecl } from '@mobai/shared/agent/conversation'
 import type { DigitalPanelState } from '@mobai/shared/agent/ui'
 import type { PluginHost } from '@mobai/shared/plugin/host'
@@ -599,6 +600,9 @@ export default function CeshuView({
         host.slotStore<DigitalPanelState>(CONVERSATION_STORE_KEY) ??
         host.declareStore(CONVERSATION_STORE_KEY, createConversationStoreDecl())
       store.actions.dispatch({ kind: 'prefill', text: order.markdown })
+      // 视角也一并切到「技术设计工程师」：派工单第一步就是写 TDD，用通用策划助手的
+      // 视角去读交接包会写出「一段话式」的技术描述（预填改不了预设，所以走独立槽位）。
+      store.actions.dispatch({ kind: 'preset', id: TECH_WRITER_PRESET_ID })
       // 一句话把「已完成的份数」和「这一份的验收现状」一起交代：只报进度不报验收，
       // 用户会以为派出去就等于做完了（这正是验收升级要治的病）。
       const acceptance = order.acceptance
@@ -648,6 +652,7 @@ export default function CeshuView({
         host.slotStore<DigitalPanelState>(CONVERSATION_STORE_KEY) ??
         host.declareStore(CONVERSATION_STORE_KEY, createConversationStoreDecl())
       store.actions.dispatch({ kind: 'prefill', text: order.markdown })
+      store.actions.dispatch({ kind: 'preset', id: TECH_WRITER_PRESET_ID })
       const where = order.exported
         ? t('ceshuView.aiDevDispatchExported', { dir: order.bundleDir })
         : t('ceshuView.aiDevDispatchReuse', { dir: order.bundleDir })

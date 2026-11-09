@@ -41,6 +41,11 @@ export type ConversationAction =
    * 消费方（面板）读完即置 `null`。
    */
   | { kind: 'prefill'; text: string | null }
+  /**
+   * 跨分区「切换智能体预设」：派活链路把本轮视角切到 `tech_writer`。
+   * 与 `prefill` 同构——只写待消费的槽，真正切换由面板消费。
+   */
+  | { kind: 'preset'; id: string | null }
 
 /**
  * 对话状态归约（纯函数）：与面板此前的本地 reducer 逐字等价，
@@ -64,6 +69,8 @@ export function reduceConversation(state: DigitalPanelState, action: Conversatio
     case 'prefill':
       // 只改预填槽，不动消息/状态 —— 发送与否由用户决定
       return { ...state, prefill: action.text }
+    case 'preset':
+      return { ...state, presetRequest: action.id }
     default:
       return state
   }
