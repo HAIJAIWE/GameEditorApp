@@ -312,6 +312,10 @@ export interface MbApi {
     workOrder(
       req: IpcContract['ceshu:workOrder']['req']
     ): Promise<IpcContract['ceshu:workOrder']['res']>
+    /** 施工看板：每一份交接文档的机判结论与工序状态（并把成绩单写回 进度.md） */
+    workOrderProgress(
+      req: IpcContract['ceshu:workOrderProgress']['req']
+    ): Promise<IpcContract['ceshu:workOrderProgress']['res']>
     /** 打开项目文件夹（一个游戏一个文件夹）：还原文档并落地到本库 */
     openProjectFolder(
       req: IpcContract['ceshu:openProjectFolder']['req']

@@ -25,3 +25,27 @@ export function readPath(source: unknown, path: string): unknown {
   }
   return node
 }
+/* ------------------------------------------------------------------ */
+/* 进度快照标记（`进度.md` 里机判成绩单的起止，worker 与看板共用）    */
+/* ------------------------------------------------------------------ */
+
+/** 机判快照段的开始标记（只此一份，重跑覆盖） */
+export const HANDOFF_PROGRESS_SNAPSHOT_BEGIN = '<!-- 机判快照：开始（自动生成，重跑覆盖本段） -->'
+
+/** 机判快照段的结束标记 */
+export const HANDOFF_PROGRESS_SNAPSHOT_END = '<!-- 机判快照：结束 -->'
+
+/**
+ * 摘掉 `进度.md` 里的机判快照段（没有就原样返回）。
+ *
+ * 为什么解析前必须先摘：快照里每一行也带 `<路径>` 反引号，若当施工记录读，
+ * 机器贴的成绩单会被误当成「智能体说这份做完了」——那就是自己给自己盖章。
+ * 所以撤除逻辑与解读逻辑必须共用这一个函数，不能各写一份。
+ */
+export function stripProgressSnapshot(markdown: string): string {
+  const begin = markdown.indexOf(HANDOFF_PROGRESS_SNAPSHOT_BEGIN)
+  if (begin < 0) return markdown
+  const end = markdown.indexOf(HANDOFF_PROGRESS_SNAPSHOT_END, begin)
+  if (end < 0) return markdown.slice(0, begin)
+  return markdown.slice(0, begin) + markdown.slice(end + HANDOFF_PROGRESS_SNAPSHOT_END.length)
+}

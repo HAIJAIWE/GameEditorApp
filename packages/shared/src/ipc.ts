@@ -49,6 +49,7 @@ import type {
   CeshuCreateInput,
   CeshuMigrateFieldSplitsInput,
   CeshuWorkOrderInput,
+  CeshuWorkOrderProgressInput,
   CeshuDeleteInput,
   CeshuDeriveInput,
   CeshuExportInput,
@@ -527,6 +528,65 @@ export interface IpcContract {
         unverified: number
         machine: number
       } | null
+    }
+  }
+  /**
+   * 施工看板：把「几十份交接文档现在做到哪了、下一份做谁」算成一张表。
+   *
+   * 与 `ceshu:workOrder` 的分工：派工单只回答「下一份做谁」，看板回答全局——
+   * 每一份的机判结论（pass/fail/skip/unverified）、工序状态、剩余份数，并把成绩单写回
+   * 工作区的 `进度.md`（**不动**智能体自己写的施工记录，只贴一段可覆盖的快照）。
+   */
+  'ceshu:workOrderProgress': {
+    req: CeshuWorkOrderProgressInput
+    res: {
+      /** `<工作区>/进度.md` 的绝对路径（成绩单写在这里） */
+      progressPath: string
+      /** 工作区根（施工看板标题里要写「在哪写代码」） */
+      workspace: string
+      /** 一段可粘贴的看板摘要（与面板同一份口径，通知与测试都用它） */
+      markdown: string
+      /** 是否真的把成绩单写回了磁盘（工作区不可写时为 false） */
+      written: boolean
+      counts: {
+        total: number
+        done: number
+        rework: number
+        todo: number
+        blocked: number
+        machineFail: number
+        unverified: number
+      }
+      /** 下一份要做的文档相对路径；全部做完为 null */
+      next: string | null
+      /** 下一份的工序状态 */
+      nextState: string | null
+      /** 还没完成的份数 */
+      remaining: number
+      /**
+       * 逐份状态（面板列表用）。`results` 是逐条验收的结论，
+       * `note` 是一句话现状（面板与看板摘要共用）。
+       */
+      entries: Array<{
+        path: string
+        title: string
+        volumeTitle: string
+        number: number
+        ready: boolean
+        claimed: boolean
+        state: string
+        note: string
+        summary: {
+          total: number
+          pass: number
+          fail: number
+          skip: number
+          unverified: number
+          machine: number
+        }
+        /** 未过的验收条目（面板折叠显示，避免一次喷几十条） */
+        failures: Array<{ id: string; text: string; check: string; evidence: string }>
+      }>
     }
   }
   /** 打开项目文件夹（一个游戏一个文件夹）：读目录 → 还原文档 → 在本库落地为项目文件夹 */

@@ -226,6 +226,7 @@ const api: MbApi = {
     exportProjectFolder: (req) => invoke('ceshu:exportProjectFolder', req),
     exportHandoff: (req) => invoke('ceshu:exportHandoff', req),
     workOrder: (req) => invoke('ceshu:workOrder', req),
+    workOrderProgress: (req) => invoke('ceshu:workOrderProgress', req),
     openProjectFolder: (req) => invoke('ceshu:openProjectFolder', req),
     aiGenerateTasks: (req) => invoke('ceshu:aiGenerateTasks', req),
     saveDemo: (req) => invoke('ceshu:saveDemo', req),

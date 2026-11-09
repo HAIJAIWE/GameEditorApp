@@ -15,6 +15,7 @@ import {
   ceshuCheckDataTablesInputSchema,
   ceshuScaffoldDataTablesInputSchema,
   ceshuWorkOrderInputSchema,
+  ceshuWorkOrderProgressInputSchema,
   ceshuGetInputSchema,
   ceshuMigrateFieldSplitsInputSchema,
   ceshuRenameInputSchema,
@@ -68,9 +69,17 @@ import {
   type DataTableActual
 } from '@mobai/shared/ceshu/data'
 import { applyDataTableScaffold, planDataTableScaffold } from '@mobai/shared/ceshu/data'
-import { HANDOFF_PROGRESS_FILE, buildHandoffWorkOrder, buildVersionDiff, parseHandoffProgress } from '@mobai/shared/ceshu/workflow'
+import {
+  HANDOFF_PROGRESS_FILE,
+  annotateHandoffProgress,
+  buildHandoffProgressBoard,
+  buildHandoffWorkOrder,
+  buildVersionDiff,
+  parseHandoffProgress,
+  renderHandoffProgressBoardMarkdown
+} from '@mobai/shared/ceshu/workflow'
 import { formatLocalTimestamp } from '@mobai/shared/util/datetime'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { getWorkspaceRoot } from '@mobai/agent-core/workspace/workspaceStore'
 import { buildSystemConfirmResult } from '@mobai/shared/ceshu/prompts'
@@ -247,6 +256,70 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
       doneCount: order.doneCount,
       remaining: order.remaining,
       acceptance: order.target?.verdicts ?? null
+    }
+  })
+  /*
+   * 施工看板：一次算清「这么多份交接文档现在做到哪了、下一份做谁」。
+   *
+   * 与派工单的分工：派工单只把「下一份」翻译成开工指令；看板给的是全局——
+   * 每份的机判结论、工序状态、剩余份数，并把成绩单贴回工作区的 `进度.md`。
+   *
+   * 只认两处事实：`进度.md` 的施工记录（人/智能体自己写的）与策划书侧的机判
+   * （契约 + 数据表 + 断言）。机判**不**替人盖章：记录写完成但机判有 fail ⇒ 降级成
+   * 「需返工」，记录为空 ⇒ 一律不算完成（否则就退回「AI 自述完成」的老路）。
+   */
+  handle('ceshu:workOrderProgress', ceshuWorkOrderProgressInputSchema, (req) => {
+    const doc = ceshuManager.get(req.id)
+    const workspace = getWorkspaceRoot()
+    const progressPath = join(workspace, HANDOFF_PROGRESS_FILE)
+    const previous = existsSync(progressPath) ? readFileSync(progressPath, 'utf-8') : ''
+    const contract = checkContract(doc).contract
+    const dataTables = checkDataTablePlan(
+      parseDataTableRequirements(readDataTableRows(doc)),
+      readDataTableActual(typeSchemaStore.getTypes())
+    )
+    const board = buildHandoffProgressBoard(doc, {
+      completed: parseHandoffProgress(previous),
+      context: { doc, contract, dataTables }
+    })
+    const markdown = annotateHandoffProgress(previous, board, { generatedAt: formatLocalTimestamp() })
+    // 写回失败不该让看板不可用（只读工作区、磁盘满、权限）——如实返回 written=false。
+    let written = false
+    try {
+      mkdirSync(workspace, { recursive: true })
+      writeFileSync(progressPath, markdown, 'utf-8')
+      written = true
+    } catch {
+      written = false
+    }
+    return {
+      progressPath,
+      workspace,
+      markdown: renderHandoffProgressBoardMarkdown(board),
+      written,
+      counts: board.counts,
+      next: board.next,
+      nextState: board.nextState,
+      remaining: board.remaining,
+      entries: board.entries.map((entry) => ({
+        path: entry.path,
+        title: entry.title,
+        volumeTitle: entry.volumeTitle,
+        number: entry.number,
+        ready: entry.ready,
+        claimed: entry.claimed,
+        state: entry.state,
+        note: entry.note,
+        summary: entry.summary,
+        failures: entry.results
+          .filter((result) => result.verdict === 'fail')
+          .map((result) => ({
+            id: result.id,
+            text: result.text,
+            check: result.check,
+            evidence: result.evidence
+          }))
+      }))
     }
   })
   // 打开项目文件夹：读目录 → 还原文档 → 在本库落地为项目文件夹（之后 save 自动走文件夹形态）

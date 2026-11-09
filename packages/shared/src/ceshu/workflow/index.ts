@@ -6,7 +6,14 @@
 
 export { HANDOFF_DOCS, docsOfVolume } from './ceshuHandoffDocs'
 export { escapeCell, formatScalar } from './ceshuHandoffMarkdown'
-export { handoffVolumeFolderName, handoffVolumeIndexPath, readPath } from './ceshuHandoffPaths'
+export {
+  HANDOFF_PROGRESS_SNAPSHOT_BEGIN,
+  HANDOFF_PROGRESS_SNAPSHOT_END,
+  handoffVolumeFolderName,
+  handoffVolumeIndexPath,
+  readPath,
+  stripProgressSnapshot
+} from './ceshuHandoffPaths'
 export { HANDOFF_PRECEDENCE, acceptanceCheck, acceptanceText } from './ceshuHandoffTypes'
 export type { HandoffAcceptance, HandoffAcceptanceCheck, HandoffDoc, HandoffDocCondition, HandoffDocField, HandoffDocLayer, HandoffDocSystem, HandoffVolume, HandoffVolumeId } from './ceshuHandoffTypes'
 export { evaluateHandoffAcceptance, evaluateHandoffAcceptances, summarizeHandoffAcceptances } from './ceshuHandoffAcceptance'
@@ -43,3 +50,15 @@ export { CESHU_ROLE_LABELS, CESHU_ROLE_ORDER, CESHU_TASK_PRIORITIES, ROLE_CHAPTE
 export type { CeshuRole, CeshuRoleTask, CeshuTaskPlan, CeshuTaskPriority, RoleTaskItem, RoleTaskSection } from './ceshuTasks'
 export { HANDOFF_PROGRESS_FILE, TDD_DIR_HINT, buildHandoffWorkOrder, parseHandoffProgress } from './ceshuHandoffWorkOrder'
 export type { WorkOrder, WorkOrderAcceptance, WorkOrderOptions, WorkOrderTarget } from './ceshuHandoffWorkOrder'
+export {
+  HANDOFF_PROGRESS_STATE_LABELS,
+  annotateHandoffProgress,
+  buildHandoffProgressBoard,
+  renderHandoffProgressBoardMarkdown
+} from './ceshuHandoffProgress'
+export type {
+  HandoffProgressBoard,
+  HandoffProgressEntry,
+  HandoffProgressOptions,
+  HandoffProgressState
+} from './ceshuHandoffProgress'

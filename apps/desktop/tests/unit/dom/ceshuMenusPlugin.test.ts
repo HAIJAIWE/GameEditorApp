@@ -1,7 +1,7 @@
 /**
  * 编辑器「更多」菜单插件（B 方案 Slice 16）。
  *
- * 覆盖：挂载点隔离（不进 App 顶栏）、条目数（18 + 3 分隔符）、死链守卫、E2E testid 保留。
+ * 覆盖：挂载点隔离（不进 App 顶栏）、条目数（20 + 3 分隔符）、死链守卫、E2E testid 保留。
  * 放在 `tests/unit/dom/` 是因为它 import 渲染层插件（`tsconfig.node.json` 不覆盖 `src/renderer`）。
  */
 import { describe, expect, it } from 'vitest'
@@ -30,11 +30,11 @@ describe('编辑器「更多」菜单插件（Slice 16）', () => {
     expect(host.menus('ceshu.toolbar')[0].menuKey).toBe('common.more')
   })
 
-  it('19 个菜单项 + 3 个分隔符（4 组）', () => {
+  it('20 个菜单项 + 3 个分隔符（4 组）', () => {
     const host = hostWithMenus()
     const items = host.menus('ceshu.toolbar')[0].items
     const real = items.filter((item) => !isSeparator(item))
-    expect(real).toHaveLength(19)
+    expect(real).toHaveLength(20)
     expect(items.length - real.length).toBe(3)
   })
 
@@ -72,6 +72,7 @@ describe('编辑器「更多」菜单插件（Slice 16）', () => {
       'ceshu-export-project',
       'ceshu-export-handoff',
       'ceshu-start-ai-dev',
+      'ceshu-work-board',
       'ceshu-notes'
     ]) {
       expect(testids.has(id), id).toBe(true)

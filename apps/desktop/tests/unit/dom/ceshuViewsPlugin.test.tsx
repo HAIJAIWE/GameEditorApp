@@ -101,7 +101,7 @@ describe('编辑器内视图插件（Slice 11/12/13：view 挂载点 + 内容槽
     for (const v of host.views(CESHU_VIEW_MOUNT)) expect(v.mount).toBe(CESHU_VIEW_MOUNT)
   })
 
-  it('内容槽挂载点声明 13 个 view（版本对比/时间线/报告/AI/预设…）', () => {
+  it('内容槽挂载点声明 14 个 view（版本对比/时间线/报告/AI/预设/施工看板…）', () => {
     const host = hostWithPlugin()
     expect(host.views(CESHU_CONTENT_MOUNT).map((v) => v.id)).toEqual([
       'diff.view',
@@ -116,12 +116,13 @@ describe('编辑器内视图插件（Slice 11/12/13：view 挂载点 + 内容槽
       'aiDataGen.view',
       'presetMarket.view',
       'systemConfirm.view',
-      'templateEditor.view'
+      'templateEditor.view',
+      'workBoard.view'
     ])
     expect(host.views('other.mount')).toEqual([])
   })
 
-  it('26 个 view 都有 React 绑定（否则会退化成占位文本）', () => {
+  it('27 个 view 都有 React 绑定（否则会退化成占位文本）', () => {
     hostWithPlugin()
     const ids = [
       'route.view',
@@ -149,7 +150,8 @@ describe('编辑器内视图插件（Slice 11/12/13：view 挂载点 + 内容槽
       'aiDataGen.view',
       'presetMarket.view',
       'systemConfirm.view',
-      'templateEditor.view'
+      'templateEditor.view',
+      'workBoard.view'
     ]
     for (const id of ids) expect(getReactBinding(id), id).toBeDefined()
   })

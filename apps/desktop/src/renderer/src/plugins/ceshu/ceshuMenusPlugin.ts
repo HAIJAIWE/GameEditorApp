@@ -14,8 +14,9 @@ import {
  *
  * 原来这 18 项写死在 CeshuView 的 `moreMenuGroups`（含 4 组、组间分隔）。现在：
  * - **菜单结构**由 `menu` 能力声明，挂载点 `ceshu.toolbar`，由 `<MenuMount>` 在工具栏渲染；
- * - **动作**拆成 19 条 command：视图类直接 `host.openView(id)`，非视图类走 `ceshuEditorBridge`。
- *   第 19 条 `ceshuMenu.startAiDev` 是 2026-11-09 新增：导出交接包的同一动作顺带预填派工单。
+ * - **动作**拆成 20 条 command：视图类直接 `host.openView(id)`，非视图类走 `ceshuEditorBridge`。
+ *   第 19 条 `ceshuMenu.startAiDev` 是 2026-11-09 新增：导出交接包的同一动作顺带预填派工单；
+ *   第 20 条 `ceshuMenu.workBoard` 同日新增：施工看板（一次看清几十份文档的工序状态与下一份）。
  *
  * 分隔符 = 既无 `command` 也无 `items` 的条目（契约约定），`MenuMount` 据此切成组。
  */
@@ -52,6 +53,7 @@ export function defineCeshuMenusPlugin(host: PluginHost): PluginManifest {
     { labelKey: 'ceshuMore.exportProject', command: 'ceshuMenu.exportProject', testid: 'ceshu-export-project' },
     { labelKey: 'ceshuMore.exportHandoff', command: 'ceshuMenu.exportHandoff', testid: 'ceshu-export-handoff' },
     { labelKey: 'ceshuMore.startAiDev', command: 'ceshuMenu.startAiDev', testid: 'ceshu-start-ai-dev' },
+    { labelKey: 'ceshuMore.workBoard', command: 'ceshuMenu.workBoard', testid: 'ceshu-work-board' },
     SEP,
     { labelKey: 'ceshuMore.notes', command: 'ceshuMenu.notes', testid: 'ceshu-notes' }
   ]
@@ -60,7 +62,7 @@ export function defineCeshuMenusPlugin(host: PluginHost): PluginManifest {
     id: 'ceshu-menus',
     name: 'ceshu-menus',
     version: '0.1.0',
-    description: 'Editor "More" dropdown menu (menu capability on ceshu.toolbar) with 19 commands',
+    description: 'Editor "More" dropdown menu (menu capability on ceshu.toolbar) with 20 commands',
     meta: { labelKey: 'ceshuMenus.metaLabel', icon: '☰', descriptionKey: 'ceshuMenus.metaDescription' },
     capabilities: [
       // —— 视图类 ——
@@ -84,6 +86,7 @@ export function defineCeshuMenusPlugin(host: PluginHost): PluginManifest {
       { kind: 'command', id: 'ceshuMenu.exportProject', label: 'Export project folder', labelKey: 'ceshuMore.exportProject', run: () => editorExportProject() },
       { kind: 'command', id: 'ceshuMenu.exportHandoff', label: 'Export handoff bundle', labelKey: 'ceshuMore.exportHandoff', run: () => editorExportHandoff() },
       { kind: 'command', id: 'ceshuMenu.startAiDev', label: 'Start AI development', labelKey: 'ceshuMore.startAiDev', run: () => editorStartAiDev() },
+      { kind: 'command', id: 'ceshuMenu.workBoard', label: 'Work board', labelKey: 'ceshuMore.workBoard', run: openView('workBoard.view') },
       // —— 菜单结构 ——
       { kind: 'menu', id: 'menu.ceshuMore', menuKey: 'common.more', mount: 'ceshu.toolbar', order: 10, items }
     ]

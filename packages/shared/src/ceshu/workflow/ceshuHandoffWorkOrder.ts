@@ -6,7 +6,7 @@ import {
   type HandoffAcceptanceResult,
   type HandoffAcceptanceSummary
 } from './ceshuHandoffAcceptance'
-import { handoffVolumeIndexPath } from './ceshuHandoffPaths'
+import { handoffVolumeIndexPath, stripProgressSnapshot } from './ceshuHandoffPaths'
 import { buildHandoffPlan, planHandoffDocs } from './ceshuHandoffPlan'
 import type { HandoffDocStatus, PlannedHandoffDoc } from './ceshuHandoffPlan'
 import { acceptanceCheck, acceptanceText } from './ceshuHandoffTypes'
@@ -311,7 +311,9 @@ const FAIL_MARKERS = ['未通过', '不通过', '失败', 'fail', 'FAIL', 'FAILE
  */
 export function parseHandoffProgress(markdown: string): string[] {
   const done = new Set<string>()
-  for (const rawLine of markdown.split(/\r?\n/u)) {
+  // 先整段摘掉「机判快照」：那段是机器自己贴的成绩单，里面同样有 `<路径>`，
+  // 当施工记录读就成了「机器给自己盖章」——与「完成只认智能体的施工记录」直接冲突。
+  for (const rawLine of stripProgressSnapshot(markdown).split(/\r?\n/u)) {
     const line = rawLine.trim()
     if (line === '' || line.startsWith('#') || line.startsWith('---')) continue
     const cells = line.replaceAll('`', '').split('|').map((cell) => cell.trim())

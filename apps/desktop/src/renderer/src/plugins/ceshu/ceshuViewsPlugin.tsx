@@ -21,6 +21,7 @@ import {
 import { FieldImpactPanel } from '../../components/ceshu'
 import { HealthPanel } from '../../components/ceshu'
 import { RoutePanel } from '../../components/ceshu'
+import { WorkBoardPanel } from '../../components/ceshu'
 import { PresetMarketPanel } from '../../components/common'
 import { SystemConfirmPanel } from '../../components/common'
 import { TemplateEditorPanel } from '../../components/ceshuType'
@@ -269,6 +270,11 @@ export function defineCeshuViewsPlugin(): PluginManifest {
     )
   }
 
+  function WorkBoardPanelBound({ onClose }: PanelBindingProps) {
+    const { doc } = useCeshuView()
+    return <WorkBoardPanel key={doc.ceshu_id} ceshuId={doc.ceshu_id} onClose={onClose} />
+  }
+
   registerReactBinding('route.view', RoutePanelBound)
   registerReactBinding('health.view', HealthPanelBound)
   registerReactBinding('fieldImpact.view', FieldImpactPanelBound)
@@ -295,6 +301,7 @@ export function defineCeshuViewsPlugin(): PluginManifest {
   registerReactBinding('presetMarket.view', PresetMarketPanelBound)
   registerReactBinding('systemConfirm.view', SystemConfirmPanelBound)
   registerReactBinding('templateEditor.view', TemplateEditorPanelBound)
+  registerReactBinding('workBoard.view', WorkBoardPanelBound)
 
   return {
     id: 'ceshu-views',
@@ -336,7 +343,8 @@ export function defineCeshuViewsPlugin(): PluginManifest {
       { kind: 'view', id: 'aiDataGen.view', label: 'AI data generation', labelKey: 'ceshuView.aiDataGen', mount: CESHU_CONTENT_MOUNT, order: 100, ui: { type: 'text', text: 'AI data generation' } },
       { kind: 'view', id: 'presetMarket.view', label: 'Preset market', labelKey: 'ceshuView.presetMarket', mount: CESHU_CONTENT_MOUNT, order: 110, ui: { type: 'text', text: 'Preset market' } },
       { kind: 'view', id: 'systemConfirm.view', label: 'System confirmation', labelKey: 'ceshuView.systemConfirm', mount: CESHU_CONTENT_MOUNT, order: 120, ui: { type: 'text', text: 'System confirmation' } },
-      { kind: 'view', id: 'templateEditor.view', label: 'Template editor', labelKey: 'ceshuView.templateEditor', mount: CESHU_CONTENT_MOUNT, order: 130, ui: { type: 'text', text: 'Template editor' } }
+      { kind: 'view', id: 'templateEditor.view', label: 'Template editor', labelKey: 'ceshuView.templateEditor', mount: CESHU_CONTENT_MOUNT, order: 130, ui: { type: 'text', text: 'Template editor' } },
+      { kind: 'view', id: 'workBoard.view', label: 'Work board', labelKey: 'ceshuView.workBoard', mount: CESHU_CONTENT_MOUNT, order: 140, ui: { type: 'text', text: 'Work board' } }
     ]
   }
 }

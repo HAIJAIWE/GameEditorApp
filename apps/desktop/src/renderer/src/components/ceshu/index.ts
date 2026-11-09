@@ -14,6 +14,7 @@ export { ConsumePromptOverlay, DeriveOverlay, ImportOverlay, MigrationOverlay, M
 export { default as FieldImpactPanel } from './FieldImpactPanel'
 export { default as HealthPanel } from './HealthPanel'
 export { default as RoutePanel } from './RoutePanel'
+export { default as WorkBoardPanel } from './WorkBoardPanel'
 export { collectPendingReviewFields } from './reviewQueueData'
 export type { PendingReviewField } from './reviewQueueData'
 export { groupReviewQueue } from './reviewQueueGroups'
