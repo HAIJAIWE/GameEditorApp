@@ -15,6 +15,7 @@
 
 | 提交 | 内容 |
 |---|---|
+| 2026-11-09 | **施工看板：交接包做到哪了 / 下一份做谁，机器自己算**：新增 `ceshuHandoffProgress.ts`——把 B 的机判结论按份汇总成看板（5 种状态 `done` / `rework` / `todo` / `blocked` / `skip`），选「下一份」与派工单共用同一判据（`pending.find(ready) ?? pending[0]`），避免看板说做 A、派工单说做 B；成绩单以 HTML 注释标记段幂等写回 `<工作区>/进度.md`，重跑覆盖。**机判不替人盖章**：`done` 只认进度.md 的施工记录，机判只能否决（fail ⇒ 降级 `rework`），`parseHandoffProgress` 先剥离快照段，机器写的成绩单不会被当成施工记录自我盖章。新增 IPC `ceshu:workOrderProgress` + 「更多」第 20 项菜单「施工看板」（挂载即自动核对，逐份 `data-state`，未过条目可展开看 evidence）。实测真实文档 dd66f593：26 份适用（未开工 8 / 门禁未就绪 18），机判未过 17 条、待人工或可执行用例 35 条，下一份 `00-架构/01-范围与平台.md`（`b52eb7cf`） |
 | 2026-11-09 | **验收升级：99 条验收从 94 条「人工」降到机判为主**：`HandoffAcceptanceCheck` 由 3 种扩到 5 种（`assertion` / `data` / `field` / `test` / `manual`），38 份交接文档 + 7 卷全部改写成对象形态；新增 `ceshuHandoffAcceptance.ts` 把每条验收**真的判**（assertion 吃 `contract.json` 复算、data 吃设计↔数据表核对、field 吃策划书字段；test/manual 恒 unverified，绝不替 AI 盖章）。派工单逐条带「← 现状：已通过 / 未过 / 待补」，并在「让 AI 开工」提示里交代本次这份的验收现状。实测真实文档 dd66f593：88 条验收 → 机判 48 条（pass 15 / fail 29 / skip 4）、unverified 40 条，机判占比 54.5%；空白夹具 74.7% |
 | 2026-11-08 | **对话生成带字段契约**：新增 `buildChapterContract`，在「改文档」模式把目标章字段目录（key/类型/列/必填/aiHint 摘要）注入上下文，让模型知道「符合的文档」长什么样；问答模式不动（`4c2eb988`） |
 | 2026-11-08 | **对话写回堵数据丢失**：`system.ceshu update` 由整章替换改为「字段白名单 + 合并 + 前后 validateCeshu 对比」，拒脏键、保未传字段、回传校验变化（`c1ac7b89`） |
