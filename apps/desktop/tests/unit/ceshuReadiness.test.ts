@@ -182,10 +182,14 @@ describe('完备度引擎：next_steps（可定位、有行动力）', () => {
     expect(steps.some((step) => step.includes('全文（发行阶段口径）还差 50 个必填字段'))).toBe(true)
   })
 
-  it('硬错误单独点名（字段都填了但格式错时，完备度不背这个锅）', () => {
-    // 空文档有 46 条 error 级校验（必填之外还有格式/冲突/依赖）
+  it('整章未生成不点名硬错误，真实必填缺口仍单独点名', () => {
+    // 全空文档：整章未生成只出建议性提示，不再有 error 级校验 ⇒ 不点名硬错误
     const steps = computeReadiness(emptyDoc()).next_steps
-    expect(steps.some((step) => step.includes('条校验错误'))).toBe(true)
+    expect(steps.some((step) => step.includes('条校验错误'))).toBe(false)
+    // 章节已有部分内容但漏必填 ⇒ 真实缺口仍是 error 级校验，要单独点名
+    const partial = emptyDoc()
+    partial.publishing = { publish_plan: '先做 Steam 抢先体验' }
+    expect(computeReadiness(partial).next_steps.some((step) => step.includes('条校验错误'))).toBe(true)
   })
 
   it('可传入已算好的校验结果（IPC 只跑一次），结果与内部自查一致', () => {

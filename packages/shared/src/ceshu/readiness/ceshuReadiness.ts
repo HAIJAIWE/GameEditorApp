@@ -28,7 +28,7 @@ import {
   visibleChaptersForDoc
 } from '../model'
 import { CESHU_STAGE_LABELS, chaptersUpToStage, type CeshuStage } from '../workflow'
-import { classifyValidationMessage } from '../validation'
+import { classifyValidationMessage, UNTOUCHED_CHAPTER_MARK } from '../validation'
 import { countWordsInChapter } from '../validation'
 import { compareWithReferences } from '../reference'
 import {
@@ -224,7 +224,10 @@ export function computeReadiness(doc: CeshuDocument, validationErrors?: string[]
 
 /** 硬错误数（必填/格式/冲突/依赖）——与校验面板同一套分类，只数 `severity === 'error'` */
 function countHardErrors(messages: readonly string[]): number {
-  return messages.filter((message) => classifyValidationMessage(message).severity === 'error').length
+  // 「本章尚未生成」是阶段性的建议性提示：显式排除，避免它混进 next_steps 的硬错误口径。
+  return messages.filter(
+    (message) => !message.includes(UNTOUCHED_CHAPTER_MARK) && classifyValidationMessage(message).severity === 'error'
+  ).length
 }
 
 /**
@@ -233,10 +236,20 @@ function countHardErrors(messages: readonly string[]): number {
  * 两条链路各自独立实现（完备度数 isFilledValue，校验数 isEmptyRequiredValue），
  * 口径本就应有差异（空对象 {} 在两边判定不同）。此函数故意保守：只在**多出**时告警，
  * 供单测守卫「完备度不会比校验更宽松」。
+ *
+ * 整章未生成时校验只出 1 条「本章尚未生成，N 项必填待后续阶段补齐」，但它覆盖的是
+ * N 个必填缺口；不按 N 折算就会把完备度缺口凭空放大（虚高）。
  */
 export function readinessFillGap(doc: CeshuDocument, validationErrors?: string[]): number {
   const errors = validationErrors ?? validateCeshu(doc)
-  const requiredErrors = errors.filter((message) => message.includes('为必填项')).length
+  const requiredErrors = errors.reduce((sum, message) => {
+    if (message.includes('为必填项')) return sum + 1
+    if (message.includes(UNTOUCHED_CHAPTER_MARK)) {
+      const matched = /本章尚未生成，(\d+) 项必填待后续阶段补齐/.exec(message)
+      return sum + (matched !== null ? Number(matched[1] ?? 0) : 0)
+    }
+    return sum
+  }, 0)
   return computeReadiness(doc, errors).total_missing - requiredErrors
 }
 

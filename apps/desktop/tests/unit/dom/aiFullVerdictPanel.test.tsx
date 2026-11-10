@@ -3,7 +3,8 @@ import { act } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { AiFullGeneratePanel } from '../../../src/renderer/src/components/agent'
-import { createDefaultCeshu } from '@mobai/shared/ceshu/model'
+import { chapterDataForDoc, chapterFieldsForDoc, createDefaultCeshu, visibleChaptersForDoc } from '@mobai/shared/ceshu/model'
+import { renderGenerationDigest } from '@mobai/shared/ceshu/export/generationDigest'
 import { installMbApi, renderDom, type ApiStub, type RenderResult } from './render'
 import type { QualityGateVerdict } from '@mobai/shared/types'
 
@@ -38,6 +39,9 @@ vi.mock('@mobai/shared/agent/runtime', async (importOriginal) => {
 afterEach(async () => {
   await view?.cleanup()
   api?.restore()
+  // 草稿快照按 ceshuId 落在 localStorage，所有用例都用 "c1"：
+  // 不清会串到下一轮，凭空冒出「恢复上次未应用结果」横幅。
+  window.localStorage.clear()
   worseChapters.clear()
   view = null
   api = null
@@ -279,9 +283,26 @@ describe('AiFullGeneratePanel：生成阶段', () => {
   })
 })
 
-/** 一页立项预览：生成后显示 draft 合成的一页 pitch，不写盘 */
-describe('AiFullGeneratePanel：一页立项预览', () => {
-  it('立项阶段生成完成后显示预览，内容含已生成章节的字段', async () => {
+/** 给受控 textarea 设值：render helper 的 change() 只认 HTMLInputElement */
+async function setTextarea(rendered: RenderResult, testId: string, value: string): Promise<void> {
+  const el = rendered.query(`[data-testid="${testId}"]`) as HTMLTextAreaElement | null
+  expect(el, testId).not.toBeNull()
+  const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')?.set
+  await act(async () => {
+    setter?.call(el!, value)
+    el!.dispatchEvent(new Event('input', { bubbles: true }))
+  })
+  await rendered.flush()
+}
+
+/**
+ * 一页结果速览（2026-11-11）：旧版叫「一页立项预览」，但制作档实测 34261 字符 /
+ * 中文 19864 字 / 7 个 ### 小节，早就不是一页；而且只在 concept 档渲染，制作/全量档
+ * 根本看不到。现在换成 renderGenerationDigest（每章最多 2 个已填字段、1400 字预算），
+ * 并去掉阶段门禁：所有阶段 / 档位都能在应用前先看一眼这次写了什么。
+ */
+describe('AiFullGeneratePanel：一页结果速览', () => {
+  it('立项阶段生成完成后显示速览，内容含已生成章节的字段', async () => {
     const doc = createDefaultCeshu({ scope: 'full', name: '测试项目' })
     const generate = vi.fn(async (req: unknown) => ({
       fields: { placeholder: `内容-${(req as { chapter: string }).chapter}`, design_vision: '星际考古的核心幻想' },
@@ -295,18 +316,211 @@ describe('AiFullGeneratePanel：一页立项预览', () => {
     expect(view.query('[data-testid="ai-full-pitch-body"]')).toBeNull() // 生成前为空
     await runGeneration(view)
     const body = view.query('[data-testid="ai-full-pitch-body"]')
-    expect(body, '生成后应显示预览').not.toBeNull()
+    expect(body, '生成后应显示速览').not.toBeNull()
     expect(body!.textContent).toContain('星际考古的核心幻想')
     expect(view.text()).toContain('尚未写盘')
   })
 
-  it('切到「全量」阶段不显示立项预览', async () => {
+  it('切到「全量」阶段仍显示速览（旧实现只对立项档可见）', async () => {
     const doc = createDefaultCeshu({ scope: 'full', name: '测试项目' })
     api = installMbApi()
     view = await renderDom(
       <AiFullGeneratePanel ceshuId="c1" doc={doc} onApplied={() => {}} onClose={() => {}} />
     )
     await view.click(view.byTestId('ai-full-stage-full'))
-    expect(view.query('[data-testid="ai-full-pitch"]')).toBeNull()
+    expect(view.query('[data-testid="ai-full-pitch"]')).not.toBeNull()
+    expect(view.query('[data-testid="ai-full-pitch-empty"]')).not.toBeNull()
+  })
+
+  it('应用档（SDD）也显示速览，四步流程条齐全', async () => {
+    const doc = createDefaultCeshu({ scope: 'full', name: '测试项目', docKind: 'application' })
+    api = installMbApi()
+    view = await renderDom(
+      <AiFullGeneratePanel ceshuId="c1" doc={doc} onApplied={() => {}} onClose={() => {}} />
+    )
+    expect(view.query('[data-testid="ai-full-pitch"]')).not.toBeNull()
+    expect(view.queryAll('[data-testid^="ai-full-step-"]').length).toBe(4)
+  })
+})
+
+/**
+ * 两阶段门禁（2026-11-11，用户原话「设计文档先确定好……看完之后等人确定再去生成」）：
+ * 第 2 步先把表单确定性推导出的设计概要给人看，人确认后才真正调 LLM；
+ * 概要里补的方向修订随每章提示词的【用户输入】下发，而不是只停留在 UI。
+ */
+describe('AiFullGeneratePanel：先确认设计概要再生成', () => {
+  it('首次点开始只出概要卡片，未确认前不调用 LLM；确认后方向修订进入每章提示词', async () => {
+    const doc = createDefaultCeshu({ scope: 'full', name: '测试项目' })
+    const generate = vi.fn(async (req: unknown) => ({
+      fields: { placeholder: `内容-${(req as { chapter: string }).chapter}` },
+      quality: verdict(0, 0),
+      usage: { totalTokens: 10 }
+    }))
+    api = installMbApi({ overrides: { 'ceshu.aiGenerateChapter': generate } })
+    view = await renderDom(
+      <AiFullGeneratePanel ceshuId="c1" doc={doc} onApplied={() => {}} onClose={() => {}} />
+    )
+    expect(view.queryAll('[data-testid^="ai-full-step-"]').length).toBe(4)
+    expect(view.byTestId('ai-full-step-form').className).toContain('is-current')
+
+    await setTextarea(view, 'ai-full-desc', '一个关于星际考古的游戏，玩家探索遗迹并拼合线索。')
+    await view.click(view.byTestId('ai-full-start'))
+
+    // 第 2 步：概要卡片是唯一出口，start 收起，LLM 一次都没调
+    expect(view.byTestId('ai-full-confirm')).not.toBeNull()
+    expect(view.byTestId('ai-full-brief').textContent).toContain('星际考古')
+    expect(view.byTestId('ai-full-brief-chips').textContent).toBeTruthy()
+    expect(view.query('[data-testid="ai-full-start"]')).toBeNull()
+    expect(view.byTestId('ai-full-step-brief').className).toContain('is-current')
+    expect(generate).not.toHaveBeenCalled()
+
+    await setTextarea(view, 'ai-full-brief-note', '必须包含考古解密与非线性叙事')
+    await view.click(view.byTestId('ai-full-confirm-yes'))
+    for (let i = 0; i < 30; i++) await view.flush()
+
+    expect(generate.mock.calls.length).toBeGreaterThan(0)
+    const prompts = generate.mock.calls.map(
+      (call) => (call[0] as { fullGenerate: { extraPrompt: string } }).fullGenerate.extraPrompt
+    )
+    expect(prompts.some((prompt) => prompt.includes('方向修订（用户补充）'))).toBe(true)
+    expect(prompts.some((prompt) => prompt.includes('必须包含考古解密与非线性叙事'))).toBe(true)
+  })
+
+  it('概要卡片出现时滚进视口，标题不被长面板上沿裁掉', async () => {
+    const doc = createDefaultCeshu({ scope: 'full', name: '测试项目' })
+    api = installMbApi({
+      overrides: {
+        'ceshu.aiGenerateChapter': async () => ({
+          fields: { placeholder: '内容' },
+          quality: verdict(0, 0),
+          usage: { totalTokens: 10 }
+        })
+      }
+    })
+    // jsdom 不实现 scrollIntoView，临时装一个探针；组件用 typeof 守卫，真浏览器里才会滚。
+    const scroll = vi.fn()
+    const descriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'scrollIntoView')
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      writable: true,
+      value: scroll
+    })
+    try {
+      view = await renderDom(
+        <AiFullGeneratePanel ceshuId="c1" doc={doc} onApplied={() => {}} onClose={() => {}} />
+      )
+      expect(scroll, '第 1 步不该滚动').not.toHaveBeenCalled()
+      await setTextarea(view, 'ai-full-desc', '一个关于星际考古的游戏。')
+      await view.click(view.byTestId('ai-full-start'))
+      expect(scroll, '进入第 2 步时把概要卡片滚进视口').toHaveBeenCalledTimes(1)
+      expect(scroll.mock.calls[0]?.[0]).toMatchObject({ block: 'start', behavior: 'auto' })
+    } finally {
+      if (descriptor === undefined) Reflect.deleteProperty(HTMLElement.prototype, 'scrollIntoView')
+      else Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', descriptor)
+    }
+  })
+
+  it('点「返回修改」不生成，回到第 1 步且 start 按钮重新出现', async () => {
+    const doc = createDefaultCeshu({ scope: 'full', name: '测试项目' })
+    const generate = vi.fn(async (_req: unknown) => ({
+      fields: { placeholder: '内容' },
+      quality: verdict(0, 0),
+      usage: { totalTokens: 10 }
+    }))
+    api = installMbApi({ overrides: { 'ceshu.aiGenerateChapter': generate } })
+    view = await renderDom(
+      <AiFullGeneratePanel ceshuId="c1" doc={doc} onApplied={() => {}} onClose={() => {}} />
+    )
+    await setTextarea(view, 'ai-full-desc', '一个关于星际考古的游戏。')
+    await view.click(view.byTestId('ai-full-start'))
+    await view.click(view.byTestId('ai-full-confirm-no'))
+    expect(view.query('[data-testid="ai-full-start"]')).not.toBeNull()
+    expect(view.byTestId('ai-full-step-form').className).toContain('is-current')
+    expect(generate).not.toHaveBeenCalled()
+  })
+})
+
+/** 未应用结果自动留存：localStorage 快照 + 恢复 / 丢弃，窗口关掉不白跑 */
+describe('AiFullGeneratePanel：未应用结果不白跑', () => {
+  it('生成后写入快照，重开面板显示恢复横幅，点恢复回填结果', async () => {
+    const doc = createDefaultCeshu({ scope: 'full', name: '测试项目' })
+    const generate = vi.fn(async (_req: unknown) => ({
+      fields: { design_vision: '星际考古的核心幻想' },
+      quality: verdict(0, 0),
+      usage: { totalTokens: 10 }
+    }))
+    api = installMbApi({ overrides: { 'ceshu.aiGenerateChapter': generate } })
+    const first = await renderDom(
+      <AiFullGeneratePanel ceshuId="c1" doc={doc} onApplied={() => {}} onClose={() => {}} />
+    )
+    await runGeneration(first)
+    const raw = window.localStorage.getItem('mb.aiFull.draft.c1')
+    expect(raw, '生成结果应自动留存').not.toBeNull()
+    const draft = JSON.parse(raw!) as { results: Record<string, unknown> }
+    expect(Object.keys(draft.results).length).toBeGreaterThan(0)
+    await first.cleanup()
+
+    view = await renderDom(
+      <AiFullGeneratePanel ceshuId="c1" doc={doc} onApplied={() => {}} onClose={() => {}} />
+    )
+    expect(view.query('[data-testid="ai-full-draft"]')).not.toBeNull()
+    await view.click(view.byTestId('ai-full-draft-restore'))
+    expect(view.query('[data-testid="ai-full-draft"]')).toBeNull()
+    expect(view.byTestId('ai-full-draft-notice').textContent).toBeTruthy()
+    expect(view.query('[data-testid="ai-full-pitch-body"]')).not.toBeNull()
+  })
+
+  it('丢弃草稿会清掉快照，重开面板不再提示恢复', async () => {
+    const doc = createDefaultCeshu({ scope: 'full', name: '测试项目' })
+    window.localStorage.setItem('mb.aiFull.draft.c1', JSON.stringify({
+      version: 1,
+      ceshuId: 'c1',
+      savedAt: Date.now(),
+      stage: 'concept',
+      scope: 'full',
+      briefConfirmed: true,
+      results: { vision: { design_vision: '星际考古的核心幻想' } },
+      statuses: { vision: 'done' },
+      errors: {},
+      usageTotal: 120,
+      summary: null
+    }))
+    api = installMbApi()
+    view = await renderDom(
+      <AiFullGeneratePanel ceshuId="c1" doc={doc} onApplied={() => {}} onClose={() => {}} />
+    )
+    expect(view.byTestId('ai-full-draft')).not.toBeNull()
+    await view.click(view.byTestId('ai-full-draft-discard'))
+    expect(window.localStorage.getItem('mb.aiFull.draft.c1')).toBeNull()
+    expect(view.query('[data-testid="ai-full-draft"]')).toBeNull()
+    await view.cleanup()
+    view = await renderDom(
+      <AiFullGeneratePanel ceshuId="c1" doc={doc} onApplied={() => {}} onClose={() => {}} />
+    )
+    expect(view.query('[data-testid="ai-full-draft"]')).toBeNull()
+  })
+})
+
+/** 速览体积上限：把「一页」真的锁在一页，避免旧版 34261 字符的假一页回归 */
+describe('renderGenerationDigest：一页速览的体积上限', () => {
+  it('所有章都塞满长文本时仍压在预算内，且不出现空字段占位', () => {
+    const doc = createDefaultCeshu({ scope: 'full', name: '测试项目' })
+    const long = '御剑探索三界与境界突破的核心循环，'.repeat(40)
+    const chapters = visibleChaptersForDoc(doc)
+    for (const chapter of chapters) {
+      const data = chapterDataForDoc(doc, chapter)
+      for (const field of chapterFieldsForDoc(doc, chapter)) data[field.key] = long
+    }
+    const digest = renderGenerationDigest(doc, { chapters })
+    expect(digest).not.toContain('（待填）')
+    expect(digest.length).toBeLessThan(2000)
+    expect((digest.match(/^### /gm) ?? []).length).toBeLessThanOrEqual(chapters.length)
+  })
+
+  it('指定章全空时返回空串（不渲染空壳）', () => {
+    const doc = createDefaultCeshu({ scope: 'full', name: '测试项目' })
+    const data = chapterDataForDoc(doc, 'vision')
+    for (const field of chapterFieldsForDoc(doc, 'vision')) data[field.key] = ''
+    expect(renderGenerationDigest(doc, { chapters: ['vision'] })).toBe('')
   })
 })

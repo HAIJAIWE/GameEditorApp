@@ -94,10 +94,12 @@ test('校验与完备度：IPC 精确结果 + UI 面板展示', async () => {
       }
     })) as ValidateReadinessSetup
 
-    // 新建时已填 game_name，故必填错误 = 42（含「game_type 由人确定」等）
+    // 新建时已填 game_name，故校验消息 = 23 条（含「game_type 由人确定」等）。
+    // 2026-11-11 起整章未生成只出 1 条「本章尚未生成」建议（warning），不再逐字段报
+    // 「为必填项」硬错误，故较旧口径的 42 条少 19 条；只剩 meta / vision 有真实逐字段缺口。
     // ⚠️ 这几个数字是 schema 的派生值：schema 一改（如 2026-11-07「游戏章表默认收敛」、
     // 2026-11-08 补字段）就得同步；本条曾长期停在 48/45/50，与现网 schema 已不符。
-    expect(setup.emptyErrorCount).toBe(42)
+    expect(setup.emptyErrorCount).toBe(23)
     // 首条错误可能是「必填项」也可能是「由人确定」（人工决断字段）——两者都算未填
     expect(setup.firstError).toMatch(/为必填项|由人确定/)
     // 空文档：立项 1/16（只有 game_name 有值）、逐章 21 条（= 当前 schema 的章数）
@@ -105,8 +107,8 @@ test('校验与完备度：IPC 精确结果 + UI 面板展示', async () => {
     expect(setup.emptyConceptTotal).toBe(16)
     expect(setup.emptyChapterCount).toBe(21)
 
-    // 填满 meta 四必填：错误 39 条，立项 4/16，meta 章 4/4
-    expect(setup.filledErrorCount).toBe(39)
+    // 填满 meta 四必填：校验消息 20 条，立项 4/16，meta 章 4/4
+    expect(setup.filledErrorCount).toBe(20)
     expect(setup.filledConceptFilled).toBe(4)
     expect(setup.filledConceptTotal).toBe(16)
     expect(setup.filledMetaFilled).toBe(4)
@@ -131,6 +133,8 @@ test('校验与完备度：IPC 精确结果 + UI 面板展示', async () => {
     await expect(window.getByTestId('validate-panel')).toBeVisible()
     await expect(window.getByTestId('validate-panel')).toContainText('个问题')
     await expect(window.getByTestId('validate-panel')).toContainText('为必填项')
+    // 未生成的章只给一条建议性提示，不再被当成阻断
+    await expect(window.getByTestId('validate-panel')).toContainText('本章尚未生成')
     await window.getByTestId('validate-close').click()
     await expect(window.getByTestId('validate-panel')).toHaveCount(0)
 

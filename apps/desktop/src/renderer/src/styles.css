@@ -5730,6 +5730,124 @@ body {
   font-weight: 600;
 }
 
+/* ---- 一键生成：四步流程 / 设计概要确认 / 草稿快照 / 一页速览（2026-11-11） ---- */
+.ai-full-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-12);
+}
+.ai-full-step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 auto;
+  min-width: 96px;
+  padding: 5px 8px;
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-xs);
+  color: var(--text-muted);
+  background: var(--bg);
+}
+.ai-full-step-no {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  border-radius: 50%;
+  corner-shape: round;
+  border: 0.5px solid var(--border);
+  font-size: var(--text-12);
+}
+.ai-full-step.is-current {
+  color: var(--accent);
+  border-color: var(--accent);
+  font-weight: 600;
+  background: var(--bg-hover);
+}
+.ai-full-step.is-current .ai-full-step-no { border-color: var(--accent); }
+.ai-full-step.is-done { color: var(--success); }
+.ai-full-step.is-done .ai-full-step-no { border-color: var(--success); }
+
+.ai-full-draft {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  border: 0.5px solid var(--warning);
+  border-radius: var(--radius-xs);
+  background: var(--bg-hover);
+  font-size: var(--text-13);
+}
+.ai-full-draft-text { flex: 1 1 220px; }
+
+.ai-full-brief {
+  margin: 0 0 12px;
+  padding: 12px;
+  border: 0.5px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--bg);
+  font-size: var(--text-13);
+}
+.ai-full-brief-head { font-weight: 600; margin: 0 0 4px; }
+.ai-full-brief > .ai-gen-hint { margin: 0 0 10px; }
+.ai-full-brief-list { margin: 0 0 10px; }
+.ai-full-brief-item {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 4px 10px;
+  padding: 5px 0;
+  border-top: 0.5px solid var(--border);
+}
+.ai-full-brief-item:first-child { border-top: 0; }
+.ai-full-brief-item dt { color: var(--text-muted); margin: 0; }
+.ai-full-brief-item dd { margin: 0; min-width: 0; }
+.ai-full-brief-value { overflow-wrap: anywhere; }
+.ai-full-brief-desc { white-space: pre-wrap; }
+.ai-full-brief-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ai-full-brief-chip {
+  padding: 1px 7px;
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-xs);
+  font-size: var(--text-12);
+  color: var(--text-muted);
+}
+.ai-full-brief-note { display: block; margin: 0 0 10px; }
+.ai-full-brief-note .form-label { display: block; margin: 0 0 4px; }
+.ai-full-brief-note textarea { width: 100%; resize: vertical; }
+.ai-full-brief-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.ai-full-brief-actions .ai-gen-hint { flex: 1 1 180px; margin: 0; }
+
+.ai-full-pitch-empty { color: var(--text-muted); font-size: var(--text-13); }
+.ai-full-pitch-body {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  max-height: 320px;
+  overflow: auto;
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-xs);
+  background: var(--bg-hover);
+  font-family: inherit;
+  font-size: var(--text-12);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 /* ---- GDD 模板编辑器（W29） ---- */
 
 .template-editor-body {

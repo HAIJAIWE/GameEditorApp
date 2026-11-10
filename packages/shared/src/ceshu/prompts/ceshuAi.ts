@@ -703,6 +703,17 @@ export function normalizeFullGenerateInput(raw: FullGenerateFormInput): FullGene
   }
 }
 
+/**
+ * 把「确认设计概要」时用户补的方向修订拼进概念描述，随每章【用户输入】下发。
+ * 前缀是提示词的一部分（中文优先的产品语言），刻意放在 shared 层：渲染层只负责
+ * 收集输入，不持有中文提示词字面量，也不随界面语言把提示词翻成另一种语言。
+ */
+export function withBriefRevision(description: string, briefNote: string): string {
+  const base = description.trim()
+  const note = briefNote.trim()
+  return note ? base + '\n方向修订（用户补充）：' + note : base
+}
+
 /** 生成阶段：立项(7章) / 制作(累计到16章) / 全量(24章)，对齐 `CESHU_STAGE_CHAPTERS` */
 export type GenerateStage = 'concept' | 'production' | 'full'
 

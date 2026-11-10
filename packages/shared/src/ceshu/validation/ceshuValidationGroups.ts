@@ -53,6 +53,12 @@ export const VALIDATION_SEVERITY_LABELS: Record<ValidationSeverity, string> = {
   warning: '建议检查'
 }
 
+/**
+ * 「整章尚未生成」建议性提示的统一标记。
+ * 校验文案、分类规则、完备度缺口折算、交接包 blocker 归属共用同一常量，避免各处硬编码跑偏。
+ */
+export const UNTOUCHED_CHAPTER_MARK = '本章尚未生成'
+
 /** 文案前缀 → 分类（顺序即优先级：先匹配更具体的前缀） */
 const CLASSIFY_RULES: ReadonlyArray<{
   match: string
@@ -60,6 +66,8 @@ const CLASSIFY_RULES: ReadonlyArray<{
   kind: ValidationKind
   label: string
 }> = [
+  // 整章未生成的建议性提示：必须排在「为必填项」之前，且 severity 为 warning（不算阻断）
+  { match: UNTOUCHED_CHAPTER_MARK, severity: 'warning', kind: 'required', label: '未生成章节' },
   { match: '为必填项', severity: 'error', kind: 'required', label: '必填缺失' },
   { match: '格式异常', severity: 'error', kind: 'format', label: '数据格式异常' },
   { match: '一致性冲突', severity: 'error', kind: 'conflict', label: '跨章冲突' },

@@ -4,7 +4,7 @@ import { fieldLabelOf } from '../fields'
 import { isFilledValue } from '../model'
 import { SYSTEM_CONFIG_SCHEMA } from '../model'
 import { validateCeshu } from '../validation'
-import { resolveValidationChapter } from '../validation'
+import { resolveValidationChapter, UNTOUCHED_CHAPTER_MARK } from '../validation'
 import { docsOfVolume } from './ceshuHandoffDocs'
 import { handoffVolumeFolderName, readPath } from './ceshuHandoffPaths'
 import type { HandoffDoc, HandoffDocCondition, HandoffDocLayer, HandoffVolume } from './ceshuHandoffTypes'
@@ -198,6 +198,9 @@ interface BlockerContext {
  * ④ 章节级问题（不点名字段）→ 同样归该章第一份文档。
  */
 function blockerBelongsTo(def: HandoffDoc, message: string, context: BlockerContext): boolean {
+  // 「整章尚未生成」是阶段性的建议性提示，不是阻断：它点不到具体字段，但章节标签
+  // 会被 resolveValidationChapter 认出来，不显式挡掉就会把 warning 算进 blockers。
+  if (message.includes(UNTOUCHED_CHAPTER_MARK)) return false
   const chapter = resolveValidationChapter(message)
   const quoted = /字段\s*['"]([^'"]+)['"]/.exec(message)?.[1]
   if (quoted !== undefined) {

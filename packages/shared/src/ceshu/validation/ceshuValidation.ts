@@ -3,7 +3,7 @@ import {
   type ChapterData,
   type CeshuDocument
 } from '../reference'
-import { normalizeValue } from '../workflow'
+import { isMachineDataField, normalizeValue } from '../workflow'
 import { couplingMessages } from '../workflow'
 import { detectFieldOverlaps, fieldOverlapMessage } from '../workflow'
 import { detectTerminologyConflicts, terminologyConflictMessages } from '../reference'
@@ -17,6 +17,7 @@ import {
   chapterFieldsForDoc,
   chapterLabelForDoc,
   isEmptyRequiredValue,
+  isFilledValue,
   isPlainObject,
   requiredFieldsForDoc,
   visibleChaptersForDoc
@@ -29,6 +30,8 @@ import { buildPrototypeResults, checkDesignClaimsWith, type AssertionResult } fr
 import { evaluateAssertions } from './index'
 import { checkLedger, checkPrototypeAcceptanceResults, checkTestCaseList } from '../notes'
 import { column } from '../workflow'
+import { countWordsInChapter } from './ceshuWordCount'
+import { UNTOUCHED_CHAPTER_MARK } from './ceshuValidationGroups'
 import { readText } from '../../util/io'
 
 /**
@@ -88,6 +91,23 @@ export const CESHU_CHECKS: CeshuCheck[] = [
 
 // ---------- 各检查实现（body 与重构前逐字节一致） ----------
 
+/**
+ * 整章是否「完全没生成」：正文（排除机读数据字段）全空，且字数为 0。
+ *
+ * 与 ceshuReadiness.ts::chapterReadiness 的 empty 判定同源（isFilledValue + 字数 0）：
+ * - 机读数据字段（数值断言 / 账本 / 测试用例 …）不算正文，排除后再判，避免只灌了机读数据
+ *   的章被误判成「已生成」；
+ * - 只要写过任意正文字段（含 split 产生的非规格键），就不再是「未生成」，漏掉的必填
+ *   仍是真实缺口，保持逐字段报错。
+ */
+function chapterNotGenerated(data: Record<string, unknown>, chapter: string): boolean {
+  const body: Record<string, unknown> = {}
+  for (const [field, value] of Object.entries(data)) {
+    if (!isMachineDataField(chapter, field)) body[field] = value
+  }
+  return Object.values(body).every((value) => !isFilledValue(value)) && countWordsInChapter(body) === 0
+}
+
 function checkRequiredFields(ctx: CeshuCheckContext): string[] {
   const { doc } = ctx
   const errors: string[] = []
@@ -106,6 +126,15 @@ function checkRequiredFields(ctx: CeshuCheckContext): string[] {
       continue
     }
     const data = chapterDataForDoc(doc, key)
+    /*
+     * 整章完全没生成（本次生成未覆盖到的章）：不再逐字段报「为必填项」硬错误。
+     * 这些章按阶段推进即可，完备度的 next_steps 已明确说「不急」；只留 1 条建议性提示，
+     * 让校验面板与完备度口径一致。已写过部分内容的章仍走原逻辑，真实缺口不被吞掉。
+     */
+    if (chapterNotGenerated(data, key)) {
+      errors.push(`${label}：${UNTOUCHED_CHAPTER_MARK}，${required.length} 项必填待后续阶段补齐`)
+      continue
+    }
     for (const field of required) {
       if (isEmptyRequiredValue(data[field])) {
         /*

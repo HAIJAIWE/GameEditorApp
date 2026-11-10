@@ -19,6 +19,7 @@ import {
   mergeChapterDraft,
   normalizeFullGenerateInput,
   parseReviewResponse,
+  withBriefRevision,
   type CeshuAiReviewResult
 } from '@mobai/shared/ceshu/prompts'
 import { genreReviewProfile, reviewProbeFor } from '@mobai/shared/ceshu/prompts'
@@ -635,5 +636,19 @@ describe('AI 生成：禁编造约束（2026-10-23 体检后新增）', () => {
     const doc = createDefaultCeshu({ scope: 'full', name: '测试游戏' })
     const prompt = buildChapterPrompt(doc, 'market_analysis', { onlyFields: ['competitors'] }).prompt
     expect(prompt).toContain('禁编造（硬约束）')
+  })
+})
+
+describe('withBriefRevision：方向修订拼进概念描述（提示词层，中文稳定）', () => {
+  it('有修订时追加中文前缀，描述与修订各自 trim', () => {
+    expect(withBriefRevision('  一款仙侠 RPG  ', '  改成箱庭关卡  '))
+      .toBe('一款仙侠 RPG\n方向修订（用户补充）：改成箱庭关卡')
+  })
+  it('修订为空白时不拼接、不留下多余换行', () => {
+    expect(withBriefRevision('  一款仙侠 RPG  ', '   ')).toBe('一款仙侠 RPG')
+    expect(withBriefRevision('一款仙侠 RPG', '')).toBe('一款仙侠 RPG')
+  })
+  it('空描述 + 有修订也能拼（不吞掉用户补充）', () => {
+    expect(withBriefRevision('', '战斗要写帧数')).toBe('\n方向修订（用户补充）：战斗要写帧数')
   })
 })

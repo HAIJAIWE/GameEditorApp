@@ -14,14 +14,15 @@ function hasError(errors: string[], fragment: string): boolean {
 }
 
 describe('策划书校验：必填字段', () => {
-  it('空文档：必填字段逐项报错（43 条，budget 默认 {} 不算空），无依赖错误', () => {
+  it('空文档：整章未生成只报 1 条建议（24 条），已有内容的章仍逐字段报错', () => {
     const errors = validateCeshu(makeDoc())
-    // 新建文档默认关掉「市场分析/商业化/运营活动」三章 ⇒ 它们的 6 个必填不再计入；
-    // 41 个可见章必填 + 2 条依赖类 = 43
-    expect(errors).toHaveLength(43)
+    // 新建文档默认关掉「市场分析/商业化/运营活动」三章；其余 18 个整章未生成的章
+    // 各折叠成 1 条建议，meta / vision 有默认正文仍逐字段报必填（含 2 条人定）⇒ 24 条
+    expect(errors).toHaveLength(24)
     // game_name 是人定字段（名称须人决）：2026-10-23 起单独措辞，见下方专门用例
     expect(hasError(errors, "文档信息：字段 'game_name' 由人确定，尚未填写")).toBe(true)
-    expect(hasError(errors, "可访问性与本地化：字段 'accessibility_features' 为必填项")).toBe(true)
+    expect(hasError(errors, '可访问性与本地化：本章尚未生成，2 项必填待后续阶段补齐')).toBe(true)
+    expect(hasError(errors, "可访问性与本地化：字段 'accessibility_features' 为必填项")).toBe(false)
     // 旧版 语义：空字典 {} 不算空（第九章 budget 默认 {}，故不报错）
     expect(hasError(errors, "资源规划：字段 'budget' 为必填项")).toBe(false)
     expect(hasError(errors, '依赖缺失')).toBe(false)
@@ -32,15 +33,18 @@ describe('策划书校验：必填字段', () => {
     // 必填项，但 AI 按契约永远不生成它们 ⇒ 错误无法通过生成消除、只能手填，
     // 却混在必填缺失里一起催人。故单独措辞（分组上落「其他（建议检查）」）。
     const doc = makeDoc()
+    // 整章未生成会折叠成 1 条建议（不逐字段）；先写一点正文让 tech / story 进入逐字段校验
+    doc.tech.milestones = 'M1 原型'
+    doc.story.architecture = '三幕式结构'
     const errors = validateCeshu(doc)
     expect(hasError(errors, "技术规格：字段 'engine' 由人确定，尚未填写")).toBe(true)
     expect(hasError(errors, "世界观与角色：字段 'main_npc_count' 由人确定，尚未填写")).toBe(true)
     expect(hasError(errors, "技术规格：字段 'engine' 为必填项")).toBe(false)
   })
 
-  it('lite 档只校验基础 9 章（22 条）', () => {
+  it('lite 档只校验基础 9 章（13 条）', () => {
     const errors = validateCeshu(makeDoc('lite'))
-    expect(errors).toHaveLength(22)
+    expect(errors).toHaveLength(13)
     expect(hasError(errors, '技术规格')).toBe(false)
     expect(hasError(errors, '关卡与内容设计')).toBe(false)
   })

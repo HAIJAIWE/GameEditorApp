@@ -101,6 +101,8 @@ describe('通用底座 vs 系统模块', () => {
 describe('模块联动：校验 / 机读包 / 评分 都尊重 enabled_modules', () => {
   it('校验：关掉的模块不报该模块必填缺失', () => {
     const doc = createDefaultCeshu({ scope: 'full' })
+    // 整章未生成会折叠成 1 条建议（不含字段名）；写一点正文让 economy 进入逐字段校验
+    doc.economy.source_sink = '产出与消耗：金币、材料'
     // 缺省全开：economy 的必填（currency_types）应被报
     expect(validateCeshu(doc).some((e) => e.includes('currency_types'))).toBe(true)
     // 关掉 economy：不再报 currency_types

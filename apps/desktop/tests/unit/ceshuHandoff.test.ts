@@ -813,7 +813,10 @@ describe('buildHandoffPlan：门禁', () => {
   })
 
   it('校验问题只归相关文档：story 的必填缺失只出现在「敌人与 Boss」', () => {
-    const docs = buildHandoffPlan(makeDoc()).flatMap((status) => status.docs)
+    const doc = makeDoc()
+    // 整章未生成只出 1 条建议（不点名字段）；写一点正文让 story 进入逐字段校验
+    doc.story.architecture = '三幕式结构'
+    const docs = buildHandoffPlan(doc).flatMap((status) => status.docs)
     const withProtagonist = docs.filter((item) => item.blockers.some((message) => message.includes('protagonist')))
     expect(withProtagonist.map((item) => item.doc.id)).toEqual(['content-enemy'])
   })
