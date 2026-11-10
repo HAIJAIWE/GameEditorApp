@@ -499,6 +499,46 @@ describe('AiFullGeneratePanel：未应用结果不白跑', () => {
     )
     expect(view.query('[data-testid="ai-full-draft"]')).toBeNull()
   })
+
+  it('恢复制作档草稿时还原阶段，8 章结果全部写回而不只写立项档子集', async () => {
+    const doc = createDefaultCeshu({ scope: 'full', name: '测试项目' })
+    const chapters = ['meta', 'vision', 'story', 'gameplay', 'combat', 'systems', 'economy', 'numeric']
+    const results: Record<string, Record<string, unknown>> = {}
+    const statuses: Record<string, string> = {}
+    for (const chapter of chapters) {
+      results[chapter] = { design_vision: '恢复后应写盘的内容' }
+      statuses[chapter] = 'done'
+    }
+    // 模拟「制作档 15 章跑到第 9 章时窗口被关掉」：阶段/档位写在快照里，
+    // 但新窗口的表单默认回到立项档 7 章。
+    window.localStorage.setItem('mb.aiFull.draft.c1', JSON.stringify({
+      version: 1,
+      ceshuId: 'c1',
+      savedAt: Date.now(),
+      stage: 'production',
+      scope: 'full',
+      briefConfirmed: true,
+      results,
+      statuses,
+      errors: {},
+      usageTotal: 8000,
+      summary: null
+    }))
+    const saveChapter = vi.fn(async (_req: unknown) => doc)
+    api = installMbApi({ overrides: { 'ceshu.saveChapter': saveChapter } })
+    view = await renderDom(
+      <AiFullGeneratePanel ceshuId="c1" doc={doc} onApplied={() => {}} onClose={() => {}} />
+    )
+    expect((view.byTestId('ai-full-apply') as HTMLButtonElement).disabled, '恢复前不该能应用').toBe(true)
+    await view.click(view.byTestId('ai-full-draft-restore'))
+    const apply = view.byTestId('ai-full-apply') as HTMLButtonElement
+    expect(apply.disabled, '恢复后应可应用').toBe(false)
+    await view.click(apply)
+    const written = saveChapter.mock.calls.map((call) => (call[0] as { chapter: string }).chapter)
+    expect(written).toEqual(chapters)
+    expect(view.byTestId('ai-full-summary').textContent).toContain('8 章')
+    expect(window.localStorage.getItem('mb.aiFull.draft.c1')).toBeNull()
+  })
 })
 
 /** 速览体积上限：把「一页」真的锁在一页，避免旧版 34261 字符的假一页回归 */

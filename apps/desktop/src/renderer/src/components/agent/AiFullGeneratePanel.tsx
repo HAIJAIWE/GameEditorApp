@@ -230,9 +230,26 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
   const handleRestoreDraft = (): void => {
     const draft = draftPending
     if (draft === null) return
+    /**
+     * 还原生成阶段与档位：草稿可能是制作档 15 章跑到一半留下的，而新窗口的表单
+     * 默认回到立项档 7 章。plan.order 由 stage/scope 推导，不还原会让「全部应用」
+     * 只写回前 7 章里的交集 —— 实测恢复 8 章却只保存了 6 章，story / systems 被静默丢掉。
+     * 表单其余项（名称 / 描述 / 风格）只影响提示词，不影响写盘章集合，故不入快照。
+     */
+    if (draft.stage === 'concept' || draft.stage === 'production' || draft.stage === 'full') {
+      setStage(draft.stage)
+    }
+    if (draft.scope === GDD_SCOPE_FULL || draft.scope === GDD_SCOPE_LITE) {
+      setScope(draft.scope)
+    }
     resultsRef.current = { ...draft.results }
     setResults({ ...draft.results })
-    setStatuses({ ...draft.statuses })
+    // 中断时正在生成的单元会留下 'running'，恢复后不该永远显示「生成中」
+    const restoredStatuses: Partial<Record<string, ChapterStatus>> = {}
+    for (const [chapter, status] of Object.entries(draft.statuses)) {
+      restoredStatuses[chapter] = status === 'running' ? 'pending' : status
+    }
+    setStatuses(restoredStatuses)
     setErrors({ ...draft.errors })
     setUsageTotal(draft.usageTotal)
     setSummary(draft.summary)
