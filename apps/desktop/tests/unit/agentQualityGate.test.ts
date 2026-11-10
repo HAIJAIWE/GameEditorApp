@@ -100,6 +100,24 @@ describe('策划书 AI 产出的确定性质量门（v0.5 DD-19）', () => {
     expect(withNew!.errorDelta).toBe(-1) // 真正填入 ⇒ 少一个必填错误
   })
 
+  it('建议性的「内容质量提示」不算恶化：长句/缺数字只加提示，errorDelta 仍按硬问题算（2026-11-10）', () => {
+    // 真实模型写细之后必然出现的长句 + 无数字段落；这类提示不该让整章被判「净恶化」
+    const doc = makeDoc()
+    const longText = [
+      '我们希望玩家在探索三界的过程中始终能够感受到御剑飞行带来的自由与畅快并且愿意为了理解世界观而主动阅读每一段文本内容',
+      '因此在设计上会把叙事线索分散到地图各处并在玩家靠近时以轻量提示的方式逐步展开同时保留足够的留白让玩家自行拼合',
+      '这套做法的目标是让长时间游玩之后仍然觉得世界是完整并且自洽而不是由若干互不相关的任务拼凑起来的松散集合体'
+    ].join('\n')
+    const verdict = evaluateChapterDraft(doc, 'vision', { design_vision: longText })
+    const advisoryBefore = verdict!.advisoryBefore ?? 0
+    const advisoryAfter = verdict!.advisoryAfter ?? 0
+    expect(advisoryAfter).toBeGreaterThan(advisoryBefore) // 长句提示确实产生了
+    // errorDelta 只算硬问题：与「原始错误数差」的差恰好等于建议性提示的增量
+    expect(verdict!.afterErrors - verdict!.beforeErrors - verdict!.errorDelta).toBe(advisoryAfter - advisoryBefore)
+    expect(verdict!.errorDelta).toBe(-1) // 填上必填的「设计愿景」少一条必填错误；若把长句提示算进去会是 0
+    expect(shouldRegenerateChapter(verdict)).toBe(false)
+  })
+
   it('立项完成度取自 computeChapterProgress（同一份确定性来源，无变化时前后相等）', () => {
     const doc = makeDoc()
     const verdict = evaluateChapterDraft(doc, 'meta', {})

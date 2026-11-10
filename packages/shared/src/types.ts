@@ -240,7 +240,13 @@ export interface QualityGateVerdict {
   beforeErrors: number
   /** 应用生成结果后的校验错误数 */
   afterErrors: number
-  /** 错误数变化（**负数 = 变好**） */
+  /**
+   * 建议性「内容质量提示」条数（空话 / 长句 / 缺数字），生成前 / 应用后。
+   * **不计入** `errorDelta`：这类提示随正文变长必然出现，计入会把每次生成都判成「恶化」。
+   */
+  advisoryBefore?: number
+  advisoryAfter?: number
+  /** 错误数变化（**负数 = 变好**；不含建议性的内容质量提示） */
   errorDelta: number
   /** 应用后仍存在的**阻断性**问题（必填缺失 / 一致性冲突）；软警告不算 */
   blocking: string[]

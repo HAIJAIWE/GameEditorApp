@@ -461,6 +461,18 @@ export function buildPrototypeResults(doc: CeshuDocument): Map<string, string> {
 }
 
 /**
+ * 断言名归一：去掉尾部括号说明（中英文括号都认）并折叠空白。
+ *
+ * 只用于「证据名 ↔ 断言名」的**放宽匹配**，不改变任何复算逻辑与外显文案。
+ */
+function normalizeAssertName(name: string): string {
+  return name
+    .replace(/[（(][^（）()]*[）)]\s*$/u, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+/**
  * 设计主张证据核对（`numeric.design_claims`，行格式 `主张|强度|证据`）。
  * 基于**预计算**的断言结论与原型验收映射，避免校验链路重复复算 evaluateAssertions。
  * 判定规则见下方 checkDesignClaims 注释。
@@ -475,6 +487,17 @@ export function checkDesignClaimsWith(
 
   const label = CHAPTER_LABELS.numeric
   const byStatement = new Map(assertionResults.map((result) => [result.statement, result]))
+  /*
+   * 断言名归一后再建一份索引（2026-11-10）：模型常把来源/依据写进断言名，
+   * 例如断言表里是「A2 御剑冲刺灵力消耗（来源：设计初值…）」，而设计主张的证据写成
+   * 「A2 御剑冲刺灵力消耗」——精确匹配会误报「不在数值断言表中」并被质量门判成净恶化。
+   * 归一规则：去掉尾部括号说明 + 折叠空白；两处都归一再查。
+   */
+  const byNormalized = new Map<string, AssertionResult>()
+  for (const result of assertionResults) {
+    const key = normalizeAssertName(result.statement)
+    if (key !== '' && !byNormalized.has(key)) byNormalized.set(key, result)
+  }
   const messages: string[] = []
 
   for (const row of claimRows) {
@@ -491,7 +514,7 @@ export function checkDesignClaimsWith(
     }
 
     if (strength === '计算' || strength === 'calculated' || strength === '复算') {
-      const hit = byStatement.get(evidence)
+      const hit = byStatement.get(evidence) ?? byNormalized.get(normalizeAssertName(evidence))
       if (hit === undefined) {
         messages.push(
           `一致性冲突：${label} 设计主张「${claim}」标注为计算，但证据「${evidence}」不在数值断言表中（无法复算）`

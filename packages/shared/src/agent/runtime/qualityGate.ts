@@ -47,6 +47,17 @@ function isBlocking(error: string): boolean {
   return category === 'required' || category === 'conflict'
 }
 
+/**
+ * 「内容质量提示」（空话套话 / 长句偏多 / 缺少可验证数字）只是**建议性**信号，不是校验错误。
+ *
+ * 2026-11-10 实测：正文写得越细，长句与无数字段落越常见——把它们计入 `errorDelta` 后，
+ * 一键生成 7 章里有 3 章被误判「净恶化」，质量门退化成噪音（用户看到的就是那种黄色徽标）。
+ * 故这里把它们从「改善 / 恶化」的计数中剔除；它们仍然完整出现在校验面板与完备度提示里。
+ */
+function isAdvisory(error: string): boolean {
+  return error.includes('内容质量提示')
+}
+
 function summarize(verdict: Omit<QualityGateVerdict, 'summary'>): string {
   if (verdict.blocking.length > 0) {
     return `仍有 ${verdict.blocking.length} 个阻断问题（必填缺失 / 小节间硬冲突），建议先补齐再继续`
@@ -94,7 +105,10 @@ export function evaluateChapterDraft(
    * `beforeScore/scoreDelta` 来自已删除的 `scoreCeshu`；而「错误数」与「立项完成度」
    * 都是校验/进度链路本就产出的客观量——不依赖任何拍出来的权重，也不可能编造。
    */
-  const errorDelta = afterErrors.length - beforeErrors.length
+  const beforeAdvisory = beforeErrors.filter(isAdvisory)
+  const afterAdvisory = afterErrors.filter(isAdvisory)
+  // 建议性提示（见 isAdvisory）不计入「恶化」——否则长文本必然被判净恶化
+  const errorDelta = afterErrors.filter((item) => !isAdvisory(item)).length - beforeErrors.filter((item) => !isAdvisory(item)).length
   const completionBefore = computeChapterProgress(base, 'concept').total ?? 0
   const completionAfter = computeChapterProgress(afterDoc, 'concept').total ?? 0
   const completionDelta = Math.round((completionAfter - completionBefore) * 10000) / 10000
@@ -104,6 +118,8 @@ export function evaluateChapterDraft(
     chapter,
     beforeErrors: beforeErrors.length,
     afterErrors: afterErrors.length,
+    advisoryBefore: beforeAdvisory.length,
+    advisoryAfter: afterAdvisory.length,
     errorDelta,
     blocking,
     completionBefore,

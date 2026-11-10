@@ -245,6 +245,11 @@ describe('checkDesignClaims：claim → 证据核对', () => {
     expect(checkDesignClaims(docWithClaims(['首转生恰得3星火|计算|首转生恰得3星火']))).toEqual([])
   })
 
+  it('证据名不带来源后缀，也能对上有后缀的断言名（2026-11-10 放宽：模型常把来源塞进名称）', () => {
+    const rows = ['首转生恰得3星火（来源：设计初值）|floor((35-1)/星火步长)|3|0|==3']
+    expect(checkDesignClaims(docWithClaims(['首转生恰得3星火|计算|首转生恰得3星火'], rows))).toEqual([])
+  })
+
   it('证据断言不存在 → 一致性冲突（无法复算）', () => {
     const messages = checkDesignClaims(docWithClaims(['某个主张|计算|不存在的断言']))
     expect(messages).toHaveLength(1)
