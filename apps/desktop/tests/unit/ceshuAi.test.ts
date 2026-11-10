@@ -231,6 +231,19 @@ describe('AI 生成：整章提示词组装', () => {
     expect(built.prompt).toContain('写作规范')
     expect(built.prompt).toContain('单句尽量不超过 40 字')
     expect(built.prompt).toContain('列表统一用「- 」开头')
+    /*
+     * 2026-11-10 修「AI 生成内容太少」：字段清单不再下发英文 key 的逗号串。
+     * 只给 key 时模型既不知道它是表格、也不知道单选有哪些候选，整章每个字段都被压成
+     * 几十字概述；字段行现在同时给出「中文名 + key + 类型 + 必填性 + 该写什么 + 参考量级」。
+     */
+    expect(built.prompt).not.toContain('game_name, doc_kind')
+    expect(built.prompt).toContain('该章节需要填充的字段列表:\n- 游戏名称（game_name · 短文本 · 必填）')
+    expect(built.prompt).toContain('参考量级：')
+    // combo 字段把候选值写进同一行
+    expect(built.prompt).toContain('文档类型（doc_kind · 单选 · 选填）')
+    expect(built.prompt).toContain('可选值：game / application')
+    // 游戏档附「细节与步骤要求（交付标准）」（应用档不掺策划书口径，见 appDocAi.test.ts）
+    expect(built.prompt).toContain('细节与步骤要求（交付标准）：')
   })
 
   it('整章模式：无默认值的字段（可选/拆分/新导入）也进字段清单——模型看得见才生成', () => {
@@ -263,18 +276,23 @@ describe('AI 生成：整章提示词组装', () => {
   /*
    * 2026-11-09 导出实测后补：整章生成从不下发「哪些字段是表、几列、列名」。
    * 模型于是把 6 列的「三层循环」写成一段话，导出侧列全空（见 ceshuExport 的列错位守卫）。
+   * 2026-11-10：列契约并入字段行（「列：A | B | C」），独立段已删——同一件事不下发两遍。
    */
-  it('整章模式下发表格字段的列契约（列数 + 列名 + 竖线分隔），无表格字段时零膨胀', () => {
+  it('表格字段的列契约并入字段行（每行一次），无表格字段时零膨胀', () => {
     const doc = createDefaultCeshu({ scope: 'full' })
     const gameplay = buildChapterPrompt(doc, 'gameplay')
-    expect(gameplay.prompt).toContain('表格字段写法')
-    expect(gameplay.prompt).toContain('三层循环（loop_three_layers）')
-    expect(gameplay.prompt).toContain('层级 | 关注问题 | 玩家动作 | 系统变化 | 反馈 | 传递物')
-    expect(gameplay.prompt).toContain('设计量化目标（design_targets）')
+    expect(gameplay.prompt).toContain('三层循环（loop_three_layers · 表格 · 选填）')
+    expect(gameplay.prompt).toContain('列：层级 | 关注问题 | 玩家动作 | 系统变化 | 反馈 | 传递物')
+    expect(gameplay.prompt).toContain('设计量化目标（design_targets · 表格 · 选填）')
+    // 列契约只在该字段那一行出现一次（旧的独立 pipeContracts 段已删）
+    const columnLine = '层级 | 关注问题 | 玩家动作 | 系统变化 | 反馈 | 传递物'
+    expect(gameplay.prompt.split(columnLine).length - 1).toBe(1)
+    expect(gameplay.prompt).not.toContain('表格字段写法')
 
     // meta 的表格字段只有 alternatives 一个，也只该出现这一条
     const meta = buildChapterPrompt(doc, 'meta')
-    expect(meta.prompt).toContain('方案取舍（alternatives）')
+    expect(meta.prompt).toContain('方案取舍（alternatives · 表格 · 选填）')
+    expect(meta.prompt).toContain('列：决策 | 候选方案 | 为什么不选 | 结论')
     expect(meta.prompt).not.toContain('三层循环')
   })
 
@@ -341,6 +359,26 @@ describe('AI 生成：单字段定向生成', () => {
       expect(buildChapterPrompt(doc, 'story', options).prompt).not.toContain('【本次任务')
     }
   })
+
+  /*
+   * 2026-11-10 真实模型实测：vision 章因「结构化数据」父键只列了一行中文名、没有子字段要求，
+   * 模型原样回了 {primary:"",secondary:"",potential:""} ⇒ 整章判定「未返回有效内容」。
+   * 现在点路径父键必须展开成带参考量级的子字段清单 + 明确的键名。
+   */
+  it('点路径父键（user_personas）展开成子字段 brief 并要求写成对象', () => {
+    const doc = createDefaultCeshu({ scope: 'full', name: '测试游戏' })
+    const built = buildChapterPrompt(doc, 'vision', { onlyFields: ['user_personas'] })
+    expect(built.prompt).toContain('user_personas（结构化数据，请写成对象，键为 "primary" / "secondary" / "potential"）')
+    expect(built.prompt).toContain('主要用户（user_personas.primary')
+    expect(built.prompt).toContain('潜在用户（user_personas.potential')
+    expect(built.prompt).toContain('参考量级：')
+  })
+
+  it('字段清单后点明「JSON 的键必须用括号里的英文标识符」', () => {
+    const doc = createDefaultCeshu({ scope: 'full', name: '测试游戏' })
+    const built = buildChapterPrompt(doc, 'vision', { onlyFields: ['design_assumptions'] })
+    expect(built.prompt).toContain('JSON 的键必须用每行括号里的英文标识符')
+  })
 })
 
 describe('AI 生成：LLM 输出容错解析', () => {
@@ -381,6 +419,19 @@ describe('AI 生成：字段清洗', () => {
 
     const meta = filterGeneratedFields(doc, 'meta', { version: '0.2.0', game_name: '游戏' })
     expect(meta).toEqual({ version: '0.2.0', game_name: '游戏' })
+  })
+
+  /*
+   * 2026-11-10 真实模型实测：vision 的 design_assumptions 单元，模型把中文名当键回成
+   * {"关键假设": "…"}，按未知键清洗后整单元 0 字段 ⇒ 整章「AI 未返回有效内容」。
+   * 清洗层要认中文名（提示词层另有一句「键必须用英文标识符」，两层互为保险）。
+   */
+  it('模型把中文名当键时回退到英文字段 key（只认非点路径字段）', () => {
+    const doc = createDefaultCeshu({ scope: 'full' })
+    const vision = filterGeneratedFields(doc, 'vision', { 关键假设: '新玩家 180 秒内走完核心循环' })
+    expect(vision).toEqual({ design_assumptions: '新玩家 180 秒内走完核心循环' })
+    // 点路径子字段的中文名不做映射（否则会写出 "user_personas.primary" 这种脏键）
+    expect(filterGeneratedFields(doc, 'vision', { 主要用户: '核心玩家' })).toEqual({})
   })
 })
 

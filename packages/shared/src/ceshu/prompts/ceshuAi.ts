@@ -86,6 +86,11 @@ import {
   type AdversarialCheckKey
 } from './ceshuAiData'
 import { buildFieldActionInstruction, type FieldAction } from '../fields'
+/*
+ * 字段清单与交付标准的纯函数模块（同目录相对导入是允许的：目录内模块之间不走桶；
+ * 外部消费方仍走 `@mobai/shared/ceshu/prompts`，桶导出由集成阶段统一接线）。
+ */
+import { CESHU_DETAIL_REQUIREMENTS, buildFieldBriefBlock, type FieldBriefInput } from './ceshuDetail'
 export * from './ceshuAiData'
 
 /**
@@ -165,6 +170,63 @@ function chapterGenerationKeys(doc: CeshuDocument, chapter: string, chapterData:
     if (!merged.includes(key)) merged.push(key)
   }
   return merged.filter((key) => !NON_AI_GENERATED_KEYS.has(key))
+}
+
+/**
+ * 整章提示词里的字段清单：一行一个字段，带中文名 / key / 类型 / 必填性 / 该写什么 /
+ * 参考量级 / 列 / 可选值 / 区间（单行渲染交给 `ceshuDetail.fieldBriefLine`）。
+ *
+ * 为什么不再下发英文 key 的逗号串：模型只看到 `loop_three_layers, design_targets` 时
+ * 既不知道它是 6 列表格，也不知道单选有哪些候选，于是把表格写成一段话、把单选写成自由发挥
+ * （2026-11-09 导出实测：6 列「三层循环」被塞进第 1 列，后 5 列全空）。
+ *
+ * 字段表 ∪ 数据键的并集里可能有没登记的键（点路径父键 `user_personas`、历史脏键）：
+ * 没有定义就没有契约可写，按「key + 子字段中文名」兜底列出，绝不凭空编一个类型/必填性。
+ */
+function renderFieldListBlock(doc: CeshuDocument, chapter: string, fields: readonly string[]): string {
+  const defs = chapterFieldsForDoc(doc, chapter)
+  const required = requiredFieldsForDoc(doc, chapter)
+  const toBrief = (def: (typeof defs)[number]): FieldBriefInput => {
+    const meta = resolveFieldMeta(chapter, def, required)
+    return {
+      key: def.key,
+      label: def.label,
+      kind: def.kind,
+      required: meta.required,
+      ...(meta.aiHint !== undefined ? { aiHint: meta.aiHint } : {}),
+      ...(def.columns !== undefined ? { columns: def.columns } : {}),
+      ...(def.values !== undefined ? { values: def.values } : {}),
+      ...(def.from !== undefined ? { from: def.from } : {}),
+      ...(def.to !== undefined ? { to: def.to } : {})
+    }
+  }
+  const lines: string[] = []
+  const briefBlock = buildFieldBriefBlock(fields.filter((key) => defs.some((field) => field.key === key)).map((key) => toBrief(defs.find((field) => field.key === key)!)))
+  if (briefBlock !== '') lines.push(briefBlock)
+  for (const key of fields) {
+    if (defs.some((field) => field.key === key)) continue
+    const children = defs.filter((field) => field.key.startsWith(`${key}.`))
+    if (children.length === 0) {
+      lines.push(`- ${key}`)
+      continue
+    }
+    /*
+     * 点路径父键（如 vision.user_personas = primary/secondary/potential）：
+     * 改前只写一行「结构化数据：主要用户 / 次要用户 / 潜在用户」，既没写每个子字段
+     * 该写什么，也没给参考量级 ⇒ 实测（2026-11-10 真实模型）模型原样回了一个
+     * 三个空串的骨架 {primary:"",secondary:"",potential:""}，整章判定「未返回有效内容」。
+     * 现在把子字段逐个按 brief 展开，并明确要求写成对象、给出键名。
+     */
+    const childKeys = children.map((child) => child.key.slice(key.length + 1))
+    lines.push(
+      `- ${key}（结构化数据，请写成对象，键为 ${childKeys.map((childKey) => `"${childKey}"`).join(' / ')}）：`
+    )
+    const childBlock = buildFieldBriefBlock(children.map(toBrief))
+    if (childBlock !== '') {
+      lines.push(childBlock.split('\n').map((line) => `  ${line}`).join('\n'))
+    }
+  }
+  return lines.join('\n')
 }
 
 /* ---- 前文摘要：跨章一致性的上下文，带硬上限 ---- */
@@ -288,7 +350,7 @@ export function buildChapterPrompt(
       : onlyEmpty
         ? allKeys.filter((key) => !isTruthyValue(chapterData[key]))
         : allKeys
-  const fieldList = fields.join(', ')
+  const fieldList = renderFieldListBlock(doc, chapter, fields)
 
   // 已有非空内容
   const existingContent = allKeys
@@ -364,29 +426,19 @@ export function buildChapterPrompt(
   }
   prompt += `该章节需要填充的字段列表:\n${fieldList}\n\n`
   /*
-   * 表格字段（pipeList）的列契约（2026-11-09 导出实测后补）。
-   *
-   * 现场：整章生成只下发英文 key 的逗号串，模型不知道哪些字段是「一行一列」的表格，
-   * 于是把 6 列的「三层循环」写成「- 瞬时层（30秒）：动作…系统变化…反馈…」一整段话，
-   * 导出按索引硬映射 ⇒ 第 1 列塞全文、后 5 列全空（方案取舍 / 货币类型同样错位）。
-   * 这里只补「哪些字段是表、几列、列名、分隔符」，不发 aiHint（避免提示词膨胀）。
+   * 键名口径（2026-11-10 真实模型实测）：字段清单每行是「中文名（english_key · 类型 · …）」，
+   * 模型见过把中文名直接当 JSON 键返回（如 {"关键假设": "…"}），未知键被清洗后整单元归零。
+   * 这里点明「键用括号里的英文标识符」，与 filterGeneratedFields 的中文名回退互为保险。
    */
-  const pipeContracts: string[] = []
-  for (const key of fields) {
-    const def = chapterFieldsForDoc(doc, chapter).find((field) => field.key === key)
-    const columns = def?.columns ?? []
-    if (def?.kind !== 'pipeList' || columns.length === 0) continue
-    pipeContracts.push(
-      `- ${def.label}（${key}）：每行一条记录，用竖线分隔 ${columns.length} 列 → ${columns.map((column) => column.label).join(' | ')}`
-    )
+  if (fieldList !== '') {
+    prompt += `（JSON 的键必须用每行括号里的英文标识符，例如 design_assumptions；不要用中文名当键。）\n\n`
   }
-  if (pipeContracts.length > 0) {
-    prompt += `表格字段写法（一行一条、各列用 | 分隔，列名与列数照抄，不要把整段话塞进一格）:\n${pipeContracts.join('\n')}\n\n`
-  }
+  /* 表格列的契约已并入上面每行的「列：A | B | C」（2026-11-10），不再独立成段：
+   * 同一件事下发两遍既烧 token，又给了模型两套措辞（列名照抄 vs 列名从 brief 里抓）。 */
   /*
-   * 单字段生成（协作粒度）：把该字段的 `aiHint`（AI 该产出什么）与 `reviewHint`
-   * （人审看什么）一并喂给模型 —— 让生成目标和人审标准在同一处对齐，避免
-   * 「AI 写了一堆、人不知道该看哪」。整章生成不加，避免提示词膨胀。
+   * 单字段生成（协作粒度）：只补 `reviewHint`（人审看什么）。
+   * `aiHint` 已经进了上面那行 brief（该写什么 + 参考量级 + 列/可选值），再下发一遍就是
+   * 同一条目说两次；这里只把人审标准对齐给模型，让它按会被检查的点自检。
    */
   if (onlyFields && onlyFields.length > 0) {
     const defs = chapterFieldsForDoc(doc, chapter)
@@ -395,13 +447,10 @@ export function buildChapterPrompt(
       const def = defs.find((field) => field.key === key)
       if (def === undefined) continue
       const meta = resolveFieldMeta(chapter, def, requiredFieldsForDoc(doc, chapter))
-      const parts: string[] = []
-      if (meta.aiHint) parts.push(`AI 目标: ${meta.aiHint}`)
-      if (meta.reviewHint) parts.push(`人审要点: ${meta.reviewHint}`)
-      if (parts.length > 0) hintLines.push(`- ${def.label}：${parts.join('；')}`)
+      if (meta.reviewHint) hintLines.push(`- ${def.label}：人审要点: ${meta.reviewHint}`)
     }
     if (hintLines.length > 0) {
-      prompt += `字段写作要求:\n${hintLines.join('\n')}\n\n`
+      prompt += `字段人审要点（生成时按同一标准自检）:\n${hintLines.join('\n')}\n\n`
     }
   }
   /*
@@ -415,6 +464,11 @@ export function buildChapterPrompt(
   if (existingContent) {
     prompt += `已有非空内容（请保留并补充其他字段）:\n${existingContent}\n\n`
   }
+  /*
+   * 策划书的「细节与步骤要求（交付标准）」只给游戏档：它拿帧率 / 技能冷却 / 玩家怎么恢复
+   * 这类游戏设计口径举例，塞进应用档就是把软件设计文档写歪（应用档另有 APP_WRITING_STANDARD）。
+   */
+  if (!isApp) prompt += `${CESHU_DETAIL_REQUIREMENTS}\n\n`
   prompt += isApp
     ? onlyEmpty
       ? APP_REQUIREMENTS_ONLY_EMPTY
@@ -508,7 +562,18 @@ export function filterGeneratedFields(
   parsed: Record<string, unknown>
 ): Record<string, unknown> {
   const allowed = new Set<string>()
-  for (const field of chapterFieldsForDoc(doc, chapter)) allowed.add(field.key)
+  /*
+   * 中文名 → 英文字段 key 的回退表（2026-11-10 真实模型实测）：字段清单是
+   * 「中文名（english_key · 类型 · …）」，模型偶尔把中文名当 JSON 键返回
+   * （{"关键假设": "…"}），按未知键清洗会把整个单元丢空 ⇒ 这里认一下中文名。
+   * 只收**非点路径**字段：`user_personas.primary` 这类子字段的键是嵌套对象的属性名，
+   * 若把「主要用户」映射成点路径字符串，写回时就成了一个名为 "user_personas.primary" 的脏键。
+   */
+  const labelToKey = new Map<string, string>()
+  for (const field of chapterFieldsForDoc(doc, chapter)) {
+    allowed.add(field.key)
+    if (!field.key.includes('.') && field.label.trim() !== '') labelToKey.set(field.label.trim(), field.key)
+  }
   for (const key of Object.keys(chapterDataForDoc(doc, chapter))) allowed.add(key)
   const heads = new Set([...allowed].map((key) => key.split('.')[0]))
 
@@ -519,6 +584,10 @@ export function filterGeneratedFields(
     if (typeof value === 'string' && value === '') continue
     if (Array.isArray(value) && value.length === 0) continue
     if (allowed.has(key) || heads.has(key)) result[key] = value
+    else {
+      const mapped = labelToKey.get(key)
+      if (mapped !== undefined) result[mapped] = value
+    }
   }
   return result
 }
